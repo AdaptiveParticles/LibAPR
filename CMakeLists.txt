@@ -1,0 +1,127 @@
+cmake_minimum_required(VERSION 2.8)
+project(PartPlay)
+# Run as cmake -H. -Bbuild
+# On OSX it might br cmake -H. -Bbuild -DCMAKE_CXX_COMPILER=clang-omp++ -DCMAKE_C_COMPILER=clang-omp ..
+set(TESTS 1)
+if(TESTS)
+    find_package(GTest REQUIRED)
+endif(TESTS)
+find_package(OpenMP REQUIRED)
+find_package(HDF5 REQUIRED)
+include_directories(${HDF5_INCLUDE_DIRS} ${GTEST_INCLUDE_DIRS} sources tests)
+
+
+set(CMAKE_CXX_STANDARD 11)
+set(SOURCE_FILES
+
+        test/tests.cpp
+        test/utils.cpp
+        test/k_test.cpp
+        test/alg_cells_test.cpp
+
+        test/test_tree/level_iterator_test.cpp
+        test/test_tree/tree_fixtures.cpp
+
+        src/io/readimage.h
+        src/io/writeimage.h
+        src/io/parameters.cpp
+
+        src/data_structures/meshclass.h
+        src/data_structures/structure_parts.cpp
+        src/data_structures/Tree/utils.cpp
+
+        src/algorithm/pipeline.cpp
+
+        )
+
+set(SOURCE_FILES_COMPILED
+        src/data_structures/structure_parts.cpp
+        src/io/parameters.cpp
+        src/io/hdf5functions.cpp
+        )
+
+
+if (OPENMP_FOUND)
+    set (CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${OpenMP_C_FLAGS}")
+    set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${OpenMP_CXX_FLAGS}")
+endif(OPENMP_FOUND)
+
+
+# If you ever want to compile with icc it should look more or less like this:
+#set(CMAKE_CXX_COMPILER /opt/intel/compilers_and_libraries_2016/linux/bin/intel64/icc)
+#set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -qopenmp -ip -ansi-alias -xCORE-AVX2 ")
+#set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -qopenmp")
+
+if(CMAKE_COMPILER_IS_GNUCC)
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11 -O3 -ffast-math -I /usr/include/hdf5/serial/ -Bdynamic -ldl")
+    set(CMAKE_EXE_LINKER_FLAGS  "${CMAKE_EXE_LINKER_FLAGS} -Bdynamic -ldl ")
+endif(CMAKE_COMPILER_IS_GNUCC)
+if (CMAKE_CXX_COMPILER_ID MATCHES "Clang")
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fopenmp -O3 -ffast-math -Bdynamic")
+endif()
+
+
+if(TESTS)
+
+    add_executable(testBspline
+            test/tests.cpp
+            test/bspline_test.cpp
+            ${SOURCE_FILES_COMPILED}
+            test/utils.cpp
+            )
+    add_executable(testVariance
+            test/tests.cpp
+            test/variance_test.cpp
+            ${SOURCE_FILES_COMPILED}
+            test/utils.cpp
+            )
+    add_executable(testLevel
+            test/k_test.cpp
+            ${SOURCE_FILES_COMPILED}
+            test/utils.cpp
+            )
+    add_executable(testResult
+            test/alg_cells_test.cpp
+            src/io/write_parts.cpp
+            ${SOURCE_FILES_COMPILED}
+            test/utils.cpp
+            )
+
+    add_executable(testLevelIterator
+            test/test_tree/tree_fixtures.cpp
+            test/test_tree/level_iterator_test.cpp
+            src/data_structures/Tree/utils.cpp
+            )
+
+    add_executable(testTreeNeighbours
+            test/test_tree/tree_fixtures.cpp
+            test/test_tree/neighbours_test.cpp
+            src/data_structures/Tree/utils.cpp
+            )
+
+    add_executable(testTreeNeighboursFace
+            test/test_tree/tree_fixtures.cpp
+            test/test_tree/face_neighbours_test.cpp
+            src/data_structures/Tree/utils.cpp
+            )
+
+    target_link_libraries(testBspline ${HDF5_LIBRARIES} ${GTEST_LIBRARIES} pthread tiff)
+    target_link_libraries(testVariance ${HDF5_LIBRARIES} ${GTEST_LIBRARIES} pthread tiff)
+    target_link_libraries(testLevel ${HDF5_LIBRARIES} ${GTEST_LIBRARIES} pthread tiff)
+    target_link_libraries(testResult ${HDF5_LIBRARIES} ${GTEST_LIBRARIES} pthread tiff)
+    target_link_libraries(testLevelIterator ${HDF5_LIBRARIES} ${GTEST_LIBRARIES} pthread tiff)
+    target_link_libraries(testTreeNeighbours ${HDF5_LIBRARIES} ${GTEST_LIBRARIES} pthread tiff)
+    target_link_libraries(testTreeNeighboursFace ${HDF5_LIBRARIES} ${GTEST_LIBRARIES} pthread tiff)
+
+endif(TESTS)
+
+add_executable(pipeline
+        src/algorithm/pipeline.cpp
+        src/io/write_parts.cpp
+        ${SOURCE_FILES_COMPILED}
+        )
+
+target_link_libraries(pipeline ${HDF5_LIBRARIES} pthread tiff)
+
+
+
