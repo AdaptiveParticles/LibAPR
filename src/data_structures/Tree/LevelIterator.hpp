@@ -65,7 +65,6 @@ public:
             return;
         }
 
-
         uint8_t children = tree.tree[0] >> 8;
 
         for (uint8_t i = 0; i < 8; i++) {

@@ -124,7 +124,7 @@ public:
 
     }
 
-    coords3d get_coordinates(unsigned long current)
+    coords3d get_coordinates(uint64_t current)
     {
         /** Returns coordinates of a node pointed by the current index
          *  Complexity - O(log_{8}n) where n is number of nodes in the tree.
@@ -227,7 +227,7 @@ public:
         /** Get neighbours of a cell in one of the directions.
          *
          *  @param index       index of a node
-         *  @param face        direction to follow. Possible values are [0,6]
+         *  @param face        direction to follow. Possible values are [0,5]
          *                     They stand for [-z,-x,-y,y,x,z]
          *  @param coords      coordinates of the node
          *  @param multiplier  half of the radius of the current cell
@@ -324,17 +324,19 @@ private:
     /**
      * Structure of a node:
      *
-     * 32 bits empty (to use later)
+     * 48 bits empty (to use later)
      * 8 bits showing which kids are filled (if a parent node)
      * 4 bits empty
      * 4 bits status
      * 64 bits difference to parent in 64bits - local to the current node
      * One of:
      *  8 * 64 bits of indices to child nodes (if parent node) - local to the current node
-     *  8 * 64 bits of indices to contents array (if taken node)
      *  64 bit index to contents array (otherwise)
+     *
+     * Explanation: local pointer is a difference between current node index and parent/child node index
+     *              ex. current node index - parent local pointer = parent node index
+     *                  current node index + child local pointer = children node index
      */
-
 
     std::vector<Content> contents;
 
@@ -361,6 +363,16 @@ private:
                       uint8_t level, size_t position_in_level, size_t parent_index,
                       coords3d coords, uint16_t cell_elements)
     {
+
+        /**
+         *
+         *  @param particle_map      particle map structure with statuses and downsampled
+         *  @param level             the level of the parent
+         *  @param position_in_level the position of the current node in the 3d array (using x,y,z)
+         *  @param parent_index      index of the parent in the tree
+         *  @param coords            coordinates of the current node
+         *  @param cell_elements     diameter of the current cell
+         */
 
         // if no entries for level, it should be skipped
 

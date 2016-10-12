@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 2.8)
 project(PartPlay)
 # Run it out of source as cmake -H. -Bbuild ..
-
+set(TESTS 1)
 if(TESTS)
     find_package(GTest REQUIRED)
 endif(TESTS)
@@ -51,7 +51,7 @@ endif(OPENMP_FOUND)
 #set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -qopenmp")
 
 if(CMAKE_COMPILER_IS_GNUCC)
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11 -I /usr/include/hdf5/serial/ -Bdynamic -ldl")
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11 -O3 -ffast-math -I /usr/include/hdf5/serial/ -Bdynamic -ldl")
     set(CMAKE_EXE_LINKER_FLAGS  "${CMAKE_EXE_LINKER_FLAGS} -Bdynamic -ldl ")
 endif(CMAKE_COMPILER_IS_GNUCC)
 if (CMAKE_CXX_COMPILER_ID MATCHES "Clang")

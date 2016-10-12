@@ -8,7 +8,6 @@
 struct Content
 {
     // Change if you want to store more fields
-
     float intensity;
 };
 
