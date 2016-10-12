@@ -2,11 +2,31 @@
 
 Library for processing on APR representation
 
-Dependencies:
+## Dependencies:
 
-* HDF5 library installed and the library linked/included (libhdf5-dev
+* HDF5 library installed and the library linked/included (libhdf5-dev)
 * CMake
 * tiffio (libtiff5-dev debian/ubuntu)
+
+## Building
+
+### OSX preliminaries
+
+OSX currently ships with an older version of clang that does not support OpenMP. A more current version (3.8+) has to be installed, e.g. via homebrew:
+
+```
+brew install llvm
+```
+
+All further cmake commands then have to be prepended by
+
+```
+CC="/usr/local/opt/llvm/bin/clang" CXX="/usr/local/opt/llvm/bin/clang++"
+LDFLAGS="-L/usr/local/opt/llvm/lib -Wl,-rpath,/usr/local/opt/llvm/lib"
+CPPFLAGS="-I/usr/local/opt/llvm/include" CXXFLAGS="-std=c++14"
+```
+
+### Compilation
 
 Compilation (out of source):
 
@@ -27,7 +47,7 @@ Developer dependencies (optional):
     sudo make
     sudo mv libg* /usr/lib/
 ```
-How to run tests?
+## How to run tests?
 
 Tests are stored in a submodule. Run these commands in order to run tests:
 

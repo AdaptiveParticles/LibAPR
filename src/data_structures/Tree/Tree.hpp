@@ -98,7 +98,7 @@ public:
         for(unsigned int i = 0; i < NUMBEROFSONS; i++)
         {
 
-            coords3d new_coords = {(i & 2) != 0, i % 2, i > 3};
+            coords3d new_coords = {(i & 2) != 0, (int)i % 2, i > 3};
 
             tree[tofill + i] = current;
 
@@ -422,7 +422,7 @@ private:
                 for (unsigned int i = 0; i < NUMBEROFSONS; i++) {
 
                     coords3d new_coords = {2 * coords.x + ((i & 2) != 0),
-                                           2 * coords.y + i % 2,
+                                           2 * coords.y + (int)i % 2,
                                            2 * coords.z + (i > 3)};
 
                     if(child_in_image(new_coords, cell_elements)) {
