@@ -14,23 +14,44 @@
 template <typename T>
 class LevelIterator {
 
-    //complexity of iterating through a single layer - O(number of nodes in tree)
+    //
+
+    // Complexity of iterating through a single layer - O(number of nodes in tree)
+
 
 public:
 
+    /*
+     * half of the radius of the current cell (used for computing the coordinates)
+     */
     uint16_t level_multiplier;
+
+    /*
+     * which child of its parent the current node is
+     */
     uint8_t  child_index;
-    // change types to pair
+
+    /*
+     * Iterator definitions
+     */
     typedef uint64_t value_type;
     typedef ptrdiff_t difference_type;
     typedef uint64_t* pointer;
     typedef uint64_t& reference;
     typedef std::forward_iterator_tag iterator_category;
 
+    // Constructor for creating the end of any iteration.
     LevelIterator(Tree<T> &tree): current(ITERATOREND), tree(tree) {}
 
     LevelIterator(Tree<T> &tree, int level) : tree(tree), level(level)
     {
+        /**
+         * Constructor. Traverses the tree down and finds the first node on a given level.
+         *  In case of no elements on the level, ITERATOREND is returned
+         *
+         *  @param tree  the one you wish to iterate over
+         *  @param level 1 stands for the root, depth for the bottom layer
+         */
         level_multiplier = pow(2, tree.depth);
 
         current_coords.x = current_coords.y = current_coords.z = level_multiplier * 2;
@@ -58,7 +79,6 @@ public:
             }
 
             if (i == 7) {
-                // start = end?
                 current = ITERATOREND;
             }
         }
@@ -75,10 +95,10 @@ public:
 
     LevelIterator &operator=(LevelIterator&& iterator)
     {
+        // Be careful for move when using
         this -> ~LevelIterator();
         new (this) LevelIterator (std::move(iterator));
 
-        //std::cout << this->current << std::endl;
         return *this;
     }
 
@@ -160,6 +180,16 @@ private:
 
     bool found_children(uint64_t child, uint8_t new_level, uint16_t multiplier, coords3d current_coords)
     {
+        /**
+         * Returns true if there is a descendant in this branch of the tree on given level.
+         * Then it sets the object fields.
+         *
+         * @param child          checked subtree root
+         * @param new_level      the level relative to the subtree root. For example 1 means the search ends in the
+         *                       subtree root
+         * @param multiplier     half of the radius of the cell of the subtree root
+         * @param current_coords coordinates of the subtree root
+         */
         if(new_level == 1)
         {
             // it's here
@@ -203,6 +233,17 @@ private:
     LevelIterator& next_in_parent(uint64_t parent, coords3d parent_coords,
                                   uint16_t multiplier, int local_depth)
     {
+
+        /** Goes one up the tree until it finds the next cell on the level in one of the descendants.
+         *
+         * @param parent        parent index in the tree
+         * @param parent_coords coordinates of the parent
+         * @param multiplier    half of the radius of the cell of the parent
+         * @param local_depth   the level relative to the parent child. For example 1 means the search ends in a
+         *                      child of the parent
+         *
+         */
+
 
         if(parent == NOPARENT)
         {

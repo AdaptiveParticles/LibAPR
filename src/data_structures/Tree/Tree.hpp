@@ -42,7 +42,14 @@ public:
     std::vector<uint8_t> x_shift_half = {0,0,1,1,0,0,1,1};
     std::vector<uint8_t> z_shift_half = {0,0,0,0,1,1,1,1};
 
+    /*
+     * Size of the model in number of particles that fit and number of possible indices
+     */
     coords3d dims, dims_coords;
+
+    /*
+     * Number of layers without the root and the contents.
+     */
     uint8_t depth;
 
     uint64_t * get_raw_tree()
@@ -57,6 +64,13 @@ public:
 
     Tree(const Particle_map<T> &particle_map, std::vector<uint64_t> &tree_mem, std::vector<Content> &contents_mem)
     {
+        /** Constructs the tree and fills the content. Resizes the memory containers, so they fit the tree.
+         *  The memory is moved with C++ moved semantics from the input variables to object fields.
+         *
+         * @param particle_map structure with local particles and downsample imput images
+         * @param tree_mem     memory placeholder for the tree. Has to be able to contain whole tree without resizing.
+         * @param contents_mem memory placeholder for the contents. Same as above.
+         */
         tree = std::move(tree_mem);
         contents = std::move(contents_mem);
 
@@ -65,6 +79,7 @@ public:
         dims.y = particle_map.layers.back().y_num * 2;
         dims.z = particle_map.layers.back().z_num * 2;
         dims_coords = dims * 2;
+
 
         tree[0] = NOCHILD; // and a parent as well!! - not true!!
         tree[1] = NOPARENT; // no parent
@@ -111,6 +126,11 @@ public:
 
     coords3d get_coordinates(unsigned long current)
     {
+        /** Returns coordinates of a node pointed by the current index
+         *  Complexity - O(log_{8}n) where n is number of nodes in the tree.
+         *
+         *  @param current index to the node
+         */
 
         coords3d result = {1,1,1};
         uint16_t depth_multiplier = 2;
@@ -148,28 +168,44 @@ public:
 
         return result;
     }
-    // complexity - log8 (depth)
 
-    uint8_t get_status(uint64_t node) const
+    inline uint8_t get_status(uint64_t node) const
     {
+        /** Returns status of the node - can be one of:
+         *   PARENTSTATUS, TAKENSTATUS, NEIGHBOURSTATUS, SLOPESTATUS
+         *
+         *  @param node index to the node
+         */
         return (uint8_t)(tree[node] & 0b1111);
     }
 
-    uint64_t get_parent(uint64_t node) const
+    inline uint64_t get_parent(uint64_t node) const
     {
+        /** Returns index to the parent of the current node. In case there is no parent, returns the current node.
+         *
+         *  @param node index to the node
+         */
         return node - tree[node + 1];
     }
 
 
-    bool child_exists(uint8_t children, uint8_t current) const
+    inline bool child_exists(uint8_t children, uint8_t current) const
     {
+        /** Check if nth child of a node exists
+         *
+         *  @param children byte containing info about children
+         *  @param current  index of a child
+         */
         return (children & mask[current]) != 0;
     }
 
 
     inline uint8_t get_children(uint64_t node)
     {
-
+        /** Get byte containing information about children
+         *
+         *  @param node index of a node
+         */
         uint8_t children = tree[node] >> 8;
 
         return children;
@@ -177,7 +213,10 @@ public:
 
     Content& get_content(uint64_t index)
     {
-        // assumes index points to a leaf!
+        /** Get contents of a node. Undefined behaviour for nodes that are not leaves.
+         *
+         *  @param index index of a node
+         */
         return contents[tree[index + 2]];
     }
 
@@ -185,6 +224,17 @@ public:
     void get_face_neighbours(uint64_t index, uint8_t face, coords3d coords, uint16_t multiplier,
                              uint8_t child_index, std::vector<uint64_t> &result)
     {
+        /** Get neighbours of a cell in one of the directions.
+         *
+         *  @param index       index of a node
+         *  @param face        direction to follow. Possible values are [0,6]
+         *                     They stand for [-z,-x,-y,y,x,z]
+         *  @param coords      coordinates of the node
+         *  @param multiplier  half of the radius of the current cell
+         *  @param child_index what is the index of current node in parent's children
+         *  @param result      placeholder for the result. Should have at least 4 elements.
+         *                     Will contain result, and will be resized to correct size.
+         */
         bool faces[6] = {0,0,0,0,0,0};
         faces[face] = true;
         get_neighbours_internal(index, coords, multiplier, child_index, result, faces);
@@ -193,17 +243,26 @@ public:
     void get_neighbours(uint64_t index, coords3d coords, uint16_t multiplier,
                         uint8_t child_index, std::vector<uint64_t> &result)
     {
+        /** Get all neighbours of a cell.
+         *
+         *  @param index       index of a node
+         *  @param coords      coordinates of the node
+         *  @param multiplier  half of the radius of the current cell
+         *  @param child_index what is the index of current node in parent's children
+         *  @param result      placeholder for the result. Should have 15 elements (4*3 + 3). Will contain result,
+         *                     and will be resized to correct size.
+         */
         bool faces[6] = {1,1,1,1,1,1};
         get_neighbours_internal(index, coords, multiplier, child_index, result, faces);
     }
 
-    uint8_t get_child_index(uint64_t parent, uint64_t grandparent)
+    uint8_t get_child_index(uint64_t child, uint64_t parent)
     {
-        uint64_t difference = parent - grandparent;
+        uint64_t difference = child - parent;
 
         for(uint8_t i = 0; i < 8; i++)
         {
-            if(tree[grandparent + 2 + i] == difference)
+            if(tree[parent + 2 + i] == difference)
             {
                 return i;
             }
@@ -215,6 +274,14 @@ public:
 
     coords3d get_neighbour_coords(coords3d old, uint8_t index, uint16_t multiplier)
     {
+        /** Shifts coords to a neighbour using the index of a face
+         *
+         *  @param old        coordinates before shifting
+         *  @param index      the index of the face
+         *  @param multiplier radius of the cell
+         *
+         */
+
         old.y += von_neumann_y[index] * multiplier;
         old.x += von_neumann_x[index] * multiplier;
         old.z += von_neumann_z[index] * multiplier;
@@ -223,6 +290,13 @@ public:
 
     coords3d shift_coords(coords3d old, uint8_t index, uint16_t multiplier)
     {
+        /** Shifts coords to a child using the index of a child
+         *
+         *  @param old        coordinates before shifting
+         *  @param index      the index of the child
+         *  @param multiplier half of the radius of the parent's cell
+         *
+         */
 
         old.y += y_shift[index] * multiplier;
         old.x += x_shift[index] * multiplier;
@@ -232,6 +306,9 @@ public:
 
     coords3d get_parent_coords(coords3d old, uint16_t multiplier, uint8_t child_index)
     {
+        /** Get coordinates of the parent
+         *
+         */
         old.y -=  y_shift[child_index] * multiplier;
         old.x -=  x_shift[child_index] * multiplier;
         old.z -=  z_shift[child_index] * multiplier;

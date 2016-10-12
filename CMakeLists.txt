@@ -28,7 +28,6 @@ set(SOURCE_FILES
 
         src/data_structures/meshclass.h
         src/data_structures/structure_parts.cpp
-        src/data_structures/Tree/utils.cpp
 
         src/algorithm/pipeline.cpp
 
@@ -53,7 +52,7 @@ endif(OPENMP_FOUND)
 #set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -qopenmp")
 
 if(CMAKE_COMPILER_IS_GNUCC)
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11 -O3 -ffast-math -I /usr/include/hdf5/serial/ -Bdynamic -ldl")
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11 -I /usr/include/hdf5/serial/ -Bdynamic -ldl")
     set(CMAKE_EXE_LINKER_FLAGS  "${CMAKE_EXE_LINKER_FLAGS} -Bdynamic -ldl ")
 endif(CMAKE_COMPILER_IS_GNUCC)
 if (CMAKE_CXX_COMPILER_ID MATCHES "Clang")
@@ -90,19 +89,16 @@ if(TESTS)
     add_executable(testLevelIterator
             test/test_tree/tree_fixtures.cpp
             test/test_tree/level_iterator_test.cpp
-            src/data_structures/Tree/utils.cpp
             )
 
     add_executable(testTreeNeighbours
             test/test_tree/tree_fixtures.cpp
             test/test_tree/neighbours_test.cpp
-            src/data_structures/Tree/utils.cpp
             )
 
     add_executable(testTreeNeighboursFace
             test/test_tree/tree_fixtures.cpp
             test/test_tree/face_neighbours_test.cpp
-            src/data_structures/Tree/utils.cpp
             )
 
     target_link_libraries(testBspline ${HDF5_LIBRARIES} ${GTEST_LIBRARIES} pthread tiff)

@@ -1,0 +1,3 @@
+[submodule "APR_tests"]
+	path = APR_tests
+	url = https://github.com/msusik/APR_tests

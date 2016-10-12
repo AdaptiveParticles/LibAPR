@@ -5,7 +5,10 @@
 #ifndef TREE_CONTENT_HPP
 #define TREE_CONTENT_HPP
 
-struct Content{
+struct Content
+{
+    // Change if you want to store more fields
+
     float intensity;
 };
 
