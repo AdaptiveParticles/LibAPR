@@ -1,12 +1,11 @@
 cmake_minimum_required(VERSION 2.8)
 project(PartPlay)
-# Run as cmake -H. -Bbuild
-# On OSX it might br cmake -H. -Bbuild -DCMAKE_CXX_COMPILER=clang-omp++ -DCMAKE_C_COMPILER=clang-omp ..
-set(TESTS 1)
+# Run it out of source as cmake -H. -Bbuild ..
+
 if(TESTS)
     find_package(GTest REQUIRED)
 endif(TESTS)
-find_package(OpenMP REQUIRED)
+find_package(OpenMP)
 find_package(HDF5 REQUIRED)
 include_directories(${HDF5_INCLUDE_DIRS} ${GTEST_INCLUDE_DIRS} sources tests)
 
@@ -56,7 +55,10 @@ if(CMAKE_COMPILER_IS_GNUCC)
     set(CMAKE_EXE_LINKER_FLAGS  "${CMAKE_EXE_LINKER_FLAGS} -Bdynamic -ldl ")
 endif(CMAKE_COMPILER_IS_GNUCC)
 if (CMAKE_CXX_COMPILER_ID MATCHES "Clang")
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fopenmp -O3 -ffast-math -Bdynamic")
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O3 -ffast-math -Bdynamic")
+    if (NOT NO_OPENMP)
+        set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fopenmp")
+    endif()
 endif()
 
 

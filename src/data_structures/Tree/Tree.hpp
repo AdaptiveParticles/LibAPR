@@ -308,6 +308,9 @@ public:
     {
         /** Get coordinates of the parent
          *
+         * @param old         index of the current cell
+         * @param multiplier  half of the radius of the current cell
+         * @param child_index what is the index of current node in parent's children
          */
         old.y -=  y_shift[child_index] * multiplier;
         old.x -=  x_shift[child_index] * multiplier;
@@ -318,7 +321,7 @@ public:
 
 private:
     std::vector<uint64_t> tree;
-    /*
+    /**
      * Structure of a node:
      *
      * 32 bits empty (to use later)
@@ -335,6 +338,7 @@ private:
 
     std::vector<Content> contents;
 
+    // Variables used when the tree is built
     size_t current_tree_index = 0;
     size_t current_context_index = 0;
 
@@ -392,7 +396,7 @@ private:
                 int current = 1;
                 current_index += PARENTSIZE;
                 for (uint8_t i = 0; i < NUMBEROFSONS; i++) {
-                    // boundaries?
+
                     coords3d new_coords = {2 * coords.x + ((i & 2) != 0), 2 * coords.y + i % 2, 2 * coords.z + (i > 3)};
 
                     if (child_in_image(new_coords, cell_elements)) {
