@@ -33,7 +33,7 @@ Compilation (out of source):
 ```
    mkdir build
    cd build
-   cmake -H. -Bbuild ..`
+   cmake -H. -Bbuild ..
 ```
 
 Developer dependencies (optional):
@@ -47,6 +47,16 @@ Developer dependencies (optional):
     sudo make
     sudo mv libg* /usr/lib/
 ```
+
+For OSX users, clone the repository at https://github.com/google/googletest, then within the repo :
+```
+mkdir build
+cd build
+cmake ..
+make
+make install
+```
+
 ## How to run tests?
 
 Tests are stored in a submodule. Run these commands in order to run tests:

@@ -111,4 +111,25 @@ void write_image_tiff(Mesh_data<T>& image,std::string filename){
 
 }
 
+template <typename T>
+void debug_write(Mesh_data<T> input,std::string img_name){
+    
+    
+    std::string image_path;
+    
+    std::string name = "debug";
+    
+    image_path = get_path("IMAGE_GEN_PATH");
+    
+    
+    //debug
+    Mesh_data<uint16_t> output_int;
+    output_int.initialize(input.y_num,input.x_num,input.z_num,0);
+    std::copy(input.mesh.begin(),input.mesh.end(),output_int.mesh.begin());
+    
+    write_image_tiff(output_int, image_path + img_name + ".tif");
+    
+}
+
+
 #endif //PARTPLAY_WRITEIMAGE_H

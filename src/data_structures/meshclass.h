@@ -51,7 +51,7 @@ struct coords3d {
 
     friend std::ostream& operator<<(std::ostream& os, const coords3d& coords)
     {
-        std::cout << coords.y << " " << coords.x << " " << coords.z;
+        return std::cout << coords.y << " " << coords.x << " " << coords.z;
     }
 
     bool contains(coords3d neighbour, uint8_t multiplier)

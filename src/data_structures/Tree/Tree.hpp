@@ -375,7 +375,7 @@ private:
          */
 
         // if no entries for level, it should be skipped
-
+        
         size_t status;
 
         if(particle_map.layers[level].mesh.size())

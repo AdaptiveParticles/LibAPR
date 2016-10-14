@@ -11,6 +11,7 @@
 #include "../data_structures/Tree/LevelIterator.hpp"
 #include "../data_structures/Tree/Tree.hpp"
 #include "level.hpp"
+#include "../io/writeimage.h"
 
 bool command_option_exists(char **begin, char **end, const std::string &option)
 {
@@ -32,7 +33,7 @@ cmdLineOptions read_command_line_options(int argc, char **argv, Part_rep& part_r
     cmdLineOptions result;
 
     if(argc == 1) {
-        std::cerr << "Usage: \"pipeline -i inputfile [-t] [-s example_name -d stats_directory] [-l lambda] [-o outputfile]\"" << std::endl;
+        std::cerr << "Usage: \"pipeline -i inputfile [-t] [-s example_name -d stats_directory] [-o outputfile]\"" << std::endl;
         exit(1);
     }
 
@@ -51,7 +52,7 @@ cmdLineOptions read_command_line_options(int argc, char **argv, Part_rep& part_r
 
     if(command_option_exists(argv, argv + argc, "-d"))
     {
-        result.stats_directory = std::string(get_command_option(argv, argv + argc, "-sd"));
+        result.stats_directory = std::string(get_command_option(argv, argv + argc, "-d"));
     }
     if(command_option_exists(argv, argv + argc, "-s"))
     {
@@ -145,13 +146,16 @@ int main(int argc, char **argv) {
     part_rep.timer.start_timer("get_level_3D");
     get_level_3D(variance, gradient, part_rep, part_map, temp);
     part_rep.timer.stop_timer();
-
+    
+    
+    // free memory (not used anymore)
+    std::vector<float>().swap( gradient.mesh );
+    std::vector<float>().swap( variance.mesh );
+    
 
     part_rep.timer.start_timer("pushing_scheme");
     part_map.pushing_scheme(part_rep);
     part_rep.timer.stop_timer();
-
-
 
     part_rep.timer.start_timer("estimate_part_intensity");
 
@@ -166,11 +170,11 @@ int main(int argc, char **argv) {
     part_rep.timer.start_timer("iterating");
 
     size_t main_elems = 0;
-    std::vector<size_t> elems(16, 0);
+    std::vector<size_t> elems(25, 0);
     std::vector<uint64_t> neighbours(20);
-    for(LevelIterator<float> it(tree, 9); it != it.end(); it++)
+    for(LevelIterator<float> it(tree, part_rep.pl_map.k_max); it != it.end(); it++)
     {
-        neighbours.resize(15);
+        neighbours.resize(24);
         tree.get_neighbours(*it, it.get_current_coords(), it.level_multiplier,
                             it.child_index, neighbours);
         main_elems++;
@@ -181,8 +185,6 @@ int main(int argc, char **argv) {
 
     part_rep.timer.stop_timer();
 
-    // free memory (not used anymore)
-    std::vector<float>().swap( gradient.mesh );
-    std::vector<float>().swap( variance.mesh );
+    
 
 }

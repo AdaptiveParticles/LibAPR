@@ -369,7 +369,25 @@ public :
 
 
 
-        } else {
+        } else if (k == k_min){
+        // k_max loop, has to include
+#pragma omp parallel for default(shared) private(i,q,temp) if(z_num*x_num*y_num > 100000)
+            for(int j = 0;j < z_num;j++){
+                for(i = 0;i < x_num;i++){
+                    for (q = 0; q < (y_num);q++){
+                        
+                        temp = input.mesh[j*x_num*y_num + i*y_num + q] <= k;
+                        
+                        if ( temp ) {
+                            layers[k_min].mesh[j*x_num*y_num + i*y_num + q] = TAKENSTATUS;
+                        }
+                    }
+                }
+            }
+            
+            
+            
+        } else{
             // other k's
 
 #pragma omp parallel for default(shared) private(i,q,temp) if(z_num*x_num*y_num > 100000)
