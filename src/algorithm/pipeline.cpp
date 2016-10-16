@@ -5,6 +5,7 @@
 #include "pipeline.h"
 #include "../data_structures/meshclass.h"
 #include "../io/readimage.h"
+
 #include "gradient.hpp"
 #include "../data_structures/particle_map.hpp"
 #include "../data_structures/Tree/Content.hpp"
@@ -12,6 +13,7 @@
 #include "../data_structures/Tree/Tree.hpp"
 #include "level.hpp"
 #include "../io/writeimage.h"
+#include "../io/write_parts.h"
 
 bool command_option_exists(char **begin, char **end, const std::string &option)
 {
@@ -131,8 +133,11 @@ int main(int argc, char **argv) {
     temp.preallocate(gradient.y_num, gradient.x_num, gradient.z_num, 0);
 
     t.start_timer("whole");
-
-
+    
+    part_map.downsample(input_image_float);
+    
+    std::swap(part_map.downsampled[part_map.k_max+1],input_image_float);
+    
     part_rep.timer.start_timer("get_gradient_3D");
     get_gradient_3D(part_rep, input_image_float, gradient);
     part_rep.timer.stop_timer();
@@ -158,11 +163,11 @@ int main(int argc, char **argv) {
     part_rep.timer.stop_timer();
 
     part_rep.timer.start_timer("estimate_part_intensity");
-
-    part_map.downsample(input_image_float);
+    
+    std::swap(part_map.downsampled[part_map.k_max+1],input_image_float);
+    
     Tree<float> tree(part_map, tree_mem, contents);
     part_rep.timer.stop_timer();
-
 
     t.stop_timer();
 
@@ -172,19 +177,45 @@ int main(int argc, char **argv) {
     size_t main_elems = 0;
     std::vector<size_t> elems(25, 0);
     std::vector<uint64_t> neighbours(20);
-    for(LevelIterator<float> it(tree, part_rep.pl_map.k_max); it != it.end(); it++)
-    {
-        neighbours.resize(24);
-        tree.get_neighbours(*it, it.get_current_coords(), it.level_multiplier,
-                            it.child_index, neighbours);
-        main_elems++;
-
-        elems[neighbours.size()]++;
+    std::vector<coords3d> part_coords;
+    
+    uint64_t curr;
+    size_t curr_status;
+    
+    for(int l = part_rep.pl_map.k_min;l <= part_rep.pl_map.k_max + 1;l++){
+        for(LevelIterator<float> it(tree, l); it != it.end(); it++)
+        {
+            curr = *it;
+            
+            curr_status = tree.get_status(*it);
+            
+            it.get_current_particle_coords(part_coords);
+            
+            neighbours.resize(24);
+            tree.get_neighbours(*it, it.get_current_coords(), it.level_multiplier,
+                                it.child_index, neighbours);
+            main_elems++;
+            
+            elems[neighbours.size()]++;
+            
+        }
     }
 
-
     part_rep.timer.stop_timer();
-
     
+    std::cout << "Size of data structure: " << tree.get_tree_size() << std::endl;
+    std::cout << "Number of parts : " << tree.get_content_size() << std::endl;
+    std::cout << "Ratio : " << ((float)tree.get_tree_size())/((float)tree.get_content_size()) << std::endl;
+    
+    std::cout << "Size of data structure (MB): " << tree.get_tree_size()*8.0/1000000.0 << std::endl;
+    std::cout << "Size of parts (MB): " << tree.get_content_size()*4.0/1000000.0 << std::endl;
+    
+    std::cout << "Size of image (MB): " << part_rep.org_dims[0]*part_rep.org_dims[1]*part_rep.org_dims[2]*4.0/1000000.0 << std::endl;
+    
+    
+    //output
+    std::string save_loc = options.output;
+    std::string file_name = options.stats;
+    write_apr_full_format(part_rep,tree,save_loc,file_name);
 
 }

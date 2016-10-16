@@ -17,6 +17,7 @@
 #include <iostream>
 #include <iterator>
 #include <vector>
+#include <algorithm>
 
 #define PARENTSIZE 10
 #define LEAFSIZE 3
@@ -61,6 +62,15 @@ public:
     {
         return contents.data();
     }
+    
+    uint64_t get_tree_size(){
+        return tree.size();
+    }
+    
+    uint64_t get_content_size(){
+        return contents.size();
+    }
+    
 
     Tree(const Particle_map<T> &particle_map, std::vector<uint64_t> &tree_mem, std::vector<Content> &contents_mem)
     {
@@ -176,6 +186,7 @@ public:
          *
          *  @param node index to the node
          */
+        
         return (uint8_t)(tree[node] & 0b1111);
     }
 
@@ -219,6 +230,15 @@ public:
          */
         return contents[tree[index + 2]];
     }
+    
+    Content& get_content_part(uint64_t index,uint64_t part_index)
+    {
+        /** Get contents of a node. Undefined behaviour for nodes that are not leaves.
+         *
+         *  @param index index of a node
+         */
+        return contents[tree[index + 2] + part_index];
+    }
 
 
     void get_face_neighbours(uint64_t index, uint8_t face, coords3d coords, uint16_t multiplier,
@@ -230,7 +250,7 @@ public:
          *  @param face        direction to follow. Possible values are [0,5]
          *                     They stand for [-z,-x,-y,y,x,z]
          *  @param coords      coordinates of the node
-         *  @param multiplier  half of the radius of the current cell
+         *  @param multiplier  half of the radius of the current cell ( * 2^(k_max - level + 2) diameter of the current cell in the final co_ordinate system (used for computing the coordinates) (Double the effective pixel grid))
          *  @param child_index what is the index of current node in parent's children
          *  @param result      placeholder for the result. Should have at least 4 elements.
          *                     Will contain result, and will be resized to correct size.
@@ -247,7 +267,7 @@ public:
          *
          *  @param index       index of a node
          *  @param coords      coordinates of the node
-         *  @param multiplier  half of the radius of the current cell
+         *  @param multiplier  half of the radius of the current cell (  2^(k_max - level + 2) diameter of the current cell in the final co_ordinate system (used for computing the coordinates) (Double the effective pixel grid))
          *  @param child_index what is the index of current node in parent's children
          *  @param result      placeholder for the result. Should have 15 elements (4*3 + 3). Will contain result,
          *                     and will be resized to correct size.
@@ -278,7 +298,7 @@ public:
          *
          *  @param old        coordinates before shifting
          *  @param index      the index of the face
-         *  @param multiplier radius of the cell
+         *  @param multiplier radius of the cell  ( 2^(k_max - level + 2) diameter of the current cell in the final co_ordinate system (used for computing the coordinates) (Double the effective pixel grid))
          *
          */
 
@@ -294,7 +314,7 @@ public:
          *
          *  @param old        coordinates before shifting
          *  @param index      the index of the child
-         *  @param multiplier half of the radius of the parent's cell
+         *  @param multiplier half of the radius of the parent's cell ( * 2^(k_max - level + 2) diameter of the current cell in the final co_ordinate system (used for computing the coordinates) (Double the effective pixel grid))
          *
          */
 
@@ -309,13 +329,54 @@ public:
         /** Get coordinates of the parent
          *
          * @param old         index of the current cell
-         * @param multiplier  half of the radius of the current cell
+         * @param multiplier  half of the radius of the current cell (  2^(k_max - level + 2) diameter of the current cell in the final co_ordinate system (used for computing the coordinates) (Double the effective pixel grid))
          * @param child_index what is the index of current node in parent's children
          */
         old.y -=  y_shift[child_index] * multiplier;
         old.x -=  x_shift[child_index] * multiplier;
         old.z -=  z_shift[child_index] * multiplier;
         return old;
+    }
+    
+    void get_particle_coords(std::vector<coords3d>& part_coords, coords3d cell_coords,uint16_t level_multiplier, uint8_t status){
+    
+        /** Get coordinates of the particle in a cell
+         *
+         * @out   part_coords co_ordinates of the individual particles
+         * @param cell_coords coordinates of the current cell
+         * @param level_multiplier  half of the radius of the current cell (  2^(k_max - level + 2) diameter of the current cell in the final co_ordinate system (used for computing the coordinates) (Double the effective pixel grid))
+         * @param status status of the current cell
+         */
+        
+        
+        switch(status){
+            case PARENTSTATUS:
+            {
+                part_coords.resize(0);
+                
+                break;
+            }
+            case TAKENSTATUS:
+            {
+                part_coords.resize(8);
+                level_multiplier /= 4;
+                
+                for (unsigned int i = 0; i < NUMBEROFSONS; i++){
+                    part_coords[i] = { cell_coords.x + level_multiplier*(2*((i & 2) != 0)-1),
+                        cell_coords.y + level_multiplier*(2*(((int)i % 2)-1)),cell_coords.z + level_multiplier*(2*(i > 3)-1)
+                    };
+                }
+
+                break;
+            }
+            default:
+            {
+                part_coords.resize(1);
+                part_coords[0] = cell_coords;
+                break;
+            }
+        }
+        
     }
 
 
@@ -395,6 +456,9 @@ private:
 
         size_t index = current_tree_index;
         uint64_t current_index = 0;
+        
+        
+        
 
         tree[current_tree_index] = status;
         tree[current_tree_index + 1] = index - parent_index;
@@ -444,8 +508,16 @@ private:
                                 ]
                         };
                     } else {
-                        contents[current_context_index + 1] = contents[current_context_index];
-                        current_context_index++;
+                        // out of boundary check, needs to take an intensity of the boundary of the image
+                        new_coords = {std::min((uint16_t) new_coords.x,(uint16_t)(floor(dims.x/((float)cell_elements)))),std::min((uint16_t)new_coords.y,(uint16_t)(floor(dims.y/((float)cell_elements)))),std::min((uint16_t)new_coords.z,(uint16_t)(floor(dims.z/((float)cell_elements))))};
+                        
+                        contents[current_context_index++] = {
+                            particle_map.downsampled[level + 1].mesh[
+                                        particle_map.downsampled[level + 1].index(new_coords)]};
+                        
+                        
+                        //contents[current_context_index + 1] = contents[current_context_index];
+                        //current_context_index++;
                     }
                 }
                 current_index += LEAFSIZE;

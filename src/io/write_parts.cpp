@@ -1,6 +1,164 @@
 
 #include "write_parts.h"
 
+void write_apr_full_format(Part_rep& p_rep,Tree<float>& tree,std::string save_loc,std::string file_name){
+    //
+    //
+    //  Bevan Cheeseman 2015
+    //
+    //  Writes APR to hdf5 file, including xdmf to make readible by paraview, and includes any fields that are flagged extra to print
+    //
+    //
+    
+    std::cout << "Writing parts to hdf5 file, in full format..." << std::endl;
+    
+    //containers for all the variables
+    std::vector<uint8_t> k_vec;
+    
+    std::vector<uint8_t> type_vec;
+    
+    std::vector<uint16_t> x_c;
+    std::vector<uint16_t> y_c;
+    std::vector<uint16_t> z_c;
+    
+    std::vector<uint16_t> Ip;
+    
+    
+    int num_cells = 0;
+    int num_parts = 0 ;
+    
+    std::vector<coords3d> part_coords;
+    uint8_t curr_status = 0;
+    
+    int counter = 0;
+    
+    for(int l = p_rep.pl_map.k_min;l <= (p_rep.pl_map.k_max+1);l++){
+        for(LevelIterator<float> it(tree, l); it != it.end(); it++)
+        {
+            
+            it.get_current_particle_coords(part_coords);
+            curr_status = tree.get_status(*it);
+            
+                        
+            for(int i = 0; i < part_coords.size();i++){
+                counter++;
+                type_vec.push_back(curr_status);
+                k_vec.push_back(l);
+                x_c.push_back(part_coords[i].x);
+                y_c.push_back(part_coords[i].y);
+                z_c.push_back(part_coords[i].z);
+                Ip.push_back((uint16_t)(tree.get_content_part(*it,i)).intensity);
+            }
+            
+            if(curr_status > 0){
+                num_cells++;
+            }
+            
+        }
+    }
+    
+    num_parts = x_c.size();
+    
+    std::string hdf5_file_name = save_loc + file_name + "_full_part.h5";
+    
+    file_name = file_name + "_full_part";
+    
+    hdf5_create_file(hdf5_file_name);
+    
+    //hdf5 inits
+    hid_t fid, pr_groupid, obj_id,attr_id, data_id, type_id, dataspace, type_class, space_id;
+    H5G_info_t info;
+    
+    hsize_t     dims_out[2];
+    hsize_t     mdims_out[2];
+    hsize_t rank = 1;
+    
+    hsize_t dims;
+    
+    fid = H5Fopen(hdf5_file_name.c_str(),H5F_ACC_RDWR,H5P_DEFAULT);
+    
+    //Get the group you want to open
+    
+    float *buff2 = new float[2];
+    //////////////////////////////////////////////////////////////////
+    //
+    //  Write meta-data to the file
+    //
+    //
+    //
+    ///////////////////////////////////////////////////////////////////////
+    dims = 1;
+    
+    pr_groupid = H5Gcreate2(fid,"ParticleRepr",H5P_DEFAULT,H5P_DEFAULT,H5P_DEFAULT);
+    H5Gget_info( pr_groupid, &info );
+    
+    hdf5_write_attribute(pr_groupid,H5T_NATIVE_INT,"x_num",1,&dims, &p_rep.org_dims[1] );
+    hdf5_write_attribute(pr_groupid,H5T_NATIVE_INT,"y_num",1,&dims, &p_rep.org_dims[0] );
+    hdf5_write_attribute(pr_groupid,H5T_NATIVE_INT,"z_num",1,&dims, &p_rep.org_dims[2] );
+    
+    
+    obj_id = H5Gcreate2(fid,"ParticleRepr/t",H5P_DEFAULT,H5P_DEFAULT,H5P_DEFAULT);
+    
+    dims_out[0] = 1;
+    dims_out[1] = 1;
+    
+    //just an identifier in here for the reading of the parts
+    
+    hdf5_write_attribute(pr_groupid,H5T_NATIVE_INT,"num_parts",1,dims_out, &num_parts );
+    
+    hdf5_write_attribute(pr_groupid,H5T_NATIVE_INT,"num_cells",1,dims_out, &num_cells );
+    
+    hdf5_write_attribute(pr_groupid,H5T_NATIVE_INT,"k_max",1,&dims, &p_rep.pl_map.k_max );
+    hdf5_write_attribute(pr_groupid,H5T_NATIVE_INT,"k_min",1,&dims, &p_rep.pl_map.k_min );
+    //////////////////////////////////////////////////////////////////
+    //
+    //  Write data to the file
+    //
+    //
+    //
+    ///////////////////////////////////////////////////////////////////////
+    
+    dims = num_parts;
+    
+    //write the x co_ordinates
+    
+    dims = num_parts;
+    hdf5_write_data(obj_id,H5T_NATIVE_UINT16,"x",rank,&dims, x_c.data() );
+    
+    //write the y co_ordinates
+    dims = num_parts;
+    hdf5_write_data(obj_id,H5T_NATIVE_UINT16,"y",rank,&dims, y_c.data() );
+    
+    //write the z co_ordinates
+    
+    dims = num_parts;
+    hdf5_write_data(obj_id,H5T_NATIVE_UINT16,"z",rank,&dims, z_c.data() );
+    
+    //write the z co_ordinates
+    
+    dims = num_parts;
+    hdf5_write_data(obj_id,H5T_NATIVE_UINT8,"type",rank,&dims, type_vec.data() );
+    
+    dims = num_parts;
+    hdf5_write_data(obj_id,H5T_NATIVE_UINT8,"k",rank,&dims, k_vec.data() );
+    
+    dims = num_parts;
+    hdf5_write_data(obj_id,H5T_NATIVE_UINT16,"Ip",rank,&dims,Ip.data()  );
+    
+    
+    //close shiz
+    H5Gclose(obj_id);
+    H5Gclose(pr_groupid);
+    H5Fclose(fid);
+    
+    //create the xdmf file
+    write_full_xdmf_xml(save_loc,file_name,num_parts);
+    
+    
+    std::cout << "Writing Complete" << std::endl;
+    
+}
+
 void write_apr_to_hdf5(Part_rep& p_rep,std::string save_loc,std::string file_name){
     //
     //

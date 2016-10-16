@@ -22,7 +22,7 @@ class LevelIterator {
 public:
 
     /*
-     * half of the radius of the current cell (used for computing the coordinates)
+     * 2^(k_max - level + 2) diameter of the current cell in the final co_ordinate system (used for computing the coordinates) (Double the effective pixel grid)
      */
     uint16_t level_multiplier;
 
@@ -112,7 +112,7 @@ public:
     }
 
 
-    uint64_t &operator*() {
+    uint64_t& operator*() {
         return current;
     }
 
@@ -174,9 +174,19 @@ public:
     {
         return current_coords;
     }
+    
+    void get_current_particle_coords(std::vector<coords3d>& part_coords){
+        tree.get_particle_coords(part_coords, current_coords,level_multiplier, tree.get_status(current));
+    }
+    
 
 private:
-
+    
+    
+   
+    
+    
+    
     bool found_children(uint64_t child, uint8_t new_level, uint16_t multiplier, coords3d current_coords)
     {
         /**
@@ -186,7 +196,7 @@ private:
          * @param child          checked subtree root
          * @param new_level      the level relative to the subtree root. For example 1 means the search ends in the
          *                       subtree root
-         * @param multiplier     half of the radius of the cell of the subtree root
+         * @param multiplier      * 2^(k_max - level + 2) diameter of the current cell in the final co_ordinate system (used for computing the coordinates) (Double the effective pixel grid)
          * @param current_coords coordinates of the subtree root
          */
         if(new_level == 1)
@@ -237,7 +247,7 @@ private:
          *
          * @param parent        parent index in the tree
          * @param parent_coords coordinates of the parent
-         * @param multiplier    half of the radius of the cell of the parent
+         * @param multiplier    half of the radius of the cell of the parent (  2^(k_max - level + 2) diameter of the current cell in the final co_ordinate system (used for computing the coordinates) (Double the effective pixel grid))
          * @param local_depth   the level relative to the parent child. For example 1 means the search ends in a
          *                      child of the parent
          *
