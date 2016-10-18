@@ -50,7 +50,7 @@ private:
     std::vector<int> dims;
 
     bool neigh_type = MOORE;
-
+    
     void check_boundaries(short axis, int var, int limit, short (&boundaries)[3][2])
     {
 
@@ -272,7 +272,10 @@ public :
         k_min = p_rep.pl_map.k_min;
         k_max = p_rep.pl_map.k_max;
     }
-
+    
+        
+    
+    
     void initialize(std::vector<int> dims)
     {
         //make so you can reference the array as k

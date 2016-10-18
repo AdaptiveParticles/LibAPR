@@ -77,8 +77,8 @@ public :
     //data on local
     std::vector<T> mesh;
 
-    std::vector<float> mesh_float;
-    //data on arrayfire device
+    
+
 
 
     Mesh_data()

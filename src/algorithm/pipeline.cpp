@@ -11,9 +11,13 @@
 #include "../data_structures/Tree/Content.hpp"
 #include "../data_structures/Tree/LevelIterator.hpp"
 #include "../data_structures/Tree/Tree.hpp"
+#include "../data_structures/Tree/PartCellBase.hpp"
+#include "../data_structures/Tree/PartCellStructure.hpp"
 #include "level.hpp"
 #include "../io/writeimage.h"
 #include "../io/write_parts.h"
+
+
 
 bool command_option_exists(char **begin, char **end, const std::string &option)
 {
@@ -79,6 +83,8 @@ cmdLineOptions read_command_line_options(int argc, char **argv, Part_rep& part_r
 
 }
 
+
+void create_sparse_graph_format(Particle_map<float>& part_map);
 
 int main(int argc, char **argv) {
 
@@ -216,6 +222,26 @@ int main(int argc, char **argv) {
     //output
     std::string save_loc = options.output;
     std::string file_name = options.stats;
+    
+    part_rep.timer.start_timer("write full");
     write_apr_full_format(part_rep,tree,save_loc,file_name);
+    part_rep.timer.stop_timer();
+    
+    part_rep.timer.start_timer("write tree");
+    write_apr_tree_format(part_rep,tree,save_loc,file_name);
+    part_rep.timer.stop_timer();
+    
+    part_rep.timer.start_timer("write tree");
+    write_apr_partmap_format(part_rep,part_map,tree,save_loc,file_name);
+    part_rep.timer.stop_timer();
+    
+    //testing sparse format
+    
+    PartCellStructure<float,uint64_t> pcell_test(part_map);
+        
+    
 
+    
 }
+
+
