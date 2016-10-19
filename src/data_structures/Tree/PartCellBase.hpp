@@ -23,6 +23,7 @@ public:
      */
     uint8_t depth;
     
+    
     PartCellBase(){};
     
     //returns the global co_ordinates of a particle cell

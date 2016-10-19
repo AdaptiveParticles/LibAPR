@@ -48,6 +48,11 @@ struct coords3d {
     {
         return within.y < boundaries.y && within.x < boundaries.x && within.z < boundaries.z;
     }
+    
+    friend bool operator ==(coords3d within, coords3d boundaries)
+    {
+        return within.y == boundaries.y && within.x == boundaries.x && within.z == boundaries.z;
+    }
 
     friend std::ostream& operator<<(std::ostream& os, const coords3d& coords)
     {

@@ -167,7 +167,9 @@ int main(int argc, char **argv) {
     part_rep.timer.start_timer("pushing_scheme");
     part_map.pushing_scheme(part_rep);
     part_rep.timer.stop_timer();
-
+    
+ 
+    
     part_rep.timer.start_timer("estimate_part_intensity");
     
     std::swap(part_map.downsampled[part_map.k_max+1],input_image_float);
@@ -231,15 +233,15 @@ int main(int argc, char **argv) {
     write_apr_tree_format(part_rep,tree,save_loc,file_name);
     part_rep.timer.stop_timer();
     
-    part_rep.timer.start_timer("write tree");
+    part_rep.timer.start_timer("write partmap");
     write_apr_partmap_format(part_rep,part_map,tree,save_loc,file_name);
     part_rep.timer.stop_timer();
     
     //testing sparse format
     
+    part_rep.timer.start_timer("compute new structure");
     PartCellStructure<float,uint64_t> pcell_test(part_map);
-        
-    
+    part_rep.timer.stop_timer();
 
     
 }

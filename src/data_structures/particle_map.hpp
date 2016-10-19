@@ -305,10 +305,6 @@ public :
 
             // SPREAD DIRECT NEIGHBOURSTATUS
 
-            const int x_num = layers[level].x_num;
-            const int y_num = layers[level].y_num;
-            const int z_num = layers[level].z_num;
-
             if( level != p_rep.pl_map.k_max ) {
 
                 set_ascendant_neighbours(level);
@@ -320,7 +316,6 @@ public :
             fill_neighbours(level);
 
         }
-
 
     }
 
