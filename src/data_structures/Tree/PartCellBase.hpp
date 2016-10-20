@@ -32,6 +32,10 @@ public:
     //returns the status of a particle cell
     inline uint8_t get_status(S node) const;
     
+private:
+    
+
+    
 };
 
 #endif //PARTPLAY_PARTCELLBASE_HPP

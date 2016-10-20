@@ -180,31 +180,38 @@ int main(int argc, char **argv) {
     t.stop_timer();
 
 
-    part_rep.timer.start_timer("iterating");
+    
 
     size_t main_elems = 0;
     std::vector<size_t> elems(25, 0);
     std::vector<uint64_t> neighbours(20);
     std::vector<coords3d> part_coords;
     
+    part_rep.timer.start_timer("iterating of tree");
+    
     uint64_t curr;
     size_t curr_status;
+    Content *raw_content = tree.get_raw_content();
+    uint64_t *raw_tree = tree.get_raw_tree();
+    float intensity = 0;
     
     for(int l = part_rep.pl_map.k_min;l <= part_rep.pl_map.k_max + 1;l++){
         for(LevelIterator<float> it(tree, l); it != it.end(); it++)
         {
-            curr = *it;
+            //curr = *it;
             
             curr_status = tree.get_status(*it);
             
-            it.get_current_particle_coords(part_coords);
+            //it.get_current_particle_coords(part_coords);
             
-            neighbours.resize(24);
-            tree.get_neighbours(*it, it.get_current_coords(), it.level_multiplier,
-                                it.child_index, neighbours);
-            main_elems++;
+            //neighbours.resize(24);
+            //tree.get_neighbours(*it, it.get_current_coords(), it.level_multiplier,
+                         //       it.child_index, neighbours);
+            //main_elems++;
             
-            elems[neighbours.size()]++;
+            //elems[neighbours.size()]++;
+            
+            raw_content[raw_tree[*it + 2]].intensity += 5;
             
         }
     }
@@ -225,17 +232,17 @@ int main(int argc, char **argv) {
     std::string save_loc = options.output;
     std::string file_name = options.stats;
     
-    part_rep.timer.start_timer("write full");
-    write_apr_full_format(part_rep,tree,save_loc,file_name);
-    part_rep.timer.stop_timer();
-    
-    part_rep.timer.start_timer("write tree");
-    write_apr_tree_format(part_rep,tree,save_loc,file_name);
-    part_rep.timer.stop_timer();
-    
-    part_rep.timer.start_timer("write partmap");
-    write_apr_partmap_format(part_rep,part_map,tree,save_loc,file_name);
-    part_rep.timer.stop_timer();
+//    part_rep.timer.start_timer("write full");
+//    write_apr_full_format(part_rep,tree,save_loc,file_name);
+//    part_rep.timer.stop_timer();
+//    
+//    part_rep.timer.start_timer("write tree");
+//    write_apr_tree_format(part_rep,tree,save_loc,file_name);
+//    part_rep.timer.stop_timer();
+//    
+//    part_rep.timer.start_timer("write partmap");
+//    write_apr_partmap_format(part_rep,part_map,tree,save_loc,file_name);
+//    part_rep.timer.stop_timer();
     
     //testing sparse format
     
