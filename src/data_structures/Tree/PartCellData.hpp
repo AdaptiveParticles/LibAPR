@@ -10,6 +10,7 @@
 #define PARTPLAY_PARTCELLDATA_HPP
 
 #include "PartCellKey.hpp"
+#include "../particle_map.hpp"
 
 template <typename T> // type T data structure base type
 class PartCellData {
@@ -19,29 +20,59 @@ public:
     /*
      * Number of layers without the root and the contents.
      */
+    uint8_t depth_max;
+    uint8_t depth_min;
     
+    std::vector<unsigned int> z_num;
+    std::vector<unsigned int> x_num;
+    
+    std::vector<std::vector<std::vector<T>>> data;
     
     PartCellData(){};
     
-    T& operator ()(int depth, int z_,int x_,int j_){
+    T& operator ()(int depth, int x_,int z_,int j_){
         // data access
-        return data[depth][z_num[depth]*x_ + z_][j_];
+        return data[depth][x_num[depth]*z_ + x_][j_];
     }
+    
+    
+    void push_back(int depth, int x_,int z_,T val){
+        data[depth][x_num[depth]*z_ + x_].push_back(val);
+    }
+    
     
     T& operator ()(const PartCellKey& key){
         // data access
-        return data[depth][z_num[key.depth]*key.x + key.z][key.j];
+        return data[key.depth][x_num[key.depth]*key.z + key.x][key.j];
     }
-
     
+    template<typename S>
+    void initialize_base_structure(Particle_map<S>& part_map){
+        //initializes the partcell data structure based on part_map size
+        
+        //first add the layers
+        depth_max = part_map.k_max;
+        depth_min = part_map.k_min;
+        
+        z_num.resize(depth_max+1);
+        x_num.resize(depth_max+1);
+        
+        data.resize(depth_max+1);
+        
+        for(int i = depth_min;i <= depth_max;i++){
+            z_num[i] = part_map.layers[i].z_num;
+            x_num[i] = part_map.layers[i].x_num;
+            data[i].resize(z_num[i]*x_num[i]);
+        }
+        
+        
+    }
     
 private:
-    uint8_t depth;
+    
+    
                            
-    std::vector<unsigned int> z_num;
-    std::vector<unsigned int> x_num;
-                           
-    std::vector<std::vector<T>> data;
+    
     
 };
 

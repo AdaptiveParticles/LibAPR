@@ -17,6 +17,7 @@
 
 #include <vector>
 #include <algorithm>
+#include <array>
 
 // Bit manipulation defitinitions
 //masks for storing the neighbour indices (for 13 bit indices and 64 node)
@@ -292,6 +293,150 @@ private:
         
     }
     
+    void create_partcell_structure(Particle_map<T>& part_map){
+        //
+        //  Bevan Cheeseman 2016
+        //
+        //  Takes an optimal part_map configuration from the pushing scheme and creates an efficient data structure for procesing.
+        //
+        
+        Part_timer timer;
+        timer.verbose_flag = true;
+        
+        
+        timer.start_timer("intiialize base");
+        pc_data.initialize_base_structure(part_map);
+        timer.stop_timer();
+        
+        
+        
+        //initialize loop variables
+        int x_;
+        int z_;
+        int y_;
+        int j_;
+        
+        //next initialize the entries;
+        
+        uint16_t curr_index;
+        coords3d curr_coords;
+        uint8_t status;
+        uint8_t prev_ind = 0;
+        
+        timer.start_timer("intiialize part_cells");
+        
+        for(int i = pc_data.depth_min;i <= pc_data.depth_max;i++){
+            
+            const unsigned int x_num = pc_data.x_num[i];
+            const unsigned int z_num = pc_data.z_num[i];
+            const unsigned int y_num = part_map.layers[i].y_num;
+            
+            
+#pragma omp parallel for default(shared) private(z_,x_,y_,curr_index,status,prev_ind) if(z_num*x_num > 100)
+            for(z_ = 0;z_ < z_num;z_++){
+
+                for(x_ = 0;x_ < x_num;x_++){
+                    
+                    const size_t offset_part_map = x_*y_num + z_*y_num*x_num;
+                    const size_t offset_pc_data = x_num*z_ + x_;
+                    curr_index = 0;
+                    prev_ind = 0;
+                    
+                    for(y_ = 0;y_ < y_num;y_++){
+                        
+                        status = part_map.layers[i].mesh[offset_part_map + y_];
+                        
+                        if((status> 0) & (status < 8)){
+                            curr_index+= 1 + prev_ind;
+                            prev_ind = 0;
+                        } else {
+                            prev_ind = 1;
+                        }
+                    }
+                    
+                    pc_data.data[i][offset_pc_data].resize(curr_index+1,0); //always first adds an extra entry for intialization and extra info
+                }
+            }
+            
+        }
+
+        timer.stop_timer();
+        
+        timer.start_timer("First initialization step");
+        
+        for(int i = pc_data.depth_min;i <= pc_data.depth_max;i++){
+            
+            const unsigned int x_num = pc_data.x_num[i];
+            const unsigned int z_num = pc_data.z_num[i];
+            const unsigned int y_num = part_map.layers[i].y_num;
+            
+            
+#pragma omp parallel for default(shared) private(z_,x_,y_,curr_index,status) if(z_num*x_num > 100)
+            for(z_ = 0;z_ < z_num;z_++){
+                
+                for(x_ = 0;x_ < x_num;x_++){
+                    
+                    const size_t offset_part_map = x_*y_num + z_*y_num*x_num;
+                    const size_t offset_pc_data = x_num*z_ + x_;
+                    curr_index = 0;
+                    
+                    for(y_ = 0;y_ < y_num;y_++){
+                        
+                        status = part_map.layers[i].mesh[offset_part_map + y_];
+                        
+                        if((status> 0) & (status < 8)){
+                            curr_index++;
+                            pc_data.data[i][offset_pc_data][curr_index-1] = 2;
+                        }
+                    }
+                    
+                }
+            }
+            
+        }
+        
+        timer.stop_timer();
+        
+        timer.start_timer("access pc data");
+        
+        for(int i = pc_data.depth_min;i <= pc_data.depth_max;i++){
+            
+            const unsigned int x_num = pc_data.x_num[i];
+            const unsigned int z_num = pc_data.z_num[i];
+            const unsigned int y_num = part_map.layers[i].y_num;
+            
+            
+#pragma omp parallel for default(shared) private(z_,x_,j_,curr_index) if(z_num*x_num > 100)
+            for(z_ = 0;z_ < z_num;z_++){
+                
+                for(x_ = 0;x_ < x_num;x_++){
+                    
+                    
+                    const size_t offset_pc_data = x_num*z_ + x_;
+                    curr_index = 0;
+                    const size_t j_num = pc_data.data[i][offset_pc_data].size();
+                    
+                    for(j_ = 0;j_ < j_num;j_++){
+                      
+                        pc_data.data[i][offset_pc_data][j_] = 2;
+                        
+                    }
+                    
+                }
+            }
+            
+        }
+        
+        timer.stop_timer();
+
+
+        
+       
+        
+        
+    }
+    
+    
     void create_sparse_graph_format(Particle_map<T>& part_map){
         //
         // Playing with a new data-structure (access paradigm)
@@ -319,7 +464,7 @@ private:
         uint16_t curr_index;
         coords3d curr_coords;
         
-        for(int i = part_map.k_min;i < part_map.k_max +1 ;i++){
+        for(int i = part_map.k_min;i < (part_map.k_max +1) ;i++){
             
             for(int z_ = 0;z_ < part_map.layers[i].z_num;z_++){
                 for(int x_ = 0;x_ < part_map.layers[i].x_num;x_++){
@@ -354,13 +499,16 @@ private:
         unsigned int curr_parent;
         unsigned int curr_child;
         
+        int x_;
+        int y_;
         
-        for(int i = (part_map.k_min +1);i < part_map.k_max +1 ;i++){
+        
+        for(int i = (part_map.k_min +1);i < (part_map.k_max +1) ;i++){
             
             if (i < part_map.k_max){
-                
+#pragma omp parallel for default(shared) private(x_,y_,y_child,y_parent,z_parent,x_parent,z_child,x_child,curr_level,curr_parent,curr_child) if(part_map.layers[i].z_num*part_map.layers[i].x_num > 100)
                 for(int z_ = 0;z_ < part_map.layers[i].z_num;z_++){
-                    for(int x_ = 0;x_ < part_map.layers[i].x_num;x_++){
+                    for(x_ = 0;x_ < part_map.layers[i].x_num;x_++){
                         
                         z_child = z_*2;
                         x_child = x_*2;
@@ -369,7 +517,7 @@ private:
                         x_parent = x_/2;
                         
                         
-                        for(int y_ = 0;y_ < part_map.layers[i].y_num;y_++){
+                        for(y_ = 0;y_ < part_map.layers[i].y_num;y_++){
                             
                             y_child = y_*2;
                             y_parent = y_/2;
@@ -386,14 +534,16 @@ private:
             } else {
                 
                 for(int z_ = 0;z_ < part_map.layers[i].z_num;z_++){
-                    for(int x_ = 0;x_ < part_map.layers[i].x_num;x_++){
+                    
+#pragma omp parallel for default(shared) private(x_,y_,y_child,y_parent,z_parent,x_parent,curr_level,curr_parent)
+                    for(x_ = 0;x_ < part_map.layers[i].x_num;x_++){
                         
                         
                         z_parent = z_/2;
                         x_parent = x_/2;
                         
                         
-                        for(int y_ = 0;y_ < part_map.layers[i].y_num;y_++){
+                        for(y_ = 0;y_ < part_map.layers[i].y_num;y_++){
                             
                             y_child = y_*2;
                             y_parent = y_/2;
@@ -843,7 +993,7 @@ public:
     void initialize_structure(Particle_map<T>& particle_map){
         
         create_sparse_graph_format(particle_map);
-        
+        create_partcell_structure(particle_map);
     }
     
     
