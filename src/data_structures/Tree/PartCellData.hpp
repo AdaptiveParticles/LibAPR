@@ -68,6 +68,29 @@ public:
         
     }
     
+    template<typename S>
+    void initialize_from_partcelldata(PartCellData<S>& part_cell_data){
+        //initializes the partcell data structure based on part_map size
+        
+        //first add the layers
+        depth_max = part_cell_data.k_max;
+        depth_min = part_cell_data.k_min;
+        
+        z_num.resize(depth_max+1);
+        x_num.resize(depth_max+1);
+        
+        data.resize(depth_max+1);
+        
+        for(int i = depth_min;i <= depth_max;i++){
+            z_num[i] = part_cell_data.z_num[i];
+            x_num[i] = part_cell_data.x_num[i];
+            data[i].resize(z_num[i]*x_num[i]);
+        }
+
+    }
+
+    
+    
 private:
     
     
