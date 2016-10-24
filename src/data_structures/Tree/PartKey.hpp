@@ -8,7 +8,7 @@
 
 #ifndef PARTPLAY_PARTKEY_HPP
 #define PARTPLAY_PARTKEY_HPP
-template <typename T> // type T data structure base type
+// type T data structure base type
 class PartKey {
     
 public:
@@ -20,7 +20,11 @@ public:
     /*
      * Number of layers without the root and the contents.
      */
-    
+    unsigned int depth;
+    unsigned int z;
+    unsigned int x;
+    unsigned int j;
+    unsigned int index;
     
     PartKey(){};
     

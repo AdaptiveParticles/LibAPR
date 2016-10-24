@@ -11,6 +11,7 @@
 
 #include "PartCellBase.hpp"
 #include "PartCellData.hpp"
+#include "ParticleData.hpp"
 #include "../particle_map.hpp"
 #include "../meshclass.h"
 #include "../../io/writeimage.h"
@@ -19,70 +20,12 @@
 #include <algorithm>
 #include <array>
 
-// Bit manipulation defitinitions
-//masks for storing the neighbour indices (for 13 bit indices and 64 node)
-#define TYPE_MASK (((uint64_t)1 << 0) - 1) << 1
-#define TYPE_SHIFT 1
-#define STATUS_MASK (((uint64_t)1 << 3) - 1) << 2
-#define STATUS_SHIFT 2
 
-//xp is x + 1 neigh
-#define XP_DEPTH_MASK (((uint64_t)1 << 5) - 1) << 4
-#define XP_DEPTH_SHIFT 4
-#define XP_INDEX_MASK (((uint64_t)1 << 18) - 1) << 6
-#define XP_INDEX_SHIFT 6
-//xm is x - 1 neigh
-#define XM_DEPTH_MASK (((uint64_t)1 << 20) - 1) << 19
-#define XM_DEPTH_SHIFT 19
-#define XM_INDEX_MASK (((uint64_t)1 << 33) - 1) << 21
-#define XM_INDEX_SHIFT 21
-
-#define ZP_DEPTH_MASK (((uint64_t)1 << 35) - 1) << 34
-#define ZP_DEPTH_SHIFT 34
-#define ZP_INDEX_MASK (((uint64_t)1 << 48) - 1) << 36
-#define ZP_INDEX_SHIFT 36
-
-#define ZM_DEPTH_MASK  (((uint64_t)1 << 50) - 1) << 49
-#define ZM_DEPTH_SHIFT 49
-#define ZM_INDEX_MASK (((uint64_t)1 << 63) - 1) << 51
-#define ZM_INDEX_SHIFT 51
-//gap node defs
-
-#define YP_DEPTH_MASK (((uint64_t)1 << 3) - 1) << 2
-#define YP_DEPTH_SHIFT 2
-#define YP_INDEX_MASK (((uint64_t)1 << 16) - 1) << 4
-#define YP_INDEX_SHIFT 4
-
-#define YM_DEPTH_MASK (((uint64_t)1 << 18) - 1) << 17
-#define YM_DEPTH_SHIFT 17
-#define YM_INDEX_MASK (((uint64_t)1 << 31) - 1) << 19
-#define YM_INDEX_SHIFT 19
-
-#define NEXT_COORD_MASK (((uint64_t)1 << 44) - 1) << 32
-#define NEXT_COORD_SHIFT 32
-#define PREV_COORD_MASK (((uint64_t)1 << 57) - 1) << 45
-#define PREV_COORD_SHIFT 45
-
-#define FREE_MEM_MASK (((uint64_t)1 << 63) - 1) << 58
-#define FREE_MEM_SHIFT 58
 
 //parent node defitions
 
 
-//Neighbour definitions
-#define NO_NEIGHBOUR 4
-#define LEVEL_SAME 1
-#define LEVEL_DOWN 0
-#define LEVEL_UP 2
 
-//Define Status definitions
-#define SEED 1
-#define BOUNDARY 2
-#define FILLER 3
-
-#define SEED_SHIFTED (uint64_t)1 << 2
-#define BOUNDARY_SHIFTED (uint64_t)2 << 2
-#define FILLER_SHIFTED (uint64_t)3 << 2
 
 template <typename T,typename S> // type T is the image type, type S is the data structure base type
 class PartCellStructure: public PartCellBase<T,S> {
@@ -91,7 +34,8 @@ class PartCellStructure: public PartCellBase<T,S> {
     
 private:
     
-    PartCellData<S> pc_data;
+    PartCellData<S> pc_data; //particle cell data
+    ParticleData<T,S> part_data; //individual particle data
     
     unsigned int k_min;
     unsigned int k_max;
