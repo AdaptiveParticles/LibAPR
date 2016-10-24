@@ -136,8 +136,8 @@ public:
         //initializes the partcell data structure based on part_map size
         
         //first add the layers
-        depth_max = part_cell_data.k_max;
-        depth_min = part_cell_data.k_min;
+        depth_max = part_cell_data.depth_max;
+        depth_min = part_cell_data.depth_min;
         
         z_num.resize(depth_max+1);
         x_num.resize(depth_max+1);

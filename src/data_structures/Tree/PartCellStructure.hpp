@@ -1538,61 +1538,94 @@ private:
         
         timer.stop_timer();
         
+        /////////////////////////////////////
+        //
+        //  PARTICLE DATA STRUCTURES
+        //
+        //////////////////////////////////////
         
         
+        // Initialize the particle data access and intensity structures
+        part_data.initialize_from_structure(pc_data);
         
-        // NEED TO INITIALIZE INTENSITIES
+        // Estimate the intensities from the down sampled images
         
+        timer.start_timer("Get the intensities");
         
+
+        uint64_t part_offset;
         
-//        timer.start_timer("access pc data");
-//        
-//        uint64_t node_val;
-//        uint64_t y_coord;
-//        
-//        for(int i = pc_data.depth_min;i <= pc_data.depth_max;i++){
-//            
-//            const unsigned int x_num = pc_data.x_num[i];
-//            const unsigned int z_num = pc_data.z_num[i];
-//            
-//            
-//#pragma omp parallel for default(shared) private(z_,x_,j_,node_val) if(z_num*x_num > 100)
-//            for(z_ = 0;z_ < z_num;z_++){
-//                
-//                for(x_ = 0;x_ < x_num;x_++){
-//                    
-//                    
-//                    const size_t offset_pc_data = x_num*z_ + x_;
-//                    y_coord = 0;
-//                    const size_t j_num = pc_data.data[i][offset_pc_data].size();
-//                    
-//                    for(j_ = 0;j_ < j_num;j_++){
-//                        
-//                        
-//                        node_val = pc_data.data[i][offset_pc_data][j_];
-//                        
-//                        if (node_val&1){
-//                            //get the index gap node
-//                            y_coord = (node_val & NEXT_COORD_MASK) >> NEXT_COORD_SHIFT;
-//                            y_coord--;
-//                            
-//                        } else {
-//                            //normal node
-//                            y_coord++;
-//                            
-//                        }
-//                        
-//                        
-//                        //pc_data.data[i][offset_pc_data][j_] = 2;
-//                        
-//                    }
-//                    
-//                }
-//            }
-//            
-//        }
-//        
-//        timer.stop_timer();
+        for(int i = pc_data.depth_min;i <= pc_data.depth_max;i++){
+            
+            const unsigned int x_num = pc_data.x_num[i];
+            const unsigned int z_num = pc_data.z_num[i];
+            
+            
+            //For each depth there are two loops, one for SEED status particles, at depth + 1, and one for BOUNDARY and FILLER CELLS, to ensure contiguous memory access patterns.
+            
+            
+            // SEED PARTICLE STATUS LOOP (requires access to three data structures, particle access, particle data, and the part-map)
+#pragma omp parallel for default(shared) private(z_,x_,j_,node_val,status,y_coord,part_offset) if(z_num*x_num > 100)
+            for(z_ = 0;z_ < z_num;z_++){
+                
+                for(x_ = 0;x_ < x_num;x_++){
+                    
+                    const size_t offset_pc_data = x_num*z_ + x_;
+                    y_coord = 0;
+                    const size_t j_num = part_data.access_data.data[i][offset_pc_data].size();
+                    
+                    
+                    
+                    const size_t offset_part_map_data_0 = part_map.downsampled[i+1].y_num*part_map.downsampled[i+1].x_num*2*z_ + part_map.downsampled[i+1].y_num*2*x_;
+                    const size_t offset_part_map_data_1 = part_map.downsampled[i+1].y_num*part_map.downsampled[i+1].x_num*2*z_ + part_map.downsampled[i+1].y_num*2*(x_+1);
+                    const size_t offset_part_map_data_2 = part_map.downsampled[i+1].y_num*part_map.downsampled[i+1].x_num*2*(z_+1) + part_map.downsampled[i+1].y_num*2*x_;
+                    const size_t offset_part_map_data_3 = part_map.downsampled[i+1].y_num*part_map.downsampled[i+1].x_num*2*(z_+1) + part_map.downsampled[i+1].y_num*2*(x_+1);
+                    
+                    for(j_ = 0;j_ < j_num;j_++){
+                        
+                        node_val = part_data.access_data.data[i][offset_pc_data][j_];
+                        
+                        if (node_val&1){
+                            //get the index gap node
+                            y_coord += (node_val & COORD_DIFF_MASK_PARTICLE) >> COORD_DIFF_SHIFT_PARTICLE;
+                            y_coord--;
+                            
+                        } else {
+                            //normal node
+                            y_coord++;
+                            
+                            //get and check status
+                            status = (node_val & STATUS_MASK_PARTICLE) >> STATUS_SHIFT_PARTICLE;
+                            
+                            if(status == SEED){
+                                //need to sampled the image at depth + 1
+                                part_offset = (node_val & Y_PINDEX_MASK_PARTICLE) >> Y_PINDEX_SHIFT_PARTICLE;
+                                
+                                //0
+                                part_data.particle_data.data[i][offset_pc_data][part_offset] = part_map.downsampled[i+1].mesh[offset_part_map_data_0 + 2*y_coord];
+                                part_data.particle_data.data[i][offset_pc_data][part_offset+1] = part_map.downsampled[i+1].mesh[offset_part_map_data_0 + 2*y_coord + 1];
+                                //1
+                                part_data.particle_data.data[i][offset_pc_data][part_offset+2] = part_map.downsampled[i+1].mesh[offset_part_map_data_1 + 2*y_coord];
+                                part_data.particle_data.data[i][offset_pc_data][part_offset+3] = part_map.downsampled[i+1].mesh[offset_part_map_data_1 + 2*y_coord + 1];
+                                //3
+                                part_data.particle_data.data[i][offset_pc_data][part_offset+4] = part_map.downsampled[i+1].mesh[offset_part_map_data_2 + 2*y_coord];
+                                part_data.particle_data.data[i][offset_pc_data][part_offset+5] = part_map.downsampled[i+1].mesh[offset_part_map_data_2 + 2*y_coord + 1];
+                                //4
+                                part_data.particle_data.data[i][offset_pc_data][part_offset+6] = part_map.downsampled[i+1].mesh[offset_part_map_data_3 + 2*y_coord];
+                                part_data.particle_data.data[i][offset_pc_data][part_offset+7] = part_map.downsampled[i+1].mesh[offset_part_map_data_3 + 2*y_coord + 1];
+                                
+                            }
+                            
+                            
+                        }
+                    }
+                    
+                }
+            }
+            
+        }
+        
+        timer.stop_timer();
 
         
         
@@ -1993,6 +2026,10 @@ private:
     }
     
     
+    uint8_t seed_part_y[8] = {0, 1, 0, 1, 0, 1, 0, 1};
+    uint8_t seed_part_x[8] = {0, 0, 1, 1, 0, 0, 1, 1};
+    uint8_t seed_part_z[8] = {0, 0, 0, 0, 1, 1, 1, 1};
+                                                               
     int8_t von_neumann_y[6] = {0, 0, -1, 1, 0, 0};
     int8_t von_neumann_x[6] = {0, -1, 0, 0, 1, 0};
     int8_t von_neumann_z[6] = {-1, 0, 0, 0, 0, 1};

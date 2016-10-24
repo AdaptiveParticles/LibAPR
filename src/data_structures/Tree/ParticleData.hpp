@@ -30,7 +30,7 @@
 #define COORD_DIFF_MASK_PARTICLE (((uint64_t)1 << 15) - 1) << 3
 #define COORD_DIFF_SHIFT_PARTICLE 3
 
-template <typename T,typename S> // type T data structure base type, type S particle data type
+template <typename T,typename S> // type T is the image type, type S is the data structure base type
 class ParticleData {
     
 public:
@@ -53,8 +53,8 @@ public:
         return particle_data[key.depth][access_data.x_num[key.depth]*key.z + key.x][offset + key.index];
     }
     
-    PartCellData<T> access_data;
-    PartCellData<S> particle_data;
+    PartCellData<S> access_data;
+    PartCellData<T> particle_data;
     
     uint8_t depth_max;
     uint8_t depth_min;
@@ -63,7 +63,7 @@ public:
     std::vector<unsigned int> x_num;
     
     template<typename U>
-    void initialize_from_structure(PartCellData<S>& part_cell_data){
+    void initialize_from_structure(PartCellData<U>& part_cell_data){
         //
         //  Initialize the two data structures
         //
@@ -82,6 +82,7 @@ public:
         
         //next initialize the entries;
         Part_timer timer;
+        timer.verbose_flag = 1;
         
         timer.start_timer("intiialize access data structure");
         
@@ -118,16 +119,16 @@ public:
                 
                 for(x_ = 0;x_ < x_num;x_++){
                     
-                    T part_counter = 0;
+                    S part_counter = 0;
                     
                     //access variables
                     const size_t offset_pc_data = x_num*z_ + x_;
-                    const size_t j_num = access_data[i][offset_pc_data].size();
+                    const size_t j_num = access_data.data[i][offset_pc_data].size();
                     
                     for(j_ = 0; j_ < j_num;j_++){
                         //raster over both structures, generate the index for the particles, set the status and offset_y_coord diff
                         
-                        node_val = part_cell_data[i][offset_pc_data][j_];
+                        node_val = part_cell_data.data[i][offset_pc_data][j_];
                         
                         if(!(node_val&1)){
                             //normal node
@@ -135,11 +136,11 @@ public:
                             //create pindex, and create status (0,1,2,3) and type
                             status = (node_val & STATUS_MASK) >> STATUS_SHIFT;  //need the status masks here, need to move them into the datastructure I think so that they are correctly accessible then to these routines.
                             
-                            access_data[i][offset_pc_data][j_] = 0; //set normal type
+                            access_data.data[i][offset_pc_data][j_] = 0; //set normal type
                             
-                            access_data[i][offset_pc_data][j_] |= (status << STATUS_SHIFT_PARTICLE); //add the particle status
+                            access_data.data[i][offset_pc_data][j_] |= (status << STATUS_SHIFT_PARTICLE); //add the particle status
                             
-                            access_data[i][offset_pc_data][j_] |= (part_counter << Y_PINDEX_SHIFT_PARTICLE); //add the particle starting index for the part cell
+                            access_data.data[i][offset_pc_data][j_] |= (part_counter << Y_PINDEX_SHIFT_PARTICLE); //add the particle starting index for the part cell
                             
                             //update the counter
                             if (status > SEED){
@@ -153,15 +154,15 @@ public:
                             
                         } else {
                             //gap node
-                            access_data[i][offset_pc_data][j_] = 1; //set type to gap
-                            access_data[i][offset_pc_data][j_] |= (((node_val & YP_DEPTH_MASK) >> YP_DEPTH_SHIFT) << Y_DEPTH_SHIFT_PARTICLE); //set the depth change
-                            access_data[i][offset_pc_data][j_] |= ((((node_val & NEXT_COORD_MASK) >> NEXT_COORD_SHIFT) - ((node_val & PREV_COORD_MASK) >> PREV_COORD_SHIFT)) << COORD_DIFF_SHIFT_PARTICLE); //set the coordinate difference
+                            access_data.data[i][offset_pc_data][j_] = 1; //set type to gap
+                            access_data.data[i][offset_pc_data][j_] |= (((node_val & YP_DEPTH_MASK) >> YP_DEPTH_SHIFT) << Y_DEPTH_SHIFT_PARTICLE); //set the depth change
+                            access_data.data[i][offset_pc_data][j_] |= ((((node_val & NEXT_COORD_MASK) >> NEXT_COORD_SHIFT) - ((node_val & PREV_COORD_MASK) >> PREV_COORD_SHIFT)) << COORD_DIFF_SHIFT_PARTICLE); //set the coordinate difference
                         }
                         
                     }
                     
                     //then resize the particle data structure here..
-                    particle_data[i].data[offset_pc_data].resize(part_counter);
+                    particle_data.data[i][offset_pc_data].resize(part_counter);
                 }
                 
             }
