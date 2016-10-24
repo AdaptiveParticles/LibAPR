@@ -9,6 +9,8 @@
 #ifndef PARTPLAY_PARTICLEDATA_HPP
 #define PARTPLAY_PARTICLEDATA_HPP
 
+#include <stdint.h>
+
 #include "PartCellData.hpp"
 #include "PartKey.hpp"
 
@@ -16,18 +18,18 @@
 #define NON_SEED_NUM_PARTICLES 1
 
 // bit shift definitions for particle data access
-#define TYPE_MASK_PARTICLE 1
+#define TYPE_MASK_PARTICLE (uint64_t) 1
 #define TYPE_SHIFT_PARTICLE 0
-#define STATUS_MASK_PARTICLE (((uint64_t)1 << 2) - 1) << 1
+#define STATUS_MASK_PARTICLE ((((uint64_t)1) << 2) - 1) << 1
 #define STATUS_SHIFT_PARTICLE 1
 // particle index offset y direction
-#define Y_PINDEX_MASK_PARTICLE (((uint64_t)1 << 15) - 1) << 3
+#define Y_PINDEX_MASK_PARTICLE ((((uint64_t)1) << 13) - 1) << 3
 #define Y_PINDEX_SHIFT_PARTICLE 3
 
 // gap node definitions
-#define Y_DEPTH_MASK_PARTICLE (((uint64_t)1 << 2) - 1) << 1
+#define Y_DEPTH_MASK_PARTICLE ((((uint64_t)1) << 2) - 1) << 1
 #define Y_DEPTH_SHIFT_PARTICLE 1
-#define COORD_DIFF_MASK_PARTICLE (((uint64_t)1 << 15) - 1) << 3
+#define COORD_DIFF_MASK_PARTICLE ((((uint64_t)1) << 13) - 1) << 3
 #define COORD_DIFF_SHIFT_PARTICLE 3
 
 template <typename T,typename S> // type T is the image type, type S is the data structure base type
@@ -109,6 +111,8 @@ public:
         U status;
         U node_val;
         
+        U temp3;
+        
         for(int i = access_data.depth_min;i <= access_data.depth_max;i++){
             
             const unsigned int x_num = access_data.x_num[i];
@@ -129,6 +133,8 @@ public:
                         //raster over both structures, generate the index for the particles, set the status and offset_y_coord diff
                         
                         node_val = part_cell_data.data[i][offset_pc_data][j_];
+                        
+                        
                         
                         if(!(node_val&1)){
                             //normal node
@@ -153,10 +159,14 @@ public:
                             }
                             
                         } else {
+                            
+                        
                             //gap node
                             access_data.data[i][offset_pc_data][j_] = 1; //set type to gap
                             access_data.data[i][offset_pc_data][j_] |= (((node_val & YP_DEPTH_MASK) >> YP_DEPTH_SHIFT) << Y_DEPTH_SHIFT_PARTICLE); //set the depth change
                             access_data.data[i][offset_pc_data][j_] |= ((((node_val & NEXT_COORD_MASK) >> NEXT_COORD_SHIFT) - ((node_val & PREV_COORD_MASK) >> PREV_COORD_SHIFT)) << COORD_DIFF_SHIFT_PARTICLE); //set the coordinate difference
+                            
+                            
                         }
                         
                     }

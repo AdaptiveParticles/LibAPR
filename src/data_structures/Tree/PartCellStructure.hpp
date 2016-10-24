@@ -257,7 +257,7 @@ private:
         //initialize loop variables
         int x_;
         int z_;
-        int y_;
+        uint64_t y_;
         uint64_t j_;
         
         //next initialize the entries;
@@ -326,6 +326,11 @@ private:
                 
                 for(x_ = 0;x_ < x_num;x_++){
                     
+                    
+                    if (i == 6){
+                        int stop = 1;
+                    }
+                    
                     const size_t offset_part_map = x_*y_num + z_*y_num*x_num;
                     const size_t offset_pc_data = x_num*z_ + x_;
                     curr_index = 0;
@@ -345,8 +350,11 @@ private:
                                 //gap node
                                 //set type
                                 pc_data.data[i][offset_pc_data][curr_index-1] = 1;
-                                pc_data.data[i][offset_pc_data][curr_index-1] |= ((uint64_t)y_ << NEXT_COORD_SHIFT);
-                                pc_data.data[i][offset_pc_data][curr_index-1] |= (prev_coord << PREV_COORD_SHIFT);
+                                pc_data.data[i][offset_pc_data][curr_index-1] |= (y_ << NEXT_COORD_SHIFT);
+                                pc_data.data[i][offset_pc_data][curr_index-1] |= ( prev_coord << PREV_COORD_SHIFT);
+                                
+                                
+                                pc_data.debug_node(pc_data.data[i][offset_pc_data][curr_index-1]);
                                 curr_index++;
                             }
                             
@@ -374,6 +382,8 @@ private:
                                     
                             }
                             
+                            pc_data.debug_node(pc_data.data[i][offset_pc_data][curr_index-1]);
+                            
                             prev_ind = 0;
                         } else {
                             //store for setting above
@@ -393,7 +403,10 @@ private:
         
         timer.stop_timer();
         
- 
+        
+        
+        
+        
         
         timer.start_timer("parent child with child loop x");
         
@@ -477,7 +490,7 @@ private:
                                     if (node_val&1){
                                         //get the index gap node
                                         y_neigh = (node_val & NEXT_COORD_MASK) >> NEXT_COORD_SHIFT;
-                                        y_neigh--;
+                                        j_neigh++;
                                         
                                     } else {
                                         //normal node
@@ -495,7 +508,7 @@ private:
                                     if (node_val&1){
                                         //get the index gap node
                                         y_parent = (node_val & NEXT_COORD_MASK) >> NEXT_COORD_SHIFT;
-                                        y_parent--;
+                                        j_parent++;
                                         
                                     } else {
                                         //normal node
@@ -594,7 +607,7 @@ private:
                                     if (node_val&1){
                                         //get the index gap node
                                         y_neigh = (node_val & NEXT_COORD_MASK) >> NEXT_COORD_SHIFT;
-                                        y_neigh--;
+                                        j_neigh++;
                                         
                                     } else {
                                         //normal node
@@ -612,7 +625,7 @@ private:
                                     if (node_val&1){
                                         //get the index gap node
                                         y_child = (node_val & NEXT_COORD_MASK) >> NEXT_COORD_SHIFT;
-                                        y_child--;
+                                        j_child++;
                                         
                                     } else {
                                         //normal node
@@ -725,7 +738,7 @@ private:
                                     if (node_val&1){
                                         //get the index gap node
                                         y_neigh = (node_val & NEXT_COORD_MASK) >> NEXT_COORD_SHIFT;
-                                        y_neigh--;
+                                        j_neigh++;
                                         
                                     } else {
                                         //normal node
@@ -743,7 +756,7 @@ private:
                                     if (node_val&1){
                                         //get the index gap node
                                         y_parent = (node_val & NEXT_COORD_MASK) >> NEXT_COORD_SHIFT;
-                                        y_parent--;
+                                        j_parent++;
                                         
                                     } else {
                                         //normal node
@@ -761,7 +774,7 @@ private:
                                     if (node_val&1){
                                         //get the index gap node
                                         y_child = (node_val & NEXT_COORD_MASK) >> NEXT_COORD_SHIFT;
-                                        y_child--;
+                                        j_child++;
                                         
                                     } else {
                                         //normal node
@@ -809,6 +822,12 @@ private:
         }
         
         timer.stop_timer();
+        
+        
+        
+        
+        
+        
         
         timer.start_timer("parent child with child loop z");
         
@@ -881,7 +900,7 @@ private:
                                     if (node_val&1){
                                         //get the index gap node
                                         y_neigh = (node_val & NEXT_COORD_MASK) >> NEXT_COORD_SHIFT;
-                                        y_neigh--;
+                                        j_neigh++;
                                         
                                     } else {
                                         //normal node
@@ -899,7 +918,7 @@ private:
                                     if (node_val&1){
                                         //get the index gap node
                                         y_parent = (node_val & NEXT_COORD_MASK) >> NEXT_COORD_SHIFT;
-                                        y_parent--;
+                                        j_parent++;
                                         
                                     } else {
                                         //normal node
@@ -998,7 +1017,7 @@ private:
                                     if (node_val&1){
                                         //get the index gap node
                                         y_neigh = (node_val & NEXT_COORD_MASK) >> NEXT_COORD_SHIFT;
-                                        y_neigh--;
+                                        j_neigh++;
                                         
                                     } else {
                                         //normal node
@@ -1016,7 +1035,7 @@ private:
                                     if (node_val&1){
                                         //get the index gap node
                                         y_child = (node_val & NEXT_COORD_MASK) >> NEXT_COORD_SHIFT;
-                                        y_child--;
+                                        j_child++;
                                         
                                     } else {
                                         //normal node
@@ -1028,16 +1047,16 @@ private:
                                 
                                 if(y_coord == y_neigh){
                                     pc_data.data[i][offset_pc_data][j_] |= (j_neigh << ZP_INDEX_SHIFT);
-                                    pc_data.data[i][offset_pc_data][j_] |= (1 << ZP_DEPTH_SHIFT);
+                                    pc_data.data[i][offset_pc_data][j_] |= ((uint64_t)1 << ZP_DEPTH_SHIFT);
                                     //symmetric
                                     pc_data.data[i][offset_pc_data_neigh][j_neigh] |= (j_ << ZM_INDEX_SHIFT);
-                                    pc_data.data[i][offset_pc_data_neigh][j_neigh] |= (1 << ZM_DEPTH_SHIFT);
+                                    pc_data.data[i][offset_pc_data_neigh][j_neigh] |= ((uint64_t)1 << ZM_DEPTH_SHIFT);
                                 } else  {
                                     pc_data.data[i][offset_pc_data][j_] |= (j_child << ZP_INDEX_SHIFT);
-                                    pc_data.data[i][offset_pc_data][j_] |= (2 << ZP_DEPTH_SHIFT);
+                                    pc_data.data[i][offset_pc_data][j_] |= ((uint64_t)2 << ZP_DEPTH_SHIFT);
                                     //symmetric
                                     pc_data.data[i+1][offset_pc_data_child][j_child] |= (j_ << ZM_INDEX_SHIFT);
-                                    pc_data.data[i+1][offset_pc_data_child][j_child] |= (2 << ZM_DEPTH_SHIFT);
+                                    pc_data.data[i+1][offset_pc_data_child][j_child] |= ((uint64_t)2 << ZM_DEPTH_SHIFT);
                                 }
                                 
                                 
@@ -1106,6 +1125,8 @@ private:
                         const size_t j_num_neigh = pc_data.data[i][offset_pc_data_neigh].size();
                         const size_t j_num_child = pc_data.data[i+1][offset_pc_data_child].size();
                         
+                        
+                        
                         for(j_ = 1;j_ < j_num;j_++){
                             
                             // Parent relation
@@ -1129,7 +1150,8 @@ private:
                                     if (node_val&1){
                                         //get the index gap node
                                         y_neigh = (node_val & NEXT_COORD_MASK) >> NEXT_COORD_SHIFT;
-                                        y_neigh--;
+                                        
+                                        j_neigh++;
                                         
                                     } else {
                                         //normal node
@@ -1147,7 +1169,7 @@ private:
                                     if (node_val&1){
                                         //get the index gap node
                                         y_parent = (node_val & NEXT_COORD_MASK) >> NEXT_COORD_SHIFT;
-                                        y_parent--;
+                                        j_parent++;
                                         
                                     } else {
                                         //normal node
@@ -1165,7 +1187,7 @@ private:
                                     if (node_val&1){
                                         //get the index gap node
                                         y_child = (node_val & NEXT_COORD_MASK) >> NEXT_COORD_SHIFT;
-                                        y_child--;
+                                        j_child++;
                                         
                                     } else {
                                         //normal node
@@ -1181,18 +1203,25 @@ private:
                                     //symmetric
                                     pc_data.data[i][offset_pc_data_neigh][j_neigh] |= ((uint64_t) j_  << ZM_INDEX_SHIFT);
                                     pc_data.data[i][offset_pc_data_neigh][j_neigh] |= ((uint64_t) 1  << ZM_DEPTH_SHIFT);
+                                    
+                                   
                                 } else if (y_coord == y_child/2) {
                                     pc_data.data[i][offset_pc_data][j_] |= (j_child << ZP_INDEX_SHIFT);
                                     pc_data.data[i][offset_pc_data][j_] |= ((uint64_t) 2 << ZP_DEPTH_SHIFT);
                                     //symmetric
                                     pc_data.data[i+1][offset_pc_data_child][j_child] |= ((uint64_t) j_ << ZM_INDEX_SHIFT);
-                                    pc_data.data[i+1][offset_pc_data_child][j_child] |= ((uint64_t) 2  << ZM_DEPTH_SHIFT);
+                                    pc_data.data[i+1][offset_pc_data_child][j_child] |= ((uint64_t) 0  << ZM_DEPTH_SHIFT);
+                                    
+                      
+                                    
                                 } else {
                                     pc_data.data[i][offset_pc_data][j_] |= (j_parent << ZP_INDEX_SHIFT);
                                     pc_data.data[i][offset_pc_data][j_] |= ( (uint64_t) 0  << ZP_DEPTH_SHIFT);
                                     //symmetric
                                     pc_data.data[i-1][offset_pc_data_parent][j_parent] |= ((uint64_t) j_ << ZM_INDEX_SHIFT);
-                                    pc_data.data[i-1][offset_pc_data_parent][j_parent] |= ((uint64_t) 0  << ZM_DEPTH_SHIFT);
+                                    pc_data.data[i-1][offset_pc_data_parent][j_parent] |= ((uint64_t) 2  << ZM_DEPTH_SHIFT);
+                                    
+
                                 }
                                 
                                 
@@ -1213,6 +1242,12 @@ private:
         }
         
         timer.stop_timer();
+        
+        
+        
+        
+        
+        
         
         /////////////////////////////////////////////////////////////
         //
@@ -1242,8 +1277,7 @@ private:
                         const size_t z_parent = (z_)/2;
                         const size_t x_parent = (x_)/2;
                         
-                        const size_t z_neigh = (z_);
-                        const size_t x_neigh = x_;
+                        
                         
                         const size_t offset_pc_data = x_num*z_ + x_;
                         const size_t offset_pc_data_parent = x_num_parent*z_parent + x_parent;
@@ -1296,7 +1330,7 @@ private:
                                     if (node_val&1){
                                         //get the index gap node
                                         y_parent = (node_val & NEXT_COORD_MASK) >> NEXT_COORD_SHIFT;
-                                        y_parent--;
+                                        j_parent++;
                                         
                                     } else {
                                         //normal node
@@ -1383,7 +1417,7 @@ private:
                                     if (node_val&1){
                                         //get the index gap node
                                         y_child = (node_val & NEXT_COORD_MASK) >> NEXT_COORD_SHIFT;
-                                        y_child--;
+                                        j_child++;
                                         
                                     } else {
                                         //normal node
@@ -1489,7 +1523,7 @@ private:
                                     if (node_val&1){
                                         //get the index gap node
                                         y_parent = (node_val & NEXT_COORD_MASK) >> NEXT_COORD_SHIFT;
-                                        y_parent--;
+                                        j_parent++;
                                         
                                     } else {
                                         //normal node
@@ -1507,7 +1541,7 @@ private:
                                     if (node_val&1){
                                         //get the index gap node
                                         y_child = (node_val & NEXT_COORD_MASK) >> NEXT_COORD_SHIFT;
-                                        y_child--;
+                                        j_child++;
                                         
                                     } else {
                                         //normal node
@@ -1543,6 +1577,34 @@ private:
         //  PARTICLE DATA STRUCTURES
         //
         //////////////////////////////////////
+        
+    
+        for(int i = pc_data.depth_min;i <= pc_data.depth_max;i++){
+            
+            const unsigned int x_num = pc_data.x_num[i];
+            const unsigned int z_num = pc_data.z_num[i];
+            
+            
+            //For each depth there are two loops, one for SEED status particles, at depth + 1, and one for BOUNDARY and FILLER CELLS, to ensure contiguous memory access patterns.
+            
+            
+            // SEED PARTICLE STATUS LOOP (requires access to three data structures, particle access, particle data, and the part-map)
+            
+            for(z_ = 0;z_ < z_num;z_++){
+                
+                for(x_ = 0;x_ < x_num;x_++){
+                    
+                    const size_t offset_pc_data = x_num*z_ + x_;
+                    const size_t j_num = pc_data.data[i][offset_pc_data].size();
+                    
+                    
+                    for(j_ = 1;j_ < j_num;j_++){
+                        pc_data.debug_node(pc_data.data[i][offset_pc_data][j_]);
+                    }
+                }
+            }
+        }
+
         
         
         // Initialize the particle data access and intensity structures
@@ -1613,6 +1675,55 @@ private:
                                 //4
                                 part_data.particle_data.data[i][offset_pc_data][part_offset+6] = part_map.downsampled[i+1].mesh[offset_part_map_data_3 + 2*y_coord];
                                 part_data.particle_data.data[i][offset_pc_data][part_offset+7] = part_map.downsampled[i+1].mesh[offset_part_map_data_3 + 2*y_coord + 1];
+                                
+                            }
+                            
+                            
+                        }
+                    }
+                    
+                }
+            }
+            
+            // BOUNDARY/FILLER PARTICLE STATUS LOOP (requires access to three data structures, particle access, particle data, and the part-map)
+#pragma omp parallel for default(shared) private(z_,x_,j_,node_val,status,y_coord,part_offset) if(z_num*x_num > 100)
+            for(z_ = 0;z_ < z_num;z_++){
+                
+                for(x_ = 0;x_ < x_num;x_++){
+                    
+                    const size_t offset_pc_data = x_num*z_ + x_;
+                    y_coord = 0;
+                    const size_t j_num = part_data.access_data.data[i][offset_pc_data].size();
+                    
+                    const size_t offset_part_map_data_0 = part_map.downsampled[i].y_num*part_map.downsampled[i].x_num*z_ + part_map.downsampled[i].y_num*x_;
+                    
+                    for(j_ = 0;j_ < j_num;j_++){
+                        
+                        
+                        
+                        node_val = part_data.access_data.data[i][offset_pc_data][j_];
+                        
+                        if (node_val&1){
+                            //get the index gap node
+                            y_coord += (node_val & COORD_DIFF_MASK_PARTICLE) >> COORD_DIFF_SHIFT_PARTICLE;
+                            y_coord--;
+                            
+                            
+                        } else {
+                            //normal node
+                            y_coord++;
+                            
+                            //get and check status
+                            status = (node_val & STATUS_MASK_PARTICLE) >> STATUS_SHIFT_PARTICLE;
+                            
+                            //boundary and filler cells only have one particle
+                            if(status > SEED){
+                                //need to sampled the image at depth + 1
+                                part_offset = (node_val & Y_PINDEX_MASK_PARTICLE) >> Y_PINDEX_SHIFT_PARTICLE;
+                                
+                                //0
+                                part_data.particle_data.data[i][offset_pc_data][part_offset] = part_map.downsampled[i].mesh[offset_part_map_data_0 + y_coord];
+                               
                                 
                             }
                             
