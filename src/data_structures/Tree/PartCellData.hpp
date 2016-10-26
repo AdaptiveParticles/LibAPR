@@ -58,19 +58,25 @@
 #define FREE_MEM_SHIFT 58
 
 //Neighbour definitions
-#define NO_NEIGHBOUR 4
-#define LEVEL_SAME 1
-#define LEVEL_DOWN 0
-#define LEVEL_UP 2
+#define NO_NEIGHBOUR ((uint64_t)3)
+#define LEVEL_SAME ((uint64_t)1)
+#define LEVEL_DOWN ((uint64_t)0)
+#define LEVEL_UP ((uint64_t)2)
 
 //Define Status definitions
-#define SEED 1
-#define BOUNDARY 2
-#define FILLER 3
+#define SEED ((uint64_t)1)
+#define BOUNDARY ((uint64_t)2)
+#define FILLER ((uint64_t)3)
+#define PARENT ((uint64_t)0)
 
-#define SEED_SHIFTED (uint64_t)1 << 2
-#define BOUNDARY_SHIFTED (uint64_t)2 << 2
-#define FILLER_SHIFTED (uint64_t)3 << 2
+//Type definitions
+#define TYPE_PC ((uint64_t) 0)
+#define TYPE_GAP ((uint64_t)1)
+#define TYPE_GAP_END ((uint64_t)3)
+
+#define SEED_SHIFTED ((uint64_t)1) << 2
+#define BOUNDARY_SHIFTED ((uint64_t)2) << 2
+#define FILLER_SHIFTED ((uint64_t)3) << 2
 
 #include "PartCellKey.hpp"
 #include "../particle_map.hpp"
@@ -362,7 +368,7 @@ public:
             //For each depth there are two loops, one for SEED status particles, at depth + 1, and one for BOUNDARY and FILLER CELLS, to ensure contiguous memory access patterns.
             
             // SEED PARTICLE STATUS LOOP (requires access to three data structures, particle access, particle data, and the part-map)
-#pragma omp parallel for default(shared) private(z_,x_,j_,node_val,curr_key,neigh_keys) if(z_num_*x_num_ > 100)
+//#pragma omp parallel for default(shared) private(z_,x_,j_,node_val,curr_key,neigh_keys) if(z_num_*x_num_ > 100)
             for(z_ = 0;z_ < z_num_;z_++){
                 
                 for(x_ = 0;x_ < x_num_;x_++){
@@ -375,7 +381,7 @@ public:
                         
                         node_val = data[i][offset_pc_data][j_];
                         
-                        if (node_val&1){
+                        if (!(node_val&1)){
                             //get the index gap node
                             curr_key.x = x_;
                             curr_key.z = z_;
