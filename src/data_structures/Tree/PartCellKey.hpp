@@ -20,12 +20,14 @@ public:
     /*
      * Number of layers without the root and the contents.
      */
-    unsigned int depth;
-    unsigned int z;
-    unsigned int x;
-    unsigned int j;
+    uint64_t depth;
+    uint64_t z;
+    uint64_t x;
+    uint64_t j;
     
     PartCellKey(){};
+    
+    
     
 private:
     
