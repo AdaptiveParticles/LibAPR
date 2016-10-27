@@ -78,6 +78,23 @@
 #define BOUNDARY_SHIFTED ((uint64_t)2) << 2
 #define FILLER_SHIFTED ((uint64_t)3) << 2
 
+//Neighbour Keys
+
+#define PC_KEY_DEPTH_MASK ((((uint64_t)1) << 5) - 1) << 0
+#define YP_DEPTH_SHIFT 0
+#define YP_INDEX_MASK ((((uint64_t)1) << 13) - 1) << 5
+#define YP_INDEX_SHIFT 5
+
+#define YM_DEPTH_MASK ((((uint64_t)1) << 13) - 1) << 18
+#define YM_DEPTH_SHIFT 18
+#define YM_INDEX_MASK ((((uint64_t)1) << 13) - 1) << 31
+#define YM_INDEX_SHIFT 31
+
+#define NEXT_COORD_MASK ((((uint64_t)1) << 15) - 1) << 44
+#define NEXT_COORD_SHIFT 44
+
+
+
 #include "PartCellKey.hpp"
 #include "../particle_map.hpp"
 
@@ -245,7 +262,8 @@ public:
 
     }
     
-    void get_neighs_face(PartCellKey& curr_key,uint64_t node_val, uint8_t face,std::vector<PartCellKey>& neigh_keys){
+    //void get_neighs_face(PartCellKey& curr_key,uint64_t node_val, uint8_t face,std::vector<PartCellKey>& neigh_keys){
+    void get_neighs_face(PartCellKey& curr_key,uint64_t node_val, uint8_t face,std::vector<uint64_t>& neigh_keys){
         //
         //  Bevan Cheeseman (2016)
         //
@@ -275,8 +293,13 @@ public:
                 neigh_key.z = curr_key.z;
                 neigh_key.depth = curr_key.depth;
                 neigh_key.j = curr_key.j + von_neumann_y_cells[face];
+                //neigh_keys.push_back(neigh_key);
+                neigh_keys.push_back(neigh_indicator);
+                //neigh_keys[0] = neigh_key;
                 return;
             }
+            
+            //have to take into account up and down?
             
         }
         
@@ -292,7 +315,9 @@ public:
                 
                 neigh_key.depth = curr_key.depth;
                 
-                neigh_keys.push_back(neigh_key);
+                //neigh_keys.push_back(neigh_key);
+                neigh_keys.push_back(neigh_indicator);
+                //neigh_keys[0] = neigh_key;
                 
                 return;
             }
@@ -305,7 +330,9 @@ public:
                 
                 neigh_key.depth = curr_key.depth - 1;
                 
-                neigh_keys.push_back(neigh_key);
+                //neigh_keys.push_back(neigh_key);
+                neigh_keys.push_back(neigh_indicator);
+                //neigh_keys[0] = neigh_key;
                 
                 return;
             }
@@ -318,17 +345,23 @@ public:
                 
                 neigh_key.depth = curr_key.depth + 1;
                 
-                neigh_keys.push_back(neigh_key);
+                //neigh_keys.push_back(neigh_key);
+                neigh_keys.push_back(neigh_indicator);
+                //neigh_keys[0] = neigh_key;
                 
                 //three other neighbour children
                 neigh_key = get_neighbour_same_level(neigh_key,neigh_child_dir[face][0]);
-                neigh_keys.push_back(neigh_key);
+                neigh_keys.push_back(neigh_indicator++);
+                //neigh_keys.push_back(neigh_key);
+                
                 
                 neigh_key = get_neighbour_same_level(neigh_key,neigh_child_dir[face][1]);
-                neigh_keys.push_back(neigh_key);
+                //neigh_keys.push_back(neigh_key);
+                neigh_keys.push_back(neigh_indicator++);
                 
                 neigh_key = get_neighbour_same_level(neigh_key,neigh_child_dir[face][2]);
-                neigh_keys.push_back(neigh_key);
+                //neigh_keys.push_back(neigh_key);
+                neigh_keys.push_back(neigh_indicator++);
             
                 return;
             }
@@ -355,7 +388,8 @@ public:
         timer.verbose_flag = 1;
         
         PartCellKey curr_key;
-        std::vector<PartCellKey> neigh_keys;
+        //std::vector<PartCellKey> neigh_keys;
+        std::vector<uint64_t> neigh_keys;
         
         timer.start_timer("get neighbour cells ");
         
@@ -368,15 +402,18 @@ public:
             //For each depth there are two loops, one for SEED status particles, at depth + 1, and one for BOUNDARY and FILLER CELLS, to ensure contiguous memory access patterns.
             
             // SEED PARTICLE STATUS LOOP (requires access to three data structures, particle access, particle data, and the part-map)
-//#pragma omp parallel for default(shared) private(z_,x_,j_,node_val,curr_key,neigh_keys) if(z_num_*x_num_ > 100)
+#pragma omp parallel for default(shared) private(z_,x_,j_,node_val,curr_key,neigh_keys) if(z_num_*x_num_ > 100)
             for(z_ = 0;z_ < z_num_;z_++){
+                
+                
+                neigh_keys.reserve(24);
                 
                 for(x_ = 0;x_ < x_num_;x_++){
                     
                     const size_t offset_pc_data = x_num_*z_ + x_;
                     
                     const size_t j_num = data[i][offset_pc_data].size();
-                    
+
                     for(j_ = 0;j_ < j_num;j_++){
                         
                         node_val = data[i][offset_pc_data][j_];
@@ -391,12 +428,17 @@ public:
                             neigh_keys.resize(0);
                             
                             get_neighs_face(curr_key,node_val,0,neigh_keys);
+                            
                             get_neighs_face(curr_key,node_val,1,neigh_keys);
+                            
                             get_neighs_face(curr_key,node_val,2,neigh_keys);
+                            
                             get_neighs_face(curr_key,node_val,3,neigh_keys);
+                            
                             get_neighs_face(curr_key,node_val,4,neigh_keys);
+                           
                             get_neighs_face(curr_key,node_val,5,neigh_keys);
-                     
+                            
                             
                         } else {
                             
@@ -413,13 +455,383 @@ public:
         
         
     }
+    
+    void set_neighbor_relationships(uint8_t face){
+        //
+        //  Neighbour function for different face.
+        //
+        //
+        //
+        
+        
+        //x/z variables
+        const uint64_t x_start = x_start_vec[face];
+        const uint64_t x_stop = x_stop_vec[face];
+        const uint64_t z_start = z_start_vec[face];
+        const uint64_t z_stop = z_stop_vec[face];
+        const int8_t x_offset = x_offset_vec[face];
+        const int8_t z_offset = z_offset_vec[face];
+        const uint64_t index_shift_0 = index_shift_dir[face];
+        const uint64_t depth_shift_0 = depth_shift_dir[face];
+        const uint64_t index_shift_1 = index_shift_dir_sym[face];
+        const uint64_t depth_shift_1 = depth_shift_dir_sym[face];
+        
+        //y variables
+        
+        const uint64_t next_prev_mask = next_prev_mask_vec[face];
+        const uint64_t next_prev_shift= next_prev_shift_vec[face];
+        const uint64_t y_offset = y_offset_vec[face];
+        const uint64_t y_start = y_start_vec[face];
+        const uint64_t y_stop = y_stop_vec[face];
+        
+        Part_timer timer;
+        timer.verbose_flag = true;
+        uint64_t z_;
+        uint64_t x_;
+        uint64_t j_;
+        
+        timer.start_timer("Get neighbours dir: " + std::to_string(face));
+        
+        unsigned int y_neigh;
+        unsigned int y_parent;
+        uint64_t j_parent;
+        uint64_t j_neigh;
+        
+        uint64_t node_val;
+        uint64_t y_coord;
+        
+        if (face > 1){
+            
+            for(int i = (depth_min);i <= depth_max;i++){
+                
+                const unsigned int x_num_ = x_num[i];
+                const unsigned int z_num_ = z_num[i];
+                
+                const unsigned int x_num_parent = x_num[i-1];
+                
+                if (i == depth_min){
+                    
+#pragma omp parallel for default(shared) private(z_,x_,j_,node_val,y_parent,j_parent,j_neigh,y_neigh,y_coord) if(z_num_*x_num_ > 100)
+                    for(z_ = z_start;z_ < (z_num_-z_stop);z_++){
+                        
+                        for(x_ = x_start;x_ < (x_num_-x_stop);x_++){
+                            
+                            const size_t z_neigh = (z_+z_offset);
+                            const size_t x_neigh = (x_+x_offset);
+                            
+                            const size_t offset_pc_data = x_num_*z_ + x_;
+                            const size_t offset_pc_data_neigh = x_num_*z_neigh + x_neigh;
+                            
+                            //initialization
+                            y_coord = (data[i][offset_pc_data][0] & NEXT_COORD_MASK) >> NEXT_COORD_SHIFT;
+                            y_neigh = (data[i][offset_pc_data_neigh][0] & NEXT_COORD_MASK) >> NEXT_COORD_SHIFT;
+                            
+                            j_neigh = 1;
+                            
+                            if (data[i][offset_pc_data_neigh].size() == 1){
+                                //set to max so its not checked
+                                y_neigh = 64000;
+                            }
+                            
+                            
+                            y_coord--;
+                            
+                            const size_t j_num = data[i][offset_pc_data].size();
+                            const size_t j_num_neigh = data[i][offset_pc_data_neigh].size();
+                            
+                            for(j_ = 1;j_ < j_num;j_++){
+                                
+                                // Parent relation
+                                
+                                node_val = data[i][offset_pc_data][j_];
+                                
+                                if (node_val&1){
+                                    //get the index gap node
+                                    y_coord = (node_val & NEXT_COORD_MASK) >> NEXT_COORD_SHIFT;
+                                    y_coord--;
+                                    
+                                } else {
+                                    //normal node
+                                    y_coord++;
+                                    
+                                    while ((y_neigh < y_coord) & (j_neigh < (j_num_neigh-1))){
+                                        
+                                        j_neigh++;
+                                        node_val = data[i][offset_pc_data_neigh][j_neigh];
+                                        
+                                        if (node_val&1){
+                                            //get the index gap node
+                                            y_neigh = (node_val & NEXT_COORD_MASK) >> NEXT_COORD_SHIFT;
+                                            j_neigh++;
+                                            
+                                        } else {
+                                            //normal node
+                                            y_neigh++;
+                                        }
+                                        
+                                    }
+                                    
+                                    
+                                    if(y_coord == y_neigh){
+                                        data[i][offset_pc_data][j_] |= (j_neigh << index_shift_0);
+                                        data[i][offset_pc_data][j_] |= (LEVEL_SAME << depth_shift_0);
+                                        
+                                    } else {
+                                        //std::cout << "BUG" << std::endl;
+                                    }
+                                }
+                            }
+                        }
+                    }
+                    
+                    
+                    
+                } else {
+#pragma omp parallel for default(shared) private(z_,x_,j_,node_val,y_parent,j_parent,j_neigh,y_neigh,y_coord) if(z_num_*x_num_ > 100)
+                    for(z_ = z_start;z_ < (z_num_-z_stop);z_++){
+                        
+                        for(x_ = x_start;x_ < (x_num_-x_stop);x_++){
+                            
+                            const size_t z_parent = (z_+z_offset)/2;
+                            const size_t x_parent = (x_+x_offset)/2;
+                            
+                            const size_t z_neigh = (z_+z_offset);
+                            const size_t x_neigh = (x_+x_offset);
+                            
+                            const size_t offset_pc_data = x_num_*z_ + x_;
+                            const size_t offset_pc_data_parent = x_num_parent*z_parent + x_parent;
+                            const size_t offset_pc_data_neigh = x_num_*z_neigh + x_neigh;
+                            
+                            
+                            //initialization
+                            y_coord = (data[i][offset_pc_data][0] & NEXT_COORD_MASK) >> NEXT_COORD_SHIFT ;
+                            y_neigh = (data[i][offset_pc_data_neigh][0] & NEXT_COORD_MASK) >> NEXT_COORD_SHIFT;
+                            y_parent = (data[i-1][offset_pc_data_parent][0] & NEXT_COORD_MASK) >> NEXT_COORD_SHIFT;
+                            
+                            j_parent = 1;
+                            j_neigh = 1;
+                            
+                            if (data[i-1][offset_pc_data_parent].size() == 1){
+                                //set to max so its not checked
+                                y_parent = 64000;
+                            }
+                            
+                            if (data[i][offset_pc_data_neigh].size() == 1){
+                                //set to max so its not checked
+                                y_neigh = 64000;
+                            }
+                            
+                            
+                            y_coord--;
+                            
+                            const size_t j_num = data[i][offset_pc_data].size();
+                            const size_t j_num_parent = data[i-1][offset_pc_data_parent].size();
+                            const size_t j_num_neigh = data[i][offset_pc_data_neigh].size();
+                            
+                            for(j_ = 1;j_ < j_num;j_++){
+                                
+                                // Parent relation
+                                
+                                node_val = data[i][offset_pc_data][j_];
+                                
+                                if (node_val&1){
+                                    //get the index gap node
+                                    y_coord = (node_val & NEXT_COORD_MASK) >> NEXT_COORD_SHIFT;
+                                    y_coord--;
+                                    
+                                } else {
+                                    //normal node
+                                    y_coord++;
+                                    
+                                    while ((y_neigh < y_coord) & (j_neigh < (j_num_neigh-1))){
+                                        
+                                        j_neigh++;
+                                        node_val = data[i][offset_pc_data_neigh][j_neigh];
+                                        
+                                        if (node_val&1){
+                                            //get the index gap node
+                                            y_neigh = (node_val & NEXT_COORD_MASK) >> NEXT_COORD_SHIFT;
+                                            j_neigh++;
+                                            
+                                        } else {
+                                            //normal node
+                                            y_neigh++;
+                                        }
+                                        
+                                    }
+                                    
+                                    while ((y_parent < y_coord/2) & (j_parent < (j_num_parent-1))){
+                                        
+                                        j_parent++;
+                                        node_val = data[i-1][offset_pc_data_parent][j_parent];
+                                        
+                                        if (node_val&1){
+                                            //get the index gap node
+                                            y_parent = (node_val & NEXT_COORD_MASK) >> NEXT_COORD_SHIFT;
+                                            j_parent++;
+                                            
+                                        } else {
+                                            //normal node
+                                            y_parent++;
+                                            
+                                        }
+                                    }
+                                    
+                                    
+                                    if(y_coord == y_neigh){
+                                        data[i][offset_pc_data][j_] |= (j_neigh << index_shift_0);
+                                        data[i][offset_pc_data][j_] |= (LEVEL_SAME << depth_shift_0);
+                                    } else if (y_coord/2 == y_parent){
+                                        data[i][offset_pc_data][j_] |= (j_parent << index_shift_0);
+                                        data[i][offset_pc_data][j_] |= (LEVEL_DOWN << depth_shift_0);
+                                        //symmetric
+                                        data[i-1][offset_pc_data_parent][j_parent] |= (j_ << index_shift_1);
+                                        data[i-1][offset_pc_data_parent][j_parent] |= (LEVEL_UP << depth_shift_1);
+                                    } else {
+                                        //std::cout << "BUG" << std::endl;
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+            
+            timer.stop_timer();
+            
+        } else {
+            
+            /////////////////////////////////////////////////////////////
+            //
+            //
+            // Y direction (+-) neigh loops (In memory direction)
+            //
+            //
+            /////////////////////////////////////////////////////////////
+            
+            
+            timer.start_timer("Get neighbours dir: " + std::to_string(face));
+            
+            for(int i = (depth_min+1);i <= depth_max;i++){
+                
+                const unsigned int x_num_ = x_num[i];
+                const unsigned int z_num_ = z_num[i];
+                
+                const unsigned int x_num_parent = x_num[i-1];
+                
+#pragma omp parallel for default(shared) private(z_,x_,j_,node_val,y_parent,j_parent,y_coord) if(z_num_*x_num_ > 100)
+                for(z_ = 0;z_ < (z_num_);z_++){
+                    
+                    for(x_ = 0;x_ < (x_num_);x_++){
+                        
+                        const size_t z_parent = (z_)/2;
+                        const size_t x_parent = (x_)/2;
+                        
+                        const size_t offset_pc_data = x_num_*z_ + x_;
+                        const size_t offset_pc_data_parent = x_num_parent*z_parent + x_parent;
+                        
+                        //initialization
+                        y_coord = (data[i][offset_pc_data][0] & NEXT_COORD_MASK) >> NEXT_COORD_SHIFT;
+                        y_parent = (data[i-1][offset_pc_data_parent][0] & NEXT_COORD_MASK) >> NEXT_COORD_SHIFT;
+                        
+                        j_parent = 1;
+                        
+                        if (data[i-1][offset_pc_data_parent].size() == 1){
+                            //set to max so its not checked
+                            y_parent = 64000;
+                        }
+                        
+                        y_coord--;
+                        
+                        const size_t j_num = data[i][offset_pc_data].size();
+                        const size_t j_num_parent = data[i-1][offset_pc_data_parent].size();
+                        
+                        for(j_ = 1;j_ < j_num;j_++){
+                            
+                            // Parent relation
+                            
+                            node_val = data[i][offset_pc_data][j_];
+                            
+                            if (node_val&1){
+                                //get the index gap node
+                                
+                                y_coord = (node_val & next_prev_mask) >> next_prev_shift;
+                                
+                                //iterate parent
+                                while ((y_parent < (y_coord+y_offset)/2) & (j_parent < (j_num_parent-1))){
+                                    
+                                    j_parent++;
+                                    node_val = data[i-1][offset_pc_data_parent][j_parent];
+                                    
+                                    if (node_val&1){
+                                        //get the index gap node
+                                        y_parent = (node_val & NEXT_COORD_MASK) >> NEXT_COORD_SHIFT;
+                                        j_parent++;
+                                        
+                                    } else {
+                                        //normal node
+                                        y_parent++;
+                                        
+                                    }
+                                }
+                                
+                                if((y_coord+y_offset)/2 == y_parent){
+                                    data[i][offset_pc_data][j_] |= (j_parent << index_shift_0);
+                                    data[i][offset_pc_data][j_] |= (  LEVEL_DOWN  << depth_shift_0);
+                                    //symmetric
+                                    data[i-1][offset_pc_data_parent][j_parent-y_offset] |= ( (j_-y_offset) << index_shift_1);
+                                    data[i-1][offset_pc_data_parent][j_parent-y_offset] |= ( LEVEL_UP  << depth_shift_1);
+                                } else {
+                                    //end node
+                                }
+                                
+                                
+                                
+                            } else {
+                                //normal node
+                                y_coord++;
+                                
+                                //iterate parent
+                                while ((y_parent < (y_coord+y_offset)/2) & (j_parent < (j_num_parent-1))){
+                                    
+                                    j_parent++;
+                                    node_val = data[i-1][offset_pc_data_parent][j_parent];
+                                    
+                                    if (node_val&1){
+                                        //get the index gap node
+                                        y_parent = (node_val & NEXT_COORD_MASK) >> NEXT_COORD_SHIFT;
+                                        j_parent++;
+                                        
+                                    } else {
+                                        //normal node
+                                        y_parent++;
+                                        
+                                    }
+                                }
+                                
+                            }
+                        }
+                        
+                    }
+                }
+            }
+            
+            timer.stop_timer();
+            
+        }
+        
+        
+        
+        
+        
+    }
 
 
 private:
     //  Direction definitions for Particle Cell Neighbours
     //  [+y,-y,+x,-x,+z,-z]
     //  [0,1,2,3,4,5]
-    
+
     uint64_t depth_mask_dir[6] = {YP_DEPTH_MASK,YM_DEPTH_MASK,XP_DEPTH_MASK,XM_DEPTH_MASK,ZP_DEPTH_MASK,ZM_DEPTH_MASK};
     uint64_t depth_shift_dir[6] =  {YP_DEPTH_SHIFT,YM_DEPTH_SHIFT,XP_DEPTH_SHIFT,XM_DEPTH_SHIFT,ZP_DEPTH_SHIFT,ZM_DEPTH_SHIFT};
     
@@ -432,7 +844,29 @@ private:
     
     //the ordering of retrieval of four neighbour cells
     uint8_t neigh_child_dir[6][3] = {{4,2,5},{4,2,5},{0,4,1},{0,4,1},{0,2,1},{0,2,1}};
-
+    
+    
+    //variables for neighbour search loops
+    uint8_t x_start_vec[6] = {0,0,0,1,0,0};
+    uint8_t x_stop_vec[6] = {0,0,1,0,0,0};
+    
+    uint8_t z_start_vec[6] = {0,0,0,0,0,1};
+    uint8_t z_stop_vec[6] = {0,0,0,0,1,0};
+    
+    uint8_t y_start_vec[6] = {0,1,0,0,0,0};
+    uint8_t y_stop_vec[6] = {1,0,0,0,0,0};
+    
+    //replication of above
+    int8_t x_offset_vec[6] = {0,0,1,-1,0,0};
+    int8_t z_offset_vec[6] = {0,0,0,0,1,-1};
+    int8_t y_offset_vec[6] = {1,-1,0,0,0,0};
+    
+    uint64_t index_shift_dir_sym[6] = {YM_INDEX_SHIFT,YP_INDEX_SHIFT,XM_INDEX_SHIFT,XP_INDEX_SHIFT,ZM_INDEX_SHIFT,ZP_INDEX_SHIFT};
+    uint64_t depth_shift_dir_sym[6] = {YM_DEPTH_SHIFT,YP_DEPTH_SHIFT,XM_DEPTH_SHIFT,XP_DEPTH_SHIFT,ZM_DEPTH_SHIFT,ZP_DEPTH_SHIFT};
+    
+    uint64_t next_prev_mask_vec[6] = {0,0,0,0,PREV_COORD_MASK,NEXT_COORD_MASK};
+    uint64_t next_prev_shift_vec[6] = {0,0,0,0,PREV_COORD_SHIFT,NEXT_COORD_SHIFT};
+    
 };
 
 #endif //PARTPLAY_PARTCELLDATA_HPP

@@ -246,8 +246,9 @@ private:
                         }
                     }
                     
-                    //Initialize the last value to GAP END
-                    //pc_data.data[i][offset_pc_data][pc_data.data[i][offset_pc_data].size()-1] = TYPE_GAP_END;
+                    //Initialize the last value GAP END indicators to no neighbour
+                    pc_data.data[i][offset_pc_data][pc_data.data[i][offset_pc_data].size()-1] |= (NO_NEIGHBOUR << YP_DEPTH_SHIFT);
+                    pc_data.data[i][offset_pc_data][pc_data.data[i][offset_pc_data].size()-1] |= (NO_NEIGHBOUR << YM_DEPTH_SHIFT);
                 }
             }
             
@@ -261,7 +262,14 @@ private:
         //
         /////////////////////////////////
         
-        set_neighbor_relationsships();
+        //(+y,-y,+x,-x,+z,-z)
+        pc_data.set_neighbor_relationships(0);
+        pc_data.set_neighbor_relationships(1);
+        
+        pc_data.set_neighbor_relationships(2);
+        pc_data.set_neighbor_relationships(3);
+        pc_data.set_neighbor_relationships(4);
+        pc_data.set_neighbor_relationships(5);
         
         
         /////////////////////////////////////
@@ -435,7 +443,7 @@ public:
         
         
         for(int i = particle_map.k_min;i <= particle_map.k_max;i++){
-            debug_write(particle_map.layers[i],"kmap" + std::to_string(i));
+        //    debug_write(particle_map.layers[i],"kmap" + std::to_string(i));
         }
         
         
@@ -457,8 +465,11 @@ public:
         
         initialize_structure(particle_map);
     }
-
-    void set_neighbor_relationsships(){
+    
+        
+    
+    
+    void set_neighbor_relationships_old(){
         
         Part_timer timer;
         timer.verbose_flag = true;

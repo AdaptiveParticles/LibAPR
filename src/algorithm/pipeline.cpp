@@ -200,18 +200,18 @@ int main(int argc, char **argv) {
         {
             //curr = *it;
             
-            curr_status = tree.get_status(*it);
+            //curr_status = tree.get_status(*it);
             
             //it.get_current_particle_coords(part_coords);
             
-            //neighbours.resize(24);
-            //tree.get_neighbours(*it, it.get_current_coords(), it.level_multiplier,
-                         //       it.child_index, neighbours);
+            neighbours.resize(24);
+            tree.get_neighbours(*it, it.get_current_coords(), it.level_multiplier,
+                                it.child_index, neighbours);
             //main_elems++;
             
             //elems[neighbours.size()]++;
             
-            raw_content[raw_tree[*it + 2]].intensity += 5;
+            //raw_content[raw_tree[*it + 2]].intensity += 5;
             
         }
     }

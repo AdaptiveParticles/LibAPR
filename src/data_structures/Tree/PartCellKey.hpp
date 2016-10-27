@@ -27,8 +27,6 @@ public:
     
     PartCellKey(){};
     
-    
-    
 private:
     
 };
