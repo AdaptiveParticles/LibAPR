@@ -271,8 +271,143 @@ public:
         
         
     }
-    
-    
+    PartCellKey get_neighbour_same_level(PartCellKey& curr_key,uint8_t face)
+    {
+        /** Get neighbours of a cell in one of the direction that are guranteed to be on the same level
+         *
+         *  @param curr_key    input: current key, output: neighbour key
+         *  @param face        direction to follow. Possible values are [0,5]
+         *                     They stand for [+y,-y,+x,-x,+z,-z] //change this ordering.. (y+ y-) are different,
+         */
+        
+        //inits
+        uint64_t node_val;
+        
+        PartCellKey neigh_key;
+        
+        //this is restricted to cells on the same level
+        neigh_key.depth = curr_key.depth;
+        
+        //get the node_val
+        if(face < 2){
+            //y_values need to use next node
+            neigh_key.x = curr_key.x;
+            neigh_key.z = curr_key.z;
+            neigh_key.j = curr_key.j + von_neumann_y_cells[face];
+            
+        } else {
+            //otherwise
+            
+            //get the node value
+            //node_val = data[curr_key.depth][x_num[curr_key.depth]*curr_key.z + curr_key.x][curr_key.j];
+            node_val = 1;
+            
+            neigh_key.j = ((node_val & index_mask_dir[face]) >> index_shift_dir[face]);
+            
+            neigh_key.x = curr_key.x + von_neumann_x_cells[face];
+            neigh_key.z = curr_key.z + von_neumann_z_cells[face];
+            
+        }
+        
+        return neigh_key;
+        
+    }
+    void get_neighs_face(PartCellKey& curr_key,uint64_t node_val, uint8_t face,std::vector<PartCellKey>& neigh_keys){
+        //
+        //  Bevan Cheeseman (2016)
+        //
+        //  Get all the nieghbours in direction face
+        //
+        /** Get neighbours of a cell in one of the direction
+         *
+         *  @param curr_key    input: current key, output: neighbour key
+         *  @param face        direction to follow. Possible values are [0,5]
+         *                     They stand for [+y,-y,+x,-x,+z,-z] //change this ordering.. (y+ y-) are different,
+         */
+        //
+        
+        
+        uint64_t neigh_indicator;
+        
+        PartCellKey neigh_key;
+        
+        // +-y direction is different
+        if(face < 2){
+            
+            node_val = data[curr_key.depth][x_num[curr_key.depth]*curr_key.z + curr_key.x][curr_key.j + von_neumann_y_cells[face]];
+            
+            if(!(node_val&1)){
+                //same level
+                neigh_key.x = curr_key.x;
+                neigh_key.z = curr_key.z;
+                neigh_key.depth = curr_key.depth;
+                neigh_key.j = curr_key.j + von_neumann_y_cells[face];
+                neigh_keys.push_back(neigh_key);
+                
+                return;
+            }
+            
+            //have to take into account up and down?
+            
+        }
+        
+        //dir
+        neigh_indicator = (node_val & depth_mask_dir[face]) >> depth_shift_dir[face];
+        
+        switch(neigh_indicator){
+            case(LEVEL_SAME):{
+                //same level return single neighbour
+                neigh_key.j = ((node_val & index_mask_dir[face]) >> index_shift_dir[face]);
+                neigh_key.x = curr_key.x + von_neumann_x_cells[face];
+                neigh_key.z = curr_key.z + von_neumann_z_cells[face];
+                
+                neigh_key.depth = curr_key.depth;
+                neigh_keys.push_back(neigh_key);
+                
+                return;
+            }
+            case(LEVEL_UP):{
+                // neighbour is higher level
+                neigh_key.j = ((node_val & index_mask_dir[face]) >> index_shift_dir[face]);
+                
+                neigh_key.x = (curr_key.x + von_neumann_x_cells[face])/2;
+                neigh_key.z = (curr_key.z + von_neumann_z_cells[face])/2;
+                
+                neigh_key.depth = curr_key.depth - 1;
+                
+                neigh_keys.push_back(neigh_key);
+               
+                
+                return;
+            }
+            case(LEVEL_DOWN):{
+                //first of four children
+                neigh_key.j = ((node_val & index_mask_dir[face]) >> index_shift_dir[face]);
+                
+                neigh_key.x = 2*(curr_key.x + von_neumann_x_cells[face]) +(von_neumann_x_cells[face] < 0);
+                neigh_key.z = 2*(curr_key.z + von_neumann_z_cells[face]) +(von_neumann_z_cells[face] < 0);
+                
+                neigh_key.depth = curr_key.depth + 1;
+                
+                neigh_keys.push_back(neigh_key);
+                
+                //three other neighbour children
+                neigh_key = get_neighbour_same_level(neigh_key,neigh_child_dir[face][0]);
+                neigh_keys.push_back(neigh_key);
+                
+                neigh_key = get_neighbour_same_level(neigh_key,neigh_child_dir[face][1]);
+                neigh_keys.push_back(neigh_key);
+                
+                neigh_key = get_neighbour_same_level(neigh_key,neigh_child_dir[face][2]);
+                neigh_keys.push_back(neigh_key);
+                
+                return;
+            }
+        }
+        
+        
+        
+    }
     uint64_t get_neighbour_same_level(const uint64_t curr_key,const uint8_t face)
     {
         /** Get neighbours of a cell in one of the direction that are guranteed to be on the same level
@@ -411,33 +546,22 @@ public:
                 
                 //x/z coord shift
                 neigh_key |= ((((curr_key & PC_KEY_X_MASK) >> PC_KEY_X_SHIFT) + von_neumann_x_cells[face])*2 + (von_neumann_x_cells[face] < 0)) << PC_KEY_X_SHIFT;
-                uint64_t temp = ((curr_key & PC_KEY_Z_MASK) >> PC_KEY_Z_SHIFT);
-                uint64_t temp2 = ((((curr_key & PC_KEY_Z_MASK) >> PC_KEY_Z_SHIFT) + von_neumann_z_cells[face])*2 + (von_neumann_z_cells[face] < 0));
                 neigh_key |= ((((curr_key & PC_KEY_Z_MASK) >> PC_KEY_Z_SHIFT) + von_neumann_z_cells[face])*2 + (von_neumann_z_cells[face] < 0)) << PC_KEY_Z_SHIFT;
                 
-
-                
                 neigh_keys.push_back(neigh_key);
-                
-                uint64_t temp3 = get_val(neigh_key);
                 
                 //three other neighbour children
                 neigh_key = get_neighbour_same_level(neigh_key,neigh_child_dir[face][0]);
-                
                 neigh_keys.push_back(neigh_key);
-                
-                temp = get_val(neigh_key);
                 
                 neigh_key = get_neighbour_same_level(neigh_key,neigh_child_dir[face][1]);
                 neigh_keys.push_back(neigh_key);
                 
-                temp = get_val(neigh_key);
-                
+               
                 neigh_key = get_neighbour_same_level(neigh_key,neigh_child_dir[face][2]);
                 neigh_keys.push_back(neigh_key);
                 
-                temp = get_val(neigh_key);
-                
+               
                 return;
             }
         }
@@ -463,7 +587,6 @@ public:
         timer.verbose_flag = 1;
         
         uint64_t curr_key;
-        //std::vector<PartCellKey> neigh_keys;
         std::vector<uint64_t> neigh_keys;
         
         
@@ -479,7 +602,7 @@ public:
             //For each depth there are two loops, one for SEED status particles, at depth + 1, and one for BOUNDARY and FILLER CELLS, to ensure contiguous memory access patterns.
             
             // SEED PARTICLE STATUS LOOP (requires access to three data structures, particle access, particle data, and the part-map)
-//#pragma omp parallel for default(shared) private(z_,x_,j_,node_val,curr_key,neigh_keys) if(z_num_*x_num_ > 100)
+#pragma omp parallel for default(shared) private(z_,x_,j_,node_val,curr_key,neigh_keys) if(z_num_*x_num_ > 100)
             for(z_ = 0;z_ < z_num_;z_++){
                 
                 curr_key = 0;
@@ -508,8 +631,6 @@ public:
                             curr_key &= -((PC_KEY_J_MASK) + 1);
                             curr_key |= j_ << PC_KEY_J_SHIFT;
                             
-                            uint64_t test = get_val(curr_key);
-                            
                             neigh_keys.resize(0);
                             
                             get_neighs_face(curr_key,node_val,0,neigh_keys);
@@ -522,6 +643,90 @@ public:
                             
                             get_neighs_face(curr_key,node_val,4,neigh_keys);
                            
+                            get_neighs_face(curr_key,node_val,5,neigh_keys);
+                            
+                            
+                        } else {
+                            
+                        }
+                        
+                    }
+                    
+                }
+                
+            }
+        }
+        
+        timer.stop_timer();
+        
+        
+    }
+    
+    void test_get_neigh_dir_pck(){
+        //
+        // Test the get neighbour direction code for speed
+        //
+        
+        uint64_t z_;
+        uint64_t x_;
+        uint64_t j_;
+        uint64_t node_val;
+        
+        
+        Part_timer timer;
+        
+        timer.verbose_flag = 1;
+        
+        PartCellKey curr_key;
+        std::vector<PartCellKey> neigh_keys;
+        
+        
+        timer.start_timer("get neighbour cells pck");
+        
+        for(int i = depth_min;i <= depth_max;i++){
+            
+            const unsigned int x_num_ = x_num[i];
+            const unsigned int z_num_ = z_num[i];
+            
+            
+            //For each depth there are two loops, one for SEED status particles, at depth + 1, and one for BOUNDARY and FILLER CELLS, to ensure contiguous memory access patterns.
+            
+            // SEED PARTICLE STATUS LOOP (requires access to three data structures, particle access, particle data, and the part-map)
+#pragma omp parallel for default(shared) private(z_,x_,j_,node_val,curr_key,neigh_keys) if(z_num_*x_num_ > 100)
+            for(z_ = 0;z_ < z_num_;z_++){
+                
+                
+                neigh_keys.reserve(24);
+                
+                for(x_ = 0;x_ < x_num_;x_++){
+                    
+                    const size_t offset_pc_data = x_num_*z_ + x_;
+                    
+                    const size_t j_num = data[i][offset_pc_data].size();
+                    
+                    for(j_ = 0;j_ < j_num;j_++){
+                        
+                        node_val = data[i][offset_pc_data][j_];
+                        
+                        if (!(node_val&1)){
+                            //get the index gap node
+                            curr_key.x = x_;
+                            curr_key.z = z_;
+                            curr_key.depth = i;
+                            curr_key.j = j_;
+                            
+                            neigh_keys.resize(0);
+                            
+                            get_neighs_face(curr_key,node_val,0,neigh_keys);
+                            
+                            get_neighs_face(curr_key,node_val,1,neigh_keys);
+                            
+                            get_neighs_face(curr_key,node_val,2,neigh_keys);
+                            
+                            get_neighs_face(curr_key,node_val,3,neigh_keys);
+                            
+                            get_neighs_face(curr_key,node_val,4,neigh_keys);
+                            
                             get_neighs_face(curr_key,node_val,5,neigh_keys);
                             
                             

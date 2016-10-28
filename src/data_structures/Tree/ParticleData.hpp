@@ -111,7 +111,6 @@ public:
         U status;
         U node_val;
         
-        U temp3;
         
         for(int i = access_data.depth_min;i <= access_data.depth_max;i++){
             
@@ -133,8 +132,6 @@ public:
                         //raster over both structures, generate the index for the particles, set the status and offset_y_coord diff
                         
                         node_val = part_cell_data.data[i][offset_pc_data][j_];
-                        
-                        
                         
                         if(!(node_val&1)){
                             //normal node

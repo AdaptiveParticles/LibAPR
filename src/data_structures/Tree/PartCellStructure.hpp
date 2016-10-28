@@ -775,7 +775,8 @@ public:
         
         test_partcell_struct(particle_map);
         
-        //pc_data.test_get_neigh_dir();
+        pc_data.test_get_neigh_dir();
+        pc_data.test_get_neigh_dir_pck();
     }
     
     
