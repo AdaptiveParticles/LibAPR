@@ -107,7 +107,45 @@ public:
      * Number of layers without the root and the contents.
      */
     
-   
+    
+    const uint64_t depth_mask_dir[6] = {YP_DEPTH_MASK,YM_DEPTH_MASK,XP_DEPTH_MASK,XM_DEPTH_MASK,ZP_DEPTH_MASK,ZM_DEPTH_MASK};
+    const uint64_t depth_shift_dir[6] =  {YP_DEPTH_SHIFT,YM_DEPTH_SHIFT,XP_DEPTH_SHIFT,XM_DEPTH_SHIFT,ZP_DEPTH_SHIFT,ZM_DEPTH_SHIFT};
+    
+    const uint64_t index_mask_dir[6] = {YP_INDEX_MASK,YM_INDEX_MASK,XP_INDEX_MASK,XM_INDEX_MASK,ZP_INDEX_MASK,ZM_INDEX_MASK};
+    const uint64_t index_shift_dir[6] = {YP_INDEX_SHIFT,YM_INDEX_SHIFT,XP_INDEX_SHIFT,XM_INDEX_SHIFT,ZP_INDEX_SHIFT,ZM_INDEX_SHIFT};
+    
+    const int8_t von_neumann_y_cells[6] = { 1,-1, 0, 0, 0, 0};
+    const int8_t von_neumann_x_cells[6] = { 0, 0, 1,-1, 0, 0};
+    const int8_t von_neumann_z_cells[6] = { 0, 0, 0, 0, 1,-1};
+    
+    //the ordering of retrieval of four neighbour cells
+    const uint8_t neigh_child_dir[6][3] = {{4,2,5},{4,2,5},{0,4,1},{0,4,1},{0,2,1},{0,2,1}};
+    
+    
+    //variables for neighbour search loops
+    const uint8_t x_start_vec[6] = {0,0,0,1,0,0};
+    const uint8_t x_stop_vec[6] = {0,0,1,0,0,0};
+    
+    const uint8_t z_start_vec[6] = {0,0,0,0,0,1};
+    const uint8_t z_stop_vec[6] = {0,0,0,0,1,0};
+    
+    const uint8_t y_start_vec[6] = {0,1,0,0,0,0};
+    const uint8_t y_stop_vec[6] = {1,0,0,0,0,0};
+    
+    //replication of above
+    const int8_t x_offset_vec[6] = {0,0,1,-1,0,0};
+    const int8_t z_offset_vec[6] = {0,0,0,0,1,-1};
+    const int8_t y_offset_vec[6] = {1,-1,0,0,0,0};
+    
+    const uint64_t index_shift_dir_sym[6] = {YM_INDEX_SHIFT,YP_INDEX_SHIFT,XM_INDEX_SHIFT,XP_INDEX_SHIFT,ZM_INDEX_SHIFT,ZP_INDEX_SHIFT};
+    const uint64_t depth_shift_dir_sym[6] = {YM_DEPTH_SHIFT,YP_DEPTH_SHIFT,XM_DEPTH_SHIFT,XP_DEPTH_SHIFT,ZM_DEPTH_SHIFT,ZP_DEPTH_SHIFT};
+    
+    const uint64_t index_mask_dir_sym[6] = {YM_INDEX_MASK,YP_INDEX_MASK,XM_INDEX_MASK,XP_INDEX_MASK,ZM_INDEX_MASK,ZP_INDEX_MASK};
+    const uint64_t depth_mask_dir_sym[6] = {YM_DEPTH_MASK,YP_DEPTH_MASK,XM_DEPTH_MASK,XP_DEPTH_MASK,ZM_DEPTH_MASK,ZP_DEPTH_MASK};
+    
+    const uint64_t next_prev_mask_vec[6] = {0,0,0,0,PREV_COORD_MASK,NEXT_COORD_MASK};
+    const uint64_t next_prev_shift_vec[6] = {0,0,0,0,PREV_COORD_SHIFT,NEXT_COORD_SHIFT};
+    
     
     uint8_t depth_max;
     uint8_t depth_min;
@@ -530,7 +568,7 @@ public:
         
         const uint64_t next_prev_mask = next_prev_mask_vec[face];
         const uint64_t next_prev_shift= next_prev_shift_vec[face];
-        const uint64_t y_offset = y_offset_vec[face];
+        const int8_t y_offset = y_offset_vec[face];
         const uint64_t y_start = y_start_vec[face];
         const uint64_t y_stop = y_stop_vec[face];
         
@@ -738,7 +776,7 @@ public:
                                         data[i][offset_pc_data][j_] &= -((depth_mask_0)+1);
                                         data[i][offset_pc_data][j_] |= (LEVEL_DOWN << depth_shift_0);
                                         //symmetric
-                                        if((y_coord == y_parent*2) & (x_ == (x_parent*2 + (x_offset < 0))) & (z_ == (z_parent*2 + (z_offset < 0)) )){
+                                        if((y_coord == y_parent*2) & (x_ == ((x_parent-x_offset)*2 + (x_offset > 0))) & (z_ == ((z_parent-z_offset)*2 + (z_offset > 0)))){
                                             //only add parent once
                                             //need to choose the correct one... formulae
                                             
@@ -839,7 +877,7 @@ public:
                                     data[i][offset_pc_data][j_] &= -((depth_mask_0)+1);
                                     data[i][offset_pc_data][j_] |= (  LEVEL_DOWN  << depth_shift_0);
                                     //symmetric (only add it once)
-                                    if((y_coord == (y_parent*2 + (y_offset < 0))) & (x_ == x_parent*2) & (z_ == (z_parent*2) )){
+                                    if((y_coord == ((y_parent-y_offset)*2 + (y_offset > 0))) & (x_ == x_parent*2) & (z_ == (z_parent*2) )){
                                         data[i-1][offset_pc_data_parent][j_parent-y_offset] |= ( (j_-y_offset) << index_shift_1);
                                     
                                         data[i-1][offset_pc_data_parent][j_parent-y_offset] &= -((depth_mask_1)+1);
@@ -894,44 +932,6 @@ private:
     //  [+y,-y,+x,-x,+z,-z]
     //  [0,1,2,3,4,5]
 
-    const uint64_t depth_mask_dir[6] = {YP_DEPTH_MASK,YM_DEPTH_MASK,XP_DEPTH_MASK,XM_DEPTH_MASK,ZP_DEPTH_MASK,ZM_DEPTH_MASK};
-    const uint64_t depth_shift_dir[6] =  {YP_DEPTH_SHIFT,YM_DEPTH_SHIFT,XP_DEPTH_SHIFT,XM_DEPTH_SHIFT,ZP_DEPTH_SHIFT,ZM_DEPTH_SHIFT};
-    
-    const uint64_t index_mask_dir[6] = {YP_INDEX_MASK,YM_INDEX_MASK,XP_INDEX_MASK,XM_INDEX_MASK,ZP_INDEX_MASK,ZM_INDEX_MASK};
-    const uint64_t index_shift_dir[6] = {YP_INDEX_SHIFT,YM_INDEX_SHIFT,XP_INDEX_SHIFT,XM_INDEX_SHIFT,ZP_INDEX_SHIFT,ZM_INDEX_SHIFT};
-    
-    const int8_t von_neumann_y_cells[6] = { 1,-1, 0, 0, 0, 0};
-    const int8_t von_neumann_x_cells[6] = { 0, 0, 1,-1, 0, 0};
-    const int8_t von_neumann_z_cells[6] = { 0, 0, 0, 0, 1,-1};
-    
-    //the ordering of retrieval of four neighbour cells
-    const uint8_t neigh_child_dir[6][3] = {{4,2,5},{4,2,5},{0,4,1},{0,4,1},{0,2,1},{0,2,1}};
-    
-    
-    //variables for neighbour search loops
-    const uint8_t x_start_vec[6] = {0,0,0,1,0,0};
-    const uint8_t x_stop_vec[6] = {0,0,1,0,0,0};
-    
-    const uint8_t z_start_vec[6] = {0,0,0,0,0,1};
-    const uint8_t z_stop_vec[6] = {0,0,0,0,1,0};
-    
-    const uint8_t y_start_vec[6] = {0,1,0,0,0,0};
-    const uint8_t y_stop_vec[6] = {1,0,0,0,0,0};
-    
-    //replication of above
-    const int8_t x_offset_vec[6] = {0,0,1,-1,0,0};
-    const int8_t z_offset_vec[6] = {0,0,0,0,1,-1};
-    const int8_t y_offset_vec[6] = {1,-1,0,0,0,0};
-    
-    const uint64_t index_shift_dir_sym[6] = {YM_INDEX_SHIFT,YP_INDEX_SHIFT,XM_INDEX_SHIFT,XP_INDEX_SHIFT,ZM_INDEX_SHIFT,ZP_INDEX_SHIFT};
-    const uint64_t depth_shift_dir_sym[6] = {YM_DEPTH_SHIFT,YP_DEPTH_SHIFT,XM_DEPTH_SHIFT,XP_DEPTH_SHIFT,ZM_DEPTH_SHIFT,ZP_DEPTH_SHIFT};
-    
-    const uint64_t index_mask_dir_sym[6] = {YM_INDEX_MASK,YP_INDEX_MASK,XM_INDEX_MASK,XP_INDEX_MASK,ZM_INDEX_MASK,ZP_INDEX_MASK};
-    const uint64_t depth_mask_dir_sym[6] = {YM_DEPTH_MASK,YP_DEPTH_MASK,XM_DEPTH_MASK,XP_DEPTH_MASK,ZM_DEPTH_MASK,ZP_DEPTH_MASK};
-    
-    const uint64_t next_prev_mask_vec[6] = {0,0,0,0,PREV_COORD_MASK,NEXT_COORD_MASK};
-    const uint64_t next_prev_shift_vec[6] = {0,0,0,0,PREV_COORD_SHIFT,NEXT_COORD_SHIFT};
-    
 };
 
 #endif //PARTPLAY_PARTCELLDATA_HPP
