@@ -145,7 +145,7 @@ private:
                         pc_data.data[i][offset_pc_data].resize(1); //always first adds an extra entry for intialization and extra info
                     } else {
                        
-                        pc_data.data[i][offset_pc_data].resize(curr_index + 2 - first_empty,TYPE_GAP_END); //gap node to begin, already finishes with a gap node
+                        pc_data.data[i][offset_pc_data].resize(curr_index + 2 - first_empty,0); //gap node to begin, already finishes with a gap node
                     
                     }
                 }
@@ -247,6 +247,7 @@ private:
                     }
                     
                     //Initialize the last value GAP END indicators to no neighbour
+                    pc_data.data[i][offset_pc_data][pc_data.data[i][offset_pc_data].size()-1] = TYPE_GAP_END;
                     pc_data.data[i][offset_pc_data][pc_data.data[i][offset_pc_data].size()-1] |= (NO_NEIGHBOUR << YP_DEPTH_SHIFT);
                     pc_data.data[i][offset_pc_data][pc_data.data[i][offset_pc_data].size()-1] |= (NO_NEIGHBOUR << YM_DEPTH_SHIFT);
                 }
@@ -417,14 +418,98 @@ private:
     }
     
     
+    template<typename U>
+    void test_partcell_struct(Particle_map<U>& part_map){
+        //
+        //  Bevan Cheeseman 2016
+        //
+        //  Compares the PartCellStructure with the partmap and checks if things are correct
+        //
+        
+        
+        //initialize
+        uint64_t node_val;
+        uint64_t y_coord;
+        int x_;
+        int z_;
+        uint64_t y_;
+        uint64_t j_;
+        uint64_t status;
+        uint64_t status_org;
+        
+        
+        for(int i = pc_data.depth_min;i <= pc_data.depth_max;i++){
+            
+            const unsigned int x_num = pc_data.x_num[i];
+            const unsigned int z_num = pc_data.z_num[i];
+            
+            
+            for(z_ = 0;z_ < z_num;z_++){
+                
+                for(x_ = 0;x_ < x_num;x_++){
+                    
+                    const size_t offset_pc_data = x_num*z_ + x_;
+                    y_coord = 0;
+                    const size_t j_num = part_data.access_data.data[i][offset_pc_data].size();
+                    
+                    const size_t offset_part_map_data_0 = part_map.downsampled[i].y_num*part_map.downsampled[i].x_num*z_ + part_map.downsampled[i].y_num*x_;
+                    
+                    for(j_ = 0;j_ < j_num;j_++){
+                        
+                        
+                        node_val = part_data.access_data.data[i][offset_pc_data][j_];
+                        
+                        if (node_val&1){
+                            //get the index gap node
+                            y_coord += (node_val & COORD_DIFF_MASK_PARTICLE) >> COORD_DIFF_SHIFT_PARTICLE;
+                            y_coord--;
+                            
+                            
+                        } else {
+                            //normal node
+                            y_coord++;
+                            
+                            //get and check status
+                            status = (node_val & STATUS_MASK_PARTICLE) >> STATUS_SHIFT_PARTICLE;
+                            status_org = part_map.layers[i].mesh[offset_part_map_data_0 + y_coord];
+                            
+                            //boundary and filler cells only have one particle
+                            if((status_org> 0) & (status_org < 8)){
+                                //correct values firt
+                                
+                            } else {
+                                std::cout << "BUG" << std::endl;
+                            }
+                            
+                            
+                        }
+                    }
+                    
+                }
+            }
+            
+        }
+
+        
+    
+    
+    
+    
+    
+    
+    }
+
+
+
+
      // Particles are ordered as ((-y,-x,-z),(+y,-x,-z),(-y,+x,-z),(+y,+x,-z),(-y,-x,+z),(+y,-x,+z),(-y,+x,+z),(+y,+x,+z))
-    uint8_t seed_part_y[8] = {0, 1, 0, 1, 0, 1, 0, 1};
-    uint8_t seed_part_x[8] = {0, 0, 1, 1, 0, 0, 1, 1};
-    uint8_t seed_part_z[8] = {0, 0, 0, 0, 1, 1, 1, 1};
+    const uint8_t seed_part_y[8] = {0, 1, 0, 1, 0, 1, 0, 1};
+    const uint8_t seed_part_x[8] = {0, 0, 1, 1, 0, 0, 1, 1};
+    const uint8_t seed_part_z[8] = {0, 0, 0, 0, 1, 1, 1, 1};
                                                                
-    int8_t von_neumann_y[6] = {0, 0, -1, 1, 0, 0};
-    int8_t von_neumann_x[6] = {0, -1, 0, 0, 1, 0};
-    int8_t von_neumann_z[6] = {-1, 0, 0, 0, 0, 1};
+    const int8_t von_neumann_y[6] = {0, 0, -1, 1, 0, 0};
+    const int8_t von_neumann_x[6] = {0, -1, 0, 0, 1, 0};
+    const int8_t von_neumann_z[6] = {-1, 0, 0, 0, 0, 1};
     
 public:
     
@@ -443,14 +528,16 @@ public:
         
         
         for(int i = particle_map.k_min;i <= particle_map.k_max;i++){
-        //    debug_write(particle_map.layers[i],"kmap" + std::to_string(i));
+            debug_write(particle_map.layers[i],"kmap" + std::to_string(i));
         }
         
         
         //create_sparse_graph_format(particle_map);
         create_partcell_structure(particle_map);
         
-        pc_data.test_get_neigh_dir();
+        test_partcell_struct(particle_map);
+        
+        //pc_data.test_get_neigh_dir();
     }
     
     
