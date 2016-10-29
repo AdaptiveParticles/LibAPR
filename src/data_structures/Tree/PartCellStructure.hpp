@@ -754,7 +754,11 @@ private:
                     
                     const size_t offset_part_map_data_0 = part_map.downsampled[i].y_num*part_map.downsampled[i].x_num*z_ + part_map.downsampled[i].y_num*x_;
                     
+                    
+                    
+                    
                     for(j_ = 0;j_ < j_num;j_++){
+                        
                         
                         node_val = pc_data.data[i][offset_pc_data][j_];
                         
@@ -837,7 +841,8 @@ private:
                                     
                                     
                                 }
-                                    
+                                
+                                int y_org = y_n;
                                 
                                 for(int n = 0;n < neigh_keys.size();n++){
                                     
@@ -846,32 +851,37 @@ private:
                                     j_n = (neigh_keys[n] & PC_KEY_J_MASK) >> PC_KEY_J_SHIFT;
                                     depth = (neigh_keys[n] & PC_KEY_DEPTH_MASK) >> PC_KEY_DEPTH_SHIFT;
                                     
-                                    
-                                    if (n > 0){
+                                    if ((n > 0) & (n > 3)){
                                         y_n = y_n + pc_data.von_neumann_y_cells[pc_data.neigh_child_dir[face][n-1]];
+                                    } else if (n ==3){
+                                        y_n = y_org + pc_data.von_neumann_y_cells[pc_data.neigh_child_dir[face][n-1]];
                                     }
+                                    int dir = pc_data.neigh_child_dir[face][n-1];
+                                    int shift = pc_data.von_neumann_y_cells[pc_data.neigh_child_dir[face][n-1]];
                                     
-                                    //calculate y so you can check back in the original structure
-                                    
-                                    
-                                    const size_t offset_pc_data_loc = pc_data.x_num[depth]*z_n + x_n;
-                                    node_n = pc_data.data[depth][offset_pc_data_loc][j_n];
-                                    const size_t offset_part_map = part_map.downsampled[depth].y_num*part_map.downsampled[depth].x_num*z_n + part_map.downsampled[depth].y_num*x_n;
-                                    status_n = part_map.layers[depth].mesh[offset_part_map + y_n];
-                                    
-                                    
-                                    if((status_n> 0) & (status_n < 8)){
-                                        //fine
-                                    } else {
-                                        std::cout << "NEIGHBOUR LEVEL BUG" << std::endl;
-                                    }
-                                    
-                                    
-                                    if (node_n&1){
-                                        //points to gap node
-                                        std::cout << "INDEX BUG" << std::endl;
-                                    } else {
-                                        //points to real node, correct
+                                    if (neigh_keys[n] > 0){
+                                        
+                                        //calculate y so you can check back in the original structure
+                                        const size_t offset_pc_data_loc = pc_data.x_num[depth]*z_n + x_n;
+                                        node_n = pc_data.data[depth][offset_pc_data_loc][j_n];
+                                        const size_t offset_part_map = part_map.downsampled[depth].y_num*part_map.downsampled[depth].x_num*z_n + part_map.downsampled[depth].y_num*x_n;
+                                        status_n = part_map.layers[depth].mesh[offset_part_map + y_n];
+                                        
+                                        
+                                        
+                                        if((status_n> 0) & (status_n < 8)){
+                                            //fine
+                                        } else {
+                                            std::cout << "NEIGHBOUR LEVEL BUG" << std::endl;
+                                        }
+                                        
+                                        
+                                        if (node_n&1){
+                                            //points to gap node
+                                            std::cout << "INDEX BUG" << std::endl;
+                                        } else {
+                                            //points to real node, correct
+                                        }
                                     }
                                 }
                                 

@@ -121,7 +121,7 @@ public:
     const int8_t von_neumann_z_cells[6] = { 0, 0, 0, 0, 1,-1};
     
     //the ordering of retrieval of four neighbour cells
-    const uint8_t neigh_child_dir[6][3] = {{2,4,6},{2,4,6},{0,4,7},{0,4,7},{0,2,8},{0,2,8}};
+    const uint8_t neigh_child_dir[6][3] = {{4,2,2},{4,2,2},{0,4,4},{0,4,4},{0,2,2},{0,2,2}};
     
     
     //variables for neighbour search loops
@@ -321,32 +321,38 @@ public:
 
     }
     
-//    bool check_neigh_exists(uint64_t& node_val,uint64_t& curr_key,face){
-//        
-//        
-//        if(face < 2){
-//            uint64_t curr_j = ((curr_key & PC_KEY_J_MASK) >> PC_KEY_J_SHIFT);
-//            curr_key &= -((PC_KEY_J_MASK) + 1);
-//            neigh_key|=  (((curr_key & PC_KEY_J_MASK) >> PC_KEY_J_SHIFT) + von_neumann_y_cells[face]) << PC_KEY_J_SHIFT;
-//            
-//            node_val = get_val(neigh_key);
-//            
-//            if(!(node_val&1)){
-//                //same level
-//                
-//                
-//                return;
-//            } else {
-//                
-//            }
-//            
-//            
-//        } else {
-//            
-//        }
-//
-//        
-//    }
+    bool check_neigh_exists(uint64_t node_val,uint64_t curr_key,uint8_t face){
+        //checks if node on same level exists or not
+        
+        
+        
+        if(face < 2){
+            uint64_t curr_j = ((curr_key & PC_KEY_J_MASK) >> PC_KEY_J_SHIFT);
+            curr_key &= -((PC_KEY_J_MASK) + 1);
+            curr_key|=  (curr_j + von_neumann_y_cells[face]) << PC_KEY_J_SHIFT;
+            
+            node_val = get_val(curr_key);
+            
+            if(!(node_val&1)){
+                //same level
+                return true;
+            } else {
+                return false;
+            }
+            
+            
+        } else {
+            
+            if (((node_val & depth_mask_dir[face]) >> depth_shift_dir[face]) == NO_NEIGHBOUR){
+                return false;
+            } else {
+                return true;
+            }
+            
+        }
+
+        
+    }
     
     
     //void get_neighs_face(PartCellKey& curr_key,uint64_t node_val, uint8_t face,std::vector<PartCellKey>& neigh_keys){
@@ -448,23 +454,29 @@ public:
                 uint64_t temp = neigh_key;
                 
                 //check if its two neighbours exist
-                bool exist0 = true;
-                bool exist2 = true;
+                bool exist0 = check_neigh_exists(node_val,neigh_key,neigh_child_dir[face][0]);
+                bool exist2 = check_neigh_exists(node_val,neigh_key,neigh_child_dir[face][2]);
                 
                 if(exist0){
                     neigh_key = get_neighbour_same_level(neigh_key,neigh_child_dir[face][0]);
                     neigh_keys.push_back(neigh_key);
                         
+                } else {
+                    neigh_keys.push_back(0);
                 }
                 //diagonal will exist only if the other two exist
                 if(exist0 & exist2){
                     neigh_key = get_neighbour_same_level(neigh_key,neigh_child_dir[face][1]);
                     neigh_keys.push_back(neigh_key);
+                } else {
+                    neigh_keys.push_back(0);
                 }
                 
                 if(exist2){
                     neigh_key = get_neighbour_same_level(temp,neigh_child_dir[face][2]);
                     neigh_keys.push_back(neigh_key);
+                } else {
+                    neigh_keys.push_back(0);
                 }
                 
                 
