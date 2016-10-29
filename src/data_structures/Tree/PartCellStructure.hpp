@@ -929,16 +929,18 @@ public:
         
         
         for(int i = particle_map.k_min;i <= particle_map.k_max;i++){
-            debug_write(particle_map.layers[i],"kmap" + std::to_string(i));
+            //debug_write(particle_map.layers[i],"kmap" + std::to_string(i));
         }
         
         
         //create_sparse_graph_format(particle_map);
         create_partcell_structure(particle_map);
         
-        test_partcell_struct(particle_map);
+        //test_partcell_struct(particle_map);
         
         pc_data.test_get_neigh_dir();
+        
+        pc_data.test_get_neigh_dir_performance();
         
     }
     
