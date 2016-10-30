@@ -942,6 +942,10 @@ public:
         
         pc_data.test_get_neigh_dir_performance();
         
+        pc_data.test_get_neigh_dir_performance_function();
+        
+        pc_data.test_get_neigh_dir_performance_all();
+        
     }
     
     
