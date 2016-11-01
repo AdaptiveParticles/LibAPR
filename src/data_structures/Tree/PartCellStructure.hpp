@@ -416,7 +416,108 @@ private:
         
         
     }
-    
+    void test_get_neigh_dir_memory(){
+        //
+        // Test the get neighbour direction code for speed
+        //
+        
+        uint64_t z_;
+        uint64_t x_;
+        uint64_t j_;
+        uint64_t node_val;
+        
+        
+        Part_timer timer;
+        
+        timer.verbose_flag = 1;
+        
+        uint64_t curr_key;
+        std::vector<uint64_t> neigh_keys;
+        
+        PartCellData<std::vector<uint64_t>> neigh_vec_all;
+        neigh_vec_all.initialize_from_partcelldata(pc_data);
+        
+        for(uint64_t i = pc_data.depth_min;i <= pc_data.depth_max;i++){
+            const unsigned int x_num_ = pc_data.x_num[i];
+            const unsigned int z_num_ = pc_data.z_num[i];
+            
+            for(z_ = 0;z_ < z_num_;z_++){
+                
+                
+                for(x_ = 0;x_ < x_num_;x_++){
+                    const size_t offset_pc_data = x_num_*z_ + x_;
+                    
+                    const size_t j_num = pc_data.data[i][offset_pc_data].size();
+                    neigh_vec_all.data[i][offset_pc_data].resize(j_num);
+                    
+                    for(j_ = 0;j_ < j_num;j_++){
+                        neigh_vec_all.data[i][offset_pc_data][j_].reserve(4);
+                    }
+                }
+            }
+            
+        }
+        
+        
+        timer.start_timer("get neighbour cells memory all");
+        
+        for(uint64_t i = pc_data.depth_min;i <= pc_data.depth_max;i++){
+            
+            const unsigned int x_num_ = pc_data.x_num[i];
+            const unsigned int z_num_ = pc_data.z_num[i];
+            
+            //For each depth there are two loops, one for SEED status particles, at depth + 1, and one for BOUNDARY and FILLER CELLS, to ensure contiguous memory access patterns.
+            
+            // SEED PARTICLE STATUS LOOP (requires access to three data structures, particle access, particle data, and the part-map)
+#pragma omp parallel for default(shared) private(z_,x_,j_,node_val,curr_key) if(z_num_*x_num_ > 100)
+            for(z_ = 0;z_ < z_num_;z_++){
+                
+                curr_key = 0;
+                
+                curr_key |= ((uint64_t)i) << PC_KEY_DEPTH_SHIFT;
+                curr_key |= z_ << PC_KEY_Z_SHIFT;
+                
+                //neigh_keys.reserve(24);
+                
+                for(x_ = 0;x_ < x_num_;x_++){
+                    
+                    curr_key &=  -((PC_KEY_X_MASK) + 1);
+                    curr_key |= x_ << PC_KEY_X_SHIFT;
+                    
+                    const size_t offset_pc_data = x_num_*z_ + x_;
+                    
+                    const size_t j_num = pc_data.data[i][offset_pc_data].size();
+                    
+                    for(j_ = 0;j_ < j_num;j_++){
+                        
+                        node_val = pc_data.data[i][offset_pc_data][j_];
+                        
+                        if (!(node_val&1)){
+                            //get the index gap node
+                            
+                            curr_key &= -((PC_KEY_J_MASK) + 1);
+                            curr_key |= j_ << PC_KEY_J_SHIFT;
+                            
+                            pc_data.get_neigh_0(curr_key,node_val,neigh_vec_all.data[i][offset_pc_data][j_]);
+                           
+                            
+                            
+                        } else {
+                            
+                        }
+                        
+                    }
+                    
+                }
+                
+            }
+        }
+        
+        timer.stop_timer();
+        
+        
+    }
+
     
     template<typename U>
     void test_partcell_struct(Particle_map<U>& part_map){
@@ -933,6 +1034,8 @@ public:
         }
         
         
+        
+        
         //create_sparse_graph_format(particle_map);
         create_partcell_structure(particle_map);
         
@@ -940,11 +1043,13 @@ public:
         
         pc_data.test_get_neigh_dir();
         
-        pc_data.test_get_neigh_dir_performance();
+        //pc_data.test_get_neigh_dir_performance();
         
-        pc_data.test_get_neigh_dir_performance_function();
+        //pc_data.test_get_neigh_dir_performance_function();
         
         pc_data.test_get_neigh_dir_performance_all();
+        
+        test_get_neigh_dir_memory();
         
     }
     
