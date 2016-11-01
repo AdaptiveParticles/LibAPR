@@ -952,9 +952,9 @@ private:
                                     j_n = (neigh_keys[n] & PC_KEY_J_MASK) >> PC_KEY_J_SHIFT;
                                     depth = (neigh_keys[n] & PC_KEY_DEPTH_MASK) >> PC_KEY_DEPTH_SHIFT;
                                     
-                                    if ((n > 0) & (n > 3)){
+                                    if ((n == 1) | (n == 3)){
                                         y_n = y_n + pc_data.von_neumann_y_cells[pc_data.neigh_child_dir[face][n-1]];
-                                    } else if (n ==3){
+                                    } else if (n ==2){
                                         y_n = y_org + pc_data.von_neumann_y_cells[pc_data.neigh_child_dir[face][n-1]];
                                     }
                                     int dir = pc_data.neigh_child_dir[face][n-1];
@@ -1039,7 +1039,7 @@ public:
         //create_sparse_graph_format(particle_map);
         create_partcell_structure(particle_map);
         
-        //test_partcell_struct(particle_map);
+        test_partcell_struct(particle_map);
         
         pc_data.test_get_neigh_dir();
         
@@ -1047,9 +1047,11 @@ public:
         
         //pc_data.test_get_neigh_dir_performance_function();
         
-        pc_data.test_get_neigh_dir_performance_all();
+        //pc_data.test_get_neigh_dir_performance_all();
         
-        test_get_neigh_dir_memory();
+        //test_get_neigh_dir_memory();
+        
+        part_data.test_get_part_neigh_dir(pc_data);
         
     }
     

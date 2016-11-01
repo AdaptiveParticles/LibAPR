@@ -181,6 +181,128 @@ public:
         
     }
     
+    template<typename U>
+    void test_get_part_neigh_dir(PartCellData<U>& pc_data){
+        //
+        // Test the get neighbour direction code for speed
+        //
+        
+        U z_;
+        U x_;
+        U j_;
+        U node_val_pc;
+        S node_val_part;
+        S part_offset;
+        
+        Part_timer timer;
+        
+        timer.verbose_flag = 1;
+        
+        U status;
+        U curr_key;
+        std::vector<U> neigh_cell_keys;
+        std::vector<U> neigh_part_keys;
+        
+        
+        timer.start_timer("get neighbour parts");
+        
+        for(uint64_t i = pc_data.depth_min;i <= pc_data.depth_max;i++){
+            
+            const unsigned int x_num_ = pc_data.x_num[i];
+            const unsigned int z_num_ = pc_data.z_num[i];
+            
+            //For each depth there are two loops, one for SEED status particles, at depth + 1, and one for BOUNDARY and FILLER CELLS, to ensure contiguous memory access patterns.
+            
+            // SEED PARTICLE STATUS LOOP (requires access to three data structures, particle access, particle data, and the part-map)
+#pragma omp parallel for default(shared) private(z_,x_,j_,node_val_pc,node_val_part,curr_key,part_offset,status,neigh_cell_keys,neigh_part_keys) if(z_num_*x_num_ > 100)
+            for(z_ = 0;z_ < z_num_;z_++){
+                
+                curr_key = 0;
+                
+                curr_key |= ((uint64_t)i) << PC_KEY_DEPTH_SHIFT;
+                curr_key |= z_ << PC_KEY_Z_SHIFT;
+                
+                neigh_cell_keys.reserve(24);
+                
+                for(x_ = 0;x_ < x_num_;x_++){
+                    
+                    curr_key &=  -((PC_KEY_X_MASK) + 1);
+                    curr_key |= x_ << PC_KEY_X_SHIFT;
+                    
+                    const size_t offset_pc_data = x_num_*z_ + x_;
+                    
+                    const size_t j_num = pc_data.data[i][offset_pc_data].size();
+                    
+                    for(j_ = 0;j_ < j_num;j_++){
+                        
+                        node_val_pc = pc_data.data[i][offset_pc_data][j_];
+                        
+                        
+                        if (!(node_val_pc&1)){
+                            //get the index gap node
+                            node_val_part = access_data.data[i][offset_pc_data][j_];
+                            
+                            curr_key &= -((PC_KEY_J_MASK) + 1);
+                            curr_key |= j_ << PC_KEY_J_SHIFT;
+                            
+                            
+                            //neigh_keys.resize(0);
+                            status = (node_val_part & STATUS_MASK_PARTICLE) >> STATUS_SHIFT_PARTICLE;
+                            
+                            part_offset = (node_val_part & Y_PINDEX_MASK_PARTICLE) >> Y_PINDEX_SHIFT_PARTICLE;
+                            
+                            neigh_cell_keys.resize(0);
+                            pc_data.get_neigh_0(curr_key,node_val_pc,neigh_cell_keys);
+                            
+                            switch(status){
+                                case SEED:
+                                {
+                                    //loop over the 8 particles
+                                    for(uint64_t p = 0;p < 8;p++){
+                                        curr_key &= -((PC_KEY_INDEX_MASK) + 1);
+                                        curr_key |= (part_offset+p) << PC_KEY_INDEX_SHIFT;
+                                       
+                                    }
+                                    (void)curr_key;
+                                    
+                                    //loop over neighborus and add the different part offsets
+                                    
+                                    break;
+                                }
+                                default:
+                                {
+                                    //one particle
+                                    curr_key &= -((PC_KEY_INDEX_MASK) + 1);
+                                    curr_key |= part_offset << PC_KEY_INDEX_SHIFT;
+                                    
+                                    //loop over neighbours, and add in the part offset
+                                    
+                                    (void)curr_key;
+                                    (void) neigh_cell_keys;
+                                    
+                                    break;
+                                }
+                                    
+                            }
+                            
+                            
+                        } else {
+                            
+                        }
+                        
+                    }
+                    
+                }
+                
+            }
+        }
+        
+        timer.stop_timer();
+        
+        
+    }
+
+    
 private:
     
     uint64_t num_particles;
