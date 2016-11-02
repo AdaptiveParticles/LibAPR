@@ -222,8 +222,8 @@ public:
         
     }
     
-    template<uint64_t face,uint64_t index,typename U>
-    U get_part_cfiller_nseed(const U& neigh_offset){
+    template<uint64_t face,typename U>
+    U get_part_cfiller_nseed(const U& neigh_offset,uint64_t& index){
         //
         // current is seed and neighbour is seed
         //
@@ -238,7 +238,7 @@ public:
     
     
     template<typename U>
-    U get_index_odd_even(U& coord0,U &coord1){
+    U get_index_odd_even(U& coord0,U& coord1){
         //
         //  Calculates the index required for Filler seed pair for (x,z)
         //
@@ -272,11 +272,11 @@ public:
                 break;
             }
         }
-        
+        return 0;
         
     }
     template<typename U>
-    U check_previous_val(const U& face,const U& curr_key,const PartCellData<U>& pc_data){
+    U check_previous_val(const U& face,const U& curr_key,PartCellData<U>& pc_data){
         //
         //  Checks the previous node in the structure and determines which cell you are in, by checking if they share the neighbour
         //
@@ -309,7 +309,7 @@ public:
     }
     
     template<uint64_t face,typename U>
-    U calc_index_cfiller_nseed(const U& curr_key,const PartCellData<U>& pc_data){
+    U calc_index_cfiller_nseed(const U& curr_key,PartCellData<U>& pc_data){
         //
         //  Determines the index for filler cells with a seed neighbour at lower resolution
         //
@@ -326,13 +326,19 @@ public:
                 coord0 = (curr_key & PC_KEY_X_MASK) >> PC_KEY_X_SHIFT;
                 coord1 = (curr_key & PC_KEY_Z_MASK) >> PC_KEY_Z_SHIFT;
                 
-                return get_index_odd_even(coord0&1,coord1&1);
+                coord0 = coord0&1;
+                coord1 = coord1&1;
+                
+                return get_index_odd_even<U>(coord0,coord1);
             } case 1:{
                 
                 coord0 = (curr_key & PC_KEY_X_MASK) >> PC_KEY_X_SHIFT;
                 coord1 = (curr_key & PC_KEY_Z_MASK) >> PC_KEY_Z_SHIFT;
                 
-                return get_index_odd_even(coord0&1,coord1&1);
+                coord0 = coord0&1; //check if odd
+                coord1 = coord1&1;
+                
+                return get_index_odd_even<U>(coord0,coord1);
             } case 2:{
                 
                 //shift curr_key back
@@ -340,31 +346,35 @@ public:
                 //get the key that is currently pointed to
                 
                 
-                coord0 = check_previous_val(face,curr_key,pc_data);
+                coord0 = check_previous_val<U>(face,curr_key,pc_data);
                 coord1 = (curr_key & PC_KEY_Z_MASK) >> PC_KEY_Z_SHIFT;
+                coord1 = coord1&1;
                 
-                return get_index_odd_even(coord0,coord1&1);
+                return get_index_odd_even<U>(coord0,coord1);
             } case 3:{
                 
-                coord0 = check_previous_val(face,curr_key,pc_data);
+                coord0 = check_previous_val<U>(face,curr_key,pc_data);
                 coord1 = (curr_key & PC_KEY_Z_MASK) >> PC_KEY_Z_SHIFT;
+                coord1 = coord1&1;
                 
-                return get_index_odd_even(coord0,coord1&1);
+                return get_index_odd_even<U>(coord0,coord1);
             } case 4:{
                 
-                coord0 = check_previous_val(face,curr_key,pc_data);
+                coord0 = check_previous_val<U>(face,curr_key,pc_data);
                 coord1 = (curr_key & PC_KEY_X_MASK) >> PC_KEY_X_SHIFT;
+                coord1 = coord1&1;
                 
-                return get_index_odd_even(coord0,coord1&1);
+                return get_index_odd_even<U>(coord0,coord1);
             } case 5:{
                 
-                coord0 = check_previous_val(face,curr_key,pc_data);
+                coord0 = check_previous_val<U>(face,curr_key,pc_data);
                 coord1 = (curr_key & PC_KEY_X_MASK) >> PC_KEY_X_SHIFT;
+                coord1 = coord1&1;
                 
-                return get_index_odd_even(coord0,coord1&1);
+                return get_index_odd_even<U>(coord0,coord1);
             }
         }
-        
+        return 0;
         
     }
     
@@ -411,73 +421,103 @@ public:
         //
         //
         
-        
-        neigh_part_keys.resize(neigh_cell_keys.size());
-        
-        U neigh_status = (access_data.get_val(neigh_cell_keys[0]) & STATUS_MASK_PARTICLE) >> STATUS_SHIFT_PARTICLE;
-        
-        
-        switch(curr_status){
-            case SEED:
-            {
-                switch(neigh_status){
-                    case SEED:
-                    {
-                        
-                        U neigh_offset = (access_data.get_val(neigh_cell_keys[0]) & Y_PINDEX_MASK_PARTICLE) >> Y_PINDEX_SHIFT_PARTICLE;
-                        
-                        neigh_part_keys[0] = get_part_cseed_nseed<face,index,U>(curr_offset,neigh_offset);
-                        
-                        break;
+        if(neigh_cell_keys.size() > 0){
+            
+            neigh_part_keys.resize(neigh_cell_keys.size());
+            
+            U neigh_status = (access_data.get_val(neigh_cell_keys[0]) & STATUS_MASK_PARTICLE) >> STATUS_SHIFT_PARTICLE;
+            U neigh_offset;
+            
+            switch(curr_status){
+                case SEED:
+                {
+                    switch(neigh_status){
+                        case SEED:
+                        {
+                            
+                            neigh_offset = (access_data.get_val(neigh_cell_keys[0]) & Y_PINDEX_MASK_PARTICLE) >> Y_PINDEX_SHIFT_PARTICLE;
+                            neigh_part_keys[0] = get_part_cseed_nseed<face,index,U>(curr_offset,neigh_offset);
+                            
+                            return;
+                        }
+                        case BOUNDARY:
+                        {
+                            
+                            neigh_offset = (access_data.get_val(neigh_cell_keys[0]) & Y_PINDEX_MASK_PARTICLE) >> Y_PINDEX_SHIFT_PARTICLE;
+                            // will have one neighbour
+                            neigh_part_keys[0] =  get_part_cseed_nboundary<face,index,U>(curr_offset,neigh_offset);
+                            
+                            
+                            return;
+                        }
+                        case FILLER:
+                        {
+                            //This is the case where the filler are higher resolution then the seed case,
+                            neigh_part_keys[0] = get_part_cseed_nfiller_p1<face,index,U>(curr_offset,neigh_cell_keys);
+                            
+                            return;
+                        }
                     }
-                    case BOUNDARY:
-                    {
-                        
-                        break;
-                    }
-                    case FILLER:
-                    {
-                        
-                        break;
-                    }
+                    
+                    break;
                 }
-                
-                break;
-            }
-            case BOUNDARY:
-            {
-                switch(neigh_status){
-                    case SEED:
-                    {
-                        
-                        break;
+                case BOUNDARY:
+                {
+                    switch(neigh_status){
+                        case SEED:
+                        {
+                            neigh_part_keys.resize(4);
+                            neigh_offset = (access_data.get_val(neigh_cell_keys[0]) & Y_PINDEX_MASK_PARTICLE) >> Y_PINDEX_SHIFT_PARTICLE;
+                            neigh_part_keys[0] = get_part_cboundary_nseed<face,0,U>(neigh_offset);
+                            neigh_part_keys[1] = get_part_cboundary_nseed<face,1,U>(neigh_offset);
+                            neigh_part_keys[2] = get_part_cboundary_nseed<face,2,U>(neigh_offset);
+                            neigh_part_keys[3] = get_part_cboundary_nseed<face,3,U>(neigh_offset);
+                            
+                            return;
+                        }
+                        default:
+                        {
+                            //will possibly have more then one neighbour
+                            for(int i = 0; i < neigh_part_keys.size();i++){
+                                neigh_offset = (access_data.get_val(neigh_cell_keys[i]) & Y_PINDEX_MASK_PARTICLE) >> Y_PINDEX_SHIFT_PARTICLE;
+                                neigh_part_keys[i] = neigh_offset;
+                            }
+                            return;
+                        }
                     }
-                    default:
-                    {
-                        
-                        break;
-                    }
+                    
+                    break;
                 }
-                
-                break;
-            }
-            case FILLER:
-            {
-                switch(neigh_status){
-                    case SEED:
-                    {
-                        
-                        break;
+                case FILLER:
+                {
+                    switch(neigh_status){
+                        case SEED:
+                        {
+                            //more complicated case, have to first get the correct index, then the function can be run
+                            neigh_offset = (access_data.get_val(neigh_cell_keys[0]) & Y_PINDEX_MASK_PARTICLE) >> Y_PINDEX_SHIFT_PARTICLE;
+                            
+                            U neigh_index = calc_index_cfiller_nseed<face,U>(curr_key,pc_data);
+                            
+                            neigh_part_keys[0] = get_part_cfiller_nseed<face,U>(neigh_offset,neigh_index);
+                            
+                            return;
+                        }
+                        default:
+                        {
+                            //will possibly have more then one neighbour
+                            for(int i = 0; i < neigh_part_keys.size();i++){
+                                neigh_offset = (access_data.get_val(neigh_cell_keys[i]) & Y_PINDEX_MASK_PARTICLE) >> Y_PINDEX_SHIFT_PARTICLE;
+                                neigh_part_keys[i] = neigh_offset;
+                            }
+                            
+                            return;
+                        }
                     }
-                    default:
-                    {
-                        
-                        break;
-                    }
+                    
+                    break;
                 }
-                
-                break;
             }
+            
         }
 
         
@@ -714,46 +754,7 @@ public:
                         
                 }
                 break;
-            } case 6:{
-                switch(index){
-                    case 0: {
-                        get_part_neighs_face_t<6,0,U>(curr_key,status,part_offset,neigh_cell_keys,neigh_part_keys,pc_data);
-                        break;
-                    }
-                    case 1: {
-                        get_part_neighs_face_t<6,1,U>(curr_key,status,part_offset,neigh_cell_keys,neigh_part_keys,pc_data);
-                        break;
-                    }
-                    case 2: {
-                        get_part_neighs_face_t<6,2,U>(curr_key,status,part_offset,neigh_cell_keys,neigh_part_keys,pc_data);
-                        break;
-                    }
-                    case 3: {
-                        get_part_neighs_face_t<6,3,U>(curr_key,status,part_offset,neigh_cell_keys,neigh_part_keys,pc_data);
-                        break;
-                    }
-                    case 4: {
-                        get_part_neighs_face_t<6,4,U>(curr_key,status,part_offset,neigh_cell_keys,neigh_part_keys,pc_data);
-                        break;
-                    }
-                    case 5: {
-                        get_part_neighs_face_t<6,5,U>(curr_key,status,part_offset,neigh_cell_keys,neigh_part_keys,pc_data);
-                        break;
-                    }
-                    case 6: {
-                        get_part_neighs_face_t<6,6,U>(curr_key,status,part_offset,neigh_cell_keys,neigh_part_keys,pc_data);
-                        break;
-                    }
-                    case 7: {
-                        get_part_neighs_face_t<6,7,U>(curr_key,status,part_offset,neigh_cell_keys,neigh_part_keys,pc_data);
-                        break;
-                    }
-                        
-                }
-                break;
             }
-
-
 
 
         }
@@ -794,7 +795,7 @@ public:
             //For each depth there are two loops, one for SEED status particles, at depth + 1, and one for BOUNDARY and FILLER CELLS, to ensure contiguous memory access patterns.
             
             // SEED PARTICLE STATUS LOOP (requires access to three data structures, particle access, particle data, and the part-map)
-#pragma omp parallel for default(shared) private(z_,x_,j_,node_val_pc,node_val_part,curr_key,part_offset,status,neigh_cell_keys,neigh_part_keys) if(z_num_*x_num_ > 100)
+//#pragma omp parallel for default(shared) private(z_,x_,j_,node_val_pc,node_val_part,curr_key,part_offset,status,neigh_cell_keys,neigh_part_keys) if(z_num_*x_num_ > 100)
             for(z_ = 0;z_ < z_num_;z_++){
                 
                 curr_key = 0;
@@ -834,6 +835,12 @@ public:
                             neigh_cell_keys.resize(0);
                             pc_data.get_neigh_0(curr_key,node_val_pc,neigh_cell_keys);
                             
+                            (void) neigh_cell_keys;
+                            
+                            for(int m = 0; m < neigh_cell_keys.size();m++){
+                                neigh_cell_keys[m] = access_data.get_val(neigh_cell_keys[m]);
+                            }
+                            
                             uint64_t face = 0;
                             
                             switch(status){
@@ -841,13 +848,15 @@ public:
                                 {
                                     //loop over the 8 particles
                                     for(uint64_t p = 0;p < 8;p++){
-                                        curr_key &= -((PC_KEY_INDEX_MASK) + 1);
-                                        curr_key |= (part_offset+p) << PC_KEY_INDEX_SHIFT;
+                                        //curr_key &= -((PC_KEY_INDEX_MASK) + 1);
+                                        //curr_key |= (part_offset+p) << PC_KEY_INDEX_SHIFT;
                                         
-                                        get_part_neighs_face(face,p,curr_key,status,part_offset,neigh_cell_keys,neigh_part_keys,pc_data);
+                                        get_part_neighs_face(face,p,curr_key,status,part_offset+p,neigh_cell_keys,neigh_part_keys,pc_data);
+                                        
                                     }
-                                    (void)curr_key;
+                                    
                                     (void) neigh_part_keys;
+                                    (void) neigh_cell_keys;
                                     
                                     //loop over neighborus and add the different part offsets
                                     
@@ -860,8 +869,10 @@ public:
                                     curr_key |= part_offset << PC_KEY_INDEX_SHIFT;
                                     
                                     //loop over neighbours, and add in the part offset
+                                    //get_part_neighs_face(face,0,curr_key,status,part_offset,neigh_cell_keys,neigh_part_keys,pc_data);
                                     
-                                    (void)curr_key;
+                                    
+                                    (void) neigh_part_keys;
                                     (void) neigh_cell_keys;
                                     
                                     break;
