@@ -499,8 +499,11 @@ private:
                             curr_key |= j_ << PC_KEY_J_SHIFT;
                             
                             pc_data.get_neigh_0(curr_key,node_val,neigh_vec_all.data[i][offset_pc_data][j_]);
-                           
-                            
+                            pc_data.get_neigh_1(curr_key,node_val,neigh_vec_all.data[i][offset_pc_data][j_]);
+                            pc_data.get_neigh_2(curr_key,node_val,neigh_vec_all.data[i][offset_pc_data][j_]);
+                            pc_data.get_neigh_3(curr_key,node_val,neigh_vec_all.data[i][offset_pc_data][j_]);
+                            pc_data.get_neigh_4(curr_key,node_val,neigh_vec_all.data[i][offset_pc_data][j_]);
+                            pc_data.get_neigh_5(curr_key,node_val,neigh_vec_all.data[i][offset_pc_data][j_]);
                             
                         } else {
                             
@@ -1049,9 +1052,13 @@ public:
         
         //pc_data.test_get_neigh_dir_performance_all();
         
-        //test_get_neigh_dir_memory();
+        test_get_neigh_dir_memory();
         
         part_data.test_get_part_neigh_dir(pc_data);
+        
+        part_data.test_get_part_neigh_all(pc_data);
+        
+        part_data.test_get_part_neigh_all_memory(pc_data);
         
     }
     
