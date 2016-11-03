@@ -9,6 +9,12 @@
 
 TEST_F(CreateSmallTreeTest, LEVEL_ITERATOR_SMALL_TEST)
 {
+    
+    //
+    //  Octree Based Structure Tests
+    //
+    //
+    
 
     Tree<float> tree(particle_map, tree_mem, contents_mem);
     Content *raw_content = tree.get_raw_content();
@@ -56,6 +62,7 @@ TEST_F(CreateSmallTreeTest, LEVEL_ITERATOR_SMALL_TEST)
     ASSERT_TRUE(_406);
     ASSERT_TRUE(_509);
     ASSERT_EQ(counter, 32);
+    
 }
 
 

@@ -140,4 +140,5 @@ void CreateNarrowTreeTest::SetUp()
     }
     tree_mem.resize(5000);
     contents_mem.resize(500);
+    
 }

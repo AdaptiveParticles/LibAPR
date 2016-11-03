@@ -18,6 +18,7 @@
 
 #include "../src/data_structures/meshclass.h"
 #include "../src/algorithm/level.hpp"
+#include "../../src/data_structures/Tree/PartCellStructure.hpp"
 
 bool compare_two_images(const Mesh_data<uint16_t>& in_memory, std::string filename);
 bool compare_two_ks(const Particle_map<float>& in_memory, std::string filename);
@@ -36,5 +37,11 @@ uint16_t get_random_number_k(std::ranlux48& generator,
                              std::normal_distribution<float>& distribution, float k_max);
 
 std::string get_source_directory();
+
+bool compare_sparse_rep_with_part_map(const Particle_map<float>& part_map,PartCellStructure<float,uint64_t>& pc_struct);
+
+bool compare_sparse_rep_neighcell_with_part_map(const Particle_map<float>& part_map,PartCellStructure<float,uint64_t>& pc_struct);
+
+bool compare_sparse_rep_neighpart_with_part_map(const Particle_map<float>& part_map,PartCellStructure<float,uint64_t>& pc_struct);
 
 #endif //PARTPLAY_UTILS_H

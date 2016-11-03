@@ -204,3 +204,145 @@ std::string get_source_directory(){
 
     return tests_directory;
 }
+
+
+bool compare_sparse_rep_with_part_map(const Particle_map<float>& part_map,PartCellStructure<float,uint64_t>& pc_struct){
+    //
+    //  Compares the sparse representation with the particle map original data used to generate it
+    //
+    
+    //initialize
+    uint64_t node_val;
+    uint64_t y_coord;
+    int x_;
+    int z_;
+    uint64_t y_;
+    uint64_t j_;
+    uint64_t status;
+    uint64_t status_org;
+    
+    
+    S type;
+    S yp_index;
+    S yp_depth;
+    S ym_index;
+    S ym_depth;
+    S next_coord;
+    S prev_coord;
+    
+    
+    S xp_index;
+    S xp_depth;
+    S zp_index;
+    S zp_depth;
+    S xm_index;
+    S xm_depth;
+    S zm_index;
+    S zm_depth;
+    
+    bool pass_test = true;
+    
+    //basic tests of status and coordinates
+    
+    for(int i = pc_struct.pc_data.depth_min;i <= pc_struct.pc_data.depth_max;i++){
+        
+        const unsigned int x_num = pc_struct.pc_data.x_num[i];
+        const unsigned int z_num = pc_struct.pc_data.z_num[i];
+        
+        
+        for(z_ = 0;z_ < z_num;z_++){
+            
+            for(x_ = 0;x_ < x_num;x_++){
+                
+                const size_t offset_pc_data = x_num*z_ + x_;
+                y_coord = 0;
+                const size_t j_num = pc_struct.pc_data.data[i][offset_pc_data].size();
+                
+                const size_t offset_part_map_data_0 = part_map.downsampled[i].y_num*part_map.downsampled[i].x_num*z_ + part_map.downsampled[i].y_num*x_;
+                
+                for(j_ = 0;j_ < j_num;j_++){
+                    
+                    
+                    node_val = pc_struct.pc_data.data[i][offset_pc_data][j_];
+                    
+                    if (node_val&1){
+                        //get the index gap node
+                        type = (node_val & TYPE_MASK) >> TYPE_SHIFT;
+                        yp_index = (node_val & YP_INDEX_MASK) >> YP_INDEX_SHIFT;
+                        yp_depth = (node_val & YP_DEPTH_MASK) >> YP_DEPTH_SHIFT;
+                        
+                        ym_index = (node_val & YM_INDEX_MASK) >> YM_INDEX_SHIFT;
+                        ym_depth = (node_val & YM_DEPTH_MASK) >> YM_DEPTH_SHIFT;
+                        
+                        next_coord = (node_val & NEXT_COORD_MASK) >> NEXT_COORD_SHIFT;
+                        
+                        prev_coord = (node_val & PREV_COORD_MASK) >> PREV_COORD_SHIFT;
+                        
+                        y_coord = (node_val & NEXT_COORD_MASK) >> NEXT_COORD_SHIFT;
+                        y_coord--;
+                        
+                        
+                    } else {
+                        //normal node
+                        y_coord++;
+                        
+                        type = (node_val & TYPE_MASK) >> TYPE_SHIFT;
+                        xp_index = (node_val & XP_INDEX_MASK) >> XP_INDEX_SHIFT;
+                        xp_depth = (node_val & XP_DEPTH_MASK) >> XP_DEPTH_SHIFT;
+                        zp_index = (node_val & ZP_INDEX_MASK) >> ZP_INDEX_SHIFT;
+                        zp_depth = (node_val & ZP_DEPTH_MASK) >> ZP_DEPTH_SHIFT;
+                        xm_index = (node_val & XM_INDEX_MASK) >> XM_INDEX_SHIFT;
+                        xm_depth = (node_val & XM_DEPTH_MASK) >> XM_DEPTH_SHIFT;
+                        zm_index = (node_val & ZM_INDEX_MASK) >> ZM_INDEX_SHIFT;
+                        zm_depth = (node_val & ZM_DEPTH_MASK) >> ZM_DEPTH_SHIFT;
+                        
+                        //get and check status
+                        status = (node_val & STATUS_MASK) >> STATUS_SHIFT;
+                        status_org = part_map.layers[i].mesh[offset_part_map_data_0 + y_coord];
+                        
+                        //set the status
+                        switch(status_org){
+                            case TAKENSTATUS:
+                            {
+                                if(status != SEED){
+                                    std::cout << "STATUS SEED BUG" << std::endl;
+                                    pass_test = false;
+                                }
+                                break;
+                            }
+                            case NEIGHBOURSTATUS:
+                            {
+                                if(status != BOUNDARY){
+                                    std::cout << "STATUS BOUNDARY BUG" << std::endl;
+                                    pass_test = false;
+                                }
+                                break;
+                            }
+                            case SLOPESTATUS:
+                            {
+                                if(status != FILLER){
+                                    std::cout << "STATUS FILLER BUG" << std::endl;
+                                    pass_test = false;
+                                }
+                                
+                                break;
+                            }
+                                
+                        }
+                        
+                        
+                        
+                    }
+                }
+                
+            }
+        }
+        
+    }
+    
+    return pass_test;
+    
+    
+    
+}
+
