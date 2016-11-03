@@ -264,14 +264,7 @@ private:
         /////////////////////////////////
         
         //(+y,-y,+x,-x,+z,-z)
-        pc_data.set_neighbor_relationships(0);
-        pc_data.set_neighbor_relationships(1);
-        
-        pc_data.set_neighbor_relationships(2);
-        pc_data.set_neighbor_relationships(3);
-        pc_data.set_neighbor_relationships(4);
-        pc_data.set_neighbor_relationships(5);
-        
+        pc_data.set_neighbor_relationships();
         
         /////////////////////////////////////
         //

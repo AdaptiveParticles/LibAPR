@@ -97,39 +97,6 @@
 #define PC_KEY_ACTIVE_SHIFT 59
 
 
-//Neighbour shifts
-
-//x direction
-#define MOVE_X0   0
-#define MOVE_X1   0
-#define MOVE_X2   1
-#define MOVE_X3  -1
-#define MOVE_X4   0
-#define MOVE_X5   0
-
-#define MOVE_X(n) MOVE_X##n
-
-//y direction
-#define MOVE_Y0   1
-#define MOVE_Y1  -1
-#define MOVE_Y2   0
-#define MOVE_Y3   0
-#define MOVE_Y4   0
-#define MOVE_Y5   0
-
-#define MOVE_Y(n) MOVE_Y##n
-
-//y direction
-#define MOVE_Z0   0
-#define MOVE_Z1   0
-#define MOVE_Z2   0
-#define MOVE_Z3   0
-#define MOVE_Z4   1
-#define MOVE_Z5  -1
-
-#define MOVE_Z(n) MOVE_Z##n
-
-
 
 
 
@@ -195,12 +162,109 @@ public:
     
     PartCellData(){};
     
+    /////////////////////////////////////////
+    //
+    //  Get and Set methods for PC_KEYS
+    //
+    //////////////////////////////////////////
+    
     T& operator ()(int depth, int x_,int z_,int j_){
         // data access
         return data[depth][x_num[depth]*z_ + x_][j_];
     }
     
-    T&  get_val(const uint64_t pc_key){
+    inline T pc_key_get_x(const T& pc_key){
+        return (pc_key & PC_KEY_X_MASK) >> PC_KEY_X_SHIFT;
+    }
+    
+    inline T pc_key_get_j(const T& pc_key){
+        return (pc_key & PC_KEY_J_MASK) >> PC_KEY_J_SHIFT;
+    }
+    
+    inline T pc_key_get_z(const T& pc_key){
+        return (pc_key & PC_KEY_Z_MASK) >> PC_KEY_Z_SHIFT;
+    }
+    
+    inline T pc_key_get_depth(const T& pc_key){
+        return (pc_key & PC_KEY_DEPTH_MASK) >> PC_KEY_DEPTH_SHIFT;
+    }
+    
+    inline T pc_key_get_index(const T& pc_key){
+        return (pc_key & PC_KEY_INDEX_MASK) >> PC_KEY_INDEX_SHIFT;
+    }
+    
+    inline void pc_key_set_x(T& pc_key,const T& x_){
+        pc_key &= -((PC_KEY_X_MASK) + 1); // clear the current value
+        pc_key|= x_  << PC_KEY_X_SHIFT; //set value
+    }
+    
+    inline void pc_key_set_z(T& pc_key,const T& z_){
+        pc_key &= -((PC_KEY_Z_MASK) + 1); // clear the current value
+        pc_key|= z_  << PC_KEY_Z_SHIFT; //set  value
+    }
+    
+    inline void pc_key_set_j(T& pc_key,const T& j_){
+        pc_key &= -((PC_KEY_J_MASK) + 1); // clear the current value
+        pc_key|= j_  << PC_KEY_J_SHIFT; //set  value
+    }
+    
+    inline void pc_key_set_depth(T& pc_key,const T& depth_){
+        pc_key &= -((PC_KEY_DEPTH_MASK) + 1); // clear the current value
+        pc_key|= depth_  << PC_KEY_DEPTH_SHIFT; //set  value
+    }
+    
+    inline void pc_key_set_index(T& pc_key,const T& index_){
+        pc_key &= -((PC_KEY_INDEX_MASK) + 1); // clear the current value
+        pc_key|= index_  << PC_KEY_INDEX_SHIFT; //set  value
+    }
+    
+    inline void pc_key_offset_x(T& pc_key,const int& offset){
+        T temp = pc_key_get_x(pc_key);
+        pc_key &= -((PC_KEY_X_MASK) + 1); // clear the current value
+        pc_key|= (temp+offset)  << PC_KEY_X_SHIFT; //set  value
+    }
+    
+    inline void pc_key_offset_z(T& pc_key,const int& offset){
+        T temp = pc_key_get_z(pc_key);
+        pc_key &= -((PC_KEY_Z_MASK) + 1); // clear the current value
+        pc_key|= (temp+offset)  << PC_KEY_Z_SHIFT; //set  value
+    }
+    
+    inline void pc_key_offset_j(T& pc_key,const int& offset){
+        T temp = pc_key_get_j(pc_key);
+        pc_key &= -((PC_KEY_J_MASK) + 1); // clear the current value
+        pc_key|= (temp+offset)  << PC_KEY_J_SHIFT; //set  value
+    }
+    
+    inline void pc_key_offset_depth(T& pc_key,const int& offset){
+        T temp = pc_key_get_depth(pc_key);
+        pc_key &= -((PC_KEY_DEPTH_MASK) + 1); // clear the current value
+        pc_key|= (temp+offset)  << PC_KEY_DEPTH_SHIFT; //set  value
+    }
+    
+    inline void pc_key_offset_index(T& pc_key,const int& offset){
+        T temp = pc_key_get_index(pc_key);
+        pc_key &= -((PC_KEY_INDEX_MASK) + 1); // clear the current value
+        pc_key|= (temp+offset)  << PC_KEY_INDEX_SHIFT; //set  value
+    }
+    
+    inline T node_get_val(const T& node_val,const T& mask,const T& shift){
+        return (node_val & mask) >> shift;
+    }
+    
+    inline void node_set_val(T& node_val,const T& val_,const T& mask,const T& shift){
+        node_val &= -((mask) + 1); // clear the current value
+        node_val|= val_ << shift; //set  value
+    }
+    
+    inline void node_offset_val(T& node_val,const int& offset,const T& mask,const T& shift){
+        T temp = node_get_val(node_val,mask,shift);
+        node_val &= -((mask) + 1); // clear the current value
+        node_val|= (temp+offset)  << shift; //set  value
+    }
+    
+    
+    T&  get_val(const uint64_t& pc_key){
         // data access
         
         const uint64_t depth = (pc_key & PC_KEY_DEPTH_MASK) >> PC_KEY_DEPTH_SHIFT;
@@ -215,15 +279,6 @@ public:
     }
     
     
-    void push_back(int depth, int x_,int z_,T val){
-        data[depth][x_num[depth]*z_ + x_].push_back(val);
-    }
-    
-    
-    T& operator ()(const PartCellKey& key){
-        // data access
-        return data[key.depth][x_num[key.depth]*key.z + key.x][key.j];
-    }
     
     template<typename S>
     void initialize_base_structure(Particle_map<S>& part_map){
@@ -310,249 +365,7 @@ public:
         
     }
     
-    template<uint64_t face>
-    uint64_t get_neighbour_same_level(const uint64_t& curr_key)
-    {
-        /** Get neighbours of a cell in one of the direction that are guranteed to be on the same level
-         *
-         *  @param curr_key    input: current key, output: neighbour key
-         *  @param face        direction to follow. Possible values are [0,5]
-         *                     They stand for [+y,-y,+x,-x,+z,-z] //change this ordering.. (y+ y-) are different,
-         */
-        
 
-        constexpr uint64_t index_mask_dir[6] = {YP_INDEX_MASK,YM_INDEX_MASK,XP_INDEX_MASK,XM_INDEX_MASK,ZP_INDEX_MASK,ZM_INDEX_MASK};
-        constexpr uint64_t index_shift_dir[6] = {YP_INDEX_SHIFT,YM_INDEX_SHIFT,XP_INDEX_SHIFT,XM_INDEX_SHIFT,ZP_INDEX_SHIFT,ZM_INDEX_SHIFT};
-        
-        constexpr int8_t von_neumann_y_cells[6] = { 1,-1, 0, 0, 0, 0};
-        constexpr int8_t von_neumann_x_cells[6] = { 0, 0, 1,-1, 0, 0};
-        constexpr int8_t von_neumann_z_cells[6] = { 0, 0, 0, 0, 1,-1};
-        
-
-        //inits
-        uint64_t node_val;
-        uint64_t neigh_key;
-        
-        //this is restricted to cells on the same level
-        neigh_key = curr_key;
-        
-        //get the node_val
-        if(face < 2){
-            //y_values need to use next node
-            
-            //check if reached end boundary for y
-            neigh_key &= -((PC_KEY_J_MASK) + 1);
-            neigh_key |= (((curr_key & PC_KEY_J_MASK) >> PC_KEY_J_SHIFT) + von_neumann_y_cells[face]) << PC_KEY_J_SHIFT;
-            
-            return neigh_key;
-            
-        } else {
-            //otherwise
-            
-            //get the node value
-            node_val = get_val(curr_key);
-            //set the index
-            neigh_key &= -((PC_KEY_J_MASK) + 1);
-            neigh_key |= (((node_val & index_mask_dir[face]) >> index_shift_dir[face])) << PC_KEY_J_SHIFT;
-            
-            neigh_key &= -((PC_KEY_X_MASK) + 1);
-            neigh_key |= (((curr_key & PC_KEY_X_MASK) >> PC_KEY_X_SHIFT) + von_neumann_x_cells[face]) << PC_KEY_X_SHIFT;
-            neigh_key &= -((PC_KEY_Z_MASK) + 1);
-            neigh_key |= (((curr_key & PC_KEY_Z_MASK) >> PC_KEY_Z_SHIFT) + von_neumann_z_cells[face]) << PC_KEY_Z_SHIFT;
-            
-        }
-        
-        return neigh_key;
-        
-    }
-    
-    bool check_neigh_exists(uint64_t node_val,uint64_t curr_key,uint8_t face){
-        //checks if node on same level exists or not
-        constexpr uint64_t depth_mask_dir[6] = {YP_DEPTH_MASK,YM_DEPTH_MASK,XP_DEPTH_MASK,XM_DEPTH_MASK,ZP_DEPTH_MASK,ZM_DEPTH_MASK};
-        constexpr uint64_t depth_shift_dir[6] =  {YP_DEPTH_SHIFT,YM_DEPTH_SHIFT,XP_DEPTH_SHIFT,XM_DEPTH_SHIFT,ZP_DEPTH_SHIFT,ZM_DEPTH_SHIFT};
-        
-        
-        constexpr int8_t von_neumann_y_cells[6] = { 1,-1, 0, 0, 0, 0};
-
-        if(face < 2){
-            uint64_t curr_j = ((curr_key & PC_KEY_J_MASK) >> PC_KEY_J_SHIFT);
-            curr_key &= -((PC_KEY_J_MASK) + 1);
-            curr_key|=  (curr_j + von_neumann_y_cells[face]) << PC_KEY_J_SHIFT;
-            
-            node_val = get_val(curr_key);
-            
-            if(!(node_val&1)){
-                //same level
-                return true;
-            } else {
-                return false;
-            }
-            
-            
-        } else {
-            
-            if (((node_val & depth_mask_dir[face]) >> depth_shift_dir[face]) == NO_NEIGHBOUR){
-                return false;
-            } else {
-                return true;
-            }
-            
-        }
-
-        
-    }
-    
-    
-    template<uint64_t face>
-    void get_neighs_face_t(const uint64_t& curr_key,uint64_t node_val,std::vector<uint64_t>& neigh_keys){
-        //
-        //  Bevan Cheeseman (2016)
-        //
-        //  Get all the nieghbours in direction face
-        //
-        /** Get neighbours of a cell in one of the direction
-         *
-         *  @param curr_key    input: current key, output: neighbour key
-         *  @param face        direction to follow. Possible values are [0,5]
-         *                     They stand for [+y,-y,+x,-x,+z,-z] //change this ordering.. (y+ y-) are different,
-         */
-        //
-        
-        
-        constexpr uint64_t depth_mask_dir[6] = {YP_DEPTH_MASK,YM_DEPTH_MASK,XP_DEPTH_MASK,XM_DEPTH_MASK,ZP_DEPTH_MASK,ZM_DEPTH_MASK};
-        constexpr uint64_t depth_shift_dir[6] =  {YP_DEPTH_SHIFT,YM_DEPTH_SHIFT,XP_DEPTH_SHIFT,XM_DEPTH_SHIFT,ZP_DEPTH_SHIFT,ZM_DEPTH_SHIFT};
-        
-        constexpr uint64_t index_mask_dir[6] = {YP_INDEX_MASK,YM_INDEX_MASK,XP_INDEX_MASK,XM_INDEX_MASK,ZP_INDEX_MASK,ZM_INDEX_MASK};
-        constexpr uint64_t index_shift_dir[6] = {YP_INDEX_SHIFT,YM_INDEX_SHIFT,XP_INDEX_SHIFT,XM_INDEX_SHIFT,ZP_INDEX_SHIFT,ZM_INDEX_SHIFT};
-        
-        constexpr int8_t von_neumann_y_cells[6] = { 1,-1, 0, 0, 0, 0};
-        constexpr int8_t von_neumann_x_cells[6] = { 0, 0, 1,-1, 0, 0};
-        constexpr int8_t von_neumann_z_cells[6] = { 0, 0, 0, 0, 1,-1};
-        
-        //the ordering of retrieval of four neighbour cells
-        constexpr uint8_t neigh_child_dir[6][3] = {{4,2,2},{4,2,2},{0,4,4},{0,4,4},{0,2,2},{0,2,2}};
-        
-        
-        uint64_t neigh_indicator;
-        
-        uint64_t neigh_key;
-        
-        // +-y direction is different
-        if(face < 2){
-            
-            neigh_key = curr_key;
-            
-            neigh_key &= -((PC_KEY_J_MASK) + 1);
-            neigh_key|=  (((curr_key & PC_KEY_J_MASK) >> PC_KEY_J_SHIFT) + von_neumann_y_cells[face]) << PC_KEY_J_SHIFT;
-            
-            node_val = get_val(neigh_key);
-            
-            if(!(node_val&1)){
-                //same level
-                neigh_keys.push_back(neigh_key);
-                
-                return;
-            }
-            
-            
-        }
-        
-        //dir
-        neigh_indicator = (node_val & depth_mask_dir[face]) >> depth_shift_dir[face];
-        
-        switch(neigh_indicator){
-            case(LEVEL_SAME):{
-                //same level return single neighbour
-                neigh_key = 0;
-                neigh_key |= (((node_val & index_mask_dir[face]) >> index_shift_dir[face])) << PC_KEY_J_SHIFT;
-                
-                neigh_key |= (((curr_key & PC_KEY_X_MASK) >> PC_KEY_X_SHIFT) + von_neumann_x_cells[face]) << PC_KEY_X_SHIFT;
-                neigh_key |= (((curr_key & PC_KEY_Z_MASK) >> PC_KEY_Z_SHIFT) + von_neumann_z_cells[face]) << PC_KEY_Z_SHIFT;
-                
-                //depth the same
-                neigh_key |= (curr_key & PC_KEY_DEPTH_MASK);
-                
-                neigh_keys.push_back(neigh_key);
-                
-                return;
-            }
-            case(LEVEL_DOWN):{
-                // Neighbour is on parent level (depth - 1)
-                
-                neigh_key = 0;
-                //get node index
-                neigh_key |= (((node_val & index_mask_dir[face]) >> index_shift_dir[face])) << PC_KEY_J_SHIFT;
-                
-                //x/z coord shift
-                neigh_key |= (((curr_key & PC_KEY_X_MASK) >> PC_KEY_X_SHIFT) + von_neumann_x_cells[face])/2 << PC_KEY_X_SHIFT;
-                neigh_key |= (((curr_key & PC_KEY_Z_MASK) >> PC_KEY_Z_SHIFT) + von_neumann_z_cells[face])/2 << PC_KEY_Z_SHIFT;
-                
-                //depth shift
-                neigh_key |= (((curr_key & PC_KEY_DEPTH_MASK) >> PC_KEY_DEPTH_SHIFT) - 1) << PC_KEY_DEPTH_SHIFT;
-                
-                neigh_keys.push_back(neigh_key);
-                
-                
-                return;
-            }
-            case(LEVEL_UP):{
-                // Neighbour is on a lower child level
-                
-                //first of four children
-                
-                neigh_key = 0;
-                
-                //depth shift
-                neigh_key |= (((curr_key & PC_KEY_DEPTH_MASK) >> PC_KEY_DEPTH_SHIFT) +1) << PC_KEY_DEPTH_SHIFT;
-                //get node index
-                neigh_key |= (((node_val & index_mask_dir[face]) >> index_shift_dir[face])) << PC_KEY_J_SHIFT;
-                
-                //x/z coord shift
-                neigh_key |= ((((curr_key & PC_KEY_X_MASK) >> PC_KEY_X_SHIFT) + von_neumann_x_cells[face])*2 + (von_neumann_x_cells[face] < 0)) << PC_KEY_X_SHIFT;
-                neigh_key |= ((((curr_key & PC_KEY_Z_MASK) >> PC_KEY_Z_SHIFT) + von_neumann_z_cells[face])*2 + (von_neumann_z_cells[face] < 0)) << PC_KEY_Z_SHIFT;
-                
-                neigh_keys.push_back(neigh_key);
-                
-                uint64_t temp = neigh_key;
-                
-                //check if its two neighbours exist
-                bool exist0 = check_neigh_exists(node_val,neigh_key,neigh_child_dir[face][0]);
-                bool exist2 = check_neigh_exists(node_val,neigh_key,neigh_child_dir[face][2]);
-                
-                //changed the ordering
-                
-                if(exist0){
-                    neigh_key = get_neighbour_same_level<neigh_child_dir[face][0]>(neigh_key);
-                    neigh_keys.push_back(neigh_key);
-                    
-                } else {
-                    neigh_keys.push_back(0);
-                }
-                //diagonal will exist only if the other two exist
-                
-                if(exist2){
-                    temp = get_neighbour_same_level<neigh_child_dir[face][2]>(temp);
-                    neigh_keys.push_back(temp);
-                } else {
-                    neigh_keys.push_back(0);
-                }
-                
-                if(exist0 & exist2){
-                    neigh_key = get_neighbour_same_level<neigh_child_dir[face][1]>(neigh_key);
-                    neigh_keys.push_back(neigh_key);
-                } else {
-                    neigh_keys.push_back(0);
-                }
-
-                
-                
-                return;
-            }
-        }
-        
-        
-        
-    }
     
     void get_neigh_0(const uint64_t& curr_key,uint64_t node_val,std::vector<uint64_t>& neigh_keys){
         get_neighs_face_t<0>(curr_key,node_val,neigh_keys);
@@ -651,20 +464,19 @@ public:
                 
                 curr_key = 0;
                 
-                curr_key |= ((uint64_t)i) << PC_KEY_DEPTH_SHIFT;
-                curr_key |= z_ << PC_KEY_Z_SHIFT;
+                pc_key_set_z(curr_key,z_);
+                pc_key_set_depth(curr_key,i);
                 
                 neigh_keys.reserve(24);
                 
                 for(x_ = 0;x_ < x_num_;x_++){
                     
-                    curr_key &=  -((PC_KEY_X_MASK) + 1);
-                    curr_key |= x_ << PC_KEY_X_SHIFT;
+                    pc_key_set_x(curr_key,x_);
                     
                     const size_t offset_pc_data = x_num_*z_ + x_;
                     
                     const size_t j_num = data[i][offset_pc_data].size();
-
+                    
                     for(j_ = 0;j_ < j_num;j_++){
                         
                         node_val = data[i][offset_pc_data][j_];
@@ -672,13 +484,10 @@ public:
                         if (!(node_val&1)){
                             //get the index gap node
                             
-                            
-                            curr_key &= -((PC_KEY_J_MASK) + 1);
-                            curr_key |= j_ << PC_KEY_J_SHIFT;
-                            
+                            pc_key_set_j(curr_key,j_);
                             
                             neigh_keys.resize(0);
-
+                            
                             
                             get_neighs_face_t<0>(curr_key,node_val,neigh_keys);
                             get_neighs_face_t<1>(curr_key,node_val,neigh_keys);
@@ -686,18 +495,6 @@ public:
                             get_neighs_face_t<3>(curr_key,node_val,neigh_keys);
                             get_neighs_face_t<4>(curr_key,node_val,neigh_keys);
                             get_neighs_face_t<5>(curr_key,node_val,neigh_keys);
-                           
-                            
-                            //get_neighs_face(curr_key,node_val,0,neigh_keys);
-                            //get_neighs_face(curr_key,node_val,1,neigh_keys);
-                            
-                            //get_neighs_face(curr_key,node_val,2,neigh_keys);
-                            
-                            //get_neighs_face(curr_key,node_val,3,neigh_keys);
-                            
-                            //get_neighs_face(curr_key,node_val,4,neigh_keys);
-                           
-                           // get_neighs_face(curr_key,node_val,5,neigh_keys);
                             
                             
                         } else {
@@ -716,213 +513,252 @@ public:
         
     }
     
- 
     
-    
-    void test_get_neigh_dir_performance_all(){
+    void set_neighbor_relationships(){
         //
-        // Test the get neighbour direction code for speed
+        // Calls the functions to access the underlying datastructure
         //
         
-        uint64_t z_;
-        uint64_t x_;
-        uint64_t j_;
+        set_neighbor_relationships(0);
+        set_neighbor_relationships(1);
+        set_neighbor_relationships(2);
+        set_neighbor_relationships(3);
+        set_neighbor_relationships(4);
+        set_neighbor_relationships(5);
+    }
+
+
+private:
+    //  Direction definitions for Particle Cell Neighbours
+    //  [+y,-y,+x,-x,+z,-z]
+    //  [0,1,2,3,4,5]
+    
+    
+    template<uint64_t face>
+    uint64_t get_neighbour_same_level(const uint64_t& curr_key)
+    {
+        /** Get neighbours of a cell in one of the direction that are guranteed to be on the same level
+         *
+         *  @param curr_key    input: current key, output: neighbour key
+         *  @param face        direction to follow. Possible values are [0,5]
+         *                     They stand for [+y,-y,+x,-x,+z,-z] //change this ordering.. (y+ y-) are different,
+         */
+        
+        
+        constexpr uint64_t index_mask_dir[6] = {YP_INDEX_MASK,YM_INDEX_MASK,XP_INDEX_MASK,XM_INDEX_MASK,ZP_INDEX_MASK,ZM_INDEX_MASK};
+        constexpr uint64_t index_shift_dir[6] = {YP_INDEX_SHIFT,YM_INDEX_SHIFT,XP_INDEX_SHIFT,XM_INDEX_SHIFT,ZP_INDEX_SHIFT,ZM_INDEX_SHIFT};
+        
+        constexpr int8_t von_neumann_y_cells[6] = { 1,-1, 0, 0, 0, 0};
+        constexpr int8_t von_neumann_x_cells[6] = { 0, 0, 1,-1, 0, 0};
+        constexpr int8_t von_neumann_z_cells[6] = { 0, 0, 0, 0, 1,-1};
+        
+        
+        //inits
         uint64_t node_val;
-        
-        
-        Part_timer timer;
-        
-        timer.verbose_flag = 1;
-        
-        uint64_t curr_key;
-        uint64_t neigh_keys_p[24];
-        std::vector<uint64_t> neigh_keys;
         uint64_t neigh_key;
-        uint64_t neigh_indicator;
-        uint64_t face;
         
-        timer.start_timer("get neighbour cells performance all");
+        //this is restricted to cells on the same level
+        neigh_key = curr_key;
         
-        for(int i = depth_min;i <= depth_max;i++){
+        //get the node_val
+        if(face < 2){
+            //y_values need to use next node
             
-            const unsigned int x_num_ = x_num[i];
-            const unsigned int z_num_ = z_num[i];
+            //check if reached end boundary for y
+            pc_key_offset_j(neigh_key, von_neumann_y_cells[face]);
+            
+            return neigh_key;
+            
+        } else {
+            //otherwise
+            
+            //get the node value
+            node_val = get_val(curr_key);
+            //set the index
+            
+            pc_key_set_j(neigh_key, node_get_val(node_val,index_mask_dir[face],index_shift_dir[face]));
+            pc_key_offset_x(neigh_key,von_neumann_x_cells[face]);
+            pc_key_offset_z(neigh_key,von_neumann_z_cells[face]);
+            
+        }
+        
+        return neigh_key;
+        
+    }
+    
+    bool check_neigh_exists(uint64_t node_val,uint64_t curr_key,uint8_t face){
+        //checks if node on same level exists or not
+        constexpr uint64_t depth_mask_dir[6] = {YP_DEPTH_MASK,YM_DEPTH_MASK,XP_DEPTH_MASK,XM_DEPTH_MASK,ZP_DEPTH_MASK,ZM_DEPTH_MASK};
+        constexpr uint64_t depth_shift_dir[6] =  {YP_DEPTH_SHIFT,YM_DEPTH_SHIFT,XP_DEPTH_SHIFT,XM_DEPTH_SHIFT,ZP_DEPTH_SHIFT,ZM_DEPTH_SHIFT};
+        
+        constexpr int8_t von_neumann_y_cells[6] = { 1,-1, 0, 0, 0, 0};
+        
+        if(face < 2){
+            
+            //increase key by one
+            pc_key_offset_j(curr_key,von_neumann_y_cells[face]);
+            
+            node_val = get_val(curr_key);
+            
+            if(!(node_val&1)){
+                //same level
+                return true;
+            } else {
+                return false;
+            }
             
             
+        } else {
             
-            //For each depth there are two loops, one for SEED status particles, at depth + 1, and one for BOUNDARY and FILLER CELLS, to ensure contiguous memory access patterns.
-            
-            // SEED PARTICLE STATUS LOOP (requires access to three data structures, particle access, particle data, and the part-map)
-#pragma omp parallel for default(shared) private(z_,x_,j_,node_val,curr_key,neigh_keys,neigh_keys_p,neigh_key,face) if(z_num_*x_num_ > 100)
-            for(z_ = 0;z_ < z_num_;z_++){
-                
-                
-                curr_key = 0;
-                
-                curr_key |= ((uint64_t)i) << PC_KEY_DEPTH_SHIFT;
-                curr_key |= z_ << PC_KEY_Z_SHIFT;
-                
-                
-                
-                for(x_ = 0;x_ < x_num_;x_++){
-                    
-                    curr_key &=  -((PC_KEY_X_MASK) + 1);
-                    curr_key |= x_ << PC_KEY_X_SHIFT;
-                    
-                    const size_t offset_pc_data = x_num_*z_ + x_;
-                    
-                    const size_t j_num = data[i][offset_pc_data].size();
-                    
-                    for(j_ = 0;j_ < j_num;j_++){
-                        
-                        node_val = data[i][offset_pc_data][j_];
-                        
-                        if (!(node_val&1)){
-                            //get the index gap node
-                            
-                            curr_key &= -((PC_KEY_J_MASK) + 1);
-                            curr_key |= j_ << PC_KEY_J_SHIFT;
-                            
-                            uint64_t node_temp = node_val;
-                            
-                            for(face = 0;face < 6;face++){
-                                
-                                node_val = node_temp;
-                                
-                                //get_neighs_face_perf(curr_key,node_val,face,neigh_keys_p,neigh_key,neigh_indicator);
-                                
-                                neigh_indicator = (node_val & depth_mask_dir[face]) >> depth_shift_dir[face];
-                                // +-y direction is different
-                                if(face < 2){
-                                    
-                                    neigh_key = curr_key;
-                                    
-                                    neigh_key &= -((PC_KEY_J_MASK) + 1);
-                                    neigh_key|=  (((curr_key & PC_KEY_J_MASK) >> PC_KEY_J_SHIFT) + von_neumann_y_cells[face]) << PC_KEY_J_SHIFT;
-                                    
-                                    node_val = get_val(neigh_key);
-                                    
-                                    if(!(node_val&1)){
-                                        //same level
-                                        neigh_keys_p[0] = neigh_key;
-                                        neigh_indicator = NO_NEIGHBOUR;
-                    
-                                    } else {
-                                        neigh_indicator = (node_val & depth_mask_dir[face]) >> depth_shift_dir[face];
-                                    }
-                                    
-                                    
-                                }
-                                //dir
-                                
-                                
-                                switch(neigh_indicator){
-                                    case(LEVEL_SAME):{
-                                        //same level return single neighbour
-                                        neigh_key = 0;
-                                        neigh_key |= (((node_val & index_mask_dir[face]) >> index_shift_dir[face])) << PC_KEY_J_SHIFT;
-                                        
-                                        neigh_key |= (((curr_key & PC_KEY_X_MASK) >> PC_KEY_X_SHIFT) + von_neumann_x_cells[face]) << PC_KEY_X_SHIFT;
-                                        neigh_key |= (((curr_key & PC_KEY_Z_MASK) >> PC_KEY_Z_SHIFT) + von_neumann_z_cells[face]) << PC_KEY_Z_SHIFT;
-                                        
-                                        //depth the same
-                                        neigh_key |= (curr_key & PC_KEY_DEPTH_MASK);
-                                        
-                                        neigh_keys_p[0] = neigh_key;
-                                        
-                                        break;
-                                    }
-                                    case(LEVEL_DOWN):{
-                                        // Neighbour is on parent level (depth - 1)
-                                        
-                                        neigh_key = 0;
-                                        //get node index
-                                        neigh_key |= (((node_val & index_mask_dir[face]) >> index_shift_dir[face])) << PC_KEY_J_SHIFT;
-                                        
-                                        //x/z coord shift
-                                        neigh_key |= (((curr_key & PC_KEY_X_MASK) >> PC_KEY_X_SHIFT) + von_neumann_x_cells[face])/2 << PC_KEY_X_SHIFT;
-                                        neigh_key |= (((curr_key & PC_KEY_Z_MASK) >> PC_KEY_Z_SHIFT) + von_neumann_z_cells[face])/2 << PC_KEY_Z_SHIFT;
-                                        
-                                        //depth shift
-                                        neigh_key |= (((curr_key & PC_KEY_DEPTH_MASK) >> PC_KEY_DEPTH_SHIFT) - 1) << PC_KEY_DEPTH_SHIFT;
-                                        
-                                        neigh_keys_p[0] = neigh_key;
-                                        
-                                        
-                                        break;
-                                    }
-                                    case(LEVEL_UP):{
-                                        // Neighbour is on a lower child level
-                                        
-                                        //first of four children
-                                        
-                                        neigh_key = 0;
-                                        
-                                        //depth shift
-                                        neigh_key |= (((curr_key & PC_KEY_DEPTH_MASK) >> PC_KEY_DEPTH_SHIFT) +1) << PC_KEY_DEPTH_SHIFT;
-                                        //get node index
-                                        neigh_key |= (((node_val & index_mask_dir[face]) >> index_shift_dir[face])) << PC_KEY_J_SHIFT;
-                                        
-                                        //x/z coord shift
-                                        neigh_key |= ((((curr_key & PC_KEY_X_MASK) >> PC_KEY_X_SHIFT) + von_neumann_x_cells[face])*2 + (von_neumann_x_cells[face] < 0)) << PC_KEY_X_SHIFT;
-                                        neigh_key |= ((((curr_key & PC_KEY_Z_MASK) >> PC_KEY_Z_SHIFT) + von_neumann_z_cells[face])*2 + (von_neumann_z_cells[face] < 0)) << PC_KEY_Z_SHIFT;
-                                        
-                                        neigh_keys_p[0] = neigh_key;
-                                        
-                                        uint64_t temp = neigh_key;
-                                        
-                                        //check if its two neighbours exist
-                                        bool exist0 = check_neigh_exists(node_val,neigh_key,neigh_child_dir[face][0]);
-                                        bool exist2 = check_neigh_exists(node_val,neigh_key,neigh_child_dir[face][2]);
-                                        
-                                        if(exist0){
-                                            neigh_key = get_neighbour_same_level(neigh_key,neigh_child_dir[face][0]);
-                                            neigh_keys_p[1] = neigh_key;
-                                            
-                                        } else {
-                                            neigh_keys_p[1] = 0;
-                                        }
-                                        //diagonal will exist only if the other two exist
-                                        if(exist0 & exist2){
-                                            neigh_key = get_neighbour_same_level(neigh_key,neigh_child_dir[face][1]);
-                                            neigh_keys_p[2] = neigh_key;
-                                        } else {
-                                            neigh_keys_p[2] = 0;
-                                        }
-                                        
-                                        if(exist2){
-                                            neigh_key = get_neighbour_same_level(temp,neigh_child_dir[face][2]);
-                                            neigh_keys_p[3] = neigh_key;
-                                        } else {
-                                            neigh_keys_p[3] = 0;
-                                        }
-                                        
-                                        
-                                        break;
-                                    }
-                                }
-                                
-                                //get_val(neigh_keys_p[0]) = 1;
-                                
-                            }
-                            
-                            
-                        }
-                        
-                    }
-                    
-                }
-                
+            if (node_get_val(node_val,depth_mask_dir[face],depth_shift_dir[face]) == NO_NEIGHBOUR){
+                return false;
+            } else {
+                return true;
             }
             
         }
         
-        timer.stop_timer();
+        
+    }
+    
+    
+    template<uint64_t face>
+    void get_neighs_face_t(const uint64_t& curr_key,uint64_t node_val,std::vector<uint64_t>& neigh_keys){
+        //
+        //  Bevan Cheeseman (2016)
+        //
+        //  Get all the nieghbours in direction face
+        //
+        /** Get neighbours of a cell in one of the direction
+         *
+         *  @param curr_key    input: current key, output: neighbour key
+         *  @param face        direction to follow. Possible values are [0,5]
+         *                     They stand for [+y,-y,+x,-x,+z,-z] //change this ordering.. (y+ y-) are different,
+         */
+        //
+        
+        
+        constexpr uint64_t depth_mask_dir[6] = {YP_DEPTH_MASK,YM_DEPTH_MASK,XP_DEPTH_MASK,XM_DEPTH_MASK,ZP_DEPTH_MASK,ZM_DEPTH_MASK};
+        constexpr uint64_t depth_shift_dir[6] =  {YP_DEPTH_SHIFT,YM_DEPTH_SHIFT,XP_DEPTH_SHIFT,XM_DEPTH_SHIFT,ZP_DEPTH_SHIFT,ZM_DEPTH_SHIFT};
+        
+        constexpr uint64_t index_mask_dir[6] = {YP_INDEX_MASK,YM_INDEX_MASK,XP_INDEX_MASK,XM_INDEX_MASK,ZP_INDEX_MASK,ZM_INDEX_MASK};
+        constexpr uint64_t index_shift_dir[6] = {YP_INDEX_SHIFT,YM_INDEX_SHIFT,XP_INDEX_SHIFT,XM_INDEX_SHIFT,ZP_INDEX_SHIFT,ZM_INDEX_SHIFT};
+        
+        constexpr int8_t von_neumann_y_cells[6] = { 1,-1, 0, 0, 0, 0};
+        constexpr int8_t von_neumann_x_cells[6] = { 0, 0, 1,-1, 0, 0};
+        constexpr int8_t von_neumann_z_cells[6] = { 0, 0, 0, 0, 1,-1};
+        
+        //the ordering of retrieval of four neighbour cells
+        constexpr uint8_t neigh_child_dir[6][3] = {{4,2,2},{4,2,2},{0,4,4},{0,4,4},{0,2,2},{0,2,2}};
+        
+        
+        uint64_t neigh_indicator;
+        
+        uint64_t neigh_key;
+        
+        // +-y direction is different
+        if(face < 2){
+            
+            neigh_key = curr_key;
+            
+            pc_key_offset_j(neigh_key,von_neumann_y_cells[face]);
+            
+            node_val = get_val(neigh_key);
+            
+            if(!(node_val&1)){
+                //same level
+                neigh_keys.push_back(neigh_key);
+                
+                return;
+            }
+            
+            
+        }
+        
+        //dir
+        neigh_indicator =  node_get_val(node_val,depth_mask_dir[face],depth_shift_dir[face]);
+        
+        switch(neigh_indicator){
+            case(LEVEL_SAME):{
+                //same level return single neighbour
+                neigh_key = curr_key;
+                
+                pc_key_set_j(neigh_key, node_get_val(node_val,index_mask_dir[face],index_shift_dir[face]));
+                pc_key_offset_x(neigh_key,von_neumann_x_cells[face]);
+                pc_key_offset_z(neigh_key,von_neumann_z_cells[face]);
+                
+                neigh_keys.push_back(neigh_key);
+                
+                return;
+            }
+            case(LEVEL_DOWN):{
+                // Neighbour is on parent level (depth - 1)
+                
+                neigh_key = curr_key;
+                
+                pc_key_set_j(neigh_key, node_get_val(node_val,index_mask_dir[face],index_shift_dir[face]));
+                pc_key_set_x(neigh_key,pc_key_get_x(neigh_key)/2 + von_neumann_x_cells[face]);
+                pc_key_set_z(neigh_key,pc_key_get_z(neigh_key)/2 + von_neumann_z_cells[face]);
+                
+                pc_key_offset_depth(neigh_key,-1);
+                
+                
+                neigh_keys.push_back(neigh_key);
+                
+                
+                return;
+            }
+            case(LEVEL_UP):{
+                // Neighbour is on a lower child level
+                
+                //first of four children
+                
+                neigh_key = curr_key;
+                pc_key_offset_depth(neigh_key,1);
+                pc_key_set_j(neigh_key, node_get_val(node_val,index_mask_dir[face],index_shift_dir[face]));
+                pc_key_set_x(neigh_key,(pc_key_get_x(neigh_key) + von_neumann_x_cells[face])*2 + (von_neumann_x_cells[face] < 0));
+                pc_key_set_z(neigh_key,(pc_key_get_z(neigh_key) + von_neumann_z_cells[face])*2 + (von_neumann_z_cells[face] < 0));
+                
+                neigh_keys.push_back(neigh_key);
+                
+                uint64_t temp = neigh_key;
+                
+                //check if its two neighbours exist
+                bool exist0 = check_neigh_exists(node_val,neigh_key,neigh_child_dir[face][0]);
+                bool exist2 = check_neigh_exists(node_val,neigh_key,neigh_child_dir[face][2]);
+                
+                //changed the ordering
+                
+                if(exist0){
+                    neigh_key = get_neighbour_same_level<neigh_child_dir[face][0]>(neigh_key);
+                    neigh_keys.push_back(neigh_key);
+                    
+                } else {
+                    neigh_keys.push_back(0);
+                }
+                //diagonal will exist only if the other two exist
+                
+                if(exist2){
+                    temp = get_neighbour_same_level<neigh_child_dir[face][2]>(temp);
+                    neigh_keys.push_back(temp);
+                } else {
+                    neigh_keys.push_back(0);
+                }
+                
+                if(exist0 & exist2){
+                    neigh_key = get_neighbour_same_level<neigh_child_dir[face][1]>(neigh_key);
+                    neigh_keys.push_back(neigh_key);
+                } else {
+                    neigh_keys.push_back(0);
+                }
+                
+                return;
+            }
+        }
+        
         
         
     }
-
-    
     
     void set_neighbor_relationships(uint8_t face){
         //
@@ -1271,7 +1107,7 @@ public:
                                     //symmetric (only add it once)
                                     if((y_coord == ((y_parent-y_offset)*2 + (y_offset > 0))) & (x_ == x_parent*2) & (z_ == (z_parent*2) )){
                                         data[i-1][offset_pc_data_parent][j_parent-y_offset] |= ( (j_-y_offset) << index_shift_1);
-                                    
+                                        
                                         data[i-1][offset_pc_data_parent][j_parent-y_offset] &= -((depth_mask_1)+1);
                                         data[i-1][offset_pc_data_parent][j_parent-y_offset] |= ( LEVEL_UP  << depth_shift_1);
                                     }
@@ -1319,15 +1155,8 @@ public:
         }
         
     }
+
     
-    
-
-
-private:
-    //  Direction definitions for Particle Cell Neighbours
-    //  [+y,-y,+x,-x,+z,-z]
-    //  [0,1,2,3,4,5]
-
 };
 
 #endif //PARTPLAY_PARTCELLDATA_HPP
