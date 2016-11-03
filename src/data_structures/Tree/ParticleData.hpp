@@ -531,6 +531,39 @@ public:
                                         
                                     }
                                     
+//                                    access_data.pc_key_set_index(curr_key,part_offset+0);
+//                                    neigh_part_keys.resize(0);
+//                                    get_part_neighs_face_t<3,0,U>(curr_key,status,part_offset,neigh_cell_keys,neigh_part_keys,pc_data);
+//                                    
+//                                    access_data.pc_key_set_index(curr_key,part_offset+1);
+//                                    neigh_part_keys.resize(0);
+//                                    get_part_neighs_face_t<3,1,U>(curr_key,status,part_offset,neigh_cell_keys,neigh_part_keys,pc_data);
+//                                    
+//                                    access_data.pc_key_set_index(curr_key,part_offset+2);
+//                                    neigh_part_keys.resize(0);
+//                                    get_part_neighs_face_t<3,2,U>(curr_key,status,part_offset,neigh_cell_keys,neigh_part_keys,pc_data);
+//                                    
+//                                    access_data.pc_key_set_index(curr_key,part_offset+3);
+//                                    neigh_part_keys.resize(0);
+//                                    get_part_neighs_face_t<3,3,U>(curr_key,status,part_offset,neigh_cell_keys,neigh_part_keys,pc_data);
+//                                    
+//                                    access_data.pc_key_set_index(curr_key,part_offset+4);
+//                                    neigh_part_keys.resize(0);
+//                                    get_part_neighs_face_t<3,4,U>(curr_key,status,part_offset,neigh_cell_keys,neigh_part_keys,pc_data);
+//                                    
+//                                    access_data.pc_key_set_index(curr_key,part_offset+5);
+//                                    neigh_part_keys.resize(0);
+//                                    get_part_neighs_face_t<3,5,U>(curr_key,status,part_offset,neigh_cell_keys,neigh_part_keys,pc_data);
+//                                    
+//                                    access_data.pc_key_set_index(curr_key,part_offset+6);
+//                                    neigh_part_keys.resize(0);
+//                                    get_part_neighs_face_t<3,6,U>(curr_key,status,part_offset,neigh_cell_keys,neigh_part_keys,pc_data);
+//                                    
+//                                    access_data.pc_key_set_index(curr_key,part_offset+7);
+//                                    neigh_part_keys.resize(0);
+//                                    get_part_neighs_face_t<3,7,U>(curr_key,status,part_offset,neigh_cell_keys,neigh_part_keys,pc_data);
+                                    
+                                    
                                     (void) neigh_part_keys;
                                     (void) neigh_cell_keys;
                                     
@@ -544,8 +577,8 @@ public:
                                     access_data.pc_key_set_index(curr_key,part_offset);
                                     
                                     //loop over neighbours, and add in the part offset
-                                    get_part_neighs_face(face,0,curr_key,status,part_offset,neigh_cell_keys,neigh_part_keys,pc_data);
-                                    
+                                    //get_part_neighs_face(face,0,curr_key,status,part_offset,neigh_cell_keys,neigh_part_keys,pc_data);
+                                    get_part_neighs_face_t<3,0,U>(curr_key,status,part_offset,neigh_cell_keys,neigh_part_keys,pc_data);
                                     
                                     (void) neigh_part_keys;
                                     (void) neigh_cell_keys;
