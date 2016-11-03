@@ -222,23 +222,24 @@ bool compare_sparse_rep_with_part_map(const Particle_map<float>& part_map,PartCe
     uint64_t status_org;
     
     
-    S type;
-    S yp_index;
-    S yp_depth;
-    S ym_index;
-    S ym_depth;
-    S next_coord;
-    S prev_coord;
+    uint64_t type;
+    uint64_t yp_index;
+    uint64_t yp_depth;
+    uint64_t ym_index;
+    uint64_t ym_depth;
+    uint64_t next_coord;
+    uint64_t prev_coord;
     
+    uint64_t xp_index;
+    uint64_t xp_depth;
+    uint64_t zp_index;
+    uint64_t zp_depth;
+    uint64_t xm_index;
+    uint64_t xm_depth;
+    uint64_t zm_index;
+    uint64_t zm_depth;
     
-    S xp_index;
-    S xp_depth;
-    S zp_index;
-    S zp_depth;
-    S xm_index;
-    S xm_depth;
-    S zm_index;
-    S zm_depth;
+    std::cout << "Start Status Test" << std::endl;
     
     bool pass_test = true;
     
@@ -339,6 +340,8 @@ bool compare_sparse_rep_with_part_map(const Particle_map<float>& part_map,PartCe
         }
         
     }
+    
+    std::cout << "Finished Status Test" << std::endl;
     
     return pass_test;
     

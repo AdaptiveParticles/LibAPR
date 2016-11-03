@@ -34,11 +34,6 @@ class PartCellStructure: public PartCellBase<T,S> {
     
 private:
     
-    PartCellData<S> pc_data; //particle cell data
-    ParticleData<T,S> part_data; //individual particle data
-    
-    unsigned int depth_min;
-    unsigned int depth_max;
     
     
     inline void add_status(uint8_t part_map_status,uint64_t* node_val){
@@ -265,6 +260,8 @@ private:
         
         //(+y,-y,+x,-x,+z,-z)
         pc_data.set_neighbor_relationships();
+        
+        std::cout << "Finished neighbour relationships" << std::endl;
         
         /////////////////////////////////////
         //
@@ -1013,6 +1010,13 @@ private:
     
 public:
     
+    PartCellData<S> pc_data; //particle cell data
+    ParticleData<T,S> part_data; //individual particle data
+    
+    unsigned int depth_min;
+    unsigned int depth_max;
+
+    
     uint8_t get_status(uint64_t node_val){
         //
         //  Extracts the status
@@ -1026,20 +1030,20 @@ public:
     //decleration
     void initialize_structure(Particle_map<T>& particle_map){
         
-        
-        for(int i = particle_map.k_min;i <= particle_map.k_max;i++){
-            //debug_write(particle_map.layers[i],"kmap" + std::to_string(i));
-        }
-        
+//        
+//        for(int i = particle_map.k_min;i <= particle_map.k_max;i++){
+//            //debug_write(particle_map.layers[i],"kmap" + std::to_string(i));
+//        }
+//        
         
         
         
         //create_sparse_graph_format(particle_map);
         create_partcell_structure(particle_map);
         
-        test_partcell_struct(particle_map);
-        
-        pc_data.test_get_neigh_dir();
+//        test_partcell_struct(particle_map);
+//        
+//        pc_data.test_get_neigh_dir();
         
         //pc_data.test_get_neigh_dir_performance();
         
@@ -1047,14 +1051,14 @@ public:
         
         //pc_data.test_get_neigh_dir_performance_all();
         
-        test_get_neigh_dir_memory();
-        
-        part_data.test_get_part_neigh_dir(pc_data);
-        
-        part_data.test_get_part_neigh_all(pc_data);
-        
-        part_data.test_get_part_neigh_all_memory(pc_data);
-        
+//        test_get_neigh_dir_memory();
+//        
+//        part_data.test_get_part_neigh_dir(pc_data);
+//        
+//        part_data.test_get_part_neigh_all(pc_data);
+//        
+//        part_data.test_get_part_neigh_all_memory(pc_data);
+//        
     }
     
     

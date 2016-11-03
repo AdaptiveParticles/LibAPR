@@ -42,7 +42,10 @@ void CreateSmallTreeTest::SetUp()
     {
         *it = i++;
     }
-
+    
+    particle_map.k_min = 1;
+    particle_map.k_max = 2;
+    
     tree_mem.resize(1000);
     contents_mem.resize(500);
 }
@@ -85,6 +88,9 @@ void CreateBigTreeTest::SetUp()
     {
         *it = i++;
     }
+    particle_map.k_min = 1;
+    particle_map.k_max = 3;
+    
 
     tree_mem.resize(10000);
     contents_mem.resize(500);
@@ -132,6 +138,9 @@ void CreateNarrowTreeTest::SetUp()
     downsampled[6].x_num = 2;
     downsampled[6].y_num = 4;
     downsampled[6].z_num = 34;
+    
+    particle_map.k_min = 4;
+    particle_map.k_max = 5;
 
     int i = 0;
     for(auto it=downsampled[6].mesh.begin(); downsampled[6].mesh.end() != it; it++)

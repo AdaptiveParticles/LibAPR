@@ -103,6 +103,13 @@ if(TESTS)
             test/test_tree/face_neighbours_test.cpp
             )
 
+    add_executable(testSparsePartStruc
+            test/test_tree/tree_fixtures.cpp
+            test/test_tree/sparse_rep_test.cpp
+            ${SOURCE_FILES_COMPILED}
+            test/utils.cpp
+            )
+
     target_link_libraries(testBspline ${HDF5_LIBRARIES} ${GTEST_LIBRARIES} pthread tiff)
     target_link_libraries(testVariance ${HDF5_LIBRARIES} ${GTEST_LIBRARIES} pthread tiff)
     target_link_libraries(testLevel ${HDF5_LIBRARIES} ${GTEST_LIBRARIES} pthread tiff)
@@ -110,6 +117,7 @@ if(TESTS)
     target_link_libraries(testLevelIterator ${HDF5_LIBRARIES} ${GTEST_LIBRARIES} pthread tiff)
     target_link_libraries(testTreeNeighbours ${HDF5_LIBRARIES} ${GTEST_LIBRARIES} pthread tiff)
     target_link_libraries(testTreeNeighboursFace ${HDF5_LIBRARIES} ${GTEST_LIBRARIES} pthread tiff)
+    target_link_libraries(testSparsePartStruc ${HDF5_LIBRARIES} ${GTEST_LIBRARIES} pthread tiff)
 
 endif(TESTS)
 

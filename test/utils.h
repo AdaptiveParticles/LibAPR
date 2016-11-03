@@ -18,7 +18,7 @@
 
 #include "../src/data_structures/meshclass.h"
 #include "../src/algorithm/level.hpp"
-#include "../../src/data_structures/Tree/PartCellStructure.hpp"
+#include "../src/data_structures/Tree/PartCellStructure.hpp"
 
 bool compare_two_images(const Mesh_data<uint16_t>& in_memory, std::string filename);
 bool compare_two_ks(const Particle_map<float>& in_memory, std::string filename);

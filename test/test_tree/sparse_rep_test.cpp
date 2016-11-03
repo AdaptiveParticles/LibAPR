@@ -1,12 +1,12 @@
 //
 // Created by Bevan Cheeseman 3.11.2016
 //
-#include "utils.h"
+#include "../utils.h"
 #include "tree_fixtures.hpp"
 #include "../../src/data_structures/Tree/PartCellStructure.hpp"
 
 
-TEST_F(CreateSmallTreeTest, LEVEL_ITERATOR_SMALL_TEST)
+TEST_F(CreateSmallTreeTest, SPARSE_STRUCTURE_SMALL_TEST)
 {
     
     //
@@ -22,7 +22,7 @@ TEST_F(CreateSmallTreeTest, LEVEL_ITERATOR_SMALL_TEST)
 }
 
 
-TEST_F(CreateBigTreeTest, LEVEL_ITERATOR_BIG_TEST)
+TEST_F(CreateBigTreeTest, SPARSE_STRUCTURE_BIG_TEST)
 {
     
     PartCellStructure<float,uint64_t> pcell_test(particle_map);
@@ -31,7 +31,7 @@ TEST_F(CreateBigTreeTest, LEVEL_ITERATOR_BIG_TEST)
     
 }
 
-TEST_F(CreateNarrowTreeTest, LEVEL_ITERATOR_NARROW_TEST)
+TEST_F(CreateNarrowTreeTest, SPARSE_STRUCTURE_NARROW_TEST)
 {
     
     PartCellStructure<float,uint64_t> pcell_test(particle_map);
