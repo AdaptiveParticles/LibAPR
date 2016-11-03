@@ -17,7 +17,7 @@ TEST_F(CreateSmallTreeTest, SPARSE_STRUCTURE_SMALL_TEST)
     PartCellStructure<float,uint64_t> pcell_test(particle_map);
     
     ASSERT_TRUE(compare_sparse_rep_with_part_map(particle_map,pcell_test));
-    
+    ASSERT_TRUE(compare_sparse_rep_neighcell_with_part_map(particle_map,pcell_test));
     
 }
 
@@ -28,6 +28,7 @@ TEST_F(CreateBigTreeTest, SPARSE_STRUCTURE_BIG_TEST)
     PartCellStructure<float,uint64_t> pcell_test(particle_map);
     
     ASSERT_TRUE(compare_sparse_rep_with_part_map(particle_map,pcell_test));
+    ASSERT_TRUE(compare_sparse_rep_neighcell_with_part_map(particle_map,pcell_test));
     
 }
 
@@ -37,6 +38,7 @@ TEST_F(CreateNarrowTreeTest, SPARSE_STRUCTURE_NARROW_TEST)
     PartCellStructure<float,uint64_t> pcell_test(particle_map);
     
     ASSERT_TRUE(compare_sparse_rep_with_part_map(particle_map,pcell_test));
+    ASSERT_TRUE(compare_sparse_rep_neighcell_with_part_map(particle_map,pcell_test));
     
 }
 
