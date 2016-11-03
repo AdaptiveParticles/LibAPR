@@ -431,6 +431,8 @@ private:
         
         timer.verbose_flag = 1;
         
+        timer.start_timer("get neighbour cells memory all");
+        
         uint64_t curr_key;
         std::vector<uint64_t> neigh_keys;
         
@@ -440,7 +442,7 @@ private:
         for(uint64_t i = pc_data.depth_min;i <= pc_data.depth_max;i++){
             const unsigned int x_num_ = pc_data.x_num[i];
             const unsigned int z_num_ = pc_data.z_num[i];
-            
+#pragma omp parallel for default(shared) private(z_,x_,j_) if(z_num_*x_num_ > 100)
             for(z_ = 0;z_ < z_num_;z_++){
                 
                 
@@ -451,7 +453,7 @@ private:
                     neigh_vec_all.data[i][offset_pc_data].resize(j_num);
                     
                     for(j_ = 0;j_ < j_num;j_++){
-                        neigh_vec_all.data[i][offset_pc_data][j_].reserve(4);
+                        neigh_vec_all.data[i][offset_pc_data][j_].reserve(6);
                     }
                 }
             }
@@ -459,7 +461,7 @@ private:
         }
         
         
-        timer.start_timer("get neighbour cells memory all");
+        
         
         for(uint64_t i = pc_data.depth_min;i <= pc_data.depth_max;i++){
             

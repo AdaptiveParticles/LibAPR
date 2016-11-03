@@ -87,7 +87,7 @@
 
 #define PC_KEY_Z_MASK ((((uint64_t)1) << 13) - 1) << 18
 #define PC_KEY_Z_SHIFT 18
-#define PC_KEY_J_MASK ((((uint64_t)1) << 13) - 1) << 31
+#define PC_KEY_J_MASK (((((uint64_t)1) << 13) - 1) << 31)
 #define PC_KEY_J_SHIFT 31
 
 #define PC_KEY_INDEX_MASK ((((uint64_t)1) << 15) - 1) << 44
