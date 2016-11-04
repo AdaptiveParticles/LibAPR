@@ -97,10 +97,7 @@
 #define PC_KEY_ACTIVE_SHIFT 59
 
 
-
-
-
-#include "PartCellKey.hpp"
+#include "PartCellNeigh.hpp"
 #include "../particle_map.hpp"
 
 template <typename T> // type T data structure base type
@@ -167,6 +164,26 @@ public:
     //  Get and Set methods for PC_KEYS
     //
     //////////////////////////////////////////
+    
+    bool pc_key_cell_isequal(const T& pc_key0,const T& pc_key1){
+        //
+        //  Checks if the partcell keys address the same cell
+        //
+        //  Could be different particles! (Ignores the index value)
+        //
+        
+        return (pc_key0 & (-((PC_KEY_INDEX_MASK)+1))) == (pc_key1 & (-((PC_KEY_INDEX_MASK)+1)));
+    
+    };
+    
+    bool pc_key_part_isequal(const T& pc_key0,const T& pc_key1){
+        //
+        // Compares if two particles are the same
+        //
+        
+        return pc_key0 == pc_key1;
+    
+    };
     
     T& operator ()(int depth, int x_,int z_,int j_){
         // data access
@@ -391,38 +408,68 @@ public:
         get_neighs_face_t<5>(curr_key,node_val,neigh_keys);
     }
     
-    void get_neighs_face(const uint64_t& curr_key,uint64_t node_val,uint64_t face,std::vector<uint64_t>& neigh_keys){
+    void get_neighs_face(const uint64_t& curr_key,uint64_t node_val,uint64_t face,PartCellNeigh<uint64_t>& neigh_keys){
         // Selects the neighbour in the correct direction
+        
+        neigh_keys.curr = curr_key;
         
         switch(face){
             case 0: {
-                get_neighs_face_t<0>(curr_key,node_val,neigh_keys);
+                neigh_keys.neigh_face[0].resize(0);
+                get_neighs_face_t<0>(curr_key,node_val,neigh_keys.neigh_face[0]);
                 break;
             }
             case 1: {
-                get_neighs_face_t<1>(curr_key,node_val,neigh_keys);
+                neigh_keys.neigh_face[1].resize(0);
+                get_neighs_face_t<1>(curr_key,node_val,neigh_keys.neigh_face[1]);
                 break;
             }
             case 2: {
-                get_neighs_face_t<2>(curr_key,node_val,neigh_keys);
+                neigh_keys.neigh_face[2].resize(0);
+                get_neighs_face_t<2>(curr_key,node_val,neigh_keys.neigh_face[2]);
                 break;
             }
             case 3: {
-                get_neighs_face_t<3>(curr_key,node_val,neigh_keys);
+                neigh_keys.neigh_face[3].resize(0);
+                get_neighs_face_t<3>(curr_key,node_val,neigh_keys.neigh_face[3]);
                 break;
             }
             case 4: {
-                get_neighs_face_t<4>(curr_key,node_val,neigh_keys);
+                neigh_keys.neigh_face[4].resize(0);
+                get_neighs_face_t<4>(curr_key,node_val,neigh_keys.neigh_face[4]);
                 break;
             }
             case 5: {
-                get_neighs_face_t<5>(curr_key,node_val,neigh_keys);
+                neigh_keys.neigh_face[5].resize(0);
+                get_neighs_face_t<5>(curr_key,node_val,neigh_keys.neigh_face[5]);
                 break;
             }
                 
         }
         
     }
+    
+    void get_neighs_all(const uint64_t& curr_key,uint64_t node_val,PartCellNeigh<uint64_t>& neigh_keys){
+        // Selects the neighbour in the correct direction
+        
+        neigh_keys.curr = curr_key;
+        
+        neigh_keys.neigh_face[0].resize(0);
+        neigh_keys.neigh_face[1].resize(0);
+        neigh_keys.neigh_face[2].resize(0);
+        neigh_keys.neigh_face[3].resize(0);
+        neigh_keys.neigh_face[4].resize(0);
+        neigh_keys.neigh_face[5].resize(0);
+        
+        get_neighs_face_t<0>(curr_key,node_val,neigh_keys.neigh_face[0]);
+        get_neighs_face_t<1>(curr_key,node_val,neigh_keys.neigh_face[1]);
+        get_neighs_face_t<2>(curr_key,node_val,neigh_keys.neigh_face[2]);
+        get_neighs_face_t<3>(curr_key,node_val,neigh_keys.neigh_face[3]);
+        get_neighs_face_t<4>(curr_key,node_val,neigh_keys.neigh_face[4]);
+        get_neighs_face_t<5>(curr_key,node_val,neigh_keys.neigh_face[5]);
+        
+    }
+
     
     void test_get_neigh_dir(){
         //
@@ -440,14 +487,10 @@ public:
         timer.verbose_flag = 1;
         
         uint64_t curr_key;
-        std::vector<uint64_t> neigh_keys;
-        uint64_t neigh_key0;
-        uint64_t neigh_key1;
-        uint64_t neigh_key2;
-        uint64_t neigh_key3;
+        PartCellNeigh<uint64_t> neigh_keys;
+       
         
-        
-        timer.start_timer("get neighbour cells ");
+        timer.start_timer("get neighbour cells all");
         
         for(uint64_t i = depth_min;i <= depth_max;i++){
             
@@ -459,7 +502,7 @@ public:
             //For each depth there are two loops, one for SEED status particles, at depth + 1, and one for BOUNDARY and FILLER CELLS, to ensure contiguous memory access patterns.
             
             // SEED PARTICLE STATUS LOOP (requires access to three data structures, particle access, particle data, and the part-map)
-#pragma omp parallel for default(shared) private(z_,x_,j_,node_val,curr_key,neigh_keys,neigh_key0,neigh_key1,neigh_key2,neigh_key3) if(z_num_*x_num_ > 100)
+#pragma omp parallel for default(shared) private(z_,x_,j_,node_val,curr_key,neigh_keys) if(z_num_*x_num_ > 100)
             for(z_ = 0;z_ < z_num_;z_++){
                 
                 curr_key = 0;
@@ -467,7 +510,6 @@ public:
                 pc_key_set_z(curr_key,z_);
                 pc_key_set_depth(curr_key,i);
                 
-                neigh_keys.reserve(24);
                 
                 for(x_ = 0;x_ < x_num_;x_++){
                     
@@ -486,15 +528,62 @@ public:
                             
                             pc_key_set_j(curr_key,j_);
                             
-                            neigh_keys.resize(0);
+                            get_neighs_all(curr_key,node_val,neigh_keys);
                             
                             
-                            get_neighs_face_t<0>(curr_key,node_val,neigh_keys);
-                            get_neighs_face_t<1>(curr_key,node_val,neigh_keys);
-                            get_neighs_face_t<2>(curr_key,node_val,neigh_keys);
-                            get_neighs_face_t<3>(curr_key,node_val,neigh_keys);
-                            get_neighs_face_t<4>(curr_key,node_val,neigh_keys);
-                            get_neighs_face_t<5>(curr_key,node_val,neigh_keys);
+                        } else {
+                            
+                        }
+                        
+                    }
+                    
+                }
+                
+            }
+        }
+        
+        timer.stop_timer();
+        
+        
+        timer.start_timer("get neighbour cells single face 0");
+        
+        for(uint64_t i = depth_min;i <= depth_max;i++){
+            
+            const unsigned int x_num_ = x_num[i];
+            const unsigned int z_num_ = z_num[i];
+            
+            
+            
+            //For each depth there are two loops, one for SEED status particles, at depth + 1, and one for BOUNDARY and FILLER CELLS, to ensure contiguous memory access patterns.
+            
+            // SEED PARTICLE STATUS LOOP (requires access to three data structures, particle access, particle data, and the part-map)
+#pragma omp parallel for default(shared) private(z_,x_,j_,node_val,curr_key,neigh_keys) if(z_num_*x_num_ > 100)
+            for(z_ = 0;z_ < z_num_;z_++){
+                
+                curr_key = 0;
+                
+                pc_key_set_z(curr_key,z_);
+                pc_key_set_depth(curr_key,i);
+                
+                
+                for(x_ = 0;x_ < x_num_;x_++){
+                    
+                    pc_key_set_x(curr_key,x_);
+                    
+                    const size_t offset_pc_data = x_num_*z_ + x_;
+                    
+                    const size_t j_num = data[i][offset_pc_data].size();
+                    
+                    for(j_ = 0;j_ < j_num;j_++){
+                        
+                        node_val = data[i][offset_pc_data][j_];
+                        
+                        if (!(node_val&1)){
+                            //get the index gap node
+                            
+                            pc_key_set_j(curr_key,j_);
+                            
+                            get_neighs_face(curr_key,node_val,0,neigh_keys);
                             
                             
                         } else {

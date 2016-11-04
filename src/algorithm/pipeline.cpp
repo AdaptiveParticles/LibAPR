@@ -250,7 +250,8 @@ int main(int argc, char **argv) {
     PartCellStructure<float,uint64_t> pcell_test(part_map);
     part_rep.timer.stop_timer();
     
-   
+    pcell_test.pc_data.test_get_neigh_dir();
+    pcell_test.part_data.test_get_part_neigh_dir(pcell_test.pc_data);
     
 }
 
