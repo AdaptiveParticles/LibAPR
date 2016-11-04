@@ -50,6 +50,8 @@ void get_image_stats(Proc_par& pars,std::string output_path,std::string image_na
     //  Bevan Cheeseman 2016
     //
     //
+    std::cout << "output path: " << output_path << std::endl;
+    std::cout << "image name: " << image_name << std::endl;
     std::cout << output_path + image_name + "_stats.txt" << std::endl;
 
 
