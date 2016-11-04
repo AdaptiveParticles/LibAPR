@@ -123,6 +123,7 @@ public:
     //the ordering of retrieval of four neighbour cells
     const uint8_t neigh_child_dir[6][3] = {{4,2,2},{4,2,2},{0,4,4},{0,4,4},{0,2,2},{0,2,2}};
     
+    const uint8_t neigh_child_y_offsets[6][3] = {{0,0,0},{0,0,0},{1,1,0},{1,1,0},{1,1,0},{1,1,0}};
     
     //variables for neighbour search loops
     const uint8_t x_start_vec[6] = {0,0,0,1,0,0};
@@ -165,7 +166,7 @@ public:
     //
     //////////////////////////////////////////
     
-    bool pc_key_cell_isequal(const T& pc_key0,const T& pc_key1){
+    inline bool pc_key_cell_isequal(const T& pc_key0,const T& pc_key1){
         //
         //  Checks if the partcell keys address the same cell
         //
@@ -176,7 +177,7 @@ public:
     
     };
     
-    bool pc_key_part_isequal(const T& pc_key0,const T& pc_key1){
+    inline bool pc_key_part_isequal(const T& pc_key0,const T& pc_key1){
         //
         // Compares if two particles are the same
         //

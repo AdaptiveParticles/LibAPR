@@ -252,6 +252,8 @@ int main(int argc, char **argv) {
     
     pcell_test.pc_data.test_get_neigh_dir();
     pcell_test.part_data.test_get_part_neigh_dir(pcell_test.pc_data);
+    pcell_test.part_data.test_get_part_neigh_all(pcell_test.pc_data);
+    pcell_test.part_data.test_get_part_neigh_all_memory(pcell_test.pc_data);
     
 }
 
