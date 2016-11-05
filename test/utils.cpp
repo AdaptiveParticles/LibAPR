@@ -653,13 +653,16 @@ bool compare_sparse_rep_neighcell_with_part_map(const Particle_map<float>& part_
                             uint64_t node_n = 0;
                             
                             std::vector<uint64_t> neigh_keys;
+                            PartCellNeigh<uint64_t> neigh_keys_;
+                            
                             uint64_t curr_key = 0;
                             curr_key |= ((uint64_t)i) << PC_KEY_DEPTH_SHIFT;
                             curr_key |= z_ << PC_KEY_Z_SHIFT;
                             curr_key |= x_ << PC_KEY_X_SHIFT;
                             curr_key |= j_ << PC_KEY_J_SHIFT;
                             
-                            pc_struct.pc_data.get_neighs_face(curr_key,node_val,face,neigh_keys);
+                            pc_struct.pc_data.get_neighs_face(curr_key,node_val,face,neigh_keys_);
+                            neigh_keys = neigh_keys_.neigh_face[face];
                             
                             if (neigh_keys.size() > 0){
                                 depth = (neigh_keys[0] & PC_KEY_DEPTH_MASK) >> PC_KEY_DEPTH_SHIFT;
@@ -732,6 +735,8 @@ bool compare_sparse_rep_neighcell_with_part_map(const Particle_map<float>& part_
         }
         
     }
+    
+    std::cout << "Finished Neigh Cell test" << std::endl;
     
     return pass_test;
     

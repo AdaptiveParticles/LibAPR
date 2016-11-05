@@ -80,22 +80,26 @@
 
 //Neighbour Keys
 
-#define PC_KEY_DEPTH_MASK ((((uint64_t)1) << 5) - 1) << 0
+#define PC_KEY_DEPTH_MASK ((((uint64_t)1) << 4) - 1) << 0
 #define PC_KEY_DEPTH_SHIFT 0
-#define PC_KEY_X_MASK ((((uint64_t)1) << 13) - 1) << 5
-#define PC_KEY_X_SHIFT 5
+#define PC_KEY_X_MASK ((((uint64_t)1) << 13) - 1) << 4
+#define PC_KEY_X_SHIFT 4
 
-#define PC_KEY_Z_MASK ((((uint64_t)1) << 13) - 1) << 18
-#define PC_KEY_Z_SHIFT 18
-#define PC_KEY_J_MASK (((((uint64_t)1) << 13) - 1) << 31)
-#define PC_KEY_J_SHIFT 31
+#define PC_KEY_Z_MASK ((((uint64_t)1) << 13) - 1) << 17
+#define PC_KEY_Z_SHIFT 17
+#define PC_KEY_J_MASK (((((uint64_t)1) << 13) - 1) << 30)
+#define PC_KEY_J_SHIFT 30
 
-#define PC_KEY_INDEX_MASK ((((uint64_t)1) << 15) - 1) << 44
-#define PC_KEY_INDEX_SHIFT 44
+#define PC_KEY_INDEX_MASK ((((uint64_t)1) << 15) - 1) << 43
+#define PC_KEY_INDEX_SHIFT 43
 
-#define PC_KEY_ACTIVE_MASK ((((uint64_t)1) << 1) - 1) << 59
-#define PC_KEY_ACTIVE_SHIFT 59
+#define PC_KEY_PARTNUM_MASK ((((uint64_t)1) << 3) - 1) << 58
+#define PC_KEY_PARTNUM_SHIFT 58
 
+#define PC_KEY_STATUS_MASK ((((uint64_t)1) << 2) - 1) << 61
+#define PC_KEY_STATUS_SHIFT 61
+
+#define PC_KEY_PARTICLE_MASK ((((uint64_t)1) << 20) - 1) << 43
 
 #include "PartCellNeigh.hpp"
 #include "../particle_map.hpp"
@@ -150,6 +154,10 @@ public:
     const uint64_t next_prev_shift_vec[6] = {0,0,0,0,PREV_COORD_SHIFT,NEXT_COORD_SHIFT};
     
     
+    const uint8_t seed_part_y[8] = {0, 1, 0, 1, 0, 1, 0, 1};
+    const uint8_t seed_part_x[8] = {0, 0, 1, 1, 0, 0, 1, 1};
+    const uint8_t seed_part_z[8] = {0, 0, 0, 0, 1, 1, 1, 1};
+    
     uint8_t depth_max;
     uint8_t depth_min;
     
@@ -166,6 +174,7 @@ public:
     //
     //////////////////////////////////////////
     
+
     inline bool pc_key_cell_isequal(const T& pc_key0,const T& pc_key1){
         //
         //  Checks if the partcell keys address the same cell
@@ -173,7 +182,7 @@ public:
         //  Could be different particles! (Ignores the index value)
         //
         
-        return (pc_key0 & (-((PC_KEY_INDEX_MASK)+1))) == (pc_key1 & (-((PC_KEY_INDEX_MASK)+1)));
+        return (pc_key0 & (-((PC_KEY_PARTICLE_MASK)+1))) == (pc_key1 & (-((PC_KEY_PARTICLE_MASK)+1)));
     
     };
     
@@ -211,6 +220,14 @@ public:
         return (pc_key & PC_KEY_INDEX_MASK) >> PC_KEY_INDEX_SHIFT;
     }
     
+    inline T pc_key_get_partnum(const T& pc_key){
+        return (pc_key & PC_KEY_PARTNUM_MASK) >> PC_KEY_PARTNUM_SHIFT;
+    }
+    
+    inline T pc_key_get_status(const T& pc_key){
+        return (pc_key & PC_KEY_STATUS_MASK) >> PC_KEY_STATUS_SHIFT;
+    }
+    
     inline void pc_key_set_x(T& pc_key,const T& x_){
         pc_key &= -((PC_KEY_X_MASK) + 1); // clear the current value
         pc_key|= x_  << PC_KEY_X_SHIFT; //set value
@@ -235,6 +252,17 @@ public:
         pc_key &= -((PC_KEY_INDEX_MASK) + 1); // clear the current value
         pc_key|= index_  << PC_KEY_INDEX_SHIFT; //set  value
     }
+    
+    inline void pc_key_set_partnum(T& pc_key,const T& index_){
+        pc_key &= -((PC_KEY_PARTNUM_MASK) + 1); // clear the current value
+        pc_key|= index_  << PC_KEY_PARTNUM_SHIFT; //set  value
+    }
+    
+    inline void pc_key_set_status(T& pc_key,const T& index_){
+        pc_key &= -((PC_KEY_STATUS_MASK) + 1); // clear the current value
+        pc_key|= index_  << PC_KEY_STATUS_SHIFT; //set  value
+    }
+    
     
     inline void pc_key_offset_x(T& pc_key,const int& offset){
         T temp = pc_key_get_x(pc_key);
@@ -266,6 +294,12 @@ public:
         pc_key|= (temp+offset)  << PC_KEY_INDEX_SHIFT; //set  value
     }
     
+    inline void pc_key_offset_partnum(T& pc_key,const int& offset){
+        T temp = pc_key_get_partnum(pc_key);
+        pc_key &= -((PC_KEY_PARTNUM_MASK) + 1); // clear the current value
+        pc_key|= (temp+offset)  << PC_KEY_PARTNUM_SHIFT; //set  value
+    }
+    
     inline T node_get_val(const T& node_val,const T& mask,const T& shift){
         return (node_val & mask) >> shift;
     }
@@ -281,6 +315,15 @@ public:
         node_val|= (temp+offset)  << shift; //set  value
     }
     
+    uint8_t get_status(T& node_val){
+        //
+        //  Extracts the status
+        //
+        
+        return (node_val & STATUS_MASK) >> STATUS_SHIFT;
+    }
+
+    
     
     T&  get_val(const uint64_t& pc_key){
         // data access
@@ -295,6 +338,120 @@ public:
         
         //return data[(pc_key & PC_KEY_DEPTH_MASK) >> PC_KEY_DEPTH_SHIFT][x_num[(pc_key & PC_KEY_DEPTH_MASK) >> PC_KEY_DEPTH_SHIFT]*((pc_key & PC_KEY_Z_MASK) >> PC_KEY_Z_SHIFT) + ((pc_key & PC_KEY_X_MASK) >> PC_KEY_X_SHIFT)][(pc_key & PC_KEY_J_MASK) >> PC_KEY_J_SHIFT];
     }
+    
+//    void get_neigh_coordinates_cell(T face,T index,T current_y,T& neigh_y,T& neigh_x,T& neigh_z,T& neigh_depth){
+//        //
+//        //  Get the coordinates for a cell
+//        //
+//        
+//        T neigh = neigh_face[face][index];
+//        T curr_depth = pc_data.pc_key_get_depth(curr_cell);
+//        
+//        if(neigh > 0){
+//            neigh_x = pc_data.pc_key_get_x(neigh);
+//            neigh_z = pc_data.pc_key_get_z(neigh);
+//            neigh_depth = pc_data.pc_key_get_depth(neigh);
+//            
+//            T curr_depth = pc_data.pc_key_get
+//            
+//            if(neigh_depth == curr_depth){
+//                //neigh is on same layer
+//                neigh_y = current_y + pc_data.von_neumann_y_cells[face];
+//            }
+//            else if (neigh_depth > curr_depth){
+//                //neigh is on parent layer
+//                neigh_y = (current_y + pc_data.von_neumann_y_cells[face])/2;
+//            }
+//            else{
+//                //neigh is on child layer
+//                neigh_y = (current_y + pc_data.von_neumann_y_cells[face])*2 + pc_data.neigh_child_y_offsets[face][index];
+//            }
+//            
+//            
+//        } else {
+//            neigh_y = 0;
+//            neigh_x = 0;
+//            neigh_z = 0;
+//            neigh_depth = 0;
+//        }
+//        
+//        
+//    };
+//    
+//    void get_neigh_coordinates_part(T face,T index,T current_y,T& neigh_y,T& neigh_x,T& neigh_z,T& neigh_depth,T status){
+//        //
+//        //  Get the coordinates for a particle
+//        //
+//        //
+//        
+//        T neigh = neigh_face[face][index];
+//        
+//        if(neigh > 0){
+//            
+//            if(status > SEED){
+//                
+//                neigh_x = pc_data.pc_key_get_x(neigh);
+//                neigh_z = pc_data.pc_key_get_z(neigh);
+//                neigh_depth = pc_data.pc_key_get_depth(neigh);
+//                
+//                T curr_depth = pc_data.pc_data.pc_key_get_depth(curr);
+//                
+//                if(neigh_depth == curr_depth){
+//                    //neigh is on same layer
+//                    neigh_y = current_y + pc_data.von_neumann_y_cells[face];
+//                }
+//                else if (neigh_depth > curr_depth){
+//                    //neigh is on parent layer
+//                    neigh_y = (current_y + pc_data.von_neumann_y_cells[face])/2;
+//                }
+//                else{
+//                    //neigh is on child layer
+//                    neigh_y = (current_y + pc_data.von_neumann_y_cells[face])*2 + pc_data.neigh_child_y_offsets[face][index];
+//                }
+//                
+//            } else {
+//                
+//                
+//                
+//                T part_num = pc_data.pc_key_get_partnum(neigh);
+//                
+//                neigh_x = pc_data.pc_key_get_x(neigh)*2 + pc_data.seed_part_x(part_num);
+//                neigh_z = pc_data.pc_key_get_z(neigh)*2 + pc_data.seed_part_z(part_num);
+//                
+//                //check if still in the same cell or not
+//                if(pc_key_cell_isequal(curr_key,neigh)){
+//                    
+//                    
+//                } else {
+//                    
+//                    T neigh_status = pc_data.get_status(pc_data.get_val(neigh));
+//                    T curr_depth = pc_data.pc_data.pc_key_get_depth(curr);
+//                    
+//                    if(neigh_depth == curr_depth){
+//                        //neigh is on same layer
+//                        neigh_y = current_y + pc_data.von_neumann_y_cells[face];
+//                    }
+//                    else if (neigh_depth > curr_depth){
+//                        //neigh is on parent layer
+//                        neigh_y = (current_y + pc_data.von_neumann_y_cells[face])/2;
+//                    }
+//                    else{
+//                        //neigh is on child layer
+//                        neigh_y = (current_y + pc_data.von_neumann_y_cells[face])*2 + pc_data.neigh_child_y_offsets[face][index];
+//                    }
+//                }
+//                
+//                neigh_y = neigh_y*2 + pc_data.seed_part_y(part_num);
+//            }
+//        } else {
+//            neigh_y = 0;
+//            neigh_x = 0;
+//            neigh_z = 0;
+//            neigh_depth = 0;
+//        }
+//        
+//    }
+    
     
     
     
@@ -777,6 +934,8 @@ private:
                 pc_key_offset_x(neigh_key,von_neumann_x_cells[face]);
                 pc_key_offset_z(neigh_key,von_neumann_z_cells[face]);
                 
+                //pc_key_set_status(neigh_key,get_status(get_val(neigh_key)));
+                
                 neigh_keys.push_back(neigh_key);
                 
                 return;
@@ -792,7 +951,7 @@ private:
                 
                 pc_key_offset_depth(neigh_key,-1);
                 
-                
+               // pc_key_set_status(neigh_key,get_status(get_val(neigh_key)));
                 neigh_keys.push_back(neigh_key);
                 
                 
@@ -809,6 +968,7 @@ private:
                 pc_key_set_x(neigh_key,(pc_key_get_x(neigh_key) + von_neumann_x_cells[face])*2 + (von_neumann_x_cells[face] < 0));
                 pc_key_set_z(neigh_key,(pc_key_get_z(neigh_key) + von_neumann_z_cells[face])*2 + (von_neumann_z_cells[face] < 0));
                 
+                //pc_key_set_status(neigh_key,get_status(get_val(neigh_key)));
                 neigh_keys.push_back(neigh_key);
                 
                 uint64_t temp = neigh_key;
@@ -821,6 +981,7 @@ private:
                 
                 if(exist0){
                     neigh_key = get_neighbour_same_level<neigh_child_dir[face][0]>(neigh_key);
+                    //pc_key_set_status(neigh_key,get_status(get_val(neigh_key)));
                     neigh_keys.push_back(neigh_key);
                     
                 } else {
@@ -830,6 +991,7 @@ private:
                 
                 if(exist2){
                     temp = get_neighbour_same_level<neigh_child_dir[face][2]>(temp);
+                    //pc_key_set_status(temp,get_status(get_val(temp)));
                     neigh_keys.push_back(temp);
                 } else {
                     neigh_keys.push_back(0);
@@ -837,6 +999,7 @@ private:
                 
                 if(exist0 & exist2){
                     neigh_key = get_neighbour_same_level<neigh_child_dir[face][1]>(neigh_key);
+                    //pc_key_set_status(neigh_key,get_status(get_val(neigh_key)));
                     neigh_keys.push_back(neigh_key);
                 } else {
                     neigh_keys.push_back(0);
