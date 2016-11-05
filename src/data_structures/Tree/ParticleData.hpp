@@ -218,6 +218,21 @@ public:
         //If the previous cell calculated on was not the current one, calculate the particle cell neighbours (calculates all directions, this is to allow for better coping for irregular access, without excessive checking)
         if(!access_data.pc_key_cell_isequal(curr_key,neigh_cell_keys.curr)){
             pc_data.get_neighs_all(curr_key,node_val,neigh_cell_keys);
+            
+            U temp = 0;
+            
+            // Get the status and offsets of all the neihbours here, to remove redundancy
+            for(int i = 0;i < neigh_cell_keys.neigh_face.size();i++){
+                for(int n = 0;n < neigh_cell_keys.neigh_face[i].size();n++){
+                    if(neigh_cell_keys.neigh_face[i][n] > 0){
+                        
+                        temp = access_data.get_val(neigh_cell_keys.neigh_face[i][n]);
+                        access_data.pc_key_set_status(neigh_cell_keys.neigh_face[i][n],access_node_get_status(temp));
+                        access_data.pc_key_set_index(neigh_cell_keys.neigh_face[i][n],access_node_get_part_offset(temp));
+                    }
+                }
+            }
+
         }
         
         //set the current key.
@@ -322,7 +337,8 @@ public:
         
         //If the previous cell calculated on was not the current one, calculate the particle cell neighbours (calculates all directions, this is to allow for better coping for irregular access, without excessive checking)
         if(!access_data.pc_key_cell_isequal(curr_key,neigh_cell_keys.curr)){
-            pc_data.get_neighs_all(curr_key,node_val,neigh_cell_keys);
+            //pc_data.get_neighs_all(curr_key,node_val,neigh_cell_keys);
+            pc_data.get_neighs_face(curr_key,node_val,face,neigh_cell_keys);
             
             U temp = 0;
             
@@ -338,7 +354,7 @@ public:
                 }
             }
             
-            pc_data.get_neighs_face(curr_key,node_val,face,neigh_cell_keys);
+            //
         }
         
         //set the current key.
@@ -1424,8 +1440,8 @@ private:
             std::copy(neigh_cell_keys.begin(),neigh_cell_keys.end(),neigh_part_keys.begin() + curr_size);
             
             
-            U neigh_node = access_data.get_val(neigh_cell_keys[0]);
-            U neigh_status = access_node_get_status(neigh_node);
+           // U neigh_node = access_data.get_val(neigh_cell_keys[0]);
+            U neigh_status = access_data.pc_key_get_status(neigh_cell_keys[0]);
             U neigh_offset;
             U part_offset;
             
@@ -1436,7 +1452,7 @@ private:
                         case SEED:
                         {
                             
-                            neigh_offset = access_node_get_part_offset(neigh_node);
+                            neigh_offset = access_data.pc_key_get_index(neigh_part_keys[curr_size]);
                             neigh_part_keys[curr_size] = get_part_cseed_nseed<face,index,U>(curr_offset,neigh_offset,curr_key,neigh_part_keys[curr_size]);
                             access_data.pc_key_set_status(neigh_part_keys[curr_size],neigh_status);
                             
@@ -1445,10 +1461,10 @@ private:
                         case BOUNDARY:
                         {
                             
-                            neigh_offset = access_node_get_part_offset(neigh_node);
+                            neigh_offset = access_data.pc_key_get_index(neigh_part_keys[curr_size]);
                             // will have one neighbour
                             neigh_part_keys[curr_size] =  get_part_cseed_nboundary<face,index,U>(curr_offset,neigh_offset,curr_key,neigh_part_keys[curr_size]);
-                            //access_data.pc_key_set_status(neigh_part_keys[curr_size],neigh_status);
+                            access_data.pc_key_set_status(neigh_part_keys[curr_size],neigh_status);
                             
                             return;
                         }
@@ -1472,7 +1488,7 @@ private:
                             
                             //this is the resize case..
                             //all others can just use the previous, and this then just needs to duplicate
-                            
+                            neigh_offset = access_data.pc_key_get_index(neigh_part_keys[curr_size]);
                             neigh_part_keys.resize(curr_size + 4);
                             
                             access_data.pc_key_set_status(neigh_part_keys[curr_size],neigh_status);
@@ -1494,7 +1510,7 @@ private:
                             //will possibly have more then one neighbour
                             for(int i = 0; i < neigh_cell_keys.size();i++){
                                 if(neigh_cell_keys[i] > 0){
-                                    neigh_offset = access_node_get_part_offset(access_data.get_val(neigh_cell_keys[i]));
+                                    neigh_offset = access_data.pc_key_get_index(neigh_cell_keys[i]);
                                     
                                    access_data.pc_key_set_index(neigh_part_keys[curr_size+i],neigh_offset);
                                    access_data.pc_key_set_status(neigh_part_keys[curr_size+i],neigh_status);
@@ -1512,7 +1528,7 @@ private:
                         case SEED:
                         {
                             //more complicated case, have to first get the correct index, then the function can be run
-                            neigh_offset = access_node_get_part_offset(neigh_node);
+                            neigh_offset = access_data.pc_key_get_index(neigh_part_keys[curr_size]);
                             
                             U neigh_index = calc_index_cfiller_nseed<face,U>(curr_key,pc_data);
                             
@@ -1526,7 +1542,7 @@ private:
                             //will possibly have more then one neighbour
                             for(int i = 0; i < neigh_cell_keys.size();i++){
                                 if(neigh_cell_keys[i] > 0){
-                                    neigh_offset = access_node_get_part_offset(access_data.get_val(neigh_cell_keys[i]));
+                                    neigh_offset = access_data.pc_key_get_index(neigh_cell_keys[i]);
                                     
                                     access_data.pc_key_set_index(neigh_part_keys[curr_size+i],neigh_offset);
                                     access_data.pc_key_set_status(neigh_part_keys[curr_size+i],neigh_status);
