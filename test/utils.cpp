@@ -389,193 +389,6 @@ bool compare_sparse_rep_neighcell_with_part_map(const Particle_map<float>& part_
     bool pass_test = true;
     
     
-    //Neighbour Checking
-    
-    for(int i = pc_struct.pc_data.depth_min;i <= pc_struct.pc_data.depth_max;i++){
-        
-        const unsigned int x_num = pc_struct.pc_data.x_num[i];
-        const unsigned int z_num = pc_struct.pc_data.z_num[i];
-        
-        
-        for(z_ = 0;z_ < z_num;z_++){
-            
-            for(x_ = 0;x_ < x_num;x_++){
-                
-                const size_t offset_pc_data = x_num*z_ + x_;
-                y_coord = 0;
-                const size_t j_num = pc_struct.pc_data.data[i][offset_pc_data].size();
-                
-                const size_t offset_part_map_data_0 = part_map.downsampled[i].y_num*part_map.downsampled[i].x_num*z_ + part_map.downsampled[i].y_num*x_;
-                
-                for(j_ = 0;j_ < j_num;j_++){
-                    
-                    
-                    node_val = pc_struct.pc_data.data[i][offset_pc_data][j_];
-                    
-                    if (node_val&1){
-                        //get the index gap node
-                        type = (node_val & TYPE_MASK) >> TYPE_SHIFT;
-                        yp_index = (node_val & YP_INDEX_MASK) >> YP_INDEX_SHIFT;
-                        yp_depth = (node_val & YP_DEPTH_MASK) >> YP_DEPTH_SHIFT;
-                        
-                        ym_index = (node_val & YM_INDEX_MASK) >> YM_INDEX_SHIFT;
-                        ym_depth = (node_val & YM_DEPTH_MASK) >> YM_DEPTH_SHIFT;
-                        
-                        next_coord = (node_val & NEXT_COORD_MASK) >> NEXT_COORD_SHIFT;
-                        
-                        prev_coord = (node_val & PREV_COORD_MASK) >> PREV_COORD_SHIFT;
-                        
-                        
-                        y_coord = (node_val & NEXT_COORD_MASK) >> NEXT_COORD_SHIFT;
-                        
-                        
-                        y_coord--;
-                        
-                        
-                        
-                    } else {
-                        //normal node
-                        y_coord++;
-                        
-                        type = (node_val & TYPE_MASK) >> TYPE_SHIFT;
-                        xp_index = (node_val & XP_INDEX_MASK) >> XP_INDEX_SHIFT;
-                        xp_depth = (node_val & XP_DEPTH_MASK) >> XP_DEPTH_SHIFT;
-                        zp_index = (node_val & ZP_INDEX_MASK) >> ZP_INDEX_SHIFT;
-                        zp_depth = (node_val & ZP_DEPTH_MASK) >> ZP_DEPTH_SHIFT;
-                        xm_index = (node_val & XM_INDEX_MASK) >> XM_INDEX_SHIFT;
-                        xm_depth = (node_val & XM_DEPTH_MASK) >> XM_DEPTH_SHIFT;
-                        zm_index = (node_val & ZM_INDEX_MASK) >> ZM_INDEX_SHIFT;
-                        zm_depth = (node_val & ZM_DEPTH_MASK) >> ZM_DEPTH_SHIFT;
-                        
-                        //get and check status
-                        status = (node_val & STATUS_MASK) >> STATUS_SHIFT;
-                        status_org = part_map.layers[i].mesh[offset_part_map_data_0 + y_coord];
-                        
-                        
-                        
-                        //Check the x and z nieghbours, do they exist?
-                        for(int face = 0;face < 6;face++){
-                            
-                            node_val = pc_struct.pc_data.data[i][offset_pc_data][j_];
-                            
-                            uint64_t x_n = 0;
-                            uint64_t z_n = 0;
-                            uint64_t y_n = 0;
-                            uint64_t depth = 0;
-                            uint64_t index_n = 0;
-                            uint64_t status_n = 1;
-                            uint64_t node_n = 0;
-                            uint64_t neigh_indicator = 0;
-                            
-                            if(face < 2){
-                                node_val = pc_struct.pc_data.data[i][offset_pc_data][j_+pc_struct.pc_data.von_neumann_y_cells[face]];
-                                
-                                if(!(node_val&1)){
-                                    //same level
-                                    
-                                    neigh_indicator = LEVEL_SAME;
-                                } else {
-                                    neigh_indicator = (node_val & pc_struct.pc_data.depth_mask_dir[face]) >> pc_struct.pc_data.depth_shift_dir[face];
-                                }
-                                
-                            } else {
-                                neigh_indicator = (node_val & pc_struct.pc_data.depth_mask_dir[face]) >> pc_struct.pc_data.depth_shift_dir[face];
-                            }
-                            
-                            
-                            switch(neigh_indicator){
-                                case(LEVEL_SAME):{
-                                    //same level return single neighbour
-                                    
-                                    depth = i;
-                                    x_n = x_ + pc_struct.pc_data.von_neumann_x_cells[face];
-                                    y_n = y_coord + pc_struct.pc_data.von_neumann_y_cells[face];
-                                    z_n = z_ + pc_struct.pc_data.von_neumann_z_cells[face];
-                                    
-                                    const size_t offset_part_map = part_map.downsampled[depth].y_num*part_map.downsampled[depth].x_num*z_n + part_map.downsampled[depth].y_num*x_n;
-                                    
-                                    //get the value in the original array
-                                    status_n = part_map.layers[depth].mesh[offset_part_map + y_n];
-                                    
-                                    if(face < 2){
-                                        node_n = node_val;
-                                        index_n = j_ +pc_struct.pc_data.von_neumann_y_cells[face];
-                                    } else {
-                                        index_n = (((node_val & pc_struct.pc_data.index_mask_dir[face]) >> pc_struct.pc_data.index_shift_dir[face]));
-                                        
-                                        const size_t offset_pc_data_loc = pc_struct.pc_data.x_num[depth]*z_n + x_n;
-                                        node_n = pc_struct.pc_data.data[depth][offset_pc_data_loc][index_n];
-                                    }
-                                    
-                                    break;
-                                }
-                                case(LEVEL_DOWN):{
-                                    // Neighbour is on parent level (depth - 1)
-                                    depth = i-1;
-                                    
-                                    x_n = (x_ + pc_struct.pc_data.von_neumann_x_cells[face])/2;
-                                    y_n = (y_coord + pc_struct.pc_data.von_neumann_y_cells[face])/2;
-                                    z_n = (z_ + pc_struct.pc_data.von_neumann_z_cells[face])/2;
-                                    
-                                    const size_t offset_part_map = part_map.downsampled[depth].y_num*part_map.downsampled[depth].x_num*z_n + part_map.downsampled[depth].y_num*x_n;
-                                    
-                                    status_n = part_map.layers[depth].mesh[offset_part_map + y_n];
-                                    
-                                    index_n = (((node_val & pc_struct.pc_data.index_mask_dir[face]) >> pc_struct.pc_data.index_shift_dir[face]));
-                                    
-                                    const size_t offset_pc_data_loc = pc_struct.pc_data.x_num[depth]*z_n + x_n;
-                                    node_n = pc_struct.pc_data.data[depth][offset_pc_data_loc][index_n];
-                                    
-                                    break;
-                                }
-                                case(LEVEL_UP):{
-                                    depth = i+1;
-                                    
-                                    x_n = (x_ + pc_struct.pc_data.von_neumann_x_cells[face])*2 + (pc_struct.pc_data.von_neumann_x_cells[face] < 0);
-                                    y_n = (y_coord + pc_struct.pc_data.von_neumann_y_cells[face])*2 + (pc_struct.pc_data.von_neumann_y_cells[face] < 0);
-                                    z_n = (z_ + pc_struct.pc_data.von_neumann_z_cells[face])*2 + (pc_struct.pc_data.von_neumann_z_cells[face] < 0);
-                                    
-                                    const size_t offset_part_map = part_map.downsampled[depth].y_num*part_map.downsampled[depth].x_num*z_n + part_map.downsampled[depth].y_num*x_n;
-                                    
-                                    status_n = part_map.layers[depth].mesh[offset_part_map + y_n];
-                                    
-                                    index_n = (((node_val & pc_struct.pc_data.index_mask_dir[face]) >> pc_struct.pc_data.index_shift_dir[face]));
-                                    
-                                    const size_t offset_pc_data_loc = pc_struct.pc_data.x_num[depth]*z_n + x_n;
-                                    node_n = pc_struct.pc_data.data[depth][offset_pc_data_loc][index_n];
-                                    
-                                    break;
-                                }
-                            }
-                            
-                            if((status_n> 0) & (status_n < 8)){
-                                //fine
-                            } else {
-                                std::cout << "NEIGHBOUR LEVEL BUG" << std::endl;
-                                pass_test = false;
-                            }
-                            
-                            if (node_n&1){
-                                //points to gap node
-                                std::cout << "INDEX BUG" << std::endl;
-                                pass_test = false;
-                            } else {
-                                //points to real node, correct
-                            }
-                            
-                            
-                        }
-                        
-                        
-                    }
-                }
-                
-            }
-        }
-        
-    }
-    
-    
     //Neighbour Routine Checking
     
     for(int i = pc_struct.pc_data.depth_min;i <= pc_struct.pc_data.depth_max;i++){
@@ -738,6 +551,195 @@ bool compare_sparse_rep_neighcell_with_part_map(const Particle_map<float>& part_
     
     std::cout << "Finished Neigh Cell test" << std::endl;
     
+    
+    
+    
     return pass_test;
+    
+}
+
+bool compare_sparse_rep_neighpart_with_part_map(const Particle_map<float>& part_map,PartCellStructure<float,uint64_t>& pc_struct){
+    //
+    //
+    //  Tests the particle sampling and particle neighbours;
+    //
+    //
+    //
+    //
+    
+    
+    
+    
+    
+    //initialize
+    uint64_t node_val;
+    uint64_t y_coord;
+    int x_;
+    int z_;
+    uint64_t y_;
+    uint64_t j_;
+    uint64_t status;
+    uint64_t status_org;
+    
+    
+    bool pass_test = true;
+    
+    //Neighbour Routine Checking
+    
+    for(int i = pc_struct.pc_data.depth_min;i <= pc_struct.pc_data.depth_max;i++){
+        
+        const unsigned int x_num = pc_struct.pc_data.x_num[i];
+        const unsigned int z_num = pc_struct.pc_data.z_num[i];
+        
+        
+        for(z_ = 0;z_ < z_num;z_++){
+            
+            for(x_ = 0;x_ < x_num;x_++){
+                
+                const size_t offset_pc_data = x_num*z_ + x_;
+                y_coord = 0;
+                const size_t j_num = pc_struct.pc_data.data[i][offset_pc_data].size();
+                
+                const size_t offset_part_map_data_0 = part_map.downsampled[i].y_num*part_map.downsampled[i].x_num*z_ + part_map.downsampled[i].y_num*x_;
+                
+                
+                for(j_ = 0;j_ < j_num;j_++){
+                    
+                    
+                    node_val = pc_struct.pc_data.data[i][offset_pc_data][j_];
+                    
+                    if (node_val&1){
+                        //get the index gap node
+                        
+                        y_coord--;
+                        
+                        
+                    } else {
+                        //normal node
+                        y_coord++;
+                        
+                        
+                        //get and check status
+                        status = (node_val & STATUS_MASK) >> STATUS_SHIFT;
+                        status_org = part_map.layers[i].mesh[offset_part_map_data_0 + y_coord];
+                        
+                        
+                        //get the index gap node
+                        uint64_t node_val_part = pc_struct.part_data.access_data.data[i][offset_pc_data][j_];
+                        uint64_t curr_key = 0;
+                        
+                        pc_struct.part_data.access_data.pc_key_set_j(curr_key,j_);
+                        pc_struct.part_data.access_data.pc_key_set_z(curr_key,z_);
+                        pc_struct.part_data.access_data.pc_key_set_x(curr_key,x_);
+                        pc_struct.part_data.access_data.pc_key_set_depth(curr_key,i);
+                        
+                        PartCellNeigh<uint64_t> neigh_keys;
+                        PartCellNeigh<uint64_t> neigh_cell_keys;
+                        
+                        
+                        //neigh_keys.resize(0);
+                        status = pc_struct.part_data.access_node_get_status(node_val_part);
+                        uint64_t part_offset = pc_struct.part_data.access_node_get_part_offset(node_val_part);
+                        
+                        //loop over the particles
+                        for(int p = 0;p < pc_struct.part_data.get_num_parts(status);p++){
+                            pc_struct.part_data.access_data.pc_key_set_index(curr_key,part_offset+p);
+                            pc_struct.part_data.get_part_neighs_all(p,node_val,curr_key,status,part_offset,neigh_cell_keys,neigh_keys,pc_struct.pc_data);
+                            
+                            //First check your own intensity;
+                            float own_int = pc_struct.part_data.get_part(curr_key);
+                            
+                            if(status > SEED){
+                                
+                                uint64_t curr_depth = pc_struct.pc_data.pc_key_get_depth(curr_key) + 1;
+                                
+                                uint64_t part_num = pc_struct.pc_data.pc_key_get_partnum(curr_key);
+                                
+                                uint64_t curr_x = pc_struct.pc_data.pc_key_get_x(curr_key)*2 + pc_struct.pc_data.seed_part_x[part_num];
+                                uint64_t curr_z = pc_struct.pc_data.pc_key_get_z(curr_key)*2 + pc_struct.pc_data.seed_part_z[part_num];
+                                uint64_t curr_y = y_coord*2 + pc_struct.pc_data.seed_part_y[part_num];
+                                
+                                const size_t offset_part_map = part_map.downsampled[curr_depth].y_num*part_map.downsampled[curr_depth].x_num*curr_z + part_map.downsampled[curr_depth].y_num*curr_x;
+                                
+                                if(own_int == (offset_part_map + curr_y)){
+                                    //correct value
+                                } else {
+                                    std:: cout << own_int << " " << (offset_part_map + curr_y) << std::endl;
+                                    std::cout << "Particle Intensity Error" << std::endl;
+                                    pass_test = false;
+                                }
+                                
+                                
+                            } else {
+                                
+                                
+                                //const size_t offset_part_map = part_map.downsampled[depth].y_num*part_map.downsampled[depth].x_num*z_n + part_map.downsampled[depth].y_num*x_n;
+                            }
+                            
+                            
+                            
+                            //Check the x and z nieghbours, do they exist?
+                            for(int face = 0;face < 6;face++){
+                                
+                                uint64_t x_n = 0;
+                                uint64_t z_n = 0;
+                                uint64_t y_n = 0;
+                                uint64_t depth = 0;
+                                uint64_t j_n = 0;
+                                uint64_t status_n = 0;
+                                uint64_t intensity = 1;
+                                uint64_t node_n = 0;
+                                
+                                uint64_t curr_key = 0;
+                                curr_key |= ((uint64_t)i) << PC_KEY_DEPTH_SHIFT;
+                                curr_key |= z_ << PC_KEY_Z_SHIFT;
+                                curr_key |= x_ << PC_KEY_X_SHIFT;
+                                curr_key |= j_ << PC_KEY_J_SHIFT;
+                                
+                                
+                                for(int n = 0;n < neigh_keys.neigh_face[face].size();n++){
+                                    
+                                    
+                                    pc_struct.pc_data.get_neigh_coordinates_part(neigh_keys,face,n,y_coord,y_n,x_n,z_n,depth);
+                                    j_n = (neigh_keys.neigh_face[face][n] & PC_KEY_J_MASK) >> PC_KEY_J_SHIFT;
+                                    
+                                    if (neigh_keys.neigh_face[face][n] > 0){
+                                        
+                                        //calculate y so you can check back in the original structure
+                                        const size_t offset_pc_data_loc = pc_struct.pc_data.x_num[depth]*z_n + x_n;
+                                        
+                                        const size_t offset_part_map = part_map.downsampled[depth].y_num*part_map.downsampled[depth].x_num*z_n + part_map.downsampled[depth].y_num*x_n;
+                                        //status_n = part_map.layers[depth].mesh[offset_part_map + y_n];
+                                        
+                                        
+                                        
+                                    }
+                                }
+                                
+                            }
+                            
+                            
+                            
+                            
+                        }
+                        
+                        
+                        
+                        
+                    }
+                }
+                
+            }
+        }
+        
+    }
+    
+    std::cout << "Finished Neigh Part test" << std::endl;
+    
+    
+    
+    return pass_test;
+    
+    
     
 }

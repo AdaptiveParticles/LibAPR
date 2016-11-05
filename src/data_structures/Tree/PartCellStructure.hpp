@@ -1183,7 +1183,7 @@ public:
         //create_sparse_graph_format(particle_map);
         create_partcell_structure(particle_map);
         
-        test_partcell_struct(particle_map);
+       // test_partcell_struct(particle_map);
 //        
 //        pc_data.test_get_neigh_dir();
         

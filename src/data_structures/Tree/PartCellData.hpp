@@ -364,8 +364,6 @@ public:
             }
             else{
                 //neigh is on child layer
-                T temp1 = (von_neumann_y_cells[face] < 0);
-                T temp2 = neigh_child_y_offsets[face][index];
                 neigh_y = (current_y + von_neumann_y_cells[face])*2 +  (von_neumann_y_cells[face] < 0) + neigh_child_y_offsets[face][index];
             }
             
@@ -379,82 +377,92 @@ public:
         
         
     };
-//
-//    void get_neigh_coordinates_part(T face,T index,T current_y,T& neigh_y,T& neigh_x,T& neigh_z,T& neigh_depth,T status){
-//        //
-//        //  Get the coordinates for a particle
-//        //
-//        //
-//        
-//        T neigh = neigh_face[face][index];
-//        
-//        if(neigh > 0){
-//            
-//            if(status > SEED){
-//                
-//                neigh_x = pc_data.pc_key_get_x(neigh);
-//                neigh_z = pc_data.pc_key_get_z(neigh);
-//                neigh_depth = pc_data.pc_key_get_depth(neigh);
-//                
-//                T curr_depth = pc_data.pc_data.pc_key_get_depth(curr);
-//                
-//                if(neigh_depth == curr_depth){
-//                    //neigh is on same layer
-//                    neigh_y = current_y + pc_data.von_neumann_y_cells[face];
-//                }
-//                else if (neigh_depth > curr_depth){
-//                    //neigh is on parent layer
-//                    neigh_y = (current_y + pc_data.von_neumann_y_cells[face])/2;
-//                }
-//                else{
-//                    //neigh is on child layer
-//                    neigh_y = (current_y + pc_data.von_neumann_y_cells[face])*2 + pc_data.neigh_child_y_offsets[face][index];
-//                }
-//                
-//            } else {
-//                
-//                
-//                
-//                T part_num = pc_data.pc_key_get_partnum(neigh);
-//                
-//                neigh_x = pc_data.pc_key_get_x(neigh)*2 + pc_data.seed_part_x(part_num);
-//                neigh_z = pc_data.pc_key_get_z(neigh)*2 + pc_data.seed_part_z(part_num);
-//                
-//                //check if still in the same cell or not
-//                if(pc_key_cell_isequal(curr_key,neigh)){
-//                    
-//                    
-//                } else {
-//                    
-//                    T neigh_status = pc_data.get_status(pc_data.get_val(neigh));
-//                    T curr_depth = pc_data.pc_data.pc_key_get_depth(curr);
-//                    
-//                    if(neigh_depth == curr_depth){
-//                        //neigh is on same layer
-//                        neigh_y = current_y + pc_data.von_neumann_y_cells[face];
-//                    }
-//                    else if (neigh_depth > curr_depth){
-//                        //neigh is on parent layer
-//                        neigh_y = (current_y + pc_data.von_neumann_y_cells[face])/2;
-//                    }
-//                    else{
-//                        //neigh is on child layer
-//                        neigh_y = (current_y + pc_data.von_neumann_y_cells[face])*2 + pc_data.neigh_child_y_offsets[face][index];
-//                    }
-//                }
-//                
-//                neigh_y = neigh_y*2 + pc_data.seed_part_y(part_num);
-//            }
-//        } else {
-//            neigh_y = 0;
-//            neigh_x = 0;
-//            neigh_z = 0;
-//            neigh_depth = 0;
-//        }
-//        
-//    }
+
+    void get_neigh_coordinates_part(PartCellNeigh<T>& cell_neigh,T face,T index,T current_y,T& neigh_y,T& neigh_x,T& neigh_z,T& neigh_depth){
+        //
+        //  Get the coordinates for a particle
+        //
+        //
+        
+        T neigh = cell_neigh.neigh_face[face][index];
+        
+        T curr = cell_neigh.curr;
+        
+        T status = pc_key_get_status(curr);
+        
+        if(neigh > 0){
+            
+            if(status > SEED){
+                
+                neigh_x = pc_key_get_x(neigh);
+                neigh_z = pc_key_get_z(neigh);
+                neigh_depth = pc_key_get_depth(neigh);
+                
+                T curr_depth = pc_key_get_depth(cell_neigh.curr);
+                
+                if(neigh_depth == curr_depth){
+                    //neigh is on same layer
+                    neigh_y = current_y + von_neumann_y_cells[face];
+                }
+                else if (neigh_depth < curr_depth){
+                    //neigh is on parent layer
+                    neigh_y = (current_y + von_neumann_y_cells[face])/2;
+                }
+                else{
+                    //neigh is on child layer
+                    neigh_y = (current_y + von_neumann_y_cells[face])*2 +  (von_neumann_y_cells[face] < 0) + neigh_child_y_offsets[face][index];
+                }
+                
+                
+                
+            } else {
+                
+                neigh_depth = pc_key_get_depth(neigh) + 1;
+                
+                T part_num = pc_key_get_partnum(neigh);
+                
+                neigh_x = pc_key_get_x(neigh)*2 + seed_part_x[part_num];
+                neigh_z = pc_key_get_z(neigh)*2 + seed_part_z[part_num];
+                
+                //check if still in the same cell or not
+                if(pc_key_cell_isequal(curr,neigh)){
+                    //
+                    // The same cell
+                    //
+                    
+                    neigh_y = 2*current_y + seed_part_y[part_num];
+                    
+                    
+                } else {
+                    
+                    T neigh_status = pc_key_get_status(neigh);
+                    T curr_depth = pc_key_get_depth(curr);
+                    
+                    if(neigh_depth == curr_depth){
+                        //neigh is on same layer
+                        neigh_y = current_y + von_neumann_y_cells[face];
+                    }
+                    else if (neigh_depth < curr_depth){
+                        //neigh is on parent layer
+                        neigh_y = (current_y + von_neumann_y_cells[face])/2;
+                    }
+                    else{
+                        //neigh is on child layer
+                        neigh_y = (current_y + von_neumann_y_cells[face])*2 +  (von_neumann_y_cells[face] < 0) + neigh_child_y_offsets[face][index];
+                    }
+                }
+                
+                neigh_y = neigh_y*2 + seed_part_y[part_num];
+            }
+            
+        }  else {
+            neigh_y = 0;
+            neigh_x = 0;
+            neigh_z = 0;
+            neigh_depth = 0;
+        }
     
-    
+    }
     
     
     template<typename S>
