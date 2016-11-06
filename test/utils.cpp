@@ -605,13 +605,29 @@ bool compare_sparse_rep_neighpart_with_part_map(const Particle_map<float>& part_
                 
                 for(j_ = 0;j_ < j_num;j_++){
                     
-                    
+                    uint64_t node_val_part = pc_struct.part_data.access_data.data[i][offset_pc_data][j_];
                     node_val = pc_struct.pc_data.data[i][offset_pc_data][j_];
                     
                     if (node_val&1){
+                        
+                        uint64_t next_coord = (node_val & NEXT_COORD_MASK) >> NEXT_COORD_SHIFT;
+                        
+                        uint64_t prev_coord = (node_val & PREV_COORD_MASK) >> PREV_COORD_SHIFT;
+                        
+                        uint64_t y_coord_prev = y_coord;
+                        uint64_t y_coord_diff = y_coord +  ((node_val_part & COORD_DIFF_MASK_PARTICLE) >> COORD_DIFF_SHIFT_PARTICLE);
+                        
                         //get the index gap node
                         y_coord = (node_val & NEXT_COORD_MASK) >> NEXT_COORD_SHIFT;
+                        
+                        if((y_coord_diff != y_coord) & (y_coord > 0)){
+                            int stop = 1;
+                        }
+                        
+                        
                         y_coord--;
+                        
+                        
                         
                         
                     } else {
@@ -625,7 +641,7 @@ bool compare_sparse_rep_neighpart_with_part_map(const Particle_map<float>& part_
                         
                         
                         //get the index gap node
-                        uint64_t node_val_part = pc_struct.part_data.access_data.data[i][offset_pc_data][j_];
+                        
                         uint64_t curr_key = 0;
                         
                         pc_struct.part_data.access_data.pc_key_set_j(curr_key,j_);
@@ -640,6 +656,10 @@ bool compare_sparse_rep_neighpart_with_part_map(const Particle_map<float>& part_
                         //neigh_keys.resize(0);
                         status = pc_struct.part_data.access_node_get_status(node_val_part);
                         uint64_t part_offset = pc_struct.part_data.access_node_get_part_offset(node_val_part);
+                        
+                        if((x_==3) & (z_ ==3) & (y_coord == 3) & (i == 2)){
+                            int stop = 1;
+                        }
                         
                         
                         //loop over the particles
@@ -725,7 +745,17 @@ bool compare_sparse_rep_neighpart_with_part_map(const Particle_map<float>& part_
                                         float own_int = pc_struct.part_data.get_part(neigh_keys.neigh_face[face][n]);
                                         
                                         //calculate y so you can check back in the original structure
-                                        const size_t offset_pc_data_loc = pc_struct.pc_data.x_num[depth]*z_n + x_n;
+                                        
+                                        uint64_t depth_ind = pc_struct.pc_data.pc_key_get_depth(neigh_keys.neigh_face[face][n]);
+                                        if(status_n == SEED){
+                                            depth_ind = depth_ind + 1;
+                                        }
+                                        
+                                        
+                                        x_n = std::min(x_n,(uint64_t)(part_map.downsampled[depth_ind].x_num-1));
+                                        z_n = std::min(z_n,(uint64_t)(part_map.downsampled[depth_ind].z_num-1));
+                                        y_n = std::min(y_n,(uint64_t)(part_map.downsampled[depth_ind].y_num-1));
+                                        
                                         
                                         const size_t offset_part_map = part_map.downsampled[depth].y_num*part_map.downsampled[depth].x_num*z_n + part_map.downsampled[depth].y_num*x_n;
                                         //status_n = part_map.layers[depth].mesh[offset_part_map + y_n];
@@ -736,11 +766,8 @@ bool compare_sparse_rep_neighpart_with_part_map(const Particle_map<float>& part_
                                             //correct value
                                         } else {
                                             
-                                            uint64_t depth_ind = pc_struct.pc_data.pc_key_get_depth(neigh_keys.neigh_face[face][n]);
-                                            if(status_n == SEED){
-                                                depth_ind = depth_ind + 1;
-                                            }
                                             
+                                            float val = part_map.downsampled[depth_ind].mesh[offset_part_map+y_n];
                                             
                                             uint64_t z_t = floor(own_int/( part_map.downsampled[depth_ind].y_num*part_map.downsampled[depth_ind].x_num));
                                             uint64_t x_t = floor((own_int - z_t*( part_map.downsampled[depth_ind].y_num*part_map.downsampled[depth_ind].x_num))/part_map.downsampled[depth_ind].y_num);
@@ -789,4 +816,80 @@ bool compare_sparse_rep_neighpart_with_part_map(const Particle_map<float>& part_
     
     
 }
-
+bool compare_y_coords(PartCellStructure<float,uint64_t>& pc_struct){
+    
+    //initialize
+    uint64_t node_val;
+    uint64_t y_coord;
+    int x_;
+    int z_;
+    uint64_t y_;
+    uint64_t j_;
+    uint64_t status;
+    uint64_t status_org;
+    
+    
+    bool pass_test = true;
+    
+    //Neighbour Routine Checking
+    
+    for(int i = pc_struct.pc_data.depth_min;i <= pc_struct.pc_data.depth_max;i++){
+        
+        const unsigned int x_num = pc_struct.pc_data.x_num[i];
+        const unsigned int z_num = pc_struct.pc_data.z_num[i];
+        
+        
+        for(z_ = 0;z_ < z_num;z_++){
+            
+            for(x_ = 0;x_ < x_num;x_++){
+                
+                const size_t offset_pc_data = x_num*z_ + x_;
+                y_coord = 0;
+                const size_t j_num = pc_struct.pc_data.data[i][offset_pc_data].size();
+                
+                for(j_ = 0;j_ < j_num;j_++){
+                    
+                    uint64_t node_val_part = pc_struct.part_data.access_data.data[i][offset_pc_data][j_];
+                    node_val = pc_struct.pc_data.data[i][offset_pc_data][j_];
+                    
+                    if (node_val&1){
+                        
+                        uint64_t next_coord = (node_val & NEXT_COORD_MASK) >> NEXT_COORD_SHIFT;
+                        
+                        uint64_t prev_coord = (node_val & PREV_COORD_MASK) >> PREV_COORD_SHIFT;
+                        
+                        uint64_t y_coord_prev = y_coord;
+                        uint64_t y_coord_diff = y_coord +  ((node_val_part & COORD_DIFF_MASK_PARTICLE) >> COORD_DIFF_SHIFT_PARTICLE);
+                        
+                        //get the index gap node
+                        y_coord = (node_val & NEXT_COORD_MASK) >> NEXT_COORD_SHIFT;
+                        
+                        
+                        if((y_coord_diff != (y_coord)) & (y_coord > 0)){
+                            std::cout << " FAILED COORDINATE TEST" << std::endl;
+                            pass_test = false;
+                        }
+                        
+                        
+                        y_coord--;
+                        
+                        
+                        
+                    } else {
+                        //normal node
+                        y_coord++;
+                        
+                        
+                        
+                    }
+                }
+                
+            }
+        }
+        
+    }
+    
+    std::cout << "Y_coordinate test" << std::endl;
+    
+    return pass_test;
+}

@@ -352,7 +352,7 @@ bool compare_sparse_rep_neighpart_with_part_map(const Particle_map<float>& part_
                                         float own_int = pc_struct.part_data.get_part(neigh_keys.neigh_face[face][n]);
                                         
                                         //calculate y so you can check back in the original structure
-                                                                                
+                                        
                                         uint64_t depth_ind = pc_struct.pc_data.pc_key_get_depth(neigh_keys.neigh_face[face][n]);
                                         if(status_n == SEED){
                                             depth_ind = depth_ind + 1;

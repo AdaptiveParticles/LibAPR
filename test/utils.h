@@ -44,4 +44,6 @@ bool compare_sparse_rep_neighcell_with_part_map(const Particle_map<float>& part_
 
 bool compare_sparse_rep_neighpart_with_part_map(const Particle_map<float>& part_map,PartCellStructure<float,uint64_t>& pc_struct);
 
+bool compare_y_coords(PartCellStructure<float,uint64_t>& pc_struct);
+
 #endif //PARTPLAY_UTILS_H

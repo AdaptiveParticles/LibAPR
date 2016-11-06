@@ -1184,10 +1184,10 @@ public:
     void initialize_structure(Particle_map<T>& particle_map){
         
         
-        for(int i = particle_map.k_min;i <= particle_map.k_max;i++){
-            debug_write(particle_map.layers[i],"kmap" + std::to_string(i));
-        }
-        
+//        for(int i = particle_map.k_min;i <= particle_map.k_max;i++){
+//            debug_write(particle_map.layers[i],"kmap" + std::to_string(i));
+//        }
+//        
         
         
         
