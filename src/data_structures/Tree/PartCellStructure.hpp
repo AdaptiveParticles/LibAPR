@@ -197,9 +197,10 @@ private:
                                 pc_data.data[i][offset_pc_data][curr_index-1] |= ( prev_coord << PREV_COORD_SHIFT);
                                 pc_data.data[i][offset_pc_data][curr_index-1] |= (NO_NEIGHBOUR << YP_DEPTH_SHIFT);
                                 pc_data.data[i][offset_pc_data][curr_index-1] |= (NO_NEIGHBOUR << YM_DEPTH_SHIFT);
+                                
                                 curr_index++;
                             }
-                            
+                            prev_coord = y_;
                             //set type
                             pc_data.data[i][offset_pc_data][curr_index-1] = TYPE_PC;
                             
@@ -233,7 +234,7 @@ private:
                         } else {
                             //store for setting above
                             if(prev_ind == 0){
-                                prev_coord = y_;
+                                //prev_coord = y_;
                             }
                             
                             prev_ind = 1;
@@ -323,9 +324,7 @@ private:
                             y_coord++;
                             
                             
-                            if( (i == 1) & (x_ == 1) & (j_ == 2) & (z_ == 0) ){
-                                int stop = 1;
-                            }
+                            
                             
                             //get and check status
                             status = (node_val & STATUS_MASK_PARTICLE) >> STATUS_SHIFT_PARTICLE;
@@ -373,7 +372,9 @@ private:
                     
                     for(j_ = 0;j_ < j_num;j_++){
                         
-                        
+                        if( (i == 2) & (x_ == 3) & (j_ == 3) & (z_ == 3) ){
+                            int stop = 1;
+                        }
                         
                         node_val = part_data.access_data.data[i][offset_pc_data][j_];
                         
@@ -1182,11 +1183,11 @@ public:
     //decleration
     void initialize_structure(Particle_map<T>& particle_map){
         
-//        
-//        for(int i = particle_map.k_min;i <= particle_map.k_max;i++){
-//            //debug_write(particle_map.layers[i],"kmap" + std::to_string(i));
-//        }
-//        
+        
+        for(int i = particle_map.k_min;i <= particle_map.k_max;i++){
+            debug_write(particle_map.layers[i],"kmap" + std::to_string(i));
+        }
+        
         
         
         
