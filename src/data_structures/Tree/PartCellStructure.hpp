@@ -83,8 +83,8 @@ private:
         
         
         //initialize loop variables
-        int x_;
-        int z_;
+        uint64_t x_;
+        uint64_t z_;
         uint64_t y_;
         uint64_t j_;
         
@@ -278,9 +278,9 @@ private:
         
         // Particles are ordered as ((-y,-x,-z),(+y,-x,-z),(-y,+x,-z),(+y,+x,-z),(-y,-x,+z),(+y,-x,+z),(-y,+x,+z),(+y,+x,+z))
 
-        uint64_t part_offset;
-        uint64_t node_val;
-        uint64_t y_coord;
+        S part_offset;
+        S node_val;
+        S y_coord;
         
         for(int i = pc_data.depth_min;i <= pc_data.depth_max;i++){
             
@@ -289,7 +289,6 @@ private:
             
             
             //For each depth there are two loops, one for SEED status particles, at depth + 1, and one for BOUNDARY and FILLER CELLS, to ensure contiguous memory access patterns.
-            
             
             // SEED PARTICLE STATUS LOOP (requires access to three data structures, particle access, particle data, and the part-map)
 #pragma omp parallel for default(shared) private(z_,x_,j_,node_val,status,y_coord,part_offset) if(z_num*x_num > 100)
@@ -302,11 +301,13 @@ private:
                     const size_t j_num = part_data.access_data.data[i][offset_pc_data].size();
                     
                     
+                    S x_2p = std::min(2*x_+1,(S)(part_map.downsampled[i+1].x_num-1));
+                    S z_2p = std::min(2*z_+1,(S)(part_map.downsampled[i+1].z_num-1));
                     
                     const size_t offset_part_map_data_0 = part_map.downsampled[i+1].y_num*part_map.downsampled[i+1].x_num*2*z_ + part_map.downsampled[i+1].y_num*2*x_;
-                    const size_t offset_part_map_data_1 = part_map.downsampled[i+1].y_num*part_map.downsampled[i+1].x_num*2*z_ + part_map.downsampled[i+1].y_num*2*(x_+1);
-                    const size_t offset_part_map_data_2 = part_map.downsampled[i+1].y_num*part_map.downsampled[i+1].x_num*2*(z_+1) + part_map.downsampled[i+1].y_num*2*x_;
-                    const size_t offset_part_map_data_3 = part_map.downsampled[i+1].y_num*part_map.downsampled[i+1].x_num*2*(z_+1) + part_map.downsampled[i+1].y_num*2*(x_+1);
+                    const size_t offset_part_map_data_1 = part_map.downsampled[i+1].y_num*part_map.downsampled[i+1].x_num*2*z_ + part_map.downsampled[i+1].y_num*x_2p;
+                    const size_t offset_part_map_data_2 = part_map.downsampled[i+1].y_num*part_map.downsampled[i+1].x_num*z_2p + part_map.downsampled[i+1].y_num*2*x_;
+                    const size_t offset_part_map_data_3 = part_map.downsampled[i+1].y_num*part_map.downsampled[i+1].x_num*z_2p + part_map.downsampled[i+1].y_num*x_2p;
                     
                     for(j_ = 0;j_ < j_num;j_++){
                         
@@ -321,25 +322,33 @@ private:
                             //normal node
                             y_coord++;
                             
+                            
+                            if( (i == 1) & (x_ == 1) & (j_ == 2) & (z_ == 0) ){
+                                int stop = 1;
+                            }
+                            
                             //get and check status
                             status = (node_val & STATUS_MASK_PARTICLE) >> STATUS_SHIFT_PARTICLE;
                             
                             if(status == SEED){
+                                
+                                
+                                S y_2p = std::min(2*y_coord+1,(S)(part_map.downsampled[i+1].y_num-1));
                                 //need to sampled the image at depth + 1
                                 part_offset = (node_val & Y_PINDEX_MASK_PARTICLE) >> Y_PINDEX_SHIFT_PARTICLE;
                                 
-                                //0
+                                
                                 part_data.particle_data.data[i][offset_pc_data][part_offset] = part_map.downsampled[i+1].mesh[offset_part_map_data_0 + 2*y_coord];
-                                part_data.particle_data.data[i][offset_pc_data][part_offset+1] = part_map.downsampled[i+1].mesh[offset_part_map_data_0 + 2*y_coord + 1];
+                                part_data.particle_data.data[i][offset_pc_data][part_offset+1] = part_map.downsampled[i+1].mesh[offset_part_map_data_0 + y_2p];
                                 //1
                                 part_data.particle_data.data[i][offset_pc_data][part_offset+2] = part_map.downsampled[i+1].mesh[offset_part_map_data_1 + 2*y_coord];
-                                part_data.particle_data.data[i][offset_pc_data][part_offset+3] = part_map.downsampled[i+1].mesh[offset_part_map_data_1 + 2*y_coord + 1];
+                                part_data.particle_data.data[i][offset_pc_data][part_offset+3] = part_map.downsampled[i+1].mesh[offset_part_map_data_1 + y_2p];
                                 //3
                                 part_data.particle_data.data[i][offset_pc_data][part_offset+4] = part_map.downsampled[i+1].mesh[offset_part_map_data_2 + 2*y_coord];
-                                part_data.particle_data.data[i][offset_pc_data][part_offset+5] = part_map.downsampled[i+1].mesh[offset_part_map_data_2 + 2*y_coord + 1];
+                                part_data.particle_data.data[i][offset_pc_data][part_offset+5] = part_map.downsampled[i+1].mesh[offset_part_map_data_2 + y_2p];
                                 //4
                                 part_data.particle_data.data[i][offset_pc_data][part_offset+6] = part_map.downsampled[i+1].mesh[offset_part_map_data_3 + 2*y_coord];
-                                part_data.particle_data.data[i][offset_pc_data][part_offset+7] = part_map.downsampled[i+1].mesh[offset_part_map_data_3 + 2*y_coord + 1];
+                                part_data.particle_data.data[i][offset_pc_data][part_offset+7] = part_map.downsampled[i+1].mesh[offset_part_map_data_3 + y_2p];
                                 
                             }
                             
@@ -387,6 +396,7 @@ private:
                                 part_offset = (node_val & Y_PINDEX_MASK_PARTICLE) >> Y_PINDEX_SHIFT_PARTICLE;
                                 
                                 //0
+                                
                                 part_data.particle_data.data[i][offset_pc_data][part_offset] = part_map.downsampled[i].mesh[offset_part_map_data_0 + y_coord];
                                
                                 

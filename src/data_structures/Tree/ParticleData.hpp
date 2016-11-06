@@ -208,7 +208,7 @@ public:
    
     
     template<typename U>
-    void  get_part_neighs_all(const uint64_t index,const U& node_val,const U& curr_key,const U& status,const U& part_offset,PartCellNeigh<U>& neigh_cell_keys,PartCellNeigh<U>& neigh_part_keys,PartCellData<U>& pc_data){
+    void  get_part_neighs_all(const uint64_t index,const U& node_val,U& curr_key,const U& status,const U& part_offset,PartCellNeigh<U>& neigh_cell_keys,PartCellNeigh<U>& neigh_part_keys,PartCellData<U>& pc_data){
         //
         //
         //  Forces the explicit compilation of the all the function templates
@@ -236,8 +236,9 @@ public:
         }
         
         //set the current key.
+        access_data.pc_key_set_status(curr_key,status);
         neigh_part_keys.curr = curr_key;
-        access_data.pc_key_set_status(neigh_part_keys.curr,status);
+        
         
         neigh_part_keys.neigh_face[0].resize(0);
         neigh_part_keys.neigh_face[1].resize(0);
@@ -328,7 +329,7 @@ public:
     }
     
     template<typename U>
-    void  get_part_neighs_face(const uint64_t face,const uint64_t index,const U& node_val,const U& curr_key,const U& status,const U& part_offset,PartCellNeigh<U>& neigh_cell_keys,PartCellNeigh<U>& neigh_part_keys,PartCellData<U>& pc_data){
+    void  get_part_neighs_face(const uint64_t face,const uint64_t index,const U& node_val,U& curr_key,const U& status,const U& part_offset,PartCellNeigh<U>& neigh_cell_keys,PartCellNeigh<U>& neigh_part_keys,PartCellData<U>& pc_data){
         //
         //
         //  Forces the explicit compilation of the all the function templates
@@ -358,6 +359,7 @@ public:
         }
         
         //set the current key.
+        access_data.pc_key_set_status(curr_key,status);
         neigh_part_keys.curr = curr_key;
         
         
@@ -1125,6 +1127,10 @@ private:
             temp = curr_key;
             temp &= -((PC_KEY_INDEX_MASK) + 1); // clear the current value
             temp|= (curr_offset + index_offset[face][index])  << PC_KEY_INDEX_SHIFT; //set  value
+            
+            temp &= -((PC_KEY_PARTNUM_MASK) + 1); // clear the current value
+            temp|= index_offset[face][index]  << PC_KEY_PARTNUM_SHIFT; //set  value
+            
         }
         
         return temp;
@@ -1454,7 +1460,7 @@ private:
                             
                             neigh_offset = access_data.pc_key_get_index(neigh_part_keys[curr_size]);
                             neigh_part_keys[curr_size] = get_part_cseed_nseed<face,index,U>(curr_offset,neigh_offset,curr_key,neigh_part_keys[curr_size]);
-                            access_data.pc_key_set_status(neigh_part_keys[curr_size],neigh_status);
+                            
                             
                             return;
                         }
@@ -1464,7 +1470,7 @@ private:
                             neigh_offset = access_data.pc_key_get_index(neigh_part_keys[curr_size]);
                             // will have one neighbour
                             neigh_part_keys[curr_size] =  get_part_cseed_nboundary<face,index,U>(curr_offset,neigh_offset,curr_key,neigh_part_keys[curr_size]);
-                            access_data.pc_key_set_status(neigh_part_keys[curr_size],neigh_status);
+                            
                             
                             return;
                         }
@@ -1472,7 +1478,7 @@ private:
                         {
                             //This is the case where the filler are higher resolution then the seed case,
                             neigh_part_keys[curr_size] = get_part_cseed_nfiller_p1<face,index,U>(curr_offset,neigh_cell_keys,curr_key);
-                            access_data.pc_key_set_status(neigh_part_keys[curr_size],neigh_status);
+                            
                             
                             return;
                         }
@@ -1491,7 +1497,7 @@ private:
                             neigh_offset = access_data.pc_key_get_index(neigh_part_keys[curr_size]);
                             neigh_part_keys.resize(curr_size + 4);
                             
-                            access_data.pc_key_set_status(neigh_part_keys[curr_size],neigh_status);
+                            
                             U temp = neigh_part_keys[curr_size];
                                        
                             neigh_part_keys[curr_size] = get_part_cboundary_nseed<face,0,U>(neigh_offset,temp);
@@ -1513,7 +1519,7 @@ private:
                                     neigh_offset = access_data.pc_key_get_index(neigh_cell_keys[i]);
                                     
                                    access_data.pc_key_set_index(neigh_part_keys[curr_size+i],neigh_offset);
-                                   access_data.pc_key_set_status(neigh_part_keys[curr_size+i],neigh_status);
+                                   
                                 }
                             }
                             return;
@@ -1533,7 +1539,7 @@ private:
                             U neigh_index = calc_index_cfiller_nseed<face,U>(curr_key,pc_data);
                             
                             neigh_part_keys[curr_size] = get_part_cfiller_nseed<face,U>(neigh_offset,neigh_index,neigh_part_keys[curr_size]);
-                            access_data.pc_key_set_status(neigh_part_keys[curr_size],neigh_status);
+                           
                             
                             return;
                         }
@@ -1545,7 +1551,7 @@ private:
                                     neigh_offset = access_data.pc_key_get_index(neigh_cell_keys[i]);
                                     
                                     access_data.pc_key_set_index(neigh_part_keys[curr_size+i],neigh_offset);
-                                    access_data.pc_key_set_status(neigh_part_keys[curr_size+i],neigh_status);
+                                    
                                 }
                             }
                             return;

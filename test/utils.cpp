@@ -664,7 +664,7 @@ bool compare_sparse_rep_neighpart_with_part_map(const Particle_map<float>& part_
                                 if(own_int == (offset_part_map + curr_y)){
                                     //correct value
                                 } else {
-                                    std:: cout << own_int << " " << (offset_part_map + curr_y) << std::endl;
+                                    std:: cout << own_int << " " << (offset_part_map + curr_y) << " " << part_map.downsampled[curr_depth].mesh[offset_part_map + curr_y] << std::endl;
                                     std::cout << "Particle Intensity Error" << std::endl;
                                     pass_test = false;
                                 }
