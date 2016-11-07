@@ -235,17 +235,7 @@ int main(int argc, char **argv) {
     std::string save_loc = options.output;
     std::string file_name = options.stats;
     
-//    part_rep.timer.start_timer("write full");
-//    write_apr_full_format(part_rep,tree,save_loc,file_name);
-//    part_rep.timer.stop_timer();
-//    
-//    part_rep.timer.start_timer("write tree");
-//    write_apr_tree_format(part_rep,tree,save_loc,file_name);
-//    part_rep.timer.stop_timer();
-//    
-//    part_rep.timer.start_timer("write partmap");
-//    write_apr_partmap_format(part_rep,part_map,tree,save_loc,file_name);
-//    part_rep.timer.stop_timer();
+
     
     //testing sparse format
     
@@ -263,8 +253,12 @@ int main(int argc, char **argv) {
 //    
 //    
     
-    
+    PartCellStructure<float,uint64_t> pc_read;
+    read_apr_pc_struct(pc_read,save_loc + file_name + "_pcstruct_part.h5");
 
+    std::cout << pc_read.get_number_cells() << " " << pcell_test.get_number_cells() << std::endl;
+    std::cout << pc_read.get_number_parts() << " " << pcell_test.get_number_parts() << std::endl;
+    
     
 }
 

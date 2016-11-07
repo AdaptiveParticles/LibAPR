@@ -67,6 +67,312 @@ private:
         
     }
     
+    void create_partcell_structure(std::vector<std::vector<uint8_t>>& p_map,std::vector<std::vector<uint16_t>>& Ip){
+        //
+        //  Bevan Cheeseman 2016
+        //
+        //  Takes an optimal part_map configuration from the pushing scheme and creates an efficient data structure for procesing.
+        //
+        
+        Part_timer timer;
+        timer.verbose_flag = true;
+        
+        pc_data.depth_max = depth_max;
+        pc_data.depth_min = depth_min;
+        
+        pc_data.data.resize(depth_max+1);
+        
+        pc_data.x_num.resize(depth_max+1);
+        pc_data.z_num.resize(depth_max+1);
+        
+        for(int i = depth_min;i <= depth_max;i++){
+            pc_data.x_num[i] = x_num[i];
+            pc_data.z_num[i] = z_num[i];
+            pc_data.data[i].resize(z_num[i]*x_num[i]);
+        }
+        
+        //initialize loop variables
+        uint64_t x_;
+        uint64_t z_;
+        uint64_t y_;
+        uint64_t j_;
+        
+        //next initialize the entries;
+        
+        uint16_t curr_index;
+        uint8_t status;
+        uint8_t prev_ind = 0;
+        
+        timer.start_timer("intiialize part_cells");
+        
+        for(int i = pc_data.depth_min;i <= pc_data.depth_max;i++){
+            
+            const unsigned int x_num_ = x_num[i];
+            const unsigned int z_num_ = z_num[i];
+            const unsigned int y_num_ = y_num[i];
+            
+            
+#pragma omp parallel for default(shared) private(z_,x_,y_,curr_index,status,prev_ind) if(z_num_*x_num_ > 100)
+            for(z_ = 0;z_ < z_num_;z_++){
+
+                for(x_ = 0;x_ < x_num_;x_++){
+                    
+                    size_t first_empty = 0;
+                    const size_t offset_part_map = x_*y_num_ + z_*y_num_*x_num_;
+                    const size_t offset_pc_data = x_num_*z_ + x_;
+                    curr_index = 0;
+                    prev_ind = 0;
+                    
+                    //first value handle the duplication of the gap node
+                    
+                    status = p_map[i][offset_part_map];
+                    if((status> 0)){
+                        first_empty = 0;
+                    } else {
+                        first_empty = 1;
+                    }
+                    
+                    for(y_ = 0;y_ < y_num_;y_++){
+                        
+                        status = p_map[i][offset_part_map + y_];
+                        
+                        if(status> 0){
+                            curr_index+= 1 + prev_ind;
+                            prev_ind = 0;
+                        } else {
+                            prev_ind = 1;
+                        }
+                    }
+                    
+                    if(curr_index == 0){
+                        pc_data.data[i][offset_pc_data].resize(1); //always first adds an extra entry for intialization and extra info
+                    } else {
+                       
+                        pc_data.data[i][offset_pc_data].resize(curr_index + 2 - first_empty,0); //gap node to begin, already finishes with a gap node
+                    
+                    }
+                }
+            }
+            
+        }
+
+        timer.stop_timer();
+        
+        timer.start_timer("First initialization step");
+        
+        //
+        //  In this loop we set, prev_coord, next_coord, type and status
+        //
+        
+        uint64_t prev_coord = 0;
+        
+        
+        for(int i = pc_data.depth_min;i <= pc_data.depth_max;i++){
+            
+            const unsigned int x_num_ = x_num[i];
+            const unsigned int z_num_ = z_num[i];
+            const unsigned int y_num_ = y_num[i];
+            
+#pragma omp parallel for default(shared) private(z_,x_,y_,curr_index,status,prev_ind,prev_coord) if(z_num_*x_num_ > 100)
+            for(z_ = 0;z_ < z_num_;z_++){
+                
+                for(x_ = 0;x_ < x_num_;x_++){
+                    
+                    
+                    const size_t offset_part_map = x_*y_num_ + z_*y_num_*x_num_;
+                    const size_t offset_pc_data = x_num_*z_ + x_;
+                    curr_index = 0;
+                    prev_ind = 1;
+                    prev_coord = 0;
+                    
+                    //initialize the first values type
+                    pc_data.data[i][offset_pc_data][0] = TYPE_GAP_END;
+                    
+                    for(y_ = 0;y_ < y_num_;y_++){
+                        
+                        status = p_map[i][offset_part_map + y_];
+                        
+                        if(status> 0){
+                            
+                            curr_index++;
+                            
+                            //set starting type
+                            if(prev_ind == 1){
+                                //gap node
+                                //set type
+                                pc_data.data[i][offset_pc_data][curr_index-1] = TYPE_GAP;
+                                pc_data.data[i][offset_pc_data][curr_index-1] |= (y_ << NEXT_COORD_SHIFT);
+                                pc_data.data[i][offset_pc_data][curr_index-1] |= ( prev_coord << PREV_COORD_SHIFT);
+                                pc_data.data[i][offset_pc_data][curr_index-1] |= (NO_NEIGHBOUR << YP_DEPTH_SHIFT);
+                                pc_data.data[i][offset_pc_data][curr_index-1] |= (NO_NEIGHBOUR << YM_DEPTH_SHIFT);
+                                
+                                curr_index++;
+                            }
+                            prev_coord = y_;
+                            //set type
+                            pc_data.data[i][offset_pc_data][curr_index-1] = TYPE_PC;
+                            
+                            //initialize the neighbours to empty (to be over-written later if not the case) (Boundary Conditions)
+                            pc_data.data[i][offset_pc_data][curr_index-1] |= (NO_NEIGHBOUR << XP_DEPTH_SHIFT);
+                            pc_data.data[i][offset_pc_data][curr_index-1] |= (NO_NEIGHBOUR << XM_DEPTH_SHIFT);
+                            pc_data.data[i][offset_pc_data][curr_index-1] |= (NO_NEIGHBOUR << ZP_DEPTH_SHIFT);
+                            pc_data.data[i][offset_pc_data][curr_index-1] |= (NO_NEIGHBOUR << ZM_DEPTH_SHIFT);
+                            
+                            //set the status
+                            switch(status){
+                                case SEED:
+                                {
+                                    pc_data.data[i][offset_pc_data][curr_index-1] |= SEED_SHIFTED;
+                                    break;
+                                }
+                                case BOUNDARY:
+                                {
+                                    pc_data.data[i][offset_pc_data][curr_index-1] |= BOUNDARY_SHIFTED;
+                                    break;
+                                }
+                                case FILLER:
+                                {
+                                    pc_data.data[i][offset_pc_data][curr_index-1] |= FILLER_SHIFTED;
+                                    break;
+                                }
+                                    
+                            }
+                            
+                            prev_ind = 0;
+                        } else {
+                            //store for setting above
+                            if(prev_ind == 0){
+                                //prev_coord = y_;
+                            }
+                            
+                            prev_ind = 1;
+                            
+                        }
+                    }
+                    
+                    //Initialize the last value GAP END indicators to no neighbour
+                    pc_data.data[i][offset_pc_data][pc_data.data[i][offset_pc_data].size()-1] = TYPE_GAP_END;
+                    pc_data.data[i][offset_pc_data][pc_data.data[i][offset_pc_data].size()-1] |= (NO_NEIGHBOUR << YP_DEPTH_SHIFT);
+                    pc_data.data[i][offset_pc_data][pc_data.data[i][offset_pc_data].size()-1] |= (NO_NEIGHBOUR << YM_DEPTH_SHIFT);
+                }
+            }
+            
+        }
+        
+        timer.stop_timer();
+        
+        ///////////////////////////////////
+        //
+        //  Calculate neighbours
+        //
+        /////////////////////////////////
+        
+        //(+y,-y,+x,-x,+z,-z)
+        pc_data.set_neighbor_relationships();
+        
+        std::cout << "Finished neighbour relationships" << std::endl;
+        
+        /////////////////////////////////////
+        //
+        //  PARTICLE DATA STRUCTURES
+        //
+        //////////////////////////////////////
+        
+        // Initialize the particle data access and intensity structures
+        part_data.initialize_from_structure(pc_data);
+        
+        // Estimate the intensities from the down sampled images
+        
+        timer.start_timer("Get the intensities");
+        
+        // Particles are ordered as ((-y,-x,-z),(+y,-x,-z),(-y,+x,-z),(+y,+x,-z),(-y,-x,+z),(+y,-x,+z),(-y,+x,+z),(+y,+x,+z))
+
+        S part_offset;
+        S node_val;
+        S y_coord;
+        S offset;
+        
+        //
+        //  Takes the read in particles and places them back in the correct place in the structure;
+        //
+        
+        for(int i = pc_data.depth_min;i <= pc_data.depth_max;i++){
+            
+            const unsigned int x_num_ = pc_data.x_num[i];
+            const unsigned int z_num_ = pc_data.z_num[i];
+            
+            offset = 0;
+            
+            for(z_ = 0;z_ < z_num_;z_++){
+                
+                for(x_ = 0;x_ < x_num_;x_++){
+                    
+                    const size_t offset_pc_data = x_num_*z_ + x_;
+                    const size_t j_num = part_data.particle_data.data[i][offset_pc_data].size();
+                    
+                    std::copy(Ip[i].begin()+offset,Ip[i].begin()+offset+j_num,part_data.particle_data.data[i][offset_pc_data].begin());
+                    
+                    offset += j_num;
+                    
+                }
+            }
+            
+        }
+        
+        timer.stop_timer();
+        
+        
+        //Lastly calculate the number of particle and number of cells
+        
+        
+        T num_cells = 0;
+        T num_parts = 0;
+        
+        for(int i = pc_data.depth_min;i <= pc_data.depth_max;i++){
+            
+            const unsigned int x_num_ = pc_data.x_num[i];
+            const unsigned int z_num_ = pc_data.z_num[i];
+            
+            
+            //For each depth there are two loops, one for SEED status particles, at depth + 1, and one for BOUNDARY and FILLER CELLS, to ensure contiguous memory access patterns.
+            
+            // SEED PARTICLE STATUS LOOP (requires access to three data structures, particle access, particle data, and the part-map)
+#pragma omp parallel for default(shared) private(z_,x_,j_,node_val,status,y_coord,part_offset) reduction(+:num_cells,num_parts) if(z_num_*x_num_ > 100)
+            for(z_ = 0;z_ < z_num_;z_++){
+                
+                for(x_ = 0;x_ < x_num_;x_++){
+                    
+                    const size_t offset_pc_data = x_num_*z_ + x_;
+                    
+                    const size_t j_num = part_data.access_data.data[i][offset_pc_data].size();
+                    
+                    for(j_ = 0;j_ < j_num;j_++){
+                        node_val = part_data.access_data.data[i][offset_pc_data][j_];
+                        
+                        if (!(node_val&1)){
+                            //in this loop there is a cell
+                            num_cells++;
+                            
+                            //determine how many particles in the cell
+                            if(part_data.access_node_get_status(node_val)==SEED){
+                                num_parts+=8;
+                            } else {
+                                num_parts+=1;
+                            }
+                            
+                        }
+                    }
+                    
+                }
+            }
+        }
+        
+        number_cells = num_cells;
+        number_parts = num_parts;
+
+        
+    }
+    
     void create_partcell_structure(Particle_map<T>& part_map){
         //
         //  Bevan Cheeseman 2016
@@ -108,7 +414,7 @@ private:
             
 #pragma omp parallel for default(shared) private(z_,x_,y_,curr_index,status,prev_ind) if(z_num*x_num > 100)
             for(z_ = 0;z_ < z_num;z_++){
-
+                
                 for(x_ = 0;x_ < x_num;x_++){
                     
                     size_t first_empty = 0;
@@ -141,15 +447,15 @@ private:
                     if(curr_index == 0){
                         pc_data.data[i][offset_pc_data].resize(1); //always first adds an extra entry for intialization and extra info
                     } else {
-                       
+                        
                         pc_data.data[i][offset_pc_data].resize(curr_index + 2 - first_empty,0); //gap node to begin, already finishes with a gap node
-                    
+                        
                     }
                 }
             }
             
         }
-
+        
         timer.stop_timer();
         
         timer.start_timer("First initialization step");
@@ -280,7 +586,7 @@ private:
         timer.start_timer("Get the intensities");
         
         // Particles are ordered as ((-y,-x,-z),(+y,-x,-z),(-y,+x,-z),(+y,+x,-z),(-y,-x,+z),(+y,-x,+z),(-y,+x,+z),(+y,+x,+z))
-
+        
         S part_offset;
         S node_val;
         S y_coord;
@@ -401,7 +707,7 @@ private:
                                 //0
                                 
                                 part_data.particle_data.data[i][offset_pc_data][part_offset] = part_map.downsampled[i].mesh[offset_part_map_data_0 + y_coord];
-                               
+                                
                                 
                             }
                             
@@ -464,9 +770,12 @@ private:
         
         number_cells = num_cells;
         number_parts = num_parts;
-
+        
         
     }
+    
+    
+    
     void test_get_neigh_dir_memory(){
         //
         // Test the get neighbour direction code for speed
@@ -1245,7 +1554,15 @@ public:
     }
     
     
-      
+    void initialize_structure_read(std::vector<std::vector<uint8_t>>& p_map,std::vector<std::vector<uint16_t>>& Ip){
+        //
+        //  Re-creates the structure from the read in p_map and particle data
+        //
+        
+        create_partcell_structure(p_map,Ip);
+    }
+                                   
+                                   
     //decleration
     void initialize_structure(Particle_map<T>& particle_map){
         
@@ -1262,7 +1579,11 @@ public:
         
     }
     
-    
+    PartCellStructure(){
+        
+        org_dims.resize(3);
+        
+    }
     
     PartCellStructure(Particle_map<T> &particle_map){
         //
