@@ -10,6 +10,8 @@
 #ifndef PARTPLAY_WRITEIMAGE_H
 #define PARTPLAY_WRITEIMAGE_H
 
+#include <tiffio.h>
+
 template <typename T>
 void write_image_tiff(Mesh_data<T>& image,std::string filename){
     //

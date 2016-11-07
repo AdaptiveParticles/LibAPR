@@ -339,6 +339,96 @@ public:
         //return data[(pc_key & PC_KEY_DEPTH_MASK) >> PC_KEY_DEPTH_SHIFT][x_num[(pc_key & PC_KEY_DEPTH_MASK) >> PC_KEY_DEPTH_SHIFT]*((pc_key & PC_KEY_Z_MASK) >> PC_KEY_Z_SHIFT) + ((pc_key & PC_KEY_X_MASK) >> PC_KEY_X_SHIFT)][(pc_key & PC_KEY_J_MASK) >> PC_KEY_J_SHIFT];
     }
     
+    void get_coordinates_cell(T current_y,const T& curr_key,T& x_,T& z_,T& y_,T& depth_,T& status_){
+        //
+        //  Calculates coordinates and details for a particle, requires pc_key and current y
+        //
+        
+        status_ = pc_key_get_status(curr_key);
+        
+        x_ = pc_key_get_x(curr_key);
+        y_ = current_y;
+        z_ = pc_key_get_z(curr_key);
+        depth_ = pc_key_get_depth(curr_key);
+        
+        
+    }
+    
+    void get_coordinates_part(T current_y,const T& curr_key,T& x_,T& z_,T& y_,T& depth_,T& status_){
+        //
+        //  Calculates coordinates and details for a particle, requires pc_key and current y
+        //
+        
+        status_ = pc_key_get_status(curr_key);
+        
+        if(status_ == SEED){
+            T part_num = pc_key_get_partnum(curr_key);
+            
+            depth_ = pc_key_get_depth(curr_key) + 1;
+            
+            x_ = pc_key_get_x(curr_key)*2 + seed_part_x[part_num];
+            z_ = pc_key_get_z(curr_key)*2 + seed_part_z[part_num];
+            y_ = 2*current_y + seed_part_y[part_num];
+            
+        }
+        else {
+            x_ = pc_key_get_x(curr_key);
+            y_ = current_y;
+            z_ = pc_key_get_z(curr_key);
+            depth_ = pc_key_get_depth(curr_key);
+        }
+        
+    }
+    
+    void get_coordinates_part_full(T current_y,const T& curr_key,uint16_t& x_,uint16_t& z_,uint16_t& y_,uint8_t& depth_,uint8_t& status_){
+        //
+        //  Calculates coordinates and details for a particle, requires pc_key and current y
+        //
+        //  Calculated in a common reference frame
+        //
+        
+        
+        status_ = pc_key_get_status(curr_key);
+        depth_ = pc_key_get_depth(curr_key);
+        T depth_factor = pow(2,depth_max - depth_);
+        
+        if(status_ == SEED){
+            T part_num = pc_key_get_partnum(curr_key);
+            
+            depth_ = depth_ + 1;
+            
+            x_ = (4*pc_key_get_x(curr_key) + 1 + 2*seed_part_x[part_num])*depth_factor;
+            z_ = (4*pc_key_get_z(curr_key) + 1 + 2*seed_part_z[part_num])*depth_factor;
+            y_ = (4*current_y + 1 + 2*seed_part_y[part_num])*depth_factor;
+        }
+        else {
+            x_ = (4*pc_key_get_x(curr_key) + 2)*depth_factor;
+            z_ = (4*pc_key_get_z(curr_key) + 2)*depth_factor;
+            y_ = (4*current_y + 2)*depth_factor;
+        }
+        
+        
+        
+        
+    }
+    
+    void get_coordinates_cell_full(T current_y,const T& curr_key,T& x_,T& z_,T& y_,T& depth_,T& status_){
+        //
+        //  Calculates coordinates and details for a particle, requires pc_key and current y
+        //
+        //  Calculated in a common reference frame
+        //
+        
+        status_ = pc_key_get_status(curr_key);
+        depth_ = pc_key_get_depth(curr_key);
+        T depth_factor = pow(2,depth_max - depth_);
+        
+        x_ = (4*pc_key_get_x(curr_key) + 2)*depth_factor;
+        z_ = (4*pc_key_get_z(curr_key) + 2)*depth_factor;
+        y_ = (4*current_y + 2)*depth_factor;
+        
+    }
+    
     void get_neigh_coordinates_cell(PartCellNeigh<T>& cell_neigh,T face,T index,T current_y,T& neigh_y,T& neigh_x,T& neigh_z,T& neigh_depth){
         //
         //  Get the coordinates for a cell

@@ -20,6 +20,7 @@
 #include "../data_structures/structure_parts.h"
 #include "../data_structures/Tree/Tree.hpp"
 #include "../data_structures/Tree/LevelIterator.hpp"
+//#include "../data_structures/Tree/PartCellStructure.hpp"
 
 #include <fstream>
 #include <vector>

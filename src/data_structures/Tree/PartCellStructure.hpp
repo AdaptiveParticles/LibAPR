@@ -34,6 +34,8 @@ class PartCellStructure: public PartCellBase<T,S> {
     
 private:
     
+    uint64_t number_parts = 0;
+    uint64_t number_cells = 0;
     
     
     inline void add_status(uint8_t part_map_status,uint64_t* node_val){
@@ -413,8 +415,56 @@ private:
         }
         
         timer.stop_timer();
-
         
+        
+        //Lastly calculate the number of particle and number of cells
+        
+        
+        T num_cells = 0;
+        T num_parts = 0;
+        
+        for(int i = pc_data.depth_min;i <= pc_data.depth_max;i++){
+            
+            const unsigned int x_num = pc_data.x_num[i];
+            const unsigned int z_num = pc_data.z_num[i];
+            
+            
+            //For each depth there are two loops, one for SEED status particles, at depth + 1, and one for BOUNDARY and FILLER CELLS, to ensure contiguous memory access patterns.
+            
+            // SEED PARTICLE STATUS LOOP (requires access to three data structures, particle access, particle data, and the part-map)
+#pragma omp parallel for default(shared) private(z_,x_,j_,node_val,status,y_coord,part_offset) reduction(+:num_cells,num_parts) if(z_num*x_num > 100)
+            for(z_ = 0;z_ < z_num;z_++){
+                
+                for(x_ = 0;x_ < x_num;x_++){
+                    
+                    const size_t offset_pc_data = x_num*z_ + x_;
+                    
+                    const size_t j_num = part_data.access_data.data[i][offset_pc_data].size();
+                    
+                    for(j_ = 0;j_ < j_num;j_++){
+                        node_val = part_data.access_data.data[i][offset_pc_data][j_];
+                        
+                        if (!(node_val&1)){
+                            //in this loop there is a cell
+                            num_cells++;
+                            
+                            //determine how many particles in the cell
+                            if(part_data.access_node_get_status(node_val)==SEED){
+                                num_parts+=8;
+                            } else {
+                                num_parts+=1;
+                            }
+                            
+                        }
+                    }
+                    
+                }
+            }
+        }
+        
+        number_cells = num_cells;
+        number_parts = num_parts;
+
         
     }
     void test_get_neigh_dir_memory(){
@@ -1168,7 +1218,19 @@ public:
     
     unsigned int depth_min;
     unsigned int depth_max;
-
+    
+    std::vector<unsigned int> org_dims;
+    
+    T get_number_parts(){
+        //calculated on initialization
+        return number_parts;
+    }
+    
+    
+    T get_number_cells(){
+        //calculated on intiialization
+        return number_cells;
+    }
     
     uint8_t get_status(uint64_t node_val){
         //
@@ -1194,24 +1256,6 @@ public:
         //create_sparse_graph_format(particle_map);
         create_partcell_structure(particle_map);
         
-       // test_partcell_struct(particle_map);
-//        
-//        pc_data.test_get_neigh_dir();
-        
-        //pc_data.test_get_neigh_dir_performance();
-        
-        //pc_data.test_get_neigh_dir_performance_function();
-        
-        //pc_data.test_get_neigh_dir_performance_all();
-        
-//        test_get_neigh_dir_memory();
-//        
-//        part_data.test_get_part_neigh_dir(pc_data);
-//        
-//        part_data.test_get_part_neigh_all(pc_data);
-//        
-//        part_data.test_get_part_neigh_all_memory(pc_data);
-//        
     }
     
     
@@ -1223,6 +1267,12 @@ public:
         
         depth_min = particle_map.k_min;
         depth_max = particle_map.k_max;
+        
+        org_dims.resize(3);
+        
+        org_dims[0] = particle_map.downsampled[depth_max+1].y_num;
+        org_dims[1] = particle_map.downsampled[depth_max+1].x_num;
+        org_dims[2] = particle_map.downsampled[depth_max+1].z_num;
         
         initialize_structure(particle_map);
     }

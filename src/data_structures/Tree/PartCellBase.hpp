@@ -16,7 +16,7 @@ public:
     /*
      * Size of the model in number of particles that fit and number of possible indices
      */
-    coords3d dims, dims_coords;
+    
     
     /*
      * Number of layers without the root and the contents.
@@ -27,7 +27,7 @@ public:
     PartCellBase(){};
     
     //returns the global co_ordinates of a particle cell
-    coords3d get_coordinates(S node);
+    
     
     //returns the status of a particle cell
     inline uint8_t get_status(S node) const;
