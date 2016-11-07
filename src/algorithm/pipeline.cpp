@@ -254,7 +254,7 @@ int main(int argc, char **argv) {
     part_rep.timer.stop_timer();
     
     write_apr_full_format(pcell_test,save_loc,file_name);
-    
+    write_apr_pc_struct(pcell_test,save_loc,file_name);
 //    
 //    pcell_test.pc_data.test_get_neigh_dir();
 //    pcell_test.part_data.test_get_part_neigh_dir(pcell_test.pc_data);

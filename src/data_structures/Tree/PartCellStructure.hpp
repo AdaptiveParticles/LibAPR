@@ -1219,6 +1219,10 @@ public:
     unsigned int depth_min;
     unsigned int depth_max;
     
+    std::vector<unsigned int> x_num;
+    std::vector<unsigned int> y_num;
+    std::vector<unsigned int> z_num;
+    
     std::vector<unsigned int> org_dims;
     
     T get_number_parts(){
@@ -1273,6 +1277,18 @@ public:
         org_dims[0] = particle_map.downsampled[depth_max+1].y_num;
         org_dims[1] = particle_map.downsampled[depth_max+1].x_num;
         org_dims[2] = particle_map.downsampled[depth_max+1].z_num;
+        
+        x_num.resize(depth_max+1);
+        y_num.resize(depth_max+1);
+        z_num.resize(depth_max+1);
+        
+        for(int i = depth_min;i <= depth_max;i++){
+            x_num[i] = particle_map.downsampled[i].x_num;
+            y_num[i] = particle_map.downsampled[i].y_num;
+            z_num[i] = particle_map.downsampled[i].z_num;
+            
+        }
+        
         
         initialize_structure(particle_map);
     }
