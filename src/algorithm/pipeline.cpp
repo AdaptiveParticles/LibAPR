@@ -259,6 +259,7 @@ int main(int argc, char **argv) {
     std::cout << pc_read.get_number_cells() << " " << pcell_test.get_number_cells() << std::endl;
     std::cout << pc_read.get_number_parts() << " " << pcell_test.get_number_parts() << std::endl;
     
+    write_apr_full_format(pc_read,save_loc,file_name + "2");
     
 }
 

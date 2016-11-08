@@ -24,6 +24,7 @@
 #include "hdf5functions.h"
 #include "../data_structures/Tree/PartCellStructure.hpp"
 #include "write_parts.h"
+#include "writeimage.h"
 
 
 template<typename T>
@@ -410,6 +411,9 @@ void write_apr_pc_struct(PartCellStructure<T,uint64_t>& pc_struct,std::string sa
             
             p_map.resize(x_num_*z_num_*y_num_,0);
             
+            std::fill(p_map.begin(), p_map.end(), 0);
+            
+            
             //For each depth there are two loops, one for SEED status particles, at depth + 1, and one for BOUNDARY and FILLER CELLS, to ensure contiguous memory access patterns.
             
             // SEED PARTICLE STATUS LOOP (requires access to three data structures, particle access, particle data, and the part-map)
@@ -451,6 +455,8 @@ void write_apr_pc_struct(PartCellStructure<T,uint64_t>& pc_struct,std::string sa
             dims = p_map.size();
             name = "p_map_"+std::to_string(i);
             hdf5_write_data(obj_id,H5T_NATIVE_UINT8,name.c_str(),rank,&dims, p_map.data());
+            
+            
             
             name = "p_map_x_num_"+std::to_string(i);
             hsize_t attr = x_num_;
@@ -608,12 +614,22 @@ void read_apr_pc_struct(PartCellStructure<T,uint64_t>& pc_struct,std::string fil
         hdf5_load_data(obj_id,H5T_NATIVE_UINT8,p_map_load[i].data(),name.c_str());
         
         name = "Ip_"+std::to_string(i);
-        hdf5_load_data(obj_id,H5T_NATIVE_UINT8,Ip[i].data(),name.c_str());
+        hdf5_load_data(obj_id,H5T_NATIVE_UINT16,Ip[i].data(),name.c_str());
         
         pc_struct.x_num[i] = x_num;
         pc_struct.y_num[i] = y_num;
         pc_struct.z_num[i] = z_num;
         
+    }
+    
+    
+    for(int i = pc_struct.depth_min;i <= pc_struct.depth_max;i++){
+        Mesh_data<uint8_t> temp;
+        temp.mesh = p_map_load[i];
+        temp.y_num = pc_struct.y_num[i];
+        temp.x_num = pc_struct.x_num[i];
+        temp.z_num = pc_struct.z_num[i];
+        debug_write(temp,"kmap" + std::to_string(i));
     }
     
     
