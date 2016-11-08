@@ -623,16 +623,6 @@ void read_apr_pc_struct(PartCellStructure<T,uint64_t>& pc_struct,std::string fil
     }
     
     
-    for(int i = pc_struct.depth_min;i <= pc_struct.depth_max;i++){
-        Mesh_data<uint8_t> temp;
-        temp.mesh = p_map_load[i];
-        temp.y_num = pc_struct.y_num[i];
-        temp.x_num = pc_struct.x_num[i];
-        temp.z_num = pc_struct.z_num[i];
-        debug_write(temp,"kmap" + std::to_string(i));
-    }
-    
-    
     //close shiz
     H5Gclose(obj_id);
     H5Gclose(pr_groupid);

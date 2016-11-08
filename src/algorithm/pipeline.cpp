@@ -84,10 +84,166 @@ cmdLineOptions read_command_line_options(int argc, char **argv, Part_rep& part_r
 }
 
 
-void create_sparse_graph_format(Particle_map<float>& part_map);
-
-
-
+bool read_write_structure_test(PartCellStructure<float,uint64_t>& pc_struct){
+    //
+    //  Bevan Cheeseman 2016
+    //
+    //  Test for the reading and writing of the particle cell sparse structure
+    //
+    //
+    
+    
+    uint64_t x_;
+    uint64_t z_;
+    uint64_t j_;
+    uint64_t curr_key;
+    
+    bool pass_test = true;
+    
+    
+    std::string save_loc = "";
+    std::string file_name = "io_test_file";
+    
+    write_apr_pc_struct(pc_struct,save_loc,file_name);
+    
+    PartCellStructure<float,uint64_t> pc_struct_read;
+    read_apr_pc_struct(pc_struct_read,save_loc + file_name + "_pcstruct_part.h5");
+    
+    //compare all the different thigns and check they are correct;
+    
+    
+    //
+    //  Check the particle data (need to account for casting)
+    //
+    
+    for(uint64_t i = pc_struct_read.pc_data.depth_min;i <= pc_struct_read.pc_data.depth_max;i++){
+        
+        
+        const unsigned int x_num_ = pc_struct.x_num[i];
+        const unsigned int z_num_ = pc_struct.z_num[i];
+        
+        //write the vals
+        
+        for(z_ = 0;z_ < z_num_;z_++){
+            
+            for(x_ = 0;x_ < x_num_;x_++){
+                
+                const size_t offset_pc_data = x_num_*z_ + x_;
+                
+                const size_t j_num = pc_struct.part_data.particle_data.data[i][offset_pc_data].size();
+                
+                for(j_ = 0;j_ < j_num;j_++){
+                    
+                    uint16_t org_val = pc_struct.part_data.particle_data.data[i][offset_pc_data][j_];
+                    uint16_t read_val = pc_struct_read.part_data.particle_data.data[i][offset_pc_data][j_];
+                    
+                    if(org_val != read_val){
+                        pass_test = false;
+                        std::cout << "Particle Intensity Read Error" << std::endl;
+                    }
+                    
+                    
+                }
+                
+                
+                
+            }
+            
+        }
+    }
+    
+    //
+    //  Check the particle access data
+    //
+    
+    for(uint64_t i = pc_struct_read.pc_data.depth_min;i <= pc_struct_read.pc_data.depth_max;i++){
+        
+        
+        const unsigned int x_num_ = pc_struct.x_num[i];
+        const unsigned int z_num_ = pc_struct.z_num[i];
+        
+        //write the vals
+        
+        for(z_ = 0;z_ < z_num_;z_++){
+            
+            curr_key = 0;
+            
+            for(x_ = 0;x_ < x_num_;x_++){
+                
+               
+                const size_t offset_pc_data = x_num_*z_ + x_;
+                
+                const size_t j_num = pc_struct.part_data.access_data.data[i][offset_pc_data].size();
+                
+                for(j_ = 0;j_ < j_num;j_++){
+                    
+                    uint16_t org_val = pc_struct.part_data.access_data.data[i][offset_pc_data][j_];
+                    uint16_t read_val = pc_struct_read.part_data.access_data.data[i][offset_pc_data][j_];
+                    
+                    if(org_val != read_val){
+                        pass_test = false;
+                        std::cout << "Particle Access Read Error" << std::endl;
+                    }
+                    
+                    
+                }
+                
+                
+                
+            }
+            
+        }
+    }
+    
+    
+    //
+    //  Check the part cell data
+    //
+    
+    for(uint64_t i = pc_struct_read.pc_data.depth_min;i <= pc_struct_read.pc_data.depth_max;i++){
+        
+        
+        const unsigned int x_num_ = pc_struct.x_num[i];
+        const unsigned int z_num_ = pc_struct.z_num[i];
+        
+        //write the vals
+        
+        for(z_ = 0;z_ < z_num_;z_++){
+            
+            for(x_ = 0;x_ < x_num_;x_++){
+                
+                
+                const size_t offset_pc_data = x_num_*z_ + x_;
+                
+                const size_t j_num = pc_struct.pc_data.data[i][offset_pc_data].size();
+                
+                for(j_ = 0;j_ < j_num;j_++){
+                    
+                    uint64_t org_val = pc_struct.pc_data.data[i][offset_pc_data][j_];
+                    uint64_t read_val = pc_struct_read.pc_data.data[i][offset_pc_data][j_];
+                    
+                    if(org_val != read_val){
+                        pass_test = false;
+                        std::cout << "Particle Access Read Error" << std::endl;
+                    }
+                    
+                    
+                }
+                
+                
+                
+            }
+            
+        }
+    }
+    
+    
+    std::cout << "io_test_complete" << std::endl;
+    
+    return pass_test;
+    
+    
+}
 
 
 int main(int argc, char **argv) {

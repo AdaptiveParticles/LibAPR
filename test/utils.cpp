@@ -563,12 +563,9 @@ bool compare_sparse_rep_neighpart_with_part_map(const Particle_map<float>& part_
     //
     //  Tests the particle sampling and particle neighbours;
     //
+    //  Bevan Cheeseman 2016
     //
     //
-    //
-    
-    
-    
     
     
     //initialize
@@ -604,30 +601,16 @@ bool compare_sparse_rep_neighpart_with_part_map(const Particle_map<float>& part_
                 
                 
                 for(j_ = 0;j_ < j_num;j_++){
-                    
-                    uint64_t node_val_part = pc_struct.part_data.access_data.data[i][offset_pc_data][j_];
+           
                     node_val = pc_struct.pc_data.data[i][offset_pc_data][j_];
+                    uint64_t node_val_part = pc_struct.part_data.access_data.data[i][offset_pc_data][j_];
                     
                     if (node_val&1){
-                        
-                        uint64_t next_coord = (node_val & NEXT_COORD_MASK) >> NEXT_COORD_SHIFT;
-                        
-                        uint64_t prev_coord = (node_val & PREV_COORD_MASK) >> PREV_COORD_SHIFT;
-                        
-                        uint64_t y_coord_prev = y_coord;
-                        uint64_t y_coord_diff = y_coord +  ((node_val_part & COORD_DIFF_MASK_PARTICLE) >> COORD_DIFF_SHIFT_PARTICLE);
                         
                         //get the index gap node
                         y_coord = (node_val & NEXT_COORD_MASK) >> NEXT_COORD_SHIFT;
                         
-                        if((y_coord_diff != y_coord) & (y_coord > 0)){
-                            int stop = 1;
-                        }
-                        
-                        
                         y_coord--;
-                        
-                        
                         
                         
                     } else {
@@ -766,21 +749,8 @@ bool compare_sparse_rep_neighpart_with_part_map(const Particle_map<float>& part_
                                             //correct value
                                         } else {
                                             
-                                            
-                                            float val = part_map.downsampled[depth_ind].mesh[offset_part_map+y_n];
-                                            
-                                            uint64_t z_t = floor(own_int/( part_map.downsampled[depth_ind].y_num*part_map.downsampled[depth_ind].x_num));
-                                            uint64_t x_t = floor((own_int - z_t*( part_map.downsampled[depth_ind].y_num*part_map.downsampled[depth_ind].x_num))/part_map.downsampled[depth_ind].y_num);
-                                            uint64_t y_t = own_int - z_t*( part_map.downsampled[depth_ind].y_num*part_map.downsampled[depth_ind].x_num) - x_t*part_map.downsampled[depth_ind].y_num;
-                                            
-                                            uint64_t z_c = pc_struct.pc_data.pc_key_get_z(neigh_keys.neigh_face[face][n]);
-                                            uint64_t x_c = pc_struct.pc_data.pc_key_get_x(neigh_keys.neigh_face[face][n]);
-                                            uint64_t j_c = pc_struct.pc_data.pc_key_get_j(neigh_keys.neigh_face[face][n]);
-                                            uint64_t d_c = pc_struct.pc_data.pc_key_get_depth(neigh_keys.neigh_face[face][n]);
-                                            
                                             std::cout << "Neighbour Particle Intensity Error" << std::endl;
-                                            own_int = pc_struct.part_data.get_part(neigh_keys.neigh_face[face][n]);
-                                            pc_struct.pc_data.get_neigh_coordinates_part(neigh_keys,face,n,y_coord,y_n,x_n,z_n,depth);
+                                            
                                             
                                             pass_test = false;
                                         }
@@ -892,4 +862,164 @@ bool compare_y_coords(PartCellStructure<float,uint64_t>& pc_struct){
     std::cout << "Y_coordinate test" << std::endl;
     
     return pass_test;
+}
+bool read_write_structure_test(PartCellStructure<float,uint64_t>& pc_struct){
+    //
+    //  Bevan Cheeseman 2016
+    //
+    //  Test for the reading and writing of the particle cell sparse structure
+    //
+    //
+    
+    
+    uint64_t x_;
+    uint64_t z_;
+    uint64_t j_;
+    uint64_t curr_key;
+    
+    bool pass_test = true;
+    
+    
+    std::string save_loc = "";
+    std::string file_name = "io_test_file";
+    
+    write_apr_pc_struct(pc_struct,save_loc,file_name);
+    
+    PartCellStructure<float,uint64_t> pc_struct_read;
+    read_apr_pc_struct(pc_struct_read,save_loc + file_name + "_pcstruct_part.h5");
+    
+    //compare all the different thigns and check they are correct;
+    
+    
+    //
+    //  Check the particle data (need to account for casting)
+    //
+    
+    for(uint64_t i = pc_struct_read.pc_data.depth_min;i <= pc_struct_read.pc_data.depth_max;i++){
+        
+        
+        const unsigned int x_num_ = pc_struct.x_num[i];
+        const unsigned int z_num_ = pc_struct.z_num[i];
+        
+        //write the vals
+        
+        for(z_ = 0;z_ < z_num_;z_++){
+            
+            for(x_ = 0;x_ < x_num_;x_++){
+                
+                const size_t offset_pc_data = x_num_*z_ + x_;
+                
+                const size_t j_num = pc_struct.part_data.particle_data.data[i][offset_pc_data].size();
+                
+                for(j_ = 0;j_ < j_num;j_++){
+                    
+                    uint16_t org_val = pc_struct.part_data.particle_data.data[i][offset_pc_data][j_];
+                    uint16_t read_val = pc_struct_read.part_data.particle_data.data[i][offset_pc_data][j_];
+                    
+                    if(org_val != read_val){
+                        pass_test = false;
+                        std::cout << "Particle Intensity Read Error" << std::endl;
+                    }
+                    
+                    
+                }
+                
+                
+                
+            }
+            
+        }
+    }
+    
+    //
+    //  Check the particle access data
+    //
+    
+    for(uint64_t i = pc_struct_read.pc_data.depth_min;i <= pc_struct_read.pc_data.depth_max;i++){
+        
+        
+        const unsigned int x_num_ = pc_struct.x_num[i];
+        const unsigned int z_num_ = pc_struct.z_num[i];
+        
+        //write the vals
+        
+        for(z_ = 0;z_ < z_num_;z_++){
+            
+            curr_key = 0;
+            
+            for(x_ = 0;x_ < x_num_;x_++){
+                
+                
+                const size_t offset_pc_data = x_num_*z_ + x_;
+                
+                const size_t j_num = pc_struct.part_data.access_data.data[i][offset_pc_data].size();
+                
+                for(j_ = 0;j_ < j_num;j_++){
+                    
+                    uint16_t org_val = pc_struct.part_data.access_data.data[i][offset_pc_data][j_];
+                    uint16_t read_val = pc_struct_read.part_data.access_data.data[i][offset_pc_data][j_];
+                    
+                    if(org_val != read_val){
+                        pass_test = false;
+                        std::cout << "Particle Access Read Error" << std::endl;
+                    }
+                    
+                    
+                }
+                
+                
+                
+            }
+            
+        }
+    }
+    
+    
+    //
+    //  Check the part cell data
+    //
+    
+    for(uint64_t i = pc_struct_read.pc_data.depth_min;i <= pc_struct_read.pc_data.depth_max;i++){
+        
+        
+        const unsigned int x_num_ = pc_struct.x_num[i];
+        const unsigned int z_num_ = pc_struct.z_num[i];
+        
+        //write the vals
+        
+        for(z_ = 0;z_ < z_num_;z_++){
+            
+            for(x_ = 0;x_ < x_num_;x_++){
+                
+                
+                const size_t offset_pc_data = x_num_*z_ + x_;
+                
+                const size_t j_num = pc_struct.pc_data.data[i][offset_pc_data].size();
+                
+                for(j_ = 0;j_ < j_num;j_++){
+                    
+                    uint64_t org_val = pc_struct.pc_data.data[i][offset_pc_data][j_];
+                    uint64_t read_val = pc_struct_read.pc_data.data[i][offset_pc_data][j_];
+                    
+                    if(org_val != read_val){
+                        pass_test = false;
+                        std::cout << "Particle Access Read Error" << std::endl;
+                    }
+                    
+                    
+                }
+                
+                
+                
+            }
+            
+        }
+    }
+    
+    
+    std::cout << "io_test_complete" << std::endl;
+    
+    return pass_test;
+    
+    
 }
