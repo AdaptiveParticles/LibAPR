@@ -2,18 +2,18 @@
 #include <algorithm>
 #include <iostream>
 
-#include "pipeline.h"
-#include "../data_structures/meshclass.h"
-#include "../io/readimage.h"
+#include "get_apr.h"
+#include "../../src/data_structures/meshclass.h"
+#include "../../src/io/readimage.h"
 
-#include "gradient.hpp"
-#include "../data_structures/particle_map.hpp"
-#include "../data_structures/Tree/PartCellBase.hpp"
-#include "../data_structures/Tree/PartCellStructure.hpp"
-#include "level.hpp"
-#include "../io/writeimage.h"
-#include "../io/write_parts.h"
-#include "../io/partcell_io.h"
+#include "../../src/algorithm/gradient.hpp"
+#include "../../src/data_structures/particle_map.hpp"
+#include "../../src/data_structures/Tree/PartCellBase.hpp"
+#include "../../src/data_structures/Tree/PartCellStructure.hpp"
+#include "../../src/algorithm/level.hpp"
+#include "../../src/io/writeimage.h"
+#include "../../src/io/write_parts.h"
+#include "../../src/io/partcell_io.h"
 
 
 bool command_option_exists(char **begin, char **end, const std::string &option)

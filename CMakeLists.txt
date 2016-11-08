@@ -121,13 +121,19 @@ if(TESTS)
 
 endif(TESTS)
 
-add_executable(pipeline
-        src/algorithm/pipeline.cpp
+add_executable(Example_get_apr
+        test/Examples/get_apr.cpp
         src/io/write_parts.cpp
         ${SOURCE_FILES_COMPILED}
         )
 
-target_link_libraries(pipeline ${HDF5_LIBRARIES} pthread tiff)
+add_executable(pipeline
+    src/algorithm/pipeline.cpp
+    src/io/write_parts.cpp
+    ${SOURCE_FILES_COMPILED}
+)
 
+target_link_libraries(pipeline ${HDF5_LIBRARIES} pthread tiff)
+target_link_libraries(Example_get_apr ${HDF5_LIBRARIES} pthread tiff)
 
 

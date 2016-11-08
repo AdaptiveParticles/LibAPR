@@ -1,10 +1,10 @@
-#ifndef PARTPLAY_PIPELINE_H
-#define PARTPLAY_PIPELINE_H
+#ifndef PARTPLAY_GETAPR_H
+#define PARTPLAY_GETAPR_H
 
 #include <functional>
 #include <string>
 
-#include "../data_structures/structure_parts.h"
+#include "../../src/data_structures/structure_parts.h"
 
 struct cmdLineOptions{
     std::string output = "output";

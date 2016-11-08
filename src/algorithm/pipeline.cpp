@@ -18,7 +18,6 @@
 #include "../io/write_parts.h"
 #include "../io/partcell_io.h"
 
-
 bool command_option_exists(char **begin, char **end, const std::string &option)
 {
     return std::find(begin, end, option) != end;
