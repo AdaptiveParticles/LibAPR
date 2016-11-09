@@ -13,6 +13,7 @@
 #include "../../src/io/writeimage.h"
 #include "../../src/io/write_parts.h"
 #include "../../src/io/partcell_io.h"
+#include "../../src/data_structures/Tree/PartCellParent.hpp"
 
 bool command_option_exists(char **begin, char **end, const std::string &option)
 {
@@ -82,15 +83,8 @@ int main(int argc, char **argv) {
     
     read_apr_pc_struct(pc_struct,file_name);
     
-    //initialize
-    uint64_t node_val;
-    
-    int x_;
-    int z_;
-    uint64_t j_;
-    uint64_t curr_key = 0;
-    PartCellNeigh<uint64_t> neigh_keys;
-    
+  
+    PartCellParent<uint64_t> Parent_cells(pc_struct);
     
     int num_cells = pc_struct.get_number_cells();
     int num_parts = pc_struct.get_number_parts();
@@ -98,70 +92,6 @@ int main(int argc, char **argv) {
     std::cout << "Number cells: " << num_cells << std::endl;
     std::cout << "Number parts: " << num_parts << std::endl;
     
-    // Example 1:
-    
-    ///////////////////////////////////////////////
-    //
-    //  Get all cell neighbours loop
-    //
-    ///////////////////////////////////////////////
-    
-    part_rep.timer.start_timer("Loop over cells and get neighbours");
-    
-    //loop over different resolutions (from lowest (corsest) to highests (finenest))
-    for(int i = pc_struct.pc_data.depth_min;i <= pc_struct.pc_data.depth_max;i++){
-        
-        const unsigned int x_num_ = pc_struct.pc_data.x_num[i];
-        const unsigned int z_num_ = pc_struct.pc_data.z_num[i];
-        
-        
-#pragma omp parallel for default(shared) private(z_,x_,j_,node_val,curr_key) firstprivate(neigh_keys) if(z_num_*x_num_ > 100)
-        for(z_ = 0;z_ < z_num_;z_++){
-            
-            curr_key = 0;
-            
-            //set the key values
-            pc_struct.pc_data.pc_key_set_z(curr_key,z_);
-            pc_struct.pc_data.pc_key_set_depth(curr_key,i);
-            
-            for(x_ = 0;x_ < x_num_;x_++){
-                
-                pc_struct.pc_data.pc_key_set_x(curr_key,x_);
-                
-                const size_t offset_pc_data = x_num_*z_ + x_;
-                
-                //number of nodes on the level
-                const size_t j_num = pc_struct.pc_data.data[i][offset_pc_data].size();
-                
-                for(j_ = 0;j_ < j_num;j_++){
-                    
-                    //this value encodes the state and neighbour locations of the particle cell
-                    node_val = pc_struct.pc_data.data[i][offset_pc_data][j_];
-                    
-                    if (!(node_val&1)){
-                        //This node represents a particle cell
-                        
-                        //set the key index
-                        pc_struct.pc_data.pc_key_set_j(curr_key,j_);
-                        
-                        //get all the neighbours
-                        pc_struct.pc_data.get_neighs_all(curr_key,node_val,neigh_keys);
-                        
-                        
-                    } else {
-                        //This is a gap node
-                    }
-                    
-                }
-                
-            }
-            
-        }
-    }
-    
-    
-    
-    part_rep.timer.stop_timer();
 
     
     
