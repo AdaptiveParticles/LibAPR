@@ -167,8 +167,6 @@ int main(int argc, char **argv) {
     part_rep.timer.stop_timer();
     
     
-    read_write_structure_test(pcell_test);
-    
 }
 
 
