@@ -88,7 +88,7 @@ int main(int argc, char **argv) {
     {
         Mesh_data<uint16_t> input_image;
         
-        load_image_tiff(input_image, options.input);
+        load_image_tiff(input_image, options.directory + options.input);
         
         gradient.initialize(input_image.y_num, input_image.x_num, input_image.z_num, 0);
         part_rep.initialize(input_image.y_num, input_image.x_num, input_image.z_num);
