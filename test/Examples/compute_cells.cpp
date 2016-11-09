@@ -91,6 +91,8 @@ int main(int argc, char **argv) {
     uint64_t curr_key = 0;
     PartCellNeigh<uint64_t> neigh_keys;
     
+    // Example 1:
+    
     ///////////////////////////////////////////////
     //
     //  Get all cell neighbours loop
@@ -99,6 +101,7 @@ int main(int argc, char **argv) {
     
     part_rep.timer.start_timer("Loop over cells and get neighbours");
     
+    //loop over different resolutions (from lowest (corsest) to highests (finenest))
     for(int i = pc_struct.pc_data.depth_min;i <= pc_struct.pc_data.depth_max;i++){
         
         const unsigned int x_num_ = pc_struct.pc_data.x_num[i];
@@ -155,6 +158,7 @@ int main(int argc, char **argv) {
     
     part_rep.timer.stop_timer();
     
+    //Example 2:
     
     /////////////////////////////////////////////////////////////////////////
     //
@@ -163,8 +167,6 @@ int main(int argc, char **argv) {
     /////////////////////////////////////////////////////////////////////////
     
     uint64_t y_coord; //keeps track of y coordinate
-    
-    
     
     part_rep.timer.start_timer("Loop over cells and compare +x neighbour status and get coordinates");
     
@@ -217,6 +219,8 @@ int main(int argc, char **argv) {
                         
                         //set the key index
                         pc_struct.pc_data.pc_key_set_j(curr_key,j_);
+                        //add the status to the key (required for the next line to have the status encoded in the key)
+                        pc_struct.pc_data.pc_key_set_status(curr_key,pc_struct.pc_data.get_status(node_val));
                         
                         //get some information about the current cell
                         pc_struct.pc_data.get_coordinates_cell(y_coord,curr_key,x_current,z_current,y_current,depth_current,status_current);

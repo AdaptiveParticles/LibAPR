@@ -468,15 +468,15 @@ public:
         
     };
 
-    void get_neigh_coordinates_part(PartCellNeigh<T>& cell_neigh,T face,T index,T current_y,T& neigh_y,T& neigh_x,T& neigh_z,T& neigh_depth){
+    void get_neigh_coordinates_part(PartCellNeigh<T>& part_cell_neigh,T face,T index,T current_y,T& neigh_y,T& neigh_x,T& neigh_z,T& neigh_depth){
         //
         //  Get the coordinates for a particle
         //
         //
         
-        T neigh = cell_neigh.neigh_face[face][index];
+        T neigh = part_cell_neigh.neigh_face[face][index];
         
-        T curr = cell_neigh.curr;
+        T curr = part_cell_neigh.curr;
         
         T status = pc_key_get_status(curr);
         
@@ -494,7 +494,7 @@ public:
                     
                     
                     
-                    T curr_depth = pc_key_get_depth(cell_neigh.curr);
+                    T curr_depth = pc_key_get_depth(curr);
                     
                     if(neigh_depth == curr_depth){
                         //neigh is on same layer
@@ -577,7 +577,7 @@ public:
                         
                         
                         
-                        T curr_depth = pc_key_get_depth(cell_neigh.curr);
+                        T curr_depth = pc_key_get_depth(curr);
                         
                         if(neigh_depth == curr_depth){
                             //neigh is on same layer
