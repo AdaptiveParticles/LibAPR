@@ -133,6 +133,18 @@ add_executable(Example_compute_cells
         ${SOURCE_FILES_COMPILED}
         )
 
+add_executable(Example_compute_parts
+        test/Examples/compute_parts.cpp
+        src/io/write_parts.cpp
+        ${SOURCE_FILES_COMPILED}
+        )
+
+add_executable(Example_convert_full_format
+        test/Examples/write_full_apr_format.cpp
+        src/io/write_parts.cpp
+        ${SOURCE_FILES_COMPILED}
+        )
+
 add_executable(pipeline
     src/algorithm/pipeline.cpp
     src/io/write_parts.cpp
@@ -142,4 +154,5 @@ add_executable(pipeline
 target_link_libraries(pipeline ${HDF5_LIBRARIES} pthread tiff)
 target_link_libraries(Example_get_apr ${HDF5_LIBRARIES} pthread tiff)
 target_link_libraries(Example_compute_cells ${HDF5_LIBRARIES} pthread tiff)
-
+target_link_libraries(Example_compute_parts ${HDF5_LIBRARIES} pthread tiff)
+target_link_libraries(Example_convert_full_format ${HDF5_LIBRARIES} pthread tiff)
