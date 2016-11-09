@@ -149,7 +149,7 @@ int main(int argc, char **argv) {
     part_map.pushing_scheme(part_rep);
     part_rep.timer.stop_timer();
     
-    part_rep.timer.start_timer("estimate_part_intensity");
+    part_rep.timer.start_timer("Construct Part Structure");
     
     std::swap(part_map.downsampled[part_map.k_max+1],input_image_float);
     PartCellStructure<float,uint64_t> pcell_test(part_map);
