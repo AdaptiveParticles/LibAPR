@@ -9,7 +9,7 @@
 struct cmdLineOptions{
     std::string output = "output";
     std::string stats = "";
-    std::string stats_directory = "";
+    std::string directory = "";
     std::string input = "";
     bool stats_file = false;
 };

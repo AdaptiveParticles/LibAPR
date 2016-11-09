@@ -43,19 +43,19 @@ void get_test_paths(std::string& image_path,std::string& utest_path,std::string&
 
 
 }
-void get_image_stats(Proc_par& pars,std::string output_path,std::string image_name){
+void get_image_stats(Proc_par& pars,std::string output_path,std::string stats_name){
     //
     //  Gets the image parameters for the specific file to be run
     //
     //  Bevan Cheeseman 2016
     //
     //
-    std::cout << output_path + image_name + "_stats.txt" << std::endl;
+    std::cout << output_path + stats_name << std::endl;
 
 
     //open the files
     std::ifstream path_file;
-    path_file.open (output_path + image_name + "_stats.txt");
+    path_file.open (output_path + stats_name);
 
     std::string out_line;
 
@@ -220,22 +220,31 @@ void get_image_stats(Proc_par& pars,std::string output_path,std::string image_na
     //file name (relative path)
     std::getline(path_file,out_line);
 
-    found = out_line.find("background: ");
+    found = out_line.find("min_signal: ");
 
     if (found!=std::string::npos){
 
-        pars.background = stof(out_line.substr(found+12));
+        pars.var_th = stof(out_line.substr(found+12));
     } else {
 
         std::cout << "Setting file incomplete" << std::endl;
 
     }
+    
+    //file name (relative path)
+    std::getline(path_file,out_line);
+    
+    found = out_line.find("rel_error: ");
+    
+    if (found!=std::string::npos){
+        
+        pars.rel_error = stof(out_line.substr(found+11));
+    } else {
+        
+    }
+    
 
     pars.tol = 0.0005f;
-
-    pars.var_th = pars.noise_sigma;
-
-    pars.noise_sigma = sqrtf(pars.background);
 
     pars.var_scale = 2;
 

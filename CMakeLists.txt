@@ -127,6 +127,12 @@ add_executable(Example_get_apr
         ${SOURCE_FILES_COMPILED}
         )
 
+add_executable(Example_compute_cells
+        test/Examples/compute_cells.cpp
+        src/io/write_parts.cpp
+        ${SOURCE_FILES_COMPILED}
+        )
+
 add_executable(pipeline
     src/algorithm/pipeline.cpp
     src/io/write_parts.cpp
@@ -135,5 +141,5 @@ add_executable(pipeline
 
 target_link_libraries(pipeline ${HDF5_LIBRARIES} pthread tiff)
 target_link_libraries(Example_get_apr ${HDF5_LIBRARIES} pthread tiff)
-
+target_link_libraries(Example_compute_cells ${HDF5_LIBRARIES} pthread tiff)
 

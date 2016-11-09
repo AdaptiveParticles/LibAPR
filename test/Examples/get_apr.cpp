@@ -36,7 +36,7 @@ cmdLineOptions read_command_line_options(int argc, char **argv, Part_rep& part_r
     cmdLineOptions result;
     
     if(argc == 1) {
-        std::cerr << "Usage: \"pipeline -i inputfile [-t] [-s example_name -d stats_directory] [-o outputfile]\"" << std::endl;
+        std::cerr << "Usage: \"pipeline -i inputfile [-t] [-s statsfile -d directory] [-o outputfile]\"" << std::endl;
         exit(1);
     }
     
@@ -55,21 +55,13 @@ cmdLineOptions read_command_line_options(int argc, char **argv, Part_rep& part_r
     
     if(command_option_exists(argv, argv + argc, "-d"))
     {
-        result.stats_directory = std::string(get_command_option(argv, argv + argc, "-d"));
+        result.directory = std::string(get_command_option(argv, argv + argc, "-d"));
     }
     if(command_option_exists(argv, argv + argc, "-s"))
     {
         result.stats = std::string(get_command_option(argv, argv + argc, "-s"));
-        get_image_stats(part_rep.pars, result.stats_directory, result.stats);
+        get_image_stats(part_rep.pars, result.directory, result.stats);
         result.stats_file = true;
-    }
-    if(command_option_exists(argv, argv + argc, "-l"))
-    {
-        part_rep.pars.lambda = (float)std::atof(get_command_option(argv, argv + argc, "-l"));
-        if(part_rep.pars.lambda == 0.0){
-            std::cerr << "Lambda can't be zero" << std::endl;
-            exit(3);
-        }
     }
     if(command_option_exists(argv, argv + argc, "-t"))
     {
@@ -125,10 +117,6 @@ int main(int argc, char **argv) {
     variance.preallocate(gradient.y_num, gradient.x_num, gradient.z_num, 0);
     std::vector<Mesh_data<float>> down_sampled_images;
     
-    // variables for tree
-    std::vector<uint64_t> tree_mem(gradient.y_num * gradient.x_num * gradient.z_num * 1.25, 0);
-    std::vector<Content> contents(gradient.y_num * gradient.x_num * gradient.z_num, {0});
-    
     Mesh_data<float> temp;
     temp.preallocate(gradient.y_num, gradient.x_num, gradient.z_num, 0);
     
@@ -168,9 +156,8 @@ int main(int argc, char **argv) {
     part_rep.timer.stop_timer();
     
     //output
-    std::string save_loc = options.output;
-    std::string file_name = options.stats;
-    
+    std::string save_loc = options.directory;
+    std::string file_name = options.output;
     
     part_rep.timer.start_timer("writing output");
   

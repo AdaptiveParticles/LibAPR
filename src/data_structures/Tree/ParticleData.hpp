@@ -338,8 +338,8 @@ public:
         
         //If the previous cell calculated on was not the current one, calculate the particle cell neighbours (calculates all directions, this is to allow for better coping for irregular access, without excessive checking)
         if(!access_data.pc_key_cell_isequal(curr_key,neigh_cell_keys.curr)){
-            //pc_data.get_neighs_all(curr_key,node_val,neigh_cell_keys);
-            pc_data.get_neighs_face(curr_key,node_val,face,neigh_cell_keys);
+            pc_data.get_neighs_all(curr_key,node_val,neigh_cell_keys);
+            //pc_data.get_neighs_face(curr_key,node_val,face,neigh_cell_keys);
             
             U temp = 0;
             
