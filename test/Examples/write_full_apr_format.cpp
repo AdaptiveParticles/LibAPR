@@ -74,7 +74,7 @@ int main(int argc, char **argv) {
     cmdLineOptions options = read_command_line_options(argc, argv, part_rep);
     
     // APR data structure
-    PartCellStructure<uint16_t,uint64_t> pc_struct;
+    PartCellStructure<float,uint64_t> pc_struct;
     
     // Filename
     std::string file_name = options.directory + options.input;

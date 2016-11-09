@@ -337,7 +337,7 @@ private:
             //For each depth there are two loops, one for SEED status particles, at depth + 1, and one for BOUNDARY and FILLER CELLS, to ensure contiguous memory access patterns.
             
             // SEED PARTICLE STATUS LOOP (requires access to three data structures, particle access, particle data, and the part-map)
-#pragma omp parallel for default(shared) private(z_,x_,j_,node_val,status,y_coord,part_offset) reduction(+:num_cells,num_parts) if(z_num_*x_num_ > 100)
+//#pragma omp parallel for default(shared) private(z_,x_,j_,node_val,status,y_coord,part_offset) reduction(+:num_cells,num_parts)
             for(z_ = 0;z_ < z_num_;z_++){
                 
                 for(x_ = 0;x_ < x_num_;x_++){
@@ -1507,7 +1507,6 @@ private:
         
     
     }
-
 
 
 

@@ -75,13 +75,15 @@ int main(int argc, char **argv) {
     cmdLineOptions options = read_command_line_options(argc, argv, part_rep);
     
     // APR data structure
-    PartCellStructure<uint16_t,uint64_t> pc_struct;
+    PartCellStructure<float,uint64_t> pc_struct;
     
     // Filename
     std::string file_name = options.directory + options.input;
     
+    part_rep.timer.start_timer("Read Parts");
     // Read the apr file into the part cell structure
     read_apr_pc_struct(pc_struct,file_name);
+    part_rep.timer.stop_timer();
     
     //initialize variables required
     uint64_t node_val_pc; // node variable encoding neighbour and cell information
@@ -100,6 +102,10 @@ int main(int argc, char **argv) {
     uint64_t part_offset=0;
     uint64_t p;
     
+    
+    int num_cells = pc_struct.get_number_cells();
+    int num_parts = pc_struct.get_number_parts();
+
     //
     //
     //  Example 1:
@@ -169,8 +175,6 @@ int main(int argc, char **argv) {
         }
     }
     
-    std::cout << "Finished Neigh Parts" << std::endl;
-    
     
     part_rep.timer.stop_timer();
     
@@ -185,7 +189,7 @@ int main(int argc, char **argv) {
     //
     //
     
-    part_rep.timer.start_timer("Loop over parts and add all the neighbours, and get there coordinates");
+    part_rep.timer.start_timer("Loop over parts and get -z neighbour and its intensity, and get there coordinates");
     
     for(int i = pc_struct.pc_data.depth_min;i <= pc_struct.pc_data.depth_max;i++){
         //loop over the resolutions of the structure
@@ -289,8 +293,9 @@ int main(int argc, char **argv) {
         }
     }
     
-    std::cout << "Finished Neigh Parts" << std::endl;
     
+    part_rep.timer.stop_timer();
+
     
 }
 

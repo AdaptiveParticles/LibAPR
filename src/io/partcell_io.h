@@ -456,8 +456,6 @@ void write_apr_pc_struct(PartCellStructure<T,uint64_t>& pc_struct,std::string sa
             name = "p_map_"+std::to_string(i);
             hdf5_write_data(obj_id,H5T_NATIVE_UINT8,name.c_str(),rank,&dims, p_map.data());
             
-            
-            
             name = "p_map_x_num_"+std::to_string(i);
             hsize_t attr = x_num_;
             hdf5_write_attribute(pr_groupid,H5T_NATIVE_INT,name.c_str(),1,&dim_a, &attr);
@@ -615,6 +613,7 @@ void read_apr_pc_struct(PartCellStructure<T,uint64_t>& pc_struct,std::string fil
         
         name = "Ip_"+std::to_string(i);
         hdf5_load_data(obj_id,H5T_NATIVE_UINT16,Ip[i].data(),name.c_str());
+        
         
         pc_struct.x_num[i] = x_num;
         pc_struct.y_num[i] = y_num;

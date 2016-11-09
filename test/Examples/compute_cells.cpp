@@ -75,7 +75,7 @@ int main(int argc, char **argv) {
     cmdLineOptions options = read_command_line_options(argc, argv, part_rep);
     
     // COMPUTATIONS
-    PartCellStructure<uint16_t,uint64_t> pc_struct;
+    PartCellStructure<float,uint64_t> pc_struct;
     
     //output
     std::string file_name = options.directory + options.input;
@@ -90,6 +90,13 @@ int main(int argc, char **argv) {
     uint64_t j_;
     uint64_t curr_key = 0;
     PartCellNeigh<uint64_t> neigh_keys;
+    
+    
+    int num_cells = pc_struct.get_number_cells();
+    int num_parts = pc_struct.get_number_parts();
+    
+    std::cout << "Number cells: " << num_cells << std::endl;
+    std::cout << "Number parts: " << num_parts << std::endl;
     
     // Example 1:
     
@@ -116,7 +123,6 @@ int main(int argc, char **argv) {
             //set the key values
             pc_struct.pc_data.pc_key_set_z(curr_key,z_);
             pc_struct.pc_data.pc_key_set_depth(curr_key,i);
-            
             
             for(x_ = 0;x_ < x_num_;x_++){
                 
@@ -153,7 +159,6 @@ int main(int argc, char **argv) {
         }
     }
     
-    std::cout << "Finished Neigh Cell test" << std::endl;
     
     
     part_rep.timer.stop_timer();

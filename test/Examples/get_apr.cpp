@@ -73,6 +73,7 @@ cmdLineOptions read_command_line_options(int argc, char **argv, Part_rep& part_r
 }
 
 
+
 int main(int argc, char **argv) {
     
     Part_rep part_rep;
@@ -164,6 +165,9 @@ int main(int argc, char **argv) {
     write_apr_pc_struct(pcell_test,save_loc,file_name);
     
     part_rep.timer.stop_timer();
+    
+    
+    read_write_structure_test(pcell_test);
     
 }
 
