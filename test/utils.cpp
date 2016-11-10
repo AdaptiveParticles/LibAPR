@@ -1201,6 +1201,26 @@ bool parent_structure_test(PartCellStructure<float,uint64_t>& pc_struct){
         }
     }
     
+    Mesh_data<uint8_t> temp;
+    //print files
+    for(int i = pc_struct.depth_min;i < pc_struct.depth_max; i++){
+        temp.y_num = pc_struct.y_num[i];
+        temp.x_num = pc_struct.x_num[i];
+        temp.z_num = pc_struct.z_num[i];
+        temp.mesh = parent_map[i];
+        debug_write(temp,"parent_map" + std::to_string(i));
+    }
+    
+    //print files
+    for(int i = pc_struct.depth_min;i <= pc_struct.depth_max; i++){
+        temp.y_num = pc_struct.y_num[i];
+        temp.x_num = pc_struct.x_num[i];
+        temp.z_num = pc_struct.z_num[i];
+        temp.mesh = p_map[i];
+        debug_write(temp,"p_map" + std::to_string(i));
+    }
+    
+    
     /////////////////////////////////
     //
     //  Create parent structure and check it
@@ -1447,6 +1467,7 @@ bool parent_structure_test(PartCellStructure<float,uint64_t>& pc_struct){
                                         //check if the child points to the correct parent
                                     } else {
                                         std::cout << "child error" << std::endl;
+                                        parent_cells.get_children_keys(curr_key,children_keys,children_ind);
                                         pass_test = false;
                                     }
                                     
@@ -1472,7 +1493,8 @@ bool parent_structure_test(PartCellStructure<float,uint64_t>& pc_struct){
                                     if(pmap_val > 0){
                                         //correct
                                     } else {
-                                        std::cout << "CHILD REAL BUG" << std::endl;
+                                        std::cout << "CHILD REAL BUG" << offset << std::endl;
+                                        parent_cells.get_child_coordinates_cell(children_keys,c,y_coord,child_y,child_x,child_z,child_depth);
                                         pass_test = false;
                                     }
                                     

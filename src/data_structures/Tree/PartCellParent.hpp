@@ -86,7 +86,7 @@ public:
         //returns the parent access key
         
         T parent_key = 0;
-        if ((parent_info.pc_key_get_depth(curr_key)-1) > parent_info.depth_min){
+        if ((parent_info.pc_key_get_depth(curr_key)-1) >= parent_info.depth_min){
             parent_info.pc_key_set_x(parent_key,parent_info.pc_key_get_x(curr_key)/2);
             parent_info.pc_key_set_z(parent_key,parent_info.pc_key_get_z(curr_key)/2);
             parent_info.pc_key_set_depth(parent_key,parent_info.pc_key_get_depth(curr_key)-1);
@@ -95,7 +95,7 @@ public:
         return parent_key;
     }
     
-    T get_child_real_ind(const T& node_val_neigh_info,T index){
+    T get_child_real_ind(const T& node_val_parent_info2,T index){
         //
         //  Returns whether or not the child is a real particle cell or a ghost
         //
@@ -103,7 +103,7 @@ public:
         constexpr uint64_t child_real_mask[8] = {CHILD0_REAL_MASK,CHILD1_REAL_MASK,CHILD2_REAL_MASK,CHILD3_REAL_MASK,CHILD4_REAL_MASK,CHILD5_REAL_MASK,CHILD6_REAL_MASK,CHILD7_REAL_MASK};
         constexpr uint64_t child_real_shift[8] =  {CHILD0_REAL_SHIFT,CHILD1_REAL_SHIFT,CHILD2_REAL_SHIFT,CHILD3_REAL_SHIFT,CHILD4_REAL_SHIFT,CHILD5_REAL_SHIFT,CHILD6_REAL_SHIFT,CHILD7_REAL_SHIFT};
         
-        return ((node_val_neigh_info & child_real_mask[index]) >> child_real_shift[index]);
+        return ((node_val_parent_info2 & child_real_mask[index]) >> child_real_shift[index]);
         
         
     }
@@ -395,8 +395,8 @@ private:
             
             const unsigned int x_num_parent = parent_info.x_num[i-1];
             
-            
-#pragma omp parallel for default(shared) private(z_,x_,j_,node_val,y_parent,j_parent,y_coord) if(z_num_*x_num_ > 100)
+            //Don't parallize this loop due to race condition on variable read/write
+//#pragma omp parallel for default(shared) private(z_,x_,j_,node_val,y_parent,j_parent,y_coord) if(z_num_*x_num_ > 100)
             for(z_ = 0;z_ < (z_num_);z_++){
                 
                 for(x_ = 0;x_ < (x_num_);x_++){
@@ -466,10 +466,10 @@ private:
                                         
                                         if(x_ == x_parent*2){
                                             parent_info.data[i-1][offset_pc_data_parent][j_parent] |= (j_ << CHILD0_SHIFT);
-                                            parent_info2.data[i-1][offset_pc_data_parent][j_parent] |= (1 << CHILD0_REAL_SHIFT);
-                                        } else {
+                                            parent_info2.data[i-1][offset_pc_data_parent][j_parent] |= (((uint64_t)1) << CHILD0_REAL_SHIFT);
+                                        } else if(x_ == (x_parent*2+1)) {
                                             parent_info.data[i-1][offset_pc_data_parent][j_parent] |= (j_ << CHILD2_SHIFT);
-                                            parent_info2.data[i-1][offset_pc_data_parent][j_parent] |= (1 << CHILD2_REAL_SHIFT);
+                                            parent_info2.data[i-1][offset_pc_data_parent][j_parent] |= (((uint64_t)1) << CHILD2_REAL_SHIFT);
                                         }
                                         
                                     } else if(z_ == (z_parent*2+1)) {
@@ -489,13 +489,13 @@ private:
                                         
                                         if(x_ == x_parent*2){
                                             parent_info2.data[i-1][offset_pc_data_parent][j_parent] |= (j_ << CHILD1_SHIFT);
-                                            parent_info2.data[i-1][offset_pc_data_parent][j_parent] |= (1 << CHILD1_REAL_SHIFT);
+                                            parent_info2.data[i-1][offset_pc_data_parent][j_parent] |= (((uint64_t)1) << CHILD1_REAL_SHIFT);
                                         } else if(x_ == (x_parent*2+1)) {
                                             parent_info2.data[i-1][offset_pc_data_parent][j_parent] |= (j_ << CHILD3_SHIFT);
-                                            parent_info2.data[i-1][offset_pc_data_parent][j_parent] |= (1 << CHILD3_REAL_SHIFT);
+                                            parent_info2.data[i-1][offset_pc_data_parent][j_parent] |= (((uint64_t)1) << CHILD3_REAL_SHIFT);
                                         }
                                         
-                                    } else {
+                                    } else if(z_ == (z_parent*2+1)){
                                         if(x_ == x_parent*2){
                                             parent_info2.data[i-1][offset_pc_data_parent][j_parent] |= (j_ << CHILD5_SHIFT);
                                             parent_info2.data[i-1][offset_pc_data_parent][j_parent] |= (((uint64_t)1) << CHILD5_REAL_SHIFT);
