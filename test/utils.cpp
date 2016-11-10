@@ -1413,9 +1413,76 @@ bool parent_structure_test(PartCellStructure<float,uint64_t>& pc_struct){
                         std::vector<uint64_t> children_keys;
                         std::vector<uint64_t> children_ind;
                         
-                        parent_cells.get_children_keys(node_val_parent,node_val,curr_key,children_keys,children_ind);
+                        parent_cells.get_children_keys(curr_key,children_keys,children_ind);
                         
-                        //need to figure out how i'm going to deal with these guys
+                        //loop over the children
+                        for(uint64_t c = 0; c < children_keys.size();c++){
+                            
+                            uint64_t child = children_keys[c];
+                            //first question is does it exist
+                            if(child > 0){
+                                
+                                uint64_t child_y = 0;
+                                uint64_t child_x = 0;
+                                uint64_t child_z = 0;
+                                uint64_t child_depth = 0;
+                                
+                                //get the coordinates
+                                parent_cells.get_child_coordinates_cell(children_keys,c,y_coord,child_y,child_x,child_z,child_depth);
+                                
+                                if(children_ind[c] == 0){
+                                    // it is a parent node,
+                                    
+                                    uint64_t child_j = parent_cells.parent_info.pc_key_get_j(child);
+                                    uint64_t child_parent = parent_cells.parent_info.get_val(child);
+                                    uint64_t child_parent2 = parent_cells.parent_info2.get_val(child);
+                                    uint64_t child_neigh = parent_cells.neigh_info.get_val(child);
+                                    
+                                    (void) child_parent2;
+                                    (void) child_neigh; //force execution
+                                    
+                                    uint64_t parent_j = parent_cells.get_parent_j(child_parent);
+                                    
+                                    if (parent_j == j_){
+                                        //check if the child points to the correct parent
+                                    } else {
+                                        std::cout << "child error" << std::endl;
+                                        pass_test = false;
+                                    }
+                                    
+                                    //check it in the parent_map structure
+                                    uint64_t offset = child_z*pc_struct.y_num[child_depth]*pc_struct.x_num[child_depth] + child_x*pc_struct.y_num[child_depth] + child_y;
+                                    
+                                    if((parent_map[child_depth][offset] > 0) & (p_map[child_depth][offset] == 0)){
+                                        //correct
+                                    } else {
+                                        std::cout << "CHILD PARENT BUG" << std::endl;
+                                        pass_test = false;
+                                    }
+                                    
+                                } else {
+                                    //it is a real node check different things here
+                                    
+                                    
+                                    //check it in the parent_map structure
+                                    uint64_t offset = child_z*pc_struct.y_num[child_depth]*pc_struct.x_num[child_depth] + child_x*pc_struct.y_num[child_depth] + child_y;
+                                    
+                                    uint64_t pmap_val = p_map[child_depth][offset];
+                                    
+                                    if(pmap_val > 0){
+                                        //correct
+                                    } else {
+                                        std::cout << "CHILD REAL BUG" << std::endl;
+                                        pass_test = false;
+                                    }
+                                    
+                                    
+
+                                }
+                            }
+                            
+                            
+                        }
                         
                         
                     } else {

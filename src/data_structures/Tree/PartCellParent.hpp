@@ -16,48 +16,60 @@
 #define PARENT_MASK ((((uint64_t)1) << 12) - 1) << 0
 #define PARENT_SHIFT 0
 
-// Next child can be accessed by a simple yshift ++ on the node
-#define CHILD1_MASK ((((uint64_t)1) << 13) - 1) << 12 // y0,x0,z0
-#define CHILD1_SHIFT 12
+// First set of children
+#define CHILD0_MASK ((((uint64_t)1) << 13) - 1) << 12 // y0,x0,z0
+#define CHILD0_SHIFT 12
 
 #define CHILD2_MASK ((((uint64_t)1) << 13) - 1) << 25 // y0,x1,z0
 #define CHILD2_SHIFT 25
 
-#define CHILD3_MASK ((((uint64_t)1) << 13) - 1) << 38 // y0,x0,z1
-#define CHILD3_SHIFT 38
+#define CHILD4_MASK ((((uint64_t)1) << 13) - 1) << 38 // y0,x0,z1
+#define CHILD4_SHIFT 38
 
-#define CHILD4_MASK ((((uint64_t)1) << 13) - 1) << 51 // y0,x1,z1
-#define CHILD4_SHIFT 51
+#define CHILD6_MASK ((((uint64_t)1) << 13) - 1) << 51 // y0,x1,z1
+#define CHILD6_SHIFT 51
+
+// Second set of children
+#define CHILD1_MASK ((((uint64_t)1) << 13) - 1) << 12 // y0,x0,z0
+#define CHILD1_SHIFT 12
+
+#define CHILD3_MASK ((((uint64_t)1) << 13) - 1) << 25 // y0,x1,z0
+#define CHILD3_SHIFT 25
+
+#define CHILD5_MASK ((((uint64_t)1) << 13) - 1) << 38 // y0,x0,z1
+#define CHILD5_SHIFT 38
+
+#define CHILD7_MASK ((((uint64_t)1) << 13) - 1) << 51 // y0,x1,z1
+#define CHILD7_SHIFT 51
 
 // CHILD STATUS (To be used with the regular part data access strategy) (neigh_info)
 
 #define REAL_CHILDREN 2
 #define GHOST_CHILDREN 1
 
-#define CHILD0_REAL_MASK ((((uint64_t)1) << 1) - 1) << 4
-#define CHILD0_REAL_SHIFT 4
+#define CHILD0_REAL_MASK ((((uint64_t)1) << 1) - 1) << 0
+#define CHILD0_REAL_SHIFT 0
 
-#define CHILD1_REAL_MASK ((((uint64_t)1) << 1) - 1) << 5
-#define CHILD1_REAL_SHIFT 5
+#define CHILD1_REAL_MASK ((((uint64_t)1) << 1) - 1) << 1
+#define CHILD1_REAL_SHIFT 1
 
-#define CHILD2_REAL_MASK ((((uint64_t)1) << 1) - 1) << 19
-#define CHILD2_REAL_SHIFT 19
+#define CHILD2_REAL_MASK ((((uint64_t)1) << 1) - 1) << 2
+#define CHILD2_REAL_SHIFT 2
 
-#define CHILD3_REAL_MASK ((((uint64_t)1) << 1) - 1) << 20
-#define CHILD3_REAL_SHIFT 20
+#define CHILD3_REAL_MASK ((((uint64_t)1) << 1) - 1) << 3
+#define CHILD3_REAL_SHIFT 3
 
-#define CHILD4_REAL_MASK ((((uint64_t)1) << 1) - 1) << 34
-#define CHILD4_REAL_SHIFT 34
+#define CHILD4_REAL_MASK ((((uint64_t)1) << 1) - 1) << 4
+#define CHILD4_REAL_SHIFT 4
 
-#define CHILD5_REAL_MASK ((((uint64_t)1) << 1) - 1) << 35
-#define CHILD5_REAL_SHIFT 35
+#define CHILD5_REAL_MASK ((((uint64_t)1) << 1) - 1) << 5
+#define CHILD5_REAL_SHIFT 5
 
-#define CHILD6_REAL_MASK ((((uint64_t)1) << 1) - 1) << 49
-#define CHILD6_REAL_SHIFT 49
+#define CHILD6_REAL_MASK ((((uint64_t)1) << 1) - 1) << 6
+#define CHILD6_REAL_SHIFT 6
 
-#define CHILD7_REAL_MASK ((((uint64_t)1) << 1) - 1) << 50
-#define CHILD7_REAL_SHIFT 50
-
+#define CHILD7_REAL_MASK ((((uint64_t)1) << 1) - 1) << 7
+#define CHILD7_REAL_SHIFT 7
 
 // type T data structure base type
 template <typename T>
@@ -96,12 +108,19 @@ public:
         
     }
     
-    void get_children_keys(const T& node_val_parent_info,const T& node_val_neigh_info,const T& curr_key,std::vector<T>& children_keys,std::vector<T>& children_flag){
+    void get_children_keys(const T& curr_key,std::vector<T>& children_keys,std::vector<T>& children_flag){
         //
         //  Returns the children keys from the structure
         //
         //  Ordering follows particle ordering ((0,0,0),(1,0,0),(0,1,0),(1,1,0),..) y,x then z
         //
+        
+        constexpr uint64_t child_mask[8] = {CHILD0_MASK,CHILD1_MASK,CHILD2_MASK,CHILD3_MASK,CHILD4_MASK,CHILD5_MASK,CHILD6_MASK,CHILD7_MASK};
+        constexpr uint64_t child_shift[8] =  {CHILD0_SHIFT,CHILD1_SHIFT,CHILD2_SHIFT,CHILD3_SHIFT,CHILD4_SHIFT,CHILD5_SHIFT,CHILD6_SHIFT,CHILD7_SHIFT};
+        
+        T parent_val = parent_info.get_val(curr_key);
+        T parent_val2 = parent_info2.get_val(curr_key);
+        
         children_keys.resize(8,0);
         children_flag.resize(8,0);
         
@@ -109,90 +128,27 @@ public:
         T child_z = parent_info.pc_key_get_z(curr_key)*2;
         T child_depth = parent_info.pc_key_get_depth(curr_key)+1;
         
+        uint64_t child_index = 0;
+        
         //loop over and set variables
         for(int p = 0; p < 8;p++){
-            parent_info.pc_key_set_x(children_keys[p],child_x + parent_info.seed_part_x[p]);
-            parent_info.pc_key_set_z(children_keys[p],child_z + parent_info.seed_part_z[p]);
-            parent_info.pc_key_set_depth(children_keys[p],child_depth);
-            children_flag[p] = get_child_real_ind(node_val_neigh_info,p); //indicates which structure the child is in
-        }
-        
-        
-        uint64_t child_index = ((node_val_parent_info & CHILD1_MASK) >> CHILD1_SHIFT);
-        uint64_t child_exist = 0;
-        
-        if(child_index > 0){
-            parent_info.pc_key_set_j(children_keys[0],child_index);
             
-            parent_info.pc_key_set_j(children_keys[1],child_index+1);
-            //if it exists in the real structure (it exists and the below check will not work)
-            if(children_flag[1] ==1){
-                child_exist = 1;
+            if(p&1){
+                //odd
+                child_index = ((parent_val2 & child_mask[p]) >> child_shift[p]);
             } else {
-                child_exist = !((neigh_info.get_val(children_keys[1]))&1);
+                child_index = ((parent_val & child_mask[p]) >> child_shift[p]);
             }
             
-            if(child_exist){
-                //exists
-            } else {
-                children_keys[1] = 0;
-            }
+            if(child_index > 0){
             
-        } else {
-            children_keys[0] = 0;
-            children_keys[1] = 0;
+                parent_info.pc_key_set_x(children_keys[p],child_x + parent_info.seed_part_x[p]);
+                parent_info.pc_key_set_z(children_keys[p],child_z + parent_info.seed_part_z[p]);
+                parent_info.pc_key_set_depth(children_keys[p],child_depth);
+                children_flag[p] = get_child_real_ind(parent_val2,p); //indicates which structure the child is in
+                parent_info.pc_key_set_j(children_keys[p],child_index);
+            }
         }
-        
-        child_index = ((node_val_parent_info & CHILD2_MASK) >> CHILD2_SHIFT);
-        
-        if(child_index > 0){
-            parent_info.pc_key_set_j(children_keys[2],child_index);
-            
-            if(child_exist){
-                parent_info.pc_key_set_j(children_keys[3],child_index+1);
-            }
-            else {
-                children_keys[3] = 0;
-            }
-        } else {
-            children_keys[2] = 0;
-            children_keys[3] = 0;
-        }
-        
-        child_index = ((node_val_parent_info & CHILD3_MASK) >> CHILD3_SHIFT);
-        
-        if(child_index > 0){
-            parent_info.pc_key_set_j(children_keys[4],child_index);
-            
-            if(child_exist){
-                parent_info.pc_key_set_j(children_keys[5],child_index+1);
-            }
-            else {
-                children_keys[5] = 0;
-            }
-        } else {
-            children_keys[4] = 0;
-            children_keys[5] = 0;
-        }
-        
-        child_index = ((node_val_parent_info & CHILD4_MASK) >> CHILD4_SHIFT);
-        
-        if(child_index > 0){
-            parent_info.pc_key_set_j(children_keys[6],child_index);
-            
-            if(child_exist){
-                parent_info.pc_key_set_j(children_keys[7],child_index+1);
-            }
-            else {
-                children_keys[7] = 0;
-            }
-        } else {
-            children_keys[6] = 0;
-            children_keys[7] = 0;
-        }
-        
-        
-        
         
     }
     
@@ -250,6 +206,7 @@ public:
     
     PartCellData<T> neigh_info;
     PartCellData<T> parent_info;
+    PartCellData<T> parent_info2;
     
     
 private:
@@ -359,23 +316,38 @@ private:
                                     if(z_ == z_parent*2){
                                         
                                         if(x_ == x_parent*2){
-                                           parent_info.data[i-1][offset_pc_data_parent][j_parent] |= (j_ << CHILD1_SHIFT);
+                                           parent_info.data[i-1][offset_pc_data_parent][j_parent] |= (j_ << CHILD0_SHIFT);
                                         } else {
                                            parent_info.data[i-1][offset_pc_data_parent][j_parent] |= (j_ << CHILD2_SHIFT);
                                         }
                                         
                                     } else {
                                         if(x_ == x_parent*2){
-                                            parent_info.data[i-1][offset_pc_data_parent][j_parent] |= (j_ << CHILD3_SHIFT);
-                                        } else {
                                             parent_info.data[i-1][offset_pc_data_parent][j_parent] |= (j_ << CHILD4_SHIFT);
+                                        } else {
+                                            parent_info.data[i-1][offset_pc_data_parent][j_parent] |= (j_ << CHILD6_SHIFT);
                                         }
                                         
                                     }
                                     
                                 }
                             } else {
-                                //std::cout << "BUG" << std::endl;
+                                if(z_ == z_parent*2){
+                                    
+                                    if(x_ == x_parent*2){
+                                        parent_info2.data[i-1][offset_pc_data_parent][j_parent] |= (j_ << CHILD1_SHIFT);
+                                    } else {
+                                        parent_info2.data[i-1][offset_pc_data_parent][j_parent] |= (j_ << CHILD3_SHIFT);
+                                    }
+                                    
+                                } else {
+                                    if(x_ == x_parent*2){
+                                        parent_info2.data[i-1][offset_pc_data_parent][j_parent] |= (j_ << CHILD5_SHIFT);
+                                    } else {
+                                        parent_info2.data[i-1][offset_pc_data_parent][j_parent] |= (j_ << CHILD7_SHIFT);
+                                    }
+                                    
+                                }
                             }
                         }
                     }
@@ -409,55 +381,7 @@ private:
         
         //first loop over the nodes and set the indicators all to 0
         
-        //loop over different resolutions (from lowest (corsest) to highests (finenest))
-        for(int i = parent_info.depth_min;i <= parent_info.depth_max;i++){
-            
-            const unsigned int x_num_ = parent_info.x_num[i];
-            const unsigned int z_num_ = parent_info.z_num[i];
-            
-            
-#pragma omp parallel for default(shared) private(z_,x_,j_,node_val) if(z_num_*x_num_ > 100)
-            for(z_ = 0;z_ < z_num_;z_++){
-                
-                
-                for(x_ = 0;x_ < x_num_;x_++){
-                    
-                   
-                    
-                    const size_t offset_pc_data = x_num_*z_ + x_;
-                    
-                    //number of nodes on the level
-                    const size_t j_num = parent_info.data[i][offset_pc_data].size();
-                    
-                    for(j_ = 0;j_ < j_num;j_++){
-                        
-                        //this value encodes the state and neighbour locations of the particle cell
-                        node_val = parent_info.data[i][offset_pc_data][j_];
-                        
-                        if (!(node_val&1)){
-                            //Set to zero
-                            node_val &= -((CHILD0_REAL_MASK) + 1);
-                            node_val &= -((CHILD1_REAL_MASK) + 1);
-                            node_val &= -((CHILD2_REAL_MASK) + 1);
-                            node_val &= -((CHILD3_REAL_MASK) + 1);
-                            node_val &= -((CHILD4_REAL_MASK) + 1);
-                            node_val &= -((CHILD5_REAL_MASK) + 1);
-                            node_val &= -((CHILD6_REAL_MASK) + 1);
-                            node_val &= -((CHILD7_REAL_MASK) + 1);
-                            //set it back with the depth indicators cleared.
-                            parent_info.data[i][offset_pc_data][j_] = node_val;
-                            
-                        } else {
-                            //This is a gap node
-                        }
-                        
-                    }
-                    
-                }
-                
-            }
-        }
-
+       
         
         //
         //  loops simultaneously over the real structure and the neigh parent structure, to create the real links, and set the correct indicator variable.
@@ -541,39 +465,43 @@ private:
                                     if(z_ == z_parent*2){
                                         
                                         if(x_ == x_parent*2){
-                                            parent_info.data[i-1][offset_pc_data_parent][j_parent] |= (j_ << CHILD1_SHIFT);
-                                            parent_info.data[i-1][offset_pc_data_parent][j_parent] |= (1 << CHILD0_REAL_SHIFT);
+                                            parent_info.data[i-1][offset_pc_data_parent][j_parent] |= (j_ << CHILD0_SHIFT);
+                                            parent_info2.data[i-1][offset_pc_data_parent][j_parent] |= (1 << CHILD0_REAL_SHIFT);
                                         } else {
                                             parent_info.data[i-1][offset_pc_data_parent][j_parent] |= (j_ << CHILD2_SHIFT);
-                                            parent_info.data[i-1][offset_pc_data_parent][j_parent] |= (1 << CHILD2_REAL_SHIFT);
+                                            parent_info2.data[i-1][offset_pc_data_parent][j_parent] |= (1 << CHILD2_REAL_SHIFT);
                                         }
                                         
-                                    } else {
+                                    } else if(z_ == (z_parent*2+1)) {
                                         if(x_ == x_parent*2){
-                                            parent_info.data[i-1][offset_pc_data_parent][j_parent] |= (j_ << CHILD3_SHIFT);
-                                            parent_info.data[i-1][offset_pc_data_parent][j_parent] |= (((uint64_t)1) << CHILD4_REAL_SHIFT);
-                                        } else {
                                             parent_info.data[i-1][offset_pc_data_parent][j_parent] |= (j_ << CHILD4_SHIFT);
-                                            parent_info.data[i-1][offset_pc_data_parent][j_parent] |= (((uint64_t)1)  << CHILD6_REAL_SHIFT);
+                                            parent_info2.data[i-1][offset_pc_data_parent][j_parent] |= (((uint64_t)1) << CHILD4_REAL_SHIFT);
+                                        } else if(x_ == (x_parent*2+1)) {
+                                            parent_info.data[i-1][offset_pc_data_parent][j_parent] |= (j_ << CHILD6_SHIFT);
+                                            parent_info2.data[i-1][offset_pc_data_parent][j_parent] |= (((uint64_t)1)  << CHILD6_REAL_SHIFT);
                                         }
                                         
                                     }
                                     
-                                } else {
+                                } else if(y_coord == (y_parent*2+1)) {
                                     //setting the parent child indicators
                                     if(z_ == z_parent*2){
                                         
                                         if(x_ == x_parent*2){
-                                            parent_info.data[i-1][offset_pc_data_parent][j_parent] |= (1 << CHILD1_REAL_SHIFT);
-                                        } else {
-                                            parent_info.data[i-1][offset_pc_data_parent][j_parent] |= (1 << CHILD3_REAL_SHIFT);
+                                            parent_info2.data[i-1][offset_pc_data_parent][j_parent] |= (j_ << CHILD1_SHIFT);
+                                            parent_info2.data[i-1][offset_pc_data_parent][j_parent] |= (1 << CHILD1_REAL_SHIFT);
+                                        } else if(x_ == (x_parent*2+1)) {
+                                            parent_info2.data[i-1][offset_pc_data_parent][j_parent] |= (j_ << CHILD3_SHIFT);
+                                            parent_info2.data[i-1][offset_pc_data_parent][j_parent] |= (1 << CHILD3_REAL_SHIFT);
                                         }
                                         
                                     } else {
                                         if(x_ == x_parent*2){
-                                            parent_info.data[i-1][offset_pc_data_parent][j_parent] |= (((uint64_t)1) << CHILD5_REAL_SHIFT);
-                                        } else {
-                                            parent_info.data[i-1][offset_pc_data_parent][j_parent] |= (((uint64_t)1) << CHILD7_REAL_SHIFT);
+                                            parent_info2.data[i-1][offset_pc_data_parent][j_parent] |= (j_ << CHILD5_SHIFT);
+                                            parent_info2.data[i-1][offset_pc_data_parent][j_parent] |= (((uint64_t)1) << CHILD5_REAL_SHIFT);
+                                        } else if(x_ == (x_parent*2+1)) {
+                                            parent_info2.data[i-1][offset_pc_data_parent][j_parent] |= (j_ << CHILD7_SHIFT);
+                                            parent_info2.data[i-1][offset_pc_data_parent][j_parent] |= (((uint64_t)1) << CHILD7_REAL_SHIFT);
                                         }
                                         
                                     }
@@ -743,6 +671,9 @@ private:
         parent_info.depth_max = pc_struct.pc_data.depth_max-1;
         parent_info.depth_min = pc_struct.pc_data.depth_min;
         
+        parent_info2.depth_max = pc_struct.pc_data.depth_max-1;
+        parent_info2.depth_min = pc_struct.pc_data.depth_min;
+        
         neigh_info.depth_max = pc_struct.pc_data.depth_max-1;
         neigh_info.depth_min = pc_struct.pc_data.depth_min;
         
@@ -767,6 +698,9 @@ private:
             parent_info.x_num[i] = pc_struct.pc_data.x_num[i];
             parent_info.data[i].resize(parent_info.z_num[i]*parent_info.x_num[i]);
         }
+        
+        parent_info2.z_num = parent_info.z_num;
+        parent_info2.x_num = parent_info.x_num;
         
         //temporary array needs to be created for efficient creation of the parent structure
         std::vector<std::vector<uint8_t>> parent_map;
@@ -938,6 +872,19 @@ private:
             }
             
         }
+        
+        //copy across the data
+        parent_info2.data.resize(parent_info.data.size());
+        //copy over to parent info2
+        for(int i = 0;i < parent_info.data.size();i++){
+            
+            parent_info2.data[i].resize(parent_info.data[i].size());
+            
+            for(int j = 0;j < parent_info.data[i].size();j++){
+                parent_info2.data[i][j].resize(parent_info.data[i][j].size(),0);
+            }
+        }
+    
         
         uint64_t prev_coord = 0;
         
