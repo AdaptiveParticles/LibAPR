@@ -350,8 +350,6 @@ public:
         y_ = current_y;
         z_ = pc_key_get_z(curr_key);
         depth_ = pc_key_get_depth(curr_key);
-        
-        
     }
     
     void get_coordinates_part(T current_y,const T& curr_key,T& x_,T& z_,T& y_,T& depth_,T& status_){

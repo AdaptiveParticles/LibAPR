@@ -1411,8 +1411,9 @@ bool parent_structure_test(PartCellStructure<float,uint64_t>& pc_struct){
                         
                         // Get children method
                         std::vector<uint64_t> children_keys;
+                        std::vector<uint64_t> children_ind;
                         
-                        parent_cells.get_children_keys(node_val_parent,curr_key,children_keys);
+                        parent_cells.get_children_keys(node_val_parent,node_val,curr_key,children_keys,children_ind);
                         
                         //need to figure out how i'm going to deal with these guys
                         

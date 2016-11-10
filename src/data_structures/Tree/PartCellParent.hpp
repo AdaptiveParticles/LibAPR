@@ -34,6 +34,31 @@
 #define REAL_CHILDREN 2
 #define GHOST_CHILDREN 1
 
+#define CHILD0_REAL_MASK ((((uint64_t)1) << 1) - 1) << 4
+#define CHILD0_REAL_SHIFT 4
+
+#define CHILD1_REAL_MASK ((((uint64_t)1) << 1) - 1) << 5
+#define CHILD1_REAL_SHIFT 5
+
+#define CHILD2_REAL_MASK ((((uint64_t)1) << 1) - 1) << 19
+#define CHILD2_REAL_SHIFT 19
+
+#define CHILD3_REAL_MASK ((((uint64_t)1) << 1) - 1) << 20
+#define CHILD3_REAL_SHIFT 20
+
+#define CHILD4_REAL_MASK ((((uint64_t)1) << 1) - 1) << 34
+#define CHILD4_REAL_SHIFT 34
+
+#define CHILD5_REAL_MASK ((((uint64_t)1) << 1) - 1) << 35
+#define CHILD5_REAL_SHIFT 35
+
+#define CHILD6_REAL_MASK ((((uint64_t)1) << 1) - 1) << 49
+#define CHILD6_REAL_SHIFT 49
+
+#define CHILD7_REAL_MASK ((((uint64_t)1) << 1) - 1) << 50
+#define CHILD7_REAL_SHIFT 50
+
+
 // type T data structure base type
 template <typename T>
 class PartCellParent {
@@ -58,13 +83,27 @@ public:
         return parent_key;
     }
     
-    void get_children_keys(const T& node_val_parent_info,const T& curr_key,std::vector<T>& children_keys){
+    T get_child_real_ind(const T& node_val_neigh_info,T index){
+        //
+        //  Returns whether or not the child is a real particle cell or a ghost
+        //
+        
+        constexpr uint64_t child_real_mask[8] = {CHILD0_REAL_MASK,CHILD1_REAL_MASK,CHILD2_REAL_MASK,CHILD3_REAL_MASK,CHILD4_REAL_MASK,CHILD5_REAL_MASK,CHILD6_REAL_MASK,CHILD7_REAL_MASK};
+        constexpr uint64_t child_real_shift[8] =  {CHILD0_REAL_SHIFT,CHILD1_REAL_SHIFT,CHILD2_REAL_SHIFT,CHILD3_REAL_SHIFT,CHILD4_REAL_SHIFT,CHILD5_REAL_SHIFT,CHILD6_REAL_SHIFT,CHILD7_REAL_SHIFT};
+        
+        return ((node_val_neigh_info & child_real_mask[index]) >> child_real_shift[index]);
+        
+        
+    }
+    
+    void get_children_keys(const T& node_val_parent_info,const T& node_val_neigh_info,const T& curr_key,std::vector<T>& children_keys,std::vector<T>& children_flag){
         //
         //  Returns the children keys from the structure
         //
         //  Ordering follows particle ordering ((0,0,0),(1,0,0),(0,1,0),(1,1,0),..) y,x then z
         //
         children_keys.resize(8,0);
+        children_flag.resize(8,0);
         
         T child_x = parent_info.pc_key_get_x(curr_key)*2;
         T child_z = parent_info.pc_key_get_z(curr_key)*2;
@@ -75,23 +114,110 @@ public:
             parent_info.pc_key_set_x(children_keys[p],child_x + parent_info.seed_part_x[p]);
             parent_info.pc_key_set_z(children_keys[p],child_z + parent_info.seed_part_z[p]);
             parent_info.pc_key_set_depth(children_keys[p],child_depth);
+            children_flag[p] = get_child_real_ind(node_val_neigh_info,p); //indicates which structure the child is in
         }
         
-        parent_info.pc_key_set_j(children_keys[0],((node_val_parent_info & CHILD1_MASK) >> CHILD1_SHIFT));
-        parent_info.pc_key_set_j(children_keys[1],((node_val_parent_info & CHILD1_MASK) >> CHILD1_SHIFT)+1);
         
-        parent_info.pc_key_set_j(children_keys[2],((node_val_parent_info & CHILD2_MASK) >> CHILD2_SHIFT));
-        parent_info.pc_key_set_j(children_keys[3],((node_val_parent_info & CHILD2_MASK) >> CHILD2_SHIFT)+1);
+        uint64_t child_index = ((node_val_parent_info & CHILD1_MASK) >> CHILD1_SHIFT);
+        uint64_t child_exist = 0;
         
-        parent_info.pc_key_set_j(children_keys[4],((node_val_parent_info & CHILD3_MASK) >> CHILD3_SHIFT));
-        parent_info.pc_key_set_j(children_keys[5],((node_val_parent_info & CHILD3_MASK) >> CHILD3_SHIFT)+1);
+        if(child_index > 0){
+            parent_info.pc_key_set_j(children_keys[0],child_index);
+            
+            parent_info.pc_key_set_j(children_keys[1],child_index+1);
+            //if it exists in the real structure (it exists and the below check will not work)
+            if(children_flag[1] ==1){
+                child_exist = 1;
+            } else {
+                child_exist = !((neigh_info.get_val(children_keys[1]))&1);
+            }
+            
+            if(child_exist){
+                //exists
+            } else {
+                children_keys[1] = 0;
+            }
+            
+        } else {
+            children_keys[0] = 0;
+            children_keys[1] = 0;
+        }
         
-        parent_info.pc_key_set_j(children_keys[6],((node_val_parent_info & CHILD4_MASK) >> CHILD4_SHIFT));
-        parent_info.pc_key_set_j(children_keys[7],((node_val_parent_info & CHILD4_MASK) >> CHILD4_SHIFT)+1);
+        child_index = ((node_val_parent_info & CHILD2_MASK) >> CHILD2_SHIFT);
+        
+        if(child_index > 0){
+            parent_info.pc_key_set_j(children_keys[2],child_index);
+            
+            if(child_exist){
+                parent_info.pc_key_set_j(children_keys[3],child_index+1);
+            }
+            else {
+                children_keys[3] = 0;
+            }
+        } else {
+            children_keys[2] = 0;
+            children_keys[3] = 0;
+        }
+        
+        child_index = ((node_val_parent_info & CHILD3_MASK) >> CHILD3_SHIFT);
+        
+        if(child_index > 0){
+            parent_info.pc_key_set_j(children_keys[4],child_index);
+            
+            if(child_exist){
+                parent_info.pc_key_set_j(children_keys[5],child_index+1);
+            }
+            else {
+                children_keys[5] = 0;
+            }
+        } else {
+            children_keys[4] = 0;
+            children_keys[5] = 0;
+        }
+        
+        child_index = ((node_val_parent_info & CHILD4_MASK) >> CHILD4_SHIFT);
+        
+        if(child_index > 0){
+            parent_info.pc_key_set_j(children_keys[6],child_index);
+            
+            if(child_exist){
+                parent_info.pc_key_set_j(children_keys[7],child_index+1);
+            }
+            else {
+                children_keys[7] = 0;
+            }
+        } else {
+            children_keys[6] = 0;
+            children_keys[7] = 0;
+        }
+        
+        
         
         
     }
     
+    void get_child_coordinates_cell(std::vector<T>& cell_children,T index,T current_y,T& child_y,T& child_x,T& child_z,T& child_depth){
+        //
+        //  Get the coordinates for a child cell
+        //
+        
+        T child = cell_children[index];
+        
+        
+        if(child > 0){
+            child_x = parent_info.pc_key_get_x(child);
+            child_z = parent_info.pc_key_get_z(child);
+            child_depth = parent_info.pc_key_get_depth(child);
+            child_y = 2*current_y + parent_info.seed_part_y[index];
+        } else {
+            child_y = 0;
+            child_x = 0;
+            child_z = 0;
+            child_depth = 0;
+        }
+        
+        
+    };
     
     void get_neighs_parent_all(const uint64_t& curr_key,uint64_t node_val,PartCellNeigh<uint64_t>& neigh_keys){
         // Selects the neighbour in the correct direction
@@ -258,6 +384,213 @@ private:
         }
     }
 
+    
+    void set_parent_real_relationships(PartCellData<T>& pc_data){
+        //
+        //  Sets the parent relationships
+        //
+        //
+        //
+        
+        Part_timer timer;
+        timer.verbose_flag = true;
+        uint64_t z_;
+        uint64_t x_;
+        uint64_t j_;
+        
+        timer.start_timer("Get parent child real");
+        
+        unsigned int y_parent;
+        uint64_t j_parent;
+        
+        
+        uint64_t node_val;
+        uint64_t y_coord;
+        
+        //first loop over the nodes and set the indicators all to 0
+        
+        //loop over different resolutions (from lowest (corsest) to highests (finenest))
+        for(int i = parent_info.depth_min;i <= parent_info.depth_max;i++){
+            
+            const unsigned int x_num_ = parent_info.x_num[i];
+            const unsigned int z_num_ = parent_info.z_num[i];
+            
+            
+#pragma omp parallel for default(shared) private(z_,x_,j_,node_val) if(z_num_*x_num_ > 100)
+            for(z_ = 0;z_ < z_num_;z_++){
+                
+                
+                for(x_ = 0;x_ < x_num_;x_++){
+                    
+                   
+                    
+                    const size_t offset_pc_data = x_num_*z_ + x_;
+                    
+                    //number of nodes on the level
+                    const size_t j_num = parent_info.data[i][offset_pc_data].size();
+                    
+                    for(j_ = 0;j_ < j_num;j_++){
+                        
+                        //this value encodes the state and neighbour locations of the particle cell
+                        node_val = parent_info.data[i][offset_pc_data][j_];
+                        
+                        if (!(node_val&1)){
+                            //Set to zero
+                            node_val &= -((CHILD0_REAL_MASK) + 1);
+                            node_val &= -((CHILD1_REAL_MASK) + 1);
+                            node_val &= -((CHILD2_REAL_MASK) + 1);
+                            node_val &= -((CHILD3_REAL_MASK) + 1);
+                            node_val &= -((CHILD4_REAL_MASK) + 1);
+                            node_val &= -((CHILD5_REAL_MASK) + 1);
+                            node_val &= -((CHILD6_REAL_MASK) + 1);
+                            node_val &= -((CHILD7_REAL_MASK) + 1);
+                            //set it back with the depth indicators cleared.
+                            parent_info.data[i][offset_pc_data][j_] = node_val;
+                            
+                        } else {
+                            //This is a gap node
+                        }
+                        
+                    }
+                    
+                }
+                
+            }
+        }
+
+        
+        //
+        //  loops simultaneously over the real structure and the neigh parent structure, to create the real links, and set the correct indicator variable.
+        //
+        
+        
+        for(int i = (pc_data.depth_min+1);i <= pc_data.depth_max;i++){
+            
+            const unsigned int x_num_ = pc_data.x_num[i];
+            const unsigned int z_num_ = pc_data.z_num[i];
+            
+            const unsigned int x_num_parent = parent_info.x_num[i-1];
+            
+            
+#pragma omp parallel for default(shared) private(z_,x_,j_,node_val,y_parent,j_parent,y_coord) if(z_num_*x_num_ > 100)
+            for(z_ = 0;z_ < (z_num_);z_++){
+                
+                for(x_ = 0;x_ < (x_num_);x_++){
+                    
+                    const size_t z_parent = (z_)/2;
+                    const size_t x_parent = (x_)/2;
+                    
+                    const size_t offset_pc_data = x_num_*z_ + x_;
+                    const size_t offset_pc_data_parent = x_num_parent*z_parent + x_parent;
+                    
+                    
+                    //initialization
+                    y_coord = (pc_data.data[i][offset_pc_data][0] & NEXT_COORD_MASK) >> NEXT_COORD_SHIFT ;
+                    y_parent = (neigh_info.data[i-1][offset_pc_data_parent][0] & NEXT_COORD_MASK) >> NEXT_COORD_SHIFT;
+                    
+                    j_parent = 1;
+                    
+                    if (neigh_info.data[i-1][offset_pc_data_parent].size() == 1){
+                        //set to max so its not checked
+                        y_parent = 64000;
+                    }
+                    
+                    y_coord--;
+                    
+                    const size_t j_num = pc_data.data[i][offset_pc_data].size();
+                    const size_t j_num_parent = neigh_info.data[i-1][offset_pc_data_parent].size();
+                    
+                    for(j_ = 1;j_ < j_num;j_++){
+                        
+                        // Parent relation
+                        
+                        node_val = pc_data.data[i][offset_pc_data][j_];
+                        
+                        if (node_val&1){
+                            //get the index gap node
+                            y_coord = (node_val & NEXT_COORD_MASK) >> NEXT_COORD_SHIFT;
+                            y_coord--;
+                            
+                        } else {
+                            //normal node
+                            y_coord++;
+                            
+                            while ((y_parent < y_coord/2) & (j_parent < (j_num_parent-1))){
+                                
+                                j_parent++;
+                                node_val = neigh_info.data[i-1][offset_pc_data_parent][j_parent];
+                                
+                                if (node_val&1){
+                                    //get the index gap node
+                                    y_parent = (node_val & NEXT_COORD_MASK) >> NEXT_COORD_SHIFT;
+                                    j_parent++;
+                                    
+                                } else {
+                                    //normal node
+                                    y_parent++;
+                                }
+                            }
+                            
+                            
+                            if (y_coord/2 == y_parent){
+                                //set the link to the parent
+                                
+                                //symmetric
+                                if(y_coord == y_parent*2){
+                                    //setting the parent child links and indicators
+                                    if(z_ == z_parent*2){
+                                        
+                                        if(x_ == x_parent*2){
+                                            parent_info.data[i-1][offset_pc_data_parent][j_parent] |= (j_ << CHILD1_SHIFT);
+                                            parent_info.data[i-1][offset_pc_data_parent][j_parent] |= (1 << CHILD0_REAL_SHIFT);
+                                        } else {
+                                            parent_info.data[i-1][offset_pc_data_parent][j_parent] |= (j_ << CHILD2_SHIFT);
+                                            parent_info.data[i-1][offset_pc_data_parent][j_parent] |= (1 << CHILD2_REAL_SHIFT);
+                                        }
+                                        
+                                    } else {
+                                        if(x_ == x_parent*2){
+                                            parent_info.data[i-1][offset_pc_data_parent][j_parent] |= (j_ << CHILD3_SHIFT);
+                                            parent_info.data[i-1][offset_pc_data_parent][j_parent] |= (((uint64_t)1) << CHILD4_REAL_SHIFT);
+                                        } else {
+                                            parent_info.data[i-1][offset_pc_data_parent][j_parent] |= (j_ << CHILD4_SHIFT);
+                                            parent_info.data[i-1][offset_pc_data_parent][j_parent] |= (((uint64_t)1)  << CHILD6_REAL_SHIFT);
+                                        }
+                                        
+                                    }
+                                    
+                                } else {
+                                    //setting the parent child indicators
+                                    if(z_ == z_parent*2){
+                                        
+                                        if(x_ == x_parent*2){
+                                            parent_info.data[i-1][offset_pc_data_parent][j_parent] |= (1 << CHILD1_REAL_SHIFT);
+                                        } else {
+                                            parent_info.data[i-1][offset_pc_data_parent][j_parent] |= (1 << CHILD3_REAL_SHIFT);
+                                        }
+                                        
+                                    } else {
+                                        if(x_ == x_parent*2){
+                                            parent_info.data[i-1][offset_pc_data_parent][j_parent] |= (((uint64_t)1) << CHILD5_REAL_SHIFT);
+                                        } else {
+                                            parent_info.data[i-1][offset_pc_data_parent][j_parent] |= (((uint64_t)1) << CHILD7_REAL_SHIFT);
+                                        }
+                                        
+                                    }
+                                    
+                                }
+                            } else {
+                                //std::cout << "BUG" << std::endl;
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+    
+    
+    
     void set_neighbor_relationships(uint8_t face){
         //
         //  Neighbour function for different face for parent nodes (does not go up and down levels)
@@ -708,6 +1041,8 @@ private:
         
         //now set the parent child relationships
         set_parent_relationships();
+        
+        set_parent_real_relationships(pc_struct.pc_data);
         
     }
     
