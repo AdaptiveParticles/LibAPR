@@ -36,6 +36,8 @@ TEST_F(CreateSmallTreeTest, SPARSE_STRUCTURE_SMALL_TEST)
     ASSERT_TRUE(compare_sparse_rep_neighpart_with_part_map(particle_map,pcell_test));
     //test io
     ASSERT_TRUE(read_write_structure_test(pcell_test));
+    
+    ASSERT_TRUE(parent_structure_test(pcell_test));
 }
 
 
@@ -65,6 +67,8 @@ TEST_F(CreateBigTreeTest, SPARSE_STRUCTURE_BIG_TEST)
     ASSERT_TRUE(compare_sparse_rep_neighpart_with_part_map(particle_map,pcell_test));
     //test io
     ASSERT_TRUE(read_write_structure_test(pcell_test));
+    
+    ASSERT_TRUE(parent_structure_test(pcell_test));
 }
 
 TEST_F(CreateNarrowTreeTest, SPARSE_STRUCTURE_NARROW_TEST)
@@ -93,6 +97,8 @@ TEST_F(CreateNarrowTreeTest, SPARSE_STRUCTURE_NARROW_TEST)
     ASSERT_TRUE(compare_sparse_rep_neighpart_with_part_map(particle_map,pcell_test));
     //test io
     ASSERT_TRUE(read_write_structure_test(pcell_test));
+    
+    ASSERT_TRUE(parent_structure_test(pcell_test));
 }
 
 int main(int argc, char **argv) {

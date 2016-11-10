@@ -1201,25 +1201,7 @@ bool parent_structure_test(PartCellStructure<float,uint64_t>& pc_struct){
         }
     }
     
-    Mesh_data<uint8_t> temp;
-    //print files
-    for(int i = pc_struct.depth_min;i < pc_struct.depth_max; i++){
-        temp.y_num = pc_struct.y_num[i];
-        temp.x_num = pc_struct.x_num[i];
-        temp.z_num = pc_struct.z_num[i];
-        temp.mesh = parent_map[i];
-        debug_write(temp,"parent_map" + std::to_string(i));
-    }
-    
-    //print files
-    for(int i = pc_struct.depth_min;i <= pc_struct.depth_max; i++){
-        temp.y_num = pc_struct.y_num[i];
-        temp.x_num = pc_struct.x_num[i];
-        temp.z_num = pc_struct.z_num[i];
-        temp.mesh = p_map[i];
-        debug_write(temp,"p_map" + std::to_string(i));
-    }
-    
+ 
     
     /////////////////////////////////
     //
