@@ -40,6 +40,80 @@ class PartCellParent {
     
 public:
     
+    T get_parent_j(const T& node_val_parent_info){
+        //returns the parent j
+        return ((node_val_parent_info & PARENT_MASK) >> PARENT_SHIFT);
+    }
+    
+    T get_parent_key(const T& node_val_parent_info,const T& curr_key){
+        //returns the parent access key
+        
+        T parent_key = 0;
+        if ((parent_info.pc_key_get_depth(curr_key)-1) > parent_info.depth_min){
+            parent_info.pc_key_set_x(parent_key,parent_info.pc_key_get_x(curr_key)/2);
+            parent_info.pc_key_set_z(parent_key,parent_info.pc_key_get_z(curr_key)/2);
+            parent_info.pc_key_set_depth(parent_key,parent_info.pc_key_get_depth(curr_key)-1);
+            parent_info.pc_key_set_j(parent_key,get_parent_j(node_val_parent_info));
+        }
+        return parent_key;
+    }
+    
+    void get_children_keys(const T& node_val_parent_info,const T& curr_key,std::vector<T>& children_keys){
+        //
+        //  Returns the children keys from the structure
+        //
+        //  Ordering follows particle ordering ((0,0,0),(1,0,0),(0,1,0),(1,1,0),..) y,x then z
+        //
+        children_keys.resize(8,0);
+        
+        T child_x = parent_info.pc_key_get_x(curr_key)*2;
+        T child_z = parent_info.pc_key_get_z(curr_key)*2;
+        T child_depth = parent_info.pc_key_get_depth(curr_key)+1;
+        
+        //loop over and set variables
+        for(int p = 0; p < 8;p++){
+            parent_info.pc_key_set_x(children_keys[p],child_x + parent_info.seed_part_x[p]);
+            parent_info.pc_key_set_z(children_keys[p],child_z + parent_info.seed_part_z[p]);
+            parent_info.pc_key_set_depth(children_keys[p],child_depth);
+        }
+        
+        parent_info.pc_key_set_j(children_keys[0],((node_val_parent_info & CHILD1_MASK) >> CHILD1_SHIFT));
+        parent_info.pc_key_set_j(children_keys[1],((node_val_parent_info & CHILD1_MASK) >> CHILD1_SHIFT)+1);
+        
+        parent_info.pc_key_set_j(children_keys[2],((node_val_parent_info & CHILD2_MASK) >> CHILD2_SHIFT));
+        parent_info.pc_key_set_j(children_keys[3],((node_val_parent_info & CHILD2_MASK) >> CHILD2_SHIFT)+1);
+        
+        parent_info.pc_key_set_j(children_keys[4],((node_val_parent_info & CHILD3_MASK) >> CHILD3_SHIFT));
+        parent_info.pc_key_set_j(children_keys[5],((node_val_parent_info & CHILD3_MASK) >> CHILD3_SHIFT)+1);
+        
+        parent_info.pc_key_set_j(children_keys[6],((node_val_parent_info & CHILD4_MASK) >> CHILD4_SHIFT));
+        parent_info.pc_key_set_j(children_keys[7],((node_val_parent_info & CHILD4_MASK) >> CHILD4_SHIFT)+1);
+        
+        
+    }
+    
+    
+    void get_neighs_parent_all(const uint64_t& curr_key,uint64_t node_val,PartCellNeigh<uint64_t>& neigh_keys){
+        // Selects the neighbour in the correct direction
+        
+        neigh_keys.curr = curr_key;
+        
+        neigh_keys.neigh_face[0].resize(0);
+        neigh_keys.neigh_face[1].resize(0);
+        neigh_keys.neigh_face[2].resize(0);
+        neigh_keys.neigh_face[3].resize(0);
+        neigh_keys.neigh_face[4].resize(0);
+        neigh_keys.neigh_face[5].resize(0);
+        
+        get_neighs_face_parent_t<0>(curr_key,node_val,neigh_keys.neigh_face[0]);
+        get_neighs_face_parent_t<1>(curr_key,node_val,neigh_keys.neigh_face[1]);
+        get_neighs_face_parent_t<2>(curr_key,node_val,neigh_keys.neigh_face[2]);
+        get_neighs_face_parent_t<3>(curr_key,node_val,neigh_keys.neigh_face[3]);
+        get_neighs_face_parent_t<4>(curr_key,node_val,neigh_keys.neigh_face[4]);
+        get_neighs_face_parent_t<5>(curr_key,node_val,neigh_keys.neigh_face[5]);
+        
+    }
+    
     
     PartCellParent(){};
     
@@ -634,6 +708,69 @@ private:
         
         //now set the parent child relationships
         set_parent_relationships();
+        
+    }
+    
+    
+    template<uint64_t face>
+    void get_neighs_face_parent_t(const uint64_t& curr_key,uint64_t node_val,std::vector<uint64_t>& neigh_keys){
+        //
+        //  Bevan Cheeseman (2016)
+        //
+        //  Get all the nieghbours in direction face for parent structure
+        //
+        /** Get neighbours of a cell in one of the direction
+         *
+         *  @param curr_key    input: current key, output: neighbour key
+         *  @param face        direction to follow. Possible values are [0,5]
+         *                     They stand for [+y,-y,+x,-x,+z,-z] //change this ordering.. (y+ y-) are different,
+         */
+        //
+        
+        
+        constexpr uint64_t index_mask_dir[6] = {YP_INDEX_MASK,YM_INDEX_MASK,XP_INDEX_MASK,XM_INDEX_MASK,ZP_INDEX_MASK,ZM_INDEX_MASK};
+        constexpr uint64_t index_shift_dir[6] = {YP_INDEX_SHIFT,YM_INDEX_SHIFT,XP_INDEX_SHIFT,XM_INDEX_SHIFT,ZP_INDEX_SHIFT,ZM_INDEX_SHIFT};
+        
+        constexpr int8_t von_neumann_y_cells[6] = { 1,-1, 0, 0, 0, 0};
+        constexpr int8_t von_neumann_x_cells[6] = { 0, 0, 1,-1, 0, 0};
+        constexpr int8_t von_neumann_z_cells[6] = { 0, 0, 0, 0, 1,-1};
+        
+        uint64_t neigh_j;
+        
+        uint64_t neigh_key;
+        
+        // +-y direction is different
+        if(face < 2){
+            
+            neigh_key = curr_key;
+            
+            neigh_info.pc_key_offset_j(neigh_key,von_neumann_y_cells[face]);
+            
+            node_val = neigh_info.get_val(neigh_key);
+            
+            if(!(node_val&1)){
+                //same level
+                neigh_keys.push_back(neigh_key);
+                
+                return;
+            } else {
+                return;
+            }
+        }
+        
+        //dir
+        neigh_j =  neigh_info.node_get_val(node_val,index_mask_dir[face],index_shift_dir[face]);
+        
+        if (neigh_j > 0){
+            //same level return single neighbour
+            neigh_key = curr_key;
+        
+            neigh_info.pc_key_set_j(neigh_key, neigh_j);
+            neigh_info.pc_key_offset_x(neigh_key,von_neumann_x_cells[face]);
+            neigh_info.pc_key_offset_z(neigh_key,von_neumann_z_cells[face]);
+        
+            neigh_keys.push_back(neigh_key);
+        }
         
     }
     

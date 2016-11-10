@@ -1211,6 +1211,12 @@ bool parent_structure_test(PartCellStructure<float,uint64_t>& pc_struct){
     PartCellNeigh<uint64_t> neigh_keys;
     
     
+    ////////////////////////////////
+    //
+    //  Neigh Info Checks
+    //
+    ////////////////////////////////
+    
     for(int i = parent_cells.neigh_info.depth_min;i <= parent_cells.neigh_info.depth_max;i++){
         
         const unsigned int x_num_ = parent_cells.neigh_info.x_num[i];
@@ -1281,7 +1287,7 @@ bool parent_structure_test(PartCellStructure<float,uint64_t>& pc_struct){
                         }
                         
                         // Check all the neighbours (they should be parents and on the same depth)
-                        parent_cells.neigh_info.get_neighs_all(curr_key,node_val,neigh_keys);
+                        parent_cells.get_neighs_parent_all(curr_key,node_val,neigh_keys);
                         
                         for(uint64_t face = 0; face < neigh_keys.neigh_face.size();face++){
                             
@@ -1317,7 +1323,98 @@ bool parent_structure_test(PartCellStructure<float,uint64_t>& pc_struct){
                             
                         }
                         
+                    } else {
+                        //This is a gap node
+                        y_coord = (node_val & NEXT_COORD_MASK) >> NEXT_COORD_SHIFT;
+                        y_coord--; //set the y_coordinate to the value before the next coming up in the structure
+                    }
+                    
+                }
+                
+            }
+            
+        }
+    }
+    
+    
+    
+    ////////////////////////////////
+    //
+    //  Parent Info Checks
+    //
+    ////////////////////////////////
+    
+    uint64_t node_val_parent;
+    
+    for(int i = parent_cells.neigh_info.depth_min;i <= parent_cells.neigh_info.depth_max;i++){
+        
+        const unsigned int x_num_ = parent_cells.neigh_info.x_num[i];
+        const unsigned int z_num_ = parent_cells.neigh_info.z_num[i];
+        const unsigned int y_num_ = pc_struct.y_num[i];
+        
+        for(z_ = 0;z_ < z_num_;z_++){
+            
+            curr_key = 0;
+            
+            //set the key values
+            parent_cells.neigh_info.pc_key_set_z(curr_key,z_);
+            parent_cells.neigh_info.pc_key_set_depth(curr_key,i);
+            
+            for(x_ = 0;x_ < x_num_;x_++){
+                
+                parent_cells.neigh_info.pc_key_set_x(curr_key,x_);
+                
+                const size_t offset_pc_data = x_num_*z_ + x_;
+                const size_t offset_p_map = y_num_*x_num_*z_ + y_num_*x_;
+                
+                //number of nodes on the level
+                const size_t j_num = parent_cells.neigh_info.data[i][offset_pc_data].size();
+                
+                y_coord = 0;
+                
+                for(j_ = 0;j_ < j_num;j_++){
+                    
+                    //this value encodes the state and neighbour locations of the particle cell
+                    node_val = parent_cells.neigh_info.data[i][offset_pc_data][j_];
+                    
+                    if (!(node_val&1)){
+                        //This node represents a particle cell
+                        y_coord++;
+                        //set the key index
+                        parent_cells.neigh_info.pc_key_set_j(curr_key,j_);
                         
+                        status = parent_cells.neigh_info.get_status(node_val);
+                        
+                        node_val_parent = parent_cells.parent_info.data[i][offset_pc_data][j_];
+                        
+                        // Get parent method
+                        uint64_t parent_key = parent_cells.get_parent_key(node_val_parent,curr_key);
+                        
+                        if(parent_key > 0){
+                            
+                            try{
+                                parent_cells.neigh_info.get_val(parent_key);
+                            } catch(const std::exception& e) {
+                                std::cout << "parent error" << std::endl;
+                                pass_test = false;
+                            }
+                            
+                            try{
+                                parent_cells.parent_info.get_val(parent_key);
+                            } catch(const std::exception& e) {
+                                std::cout << "parent error" << std::endl;
+                                pass_test = false;
+                            }
+                        }
+                        
+                        //check this guy
+                        
+                        // Get children method
+                        std::vector<uint64_t> children_keys;
+                        
+                        parent_cells.get_children_keys(node_val_parent,curr_key,children_keys);
+                        
+                        //need to figure out how i'm going to deal with these guys
                         
                         
                     } else {
@@ -1332,6 +1429,12 @@ bool parent_structure_test(PartCellStructure<float,uint64_t>& pc_struct){
             
         }
     }
+
+    
+    
+    
+    
+    
     
     return pass_test;
     
