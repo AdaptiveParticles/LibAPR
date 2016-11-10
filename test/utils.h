@@ -20,6 +20,7 @@
 #include "../src/algorithm/level.hpp"
 #include "../src/data_structures/Tree/PartCellStructure.hpp"
 #include "../src/io/partcell_io.h"
+#include "../src/data_structures/Tree/PartCellParent.hpp"
 
 bool compare_two_images(const Mesh_data<uint16_t>& in_memory, std::string filename);
 bool compare_two_ks(const Particle_map<float>& in_memory, std::string filename);
@@ -48,5 +49,7 @@ bool compare_sparse_rep_neighpart_with_part_map(const Particle_map<float>& part_
 bool compare_y_coords(PartCellStructure<float,uint64_t>& pc_struct);
 
 bool read_write_structure_test(PartCellStructure<float,uint64_t>& pc_struct);
+
+bool parent_structure_test(PartCellStructure<float,uint64_t>& pc_struct);
 
 #endif //PARTPLAY_UTILS_H

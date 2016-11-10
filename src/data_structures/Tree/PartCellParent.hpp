@@ -12,24 +12,27 @@
 #include "PartCellNeigh.hpp"
 #include "PartCellData.hpp"
 
-
-// Parent / Child Relation Nodes
+// Parent / Child Relation Nodes (parent_info)
 #define PARENT_MASK ((((uint64_t)1) << 12) - 1) << 0
 #define PARENT_SHIFT 0
 
-#define CHILD1_MASK ((((uint64_t)1) << 13) - 1) << 12
+// Next child can be accessed by a simple yshift ++ on the node
+#define CHILD1_MASK ((((uint64_t)1) << 13) - 1) << 12 // y0,x0,z0
 #define CHILD1_SHIFT 12
 
-#define CHILD2_MASK ((((uint64_t)1) << 13) - 1) << 25
+#define CHILD2_MASK ((((uint64_t)1) << 13) - 1) << 25 // y0,x1,z0
 #define CHILD2_SHIFT 25
 
-#define CHILD3_MASK ((((uint64_t)1) << 13) - 1) << 38
+#define CHILD3_MASK ((((uint64_t)1) << 13) - 1) << 38 // y0,x0,z1
 #define CHILD3_SHIFT 38
 
-#define CHILD4_MASK ((((uint64_t)1) << 13) - 1) << 51
+#define CHILD4_MASK ((((uint64_t)1) << 13) - 1) << 51 // y0,x1,z1
 #define CHILD4_SHIFT 51
 
+// CHILD STATUS (To be used with the regular part data access strategy) (neigh_info)
 
+#define REAL_CHILDREN 2
+#define GHOST_CHILDREN 1
 
 // type T data structure base type
 template <typename T>
@@ -50,6 +53,9 @@ public:
     
     
 private:
+    //counter for number of parent cells, should be set on intialization
+    uint64_t number_parent_cells;
+    
     void set_parent_relationships(){
         //
         //  Sets the parent relationships
@@ -137,7 +143,6 @@ private:
                                 } else {
                                     //normal node
                                     y_parent++;
-                                    
                                 }
                             }
                             
@@ -177,34 +182,11 @@ private:
                 }
             }
         }
-        
-        
-        
-        
-        
-        
-        
-        
     }
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-
-
-
-
 
     void set_neighbor_relationships(uint8_t face){
         //
-        //  Neighbour function for different face.
+        //  Neighbour function for different face for parent nodes (does not go up and down levels)
         //
         //
         //
@@ -220,8 +202,6 @@ private:
         
         const uint8_t z_start_vec[6] = {0,0,0,0,0,1};
         const uint8_t z_stop_vec[6] = {0,0,0,0,1,0};
-        
-        
         
         //replication of above
         const int8_t x_offset_vec[6] = {0,0,1,-1,0,0};
@@ -608,22 +588,16 @@ private:
                             
                             //set the status
                             switch(status){
-                                case SEED:
+                                case GHOST_CHILDREN:
                                 {
-                                    neigh_info.data[i][offset_pc_data][curr_index-1] |= SEED_SHIFTED;
+                                    neigh_info.data[i][offset_pc_data][curr_index-1] |= (GHOST_CHILDREN <<STATUS_SHIFT);
                                     break;
                                 }
-                                case BOUNDARY:
+                                case REAL_CHILDREN:
                                 {
-                                    neigh_info.data[i][offset_pc_data][curr_index-1] |= BOUNDARY_SHIFTED;
+                                    neigh_info.data[i][offset_pc_data][curr_index-1] |= (REAL_CHILDREN<<STATUS_SHIFT);
                                     break;
                                 }
-                                case FILLER:
-                                {
-                                    neigh_info.data[i][offset_pc_data][curr_index-1] |= FILLER_SHIFTED;
-                                    break;
-                                }
-                                    
                             }
                             
                             prev_ind = 0;
@@ -658,8 +632,8 @@ private:
         set_neighbor_relationships(4);
         set_neighbor_relationships(5);
         
-        
-        
+        //now set the parent child relationships
+        set_parent_relationships();
         
     }
     

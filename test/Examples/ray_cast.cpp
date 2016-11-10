@@ -14,6 +14,7 @@
 #include "../../src/io/write_parts.h"
 #include "../../src/io/partcell_io.h"
 #include "../../src/data_structures/Tree/PartCellParent.hpp"
+#include "../utils.h"
 
 bool command_option_exists(char **begin, char **end, const std::string &option)
 {
@@ -92,8 +93,8 @@ int main(int argc, char **argv) {
     std::cout << "Number cells: " << num_cells << std::endl;
     std::cout << "Number parts: " << num_parts << std::endl;
     
-
-    
+    //run test
+    parent_structure_test(pc_struct);
     
 }
 

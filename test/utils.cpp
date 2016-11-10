@@ -1023,3 +1023,316 @@ bool read_write_structure_test(PartCellStructure<float,uint64_t>& pc_struct){
     
     
 }
+bool parent_structure_test(PartCellStructure<float,uint64_t>& pc_struct){
+    //
+    //  Bevan Cheeseman 2016
+    //
+    //  Tests the parent structure is working correctly by constructing arrays to check relationships
+    //
+    
+    
+    ///////////////////////////
+    //
+    //  Particle Cell Information
+    //
+    ///////////////////////////
+    
+    bool pass_test = true;
+    
+    //initialize
+    uint64_t node_val_part;
+    uint64_t y_coord;
+    int x_;
+    int z_;
+    
+    uint64_t j_;
+    uint64_t status;
+    uint64_t curr_key=0;
+    
+    std::vector<std::vector<uint8_t>> p_map;
+    p_map.resize(pc_struct.pc_data.depth_max+1);
+    
+    
+    for(uint64_t i = pc_struct.pc_data.depth_min;i <= pc_struct.pc_data.depth_max;i++){
+        
+        const unsigned int x_num_ = pc_struct.x_num[i];
+        const unsigned int z_num_ = pc_struct.z_num[i];
+        const unsigned int y_num_ = pc_struct.y_num[i];
+        
+        p_map[i].resize(x_num_*z_num_*y_num_,0);
+        
+        // First create the particle map
+        for(z_ = 0;z_ < z_num_;z_++){
+            
+            for(x_ = 0;x_ < x_num_;x_++){
+                
+                const size_t offset_pc_data = x_num_*z_ + x_;
+                const size_t offset_p_map = y_num_*x_num_*z_ + y_num_*x_;
+                
+                const size_t j_num = pc_struct.pc_data.data[i][offset_pc_data].size();
+                
+                y_coord = 0;
+                
+                for(j_ = 0;j_ < j_num;j_++){
+                    
+                    node_val_part = pc_struct.part_data.access_data.data[i][offset_pc_data][j_];
+                    
+                    if (!(node_val_part&1)){
+                        //get the index gap node
+                        y_coord++;
+                        
+                        status = pc_struct.part_data.access_node_get_status(node_val_part);
+                        p_map[i][offset_p_map + y_coord] = status;
+                        
+                    } else {
+                        
+                        y_coord += ((node_val_part & COORD_DIFF_MASK_PARTICLE) >> COORD_DIFF_SHIFT_PARTICLE);
+                        y_coord--;
+                    }
+                    
+                }
+                
+            }
+            
+        }
+        
+    }
+    
+    ///////////////////////////
+    //
+    //  Parent Information
+    //
+    ///////////////////////////
+    
+    std::vector<std::vector<uint8_t>> parent_map;
+    
+    parent_map.resize(pc_struct.depth_max);
+    
+    for(int i = pc_struct.depth_min;i <= (pc_struct.depth_max-1);i++){
+        
+        parent_map[i].resize(pc_struct.x_num[i]*pc_struct.y_num[i]*pc_struct.z_num[i]);
+    }
+    
+    uint64_t node_val;
+    
+    
+    for(int i = (pc_struct.pc_data.depth_min+1);i <= pc_struct.pc_data.depth_max;i++){
+        
+        const unsigned int x_num_ = pc_struct.pc_data.x_num[i];
+        const unsigned int z_num_ = pc_struct.pc_data.z_num[i];
+        
+        for(z_ = 0;z_ < z_num_;z_++){
+            
+            curr_key = 0;
+            
+            //set the key values
+            pc_struct.pc_data.pc_key_set_z(curr_key,z_);
+            pc_struct.pc_data.pc_key_set_depth(curr_key,i);
+            
+            for(x_ = 0;x_ < x_num_;x_++){
+                
+                pc_struct.pc_data.pc_key_set_x(curr_key,x_);
+                
+                const size_t offset_pc_data = x_num_*z_ + x_;
+                
+                //number of nodes on the level
+                const size_t j_num = pc_struct.pc_data.data[i][offset_pc_data].size();
+                
+                uint64_t parent_x;
+                uint64_t parent_y;
+                uint64_t parent_z;
+                
+                uint64_t depth;
+                y_coord = 0;
+                
+                for(j_ = 0;j_ < j_num;j_++){
+                    
+                    //this value encodes the state and neighbour locations of the particle cell
+                    node_val = pc_struct.pc_data.data[i][offset_pc_data][j_];
+                    
+                    if (!(node_val&1)){
+                        y_coord++; //iterate y
+                        
+                        parent_x = x_/2;
+                        parent_z = z_/2;
+                        parent_y = y_coord/2;
+                        depth = i - 1;
+                        
+                        if(parent_map[depth][parent_z*pc_struct.y_num[depth]*pc_struct.x_num[depth] + parent_x*pc_struct.y_num[depth] + parent_y] ==0){
+                            
+                            parent_map[depth][parent_z*pc_struct.y_num[depth]*pc_struct.x_num[depth] + parent_x*pc_struct.y_num[depth] + parent_y] = 2;
+                            
+                            parent_x = parent_x/2;
+                            parent_z = parent_z/2;
+                            parent_y = parent_y/2;
+                            depth = depth - 1;
+                            
+                            if(depth > pc_struct.pc_data.depth_min){
+                                
+                                while(parent_map[depth][parent_z*pc_struct.y_num[depth]*pc_struct.x_num[depth] + parent_x*pc_struct.y_num[depth] + parent_y] ==0 ){
+                                    
+                                    parent_map[depth][parent_z*pc_struct.y_num[depth]*pc_struct.x_num[depth] + parent_x*pc_struct.y_num[depth] + parent_y] = 1;
+                                    
+                                    parent_x = parent_x/2;
+                                    parent_z = parent_z/2;
+                                    parent_y = parent_y/2;
+                                    depth = depth - 1;
+                                    
+                                    if  (depth < pc_struct.pc_data.depth_min){
+                                        break;
+                                    }
+                                    
+                                }
+                            }
+                            
+                        }
+                        
+                        
+                    } else {
+                        //This is a gap node
+                        
+                        //Gap nodes store the next and previous coodinate
+                        y_coord = (node_val & NEXT_COORD_MASK) >> NEXT_COORD_SHIFT;
+                        y_coord--; //set the y_coordinate to the value before the next coming up in the structure
+                    }
+                    
+                }
+            }
+        }
+    }
+    
+    /////////////////////////////////
+    //
+    //  Create parent structure and check it
+    //
+    /////////////////////////////////
+    
+    PartCellParent<uint64_t> parent_cells(pc_struct);
+    PartCellNeigh<uint64_t> neigh_keys;
+    
+    
+    for(int i = parent_cells.neigh_info.depth_min;i <= parent_cells.neigh_info.depth_max;i++){
+        
+        const unsigned int x_num_ = parent_cells.neigh_info.x_num[i];
+        const unsigned int z_num_ = parent_cells.neigh_info.z_num[i];
+        const unsigned int y_num_ = pc_struct.y_num[i];
+        
+        for(z_ = 0;z_ < z_num_;z_++){
+            
+            curr_key = 0;
+            
+            //set the key values
+            parent_cells.neigh_info.pc_key_set_z(curr_key,z_);
+            parent_cells.neigh_info.pc_key_set_depth(curr_key,i);
+            
+            for(x_ = 0;x_ < x_num_;x_++){
+                
+                parent_cells.neigh_info.pc_key_set_x(curr_key,x_);
+                
+                const size_t offset_pc_data = x_num_*z_ + x_;
+                const size_t offset_p_map = y_num_*x_num_*z_ + y_num_*x_;
+                
+                //number of nodes on the level
+                const size_t j_num = parent_cells.neigh_info.data[i][offset_pc_data].size();
+                
+                y_coord = 0;
+                
+                for(j_ = 0;j_ < j_num;j_++){
+                    
+                    //this value encodes the state and neighbour locations of the particle cell
+                    node_val = parent_cells.neigh_info.data[i][offset_pc_data][j_];
+                    
+                    if (!(node_val&1)){
+                        //This node represents a particle cell
+                        y_coord++;
+                        //set the key index
+                        parent_cells.neigh_info.pc_key_set_j(curr_key,j_);
+                        
+                        //get all the neighbours
+                        
+                        //First get the status and check that the values are consistent with the arrays
+                        status = parent_cells.neigh_info.get_status(node_val);
+                        
+                        
+                        if(status == GHOST_CHILDREN){
+                            
+                            if((parent_map[i][offset_p_map + y_coord] == 1) & (p_map[i][offset_p_map + y_coord] == 0)){
+                                
+                            } else {
+                                std::cout << "GHOST PARENT BUG" << std::endl;
+                                pass_test = false;
+                            }
+                            
+                            
+                        } else if (status == REAL_CHILDREN){
+                            
+                            if((parent_map[i][offset_p_map + y_coord] == 2) & (p_map[i][offset_p_map + y_coord] == 0)){
+                                
+                            } else {
+                                std::cout << "REAL PARENT BUG" << std::endl;
+                                pass_test = false;
+                            }
+                            
+                            // additional check are the children real?
+                            
+                        } else {
+                            std::cout << "Incorrect status bug" << std::endl;
+                            pass_test = false;
+                        }
+                        
+                        // Check all the neighbours (they should be parents and on the same depth)
+                        parent_cells.neigh_info.get_neighs_all(curr_key,node_val,neigh_keys);
+                        
+                        for(uint64_t face = 0; face < neigh_keys.neigh_face.size();face++){
+                            
+                            for(uint64_t n = 0; n < neigh_keys.neigh_face[face].size();n++){
+                                uint64_t neigh_key = neigh_keys.neigh_face[face][n];
+                                
+                                uint64_t neigh_y;
+                                uint64_t neigh_x;
+                                uint64_t neigh_z;
+                                uint64_t neigh_depth;
+                                
+                                if(neigh_key > 0){
+                                    parent_cells.neigh_info.get_neigh_coordinates_cell(neigh_keys,face,n,y_coord,neigh_y,neigh_x,neigh_z,neigh_depth);
+                                
+                                    if(neigh_depth != i){
+                                        std::cout << "Neighbour depth bug" << std::endl;
+                                        pass_test = false;
+                                    }
+                                    
+                                    uint64_t offset = neigh_z*pc_struct.y_num[neigh_depth]*pc_struct.x_num[neigh_depth] + neigh_x*pc_struct.y_num[neigh_depth] + neigh_y;
+                                    
+                                    if((parent_map[i][offset] > 0) & (p_map[i][offset] == 0)){
+                                        //correct
+                                    } else {
+                                        std::cout << "REAL PARENT BUG" << std::endl;
+                                        pass_test = false;
+                                    }
+                                    
+                                    
+                                }
+                            }
+                            
+                            
+                        }
+                        
+                        
+                        
+                        
+                    } else {
+                        //This is a gap node
+                        y_coord = (node_val & NEXT_COORD_MASK) >> NEXT_COORD_SHIFT;
+                        y_coord--; //set the y_coordinate to the value before the next coming up in the structure
+                    }
+                    
+                }
+                
+            }
+            
+        }
+    }
+    
+    return pass_test;
+    
+}
