@@ -174,6 +174,43 @@ public:
     //
     //////////////////////////////////////////
     
+    T get_j_from_y(const T& x_,const T& z_,const T& depth,const T& y_val){
+        
+        
+        const size_t offset_pc_data = x_num[depth]*z_ + x_;
+        
+        const size_t j_num =  data[depth][offset_pc_data].size();
+        
+        T y_coord = 0;
+        T node_val = 0;
+        T j_;
+        
+        for(j_ = 0;j_ < j_num;j_++){
+            
+            //this value encodes the state and neighbour locations of the particle cell
+            node_val = data[depth][offset_pc_data][j_];
+            
+            if (!(node_val&1)){
+                y_coord++; //iterate y
+                
+                if(y_coord == y_val){
+                    return j_;
+                } else if (y_coord > y_val){
+                    //doesn't exist
+                    return 0;
+                }
+                
+            } else{
+                y_coord = (node_val & NEXT_COORD_MASK) >> NEXT_COORD_SHIFT;
+                y_coord--;
+            }
+            
+        }
+        
+        return 0;
+        
+    }
+    
 
     inline bool pc_key_cell_isequal(const T& pc_key0,const T& pc_key1){
         //

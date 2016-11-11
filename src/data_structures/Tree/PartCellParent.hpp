@@ -77,6 +77,91 @@ class PartCellParent {
     
 public:
     
+    
+    
+    template<typename S>
+    T find_partcell(T& x,T& y,T& z,PartCellStructure<T,S>& pc_struct){
+        //
+        //  Given x,y,z will find the responsible particle cell
+        //
+        //
+        
+        T factor =pow(2,pc_struct.depth_max + 1 - pc_struct.depth_min);
+        //calculate on min layer
+        T y_min = y/factor;
+        T x_min = x/factor;
+        
+        T z_min = z/factor;
+        
+        if( (y_min > pc_struct.y_num[pc_struct.depth_min]) | (x_min > pc_struct.x_num[pc_struct.depth_min]) | (z_min > pc_struct.z_num[pc_struct.depth_min])  ){
+            return 0; //out of bounds
+        }
+        
+        T j = get_j_from_y(x_min,z_min,pc_struct.depth_min,y_min);
+        
+        
+        if (j == 0){
+            // the parent wasn't found so it must be in a real seed at lowest resolution
+            T j_pc = pc_struct.pc_data.get_j_from_y(x_min,z_min,pc_struct.depth_min,y_min);
+            if(j_pc == 0){
+                return 0;
+            } else {
+                return j_pc;
+            }
+            
+        }
+        
+        
+        T curr_key = 0;
+        
+        neigh_info.pc_key_set_x(curr_key,x_min);
+        neigh_info.pc_key_set_z(curr_key,z_min);
+        neigh_info.pc_key_set_j(curr_key,j);
+        neigh_info.pc_key_set_depth(curr_key,pc_struct.depth_min);
+        
+        std::vector<uint64_t> children_keys;
+        std::vector<uint64_t> children_flag;
+        uint64_t index;
+        uint64_t y_curr;
+        uint64_t x_curr;
+        uint64_t z_curr;
+        
+        uint64_t child_y;
+        uint64_t child_x;
+        uint64_t child_z;
+        uint64_t child_depth;
+        
+        for(int i = pc_struct.depth_min; i < pc_struct.depth_max; i++){
+            
+            get_children_keys(curr_key,children_keys,children_flag);
+            
+            factor =pow(2,pc_struct.depth_max + 1 - i - 1);
+            //calculate on min layer
+            y_curr = y/factor;
+            x_curr = x/factor;
+            
+            z_curr = z/factor;
+            
+            index = 4*(z_curr&1) + 2*(x_curr&1) + (y_curr&1);
+            
+            curr_key = children_keys[index];
+            
+            get_child_coordinates_cell(children_keys,index,y_curr/2,child_y,child_x,child_z,child_depth);
+            
+            curr_key = children_keys[index];
+            
+            if (children_flag[index] == 1){
+                //found the cell;
+                break;
+                
+            }
+        }
+        
+        return curr_key;
+        
+    }
+    
+    
     T get_parent_j(const T& node_val_parent_info){
         //returns the parent j
         return ((node_val_parent_info & PARENT_MASK) >> PARENT_SHIFT);
