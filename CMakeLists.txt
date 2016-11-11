@@ -105,6 +105,7 @@ if(TESTS)
 
     add_executable(testSparsePartStruc
             test/test_tree/tree_fixtures.cpp
+	     test/test_tree/create_part_cell_structure.cpp
             test/test_tree/sparse_rep_test.cpp
             ${SOURCE_FILES_COMPILED}
             test/utils.cpp
@@ -125,6 +126,7 @@ add_executable(Example_get_apr
         test/Examples/get_apr.cpp
         src/io/write_parts.cpp
         ${SOURCE_FILES_COMPILED}
+	 test/utils.cpp
         )
 
 add_executable(Example_compute_cells

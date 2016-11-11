@@ -9,17 +9,22 @@
 #ifndef PARTPLAY_PARTCELLSTRUCTURE_HPP
 #define PARTPLAY_PARTCELLSTRUCTURE_HPP
 
+
+#include <bitset>
+#include <cmath>
+#include <cstddef>
+#include <iostream>
+#include <iterator>
+#include <vector>
+#include <algorithm>
+#include <array>
+
 #include "PartCellBase.hpp"
 #include "PartCellData.hpp"
 #include "ParticleData.hpp"
 #include "../particle_map.hpp"
 #include "../meshclass.h"
 #include "../../io/writeimage.h"
-
-#include <vector>
-#include <algorithm>
-#include <array>
-
 
 
 //parent node defitions

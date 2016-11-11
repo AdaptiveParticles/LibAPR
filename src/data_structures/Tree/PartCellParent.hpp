@@ -244,7 +244,7 @@ private:
             const unsigned int x_num_parent = parent_info.x_num[i-1];
             
             
-//#pragma omp parallel for default(shared) private(z_,x_,j_,node_val,y_parent,j_parent,y_coord) if(z_num_*x_num_ > 100)
+#pragma omp parallel for default(shared) private(z_,x_,j_,node_val,y_parent,j_parent,y_coord) if(z_num_*x_num_ > 100)
             for(z_ = 0;z_ < (z_num_);z_++){
                 
                 for(x_ = 0;x_ < (x_num_);x_++){
@@ -580,7 +580,7 @@ private:
                 const unsigned int x_num_ = neigh_info.x_num[i];
                 const unsigned int z_num_ = neigh_info.z_num[i];
                 
-//#pragma omp parallel for default(shared) private(z_,x_,j_,node_val,y_parent,j_parent,j_neigh,y_neigh,y_coord) if(z_num_*x_num_ > 100)
+#pragma omp parallel for default(shared) private(z_,x_,j_,node_val,y_parent,j_parent,j_neigh,y_neigh,y_coord) if(z_num_*x_num_ > 100)
                 for(z_ = z_start;z_ < (z_num_-z_stop);z_++){
                     
                     for(x_ = x_start;x_ < (x_num_-x_stop);x_++){
@@ -730,7 +730,7 @@ private:
             const unsigned int z_num_ = pc_struct.pc_data.z_num[i];
             
             
-//#pragma omp parallel for default(shared) private(z_,x_,j_,node_val,curr_key,y_coord) if(z_num_*x_num_ > 100)
+#pragma omp parallel for default(shared) private(z_,x_,j_,node_val,curr_key,y_coord) if(z_num_*x_num_ > 100)
             for(z_ = 0;z_ < z_num_;z_++){
                 
                 curr_key = 0;
@@ -827,7 +827,7 @@ private:
             const unsigned int y_num_ = pc_struct.y_num[i];
             
             
-//#pragma omp parallel for default(shared) private(z_,x_,y_,curr_index,status,prev_ind) if(z_num_*x_num_ > 100)
+#pragma omp parallel for default(shared) private(z_,x_,y_,curr_index,status,prev_ind) if(z_num_*x_num_ > 100)
             for(z_ = 0;z_ < z_num_;z_++){
                 
                 for(x_ = 0;x_ < x_num_;x_++){
@@ -895,7 +895,7 @@ private:
             const unsigned int z_num_ = pc_struct.z_num[i];
             const unsigned int y_num_ = pc_struct.  y_num[i];
             
-//#pragma omp parallel for default(shared) private(z_,x_,y_,curr_index,status,prev_ind,prev_coord) if(z_num_*x_num_ > 100)
+#pragma omp parallel for default(shared) private(z_,x_,y_,curr_index,status,prev_ind,prev_coord) if(z_num_*x_num_ > 100)
             for(z_ = 0;z_ < z_num_;z_++){
                 
                 for(x_ = 0;x_ < x_num_;x_++){
