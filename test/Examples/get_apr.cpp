@@ -177,33 +177,6 @@ int main(int argc, char **argv) {
     
     part_rep.timer.stop_timer();
     
-    write_apr_full_format(pcell_test,options.directory,options.output);
-    
-    // COMPUTATIONS
-    PartCellStructure<float,uint64_t> pc_struct;
-    
-    //output
-    file_name = options.directory + options.output + "_pcstruct_part.h5";
-    
-    read_apr_pc_struct(pc_struct,file_name);
-    
-    //test general structure
-    compare_sparse_rep_with_part_map(part_map,pc_struct,true);
-    //test neighbour cell search
-    compare_sparse_rep_neighcell_with_part_map(part_map,pc_struct);
-    //test y_coordinate offsets
-    compare_y_coords(pc_struct);
-    //test part neighbour search
-    read_write_structure_test(pcell_test);
-    
-    compare_sparse_rep_neighpart_with_part_map(part_map,pcell_test);
-    
-    compare_sparse_rep_neighpart_with_part_map(part_map,pc_struct);
-    //test io
-    
-    //test parent structure
-    parent_structure_test(pc_struct);
-    
 }
 
 
