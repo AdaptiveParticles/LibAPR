@@ -99,63 +99,9 @@ int main(int argc, char **argv) {
     uint64_t x = 33;
     uint64_t z = 25;
     
-    uint64_t factor =pow(2,pc_struct.depth_max + 1 - pc_struct.depth_min);
-    //calculate on min layer
-    uint64_t y_min = y/factor;
-    uint64_t x_min = x/factor;
-
-    uint64_t z_min = z/factor;
+    uint64_t pc_key = parent_cells.find_partcell(x,y,z,pc_struct);
     
-    uint64_t j = parent_cells.neigh_info.get_j_from_y(x_min,z_min,pc_struct.depth_min,y_min);
-    
-    
-    
-    uint64_t curr_key = 0;
-    
-    parent_cells.neigh_info.pc_key_set_x(curr_key,x_min);
-    parent_cells.neigh_info.pc_key_set_z(curr_key,z_min);
-    parent_cells.neigh_info.pc_key_set_j(curr_key,j);
-    parent_cells.neigh_info.pc_key_set_depth(curr_key,pc_struct.depth_min);
-    
-    std::vector<uint64_t> children_keys;
-    std::vector<uint64_t> children_flag;
-    uint64_t index;
-    uint64_t y_curr;
-    uint64_t x_curr;
-    uint64_t z_curr;
-    
-    uint64_t child_y;
-    uint64_t child_x;
-    uint64_t child_z;
-    uint64_t child_depth;
-    
-    for(int i = pc_struct.depth_min; i < pc_struct.depth_max; i++){
-        
-        parent_cells.get_children_keys(curr_key,children_keys,children_flag);
-        
-        factor =pow(2,pc_struct.depth_max + 1 - i - 1);
-        //calculate on min layer
-        y_curr = y/factor;
-        x_curr = x/factor;
-        
-        z_curr = z/factor;
-        
-        index = 4*(z_curr&1) + 2*(x_curr&1) + (y_curr&1);
-        
-        curr_key = children_keys[index];
-        
-        parent_cells.get_child_coordinates_cell(children_keys,index,y_curr/2,child_y,child_x,child_z,child_depth);
-        
-        curr_key = children_keys[index];
-        
-        if (children_flag[index] == 1){
-            //found the cell;
-            break;
-            
-        }
-    }
-    
-    uint64_t check = pc_struct.pc_data.get_val(curr_key);
+    uint64_t check = pc_struct.pc_data.get_val(pc_key);
     
     int stop = 1;
 
