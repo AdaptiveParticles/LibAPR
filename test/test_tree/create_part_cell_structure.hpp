@@ -27,6 +27,11 @@ public:
     void SetUp() override;
 };
 
+class CreateMembraneTest : public CreatePartCellTest
+{
+public:
+    void SetUp() override;
+};
 
 
 #endif //PARTPLAY_TREE_FIXTURES_HPP

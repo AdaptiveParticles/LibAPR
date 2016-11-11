@@ -52,4 +52,6 @@ bool read_write_structure_test(PartCellStructure<float,uint64_t>& pc_struct);
 
 bool parent_structure_test(PartCellStructure<float,uint64_t>& pc_struct);
 
+void create_test_dataset_from_hdf5(Particle_map<float>& particle_map,PartCellStructure<float, uint64_t>& pc_struct,std::string name);
+
 #endif //PARTPLAY_UTILS_H
