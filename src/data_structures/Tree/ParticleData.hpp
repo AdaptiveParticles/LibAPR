@@ -1440,16 +1440,11 @@ private:
         if(neigh_cell_keys.size() > 0){
             
             size_t curr_size = neigh_part_keys.size();
-            
-            neigh_part_keys.resize(curr_size + neigh_cell_keys.size());
-            
-            std::copy(neigh_cell_keys.begin(),neigh_cell_keys.end(),neigh_part_keys.begin() + curr_size);
-            
+        
             
            // U neigh_node = access_data.get_val(neigh_cell_keys[0]);
             U neigh_status = access_data.pc_key_get_status(neigh_cell_keys[0]);
             U neigh_offset;
-            U part_offset;
             
             switch(curr_status){
                 case SEED:
@@ -1457,6 +1452,7 @@ private:
                     switch(neigh_status){
                         case SEED:
                         {
+                            neigh_part_keys.push_back(neigh_cell_keys[0]);
                             
                             neigh_offset = access_data.pc_key_get_index(neigh_part_keys[curr_size]);
                             neigh_part_keys[curr_size] = get_part_cseed_nseed<face,index,U>(curr_offset,neigh_offset,curr_key,neigh_part_keys[curr_size]);
@@ -1466,17 +1462,17 @@ private:
                         }
                         case BOUNDARY:
                         {
-                            
+                            neigh_part_keys.push_back(neigh_cell_keys[0]);
                             neigh_offset = access_data.pc_key_get_index(neigh_part_keys[curr_size]);
                             // will have one neighbour
                             neigh_part_keys[curr_size] =  get_part_cseed_nboundary<face,index,U>(curr_offset,neigh_offset,curr_key,neigh_part_keys[curr_size]);
-                            
                             
                             return;
                         }
                         case FILLER:
                         {
                             //This is the case where the filler are higher resolution then the seed case,
+                            neigh_part_keys.push_back(neigh_cell_keys[0]);
                             neigh_part_keys[curr_size] = get_part_cseed_nfiller_p1<face,index,U>(curr_offset,neigh_cell_keys,curr_key);
                             
                             
@@ -1494,11 +1490,12 @@ private:
                             
                             //this is the resize case..
                             //all others can just use the previous, and this then just needs to duplicate
+                            neigh_part_keys.push_back(neigh_cell_keys[0]);
                             neigh_offset = access_data.pc_key_get_index(neigh_part_keys[curr_size]);
                             neigh_part_keys.resize(curr_size + 4);
                             
                             
-                            U temp = neigh_part_keys[curr_size];
+                            U temp = neigh_cell_keys[0];
                                        
                             neigh_part_keys[curr_size] = get_part_cboundary_nseed<face,0,U>(neigh_offset,temp);
                             
@@ -1513,12 +1510,14 @@ private:
                         }
                         default:
                         {
+                            neigh_part_keys.resize(curr_size + neigh_cell_keys.size());
+                            std::copy(neigh_cell_keys.begin(),neigh_cell_keys.end(),neigh_part_keys.begin() + curr_size);
                             //will possibly have more then one neighbour
                             for(int i = 0; i < neigh_cell_keys.size();i++){
                                 if(neigh_cell_keys[i] > 0){
                                     neigh_offset = access_data.pc_key_get_index(neigh_cell_keys[i]);
                                     
-                                   access_data.pc_key_set_index(neigh_part_keys[curr_size+i],neigh_offset);
+                                    access_data.pc_key_set_index(neigh_part_keys[curr_size+i],neigh_offset);
                                    
                                 }
                             }
@@ -1533,6 +1532,7 @@ private:
                     switch(neigh_status){
                         case SEED:
                         {
+                            neigh_part_keys.push_back(neigh_cell_keys[0]);
                             //more complicated case, have to first get the correct index, then the function can be run
                             neigh_offset = access_data.pc_key_get_index(neigh_part_keys[curr_size]);
                             
@@ -1545,6 +1545,10 @@ private:
                         }
                         default:
                         {
+                            neigh_part_keys.resize(curr_size + neigh_cell_keys.size());
+                            std::copy(neigh_cell_keys.begin(),neigh_cell_keys.end(),neigh_part_keys.begin() + curr_size);
+
+                            
                             //will possibly have more then one neighbour
                             for(int i = 0; i < neigh_cell_keys.size();i++){
                                 if(neigh_cell_keys[i] > 0){

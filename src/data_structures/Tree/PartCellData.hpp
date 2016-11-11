@@ -586,8 +586,15 @@ public:
                             neigh_y = (current_y + von_neumann_y_cells[face])/2;
                         }
                         else{
+                            //This case is the 1 -3 match up where this does not work, as only one cell is output and therefore the index needs to be corrected
+                            constexpr uint64_t index_offset[6][8] = {{1,0,3,1,5,2,7,3},{0,0,1,2,2,4,3,6},{2,3,0,1,6,7,2,3},{0,1,0,1,2,3,4,5},{4,5,6,7,0,1,2,3},{0,1,2,3,0,1,2,3}};
+                            T curr_part_num = pc_key_get_partnum(curr);
+                            T adj_index = index_offset[face][curr_part_num];
                             //neigh is on child layer
-                            neigh_y = (current_y + von_neumann_y_cells[face])*2 +  (von_neumann_y_cells[face] < 0) + neigh_child_y_offsets[face][index];
+                            neigh_y = (current_y + von_neumann_y_cells[face])*2 +  (von_neumann_y_cells[face] < 0) + neigh_child_y_offsets[face][adj_index];
+                            
+                            
+                          
                         }
                         
                     } else {

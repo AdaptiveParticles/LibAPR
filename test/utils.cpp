@@ -672,6 +672,10 @@ bool compare_sparse_rep_neighpart_with_part_map(const Particle_map<float>& part_
                         status = pc_struct.part_data.access_node_get_status(node_val_part);
                         uint64_t part_offset = pc_struct.part_data.access_node_get_part_offset(node_val_part);
                         
+                        if (( i ==9) & (z_ == 15) & (x_ == 98) & (j_ ==4)){
+                            int stop = 1;
+                        }
+                        
                         
                         //loop over the particles
                         for(int p = 0;p < pc_struct.part_data.get_num_parts(status);p++){
@@ -723,7 +727,7 @@ bool compare_sparse_rep_neighpart_with_part_map(const Particle_map<float>& part_
                                 const size_t offset_part_map = part_map.downsampled[curr_depth].y_num*part_map.downsampled[curr_depth].x_num*curr_z + part_map.downsampled[curr_depth].y_num*curr_x;
                                 uint16_t corr_val = (offset_part_map + curr_y);
                                 
-                                if(own_int == (offset_part_map + curr_y)){
+                                if(own_int == corr_val){
                                     //correct value
                                 } else {
                                     std::cout << "Particle Intensity Error" << std::endl;
@@ -744,6 +748,9 @@ bool compare_sparse_rep_neighpart_with_part_map(const Particle_map<float>& part_
                                 uint64_t status_n = 0;
                                 uint64_t intensity = 1;
                                 uint64_t node_n = 0;
+                                
+                                
+                                
                                 
                                 
                                 for(int n = 0;n < neigh_keys.neigh_face[face].size();n++){
@@ -783,7 +790,11 @@ bool compare_sparse_rep_neighpart_with_part_map(const Particle_map<float>& part_
                                             
                                             std::cout << "Neighbour Particle Intensity Error" << std::endl;
                                             
-                                            
+                                            own_int = pc_struct.part_data.get_part(neigh_keys.neigh_face[face][n]);
+                                            uint64_t index = pc_struct.pc_data.pc_key_get_index(pc_struct.part_data.access_data.get_val(neigh_keys.neigh_face[face][n]));
+                                            uint64_t offset = x_num*z_n + x_n;
+                                            //pc_struct.part_data.access_data.get_val(neigh_cell_keys.neigh_face[2][1]);
+                                            pc_struct.pc_data.get_neigh_coordinates_part(neigh_keys,face,n,y_coord,y_n,x_n,z_n,depth);
                                             pass_test = false;
                                         }
                                         
