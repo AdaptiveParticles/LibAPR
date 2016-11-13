@@ -1,7 +1,7 @@
 #include <algorithm>
 #include <iostream>
 
-#include "ray_cast.h"
+#include "resample_img.h"
 #include "../../src/data_structures/meshclass.h"
 #include "../../src/io/readimage.h"
 
@@ -84,34 +84,17 @@ int main(int argc, char **argv) {
     
     read_apr_pc_struct(pc_struct,file_name);
     
-  
-    PartCellParent<uint64_t> parent_cells(pc_struct);
-    
     int num_cells = pc_struct.get_number_cells();
     int num_parts = pc_struct.get_number_parts();
     
     std::cout << "Number cells: " << num_cells << std::endl;
     std::cout << "Number parts: " << num_parts << std::endl;
     
-    parent_structure_test(pc_struct);
+    Mesh_data<uint64_t> interp;
     
-    // FIND POINT X,Y,Z  in structure
-    
-    uint64_t y = 49;
-    uint64_t x = 33;
-    uint64_t z = 25;
-    
-    uint64_t pc_key = parent_cells.find_partcell(x,y,z,pc_struct);
-    
-    uint64_t check = pc_struct.pc_data.get_val(pc_key);
-    
-    
-    
-    part_rep.timer.start_timer("find cell");
-    
-    find_part_cell_test(pc_struct);
-    
-    part_rep.timer.stop_timer();
+    pc_struct.interp_parts_to_pc(interp,pc_struct.part_data.particle_data);
+   
+    debug_write(interp,"interp_out");
     
 }
 

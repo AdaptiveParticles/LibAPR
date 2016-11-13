@@ -199,6 +199,99 @@ public :
 };
 
 
+template<typename T>
+void const_upsample_img(Mesh_data<T>& input_us,Mesh_data<T>& input,std::vector<unsigned int>& max_dims){
+    //
+    //
+    //  Bevan Cheeseman 2016
+    //
+    //  Creates a constant upsampling of an image
+    //
+    //
+    
+    Part_timer timer;
+    
+    
+    
+    //restrict the domain to be only as big as possibly needed
+    
+    int y_size_max = ceil(max_dims[0]/2.0)*2;
+    int x_size_max = ceil(max_dims[1]/2.0)*2;
+    int z_size_max = ceil(max_dims[2]/2.0)*2;
+    
+    const int z_num = std::min(input.z_num*2,z_size_max);
+    const int x_num = std::min(input.x_num*2,x_size_max);
+    const int y_num = std::min(input.y_num*2,y_size_max);
+    
+    const int z_num_ds_l = z_num/2;
+    const int x_num_ds_l = x_num/2;
+    const int y_num_ds_l = y_num/2;
+    
+    const int x_num_ds = input.x_num;
+    const int y_num_ds = input.y_num;
+    
+    input_us.initialize(y_num, x_num,z_num,0);
+    
+    std::vector<float> temp_vec;
+    temp_vec.resize(y_num_ds,0);
+    
+    timer.start_timer("up_sample_const");
+    
+    int j, i, k;
+    
+#pragma omp parallel for default(shared) private(j,i,k) firstprivate(temp_vec)
+    for(int j = 0;j < z_num_ds_l;j++){
+        
+        for(int i = 0;i < x_num_ds_l;i++){
+            
+            //four passes
+            
+            //first take into cache
+            for (int k = 0; k < y_num_ds_l;k++){
+                temp_vec[k] = input.mesh[j*x_num_ds*y_num_ds + i*y_num_ds + k];
+            }
+            
+            //(0,0)
+            
+            //then do the operations two by two
+            for (int k = 0; k < y_num_ds_l;k++){
+                input_us.mesh[2*j*x_num*y_num + 2*i*y_num + 2*k] = temp_vec[k];
+                input_us.mesh[2*j*x_num*y_num + 2*i*y_num + 2*k + 1] = temp_vec[k];
+            }
+            
+            //(0,1)
+            
+            //then do the operations two by two
+            for (int k = 0; k < y_num_ds_l;k++){
+                input_us.mesh[(2*j+1)*x_num*y_num + 2*i*y_num + 2*k] = temp_vec[k];
+                input_us.mesh[(2*j+1)*x_num*y_num + 2*i*y_num + 2*k + 1] = temp_vec[k];
+            }
+            
+            //(1,0)
+            //then do the operations two by two
+            for (int k = 0; k < y_num_ds_l;k++){
+                input_us.mesh[2*j*x_num*y_num + (2*i+1)*y_num + 2*k] = temp_vec[k];
+                input_us.mesh[2*j*x_num*y_num + (2*i+1)*y_num + 2*k + 1] = temp_vec[k];
+            }
+            
+            //(1,1)
+            //then do the operations two by two
+            for (int k = 0; k < y_num_ds_l;k++){
+                input_us.mesh[(2*j+1)*x_num*y_num + (2*i+1)*y_num + 2*k] = temp_vec[k];
+                input_us.mesh[(2*j+1)*x_num*y_num + (2*i+1)*y_num + 2*k + 1] = temp_vec[k];
+            }
+            
+            
+        }
+    }
+    
+    timer.stop_timer();
+    
+    
+    
+    
+}
+
 template<typename T, typename L1, typename L2>
 void down_sample(Mesh_data<T>& test_a, Mesh_data<T>& test_a_ds, L1 reduce, L2 constant_operator,
                  bool with_allocation = false){

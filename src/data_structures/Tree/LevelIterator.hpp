@@ -57,7 +57,6 @@ public:
         current_coords.x = current_coords.y = current_coords.z = level_multiplier * 2;
         current = 0;
 
-        uint8_t current_level = 1;
         child_index = 0;
 
         if (level == 1) {

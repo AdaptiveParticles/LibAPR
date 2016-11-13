@@ -153,15 +153,6 @@ int main(int argc, char **argv) {
     
     std::swap(part_map.downsampled[part_map.k_max+1],input_image_float);
     
-    // Set the intensities
-    for(int depth = part_map.k_min; depth <= (part_map.k_max+1);depth++){
-        
-        for(uint64_t i = 0; i < part_map.downsampled[depth].mesh.size();i++){
-            part_map.downsampled[depth].mesh[i] = (uint16_t) i;
-        }
-        
-    }
-    
     
     PartCellStructure<float,uint64_t> pcell_test(part_map);
     
