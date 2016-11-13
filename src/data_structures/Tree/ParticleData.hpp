@@ -12,6 +12,7 @@
 #include <stdint.h>
 
 #include "PartCellData.hpp"
+#include "ExtraPartCellData.hpp"
 
 
 #define SEED_NUM_PARTICLES 8
@@ -42,7 +43,7 @@ public:
      */
     
     PartCellData<S> access_data;
-    PartCellData<T> particle_data;
+    ExtraPartCellData<T> particle_data;
     
     
     ParticleData(){};
@@ -96,7 +97,22 @@ public:
         //
         
         access_data.initialize_from_partcelldata(part_cell_data);
-        particle_data.initialize_from_partcelldata(part_cell_data);
+        
+        //first add the layers
+        particle_data.depth_max = part_cell_data.depth_max;
+        particle_data.depth_min = part_cell_data.depth_min;
+        
+        particle_data.z_num.resize(particle_data.depth_max+1);
+        particle_data.x_num.resize(particle_data.depth_max+1);
+        
+        particle_data.data.resize(particle_data.depth_max+1);
+        
+        for(int i = particle_data.depth_min;i <= particle_data.depth_max;i++){
+            particle_data.z_num[i] = part_cell_data.z_num[i];
+            particle_data.x_num[i] = part_cell_data.x_num[i];
+            particle_data.data[i].resize(particle_data.z_num[i]*particle_data.x_num[i]);
+        }
+        
         
         //now initialize the entries of the two data sets, access structure
         
@@ -685,129 +701,6 @@ public:
         }
         
         timer.stop_timer();
-        
-//        timer.start_timer("get neighbour parts dir + add parts");
-//        
-//        for(uint64_t i = pc_data.depth_min;i <= pc_data.depth_max;i++){
-//            
-//            const unsigned int x_num_ = pc_data.x_num[i];
-//            const unsigned int z_num_ = pc_data.z_num[i];
-//            
-//            //For each depth there are two loops, one for SEED status particles, at depth + 1, and one for BOUNDARY and FILLER CELLS, to ensure contiguous memory access patterns.
-//            
-//            // SEED PARTICLE STATUS LOOP (requires access to three data structures, particle access, particle data, and the part-map)
-//#pragma omp parallel for default(shared) private(z_,x_,j_,node_val_pc,node_val_part,curr_key,part_offset,status,neigh_cell_keys,neigh_part_keys) if(z_num_*x_num_ > 100)
-//            for(z_ = 0;z_ < z_num_;z_++){
-//                
-//                curr_key = 0;
-//                
-//                access_data.pc_key_set_depth(curr_key,i);
-//                access_data.pc_key_set_z(curr_key,z_);
-//                
-//                neigh_cell_keys.reserve(6);
-//                neigh_part_keys.reserve(6);
-//                
-//                for(x_ = 0;x_ < x_num_;x_++){
-//                    
-//                    access_data.pc_key_set_x(curr_key,x_);
-//                    
-//                    const size_t offset_pc_data = x_num_*z_ + x_;
-//                    
-//                    const size_t j_num = pc_data.data[i][offset_pc_data].size();
-//                    
-//                    for(j_ = 0;j_ < j_num;j_++){
-//                        
-//                        node_val_pc = pc_data.data[i][offset_pc_data][j_];
-//                        
-//                        if (!(node_val_pc&1)){
-//                            //get the index gap node
-//                            node_val_part = access_data.data[i][offset_pc_data][j_];
-//                            
-//                            
-//                            access_data.pc_key_set_j(curr_key,j_);
-//                            
-//                            
-//                            //neigh_keys.resize(0);
-//                            status = access_node_get_status(node_val_part);
-//                            part_offset = access_node_get_part_offset(node_val_part);
-//
-//                            
-//                            neigh_cell_keys.resize(0);
-//                            neigh_part_keys.resize(0);
-//                            pc_data.get_neigh_0(curr_key,node_val_pc,neigh_cell_keys);
-//                            
-//                            (void) neigh_cell_keys;
-//                            
-//                            uint64_t face = 3;
-//                            uint64_t val = 0;
-//                            
-//                            switch(status){
-//                                case SEED:
-//                                {
-//                                    //loop over the 8 particles
-//                                    for(uint64_t p = 0;p < 8;p++){
-//                                        access_data.pc_key_set_index(curr_key,part_offset+p);
-//                                        neigh_part_keys.resize(0);
-//                                        get_part_neighs_face(face,p,curr_key,status,part_offset+p,neigh_cell_keys,neigh_part_keys,pc_data);
-//                                        
-//                                        for(uint64_t n = 0; n < neigh_part_keys.size();n++){
-//                                            val = neigh_part_keys[n];
-//                                            if (val > 0){
-//                                                
-//                                                get_part(curr_key) = get_part(val);
-//                                            }
-//                                        }
-//                                        
-//                                    }
-//                                    
-//                                    (void) neigh_part_keys;
-//                                    (void) neigh_cell_keys;
-//                                    
-//                                    //loop over neighborus and add the different part offsets
-//                                    
-//                                    break;
-//                                }
-//                                default:
-//                                {
-//                                    //one particle
-//                                    access_data.pc_key_set_index(curr_key,part_offset);
-//                                    
-//                                    //loop over neighbours, and add in the part offset
-//                                    get_part_neighs_face(face,0,curr_key,status,part_offset,neigh_cell_keys,neigh_part_keys,pc_data);
-//                                    
-//                                    for(uint64_t n = 0; n < neigh_part_keys.size();n++){
-//                                        val = neigh_part_keys[n];
-//                                        if (val > 0){
-//                                            
-//                                            get_part(curr_key) = get_part(val);
-//                                        }
-//                                    }
-//                                    
-//                                    
-//                                    (void) neigh_part_keys;
-//                                    (void) neigh_cell_keys;
-//                                    
-//                                    break;
-//                                }
-//                                    
-//                                    
-//
-//                                    
-//                            }
-//                            
-//                            
-//                        } else {
-//                            
-//                        }
-//                        
-//                    }
-//                    
-//                }
-//                
-//            }
-//        }
-//        
-//        timer.stop_timer();
         
         
     }
