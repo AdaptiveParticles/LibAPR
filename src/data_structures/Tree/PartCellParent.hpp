@@ -86,6 +86,8 @@ public:
         //
         //
         
+        T curr_key = 0;
+        
         T factor =pow(2,pc_struct.depth_max + 1 - pc_struct.depth_min);
         //calculate on min layer
         T y_min = y/factor;
@@ -106,13 +108,17 @@ public:
             if(j_pc == 0){
                 return 0;
             } else {
-                return j_pc;
+                
+                T depth_min = pc_struct.depth_min;
+                pc_struct.pc_data.set_details_cell(curr_key,x_min,z_min,j_pc,depth_min);
+                
+                return curr_key;
             }
             
         }
         
         
-        T curr_key = 0;
+        
         
         neigh_info.pc_key_set_x(curr_key,x_min);
         neigh_info.pc_key_set_z(curr_key,z_min);
@@ -329,7 +335,7 @@ private:
             const unsigned int x_num_parent = parent_info.x_num[i-1];
             
             
-#pragma omp parallel for default(shared) private(z_,x_,j_,node_val,y_parent,j_parent,y_coord) if(z_num_*x_num_ > 100)
+//#pragma omp parallel for default(shared) private(z_,x_,j_,node_val,y_parent,j_parent,y_coord) if(z_num_*x_num_ > 100)
             for(z_ = 0;z_ < (z_num_);z_++){
                 
                 for(x_ = 0;x_ < (x_num_);x_++){
@@ -357,11 +363,20 @@ private:
                     const size_t j_num = neigh_info.data[i][offset_pc_data].size();
                     const size_t j_num_parent = neigh_info.data[i-1][offset_pc_data_parent].size();
                     
+                    
+                    if((x_ == 5) & (z_ == 1) & (i == 4)){
+                        int stop = 1;
+                    }
+                    
                     for(j_ = 1;j_ < j_num;j_++){
                         
                         // Parent relation
                         
                         node_val = neigh_info.data[i][offset_pc_data][j_];
+                        
+                        
+                        
+                        
                         
                         if (node_val&1){
                             //get the index gap node
@@ -401,9 +416,9 @@ private:
                                     if(z_ == z_parent*2){
                                         
                                         if(x_ == x_parent*2){
-                                           parent_info.data[i-1][offset_pc_data_parent][j_parent] |= (j_ << CHILD0_SHIFT);
+                                            parent_info.data[i-1][offset_pc_data_parent][j_parent] |= (j_ << CHILD0_SHIFT);
                                         } else {
-                                           parent_info.data[i-1][offset_pc_data_parent][j_parent] |= (j_ << CHILD2_SHIFT);
+                                            parent_info.data[i-1][offset_pc_data_parent][j_parent] |= (j_ << CHILD2_SHIFT);
                                         }
                                         
                                     } else {
@@ -415,23 +430,23 @@ private:
                                         
                                     }
                                     
-                                }
-                            } else {
-                                if(z_ == z_parent*2){
-                                    
-                                    if(x_ == x_parent*2){
-                                        parent_info2.data[i-1][offset_pc_data_parent][j_parent] |= (j_ << CHILD1_SHIFT);
-                                    } else {
-                                        parent_info2.data[i-1][offset_pc_data_parent][j_parent] |= (j_ << CHILD3_SHIFT);
-                                    }
-                                    
                                 } else {
-                                    if(x_ == x_parent*2){
-                                        parent_info2.data[i-1][offset_pc_data_parent][j_parent] |= (j_ << CHILD5_SHIFT);
+                                    if(z_ == z_parent*2){
+                                        
+                                        if(x_ == x_parent*2){
+                                            parent_info2.data[i-1][offset_pc_data_parent][j_parent] |= (j_ << CHILD1_SHIFT);
+                                        } else {
+                                            parent_info2.data[i-1][offset_pc_data_parent][j_parent] |= (j_ << CHILD3_SHIFT);
+                                        }
+                                        
                                     } else {
-                                        parent_info2.data[i-1][offset_pc_data_parent][j_parent] |= (j_ << CHILD7_SHIFT);
+                                        if(x_ == x_parent*2){
+                                            parent_info2.data[i-1][offset_pc_data_parent][j_parent] |= (j_ << CHILD5_SHIFT);
+                                        } else {
+                                            parent_info2.data[i-1][offset_pc_data_parent][j_parent] |= (j_ << CHILD7_SHIFT);
+                                        }
+                                        
                                     }
-                                    
                                 }
                             }
                         }
@@ -809,13 +824,13 @@ private:
         uint64_t curr_key = 0;
 
         
-        for(int i = (pc_struct.pc_data.depth_min+1);i <= pc_struct.pc_data.depth_max;i++){
+        for(int i = (pc_struct.pc_data.depth_max);i > pc_struct.pc_data.depth_min;i--){
             
             const unsigned int x_num_ = pc_struct.pc_data.x_num[i];
             const unsigned int z_num_ = pc_struct.pc_data.z_num[i];
             
             
-#pragma omp parallel for default(shared) private(z_,x_,j_,node_val,curr_key,y_coord) if(z_num_*x_num_ > 100)
+//#pragma omp parallel for default(shared) private(z_,x_,j_,node_val,curr_key,y_coord) if(z_num_*x_num_ > 100)
             for(z_ = 0;z_ < z_num_;z_++){
                 
                 curr_key = 0;
@@ -837,7 +852,12 @@ private:
                     uint64_t parent_y;
                     uint64_t parent_z;
                     
+                    y_coord = 0;
+                    
                     uint64_t depth;
+                    
+                    
+                    
                     
                     for(j_ = 0;j_ < j_num;j_++){
                         
@@ -898,6 +918,19 @@ private:
         }
         
         
+        Mesh_data<uint8_t> temp;
+        for(int i = neigh_info.depth_min; i <= neigh_info.depth_max;i++){
+            temp.y_num = pc_struct.y_num[i];
+            temp.x_num = pc_struct.x_num[i];
+            temp.z_num = pc_struct.z_num[i];
+            temp.mesh = parent_map[i];
+            
+            debug_write(temp,"parent_" + std::to_string(i));
+            
+        }
+        
+        
+        
         uint16_t curr_index;
         uint8_t status;
         uint8_t prev_ind = 0;
@@ -905,14 +938,14 @@ private:
         
         // Construct the parent info
         
-        for(int i = pc_struct.pc_data.depth_min;i <= (pc_struct.pc_data.depth_max-1);i++){
+        for(int i = pc_struct.pc_data.depth_min;i < (pc_struct.pc_data.depth_max);i++){
             
             const unsigned int x_num_ = pc_struct.x_num[i];
             const unsigned int z_num_ = pc_struct.z_num[i];
             const unsigned int y_num_ = pc_struct.y_num[i];
             
             
-#pragma omp parallel for default(shared) private(z_,x_,y_,curr_index,status,prev_ind) if(z_num_*x_num_ > 100)
+//#pragma omp parallel for default(shared) private(z_,x_,y_,curr_index,status,prev_ind) if(z_num_*x_num_ > 100)
             for(z_ = 0;z_ < z_num_;z_++){
                 
                 for(x_ = 0;x_ < x_num_;x_++){

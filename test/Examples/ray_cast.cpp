@@ -93,6 +93,8 @@ int main(int argc, char **argv) {
     std::cout << "Number cells: " << num_cells << std::endl;
     std::cout << "Number parts: " << num_parts << std::endl;
     
+    parent_structure_test(pc_struct);
+    
     // FIND POINT X,Y,Z  in structure
     
     uint64_t y = 49;
@@ -104,6 +106,8 @@ int main(int argc, char **argv) {
     uint64_t check = pc_struct.pc_data.get_val(pc_key);
     
     int stop = 1;
+    
+    find_part_cell_test(pc_struct);
 
 }
 

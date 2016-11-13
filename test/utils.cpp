@@ -1322,7 +1322,7 @@ bool parent_structure_test(PartCellStructure<float,uint64_t>& pc_struct){
     
     for(int i = pc_struct.depth_min;i <= (pc_struct.depth_max-1);i++){
         
-        parent_map[i].resize(pc_struct.x_num[i]*pc_struct.y_num[i]*pc_struct.z_num[i]);
+        parent_map[i].resize(pc_struct.x_num[i]*pc_struct.y_num[i]*pc_struct.z_num[i],0);
     }
     
     uint64_t node_val;
@@ -1477,9 +1477,13 @@ bool parent_structure_test(PartCellStructure<float,uint64_t>& pc_struct){
                         
                         if(status == GHOST_CHILDREN){
                             
-                            if((parent_map[i][offset_p_map + y_coord] == 1) & (p_map[i][offset_p_map + y_coord] == 0)){
+                            if((parent_map[i][offset_p_map + y_coord] > 0) & (p_map[i][offset_p_map + y_coord] == 0)){
                                 
                             } else {
+                                uint64_t p_val = p_map[i][offset_p_map + y_coord];
+                                uint64_t parent_val = parent_map[i][offset_p_map + y_coord];
+                                
+                                
                                 std::cout << "GHOST PARENT BUG" << std::endl;
                                 pass_test = false;
                             }
@@ -1700,6 +1704,37 @@ bool parent_structure_test(PartCellStructure<float,uint64_t>& pc_struct){
                                     
 
                                 }
+                            } else {
+                                // check if it returns not in the structure, that it actually isn't in the structure!
+                                
+                                uint64_t x_c = 2*x_ + parent_cells.parent_info.seed_part_x[c];
+                                uint64_t z_c = 2*z_ + parent_cells.parent_info.seed_part_z[c];
+                                uint64_t y_c = 2*y_coord + parent_cells.parent_info.seed_part_y[c];
+                                uint64_t depth_c = i +1;
+                                
+                                if ((x_c < pc_struct.x_num[depth_c]) & (z_c < pc_struct.z_num[depth_c]) & (y_c < pc_struct.y_num[depth_c]) ){
+                                    
+                                    //check it in the parent_map structure
+                                    uint64_t offset = z_c*pc_struct.y_num[depth_c]*pc_struct.x_num[depth_c] + x_c*pc_struct.y_num[depth_c] + y_c;
+                                    
+                                    uint64_t parent_map_val = 0;
+                                    
+                                    uint64_t pmap_val = p_map[depth_c][offset];
+                                    
+                                    if(depth_c > parent_cells.neigh_info.depth_max){
+                                        parent_map_val = 0;
+                                    } else {
+                                        parent_map_val = parent_map[depth_c][offset];
+                                    }
+                                    
+                                    
+                                    if ((pmap_val > 0) | (parent_map_val > 0)){
+                                        std::cout << "MISSING CHLID" << std::endl;
+                                        pass_test = false;
+                                    }
+                                    
+                                }
+                                
                             }
                             
                             
@@ -1824,4 +1859,102 @@ void create_test_dataset_from_hdf5(Particle_map<float>& particle_map,PartCellStr
     }
     
     
+}
+bool find_part_cell_test(PartCellStructure<float,uint64_t>& pc_struct){
+    
+    PartCellParent<uint64_t> parent_cells(pc_struct);
+    
+    int num_cells = pc_struct.get_number_cells();
+    int num_parts = pc_struct.get_number_parts();
+    
+    std::cout << "Number cells: " << num_cells << std::endl;
+    std::cout << "Number parts: " << num_parts << std::endl;
+    
+    //initialize looping vars
+    uint64_t x_;
+    uint64_t y_coord;
+    uint64_t z_;
+    uint64_t j_;
+    uint64_t node_val;
+    
+    uint64_t curr_key = 0;
+    
+    bool pass_test = true;
+    
+    // FIND POINT X,Y,Z  in structure
+    
+    //loop over all the particle cells and then
+    
+    for(uint64_t i = pc_struct.pc_data.depth_min;i <= pc_struct.pc_data.depth_max;i++){
+        
+        const unsigned int x_num_ = pc_struct.x_num[i];
+        const unsigned int z_num_ = pc_struct.z_num[i];
+        
+        // First create the particle map
+        for(z_ = 0;z_ < z_num_;z_++){
+            
+            for(x_ = 0;x_ < x_num_;x_++){
+                
+                const size_t offset_pc_data = x_num_*z_ + x_;
+                
+                const size_t j_num = pc_struct.pc_data.data[i][offset_pc_data].size();
+                
+                y_coord = 0;
+                
+                for(j_ = 0;j_ < j_num;j_++){
+                    
+                    node_val = pc_struct.pc_data.data[i][offset_pc_data][j_];
+                    
+                    if (!(node_val&1)){
+                        //get the index gap node
+                        y_coord++;
+                        
+                        pc_struct.part_data.access_data.pc_key_set_j(curr_key,j_);
+                        pc_struct.part_data.access_data.pc_key_set_x(curr_key,x_);
+                        pc_struct.part_data.access_data.pc_key_set_z(curr_key,z_);
+                        pc_struct.part_data.access_data.pc_key_set_depth(curr_key,i);
+                        
+                        if((j_==3) & (x_==10) & (z_==0) & (i ==5)){
+                            int stop = 1;
+                        }
+                        
+                        uint64_t factor = pow(2,pc_struct.depth_max + 1 - i);
+                        
+                        uint64_t y_f = y_coord*factor;
+                        uint64_t x_f = x_*factor;
+                        uint64_t z_f = z_*factor;
+                        
+                        uint64_t found_key = parent_cells.find_partcell(x_f,y_f,z_f,pc_struct);
+                        
+                        if(pc_struct.pc_data.pc_key_cell_isequal(found_key,curr_key)){
+                            // success
+                        } else {
+                            
+                            uint64_t x_t;
+                            uint64_t z_t;
+                            uint64_t j_t;
+                            uint64_t depth_t;
+                           
+                            // get coordinates compare whats wrong
+                            pc_struct.pc_data.get_details_cell(found_key,x_t,z_t,j_t,depth_t);
+                            pass_test = false;
+                            std::cout << "Found Key Doesn't Match" << std::endl;
+                        }
+                        
+                        
+                    } else {
+                        
+                         y_coord = (node_val & NEXT_COORD_MASK) >> NEXT_COORD_SHIFT;
+                        y_coord--;
+                    }
+                    
+                }
+                
+            }
+            
+        }
+        
+    }
+    
+    return pass_test;
 }

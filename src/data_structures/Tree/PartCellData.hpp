@@ -376,6 +376,29 @@ public:
         //return data[(pc_key & PC_KEY_DEPTH_MASK) >> PC_KEY_DEPTH_SHIFT][x_num[(pc_key & PC_KEY_DEPTH_MASK) >> PC_KEY_DEPTH_SHIFT]*((pc_key & PC_KEY_Z_MASK) >> PC_KEY_Z_SHIFT) + ((pc_key & PC_KEY_X_MASK) >> PC_KEY_X_SHIFT)][(pc_key & PC_KEY_J_MASK) >> PC_KEY_J_SHIFT];
     }
     
+    
+    void get_details_cell(const T& curr_key,T& x_,T& z_,T& j_,T& depth_){
+        //
+        //  Calculates coordinates and details for a particle, requires pc_key and current y
+        //
+                
+        x_ = pc_key_get_x(curr_key);
+        j_ = pc_key_get_j(curr_key);
+        z_ = pc_key_get_z(curr_key);
+        depth_ = pc_key_get_depth(curr_key);
+    }
+    
+    void set_details_cell(T& curr_key,const T& x_,const T& z_,const T& j_,T& depth_){
+        //
+        //  Calculates coordinates and details for a particle, requires pc_key and current y
+        //
+        
+        pc_key_set_x(curr_key,x_);
+        pc_key_set_j(curr_key,j_);
+        pc_key_set_z(curr_key,z_);
+        pc_key_set_depth(curr_key,depth_);
+    }
+    
     void get_coordinates_cell(T current_y,const T& curr_key,T& x_,T& z_,T& y_,T& depth_,T& status_){
         //
         //  Calculates coordinates and details for a particle, requires pc_key and current y
