@@ -917,18 +917,18 @@ private:
             }
         }
         
-        
-        Mesh_data<uint8_t> temp;
-        for(int i = neigh_info.depth_min; i <= neigh_info.depth_max;i++){
-            temp.y_num = pc_struct.y_num[i];
-            temp.x_num = pc_struct.x_num[i];
-            temp.z_num = pc_struct.z_num[i];
-            temp.mesh = parent_map[i];
-            
-            debug_write(temp,"parent_" + std::to_string(i));
-            
-        }
-        
+//        
+//        Mesh_data<uint8_t> temp;
+//        for(int i = neigh_info.depth_min; i <= neigh_info.depth_max;i++){
+//            temp.y_num = pc_struct.y_num[i];
+//            temp.x_num = pc_struct.x_num[i];
+//            temp.z_num = pc_struct.z_num[i];
+//            temp.mesh = parent_map[i];
+//            
+//            debug_write(temp,"parent_" + std::to_string(i));
+//            
+//        }
+//        
         
         
         uint16_t curr_index;

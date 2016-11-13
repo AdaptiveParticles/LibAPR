@@ -1328,11 +1328,13 @@ bool parent_structure_test(PartCellStructure<float,uint64_t>& pc_struct){
     uint64_t node_val;
     
     
-    for(int i = (pc_struct.pc_data.depth_min+1);i <= pc_struct.pc_data.depth_max;i++){
+    for(int i = (pc_struct.pc_data.depth_max);i > pc_struct.pc_data.depth_min;i--){
         
         const unsigned int x_num_ = pc_struct.pc_data.x_num[i];
         const unsigned int z_num_ = pc_struct.pc_data.z_num[i];
         
+        
+        //#pragma omp parallel for default(shared) private(z_,x_,j_,node_val,curr_key,y_coord) if(z_num_*x_num_ > 100)
         for(z_ = 0;z_ < z_num_;z_++){
             
             curr_key = 0;
@@ -1354,8 +1356,9 @@ bool parent_structure_test(PartCellStructure<float,uint64_t>& pc_struct){
                 uint64_t parent_y;
                 uint64_t parent_z;
                 
-                uint64_t depth;
                 y_coord = 0;
+                
+                uint64_t depth;
                 
                 for(j_ = 0;j_ < j_num;j_++){
                     
@@ -1397,7 +1400,9 @@ bool parent_structure_test(PartCellStructure<float,uint64_t>& pc_struct){
                                 }
                             }
                             
+                            
                         }
+                        
                         
                         
                     } else {
@@ -1412,8 +1417,9 @@ bool parent_structure_test(PartCellStructure<float,uint64_t>& pc_struct){
             }
         }
     }
-    
  
+    
+    
     
     
     /////////////////////////////////
@@ -1426,6 +1432,17 @@ bool parent_structure_test(PartCellStructure<float,uint64_t>& pc_struct){
     PartCellNeigh<uint64_t> neigh_keys;
     
     
+//    Mesh_data<uint8_t> temp;
+//    for(int i = parent_cells.neigh_info.depth_min; i <= parent_cells.neigh_info.depth_max;i++){
+//        temp.y_num = pc_struct.y_num[i];
+//        temp.x_num = pc_struct.x_num[i];
+//        temp.z_num = pc_struct.z_num[i];
+//        temp.mesh = parent_map[i];
+//        
+//        debug_write(temp,"test_parent_" + std::to_string(i));
+//        
+//    }
+//    
     ////////////////////////////////
     //
     //  Neigh Info Checks
@@ -1913,10 +1930,6 @@ bool find_part_cell_test(PartCellStructure<float,uint64_t>& pc_struct){
                         pc_struct.part_data.access_data.pc_key_set_x(curr_key,x_);
                         pc_struct.part_data.access_data.pc_key_set_z(curr_key,z_);
                         pc_struct.part_data.access_data.pc_key_set_depth(curr_key,i);
-                        
-                        if((j_==3) & (x_==10) & (z_==0) & (i ==5)){
-                            int stop = 1;
-                        }
                         
                         uint64_t factor = pow(2,pc_struct.depth_max + 1 - i);
                         
