@@ -13,6 +13,7 @@
 #include "../../src/io/writeimage.h"
 #include "../../src/io/write_parts.h"
 #include "../../src/io/partcell_io.h"
+#include "../../src/data_structures/Tree/ExtraPartCellData.hpp"
 
 bool command_option_exists(char **begin, char **end, const std::string &option)
 {
@@ -185,13 +186,16 @@ int main(int argc, char **argv) {
     //  Example 2:
     //
     //
-    //  Get particle neighbour loop
+    //  Compute Filter
     //
     //
+    
+    
+    ExtraPartCellData<float> filter_output(pc_struct.part_data.particle_data);
     
     part_rep.timer.start_timer("Loop over parts and get -z neighbour and its intensity, and get there coordinates");
     
-    for(int i = pc_struct.pc_data.depth_min;i <= pc_struct.pc_data.depth_max;i++){
+    for(uint64_t i = pc_struct.pc_data.depth_min;i <= pc_struct.pc_data.depth_max;i++){
         //loop over the resolutions of the structure
         const unsigned int x_num_ = pc_struct.pc_data.x_num[i];
         const unsigned int z_num_ = pc_struct.pc_data.z_num[i];
@@ -271,10 +275,7 @@ int main(int argc, char **argv) {
                                     //then we can get the status from this
                                     status_neigh = pc_struct.pc_data.pc_key_get_status(neigh_part_key);
                                     
-                                    //get the intensity of the neighbour
-                                    uint64_t neigh_int = pc_struct.part_data.get_part(neigh_part_key);
-                                    
-                                    (void) neigh_int; //force execution
+                                    filter_output.get_part(curr_key) = 0.5*pc_struct.part_data.get_part(neigh_part_key);
                                     
                                 }
                                 
@@ -295,6 +296,8 @@ int main(int argc, char **argv) {
     
     
     part_rep.timer.stop_timer();
+    
+    
 
     
 }

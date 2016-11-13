@@ -158,8 +158,8 @@ public:
     const uint8_t seed_part_x[8] = {0, 0, 1, 1, 0, 0, 1, 1};
     const uint8_t seed_part_z[8] = {0, 0, 0, 0, 1, 1, 1, 1};
     
-    uint8_t depth_max;
-    uint8_t depth_min;
+    uint64_t depth_max;
+    uint64_t depth_min;
     
     std::vector<unsigned int> z_num;
     std::vector<unsigned int> x_num;

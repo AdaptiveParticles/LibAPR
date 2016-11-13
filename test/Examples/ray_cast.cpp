@@ -105,10 +105,14 @@ int main(int argc, char **argv) {
     
     uint64_t check = pc_struct.pc_data.get_val(pc_key);
     
-    int stop = 1;
+    
+    
+    part_rep.timer.start_timer("find cell");
     
     find_part_cell_test(pc_struct);
-
+    
+    part_rep.timer.stop_timer();
+    
 }
 
 
