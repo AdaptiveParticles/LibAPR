@@ -1627,7 +1627,6 @@ public:
         //
         
 
-        
         Mesh_data<U> curr_k_img;
         Mesh_data<U> prev_k_img;
         
@@ -1643,8 +1642,8 @@ public:
         
         std::vector<std::vector<U>> interp_val_seed;
         
-        int x_incr[8] = {0,1,0,1,0,1,0,1};
-        int y_incr[8] = {0,0,1,1,0,0,1,1};
+        int y_incr[8] = {0,1,0,1,0,1,0,1};
+        int x_incr[8] = {0,0,1,1,0,0,1,1};
         int z_incr[8] = {0,0,0,0,1,1,1,1};
         
         //re-initialize
@@ -1767,13 +1766,15 @@ public:
                             
                             part_data.access_data.get_coordinates_cell(y_coord,curr_key,x_p,z_p,y_p,depth_,status_);
                             
-                            y_temp.push_back((unsigned int)y_p);
-                            x_temp.push_back((unsigned int)x_p);
-                            z_temp.push_back((unsigned int)z_p);
-                            
                             if(status == SEED){
+                                
+                                y_temp_seed.push_back((unsigned int)y_p);
+                                x_temp_seed.push_back((unsigned int)x_p);
+                                z_temp_seed.push_back((unsigned int)z_p);
+                                
+                                
                                 std::vector<U> temp_vec;
-                                temp_vec.resize(num_parts_2_cell);
+                                temp_vec.reserve(num_parts_2_cell);
                                 //loop over the particles
                                 for(int p = 0;p < part_data.get_num_parts(status);p++){
                                     // get coordinates
@@ -1783,6 +1784,11 @@ public:
                                 
                                 interp_val_seed.push_back(temp_vec);
                             } else {
+                                y_temp.push_back((unsigned int)y_p);
+                                x_temp.push_back((unsigned int)x_p);
+                                z_temp.push_back((unsigned int)z_p);
+                                
+                                part_data.access_data.pc_key_set_index(curr_key,part_offset);
                                 
                                 interp_val.push_back(interp_data.get_part(curr_key));
                             }
