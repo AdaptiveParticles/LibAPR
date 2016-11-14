@@ -1657,7 +1657,6 @@ public:
         uint64_t depth_ = 0;
         uint64_t status_ = 0;
         
-        
         //loop over all levels of k
         for (uint64_t d = depth_min; depth_max >= d; d++) {
             
