@@ -25,9 +25,16 @@ public:
     ExtraPartCellData(){
     };
     
-    ExtraPartCellData(PartCellData<T>& pc_data){
-        initialize_structure(pc_data);
+    template<typename S>
+    ExtraPartCellData(PartCellData<S>& pc_data){
+        initialize_structure_cells(pc_data);
     };
+    
+    template<typename S>
+    ExtraPartCellData(ExtraPartCellData<S>& part_data){
+        initialize_structure_parts(part_data);
+    };
+
     
     
     uint64_t depth_max;
@@ -38,7 +45,8 @@ public:
     
     std::vector<std::vector<std::vector<T>>> data;
     
-    void initialize_structure(PartCellData<T>& pc_data){
+    template<typename S>
+    void initialize_structure_cells(PartCellData<S>& pc_data){
         //
         //  Initialize the structure to the same size as the given structure
         //
@@ -59,6 +67,34 @@ public:
             
             for(int j = 0;j < pc_data.data[i].size();j++){
                 data[i][j].resize(pc_data.data[i][j].size(),0);
+            }
+            
+        }
+        
+    }
+    
+    template<typename S>
+    void initialize_structure_parts(ExtraPartCellData<S>& part_data){
+        //
+        //  Initialize the structure to the same size as the given structure
+        //
+        
+        //first add the layers
+        depth_max = part_data.depth_max;
+        depth_min = part_data.depth_min;
+        
+        z_num.resize(depth_max+1);
+        x_num.resize(depth_max+1);
+        
+        data.resize(depth_max+1);
+        
+        for(int i = depth_min;i <= depth_max;i++){
+            z_num[i] = part_data.z_num[i];
+            x_num[i] = part_data.x_num[i];
+            data[i].resize(z_num[i]*x_num[i]);
+            
+            for(int j = 0;j < part_data.data[i].size();j++){
+                data[i][j].resize(part_data.data[i][j].size(),0);
             }
             
         }

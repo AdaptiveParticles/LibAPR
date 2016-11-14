@@ -1935,20 +1935,7 @@ public:
         
         std::swap(out_image,curr_k_img);
         
-//        //reduce down the image size to the required size.
-//        int i;
-//        int j;
-//        
-//        //Needs to be replaced by a loop over the particles
-//#pragma omp parallel for default(shared) private(i,j)
-//        for(i = 0;i < org_dims[2];i++){
-//            for(j = 0; j < org_dims[1];j++){
-//                
-//                std::copy(curr_k_img.mesh.begin() + curr_k_img.y_num*j + curr_k_img.x_num*curr_k_img.y_num*i,curr_k_img.mesh.begin()  + curr_k_img.y_num*j + curr_k_img.x_num*curr_k_img.y_num*i + out_image.y_num,out_image.mesh.begin() + out_image.y_num*j + out_image.x_num*out_image.y_num*i);
-//            }
-//        }
-//        
-        
+
         timer.stop_timer();
         
     }
