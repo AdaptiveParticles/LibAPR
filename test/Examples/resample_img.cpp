@@ -92,8 +92,16 @@ int main(int argc, char **argv) {
     
     Mesh_data<uint64_t> interp;
     
+    Part_timer timer;
+    
+    timer.verbose_flag = true;
+    
+    timer.start_timer("interp to pc");
+    
     pc_struct.interp_parts_to_pc(interp,pc_struct.part_data.particle_data);
    
+    timer.stop_timer();
+    
     debug_write(interp,"interp_out");
     
 }

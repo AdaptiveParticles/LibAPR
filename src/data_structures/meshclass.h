@@ -240,21 +240,21 @@ void const_upsample_img(Mesh_data<T>& input_us,Mesh_data<T>& input,std::vector<u
     int j, i, k;
     
 #pragma omp parallel for default(shared) private(j,i,k) firstprivate(temp_vec)
-    for(int j = 0;j < z_num_ds_l;j++){
+    for(j = 0;j < z_num_ds_l;j++){
         
-        for(int i = 0;i < x_num_ds_l;i++){
+        for(i = 0;i < x_num_ds_l;i++){
             
             //four passes
             
             //first take into cache
-            for (int k = 0; k < y_num_ds_l;k++){
+            for (k = 0; k < y_num_ds_l;k++){
                 temp_vec[k] = input.mesh[j*x_num_ds*y_num_ds + i*y_num_ds + k];
             }
             
             //(0,0)
             
             //then do the operations two by two
-            for (int k = 0; k < y_num_ds_l;k++){
+            for (k = 0; k < y_num_ds_l;k++){
                 input_us.mesh[2*j*x_num*y_num + 2*i*y_num + 2*k] = temp_vec[k];
                 input_us.mesh[2*j*x_num*y_num + 2*i*y_num + 2*k + 1] = temp_vec[k];
             }
@@ -262,21 +262,21 @@ void const_upsample_img(Mesh_data<T>& input_us,Mesh_data<T>& input,std::vector<u
             //(0,1)
             
             //then do the operations two by two
-            for (int k = 0; k < y_num_ds_l;k++){
+            for (k = 0; k < y_num_ds_l;k++){
                 input_us.mesh[(2*j+1)*x_num*y_num + 2*i*y_num + 2*k] = temp_vec[k];
                 input_us.mesh[(2*j+1)*x_num*y_num + 2*i*y_num + 2*k + 1] = temp_vec[k];
             }
             
             //(1,0)
             //then do the operations two by two
-            for (int k = 0; k < y_num_ds_l;k++){
+            for (k = 0; k < y_num_ds_l;k++){
                 input_us.mesh[2*j*x_num*y_num + (2*i+1)*y_num + 2*k] = temp_vec[k];
                 input_us.mesh[2*j*x_num*y_num + (2*i+1)*y_num + 2*k + 1] = temp_vec[k];
             }
             
             //(1,1)
             //then do the operations two by two
-            for (int k = 0; k < y_num_ds_l;k++){
+            for (k = 0; k < y_num_ds_l;k++){
                 input_us.mesh[(2*j+1)*x_num*y_num + (2*i+1)*y_num + 2*k] = temp_vec[k];
                 input_us.mesh[(2*j+1)*x_num*y_num + (2*i+1)*y_num + 2*k + 1] = temp_vec[k];
             }

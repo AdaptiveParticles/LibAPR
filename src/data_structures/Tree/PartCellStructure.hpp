@@ -1642,9 +1642,9 @@ public:
         
         std::vector<std::vector<U>> interp_val_seed;
         
-        int y_incr[8] = {0,1,0,1,0,1,0,1};
-        int x_incr[8] = {0,0,1,1,0,0,1,1};
-        int z_incr[8] = {0,0,0,0,1,1,1,1};
+        constexpr int y_incr[8] = {0,1,0,1,0,1,0,1};
+        constexpr int x_incr[8] = {0,0,1,1,0,0,1,1};
+        constexpr int z_incr[8] = {0,0,0,0,1,1,1,1};
         
         //re-initialize
         y_temp_seed.resize(0);
@@ -1683,11 +1683,14 @@ public:
             
             if (y_temp_seed.size() > 0){
                 
-                //Needs to be replaced by a loop over the particles
+                int i;
+                int j;
                 
-                for (int i = 0; i < interp_val_seed.size();i++){
+                //Needs to be replaced by a loop over the particles
+ #pragma omp parallel for default(shared) private(i,j)
+                for (i = 0; i < interp_val_seed.size();i++){
                     //loop over all the particles
-                    for(int j = 0; j < num_parts_2_cell;j++){
+                    for(j = 0; j < num_parts_2_cell;j++){
                         curr_k_img.mesh[2*y_temp_seed[i]+ y_incr[j] +  curr_k_img.y_num*(2*x_temp_seed[i] + x_incr[j]) + curr_k_img.x_num*curr_k_img.y_num*(2*z_temp_seed[i] + z_incr[j])] = interp_val_seed[i][j];
                     }
                 }
@@ -1813,7 +1816,11 @@ public:
             
             if (y_temp.size() > 0){
                 // insert loop here..
-                for(int i = 0; i < interp_val.size();i ++){
+                int i;
+                
+                //Needs to be replaced by a loop over the particles
+#pragma omp parallel for default(shared) private(i)
+                for(i = 0; i < interp_val.size();i ++){
                     //put in values
                     curr_k_img.mesh[y_temp[i] + curr_k_img.y_num*x_temp[i] + curr_k_img.x_num*curr_k_img.y_num*z_temp[i]] = interp_val[i];
                 }
@@ -1828,11 +1835,14 @@ public:
         
         
         if (y_temp_seed.size() > 0){
+            int i;
+            int j;
             
-            //Needs to be replaced by a loop over the particle
-            for (int i = 0; i < interp_val_seed.size();i++){
+            //Needs to be replaced by a loop over the particles
+#pragma omp parallel for default(shared) private(i,j)
+            for (i = 0; i < interp_val_seed.size();i++){
                 //loop over all the particles
-                for(int j = 0; j < num_parts_2_cell;j++){
+                for(j = 0; j < num_parts_2_cell;j++){
                     curr_k_img.mesh[2*y_temp_seed[i]+ y_incr[j] +  curr_k_img.y_num*(2*x_temp_seed[i] + x_incr[j]) + curr_k_img.x_num*curr_k_img.y_num*(2*z_temp_seed[i] + z_incr[j])] = interp_val_seed[i][j];
                 }
                 
@@ -1844,8 +1854,13 @@ public:
         out_image.initialize(org_dims[0],org_dims[1],org_dims[2],0);
         
         //reduce down the image size to the required size.
-        for(int i = 0;i < org_dims[2];i++){
-            for(int j = 0; j < org_dims[1];j++){
+        int i;
+        int j;
+        
+        //Needs to be replaced by a loop over the particles
+#pragma omp parallel for default(shared) private(i,j)
+        for(i = 0;i < org_dims[2];i++){
+            for(j = 0; j < org_dims[1];j++){
                 
                 std::copy(curr_k_img.mesh.begin() + curr_k_img.y_num*j + curr_k_img.x_num*curr_k_img.y_num*i,curr_k_img.mesh.begin()  + curr_k_img.y_num*j + curr_k_img.x_num*curr_k_img.y_num*i + out_image.y_num,out_image.mesh.begin() + out_image.y_num*j + out_image.x_num*out_image.y_num*i);
             }
