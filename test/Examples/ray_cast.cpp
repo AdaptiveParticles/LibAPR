@@ -96,23 +96,21 @@ int main(int argc, char **argv) {
     parent_structure_test(pc_struct);
     
     // FIND POINT X,Y,Z  in structure
-    
-    uint64_t y = 49;
-    uint64_t x = 33;
-    uint64_t z = 25;
-    
-    uint64_t pc_key = parent_cells.find_partcell(x,y,z,pc_struct);
-    
-    uint64_t check = pc_struct.pc_data.get_val(pc_key);
-    
-    
-    
+
+    for(uint64_t x = 0; x < 1024; x++) {
+        for(uint64_t y = 0; y < 1024; y++) {
+            for(uint64_t z = 0; z < 100; z++) {
+                uint64_t pc_key = parent_cells.find_partcell(x, y, z, pc_struct);
+                uint64_t check = pc_struct.pc_data.get_val(pc_key);
+            }
+        }
+    }
+
     part_rep.timer.start_timer("find cell");
     
     find_part_cell_test(pc_struct);
     
     part_rep.timer.stop_timer();
-    
 }
 
 
