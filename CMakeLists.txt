@@ -147,6 +147,12 @@ add_executable(Example_convert_full_format
         ${SOURCE_FILES_COMPILED}
         )
 
+add_executable(Example_ray_cast
+        test/Examples/ray_cast.cpp
+        test/utils.cpp
+        ${SOURCE_FILES_COMPILED}
+        )
+
 add_executable(pipeline
     src/algorithm/pipeline.cpp
     src/io/write_parts.cpp
@@ -158,3 +164,4 @@ target_link_libraries(Example_get_apr ${HDF5_LIBRARIES} pthread tiff)
 target_link_libraries(Example_compute_cells ${HDF5_LIBRARIES} pthread tiff)
 target_link_libraries(Example_compute_parts ${HDF5_LIBRARIES} pthread tiff)
 target_link_libraries(Example_convert_full_format ${HDF5_LIBRARIES} pthread tiff)
+target_link_libraries(Example_ray_cast ${HDF5_LIBRARIES} pthread tiff)
