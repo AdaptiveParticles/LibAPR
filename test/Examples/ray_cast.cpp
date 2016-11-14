@@ -96,15 +96,32 @@ int main(int argc, char **argv) {
     parent_structure_test(pc_struct);
     
     // FIND POINT X,Y,Z  in structure
+//
+//    for(uint64_t x = 0; x < 1024; x++) {
+//        for(uint64_t y = 0; y < 1024; y++) {
+//            for(uint64_t z = 0; z < 100; z++) {
+//                uint64_t pc_key = parent_cells.find_partcell(x, y, z, pc_struct);
+//                uint64_t check = pc_struct.pc_data.get_val(pc_key);
+//
+//                std::cout << check << std::endl;
+//            }
+//        }
+//    }
 
-    for(uint64_t x = 0; x < 1024; x++) {
-        for(uint64_t y = 0; y < 1024; y++) {
-            for(uint64_t z = 0; z < 100; z++) {
-                uint64_t pc_key = parent_cells.find_partcell(x, y, z, pc_struct);
-                uint64_t check = pc_struct.pc_data.get_val(pc_key);
-            }
-        }
+    std::cout << "Propagating through APR now..." << std::endl;
+
+    uint64_t x = 12, y = 25, z = 10;
+    uint64_t dir_x = 2, dir_y = -1, dir_z = 1;
+#define MAX_DIST 100
+    for(unsigned int step = 0; step < MAX_DIST; step++) {
+
+        uint64_t pc_key = parent_cells.find_partcell(x+step*dir_x, y+step*dir_y, z+step*dir_z, pc_struct);
+        uint64_t check = pc_struct.pc_data.get_val(pc_key);
+
+        std::cout << check << std::endl;
     }
+
+    std::cout << std::endl;
 
     part_rep.timer.start_timer("find cell");
     

@@ -80,7 +80,7 @@ public:
     
     
     template<typename S>
-    T find_partcell(T& x,T& y,T& z,PartCellStructure<S,T>& pc_struct){
+    T find_partcell(const T x, const T y, const T z, PartCellStructure<S,T>& pc_struct){
         //
         //  Given x,y,z will find the responsible particle cell
         //
@@ -98,7 +98,7 @@ public:
         if( (y_min > pc_struct.y_num[pc_struct.depth_min]) | (x_min > pc_struct.x_num[pc_struct.depth_min]) | (z_min > pc_struct.z_num[pc_struct.depth_min])  ){
             return 0; //out of bounds
         }
-        
+
         T j = neigh_info.get_j_from_y(x_min,z_min,pc_struct.depth_min,y_min);
         
         
