@@ -1630,80 +1630,135 @@ public:
         Mesh_data<U> curr_k_img;
         Mesh_data<U> prev_k_img;
         
-        std::vector<unsigned int> y_temp;
-        std::vector<unsigned int> x_temp;
-        std::vector<unsigned int> z_temp;
-        
-        std::vector<U> interp_val;
-        
-        std::vector<unsigned int> y_temp_seed;
-        std::vector<unsigned int> x_temp_seed;
-        std::vector<unsigned int> z_temp_seed;
-        
-        std::vector<std::vector<U>> interp_val_seed;
-        
         constexpr int y_incr[8] = {0,1,0,1,0,1,0,1};
         constexpr int x_incr[8] = {0,0,1,1,0,0,1,1};
         constexpr int z_incr[8] = {0,0,0,0,1,1,1,1};
         
-        //re-initialize
-        y_temp_seed.resize(0);
-        x_temp_seed.resize(0);
-        z_temp_seed.resize(0);
-        
-        interp_val_seed.resize(0);
-        
-        int num_parts_2_cell = 8;
-        
-        interp_val.resize(1);
-        
         prev_k_img.initialize(pow(2,depth_min-1),pow(2,depth_min-1),pow(2,depth_min-1),0);
+        
+        //prev_k_img.mesh.reserve(org_dims[0]*org_dims[1]*org_dims[2]);
+        curr_k_img.mesh.reserve(org_dims[0]*org_dims[1]*org_dims[2]);
+        
+        Part_timer timer;
+        timer.verbose_flag = false;
+        
+        uint64_t z_ = 0;
+        uint64_t x_ = 0;
+        uint64_t j_ = 0;
+        uint64_t y_coord = 0;
+        uint64_t status = 0;
+        uint64_t part_offset = 0;
+        uint64_t curr_key = 0;
+        uint64_t node_val = 0;
+        
+        uint64_t x_p = 0;
+        uint64_t y_p = 0;
+        uint64_t z_p = 0;
+        uint64_t depth_ = 0;
+        uint64_t status_ = 0;
+        
         
         //loop over all levels of k
         for (uint64_t d = depth_min; depth_max >= d; d++) {
-            
-            //re-initialize
-            y_temp.resize(0);
-            x_temp.resize(0);
-            z_temp.resize(0);
-            interp_val.resize(0);
             
             ///////////////////////////////////////////////////////////////
             //
             //  Transfer previous level to current level
             //
             ////////////////////////////////////////////////////////////////
+            timer.start_timer("upsample");
+            
             const_upsample_img(curr_k_img,prev_k_img,org_dims);
+            
+            timer.stop_timer();
             
             /////////////////////////////////////////////////////////////////////
             //
             //  Place seed particles
             //
-            //////////////////////////////////////////////////////////////////
+            //
+            /////////////////////////////////////////////////////////////////
             
-            if (y_temp_seed.size() > 0){
+            timer.start_timer("particle loop");
+            
+            if ( d > depth_min){
                 
-                int i;
-                int j;
                 
-                //Needs to be replaced by a loop over the particles
- #pragma omp parallel for default(shared) private(i,j)
-                for (i = 0; i < interp_val_seed.size();i++){
-                    //loop over all the particles
-                    for(j = 0; j < num_parts_2_cell;j++){
-                        curr_k_img.mesh[2*y_temp_seed[i]+ y_incr[j] +  curr_k_img.y_num*(2*x_temp_seed[i] + x_incr[j]) + curr_k_img.x_num*curr_k_img.y_num*(2*z_temp_seed[i] + z_incr[j])] = interp_val_seed[i][j];
+                const unsigned int x_num_ = x_num[d-1];
+                const unsigned int z_num_ = z_num[d-1];
+                
+#pragma omp parallel for default(shared) private(z_,x_,j_,node_val,curr_key,status,part_offset,x_p,y_p,z_p,depth_,status_,y_coord) if(z_num_*x_num_ > 100)
+                for(z_ = 0;z_ < z_num_;z_++){
+                    
+                    curr_key = 0;
+                    
+                    //set the key values
+                    part_data.access_data.pc_key_set_z(curr_key,z_);
+                    part_data.access_data.pc_key_set_depth(curr_key,d-1);
+                    
+                    for(x_ = 0;x_ < x_num_;x_++){
+                        
+                        part_data.access_data.pc_key_set_x(curr_key,x_);
+                        
+                        const size_t offset_pc_data = x_num_*z_ + x_;
+                        
+                        //number of nodes on the level
+                        const size_t j_num = part_data.access_data.data[d-1][offset_pc_data].size();
+                        
+                        y_coord = 0;
+                        
+                        for(j_ = 0;j_ < j_num;j_++){
+                            
+                            //this value encodes the state and neighbour locations of the particle cell
+                            node_val = part_data.access_data.data[d-1][offset_pc_data][j_];
+                            
+                            if (!(node_val&1)){
+                                //This node represents a particle cell
+                                y_coord++;
+                                
+                                //set the key index
+                                part_data.access_data.pc_key_set_j(curr_key,j_);
+                                
+                                //get all the neighbours
+                                status = part_data.access_node_get_status(node_val);
+                                
+                                if(status == SEED){
+                                    
+                                    part_offset = part_data.access_node_get_part_offset(node_val);
+                                    
+                                    part_data.access_data.pc_key_set_status(curr_key,status);
+                                    
+                                    part_data.access_data.get_coordinates_cell(y_coord,curr_key,x_p,z_p,y_p,depth_,status_);
+
+                                    
+                                    //loop over the particles
+                                    for(int p = 0;p < part_data.get_num_parts(status);p++){
+                                        // get coordinates
+                                        part_data.access_data.pc_key_set_index(curr_key,part_offset+p);
+                                        
+                                        curr_k_img.mesh[2*y_p+ y_incr[p] +  curr_k_img.y_num*(2*x_p + x_incr[p]) + curr_k_img.x_num*curr_k_img.y_num*(2*z_p + z_incr[p])] = interp_data.get_part(curr_key);
+                                        
+                                    }
+                                    
+                                } else {
+                                    
+                                }
+                                
+                            } else {
+                                //This is a gap node
+                                y_coord += ((node_val & COORD_DIFF_MASK_PARTICLE) >> COORD_DIFF_SHIFT_PARTICLE);
+                                y_coord--;
+                            }
+                            
+                        }
                     }
                 }
                 
             }
             
-            //re-initialize
-            y_temp_seed.resize(0);
-            x_temp_seed.resize(0);
-            z_temp_seed.resize(0);
+            timer.stop_timer();
             
-            interp_val_seed.resize(0);
-            
+      
             
             //////////////////////////////////////
             //
@@ -1711,25 +1766,13 @@ public:
             //
             ///////////////////////////////////
             
+            
             const unsigned int x_num_ = x_num[d];
             const unsigned int z_num_ = z_num[d];
             
-            uint64_t z_ = 0;
-            uint64_t x_ = 0;
-            uint64_t j_ = 0;
-            uint64_t y_coord = 0;
-            uint64_t status = 0;
-            uint64_t part_offset = 0;
-            uint64_t curr_key = 0;
-            uint64_t node_val = 0;
+            timer.start_timer("particle loop");
             
-            uint64_t x_p = 0;
-            uint64_t y_p = 0;
-            uint64_t z_p = 0;
-            uint64_t depth_ = 0;
-            uint64_t status_ = 0;
-            
-//#pragma omp parallel for default(shared) private(z_,x_,j_,node_val,curr_key,status,part_offset) if(z_num_*x_num_ > 100)
+#pragma omp parallel for default(shared) private(z_,x_,j_,node_val,curr_key,status,part_offset,x_p,y_p,z_p,depth_,status_,y_coord) if(z_num_*x_num_ > 100)
             for(z_ = 0;z_ < z_num_;z_++){
                 
                 curr_key = 0;
@@ -1763,37 +1806,22 @@ public:
                             
                             //get all the neighbours
                             status = part_data.access_node_get_status(node_val);
-                            part_offset = part_data.access_node_get_part_offset(node_val);
                             
-                            part_data.access_data.pc_key_set_status(curr_key,status);
-                            
-                            part_data.access_data.get_coordinates_cell(y_coord,curr_key,x_p,z_p,y_p,depth_,status_);
                             
                             if(status == SEED){
                                 
-                                y_temp_seed.push_back((unsigned int)y_p);
-                                x_temp_seed.push_back((unsigned int)x_p);
-                                z_temp_seed.push_back((unsigned int)z_p);
                                 
-                                
-                                std::vector<U> temp_vec;
-                                temp_vec.reserve(num_parts_2_cell);
-                                //loop over the particles
-                                for(int p = 0;p < part_data.get_num_parts(status);p++){
-                                    // get coordinates
-                                    part_data.access_data.pc_key_set_index(curr_key,part_offset+p);
-                                    temp_vec.push_back(interp_data.get_part(curr_key));
-                                }
-                                
-                                interp_val_seed.push_back(temp_vec);
                             } else {
-                                y_temp.push_back((unsigned int)y_p);
-                                x_temp.push_back((unsigned int)x_p);
-                                z_temp.push_back((unsigned int)z_p);
+                               
+                                part_offset = part_data.access_node_get_part_offset(node_val);
+                                
+                                part_data.access_data.pc_key_set_status(curr_key,status);
+                                
+                                part_data.access_data.get_coordinates_cell(y_coord,curr_key,x_p,z_p,y_p,depth_,status_);
                                 
                                 part_data.access_data.pc_key_set_index(curr_key,part_offset);
-                                
-                                interp_val.push_back(interp_data.get_part(curr_key));
+                                curr_k_img.mesh[y_p + curr_k_img.y_num*x_p + curr_k_img.x_num*curr_k_img.y_num*z_p] = interp_data.get_part(curr_key);
+
                             }
                             
                         } else {
@@ -1805,7 +1833,8 @@ public:
                     }
                 }
             }
-
+            
+            timer.stop_timer();
             
             /////////////////////////////////////////////////
             //
@@ -1814,59 +1843,114 @@ public:
             /////////////////////////////////////////////////
             
             
-            if (y_temp.size() > 0){
-                // insert loop here..
-                int i;
-                
-                //Needs to be replaced by a loop over the particles
-#pragma omp parallel for default(shared) private(i)
-                for(i = 0; i < interp_val.size();i ++){
-                    //put in values
-                    curr_k_img.mesh[y_temp[i] + curr_k_img.y_num*x_temp[i] + curr_k_img.x_num*curr_k_img.y_num*z_temp[i]] = interp_val[i];
-                }
-            }
-            
             std::swap(prev_k_img,curr_k_img);
             
         }
         
+        timer.start_timer("upsample");
         
         const_upsample_img(curr_k_img,prev_k_img,org_dims);
         
+        timer.stop_timer();
         
-        if (y_temp_seed.size() > 0){
-            int i;
-            int j;
+        
+        timer.start_timer("particle loop");
+        
+        const unsigned int x_num_ = x_num[depth_max];
+        const unsigned int z_num_ = z_num[depth_max];
+        
+#pragma omp parallel for default(shared) private(z_,x_,j_,node_val,curr_key,status,part_offset,x_p,y_p,z_p,depth_,status_,y_coord) if(z_num_*x_num_ > 100)
+        for(z_ = 0;z_ < z_num_;z_++){
             
-            //Needs to be replaced by a loop over the particles
-#pragma omp parallel for default(shared) private(i,j)
-            for (i = 0; i < interp_val_seed.size();i++){
-                //loop over all the particles
-                for(j = 0; j < num_parts_2_cell;j++){
-                    curr_k_img.mesh[2*y_temp_seed[i]+ y_incr[j] +  curr_k_img.y_num*(2*x_temp_seed[i] + x_incr[j]) + curr_k_img.x_num*curr_k_img.y_num*(2*z_temp_seed[i] + z_incr[j])] = interp_val_seed[i][j];
+            curr_key = 0;
+            
+            //set the key values
+            part_data.access_data.pc_key_set_z(curr_key,z_);
+            part_data.access_data.pc_key_set_depth(curr_key,depth_max);
+            
+            for(x_ = 0;x_ < x_num_;x_++){
+                
+                part_data.access_data.pc_key_set_x(curr_key,x_);
+                
+                const size_t offset_pc_data = x_num_*z_ + x_;
+                
+                //number of nodes on the level
+                const size_t j_num = part_data.access_data.data[depth_max][offset_pc_data].size();
+                
+                y_coord = 0;
+                
+                for(j_ = 0;j_ < j_num;j_++){
+                    
+                    //this value encodes the state and neighbour locations of the particle cell
+                    node_val = part_data.access_data.data[depth_max][offset_pc_data][j_];
+                    
+                    if (!(node_val&1)){
+                        //This node represents a particle cell
+                        y_coord++;
+                        
+                        //set the key index
+                        part_data.access_data.pc_key_set_j(curr_key,j_);
+                        
+                        //get all the neighbours
+                        status = part_data.access_node_get_status(node_val);
+                        
+                        
+                        if(status == SEED){
+                            
+                            part_offset = part_data.access_node_get_part_offset(node_val);
+                            
+                            part_data.access_data.pc_key_set_status(curr_key,status);
+                            
+                            part_data.access_data.get_coordinates_cell(y_coord,curr_key,x_p,z_p,y_p,depth_,status_);
+                            
+                            
+                            //loop over the particles
+                            for(int p = 0;p < part_data.get_num_parts(status);p++){
+                                // get coordinates
+                                part_data.access_data.pc_key_set_index(curr_key,part_offset+p);
+                                
+                                curr_k_img.mesh[2*y_p+ y_incr[p] +  curr_k_img.y_num*(2*x_p + x_incr[p]) + curr_k_img.x_num*curr_k_img.y_num*(2*z_p + z_incr[p])] = interp_data.get_part(curr_key);
+                                
+                            }
+                            
+                        } else {
+                            
+                        }
+                        
+                    } else {
+                        //This is a gap node
+                        y_coord += ((node_val & COORD_DIFF_MASK_PARTICLE) >> COORD_DIFF_SHIFT_PARTICLE);
+                        y_coord--;
+                    }
+                    
                 }
-                
-            }
-            
-        }
-        
-        
-        out_image.initialize(org_dims[0],org_dims[1],org_dims[2],0);
-        
-        //reduce down the image size to the required size.
-        int i;
-        int j;
-        
-        //Needs to be replaced by a loop over the particles
-#pragma omp parallel for default(shared) private(i,j)
-        for(i = 0;i < org_dims[2];i++){
-            for(j = 0; j < org_dims[1];j++){
-                
-                std::copy(curr_k_img.mesh.begin() + curr_k_img.y_num*j + curr_k_img.x_num*curr_k_img.y_num*i,curr_k_img.mesh.begin()  + curr_k_img.y_num*j + curr_k_img.x_num*curr_k_img.y_num*i + out_image.y_num,out_image.mesh.begin() + out_image.y_num*j + out_image.x_num*out_image.y_num*i);
             }
         }
         
+    
+        timer.stop_timer();
+    
+    
+
+        timer.start_timer("last loop");
         
+        std::swap(out_image,curr_k_img);
+        
+//        //reduce down the image size to the required size.
+//        int i;
+//        int j;
+//        
+//        //Needs to be replaced by a loop over the particles
+//#pragma omp parallel for default(shared) private(i,j)
+//        for(i = 0;i < org_dims[2];i++){
+//            for(j = 0; j < org_dims[1];j++){
+//                
+//                std::copy(curr_k_img.mesh.begin() + curr_k_img.y_num*j + curr_k_img.x_num*curr_k_img.y_num*i,curr_k_img.mesh.begin()  + curr_k_img.y_num*j + curr_k_img.x_num*curr_k_img.y_num*i + out_image.y_num,out_image.mesh.begin() + out_image.y_num*j + out_image.x_num*out_image.y_num*i);
+//            }
+//        }
+//        
+        
+        timer.stop_timer();
         
     }
 

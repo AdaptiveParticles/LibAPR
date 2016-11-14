@@ -211,7 +211,7 @@ void const_upsample_img(Mesh_data<T>& input_us,Mesh_data<T>& input,std::vector<u
     
     Part_timer timer;
     
-    
+    timer.verbose_flag = false;
     
     //restrict the domain to be only as big as possibly needed
     
@@ -230,7 +230,12 @@ void const_upsample_img(Mesh_data<T>& input_us,Mesh_data<T>& input,std::vector<u
     const int x_num_ds = input.x_num;
     const int y_num_ds = input.y_num;
     
-    input_us.initialize(y_num, x_num,z_num,0);
+    input_us.y_num = y_num;
+    input_us.x_num = x_num;
+    input_us.z_num = z_num;
+    
+    //input_us.initialize(y_num, x_num,z_num,0);
+    input_us.mesh.resize(y_num*x_num*z_num);
     
     std::vector<float> temp_vec;
     temp_vec.resize(y_num_ds,0);
@@ -239,7 +244,7 @@ void const_upsample_img(Mesh_data<T>& input_us,Mesh_data<T>& input,std::vector<u
     
     int j, i, k;
     
-#pragma omp parallel for default(shared) private(j,i,k) firstprivate(temp_vec)
+#pragma omp parallel for default(shared) private(i,k) firstprivate(temp_vec)
     for(j = 0;j < z_num_ds_l;j++){
         
         for(i = 0;i < x_num_ds_l;i++){
