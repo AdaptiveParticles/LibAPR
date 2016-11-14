@@ -15,6 +15,7 @@
 #include "../../src/io/write_parts.h"
 #include "../../src/io/partcell_io.h"
 #include "../utils.h"
+#include "../../src/numerics/misc_numerics.hpp"
 
 bool command_option_exists(char **begin, char **end, const std::string &option)
 {
@@ -86,6 +87,7 @@ int main(int argc, char **argv) {
     
     Mesh_data<float> input_image_float;
     Mesh_data<float> gradient, variance;
+    Mesh_data<float> interp_img;
     {
         Mesh_data<uint16_t> input_image;
         
@@ -95,7 +97,7 @@ int main(int argc, char **argv) {
         part_rep.initialize(input_image.y_num, input_image.x_num, input_image.z_num);
         
         input_image_float = input_image.to_type<float>();
-        
+        interp_img = input_image.to_type<float>();
         // After this block, input_image will be freed.
     }
     
@@ -123,7 +125,7 @@ int main(int argc, char **argv) {
     
     t.start_timer("whole");
     
-//    part_map.downsample(input_image_float);
+    part_map.downsample(interp_img);
 //    
 //    std::swap(part_map.downsampled[part_map.k_max+1],input_image_float);
     
@@ -152,7 +154,7 @@ int main(int argc, char **argv) {
     part_rep.timer.stop_timer();
     
 
-    part_map.downsample(input_image_float);
+    //part_map.downsample(input_image_float);
     
     part_rep.timer.start_timer("Construct Part Structure");
     
@@ -173,13 +175,8 @@ int main(int argc, char **argv) {
     
     part_rep.timer.stop_timer();
     
-    
-    Mesh_data<uint64_t> interp;
 
-   
-    pcell_test.interp_parts_to_pc(interp,pcell_test.part_data.particle_data);
-  
-    debug_write(interp,"interp_out");
+    
     
 }
 

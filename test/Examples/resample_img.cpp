@@ -15,6 +15,7 @@
 #include "../../src/io/partcell_io.h"
 #include "../../src/data_structures/Tree/PartCellParent.hpp"
 #include "../utils.h"
+#include "../../src/numerics/misc_numerics.hpp"
 
 bool command_option_exists(char **begin, char **end, const std::string &option)
 {
@@ -90,20 +91,30 @@ int main(int argc, char **argv) {
     std::cout << "Number cells: " << num_cells << std::endl;
     std::cout << "Number parts: " << num_parts << std::endl;
     
-    Mesh_data<uint64_t> interp;
+    Mesh_data<uint16_t> interp;
     
     Part_timer timer;
     
     timer.verbose_flag = true;
     
     timer.start_timer("interp to pc");
-    
+    //creates pc interpolation mesh from the apr
     pc_struct.interp_parts_to_pc(interp,pc_struct.part_data.particle_data);
    
     timer.stop_timer();
     
     debug_write(interp,"interp_out");
     
+    Mesh_data<uint8_t> k_img;
+    //creates a depth interpoaltion from the apr
+    interp_depth_to_mesh(k_img,pc_struct);
+    
+    debug_write(k_img,"k_img");
+    
+    Mesh_data<uint8_t> status_img;
+    //creates a depth interpoaltion from the apr
+    interp_status_to_mesh(status_img,pcell_test);
+    debug_write(status_img,"status_img");
 }
 
 

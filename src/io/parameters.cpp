@@ -251,8 +251,10 @@ void get_image_stats(Proc_par& pars,std::string output_path,std::string stats_na
     float k_diff = -3.0f;
 
     //set lambda
-    float lambda = expf((-1.0f/0.6161f) * logf((pars.var_th/pars.noise_sigma) *
-                   powf(2.0f,k_diff + log2f(pars.rel_error))/0.12531f));
+    //float lambda = expf((-1.0f/0.6161f) * logf((pars.var_th/pars.noise_sigma) *
+      //             powf(2.0f,k_diff + log2f(pars.rel_error))/0.12531f));
+    
+    float lambda = expf((-1.0f/0.6161f) * logf((pars.var_th/pars.noise_sigma)));
 
     float lambda_min = .5f;
     float lambda_max = 5000;
