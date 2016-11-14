@@ -12,7 +12,7 @@
 
 
 template<typename T>
-void get_wavelet_coeffs(std::vector<T>& parts,uint8_t& scale,T& mean,float comp_factor){
+void get_wavelet_coeffs(std::vector<float>& parts,uint8_t& scale,T& mean,float comp_factor){
     //
     //  Calculates the wavelet co-efficients
     //
@@ -28,12 +28,12 @@ void get_wavelet_coeffs(std::vector<T>& parts,uint8_t& scale,T& mean,float comp_
             {1,1,-1,-1,-1,-1,1,1},
             {1,-1,-1,1,-1,1,1,-1}};
     
-    //first calculate the mean to push up the tree
-    T temp_mean = (1.0/8.0)*(local_int[0] + local_int[1] + local_int[2] + local_int[3] + local_int[4] + local_int[5] + local_int[6] + local_int[7]);
-    
-    std::vector<T> local_int;
+    std::vector<float> local_int;
     local_int.resize(8,0);
     std::swap(parts,local_int);
+    
+    //first calculate the mean to push up the tree
+    T temp_mean = (1.0/8.0)*(local_int[0] + local_int[1] + local_int[2] + local_int[3] + local_int[4] + local_int[5] + local_int[6] + local_int[7]);
     
     //compute the wavelet co-eff
     for (int j = 1; j < 8; j++) {
@@ -59,8 +59,8 @@ void get_wavelet_coeffs(std::vector<T>& parts,uint8_t& scale,T& mean,float comp_
     
     mean = ceil(temp_mean/pow(2.0,scale));
     
-    for(int j = 1;j < temp_data[i].size();j++){
-        parts[j] = ceil(parts[j]/pow(2.0,scale)));
+    for(int j = 1;j < 8;j++){
+        parts[j] = ceil(parts[j]/pow(2.0,scale));
     }
     
     
@@ -75,7 +75,10 @@ void calc_wavelet_encode(PartCellStructure<S,uint64_t>& pc_struct){
     //
     //
     
-    float comp_factor = 1;
+    Part_timer timer;
+    timer.verbose_flag = true;
+    
+    float comp_factor = 40;
     
     //get the parents
     PartCellParent<uint64_t> pc_parent(pc_struct);
@@ -108,7 +111,12 @@ void calc_wavelet_encode(PartCellStructure<S,uint64_t>& pc_struct){
     
     uint64_t status=0;
     uint64_t part_offset=0;
-    uint64_t p;
+
+    
+    std::vector<float> parts;
+    parts.resize(8);
+    
+    timer.start_timer("SEED LOOP");
     
     for(uint64_t i = pc_struct.pc_data.depth_min;i <= pc_struct.pc_data.depth_max;i++){
         //loop over the resolutions of the structure
@@ -116,7 +124,7 @@ void calc_wavelet_encode(PartCellStructure<S,uint64_t>& pc_struct){
         const unsigned int z_num_ = pc_struct.pc_data.z_num[i];
         
         
-#pragma omp parallel for default(shared) private(p,z_,x_,j_,node_val_part,curr_key,status,part_offset) if(z_num_*x_num_ > 100)
+//#pragma omp parallel for default(shared) private(p,z_,x_,j_,node_val_part,curr_key,status,part_offset) firstprivate(parts) if(z_num_*x_num_ > 100)
         for(z_ = 0;z_ < z_num_;z_++){
             //both z and x are explicitly accessed in the structure
             curr_key = 0;
@@ -149,26 +157,30 @@ void calc_wavelet_encode(PartCellStructure<S,uint64_t>& pc_struct){
                         part_offset = pc_struct.part_data.access_node_get_part_offset(node_val_part);
                         
                         if(status == SEED){
-                            std::vector<T> parts;
-                            uint8_t scale = 0;
-                            T mean = 0;
                             
-                            get_wavelet_coeffs(parts,uint8_t& scale,T& mean,comp_factor);
+                            std::copy(pc_struct.part_data.particle_data.data[i][offset_pc_data].begin() + part_offset,pc_struct.part_data.particle_data.data[i][offset_pc_data].begin() + part_offset + 8,parts.begin());
+                            
+                            uint8_t scale_t = 0;
+                            T mean = pc_struct.part_data.particle_data.data[i][offset_pc_data][part_offset];
+                            
+                            get_wavelet_coeffs(parts,scale_t,mean,comp_factor);
+                            
+                            //copy to q particle data
+                            std::copy(parts.begin(),parts.end(),q.data[i][offset_pc_data].begin());
+                            mu.data[i][offset_pc_data][j_] = mean;
+                            scale.data[i][offset_pc_data][j_] = scale_t;
                             
                         }
                         
                     } else {
                         // Inidicates this is not a particle cell node, and is a gap node
                     }
-                    
                 }
-                
             }
-            
         }
     }
 
-    
+    timer.stop_timer();
     
     
 }
