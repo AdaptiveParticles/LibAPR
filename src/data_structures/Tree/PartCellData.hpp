@@ -362,17 +362,21 @@ public:
 
     
     
-    T&  get_val(const uint64_t& pc_key){
+    T get_val(const uint64_t& pc_key) {
         // data access
-        
+
         const uint64_t depth = (pc_key & PC_KEY_DEPTH_MASK) >> PC_KEY_DEPTH_SHIFT;
         const uint64_t x_ = (pc_key & PC_KEY_X_MASK) >> PC_KEY_X_SHIFT;
         const uint64_t z_ = (pc_key & PC_KEY_Z_MASK) >> PC_KEY_Z_SHIFT;
         const uint64_t j_ = (pc_key & PC_KEY_J_MASK) >> PC_KEY_J_SHIFT;
-       
-        
-        return data[depth][x_num[depth]*z_ + x_][j_];
-        
+
+        if (x_num[depth] * z_ + x_ >= data[depth].size()) {
+            return 0;
+        } else if(j_ >= data[depth][x_num[depth]*z_ + x_].size()) {
+            return 0;
+        } else {
+            return data[depth][x_num[depth] * z_ + x_][j_];
+        }
         //return data[(pc_key & PC_KEY_DEPTH_MASK) >> PC_KEY_DEPTH_SHIFT][x_num[(pc_key & PC_KEY_DEPTH_MASK) >> PC_KEY_DEPTH_SHIFT]*((pc_key & PC_KEY_Z_MASK) >> PC_KEY_Z_SHIFT) + ((pc_key & PC_KEY_X_MASK) >> PC_KEY_X_SHIFT)][(pc_key & PC_KEY_J_MASK) >> PC_KEY_J_SHIFT];
     }
     
