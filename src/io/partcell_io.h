@@ -88,11 +88,11 @@ void write_apr_full_format(PartCellStructure<T,uint64_t>& pc_struct,std::string 
     uint64_t part_offset=0;
     
     
-    //Neighbour Routine Checking
     
     uint64_t p;
     
     uint64_t counter = 0;
+    
     
     for(uint64_t i = pc_struct.pc_data.depth_min;i <= pc_struct.pc_data.depth_max;i++){
         
@@ -135,6 +135,9 @@ void write_apr_full_format(PartCellStructure<T,uint64_t>& pc_struct,std::string 
                         part_offset = pc_struct.part_data.access_node_get_part_offset(node_val_part);
                         
                         pc_struct.part_data.access_data.pc_key_set_status(curr_key,status);
+                        
+                
+                        
                         
                         //loop over the particles
                         for(p = 0;p < pc_struct.part_data.get_num_parts(status);p++){

@@ -57,6 +57,13 @@ public:
         //
         //  Returns the number of particles for a cell;
         //
+        
+//        if(status == SEED){
+//            return 8;
+//        } else {
+//            return 1;
+//        }
+        
         return (1 + 7*(status == SEED));
     }
     

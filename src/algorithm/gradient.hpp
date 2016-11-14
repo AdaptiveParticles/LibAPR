@@ -1230,7 +1230,7 @@ void get_gradient_3D(Part_rep &p_rep, Mesh_data<T> &input_image, Mesh_data<T> &g
     ptime.stop_timer();
     ptime.start_timer("calc_spline_fd_zalt");
 
-    calc_bspline_fd_z_alt(input_image,grad_image,p_rep.pars.dy);
+    calc_bspline_fd_z_alt(input_image,grad_image,p_rep.pars.dz);
 
     ptime.stop_timer();
 
