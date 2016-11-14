@@ -80,7 +80,7 @@ public:
     
     
     template<typename S>
-    T find_partcell(T& x,T& y,T& z,PartCellStructure<S,T>& pc_struct){
+    T find_partcell(T x,T y,T z,PartCellStructure<S,T>& pc_struct){
         //
         //  Given x,y,z will find the responsible particle cell
         //
