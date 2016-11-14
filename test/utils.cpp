@@ -1508,7 +1508,7 @@ bool parent_structure_test(PartCellStructure<float,uint64_t>& pc_struct){
                             
                         } else if (status == REAL_CHILDREN){
                             
-                            if((parent_map[i][offset_p_map + y_coord] == 2) & (p_map[i][offset_p_map + y_coord] == 0)){
+                            if((parent_map[i][offset_p_map + y_coord] > 0) & (p_map[i][offset_p_map + y_coord] == 0)){
                                 
                             } else {
                                 std::cout << "REAL PARENT BUG" << std::endl;

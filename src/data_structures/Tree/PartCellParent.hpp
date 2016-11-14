@@ -822,6 +822,7 @@ private:
         uint64_t z_;
         uint64_t j_;
         uint64_t curr_key = 0;
+       
 
         
         for(int i = (pc_struct.pc_data.depth_max);i > pc_struct.pc_data.depth_min;i--){
@@ -872,7 +873,7 @@ private:
                             parent_y = y_coord/2;
                             depth = i - 1;
                             
-                            if(parent_map[depth][parent_z*pc_struct.y_num[depth]*pc_struct.x_num[depth] + parent_x*pc_struct.y_num[depth] + parent_y] ==0){
+                            if(parent_map[depth][parent_z*pc_struct.y_num[depth]*pc_struct.x_num[depth] + parent_x*pc_struct.y_num[depth] + parent_y] < 2){
                                 
                                 parent_map[depth][parent_z*pc_struct.y_num[depth]*pc_struct.x_num[depth] + parent_x*pc_struct.y_num[depth] + parent_y] = 2;
                                 
@@ -1108,6 +1109,46 @@ private:
         set_parent_relationships();
         
         set_parent_real_relationships(pc_struct.pc_data);
+        
+        
+        //lastly calculate number of cells
+        
+        
+        T num_cells = 0;
+        
+        for(int i = neigh_info.depth_min;i <= neigh_info.depth_max;i++){
+            
+            const unsigned int x_num_ = neigh_info.x_num[i];
+            const unsigned int z_num_ = neigh_info.z_num[i];
+            
+            
+            //For each depth there are two loops, one for SEED status particles, at depth + 1, and one for BOUNDARY and FILLER CELLS, to ensure contiguous memory access patterns.
+            
+            // SEED PARTICLE STATUS LOOP (requires access to three data structures, particle access, particle data, and the part-map)
+#pragma omp parallel for default(shared) private(z_,x_,j_,node_val) reduction(+:num_cells)
+            for(z_ = 0;z_ < z_num_;z_++){
+                
+                for(x_ = 0;x_ < x_num_;x_++){
+                    
+                    const size_t offset_pc_data = x_num_*z_ + x_;
+                    
+                    const size_t j_num = neigh_info.data[i][offset_pc_data].size();
+                    
+                    for(j_ = 0;j_ < j_num;j_++){
+                        node_val = neigh_info.data[i][offset_pc_data][j_];
+                        
+                        if (!(node_val&1)){
+                            //in this loop there is a cell
+                            num_cells++;
+                        }
+                    }
+                    
+                }
+            }
+        }
+        
+        number_parent_cells = num_cells;
+        
         
     }
     

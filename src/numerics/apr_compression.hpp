@@ -12,7 +12,7 @@
 
 
 template<typename T>
-void get_wavelet_coeffs(std::vector<float>& parts,uint8_t& scale,T& mean,float comp_factor){
+void get_wavelet_coeffs(std::vector<float>& parts,uint8_t& scale,T& mean,float comp_factor,bool flag){
     //
     //  Calculates the wavelet co-efficients
     //
@@ -28,17 +28,28 @@ void get_wavelet_coeffs(std::vector<float>& parts,uint8_t& scale,T& mean,float c
             {1,1,-1,-1,-1,-1,1,1},
             {1,-1,-1,1,-1,1,1,-1}};
     
+    float counter=0;
+    
+    //this means it will only work for non zero input
+    if (flag == true){
+        counter = 8.0;
+    } else {
+        for(int j = 1; j < 8; j++){
+            counter += (parts[j] != 0);
+        }
+    }
+    
     std::vector<float> local_int;
     local_int.resize(8,0);
     std::swap(parts,local_int);
     
     //first calculate the mean to push up the tree
-    T temp_mean = (1.0/8.0)*(local_int[0] + local_int[1] + local_int[2] + local_int[3] + local_int[4] + local_int[5] + local_int[6] + local_int[7]);
+    T temp_mean = (1.0/counter)*(local_int[0] + local_int[1] + local_int[2] + local_int[3] + local_int[4] + local_int[5] + local_int[6] + local_int[7]);
     
     //compute the wavelet co-eff
     for (int j = 1; j < 8; j++) {
         //calculate the wavelet co-efficients (diff, pushing up the mean)
-        parts[j-1] = ((local_int[0]*tranform_coeffs[j][0] + local_int[1]*tranform_coeffs[j][1] + local_int[2]*tranform_coeffs[j][2] + local_int[3]*tranform_coeffs[j][3] + local_int[4]*tranform_coeffs[j][4] + local_int[5]*tranform_coeffs[j][5] + local_int[6]*tranform_coeffs[j][6] + local_int[7]*tranform_coeffs[j][7]));
+        parts[j] = ((local_int[0]*tranform_coeffs[j][0] + local_int[1]*tranform_coeffs[j][1] + local_int[2]*tranform_coeffs[j][2] + local_int[3]*tranform_coeffs[j][3] + local_int[4]*tranform_coeffs[j][4] + local_int[5]*tranform_coeffs[j][5] + local_int[6]*tranform_coeffs[j][6] + local_int[7]*tranform_coeffs[j][7]));
     }
     
     //
@@ -57,7 +68,8 @@ void get_wavelet_coeffs(std::vector<float>& parts,uint8_t& scale,T& mean,float c
     
     scale = std::max(0.0,floor(log((temp_max-temp_min)/comp_factor)/log(2)));
     
-    mean = ceil(temp_mean/pow(2.0,scale));
+    //mean = ceil(temp_mean/pow(2.0,scale));
+    mean = temp_mean;
     
     for(int j = 1;j < 8;j++){
         parts[j] = ceil(parts[j]/pow(2.0,scale));
@@ -68,11 +80,11 @@ void get_wavelet_coeffs(std::vector<float>& parts,uint8_t& scale,T& mean,float c
 
 
 template <typename T,typename S>
-void calc_wavelet_encode(PartCellStructure<S,uint64_t>& pc_struct){
+void calc_wavelet_encode(PartCellStructure<S,uint64_t>& pc_struct,ExtraPartCellData<uint8_t>& scale,ExtraPartCellData<int8_t>& q,ExtraPartCellData<uint8_t>& scale_parent,ExtraPartCellData<T>& mu_parent,ExtraPartCellData<int8_t>& q_parent){
     //
+    //  Bevan Cheeseman 2016
     //
-    //
-    //
+    //  Calculates a truncated and quantized wavelet transform
     //
     
     Part_timer timer;
@@ -83,12 +95,13 @@ void calc_wavelet_encode(PartCellStructure<S,uint64_t>& pc_struct){
     //get the parents
     PartCellParent<uint64_t> pc_parent(pc_struct);
     
-    ExtraPartCellData<uint8_t> scale(pc_struct.pc_data); //cell structure
-    ExtraPartCellData<int8_t> q(pc_struct.part_data.particle_data); //particle structure
+    scale.initialize_structure_cells(pc_struct.pc_data); //cell structure
+    q.initialize_structure_parts(pc_struct.part_data.particle_data); //particle structure
     ExtraPartCellData<T> mu(pc_struct.pc_data);  //cell structure
     
-    ExtraPartCellData<uint8_t> scale_parent(pc_parent.neigh_info); //cell structure
-    ExtraPartCellData<T> mu_parent(pc_parent.neigh_info);  //cell structure
+    scale_parent.initialize_structure_cells(pc_parent.neigh_info); //cell structure
+    mu_parent.initialize_structure_cells(pc_parent.neigh_info);  //cell structure
+    q_parent.initialize_structure_cells(pc_parent.neigh_info);  //cell structure
     
     ///////////////////////////////////
     //
@@ -124,7 +137,7 @@ void calc_wavelet_encode(PartCellStructure<S,uint64_t>& pc_struct){
         const unsigned int z_num_ = pc_struct.pc_data.z_num[i];
         
         
-//#pragma omp parallel for default(shared) private(p,z_,x_,j_,node_val_part,curr_key,status,part_offset) firstprivate(parts) if(z_num_*x_num_ > 100)
+#pragma omp parallel for default(shared) private(z_,x_,j_,node_val_part,curr_key,status,part_offset) firstprivate(parts) if(z_num_*x_num_ > 100)
         for(z_ = 0;z_ < z_num_;z_++){
             //both z and x are explicitly accessed in the structure
             curr_key = 0;
@@ -161,15 +174,17 @@ void calc_wavelet_encode(PartCellStructure<S,uint64_t>& pc_struct){
                             std::copy(pc_struct.part_data.particle_data.data[i][offset_pc_data].begin() + part_offset,pc_struct.part_data.particle_data.data[i][offset_pc_data].begin() + part_offset + 8,parts.begin());
                             
                             uint8_t scale_t = 0;
-                            T mean = pc_struct.part_data.particle_data.data[i][offset_pc_data][part_offset];
+                            T mean = 0;
                             
-                            get_wavelet_coeffs(parts,scale_t,mean,comp_factor);
+                            get_wavelet_coeffs(parts,scale_t,mean,comp_factor,true);
                             
                             //copy to q particle data
-                            std::copy(parts.begin(),parts.end(),q.data[i][offset_pc_data].begin());
+                            std::copy(parts.begin(),parts.end(),q.data[i][offset_pc_data].begin()+1);
                             mu.data[i][offset_pc_data][j_] = mean;
                             scale.data[i][offset_pc_data][j_] = scale_t;
                             
+                        } else {
+                            mu.data[i][offset_pc_data][j_] = pc_struct.part_data.particle_data.data[i][offset_pc_data][part_offset];
                         }
                         
                     } else {
@@ -183,6 +198,128 @@ void calc_wavelet_encode(PartCellStructure<S,uint64_t>& pc_struct){
     timer.stop_timer();
     
     
+    /////////////////////////
+    //
+    //  Parent Loop
+    //
+    ////////////////////////////
+    
+    uint64_t node_val_parent;
+    std::vector<uint64_t> children_keys;
+    std::vector<uint64_t> children_ind;
+    
+    children_keys.resize(8,0);
+    children_ind.resize(8,0);
+    
+    timer.start_timer("PARENT LOOP");
+    
+    //reverse loop direction
+    for(uint64_t i = pc_parent.neigh_info.depth_max;i >= pc_parent.neigh_info.depth_min;i--){
+        //loop over the resolutions of the structure
+        const unsigned int x_num_ =  pc_parent.neigh_info.x_num[i];
+        const unsigned int z_num_ =  pc_parent.neigh_info.z_num[i];
+        
+        
+#pragma omp parallel for default(shared) private(z_,x_,j_,node_val_parent,curr_key,status,part_offset) firstprivate(parts,children_keys,children_ind) if(z_num_*x_num_ > 100)
+        for(z_ = 0;z_ < z_num_;z_++){
+            //both z and x are explicitly accessed in the structure
+            curr_key = 0;
+            
+            pc_parent.neigh_info.pc_key_set_z(curr_key,z_);
+            pc_parent.neigh_info.pc_key_set_depth(curr_key,i);
+            
+            for(x_ = 0;x_ < x_num_;x_++){
+                
+                pc_parent.neigh_info.pc_key_set_x(curr_key,x_);
+                
+                const size_t offset_pc_data = x_num_*z_ + x_;
+                
+                const size_t j_num = pc_parent.neigh_info.data[i][offset_pc_data].size();
+                
+                //the y direction loop however is sparse, and must be accessed accordinagly
+                for(j_ = 0;j_ < j_num;j_++){
+                    
+                    //particle cell node value, used here as it is requried for getting the particle neighbours
+                    node_val_parent = pc_parent.neigh_info.data[i][offset_pc_data][j_];
+                    
+                    if (!(node_val_parent&1)){
+                        //Indicates this is a particle cell node
+                        
+                        
+                        pc_parent.neigh_info.pc_key_set_j(curr_key,j_);
+                        
+                        status = pc_parent.neigh_info.get_status(node_val_parent);
+                        
+                        //parent has real siblings
+                        if(status == 2){
+                            
+                            //get the children
+                            
+                            pc_parent.get_children_keys(curr_key,children_keys,children_ind);
+                            
+                            for(int c = 0;c < children_keys.size();c++){
+                                uint64_t child = children_keys[c];
+                                
+                                if(child > 0){
+                                    
+                                    if(children_ind[c] == 1){
+                                        //
+                                        parts[c] = mu.get_val(child);
+                                    } else {
+                                        parts[c] = mu_parent.get_val(child);
+                                    }
+                                    
+                                    
+                                } else {
+                                    parts[c] = 0;
+                                }
+                            }
+                            
+                            uint8_t scale_t = 0;
+                            T mean = 0;
+                            
+                            get_wavelet_coeffs(parts,scale_t,mean,comp_factor,false);
+                            
+                            scale_parent.get_val(curr_key) = scale_t;
+                            mu_parent.get_val(curr_key) = mean;
+                            
+                            //loop over children again and put the q in place
+                            
+                            for(int c = 1;c < children_keys.size();c++){
+                                uint64_t child = children_keys[c];
+                                
+                                if(child > 0){
+                                    
+                                    if(children_ind[c] == 1){
+                                        //
+                            
+                                        part_offset = pc_struct.part_data.access_node_get_part_offset(pc_struct.part_data.access_data.get_val(child));
+                                        pc_struct.part_data.access_data.pc_key_set_index(child,part_offset);
+                                        q.get_part(child) = parts[c];
+                                        
+                                    } else {
+                                        q_parent.get_val(child) = parts[c];
+                                    }
+                                    
+                                } else {
+                                    // Need to think on this case
+                                    
+                                }
+                            }
+                            
+                        }
+                        
+                    } else {
+                        // Inidicates this is not a particle cell node, and is a gap node
+                    }
+                }
+            }
+        }
+    }
+    
+    timer.stop_timer();
+    
+
 }
 
 
