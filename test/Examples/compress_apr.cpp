@@ -83,9 +83,23 @@ int main(int argc, char **argv) {
     // Read the apr file into the part cell structure
     read_apr_pc_struct(pc_struct,file_name);
     
-    write_apr_wavelet(pc_struct,options.directory,"wavelet_test",40);
+    part_rep.timer.start_timer("write_wavelet");
+    
+    //write_apr_wavelet(pc_struct,options.directory,"wavelet_test",40);
+    
+    part_rep.timer.stop_timer();
+    
+    part_rep.timer.start_timer("write");
+    
+    write_apr_pc_struct_blosc(pc_struct,options.directory,"standard");
+    
+    part_rep.timer.stop_timer();
+    
+    part_rep.timer.start_timer("write_old");
     
     write_apr_pc_struct(pc_struct,options.directory,"standard");
+    
+    part_rep.timer.stop_timer();
     
 }
 
