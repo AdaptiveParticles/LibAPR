@@ -323,11 +323,36 @@ void calc_wavelet_encode(PartCellStructure<S,uint64_t>& pc_struct,ExtraPartCellD
 }
 
 
+template <typename T,typename S>
+void calc_wavelet_decode(PartCellStructure<S,uint64_t>& pc_struct,ExtraPartCellData<uint8_t>& scale,ExtraPartCellData<int8_t>& q,ExtraPartCellData<uint8_t>& scale_parent,ExtraPartCellData<T>& mu_parent,ExtraPartCellData<int8_t>& q_parent,const float comp_factor){
+    //
+    //  Bevan Cheeseman 2016
+    //
+    //  Calculates a truncated and quantized wavelet transform
+    //
+    
+    Part_timer timer;
+    timer.verbose_flag = true;
+    
+    //get the parents
+    PartCellParent<uint64_t> pc_parent(pc_struct);
+    
+    ///////////////////////////////////
+    //
+    //
+    //  Compute SEED cell haar wavelet transform
+    //
+    //
+    ///////////////////////////////////
 
-
-
-
-
+    //starts with the parents.. then from the parents go to the particles
+    
+    //low res to high res
+    
+    //then loop of particles low res to high res
+    
+    
+}
 
 
 
