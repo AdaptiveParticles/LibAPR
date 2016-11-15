@@ -9,8 +9,8 @@
 //
 ///////////////////////////////////////////////////////////
 
-#ifndef _compression_h
-#define _compression_h
+#ifndef _segment_h
+#define _segment_h
 
 #include <algorithm>
 #include <iostream>
@@ -23,7 +23,7 @@
 
 
 template <typename T,typename S,typename U>
-void calc_cell_min_max(PartCellStructure<T,S>& pc_struct,ExtraPartCellData<U>& particle_data,ExtraPartCellData<U>& min_data,ExtraPartCellData<U>& max_data){
+void calc_cell_min_max(PartCellStructure<T,S>& pc_struct,PartCellParent<S>& pc_parent,ExtraPartCellData<U>& particle_data,ExtraPartCellData<U>& min_data,ExtraPartCellData<U>& max_data){
     //
     //
     //  Bevan Cheeseman 2016
@@ -32,12 +32,342 @@ void calc_cell_min_max(PartCellStructure<T,S>& pc_struct,ExtraPartCellData<U>& p
     //
     //  Input: pc_struct and particle data, (typical case just input the intensities)
     //
+    
+    min_data.initialize_structure_cells(pc_parent.neigh_info);
+    max_data.initialize_structure_cells(pc_parent.neigh_info);
+    
+    
+    //loop over parent cells children, if it is a real node, then if it is SEED avg particles, if it is not take them, then compute min and max (done)
+    
+    /////////////////////////
+    //
+    //  Parent Loop
+    //
+    ////////////////////////////
+    
+    Part_timer timer;
+    timer.verbose_flag = true;
+    
+    uint64_t x_;
+    uint64_t j_;
+    uint64_t z_;
+    uint64_t curr_key;
+    uint64_t status;
+    uint64_t part_offset;
+    
+    uint64_t node_val_parent;
+    uint64_t node_val_part;
+    std::vector<uint64_t> children_keys;
+    std::vector<uint64_t> children_ind;
+    
+    children_keys.resize(8,0);
+    children_ind.resize(8,0);
+    
+    timer.start_timer("PARENT LOOP");
+    
+    //reverse loop direction
+    for(uint64_t i = pc_parent.neigh_info.depth_max;i >= pc_parent.neigh_info.depth_min;i--){
+        //loop over the resolutions of the structure
+        const unsigned int x_num_ =  pc_parent.neigh_info.x_num[i];
+        const unsigned int z_num_ =  pc_parent.neigh_info.z_num[i];
+        
+        
+#pragma omp parallel for default(shared) private(z_,x_,j_,node_val_parent,curr_key,status,part_offset,node_val_part) firstprivate(children_keys,children_ind) if(z_num_*x_num_ > 100)
+        for(z_ = 0;z_ < z_num_;z_++){
+            //both z and x are explicitly accessed in the structure
+            curr_key = 0;
+            
+            pc_parent.neigh_info.pc_key_set_z(curr_key,z_);
+            pc_parent.neigh_info.pc_key_set_depth(curr_key,i);
+            
+            for(x_ = 0;x_ < x_num_;x_++){
+                
+                pc_parent.neigh_info.pc_key_set_x(curr_key,x_);
+                
+                const size_t offset_pc_data = x_num_*z_ + x_;
+                
+                const size_t j_num = pc_parent.neigh_info.data[i][offset_pc_data].size();
+                
+                //the y direction loop however is sparse, and must be accessed accordinagly
+                for(j_ = 0;j_ < j_num;j_++){
+                    
+                    //particle cell node value, used here as it is requried for getting the particle neighbours
+                    node_val_parent = pc_parent.neigh_info.data[i][offset_pc_data][j_];
+                    
+                    if (!(node_val_parent&1)){
+                        //Indicates this is a particle cell node
+                        
+                        
+                        pc_parent.neigh_info.pc_key_set_j(curr_key,j_);
+                        
+                        status = pc_parent.neigh_info.get_status(node_val_parent);
+                        
+                        //parent has real siblings
+                        if(status == 2){
+                            
+                            //get the children
+                            
+                            pc_parent.get_children_keys(curr_key,children_keys,children_ind);
+                            
+                            U min_temp = 99999999;
+                            U max_temp = 0;
+                            
+                            for(int c = 0;c < children_keys.size();c++){
+                                uint64_t child = children_keys[c];
+                                
+                                if(child > 0){
+                                    
+                                    if(children_ind[c] == 1){
+                                        //loop over the particles
+                                        node_val_part = pc_struct.part_data.access_data.get_val(child);
+                                        status = pc_struct.part_data.access_node_get_status(node_val_part);
+                                        part_offset = pc_struct.part_data.access_node_get_part_offset(node_val_part);
+                                        
+                                        float mean = 0;
+                                        
+                                        //loop over the particles
+                                        for(int p = 0;p < pc_struct.part_data.get_num_parts(status);p++){
+                                            pc_struct.part_data.access_data.pc_key_set_index(child,part_offset+p);
+                                            
+                                            mean += pc_struct.part_data.particle_data.get_part(child);
+                                        }
+                                        
+                                        mean = mean/pc_struct.part_data.get_num_parts(status);
+                                        
+                                        min_temp = std::min(mean,min_temp);
+                                        max_temp = std::max(mean,max_temp);
+                                        
+                                    } else {
+                                        min_temp = std::min(min_data.get_val(child),min_temp);
+                                        max_temp = std::max(max_data.get_val(child),max_temp);
+                                    }
+                                    
+                                    
+                                }
+                            }
+                            
+                            //now set the values
+                            min_data.get_val(curr_key) = min_temp;
+                            max_data.get_val(curr_key) = max_temp;
+                            
+                            if(min_temp == 0){
+                                int stop = 1;
+                                pc_parent.get_children_keys(curr_key,children_keys,children_ind);
+
+                            }
+                            
+                        }
+                    }
+                }
+            }
+        }
+    }
+    
+    timer.stop_timer();
+    
+}
+template<typename T,typename U>
+T compute_parent_cell_neigh_mean(const U& parent_node,const U& parent_key,ExtraPartCellData<T>& parent_data,PartCellParent<U>& parent_cells){
+    //
+    //  Bevan Cheeseman 2016
+    //
+    //  Given a data set defined on parent cells, compute the mean over the parent neighbours on the same level
+    //
+    //
+    
+    PartCellNeigh<U> neigh_keys;
+    
+    parent_cells.get_neighs_parent_all(parent_key,parent_node,neigh_keys);
+    
+    T temp = parent_data.get_val(parent_key);
+    float counter = 1;
+    
+    for(uint64_t face = 0; face < neigh_keys.neigh_face.size();face++){
+        
+        for(uint64_t n = 0; n < neigh_keys.neigh_face[face].size();n++){
+            uint64_t neigh_key = neigh_keys.neigh_face[face][n];
+            
+            if(neigh_key > 0){
+                temp+= parent_data.get_val(neigh_key);
+                counter++;
+            }
+            
+        }
+    }
+    
+    return (temp/counter);
+    
+}
+template<typename T,typename V>
+void loop_up_return_vals(std::vector<V>& vals,T curr_key,T curr_node,PartCellParent<T>& pc_parent,ExtraPartCellData<V>& parent_data,const std::vector<unsigned int>& status_offsets){
+    //
+    //  Loops up structure
+    //
+    
+    V last = parent_data.get_val(curr_key);
+    
+    unsigned int offset = 0;
+    
+    //
+    unsigned int counter = 0;
+    
+    for(int i = 0;i < status_offsets.size();i++){
+        if(status_offsets[i] == offset){
+            vals[i] = parent_data.get_val(curr_key);
+            counter ++;
+        }
+    }
+    
+    if(counter < 3){
+    
+        //get the children
+        curr_key = pc_parent.get_parent_key(curr_node,curr_key);
+    
+        while ((curr_key > 0) & (counter < 3)){
+            offset++;
+            
+            for(int i = 0;i < status_offsets.size();i++){
+                if(status_offsets[i] == offset){
+                    vals[i] = parent_data.get_val(curr_key);
+                    counter ++;
+                }
+            }
+            curr_node = pc_parent.parent_info.get_val(curr_key);
+            curr_key = pc_parent.get_parent_key(curr_node,curr_key);
+        }
+        
+        if(counter <3){
+            for(int i = 0;i < status_offsets.size();i++){
+                if(vals[i] == 0){
+                    vals[i] = last;
+                }
+            }
+        }
+    
+    }
+    
+    
+}
 
 
+template<typename U,typename T,typename V>
+void get_value_up_tree_offset(PartCellStructure<U,T>& pc_struct,PartCellParent<T>& pc_parent,ExtraPartCellData<V>& parent_data,ExtraPartCellData<V>& partcell_data,const std::vector<unsigned int> status_offsets){
+    //
+    //  Bevan Cheeseman 2016
+    //
+    //  Loops up through a structure and gets value in the parent structure that are a certain offset from a particular cell based of the status of the cell
+    //
+    //
+    
+    //initialize
+    partcell_data.initialize_structure_cells(pc_struct.pc_data);
+    
+    ////////////////////////////
+    //
+    // Parent Loop
+    //
+    ////////////////////////////
+    
+    
+    Part_timer timer;
+    timer.verbose_flag = true;
+    
+    uint64_t x_;
+    uint64_t j_;
+    uint64_t z_;
+    uint64_t curr_key;
+    uint64_t status;
+    
+    uint64_t node_val_parent;
+    uint64_t node_val_part;
+    std::vector<uint64_t> children_keys;
+    std::vector<uint64_t> children_ind;
+    
+    children_keys.resize(8,0);
+    children_ind.resize(8,0);
+    
+    timer.start_timer("Push down tree");
+    
+    //reverse loop direction
+    for(uint64_t i = pc_parent.neigh_info.depth_max;i >= pc_parent.neigh_info.depth_min;i--){
+        //loop over the resolutions of the structure
+        const unsigned int x_num_ =  pc_parent.neigh_info.x_num[i];
+        const unsigned int z_num_ =  pc_parent.neigh_info.z_num[i];
+        
+#pragma omp parallel for default(shared) private(z_,x_,j_,node_val_parent,curr_key,status) firstprivate(children_keys,children_ind) if(z_num_*x_num_ > 100)
+        for(z_ = 0;z_ < z_num_;z_++){
+            //both z and x are explicitly accessed in the structure
+            curr_key = 0;
+            
+            pc_parent.neigh_info.pc_key_set_z(curr_key,z_);
+            pc_parent.neigh_info.pc_key_set_depth(curr_key,i);
+            
+            for(x_ = 0;x_ < x_num_;x_++){
+                
+                pc_parent.neigh_info.pc_key_set_x(curr_key,x_);
+                
+                const size_t offset_pc_data = x_num_*z_ + x_;
+                
+                const size_t j_num = pc_parent.neigh_info.data[i][offset_pc_data].size();
+                
+                //the y direction loop however is sparse, and must be accessed accordinagly
+                for(j_ = 0;j_ < j_num;j_++){
+                    
+                    //particle cell node value, used here as it is requried for getting the particle neighbours
+                    node_val_parent = pc_parent.neigh_info.data[i][offset_pc_data][j_];
+                    
+                    if (!(node_val_parent&1)){
+                        //Indicates this is a particle cell node
+                        
+                        
+                        pc_parent.neigh_info.pc_key_set_j(curr_key,j_);
+                        
+                        status = pc_parent.neigh_info.get_status(node_val_parent);
+                        
+                        //parent has real siblings
+                        if(status == 2){
+                            
+                            //first loop up the structure and get the required values
+                            std::vector<V> vals;
+                            vals.resize(3,0);
+                            
+                            loop_up_return_vals(vals,curr_key,node_val_parent,pc_parent,parent_data,status_offsets);
+                            
+                            pc_parent.get_children_keys(curr_key,children_keys,children_ind);
+                            
+                            for(int c = 0;c < children_keys.size();c++){
+                                uint64_t child = children_keys[c];
+                                
+                                if(child > 0){
+                                    
+                                    if(children_ind[c] == 1){
+                                        // get the childs status and then give it the correct value
+                                        
+                                    }
+                                    
+                                } else {
+                                    
+                                }
+                            }
+                            
+                            
+                            
+                        }
+                    }
+                }
+            }
+        }
+    }
+    
+    timer.stop_timer();
+    
+    
+    
     
     
     
 }
+
 
 //template <typename T,typename S>
 //void calc_cell_min_max(Part_rep& p_rep,Part_data<T>& part_level_data,std::vector<S>& min_data,std::vector<S>& max_data){

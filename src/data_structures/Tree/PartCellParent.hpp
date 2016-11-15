@@ -108,7 +108,7 @@ public:
             // the parent wasn't found so it must be in a real seed at lowest resolution
             T j_pc = pc_struct.pc_data.get_j_from_y(x_min,z_min,pc_struct.depth_min,y_min);
             if(j_pc == 0){
-                return 0;
+                return 0; //doesn't exist
             } else {
                 
                 T depth_min = pc_struct.depth_min;
@@ -118,8 +118,6 @@ public:
             }
             
         }
-        
-        
         
         
         neigh_info.pc_key_set_x(curr_key,x_min);
