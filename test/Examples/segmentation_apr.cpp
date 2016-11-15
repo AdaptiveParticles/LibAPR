@@ -83,18 +83,14 @@ int main(int argc, char **argv) {
     // Read the apr file into the part cell structure
     read_apr_pc_struct(pc_struct,file_name);
     
-    PartCellParent<uint64_t> pc_parent(pc_struct);
+    //adaptive mean
+    ExtraPartCellData<float> adaptive_min;
+    ExtraPartCellData<float> adaptive_max;
     
-    ExtraPartCellData<float> min_data;
-    ExtraPartCellData<float> max_data;
-    
-    calc_cell_min_max<float,uint64_t,float>(pc_struct,pc_parent,pc_struct.part_data.particle_data,min_data,max_data);
-    
-    ExtraPartCellData<float> partcell_data;
-    
+    //offsets past on cell status (resolution)
     std::vector<unsigned int> status_offsets = {1,2,3};
     
-    get_value_up_tree_offset(pc_struct,pc_parent,min_data,partcell_data,status_offsets);
+    get_adaptive_min_max(pc_struct,adaptive_min,adaptive_max,status_offsets);
     
     
 }
