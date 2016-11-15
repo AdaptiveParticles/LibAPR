@@ -25,6 +25,7 @@
 #include "../data_structures/Tree/PartCellStructure.hpp"
 #include "write_parts.h"
 #include "writeimage.h"
+#include "../numerics/apr_compression.hpp"
 
 
 template<typename T>
@@ -32,6 +33,11 @@ void write_apr_full_format(PartCellStructure<T,uint64_t>& pc_struct,std::string 
 
 template<typename T>
 void write_apr_pc_struct(PartCellStructure<T,uint64_t>& pc_struct,std::string save_loc,std::string file_name);
+
+
+template<typename T>
+void write_apr_wavelet(PartCellStructure<T,uint64_t>& pc_struct,std::string save_loc,std::string file_name,float comp_factor);
+
 
 template<typename T>
 void read_apr_pc_struct(PartCellStructure<T,uint64_t>& pc_struct,std::string save_loc,std::string file_name);
@@ -358,8 +364,7 @@ void write_apr_pc_struct(PartCellStructure<T,uint64_t>& pc_struct,std::string sa
     
     hdf5_write_attribute(pr_groupid,H5T_NATIVE_INT,"num_cells",1,dims_out, &num_cells );
     
-  
-    //////////////////////////////////////////////////////////////////
+      //////////////////////////////////////////////////////////////////
     //
     //  Write data to the file
     //
@@ -478,6 +483,390 @@ void write_apr_pc_struct(PartCellStructure<T,uint64_t>& pc_struct,std::string sa
         
     }
 
+    hsize_t attr = depth_min;
+    hdf5_write_attribute(pr_groupid,H5T_NATIVE_INT,"depth_max",1,&dim_a, &pc_struct.depth_max );
+    hdf5_write_attribute(pr_groupid,H5T_NATIVE_INT,"depth_min",1,&dim_a, &attr );
+    
+    
+    // output the file size
+    hsize_t file_size;
+    H5Fget_filesize(fid, &file_size);
+    
+    std::cout << "HDF5 Filesize: " << file_size*1.0/1000000.0 << " MB" << std::endl;
+    
+    //close shiz
+    H5Gclose(obj_id);
+    H5Gclose(pr_groupid);
+    H5Fclose(fid);
+    
+    std::cout << "Writing Complete" << std::endl;
+    
+    
+    
+    
+}
+
+template<typename T>
+void write_apr_wavelet(PartCellStructure<T,uint64_t>& pc_struct,std::string save_loc,std::string file_name,const float comp_factor){
+    //
+    //
+    //  Bevan Cheeseman 2016
+    //
+    //  Writes the APR to the particle cell structure using Haar wavelet compression
+    //
+    //
+    
+    
+    
+    std::cout << "Writing parts to hdf5 file, in pc_struct format..." << std::endl;
+    
+    
+    int num_cells = pc_struct.get_number_cells();
+    int num_parts = pc_struct.get_number_parts();
+    
+    //initialize
+    uint64_t node_val_part;
+    uint64_t y_coord;
+    int x_;
+    int z_;
+    
+    uint64_t j_;
+    uint64_t status;
+    uint64_t curr_key=0;
+    uint64_t part_offset=0;
+    
+    
+    //Neighbour Routine Checking
+    
+    uint64_t p;
+    
+    
+    std::string hdf5_file_name = save_loc + file_name + "_pcstruct_part.h5";
+    
+    file_name = file_name + "_pcstruct_part";
+    
+    hdf5_create_file(hdf5_file_name);
+    
+    //hdf5 inits
+    hid_t fid, pr_groupid, obj_id;
+    H5G_info_t info;
+    
+    hsize_t     dims_out[2];
+    
+    hsize_t rank = 1;
+    
+    hsize_t dims;
+    hsize_t dim_a=1;
+    
+    fid = H5Fopen(hdf5_file_name.c_str(),H5F_ACC_RDWR,H5P_DEFAULT);
+    
+    //Get the group you want to open
+    
+    //////////////////////////////////////////////////////////////////
+    //
+    //  Write meta-data to the file
+    //
+    //
+    //
+    ///////////////////////////////////////////////////////////////////////
+    dims = 1;
+    
+    pr_groupid = H5Gcreate2(fid,"ParticleRepr",H5P_DEFAULT,H5P_DEFAULT,H5P_DEFAULT);
+    H5Gget_info( pr_groupid, &info );
+    
+    hdf5_write_attribute(pr_groupid,H5T_NATIVE_INT,"x_num",1,&dims, &pc_struct.org_dims[1] );
+    hdf5_write_attribute(pr_groupid,H5T_NATIVE_INT,"y_num",1,&dims, &pc_struct.org_dims[0] );
+    hdf5_write_attribute(pr_groupid,H5T_NATIVE_INT,"z_num",1,&dims, &pc_struct.org_dims[2] );
+    
+    
+    obj_id = H5Gcreate2(fid,"ParticleRepr/t",H5P_DEFAULT,H5P_DEFAULT,H5P_DEFAULT);
+    
+    dims_out[0] = 1;
+    dims_out[1] = 1;
+    
+    //just an identifier in here for the reading of the parts
+    
+    hdf5_write_attribute(pr_groupid,H5T_NATIVE_INT,"num_parts",1,dims_out, &num_parts );
+    
+    hdf5_write_attribute(pr_groupid,H5T_NATIVE_INT,"num_cells",1,dims_out, &num_cells );
+    
+    
+    //////////////////////////////////////////////////////////////////
+    //
+    //  Write data to the file
+    //
+    //
+    //
+    ///////////////////////////////////////////////////////////////////////
+    
+    
+    //////////////////////////////////////////////////
+    //
+    //
+    //
+    //  Get wavelet coefficients
+    //
+    //
+    /////////////////////////////////////////////////////
+    
+    
+    ExtraPartCellData<int8_t> q; //particle size
+    
+    ExtraPartCellData<uint8_t> scale; //cell size
+    
+    ExtraPartCellData<uint8_t> scale_parent; //parent size
+    ExtraPartCellData<T> mu_parent; //parent size
+    ExtraPartCellData<int8_t> q_parent; // parent size
+    
+    calc_wavelet_encode(pc_struct,scale,q,scale_parent,mu_parent,q_parent,comp_factor);
+    
+
+    
+    
+    uint64_t depth_min = pc_struct.depth_min;
+    std::vector<uint8_t> p_map;
+    
+    //Initialize the output variables
+    
+    //particle loop
+    std::vector<int8_t> q_out;
+    
+    //cell loop
+    std::vector<uint8_t> scale_out;
+    
+    //parent loop
+    std::vector<uint8_t> scale_parent_out;
+    std::vector<uint16_t> mu_parent_out;
+    std::vector<int8_t> q_parent_out;
+    
+    
+    for(uint64_t i = pc_struct.pc_data.depth_min;i <= pc_struct.pc_data.depth_max;i++){
+        
+        
+        const unsigned int x_num_ = pc_struct.x_num[i];
+        const unsigned int z_num_ = pc_struct.z_num[i];
+        const unsigned int y_num_ = pc_struct.y_num[i];
+        
+        /////////////////////////////////
+        //
+        // particle loop
+        //
+        ///////////////////////////////////
+        
+        
+        //q_out loop
+        q_out.resize(0);
+        
+        for(z_ = 0;z_ < z_num_;z_++){
+            
+            curr_key = 0;
+            
+            for(x_ = 0;x_ < x_num_;x_++){
+                
+                const size_t offset_pc_data = x_num_*z_ + x_;
+                
+                const size_t j_num = pc_struct.part_data.particle_data.data[i][offset_pc_data].size();
+                
+                uint64_t curr_size = q_out.size();
+                q_out.resize(curr_size+ j_num);
+                
+                std::copy(q.data[i][offset_pc_data].begin(),q.data[i][offset_pc_data].end(),q_out.begin() + curr_size);
+                
+            }
+            
+        }
+        
+        /////////////////////////////////
+        //
+        // cell loop
+        //
+        ///////////////////////////////////
+
+        
+        //scale_out loop
+        scale_out.resize(0);
+        
+        for(z_ = 0;z_ < z_num_;z_++){
+            
+            curr_key = 0;
+            
+            for(x_ = 0;x_ < x_num_;x_++){
+                
+                const size_t offset_pc_data = x_num_*z_ + x_;
+                
+                const size_t j_num = pc_struct.pc_data.data[i][offset_pc_data].size();
+                
+                uint64_t curr_size = scale_out.size();
+                scale_out.resize(curr_size+ j_num);
+                
+                std::copy(scale.data[i][offset_pc_data].begin(),scale.data[i][offset_pc_data].end(),scale_out.begin() + curr_size);
+                
+            }
+            
+        }
+        
+        ///////////////////////////////
+        //
+        // parent loop
+        //
+        //////////////////////////////
+        
+        if ( i <= (pc_struct.depth_max - 1)){
+            
+            //scale_out loop
+            scale_parent_out.resize(0);
+            mu_parent_out.resize(0);
+            q_parent_out.resize(0);
+            
+            for(z_ = 0;z_ < z_num_;z_++){
+                
+                curr_key = 0;
+                
+                for(x_ = 0;x_ < x_num_;x_++){
+                    
+                    const size_t offset_pc_data = x_num_*z_ + x_;
+                    
+                    const size_t j_num = scale_parent.data[i][offset_pc_data].size();
+                    
+                    uint64_t curr_size = scale_parent_out.size();
+                    
+                    scale_parent_out.resize(curr_size+ j_num);
+                    mu_parent_out.resize(curr_size+ j_num);
+                    q_parent_out.resize(curr_size+ j_num);
+                    
+                    std::copy(scale_parent.data[i][offset_pc_data].begin(),scale_parent.data[i][offset_pc_data].end(),scale_parent_out.begin() + curr_size);
+                    std::copy(mu_parent.data[i][offset_pc_data].begin(),mu_parent.data[i][offset_pc_data].end(),mu_parent_out.begin() + curr_size);
+                    std::copy(q_parent.data[i][offset_pc_data].begin(),q_parent.data[i][offset_pc_data].end(),q_parent_out.begin() + curr_size);
+                    
+                }
+                
+            }
+            
+        }
+        
+        ////////////////////////////
+        //
+        //  Writing and pmap structure
+        //
+        ///////////////////////////
+        
+        if(q_out.size() > 0){
+            
+            /////////////////////
+            //
+            //  Perform writing to disk
+            //
+            ////////////////////
+            
+            //part data
+            
+            //write the q
+            dims = q_out.size();
+            std::string name = "q_"+std::to_string(i);
+            hdf5_write_data(obj_id,H5T_NATIVE_INT8,name.c_str(),rank,&dims, q_out.data());
+            
+            name = "part_size_"+std::to_string(i);
+            hdf5_write_attribute(pr_groupid,H5T_NATIVE_INT,name.c_str(),1,&dim_a,&dims);
+            
+            //cell data
+            dims = scale_out.size();
+            name = "scale_"+std::to_string(i);
+            hdf5_write_data(obj_id,H5T_NATIVE_UINT8,name.c_str(),rank,&dims, scale_out.data());
+            
+            name = "cell_size_"+std::to_string(i);
+            hdf5_write_attribute(pr_groupid,H5T_NATIVE_INT,name.c_str(),1,&dim_a,&dims);
+
+            
+            //parent data
+            if ( i <= (pc_struct.depth_max - 1)){
+                
+                dims = scale_parent_out.size();
+                
+                name = "parent_size_"+std::to_string(i);
+                hdf5_write_attribute(pr_groupid,H5T_NATIVE_INT,name.c_str(),1,&dim_a,&dims);
+                
+                name = "scale_parent_"+std::to_string(i);
+                hdf5_write_data(obj_id,H5T_NATIVE_UINT8,name.c_str(),rank,&dims, scale_parent_out.data());
+                
+                name = "mu_parent_"+std::to_string(i);
+                hdf5_write_data(obj_id,H5T_NATIVE_UINT16,name.c_str(),rank,&dims, mu_parent_out.data());
+                
+                name = "q_parent_"+std::to_string(i);
+                hdf5_write_data(obj_id,H5T_NATIVE_INT8,name.c_str(),rank,&dims, q_parent_out.data());
+                
+                
+            }
+            //////////////////////////
+            //
+            //  Structure Data
+            //
+            //////////////////////////////
+            
+            p_map.resize(x_num_*z_num_*y_num_,0);
+            
+            std::fill(p_map.begin(), p_map.end(), 0);
+            
+            //For each depth there are two loops, one for SEED status particles, at depth + 1, and one for BOUNDARY and FILLER CELLS, to ensure contiguous memory access patterns.
+            
+            // SEED PARTICLE STATUS LOOP (requires access to three data structures, particle access, particle data, and the part-map)
+#pragma omp parallel for default(shared) private(z_,x_,j_,p,node_val_part,curr_key,part_offset,status,y_coord) if(z_num_*x_num_ > 100)
+            for(z_ = 0;z_ < z_num_;z_++){
+                
+                for(x_ = 0;x_ < x_num_;x_++){
+                    
+                    const size_t offset_pc_data = x_num_*z_ + x_;
+                    const size_t offset_p_map = y_num_*x_num_*z_ + y_num_*x_;
+                    
+                    const size_t j_num = pc_struct.pc_data.data[i][offset_pc_data].size();
+                    
+                    y_coord = 0;
+                    
+                    for(j_ = 0;j_ < j_num;j_++){
+                        
+                        node_val_part = pc_struct.part_data.access_data.data[i][offset_pc_data][j_];
+                        
+                        if (!(node_val_part&1)){
+                            //get the index gap node
+                            y_coord++;
+                            
+                            status = pc_struct.part_data.access_node_get_status(node_val_part);
+                            p_map[offset_p_map + y_coord] = status;
+                            
+                        } else {
+                            
+                            y_coord += ((node_val_part & COORD_DIFF_MASK_PARTICLE) >> COORD_DIFF_SHIFT_PARTICLE);
+                            y_coord--;
+                        }
+                        
+                    }
+                    
+                }
+                
+            }
+            
+            dims = p_map.size();
+            name = "p_map_"+std::to_string(i);
+            hdf5_write_data(obj_id,H5T_NATIVE_UINT8,name.c_str(),rank,&dims, p_map.data());
+            
+            name = "p_map_x_num_"+std::to_string(i);
+            hsize_t attr = x_num_;
+            hdf5_write_attribute(pr_groupid,H5T_NATIVE_INT,name.c_str(),1,&dim_a, &attr);
+            
+            attr = y_num_;
+            name = "p_map_y_num_"+std::to_string(i);
+            hdf5_write_attribute(pr_groupid,H5T_NATIVE_INT,name.c_str(),1,&dim_a, &attr);
+            
+            attr = z_num_;
+            name = "p_map_z_num_"+std::to_string(i);
+            hdf5_write_attribute(pr_groupid,H5T_NATIVE_INT,name.c_str(),1,&dim_a, &attr);
+            
+            
+        } else {
+            depth_min = i+1;
+        }
+        
+    }
+    
     hsize_t attr = depth_min;
     hdf5_write_attribute(pr_groupid,H5T_NATIVE_INT,"depth_max",1,&dim_a, &pc_struct.depth_max );
     hdf5_write_attribute(pr_groupid,H5T_NATIVE_INT,"depth_min",1,&dim_a, &attr );
