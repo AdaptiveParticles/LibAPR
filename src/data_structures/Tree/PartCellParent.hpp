@@ -77,7 +77,9 @@ class PartCellParent {
     
 public:
     
-    
+    T get_cell_num(){
+        return number_parent_cells;
+    }
     
     template<typename S>
     T find_partcell(const T x, const T y, const T z, PartCellStructure<S,T>& pc_struct){

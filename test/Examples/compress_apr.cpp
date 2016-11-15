@@ -83,7 +83,9 @@ int main(int argc, char **argv) {
     // Read the apr file into the part cell structure
     read_apr_pc_struct(pc_struct,file_name);
     
-    //calc_wavelet_encode<uint16_t,float>(pc_struct);
+    write_apr_wavelet(pc_struct,options.directory,"wavelet_test",40);
+    
+    write_apr_pc_struct(pc_struct,options.directory,"standard");
     
 }
 

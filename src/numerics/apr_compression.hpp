@@ -80,7 +80,7 @@ void get_wavelet_coeffs(std::vector<float>& parts,uint8_t& scale,T& mean,float c
 
 
 template <typename T,typename S>
-void calc_wavelet_encode(PartCellStructure<S,uint64_t>& pc_struct,ExtraPartCellData<uint8_t>& scale,ExtraPartCellData<int8_t>& q,ExtraPartCellData<uint8_t>& scale_parent,ExtraPartCellData<T>& mu_parent,ExtraPartCellData<int8_t>& q_parent){
+void calc_wavelet_encode(PartCellStructure<S,uint64_t>& pc_struct,ExtraPartCellData<uint8_t>& scale,ExtraPartCellData<int8_t>& q,ExtraPartCellData<uint8_t>& scale_parent,ExtraPartCellData<T>& mu_parent,ExtraPartCellData<int8_t>& q_parent,const float comp_factor){
     //
     //  Bevan Cheeseman 2016
     //
@@ -90,10 +90,10 @@ void calc_wavelet_encode(PartCellStructure<S,uint64_t>& pc_struct,ExtraPartCellD
     Part_timer timer;
     timer.verbose_flag = true;
     
-    float comp_factor = 40;
-    
     //get the parents
     PartCellParent<uint64_t> pc_parent(pc_struct);
+    
+    std::cout << "Number parent cels: " << pc_parent.get_cell_num() << std::endl;
     
     scale.initialize_structure_cells(pc_struct.pc_data); //cell structure
     q.initialize_structure_parts(pc_struct.part_data.particle_data); //particle structure
