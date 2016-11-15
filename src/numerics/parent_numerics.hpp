@@ -72,7 +72,7 @@ void calc_cell_min_max(PartCellStructure<T,S>& pc_struct,PartCellParent<S>& pc_p
         const unsigned int z_num_ =  pc_parent.neigh_info.z_num[i];
         
         
-#pragma omp parallel for default(shared) private(z_,x_,j_,node_val_parent,curr_key,status,part_offset,node_val_part) firstprivate(children_keys,children_ind) if(z_num_*x_num_ > 100)
+//#pragma omp parallel for default(shared) private(z_,x_,j_,node_val_parent,curr_key,status,part_offset,node_val_part) firstprivate(children_keys,children_ind) if(z_num_*x_num_ > 100)
         for(z_ = 0;z_ < z_num_;z_++){
             //both z and x are explicitly accessed in the structure
             curr_key = 0;
@@ -103,7 +103,7 @@ void calc_cell_min_max(PartCellStructure<T,S>& pc_struct,PartCellParent<S>& pc_p
                         status = pc_parent.neigh_info.get_status(node_val_parent);
                         
                         //parent has real siblings
-                        if(status == 2){
+                        if(status > 0){
                             
                             //get the children
                             
@@ -150,6 +150,8 @@ void calc_cell_min_max(PartCellStructure<T,S>& pc_struct,PartCellParent<S>& pc_p
                             min_data.get_val(curr_key) = min_temp;
                             max_data.get_val(curr_key) = max_temp;
                             
+
+                            
                         }
                     }
                 }
@@ -157,6 +159,66 @@ void calc_cell_min_max(PartCellStructure<T,S>& pc_struct,PartCellParent<S>& pc_p
         }
     }
     
+    timer.stop_timer();
+    
+    
+    timer.start_timer("check");
+    
+    
+    //
+    
+    //reverse loop direction
+    for(uint64_t i = pc_parent.neigh_info.depth_max;i >= pc_parent.neigh_info.depth_min;i--){
+        //loop over the resolutions of the structure
+        const unsigned int x_num_ =  pc_parent.neigh_info.x_num[i];
+        const unsigned int z_num_ =  pc_parent.neigh_info.z_num[i];
+        
+        
+        //#pragma omp parallel for default(shared) private(z_,x_,j_,node_val_parent,curr_key,status,part_offset,node_val_part) firstprivate(children_keys,children_ind) if(z_num_*x_num_ > 100)
+        for(z_ = 0;z_ < z_num_;z_++){
+            //both z and x are explicitly accessed in the structure
+            curr_key = 0;
+            
+            pc_parent.neigh_info.pc_key_set_z(curr_key,z_);
+            pc_parent.neigh_info.pc_key_set_depth(curr_key,i);
+            
+            for(x_ = 0;x_ < x_num_;x_++){
+                
+                pc_parent.neigh_info.pc_key_set_x(curr_key,x_);
+                
+                const size_t offset_pc_data = x_num_*z_ + x_;
+                
+                const size_t j_num = pc_parent.neigh_info.data[i][offset_pc_data].size();
+                
+                //the y direction loop however is sparse, and must be accessed accordinagly
+                for(j_ = 0;j_ < j_num;j_++){
+                    
+                    //particle cell node value, used here as it is requried for getting the particle neighbours
+                    node_val_parent = pc_parent.neigh_info.data[i][offset_pc_data][j_];
+                    
+                    if (!(node_val_parent&1)){
+                        //Indicates this is a particle cell node
+                        
+                        
+                        pc_parent.neigh_info.pc_key_set_j(curr_key,j_);
+                        
+                        
+                        float check_min = min_data.get_val(curr_key);
+                        float check_max = max_data.get_val(curr_key);
+                        
+                        if(check_min < 500){
+                            int stop = 1;
+                        }
+                        
+                        
+                        
+                    }
+                }
+            }
+        }
+    }
+
+
     timer.stop_timer();
     
 }
@@ -175,6 +237,7 @@ T compute_parent_cell_neigh_mean(const U& parent_node,const U& parent_key,ExtraP
     
     T temp = parent_data.get_val(parent_key);
     float counter = 1;
+    T val=0;
     
     for(uint64_t face = 0; face < neigh_keys.neigh_face.size();face++){
         
@@ -182,8 +245,11 @@ T compute_parent_cell_neigh_mean(const U& parent_node,const U& parent_key,ExtraP
             uint64_t neigh_key = neigh_keys.neigh_face[face][n];
             
             if(neigh_key > 0){
-                temp+= parent_data.get_val(neigh_key);
-                counter++;
+                val= parent_data.get_val(neigh_key);
+                if (val > 0){
+                    counter++;
+                    temp+=val;
+                }
             }
             
         }
@@ -223,7 +289,7 @@ void smooth_parent_result(PartCellParent<U>& pc_parent,ExtraPartCellData<T>& par
         const unsigned int x_num_ =  pc_parent.neigh_info.x_num[i];
         const unsigned int z_num_ =  pc_parent.neigh_info.z_num[i];
         
-#pragma omp parallel for default(shared) private(z_,x_,j_,node_val_parent,curr_key,status,node_val_part)  if(z_num_*x_num_ > 100)
+//#pragma omp parallel for default(shared) private(z_,x_,j_,node_val_parent,curr_key,status,node_val_part)  if(z_num_*x_num_ > 100)
         for(z_ = 0;z_ < z_num_;z_++){
             //both z and x are explicitly accessed in the structure
             curr_key = 0;
@@ -267,12 +333,14 @@ void smooth_parent_result(PartCellParent<U>& pc_parent,ExtraPartCellData<T>& par
 
 
 template<typename T,typename V>
-void loop_up_return_vals(std::vector<V>& vals,T curr_key,T curr_node,PartCellParent<T>& pc_parent,ExtraPartCellData<V>& parent_data,const std::vector<unsigned int>& status_offsets){
+void loop_up_return_vals(std::vector<V>& vals,T curr_key,PartCellParent<T>& pc_parent,ExtraPartCellData<V>& parent_data,const std::vector<unsigned int>& status_offsets){
     //
     //  Loops up structure
     //
     
     V last = parent_data.get_val(curr_key);
+    
+    T curr_node = pc_parent.parent_info.get_val(curr_key);
     
     unsigned int offset = 0;
     
@@ -290,14 +358,22 @@ void loop_up_return_vals(std::vector<V>& vals,T curr_key,T curr_node,PartCellPar
     
         //get the children
         curr_key = pc_parent.get_parent_key(curr_node,curr_key);
-    
+        float depth = pc_parent.neigh_info.pc_key_get_depth(curr_key);
+        float x = pc_parent.neigh_info.pc_key_get_x(curr_key);
+        float z = pc_parent.neigh_info.pc_key_get_z(curr_key);
+        float j = pc_parent.neigh_info.pc_key_get_j(curr_key);
+        
+        
         while ((curr_key > 0) & (counter < 3)){
             offset++;
             
+            last = parent_data.get_val(curr_key);
+            
             for(int i = 0;i < status_offsets.size();i++){
                 if(status_offsets[i] == offset){
-                    vals[i] = parent_data.get_val(curr_key);
+                    vals[i] = last;
                     counter ++;
+                    
                 }
             }
             curr_node = pc_parent.parent_info.get_val(curr_key);
@@ -313,6 +389,11 @@ void loop_up_return_vals(std::vector<V>& vals,T curr_key,T curr_node,PartCellPar
         }
     
     }
+    
+    if(last == 0){
+        int stop = 1;
+    }
+
     
     
 }
@@ -335,7 +416,6 @@ void get_value_up_tree_offset(PartCellStructure<U,T>& pc_struct,PartCellParent<T
     // Parent Loop
     //
     ////////////////////////////
-    
     
     Part_timer timer;
     timer.verbose_flag = true;
@@ -362,7 +442,7 @@ void get_value_up_tree_offset(PartCellStructure<U,T>& pc_struct,PartCellParent<T
         const unsigned int x_num_ =  pc_parent.neigh_info.x_num[i];
         const unsigned int z_num_ =  pc_parent.neigh_info.z_num[i];
         
-#pragma omp parallel for default(shared) private(z_,x_,j_,node_val_parent,curr_key,status,node_val_part) firstprivate(children_keys,children_ind) if(z_num_*x_num_ > 100)
+//#pragma omp parallel for default(shared) private(z_,x_,j_,node_val_parent,curr_key,status,node_val_part) firstprivate(children_keys,children_ind) if(z_num_*x_num_ > 100)
         for(z_ = 0;z_ < z_num_;z_++){
             //both z and x are explicitly accessed in the structure
             curr_key = 0;
@@ -387,19 +467,18 @@ void get_value_up_tree_offset(PartCellStructure<U,T>& pc_struct,PartCellParent<T
                     if (!(node_val_parent&1)){
                         //Indicates this is a particle cell node
                         
-                        
                         pc_parent.neigh_info.pc_key_set_j(curr_key,j_);
                         
                         status = pc_parent.neigh_info.get_status(node_val_parent);
                         
                         //parent has real siblings
-                        if(status == 2){
+                        if(status > 0){
                             
                             //first loop up the structure and get the required values
                             std::vector<V> vals;
                             vals.resize(3,0);
                             
-                            loop_up_return_vals(vals,curr_key,node_val_parent,pc_parent,parent_data,status_offsets);
+                            loop_up_return_vals(vals,curr_key,pc_parent,parent_data,status_offsets);
                             
                             pc_parent.get_children_keys(curr_key,children_keys,children_ind);
                             
@@ -414,7 +493,8 @@ void get_value_up_tree_offset(PartCellStructure<U,T>& pc_struct,PartCellParent<T
                                         // get the childs status and then give it the correct value
                                         node_val_part = pc_struct.pc_data.get_val(child);
                                         part_status = pc_struct.pc_data.get_status(node_val_part);
-                                        partcell_data.get_val(child) = vals[part_status];
+                                        partcell_data.get_val(child) = vals[part_status-1];
+                                        
                                         
                                     }
                                     
@@ -456,243 +536,9 @@ void get_adaptive_min_max(PartCellStructure<U,T>& pc_struct,ExtraPartCellData<V>
     get_value_up_tree_offset(pc_struct,pc_parent,min_data,partcell_min,status_offset);
     get_value_up_tree_offset(pc_struct,pc_parent,max_data,partcell_max,status_offset);
     
-    
 }
 
 
-//template <typename T,typename S>
-//void calc_cell_min_max(Part_rep& p_rep,Part_data<T>& part_level_data,std::vector<S>& min_data,std::vector<S>& max_data){
-//    //
-//    //  Bevan Cheeseman 2016
-//    //
-//    //  calculates min_max of the particle cell structure.
-//    //
-//    //
-//    
-//    
-//    fill_particle_cell_tree(p_rep);
-//    
-//    float temp_max;
-//    float temp_min;
-//    unsigned int curr_index;
-//    
-//    
-//    min_data.resize(p_rep.get_cell_num(),64000);
-//    max_data.resize(p_rep.get_cell_num(),0);
-//    
-//    Cell_id parent_cell;
-//    
-//    
-//    //loop over all levels of k
-//    for (int k_ = p_rep.pl_map.k_max; k_ > 0; k_--) {
-//        for(auto cell_ref : p_rep.pl_map.pl[k_]) {
-//            
-//            curr_index = cell_ref.second;
-//            
-//            if (p_rep.status.data[curr_index] > 0) {
-//                
-//                temp_min = 0;
-//                temp_max = 0;
-//                
-//                float count = 0;
-//                //average over the current area for the first step then use min max
-//                
-//                for (int j = p_rep.pl_map.cell_indices[curr_index].first; j < p_rep.pl_map.cell_indices[curr_index].last; j++) {
-//                    
-//                    count++;
-//                    
-//                    temp_min = temp_min + part_level_data.data[j];
-//                    
-//                    //temp_min = std::min((float)part_level_data.data[j],temp_min);
-//                    //temp_max = std::max((float)part_level_data.data[j],temp_max);
-//                    
-//                }
-//                
-//                min_data[curr_index] = temp_min/count;
-//                max_data[curr_index] = temp_min/count;
-//                
-//            }
-//            
-//            
-//            
-//            get_parent(p_rep.pl_map.cells[curr_index], parent_cell);
-//            
-//            auto parent_cell_ref = p_rep.pl_map.pl[parent_cell.k].find(parent_cell);
-//            
-//            if (parent_cell_ref != p_rep.pl_map.pl[parent_cell.k].end()){
-//                
-//                min_data[parent_cell_ref->second] = std::min(min_data[curr_index],min_data[parent_cell_ref->second]);
-//                
-//                max_data[parent_cell_ref->second] = std::max(max_data[curr_index],max_data[parent_cell_ref->second]);
-//                
-//            }
-//            
-//        }
-//    }
-//    
-//    
-//}
-//template <typename T>
-//T compute_over_neigh(Part_rep& p_rep,unsigned int curr_id,int type,std::vector<T>& cell_vec){
-//    //
-//    //  Bevan Cheeseman 2016
-//    //
-//    //  Compute some operation over neighborhood
-//    //
-//    //
-//    
-//    Cell_id curr_cell = p_rep.pl_map.cells[curr_id];
-//    std::vector<Cell_id> neigh_cell;
-//    int neigh_type = 0;
-//    
-//    get_neighbours(curr_cell,neigh_cell,neigh_type,p_rep.dim);
-//    
-//    T temp;
-//    
-//    temp = cell_vec[curr_id];
-//    
-//    float count = 1;
-//    
-//    //neigh_cell.resize(0);
-//    
-//    for(int i = 0; i < neigh_cell.size();i++){
-//        
-//        auto neigh_cell_ref = p_rep.pl_map.pl[neigh_cell[i].k].find(neigh_cell[i]);
-//        
-//        if (neigh_cell_ref != p_rep.pl_map.pl[neigh_cell[i].k].end()){
-//            
-//            count++;
-//            
-//            int neigh_id = neigh_cell_ref->second;
-//            
-//            if (type == 0){
-//                temp = std::max(temp,cell_vec[neigh_id]);
-//            } else if (type == 1){
-//                temp = std::min(temp,cell_vec[neigh_id]);
-//            } else if(type == 3){
-//                temp += cell_vec[neigh_id];
-//            }
-//            
-//            
-//        }
-//    }
-//    
-//    temp = temp/count;
-//    
-//    return temp;
-//    
-//}
-//template <typename T>
-//void go_down_tree(Part_rep& p_rep,unsigned int curr_id,std::vector<T>& min_data,std::vector<T>& push_min_data,int k_diff,std::vector<T>& temp_vec,int type){
-//    //
-//    //  Bevan Cheeseman 2016
-//    //
-//    //  Recusively go down the branches of the tree
-//    //
-//    
-//    
-//    Cell_id curr_cell;
-//    std::vector<Cell_id> child_cells;
-//    
-//    curr_cell = p_rep.pl_map.cells[curr_id];
-//    
-//    get_children(curr_cell,child_cells,p_rep.dim);
-//    
-//    for(int i = 0;i < child_cells.size();i++){
-//        auto child_cell_ref = p_rep.pl_map.pl[child_cells[i].k].find(child_cells[i]);
-//        
-//        if (child_cell_ref != p_rep.pl_map.pl[child_cells[i].k].end()){
-//            
-//            unsigned int child_id = child_cell_ref->second;
-//            
-//            if(p_rep.status.data[child_id] == 0){
-//                
-//                //need to add the neighborhood search and the operation over them all here
-//                
-//                //temp_vec[child_cells[i].k] = min_data[child_id];
-//                temp_vec[child_cells[i].k] = compute_over_neigh(p_rep,curr_id,type,min_data);
-//                go_down_tree(p_rep,child_id,min_data,push_min_data,k_diff,temp_vec,type);
-//                
-//            } else {
-//                
-//                float temp = temp_vec[std::max(p_rep.pl_map.k_min,child_cells[i].k - k_diff)];
-//                
-//                
-//                if (p_rep.status.data[child_id] == 2) {
-//                    push_min_data[child_id] = temp_vec[std::max(p_rep.pl_map.k_min,child_cells[i].k - k_diff)];
-//                } else if (p_rep.status.data[child_id] ==4) {
-//                    
-//                    push_min_data[child_id] = temp_vec[std::max(p_rep.pl_map.k_min,child_cells[i].k - k_diff-1)];
-//                } else {
-//                    push_min_data[child_id] = temp_vec[std::max(p_rep.pl_map.k_min,child_cells[i].k - k_diff-2)];
-//                }
-//            }
-//            
-//            
-//        }
-//    }
-//    
-//}
-//template <typename T>
-//void push_down_tree(Part_rep& p_rep,std::vector<T>& min_data,std::vector<T>& push_min_data,int k_diff,int type){
-//    //
-//    //  Bevan Cheeseman 2016
-//    //
-//    //  Pushes a variable down the tree by k_diff
-//    //
-//    //  Tree must be filled
-//    //
-//    
-//    std::vector<T> temp_vec;
-//    
-//    push_min_data.resize(min_data.size());
-//    
-//    temp_vec.resize(p_rep.pl_map.k_max);
-//    
-//    int curr_k;
-//    
-//    for(auto cell_ref : p_rep.pl_map.pl[p_rep.pl_map.k_min]) {
-//        
-//        curr_k = p_rep.pl_map.k_min;
-//        
-//        Cell_id curr_cell = cell_ref.first;
-//        std::vector<Cell_id> child_cells;
-//        
-//        int curr_cell_id = cell_ref.second;
-//        
-//        temp_vec[curr_k] = compute_over_neigh(p_rep,curr_cell_id,type,min_data);
-//        push_min_data[curr_cell_id] = compute_over_neigh(p_rep,curr_cell_id,type,min_data);
-//        
-//        get_children(curr_cell,child_cells,p_rep.dim);
-//        
-//        for(int i = 0;i < child_cells.size();i++){
-//            auto child_cell_ref = p_rep.pl_map.pl[child_cells[i].k].find(child_cells[i]);
-//            
-//            if (child_cell_ref != p_rep.pl_map.pl[child_cells[i].k].end()){
-//                
-//                unsigned int child_id = child_cell_ref->second;
-//                
-//                if(p_rep.status.data[child_id] == 0){
-//                    compute_over_neigh(p_rep,child_id,type,min_data);
-//                    //temp_vec[child_cells[i].k] = min_data[child_id];
-//                    temp_vec[child_cells[i].k] = compute_over_neigh(p_rep,child_id,type,min_data);
-//                    
-//                    go_down_tree(p_rep,child_id,min_data,push_min_data,k_diff,temp_vec,type);
-//                } else {
-//                    
-//                    push_min_data[child_id] = compute_over_neigh(p_rep,curr_cell_id,type,min_data);
-//                    
-//                }
-//                
-//                
-//            }
-//        }
-//        
-//    }
-//    
-//    
-//    
-//    
-//}
+
 
 #endif

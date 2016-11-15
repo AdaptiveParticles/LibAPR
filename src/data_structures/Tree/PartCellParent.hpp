@@ -176,12 +176,14 @@ public:
     T get_parent_key(const T& node_val_parent_info,const T& curr_key){
         //returns the parent access key
         
+        T j_ = get_parent_j(node_val_parent_info);
+        
         T parent_key = 0;
-        if ((parent_info.pc_key_get_depth(curr_key)-1) >= parent_info.depth_min){
+        if (j_ > 0){
             parent_info.pc_key_set_x(parent_key,parent_info.pc_key_get_x(curr_key)/2);
             parent_info.pc_key_set_z(parent_key,parent_info.pc_key_get_z(curr_key)/2);
             parent_info.pc_key_set_depth(parent_key,parent_info.pc_key_get_depth(curr_key)-1);
-            parent_info.pc_key_set_j(parent_key,get_parent_j(node_val_parent_info));
+            parent_info.pc_key_set_j(parent_key,j_);
         }
         return parent_key;
     }

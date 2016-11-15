@@ -14,6 +14,7 @@
 #include "../../src/io/write_parts.h"
 #include "../../src/io/partcell_io.h"
 #include "../../src/numerics/parent_numerics.hpp"
+#include "../../src/numerics/misc_numerics.hpp"
 
 bool command_option_exists(char **begin, char **end, const std::string &option)
 {
@@ -88,10 +89,18 @@ int main(int argc, char **argv) {
     ExtraPartCellData<float> adaptive_max;
     
     //offsets past on cell status (resolution)
-    std::vector<unsigned int> status_offsets = {1,2,3};
+    std::vector<unsigned int> status_offsets = {2,2,2};
     
     get_adaptive_min_max(pc_struct,adaptive_min,adaptive_max,status_offsets);
     
+    //interp to mesh
+    Mesh_data<float> output_img;
+    
+    interp_extrapc_to_mesh(output_img,pc_struct,adaptive_max);
+    debug_write(output_img,"adaptive_max");
+    
+    interp_extrapc_to_mesh(output_img,pc_struct,adaptive_min);
+    debug_write(output_img,"adaptive_min");
     
 }
 
