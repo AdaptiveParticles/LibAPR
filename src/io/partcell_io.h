@@ -768,6 +768,7 @@ void write_apr_wavelet(PartCellStructure<T,uint64_t>& pc_struct,std::string save
     
     uint64_t p;
     
+    register_bosc();
     
     std::string hdf5_file_name = save_loc + file_name + "_pcstruct_part.h5";
     
@@ -1127,6 +1128,7 @@ void read_apr_pc_struct(PartCellStructure<T,uint64_t>& pc_struct,std::string fil
     hid_t fid, pr_groupid, obj_id,attr_id;
     H5G_info_t info;
     
+    register_bosc();
     
     int num_parts,num_cells;
     

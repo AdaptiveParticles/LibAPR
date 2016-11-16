@@ -289,6 +289,48 @@ public:
         
     }
     
+    void get_neighs_parent_axis(const uint64_t& curr_key,uint64_t node_val,PartCellNeigh<uint64_t>& neigh_keys,const unsigned int axis){
+        // Selects the neighbour in the correct direction
+        
+        neigh_keys.curr = curr_key;
+        
+        switch(axis){
+            case(0):{
+                //y
+                neigh_keys.neigh_face[0].resize(0);
+                neigh_keys.neigh_face[1].resize(0);
+                
+                get_neighs_face_parent_t<0>(curr_key,node_val,neigh_keys.neigh_face[0]);
+                get_neighs_face_parent_t<1>(curr_key,node_val,neigh_keys.neigh_face[1]);
+                
+                break;
+            }
+            case(1):{
+                //x
+                neigh_keys.neigh_face[2].resize(0);
+                neigh_keys.neigh_face[3].resize(0);
+                
+                get_neighs_face_parent_t<2>(curr_key,node_val,neigh_keys.neigh_face[2]);
+                get_neighs_face_parent_t<3>(curr_key,node_val,neigh_keys.neigh_face[3]);
+                
+                break;
+            }
+            case(2):{
+                //z
+                neigh_keys.neigh_face[4].resize(0);
+                neigh_keys.neigh_face[5].resize(0);
+                
+                get_neighs_face_parent_t<4>(curr_key,node_val,neigh_keys.neigh_face[4]);
+                get_neighs_face_parent_t<5>(curr_key,node_val,neigh_keys.neigh_face[5]);
+                
+                break;
+            }
+        }
+        
+        
+        
+    }
+    
     
     PartCellParent(){};
     

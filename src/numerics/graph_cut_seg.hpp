@@ -51,7 +51,7 @@ void construct_max_flow_graph(PartCellStructure<V,T>& pc_struct,GraphType& g){
     ExtraPartCellData<float> adaptive_max;
     
     //offsets past on cell status (resolution)
-    std::vector<unsigned int> status_offsets = {1,1,1};
+    std::vector<unsigned int> status_offsets = {1,2,2};
     
     get_adaptive_min_max(pc_struct,adaptive_min,adaptive_max,status_offsets);
     
@@ -79,7 +79,7 @@ void construct_max_flow_graph(PartCellStructure<V,T>& pc_struct,GraphType& g){
         const unsigned int x_num_ = pc_struct.pc_data.x_num[i];
         const unsigned int z_num_ = pc_struct.pc_data.z_num[i];
     
-//#pragma omp parallel for default(shared) private(p,z_,x_,j_,node_val_part,curr_key,status,part_offset) if(z_num_*x_num_ > 100)
+#pragma omp parallel for default(shared) private(p,z_,x_,j_,node_val_part,curr_key,status,part_offset) if(z_num_*x_num_ > 100)
         for(z_ = 0;z_ < z_num_;z_++){
             //both z and x are explicitly accessed in the structure
             curr_key = 0;
@@ -228,7 +228,6 @@ void construct_max_flow_graph(PartCellStructure<V,T>& pc_struct,GraphType& g){
                                             float cap = beta*pow(status*status_neigh,2)/pow(9.0,2);
                                             g.add_edge( (int) global_part_index, (int)global_part_index_neigh,    /* capacities */  cap, cap );
 
-                                            
                                         }
                                         else {
                                             float cap = beta*1;
