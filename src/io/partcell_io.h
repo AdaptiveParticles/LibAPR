@@ -280,7 +280,7 @@ void write_apr_full_format(PartCellStructure<T,uint64_t>& pc_struct,std::string 
 }
 
 template<typename T>
-void write_apr_pc_struct(PartCellStructure<T,uint64_t>& pc_struct,std::string save_loc,std::string file_name){
+void write_apr_pc_struct_old(PartCellStructure<T,uint64_t>& pc_struct,std::string save_loc,std::string file_name){
     //
     //
     //  Bevan Cheeseman 2016
@@ -506,7 +506,7 @@ void write_apr_pc_struct(PartCellStructure<T,uint64_t>& pc_struct,std::string sa
     
 }
 template<typename T>
-void write_apr_pc_struct_blosc(PartCellStructure<T,uint64_t>& pc_struct,std::string save_loc,std::string file_name){
+void write_apr_pc_struct(PartCellStructure<T,uint64_t>& pc_struct,std::string save_loc,std::string file_name){
     //
     //
     //  Bevan Cheeseman 2016
@@ -991,7 +991,7 @@ void write_apr_wavelet(PartCellStructure<T,uint64_t>& pc_struct,std::string save
             //write the q
             dims = q_out.size();
             std::string name = "q_"+std::to_string(i);
-            hdf5_write_data(obj_id,H5T_NATIVE_INT8,name.c_str(),rank,&dims, q_out.data());
+            hdf5_write_data_blosc(obj_id,H5T_NATIVE_INT8,name.c_str(),rank,&dims, q_out.data());
             
             name = "part_size_"+std::to_string(i);
             hdf5_write_attribute(pr_groupid,H5T_NATIVE_INT,name.c_str(),1,&dim_a,&dims);
@@ -999,7 +999,7 @@ void write_apr_wavelet(PartCellStructure<T,uint64_t>& pc_struct,std::string save
             //cell data
             dims = scale_out.size();
             name = "scale_"+std::to_string(i);
-            hdf5_write_data(obj_id,H5T_NATIVE_UINT8,name.c_str(),rank,&dims, scale_out.data());
+            hdf5_write_data_blosc(obj_id,H5T_NATIVE_UINT8,name.c_str(),rank,&dims, scale_out.data());
             
             name = "cell_size_"+std::to_string(i);
             hdf5_write_attribute(pr_groupid,H5T_NATIVE_INT,name.c_str(),1,&dim_a,&dims);
@@ -1014,13 +1014,13 @@ void write_apr_wavelet(PartCellStructure<T,uint64_t>& pc_struct,std::string save
                 hdf5_write_attribute(pr_groupid,H5T_NATIVE_INT,name.c_str(),1,&dim_a,&dims);
                 
                 name = "scale_parent_"+std::to_string(i);
-                hdf5_write_data(obj_id,H5T_NATIVE_UINT8,name.c_str(),rank,&dims, scale_parent_out.data());
+                hdf5_write_data_blosc(obj_id,H5T_NATIVE_UINT8,name.c_str(),rank,&dims, scale_parent_out.data());
                 
                 name = "mu_parent_"+std::to_string(i);
-                hdf5_write_data(obj_id,H5T_NATIVE_UINT16,name.c_str(),rank,&dims, mu_parent_out.data());
+                hdf5_write_data_blosc(obj_id,H5T_NATIVE_UINT16,name.c_str(),rank,&dims, mu_parent_out.data());
                 
                 name = "q_parent_"+std::to_string(i);
-                hdf5_write_data(obj_id,H5T_NATIVE_INT8,name.c_str(),rank,&dims, q_parent_out.data());
+                hdf5_write_data_blosc(obj_id,H5T_NATIVE_INT8,name.c_str(),rank,&dims, q_parent_out.data());
                 
                 
             }
@@ -1074,7 +1074,7 @@ void write_apr_wavelet(PartCellStructure<T,uint64_t>& pc_struct,std::string save
             
             dims = p_map.size();
             name = "p_map_"+std::to_string(i);
-            hdf5_write_data(obj_id,H5T_NATIVE_UINT8,name.c_str(),rank,&dims, p_map.data());
+            hdf5_write_data_blosc(obj_id,H5T_NATIVE_UINT8,name.c_str(),rank,&dims, p_map.data());
             
             name = "p_map_x_num_"+std::to_string(i);
             hsize_t attr = x_num_;

@@ -91,7 +91,7 @@ int main(int argc, char **argv) {
     
     part_rep.timer.start_timer("write");
     
-    write_apr_pc_struct_blosc(pc_struct,options.directory,"standard");
+    //write_apr_pc_struct_blosc(pc_struct,options.directory,"standard");
     
     part_rep.timer.stop_timer();
     
