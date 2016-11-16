@@ -36,6 +36,7 @@ set(SOURCE_FILES_COMPILED
         src/data_structures/structure_parts.cpp
         src/io/parameters.cpp
         src/io/hdf5functions.cpp
+        src/io/blosc_filter.c
         src/io/hdf5functions_blosc.cpp
         )
 
