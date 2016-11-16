@@ -15,6 +15,7 @@
 #include "../../src/io/partcell_io.h"
 #include "../../src/numerics/parent_numerics.hpp"
 #include "../../src/numerics/misc_numerics.hpp"
+#include "../../src/numerics/graph_cut_seg.hpp"
 
 bool command_option_exists(char **begin, char **end, const std::string &option)
 {

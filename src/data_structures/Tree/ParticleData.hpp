@@ -44,7 +44,7 @@ public:
     
     PartCellData<S> access_data;
     ExtraPartCellData<T> particle_data;
-    
+    std::vector<std::vector<uint64_t>> global_index_offset;
     
     ParticleData(){};
     
@@ -58,11 +58,11 @@ public:
         //  Returns the number of particles for a cell;
         //
         
-//        if(status == SEED){
-//            return 8;
-//        } else {
-//            return 1;
-//        }
+        //        if(status == SEED){
+        //            return 8;
+        //        } else {
+        //            return 1;
+        //        }
         
         return (1 + 7*(status == SEED));
     }
@@ -88,7 +88,16 @@ public:
         //return data[(pc_key & PC_KEY_DEPTH_MASK) >> PC_KEY_DEPTH_SHIFT][x_num[(pc_key & PC_KEY_DEPTH_MASK) >> PC_KEY_DEPTH_SHIFT]*((pc_key & PC_KEY_Z_MASK) >> PC_KEY_Z_SHIFT) + ((pc_key & PC_KEY_X_MASK) >> PC_KEY_X_SHIFT)][(pc_key & PC_KEY_J_MASK) >> PC_KEY_J_SHIFT];
     }
     
-    
+    T get_global_index(const uint64_t part_key){
+        
+        const uint64_t depth = (part_key & PC_KEY_DEPTH_MASK) >> PC_KEY_DEPTH_SHIFT;
+        const uint64_t x_ = (part_key & PC_KEY_X_MASK) >> PC_KEY_X_SHIFT;
+        const uint64_t z_ = (part_key & PC_KEY_Z_MASK) >> PC_KEY_Z_SHIFT;
+        const uint64_t index = (part_key & PC_KEY_INDEX_MASK) >> PC_KEY_INDEX_SHIFT;
+        
+        return global_index_offset[depth][particle_data.x_num[depth]*z_ + x_] + index;
+        
+    }
     
     uint8_t depth_max;
     uint8_t depth_min;
@@ -147,7 +156,7 @@ public:
                     const size_t offset_pc_data = x_num*z_ + x_;
                     access_data.data[i][offset_pc_data].resize(part_cell_data.data[i][offset_pc_data].size());
                 }
-
+                
             }
         }
         
@@ -204,7 +213,7 @@ public:
                             
                         } else {
                             
-                        
+                            
                             //gap node
                             access_data.data[i][offset_pc_data][j_] = 1; //set type to gap
                             access_data.data[i][offset_pc_data][j_] |= (((node_val & YP_DEPTH_MASK) >> YP_DEPTH_SHIFT) << Y_DEPTH_SHIFT_PARTICLE); //set the depth change
@@ -224,11 +233,14 @@ public:
         
         timer.stop_timer();
         
-        //then done for initialization, then need to get the intensities.. 
+        //then done for initialization, then need to get the intensities..
+        
+        
+        
         
     }
     
-   
+    
     
     template<typename U>
     void  get_part_neighs_all(const uint64_t index,const U& node_val,U& curr_key,const U& status,const U& part_offset,PartCellNeigh<U>& neigh_cell_keys,PartCellNeigh<U>& neigh_part_keys,PartCellData<U>& pc_data){
@@ -255,7 +267,7 @@ public:
                     }
                 }
             }
-
+            
         }
         
         //set the current key.
@@ -370,7 +382,7 @@ public:
             for(int i = 0;i < neigh_cell_keys.neigh_face.size();i++){
                 for(int n = 0;n < neigh_cell_keys.neigh_face[i].size();n++){
                     if(neigh_cell_keys.neigh_face[i][n] > 0){
-                    
+                        
                         temp = access_data.get_val(neigh_cell_keys.neigh_face[i][n]);
                         access_data.pc_key_set_status(neigh_cell_keys.neigh_face[i][n],access_node_get_status(temp));
                         access_data.pc_key_set_index(neigh_cell_keys.neigh_face[i][n],access_node_get_part_offset(temp));
@@ -692,7 +704,7 @@ public:
                             for(p = 0;p < get_num_parts(status);p++){
                                 access_data.pc_key_set_index(curr_key,part_offset+p);
                                 get_part_neighs_face(face,p,node_val_pc,curr_key,status,part_offset,neigh_cell_keys,neigh_part_keys,pc_data);
-                                        
+                                
                             }
                             
                             
@@ -754,7 +766,7 @@ public:
                 
                 access_data.pc_key_set_depth(curr_key,i);
                 access_data.pc_key_set_z(curr_key,z_);
-
+                
                 
                 for(x_ = 0;x_ < x_num_;x_++){
                     
@@ -801,7 +813,7 @@ public:
         
         
     }
-
+    
     
     
     template<typename U>
@@ -829,7 +841,7 @@ public:
         
         
         uint64_t p;
-
+        
         
         
         PartCellData<PartCellNeigh<U>> neigh_vec_all;
@@ -972,35 +984,86 @@ public:
                                         get_part(curr_key) = get_part(val);
                                     }
                                 }
-
+                                
                                 
                             }
                             
                             
                             
-                        
-                        
-                        
-                    } else {
+                            
+                            
+                            
+                        } else {
+                            
+                        }
                         
                     }
                     
                 }
                 
             }
-            
         }
+        timer.stop_timer();
+        
+        
+        
     }
-    timer.stop_timer();
+    
+    void initialize_global_index(){
+        //
+        //  Bevan Cheeseman 2016
+        //
+        //  Offset vector used for calculating a global index for each particle
+        //
+        //  (Can be useful for certain parallel routines)
+        //
+        //  Global particle index = index_offset + j;
+        //
+        
+        uint64_t x_;
+        uint64_t z_;
+        uint64_t counter = 0;
+        
+        //initialize
+        global_index_offset.resize(particle_data.depth_max+1);
+        
+        for(uint64_t i = particle_data.depth_min;i <= particle_data.depth_max;i++){
+            
+            const unsigned int x_num_ = particle_data.x_num[i];
+            const unsigned int z_num_ = particle_data.z_num[i];
+            
+            global_index_offset[i].resize(x_num_*z_num_);
+            
+            // SEED PARTICLE STATUS LOOP (requires access to three data structures, particle access, particle data, and the part-map)
+            for(z_ = 0;z_ < z_num_;z_++){
+                
+                for(x_ = 0;x_ < x_num_;x_++){
+                    
+                    const size_t offset_pc_data = x_num_*z_ + x_;
+                    
+                    const size_t j_num = particle_data.data[i][offset_pc_data].size();
+                    
+                    global_index_offset[i][offset_pc_data] = counter;
+                    
+                    counter += j_num;
+                    
+                }
+            }
+        }
+        
+        
+    }
     
     
     
-}
-
-
 private:
-
+    
     uint64_t num_particles;
+    
+    
+    
+    
+    
     
     template<uint64_t face,uint64_t index,typename U>
     inline U get_part_cseed_nboundary(const U& curr_offset,const U& neigh_offset,const U& curr_key,U& neigh_key){
@@ -1022,7 +1085,7 @@ private:
             
             temp &= -((PC_KEY_INDEX_MASK) + 1); // clear the current value
             temp|= (neigh_offset + index_offset[face][index])  << PC_KEY_INDEX_SHIFT; //set  value
-
+            
         } else {
             temp = curr_key;
             temp &= -((PC_KEY_INDEX_MASK) + 1); // clear the current value
@@ -1085,10 +1148,10 @@ private:
         
         
         temp = neigh_key;
-            
+        
         temp &= -((PC_KEY_PARTNUM_MASK) + 1); // clear the current value
         temp|= index_offset[face][index]  << PC_KEY_PARTNUM_SHIFT; //set  value
-            
+        
         temp &= -((PC_KEY_INDEX_MASK) + 1); // clear the current value
         temp|= (neigh_offset + index_offset[face][index])  << PC_KEY_INDEX_SHIFT; //set  value
         
@@ -1292,10 +1355,10 @@ private:
                 //neighbour cell
                 temp2 = (access_data.get_val(neigh_cell_keys[index_offset[face][index]]) & Y_PINDEX_MASK_PARTICLE) >> Y_PINDEX_SHIFT_PARTICLE;
                 temp = neigh_cell_keys[index_offset[face][index]];
-                                           
+                
                 temp &= -((PC_KEY_INDEX_MASK) + 1); // clear the current value
                 temp|= temp2  << PC_KEY_INDEX_SHIFT; //set  value
-                                       
+                
                 return temp;
             } else {
                 return 0;
@@ -1303,10 +1366,10 @@ private:
         } else {
             
             temp = curr_key;
-                                       
+            
             temp &= -((PC_KEY_PARTNUM_MASK) + 1); // clear the current value
             temp|= index_offset[face][index]  << PC_KEY_PARTNUM_SHIFT; //set  value
-                                       
+            
             temp &= -((PC_KEY_INDEX_MASK) + 1); // clear the current value
             temp|= (curr_offset + index_offset[face][index])  << PC_KEY_INDEX_SHIFT; //set  value
             
@@ -1340,9 +1403,9 @@ private:
         if(neigh_cell_keys.size() > 0){
             
             size_t curr_size = neigh_part_keys.size();
-        
             
-           // U neigh_node = access_data.get_val(neigh_cell_keys[0]);
+            
+            // U neigh_node = access_data.get_val(neigh_cell_keys[0]);
             U neigh_status = access_data.pc_key_get_status(neigh_cell_keys[0]);
             U neigh_offset;
             
@@ -1396,13 +1459,13 @@ private:
                             
                             
                             U temp = neigh_cell_keys[0];
-                                       
+                            
                             neigh_part_keys[curr_size] = get_part_cboundary_nseed<face,0,U>(neigh_offset,temp);
                             
                             neigh_part_keys[curr_size+1] = get_part_cboundary_nseed<face,1,U>(neigh_offset,temp);
                             
                             neigh_part_keys[curr_size+2] = get_part_cboundary_nseed<face,2,U>(neigh_offset,temp);
-                           
+                            
                             neigh_part_keys[curr_size+3] = get_part_cboundary_nseed<face,3,U>(neigh_offset,temp);
                             
                             
@@ -1418,7 +1481,7 @@ private:
                                     neigh_offset = access_data.pc_key_get_index(neigh_cell_keys[i]);
                                     
                                     access_data.pc_key_set_index(neigh_part_keys[curr_size+i],neigh_offset);
-                                   
+                                    
                                 }
                             }
                             return;
@@ -1439,7 +1502,7 @@ private:
                             U neigh_index = calc_index_cfiller_nseed<face,U>(curr_key,pc_data);
                             
                             neigh_part_keys[curr_size] = get_part_cfiller_nseed<face,U>(neigh_offset,neigh_index,neigh_part_keys[curr_size]);
-                           
+                            
                             
                             return;
                         }
@@ -1447,7 +1510,7 @@ private:
                         {
                             neigh_part_keys.resize(curr_size + neigh_cell_keys.size());
                             std::copy(neigh_cell_keys.begin(),neigh_cell_keys.end(),neigh_part_keys.begin() + curr_size);
-
+                            
                             
                             //will possibly have more then one neighbour
                             for(int i = 0; i < neigh_cell_keys.size();i++){
