@@ -85,7 +85,7 @@ int main(int argc, char **argv) {
     
     part_rep.timer.start_timer("write_wavelet");
     
-    //write_apr_wavelet(pc_struct,options.directory,"wavelet_test",40);
+    write_apr_wavelet(pc_struct,options.directory,"wavelet_test",40);
     
     part_rep.timer.stop_timer();
     

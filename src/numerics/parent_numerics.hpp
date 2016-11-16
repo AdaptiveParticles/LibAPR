@@ -21,6 +21,193 @@
 #include "../data_structures/Tree/ExtraPartCellData.hpp"
 #include "../data_structures/Tree/PartCellParent.hpp"
 
+template <typename T,typename U,typename V>
+void go_down_tree(PartCellStructure<U,T>& pc_struct,uint64_t curr_key,PartCellParent<T>& pc_parent,ExtraPartCellData<V>& parent_data,ExtraPartCellData<V>& partcell_data,std::vector<T>& temp_vec,const std::vector<unsigned int> status_offsets){
+    //
+    //  Bevan Cheeseman 2016
+    //
+    //  Recusively go down the branches of the tree
+    //
+    
+    //first get the child cell then loop over it and get its status
+
+    std::vector<uint64_t> children_keys;
+    std::vector<uint64_t> children_ind;
+    
+    uint64_t node_val_part;
+    
+    pc_parent.get_children_keys(curr_key,children_keys,children_ind);
+    
+    T part_status = 0;
+    
+    for(int c = 0;c < children_keys.size();c++){
+        uint64_t child = children_keys[c];
+        
+        if(child > 0){
+            
+            if(children_ind[c] == 1){
+                //The first child is a pc set the value
+                node_val_part = pc_struct.pc_data.get_val(child);
+                
+                part_status = pc_struct.pc_data.get_status(node_val_part);
+                uint64_t curr_depth = pc_parent.neigh_info.pc_key_get_depth(child);
+                
+                switch(part_status){
+                    case(SEED):{
+                        partcell_data.get_val(child) = temp_vec[std::max(pc_struct.depth_min,curr_depth - status_offsets[0])];
+                        break;
+                    }
+                    case(BOUNDARY):{
+                        partcell_data.get_val(child) = temp_vec[std::max(pc_struct.depth_min,curr_depth - status_offsets[1])];
+                        break;
+                    }
+                    case(FILLER):{
+                       partcell_data.get_val(child) = temp_vec[std::max(pc_struct.depth_min,curr_depth - status_offsets[2])];
+                        break;
+                    }
+                        
+                }
+                
+                partcell_data.get_val(child) = parent_data(child);
+                
+                
+            } else {
+                
+                uint64_t curr_depth = pc_parent.neigh_info.pc_key_get_depth(child);
+                temp_vec[curr_depth] = parent_data.get_val(child);
+                
+                go_down_tree(pc_struct,child,parent_data,partcell_data,temp_vec,status_offsets);
+                
+            }
+            
+        }
+    }
+
+    
+}
+template <typename T,typename U,typename V>
+void push_down_tree(PartCellStructure<U,T>& pc_struct,PartCellParent<T>& pc_parent,ExtraPartCellData<V>& parent_data,ExtraPartCellData<V>& partcell_data,const std::vector<unsigned int> status_offsets)
+{
+    //
+    //  Bevan Cheeseman 2016
+    //
+    //  Pushes a variable down the tree by k_diff
+    //
+    //  Tree must be filled
+    //
+    
+    std::vector<T> temp_vec;
+    
+    
+    
+    temp_vec.resize(pc_struct.depth_max);
+    
+    int curr_k;
+    
+    //initialize
+    partcell_data.initialize_structure_cells(pc_struct.pc_data);
+    
+    ////////////////////////////
+    //
+    // Parent Loop
+    //
+    ////////////////////////////
+    
+    Part_timer timer;
+    timer.verbose_flag = true;
+    
+    uint64_t x_;
+    uint64_t j_;
+    uint64_t z_;
+    uint64_t curr_key;
+    uint64_t status;
+    
+    uint64_t node_val_parent;
+    uint64_t node_val_part;
+    std::vector<uint64_t> children_keys;
+    std::vector<uint64_t> children_ind;
+    
+    children_keys.resize(8,0);
+    children_ind.resize(8,0);
+    
+    timer.start_timer("Recurse down tree");
+    
+    uint64_t i = pc_parent.depth_min;
+    //loop over the resolutions of the structure
+    const unsigned int x_num_ =  pc_parent.neigh_info.x_num[i];
+    const unsigned int z_num_ =  pc_parent.neigh_info.z_num[i];
+    
+    curr_k = i;
+    
+    //#pragma omp parallel for default(shared) private(z_,x_,j_,node_val_parent,curr_key,status,node_val_part) firstprivate(children_keys,children_ind) if(z_num_*x_num_ > 100)
+    for(z_ = 0;z_ < z_num_;z_++){
+        //both z and x are explicitly accessed in the structure
+        curr_key = 0;
+        
+        pc_parent.neigh_info.pc_key_set_z(curr_key,z_);
+        pc_parent.neigh_info.pc_key_set_depth(curr_key,i);
+        
+        for(x_ = 0;x_ < x_num_;x_++){
+            
+            pc_parent.neigh_info.pc_key_set_x(curr_key,x_);
+            
+            const size_t offset_pc_data = x_num_*z_ + x_;
+            
+            const size_t j_num = pc_parent.neigh_info.data[i][offset_pc_data].size();
+            
+            //the y direction loop however is sparse, and must be accessed accordinagly
+            for(j_ = 0;j_ < j_num;j_++){
+                
+                //particle cell node value, used here as it is requried for getting the particle neighbours
+                node_val_parent = pc_parent.neigh_info.data[i][offset_pc_data][j_];
+                
+                if (!(node_val_parent&1)){
+                    //Indicates this is a particle cell node
+                    
+                    pc_parent.neigh_info.pc_key_set_j(curr_key,j_);
+                    
+                    status = pc_parent.neigh_info.get_status(node_val_parent);
+                    
+                    //parent has real siblings
+                    if(status > 0){
+                        
+                        temp_vec[curr_k] =  parent_data(curr_key);
+                        
+                        pc_parent.get_children_keys(curr_key,children_keys,children_ind);
+                        
+                        T part_status = 0;
+                        
+                        for(int c = 0;c < children_keys.size();c++){
+                            uint64_t child = children_keys[c];
+                            
+                            if(child > 0){
+                                
+                                if(children_ind[c] == 1){
+                                    //The first child is a pc set the value
+                                    node_val_part = pc_struct.pc_data.get_val(child);
+                                    partcell_data.get_val(child) = parent_data(child);
+                                    
+                                    
+                                } else {
+                                    
+                                    temp_vec[i + 1] = parent_data(child);
+                                    
+                                    go_down_tree(pc_struct,child,parent_data,partcell_data,temp_vec,status_offsets);
+                                    
+                                }
+                                
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+    
+    
+    timer.stop_timer();
+    
+}
 
 template <typename T,typename S,typename U>
 void calc_cell_min_max(PartCellStructure<T,S>& pc_struct,PartCellParent<S>& pc_parent,ExtraPartCellData<U>& particle_data,ExtraPartCellData<U>& min_data,ExtraPartCellData<U>& max_data){
@@ -738,11 +925,12 @@ void get_value_up_tree_offset(PartCellStructure<U,T>& pc_struct,PartCellParent<T
                     //Indicates this is a particle cell node
                     
                     pc_struct.pc_data.pc_key_set_j(curr_key,j_);
-                    
-                    if (min_max){
-                        partcell_data.get_val(curr_key) = max_val;
-                    } else {
-                        partcell_data.get_val(curr_key) = min_val;
+                    if(partcell_data.get_val(curr_key) ==0){
+                        if (min_max){
+                            partcell_data.get_val(curr_key) = max_val;
+                        } else {
+                            partcell_data.get_val(curr_key) = min_val;
+                        }
                     }
                 }
             }

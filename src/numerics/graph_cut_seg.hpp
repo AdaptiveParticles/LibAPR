@@ -34,10 +34,10 @@ void construct_max_flow_graph(PartCellStructure<V,T>& pc_struct,GraphType& g){
     //Get the other part rep information
     
     
-    float beta = 1;
+    float beta = 100;
     float k_max = pc_struct.depth_max;
     float k_min = pc_struct.depth_min;
-    float alpha = 1;
+    float alpha = 100;
     
     for(int i = 0; i < num_parts; i++){
         //adds the node
@@ -51,9 +51,16 @@ void construct_max_flow_graph(PartCellStructure<V,T>& pc_struct,GraphType& g){
     ExtraPartCellData<float> adaptive_max;
     
     //offsets past on cell status (resolution)
-    std::vector<unsigned int> status_offsets = {1,2,2};
+    std::vector<unsigned int> status_offsets = {0,1,2};
     
     get_adaptive_min_max(pc_struct,adaptive_min,adaptive_max,status_offsets);
+    
+    Mesh_data<float> output_img;
+    interp_extrapc_to_mesh(output_img,pc_struct,adaptive_min);
+    debug_write(output_img,"adapt_min");
+    
+    interp_extrapc_to_mesh(output_img,pc_struct,adaptive_max);
+    debug_write(output_img,"adapt_max");
     
     //initialize variables required
     uint64_t node_val_part; // node variable encoding part offset status information
@@ -191,6 +198,8 @@ void construct_max_flow_graph(PartCellStructure<V,T>& pc_struct,GraphType& g){
                         status = pc_struct.part_data.access_node_get_status(node_val_part);
                         part_offset = pc_struct.part_data.access_node_get_part_offset(node_val_part);
                         
+                        float depth_curr = i + (status == SEED);
+                        
                         //loop over the particles
                         for(p = 0;p < pc_struct.part_data.get_num_parts(status);p++){
                             //first set the particle index value in the particle_data array (stores the intensities)
@@ -201,7 +210,8 @@ void construct_max_flow_graph(PartCellStructure<V,T>& pc_struct,GraphType& g){
                             uint64_t global_part_index = pc_struct.part_data.get_global_index(curr_key);
                             uint64_t global_part_index_neigh;
                             uint64_t status_neigh;
-                            uint64_t depth_neigh;
+                            float depth_neigh;
+                            
                             
                             for(uint64_t face = 0;face<6;face++){
                                 for(uint64_t n = 0; n < neigh_part_keys.neigh_face[face].size();n++){
@@ -225,7 +235,7 @@ void construct_max_flow_graph(PartCellStructure<V,T>& pc_struct,GraphType& g){
                                         
                                         if(i >= (k_max-1)){
                                             //float cap = beta*pow(status*status_neigh,2)*pow((-i+k_max + 1)*(-depth_neigh+k_max + 1),4)/pow((1.0)*(k_max+1-k_min),4.0);
-                                            float cap = beta*pow(status*status_neigh,2)/pow(9.0,2);
+                                            float cap = pow(k_min,2)*beta*pow(status*status_neigh,2)/pow(9.0,2)*1/(depth_curr*depth_neigh);
                                             g.add_edge( (int) global_part_index, (int)global_part_index_neigh,    /* capacities */  cap, cap );
 
                                         }
@@ -296,7 +306,7 @@ void calc_graph_cuts_segmentation(PartCellStructure<V,T>& pc_struct,ExtraPartCel
     
     uint64_t status=0;
     uint64_t part_offset=0;
-    uint64_t p;
+    uint64_t p=0;
     
     //////////////////////////////////
     //
@@ -346,7 +356,10 @@ void calc_graph_cuts_segmentation(PartCellStructure<V,T>& pc_struct,ExtraPartCel
                             //get all the neighbour particles in (+y,-y,+x,-x,+z,-z) ordering
                             
                             global_part_index = pc_struct.part_data.get_global_index(curr_key);
-                            seg_parts.get_part(curr_key) = 255*(g->what_segment((int)global_part_index) == GraphType::SOURCE);
+                            float temp = 255*(g->what_segment((int)global_part_index) == GraphType::SOURCE);
+                            float temp2 = seg_parts.get_part(curr_key);
+                            
+                            seg_parts.get_part(curr_key) = temp;
                             
                             
                         }
