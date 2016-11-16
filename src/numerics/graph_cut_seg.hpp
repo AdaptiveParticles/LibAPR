@@ -25,6 +25,7 @@ void construct_max_flow_graph(PartCellStructure<V,T>& pc_struct,GraphType& g){
     
     Part_timer timer;
     
+    pc_struct.part_data.initialize_global_index();
     
     int num_parts = pc_struct.get_number_parts();
     
@@ -259,11 +260,18 @@ void calc_graph_cuts_segmentation(PartCellStructure<V,T>& pc_struct,ExtraPartCel
     
     Part_timer timer;
     
+    timer.verbose_flag = true;
+    
     int num_parts = pc_struct.get_number_parts();
     
     GraphType *g = new GraphType(num_parts ,num_parts*4 );
     
+    timer.start_timer("construct_graph");
+    
     construct_max_flow_graph(pc_struct,*g);
+    
+    timer.stop_timer();
+    
 
     timer.start_timer("max_flow");
     

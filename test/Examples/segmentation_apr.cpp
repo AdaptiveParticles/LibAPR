@@ -85,23 +85,20 @@ int main(int argc, char **argv) {
     // Read the apr file into the part cell structure
     read_apr_pc_struct(pc_struct,file_name);
     
-    //adaptive mean
-    ExtraPartCellData<float> adaptive_min;
-    ExtraPartCellData<float> adaptive_max;
+    //Part Segmentation
+
+    ExtraPartCellData<uint8_t> seg_parts;
     
-    //offsets past on cell status (resolution)
-    std::vector<unsigned int> status_offsets = {2,2,2};
+    calc_graph_cuts_segmentation(pc_struct, seg_parts);
     
-    get_adaptive_min_max(pc_struct,adaptive_min,adaptive_max,status_offsets);
+    //Now we will view the output by creating the binary image implied by the segmentation
     
-    //interp to mesh
-    Mesh_data<float> output_img;
+    Mesh_data<uint8_t> seg_img;
     
-    interp_extrapc_to_mesh(output_img,pc_struct,adaptive_max);
-    debug_write(output_img,"adaptive_max");
+    pc_struct.interp_parts_to_pc(seg_img,seg_parts);
     
-    interp_extrapc_to_mesh(output_img,pc_struct,adaptive_min);
-    debug_write(output_img,"adaptive_min");
+    debug_write(seg_img,"segmentation_mask");
+    
     
 }
 
