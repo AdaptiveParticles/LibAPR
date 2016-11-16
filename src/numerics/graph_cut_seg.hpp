@@ -34,10 +34,10 @@ void construct_max_flow_graph(PartCellStructure<V,T>& pc_struct,GraphType& g){
     //Get the other part rep information
     
     
-    float beta = 8;
+    float beta = 1;
     float k_max = pc_struct.depth_max;
     float k_min = pc_struct.depth_min;
-    float alpha = 100;
+    float alpha = 1;
     
     for(int i = 0; i < num_parts; i++){
         //adds the node
@@ -51,7 +51,7 @@ void construct_max_flow_graph(PartCellStructure<V,T>& pc_struct,GraphType& g){
     ExtraPartCellData<float> adaptive_max;
     
     //offsets past on cell status (resolution)
-    std::vector<unsigned int> status_offsets = {2,2,2};
+    std::vector<unsigned int> status_offsets = {1,1,1};
     
     get_adaptive_min_max(pc_struct,adaptive_min,adaptive_max,status_offsets);
     
@@ -224,13 +224,14 @@ void construct_max_flow_graph(PartCellStructure<V,T>& pc_struct,GraphType& g){
                                         
                                         
                                         if(i >= (k_max-1)){
-                                            float cap = beta*pow(status*status_neigh,2)*pow((-i+k_max + 1)*(-depth_neigh+k_max + 1),4)/pow((1.0)*(k_max+1-k_min),4.0);
+                                            //float cap = beta*pow(status*status_neigh,2)*pow((-i+k_max + 1)*(-depth_neigh+k_max + 1),4)/pow((1.0)*(k_max+1-k_min),4.0);
+                                            float cap = beta*pow(status*status_neigh,2)/pow(9.0,2);
                                             g.add_edge( (int) global_part_index, (int)global_part_index_neigh,    /* capacities */  cap, cap );
 
                                             
                                         }
                                         else {
-                                            float cap = beta*81.0;
+                                            float cap = beta*1;
                                             g.add_edge( (int) global_part_index, (int)global_part_index_neigh,    /* capacities */  cap, cap );
                                         }
                                     }
@@ -346,7 +347,7 @@ void calc_graph_cuts_segmentation(PartCellStructure<V,T>& pc_struct,ExtraPartCel
                             //get all the neighbour particles in (+y,-y,+x,-x,+z,-z) ordering
                             
                             global_part_index = pc_struct.part_data.get_global_index(curr_key);
-                            seg_parts.get_part(curr_key) = (g->what_segment((int)global_part_index) == GraphType::SOURCE);
+                            seg_parts.get_part(curr_key) = 255*(g->what_segment((int)global_part_index) == GraphType::SOURCE);
                             
                             
                         }

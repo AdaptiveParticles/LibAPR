@@ -123,7 +123,7 @@ public:
         
         particle_data.data.resize(particle_data.depth_max+1);
         
-        for(int i = particle_data.depth_min;i <= particle_data.depth_max;i++){
+        for(uint64_t i = particle_data.depth_min;i <= particle_data.depth_max;i++){
             particle_data.z_num[i] = part_cell_data.z_num[i];
             particle_data.x_num[i] = part_cell_data.x_num[i];
             particle_data.data[i].resize(particle_data.z_num[i]*particle_data.x_num[i]);
@@ -144,7 +144,7 @@ public:
         
         timer.start_timer("intiialize access data structure");
         
-        for(int i = access_data.depth_min;i <= access_data.depth_max;i++){
+        for(uint64_t i = access_data.depth_min;i <= access_data.depth_max;i++){
             
             const unsigned int x_num = access_data.x_num[i];
             const unsigned int z_num = access_data.z_num[i];
@@ -168,7 +168,7 @@ public:
         U node_val;
         
         
-        for(int i = access_data.depth_min;i <= access_data.depth_max;i++){
+        for(uint64_t i = access_data.depth_min;i <= access_data.depth_max;i++){
             
             const unsigned int x_num = access_data.x_num[i];
             const unsigned int z_num = access_data.z_num[i];

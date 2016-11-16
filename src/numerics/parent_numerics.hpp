@@ -400,12 +400,12 @@ void loop_up_return_vals(std::vector<V>& vals,T curr_key,PartCellParent<T>& pc_p
 
 
 template<typename U,typename T,typename V>
-void get_value_up_tree_offset(PartCellStructure<U,T>& pc_struct,PartCellParent<T>& pc_parent,ExtraPartCellData<V>& parent_data,ExtraPartCellData<V>& partcell_data,const std::vector<unsigned int> status_offsets){
+void get_value_up_tree_offset(PartCellStructure<U,T>& pc_struct,PartCellParent<T>& pc_parent,ExtraPartCellData<V>& parent_data,ExtraPartCellData<V>& partcell_data,const std::vector<unsigned int> status_offsets,bool min_max){
     //
     //  Bevan Cheeseman 2016
     //
     //  Loops up through a structure and gets value in the parent structure that are a certain offset from a particular cell based of the status of the cell
-    //
+    //  min_max flag, 1 for max, 0 for min
     //
     
     //initialize
@@ -509,8 +509,53 @@ void get_value_up_tree_offset(PartCellStructure<U,T>& pc_struct,PartCellParent<T
     
     timer.stop_timer();
     
+    uint64_t i = pc_struct.depth_min;
     
+    const unsigned int x_num_ =  pc_struct.pc_data.x_num[i];
+    const unsigned int z_num_ =  pc_struct.pc_data.z_num[i];
     
+    V min_val = 0;
+    V max_val = 64000;
+    
+    //Need to account for those areas that are on the lowest resolution and therefore have no min or max
+    for(z_ = 0;z_ < z_num_;z_++){
+        //both z and x are explicitly accessed in the structure
+        curr_key = 0;
+        
+        pc_struct.pc_data.pc_key_set_z(curr_key,z_);
+        pc_struct.pc_data.pc_key_set_depth(curr_key,i);
+        
+        for(x_ = 0;x_ < x_num_;x_++){
+            
+            pc_struct.pc_data.pc_key_set_x(curr_key,x_);
+            
+            const size_t offset_pc_data = x_num_*z_ + x_;
+            
+            const size_t j_num = pc_struct.pc_data.data[i][offset_pc_data].size();
+            
+            //the y direction loop however is sparse, and must be accessed accordinagly
+            for(j_ = 0;j_ < j_num;j_++){
+                
+                //particle cell node value, used here as it is requried for getting the particle neighbours
+                node_val_parent = pc_struct.pc_data.data[i][offset_pc_data][j_];
+                
+                if (!(node_val_parent&1)){
+                    //Indicates this is a particle cell node
+                    
+                    pc_struct.pc_data.pc_key_set_j(curr_key,j_);
+                    
+                    if (min_max){
+                        partcell_data.get_val(curr_key) = max_val;
+                    } else {
+                        partcell_data.get_val(curr_key) = min_val;
+                    }
+                }
+            }
+        }
+    }
+
+
+
 }
 
 template<typename U,typename T,typename V>
@@ -533,8 +578,11 @@ void get_adaptive_min_max(PartCellStructure<U,T>& pc_struct,ExtraPartCellData<V>
     smooth_parent_result(pc_parent,max_data);
     
     //get the value according to the status_offsets
-    get_value_up_tree_offset(pc_struct,pc_parent,min_data,partcell_min,status_offset);
-    get_value_up_tree_offset(pc_struct,pc_parent,max_data,partcell_max,status_offset);
+    get_value_up_tree_offset(pc_struct,pc_parent,min_data,partcell_min,status_offset,0);
+    get_value_up_tree_offset(pc_struct,pc_parent,max_data,partcell_max,status_offset,1);
+    
+    
+    
     
 }
 
