@@ -1163,7 +1163,7 @@ void get_adaptive_min_max(PartCellStructure<U,T>& pc_struct,ExtraPartCellData<V>
     if(smooth_max==1){
         smooth_parent_result_sep(pc_parent,max_data);
         push_down_tree(pc_struct,pc_parent,max_data,partcell_max,status_offset_max);
-        smooth_cell_result_sep(pc_struct,partcell_max);
+        //smooth_cell_result_sep(pc_struct,partcell_max);
     } else {
         push_down_tree(pc_struct,pc_parent,max_data,partcell_max,status_offset_max);
 
