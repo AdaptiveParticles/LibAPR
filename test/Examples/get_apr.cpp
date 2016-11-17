@@ -125,7 +125,7 @@ int main(int argc, char **argv) {
     
     t.start_timer("whole");
     
-    part_map.downsample(interp_img);
+    //part_map.downsample(interp_img);
 //    
 //    std::swap(part_map.downsampled[part_map.k_max+1],input_image_float);
     
@@ -154,6 +154,7 @@ int main(int argc, char **argv) {
     part_rep.timer.stop_timer();
     
 
+    part_map.downsample(input_image_float);
 
     
     part_rep.timer.start_timer("Construct Part Structure");

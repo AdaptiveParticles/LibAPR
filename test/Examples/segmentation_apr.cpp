@@ -99,6 +99,13 @@ int main(int argc, char **argv) {
     
     debug_write(seg_img,"segmentation_mask");
     
+    interp_depth_to_mesh(seg_img,pc_struct);
+    
+    debug_write(seg_img,"k_mask");
+    
+    interp_status_to_mesh(seg_img,pc_struct);
+    
+    debug_write(seg_img,"status_mask");
     
 }
 

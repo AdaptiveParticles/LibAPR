@@ -51,7 +51,7 @@ void construct_max_flow_graph(PartCellStructure<V,T>& pc_struct,GraphType& g){
     ExtraPartCellData<float> adaptive_max;
     
     //offsets past on cell status (resolution)
-    std::vector<unsigned int> status_offsets = {0,1,2};
+    std::vector<unsigned int> status_offsets = {3,3,3};
     
     get_adaptive_min_max(pc_struct,adaptive_min,adaptive_max,status_offsets);
     
@@ -74,6 +74,11 @@ void construct_max_flow_graph(PartCellStructure<V,T>& pc_struct,GraphType& g){
     uint64_t status=0;
     uint64_t part_offset=0;
     uint64_t p;
+    
+    //adaptive mean
+    ExtraPartCellData<float> eng1(pc_struct.part_data.particle_data);
+    ExtraPartCellData<float> eng2(pc_struct.part_data.particle_data);
+    
     
     //////////////////////////////////
     //
@@ -139,6 +144,10 @@ void construct_max_flow_graph(PartCellStructure<V,T>& pc_struct,GraphType& g){
                                 
                             g.add_tweights((int) global_part_index,   /* capacities */ cap_s, cap_t);
                             
+                            eng1.get_part(curr_key) = cap_s;
+                            eng2.get_part(curr_key) = cap_t;
+                            
+                            
                         }
                     }
                     
@@ -149,6 +158,11 @@ void construct_max_flow_graph(PartCellStructure<V,T>& pc_struct,GraphType& g){
         }
     }
     
+    
+    pc_struct.interp_parts_to_pc(output_img,eng1);
+    debug_write(output_img,"eng1");
+    pc_struct.interp_parts_to_pc(output_img,eng2);
+    debug_write(output_img,"eng2");
     
     ////////////////////////////////////
     //
@@ -198,7 +212,7 @@ void construct_max_flow_graph(PartCellStructure<V,T>& pc_struct,GraphType& g){
                         status = pc_struct.part_data.access_node_get_status(node_val_part);
                         part_offset = pc_struct.part_data.access_node_get_part_offset(node_val_part);
                         
-                        float depth_curr = i + (status == SEED);
+                        float depth_curr = i;
                         
                         //loop over the particles
                         for(p = 0;p < pc_struct.part_data.get_num_parts(status);p++){
@@ -232,17 +246,26 @@ void construct_max_flow_graph(PartCellStructure<V,T>& pc_struct,GraphType& g){
                                         //float cap = beta*pow(status*status_neigh,2)*pow((-i+k_max + 1)*(-depth_neigh+k_max + 1),4)/pow((1.0)*(k_max+1-k_min),4.0);
                                         //g.add_edge( global_part_index, global_part_index_neigh,    /* capacities */  cap, cap );
                                         
+                                        float cap = beta*pow(status*status_neigh,2)/pow(9.0,2);
+                                        g.add_edge( (int) global_part_index, (int)global_part_index_neigh,    /* capacities */  cap, cap );
                                         
-                                        if(i >= (k_max-1)){
-                                            //float cap = beta*pow(status*status_neigh,2)*pow((-i+k_max + 1)*(-depth_neigh+k_max + 1),4)/pow((1.0)*(k_max+1-k_min),4.0);
-                                            float cap = pow(k_min,2)*beta*pow(status*status_neigh,2)/pow(9.0,2)*1/(depth_curr*depth_neigh);
-                                            g.add_edge( (int) global_part_index, (int)global_part_index_neigh,    /* capacities */  cap, cap );
-
-                                        }
-                                        else {
-                                            float cap = beta*1;
-                                            g.add_edge( (int) global_part_index, (int)global_part_index_neigh,    /* capacities */  cap, cap );
-                                        }
+//                                        if(depth_neigh==depth_curr){
+//                                            if(i >= (k_max-1)){
+//                                                //float cap = beta*pow(status*status_neigh,2)*pow((-i+k_max + 1)*(-depth_neigh+k_max + 1),4)/pow((1.0)*(k_max+1-k_min),4.0);
+//                                                float cap = beta*pow(status*status_neigh,2)/pow(9.0,2);
+//                                                g.add_edge( (int) global_part_index, (int)global_part_index_neigh,    /* capacities */  cap, cap );
+//                                                
+//                                            }
+//                                            else {
+//                                                float cap = beta*1;
+//                                                g.add_edge( (int) global_part_index, (int)global_part_index_neigh,    /* capacities */  cap, cap );
+//                                            }
+//                                        } else {
+//                                            
+//                                            float cap = beta*1;
+//                                            g.add_edge( (int) global_part_index, (int)global_part_index_neigh,    /* capacities */  cap, cap );
+//                                            
+//                                        }
                                     }
                                 }
                             }
@@ -349,6 +372,8 @@ void calc_graph_cuts_segmentation(PartCellStructure<V,T>& pc_struct,ExtraPartCel
                         
                         uint64_t global_part_index;
                         
+                        status = pc_struct.part_data.access_node_get_status(node_val_part);
+                        
                         //loop over the particles
                         for(p = 0;p < pc_struct.part_data.get_num_parts(status);p++){
                             //first set the particle index value in the particle_data array (stores the intensities)
@@ -357,7 +382,7 @@ void calc_graph_cuts_segmentation(PartCellStructure<V,T>& pc_struct,ExtraPartCel
                             
                             global_part_index = pc_struct.part_data.get_global_index(curr_key);
                             float temp = 255*(g->what_segment((int)global_part_index) == GraphType::SOURCE);
-                            float temp2 = seg_parts.get_part(curr_key);
+                            //float temp2 = seg_parts.get_part(curr_key);
                             
                             seg_parts.get_part(curr_key) = temp;
                             

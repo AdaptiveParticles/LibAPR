@@ -240,7 +240,7 @@ void const_upsample_img(Mesh_data<T>& input_us,Mesh_data<T>& input,std::vector<u
     std::vector<float> temp_vec;
     temp_vec.resize(y_num_ds,0);
     
-    timer.start_timer("up_sample_const");
+   // timer.start_timer("up_sample_const");
     
     int j, i, k;
     
@@ -290,7 +290,7 @@ void const_upsample_img(Mesh_data<T>& input_us,Mesh_data<T>& input,std::vector<u
         }
     }
     
-    timer.stop_timer();
+   // timer.stop_timer();
     
     
     

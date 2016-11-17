@@ -34,11 +34,11 @@ void go_down_tree(PartCellStructure<U,T>& pc_struct,uint64_t curr_key,PartCellPa
     std::vector<uint64_t> children_keys;
     std::vector<uint64_t> children_ind;
     
-    uint64_t node_val_part;
+    uint64_t node_val_pc;
     
     pc_parent.get_children_keys(curr_key,children_keys,children_ind);
     
-    T part_status = 0;
+    T pc_status = 0;
     
     for(int c = 0;c < children_keys.size();c++){
         uint64_t child = children_keys[c];
@@ -47,36 +47,36 @@ void go_down_tree(PartCellStructure<U,T>& pc_struct,uint64_t curr_key,PartCellPa
             
             if(children_ind[c] == 1){
                 //The first child is a pc set the value
-                node_val_part = pc_struct.pc_data.get_val(child);
+                node_val_pc = pc_struct.pc_data.get_val(child);
                 
-                part_status = pc_struct.pc_data.get_status(node_val_part);
+                pc_status = pc_struct.pc_data.get_status(node_val_pc);
                 uint64_t curr_depth = pc_parent.neigh_info.pc_key_get_depth(child);
                 
-                switch(part_status){
+                //Different offsets for different status'
+                switch(pc_status){
                     case(SEED):{
-                        partcell_data.get_val(child) = temp_vec[std::max(pc_struct.depth_min,curr_depth - status_offsets[0])];
+                        partcell_data.get_val(child) = temp_vec[std::max((unsigned int)pc_struct.depth_min,(unsigned int)(curr_depth - status_offsets[0]))];
                         break;
                     }
                     case(BOUNDARY):{
-                        partcell_data.get_val(child) = temp_vec[std::max(pc_struct.depth_min,curr_depth - status_offsets[1])];
+                        partcell_data.get_val(child) = temp_vec[std::max((unsigned int)pc_struct.depth_min,(unsigned int)(curr_depth - status_offsets[1]))];
                         break;
                     }
                     case(FILLER):{
-                       partcell_data.get_val(child) = temp_vec[std::max(pc_struct.depth_min,curr_depth - status_offsets[2])];
+                       partcell_data.get_val(child) = temp_vec[std::max((unsigned int)pc_struct.depth_min,(unsigned int)(curr_depth - status_offsets[2]))];
                         break;
                     }
                         
                 }
                 
-                partcell_data.get_val(child) = parent_data(child);
                 
                 
             } else {
-                
+                //if not a real pc, just iterate furhter down the tree
                 uint64_t curr_depth = pc_parent.neigh_info.pc_key_get_depth(child);
                 temp_vec[curr_depth] = parent_data.get_val(child);
                 
-                go_down_tree(pc_struct,child,parent_data,partcell_data,temp_vec,status_offsets);
+                go_down_tree(pc_struct,child,pc_parent,parent_data,partcell_data,temp_vec,status_offsets);
                 
             }
             
@@ -132,7 +132,7 @@ void push_down_tree(PartCellStructure<U,T>& pc_struct,PartCellParent<T>& pc_pare
     
     timer.start_timer("Recurse down tree");
     
-    uint64_t i = pc_parent.depth_min;
+    uint64_t i = pc_parent.neigh_info.depth_min;
     //loop over the resolutions of the structure
     const unsigned int x_num_ =  pc_parent.neigh_info.x_num[i];
     const unsigned int z_num_ =  pc_parent.neigh_info.z_num[i];
@@ -171,7 +171,7 @@ void push_down_tree(PartCellStructure<U,T>& pc_struct,PartCellParent<T>& pc_pare
                     //parent has real siblings
                     if(status > 0){
                         
-                        temp_vec[curr_k] =  parent_data(curr_key);
+                        temp_vec[curr_k] =  parent_data.get_val(curr_key);
                         
                         pc_parent.get_children_keys(curr_key,children_keys,children_ind);
                         
@@ -185,15 +185,14 @@ void push_down_tree(PartCellStructure<U,T>& pc_struct,PartCellParent<T>& pc_pare
                                 if(children_ind[c] == 1){
                                     //The first child is a pc set the value
                                     node_val_part = pc_struct.pc_data.get_val(child);
-                                    partcell_data.get_val(child) = parent_data(child);
+                                    partcell_data.get_val(child) = parent_data.get_val(child);
                                     
                                     
                                 } else {
                                     
-                                    temp_vec[i + 1] = parent_data(child);
+                                    temp_vec[i + 1] = parent_data.get_val(child);
                                     
-                                    go_down_tree(pc_struct,child,parent_data,partcell_data,temp_vec,status_offsets);
-                                    
+                                    go_down_tree(pc_struct,child,pc_parent,parent_data,partcell_data,temp_vec,status_offsets);
                                 }
                                 
                             }
@@ -960,9 +959,14 @@ void get_adaptive_min_max(PartCellStructure<U,T>& pc_struct,ExtraPartCellData<V>
     smooth_parent_result_sep(pc_parent,min_data);
     smooth_parent_result_sep(pc_parent,max_data);
     
+    
+    push_down_tree(pc_struct,pc_parent,min_data,partcell_min,status_offset);
+    push_down_tree(pc_struct,pc_parent,max_data,partcell_max,status_offset);
+
+    
     //get the value according to the status_offsets
-    get_value_up_tree_offset(pc_struct,pc_parent,min_data,partcell_min,status_offset,0);
-    get_value_up_tree_offset(pc_struct,pc_parent,max_data,partcell_max,status_offset,1);
+    //get_value_up_tree_offset(pc_struct,pc_parent,min_data,partcell_min,status_offset,0);
+    //get_value_up_tree_offset(pc_struct,pc_parent,max_data,partcell_max,status_offset,1);
     
     
     
