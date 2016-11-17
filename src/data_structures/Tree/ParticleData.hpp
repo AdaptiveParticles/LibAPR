@@ -88,7 +88,7 @@ public:
         //return data[(pc_key & PC_KEY_DEPTH_MASK) >> PC_KEY_DEPTH_SHIFT][x_num[(pc_key & PC_KEY_DEPTH_MASK) >> PC_KEY_DEPTH_SHIFT]*((pc_key & PC_KEY_Z_MASK) >> PC_KEY_Z_SHIFT) + ((pc_key & PC_KEY_X_MASK) >> PC_KEY_X_SHIFT)][(pc_key & PC_KEY_J_MASK) >> PC_KEY_J_SHIFT];
     }
     
-    T get_global_index(const uint64_t part_key){
+    uint64_t get_global_index(const uint64_t part_key){
         
         const uint64_t depth = (part_key & PC_KEY_DEPTH_MASK) >> PC_KEY_DEPTH_SHIFT;
         const uint64_t x_ = (part_key & PC_KEY_X_MASK) >> PC_KEY_X_SHIFT;
@@ -1043,9 +1043,6 @@ public:
                     
                     const size_t j_num = particle_data.data[i][offset_pc_data].size();
                     
-                    if(offset_pc_data==53659){
-                        int stop = 1;
-                    }
                     
                     global_index_offset[i][offset_pc_data] = counter;
                     
@@ -1059,9 +1056,6 @@ public:
         
         
         
-        
-        
-        int stop = 1;
     }
     
     

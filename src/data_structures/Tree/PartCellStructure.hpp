@@ -172,7 +172,7 @@ private:
         uint64_t prev_coord = 0;
         
         
-        for(int i = pc_data.depth_min;i <= pc_data.depth_max;i++){
+        for(uint64_t i = pc_data.depth_min;i <= pc_data.depth_max;i++){
             
             const unsigned int x_num_ = x_num[i];
             const unsigned int z_num_ = z_num[i];
@@ -297,6 +297,7 @@ private:
         S y_coord;
         S offset;
         
+        
         //
         //  Takes the read in particles and places them back in the correct place in the structure;
         //
@@ -330,8 +331,8 @@ private:
         //Lastly calculate the number of particle and number of cells
         
         
-        T num_cells = 0;
-        T num_parts = 0;
+        uint64_t num_cells = 0;
+        uint64_t num_parts = 0;
         
         for(uint64_t i = pc_data.depth_min;i <= pc_data.depth_max;i++){
             
@@ -733,8 +734,8 @@ private:
         //Lastly calculate the number of particle and number of cells
         
         
-        T num_cells = 0;
-        T num_parts = 0;
+        S num_cells = 0;
+        S num_parts = 0;
         
         for(int i = pc_data.depth_min;i <= pc_data.depth_max;i++){
             
@@ -1540,13 +1541,13 @@ public:
     
     std::vector<unsigned int> org_dims;
     
-    T get_number_parts(){
+    uint64_t get_number_parts(){
         //calculated on initialization
         return number_parts;
     }
     
     
-    T get_number_cells(){
+    uint64_t get_number_cells(){
         //calculated on intiialization
         return number_cells;
     }

@@ -147,12 +147,7 @@ void construct_max_flow_graph(PartCellStructure<V,T>& pc_struct,GraphType& g){
                             cap_s =   alpha*pow(Ip - loc_min,2)/pow(loc_max - loc_min,2);
                             cap_t =   alpha*pow(Ip-loc_max,2)/pow(loc_max - loc_min,2);
                             
-                            if(global_part_index != counter){
-                                int stop = 1;
-                            }
-                            
-                            
-                            g.add_tweights((int) global_part_index,   /* capacities */ cap_s, cap_t);
+                            g.add_tweights(global_part_index,   /* capacities */ cap_s, cap_t);
                             
                             eng1.get_part(curr_key) = cap_s;
                             eng2.get_part(curr_key) = cap_t;
@@ -258,7 +253,7 @@ void construct_max_flow_graph(PartCellStructure<V,T>& pc_struct,GraphType& g){
                                         //g.add_edge( global_part_index, global_part_index_neigh,    /* capacities */  cap, cap );
                                         
                                         float cap = beta*pow(status*status_neigh,2)/pow(9.0,2);
-                                        g.add_edge( (int) global_part_index, (int)global_part_index_neigh,    /* capacities */  cap, cap );
+                                        g.add_edge( global_part_index, global_part_index_neigh,    /* capacities */  cap, cap );
                                         
 //                                        if(depth_neigh==depth_curr){
 //                                            if(i >= (k_max-1)){
