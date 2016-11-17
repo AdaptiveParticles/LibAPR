@@ -77,7 +77,7 @@ void hdf5_write_data_blosc(hid_t obj_id,hid_t type_id,const char* ds_name,hsize_
     
     /* But you can also taylor Blosc parameters to your needs */
     /* 0 to 3 (inclusive) param slots are reserved. */
-    cd_values[4] = 9;       /* compression level */
+    cd_values[4] = 4;       /* compression level */
     cd_values[5] = 2;       /* 0: shuffle not active, 1: shuffle active */
     cd_values[6] = BLOSC_ZSTD; /* the actual compressor to use */
     

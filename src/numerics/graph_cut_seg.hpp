@@ -34,7 +34,7 @@ void construct_max_flow_graph(PartCellStructure<V,T>& pc_struct,GraphType& g){
     //Get the other part rep information
     
     
-    float beta = 500;
+    float beta = 100;
     float k_max = pc_struct.depth_max;
     float k_min = pc_struct.depth_min;
     float alpha = 100;
@@ -51,9 +51,10 @@ void construct_max_flow_graph(PartCellStructure<V,T>& pc_struct,GraphType& g){
     ExtraPartCellData<float> adaptive_max;
     
     //offsets past on cell status (resolution)
-    std::vector<unsigned int> status_offsets = {3,3,3};
+    std::vector<unsigned int> status_offsets_min = {1,1,1};
+    std::vector<unsigned int> status_offsets_max = {3,3,3};
     
-    get_adaptive_min_max(pc_struct,adaptive_min,adaptive_max,status_offsets);
+    get_adaptive_min_max(pc_struct,adaptive_min,adaptive_max,status_offsets_min,status_offsets_max,0,1);
     
     Mesh_data<float> output_img;
     interp_extrapc_to_mesh(output_img,pc_struct,adaptive_min);
@@ -144,13 +145,16 @@ void construct_max_flow_graph(PartCellStructure<V,T>& pc_struct,GraphType& g){
                             Ip = pc_struct.part_data.get_part(curr_key);
                             global_part_index = pc_struct.part_data.get_global_index(curr_key);
                             
-                            cap_s =   alpha*pow(Ip - loc_min,2)/pow(loc_max - loc_min,2);
-                            cap_t =   alpha*pow(Ip-loc_max,2)/pow(loc_max - loc_min,2);
+                           // cap_s =   alpha*pow(Ip - loc_min,2)/pow(loc_max - loc_min,2);
+                           // cap_t =   alpha*pow(Ip-loc_max,2)/pow(loc_max - loc_min,2);
+                            
+                            cap_s =   (Ip - loc_min);
+                            cap_t =   (loc_max-Ip);
                             
                             g.add_tweights(global_part_index,   /* capacities */ cap_s, cap_t);
                             
-                            eng1.get_part(curr_key) = cap_s;
-                            eng2.get_part(curr_key) = cap_t;
+                            eng1.get_part(curr_key) =pow(Ip - loc_min,1) + 5000;
+                            eng2.get_part(curr_key) = loc_max - Ip+5000;
                             
                             counter++;
                             
@@ -165,10 +169,10 @@ void construct_max_flow_graph(PartCellStructure<V,T>& pc_struct,GraphType& g){
     }
     
     
-    //pc_struct.interp_parts_to_pc(output_img,eng1);
-    //debug_write(output_img,"eng1");
-    //pc_struct.interp_parts_to_pc(output_img,eng2);
-   // debug_write(output_img,"eng2");
+    pc_struct.interp_parts_to_pc(output_img,eng1);
+    debug_write(output_img,"eng1");
+    pc_struct.interp_parts_to_pc(output_img,eng2);
+    debug_write(output_img,"eng2");
     
     ////////////////////////////////////
     //
@@ -255,11 +259,16 @@ void construct_max_flow_graph(PartCellStructure<V,T>& pc_struct,GraphType& g){
                                         float cap = beta*pow(status*status_neigh,2)/pow(9.0,2);
                                         g.add_edge( global_part_index, global_part_index_neigh,    /* capacities */  cap, cap );
                                         
-                                        if(i < k_max){
-                                            float cap = beta*1;
-                                            g.add_edge(  global_part_index, global_part_index_neigh,    /* capacities */  cap, cap );
+                                        //if((status == SEED) | (status_neigh == SEED)){
+                                         //   float cap = beta*1;
+                                          //  g.add_edge(  global_part_index, global_part_index_neigh,    /* capacities */  cap, cap );
 
-                                        }
+                                        //} else {
+                                          //  float cap = beta;
+                                           // g.add_edge(  global_part_index, global_part_index_neigh,    /* capacities */  cap, cap );
+                                            
+                                            
+                                       // }
                                         
 ////                                        if(depth_neigh==depth_curr){
 //                                           if(i >= (k_max-1)){

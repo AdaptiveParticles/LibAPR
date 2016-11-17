@@ -477,7 +477,42 @@ T compute_parent_cell_neigh_mean_axis(const U& parent_node,const U& parent_key,E
     return (temp/counter);
     
 }
-
+template<typename T,typename U,typename V>
+T compute_cell_neigh_mean_axis(const U& parent_node,const U& parent_key,ExtraPartCellData<T>& parent_data,PartCellStructure<V, U>& pc_struct,int dir){
+    //
+    //  Bevan Cheeseman 2016
+    //
+    //  Given a data set defined on parent cells, compute the mean over the parent neighbours on the same level
+    //
+    //
+    
+    PartCellNeigh<U> neigh_keys;
+    
+    pc_struct.pc_data.get_neighs_axis(parent_key,parent_node,neigh_keys,dir);
+    
+    T temp = parent_data.get_val(parent_key);
+    float counter = 1;
+    T val=0;
+    
+    for(uint64_t face = 0; face < neigh_keys.neigh_face.size();face++){
+        
+        for(uint64_t n = 0; n < neigh_keys.neigh_face[face].size();n++){
+            uint64_t neigh_key = neigh_keys.neigh_face[face][n];
+            
+            if(neigh_key > 0){
+                val= parent_data.get_val(neigh_key);
+                if (val > 0){
+                    counter++;
+                    temp+=val;
+                }
+            }
+            
+        }
+    }
+    
+    return (temp/counter);
+    
+}
 
 
 template<typename T,typename U>
@@ -778,6 +813,168 @@ void loop_up_return_vals(std::vector<V>& vals,T curr_key,PartCellParent<T>& pc_p
     
     
 }
+template<typename T,typename U,typename V>
+void smooth_cell_result_sep(PartCellStructure<V,U>& pc_struct,ExtraPartCellData<T>& pc_data){
+    //
+    //
+    //  Calculates an average on every part level
+    //
+    //
+    
+    ExtraPartCellData<T> output;
+    output.initialize_structure_cells(pc_struct.pc_data);
+    
+    Part_timer timer;
+    timer.verbose_flag = true;
+    
+    uint64_t x_;
+    uint64_t j_;
+    uint64_t z_;
+    uint64_t curr_key;
+    uint64_t status;
+    
+    uint64_t node_val_parent;
+    uint64_t node_val_part;
+    
+    timer.start_timer("calc mean");
+    
+    //reverse loop direction
+    for(uint64_t i = pc_struct.pc_data.depth_max;i >= pc_struct.pc_data.depth_min;i--){
+        //loop over the resolutions of the structure
+        const unsigned int x_num_ =  pc_struct.pc_data.x_num[i];
+        const unsigned int z_num_ =  pc_struct.pc_data.z_num[i];
+        
+        //#pragma omp parallel for default(shared) private(z_,x_,j_,node_val_parent,curr_key,status,node_val_part)  if(z_num_*x_num_ > 100)
+        for(z_ = 0;z_ < z_num_;z_++){
+            //both z and x are explicitly accessed in the structure
+            curr_key = 0;
+            
+            pc_struct.pc_data.pc_key_set_z(curr_key,z_);
+            pc_struct.pc_data.pc_key_set_depth(curr_key,i);
+            
+            for(x_ = 0;x_ < x_num_;x_++){
+                
+                pc_struct.pc_data.pc_key_set_x(curr_key,x_);
+                
+                const size_t offset_pc_data = x_num_*z_ + x_;
+                
+                const size_t j_num = pc_struct.pc_data.data[i][offset_pc_data].size();
+                
+                //the y direction loop however is sparse, and must be accessed accordinagly
+                for(j_ = 0;j_ < j_num;j_++){
+                    
+                    //particle cell node value, used here as it is requried for getting the particle neighbours
+                    node_val_parent = pc_struct.pc_data.data[i][offset_pc_data][j_];
+                    
+                    if (!(node_val_parent&1)){
+                        //Indicates this is a particle cell node
+                        
+                        pc_struct.pc_data.pc_key_set_j(curr_key,j_);
+                        
+                        output.get_val(curr_key) = compute_cell_neigh_mean_axis(node_val_parent,curr_key,pc_data,pc_struct,0);
+                        
+                    }
+                }
+            }
+        }
+    }
+    
+    //set the output
+    std::swap(output,pc_data);
+    
+    timer.stop_timer();
+    
+    //reverse loop direction
+    for(uint64_t i = pc_struct.pc_data.depth_max;i >= pc_struct.pc_data.depth_min;i--){
+        //loop over the resolutions of the structure
+        const unsigned int x_num_ =  pc_struct.pc_data.x_num[i];
+        const unsigned int z_num_ =  pc_struct.pc_data.z_num[i];
+        
+        //#pragma omp parallel for default(shared) private(z_,x_,j_,node_val_parent,curr_key,status,node_val_part)  if(z_num_*x_num_ > 100)
+        for(z_ = 0;z_ < z_num_;z_++){
+            //both z and x are explicitly accessed in the structure
+            curr_key = 0;
+            
+            pc_struct.pc_data.pc_key_set_z(curr_key,z_);
+            pc_struct.pc_data.pc_key_set_depth(curr_key,i);
+            
+            for(x_ = 0;x_ < x_num_;x_++){
+                
+                pc_struct.pc_data.pc_key_set_x(curr_key,x_);
+                
+                const size_t offset_pc_data = x_num_*z_ + x_;
+                
+                const size_t j_num = pc_struct.pc_data.data[i][offset_pc_data].size();
+                
+                //the y direction loop however is sparse, and must be accessed accordinagly
+                for(j_ = 0;j_ < j_num;j_++){
+                    
+                    //particle cell node value, used here as it is requried for getting the particle neighbours
+                    node_val_parent = pc_struct.pc_data.data[i][offset_pc_data][j_];
+                    
+                    if (!(node_val_parent&1)){
+                        //Indicates this is a particle cell node
+                        
+                        pc_struct.pc_data.pc_key_set_j(curr_key,j_);
+                        
+                        output.get_val(curr_key) = compute_cell_neigh_mean_axis(node_val_parent,curr_key,pc_data,pc_struct,1);
+                        
+                    }
+                }
+            }
+        }
+    }
+    
+    //set the output
+    std::swap(output,pc_data);
+    
+    
+    //reverse loop direction
+    for(uint64_t i = pc_struct.pc_data.depth_max;i >= pc_struct.pc_data.depth_min;i--){
+        //loop over the resolutions of the structure
+        const unsigned int x_num_ =  pc_struct.pc_data.x_num[i];
+        const unsigned int z_num_ =  pc_struct.pc_data.z_num[i];
+        
+        //#pragma omp parallel for default(shared) private(z_,x_,j_,node_val_parent,curr_key,status,node_val_part)  if(z_num_*x_num_ > 100)
+        for(z_ = 0;z_ < z_num_;z_++){
+            //both z and x are explicitly accessed in the structure
+            curr_key = 0;
+            
+            pc_struct.pc_data.pc_key_set_z(curr_key,z_);
+            pc_struct.pc_data.pc_key_set_depth(curr_key,i);
+            
+            for(x_ = 0;x_ < x_num_;x_++){
+                
+                pc_struct.pc_data.pc_key_set_x(curr_key,x_);
+                
+                const size_t offset_pc_data = x_num_*z_ + x_;
+                
+                const size_t j_num = pc_struct.pc_data.data[i][offset_pc_data].size();
+                
+                //the y direction loop however is sparse, and must be accessed accordinagly
+                for(j_ = 0;j_ < j_num;j_++){
+                    
+                    //particle cell node value, used here as it is requried for getting the particle neighbours
+                    node_val_parent = pc_struct.pc_data.data[i][offset_pc_data][j_];
+                    
+                    if (!(node_val_parent&1)){
+                        //Indicates this is a particle cell node
+                        
+                        pc_struct.pc_data.pc_key_set_j(curr_key,j_);
+                        
+                        output.get_val(curr_key) = compute_cell_neigh_mean_axis(node_val_parent,curr_key,pc_data,pc_struct,2);
+                        
+                    }
+                }
+            }
+        }
+    }
+    
+    //set the output
+    std::swap(output,pc_data);
+    
+}
+
 
 
 template<typename U,typename T,typename V>
@@ -941,7 +1138,7 @@ void get_value_up_tree_offset(PartCellStructure<U,T>& pc_struct,PartCellParent<T
 }
 
 template<typename U,typename T,typename V>
-void get_adaptive_min_max(PartCellStructure<U,T>& pc_struct,ExtraPartCellData<V>& partcell_min,ExtraPartCellData<V>& partcell_max,const std::vector<unsigned int> status_offset){
+void get_adaptive_min_max(PartCellStructure<U,T>& pc_struct,ExtraPartCellData<V>& partcell_min,ExtraPartCellData<V>& partcell_max,const std::vector<unsigned int> status_offset_min,const std::vector<unsigned int> status_offset_max,bool smooth_min,bool smooth_max){
     //
     //  Bevan Cheeseman 2016
     //
@@ -959,11 +1156,21 @@ void get_adaptive_min_max(PartCellStructure<U,T>& pc_struct,ExtraPartCellData<V>
     smooth_parent_result_sep(pc_parent,min_data);
     smooth_parent_result_sep(pc_parent,max_data);
     
-    smooth_parent_result_sep(pc_parent,min_data);
-    smooth_parent_result_sep(pc_parent,max_data);
+    if(smooth_min ==1){
+        smooth_parent_result_sep(pc_parent,min_data);
+    }
+    
+    if(smooth_max==1){
+        smooth_parent_result_sep(pc_parent,max_data);
+        push_down_tree(pc_struct,pc_parent,max_data,partcell_max,status_offset_max);
+        smooth_cell_result_sep(pc_struct,partcell_max);
+    } else {
+        push_down_tree(pc_struct,pc_parent,max_data,partcell_max,status_offset_max);
 
-    push_down_tree(pc_struct,pc_parent,min_data,partcell_min,status_offset);
-    push_down_tree(pc_struct,pc_parent,max_data,partcell_max,status_offset);
+    }
+    
+    push_down_tree(pc_struct,pc_parent,min_data,partcell_min,status_offset_min);
+    //push_down_tree(pc_struct,pc_parent,max_data,partcell_max,status_offset_max);
 
     
     //get the value according to the status_offsets

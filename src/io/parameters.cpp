@@ -243,6 +243,20 @@ void get_image_stats(Proc_par& pars,std::string output_path,std::string stats_na
         
     }
     
+    //file name (relative path)
+    std::getline(path_file,out_line);
+    
+    float lambda_or=0;
+    
+    found = out_line.find("lambda: ");
+    
+    if (found!=std::string::npos){
+        
+        lambda_or = stof(out_line.substr(found+8));
+    } else {
+        
+    }
+    
 
     pars.tol = 0.0005f;
 
@@ -251,27 +265,36 @@ void get_image_stats(Proc_par& pars,std::string output_path,std::string stats_na
     float k_diff = -3.0f;
 
     //set lambda
-    //float lambda = expf((-1.0f/0.6161f) * logf((pars.var_th/pars.noise_sigma) *
-      //             powf(2.0f,k_diff + log2f(pars.rel_error))/0.12531f));
+    float lambda = expf((-1.0f/0.6161f) * logf((pars.var_th/pars.noise_sigma) *
+                   powf(2.0f,k_diff + log2f(pars.rel_error))/0.12531f));
     
-    float lambda = expf((-1.0f/0.6161f) * logf((pars.var_th/pars.noise_sigma)));
+    //float lambda = expf((-1.0f/0.6161f) * logf((pars.var_th/pars.noise_sigma)));
 
-    float lambda_min = .5f;
+    float lambda_min = 0.1f;
     float lambda_max = 5000;
 
     pars.lambda = std::max(lambda_min,lambda);
     pars.lambda = std::min(pars.lambda,lambda_max);
-
-    float max_var_th = 1.2f * pars.noise_sigma * expf(-0.5138f * logf(pars.lambda)) *
-                       (0.1821f * logf(pars.lambda)+ 1.522f);
-
-    if (max_var_th > .25f*pars.var_th){
-        float desired_th = 0.1f*pars.var_th;
-        pars.lambda = std::max((float)exp((-1.0/0.5138) * log(desired_th/pars.noise_sigma)),pars.lambda);
-        pars.var_th_max = .25f*pars.var_th;
-    } else {
-        pars.var_th_max = max_var_th;
+    
+    if(lambda_or >0){
+        pars.lambda = lambda_or;
     }
+    
+    std::cout << "Lamda: " << lambda << std::endl;
+    std::cout << "Lamda: " << pars.lambda << std::endl;
+    
+    //float max_var_th = 1.2f * pars.noise_sigma * expf(-0.5138f * logf(pars.lambda)) *
+      //                 (0.1821f * logf(pars.lambda)+ 1.522f);
+
+    pars.var_th_max = 0.25*pars.var_th;
+    
+//    if (max_var_th > .25f*pars.var_th){
+//        float desired_th = 0.1f*pars.var_th;
+//        pars.lambda = std::max((float)exp((-1.0/0.5138) * log(desired_th/pars.noise_sigma)),pars.lambda);
+//        pars.var_th_max = .25f*pars.var_th;
+//    } else {
+//        pars.var_th_max = max_var_th;
+//    }
 
 }
 void get_image_parameters(Proc_par& pars,std::string output_path,std::string image_name){
