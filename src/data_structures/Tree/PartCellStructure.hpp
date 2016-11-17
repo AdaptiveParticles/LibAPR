@@ -333,7 +333,7 @@ private:
         T num_cells = 0;
         T num_parts = 0;
         
-        for(int i = pc_data.depth_min;i <= pc_data.depth_max;i++){
+        for(uint64_t i = pc_data.depth_min;i <= pc_data.depth_max;i++){
             
             const unsigned int x_num_ = pc_data.x_num[i];
             const unsigned int z_num_ = pc_data.z_num[i];
@@ -342,7 +342,7 @@ private:
             //For each depth there are two loops, one for SEED status particles, at depth + 1, and one for BOUNDARY and FILLER CELLS, to ensure contiguous memory access patterns.
             
             // SEED PARTICLE STATUS LOOP (requires access to three data structures, particle access, particle data, and the part-map)
-#pragma omp parallel for default(shared) private(z_,x_,j_,node_val,status,y_coord,part_offset) reduction(+:num_cells,num_parts)
+#pragma omp parallel for default(shared) private(z_,x_,j_,node_val,status) reduction(+:num_cells,num_parts)
             for(z_ = 0;z_ < z_num_;z_++){
                 
                 for(x_ = 0;x_ < x_num_;x_++){
@@ -352,17 +352,17 @@ private:
                     const size_t j_num = part_data.access_data.data[i][offset_pc_data].size();
                     
                     for(j_ = 0;j_ < j_num;j_++){
-                        node_val = part_data.access_data.data[i][offset_pc_data][j_];
+                        node_val = pc_data.data[i][offset_pc_data][j_];
                         
                         if (!(node_val&1)){
                             //in this loop there is a cell
                             num_cells++;
-                            
+                            status = pc_data.get_status(node_val);
                             //determine how many particles in the cell
-                            if(part_data.access_node_get_status(node_val)==SEED){
-                                num_parts+=8;
+                            if(status==SEED){
+                                num_parts=num_parts + 8;
                             } else {
-                                num_parts+=1;
+                                num_parts= num_parts + 1;
                             }
                             
                         }
@@ -374,6 +374,8 @@ private:
         
         number_cells = num_cells;
         number_parts = num_parts;
+        
+        int stop =1;
 
         
     }

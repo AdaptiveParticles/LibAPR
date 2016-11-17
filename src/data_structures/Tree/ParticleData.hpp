@@ -1029,8 +1029,8 @@ public:
         
         for(uint64_t i = particle_data.depth_min;i <= particle_data.depth_max;i++){
             
-            const unsigned int x_num_ = particle_data.x_num[i];
-            const unsigned int z_num_ = particle_data.z_num[i];
+            size_t x_num_ = particle_data.x_num[i];
+            size_t z_num_ = particle_data.z_num[i];
             
             global_index_offset[i].resize(x_num_*z_num_);
             
@@ -1043,15 +1043,25 @@ public:
                     
                     const size_t j_num = particle_data.data[i][offset_pc_data].size();
                     
+                    if(offset_pc_data==53659){
+                        int stop = 1;
+                    }
+                    
                     global_index_offset[i][offset_pc_data] = counter;
                     
                     counter += j_num;
+                    
+                    
                     
                 }
             }
         }
         
         
+        
+        
+        
+        int stop = 1;
     }
     
     

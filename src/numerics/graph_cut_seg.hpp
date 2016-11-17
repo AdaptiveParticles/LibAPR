@@ -57,10 +57,10 @@ void construct_max_flow_graph(PartCellStructure<V,T>& pc_struct,GraphType& g){
     
     Mesh_data<float> output_img;
     interp_extrapc_to_mesh(output_img,pc_struct,adaptive_min);
-    debug_write(output_img,"adapt_min");
+    //debug_write(output_img,"adapt_min");
     
     interp_extrapc_to_mesh(output_img,pc_struct,adaptive_max);
-    debug_write(output_img,"adapt_max");
+    //debug_write(output_img,"adapt_max");
     
     //initialize variables required
     uint64_t node_val_part; // node variable encoding part offset status information
@@ -86,12 +86,17 @@ void construct_max_flow_graph(PartCellStructure<V,T>& pc_struct,GraphType& g){
     //
     //////////////////////////////////
     
+    
+    
+    uint64_t counter = 0;
+    
     for(uint64_t i = pc_struct.pc_data.depth_min;i <= pc_struct.pc_data.depth_max;i++){
         //loop over the resolutions of the structure
         const unsigned int x_num_ = pc_struct.pc_data.x_num[i];
         const unsigned int z_num_ = pc_struct.pc_data.z_num[i];
     
-#pragma omp parallel for default(shared) private(p,z_,x_,j_,node_val_part,curr_key,status,part_offset) if(z_num_*x_num_ > 100)
+//ss#spragma omp parallel for default(shared) private(p,z_,x_,j_,node_val_part,curr_key,status,part_offset) if(z_num_*x_num_ > 100)
+        
         for(z_ = 0;z_ < z_num_;z_++){
             //both z and x are explicitly accessed in the structure
             curr_key = 0;
@@ -141,12 +146,18 @@ void construct_max_flow_graph(PartCellStructure<V,T>& pc_struct,GraphType& g){
                             
                             cap_s =   alpha*pow(Ip - loc_min,2)/pow(loc_max - loc_min,2);
                             cap_t =   alpha*pow(Ip-loc_max,2)/pow(loc_max - loc_min,2);
-                                
+                            
+                            if(global_part_index != counter){
+                                int stop = 1;
+                            }
+                            
+                            
                             g.add_tweights((int) global_part_index,   /* capacities */ cap_s, cap_t);
                             
                             eng1.get_part(curr_key) = cap_s;
                             eng2.get_part(curr_key) = cap_t;
                             
+                            counter++;
                             
                         }
                     }
@@ -159,10 +170,10 @@ void construct_max_flow_graph(PartCellStructure<V,T>& pc_struct,GraphType& g){
     }
     
     
-    pc_struct.interp_parts_to_pc(output_img,eng1);
-    debug_write(output_img,"eng1");
-    pc_struct.interp_parts_to_pc(output_img,eng2);
-    debug_write(output_img,"eng2");
+    //pc_struct.interp_parts_to_pc(output_img,eng1);
+    //debug_write(output_img,"eng1");
+    //pc_struct.interp_parts_to_pc(output_img,eng2);
+   // debug_write(output_img,"eng2");
     
     ////////////////////////////////////
     //
