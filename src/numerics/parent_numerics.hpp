@@ -959,7 +959,9 @@ void get_adaptive_min_max(PartCellStructure<U,T>& pc_struct,ExtraPartCellData<V>
     smooth_parent_result_sep(pc_parent,min_data);
     smooth_parent_result_sep(pc_parent,max_data);
     
-    
+    smooth_parent_result_sep(pc_parent,min_data);
+    smooth_parent_result_sep(pc_parent,max_data);
+
     push_down_tree(pc_struct,pc_parent,min_data,partcell_min,status_offset);
     push_down_tree(pc_struct,pc_parent,max_data,partcell_max,status_offset);
 

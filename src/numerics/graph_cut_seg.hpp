@@ -27,14 +27,14 @@ void construct_max_flow_graph(PartCellStructure<V,T>& pc_struct,GraphType& g){
     
     pc_struct.part_data.initialize_global_index();
     
-    int num_parts = pc_struct.get_number_parts();
+    uint64_t num_parts = pc_struct.get_number_parts();
     
     std::cout << "Got part neighbours" << std::endl;
     
     //Get the other part rep information
     
     
-    float beta = 100;
+    float beta = 500;
     float k_max = pc_struct.depth_max;
     float k_min = pc_struct.depth_min;
     float alpha = 100;
@@ -57,10 +57,10 @@ void construct_max_flow_graph(PartCellStructure<V,T>& pc_struct,GraphType& g){
     
     Mesh_data<float> output_img;
     interp_extrapc_to_mesh(output_img,pc_struct,adaptive_min);
-    //debug_write(output_img,"adapt_min");
+    debug_write(output_img,"adapt_min");
     
     interp_extrapc_to_mesh(output_img,pc_struct,adaptive_max);
-    //debug_write(output_img,"adapt_max");
+    debug_write(output_img,"adapt_max");
     
     //initialize variables required
     uint64_t node_val_part; // node variable encoding part offset status information
@@ -255,23 +255,32 @@ void construct_max_flow_graph(PartCellStructure<V,T>& pc_struct,GraphType& g){
                                         float cap = beta*pow(status*status_neigh,2)/pow(9.0,2);
                                         g.add_edge( global_part_index, global_part_index_neigh,    /* capacities */  cap, cap );
                                         
-//                                        if(depth_neigh==depth_curr){
-//                                            if(i >= (k_max-1)){
-//                                                //float cap = beta*pow(status*status_neigh,2)*pow((-i+k_max + 1)*(-depth_neigh+k_max + 1),4)/pow((1.0)*(k_max+1-k_min),4.0);
-//                                                float cap = beta*pow(status*status_neigh,2)/pow(9.0,2);
-//                                                g.add_edge( (int) global_part_index, (int)global_part_index_neigh,    /* capacities */  cap, cap );
-//                                                
+                                        if(i < k_max){
+                                            float cap = beta*1;
+                                            g.add_edge(  global_part_index, global_part_index_neigh,    /* capacities */  cap, cap );
+
+                                        }
+                                        
+////                                        if(depth_neigh==depth_curr){
+//                                           if(i >= (k_max-1)){
+////                                                //float cap = beta*pow(status*status_neigh,2)*pow((-i+k_max + 1)*(-depth_neigh+k_max + 1),4)/pow((1.0)*(k_max+1-k_min),4.0);
+////                                                float cap = beta*pow(status*status_neigh,2)/pow(9.0,2);
+////                                                g.add_edge( (int) global_part_index, (int)global_part_index_neigh,    /* capacities */  cap, cap );
+////
+//                                               float cap = beta*pow(status*status_neigh,2)/pow(9.0,2);
+//                                               g.add_edge( global_part_index, global_part_index_neigh,  /* capacities */  cap, cap );
+//                                               
 //                                            }
-//                                            else {
-//                                                float cap = beta*1;
-//                                                g.add_edge( (int) global_part_index, (int)global_part_index_neigh,    /* capacities */  cap, cap );
+//                                          else {
+//                                              float cap = beta*1;
+//                                               g.add_edge(  global_part_index, global_part_index_neigh,    /* capacities */  cap, cap );
 //                                            }
-//                                        } else {
-//                                            
-//                                            float cap = beta*1;
-//                                            g.add_edge( (int) global_part_index, (int)global_part_index_neigh,    /* capacities */  cap, cap );
-//                                            
-//                                        }
+////                                        } else {
+////                                            
+////                                            float cap = beta*1;
+////                                            g.add_edge( (int) global_part_index, (int)global_part_index_neigh,    /* capacities */  cap, cap );
+////                                            
+////                                        }
                                     }
                                 }
                             }
@@ -301,7 +310,7 @@ void calc_graph_cuts_segmentation(PartCellStructure<V,T>& pc_struct,ExtraPartCel
     
     timer.verbose_flag = true;
     
-    int num_parts = pc_struct.get_number_parts();
+    uint64_t num_parts = pc_struct.get_number_parts();
     
     GraphType *g = new GraphType(num_parts ,num_parts*4 );
     
@@ -316,9 +325,12 @@ void calc_graph_cuts_segmentation(PartCellStructure<V,T>& pc_struct,ExtraPartCel
     
     int flow = g -> maxflow();
     
+    //int flow2 = g -> maxflow(true);
+    
     timer.stop_timer();
     
     std::cout << "Flow: " << flow << std::endl;
+    //std::cout << "Flow2: " << flow2 << std::endl;
     
     //now put in structure
     
