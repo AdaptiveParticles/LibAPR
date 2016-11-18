@@ -60,13 +60,49 @@ public:
         
         data.resize(depth_max+1);
         
-        for(int i = depth_min;i <= depth_max;i++){
+        for(uint64_t i = depth_min;i <= depth_max;i++){
             z_num[i] = pc_data.z_num[i];
             x_num[i] = pc_data.x_num[i];
             data[i].resize(z_num[i]*x_num[i]);
             
             for(int j = 0;j < pc_data.data[i].size();j++){
                 data[i][j].resize(pc_data.data[i][j].size(),0);
+            }
+            
+        }
+        
+    }
+    
+    template<typename S>
+    void initialize_data(std::vector<std::vector<S>>& input_data){
+        //
+        //  Initializes the data, from an existing array that is stored by depth
+        //
+        
+        uint64_t x_;
+        uint64_t z_;
+        uint64_t offset;
+        
+        
+        for(uint64_t i = depth_min;i <= depth_max;i++){
+            
+            const unsigned int x_num_ = x_num[i];
+            const unsigned int z_num_ = z_num[i];
+            
+            offset = 0;
+            
+            for(z_ = 0;z_ < z_num_;z_++){
+                
+                for(x_ = 0;x_ < x_num_;x_++){
+                    
+                    const size_t offset_pc_data = x_num_*z_ + x_;
+                    const size_t j_num = data[i][offset_pc_data].size();
+                    
+                    std::copy(input_data[i].begin()+offset,input_data[i].begin()+offset+j_num,data[i][offset_pc_data].begin());
+                    
+                    offset += j_num;
+                    
+                }
             }
             
         }
@@ -88,7 +124,7 @@ public:
         
         data.resize(depth_max+1);
         
-        for(int i = depth_min;i <= depth_max;i++){
+        for(uint64_t i = depth_min;i <= depth_max;i++){
             z_num[i] = part_data.z_num[i];
             x_num[i] = part_data.x_num[i];
             data[i].resize(z_num[i]*x_num[i]);

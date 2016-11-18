@@ -72,7 +72,7 @@ private:
         
     }
     
-    void create_partcell_structure(std::vector<std::vector<uint8_t>>& p_map,std::vector<std::vector<uint16_t>>& Ip){
+    void create_partcell_structure(std::vector<std::vector<uint8_t>>& p_map){
         //
         //  Bevan Cheeseman 2016
         //
@@ -100,17 +100,17 @@ private:
         uint64_t x_;
         uint64_t z_;
         uint64_t y_;
-        uint64_t j_;
+
         
         //next initialize the entries;
         
         uint16_t curr_index;
-        uint8_t status;
+        uint64_t status;
         uint8_t prev_ind = 0;
         
         timer.start_timer("intiialize part_cells");
         
-        for(int i = pc_data.depth_min;i <= pc_data.depth_max;i++){
+        for(uint64_t i = pc_data.depth_min;i <= pc_data.depth_max;i++){
             
             const unsigned int x_num_ = x_num[i];
             const unsigned int z_num_ = z_num[i];
@@ -277,62 +277,15 @@ private:
         
         std::cout << "Finished neighbour relationships" << std::endl;
         
-        /////////////////////////////////////
-        //
-        //  PARTICLE DATA STRUCTURES
-        //
-        //////////////////////////////////////
-        
         // Initialize the particle data access and intensity structures
         part_data.initialize_from_structure(pc_data);
         
-        // Estimate the intensities from the down sampled images
-        
-        timer.start_timer("Get the intensities");
-        
-        // Particles are ordered as ((-y,-x,-z),(+y,-x,-z),(-y,+x,-z),(+y,+x,-z),(-y,-x,+z),(+y,-x,+z),(-y,+x,+z),(+y,+x,+z))
-
-        S part_offset;
-        S node_val;
-        S y_coord;
-        S offset;
-        
-        
-        //
-        //  Takes the read in particles and places them back in the correct place in the structure;
-        //
-        
-        for(int i = pc_data.depth_min;i <= pc_data.depth_max;i++){
-            
-            const unsigned int x_num_ = pc_data.x_num[i];
-            const unsigned int z_num_ = pc_data.z_num[i];
-            
-            offset = 0;
-            
-            for(z_ = 0;z_ < z_num_;z_++){
-                
-                for(x_ = 0;x_ < x_num_;x_++){
-                    
-                    const size_t offset_pc_data = x_num_*z_ + x_;
-                    const size_t j_num = part_data.particle_data.data[i][offset_pc_data].size();
-                    
-                    std::copy(Ip[i].begin()+offset,Ip[i].begin()+offset+j_num,part_data.particle_data.data[i][offset_pc_data].begin());
-                    
-                    offset += j_num;
-                    
-                }
-            }
-            
-        }
-        
-        timer.stop_timer();
-        
-        
-        //Lastly calculate the number of particle and number of cells
-        
-        
         uint64_t num_cells = 0;
         uint64_t num_parts = 0;
+        
+        uint64_t j_;
+        
+        S node_val;
         
         for(uint64_t i = pc_data.depth_min;i <= pc_data.depth_max;i++){
             
@@ -376,10 +329,70 @@ private:
         number_cells = num_cells;
         number_parts = num_parts;
         
-        int stop =1;
+
 
         
     }
+    
+    void create_particle_structures(std::vector<std::vector<uint16_t>>& Ip){
+        
+        /////////////////////////////////////
+        //
+        //  PARTICLE DATA INITIALIZATION
+        //
+        //////////////////////////////////////
+        
+        //initialize loop variables
+        uint64_t x_;
+        uint64_t z_;
+ 
+        
+        
+        Part_timer timer;
+        
+        
+        
+        // Estimate the intensities from the down sampled images
+        
+        timer.start_timer("Get the intensities");
+        
+        // Particles are ordered as ((-y,-x,-z),(+y,-x,-z),(-y,+x,-z),(+y,+x,-z),(-y,-x,+z),(+y,-x,+z),(-y,+x,+z),(+y,+x,+z))
+        
+        S offset;
+        
+        //
+        //  Takes the read in particles and places them back in the correct place in the structure;
+        //
+        
+        for(uint64_t i = pc_data.depth_min;i <= pc_data.depth_max;i++){
+            
+            const unsigned int x_num_ = pc_data.x_num[i];
+            const unsigned int z_num_ = pc_data.z_num[i];
+            
+            offset = 0;
+            
+            for(z_ = 0;z_ < z_num_;z_++){
+                
+                for(x_ = 0;x_ < x_num_;x_++){
+                    
+                    const size_t offset_pc_data = x_num_*z_ + x_;
+                    const size_t j_num = part_data.particle_data.data[i][offset_pc_data].size();
+                    
+                    std::copy(Ip[i].begin()+offset,Ip[i].begin()+offset+j_num,part_data.particle_data.data[i][offset_pc_data].begin());
+                    
+                    offset += j_num;
+                    
+                }
+            }
+            
+        }
+        
+        timer.stop_timer();
+        
+        
+        
+    }
+    
     
     void create_partcell_structure(Particle_map<T>& part_map){
         //
@@ -407,7 +420,6 @@ private:
         //next initialize the entries;
         
         uint16_t curr_index;
-        coords3d curr_coords;
         uint8_t status;
         uint8_t prev_ind = 0;
         
@@ -688,9 +700,7 @@ private:
                     
                     for(j_ = 0;j_ < j_num;j_++){
                         
-                        if( (i == 2) & (x_ == 3) & (j_ == 3) & (z_ == 3) ){
-                            int stop = 1;
-                        }
+
                         
                         node_val = part_data.access_data.data[i][offset_pc_data][j_];
                         
@@ -906,7 +916,6 @@ private:
         uint64_t y_coord;
         int x_;
         int z_;
-        uint64_t y_;
         uint64_t j_;
         uint64_t status;
         uint64_t status_org;
@@ -1333,16 +1342,10 @@ private:
                                     } else if (n ==2){
                                         y_n = y_org + pc_data.von_neumann_y_cells[pc_data.neigh_child_dir[face][n-1]];
                                     }
-                                    int dir = pc_data.neigh_child_dir[face][n-1];
-                                    int shift = pc_data.von_neumann_y_cells[pc_data.neigh_child_dir[face][n-1]];
                                     
                                     S y_n2;S x_n2;S z_n2;S depth2;
                                     pc_data.get_neigh_coordinates_cell(neigh_keys_,face,n,y_coord,y_n2,x_n2,z_n2,depth2);
                                     
-                                    if(y_n != y_n2){
-                                        int stop = 1;
-                                         pc_data.get_neigh_coordinates_cell(neigh_keys_,face,n,y_coord,y_n2,x_n2,z_n2,depth2);
-                                    }
                                     
                                     if (neigh_keys[n] > 0){
                                         
@@ -1566,9 +1569,27 @@ public:
         //  Re-creates the structure from the read in p_map and particle data
         //
         
-        create_partcell_structure(p_map,Ip);
+        create_partcell_structure(p_map);
+        create_particle_structures(Ip);
     }
-                                   
+    
+    void initialize_particle_read(std::vector<std::vector<uint8_t>>& p_map){
+        //
+        //  Re-creates the structure from the read in p_map and particle data
+        //
+        
+        create_partcell_structure(p_map);
+        
+    }
+    
+    void initialize_pc_read(std::vector<std::vector<uint8_t>>& p_map){
+        //
+        //  Re-creates the structure from the read in p_map and particle data
+        //
+        
+        create_partcell_structure(p_map);
+        
+    }
                                    
     //decleration
     void initialize_structure(Particle_map<T>& particle_map){

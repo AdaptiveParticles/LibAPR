@@ -13,7 +13,7 @@
 void register_bosc(){
     
     char *version, *date;
-    int r, i;
+    int r;
     
     /* Register the filter with the library */
     r = register_blosc(&version, &date);
@@ -44,7 +44,7 @@ void hdf5_write_data_blosc(hid_t obj_id,hid_t type_id,const char* ds_name,hsize_
     hsize_t cdims[rank]; //chunking dims
     
     //compression parameters
-    int deflate_level = 9;
+
     
     //int szip_options_mask = H5_SZIP_NN_OPTION_MASK;
     //int szip_pixels_per_block = 8;

@@ -80,8 +80,11 @@ int main(int argc, char **argv) {
     // Filename
     std::string file_name = options.directory + options.input;
     
+    part_rep.timer.start_timer("read_pc_struct");
     // Read the apr file into the part cell structure
     read_apr_pc_struct(pc_struct,file_name);
+    
+    part_rep.timer.stop_timer();
     
     part_rep.timer.start_timer("write_wavelet");
     
@@ -91,15 +94,23 @@ int main(int argc, char **argv) {
     
     part_rep.timer.start_timer("write");
     
-    //write_apr_pc_struct_blosc(pc_struct,options.directory,"standard");
-    
-    part_rep.timer.stop_timer();
-    
-    part_rep.timer.start_timer("write_old");
-    
     write_apr_pc_struct(pc_struct,options.directory,"standard");
     
     part_rep.timer.stop_timer();
+    
+    part_rep.timer.start_timer("read_wavelet");
+    
+    file_name = options.directory + "wavelet_test_pcstruct_part.h5";
+    
+    // APR data structure
+    PartCellStructure<float,uint64_t> wavelet_struct;
+    
+    read_apr_wavelet(wavelet_struct,file_name);
+    
+    part_rep.timer.stop_timer();
+    
+    //write_apr_full_format(pc_struct,options.directory,options.output);
+    
     
 }
 

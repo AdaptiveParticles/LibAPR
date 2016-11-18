@@ -54,7 +54,7 @@ void construct_max_flow_graph(PartCellStructure<V,T>& pc_struct,GraphType& g){
     std::vector<unsigned int> status_offsets_min = {2,2,2};
     std::vector<unsigned int> status_offsets_max = {1,1,1};
     
-    get_adaptive_min_max(pc_struct,adaptive_min,adaptive_max,status_offsets_min,status_offsets_max,0,1);
+    get_adaptive_min_max(pc_struct,adaptive_min,adaptive_max,status_offsets_min,status_offsets_max,1,1);
     
     Mesh_data<float> output_img;
     interp_extrapc_to_mesh(output_img,pc_struct,adaptive_min);

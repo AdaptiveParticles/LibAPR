@@ -371,7 +371,7 @@ private:
         uint64_t y_coord;
         
         
-        for(int i = (parent_info.depth_min+1);i <= parent_info.depth_max;i++){
+        for(uint64_t i = (parent_info.depth_min+1);i <= parent_info.depth_max;i++){
             
             const unsigned int x_num_ = parent_info.x_num[i];
             const unsigned int z_num_ = parent_info.z_num[i];
@@ -407,10 +407,7 @@ private:
                     const size_t j_num = neigh_info.data[i][offset_pc_data].size();
                     const size_t j_num_parent = neigh_info.data[i-1][offset_pc_data_parent].size();
                     
-                    
-                    if((x_ == 5) & (z_ == 1) & (i == 4)){
-                        int stop = 1;
-                    }
+
                     
                     for(j_ = 1;j_ < j_num;j_++){
                         
@@ -532,7 +529,7 @@ private:
         //
         
         
-        for(int i = (pc_data.depth_min+1);i <= pc_data.depth_max;i++){
+        for(uint64_t i = (pc_data.depth_min+1);i <= pc_data.depth_max;i++){
             
             const unsigned int x_num_ = pc_data.x_num[i];
             const unsigned int z_num_ = pc_data.z_num[i];
@@ -719,7 +716,7 @@ private:
         
         if (face > 1){
             
-            for(int i = (neigh_info.depth_min);i <= neigh_info.depth_max;i++){
+            for(uint64_t i = (neigh_info.depth_min);i <= neigh_info.depth_max;i++){
                 
                 const unsigned int x_num_ = neigh_info.x_num[i];
                 const unsigned int z_num_ = neigh_info.z_num[i];
@@ -831,13 +828,13 @@ private:
         
         neigh_info.data.resize(neigh_info.depth_max+1);
         
-        for(int i = neigh_info.depth_min;i <= neigh_info.depth_max;i++){
+        for(uint64_t i = neigh_info.depth_min;i <= neigh_info.depth_max;i++){
             neigh_info.z_num[i] = pc_struct.pc_data.z_num[i];
             neigh_info.x_num[i] = pc_struct.pc_data.x_num[i];
             neigh_info.data[i].resize(neigh_info.z_num[i]*neigh_info.x_num[i]);
         }
         
-        for(int i = parent_info.depth_min;i <= parent_info.depth_max;i++){
+        for(uint64_t i = parent_info.depth_min;i <= parent_info.depth_max;i++){
             parent_info.z_num[i] = pc_struct.pc_data.z_num[i];
             parent_info.x_num[i] = pc_struct.pc_data.x_num[i];
             parent_info.data[i].resize(parent_info.z_num[i]*parent_info.x_num[i]);
@@ -851,7 +848,7 @@ private:
         
         parent_map.resize(neigh_info.depth_max+1);
         
-        for(int i = parent_info.depth_min;i <= parent_info.depth_max;i++){
+        for(uint64_t i = parent_info.depth_min;i <= parent_info.depth_max;i++){
            
             parent_map[i].resize(pc_struct.x_num[i]*pc_struct.y_num[i]*pc_struct.z_num[i]);
         }
@@ -869,7 +866,7 @@ private:
        
 
         
-        for(int i = (pc_struct.pc_data.depth_max);i > pc_struct.pc_data.depth_min;i--){
+        for(uint64_t i = (pc_struct.pc_data.depth_max);i > pc_struct.pc_data.depth_min;i--){
             
             const unsigned int x_num_ = pc_struct.pc_data.x_num[i];
             const unsigned int z_num_ = pc_struct.pc_data.z_num[i];
@@ -983,7 +980,7 @@ private:
         
         // Construct the parent info
         
-        for(int i = pc_struct.pc_data.depth_min;i < (pc_struct.pc_data.depth_max);i++){
+        for(uint64_t i = pc_struct.pc_data.depth_min;i < (pc_struct.pc_data.depth_max);i++){
             
             const unsigned int x_num_ = pc_struct.x_num[i];
             const unsigned int z_num_ = pc_struct.z_num[i];
@@ -1052,7 +1049,7 @@ private:
         uint64_t prev_coord = 0;
         
         
-        for(int i = neigh_info.depth_min;i <= neigh_info.depth_max;i++){
+        for(uint64_t i = neigh_info.depth_min;i <= neigh_info.depth_max;i++){
             
             const unsigned int x_num_ = pc_struct.x_num[i];
             const unsigned int z_num_ = pc_struct.z_num[i];
@@ -1160,7 +1157,7 @@ private:
         
         T num_cells = 0;
         
-        for(int i = neigh_info.depth_min;i <= neigh_info.depth_max;i++){
+        for(uint64_t i = neigh_info.depth_min;i <= neigh_info.depth_max;i++){
             
             const unsigned int x_num_ = neigh_info.x_num[i];
             const unsigned int z_num_ = neigh_info.z_num[i];

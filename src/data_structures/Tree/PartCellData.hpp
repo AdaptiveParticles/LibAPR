@@ -211,7 +211,9 @@ public:
         
     }
     
-
+    
+    
+    
     inline bool pc_key_cell_isequal(const T& pc_key0,const T& pc_key1){
         //
         //  Checks if the partcell keys address the same cell
@@ -741,6 +743,7 @@ public:
         
     }
     
+    
     template<typename S>
     void initialize_from_partcelldata(PartCellData<S>& part_cell_data){
         //initializes the partcell data structure based on part_map size
@@ -754,7 +757,7 @@ public:
         
         data.resize(depth_max+1);
         
-        for(int i = depth_min;i <= depth_max;i++){
+        for(uint64_t i = depth_min;i <= depth_max;i++){
             z_num[i] = part_cell_data.z_num[i];
             x_num[i] = part_cell_data.x_num[i];
             data[i].resize(z_num[i]*x_num[i]);
@@ -779,11 +782,7 @@ public:
             
             T prev_coord = (node_val & PREV_COORD_MASK) >> PREV_COORD_SHIFT;
             
-            if(prev_coord>next_coord){
-                int stop =1;
-            }
             
-            int stop = 1;
         } else {
         
             T status = (node_val & STATUS_MASK) >> STATUS_SHIFT;
@@ -797,7 +796,7 @@ public:
             T zm_index = (node_val & ZM_INDEX_MASK) >> ZM_INDEX_SHIFT;
             T zm_depth = (node_val & ZM_DEPTH_MASK) >> ZM_DEPTH_SHIFT;
             
-            int stop = 1;
+      
         }
         
         
@@ -1347,8 +1346,7 @@ private:
         const uint64_t next_prev_mask = next_prev_mask_vec[face];
         const uint64_t next_prev_shift= next_prev_shift_vec[face];
         const int8_t y_offset = y_offset_vec[face];
-        const uint64_t y_start = y_start_vec[face];
-        const uint64_t y_stop = y_stop_vec[face];
+
         
         Part_timer timer;
         timer.verbose_flag = true;
@@ -1368,7 +1366,7 @@ private:
         
         if (face > 1){
             
-            for(int i = (depth_min);i <= depth_max;i++){
+            for(uint64_t i = (depth_min);i <= depth_max;i++){
                 
                 const unsigned int x_num_ = x_num[i];
                 const unsigned int z_num_ = z_num[i];
@@ -1587,7 +1585,7 @@ private:
             
             timer.start_timer("Get neighbours dir: " + std::to_string(face));
             
-            for(int i = (depth_min+1);i <= depth_max;i++){
+            for(uint64_t i = (depth_min+1);i <= depth_max;i++){
                 
                 const unsigned int x_num_ = x_num[i];
                 const unsigned int z_num_ = z_num[i];

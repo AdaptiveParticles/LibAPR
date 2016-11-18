@@ -15,11 +15,11 @@ void write_apr_partmap_format(Part_rep& p_rep,Particle_map<float>& p_map,Tree<fl
     std::vector<uint16_t> Ip;
     
     Content *raw_content = tree.get_raw_content();
-    uint64_t *raw_tree = tree.get_raw_tree();
+    
     
     uint64_t num_parts = tree.get_content_size();
     unsigned int num_cells = 0;
-    uint64_t tree_size = tree.get_tree_size();
+
     
     Ip.reserve(num_parts);
     
@@ -34,11 +34,11 @@ void write_apr_partmap_format(Part_rep& p_rep,Particle_map<float>& p_map,Tree<fl
     hdf5_create_file(hdf5_file_name);
     
     //hdf5 inits
-    hid_t fid, pr_groupid, obj_id,attr_id, data_id, type_id, dataspace, type_class, space_id;
+    hid_t fid, pr_groupid, obj_id,attr_id,  type_id, dataspace, type_class, space_id;
     H5G_info_t info;
     
     hsize_t     dims_out[2];
-    hsize_t     mdims_out[2];
+
     hsize_t rank = 1;
     
     hsize_t dims;
@@ -47,7 +47,7 @@ void write_apr_partmap_format(Part_rep& p_rep,Particle_map<float>& p_map,Tree<fl
     
     //Get the group you want to open
     
-    float *buff2 = new float[2];
+
     //////////////////////////////////////////////////////////////////
     //
     //  Write meta-data to the file
@@ -151,7 +151,7 @@ void write_apr_tree_format(Part_rep& p_rep,Tree<float>& tree,std::string save_lo
     hdf5_create_file(hdf5_file_name);
     
     //hdf5 inits
-    hid_t fid, pr_groupid, obj_id,attr_id, data_id, type_id, dataspace, type_class, space_id;
+    hid_t fid, pr_groupid, obj_id;
     H5G_info_t info;
     
     hsize_t     dims_out[2];
@@ -298,11 +298,11 @@ void write_apr_full_format(Part_rep& p_rep,Tree<float>& tree,std::string save_lo
     hdf5_create_file(hdf5_file_name);
     
     //hdf5 inits
-    hid_t fid, pr_groupid, obj_id,attr_id, data_id, type_id, dataspace, type_class, space_id;
+    hid_t fid, pr_groupid, obj_id;
     H5G_info_t info;
     
     hsize_t     dims_out[2];
-    hsize_t     mdims_out[2];
+
     hsize_t rank = 1;
     
     hsize_t dims;
@@ -311,7 +311,7 @@ void write_apr_full_format(Part_rep& p_rep,Tree<float>& tree,std::string save_lo
     
     //Get the group you want to open
     
-    float *buff2 = new float[2];
+
     //////////////////////////////////////////////////////////////////
     //
     //  Write meta-data to the file
@@ -411,8 +411,8 @@ void write_apr_to_hdf5(Part_rep& p_rep,std::string save_loc,std::string file_nam
 
     Part_data<uint8_t> type_vec;
 
-    int num_cells = p_rep.get_active_cell_num();
-    int num_parts = p_rep.num_parts;
+    uint64_t num_cells = p_rep.get_active_cell_num();
+    uint64_t num_parts = p_rep.num_parts;
 
     k_vec.data.reserve(num_parts);
 
@@ -434,11 +434,11 @@ void write_apr_to_hdf5(Part_rep& p_rep,std::string save_loc,std::string file_nam
     hdf5_create_file(hdf5_file_name);
 
     //hdf5 inits
-    hid_t fid, pr_groupid, obj_id,attr_id, data_id, type_id, dataspace, type_class, space_id;
+    hid_t fid, pr_groupid, obj_id;
     H5G_info_t info;
 
     hsize_t     dims_out[2];
-    hsize_t     mdims_out[2];
+
     hsize_t rank = 1;
 
     hsize_t dims;
@@ -447,7 +447,6 @@ void write_apr_to_hdf5(Part_rep& p_rep,std::string save_loc,std::string file_nam
 
     //Get the group you want to open
 
-    float *buff2 = new float[2];
     //////////////////////////////////////////////////////////////////
     //
     //  Write meta-data to the file
@@ -549,8 +548,8 @@ void write_apr_to_hdf5_inc_extra_fields(Part_rep& p_rep,std::string save_loc,std
 
     Part_data<uint8_t> type_vec;
 
-    int num_cells = p_rep.get_active_cell_num();
-    int num_parts = p_rep.num_parts;
+    uint64_t num_cells = p_rep.get_active_cell_num();
+    uint64_t num_parts = p_rep.num_parts;
 
     k_vec.data.reserve(num_parts);
 
@@ -657,10 +656,10 @@ void write_apr_to_hdf5_inc_extra_fields(Part_rep& p_rep,std::string save_loc,std
     std::vector<std::string> extra_data_type;
     std::vector<std::string> extra_data_name;
 
-    int req_size = num_parts;
+    uint64_t req_size = num_parts;
     int flag_type = 1;
 
-    write_part_data_to_hdf5(p_rep,obj_id,extra_data_type,extra_data_name,flag_type,req_size);
+    write_part_data_to_hdf5(p_rep,obj_id,extra_data_type,extra_data_name,flag_type,(int)req_size);
     
     
     // output the file size
@@ -676,7 +675,7 @@ void write_apr_to_hdf5_inc_extra_fields(Part_rep& p_rep,std::string save_loc,std
     H5Fclose(fid);
 
     //create the xdmf file
-    write_full_xdmf_xml_extra(save_loc,file_name,num_parts,extra_data_name,extra_data_type);
+    write_full_xdmf_xml_extra(save_loc,file_name,(int)num_parts,extra_data_name,extra_data_type);
 
 
 
