@@ -1025,80 +1025,80 @@ void write_apr_wavelet(PartCellStructure<T,uint64_t>& pc_struct,std::string save
             name = "q_"+std::to_string(i);
             hdf5_write_data_blosc(obj_id,H5T_NATIVE_INT8,name.c_str(),rank,&dims, q_out.data());
             
+        }
+        
+        if(scale_out.size() > 0){
             //cell data
             dims = scale_out.size();
             name = "scale_"+std::to_string(i);
             hdf5_write_data_blosc(obj_id,H5T_NATIVE_UINT8,name.c_str(),rank,&dims, scale_out.data());
-            
+        }
+
         
-            //////////////////////////
-            //
-            //  Structure Data
-            //
-            //////////////////////////////
-            
-            p_map.resize(x_num_*z_num_*y_num_,0);
-            
-            std::fill(p_map.begin(), p_map.end(), 0);
-            
-            //For each depth there are two loops, one for SEED status particles, at depth + 1, and one for BOUNDARY and FILLER CELLS, to ensure contiguous memory access patterns.
-            
-            // SEED PARTICLE STATUS LOOP (requires access to three data structures, particle access, particle data, and the part-map)
+        
+        //////////////////////////
+        //
+        //  Structure Data
+        //
+        //////////////////////////////
+        
+        p_map.resize(x_num_*z_num_*y_num_,0);
+        
+        std::fill(p_map.begin(), p_map.end(), 0);
+        
+        //For each depth there are two loops, one for SEED status particles, at depth + 1, and one for BOUNDARY and FILLER CELLS, to ensure contiguous memory access patterns.
+        
+        // SEED PARTICLE STATUS LOOP (requires access to three data structures, particle access, particle data, and the part-map)
 #pragma omp parallel for default(shared) private(z_,x_,j_,p,node_val_part,curr_key,part_offset,status,y_coord) if(z_num_*x_num_ > 100)
-            for(z_ = 0;z_ < z_num_;z_++){
+        for(z_ = 0;z_ < z_num_;z_++){
+            
+            for(x_ = 0;x_ < x_num_;x_++){
                 
-                for(x_ = 0;x_ < x_num_;x_++){
+                const size_t offset_pc_data = x_num_*z_ + x_;
+                const size_t offset_p_map = y_num_*x_num_*z_ + y_num_*x_;
+                
+                const size_t j_num = pc_struct.pc_data.data[i][offset_pc_data].size();
+                
+                y_coord = 0;
+                
+                for(j_ = 0;j_ < j_num;j_++){
                     
-                    const size_t offset_pc_data = x_num_*z_ + x_;
-                    const size_t offset_p_map = y_num_*x_num_*z_ + y_num_*x_;
+                    node_val_part = pc_struct.part_data.access_data.data[i][offset_pc_data][j_];
                     
-                    const size_t j_num = pc_struct.pc_data.data[i][offset_pc_data].size();
-                    
-                    y_coord = 0;
-                    
-                    for(j_ = 0;j_ < j_num;j_++){
+                    if (!(node_val_part&1)){
+                        //get the index gap node
+                        y_coord++;
                         
-                        node_val_part = pc_struct.part_data.access_data.data[i][offset_pc_data][j_];
+                        status = pc_struct.part_data.access_node_get_status(node_val_part);
+                        p_map[offset_p_map + y_coord] = status;
                         
-                        if (!(node_val_part&1)){
-                            //get the index gap node
-                            y_coord++;
-                            
-                            status = pc_struct.part_data.access_node_get_status(node_val_part);
-                            p_map[offset_p_map + y_coord] = status;
-                            
-                        } else {
-                            
-                            y_coord += ((node_val_part & COORD_DIFF_MASK_PARTICLE) >> COORD_DIFF_SHIFT_PARTICLE);
-                            y_coord--;
-                        }
+                    } else {
                         
+                        y_coord += ((node_val_part & COORD_DIFF_MASK_PARTICLE) >> COORD_DIFF_SHIFT_PARTICLE);
+                        y_coord--;
                     }
                     
                 }
                 
             }
             
-            dims = p_map.size();
-            name = "p_map_"+std::to_string(i);
-            hdf5_write_data_blosc(obj_id,H5T_NATIVE_UINT8,name.c_str(),rank,&dims, p_map.data());
-            
-            name = "p_map_x_num_"+std::to_string(i);
-            hsize_t attr = x_num_;
-            hdf5_write_attribute(pr_groupid,H5T_NATIVE_INT,name.c_str(),1,&dim_a, &attr);
-            
-            attr = y_num_;
-            name = "p_map_y_num_"+std::to_string(i);
-            hdf5_write_attribute(pr_groupid,H5T_NATIVE_INT,name.c_str(),1,&dim_a, &attr);
-            
-            attr = z_num_;
-            name = "p_map_z_num_"+std::to_string(i);
-            hdf5_write_attribute(pr_groupid,H5T_NATIVE_INT,name.c_str(),1,&dim_a, &attr);
-            
-            
-        } else {
-            
         }
+        
+        dims = p_map.size();
+        name = "p_map_"+std::to_string(i);
+        hdf5_write_data_blosc(obj_id,H5T_NATIVE_UINT8,name.c_str(),rank,&dims, p_map.data());
+        
+        name = "p_map_x_num_"+std::to_string(i);
+        hsize_t attr = x_num_;
+        hdf5_write_attribute(pr_groupid,H5T_NATIVE_INT,name.c_str(),1,&dim_a, &attr);
+        
+        attr = y_num_;
+        name = "p_map_y_num_"+std::to_string(i);
+        hdf5_write_attribute(pr_groupid,H5T_NATIVE_INT,name.c_str(),1,&dim_a, &attr);
+        
+        attr = z_num_;
+        name = "p_map_z_num_"+std::to_string(i);
+        hdf5_write_attribute(pr_groupid,H5T_NATIVE_INT,name.c_str(),1,&dim_a, &attr);
         
     }
     

@@ -99,6 +99,8 @@ void get_wavelet_coeffs(std::vector<float>& parts,uint8_t& scale,T& mean,float c
         temp_max = std::max((float) parts[j],temp_max);
     }
     
+    float temp = (temp_max-temp_min)/comp_factor;
+    
     scale = std::max(0.0,floor(log((temp_max-temp_min)/comp_factor)/log(2)));
     
     //mean = ceil(temp_mean/pow(2.0,scale));
@@ -170,7 +172,7 @@ void calc_wavelet_encode(PartCellStructure<S,uint64_t>& pc_struct,ExtraPartCellD
         const unsigned int z_num_ = pc_struct.pc_data.z_num[i];
         
         
-#pragma omp parallel for default(shared) private(z_,x_,j_,node_val_part,curr_key,status,part_offset) firstprivate(parts) if(z_num_*x_num_ > 100)
+//#pragma omp parallel for default(shared) private(z_,x_,j_,node_val_part,curr_key,status,part_offset) firstprivate(parts) if(z_num_*x_num_ > 100)
         for(z_ = 0;z_ < z_num_;z_++){
             //both z and x are explicitly accessed in the structure
             curr_key = 0;
@@ -212,7 +214,7 @@ void calc_wavelet_encode(PartCellStructure<S,uint64_t>& pc_struct,ExtraPartCellD
                             get_wavelet_coeffs(parts,scale_t,mean,comp_factor,true);
                             
                             //copy to q particle data
-                            std::copy(parts.begin()+1,parts.end(),q.data[i][offset_pc_data].begin()+1);
+                            std::copy(parts.begin()+1,parts.end(),q.data[i][offset_pc_data].begin()+part_offset+1);
                             mu.data[i][offset_pc_data][j_] = mean;
                             scale.data[i][offset_pc_data][j_] = scale_t;
                             
@@ -255,7 +257,7 @@ void calc_wavelet_encode(PartCellStructure<S,uint64_t>& pc_struct,ExtraPartCellD
         const unsigned int z_num_ =  pc_parent.neigh_info.z_num[i];
         
         
-#pragma omp parallel for default(shared) private(z_,x_,j_,node_val_parent,curr_key,status,part_offset) firstprivate(parts,children_keys,children_ind) if(z_num_*x_num_ > 100)
+//#pragma omp parallel for default(shared) private(z_,x_,j_,node_val_parent,curr_key,status,part_offset) firstprivate(parts,children_keys,children_ind) if(z_num_*x_num_ > 100)
         for(z_ = 0;z_ < z_num_;z_++){
             //both z and x are explicitly accessed in the structure
             curr_key = 0;
@@ -451,7 +453,7 @@ void calc_wavelet_decode(PartCellStructure<S,uint64_t>& pc_struct,std::vector<st
         const unsigned int x_num_ =  pc_parent.neigh_info.x_num[i];
         const unsigned int z_num_ =  pc_parent.neigh_info.z_num[i];
         
-#pragma omp parallel for default(shared) private(z_,x_,j_,node_val_parent,curr_key,status,part_offset,child_status,child_node) firstprivate(children_keys,children_ind,parts,child_parts) if(z_num_*x_num_ > 100)
+//#pragma omp parallel for default(shared) private(z_,x_,j_,node_val_parent,curr_key,status,part_offset,child_status,child_node) firstprivate(children_keys,children_ind,parts,child_parts) if(z_num_*x_num_ > 100)
         for(z_ = 0;z_ < z_num_;z_++){
             //both z and x are explicitly accessed in the structure
             curr_key = 0;
@@ -497,7 +499,17 @@ void calc_wavelet_decode(PartCellStructure<S,uint64_t>& pc_struct,std::vector<st
                                 if(child > 0){
                                     
                                     if(children_ind[c] == 1){
-                                        parts[c] = q.get_val(child);
+                                        
+                                        
+                                        
+                                        child_node = pc_struct.part_data.access_data.get_val(child);
+                                        child_status = pc_struct.part_data.access_node_get_status(child_node);
+                                        
+                                        part_offset = pc_struct.part_data.access_node_get_part_offset(child_node);
+                                        pc_struct.part_data.access_data.pc_key_set_index(child,part_offset);
+                                        
+                                        
+                                        parts[c] = q.get_part(child);
                                         
                                     } else {
                                         parts[c] = q_parent.get_val(child);
