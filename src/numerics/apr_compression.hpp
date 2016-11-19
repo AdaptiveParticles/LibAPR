@@ -16,14 +16,14 @@ void get_wavelet_parts(std::vector<T>& parts,uint8_t& scale){
     //  Calculates the intensity values from wavelet co-efficients
     //
     
-    constexpr  int8_t t_coeffs[8][8] = {{1,1,1,1,1,1,1,1},
-        {1,-1,1,-1,1,-1,1,-1},
-        {1,1,-1,-1,1,1,-1,-1},
-        {1,-1,-1,1,1,-1,-1,1},
-        {1,1,1,1,-1,-1,-1,-1},
-        {1,-1,1,-1,-1,1,-1,1},
-        {1,1,-1,-1,-1,-1,1,1},
-        {1,-1,-1,1,-1,1,1,-1}};
+    constexpr  float t_coeffs[8][8] = {{8.0,1,1,1,1,1,1,1},
+        {8.0,-1,1,-1,1,-1,1,-1},
+        {8.0,1,-1,-1,1,1,-1,-1},
+        {8.0,-1,-1,1,1,-1,-1,1},
+        {8.0,1,1,1,-1,-1,-1,-1},
+        {8.0,-1,1,-1,-1,1,-1,1},
+        {8.0,1,-1,-1,-1,-1,1,1},
+        {8.0,-1,-1,1,-1,1,1,-1}};
     
     float temp_scale = pow(2.0,scale);
     
@@ -39,7 +39,7 @@ void get_wavelet_parts(std::vector<T>& parts,uint8_t& scale){
     //compute the wavelet co-eff
     for (int j = 0; j < 8; j++) {
         //calculate the wavelet co-efficients (diff, pushing up the mean)
-        parts[j] = ((local_int[0]*t_coeffs[j][0] + local_int[1]*t_coeffs[j][1] + local_int[2]*t_coeffs[j][2] + local_int[3]*t_coeffs[j][3] + local_int[4]*t_coeffs[j][4] + local_int[5]*t_coeffs[j][5] + local_int[6]*t_coeffs[j][6] + local_int[7]*t_coeffs[j][7]));
+        parts[j] = (1/8.0f)*((local_int[0]*t_coeffs[j][0] + local_int[1]*t_coeffs[j][1] + local_int[2]*t_coeffs[j][2] + local_int[3]*t_coeffs[j][3] + local_int[4]*t_coeffs[j][4] + local_int[5]*t_coeffs[j][5] + local_int[6]*t_coeffs[j][6] + local_int[7]*t_coeffs[j][7]));
     }
     
     
@@ -61,7 +61,7 @@ void get_wavelet_coeffs(std::vector<float>& parts,uint8_t& scale,T& mean,float c
             {1,1,-1,-1,-1,-1,1,1},
             {1,-1,-1,1,-1,1,1,-1}};
     
-    float counter=0;
+    float counter=1;
     
     //this means it will only work for non zero input
     if (flag == true){
@@ -115,7 +115,7 @@ void get_wavelet_coeffs(std::vector<float>& parts,uint8_t& scale,T& mean,float c
 
 
 template <typename T,typename S>
-void calc_wavelet_encode(PartCellStructure<S,uint64_t>& pc_struct,ExtraPartCellData<uint8_t>& scale,ExtraPartCellData<int8_t>& q,ExtraPartCellData<uint8_t>& scale_parent,ExtraPartCellData<T>& mu_parent,ExtraPartCellData<int8_t>& q_parent,const float comp_factor){
+void calc_wavelet_encode(PartCellStructure<S,uint64_t>& pc_struct,ExtraPartCellData<uint8_t>& scale,ExtraPartCellData<int16_t>& q,ExtraPartCellData<uint8_t>& scale_parent,ExtraPartCellData<T>& mu_parent,ExtraPartCellData<int16_t>& q_parent,const float comp_factor){
     //
     //  Bevan Cheeseman 2016
     //
@@ -282,6 +282,9 @@ void calc_wavelet_encode(PartCellStructure<S,uint64_t>& pc_struct,ExtraPartCellD
                     if (!(node_val_parent&1)){
                         //Indicates this is a particle cell node
                         
+                        if((x_ == 14) & (z_==3) & (j_==5) & (i==5)){
+                            int stop = 1;
+                        }
                         
                         pc_parent.neigh_info.pc_key_set_j(curr_key,j_);
                         
@@ -315,6 +318,7 @@ void calc_wavelet_encode(PartCellStructure<S,uint64_t>& pc_struct,ExtraPartCellD
                             uint8_t scale_t = 0;
                             T mean = 0;
                             
+                            //debug here this function with matlab
                             get_wavelet_coeffs(parts,scale_t,mean,comp_factor,false);
                             
                             scale_parent.get_val(curr_key) = scale_t;
@@ -329,7 +333,13 @@ void calc_wavelet_encode(PartCellStructure<S,uint64_t>& pc_struct,ExtraPartCellD
                                     
                                     if(children_ind[c] == 1){
                                         //
-                        
+                                        
+                                        uint64_t child_node = pc_struct.part_data.access_data.get_val(child);
+                                        
+                                        
+                                        part_offset = pc_struct.part_data.access_node_get_part_offset(child_node);
+                                        pc_struct.part_data.access_data.pc_key_set_index(child,part_offset);
+                                        
                                         q.get_part(child) = parts[c];
                                         
                                     } else {
@@ -362,7 +372,7 @@ void calc_wavelet_encode(PartCellStructure<S,uint64_t>& pc_struct,ExtraPartCellD
 }
 
 template <typename S>
-void calc_wavelet_decode(PartCellStructure<S,uint64_t>& pc_struct,std::vector<std::vector<uint8_t>>& scale_out,std::vector<std::vector<int8_t>>& q_out,std::vector<std::vector<uint8_t>>& scale_parent_out,std::vector<std::vector<uint16_t>>& mu_parent_out,std::vector<std::vector<int8_t>>& q_parent_out,const float comp_factor){
+void calc_wavelet_decode(PartCellStructure<S,uint64_t>& pc_struct,std::vector<std::vector<uint8_t>>& scale_out,std::vector<std::vector<int16_t>>& q_out,std::vector<std::vector<uint8_t>>& scale_parent_out,std::vector<std::vector<uint16_t>>& mu_parent_out,std::vector<std::vector<int16_t>>& q_parent_out,const float comp_factor){
     //
     //  Bevan Cheeseman 2016
     //
@@ -375,16 +385,16 @@ void calc_wavelet_decode(PartCellStructure<S,uint64_t>& pc_struct,std::vector<st
     //get the parents
     PartCellParent<uint64_t> pc_parent(pc_struct);
     
-    ExtraPartCellData<uint64_t> mu(pc_struct.pc_data);  //cell structure
+    ExtraPartCellData<uint16_t> mu(pc_struct.pc_data);  //cell structure
     
     
-    ExtraPartCellData<int8_t> q(pc_struct.part_data.particle_data); //particle size
+    ExtraPartCellData<int16_t> q(pc_struct.part_data.particle_data); //particle size
     
     ExtraPartCellData<uint8_t> scale(pc_struct.pc_data); //cell size
     
     ExtraPartCellData<uint8_t> scale_parent(pc_parent.neigh_info); //parent size
     ExtraPartCellData<uint16_t> mu_parent(pc_parent.neigh_info); //parent size
-    ExtraPartCellData<int8_t> q_parent(pc_parent.neigh_info); // parent size
+    ExtraPartCellData<int16_t> q_parent(pc_parent.neigh_info); // parent size
     
     q.initialize_data(q_out);
     scale.initialize_data(scale_out);
@@ -396,12 +406,12 @@ void calc_wavelet_decode(PartCellStructure<S,uint64_t>& pc_struct,std::vector<st
     
     
     for(uint64_t i = pc_struct.depth_min;i <= pc_struct.depth_max;i++){
-        std::vector<int8_t>().swap(q_out[i]);
+        std::vector<int16_t>().swap(q_out[i]);
         std::vector<uint8_t>().swap(scale_out[i]);
     }
     
     for(uint64_t i = pc_struct.depth_min;i < pc_struct.depth_max;i++){
-        std::vector<int8_t>().swap(q_parent_out[i]);    
+        std::vector<int16_t>().swap(q_parent_out[i]);
         std::vector<uint8_t>().swap(scale_parent_out[i]);
         std::vector<uint16_t>().swap(mu_parent_out[i]);
     }
@@ -472,6 +482,7 @@ void calc_wavelet_decode(PartCellStructure<S,uint64_t>& pc_struct,std::vector<st
                 //the y direction loop however is sparse, and must be accessed accordinagly
                 for(j_ = 0;j_ < j_num;j_++){
                     
+                    
                     //particle cell node value, used here as it is requried for getting the particle neighbours
                     node_val_parent = pc_parent.neigh_info.data[i][offset_pc_data][j_];
                     
@@ -524,8 +535,15 @@ void calc_wavelet_decode(PartCellStructure<S,uint64_t>& pc_struct,std::vector<st
                             //convert to intensities
                             get_wavelet_parts(parts,scale_parts);
                             
+                            for(int r = 0;r < 8;r++){
+                                if(parts[r] ==0){
+                                    int stop = 1;
+                                }
+                            }
+                            
+                            
                             //ignore first value it is from the mean
-                            for(int c = 1;c < children_keys.size();c++){
+                            for(int c = 0;c < children_keys.size();c++){
                                 uint64_t child = children_keys[c];
                                 
                                 if(child > 0){
@@ -556,6 +574,7 @@ void calc_wavelet_decode(PartCellStructure<S,uint64_t>& pc_struct,std::vector<st
                                             
                                             size_t offset_part_data = pc_struct.x_num[depth_c]*z_c + x_c;
                                             
+                                            
                                             std::copy(q.data[depth_c][offset_part_data].begin() + part_offset + 1,q.data[depth_c][offset_part_data].begin() + part_offset + 8,child_parts.begin() + 1);
                                             
                                             //convert to intensities
@@ -564,9 +583,19 @@ void calc_wavelet_decode(PartCellStructure<S,uint64_t>& pc_struct,std::vector<st
                                             //then add them into the structure
                                             std::copy(child_parts.begin(),child_parts.begin() + 8,pc_struct.part_data.particle_data.data[depth_c][offset_part_data].begin() + part_offset);
                                             
+                                            for(int r = 0;r < 8;r++){
+                                                if(child_parts[r] ==0){
+                                                    int stop = 1;
+                                                }
+                                            }
+                                            
                                             
                                         } else {
                                             //if the node is boundary or filler this is the last step
+                                            
+                                            if(parts[c] ==0){
+                                                int stop = 1;
+                                            }
                                             
                                             pc_struct.part_data.particle_data.get_part(child) = parts[c];
                                             

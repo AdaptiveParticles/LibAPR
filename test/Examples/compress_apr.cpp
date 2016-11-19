@@ -14,6 +14,7 @@
 #include "../../src/io/write_parts.h"
 #include "../../src/io/partcell_io.h"
 #include "../../src/numerics/apr_compression.hpp"
+#include "../utils.h"
 
 bool command_option_exists(char **begin, char **end, const std::string &option)
 {
@@ -88,7 +89,7 @@ int main(int argc, char **argv) {
     
     part_rep.timer.start_timer("write_wavelet");
     
-    write_apr_wavelet(pc_struct,options.directory,"wavelet_test",255);
+    write_apr_wavelet(pc_struct,options.directory,"wavelet_test",20);
     
     part_rep.timer.stop_timer();
     
@@ -111,7 +112,9 @@ int main(int argc, char **argv) {
     
     write_apr_full_format(wavelet_struct,options.directory,options.output);
     
+    // comapre
     
+    //compare_two_structures_test(pc_struct,wavelet_struct);
 }
 
 

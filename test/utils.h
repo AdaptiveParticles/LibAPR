@@ -56,4 +56,6 @@ void create_test_dataset_from_hdf5(Particle_map<float>& particle_map,PartCellStr
 
 bool find_part_cell_test(PartCellStructure<float,uint64_t>& pc_struct);
 
+bool compare_two_structures_test(PartCellStructure<float,uint64_t>& pc_struct,PartCellStructure<float,uint64_t>& pc_struct_read);
+
 #endif //PARTPLAY_UTILS_H

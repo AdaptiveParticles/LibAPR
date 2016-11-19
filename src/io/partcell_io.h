@@ -837,13 +837,13 @@ void write_apr_wavelet(PartCellStructure<T,uint64_t>& pc_struct,std::string save
     /////////////////////////////////////////////////////
     
     
-    ExtraPartCellData<int8_t> q; //particle size
+    ExtraPartCellData<int16_t> q; //particle size
     
     ExtraPartCellData<uint8_t> scale; //cell size
     
     ExtraPartCellData<uint8_t> scale_parent; //parent size
     ExtraPartCellData<T> mu_parent; //parent size
-    ExtraPartCellData<int8_t> q_parent; // parent size
+    ExtraPartCellData<int16_t> q_parent; // parent size
     
     calc_wavelet_encode(pc_struct,scale,q,scale_parent,mu_parent,q_parent,comp_factor);
     
@@ -856,7 +856,7 @@ void write_apr_wavelet(PartCellStructure<T,uint64_t>& pc_struct,std::string save
     //Initialize the output variables
     
     //particle loop
-    std::vector<int8_t> q_out;
+    std::vector<int16_t> q_out;
     
     //cell loop
     std::vector<uint8_t> scale_out;
@@ -864,7 +864,7 @@ void write_apr_wavelet(PartCellStructure<T,uint64_t>& pc_struct,std::string save
     //parent loop
     std::vector<uint8_t> scale_parent_out;
     std::vector<uint16_t> mu_parent_out;
-    std::vector<int8_t> q_parent_out;
+    std::vector<int16_t> q_parent_out;
     
     
     for(uint64_t i = pc_struct.pc_data.depth_min;i <= pc_struct.pc_data.depth_max;i++){
@@ -996,7 +996,7 @@ void write_apr_wavelet(PartCellStructure<T,uint64_t>& pc_struct,std::string save
                 hdf5_write_data_blosc(obj_id,H5T_NATIVE_UINT16,name.c_str(),rank,&dims, mu_parent_out.data());
             
                 name = "q_parent_"+std::to_string(i);
-                hdf5_write_data_blosc(obj_id,H5T_NATIVE_INT8,name.c_str(),rank,&dims, q_parent_out.data());
+                hdf5_write_data_blosc(obj_id,H5T_NATIVE_INT16,name.c_str(),rank,&dims, q_parent_out.data());
             }
             
         }
@@ -1023,7 +1023,7 @@ void write_apr_wavelet(PartCellStructure<T,uint64_t>& pc_struct,std::string save
             //write the q
             dims = q_out.size();
             name = "q_"+std::to_string(i);
-            hdf5_write_data_blosc(obj_id,H5T_NATIVE_INT8,name.c_str(),rank,&dims, q_out.data());
+            hdf5_write_data_blosc(obj_id,H5T_NATIVE_INT16,name.c_str(),rank,&dims, q_out.data());
             
         }
         
@@ -1200,7 +1200,7 @@ void read_apr_wavelet(PartCellStructure<T,uint64_t>& pc_struct,std::string file_
     std::vector<std::vector<uint8_t>> p_map_load;
     
     //particle loop
-    std::vector<std::vector<int8_t>> q_out;
+    std::vector<std::vector<int16_t>> q_out;
     
     //cell loop
     std::vector<std::vector<uint8_t>> scale_out;
@@ -1208,7 +1208,7 @@ void read_apr_wavelet(PartCellStructure<T,uint64_t>& pc_struct,std::string file_
     //parent loop
     std::vector<std::vector<uint8_t>> scale_parent_out;
     std::vector<std::vector<uint16_t>> mu_parent_out;
-    std::vector<std::vector<int8_t>> q_parent_out;
+    std::vector<std::vector<int16_t>> q_parent_out;
     
     
     p_map_load.resize(pc_struct.depth_max+1);
@@ -1280,7 +1280,7 @@ void read_apr_wavelet(PartCellStructure<T,uint64_t>& pc_struct,std::string file_
         
         if(q_out[i].size()>0){
             name = "q_"+std::to_string(i);
-            hdf5_load_data(obj_id,H5T_NATIVE_INT8,q_out[i].data(),name.c_str());
+            hdf5_load_data(obj_id,H5T_NATIVE_INT16,q_out[i].data(),name.c_str());
         }
         
         if(scale_out[i].size()>0){
@@ -1315,7 +1315,7 @@ void read_apr_wavelet(PartCellStructure<T,uint64_t>& pc_struct,std::string file_
         if(parent_num > 0){
             
             name = "q_parent_"+std::to_string(i);
-            hdf5_load_data(obj_id,H5T_NATIVE_INT8,q_parent_out[i].data(),name.c_str());
+            hdf5_load_data(obj_id,H5T_NATIVE_INT16,q_parent_out[i].data(),name.c_str());
             
             name = "scale_parent_"+std::to_string(i);
             hdf5_load_data(obj_id,H5T_NATIVE_UINT8,scale_parent_out[i].data(),name.c_str());

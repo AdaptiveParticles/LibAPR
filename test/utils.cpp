@@ -928,6 +928,29 @@ bool read_write_structure_test(PartCellStructure<float,uint64_t>& pc_struct){
     
     //compare all the different thigns and check they are correct;
     
+    return(compare_two_structures_test(pc_struct,pc_struct_read));
+    
+    
+}
+bool compare_two_structures_test(PartCellStructure<float,uint64_t>& pc_struct,PartCellStructure<float,uint64_t>& pc_struct_read){
+    //
+    //  Bevan Cheeseman 2016
+    //
+    //  Test for the reading and writing of the particle cell sparse structure
+    //
+    //
+    
+    
+    uint64_t x_;
+    uint64_t z_;
+    uint64_t j_;
+    uint64_t curr_key;
+    
+    bool pass_test = true;
+    
+    
+    //compare all the different thigns and check they are correct;
+    
     
     //
     //  Check the particle data (need to account for casting)
@@ -1004,7 +1027,7 @@ bool read_write_structure_test(PartCellStructure<float,uint64_t>& pc_struct){
             
         }
     }
-
+    
     
     uint64_t node_val_pc;
     uint64_t node_val_part;
@@ -1139,7 +1162,7 @@ bool read_write_structure_test(PartCellStructure<float,uint64_t>& pc_struct){
             
         }
     }
-
+    
     
     
     
