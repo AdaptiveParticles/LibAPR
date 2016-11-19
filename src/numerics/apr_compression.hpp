@@ -204,22 +204,51 @@ void calc_wavelet_encode(PartCellStructure<S,uint64_t>& pc_struct,ExtraPartCellD
                         status = pc_struct.part_data.access_node_get_status(node_val_part);
                         part_offset = pc_struct.part_data.access_node_get_part_offset(node_val_part);
                         
-                        if(status == SEED){
+                        if(i == pc_struct.pc_data.depth_min){
                             
-                            std::copy(pc_struct.part_data.particle_data.data[i][offset_pc_data].begin() + part_offset,pc_struct.part_data.particle_data.data[i][offset_pc_data].begin() + part_offset + 8,parts.begin());
+                            if(status == SEED){
+                                
+                                float max_t = 0;
+                                uint8_t scale_t = 0;
+                                for(int p = 0;p < 8;p++){
+                                    max_t = std::max(max_t,(float)pc_struct.part_data.particle_data.data[i][offset_pc_data][part_offset+p]);
+                                }
                             
-                            uint8_t scale_t = 0;
-                            T mean = 0;
-                            
-                            get_wavelet_coeffs(parts,scale_t,mean,comp_factor,true);
-                            
-                            //copy to q particle data
-                            std::copy(parts.begin()+1,parts.end(),q.data[i][offset_pc_data].begin()+part_offset+1);
-                            mu.data[i][offset_pc_data][j_] = mean;
-                            scale.data[i][offset_pc_data][j_] = scale_t;
+                                scale_t = std::max(0.0,floor(log((max_t)/comp_factor)/log(2)));
+
+                                for(int p = 0;p < 8;p++){
+                                    q.data[i][offset_pc_data][part_offset+p] = ceil(pc_struct.part_data.particle_data.data[i][offset_pc_data][part_offset+p]/pow(2.0,scale_t));
+                                }
+                                scale.data[i][offset_pc_data][j_] = scale_t;
+                            } else {
+                                uint8_t scale_t = 0;
+                                scale_t = std::max(0.0,floor(log((pc_struct.part_data.particle_data.data[i][offset_pc_data][part_offset])/comp_factor)/log(2)));
+                                q.data[i][offset_pc_data][part_offset] = ceil(pc_struct.part_data.particle_data.data[i][offset_pc_data][part_offset]/pow(2.0,scale_t));
+                                scale.data[i][offset_pc_data][j_] = scale_t;
+                            }
                             
                         } else {
-                            mu.data[i][offset_pc_data][j_] = pc_struct.part_data.particle_data.data[i][offset_pc_data][part_offset];
+                            
+                            if(status == SEED){
+                                
+                                std::copy(pc_struct.part_data.particle_data.data[i][offset_pc_data].begin() + part_offset,pc_struct.part_data.particle_data.data[i][offset_pc_data].begin() + part_offset + 8,parts.begin());
+                                
+                                uint8_t scale_t = 0;
+                                T mean = 0;
+                                
+                                get_wavelet_coeffs(parts,scale_t,mean,comp_factor,true);
+                                
+                                //copy to q particle data
+                                std::copy(parts.begin()+1,parts.end(),q.data[i][offset_pc_data].begin()+part_offset+1);
+                                mu.data[i][offset_pc_data][j_] = mean;
+                                scale.data[i][offset_pc_data][j_] = scale_t;
+                                
+                                
+                                
+                                
+                            } else {
+                                mu.data[i][offset_pc_data][j_] = pc_struct.part_data.particle_data.data[i][offset_pc_data][part_offset];
+                            }
                         }
                         
                     } else {
@@ -535,12 +564,7 @@ void calc_wavelet_decode(PartCellStructure<S,uint64_t>& pc_struct,std::vector<st
                             //convert to intensities
                             get_wavelet_parts(parts,scale_parts);
                             
-                            for(int r = 0;r < 8;r++){
-                                if(parts[r] ==0){
-                                    int stop = 1;
-                                }
-                            }
-                            
+                                                       
                             
                             //ignore first value it is from the mean
                             for(int c = 0;c < children_keys.size();c++){
@@ -583,19 +607,11 @@ void calc_wavelet_decode(PartCellStructure<S,uint64_t>& pc_struct,std::vector<st
                                             //then add them into the structure
                                             std::copy(child_parts.begin(),child_parts.begin() + 8,pc_struct.part_data.particle_data.data[depth_c][offset_part_data].begin() + part_offset);
                                             
-                                            for(int r = 0;r < 8;r++){
-                                                if(child_parts[r] ==0){
-                                                    int stop = 1;
-                                                }
-                                            }
                                             
                                             
                                         } else {
                                             //if the node is boundary or filler this is the last step
                                             
-                                            if(parts[c] ==0){
-                                                int stop = 1;
-                                            }
                                             
                                             pc_struct.part_data.particle_data.get_part(child) = parts[c];
                                             
@@ -621,8 +637,70 @@ void calc_wavelet_decode(PartCellStructure<S,uint64_t>& pc_struct,std::vector<st
     timer.stop_timer();
     //low res to high res
     
+    //now need to loop over highest level
+    
+    uint64_t node_val_part;
+    uint64_t scale_t;
+    uint64_t i = pc_struct.pc_data.depth_min;
+    
+    const unsigned int x_num_ = pc_struct.pc_data.x_num[i];
+    const unsigned int z_num_ = pc_struct.pc_data.z_num[i];
     
     
+    //#pragma omp parallel for default(shared) private(z_,x_,j_,node_val_part,curr_key,status,part_offset,scale_t,node_val_part) firstprivate(parts) if(z_num_*x_num_ > 100)
+    for(z_ = 0;z_ < z_num_;z_++){
+        //both z and x are explicitly accessed in the structure
+        curr_key = 0;
+        
+        pc_struct.pc_data.pc_key_set_z(curr_key,z_);
+        pc_struct.pc_data.pc_key_set_depth(curr_key,i);
+        
+        
+        for(x_ = 0;x_ < x_num_;x_++){
+            
+            pc_struct.pc_data.pc_key_set_x(curr_key,x_);
+            
+            const size_t offset_pc_data = x_num_*z_ + x_;
+            
+            const size_t j_num = pc_struct.pc_data.data[i][offset_pc_data].size();
+            
+            //the y direction loop however is sparse, and must be accessed accordinagly
+            for(j_ = 0;j_ < j_num;j_++){
+                
+                //particle cell node value, used here as it is requried for getting the particle neighbours
+                node_val_part = pc_struct.part_data.access_data.data[i][offset_pc_data][j_];
+                
+                if (!(node_val_part&1)){
+                    //Indicates this is a particle cell node
+                    
+                    
+                    pc_struct.part_data.access_data.pc_key_set_j(curr_key,j_);
+                    
+                    status = pc_struct.part_data.access_node_get_status(node_val_part);
+                    part_offset = pc_struct.part_data.access_node_get_part_offset(node_val_part);
+                    
+                    if(status == SEED){
+                        
+                        scale_t =scale.data[i][offset_pc_data][j_] ;
+                        
+                        for(int p = 0;p < 8;p++){
+                            pc_struct.part_data.particle_data.data[i][offset_pc_data][part_offset+p]=pow(2.0,scale_t)*q.data[i][offset_pc_data][part_offset+p];
+                        }
+                        
+                    } else {
+                        scale_t= scale.data[i][offset_pc_data][j_] ;
+                        pc_struct.part_data.particle_data.data[i][offset_pc_data][part_offset]=pow(2.0,scale_t)*q.data[i][offset_pc_data][part_offset];
+                    }
+                    
+                } else {
+                    // Inidicates this is not a particle cell node, and is a gap node
+                }
+            }
+        }
+    }
+
+
+
 }
 
 
