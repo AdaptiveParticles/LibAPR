@@ -36,7 +36,7 @@ template<typename T>
 void write_apr_pc_struct(PartCellStructure<T,uint64_t>& pc_struct,std::string save_loc,std::string file_name);
 
 
-template<typename T>
+template<typename T,typename U>
 void write_apr_wavelet(PartCellStructure<T,uint64_t>& pc_struct,std::string save_loc,std::string file_name,float comp_factor);
 
 
@@ -732,7 +732,7 @@ void write_apr_pc_struct(PartCellStructure<T,uint64_t>& pc_struct,std::string sa
     
 }
 
-template<typename T>
+template<typename T,typename U>
 void write_apr_wavelet(PartCellStructure<T,uint64_t>& pc_struct,std::string save_loc,std::string file_name,const float comp_factor){
     //
     //
@@ -837,13 +837,13 @@ void write_apr_wavelet(PartCellStructure<T,uint64_t>& pc_struct,std::string save
     /////////////////////////////////////////////////////
     
     
-    ExtraPartCellData<int16_t> q; //particle size
+    ExtraPartCellData<U> q; //particle size
     
     ExtraPartCellData<uint8_t> scale; //cell size
     
     ExtraPartCellData<uint8_t> scale_parent; //parent size
     ExtraPartCellData<T> mu_parent; //parent size
-    ExtraPartCellData<int16_t> q_parent; // parent size
+    ExtraPartCellData<U> q_parent; // parent size
     
     calc_wavelet_encode(pc_struct,scale,q,scale_parent,mu_parent,q_parent,comp_factor);
     
@@ -856,7 +856,7 @@ void write_apr_wavelet(PartCellStructure<T,uint64_t>& pc_struct,std::string save
     //Initialize the output variables
     
     //particle loop
-    std::vector<int16_t> q_out;
+    std::vector<U> q_out;
     
     //cell loop
     std::vector<uint8_t> scale_out;
@@ -864,11 +864,95 @@ void write_apr_wavelet(PartCellStructure<T,uint64_t>& pc_struct,std::string save
     //parent loop
     std::vector<uint8_t> scale_parent_out;
     std::vector<uint16_t> mu_parent_out;
-    std::vector<int16_t> q_parent_out;
+    std::vector<U> q_parent_out;
+    
+    // output the file size
+    hsize_t file_size;
+    
+    hsize_t file_size_prev = 0;
     
     
+    std::string name;
+        
     for(uint64_t i = pc_struct.pc_data.depth_min;i <= pc_struct.pc_data.depth_max;i++){
         
+        
+        ///////////////////////////////
+        //
+        // parent loop
+        //
+        //////////////////////////////
+        
+        const unsigned int x_num_ = pc_struct.x_num[i];
+        const unsigned int z_num_ = pc_struct.z_num[i];
+        const unsigned int y_num_ = pc_struct.y_num[i];
+
+        
+        
+        
+        if ( i <= (pc_struct.depth_max - 1)){
+            
+            //scale_out loop
+            scale_parent_out.resize(0);
+            mu_parent_out.resize(0);
+            q_parent_out.resize(0);
+            
+            for(z_ = 0;z_ < z_num_;z_++){
+                
+                curr_key = 0;
+                
+                for(x_ = 0;x_ < x_num_;x_++){
+                    
+                    const size_t offset_pc_data = x_num_*z_ + x_;
+                    
+                    const size_t j_num = scale_parent.data[i][offset_pc_data].size();
+                    
+                    uint64_t curr_size = scale_parent_out.size();
+                    
+                    scale_parent_out.resize(curr_size+ j_num);
+                    mu_parent_out.resize(curr_size+ j_num);
+                    q_parent_out.resize(curr_size+ j_num);
+                    
+                    std::copy(scale_parent.data[i][offset_pc_data].begin(),scale_parent.data[i][offset_pc_data].end(),scale_parent_out.begin() + curr_size);
+                    std::copy(mu_parent.data[i][offset_pc_data].begin(),mu_parent.data[i][offset_pc_data].end(),mu_parent_out.begin() + curr_size);
+                    std::copy(q_parent.data[i][offset_pc_data].begin(),q_parent.data[i][offset_pc_data].end(),q_parent_out.begin() + curr_size);
+                    
+                }
+                
+            }
+            
+        }
+
+        
+        //parent data
+        if ( i <= (pc_struct.depth_max - 1)){
+            
+            dims = scale_parent_out.size();
+            
+            name = "parent_size_"+std::to_string(i);
+            hdf5_write_attribute(pr_groupid,H5T_NATIVE_INT,name.c_str(),1,&dim_a,&dims);
+            
+            if(scale_parent_out.size() > 0){
+            
+                name = "scale_parent_"+std::to_string(i);
+                hdf5_write_data_blosc(obj_id,H5T_NATIVE_UINT8,name.c_str(),rank,&dims, scale_parent_out.data());
+            
+                name = "mu_parent_"+std::to_string(i);
+                hdf5_write_data_blosc(obj_id,H5T_NATIVE_UINT16,name.c_str(),rank,&dims, mu_parent_out.data());
+            
+                name = "q_parent_"+std::to_string(i);
+                hdf5_write_data_blosc(obj_id,H5T_NATIVE_INT8,name.c_str(),rank,&dims, q_parent_out.data());
+            }
+            
+        }
+    }
+        
+        
+    H5Fget_filesize(fid, &file_size);
+        
+    std::cout << "Parent Filesize: " << (file_size-file_size_prev)*1.0/1000000.0 << " MB" << std::endl;
+    
+    for(uint64_t i = pc_struct.pc_data.depth_min;i <= pc_struct.pc_data.depth_max;i++){
         
         const unsigned int x_num_ = pc_struct.x_num[i];
         const unsigned int z_num_ = pc_struct.z_num[i];
@@ -903,12 +987,50 @@ void write_apr_wavelet(PartCellStructure<T,uint64_t>& pc_struct,std::string save
             
         }
         
+        
+        dims = q_out.size();
+        name = "part_size_"+std::to_string(i);
+        hdf5_write_attribute(pr_groupid,H5T_NATIVE_INT,name.c_str(),1,&dim_a,&dims);
+        
+        
+        
+        if(q_out.size() > 0){
+            
+            /////////////////////
+            //
+            //  Perform writing to disk
+            //
+            ////////////////////
+            
+            //part data
+            
+            //write the q
+            dims = q_out.size();
+            name = "q_"+std::to_string(i);
+            hdf5_write_data_blosc(obj_id,H5T_NATIVE_INT8,name.c_str(),rank,&dims, q_out.data(),BLOSC_ZSTD,6,0);
+            
+        }
+        
+    }
+    
+    file_size_prev = file_size;
+    H5Fget_filesize(fid, &file_size);
+        
+    std::cout << "Q Filesize: " << (file_size-file_size_prev)*1.0/1000000.0 << " MB" << std::endl;
+    
+    for(uint64_t i = pc_struct.pc_data.depth_min;i <= pc_struct.pc_data.depth_max;i++){
+        
         /////////////////////////////////
         //
         // cell loop
         //
         ///////////////////////////////////
+        
+        const unsigned int x_num_ = pc_struct.x_num[i];
+        const unsigned int z_num_ = pc_struct.z_num[i];
+        const unsigned int y_num_ = pc_struct.y_num[i];
 
+        
         
         //scale_out loop
         scale_out.resize(0);
@@ -932,100 +1054,9 @@ void write_apr_wavelet(PartCellStructure<T,uint64_t>& pc_struct,std::string save
             
         }
         
-        ///////////////////////////////
-        //
-        // parent loop
-        //
-        //////////////////////////////
-        
-        if ( i <= (pc_struct.depth_max - 1)){
-            
-            //scale_out loop
-            scale_parent_out.resize(0);
-            mu_parent_out.resize(0);
-            q_parent_out.resize(0);
-            
-            for(z_ = 0;z_ < z_num_;z_++){
-                
-                curr_key = 0;
-                
-                for(x_ = 0;x_ < x_num_;x_++){
-                    
-                    const size_t offset_pc_data = x_num_*z_ + x_;
-                    
-                    const size_t j_num = scale_parent.data[i][offset_pc_data].size();
-                    
-                    uint64_t curr_size = scale_parent_out.size();
-                    
-                    scale_parent_out.resize(curr_size+ j_num);
-                    mu_parent_out.resize(curr_size+ j_num);
-                    q_parent_out.resize(curr_size+ j_num);
-                    
-                    std::copy(scale_parent.data[i][offset_pc_data].begin(),scale_parent.data[i][offset_pc_data].end(),scale_parent_out.begin() + curr_size);
-                    std::copy(mu_parent.data[i][offset_pc_data].begin(),mu_parent.data[i][offset_pc_data].end(),mu_parent_out.begin() + curr_size);
-                    std::copy(q_parent.data[i][offset_pc_data].begin(),q_parent.data[i][offset_pc_data].end(),q_parent_out.begin() + curr_size);
-                    
-                }
-                
-            }
-            
-        }
-        
-        ////////////////////////////
-        //
-        //  Writing and pmap structure
-        //
-        ///////////////////////////
-        
-        std::string name;
-        
-        //parent data
-        if ( i <= (pc_struct.depth_max - 1)){
-            
-            dims = scale_parent_out.size();
-            
-            name = "parent_size_"+std::to_string(i);
-            hdf5_write_attribute(pr_groupid,H5T_NATIVE_INT,name.c_str(),1,&dim_a,&dims);
-            
-            if(scale_parent_out.size() > 0){
-            
-                name = "scale_parent_"+std::to_string(i);
-                hdf5_write_data_blosc(obj_id,H5T_NATIVE_UINT8,name.c_str(),rank,&dims, scale_parent_out.data());
-            
-                name = "mu_parent_"+std::to_string(i);
-                hdf5_write_data_blosc(obj_id,H5T_NATIVE_UINT16,name.c_str(),rank,&dims, mu_parent_out.data());
-            
-                name = "q_parent_"+std::to_string(i);
-                hdf5_write_data_blosc(obj_id,H5T_NATIVE_INT16,name.c_str(),rank,&dims, q_parent_out.data());
-            }
-            
-        }
-
-        
-        dims = q_out.size();
-        name = "part_size_"+std::to_string(i);
-        hdf5_write_attribute(pr_groupid,H5T_NATIVE_INT,name.c_str(),1,&dim_a,&dims);
-        
         dims = scale_out.size();
         name = "cell_size_"+std::to_string(i);
         hdf5_write_attribute(pr_groupid,H5T_NATIVE_INT,name.c_str(),1,&dim_a,&dims);
-        
-        if(q_out.size() > 0){
-            
-            /////////////////////
-            //
-            //  Perform writing to disk
-            //
-            ////////////////////
-            
-            //part data
-            
-            //write the q
-            dims = q_out.size();
-            name = "q_"+std::to_string(i);
-            hdf5_write_data_blosc(obj_id,H5T_NATIVE_INT16,name.c_str(),rank,&dims, q_out.data());
-            
-        }
         
         if(scale_out.size() > 0){
             //cell data
@@ -1034,13 +1065,25 @@ void write_apr_wavelet(PartCellStructure<T,uint64_t>& pc_struct,std::string save
             hdf5_write_data_blosc(obj_id,H5T_NATIVE_UINT8,name.c_str(),rank,&dims, scale_out.data());
         }
 
+    }
+    
+    file_size_prev = file_size;
+    H5Fget_filesize(fid, &file_size);
+        
+    std::cout << "Scale_full Filesize: " << (file_size-file_size_prev)*1.0/1000000.0 << " MB" << std::endl;
         
         
+    for(uint64_t i = pc_struct.pc_data.depth_min;i <= pc_struct.pc_data.depth_max;i++){
+    
         //////////////////////////
         //
         //  Structure Data
         //
         //////////////////////////////
+        const unsigned int x_num_ = pc_struct.x_num[i];
+        const unsigned int z_num_ = pc_struct.z_num[i];
+        const unsigned int y_num_ = pc_struct.y_num[i];
+        
         
         p_map.resize(x_num_*z_num_*y_num_,0);
         
@@ -1102,13 +1145,17 @@ void write_apr_wavelet(PartCellStructure<T,uint64_t>& pc_struct,std::string save
         
     }
     
+    file_size_prev = file_size;
+    H5Fget_filesize(fid, &file_size);
+    
+    std::cout << "P_map Filesize: " << (file_size-file_size_prev)*1.0/1000000.0 << " MB" << std::endl;
+    
     hsize_t attr = depth_min;
     hdf5_write_attribute(pr_groupid,H5T_NATIVE_INT,"depth_max",1,&dim_a, &pc_struct.depth_max );
     hdf5_write_attribute(pr_groupid,H5T_NATIVE_INT,"depth_min",1,&dim_a, &attr );
     
     
     // output the file size
-    hsize_t file_size;
     H5Fget_filesize(fid, &file_size);
     
     std::cout << "HDF5 Filesize: " << file_size*1.0/1000000.0 << " MB" << std::endl;
@@ -1125,7 +1172,7 @@ void write_apr_wavelet(PartCellStructure<T,uint64_t>& pc_struct,std::string save
     
 }
 
-template<typename T>
+template<typename T,typename U>
 void read_apr_wavelet(PartCellStructure<T,uint64_t>& pc_struct,std::string file_name)
 {
     
@@ -1200,7 +1247,7 @@ void read_apr_wavelet(PartCellStructure<T,uint64_t>& pc_struct,std::string file_
     std::vector<std::vector<uint8_t>> p_map_load;
     
     //particle loop
-    std::vector<std::vector<int16_t>> q_out;
+    std::vector<std::vector<U>> q_out;
     
     //cell loop
     std::vector<std::vector<uint8_t>> scale_out;
@@ -1208,7 +1255,7 @@ void read_apr_wavelet(PartCellStructure<T,uint64_t>& pc_struct,std::string file_
     //parent loop
     std::vector<std::vector<uint8_t>> scale_parent_out;
     std::vector<std::vector<uint16_t>> mu_parent_out;
-    std::vector<std::vector<int16_t>> q_parent_out;
+    std::vector<std::vector<U>> q_parent_out;
     
     
     p_map_load.resize(pc_struct.depth_max+1);
@@ -1280,7 +1327,7 @@ void read_apr_wavelet(PartCellStructure<T,uint64_t>& pc_struct,std::string file_
         
         if(q_out[i].size()>0){
             name = "q_"+std::to_string(i);
-            hdf5_load_data(obj_id,H5T_NATIVE_INT16,q_out[i].data(),name.c_str());
+            hdf5_load_data(obj_id,H5T_NATIVE_INT8,q_out[i].data(),name.c_str());
         }
         
         if(scale_out[i].size()>0){
@@ -1315,7 +1362,7 @@ void read_apr_wavelet(PartCellStructure<T,uint64_t>& pc_struct,std::string file_
         if(parent_num > 0){
             
             name = "q_parent_"+std::to_string(i);
-            hdf5_load_data(obj_id,H5T_NATIVE_INT16,q_parent_out[i].data(),name.c_str());
+            hdf5_load_data(obj_id,H5T_NATIVE_INT8,q_parent_out[i].data(),name.c_str());
             
             name = "scale_parent_"+std::to_string(i);
             hdf5_load_data(obj_id,H5T_NATIVE_UINT8,scale_parent_out[i].data(),name.c_str());

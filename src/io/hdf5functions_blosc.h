@@ -21,6 +21,7 @@ void hdf5_load_data_blosc(hid_t obj_id,hid_t data_type,void* buff, const char* d
 void hdf5_write_attribute_blosc(hid_t obj_id,hid_t type_id,const char* attr_name,hsize_t rank,hsize_t* dims, void* data );
 void hdf5_write_data_blosc(hid_t obj_id,hid_t type_id,const char* ds_name,hsize_t rank,hsize_t* dims, void* data );
 void hdf5_write_string_blosc(hid_t obj_id,const char* attr_name,std::string output_str);
+void hdf5_write_data_blosc(hid_t obj_id,hid_t type_id,const char* ds_name,hsize_t rank,hsize_t* dims, void* data ,unsigned int comp_type,unsigned int comp_level,unsigned int shuffle);
 
 template <typename T>
 hid_t get_type_blosc(T data_type){

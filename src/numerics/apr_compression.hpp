@@ -114,8 +114,8 @@ void get_wavelet_coeffs(std::vector<float>& parts,uint8_t& scale,T& mean,float c
 }
 
 
-template <typename T,typename S>
-void calc_wavelet_encode(PartCellStructure<S,uint64_t>& pc_struct,ExtraPartCellData<uint8_t>& scale,ExtraPartCellData<int16_t>& q,ExtraPartCellData<uint8_t>& scale_parent,ExtraPartCellData<T>& mu_parent,ExtraPartCellData<int16_t>& q_parent,const float comp_factor){
+template <typename T,typename S,typename Q>
+void calc_wavelet_encode(PartCellStructure<S,uint64_t>& pc_struct,ExtraPartCellData<uint8_t>& scale,ExtraPartCellData<Q>& q,ExtraPartCellData<uint8_t>& scale_parent,ExtraPartCellData<T>& mu_parent,ExtraPartCellData<Q>& q_parent,const float comp_factor){
     //
     //  Bevan Cheeseman 2016
     //
@@ -371,8 +371,8 @@ void calc_wavelet_encode(PartCellStructure<S,uint64_t>& pc_struct,ExtraPartCellD
 
 }
 
-template <typename S>
-void calc_wavelet_decode(PartCellStructure<S,uint64_t>& pc_struct,std::vector<std::vector<uint8_t>>& scale_out,std::vector<std::vector<int16_t>>& q_out,std::vector<std::vector<uint8_t>>& scale_parent_out,std::vector<std::vector<uint16_t>>& mu_parent_out,std::vector<std::vector<int16_t>>& q_parent_out,const float comp_factor){
+template <typename S,typename Q>
+void calc_wavelet_decode(PartCellStructure<S,uint64_t>& pc_struct,std::vector<std::vector<uint8_t>>& scale_out,std::vector<std::vector<Q>>& q_out,std::vector<std::vector<uint8_t>>& scale_parent_out,std::vector<std::vector<uint16_t>>& mu_parent_out,std::vector<std::vector<Q>>& q_parent_out,const float comp_factor){
     //
     //  Bevan Cheeseman 2016
     //
@@ -406,12 +406,12 @@ void calc_wavelet_decode(PartCellStructure<S,uint64_t>& pc_struct,std::vector<st
     
     
     for(uint64_t i = pc_struct.depth_min;i <= pc_struct.depth_max;i++){
-        std::vector<int16_t>().swap(q_out[i]);
+        std::vector<Q>().swap(q_out[i]);
         std::vector<uint8_t>().swap(scale_out[i]);
     }
     
     for(uint64_t i = pc_struct.depth_min;i < pc_struct.depth_max;i++){
-        std::vector<int16_t>().swap(q_parent_out[i]);
+        std::vector<Q>().swap(q_parent_out[i]);
         std::vector<uint8_t>().swap(scale_parent_out[i]);
         std::vector<uint16_t>().swap(mu_parent_out[i]);
     }

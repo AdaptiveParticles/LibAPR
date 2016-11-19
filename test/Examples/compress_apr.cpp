@@ -89,7 +89,7 @@ int main(int argc, char **argv) {
     
     part_rep.timer.start_timer("write_wavelet");
     
-    write_apr_wavelet(pc_struct,options.directory,"wavelet_test",20);
+    write_apr_wavelet<float,int8_t>(pc_struct,options.directory,"wavelet_test",30);
     
     part_rep.timer.stop_timer();
     
@@ -106,11 +106,13 @@ int main(int argc, char **argv) {
     // APR data structure
     PartCellStructure<float,uint64_t> wavelet_struct;
     
-    read_apr_wavelet(wavelet_struct,file_name);
+    //read_apr_wavelet<float,int8_t>(wavelet_struct,file_name);
     
     part_rep.timer.stop_timer();
     
-    write_apr_full_format(wavelet_struct,options.directory,options.output);
+   // write_apr_pc_struct(wavelet_struct,options.directory,"standard");
+    
+    //write_apr_full_format(wavelet_struct,options.directory,options.output);
     
     // comapre
     
