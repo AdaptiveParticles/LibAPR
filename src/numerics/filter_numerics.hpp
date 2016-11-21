@@ -244,7 +244,7 @@ void convolution_filter_pixels(PartCellStructure<U,uint64_t>& pc_struct,uint64_t
     uint64_t k = 0;
     uint64_t i = 0;
     
-    int num_repeats = 50;
+    float num_repeats = 50;
     
     for(int r = 0;r < num_repeats;r++){
         
