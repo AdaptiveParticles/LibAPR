@@ -37,7 +37,7 @@ public:
         offset_z = offset_z_;
         offset_y = offset_y_;
         offset_depth = offset_depth_;
-        depth_factor = pow(2.0,offset_depth_);
+        depth_factor = pow(2.0,offset_depth_-1);
     }
     
     template<typename U>
@@ -49,11 +49,12 @@ public:
     
     }
     
+    
     template<typename U>
     void set_new_xz(T x_,T z_,PartCellStructure<U,T>& pc_struct){
         
         x = (x_ + offset_x)*depth_factor;
-        z = z_ + offset_z;
+        z = (z_ + offset_z)*depth_factor;
         
         pc_offset = x_num*z + x;
         j_num = pc_struct.pc_data.data[depth][pc_offset].size();

@@ -85,8 +85,12 @@ int main(int argc, char **argv) {
     // Read the apr file into the part cell structure
     read_apr_pc_struct(pc_struct,file_name);
     
+    ExtraPartCellData<float> filter_output;
+    
+    filter_output.initialize_structure_parts(pc_struct.part_data.particle_data);
+    
     //filter y
-    convolution_filter_y(pc_struct);
+    convolution_filter_y(pc_struct,filter_output);
     
 }
 
