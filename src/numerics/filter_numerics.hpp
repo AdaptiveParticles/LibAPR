@@ -53,7 +53,7 @@ void convolution_filter_y(PartCellStructure<U,uint64_t>& pc_struct,ExtraPartCell
     
     
     uint64_t filter_offset = 1;
-    filter.resize(filter_offset*2 +1,0);
+    filter.resize(filter_offset*2 +1,1);
     
     std::rotate(filter.begin(),filter.begin() + 1,filter.end());
     
@@ -101,17 +101,25 @@ void convolution_filter_y(PartCellStructure<U,uint64_t>& pc_struct,ExtraPartCell
     const unsigned int x_num_ = pc_struct.pc_data.x_num[depth];
     const unsigned int z_num_ = pc_struct.pc_data.z_num[depth];
     
-    timer.verbose_flag = true;
+    timer.verbose_flag = false;
     timer.start_timer("y filter loop");
     
     PartCellOffset<uint64_t> layer_plus;
     layer_plus.set_offsets(0,0,filter_offset,-1); //one layer below
     layer_plus.set_new_depth(depth,pc_struct); //intialize for the depth
     
+    PartCellOffset<uint64_t> layer_plus_2;
+    layer_plus_2.set_offsets(0,0,filter_offset,-2); //one layer below
+    layer_plus_2.set_new_depth(depth,pc_struct); //intialize for the depth
+    
     PartCellOffset<uint64_t> layer_equal;
     layer_equal.set_offsets(0,0,filter_offset,0); //one layer below
     layer_equal.set_new_depth(depth,pc_struct); //intialize for the depth
     
+    
+    float num_repeats = 100;
+    
+    for(int r = 0;r < num_repeats;r++){
     
 #pragma omp parallel for default(shared) private(z_,x_,j_,y_coord,y_coord_p,node_val_part,curr_key,status,part_offset) firstprivate(temp_vec,temp_vec_depth,layer_plus,layer_equal) if(z_num_*x_num_ > 100)
     for(z_ = 0;z_ < z_num_;z_++){
@@ -121,6 +129,7 @@ void convolution_filter_y(PartCellStructure<U,uint64_t>& pc_struct,ExtraPartCell
             
             //shift layers
             layer_plus.set_new_xz(x_*2,z_*2,pc_struct);
+            layer_plus_2.set_new_xz(x_*2,z_*2,pc_struct);
             layer_equal.set_new_xz(x_*2,z_*2,pc_struct);
             
             const size_t offset_pc_data = x_num_*z_ + x_;
@@ -157,6 +166,7 @@ void convolution_filter_y(PartCellStructure<U,uint64_t>& pc_struct,ExtraPartCell
                         //first rotate forward the filter array
                         iterate_temp_vec(temp_vec,temp_vec_depth);
                         layer_plus.incriment_y_and_update(y_coord_p,pc_struct,temp_vec,temp_vec_depth);
+                        layer_plus_2.incriment_y_and_update(y_coord_p,pc_struct,temp_vec,temp_vec_depth);
                         layer_equal.incriment_y_and_update(y_coord_p,pc_struct,temp_vec,temp_vec_depth);
                         
                         if(status ==SEED){
@@ -165,7 +175,6 @@ void convolution_filter_y(PartCellStructure<U,uint64_t>& pc_struct,ExtraPartCell
                             for(uint64_t f = 0;f < filter.size();f++){
                                 filter_output.data[depth][offset_pc_data][part_offset] += temp_vec[f]*filter[f];
                             }
-                            
                         }
                         
                     }
@@ -181,10 +190,11 @@ void convolution_filter_y(PartCellStructure<U,uint64_t>& pc_struct,ExtraPartCell
                     //will need to initialize things here..
                     y_init = std::max(y_init,y_coord - filter_offset);
                     
-                    for(uint64_t q = y_init;q < y_coord + (filter_offset-1);q++){
+                    for(uint64_t q = 2*y_init;q < 2*y_coord + (filter_offset-1);q++){
                         iterate_temp_vec(temp_vec,temp_vec_depth);
                         layer_plus.incriment_y_and_update(q,pc_struct,temp_vec,temp_vec_depth);
-                        layer_equal.incriment_y_and_update(y_coord,pc_struct,temp_vec,temp_vec_depth);
+                        layer_equal.incriment_y_and_update(q,pc_struct,temp_vec,temp_vec_depth);
+                        layer_plus_2.incriment_y_and_update(q,pc_struct,temp_vec,temp_vec_depth);
                     }
                     
                 }
@@ -194,9 +204,81 @@ void convolution_filter_y(PartCellStructure<U,uint64_t>& pc_struct,ExtraPartCell
         }
         
     }
+        
+    }
+    
 
+    
     timer.stop_timer();
-
+    float time = (timer.t2 - timer.t1)/num_repeats;
+    
+    std::cout << " Particle Filter Size: " << pc_struct.get_number_parts() << " took: " << time << std::endl;
 
 }
+template<typename U>
+void convolution_filter_pixels(PartCellStructure<U,uint64_t>& pc_struct,uint64_t y_num,uint64_t x_num,uint64_t z_num){
+    //
+    //  Compute two, comparitive filters for speed. Original size img, and current particle size comparison
+    //
+    
+    Mesh_data<U> input_data;
+    Mesh_data<U> output_data;
+    input_data.initialize((int)y_num,(int)x_num,(int)z_num,23);
+    output_data.initialize((int)y_num,(int)x_num,(int)z_num,0);
+    
+    std::vector<float> filter;
+    
+    Part_timer timer;
+    timer.verbose_flag = false;
+    timer.start_timer("full previous filter");
+    
+    uint64_t filter_offset = 3;
+    filter.resize(filter_offset*2 +1,1);
+    
+    std::vector<U> temp_vec;
+    temp_vec.resize(filter.size());
+
+    uint64_t offset_;
+    
+    uint64_t j = 0;
+    uint64_t k = 0;
+    uint64_t i = 0;
+    
+    int num_repeats = 50;
+    
+    for(int r = 0;r < num_repeats;r++){
+        
+#pragma omp parallel for default(shared) private(j,i,k,offset_) firstprivate(temp_vec)
+        for(j = 0; j < z_num;j++){
+            for(i = 0; i < x_num;i++){
+                
+                for(k = 0;k < y_num;k++){
+                    
+                    std::rotate(temp_vec.begin(),temp_vec.begin() + 1,temp_vec.end());
+                    
+                    offset_ = std::min(k + filter_offset,y_num);
+                    
+                    temp_vec.back() = input_data.mesh[j*x_num*y_num + i*y_num + k + offset_];
+                    
+                    for(uint64_t f = 0;f < filter.size();f++){
+                        
+                        output_data.mesh[j*x_num*y_num + i*y_num + k] += temp_vec[f]*filter[f];
+                    }
+                    
+                }
+            }
+        }
+        
+    }
+        
+    
+    timer.stop_timer();
+    float time = (timer.t2 - timer.t1)/num_repeats;
+    
+    std::cout << " Pixel Filter Size: " << (x_num*y_num*z_num) << " took: " << time << std::endl;
+    
+}
+
+
+
 #endif
