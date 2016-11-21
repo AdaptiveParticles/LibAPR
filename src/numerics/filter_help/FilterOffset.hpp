@@ -6,19 +6,19 @@
 //
 ///////////////
 
-#ifndef PARTPLAY_PARTCELLOFFSET_HPP
-#define PARTPLAY_PARTCELLOFFSET_HPP
+#ifndef PARTPLAY_FILTEROFFSET_HPP
+#define PARTPLAY_FILTEROFFSET_HPP
 // type T data structure base type
 
 #include "../../data_structures/Tree/PartCellStructure.hpp"
 
 template<typename T>
-class PartCellOffset {
+class FilterOffset {
     
 public:
     
     
-    PartCellOffset(){
+    FilterOffset(){
         depth = 0;
         x = 0;
         z = 0;
