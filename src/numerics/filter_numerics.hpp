@@ -28,13 +28,14 @@ void iterate_temp_vec(std::vector<T>& temp_vec,std::vector<T>& temp_vec_depth){
     //  Copying the last value in
     //
     
+    //shuffle values to the left, and then place end value, copied to end. Repeat for both
     std::rotate(temp_vec.begin(),temp_vec.begin() + 1,temp_vec.end());
     
-    temp_vec[temp_vec.size()] = temp_vec[0];
+    temp_vec.back() = temp_vec[0];
     
-    std::rotate(temp_vec_depth.begin(),temp_vec_depth.begin() + 1,temp_vec.end());
+    std::rotate(temp_vec_depth.begin(),temp_vec_depth.begin() + 1,temp_vec_depth.end());
     
-    temp_vec_depth[temp_vec_depth.size()] = temp_vec_depth[0];
+    temp_vec_depth.back() = temp_vec_depth[0];
 }
 
 
@@ -91,6 +92,8 @@ void convolution_filter_y(PartCellStructure<U,uint64_t>& pc_struct){
     //
     /////////////////////////
     
+    Part_timer timer;
+    
     //doing seed level (four different particle paths)
     
     uint64_t seed_offset = 0;
@@ -100,8 +103,15 @@ void convolution_filter_y(PartCellStructure<U,uint64_t>& pc_struct){
     const unsigned int x_num_ = pc_struct.pc_data.x_num[depth];
     const unsigned int z_num_ = pc_struct.pc_data.z_num[depth];
     
+    timer.verbose_flag = true;
+    timer.start_timer("y filter loop");
     
-#pragma omp parallel for default(shared) private(z_,x_,j_,y_coord,y_coord_p,node_val_part,curr_key,status,part_offset) firstprivate(temp_vec,temp_vec_depth) if(z_num_*x_num_ > 100)
+    PartCellOffset<uint64_t> layer_plus;
+    layer_plus.set_offsets(0,0,filter_offset,-1); //one layer below
+    
+    layer_plus.set_new_depth(depth,pc_struct); //intialize for the depth
+    
+#pragma omp parallel for default(shared) private(z_,x_,j_,y_coord,y_coord_p,node_val_part,curr_key,status,part_offset) firstprivate(temp_vec,temp_vec_depth,layer_plus) if(z_num_*x_num_ > 100)
     for(z_ = 0;z_ < z_num_;z_++){
         //both z and x are explicitly accessed in the structure
         curr_key = 0;
@@ -110,6 +120,9 @@ void convolution_filter_y(PartCellStructure<U,uint64_t>& pc_struct){
         pc_struct.pc_data.pc_key_set_depth(curr_key,depth);
         
         for(x_ = 0;x_ < x_num_;x_++){
+            
+            //shift layer
+            layer_plus.set_new_xz(x_,z_,pc_struct);
             
             pc_struct.pc_data.pc_key_set_x(curr_key,x_);
             
@@ -128,6 +141,8 @@ void convolution_filter_y(PartCellStructure<U,uint64_t>& pc_struct){
                     
                     status = pc_struct.part_data.access_node_get_status(node_val_part);
                     
+                    y_coord++;
+                    
                     y_coord_p = 2*y_coord;
                     
                     if(status == SEED){
@@ -138,8 +153,12 @@ void convolution_filter_y(PartCellStructure<U,uint64_t>& pc_struct){
                         
                         //there are two particles (part_offset) and part_offset + 1;
                         
-                        //now rotate forward the filter array
+                        //first rotate forward the filter array
                         iterate_temp_vec(temp_vec,temp_vec_depth);
+                        
+                        layer_plus.incriment_y_and_update(y_coord,pc_struct,temp_vec,temp_vec_depth);
+                        
+                        
                         
                         //then update forward the up and down iterators and array
                         
@@ -150,8 +169,20 @@ void convolution_filter_y(PartCellStructure<U,uint64_t>& pc_struct){
                     
                     
                 } else {
+                    uint64_t y_init = y_coord;
+                    
                     y_coord += ((node_val_part & COORD_DIFF_MASK_PARTICLE) >> COORD_DIFF_SHIFT_PARTICLE);
                     y_coord--;
+                    
+                    //will need to initialize things here..
+                    y_init = std::max(y_init,y_coord - filter_offset);
+                    
+                    for(uint64_t q = y_init;q < y_coord + (filter_offset-1);q++){
+                        
+                        layer_plus.incriment_y_and_update(q,pc_struct,temp_vec,temp_vec_depth);
+                        
+                    }
+                    
                 }
                 
             }
@@ -160,7 +191,7 @@ void convolution_filter_y(PartCellStructure<U,uint64_t>& pc_struct){
         
     }
 
-
+    timer.stop_timer();
 
 
 }
