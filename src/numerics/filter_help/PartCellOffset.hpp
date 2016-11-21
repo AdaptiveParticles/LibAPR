@@ -10,7 +10,7 @@
 #define PARTPLAY_PARTCELLOFFSET_HPP
 // type T data structure base type
 
-#include "PartCellStructure.hpp"
+#include "../../data_structures/Tree/PartCellStructure.hpp"
 
 template<typename T>
 class PartCellOffset {
@@ -78,7 +78,7 @@ public:
         
         //need to deal with offset and
         T y_input = floor((y_real+offset_y)*depth_factor);
-        
+        update_flag = false;
         
         if (y_input != y){
             //iterate forward
@@ -103,8 +103,10 @@ public:
             }
             
             if (y == y_input){
+                update_flag = true;
                 return true;
             }else {
+                update_flag = false;
                 return false;
             }
             
@@ -115,13 +117,15 @@ public:
                 //check if moved to next particle
                 if( floor(y_real*(depth_factor/2)) == (y/2 + 1)  ){
                     part_offset++; //moved to next seed particle (update)
+                    update_flag = true;
                     return true;
                 } else {
+                    update_flag = false;
                     return false;
                 }
                 
             }
-            
+            update_flag = false;
             return false;
         }
         
@@ -143,6 +147,15 @@ public:
         if(active == true){
             temp_vec.back() = pc_struct.part_data.particle_data.data[depth][pc_offset][part_offset];
             temp_vec_depth.back() = depth;
+        }
+        
+    }
+    
+    template<typename U>
+    void update_temp_vec(PartCellStructure<U,T>& pc_struct,std::vector<float>& temp_vec,uint64_t seed_offset){
+        
+        if(update_flag){
+            temp_vec.back() = pc_struct.part_data.particle_data.data[depth][pc_offset][part_offset + seed_offset];
         }
         
     }
@@ -171,6 +184,8 @@ private:
     T offset_depth;
     
     float depth_factor;
+    
+    bool update_flag;
 };
 
 #endif //PARTPLAY_PARTCELLOFFSET_HPP

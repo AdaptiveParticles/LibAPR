@@ -89,8 +89,13 @@ int main(int argc, char **argv) {
     
     filter_output.initialize_structure_parts(pc_struct.part_data.particle_data);
     
+    convolution_filter_y_old(pc_struct,filter_output);
+    
+    convolution_filter_y_old(pc_struct,filter_output);
     //filter y
     convolution_filter_y(pc_struct,filter_output);
+    
+    
     
     //convolution_filter_pixels(pc_struct,pc_struct.org_dims[0],pc_struct.org_dims[1],pc_struct.org_dims[2]);
     
