@@ -593,7 +593,7 @@ void convolution_filter_pixels(PartCellStructure<U,uint64_t>& pc_struct,uint64_t
     timer.verbose_flag = false;
     timer.start_timer("full previous filter");
     
-    uint64_t filter_offset = 3;
+    uint64_t filter_offset = 1;
     filter.resize(filter_offset*2 +1,1);
     
     std::vector<U> temp_vec;

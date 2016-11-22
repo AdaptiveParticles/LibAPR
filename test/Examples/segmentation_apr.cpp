@@ -89,7 +89,14 @@ int main(int argc, char **argv) {
 
     ExtraPartCellData<uint8_t> seg_parts;
     
-    calc_graph_cuts_segmentation(pc_struct, seg_parts);
+    //nuclei
+    std::array<uint64_t,10> parameters_nuc = {100,1,1,1,1,3,3,3,0,1};
+    
+    //nuclei
+    std::array<uint64_t,10> parameters_mem = {100,1,1,1,1,3,3,3,0,1};
+    
+    
+    calc_graph_cuts_segmentation(pc_struct, seg_parts,parameters_nuc);
     
     //Now we will view the output by creating the binary image implied by the segmentation
     
