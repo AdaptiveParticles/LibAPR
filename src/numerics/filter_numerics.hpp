@@ -10,6 +10,8 @@
 //
 //////////////////////////////////////////////////
 
+#define LOWER_RESOLUTION 0
+#define HIGHER_RESOLUTION 1
 
 #include <algorithm>
 #include <iostream>
@@ -62,11 +64,8 @@ void convolution_filter_y(PartCellStructure<U,uint64_t>& pc_struct,ExtraPartCell
     
     std::vector<float> filter;
     
-    
     uint64_t filter_offset = 1;
     filter.resize(filter_offset*2 +1,1);
-    
-    std::rotate(filter.begin(),filter.begin() + 1,filter.end());
     
     ///////////////
     //
@@ -74,37 +73,11 @@ void convolution_filter_y(PartCellStructure<U,uint64_t>& pc_struct,ExtraPartCell
     //
     //////////////
     
-    
-    //initialize variables required
-    uint64_t node_val_part; // node variable encoding part offset status information
     int x_; // iteration variables
     int z_; // iteration variables
     uint64_t j_; // index variable
-    
-    uint64_t part_offset;
-    uint64_t status;
-    
-    uint64_t y_coord;
-    
+
     uint64_t depth = pc_struct.depth_max;
-    
-    std::vector<float> temp_vec;
-    
-    std::vector<float> temp_vec1;
-    std::vector<float> temp_vec2;
-    std::vector<float> temp_vec3;
-    
-    std::vector<float> temp_vec4;
-    
-    std::vector<float> temp_vec_depth;
-    
-    temp_vec.resize(filter.size());
-    temp_vec1.resize(filter.size());
-    temp_vec2.resize(filter.size());
-    temp_vec3.resize(filter.size());
-    temp_vec4.resize(filter.size());
-    
-    temp_vec_depth.resize(filter.size());
     
     ////////////////////////
     //
@@ -116,12 +89,11 @@ void convolution_filter_y(PartCellStructure<U,uint64_t>& pc_struct,ExtraPartCell
     
     //doing seed level (four different particle paths)
     
-    uint64_t seed_offset = 0;
-    
-    uint64_t y_coord_p = 0;
     
     FilterLevel<uint64_t,float> curr_level;
     curr_level.set_new_depth(depth,pc_struct);
+    
+    curr_level.initialize_temp_vecs(filter,pc_struct);
     
     const unsigned int x_num_ = pc_struct.pc_data.x_num[depth];
     const unsigned int z_num_ = pc_struct.pc_data.z_num[depth];
@@ -129,15 +101,15 @@ void convolution_filter_y(PartCellStructure<U,uint64_t>& pc_struct,ExtraPartCell
     timer.verbose_flag = false;
     timer.start_timer("y filter loop");
     
-    FilterOffset<uint64_t> layer_plus;
+    FilterOffset<uint64_t,float> layer_plus(LOWER_RESOLUTION);
     layer_plus.set_offsets(0,0,filter_offset,-1); //one layer below
     layer_plus.set_new_depth(depth,pc_struct); //intialize for the depth
     
-    FilterOffset<uint64_t> layer_plus_2;
+    FilterOffset<uint64_t,float> layer_plus_2(LOWER_RESOLUTION);
     layer_plus_2.set_offsets(0,0,filter_offset,-2); //one layer below
     layer_plus_2.set_new_depth(depth,pc_struct); //intialize for the depth
     
-    FilterOffset<uint64_t> layer_equal;
+    FilterOffset<uint64_t,float> layer_equal(HIGHER_RESOLUTION);
     layer_equal.set_offsets(0,0,filter_offset,0); //one layer below
     layer_equal.set_new_depth(depth,pc_struct); //intialize for the depth
     
@@ -145,7 +117,7 @@ void convolution_filter_y(PartCellStructure<U,uint64_t>& pc_struct,ExtraPartCell
     
     for(int r = 0;r < num_repeats;r++){
         
-#pragma omp parallel for default(shared) private(z_,x_,j_,y_coord,y_coord_p,node_val_part,status,part_offset) firstprivate(temp_vec,temp_vec_depth,layer_plus,layer_equal,temp_vec1,temp_vec2,temp_vec3,temp_vec4,curr_level) if(z_num_*x_num_ > 100)
+#pragma omp parallel for default(shared) private(z_,x_,j_) firstprivate(layer_plus,layer_equal,curr_level) if(z_num_*x_num_ > 100)
         for(z_ = 0;z_ < z_num_;z_++){
             //both z and x are explicitly accessed in the structure
             
@@ -158,129 +130,61 @@ void convolution_filter_y(PartCellStructure<U,uint64_t>& pc_struct,ExtraPartCell
                 
                 curr_level.set_new_xz(x_,z_,pc_struct);
                 
-                y_coord = 0;
                 
                 //the y direction loop however is sparse, and must be accessed accordinagly
                 for(j_ = 0;j_ < curr_level.j_num_();j_++){
                     
                     //particle cell node value, used here as it is requried for getting the particle neighbours
-                    node_val_part = pc_struct.part_data.access_data.data[curr_level.depth_()][curr_level.pc_offset_()][j_];
                     bool iscell = curr_level.new_j(j_,pc_struct);
                     
                     if (iscell){
                         //Indicates this is a particle cell node
                         curr_level.update_cell(pc_struct);
                         
+                        curr_level.iterate_temp_vecs();
                         
-                        y_coord_p = 2*curr_level.y_(); // on seed level
+                        layer_plus.incriment_y_and_update(pc_struct,curr_level);
+                        layer_plus_2.incriment_y_and_update(pc_struct,curr_level);
                         
-                     
+                        layer_equal.incriment_y_and_update(pc_struct,curr_level);
                         
-                        iterate_temp_vec(temp_vec);
-                        iterate_temp_vec(temp_vec1);
-                        iterate_temp_vec(temp_vec2);
-                        iterate_temp_vec(temp_vec3);
-                        iterate_temp_vec(temp_vec4);
+                        curr_level.compute_filter(filter_output);
                         
-                        layer_plus.incriment_y(y_coord_p,pc_struct);
-                        
-                        layer_plus.update_temp_vec(pc_struct,temp_vec,0);
-                        layer_plus.update_temp_vec(pc_struct,temp_vec1,0);
-                        layer_plus.update_temp_vec(pc_struct,temp_vec2,0);
-                        layer_plus.update_temp_vec(pc_struct,temp_vec3,0);
-                        layer_plus.update_temp_vec(pc_struct,temp_vec4,0);
-                        
-                        
-                        layer_plus_2.incriment_y(y_coord_p,pc_struct);
-                        
-                        layer_plus_2.update_temp_vec(pc_struct,temp_vec,0);
-                        layer_plus_2.update_temp_vec(pc_struct,temp_vec1,0);
-                        layer_plus_2.update_temp_vec(pc_struct,temp_vec2,0);
-                        layer_plus_2.update_temp_vec(pc_struct,temp_vec3,0);
-                        layer_plus_2.update_temp_vec(pc_struct,temp_vec4,0);
-                        
-                        part_offset = curr_level.part_offset_();
-                        
-                        for(uint64_t p = 0;p < 1 + (curr_level.status_()==SEED);p++){
+                        if(curr_level.status_()==SEED){
+                            //iterate forward
+                            curr_level.iterate_y_seed();
+                            //iterate the vectors
+                            curr_level.iterate_temp_vecs();
                             
-                            y_coord_p += p;
-                            part_offset += p;
-                            //first rotate forward the filter array
-                            if(p >0){
-                                iterate_temp_vec(temp_vec);
-                                iterate_temp_vec(temp_vec1);
-                                iterate_temp_vec(temp_vec2);
-                                iterate_temp_vec(temp_vec3);
-                                iterate_temp_vec(temp_vec4);
-                            }
-                            layer_equal.incriment_y(y_coord_p,pc_struct);
-                            layer_equal.update_temp_vec(pc_struct,temp_vec,0);
-                            layer_equal.update_temp_vec(pc_struct,temp_vec1,2);
-                            layer_equal.update_temp_vec(pc_struct,temp_vec2,4);
-                            layer_equal.update_temp_vec(pc_struct,temp_vec3,6);
+                            //update them with new values
+                            layer_equal.incriment_y_and_update(pc_struct,curr_level);
                             
-                            if(curr_level.status_() ==SEED){
-                                //perform the filter
-                                
-                                for(uint64_t f = 0;f < filter.size();f++){
-                                    filter_output.data[curr_level.depth_()][curr_level.pc_offset_()][part_offset] += temp_vec[f]*filter[f];
-                                }
-                                
-                                for(uint64_t f = 0;f < filter.size();f++){
-                                    filter_output.data[curr_level.depth_()][curr_level.pc_offset_()][part_offset + 2] += temp_vec1[f]*filter[f];
-                                }
-                                
-                                for(uint64_t f = 0;f < filter.size();f++){
-                                    filter_output.data[curr_level.depth_()][curr_level.pc_offset_()][part_offset + 4] += temp_vec2[f]*filter[f];
-                                }
-                                
-                                for(uint64_t f = 0;f < filter.size();f++){
-                                    filter_output.data[curr_level.depth_()][curr_level.pc_offset_()][part_offset + 6] += temp_vec3[f]*filter[f];
-                                }
-                            } else {
-                                
-                                for(uint64_t f = 0;f < filter.size();f++){
-                                    filter_output.data[curr_level.depth_()][curr_level.pc_offset_()][part_offset] += temp_vec4[f]*filter[f];
-                                }
-                                
-                            }
-                            
+                            //compute the filter
+                            curr_level.compute_filter(filter_output);
                         }
                         
                         
                     } else {
+                        // Jumps the iteration forward, this therefore also requires computation of an effective boundary condition
                         
-                        uint64_t y_init = curr_level.y_();
+                        uint64_t y_init = curr_level.y_global;
 
-                        
                         curr_level.update_gap(pc_struct);
                         
-                        //skip node have to then initialize the arrays
-                        
-                        
-                        
                         //will need to initialize things here..
-                        y_init = std::max(y_init,curr_level.y_() - filter_offset);
+                        y_init = std::max(y_init,curr_level.y_global - filter_offset);
                         
-                        for(uint64_t q = 2*y_init;q < 2*curr_level.y_() + (filter_offset-1);q++){
+                        for(uint64_t q = y_init;q < curr_level.y_global + (filter_offset-1);q++){
                             
-                            
-                            
-                            
-                            iterate_temp_vec(temp_vec,temp_vec_depth);
-                            layer_plus.incriment_y_and_update(q,pc_struct,temp_vec,temp_vec_depth);
-                            layer_equal.incriment_y_and_update(q,pc_struct,temp_vec,temp_vec_depth);
-                            layer_plus_2.incriment_y_and_update(q,pc_struct,temp_vec,temp_vec_depth);
+                            curr_level.iterate_temp_vecs();
+                            layer_plus.incriment_y_and_update(q,pc_struct,curr_level);
+                            layer_equal.incriment_y_and_update(q,pc_struct,curr_level);
+                            layer_plus_2.incriment_y_and_update(q,pc_struct,curr_level);
                         }
-                        
                     }
-                    
                 }
-                
             }
-            
         }
-        
     }
     
     
@@ -366,15 +270,15 @@ void convolution_filter_y_old(PartCellStructure<U,uint64_t>& pc_struct,ExtraPart
     timer.verbose_flag = false;
     timer.start_timer("y filter loop");
     
-    FilterOffset<uint64_t> layer_plus;
+    FilterOffset<uint64_t,float> layer_plus(LOWER_RESOLUTION);
     layer_plus.set_offsets(0,0,filter_offset,-1); //one layer below
     layer_plus.set_new_depth(depth,pc_struct); //intialize for the depth
     
-    FilterOffset<uint64_t> layer_plus_2;
+    FilterOffset<uint64_t,float> layer_plus_2(LOWER_RESOLUTION);
     layer_plus_2.set_offsets(0,0,filter_offset,-2); //one layer below
     layer_plus_2.set_new_depth(depth,pc_struct); //intialize for the depth
     
-    FilterOffset<uint64_t> layer_equal;
+    FilterOffset<uint64_t,float> layer_equal(HIGHER_RESOLUTION);
     layer_equal.set_offsets(0,0,filter_offset,0); //one layer below
     layer_equal.set_new_depth(depth,pc_struct); //intialize for the depth
     

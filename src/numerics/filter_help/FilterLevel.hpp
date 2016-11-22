@@ -62,6 +62,8 @@ public:
         x_num = pc_struct.x_num[depth];
         z_num = pc_struct.x_num[depth];
         
+        depth_factor = pow(2,pc_struct.depth_max - depth + 1);
+        
     }
     
     
@@ -111,6 +113,7 @@ public:
         
         y += ((node_val & COORD_DIFF_MASK_PARTICLE) >> COORD_DIFF_SHIFT_PARTICLE);
         y--;
+        y_global = y*depth_factor;
     }
     
     template<typename U>
@@ -129,7 +132,15 @@ public:
         
     }
     
-    
+    void iterate_y_seed(){
+        //
+        //  Moving forward through the particle in the cell right
+        //
+        
+        part_offset++;
+        y++;
+        y_global = y*depth_factor;
+    }
     
     void iterate_temp_vecs(){
         //
@@ -142,10 +153,69 @@ public:
         std::rotate(temp_vec_s0.begin(),temp_vec_s0.begin() + 1,temp_vec_s0.end());
         temp_vec_s0.back() = temp_vec_s0[0];
         
-        std::rotate(temp_vec_s0.begin(),temp_vec_s1.begin() + 1,temp_vec_s0.end());
-        temp_vec_s0.back() = temp_vec_s0[0];
+        std::rotate(temp_vec_s1.begin(),temp_vec_s1.begin() + 1,temp_vec_s1.end());
+        temp_vec_s1.back() = temp_vec_s1[0];
+        
+        std::rotate(temp_vec_s2.begin(),temp_vec_s2.begin() + 1,temp_vec_s2.end());
+        temp_vec_s2.back() = temp_vec_s2[0];
+        
+        std::rotate(temp_vec_ns.begin(),temp_vec_ns.begin() + 1,temp_vec_ns.end());
+        temp_vec_s3.back() = temp_vec_s3[0];
+        
+        std::rotate(temp_vec_ns.begin(),temp_vec_ns.begin() + 1,temp_vec_ns.end());
+        temp_vec_ns.back() = temp_vec_ns[0];
         
     }
+    
+    void compute_filter(ExtraPartCellData<V>& filter_output){
+        
+        
+        if(status ==SEED){
+            //perform the filter
+            
+            for(uint64_t f = 0;f < filter.size();f++){
+                filter_output.data[depth][pc_offset][part_offset] += temp_vec_s0[f]*filter[f];
+            }
+            
+            for(uint64_t f = 0;f < filter.size();f++){
+                filter_output.data[depth][pc_offset][part_offset+2] += temp_vec_s1[f]*filter[f];
+            }
+            
+            for(uint64_t f = 0;f < filter.size();f++){
+                filter_output.data[depth][pc_offset][part_offset+4] += temp_vec_s2[f]*filter[f];
+            }
+            
+            for(uint64_t f = 0;f < filter.size();f++){
+                filter_output.data[depth][pc_offset][part_offset+6] += temp_vec_s3[f]*filter[f];
+            }
+        } else {
+            // not seed
+            for(uint64_t f = 0;f < filter.size();f++){
+                filter_output.data[depth][pc_offset][part_offset] += temp_vec_ns[f]*filter[f];
+            }
+            
+        }
+
+        
+        
+        
+    }
+    
+    
+    //seed temp vectors
+    std::vector<V> temp_vec_s0;
+    std::vector<V> temp_vec_s1;
+    std::vector<V> temp_vec_s2;
+    std::vector<V> temp_vec_s3;
+    
+    //non seed vectors
+    std::vector<V> temp_vec_ns;
+    
+    T x_global;
+    T z_global;
+    T y_global;
+    
+    T status;
     
 private:
     
@@ -159,29 +229,17 @@ private:
 
     T y;
     
-    T x_global;
-    T z_global;
-    T y_global;
-    
-   
     T x_num;
     T z_num;
     T part_offset;
     T node_val;
-    T status;
+    
 
     //offsets
 
     float depth_factor;
     
-    //seed temp vectors
-    std::vector<V> temp_vec_s0;
-    std::vector<V> temp_vec_s1;
-    std::vector<V> temp_vec_s2;
-    std::vector<V> temp_vec_s3;
-    
-    //non seed vectors
-    std::vector<V> temp_vec_ns;
+  
     
     std::vector<V> filter;
     

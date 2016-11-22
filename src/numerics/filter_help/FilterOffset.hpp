@@ -11,14 +11,17 @@
 // type T data structure base type
 
 #include "../../data_structures/Tree/PartCellStructure.hpp"
+#include "FilterLevel.hpp"
 
-template<typename T>
+template<typename T,typename V>
 class FilterOffset {
     
+    friend class FilterLevel<T,V>;
 public:
     
     
-    FilterOffset(){
+    
+    FilterOffset(bool hi_res_flag): hi_res_flag(hi_res_flag){
         depth = 0;
         x = 0;
         z = 0;
@@ -29,7 +32,9 @@ public:
         x_num = 0;
         z_num = 0;
         
+        
     };
+    
     
     void set_offsets(T offset_x_,T offset_z_,T offset_y_,T offset_depth_){
         //these are the offsets
@@ -71,7 +76,7 @@ public:
     }
     
     template<typename U>
-    bool incriment_y(T y_real,PartCellStructure<U,T>& pc_struct){
+    bool incriment_y(uint64_t y_real,PartCellStructure<U,T>& pc_struct){
         //
         //  Incriments the array, according to the desired offset, returns true, if the offset value exist on the layer.
         //
@@ -151,6 +156,33 @@ public:
         
     }
     
+    
+    template<typename U>
+    void incriment_y_and_update(PartCellStructure<U,uint64_t>& pc_struct,FilterLevel<T,V>& curr_level){
+        //
+        //  Updates the array location for the move in particle, if the shift, results in the new cell hittin ghte end of the array, you update the array
+        //
+        
+        //update the values
+        incriment_y(curr_level.y_global,pc_struct);
+        
+        update_all_temp_vecs(pc_struct,curr_level);
+        
+    }
+    
+    template<typename U>
+    void incriment_y_and_update(T y_input,PartCellStructure<U,T>& pc_struct,FilterLevel<T,U>& curr_level){
+        //
+        //  Updates the array location for the move in particle, if the shift, results in the new cell hittin ghte end of the array, you update the array
+        //
+        
+        //update the values
+        incriment_y(y_input,pc_struct);
+        
+        update_all_temp_vecs(pc_struct,curr_level);
+        
+    }
+    
     template<typename U>
     void update_temp_vec(PartCellStructure<U,T>& pc_struct,std::vector<float>& temp_vec,uint64_t seed_offset){
         
@@ -159,6 +191,48 @@ public:
         }
         
     }
+    
+    template<typename U>
+    void update_all_temp_vecs(PartCellStructure<U,T>& pc_struct,FilterLevel<T,V>& curr_level){
+        //update all the current vectors if required (update_flag is set as to whether this is the current new cell)
+        
+        if(update_flag){
+            if(hi_res_flag){
+                // Higher resolution level, need to account for the different particles in the cell
+                
+                U temp_sum = 0;
+            
+                curr_level.temp_vec_s0.back() = pc_struct.part_data.particle_data.data[depth][pc_offset][part_offset + 0];
+                temp_sum = pc_struct.part_data.particle_data.data[depth][pc_offset][part_offset + 0];
+            
+                curr_level.temp_vec_s1.back() = pc_struct.part_data.particle_data.data[depth][pc_offset][part_offset + 2];
+                temp_sum = pc_struct.part_data.particle_data.data[depth][pc_offset][part_offset + 2];
+            
+                curr_level.temp_vec_s2.back() = pc_struct.part_data.particle_data.data[depth][pc_offset][part_offset + 4];
+                temp_sum = pc_struct.part_data.particle_data.data[depth][pc_offset][part_offset + 4];
+            
+                curr_level.temp_vec_s3.back() = pc_struct.part_data.particle_data.data[depth][pc_offset][part_offset + 6];
+                temp_sum = pc_struct.part_data.particle_data.data[depth][pc_offset][part_offset + 6];
+            
+                curr_level.temp_vec_ns.back() = temp_sum/4.0f;
+            } else {
+                //Lower resolution, they all get the same values
+                
+                U temp = pc_struct.part_data.particle_data.data[depth][pc_offset][part_offset + 0];
+                
+                curr_level.temp_vec_s0.back() = temp;
+                curr_level.temp_vec_s1.back() = temp;
+                curr_level.temp_vec_s2.back() = temp;
+                curr_level.temp_vec_s3.back() = temp;
+                
+                curr_level.temp_vec_ns.back() = temp;
+                
+                
+            }
+        }
+        
+    }
+    
     
     
 private:
@@ -186,6 +260,8 @@ private:
     float depth_factor;
     
     bool update_flag;
+    
+    const bool hi_res_flag;
 };
 
 #endif //PARTPLAY_PARTCELLOFFSET_HPP
