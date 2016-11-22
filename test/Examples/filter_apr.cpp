@@ -89,23 +89,21 @@ int main(int argc, char **argv) {
     
     filter_output.initialize_structure_parts(pc_struct.part_data.particle_data);
     
-    convolution_filter_y_old(pc_struct,filter_output);
-    
-    convolution_filter_y_old(pc_struct,filter_output);
     //filter y
     convolution_filter_y(pc_struct,filter_output);
     
+    convolution_filter_y_new(pc_struct,filter_output);
     
     
-    convolution_filter_pixels(pc_struct,pc_struct.org_dims[0],pc_struct.org_dims[1],pc_struct.org_dims[2]);
-
-    convolution_filter_pixels_temp(pc_struct,pc_struct.org_dims[0],pc_struct.org_dims[1],pc_struct.org_dims[2]);
-
-    
-    uint64_t num_parts = pc_struct.get_number_parts();
-    uint64_t dim = ceil(pow(num_parts,1.0/3.0));
-    
-    convolution_filter_pixels(pc_struct,dim,dim,dim);
+//    convolution_filter_pixels(pc_struct,pc_struct.org_dims[0],pc_struct.org_dims[1],pc_struct.org_dims[2]);
+//    
+//    convolution_filter_pixels_temp(pc_struct,pc_struct.org_dims[0],pc_struct.org_dims[1],pc_struct.org_dims[2]);
+//    
+//    
+//    uint64_t num_parts = pc_struct.get_number_parts();
+//    uint64_t dim = ceil(pow(num_parts,1.0/3.0));
+//    
+//    convolution_filter_pixels(pc_struct,dim,dim,dim);
     
 }
 

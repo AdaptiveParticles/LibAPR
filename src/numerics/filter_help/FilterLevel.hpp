@@ -132,6 +132,24 @@ public:
         
     }
     
+    template<typename U>
+    void initialize_temp_vecs_new(std::vector<V>& filter_input,PartCellStructure<U,T>& pc_struct){
+        
+        filter.resize(filter_input.size());
+        
+        std::copy(filter_input.begin(),filter_input.end(),filter.begin());
+        
+        filter_offset = filter_input.size()/2 - 1;
+        
+        temp_vec_s0.resize(pc_struct.org_dims[0],0);
+        temp_vec_s1.resize(pc_struct.org_dims[0],0);
+        temp_vec_s2.resize(pc_struct.org_dims[0],0);
+        temp_vec_s3.resize(pc_struct.org_dims[0],0);
+        
+        temp_vec_ns.resize(pc_struct.org_dims[0],0);
+        
+    }
+    
     void iterate_y_seed(){
         //
         //  Moving forward through the particle in the cell right
@@ -167,6 +185,64 @@ public:
         
     }
     
+    void iterate_temp_vecs_new(){
+        //
+        //  Iterates forward these arrays
+        //
+        //  Copying the last value in
+        //
+        
+        
+        temp_vec_s0[y+filter_offset] = temp_vec_s0[y+filter_offset-1];
+        temp_vec_s1[y+filter_offset] = temp_vec_s1[y+filter_offset-1];
+        temp_vec_s2[y+filter_offset] = temp_vec_s2[y+filter_offset-1];
+        temp_vec_s3[y+filter_offset] = temp_vec_s3[y+filter_offset-1];
+        
+        temp_vec_ns[y+filter_offset] = temp_vec_ns[y+filter_offset-1];
+        
+        
+    }
+    
+    void compute_filter_new(ExtraPartCellData<V>& filter_output){
+        
+        uint64_t offset_max = std::min((uint64_t)(y + filter_offset),(uint64_t)(y_num-1));
+        uint64_t offset_min = std::max((uint64_t)(y - filter_offset),(uint64_t)0);
+        uint64_t f;
+        
+        if(status ==SEED){
+            //perform the filter
+            
+            f = 0;
+            for(uint64_t c = offset_min;f < offset_max;f++){
+                filter_output.data[depth][pc_offset][part_offset] += temp_vec_s0[c]*filter[f];
+                f++;
+            }
+            f = 0;
+            for(uint64_t c = offset_min;f < offset_max;f++){
+                filter_output.data[depth][pc_offset][part_offset+2] += temp_vec_s1[c]*filter[f];
+                f++;
+            }
+            f = 0;
+            for(uint64_t c = offset_min;f < offset_max;f++){
+                filter_output.data[depth][pc_offset][part_offset+4] += temp_vec_s2[c]*filter[f];
+                f++;
+            }
+            f = 0;
+            for(uint64_t c = offset_min;f < offset_max;f++){
+                filter_output.data[depth][pc_offset][part_offset+6] += temp_vec_s3[c]*filter[f];
+                f++;
+            }
+        } else {
+            // not seed
+            f = 0;
+            for(uint64_t c = offset_min;f < offset_max;f++){
+                filter_output.data[depth][pc_offset][part_offset+6] += temp_vec_ns[c]*filter[f];
+                f++;
+            }
+            
+        }
+    }
+    
     void compute_filter(ExtraPartCellData<V>& filter_output){
         
         
@@ -195,7 +271,7 @@ public:
             }
             
         }
-
+        
         
         
         
@@ -216,6 +292,7 @@ public:
     T y_global;
     
     T status;
+    T filter_offset;
     
 private:
     
@@ -226,24 +303,24 @@ private:
     T x;
     T z;
     T j;
-
+    
     T y;
     
     T x_num;
     T z_num;
     T part_offset;
     T node_val;
+    T y_num;
     
-
     //offsets
-
+    
     float depth_factor;
     float depth_factor_local;
-  
+    
     
     std::vector<V> filter;
     
-    T filter_offset;
+    
     
 };
 

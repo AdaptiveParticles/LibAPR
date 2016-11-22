@@ -65,7 +65,7 @@ public:
     void set_new_xz(T x_,T z_,PartCellStructure<U,T>& pc_struct){
         
         if(active_flag){
-        
+            
             x = floor((x_ )*depth_factor_local) + offset_x;
             z = floor((z_ )*depth_factor_local) + offset_z;
             
@@ -80,9 +80,6 @@ public:
             j_num = 0;
             y = 64000;
         }
-            
-        
-        
         
         if(j_num > 1){
             y = (pc_struct.pc_data.data[depth][pc_offset][0] & NEXT_COORD_MASK) >> NEXT_COORD_SHIFT;
@@ -90,7 +87,7 @@ public:
         } else {
             y = 64000;
         }
-
+        
     }
     
     template<typename U>
@@ -119,7 +116,7 @@ public:
                     //normal node
                     y++;
                     status = ((node_val & STATUS_MASK_PARTICLE) >> STATUS_SHIFT_PARTICLE);
-                   
+                    
                     part_offset = ((node_val & Y_PINDEX_MASK_PARTICLE) >> Y_PINDEX_SHIFT_PARTICLE);
                 }
                 
@@ -187,6 +184,20 @@ public:
         update_all_temp_vecs(pc_struct,curr_level);
         
     }
+    template<typename U>
+    void incriment_y_and_update_new(PartCellStructure<U,uint64_t>& pc_struct,FilterLevel<T,V>& curr_level){
+        //
+        //  Updates the array location for the move in particle, if the shift, results in the new cell hittin ghte end of the array, you update the array
+        //
+        
+        //update the values
+        incriment_y(curr_level.y_global,pc_struct);
+        
+        update_all_temp_vecs_new(curr_level.y_global,pc_struct,curr_level);
+        
+    }
+    
+    
     
     template<typename U>
     void incriment_y_and_update(T y_input,PartCellStructure<U,T>& pc_struct,FilterLevel<T,U>& curr_level){
@@ -198,6 +209,19 @@ public:
         incriment_y(y_input,pc_struct);
         
         update_all_temp_vecs(pc_struct,curr_level);
+        
+    }
+    
+    template<typename U>
+    void incriment_y_and_update_new(T y_input,PartCellStructure<U,T>& pc_struct,FilterLevel<T,U>& curr_level){
+        //
+        //  Updates the array location for the move in particle, if the shift, results in the new cell hittin ghte end of the array, you update the array
+        //
+        
+        //update the values
+        incriment_y(y_input,pc_struct);
+        
+        update_all_temp_vecs_new(y_input,pc_struct,curr_level);
         
     }
     
@@ -221,19 +245,19 @@ public:
                 //here need to account for status right?
                 
                 U temp_sum = 0;
-            
+                
                 curr_level.temp_vec_s0.back() = pc_struct.part_data.particle_data.data[depth][pc_offset][part_offset + 0];
                 temp_sum = pc_struct.part_data.particle_data.data[depth][pc_offset][part_offset + 0];
-            
+                
                 curr_level.temp_vec_s1.back() = pc_struct.part_data.particle_data.data[depth][pc_offset][part_offset + 2];
                 temp_sum += pc_struct.part_data.particle_data.data[depth][pc_offset][part_offset + 2];
-            
+                
                 curr_level.temp_vec_s2.back() = pc_struct.part_data.particle_data.data[depth][pc_offset][part_offset + 4];
                 temp_sum += pc_struct.part_data.particle_data.data[depth][pc_offset][part_offset + 4];
-            
+                
                 curr_level.temp_vec_s3.back() = pc_struct.part_data.particle_data.data[depth][pc_offset][part_offset + 6];
                 temp_sum += pc_struct.part_data.particle_data.data[depth][pc_offset][part_offset + 6];
-            
+                
                 curr_level.temp_vec_ns.back() = temp_sum/4.0f;
             } else if (hi_res_flag == HIGHER_RESOLUTION) {
                 //Higher resolution, they all get the same values
@@ -254,7 +278,7 @@ public:
                 } else {
                     temp_sum = pc_struct.part_data.particle_data.data[depth][pc_offset][part_offset + 0];
                 }
-                    
+                
                 switch(high_res_index){
                     case 0:{
                         curr_level.temp_vec_s0.back() = temp_sum;
@@ -273,7 +297,7 @@ public:
                         break;
                     }
                         
-                    curr_level.temp_vec_ns.back() = temp_sum/4.0f;
+                        curr_level.temp_vec_ns.back() = temp_sum/4.0f;
                         
                 }
                 
@@ -289,6 +313,93 @@ public:
                 curr_level.temp_vec_s3.back() = temp;
                 
                 curr_level.temp_vec_ns.back() = temp;
+                
+            }
+        }
+        
+    }
+    template<typename U>
+    void update_all_temp_vecs_new(uint64_t index,PartCellStructure<U,T>& pc_struct,FilterLevel<T,V>& curr_level){
+        //update all the current vectors if required (update_flag is set as to whether this is the current new cell)
+        
+        if(update_flag){
+            
+            index = std::min((uint64_t)(index +curr_level.filter_offset),(uint64_t)(pc_struct.org_dims[0]-1));
+            
+            if((hi_res_flag == SAME_RESOLUTION) & (status == SEED)){
+                // Higher resolution level, need to account for the different particles in the cell
+                
+                //here need to account for status right?
+                
+                U temp_sum = 0;
+                
+                curr_level.temp_vec_s0[index] = pc_struct.part_data.particle_data.data[depth][pc_offset][part_offset + 0];
+                temp_sum = pc_struct.part_data.particle_data.data[depth][pc_offset][part_offset + 0];
+                
+                curr_level.temp_vec_s1[index] = pc_struct.part_data.particle_data.data[depth][pc_offset][part_offset + 2];
+                temp_sum += pc_struct.part_data.particle_data.data[depth][pc_offset][part_offset + 2];
+                
+                curr_level.temp_vec_s2[index] = pc_struct.part_data.particle_data.data[depth][pc_offset][part_offset + 4];
+                temp_sum += pc_struct.part_data.particle_data.data[depth][pc_offset][part_offset + 4];
+                
+                curr_level.temp_vec_s3[index] = pc_struct.part_data.particle_data.data[depth][pc_offset][part_offset + 6];
+                temp_sum += pc_struct.part_data.particle_data.data[depth][pc_offset][part_offset + 6];
+                
+                curr_level.temp_vec_ns[index] = temp_sum/4.0f;
+            } else if (hi_res_flag == HIGHER_RESOLUTION) {
+                //Higher resolution, they all get the same values
+                
+                V temp_sum;
+                
+                if(status ==SEED){
+                    //Seed status need to average the values
+                    
+                    temp_sum = pc_struct.part_data.particle_data.data[depth][pc_offset][part_offset + 0];
+                    temp_sum += pc_struct.part_data.particle_data.data[depth][pc_offset][part_offset + 2];
+                    temp_sum += pc_struct.part_data.particle_data.data[depth][pc_offset][part_offset + 4];
+                    temp_sum += pc_struct.part_data.particle_data.data[depth][pc_offset][part_offset + 6];
+                    
+                    temp_sum = temp_sum/4.0f;
+                    
+                    
+                } else {
+                    temp_sum = pc_struct.part_data.particle_data.data[depth][pc_offset][part_offset + 0];
+                }
+                
+                switch(high_res_index){
+                    case 0:{
+                        curr_level.temp_vec_s0[index] = temp_sum;
+                        break;
+                    }
+                    case 1:{
+                        curr_level.temp_vec_s1[index] = temp_sum;
+                        break;
+                    }
+                    case 2:{
+                        curr_level.temp_vec_s2[index] = temp_sum;
+                        break;
+                    }
+                    case 3:{
+                        curr_level.temp_vec_s3[index] = temp_sum;
+                        break;
+                    }
+                        
+                        curr_level.temp_vec_ns[index] = temp_sum/4.0f;
+                        
+                }
+                
+                
+            } else {
+                //Lower resolution, they all get the same values
+                
+                U temp = pc_struct.part_data.particle_data.data[depth][pc_offset][part_offset + (status == SEED)*seed_offset];
+                
+                curr_level.temp_vec_s0[index] = temp;
+                curr_level.temp_vec_s1[index] = temp;
+                curr_level.temp_vec_s2[index] = temp;
+                curr_level.temp_vec_s3[index] = temp;
+                
+                curr_level.temp_vec_ns[index] = temp;
                 
             }
         }
