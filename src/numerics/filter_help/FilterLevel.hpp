@@ -238,7 +238,7 @@ private:
     //offsets
 
     float depth_factor;
-    
+    float depth_factor_local;
   
     
     std::vector<V> filter;
