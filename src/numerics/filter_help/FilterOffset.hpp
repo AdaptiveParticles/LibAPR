@@ -109,7 +109,7 @@ public:
                     y++;
                     status = ((node_val & STATUS_MASK_PARTICLE) >> STATUS_SHIFT_PARTICLE);
                    
-                    part_offset = ((node_val & Y_PINDEX_MASK_PARTICLE) >> Y_PINDEX_SHIFT_PARTICLE) + (status == SEED)*seed_offset;
+                    part_offset = ((node_val & Y_PINDEX_MASK_PARTICLE) >> Y_PINDEX_SHIFT_PARTICLE);
                 }
                 
             }
@@ -204,8 +204,10 @@ public:
         //update all the current vectors if required (update_flag is set as to whether this is the current new cell)
         
         if(update_flag){
-            if(hi_res_flag){
+            if(hi_res_flag & (status == SEED)){
                 // Higher resolution level, need to account for the different particles in the cell
+                
+                //here need to account for status right?
                 
                 U temp_sum = 0;
             
@@ -213,19 +215,19 @@ public:
                 temp_sum = pc_struct.part_data.particle_data.data[depth][pc_offset][part_offset + 0];
             
                 curr_level.temp_vec_s1.back() = pc_struct.part_data.particle_data.data[depth][pc_offset][part_offset + 2];
-                temp_sum = pc_struct.part_data.particle_data.data[depth][pc_offset][part_offset + 2];
+                temp_sum += pc_struct.part_data.particle_data.data[depth][pc_offset][part_offset + 2];
             
                 curr_level.temp_vec_s2.back() = pc_struct.part_data.particle_data.data[depth][pc_offset][part_offset + 4];
-                temp_sum = pc_struct.part_data.particle_data.data[depth][pc_offset][part_offset + 4];
+                temp_sum += pc_struct.part_data.particle_data.data[depth][pc_offset][part_offset + 4];
             
                 curr_level.temp_vec_s3.back() = pc_struct.part_data.particle_data.data[depth][pc_offset][part_offset + 6];
-                temp_sum = pc_struct.part_data.particle_data.data[depth][pc_offset][part_offset + 6];
+                temp_sum += pc_struct.part_data.particle_data.data[depth][pc_offset][part_offset + 6];
             
                 curr_level.temp_vec_ns.back() = temp_sum/4.0f;
             } else {
                 //Lower resolution, they all get the same values
                 
-                U temp = pc_struct.part_data.particle_data.data[depth][pc_offset][part_offset + 0];
+                U temp = pc_struct.part_data.particle_data.data[depth][pc_offset][part_offset + (status == SEED)*seed_offset];
                 
                 curr_level.temp_vec_s0.back() = temp;
                 curr_level.temp_vec_s1.back() = temp;

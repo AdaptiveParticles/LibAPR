@@ -80,8 +80,6 @@ void convolution_filter_y(PartCellStructure<U,uint64_t>& pc_struct,ExtraPartCell
     int z_; // iteration variables
     uint64_t j_; // index variable
     
-    uint64_t depth = pc_struct.depth_max;
-    
     ////////////////////////
     //
     //  Seed loop (max resolution) example
@@ -141,12 +139,24 @@ void convolution_filter_y(PartCellStructure<U,uint64_t>& pc_struct,ExtraPartCell
             } else {
                 layer_active = INACTIVE;
             }
-            FilterOffset<uint64_t,float> layer_minus(HIGHER_RESOLUTION,layer_active);
+            FilterOffset<uint64_t,float> layer_minus0(HIGHER_RESOLUTION,layer_active);
+            FilterOffset<uint64_t,float> layer_minus1(HIGHER_RESOLUTION,layer_active);
+            FilterOffset<uint64_t,float> layer_minus2(HIGHER_RESOLUTION,layer_active);
+            FilterOffset<uint64_t,float> layer_minus3(HIGHER_RESOLUTION,layer_active);
             
-            layer_minus.set_offsets(0,0,filter_offset,1); //one layer below
-            layer_minus.set_new_depth(depth,pc_struct); //intialize for the depth
+            layer_minus0.set_offsets(0,0,filter_offset,1); //one layer below
+            layer_minus0.set_new_depth(depth,pc_struct); //intialize for the depth
             
-#pragma omp parallel for default(shared) private(z_,x_,j_) firstprivate(layer_plus,layer_equal,curr_level,layer_plus_2,layer_minus) if(z_num_*x_num_ > 100)
+            layer_minus1.set_offsets(0,0,filter_offset,1); //one layer below
+            layer_minus1.set_new_depth(depth,pc_struct); //intialize for the depth
+            
+            layer_minus2.set_offsets(0,0,filter_offset,1); //one layer below
+            layer_minus2.set_new_depth(depth,pc_struct); //intialize for the depth
+            
+            layer_minus3.set_offsets(0,0,filter_offset,1); //one layer below
+            layer_minus3.set_new_depth(depth,pc_struct); //intialize for the depth
+            
+#pragma omp parallel for default(shared) private(z_,x_,j_) firstprivate(layer_plus,layer_equal,curr_level,layer_plus_2,layer_minus0) if(z_num_*x_num_ > 100)
             for(z_ = 0;z_ < z_num_;z_++){
                 //both z and x are explicitly accessed in the structure
                 
@@ -157,7 +167,7 @@ void convolution_filter_y(PartCellStructure<U,uint64_t>& pc_struct,ExtraPartCell
                     layer_plus.set_new_xz(x_*2,z_*2,pc_struct);
                     layer_plus_2.set_new_xz(x_*2,z_*2,pc_struct);
                     layer_equal.set_new_xz(x_*2,z_*2,pc_struct);
-                    layer_minus.set_new_xz(x_*2,z_*2,pc_struct);
+                    layer_minus0.set_new_xz(x_*2,z_*2,pc_struct);
                     
                     curr_level.set_new_xz(x_,z_,pc_struct);
                     
