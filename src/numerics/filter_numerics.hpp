@@ -639,6 +639,74 @@ void convolution_filter_pixels(PartCellStructure<U,uint64_t>& pc_struct,uint64_t
     std::cout << " Pixel Filter Size: " << (x_num*y_num*z_num) << " took: " << time << std::endl;
     
 }
+template<typename U>
+void convolution_filter_pixels_temp(PartCellStructure<U,uint64_t>& pc_struct,uint64_t y_num,uint64_t x_num,uint64_t z_num){
+    //
+    //  Compute two, comparitive filters for speed. Original size img, and current particle size comparison
+    //
+    
+    Mesh_data<U> input_data;
+    Mesh_data<U> output_data;
+    input_data.initialize((int)y_num,(int)x_num,(int)z_num,23);
+    output_data.initialize((int)y_num,(int)x_num,(int)z_num,0);
+    
+    std::vector<float> filter;
+    
+    Part_timer timer;
+    timer.verbose_flag = false;
+    timer.start_timer("full previous filter");
+    
+    uint64_t filter_offset = 1;
+    filter.resize(filter_offset*2 +1,1);
+    
+    std::vector<U> temp_vec;
+    temp_vec.resize(y_num,0);
+    
+    uint64_t offset_min;
+    uint64_t offset_max;
+    
+    uint64_t j = 0;
+    uint64_t k = 0;
+    uint64_t i = 0;
+    
+    float num_repeats = 50;
+    
+    for(int r = 0;r < num_repeats;r++){
+        
+#pragma omp parallel for default(shared) private(j,i,k,offset_min,offset_max) firstprivate(temp_vec)
+        for(j = 0; j < z_num;j++){
+            for(i = 0; i < x_num;i++){
+                
+                //for(k = 0;k < y_num;k++){
+                  //  temp_vec[k] = input_data.mesh[j*x_num*y_num + i*y_num + k];
+                //}
+                
+                for(k = 0;k < y_num;k++){
+                    
+                    offset_max = std::min((uint64_t)(k + filter_offset),(uint64_t)(y_num-1));
+                    offset_min = std::max((uint64_t)(k - filter_offset),(uint64_t)0);
+                    
+                    uint64_t f = 0;
+                    for(uint64_t c = offset_min;c <= offset_max;c++){
+                        
+                        //output_data.mesh[j*x_num*y_num + i*y_num + k] += temp_vec[c]*filter[f];
+                        output_data.mesh[j*x_num*y_num + i*y_num + k] += input_data.mesh[j*x_num*y_num + i*y_num + c]*filter[f];
+                        f++;
+                    }
+                    
+                }
+            }
+        }
+        
+    }
+    
+    
+    timer.stop_timer();
+    float time = (timer.t2 - timer.t1)/num_repeats;
+    
+    std::cout << " Pixel Filter Size: " << (x_num*y_num*z_num) << " took: " << time << std::endl;
+    
+}
 
 
 
