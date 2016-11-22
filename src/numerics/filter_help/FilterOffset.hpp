@@ -21,7 +21,7 @@ public:
     
     
     
-    FilterOffset(bool hi_res_flag): hi_res_flag(hi_res_flag){
+    FilterOffset(bool hi_res_flag,bool active_flag): hi_res_flag(hi_res_flag), active_flag(active_flag){
         depth = 0;
         x = 0;
         z = 0;
@@ -31,7 +31,7 @@ public:
         j_num = 0;
         x_num = 0;
         z_num = 0;
-        
+        status = 0;
         
     };
     
@@ -58,13 +58,20 @@ public:
     template<typename U>
     void set_new_xz(T x_,T z_,PartCellStructure<U,T>& pc_struct){
         
-        x = (x_ + offset_x)*depth_factor;
-        z = (z_ + offset_z)*depth_factor;
+        if(active_flag){
         
-        pc_offset = x_num*z + x;
-        j_num = pc_struct.pc_data.data[depth][pc_offset].size();
-        part_offset = 0;
-        seed_offset = (((uint64_t)((x_+offset_x)*depth_factor*2))&1)*2 + (((uint64_t)((z_+offset_z)*depth_factor*2))&1)*4;
+            x = (x_ + offset_x)*depth_factor;
+            z = (z_ + offset_z)*depth_factor;
+        
+            pc_offset = x_num*z + x;
+            j_num = pc_struct.pc_data.data[depth][pc_offset].size();
+            part_offset = 0;
+            seed_offset = (((uint64_t)((x_+offset_x)*depth_factor*2))&1)*2 + (((uint64_t)((z_+offset_z)*depth_factor*2))&1)*4;
+        } else {
+            j_num = 0;
+            y = 64000;
+        }
+            
         
         if(j_num > 1){
             y = (pc_struct.pc_data.data[depth][pc_offset][0] & NEXT_COORD_MASK) >> NEXT_COORD_SHIFT;
@@ -262,6 +269,9 @@ private:
     bool update_flag;
     
     const bool hi_res_flag;
+    
+    const bool active_flag;
+    
 };
 
 #endif //PARTPLAY_PARTCELLOFFSET_HPP
