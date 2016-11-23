@@ -90,14 +90,14 @@ int main(int argc, char **argv) {
     filter_output.initialize_structure_parts(pc_struct.part_data.particle_data);
     
     
-    threshold_speed(pc_struct);
+  //  threshold_speed(pc_struct);
     
-    threshold_pixels(pc_struct,pc_struct.org_dims[0],pc_struct.org_dims[1],pc_struct.org_dims[2]);
+   // threshold_pixels(pc_struct,pc_struct.org_dims[0],pc_struct.org_dims[1],pc_struct.org_dims[2]);
     
     //filter y
     //convolution_filter_y(pc_struct,filter_output);
     
-    //convolution_filter_y_new(pc_struct,filter_output);
+    convolution_filter_y_new(pc_struct,filter_output);
     //convolution_filter_y_new(pc_struct,filter_output);
     
     //convolution_filter_pixels(pc_struct,pc_struct.org_dims[0],pc_struct.org_dims[1],pc_struct.org_dims[2]);
