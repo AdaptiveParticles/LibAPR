@@ -97,7 +97,7 @@ int main(int argc, char **argv) {
     
     //convolution_filter_pixels(pc_struct,pc_struct.org_dims[0],pc_struct.org_dims[1],pc_struct.org_dims[2]);
     
-    //convolution_filter_pixels_temp(pc_struct,pc_struct.org_dims[0],pc_struct.org_dims[1],pc_struct.org_dims[2]);
+    convolution_filter_pixels_temp(pc_struct,pc_struct.org_dims[0],pc_struct.org_dims[1],pc_struct.org_dims[2]);
 //    
 //    
     uint64_t num_parts = pc_struct.get_number_parts();
@@ -105,6 +105,12 @@ int main(int argc, char **argv) {
 //    
     convolution_filter_pixels(pc_struct,dim,dim,dim);
     convolution_filter_pixels_temp(pc_struct,dim,dim,dim);
+    
+    Mesh_data<uint16_t> filter_img;
+    
+    pc_struct.interp_parts_to_pc(filter_img,filter_output);
+    
+    debug_write(filter_img,"filter_output");
     
 }
 
