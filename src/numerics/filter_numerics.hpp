@@ -332,9 +332,6 @@ void convolution_filter_y(PartCellStructure<U,uint64_t>& pc_struct,ExtraPartCell
     }
     
     
-    
-    
-    
     timer.stop_timer();
     float time = (timer.t2 - timer.t1)/num_repeats;
     

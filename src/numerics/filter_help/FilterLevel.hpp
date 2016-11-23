@@ -148,6 +148,8 @@ public:
         
         temp_vec_ns.resize(pc_struct.org_dims[0],0);
         
+        y_num = pc_struct.org_dims[0];
+        
     }
     
     void iterate_y_seed(){
@@ -192,14 +194,15 @@ public:
         //  Copying the last value in
         //
         
+        if((y_global +filter_offset) < y_num){
         
-        temp_vec_s0[y+filter_offset] = temp_vec_s0[y+filter_offset-1];
-        temp_vec_s1[y+filter_offset] = temp_vec_s1[y+filter_offset-1];
-        temp_vec_s2[y+filter_offset] = temp_vec_s2[y+filter_offset-1];
-        temp_vec_s3[y+filter_offset] = temp_vec_s3[y+filter_offset-1];
+            temp_vec_s0[y_global+filter_offset] = temp_vec_s0[y_global+filter_offset-1];
+            temp_vec_s1[y_global+filter_offset] = temp_vec_s1[y_global+filter_offset-1];
+            temp_vec_s2[y_global+filter_offset] = temp_vec_s2[y_global+filter_offset-1];
+            temp_vec_s3[y_global+filter_offset] = temp_vec_s3[y_global+filter_offset-1];
         
-        temp_vec_ns[y+filter_offset] = temp_vec_ns[y+filter_offset-1];
-        
+            temp_vec_ns[y_global+filter_offset] = temp_vec_ns[y_global+filter_offset-1];
+        }
         
     }
     
@@ -295,11 +298,13 @@ public:
     
     T status;
     T filter_offset;
+    T part_offset;
+    T pc_offset;
     
 private:
     
     T j_num;
-    T pc_offset;
+    
     T depth;
     
     T x;
@@ -310,7 +315,7 @@ private:
     
     T x_num;
     T z_num;
-    T part_offset;
+    
     T node_val;
     T y_num;
     

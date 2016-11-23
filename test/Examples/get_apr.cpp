@@ -173,18 +173,6 @@ int main(int argc, char **argv) {
     write_apr_pc_struct(pcell_test,save_loc,file_name);
     
     part_rep.timer.stop_timer();
-    
-    Mesh_data<uint8_t> seg_img;
-    
-    interp_depth_to_mesh(seg_img,pcell_test);
-    
-    debug_write(seg_img,"k_mask");
-    
-    interp_status_to_mesh(seg_img,pcell_test);
-    
-    debug_write(seg_img,"status_mask");
-    
-    
 }
 
 
