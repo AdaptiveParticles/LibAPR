@@ -109,7 +109,7 @@ int main(int argc, char **argv) {
     uint64_t dim = ceil(pow(num_parts,1.0/3.0));
 //    
     //convolution_filter_pixels(pc_struct,dim,dim,dim);
-    //convolution_filter_pixels_temp(pc_struct,dim,dim,dim);
+    convolution_filter_pixels_temp(pc_struct,dim,dim,dim);
     
     //Mesh_data<uint16_t> filter_img;
     
