@@ -7,7 +7,7 @@ Library for processing on APR representation
 * HDF5 library installed and the library linked/included (libhdf5-dev)
 * CMake
 * tiffio (libtiff5-dev debian/ubuntu)
-* Blosc (http://blosc.org/)
+* Blosc (http://blosc.org/) (https://github.com/Blosc/c-blosc) and (https://github.com/Blosc/hdf5-blosc)
 
 ## Building
 
