@@ -472,7 +472,7 @@ void convolution_filter_y_new(PartCellStructure<U,uint64_t>& pc_struct,ExtraPart
                                 
                                 //update and incriment
                                 layer_plus.incriment_y_and_update_new(pc_struct,curr_level);
-                                layer_plus_2.incriment_y_and_update_new(pc_struct,curr_level);
+                                //layer_plus_2.incriment_y_and_update_new(pc_struct,curr_level);
                                 layer_equal.incriment_y_and_update_new(pc_struct,curr_level);
                                 
                                 
@@ -513,6 +513,28 @@ void convolution_filter_y_new(PartCellStructure<U,uint64_t>& pc_struct,ExtraPart
                                     
                                     
                                 }
+                            }
+                        }
+                        
+                        curr_level.set_new_xz(x_,z_,pc_struct);
+                        //the y direction loop however is sparse, and must be accessed accordinagly
+                        for(j_ = 0;j_ < curr_level.j_num_();j_++){
+                            
+                            //particle cell node value, used here as it is requried for getting the particle neighbours
+                            bool iscell = curr_level.new_j(j_,pc_struct);
+                            
+                            if (iscell){
+                                
+                                curr_level.compute_filter_new(filter_output);
+                                
+                                if(curr_level.status_()==SEED){
+                                    //iterate forward
+                                    curr_level.iterate_y_seed();
+                                    curr_level.compute_filter_new(filter_output);
+                                }
+                                
+                            } else {
+                                curr_level.update_gap(pc_struct);
                             }
                         }
                     }
@@ -604,6 +626,29 @@ void convolution_filter_y_new(PartCellStructure<U,uint64_t>& pc_struct,ExtraPart
                                 }
                             }
                         }
+                        
+                        curr_level.set_new_xz(x_,z_,pc_struct);
+                        //the y direction loop however is sparse, and must be accessed accordinagly
+                        for(j_ = 0;j_ < curr_level.j_num_();j_++){
+                            
+                            //particle cell node value, used here as it is requried for getting the particle neighbours
+                            bool iscell = curr_level.new_j(j_,pc_struct);
+                            
+                            if (iscell){
+                                
+                                curr_level.compute_filter_new(filter_output);
+                                
+                                if(curr_level.status_()==SEED){
+                                    //iterate forward
+                                    curr_level.iterate_y_seed();
+                                    curr_level.compute_filter_new(filter_output);
+                                }
+                                
+                            } else {
+                                curr_level.update_gap(pc_struct);
+                            }
+                        }
+                        
                     }
                 }
                 

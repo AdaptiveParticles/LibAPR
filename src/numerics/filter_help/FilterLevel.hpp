@@ -213,30 +213,32 @@ public:
             //perform the filter
             
             f = 0;
-            for(uint64_t c = offset_min;f < offset_max;f++){
+            for(uint64_t c = offset_min;c < offset_max;c++){
                 filter_output.data[depth][pc_offset][part_offset] += temp_vec_s0[c]*filter[f];
                 f++;
             }
             f = 0;
-            for(uint64_t c = offset_min;f < offset_max;f++){
+            for(uint64_t c = offset_min;c < offset_max;c++){
+
                 filter_output.data[depth][pc_offset][part_offset+2] += temp_vec_s1[c]*filter[f];
                 f++;
             }
             f = 0;
-            for(uint64_t c = offset_min;f < offset_max;f++){
+            for(uint64_t c = offset_min;c < offset_max;c++){
+
                 filter_output.data[depth][pc_offset][part_offset+4] += temp_vec_s2[c]*filter[f];
                 f++;
             }
             f = 0;
-            for(uint64_t c = offset_min;f < offset_max;f++){
+            for(uint64_t c = offset_min;c < offset_max;c++){
                 filter_output.data[depth][pc_offset][part_offset+6] += temp_vec_s3[c]*filter[f];
                 f++;
             }
         } else {
             // not seed
             f = 0;
-            for(uint64_t c = offset_min;f < offset_max;f++){
-                filter_output.data[depth][pc_offset][part_offset+6] += temp_vec_ns[c]*filter[f];
+            for(uint64_t c = offset_min;c < offset_max;c++){
+                filter_output.data[depth][pc_offset][part_offset] += temp_vec_ns[c]*filter[f];
                 f++;
             }
             
