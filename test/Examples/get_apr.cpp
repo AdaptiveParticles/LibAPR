@@ -164,6 +164,8 @@ int main(int argc, char **argv) {
     
     part_rep.timer.stop_timer();
     
+    t.stop_timer();
+    
     //output
     std::string save_loc = options.directory;
     std::string file_name = options.output;
