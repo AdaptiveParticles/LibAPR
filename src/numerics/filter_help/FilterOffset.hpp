@@ -345,7 +345,9 @@ public:
                 curr_level.temp_vec_s3[index] = pc_struct.part_data.particle_data.data[depth][pc_offset][part_offset + 6];
                 temp_sum += pc_struct.part_data.particle_data.data[depth][pc_offset][part_offset + 6];
                 
-                curr_level.temp_vec_ns[index] = temp_sum/4.0f;
+                curr_level.temp_vec_ns[index] = (temp_sum)/4.0f;
+                
+                
             } else if (hi_res_flag == HIGHER_RESOLUTION) {
                 //Higher resolution, they all get the same values
                 
@@ -383,11 +385,8 @@ public:
                         curr_level.temp_vec_s3[index] = temp_sum;
                         break;
                     }
-                        
-                        curr_level.temp_vec_ns[index] = temp_sum/4.0f;
-                        
                 }
-                
+                curr_level.temp_vec_ns[index] = temp_sum/4.0f;
                 
             } else {
                 //Lower resolution, they all get the same values

@@ -352,7 +352,7 @@ void convolution_filter_y_new(PartCellStructure<U,uint64_t>& pc_struct,ExtraPart
     
     std::vector<float> filter;
     
-    int filter_offset = 1;
+    int filter_offset = 6;
     filter.resize(filter_offset*2 +1,1);
     
     ///////////////
@@ -452,7 +452,7 @@ void convolution_filter_y_new(PartCellStructure<U,uint64_t>& pc_struct,ExtraPart
                         //NEED TO FIX THESE THEY HAVE THE WRONG INPUT
                         //shift layers
                         layer_plus.set_new_xz(x_,z_,pc_struct);
-                        layer_plus_2.set_new_xz(x_,z_,pc_struct);
+                        //layer_plus_2.set_new_xz(x_,z_,pc_struct);
                         layer_equal.set_new_xz(x_,z_,pc_struct);
                         
                         curr_level.set_new_xz(x_,z_,pc_struct);
@@ -509,7 +509,7 @@ void convolution_filter_y_new(PartCellStructure<U,uint64_t>& pc_struct,ExtraPart
                                     curr_level.iterate_temp_vecs_new();
                                     layer_plus.incriment_y_and_update_new(q,pc_struct,curr_level);
                                     layer_equal.incriment_y_and_update_new(q,pc_struct,curr_level);
-                                    layer_plus_2.incriment_y_and_update_new(q,pc_struct,curr_level);
+                                    //layer_plus_2.incriment_y_and_update_new(q,pc_struct,curr_level);
                                     
                                     
                                 }
@@ -524,7 +524,7 @@ void convolution_filter_y_new(PartCellStructure<U,uint64_t>& pc_struct,ExtraPart
                             bool iscell = curr_level.new_j(j_,pc_struct);
                             
                             if (iscell){
-                                
+                                curr_level.update_cell(pc_struct);
                                 curr_level.compute_filter_new(filter_output);
                                 
                                 if(curr_level.status_()==SEED){
@@ -574,7 +574,7 @@ void convolution_filter_y_new(PartCellStructure<U,uint64_t>& pc_struct,ExtraPart
                                 
                                 //update and incriment
                                 layer_plus.incriment_y_and_update_new(pc_struct,curr_level);
-                                layer_plus_2.incriment_y_and_update_new(pc_struct,curr_level);
+                                //layer_plus_2.incriment_y_and_update_new(pc_struct,curr_level);
                                 layer_equal.incriment_y_and_update_new(pc_struct,curr_level);
                                 layer_minus0.incriment_y_and_update_new(pc_struct,curr_level);
                                 layer_minus1.incriment_y_and_update_new(pc_struct,curr_level);
@@ -617,7 +617,7 @@ void convolution_filter_y_new(PartCellStructure<U,uint64_t>& pc_struct,ExtraPart
                                     curr_level.iterate_temp_vecs_new();
                                     layer_plus.incriment_y_and_update_new(q,pc_struct,curr_level);
                                     layer_equal.incriment_y_and_update_new(q,pc_struct,curr_level);
-                                    layer_plus_2.incriment_y_and_update_new(q,pc_struct,curr_level);
+                                    //layer_plus_2.incriment_y_and_update_new(q,pc_struct,curr_level);
                                     
                                     layer_minus0.incriment_y_and_update_new(q,pc_struct,curr_level);
                                     layer_minus1.incriment_y_and_update_new(q,pc_struct,curr_level);
@@ -635,7 +635,7 @@ void convolution_filter_y_new(PartCellStructure<U,uint64_t>& pc_struct,ExtraPart
                             bool iscell = curr_level.new_j(j_,pc_struct);
                             
                             if (iscell){
-                                
+                                curr_level.update_cell(pc_struct);
                                 curr_level.compute_filter_new(filter_output);
                                 
                                 if(curr_level.status_()==SEED){
@@ -752,7 +752,7 @@ void convolution_filter_pixels_temp(PartCellStructure<U,uint64_t>& pc_struct,uin
     timer.verbose_flag = false;
     timer.start_timer("full previous filter");
     
-    uint64_t filter_offset = 1;
+    uint64_t filter_offset = 6;
     filter.resize(filter_offset*2 +1,1);
     
     std::vector<U> temp_vec;
