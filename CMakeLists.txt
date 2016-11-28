@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 2.8)
 project(PartPlay)
 # Run it out of source as cmake -H. -Bbuild ..
-set(TESTS 1)
+#set(TESTS 1)
 if(TESTS)
     find_package(GTest REQUIRED)
 endif(TESTS)
