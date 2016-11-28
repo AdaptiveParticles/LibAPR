@@ -17,6 +17,36 @@
 #include "../data_structures/Tree/PartCellParent.hpp"
 
 
+int uf_find(int x,std::vector<uint16_t>& labels) {
+    int y = x;
+    while (labels[y] != y)
+        y = labels[y];
+    
+    while (labels[x] != x) {
+        int z = labels[x];
+        labels[x] = y;
+        x = z;
+    }
+    return y;
+}
+
+/*  uf_union joins two equivalence classes and returns the canonical label of the resulting class. */
+
+int uf_union(int x, int y,std::vector<uint16_t>& labels) {
+    return labels[uf_find(x,labels)] = uf_find(y,labels);
+}
+
+/*  uf_make_set creates a new equivalence class and returns its label */
+
+int uf_make_set(std::vector<uint16_t>& labels) {
+    labels[0] ++;
+    labels.push_back(labels[0]);
+    //labels[labels[0]] = labels[0];
+    return labels[0];
+}
+
+
+
 template<typename S>
 void calc_connected_component(PartCellStructure<S,uint64_t>& pc_struct,ExtraPartCellData<uint8_t>& binary_mask,ExtraPartCellData<uint16_t>& component_label){
     //
@@ -44,19 +74,18 @@ void calc_connected_component(PartCellStructure<S,uint64_t>& pc_struct,ExtraPart
     uint64_t part_offset=0;
     uint64_t p;
     
-    uint64_t num_cells = pc_struct.get_number_cells();
-    uint64_t num_parts = pc_struct.get_number_parts();
+    std::vector<uint16_t> labels;
+    
+    timer.verbose_flag = true;
     
     timer.start_timer("connected comp first loop");
-    
     
     for(uint64_t i = pc_struct.pc_data.depth_min;i <= pc_struct.pc_data.depth_max;i++){
         //loop over the resolutions of the structure
         const unsigned int x_num_ = pc_struct.pc_data.x_num[i];
         const unsigned int z_num_ = pc_struct.pc_data.z_num[i];
         
-        
-#pragma omp parallel for default(shared) private(p,z_,x_,j_,node_val_pc,node_val_part,curr_key,status,part_offset) firstprivate(neigh_part_keys,neigh_cell_keys) if(z_num_*x_num_ > 100)
+//#pragma omp parallel for default(shared) private(p,z_,x_,j_,node_val_pc,node_val_part,curr_key,status,part_offset) firstprivate(neigh_part_keys,neigh_cell_keys) if(z_num_*x_num_ > 100)
         for(z_ = 0;z_ < z_num_;z_++){
             //both z and x are explicitly accessed in the structure
             curr_key = 0;
@@ -93,8 +122,93 @@ void calc_connected_component(PartCellStructure<S,uint64_t>& pc_struct,ExtraPart
                             //first set the particle index value in the particle_data array (stores the intensities)
                             pc_struct.part_data.access_data.pc_key_set_index(curr_key,part_offset+p);
                             //get all the neighbour particles in (+y,-y,+x,-x,+z,-z) ordering
-                            pc_struct.part_data.get_part_neighs_all(p,node_val_pc,curr_key,status,part_offset,neigh_cell_keys,neigh_part_keys,pc_struct.pc_data);
                             
+                            if( binary_mask.get_part(curr_key) ==1){
+                                
+                                uint64_t neigh_part;
+                                std::vector<uint16_t> neigh_labels;
+                                
+                                //first get -y neighbour
+                                pc_struct.part_data.get_part_neighs_face(1,p,node_val_pc,curr_key,status,part_offset,neigh_cell_keys,neigh_part_keys,pc_struct.pc_data);
+                                
+                                for(int n = 0; n < neigh_part_keys.neigh_face[0].size();n++){
+                                    neigh_part = neigh_part_keys.neigh_face[0][n];
+                                    
+                                    if(neigh_part > 0){
+                                        if(component_label.get_part(neigh_part) > 0){
+                                            //do something
+                                            neigh_labels.push_back(component_label.get_part(neigh_part));
+                                        }
+                                    }
+                                    
+                                }
+                                
+                                //first get -y neighbour
+                                pc_struct.part_data.get_part_neighs_face(3,p,node_val_pc,curr_key,status,part_offset,neigh_cell_keys,neigh_part_keys,pc_struct.pc_data);
+                                
+                                for(int n = 0; n < neigh_part_keys.neigh_face[3].size();n++){
+                                    neigh_part = neigh_part_keys.neigh_face[3][n];
+                                    
+                                    if(neigh_part > 0){
+                                        if(component_label.get_part(neigh_part) > 0){
+                                            //do something
+                                            neigh_labels.push_back(component_label.get_part(neigh_part));
+                                        }
+                                    }
+                                    
+                                }
+                                
+                                //first get -y neighbour
+                                pc_struct.part_data.get_part_neighs_face(5,p,node_val_pc,curr_key,status,part_offset,neigh_cell_keys,neigh_part_keys,pc_struct.pc_data);
+                                
+                                for(int n = 0; n < neigh_part_keys.neigh_face[5].size();n++){
+                                    neigh_part = neigh_part_keys.neigh_face[5][n];
+                                    
+                                    if(neigh_part > 0){
+                                        if(component_label.get_part(neigh_part) > 0){
+                                            //do something
+                                            neigh_labels.push_back(component_label.get_part(neigh_part));
+                                        }
+                                    }
+                                    
+                                }
+                                
+                                if(neigh_labels.size() == 0){
+                                    //
+                                    // no neighbour labels new region
+                                    //
+                                    
+                                    component_label.get_part(curr_key) = uf_make_set();
+                                    
+                                    
+                                } else if (neigh_labels.size() = 1){
+                                    //
+                                    // one neighbour label, set yourslef to that label
+                                    //
+                                    
+                                    component_label.get_part(curr_key) = neigh_labels[0];
+                                    
+                                    
+                                } else {
+                                    //
+                                    // multiple neighbour regions, resolve
+                                    //
+                                    
+                                    for(int n = 0; n < (neigh_labels.size()-1);n++){
+                                        
+                                        
+                                        
+                                    }
+                                    
+                                    
+                                }
+                                
+                                
+                                
+                                
+                                
+                            
+                            }
                         }
                         
                     } else {

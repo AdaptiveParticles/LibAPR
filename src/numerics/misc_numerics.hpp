@@ -301,8 +301,8 @@ void interp_extrapc_to_mesh(Mesh_data<T>& output_img,PartCellStructure<S,uint64_
     
     
 }
-
-void threshold_speed(PartCellStructure<float,uint64_t>& pc_struct){
+template<typename T>
+void threshold_part(PartCellStructure<float,uint64_t>& pc_struct,ExtraPartCellData<T>& th_output,float threshold){
     //
     //
     //  Bevan Cheeseman 2016
@@ -313,10 +313,6 @@ void threshold_speed(PartCellStructure<float,uint64_t>& pc_struct){
     uint64_t x_;
     uint64_t z_;
     uint64_t j_;
-    
-    float threshold = 100;
-    
-    ExtraPartCellData<float> th_output;
     
     th_output.initialize_structure_parts(pc_struct.part_data.particle_data);
     
@@ -377,51 +373,6 @@ void threshold_speed(PartCellStructure<float,uint64_t>& pc_struct){
     std::cout << " Particle Threshold Size: " << pc_struct.get_number_parts() << " took: " << time << std::endl;
     
     
-    
-    timer.start_timer("Threshold Loop");
-    
-    
-    for(int r = 0;r < num_repeats;r++){
-        
-        for(uint64_t depth = (pc_struct.depth_max); depth >= (pc_struct.depth_min); depth--){
-            
-            const unsigned int x_num_ = pc_struct.pc_data.x_num[depth];
-            const unsigned int z_num_ = pc_struct.pc_data.z_num[depth];
-            
-            //initialize layer iterators
-            FilterLevel<uint64_t,float> curr_level;
-            curr_level.set_new_depth(depth,pc_struct);
-            
-#pragma omp parallel for default(shared) private(z_,x_,j_) 
-            for(z_ = 0;z_ < z_num_;z_++){
-                //both z and x are explicitly accessed in the structure
-                
-                for(x_ = 0;x_ < x_num_;x_++){
-                    curr_level.set_new_xz(x_,z_,pc_struct);
-                    //the y direction loop however is sparse, and must be accessed accordinagly
-                    for(j_ = 0;j_ < curr_level.j_num_();j_++){
-                    
-                        
-                        for(int p = 0;p < pc_struct.part_data.get_num_parts(curr_level.status);p++){
-                            th_output.data[depth][curr_level.pc_offset][curr_level.part_offset+p] = pc_struct.part_data.particle_data.data[depth][curr_level.pc_offset][curr_level.part_offset+p] > threshold ;
-                        }
-                        
-                        
-                    }
-                    
-                }
-            }
-            
-            
-        }
-        
-    }
-    
-    
-    timer.stop_timer();
-    time = (timer.t2 - timer.t1)/num_repeats;
-    
-    std::cout << " Particle Threshold Size: " << pc_struct.get_number_parts() << " took: " << time << std::endl;
     
     
 }

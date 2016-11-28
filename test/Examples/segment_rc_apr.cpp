@@ -88,7 +88,7 @@ int main(int argc, char **argv) {
     
     ExtraPartCellData<uint8_t> binary_mask;
     
-    binary_mask.initialize_structure_parts(pc_struct.part_data.particle_data);
+    threshold_part(pc_struct,binary_mask,1000);
     
     
     ExtraPartCellData<uint16_t> component_label;
