@@ -8,6 +8,7 @@
 #include "../../src/data_structures/particle_map.hpp"
 #include "../../src/data_structures/Tree/PartCellBase.hpp"
 #include "../../src/data_structures/Tree/PartCellStructure.hpp"
+#include "../../src/data_structures/Tree/ParticleDataNew.hpp"
 #include "../../src/algorithm/level.hpp"
 #include "../../src/io/writeimage.h"
 #include "../../src/io/write_parts.h"
@@ -97,6 +98,8 @@ int main(int argc, char **argv) {
     
     calc_connected_component(pc_struct,binary_mask,component_label);
     
+    calc_connected_component_alt(pc_struct,binary_mask,component_label);
+    
     //Now we will view the output by creating the binary image implied by the segmentation
     
     Mesh_data<uint8_t> binary_img;
@@ -107,6 +110,8 @@ int main(int argc, char **argv) {
     
     debug_write(binary_img,"binary_mask");
     debug_write(comp_img,"comp_mask");
+    
+    ParticleDataNew<uint64_t, float> part_new;
     
 }
 

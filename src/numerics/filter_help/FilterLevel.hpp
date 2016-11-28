@@ -6,8 +6,8 @@
 //
 ///////////////
 
-#ifndef PARTPLAY_PARTCELLFILTERLEVEL_HPP
-#define PARTPLAY_PARTCELLFILTERLEVEL_HPP
+#ifndef PARTPLAY_FILTERLEVEL_HPP
+#define PARTPLAY_FILTERLEVEL_HPP
 // type T data structure base type
 
 #include "../../data_structures/Tree/PartCellStructure.hpp"

@@ -10,12 +10,7 @@
 //
 //////////////////////////////////////////////////
 
-#define LOWER_RESOLUTION -1
-#define SAME_RESOLUTION 0
-#define HIGHER_RESOLUTION 1
 
-#define ACTIVE 1
-#define INACTIVE 0
 
 #include <algorithm>
 #include <iostream>
