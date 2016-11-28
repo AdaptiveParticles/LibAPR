@@ -499,7 +499,7 @@ void convolution_filter_y_new(PartCellStructure<U,uint64_t>& pc_struct,ExtraPart
                                 curr_level.update_gap(pc_struct);
                                 
                                 //will need to initialize things here..
-                                y_init = std::max(y_init,curr_level.y_global - filter_offset);
+                                y_init = std::max((float)y_init,(float)(curr_level.y_global) - filter_offset);
                                 
                                 for(uint64_t q = y_init;q < curr_level.y_global + (filter_offset-1);q++){
                                     

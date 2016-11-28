@@ -326,6 +326,11 @@ public:
             
             index = std::min((uint64_t)(index +curr_level.filter_offset),(uint64_t)(pc_struct.org_dims[0]-1));
             
+            
+            if(hi_res_flag== SAME_RESOLUTION){
+                int stop = 1;
+            }
+            
             if((hi_res_flag == SAME_RESOLUTION) & (status == SEED)){
                 // Higher resolution level, need to account for the different particles in the cell
                 
