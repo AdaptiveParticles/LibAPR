@@ -375,7 +375,7 @@ void calc_connected_component_alt(PartCellStructure<S,uint64_t>& pc_struct,Extra
     for(int r = 0;r < num_repeats;r++){
     
     
-    for(uint64_t depth = pc_struct.pc_data.depth_max;depth <= pc_struct.pc_data.depth_max;depth++){
+    for(uint64_t depth = (pc_struct.pc_data.depth_min + 1);depth <= pc_struct.pc_data.depth_max;depth++){
         //loop over the resolutions of the structure
         const unsigned int x_num_ = pc_struct.pc_data.x_num[depth];
         const unsigned int z_num_ = pc_struct.pc_data.z_num[depth];
@@ -420,6 +420,9 @@ void calc_connected_component_alt(PartCellStructure<S,uint64_t>& pc_struct,Extra
                             neigh_x.incriment_y_same_depth(curr_level,part_new);
                             neigh_z.incriment_y_same_depth(curr_level,part_new);
                             neigh_y.incriment_y_same_depth(curr_level,part_new);
+                            
+                            
+
 
                             
                             if(curr_level.status==SEED){
@@ -445,11 +448,20 @@ void calc_connected_component_alt(PartCellStructure<S,uint64_t>& pc_struct,Extra
                                     curr_level.get_part(part_new) = neigh;
                                     
                                     
+                                } else {
+                                    
+                                    neigh_x.incriment_y_parent_depth(curr_level,part_new);
+                                    neigh_z.incriment_y_parent_depth(curr_level,part_new);
+                                    neigh_y.incriment_y_parent_depth(curr_level,part_new);
                                 }
                                 
                             } else {
                                 //non seed loop
                                 if( l == 0){
+                                    
+                                    neigh_x.incriment_y_parent_depth(curr_level,part_new);
+                                    neigh_z.incriment_y_parent_depth(curr_level,part_new);
+                                    neigh_y.incriment_y_parent_depth(curr_level,part_new);
                                     
                                     neigh = neigh_x.get_part(part_new.particle_data);
                                     neigh += neigh_z.get_part(part_new.particle_data);
@@ -487,7 +499,7 @@ void calc_connected_component_alt(PartCellStructure<S,uint64_t>& pc_struct,Extra
     
     for(int r = 0;r < num_repeats;r++){
     
-    for(uint64_t i = pc_struct.pc_data.depth_max;i <= pc_struct.pc_data.depth_max;i++){
+    for(uint64_t i = pc_struct.pc_data.depth_min;i <= pc_struct.pc_data.depth_max;i++){
         //loop over the resolutions of the structure
         const unsigned int x_num_ = pc_struct.pc_data.x_num[i];
         const unsigned int z_num_ = pc_struct.pc_data.z_num[i];

@@ -45,7 +45,9 @@ public:
         x_num_same = part_data.access_data.x_num[depth_same];
         z_num_same = part_data.access_data.z_num[depth_same];
         
-    
+        depth_parent = depth_ - 1;
+        x_num_parent = part_data.access_data.x_num[depth_parent];
+        z_num_parent = part_data.access_data.z_num[depth_parent];
         
     }
     
@@ -108,13 +110,55 @@ public:
                     
             }
             
+            y_parent = 64000;
+            
+            
         } else {
             
+            //parent level
+            //same level
+            x_parent = curr_level.x/2 + offset_x;
+            z_parent = curr_level.z/2 + offset_z;
+            
+            x_parent = std::min(x_parent,x_num_parent-1);
+            z_parent = std::min(z_parent,z_num_parent-1);
+            
+            
+            pc_offset_parent = x_num_parent*z_parent + x_parent;
+            j_num_parent = part_data.access_data.data[depth_parent][pc_offset_parent].size();
+            part_offset_parent = 0;
+            
+            
+            j_parent = 0;
+            
+            if((x_parent < 0) | (z_parent < 0)){
+                j_num_parent = 0;
+            }
+            
+            if(j_num_parent > 1){
+                y_parent = -1;
+                
+            } else {
+                y_parent = 64000;
+            }
+
+            
+            
+            //same level
             x_same = curr_level.x + offset_x;
             z_same = curr_level.z + offset_z;
             
             if(offset_x == 1){
-            
+                
+                if(curr_level.z&1){
+                    part_xz_1_parent = 4;
+                    
+                } else {
+                    part_xz_1_parent = 2;
+                }
+                
+                part_offset_1_parent = 0;
+                
                 part_xz_1_same = 1;
                 part_xz_2_same = 1;
                 part_xz_3_same = 3;
@@ -124,7 +168,18 @@ public:
                 part_offset_2_same = 1;
                 part_offset_3_same = 0;
                 part_offset_4_same = 1;
+                
             } else if (offset_x == -1){
+                
+                if(curr_level.z&1){
+                    part_xz_1_parent = 3;
+                    
+                } else {
+                    part_xz_1_parent = 1;
+                }
+                
+                part_offset_1_parent = 0;
+                
                 part_xz_1_same = 2;
                 part_xz_2_same = 2;
                 part_xz_3_same = 4;
@@ -136,6 +191,16 @@ public:
                 part_offset_4_same = 1;
                 
             } else if(offset_z == 1){
+                
+                if(curr_level.x&1){
+                    part_xz_1_parent = 2;
+                    
+                } else {
+                    part_xz_1_parent = 1;
+                }
+                
+                part_offset_1_parent = 0;
+                
                 part_xz_1_same = 1;
                 part_xz_2_same = 1;
                 part_xz_3_same = 2;
@@ -148,6 +213,15 @@ public:
                 
                 
             } else if(offset_z == -1){
+                
+                if(curr_level.x&1){
+                    part_xz_1_parent = 3;
+                    
+                } else {
+                    part_xz_1_parent = 4;
+                }
+                part_offset_1_parent = 0;
+                
                 part_xz_1_same = 3;
                 part_xz_2_same = 3;
                 part_xz_3_same = 4;
@@ -157,6 +231,7 @@ public:
                 part_offset_2_same = 1;
                 part_offset_3_same = 0;
                 part_offset_4_same = 1;
+                
             } else if (offset_y == 1){
                 part_xz_1_same = 1;
                 part_xz_2_same = 2;
@@ -167,6 +242,24 @@ public:
                 part_offset_2_same = 0;
                 part_offset_3_same = 0;
                 part_offset_4_same = 0;
+                
+                part_offset_1_parent = 0;
+                if(curr_level.x&1){
+                    if(curr_level.z&1){
+                        part_xz_1_parent = 4;
+                        
+                    } else {
+                        part_xz_1_parent = 2;
+                    }
+                    
+                } else {
+                    if(curr_level.z&1){
+                        part_xz_1_parent = 3;
+                        
+                    } else {
+                        part_xz_1_parent = 1;
+                    }
+                }
                 
                 
                 
@@ -181,7 +274,23 @@ public:
                 part_offset_3_same = 1;
                 part_offset_4_same = 1;
                 
-                
+                part_offset_1_parent = 1;
+                if(curr_level.x&1){
+                    if(curr_level.z&1){
+                        part_xz_1_parent = 4;
+                        
+                    } else {
+                        part_xz_1_parent = 2;
+                    }
+                    
+                } else {
+                    if(curr_level.z&1){
+                        part_xz_1_parent = 3;
+                        
+                    } else {
+                        part_xz_1_parent = 1;
+                    }
+                }
                 
             }
             
@@ -194,10 +303,6 @@ public:
         j_num_same = part_data.access_data.data[depth_same][pc_offset_same].size();
         part_offset_same = 0;
         
-        
-        if(pc_offset_same == 2715){
-            int stop = 1;
-        }
         
         j_same = 0;
         
@@ -260,6 +365,57 @@ public:
     }
     
     template<typename U>
+    void incriment_y_parent_depth(CurrentLevel<U,T>& curr_level,ParticleDataNew<U, T>& part_data){
+        //
+        //  Incriments the array, according to the desired offset, returns true, if the offset value exist on the layer.
+        //
+        
+        //need to deal with offset and
+        T y_input = curr_level.y/2 + offset_y;
+        
+        //iterate forward
+        while ((y_parent < y_input) & (j_parent < (j_num_same-1))){
+            
+            j_parent++;
+            node_val_parent = part_data.access_data.data[depth_parent][pc_offset_parent][j_parent];
+            
+            if (node_val_parent&1){
+                //get the index gap node
+                y_parent += (node_val_parent & COORD_DIFF_MASK_PARTICLE) >> COORD_DIFF_SHIFT_PARTICLE;
+                j_parent++;
+                
+                node_val_parent = part_data.access_data.data[depth_parent][pc_offset_parent][j_parent];
+                status_parent = ((node_val_parent & STATUS_MASK_PARTICLE) >> STATUS_SHIFT_PARTICLE);
+                part_offset_parent = ((node_val_parent & Y_PINDEX_MASK_PARTICLE) >> Y_PINDEX_SHIFT_PARTICLE);
+                
+                
+            } else {
+                //normal node
+                y_parent++;
+                status_parent = ((node_val_parent & STATUS_MASK_PARTICLE) >> STATUS_SHIFT_PARTICLE);
+                
+                part_offset_parent = ((node_val_parent & Y_PINDEX_MASK_PARTICLE) >> Y_PINDEX_SHIFT_PARTICLE);
+            }
+            
+        }
+        
+        if (y_parent == y_input){
+            current_flag = 2;
+            
+            if(offset_y == 0){
+                part_offset_1_parent = (curr_level.y&1);
+            }
+            
+        }
+        
+        
+        
+        
+    }
+
+    
+    
+    template<typename U>
     void incriment_y_part_same_depth(CurrentLevel<U,T>& curr_level,ParticleDataNew<U, T>& part_data){
         
         if(current_flag == 1){
@@ -297,7 +453,23 @@ public:
             }
             
             
-        } else {
+        } else if (current_flag == 2){
+            
+            if(status_parent == SEED){
+                
+                
+                return p_data.data[depth_parent][pc_offset_parent][part_xz_parent][part_offset_parent + part_offset_1_parent];
+
+                
+                
+            } else {
+                return p_data.data[depth_parent][pc_offset_parent][0][part_offset_parent];
+
+                
+            }
+            
+            
+        }else {
             return 0;
         }
         
@@ -343,6 +515,31 @@ private:
     T part_offset_2_same;
     T part_offset_3_same;
     T part_offset_4_same;
+    
+    
+    T depth_parent;
+    T x_parent;
+    T z_parent;
+    T j_parent;
+    T pc_offset_parent;
+    T y_parent;
+    T j_num_parent;
+    T x_num_parent;
+    T z_num_parent;
+    T part_offset_parent;
+    T node_val_parent;
+    T status_parent;
+    T seed_offset_parent;
+    T part_xz_parent;
+    
+    T part_xz_1_parent;
+    
+    
+    T part_offset_1_parent;
+ 
+    
+    
+    
     
     T high_res_index;
     
