@@ -365,9 +365,15 @@ void calc_connected_component_alt(PartCellStructure<S,uint64_t>& pc_struct,Extra
     
     float neigh;
     
-    timer.verbose_flag = true;
+    timer.verbose_flag = false;
     
     timer.start_timer("iterate parts");
+    
+    
+    float num_repeats = 50;
+    
+    for(int r = 0;r < num_repeats;r++){
+    
     
     for(uint64_t depth = pc_struct.pc_data.depth_max;depth <= pc_struct.pc_data.depth_max;depth++){
         //loop over the resolutions of the structure
@@ -377,15 +383,19 @@ void calc_connected_component_alt(PartCellStructure<S,uint64_t>& pc_struct,Extra
         CurrentLevel<float,uint64_t> curr_level;
         curr_level.set_new_depth(depth,part_new);
         
-        NeighOffset<float,uint64_t> neigh_x;
-        neigh_x.set_new_depth(depth,part_new);
-        neigh_x.set_offsets(0,0,1,0);
+        NeighOffset<float,uint64_t> neigh_y;
+        neigh_y.set_new_depth(depth,part_new);
+        neigh_y.set_offsets(0,0,1,0);
         
         NeighOffset<float,uint64_t> neigh_z;
         neigh_z.set_new_depth(depth,part_new);
         neigh_z.set_offsets(0,1,0,0);
         
-#pragma omp parallel for default(shared) private(p,z_,x_,j_,neigh) firstprivate(curr_level,neigh_x,neigh_z) if(z_num_*x_num_ > 100)
+        NeighOffset<float,uint64_t> neigh_x;
+        neigh_x.set_new_depth(depth,part_new);
+        neigh_x.set_offsets(1,0,0,0);
+        
+#pragma omp parallel for default(shared) private(p,z_,x_,j_,neigh) firstprivate(curr_level,neigh_x,neigh_z,neigh_y) if(z_num_*x_num_ > 100)
         for(z_ = 0;z_ < z_num_;z_++){
             //both z and x are explicitly accessed in the structure
             
@@ -395,7 +405,8 @@ void calc_connected_component_alt(PartCellStructure<S,uint64_t>& pc_struct,Extra
                     
                     curr_level.set_new_xz(x_,z_,l,part_new);
                     neigh_x.reset_j(curr_level,part_new);
-                    //neigh_z.reset_j(curr_level,part_new);
+                    neigh_z.reset_j(curr_level,part_new);
+                    neigh_y.reset_j(curr_level,part_new);
                     //the y direction loop however is sparse, and must be accessed accordinagly
                     for(j_ = 0;j_ < curr_level.j_num;j_++){
                         
@@ -407,7 +418,8 @@ void calc_connected_component_alt(PartCellStructure<S,uint64_t>& pc_struct,Extra
                             curr_level.update_cell(part_new);
                             
                             neigh_x.incriment_y_same_depth(curr_level,part_new);
-                            //neigh_z.incriment_y_same_depth(curr_level,part_new);
+                            neigh_z.incriment_y_same_depth(curr_level,part_new);
+                            neigh_y.incriment_y_same_depth(curr_level,part_new);
 
                             
                             if(curr_level.status==SEED){
@@ -417,16 +429,19 @@ void calc_connected_component_alt(PartCellStructure<S,uint64_t>& pc_struct,Extra
                                     
                                     
                                     neigh =  neigh_x.get_part(part_new.particle_data);
-                                    //neigh +=  neigh_z.get_part(part_new.particle_data);
+                                    neigh +=  neigh_z.get_part(part_new.particle_data);
+                                    neigh +=  neigh_y.get_part(part_new.particle_data);
                                     curr_level.get_part(part_new) = neigh;
                                 
                                     curr_level.iterate_y_seed();
                                     //second particle
                                     neigh_x.incriment_y_part_same_depth(curr_level,part_new);
-                                    //neigh_z.incriment_y_part_same_depth(curr_level,part_new);
+                                    neigh_z.incriment_y_part_same_depth(curr_level,part_new);
+                                    neigh_y.incriment_y_part_same_depth(curr_level,part_new);
                                     
                                     neigh = neigh_x.get_part(part_new.particle_data);
-                                    //neigh += neigh_z.get_part(part_new.particle_data);
+                                    neigh += neigh_z.get_part(part_new.particle_data);
+                                    neigh += neigh_y.get_part(part_new.particle_data);
                                     curr_level.get_part(part_new) = neigh;
                                     
                                     
@@ -437,7 +452,8 @@ void calc_connected_component_alt(PartCellStructure<S,uint64_t>& pc_struct,Extra
                                 if( l == 0){
                                     
                                     neigh = neigh_x.get_part(part_new.particle_data);
-                                   // neigh += neigh_z.get_part(part_new.particle_data);
+                                    neigh += neigh_z.get_part(part_new.particle_data);
+                                    neigh += neigh_y.get_part(part_new.particle_data);
                                    
                                     curr_level.get_part(part_new) = neigh;
                                 }
@@ -459,11 +475,17 @@ void calc_connected_component_alt(PartCellStructure<S,uint64_t>& pc_struct,Extra
         }
     }
     
+    }
+    
     timer.stop_timer();
     
+    float time = (timer.t2 - timer.t1)/num_repeats;
+    
+    std::cout << " Neigh Regime New took: " << time << std::endl;
     
     timer.start_timer("iterate parts old");
     
+    for(int r = 0;r < num_repeats;r++){
     
     for(uint64_t i = pc_struct.pc_data.depth_max;i <= pc_struct.pc_data.depth_max;i++){
         //loop over the resolutions of the structure
@@ -509,6 +531,8 @@ void calc_connected_component_alt(PartCellStructure<S,uint64_t>& pc_struct,Extra
                             //get all the neighbour particles in (+y,-y,+x,-x,+z,-z) ordering
                             
                             pc_struct.part_data.get_part_neighs_face(2,p,node_val_pc,curr_key,status,part_offset,neigh_cell_keys,neigh_part_keys,pc_struct.pc_data);
+                            pc_struct.part_data.get_part_neighs_face(0,p,node_val_pc,curr_key,status,part_offset,neigh_cell_keys,neigh_part_keys,pc_struct.pc_data);
+                            pc_struct.part_data.get_part_neighs_face(4,p,node_val_pc,curr_key,status,part_offset,neigh_cell_keys,neigh_part_keys,pc_struct.pc_data);
                             
                             float temp = 0;
                             
@@ -524,6 +548,34 @@ void calc_connected_component_alt(PartCellStructure<S,uint64_t>& pc_struct,Extra
                                 }
                                 
                             }
+                            
+                            for(int n = 0; n < neigh_part_keys.neigh_face[0].size();n++){
+                                uint64_t neigh_part = neigh_part_keys.neigh_face[0][n];
+                                
+                                
+                                if(neigh_part > 0){
+                                    
+                                    //do something
+                                    temp += pc_struct.part_data.particle_data.get_part(neigh_part);
+                                    
+                                }
+                                
+                            }
+                            
+                            for(int n = 0; n < neigh_part_keys.neigh_face[4].size();n++){
+                                uint64_t neigh_part = neigh_part_keys.neigh_face[4][n];
+                                
+                                
+                                if(neigh_part > 0){
+                                    
+                                    //do something
+                                    temp += pc_struct.part_data.particle_data.get_part(neigh_part);
+                                    
+                                }
+                                
+                            }
+
+
                             
                             pc_struct.part_data.particle_data.get_part(curr_key) = temp;
                                 
@@ -541,10 +593,13 @@ void calc_connected_component_alt(PartCellStructure<S,uint64_t>& pc_struct,Extra
         }
     }
     
+    }
     
     timer.stop_timer();
 
+    time = (timer.t2 - timer.t1)/num_repeats;
     
+    std::cout << " Neigh Regime Old took: " << time << std::endl;
     
 }
 

@@ -110,8 +110,8 @@ public:
             
         } else {
             
-            x_same = 2*curr_level.x + offset_x;
-            z_same = 2*curr_level.x + offset_x;
+            x_same = curr_level.x + offset_x;
+            z_same = curr_level.z + offset_z;
             
             if(offset_x == 1){
             
@@ -194,6 +194,11 @@ public:
         j_num_same = part_data.access_data.data[depth_same][pc_offset_same].size();
         part_offset_same = 0;
         
+        
+        if(pc_offset_same == 2715){
+            int stop = 1;
+        }
+        
         j_same = 0;
         
         if((x_same < 0) | (z_same < 0)){
@@ -201,8 +206,8 @@ public:
         }
         
         if(j_num_same > 1){
-            y_same = (part_data.access_data.data[depth_same][pc_offset_same][0] & COORD_DIFF_MASK_PARTICLE) >> COORD_DIFF_SHIFT_PARTICLE;
-            y_same--;
+            y_same = -1;
+            
         } else {
             y_same = 64000;
         }
@@ -228,7 +233,12 @@ public:
             if (node_val_same&1){
                 //get the index gap node
                 y_same += (node_val_same & COORD_DIFF_MASK_PARTICLE) >> COORD_DIFF_SHIFT_PARTICLE;
-                y_same--;
+                j_same++;
+                
+                node_val_same = part_data.access_data.data[depth_same][pc_offset_same][j_same];
+                status_same = ((node_val_same & STATUS_MASK_PARTICLE) >> STATUS_SHIFT_PARTICLE);
+                part_offset_same = ((node_val_same & Y_PINDEX_MASK_PARTICLE) >> Y_PINDEX_SHIFT_PARTICLE);
+                
                 
             } else {
                 //normal node
