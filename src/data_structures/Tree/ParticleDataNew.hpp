@@ -230,13 +230,15 @@ public:
                         
                     }
                     
-                    particle_data.data[i][offset_pc_data].resize(5);
-                    //then resize the particle data structure here..
-                    particle_data.data[i][offset_pc_data][0].resize(part_counter);
-                    particle_data.data[i][offset_pc_data][1].resize(part_counter_seed);
-                    particle_data.data[i][offset_pc_data][2].resize(part_counter_seed);
-                    particle_data.data[i][offset_pc_data][3].resize(part_counter_seed);
-                    particle_data.data[i][offset_pc_data][4].resize(part_counter_seed);
+                    if((part_counter + part_counter_seed) > 0){
+                        particle_data.data[i][offset_pc_data].resize(5);
+                        //then resize the particle data structure here..
+                        particle_data.data[i][offset_pc_data][0].resize(part_counter);
+                        particle_data.data[i][offset_pc_data][1].resize(part_counter_seed);
+                        particle_data.data[i][offset_pc_data][2].resize(part_counter_seed);
+                        particle_data.data[i][offset_pc_data][3].resize(part_counter_seed);
+                        particle_data.data[i][offset_pc_data][4].resize(part_counter_seed);
+                    }
                 }
                 
             }
@@ -291,16 +293,18 @@ public:
             const unsigned int x_num_ = part_data.access_data.x_num[i];
             const unsigned int z_num_ = part_data.access_data.z_num[i];
             
-            part_counter = 0;
-            part_counter_seed = 0;
             
-#pragma omp parallel for default(shared) private(z_,x_,j_,status,node_val,part_offset) if(z_num*x_num > 100)
+            
+#pragma omp parallel for default(shared) private(z_,x_,j_,status,node_val,part_offset,part_counter,part_counter_seed) if(z_num_*x_num_ > 100)
             for(z_ = 0;z_ < z_num_;z_++){
                 
                 for(x_ = 0;x_ < x_num_;x_++){
                     
                     const size_t offset_pc_data = x_num_*z_ + x_;
                     const size_t j_num = part_data.access_data.data[i][offset_pc_data].size();
+                    
+                    part_counter = 0;
+                    part_counter_seed = 0;
                     
                     for(j_ = 0; j_ < j_num;j_++){
                         //raster over both structures, generate the index for the particles, set the status and offset_y_coord diff
@@ -327,6 +331,7 @@ public:
                                 particle_data.data[i][offset_pc_data][3][part_counter_seed] = part_data.particle_data.data[i][offset_pc_data][part_offset + 6];
                                 particle_data.data[i][offset_pc_data][3][part_counter_seed+1] = part_data.particle_data.data[i][offset_pc_data][part_offset + 7];
                                 
+                                part_counter_seed += 2;
                                 
                             } else {
                                 particle_data.data[i][offset_pc_data][0][part_counter] = part_data.particle_data.data[i][offset_pc_data][part_offset];

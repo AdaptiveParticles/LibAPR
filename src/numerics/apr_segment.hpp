@@ -19,6 +19,8 @@
 #include "filter_help/FilterOffset.hpp"
 #include "filter_help/FilterLevel.hpp"
 
+#include "filter_help/CurrLevel.hpp"
+#include "filter_help/NeighOffset.hpp"
 
 int uf_find(int x,std::vector<int>& labels) {
     int y = x;
@@ -329,6 +331,10 @@ void calc_connected_component_alt(PartCellStructure<S,uint64_t>& pc_struct,Extra
     //  Should be written with the neighbour iterators instead.
     //
     
+    ParticleDataNew<float, uint64_t> part_new;
+    
+    part_new.initialize_from_structure(pc_struct.pc_data);
+    part_new.transfer_intensities(pc_struct.part_data);
     
     component_label.initialize_structure_parts(pc_struct.part_data.particle_data);
     
@@ -357,85 +363,96 @@ void calc_connected_component_alt(PartCellStructure<S,uint64_t>& pc_struct,Extra
     std::vector<int> neigh_labels;
     neigh_labels.reserve(10);
     
-    int filter_offset = 1;
-  
+    float neigh;
     
     timer.verbose_flag = true;
     
-    timer.start_timer("connected comp first loop");
+    timer.start_timer("iterate parts");
     
     for(uint64_t depth = pc_struct.pc_data.depth_max;depth <= pc_struct.pc_data.depth_max;depth++){
         //loop over the resolutions of the structure
         const unsigned int x_num_ = pc_struct.pc_data.x_num[depth];
         const unsigned int z_num_ = pc_struct.pc_data.z_num[depth];
         
+        CurrentLevel<float,uint64_t> curr_level;
+        curr_level.set_new_depth(depth,part_new);
         
+        NeighOffset<float,uint64_t> neigh_x;
+        neigh_x.set_new_depth(depth,part_new);
+        neigh_x.set_offsets(0,0,1,0);
         
-        FilterLevel<uint64_t,float> curr_level;
-        curr_level.set_new_depth(depth,pc_struct);
+        NeighOffset<float,uint64_t> neigh_z;
+        neigh_z.set_new_depth(depth,part_new);
+        neigh_z.set_offsets(0,1,0,0);
         
-        FilterOffset<uint64_t,float> layer_plus(-1,1);
-        
-        layer_plus.set_offsets(0,0,filter_offset,-1); //one layer below
-        layer_plus.set_new_depth(depth,pc_struct); //intialize for the depth
-        
-        //always set
-        FilterOffset<uint64_t,float> layer_equal(0,1);
-        layer_equal.set_offsets(0,0,filter_offset,0); //one layer below
-        layer_equal.set_new_depth(depth,pc_struct); //intialize for the depth
-        
-
-        
-        
-        //#pragma omp parallel for default(shared) private(p,z_,x_,j_,node_val_pc,node_val_part,curr_key,status,part_offset) firstprivate(neigh_part_keys,neigh_cell_keys,neigh_labels) if(z_num_*x_num_ > 100)
+#pragma omp parallel for default(shared) private(p,z_,x_,j_,neigh) firstprivate(curr_level,neigh_x,neigh_z) if(z_num_*x_num_ > 100)
         for(z_ = 0;z_ < z_num_;z_++){
             //both z and x are explicitly accessed in the structure
             
             for(x_ = 0;x_ < x_num_;x_++){
                 
-                //NEED TO FIX THESE THEY HAVE THE WRONG INPUT
-                //shift layers
-                layer_plus.set_new_xz(x_,z_,pc_struct);
-                //layer_plus_2.set_new_xz(x_,z_,pc_struct);
-                layer_equal.set_new_xz(x_,z_,pc_struct);
-                
-                curr_level.set_new_xz(x_,z_,pc_struct);
-                //the y direction loop however is sparse, and must be accessed accordinagly
-                for(j_ = 0;j_ < curr_level.j_num_();j_++){
+                for(uint64_t l = 0;l < 5;l++){
                     
-                    //particle cell node value, used here as it is requried for getting the particle neighbours
-                    bool iscell = curr_level.new_j(j_,pc_struct);
-                    
-                    if (iscell){
-                        //Indicates this is a particle cell node
-                        curr_level.update_cell(pc_struct);
+                    curr_level.set_new_xz(x_,z_,l,part_new);
+                    neigh_x.reset_j(curr_level,part_new);
+                    //neigh_z.reset_j(curr_level,part_new);
+                    //the y direction loop however is sparse, and must be accessed accordinagly
+                    for(j_ = 0;j_ < curr_level.j_num;j_++){
                         
+                        //particle cell node value, used here as it is requried for getting the particle neighbours
+                        bool iscell = curr_level.new_j(j_,part_new);
                         
-                        //update and incriment
-                        layer_plus.incriment_y_and_update(pc_struct,curr_level);
-                        layer_equal.incriment_y_and_update(pc_struct,curr_level);
-                        
-                        
-                        if(curr_level.status_()==SEED){
-                            //iterate forward
-                            curr_level.iterate_y_seed();
-                            //iterate the vectors
+                        if (iscell){
+                            //Indicates this is a particle cell node
+                            curr_level.update_cell(part_new);
+                            
+                            neigh_x.incriment_y_same_depth(curr_level,part_new);
+                            //neigh_z.incriment_y_same_depth(curr_level,part_new);
+
+                            
+                            if(curr_level.status==SEED){
+                                //seed loop (first particle)
+                                
+                                if(l > 0){
+                                    
+                                    
+                                    neigh =  neigh_x.get_part(part_new.particle_data);
+                                    //neigh +=  neigh_z.get_part(part_new.particle_data);
+                                    curr_level.get_part(part_new) = neigh;
+                                
+                                    curr_level.iterate_y_seed();
+                                    //second particle
+                                    neigh_x.incriment_y_part_same_depth(curr_level,part_new);
+                                    //neigh_z.incriment_y_part_same_depth(curr_level,part_new);
+                                    
+                                    neigh = neigh_x.get_part(part_new.particle_data);
+                                    //neigh += neigh_z.get_part(part_new.particle_data);
+                                    curr_level.get_part(part_new) = neigh;
+                                    
+                                    
+                                }
+                                
+                            } else {
+                                //non seed loop
+                                if( l == 0){
+                                    
+                                    neigh = neigh_x.get_part(part_new.particle_data);
+                                   // neigh += neigh_z.get_part(part_new.particle_data);
+                                   
+                                    curr_level.get_part(part_new) = neigh;
+                                }
+                            }
                             
                             
+                        } else {
+                            // Jumps the iteration forward, this therefore also requires computation of an effective boundary condition
+                            
+                            curr_level.update_gap();
                             
                         }
                         
                         
-                    } else {
-                        // Jumps the iteration forward, this therefore also requires computation of an effective boundary condition
-                        
-                        
-                        curr_level.update_gap(pc_struct);
-                        
                     }
-                    
-                    
-                    
                     
                 }
             }
@@ -445,18 +462,15 @@ void calc_connected_component_alt(PartCellStructure<S,uint64_t>& pc_struct,Extra
     timer.stop_timer();
     
     
-    std::vector<int> new_labels;
-    new_labels.resize(labels.size(),0);
-    
-    timer.start_timer("connected comp second loop");
+    timer.start_timer("iterate parts old");
     
     
-    for(uint64_t i = pc_struct.pc_data.depth_min;i <= pc_struct.pc_data.depth_max;i++){
+    for(uint64_t i = pc_struct.pc_data.depth_max;i <= pc_struct.pc_data.depth_max;i++){
         //loop over the resolutions of the structure
         const unsigned int x_num_ = pc_struct.pc_data.x_num[i];
         const unsigned int z_num_ = pc_struct.pc_data.z_num[i];
         
-        //#pragma omp parallel for default(shared) private(p,z_,x_,j_,node_val_pc,node_val_part,curr_key,status,part_offset) firstprivate(neigh_part_keys,neigh_cell_keys) if(z_num_*x_num_ > 100)
+        #pragma omp parallel for default(shared) private(p,z_,x_,j_,node_val_pc,node_val_part,curr_key,status,part_offset)  firstprivate(neigh_part_keys,neigh_cell_keys) if(z_num_*x_num_ > 100)
         for(z_ = 0;z_ < z_num_;z_++){
             //both z and x are explicitly accessed in the structure
             curr_key = 0;
@@ -494,28 +508,42 @@ void calc_connected_component_alt(PartCellStructure<S,uint64_t>& pc_struct,Extra
                             pc_struct.part_data.access_data.pc_key_set_index(curr_key,part_offset+p);
                             //get all the neighbour particles in (+y,-y,+x,-x,+z,-z) ordering
                             
-                            if( component_label.get_part(curr_key) > 0){
+                            pc_struct.part_data.get_part_neighs_face(2,p,node_val_pc,curr_key,status,part_offset,neigh_cell_keys,neigh_part_keys,pc_struct.pc_data);
+                            
+                            float temp = 0;
+                            
+                            for(int n = 0; n < neigh_part_keys.neigh_face[2].size();n++){
+                                uint64_t neigh_part = neigh_part_keys.neigh_face[2][n];
                                 
-                                int x = uf_find(component_label.get_part(curr_key),labels);
-                                if (new_labels[x] == 0) {
-                                    new_labels[0]++;
-                                    new_labels[x] = new_labels[0];
+                                
+                                if(neigh_part > 0){
+                                    
+                                        //do something
+                                    temp += pc_struct.part_data.particle_data.get_part(neigh_part);
+                                    
                                 }
-                                
-                                component_label.get_part(curr_key) = new_labels[x];
                                 
                             }
                             
+                            pc_struct.part_data.particle_data.get_part(curr_key) = temp;
+                                
+                            
                         }
+                        
+                    } else {
+                        // Inidicates this is not a particle cell node, and is a gap node
                     }
+                    
                 }
+                
             }
+            
         }
     }
     
     
     timer.stop_timer();
-    
+
     
     
 }

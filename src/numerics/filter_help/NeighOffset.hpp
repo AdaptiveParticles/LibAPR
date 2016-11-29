@@ -14,27 +14,16 @@
 
 
 #include "../../data_structures/Tree/PartCellStructure.hpp"
-#include "FilterLevel.hpp"
+#include "CurrLevel.hpp"
 
-template<typename T,typename V>
+template<typename V,typename T>
 class NeighOffset {
     
-    friend class FilterLevel<T,V>;
 public:
     
     
     
-    NeighOffset(int hi_res_flag,bool active_flag): hi_res_flag(hi_res_flag), active_flag(active_flag){
-        depth = 0;
-        x = 0;
-        z = 0;
-        j = 0;
-        pc_offset = 0;
-        y = 0;
-        j_num = 0;
-        x_num = 0;
-        z_num = 0;
-        status = 0;
+    NeighOffset(){
         
     };
     
@@ -44,111 +33,215 @@ public:
         offset_x = offset_x_;
         offset_z = offset_z_;
         offset_y = offset_y_;
-       
-        high_res_index = offset_x_ + offset_z_*2;
+        offset_depth = offset_depth_;
         
-        depth_factor_local = powf(2.0,offset_depth_);
         
     }
     
     template<typename U>
-    void set_new_depth(T depth_,PartCellStructure<U,T>& pc_struct){
+    void set_new_depth(T depth_,ParticleDataNew<U, T>& part_data){
         
-        depth = depth_ + offset_depth;
-        x_num = pc_struct.x_num[depth];
-        z_num = pc_struct.z_num[depth];
+        depth_same = depth_;
+        x_num_same = part_data.access_data.x_num[depth_same];
+        z_num_same = part_data.access_data.z_num[depth_same];
         
-        depth_factor = powf(2.0,pc_struct.depth_max - depth + 1);
+    
         
     }
     
     
     template<typename U>
-    void set_new_xz(T x_,T z_,PartCellStructure<U,T>& pc_struct){
+    void reset_j(CurrentLevel<U,T>& curr_level,ParticleDataNew<U, T>& part_data){
         
-        if(active_flag){
+        part_xz = curr_level.part_xz;
+        
+        if (curr_level.part_xz > 1){
             
-            x = floor((x_ )*depth_factor_local) + offset_x;
-            z = floor((z_ )*depth_factor_local) + offset_z;
+            switch(curr_level.part_xz){
+                case 1 :{
+                    x_same = (2*curr_level.x + offset_x);
+                    z_same = (2*curr_level.z + offset_z);
+                    
+                    part_xz_same = (x_same&1) + 2*(z_same&1);
+                    
+                    x_same = x_same/2;
+                    z_same = z_same/2;
+                    
+                    break;
+                    
+                }
+                case 2 :{
+                    x_same = (2*curr_level.x + offset_x + 1);
+                    z_same = (2*curr_level.z + offset_z);
+                    
+                    part_xz_same = (x_same&1) + 2*(z_same&1);
+                    
+                    x_same = x_same/2;
+                    z_same = z_same/2;
+                    
+                    break;
+                }
+                case 3 :{
+                    x_same = (2*curr_level.x + offset_x);
+                    z_same = (2*curr_level.z + offset_z + 1);
+                    
+                    part_xz_same = (x_same&1) + 2*(z_same&1);
+                    
+                    x_same = x_same/2;
+                    z_same = z_same/2;
+                    
+                    break;
+                    
+                }
+                case 4 :{
+                    x_same = (2*curr_level.x + offset_x + 1);
+                    z_same = (2*curr_level.z + offset_z + 1);
+                    
+                    part_xz_same = (x_same&1) + 2*(z_same&1);
+                    
+                    x_same = x_same/2;
+                    z_same = z_same/2;
+                    
+                    break;
+                    
+                }
+                    
+            }
             
-            x = std::min(x,x_num-1);
-            z = std::min(z,z_num-1);
-            
-            pc_offset = x_num*z + x;
-            j_num = pc_struct.pc_data.data[depth][pc_offset].size();
-            part_offset = 0;
-            seed_offset = (((uint64_t)((x_+offset_x)*depth_factor*2))&1)*2 + (((uint64_t)((z_+offset_z)*depth_factor*2))&1)*4;
         } else {
-            j_num = 0;
-            y = 64000;
+            
+            x_same = 2*curr_level.x + offset_x;
+            z_same = 2*curr_level.x + offset_x;
+            
+            if(offset_x == 1){
+            
+                part_xz_1_same = 1;
+                part_xz_2_same = 1;
+                part_xz_3_same = 3;
+                part_xz_4_same = 3;
+            
+                part_offset_1_same = 0;
+                part_offset_2_same = 1;
+                part_offset_3_same = 0;
+                part_offset_4_same = 1;
+            } else if (offset_x == -1){
+                part_xz_1_same = 2;
+                part_xz_2_same = 2;
+                part_xz_3_same = 4;
+                part_xz_4_same = 4;
+                
+                part_offset_1_same = 0;
+                part_offset_2_same = 1;
+                part_offset_3_same = 0;
+                part_offset_4_same = 1;
+                
+            } else if(offset_z == 1){
+                part_xz_1_same = 1;
+                part_xz_2_same = 1;
+                part_xz_3_same = 2;
+                part_xz_4_same = 2;
+                
+                part_offset_1_same = 0;
+                part_offset_2_same = 1;
+                part_offset_3_same = 0;
+                part_offset_4_same = 1;
+                
+                
+            } else if(offset_z == -1){
+                part_xz_1_same = 3;
+                part_xz_2_same = 3;
+                part_xz_3_same = 4;
+                part_xz_4_same = 4;
+                
+                part_offset_1_same = 0;
+                part_offset_2_same = 1;
+                part_offset_3_same = 0;
+                part_offset_4_same = 1;
+            } else if (offset_y == 1){
+                part_xz_1_same = 1;
+                part_xz_2_same = 2;
+                part_xz_3_same = 3;
+                part_xz_4_same = 4;
+                
+                part_offset_1_same = 0;
+                part_offset_2_same = 0;
+                part_offset_3_same = 0;
+                part_offset_4_same = 0;
+                
+                
+                
+            } else if (offset_y == -1){
+                part_xz_1_same = 1;
+                part_xz_2_same = 2;
+                part_xz_3_same = 3;
+                part_xz_4_same = 4;
+                
+                part_offset_1_same = 1;
+                part_offset_2_same = 1;
+                part_offset_3_same = 1;
+                part_offset_4_same = 1;
+                
+                
+                
+            }
+            
         }
         
-        if(j_num > 1){
-            y = (pc_struct.pc_data.data[depth][pc_offset][0] & NEXT_COORD_MASK) >> NEXT_COORD_SHIFT;
-            y--;
+        x_same = std::min(x_same,x_num_same-1);
+        z_same = std::min(z_same,z_num_same-1);
+        
+        pc_offset_same = x_num_same*z_same + x_same;
+        j_num_same = part_data.access_data.data[depth_same][pc_offset_same].size();
+        part_offset_same = 0;
+        
+        j_same = 0;
+        
+        if((x_same < 0) | (z_same < 0)){
+            j_num_same = 0;
+        }
+        
+        if(j_num_same > 1){
+            y_same = (part_data.access_data.data[depth_same][pc_offset_same][0] & COORD_DIFF_MASK_PARTICLE) >> COORD_DIFF_SHIFT_PARTICLE;
+            y_same--;
         } else {
-            y = 64000;
+            y_same = 64000;
         }
         
     }
     
     template<typename U>
-    bool incriment_y(uint64_t y_real,PartCellStructure<U,T>& pc_struct){
+    void incriment_y_same_depth(CurrentLevel<U,T>& curr_level,ParticleDataNew<U, T>& part_data){
         //
         //  Incriments the array, according to the desired offset, returns true, if the offset value exist on the layer.
         //
         
+        current_flag = 0;
         //need to deal with offset and
-        T y_input = floor((y_real+offset_y)/depth_factor);
-        update_flag = false;
+        T y_input = curr_level.y + offset_y;
         
-        if (y_input != y){
-            //iterate forward
-            while ((y < y_input) & (j < (j_num-1))){
+        //iterate forward
+        while ((y_same < y_input) & (j_same < (j_num_same-1))){
+            
+            j_same++;
+            node_val_same = part_data.access_data.data[depth_same][pc_offset_same][j_same];
+            
+            if (node_val_same&1){
+                //get the index gap node
+                y_same += (node_val_same & COORD_DIFF_MASK_PARTICLE) >> COORD_DIFF_SHIFT_PARTICLE;
+                y_same--;
                 
-                j++;
-                node_val = pc_struct.part_data.access_data.data[depth][pc_offset][j];
+            } else {
+                //normal node
+                y_same++;
+                status_same = ((node_val_same & STATUS_MASK_PARTICLE) >> STATUS_SHIFT_PARTICLE);
                 
-                if (node_val&1){
-                    //get the index gap node
-                    y += (node_val & COORD_DIFF_MASK_PARTICLE) >> COORD_DIFF_SHIFT_PARTICLE;
-                    y--;
-                    
-                } else {
-                    //normal node
-                    y++;
-                    status = ((node_val & STATUS_MASK_PARTICLE) >> STATUS_SHIFT_PARTICLE);
-                    
-                    part_offset = ((node_val & Y_PINDEX_MASK_PARTICLE) >> Y_PINDEX_SHIFT_PARTICLE);
-                }
-                
+                part_offset_same = ((node_val_same & Y_PINDEX_MASK_PARTICLE) >> Y_PINDEX_SHIFT_PARTICLE);
             }
             
-            if (y == y_input){
-                update_flag = true;
-                return true;
-            }else {
-                update_flag = false;
-                return false;
-            }
-            
-        } else {
-            
-            if(status == SEED){
-                
-                //check if moved to next particle
-                if( floor(y_real/(depth_factor*2)) == (y*2 + 1)  ){
-                    part_offset++; //moved to next seed particle (update)
-                    update_flag = true;
-                    return true;
-                } else {
-                    update_flag = false;
-                    return false;
-                }
-                
-            }
-            update_flag = false;
-            return false;
+        }
+        
+        if (y_same == y_input){
+            current_flag = 1;
         }
         
         
@@ -156,26 +249,96 @@ public:
         
     }
     
+    template<typename U>
+    void incriment_y_part_same_depth(CurrentLevel<U,T>& curr_level,ParticleDataNew<U, T>& part_data){
+        
+        if(current_flag == 1){
+            if(status_same == SEED){
+                part_offset_same++;
+            }
+            
+        }
+        
+    }
     
+    template<typename S>
+    S get_part(ExtraPartCellData<std::vector<S>>& p_data){
+        
+        if(current_flag ==1){
+            
+            if(part_xz == 0){
+                //iterating non seed particles
+                if (status_same == SEED){
+                    return seed_reduce_operator(p_data);
+                } else {
+                    return p_data.data[depth_same][pc_offset_same][0][part_offset_same];
+                }
+                
+                
+            } else {
+                //iterating seed particles
+                
+                if (status_same == SEED){
+                    return p_data.data[depth_same][pc_offset_same][part_xz_same][part_offset_same];
+                } else {
+                    return p_data.data[depth_same][pc_offset_same][0][part_offset_same];
+                }
+                
+            }
+            
+            
+        } else {
+            return 0;
+        }
+        
+        
+        
+    }
     
+    template<typename U>
+    U seed_reduce_operator(ExtraPartCellData<std::vector<U>>& p_data){
+        
+        U temp =p_data.data[depth_same][pc_offset_same][part_xz_1_same][part_offset_same + part_offset_1_same];
+        temp +=p_data.data[depth_same][pc_offset_same][part_xz_2_same][part_offset_same + part_offset_2_same];
+        temp +=p_data.data[depth_same][pc_offset_same][part_xz_3_same][part_offset_same + part_offset_3_same];
+        temp +=p_data.data[depth_same][pc_offset_same][part_xz_4_same][part_offset_same + part_offset_4_same];
+        return temp;
+        
+        
+    }
     
 private:
     
-    T depth;
-    T x;
-    T z;
-    T j;
-    T pc_offset;
-    T y;
-    T j_num;
-    T x_num;
-    T z_num;
-    T part_offset;
-    T node_val;
-    T status;
-    T seed_offset;
+    T depth_same;
+    T x_same;
+    T z_same;
+    T j_same;
+    T pc_offset_same;
+    T y_same;
+    T j_num_same;
+    T x_num_same;
+    T z_num_same;
+    T part_offset_same;
+    T node_val_same;
+    T status_same;
+    T seed_offset_same;
+    T part_xz_same;
+    
+    T part_xz_1_same;
+    T part_xz_2_same;
+    T part_xz_3_same;
+    T part_xz_4_same;
+    
+    T part_offset_1_same;
+    T part_offset_2_same;
+    T part_offset_3_same;
+    T part_offset_4_same;
     
     T high_res_index;
+    
+    T part_xz;
+    bool seed;
+    
     
     //offsets
     int offset_x;
@@ -183,14 +346,14 @@ private:
     int offset_y;
     int offset_depth;
     
+    
+    
     float depth_factor;
     float depth_factor_local;
     
-    bool update_flag;
+    int current_flag;
     
-    const int hi_res_flag;
-    
-    const bool active_flag;
+    uint64_t not_exist;
     
     std::vector<V> temp_vec;
     
