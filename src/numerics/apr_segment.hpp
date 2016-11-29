@@ -375,7 +375,7 @@ void calc_connected_component_alt(PartCellStructure<S,uint64_t>& pc_struct,Extra
     for(int r = 0;r < num_repeats;r++){
     
     
-    for(uint64_t depth = (pc_struct.pc_data.depth_min + 1);depth <= pc_struct.pc_data.depth_max;depth++){
+    for(uint64_t depth = (pc_struct.pc_data.depth_min);depth <= pc_struct.pc_data.depth_max;depth++){
         //loop over the resolutions of the structure
         const unsigned int x_num_ = pc_struct.pc_data.x_num[depth];
         const unsigned int z_num_ = pc_struct.pc_data.z_num[depth];
@@ -421,9 +421,12 @@ void calc_connected_component_alt(PartCellStructure<S,uint64_t>& pc_struct,Extra
                             neigh_z.incriment_y_same_depth(curr_level,part_new);
                             neigh_y.incriment_y_same_depth(curr_level,part_new);
                             
-                            
-
-
+                            if(depth < pc_struct.pc_data.depth_max){
+                    
+                                neigh_x.incriment_y_child_depth(curr_level,part_new);
+                                neigh_z.incriment_y_child_depth(curr_level,part_new);
+                                neigh_y.incriment_y_child_depth(curr_level,part_new);
+                            }
                             
                             if(curr_level.status==SEED){
                                 //seed loop (first particle)
@@ -434,7 +437,7 @@ void calc_connected_component_alt(PartCellStructure<S,uint64_t>& pc_struct,Extra
                                     neigh =  neigh_x.get_part(part_new.particle_data);
                                     neigh +=  neigh_z.get_part(part_new.particle_data);
                                     neigh +=  neigh_y.get_part(part_new.particle_data);
-                                    curr_level.get_part(part_new) = neigh;
+                                    //curr_level.get_part(part_new) = neigh;
                                 
                                     curr_level.iterate_y_seed();
                                     //second particle
@@ -445,11 +448,12 @@ void calc_connected_component_alt(PartCellStructure<S,uint64_t>& pc_struct,Extra
                                     neigh = neigh_x.get_part(part_new.particle_data);
                                     neigh += neigh_z.get_part(part_new.particle_data);
                                     neigh += neigh_y.get_part(part_new.particle_data);
-                                    curr_level.get_part(part_new) = neigh;
-                                    
+                                    //curr_level.get_part(part_new) = neigh;
+                                    (void) neigh;
                                     
                                 } else {
                                     
+                                 
                                     neigh_x.incriment_y_parent_depth(curr_level,part_new);
                                     neigh_z.incriment_y_parent_depth(curr_level,part_new);
                                     neigh_y.incriment_y_parent_depth(curr_level,part_new);
@@ -458,16 +462,20 @@ void calc_connected_component_alt(PartCellStructure<S,uint64_t>& pc_struct,Extra
                             } else {
                                 //non seed loop
                                 if( l == 0){
-                                    
+                                   
                                     neigh_x.incriment_y_parent_depth(curr_level,part_new);
                                     neigh_z.incriment_y_parent_depth(curr_level,part_new);
                                     neigh_y.incriment_y_parent_depth(curr_level,part_new);
+                                   
                                     
                                     neigh = neigh_x.get_part(part_new.particle_data);
                                     neigh += neigh_z.get_part(part_new.particle_data);
                                     neigh += neigh_y.get_part(part_new.particle_data);
-                                   
-                                    curr_level.get_part(part_new) = neigh;
+                                    
+                                    
+                                    (void) neigh;
+
+                                    //curr_level.get_part(part_new) = neigh;
                                 }
                             }
                             
@@ -588,8 +596,9 @@ void calc_connected_component_alt(PartCellStructure<S,uint64_t>& pc_struct,Extra
                             }
 
 
+                            (void) temp;
                             
-                            pc_struct.part_data.particle_data.get_part(curr_key) = temp;
+                            //pc_struct.part_data.particle_data.get_part(curr_key) = temp;
                                 
                             
                         }
