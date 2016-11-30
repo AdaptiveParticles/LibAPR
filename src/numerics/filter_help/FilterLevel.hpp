@@ -71,7 +71,7 @@ public:
     void set_new_xz(T x_,T z_,PartCellStructure<U,T>& pc_struct){
         
         x_global = x_*depth_factor;
-        z_global = x_*depth_factor;
+        z_global = z_*depth_factor;
         
         x = x_;
         z = z_;
@@ -112,8 +112,9 @@ public:
     void update_gap(PartCellStructure<U,T>& pc_struct){
         
         y += ((node_val & COORD_DIFF_MASK_PARTICLE) >> COORD_DIFF_SHIFT_PARTICLE);
-        y--;
         y_global = y*depth_factor;
+        y--;
+        //
     }
     
     template<typename U>
@@ -130,6 +131,8 @@ public:
         
         temp_vec_ns.resize(filter.size(),0);
         
+        filter_offset = (filter_input.size()-1)/2;
+        
     }
     
     template<typename U>
@@ -139,7 +142,7 @@ public:
         
         std::copy(filter_input.begin(),filter_input.end(),filter.begin());
         
-        filter_offset = filter_input.size()/2 - 1;
+        filter_offset = (filter_input.size()-1)/2;
         
         temp_vec_s0.resize(pc_struct.org_dims[0],0);
         temp_vec_s1.resize(pc_struct.org_dims[0],0);
@@ -196,7 +199,11 @@ public:
         
         if((y_global +filter_offset) < y_num){
         
+            
+            
             temp_vec_s0[y_global+filter_offset] = temp_vec_s0[y_global+filter_offset-1];
+            
+            
             temp_vec_s1[y_global+filter_offset] = temp_vec_s1[y_global+filter_offset-1];
             temp_vec_s2[y_global+filter_offset] = temp_vec_s2[y_global+filter_offset-1];
             temp_vec_s3[y_global+filter_offset] = temp_vec_s3[y_global+filter_offset-1];
@@ -208,8 +215,8 @@ public:
     
     void compute_filter_new(ExtraPartCellData<V>& filter_output){
         
-        uint64_t offset_max = std::min((uint64_t)(y + filter_offset),(uint64_t)(y_num-1));
-        uint64_t offset_min = std::max((uint64_t)(y - filter_offset),(uint64_t)0);
+        uint64_t offset_max = std::min((uint64_t)(y_global + filter_offset),(uint64_t)(y_num-1));
+        uint64_t offset_min = std::max((uint64_t)(y_global - filter_offset),(uint64_t)0);
         uint64_t f;
         
         if(status ==SEED){
@@ -294,7 +301,7 @@ public:
     
     T x_global;
     T z_global;
-    T y_global;
+    int y_global;
     
     T status;
     T filter_offset;
@@ -311,7 +318,7 @@ private:
     T z;
     T j;
     
-    T y;
+    int y;
     
     T x_num;
     T z_num;

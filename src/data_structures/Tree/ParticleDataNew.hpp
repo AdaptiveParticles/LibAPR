@@ -219,7 +219,6 @@ public:
                             
                         } else {
                             
-                            
                             //gap node
                             access_data.data[i][offset_pc_data][j_] = 1; //set type to gap
                             access_data.data[i][offset_pc_data][j_] |= (((node_val & YP_DEPTH_MASK) >> YP_DEPTH_SHIFT) << Y_DEPTH_SHIFT_PARTICLE); //set the depth change

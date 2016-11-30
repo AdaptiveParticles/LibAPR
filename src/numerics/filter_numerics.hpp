@@ -208,7 +208,7 @@ void convolution_filter_y(PartCellStructure<U,uint64_t>& pc_struct,ExtraPartCell
                             } else {
                                 // Jumps the iteration forward, this therefore also requires computation of an effective boundary condition
                                 
-                                uint64_t y_init = curr_level.y_global;
+                                int y_init = curr_level.y_global;
                                 
                                 curr_level.update_gap(pc_struct);
                                 
@@ -294,7 +294,7 @@ void convolution_filter_y(PartCellStructure<U,uint64_t>& pc_struct,ExtraPartCell
                             } else {
                                 // Jumps the iteration forward, this therefore also requires computation of an effective boundary condition
                                 
-                                uint64_t y_init = curr_level.y_global;
+                                int y_init = curr_level.y_global;
                                 
                                 curr_level.update_gap(pc_struct);
                                 
@@ -344,8 +344,8 @@ void convolution_filter_y_new(PartCellStructure<U,uint64_t>& pc_struct,ExtraPart
     
     std::vector<float> filter;
     
-    int filter_offset = 6;
-    filter.resize(filter_offset*2 +1,1);
+    int filter_offset = 1;
+    filter.resize(filter_offset*2 +1,1.0/(filter_offset*2+1));
     
     ///////////////
     //
@@ -370,7 +370,7 @@ void convolution_filter_y_new(PartCellStructure<U,uint64_t>& pc_struct,ExtraPart
     
     //doing seed level (four different particle paths)
     
-    float num_repeats = 50;
+    float num_repeats = 1;
     
     for(int r = 0;r < num_repeats;r++){
         
@@ -449,6 +449,10 @@ void convolution_filter_y_new(PartCellStructure<U,uint64_t>& pc_struct,ExtraPart
                         
                         curr_level.set_new_xz(x_,z_,pc_struct);
                         
+                        if(curr_level.j_num_() > 1){
+                            int stop = 1;
+                        }
+                        
                         
                         //the y direction loop however is sparse, and must be accessed accordinagly
                         for(j_ = 0;j_ < curr_level.j_num_();j_++){
@@ -489,14 +493,14 @@ void convolution_filter_y_new(PartCellStructure<U,uint64_t>& pc_struct,ExtraPart
                             } else {
                                 // Jumps the iteration forward, this therefore also requires computation of an effective boundary condition
                                 
-                                uint64_t y_init = curr_level.y_global;
+                                int y_init = curr_level.y_global;
                                 
                                 curr_level.update_gap(pc_struct);
                                 
                                 //will need to initialize things here..
-                                y_init = std::max((float)y_init,(float)(curr_level.y_global) - filter_offset);
+                                y_init = std::max((float)y_init,(float)(curr_level.y_global) - 2*filter_offset);
                                 
-                                for(uint64_t q = y_init;q < curr_level.y_global + (filter_offset-1);q++){
+                                for(uint64_t q = y_init;q < curr_level.y_global + (filter_offset);q++){
                                     
                                     curr_level.iterate_temp_vecs_new();
                                     layer_plus.incriment_y_and_update_new(q,pc_struct,curr_level);
@@ -597,14 +601,14 @@ void convolution_filter_y_new(PartCellStructure<U,uint64_t>& pc_struct,ExtraPart
                             } else {
                                 // Jumps the iteration forward, this therefore also requires computation of an effective boundary condition
                                 
-                                uint64_t y_init = curr_level.y_global;
+                                int y_init = curr_level.y_global;
                                 
                                 curr_level.update_gap(pc_struct);
                                 
                                 //will need to initialize things here..
-                                y_init = std::max(y_init,curr_level.y_global - filter_offset);
+                                y_init = std::max(y_init,curr_level.y_global - 2*filter_offset);
                                 
-                                for(uint64_t q = y_init;q < curr_level.y_global + (filter_offset-1);q++){
+                                for(uint64_t q = y_init;q < curr_level.y_global + (filter_offset);q++){
                                     
                                     curr_level.iterate_temp_vecs_new();
                                     layer_plus.incriment_y_and_update_new(q,pc_struct,curr_level);

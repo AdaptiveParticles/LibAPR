@@ -90,12 +90,13 @@ public:
         }
         
         if(j_num > 1){
-            y = (pc_struct.pc_data.data[depth][pc_offset][0] & NEXT_COORD_MASK) >> NEXT_COORD_SHIFT;
-            y--;
+            y = -1;
+            y_input = -1;
+            
         } else {
             y = 64000;
         }
-        
+        j = -1;
     }
     
     template<typename U>
@@ -105,57 +106,72 @@ public:
         //
         
         //need to deal with offset and
-        T y_input = floor((y_real+offset_y)/depth_factor);
+        y_prev = y_input;
+        y_input = floor((y_real+offset_y)/depth_factor);
         update_flag = false;
         
-        if (y_input != y){
-            //iterate forward
-            while ((y < y_input) & (j < (j_num-1))){
-                
+        
+        //iterate forward
+        while ((y < y_input) & (j < (j_num-1))){
+            
+            j++;
+            node_val = pc_struct.part_data.access_data.data[depth][pc_offset][j];
+            
+            if (node_val&1){
+                //get the index gap node
+                y += (node_val & COORD_DIFF_MASK_PARTICLE) >> COORD_DIFF_SHIFT_PARTICLE;
                 j++;
+                
                 node_val = pc_struct.part_data.access_data.data[depth][pc_offset][j];
+                status = ((node_val & STATUS_MASK_PARTICLE) >> STATUS_SHIFT_PARTICLE);
                 
-                if (node_val&1){
-                    //get the index gap node
-                    y += (node_val & COORD_DIFF_MASK_PARTICLE) >> COORD_DIFF_SHIFT_PARTICLE;
-                    y--;
+                part_offset = ((node_val & Y_PINDEX_MASK_PARTICLE) >> Y_PINDEX_SHIFT_PARTICLE);
+                
+            } else {
+                //normal node
+                y++;
+                status = ((node_val & STATUS_MASK_PARTICLE) >> STATUS_SHIFT_PARTICLE);
+                
+                part_offset = ((node_val & Y_PINDEX_MASK_PARTICLE) >> Y_PINDEX_SHIFT_PARTICLE);
+            }
+            
+        }
+        
+        if (y == y_input){
+            
+            if(y_input == y_prev){
+                
+                if(status == SEED){
                     
-                } else {
-                    //normal node
-                    y++;
-                    status = ((node_val & STATUS_MASK_PARTICLE) >> STATUS_SHIFT_PARTICLE);
-                    
-                    part_offset = ((node_val & Y_PINDEX_MASK_PARTICLE) >> Y_PINDEX_SHIFT_PARTICLE);
+                    //check if moved to next particle
+                    if( floor(y_real/(depth_factor*2)) == (y*2 + 1)  ){
+                        part_offset++; //moved to next seed particle (update)
+                        update_flag = true;
+                        return true;
+                    } else {
+                        update_flag = false;
+                        return false;
+                    }
                 }
-                
-            }
-            
-            if (y == y_input){
-                update_flag = true;
-                return true;
-            }else {
-                update_flag = false;
-                return false;
-            }
-            
-        } else {
-            
-            if(status == SEED){
-                
-                //check if moved to next particle
-                if( floor(y_real/(depth_factor*2)) == (y*2 + 1)  ){
-                    part_offset++; //moved to next seed particle (update)
+                else {
                     update_flag = true;
                     return true;
-                } else {
-                    update_flag = false;
-                    return false;
                 }
                 
+                
+            } else {
+                
+                update_flag = true;
+                return true;
             }
+        } else {
             update_flag = false;
             return false;
         }
+        
+        
+        
+        
         
         
         
@@ -399,7 +415,7 @@ public:
                         break;
                     }
                 }
-                curr_level.temp_vec_ns[index] = temp_sum/4.0f;
+                curr_level.temp_vec_ns[index] += temp_sum/4.0f;
                 
             } else {
                 //Lower resolution, they all get the same values
@@ -425,10 +441,10 @@ private:
     T depth;
     T x;
     T z;
-    T j;
+    int j;
     T pc_offset;
-    T y;
-    T j_num;
+    int y;
+    int j_num;
     T x_num;
     T z_num;
     T part_offset;
@@ -452,7 +468,11 @@ private:
     const int hi_res_flag;
     
     const bool active_flag;
-    
+
+    int y_input;
+    int y_prev;
+
+
 };
 
 #endif //PARTPLAY_PARTCELLOFFSET_HPP

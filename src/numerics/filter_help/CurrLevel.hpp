@@ -120,8 +120,8 @@ public:
     T z;
     T j;
     
-    T y;
-    T y_seed;
+    int y;
+    int y_seed;
     
     T x_num;
     T z_num;

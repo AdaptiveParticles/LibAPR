@@ -638,7 +638,7 @@ private:
     T z_same;
     T j_same;
     T pc_offset_same;
-    T y_same;
+    int y_same;
     T j_num_same;
     T x_num_same;
     T z_num_same;
@@ -664,7 +664,7 @@ private:
     T z_parent;
     T j_parent;
     T pc_offset_parent;
-    T y_parent;
+    int y_parent;
     T j_num_parent;
     T x_num_parent;
     T z_num_parent;
@@ -684,7 +684,7 @@ private:
     T z_child;
     T j_child;
     T pc_offset_child;
-    T y_child;
+    int y_child;
     T j_num_child;
     T x_num_child;
     T z_num_child;
