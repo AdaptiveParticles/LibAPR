@@ -61,6 +61,60 @@ public:
     template<typename U>
     void reset_j(CurrentLevel<U,T>& curr_level,ParticleDataNew<U, T>& part_data){
         
+        
+        
+        
+        if(depth_child < part_data.access_data.depth_max){
+            
+            x_child = curr_level.x*2 + offset_x;
+            z_child = curr_level.z*2 + offset_z;
+            
+            x_child = std::min(x_child,x_num_child-1);
+            z_child = std::min(z_child,z_num_child-1);
+            
+            
+            pc_offset_child = x_num_child*z_child + x_child;
+            j_num_child = part_data.access_data.data[depth_child][pc_offset_child].size();
+            part_offset_child = 0;
+            
+            
+            j_child = 0;
+            
+            if((x_child < 0) | (z_child < 0)){
+                j_num_child = 0;
+            }
+            
+            
+            
+            if(j_num_child > 1){
+                y_child = -1;
+                
+            } else {
+                y_child = 64000;
+            }
+            
+            int dir = (offset_y == -1) + (offset_x == 1)*2 + (offset_x == -1)*3 + (offset_z == 1)*4 + (offset_z == -1)*5;
+            
+            pc_offset_child_1 = x_num_child*z_child + x_child;
+            pc_offset_child_2 = x_num_child*(z_child + child_z[neigh_child_dir[dir][0]]) + (x_child+child_x[neigh_child_dir[dir][0]]);
+            pc_offset_child_3 = x_num_child*(z_child + child_z[neigh_child_dir[dir][1]]) + (x_child+child_x[neigh_child_dir[dir][1]]);
+            pc_offset_child_4= x_num_child*(z_child + child_z[neigh_child_dir[dir][2]]) + (x_child+child_x[neigh_child_dir[dir][2]]);
+            
+            
+            j_offset_child_1 = 0;
+            j_offset_child_2 = child_y[neigh_child_dir[dir][0]];
+            j_offset_child_3 = child_y[neigh_child_dir[dir][1]];
+            j_offset_child_4 = child_y[neigh_child_dir[dir][2]];
+            
+            
+            
+
+            
+            
+        } else {
+            y_child = 64000;
+        }
+        
         part_xz = curr_level.part_xz;
         
         if (curr_level.part_xz > 1){
@@ -180,6 +234,9 @@ public:
                 part_offset_2_same = 1;
                 part_offset_3_same = 0;
                 part_offset_4_same = 1;
+                
+                
+                
                 
             } else if (offset_x == -1){
                 
@@ -308,49 +365,7 @@ public:
             
         }
         
-        if(depth_child < part_data.access_data.depth_max){
-            
-            x_child = curr_level.x*2 + offset_x;
-            z_child = curr_level.z*2 + offset_z;
-            
-            x_child = std::min(x_child,x_num_child-1);
-            z_child = std::min(z_child,z_num_child-1);
-            
-            
-            pc_offset_child = x_num_child*z_child + x_child;
-            j_num_child = part_data.access_data.data[depth_child][pc_offset_child].size();
-            part_offset_child = 0;
-            
-            
-            j_child = 0;
-            
-            if((x_child < 0) | (z_child < 0)){
-                j_num_child = 0;
-            }
-            
-            
-            
-            if(j_num_child > 1){
-                y_child = -1;
-                
-            } else {
-                y_child = 64000;
-            }
-
-            pc_offset_child_1=;
-            pc_offset_child_2=;
-            pc_offset_child_3=;
-            pc_offset_child_4=;
-            
-            part_offset_child_1=;
-            part_offset_child_2=;
-            part_offset_child_3=;
-            part_offset_child_4=;
-            
-            
-        } else {
-            y_child = 64000;
-        }
+        
         
         
         x_same = std::min(x_same,x_num_same-1);
@@ -609,6 +624,15 @@ public:
     
 private:
     
+    const int8_t child_y[6] = { 1, 0, 0, 1, 0, 1};
+    const int8_t child_x[6] = { 0, 1, 1, 0, 0, 1};
+    const int8_t child_z[6] = { 0, 1, 0, 1, 1, 0};
+    
+    //the ordering of retrieval of four neighbour cells
+    const uint8_t neigh_child_dir[6][3] = {{2,4,1},{2,4,1},{0,4,3},{0,4,3},{0,2,5},{0,2,5}};
+    
+    
+    
     T depth_same;
     T x_same;
     T z_same;
@@ -682,6 +706,10 @@ private:
     T part_offset_child_4;
 
     
+    T j_offset_child_1;
+    T j_offset_child_2;
+    T j_offset_child_3;
+    T j_offset_child_4;
     
     T high_res_index;
     
