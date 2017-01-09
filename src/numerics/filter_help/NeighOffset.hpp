@@ -98,7 +98,7 @@ public:
             pc_offset_child_1 = x_num_child*z_child + x_child;
             pc_offset_child_2 = x_num_child*(z_child + child_z[neigh_child_dir[dir][0]]) + (x_child+child_x[neigh_child_dir[dir][0]]);
             pc_offset_child_3 = x_num_child*(z_child + child_z[neigh_child_dir[dir][1]]) + (x_child+child_x[neigh_child_dir[dir][1]]);
-            pc_offset_child_4= x_num_child*(z_child + child_z[neigh_child_dir[dir][2]]) + (x_child+child_x[neigh_child_dir[dir][2]]);
+            pc_offset_child_4 = x_num_child*(z_child + child_z[neigh_child_dir[dir][2]]) + (x_child+child_x[neigh_child_dir[dir][2]]);
             
             
             j_offset_child_1 = 0;
@@ -399,7 +399,7 @@ public:
         
         current_flag = 0;
         //need to deal with offset and
-        T y_input = curr_level.y + offset_y;
+        int y_input = curr_level.y + offset_y;
         
         //iterate forward
         while ((y_same < y_input) & (j_same < (j_num_same-1))){
@@ -443,7 +443,7 @@ public:
         
         
         //need to deal with offset and
-        T y_input = 2*curr_level.y + offset_y;
+        int y_input = 2*curr_level.y + offset_y;
         
         //iterate forward
         while ((y_child < y_input) & (j_child < (j_num_child-1))){
@@ -488,7 +488,7 @@ public:
         //
         
         //need to deal with offset and
-        T y_input = curr_level.y/2 + offset_y;
+        int y_input = curr_level.y/2 + offset_y;
         
         //iterate forward
         while ((y_parent < y_input) & (j_parent < (j_num_same-1))){

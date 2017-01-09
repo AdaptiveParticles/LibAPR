@@ -327,8 +327,8 @@ public:
                                 particle_data.data[i][offset_pc_data][3][part_counter_seed] = part_data.particle_data.data[i][offset_pc_data][part_offset + 4];
                                 particle_data.data[i][offset_pc_data][3][part_counter_seed+1] = part_data.particle_data.data[i][offset_pc_data][part_offset + 5];
                                 
-                                particle_data.data[i][offset_pc_data][3][part_counter_seed] = part_data.particle_data.data[i][offset_pc_data][part_offset + 6];
-                                particle_data.data[i][offset_pc_data][3][part_counter_seed+1] = part_data.particle_data.data[i][offset_pc_data][part_offset + 7];
+                                particle_data.data[i][offset_pc_data][4][part_counter_seed] = part_data.particle_data.data[i][offset_pc_data][part_offset + 6];
+                                particle_data.data[i][offset_pc_data][4][part_counter_seed+1] = part_data.particle_data.data[i][offset_pc_data][part_offset + 7];
                                 
                                 part_counter_seed += 2;
                                 

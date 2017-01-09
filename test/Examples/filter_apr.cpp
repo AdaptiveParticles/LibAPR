@@ -9,6 +9,7 @@
 #include "../../src/data_structures/particle_map.hpp"
 #include "../../src/data_structures/Tree/PartCellBase.hpp"
 #include "../../src/data_structures/Tree/PartCellStructure.hpp"
+#include "../../src/data_structures/Tree/ParticleDataNew.hpp"
 #include "../../src/algorithm/level.hpp"
 #include "../../src/io/writeimage.h"
 #include "../../src/io/write_parts.h"
@@ -108,8 +109,14 @@ int main(int argc, char **argv) {
     uint64_t num_parts = pc_struct.get_number_parts();
     uint64_t dim = ceil(pow(num_parts,1.0/3.0));
 //    
-    convolution_filter_pixels(pc_struct,dim,dim,dim);
-    //convolution_filter_pixels_temp(pc_struct,dim,dim,dim);
+    //convolution_filter_pixels(pc_struct,dim,dim,dim);
+    convolution_filter_pixels_temp(pc_struct,dim,dim,dim);
+    convolution_filter_pixels_temp(pc_struct,dim,dim,dim);
+    
+    
+    compute_gradient(pc_struct,filter_output);
+    
+    compute_gradient(pc_struct,filter_output);
     
     Mesh_data<uint16_t> filter_img;
     
@@ -117,7 +124,7 @@ int main(int argc, char **argv) {
     
     debug_write(filter_img,"filter_output");
     
-    get_neigh_check(pc_struct);
+    
     
     
     Mesh_data<uint8_t> seg_img;
