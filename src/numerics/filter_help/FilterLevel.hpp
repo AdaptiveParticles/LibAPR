@@ -209,6 +209,8 @@ public:
             temp_vec_s3[y_global+filter_offset] = temp_vec_s3[y_global+filter_offset-1];
         
             temp_vec_ns[y_global+filter_offset] = temp_vec_ns[y_global+filter_offset-1];
+            
+            
         }
         
     }
@@ -218,6 +220,9 @@ public:
         uint64_t offset_max = std::min((uint64_t)(y_global + filter_offset),(uint64_t)(y_num-1));
         uint64_t offset_min = std::max((uint64_t)(y_global - filter_offset),(uint64_t)0);
         uint64_t f;
+        
+      
+        
         
         if(status ==SEED){
             //perform the filter

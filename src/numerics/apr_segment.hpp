@@ -624,6 +624,7 @@ void calc_connected_component_alt(PartCellStructure<S,uint64_t>& pc_struct,Extra
     
 }
 
+
 //void calc_boundary_parts(PartCellStructure<S,uint64_t>& pc_struct,ExtraPartCellData<uint16_t>& component_label){
 //    //
 //    //  Calculates boundary part locations

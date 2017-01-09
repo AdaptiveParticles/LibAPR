@@ -53,6 +53,190 @@ void iterate_temp_vec(std::vector<T>& temp_vec){
     temp_vec.back() = temp_vec[0];
     
 }
+
+template<typename S>
+void get_neigh_check(PartCellStructure<S,uint64_t>& pc_struct){
+    //
+    //  Calculate Neighbours Using Iterators
+    //
+    //
+    ParticleDataNew<float, uint64_t> part_new;
+    
+    part_new.initialize_from_structure(pc_struct.pc_data);
+    part_new.transfer_intensities(pc_struct.part_data);
+    
+    component_label.initialize_structure_parts(pc_struct.part_data.particle_data);
+    
+    Part_timer timer;
+    
+    //initialize variables required
+    uint64_t node_val_pc; // node variable encoding neighbour and cell information
+    uint64_t node_val_part; // node variable encoding part offset status information
+    int x_; // iteration variables
+    int z_; // iteration variables
+    uint64_t j_; // index variable
+    uint64_t curr_key = 0; // key used for accessing and particles and cells
+    PartCellNeigh<uint64_t> neigh_part_keys; // data structure for holding particle or cell neighbours
+    PartCellNeigh<uint64_t> neigh_cell_keys;
+    //
+    // Extra variables required
+    //
+    
+    uint64_t status=0;
+    uint64_t part_offset=0;
+    uint64_t p;
+    
+    std::vector<int> labels;
+    labels.resize(1,0);
+    
+    std::vector<int> neigh_labels;
+    neigh_labels.reserve(10);
+    
+    float neigh;
+    
+    timer.verbose_flag = false;
+    
+    timer.start_timer("iterate parts");
+    
+    
+    float num_repeats = 50;
+    
+    for(int r = 0;r < num_repeats;r++){
+        
+        
+        for(uint64_t depth = (pc_struct.pc_data.depth_min);depth <= pc_struct.pc_data.depth_max;depth++){
+            //loop over the resolutions of the structure
+            const unsigned int x_num_ = pc_struct.pc_data.x_num[depth];
+            const unsigned int z_num_ = pc_struct.pc_data.z_num[depth];
+            
+            CurrentLevel<float,uint64_t> curr_level;
+            curr_level.set_new_depth(depth,part_new);
+            
+            NeighOffset<float,uint64_t> neigh_y;
+            neigh_y.set_new_depth(depth,part_new);
+            neigh_y.set_offsets(0,0,1,0);
+            
+            NeighOffset<float,uint64_t> neigh_z;
+            neigh_z.set_new_depth(depth,part_new);
+            neigh_z.set_offsets(0,1,0,0);
+            
+            NeighOffset<float,uint64_t> neigh_x;
+            neigh_x.set_new_depth(depth,part_new);
+            neigh_x.set_offsets(1,0,0,0);
+            
+#pragma omp parallel for default(shared) private(p,z_,x_,j_,neigh) firstprivate(curr_level,neigh_x,neigh_z,neigh_y) if(z_num_*x_num_ > 100)
+            for(z_ = 0;z_ < z_num_;z_++){
+                //both z and x are explicitly accessed in the structure
+                
+                for(x_ = 0;x_ < x_num_;x_++){
+                    
+                    for(uint64_t l = 0;l < 5;l++){
+                        
+                        curr_level.set_new_xz(x_,z_,l,part_new);
+                        neigh_x.reset_j(curr_level,part_new);
+                        neigh_z.reset_j(curr_level,part_new);
+                        neigh_y.reset_j(curr_level,part_new);
+                        //the y direction loop however is sparse, and must be accessed accordinagly
+                        for(j_ = 0;j_ < curr_level.j_num;j_++){
+                            
+                            //particle cell node value, used here as it is requried for getting the particle neighbours
+                            bool iscell = curr_level.new_j(j_,part_new);
+                            
+                            if (iscell){
+                                //Indicates this is a particle cell node
+                                curr_level.update_cell(part_new);
+                                
+                                neigh_x.incriment_y_same_depth(curr_level,part_new);
+                                neigh_z.incriment_y_same_depth(curr_level,part_new);
+                                neigh_y.incriment_y_same_depth(curr_level,part_new);
+                                
+                                if(depth < pc_struct.pc_data.depth_max){
+                                    
+                                    neigh_x.incriment_y_child_depth(curr_level,part_new);
+                                    neigh_z.incriment_y_child_depth(curr_level,part_new);
+                                    neigh_y.incriment_y_child_depth(curr_level,part_new);
+                                }
+                                
+                                if(curr_level.status==SEED){
+                                    //seed loop (first particle)
+                                    
+                                    if(l > 0){
+                                        
+                                        
+                                        neigh =  neigh_x.get_part(part_new.particle_data);
+                                        neigh +=  neigh_z.get_part(part_new.particle_data);
+                                        neigh +=  neigh_y.get_part(part_new.particle_data);
+                                        //curr_level.get_part(part_new) = neigh;
+                                        
+                                        curr_level.iterate_y_seed();
+                                        //second particle
+                                        neigh_x.incriment_y_part_same_depth(curr_level,part_new);
+                                        neigh_z.incriment_y_part_same_depth(curr_level,part_new);
+                                        neigh_y.incriment_y_part_same_depth(curr_level,part_new);
+                                        
+                                        neigh = neigh_x.get_part(part_new.particle_data);
+                                        neigh += neigh_z.get_part(part_new.particle_data);
+                                        neigh += neigh_y.get_part(part_new.particle_data);
+                                        //curr_level.get_part(part_new) = neigh;
+                                        (void) neigh;
+                                        
+                                    } else {
+                                        
+                                        
+                                        neigh_x.incriment_y_parent_depth(curr_level,part_new);
+                                        neigh_z.incriment_y_parent_depth(curr_level,part_new);
+                                        neigh_y.incriment_y_parent_depth(curr_level,part_new);
+                                    }
+                                    
+                                } else {
+                                    //non seed loop
+                                    if( l == 0){
+                                        
+                                        neigh_x.incriment_y_parent_depth(curr_level,part_new);
+                                        neigh_z.incriment_y_parent_depth(curr_level,part_new);
+                                        neigh_y.incriment_y_parent_depth(curr_level,part_new);
+                                        
+                                        
+                                        neigh = neigh_x.get_part(part_new.particle_data);
+                                        neigh += neigh_z.get_part(part_new.particle_data);
+                                        neigh += neigh_y.get_part(part_new.particle_data);
+                                        
+                                        
+                                        (void) neigh;
+                                        
+                                        //curr_level.get_part(part_new) = neigh;
+                                    }
+                                }
+                                
+                                
+                            } else {
+                                // Jumps the iteration forward, this therefore also requires computation of an effective boundary condition
+                                
+                                curr_level.update_gap();
+                                
+                            }
+                            
+                            
+                        }
+                        
+                    }
+                }
+            }
+        }
+        
+    }
+    
+    timer.stop_timer();
+    
+    float time = (timer.t2 - timer.t1)/num_repeats;
+    
+    std::cout << " Neigh Regime New took: " << time << std::endl;
+    
+    
+}
+
+
+
 template<typename U,typename V>
 void convolution_filter_y(PartCellStructure<U,uint64_t>& pc_struct,ExtraPartCellData<V>& filter_output){
     //
@@ -370,7 +554,7 @@ void convolution_filter_y_new(PartCellStructure<U,uint64_t>& pc_struct,ExtraPart
     
     //doing seed level (four different particle paths)
     
-    float num_repeats = 1;
+    float num_repeats = 10;
     
     for(int r = 0;r < num_repeats;r++){
         
@@ -435,7 +619,7 @@ void convolution_filter_y_new(PartCellStructure<U,uint64_t>& pc_struct,ExtraPart
             
             if (depth == pc_struct.depth_max){
                 
-#pragma omp parallel for default(shared) private(z_,x_,j_) firstprivate(layer_plus,layer_equal,curr_level,layer_plus_2) if(z_num_*x_num_ > 100)
+//#pragma omp parallel for default(shared) private(z_,x_,j_) firstprivate(layer_plus,layer_equal,curr_level,layer_plus_2) if(z_num_*x_num_ > 100)
                 for(z_ = 0;z_ < z_num_;z_++){
                     //both z and x are explicitly accessed in the structure
                     
@@ -449,9 +633,7 @@ void convolution_filter_y_new(PartCellStructure<U,uint64_t>& pc_struct,ExtraPart
                         
                         curr_level.set_new_xz(x_,z_,pc_struct);
                         
-                        if(curr_level.j_num_() > 1){
-                            int stop = 1;
-                        }
+                        
                         
                         
                         //the y direction loop however is sparse, and must be accessed accordinagly
@@ -463,6 +645,11 @@ void convolution_filter_y_new(PartCellStructure<U,uint64_t>& pc_struct,ExtraPart
                             if (iscell){
                                 //Indicates this is a particle cell node
                                 curr_level.update_cell(pc_struct);
+                                
+                                if(curr_level.y_global > 80 && x_ == 30 && z_ == 17){
+                                    int stop = 1;
+                                }
+                                
                                 
                                 curr_level.iterate_temp_vecs_new();
                                 
@@ -521,6 +708,11 @@ void convolution_filter_y_new(PartCellStructure<U,uint64_t>& pc_struct,ExtraPart
                             
                             if (iscell){
                                 curr_level.update_cell(pc_struct);
+                                
+                                
+                               
+                                
+                                
                                 curr_level.compute_filter_new(filter_output);
                                 
                                 if(curr_level.status_()==SEED){

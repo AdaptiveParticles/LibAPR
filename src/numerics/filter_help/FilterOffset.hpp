@@ -149,8 +149,8 @@ public:
                         update_flag = true;
                         return true;
                     } else {
-                        update_flag = false;
-                        return false;
+                        update_flag = true;
+                        return true;
                     }
                 }
                 else {
@@ -422,12 +422,21 @@ public:
                 
                 U temp = pc_struct.part_data.particle_data.data[depth][pc_offset][part_offset + (status == SEED)*seed_offset];
                 
-                curr_level.temp_vec_s0[index] = temp;
-                curr_level.temp_vec_s1[index] = temp;
-                curr_level.temp_vec_s2[index] = temp;
-                curr_level.temp_vec_s3[index] = temp;
+                int index_max = std::min((int)curr_level.temp_vec_s0.size()-1,(int)(index + depth_factor));
                 
-                curr_level.temp_vec_ns[index] = temp;
+                std::fill(curr_level.temp_vec_s0.begin() + index,curr_level.temp_vec_s0.begin() + index_max,temp);
+                std::fill(curr_level.temp_vec_s1.begin() + index,curr_level.temp_vec_s1.begin() + index_max,temp);
+                std::fill(curr_level.temp_vec_s2.begin() + index,curr_level.temp_vec_s2.begin() + index_max,temp);
+                std::fill(curr_level.temp_vec_s3.begin() + index,curr_level.temp_vec_s3.begin() + index_max,temp);
+                
+                std::fill(curr_level.temp_vec_ns.begin() + index,curr_level.temp_vec_ns.begin() + index_max,temp);
+                
+                //curr_level.temp_vec_s0[index] = temp;
+                //curr_level.temp_vec_s1[index] = temp;
+                //curr_level.temp_vec_s2[index] = temp;
+                //curr_level.temp_vec_s3[index] = temp;
+                
+                //curr_level.temp_vec_ns[index] = temp;
                 
             }
         }

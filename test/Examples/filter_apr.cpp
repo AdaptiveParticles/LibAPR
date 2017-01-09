@@ -117,6 +117,8 @@ int main(int argc, char **argv) {
     
     debug_write(filter_img,"filter_output");
     
+    get_neigh_check(pc_struct);
+    
     
     Mesh_data<uint8_t> seg_img;
     
