@@ -58,4 +58,6 @@ bool find_part_cell_test(PartCellStructure<float,uint64_t>& pc_struct);
 
 bool compare_two_structures_test(PartCellStructure<float,uint64_t>& pc_struct,PartCellStructure<float,uint64_t>& pc_struct_read);
 
+void create_reference_structure(PartCellStructure<float,uint64_t>& pc_struct,std::vector<Mesh_data<uint64_t>>& link_array);
+
 #endif //PARTPLAY_UTILS_H

@@ -326,6 +326,9 @@ public:
                     
                     size_t part_counter=0;
                     
+                    access_data.data[i][offset_pc_data][0] = 1;
+                    access_data.data[i][offset_pc_data].back() = 1;
+                    
                     for(y_ = 0;y_ < temp_exist.size();y_++){
                         
                         status = temp_exist[y_];
@@ -396,6 +399,73 @@ public:
         
         
     }
+    
+    template<typename U>
+    void utest_structure(PartCellStructure<U,uint64_t>& pc_struct,std::vector<Mesh_data<uint64_t>> link_array){
+        //
+        //  Bevan Cheeseman 2017
+        //
+        //  Compare the new particle structure, of this class with the old one, using the link array which is a matrix giving the references to the old structure
+        //
+        //
+        
+        uint64_t z_,x_,j_,y_,node_val;
+        uint64_t old_key;
+        uint64_t old_node_val;
+        
+        
+        for(uint64_t i = access_data.depth_min;i <= access_data.depth_max;i++){
+            
+            const unsigned int x_num_ = access_data.x_num[i];
+            const unsigned int z_num_ = access_data.z_num[i];
+            
+            for(z_ = 0;z_ < z_num_;z_++){
+                
+                for(x_ = 0;x_ < x_num_;x_++){
+                    const size_t offset_pc_data = x_num_*z_ + x_;
+                    const size_t j_num = access_data.data[i][offset_pc_data].size();
+                    y_ = 0;
+                    
+                    for(j_ = 0; j_ < j_num;j_++){
+                        //raster over both structures, generate the index for the particles, set the status and offset_y_coord diff
+                        
+                        node_val = access_data.data[i][offset_pc_data][j_];
+                        
+                        if(!(node_val&1)){
+                            y_++;
+                            old_key = link_array[i](y_,x_,z_);
+                            
+                            old_node_val = pc_struct.pc_data.get_val(old_key);
+                            
+                            uint16_t part_offset =  (node_val& Y_PINDEX_MASK_PARTICLE) >> Y_PINDEX_SHIFT_PARTICLE;
+                            
+                            float current_int = particle_data.data[i][offset_pc_data][part_offset];
+                            
+                            float old_int = pc_struct.part_data.get_part(old_key);
+                            
+                            if(current_int != old_int){
+                                std::cout << "incorrect" << std::endl;
+                            }
+                            
+                            
+                        } else {
+                            y_ += ((node_val & COORD_DIFF_MASK_PARTICLE) >> COORD_DIFF_SHIFT_PARTICLE);
+                            y_--;
+                            
+                        }
+                    }
+                    
+                }
+                
+            }
+            
+            
+        }
+        
+        
+        
+    }
+    
     
     
     void transfer_intensities(ParticleData<T,S>& part_data){

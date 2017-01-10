@@ -1900,6 +1900,119 @@ void create_test_dataset_from_hdf5(Particle_map<float>& particle_map,PartCellStr
     
     
 }
+void create_reference_structure(PartCellStructure<float,uint64_t>& pc_struct,std::vector<Mesh_data<uint64_t>>& link_array){
+    //
+    //  Creates an array that can be used to link the new particle data structure for the filtering with the newer one.
+    //
+    //  Bevan Cheeseman 2017
+    //
+    //
+    
+    
+    link_array.resize(pc_struct.pc_data.depth_max + 2);
+    
+    for(int i = pc_struct.depth_min; i <= pc_struct.depth_max;i++){
+        link_array[i].initialize(pc_struct.y_num[i],pc_struct.x_num[i],pc_struct.z_num[i],0);
+    }
+    
+    link_array[pc_struct.depth_max+1].initialize(pc_struct.org_dims[0],pc_struct.org_dims[1],pc_struct.org_dims[2],0);
+    
+    uint64_t y_coord; // y coordinate needs to be tracked and is not explicitly stored in the structure
+  
+    uint64_t p;
+    uint64_t z_;
+    uint64_t x_;
+    uint64_t j_;
+    uint64_t node_val_pc;
+    uint64_t node_val_part;
+    uint64_t curr_key;
+    uint64_t status;
+    uint64_t part_offset;
+    
+    
+    for(uint64_t i = pc_struct.pc_data.depth_min;i <= pc_struct.pc_data.depth_max;i++){
+        //loop over the resolutions of the structure
+        const unsigned int x_num_ = pc_struct.pc_data.x_num[i];
+        const unsigned int z_num_ = pc_struct.pc_data.z_num[i];
+        
+        
+//#pragma omp parallel for default(shared) private(p,z_,x_,j_,node_val_pc,node_val_part,curr_key,status,part_offset)  if(z_num_*x_num_ > 100)
+        for(z_ = 0;z_ < z_num_;z_++){
+            //both z and x are explicitly accessed in the structure
+            curr_key = 0;
+            
+            pc_struct.pc_data.pc_key_set_z(curr_key,z_);
+            pc_struct.pc_data.pc_key_set_depth(curr_key,i);
+            
+            
+            for(x_ = 0;x_ < x_num_;x_++){
+                
+                pc_struct.pc_data.pc_key_set_x(curr_key,x_);
+                
+                const size_t offset_pc_data = x_num_*z_ + x_;
+                
+                const size_t j_num = pc_struct.pc_data.data[i][offset_pc_data].size();
+                
+                uint64_t status_current;
+                uint64_t x_current;
+                uint64_t y_current = 0;
+                uint64_t z_current;
+                uint64_t depth_current;
+                y_coord= 0;
+                
+                //the y direction loop however is sparse, and must be accessed accordinagly
+                for(j_ = 0;j_ < j_num;j_++){
+                    
+                    //particle cell node value, used here as it is requried for getting the particle neighbours
+                    node_val_pc = pc_struct.pc_data.data[i][offset_pc_data][j_];
+                    
+                    if (!(node_val_pc&1)){
+                        //Indicates this is a particle cell node
+                        y_coord++;
+                        
+                        node_val_part = pc_struct.part_data.access_data.data[i][offset_pc_data][j_];
+                        
+                        pc_struct.part_data.access_data.pc_key_set_j(curr_key,j_);
+                        
+                        status = pc_struct.part_data.access_node_get_status(node_val_part);
+                        part_offset = pc_struct.part_data.access_node_get_part_offset(node_val_part);
+                        
+                        pc_struct.part_data.access_data.pc_key_set_status(curr_key,status);
+                        
+                        //loop over the particles
+                        for(p = 0;p < pc_struct.part_data.get_num_parts(status);p++){
+                            //first set the particle index value in the particle_data array (stores the intensities)
+                            pc_struct.part_data.access_data.pc_key_set_index(curr_key,part_offset+p);
+                            
+                            pc_struct.part_data.access_data.pc_key_set_partnum(curr_key,p);
+                            
+                            // First get some details about the current part
+                            pc_struct.part_data.access_data.get_coordinates_part(y_coord,curr_key,x_current,z_current,y_current,depth_current,status_current);
+                            
+                            link_array[depth_current](y_current,x_current,z_current) = curr_key;
+                            
+                        }
+                        
+                    } else {
+                        // Inidicates this is not a particle cell node, and is a gap node
+                        y_coord = (node_val_pc & NEXT_COORD_MASK) >> NEXT_COORD_SHIFT;
+                        y_coord--;
+                    }
+                    
+                }
+                
+            }
+            
+        }
+    }
+    
+    
+    
+    
+    
+    
+}
+
 bool find_part_cell_test(PartCellStructure<float,uint64_t>& pc_struct){
     
     PartCellParent<uint64_t> parent_cells(pc_struct);

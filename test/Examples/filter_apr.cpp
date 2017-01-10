@@ -18,6 +18,8 @@
 #include "../../src/numerics/misc_numerics.hpp"
 #include "../../src/numerics/filter_numerics.hpp"
 
+#include "../../test/utils.h"
+
 bool command_option_exists(char **begin, char **end, const std::string &option)
 {
     return std::find(begin, end, option) != end;
@@ -113,7 +115,15 @@ int main(int argc, char **argv) {
    // convolution_filter_pixels_temp(pc_struct,dim,dim,dim);
    // convolution_filter_pixels_temp(pc_struct,dim,dim,dim);
     
-    get_neigh_check(pc_struct);
+    ParticleDataNew<float, uint64_t> part_new;
+    
+    part_new.initialize_from_structure(pc_struct);
+    
+    std::vector<Mesh_data<uint64_t>> link_array;
+    
+    create_reference_structure(pc_struct,link_array);
+    
+    part_new.utest_structure(pc_struct,link_array);
     
     //compute_gradient(pc_struct,filter_output);
     
@@ -123,7 +133,7 @@ int main(int argc, char **argv) {
     
     pc_struct.interp_parts_to_pc(filter_img,filter_output);
     
-    debug_write(filter_img,"filter_output");
+    debug_write(link_array[3],"link_array");
     
     
     
