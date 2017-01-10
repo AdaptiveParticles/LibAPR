@@ -743,7 +743,7 @@ void convolution_filter_y_new(PartCellStructure<U,uint64_t>& pc_struct,ExtraPart
     
     std::vector<float> filter;
     
-    int filter_offset = 1;
+    int filter_offset = 6;
     filter.resize(filter_offset*2 +1,1.0/(filter_offset*2+1));
     
     ///////////////
@@ -1152,7 +1152,7 @@ void convolution_filter_pixels_temp(PartCellStructure<U,uint64_t>& pc_struct,uin
     timer.verbose_flag = false;
     timer.start_timer("full previous filter");
     
-    uint64_t filter_offset = 1;
+    uint64_t filter_offset = 6;
     filter.resize(filter_offset*2 +1,1);
     
     std::vector<U> temp_vec;

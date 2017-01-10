@@ -103,7 +103,7 @@ int main(int argc, char **argv) {
     
     //convolution_filter_pixels(pc_struct,pc_struct.org_dims[0],pc_struct.org_dims[1],pc_struct.org_dims[2]);
     
-    //convolution_filter_pixels_temp(pc_struct,pc_struct.org_dims[0],pc_struct.org_dims[1],pc_struct.org_dims[2]);
+    convolution_filter_pixels_temp(pc_struct,pc_struct.org_dims[0],pc_struct.org_dims[1],pc_struct.org_dims[2]);
 //    
 //    
     uint64_t num_parts = pc_struct.get_number_parts();
@@ -113,6 +113,7 @@ int main(int argc, char **argv) {
     convolution_filter_pixels_temp(pc_struct,dim,dim,dim);
     convolution_filter_pixels_temp(pc_struct,dim,dim,dim);
     
+    get_neigh_check(pc_struct);
     
     compute_gradient(pc_struct,filter_output);
     
