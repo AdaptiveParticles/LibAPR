@@ -412,10 +412,11 @@ public:
                 y_same += (node_val_same & COORD_DIFF_MASK_PARTICLE) >> COORD_DIFF_SHIFT_PARTICLE;
                 j_same++;
                 
-                node_val_same = part_data.access_data.data[depth_same][pc_offset_same][j_same];
-                status_same = ((node_val_same & STATUS_MASK_PARTICLE) >> STATUS_SHIFT_PARTICLE);
-                part_offset_same = ((node_val_same & Y_PINDEX_MASK_PARTICLE) >> Y_PINDEX_SHIFT_PARTICLE);
-                
+                if(j_same < j_num_same){
+                    node_val_same = part_data.access_data.data[depth_same][pc_offset_same][j_same];
+                    status_same = ((node_val_same & STATUS_MASK_PARTICLE) >> STATUS_SHIFT_PARTICLE);
+                    part_offset_same = ((node_val_same & Y_PINDEX_MASK_PARTICLE) >> Y_PINDEX_SHIFT_PARTICLE);
+                }
                 
             } else {
                 //normal node
@@ -530,19 +531,6 @@ public:
         
     }
     
-    
-    
-    template<typename U>
-    void incriment_y_part_same_depth(const CurrentLevel<U,T>& curr_level,const ParticleDataNew<U, T>& part_data){
-        
-        if(current_flag == SAME_LEVEL){
-            if(status_same == SEED){
-                part_offset_same++;
-            }
-            
-        }
-        
-    }
     
     template<typename S>
     S get_part(const ExtraPartCellData<std::vector<S>>& p_data){
