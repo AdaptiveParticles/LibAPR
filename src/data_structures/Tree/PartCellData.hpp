@@ -163,6 +163,9 @@ public:
     
     std::vector<unsigned int> z_num;
     std::vector<unsigned int> x_num;
+    std::vector<unsigned int> y_num;
+    
+    std::vector<unsigned int> org_dims;
     
     std::vector<std::vector<std::vector<T>>> data;
     
