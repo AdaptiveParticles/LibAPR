@@ -99,8 +99,8 @@ public:
         
     }
     
-    uint8_t depth_max;
-    uint8_t depth_min;
+    uint64_t depth_max;
+    uint64_t depth_min;
     
     std::vector<unsigned int> z_num;
     std::vector<unsigned int> x_num;
@@ -117,6 +117,9 @@ public:
         //first add the layers
         particle_data.depth_max = pc_struct.depth_max + 1;
         particle_data.depth_min = pc_struct.depth_min;
+        
+        depth_max = particle_data.depth_max;
+        depth_min = particle_data.depth_min;
         
         particle_data.z_num.resize(particle_data.depth_max+1);
         particle_data.x_num.resize(particle_data.depth_max+1);
