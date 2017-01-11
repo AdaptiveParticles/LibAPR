@@ -43,7 +43,7 @@ public:
     
     
     template<typename U>
-    void set_new_xz(T x_,T z_,T l_,ParticleDataNew<U, T>& part_data){
+    void set_new_xz(T x_,T z_,ParticleDataNew<U, T>& part_data){
         
         x = x_;
         z = z_;
@@ -52,7 +52,7 @@ public:
         j_num = part_data.access_data.data[depth][pc_offset].size();
         part_offset = 0;
         y = 0;
-        part_xz = l_;
+        
         
     }
     
@@ -69,7 +69,7 @@ public:
     
     template<typename U>
     U& get_part(ParticleDataNew<U, T>& part_data){
-        return part_data.particle_data.data[depth][pc_offset][part_xz][part_offset];
+        return part_data.particle_data.data[depth][pc_offset][part_offset];
     }
     
     
@@ -79,7 +79,6 @@ public:
         status = part_data.access_node_get_status(node_val);
         
         y++;
-        y_seed = y*2;
         
         //seed offset accoutns for which (x,z) you are doing
         part_offset = part_data.access_node_get_part_offset(node_val);
@@ -92,19 +91,6 @@ public:
         y += ((node_val & COORD_DIFF_MASK_PARTICLE) >> COORD_DIFF_SHIFT_PARTICLE);
         y--;
     }
-    
-    
-    void iterate_y_seed(){
-        //
-        //  Moving forward through the particle in the cell right
-        //
-        
-        y_seed++;
-        part_offset++;
-        
-    }
-    
-    
     
     
 
@@ -121,17 +107,13 @@ public:
     T j;
     
     int y;
-    int y_seed;
-    
+        
     T x_num;
     T z_num;
     
     T node_val;
     T y_num;
-    
-    T part_xz;
 
-    
 private:
     
     

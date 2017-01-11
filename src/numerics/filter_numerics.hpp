@@ -103,7 +103,7 @@ void get_neigh_check(PartCellStructure<S,uint64_t>& pc_struct){
     
     
     
-    for(uint64_t depth = (pc_struct.pc_data.depth_min);depth <= pc_struct.pc_data.depth_max;depth++){
+    for(uint64_t depth = (part_new.depth_min);depth <= part_new.depth_max;depth++){
         //loop over the resolutions of the structure
         const unsigned int x_num_ = pc_struct.pc_data.x_num[depth];
         const unsigned int z_num_ = pc_struct.pc_data.z_num[depth];
@@ -127,94 +127,69 @@ void get_neigh_check(PartCellStructure<S,uint64_t>& pc_struct){
         for(z_ = 0;z_ < z_num_;z_++){
             //both z and x are explicitly accessed in the structure
             
-            curr_key = 0;
-            
-            pc_struct.pc_data.pc_key_set_z(curr_key,z_);
-            pc_struct.pc_data.pc_key_set_depth(curr_key,depth);
-            
             for(x_ = 0;x_ < x_num_;x_++){
                 
-                pc_struct.pc_data.pc_key_set_x(curr_key,x_);
-                
                 const size_t offset_pc_data = x_num_*z_ + x_;
-                
-                const size_t j_num = pc_struct.pc_data.data[depth][offset_pc_data].size();
-                
-                for(uint64_t l = 0;l < 5;l++){
+            
+                curr_level.set_new_xz(x_,z_,part_new);
+                neigh_x.reset_j(curr_level,part_new);
+                neigh_z.reset_j(curr_level,part_new);
+                neigh_y.reset_j(curr_level,part_new);
+                //the y direction loop however is sparse, and must be accessed accordinagly
+                for(j_ = 0;j_ < curr_level.j_num;j_++){
                     
-                    curr_level.set_new_xz(x_,z_,l,part_new);
-                    neigh_x.reset_j(curr_level,part_new);
-                    neigh_z.reset_j(curr_level,part_new);
-                    neigh_y.reset_j(curr_level,part_new);
-                    //the y direction loop however is sparse, and must be accessed accordinagly
-                    for(j_ = 0;j_ < curr_level.j_num;j_++){
-                        
-                        //particle cell node value, used here as it is requried for getting the particle neighbours
-                        node_val_pc = pc_struct.pc_data.data[depth][offset_pc_data][j_];
-                        
-                        
-                        
-                            //loop over the particles
-                            for(p = 0;p < pc_struct.part_data.get_num_parts(status);p++){
-                                //first set the particle index value in the particle_data array (stores the intensities)
-                               
-                            }
-                        
+                    //particle cell node value, used here as it is requried for getting the particle neighbours
+                    bool iscell = curr_level.new_j(j_,part_new);
                     
+                    if (iscell){
+                        //Indicates this is a particle cell node
+                        curr_level.update_cell(part_new);
                         
+                        node_val_part = pc_struct.part_data.access_data.data[depth][offset_pc_data][j_];
                         
-                        //particle cell node value, used here as it is requried for getting the particle neighbours
-                        bool iscell = curr_level.new_j(j_,part_new);
+                        pc_struct.part_data.access_data.pc_key_set_j(curr_key,j_);
                         
-                        if (iscell){
-                            //Indicates this is a particle cell node
-                            curr_level.update_cell(part_new);
+                        status = pc_struct.part_data.access_node_get_status(node_val_part);
+                        part_offset = pc_struct.part_data.access_node_get_part_offset(node_val_part);
+                        
+                        neigh_x.incriment_y_same_depth(curr_level,part_new);
+                        neigh_z.incriment_y_same_depth(curr_level,part_new);
+                        neigh_y.incriment_y_same_depth(curr_level,part_new);
+                        
+                        if(depth < part_new.depth_max){
                             
-                            node_val_part = pc_struct.part_data.access_data.data[depth][offset_pc_data][j_];
-                            
-                            pc_struct.part_data.access_data.pc_key_set_j(curr_key,j_);
-                            
-                            status = pc_struct.part_data.access_node_get_status(node_val_part);
-                            part_offset = pc_struct.part_data.access_node_get_part_offset(node_val_part);
-                                    
-                            neigh_x.incriment_y_same_depth(curr_level,part_new);
-                            neigh_z.incriment_y_same_depth(curr_level,part_new);
-                            neigh_y.incriment_y_same_depth(curr_level,part_new);
-                                    
-                            if(depth < pc_struct.pc_data.depth_max){
-                                        
-                                neigh_x.incriment_y_child_depth(curr_level,part_new);
-                                neigh_z.incriment_y_child_depth(curr_level,part_new);
-                                neigh_y.incriment_y_child_depth(curr_level,part_new);
-                            }
-
-                                    
-                            
-                                    
-                            neigh_x.incriment_y_parent_depth(curr_level,part_new);
-                            neigh_z.incriment_y_parent_depth(curr_level,part_new);
-                            neigh_y.incriment_y_parent_depth(curr_level,part_new);
-                            
-                            
-                            
-                        } else {
-                            // Jumps the iteration forward, this therefore also requires computation of an effective boundary condition
-                            
-                            curr_level.update_gap();
-                            
+                            neigh_x.incriment_y_child_depth(curr_level,part_new);
+                            neigh_z.incriment_y_child_depth(curr_level,part_new);
+                            neigh_y.incriment_y_child_depth(curr_level,part_new);
                         }
                         
                         
+                        
+                        
+                        neigh_x.incriment_y_parent_depth(curr_level,part_new);
+                        neigh_z.incriment_y_parent_depth(curr_level,part_new);
+                        neigh_y.incriment_y_parent_depth(curr_level,part_new);
+                        
+                        
+                        
+                    } else {
+                        // Jumps the iteration forward, this therefore also requires computation of an effective boundary condition
+                        
+                        curr_level.update_gap();
+                        
                     }
+                    
+                    
+                    
                     
                 }
             }
         }
     }
-
-
+    
+    
     timer.stop_timer();
-
+    
     float time = (timer.t2 - timer.t1);
 
     std::cout << " Neigh Regime New took: " << time << std::endl;

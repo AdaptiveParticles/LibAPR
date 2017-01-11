@@ -17,6 +17,7 @@
 
 #include "../../data_structures/Tree/PartCellStructure.hpp"
 #include "CurrLevel.hpp"
+#include "NeighIterator.hpp"
 
 template<typename V,typename T>
 class NeighOffset {
@@ -62,332 +63,332 @@ public:
     void reset_j(CurrentLevel<U,T>& curr_level,ParticleDataNew<U, T>& part_data){
         
         
-        
-        
-        if(depth_child < part_data.access_data.depth_max){
-            
-            x_child = curr_level.x*2 + offset_x;
-            z_child = curr_level.z*2 + offset_z;
-            
-            x_child = std::min(x_child,x_num_child-1);
-            z_child = std::min(z_child,z_num_child-1);
-            
-            
-            pc_offset_child = x_num_child*z_child + x_child;
-            j_num_child = part_data.access_data.data[depth_child][pc_offset_child].size();
-            part_offset_child = 0;
-            
-            
-            j_child = 0;
-            
-            if((x_child < 0) | (z_child < 0)){
-                j_num_child = 0;
-            }
-            
-            
-            
-            if(j_num_child > 1){
-                y_child = -1;
-                
-            } else {
-                y_child = 64000;
-            }
-            
-            int dir = (offset_y == -1) + (offset_x == 1)*2 + (offset_x == -1)*3 + (offset_z == 1)*4 + (offset_z == -1)*5;
-            
-            pc_offset_child_1 = x_num_child*z_child + x_child;
-            pc_offset_child_2 = x_num_child*(z_child + child_z[neigh_child_dir[dir][0]]) + (x_child+child_x[neigh_child_dir[dir][0]]);
-            pc_offset_child_3 = x_num_child*(z_child + child_z[neigh_child_dir[dir][1]]) + (x_child+child_x[neigh_child_dir[dir][1]]);
-            pc_offset_child_4 = x_num_child*(z_child + child_z[neigh_child_dir[dir][2]]) + (x_child+child_x[neigh_child_dir[dir][2]]);
-            
-            
-            j_offset_child_1 = 0;
-            j_offset_child_2 = child_y[neigh_child_dir[dir][0]];
-            j_offset_child_3 = child_y[neigh_child_dir[dir][1]];
-            j_offset_child_4 = child_y[neigh_child_dir[dir][2]];
-            
-            
-            
-
-            
-            
-        } else {
-            y_child = 64000;
-        }
-        
-        part_xz = curr_level.part_xz;
-        
-        if (curr_level.part_xz > 1){
-            
-            switch(curr_level.part_xz){
-                case 1 :{
-                    x_same = (2*curr_level.x + offset_x);
-                    z_same = (2*curr_level.z + offset_z);
-                    
-                    part_xz_same = (x_same&1) + 2*(z_same&1);
-                    
-                    x_same = x_same/2;
-                    z_same = z_same/2;
-                    
-                    break;
-                    
-                }
-                case 2 :{
-                    x_same = (2*curr_level.x + offset_x + 1);
-                    z_same = (2*curr_level.z + offset_z);
-                    
-                    part_xz_same = (x_same&1) + 2*(z_same&1);
-                    
-                    x_same = x_same/2;
-                    z_same = z_same/2;
-                    
-                    break;
-                }
-                case 3 :{
-                    x_same = (2*curr_level.x + offset_x);
-                    z_same = (2*curr_level.z + offset_z + 1);
-                    
-                    part_xz_same = (x_same&1) + 2*(z_same&1);
-                    
-                    x_same = x_same/2;
-                    z_same = z_same/2;
-                    
-                    break;
-                    
-                }
-                case 4 :{
-                    x_same = (2*curr_level.x + offset_x + 1);
-                    z_same = (2*curr_level.z + offset_z + 1);
-                    
-                    part_xz_same = (x_same&1) + 2*(z_same&1);
-                    
-                    x_same = x_same/2;
-                    z_same = z_same/2;
-                    
-                    break;
-                    
-                }
-                    
-            }
-            
-            y_parent = 64000;
-            
-            
-        } else {
-            
-            //parent level
-            //same level
-            
-            if(depth_parent > part_data.access_data.depth_min){
-                x_parent = curr_level.x/2 + offset_x;
-                z_parent = curr_level.z/2 + offset_z;
-                
-                x_parent = std::min(x_parent,x_num_parent-1);
-                z_parent = std::min(z_parent,z_num_parent-1);
-                
-                
-                pc_offset_parent = x_num_parent*z_parent + x_parent;
-                j_num_parent = part_data.access_data.data[depth_parent][pc_offset_parent].size();
-                part_offset_parent = 0;
-                
-                
-                j_parent = 0;
-                
-                if((x_parent < 0) | (z_parent < 0)){
-                    j_num_parent = 0;
-                }
-                
-                
-                
-                if(j_num_parent > 1){
-                    y_parent = -1;
-                    
-                } else {
-                    y_parent = 64000;
-                }
-            } else {
-                y_parent = 64000;
-            }
-            
-            
-            //same level
-            x_same = curr_level.x + offset_x;
-            z_same = curr_level.z + offset_z;
-            
-            if(offset_x == 1){
-                
-                if(curr_level.z&1){
-                    part_xz_1_parent = 4;
-                    
-                } else {
-                    part_xz_1_parent = 2;
-                }
-                
-                part_offset_1_parent = 0;
-                
-                part_xz_1_same = 1;
-                part_xz_2_same = 1;
-                part_xz_3_same = 3;
-                part_xz_4_same = 3;
-                
-                part_offset_1_same = 0;
-                part_offset_2_same = 1;
-                part_offset_3_same = 0;
-                part_offset_4_same = 1;
-                
-                
-                
-                
-            } else if (offset_x == -1){
-                
-                if(curr_level.z&1){
-                    part_xz_1_parent = 3;
-                    
-                } else {
-                    part_xz_1_parent = 1;
-                }
-                
-                part_offset_1_parent = 0;
-                
-                part_xz_1_same = 2;
-                part_xz_2_same = 2;
-                part_xz_3_same = 4;
-                part_xz_4_same = 4;
-                
-                part_offset_1_same = 0;
-                part_offset_2_same = 1;
-                part_offset_3_same = 0;
-                part_offset_4_same = 1;
-                
-            } else if(offset_z == 1){
-                
-                if(curr_level.x&1){
-                    part_xz_1_parent = 2;
-                    
-                } else {
-                    part_xz_1_parent = 1;
-                }
-                
-                part_offset_1_parent = 0;
-                
-                part_xz_1_same = 1;
-                part_xz_2_same = 1;
-                part_xz_3_same = 2;
-                part_xz_4_same = 2;
-                
-                part_offset_1_same = 0;
-                part_offset_2_same = 1;
-                part_offset_3_same = 0;
-                part_offset_4_same = 1;
-                
-                
-            } else if(offset_z == -1){
-                
-                if(curr_level.x&1){
-                    part_xz_1_parent = 3;
-                    
-                } else {
-                    part_xz_1_parent = 4;
-                }
-                part_offset_1_parent = 0;
-                
-                part_xz_1_same = 3;
-                part_xz_2_same = 3;
-                part_xz_3_same = 4;
-                part_xz_4_same = 4;
-                
-                part_offset_1_same = 0;
-                part_offset_2_same = 1;
-                part_offset_3_same = 0;
-                part_offset_4_same = 1;
-                
-            } else if (offset_y == 1){
-                part_xz_1_same = 1;
-                part_xz_2_same = 2;
-                part_xz_3_same = 3;
-                part_xz_4_same = 4;
-                
-                part_offset_1_same = 0;
-                part_offset_2_same = 0;
-                part_offset_3_same = 0;
-                part_offset_4_same = 0;
-                
-                part_offset_1_parent = 0;
-                if(curr_level.x&1){
-                    if(curr_level.z&1){
-                        part_xz_1_parent = 4;
-                        
-                    } else {
-                        part_xz_1_parent = 2;
-                    }
-                    
-                } else {
-                    if(curr_level.z&1){
-                        part_xz_1_parent = 3;
-                        
-                    } else {
-                        part_xz_1_parent = 1;
-                    }
-                }
-                
-                
-                
-            } else if (offset_y == -1){
-                part_xz_1_same = 1;
-                part_xz_2_same = 2;
-                part_xz_3_same = 3;
-                part_xz_4_same = 4;
-                
-                part_offset_1_same = 1;
-                part_offset_2_same = 1;
-                part_offset_3_same = 1;
-                part_offset_4_same = 1;
-                
-                part_offset_1_parent = 1;
-                if(curr_level.x&1){
-                    if(curr_level.z&1){
-                        part_xz_1_parent = 4;
-                        
-                    } else {
-                        part_xz_1_parent = 2;
-                    }
-                    
-                } else {
-                    if(curr_level.z&1){
-                        part_xz_1_parent = 3;
-                        
-                    } else {
-                        part_xz_1_parent = 1;
-                    }
-                }
-                
-            }
-            
-        }
-        
-        
-        
-        
-        x_same = std::min(x_same,x_num_same-1);
-        z_same = std::min(z_same,z_num_same-1);
-        
-        pc_offset_same = x_num_same*z_same + x_same;
-        j_num_same = part_data.access_data.data[depth_same][pc_offset_same].size();
-        part_offset_same = 0;
-        
-        
-        j_same = 0;
-        
-        if((x_same < 0) | (z_same < 0)){
-            j_num_same = 0;
-        }
-        
-        if(j_num_same > 1){
-            y_same = -1;
-            
-        } else {
-            y_same = 64000;
-        }
+//        
+//        
+//        if(depth_child < part_data.access_data.depth_max){
+//            
+//            x_child = curr_level.x*2 + offset_x;
+//            z_child = curr_level.z*2 + offset_z;
+//            
+//            x_child = std::min(x_child,x_num_child-1);
+//            z_child = std::min(z_child,z_num_child-1);
+//            
+//            
+//            pc_offset_child = x_num_child*z_child + x_child;
+//            j_num_child = part_data.access_data.data[depth_child][pc_offset_child].size();
+//            part_offset_child = 0;
+//            
+//            
+//            j_child = 0;
+//            
+//            if((x_child < 0) | (z_child < 0)){
+//                j_num_child = 0;
+//            }
+//            
+//            
+//            
+//            if(j_num_child > 1){
+//                y_child = -1;
+//                
+//            } else {
+//                y_child = 64000;
+//            }
+//            
+//            int dir = (offset_y == -1) + (offset_x == 1)*2 + (offset_x == -1)*3 + (offset_z == 1)*4 + (offset_z == -1)*5;
+//            
+//            pc_offset_child_1 = x_num_child*z_child + x_child;
+//            pc_offset_child_2 = x_num_child*(z_child + child_z[neigh_child_dir[dir][0]]) + (x_child+child_x[neigh_child_dir[dir][0]]);
+//            pc_offset_child_3 = x_num_child*(z_child + child_z[neigh_child_dir[dir][1]]) + (x_child+child_x[neigh_child_dir[dir][1]]);
+//            pc_offset_child_4 = x_num_child*(z_child + child_z[neigh_child_dir[dir][2]]) + (x_child+child_x[neigh_child_dir[dir][2]]);
+//            
+//            
+//            j_offset_child_1 = 0;
+//            j_offset_child_2 = child_y[neigh_child_dir[dir][0]];
+//            j_offset_child_3 = child_y[neigh_child_dir[dir][1]];
+//            j_offset_child_4 = child_y[neigh_child_dir[dir][2]];
+//            
+//            
+//            
+//
+//            
+//            
+//        } else {
+//            y_child = 64000;
+//        }
+//        
+//       
+//        
+//        if (curr_level.part_xz > 1){
+//            
+//            switch(curr_level.part_xz){
+//                case 1 :{
+//                    x_same = (2*curr_level.x + offset_x);
+//                    z_same = (2*curr_level.z + offset_z);
+//                    
+//                    part_xz_same = (x_same&1) + 2*(z_same&1);
+//                    
+//                    x_same = x_same/2;
+//                    z_same = z_same/2;
+//                    
+//                    break;
+//                    
+//                }
+//                case 2 :{
+//                    x_same = (2*curr_level.x + offset_x + 1);
+//                    z_same = (2*curr_level.z + offset_z);
+//                    
+//                    part_xz_same = (x_same&1) + 2*(z_same&1);
+//                    
+//                    x_same = x_same/2;
+//                    z_same = z_same/2;
+//                    
+//                    break;
+//                }
+//                case 3 :{
+//                    x_same = (2*curr_level.x + offset_x);
+//                    z_same = (2*curr_level.z + offset_z + 1);
+//                    
+//                    part_xz_same = (x_same&1) + 2*(z_same&1);
+//                    
+//                    x_same = x_same/2;
+//                    z_same = z_same/2;
+//                    
+//                    break;
+//                    
+//                }
+//                case 4 :{
+//                    x_same = (2*curr_level.x + offset_x + 1);
+//                    z_same = (2*curr_level.z + offset_z + 1);
+//                    
+//                    part_xz_same = (x_same&1) + 2*(z_same&1);
+//                    
+//                    x_same = x_same/2;
+//                    z_same = z_same/2;
+//                    
+//                    break;
+//                    
+//                }
+//                    
+//            }
+//            
+//            y_parent = 64000;
+//            
+//            
+//        } else {
+//            
+//            //parent level
+//            //same level
+//            
+//            if(depth_parent > part_data.access_data.depth_min){
+//                x_parent = curr_level.x/2 + offset_x;
+//                z_parent = curr_level.z/2 + offset_z;
+//                
+//                x_parent = std::min(x_parent,x_num_parent-1);
+//                z_parent = std::min(z_parent,z_num_parent-1);
+//                
+//                
+//                pc_offset_parent = x_num_parent*z_parent + x_parent;
+//                j_num_parent = part_data.access_data.data[depth_parent][pc_offset_parent].size();
+//                part_offset_parent = 0;
+//                
+//                
+//                j_parent = 0;
+//                
+//                if((x_parent < 0) | (z_parent < 0)){
+//                    j_num_parent = 0;
+//                }
+//                
+//                
+//                
+//                if(j_num_parent > 1){
+//                    y_parent = -1;
+//                    
+//                } else {
+//                    y_parent = 64000;
+//                }
+//            } else {
+//                y_parent = 64000;
+//            }
+//            
+//            
+//            //same level
+//            x_same = curr_level.x + offset_x;
+//            z_same = curr_level.z + offset_z;
+//            
+//            if(offset_x == 1){
+//                
+//                if(curr_level.z&1){
+//                    part_xz_1_parent = 4;
+//                    
+//                } else {
+//                    part_xz_1_parent = 2;
+//                }
+//                
+//                part_offset_1_parent = 0;
+//                
+//                part_xz_1_same = 1;
+//                part_xz_2_same = 1;
+//                part_xz_3_same = 3;
+//                part_xz_4_same = 3;
+//                
+//                part_offset_1_same = 0;
+//                part_offset_2_same = 1;
+//                part_offset_3_same = 0;
+//                part_offset_4_same = 1;
+//                
+//                
+//                
+//                
+//            } else if (offset_x == -1){
+//                
+//                if(curr_level.z&1){
+//                    part_xz_1_parent = 3;
+//                    
+//                } else {
+//                    part_xz_1_parent = 1;
+//                }
+//                
+//                part_offset_1_parent = 0;
+//                
+//                part_xz_1_same = 2;
+//                part_xz_2_same = 2;
+//                part_xz_3_same = 4;
+//                part_xz_4_same = 4;
+//                
+//                part_offset_1_same = 0;
+//                part_offset_2_same = 1;
+//                part_offset_3_same = 0;
+//                part_offset_4_same = 1;
+//                
+//            } else if(offset_z == 1){
+//                
+//                if(curr_level.x&1){
+//                    part_xz_1_parent = 2;
+//                    
+//                } else {
+//                    part_xz_1_parent = 1;
+//                }
+//                
+//                part_offset_1_parent = 0;
+//                
+//                part_xz_1_same = 1;
+//                part_xz_2_same = 1;
+//                part_xz_3_same = 2;
+//                part_xz_4_same = 2;
+//                
+//                part_offset_1_same = 0;
+//                part_offset_2_same = 1;
+//                part_offset_3_same = 0;
+//                part_offset_4_same = 1;
+//                
+//                
+//            } else if(offset_z == -1){
+//                
+//                if(curr_level.x&1){
+//                    part_xz_1_parent = 3;
+//                    
+//                } else {
+//                    part_xz_1_parent = 4;
+//                }
+//                part_offset_1_parent = 0;
+//                
+//                part_xz_1_same = 3;
+//                part_xz_2_same = 3;
+//                part_xz_3_same = 4;
+//                part_xz_4_same = 4;
+//                
+//                part_offset_1_same = 0;
+//                part_offset_2_same = 1;
+//                part_offset_3_same = 0;
+//                part_offset_4_same = 1;
+//                
+//            } else if (offset_y == 1){
+//                part_xz_1_same = 1;
+//                part_xz_2_same = 2;
+//                part_xz_3_same = 3;
+//                part_xz_4_same = 4;
+//                
+//                part_offset_1_same = 0;
+//                part_offset_2_same = 0;
+//                part_offset_3_same = 0;
+//                part_offset_4_same = 0;
+//                
+//                part_offset_1_parent = 0;
+//                if(curr_level.x&1){
+//                    if(curr_level.z&1){
+//                        part_xz_1_parent = 4;
+//                        
+//                    } else {
+//                        part_xz_1_parent = 2;
+//                    }
+//                    
+//                } else {
+//                    if(curr_level.z&1){
+//                        part_xz_1_parent = 3;
+//                        
+//                    } else {
+//                        part_xz_1_parent = 1;
+//                    }
+//                }
+//                
+//                
+//                
+//            } else if (offset_y == -1){
+//                part_xz_1_same = 1;
+//                part_xz_2_same = 2;
+//                part_xz_3_same = 3;
+//                part_xz_4_same = 4;
+//                
+//                part_offset_1_same = 1;
+//                part_offset_2_same = 1;
+//                part_offset_3_same = 1;
+//                part_offset_4_same = 1;
+//                
+//                part_offset_1_parent = 1;
+//                if(curr_level.x&1){
+//                    if(curr_level.z&1){
+//                        part_xz_1_parent = 4;
+//                        
+//                    } else {
+//                        part_xz_1_parent = 2;
+//                    }
+//                    
+//                } else {
+//                    if(curr_level.z&1){
+//                        part_xz_1_parent = 3;
+//                        
+//                    } else {
+//                        part_xz_1_parent = 1;
+//                    }
+//                }
+//                
+//            }
+//            
+//        }
+//        
+//        
+//        
+//        
+//        x_same = std::min(x_same,x_num_same-1);
+//        z_same = std::min(z_same,z_num_same-1);
+//        
+//        pc_offset_same = x_num_same*z_same + x_same;
+//        j_num_same = part_data.access_data.data[depth_same][pc_offset_same].size();
+//        part_offset_same = 0;
+//        
+//        
+//        j_same = 0;
+//        
+//        if((x_same < 0) | (z_same < 0)){
+//            j_num_same = 0;
+//        }
+//        
+//        if(j_num_same > 1){
+//            y_same = -1;
+//            
+//        } else {
+//            y_same = 64000;
+//        }
         
     }
     
@@ -457,10 +458,12 @@ public:
                 y_child += (node_val_same & COORD_DIFF_MASK_PARTICLE) >> COORD_DIFF_SHIFT_PARTICLE;
                 j_child++;
                 
-                node_val_child = part_data.access_data.data[depth_child][pc_offset_child][j_child];
-                status_child = ((node_val_child & STATUS_MASK_PARTICLE) >> STATUS_SHIFT_PARTICLE);
-                part_offset_child = ((node_val_child & Y_PINDEX_MASK_PARTICLE) >> Y_PINDEX_SHIFT_PARTICLE);
+                if(j_child < j_num_child){
                 
+                    node_val_child = part_data.access_data.data[depth_child][pc_offset_child][j_child];
+                    status_child = ((node_val_child & STATUS_MASK_PARTICLE) >> STATUS_SHIFT_PARTICLE);
+                    part_offset_child = ((node_val_child & Y_PINDEX_MASK_PARTICLE) >> Y_PINDEX_SHIFT_PARTICLE);
+                }
                 
             } else {
                 //normal node
@@ -492,7 +495,7 @@ public:
         int y_input = curr_level.y/2 + offset_y;
         
         //iterate forward
-        while ((y_parent < y_input) & (j_parent < (j_num_same-1))){
+        while ((y_parent < y_input) & (j_parent < (j_num_parent-1))){
             
             j_parent++;
             node_val_parent = part_data.access_data.data[depth_parent][pc_offset_parent][j_parent];
@@ -502,10 +505,13 @@ public:
                 y_parent += (node_val_parent & COORD_DIFF_MASK_PARTICLE) >> COORD_DIFF_SHIFT_PARTICLE;
                 j_parent++;
                 
-                node_val_parent = part_data.access_data.data[depth_parent][pc_offset_parent][j_parent];
-                status_parent = ((node_val_parent & STATUS_MASK_PARTICLE) >> STATUS_SHIFT_PARTICLE);
-                part_offset_parent = ((node_val_parent & Y_PINDEX_MASK_PARTICLE) >> Y_PINDEX_SHIFT_PARTICLE);
+                if(j_parent < j_num_parent){
                 
+                    
+                    node_val_parent = part_data.access_data.data[depth_parent][pc_offset_parent][j_parent];
+                    status_parent = ((node_val_parent & STATUS_MASK_PARTICLE) >> STATUS_SHIFT_PARTICLE);
+                    part_offset_parent = ((node_val_parent & Y_PINDEX_MASK_PARTICLE) >> Y_PINDEX_SHIFT_PARTICLE);
+                }
                 
             } else {
                 //normal node
