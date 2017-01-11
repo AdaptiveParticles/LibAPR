@@ -86,7 +86,7 @@ public:
         }
         
         if (neigh_parent.isactive_depth()) {
-            neigh_same.iterate(curr_level.y,part_data);
+            neigh_parent.iterate(curr_level.y,part_data);
         }
         
         if (neigh_child_0.isactive_depth()) {

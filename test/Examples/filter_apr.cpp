@@ -123,6 +123,10 @@ int main(int argc, char **argv) {
     
     create_reference_structure(pc_struct,link_array);
     
+    std::vector<Mesh_data<float>> int_array;
+    
+    create_intensity_reference_structure(pc_struct,int_array);
+    
     part_new.utest_structure(pc_struct,link_array);
     
     //compute_gradient(pc_struct,filter_output);
@@ -133,10 +137,12 @@ int main(int argc, char **argv) {
     
     pc_struct.interp_parts_to_pc(filter_img,filter_output);
     
-    debug_write(link_array[3],"link_array");
+    debug_write(int_array[4],"int_array_4");
+    debug_write(int_array[3],"int_array_3");
+    debug_write(int_array[5],"int_array_5");
     
     
-    get_neigh_check(pc_struct);
+    get_neigh_check(pc_struct,link_array);
     
     Mesh_data<uint8_t> seg_img;
     

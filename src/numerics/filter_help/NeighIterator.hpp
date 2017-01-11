@@ -39,7 +39,7 @@ private:
     int j_it;
     T pc_offset_it;
     int y_it;
-    T j_num_it;
+    int j_num_it;
     int x_num_it;
     int z_num_it;
     T part_offset_it;
@@ -171,6 +171,7 @@ public:
             while ((y_it < y_input) & (j_it < (j_num_it-1))){
                 
                 j_it++;
+                
                 node_val_it = part_data.access_data.data[depth_it][pc_offset_it][j_it];
                 
                 if (node_val_it&1){
@@ -190,7 +191,10 @@ public:
                     status_it = ((node_val_it & STATUS_MASK_PARTICLE) >> STATUS_SHIFT_PARTICLE);
                     
                     part_offset_it = ((node_val_it & Y_PINDEX_MASK_PARTICLE) >> Y_PINDEX_SHIFT_PARTICLE);
+                    
                 }
+                
+                
                 
             }
             
@@ -220,10 +224,17 @@ public:
         }
         
         pc_offset_it = x_num_it*z_it + x_it;
-        y_it = -1; //initialize
-        j_it = 0;
+        y_it = 0; //initialize
+        j_it = -1;
         j_num_it = part_data.access_data.data[depth_it][pc_offset_it].size();
         
+        if(j_num_it > 1){
+            node_val_it = part_data.access_data.data[depth_it][pc_offset_it][1];
+            status_it = ((node_val_it & STATUS_MASK_PARTICLE) >> STATUS_SHIFT_PARTICLE);
+            part_offset_it = ((node_val_it & Y_PINDEX_MASK_PARTICLE) >> Y_PINDEX_SHIFT_PARTICLE);
+        } else {
+            active_row = false;
+        }
     }
     
     template<typename U>

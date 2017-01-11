@@ -58,7 +58,7 @@ void iterate_temp_vec(std::vector<T>& temp_vec){
 }
 
 template<typename S>
-void get_neigh_check(PartCellStructure<S,uint64_t>& pc_struct){
+void get_neigh_check(PartCellStructure<S,uint64_t>& pc_struct,std::vector<Mesh_data<uint64_t>>& link_array){
     //
     //  Calculate Neighbours Using Iterators
     //
@@ -85,6 +85,9 @@ void get_neigh_check(PartCellStructure<S,uint64_t>& pc_struct){
     std::vector<int> neigh_labels;
     neigh_labels.reserve(10);
     
+    PartCellNeigh<uint64_t> neigh_part_keys; // data structure for holding particle or cell neighbours
+    PartCellNeigh<uint64_t> neigh_cell_keys;
+    
     float neigh;
     
     timer.verbose_flag = true;
@@ -110,7 +113,6 @@ void get_neigh_check(PartCellStructure<S,uint64_t>& pc_struct){
             
             for(x_ = 0;x_ < x_num_;x_++){
                 
-            
                 curr_level.set_new_xz(x_,z_,part_new);
                 neigh_y.set_new_row(curr_level,part_new);
               
@@ -125,6 +127,56 @@ void get_neigh_check(PartCellStructure<S,uint64_t>& pc_struct){
                         neigh_y.iterate(curr_level,part_new);
                        
                         neigh = neigh_y.get_part(part_new.particle_data);
+                        
+                        uint64_t old_key = link_array[depth](curr_level.y,curr_level.x,curr_level.z);
+                        
+                        uint64_t old_node_val = pc_struct.pc_data.get_val(old_key);
+                        
+                        int p = pc_struct.pc_data.pc_key_get_partnum(old_key);
+                        int j = pc_struct.pc_data.pc_key_get_j(old_key);
+                        
+                        uint64_t node_val_part = pc_struct.part_data.access_data.get_val(old_key);
+                        
+                        uint64_t status = pc_struct.part_data.access_node_get_status(node_val_part);
+                        uint64_t part_offset = pc_struct.part_data.access_node_get_part_offset(node_val_part);
+
+                        pc_struct.part_data.get_part_neighs_face(0,p,old_node_val,old_key,status,part_offset,neigh_cell_keys,neigh_part_keys,pc_struct.pc_data);
+                        
+                        float diff = -1;
+                        float neigh_old = 0;
+                        
+                        if(neigh_part_keys.neigh_face[0].size() > 0){
+                            uint64_t neigh_part = neigh_part_keys.neigh_face[0][0];
+                        
+                            neigh_old = 0;
+                        
+                            if(neigh_part > 0){
+                                    //do something
+                                    neigh_old = pc_struct.part_data.particle_data.get_part(neigh_part);
+                            }
+                        
+                        }
+                        
+                        diff = neigh_old - neigh;
+                        if (diff != 0){
+                            
+                            
+                            if(abs(diff) < 10){
+                                int stop =1;
+                            }
+                        }
+                        
+                        uint64_t status_current;
+                        uint64_t x_current;
+                        uint64_t y_current = 0;
+                        uint64_t z_current;
+                        uint64_t depth_current;
+                        
+                        pc_struct.part_data.access_data.get_coordinates_part(curr_level.y,old_key,x_current,z_current,y_current,depth_current,status_current);
+
+                        neigh_cell_keys.curr = 0;
+                        
+                        pc_struct.part_data.get_part_neighs_face(0,p,old_node_val,old_key,status,part_offset,neigh_cell_keys,neigh_part_keys,pc_struct.pc_data);
                         
                         
                     } else {

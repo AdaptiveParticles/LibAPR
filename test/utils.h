@@ -60,4 +60,6 @@ bool compare_two_structures_test(PartCellStructure<float,uint64_t>& pc_struct,Pa
 
 void create_reference_structure(PartCellStructure<float,uint64_t>& pc_struct,std::vector<Mesh_data<uint64_t>>& link_array);
 
+void create_intensity_reference_structure(PartCellStructure<float,uint64_t>& pc_struct,std::vector<Mesh_data<float>>& link_array);
+
 #endif //PARTPLAY_UTILS_H
