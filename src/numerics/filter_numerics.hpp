@@ -170,22 +170,11 @@ void get_neigh_check(PartCellStructure<S,uint64_t>& pc_struct,std::vector<Mesh_d
                             if (diff != 0){
                                 
                                 
-                                if(dirr != (-neigh)){
+                                if(diff != (-neigh)){
                                     int stop =1;
                                 }
                             }
                             
-                            uint64_t status_current;
-                            uint64_t x_current;
-                            uint64_t y_current = 0;
-                            uint64_t z_current;
-                            uint64_t depth_current;
-                            
-                            pc_struct.part_data.access_data.get_coordinates_part(curr_level.y,old_key,x_current,z_current,y_current,depth_current,status_current);
-                            
-                            neigh_cell_keys.curr = 0;
-                            
-                            pc_struct.part_data.get_part_neighs_face(0,p,old_node_val,old_key,status,part_offset,neigh_cell_keys,neigh_part_keys,pc_struct.pc_data);
                             
                             
                         } else {

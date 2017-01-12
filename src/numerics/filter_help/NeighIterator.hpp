@@ -83,20 +83,24 @@ public:
             depth_factor = 2;
             offset_depth = 1;
             
+            //dealing with reverse direction
+            child_offset_y = (dir == 1);
+            child_offset_x = (dir == 3);
+            child_offset_z = (dir == 5);
+            
             if(type == -1){
                 
-                child_offset_x = 0;
-                child_offset_z = 0;
-                child_offset_y = 0;
+                child_offset_x += 0;
+                child_offset_z += 0;
+                child_offset_y += 0;
                 
             } else {
-                int dir = (offset_y == -1) + (offset_x == 1)*2 + (offset_x == -1)*3 + (offset_z == 1)*4 + (offset_z == -1)*5;
                 
                 int child_num = -type - 2;
                 
-                child_offset_x = child_x[neigh_child_dir[dir][child_num]];
-                child_offset_z = child_z[neigh_child_dir[dir][child_num]];
-                child_offset_y = child_y[neigh_child_dir[dir][child_num]];
+                child_offset_x += child_x[neigh_child_dir[dir][child_num]];
+                child_offset_z += child_z[neigh_child_dir[dir][child_num]];
+                child_offset_y += child_y[neigh_child_dir[dir][child_num]];
                 
             }
             
