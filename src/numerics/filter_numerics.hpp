@@ -58,7 +58,7 @@ void iterate_temp_vec(std::vector<T>& temp_vec){
 }
 
 template<typename S>
-void get_neigh_check(PartCellStructure<S,uint64_t>& pc_struct,std::vector<Mesh_data<uint64_t>>& link_array){
+void get_neigh_check(PartCellStructure<S,uint64_t>& pc_struct,std::vector<Mesh_data<uint64_t>>& link_array,std::vector<Mesh_data<float>>& int_array){
     //
     //  Calculate Neighbours Using Iterators
     //
@@ -94,103 +94,113 @@ void get_neigh_check(PartCellStructure<S,uint64_t>& pc_struct,std::vector<Mesh_d
     
     timer.start_timer("iterate parts");
     
-    
-    for(uint64_t depth = (part_new.access_data.depth_min);depth <= part_new.access_data.depth_max;depth++){
-        //loop over the resolutions of the structure
-        const unsigned int x_num_ = part_new.access_data.x_num[depth];
-        const unsigned int z_num_ = part_new.access_data.z_num[depth];
+    for(int direction = 0; direction < 6;direction++){
         
-        CurrentLevel<float,uint64_t> curr_level;
-        curr_level.set_new_depth(depth,part_new);
         
-        NeighOffset<float,uint64_t> neigh_y(0);
-        
-        neigh_y.set_new_depth(curr_level,part_new);
-        
-        //#pragma omp parallel for default(shared) private(p,z_,x_,j_,neigh) firstprivate(curr_level,neigh_x,neigh_z,neigh_y) if(z_num_*x_num_ > 100)
-        for(z_ = 0;z_ < z_num_;z_++){
-            //both z and x are explicitly accessed in the structure
+        for(uint64_t depth = (part_new.access_data.depth_min);depth <= part_new.access_data.depth_max;depth++){
+            //loop over the resolutions of the structure
+            const unsigned int x_num_ = part_new.access_data.x_num[depth];
+            const unsigned int z_num_ = part_new.access_data.z_num[depth];
             
-            for(x_ = 0;x_ < x_num_;x_++){
+            CurrentLevel<float,uint64_t> curr_level;
+            curr_level.set_new_depth(depth,part_new);
+            
+            NeighOffset<float,uint64_t> neigh_y(direction);
+            
+            neigh_y.set_new_depth(curr_level,part_new);
+            
+            //#pragma omp parallel for default(shared) private(p,z_,x_,j_,neigh) firstprivate(curr_level,neigh_x,neigh_z,neigh_y) if(z_num_*x_num_ > 100)
+            for(z_ = 0;z_ < z_num_;z_++){
+                //both z and x are explicitly accessed in the structure
                 
-                curr_level.set_new_xz(x_,z_,part_new);
-                neigh_y.set_new_row(curr_level,part_new);
-              
-                for(j_ = 0;j_ < curr_level.j_num;j_++){
+                for(x_ = 0;x_ < x_num_;x_++){
                     
-                    bool iscell = curr_level.new_j(j_,part_new);
+                    curr_level.set_new_xz(x_,z_,part_new);
+                    neigh_y.set_new_row(curr_level,part_new);
                     
-                    if (iscell){
-                        //Indicates this is a particle cell node
-                        curr_level.update_cell(part_new);
+                    for(j_ = 0;j_ < curr_level.j_num;j_++){
                         
-                        neigh_y.iterate(curr_level,part_new);
-                       
-                        neigh = neigh_y.get_part(part_new.particle_data);
+                        bool iscell = curr_level.new_j(j_,part_new);
                         
-                        uint64_t old_key = link_array[depth](curr_level.y,curr_level.x,curr_level.z);
-                        
-                        uint64_t old_node_val = pc_struct.pc_data.get_val(old_key);
-                        
-                        int p = pc_struct.pc_data.pc_key_get_partnum(old_key);
-                        int j = pc_struct.pc_data.pc_key_get_j(old_key);
-                        
-                        uint64_t node_val_part = pc_struct.part_data.access_data.get_val(old_key);
-                        
-                        uint64_t status = pc_struct.part_data.access_node_get_status(node_val_part);
-                        uint64_t part_offset = pc_struct.part_data.access_node_get_part_offset(node_val_part);
-
-                        pc_struct.part_data.get_part_neighs_face(0,p,old_node_val,old_key,status,part_offset,neigh_cell_keys,neigh_part_keys,pc_struct.pc_data);
-                        
-                        float diff = -1;
-                        float neigh_old = 0;
-                        
-                        if(neigh_part_keys.neigh_face[0].size() > 0){
-                            uint64_t neigh_part = neigh_part_keys.neigh_face[0][0];
-                        
-                            neigh_old = 0;
-                        
-                            if(neigh_part > 0){
+                        if (iscell){
+                            //Indicates this is a particle cell node
+                            curr_level.update_cell(part_new);
+                            
+                            neigh_y.iterate(curr_level,part_new);
+                            
+                            neigh = neigh_y.get_part(part_new.particle_data);
+                            
+                            uint64_t old_key = link_array[depth](curr_level.y,curr_level.x,curr_level.z);
+                            
+                            uint64_t old_node_val = pc_struct.pc_data.get_val(old_key);
+                            
+                            int p = pc_struct.pc_data.pc_key_get_partnum(old_key);
+                            int j = pc_struct.pc_data.pc_key_get_j(old_key);
+                            
+                            uint64_t node_val_part = pc_struct.part_data.access_data.get_val(old_key);
+                            
+                            uint64_t status = pc_struct.part_data.access_node_get_status(node_val_part);
+                            uint64_t part_offset = pc_struct.part_data.access_node_get_part_offset(node_val_part);
+                            
+                            pc_struct.part_data.get_part_neighs_face(direction,p,old_node_val,old_key,status,part_offset,neigh_cell_keys,neigh_part_keys,pc_struct.pc_data);
+                            
+                            float diff = -1;
+                            float neigh_old = 0;
+                            
+                            float int_comp = neigh_y.get_int(int_array);
+                            
+                            if(neigh_part_keys.neigh_face[direction].size() > 0){
+                                uint64_t neigh_part = neigh_part_keys.neigh_face[direction][0];
+                                
+                                neigh_old = 0;
+                                
+                                if(neigh_part > 0){
                                     //do something
                                     neigh_old = pc_struct.part_data.particle_data.get_part(neigh_part);
+                                }
+                                
                             }
-                        
-                        }
-                        
-                        diff = neigh_old - neigh;
-                        if (diff != 0){
                             
                             
-                            if(abs(diff) < 10){
-                                int stop =1;
+                            if(int_comp != neigh){
+                                std::cout << "Neighbour Intensity Error" << std::endl;
                             }
+                            
+                            diff = neigh_old - neigh;
+                            if (diff != 0){
+                                
+                                
+                                if(dirr != (-neigh)){
+                                    int stop =1;
+                                }
+                            }
+                            
+                            uint64_t status_current;
+                            uint64_t x_current;
+                            uint64_t y_current = 0;
+                            uint64_t z_current;
+                            uint64_t depth_current;
+                            
+                            pc_struct.part_data.access_data.get_coordinates_part(curr_level.y,old_key,x_current,z_current,y_current,depth_current,status_current);
+                            
+                            neigh_cell_keys.curr = 0;
+                            
+                            pc_struct.part_data.get_part_neighs_face(0,p,old_node_val,old_key,status,part_offset,neigh_cell_keys,neigh_part_keys,pc_struct.pc_data);
+                            
+                            
+                        } else {
+                            
+                            curr_level.update_gap();
+                            
                         }
                         
-                        uint64_t status_current;
-                        uint64_t x_current;
-                        uint64_t y_current = 0;
-                        uint64_t z_current;
-                        uint64_t depth_current;
-                        
-                        pc_struct.part_data.access_data.get_coordinates_part(curr_level.y,old_key,x_current,z_current,y_current,depth_current,status_current);
-
-                        neigh_cell_keys.curr = 0;
-                        
-                        pc_struct.part_data.get_part_neighs_face(0,p,old_node_val,old_key,status,part_offset,neigh_cell_keys,neigh_part_keys,pc_struct.pc_data);
-                        
-                        
-                    } else {
-                        
-                        curr_level.update_gap();
                         
                     }
-                    
-                    
                 }
             }
         }
+        
     }
-    
     
     timer.stop_timer();
     
@@ -235,7 +245,7 @@ void get_neigh_check2(PartCellStructure<S,uint64_t>& pc_struct,std::vector<Mesh_
         CurrentLevel<float,uint64_t> curr_level;
         curr_level.set_new_depth(depth,part_new);
         
-        NeighOffset<float,uint64_t> neigh_y(0);
+        NeighOffset<float,uint64_t> neigh_y(5);
         //NeighOffset<float,uint64_t> neigh_ym(1);
         
         neigh_y.set_new_depth(curr_level,part_new);
@@ -378,8 +388,8 @@ void compute_gradient(PartCellStructure<S,uint64_t>& pc_struct,ExtraPartCellData
                                 pc_struct.part_data.access_data.pc_key_set_index(curr_key,part_offset+p);
                                 //get all the neighbour particles in (+y,-y,+x,-x,+z,-z) ordering
                                 
-                                pc_struct.part_data.get_part_neighs_face(2,p,node_val_pc,curr_key,status,part_offset,neigh_cell_keys,neigh_part_keys,pc_struct.pc_data);
-                                pc_struct.part_data.get_part_neighs_face(3,p,node_val_pc,curr_key,status,part_offset,neigh_cell_keys,neigh_part_keys,pc_struct.pc_data);
+                                pc_struct.part_data.get_part_neighs_face(0,p,node_val_pc,curr_key,status,part_offset,neigh_cell_keys,neigh_part_keys,pc_struct.pc_data);
+                                //pc_struct.part_data.get_part_neighs_face(3,p,node_val_pc,curr_key,status,part_offset,neigh_cell_keys,neigh_part_keys,pc_struct.pc_data);
                             
                                 
                                 float val_1 = 0;
@@ -398,30 +408,32 @@ void compute_gradient(PartCellStructure<S,uint64_t>& pc_struct,ExtraPartCellData
                                     
                                 }
                                 
-                                if(val_1 > 0){
-                                    val_1 = val_1/neigh_part_keys.neigh_face[0].size();
-                                }
+                                (void) val_1;
                                 
-                                
-                                for(int n = 0; n < neigh_part_keys.neigh_face[1].size();n++){
-                                    uint64_t neigh_part = neigh_part_keys.neigh_face[1][n];
-                                    
-                                    
-                                    if(neigh_part > 0){
-                                        
-                                        //do something
-                                        val_2 += pc_struct.part_data.particle_data.get_part(neigh_part);
-                                        
-                                    }
-                                    
-                                }
-                                
-                                if(val_2 > 0){
-                                    val_2 = val_2/neigh_part_keys.neigh_face[0].size();
-                                }
-                                
-                                
-                                float grad = (val_1 - val_2)/2;
+//                                if(val_1 > 0){
+//                                    val_1 = val_1/neigh_part_keys.neigh_face[0].size();
+//                                }
+//                                
+//                                
+//                                for(int n = 0; n < neigh_part_keys.neigh_face[1].size();n++){
+//                                    uint64_t neigh_part = neigh_part_keys.neigh_face[1][n];
+//                                    
+//                                    
+//                                    if(neigh_part > 0){
+//                                        
+//                                        //do something
+//                                        val_2 += pc_struct.part_data.particle_data.get_part(neigh_part);
+//                                        
+//                                    }
+//                                    
+//                                }
+//                                
+//                                if(val_2 > 0){
+//                                    val_2 = val_2/neigh_part_keys.neigh_face[0].size();
+//                                }
+//                                
+//                                
+//                                float grad = (val_1 - val_2)/2;
                                 
                                 //filter_output.data[i][offset_pc_data][part_offset+p] = abs(grad);
                             }
@@ -1150,7 +1162,7 @@ void convolution_filter_pixels_temp(PartCellStructure<U,uint64_t>& pc_struct,uin
     timer.verbose_flag = false;
     timer.start_timer("full previous filter");
     
-    uint64_t filter_offset = 6;
+    uint64_t filter_offset = 1;
     filter.resize(filter_offset*2 +1,1);
     
     std::vector<U> temp_vec;

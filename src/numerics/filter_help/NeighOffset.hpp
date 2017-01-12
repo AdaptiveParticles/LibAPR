@@ -102,7 +102,7 @@ public:
     
     template<typename S>
     S get_part(ExtraPartCellData<S>& p_data){
-        
+        //get the intensity
         if(neigh_same.current_flag == 1){
             return neigh_same.get_part(p_data);
             
@@ -117,6 +117,24 @@ public:
         
         
     }
+    
+    //used for debugging
+    template<typename S>
+    S get_int(std::vector<Mesh_data<S>>& int_ref){
+        if(neigh_same.current_flag == 1){
+            return neigh_same.get_int(int_ref);
+            
+        } else if (neigh_parent.current_flag == 1){
+            return neigh_parent.get_int(int_ref);
+            
+        } else if (neigh_child_0.current_flag == 1){
+            return neigh_child_0.get_int(int_ref);
+        }
+        
+        return 0;
+
+    }
+    
     
     
 //    template<typename S>

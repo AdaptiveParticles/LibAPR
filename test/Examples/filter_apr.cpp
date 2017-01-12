@@ -113,7 +113,7 @@ int main(int argc, char **argv) {
 //    
     //convolution_filter_pixels(pc_struct,dim,dim,dim);
    // convolution_filter_pixels_temp(pc_struct,dim,dim,dim);
-   // convolution_filter_pixels_temp(pc_struct,dim,dim,dim);
+    convolution_filter_pixels_temp(pc_struct,dim,dim,dim);
     
     ParticleDataNew<float, uint64_t> part_new;
     
@@ -142,7 +142,7 @@ int main(int argc, char **argv) {
     debug_write(int_array[5],"int_array_5");
     
     
-   // get_neigh_check(pc_struct,link_array);
+    get_neigh_check(pc_struct,link_array,int_array);
     
     get_neigh_check2(pc_struct,link_array);
     
