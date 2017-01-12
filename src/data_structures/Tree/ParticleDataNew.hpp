@@ -438,6 +438,21 @@ public:
                             y_++;
                             old_key = link_array[i](y_,x_,z_);
                             
+                            pc_key curr_key;
+                            curr_key.update_part(old_key);
+                            
+                            if( x_ == curr_key.x_p){
+                                // all good
+                            } else {
+                               std::cout << "ERROR x" << curr_key.status << " " << curr_key.depth << " " << curr_key.p << std::endl;
+                            }
+                            
+                            if( z_ == curr_key.z_p){
+                                // all good
+                            } else {
+                                std::cout << "ERROR z" << curr_key.status << " " << curr_key.depth << " " << curr_key.p << std::endl;
+                            }
+                            
                             old_node_val = pc_struct.pc_data.get_val(old_key);
                             
                             uint16_t part_offset =  (node_val& Y_PINDEX_MASK_PARTICLE) >> Y_PINDEX_SHIFT_PARTICLE;

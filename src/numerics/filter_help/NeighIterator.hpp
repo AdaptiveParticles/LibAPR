@@ -255,6 +255,18 @@ public:
         return int_ref[depth_it](y_it,x_it,z_it);
     }
     
+    pc_key get_key(){
+        pc_key curr_key;
+        curr_key.y_p = y_it;
+        curr_key.x_p = x_it;
+        curr_key.z_p = z_it;
+        curr_key.depth_p = depth_it;
+        curr_key.status = status_it;
+        curr_key.j_p = j_it;
+        
+        return curr_key;
+    }
+    
     
 };
 

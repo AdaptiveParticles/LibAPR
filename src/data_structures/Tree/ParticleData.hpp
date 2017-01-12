@@ -1322,14 +1322,14 @@ private:
             } case 4:{
                 
                 coord0 = check_previous_val<U>(face,curr_key,pc_data);
-                coord1 = access_data.pc_key_get_z(curr_key);
+                coord1 = access_data.pc_key_get_x(curr_key);
                 coord1 = coord1&1;
                 
                 return get_index_odd_even<U>(coord0,coord1);
             } case 5:{
                 
                 coord0 = check_previous_val<U>(face,curr_key,pc_data);
-                coord1 = access_data.pc_key_get_z(curr_key);
+                coord1 = access_data.pc_key_get_x(curr_key);
                 coord1 = coord1&1;
                 
                 return get_index_odd_even<U>(coord0,coord1);

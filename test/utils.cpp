@@ -1912,7 +1912,7 @@ void create_reference_structure(PartCellStructure<float,uint64_t>& pc_struct,std
     link_array.resize(pc_struct.pc_data.depth_max + 2);
     
     for(int i = pc_struct.depth_min; i <= pc_struct.depth_max;i++){
-        link_array[i].initialize(pc_struct.y_num[i],pc_struct.x_num[i],pc_struct.z_num[i],0);
+        link_array[i].initialize(pc_struct.y_num[i]+1,pc_struct.x_num[i]+1,pc_struct.z_num[i]+1,0);
     }
     
     link_array[pc_struct.depth_max+1].initialize(pc_struct.org_dims[0],pc_struct.org_dims[1],pc_struct.org_dims[2],0);
@@ -1979,6 +1979,8 @@ void create_reference_structure(PartCellStructure<float,uint64_t>& pc_struct,std
                         
                         pc_struct.part_data.access_data.pc_key_set_status(curr_key,status);
                         
+                       
+                        
                         //loop over the particles
                         for(p = 0;p < pc_struct.part_data.get_num_parts(status);p++){
                             //first set the particle index value in the particle_data array (stores the intensities)
@@ -1989,8 +1991,26 @@ void create_reference_structure(PartCellStructure<float,uint64_t>& pc_struct,std
                             // First get some details about the current part
                             pc_struct.part_data.access_data.get_coordinates_part(y_coord,curr_key,x_current,z_current,y_current,depth_current,status_current);
                             
+                            pc_key neigh_key;
+                            neigh_key.update_part(curr_key);
+                            
+                            if(x_current != neigh_key.x_p){
+                                int stop = 1;
+                            }
+                            
+                                                        
+                            
+                            if(z_current != neigh_key.z_p){
+                                int stop = 3;
+                            }
+                            
+                            
                             link_array[depth_current](y_current,x_current,z_current) = curr_key;
                             
+                            uint64_t check = link_array[6](32,22,24);
+                            pc_key check_key;
+                            check_key.update_part(check);
+                            int stop =1;
                         }
                         
                     } else {
@@ -2006,10 +2026,12 @@ void create_reference_structure(PartCellStructure<float,uint64_t>& pc_struct,std
         }
     }
     
+    uint64_t check = link_array[6](32,22,24);
+    pc_key check_key;
+    check_key.update_part(check);
+    int stop = 1;
     
-    
-    
-    
+
     
 }
 void create_intensity_reference_structure(PartCellStructure<float,uint64_t>& pc_struct,std::vector<Mesh_data<float>>& int_array){

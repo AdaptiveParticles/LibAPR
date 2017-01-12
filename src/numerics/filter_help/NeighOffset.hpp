@@ -135,6 +135,23 @@ public:
 
     }
     
+    pc_key get_key(){
+        
+        pc_key curr_pos;
+        
+        if(neigh_same.current_flag == 1){
+            return neigh_same.get_key();
+            
+        } else if (neigh_parent.current_flag == 1){
+            return neigh_parent.get_key();
+            
+        } else if (neigh_child_0.current_flag == 1){
+            return neigh_child_0.get_key();
+        }
+        
+        return curr_pos;
+        
+    }
     
     
 //    template<typename S>

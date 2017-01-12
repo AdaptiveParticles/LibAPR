@@ -104,6 +104,60 @@
 #include "PartCellNeigh.hpp"
 #include "../particle_map.hpp"
 
+
+struct pc_key {
+    
+    const uint8_t seed_part_y[8] = {0, 1, 0, 1, 0, 1, 0, 1};
+    const uint8_t seed_part_x[8] = {0, 0, 1, 1, 0, 0, 1, 1};
+    const uint8_t seed_part_z[8] = {0, 0, 0, 0, 1, 1, 1, 1};
+    
+    int x,z,j,depth,p,status,y;
+    int x_p,z_p,j_p,depth_p,y_p;
+    
+    void update_cell(uint64_t raw_key){
+        depth = (raw_key & PC_KEY_DEPTH_MASK) >> PC_KEY_DEPTH_SHIFT;
+        x = (raw_key & PC_KEY_X_MASK) >> PC_KEY_X_SHIFT;
+        z = (raw_key & PC_KEY_Z_MASK) >> PC_KEY_Z_SHIFT;
+        j = (raw_key & PC_KEY_J_MASK) >> PC_KEY_J_SHIFT;
+        p = (raw_key & PC_KEY_PARTNUM_MASK) >> PC_KEY_PARTNUM_SHIFT;
+        status = (raw_key & PC_KEY_STATUS_MASK) >> PC_KEY_STATUS_SHIFT;
+        
+    }
+    
+    void update_part(uint64_t raw_key){
+        depth = (raw_key & PC_KEY_DEPTH_MASK) >> PC_KEY_DEPTH_SHIFT;
+        x = (raw_key & PC_KEY_X_MASK) >> PC_KEY_X_SHIFT;
+        z = (raw_key & PC_KEY_Z_MASK) >> PC_KEY_Z_SHIFT;
+        j = (raw_key & PC_KEY_J_MASK) >> PC_KEY_J_SHIFT;
+        p = (raw_key & PC_KEY_PARTNUM_MASK) >> PC_KEY_PARTNUM_SHIFT;
+        status = (raw_key & PC_KEY_STATUS_MASK) >> PC_KEY_STATUS_SHIFT;
+        
+        
+        
+        if(status == SEED){
+            int part_num = p;
+            
+            depth_p = depth + 1;
+            x_p = x*2 + seed_part_x[part_num];
+            z_p = z*2 + seed_part_z[part_num];
+            y_p = 2*y + seed_part_y[part_num];
+            
+        }
+        else {
+            x_p = x;
+            y_p = y;
+            z_p = z;
+            depth_p = depth;
+        }
+
+        
+    }
+    
+    
+};
+
+
+
 template <typename T> // type T data structure base type
 class PartCellData {
     

@@ -128,6 +128,9 @@ void get_neigh_check(PartCellStructure<S,uint64_t>& pc_struct,std::vector<Mesh_d
                             
                             neigh_y.iterate(curr_level,part_new);
                             
+                            pc_key neigh_new_key = neigh_y.get_key();
+                            
+                            
                             neigh = neigh_y.get_part(part_new.particle_data);
                             
                             uint64_t old_key = link_array[depth](curr_level.y,curr_level.x,curr_level.z);
@@ -149,8 +152,14 @@ void get_neigh_check(PartCellStructure<S,uint64_t>& pc_struct,std::vector<Mesh_d
                             
                             float int_comp = neigh_y.get_int(int_array);
                             
+                            pc_key neigh_key;
+                            pc_key curr_key;
+                            curr_key.update_part(old_key);
+                            
                             if(neigh_part_keys.neigh_face[direction].size() > 0){
                                 uint64_t neigh_part = neigh_part_keys.neigh_face[direction][0];
+                                
+                                neigh_key.update_part(neigh_part);
                                 
                                 neigh_old = 0;
                                 
@@ -175,6 +184,7 @@ void get_neigh_check(PartCellStructure<S,uint64_t>& pc_struct,std::vector<Mesh_d
                                 }
                             }
                             
+                            pc_struct.part_data.get_part_neighs_face(direction,p,old_node_val,old_key,status,part_offset,neigh_cell_keys,neigh_part_keys,pc_struct.pc_data);
                             
                             
                         } else {
