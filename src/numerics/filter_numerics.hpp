@@ -280,7 +280,7 @@ void get_neigh_check(PartCellStructure<S,uint64_t>& pc_struct,std::vector<Mesh_d
     
     timer.start_timer("iterate parts");
     
-    for(int direction = 2; direction < 6;direction++){
+    for(int direction = 0; direction < 6;direction++){
         
         
         for(uint64_t depth = (part_new.access_data.depth_min);depth <= part_new.access_data.depth_max;depth++){

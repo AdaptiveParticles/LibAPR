@@ -249,7 +249,7 @@ public:
             //
             //y_it = 0;
             j_it = -1;
-            y_it = -1;
+            y_it = -1000;
         } else {
             active_row = false;
         }
