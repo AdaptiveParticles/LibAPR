@@ -203,6 +203,7 @@ bool compare_neigh(pc_key curr,pc_key neigh,int dir){
                 
                 if( x_diff != -1.5*offset_x ){
                     std::cout << "x error" << std::endl;
+                    std::cout << curr.y_p << std::endl;
                     success = 0;
                 }
             }
@@ -221,6 +222,7 @@ bool compare_neigh(pc_key curr,pc_key neigh,int dir){
                 
                 if( z_diff != -1.5*offset_z ){
                     std::cout << "z error" << std::endl;
+                    std::cout << curr.y_p << std::endl;
                     success = 0;
                 }
             }
@@ -358,7 +360,7 @@ void get_neigh_check(PartCellStructure<S,uint64_t>& pc_struct,std::vector<Mesh_d
                             
                             
                             if(int_comp != neigh){
-                                //std::cout << "Neighbour Intensity Error" << std::endl;
+                                std::cout << "Neighbour Intensity Error" << std::endl;
                             }
                             
                             diff = neigh_old - neigh;

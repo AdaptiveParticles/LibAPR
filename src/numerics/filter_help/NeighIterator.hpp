@@ -180,6 +180,11 @@ public:
                 
                 if (node_val_it&1){
                     //get the index gap node
+                    
+                    if(y_it < 0){
+                        y_it =0;
+                    }
+                    
                     y_it += (node_val_it & COORD_DIFF_MASK_PARTICLE) >> COORD_DIFF_SHIFT_PARTICLE;
                     j_it++;
                     
@@ -235,7 +240,7 @@ public:
             //
             node_val_it = part_data.access_data.data[depth_it][pc_offset_it][0];
             y_it = (node_val_it & COORD_DIFF_MASK_PARTICLE) >> COORD_DIFF_SHIFT_PARTICLE; //initialize
-            y_it--;
+            //y_it--;
             //j_it = 0;
             
             node_val_it = part_data.access_data.data[depth_it][pc_offset_it][1];
@@ -244,7 +249,7 @@ public:
             //
             //y_it = 0;
             j_it = -1;
-            y_it = 0;
+            y_it = -1;
         } else {
             active_row = false;
         }
