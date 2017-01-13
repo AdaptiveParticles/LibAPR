@@ -584,8 +584,6 @@ bool compare_sparse_rep_neighcell_with_part_map(const Particle_map<float>& part_
     std::cout << "Finished Neigh Cell test" << std::endl;
     
     
-    
-    
     return pass_test;
     
 }
@@ -2007,11 +2005,7 @@ void create_reference_structure(PartCellStructure<float,uint64_t>& pc_struct,std
                             
                             link_array[depth_current](y_current,x_current,z_current) = curr_key;
                             
-                            uint64_t check = link_array[6](32,22,24);
-                            pc_key check_key;
-                            check_key.update_part(check);
-                            int stop =1;
-                        }
+                                                    }
                         
                     } else {
                         // Inidicates this is not a particle cell node, and is a gap node
@@ -2026,10 +2020,7 @@ void create_reference_structure(PartCellStructure<float,uint64_t>& pc_struct,std
         }
     }
     
-    uint64_t check = link_array[6](32,22,24);
-    pc_key check_key;
-    check_key.update_part(check);
-    int stop = 1;
+   
     
 
     

@@ -145,6 +145,8 @@ int main(int argc, char **argv) {
     
     get_neigh_check(pc_struct,link_array,int_array);
     
+    utest_neigh_parts(pc_struct);
+    
    // get_neigh_check2(pc_struct,link_array);
     
     Mesh_data<uint8_t> seg_img;

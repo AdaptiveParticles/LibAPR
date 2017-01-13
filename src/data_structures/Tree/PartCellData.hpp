@@ -600,7 +600,194 @@ public:
         
         
     };
-
+    
+    pc_key get_neigh_coordinates_part(PartCellNeigh<T>& part_cell_neigh,T face,T index,T current_y){
+        //
+        //  Get the coordinates for a particle
+        //
+        //
+        
+        pc_key neigh_key;
+        
+        T neigh_y,neigh_x,neigh_z,neigh_depth;
+        
+        T neigh = part_cell_neigh.neigh_face[face][index];
+        
+        T curr = part_cell_neigh.curr;
+        
+        T status = pc_key_get_status(curr);
+        
+        if(neigh > 0){
+            
+            if(status > SEED){
+                //current cell is not seed
+                T neigh_status = pc_key_get_status(neigh);
+                
+                if(neigh_status > SEED){
+                    // neighbour cell is not seed, simply use cell coordinates
+                    neigh_x = pc_key_get_x(neigh);
+                    neigh_z = pc_key_get_z(neigh);
+                    neigh_depth = pc_key_get_depth(neigh);
+                    
+                    
+                    
+                    T curr_depth = pc_key_get_depth(curr);
+                    
+                    if(neigh_depth == curr_depth){
+                        //neigh is on same layer
+                        neigh_y = current_y + von_neumann_y_cells[face];
+                    }
+                    else if (neigh_depth < curr_depth){
+                        //neigh is on parent layer
+                        neigh_y = (current_y + von_neumann_y_cells[face])/2;
+                    }
+                    else{
+                        //neigh is on child layer
+                        neigh_y = (current_y + von_neumann_y_cells[face])*2 +  (von_neumann_y_cells[face] < 0) + neigh_child_y_offsets[face][index];
+                    }
+                    
+                } else {
+                    // neighbour cell is a seed cell, get cell coords then offset for part
+                    
+                    T n_depth = pc_key_get_depth(neigh);
+                    neigh_depth = n_depth + 1;
+                    
+                    
+                    T part_num = pc_key_get_partnum(neigh);
+                    
+                    neigh_x = pc_key_get_x(neigh)*2 + seed_part_x[part_num];
+                    neigh_z = pc_key_get_z(neigh)*2 + seed_part_z[part_num];
+                    
+                    T curr_depth = pc_key_get_depth(curr);
+                    
+                    if(n_depth == curr_depth){
+                        //neigh is on same layer
+                        neigh_y = current_y + von_neumann_y_cells[face];
+                    }
+                    else if (n_depth < curr_depth){
+                        //neigh is on parent layer
+                        neigh_y = (current_y + von_neumann_y_cells[face])/2;
+                    }
+                    else{
+                        //neigh is on child layer
+                        neigh_y = (current_y + von_neumann_y_cells[face])*2 +  (von_neumann_y_cells[face] < 0) + neigh_child_y_offsets[face][index];
+                    }
+                    
+                    neigh_y = neigh_y*2 + seed_part_y[part_num];
+                    
+                }
+                
+            } else {
+                
+                
+                //current cell is seed
+                
+                
+                T part_num = pc_key_get_partnum(neigh);
+                
+                
+                
+                //check if still in the same cell or not
+                if(pc_key_cell_isequal(curr,neigh)){
+                    //
+                    // The same cell
+                    //
+                    
+                    T n_depth = pc_key_get_depth(neigh);
+                    neigh_depth = n_depth + 1;
+                    
+                    neigh_x = pc_key_get_x(neigh)*2 + seed_part_x[part_num];
+                    neigh_z = pc_key_get_z(neigh)*2 + seed_part_z[part_num];
+                    
+                    neigh_y = 2*current_y + seed_part_y[part_num];
+                    
+                    
+                } else {
+                    
+                    T neigh_status = pc_key_get_status(neigh);
+                    
+                    if(neigh_status > SEED){
+                        // neighbour cell is not seed, simply use cell coordinates
+                        neigh_x = pc_key_get_x(neigh);
+                        neigh_z = pc_key_get_z(neigh);
+                        neigh_depth = pc_key_get_depth(neigh);
+                        
+                        
+                        
+                        T curr_depth = pc_key_get_depth(curr);
+                        
+                        if(neigh_depth == curr_depth){
+                            //neigh is on same layer
+                            neigh_y = current_y + von_neumann_y_cells[face];
+                        }
+                        else if (neigh_depth < curr_depth){
+                            //neigh is on parent layer
+                            neigh_y = (current_y + von_neumann_y_cells[face])/2;
+                        }
+                        else{
+                            //This case is the 1 -3 match up where this does not work, as only one cell is output and therefore the index needs to be corrected
+                            constexpr uint64_t index_offset[6][8] = {{1,0,3,1,5,2,7,3},{0,0,1,2,2,4,3,6},{2,3,0,1,6,7,2,3},{0,1,0,1,2,3,4,5},{4,5,6,7,0,1,2,3},{0,1,2,3,0,1,2,3}};
+                            T curr_part_num = pc_key_get_partnum(curr);
+                            T adj_index = index_offset[face][curr_part_num];
+                            //neigh is on child layer
+                            neigh_y = (current_y + von_neumann_y_cells[face])*2 +  (von_neumann_y_cells[face] < 0) + neigh_child_y_offsets[face][adj_index];
+                            
+                            
+                            
+                        }
+                        
+                    } else {
+                        // neighbour cell is a seed cell, get cell coords then offset for part
+                        
+                        T n_depth = pc_key_get_depth(neigh);
+                        neigh_depth = n_depth + 1;
+                        
+                        
+                        T part_num = pc_key_get_partnum(neigh);
+                        
+                        neigh_x = pc_key_get_x(neigh)*2 + seed_part_x[part_num];
+                        neigh_z = pc_key_get_z(neigh)*2 + seed_part_z[part_num];
+                        
+                        T curr_depth = pc_key_get_depth(curr);
+                        
+                        if(n_depth == curr_depth){
+                            //neigh is on same layer
+                            neigh_y = current_y + von_neumann_y_cells[face];
+                        }
+                        else if (n_depth < curr_depth){
+                            //neigh is on parent layer
+                            neigh_y = (current_y + von_neumann_y_cells[face])/2;
+                        }
+                        else{
+                            //neigh is on child layer
+                            neigh_y = (current_y + von_neumann_y_cells[face])*2 +  (von_neumann_y_cells[face] < 0) + neigh_child_y_offsets[face][index];
+                        }
+                        
+                        neigh_y = neigh_y*2 + seed_part_y[part_num];
+                        
+                    }
+                    
+                }
+                
+                
+            }
+            
+        }  else {
+            neigh_y = 0;
+            neigh_x = 0;
+            neigh_z = 0;
+            neigh_depth = 0;
+        }
+        
+        neigh_key.y_p = neigh_y;
+        neigh_key.x_p = neigh_x;
+        neigh_key.z_p = neigh_z;
+        neigh_key.depth_p = neigh_depth;
+        
+        return neigh_key;
+        
+    }
+    
     void get_neigh_coordinates_part(PartCellNeigh<T>& part_cell_neigh,T face,T index,T current_y,T& neigh_y,T& neigh_x,T& neigh_z,T& neigh_depth){
         //
         //  Get the coordinates for a particle
@@ -1722,9 +1909,7 @@ private:
                                 }
                                 
                                 
-                                if(y_coord > 0 & (y_parent < 64000) & (y_parent != -2)){
-                                    int stop = 1;
-                                }
+                               
                                 
                                 if((y_coord+y_offset)/2 == y_parent){
                                     data[i][offset_pc_data][j_] |= (j_parent << index_shift_0);
