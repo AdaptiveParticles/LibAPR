@@ -103,7 +103,7 @@ int main(int argc, char **argv) {
     //convolution_filter_y_new(pc_struct,filter_output);
     //convolution_filter_y_new(pc_struct,filter_output);
     
-    convolution_filter_pixels(pc_struct,pc_struct.org_dims[0],pc_struct.org_dims[1],pc_struct.org_dims[2]);
+   // convolution_filter_pixels(pc_struct,pc_struct.org_dims[0],pc_struct.org_dims[1],pc_struct.org_dims[2]);
     
    // convolution_filter_pixels_temp(pc_struct,pc_struct.org_dims[0],pc_struct.org_dims[1],pc_struct.org_dims[2]);
 //    
@@ -113,7 +113,7 @@ int main(int argc, char **argv) {
 //    
     //convolution_filter_pixels(pc_struct,dim,dim,dim);
    // convolution_filter_pixels_temp(pc_struct,dim,dim,dim);
-    convolution_filter_pixels_temp(pc_struct,dim,dim,dim);
+   // convolution_filter_pixels_temp(pc_struct,dim,dim,dim);
     
     ParticleDataNew<float, uint64_t> part_new;
     
@@ -131,21 +131,21 @@ int main(int argc, char **argv) {
     
     //compute_gradient(pc_struct,filter_output);
     
-    compute_gradient(pc_struct,filter_output);
+  //  compute_gradient(pc_struct,filter_output);
     
     Mesh_data<uint16_t> filter_img;
     
     pc_struct.interp_parts_to_pc(filter_img,filter_output);
     
-    debug_write(int_array[4],"int_array_4");
-    debug_write(int_array[3],"int_array_3");
-    debug_write(int_array[5],"int_array_5");
-    debug_write(int_array[6],"int_array_6");
+  //  debug_write(int_array[4],"int_array_4");
+   // debug_write(int_array[3],"int_array_3");
+   // debug_write(int_array[5],"int_array_5");
+   // debug_write(int_array[6],"int_array_6");
     
     
     get_neigh_check(pc_struct,link_array,int_array);
     
-    get_neigh_check2(pc_struct,link_array);
+   // get_neigh_check2(pc_struct,link_array);
     
     Mesh_data<uint8_t> seg_img;
     

@@ -67,11 +67,16 @@ bool compare_neigh(pc_key curr,pc_key neigh,int dir){
     int offset_y = dir_y[dir];
     int offset_z = dir_z[dir];
     
-    int k_diff = curr.depth_p - neigh.depth_p;
+    float k_diff = curr.depth_p - neigh.depth_p;
     
-    int y_diff,x_diff,z_diff;
+    float y_diff,x_diff,z_diff;
     
     bool success = true;
+    
+    if(neigh.depth_p > 20){
+        //no neighbour set
+        return true;
+    }
     
     
     if(std::abs(k_diff) > 1){
@@ -107,25 +112,62 @@ bool compare_neigh(pc_key curr,pc_key neigh,int dir){
             
         } else if (k_diff == -1){
             // - 1case
-            y_diff = (curr.y_p*2 -0.5 - neigh.y_p);
+            y_diff = (curr.y_p*2 +0.5 - neigh.y_p);
             
-            x_diff = (curr.x_p*2 - 0.5 - neigh.x_p);
+            x_diff = (curr.x_p*2 + 0.5 - neigh.x_p);
             
-            z_diff = (curr.z_p*2 -0.5 - neigh.z_p);
+            z_diff = (curr.z_p*2 + 0.5 - neigh.z_p);
             
-            if( y_diff != -1.5*offset_y){
-                std::cout << "y error" << std::endl;
-                success = 0;
+            if(offset_y != 0){
+                
+                if( y_diff != -1.5*offset_y ){
+                    std::cout << "y error" << std::endl;
+                    success = 0;
+                }
+            }
+            else {
+                y_diff = (curr.y_p - neigh.y_p/2);
+                
+                if( y_diff != 0 ){
+                    std::cout << "y error" << std::endl;
+                    success = 0;
+                }
+                
             }
             
-            if( x_diff != -1.5*offset_x){
-                std::cout << "x error" << std::endl;
-                success = 0;
+            if(offset_x != 0){
+                
+                if( x_diff != -1.5*offset_x ){
+                    std::cout << "x error" << std::endl;
+                    success = 0;
+                }
+            }
+            else {
+                x_diff = (curr.x_p - neigh.x_p/2);
+                
+                if( x_diff != 0 ){
+                    std::cout << "x error" << std::endl;
+                    success = 0;
+                }
+                
             }
             
-            if( z_diff != -1.5*offset_z){
-                std::cout << "z error" << std::endl;
-                success = 0;
+            
+            if(offset_z != 0){
+                
+                if( z_diff != -1.5*offset_z ){
+                    std::cout << "z error" << std::endl;
+                    success = 0;
+                }
+            }
+            else {
+                z_diff = (curr.z_p - neigh.z_p/2);
+                
+                if( z_diff != 0 ){
+                    std::cout << "z error" << std::endl;
+                    success = 0;
+                }
+                
             }
 
             
@@ -133,25 +175,63 @@ bool compare_neigh(pc_key curr,pc_key neigh,int dir){
         } else {
             /// + 1 case
             
-            y_diff = (((curr.y_p - (neigh.y_p*2 - 0.5))));
+            y_diff = (((curr.y_p - (neigh.y_p*2 + 0.5))));
             
-            x_diff = (((curr.x_p - (neigh.x_p*2 - 0.5))));
+            x_diff = (((curr.x_p - (neigh.x_p*2 + 0.5))));
             
-            z_diff = (((curr.z_p - (neigh.z_p*2 - 0.5))));
+            z_diff = (((curr.z_p - (neigh.z_p*2 + 0.5))));
             
-            if( y_diff != -1.5*offset_y){
-                std::cout << "y error" << std::endl;
-                success = 0;
+            if(offset_y != 0){
+                
+                if( y_diff != -1.5*offset_y ){
+                    std::cout << "y error" << std::endl;
+                    success = 0;
+                }
+            }
+            else {
+                
+                 y_diff = (((curr.y_p/2 - (neigh.y_p))));
+                
+                if( y_diff != 0 ){
+                    std::cout << "y error" << std::endl;
+                    success = 0;
+                }
+                
             }
             
-            if( x_diff != -1.5*offset_x){
-                std::cout << "x error" << std::endl;
-                success = 0;
+            if(offset_x != 0){
+                
+                if( x_diff != -1.5*offset_x ){
+                    std::cout << "x error" << std::endl;
+                    success = 0;
+                }
+            }
+            else {
+                x_diff = (((curr.x_p/2 - (neigh.x_p))));
+                
+                if( x_diff != 0 ){
+                    std::cout << "x error" << std::endl;
+                    success = 0;
+                }
+                
             }
             
-            if( z_diff != -1.5*offset_z){
-                std::cout << "z error" << std::endl;
-                success = 0;
+            
+            if(offset_z != 0){
+                
+                if( z_diff != -1.5*offset_z ){
+                    std::cout << "z error" << std::endl;
+                    success = 0;
+                }
+            }
+            else {
+                z_diff = (((curr.z_p/2 - (neigh.z_p))));
+                
+                if( z_diff != 0 ){
+                    std::cout << "z error" << std::endl;
+                    success = 0;
+                }
+                
             }
         }
     }
@@ -278,7 +358,7 @@ void get_neigh_check(PartCellStructure<S,uint64_t>& pc_struct,std::vector<Mesh_d
                             
                             
                             if(int_comp != neigh){
-                                std::cout << "Neighbour Intensity Error" << std::endl;
+                                //std::cout << "Neighbour Intensity Error" << std::endl;
                             }
                             
                             diff = neigh_old - neigh;
