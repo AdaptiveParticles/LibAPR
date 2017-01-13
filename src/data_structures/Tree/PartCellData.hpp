@@ -1402,7 +1402,7 @@ private:
         
         const uint64_t next_prev_mask = next_prev_mask_vec[face];
         const uint64_t next_prev_shift= next_prev_shift_vec[face];
-        const int8_t y_offset = y_offset_vec[face];
+        const int y_offset = y_offset_vec[face];
 
         
         Part_timer timer;
@@ -1413,13 +1413,13 @@ private:
         
         timer.start_timer("Get neighbours dir: " + std::to_string(face));
         
-        unsigned int y_neigh;
-        unsigned int y_parent;
+        int y_neigh;
+        int y_parent;
         uint64_t j_parent;
         uint64_t j_neigh;
         
         uint64_t node_val;
-        uint64_t y_coord;
+        int y_coord;
         
         if (face > 1){
             
@@ -1649,7 +1649,7 @@ private:
                 
                 const unsigned int x_num_parent = x_num[i-1];
                 
-#pragma omp parallel for default(shared) private(z_,x_,j_,node_val,y_parent,j_parent,y_coord) if(z_num_*x_num_ > 100)
+//#pragma omp parallel for default(shared) private(z_,x_,j_,node_val,y_parent,j_parent,y_coord) if(z_num_*x_num_ > 100)
                 for(z_ = 0;z_ < (z_num_);z_++){
                     
                     for(x_ = 0;x_ < (x_num_);x_++){
@@ -1685,11 +1685,20 @@ private:
                             if (node_val&1){
                                 //get the index gap node
                                 
-                                if(((node_val & next_prev_mask) >> next_prev_shift) > 0){
-                                    y_coord = (node_val & next_prev_mask) >> next_prev_shift;
-                                } else {
-                                    y_coord = -1;
+                                
+                                if(face == 1){
+                                    
+                                    y_coord = (node_val & NEXT_COORD_MASK) >> NEXT_COORD_SHIFT;
+                                    
+                                    if(((node_val & next_prev_mask) >> next_prev_shift) > 0){
+                                        y_coord = (node_val & next_prev_mask) >> next_prev_shift;
+                                    } else {
+                                        y_coord = -1;
+                                    }
                                 }
+                                
+
+                                
                                 //iterate parent
                                 while ((y_parent < (y_coord+y_offset)/2) & (j_parent < (j_num_parent-1))){
                                     
@@ -1698,13 +1707,11 @@ private:
                                     
                                     if (node_val&1){
                                         //get the index gap node
-                                        
                                         if(((node_val & NEXT_COORD_MASK) >> NEXT_COORD_SHIFT) > 0){
                                             y_parent = (node_val & NEXT_COORD_MASK) >> NEXT_COORD_SHIFT;
                                         } else {
                                             y_parent = -2;
                                         }
-                                        
                                         j_parent++;
                                         
                                     } else {
@@ -1714,22 +1721,32 @@ private:
                                     }
                                 }
                                 
+                                
+                                if(y_coord > 0 & (y_parent < 64000) & (y_parent != -2)){
+                                    int stop = 1;
+                                }
+                                
                                 if((y_coord+y_offset)/2 == y_parent){
                                     data[i][offset_pc_data][j_] |= (j_parent << index_shift_0);
                                     data[i][offset_pc_data][j_] &= -((depth_mask_0)+1);
                                     data[i][offset_pc_data][j_] |= (  LEVEL_DOWN  << depth_shift_0);
                                     //symmetric (only add it once)
                                     if((y_coord == ((y_parent-y_offset)*2 + (y_offset > 0))) & (x_ == x_parent*2) & (z_ == (z_parent*2) )){
-                                        data[i-1][offset_pc_data_parent][j_parent-y_offset] |= ( (j_-y_offset) << index_shift_1);
+                                        data[i-1][offset_pc_data_parent][j_parent] |= ( (j_-y_offset) << index_shift_1);
                                         
-                                        data[i-1][offset_pc_data_parent][j_parent-y_offset] &= -((depth_mask_1)+1);
-                                        data[i-1][offset_pc_data_parent][j_parent-y_offset] |= ( LEVEL_UP  << depth_shift_1);
+                                        data[i-1][offset_pc_data_parent][j_parent] &= -((depth_mask_1)+1);
+                                        data[i-1][offset_pc_data_parent][j_parent] |= ( LEVEL_UP  << depth_shift_1);
                                     }
                                 } else {
                                     //end node
                                 }
                                 
-                                
+                                if(face == 0){
+                                    y_coord = (node_val & NEXT_COORD_MASK) >> NEXT_COORD_SHIFT;
+                                    y_coord--;
+                                } else {
+                                    y_coord--;
+                                }
                                 
                             } else {
                                 //normal node
