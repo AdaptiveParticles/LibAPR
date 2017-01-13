@@ -72,6 +72,15 @@ public:
         return part_data.particle_data.data[depth][pc_offset][part_offset];
     }
     
+    pc_key get_key(){
+        pc_key curr_key;
+        curr_key.depth_p = depth;
+        curr_key.y_p = y;
+        curr_key.x_p = x;
+        curr_key.z_p = z;
+        return curr_key;
+    }
+    
     
     template<typename U>
     void update_cell(ParticleDataNew<U, T>& part_data){

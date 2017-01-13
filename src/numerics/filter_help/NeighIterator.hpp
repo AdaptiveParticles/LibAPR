@@ -232,12 +232,19 @@ public:
         j_num_it = part_data.access_data.data[depth_it][pc_offset_it].size();
         
         if(j_num_it > 1){
+            //
+            node_val_it = part_data.access_data.data[depth_it][pc_offset_it][0];
+            y_it = (node_val_it & COORD_DIFF_MASK_PARTICLE) >> COORD_DIFF_SHIFT_PARTICLE; //initialize
+            y_it--;
+            //j_it = 0;
+            
             node_val_it = part_data.access_data.data[depth_it][pc_offset_it][1];
             status_it = ((node_val_it & STATUS_MASK_PARTICLE) >> STATUS_SHIFT_PARTICLE);
             part_offset_it = ((node_val_it & Y_PINDEX_MASK_PARTICLE) >> Y_PINDEX_SHIFT_PARTICLE);
-            //y_it = (node_val_it & COORD_DIFF_MASK_PARTICLE) >> COORD_DIFF_SHIFT_PARTICLE; //initialize
-            y_it = 0;
+            //
+            //y_it = 0;
             j_it = -1;
+            y_it = 0;
         } else {
             active_row = false;
         }

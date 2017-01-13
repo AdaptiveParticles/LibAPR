@@ -57,6 +57,110 @@ void iterate_temp_vec(std::vector<T>& temp_vec){
     
 }
 
+bool compare_neigh(pc_key curr,pc_key neigh,int dir){
+    
+    const int8_t dir_y[6] = { 1, -1, 0, 0, 0, 0};
+    const int8_t dir_x[6] = { 0, 0, 1, -1, 0, 0};
+    const int8_t dir_z[6] = { 0, 0, 0, 0, 1, -1};
+    
+    int offset_x = dir_x[dir];
+    int offset_y = dir_y[dir];
+    int offset_z = dir_z[dir];
+    
+    int k_diff = curr.depth_p - neigh.depth_p;
+    
+    int y_diff,x_diff,z_diff;
+    
+    bool success = true;
+    
+    
+    if(std::abs(k_diff) > 1){
+        std::cout << "k mismatch " << std::endl;
+        success = 0;
+        
+    } else {
+        //check the distance between the cells (They should be bounded as border neighbors)
+        if( k_diff == 0){
+            // same level
+            y_diff = (curr.y_p - neigh.y_p);
+            
+            x_diff = (curr.x_p - neigh.x_p);
+            
+            z_diff = (curr.z_p - neigh.z_p);
+            
+            
+            if( y_diff != -offset_y){
+                std::cout << "y error" << std::endl;
+                success = 0;
+            }
+            
+            if( x_diff != -offset_x){
+                std::cout << "x error" << std::endl;
+                success = 0;
+            }
+            
+            if( z_diff != -offset_z){
+                std::cout << "z error" << std::endl;
+                success = 0;
+            }
+            
+            
+        } else if (k_diff == -1){
+            // - 1case
+            y_diff = (curr.y_p*2 -0.5 - neigh.y_p);
+            
+            x_diff = (curr.x_p*2 - 0.5 - neigh.x_p);
+            
+            z_diff = (curr.z_p*2 -0.5 - neigh.z_p);
+            
+            if( y_diff != -1.5*offset_y){
+                std::cout << "y error" << std::endl;
+                success = 0;
+            }
+            
+            if( x_diff != -1.5*offset_x){
+                std::cout << "x error" << std::endl;
+                success = 0;
+            }
+            
+            if( z_diff != -1.5*offset_z){
+                std::cout << "z error" << std::endl;
+                success = 0;
+            }
+
+            
+            
+        } else {
+            /// + 1 case
+            
+            y_diff = (((curr.y_p - (neigh.y_p*2 - 0.5))));
+            
+            x_diff = (((curr.x_p - (neigh.x_p*2 - 0.5))));
+            
+            z_diff = (((curr.z_p - (neigh.z_p*2 - 0.5))));
+            
+            if( y_diff != -1.5*offset_y){
+                std::cout << "y error" << std::endl;
+                success = 0;
+            }
+            
+            if( x_diff != -1.5*offset_x){
+                std::cout << "x error" << std::endl;
+                success = 0;
+            }
+            
+            if( z_diff != -1.5*offset_z){
+                std::cout << "z error" << std::endl;
+                success = 0;
+            }
+        }
+    }
+    
+    return success;
+    
+}
+
+
 template<typename S>
 void get_neigh_check(PartCellStructure<S,uint64_t>& pc_struct,std::vector<Mesh_data<uint64_t>>& link_array,std::vector<Mesh_data<float>>& int_array){
     //
@@ -68,7 +172,7 @@ void get_neigh_check(PartCellStructure<S,uint64_t>& pc_struct,std::vector<Mesh_d
     part_new.initialize_from_structure(pc_struct);
 
 //    //component_label.initialize_structure_parts(pc_struct.part_data.particle_data);
-//    
+//
     Part_timer timer;
     
     int x_; // iteration variables
@@ -130,6 +234,8 @@ void get_neigh_check(PartCellStructure<S,uint64_t>& pc_struct,std::vector<Mesh_d
                             
                             pc_key neigh_new_key = neigh_y.get_key();
                             
+                            pc_key curr_level_key = curr_level.get_key();
+                            compare_neigh(curr_level_key,neigh_new_key,direction);
                             
                             neigh = neigh_y.get_part(part_new.particle_data);
                             
