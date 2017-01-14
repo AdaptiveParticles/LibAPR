@@ -1092,7 +1092,7 @@ void utest_neigh_parts(PartCellStructure<S,uint64_t>& pc_struct){   //  Calculat
                                     
                                 }
                                 
-                                if (error){
+                                if (!error){
                                     pc_struct.part_data.get_part_neighs_face(direction,p,node_val_pc,curr_key,status,part_offset,neigh_cell_keys,neigh_part_keys,pc_struct.pc_data);
                                 }
                                 

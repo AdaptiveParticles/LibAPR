@@ -1236,10 +1236,13 @@ private:
         constexpr uint64_t index_mask_dir[6] = {YP_INDEX_MASK,YM_INDEX_MASK,XP_INDEX_MASK,XM_INDEX_MASK,ZP_INDEX_MASK,ZM_INDEX_MASK};
         constexpr uint64_t index_shift_dir[6] = {YP_INDEX_SHIFT,YM_INDEX_SHIFT,XP_INDEX_SHIFT,XM_INDEX_SHIFT,ZP_INDEX_SHIFT,ZM_INDEX_SHIFT};
         
+        constexpr uint64_t depth_mask_dir[6] = {YP_DEPTH_MASK,YM_DEPTH_MASK,XP_DEPTH_MASK,XM_DEPTH_MASK,ZP_DEPTH_MASK,ZM_DEPTH_MASK};
+        constexpr uint64_t depth_shift_dir[6] =  {YP_DEPTH_SHIFT,YM_DEPTH_SHIFT,XP_DEPTH_SHIFT,XM_DEPTH_SHIFT,ZP_DEPTH_SHIFT,ZM_DEPTH_SHIFT};
         
         U curr_node = pc_data.get_val(curr_key);
         
-        U curr_neigh_index = (curr_node & index_mask_dir[face]) >> index_shift_dir[face];
+        U curr_neigh_j = (curr_node & index_mask_dir[face]) >> index_shift_dir[face];
+        U curr_neigh_depth = (curr_node & depth_mask_dir[face]) >> depth_shift_dir[face];
         
         U neigh_key = 0;
         
@@ -1251,6 +1254,7 @@ private:
         
         access_data.pc_key_set_depth(neigh_key,access_data.pc_key_get_depth(curr_key));
         
+        //need to add checking the offset as well. 
         
         U prev_neigh_index = 0;
         
@@ -1260,9 +1264,11 @@ private:
         if (prev_neigh_index&1){
             return 0;
         } else{
-            prev_neigh_index = (prev_neigh_index & index_mask_dir[face]) >> index_shift_dir[face];
+            U prev_neigh_j = (prev_neigh_index & index_mask_dir[face]) >> index_shift_dir[face];
+            U prev_neigh_depth = (prev_neigh_index & depth_mask_dir[face]) >> depth_shift_dir[face];
             
-            if(prev_neigh_index == curr_neigh_index){
+            //if(prev_neigh_j == curr_neigh_j){
+            if((prev_neigh_j == curr_neigh_j) & (prev_neigh_depth == curr_neigh_depth)){
                 return 1;
             } else {
                 return 0;
