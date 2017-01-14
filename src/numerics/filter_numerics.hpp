@@ -868,8 +868,9 @@ void utest_neigh_cells(PartCellStructure<S,uint64_t>& pc_struct){   //  Calculat
     
     timer.verbose_flag = false;
     
-    
-    
+    const int8_t dir_y[6] = { 1, -1, 0, 0, 0, 0};
+    const int8_t dir_x[6] = { 0, 0, 1, -1, 0, 0};
+    const int8_t dir_z[6] = { 0, 0, 0, 0, 1, -1};
     
     
     timer.start_timer("iterate parts old");
@@ -945,8 +946,33 @@ void utest_neigh_cells(PartCellStructure<S,uint64_t>& pc_struct){   //  Calculat
                             }
                             
                             if(neigh_cell_keys.neigh_face[direction].size() == 0){
-                                int stop = 1;
                                 
+                                bool out_bounds = false;
+                                
+                                int x_numc = pc_struct.x_num[i];
+                                int y_numc = pc_struct.y_num[i];
+                                int z_numc = pc_struct.z_num[i];
+                                
+                                int neigh_x = x_ + dir_x[direction];
+                                int neigh_y = y_coord + dir_y[direction];
+                                int neigh_z = z_ + dir_z[direction];
+                                
+                                if(neigh_x < 0 | neigh_x >= pc_struct.x_num[i]){
+                                    out_bounds = true;
+                                }
+                                
+                                if(neigh_y < 0 | neigh_y >= pc_struct.y_num[i]){
+                                    out_bounds = true;
+                                }
+                                
+                                if(neigh_z < 0 | neigh_z >= pc_struct.z_num[i]){
+                                    out_bounds = true;
+                                }
+                                
+                                if(!out_bounds){
+                                    int stop = 1;
+                                    std::cout << direction << std::endl;
+                                }
                                 
                             }
                                 
