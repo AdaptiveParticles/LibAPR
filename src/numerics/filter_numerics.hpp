@@ -910,6 +910,20 @@ void utest_neigh_cells(PartCellStructure<S,uint64_t>& pc_struct){   //  Calculat
                     //the y direction loop however is sparse, and must be accessed accordinagly
                     for(j_ = 0;j_ < j_num;j_++){
                         
+                        
+                        //debug
+                        int x_d = 1;
+                        int z_d = 3;
+                        int j_d = 2;
+                        int d_d = 3;
+                        int d_dir = 0;
+                        
+                        if((x_d == x_) & (z_d == z_)& (j_d == j_) & (d_d == i) & (d_dir == direction)){
+                            //debug stop
+                            int stop = 1;
+                            
+                        }
+                        
                         //particle cell node value, used here as it is requried for getting the particle neighbours
                         node_val_pc = pc_struct.pc_data.data[i][offset_pc_data][j_];
                         
@@ -929,7 +943,31 @@ void utest_neigh_cells(PartCellStructure<S,uint64_t>& pc_struct){   //  Calculat
                             
                             pc_struct.part_data.access_data.pc_key_set_status(curr_key,status);
                             
+                            pc_key neigh_miss = find_neigh_cell(curr_cell,direction,j_array);
+                            
+                            
+                            
+                            node_key debug_node;
+                            
+                            if(direction == 0){
+                                uint64_t node_val = pc_struct.pc_data.data[i][offset_pc_data][j_ + 1];
+                                
+                                
+                                debug_node.update_node(node_val);
+                                
+                            } else if (direction == 1){
+                                uint64_t node_val = pc_struct.pc_data.data[i][offset_pc_data][j_ - 1];
+                                
+                                debug_node.update_node(node_val);
+                                
+                                
+                            }
+                            
+                            
+                            
+                            
                             pc_struct.pc_data.get_neighs_face(curr_key,node_val_pc,direction,neigh_cell_keys);
+
                             
                             //loop over the nieghbours
                             for(int n = 0; n < neigh_cell_keys.neigh_face[direction].size();n++){
@@ -979,21 +1017,40 @@ void utest_neigh_cells(PartCellStructure<S,uint64_t>& pc_struct){   //  Calculat
                                     
                                     pc_key neigh_miss = find_neigh_cell(curr_cell,direction,j_array);
                                     
+                                    int neigh_type = 0;
+                                    
                                     if(neigh_miss.depth == i){
                                         //same level
                                         counter_same++;
-                                    } else if(neigh_miss.depth == (i - 1)){
+                                        neigh_type = 1;
                                         
+                                    } else if(neigh_miss.depth == (i - 1)){
+                                        neigh_type = 2;
                                         counter_parent++;
                                         
                                     } else if(neigh_miss.depth == (i + 1)){
-                                        
+                                        neigh_type = 3;
                                         counter_child++;
                                         
                                     }
                                     
                                     node_key debug_node;
-                                    debug_node.update_node(node_val_pc);
+                                    
+                                    if(direction == 0){
+                                        uint64_t node_val = pc_struct.pc_data.data[i][offset_pc_data][j_ + 1];
+                                        
+                                        
+                                        debug_node.update_node(node_val);
+                                        
+                                    } else if (direction == 1){
+                                        uint64_t node_val = pc_struct.pc_data.data[i][offset_pc_data][j_ - 1];
+                                    
+                                        debug_node.update_node(node_val);
+
+                                        
+                                    }
+                                    
+                                    
                                     
                                     
                                     int stop = 1;

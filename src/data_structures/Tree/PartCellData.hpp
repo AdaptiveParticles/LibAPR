@@ -158,14 +158,18 @@ struct pc_key {
 struct node_key {
     
     
-    int xp_j,yp_j,zp_j;
-    int xp_dep,yp_dep,zp_dep;
+    int xp_j,zp_j;
+    int xp_dep,zp_dep;
     
-    int xm_j,ym_j,zm_j;
-    int xm_dep,ym_dep,zm_dep;
+    int xm_j,zm_j;
+    int xm_dep,zm_dep;
     
     int status;
     int type;
+    
+    int yp_j,ym_j;
+    int yp_dep,ym_dep;
+    
     int next_y;
     int prev_y;
     
@@ -1556,8 +1560,11 @@ private:
         
         uint64_t neigh_key;
         
+        uint64_t org_node= node_val;
+        
         // +-y direction is different
         if(face < 2){
+            
             
             neigh_key = curr_key;
             
@@ -1627,8 +1634,8 @@ private:
                 uint64_t temp = neigh_key;
                 
                 //check if its two neighbours exist
-                bool exist0 = check_neigh_exists(node_val,neigh_key,neigh_child_dir[face][0]);
-                bool exist2 = check_neigh_exists(node_val,neigh_key,neigh_child_dir[face][2]);
+                bool exist0 = check_neigh_exists(org_node,neigh_key,neigh_child_dir[face][0]);
+                bool exist2 = check_neigh_exists(org_node,neigh_key,neigh_child_dir[face][2]);
                 
                 //changed the ordering
                 
@@ -1940,7 +1947,7 @@ private:
                 
                 const unsigned int x_num_parent = x_num[i-1];
                 
-#pragma omp parallel for default(shared) private(z_,x_,j_,node_val,y_parent,j_parent,y_coord) if(z_num_*x_num_ > 100)
+//#pragma omp parallel for default(shared) private(z_,x_,j_,node_val,y_parent,j_parent,y_coord) if(z_num_*x_num_ > 100)
                 for(z_ = 0;z_ < (z_num_);z_++){
                     
                     for(x_ = 0;x_ < (x_num_);x_++){
@@ -1967,12 +1974,30 @@ private:
                         const size_t j_num = data[i][offset_pc_data].size();
                         const size_t j_num_parent = data[i-1][offset_pc_data_parent].size();
                         
-                        for(j_ = 1;j_ < j_num;j_++){
+                        for(j_ = 0;j_ < j_num;j_++){
+                            
+                            
+                            //debug
+                            int x_d = 2;
+                            int z_d = 0;
+                            int j_d = 0;
+                            int d_d = 4;
+                            int d_dir = 1;
+                            
+                            int y_d = 4;
+                            
+                            
+                            
                             
                             // Parent relation
                             
                             node_val = data[i][offset_pc_data][j_];
                             
+                            if((x_d == x_) & (z_d == z_)& (j_d == j_) & (d_d == i) & (d_dir == face)){
+                                //debug stop
+                                int stop = 1;
+                                
+                            }
                             
                             if (node_val&1){
                                 //get the index gap node
@@ -2030,51 +2055,63 @@ private:
                                     y_coord--;
                                 } else {
                                     
-//                                    y_coord = (node_val & NEXT_COORD_MASK) >> NEXT_COORD_SHIFT;
-//                                    
-//                                    //iterate parent
-//                                    while ((y_parent < (y_coord+y_offset)/2) & (j_parent < (j_num_parent-1))){
-//                                        
-//                                        j_parent++;
-//                                        node_val_parent = data[i-1][offset_pc_data_parent][j_parent];
-//                                        
-//                                        if (node_val_parent&1){
-//                                            //get the index gap node
-//                                            
-//                                            //if(((node_val_parent & NEXT_COORD_MASK) >> NEXT_COORD_SHIFT) > 0){
-//                                            y_parent = (node_val_parent & NEXT_COORD_MASK) >> NEXT_COORD_SHIFT;
-//                                           // } else {
-//                                            //    y_parent = -2;
-//                                            //}
-//                                            
-//                                            j_parent++;
-//                                            
-//                                        } else {
-//                                            //normal node
-//                                            y_parent++;
-//                                            
-//                                        }
-//                                    }
-//                                    
-//                                    if((y_coord+y_offset)/2 == y_parent){
-//                                 //       data[i][offset_pc_data][j_] |= (j_parent << index_shift_0);
-//                                   //     data[i][offset_pc_data][j_] &= -((depth_mask_0)+1);
-//                                   //     data[i][offset_pc_data][j_] |= (  LEVEL_DOWN  << depth_shift_0);
-//                                        //symmetric (only add it once)
-//                                        if((y_coord == ((y_parent-y_offset)*2 + (y_offset > 0))) & (x_ == x_parent*2) & (z_ == (z_parent*2) )){
-//                                    //         data[i-1][offset_pc_data_parent][j_parent-y_offset] |= ( (j_-y_offset) << index_shift_1);
-//                                            
-//                                      //      data[i-1][offset_pc_data_parent][j_parent-y_offset] &= -((depth_mask_1)+1);
-//                                       //      data[i-1][offset_pc_data_parent][j_parent-y_offset] |= ( LEVEL_UP  << depth_shift_1);
-//                                            
-//                                            
-//                                        }
-//                                    } else {
-//                                        //end node
-//                                    }
-//                                    
-//                                    
-//                                    y_coord--;
+                                    y_coord = (node_val & NEXT_COORD_MASK) >> NEXT_COORD_SHIFT;
+                                    
+                                    //iterate parent
+                                    while ((y_parent < (y_coord+y_offset)/2) & (j_parent < (j_num_parent-1))){
+                                        
+                                        j_parent++;
+                                        node_val_parent = data[i-1][offset_pc_data_parent][j_parent];
+                                        
+                                        if (node_val_parent&1){
+                                            //get the index gap node
+                                            
+                                            //if(((node_val_parent & NEXT_COORD_MASK) >> NEXT_COORD_SHIFT) > 0){
+                                            y_parent = (node_val_parent & NEXT_COORD_MASK) >> NEXT_COORD_SHIFT;
+                                           // } else {
+                                            //    y_parent = -2;
+                                            //}
+                                            
+                                            j_parent++;
+                                            
+                                        } else {
+                                            //normal node
+                                            y_parent++;
+                                            
+                                        }
+                                    }
+                                    
+                                    if((y_coord+y_offset)/2 == y_parent){
+                                        data[i][offset_pc_data][j_] |= (j_parent << index_shift_0);
+                                        data[i][offset_pc_data][j_] &= -((depth_mask_0)+1);
+                                        data[i][offset_pc_data][j_] |= (  LEVEL_DOWN  << depth_shift_0);
+                                        //symmetric (only add it once)
+                                        if((y_coord == ((y_parent-y_offset)*2 + (y_offset > 0))) & (x_ == x_parent*2) & (z_ == (z_parent*2) )){
+                                            data[i-1][offset_pc_data_parent][j_parent-y_offset] |= ( (j_-y_offset) << index_shift_1);
+                                            
+                                            data[i-1][offset_pc_data_parent][j_parent-y_offset] &= -((depth_mask_1)+1);
+                                            data[i-1][offset_pc_data_parent][j_parent-y_offset] |= ( LEVEL_UP  << depth_shift_1);
+                                            
+                                            
+                                        }
+                                        
+                                        //debug code
+                                        node_key curr_n;
+                                        curr_n.update_node(data[i][offset_pc_data][j_]);
+                                        node_key parent_n;
+                                        parent_n.update_node(data[i-1][offset_pc_data_parent][j_parent-y_offset]);
+                                        int j_parent_d = j_parent - y_offset;
+                                        int j__d = j_ - y_offset;
+                                        
+                                        int stop = 1;
+                                        
+                                        
+                                    } else {
+                                        //end node
+                                    }
+                                    
+                                    
+                                    y_coord--;
                                     
                                     
                                     
