@@ -1423,12 +1423,12 @@ public:
         // Calls the functions to access the underlying datastructure
         //
         
-        set_neighbor_relationships(0);
-        set_neighbor_relationships(1);
         set_neighbor_relationships(2);
         set_neighbor_relationships(3);
         set_neighbor_relationships(4);
         set_neighbor_relationships(5);
+        set_neighbor_relationships(0);
+        set_neighbor_relationships(1);
     }
 
 
@@ -1978,11 +1978,11 @@ private:
                             
                             
                             //debug
-                            int x_d = 2;
-                            int z_d = 0;
-                            int j_d = 0;
+                            int x_d = 11;
+                            int z_d = 2;
+                            int j_d = 9;
                             int d_d = 4;
-                            int d_dir = 1;
+                            int d_dir = 0;
                             
                             int y_d = 4;
                             
@@ -2040,10 +2040,18 @@ private:
                                         data[i][offset_pc_data][j_] |= (  LEVEL_DOWN  << depth_shift_0);
                                         //symmetric (only add it once)
                                         if((y_coord == ((y_parent-y_offset)*2 + (y_offset > 0))) & (x_ == x_parent*2) & (z_ == (z_parent*2) )){
-                                            data[i-1][offset_pc_data_parent][j_parent-y_offset] |= ( (j_-y_offset) << index_shift_1);
+                                           data[i-1][offset_pc_data_parent][j_parent-y_offset] |= ( (j_-y_offset) << index_shift_1);
                                             
-                                            data[i-1][offset_pc_data_parent][j_parent-y_offset] &= -((depth_mask_1)+1);
-                                            data[i-1][offset_pc_data_parent][j_parent-y_offset] |= ( LEVEL_UP  << depth_shift_1);
+                                           data[i-1][offset_pc_data_parent][j_parent-y_offset] &= -((depth_mask_1)+1);
+                                           data[i-1][offset_pc_data_parent][j_parent-y_offset] |= ( LEVEL_UP  << depth_shift_1);
+                                            
+                                            int offset_pc_data_parent_d = 37;
+                                            
+                                            if (((i-1) == d_d) & (offset_pc_data_parent_d == offset_pc_data_parent) & (j_d == (j_parent-y_offset))){
+                                                node_key parent_n;
+                                                parent_n.update_node(data[i-1][offset_pc_data_parent][j_parent-y_offset]);
+                                                int stop = 1;
+                                            }
                                             
                                             
                                         }

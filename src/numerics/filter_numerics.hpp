@@ -912,11 +912,11 @@ void utest_neigh_cells(PartCellStructure<S,uint64_t>& pc_struct){   //  Calculat
                         
                         
                         //debug
-                        int x_d = 1;
-                        int z_d = 3;
-                        int j_d = 2;
-                        int d_d = 3;
-                        int d_dir = 0;
+                        int x_d = 11;
+                        int z_d = 2;
+                        int j_d = 9;
+                        int d_d = 4;
+                        int d_dir = 2;
                         
                         if((x_d == x_) & (z_d == z_)& (j_d == j_) & (d_d == i) & (d_dir == direction)){
                             //debug stop
@@ -961,6 +961,8 @@ void utest_neigh_cells(PartCellStructure<S,uint64_t>& pc_struct){   //  Calculat
                                 debug_node.update_node(node_val);
                                 
                                 
+                            } else {
+                                debug_node.update_node(node_val_pc);
                             }
                             
                             
@@ -1048,13 +1050,16 @@ void utest_neigh_cells(PartCellStructure<S,uint64_t>& pc_struct){   //  Calculat
                                         debug_node.update_node(node_val);
 
                                         
+                                    } else {
+                                        debug_node.update_node(node_val_pc);
                                     }
                                     
                                     
                                     
-                                    
-                                    int stop = 1;
-                                    counter++;
+                                    if(neigh_type > 0){
+                                        int stop = 1;
+                                        counter++;
+                                    }
                                 }
                                 
                             }
