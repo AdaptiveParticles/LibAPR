@@ -2040,10 +2040,10 @@ private:
                                         data[i][offset_pc_data][j_] |= (  LEVEL_DOWN  << depth_shift_0);
                                         //symmetric (only add it once)
                                         if((y_coord == ((y_parent-y_offset)*2 + (y_offset > 0))) & (x_ == x_parent*2) & (z_ == (z_parent*2) )){
-                                            //data[i-1][offset_pc_data_parent][j_parent-y_offset] |= ( (j_-y_offset) << index_shift_1);
+                                            data[i-1][offset_pc_data_parent][j_parent-y_offset] |= ( (j_-y_offset) << index_shift_1);
                                             
-                                            //data[i-1][offset_pc_data_parent][j_parent-y_offset] &= -((depth_mask_1)+1);
-                                            //data[i-1][offset_pc_data_parent][j_parent-y_offset] |= ( LEVEL_UP  << depth_shift_1);
+                                            data[i-1][offset_pc_data_parent][j_parent-y_offset] &= -((depth_mask_1)+1);
+                                            data[i-1][offset_pc_data_parent][j_parent-y_offset] |= ( LEVEL_UP  << depth_shift_1);
                                             
                                             
                                         }

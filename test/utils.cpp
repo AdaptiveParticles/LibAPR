@@ -2147,9 +2147,9 @@ pc_key find_neigh_cell(pc_key curr_cell,int dir,std::vector<Mesh_data<uint64_t>>
     
     uint64_t j= 0;
     
-    if(x > 0 | x < j_array[depth].x_num){
-        if(y > 0 | y < j_array[depth].y_num){
-            if(z > 0 | z < j_array[depth].z_num){
+    if(x > 0 & x < j_array[depth].x_num){
+        if(y > 0 & y < j_array[depth].y_num){
+            if(z > 0 & z < j_array[depth].z_num){
 
                 
                 j = j_array[depth](y,x,z);
@@ -2175,9 +2175,9 @@ pc_key find_neigh_cell(pc_key curr_cell,int dir,std::vector<Mesh_data<uint64_t>>
         z = (curr_cell.z + offset_z)/2;
         j = 0;
 
-        if(x > 0 | x < j_array[depth].x_num){
-            if(y > 0 | y < j_array[depth].y_num){
-                if(z > 0 | z < j_array[depth].z_num){
+        if(x > 0 & x < j_array[depth].x_num){
+            if(y > 0 & y < j_array[depth].y_num){
+                if(z > 0 & z < j_array[depth].z_num){
                     
                     j = j_array[depth](y,x,z);
                     
@@ -2204,9 +2204,9 @@ pc_key find_neigh_cell(pc_key curr_cell,int dir,std::vector<Mesh_data<uint64_t>>
             
             if ( depth < j_array.size()){
                 
-                if(x > 0 | x < j_array[depth].x_num){
-                    if(y > 0 | y < j_array[depth].y_num){
-                        if(z > 0 | z < j_array[depth].z_num){
+                if(x > 0 & x < j_array[depth].x_num){
+                    if(y > 0 & y < j_array[depth].y_num){
+                        if(z > 0 & z < j_array[depth].z_num){
 
                             
                             j = j_array[depth](y,x,z);
