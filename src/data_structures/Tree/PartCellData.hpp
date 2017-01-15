@@ -1698,8 +1698,6 @@ private:
         
         //y variables
         
-        const uint64_t next_prev_mask = next_prev_mask_vec[face];
-        const uint64_t next_prev_shift= next_prev_shift_vec[face];
         const int8_t y_offset = y_offset_vec[face];
         
         
@@ -1854,24 +1852,6 @@ private:
                                 // Parent relation
                                 
                                 
-                                //debug
-                                int x_d = 11;
-                                int z_d = 2;
-                                int j_d = 1;
-                                int d_d = 4;
-                                int d_dir = 2;
-                                
-                                int y_d = 4;
-                                
-                                
-                                
-                                if((x_d == x_) & (z_d == z_)& (j_d == j_) & (d_d == i) & (d_dir == face)){
-                                    //debug stop
-                                    int stop = 1;
-                                    
-                                }
-                                
-                                
                                 node_val = data[i][offset_pc_data][j_];
                                 
                                 if (node_val&1){
@@ -1967,7 +1947,7 @@ private:
                 
                 const unsigned int x_num_parent = x_num[i-1];
                 
-//#pragma omp parallel for default(shared) private(z_,x_,j_,node_val,y_parent,j_parent,y_coord) if(z_num_*x_num_ > 100)
+#pragma omp parallel for default(shared) private(z_,x_,j_,node_val,y_parent,j_parent,y_coord) if(z_num_*x_num_ > 100)
                 for(z_ = 0;z_ < (z_num_);z_++){
                     
                     for(x_ = 0;x_ < (x_num_);x_++){
@@ -1996,28 +1976,11 @@ private:
                         
                         for(j_ = 0;j_ < j_num;j_++){
                             
-                            
-                            //debug
-                            int x_d = 11;
-                            int z_d = 2;
-                            int j_d = 0;
-                            int d_d = 3;
-                            int d_dir = 0;
-                            
-                            int y_d = 4;
-                            
-                            
-                            
-                            
                             // Parent relation
                             
                             node_val = data[i][offset_pc_data][j_];
                             
-                            if((x_d == x_) & (z_d == z_)& (j_d == j_) & (d_d == i) & (d_dir == face)){
-                                //debug stop
-                                int stop = 1;
-                                
-                            }
+                           
                             
                             if (node_val&1){
                                 //get the index gap node
@@ -2060,35 +2023,12 @@ private:
                                         data[i][offset_pc_data][j_] |= (  LEVEL_DOWN  << depth_shift_0);
                                         //symmetric (only add it once)
                                         if((y_coord == ((y_parent-y_offset)*2 + (y_offset > 0))) & (x_ == x_parent*2) & (z_ == (z_parent*2) )){
-                                           
-                                            int offset_pc_data_parent_d = 13;
-                                            
-                                            if((offset_pc_data_parent == offset_pc_data_parent_d) & (j_d == (j_parent-y_offset)) & (d_d == (i-1))){
-                                                //debug stop
-                                                int stop = 1;
-                                                
-                                            }
-                                            
-                                            node_key parent_n;
-                                            parent_n.update_node(data[i-1][offset_pc_data_parent][j_parent-y_offset]);
-                                            
                                             
                                            data[i-1][offset_pc_data_parent][j_parent-y_offset] |= ( (j_-y_offset) << index_shift_1);
                                             
                                            data[i-1][offset_pc_data_parent][j_parent-y_offset] &= -((depth_mask_1)+1);
                                            data[i-1][offset_pc_data_parent][j_parent-y_offset] |= ( LEVEL_UP  << depth_shift_1);
-                                            
                                         
-                                            parent_n.update_node(data[i-1][offset_pc_data_parent][j_parent-y_offset]);
-                                            
-                                            if((offset_pc_data_parent == offset_pc_data_parent_d) & (j_d == (j_parent-y_offset)) & (d_d == (i-1))){
-                                                //debug stop
-                                                int stop = 1;
-                                                
-                                            }
-
-                                            
-                                            
                                         }
                                     } else {
                                         //end node
@@ -2138,15 +2078,6 @@ private:
                                             
                                         }
                                         
-                                        //debug code
-//                                        node_key curr_n;
-//                                        curr_n.update_node(data[i][offset_pc_data][j_]);
-//                                        node_key parent_n;
-//                                        parent_n.update_node(data[i-1][offset_pc_data_parent][j_parent-y_offset]);
-//                                        int j_parent_d = j_parent - y_offset;
-//                                        int j__d = j_ - y_offset;
-//                                        
-//                                        int stop = 1;
                                         
                                         
                                     } else {
@@ -2202,423 +2133,5 @@ private:
     
     
 };
-//    void set_neighbor_relationships(uint8_t face){
-//        //
-//        //  Neighbour function for different face.
-//        //
-//        //
-//        //
-//        
-//        
-//        //x/z variables
-//        const uint64_t x_start = x_start_vec[face];
-//        const uint64_t x_stop = x_stop_vec[face];
-//        const uint64_t z_start = z_start_vec[face];
-//        const uint64_t z_stop = z_stop_vec[face];
-//        const int8_t x_offset = x_offset_vec[face];
-//        const int8_t z_offset = z_offset_vec[face];
-//        const uint64_t index_shift_0 = index_shift_dir[face];
-//        const uint64_t depth_shift_0 = depth_shift_dir[face];
-//        const uint64_t index_shift_1 = index_shift_dir_sym[face];
-//        const uint64_t depth_shift_1 = depth_shift_dir_sym[face];
-//        
-//        const uint64_t depth_mask_0 = depth_mask_dir[face];
-//        const uint64_t depth_mask_1 = depth_mask_dir_sym[face];
-//        
-//        //y variables
-//        
-//        const uint64_t next_prev_mask = next_prev_mask_vec[face];
-//        const uint64_t next_prev_shift= next_prev_shift_vec[face];
-//        const int y_offset = y_offset_vec[face];
-//
-//        
-//        Part_timer timer;
-//        timer.verbose_flag = true;
-//        uint64_t z_;
-//        uint64_t x_;
-//        uint64_t j_;
-//        
-//        timer.start_timer("Get neighbours dir: " + std::to_string(face));
-//        
-//        int y_neigh;
-//        int y_parent;
-//        uint64_t j_parent;
-//        uint64_t j_neigh;
-//        
-//        uint64_t node_val;
-//        int y_coord;
-//        
-//        if (face > 1){
-//            
-//            for(uint64_t i = (depth_min);i <= depth_max;i++){
-//                
-//                const unsigned int x_num_ = x_num[i];
-//                const unsigned int z_num_ = z_num[i];
-//                
-//                const unsigned int x_num_parent = x_num[i-1];
-//                
-//                if (i == depth_min){
-//                    
-//#pragma omp parallel for default(shared) private(z_,x_,j_,node_val,y_parent,j_parent,j_neigh,y_neigh,y_coord) if(z_num_*x_num_ > 100)
-//                    for(z_ = z_start;z_ < (z_num_-z_stop);z_++){
-//                        
-//                        for(x_ = x_start;x_ < (x_num_-x_stop);x_++){
-//                            
-//                            const size_t z_neigh = (z_+z_offset);
-//                            const size_t x_neigh = (x_+x_offset);
-//                            
-//                            const size_t offset_pc_data = x_num_*z_ + x_;
-//                            const size_t offset_pc_data_neigh = x_num_*z_neigh + x_neigh;
-//                            
-//                            //initialization
-//                            y_coord = (data[i][offset_pc_data][0] & NEXT_COORD_MASK) >> NEXT_COORD_SHIFT;
-//                            y_neigh = (data[i][offset_pc_data_neigh][0] & NEXT_COORD_MASK) >> NEXT_COORD_SHIFT;
-//                            
-//                            j_neigh = 1;
-//                            
-//                            if (data[i][offset_pc_data_neigh].size() == 1){
-//                                //set to max so its not checked
-//                                y_neigh = 64000;
-//                            }
-//                            
-//                            
-//                            y_coord--;
-//                            
-//                            const size_t j_num = data[i][offset_pc_data].size();
-//                            const size_t j_num_neigh = data[i][offset_pc_data_neigh].size();
-//                            
-//                            for(j_ = 1;j_ < j_num;j_++){
-//                                
-//                                // Parent relation
-//                                
-//                                node_val = data[i][offset_pc_data][j_];
-//                                
-//                                if (node_val&1){
-//                                    //get the index gap node
-//                                    y_coord = (node_val & NEXT_COORD_MASK) >> NEXT_COORD_SHIFT;
-//                                    y_coord--;
-//                                    
-//                                } else {
-//                                    //normal node
-//                                    y_coord++;
-//                                    
-//                                    while ((y_neigh < y_coord) & (j_neigh < (j_num_neigh-1))){
-//                                        
-//                                        j_neigh++;
-//                                        node_val = data[i][offset_pc_data_neigh][j_neigh];
-//                                        
-//                                        if (node_val&1){
-//                                            //get the index gap node
-//                                            y_neigh = (node_val & NEXT_COORD_MASK) >> NEXT_COORD_SHIFT;
-//                                            j_neigh++;
-//                                            
-//                                        } else {
-//                                            //normal node
-//                                            y_neigh++;
-//                                        }
-//                                        
-//                                    }
-//                                    
-//                                    
-//                                    if(y_coord == y_neigh){
-//                                        data[i][offset_pc_data][j_] |= (j_neigh << index_shift_0);
-//                                        data[i][offset_pc_data][j_]&= -((depth_mask_0)+1);;
-//                                        data[i][offset_pc_data][j_] |= (LEVEL_SAME << depth_shift_0);
-//                                        
-//                                    } else {
-//                                        //std::cout << "BUG" << std::endl;
-//                                    }
-//                                }
-//                            }
-//                        }
-//                    }
-//                    
-//                    
-//                    
-//                } else {
-//#pragma omp parallel for default(shared) private(z_,x_,j_,node_val,y_parent,j_parent,j_neigh,y_neigh,y_coord) if(z_num_*x_num_ > 100)
-//                    for(z_ = z_start;z_ < (z_num_-z_stop);z_++){
-//                        
-//                        for(x_ = x_start;x_ < (x_num_-x_stop);x_++){
-//                            
-//                            const size_t z_parent = (z_+z_offset)/2;
-//                            const size_t x_parent = (x_+x_offset)/2;
-//                            
-//                            const size_t z_neigh = (z_+z_offset);
-//                            const size_t x_neigh = (x_+x_offset);
-//                            
-//                            const size_t offset_pc_data = x_num_*z_ + x_;
-//                            const size_t offset_pc_data_parent = x_num_parent*z_parent + x_parent;
-//                            const size_t offset_pc_data_neigh = x_num_*z_neigh + x_neigh;
-//                            
-//                            
-//                            //initialization
-//                            y_coord = (data[i][offset_pc_data][0] & NEXT_COORD_MASK) >> NEXT_COORD_SHIFT ;
-//                            y_neigh = (data[i][offset_pc_data_neigh][0] & NEXT_COORD_MASK) >> NEXT_COORD_SHIFT;
-//                            y_parent = (data[i-1][offset_pc_data_parent][0] & NEXT_COORD_MASK) >> NEXT_COORD_SHIFT;
-//                            
-//                            j_parent = 1;
-//                            j_neigh = 1;
-//                            
-//                            if (data[i-1][offset_pc_data_parent].size() == 1){
-//                                //set to max so its not checked
-//                                y_parent = 64000;
-//                            }
-//                            
-//                            if (data[i][offset_pc_data_neigh].size() == 1){
-//                                //set to max so its not checked
-//                                y_neigh = 64000;
-//                            }
-//                            
-//                            
-//                            y_coord--;
-//                            
-//                            const size_t j_num = data[i][offset_pc_data].size();
-//                            const size_t j_num_parent = data[i-1][offset_pc_data_parent].size();
-//                            const size_t j_num_neigh = data[i][offset_pc_data_neigh].size();
-//                            
-//                            for(j_ = 1;j_ < j_num;j_++){
-//                                
-//                                // Parent relation
-//                                
-//                                node_val = data[i][offset_pc_data][j_];
-//                                
-//                                if (node_val&1){
-//                                    //get the index gap node
-//                                    y_coord = (node_val & NEXT_COORD_MASK) >> NEXT_COORD_SHIFT;
-//                                    y_coord--;
-//                                    
-//                                } else {
-//                                    //normal node
-//                                    y_coord++;
-//                                    
-//                                    while ((y_neigh < y_coord) & (j_neigh < (j_num_neigh-1))){
-//                                        
-//                                        j_neigh++;
-//                                        node_val = data[i][offset_pc_data_neigh][j_neigh];
-//                                        
-//                                        if (node_val&1){
-//                                            //get the index gap node
-//                                            y_neigh = (node_val & NEXT_COORD_MASK) >> NEXT_COORD_SHIFT;
-//                                            j_neigh++;
-//                                            
-//                                        } else {
-//                                            //normal node
-//                                            y_neigh++;
-//                                        }
-//                                        
-//                                    }
-//                                    
-//                                    while ((y_parent < y_coord/2) & (j_parent < (j_num_parent-1))){
-//                                        
-//                                        j_parent++;
-//                                        node_val = data[i-1][offset_pc_data_parent][j_parent];
-//                                        
-//                                        if (node_val&1){
-//                                            //get the index gap node
-//                                            y_parent = (node_val & NEXT_COORD_MASK) >> NEXT_COORD_SHIFT;
-//                                            j_parent++;
-//                                            
-//                                        } else {
-//                                            //normal node
-//                                            y_parent++;
-//                                            
-//                                        }
-//                                    }
-//                                    
-//                                    
-//                                    if(y_coord == y_neigh){
-//                                        data[i][offset_pc_data][j_] |= (j_neigh << index_shift_0);
-//                                        data[i][offset_pc_data][j_] &= -((depth_mask_0)+1);
-//                                        data[i][offset_pc_data][j_] |= (LEVEL_SAME << depth_shift_0);
-//                                    } else if (y_coord/2 == y_parent){
-//                                        data[i][offset_pc_data][j_] |= (j_parent << index_shift_0);
-//                                        data[i][offset_pc_data][j_] &= -((depth_mask_0)+1);
-//                                        data[i][offset_pc_data][j_] |= (LEVEL_DOWN << depth_shift_0);
-//                                        //symmetric
-//                                        if((y_coord == y_parent*2) & (x_ == ((x_parent-x_offset)*2 + (x_offset > 0))) & (z_ == ((z_parent-z_offset)*2 + (z_offset > 0)))){
-//                                            //only add parent once
-//                                            //need to choose the correct one... formulae
-//                                            
-//                                            data[i-1][offset_pc_data_parent][j_parent] |= (j_ << index_shift_1);
-//                                            data[i-1][offset_pc_data_parent][j_parent] &= -((depth_mask_1)+1);
-//                                            data[i-1][offset_pc_data_parent][j_parent] |= (LEVEL_UP << depth_shift_1);
-//                                        }
-//                                    } else {
-//                                        //std::cout << "BUG" << std::endl;
-//                                    }
-//                                }
-//                            }
-//                        }
-//                    }
-//                }
-//            }
-//            
-//            timer.stop_timer();
-//            
-//        } else {
-//            
-//            /////////////////////////////////////////////////////////////
-//            //
-//            //
-//            // Y direction (+-) neigh loops (In memory direction)
-//            //
-//            //
-//            /////////////////////////////////////////////////////////////
-//            
-//            
-//            timer.start_timer("Get neighbours dir: " + std::to_string(face));
-//            
-//            for(uint64_t i = (depth_min+1);i <= depth_max;i++){
-//                
-//                const unsigned int x_num_ = x_num[i];
-//                const unsigned int z_num_ = z_num[i];
-//                
-//                const unsigned int x_num_parent = x_num[i-1];
-//                
-////#pragma omp parallel for default(shared) private(z_,x_,j_,node_val,y_parent,j_parent,y_coord) if(z_num_*x_num_ > 100)
-//                for(z_ = 0;z_ < (z_num_);z_++){
-//                    
-//                    for(x_ = 0;x_ < (x_num_);x_++){
-//                        
-//                        const size_t z_parent = (z_)/2;
-//                        const size_t x_parent = (x_)/2;
-//                        
-//                        const size_t offset_pc_data = x_num_*z_ + x_;
-//                        const size_t offset_pc_data_parent = x_num_parent*z_parent + x_parent;
-//                        
-//                        //initialization
-//                        y_coord = (data[i][offset_pc_data][0] & NEXT_COORD_MASK) >> NEXT_COORD_SHIFT;
-//                        y_parent = (data[i-1][offset_pc_data_parent][0] & NEXT_COORD_MASK) >> NEXT_COORD_SHIFT;
-//                        
-//                        j_parent = 1;
-//                        
-//                        if (data[i-1][offset_pc_data_parent].size() == 1){
-//                            //set to max so its not checked
-//                            y_parent = 64000;
-//                        }
-//                        
-//                        y_coord--;
-//                        
-//                        const size_t j_num = data[i][offset_pc_data].size();
-//                        const size_t j_num_parent = data[i-1][offset_pc_data_parent].size();
-//                        
-//                        for(j_ = 1;j_ < j_num;j_++){
-//                            
-//                            // Parent relation
-//                            
-//                            node_val = data[i][offset_pc_data][j_];
-//                            
-//                            if (node_val&1){
-//                                //get the index gap node
-//                                
-//                                
-//                                if(face == 1){
-//                                    
-//                                    y_coord = (node_val & NEXT_COORD_MASK) >> NEXT_COORD_SHIFT;
-//                                    
-//                                    if(((node_val & next_prev_mask) >> next_prev_shift) > 0){
-//                                        y_coord = (node_val & next_prev_mask) >> next_prev_shift;
-//                                    } else {
-//                                        y_coord = -1;
-//                                    }
-//                                }
-//                                
-//                                if(((node_val & next_prev_mask) >> next_prev_shift) > 0){
-//                                        y_coord = (node_val & next_prev_mask) >> next_prev_shift;
-//                                } else {
-//                                        y_coord = -1;
-//                                }
-//                                
-//                                
-//                                
-//                                //iterate parent
-//                                while ((y_parent < (y_coord+y_offset)/2) & (j_parent < (j_num_parent-1))){
-//                                    
-//                                    j_parent++;
-//                                    node_val = data[i-1][offset_pc_data_parent][j_parent];
-//                                    
-//                                    if (node_val&1){
-//                                        //get the index gap node
-//                                        if(((node_val & NEXT_COORD_MASK) >> NEXT_COORD_SHIFT) > 0){
-//                                            y_parent = (node_val & NEXT_COORD_MASK) >> NEXT_COORD_SHIFT;
-//                                        } else {
-//                                            y_parent = -2;
-//                                        }
-//                                        j_parent++;
-//                                        
-//                                    } else {
-//                                        //normal node
-//                                        y_parent++;
-//                                        
-//                                    }
-//                                }
-//                                
-//                                
-//                               
-//                                
-//                                if((y_coord+y_offset)/2 == y_parent){
-//                                    data[i][offset_pc_data][j_] |= (j_parent << index_shift_0);
-//                                    data[i][offset_pc_data][j_] &= -((depth_mask_0)+1);
-//                                    data[i][offset_pc_data][j_] |= (  LEVEL_DOWN  << depth_shift_0);
-//                                    //symmetric (only add it once)
-//                                    if((y_coord == ((y_parent-y_offset)*2 + (y_offset > 0))) & (x_ == x_parent*2) & (z_ == (z_parent*2) )){
-//                                        data[i-1][offset_pc_data_parent][j_parent] |= ( (j_-y_offset) << index_shift_1);
-//                                        
-//                                        data[i-1][offset_pc_data_parent][j_parent] &= -((depth_mask_1)+1);
-//                                        data[i-1][offset_pc_data_parent][j_parent] |= ( LEVEL_UP  << depth_shift_1);
-//                                    }
-//                                } else {
-//                                    //end node
-//                                }
-//                                
-//                                if(face == 0){
-//                                    y_coord = (node_val & NEXT_COORD_MASK) >> NEXT_COORD_SHIFT;
-//                                    y_coord--;
-//                                } else {
-//                                    y_coord--;
-//                                }
-//                                
-//                            } else {
-//                                //normal node
-//                                y_coord++;
-//                                
-//                                //iterate parent
-//                                while ((y_parent < (y_coord+y_offset)/2) & (j_parent < (j_num_parent-1))){
-//                                    
-//                                    j_parent++;
-//                                    node_val = data[i-1][offset_pc_data_parent][j_parent];
-//                                    
-//                                    if (node_val&1){
-//                                        //get the index gap node
-//                                        if(((node_val & NEXT_COORD_MASK) >> NEXT_COORD_SHIFT) > 0){
-//                                            y_parent = (node_val & NEXT_COORD_MASK) >> NEXT_COORD_SHIFT;
-//                                        } else {
-//                                            y_parent = -2;
-//                                        }
-//                                        j_parent++;
-//                                        
-//                                    } else {
-//                                        //normal node
-//                                        y_parent++;
-//                                        
-//                                    }
-//                                }
-//                                
-//                            }
-//                        }
-//                        
-//                    }
-//                }
-//            }
-//            
-//            timer.stop_timer();
-//            
-//        }
-//        
-//    }
-//
-//    
-//};
 
 #endif //PARTPLAY_PARTCELLDATA_HPP

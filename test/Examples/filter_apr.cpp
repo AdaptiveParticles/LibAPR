@@ -145,7 +145,7 @@ int main(int argc, char **argv) {
    // debug_write(int_array[6],"int_array_6");
     
     
-   // get_neigh_check(pc_struct,link_array,int_array);
+    get_neigh_check(pc_struct,link_array,int_array);
     
     utest_neigh_cells(pc_struct);
     

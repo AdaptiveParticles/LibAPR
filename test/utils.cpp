@@ -2453,3 +2453,356 @@ bool find_part_cell_test(PartCellStructure<float,uint64_t>& pc_struct){
     
     return pass_test;
 }
+template<typename S>
+bool utest_alt_part_struct(PartCellStructure<S,uint64_t>& pc_struct){
+    //
+    //  Calculate Neighbours Using Iterators
+    //
+    //
+    
+    bool success = true;
+    
+    std::vector<Mesh_data<float>> int_array;
+    
+    create_intensity_reference_structure(pc_struct,int_array);
+    
+    ParticleDataNew<float, uint64_t> part_new;
+    
+    part_new.initialize_from_structure(pc_struct);
+    
+    Part_timer timer;
+    
+    int x_; // iteration variables
+    int z_; // iteration variables
+    uint64_t j_; // index variable
+    
+    //
+    // Extra variables required
+    //
+    
+    std::vector<int> labels;
+    labels.resize(1,0);
+    
+    std::vector<int> neigh_labels;
+    neigh_labels.reserve(10);
+    
+    PartCellNeigh<uint64_t> neigh_part_keys; // data structure for holding particle or cell neighbours
+    PartCellNeigh<uint64_t> neigh_cell_keys;
+    
+    float neigh;
+    
+    timer.verbose_flag = true;
+    
+    timer.start_timer("iterate parts");
+    
+    for(int direction = 0; direction < 6;direction++){
+        
+        
+        for(uint64_t depth = (part_new.access_data.depth_min);depth <= part_new.access_data.depth_max;depth++){
+            //loop over the resolutions of the structure
+            const unsigned int x_num_ = part_new.access_data.x_num[depth];
+            const unsigned int z_num_ = part_new.access_data.z_num[depth];
+            
+            CurrentLevel<float,uint64_t> curr_level;
+            curr_level.set_new_depth(depth,part_new);
+            
+            NeighOffset<float,uint64_t> neigh_y(direction);
+            
+            neigh_y.set_new_depth(curr_level,part_new);
+            
+            //#pragma omp parallel for default(shared) private(p,z_,x_,j_,neigh) firstprivate(curr_level,neigh_x,neigh_z,neigh_y) if(z_num_*x_num_ > 100)
+            for(z_ = 0;z_ < z_num_;z_++){
+                //both z and x are explicitly accessed in the structure
+                
+                for(x_ = 0;x_ < x_num_;x_++){
+                    
+                    curr_level.set_new_xz(x_,z_,part_new);
+                    neigh_y.set_new_row(curr_level,part_new);
+                    
+                    for(j_ = 0;j_ < curr_level.j_num;j_++){
+                        
+                        bool iscell = curr_level.new_j(j_,part_new);
+                        
+                        if (iscell){
+                            //Indicates this is a particle cell node
+                            curr_level.update_cell(part_new);
+                            
+                            neigh_y.iterate(curr_level,part_new);
+                            
+                            pc_key neigh_new_key = neigh_y.get_key();
+                            
+                            pc_key curr_level_key = curr_level.get_key();
+                            
+                            neigh = neigh_y.get_part(part_new.particle_data);
+                            
+                            if(neigh > 0){
+                                bool error = compare_neigh(curr_level_key,neigh_new_key,direction);
+                                if(!error){
+                                    success = false;
+                                }
+                            }
+                            
+                            
+                            
+                            float int_comp = neigh_y.get_int(int_array);
+                            
+                            
+                            
+                            if(int_comp != neigh){
+                                std::cout << "Neighbour Intensity Error" << std::endl;
+                                success = false;
+                            }
+                            
+                            
+                            
+                        } else {
+                            
+                            curr_level.update_gap();
+                            
+                        }
+                        
+                        
+                    }
+                }
+            }
+        }
+        
+    }
+    
+    timer.stop_timer();
+    
+    float time = (timer.t2 - timer.t1);
+    
+    std::cout << " Neigh Regime New took: " << time << std::endl;
+    
+    return success;
+    
+}
+template<typename S>
+bool utest_neigh_cells(PartCellStructure<S,uint64_t>& pc_struct){   //  Calculate connected component from a binary mask
+    //
+    //  Should be written with the neighbour iterators instead.
+    //
+    
+    std::vector<Mesh_data<uint64_t>> j_array;
+    
+    create_j_reference_structure(pc_struct,j_array);
+    
+    bool success = true;
+    
+    Part_timer timer;
+    
+    //initialize variables required
+    uint64_t node_val_pc; // node variable encoding neighbour and cell information
+    uint64_t node_val_part; // node variable encoding part offset status information
+    int x_; // iteration variables
+    int z_; // iteration variables
+    uint64_t j_; // index variable
+    uint64_t curr_key = 0; // key used for accessing and particles and cells
+    PartCellNeigh<uint64_t> neigh_part_keys; // data structure for holding particle or cell neighbours
+    PartCellNeigh<uint64_t> neigh_cell_keys;
+    //
+    // Extra variables required
+    //
+    
+    uint64_t status=0;
+    
+    
+    float neigh;
+    
+    timer.verbose_flag = false;
+    
+    const int8_t dir_y[6] = { 1, -1, 0, 0, 0, 0};
+    const int8_t dir_x[6] = { 0, 0, 1, -1, 0, 0};
+    const int8_t dir_z[6] = { 0, 0, 0, 0, 1, -1};
+    
+    
+    timer.start_timer("iterate parts old");
+    
+    for(int direction = 0;direction < 6;direction++){
+        
+        int counter = 0;
+        int counter_same = 0;
+        int counter_child = 0;
+        int counter_parent = 0;
+        
+        for(uint64_t i = pc_struct.pc_data.depth_min;i <= pc_struct.pc_data.depth_max;i++){
+            //loop over the resolutions of the structure
+            const unsigned int x_num_ = pc_struct.pc_data.x_num[i];
+            const unsigned int z_num_ = pc_struct.pc_data.z_num[i];
+            
+            for(z_ = 0;z_ < z_num_;z_++){
+                //both z and x are explicitly accessed in the structure
+                curr_key = 0;
+                
+                pc_struct.pc_data.pc_key_set_z(curr_key,z_);
+                pc_struct.pc_data.pc_key_set_depth(curr_key,i);
+                
+                
+                for(x_ = 0;x_ < x_num_;x_++){
+                    
+                    pc_struct.pc_data.pc_key_set_x(curr_key,x_);
+                    
+                    const size_t offset_pc_data = x_num_*z_ + x_;
+                    
+                    const size_t j_num = pc_struct.pc_data.data[i][offset_pc_data].size();
+                    
+                    
+                    int y_coord = 0;
+                    
+                    pc_key curr_cell;
+                    
+                    //the y direction loop however is sparse, and must be accessed accordinagly
+                    for(j_ = 0;j_ < j_num;j_++){
+                        
+                        
+                        
+                        //particle cell node value, used here as it is requried for getting the particle neighbours
+                        node_val_pc = pc_struct.pc_data.data[i][offset_pc_data][j_];
+                        
+                        if (!(node_val_pc&1)){
+                            //Indicates this is a particle cell node
+                            y_coord++;
+                            
+                            pc_struct.part_data.access_data.pc_key_set_j(curr_key,j_);
+                            
+                            status = pc_struct.part_data.access_node_get_status(node_val_part);
+                            
+                            
+                            
+                            curr_cell.update_cell(curr_key);
+                            
+                            curr_cell.y = y_coord;
+                            
+                            pc_struct.part_data.access_data.pc_key_set_status(curr_key,status);
+                            
+                            pc_key neigh_miss = find_neigh_cell(curr_cell,direction,j_array);
+                            
+                            
+                            
+                            
+                            
+                            
+                            
+                            pc_struct.pc_data.get_neighs_face(curr_key,node_val_pc,direction,neigh_cell_keys);
+                            
+                            
+                            //loop over the nieghbours
+                            for(int n = 0; n < neigh_cell_keys.neigh_face[direction].size();n++){
+                                // Check if the neighbour exisits (if neigh_cell_value = 0, the neighbour doesn't exist)
+                                uint64_t neigh_key = neigh_cell_keys.neigh_face[direction][n];
+                                
+                                if(neigh_key > 0){
+                                    //get information about the nieghbour (need to provide face and neighbour number (n) and the current y coordinate)
+                                    //pc_struct.pc_data.get_neigh_coordinates_cell(neigh_cell_keys,direction,n,y_coord,y_neigh,x_neigh,z_neigh,depth_neigh);
+                                    pc_key neigh_cell = pc_struct.pc_data.get_neigh_coordinates_cell(neigh_cell_keys,direction,n,y_coord);
+                                    //Get the neighbour status, we need to access the cell
+                                    
+                                    //then we can get the status from this
+                                    
+                                    bool error = compare_neigh_cells(curr_cell,neigh_cell,direction);
+                                    
+                                    if(!error){
+                                        success = false;
+                                    }
+                                }
+                                
+                                
+                            }
+                            
+                            if(neigh_cell_keys.neigh_face[direction].size() == 0){
+                                
+                                bool out_bounds = false;
+                                
+                                int x_numc = pc_struct.x_num[i];
+                                int y_numc = pc_struct.y_num[i];
+                                int z_numc = pc_struct.z_num[i];
+                                
+                                int neigh_x = x_ + dir_x[direction];
+                                int neigh_y = y_coord + dir_y[direction];
+                                int neigh_z = z_ + dir_z[direction];
+                                
+                                if(neigh_x < 0 | neigh_x >= pc_struct.x_num[i]){
+                                    out_bounds = true;
+                                }
+                                
+                                if(neigh_y < 0 | neigh_y >= pc_struct.y_num[i]){
+                                    out_bounds = true;
+                                }
+                                
+                                if(neigh_z < 0 | neigh_z >= pc_struct.z_num[i]){
+                                    out_bounds = true;
+                                }
+                                
+                                if(!out_bounds){
+                                    
+                                    pc_key neigh_miss = find_neigh_cell(curr_cell,direction,j_array);
+                                    
+                                    int neigh_type = 0;
+                                    
+                                    if(neigh_miss.depth == i){
+                                        //same level
+                                        counter_same++;
+                                        neigh_type = 1;
+                                        
+                                    } else if(neigh_miss.depth == (i - 1)){
+                                        neigh_type = 2;
+                                        counter_parent++;
+                                        
+                                    } else if(neigh_miss.depth == (i + 1)){
+                                        neigh_type = 3;
+                                        counter_child++;
+                                        
+                                    }
+                                    
+                                    node_key debug_node;
+                                    
+                                    if(direction == 0){
+                                        uint64_t node_val = pc_struct.pc_data.data[i][offset_pc_data][j_ + 1];
+                                        
+                                        
+                                        debug_node.update_node(node_val);
+                                        
+                                    } else if (direction == 1){
+                                        uint64_t node_val = pc_struct.pc_data.data[i][offset_pc_data][j_ - 1];
+                                        
+                                        debug_node.update_node(node_val);
+                                        
+                                        
+                                    } else {
+                                        debug_node.update_node(node_val_pc);
+                                    }
+                                    
+                                    
+                                    
+                                    if(neigh_type > 0){
+                                        counter++;
+                                        success = false;
+                                    }
+                                }
+                                
+                            }
+                            
+                            
+                            
+                        } else {
+                            // Inidicates this is not a particle cell node, and is a gap node
+                            y_coord = (node_val_pc & NEXT_COORD_MASK) >> NEXT_COORD_SHIFT;
+                            y_coord--; //set the y_coordinate to the value before the next coming up in the structure
+                            
+                        }
+                        
+                    }
+                    
+                }
+                
+            }
+        }
+        //std::cout << direction << " " << counter << " s " << counter_same << " c " << counter_child << " p " << counter_parent << std::endl;
+    }
+    
+    timer.stop_timer();
+    
+    
+    
+}
