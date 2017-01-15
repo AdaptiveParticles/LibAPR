@@ -15,10 +15,12 @@
 #include "../../src/io/write_parts.h"
 #include "../../src/io/partcell_io.h"
 
+#include "../../test/utils.h"
+
 #include "../../src/numerics/misc_numerics.hpp"
 #include "../../src/numerics/filter_numerics.hpp"
 
-#include "../../test/utils.h"
+
 
 bool command_option_exists(char **begin, char **end, const std::string &option)
 {
@@ -115,19 +117,19 @@ int main(int argc, char **argv) {
    // convolution_filter_pixels_temp(pc_struct,dim,dim,dim);
    // convolution_filter_pixels_temp(pc_struct,dim,dim,dim);
     
-    ParticleDataNew<float, uint64_t> part_new;
+   // ParticleDataNew<float, uint64_t> part_new;
     
-    part_new.initialize_from_structure(pc_struct);
+  //  part_new.initialize_from_structure(pc_struct);
     
     std::vector<Mesh_data<uint64_t>> link_array;
     
-    create_reference_structure(pc_struct,link_array);
+   create_reference_structure(pc_struct,link_array);
     
     std::vector<Mesh_data<float>> int_array;
     
     create_intensity_reference_structure(pc_struct,int_array);
     
-    part_new.utest_structure(pc_struct,link_array);
+    //part_new.utest_structure(pc_struct,link_array);
     
     //compute_gradient(pc_struct,filter_output);
     
@@ -135,7 +137,7 @@ int main(int argc, char **argv) {
     
     Mesh_data<uint16_t> filter_img;
     
-    pc_struct.interp_parts_to_pc(filter_img,filter_output);
+   // pc_struct.interp_parts_to_pc(filter_img,filter_output);
     
   //  debug_write(int_array[4],"int_array_4");
    // debug_write(int_array[3],"int_array_3");
@@ -143,20 +145,20 @@ int main(int argc, char **argv) {
    // debug_write(int_array[6],"int_array_6");
     
     
-    get_neigh_check(pc_struct,link_array,int_array);
+    //get_neigh_check(pc_struct,link_array,int_array);
     
     utest_neigh_cells(pc_struct);
     
-    utest_neigh_parts(pc_struct);
+    //utest_neigh_parts(pc_struct);
     
    // get_neigh_check2(pc_struct,link_array);
     
     Mesh_data<uint8_t> seg_img;
     
     
-    interp_depth_to_mesh(seg_img,pc_struct);
+    //interp_depth_to_mesh(seg_img,pc_struct);
     
-    debug_write(seg_img,"k_mask");
+    //debug_write(seg_img,"k_mask");
     
 }
 

@@ -62,4 +62,8 @@ void create_reference_structure(PartCellStructure<float,uint64_t>& pc_struct,std
 
 void create_intensity_reference_structure(PartCellStructure<float,uint64_t>& pc_struct,std::vector<Mesh_data<float>>& link_array);
 
+void create_j_reference_structure(PartCellStructure<float,uint64_t>& pc_struct,std::vector<Mesh_data<uint64_t>>& j_array);
+
+pc_key find_neigh_cell(pc_key curr_cell,int dir,std::vector<Mesh_data<uint64_t>>& j_array);
+
 #endif //PARTPLAY_UTILS_H

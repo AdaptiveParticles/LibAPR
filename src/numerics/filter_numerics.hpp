@@ -25,6 +25,8 @@
 #include "filter_help/CurrLevel.hpp"
 #include "filter_help/NeighOffset.hpp"
 
+#include "../../test/utils.h"
+
 template<typename T>
 void iterate_temp_vec(std::vector<T>& temp_vec,std::vector<T>& temp_vec_depth){
     //
@@ -838,10 +840,10 @@ void utest_neigh_cells(PartCellStructure<S,uint64_t>& pc_struct){   //  Calculat
     //  Should be written with the neighbour iterators instead.
     //
     
-    ParticleDataNew<float, uint64_t> part_new;
+    std::vector<Mesh_data<uint64_t>> j_array;
     
-    //part_new.initialize_from_structure(pc_struct.pc_data);
-    //part_new.transfer_intensities(pc_struct.part_data);
+    create_j_reference_structure(pc_struct,j_array);
+
     
     Part_timer timer;
     
@@ -859,10 +861,7 @@ void utest_neigh_cells(PartCellStructure<S,uint64_t>& pc_struct){   //  Calculat
     //
     
     uint64_t status=0;
-    uint64_t part_offset=0;
-    uint64_t p;
-    
-    
+
     
     float neigh;
     
@@ -876,6 +875,11 @@ void utest_neigh_cells(PartCellStructure<S,uint64_t>& pc_struct){   //  Calculat
     timer.start_timer("iterate parts old");
     
     for(int direction = 0;direction < 6;direction++){
+        
+        int counter = 0;
+        int counter_same = 0;
+        int counter_child = 0;
+        int counter_parent = 0;
         
         for(uint64_t i = pc_struct.pc_data.depth_min;i <= pc_struct.pc_data.depth_max;i++){
             //loop over the resolutions of the structure
@@ -901,6 +905,8 @@ void utest_neigh_cells(PartCellStructure<S,uint64_t>& pc_struct){   //  Calculat
                     
                     int y_coord = 0;
                     
+                    pc_key curr_cell;
+                    
                     //the y direction loop however is sparse, and must be accessed accordinagly
                     for(j_ = 0;j_ < j_num;j_++){
                         
@@ -916,7 +922,7 @@ void utest_neigh_cells(PartCellStructure<S,uint64_t>& pc_struct){   //  Calculat
                             status = pc_struct.part_data.access_node_get_status(node_val_part);
                             
                             
-                            pc_key curr_cell;
+                            
                             curr_cell.update_cell(curr_key);
                             
                             curr_cell.y = y_coord;
@@ -970,8 +976,17 @@ void utest_neigh_cells(PartCellStructure<S,uint64_t>& pc_struct){   //  Calculat
                                 }
                                 
                                 if(!out_bounds){
+                                    
+                                    pc_key neigh_miss = find_neigh_cell(curr_cell,direction,j_array);
+                                    
+                                    if(neigh_miss.depth == i){
+                                        //same level
+                                        counter_same++;
+                                    }
+                                    
+                                    
                                     int stop = 1;
-                                    std::cout << direction << std::endl;
+                                    counter++;
                                 }
                                 
                             }
@@ -991,7 +1006,7 @@ void utest_neigh_cells(PartCellStructure<S,uint64_t>& pc_struct){   //  Calculat
                 
             }
         }
-        
+        std::cout << direction << " " << counter << " s " << counter_same << " c " << counter_child << " p " << counter_parent << std::endl;
     }
     
     timer.stop_timer();
@@ -1009,6 +1024,9 @@ void utest_neigh_parts(PartCellStructure<S,uint64_t>& pc_struct){   //  Calculat
     
     //part_new.initialize_from_structure(pc_struct.pc_data);
     //part_new.transfer_intensities(pc_struct.part_data);
+    
+    
+    
     
     Part_timer timer;
     
