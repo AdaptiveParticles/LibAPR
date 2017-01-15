@@ -1423,12 +1423,13 @@ public:
         // Calls the functions to access the underlying datastructure
         //
         
+        set_neighbor_relationships(0);
+        set_neighbor_relationships(1);
         set_neighbor_relationships(2);
         set_neighbor_relationships(3);
         set_neighbor_relationships(4);
         set_neighbor_relationships(5);
-        set_neighbor_relationships(0);
-        set_neighbor_relationships(1);
+        
     }
 
 
@@ -1852,6 +1853,25 @@ private:
                                 
                                 // Parent relation
                                 
+                                
+                                //debug
+                                int x_d = 11;
+                                int z_d = 2;
+                                int j_d = 1;
+                                int d_d = 4;
+                                int d_dir = 2;
+                                
+                                int y_d = 4;
+                                
+                                
+                                
+                                if((x_d == x_) & (z_d == z_)& (j_d == j_) & (d_d == i) & (d_dir == face)){
+                                    //debug stop
+                                    int stop = 1;
+                                    
+                                }
+                                
+                                
                                 node_val = data[i][offset_pc_data][j_];
                                 
                                 if (node_val&1){
@@ -1980,8 +2000,8 @@ private:
                             //debug
                             int x_d = 11;
                             int z_d = 2;
-                            int j_d = 9;
-                            int d_d = 4;
+                            int j_d = 0;
+                            int d_d = 3;
                             int d_dir = 0;
                             
                             int y_d = 4;
@@ -2034,24 +2054,39 @@ private:
                                         }
                                     }
                                     
-                                    if((y_coord+y_offset)/2 == y_parent){
+                                    if(((y_coord+y_offset)/2 == y_parent) & (y_coord >= 0)){
                                         data[i][offset_pc_data][j_] |= (j_parent << index_shift_0);
                                         data[i][offset_pc_data][j_] &= -((depth_mask_0)+1);
                                         data[i][offset_pc_data][j_] |= (  LEVEL_DOWN  << depth_shift_0);
                                         //symmetric (only add it once)
                                         if((y_coord == ((y_parent-y_offset)*2 + (y_offset > 0))) & (x_ == x_parent*2) & (z_ == (z_parent*2) )){
+                                           
+                                            int offset_pc_data_parent_d = 13;
+                                            
+                                            if((offset_pc_data_parent == offset_pc_data_parent_d) & (j_d == (j_parent-y_offset)) & (d_d == (i-1))){
+                                                //debug stop
+                                                int stop = 1;
+                                                
+                                            }
+                                            
+                                            node_key parent_n;
+                                            parent_n.update_node(data[i-1][offset_pc_data_parent][j_parent-y_offset]);
+                                            
+                                            
                                            data[i-1][offset_pc_data_parent][j_parent-y_offset] |= ( (j_-y_offset) << index_shift_1);
                                             
                                            data[i-1][offset_pc_data_parent][j_parent-y_offset] &= -((depth_mask_1)+1);
                                            data[i-1][offset_pc_data_parent][j_parent-y_offset] |= ( LEVEL_UP  << depth_shift_1);
                                             
-                                            int offset_pc_data_parent_d = 37;
+                                        
+                                            parent_n.update_node(data[i-1][offset_pc_data_parent][j_parent-y_offset]);
                                             
-                                            if (((i-1) == d_d) & (offset_pc_data_parent_d == offset_pc_data_parent) & (j_d == (j_parent-y_offset))){
-                                                node_key parent_n;
-                                                parent_n.update_node(data[i-1][offset_pc_data_parent][j_parent-y_offset]);
+                                            if((offset_pc_data_parent == offset_pc_data_parent_d) & (j_d == (j_parent-y_offset)) & (d_d == (i-1))){
+                                                //debug stop
                                                 int stop = 1;
+                                                
                                             }
+
                                             
                                             
                                         }
@@ -2104,14 +2139,14 @@ private:
                                         }
                                         
                                         //debug code
-                                        node_key curr_n;
-                                        curr_n.update_node(data[i][offset_pc_data][j_]);
-                                        node_key parent_n;
-                                        parent_n.update_node(data[i-1][offset_pc_data_parent][j_parent-y_offset]);
-                                        int j_parent_d = j_parent - y_offset;
-                                        int j__d = j_ - y_offset;
-                                        
-                                        int stop = 1;
+//                                        node_key curr_n;
+//                                        curr_n.update_node(data[i][offset_pc_data][j_]);
+//                                        node_key parent_n;
+//                                        parent_n.update_node(data[i-1][offset_pc_data_parent][j_parent-y_offset]);
+//                                        int j_parent_d = j_parent - y_offset;
+//                                        int j__d = j_ - y_offset;
+//                                        
+//                                        int stop = 1;
                                         
                                         
                                     } else {
