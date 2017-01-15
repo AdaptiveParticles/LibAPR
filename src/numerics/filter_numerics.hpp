@@ -982,7 +982,18 @@ void utest_neigh_cells(PartCellStructure<S,uint64_t>& pc_struct){   //  Calculat
                                     if(neigh_miss.depth == i){
                                         //same level
                                         counter_same++;
+                                    } else if(neigh_miss.depth == (i - 1)){
+                                        
+                                        counter_parent++;
+                                        
+                                    } else if(neigh_miss.depth == (i + 1)){
+                                        
+                                        counter_child++;
+                                        
                                     }
+                                    
+                                    node_key debug_node;
+                                    debug_node.update_node(node_val_pc);
                                     
                                     
                                     int stop = 1;

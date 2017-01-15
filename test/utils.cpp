@@ -2145,28 +2145,88 @@ pc_key find_neigh_cell(pc_key curr_cell,int dir,std::vector<Mesh_data<uint64_t>>
     int y = curr_cell.y + offset_y;
     int z = curr_cell.z + offset_z;
     
-    uint64_t j_same = 0;
+    uint64_t j= 0;
     
-    if(x < 0 | x >= j_array[depth].x_num){
-        if(y < 0 | y >= j_array[depth].y_num){
-            if(z < 0 | z >= j_array[depth].z_num){
+    if(x > 0 | x < j_array[depth].x_num){
+        if(y > 0 | y < j_array[depth].y_num){
+            if(z > 0 | z < j_array[depth].z_num){
+
                 
-                j_same = j_array[depth](y,x,z);
+                j = j_array[depth](y,x,z);
                 
             }
         }
     }
     
-    if(j_same != 0){
+    if(j != 0){
         //neighbour is on same level
         neigh_key.y = y;
         neigh_key.x = x;
         neigh_key.z = z;
-        neigh_key.j = (int)j_same;
+        neigh_key.j = (int)j;
         neigh_key.depth = depth;
     
     } else {
         
+        //parent check
+        depth = curr_cell.depth - 1;
+        x = (curr_cell.x + offset_x)/2;
+        y = (curr_cell.y + offset_y)/2;
+        z = (curr_cell.z + offset_z)/2;
+        j = 0;
+
+        if(x > 0 | x < j_array[depth].x_num){
+            if(y > 0 | y < j_array[depth].y_num){
+                if(z > 0 | z < j_array[depth].z_num){
+                    
+                    j = j_array[depth](y,x,z);
+                    
+                }
+            }
+        }
+        
+        if(j != 0){
+            //neighbour is on same level
+            neigh_key.y = y;
+            neigh_key.x = x;
+            neigh_key.z = z;
+            neigh_key.j = (int)j;
+            neigh_key.depth = depth;
+            
+        } else {
+            
+            //child check
+            depth = curr_cell.depth + 1;
+            x = 2*(curr_cell.x + offset_x) + (offset_x < 0);
+            y = 2*(curr_cell.y + offset_y) + (offset_y < 0);
+            z = 2*(curr_cell.z + offset_z) + (offset_z < 0);
+            j = 0;
+            
+            if ( depth < j_array.size()){
+                
+                if(x > 0 | x < j_array[depth].x_num){
+                    if(y > 0 | y < j_array[depth].y_num){
+                        if(z > 0 | z < j_array[depth].z_num){
+
+                            
+                            j = j_array[depth](y,x,z);
+                            
+                        }
+                    }
+                }
+            }
+            
+            if(j != 0){
+                //neighbour is on same level
+                neigh_key.y = y;
+                neigh_key.x = x;
+                neigh_key.z = z;
+                neigh_key.j = (int)j;
+                neigh_key.depth = depth;
+            }
+            
+            
+        }
         
     }
     
