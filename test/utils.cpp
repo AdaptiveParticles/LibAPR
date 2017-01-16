@@ -3135,6 +3135,9 @@ bool utest_neigh_cells(PartCellStructure<float,uint64_t>& pc_struct){   //  Calc
                                         
                                         debug_node.update_node(node_val);
                                         
+                                        std::cout << j_ + 1 << " " << j_num << " " << neigh_type << std::endl;
+                                        std::cout << x_ << " " << y_coord << " " << z_ << " " << i << std::endl;
+                                        
                                     } else if (direction == 1){
                                         uint64_t node_val = pc_struct.pc_data.data[i][offset_pc_data][j_ - 1];
                                         
@@ -3170,7 +3173,7 @@ bool utest_neigh_cells(PartCellStructure<float,uint64_t>& pc_struct){   //  Calc
                 
             }
         }
-        //std::cout << direction << " " << counter << " s " << counter_same << " c " << counter_child << " p " << counter_parent << std::endl;
+        std::cout << direction << " " << counter << " s " << counter_same << " c " << counter_child << " p " << counter_parent << std::endl;
     }
     
     

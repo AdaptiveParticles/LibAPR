@@ -1947,7 +1947,7 @@ private:
                 
                 const unsigned int x_num_parent = x_num[i-1];
                 
-#pragma omp parallel for default(shared) private(z_,x_,j_,node_val,y_parent,j_parent,y_coord) if(z_num_*x_num_ > 100)
+#pragma omp parallel for default(shared) private(z_,x_,j_,node_val,y_parent,j_parent,y_coord,node_val_parent) if(z_num_*x_num_ > 100)
                 for(z_ = 0;z_ < (z_num_);z_++){
                     
                     for(x_ = 0;x_ < (x_num_);x_++){
@@ -1984,12 +1984,6 @@ private:
                             
                             if (node_val&1){
                                 //get the index gap node
-                                
-                                //if(((node_val & next_prev_mask) >> next_prev_shift) > 0){
-                                //   y_coord = ((node_val & next_prev_mask) >> next_prev_shift);
-                                // } else {
-                                //  y_coord = -1;
-                                // }
                                 
                                 if(face == 0){
                                     
@@ -2036,6 +2030,9 @@ private:
                                     
                                     y_coord = (node_val & NEXT_COORD_MASK) >> NEXT_COORD_SHIFT;
                                     y_coord--;
+                                    
+                                    
+                                    
                                 } else {
                                     
                                     y_coord = (node_val & NEXT_COORD_MASK) >> NEXT_COORD_SHIFT;
