@@ -135,20 +135,33 @@ public:
 
     }
     
-    pc_key get_key(){
+    std::vector<pc_key> get_key(){
         
-        pc_key curr_pos;
+        std::vector<pc_key> curr_pos;
         
         if(neigh_same.current_flag == 1){
-            return neigh_same.get_key();
+            curr_pos.push_back(neigh_same.get_key());
             
         } else if (neigh_parent.current_flag == 1){
-            return neigh_parent.get_key();
+             curr_pos.push_back(neigh_parent.get_key());
             
-        } else if (neigh_child_0.current_flag == 1){
-            return neigh_child_0.get_key();
-        }
+        } else{
+            if (neigh_child_0.current_flag == 1){
+                curr_pos.push_back(neigh_child_0.get_key());
+            }
         
+            if (neigh_child_1.current_flag == 1){
+                curr_pos.push_back(neigh_child_1.get_key());
+            }
+        
+            if (neigh_child_2.current_flag == 1){
+                curr_pos.push_back(neigh_child_2.get_key());
+            }
+        
+            if (neigh_child_3.current_flag == 1){
+                curr_pos.push_back(neigh_child_3.get_key());
+            }
+         }
         return curr_pos;
         
     }

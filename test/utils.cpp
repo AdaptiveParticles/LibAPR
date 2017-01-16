@@ -2901,19 +2901,21 @@ bool utest_alt_part_struct(PartCellStructure<float,uint64_t>& pc_struct){
                             
                             neigh_y.iterate(curr_level,part_new);
                             
-                            pc_key neigh_new_key = neigh_y.get_key();
+                            std::vector<pc_key> neigh_keys = neigh_y.get_key();
                             
                             pc_key curr_level_key = curr_level.get_key();
                             
                             neigh = neigh_y.get_part(part_new.particle_data);
                             
-                            if(neigh > 0){
-                                bool error = compare_neigh(curr_level_key,neigh_new_key,direction);
+                            for(int c = 0; c < neigh_keys.size();c++){
+                                
+                                bool error = compare_neigh(curr_level_key,neigh_keys[c],direction);
+                                
                                 if(!error){
                                     success = false;
                                 }
+
                             }
-                            
                             
                             
                             float int_comp = neigh_y.get_int(int_array);
@@ -2946,6 +2948,12 @@ bool utest_alt_part_struct(PartCellStructure<float,uint64_t>& pc_struct){
     float time = (timer.t2 - timer.t1);
     
     std::cout << " Neigh Regime New took: " << time << std::endl;
+    
+    if(success){
+        std::cout << " New Part Scheme Neigh Success" << std::endl;
+    } else {
+        std::cout << " ***New Part Scheme Neigh Success***" << std::endl;
+    }
     
     return success;
     

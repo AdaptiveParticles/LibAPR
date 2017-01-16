@@ -147,13 +147,13 @@ int main(int argc, char **argv) {
     
     //get_neigh_check(pc_struct,link_array,int_array);
     
-    utest_neigh_cells(pc_struct);
+    //utest_neigh_cells(pc_struct);
     
     //utest_neigh_parts(pc_struct);
     
-    //utest_alt_part_struct(pc_struct);
+    utest_alt_part_struct(pc_struct);
     
-    utest_neigh_parts(pc_struct);
+    //utest_neigh_parts(pc_struct);
     
    // get_neigh_check2(pc_struct,link_array);
     
