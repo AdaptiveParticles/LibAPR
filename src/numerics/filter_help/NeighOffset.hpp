@@ -109,12 +109,35 @@ public:
         } else if (neigh_parent.current_flag == 1){
             return neigh_parent.get_part(p_data);
             
-        } else if (neigh_child_0.current_flag == 1){
-            return neigh_child_0.get_part(p_data);
+        } else{
+            S temp=0;
+            int counter = 0;
+            
+            if (neigh_child_0.current_flag == 1){
+                temp+=neigh_child_0.get_part(p_data);
+                counter++;
+            }
+            
+            if (neigh_child_1.current_flag == 1){
+                temp+=neigh_child_1.get_part(p_data);
+                counter++;
+            }
+            
+            if (neigh_child_2.current_flag == 1){
+                temp+=neigh_child_2.get_part(p_data);
+                counter++;
+            }
+            
+            if (neigh_child_3.current_flag == 1){
+                temp+=neigh_child_3.get_part(p_data);
+                counter++;
+            }
+            if(counter > 0){
+                return (temp/counter);
+            } else {
+                return 0;
+            }
         }
-        
-        return 0;
-        
         
     }
     

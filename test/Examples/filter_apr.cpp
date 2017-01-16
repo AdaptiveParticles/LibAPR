@@ -135,6 +135,10 @@ int main(int argc, char **argv) {
     
   //  compute_gradient(pc_struct,filter_output);
     
+    compute_gradient_new(pc_struct,filter_output);
+    
+    compute_gradient(pc_struct,filter_output);
+    
     Mesh_data<uint16_t> filter_img;
     
    // pc_struct.interp_parts_to_pc(filter_img,filter_output);
@@ -151,7 +155,7 @@ int main(int argc, char **argv) {
     
     //utest_neigh_parts(pc_struct);
     
-    utest_alt_part_struct(pc_struct);
+    //utest_alt_part_struct(pc_struct);
     
     //utest_neigh_parts(pc_struct);
     

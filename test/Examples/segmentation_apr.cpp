@@ -100,7 +100,7 @@ int main(int argc, char **argv) {
     
     Mesh_data<uint8_t> seg_mesh;
     
-    calc_graph_cuts_segmentation_mesh(pc_struct,seg_mesh,parameters_nuc);
+    //calc_graph_cuts_segmentation_mesh(pc_struct,seg_mesh,parameters_nuc);
     
     //Now we will view the output by creating the binary image implied by the segmentation
     
@@ -110,7 +110,7 @@ int main(int argc, char **argv) {
     
     debug_write(seg_img,"segmentation_mask");
     
-    debug_write(seg_mesh,"segmentation_mesh_mask");
+    //debug_write(seg_mesh,"segmentation_mesh_mask");
     
     
 //    interp_depth_to_mesh(seg_img,pc_struct);

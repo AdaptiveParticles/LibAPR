@@ -48,8 +48,6 @@ TEST_F(CreateMembraneTest, SPARSE_STRUCTURE_MEMBRANE_LARGE_TEST)
     //
     //
     
-    
-    
     //test general structure
     ASSERT_TRUE(compare_sparse_rep_with_part_map(particle_map,pc_struct,false));
     //test neighbour cell search
