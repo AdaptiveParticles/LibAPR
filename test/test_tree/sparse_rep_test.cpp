@@ -30,6 +30,12 @@ TEST_F(CreateSphereTest, SPARSE_STRUCTURE_SPHERE_TEST)
     ASSERT_TRUE(parent_structure_test(pc_struct));
     ASSERT_TRUE(find_part_cell_test(pc_struct));
     
+    ASSERT_TRUE(utest_neigh_cells(pc_struct));
+    
+    ASSERT_TRUE(utest_neigh_parts(pc_struct));
+    
+    ASSERT_TRUE(utest_alt_part_struct(pc_struct));
+    
     
     
 }
@@ -59,7 +65,11 @@ TEST_F(CreateMembraneTest, SPARSE_STRUCTURE_MEMBRANE_LARGE_TEST)
     
     ASSERT_TRUE(find_part_cell_test(pc_struct));
     
+    ASSERT_TRUE(utest_neigh_cells(pc_struct));
     
+    ASSERT_TRUE(utest_neigh_parts(pc_struct));
+    
+    ASSERT_TRUE(utest_alt_part_struct(pc_struct));
     
 }
 
