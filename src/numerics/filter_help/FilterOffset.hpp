@@ -19,6 +19,7 @@
 
 
 #include "../../data_structures/Tree/PartCellStructure.hpp"
+#include "../../data_structures/Tree/ParticleDataNew.hpp"
 #include "FilterLevel.hpp"
 
 template<typename T,typename V>

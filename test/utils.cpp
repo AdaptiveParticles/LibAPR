@@ -2453,8 +2453,380 @@ bool find_part_cell_test(PartCellStructure<float,uint64_t>& pc_struct){
     
     return pass_test;
 }
-template<typename S>
-bool utest_alt_part_struct(PartCellStructure<S,uint64_t>& pc_struct){
+bool compare_neigh_cells(pc_key curr,pc_key neigh,int dir){
+    
+    const int8_t dir_y[6] = { 1, -1, 0, 0, 0, 0};
+    const int8_t dir_x[6] = { 0, 0, 1, -1, 0, 0};
+    const int8_t dir_z[6] = { 0, 0, 0, 0, 1, -1};
+    
+    int offset_x = dir_x[dir];
+    int offset_y = dir_y[dir];
+    int offset_z = dir_z[dir];
+    
+    float k_diff = curr.depth - neigh.depth;
+    
+    float y_diff,x_diff,z_diff;
+    
+    bool success = true;
+    
+    if(neigh.depth_p > 20){
+        //no neighbour set
+        return true;
+    }
+    
+    
+    if(std::abs(k_diff) > 1){
+        std::cout << "k mismatch " << std::endl;
+        success = 0;
+        
+    } else {
+        //check the distance between the cells (They should be bounded as border neighbors)
+        if( k_diff == 0){
+            // same level
+            y_diff = (curr.y - neigh.y);
+            
+            x_diff = (curr.x - neigh.x);
+            
+            z_diff = (curr.z - neigh.z);
+            
+            
+            if( y_diff != -offset_y){
+                std::cout << "y error" << std::endl;
+                success = 0;
+            }
+            
+            if( x_diff != -offset_x){
+                std::cout << "x error" << std::endl;
+                success = 0;
+            }
+            
+            if( z_diff != -offset_z){
+                std::cout << "z error" << std::endl;
+                success = 0;
+            }
+            
+            
+        } else if (k_diff == -1){
+            // - 1case
+            y_diff = (curr.y*2 +0.5 - neigh.y);
+            
+            x_diff = (curr.x*2 + 0.5 - neigh.x);
+            
+            z_diff = (curr.z*2 + 0.5 - neigh.z);
+            
+            if(offset_y != 0){
+                
+                if( y_diff != -1.5*offset_y ){
+                    std::cout << "y error" << std::endl;
+                    success = 0;
+                }
+            }
+            else {
+                y_diff = (curr.y - neigh.y/2);
+                
+                if( y_diff != 0 ){
+                    std::cout << "y error" << std::endl;
+                    success = 0;
+                }
+                
+            }
+            
+            if(offset_x != 0){
+                
+                if( x_diff != -1.5*offset_x ){
+                    std::cout << "x error" << std::endl;
+                    success = 0;
+                }
+            }
+            else {
+                x_diff = (curr.x - neigh.x/2);
+                
+                if( x_diff != 0 ){
+                    std::cout << "x error" << std::endl;
+                    success = 0;
+                }
+                
+            }
+            
+            
+            if(offset_z != 0){
+                
+                if( z_diff != -1.5*offset_z ){
+                    std::cout << "z error" << std::endl;
+                    success = 0;
+                }
+            }
+            else {
+                z_diff = (curr.z - neigh.z/2);
+                
+                if( z_diff != 0 ){
+                    std::cout << "z error" << std::endl;
+                    success = 0;
+                }
+                
+            }
+            
+            
+            
+        } else {
+            /// + 1 case
+            
+            y_diff = (((curr.y - (neigh.y*2 + 0.5))));
+            
+            x_diff = (((curr.x - (neigh.x*2 + 0.5))));
+            
+            z_diff = (((curr.z - (neigh.z*2 + 0.5))));
+            
+            if(offset_y != 0){
+                
+                if( y_diff != -1.5*offset_y ){
+                    std::cout << "y error" << std::endl;
+                    success = 0;
+                }
+            }
+            else {
+                
+                y_diff = (((curr.y/2 - (neigh.y))));
+                
+                if( y_diff != 0 ){
+                    std::cout << "y error" << std::endl;
+                    success = 0;
+                }
+                
+            }
+            
+            if(offset_x != 0){
+                
+                if( x_diff != -1.5*offset_x ){
+                    std::cout << "x error" << std::endl;
+                    std::cout << curr.y << std::endl;
+                    success = 0;
+                }
+            }
+            else {
+                x_diff = (((curr.x/2 - (neigh.x))));
+                
+                if( x_diff != 0 ){
+                    std::cout << "x error" << std::endl;
+                    success = 0;
+                }
+                
+            }
+            
+            
+            if(offset_z != 0){
+                
+                if( z_diff != -1.5*offset_z ){
+                    std::cout << "z error" << std::endl;
+                    std::cout << curr.y << std::endl;
+                    success = 0;
+                }
+            }
+            else {
+                z_diff = (((curr.z/2 - (neigh.z))));
+                
+                if( z_diff != 0 ){
+                    std::cout << "z error" << std::endl;
+                    success = 0;
+                }
+                
+            }
+        }
+    }
+    
+    return success;
+    
+}
+bool compare_neigh(pc_key curr,pc_key neigh,int dir){
+    
+    const int8_t dir_y[6] = { 1, -1, 0, 0, 0, 0};
+    const int8_t dir_x[6] = { 0, 0, 1, -1, 0, 0};
+    const int8_t dir_z[6] = { 0, 0, 0, 0, 1, -1};
+    
+    int offset_x = dir_x[dir];
+    int offset_y = dir_y[dir];
+    int offset_z = dir_z[dir];
+    
+    float k_diff = curr.depth_p - neigh.depth_p;
+    
+    float y_diff,x_diff,z_diff;
+    
+    bool success = true;
+    
+    if(neigh.depth_p > 20){
+        //no neighbour set
+        return true;
+    }
+    
+    
+    if(std::abs(k_diff) > 1){
+        std::cout << "k mismatch " << std::endl;
+        success = 0;
+        
+    } else {
+        //check the distance between the cells (They should be bounded as border neighbors)
+        if( k_diff == 0){
+            // same level
+            y_diff = (curr.y_p - neigh.y_p);
+            
+            x_diff = (curr.x_p - neigh.x_p);
+            
+            z_diff = (curr.z_p - neigh.z_p);
+            
+            
+            if( y_diff != -offset_y){
+                std::cout << "y error" << std::endl;
+                success = 0;
+            }
+            
+            if( x_diff != -offset_x){
+                std::cout << "x error" << std::endl;
+                success = 0;
+            }
+            
+            if( z_diff != -offset_z){
+                std::cout << "z error" << std::endl;
+                success = 0;
+            }
+            
+            
+        } else if (k_diff == -1){
+            // - 1case
+            y_diff = (curr.y_p*2 +0.5 - neigh.y_p);
+            
+            x_diff = (curr.x_p*2 + 0.5 - neigh.x_p);
+            
+            z_diff = (curr.z_p*2 + 0.5 - neigh.z_p);
+            
+            if(offset_y != 0){
+                
+                if( y_diff != -1.5*offset_y ){
+                    std::cout << "y error" << std::endl;
+                    success = 0;
+                }
+            }
+            else {
+                y_diff = (curr.y_p - neigh.y_p/2);
+                
+                if( y_diff != 0 ){
+                    std::cout << "y error" << std::endl;
+                    success = 0;
+                }
+                
+            }
+            
+            if(offset_x != 0){
+                
+                if( x_diff != -1.5*offset_x ){
+                    std::cout << "x error" << std::endl;
+                    success = 0;
+                }
+            }
+            else {
+                x_diff = (curr.x_p - neigh.x_p/2);
+                
+                if( x_diff != 0 ){
+                    std::cout << "x error" << std::endl;
+                    success = 0;
+                }
+                
+            }
+            
+            
+            if(offset_z != 0){
+                
+                if( z_diff != -1.5*offset_z ){
+                    std::cout << "z error" << std::endl;
+                    success = 0;
+                }
+            }
+            else {
+                z_diff = (curr.z_p - neigh.z_p/2);
+                
+                if( z_diff != 0 ){
+                    std::cout << "z error" << std::endl;
+                    success = 0;
+                }
+                
+            }
+            
+            
+            
+        } else {
+            /// + 1 case
+            
+            y_diff = (((curr.y_p - (neigh.y_p*2 + 0.5))));
+            
+            x_diff = (((curr.x_p - (neigh.x_p*2 + 0.5))));
+            
+            z_diff = (((curr.z_p - (neigh.z_p*2 + 0.5))));
+            
+            if(offset_y != 0){
+                
+                if( y_diff != -1.5*offset_y ){
+                    std::cout << "y error" << std::endl;
+                    success = 0;
+                }
+            }
+            else {
+                
+                y_diff = (((curr.y_p/2 - (neigh.y_p))));
+                
+                if( y_diff != 0 ){
+                    std::cout << "y error" << std::endl;
+                    success = 0;
+                }
+                
+            }
+            
+            if(offset_x != 0){
+                
+                if( x_diff != -1.5*offset_x ){
+                    std::cout << "x error" << std::endl;
+                    std::cout << curr.y_p << std::endl;
+                    success = 0;
+                }
+            }
+            else {
+                x_diff = (((curr.x_p/2 - (neigh.x_p))));
+                
+                if( x_diff != 0 ){
+                    std::cout << "x error" << std::endl;
+                    success = 0;
+                }
+                
+            }
+            
+            
+            if(offset_z != 0){
+                
+                if( z_diff != -1.5*offset_z ){
+                    std::cout << "z error" << std::endl;
+                    std::cout << curr.y_p << std::endl;
+                    success = 0;
+                }
+            }
+            else {
+                z_diff = (((curr.z_p/2 - (neigh.z_p))));
+                
+                if( z_diff != 0 ){
+                    std::cout << "z error" << std::endl;
+                    success = 0;
+                }
+                
+            }
+        }
+    }
+    
+    if (success == 0){
+        std::cout << dir << " y: " << curr.y_p << " x: " << curr.x_p <<  " z: " <<curr.z_p << " depth: " <<curr.depth_p <<  std::endl;
+        std::cout << dir << " y: " << neigh.y_p << " x: " << neigh.x_p <<  " z: " <<neigh.z_p << " depth: " <<neigh.depth_p <<  std::endl;
+    }
+    
+    return success;
+    
+}
+bool utest_alt_part_struct(PartCellStructure<float,uint64_t>& pc_struct){
     //
     //  Calculate Neighbours Using Iterators
     //
@@ -2578,8 +2950,8 @@ bool utest_alt_part_struct(PartCellStructure<S,uint64_t>& pc_struct){
     return success;
     
 }
-template<typename S>
-bool utest_neigh_cells(PartCellStructure<S,uint64_t>& pc_struct){   //  Calculate connected component from a binary mask
+
+bool utest_neigh_cells(PartCellStructure<float,uint64_t>& pc_struct){   //  Calculate connected component from a binary mask
     //
     //  Should be written with the neighbour iterators instead.
     //
@@ -2617,7 +2989,7 @@ bool utest_neigh_cells(PartCellStructure<S,uint64_t>& pc_struct){   //  Calculat
     const int8_t dir_z[6] = { 0, 0, 0, 0, 1, -1};
     
     
-    timer.start_timer("iterate parts old");
+    timer.start_timer("test neigh cells");
     
     for(int direction = 0;direction < 6;direction++){
         
@@ -2801,8 +3173,193 @@ bool utest_neigh_cells(PartCellStructure<S,uint64_t>& pc_struct){   //  Calculat
         //std::cout << direction << " " << counter << " s " << counter_same << " c " << counter_child << " p " << counter_parent << std::endl;
     }
     
+    
+    if(success){
+        std::cout << " Cell Neighbour Success" << std::endl;
+    } else {
+        std::cout << " Cell Neighbour Fail" << std::endl;
+    }
+    
     timer.stop_timer();
     
+    return success;
+    
+}
+
+bool utest_neigh_parts(PartCellStructure<float,uint64_t>& pc_struct){   //  Calculate connected component from a binary mask
+    //
+    //  Should be written with the neighbour iterators instead.
+    //
+    
+    //part_new.initialize_from_structure(pc_struct.pc_data);
+    //part_new.transfer_intensities(pc_struct.part_data);
+    
+    
+    
+    
+    Part_timer timer;
+    
+    //initialize variables required
+    uint64_t node_val_pc; // node variable encoding neighbour and cell information
+    uint64_t node_val_part; // node variable encoding part offset status information
+    int x_; // iteration variables
+    int z_; // iteration variables
+    uint64_t j_; // index variable
+    uint64_t curr_key = 0; // key used for accessing and particles and cells
+    PartCellNeigh<uint64_t> neigh_part_keys; // data structure for holding particle or cell neighbours
+    PartCellNeigh<uint64_t> neigh_cell_keys;
+    //
+    // Extra variables required
+    //
+    
+    uint64_t status=0;
+    uint64_t part_offset=0;
+    uint64_t p;
+    
+    
+    
+    timer.verbose_flag = false;
+    
+    
+    bool success = true;
+    
+    
+    timer.start_timer("iterate parts old");
+    
+    for(int direction = 0;direction < 6;direction++){
+        
+        for(uint64_t i = pc_struct.pc_data.depth_min;i <= pc_struct.pc_data.depth_max;i++){
+            //loop over the resolutions of the structure
+            const unsigned int x_num_ = pc_struct.pc_data.x_num[i];
+            const unsigned int z_num_ = pc_struct.pc_data.z_num[i];
+            
+            for(z_ = 0;z_ < z_num_;z_++){
+                //both z and x are explicitly accessed in the structure
+                curr_key = 0;
+                
+                pc_struct.pc_data.pc_key_set_z(curr_key,z_);
+                pc_struct.pc_data.pc_key_set_depth(curr_key,i);
+                
+                
+                for(x_ = 0;x_ < x_num_;x_++){
+                    
+                    pc_struct.pc_data.pc_key_set_x(curr_key,x_);
+                    
+                    const size_t offset_pc_data = x_num_*z_ + x_;
+                    
+                    const size_t j_num = pc_struct.pc_data.data[i][offset_pc_data].size();
+                    
+                    
+                    int y_coord = 0;
+                    
+                    //the y direction loop however is sparse, and must be accessed accordinagly
+                    for(j_ = 0;j_ < j_num;j_++){
+                        
+                        //particle cell node value, used here as it is requried for getting the particle neighbours
+                        node_val_pc = pc_struct.pc_data.data[i][offset_pc_data][j_];
+                        
+                        if (!(node_val_pc&1)){
+                            //Indicates this is a particle cell node
+                            y_coord++;
+                            
+                            node_val_part = pc_struct.part_data.access_data.data[i][offset_pc_data][j_];
+                            
+                            pc_struct.part_data.access_data.pc_key_set_j(curr_key,j_);
+                            
+                            status = pc_struct.part_data.access_node_get_status(node_val_part);
+                            part_offset = pc_struct.part_data.access_node_get_part_offset(node_val_part);
+                            
+                            pc_key curr_part;
+                            curr_part.update_cell(curr_key);
+                            
+                            curr_part.y = y_coord;
+                            
+                            pc_struct.part_data.access_data.pc_key_set_status(curr_key,status);
+                            
+                            //loop over the particles
+                            for(p = 0;p < pc_struct.part_data.get_num_parts(status);p++){
+                                //first set the particle index value in the particle_data array (stores the intensities)
+                                pc_struct.part_data.access_data.pc_key_set_index(curr_key,part_offset+p);
+                                pc_struct.part_data.access_data.pc_key_set_partnum(curr_key,p);
+                                //get all the neighbour particles in (+y,-y,+x,-x,+z,-z) ordering
+                                
+                                pc_struct.part_data.get_part_neighs_face(direction,p,node_val_pc,curr_key,status,part_offset,neigh_cell_keys,neigh_part_keys,pc_struct.pc_data);
+                                curr_part.update_part(curr_key);
+                                
+                                bool error = true;
+                                
+                                for(int n = 0; n < neigh_part_keys.neigh_face[direction].size();n++){
+                                    uint64_t neigh_part = neigh_part_keys.neigh_face[direction][n];
+                                    
+                                    
+                                    if(neigh_part > 0){
+                                        pc_key neigh_part_k =  pc_struct.pc_data.get_neigh_coordinates_part(neigh_part_keys,direction,n,y_coord);
+                                        
+                                        error = compare_neigh(curr_part,neigh_part_k,direction);
+                                        
+                                        if (!error){
+                                            success = false;
+                                            pc_struct.part_data.get_part_neighs_face(direction,p,node_val_pc,curr_key,status,part_offset,neigh_cell_keys,neigh_part_keys,pc_struct.pc_data);
+                                            pc_key neigh_part_d =  pc_struct.pc_data.get_neigh_coordinates_part(neigh_part_keys,direction,n,y_coord);
+                                            
+                                            uint64_t neigh_node = pc_struct.pc_data.get_val(neigh_part);
+                                            
+                                            node_key neigh_node_key;
+                                            neigh_node_key.update_node(neigh_node);
+                                            
+                                            
+                                            
+                                            std::cout << status << " " << neigh_node_key.status << std::endl;
+                                            
+                                            for(int i = 0; i < neigh_cell_keys.neigh_face[direction].size();i++){
+                                                pc_key neigh_c;
+                                                neigh_c.update_cell(neigh_cell_keys.neigh_face[direction][i]);
+                                                
+                                            }
+                                            
+                                            int stop = 1;
+                                            
+                                        }
+
+                                        
+                                    }
+                                    
+                                    
+                                    
+                                }
+                                
+                                
+                                
+                                
+                            }
+                            
+                        } else {
+                            // Inidicates this is not a particle cell node, and is a gap node
+                            y_coord = (node_val_pc & NEXT_COORD_MASK) >> NEXT_COORD_SHIFT;
+                            y_coord--; //set the y_coordinate to the value before the next coming up in the structure
+                            
+                        }
+                        
+                    }
+                    
+                }
+                
+            }
+        }
+        
+    }
+    
+    timer.stop_timer();
+    
+    if(success){
+        std::cout << " Part Neigh Check Original - Success " << std::endl;
+    } else {
+        std::cout << "***** Part Neigh Check Original - Fail ******" << std::endl;
+
+    }
+    
+    return success;
     
     
 }
+

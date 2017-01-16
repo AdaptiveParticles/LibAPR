@@ -13,6 +13,7 @@
 
 #include "PartCellData.hpp"
 #include "ExtraPartCellData.hpp"
+#include "PartCellStructure.hpp"
 
 
 #define SEED_NUM_PARTICLES 8
