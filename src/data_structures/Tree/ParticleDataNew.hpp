@@ -403,6 +403,136 @@ public:
         
         
     }
+    template<typename U>
+    void create_pc_data_new(PartCellData<U>& pc_data_new){
+        
+
+        
+        //first add the layers
+        pc_data_new.depth_max = access_data.depth_max;
+        pc_data_new.depth_min = access_data.depth_min;
+        
+        pc_data_new.z_num.resize(access_data.depth_max+1);
+        pc_data_new.x_num.resize(access_data.depth_max+1);
+        
+        pc_data_new.data.resize(access_data.depth_max+1);
+        
+        for(uint64_t i = access_data.depth_min;i <= access_data.depth_max;i++){
+            pc_data_new.z_num[i] = access_data.z_num[i];
+            pc_data_new.x_num[i] = access_data.x_num[i];
+            pc_data_new.data[i].resize(access_data.z_num[i]*access_data.x_num[i]);
+        }
+        
+        
+        //initialize all the structure arrays
+        int j_,x_,z_;
+        
+        for(uint64_t i = access_data.depth_min;i <= access_data.depth_max;i++){
+            
+            const unsigned int x_num = access_data.x_num[i];
+            const unsigned int z_num = access_data.z_num[i];
+            
+#pragma omp parallel for default(shared) private(z_,x_) if(z_num*x_num > 100)
+            for(z_ = 0;z_ < z_num;z_++){
+                
+                for(x_ = 0;x_ < x_num;x_++){
+                    const size_t offset_pc_data = x_num*z_ + x_;
+                    pc_data_new.data[i][offset_pc_data].resize(access_data.data[i][offset_pc_data].size());
+                }
+                
+            }
+        }
+        
+        
+        //then initialize the values;
+        
+        for(uint64_t depth = (access_data.depth_min);depth <= access_data.depth_max;depth++){
+            //loop over the resolutions of the structure
+            const unsigned int x_num_ = access_data.x_num[depth];
+            const unsigned int z_num_ = access_data.z_num[depth];
+            
+            
+#pragma omp parallel for default(shared) private(z_,x_,j_)  if(z_num_*x_num_ > 100)
+            for(z_ = 0;z_ < z_num_;z_++){
+                //both z and x are explicitly accessed in the structure
+                
+                for(x_ = 0;x_ < x_num_;x_++){
+                    
+                    int y_=0;
+                    uint64_t prev_coord=0;
+                    
+                    const size_t offset_pc_data = x_num_*z_ + x_;
+                    uint64_t node_val_pc;
+                    
+                    const size_t j_num = pc_data_new.data[depth][offset_pc_data].size();
+                    
+                    //the y direction loop however is sparse, and must be accessed accordinagly
+                    for(j_ = 0;j_ < j_num-1;j_++){
+                        
+                        //particle cell node value, used here as it is requried for getting the particle neighbours
+                        node_val_pc = access_data.data[depth][offset_pc_data][j_];
+                        
+                        if (!(node_val_pc&1)){
+                            
+                            
+                            //Indicates this is a particle cell node
+                            y_++;
+                            
+                            pc_data_new.data[depth][offset_pc_data][j_] = TYPE_PC;
+                            
+                            //initialize the neighbours to empty (to be over-written later if not the case) (Boundary Conditions)
+                            pc_data_new.data[depth][offset_pc_data][j_] |= (NO_NEIGHBOUR << XP_DEPTH_SHIFT);
+                            pc_data_new.data[depth][offset_pc_data][j_] |= (NO_NEIGHBOUR << XM_DEPTH_SHIFT);
+                            pc_data_new.data[depth][offset_pc_data][j_] |= (NO_NEIGHBOUR << ZP_DEPTH_SHIFT);
+                            pc_data_new.data[depth][offset_pc_data][j_] |= (NO_NEIGHBOUR << ZM_DEPTH_SHIFT);
+                            
+                            //add status here
+                            uint64_t status = access_node_get_status(node_val_pc);
+                            pc_data_new.data[depth][offset_pc_data][j_] |= (status << STATUS_SHIFT);
+                            
+                        } else {
+                            
+                            prev_coord = y_;
+                            
+                            y_ += ((node_val_pc & COORD_DIFF_MASK_PARTICLE) >> COORD_DIFF_SHIFT_PARTICLE);
+                            
+                            pc_data_new.data[depth][offset_pc_data][j_] = TYPE_GAP;
+                            pc_data_new.data[depth][offset_pc_data][j_] |= (((uint64_t)y_) << NEXT_COORD_SHIFT);
+                            pc_data_new.data[depth][offset_pc_data][j_] |= ( prev_coord << PREV_COORD_SHIFT);
+                            pc_data_new.data[depth][offset_pc_data][j_] |= (NO_NEIGHBOUR << YP_DEPTH_SHIFT);
+                            pc_data_new.data[depth][offset_pc_data][j_] |= (NO_NEIGHBOUR << YM_DEPTH_SHIFT);
+                            
+                            y_--;
+                        }
+                        
+                        
+                    }
+                    
+                    //Initialize the last value GAP END indicators to no neighbour
+                    pc_data_new.data[depth][offset_pc_data][j_num-1] = TYPE_GAP_END;
+                    pc_data_new.data[depth][offset_pc_data][j_num-1] |= (NO_NEIGHBOUR << YP_DEPTH_SHIFT);
+                    pc_data_new.data[depth][offset_pc_data][j_num-1] |= (NO_NEIGHBOUR << YM_DEPTH_SHIFT);
+                    
+                    
+                }
+            }
+        }
+    
+    
+        ///////////////////////////////////
+        //
+        //  Calculate neighbours
+        //
+        /////////////////////////////////
+        
+        //(+y,-y,+x,-x,+z,-z)
+        pc_data_new.set_neighbor_relationships();
+        
+        
+        
+        
+        
+    }
     
     template<typename U>
     void utest_structure(PartCellStructure<U,uint64_t>& pc_struct,std::vector<Mesh_data<uint64_t>> link_array){

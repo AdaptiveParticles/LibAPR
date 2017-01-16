@@ -93,7 +93,7 @@ int main(int argc, char **argv) {
     std::array<uint64_t,10> parameters_nuc = {100,1,1,1,1,3,3,3,0,1};
     
     //nuclei
-    std::array<uint64_t,10> parameters_mem = {100,1,1,1,1,3,3,3,0,1};
+    std::array<uint64_t,10> parameters_mem = {100,1,2,2,2,1,1,1,1,1};
     
     
     calc_graph_cuts_segmentation(pc_struct, seg_parts,parameters_nuc);

@@ -114,20 +114,11 @@ int main(int argc, char **argv) {
     uint64_t dim = ceil(pow(num_parts,1.0/3.0));
 //    
     //convolution_filter_pixels(pc_struct,dim,dim,dim);
+    convolution_filter_pixels_temp(pc_struct,dim,dim,dim);
    // convolution_filter_pixels_temp(pc_struct,dim,dim,dim);
-   // convolution_filter_pixels_temp(pc_struct,dim,dim,dim);
     
-   // ParticleDataNew<float, uint64_t> part_new;
+  
     
-  //  part_new.initialize_from_structure(pc_struct);
-    
-    std::vector<Mesh_data<uint64_t>> link_array;
-    
-   create_reference_structure(pc_struct,link_array);
-    
-    std::vector<Mesh_data<float>> int_array;
-    
-    create_intensity_reference_structure(pc_struct,int_array);
     
     //part_new.utest_structure(pc_struct,link_array);
     
@@ -139,7 +130,24 @@ int main(int argc, char **argv) {
     
     compute_gradient(pc_struct,filter_output);
     
+    neigh_cells(pc_struct.pc_data);
+    
     Mesh_data<uint16_t> filter_img;
+    
+    std::cout << pc_struct.get_number_parts() << std::endl;
+    std::cout << pc_struct.get_number_cells() << std::endl;
+    
+    
+    ParticleDataNew<float, uint64_t> part_new;
+    
+    part_new.initialize_from_structure(pc_struct);
+    
+    
+    PartCellData<uint64_t> pc_data_new;
+    part_new.create_pc_data_new(pc_data_new);
+    
+    neigh_cells(pc_data_new);
+    neigh_cells_new(pc_data_new,part_new);
     
    // pc_struct.interp_parts_to_pc(filter_img,filter_output);
     

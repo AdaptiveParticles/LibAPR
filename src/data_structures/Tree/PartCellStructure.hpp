@@ -651,9 +651,6 @@ private:
                             //normal node
                             y_coord++;
                             
-                            
-                            
-                            
                             //get and check status
                             status = (node_val & STATUS_MASK_PARTICLE) >> STATUS_SHIFT_PARTICLE;
                             
