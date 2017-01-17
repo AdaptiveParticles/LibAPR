@@ -1657,11 +1657,15 @@ public:
         
         prev_k_img.initialize(pow(2,depth_min-1),pow(2,depth_min-1),pow(2,depth_min-1),0);
         
-        //prev_k_img.mesh.reserve(org_dims[0]*org_dims[1]*org_dims[2]);
+        prev_k_img.mesh.reserve(org_dims[0]*org_dims[1]*org_dims[2]);
         curr_k_img.mesh.reserve(org_dims[0]*org_dims[1]*org_dims[2]);
         
         Part_timer timer;
         timer.verbose_flag = false;
+        
+        Part_timer t_n;
+        t_n.verbose_flag = false;
+        t_n.start_timer("loop");
         
         uint64_t z_ = 0;
         uint64_t x_ = 0;
@@ -1950,7 +1954,9 @@ public:
     
         timer.stop_timer();
     
-    
+        t_n.stop_timer();
+        
+        timer.verbose_flag = true;
 
         timer.start_timer("last loop");
         

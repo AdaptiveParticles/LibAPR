@@ -118,7 +118,7 @@ int main(int argc, char **argv) {
     //convolution_filter_pixels(pc_struct,dim,dim,dim);
     //convolution_filter_pixels_temp(pc_struct,dim,dim,dim);
     //convolution_filter_pixels_off(pc_struct,dim,dim,dim);
-    convolution_filter_pixels_temp(pc_struct,dim,dim,dim);
+   // convolution_filter_pixels_temp(pc_struct,dim,dim,dim);
     
   
     //convolution_filter_pixels_random(pc_struct,dim,dim,dim);
@@ -133,7 +133,7 @@ int main(int argc, char **argv) {
     
     //compute_gradient(pc_struct,filter_output);
     
-    neigh_cells(pc_struct.pc_data);
+    //neigh_cells(pc_struct.pc_data);
     
     Mesh_data<uint16_t> filter_img;
     
@@ -163,10 +163,10 @@ int main(int argc, char **argv) {
     
     timer.stop_timer();
     
-    apr_filter_full(pc_struct);
+   // apr_filter_full(pc_struct);
     
     
-  //  debug_write(int_array[4],"int_array_4");
+    //debug_write(filter_img,"test");
    // debug_write(int_array[3],"int_array_3");
    // debug_write(int_array[5],"int_array_5");
    // debug_write(int_array[6],"int_array_6");

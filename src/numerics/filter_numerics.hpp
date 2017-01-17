@@ -1044,7 +1044,7 @@ void apr_filter_full(PartCellStructure<S,uint64_t>& pc_struct){
     timer.verbose_flag = false;
     timer.start_timer("full previous filter");
     
-    uint64_t filter_offset = 8;
+    uint64_t filter_offset = 5;
     filter.resize(filter_offset*2 +1,1);
     
     uint64_t offset_min;
