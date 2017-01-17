@@ -149,6 +149,10 @@ int main(int argc, char **argv) {
     PartCellData<uint64_t> pc_data_new;
     part_new.create_pc_data_new(pc_data_new);
     
+    move_cells_random(pc_data_new,part_new);
+    
+    pixels_move_random(pc_struct,pc_struct.org_dims[0],pc_struct.org_dims[1],pc_struct.org_dims[2]);
+    
     //neigh_cells(pc_data_new);
     //neigh_cells_new(pc_data_new,part_new);
     

@@ -578,6 +578,177 @@ void neigh_cells_new(PartCellData<uint64_t>& pc_data,ParticleDataNew<float, uint
     
     
 }
+void move_cells_random(PartCellData<uint64_t>& pc_data,ParticleDataNew<float, uint64_t> part_new){
+    //
+    //  Bevan Cheeseman 2017
+    //
+    //  Non-cache friendly neighbour access
+    //
+    //
+    
+    Part_timer timer;
+    
+    //
+    // Extra variables required
+    //
+    
+    timer.verbose_flag = false;
+    
+    float num_repeats = 50000000;
+    
+    CurrentLevel<float,uint64_t> curr_level;
+    
+    //
+    //  Initialize Randomly
+    //
+    
+    
+    
+    curr_level.type = 0;
+    
+    while(curr_level.type == 0){
+        
+        int depth_i = (int) std::rand()%(pc_data.depth_max-pc_data.depth_min) + (int) pc_data.depth_min;
+        
+        int x_num_ = pc_data.x_num[depth_i];
+        int z_num_ = pc_data.z_num[depth_i];
+        
+        int x_i = std::rand()%x_num_;
+        int z_i = std::rand()%z_num_;
+        
+        int offset_pc_data = x_num_*z_i + x_i;
+        
+        int j_num = (int) pc_data.data[depth_i][offset_pc_data].size();
+        
+        int j_i = (std::rand()%(j_num-2)) + 1;
+        
+        curr_level.init(x_i,z_i,j_i,depth_i,part_new);
+        
+    }
+    
+    
+    //iterate loop;
+    
+    timer.start_timer("neigh_cell_comp");
+    
+    unsigned int dir = 0;
+    unsigned int index = 0;
+    float neigh_int= 0;
+    
+    for(int r = 0;r < num_repeats;r++){
+        //choose one of the 6 directions (+y,-y,+x..
+        dir = std::rand()%6;
+        //if there are children which one
+        index = std::rand()%4;
+        
+        //move randomly
+        curr_level.move_cell(dir,index,part_new,pc_data);
+        
+        //get all
+        curr_level.update_all_neigh(pc_data);
+        
+        neigh_int = 0;
+        
+        for(int i = 0;i < 6;i++){
+            neigh_int += curr_level.get_neigh_int(i,part_new,pc_data);
+            
+        }
+        
+        (void) neigh_int;
+    }
+    
+    
+    
+    timer.stop_timer();
+    
+    float time = (timer.t2 - timer.t1)/(num_repeats/1000000.0);
+    
+    std::cout << "Move random 1000000* : " << time << std::endl;
+    
+    
+    
+}
+template<typename U>
+void pixels_move_random(PartCellStructure<U,uint64_t>& pc_struct,uint64_t y_num,uint64_t x_num,uint64_t z_num){
+    //
+    //  Compute two, comparitive filters for speed. Original size img, and current particle size comparison
+    //
+    
+    Mesh_data<U> input_data;
+    //Mesh_data<U> output_data;
+    input_data.initialize((int)y_num,(int)x_num,(int)z_num,23);
+    //output_data.initialize((int)y_num,(int)x_num,(int)z_num,0);
+    
+    const int8_t dir_y[6] = { 1, -1, 0, 0, 0, 0};
+    const int8_t dir_x[6] = { 0, 0, 1, -1, 0, 0};
+    const int8_t dir_z[6] = { 0, 0, 0, 0, 1, -1};
+    
+    
+    Part_timer timer;
+    timer.verbose_flag = false;
+    timer.start_timer("full previous filter");
+    
+    
+    uint64_t j = 0;
+    uint64_t k = 0;
+    uint64_t i = 0;
+    
+    uint64_t j_n = 0;
+    uint64_t k_n = 0;
+    uint64_t i_n = 0;
+    
+    i = std::rand()%x_num;
+    j = std::rand()%z_num;
+    k = std::rand()%y_num;
+    
+    unsigned int dir = 0;
+    unsigned int index = 0;
+    float neigh_sum = 0;
+    
+    float num_repeats = 5000000;
+    
+    for(int r = 0;r < num_repeats;r++){
+        
+       //get new random direction
+        //choose one of the 6 directions (+y,-y,+x..
+        dir = std::rand()%6;
+        //if there are children which one
+        index = std::rand()%4;
+        
+        i = std::min(std::max((uint64_t)0,i+dir_x[dir]),x_num-1);
+        j = std::min(std::max((uint64_t)0,j+dir_z[dir]),z_num-1);
+        k = std::min(std::max((uint64_t)0,k+dir_x[dir]),y_num-1);
+        
+        neigh_sum = 0;
+        
+        for(int  d  = 0;d < 6;d++){
+            
+            i_n = i + dir_x[d];
+            k_n = k + dir_y[d];
+            j_n = j + dir_z[d];
+            
+            //check boundary conditions
+            if((i_n >0) & (i_n < x_num) ){
+                if((j_n >0) & (j_n < z_num) ){
+                    if((k_n >0) & (k_n < y_num) ){
+                        neigh_sum += input_data.mesh[j_n*x_num*y_num + i_n*y_num + k_n];
+                    }
+                }
+            }
+            
+        }
+        
+        (void) neigh_sum;
+    }
+    
+    
+    timer.stop_timer();
+    float time = (timer.t2 - timer.t1);
+    
+    std::cout << " Pixel Move random 10000000* : " << (x_num*y_num*z_num) << " took: " << time/(num_repeats/1000000.0) << std::endl;
+    
+}
+
 
 void neigh_cells_new_random(PartCellData<uint64_t>& pc_data,ParticleDataNew<float, uint64_t> part_new,float num_repeats){   //  Calculate connected component from a binary mask
     //
