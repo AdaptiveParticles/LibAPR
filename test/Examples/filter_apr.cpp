@@ -166,7 +166,7 @@ int main(int argc, char **argv) {
    // apr_filter_full(pc_struct);
     
     
-    //debug_write(filter_img,"test");
+    debug_write(filter_img,"test");
    // debug_write(int_array[3],"int_array_3");
    // debug_write(int_array[5],"int_array_5");
    // debug_write(int_array[6],"int_array_6");
