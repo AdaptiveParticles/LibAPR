@@ -255,45 +255,79 @@ void const_upsample_img(Mesh_data<T>& input_us,Mesh_data<T>& input,std::vector<u
         
         for(i = 0;i < x_num_ds_l;i++){
             
-            //four passes
-            
-            unsigned int offset = j*x_num_ds*y_num_ds + i*y_num_ds;
+//            //four passes
+//            
+//            unsigned int offset = j*x_num_ds*y_num_ds + i*y_num_ds;
+//            //first take into cache
+//            for (k = 0; k < y_num_ds_l;k++){
+//                temp_vec[k] = input.mesh[offset + k];
+//            }
+//            
+//            //(0,0)
+//            
+//            offset = 2*j*x_num*y_num + 2*i*y_num;
+//            //then do the operations two by two
+//            for (k = 0; k < y_num_ds_l;k++){
+//                input_us.mesh[offset + 2*k] = temp_vec[k];
+//                input_us.mesh[offset + 2*k + 1] = temp_vec[k];
+//            }
+//            
+//            //(0,1)
+//            offset = (2*j+1)*x_num*y_num + 2*i*y_num;
+//            //then do the operations two by two
+//            for (k = 0; k < y_num_ds_l;k++){
+//                input_us.mesh[offset + 2*k] = temp_vec[k];
+//                input_us.mesh[offset + 2*k + 1] = temp_vec[k];
+//            }
+//            
+//            offset = 2*j*x_num*y_num + (2*i+1)*y_num;
+//            //(1,0)
+//            //then do the operations two by two
+//            for (k = 0; k < y_num_ds_l;k++){
+//                input_us.mesh[offset + 2*k] = temp_vec[k];
+//                input_us.mesh[offset + 2*k + 1] = temp_vec[k];
+//            }
+//            
+//            offset = (2*j+1)*x_num*y_num + (2*i+1)*y_num;
+//            //(1,1)
+//            //then do the operations two by two
+//            for (k = 0; k < y_num_ds_l;k++){
+//                input_us.mesh[offset + 2*k] = temp_vec[k];
+//                input_us.mesh[offset + 2*k + 1] = temp_vec[k];
+//            }
             //first take into cache
             for (k = 0; k < y_num_ds_l;k++){
-                temp_vec[k] = input.mesh[offset + k];
+                temp_vec[k] = input.mesh[j*x_num_ds*y_num_ds + i*y_num_ds + k];
             }
             
             //(0,0)
             
-            offset = 2*j*x_num*y_num + 2*i*y_num;
             //then do the operations two by two
             for (k = 0; k < y_num_ds_l;k++){
-                input_us.mesh[offset + 2*k] = temp_vec[k];
-                input_us.mesh[offset + 2*k + 1] = temp_vec[k];
+                input_us.mesh[2*j*x_num*y_num + 2*i*y_num + 2*k] = temp_vec[k];
+                input_us.mesh[2*j*x_num*y_num + 2*i*y_num + 2*k + 1] = temp_vec[k];
             }
             
             //(0,1)
-            offset = (2*j+1)*x_num*y_num + 2*i*y_num;
+            
             //then do the operations two by two
             for (k = 0; k < y_num_ds_l;k++){
-                input_us.mesh[offset + 2*k] = temp_vec[k];
-                input_us.mesh[offset + 2*k + 1] = temp_vec[k];
+                input_us.mesh[(2*j+1)*x_num*y_num + 2*i*y_num + 2*k] = temp_vec[k];
+                input_us.mesh[(2*j+1)*x_num*y_num + 2*i*y_num + 2*k + 1] = temp_vec[k];
             }
             
-            offset = 2*j*x_num*y_num + (2*i+1)*y_num;
             //(1,0)
             //then do the operations two by two
             for (k = 0; k < y_num_ds_l;k++){
-                input_us.mesh[offset + 2*k] = temp_vec[k];
-                input_us.mesh[offset + 2*k + 1] = temp_vec[k];
+                input_us.mesh[2*j*x_num*y_num + (2*i+1)*y_num + 2*k] = temp_vec[k];
+                input_us.mesh[2*j*x_num*y_num + (2*i+1)*y_num + 2*k + 1] = temp_vec[k];
             }
             
-            offset = (2*j+1)*x_num*y_num + (2*i+1)*y_num;
             //(1,1)
             //then do the operations two by two
             for (k = 0; k < y_num_ds_l;k++){
-                input_us.mesh[offset + 2*k] = temp_vec[k];
-                input_us.mesh[offset + 2*k + 1] = temp_vec[k];
+                input_us.mesh[(2*j+1)*x_num*y_num + (2*i+1)*y_num + 2*k] = temp_vec[k];
+                input_us.mesh[(2*j+1)*x_num*y_num + (2*i+1)*y_num + 2*k + 1] = temp_vec[k];
             }
             
             
