@@ -11,6 +11,7 @@
 #include <algorithm>
 #include <functional>
 #include <iostream>
+#include <Random>
 
 #include "../src/io/readimage.h"
 #include "../src/io/write_parts.h"

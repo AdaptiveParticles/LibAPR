@@ -107,18 +107,21 @@ int main(int argc, char **argv) {
     
    // convolution_filter_pixels(pc_struct,pc_struct.org_dims[0],pc_struct.org_dims[1],pc_struct.org_dims[2]);
     
-   // convolution_filter_pixels_temp(pc_struct,pc_struct.org_dims[0],pc_struct.org_dims[1],pc_struct.org_dims[2]);
+    //convolution_filter_pixels_temp(pc_struct,pc_struct.org_dims[0],pc_struct.org_dims[1],pc_struct.org_dims[2]);
+    //convolution_filter_pixels_off(pc_struct,pc_struct.org_dims[0],pc_struct.org_dims[1],pc_struct.org_dims[2]);
+    //convolution_filter_pixels_random(pc_struct,pc_struct.org_dims[0],pc_struct.org_dims[1],pc_struct.org_dims[2]);
 //    
 //    
     uint64_t num_parts = pc_struct.get_number_parts();
     uint64_t dim = ceil(pow(num_parts,1.0/3.0));
 //    
     //convolution_filter_pixels(pc_struct,dim,dim,dim);
+    //convolution_filter_pixels_temp(pc_struct,dim,dim,dim);
+    //convolution_filter_pixels_off(pc_struct,dim,dim,dim);
     convolution_filter_pixels_temp(pc_struct,dim,dim,dim);
-   // convolution_filter_pixels_temp(pc_struct,dim,dim,dim);
     
   
-    
+    //convolution_filter_pixels_random(pc_struct,dim,dim,dim);
     
     //part_new.utest_structure(pc_struct,link_array);
     
@@ -126,9 +129,9 @@ int main(int argc, char **argv) {
     
   //  compute_gradient(pc_struct,filter_output);
     
-    compute_gradient_new(pc_struct,filter_output);
+    //compute_gradient_new(pc_struct,filter_output);
     
-    compute_gradient(pc_struct,filter_output);
+    //compute_gradient(pc_struct,filter_output);
     
     neigh_cells(pc_struct.pc_data);
     
@@ -146,10 +149,22 @@ int main(int argc, char **argv) {
     PartCellData<uint64_t> pc_data_new;
     part_new.create_pc_data_new(pc_data_new);
     
-    neigh_cells(pc_data_new);
-    neigh_cells_new(pc_data_new,part_new);
+    //neigh_cells(pc_data_new);
+    //neigh_cells_new(pc_data_new,part_new);
     
-   // pc_struct.interp_parts_to_pc(filter_img,filter_output);
+    //neigh_cells_new_random(pc_data_new,part_new,pc_struct.get_number_parts());
+    
+    Part_timer timer;
+    timer.verbose_flag = true;
+    
+    timer.start_timer("interp");
+    
+    pc_struct.interp_parts_to_pc(filter_img,pc_struct.part_data.particle_data);
+    
+    timer.stop_timer();
+    
+    apr_filter_full(pc_struct);
+    
     
   //  debug_write(int_array[4],"int_array_4");
    // debug_write(int_array[3],"int_array_3");

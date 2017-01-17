@@ -68,9 +68,15 @@ public:
     }
     
     template<typename U>
+    inline U& get_part(ExtraPartCellData<U>& particle_data){
+        return particle_data.data[depth][pc_offset][part_offset];
+    }
+    
+    template<typename U>
     U& get_part(ParticleDataNew<U, T>& part_data){
         return part_data.particle_data.data[depth][pc_offset][part_offset];
     }
+
     
     pc_key get_key(){
         pc_key curr_key;

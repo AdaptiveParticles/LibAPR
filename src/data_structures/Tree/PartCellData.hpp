@@ -1702,7 +1702,7 @@ private:
         
         
         Part_timer timer;
-        timer.verbose_flag = true;
+        timer.verbose_flag = false;
         uint64_t z_;
         uint64_t x_;
         uint64_t j_;
