@@ -107,7 +107,7 @@ int main(int argc, char **argv) {
     
    // convolution_filter_pixels(pc_struct,pc_struct.org_dims[0],pc_struct.org_dims[1],pc_struct.org_dims[2]);
     
-    //convolution_filter_pixels_temp(pc_struct,pc_struct.org_dims[0],pc_struct.org_dims[1],pc_struct.org_dims[2]);
+    convolution_filter_pixels_temp(pc_struct,pc_struct.org_dims[0],pc_struct.org_dims[1],pc_struct.org_dims[2]);
     //convolution_filter_pixels_off(pc_struct,pc_struct.org_dims[0],pc_struct.org_dims[1],pc_struct.org_dims[2]);
     //convolution_filter_pixels_random(pc_struct,pc_struct.org_dims[0],pc_struct.org_dims[1],pc_struct.org_dims[2]);
 //    
@@ -118,7 +118,7 @@ int main(int argc, char **argv) {
     //convolution_filter_pixels(pc_struct,dim,dim,dim);
     //convolution_filter_pixels_temp(pc_struct,dim,dim,dim);
     //convolution_filter_pixels_off(pc_struct,dim,dim,dim);
-   // convolution_filter_pixels_temp(pc_struct,dim,dim,dim);
+    convolution_filter_pixels_temp(pc_struct,dim,dim,dim);
     
   
     //convolution_filter_pixels_random(pc_struct,dim,dim,dim);
@@ -163,10 +163,10 @@ int main(int argc, char **argv) {
     
     timer.stop_timer();
     
-   // apr_filter_full(pc_struct);
+    apr_filter_full(pc_struct);
     
     
-    debug_write(filter_img,"test");
+   // debug_write(filter_img,"test");
    // debug_write(int_array[3],"int_array_3");
    // debug_write(int_array[5],"int_array_5");
    // debug_write(int_array[6],"int_array_6");

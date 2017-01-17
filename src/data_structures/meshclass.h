@@ -250,7 +250,7 @@ void const_upsample_img(Mesh_data<T>& input_us,Mesh_data<T>& input,std::vector<u
     
     unsigned int j, i, k;
     
-#pragma omp parallel for default(shared) private(i,k,j) firstprivate(temp_vec) if(z_num_ds_l*x_num_ds_l > 100)
+#pragma omp parallel for default(shared) private(j,i,k) firstprivate(temp_vec) if(z_num_ds_l*x_num_ds_l > 100)
     for(j = 0;j < z_num_ds_l;j++){
         
         for(i = 0;i < x_num_ds_l;i++){

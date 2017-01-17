@@ -1014,22 +1014,26 @@ void apr_filter_full(PartCellStructure<S,uint64_t>& pc_struct){
     //
     //
     
-    Mesh_data<uint16_t> filter_img;
     
-    ParticleDataNew<float, uint64_t> part_new;
+    
+    ParticleDataNew<S, uint64_t> part_new;
     
     part_new.initialize_from_structure(pc_struct);
     
-    ExtraPartCellData<float> filter_output;
+    ExtraPartCellData<S> filter_output;
     filter_output.initialize_structure_parts(part_new.particle_data);
     //
     Part_timer timer;
     
-    timer.start_timer("interp");
+    Mesh_data<S> filter_img;
+    Mesh_data<S> temp_array;
     
-    pc_struct.interp_parts_to_pc(filter_img,pc_struct.part_data.particle_data);
+    int x_dim = ceil(pc_struct.org_dims[0]/2.0)*2;
+    int z_dim = ceil(pc_struct.org_dims[1]/2.0)*2;
+    int y_dim = ceil(pc_struct.org_dims[2]/2.0)*2;
     
-    timer.stop_timer();
+    filter_img.mesh.resize(x_dim*z_dim*y_dim);
+    temp_array.mesh.resize(x_dim*z_dim*y_dim);
     
     int x_; // iteration variables
     int z_; // iteration variables
@@ -1044,7 +1048,7 @@ void apr_filter_full(PartCellStructure<S,uint64_t>& pc_struct){
     timer.verbose_flag = false;
     timer.start_timer("full previous filter");
     
-    uint64_t filter_offset = 5;
+    uint64_t filter_offset = 8;
     filter.resize(filter_offset*2 +1,1);
     
     uint64_t offset_min;
@@ -1057,6 +1061,8 @@ void apr_filter_full(PartCellStructure<S,uint64_t>& pc_struct){
     timer.start_timer("compute gradient y");
     
     for(int r = 0;r < num_repeats;r++){
+        
+        pc_struct.interp_parts_to_pc(pc_struct.part_data.particle_data,filter_img,temp_array);
         
         
         for(uint64_t depth = (part_new.access_data.depth_min);depth <= part_new.access_data.depth_max;depth++){

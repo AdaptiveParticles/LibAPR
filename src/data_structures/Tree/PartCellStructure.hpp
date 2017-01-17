@@ -1639,8 +1639,27 @@ public:
         initialize_structure(particle_map);
     }
     
+    
     template<typename U,typename V>
     void interp_parts_to_pc(Mesh_data<U>& out_image,ExtraPartCellData<V>& interp_data){
+        Mesh_data<U> curr_k_img;
+        Mesh_data<U> prev_k_img;
+        
+        int x_dim = ceil(org_dims[0]/2.0)*2;
+        int z_dim = ceil(org_dims[1]/2.0)*2;
+        int y_dim = ceil(org_dims[2]/2.0)*2;
+        
+        prev_k_img.mesh.resize(x_dim*z_dim*y_dim);
+        curr_k_img.mesh.resize(x_dim*z_dim*y_dim);
+        
+        interp_parts_to_pc(interp_data,curr_k_img,prev_k_img);
+        
+        std::swap(out_image,curr_k_img);
+    
+    }
+    
+    template<typename U,typename V>
+    void interp_parts_to_pc(ExtraPartCellData<V>& interp_data,Mesh_data<U>& curr_k_img,Mesh_data<U>& prev_k_img){
         //
         //  Bevan Cheeseman 2016
         //
@@ -1648,23 +1667,20 @@ public:
         //
         
 
-        Mesh_data<U> curr_k_img;
-        Mesh_data<U> prev_k_img;
+       // Mesh_data<U> curr_k_img;
+        //Mesh_data<U> prev_k_img;
         
         constexpr int y_incr[8] = {0,1,0,1,0,1,0,1};
         constexpr int x_incr[8] = {0,0,1,1,0,0,1,1};
         constexpr int z_incr[8] = {0,0,0,0,1,1,1,1};
         
-        prev_k_img.initialize(pow(2,depth_min-1),pow(2,depth_min-1),pow(2,depth_min-1),0);
-        
-        prev_k_img.mesh.resize(org_dims[0]*org_dims[1]*org_dims[2]);
-        curr_k_img.mesh.resize(org_dims[0]*org_dims[1]*org_dims[2]);
+        prev_k_img.set_size(pow(2,depth_min-1),pow(2,depth_min-1),pow(2,depth_min-1));
         
         Part_timer timer;
         timer.verbose_flag = false;
         
         Part_timer t_n;
-        t_n.verbose_flag = true;
+        t_n.verbose_flag = false;
         t_n.start_timer("loop");
         
         uint64_t z_ = 0;
@@ -1956,14 +1972,6 @@ public:
     
         t_n.stop_timer();
         
-        timer.verbose_flag = true;
-
-        timer.start_timer("last loop");
-        
-        std::swap(out_image,curr_k_img);
-        
-
-        timer.stop_timer();
         
     }
 
