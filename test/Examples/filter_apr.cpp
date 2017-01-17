@@ -118,7 +118,7 @@ int main(int argc, char **argv) {
     //convolution_filter_pixels(pc_struct,dim,dim,dim);
     //convolution_filter_pixels_temp(pc_struct,dim,dim,dim);
     //convolution_filter_pixels_off(pc_struct,dim,dim,dim);
-    convolution_filter_pixels_temp(pc_struct,dim,dim,dim);
+    //convolution_filter_pixels_temp(pc_struct,dim,dim,dim);
     
   
     //convolution_filter_pixels_random(pc_struct,dim,dim,dim);
@@ -154,16 +154,8 @@ int main(int argc, char **argv) {
     
     //neigh_cells_new_random(pc_data_new,part_new,pc_struct.get_number_parts());
     
-    Part_timer timer;
-    timer.verbose_flag = true;
     
-    timer.start_timer("interp");
-    
-    pc_struct.interp_parts_to_pc(filter_img,pc_struct.part_data.particle_data);
-    
-    timer.stop_timer();
-    
-    apr_filter_full(pc_struct);
+    //apr_filter_full(pc_struct);
     
     
    // debug_write(filter_img,"test");
