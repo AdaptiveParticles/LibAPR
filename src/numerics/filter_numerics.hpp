@@ -879,7 +879,76 @@ void convolution_filter_pixels_temp(PartCellStructure<U,uint64_t>& pc_struct,uin
     timer.stop_timer();
     float time = (timer.t2 - timer.t1)/num_repeats;
     
-    std::cout << " Pixel Filter Size: " << (x_num*y_num*z_num) << " took: " << time << std::endl;
+    std::cout << " Pixel Filter Size: " << (x_num*y_num*z_num) << " y took: " << time << std::endl;
+    
+    // x loop
+    
+    for(int r = 0;r < num_repeats;r++){
+        
+#pragma omp parallel for default(shared) private(j,i,k,offset_min,offset_max) firstprivate(temp_vec)
+        for(j = 0; j < z_num;j++){
+            for(i = 0; i < x_num;i++){
+                
+                for(k = 0;k < y_num;k++){
+                    
+                    offset_max = std::min((uint64_t)(i + filter_offset),(uint64_t)(x_num-1));
+                    offset_min = std::max((uint64_t)(i - filter_offset),(uint64_t)0);
+                    
+                    uint64_t f = 0;
+                    for(uint64_t c = offset_min;c <= offset_max;c++){
+                        
+                        //output_data.mesh[j*x_num*y_num + i*y_num + k] += temp_vec[c]*filter[f];
+                        output_data.mesh[j*x_num*y_num + i*y_num + k] += input_data.mesh[j*x_num*y_num + c*y_num + k]*filter[f];
+                        f++;
+                    }
+                    
+                }
+            }
+        }
+        
+    }
+    
+    (void) output_data.mesh;
+    
+    timer.stop_timer();
+    time = (timer.t2 - timer.t1)/num_repeats;
+    
+    std::cout << " Pixel Filter Size: " << (x_num*y_num*z_num) << " x took: " << time << std::endl;
+    
+    // z loop
+    
+    for(int r = 0;r < num_repeats;r++){
+        
+#pragma omp parallel for default(shared) private(j,i,k,offset_min,offset_max) firstprivate(temp_vec)
+         for(j = 0; j < z_num;j++){
+             for(i = 0; i < x_num;i++){
+               
+                
+                for(k = 0;k < y_num;k++){
+                    
+                    offset_max = std::min((uint64_t)(j + filter_offset),(uint64_t)(z_num-1));
+                    offset_min = std::max((uint64_t)(j - filter_offset),(uint64_t)0);
+                    
+                    uint64_t f = 0;
+                    for(uint64_t c = offset_min;c <= offset_max;c++){
+                        
+                        //output_data.mesh[j*x_num*y_num + i*y_num + k] += temp_vec[c]*filter[f];
+                        output_data.mesh[j*x_num*y_num + i*y_num + k] += input_data.mesh[c*x_num*y_num + i*y_num + k]*filter[f];
+                        f++;
+                    }
+                    
+                }
+            }
+        }
+        
+    }
+    
+    (void) output_data.mesh;
+    
+    timer.stop_timer();
+    time = (timer.t2 - timer.t1)/num_repeats;
+    
+    std::cout << " Pixel Filter Size: " << (x_num*y_num*z_num) << " z took: " << time << std::endl;
     
 }
 template<typename U>
@@ -1015,7 +1084,6 @@ void apr_filter_full(PartCellStructure<S,uint64_t>& pc_struct){
     //
     
     
-    
     ParticleDataNew<S, uint64_t> part_new;
     
     part_new.initialize_from_structure(pc_struct);
@@ -1124,7 +1192,139 @@ void apr_filter_full(PartCellStructure<S,uint64_t>& pc_struct){
     
     float time = (timer.t2 - timer.t1);
     
-    std::cout << " Adaptive Filter took: " << time/num_repeats << std::endl;
+    std::cout << " Adaptive Filter y took: " << time/num_repeats << std::endl;
+    
+    for(int r = 0;r < num_repeats;r++){
+        
+        pc_struct.interp_parts_to_pc(pc_struct.part_data.particle_data,filter_img,temp_array);
+        
+        
+        for(uint64_t depth = (part_new.access_data.depth_min);depth <= part_new.access_data.depth_max;depth++){
+            //loop over the resolutions of the structure
+            const unsigned int x_num_ = part_new.access_data.x_num[depth];
+            const unsigned int z_num_ = part_new.access_data.z_num[depth];
+            
+            CurrentLevel<float,uint64_t> curr_level;
+            curr_level.set_new_depth(depth,part_new);
+            
+#pragma omp parallel for default(shared) private(z_,x_,j_,y_,offset_min,offset_max) firstprivate(curr_level) if(z_num_*x_num_ > 100)
+            for(z_ = 0;z_ < z_num_;z_++){
+                //both z and x are explicitly accessed in the structure
+                
+                for(x_ = 0;x_ < x_num_;x_++){
+                    
+                    curr_level.set_new_xz(x_,z_,part_new);
+                    
+                    for(j_ = 0;j_ < curr_level.j_num;j_++){
+                        
+                        bool iscell = curr_level.new_j(j_,part_new);
+                        
+                        if (iscell){
+                            //Indicates this is a particle cell node
+                            curr_level.update_cell(part_new);
+                            
+                            y_ = curr_level.y;
+                            
+                            offset_max = std::min((uint64_t)(x_ + filter_offset),(uint64_t)(x_num_m-1));
+                            offset_min = std::max((uint64_t)(x_ - filter_offset),(uint64_t)0);
+                            
+                            uint64_t f = 0;
+                            S temp = 0;
+                            for(uint64_t c = offset_min;c <= offset_max;c++){
+                                
+                                //need to change the below to the vector
+                                temp += filter_img.mesh[z_*x_num_m*y_num_m + c*y_num_m + y_]*filter[f];
+                                f++;
+                            }
+                            
+                            curr_level.get_part(filter_output) = temp;
+                            
+                            
+                            
+                        } else {
+                            
+                            curr_level.update_gap();
+                            
+                        }
+                        
+                        
+                    }
+                }
+            }
+        }
+    }
+    
+    timer.stop_timer();
+    
+    time = (timer.t2 - timer.t1);
+    
+    std::cout << " Adaptive Filter x took: " << time/num_repeats << std::endl;
+    
+    for(int r = 0;r < num_repeats;r++){
+        
+        pc_struct.interp_parts_to_pc(pc_struct.part_data.particle_data,filter_img,temp_array);
+        
+        
+        for(uint64_t depth = (part_new.access_data.depth_min);depth <= part_new.access_data.depth_max;depth++){
+            //loop over the resolutions of the structure
+            const unsigned int x_num_ = part_new.access_data.x_num[depth];
+            const unsigned int z_num_ = part_new.access_data.z_num[depth];
+            
+            CurrentLevel<float,uint64_t> curr_level;
+            curr_level.set_new_depth(depth,part_new);
+            
+#pragma omp parallel for default(shared) private(z_,x_,j_,y_,offset_min,offset_max) firstprivate(curr_level) if(z_num_*x_num_ > 100)
+            for(z_ = 0;z_ < z_num_;z_++){
+                //both z and x are explicitly accessed in the structure
+                
+                for(x_ = 0;x_ < x_num_;x_++){
+                    
+                    curr_level.set_new_xz(x_,z_,part_new);
+                    
+                    for(j_ = 0;j_ < curr_level.j_num;j_++){
+                        
+                        bool iscell = curr_level.new_j(j_,part_new);
+                        
+                        if (iscell){
+                            //Indicates this is a particle cell node
+                            curr_level.update_cell(part_new);
+                            
+                            y_ = curr_level.y;
+                            
+                            offset_max = std::min((uint64_t)(z_ + filter_offset),(uint64_t)(z_num_m-1));
+                            offset_min = std::max((uint64_t)(z_ - filter_offset),(uint64_t)0);
+                            
+                            uint64_t f = 0;
+                            S temp = 0;
+                            for(uint64_t c = offset_min;c <= offset_max;c++){
+                                
+                                //need to change the below to the vector
+                                temp += filter_img.mesh[c*x_num_m*y_num_m + x_*y_num_m + y_]*filter[f];
+                                f++;
+                            }
+                            
+                            curr_level.get_part(filter_output) = temp;
+                            
+                            
+                            
+                        } else {
+                            
+                            curr_level.update_gap();
+                            
+                        }
+                        
+                        
+                    }
+                }
+            }
+        }
+    }
+    
+    timer.stop_timer();
+    
+    time = (timer.t2 - timer.t1);
+    
+    std::cout << " Adaptive Filter z took: " << time/num_repeats << std::endl;
     
     
 }
