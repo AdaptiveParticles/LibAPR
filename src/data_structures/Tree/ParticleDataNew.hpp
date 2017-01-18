@@ -105,7 +105,7 @@ public:
     
     std::vector<unsigned int> z_num;
     std::vector<unsigned int> x_num;
-   
+    std::vector<unsigned int> y_num;
     
     template<typename U>
     void initialize_from_structure(PartCellStructure<U,uint64_t>& pc_struct){
@@ -113,6 +113,10 @@ public:
         //  Initialize the two data structures
         //
         //
+        
+        x_num = pc_struct.x_num;
+        y_num = pc_struct.y_num;
+        z_num = pc_struct.z_num;
         
         
         //first add the layers
@@ -406,7 +410,8 @@ public:
     template<typename U>
     void create_pc_data_new(PartCellData<U>& pc_data_new){
         
-
+        
+        pc_data_new.y_num = y_num;
         
         //first add the layers
         pc_data_new.depth_max = access_data.depth_max;

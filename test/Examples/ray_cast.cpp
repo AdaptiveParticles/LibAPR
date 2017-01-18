@@ -87,26 +87,6 @@ int main(int argc, char **argv) {
   
     PartCellParent<uint64_t> parent_cells(pc_struct);
     
-    int num_cells = pc_struct.get_number_cells();
-    int num_parts = pc_struct.get_number_parts();
-    
-    std::cout << "Number cells: " << num_cells << std::endl;
-    std::cout << "Number parts: " << num_parts << std::endl;
-    
-    parent_structure_test(pc_struct);
-    
-    // FIND POINT X,Y,Z  in structure
-//
-//    for(uint64_t x = 0; x < 1024; x++) {
-//        for(uint64_t y = 0; y < 1024; y++) {
-//            for(uint64_t z = 0; z < 100; z++) {
-//                uint64_t pc_key = parent_cells.find_partcell(x, y, z, pc_struct);
-//                uint64_t check = pc_struct.pc_data.get_val(pc_key);
-//
-//                std::cout << check << std::endl;
-//            }
-//        }
-//    }
 
     std::cout << "Propagating through APR now..." << std::endl;
 
@@ -116,8 +96,10 @@ int main(int argc, char **argv) {
     for(unsigned int step = 0; step < MAX_DIST; step++) {
 
         uint64_t pc_key = parent_cells.find_partcell(x+step*dir_x, y+step*dir_y, z+step*dir_z, pc_struct);
-        uint64_t check = pc_struct.pc_data.get_val(pc_key);
-
+        uint64_t check = 0;
+        if(pc_key > 0){
+           check = pc_struct.pc_data.get_val(pc_key);
+        }
         std::cout << check << std::endl;
     }
 
@@ -128,6 +110,48 @@ int main(int argc, char **argv) {
     find_part_cell_test(pc_struct);
     
     part_rep.timer.stop_timer();
+    
+    
+//    CurrentLevel<float,uint64_t> curr_level;
+//    
+//    //
+//    //  Initialize Randomly
+//    //
+//    
+//    
+//    //iterate loop;
+//    
+//    timer.start_timer("neigh_cell_comp");
+//    
+//    unsigned int dir = 0;
+//    unsigned int index = 0;
+//    float neigh_int= 0;
+//    
+//    for(int r = 0;r < num_repeats;r++){
+//        //choose one of the 6 directions (+y,-y,+x..
+//        dir = std::rand()%6;
+//        //if there are children which one
+//        index = std::rand()%4;
+//        
+//        //move randomly
+//        curr_level.move_cell(dir,index,part_new,pc_data);
+//        
+//        //get all
+//        curr_level.update_all_neigh(pc_data);
+//        
+//        neigh_int = 0;
+//        
+//        for(int i = 0;i < 6;i++){
+//            neigh_int += curr_level.get_neigh_int(i,part_new,pc_data);
+//            
+//        }
+//        
+//        curr_level.get_val(filter_output) = neigh_int;
+//    }
+//    
+
+    
+    
 }
 
 

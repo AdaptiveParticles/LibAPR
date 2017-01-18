@@ -1568,6 +1568,8 @@ public:
         
         create_partcell_structure(p_map);
         create_particle_structures(Ip);
+        
+        pc_data.y_num = y_num;
     }
     
     void initialize_particle_read(std::vector<std::vector<uint8_t>>& p_map){
@@ -1576,7 +1578,7 @@ public:
         //
         
         create_partcell_structure(p_map);
-        
+        pc_data.y_num = y_num;
     }
     
     void initialize_pc_read(std::vector<std::vector<uint8_t>>& p_map){
@@ -1585,7 +1587,7 @@ public:
         //
         
         create_partcell_structure(p_map);
-        
+        pc_data.y_num = y_num;
     }
                                    
     //decleration
@@ -1601,7 +1603,7 @@ public:
         
         //create_sparse_graph_format(particle_map);
         create_partcell_structure(particle_map);
-        
+        pc_data.y_num = y_num;
     }
     
     PartCellStructure(){
