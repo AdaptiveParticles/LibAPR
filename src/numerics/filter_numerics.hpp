@@ -60,7 +60,7 @@ void iterate_temp_vec(std::vector<T>& temp_vec){
 }
 
 template<typename S>
-void compute_gradient_new(PartCellStructure<S,uint64_t>& pc_struct,ExtraPartCellData<S>& filter_output){
+void particle_linear_neigh_access_alt_1(PartCellStructure<S,uint64_t>& pc_struct){
     //
     //  Calculate Neighbours Using Iterators
     //
@@ -69,7 +69,11 @@ void compute_gradient_new(PartCellStructure<S,uint64_t>& pc_struct,ExtraPartCell
     
     part_new.initialize_from_structure(pc_struct);
     
-    //filter_output.initialize_structure_parts(part_new);
+    ExtraPartCellData<float> filter_output;
+    filter_output.initialize_structure_cells(part_new.access_data);
+    
+    ExtraPartCellData<float> particle_data;
+    particle_data.initialize_structure_cells(part_new.access_data);
     //
     Part_timer timer;
     
@@ -97,20 +101,34 @@ void compute_gradient_new(PartCellStructure<S,uint64_t>& pc_struct,ExtraPartCell
             curr_level.set_new_depth(depth,part_new);
             
             NeighOffset<float,uint64_t> neigh_y(0);
-            NeighOffset<float,uint64_t> neigh_ym(1);
+            NeighOffset<float,uint64_t> neigh_y1(1);
+            NeighOffset<float,uint64_t> neigh_y2(2);
+            NeighOffset<float,uint64_t> neigh_y3(3);
+            NeighOffset<float,uint64_t> neigh_y4(4);
+            NeighOffset<float,uint64_t> neigh_y5(5);
             
             neigh_y.set_new_depth(curr_level,part_new);
-            neigh_ym.set_new_depth(curr_level,part_new);
+            neigh_y1.set_new_depth(curr_level,part_new);
+            neigh_y2.set_new_depth(curr_level,part_new);
+            neigh_y3.set_new_depth(curr_level,part_new);
+            neigh_y4.set_new_depth(curr_level,part_new);
+            neigh_y5.set_new_depth(curr_level,part_new);
             
-#pragma omp parallel for default(shared) private(z_,x_,j_,int_neigh_p,int_neigh_m) firstprivate(curr_level,neigh_y,neigh_ym) if(z_num_*x_num_ > 100)
+#pragma omp parallel for default(shared) private(z_,x_,j_,int_neigh_p) firstprivate(curr_level,neigh_y,neigh_y1,neigh_y2,neigh_y3,neigh_y4,neigh_y5) if(z_num_*x_num_ > 100)
             for(z_ = 0;z_ < z_num_;z_++){
                 //both z and x are explicitly accessed in the structure
                 
                 for(x_ = 0;x_ < x_num_;x_++){
                     
                     curr_level.set_new_xz(x_,z_,part_new);
+                    
                     neigh_y.set_new_row(curr_level,part_new);
-                    //neigh_ym.set_new_row(curr_level,part_new);
+                    neigh_y1.set_new_row(curr_level,part_new);
+                    neigh_y2.set_new_row(curr_level,part_new);
+                    neigh_y3.set_new_row(curr_level,part_new);
+                    neigh_y4.set_new_row(curr_level,part_new);
+                    neigh_y5.set_new_row(curr_level,part_new);
+                    
                     
                     for(j_ = 0;j_ < curr_level.j_num;j_++){
                         
@@ -121,13 +139,20 @@ void compute_gradient_new(PartCellStructure<S,uint64_t>& pc_struct,ExtraPartCell
                             curr_level.update_cell(part_new);
                             
                             neigh_y.iterate(curr_level,part_new);
-                            neigh_ym.iterate(curr_level,part_new);
+                            neigh_y1.iterate(curr_level,part_new);
+                            neigh_y2.iterate(curr_level,part_new);
+                            neigh_y3.iterate(curr_level,part_new);
+                            neigh_y4.iterate(curr_level,part_new);
+                            neigh_y5.iterate(curr_level,part_new);
                             
                             int_neigh_p = neigh_y.get_part(part_new.particle_data);
-                            int_neigh_m = neigh_ym.get_part(part_new.particle_data);
+                            int_neigh_p += neigh_y1.get_part(part_new.particle_data);
+                            int_neigh_p += neigh_y2.get_part(part_new.particle_data);
+                            int_neigh_p += neigh_y3.get_part(part_new.particle_data);
+                            int_neigh_p += neigh_y4.get_part(part_new.particle_data);
+                            int_neigh_p += neigh_y5.get_part(part_new.particle_data);
                             
-                            (void) int_neigh_p;
-                            (void) int_neigh_m;
+                            curr_level.get_val(filter_output) = int_neigh_p;
                             
                         } else {
                             
@@ -144,9 +169,10 @@ void compute_gradient_new(PartCellStructure<S,uint64_t>& pc_struct,ExtraPartCell
     
     timer.stop_timer();
     
-    float time = (timer.t2 - timer.t1);
+    float time = (timer.t2 - timer.t1)/num_repeats;
     
-    std::cout << " Gradient New took: " << time/num_repeats << std::endl;
+    std::cout << "Get neigh particle linear alt: " << time << std::endl;
+    std::cout << "per 1000000 particles took: " << time/(1.0*pc_struct.get_number_parts()/1000000.0) << std::endl;
     
     
 }
@@ -315,7 +341,7 @@ void compute_gradient(PartCellStructure<S,uint64_t>& pc_struct,ExtraPartCellData
     
 }
 
-void neigh_cells(PartCellData<uint64_t>& pc_data){   //  Calculate connected component from a binary mask
+void neigh_cells(PartCellData<uint64_t>& pc_data){
     //
     //  Should be written with the neighbour iterators instead.
     //
@@ -340,7 +366,7 @@ void neigh_cells(PartCellData<uint64_t>& pc_data){   //  Calculate connected com
     
 
     
-    const int direction = 0;
+    const int num_dir = 6;
     
     float num_repeats = 50;
     
@@ -349,7 +375,6 @@ void neigh_cells(PartCellData<uint64_t>& pc_data){   //  Calculate connected com
     for(int r = 0;r < num_repeats;r++){
         
 
-        
         for(uint64_t i = pc_data.depth_min;i <= pc_data.depth_max;i++){
             //loop over the resolutions of the structure
             const unsigned int x_num_ = pc_data.x_num[i];
@@ -386,7 +411,7 @@ void neigh_cells(PartCellData<uint64_t>& pc_data){   //  Calculate connected com
                             pc_data.pc_key_set_j(curr_key,j_);
                             
                             pc_data.get_neighs_face(curr_key,node_val_pc,0,neigh_cell_keys);
-                            pc_data.get_neighs_face(curr_key,node_val_pc,1,neigh_cell_keys);
+                            
                             
                             //loop over the nieghbours
                             for(int n = 0; n < neigh_cell_keys.neigh_face[0].size();n++){
@@ -431,7 +456,6 @@ void neigh_cells(PartCellData<uint64_t>& pc_data){   //  Calculate connected com
     }
     
     
-    
     timer.stop_timer();
     
     float time = (timer.t2 - timer.t1)/num_repeats;
@@ -440,11 +464,24 @@ void neigh_cells(PartCellData<uint64_t>& pc_data){   //  Calculate connected com
     
    
 }
-void neigh_cells_new(PartCellData<uint64_t>& pc_data,ParticleDataNew<float, uint64_t> part_new){   //  Calculate connected component from a binary mask
+void particle_linear_neigh_access(PartCellStructure<float,uint64_t>& pc_struct){   //  Calculate connected component from a binary mask
     //
     //  Should be written with the neighbour iterators instead.
     //
     
+    ParticleDataNew<float, uint64_t> part_new;
+    
+    part_new.initialize_from_structure(pc_struct);
+    
+    PartCellData<uint64_t> pc_data;
+    part_new.create_pc_data_new(pc_data);
+    
+    
+    ExtraPartCellData<float> filter_output;
+    filter_output.initialize_structure_cells(pc_data);
+    
+    ExtraPartCellData<float> particle_data;
+    particle_data.initialize_structure_cells(pc_data);
     
     Part_timer timer;
     
@@ -462,7 +499,7 @@ void neigh_cells_new(PartCellData<uint64_t>& pc_data,ParticleDataNew<float, uint
     
     timer.verbose_flag = false;
     
-    const int direction = 0;
+    const int num_dir = 6;
     
     float num_repeats = 50;
     
@@ -508,46 +545,25 @@ void neigh_cells_new(PartCellData<uint64_t>& pc_data,ParticleDataNew<float, uint
                             
                             pc_data.pc_key_set_j(curr_key,j_);
                             
-                            pc_data.get_neighs_face(curr_key,node_val_pc,0,neigh_cell_keys);
-                            pc_data.get_neighs_face(curr_key,node_val_pc,1,neigh_cell_keys);
-                            
-                            //loop over the nieghbours
-                            for(int n = 0; n < neigh_cell_keys.neigh_face[0].size();n++){
-                                // Check if the neighbour exisits (if neigh_cell_value = 0, the neighbour doesn't exist)
-                                uint64_t neigh_key = neigh_cell_keys.neigh_face[0][n];
-                                
-                                if(neigh_key > 0){
-                                    //get information about the nieghbour (need to provide face and neighbour number (n) and the current y coordinate)
-                                    uint64_t part_node = part_new.access_data.get_val(neigh_key);
-                                    uint64_t part_offset = part_new.access_node_get_part_offset(part_node);
-                                    part_new.access_data.pc_key_set_index(neigh_key,part_offset);
-                                    part_int += part_new.particle_data.get_part(neigh_key);
-                                    
-                                }
-                                
-                                
+                            for(int dir = 0;dir < num_dir;dir++){
+                                pc_data.get_neighs_face(curr_key,node_val_pc,dir,neigh_cell_keys);
                             }
                             
-                            //loop over the nieghbours
-                            for(int n = 0; n < neigh_cell_keys.neigh_face[1].size();n++){
-                                // Check if the neighbour exisits (if neigh_cell_value = 0, the neighbour doesn't exist)
-                                uint64_t neigh_key = neigh_cell_keys.neigh_face[1][n];
-                                
-                                if(neigh_key > 0){
-                                    //get information about the nieghbour (need to provide face and neighbour number (n) and the current y coordinate)
-                                    uint64_t part_node = part_new.access_data.get_val(neigh_key);
-                                    uint64_t part_offset = part_new.access_node_get_part_offset(part_node);
-                                    part_new.access_data.pc_key_set_index(neigh_key,part_offset);
-                                    part_int += part_new.particle_data.get_part(neigh_key);
+                            for(int dir = 0;dir < num_dir;dir++){
+                                //loop over the nieghbours
+                                for(int n = 0; n < neigh_cell_keys.neigh_face[dir].size();n++){
+                                    // Check if the neighbour exisits (if neigh_cell_value = 0, the neighbour doesn't exist)
+                                    uint64_t neigh_key = neigh_cell_keys.neigh_face[dir][n];
                                     
+                                    if(neigh_key > 0){
+                                        //get information about the nieghbour (need to provide face and neighbour number (n) and the current y coordinate)
+                                        part_int+= particle_data.get_val(neigh_key);
+                                    }
                                     
                                 }
-                                
-                                
                             }
                             
-                            (void) part_int;
-                            
+                            filter_output.data[i][offset_pc_data][j_] = part_int;
                             
                         } else {
                             // Inidicates this is not a particle cell node, and is a gap node
@@ -569,9 +585,8 @@ void neigh_cells_new(PartCellData<uint64_t>& pc_data,ParticleDataNew<float, uint
     
     float time = (timer.t2 - timer.t1)/num_repeats;
     
-    std::cout << "Get neigh: " << time << std::endl;
-    
-    
+    std::cout << "Get neigh particle linear: " << time << std::endl;
+    std::cout << "per 1000000 particles took: " << time/(1.0*pc_struct.get_number_parts()/1000000.0) << std::endl;
     
 }
 void move_cells_random(PartCellData<uint64_t>& pc_data,ParticleDataNew<float, uint64_t> part_new){
@@ -750,11 +765,19 @@ void pixels_move_random(PartCellStructure<U,uint64_t>& pc_struct,uint64_t y_num,
 }
 
 
-void particle_random_access(PartCellData<uint64_t>& pc_data,ParticleDataNew<float, uint64_t> part_new,float num_repeats){   //  Calculate connected component from a binary mask
+void particle_random_access(PartCellStructure<float,uint64_t>& pc_struct){   //  Calculate connected component from a binary mask
     //
     //  Should be written with the neighbour iterators instead.
     //
     
+    ParticleDataNew<float, uint64_t> part_new;
+    
+    part_new.initialize_from_structure(pc_struct);
+    
+    PartCellData<uint64_t> pc_data;
+    part_new.create_pc_data_new(pc_data);
+    
+    int num_repeats = pc_struct.get_number_parts();
     
     Part_timer timer;
     
@@ -876,17 +899,6 @@ void particle_random_access(PartCellData<uint64_t>& pc_data,ParticleDataNew<floa
         
         j_ = std::rand()%j_num;
         
-        //both z and x are explicitly accessed in the structure
-//        curr_key = 0;
-//        pc_data.pc_key_set_x(curr_key,x_);
-//        pc_data.pc_key_set_z(curr_key,z_);
-//        pc_data.pc_key_set_depth(curr_key,depth);
-//        
-//        float part_int= 0;
-//        
-//        //particle cell node value, used here as it is requried for getting the particle neighbours
-//        node_val_pc = pc_data.data[depth][offset_pc_data][j_];
-        
         (void) j_;
         (void) x_;
         (void) z_;
@@ -909,7 +921,7 @@ void particle_random_access(PartCellData<uint64_t>& pc_data,ParticleDataNew<floa
 
 
 template<typename U>
-void convolution_filter_pixels_temp(PartCellStructure<U,uint64_t>& pc_struct,uint64_t y_num,uint64_t x_num,uint64_t z_num){
+void pixel_filter_full(PartCellStructure<U,uint64_t>& pc_struct,uint64_t y_num,uint64_t x_num,uint64_t z_num,uint64_t filter_offset){
     //
     //  Compute two, comparitive filters for speed. Original size img, and current particle size comparison
     //
@@ -925,7 +937,7 @@ void convolution_filter_pixels_temp(PartCellStructure<U,uint64_t>& pc_struct,uin
     timer.verbose_flag = false;
     timer.start_timer("full previous filter");
     
-    uint64_t filter_offset = 8;
+    
     filter.resize(filter_offset*2 +1,1);
     
     std::vector<U> temp_vec;
@@ -1002,9 +1014,9 @@ void convolution_filter_pixels_temp(PartCellStructure<U,uint64_t>& pc_struct,uin
     (void) output_data.mesh;
     
     timer.stop_timer();
-    time = (timer.t2 - timer.t1)/num_repeats;
+    float time2 = (timer.t2 - timer.t1)/num_repeats;
     
-    std::cout << " Pixel Filter Size: " << (x_num*y_num*z_num) << " x took: " << time << std::endl;
+    std::cout << " Pixel Filter Size: " << (x_num*y_num*z_num) << " x took: " << time2 << std::endl;
     
     // z loop
     
@@ -1037,63 +1049,70 @@ void convolution_filter_pixels_temp(PartCellStructure<U,uint64_t>& pc_struct,uin
     (void) output_data.mesh;
     
     timer.stop_timer();
-    time = (timer.t2 - timer.t1)/num_repeats;
+    float time3 = (timer.t2 - timer.t1)/num_repeats;
     
-    std::cout << " Pixel Filter Size: " << (x_num*y_num*z_num) << " z took: " << time << std::endl;
+    std::cout << " Pixel Filter Size: " << (x_num*y_num*z_num) << " z took: " << time3 << std::endl;
+    
+    std::cout << " Pixel Filter Size: " << (x_num*y_num*z_num) << " all took: " << (time+time2+time3) << std::endl;
     
 }
 template<typename U>
-void convolution_filter_pixels_off(PartCellStructure<U,uint64_t>& pc_struct,uint64_t y_num,uint64_t x_num,uint64_t z_num){
+void pixels_linear_neigh_access(PartCellStructure<U,uint64_t>& pc_struct,uint64_t y_num,uint64_t x_num,uint64_t z_num){
     //
     //  Compute two, comparitive filters for speed. Original size img, and current particle size comparison
     //
+    
+    const int8_t dir_y[6] = { 1, -1, 0, 0, 0, 0};
+    const int8_t dir_x[6] = { 0, 0, 1, -1, 0, 0};
+    const int8_t dir_z[6] = { 0, 0, 0, 0, 1, -1};
     
     Mesh_data<U> input_data;
     Mesh_data<U> output_data;
     input_data.initialize((int)y_num,(int)x_num,(int)z_num,23);
     output_data.initialize((int)y_num,(int)x_num,(int)z_num,0);
     
-    std::vector<float> filter;
-    
     Part_timer timer;
     timer.verbose_flag = false;
     timer.start_timer("full previous filter");
     
-    uint64_t filter_offset = 1;
-    filter.resize(filter_offset*2 +1,1);
     
-    std::vector<U> temp_vec;
-    temp_vec.resize(y_num,0);
+    int j = 0;
+    int k = 0;
+    int i = 0;
     
-    uint64_t offset_min;
-    uint64_t offset_max;
+    int j_n = 0;
+    int k_n = 0;
+    int i_n = 0;
     
-    uint64_t j = 0;
-    uint64_t k = 0;
-    uint64_t i = 0;
-    
-    float num_repeats = 50;
+    //float neigh_sum = 0;
+    float num_repeats = 5;
     
     for(int r = 0;r < num_repeats;r++){
         
-#pragma omp parallel for default(shared) private(j,i,k,offset_min,offset_max) firstprivate(temp_vec)
-        for(i = 0; i < x_num;i++){
-            for(k = 0;k < y_num;k++){
-            
-                for(j = 0; j < z_num;j++){
-                
-                
+#pragma omp parallel for default(shared) private(j,i,k,i_n,k_n,j_n)
+        for(j = 0; j < z_num;j++){
+            for(i = 0; i < x_num;i++){
+                for(k = 0;k < y_num;k++){
+                    float neigh_sum = 0;
                     
-                    offset_max = std::min((uint64_t)(k + filter_offset),(uint64_t)(y_num-1));
-                    offset_min = std::max((uint64_t)(k - filter_offset),(uint64_t)0);
-                    
-                    uint64_t f = 0;
-                    for(uint64_t c = offset_min;c <= offset_max;c++){
+                    for(int  d  = 0;d < 6;d++){
                         
-                        //output_data.mesh[j*x_num*y_num + i*y_num + k] += temp_vec[c]*filter[f];
-                        output_data.mesh[j*x_num*y_num + i*y_num + k] += input_data.mesh[j*x_num*y_num + i*y_num + c]*filter[f];
-                        f++;
+                        i_n = i + dir_x[d];
+                        k_n = k + dir_y[d];
+                        j_n = j + dir_z[d];
+                        
+                        //check boundary conditions
+                        if((i_n >=0) & (i_n < x_num) ){
+                            if((j_n >=0) & (j_n < z_num) ){
+                                if((k_n >=0) & (k_n < y_num) ){
+                                    neigh_sum += input_data.mesh[j_n*x_num*y_num + i_n*y_num + k_n];
+                                }
+                            }
+                        }
+                        
                     }
+                    
+                    output_data.mesh[j*x_num*y_num + i*y_num + k] = neigh_sum;
                     
                 }
             }
@@ -1105,7 +1124,8 @@ void convolution_filter_pixels_off(PartCellStructure<U,uint64_t>& pc_struct,uint
     timer.stop_timer();
     float time = (timer.t2 - timer.t1)/num_repeats;
     
-    std::cout << " Pixel Filter Size Off: " << (x_num*y_num*z_num) << " took: " << time << std::endl;
+    std::cout << "Pixel Linear Neigh: " << (x_num*y_num*z_num) << " took: " << time << std::endl;
+    std::cout << "per 1000000 pixel took: " << (time)/((1.0*x_num*y_num*z_num)/1000000.0) << std::endl;
     
 }
 template<typename U>
@@ -1214,7 +1234,7 @@ void pixel_neigh_random(PartCellStructure<U,uint64_t>& pc_struct,uint64_t y_num,
     
 }
 template<typename S>
-void apr_filter_full(PartCellStructure<S,uint64_t>& pc_struct){
+void apr_filter_full(PartCellStructure<S,uint64_t>& pc_struct,uint64_t filter_offset){
     //
     //  Calculate Neighbours Using Iterators
     //
@@ -1253,7 +1273,6 @@ void apr_filter_full(PartCellStructure<S,uint64_t>& pc_struct){
     timer.verbose_flag = false;
     timer.start_timer("full previous filter");
     
-    uint64_t filter_offset = 8;
     filter.resize(filter_offset*2 +1,1);
     
     uint64_t offset_min;
@@ -1392,9 +1411,9 @@ void apr_filter_full(PartCellStructure<S,uint64_t>& pc_struct){
     
     timer.stop_timer();
     
-    time = (timer.t2 - timer.t1);
+    float time2 = (timer.t2 - timer.t1);
     
-    std::cout << " Adaptive Filter x took: " << time/num_repeats << std::endl;
+    std::cout << " Adaptive Filter x took: " << time2/num_repeats << std::endl;
     
     for(int r = 0;r < num_repeats;r++){
         
@@ -1458,9 +1477,11 @@ void apr_filter_full(PartCellStructure<S,uint64_t>& pc_struct){
     
     timer.stop_timer();
     
-    time = (timer.t2 - timer.t1);
+    float time3 = (timer.t2 - timer.t1);
     
-    std::cout << " Adaptive Filter z took: " << time/num_repeats << std::endl;
+    std::cout << "Particle pc Filter z took: " << time3/num_repeats << std::endl;
+    
+    std::cout << "Particle pc Filter all took: " << (time + time2 + time3)/num_repeats << std::endl;
     
     
 }

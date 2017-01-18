@@ -90,107 +90,48 @@ int main(int argc, char **argv) {
     // Read the apr file into the part cell structure
     read_apr_pc_struct(pc_struct,file_name);
     
-    //ExtraPartCellData<float> filter_output;
     
-   // filter_output.initialize_structure_parts(pc_struct.part_data.particle_data);
+    //////////////////////////////////
+    //
+    //  Different access and filter test examples
+    //
+    //////////////////////////////////
     
-    
-  //  threshold_speed(pc_struct);
-    
-   // threshold_pixels(pc_struct,pc_struct.org_dims[0],pc_struct.org_dims[1],pc_struct.org_dims[2]);
-    
-    //filter y
-    //convolution_filter_y(pc_struct,filter_output);
-    
-    //convolution_filter_y_new(pc_struct,filter_output);
-    //convolution_filter_y_new(pc_struct,filter_output);
-    
-   // convolution_filter_pixels(pc_struct,pc_struct.org_dims[0],pc_struct.org_dims[1],pc_struct.org_dims[2]);
-    
-    //convolution_filter_pixels_temp(pc_struct,pc_struct.org_dims[0],pc_struct.org_dims[1],pc_struct.org_dims[2]);
-    //convolution_filter_pixels_off(pc_struct,pc_struct.org_dims[0],pc_struct.org_dims[1],pc_struct.org_dims[2]);
-    //pixel_neigh_random(pc_struct,pc_struct.org_dims[0],pc_struct.org_dims[1],pc_struct.org_dims[2]);
-//    
-//    
-    uint64_t num_parts = pc_struct.get_number_parts();
-    uint64_t dim = ceil(pow(num_parts,1.0/3.0));
+    //set up some new structures used in this test
     
     
-    //pixel_neigh_random(pc_struct,dim,dim,dim);
+    
+    //Get neighbours (linear)
+    
+    //particles
+    particle_linear_neigh_access(pc_struct);
+    
+    particle_linear_neigh_access_alt_1(pc_struct);
+    
+    //pixels
+    pixels_linear_neigh_access(pc_struct,pc_struct.org_dims[0],pc_struct.org_dims[1],pc_struct.org_dims[2]);
+    
+    
+    //Get neighbours (random access)
+    
+    particle_random_access(pc_struct);
+    
+    pixel_neigh_random(pc_struct,pc_struct.org_dims[0],pc_struct.org_dims[1],pc_struct.org_dims[2]);
+    
+    
+    // Filtering
+    
+    uint64_t filter_offset = 10;
+    
+    apr_filter_full(pc_struct,filter_offset);
+    
+    pixel_filter_full(pc_struct,pc_struct.org_dims[0],pc_struct.org_dims[1],pc_struct.org_dims[2],filter_offset);
+    
+    
+    
 
     
-//    
-    //convolution_filter_pixels(pc_struct,dim,dim,dim);
-    //convolution_filter_pixels_temp(pc_struct,dim,dim,dim);
-    //convolution_filter_pixels_off(pc_struct,dim,dim,dim);
-    //convolution_filter_pixels_temp(pc_struct,dim,dim,dim);
     
-  
-    //convolution_filter_pixels_random(pc_struct,dim,dim,dim);
-    
-    //part_new.utest_structure(pc_struct,link_array);
-    
-    //compute_gradient(pc_struct,filter_output);
-    
-  //  compute_gradient(pc_struct,filter_output);
-    
-    //compute_gradient_new(pc_struct,filter_output);
-    
-    //compute_gradient(pc_struct,filter_output);
-    
-    //neigh_cells(pc_struct.pc_data);
-    
-    Mesh_data<uint16_t> filter_img;
-    
-    std::cout << pc_struct.get_number_parts() << std::endl;
-    std::cout << pc_struct.get_number_cells() << std::endl;
-    
-    
-    ParticleDataNew<float, uint64_t> part_new;
-    
-    part_new.initialize_from_structure(pc_struct);
-    
-    
-    PartCellData<uint64_t> pc_data_new;
-    part_new.create_pc_data_new(pc_data_new);
-    
-    //move_cells_random(pc_data_new,part_new);
-    
-    //pixels_move_random(pc_struct,pc_struct.org_dims[0],pc_struct.org_dims[1],pc_struct.org_dims[2]);
-    
-    //neigh_cells(pc_data_new);
-    //neigh_cells_new(pc_data_new,part_new);
-    
-    //particle_random_access(pc_data_new,part_new,pc_struct.get_number_parts());
-    //particle_random_access(pc_data_new,part_new,pc_struct.get_number_parts());
-    
-    //apr_filter_full(pc_struct);
-    
-    
-   // debug_write(filter_img,"test");
-   // debug_write(int_array[3],"int_array_3");
-   // debug_write(int_array[5],"int_array_5");
-   // debug_write(int_array[6],"int_array_6");
-    
-    
-    //get_neigh_check(pc_struct,link_array,int_array);
-    
-    //utest_neigh_cells(pc_struct);
-    
-    //utest_neigh_parts(pc_struct);
-    
-    utest_alt_part_struct(pc_struct);
-    
-    //utest_neigh_parts(pc_struct);
-    
-   // get_neigh_check2(pc_struct,link_array);
-    
-    Mesh_data<uint8_t> seg_img;
-    
-    
-    //interp_depth_to_mesh(seg_img,pc_struct);
-    
-    //debug_write(seg_img,"k_mask");
     
 }
 
