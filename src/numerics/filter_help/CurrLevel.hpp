@@ -284,6 +284,11 @@ public:
     }
     
     template<typename U>
+    inline U& get_val(ExtraPartCellData<U>& particle_data){
+        return particle_data.data[depth][pc_offset][j];
+    }
+    
+    template<typename U>
     U& get_part(ParticleDataNew<U, T>& part_data){
         return part_data.particle_data.data[depth][pc_offset][part_offset];
     }
