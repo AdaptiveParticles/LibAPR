@@ -109,7 +109,7 @@ int main(int argc, char **argv) {
     
     //convolution_filter_pixels_temp(pc_struct,pc_struct.org_dims[0],pc_struct.org_dims[1],pc_struct.org_dims[2]);
     //convolution_filter_pixels_off(pc_struct,pc_struct.org_dims[0],pc_struct.org_dims[1],pc_struct.org_dims[2]);
-    //convolution_filter_pixels_random(pc_struct,pc_struct.org_dims[0],pc_struct.org_dims[1],pc_struct.org_dims[2]);
+    convolution_filter_pixels_random(pc_struct,pc_struct.org_dims[0],pc_struct.org_dims[1],pc_struct.org_dims[2]);
 //    
 //    
     uint64_t num_parts = pc_struct.get_number_parts();
@@ -121,7 +121,7 @@ int main(int argc, char **argv) {
     //convolution_filter_pixels_temp(pc_struct,dim,dim,dim);
     
   
-    //convolution_filter_pixels_random(pc_struct,dim,dim,dim);
+    convolution_filter_pixels_random(pc_struct,dim,dim,dim);
     
     //part_new.utest_structure(pc_struct,link_array);
     
@@ -156,7 +156,7 @@ int main(int argc, char **argv) {
     //neigh_cells(pc_data_new);
     //neigh_cells_new(pc_data_new,part_new);
     
-    //neigh_cells_new_random(pc_data_new,part_new,pc_struct.get_number_parts());
+    neigh_cells_new_random(pc_data_new,part_new,pc_struct.get_number_parts());
     
     
     //apr_filter_full(pc_struct);

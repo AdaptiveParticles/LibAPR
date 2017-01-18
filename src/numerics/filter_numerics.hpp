@@ -602,11 +602,11 @@ void move_cells_random(PartCellData<uint64_t>& pc_data,ParticleDataNew<float, ui
     //  Initialize Randomly
     //
     
-    
+    int j_i = 0;
     
     curr_level.type = 0;
     
-    while(curr_level.type == 0){
+    while((curr_level.type == 0) || (j_i <= 1)){
         
         int depth_i = (int) std::rand()%(pc_data.depth_max-pc_data.depth_min) + (int) pc_data.depth_min;
         
@@ -620,7 +620,7 @@ void move_cells_random(PartCellData<uint64_t>& pc_data,ParticleDataNew<float, ui
         
         int j_num = (int) pc_data.data[depth_i][offset_pc_data].size();
         
-        int j_i = (std::rand()%(j_num-2)) + 1;
+        j_i = (std::rand()%(j_num-2)) + 1;
         
         curr_level.init(x_i,z_i,j_i,depth_i,part_new);
         
@@ -745,7 +745,7 @@ void pixels_move_random(PartCellStructure<U,uint64_t>& pc_struct,uint64_t y_num,
     timer.stop_timer();
     float time = (timer.t2 - timer.t1);
     
-    std::cout << " Pixel Move random 10000000* : " << (x_num*y_num*z_num) << " took: " << time/(num_repeats/1000000.0) << std::endl;
+    std::cout << " Pixel Move random 1000000* : " << (x_num*y_num*z_num) << " took: " << time/(num_repeats/1000000.0) << std::endl;
     
 }
 
@@ -837,7 +837,6 @@ void neigh_cells_new_random(PartCellData<uint64_t>& pc_data,ParticleDataNew<floa
                     
                 }
                 
-                
             }
             
             //loop over the nieghbours
@@ -916,11 +915,11 @@ void neigh_cells_new_random(PartCellData<uint64_t>& pc_data,ParticleDataNew<floa
     
     float time2 = (timer.t2 - timer.t1);
     
-    std::cout << "Get neigh r : " << (time - time2) << std::endl;
+    //std::cout << "Get neigh r : " << (time - time2) << std::endl;
 
-    std::cout << "Get neigh:  " << (time2) << std::endl;
+    //std::cout << "Get neigh:  " << (time2) << std::endl;
     
-    std::cout << "Get neigh: " << (time) << std::endl;
+    std::cout << "Random Access: " << (time) << std::endl;
 
 }
 
@@ -1244,7 +1243,8 @@ void convolution_filter_pixels_random(PartCellStructure<U,uint64_t>& pc_struct,u
     timer.stop_timer();
     float time = (timer.t2 - timer.t1);
     
-    std::cout << " Pixel Filter Size Random: " << (x_num*y_num*z_num) << " took: " << time << std::endl;
+    std::cout << "Random Access Pixel: Size: " << (x_num*y_num*z_num) << " took: " << time << std::endl;
+    std::cout << "per 1000000 pixel took: " << time/((1.0*x_num*y_num*z_num)/1000000.0) << std::endl;
     
 }
 template<typename S>

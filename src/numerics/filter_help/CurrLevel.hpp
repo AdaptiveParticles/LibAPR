@@ -76,7 +76,7 @@ public:
         
         depth = depth_;
         x_num = part_data.access_data.x_num[depth];
-        z_num = part_data.access_data.x_num[depth];
+        z_num = part_data.access_data.z_num[depth];
         
         part_data.access_data.pc_key_set_depth(curr_key,depth);
         
@@ -119,6 +119,7 @@ public:
     
     template<typename U>
     void move_cell(unsigned int dir,unsigned int index,ParticleDataNew<U, T>& part_data,PartCellData<uint64_t>& pc_data){
+        
         
         // get neigh
         update_neigh(dir,pc_data);
@@ -165,6 +166,13 @@ public:
     
     void update_neigh(unsigned int dir,PartCellData<uint64_t>& pc_data){
         uint64_t node_val_pc = pc_data.data[depth][pc_offset][j];
+        
+        pc_key d_key;
+        d_key.update_cell(curr_key);
+        
+        node_key d_node;
+        d_node.update_node(node_val_pc);
+        
         
         pc_data.get_neighs_face(curr_key,node_val_pc,dir,neigh_part_keys);
     }
