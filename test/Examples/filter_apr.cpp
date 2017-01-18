@@ -90,9 +90,9 @@ int main(int argc, char **argv) {
     // Read the apr file into the part cell structure
     read_apr_pc_struct(pc_struct,file_name);
     
-    ExtraPartCellData<float> filter_output;
+    //ExtraPartCellData<float> filter_output;
     
-    filter_output.initialize_structure_parts(pc_struct.part_data.particle_data);
+   // filter_output.initialize_structure_parts(pc_struct.part_data.particle_data);
     
     
   //  threshold_speed(pc_struct);
@@ -109,14 +109,14 @@ int main(int argc, char **argv) {
     
     //convolution_filter_pixels_temp(pc_struct,pc_struct.org_dims[0],pc_struct.org_dims[1],pc_struct.org_dims[2]);
     //convolution_filter_pixels_off(pc_struct,pc_struct.org_dims[0],pc_struct.org_dims[1],pc_struct.org_dims[2]);
-    pixel_neigh_random(pc_struct,pc_struct.org_dims[0],pc_struct.org_dims[1],pc_struct.org_dims[2]);
+    //pixel_neigh_random(pc_struct,pc_struct.org_dims[0],pc_struct.org_dims[1],pc_struct.org_dims[2]);
 //    
 //    
     uint64_t num_parts = pc_struct.get_number_parts();
     uint64_t dim = ceil(pow(num_parts,1.0/3.0));
     
     
-    pixel_neigh_random(pc_struct,dim,dim,dim);
+    //pixel_neigh_random(pc_struct,dim,dim,dim);
 
     
 //    
@@ -161,8 +161,8 @@ int main(int argc, char **argv) {
     //neigh_cells(pc_data_new);
     //neigh_cells_new(pc_data_new,part_new);
     
-    particle_random_access(pc_data_new,part_new,pc_struct.get_number_parts());
-    particle_random_access(pc_data_new,part_new,pc_struct.get_number_parts());
+    //particle_random_access(pc_data_new,part_new,pc_struct.get_number_parts());
+    //particle_random_access(pc_data_new,part_new,pc_struct.get_number_parts());
     
     //apr_filter_full(pc_struct);
     
@@ -179,7 +179,7 @@ int main(int argc, char **argv) {
     
     //utest_neigh_parts(pc_struct);
     
-    //utest_alt_part_struct(pc_struct);
+    utest_alt_part_struct(pc_struct);
     
     //utest_neigh_parts(pc_struct);
     

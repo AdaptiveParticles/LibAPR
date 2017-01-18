@@ -2906,7 +2906,7 @@ bool utest_alt_part_struct(PartCellStructure<float,uint64_t>& pc_struct){
                             
                             pc_key curr_level_key = curr_level.get_key();
                             
-                            neigh = neigh_y.get_part(part_new.particle_data);
+                            neigh = neigh_y.get_part_single(part_new.particle_data);
                             
                             for(int c = 0; c < neigh_keys.size();c++){
                                 
@@ -2946,14 +2946,10 @@ bool utest_alt_part_struct(PartCellStructure<float,uint64_t>& pc_struct){
     
     timer.stop_timer();
     
-    float time = (timer.t2 - timer.t1);
-    
-    std::cout << " Neigh Regime New took: " << time << std::endl;
-    
     if(success){
         std::cout << " New Part Scheme Neigh Success" << std::endl;
     } else {
-        std::cout << " ***New Part Scheme Neigh Success***" << std::endl;
+        std::cout << " ***New Part Scheme Neigh Fail***" << std::endl;
     }
     
     return success;
