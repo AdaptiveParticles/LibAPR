@@ -77,10 +77,17 @@ class PartCellParent {
     
 public:
     
-    
+    T get_cell_num(){
+        return number_parent_cells;
+    }
     
     template<typename S>
-    T find_partcell(T& x,T& y,T& z,PartCellStructure<S,T>& pc_struct){
+    T find_partcell(const T x, const T y, const T z, PartCellStructure<S,T>& pc_struct){
+        return find_partcell(x,y,z,pc_struct.pc_data);
+    }
+    
+    
+    T find_partcell(const T x, const T y, const T z, PartCellData<T>& pc_data){
         //
         //  Given x,y,z will find the responsible particle cell
         //
@@ -88,29 +95,29 @@ public:
         
         T curr_key = 0;
         
-        T factor =pow(2,pc_struct.depth_max + 1 - pc_struct.depth_min);
+        T factor =pow(2,pc_data.depth_max + 1 - pc_data.depth_min);
         //calculate on min layer
         T y_min = y/factor;
         T x_min = x/factor;
         
         T z_min = z/factor;
         
-        if( (y_min > pc_struct.y_num[pc_struct.depth_min]) | (x_min > pc_struct.x_num[pc_struct.depth_min]) | (z_min > pc_struct.z_num[pc_struct.depth_min])  ){
+        if( (y_min > pc_data.y_num[pc_data.depth_min]) | (x_min > pc_data.x_num[pc_data.depth_min]) | (z_min > pc_data.z_num[pc_data.depth_min])  ){
             return 0; //out of bounds
         }
-        
-        T j = neigh_info.get_j_from_y(x_min,z_min,pc_struct.depth_min,y_min);
+
+        T j = neigh_info.get_j_from_y(x_min,z_min,pc_data.depth_min,y_min);
         
         
         if (j == 0){
             // the parent wasn't found so it must be in a real seed at lowest resolution
-            T j_pc = pc_struct.pc_data.get_j_from_y(x_min,z_min,pc_struct.depth_min,y_min);
+            T j_pc = pc_data.get_j_from_y(x_min,z_min,pc_data.depth_min,y_min);
             if(j_pc == 0){
-                return 0;
+                return 0; //doesn't exist
             } else {
                 
-                T depth_min = pc_struct.depth_min;
-                pc_struct.pc_data.set_details_cell(curr_key,x_min,z_min,j_pc,depth_min);
+                T depth_min = pc_data.depth_min;
+                pc_data.set_details_cell(curr_key,x_min,z_min,j_pc,depth_min);
                 
                 return curr_key;
             }
@@ -118,12 +125,10 @@ public:
         }
         
         
-        
-        
         neigh_info.pc_key_set_x(curr_key,x_min);
         neigh_info.pc_key_set_z(curr_key,z_min);
         neigh_info.pc_key_set_j(curr_key,j);
-        neigh_info.pc_key_set_depth(curr_key,pc_struct.depth_min);
+        neigh_info.pc_key_set_depth(curr_key,pc_data.depth_min);
         
         std::vector<uint64_t> children_keys;
         std::vector<uint64_t> children_flag;
@@ -137,11 +142,11 @@ public:
         uint64_t child_z;
         uint64_t child_depth;
         
-        for(int i = pc_struct.depth_min; i < pc_struct.depth_max; i++){
+        for(int i = pc_data.depth_min; i < pc_data.depth_max; i++){
             
             get_children_keys(curr_key,children_keys,children_flag);
             
-            factor =pow(2,pc_struct.depth_max + 1 - i - 1);
+            factor =pow(2,pc_data.depth_max + 1 - i - 1);
             //calculate on min layer
             y_curr = y/factor;
             x_curr = x/factor;
@@ -176,12 +181,14 @@ public:
     T get_parent_key(const T& node_val_parent_info,const T& curr_key){
         //returns the parent access key
         
+        T j_ = get_parent_j(node_val_parent_info);
+        
         T parent_key = 0;
-        if ((parent_info.pc_key_get_depth(curr_key)-1) >= parent_info.depth_min){
+        if (j_ > 0){
             parent_info.pc_key_set_x(parent_key,parent_info.pc_key_get_x(curr_key)/2);
             parent_info.pc_key_set_z(parent_key,parent_info.pc_key_get_z(curr_key)/2);
             parent_info.pc_key_set_depth(parent_key,parent_info.pc_key_get_depth(curr_key)-1);
-            parent_info.pc_key_set_j(parent_key,get_parent_j(node_val_parent_info));
+            parent_info.pc_key_set_j(parent_key,j_);
         }
         return parent_key;
     }
@@ -287,12 +294,59 @@ public:
         
     }
     
+    void get_neighs_parent_axis(const uint64_t& curr_key,uint64_t node_val,PartCellNeigh<uint64_t>& neigh_keys,const unsigned int axis){
+        // Selects the neighbour in the correct direction
+        
+        neigh_keys.curr = curr_key;
+        
+        switch(axis){
+            case(0):{
+                //y
+                neigh_keys.neigh_face[0].resize(0);
+                neigh_keys.neigh_face[1].resize(0);
+                
+                get_neighs_face_parent_t<0>(curr_key,node_val,neigh_keys.neigh_face[0]);
+                get_neighs_face_parent_t<1>(curr_key,node_val,neigh_keys.neigh_face[1]);
+                
+                break;
+            }
+            case(1):{
+                //x
+                neigh_keys.neigh_face[2].resize(0);
+                neigh_keys.neigh_face[3].resize(0);
+                
+                get_neighs_face_parent_t<2>(curr_key,node_val,neigh_keys.neigh_face[2]);
+                get_neighs_face_parent_t<3>(curr_key,node_val,neigh_keys.neigh_face[3]);
+                
+                break;
+            }
+            case(2):{
+                //z
+                neigh_keys.neigh_face[4].resize(0);
+                neigh_keys.neigh_face[5].resize(0);
+                
+                get_neighs_face_parent_t<4>(curr_key,node_val,neigh_keys.neigh_face[4]);
+                get_neighs_face_parent_t<5>(curr_key,node_val,neigh_keys.neigh_face[5]);
+                
+                break;
+            }
+        }
+        
+        
+        
+    }
+    
     
     PartCellParent(){};
     
     template<typename S>
     PartCellParent(PartCellStructure<S,T>& pc_struct){
         initialize_parents(pc_struct);
+    };
+    
+    
+    PartCellParent(PartCellData<T>& pc_data){
+        initialize_parents(pc_data);
     };
     
     PartCellData<T> neigh_info;
@@ -327,7 +381,7 @@ private:
         uint64_t y_coord;
         
         
-        for(int i = (parent_info.depth_min+1);i <= parent_info.depth_max;i++){
+        for(uint64_t i = (parent_info.depth_min+1);i <= parent_info.depth_max;i++){
             
             const unsigned int x_num_ = parent_info.x_num[i];
             const unsigned int z_num_ = parent_info.z_num[i];
@@ -363,10 +417,7 @@ private:
                     const size_t j_num = neigh_info.data[i][offset_pc_data].size();
                     const size_t j_num_parent = neigh_info.data[i-1][offset_pc_data_parent].size();
                     
-                    
-                    if((x_ == 5) & (z_ == 1) & (i == 4)){
-                        int stop = 1;
-                    }
+
                     
                     for(j_ = 1;j_ < j_num;j_++){
                         
@@ -488,7 +539,7 @@ private:
         //
         
         
-        for(int i = (pc_data.depth_min+1);i <= pc_data.depth_max;i++){
+        for(uint64_t i = (pc_data.depth_min+1);i <= pc_data.depth_max;i++){
             
             const unsigned int x_num_ = pc_data.x_num[i];
             const unsigned int z_num_ = pc_data.z_num[i];
@@ -675,7 +726,7 @@ private:
         
         if (face > 1){
             
-            for(int i = (neigh_info.depth_min);i <= neigh_info.depth_max;i++){
+            for(uint64_t i = (neigh_info.depth_min);i <= neigh_info.depth_max;i++){
                 
                 const unsigned int x_num_ = neigh_info.x_num[i];
                 const unsigned int z_num_ = neigh_info.z_num[i];
@@ -758,8 +809,14 @@ private:
         }
     }
     
+    
     template<typename S>
     void initialize_parents(PartCellStructure<S,T>& pc_struct){
+        initialize_parents(pc_struct.pc_data);
+    }
+    
+    
+    void initialize_parents(PartCellData<T>& pc_data){
         //
         //
         //  From a given particle structure of active cells create
@@ -768,14 +825,14 @@ private:
         
         //Initialize the structures
         
-        parent_info.depth_max = pc_struct.pc_data.depth_max-1;
-        parent_info.depth_min = pc_struct.pc_data.depth_min;
+        parent_info.depth_max = pc_data.depth_max-1;
+        parent_info.depth_min = pc_data.depth_min;
         
-        parent_info2.depth_max = pc_struct.pc_data.depth_max-1;
-        parent_info2.depth_min = pc_struct.pc_data.depth_min;
+        parent_info2.depth_max = pc_data.depth_max-1;
+        parent_info2.depth_min = pc_data.depth_min;
         
-        neigh_info.depth_max = pc_struct.pc_data.depth_max-1;
-        neigh_info.depth_min = pc_struct.pc_data.depth_min;
+        neigh_info.depth_max = pc_data.depth_max-1;
+        neigh_info.depth_min = pc_data.depth_min;
         
         parent_info.z_num.resize(parent_info.depth_max+1);
         parent_info.x_num.resize(parent_info.depth_max+1);
@@ -787,15 +844,15 @@ private:
         
         neigh_info.data.resize(neigh_info.depth_max+1);
         
-        for(int i = neigh_info.depth_min;i <= neigh_info.depth_max;i++){
-            neigh_info.z_num[i] = pc_struct.pc_data.z_num[i];
-            neigh_info.x_num[i] = pc_struct.pc_data.x_num[i];
+        for(uint64_t i = neigh_info.depth_min;i <= neigh_info.depth_max;i++){
+            neigh_info.z_num[i] = pc_data.z_num[i];
+            neigh_info.x_num[i] = pc_data.x_num[i];
             neigh_info.data[i].resize(neigh_info.z_num[i]*neigh_info.x_num[i]);
         }
         
-        for(int i = parent_info.depth_min;i <= parent_info.depth_max;i++){
-            parent_info.z_num[i] = pc_struct.pc_data.z_num[i];
-            parent_info.x_num[i] = pc_struct.pc_data.x_num[i];
+        for(uint64_t i = parent_info.depth_min;i <= parent_info.depth_max;i++){
+            parent_info.z_num[i] = pc_data.z_num[i];
+            parent_info.x_num[i] = pc_data.x_num[i];
             parent_info.data[i].resize(parent_info.z_num[i]*parent_info.x_num[i]);
         }
         
@@ -807,9 +864,9 @@ private:
         
         parent_map.resize(neigh_info.depth_max+1);
         
-        for(int i = parent_info.depth_min;i <= parent_info.depth_max;i++){
+        for(uint64_t i = parent_info.depth_min;i <= parent_info.depth_max;i++){
            
-            parent_map[i].resize(pc_struct.x_num[i]*pc_struct.y_num[i]*pc_struct.z_num[i]);
+            parent_map[i].resize(pc_data.x_num[i]*pc_data.y_num[i]*pc_data.z_num[i]);
         }
         
         
@@ -822,12 +879,13 @@ private:
         uint64_t z_;
         uint64_t j_;
         uint64_t curr_key = 0;
+       
 
         
-        for(int i = (pc_struct.pc_data.depth_max);i > pc_struct.pc_data.depth_min;i--){
+        for(uint64_t i = (pc_data.depth_max);i > pc_data.depth_min;i--){
             
-            const unsigned int x_num_ = pc_struct.pc_data.x_num[i];
-            const unsigned int z_num_ = pc_struct.pc_data.z_num[i];
+            const unsigned int x_num_ = pc_data.x_num[i];
+            const unsigned int z_num_ = pc_data.z_num[i];
             
             
 //#pragma omp parallel for default(shared) private(z_,x_,j_,node_val,curr_key,y_coord) if(z_num_*x_num_ > 100)
@@ -836,17 +894,17 @@ private:
                 curr_key = 0;
                 
                 //set the key values
-                pc_struct.pc_data.pc_key_set_z(curr_key,z_);
-                pc_struct.pc_data.pc_key_set_depth(curr_key,i);
+                pc_data.pc_key_set_z(curr_key,z_);
+                pc_data.pc_key_set_depth(curr_key,i);
                 
                 for(x_ = 0;x_ < x_num_;x_++){
                     
-                    pc_struct.pc_data.pc_key_set_x(curr_key,x_);
+                    pc_data.pc_key_set_x(curr_key,x_);
                     
                     const size_t offset_pc_data = x_num_*z_ + x_;
                     
                     //number of nodes on the level
-                    const size_t j_num = pc_struct.pc_data.data[i][offset_pc_data].size();
+                    const size_t j_num = pc_data.data[i][offset_pc_data].size();
                     
                     uint64_t parent_x;
                     uint64_t parent_y;
@@ -862,7 +920,7 @@ private:
                     for(j_ = 0;j_ < j_num;j_++){
                         
                         //this value encodes the state and neighbour locations of the particle cell
-                        node_val = pc_struct.pc_data.data[i][offset_pc_data][j_];
+                        node_val = pc_data.data[i][offset_pc_data][j_];
                         
                         if (!(node_val&1)){
                             y_coord++; //iterate y
@@ -872,27 +930,27 @@ private:
                             parent_y = y_coord/2;
                             depth = i - 1;
                             
-                            if(parent_map[depth][parent_z*pc_struct.y_num[depth]*pc_struct.x_num[depth] + parent_x*pc_struct.y_num[depth] + parent_y] ==0){
+                            if(parent_map[depth][parent_z*pc_data.y_num[depth]*pc_data.x_num[depth] + parent_x*pc_data.y_num[depth] + parent_y] < 2){
                                 
-                                parent_map[depth][parent_z*pc_struct.y_num[depth]*pc_struct.x_num[depth] + parent_x*pc_struct.y_num[depth] + parent_y] = 2;
+                                parent_map[depth][parent_z*pc_data.y_num[depth]*pc_data.x_num[depth] + parent_x*pc_data.y_num[depth] + parent_y] = 2;
                                 
                                 parent_x = parent_x/2;
                                 parent_z = parent_z/2;
                                 parent_y = parent_y/2;
                                 depth = depth - 1;
                                 
-                                if(depth > pc_struct.pc_data.depth_min){
+                                if(depth > pc_data.depth_min){
                                     
-                                    while(parent_map[depth][parent_z*pc_struct.y_num[depth]*pc_struct.x_num[depth] + parent_x*pc_struct.y_num[depth] + parent_y] ==0 ){
+                                    while(parent_map[depth][parent_z*pc_data.y_num[depth]*pc_data.x_num[depth] + parent_x*pc_data.y_num[depth] + parent_y] ==0 ){
                                         
-                                        parent_map[depth][parent_z*pc_struct.y_num[depth]*pc_struct.x_num[depth] + parent_x*pc_struct.y_num[depth] + parent_y] = 1;
+                                        parent_map[depth][parent_z*pc_data.y_num[depth]*pc_data.x_num[depth] + parent_x*pc_data.y_num[depth] + parent_y] = 1;
                                         
                                         parent_x = parent_x/2;
                                         parent_z = parent_z/2;
                                         parent_y = parent_y/2;
                                         depth = depth - 1;
                                         
-                                        if  (depth < pc_struct.pc_data.depth_min){
+                                        if  (depth < pc_data.depth_min){
                                             break;
                                         }
                                         
@@ -938,11 +996,11 @@ private:
         
         // Construct the parent info
         
-        for(int i = pc_struct.pc_data.depth_min;i < (pc_struct.pc_data.depth_max);i++){
+        for(uint64_t i = pc_data.depth_min;i < (pc_data.depth_max);i++){
             
-            const unsigned int x_num_ = pc_struct.x_num[i];
-            const unsigned int z_num_ = pc_struct.z_num[i];
-            const unsigned int y_num_ = pc_struct.y_num[i];
+            const unsigned int x_num_ = pc_data.x_num[i];
+            const unsigned int z_num_ = pc_data.z_num[i];
+            const unsigned int y_num_ = pc_data.y_num[i];
             
             
 //#pragma omp parallel for default(shared) private(z_,x_,y_,curr_index,status,prev_ind) if(z_num_*x_num_ > 100)
@@ -1007,11 +1065,11 @@ private:
         uint64_t prev_coord = 0;
         
         
-        for(int i = neigh_info.depth_min;i <= neigh_info.depth_max;i++){
+        for(uint64_t i = neigh_info.depth_min;i <= neigh_info.depth_max;i++){
             
-            const unsigned int x_num_ = pc_struct.x_num[i];
-            const unsigned int z_num_ = pc_struct.z_num[i];
-            const unsigned int y_num_ = pc_struct.  y_num[i];
+            const unsigned int x_num_ = pc_data.x_num[i];
+            const unsigned int z_num_ = pc_data.z_num[i];
+            const unsigned int y_num_ = pc_data.  y_num[i];
             
 #pragma omp parallel for default(shared) private(z_,x_,y_,curr_index,status,prev_ind,prev_coord) if(z_num_*x_num_ > 100)
             for(z_ = 0;z_ < z_num_;z_++){
@@ -1107,7 +1165,46 @@ private:
         //now set the parent child relationships
         set_parent_relationships();
         
-        set_parent_real_relationships(pc_struct.pc_data);
+        set_parent_real_relationships(pc_data);
+        
+        //lastly calculate number of cells
+        
+        
+        T num_cells = 0;
+        
+        for(uint64_t i = neigh_info.depth_min;i <= neigh_info.depth_max;i++){
+            
+            const unsigned int x_num_ = neigh_info.x_num[i];
+            const unsigned int z_num_ = neigh_info.z_num[i];
+            
+            
+            //For each depth there are two loops, one for SEED status particles, at depth + 1, and one for BOUNDARY and FILLER CELLS, to ensure contiguous memory access patterns.
+            
+            // SEED PARTICLE STATUS LOOP (requires access to three data structures, particle access, particle data, and the part-map)
+#pragma omp parallel for default(shared) private(z_,x_,j_,node_val) reduction(+:num_cells)
+            for(z_ = 0;z_ < z_num_;z_++){
+                
+                for(x_ = 0;x_ < x_num_;x_++){
+                    
+                    const size_t offset_pc_data = x_num_*z_ + x_;
+                    
+                    const size_t j_num = neigh_info.data[i][offset_pc_data].size();
+                    
+                    for(j_ = 0;j_ < j_num;j_++){
+                        node_val = neigh_info.data[i][offset_pc_data][j_];
+                        
+                        if (!(node_val&1)){
+                            //in this loop there is a cell
+                            num_cells++;
+                        }
+                    }
+                    
+                }
+            }
+        }
+        
+        number_parent_cells = num_cells;
+        
         
     }
     

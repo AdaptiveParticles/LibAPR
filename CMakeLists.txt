@@ -36,6 +36,8 @@ set(SOURCE_FILES_COMPILED
         src/data_structures/structure_parts.cpp
         src/io/parameters.cpp
         src/io/hdf5functions.cpp
+        src/io/blosc_filter.c
+        src/io/hdf5functions_blosc.cpp
         )
 
 
@@ -109,16 +111,17 @@ if(TESTS)
             test/test_tree/sparse_rep_test.cpp
             ${SOURCE_FILES_COMPILED}
             test/utils.cpp
+	     src/io/hdf5functions_blosc.cpp
             )
 
-    target_link_libraries(testBspline ${HDF5_LIBRARIES} ${GTEST_LIBRARIES} pthread tiff)
-    target_link_libraries(testVariance ${HDF5_LIBRARIES} ${GTEST_LIBRARIES} pthread tiff)
-    target_link_libraries(testLevel ${HDF5_LIBRARIES} ${GTEST_LIBRARIES} pthread tiff)
-    target_link_libraries(testResult ${HDF5_LIBRARIES} ${GTEST_LIBRARIES} pthread tiff)
-    target_link_libraries(testLevelIterator ${HDF5_LIBRARIES} ${GTEST_LIBRARIES} pthread tiff)
-    target_link_libraries(testTreeNeighbours ${HDF5_LIBRARIES} ${GTEST_LIBRARIES} pthread tiff)
-    target_link_libraries(testTreeNeighboursFace ${HDF5_LIBRARIES} ${GTEST_LIBRARIES} pthread tiff)
-    target_link_libraries(testSparsePartStruc ${HDF5_LIBRARIES} ${GTEST_LIBRARIES} pthread tiff)
+    target_link_libraries(testBspline ${HDF5_LIBRARIES} ${GTEST_LIBRARIES} pthread tiff blosc)
+    target_link_libraries(testVariance ${HDF5_LIBRARIES} ${GTEST_LIBRARIES} pthread tiff blosc)
+    target_link_libraries(testLevel ${HDF5_LIBRARIES} ${GTEST_LIBRARIES} pthread tiff blosc)
+    target_link_libraries(testResult ${HDF5_LIBRARIES} ${GTEST_LIBRARIES} pthread tiff blosc)
+    target_link_libraries(testLevelIterator ${HDF5_LIBRARIES} ${GTEST_LIBRARIES} pthread tiff blosc)
+    target_link_libraries(testTreeNeighbours ${HDF5_LIBRARIES} ${GTEST_LIBRARIES} pthread tiff blosc)
+    target_link_libraries(testTreeNeighboursFace ${HDF5_LIBRARIES} ${GTEST_LIBRARIES} pthread tiff blosc)
+    target_link_libraries(testSparsePartStruc ${HDF5_LIBRARIES} ${GTEST_LIBRARIES} pthread tiff blosc)
 
 endif(TESTS)
 
@@ -147,14 +150,21 @@ add_executable(Example_convert_full_format
         ${SOURCE_FILES_COMPILED}
         )
 
+add_executable(Example_ray_cast
+        test/Examples/ray_cast.cpp
+        test/utils.cpp
+        ${SOURCE_FILES_COMPILED}
+        )
+
 add_executable(pipeline
     src/algorithm/pipeline.cpp
     src/io/write_parts.cpp
     ${SOURCE_FILES_COMPILED}
 )
 
-target_link_libraries(pipeline ${HDF5_LIBRARIES} pthread tiff)
-target_link_libraries(Example_get_apr ${HDF5_LIBRARIES} pthread tiff)
-target_link_libraries(Example_compute_cells ${HDF5_LIBRARIES} pthread tiff)
-target_link_libraries(Example_compute_parts ${HDF5_LIBRARIES} pthread tiff)
-target_link_libraries(Example_convert_full_format ${HDF5_LIBRARIES} pthread tiff)
+target_link_libraries(pipeline ${HDF5_LIBRARIES} pthread tiff blosc)
+target_link_libraries(Example_get_apr ${HDF5_LIBRARIES} pthread tiff blosc)
+target_link_libraries(Example_compute_cells ${HDF5_LIBRARIES} pthread tiff blosc)
+target_link_libraries(Example_compute_parts ${HDF5_LIBRARIES} pthread tiff blosc)
+target_link_libraries(Example_convert_full_format ${HDF5_LIBRARIES} pthread tiff blosc)
+target_link_libraries(Example_ray_cast ${HDF5_LIBRARIES} pthread tiff blosc)

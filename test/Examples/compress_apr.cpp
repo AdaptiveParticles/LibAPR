@@ -1,7 +1,7 @@
 #include <algorithm>
 #include <iostream>
 
-#include "ray_cast.h"
+#include "compress_apr.h"
 #include "../../src/data_structures/meshclass.h"
 #include "../../src/io/readimage.h"
 
@@ -13,8 +13,8 @@
 #include "../../src/io/writeimage.h"
 #include "../../src/io/write_parts.h"
 #include "../../src/io/partcell_io.h"
-#include "../../src/data_structures/Tree/PartCellParent.hpp"
-#include "../../src/numerics/ray_cast.hpp"
+#include "../../src/numerics/apr_compression.hpp"
+#include "../utils.h"
 
 bool command_option_exists(char **begin, char **end, const std::string &option)
 {
@@ -67,7 +67,6 @@ cmdLineOptions read_command_line_options(int argc, char **argv, Part_rep& part_r
     
 }
 
-
 int main(int argc, char **argv) {
     
     Part_rep part_rep;
@@ -76,17 +75,48 @@ int main(int argc, char **argv) {
     
     cmdLineOptions options = read_command_line_options(argc, argv, part_rep);
     
-    // COMPUTATIONS
+    // APR data structure
     PartCellStructure<float,uint64_t> pc_struct;
     
-    //output
+    // Filename
     std::string file_name = options.directory + options.input;
     
+    part_rep.timer.start_timer("read_pc_struct");
+    // Read the apr file into the part cell structure
     read_apr_pc_struct(pc_struct,file_name);
     
-    single_ray_parrallel(pc_struct);
+    part_rep.timer.stop_timer();
     
+    part_rep.timer.start_timer("write_wavelet");
     
+    write_apr_wavelet<float,int8_t>(pc_struct,options.directory,"wavelet_test",3);
+    
+    part_rep.timer.stop_timer();
+    
+    part_rep.timer.start_timer("write");
+    
+    write_apr_pc_struct(pc_struct,options.directory,"standard");
+    
+    part_rep.timer.stop_timer();
+    
+    part_rep.timer.start_timer("read_wavelet");
+    
+    file_name = options.directory + "wavelet_test_pcstruct_part.h5";
+    
+    // APR data structure
+    PartCellStructure<float,uint64_t> wavelet_struct;
+    
+    read_apr_wavelet<float,int8_t>(wavelet_struct,file_name);
+    
+    part_rep.timer.stop_timer();
+    
+    //write_apr_pc_struct(wavelet_struct,options.directory,"standard");
+    
+    write_apr_full_format(wavelet_struct,options.directory,options.output);
+    
+    // comapre
+    
+    //compare_two_structures_test(pc_struct,wavelet_struct);
 }
 
 

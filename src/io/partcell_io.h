@@ -22,9 +22,11 @@
 #include <fstream>
 
 #include "hdf5functions.h"
+#include "hdf5functions_blosc.h"
 #include "../data_structures/Tree/PartCellStructure.hpp"
 #include "write_parts.h"
 #include "writeimage.h"
+#include "../numerics/apr_compression.hpp"
 
 
 template<typename T>
@@ -32,6 +34,11 @@ void write_apr_full_format(PartCellStructure<T,uint64_t>& pc_struct,std::string 
 
 template<typename T>
 void write_apr_pc_struct(PartCellStructure<T,uint64_t>& pc_struct,std::string save_loc,std::string file_name);
+
+
+template<typename T,typename U>
+void write_apr_wavelet(PartCellStructure<T,uint64_t>& pc_struct,std::string save_loc,std::string file_name,float comp_factor);
+
 
 template<typename T>
 void read_apr_pc_struct(PartCellStructure<T,uint64_t>& pc_struct,std::string save_loc,std::string file_name);
@@ -273,7 +280,7 @@ void write_apr_full_format(PartCellStructure<T,uint64_t>& pc_struct,std::string 
 }
 
 template<typename T>
-void write_apr_pc_struct(PartCellStructure<T,uint64_t>& pc_struct,std::string save_loc,std::string file_name){
+void write_apr_pc_struct_old(PartCellStructure<T,uint64_t>& pc_struct,std::string save_loc,std::string file_name){
     //
     //
     //  Bevan Cheeseman 2016
@@ -307,7 +314,6 @@ void write_apr_pc_struct(PartCellStructure<T,uint64_t>& pc_struct,std::string sa
     //Neighbour Routine Checking
     
     uint64_t p;
-    
     
     std::string hdf5_file_name = save_loc + file_name + "_pcstruct_part.h5";
     
@@ -358,8 +364,7 @@ void write_apr_pc_struct(PartCellStructure<T,uint64_t>& pc_struct,std::string sa
     
     hdf5_write_attribute(pr_groupid,H5T_NATIVE_INT,"num_cells",1,dims_out, &num_cells );
     
-  
-    //////////////////////////////////////////////////////////////////
+      //////////////////////////////////////////////////////////////////
     //
     //  Write data to the file
     //
@@ -500,9 +505,675 @@ void write_apr_pc_struct(PartCellStructure<T,uint64_t>& pc_struct,std::string sa
     
     
 }
-
 template<typename T>
-void read_apr_pc_struct(PartCellStructure<T,uint64_t>& pc_struct,std::string file_name)
+void write_apr_pc_struct(PartCellStructure<T,uint64_t>& pc_struct,std::string save_loc,std::string file_name){
+    //
+    //
+    //  Bevan Cheeseman 2016
+    //
+    //  Writes the APR to the particle cell structure sparse format, using the p_map for reconstruction
+    //
+    //
+    
+    
+    
+    std::cout << "Writing parts to hdf5 file, in pc_struct format..." << std::endl;
+    
+    
+    uint64_t num_cells = pc_struct.get_number_cells();
+    uint64_t num_parts = pc_struct.get_number_parts();
+    
+    
+    
+    //initialize
+    uint64_t node_val_part;
+    uint64_t y_coord;
+    int x_;
+    int z_;
+    
+    uint64_t j_;
+    uint64_t status;
+    uint64_t curr_key=0;
+    uint64_t part_offset=0;
+    
+    
+    //Neighbour Routine Checking
+    
+    uint64_t p;
+    
+    register_bosc();
+    
+    std::string hdf5_file_name = save_loc + file_name + "_pcstruct_part.h5";
+    
+    file_name = file_name + "_pcstruct_part";
+    
+    hdf5_create_file(hdf5_file_name);
+    
+    //hdf5 inits
+    hid_t fid, pr_groupid, obj_id;
+    H5G_info_t info;
+    
+    hsize_t     dims_out[2];
+    
+    hsize_t rank = 1;
+    
+    hsize_t dims;
+    hsize_t dim_a=1;
+    
+    fid = H5Fopen(hdf5_file_name.c_str(),H5F_ACC_RDWR,H5P_DEFAULT);
+    
+    //Get the group you want to open
+    
+    //////////////////////////////////////////////////////////////////
+    //
+    //  Write meta-data to the file
+    //
+    //
+    //
+    ///////////////////////////////////////////////////////////////////////
+    dims = 1;
+    
+    pr_groupid = H5Gcreate2(fid,"ParticleRepr",H5P_DEFAULT,H5P_DEFAULT,H5P_DEFAULT);
+    H5Gget_info( pr_groupid, &info );
+    
+    hdf5_write_attribute(pr_groupid,H5T_NATIVE_INT,"x_num",1,&dims, &pc_struct.org_dims[1] );
+    hdf5_write_attribute(pr_groupid,H5T_NATIVE_INT,"y_num",1,&dims, &pc_struct.org_dims[0] );
+    hdf5_write_attribute(pr_groupid,H5T_NATIVE_INT,"z_num",1,&dims, &pc_struct.org_dims[2] );
+    
+    
+    obj_id = H5Gcreate2(fid,"ParticleRepr/t",H5P_DEFAULT,H5P_DEFAULT,H5P_DEFAULT);
+    
+    dims_out[0] = 1;
+    dims_out[1] = 1;
+    
+    //just an identifier in here for the reading of the parts
+    
+    hdf5_write_attribute(pr_groupid,H5T_NATIVE_INT,"num_parts",1,dims_out, &num_parts );
+    
+    hdf5_write_attribute(pr_groupid,H5T_NATIVE_INT,"num_cells",1,dims_out, &num_cells );
+    
+    //////////////////////////////////////////////////////////////////
+    //
+    //  Write data to the file
+    //
+    //
+    //
+    ///////////////////////////////////////////////////////////////////////
+    
+    uint64_t depth_min = pc_struct.depth_min;
+    std::vector<uint8_t> p_map;
+    std::vector<uint16_t> Ip;
+    
+    for(uint64_t i = pc_struct.pc_data.depth_min;i <= pc_struct.pc_data.depth_max;i++){
+        
+        
+        const unsigned int x_num_ = pc_struct.x_num[i];
+        const unsigned int z_num_ = pc_struct.z_num[i];
+        const unsigned int y_num_ = pc_struct.y_num[i];
+        
+        
+        //write the vals
+        
+        Ip.resize(0);
+        
+        for(z_ = 0;z_ < z_num_;z_++){
+            
+            curr_key = 0;
+            
+            for(x_ = 0;x_ < x_num_;x_++){
+                
+                pc_struct.part_data.access_data.pc_key_set_x(curr_key,x_);
+                const size_t offset_pc_data = x_num_*z_ + x_;
+                
+                const size_t j_num = pc_struct.part_data.particle_data.data[i][offset_pc_data].size();
+                
+                uint64_t curr_size = Ip.size();
+                Ip.resize(curr_size+ j_num);
+                
+                std::copy(pc_struct.part_data.particle_data.data[i][offset_pc_data].begin(),pc_struct.part_data.particle_data.data[i][offset_pc_data].end(),Ip.begin() + curr_size);
+                
+            }
+            
+        }
+        
+        dims = Ip.size();
+        
+        std::string name = "Ip_size_"+std::to_string(i);
+        hdf5_write_attribute(pr_groupid,H5T_NATIVE_INT,name.c_str(),1,&dim_a,&dims);
+        
+        if(Ip.size() > 0){
+            //write the parts
+            
+            name = "Ip_"+std::to_string(i);
+            hdf5_write_data_blosc(obj_id,H5T_NATIVE_UINT16,name.c_str(),rank,&dims, Ip.data());
+            
+        }
+        p_map.resize(x_num_*z_num_*y_num_,0);
+        
+        std::fill(p_map.begin(), p_map.end(), 0);
+        
+        
+        //For each depth there are two loops, one for SEED status particles, at depth + 1, and one for BOUNDARY and FILLER CELLS, to ensure contiguous memory access patterns.
+        
+        // SEED PARTICLE STATUS LOOP (requires access to three data structures, particle access, particle data, and the part-map)
+#pragma omp parallel for default(shared) private(z_,x_,j_,p,node_val_part,curr_key,part_offset,status,y_coord) if(z_num_*x_num_ > 100)
+        for(z_ = 0;z_ < z_num_;z_++){
+            
+            for(x_ = 0;x_ < x_num_;x_++){
+                
+                const size_t offset_pc_data = x_num_*z_ + x_;
+                const size_t offset_p_map = y_num_*x_num_*z_ + y_num_*x_;
+                
+                const size_t j_num = pc_struct.pc_data.data[i][offset_pc_data].size();
+                
+                y_coord = 0;
+                
+                for(j_ = 0;j_ < j_num;j_++){
+                    
+                    node_val_part = pc_struct.part_data.access_data.data[i][offset_pc_data][j_];
+                    
+                    if (!(node_val_part&1)){
+                        //get the index gap node
+                        y_coord++;
+                        
+                        status = pc_struct.part_data.access_node_get_status(node_val_part);
+                        p_map[offset_p_map + y_coord] = status;
+                        
+                    } else {
+                        
+                        y_coord += ((node_val_part & COORD_DIFF_MASK_PARTICLE) >> COORD_DIFF_SHIFT_PARTICLE);
+                        y_coord--;
+                    }
+                    
+                }
+                
+            }
+            
+        }
+        
+        dims = p_map.size();
+        name = "p_map_"+std::to_string(i);
+        hdf5_write_data_blosc(obj_id,H5T_NATIVE_UINT8,name.c_str(),rank,&dims, p_map.data());
+        
+        name = "p_map_x_num_"+std::to_string(i);
+        hsize_t attr = x_num_;
+        hdf5_write_attribute(pr_groupid,H5T_NATIVE_INT,name.c_str(),1,&dim_a, &attr);
+        
+        attr = y_num_;
+        name = "p_map_y_num_"+std::to_string(i);
+        hdf5_write_attribute(pr_groupid,H5T_NATIVE_INT,name.c_str(),1,&dim_a, &attr);
+        
+        attr = z_num_;
+        name = "p_map_z_num_"+std::to_string(i);
+        hdf5_write_attribute(pr_groupid,H5T_NATIVE_INT,name.c_str(),1,&dim_a, &attr);
+        
+    }
+    
+    hsize_t attr = depth_min;
+    hdf5_write_attribute(pr_groupid,H5T_NATIVE_INT,"depth_max",1,&dim_a, &pc_struct.depth_max );
+    hdf5_write_attribute(pr_groupid,H5T_NATIVE_INT,"depth_min",1,&dim_a, &attr );
+    
+    
+    // output the file size
+    hsize_t file_size;
+    H5Fget_filesize(fid, &file_size);
+    
+    std::cout << "HDF5 Filesize: " << file_size*1.0/1000000.0 << " MB" << std::endl;
+    
+    //close shiz
+    H5Gclose(obj_id);
+    H5Gclose(pr_groupid);
+    H5Fclose(fid);
+    
+    std::cout << "Writing Complete" << std::endl;
+    
+    
+    
+    
+}
+
+template<typename T,typename U>
+void write_apr_wavelet(PartCellStructure<T,uint64_t>& pc_struct,std::string save_loc,std::string file_name,const float comp_factor){
+    //
+    //
+    //  Bevan Cheeseman 2016
+    //
+    //  Writes the APR to the particle cell structure using Haar wavelet compression
+    //
+    //
+    
+    
+    
+    std::cout << "Writing parts to hdf5 file, in pc_struct format..." << std::endl;
+    
+    
+    uint64_t num_cells = pc_struct.get_number_cells();
+    uint64_t num_parts = pc_struct.get_number_parts();
+    
+    //initialize
+    uint64_t node_val_part;
+    uint64_t y_coord;
+    int x_;
+    int z_;
+    
+    uint64_t j_;
+    uint64_t status;
+    uint64_t curr_key=0;
+    uint64_t part_offset=0;
+    
+    
+    //Neighbour Routine Checking
+    
+    uint64_t p;
+    
+    register_bosc();
+    
+    std::string hdf5_file_name = save_loc + file_name + "_pcstruct_part.h5";
+    
+    file_name = file_name + "_pcstruct_part";
+    
+    hdf5_create_file(hdf5_file_name);
+    
+    //hdf5 inits
+    hid_t fid, pr_groupid, obj_id;
+    H5G_info_t info;
+    
+    hsize_t     dims_out[2];
+    
+    hsize_t rank = 1;
+    
+    hsize_t dims;
+    hsize_t dim_a=1;
+    
+    fid = H5Fopen(hdf5_file_name.c_str(),H5F_ACC_RDWR,H5P_DEFAULT);
+    
+    //Get the group you want to open
+    
+    //////////////////////////////////////////////////////////////////
+    //
+    //  Write meta-data to the file
+    //
+    //
+    //
+    ///////////////////////////////////////////////////////////////////////
+    dims = 1;
+    
+    pr_groupid = H5Gcreate2(fid,"ParticleRepr",H5P_DEFAULT,H5P_DEFAULT,H5P_DEFAULT);
+    H5Gget_info( pr_groupid, &info );
+    
+    hdf5_write_attribute(pr_groupid,H5T_NATIVE_INT,"x_num",1,&dims, &pc_struct.org_dims[1] );
+    hdf5_write_attribute(pr_groupid,H5T_NATIVE_INT,"y_num",1,&dims, &pc_struct.org_dims[0] );
+    hdf5_write_attribute(pr_groupid,H5T_NATIVE_INT,"z_num",1,&dims, &pc_struct.org_dims[2] );
+    
+    
+    obj_id = H5Gcreate2(fid,"ParticleRepr/t",H5P_DEFAULT,H5P_DEFAULT,H5P_DEFAULT);
+    
+    dims_out[0] = 1;
+    dims_out[1] = 1;
+    
+    //just an identifier in here for the reading of the parts
+    
+    hdf5_write_attribute(pr_groupid,H5T_NATIVE_INT,"num_parts",1,dims_out, &num_parts );
+    
+    hdf5_write_attribute(pr_groupid,H5T_NATIVE_INT,"num_cells",1,dims_out, &num_cells );
+    
+    
+    //////////////////////////////////////////////////////////////////
+    //
+    //  Write data to the file
+    //
+    //
+    //
+    ///////////////////////////////////////////////////////////////////////
+    
+    
+    //////////////////////////////////////////////////
+    //
+    //
+    //
+    //  Get wavelet coefficients
+    //
+    //
+    /////////////////////////////////////////////////////
+    
+    
+    ExtraPartCellData<U> q; //particle size
+    
+    ExtraPartCellData<uint8_t> scale; //cell size
+    
+    ExtraPartCellData<uint8_t> scale_parent; //parent size
+    ExtraPartCellData<T> mu_parent; //parent size
+    ExtraPartCellData<U> q_parent; // parent size
+    
+    calc_wavelet_encode(pc_struct,scale,q,scale_parent,mu_parent,q_parent,comp_factor);
+    
+
+    
+    
+    uint64_t depth_min = pc_struct.depth_min;
+    std::vector<uint8_t> p_map;
+    
+    //Initialize the output variables
+    
+    //particle loop
+    std::vector<U> q_out;
+    
+    //cell loop
+    std::vector<uint8_t> scale_out;
+    
+    //parent loop
+    std::vector<uint8_t> scale_parent_out;
+    std::vector<uint16_t> mu_parent_out;
+    std::vector<U> q_parent_out;
+    
+    // output the file size
+    hsize_t file_size;
+    
+    hsize_t file_size_prev = 0;
+    
+    
+    std::string name;
+        
+    for(uint64_t i = pc_struct.pc_data.depth_min;i <= pc_struct.pc_data.depth_max;i++){
+        
+        
+        ///////////////////////////////
+        //
+        // parent loop
+        //
+        //////////////////////////////
+        
+        const unsigned int x_num_ = pc_struct.x_num[i];
+        const unsigned int z_num_ = pc_struct.z_num[i];
+        const unsigned int y_num_ = pc_struct.y_num[i];
+
+        
+        
+        
+        if ( i <= (pc_struct.depth_max - 1)){
+            
+            //scale_out loop
+            scale_parent_out.resize(0);
+            mu_parent_out.resize(0);
+            q_parent_out.resize(0);
+            
+            for(z_ = 0;z_ < z_num_;z_++){
+                
+                curr_key = 0;
+                
+                for(x_ = 0;x_ < x_num_;x_++){
+                    
+                    const size_t offset_pc_data = x_num_*z_ + x_;
+                    
+                    const size_t j_num = scale_parent.data[i][offset_pc_data].size();
+                    
+                    uint64_t curr_size = scale_parent_out.size();
+                    
+                    scale_parent_out.resize(curr_size+ j_num);
+                    mu_parent_out.resize(curr_size+ j_num);
+                    q_parent_out.resize(curr_size+ j_num);
+                    
+                    std::copy(scale_parent.data[i][offset_pc_data].begin(),scale_parent.data[i][offset_pc_data].end(),scale_parent_out.begin() + curr_size);
+                    std::copy(mu_parent.data[i][offset_pc_data].begin(),mu_parent.data[i][offset_pc_data].end(),mu_parent_out.begin() + curr_size);
+                    std::copy(q_parent.data[i][offset_pc_data].begin(),q_parent.data[i][offset_pc_data].end(),q_parent_out.begin() + curr_size);
+                    
+                }
+                
+            }
+            
+        }
+
+        
+        //parent data
+        if ( i <= (pc_struct.depth_max - 1)){
+            
+            dims = scale_parent_out.size();
+            
+            name = "parent_size_"+std::to_string(i);
+            hdf5_write_attribute(pr_groupid,H5T_NATIVE_INT,name.c_str(),1,&dim_a,&dims);
+            
+            if(scale_parent_out.size() > 0){
+            
+                name = "scale_parent_"+std::to_string(i);
+                hdf5_write_data_blosc(obj_id,H5T_NATIVE_UINT8,name.c_str(),rank,&dims, scale_parent_out.data());
+            
+                name = "mu_parent_"+std::to_string(i);
+                hdf5_write_data_blosc(obj_id,H5T_NATIVE_UINT16,name.c_str(),rank,&dims, mu_parent_out.data());
+            
+                name = "q_parent_"+std::to_string(i);
+                hdf5_write_data_blosc(obj_id,H5T_NATIVE_INT8,name.c_str(),rank,&dims, q_parent_out.data());
+            }
+            
+        }
+    }
+        
+        
+    H5Fget_filesize(fid, &file_size);
+        
+    std::cout << "Parent Filesize: " << (file_size-file_size_prev)*1.0/1000000.0 << " MB" << std::endl;
+    
+    for(uint64_t i = pc_struct.pc_data.depth_min;i <= pc_struct.pc_data.depth_max;i++){
+        
+        const unsigned int x_num_ = pc_struct.x_num[i];
+        const unsigned int z_num_ = pc_struct.z_num[i];
+        const unsigned int y_num_ = pc_struct.y_num[i];
+        
+        /////////////////////////////////
+        //
+        // particle loop
+        //
+        ///////////////////////////////////
+        
+        
+        //q_out loop
+        q_out.resize(0);
+        
+        for(z_ = 0;z_ < z_num_;z_++){
+            
+            curr_key = 0;
+            
+            for(x_ = 0;x_ < x_num_;x_++){
+                
+                const size_t offset_pc_data = x_num_*z_ + x_;
+                
+                const size_t j_num = pc_struct.part_data.particle_data.data[i][offset_pc_data].size();
+                
+                uint64_t curr_size = q_out.size();
+                q_out.resize(curr_size+ j_num);
+                
+                std::copy(q.data[i][offset_pc_data].begin(),q.data[i][offset_pc_data].end(),q_out.begin() + curr_size);
+                
+            }
+            
+        }
+        
+        
+        dims = q_out.size();
+        name = "part_size_"+std::to_string(i);
+        hdf5_write_attribute(pr_groupid,H5T_NATIVE_INT,name.c_str(),1,&dim_a,&dims);
+        
+        
+        
+        if(q_out.size() > 0){
+            
+            /////////////////////
+            //
+            //  Perform writing to disk
+            //
+            ////////////////////
+            
+            //part data
+            
+            //write the q
+            dims = q_out.size();
+            name = "q_"+std::to_string(i);
+            hdf5_write_data_blosc(obj_id,H5T_NATIVE_INT8,name.c_str(),rank,&dims, q_out.data(),BLOSC_ZSTD,6,0);
+            
+        }
+        
+    }
+    
+    file_size_prev = file_size;
+    H5Fget_filesize(fid, &file_size);
+        
+    std::cout << "Q Filesize: " << (file_size-file_size_prev)*1.0/1000000.0 << " MB" << std::endl;
+    
+    for(uint64_t i = pc_struct.pc_data.depth_min;i <= pc_struct.pc_data.depth_max;i++){
+        
+        /////////////////////////////////
+        //
+        // cell loop
+        //
+        ///////////////////////////////////
+        
+        const unsigned int x_num_ = pc_struct.x_num[i];
+        const unsigned int z_num_ = pc_struct.z_num[i];
+        const unsigned int y_num_ = pc_struct.y_num[i];
+
+        
+        
+        //scale_out loop
+        scale_out.resize(0);
+        
+        for(z_ = 0;z_ < z_num_;z_++){
+            
+            curr_key = 0;
+            
+            for(x_ = 0;x_ < x_num_;x_++){
+                
+                const size_t offset_pc_data = x_num_*z_ + x_;
+                
+                const size_t j_num = pc_struct.pc_data.data[i][offset_pc_data].size();
+                
+                uint64_t curr_size = scale_out.size();
+                scale_out.resize(curr_size+ j_num);
+                
+                std::copy(scale.data[i][offset_pc_data].begin(),scale.data[i][offset_pc_data].end(),scale_out.begin() + curr_size);
+                
+            }
+            
+        }
+        
+        dims = scale_out.size();
+        name = "cell_size_"+std::to_string(i);
+        hdf5_write_attribute(pr_groupid,H5T_NATIVE_INT,name.c_str(),1,&dim_a,&dims);
+        
+        if(scale_out.size() > 0){
+            //cell data
+            dims = scale_out.size();
+            name = "scale_"+std::to_string(i);
+            hdf5_write_data_blosc(obj_id,H5T_NATIVE_UINT8,name.c_str(),rank,&dims, scale_out.data());
+        }
+
+    }
+    
+    file_size_prev = file_size;
+    H5Fget_filesize(fid, &file_size);
+        
+    std::cout << "Scale_full Filesize: " << (file_size-file_size_prev)*1.0/1000000.0 << " MB" << std::endl;
+        
+        
+    for(uint64_t i = pc_struct.pc_data.depth_min;i <= pc_struct.pc_data.depth_max;i++){
+    
+        //////////////////////////
+        //
+        //  Structure Data
+        //
+        //////////////////////////////
+        const unsigned int x_num_ = pc_struct.x_num[i];
+        const unsigned int z_num_ = pc_struct.z_num[i];
+        const unsigned int y_num_ = pc_struct.y_num[i];
+        
+        
+        p_map.resize(x_num_*z_num_*y_num_,0);
+        
+        std::fill(p_map.begin(), p_map.end(), 0);
+        
+        //For each depth there are two loops, one for SEED status particles, at depth + 1, and one for BOUNDARY and FILLER CELLS, to ensure contiguous memory access patterns.
+        
+        // SEED PARTICLE STATUS LOOP (requires access to three data structures, particle access, particle data, and the part-map)
+#pragma omp parallel for default(shared) private(z_,x_,j_,p,node_val_part,curr_key,part_offset,status,y_coord) if(z_num_*x_num_ > 100)
+        for(z_ = 0;z_ < z_num_;z_++){
+            
+            for(x_ = 0;x_ < x_num_;x_++){
+                
+                const size_t offset_pc_data = x_num_*z_ + x_;
+                const size_t offset_p_map = y_num_*x_num_*z_ + y_num_*x_;
+                
+                const size_t j_num = pc_struct.pc_data.data[i][offset_pc_data].size();
+                
+                y_coord = 0;
+                
+                for(j_ = 0;j_ < j_num;j_++){
+                    
+                    node_val_part = pc_struct.part_data.access_data.data[i][offset_pc_data][j_];
+                    
+                    if (!(node_val_part&1)){
+                        //get the index gap node
+                        y_coord++;
+                        
+                        status = pc_struct.part_data.access_node_get_status(node_val_part);
+                        p_map[offset_p_map + y_coord] = status;
+                        
+                    } else {
+                        
+                        y_coord += ((node_val_part & COORD_DIFF_MASK_PARTICLE) >> COORD_DIFF_SHIFT_PARTICLE);
+                        y_coord--;
+                    }
+                    
+                }
+                
+            }
+            
+        }
+        
+        dims = p_map.size();
+        name = "p_map_"+std::to_string(i);
+        hdf5_write_data_blosc(obj_id,H5T_NATIVE_UINT8,name.c_str(),rank,&dims, p_map.data());
+        
+        name = "p_map_x_num_"+std::to_string(i);
+        hsize_t attr = x_num_;
+        hdf5_write_attribute(pr_groupid,H5T_NATIVE_INT,name.c_str(),1,&dim_a, &attr);
+        
+        attr = y_num_;
+        name = "p_map_y_num_"+std::to_string(i);
+        hdf5_write_attribute(pr_groupid,H5T_NATIVE_INT,name.c_str(),1,&dim_a, &attr);
+        
+        attr = z_num_;
+        name = "p_map_z_num_"+std::to_string(i);
+        hdf5_write_attribute(pr_groupid,H5T_NATIVE_INT,name.c_str(),1,&dim_a, &attr);
+        
+    }
+    
+    file_size_prev = file_size;
+    H5Fget_filesize(fid, &file_size);
+    
+    std::cout << "P_map Filesize: " << (file_size-file_size_prev)*1.0/1000000.0 << " MB" << std::endl;
+    
+    hsize_t attr = depth_min;
+    hdf5_write_attribute(pr_groupid,H5T_NATIVE_INT,"depth_max",1,&dim_a, &pc_struct.depth_max );
+    hdf5_write_attribute(pr_groupid,H5T_NATIVE_INT,"depth_min",1,&dim_a, &attr );
+    
+    
+    // output the file size
+    H5Fget_filesize(fid, &file_size);
+    
+    std::cout << "HDF5 Filesize: " << file_size*1.0/1000000.0 << " MB" << std::endl;
+    
+    //close shiz
+    H5Gclose(obj_id);
+    H5Gclose(pr_groupid);
+    H5Fclose(fid);
+    
+    std::cout << "Writing Complete" << std::endl;
+    
+    
+    
+    
+}
+
+template<typename T,typename U>
+void read_apr_wavelet(PartCellStructure<T,uint64_t>& pc_struct,std::string file_name)
 {
     
     
@@ -510,6 +1181,7 @@ void read_apr_pc_struct(PartCellStructure<T,uint64_t>& pc_struct,std::string fil
     hid_t fid, pr_groupid, obj_id,attr_id;
     H5G_info_t info;
     
+    register_bosc();
     
     int num_parts,num_cells;
     
@@ -530,7 +1202,220 @@ void read_apr_pc_struct(PartCellStructure<T,uint64_t>& pc_struct,std::string fil
     //  Get metadata
     //
     //////////////////////////////////////////////
+    
+    float comp_factor = 40; //will have to read this in
+    
+    
+    attr_id = 	H5Aopen(pr_groupid,"y_num",H5P_DEFAULT);
+    H5Aread(attr_id,H5T_NATIVE_INT,&pc_struct.org_dims[0]) ;
+    H5Aclose(attr_id);
+    
+    attr_id = 	H5Aopen(pr_groupid,"x_num",H5P_DEFAULT);
+    H5Aread(attr_id,H5T_NATIVE_INT,&pc_struct.org_dims[1]) ;
+    H5Aclose(attr_id);
+    
+    attr_id = 	H5Aopen(pr_groupid,"z_num",H5P_DEFAULT);
+    H5Aread(attr_id,H5T_NATIVE_INT,&pc_struct.org_dims[2]) ;
+    H5Aclose(attr_id);
+    
+    attr_id = 	H5Aopen(pr_groupid,"num_parts",H5P_DEFAULT);
+    H5Aread(attr_id,H5T_NATIVE_INT,&num_parts) ;
+    H5Aclose(attr_id);
+    
+    attr_id = 	H5Aopen(pr_groupid,"num_cells",H5P_DEFAULT);
+    H5Aread(attr_id,H5T_NATIVE_INT,&num_cells) ;
+    H5Aclose(attr_id);
+    
+    attr_id = 	H5Aopen(pr_groupid,"depth_max",H5P_DEFAULT);
+    H5Aread(attr_id,H5T_NATIVE_INT,&pc_struct.depth_max) ;
+    H5Aclose(attr_id);
+    
+    attr_id = 	H5Aopen(pr_groupid,"depth_min",H5P_DEFAULT);
+    H5Aread(attr_id,H5T_NATIVE_INT,&pc_struct.depth_min) ;
+    H5Aclose(attr_id);
+    
+    
+    std::cout << "Number particles: " << num_parts << " Number Cells: " << num_cells << std::endl;
+    
+    
+    //////////////////////////////
+    //
+    //  Initialize output vectors
+    //
+    ////////////////////////////
+    
+    std::vector<std::vector<uint8_t>> p_map_load;
+    
+    //particle loop
+    std::vector<std::vector<U>> q_out;
+    
+    //cell loop
+    std::vector<std::vector<uint8_t>> scale_out;
+    
+    //parent loop
+    std::vector<std::vector<uint8_t>> scale_parent_out;
+    std::vector<std::vector<uint16_t>> mu_parent_out;
+    std::vector<std::vector<U>> q_parent_out;
+    
+    
+    p_map_load.resize(pc_struct.depth_max+1);
+    q_out.resize(pc_struct.depth_max+1);
+    scale_out.resize(pc_struct.depth_max+1);
+    
+    //parent level have one less resolution level
+    scale_parent_out.resize(pc_struct.depth_max);
+    mu_parent_out.resize(pc_struct.depth_max);
+    q_parent_out.resize(pc_struct.depth_max);
+    
+    std::string name;
+    
+    pc_struct.x_num.resize(pc_struct.depth_max+1);
+    pc_struct.z_num.resize(pc_struct.depth_max+1);
+    pc_struct.y_num.resize(pc_struct.depth_max+1);
+    
+    // pc loops
+    
+    for(int i = pc_struct.depth_min;i <= pc_struct.depth_max; i++){
+        
+        //get the info
+        
+        int x_num;
+        name = "p_map_x_num_"+std::to_string(i);
+        
+        attr_id = 	H5Aopen(pr_groupid,name.c_str(),H5P_DEFAULT);
+        H5Aread(attr_id,H5T_NATIVE_INT,&x_num) ;
+        H5Aclose(attr_id);
+        
+        int y_num;
+        name = "p_map_y_num_"+std::to_string(i);
+        
+        attr_id = 	H5Aopen(pr_groupid,name.c_str(),H5P_DEFAULT);
+        H5Aread(attr_id,H5T_NATIVE_INT,&y_num) ;
+        H5Aclose(attr_id);
+        
+        int z_num;
+        name = "p_map_z_num_"+std::to_string(i);
+        
+        attr_id = 	H5Aopen(pr_groupid,name.c_str(),H5P_DEFAULT);
+        H5Aread(attr_id,H5T_NATIVE_INT,&z_num) ;
+        H5Aclose(attr_id);
+        
+        int q_num;
+        name = "part_size_"+std::to_string(i);
+        
+        attr_id = 	H5Aopen(pr_groupid,name.c_str(),H5P_DEFAULT);
+        H5Aread(attr_id,H5T_NATIVE_INT,&q_num);
+        H5Aclose(attr_id);
+        
+        int scale_num;
+        name = "cell_size_"+std::to_string(i);
+        
+        attr_id = 	H5Aopen(pr_groupid,name.c_str(),H5P_DEFAULT);
+        H5Aread(attr_id,H5T_NATIVE_INT,&scale_num);
+        H5Aclose(attr_id);
+        
+        //initialize
+        p_map_load[i].resize(x_num*y_num*z_num);
+        q_out[i].resize(q_num);
+        scale_out[i].resize(scale_num);
+        
+        if(p_map_load[i].size()>0){
+            name = "p_map_"+std::to_string(i);
+            //Load the data then update the particle dataset
+            hdf5_load_data(obj_id,H5T_NATIVE_UINT8,p_map_load[i].data(),name.c_str());
+        }
+        
+        if(q_out[i].size()>0){
+            name = "q_"+std::to_string(i);
+            hdf5_load_data(obj_id,H5T_NATIVE_INT8,q_out[i].data(),name.c_str());
+        }
+        
+        if(scale_out[i].size()>0){
+            name = "scale_"+std::to_string(i);
+            hdf5_load_data(obj_id,H5T_NATIVE_UINT8,scale_out[i].data(),name.c_str());
+        }
+            
+        pc_struct.x_num[i] = x_num;
+        pc_struct.y_num[i] = y_num;
+        pc_struct.z_num[i] = z_num;
+        
+    }
+    
+    //parent loops
+    
+    for(int i = pc_struct.depth_min;i < pc_struct.depth_max; i++){
+        
+        //get the info
+    
+        int parent_num;
+        name = "parent_size_"+std::to_string(i);
+        
+        attr_id = 	H5Aopen(pr_groupid,name.c_str(),H5P_DEFAULT);
+        H5Aread(attr_id,H5T_NATIVE_INT,&parent_num);
+        H5Aclose(attr_id);
+        
+        //initialize
+        q_parent_out[i].resize(parent_num);
+        mu_parent_out[i].resize(parent_num);
+        scale_parent_out[i].resize(parent_num);
+        
+        if(parent_num > 0){
+            
+            name = "q_parent_"+std::to_string(i);
+            hdf5_load_data(obj_id,H5T_NATIVE_INT8,q_parent_out[i].data(),name.c_str());
+            
+            name = "scale_parent_"+std::to_string(i);
+            hdf5_load_data(obj_id,H5T_NATIVE_UINT8,scale_parent_out[i].data(),name.c_str());
+            
+            name = "mu_parent_"+std::to_string(i);
+            hdf5_load_data(obj_id,H5T_NATIVE_UINT16,mu_parent_out[i].data(),name.c_str());
+        }
+    }
+    
+    
+    //close shiz
+    H5Gclose(obj_id);
+    H5Gclose(pr_groupid);
+    H5Fclose(fid);
+    
+    pc_struct.initialize_pc_read(p_map_load);
+    
+    calc_wavelet_decode(pc_struct,scale_out,q_out,scale_parent_out,mu_parent_out,q_parent_out,comp_factor);
+    
+}
 
+template<typename T>
+void read_apr_pc_struct(PartCellStructure<T,uint64_t>& pc_struct,std::string file_name)
+{
+    
+    
+    //hdf5 inits
+    hid_t fid, pr_groupid, obj_id,attr_id;
+    H5G_info_t info;
+    
+    //need to register the filters so they work properly
+    register_bosc();
+    
+    int num_parts,num_cells;
+    
+    fid = H5Fopen(file_name.c_str(),H5F_ACC_RDONLY,H5P_DEFAULT);
+    
+    //Get the group you want to open
+    
+    pr_groupid = H5Gopen2(fid,"ParticleRepr",H5P_DEFAULT);
+    H5Gget_info( pr_groupid, &info );
+    
+    //Getting an attribute
+    obj_id =  H5Oopen_by_idx( fid, "ParticleRepr", H5_INDEX_NAME, H5_ITER_INC,0,H5P_DEFAULT);
+    
+    //Load the attributes
+    
+    
+    /////////////////////////////////////////////
+    //  Get metadata
+    //
+    //////////////////////////////////////////////
+    
     
     attr_id = 	H5Aopen(pr_groupid,"y_num",H5P_DEFAULT);
     H5Aread(attr_id,H5T_NATIVE_INT,&pc_struct.org_dims[0]) ;
@@ -610,13 +1495,16 @@ void read_apr_pc_struct(PartCellStructure<T,uint64_t>& pc_struct,std::string fil
         p_map_load[i].resize(x_num*y_num*z_num);
         Ip[i].resize(Ip_num);
         
-        name = "p_map_"+std::to_string(i);
-        //Load the data then update the particle dataset
-        hdf5_load_data(obj_id,H5T_NATIVE_UINT8,p_map_load[i].data(),name.c_str());
+        if(p_map_load[i].size() > 0){
+            name = "p_map_"+std::to_string(i);
+            //Load the data then update the particle dataset
+            hdf5_load_data(obj_id,H5T_NATIVE_UINT8,p_map_load[i].data(),name.c_str());
+        }
         
-        name = "Ip_"+std::to_string(i);
-        hdf5_load_data(obj_id,H5T_NATIVE_UINT16,Ip[i].data(),name.c_str());
-        
+        if(Ip[i].size()>0){
+            name = "Ip_"+std::to_string(i);
+            hdf5_load_data(obj_id,H5T_NATIVE_UINT16,Ip[i].data(),name.c_str());
+        }
         
         pc_struct.x_num[i] = x_num;
         pc_struct.y_num[i] = y_num;

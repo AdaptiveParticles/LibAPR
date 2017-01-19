@@ -234,23 +234,67 @@ void const_upsample_img(Mesh_data<T>& input_us,Mesh_data<T>& input,std::vector<u
     input_us.x_num = x_num;
     input_us.z_num = z_num;
     
-    //input_us.initialize(y_num, x_num,z_num,0);
-    input_us.mesh.resize(y_num*x_num*z_num);
+    timer.start_timer("resize");
     
-    std::vector<float> temp_vec;
+    //input_us.initialize(y_num, x_num,z_num,0);
+    //input_us.mesh.resize(y_num*x_num*z_num);
+    
+    timer.stop_timer();
+    
+    std::vector<T> temp_vec;
     temp_vec.resize(y_num_ds,0);
+    
+    
     
     timer.start_timer("up_sample_const");
     
-    int j, i, k;
+    unsigned int j, i, k;
     
-#pragma omp parallel for default(shared) private(i,k) firstprivate(temp_vec)
+#pragma omp parallel for default(shared) private(j,i,k) firstprivate(temp_vec) if(z_num_ds_l*x_num_ds_l > 100)
     for(j = 0;j < z_num_ds_l;j++){
         
         for(i = 0;i < x_num_ds_l;i++){
             
-            //four passes
-            
+//            //four passes
+//            
+//            unsigned int offset = j*x_num_ds*y_num_ds + i*y_num_ds;
+//            //first take into cache
+//            for (k = 0; k < y_num_ds_l;k++){
+//                temp_vec[k] = input.mesh[offset + k];
+//            }
+//            
+//            //(0,0)
+//            
+//            offset = 2*j*x_num*y_num + 2*i*y_num;
+//            //then do the operations two by two
+//            for (k = 0; k < y_num_ds_l;k++){
+//                input_us.mesh[offset + 2*k] = temp_vec[k];
+//                input_us.mesh[offset + 2*k + 1] = temp_vec[k];
+//            }
+//            
+//            //(0,1)
+//            offset = (2*j+1)*x_num*y_num + 2*i*y_num;
+//            //then do the operations two by two
+//            for (k = 0; k < y_num_ds_l;k++){
+//                input_us.mesh[offset + 2*k] = temp_vec[k];
+//                input_us.mesh[offset + 2*k + 1] = temp_vec[k];
+//            }
+//            
+//            offset = 2*j*x_num*y_num + (2*i+1)*y_num;
+//            //(1,0)
+//            //then do the operations two by two
+//            for (k = 0; k < y_num_ds_l;k++){
+//                input_us.mesh[offset + 2*k] = temp_vec[k];
+//                input_us.mesh[offset + 2*k + 1] = temp_vec[k];
+//            }
+//            
+//            offset = (2*j+1)*x_num*y_num + (2*i+1)*y_num;
+//            //(1,1)
+//            //then do the operations two by two
+//            for (k = 0; k < y_num_ds_l;k++){
+//                input_us.mesh[offset + 2*k] = temp_vec[k];
+//                input_us.mesh[offset + 2*k + 1] = temp_vec[k];
+//            }
             //first take into cache
             for (k = 0; k < y_num_ds_l;k++){
                 temp_vec[k] = input.mesh[j*x_num_ds*y_num_ds + i*y_num_ds + k];

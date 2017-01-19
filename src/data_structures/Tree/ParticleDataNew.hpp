@@ -6,13 +6,14 @@
 //
 ///////////////
 
-#ifndef PARTPLAY_PARTICLEDATA_HPP
-#define PARTPLAY_PARTICLEDATA_HPP
+#ifndef PARTPLAY_PARTICLEDATA_NEW_HPP
+#define PARTPLAY_PARTICLEDATA_NEW_HPP
 
 #include <stdint.h>
 
 #include "PartCellData.hpp"
 #include "ExtraPartCellData.hpp"
+#include "PartCellStructure.hpp"
 
 
 #define SEED_NUM_PARTICLES 8
@@ -34,7 +35,7 @@
 #define COORD_DIFF_SHIFT_PARTICLE 3
 
 template <typename T,typename S> // type T is the image type, type S is the data structure base type
-class ParticleData {
+class ParticleDataNew {
     
 public:
     
@@ -46,7 +47,7 @@ public:
     ExtraPartCellData<T> particle_data;
     std::vector<std::vector<uint64_t>> global_index_offset;
     
-    ParticleData(){};
+    ParticleDataNew(){};
     
     S& operator ()(int depth, int x_,int z_,int j_,int index){
         // data access
@@ -99,50 +100,337 @@ public:
         
     }
     
-    uint8_t depth_max;
-    uint8_t depth_min;
+    uint64_t depth_max;
+    uint64_t depth_min;
     
     std::vector<unsigned int> z_num;
     std::vector<unsigned int> x_num;
+    std::vector<unsigned int> y_num;
     
     template<typename U>
-    void initialize_from_structure(PartCellData<U>& part_cell_data){
+    void initialize_from_structure(PartCellStructure<U,uint64_t>& pc_struct){
         //
         //  Initialize the two data structures
         //
         //
         
-        access_data.initialize_from_partcelldata(part_cell_data);
+        x_num = pc_struct.x_num;
+        y_num = pc_struct.y_num;
+        z_num = pc_struct.z_num;
+        
         
         //first add the layers
-        particle_data.depth_max = part_cell_data.depth_max;
-        particle_data.depth_min = part_cell_data.depth_min;
+        particle_data.depth_max = pc_struct.depth_max + 1;
+        particle_data.depth_min = pc_struct.depth_min;
+        
+        depth_max = particle_data.depth_max;
+        depth_min = particle_data.depth_min;
         
         particle_data.z_num.resize(particle_data.depth_max+1);
         particle_data.x_num.resize(particle_data.depth_max+1);
         
         particle_data.data.resize(particle_data.depth_max+1);
         
-        for(uint64_t i = particle_data.depth_min;i <= particle_data.depth_max;i++){
-            particle_data.z_num[i] = part_cell_data.z_num[i];
-            particle_data.x_num[i] = part_cell_data.x_num[i];
+        for(uint64_t i = particle_data.depth_min;i < particle_data.depth_max;i++){
+            particle_data.z_num[i] = pc_struct.z_num[i];
+            particle_data.x_num[i] = pc_struct.x_num[i];
             particle_data.data[i].resize(particle_data.z_num[i]*particle_data.x_num[i]);
         }
         
+        particle_data.z_num[particle_data.depth_max] = pc_struct.org_dims[2];
+        particle_data.x_num[particle_data.depth_max] = pc_struct.org_dims[1];
+        particle_data.data[particle_data.depth_max].resize(particle_data.z_num[particle_data.depth_max]*particle_data.x_num[particle_data.depth_max]);
+        
+        //first add the layers
+        access_data.depth_max = pc_struct.depth_max + 1;
+        access_data.depth_min = pc_struct.depth_min;
+        
+        access_data.z_num.resize(access_data.depth_max+1);
+        access_data.x_num.resize(access_data.depth_max+1);
+        access_data.y_num.resize(access_data.depth_max+1);
+        
+        access_data.data.resize(access_data.depth_max + 1);
+        
+        for(uint64_t i = access_data.depth_min;i < access_data.depth_max;i++){
+            access_data.z_num[i] = pc_struct.z_num[i];
+            access_data.x_num[i] = pc_struct.x_num[i];
+            access_data.y_num[i] = pc_struct.y_num[i];
+            access_data.data[i].resize(access_data.z_num[i]*access_data.x_num[i]);
+        }
+        
+        access_data.z_num[access_data.depth_max] = pc_struct.org_dims[2];
+        access_data.x_num[access_data.depth_max] = pc_struct.org_dims[1];
+        access_data.y_num[access_data.depth_max] = pc_struct.org_dims[0];
+        access_data.data[access_data.depth_max].resize(access_data.z_num[access_data.depth_max]*access_data.x_num[access_data.depth_max]);
         
         //now initialize the entries of the two data sets, access structure
         
         //initialize loop variables
         int x_;
         int z_;
+        int y_;
         
-        U j_;
+        int x_seed;
+        int z_seed;
+        int y_seed;
+        
+        uint64_t j_;
+        
+        uint64_t status;
+        uint64_t node_val;
+        uint16_t node_val_part;
         
         //next initialize the entries;
         Part_timer timer;
         timer.verbose_flag = 1;
         
+        std::vector<uint16_t> temp_exist;
+        std::vector<uint16_t> temp_location;
+        
         timer.start_timer("intiialize access data structure");
+        
+        for(uint64_t i = access_data.depth_max;i >= access_data.depth_min;i--){
+            
+            const unsigned int x_num = access_data.x_num[i];
+            const unsigned int z_num = access_data.z_num[i];
+            
+            
+            const unsigned int x_num_seed = access_data.x_num[i-1];
+            const unsigned int z_num_seed = access_data.z_num[i-1];
+            
+            temp_exist.resize(access_data.y_num[i]);
+            temp_location.resize(access_data.y_num[i]);
+            
+#pragma omp parallel for default(shared) private(j_,z_,x_,y_,node_val,status,z_seed,x_seed,node_val_part) firstprivate(temp_exist,temp_location) if(z_num*x_num > 100)
+            for(z_ = 0;z_ < z_num;z_++){
+                
+                for(x_ = 0;x_ < x_num;x_++){
+                    
+                    std::fill(temp_exist.begin(), temp_exist.end(), 0);
+                    std::fill(temp_location.begin(), temp_location.end(), 0);
+                    
+                    if( i < access_data.depth_max){
+                        //access variables
+                        const size_t offset_pc_data = x_num*z_ + x_;
+                        const size_t j_num = pc_struct.pc_data.data[i][offset_pc_data].size();
+                        
+                        y_ = 0;
+                        
+                        //first loop over
+                        for(j_ = 0; j_ < j_num;j_++){
+                            //raster over both structures, generate the index for the particles, set the status and offset_y_coord diff
+                            
+                            node_val = pc_struct.pc_data.data[i][offset_pc_data][j_];
+                            node_val_part = pc_struct.part_data.access_data.data[i][offset_pc_data][j_];
+                            
+                            if(!(node_val&1)){
+                                //normal node
+                                y_++;
+                                //create pindex, and create status (0,1,2,3) and type
+                                status = (node_val & STATUS_MASK) >> STATUS_SHIFT;  //need the status masks here, need to move them into the datastructure I think so that they are correctly accessible then to these routines.
+                                uint16_t part_offset = (node_val_part & Y_PINDEX_MASK_PARTICLE) >> Y_PINDEX_SHIFT_PARTICLE;
+                                
+                                if(status > SEED){
+                                    temp_exist[y_] = status;
+                                    temp_location[y_] = part_offset;
+                                }
+                                
+                            } else {
+                                
+                                y_ = (node_val & NEXT_COORD_MASK) >> NEXT_COORD_SHIFT;
+                                y_--;
+                            }
+                        }
+                    }
+                    
+                    x_seed = x_/2;
+                    z_seed = z_/2;
+                    
+                    if( i > access_data.depth_min){
+                        //access variables
+                        size_t offset_pc_data = x_num_seed*z_seed + x_seed;
+                        const size_t j_num = pc_struct.pc_data.data[i-1][offset_pc_data].size();
+                        
+                        
+                        y_ = 0;
+                        
+                        //first loop over
+                        for(j_ = 0; j_ < j_num;j_++){
+                            //raster over both structures, generate the index for the particles, set the status and offset_y_coord diff
+                            
+                            node_val_part = pc_struct.part_data.access_data.data[i-1][offset_pc_data][j_];
+                            node_val = pc_struct.pc_data.data[i-1][offset_pc_data][j_];
+                            
+                            if(!(node_val&1)){
+                                //normal node
+                                y_++;
+                                //create pindex, and create status (0,1,2,3) and type
+                                status = (node_val & STATUS_MASK) >> STATUS_SHIFT;  //need the status masks here, need to move them into the datastructure I think so that they are correctly accessible then to these routines.
+                                uint16_t part_offset = (node_val_part & Y_PINDEX_MASK_PARTICLE) >> Y_PINDEX_SHIFT_PARTICLE;
+                                
+                                if(status == SEED){
+                                    temp_exist[2*y_] = status;
+                                    temp_exist[2*y_+1] = status;
+                                    
+                                    temp_location[2*y_] = part_offset + (z_&1)*4 + (x_&1)*2;
+                                    temp_location[2*y_+1] = part_offset + (z_&1)*4 + (x_&1)*2 + 1;
+                                    
+                                }
+                                
+                            } else {
+                                
+                                y_ = (node_val & NEXT_COORD_MASK) >> NEXT_COORD_SHIFT;
+                                y_--;
+                            }
+                        }
+                    }
+                    
+                    
+                    size_t first_empty = 0;
+                    
+                    size_t offset_pc_data = x_num*z_ + x_;
+                    size_t offset_pc_data_seed = x_num_seed*z_seed + x_seed;
+                    size_t curr_index = 0;
+                    size_t prev_ind = 0;
+                    
+                    //first value handle the duplication of the gap node
+                    
+                    status = temp_exist[0];
+                    
+                    if((status> 0)){
+                        first_empty = 0;
+                    } else {
+                        first_empty = 1;
+                    }
+                    
+                    size_t part_total= 0;
+                    
+                    for(y_ = 0;y_ < temp_exist.size();y_++){
+                        
+                        status = temp_exist[y_];
+                        
+                        if(status> 0){
+                            curr_index+= 1 + prev_ind;
+                            prev_ind = 0;
+                            part_total++;
+                        } else {
+                            prev_ind = 1;
+                        }
+                    }
+                    
+                    if(curr_index == 0){
+                        access_data.data[i][offset_pc_data].resize(1); //always first adds an extra entry for intialization and extra info
+                    } else {
+                        access_data.data[i][offset_pc_data].resize(curr_index + 2 - first_empty,0); //gap node to begin, already finishes with a gap node
+                        
+                    }
+                    
+                    //initialize particles
+                    particle_data.data[i][offset_pc_data].resize(part_total);
+                    
+                    curr_index = 0;
+                    prev_ind = 1;
+                    size_t prev_coord = 0;
+                    
+                    size_t part_counter=0;
+                    
+                    access_data.data[i][offset_pc_data][0] = 1;
+                    access_data.data[i][offset_pc_data].back() = 1;
+                    
+                    for(y_ = 0;y_ < temp_exist.size();y_++){
+                        
+                        status = temp_exist[y_];
+                        
+                        if((status> 0)){
+                            
+                            curr_index++;
+                            
+                            //set starting type
+                            if(prev_ind == 1){
+                                //gap node
+                                //set type
+                                
+                                //gap node
+                                access_data.data[i][offset_pc_data][curr_index-1] = 1; //set type to gap
+                                access_data.data[i][offset_pc_data][curr_index-1] |= ((y_ - prev_coord) << COORD_DIFF_SHIFT_PARTICLE); //set the coordinate difference
+                                
+                                curr_index++;
+                            }
+                            prev_coord = y_;
+                            //set type
+                            
+                            
+                            access_data.data[i][offset_pc_data][curr_index-1] = 0; //set normal type
+                            
+                            access_data.data[i][offset_pc_data][curr_index-1] |= (status << STATUS_SHIFT_PARTICLE); //add the particle status
+                            
+                            access_data.data[i][offset_pc_data][curr_index-1] |= (part_counter << Y_PINDEX_SHIFT_PARTICLE); //add the particle starting index for the part cell
+                            
+                            //lastly retrieve the intensities
+                            if(status == SEED){
+                                //seed from up one level
+                                particle_data.data[i][offset_pc_data][part_counter] = pc_struct.part_data.particle_data.data[i-1][offset_pc_data_seed][temp_location[y_]];
+                            }
+                            else {
+                                //non seed same level
+                                particle_data.data[i][offset_pc_data][part_counter] = pc_struct.part_data.particle_data.data[i][offset_pc_data][temp_location[y_]];
+                            }
+                                
+                            part_counter++;
+                            
+                            
+                            prev_ind = 0;
+                        } else {
+                            //store for setting above
+                            if(prev_ind == 0){
+                                //prev_coord = y_;
+                            }
+                            
+                            prev_ind = 1;
+                            
+                        }
+                    }
+                    
+                    
+                    int stop = 1;
+                    
+                    
+                    
+                }
+                
+            }
+        }
+        
+        timer.stop_timer();
+        
+        
+        
+        
+    }
+    template<typename U>
+    void create_pc_data_new(PartCellData<U>& pc_data_new){
+        
+        
+        pc_data_new.y_num = y_num;
+        
+        //first add the layers
+        pc_data_new.depth_max = access_data.depth_max;
+        pc_data_new.depth_min = access_data.depth_min;
+        
+        pc_data_new.z_num.resize(access_data.depth_max+1);
+        pc_data_new.x_num.resize(access_data.depth_max+1);
+        
+        pc_data_new.data.resize(access_data.depth_max+1);
+        
+        for(uint64_t i = access_data.depth_min;i <= access_data.depth_max;i++){
+            pc_data_new.z_num[i] = access_data.z_num[i];
+            pc_data_new.x_num[i] = access_data.x_num[i];
+            pc_data_new.data[i].resize(access_data.z_num[i]*access_data.x_num[i]);
+        }
+        
+        
+        //initialize all the structure arrays
+        int j_,x_,z_;
         
         for(uint64_t i = access_data.depth_min;i <= access_data.depth_max;i++){
             
@@ -154,92 +442,237 @@ public:
                 
                 for(x_ = 0;x_ < x_num;x_++){
                     const size_t offset_pc_data = x_num*z_ + x_;
-                    access_data.data[i][offset_pc_data].resize(part_cell_data.data[i][offset_pc_data].size());
+                    pc_data_new.data[i][offset_pc_data].resize(access_data.data[i][offset_pc_data].size());
                 }
                 
             }
         }
         
-        timer.stop_timer();
         
-        timer.start_timer("initialize structures");
+        //then initialize the values;
         
-        U status;
-        U node_val;
+        for(uint64_t depth = (access_data.depth_min);depth <= access_data.depth_max;depth++){
+            //loop over the resolutions of the structure
+            const unsigned int x_num_ = access_data.x_num[depth];
+            const unsigned int z_num_ = access_data.z_num[depth];
+            
+            
+#pragma omp parallel for default(shared) private(z_,x_,j_)  if(z_num_*x_num_ > 100)
+            for(z_ = 0;z_ < z_num_;z_++){
+                //both z and x are explicitly accessed in the structure
+                
+                for(x_ = 0;x_ < x_num_;x_++){
+                    
+                    int y_=0;
+                    uint64_t prev_coord=0;
+                    
+                    const size_t offset_pc_data = x_num_*z_ + x_;
+                    uint64_t node_val_pc;
+                    
+                    const size_t j_num = pc_data_new.data[depth][offset_pc_data].size();
+                    
+                    //the y direction loop however is sparse, and must be accessed accordinagly
+                    for(j_ = 0;j_ < j_num-1;j_++){
+                        
+                        //particle cell node value, used here as it is requried for getting the particle neighbours
+                        node_val_pc = access_data.data[depth][offset_pc_data][j_];
+                        
+                        if (!(node_val_pc&1)){
+                            
+                            
+                            //Indicates this is a particle cell node
+                            y_++;
+                            
+                            pc_data_new.data[depth][offset_pc_data][j_] = TYPE_PC;
+                            
+                            //initialize the neighbours to empty (to be over-written later if not the case) (Boundary Conditions)
+                            pc_data_new.data[depth][offset_pc_data][j_] |= (NO_NEIGHBOUR << XP_DEPTH_SHIFT);
+                            pc_data_new.data[depth][offset_pc_data][j_] |= (NO_NEIGHBOUR << XM_DEPTH_SHIFT);
+                            pc_data_new.data[depth][offset_pc_data][j_] |= (NO_NEIGHBOUR << ZP_DEPTH_SHIFT);
+                            pc_data_new.data[depth][offset_pc_data][j_] |= (NO_NEIGHBOUR << ZM_DEPTH_SHIFT);
+                            
+                            //add status here
+                            uint64_t status = access_node_get_status(node_val_pc);
+                            pc_data_new.data[depth][offset_pc_data][j_] |= (status << STATUS_SHIFT);
+                            
+                        } else {
+                            
+                            prev_coord = y_;
+                            
+                            y_ += ((node_val_pc & COORD_DIFF_MASK_PARTICLE) >> COORD_DIFF_SHIFT_PARTICLE);
+                            
+                            pc_data_new.data[depth][offset_pc_data][j_] = TYPE_GAP;
+                            pc_data_new.data[depth][offset_pc_data][j_] |= (((uint64_t)y_) << NEXT_COORD_SHIFT);
+                            pc_data_new.data[depth][offset_pc_data][j_] |= ( prev_coord << PREV_COORD_SHIFT);
+                            pc_data_new.data[depth][offset_pc_data][j_] |= (NO_NEIGHBOUR << YP_DEPTH_SHIFT);
+                            pc_data_new.data[depth][offset_pc_data][j_] |= (NO_NEIGHBOUR << YM_DEPTH_SHIFT);
+                            
+                            y_--;
+                        }
+                        
+                        
+                    }
+                    
+                    //Initialize the last value GAP END indicators to no neighbour
+                    pc_data_new.data[depth][offset_pc_data][j_num-1] = TYPE_GAP_END;
+                    pc_data_new.data[depth][offset_pc_data][j_num-1] |= (NO_NEIGHBOUR << YP_DEPTH_SHIFT);
+                    pc_data_new.data[depth][offset_pc_data][j_num-1] |= (NO_NEIGHBOUR << YM_DEPTH_SHIFT);
+                    
+                    
+                }
+            }
+        }
+    
+    
+        ///////////////////////////////////
+        //
+        //  Calculate neighbours
+        //
+        /////////////////////////////////
         
+        //(+y,-y,+x,-x,+z,-z)
+        pc_data_new.set_neighbor_relationships();
+        
+    
+        
+    }
+    
+    template<typename U>
+    void create_particles_at_cell_structure(ExtraPartCellData<U>& pdata_new){
+        //
+        //  Bevan Cheesean 2017
+        //
+        //  This places particles so they are no longer contiguous, with gaps mirroring those in the cell data structure, such that no additional key is needed
+        //
+        //  Uses more memory, but has quicker access
+        //
+        
+        pdata_new.initialize_structure_cells(access_data);
+        
+        uint64_t z_,x_,j_,node_val;
+        uint64_t part_offset;
         
         for(uint64_t i = access_data.depth_min;i <= access_data.depth_max;i++){
             
-            const unsigned int x_num = access_data.x_num[i];
-            const unsigned int z_num = access_data.z_num[i];
+            const unsigned int x_num_ = access_data.x_num[i];
+            const unsigned int z_num_ = access_data.z_num[i];
             
-#pragma omp parallel for default(shared) private(z_,x_,j_,status,node_val) if(z_num*x_num > 100)
-            for(z_ = 0;z_ < z_num;z_++){
+#pragma omp parallel for default(shared) private(z_,x_,j_,part_offset,node_val)  if(z_num_*x_num_ > 100)
+            for(z_ = 0;z_ < z_num_;z_++){
                 
-                for(x_ = 0;x_ < x_num;x_++){
-                    
-                    S part_counter = 0;
-                    
-                    //access variables
-                    const size_t offset_pc_data = x_num*z_ + x_;
+                for(x_ = 0;x_ < x_num_;x_++){
+                    const size_t offset_pc_data = x_num_*z_ + x_;
                     const size_t j_num = access_data.data[i][offset_pc_data].size();
                     
                     for(j_ = 0; j_ < j_num;j_++){
                         //raster over both structures, generate the index for the particles, set the status and offset_y_coord diff
                         
-                        node_val = part_cell_data.data[i][offset_pc_data][j_];
+                        node_val = access_data.data[i][offset_pc_data][j_];
                         
                         if(!(node_val&1)){
-                            //normal node
                             
-                            //create pindex, and create status (0,1,2,3) and type
-                            status = (node_val & STATUS_MASK) >> STATUS_SHIFT;  //need the status masks here, need to move them into the datastructure I think so that they are correctly accessible then to these routines.
+                            part_offset = access_node_get_part_offset(node_val);
                             
-                            access_data.data[i][offset_pc_data][j_] = 0; //set normal type
-                            
-                            access_data.data[i][offset_pc_data][j_] |= (status << STATUS_SHIFT_PARTICLE); //add the particle status
-                            
-                            access_data.data[i][offset_pc_data][j_] |= (part_counter << Y_PINDEX_SHIFT_PARTICLE); //add the particle starting index for the part cell
-                            
-                            //update the counter
-                            if (status > SEED){
-                                // Filler or Boundary 1 particle
-                                part_counter += NON_SEED_NUM_PARTICLES;
-                                
-                            } else {
-                                // Seed particle cell 8 particles
-                                part_counter +=SEED_NUM_PARTICLES;
-                            }
+                            pdata_new.data[i][offset_pc_data][j_] = particle_data.data[i][offset_pc_data][part_offset];
                             
                         } else {
-                            
-                            
-                            //gap node
-                            access_data.data[i][offset_pc_data][j_] = 1; //set type to gap
-                            access_data.data[i][offset_pc_data][j_] |= (((node_val & YP_DEPTH_MASK) >> YP_DEPTH_SHIFT) << Y_DEPTH_SHIFT_PARTICLE); //set the depth change
-                            access_data.data[i][offset_pc_data][j_] |= ((((node_val & NEXT_COORD_MASK) >> NEXT_COORD_SHIFT) - ((node_val & PREV_COORD_MASK) >> PREV_COORD_SHIFT)) << COORD_DIFF_SHIFT_PARTICLE); //set the coordinate difference
-                            
                             
                         }
                         
                     }
-                    
-                    //then resize the particle data structure here..
-                    particle_data.data[i][offset_pc_data].resize(part_counter);
                 }
-                
             }
         }
-        
-        timer.stop_timer();
-        
-        //then done for initialization, then need to get the intensities..
-        
         
         
         
     }
     
+    
+    
+    template<typename U>
+    void utest_structure(PartCellStructure<U,uint64_t>& pc_struct,std::vector<Mesh_data<uint64_t>> link_array){
+        //
+        //  Bevan Cheeseman 2017
+        //
+        //  Compare the new particle structure, of this class with the old one, using the link array which is a matrix giving the references to the old structure
+        //
+        //
+        
+        uint64_t z_,x_,j_,y_,node_val;
+        uint64_t old_key;
+        uint64_t old_node_val;
+        
+        
+        for(uint64_t i = access_data.depth_min;i <= access_data.depth_max;i++){
+            
+            const unsigned int x_num_ = access_data.x_num[i];
+            const unsigned int z_num_ = access_data.z_num[i];
+            
+            for(z_ = 0;z_ < z_num_;z_++){
+                
+                for(x_ = 0;x_ < x_num_;x_++){
+                    const size_t offset_pc_data = x_num_*z_ + x_;
+                    const size_t j_num = access_data.data[i][offset_pc_data].size();
+                    y_ = 0;
+                    
+                    for(j_ = 0; j_ < j_num;j_++){
+                        //raster over both structures, generate the index for the particles, set the status and offset_y_coord diff
+                        
+                        node_val = access_data.data[i][offset_pc_data][j_];
+                        
+                        if(!(node_val&1)){
+                            y_++;
+                            old_key = link_array[i](y_,x_,z_);
+                            
+                            pc_key curr_key;
+                            curr_key.update_part(old_key);
+                            
+                            if( x_ == curr_key.x_p){
+                                // all good
+                            } else {
+                               std::cout << "ERROR x" << curr_key.status << " " << curr_key.depth << " " << curr_key.p << std::endl;
+                            }
+                            
+                            if( z_ == curr_key.z_p){
+                                // all good
+                            } else {
+                                std::cout << "ERROR z" << curr_key.status << " " << curr_key.depth << " " << curr_key.p << std::endl;
+                            }
+                            
+                            old_node_val = pc_struct.pc_data.get_val(old_key);
+                            
+                            uint16_t part_offset =  (node_val& Y_PINDEX_MASK_PARTICLE) >> Y_PINDEX_SHIFT_PARTICLE;
+                            
+                            float current_int = particle_data.data[i][offset_pc_data][part_offset];
+                            
+                            float old_int = pc_struct.part_data.get_part(old_key);
+                            
+                            if(current_int != old_int){
+                                std::cout << "incorrect" << std::endl;
+                            }
+                            
+                            
+                        } else {
+                            y_ += ((node_val & COORD_DIFF_MASK_PARTICLE) >> COORD_DIFF_SHIFT_PARTICLE);
+                            y_--;
+                            
+                        }
+                    }
+                    
+                }
+                
+            }
+            
+            
+        }
+        
+        
+        
+    }
+    
+    
+        
     
     
     template<typename U>
@@ -1236,13 +1669,10 @@ private:
         constexpr uint64_t index_mask_dir[6] = {YP_INDEX_MASK,YM_INDEX_MASK,XP_INDEX_MASK,XM_INDEX_MASK,ZP_INDEX_MASK,ZM_INDEX_MASK};
         constexpr uint64_t index_shift_dir[6] = {YP_INDEX_SHIFT,YM_INDEX_SHIFT,XP_INDEX_SHIFT,XM_INDEX_SHIFT,ZP_INDEX_SHIFT,ZM_INDEX_SHIFT};
         
-        constexpr uint64_t depth_mask_dir[6] = {YP_DEPTH_MASK,YM_DEPTH_MASK,XP_DEPTH_MASK,XM_DEPTH_MASK,ZP_DEPTH_MASK,ZM_DEPTH_MASK};
-        constexpr uint64_t depth_shift_dir[6] =  {YP_DEPTH_SHIFT,YM_DEPTH_SHIFT,XP_DEPTH_SHIFT,XM_DEPTH_SHIFT,ZP_DEPTH_SHIFT,ZM_DEPTH_SHIFT};
         
         U curr_node = pc_data.get_val(curr_key);
         
-        U curr_neigh_j = (curr_node & index_mask_dir[face]) >> index_shift_dir[face];
-        U curr_neigh_depth = (curr_node & depth_mask_dir[face]) >> depth_shift_dir[face];
+        U curr_neigh_index = (curr_node & index_mask_dir[face]) >> index_shift_dir[face];
         
         U neigh_key = 0;
         
@@ -1254,7 +1684,6 @@ private:
         
         access_data.pc_key_set_depth(neigh_key,access_data.pc_key_get_depth(curr_key));
         
-        //need to add checking the offset as well. 
         
         U prev_neigh_index = 0;
         
@@ -1264,11 +1693,9 @@ private:
         if (prev_neigh_index&1){
             return 0;
         } else{
-            U prev_neigh_j = (prev_neigh_index & index_mask_dir[face]) >> index_shift_dir[face];
-            U prev_neigh_depth = (prev_neigh_index & depth_mask_dir[face]) >> depth_shift_dir[face];
+            prev_neigh_index = (prev_neigh_index & index_mask_dir[face]) >> index_shift_dir[face];
             
-            //if(prev_neigh_j == curr_neigh_j){
-            if((prev_neigh_j == curr_neigh_j) & (prev_neigh_depth == curr_neigh_depth)){
+            if(prev_neigh_index == curr_neigh_index){
                 return 1;
             } else {
                 return 0;
@@ -1328,14 +1755,14 @@ private:
             } case 4:{
                 
                 coord0 = check_previous_val<U>(face,curr_key,pc_data);
-                coord1 = access_data.pc_key_get_x(curr_key);
+                coord1 = access_data.pc_key_get_z(curr_key);
                 coord1 = coord1&1;
                 
                 return get_index_odd_even<U>(coord0,coord1);
             } case 5:{
                 
                 coord0 = check_previous_val<U>(face,curr_key,pc_data);
-                coord1 = access_data.pc_key_get_x(curr_key);
+                coord1 = access_data.pc_key_get_z(curr_key);
                 coord1 = coord1&1;
                 
                 return get_index_odd_even<U>(coord0,coord1);
@@ -1352,7 +1779,7 @@ private:
         //
         
         //accessed face and then part
-        constexpr uint64_t index_offset[6][8] = {{1,0,3,2,5,1,7,3},{0,0,2,2,1,4,3,6},{2,3,0,1,6,7,2,3},{0,1,0,1,2,3,4,5},{4,5,6,7,0,1,2,3},{0,1,2,3,0,1,2,3}};
+        constexpr uint64_t index_offset[6][8] = {{1,0,3,1,5,2,7,3},{0,0,1,2,2,4,3,6},{2,3,0,1,6,7,2,3},{0,1,0,1,2,3,4,5},{4,5,6,7,0,1,2,3},{0,1,2,3,0,1,2,3}};
         constexpr uint64_t sel_offset[6][8] = {{0,1,0,1,0,1,0,1},{1,0,1,0,1,0,1,0},{0,0,1,1,0,0,1,1},{1,1,0,0,1,1,0,0},{0,0,0,0,1,1,1,1},{1,1,1,1,0,0,0,0}};
         
         U temp;

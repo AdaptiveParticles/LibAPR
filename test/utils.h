@@ -22,6 +22,11 @@
 #include "../src/io/partcell_io.h"
 #include "../src/data_structures/Tree/PartCellParent.hpp"
 
+#include "../src/data_structures/Tree/ParticleDataNew.hpp"
+
+#include "../src/numerics/filter_help/NeighOffset.hpp"
+#include "../src/numerics/filter_help/CurrLevel.hpp"
+
 bool compare_two_images(const Mesh_data<uint16_t>& in_memory, std::string filename);
 bool compare_two_ks(const Particle_map<float>& in_memory, std::string filename);
 bool compare_part_rep_with_particle_map(const Particle_map<float>& in_memory, std::string filename);
@@ -55,5 +60,22 @@ bool parent_structure_test(PartCellStructure<float,uint64_t>& pc_struct);
 void create_test_dataset_from_hdf5(Particle_map<float>& particle_map,PartCellStructure<float, uint64_t>& pc_struct,std::string name);
 
 bool find_part_cell_test(PartCellStructure<float,uint64_t>& pc_struct);
+
+bool compare_two_structures_test(PartCellStructure<float,uint64_t>& pc_struct,PartCellStructure<float,uint64_t>& pc_struct_read);
+
+void create_reference_structure(PartCellStructure<float,uint64_t>& pc_struct,std::vector<Mesh_data<uint64_t>>& link_array);
+
+void create_intensity_reference_structure(PartCellStructure<float,uint64_t>& pc_struct,std::vector<Mesh_data<float>>& link_array);
+
+void create_j_reference_structure(PartCellStructure<float,uint64_t>& pc_struct,std::vector<Mesh_data<uint64_t>>& j_array);
+
+pc_key find_neigh_cell(pc_key curr_cell,int dir,std::vector<Mesh_data<uint64_t>>& j_array);
+
+
+bool utest_neigh_cells(PartCellStructure<float,uint64_t>& pc_struct);
+
+bool utest_neigh_parts(PartCellStructure<float,uint64_t>& pc_struct);
+
+bool utest_alt_part_struct(PartCellStructure<float,uint64_t>& pc_struct);
 
 #endif //PARTPLAY_UTILS_H

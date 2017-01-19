@@ -72,7 +72,7 @@ private:
         
     }
     
-    void create_partcell_structure(std::vector<std::vector<uint8_t>>& p_map,std::vector<std::vector<uint16_t>>& Ip){
+    void create_partcell_structure(std::vector<std::vector<uint8_t>>& p_map){
         //
         //  Bevan Cheeseman 2016
         //
@@ -100,17 +100,17 @@ private:
         uint64_t x_;
         uint64_t z_;
         uint64_t y_;
-        uint64_t j_;
+
         
         //next initialize the entries;
         
         uint16_t curr_index;
-        uint8_t status;
+        uint64_t status;
         uint8_t prev_ind = 0;
         
         timer.start_timer("intiialize part_cells");
         
-        for(int i = pc_data.depth_min;i <= pc_data.depth_max;i++){
+        for(uint64_t i = pc_data.depth_min;i <= pc_data.depth_max;i++){
             
             const unsigned int x_num_ = x_num[i];
             const unsigned int z_num_ = z_num[i];
@@ -172,7 +172,7 @@ private:
         uint64_t prev_coord = 0;
         
         
-        for(int i = pc_data.depth_min;i <= pc_data.depth_max;i++){
+        for(uint64_t i = pc_data.depth_min;i <= pc_data.depth_max;i++){
             
             const unsigned int x_num_ = x_num[i];
             const unsigned int z_num_ = z_num[i];
@@ -277,31 +277,94 @@ private:
         
         std::cout << "Finished neighbour relationships" << std::endl;
         
+        // Initialize the particle data access and intensity structures
+        part_data.initialize_from_structure(pc_data);
+        
+        uint64_t num_cells = 0;
+        uint64_t num_parts = 0;
+        
+        uint64_t j_;
+        
+        S node_val;
+        
+        for(uint64_t i = pc_data.depth_min;i <= pc_data.depth_max;i++){
+            
+            const unsigned int x_num_ = pc_data.x_num[i];
+            const unsigned int z_num_ = pc_data.z_num[i];
+            
+            
+            //For each depth there are two loops, one for SEED status particles, at depth + 1, and one for BOUNDARY and FILLER CELLS, to ensure contiguous memory access patterns.
+            
+            // SEED PARTICLE STATUS LOOP (requires access to three data structures, particle access, particle data, and the part-map)
+#pragma omp parallel for default(shared) private(z_,x_,j_,node_val,status) reduction(+:num_cells,num_parts)
+            for(z_ = 0;z_ < z_num_;z_++){
+                
+                for(x_ = 0;x_ < x_num_;x_++){
+                    
+                    const size_t offset_pc_data = x_num_*z_ + x_;
+                    
+                    const size_t j_num = part_data.access_data.data[i][offset_pc_data].size();
+                    
+                    for(j_ = 0;j_ < j_num;j_++){
+                        node_val = pc_data.data[i][offset_pc_data][j_];
+                        
+                        if (!(node_val&1)){
+                            //in this loop there is a cell
+                            num_cells++;
+                            status = pc_data.get_status(node_val);
+                            //determine how many particles in the cell
+                            if(status==SEED){
+                                num_parts=num_parts + 8;
+                            } else {
+                                num_parts= num_parts + 1;
+                            }
+                            
+                        }
+                    }
+                    
+                }
+            }
+        }
+        
+        number_cells = num_cells;
+        number_parts = num_parts;
+        
+
+
+        
+    }
+    
+    void create_particle_structures(std::vector<std::vector<uint16_t>>& Ip){
+        
         /////////////////////////////////////
         //
-        //  PARTICLE DATA STRUCTURES
+        //  PARTICLE DATA INITIALIZATION
         //
         //////////////////////////////////////
         
-        // Initialize the particle data access and intensity structures
-        part_data.initialize_from_structure(pc_data);
+        //initialize loop variables
+        uint64_t x_;
+        uint64_t z_;
+ 
+        
+        
+        Part_timer timer;
+        
+        
         
         // Estimate the intensities from the down sampled images
         
         timer.start_timer("Get the intensities");
         
         // Particles are ordered as ((-y,-x,-z),(+y,-x,-z),(-y,+x,-z),(+y,+x,-z),(-y,-x,+z),(+y,-x,+z),(-y,+x,+z),(+y,+x,+z))
-
-        S part_offset;
-        S node_val;
-        S y_coord;
+        
         S offset;
         
         //
         //  Takes the read in particles and places them back in the correct place in the structure;
         //
         
-        for(int i = pc_data.depth_min;i <= pc_data.depth_max;i++){
+        for(uint64_t i = pc_data.depth_min;i <= pc_data.depth_max;i++){
             
             const unsigned int x_num_ = pc_data.x_num[i];
             const unsigned int z_num_ = pc_data.z_num[i];
@@ -327,56 +390,9 @@ private:
         timer.stop_timer();
         
         
-        //Lastly calculate the number of particle and number of cells
-        
-        
-        T num_cells = 0;
-        T num_parts = 0;
-        
-        for(int i = pc_data.depth_min;i <= pc_data.depth_max;i++){
-            
-            const unsigned int x_num_ = pc_data.x_num[i];
-            const unsigned int z_num_ = pc_data.z_num[i];
-            
-            
-            //For each depth there are two loops, one for SEED status particles, at depth + 1, and one for BOUNDARY and FILLER CELLS, to ensure contiguous memory access patterns.
-            
-            // SEED PARTICLE STATUS LOOP (requires access to three data structures, particle access, particle data, and the part-map)
-#pragma omp parallel for default(shared) private(z_,x_,j_,node_val,status,y_coord,part_offset) reduction(+:num_cells,num_parts)
-            for(z_ = 0;z_ < z_num_;z_++){
-                
-                for(x_ = 0;x_ < x_num_;x_++){
-                    
-                    const size_t offset_pc_data = x_num_*z_ + x_;
-                    
-                    const size_t j_num = part_data.access_data.data[i][offset_pc_data].size();
-                    
-                    for(j_ = 0;j_ < j_num;j_++){
-                        node_val = part_data.access_data.data[i][offset_pc_data][j_];
-                        
-                        if (!(node_val&1)){
-                            //in this loop there is a cell
-                            num_cells++;
-                            
-                            //determine how many particles in the cell
-                            if(part_data.access_node_get_status(node_val)==SEED){
-                                num_parts+=8;
-                            } else {
-                                num_parts+=1;
-                            }
-                            
-                        }
-                    }
-                    
-                }
-            }
-        }
-        
-        number_cells = num_cells;
-        number_parts = num_parts;
-
         
     }
+    
     
     void create_partcell_structure(Particle_map<T>& part_map){
         //
@@ -404,7 +420,6 @@ private:
         //next initialize the entries;
         
         uint16_t curr_index;
-        coords3d curr_coords;
         uint8_t status;
         uint8_t prev_ind = 0;
         
@@ -636,9 +651,6 @@ private:
                             //normal node
                             y_coord++;
                             
-                            
-                            
-                            
                             //get and check status
                             status = (node_val & STATUS_MASK_PARTICLE) >> STATUS_SHIFT_PARTICLE;
                             
@@ -685,9 +697,7 @@ private:
                     
                     for(j_ = 0;j_ < j_num;j_++){
                         
-                        if( (i == 2) & (x_ == 3) & (j_ == 3) & (z_ == 3) ){
-                            int stop = 1;
-                        }
+
                         
                         node_val = part_data.access_data.data[i][offset_pc_data][j_];
                         
@@ -731,8 +741,8 @@ private:
         //Lastly calculate the number of particle and number of cells
         
         
-        T num_cells = 0;
-        T num_parts = 0;
+        S num_cells = 0;
+        S num_parts = 0;
         
         for(int i = pc_data.depth_min;i <= pc_data.depth_max;i++){
             
@@ -903,7 +913,6 @@ private:
         uint64_t y_coord;
         int x_;
         int z_;
-        uint64_t y_;
         uint64_t j_;
         uint64_t status;
         uint64_t status_org;
@@ -1330,16 +1339,10 @@ private:
                                     } else if (n ==2){
                                         y_n = y_org + pc_data.von_neumann_y_cells[pc_data.neigh_child_dir[face][n-1]];
                                     }
-                                    int dir = pc_data.neigh_child_dir[face][n-1];
-                                    int shift = pc_data.von_neumann_y_cells[pc_data.neigh_child_dir[face][n-1]];
                                     
                                     S y_n2;S x_n2;S z_n2;S depth2;
                                     pc_data.get_neigh_coordinates_cell(neigh_keys_,face,n,y_coord,y_n2,x_n2,z_n2,depth2);
                                     
-                                    if(y_n != y_n2){
-                                        int stop = 1;
-                                         pc_data.get_neigh_coordinates_cell(neigh_keys_,face,n,y_coord,y_n2,x_n2,z_n2,depth2);
-                                    }
                                     
                                     if (neigh_keys[n] > 0){
                                         
@@ -1538,13 +1541,13 @@ public:
     
     std::vector<unsigned int> org_dims;
     
-    T get_number_parts(){
+    uint64_t get_number_parts(){
         //calculated on initialization
         return number_parts;
     }
     
     
-    T get_number_cells(){
+    uint64_t get_number_cells(){
         //calculated on intiialization
         return number_cells;
     }
@@ -1563,9 +1566,29 @@ public:
         //  Re-creates the structure from the read in p_map and particle data
         //
         
-        create_partcell_structure(p_map,Ip);
+        create_partcell_structure(p_map);
+        create_particle_structures(Ip);
+        
+        pc_data.y_num = y_num;
     }
-                                   
+    
+    void initialize_particle_read(std::vector<std::vector<uint8_t>>& p_map){
+        //
+        //  Re-creates the structure from the read in p_map and particle data
+        //
+        
+        create_partcell_structure(p_map);
+        pc_data.y_num = y_num;
+    }
+    
+    void initialize_pc_read(std::vector<std::vector<uint8_t>>& p_map){
+        //
+        //  Re-creates the structure from the read in p_map and particle data
+        //
+        
+        create_partcell_structure(p_map);
+        pc_data.y_num = y_num;
+    }
                                    
     //decleration
     void initialize_structure(Particle_map<T>& particle_map){
@@ -1580,7 +1603,7 @@ public:
         
         //create_sparse_graph_format(particle_map);
         create_partcell_structure(particle_map);
-        
+        pc_data.y_num = y_num;
     }
     
     PartCellStructure(){
@@ -1618,8 +1641,27 @@ public:
         initialize_structure(particle_map);
     }
     
+    
     template<typename U,typename V>
     void interp_parts_to_pc(Mesh_data<U>& out_image,ExtraPartCellData<V>& interp_data){
+        Mesh_data<U> curr_k_img;
+        Mesh_data<U> prev_k_img;
+        
+        int x_dim = ceil(org_dims[0]/2.0)*2;
+        int z_dim = ceil(org_dims[1]/2.0)*2;
+        int y_dim = ceil(org_dims[2]/2.0)*2;
+        
+        prev_k_img.mesh.resize(x_dim*z_dim*y_dim);
+        curr_k_img.mesh.resize(x_dim*z_dim*y_dim);
+        
+        interp_parts_to_pc(interp_data,curr_k_img,prev_k_img);
+        
+        std::swap(out_image,curr_k_img);
+    
+    }
+    
+    template<typename U,typename V>
+    void interp_parts_to_pc(ExtraPartCellData<V>& interp_data,Mesh_data<U>& curr_k_img,Mesh_data<U>& prev_k_img){
         //
         //  Bevan Cheeseman 2016
         //
@@ -1627,20 +1669,21 @@ public:
         //
         
 
-        Mesh_data<U> curr_k_img;
-        Mesh_data<U> prev_k_img;
+       // Mesh_data<U> curr_k_img;
+        //Mesh_data<U> prev_k_img;
         
         constexpr int y_incr[8] = {0,1,0,1,0,1,0,1};
         constexpr int x_incr[8] = {0,0,1,1,0,0,1,1};
         constexpr int z_incr[8] = {0,0,0,0,1,1,1,1};
         
-        prev_k_img.initialize(pow(2,depth_min-1),pow(2,depth_min-1),pow(2,depth_min-1),0);
-        
-        //prev_k_img.mesh.reserve(org_dims[0]*org_dims[1]*org_dims[2]);
-        curr_k_img.mesh.reserve(org_dims[0]*org_dims[1]*org_dims[2]);
+        prev_k_img.set_size(pow(2,depth_min-1),pow(2,depth_min-1),pow(2,depth_min-1));
         
         Part_timer timer;
         timer.verbose_flag = false;
+        
+        Part_timer t_n;
+        t_n.verbose_flag = false;
+        t_n.start_timer("loop");
         
         uint64_t z_ = 0;
         uint64_t x_ = 0;
@@ -1929,27 +1972,8 @@ public:
     
         timer.stop_timer();
     
-    
-
-        timer.start_timer("last loop");
+        t_n.stop_timer();
         
-        std::swap(out_image,curr_k_img);
-        
-//        //reduce down the image size to the required size.
-//        int i;
-//        int j;
-//        
-//        //Needs to be replaced by a loop over the particles
-//#pragma omp parallel for default(shared) private(i,j)
-//        for(i = 0;i < org_dims[2];i++){
-//            for(j = 0; j < org_dims[1];j++){
-//                
-//                std::copy(curr_k_img.mesh.begin() + curr_k_img.y_num*j + curr_k_img.x_num*curr_k_img.y_num*i,curr_k_img.mesh.begin()  + curr_k_img.y_num*j + curr_k_img.x_num*curr_k_img.y_num*i + out_image.y_num,out_image.mesh.begin() + out_image.y_num*j + out_image.x_num*out_image.y_num*i);
-//            }
-//        }
-//        
-        
-        timer.stop_timer();
         
     }
 

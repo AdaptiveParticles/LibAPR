@@ -218,7 +218,6 @@ int main(int argc, char **argv) {
                 
                 const size_t j_num = pc_struct.pc_data.data[i][offset_pc_data].size();
                 
-                
                 uint64_t status_current;
                 uint64_t x_current;
                 uint64_t y_current;

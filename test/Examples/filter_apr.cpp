@@ -1,7 +1,7 @@
 #include <algorithm>
 #include <iostream>
 
-#include "ray_cast.h"
+#include "filter_apr.h"
 #include "../../src/data_structures/meshclass.h"
 #include "../../src/io/readimage.h"
 
@@ -9,12 +9,18 @@
 #include "../../src/data_structures/particle_map.hpp"
 #include "../../src/data_structures/Tree/PartCellBase.hpp"
 #include "../../src/data_structures/Tree/PartCellStructure.hpp"
+#include "../../src/data_structures/Tree/ParticleDataNew.hpp"
 #include "../../src/algorithm/level.hpp"
 #include "../../src/io/writeimage.h"
 #include "../../src/io/write_parts.h"
 #include "../../src/io/partcell_io.h"
-#include "../../src/data_structures/Tree/PartCellParent.hpp"
-#include "../../src/numerics/ray_cast.hpp"
+
+#include "../../test/utils.h"
+
+#include "../../src/numerics/misc_numerics.hpp"
+#include "../../src/numerics/filter_numerics.hpp"
+
+
 
 bool command_option_exists(char **begin, char **end, const std::string &option)
 {
@@ -67,7 +73,6 @@ cmdLineOptions read_command_line_options(int argc, char **argv, Part_rep& part_r
     
 }
 
-
 int main(int argc, char **argv) {
     
     Part_rep part_rep;
@@ -76,15 +81,56 @@ int main(int argc, char **argv) {
     
     cmdLineOptions options = read_command_line_options(argc, argv, part_rep);
     
-    // COMPUTATIONS
+    // APR data structure
     PartCellStructure<float,uint64_t> pc_struct;
     
-    //output
+    // Filename
     std::string file_name = options.directory + options.input;
     
+    // Read the apr file into the part cell structure
     read_apr_pc_struct(pc_struct,file_name);
     
-    single_ray_parrallel(pc_struct);
+    
+    //////////////////////////////////
+    //
+    //  Different access and filter test examples
+    //
+    //////////////////////////////////
+    
+    //set up some new structures used in this test
+    
+    
+    
+    //Get neighbours (linear)
+    
+    //particles
+    particle_linear_neigh_access(pc_struct);
+    
+    particle_linear_neigh_access_alt_1(pc_struct);
+    
+    //pixels
+    pixels_linear_neigh_access(pc_struct,pc_struct.org_dims[0],pc_struct.org_dims[1],pc_struct.org_dims[2]);
+    
+    
+    //Get neighbours (random access)
+    
+    particle_random_access(pc_struct);
+    
+    pixel_neigh_random(pc_struct,pc_struct.org_dims[0],pc_struct.org_dims[1],pc_struct.org_dims[2]);
+    
+    
+    // Filtering
+    
+    uint64_t filter_offset = 10;
+    
+    apr_filter_full(pc_struct,filter_offset);
+    
+    pixel_filter_full(pc_struct,pc_struct.org_dims[0],pc_struct.org_dims[1],pc_struct.org_dims[2],filter_offset);
+    
+    
+    
+
+    
     
     
 }

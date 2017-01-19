@@ -1,7 +1,7 @@
 #include <algorithm>
 #include <iostream>
 
-#include "ray_cast.h"
+#include "segmentation_apr.h"
 #include "../../src/data_structures/meshclass.h"
 #include "../../src/io/readimage.h"
 
@@ -13,8 +13,9 @@
 #include "../../src/io/writeimage.h"
 #include "../../src/io/write_parts.h"
 #include "../../src/io/partcell_io.h"
-#include "../../src/data_structures/Tree/PartCellParent.hpp"
-#include "../../src/numerics/ray_cast.hpp"
+#include "../../src/numerics/parent_numerics.hpp"
+#include "../../src/numerics/misc_numerics.hpp"
+#include "../../src/numerics/graph_cut_seg.hpp"
 
 bool command_option_exists(char **begin, char **end, const std::string &option)
 {
@@ -67,7 +68,6 @@ cmdLineOptions read_command_line_options(int argc, char **argv, Part_rep& part_r
     
 }
 
-
 int main(int argc, char **argv) {
     
     Part_rep part_rep;
@@ -76,16 +76,50 @@ int main(int argc, char **argv) {
     
     cmdLineOptions options = read_command_line_options(argc, argv, part_rep);
     
-    // COMPUTATIONS
+    // APR data structure
     PartCellStructure<float,uint64_t> pc_struct;
     
-    //output
+    // Filename
     std::string file_name = options.directory + options.input;
     
+    // Read the apr file into the part cell structure
     read_apr_pc_struct(pc_struct,file_name);
     
-    single_ray_parrallel(pc_struct);
+    //Part Segmentation
+
+    ExtraPartCellData<uint8_t> seg_parts;
     
+    //nuclei
+    std::array<uint64_t,10> parameters_nuc = {100,1,1,1,1,3,3,3,0,1};
+    
+    //nuclei
+    std::array<uint64_t,10> parameters_mem = {100,1,2,2,2,1,1,1,1,1};
+    
+    
+    calc_graph_cuts_segmentation(pc_struct, seg_parts,parameters_nuc);
+    
+    Mesh_data<uint8_t> seg_mesh;
+    
+    //calc_graph_cuts_segmentation_mesh(pc_struct,seg_mesh,parameters_nuc);
+    
+    //Now we will view the output by creating the binary image implied by the segmentation
+    
+    Mesh_data<uint8_t> seg_img;
+    
+    pc_struct.interp_parts_to_pc(seg_img,seg_parts);
+    
+    debug_write(seg_img,"segmentation_mask");
+    
+    //debug_write(seg_mesh,"segmentation_mesh_mask");
+    
+    
+//    interp_depth_to_mesh(seg_img,pc_struct);
+//    
+//    debug_write(seg_img,"k_mask");
+//    
+//    interp_status_to_mesh(seg_img,pc_struct);
+//    
+//    debug_write(seg_img,"status_mask");
     
 }
 
