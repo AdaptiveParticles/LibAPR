@@ -70,7 +70,7 @@ move calculate_dir_index_parralell(CurrentLevel<S,uint64_t>& curr_level,coord& c
     
     int move_sum = ((abs(offset_y) > 0) + (abs(offset_x) > 0) + (abs(offset_z) > 0));
     
-    if (next_move.dir > 5 | (move_sum > 1)){
+    if (next_move.dir > 5 || (move_sum > 1)){
         std::cout << "dir not parallel" << std::endl;
         next_move.dir = 0;
         next_move.index = 0;
@@ -111,7 +111,7 @@ coord new_position(CurrentLevel<S,uint64_t>& curr_level,unsigned int direction,c
     const int8_t dir_x[6] = { 0, 0, 1, -1, 0, 0};
     const int8_t dir_z[6] = { 0, 0, 0, 0, 1, -1};
     
-    float step_size = pow(2,curr_level.depth_max - curr_level.depth + 1)*.24999; //move quarter step then you can never hop a child.
+    float step_size = pow(2,curr_level.depth_max - curr_level.depth + 1)*.49999; //move quarter step then you can never hop a child.
     
     float offset_x = dir_x[direction];
     float offset_y = dir_y[direction];
@@ -215,8 +215,6 @@ void single_ray_parrallel(PartCellStructure<S,uint64_t>& pc_struct){
                 counter++;
                 
             }
-            
-            
             
         }
         
