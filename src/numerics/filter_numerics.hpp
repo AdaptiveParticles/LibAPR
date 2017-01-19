@@ -1485,6 +1485,163 @@ void apr_filter_full(PartCellStructure<S,uint64_t>& pc_struct,uint64_t filter_of
     
     
 }
+template<typename U>
+void sep_neigh_filter(PartCellData<uint64_t>& pc_data,ExtraPartCellData<U>& input_data,std::vector<U>& filter){
+    //
+    //  Should be written with the neighbour iterators instead.
+    //
+    
+    //copy across
+    ExtraPartCellData<U> filter_output;
+    filter_output.initialize_structure_cells(pc_data);
+    
+    Part_timer timer;
+    
+    //initialize variables required
+    uint64_t node_val_pc; // node variable encoding neighbour and cell information
+    
+    int x_; // iteration variables
+    int z_; // iteration variables
+    uint64_t j_; // index variable
+    uint64_t curr_key = 0; // key used for accessing and particles and cells
+    PartCellNeigh<uint64_t> neigh_cell_keys;
+    //
+    // Extra variables required
+    //
+    
+    if(filter.size() != 3){
+        std::cout << " Wrong Sized Filter" << std::endl;
+        return;
+    }
+    
+    
+    timer.verbose_flag = false;
 
+    
+    timer.start_timer("neigh_cell_comp");
+    
+    for(int dir = 0;dir < 3;dir++){
+        
+        
+        for(uint64_t i = pc_data.depth_min;i <= pc_data.depth_max;i++){
+            //loop over the resolutions of the structure
+            const unsigned int x_num_ = pc_data.x_num[i];
+            const unsigned int z_num_ = pc_data.z_num[i];
+#pragma omp parallel for default(shared) private(z_,x_,j_,node_val_pc,curr_key)  firstprivate(neigh_cell_keys) if(z_num_*x_num_ > 100)
+            for(z_ = 0;z_ < z_num_;z_++){
+                //both z and x are explicitly accessed in the structure
+                curr_key = 0;
+                
+                pc_data.pc_key_set_z(curr_key,z_);
+                pc_data.pc_key_set_depth(curr_key,i);
+                
+                
+                for(x_ = 0;x_ < x_num_;x_++){
+                    
+                    pc_data.pc_key_set_x(curr_key,x_);
+                    
+                    const size_t offset_pc_data = x_num_*z_ + x_;
+                    
+                    const size_t j_num = pc_data.data[i][offset_pc_data].size();
+                    
+                    //the y direction loop however is sparse, and must be accessed accordinagly
+                    for(j_ = 0;j_ < j_num;j_++){
+                        
+                        //particle cell node value, used here as it is requried for getting the particle neighbours
+                        node_val_pc = pc_data.data[i][offset_pc_data][j_];
+                        
+                        if (!(node_val_pc&1)){
+                            //Indicates this is a particle cell node
+                            //y_coord++;
+                            
+                            pc_data.pc_key_set_j(curr_key,j_);
+                            
+                            pc_data.get_neighs_axis(curr_key,node_val_pc,neigh_cell_keys,dir);
+                            
+                            U temp_int = 0;
+                            int counter= 0;
+                           
+                            U curr_int = input_data.get_val(curr_key);
+                            
+                             U accum_int = filter[1]*curr_int;
+                            
+                            if(curr_int > 0){
+                                //(+direction)
+                                //loop over the nieghbours
+                                for(int n = 0; n < neigh_cell_keys.neigh_face[2*dir].size();n++){
+                                    // Check if the neighbour exisits (if neigh_cell_value = 0, the neighbour doesn't exist)
+                                    uint64_t neigh_key = neigh_cell_keys.neigh_face[2*dir][n];
+                                    
+                                    if(neigh_key > 0){
+                                        //get information about the nieghbour (need to provide face and neighbour number (n) and the current y coordinate)
+                                        temp_int += input_data.get_val(neigh_key);
+                                        counter++;
+                                    }
+                                    
+                                    
+                                }
+                                
+                                if(temp_int==0){
+                                    temp_int = curr_int;
+                                } else {
+                                    temp_int = temp_int/counter;
+                                }
+                                counter = 0;
+                                
+                                accum_int += temp_int*filter[2];
+                                
+                                temp_int = 0;
+                                //(-direction)
+                                //loop over the nieghbours
+                                for(int n = 0; n < neigh_cell_keys.neigh_face[2*dir+1].size();n++){
+                                    // Check if the neighbour exisits (if neigh_cell_value = 0, the neighbour doesn't exist)
+                                    uint64_t neigh_key = neigh_cell_keys.neigh_face[2*dir+1][n];
+                                    
+                                    if(neigh_key > 0){
+                                        //get information about the nieghbour (need to provide face and neighbour number (n) and the current y coordinate)
+                                        temp_int += input_data.get_val(neigh_key);
+                                        counter++;
+                                    }
+                                }
+                                
+                                if(temp_int==0){
+                                    temp_int = curr_int;
+                                } else {
+                                    temp_int = temp_int/counter;
+                                }
+                                
+                                accum_int += temp_int*filter[0];
+                                
+                            }
+                            
+                            filter_output.get_val(curr_key) = accum_int;
+                            
+                            
+                            
+                        } else {
+                            // Inidicates this is not a particle cell node, and is a gap node
+                            
+                        }
+                        
+                    }
+                    
+                }
+                
+            }
+        }
+        //running them consecutavely
+        std::swap(filter_output,input_data);
+
+    }
+    
+    timer.stop_timer();
+    
+    float time = (timer.t2 - timer.t1);
+    
+    std::cout << "Seperable Smoothing Filter: " << time << std::endl;
+    
+
+    
+}
 
 #endif

@@ -285,11 +285,11 @@ void construct_max_flow_graph(PartCellStructure<V,T>& pc_struct,GraphType& g,std
     get_adaptive_min_max(pc_struct,adaptive_min,adaptive_max,status_offsets_min,status_offsets_max,parameters[8],parameters[9]);
     
     Mesh_data<float> output_img;
-    interp_extrapc_to_mesh(output_img,pc_struct,adaptive_min);
-    debug_write(output_img,"adapt_min");
+    //interp_extrapc_to_mesh(output_img,pc_struct,adaptive_min);
+    //debug_write(output_img,"adapt_min");
     
-    interp_extrapc_to_mesh(output_img,pc_struct,adaptive_max);
-    debug_write(output_img,"adapt_max");
+    //interp_extrapc_to_mesh(output_img,pc_struct,adaptive_max);
+    //debug_write(output_img,"adapt_max");
     
     //initialize variables required
     uint64_t node_val_part; // node variable encoding part offset status information
@@ -390,6 +390,9 @@ void construct_max_flow_graph(PartCellStructure<V,T>& pc_struct,GraphType& g,std
                             eng1.get_part(curr_key) = cap_s + 5000;
                             eng2.get_part(curr_key) = cap_t + 5000;
                             
+                            //eng1.get_part(curr_key) = loc_min;
+                            //eng2.get_part(curr_key) = loc_max;
+                            
                             counter++;
                             
                         }
@@ -403,10 +406,22 @@ void construct_max_flow_graph(PartCellStructure<V,T>& pc_struct,GraphType& g,std
     }
     
     
-    pc_struct.interp_parts_to_pc(output_img,eng1);
-    debug_write(output_img,"eng1");
-    pc_struct.interp_parts_to_pc(output_img,eng2);
-    debug_write(output_img,"eng2");
+    //pc_struct.interp_parts_to_pc(output_img,eng1);
+   // debug_write(output_img,"eng1");
+    //pc_struct.interp_parts_to_pc(output_img,eng2);
+   // debug_write(output_img,"eng2");
+    
+    
+    
+    
+    //adaptive mean
+    ExtraPartCellData<float> edge1(pc_struct.part_data.particle_data);
+    ExtraPartCellData<float> edge2(pc_struct.part_data.particle_data);
+    ExtraPartCellData<float> edge3(pc_struct.part_data.particle_data);
+    ExtraPartCellData<float> edge4(pc_struct.part_data.particle_data);
+    ExtraPartCellData<float> edge5(pc_struct.part_data.particle_data);
+    ExtraPartCellData<float> edge6(pc_struct.part_data.particle_data);
+    
     
     ////////////////////////////////////
     //
@@ -469,7 +484,7 @@ void construct_max_flow_graph(PartCellStructure<V,T>& pc_struct,GraphType& g,std
                             uint64_t global_part_index_neigh;
                             uint64_t status_neigh;
                             float depth_neigh;
-                            
+                            float cap =0;
                             
                             for(uint64_t face = 0;face<6;face++){
                                 for(uint64_t n = 0; n < neigh_part_keys.neigh_face[face].size();n++){
@@ -487,15 +502,34 @@ void construct_max_flow_graph(PartCellStructure<V,T>& pc_struct,GraphType& g,std
                                         status_neigh = pc_struct.part_data.access_data.pc_key_get_status(neigh_key);
                                         depth_neigh = pc_struct.part_data.access_data.pc_key_get_depth(neigh_key);
                                         
-                                        //float cap = beta*pow(status*status_neigh,2)*pow((-i+k_max + 1)*(-depth_neigh+k_max + 1),4)/pow((1.0)*(k_max+1-k_min),4.0);
+                                        //cap = beta*(pow(status*status_neigh,2)/pow(9.0,2))*pow(-i+pc_struct.depth_max+1,2)/(1.0*pow(pc_struct.depth_max-pc_struct.depth_min+1,2));
                                         //g.add_edge( global_part_index, global_part_index_neigh,    /* capacities */  cap, cap );
                                         
-                                        float cap = beta*pow(status*status_neigh,2)/pow(9.0,2);
+                                        cap = beta*pow(status*status_neigh,2)/pow(9.0,2);
                                         g.add_edge( global_part_index, global_part_index_neigh,    /* capacities */  cap, cap );
                                         
+                                       
                                     }
                                 }
+                                
+//                                if(face ==0){
+//                                    edge1.get_part(curr_key)=cap;
+//                                } else if(face ==1){
+//                                     edge2.get_part(curr_key)=cap;
+//                                } else if(face ==2){
+//                                     edge3.get_part(curr_key)=cap;
+//                                }else if(face ==3){
+//                                     edge4.get_part(curr_key)=cap;
+//                                }else if(face ==4){
+//                                     edge5.get_part(curr_key)=cap;
+//                                }else if(face ==5){
+//                                     edge6.get_part(curr_key)=cap;
+//                                }
+//                                
+                                
                             }
+                            
+                            
                         }
                     }
                 }
@@ -503,7 +537,23 @@ void construct_max_flow_graph(PartCellStructure<V,T>& pc_struct,GraphType& g,std
         }
     }
     
-    
+//    pc_struct.interp_parts_to_pc(output_img,edge1);
+//    debug_write(output_img,"edge1");
+//    
+//    pc_struct.interp_parts_to_pc(output_img,edge2);
+//    debug_write(output_img,"edge2");
+//    
+//    pc_struct.interp_parts_to_pc(output_img,edge3);
+//    debug_write(output_img,"edge3");
+//    
+//    pc_struct.interp_parts_to_pc(output_img,edge4);
+//    debug_write(output_img,"edge4");
+//    
+//    pc_struct.interp_parts_to_pc(output_img,edge5);
+//    debug_write(output_img,"edge5");
+//    
+//    pc_struct.interp_parts_to_pc(output_img,edge6);
+//    debug_write(output_img,"edge6");
     
     
     

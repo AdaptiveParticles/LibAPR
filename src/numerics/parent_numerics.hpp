@@ -20,6 +20,7 @@
 #include "../data_structures/Tree/PartCellStructure.hpp"
 #include "../data_structures/Tree/ExtraPartCellData.hpp"
 #include "../data_structures/Tree/PartCellParent.hpp"
+#include "filter_numerics.hpp"
 
 template <typename T,typename U,typename V>
 void go_down_tree(PartCellStructure<U,T>& pc_struct,uint64_t curr_key,PartCellParent<T>& pc_parent,ExtraPartCellData<V>& parent_data,ExtraPartCellData<V>& partcell_data,std::vector<T>& temp_vec,const std::vector<unsigned int> status_offsets){
@@ -1178,9 +1179,13 @@ void get_adaptive_min_max(PartCellStructure<U,T>& pc_struct,ExtraPartCellData<V>
     //get the value according to the status_offsets
     //get_value_up_tree_offset(pc_struct,pc_parent,min_data,partcell_min,status_offset,0);
     //get_value_up_tree_offset(pc_struct,pc_parent,max_data,partcell_max,status_offset,1);
+    std::vector<V> filter_min = {0.333,.333,.333};
+    std::vector<V> filter_max = {0.333,.333,.333};
     
-    
-    
+    sep_neigh_filter(pc_struct.pc_data,partcell_min,filter_min);
+    sep_neigh_filter(pc_struct.pc_data,partcell_min,filter_min);
+    sep_neigh_filter(pc_struct.pc_data,partcell_max,filter_max);
+    sep_neigh_filter(pc_struct.pc_data,partcell_max,filter_max);
     
 }
 

@@ -90,7 +90,7 @@ int main(int argc, char **argv) {
     ExtraPartCellData<uint8_t> seg_parts;
     
     //nuclei
-    std::array<uint64_t,10> parameters_nuc = {100,1,1,1,1,3,3,3,0,1};
+    std::array<uint64_t,10> parameters_nuc = {100,1,1,1,1,1,1,1,0,0};
     
     //nuclei
     std::array<uint64_t,10> parameters_mem = {100,1,2,2,2,1,1,1,1,1};
