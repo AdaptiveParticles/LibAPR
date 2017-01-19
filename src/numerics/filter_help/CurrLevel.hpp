@@ -71,6 +71,49 @@ public:
         
     }
     
+    
+    void init(T init_key,PartCellData<T>& pc_data){
+        
+        pc_key init_pc_key;
+        init_pc_key.update_cell(init_key);
+        
+        depth = init_pc_key.depth;
+        x_num = pc_data.x_num[depth];
+        z_num = pc_data.z_num[depth];
+        
+        
+        
+        x = init_pc_key.x;
+        z = init_pc_key.z;
+        
+        pc_offset = x_num*z + x;
+        j_num = pc_data.data[depth][pc_offset].size();
+        part_offset = 0;
+        y = 0;
+        
+        
+        j = init_pc_key.j;
+        
+        curr_key = init_key;
+        
+        node_val = pc_data.data[depth][pc_offset][j];
+        
+        if(!(node_val&1)){
+            type = 1;
+            y++;
+            //seed offset accoutns for which (x,z) you are doing
+            
+        } else {
+            type = 0;
+            y += ((node_val & COORD_DIFF_MASK_PARTICLE) >> COORD_DIFF_SHIFT_PARTICLE);
+            y--;
+            
+        }
+        
+    }
+
+    
+    
     template<typename U>
     void init(T x_,T z_,T j_,T depth_,ParticleDataNew<U, T>& part_data){
         
@@ -118,8 +161,9 @@ public:
     }
     
     template<typename U>
-    void move_cell(unsigned int dir,unsigned int index,ParticleDataNew<U, T>& part_data,PartCellData<uint64_t>& pc_data){
+    bool move_cell(unsigned int dir,unsigned int index,ParticleDataNew<U, T>& part_data,PartCellData<uint64_t>& pc_data){
         
+        bool edge_domain = false;
         
         // get neigh
         update_neigh(dir,pc_data);
@@ -159,19 +203,22 @@ public:
             
             part_offset = part_data.access_node_get_part_offset(node_val);
 
+        } else {
+            edge_domain = true;
         }
         
+        return edge_domain;
     }
     
     
     void update_neigh(unsigned int dir,PartCellData<uint64_t>& pc_data){
         uint64_t node_val_pc = pc_data.data[depth][pc_offset][j];
         
-        pc_key d_key;
-        d_key.update_cell(curr_key);
-        
-        node_key d_node;
-        d_node.update_node(node_val_pc);
+//        pc_key d_key;
+//        d_key.update_cell(curr_key);
+//        
+//        node_key d_node;
+//        d_node.update_node(node_val_pc);
         
         
         pc_data.get_neighs_face(curr_key,node_val_pc,dir,neigh_part_keys);

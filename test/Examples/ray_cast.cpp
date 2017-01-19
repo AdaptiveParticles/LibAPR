@@ -84,71 +84,65 @@ int main(int argc, char **argv) {
     
     read_apr_pc_struct(pc_struct,file_name);
     
-  
-    PartCellParent<uint64_t> parent_cells(pc_struct);
+    //////////////////////////////
+    //
+    //  This creates data sets where each particle is a cell.
+    //
+    //  This same code can be used where there are multiple particles per cell as in original pc_struct, however, the particles have to be accessed in a different way.
+    //
+    //////////////////////////////
     
-
-    std::cout << "Propagating through APR now..." << std::endl;
-
-    uint64_t x = 12, y = 25, z = 10;
-    uint64_t dir_x = 2, dir_y = -1, dir_z = 1;
-#define MAX_DIST 100
-    for(unsigned int step = 0; step < MAX_DIST; step++) {
-
-        uint64_t pc_key = parent_cells.find_partcell(x+step*dir_x, y+step*dir_y, z+step*dir_z, pc_struct);
-        uint64_t check = 0;
-        if(pc_key > 0){
-           check = pc_struct.pc_data.get_val(pc_key);
+    ParticleDataNew<float, uint64_t> part_new;
+    //flattens format to particle = cell, this is in the classic access/part paradigm
+    part_new.initialize_from_structure(pc_struct);
+    
+    //generates the nieghbour structure
+    PartCellData<uint64_t> pc_data;
+    part_new.create_pc_data_new(pc_data);
+    
+    //Genearate particle at cell locations, easier access
+    ExtraPartCellData<float> particles_int;
+    part_new.create_particles_at_cell_structure(particles_int);
+    
+    PartCellParent<uint64_t> parent_cells(pc_data);
+    
+    CurrentLevel<float,uint64_t> curr_level;
+    
+    //random seed
+    srand ((unsigned int)time(NULL));
+    
+    //chose a point within the domain
+    uint64_t x = rand()%(pc_struct.org_dims[1]*2), y = rand()%(pc_struct.org_dims[0]*2), z = rand()%(pc_struct.org_dims[2]*2);
+    
+    uint64_t init_key = parent_cells.find_partcell(x, y, z, pc_data);
+    
+    if(init_key > 0){
+        //above zero means the location is inside the domain
+        
+        curr_level.init(init_key,pc_data);
+        
+        bool end_domain = false;
+        
+        unsigned int direction = rand()%6;
+        unsigned int index = rand()%4;
+        
+        int counter =0;
+        float accum_int = 0;
+        
+        while(!end_domain){
+            //iterate through domain until you hit the edge
+            end_domain = curr_level.move_cell(direction,index,part_new,pc_data);
+            //get the intensity of the particle
+            accum_int += curr_level.get_val(particles_int);
+            counter++;
         }
-        std::cout << check << std::endl;
+        
+        std::cout << "moved " << counter << " times through the domain" << std::endl;
+        std::cout << "accumulated " << accum_int << " intensity" << std::endl;
+        
+    } else {
+        std::cout << "outside domain" << std::endl;
     }
-
-    std::cout << std::endl;
-
-    part_rep.timer.start_timer("find cell");
-    
-    find_part_cell_test(pc_struct);
-    
-    part_rep.timer.stop_timer();
-    
-    
-//    CurrentLevel<float,uint64_t> curr_level;
-//    
-//    //
-//    //  Initialize Randomly
-//    //
-//    
-//    
-//    //iterate loop;
-//    
-//    timer.start_timer("neigh_cell_comp");
-//    
-//    unsigned int dir = 0;
-//    unsigned int index = 0;
-//    float neigh_int= 0;
-//    
-//    for(int r = 0;r < num_repeats;r++){
-//        //choose one of the 6 directions (+y,-y,+x..
-//        dir = std::rand()%6;
-//        //if there are children which one
-//        index = std::rand()%4;
-//        
-//        //move randomly
-//        curr_level.move_cell(dir,index,part_new,pc_data);
-//        
-//        //get all
-//        curr_level.update_all_neigh(pc_data);
-//        
-//        neigh_int = 0;
-//        
-//        for(int i = 0;i < 6;i++){
-//            neigh_int += curr_level.get_neigh_int(i,part_new,pc_data);
-//            
-//        }
-//        
-//        curr_level.get_val(filter_output) = neigh_int;
-//    }
-//    
 
     
     

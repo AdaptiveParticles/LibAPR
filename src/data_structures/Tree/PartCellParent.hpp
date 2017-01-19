@@ -344,6 +344,11 @@ public:
         initialize_parents(pc_struct);
     };
     
+    
+    PartCellParent(PartCellData<T>& pc_data){
+        initialize_parents(pc_data);
+    };
+    
     PartCellData<T> neigh_info;
     PartCellData<T> parent_info;
     PartCellData<T> parent_info2;
