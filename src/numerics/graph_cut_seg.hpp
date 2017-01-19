@@ -376,13 +376,19 @@ void construct_max_flow_graph(PartCellStructure<V,T>& pc_struct,GraphType& g,std
                            // cap_s =   alpha*pow(Ip - loc_min,2)/pow(loc_max - loc_min,2);
                            // cap_t =   alpha*pow(Ip-loc_max,2)/pow(loc_max - loc_min,2);
                             
-                            cap_s =   alpha*(Ip - loc_min);
-                            cap_t =   alpha*(loc_max-Ip);
+                            
+                            if((loc_min > 0) & (loc_max > 0)){
+                                cap_s =   alpha*(Ip - loc_min);
+                                cap_t =   alpha*(loc_max-Ip);
+                            } else {
+                                cap_s = 0;
+                                cap_t = alpha*Ip;
+                            }
                             
                             g.add_tweights(global_part_index,   /* capacities */ cap_s, cap_t);
                             
-                            eng1.get_part(curr_key) =pow(Ip - loc_min,1) + 5000;
-                            eng2.get_part(curr_key) = loc_max - Ip+5000;
+                            eng1.get_part(curr_key) = cap_s + 5000;
+                            eng2.get_part(curr_key) = cap_t + 5000;
                             
                             counter++;
                             

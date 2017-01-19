@@ -1171,7 +1171,9 @@ void get_adaptive_min_max(PartCellStructure<U,T>& pc_struct,ExtraPartCellData<V>
     
     push_down_tree(pc_struct,pc_parent,min_data,partcell_min,status_offset_min);
     //push_down_tree(pc_struct,pc_parent,max_data,partcell_max,status_offset_max);
-
+    
+    //do a particle level smoothing here?
+    
     
     //get the value according to the status_offsets
     //get_value_up_tree_offset(pc_struct,pc_parent,min_data,partcell_min,status_offset,0);
