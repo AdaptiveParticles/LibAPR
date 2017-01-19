@@ -197,12 +197,14 @@ void single_ray_parrallel(PartCellStructure<S,uint64_t>& pc_struct){
             //next becomes current
             std::swap(next_loc,curr_loc);
             
+            //get new position
             next_loc = new_position(curr_level,direction,curr_loc);
             
+            //calculate the new move
             next_move =  calculate_dir_index_parralell(curr_level,curr_loc,next_loc);
             
             if(next_move.dir >= 0){
-                
+                //if its a new cell
                 end_domain = curr_level.move_cell(next_move.dir,next_move.index,part_new,pc_data);
                 
                 //get the intensity of the particle
