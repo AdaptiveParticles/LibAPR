@@ -35,6 +35,9 @@ public:
     T x_num;
     T z_num;
     
+    T depth_max;
+    T depth_min;
+    
     uint16_t node_val;
     T y_num;
     
@@ -60,6 +63,23 @@ public:
         
     };
     
+    CurrentLevel(PartCellData<T>& pc_data){
+        depth = 0;
+        x = 0;
+        z = 0;
+        j = 0;
+        pc_offset = 0;
+        y = 0;
+        j_num = 0;
+        x_num = 0;
+        z_num = 0;
+        status = 0;
+        node_val = 0;
+        
+        depth_max = pc_data.depth_max;
+        depth_min = pc_data.depth_min;
+        
+    };
     
     template<typename U>
     void set_new_depth(T depth_,ParticleDataNew<U, T>& part_data){
@@ -78,11 +98,10 @@ public:
         pc_key init_pc_key;
         init_pc_key.update_cell(init_key);
         
+        
         depth = init_pc_key.depth;
         x_num = pc_data.x_num[depth];
         z_num = pc_data.z_num[depth];
-        
-        
         
         x = init_pc_key.x;
         z = init_pc_key.z;
@@ -92,7 +111,6 @@ public:
         part_offset = 0;
         y = 0;
         
-        
         j = init_pc_key.j;
         
         curr_key = init_key;
@@ -101,14 +119,9 @@ public:
         
         if(!(node_val&1)){
             type = 1;
-            y++;
-            //seed offset accoutns for which (x,z) you are doing
             
         } else {
             type = 0;
-            y += ((node_val & COORD_DIFF_MASK_PARTICLE) >> COORD_DIFF_SHIFT_PARTICLE);
-            y--;
-            
         }
         
     }
