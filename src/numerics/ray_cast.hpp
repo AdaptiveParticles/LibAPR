@@ -26,14 +26,17 @@
 
 
 struct move {
-    unsigned int dir;
-    unsigned int index;
+    int dir;
+    int index;
 };
 
 struct coord {
     float x,y,z;
     
-    void set(float x,float y,float z){
+    void set(float x_,float y_,float z_){
+        x=x_;
+        z=z_;
+        y=y_;
     }
 };
 
@@ -51,18 +54,28 @@ move calculate_dir_index_parralell(CurrentLevel<S,uint64_t>& curr_level,coord& c
     
     unsigned int depth_offset = pow(2,curr_level.depth_max - curr_level.depth + 1);
     
-    int offset_y = ((new_loc.y - curr_loc.y)/depth_offset);
-    int offset_x = ((new_loc.x - curr_loc.x)/depth_offset);
-    int offset_z = ((new_loc.z - curr_loc.z)/depth_offset);
+    int  yc = (curr_loc.y/depth_offset);
+    int  xc = (curr_loc.x/depth_offset);
+    int  zc = (curr_loc.z/depth_offset);
     
-    next_move.dir = (offset_y == -1) + (offset_x == 1)*2 + (offset_x == -1)*3 + (offset_z == 1)*4 + (offset_z == 1)*5;
+    int  yn = (new_loc.y/depth_offset);
+    int  xn = (new_loc.x/depth_offset);
+    int  zn = (new_loc.z/depth_offset);
     
-    if (next_move.dir > 5 | (((abs(offset_y) > 0) + (abs(offset_x) > 0) + (abs(offset_z) > 0)) > 1)){
+    int offset_y = yn - yc;
+    int offset_x = xn - xc;
+    int offset_z = zn - zc;
+    
+    next_move.dir = (offset_y == -1) + (offset_x == 1)*2 + (offset_x == -1)*3 + (offset_z == 1)*4 + (offset_z == -1)*5;
+    
+    int move_sum = ((abs(offset_y) > 0) + (abs(offset_x) > 0) + (abs(offset_z) > 0));
+    
+    if (next_move.dir > 5 | (move_sum > 1)){
         std::cout << "dir not parallel" << std::endl;
         next_move.dir = 0;
         next_move.index = 0;
         return next_move;
-    } else {
+    } else if (move_sum ==1) {
         
         int child_x = new_loc.x/(depth_offset*2);
         int child_y = new_loc.y/(depth_offset*2);
@@ -79,6 +92,8 @@ move calculate_dir_index_parralell(CurrentLevel<S,uint64_t>& curr_level,coord& c
             next_move.index = (child_x&1)*2 + (child_y&1);
         }
         
+    } else {
+        next_move.dir = -1;
     }
     
     return next_move;
@@ -96,7 +111,7 @@ coord new_position(CurrentLevel<S,uint64_t>& curr_level,unsigned int direction,c
     const int8_t dir_x[6] = { 0, 0, 1, -1, 0, 0};
     const int8_t dir_z[6] = { 0, 0, 0, 0, 1, -1};
     
-    float step_size = pow(2,curr_level.depth_max - curr_level.depth + 1)*sqrt(2)/2.0;
+    float step_size = pow(2,curr_level.depth_max - curr_level.depth + 1)*.24999; //move quarter step then you can never hop a child.
     
     float offset_x = dir_x[direction];
     float offset_y = dir_y[direction];
@@ -166,9 +181,10 @@ void single_ray_parrallel(PartCellStructure<S,uint64_t>& pc_struct){
         
         move next_move;
         //current and next location
-        coord curr_loc;
-        curr_loc.set(x,y,z);
         coord next_loc;
+        coord curr_loc;
+        next_loc.set(x,y,z);
+        
         
         int counter =0;
         float accum_int = 0;
@@ -178,26 +194,33 @@ void single_ray_parrallel(PartCellStructure<S,uint64_t>& pc_struct){
         
         while(!end_domain){
             //iterate through domain until you hit the edge
+            //next becomes current
+            std::swap(next_loc,curr_loc);
             
             next_loc = new_position(curr_level,direction,curr_loc);
             
             next_move =  calculate_dir_index_parralell(curr_level,curr_loc,next_loc);
             
-            end_domain = curr_level.move_cell(next_move.dir,next_move.index,part_new,pc_data);
+            if(next_move.dir >= 0){
+                
+                end_domain = curr_level.move_cell(next_move.dir,next_move.index,part_new,pc_data);
+                
+                //get the intensity of the particle
+                accum_depth += curr_level.depth;
+                accum_status += curr_level.status;
+                accum_int += curr_level.get_val(particles_int);
+                
+                counter++;
+                
+            }
             
-            //get the intensity of the particle
-            accum_depth += curr_level.depth;
-            accum_status += curr_level.status;
-            accum_int += curr_level.get_val(particles_int);
             
-            //next becomes current
-            std::swap(next_loc,curr_loc);
             
-            counter++;
         }
         
         std::cout << "moved " << counter << " times through the domain" << std::endl;
         std::cout << "from x: " << x << " y: " << y << " z: " << z << std::endl;
+        std::cout << "to x: " << curr_loc.x << " y: " << curr_loc.y << " z: " << curr_loc.z << std::endl;
         std::cout << "in direction " << direction << std::endl;
         std::cout << "accumulated " << accum_int << " intensity" << std::endl;
         std::cout << "accumulated " << accum_status << " status" << std::endl;
