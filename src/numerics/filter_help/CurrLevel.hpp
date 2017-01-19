@@ -11,6 +11,7 @@
 // type T data structure base type
 
 #include "../../data_structures/Tree/PartCellStructure.hpp"
+#include "../../data_structures/Tree/ParticleDataNew.hpp"
 
 template<typename V,typename T>
 class CurrentLevel {
