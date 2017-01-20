@@ -10,7 +10,7 @@
 #include "../data_structures/Tree/ExtraPartCellData.hpp"
 #include "../data_structures/Tree/PartCellParent.hpp"
 
-#include "instances.inc"
+#include "../../external/maxflow-v3.04.src/instances.inc"
 
 typedef Graph<float,float,float> GraphType;
 
