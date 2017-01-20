@@ -136,16 +136,22 @@ void construct_max_flow_graph_mesh(PartCellStructure<V,T>& pc_struct,GraphType& 
                             Ip = pc_struct.part_data.get_part(curr_key);
                             global_part_index = pc_struct.part_data.get_global_index(curr_key);
                             
+                            
+                            
                             // cap_s =   alpha*pow(Ip - loc_min,2)/pow(loc_max - loc_min,2);
                             // cap_t =   alpha*pow(Ip-loc_max,2)/pow(loc_max - loc_min,2);
-                            
-                            cap_s =   alpha*(Ip - loc_min);
-                            cap_t =   alpha*(loc_max-Ip);
+                            if((loc_min > 0) & (loc_max > 0)){
+                                cap_s =   alpha*(Ip - loc_min);
+                                cap_t =   alpha*(loc_max-Ip);
+                            } else {
+                                cap_s = 0;
+                                cap_t = alpha*Ip;
+                            }
                             
                             g.add_tweights(global_part_index,   /* capacities */ cap_s, cap_t);
                             
-                            eng1.get_part(curr_key) =cap_s ;
-                            eng2.get_part(curr_key) =cap_t;
+                            eng1.get_part(curr_key) =cap_s +5000;
+                            eng2.get_part(curr_key) =cap_t + 5000;
                             
                             counter++;
                             
@@ -163,7 +169,9 @@ void construct_max_flow_graph_mesh(PartCellStructure<V,T>& pc_struct,GraphType& 
     Mesh_data<float> eng_t;
     
     pc_struct.interp_parts_to_pc(eng_s,eng1);
+    debug_write(eng_s,"eng1");
     pc_struct.interp_parts_to_pc(eng_t,eng2);
+    debug_write(eng_t,"eng2");
     
     // Now loop over the mesh and add it in.
     
@@ -181,6 +189,9 @@ void construct_max_flow_graph_mesh(PartCellStructure<V,T>& pc_struct,GraphType& 
     
     Mesh_data<uint8_t> status_mesh;
     interp_status_to_mesh(status_mesh,pc_struct);
+    
+    
+   debug_write(status_mesh,"status_mesh");
     
     ////////////////////////////////////
     //
@@ -285,11 +296,11 @@ void construct_max_flow_graph(PartCellStructure<V,T>& pc_struct,GraphType& g,std
     get_adaptive_min_max(pc_struct,adaptive_min,adaptive_max,status_offsets_min,status_offsets_max,parameters[8],parameters[9]);
     
     Mesh_data<float> output_img;
-    //interp_extrapc_to_mesh(output_img,pc_struct,adaptive_min);
-    //debug_write(output_img,"adapt_min");
-    
-    //interp_extrapc_to_mesh(output_img,pc_struct,adaptive_max);
-    //debug_write(output_img,"adapt_max");
+//    interp_extrapc_to_mesh(output_img,pc_struct,adaptive_min);
+//    debug_write(output_img,"adapt_min");
+//    
+//    interp_extrapc_to_mesh(output_img,pc_struct,adaptive_max);
+//    debug_write(output_img,"adapt_max");
     
     //initialize variables required
     uint64_t node_val_part; // node variable encoding part offset status information
@@ -387,8 +398,8 @@ void construct_max_flow_graph(PartCellStructure<V,T>& pc_struct,GraphType& g,std
                             
                             g.add_tweights(global_part_index,   /* capacities */ cap_s, cap_t);
                             
-                            eng1.get_part(curr_key) = cap_s + 5000;
-                            eng2.get_part(curr_key) = cap_t + 5000;
+                            //eng1.get_part(curr_key) = cap_s/alpha + 5000;
+                            //eng2.get_part(curr_key) = cap_t/alpha + 5000;
                             
                             //eng1.get_part(curr_key) = loc_min;
                             //eng2.get_part(curr_key) = loc_max;
@@ -406,22 +417,22 @@ void construct_max_flow_graph(PartCellStructure<V,T>& pc_struct,GraphType& g,std
     }
     
     
-    //pc_struct.interp_parts_to_pc(output_img,eng1);
-   // debug_write(output_img,"eng1");
-    //pc_struct.interp_parts_to_pc(output_img,eng2);
-   // debug_write(output_img,"eng2");
+//    pc_struct.interp_parts_to_pc(output_img,eng1);
+//    debug_write(output_img,"eng1p");
+//    pc_struct.interp_parts_to_pc(output_img,eng2);
+//    debug_write(output_img,"eng2p");
     
     
     
     
-    //adaptive mean
-    ExtraPartCellData<float> edge1(pc_struct.part_data.particle_data);
-    ExtraPartCellData<float> edge2(pc_struct.part_data.particle_data);
-    ExtraPartCellData<float> edge3(pc_struct.part_data.particle_data);
-    ExtraPartCellData<float> edge4(pc_struct.part_data.particle_data);
-    ExtraPartCellData<float> edge5(pc_struct.part_data.particle_data);
-    ExtraPartCellData<float> edge6(pc_struct.part_data.particle_data);
-    
+//    //adaptive mean
+//    ExtraPartCellData<float> edge1(pc_struct.part_data.particle_data);
+//    ExtraPartCellData<float> edge2(pc_struct.part_data.particle_data);
+//    ExtraPartCellData<float> edge3(pc_struct.part_data.particle_data);
+//    ExtraPartCellData<float> edge4(pc_struct.part_data.particle_data);
+//    ExtraPartCellData<float> edge5(pc_struct.part_data.particle_data);
+//    ExtraPartCellData<float> edge6(pc_struct.part_data.particle_data);
+//    
     
     ////////////////////////////////////
     //

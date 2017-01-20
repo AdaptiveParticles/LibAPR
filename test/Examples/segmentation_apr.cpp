@@ -90,16 +90,16 @@ int main(int argc, char **argv) {
     ExtraPartCellData<uint8_t> seg_parts;
     
     //nuclei
-    std::array<uint64_t,10> parameters_nuc = {100,1,1,1,1,1,1,1,0,0};
+    std::array<uint64_t,10> parameters_nuc = {100,2000,1,1,1,2,2,3,0,0};
     
     //nuclei
-    std::array<uint64_t,10> parameters_mem = {100,1,2,2,2,1,1,1,1,1};
+    std::array<uint64_t,10> parameters_mem = {100,2000,2,2,2,2,2,3,0,0};
     
     calc_graph_cuts_segmentation(pc_struct, seg_parts,parameters_nuc);
     
     Mesh_data<uint8_t> seg_mesh;
     
-    //calc_graph_cuts_segmentation_mesh(pc_struct,seg_mesh,parameters_nuc);
+    calc_graph_cuts_segmentation_mesh(pc_struct,seg_mesh,parameters_nuc);
     
     //Now we will view the output by creating the binary image implied by the segmentation
     
@@ -109,7 +109,7 @@ int main(int argc, char **argv) {
     
     debug_write(seg_img,"segmentation_mask");
     
-    //debug_write(seg_mesh,"segmentation_mesh_mask");
+    debug_write(seg_mesh,"segmentation_mesh_mask");
     
     
 //    interp_depth_to_mesh(seg_img,pc_struct);
