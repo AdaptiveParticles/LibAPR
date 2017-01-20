@@ -162,9 +162,27 @@ add_executable(pipeline
     ${SOURCE_FILES_COMPILED}
 )
 
+add_executable(Example_filter
+    test/Examples/filter_apr.cpp
+    test/utils.cpp
+    src/io/write_parts.cpp
+    ${SOURCE_FILES_COMPILED}
+)
+
+add_executable(Example_segment_gc
+    test/Examples/segmentation_apr.cpp
+    external/maxflow-v3.04.src/maxflow.cpp
+    external/maxflow-v3.04.src/graph.cpp
+    test/utils.cpp
+    src/io/write_parts.cpp
+    ${SOURCE_FILES_COMPILED}
+)
+
 target_link_libraries(pipeline ${HDF5_LIBRARIES} pthread tiff blosc)
 target_link_libraries(Example_get_apr ${HDF5_LIBRARIES} pthread tiff blosc)
 target_link_libraries(Example_compute_cells ${HDF5_LIBRARIES} pthread tiff blosc)
 target_link_libraries(Example_compute_parts ${HDF5_LIBRARIES} pthread tiff blosc)
 target_link_libraries(Example_convert_full_format ${HDF5_LIBRARIES} pthread tiff blosc)
 target_link_libraries(Example_ray_cast ${HDF5_LIBRARIES} pthread tiff blosc)
+target_link_libraries(Example_filter ${HDF5_LIBRARIES} pthread tiff blosc)
+target_link_libraries(Example_segment_gc ${HDF5_LIBRARIES} pthread tiff blosc)
