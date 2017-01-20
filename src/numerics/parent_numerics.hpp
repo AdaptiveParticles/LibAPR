@@ -186,7 +186,19 @@ void push_down_tree(PartCellStructure<U,T>& pc_struct,PartCellParent<T>& pc_pare
                                 if(children_ind[c] == 1){
                                     //The first child is a pc set the value
                                     node_val_part = pc_struct.pc_data.get_val(child);
-                                    partcell_data.get_val(child) = parent_data.get_val(child);
+                                    
+                                    pc_key debug_child;
+                                    debug_child.update_cell(child);
+                                    
+                                    float db = partcell_data.get_val(child);
+                                    
+                                    db = parent_data.get_val(curr_key);
+                                    //db = parent_data.get_val(child);
+                                    
+                                    
+                                    //partcell_data.get_val(child) = parent_data.get_val(child);
+                                    partcell_data.get_val(child) = parent_data.get_val(curr_key);
+
                                     
                                     
                                 } else {
