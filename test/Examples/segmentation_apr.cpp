@@ -16,6 +16,7 @@
 #include "../../src/numerics/parent_numerics.hpp"
 #include "../../src/numerics/misc_numerics.hpp"
 #include "../../src/numerics/graph_cut_seg.hpp"
+#include "../../src/numerics/apr_segment.hpp"
 
 bool command_option_exists(char **begin, char **end, const std::string &option)
 {
@@ -90,7 +91,7 @@ int main(int argc, char **argv) {
     ExtraPartCellData<uint8_t> seg_parts;
     
     //nuclei
-    std::array<uint64_t,10> parameters_nuc = {100,2000,1,1,1,2,2,3,0,0};
+    std::array<uint64_t,10> parameters_nuc = {100,2000,1,1,2,2,2,3,0,0};
     
     //nuclei
     std::array<uint64_t,10> parameters_mem = {100,2000,2,2,2,2,2,3,0,0};
@@ -99,8 +100,11 @@ int main(int argc, char **argv) {
     
     Mesh_data<uint8_t> seg_mesh;
     
-    calc_graph_cuts_segmentation_mesh(pc_struct,seg_mesh,parameters_nuc);
+    if(pc_struct.org_dims[0] <400){
     
+        calc_graph_cuts_segmentation_mesh(pc_struct,seg_mesh,parameters_nuc);
+    
+    }
     //Now we will view the output by creating the binary image implied by the segmentation
     
     Mesh_data<uint8_t> seg_img;
@@ -111,15 +115,34 @@ int main(int argc, char **argv) {
     
     debug_write(seg_mesh,"segmentation_mesh_mask");
     
+    ////////////////////////////////////
+    //
+    //
+    //  Connected Component
+    //
+    //
+    /////////////////////////////////////
     
-//    interp_depth_to_mesh(seg_img,pc_struct);
-//    
-//    debug_write(seg_img,"k_mask");
-//    
-//    interp_status_to_mesh(seg_img,pc_struct);
-//    
-//    debug_write(seg_img,"status_mask");
+    ExtraPartCellData<uint16_t> component_label;
     
+    //calculate the connected component
+    
+    calc_connected_component(pc_struct,seg_parts,component_label);
+    
+    //Now we will view the output by creating the binary image implied by the segmentation
+    
+    
+    Mesh_data<uint16_t> comp_img;
+    
+    
+    pc_struct.interp_parts_to_pc(comp_img,component_label);
+    
+
+    debug_write(comp_img,"comp_mask");
+
+    
+    
+
 }
 
 
