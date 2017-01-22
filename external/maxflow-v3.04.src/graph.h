@@ -62,6 +62,7 @@
 
 #include <string.h>
 #include "block.h"
+#include <stdlib.h>
 
 #include <assert.h>
 // NOTE: in UNIX you need to use -DNDEBUG preprocessor option to supress assert's!!!
@@ -81,8 +82,8 @@ public:
 		SOURCE	= 0,
 		SINK	= 1
 	} termtype; // terminals 
-	typedef uint64_t node_id;
-
+	//typedef uint64_t node_id;
+    typedef unsigned long long node_id;
 	/////////////////////////////////////////////////////////////////////////
 	//                     BASIC INTERFACE FUNCTIONS                       //
 	//              (should be enough for most applications)               //

@@ -41,6 +41,36 @@ struct coord {
 };
 
 template<typename S>
+bool compare_current_cell_location(CurrentLevel<S,uint64_t>& curr_level,coord& curr_loc){
+    //
+    //  Bevan Cheeseman 2017
+    //
+    //  Debug Asssit
+    //
+    //  Compares the current cell, with the current location.
+    //
+    
+    bool same_cell = true;
+    
+    unsigned int depth_offset = pow(2,curr_level.depth_max - curr_level.depth + 1);
+    
+    int x = curr_loc.x/depth_offset;
+    int y = curr_loc.y/depth_offset;
+    int z = curr_loc.z/depth_offset;
+    
+    if(x != curr_level.x){
+        same_cell = false;
+    }
+    
+    if(z != curr_level.z){
+        same_cell = false;
+    }
+    
+    return same_cell;
+}
+
+
+template<typename S>
 move calculate_dir_index_parralell(CurrentLevel<S,uint64_t>& curr_level,coord& curr_loc,coord& new_loc){
     //
     //  Bevan Cheeseman 2017
@@ -77,14 +107,14 @@ move calculate_dir_index_parralell(CurrentLevel<S,uint64_t>& curr_level,coord& c
         return next_move;
     } else if (move_sum ==1) {
         
-        int child_x = new_loc.x/(depth_offset*2);
-        int child_y = new_loc.y/(depth_offset*2);
-        int child_z = new_loc.z/(depth_offset*2);
+        uint64_t child_x = new_loc.x/(depth_offset/2);
+        uint64_t child_y = new_loc.y/(depth_offset/2);
+        uint64_t child_z = new_loc.z/(depth_offset/2);
         
-        if(next_move.dir > 2){
+        if(next_move.dir < 2){
             // ydirections
             next_move.index = (child_x&1)*2 + (child_z&1);
-        } else if (next_move.dir > 4){
+        } else if (next_move.dir < 4){
             // xdirections
             next_move.index = (child_z&1)*2 + (child_y&1);
         } else {
@@ -92,6 +122,7 @@ move calculate_dir_index_parralell(CurrentLevel<S,uint64_t>& curr_level,coord& c
             next_move.index = (child_x&1)*2 + (child_y&1);
         }
         
+        int stop = 1;
     } else {
         next_move.dir = -1;
     }
@@ -207,6 +238,8 @@ void single_ray_parrallel(PartCellStructure<S,uint64_t>& pc_struct){
                 //if its a new cell
                 end_domain = curr_level.move_cell(next_move.dir,next_move.index,part_new,pc_data);
                 
+                compare_current_cell_location(curr_level,next_loc);
+                
                 //get the intensity of the particle
                 accum_depth += curr_level.depth;
                 accum_status += curr_level.status;
@@ -234,27 +267,143 @@ void single_ray_parrallel(PartCellStructure<S,uint64_t>& pc_struct){
 }
 
 
+template<typename S>
+void multi_ray_parrallel(PartCellStructure<S,uint64_t>& pc_struct){
+    //
+    //  Bevan Cheeseman 2017
+    //
+    //  Simple ray case example, multi ray, accumulating, parralell projection
+    //
+    //
+    
+    
+    //////////////////////////////
+    //
+    //  This creates data sets where each particle is a cell.
+    //
+    //  This same code can be used where there are multiple particles per cell as in original pc_struct, however, the particles have to be accessed in a different way.
+    //
+    //////////////////////////////
+    
+    
+    ParticleDataNew<float, uint64_t> part_new;
+    //flattens format to particle = cell, this is in the classic access/part paradigm
+    part_new.initialize_from_structure(pc_struct);
+    
+    //generates the nieghbour structure
+    PartCellData<uint64_t> pc_data;
+    part_new.create_pc_data_new(pc_data);
+    
+    //Genearate particle at cell locations, easier access
+    ExtraPartCellData<float> particles_int;
+    part_new.create_particles_at_cell_structure(particles_int);
+    
+    //used for finding a part cell
+    PartCellParent<uint64_t> parent_cells(pc_data);
+    
+    //iterator
+    CurrentLevel<float,uint64_t> curr_level(pc_data);
+
+    //Need to add here a parameters here
+
+    unsigned int direction = 0;
+    Mesh_data<S> proj_img;
+
+    switch(direction){
+        case(0):{
+            proj_img.initialize(pc_struct.org_dims[1],pc_struct.org_dims[2],1,0);
+        }
+        case(1):{}
+        case(2):{}
+        case(3):{}
+        case(4):{}
+        case(5):{}
+    }
+    
+    
+
+    bool end_domain = false;
+
+    //choose random direction to propogate along
 
 
+    int counter =0;
+    float accum_int = 0;
+    float accum_depth = 0;
+    float accum_status = 0;
 
 
+    move next_move;
+    //current and next location
+    coord next_loc;
+    coord curr_loc;
 
+    for (int x_ = 0; x_ < proj_img.y_num; ++x_) {
+        for (int z_ = 0; z_ < proj_img.x_num; ++z_) {
+            float x = x_*2 + 1;
+            float y = 1;
+            float z = z_*2 + 1;
 
+            end_domain = false;
+            counter =0;
+            accum_int = 0;
+            accum_depth = 0;
+            accum_status = 0;
+            
+            //initialize ray
+            uint64_t init_key = parent_cells.find_partcell(x, y, z, pc_data);
+            pc_key debug_init;
+            debug_init.update_cell(init_key);
+            
+            curr_level.init(init_key,pc_data);
+            next_loc.set(x,y,z);
+            
+            compare_current_cell_location(curr_level,next_loc);
 
+            while(!end_domain){
+                //iterate through domain until you hit the edge
+                //next becomes current
+                std::swap(next_loc,curr_loc);
 
+                //get new position
+                next_loc = new_position(curr_level,direction,curr_loc);
 
+                //calculate the new move
+                next_move =  calculate_dir_index_parralell(curr_level,curr_loc,next_loc);
 
+                if(next_move.dir >= 0){
+                    //if its a new cell
+                    end_domain = curr_level.move_cell(next_move.dir,next_move.index,part_new,pc_data);
+                    
+                    compare_current_cell_location(curr_level,next_loc);
+                    
+                    next_move =  calculate_dir_index_parralell(curr_level,curr_loc,next_loc);
+                    
+                    //get the intensity of the particle
+                    accum_depth += curr_level.depth;
+                    accum_status += curr_level.status;
+                    //accum_int += curr_level.get_val(particles_int);
+                    accum_int = std::max(accum_int,curr_level.get_val(particles_int));
+                    
+                    counter++;
+                    
+                    
 
+                }
+                
+                
+            }
+            
+            
+            proj_img(x_,z_,0) = accum_int;
+            
 
+        }
+    }
 
+    debug_write(proj_img,"parllel_proj");
 
-
-
-
-
-
-
-
-
+    
+}
 
 #endif

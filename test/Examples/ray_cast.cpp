@@ -84,7 +84,9 @@ int main(int argc, char **argv) {
     
     read_apr_pc_struct(pc_struct,file_name);
     
-    single_ray_parrallel(pc_struct);
+    //single_ray_parrallel(pc_struct);
+
+    multi_ray_parrallel(pc_struct);
     
     
 }
