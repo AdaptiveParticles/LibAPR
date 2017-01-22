@@ -85,10 +85,23 @@ int main(int argc, char **argv) {
     read_apr_pc_struct(pc_struct,file_name);
     
     //single_ray_parrallel(pc_struct);
-
-    multi_ray_parrallel(pc_struct);
     
+    int projection_type = 1;
     
+    Part_timer timer;
+    
+    timer.start_timer("parrallel projection content");
+    timer.verbose_flag = true;
+    
+    multi_ray_parrallel(pc_struct,projection_type);
+    
+    timer.stop_timer();
+    
+    timer.start_timer("parrallel projection max");
+    
+    multi_ray_parrallel(pc_struct,0);
+    
+    timer.stop_timer();
 }
 
 

@@ -40,6 +40,22 @@ struct coord {
     }
 };
 
+struct ray {
+    
+    float accum_int;
+    int accum_status;
+    int accum_depth;
+    int counter;
+    
+    void init(){
+        accum_int = 0;
+        accum_status = 0;
+        accum_depth = 0;
+        counter = 0;
+    }
+    
+};
+
 template<typename S>
 bool compare_current_cell_location(CurrentLevel<S,uint64_t>& curr_level,coord& curr_loc){
     //
@@ -155,120 +171,59 @@ coord new_position(CurrentLevel<S,uint64_t>& curr_level,unsigned int direction,c
     
 }
 
+
+
+
 template<typename S>
-void single_ray_parrallel(PartCellStructure<S,uint64_t>& pc_struct){
-    //
-    //  Bevan Cheeseman 2017
-    //
-    //  Simple ray case example, signle ray, accumulating, parralell projection
-    //
-    //
+bool proj_function(ray& curr_ray,CurrentLevel<S,uint64_t>& curr_level,ExtraPartCellData<float>& particles_int,bool stop_ray,const int proj_type){
+    //get the intensity of the particle
     
     
-    //////////////////////////////
-    //
-    //  This creates data sets where each particle is a cell.
-    //
-    //  This same code can be used where there are multiple particles per cell as in original pc_struct, however, the particles have to be accessed in a different way.
-    //
-    //////////////////////////////
+    if(proj_type == 0){
+        // maximum projection
+        curr_ray.accum_depth += curr_level.depth;
+        curr_ray.accum_status += curr_level.status;
+        //accum_int += curr_level.get_val(particles_int);
+        curr_ray.accum_int = std::max(curr_ray.accum_int,curr_level.get_val(particles_int));
     
-    
-    ParticleDataNew<float, uint64_t> part_new;
-    //flattens format to particle = cell, this is in the classic access/part paradigm
-    part_new.initialize_from_structure(pc_struct);
-    
-    //generates the nieghbour structure
-    PartCellData<uint64_t> pc_data;
-    part_new.create_pc_data_new(pc_data);
-    
-    //Genearate particle at cell locations, easier access
-    ExtraPartCellData<float> particles_int;
-    part_new.create_particles_at_cell_structure(particles_int);
-    
-    //used for finding a part cell
-    PartCellParent<uint64_t> parent_cells(pc_data);
-    
-    //iterator
-    CurrentLevel<float,uint64_t> curr_level(pc_data);
-    
-    //random seed
-    srand ((unsigned int)time(NULL));
-    
-    //chose a point within the domain
-    uint64_t x = rand()%(pc_struct.org_dims[1]*2), y = rand()%(pc_struct.org_dims[0]*2), z = rand()%(pc_struct.org_dims[2]*2);
-    
-    uint64_t init_key = parent_cells.find_partcell(x, y, z, pc_data);
-    
-    if(init_key > 0){
-        //above zero means the location is inside the domain
+        curr_ray.counter++;
+    } else if(proj_type == 1){
+        // content projection
         
-        curr_level.init(init_key,pc_data);
+        int status_th = 20;
         
-        bool end_domain = false;
-        
-        //choose random direction to propogate along
-        unsigned int direction = rand()%6;
-        
-        move next_move;
-        //current and next location
-        coord next_loc;
-        coord curr_loc;
-        next_loc.set(x,y,z);
-        
-        
-        int counter =0;
-        float accum_int = 0;
-        float accum_depth = 0;
-        float accum_status = 0;
-        
-        
-        while(!end_domain){
-            //iterate through domain until you hit the edge
-            //next becomes current
-            std::swap(next_loc,curr_loc);
-            
-            //get new position
-            next_loc = new_position(curr_level,direction,curr_loc);
-            
-            //calculate the new move
-            next_move =  calculate_dir_index_parralell(curr_level,curr_loc,next_loc);
-            
-            if(next_move.dir >= 0){
-                //if its a new cell
-                end_domain = curr_level.move_cell(next_move.dir,next_move.index,part_new,pc_data);
-                
-                compare_current_cell_location(curr_level,next_loc);
-                
-                //get the intensity of the particle
-                accum_depth += curr_level.depth;
-                accum_status += curr_level.status;
-                accum_int += curr_level.get_val(particles_int);
-                
-                counter++;
-                
-            }
-            
+        if(curr_level.depth == (curr_level.depth_max)){
+            curr_ray.accum_depth = 1;
+            curr_ray.accum_status += (curr_level.status == 1);
+            curr_ray.accum_int = 0;
+            curr_ray.counter = 0;
         }
         
-        std::cout << "moved " << counter << " times through the domain" << std::endl;
-        std::cout << "from x: " << x << " y: " << y << " z: " << z << std::endl;
-        std::cout << "to x: " << curr_loc.x << " y: " << curr_loc.y << " z: " << curr_loc.z << std::endl;
-        std::cout << "in direction " << direction << std::endl;
-        std::cout << "accumulated " << accum_int << " intensity" << std::endl;
-        std::cout << "accumulated " << accum_status << " status" << std::endl;
-        std::cout << "accumulated " << accum_depth << " depth" << std::endl;
+        if(curr_ray.accum_depth > 0){
+            curr_ray.accum_status += (curr_level.status == 1);
+            curr_ray.accum_int += curr_level.get_val(particles_int);
+            curr_ray.counter++;
+            
+        } else {
+            curr_ray.accum_int += curr_level.get_val(particles_int);
+            curr_ray.counter++;
+        }
         
-    } else {
-        std::cout << "outside domain" << std::endl;
+        if(curr_ray.accum_status >= status_th){
+            stop_ray = true;
+        }
+        
+        
     }
     
+    
+    return stop_ray;
     
 }
 
 
 template<typename S>
-void multi_ray_parrallel(PartCellStructure<S,uint64_t>& pc_struct){
+void multi_ray_parrallel(PartCellStructure<S,uint64_t>& pc_struct,const int proj_type){
     //
     //  Bevan Cheeseman 2017
     //
@@ -331,7 +286,9 @@ void multi_ray_parrallel(PartCellStructure<S,uint64_t>& pc_struct){
     float accum_int = 0;
     float accum_depth = 0;
     float accum_status = 0;
-
+    
+    ray curr_ray;
+    curr_ray.init();
 
     move next_move;
     //current and next location
@@ -349,16 +306,13 @@ void multi_ray_parrallel(PartCellStructure<S,uint64_t>& pc_struct){
             accum_int = 0;
             accum_depth = 0;
             accum_status = 0;
+            curr_ray.init();
             
             //initialize ray
             uint64_t init_key = parent_cells.find_partcell(x, y, z, pc_data);
-            pc_key debug_init;
-            debug_init.update_cell(init_key);
-            
+
             curr_level.init(init_key,pc_data);
             next_loc.set(x,y,z);
-            
-            compare_current_cell_location(curr_level,next_loc);
 
             while(!end_domain){
                 //iterate through domain until you hit the edge
@@ -375,35 +329,139 @@ void multi_ray_parrallel(PartCellStructure<S,uint64_t>& pc_struct){
                     //if its a new cell
                     end_domain = curr_level.move_cell(next_move.dir,next_move.index,part_new,pc_data);
                     
-                    compare_current_cell_location(curr_level,next_loc);
-                    
                     next_move =  calculate_dir_index_parralell(curr_level,curr_loc,next_loc);
                     
-                    //get the intensity of the particle
-                    accum_depth += curr_level.depth;
-                    accum_status += curr_level.status;
-                    //accum_int += curr_level.get_val(particles_int);
-                    accum_int = std::max(accum_int,curr_level.get_val(particles_int));
-                    
-                    counter++;
-                    
+                    end_domain = proj_function(curr_ray,curr_level,particles_int,end_domain,proj_type);
                     
 
                 }
-                
-                
             }
             
+            if(proj_type == 0){
+                proj_img(x_,z_,0) = curr_ray.accum_int;
+            } else {
+                proj_img(x_,z_,0) = curr_ray.accum_int/curr_ray.counter;
+            }
             
-            proj_img(x_,z_,0) = accum_int;
-            
-
         }
     }
 
-    debug_write(proj_img,"parllel_proj");
+    debug_write(proj_img,"parllel_proj" + std::to_string(proj_type));
 
+}
+
+template<typename S>
+void single_ray_parrallel(PartCellStructure<S,uint64_t>& pc_struct){
+    //
+    //  Bevan Cheeseman 2017
+    //
+    //  Simple ray case example, signle ray, accumulating, parralell projection
+    //
+    //
+    
+    
+    //////////////////////////////
+    //
+    //  This creates data sets where each particle is a cell.
+    //
+    //  This same code can be used where there are multiple particles per cell as in original pc_struct, however, the particles have to be accessed in a different way.
+    //
+    //////////////////////////////
+    
+    
+    ParticleDataNew<float, uint64_t> part_new;
+    //flattens format to particle = cell, this is in the classic access/part paradigm
+    part_new.initialize_from_structure(pc_struct);
+    
+    //generates the nieghbour structure
+    PartCellData<uint64_t> pc_data;
+    part_new.create_pc_data_new(pc_data);
+    
+    //Genearate particle at cell locations, easier access
+    ExtraPartCellData<float> particles_int;
+    part_new.create_particles_at_cell_structure(particles_int);
+    
+    //used for finding a part cell
+    PartCellParent<uint64_t> parent_cells(pc_data);
+    
+    //iterator
+    CurrentLevel<float,uint64_t> curr_level(pc_data);
+    
+    //random seed
+    srand ((unsigned int)time(NULL));
+    
+    //chose a point within the domain
+    uint64_t x = rand()%(pc_struct.org_dims[1]*2), y = rand()%(pc_struct.org_dims[0]*2), z = rand()%(pc_struct.org_dims[2]*2);
+    
+    uint64_t init_key = parent_cells.find_partcell(x, y, z, pc_data);
+    
+    if(init_key > 0){
+        //above zero means the location is inside the domain
+        
+        curr_level.init(init_key,pc_data);
+        
+        bool end_domain = false;
+        
+        //choose random direction to propogate along
+        unsigned int direction = rand()%6;
+        
+        move next_move;
+        //current and next location
+        coord next_loc;
+        coord curr_loc;
+        next_loc.set(x,y,z);
+        
+        
+        
+        int counter =0;
+        float accum_int = 0;
+        float accum_depth = 0;
+        float accum_status = 0;
+        
+        
+        while(!end_domain){
+            //iterate through domain until you hit the edge
+            //next becomes current
+            std::swap(next_loc,curr_loc);
+            
+            //get new position
+            next_loc = new_position(curr_level,direction,curr_loc);
+            
+            //calculate the new move
+            next_move =  calculate_dir_index_parralell(curr_level,curr_loc,next_loc);
+            
+            if(next_move.dir >= 0){
+                //if its a new cell
+                end_domain = curr_level.move_cell(next_move.dir,next_move.index,part_new,pc_data);
+                
+                compare_current_cell_location(curr_level,next_loc);
+                
+                //get the intensity of the particle
+                accum_depth += curr_level.depth;
+                accum_status += curr_level.status;
+                accum_int += curr_level.get_val(particles_int);
+                
+                counter++;
+                
+            }
+            
+        }
+        
+        std::cout << "moved " << counter << " times through the domain" << std::endl;
+        std::cout << "from x: " << x << " y: " << y << " z: " << z << std::endl;
+        std::cout << "to x: " << curr_loc.x << " y: " << curr_loc.y << " z: " << curr_loc.z << std::endl;
+        std::cout << "in direction " << direction << std::endl;
+        std::cout << "accumulated " << accum_int << " intensity" << std::endl;
+        std::cout << "accumulated " << accum_status << " status" << std::endl;
+        std::cout << "accumulated " << accum_depth << " depth" << std::endl;
+        
+    } else {
+        std::cout << "outside domain" << std::endl;
+    }
+    
     
 }
+
+
 
 #endif
