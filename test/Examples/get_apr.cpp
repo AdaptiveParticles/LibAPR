@@ -54,6 +54,8 @@ cmdLineOptions read_command_line_options(int argc, char **argv, Part_rep& part_r
         result.output = std::string(get_command_option(argv, argv + argc, "-o"));
     }
     
+   
+    
     if(command_option_exists(argv, argv + argc, "-d"))
     {
         result.directory = std::string(get_command_option(argv, argv + argc, "-d"));
@@ -67,6 +69,13 @@ cmdLineOptions read_command_line_options(int argc, char **argv, Part_rep& part_r
     if(command_option_exists(argv, argv + argc, "-t"))
     {
         part_rep.timer.verbose_flag = true;
+    }
+    
+    if(command_option_exists(argv, argv + argc, "-od"))
+    {
+        result.output_dir = std::string(get_command_option(argv, argv + argc, "-od"));
+    } else {
+        result.output_dir = result.directory;
     }
     
     return result;
@@ -167,7 +176,7 @@ int main(int argc, char **argv) {
     t.stop_timer();
     
     //output
-    std::string save_loc = options.directory;
+    std::string save_loc = options.output_dir;
     std::string file_name = options.output;
     
     part_rep.timer.start_timer("writing output");

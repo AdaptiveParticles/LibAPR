@@ -7,6 +7,7 @@
 #include "../../src/data_structures/structure_parts.h"
 
 struct cmdLineOptions{
+    std::string output_dir = "";
     std::string output = "output";
     std::string stats = "";
     std::string directory = "";
