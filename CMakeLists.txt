@@ -178,6 +178,13 @@ add_executable(Example_segment_gc
     ${SOURCE_FILES_COMPILED}
 )
 
+add_executable(Example_analysis
+        test/utils.cpp
+        src/io/write_parts.cpp
+        ${SOURCE_FILES_COMPILED}
+        test/Examples/analyze_apr.cpp )
+
+
 target_link_libraries(pipeline ${HDF5_LIBRARIES} pthread tiff blosc)
 target_link_libraries(Example_get_apr ${HDF5_LIBRARIES} pthread tiff blosc)
 target_link_libraries(Example_compute_cells ${HDF5_LIBRARIES} pthread tiff blosc)
@@ -186,3 +193,4 @@ target_link_libraries(Example_convert_full_format ${HDF5_LIBRARIES} pthread tiff
 target_link_libraries(Example_ray_cast ${HDF5_LIBRARIES} pthread tiff blosc)
 target_link_libraries(Example_filter ${HDF5_LIBRARIES} pthread tiff blosc)
 target_link_libraries(Example_segment_gc ${HDF5_LIBRARIES} pthread tiff blosc)
+target_link_libraries(Example_analysis ${HDF5_LIBRARIES} pthread tiff blosc)
