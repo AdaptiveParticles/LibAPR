@@ -190,23 +190,27 @@ bool proj_function(ray& curr_ray,CurrentLevel<S,uint64_t>& curr_level,ExtraPartC
     } else if(proj_type == 1){
         // content projection
         
+        int start_th = 30;
         int status_th = 20;
         
-        if(curr_level.depth == (curr_level.depth_max)){
-            curr_ray.accum_depth = 1;
+        
+        if((curr_level.depth == (curr_level.depth_max)) & (curr_level.status ==1)){
+            curr_ray.accum_depth++;
             curr_ray.accum_status += (curr_level.status == 1);
-            curr_ray.accum_int = 0;
-            curr_ray.counter = 0;
+            //curr_ray.accum_int = 0;
+            //curr_ray.counter = 0;
         }
         
-        if(curr_ray.accum_depth > 0){
-            curr_ray.accum_status += (curr_level.status == 1);
-            curr_ray.accum_int += curr_level.get_val(particles_int);
+        if(curr_ray.accum_depth > start_th){
+            curr_ray.accum_status += ((curr_level.depth == (curr_level.depth_max)) & (curr_level.status ==1));
+            //curr_ray.accum_int += curr_level.get_val(particles_int);
             curr_ray.counter++;
+            curr_ray.accum_int = std::max(curr_ray.accum_int,curr_level.get_val(particles_int));
             
         } else {
-            curr_ray.accum_int += curr_level.get_val(particles_int);
+            //curr_ray.accum_int += curr_level.get_val(particles_int);
             curr_ray.counter++;
+            curr_ray.accum_int = std::max(curr_ray.accum_int,curr_level.get_val(particles_int));
         }
         
         if(curr_ray.accum_status >= status_th){
@@ -310,37 +314,40 @@ void multi_ray_parrallel(PartCellStructure<S,uint64_t>& pc_struct,const int proj
             
             //initialize ray
             uint64_t init_key = parent_cells.find_partcell(x, y, z, pc_data);
-
-            curr_level.init(init_key,pc_data);
-            next_loc.set(x,y,z);
-
-            while(!end_domain){
-                //iterate through domain until you hit the edge
-                //next becomes current
-                std::swap(next_loc,curr_loc);
-
-                //get new position
-                next_loc = new_position(curr_level,direction,curr_loc);
-
-                //calculate the new move
-                next_move =  calculate_dir_index_parralell(curr_level,curr_loc,next_loc);
-
-                if(next_move.dir >= 0){
-                    //if its a new cell
-                    end_domain = curr_level.move_cell(next_move.dir,next_move.index,part_new,pc_data);
+            
+            if(init_key > 0){
+                
+                curr_level.init(init_key,pc_data);
+                next_loc.set(x,y,z);
+                
+                while(!end_domain){
+                    //iterate through domain until you hit the edge
+                    //next becomes current
+                    std::swap(next_loc,curr_loc);
                     
+                    //get new position
+                    next_loc = new_position(curr_level,direction,curr_loc);
+                    
+                    //calculate the new move
                     next_move =  calculate_dir_index_parralell(curr_level,curr_loc,next_loc);
                     
-                    end_domain = proj_function(curr_ray,curr_level,particles_int,end_domain,proj_type);
-                    
-
+                    if(next_move.dir >= 0){
+                        //if its a new cell
+                        end_domain = curr_level.move_cell(next_move.dir,next_move.index,part_new,pc_data);
+                        
+                        next_move =  calculate_dir_index_parralell(curr_level,curr_loc,next_loc);
+                        
+                        end_domain = proj_function(curr_ray,curr_level,particles_int,end_domain,proj_type);
+                        
+                        
+                    }
                 }
-            }
-            
-            if(proj_type == 0){
-                proj_img(x_,z_,0) = curr_ray.accum_int;
-            } else {
-                proj_img(x_,z_,0) = curr_ray.accum_int/curr_ray.counter;
+                
+                if(proj_type >= 0){
+                    proj_img(x_,z_,0) = curr_ray.accum_int;
+                } else {
+                    proj_img(x_,z_,0) = curr_ray.accum_int/curr_ray.counter;
+                }
             }
             
         }
