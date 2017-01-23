@@ -16,71 +16,73 @@
 #include "../../src/io/partcell_io.h"
 #include "../utils.h"
 #include "../../src/numerics/misc_numerics.hpp"
+#include "../../src/algorithm/apr_pipeline.hpp"
+#include "../../src/analysis/apr_analysis.h"
 
-bool command_option_exists(char **begin, char **end, const std::string &option)
-{
-    return std::find(begin, end, option) != end;
-}
-
-char* get_command_option(char **begin, char **end, const std::string &option)
-{
-    char ** itr = std::find(begin, end, option);
-    if (itr != end && ++itr != end)
-    {
-        return *itr;
-    }
-    return 0;
-}
-
-cmdLineOptions read_command_line_options(int argc, char **argv, Part_rep& part_rep){
-    
-    cmdLineOptions result;
-    
-    if(argc == 1) {
-        std::cerr << "Usage: \"pipeline -i inputfile [-t] [-s statsfile -d directory] [-o outputfile]\"" << std::endl;
-        exit(1);
-    }
-    
-    if(command_option_exists(argv, argv + argc, "-i"))
-    {
-        result.input = std::string(get_command_option(argv, argv + argc, "-i"));
-    } else {
-        std::cout << "Input file required" << std::endl;
-        exit(2);
-    }
-    
-    if(command_option_exists(argv, argv + argc, "-o"))
-    {
-        result.output = std::string(get_command_option(argv, argv + argc, "-o"));
-    }
-    
-   
-    
-    if(command_option_exists(argv, argv + argc, "-d"))
-    {
-        result.directory = std::string(get_command_option(argv, argv + argc, "-d"));
-    }
-    if(command_option_exists(argv, argv + argc, "-s"))
-    {
-        result.stats = std::string(get_command_option(argv, argv + argc, "-s"));
-        get_image_stats(part_rep.pars, result.directory, result.stats);
-        result.stats_file = true;
-    }
-    if(command_option_exists(argv, argv + argc, "-t"))
-    {
-        part_rep.timer.verbose_flag = true;
-    }
-    
-    if(command_option_exists(argv, argv + argc, "-od"))
-    {
-        result.output_dir = std::string(get_command_option(argv, argv + argc, "-od"));
-    } else {
-        result.output_dir = result.directory;
-    }
-    
-    return result;
-    
-}
+//bool command_option_exists(char **begin, char **end, const std::string &option)
+//{
+//    return std::find(begin, end, option) != end;
+//}
+//
+//char* get_command_option(char **begin, char **end, const std::string &option)
+//{
+//    char ** itr = std::find(begin, end, option);
+//    if (itr != end && ++itr != end)
+//    {
+//        return *itr;
+//    }
+//    return 0;
+//}
+//
+//cmdLineOptions read_command_line_options(int argc, char **argv, Part_rep& part_rep){
+//    
+//    cmdLineOptions result;
+//    
+//    if(argc == 1) {
+//        std::cerr << "Usage: \"pipeline -i inputfile [-t] [-s statsfile -d directory] [-o outputfile]\"" << std::endl;
+//        exit(1);
+//    }
+//    
+//    if(command_option_exists(argv, argv + argc, "-i"))
+//    {
+//        result.input = std::string(get_command_option(argv, argv + argc, "-i"));
+//    } else {
+//        std::cout << "Input file required" << std::endl;
+//        exit(2);
+//    }
+//    
+//    if(command_option_exists(argv, argv + argc, "-o"))
+//    {
+//        result.output = std::string(get_command_option(argv, argv + argc, "-o"));
+//    }
+//    
+//   
+//    
+//    if(command_option_exists(argv, argv + argc, "-d"))
+//    {
+//        result.directory = std::string(get_command_option(argv, argv + argc, "-d"));
+//    }
+//    if(command_option_exists(argv, argv + argc, "-s"))
+//    {
+//        result.stats = std::string(get_command_option(argv, argv + argc, "-s"));
+//        get_image_stats(part_rep.pars, result.directory, result.stats);
+//        result.stats_file = true;
+//    }
+//    if(command_option_exists(argv, argv + argc, "-t"))
+//    {
+//        part_rep.timer.verbose_flag = true;
+//    }
+//    
+//    if(command_option_exists(argv, argv + argc, "-od"))
+//    {
+//        result.output_dir = std::string(get_command_option(argv, argv + argc, "-od"));
+//    } else {
+//        result.output_dir = result.directory;
+//    }
+//    
+//    return result;
+//    
+//}
 
 
 
@@ -155,7 +157,7 @@ int main(int argc, char **argv) {
     
     
     // free memory (not used anymore)
-    std::vector<float>().swap( gradient.mesh );
+   // std::vector<float>().swap( gradient.mesh );
     std::vector<float>().swap( variance.mesh );
     
     part_rep.timer.start_timer("pushing_scheme");
@@ -169,7 +171,7 @@ int main(int argc, char **argv) {
     part_rep.timer.start_timer("Construct Part Structure");
     
    
-    PartCellStructure<float,uint64_t> pcell_test(part_map);
+    PartCellStructure<float,uint64_t> pc_struct(part_map);
     
     part_rep.timer.stop_timer();
     
@@ -181,9 +183,12 @@ int main(int argc, char **argv) {
     
     part_rep.timer.start_timer("writing output");
   
-    write_apr_pc_struct(pcell_test,save_loc,file_name);
+    write_apr_pc_struct(pc_struct,save_loc,file_name);
     
     part_rep.timer.stop_timer();
+    
+    
+    
 }
 
 

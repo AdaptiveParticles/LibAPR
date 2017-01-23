@@ -244,8 +244,6 @@ void const_upsample_img(Mesh_data<T>& input_us,Mesh_data<T>& input,std::vector<u
     std::vector<T> temp_vec;
     temp_vec.resize(y_num_ds,0);
     
-    
-    
     timer.start_timer("up_sample_const");
     
     unsigned int j, i, k;

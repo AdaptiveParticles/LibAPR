@@ -1592,18 +1592,30 @@ public:
                                    
     //decleration
     void initialize_structure(Particle_map<T>& particle_map){
-        
-        
-//        for(int i = particle_map.k_min;i <= particle_map.k_max;i++){
-//            debug_write(particle_map.layers[i],"orgkmap" + std::to_string(i));
-//        }
-//
-        
-        
-        
-        //create_sparse_graph_format(particle_map);
+
+
+        depth_min = particle_map.k_min;
+        depth_max = particle_map.k_max;
+
+        org_dims.resize(3);
+
+        org_dims[0] = particle_map.downsampled[depth_max+1].y_num;
+        org_dims[1] = particle_map.downsampled[depth_max+1].x_num;
+        org_dims[2] = particle_map.downsampled[depth_max+1].z_num;
+
+        x_num.resize(depth_max+1);
+        y_num.resize(depth_max+1);
+        z_num.resize(depth_max+1);
+
+        for(int i = depth_min;i <= depth_max;i++){
+            x_num[i] = particle_map.downsampled[i].x_num;
+            y_num[i] = particle_map.downsampled[i].y_num;
+            z_num[i] = particle_map.downsampled[i].z_num;
+
+        }
+
+
         create_partcell_structure(particle_map);
-        pc_data.y_num = y_num;
     }
     
     PartCellStructure(){
@@ -1616,27 +1628,6 @@ public:
         //
         //  initialization of the tree structure
         //
-        
-        depth_min = particle_map.k_min;
-        depth_max = particle_map.k_max;
-        
-        org_dims.resize(3);
-        
-        org_dims[0] = particle_map.downsampled[depth_max+1].y_num;
-        org_dims[1] = particle_map.downsampled[depth_max+1].x_num;
-        org_dims[2] = particle_map.downsampled[depth_max+1].z_num;
-        
-        x_num.resize(depth_max+1);
-        y_num.resize(depth_max+1);
-        z_num.resize(depth_max+1);
-        
-        for(int i = depth_min;i <= depth_max;i++){
-            x_num[i] = particle_map.downsampled[i].x_num;
-            y_num[i] = particle_map.downsampled[i].y_num;
-            z_num[i] = particle_map.downsampled[i].z_num;
-            
-        }
-        
         
         initialize_structure(particle_map);
     }

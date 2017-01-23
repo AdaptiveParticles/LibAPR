@@ -32,14 +32,14 @@ char* get_command_option(char **begin, char **end, const std::string &option)
 }
 
 cmdLineOptions read_command_line_options(int argc, char **argv, Part_rep& part_rep){
-    
+
     cmdLineOptions result;
-    
+
     if(argc == 1) {
-        std::cerr << "Usage: \"pipeline -i inputfile -d directory [-t] [-o outputfile]\"" << std::endl;
+        std::cerr << "Usage: \"pipeline -i inputfile [-t] [-s statsfile -d directory] [-o outputfile]\"" << std::endl;
         exit(1);
     }
-    
+
     if(command_option_exists(argv, argv + argc, "-i"))
     {
         result.input = std::string(get_command_option(argv, argv + argc, "-i"));
@@ -47,24 +47,32 @@ cmdLineOptions read_command_line_options(int argc, char **argv, Part_rep& part_r
         std::cout << "Input file required" << std::endl;
         exit(2);
     }
-    
-    if(command_option_exists(argv, argv + argc, "-d"))
-    {
-        result.directory = std::string(get_command_option(argv, argv + argc, "-d"));
-    }
-    
+
     if(command_option_exists(argv, argv + argc, "-o"))
     {
         result.output = std::string(get_command_option(argv, argv + argc, "-o"));
     }
-    
+
+
+
+    if(command_option_exists(argv, argv + argc, "-d"))
+    {
+        result.directory = std::string(get_command_option(argv, argv + argc, "-d"));
+    }
+    if(command_option_exists(argv, argv + argc, "-s"))
+    {
+        result.stats = std::string(get_command_option(argv, argv + argc, "-s"));
+        get_image_stats(part_rep.pars, result.directory, result.stats);
+        result.stats_file = true;
+    }
     if(command_option_exists(argv, argv + argc, "-t"))
     {
         part_rep.timer.verbose_flag = true;
     }
-    
+
+
     return result;
-    
+
 }
 
 
