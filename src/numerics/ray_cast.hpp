@@ -191,7 +191,7 @@ bool proj_function(ray& curr_ray,CurrentLevel<S,uint64_t>& curr_level,ExtraPartC
         // content projection
         
         int start_th = 30;
-        int status_th = 20;
+        int status_th = 40;
         
         
         if((curr_level.depth == (curr_level.depth_max)) & (curr_level.status ==1)){
@@ -267,10 +267,12 @@ void multi_ray_parrallel(PartCellStructure<S,uint64_t>& pc_struct,const int proj
 
     unsigned int direction = 0;
     Mesh_data<S> proj_img;
+    Mesh_data<uint64_t> seed_cells;
 
     switch(direction){
         case(0):{
             proj_img.initialize(pc_struct.org_dims[1],pc_struct.org_dims[2],1,0);
+            seed_cells.initialize(pc_struct.org_dims[1],pc_struct.org_dims[2],1,0);
         }
         case(1):{}
         case(2):{}
@@ -298,7 +300,22 @@ void multi_ray_parrallel(PartCellStructure<S,uint64_t>& pc_struct,const int proj
     //current and next location
     coord next_loc;
     coord curr_loc;
-
+    
+    //get starting points
+    for (int x_ = 0; x_ < proj_img.y_num; ++x_) {
+        for (int z_ = 0; z_ < proj_img.x_num; ++z_) {
+            float x = x_*2 + 1;
+            float y = 1;
+            float z = z_*2 + 1;
+            
+            //initialize ray
+            uint64_t init_key = parent_cells.find_partcell(x, y, z, pc_data);
+            seed_cells(x_,z_,0) = init_key;
+        }
+    }
+    
+    
+    
     for (int x_ = 0; x_ < proj_img.y_num; ++x_) {
         for (int z_ = 0; z_ < proj_img.x_num; ++z_) {
             float x = x_*2 + 1;
@@ -313,7 +330,7 @@ void multi_ray_parrallel(PartCellStructure<S,uint64_t>& pc_struct,const int proj
             curr_ray.init();
             
             //initialize ray
-            uint64_t init_key = parent_cells.find_partcell(x, y, z, pc_data);
+            uint64_t init_key = seed_cells(x_,z_,0);
             
             if(init_key > 0){
                 
