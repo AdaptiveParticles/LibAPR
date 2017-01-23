@@ -46,12 +46,14 @@ struct ray {
     int accum_status;
     int accum_depth;
     int counter;
+    float value;
     
     void init(){
         accum_int = 0;
         accum_status = 0;
         accum_depth = 0;
         counter = 0;
+        value=0;
     }
     
 };
@@ -184,37 +186,39 @@ bool proj_function(ray& curr_ray,CurrentLevel<S,uint64_t>& curr_level,ExtraPartC
         curr_ray.accum_depth += curr_level.depth;
         curr_ray.accum_status += curr_level.status;
         //accum_int += curr_level.get_val(particles_int);
-        curr_ray.accum_int = std::max(curr_ray.accum_int,curr_level.get_val(particles_int));
+        curr_ray.value = std::max(curr_ray.accum_int,curr_level.get_val(particles_int));
     
         curr_ray.counter++;
     } else if(proj_type == 1){
         // content projection
         
-        int start_th = 30;
-        int status_th = 40;
-        
+        int start_th = 10;
+        int status_th = 20;
         
         if((curr_level.depth == (curr_level.depth_max)) & (curr_level.status ==1)){
             curr_ray.accum_depth++;
-            curr_ray.accum_status += (curr_level.status == 1);
+            //curr_ray.accum_status += (curr_level.status == 1);
             //curr_ray.accum_int = 0;
             //curr_ray.counter = 0;
+            
         }
         
         if(curr_ray.accum_depth > start_th){
             curr_ray.accum_status += ((curr_level.depth == (curr_level.depth_max)) & (curr_level.status ==1));
             //curr_ray.accum_int += curr_level.get_val(particles_int);
             curr_ray.counter++;
-            curr_ray.accum_int = std::max(curr_ray.accum_int,curr_level.get_val(particles_int));
+            curr_ray.value = std::max(curr_ray.value,curr_level.get_val(particles_int));
+            
             
         } else {
             //curr_ray.accum_int += curr_level.get_val(particles_int);
             curr_ray.counter++;
-            curr_ray.accum_int = std::max(curr_ray.accum_int,curr_level.get_val(particles_int));
+            curr_ray.value = std::max(curr_ray.value,curr_level.get_val(particles_int));
         }
         
         if(curr_ray.accum_status >= status_th){
             stop_ray = true;
+            //curr_ray.value = curr_ray.accum_int;
         }
         
         
@@ -361,7 +365,7 @@ void multi_ray_parrallel(PartCellStructure<S,uint64_t>& pc_struct,const int proj
                 }
                 
                 if(proj_type >= 0){
-                    proj_img(x_,z_,0) = curr_ray.accum_int;
+                    proj_img(x_,z_,0) = curr_ray.value;
                 } else {
                     proj_img(x_,z_,0) = curr_ray.accum_int/curr_ray.counter;
                 }
