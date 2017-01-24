@@ -1,0 +1,270 @@
+//
+// Created by cheesema on 24/01/17.
+//
+
+#ifndef PARTPLAY_ANALYSISDATA_HPP
+#define PARTPLAY_ANALYSISDATA_HPP
+
+#include "../data_structures/structure_parts.h"
+#include "../io/parameters.h"
+
+class AnalysisData: public Data_manager{
+    //
+    //  Bevan Cheeseman 2016
+    //
+    //  General information and data to be outputted for analysis and comparison
+    //
+    //
+
+
+    protected:
+
+
+    public:
+
+    std::string name; //used for labelling the file
+    std::string description; //used for understanding what was being done
+
+    Analysis_data(std::string name,std::string description): Data_manager(),name(name),description(description)
+    {
+
+        // current date/time based on current system
+        time_t now = time(0);
+
+        // convert now to string form
+        std::string dt = ctime(&now);
+
+        create_string_dataset("Date", 0);
+        get_data_ref<std::string>("Date")->data.push_back(dt);
+        part_data_list["Date"].print_flag = true;
+
+        create_string_dataset("Name", 0);
+        get_data_ref<std::string>("Name")->data.push_back(name);
+        part_data_list["Name"].print_flag = true;
+
+        create_string_dataset("Description", 0);
+        get_data_ref<std::string>("Description")->data.push_back(description);
+        part_data_list["Description"].print_flag = true;
+
+
+        init_proc_parameter_data();
+
+    };
+
+    void init_proc_parameter_data(){
+        //
+        //  This method initializes part_data sets for the standard processing pipeline parameters
+        //
+        //
+
+        //pipeline parameters
+        create_int8_dataset("k_method",0);
+        create_int8_dataset("grad_method",0);
+        create_int8_dataset("var_method",0);
+        create_int8_dataset("padd_flag",0);
+
+        create_float_dataset("lambda",0);
+        create_float_dataset("tol",0);
+        create_float_dataset("var_scale",0);
+        create_float_dataset("mean_scale",0);
+
+        //data paths
+        create_string_dataset("image_path",0);
+        create_string_dataset("output_path",0);
+        create_string_dataset("data_path",0);
+        create_string_dataset("utest_path",0);
+
+        //img parameters
+        create_float_dataset("dy",0);
+        create_float_dataset("dx",0);
+        create_float_dataset("dz",0);
+
+        create_float_dataset("psfy",0);
+        create_float_dataset("psfx",0);
+        create_float_dataset("psfz",0);
+
+        create_float_dataset("ydim",0);
+        create_float_dataset("xdim",0);
+        create_float_dataset("zdim",0);
+
+        create_float_dataset("noise_sigma",0);
+        create_float_dataset("background",0);
+
+    }
+
+    void push_proc_par(Proc_par par){
+        //
+        //
+        //
+
+        //pipeline parameters
+        get_data_ref<int8_t>("k_method")->data.push_back(par.k_method);
+        part_data_list["k_method"].print_flag = true;
+        get_data_ref<int8_t>("grad_method")->data.push_back(par.grad_method);
+        part_data_list["grad_method"].print_flag = true;
+        get_data_ref<int8_t>("var_method")->data.push_back(par.var_method);
+        part_data_list["var_method"].print_flag = true;
+        get_data_ref<int8_t>("padd_flag")->data.push_back(par.padd_flag);
+        part_data_list["padd_flag"].print_flag = true;
+
+
+        get_data_ref<float>("lambda")->data.push_back(par.lambda);
+        part_data_list["lambda"].print_flag = true;
+
+        get_data_ref<float>("tol")->data.push_back(par.tol);
+        part_data_list["tol"].print_flag = true;
+
+        get_data_ref<float>("var_scale")->data.push_back(par.var_scale);
+        part_data_list["var_scale"].print_flag = true;
+
+        get_data_ref<float>("mean_scale")->data.push_back(par.mean_scale);
+        part_data_list["mean_scale"].print_flag = true;
+
+        //data paths
+
+        //strings are currently written as an attribute, and therefore only the first will be written
+
+        get_data_ref<std::string>("image_path")->data.push_back(par.image_path);
+        part_data_list["image_path"].print_flag = true;
+
+        get_data_ref<std::string>("output_path")->data.push_back(par.output_path);
+        part_data_list["output_path"].print_flag = true;
+
+        get_data_ref<std::string>("data_path")->data.push_back(par.data_path);
+        part_data_list["data_path"].print_flag = true;
+
+        get_data_ref<std::string>("utest_path")->data.push_back(par.utest_path);
+        part_data_list["utest_path"].print_flag = true;
+
+
+        //img parameters
+        get_data_ref<float>("dx")->data.push_back(par.dx);
+        part_data_list["dx"].print_flag = true;
+
+        get_data_ref<float>("dy")->data.push_back(par.dy);
+        part_data_list["dy"].print_flag = true;
+
+        get_data_ref<float>("dz")->data.push_back(par.dz);
+        part_data_list["dz"].print_flag = true;
+
+        get_data_ref<float>("psfy")->data.push_back(par.psfy);
+        part_data_list["psfy"].print_flag = true;
+
+        get_data_ref<float>("psfx")->data.push_back(par.psfx);
+        part_data_list["psfx"].print_flag = true;
+
+        get_data_ref<float>("psfz")->data.push_back(par.psfz);
+        part_data_list["psfz"].print_flag = true;
+
+        get_data_ref<float>("ydim")->data.push_back(par.ydim);
+        part_data_list["ydim"].print_flag = true;
+
+        get_data_ref<float>("xdim")->data.push_back(par.xdim);
+        part_data_list["xdim"].print_flag = true;
+
+        get_data_ref<float>("zdim")->data.push_back(par.zdim);
+        part_data_list["zdim"].print_flag = true;
+
+        get_data_ref<float>("noise_sigma")->data.push_back(par.noise_sigma);
+        part_data_list["noise_sigma"].print_flag = true;
+
+
+        get_data_ref<float>("background")->data.push_back(par.background);
+        part_data_list["background"].print_flag = true;
+
+
+    }
+
+    //writes the results to hdf5
+    void write_analysis_data_hdf5();
+
+
+};
+void Analysis_data::write_analysis_data_hdf5(){
+
+    std::string save_loc = get_path("ANALYSIS_DATA_PATH");
+
+
+    time_t timer;
+    struct tm y2k = {0};
+    double seconds;
+
+    y2k.tm_hour = 0;   y2k.tm_min = 0; y2k.tm_sec = 0;
+    y2k.tm_year = 100; y2k.tm_mon = 0; y2k.tm_mday = 1;
+
+    time(&timer);  /* get current time; same as: timer = time(NULL)  */
+
+    seconds = difftime(timer,mktime(&y2k));
+
+
+    std::string file_name = name + std::to_string((uint64)seconds);
+
+
+    std::string hdf5_file_name = save_loc + file_name + ".h5";
+
+    file_name = file_name;
+
+    hdf5_create_file(hdf5_file_name);
+
+    //hdf5 inits
+    hid_t fid, pr_groupid;
+    H5G_info_t info;
+
+    hsize_t dims;
+
+    fid = H5Fopen(hdf5_file_name.c_str(),H5F_ACC_RDWR,H5P_DEFAULT);
+
+    //////////////////////////////////////////////////////////////////
+    //
+    //  Write meta-data to the file
+    //
+    //
+    //
+    ///////////////////////////////////////////////////////////////////////
+    dims = 1;
+
+    //create the main group
+    pr_groupid = H5Gcreate2(fid,"Analysis_data",H5P_DEFAULT,H5P_DEFAULT,H5P_DEFAULT);
+    H5Gget_info( pr_groupid, &info );
+
+    //////////////////////////////////////////////////////////////////
+    //
+    //  Write analysis data to the file
+    //
+    //
+    //
+    ///////////////////////////////////////////////////////////////////////
+
+    std::vector<std::string> extra_data_type;
+    std::vector<std::string> extra_data_name;
+
+    int req_size = 0;
+    int flag_type = 1;
+
+    write_part_data_to_hdf5(*this,pr_groupid,extra_data_type,extra_data_name,flag_type,req_size);
+
+    //close shiz
+    H5Gclose(pr_groupid);
+    H5Fclose(fid);
+
+    std::cout << "Data Analysis File Writing Complete" << std::endl;
+
+
+
+}
+
+
+long long GetFileSize(std::string filename);
+
+long long GetFileSize(std::string filename)
+{
+    std::ifstream mySource;
+    mySource.open(filename, std::ios_base::binary);
+    mySource.seekg(0,std::ios_base::end);
+    long long size = mySource.tellg();
+    mySource.close();
+    return size;
+}
+
+
+#endif //PARTPLAY_ANALYSISDATA_HPP
