@@ -26,15 +26,25 @@ int main(int argc, char **argv) {
 
     //read in original image
     Mesh_data<uint16_t> input_image;
+    Mesh_data<uint16_t> gt_image;
 
     if(options.gt_input == ""){
+
         load_image_tiff(input_image, options.directory + options.input);
 
+        compare_reconstruction_to_original(input_image,pc_struct,options);
     } else {
-        load_image_tiff(input_image, options.directory + options.gt_input);
+        load_image_tiff(gt_image, options.directory + options.gt_input);
+        load_image_tiff(input_image, options.directory + options.input);
+
+        compare_reconstruction_to_original(input_image,pc_struct,options);
+
+        std::string name = "gt_input";
+        compare_E(gt_image,input_image,options,name);
+
+        calc_mse(gt_image,input_image);
     }
 
-    compare_reconstruction_to_original(input_image,pc_struct,options);
 
 
 }
