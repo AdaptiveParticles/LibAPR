@@ -225,6 +225,51 @@ public:
     }
     
     
+    template<typename U>
+    bool move_cell(unsigned int dir,unsigned int index,PartCellData<uint64_t>& pc_data){
+        
+        bool edge_domain = false;
+        
+        // get neigh
+        update_neigh(dir,pc_data);
+        
+        uint64_t neigh_key=0;
+        
+        if(neigh_part_keys.neigh_face[dir].size() > index){
+            neigh_key = neigh_part_keys.neigh_face[dir][index];
+            
+        } else if(neigh_part_keys.neigh_face[dir].size() > 0) {
+            neigh_key = neigh_part_keys.neigh_face[dir][0];
+        }
+        
+        if(neigh_key > 0){
+            
+            curr_key = neigh_key;
+            
+            int depth_prev = depth;
+            
+            int curr_y = y;
+            
+            pc_data.get_coordinates_cell(curr_y,curr_key,x,z,y,depth,status);
+            
+            if(depth_prev != depth){
+                x_num = pc_data.x_num[depth];
+                z_num = pc_data.z_num[depth];
+            }
+            
+            pc_offset = x_num*z + x;
+            j_num = pc_data.data[depth][pc_offset].size();
+            
+            j = pc_data.pc_key_get_j(curr_key);
+            
+            
+        } else {
+            edge_domain = true;
+        }
+        
+        return edge_domain;
+    }
+    
     void update_neigh(unsigned int dir,PartCellData<uint64_t>& pc_data){
         uint64_t node_val_pc = pc_data.data[depth][pc_offset][j];
         
