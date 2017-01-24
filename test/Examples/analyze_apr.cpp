@@ -27,7 +27,12 @@ int main(int argc, char **argv) {
     //read in original image
     Mesh_data<uint16_t> input_image;
 
-    load_image_tiff(input_image, options.directory + options.input);
+    if(options.gt_input == ""){
+        load_image_tiff(input_image, options.directory + options.input);
+
+    } else {
+        load_image_tiff(input_image, options.directory + options.gt_input);
+    }
 
     compare_reconstruction_to_original(input_image,pc_struct,options);
 
