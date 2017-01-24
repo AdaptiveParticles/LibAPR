@@ -18,6 +18,12 @@ int main(int argc, char **argv) {
 
     get_apr(argc,argv,pc_struct,options);
 
+    //output
+    std::string save_loc = options.output_dir;
+    std::string file_name = options.output;
+
+    write_apr_pc_struct(pc_struct,save_loc,file_name);
+
     //read in original image
     Mesh_data<uint16_t> input_image;
 

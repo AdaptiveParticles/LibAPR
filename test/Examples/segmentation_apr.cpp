@@ -96,13 +96,13 @@ int main(int argc, char **argv) {
     //nuclei
     std::array<uint64_t,10> parameters_mem = {100,2000,2,2,2,2,2,3,0,0};
     
-    calc_graph_cuts_segmentation(pc_struct, seg_parts,parameters_nuc);
+    calc_graph_cuts_segmentation(pc_struct, seg_parts,parameters_mem);
     
     Mesh_data<uint8_t> seg_mesh;
     
     if(pc_struct.org_dims[0] <400){
     
-        calc_graph_cuts_segmentation_mesh(pc_struct,seg_mesh,parameters_nuc);
+        //calc_graph_cuts_segmentation_mesh(pc_struct,seg_mesh,parameters_nuc);
     
     }
     //Now we will view the output by creating the binary image implied by the segmentation
