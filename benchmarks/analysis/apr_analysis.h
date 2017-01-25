@@ -34,7 +34,12 @@ void generate_gt_image(Mesh_data<T>& gt_image,SynImage syn_image){
 
     syn_image.generate_syn_image(gen_img);
 
-    copy_mesh_data_structures(gen_img,gt_image);
+    gt_image.y_num = gen_img.y_num;
+    gt_image.x_num = gen_img.x_num;
+    gt_image.z_num = gen_img.z_num;
+
+    //copy accross
+    gt_image.mesh = gen_img.mesh;
 
 }
 
@@ -425,9 +430,9 @@ void produce_apr_analysis(Mesh_data<T> input_image,AnalysisData& analysis_data,P
 
 
     std::string name = "gt";
-    compare_E(gt_image,input_image,pars,name,analysis_data);
+    compare_E(input_image,gt_image,pars,name,analysis_data);
 
-    calc_mse(gt_image,input_image,name,analysis_data);
+    calc_mse(input_image,gt_image,name,analysis_data);
 
     name = "rec";
 

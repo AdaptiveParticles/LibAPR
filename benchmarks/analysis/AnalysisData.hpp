@@ -78,7 +78,7 @@ class AnalysisData: public Data_manager{
             // First experiment need to set up the variables
 
             //pipeline parameters
-            create_int_dataset(name, 0);
+            create_float_dataset(name, 0);
         }
 
         get_data_ref<float>(name)->data.push_back(value);
