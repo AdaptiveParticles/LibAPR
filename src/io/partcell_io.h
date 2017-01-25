@@ -517,7 +517,7 @@ void write_apr_pc_struct(PartCellStructure<T,uint64_t>& pc_struct,std::string sa
     
     
     
-    std::cout << "Writing parts to hdf5 file, in pc_struct format..." << std::endl;
+    //std::cout << "Writing parts to hdf5 file, in pc_struct format..." << std::endl;
     
     
     uint64_t num_cells = pc_struct.get_number_cells();
@@ -718,14 +718,14 @@ void write_apr_pc_struct(PartCellStructure<T,uint64_t>& pc_struct,std::string sa
     hsize_t file_size;
     H5Fget_filesize(fid, &file_size);
     
-    std::cout << "HDF5 Filesize: " << file_size*1.0/1000000.0 << " MB" << std::endl;
+    //std::cout << "HDF5 Filesize: " << file_size*1.0/1000000.0 << " MB" << std::endl;
     
     //close shiz
     H5Gclose(obj_id);
     H5Gclose(pr_groupid);
     H5Fclose(fid);
     
-    std::cout << "Writing Complete" << std::endl;
+   // std::cout << "Writing Complete" << std::endl;
     
     
     
@@ -733,7 +733,7 @@ void write_apr_pc_struct(PartCellStructure<T,uint64_t>& pc_struct,std::string sa
 }
 
 template<typename T,typename U>
-void write_apr_wavelet(PartCellStructure<T,uint64_t>& pc_struct,std::string save_loc,std::string file_name,const float comp_factor){
+void write_apr_wavelet(PartCellStructure<T,uint64_t>& pc_struct,std::string save_loc,std::string file_name,float comp_factor){
     //
     //
     //  Bevan Cheeseman 2016
@@ -768,9 +768,9 @@ void write_apr_wavelet(PartCellStructure<T,uint64_t>& pc_struct,std::string save
     
     register_bosc();
     
-    std::string hdf5_file_name = save_loc + file_name + "_pcstruct_part.h5";
+    std::string hdf5_file_name = save_loc + file_name + "_pcstruct_part_wavelet.h5";
     
-    file_name = file_name + "_pcstruct_part";
+    file_name = file_name + "_pcstruct_part_wavelet";
     
     hdf5_create_file(hdf5_file_name);
     

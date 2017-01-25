@@ -7,6 +7,8 @@
 
 #include "../../src/data_structures/structure_parts.h"
 #include "../../src/io/parameters.h"
+#include "../../src/io/hdf5functions.h"
+#include "../../src/io/write_parts.h"
 
 class AnalysisData: public Data_manager{
     //

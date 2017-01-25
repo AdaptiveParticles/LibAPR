@@ -140,7 +140,7 @@ public:
         
         //next initialize the entries;
         Part_timer timer;
-        timer.verbose_flag = 1;
+        timer.verbose_flag = false;
         
         timer.start_timer("intiialize access data structure");
         

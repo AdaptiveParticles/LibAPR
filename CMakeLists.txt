@@ -37,6 +37,7 @@ set(SOURCE_FILES_COMPILED
         src/io/hdf5functions.cpp
         src/io/blosc_filter.c
         src/io/hdf5functions_blosc.cpp
+        src/io/write_parts.cpp
         )
 
 
@@ -183,11 +184,6 @@ add_executable(Example_segment_gc
     ${SOURCE_FILES_COMPILED}
 )
 
-add_executable(Example_analysis
-        test/utils.cpp
-        src/io/write_parts.cpp
-        ${SOURCE_FILES_COMPILED}
-        test/Examples/analyze_apr.cpp )
 
 
 target_link_libraries(pipeline ${HDF5_LIBRARIES} pthread tiff blosc)
@@ -198,7 +194,7 @@ target_link_libraries(Example_convert_full_format ${HDF5_LIBRARIES} pthread tiff
 target_link_libraries(Example_ray_cast ${HDF5_LIBRARIES} pthread tiff blosc)
 target_link_libraries(Example_filter ${HDF5_LIBRARIES} pthread tiff blosc)
 target_link_libraries(Example_segment_gc ${HDF5_LIBRARIES} pthread tiff blosc)
-target_link_libraries(Example_analysis ${HDF5_LIBRARIES} pthread tiff blosc)
+
 
 if(BENCHMARKS)
 
@@ -242,9 +238,22 @@ if(BENCHMARKS)
     IF(${ArrayFire_OpenCL_FOUND} AND ${OpenCL_FOUND})
         # We need to find OpenCL as transitive linking is disabled on some OSes
         MESSAGE(STATUS "ArrayFire OpenCL backend found.")
-        ADD_EXECUTABLE(SynImageGen ${BENCHMARK_SOURCE_FILES}  ${SOURCE_FILES_COMPILED} )
+        ADD_EXECUTABLE(SynImageGen benchmarks/test_syn_gen.cpp  ${SOURCE_FILES_COMPILED} )
+        ADD_EXECUTABLE(TestBenchmark benchmarks/test_benchmark.cpp  ${SOURCE_FILES_COMPILED} )
         TARGET_LINK_LIBRARIES(SynImageGen ${ArrayFire_OpenCL_LIBRARIES}
                 ${OpenCL_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT} ${HDF5_LIBRARIES} pthread tiff blosc)
+        TARGET_LINK_LIBRARIES(TestBenchmark ${ArrayFire_OpenCL_LIBRARIES}
+                ${OpenCL_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT} ${HDF5_LIBRARIES} pthread tiff blosc)
+
+        add_executable(Example_analysis
+                test/utils.cpp
+                src/io/write_parts.cpp
+                ${SOURCE_FILES_COMPILED}
+                test/Examples/analyze_apr.cpp )
+
+        TARGET_LINK_LIBRARIES(Example_analysis ${ArrayFire_OpenCL_LIBRARIES}
+                ${OpenCL_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT} ${HDF5_LIBRARIES} pthread tiff blosc)
+
     ENDIF()
 
     if(${ArrayFire_CPU_FOUND})
