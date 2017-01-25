@@ -25,7 +25,7 @@ class AnalysisData: public Data_manager{
     std::string name; //used for labelling the file
     std::string description; //used for understanding what was being done
 
-    Analysis_data(std::string name,std::string description): Data_manager(),name(name),description(description)
+    AnalysisData(std::string name,std::string description): Data_manager(),name(name),description(description)
     {
 
         // current date/time based on current system
@@ -180,7 +180,7 @@ class AnalysisData: public Data_manager{
 
 
 };
-void Analysis_data::write_analysis_data_hdf5(){
+void AnalysisData::write_analysis_data_hdf5(){
 
     std::string save_loc = get_path("ANALYSIS_DATA_PATH");
 
