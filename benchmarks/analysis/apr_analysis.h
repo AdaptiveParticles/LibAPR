@@ -25,10 +25,12 @@ void copy_mesh_data_structures(MeshDataAF<S>& input_syn,Mesh_data<S>& input_img)
 }
 
 template <typename T>
-void generate_gt_image(Mesh_data<T>& gt_image,SynImage syn_image){
+void generate_gt_image(Mesh_data<T>& gt_image,SynImage& syn_image){
     //get a clean image
 
     MeshDataAF<T> gen_img;
+
+    std::string prev_noise =  syn_image.noise_properties.noise_type;
 
     syn_image.noise_properties.noise_type = "none";
 
@@ -40,6 +42,8 @@ void generate_gt_image(Mesh_data<T>& gt_image,SynImage syn_image){
 
     //copy accross
     gt_image.mesh = gen_img.mesh;
+
+    syn_image.noise_properties.noise_type = prev_noise;
 
 }
 
@@ -163,7 +167,7 @@ void compare_E(Mesh_data<S>& org_img,Mesh_data<S>& rec_img,Proc_par& pars,std::s
 
             for(k = 0;k < y_num_o;k++){
                 double val = abs(org_img.mesh[j*x_num_o*y_num_o + i*y_num_o + k] - rec_img.mesh[j*x_num_r*y_num_r + i*y_num_r + k])/(1.0*variance.mesh[j*x_num_r*y_num_r + i*y_num_r + k]);
-                SE.mesh[j*x_num_o*y_num_o + i*y_num_o + k] += val;
+                SE.mesh[j*x_num_o*y_num_o + i*y_num_o + k] = val;
 
                 if(variance.mesh[j*x_num_r*y_num_r + i*y_num_r + k] < 50000) {
                     mean += val;
@@ -176,9 +180,10 @@ void compare_E(Mesh_data<S>& org_img,Mesh_data<S>& rec_img,Proc_par& pars,std::s
 
     mean = mean/(1.0*counter);
 
-    //debug_write(SE,name + "E_diff");
-    //debug_write(variance,name + "var");
-   // debug_write(rec_img,name +"rec_img");
+    debug_write(SE,name + "E_diff");
+    debug_write(variance,name + "var");
+    debug_write(rec_img,name +"rec_img");
+    debug_write(org_img,name +"org_img");
 
     //calculate the variance
     double var = 0;
@@ -429,12 +434,18 @@ void produce_apr_analysis(Mesh_data<T> input_image,AnalysisData& analysis_data,P
 
 
 
-    std::string name = "gt";
+    std::string name = "orggt";
     compare_E(input_image,gt_image,pars,name,analysis_data);
 
     calc_mse(input_image,gt_image,name,analysis_data);
 
-    name = "rec";
+    name = "recgt";
+
+    //get the MSE
+    calc_mse(gt_image,rec_img,name,analysis_data);
+    compare_E(gt_image,rec_img,pars,name,analysis_data);
+
+    name = "input";
 
     //get the MSE
     calc_mse(input_image,rec_img,name,analysis_data);
