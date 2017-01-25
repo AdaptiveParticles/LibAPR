@@ -5,8 +5,8 @@
 #ifndef PARTPLAY_ANALYSISDATA_HPP
 #define PARTPLAY_ANALYSISDATA_HPP
 
-#include "../data_structures/structure_parts.h"
-#include "../io/parameters.h"
+#include "../../src/data_structures/structure_parts.h"
+#include "../../src/io/parameters.h"
 
 class AnalysisData: public Data_manager{
     //

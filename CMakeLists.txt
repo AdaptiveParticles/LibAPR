@@ -231,7 +231,7 @@ if(BENCHMARKS)
 
     MESSAGE(STATUS ${SynImage_PATH})
 
-    set(BENCHMARK_SOURCE_FILES ${SynImage_PATH}/main.cpp ${SynImage_PATH}/src/MeshDataAF.cpp ${SynImage_PATH}/src/MeshDataAF.h)
+    set(BENCHMARK_SOURCE_FILES  benchmarks/test_syn_gen.cpp)
 
     # Include the ArrayFire hreaders
     INCLUDE_DIRECTORIES(${ArrayFire_INCLUDE_DIRS})
@@ -242,20 +242,20 @@ if(BENCHMARKS)
     IF(${ArrayFire_OpenCL_FOUND} AND ${OpenCL_FOUND})
         # We need to find OpenCL as transitive linking is disabled on some OSes
         MESSAGE(STATUS "ArrayFire OpenCL backend found.")
-        ADD_EXECUTABLE(SynImageGen ${BENCHMARK_SOURCE_FILES} )
+        ADD_EXECUTABLE(SynImageGen ${BENCHMARK_SOURCE_FILES}  ${SOURCE_FILES_COMPILED} )
         TARGET_LINK_LIBRARIES(SynImageGen ${ArrayFire_OpenCL_LIBRARIES}
-                ${OpenCL_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT})
+                ${OpenCL_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT} ${HDF5_LIBRARIES} pthread tiff blosc)
     ENDIF()
 
     if(${ArrayFire_CPU_FOUND})
         MESSAGE(STATUS "ArrayFire CPU backend found.")
-        ADD_EXECUTABLE(SynImageGen_cpu ${BENCHMARK_SOURCE_FILES})
-        TARGET_LINK_LIBRARIES(SynImageGen_cpu ${ArrayFire_CPU_LIBRARIES}
+        ADD_EXECUTABLE(SynImageGen_cpu ${BENCHMARK_SOURCE_FILES}  ${SOURCE_FILES_COMPILED})
+        TARGET_LINK_LIBRARIES(SynImageGen_cpu ${ArrayFire_CPU_LIBRARIES} ${HDF5_LIBRARIES} pthread tiff blosc
                 ${CMAKE_THREAD_LIBS_INIT})
     ENDIF()
 
     else()
-        MESSAGE(STATUS " Need to set SynImage_PATH to syn image repository using -DSynImage_PTH")
+        MESSAGE(STATUS " Need to set SynImage_PATH to syn image repository using -DSynImage_PATH")
 
     endif(SynImage_PATH)
 

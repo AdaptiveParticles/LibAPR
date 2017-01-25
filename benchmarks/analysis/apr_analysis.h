@@ -5,13 +5,8 @@
 #ifndef PARTPLAY_APR_ANALYSIS_H
 #define PARTPLAY_APR_ANALYSIS_H
 
-#include "../algorithm/apr_pipeline.hpp"
+#include "../../src/algorithm/apr_pipeline.hpp"
 #include "AnalysisData.hpp"
-
-
-
-
-
 
 
 template<typename S,typename U>
@@ -181,7 +176,7 @@ double calc_mse(Mesh_data<S>& org_img,Mesh_data<S>& rec_img){
 
     std::cout << "MSE: " << MSE << std::endl;
     std::cout << "PSNR: " << PSNR << std::endl;
-    std::cout << "se: " << se << std::endl;
+    std::cout << "SE(1.96*sd): " << se << std::endl;
 
 }
 template<typename T>
@@ -275,8 +270,6 @@ void produce_apr_analysis(AnalysisData& analysis_data) {
 
     analysis_data.get_data_ref<int>("num_boundary_cells")->data.push_back(num_boundary_cells);
     analysis_data.part_data_list["num_boundary_cells"].print_flag = true;
-
-
 
     analysis_data.get_data_ref<int>("num_filler_cells")->data.push_back(num_filler_cells);
     analysis_data.part_data_list["num_filler_cells"].print_flag = true;
