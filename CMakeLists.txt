@@ -231,7 +231,7 @@ if(BENCHMARKS)
 
     MESSAGE(STATUS ${SynImage_PATH})
 
-    set(BENCHMARK_SOURCE_FILES ${SynImage_PATH}/main.cpp ${SynImage_PATH}/src/MeshDataAF.cpp ${SynImage_PATH}/src/MeshDataAF.h)
+    set(BENCHMARK_SOURCE_FILES  benchmarks/test_syn_gen.cpp)
 
     # Include the ArrayFire hreaders
     INCLUDE_DIRECTORIES(${ArrayFire_INCLUDE_DIRS})
@@ -255,7 +255,7 @@ if(BENCHMARKS)
     ENDIF()
 
     else()
-        MESSAGE(STATUS " Need to set SynImage_PATH to syn image repository using -DSynImage_PTH")
+        MESSAGE(STATUS " Need to set SynImage_PATH to syn image repository using -DSynImage_PATH")
 
     endif(SynImage_PATH)
 

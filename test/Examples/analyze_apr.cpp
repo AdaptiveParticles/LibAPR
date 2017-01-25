@@ -6,8 +6,7 @@
 
 #include "../../src/algorithm/apr_pipeline.hpp"
 
-#include "../../src/analysis/apr_analysis.h"
-
+#include "../../benchmarks/analysis/apr_analysis.h"
 
 int main(int argc, char **argv) {
     //input parsing
@@ -44,7 +43,6 @@ int main(int argc, char **argv) {
 
         calc_mse(gt_image,input_image);
     }
-
 
 
 }

@@ -5,7 +5,7 @@
 #ifndef PARTPLAY_APR_ANALYSIS_H
 #define PARTPLAY_APR_ANALYSIS_H
 
-#include "../algorithm/apr_pipeline.hpp"
+#include "../../src/algorithm/apr_pipeline.hpp"
 #include "AnalysisData.hpp"
 
 
@@ -181,7 +181,7 @@ double calc_mse(Mesh_data<S>& org_img,Mesh_data<S>& rec_img){
 
     std::cout << "MSE: " << MSE << std::endl;
     std::cout << "PSNR: " << PSNR << std::endl;
-    std::cout << "se: " << se << std::endl;
+    std::cout << "SE(1.96*sd): " << se << std::endl;
 
 }
 template<typename T>
