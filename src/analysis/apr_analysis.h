@@ -354,7 +354,4 @@ void produce_apr_analysis(AnalysisData& analysis_data) {
 
 
 
-
-
-
 #endif //PARTPLAY_ANALYZE_APR_H
