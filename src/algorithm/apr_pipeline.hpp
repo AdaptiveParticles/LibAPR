@@ -21,6 +21,7 @@
 #include "../../src/data_structures/Tree/PartCellParent.hpp"
 
 struct cmdLineOptions{
+    std::string gt_input = "";
     std::string output_dir = "";
     std::string output = "output";
     std::string stats = "";
@@ -88,6 +89,13 @@ cmdLineOptions read_command_line_options(int argc, char **argv, Part_rep& part_r
         result.output_dir = std::string(get_command_option(argv, argv + argc, "-od"));
     } else {
         result.output_dir = result.directory;
+    }
+
+    if(command_option_exists(argv, argv + argc, "-gt"))
+    {
+        result.gt_input = std::string(get_command_option(argv, argv + argc, "-gt"));
+    } else {
+        result.gt_input = "";
     }
 
     return result;

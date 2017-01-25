@@ -204,7 +204,7 @@ DerivedData/
 
 build/
 cmake-build-debug/
-
+cmake-build-release/
 #####
 # Xcode private settings (window sizes, bookmarks, breakpoints, custom executables, smart groups)
 #

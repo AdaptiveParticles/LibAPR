@@ -91,12 +91,12 @@ int main(int argc, char **argv) {
     ExtraPartCellData<uint8_t> seg_parts;
     
     //nuclei
-    std::array<uint64_t,10> parameters_nuc = {100,2000,1,1,2,2,2,3,0,0};
+    std::array<uint64_t,10> parameters_nuc = {100,2000,1,1,2,1,1,2,1,1};
     
     //nuclei
-    std::array<uint64_t,10> parameters_mem = {100,2000,2,2,2,2,2,3,0,0};
+    std::array<uint64_t,10> parameters_mem = {100,2000,2,2,2,2,2,3,1,1};
     
-    calc_graph_cuts_segmentation(pc_struct, seg_parts,parameters_mem);
+    calc_graph_cuts_segmentation(pc_struct, seg_parts,parameters_nuc);
     
     Mesh_data<uint8_t> seg_mesh;
     
@@ -113,7 +113,7 @@ int main(int argc, char **argv) {
     
     debug_write(seg_img,"segmentation_mask");
     
-    debug_write(seg_mesh,"segmentation_mesh_mask");
+    //debug_write(seg_mesh,"segmentation_mesh_mask");
     
     ////////////////////////////////////
     //
