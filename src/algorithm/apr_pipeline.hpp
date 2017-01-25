@@ -244,19 +244,17 @@ void calc_median_filter(Mesh_data<U>& input_img){
 }
 
 
-void get_variance(Mesh_data<float>& variance_u,cmdLineOptions& options){
+void get_variance(Mesh_data<uint16_t >& input_image,Mesh_data<float>& variance_u,Proc_par& pars) {
 
     Part_rep part_rep;
-    
-    get_image_stats(part_rep.pars, options.directory, options.stats);
-    
+
+
+
     Mesh_data<float> input_image_float;
     Mesh_data<float> gradient,variance;
     Mesh_data<float> interp_img;
     {
-        Mesh_data<uint16_t> input_image;
 
-        load_image_tiff(input_image, options.directory + options.input);
 
         gradient.initialize(input_image.y_num, input_image.x_num, input_image.z_num, 0);
         part_rep.initialize(input_image.y_num, input_image.x_num, input_image.z_num);
@@ -266,19 +264,7 @@ void get_variance(Mesh_data<float>& variance_u,cmdLineOptions& options){
         // After this block, input_image will be freed.
     }
 
-    if(!options.stats_file) {
-        // defaults
-
-        part_rep.pars.dy = part_rep.pars.dx = part_rep.pars.dz = 1;
-        part_rep.pars.psfx = part_rep.pars.psfy = part_rep.pars.psfz = 1;
-        part_rep.pars.rel_error = 0.1;
-        part_rep.pars.var_th = 0;
-        part_rep.pars.var_th_max = 0;
-
-        std::cout << "Need status file" << std::endl;
-
-        return;
-    }
+    part_rep.pars = pars;
 
     Part_timer t;
     t.verbose_flag = false;
@@ -314,6 +300,20 @@ void get_variance(Mesh_data<float>& variance_u,cmdLineOptions& options){
     const_upsample_img(variance_u,variance,dims);
 
     t.stop_timer();
+
+}
+
+void get_variance(Mesh_data<float>& variance_u,cmdLineOptions& options){
+
+    Proc_par pars;
+
+    Mesh_data<uint16_t> input_image;
+
+    load_image_tiff(input_image, options.directory + options.input);
+
+    get_image_stats(pars, options.directory, options.stats);
+
+    get_variance(input_image,variance_u,pars);
 
 }
 

@@ -101,9 +101,6 @@ int main(int argc, const char * argv[]) {
 
     std::cout << "Generating Templates" << std::endl;
 
-
-
-
     /////////////////////////////////////////////////////////////////
     //
     //
@@ -157,9 +154,9 @@ int main(int argc, const char * argv[]) {
     }
 
     //min mean
-    float min_sig = .5;
-    float max_sig = 5.0;
-    num_steps = 10.0;
+    float min_sig = .2;
+    float max_sig = 2;
+    num_steps = 2.0;
 
     del = (max_sig - min_sig)/num_steps;
 
@@ -290,8 +287,7 @@ int main(int argc, const char * argv[]) {
 
                 p_rep.timer.verbose_flag = false;
 
-               gen_parameter_pars(syn_image_loc,p_rep.pars,image_name);
-
+                gen_parameter_pars(syn_image_loc,p_rep.pars,image_name);
 
                 p_rep.pars.var_scale = 2;
 

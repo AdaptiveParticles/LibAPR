@@ -11,6 +11,32 @@
 #include "../../src/io/parameters.h"
 #include "SynImageClasses.hpp"
 
+void calc_information_content(SynImage syn_image,AnalysisData& analysis_data);
+
+template<typename S>
+void copy_mesh_data_structures(MeshDataAF<S>& input_syn,Mesh_data<S>& input_img){
+    //copy across metadata
+    input_img.y_num = input_syn.y_num;
+    input_img.x_num = input_syn.x_num;
+    input_img.z_num = input_syn.z_num;
+
+    std::swap(input_img.mesh,input_syn.mesh);
+
+}
+
+template <typename T>
+void generate_gt_image(Mesh_data<T>& gt_image,SynImage syn_image){
+    //get a clean image
+
+    MeshDataAF<T> gen_img;
+
+    syn_image.noise_properties.noise_type = "none";
+
+    syn_image.generate_syn_image(gen_img);
+
+    copy_mesh_data_structures(gen_img,gt_image);
+
+}
 
 template <typename T>
 void bench_get_apr(Mesh_data<T>& input_image,Part_rep& p_rep,PartCellStructure<float,uint64_t>& pc_struct){
@@ -77,19 +103,9 @@ void gen_parameter_pars(SynImage& syn_image,Proc_par& pars,std::string image_nam
 
 }
 
-template<typename S>
-void copy_mesh_data_structures(MeshDataAF<S>& input_syn,Mesh_data<S>& input_img){
-    //copy across metadata
-    input_img.y_num = input_syn.y_num;
-    input_img.x_num = input_syn.x_num;
-    input_img.z_num = input_syn.z_num;
-
-    std::swap(input_img.mesh,input_syn.mesh);
-
-}
 
 template<typename S,typename U>
-void compare_reconstruction_to_original(Mesh_data<S>& org_img,PartCellStructure<float,U>& pc_struct,cmdLineOptions& options){
+void compare_reconstruction_to_original(Mesh_data<S>& org_img,PartCellStructure<float,U>& pc_struct,cmdLineOptions& options,AnalysisData& analysis_data = AnalysisData()){
     //
     //  Bevan Cheeseman 2017
     //
@@ -101,18 +117,18 @@ void compare_reconstruction_to_original(Mesh_data<S>& org_img,PartCellStructure<
     pc_struct.interp_parts_to_pc(rec_img,pc_struct.part_data.particle_data);
 
     //get the MSE
-    double MSE = calc_mse(org_img,rec_img);
+    calc_mse(org_img,rec_img,analysis_data);
 
     std::string name = "input";
-    compare_E(org_img,rec_img,options,name);
+    //compare_E(org_img,rec_img,options,name,analysis_data);
 
 }
 template<typename S>
-void compare_E(Mesh_data<S>& org_img,Mesh_data<S>& rec_img,cmdLineOptions& options,std::string name){
+void compare_E(Mesh_data<S>& org_img,Mesh_data<S>& rec_img,Proc_par& pars,std::string name,AnalysisData& analysis_data = AnalysisData()){
 
     Mesh_data<float> variance;
 
-    get_variance(variance,options);
+    get_variance(org_img,variance,pars);
 
     uint64_t z_num_o = org_img.z_num;
     uint64_t x_num_o = org_img.x_num;
@@ -155,9 +171,9 @@ void compare_E(Mesh_data<S>& org_img,Mesh_data<S>& rec_img,cmdLineOptions& optio
 
     mean = mean/(1.0*counter);
 
-    debug_write(SE,name + "E_diff");
-    debug_write(variance,name + "var");
-    debug_write(rec_img,name +"rec_img");
+    //debug_write(SE,name + "E_diff");
+    //debug_write(variance,name + "var");
+   // debug_write(rec_img,name +"rec_img");
 
     //calculate the variance
     double var = 0;
@@ -181,17 +197,16 @@ void compare_E(Mesh_data<S>& org_img,Mesh_data<S>& rec_img,cmdLineOptions& optio
     var = var/(1.0*counter);
     double se = 1.96*sqrt(var);
 
-    std::cout << "Mean: " << mean << std::endl;
-    std::cout << "Var: " << var << std::endl;
-    std::cout << "SE: " << se << std::endl;
-    std::cout << "inf: " << inf_norm << std::endl;
 
+    analysis_data.add_float_data(name+"_Ediff",mean);
+    analysis_data.add_float_data(name+"_Ediff_sd",sqrt(var));
+    analysis_data.add_float_data(name+"_Ediff_inf",inf_norm);
+    analysis_data.add_float_data(name+"_Ediff_se",se);
 
 }
 
-
 template<typename S>
-double calc_mse(Mesh_data<S>& org_img,Mesh_data<S>& rec_img){
+double calc_mse(Mesh_data<S>& org_img,Mesh_data<S>& rec_img,std::string name = "",AnalysisData& analysis_data = AnalysisData()){
     //
     //  Bevan Cheeseman 2017
     //
@@ -247,15 +262,15 @@ double calc_mse(Mesh_data<S>& org_img,Mesh_data<S>& rec_img){
 
     var = var/(counter*1.0);
 
-    debug_write(SE,"squared_error");
-
     double se = sqrt(var)*1.96;
 
     double PSNR = 10*log10(64000.0/MSE);
 
-    std::cout << "MSE: " << MSE << std::endl;
-    std::cout << "PSNR: " << PSNR << std::endl;
-    std::cout << "SE(1.96*sd): " << se << std::endl;
+    //commit results
+    analysis_data.add_float_data(name + "_MSE",MSE);
+    analysis_data.add_float_data(name +"_MSE_SE",se);
+    analysis_data.add_float_data(name +"_PSNR",PSNR);
+    analysis_data.add_float_data(name +"_MSE_sd",sqrt(var));
 
 }
 template<typename T>
@@ -266,9 +281,7 @@ void produce_apr_analysis(Mesh_data<T> input_image,AnalysisData& analysis_data,P
     //  Bevan Cheeseman 2017
     //
 
-
-    Part_rep p_rep;
-
+    Part_timer timer;
 
     analysis_data.push_proc_par(pars);
 
@@ -305,8 +318,8 @@ void produce_apr_analysis(Mesh_data<T> input_image,AnalysisData& analysis_data,P
 
     //set up timing variables
 
-        for (int i = 0; i < p_rep.timer.timings.size(); i++) {
-            analysis_data.create_float_dataset(p_rep.timer.timing_names[i], 0);
+        for (int i = 0; i < timer.timings.size(); i++) {
+            analysis_data.create_float_dataset(timer.timing_names[i], 0);
         }
 
 
@@ -319,7 +332,7 @@ void produce_apr_analysis(Mesh_data<T> input_image,AnalysisData& analysis_data,P
     //////////////////////////////////////////////
 
 
-    analysis_data.get_data_ref<int>("num_parts")->data.push_back(p_rep.get_part_num());
+    analysis_data.get_data_ref<int>("num_parts")->data.push_back(pc_struct.get_number_parts());
     analysis_data.part_data_list["num_parts"].print_flag = true;
 
     //calc number of active cells
@@ -330,7 +343,7 @@ void produce_apr_analysis(Mesh_data<T> input_image,AnalysisData& analysis_data,P
     int num_cells = 0;
 
 
-    analysis_data.get_data_ref<int>("num_cells")->data.push_back(num_cells);
+    analysis_data.get_data_ref<int>("num_cells")->data.push_back(pc_struct.get_number_parts());
     analysis_data.part_data_list["num_cells"].print_flag = true;
 
     analysis_data.get_data_ref<int>("num_boundary_cells")->data.push_back(num_boundary_cells);
@@ -355,9 +368,9 @@ void produce_apr_analysis(Mesh_data<T> input_image,AnalysisData& analysis_data,P
     //
     ////////////////////////////////////////////////////////////////////
 
-    for (int i = 0; i < p_rep.timer.timings.size(); i++) {
-        analysis_data.get_data_ref<float>(p_rep.timer.timing_names[i])->data.push_back(p_rep.timer.timings[i]);
-        analysis_data.part_data_list[p_rep.timer.timing_names[i]].print_flag = true;
+    for (int i = 0; i < timer.timings.size(); i++) {
+        analysis_data.get_data_ref<float>(timer.timing_names[i])->data.push_back(timer.timings[i]);
+        analysis_data.part_data_list[timer.timing_names[i]].print_flag = true;
     }
 
 
@@ -369,9 +382,9 @@ void produce_apr_analysis(Mesh_data<T> input_image,AnalysisData& analysis_data,P
 
     //write apr and image to file
 
-    std::string file_name = p_rep.pars.output_path + p_rep.pars.name;
+    std::string file_name = pars.output_path + pars.name;
 
-    write_apr_pc_struct(pc_struct, p_rep.pars.output_path,  p_rep.pars.name);
+    write_apr_pc_struct(pc_struct, pars.output_path,  pars.name);
 
     write_image_tiff(input_image, file_name + ".tif");
 
@@ -381,7 +394,7 @@ void produce_apr_analysis(Mesh_data<T> input_image,AnalysisData& analysis_data,P
     analysis_data.get_data_ref<float>("image_size")->data.push_back(GetFileSize(file_name + ".tif"));
     analysis_data.part_data_list["image_size"].print_flag = true;
 
-    analysis_data.get_data_ref<float>("rel_error")->data.push_back(p_rep.pars.rel_error);
+    analysis_data.get_data_ref<float>("rel_error")->data.push_back(pars.rel_error);
     analysis_data.part_data_list["rel_error"].print_flag = true;
 
     //produce the compressed image file to get baseline
@@ -393,8 +406,113 @@ void produce_apr_analysis(Mesh_data<T> input_image,AnalysisData& analysis_data,P
     analysis_data.part_data_list["comp_image_size"].print_flag = true;
 
 
+    ///////////////////////////
+    //
+    //  Compute Reconstruction Quality Metrics
+    //
+    ///////////////////////////
+
+    //Generate clean gt image
+    Mesh_data<T> gt_image;
+    generate_gt_image(gt_image,syn_image);
+
+
+
+    //get the pc reconstruction
+    Mesh_data<T> rec_img;
+    pc_struct.interp_parts_to_pc(rec_img,pc_struct.part_data.particle_data);
+
+
+
+    std::string name = "gt";
+    compare_E(gt_image,input_image,pars,name,analysis_data);
+
+    calc_mse(gt_image,input_image,name,analysis_data);
+
+    name = "rec";
+
+    //get the MSE
+    calc_mse(input_image,rec_img,name,analysis_data);
+    compare_E(input_image,rec_img,pars,name,analysis_data);
+
+    ///////////////////////////////////////
+    //
+    //  Calc information content
+    //
+    /////////////////////////////////////////////
+
+    calc_information_content(syn_image,analysis_data);
+
 }
 
+void calc_information_content(SynImage syn_image,AnalysisData& analysis_data){
+    //
+    //  Bevan Cheeseman 2016
+    //
+    //  Information content of a synthetic image.
+    //
+    //  Computes as the integral of the normalized gradient normalized by voxel size.
+    //
+
+    MeshDataAF<float> info_x;
+    MeshDataAF<float> info_y;
+    MeshDataAF<float> info_z;
+
+    syn_image.PSF_properties.type = "gauss_dx";
+    syn_image.noise_properties.noise_type = "none";
+    syn_image.global_trans.gt_ind = false;
+    syn_image.PSF_properties.normalize = true;
+
+    syn_image.generate_syn_image(info_x);
+
+    info_x.transfer_from_arrayfire();
+    info_x.free_arrayfire();
+
+    //af::sync();
+    af::deviceGC();
+
+    syn_image.PSF_properties.type = "gauss_dy";
+    syn_image.noise_properties.noise_type = "none";
+    syn_image.global_trans.gt_ind = false;
+    syn_image.PSF_properties.normalize = true;
+
+    syn_image.generate_syn_image(info_y);
+
+    info_y.transfer_from_arrayfire();
+    info_y.free_arrayfire();
+
+    //af::sync();
+    af::deviceGC();
+
+    syn_image.PSF_properties.type = "gauss_dz";
+    syn_image.noise_properties.noise_type = "none";
+    syn_image.global_trans.gt_ind = false;
+    syn_image.PSF_properties.normalize = true;
+
+    syn_image.generate_syn_image(info_z);
+
+    info_z.transfer_from_arrayfire();
+    info_z.free_arrayfire();
+
+    //af::sync();
+    af::deviceGC();
+
+    af::array info_;
+
+    info_x.transfer_to_arrayfire();
+    info_y.transfer_to_arrayfire();
+    info_z.transfer_to_arrayfire();
+
+    info_x.af_mesh = sum(sum(sum(sqrt(pow(info_x.af_mesh,2)+pow(info_y.af_mesh,2)+pow(info_z.af_mesh,2)))));
+
+    info_y.free_arrayfire();
+    info_z.free_arrayfire();
+
+    float info_content = info_x.af_mesh.scalar<float>()*((syn_image.sampling_properties.voxel_real_dims[0]*syn_image.sampling_properties.voxel_real_dims[1]*syn_image.sampling_properties.voxel_real_dims[2]));
+
+    analysis_data.add_float_data("info_content",info_content);
+
+}
 
 
 

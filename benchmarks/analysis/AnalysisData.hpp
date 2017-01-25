@@ -27,6 +27,22 @@ class AnalysisData: public Data_manager{
     std::string name; //used for labelling the file
     std::string description; //used for understanding what was being done
 
+    AnalysisData(){
+
+        // current date/time based on current system
+        time_t now = time(0);
+
+        // convert now to string form
+        std::string dt = ctime(&now);
+
+        create_string_dataset("Date", 0);
+        get_data_ref<std::string>("Date")->data.push_back(dt);
+        part_data_list["Date"].print_flag = true;
+
+        init_proc_parameter_data();
+
+    }
+
     AnalysisData(std::string name,std::string description): Data_manager(),name(name),description(description)
     {
 
@@ -52,6 +68,33 @@ class AnalysisData: public Data_manager{
         init_proc_parameter_data();
 
     };
+
+    void add_float_data(std::string name,float value){
+
+        //first check if its first run and the variables need to be set up
+        Part_data<float> *check_ref = get_data_ref<float>(name);
+
+        if (check_ref == nullptr) {
+            // First experiment need to set up the variables
+
+            //pipeline parameters
+            create_int_dataset(name, 0);
+        }
+
+        get_data_ref<float>(name)->data.push_back(value);
+        part_data_list[name].print_flag = true;
+
+    }
+
+    void add_timer(Part_timer& timer){
+
+        //set up timing variables
+
+        for (int i = 0; i < timer.timings.size(); i++) {
+            add_float_data(timer.timing_names[i],timer.timings[i]);
+        }
+
+    }
 
     void init_proc_parameter_data(){
         //
