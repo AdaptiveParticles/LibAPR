@@ -275,7 +275,7 @@ private:
         //(+y,-y,+x,-x,+z,-z)
         pc_data.set_neighbor_relationships();
         
-        std::cout << "Finished neighbour relationships" << std::endl;
+        //std::cout << "Finished neighbour relationships" << std::endl;
         
         // Initialize the particle data access and intensity structures
         part_data.initialize_from_structure(pc_data);
@@ -402,7 +402,7 @@ private:
         //
         
         Part_timer timer;
-        timer.verbose_flag = true;
+        timer.verbose_flag = false;
         
         
         timer.start_timer("intiialize base");
@@ -590,7 +590,7 @@ private:
         //(+y,-y,+x,-x,+z,-z)
         pc_data.set_neighbor_relationships();
         
-        std::cout << "Finished neighbour relationships" << std::endl;
+       // std::cout << "Finished neighbour relationships" << std::endl;
         
         /////////////////////////////////////
         //

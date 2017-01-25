@@ -14,9 +14,13 @@
 
 int main() {
 
+    af::setBackend(AF_BACKEND_OPENCL);
+
     af::info();
 
     af::array test;
+
+    std::cout << af::getDeviceCount() << std::endl;
 
     MeshDataAF<uint16_t> test_m;
 
@@ -33,9 +37,9 @@ int main() {
     //////////////////////////////////////////
     // SET UP THE DOMAIN SIZE
 
-    int x_num = 400;
-    int y_num = 400;
-    int z_num = 400;
+    int x_num = 1200;
+    int y_num = 1200;
+    int z_num = 1000;
 
     ///////////////////////////////////////////////////////////////////
     //
@@ -139,7 +143,6 @@ int main() {
 
         test_syn_image.real_objects.push_back(temp_obj);
     }
-
 
     ////////////////////////////////////////////////////////////////////////////
     //

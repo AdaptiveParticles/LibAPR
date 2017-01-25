@@ -154,7 +154,7 @@ void calc_median_filter(Mesh_data<U>& input_img){
 
     float time = (timer.t2 - timer.t1);
 
-    std::cout << " Median Filter y took: " << time << std::endl;
+
 
     std::vector<U> temp_vecp;
     temp_vecp.resize(y_num_m);
@@ -199,7 +199,7 @@ void calc_median_filter(Mesh_data<U>& input_img){
 
     time = (timer.t2 - timer.t1);
 
-    std::cout << " Median Filter x took: " << time << std::endl;
+
 
 
 #pragma omp parallel for default(shared) private(z_,x_,offset_min,offset_max) firstprivate(temp_vec,temp_vecm,temp_vecp)
@@ -238,26 +238,23 @@ void calc_median_filter(Mesh_data<U>& input_img){
 
     time = (timer.t2 - timer.t1);
 
-    std::cout << " Median Filter z took: " << time << std::endl;
+
 
 
 }
 
 
-
-void get_variance(Mesh_data<float>& variance_u,cmdLineOptions& options){
+void get_variance(Mesh_data<uint16_t >& input_image,Mesh_data<float>& variance_u,Proc_par& pars) {
 
     Part_rep part_rep;
-    
-    get_image_stats(part_rep.pars, options.directory, options.stats);
-    
+
+
+
     Mesh_data<float> input_image_float;
     Mesh_data<float> gradient,variance;
     Mesh_data<float> interp_img;
     {
-        Mesh_data<uint16_t> input_image;
 
-        load_image_tiff(input_image, options.directory + options.input);
 
         gradient.initialize(input_image.y_num, input_image.x_num, input_image.z_num, 0);
         part_rep.initialize(input_image.y_num, input_image.x_num, input_image.z_num);
@@ -267,22 +264,10 @@ void get_variance(Mesh_data<float>& variance_u,cmdLineOptions& options){
         // After this block, input_image will be freed.
     }
 
-    if(!options.stats_file) {
-        // defaults
-
-        part_rep.pars.dy = part_rep.pars.dx = part_rep.pars.dz = 1;
-        part_rep.pars.psfx = part_rep.pars.psfy = part_rep.pars.psfz = 1;
-        part_rep.pars.rel_error = 0.1;
-        part_rep.pars.var_th = 0;
-        part_rep.pars.var_th_max = 0;
-
-        std::cout << "Need status file" << std::endl;
-
-        return;
-    }
+    part_rep.pars = pars;
 
     Part_timer t;
-    t.verbose_flag = true;
+    t.verbose_flag = false;
 
     // preallocate_memory
     Particle_map<float> part_map(part_rep);
@@ -314,15 +299,25 @@ void get_variance(Mesh_data<float>& variance_u,cmdLineOptions& options){
 
     const_upsample_img(variance_u,variance,dims);
 
+    t.stop_timer();
+
 }
 
-void get_apr(int argc, char **argv,PartCellStructure<float,uint64_t>& pc_struct,cmdLineOptions& options) {
+void get_variance(Mesh_data<float>& variance_u,cmdLineOptions& options){
 
-    Part_rep part_rep;
+    Proc_par pars;
 
-    // INPUT PARSING
+    Mesh_data<uint16_t> input_image;
 
-    options = read_command_line_options(argc, argv, part_rep);
+    load_image_tiff(input_image, options.directory + options.input);
+
+    get_image_stats(pars, options.directory, options.stats);
+
+    get_variance(input_image,variance_u,pars);
+
+}
+
+void get_apr(Mesh_data<uint16_t >& input_image,Part_rep& part_rep,PartCellStructure<float,uint64_t>& pc_struct){
 
     int interp_type = 0;
 
@@ -331,35 +326,16 @@ void get_apr(int argc, char **argv,PartCellStructure<float,uint64_t>& pc_struct,
     Mesh_data<float> input_image_float;
     Mesh_data<float> gradient, variance;
     Mesh_data<float> interp_img;
-    {
-        Mesh_data<uint16_t> input_image;
 
-        load_image_tiff(input_image, options.directory + options.input);
+    gradient.initialize(input_image.y_num, input_image.x_num, input_image.z_num, 0);
+    part_rep.initialize(input_image.y_num, input_image.x_num, input_image.z_num);
 
-        gradient.initialize(input_image.y_num, input_image.x_num, input_image.z_num, 0);
-        part_rep.initialize(input_image.y_num, input_image.x_num, input_image.z_num);
-
-        input_image_float = input_image.to_type<float>();
-        interp_img = input_image.to_type<float>();
-        // After this block, input_image will be freed.
-    }
-
-    if (!options.stats_file) {
-        // defaults
-
-        part_rep.pars.dy = part_rep.pars.dx = part_rep.pars.dz = 1;
-        part_rep.pars.psfx = part_rep.pars.psfy = part_rep.pars.psfz = 1;
-        part_rep.pars.rel_error = 0.1;
-        part_rep.pars.var_th = 0;
-        part_rep.pars.var_th_max = 0;
-
-        std::cout << "Need status file" << std::endl;
-
-        return;
-    }
+    input_image_float = input_image.to_type<float>();
+    interp_img = input_image.to_type<float>();
+    // After this block, input_image will be freed.
 
     Part_timer t;
-    t.verbose_flag = true;
+    t.verbose_flag = false;
 
     // preallocate_memory
     Particle_map<float> part_map(part_rep);
@@ -409,6 +385,38 @@ void get_apr(int argc, char **argv,PartCellStructure<float,uint64_t>& pc_struct,
     part_rep.timer.stop_timer();
 
     t.stop_timer();
+
+
+
+}
+
+void get_apr(int argc, char **argv,PartCellStructure<float,uint64_t>& pc_struct,cmdLineOptions& options) {
+
+    Part_rep part_rep;
+
+    // INPUT PARSING
+
+    options = read_command_line_options(argc, argv, part_rep);
+
+    Mesh_data<uint16_t> input_image;
+
+    load_image_tiff(input_image, options.directory + options.input);
+
+    if (!options.stats_file) {
+        // defaults
+
+        part_rep.pars.dy = part_rep.pars.dx = part_rep.pars.dz = 1;
+        part_rep.pars.psfx = part_rep.pars.psfy = part_rep.pars.psfz = 1;
+        part_rep.pars.rel_error = 0.1;
+        part_rep.pars.var_th = 0;
+        part_rep.pars.var_th_max = 0;
+
+        std::cout << "Need status file" << std::endl;
+
+        return;
+    }
+
+    get_apr(input_image,part_rep,pc_struct);
 
 }
 
