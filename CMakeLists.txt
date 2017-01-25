@@ -242,15 +242,15 @@ if(BENCHMARKS)
     IF(${ArrayFire_OpenCL_FOUND} AND ${OpenCL_FOUND})
         # We need to find OpenCL as transitive linking is disabled on some OSes
         MESSAGE(STATUS "ArrayFire OpenCL backend found.")
-        ADD_EXECUTABLE(SynImageGen ${BENCHMARK_SOURCE_FILES} )
+        ADD_EXECUTABLE(SynImageGen ${BENCHMARK_SOURCE_FILES}  ${SOURCE_FILES_COMPILED} )
         TARGET_LINK_LIBRARIES(SynImageGen ${ArrayFire_OpenCL_LIBRARIES}
-                ${OpenCL_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT})
+                ${OpenCL_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT} ${HDF5_LIBRARIES} pthread tiff blosc)
     ENDIF()
 
     if(${ArrayFire_CPU_FOUND})
         MESSAGE(STATUS "ArrayFire CPU backend found.")
-        ADD_EXECUTABLE(SynImageGen_cpu ${BENCHMARK_SOURCE_FILES})
-        TARGET_LINK_LIBRARIES(SynImageGen_cpu ${ArrayFire_CPU_LIBRARIES}
+        ADD_EXECUTABLE(SynImageGen_cpu ${BENCHMARK_SOURCE_FILES}  ${SOURCE_FILES_COMPILED})
+        TARGET_LINK_LIBRARIES(SynImageGen_cpu ${ArrayFire_CPU_LIBRARIES} ${HDF5_LIBRARIES} pthread tiff blosc
                 ${CMAKE_THREAD_LIBS_INIT})
     ENDIF()
 

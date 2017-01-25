@@ -8,8 +8,9 @@
 #include "SynImageClasses.hpp"
 #include "GenerateTemplates.hpp"
 #include "SynImagePar.hpp"
-
+#include "../src/io/writeimage.h"
 #include "../src/data_structures/structure_parts.h"
+#include "../src/data_structures/meshclass.h"
 
 int main() {
 
@@ -98,7 +99,6 @@ int main() {
     test_syn_image.global_trans.grad_x = 0*gen_rand.rand_num(-min_grad,max_grad);
     test_syn_image.global_trans.grad_z = 0*gen_rand.rand_num(-min_grad,max_grad);
 
-
     /////////////////////////////////////////////
     // GENERATE THE OBJECT TEMPLATE
 
@@ -152,7 +152,6 @@ int main() {
 
     MeshDataAF<uint16_t> test_gen_image;
 
-
     Part_timer timer;
     timer.verbose_flag = true;
 
@@ -161,6 +160,15 @@ int main() {
     test_syn_image.generate_syn_image(test_gen_image);
 
     timer.stop_timer();
+
+    Mesh_data<uint16_t> output_img;
+    output_img.x_num = test_gen_image.x_num;
+    output_img.y_num = test_gen_image.y_num;
+    output_img.z_num = test_gen_image.z_num;
+
+    output_img.mesh = test_gen_image.mesh;
+
+    debug_write(output_img,"gen_image");
 
     return 0;
 }

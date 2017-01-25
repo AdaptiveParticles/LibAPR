@@ -9,11 +9,6 @@
 #include "AnalysisData.hpp"
 
 
-
-
-
-
-
 template<typename S,typename U>
 void compare_reconstruction_to_original(Mesh_data<S>& org_img,PartCellStructure<float,U>& pc_struct,cmdLineOptions& options){
     //
@@ -275,8 +270,6 @@ void produce_apr_analysis(AnalysisData& analysis_data) {
 
     analysis_data.get_data_ref<int>("num_boundary_cells")->data.push_back(num_boundary_cells);
     analysis_data.part_data_list["num_boundary_cells"].print_flag = true;
-
-
 
     analysis_data.get_data_ref<int>("num_filler_cells")->data.push_back(num_filler_cells);
     analysis_data.part_data_list["num_filler_cells"].print_flag = true;
