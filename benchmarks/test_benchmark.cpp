@@ -22,7 +22,7 @@
 #include "analysis/AnalysisData.hpp"
 #include "analysis/apr_analysis.h"
 
-int main(int argc, const char * argv[]) {
+int main(int argc, char **argv) {
 
     //////////////////////////////////////////
     //
@@ -32,10 +32,11 @@ int main(int argc, const char * argv[]) {
     //
     ///////////////////////////////////////////
 
+    cmdLineOptionsBench options = read_command_line_options(argc,argv);
 
     SynImage syn_image;
 
-    std::string image_name = "paper_rel_error_test_noise";
+    std::string image_name = options.template_name;
 
     /////////////////////////////////////////
     //////////////////////////////////////////
@@ -110,7 +111,7 @@ int main(int argc, const char * argv[]) {
     //
     //////////////////////////////////////////////////////////////////
 
-    AnalysisData analysis_data("change_rel_error_noise_free","Test");
+    AnalysisData analysis_data(options.description,"Test");
 
     std::string analysis_type = "quality_metrics";
 
@@ -181,7 +182,7 @@ int main(int argc, const char * argv[]) {
         sig = sig_vec[p];
 
         //generate a sphere to use
-        Object_template basic_sphere;
+        Object_template basic_object;
         int sample_rate = 200;
         float obj_size = 4;
 
@@ -190,7 +191,7 @@ int main(int argc, const char * argv[]) {
 
         float density = 1000000;
 
-        generate_sphere_template(basic_sphere,sample_rate,real_size,density,rad_ratio);
+        generate_sphere_template(basic_object,sample_rate,real_size,density,rad_ratio);
 
         for (int j = 0;j < N_par1;j++){
 
@@ -212,7 +213,7 @@ int main(int argc, const char * argv[]) {
                 SynImage syn_image_loc = syn_image;
 
                 //add the basic sphere as the standard template
-                syn_image_loc.object_templates.push_back(basic_sphere);
+                syn_image_loc.object_templates.push_back(basic_object);
 
                 ///////////////////////////////////////////////////////////////////
                 //PSF properties

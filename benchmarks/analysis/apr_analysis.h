@@ -11,6 +11,69 @@
 #include "../../src/io/parameters.h"
 #include "SynImageClasses.hpp"
 
+struct cmdLineOptionsBench{
+    std::string template_dir = "";
+    std::string template_name = "";
+    std::string output = "output";
+    std::string stats = "";
+    std::string directory = "";
+    std::string input = "";
+    std::string description = "";
+    bool template_file = false;
+};
+
+bool command_option_exists_bench(char **begin, char **end, const std::string &option)
+{
+    return std::find(begin, end, option) != end;
+}
+
+char* get_command_option_bench(char **begin, char **end, const std::string &option)
+{
+    char ** itr = std::find(begin, end, option);
+    if (itr != end && ++itr != end)
+    {
+        return *itr;
+    }
+    return 0;
+}
+
+cmdLineOptionsBench read_command_line_options(int argc, char **argv){
+
+    cmdLineOptionsBench result;
+
+    if(argc == 1) {
+        std::cerr << "Usage: \"exec -td template_director -tn template_name -d description\"" << std::endl;
+        exit(1);
+    }
+
+    if(command_option_exists_bench(argv, argv + argc, "-td"))
+    {
+        result.template_dir = std::string(get_command_option_bench(argv, argv + argc, "-td"));
+        result.template_file = true;
+    } else {
+
+    }
+
+    if(command_option_exists_bench(argv, argv + argc, "-tn"))
+    {
+        result.template_name = std::string(get_command_option_bench(argv, argv + argc, "-tn"));
+    } else {
+        //default
+        result.template_name  = "sphere";
+    }
+
+    if(command_option_exists_bench(argv, argv + argc, "-d"))
+    {
+        result.description = std::string(get_command_option_bench(argv, argv + argc, "-d"));
+    } else {
+        //default
+        result.description  = "unnamed";
+    }
+
+    return result;
+
+}
+
 void calc_information_content(SynImage syn_image,AnalysisData& analysis_data);
 
 template<typename S>
