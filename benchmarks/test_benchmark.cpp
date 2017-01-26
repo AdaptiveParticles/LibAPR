@@ -43,9 +43,9 @@ int main(int argc, char **argv) {
     //////////////////////////////////////////
     // SET UP THE DOMAIN SIZE
 
-    int x_num = 400;
-    int y_num = 400;
-    int z_num = 400;
+    int x_num = 128;
+    int y_num = 128;
+    int z_num = 128;
 
     ///////////////////////////////////////////////////////////////////
     //
@@ -136,8 +136,8 @@ int main(int argc, char **argv) {
 
     //min mean
     float min_rel_error = .005;
-    float max_rel_error = .1;
-    float num_steps = 2.0;
+    float max_rel_error = .2;
+    float num_steps = 20;
 
     float del = (max_rel_error - min_rel_error)/num_steps;
 
@@ -146,8 +146,8 @@ int main(int argc, char **argv) {
     }
 
     min_rel_error = .2;
-    max_rel_error = 1;
-    num_steps = 2;
+    max_rel_error = 3;
+    num_steps = 10;
 
     del = (max_rel_error - min_rel_error)/num_steps;
 
@@ -164,8 +164,10 @@ int main(int argc, char **argv) {
 
 
     for(float i = min_sig;i <= max_sig; i = i + del ){
-        sig_vec.push_back(i);
+        //sig_vec.push_back(i);
     }
+
+    sig_vec.push_back(2);
 
     float desired_I = sqrt(background)*10;
 
@@ -182,8 +184,8 @@ int main(int argc, char **argv) {
 
         sig = sig_vec[p];
 
-        int sample_rate = 200;
-        float obj_size = 10;
+        int sample_rate = 100;
+        float obj_size = 4;
 
         float real_size = obj_size + 8*sig*syn_image.sampling_properties.sampling_delta[0];
 
@@ -192,7 +194,6 @@ int main(int argc, char **argv) {
         Object_template  basic_object = get_object_template(options,obj_prop);
 
         for (int j = 0;j < N_par1;j++){
-
 
             for(int i = 0; i < N_repeats; i++){
 
@@ -240,7 +241,7 @@ int main(int argc, char **argv) {
                 //set the template id
                 temp_obj.template_id = 0;
 
-                num_objects = 5;
+                //num_objects = 1;
 
 
                 for (int q = 0; q < num_objects; q++) {
@@ -294,7 +295,7 @@ int main(int argc, char **argv) {
                 p_rep.pars.rel_error = rel_error;
                 p_rep.len_scale = p_rep.pars.dx*pow(2.0,p_rep.pl_map.k_max+1);
                 p_rep.pars.noise_sigma = sqrt(background);
-                p_rep.pars.interp_type = 2;
+                p_rep.pars.interp_type = 0;
 
                 get_test_paths(p_rep.pars.image_path,p_rep.pars.utest_path,p_rep.pars.output_path);
 

@@ -264,6 +264,7 @@ void compare_E(Mesh_data<S>& org_img,Mesh_data<S>& rec_img,Proc_par& pars,std::s
     double mean = 0;
     double inf_norm = 0;
     uint64_t counter = 0;
+    double MSE = 0;
 
     for(j = 0; j < z_num_o;j++){
         for(i = 0; i < x_num_o;i++){
@@ -273,6 +274,8 @@ void compare_E(Mesh_data<S>& org_img,Mesh_data<S>& rec_img,Proc_par& pars,std::s
                 SE.mesh[j*x_num_o*y_num_o + i*y_num_o + k] = 1000*val;
 
                 if(variance.mesh[j*x_num_r*y_num_r + i*y_num_r + k] < 50000) {
+                    MSE += pow(org_img.mesh[j*x_num_o*y_num_o + i*y_num_o + k] - rec_img.mesh[j*x_num_r*y_num_r + i*y_num_r + k],2);
+
                     mean += val;
                     inf_norm = std::max(inf_norm, val);
                     counter++;
@@ -282,10 +285,11 @@ void compare_E(Mesh_data<S>& org_img,Mesh_data<S>& rec_img,Proc_par& pars,std::s
     }
 
     mean = mean/(1.0*counter);
+    MSE = MSE/(1*counter);
 
-    debug_write(SE,name + "E_diff");
+    //debug_write(SE,name + "E_diff");
 
-
+    double MSE_var = 0;
     //calculate the variance
     double var = 0;
     counter = 0;
@@ -297,6 +301,8 @@ void compare_E(Mesh_data<S>& org_img,Mesh_data<S>& rec_img,Proc_par& pars,std::s
                 double val = pow(SE.mesh[j*x_num_o*y_num_o + i*y_num_o + k]/1000 - mean,2.0);
 
                 if(variance.mesh[j*x_num_r*y_num_r + i*y_num_r + k] < 50000) {
+                    var += pow(pow(org_img.mesh[j*x_num_o*y_num_o + i*y_num_o + k] - rec_img.mesh[j*x_num_o*y_num_o + i*y_num_o + k],2) - MSE,2);
+                    MSE_var += pow(pow(org_img.mesh[j*x_num_o*y_num_o + i*y_num_o + k] - rec_img.mesh[j*x_num_o*y_num_o + i*y_num_o + k],2) - MSE,2);
                     var+=val;
                     counter++;
                 }
@@ -305,19 +311,26 @@ void compare_E(Mesh_data<S>& org_img,Mesh_data<S>& rec_img,Proc_par& pars,std::s
     }
 
 
-    debug_write(variance,name + "var");
-    debug_write(rec_img,name +"rec_img");
-    debug_write(org_img,name +"org_img");
+    //debug_write(variance,name + "var");
+    //debug_write(rec_img,name +"rec_img");
+    //debug_write(org_img,name +"org_img");
 
     //get variance
     var = var/(1.0*counter);
     double se = 1.96*sqrt(var);
-
+    MSE_var = MSE_var/(1.0*counter);
 
     analysis_data.add_float_data(name+"_Ediff",mean);
     analysis_data.add_float_data(name+"_Ediff_sd",sqrt(var));
     analysis_data.add_float_data(name+"_Ediff_inf",inf_norm);
     analysis_data.add_float_data(name+"_Ediff_se",se);
+
+    double PSNR = 10*log10(64000.0/MSE);
+
+    analysis_data.add_float_data(name+"_vMSE",MSE);
+    analysis_data.add_float_data(name+"_vMSE_sd",sqrt(MSE_var));
+    analysis_data.add_float_data(name+"_vPSNR",PSNR);
+
 
 }
 
@@ -537,7 +550,6 @@ void produce_apr_analysis(Mesh_data<T>& input_image,AnalysisData& analysis_data,
     //get the pc reconstruction
     Mesh_data<T> rec_img;
     pc_struct.interp_parts_to_pc(rec_img,pc_struct.part_data.particle_data);
-
 
 
     std::string name = "orggt";

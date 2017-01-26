@@ -8,6 +8,7 @@
 #include "GenerateTemplates.hpp"
 #include "apr_analysis.h"
 #include "SynImageClasses.hpp"
+#include "MetaBall.h"
 
 struct obj_properties {
 
@@ -55,8 +56,9 @@ Object_template get_object_template(cmdLineOptionsBench& options,obj_properties&
         if(options.template_name == "sphere") {
             generate_sphere_template(gen_template, obj_prop.sample_rate, obj_prop.real_size, obj_prop.density,
                                      obj_prop.rad_ratio);
-        } else if(options.template_name == "meta-ball") {
-
+        } else if(options.template_name == "metaball") {
+            generate_metaball_template(gen_template, obj_prop.sample_rate, obj_prop.real_size, obj_prop.density,
+                                       obj_prop.rad_ratio);
         }
     }
 
