@@ -319,7 +319,7 @@ void get_variance(Mesh_data<float>& variance_u,cmdLineOptions& options){
 
 void get_apr(Mesh_data<uint16_t >& input_image,Part_rep& part_rep,PartCellStructure<float,uint64_t>& pc_struct){
 
-    int interp_type = 0;
+    int interp_type = part_rep.pars.interp_type;
 
     // COMPUTATIONS
 
@@ -377,6 +377,8 @@ void get_apr(Mesh_data<uint16_t >& input_image,Part_rep& part_rep,PartCellStruct
 
     if (interp_type == 1) {
         part_map.downsample(input_image_float);
+    } else if (interp_type == 2) {
+        part_map.downsample(interp_img);
     }
     part_rep.timer.start_timer("Construct Part Structure");
 

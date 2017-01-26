@@ -22,7 +22,7 @@
 #include "analysis/AnalysisData.hpp"
 #include "analysis/apr_analysis.h"
 
-int main(int argc, const char * argv[]) {
+int main(int argc, char **argv) {
 
     //////////////////////////////////////////
     //
@@ -32,10 +32,11 @@ int main(int argc, const char * argv[]) {
     //
     ///////////////////////////////////////////
 
+    cmdLineOptionsBench options = read_command_line_options(argc,argv);
 
     SynImage syn_image;
 
-    std::string image_name = "paper_rel_error";
+    std::string image_name = options.template_name;
 
     /////////////////////////////////////////
     //////////////////////////////////////////
@@ -75,6 +76,7 @@ int main(int argc, const char * argv[]) {
 
     syn_image.noise_properties.gauss_var = 50;
     syn_image.noise_properties.noise_type = "poisson";
+    syn_image.noise_properties.noise_type = "none";
 
     ////////////////////////////////////////////////////
     // Global Transforms
@@ -82,7 +84,6 @@ int main(int argc, const char * argv[]) {
     float shift = 1000;
     syn_image.global_trans.const_shift = shift;
     float background = shift;
-
 
     float max_dim = std::max(dom_size_y,std::max(dom_size_y,dom_size_z));
 
@@ -110,7 +111,7 @@ int main(int argc, const char * argv[]) {
     //
     //////////////////////////////////////////////////////////////////
 
-    AnalysisData analysis_data("Test increase relative error","Test");
+    AnalysisData analysis_data(options.description,"Test");
 
     std::string analysis_type = "quality_metrics";
 
@@ -135,7 +136,7 @@ int main(int argc, const char * argv[]) {
     //min mean
     float min_rel_error = .005;
     float max_rel_error = .1;
-    float num_steps = 10.0;
+    float num_steps = 2.0;
 
     float del = (max_rel_error - min_rel_error)/num_steps;
 
@@ -144,8 +145,8 @@ int main(int argc, const char * argv[]) {
     }
 
     min_rel_error = .2;
-    max_rel_error = .5;
-    num_steps = 20.0;
+    max_rel_error = 1;
+    num_steps = 2;
 
     del = (max_rel_error - min_rel_error)/num_steps;
 
@@ -154,9 +155,9 @@ int main(int argc, const char * argv[]) {
     }
 
     //min mean
-    float min_sig = .2;
-    float max_sig = 2;
-    num_steps = 2.0;
+    float min_sig = 2;
+    float max_sig = 4;
+    num_steps = 2;
 
     del = (max_sig - min_sig)/num_steps;
 
@@ -173,7 +174,7 @@ int main(int argc, const char * argv[]) {
 
     float sig = 1;
 
-    int num_objects = 5;
+    int num_objects = 10;
 
 
     for (int p = 0; p < N_par2;p++){
@@ -181,16 +182,16 @@ int main(int argc, const char * argv[]) {
         sig = sig_vec[p];
 
         //generate a sphere to use
-        Object_template basic_sphere;
+        Object_template basic_object;
         int sample_rate = 200;
-        float obj_size = 2;
+        float obj_size = 4;
 
         float real_size = obj_size + 8*sig*syn_image.sampling_properties.sampling_delta[0];
         float rad_ratio = (obj_size/2)/real_size;
 
         float density = 1000000;
 
-        generate_sphere_template(basic_sphere,sample_rate,real_size,density,rad_ratio);
+        generate_sphere_template(basic_object,sample_rate,real_size,density,rad_ratio);
 
         for (int j = 0;j < N_par1;j++){
 
@@ -212,7 +213,7 @@ int main(int argc, const char * argv[]) {
                 SynImage syn_image_loc = syn_image;
 
                 //add the basic sphere as the standard template
-                syn_image_loc.object_templates.push_back(basic_sphere);
+                syn_image_loc.object_templates.push_back(basic_object);
 
                 ///////////////////////////////////////////////////////////////////
                 //PSF properties
@@ -289,14 +290,11 @@ int main(int argc, const char * argv[]) {
 
                 gen_parameter_pars(syn_image_loc,p_rep.pars,image_name);
 
-                p_rep.pars.var_scale = 2;
-
-                p_rep.pars.tol = 0.02;
-
                 p_rep.pars.var_th = desired_I;
                 p_rep.pars.rel_error = rel_error;
                 p_rep.len_scale = p_rep.pars.dx*pow(2.0,p_rep.pl_map.k_max+1);
                 p_rep.pars.noise_sigma = sqrt(background);
+                p_rep.pars.interp_type = 2;
 
                 get_test_paths(p_rep.pars.image_path,p_rep.pars.utest_path,p_rep.pars.output_path);
 
@@ -315,7 +313,7 @@ int main(int argc, const char * argv[]) {
                 //
                 ///////////////////////////////
 
-                produce_apr_analysis(input_img,analysis_data,pc_struct,syn_image,p_rep.pars);
+                produce_apr_analysis(input_img,analysis_data,pc_struct,syn_image_loc,p_rep.pars);
 
 
                 af::sync();
