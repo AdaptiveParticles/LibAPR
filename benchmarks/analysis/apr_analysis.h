@@ -228,7 +228,7 @@ void compare_E(Mesh_data<S>& org_img,Mesh_data<S>& rec_img,Proc_par& pars,std::s
         for(i = 0; i < x_num_o;i++){
 
             for(k = 0;k < y_num_o;k++){
-                double val = pow(SE.mesh[j*x_num_o*y_num_o + i*y_num_o + k]*1000 - mean,2.0);
+                double val = pow(SE.mesh[j*x_num_o*y_num_o + i*y_num_o + k]/1000 - mean,2.0);
 
                 if(variance.mesh[j*x_num_r*y_num_r + i*y_num_r + k] < 50000) {
                     var+=val;
@@ -303,8 +303,8 @@ double calc_mse(Mesh_data<S>& org_img,Mesh_data<S>& rec_img,std::string name = "
 
             for(k = 0;k < y_num_o;k++){
 
-                SE.mesh[j*x_num_o*y_num_o + i*y_num_o + k] += pow(org_img.mesh[j*x_num_o*y_num_o + i*y_num_o + k] - rec_img.mesh[j*x_num_r*y_num_r + i*y_num_r + k],2);
-                var += pow(rec_img.mesh[j*x_num_o*y_num_o + i*y_num_o + k] - MSE,2);
+                //SE.mesh[j*x_num_o*y_num_o + i*y_num_o + k] += pow(org_img.mesh[j*x_num_o*y_num_o + i*y_num_o + k] - rec_img.mesh[j*x_num_r*y_num_r + i*y_num_r + k],2);
+                var += pow(pow(org_img.mesh[j*x_num_o*y_num_o + i*y_num_o + k] - rec_img.mesh[j*x_num_o*y_num_o + i*y_num_o + k],2) - MSE,2);
                 counter++;
             }
         }

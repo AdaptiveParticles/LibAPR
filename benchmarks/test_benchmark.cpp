@@ -35,7 +35,7 @@ int main(int argc, const char * argv[]) {
 
     SynImage syn_image;
 
-    std::string image_name = "paper_rel_error";
+    std::string image_name = "paper_rel_error_test_noise";
 
     /////////////////////////////////////////
     //////////////////////////////////////////
@@ -84,7 +84,6 @@ int main(int argc, const char * argv[]) {
     syn_image.global_trans.const_shift = shift;
     float background = shift;
 
-
     float max_dim = std::max(dom_size_y,std::max(dom_size_y,dom_size_z));
 
     float min_grad = .5*shift/max_dim; //stop it going negative
@@ -111,7 +110,7 @@ int main(int argc, const char * argv[]) {
     //
     //////////////////////////////////////////////////////////////////
 
-    AnalysisData analysis_data("Test increase relative error","Test");
+    AnalysisData analysis_data("change_rel_error_noise_free","Test");
 
     std::string analysis_type = "quality_metrics";
 
