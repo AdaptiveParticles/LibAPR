@@ -39,9 +39,9 @@ int main(int argc, char **argv) {
         compare_reconstruction_to_original(input_image,pc_struct,options);
 
         std::string name = "gt_input";
-        compare_E(gt_image,input_image,options,name);
+        //compare_E(gt_image,input_image,options,name);
 
-        calc_mse(gt_image,input_image);
+        //calc_mse(gt_image,input_image);
     }
 
 

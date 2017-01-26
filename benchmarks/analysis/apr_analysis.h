@@ -214,7 +214,7 @@ void gen_parameter_pars(SynImage& syn_image,Proc_par& pars,std::string image_nam
 
 
 template<typename S,typename U>
-void compare_reconstruction_to_original(Mesh_data<S>& org_img,PartCellStructure<float,U>& pc_struct,cmdLineOptions& options,AnalysisData& analysis_data = AnalysisData()){
+void compare_reconstruction_to_original(Mesh_data<S>& org_img,PartCellStructure<float,U>& pc_struct,cmdLineOptions& options){
     //
     //  Bevan Cheeseman 2017
     //
@@ -222,18 +222,21 @@ void compare_reconstruction_to_original(Mesh_data<S>& org_img,PartCellStructure<
     //
     //
 
+    AnalysisData analysis_data;
+
     Mesh_data<S> rec_img;
     pc_struct.interp_parts_to_pc(rec_img,pc_struct.part_data.particle_data);
 
-    //get the MSE
-    calc_mse(org_img,rec_img,analysis_data);
-
     std::string name = "input";
+    //get the MSE
+    //calc_mse(org_img,rec_img,name,analysis_data);
+
+    debug_write(rec_img,name +"rec_img");
     //compare_E(org_img,rec_img,options,name,analysis_data);
 
 }
 template<typename S>
-void compare_E(Mesh_data<S>& org_img,Mesh_data<S>& rec_img,Proc_par& pars,std::string name,AnalysisData& analysis_data = AnalysisData()){
+void compare_E(Mesh_data<S>& org_img,Mesh_data<S>& rec_img,Proc_par& pars,std::string name,AnalysisData& analysis_data){
 
     Mesh_data<float> variance;
 
@@ -319,7 +322,7 @@ void compare_E(Mesh_data<S>& org_img,Mesh_data<S>& rec_img,Proc_par& pars,std::s
 }
 
 template<typename S>
-double calc_mse(Mesh_data<S>& org_img,Mesh_data<S>& rec_img,std::string name = "",AnalysisData& analysis_data = AnalysisData()){
+double calc_mse(Mesh_data<S>& org_img,Mesh_data<S>& rec_img,std::string name,AnalysisData& analysis_data){
     //
     //  Bevan Cheeseman 2017
     //

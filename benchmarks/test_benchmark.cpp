@@ -21,6 +21,7 @@
 #include "../src/data_structures/meshclass.h"
 #include "analysis/AnalysisData.hpp"
 #include "analysis/apr_analysis.h"
+#include "analysis/syn_templates.h"
 
 int main(int argc, char **argv) {
 
@@ -42,9 +43,9 @@ int main(int argc, char **argv) {
     //////////////////////////////////////////
     // SET UP THE DOMAIN SIZE
 
-    int x_num = 128;
-    int y_num = 128;
-    int z_num = 128;
+    int x_num = 400;
+    int y_num = 400;
+    int z_num = 400;
 
     ///////////////////////////////////////////////////////////////////
     //
@@ -76,7 +77,7 @@ int main(int argc, char **argv) {
 
     syn_image.noise_properties.gauss_var = 50;
     syn_image.noise_properties.noise_type = "poisson";
-    syn_image.noise_properties.noise_type = "none";
+    //syn_image.noise_properties.noise_type = "none";
 
     ////////////////////////////////////////////////////
     // Global Transforms
@@ -181,17 +182,14 @@ int main(int argc, char **argv) {
 
         sig = sig_vec[p];
 
-        //generate a sphere to use
-        Object_template basic_object;
         int sample_rate = 200;
-        float obj_size = 4;
+        float obj_size = 10;
 
         float real_size = obj_size + 8*sig*syn_image.sampling_properties.sampling_delta[0];
-        float rad_ratio = (obj_size/2)/real_size;
 
-        float density = 1000000;
+        obj_properties obj_prop(obj_size,sig,syn_image.sampling_properties.sampling_delta[0]);
 
-        generate_sphere_template(basic_object,sample_rate,real_size,density,rad_ratio);
+        Object_template  basic_object = get_object_template(options,obj_prop);
 
         for (int j = 0;j < N_par1;j++){
 
@@ -246,6 +244,8 @@ int main(int argc, char **argv) {
 
 
                 for (int q = 0; q < num_objects; q++) {
+
+
 
                     temp_obj.location[0] = gen_rand.rand_num(0,dom_size_y - real_size);
                     temp_obj.location[1] = gen_rand.rand_num(0,dom_size_x - real_size);

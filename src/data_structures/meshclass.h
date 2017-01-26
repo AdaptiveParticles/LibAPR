@@ -82,7 +82,7 @@ public :
     //data on local
     std::vector<T> mesh;
 
-    
+    T type;
 
 
 
