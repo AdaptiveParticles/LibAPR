@@ -43,14 +43,13 @@ int main(int argc, char **argv) {
     //////////////////////////////////////////
     // SET UP THE DOMAIN SIZE
 
-    int x_num = 128;
-    int y_num = 128;
-    int z_num = 128;
+    int x_num = 256;
+    int y_num = 256;
+    int z_num = 256;
 
     ///////////////////////////////////////////////////////////////////
     //
     //  sampling properties
-
 
     //voxel size
     float voxel_size = .1;
@@ -136,7 +135,7 @@ int main(int argc, char **argv) {
 
     //min mean
     float min_rel_error = .005;
-    float max_rel_error = .2;
+    float max_rel_error = .1;
     float num_steps = 20;
 
     float del = (max_rel_error - min_rel_error)/num_steps;
@@ -145,8 +144,8 @@ int main(int argc, char **argv) {
         rel_error_vec.push_back(i);
     }
 
-    min_rel_error = .2;
-    max_rel_error = 3;
+    min_rel_error = .12;
+    max_rel_error = .4;
     num_steps = 10;
 
     del = (max_rel_error - min_rel_error)/num_steps;

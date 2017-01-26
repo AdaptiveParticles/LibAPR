@@ -312,7 +312,7 @@ void compare_E(Mesh_data<S>& org_img,Mesh_data<S>& rec_img,Proc_par& pars,std::s
 
 
     //debug_write(variance,name + "var");
-    //debug_write(rec_img,name +"rec_img");
+    debug_write(rec_img,name +"rec_img");
     //debug_write(org_img,name +"org_img");
 
     //get variance

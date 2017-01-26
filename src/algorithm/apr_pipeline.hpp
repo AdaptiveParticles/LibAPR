@@ -242,7 +242,182 @@ void calc_median_filter(Mesh_data<U>& input_img){
 
 
 }
+template<typename U>
+void calc_median_filter_n(Mesh_data<U>& output_img,Mesh_data<U>& input_img){
 
+
+    uint64_t offset_min_y;
+    uint64_t offset_max_y;
+
+    uint64_t offset_min_x;
+    uint64_t offset_max_x;
+
+    uint64_t offset_min_z;
+    uint64_t offset_max_z;
+
+    const int x_num_m = input_img.x_num;
+    const int y_num_m = input_img.y_num;
+    const int z_num_m = input_img.z_num;
+
+    Part_timer timer;
+
+    timer.start_timer("compute gradient y");
+
+
+    uint64_t x_,z_;
+
+#pragma omp parallel for default(shared) private(z_,x_,offset_min_x,offset_max_x,offset_min_y,offset_max_y,offset_min_z,offset_max_z)
+    for(z_ = 0;z_ < z_num_m;z_++){
+        //both z and x are explicitly accessed in the structure
+
+        offset_max_z = std::min((int)(z_ + 1),(int)(z_num_m-1));
+        offset_min_z = std::max((int)(z_ - 1),(int)0);
+
+        for(x_ = 0;x_ < x_num_m;x_++){
+
+            offset_max_x = std::min((int)(x_ + 1),(int)(x_num_m-1));
+            offset_min_x = std::max((int)(x_ - 1),(int)0);
+
+
+            for (int k = 0; k < y_num_m; ++k) {
+                offset_max_y = std::min((int)(k + 1),(int)(y_num_m-1));
+                offset_min_y = std::max((int)(k - 1),(int)0);
+
+                float curr = input_img.mesh[z_*x_num_m*y_num_m + x_*y_num_m + k];
+
+                float y_d_p = input_img.mesh[z_*x_num_m*y_num_m + x_*y_num_m + offset_max_y];
+                float y_d_m =  input_img.mesh[z_*x_num_m*y_num_m + x_*y_num_m + offset_min_y];
+
+                float x_d_p = input_img.mesh[z_*x_num_m*y_num_m + offset_max_x*y_num_m + k] ;
+                float x_d_m = input_img.mesh[z_*x_num_m*y_num_m + offset_min_x*y_num_m + k] ;
+
+                float z_d_p = input_img.mesh[offset_max_z*x_num_m*y_num_m + x_*y_num_m + k];
+                float z_d_m = input_img.mesh[offset_min_z*x_num_m*y_num_m + x_*y_num_m + k];
+
+
+                x_d_m = median_3(x_d_m,x_d_p,curr);
+
+                        //Z
+                y_d_m = median_3(z_d_m,z_d_p,curr);
+
+                        //y
+                z_d_m = median_3(y_d_m,y_d_p,curr);
+
+
+                        //z
+                output_img.mesh[z_*x_num_m*y_num_m + x_*y_num_m + k] = median_3(z_d_m,x_d_m,y_d_m);
+
+
+
+
+
+
+            }
+
+
+        }
+    }
+
+    timer.stop_timer();
+
+    float time = (timer.t2 - timer.t1);
+
+    std::swap(input_img.mesh,output_img.mesh);
+
+
+}
+template<typename U>
+void calc_median_filter_n2(Mesh_data<U>& output_img,Mesh_data<U>& input_img){
+
+
+    uint64_t offset_min_y;
+    uint64_t offset_max_y;
+
+    uint64_t offset_min_x;
+    uint64_t offset_max_x;
+
+    uint64_t offset_min_z;
+    uint64_t offset_max_z;
+
+    const int x_num_m = input_img.x_num;
+    const int y_num_m = input_img.y_num;
+    const int z_num_m = input_img.z_num;
+
+    Part_timer timer;
+
+    timer.start_timer("compute gradient y");
+
+
+    uint64_t x_,z_;
+
+#pragma omp parallel for default(shared) private(z_,x_,offset_min_x,offset_max_x,offset_min_y,offset_max_y,offset_min_z,offset_max_z)
+    for(z_ = 0;z_ < z_num_m;z_++){
+        //both z and x are explicitly accessed in the structure
+
+        offset_max_z = std::min((int)(z_ + 1),(int)(z_num_m-1));
+        offset_min_z = std::max((int)(z_ - 1),(int)0);
+
+        for(x_ = 0;x_ < x_num_m;x_++){
+
+            offset_max_x = std::min((int)(x_ + 1),(int)(x_num_m-1));
+            offset_min_x = std::max((int)(x_ - 1),(int)0);
+
+
+            for (int k = 0; k < y_num_m; ++k) {
+                offset_max_y = std::min((int)(k + 1),(int)(y_num_m-1));
+                offset_min_y = std::max((int)(k - 1),(int)0);
+
+                float curr = input_img.mesh[z_*x_num_m*y_num_m + x_*y_num_m + k];
+
+                float y_d_p = input_img.mesh[z_*x_num_m*y_num_m + x_*y_num_m + offset_max_y];
+                float y_d_m =  input_img.mesh[z_*x_num_m*y_num_m + x_*y_num_m + offset_min_y];
+
+                float x_d_p = input_img.mesh[z_*x_num_m*y_num_m + offset_max_x*y_num_m + k] ;
+                float x_d_m = input_img.mesh[z_*x_num_m*y_num_m + offset_min_x*y_num_m + k] ;
+
+                float z_d_p = input_img.mesh[offset_max_z*x_num_m*y_num_m + x_*y_num_m + k];
+                float z_d_m = input_img.mesh[offset_min_z*x_num_m*y_num_m + x_*y_num_m + k];
+
+                if (std::abs(y_d_p - y_d_m) <  std::abs(x_d_p - x_d_m)){
+                    if (std::abs(z_d_p - z_d_m) <  std::abs(x_d_p - x_d_m)){
+                        //X
+                        output_img.mesh[z_*x_num_m*y_num_m + x_*y_num_m + k] = (x_d_m + x_d_p + curr)/3.0;
+
+                    } else {
+                        //Z
+                        output_img.mesh[z_*x_num_m*y_num_m + x_*y_num_m + k] = (z_d_m + z_d_p + curr)/3.0;
+
+                    }
+
+
+                } else {
+                    if (std::abs(z_d_p - z_d_m) < std::abs(y_d_p - y_d_m)){
+                        //y
+                        output_img.mesh[z_*x_num_m*y_num_m + x_*y_num_m + k] = (y_d_m + y_d_p + curr)/3.0;
+
+                    } else {
+                        //z
+                        output_img.mesh[z_*x_num_m*y_num_m + x_*y_num_m + k] = (z_d_m + z_d_p + curr)/3.0;
+
+                    }
+
+
+                }
+
+            }
+
+
+        }
+    }
+
+    timer.stop_timer();
+
+    float time = (timer.t2 - timer.t1);
+
+    std::swap(input_img.mesh,output_img.mesh);
+
+
+}
 
 void get_variance(Mesh_data<uint16_t >& input_image,Mesh_data<float>& variance_u,Proc_par& pars) {
 
@@ -379,7 +554,11 @@ void get_apr(Mesh_data<uint16_t >& input_image,Part_rep& part_rep,PartCellStruct
         part_map.downsample(input_image_float);
     } else if (interp_type == 2) {
         part_map.downsample(interp_img);
+    } else if (interp_type ==3){
+        part_map.downsample(interp_img);
+        calc_median_filter_n(input_image_float,part_map.downsampled[part_map.k_max+1]);
     }
+
     part_rep.timer.start_timer("Construct Part Structure");
 
     pc_struct.initialize_structure(part_map);
