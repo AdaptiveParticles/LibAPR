@@ -118,6 +118,17 @@ void set_up_benchmark_defaults(SynImage& syn_image,benchmark_settings& bs){
     set_gaussian_psf(syn_image,bs);
 
 }
+void update_domain(SynImage& syn_image,benchmark_settings& bs){
+
+    //real size of domain
+    bs.dom_size_y = bs.y_num*bs.sampling_delta;
+    bs.dom_size_x = bs.x_num*bs.sampling_delta;
+    bs.dom_size_z = bs.z_num*bs.sampling_delta;
+    syn_image.real_domain.set_domain_size(0, bs.dom_size_y, 0, bs.dom_size_x, 0, bs.dom_size_z);
+
+}
+
+
 void set_gaussian_psf(SynImage& syn_image_loc,benchmark_settings& bs){
     ///////////////////////////////////////////////////////////////////
     //PSF properties
