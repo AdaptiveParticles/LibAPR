@@ -27,6 +27,11 @@ class AnalysisData: public Data_manager{
     std::string name; //used for labelling the file
     std::string description; //used for understanding what was being done
 
+    bool quality_metrics_gt;
+    bool quality_metrics_input;
+    bool file_size;
+    bool information_content;
+
     AnalysisData(){
 
         // current date/time based on current system
@@ -40,6 +45,11 @@ class AnalysisData: public Data_manager{
         part_data_list["Date"].print_flag = true;
 
         init_proc_parameter_data();
+
+        quality_metrics_gt = false;
+        quality_metrics_input = false;
+        information_content = false;
+        file_size = false;
 
     }
 
@@ -66,6 +76,11 @@ class AnalysisData: public Data_manager{
 
 
         init_proc_parameter_data();
+
+        quality_metrics_gt = false;
+        quality_metrics_input = false;
+        information_content = false;
+        file_size = false;
 
     };
 

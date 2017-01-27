@@ -43,9 +43,9 @@ int main(int argc, char **argv) {
     //////////////////////////////////////////
     // SET UP THE DOMAIN SIZE
 
-    int x_num = 256;
-    int y_num = 256;
-    int z_num = 256;
+    int x_num = 128;
+    int y_num = 128;
+    int z_num = 128;
 
     ///////////////////////////////////////////////////////////////////
     //
@@ -130,13 +130,12 @@ int main(int argc, char **argv) {
     std::vector<float> sig_vec;
     std::vector<float> rel_error_vec;
 
-
     //two linear sections
 
     //min mean
     float min_rel_error = .005;
     float max_rel_error = .1;
-    float num_steps = 20;
+    float num_steps = 2;
 
     float del = (max_rel_error - min_rel_error)/num_steps;
 
@@ -146,7 +145,7 @@ int main(int argc, char **argv) {
 
     min_rel_error = .12;
     max_rel_error = .4;
-    num_steps = 10;
+    num_steps = 2;
 
     del = (max_rel_error - min_rel_error)/num_steps;
 
@@ -176,7 +175,7 @@ int main(int argc, char **argv) {
 
     float sig = 1;
 
-    int num_objects = 10;
+    int num_objects = 1;
 
 
     for (int p = 0; p < N_par2;p++){
@@ -326,7 +325,7 @@ int main(int argc, char **argv) {
 
 
     //write the analysis output
-    analysis_data.write_analysis_data_hdf5();
+    //analysis_data.write_analysis_data_hdf5();
 
     af::info();
 

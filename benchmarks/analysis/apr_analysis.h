@@ -75,6 +75,7 @@ cmdLineOptionsBench read_command_line_options(int argc, char **argv){
 }
 
 void calc_information_content(SynImage syn_image,AnalysisData& analysis_data);
+void calc_information_content_new(SynImage syn_image,AnalysisData& analysis_data);
 
 template<typename S>
 void copy_mesh_data_structures(MeshDataAF<S>& input_syn,Mesh_data<S>& input_img){
@@ -266,6 +267,7 @@ void compare_E(Mesh_data<S>& org_img,Mesh_data<S>& rec_img,Proc_par& pars,std::s
     uint64_t counter = 0;
     double MSE = 0;
 
+
     for(j = 0; j < z_num_o;j++){
         for(i = 0; i < x_num_o;i++){
 
@@ -294,6 +296,7 @@ void compare_E(Mesh_data<S>& org_img,Mesh_data<S>& rec_img,Proc_par& pars,std::s
     double var = 0;
     counter = 0;
 
+#pragma omp parallel for default(shared) private(j,i,k) reduction(+: var) reduction(+: counter) reduction(+: MSE_var)
     for(j = 0; j < z_num_o;j++){
         for(i = 0; i < x_num_o;i++){
 
@@ -312,7 +315,7 @@ void compare_E(Mesh_data<S>& org_img,Mesh_data<S>& rec_img,Proc_par& pars,std::s
 
 
     //debug_write(variance,name + "var");
-    debug_write(rec_img,name +"rec_img");
+    //debug_write(rec_img,name +"rec_img");
     //debug_write(org_img,name +"org_img");
 
     //get variance
@@ -335,7 +338,7 @@ void compare_E(Mesh_data<S>& org_img,Mesh_data<S>& rec_img,Proc_par& pars,std::s
 }
 
 template<typename S>
-double calc_mse(Mesh_data<S>& org_img,Mesh_data<S>& rec_img,std::string name,AnalysisData& analysis_data){
+void calc_mse(Mesh_data<S>& org_img,Mesh_data<S>& rec_img,std::string name,AnalysisData& analysis_data){
     //
     //  Bevan Cheeseman 2017
     //
@@ -356,7 +359,7 @@ double calc_mse(Mesh_data<S>& org_img,Mesh_data<S>& rec_img,std::string name,Ana
 
     double MSE = 0;
 
-//#pragma omp parallel for default(shared) private(j,i,k)
+#pragma omp parallel for default(shared) private(j,i,k) reduction(+: MSE)
     for(j = 0; j < z_num_o;j++){
         for(i = 0; i < x_num_o;i++){
 
@@ -376,7 +379,7 @@ double calc_mse(Mesh_data<S>& org_img,Mesh_data<S>& rec_img,std::string name,Ana
 
     double var = 0;
     double counter = 0;
-
+#pragma omp parallel for default(shared) private(j,i,k) reduction(+: var) reduction(+: counter)
     for(j = 0; j < z_num_o;j++){
         for(i = 0; i < x_num_o;i++){
 
@@ -391,15 +394,19 @@ double calc_mse(Mesh_data<S>& org_img,Mesh_data<S>& rec_img,std::string name,Ana
 
     var = var/(counter*1.0);
 
+
+
     double se = sqrt(var)*1.96;
 
     double PSNR = 10*log10(64000.0/MSE);
+
+    float sd = sqrt(var);
 
     //commit results
     analysis_data.add_float_data(name + "_MSE",MSE);
     analysis_data.add_float_data(name +"_MSE_SE",se);
     analysis_data.add_float_data(name +"_PSNR",PSNR);
-    analysis_data.add_float_data(name +"_MSE_sd",sqrt(var));
+    analysis_data.add_float_data(name +"_MSE_sd",sd);
 
 }
 template<typename T>
@@ -511,29 +518,32 @@ void produce_apr_analysis(Mesh_data<T>& input_image,AnalysisData& analysis_data,
 
     //write apr and image to file
 
-    std::string file_name = pars.output_path + pars.name;
+    if(analysis_data.file_size) {
 
-    write_apr_pc_struct(pc_struct, pars.output_path,  pars.name);
+        std::string file_name = pars.output_path + pars.name;
 
-    write_image_tiff(input_image, file_name + ".tif");
+        write_apr_pc_struct(pc_struct, pars.output_path, pars.name);
 
-    analysis_data.get_data_ref<float>("apr_full_size")->data.push_back(GetFileSize(file_name +  "_pcstruct_part.h5"));
-    analysis_data.part_data_list["apr_full_size"].print_flag = true;
+        write_image_tiff(input_image, file_name + ".tif");
 
-    analysis_data.get_data_ref<float>("image_size")->data.push_back(GetFileSize(file_name + ".tif"));
-    analysis_data.part_data_list["image_size"].print_flag = true;
+        analysis_data.get_data_ref<float>("apr_full_size")->data.push_back(
+                GetFileSize(file_name + "_pcstruct_part.h5"));
+        analysis_data.part_data_list["apr_full_size"].print_flag = true;
 
-    analysis_data.get_data_ref<float>("rel_error")->data.push_back(pars.rel_error);
-    analysis_data.part_data_list["rel_error"].print_flag = true;
+        analysis_data.get_data_ref<float>("image_size")->data.push_back(GetFileSize(file_name + ".tif"));
+        analysis_data.part_data_list["image_size"].print_flag = true;
 
-    //produce the compressed image file to get baseline
-    std::string compress_file_name = file_name + ".bz2";
-    std::string system_string = "pbzip2 -c -9 <" + file_name + ".tif" + ">" + compress_file_name;
-    system(system_string.c_str());
+        analysis_data.get_data_ref<float>("rel_error")->data.push_back(pars.rel_error);
+        analysis_data.part_data_list["rel_error"].print_flag = true;
 
-    analysis_data.get_data_ref<float>("comp_image_size")->data.push_back(GetFileSize(compress_file_name));
-    analysis_data.part_data_list["comp_image_size"].print_flag = true;
+        //produce the compressed image file to get baseline
+        std::string compress_file_name = file_name + ".bz2";
+        std::string system_string = "pbzip2 -c -9 <" + file_name + ".tif" + ">" + compress_file_name;
+        system(system_string.c_str());
 
+        analysis_data.get_data_ref<float>("comp_image_size")->data.push_back(GetFileSize(compress_file_name));
+        analysis_data.part_data_list["comp_image_size"].print_flag = true;
+    }
 
     ///////////////////////////
     //
@@ -541,33 +551,53 @@ void produce_apr_analysis(Mesh_data<T>& input_image,AnalysisData& analysis_data,
     //
     ///////////////////////////
 
-    //Generate clean gt image
-    Mesh_data<T> gt_image;
-    generate_gt_image(gt_image,syn_image);
+    timer.verbose_flag = true;
 
+    timer.start_timer("Image Quality");
 
-
-    //get the pc reconstruction
     Mesh_data<T> rec_img;
-    pc_struct.interp_parts_to_pc(rec_img,pc_struct.part_data.particle_data);
+    std::string name;
+
+    if(analysis_data.quality_metrics_gt || analysis_data.quality_metrics_input) {
+
+        //get the pc reconstruction
+
+        pc_struct.interp_parts_to_pc(rec_img, pc_struct.part_data.particle_data);
+    }
+
+    if(analysis_data.quality_metrics_gt) {
 
 
-    std::string name = "orggt";
-    compare_E(input_image,gt_image,pars,name,analysis_data);
+        //Generate clean gt image
+        Mesh_data<T> gt_image;
+        generate_gt_image(gt_image, syn_image);
 
-    calc_mse(input_image,gt_image,name,analysis_data);
 
-    name = "recgt";
+        name = "orggt";
+        compare_E(input_image, gt_image, pars, name, analysis_data);
 
-    //get the MSE
-    calc_mse(gt_image,rec_img,name,analysis_data);
-    compare_E(gt_image,rec_img,pars,name,analysis_data);
+        calc_mse(input_image, gt_image, name, analysis_data);
 
-    name = "input";
+        name = "recgt";
 
-    //get the MSE
-    calc_mse(input_image,rec_img,name,analysis_data);
-    compare_E(input_image,rec_img,pars,name,analysis_data);
+        //get the MSE
+        calc_mse(gt_image, rec_img, name, analysis_data);
+        compare_E(gt_image, rec_img, pars, name, analysis_data);
+    }
+
+    if(analysis_data.quality_metrics_input){
+
+        name = "input";
+
+        //get the MSE
+        calc_mse(input_image, rec_img, name, analysis_data);
+        compare_E(input_image, rec_img, pars, name, analysis_data);
+
+    }
+
+    timer.stop_timer();
+
+    timer.start_timer("information_content");
 
     ///////////////////////////////////////
     //
@@ -575,8 +605,20 @@ void produce_apr_analysis(Mesh_data<T>& input_image,AnalysisData& analysis_data,
     //
     /////////////////////////////////////////////
 
-    calc_information_content(syn_image,analysis_data);
+    if(analysis_data.information_content) {
 
+        calc_information_content(syn_image, analysis_data);
+
+        timer.stop_timer();
+
+    }
+
+
+    timer.start_timer("write analysis");
+
+    analysis_data.write_analysis_data_hdf5();
+
+    timer.stop_timer();
 }
 
 void calc_information_content(SynImage syn_image,AnalysisData& analysis_data){
@@ -647,6 +689,5 @@ void calc_information_content(SynImage syn_image,AnalysisData& analysis_data){
     analysis_data.add_float_data("info_content",info_content);
 
 }
-
 
 #endif //PARTPLAY_ANALYZE_APR_H

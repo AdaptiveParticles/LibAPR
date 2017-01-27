@@ -192,8 +192,8 @@ bool proj_function(ray& curr_ray,CurrentLevel<S,uint64_t>& curr_level,ExtraPartC
     } else if(proj_type == 1){
         // content projection
         
-        int start_th = 10;
-        int status_th = 20;
+        int start_th = 5;
+        int status_th = 5;
         
         if((curr_level.depth == (curr_level.depth_max)) & (curr_level.status ==1)){
             curr_ray.accum_depth++;
@@ -223,8 +223,7 @@ bool proj_function(ray& curr_ray,CurrentLevel<S,uint64_t>& curr_level,ExtraPartC
         
         
     }
-    
-    
+
     return stop_ray;
     
 }
@@ -370,7 +369,7 @@ void multi_ray_parrallel(PartCellStructure<S,uint64_t>& pc_struct,const int proj
                         
                         next_move =  calculate_dir_index_parralell(curr_level,curr_loc,next_loc);
                         
-                        //end_domain = proj_function(curr_ray,curr_level,particles_int,end_domain,proj_type);
+                        end_domain = proj_function(curr_ray,curr_level,particles_int,end_domain,proj_type);
                         
                         
                     }
