@@ -1083,12 +1083,14 @@ public:
         
         z_num.resize(depth_max+1);
         x_num.resize(depth_max+1);
+        y_num.resize(depth_max+1);
         
         data.resize(depth_max+1);
         
         for(int i = depth_min;i <= depth_max;i++){
             z_num[i] = part_map.layers[i].z_num;
             x_num[i] = part_map.layers[i].x_num;
+            y_num[i] = part_map.layers[i].y_num;
             data[i].resize(z_num[i]*x_num[i]);
         }
         
@@ -1114,6 +1116,8 @@ public:
             x_num[i] = part_cell_data.x_num[i];
             data[i].resize(z_num[i]*x_num[i]);
         }
+
+        y_num = part_cell_data.y_num;
 
     }
 

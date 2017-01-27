@@ -237,7 +237,8 @@ if(BENCHMARKS)
 
     MESSAGE(STATUS ${SynImage_PATH})
 
-    set(BENCHMARK_SOURCE_FILES  benchmarks/test_syn_gen.cpp)
+    set(BENCHMARK_SOURCE_FILES  external/maxflow-v3.04.src/maxflow.cpp
+            external/maxflow-v3.04.src/graph.cpp)
 
     # Include the ArrayFire hreaders
     INCLUDE_DIRECTORIES(${ArrayFire_INCLUDE_DIRS})
@@ -248,8 +249,8 @@ if(BENCHMARKS)
     IF(${ArrayFire_OpenCL_FOUND} AND ${OpenCL_FOUND})
         # We need to find OpenCL as transitive linking is disabled on some OSes
         MESSAGE(STATUS "ArrayFire OpenCL backend found.")
-        ADD_EXECUTABLE(SynImageGen benchmarks/test_syn_gen.cpp  ${SOURCE_FILES_COMPILED} )
-        ADD_EXECUTABLE(TestBenchmark benchmarks/test_benchmark.cpp  ${SOURCE_FILES_COMPILED} )
+        ADD_EXECUTABLE(SynImageGen benchmarks/test_syn_gen.cpp  ${SOURCE_FILES_COMPILED}  ${BENCHMARK_SOURCE_FILES})
+        ADD_EXECUTABLE(TestBenchmark benchmarks/test_benchmark.cpp  ${SOURCE_FILES_COMPILED} ${BENCHMARK_SOURCE_FILES} )
         TARGET_LINK_LIBRARIES(SynImageGen ${ArrayFire_OpenCL_LIBRARIES}
                 ${OpenCL_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT} ${HDF5_LIBRARIES} pthread tiff blosc)
         TARGET_LINK_LIBRARIES(TestBenchmark ${ArrayFire_OpenCL_LIBRARIES}

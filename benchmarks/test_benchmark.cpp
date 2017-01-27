@@ -22,6 +22,7 @@
 #include "analysis/AnalysisData.hpp"
 #include "analysis/apr_analysis.h"
 #include "analysis/syn_templates.h"
+#include "analysis/numerics_benchmarks.hpp"
 
 int main(int argc, char **argv) {
 
@@ -304,7 +305,9 @@ int main(int argc, char **argv) {
 
                 PartCellStructure<float,uint64_t> pc_struct;
 
-                bench_get_apr(input_img,p_rep,pc_struct);
+                bench_get_apr(input_img,p_rep,pc_struct,analysis_data);
+
+
 
                 ///////////////////////////////
                 //
@@ -325,7 +328,7 @@ int main(int argc, char **argv) {
 
 
     //write the analysis output
-    //analysis_data.write_analysis_data_hdf5();
+    analysis_data.write_analysis_data_hdf5();
 
     af::info();
 

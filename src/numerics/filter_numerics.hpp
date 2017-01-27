@@ -1638,7 +1638,7 @@ void sep_neigh_filter(PartCellData<uint64_t>& pc_data,ExtraPartCellData<U>& inpu
     
     float time = (timer.t2 - timer.t1);
     
-    std::cout << "Seperable Smoothing Filter: " << time << std::endl;
+    //std::cout << "Seperable Smoothing Filter: " << time << std::endl;
     
 
     

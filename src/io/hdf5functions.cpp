@@ -77,6 +77,10 @@ void hdf5_write_data(hid_t obj_id,hid_t type_id,const char* ds_name,hsize_t rank
 
     H5Dclose(dset_id);
 
+    H5Pclose(plist_id);
+
+    H5Sclose(space_id);
+
 
 };
 

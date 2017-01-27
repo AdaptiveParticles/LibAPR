@@ -19,6 +19,7 @@
 #include "../../src/io/write_parts.h"
 #include "../../src/io/partcell_io.h"
 #include "../../src/data_structures/Tree/PartCellParent.hpp"
+#include "../../benchmarks/analysis/AnalysisData.hpp"
 
 struct cmdLineOptions{
     std::string gt_input = "";
@@ -492,7 +493,10 @@ void get_variance(Mesh_data<float>& variance_u,cmdLineOptions& options){
 
 }
 
-void get_apr(Mesh_data<uint16_t >& input_image,Part_rep& part_rep,PartCellStructure<float,uint64_t>& pc_struct){
+
+
+
+void get_apr(Mesh_data<uint16_t >& input_image,Part_rep& part_rep,PartCellStructure<float,uint64_t>& pc_struct,AnalysisData& analysis_data){
 
     int interp_type = part_rep.pars.interp_type;
 
@@ -523,11 +527,6 @@ void get_apr(Mesh_data<uint16_t >& input_image,Part_rep& part_rep,PartCellStruct
 
     t.start_timer("whole");
 
-    if (interp_type == 0) {
-        part_map.downsample(interp_img);
-        calc_median_filter(part_map.downsampled[part_map.k_max+1]);
-    }
-
     //    std::swap(part_map.downsampled[part_map.k_max+1],input_image_float);
 
     part_rep.timer.start_timer("get_gradient_3D");
@@ -550,6 +549,14 @@ void get_apr(Mesh_data<uint16_t >& input_image,Part_rep& part_rep,PartCellStruct
     part_map.pushing_scheme(part_rep);
     part_rep.timer.stop_timer();
 
+
+    part_rep.timer.start_timer("sample");
+
+    if (interp_type == 0) {
+        part_map.downsample(interp_img);
+        calc_median_filter(part_map.downsampled[part_map.k_max+1]);
+    }
+
     if (interp_type == 1) {
         part_map.downsample(input_image_float);
     } else if (interp_type == 2) {
@@ -559,7 +566,9 @@ void get_apr(Mesh_data<uint16_t >& input_image,Part_rep& part_rep,PartCellStruct
         calc_median_filter_n(input_image_float,part_map.downsampled[part_map.k_max+1]);
     }
 
-    part_rep.timer.start_timer("Construct Part Structure");
+    part_rep.timer.stop_timer();
+
+    part_rep.timer.start_timer("construct_pcstruct");
 
     pc_struct.initialize_structure(part_map);
 
@@ -567,8 +576,18 @@ void get_apr(Mesh_data<uint16_t >& input_image,Part_rep& part_rep,PartCellStruct
 
     t.stop_timer();
 
+    //add the timer data
+    analysis_data.add_timer(part_rep.timer);
+    analysis_data.add_timer(t);
 
 
+}
+
+void get_apr(Mesh_data<uint16_t >& input_image,Part_rep& part_rep,PartCellStructure<float,uint64_t>& pc_struct){
+    //interface without analysis_data
+    AnalysisData analysis_data;
+
+    get_apr(input_image,part_rep,pc_struct,analysis_data);
 }
 
 void get_apr(int argc, char **argv,PartCellStructure<float,uint64_t>& pc_struct,cmdLineOptions& options) {

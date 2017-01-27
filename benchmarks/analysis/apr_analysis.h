@@ -10,6 +10,7 @@
 #include "MeshDataAF.h"
 #include "../../src/io/parameters.h"
 #include "SynImageClasses.hpp"
+#include "numerics_benchmarks.hpp"
 
 struct cmdLineOptionsBench{
     std::string template_dir = "";
@@ -112,7 +113,7 @@ void generate_gt_image(Mesh_data<T>& gt_image,SynImage& syn_image){
 }
 
 template <typename T>
-void bench_get_apr(Mesh_data<T>& input_image,Part_rep& p_rep,PartCellStructure<float,uint64_t>& pc_struct){
+void bench_get_apr(Mesh_data<T>& input_image,Part_rep& p_rep,PartCellStructure<float,uint64_t>& pc_struct,AnalysisData& analysis_data){
     //
     //
     //  Calculates the APR from image
@@ -180,8 +181,7 @@ void bench_get_apr(Mesh_data<T>& input_image,Part_rep& p_rep,PartCellStructure<f
 
     p_rep.pars.var_th_max = 0.25*p_rep.pars.var_th;
 
-
-    get_apr(input_image,p_rep,pc_struct);
+    get_apr(input_image,p_rep,pc_struct,analysis_data);
 
 
 }
@@ -509,6 +509,17 @@ void produce_apr_analysis(Mesh_data<T>& input_image,AnalysisData& analysis_data,
         analysis_data.part_data_list[timer.timing_names[i]].print_flag = true;
     }
 
+    //////////////////////////////////////////////////////////////////////
+    //
+    //  Run segmentation Benchmark
+    //
+    //////////////////////////////////////////////////////////////////
+
+    if(analysis_data.segmentation) {
+
+        run_segmentation_benchmark(pc_struct, analysis_data);
+
+    }
 
     ////////////////////////////////////////////////////////////////////
     //
@@ -609,16 +620,11 @@ void produce_apr_analysis(Mesh_data<T>& input_image,AnalysisData& analysis_data,
 
         calc_information_content(syn_image, analysis_data);
 
-        timer.stop_timer();
+
 
     }
-
-
-    timer.start_timer("write analysis");
-
-    analysis_data.write_analysis_data_hdf5();
-
     timer.stop_timer();
+
 }
 
 void calc_information_content(SynImage syn_image,AnalysisData& analysis_data){

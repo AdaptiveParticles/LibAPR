@@ -12,10 +12,14 @@
 
 #include "../../external/maxflow-v3.04.src/instances.inc"
 
+#include "../../benchmarks/analysis/AnalysisData.hpp"
+#include "parent_numerics.hpp"
+#include "misc_numerics.hpp"
+
 typedef Graph<float,float,float> GraphType;
 
 template<typename T,typename V>
-void construct_max_flow_graph_mesh(PartCellStructure<V,T>& pc_struct,GraphType& g,std::array<uint64_t,10> parameters){
+void construct_max_flow_graph_mesh(PartCellStructure<V,T>& pc_struct,GraphType& g,std::array<uint64_t,10> parameters,AnalysisData& analysis_data){
     //
     //  Constructs naiive max flow model for APR
     //
@@ -27,10 +31,9 @@ void construct_max_flow_graph_mesh(PartCellStructure<V,T>& pc_struct,GraphType& 
     
     uint64_t num_parts = pc_struct.get_number_parts();
     
-    std::cout << "Got part neighbours" << std::endl;
+    //std::cout << "Got part neighbours" << std::endl;
     
     //Get the other part rep information
-    
     
     float beta = parameters[0];
     float k_max = pc_struct.depth_max;
@@ -42,8 +45,7 @@ void construct_max_flow_graph_mesh(PartCellStructure<V,T>& pc_struct,GraphType& 
         g.add_node();
         
     }
-    
-    
+
     //adaptive mean
     ExtraPartCellData<float> adaptive_min;
     ExtraPartCellData<float> adaptive_max;
@@ -70,16 +72,13 @@ void construct_max_flow_graph_mesh(PartCellStructure<V,T>& pc_struct,GraphType& 
     //adaptive mean
     ExtraPartCellData<float> eng1(pc_struct.part_data.particle_data);
     ExtraPartCellData<float> eng2(pc_struct.part_data.particle_data);
-    
-    
+
     //////////////////////////////////
     //
     // Set node values
     //
     //////////////////////////////////
-    
-    
-    
+
     uint64_t counter = 0;
     
     for(uint64_t i = pc_struct.pc_data.depth_min;i <= pc_struct.pc_data.depth_max;i++){
@@ -198,7 +197,9 @@ void construct_max_flow_graph_mesh(PartCellStructure<V,T>& pc_struct,GraphType& 
     //  Assign Neighbour Relationships
     //
     /////////////////////////////////////
-    
+
+    uint64_t neigh_counter = 0;
+
     const int x_num = status_mesh.x_num;
     const int y_num = status_mesh.y_num;
     const int z_num = status_mesh.z_num;
@@ -222,41 +223,47 @@ void construct_max_flow_graph_mesh(PartCellStructure<V,T>& pc_struct,GraphType& 
                 if(yp != k){
                     cap = beta*pow(status_mesh(i,j,k)*status_mesh(i,j,yp),2)/pow(9.0,2);
                     g.add_edge( i*x_num*y_num + j*y_num + k, i*x_num*y_num + j*y_num + yp,    /* capacities */  cap, cap );
+                    neigh_counter++;
                 }
                 
                 if(ym != k){
                     cap = beta*pow(status_mesh(i,j,k)*status_mesh(i,j,ym),2)/pow(9.0,2);
                     g.add_edge( i*x_num*y_num + j*y_num + k, i*x_num*y_num + j*y_num + ym,    /* capacities */  cap, cap );
+                    neigh_counter++;
                 }
                 
                 if(xp != j){
                     cap = beta*pow(status_mesh(i,j,k)*status_mesh(i,xp,k),2)/pow(9.0,2);
                     g.add_edge( i*x_num*y_num + j*y_num + k, i*x_num*y_num + xp*y_num + k,    /* capacities */  cap, cap );
+                    neigh_counter++;
                 }
                 
                 if(xm != j){
                     cap = beta*pow(status_mesh(i,j,k)*status_mesh(i,xm,k),2)/pow(9.0,2);
                     g.add_edge( i*x_num*y_num + j*y_num + k, i*x_num*y_num + xm*y_num + k,    /* capacities */  cap, cap );
+                    neigh_counter++;
                 }
                 if(zp != i){
                     cap = beta*pow(status_mesh(i,j,k)*status_mesh(zp,j,k),2)/pow(9.0,2);
                     g.add_edge( i*x_num*y_num + j*y_num + k, zp*x_num*y_num + j*y_num + k,    /* capacities */  cap, cap );
+                    neigh_counter++;
                 }
                 if(zm != i){
                     cap = beta*pow(status_mesh(i,j,k)*status_mesh(zm,j,k),2)/pow(9.0,2);
                     g.add_edge( i*x_num*y_num + j*y_num + k, zm*x_num*y_num + j*y_num + k,    /* capacities */  cap, cap );
+                    neigh_counter++;
                 }
                 
             }
         }
     }
-    
-    
+
+    analysis_data.add_float_data("mesh_num_neigh",(float)neigh_counter);
     
 }
 
 template<typename T,typename V>
-void construct_max_flow_graph(PartCellStructure<V,T>& pc_struct,GraphType& g,std::array<uint64_t,10> parameters){
+void construct_max_flow_graph(PartCellStructure<V,T>& pc_struct,GraphType& g,std::array<uint64_t,10> parameters,AnalysisData& analysis_data){
     //
     //  Constructs naiive max flow model for APR
     //
@@ -267,8 +274,7 @@ void construct_max_flow_graph(PartCellStructure<V,T>& pc_struct,GraphType& g,std
     pc_struct.part_data.initialize_global_index();
     
     uint64_t num_parts = pc_struct.get_number_parts();
-    
-    std::cout << "Got part neighbours" << std::endl;
+
     
     //Get the other part rep information
     
@@ -443,7 +449,10 @@ void construct_max_flow_graph(PartCellStructure<V,T>& pc_struct,GraphType& g,std
     PartCellNeigh<uint64_t> neigh_part_keys;
     PartCellNeigh<uint64_t> neigh_cell_keys;
     uint64_t node_val_pc;
-    
+
+
+    uint64_t neigh_counter = 0;
+
     for(uint64_t i = pc_struct.pc_data.depth_min;i <= pc_struct.pc_data.depth_max;i++){
         //loop over the resolutions of the structure
         const unsigned int x_num_ = pc_struct.pc_data.x_num[i];
@@ -518,8 +527,8 @@ void construct_max_flow_graph(PartCellStructure<V,T>& pc_struct,GraphType& g,std
                                         
                                         cap = beta*pow(status*status_neigh,2)/pow(9.0,2);
                                         g.add_edge( global_part_index, global_part_index_neigh,    /* capacities */  cap, cap );
-                                        
-                                       
+
+                                        neigh_counter++;
                                     }
                                 }
                                 
@@ -547,7 +556,10 @@ void construct_max_flow_graph(PartCellStructure<V,T>& pc_struct,GraphType& g,std
             }
         }
     }
-    
+
+    analysis_data.add_float_data("part_num_neigh",(float)neigh_counter);
+
+
 //    pc_struct.interp_parts_to_pc(output_img,edge1);
 //    debug_write(output_img,"edge1");
 //    
@@ -570,7 +582,7 @@ void construct_max_flow_graph(PartCellStructure<V,T>& pc_struct,GraphType& g,std
     
 }
 template<typename T,typename V>
-void calc_graph_cuts_segmentation(PartCellStructure<V,T>& pc_struct,ExtraPartCellData<uint8_t>& seg_parts,std::array<uint64_t,10> parameters){
+void calc_graph_cuts_segmentation(PartCellStructure<V,T>& pc_struct,ExtraPartCellData<uint8_t>& seg_parts,std::array<uint64_t,10> parameters,AnalysisData& analysis_data){
     //
     //
     //  Bevan Cheeseman 2016
@@ -581,29 +593,27 @@ void calc_graph_cuts_segmentation(PartCellStructure<V,T>& pc_struct,ExtraPartCel
     
     Part_timer timer;
     
-    timer.verbose_flag = true;
+    timer.verbose_flag = false;
     
     uint64_t num_parts = pc_struct.get_number_parts();
     
     GraphType *g = new GraphType(num_parts ,num_parts*4 );
     
-    timer.start_timer("construct_graph");
+    timer.start_timer("construct_graph_parts");
     
-    construct_max_flow_graph(pc_struct,*g,parameters);
+    construct_max_flow_graph(pc_struct,*g,parameters,analysis_data);
     
     timer.stop_timer();
     
 
-    timer.start_timer("max_flow");
+    timer.start_timer("max_flow_parts");
     
     int flow = g -> maxflow();
     
     //int flow2 = g -> maxflow(true);
     
     timer.stop_timer();
-    
-    std::cout << "Flow: " << flow << std::endl;
-    //std::cout << "Flow2: " << flow2 << std::endl;
+
     
     //now put in structure
     
@@ -690,12 +700,29 @@ void calc_graph_cuts_segmentation(PartCellStructure<V,T>& pc_struct,ExtraPartCel
 
 
     delete g;
+
+    analysis_data.add_timer(timer);
     
     
 }
 
 template<typename T,typename V>
-void calc_graph_cuts_segmentation_mesh(PartCellStructure<V,T>& pc_struct,Mesh_data<uint8_t>& seg_mesh,std::array<uint64_t,10> parameters){
+void calc_graph_cuts_segmentation(PartCellStructure<V,T>& pc_struct,ExtraPartCellData<uint8_t>& seg_parts,std::array<uint64_t,10> parameters){
+    //
+    //  Creating interface without analysis_data
+    //
+    //
+    AnalysisData analysis_data;
+
+    calc_graph_cuts_segmentation(pc_struct,seg_parts,parameters);
+
+
+};
+
+
+
+template<typename T,typename V>
+void calc_graph_cuts_segmentation_mesh(PartCellStructure<V,T>& pc_struct,Mesh_data<uint8_t>& seg_mesh,std::array<uint64_t,10> parameters,AnalysisData& analysis_data){
     //
     //
     //  Bevan Cheeseman 2016
@@ -706,30 +733,27 @@ void calc_graph_cuts_segmentation_mesh(PartCellStructure<V,T>& pc_struct,Mesh_da
     
     Part_timer timer;
     
-    timer.verbose_flag = true;
+    timer.verbose_flag = false;
     
     uint64_t num_parts = pc_struct.get_number_parts();
     
     GraphType *g = new GraphType(num_parts ,num_parts*4 );
     
-    timer.start_timer("construct_graph");
+    timer.start_timer("construct_graph_mesh");
     
-    construct_max_flow_graph_mesh(pc_struct,*g,parameters);
+    construct_max_flow_graph_mesh(pc_struct,*g,parameters,analysis_data);
     
     timer.stop_timer();
     
     
-    timer.start_timer("max_flow");
+    timer.start_timer("max_flow_mesh");
     
     int flow = g -> maxflow();
     
     //int flow2 = g -> maxflow(true);
     
     timer.stop_timer();
-    
-    std::cout << "Flow: " << flow << std::endl;
-    //std::cout << "Flow2: " << flow2 << std::endl;
-    
+
     //now put in structure
     
     //////////////////////////////////
@@ -744,14 +768,26 @@ void calc_graph_cuts_segmentation_mesh(PartCellStructure<V,T>& pc_struct,Mesh_da
         seg_mesh.mesh[i] = 255*(g->what_segment(i) == GraphType::SOURCE);
     }
     
-    
-    std::cout << "Number Pixels: " << seg_mesh.mesh.size() << std::endl;
-    std::cout << "Number Particles : " << num_parts << std::endl;
+
     
     delete g;
+
+    analysis_data.add_timer(timer);
     
     
 }
+
+template<typename T,typename V>
+void calc_graph_cuts_segmentation_mesh(PartCellStructure<V,T>& pc_struct,Mesh_data<uint8_t>& seg_mesh,std::array<uint64_t,10> parameters){
+    //
+    //  Creating interface without analysis_data
+    //
+    //
+    AnalysisData analysis_data;
+
+    calc_graph_cuts_segmentation_mesh(pc_struct,seg_mesh,parameters,analysis_data);
+
+};
 
 
 #endif

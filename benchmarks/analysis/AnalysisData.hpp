@@ -27,10 +27,14 @@ class AnalysisData: public Data_manager{
     std::string name; //used for labelling the file
     std::string description; //used for understanding what was being done
 
+    std::string file_name;
+
     bool quality_metrics_gt;
     bool quality_metrics_input;
     bool file_size;
     bool information_content;
+    bool segmentation;
+    bool filters;
 
     AnalysisData(){
 
@@ -50,6 +54,22 @@ class AnalysisData: public Data_manager{
         quality_metrics_input = false;
         information_content = false;
         file_size = false;
+        segmentation = false;
+        filters = false;
+
+        time_t timer;
+        struct tm y2k = {0};
+        double seconds;
+
+        y2k.tm_hour = 0;   y2k.tm_min = 0; y2k.tm_sec = 0;
+        y2k.tm_year = 100; y2k.tm_mon = 0; y2k.tm_mday = 1;
+
+        time(&timer);  /* get current time; same as: timer = time(NULL)  */
+
+        seconds = difftime(timer,mktime(&y2k));
+
+
+        file_name = name + std::to_string((uint64)seconds);
 
     }
 
@@ -81,6 +101,23 @@ class AnalysisData: public Data_manager{
         quality_metrics_input = false;
         information_content = false;
         file_size = false;
+
+        segmentation = false;
+        filters = false;
+
+        time_t timer;
+        struct tm y2k = {0};
+        double seconds;
+
+        y2k.tm_hour = 0;   y2k.tm_min = 0; y2k.tm_sec = 0;
+        y2k.tm_year = 100; y2k.tm_mon = 0; y2k.tm_mday = 1;
+
+        time(&timer);  /* get current time; same as: timer = time(NULL)  */
+
+        seconds = difftime(timer,mktime(&y2k));
+
+
+        file_name = name + std::to_string((uint64)seconds);
 
     };
 
@@ -244,25 +281,7 @@ void AnalysisData::write_analysis_data_hdf5(){
 
     std::string save_loc = get_path("ANALYSIS_DATA_PATH");
 
-
-    time_t timer;
-    struct tm y2k = {0};
-    double seconds;
-
-    y2k.tm_hour = 0;   y2k.tm_min = 0; y2k.tm_sec = 0;
-    y2k.tm_year = 100; y2k.tm_mon = 0; y2k.tm_mday = 1;
-
-    time(&timer);  /* get current time; same as: timer = time(NULL)  */
-
-    seconds = difftime(timer,mktime(&y2k));
-
-
-    std::string file_name = name + std::to_string((uint64)seconds);
-
-
     std::string hdf5_file_name = save_loc + file_name + ".h5";
-
-    file_name = file_name;
 
     hdf5_create_file(hdf5_file_name);
 
@@ -308,7 +327,6 @@ void AnalysisData::write_analysis_data_hdf5(){
     H5Fclose(fid);
 
     std::cout << "Data Analysis File Writing Complete" << std::endl;
-
 
 
 }

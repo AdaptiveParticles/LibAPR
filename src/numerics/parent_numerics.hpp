@@ -115,7 +115,7 @@ void push_down_tree(PartCellStructure<U,T>& pc_struct,PartCellParent<T>& pc_pare
     ////////////////////////////
     
     Part_timer timer;
-    timer.verbose_flag = true;
+    timer.verbose_flag = false;
     
     uint64_t x_;
     uint64_t j_;
@@ -245,7 +245,7 @@ void calc_cell_min_max(PartCellStructure<T,S>& pc_struct,PartCellParent<S>& pc_p
     ////////////////////////////
     
     Part_timer timer;
-    timer.verbose_flag = true;
+    timer.verbose_flag = false;
     
     uint64_t x_;
     uint64_t j_;
@@ -540,7 +540,7 @@ void smooth_parent_result(PartCellParent<U>& pc_parent,ExtraPartCellData<T>& par
     output.initialize_structure_cells(pc_parent.neigh_info);
     
     Part_timer timer;
-    timer.verbose_flag = true;
+    timer.verbose_flag = false;
     
     uint64_t x_;
     uint64_t j_;
@@ -612,7 +612,7 @@ void smooth_parent_result_sep(PartCellParent<U>& pc_parent,ExtraPartCellData<T>&
     output.initialize_structure_cells(pc_parent.neigh_info);
     
     Part_timer timer;
-    timer.verbose_flag = true;
+    timer.verbose_flag = false;
     
     uint64_t x_;
     uint64_t j_;
@@ -838,7 +838,7 @@ void smooth_cell_result_sep(PartCellStructure<V,U>& pc_struct,ExtraPartCellData<
     output.initialize_structure_cells(pc_struct.pc_data);
     
     Part_timer timer;
-    timer.verbose_flag = true;
+    timer.verbose_flag = false;
     
     uint64_t x_;
     uint64_t j_;
@@ -1009,7 +1009,7 @@ void get_value_up_tree_offset(PartCellStructure<U,T>& pc_struct,PartCellParent<T
     ////////////////////////////
     
     Part_timer timer;
-    timer.verbose_flag = true;
+    timer.verbose_flag = false;
     
     uint64_t x_;
     uint64_t j_;
