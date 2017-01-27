@@ -7,6 +7,7 @@
 
 #include "../../src/numerics/graph_cut_seg.hpp"
 #include "../../src/numerics/filter_numerics.hpp"
+#include "../../src/numerics/ray_cast.hpp"
 
 
 void run_segmentation_benchmark(PartCellStructure<float,uint64_t> pc_struct,AnalysisData& analysis_data){
@@ -66,8 +67,6 @@ void run_filter_benchmarks(PartCellStructure<float,uint64_t> pc_struct,AnalysisD
     apr_filter_full(pc_struct,filter_offset,num_repeats,analysis_data);
 
     pixel_filter_full(pc_struct,pc_struct.org_dims[0],pc_struct.org_dims[1],pc_struct.org_dims[2],filter_offset,num_repeats,analysis_data);
-
-
 
 
 }
