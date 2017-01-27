@@ -118,6 +118,8 @@ int main(int argc, char **argv) {
 
     analysis_data.create_float_dataset("num_objects",0);
 
+    analysis_data.filters = true;
+
     //////////////////////////////////////////////////////////
     //
     //

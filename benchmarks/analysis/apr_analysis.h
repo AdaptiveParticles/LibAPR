@@ -521,6 +521,13 @@ void produce_apr_analysis(Mesh_data<T>& input_image,AnalysisData& analysis_data,
 
     }
 
+    if(analysis_data.filters){
+
+        run_filter_benchmarks(pc_struct, analysis_data);
+
+    }
+
+
     ////////////////////////////////////////////////////////////////////
     //
     //  File Size Information
@@ -562,7 +569,7 @@ void produce_apr_analysis(Mesh_data<T>& input_image,AnalysisData& analysis_data,
     //
     ///////////////////////////
 
-    timer.verbose_flag = true;
+    timer.verbose_flag = false;
 
     timer.start_timer("Image Quality");
 
@@ -619,8 +626,6 @@ void produce_apr_analysis(Mesh_data<T>& input_image,AnalysisData& analysis_data,
     if(analysis_data.information_content) {
 
         calc_information_content(syn_image, analysis_data);
-
-
 
     }
     timer.stop_timer();

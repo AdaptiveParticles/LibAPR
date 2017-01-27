@@ -182,7 +182,7 @@ public:
         
         //next initialize the entries;
         Part_timer timer;
-        timer.verbose_flag = 1;
+        timer.verbose_flag = false;
         
         std::vector<uint16_t> temp_exist;
         std::vector<uint16_t> temp_location;

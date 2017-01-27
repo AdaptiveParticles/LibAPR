@@ -26,6 +26,8 @@
 #include "filter_help/NeighOffset.hpp"
 
 #include "../../test/utils.h"
+#include "../../benchmarks/analysis/AnalysisData.hpp"
+
 
 template<typename T>
 void iterate_temp_vec(std::vector<T>& temp_vec,std::vector<T>& temp_vec_depth){
@@ -464,7 +466,7 @@ void neigh_cells(PartCellData<uint64_t>& pc_data){
     
    
 }
-void particle_linear_neigh_access(PartCellStructure<float,uint64_t>& pc_struct){   //  Calculate connected component from a binary mask
+void particle_linear_neigh_access(PartCellStructure<float,uint64_t>& pc_struct,float num_repeats,AnalysisData& analysis_data){   //  Calculate connected component from a binary mask
     //
     //  Should be written with the neighbour iterators instead.
     //
@@ -500,8 +502,6 @@ void particle_linear_neigh_access(PartCellStructure<float,uint64_t>& pc_struct){
     timer.verbose_flag = false;
     
     const int num_dir = 6;
-    
-    float num_repeats = 50;
     
     timer.start_timer("neigh_cell_comp");
     
@@ -578,15 +578,17 @@ void particle_linear_neigh_access(PartCellStructure<float,uint64_t>& pc_struct){
         }
         
     }
-    
-    
+
     
     timer.stop_timer();
     
     float time = (timer.t2 - timer.t1)/num_repeats;
-    
-    std::cout << "Get neigh particle linear: " << time << std::endl;
-    std::cout << "per 1000000 particles took: " << time/(1.0*pc_struct.get_number_parts()/1000000.0) << std::endl;
+
+    analysis_data.add_float_data("neigh_part_linear_total",time);
+    analysis_data.add_float_data("neigh_part_linear_perm",time/(1.0*pc_struct.get_number_parts()/1000000.0));
+
+    //std::cout << "Get neigh particle linear: " << time << std::endl;
+    //std::cout << "per 1000000 particles took: " << time/(1.0*pc_struct.get_number_parts()/1000000.0) << std::endl;
     
 }
 void move_cells_random(PartCellData<uint64_t>& pc_data,ParticleDataNew<float, uint64_t> part_new){
@@ -765,7 +767,7 @@ void pixels_move_random(PartCellStructure<U,uint64_t>& pc_struct,uint64_t y_num,
 }
 
 
-void particle_random_access(PartCellStructure<float,uint64_t>& pc_struct){   //  Calculate connected component from a binary mask
+void particle_random_access(PartCellStructure<float,uint64_t>& pc_struct,AnalysisData& analysis_data){   //  Calculate connected component from a binary mask
     //
     //  Should be written with the neighbour iterators instead.
     //
@@ -911,17 +913,19 @@ void particle_random_access(PartCellStructure<float,uint64_t>& pc_struct){   // 
     timer.stop_timer();
     
     float time2 = (timer.t2 - timer.t1);
-    std::cout << "Overhead " << time2 << std::endl;
+    //std::cout << "Overhead " << time2 << std::endl;
     
-    std::cout << "Random Access Neigh Particles: " << ((time-time2)) << std::endl;
-    std::cout << "per 1000000 particles: " << (time/(num_repeats/1000000)) << std::endl;
+    //std::cout << "Random Access Neigh Particles: " << ((time-time2)) << std::endl;
+    //std::cout << "per 1000000 particles: " << (time/(num_repeats/1000000)) << std::endl;
 
+    analysis_data.add_float_data("random_access_parts_neigh_total",time-time2);
+    analysis_data.add_float_data("random_access_parts_neigh_perm",(time-time2)/(1.0*num_repeats/1000000));
 
 }
 
 
 template<typename U>
-void pixel_filter_full(PartCellStructure<U,uint64_t>& pc_struct,uint64_t y_num,uint64_t x_num,uint64_t z_num,uint64_t filter_offset){
+void pixel_filter_full(PartCellStructure<U,uint64_t>& pc_struct,uint64_t y_num,uint64_t x_num,uint64_t z_num,uint64_t filter_offset,float num_repeats,AnalysisData& analysis_data){
     //
     //  Compute two, comparitive filters for speed. Original size img, and current particle size comparison
     //
@@ -949,8 +953,6 @@ void pixel_filter_full(PartCellStructure<U,uint64_t>& pc_struct,uint64_t y_num,u
     uint64_t j = 0;
     uint64_t k = 0;
     uint64_t i = 0;
-    
-    float num_repeats = 50;
     
     for(int r = 0;r < num_repeats;r++){
         
@@ -982,7 +984,7 @@ void pixel_filter_full(PartCellStructure<U,uint64_t>& pc_struct,uint64_t y_num,u
     timer.stop_timer();
     float time = (timer.t2 - timer.t1)/num_repeats;
     
-    std::cout << " Pixel Filter Size: " << (x_num*y_num*z_num) << " y took: " << time << std::endl;
+    //std::cout << " Pixel Filter Size: " << (x_num*y_num*z_num) << " y took: " << time << std::endl;
     
     // x loop
     
@@ -1016,7 +1018,7 @@ void pixel_filter_full(PartCellStructure<U,uint64_t>& pc_struct,uint64_t y_num,u
     timer.stop_timer();
     float time2 = (timer.t2 - timer.t1)/num_repeats;
     
-    std::cout << " Pixel Filter Size: " << (x_num*y_num*z_num) << " x took: " << time2 << std::endl;
+    //std::cout << " Pixel Filter Size: " << (x_num*y_num*z_num) << " x took: " << time2 << std::endl;
     
     // z loop
     
@@ -1051,13 +1053,19 @@ void pixel_filter_full(PartCellStructure<U,uint64_t>& pc_struct,uint64_t y_num,u
     timer.stop_timer();
     float time3 = (timer.t2 - timer.t1)/num_repeats;
     
-    std::cout << " Pixel Filter Size: " << (x_num*y_num*z_num) << " z took: " << time3 << std::endl;
+   // std::cout << " Pixel Filter Size: " << (x_num*y_num*z_num) << " z took: " << time3 << std::endl;
     
-    std::cout << " Pixel Filter Size: " << (x_num*y_num*z_num) << " all took: " << (time+time2+time3) << std::endl;
+   // std::cout << " Pixel Filter Size: " << (x_num*y_num*z_num) << " all took: " << (time+time2+time3) << std::endl;
+
+    analysis_data.add_float_data("pixel_filter_y",time);
+    analysis_data.add_float_data("pixel_filter_x",time2);
+    analysis_data.add_float_data("pixel_filter_z",time3);
+
+    analysis_data.add_float_data("pixel_filter_all",time + time2 + time3);
     
 }
 template<typename U>
-void pixels_linear_neigh_access(PartCellStructure<U,uint64_t>& pc_struct,uint64_t y_num,uint64_t x_num,uint64_t z_num){
+void pixels_linear_neigh_access(PartCellStructure<U,uint64_t>& pc_struct,uint64_t y_num,uint64_t x_num,uint64_t z_num,float num_repeats,AnalysisData& analysis_data){
     //
     //  Compute two, comparitive filters for speed. Original size img, and current particle size comparison
     //
@@ -1085,7 +1093,6 @@ void pixels_linear_neigh_access(PartCellStructure<U,uint64_t>& pc_struct,uint64_
     int i_n = 0;
     
     //float neigh_sum = 0;
-    float num_repeats = 5;
     
     for(int r = 0;r < num_repeats;r++){
         
@@ -1120,16 +1127,18 @@ void pixels_linear_neigh_access(PartCellStructure<U,uint64_t>& pc_struct,uint64_
         
     }
     
-    
     timer.stop_timer();
     float time = (timer.t2 - timer.t1)/num_repeats;
     
-    std::cout << "Pixel Linear Neigh: " << (x_num*y_num*z_num) << " took: " << time << std::endl;
-    std::cout << "per 1000000 pixel took: " << (time)/((1.0*x_num*y_num*z_num)/1000000.0) << std::endl;
-    
+    //std::cout << "Pixel Linear Neigh: " << (x_num*y_num*z_num) << " took: " << time << std::endl;
+    //std::cout << "per 1000000 pixel took: " << (time)/((1.0*x_num*y_num*z_num)/1000000.0) << std::endl;
+
+    analysis_data.add_float_data("neigh_pixel_linear_total",time);
+    analysis_data.add_float_data("neigh_pixel_linear_perm",(time)/((1.0*x_num*y_num*z_num)/1000000.0));
+
 }
 template<typename U>
-void pixel_neigh_random(PartCellStructure<U,uint64_t>& pc_struct,uint64_t y_num,uint64_t x_num,uint64_t z_num){
+void pixel_neigh_random(PartCellStructure<U,uint64_t>& pc_struct,uint64_t y_num,uint64_t x_num,uint64_t z_num,AnalysisData& analysis_data){
     //
     //  Compute two, comparitive filters for speed. Original size img, and current particle size comparison
     //
@@ -1148,8 +1157,6 @@ void pixel_neigh_random(PartCellStructure<U,uint64_t>& pc_struct,uint64_t y_num,
     Part_timer timer;
     timer.verbose_flag = false;
     timer.start_timer("full previous filter");
-    
-
     
     uint64_t offset_min;
     uint64_t offset_max;
@@ -1229,12 +1236,15 @@ void pixel_neigh_random(PartCellStructure<U,uint64_t>& pc_struct,uint64_t y_num,
     timer.stop_timer();
     float time2 = (timer.t2 - timer.t1);
     
-    std::cout << "Random Access Pixel: Size: " << (x_num*y_num*z_num) << " took: " << time << std::endl;
-    std::cout << "per 1000000 pixel took: " << (time-time2)/((1.0*x_num*y_num*z_num)/1000000.0) << std::endl;
+    //std::cout << "Random Access Pixel: Size: " << (x_num*y_num*z_num) << " took: " << (time-time2) << std::endl;
+    //std::cout << "per 1000000 pixel took: " << (time-time2)/((1.0*x_num*y_num*z_num)/1000000.0) << std::endl;
+
+    analysis_data.add_float_data("random_access_pixel_neigh_total",time-time2);
+    analysis_data.add_float_data("random_access_pixel_neigh_perm",(time-time2)/((1.0*x_num*y_num*z_num)/1000000.0));
     
 }
 template<typename S>
-void apr_filter_full(PartCellStructure<S,uint64_t>& pc_struct,uint64_t filter_offset){
+void apr_filter_full(PartCellStructure<S,uint64_t>& pc_struct,uint64_t filter_offset,float num_repeats,AnalysisData& analysis_data){
     //
     //  Calculate Neighbours Using Iterators
     //
@@ -1266,7 +1276,6 @@ void apr_filter_full(PartCellStructure<S,uint64_t>& pc_struct,uint64_t filter_of
     int y_;
     
     timer.verbose_flag = false;
-    float num_repeats = 50;
     
     std::vector<float> filter;
 
@@ -1347,7 +1356,7 @@ void apr_filter_full(PartCellStructure<S,uint64_t>& pc_struct,uint64_t filter_of
     
     float time = (timer.t2 - timer.t1);
     
-    std::cout << " Adaptive Filter y took: " << time/num_repeats << std::endl;
+    //std::cout << " Adaptive Filter y took: " << time/num_repeats << std::endl;
     
     for(int r = 0;r < num_repeats;r++){
         
@@ -1413,7 +1422,7 @@ void apr_filter_full(PartCellStructure<S,uint64_t>& pc_struct,uint64_t filter_of
     
     float time2 = (timer.t2 - timer.t1);
     
-    std::cout << " Adaptive Filter x took: " << time2/num_repeats << std::endl;
+    //std::cout << " Adaptive Filter x took: " << time2/num_repeats << std::endl;
     
     for(int r = 0;r < num_repeats;r++){
         
@@ -1479,11 +1488,15 @@ void apr_filter_full(PartCellStructure<S,uint64_t>& pc_struct,uint64_t filter_of
     
     float time3 = (timer.t2 - timer.t1);
     
-    std::cout << "Particle pc Filter z took: " << time3/num_repeats << std::endl;
+    //std::cout << "Particle pc Filter z took: " << time3/num_repeats << std::endl;
     
-    std::cout << "Particle pc Filter all took: " << (time + time2 + time3)/num_repeats << std::endl;
-    
-    
+    //std::cout << "Particle pc Filter all took: " << (time + time2 + time3)/num_repeats << std::endl;
+
+    analysis_data.add_float_data("particle_filter_y",time/num_repeats);
+    analysis_data.add_float_data("particle_filter_x",time2/num_repeats);
+    analysis_data.add_float_data("particle_filter_z",time3/num_repeats);
+
+    analysis_data.add_float_data("particle_filter_all",(time + time2 + time3)/num_repeats);
 }
 template<typename U>
 void sep_neigh_filter(PartCellData<uint64_t>& pc_data,ExtraPartCellData<U>& input_data,std::vector<U>& filter){
