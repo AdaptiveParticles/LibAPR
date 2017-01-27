@@ -257,6 +257,7 @@ if(BENCHMARKS)
                 ${OpenCL_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT} ${HDF5_LIBRARIES} pthread tiff blosc)
 
         add_executable(Example_analysis
+                ${BENCHMARK_SOURCE_FILES}
                 test/utils.cpp
                 src/io/write_parts.cpp
                 ${SOURCE_FILES_COMPILED}
@@ -269,7 +270,7 @@ if(BENCHMARKS)
 
     if(${ArrayFire_CPU_FOUND})
         MESSAGE(STATUS "ArrayFire CPU backend found.")
-        ADD_EXECUTABLE(SynImageGen_cpu ${BENCHMARK_SOURCE_FILES}  ${SOURCE_FILES_COMPILED})
+        ADD_EXECUTABLE(SynImageGen_cpu benchmarks/test_syn_gen.cpp ${BENCHMARK_SOURCE_FILES}  ${SOURCE_FILES_COMPILED})
         TARGET_LINK_LIBRARIES(SynImageGen_cpu ${ArrayFire_CPU_LIBRARIES} ${HDF5_LIBRARIES} pthread tiff blosc
                 ${CMAKE_THREAD_LIBS_INIT})
     ENDIF()

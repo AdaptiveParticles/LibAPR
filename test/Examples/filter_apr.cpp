@@ -98,41 +98,40 @@ int main(int argc, char **argv) {
     //////////////////////////////////
     
     //set up some new structures used in this test
-    
-    
-    
-    //Get neighbours (linear)
-    
-    //particles
-    particle_linear_neigh_access(pc_struct);
-    
-    particle_linear_neigh_access_alt_1(pc_struct);
-    
-    //pixels
-    pixels_linear_neigh_access(pc_struct,pc_struct.org_dims[0],pc_struct.org_dims[1],pc_struct.org_dims[2]);
-    
-    
-    //Get neighbours (random access)
-    
-    particle_random_access(pc_struct);
-    
-    pixel_neigh_random(pc_struct,pc_struct.org_dims[0],pc_struct.org_dims[1],pc_struct.org_dims[2]);
-    
-    
-    // Filtering
-    
-    uint64_t filter_offset = 10;
-    
-    apr_filter_full(pc_struct,filter_offset);
-    
-    pixel_filter_full(pc_struct,pc_struct.org_dims[0],pc_struct.org_dims[1],pc_struct.org_dims[2],filter_offset);
-    
-    
-    
+    AnalysisData analysis_data;
 
-    
-    
-    
+    float num_repeats = 10;
+
+    //Get neighbours (linear)
+
+    //particles
+    particle_linear_neigh_access(pc_struct,num_repeats,analysis_data);
+
+    //particle_linear_neigh_access_alt_1(pc_struct);
+
+    //pixels
+    pixels_linear_neigh_access(pc_struct,pc_struct.org_dims[0],pc_struct.org_dims[1],pc_struct.org_dims[2],num_repeats,analysis_data);
+
+
+    //Get neighbours (random access)
+
+    particle_random_access(pc_struct,analysis_data);
+
+    pixel_neigh_random(pc_struct,pc_struct.org_dims[0],pc_struct.org_dims[1],pc_struct.org_dims[2],analysis_data);
+
+
+    // Filtering
+
+    uint64_t filter_offset = 10;
+
+    apr_filter_full(pc_struct,filter_offset,num_repeats,analysis_data);
+
+    pixel_filter_full(pc_struct,pc_struct.org_dims[0],pc_struct.org_dims[1],pc_struct.org_dims[2],filter_offset,num_repeats,analysis_data);
+
+
+
+
+
 }
 
 
