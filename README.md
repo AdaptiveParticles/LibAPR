@@ -22,7 +22,7 @@ brew install llvm
 All further cmake commands then have to be prepended by
 
 ```
-CC="/usr/local/opt/llvm/bin/clang" CXX="/usr/local/opt/llvm/bin/clang++" LDFLAGS="-L/usr/local/opt/llvm/lib -Wl,-rpath,/usr/local/opt/llvm/lib" CPPFLAGS="-I/usr/local/opt/llvm/include" CXXFLAGS="-std=c++14"
+CC="/usr/local/opt/llvm/bin/clang" CXX="/usr/local/opt/llvm/bin/clang++" LDFLAGS="-L/usr/local/opt/llvm/lib -Wl,-rpath,/usr/local/opt/llvm/lib" CPPFLAGS="-I/usr/local/opt/llvm/include"
 ```
 
 ### Compilation
@@ -33,6 +33,8 @@ Compilation (out of source):
    mkdir build
    cd build
    cmake -H. -Bbuild ..
+
+CC="/usr/local/opt/llvm/bin/clang" CXX="/usr/local/opt/llvm/bin/clang++" LDFLAGS="-L/usr/local/opt/llvm/lib -Wl,-rpath,/usr/local/opt/llvm/lib" CPPFLAGS="-I/usr/local/opt/llvm/include" cmake -H. -Bbuild ..
 ```
 
 Developer dependencies (optional):

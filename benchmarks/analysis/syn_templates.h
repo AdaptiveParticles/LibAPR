@@ -9,9 +9,9 @@
 #include "apr_analysis.h"
 #include "SynImageClasses.hpp"
 #include "MetaBall.h"
+#include "benchmark_helpers.hpp"
 
 struct obj_properties {
-
 
     float density = 1000000;
     float sample_rate = 200;
@@ -37,7 +37,6 @@ struct obj_properties {
     }
 
 };
-
 
 Object_template get_object_template(cmdLineOptionsBench& options,obj_properties& obj_prop) {
     //

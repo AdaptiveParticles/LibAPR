@@ -1,13 +1,16 @@
 cmake_minimum_required(VERSION 2.8)
 project(PartPlay)
 # Run it out of source as cmake -H. -Bbuild ..
-#set(TESTS 1)
+
 if(TESTS)
     find_package(GTest REQUIRED)
 endif(TESTS)
+
 find_package(OpenMP)
 find_package(HDF5 REQUIRED)
 include_directories(${HDF5_INCLUDE_DIRS} ${GTEST_INCLUDE_DIRS} sources tests)
+
+
 
 set(CMAKE_CXX_STANDARD 11)
 set(SOURCE_FILES
@@ -60,17 +63,18 @@ if(CMAKE_COMPILER_IS_GNUCC)
 endif(CMAKE_COMPILER_IS_GNUCC)
 if (CMAKE_CXX_COMPILER_ID MATCHES "Clang")
     MESSAGE(STATUS "CLANG DETECTED")
+
     if(CMAKE_BUILD_TYPE MATCHES "Release")
         MESSAGE(STATUS "RELEASE BUILD")
-        set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O3 -ffast-math -Bdynamic")
-        set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS}")
+        set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS} -std=c++14 -O3 -ffast-math -Bdynamic")
     endif()
 
     if(CMAKE_BUILD_TYPE MATCHES "Debug")
         MESSAGE(STATUS "DEBUG BUILD")
-        set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O0 -g")
-        set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS}")
+        set(CMAKE_CXX_FLAGS_DEBUG  "${CMAKE_CXX_FLAGS} -std=c++14 -O0 -g")
     endif()
+
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++14 -O3 -ffast-math -Bdynamic")
 
     if (NOT NO_OPENMP)
         set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -fopenmp")

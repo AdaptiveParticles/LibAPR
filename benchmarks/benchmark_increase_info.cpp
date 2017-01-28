@@ -2,7 +2,7 @@
 // Created by cheesema on 27/01/17.
 //
 
-#include "benchmark_incrase_info.hpp"
+#include "benchmark_increase_info.hpp"
 
 
 
@@ -34,32 +34,10 @@ int main(int argc, char **argv) {
     std::string image_name = options.template_name;
 
 
-    ///////////////////////////////////////////////////////////////////
-    //  PSF properties
-    //////////////////////////////////////////////////////////////////
-
     benchmark_settings bs;
 
 
-    bs.sig = 3;
-
     set_up_benchmark_defaults(syn_image,bs);
-
-    /////////////////////////////////////////////
-    // GENERATE THE OBJECT TEMPLATE
-
-    std::cout << "Generating Templates" << std::endl;
-
-    float obj_size = 2;
-
-    obj_properties obj_prop(obj_size,bs.sig,syn_image.sampling_properties.sampling_delta[0]);
-
-    obj_prop.sample_rate = 200;
-
-    Object_template  basic_object = get_object_template(options,obj_prop);
-
-    syn_image.object_templates.push_back(basic_object);
-
 
     /////////////////////////////////////////////////////////////////
     //
@@ -70,21 +48,18 @@ int main(int argc, char **argv) {
     //
     //////////////////////////////////////////////////////////////////
 
-    std::cout << "BENCHMARK INCREASE IMAGE SIZE" << std::endl;
+    std::cout << "BENCHMARK INCREASE INFO CONTENT" << std::endl;
 
-    AnalysisData analysis_data("paper_increase_domain","Benchmark fixed number of spheres with increasing sized imaging domain");
+    AnalysisData analysis_data(options.description,"Benchmark fixed number of spheres with increasing sized imaging domain");
 
-    analysis_data.create_float_dataset("num_objects",0);
-
-    analysis_data.create_float_dataset("mean_int",0);
+    analysis_data.debug = false;
 
     // In this case we are increasing the number of objects
     ///////////////////////////////////////////////////////
     //
     //  Increase information
     //
-    ///////////////////////////////////////////////////
-
+    //////////////////////////////////////////////////////
 
     int num_obj =30;
     std::vector<int> number_obj;
@@ -106,12 +81,13 @@ int main(int argc, char **argv) {
     //
     /////////////////////////////////////////////////////////
 
+
     float rel_error = 0.1;
 
     std::vector<float> mean_int;
 
     //minimum intensity
-    float min_int = sqrt(background);
+    float min_int = sqrt(bs.shift);
 
 
     //two linear sections
@@ -119,7 +95,7 @@ int main(int argc, char **argv) {
     //min mean
     float min_mean = .25;
     float max_mean = 5;
-    float num_steps = 20;
+    float num_steps = 1;
 
     float del = (max_mean - min_mean)/num_steps;
 
@@ -129,7 +105,7 @@ int main(int argc, char **argv) {
 
     min_mean = 15;
     max_mean = 50;
-    num_steps = 10;
+    num_steps = 1;
 
     del = (max_mean - min_mean)/num_steps;
 
@@ -143,7 +119,7 @@ int main(int argc, char **argv) {
     //min mean
     float min_sig = 1;
     float max_sig = 5;
-    num_steps = 5;
+    num_steps = 1;
 
     del = (max_sig - min_sig)/num_steps;
 
@@ -152,35 +128,35 @@ int main(int argc, char **argv) {
     //    sig_vec.push_back(i);
     //}
 
-    float sig_single = 5;
+    float sig_single = 2;
 
     sig_vec.push_back(sig_single);
 
-    float desired_I;
 
-
-    bs.N_repeats = 30; // so you have this many realisations at the parameter set
+    bs.N_repeats = 1; // so you have this many realisations at the parameter set
     int N_par1 = (int)number_obj.size(); // this many different parameter values to be run
     int N_par2 = (int)mean_int.size();
     int N_par3 = (int)sig_vec.size();
 
-    float sig = 1;
 
     for(int m = 0; m < N_par3; m++){
 
-        sig = sig_vec[m];
 
-        //generate a sphere to use
-        Object_template basic_sphere;
-        int sample_rate = 200;
-        float obj_size = 2;
+        ///////////////////////////////////////////////////////////////////
+        //  PSF properties
+        //////////////////////////////////////////////////////////////////
+        bs.sig = sig_vec[m];
+        set_gaussian_psf(syn_image,bs);
 
-        float real_size = obj_size + 8*sig*syn_image.sampling_properties.sampling_delta[0];
-        float rad_ratio = (obj_size/2)/real_size;
+        /////////////////////////////////////////////
+        // GENERATE THE OBJECT TEMPLATE
+        //////////////////////////////////////////////
 
-        float density = 1000000;
+        obj_properties obj_prop(bs.obj_size,bs.sig,syn_image.sampling_properties.sampling_delta[0]);
 
-        generate_sphere_template(basic_sphere,sample_rate,real_size,density,rad_ratio);
+        Object_template  basic_object = get_object_template(options,obj_prop);
+
+        syn_image.object_templates.push_back(basic_object);
 
         //add the basic sphere as the standard template
 
@@ -192,10 +168,8 @@ int main(int argc, char **argv) {
 
             for (int j = 0;j < N_par1;j++) {
 
-                for (int i = 0; i < N_repeats; i++) {
+                for (int i = 0; i < bs.N_repeats; i++) {
 
-
-                    b_timer.start_timer("one_it");
 
                     ///////////////////////////////
                     //
@@ -203,13 +177,12 @@ int main(int argc, char **argv) {
                     //
                     ///////////////////////////////
 
-                    analysis_data.get_data_ref<float>("num_objects")->data.push_back(bs.num_objects);
-                    analysis_data.part_data_list["num_objects"].print_flag = true;
+
+
 
                     SynImage syn_image_loc = syn_image;
 
-                    std::cout << "Par: " << j << " of " << N_par << " Rep: " << i << " of " << bs.N_repeats
-                              << std::endl;
+                    std::cout << "Par1: " << j << " of " << N_par1 << " Par2: " << p << " of " << N_par2 << " Rep: " << i << " of " << bs.N_repeats << "iteration % done: " <<  round((j*p*i*m)/(N_par1*N_par2*N_par3*bs.N_repeats)*100) <<  std::endl;
 
                     Mesh_data<uint16_t> input_image;
 
@@ -218,16 +191,18 @@ int main(int argc, char **argv) {
                     //////////////////////////////////////////
                     // SET UP THE DOMAIN SIZE
 
-                    bs.x_num = image_size[j];
-                    bs.y_num = image_size[j];
-                    bs.z_num = image_size[j];
 
-                    update_domain(syn_image_loc, bs);
+                    bs.num_objects = number_obj[j];
+
+                    analysis_data.add_float_data("num_objects",bs.num_objects);
+
+                    bs.desired_I = mean_int[p]*sqrt(bs.shift);
+
+                    analysis_data.add_float_data("desired_I",bs.desired_I);
 
                     //Generate objects
 
                     generate_objects(syn_image_loc, bs);
-
 
                     ///////////////////////////////
                     //
@@ -268,11 +243,9 @@ int main(int argc, char **argv) {
 
                     produce_apr_analysis(input_img, analysis_data, pc_struct, syn_image_loc, p_rep.pars);
 
-
                     af::sync();
                     af::deviceGC();
 
-                    b_timer.stop_timer();
                 }
             }
         }

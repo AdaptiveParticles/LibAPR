@@ -12,68 +12,6 @@
 #include "SynImageClasses.hpp"
 #include "numerics_benchmarks.hpp"
 
-struct cmdLineOptionsBench{
-    std::string template_dir = "";
-    std::string template_name = "";
-    std::string output = "output";
-    std::string stats = "";
-    std::string directory = "";
-    std::string input = "";
-    std::string description = "";
-    bool template_file = false;
-};
-
-bool command_option_exists_bench(char **begin, char **end, const std::string &option)
-{
-    return std::find(begin, end, option) != end;
-}
-
-char* get_command_option_bench(char **begin, char **end, const std::string &option)
-{
-    char ** itr = std::find(begin, end, option);
-    if (itr != end && ++itr != end)
-    {
-        return *itr;
-    }
-    return 0;
-}
-
-cmdLineOptionsBench read_command_line_options(int argc, char **argv){
-
-    cmdLineOptionsBench result;
-
-    if(argc == 1) {
-        std::cerr << "Usage: \"exec -td template_director -tn template_name -d description\"" << std::endl;
-        exit(1);
-    }
-
-    if(command_option_exists_bench(argv, argv + argc, "-td"))
-    {
-        result.template_dir = std::string(get_command_option_bench(argv, argv + argc, "-td"));
-        result.template_file = true;
-    } else {
-
-    }
-
-    if(command_option_exists_bench(argv, argv + argc, "-tn"))
-    {
-        result.template_name = std::string(get_command_option_bench(argv, argv + argc, "-tn"));
-    } else {
-        //default
-        result.template_name  = "sphere";
-    }
-
-    if(command_option_exists_bench(argv, argv + argc, "-d"))
-    {
-        result.description = std::string(get_command_option_bench(argv, argv + argc, "-d"));
-    } else {
-        //default
-        result.description  = "unnamed";
-    }
-
-    return result;
-
-}
 
 void calc_information_content(SynImage syn_image,AnalysisData& analysis_data);
 void calc_information_content_new(SynImage syn_image,AnalysisData& analysis_data);
@@ -172,14 +110,25 @@ void bench_get_apr(Mesh_data<T>& input_image,Part_rep& p_rep,PartCellStructure<f
     p_rep.pars.lambda = std::max(lambda_min,p_rep.pars.lambda);
     p_rep.pars.lambda = std::min(p_rep.pars.lambda,lambda_max);
 
-
-    std::cout << "Lamda: " << lambda << std::endl;
     std::cout << "Lamda: " << p_rep.pars.lambda << std::endl;
 
-    //float max_var_th = 1.2f * pars.noise_sigma * expf(-0.5138f * logf(pars.lambda)) *
-    //                 (0.1821f * logf(pars.lambda)+ 1.522f);
+    if(p_rep.pars.lambda > 10) {
 
-    p_rep.pars.var_th_max = 0.25*p_rep.pars.var_th;
+        float max_var_th = 1.2f * p_rep.pars.noise_sigma * expf(-0.5138f * logf(p_rep.pars.lambda)) *
+                           (0.1821f * logf(p_rep.pars.lambda) + 1.522f);
+        if (max_var_th > .25*p_rep.pars.var_th){
+            float desired_th = 0.1*p_rep.pars.var_th;
+            p_rep.pars.lambda = std::max((float)exp((-1.0/0.5138)*log(desired_th/p_rep.pars.noise_sigma)),p_rep.pars.lambda);
+            p_rep.pars.var_th_max = .25*p_rep.pars.var_th;
+
+        } else {
+            p_rep.pars.var_th_max = max_var_th;
+
+        }
+    } else {
+        p_rep.pars.var_th_max = 0.25*p_rep.pars.var_th;
+    }
+
 
     get_apr(input_image,p_rep,pc_struct,analysis_data);
 
@@ -563,6 +512,8 @@ void produce_apr_analysis(Mesh_data<T>& input_image,AnalysisData& analysis_data,
         analysis_data.part_data_list["comp_image_size"].print_flag = true;
     }
 
+
+
     ///////////////////////////
     //
     //  Compute Reconstruction Quality Metrics
@@ -581,7 +532,21 @@ void produce_apr_analysis(Mesh_data<T>& input_image,AnalysisData& analysis_data,
         //get the pc reconstruction
 
         pc_struct.interp_parts_to_pc(rec_img, pc_struct.part_data.particle_data);
+
+
     }
+
+
+    if(analysis_data.debug == true){
+
+        pc_struct.interp_parts_to_pc(rec_img, pc_struct.part_data.particle_data);
+        write_image_tiff(rec_img, pars.output_path + pars.name + "_rec.tif");
+
+        write_apr_pc_struct(pc_struct, pars.output_path, pars.name);
+
+        write_apr_full_format(pc_struct,pars.output_path, pars.name);
+    }
+
 
     if(analysis_data.quality_metrics_gt) {
 

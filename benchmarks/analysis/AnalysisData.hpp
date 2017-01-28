@@ -35,6 +35,7 @@ class AnalysisData: public Data_manager{
     bool information_content;
     bool segmentation;
     bool filters;
+    bool debug;
 
     AnalysisData(){
 
@@ -56,6 +57,7 @@ class AnalysisData: public Data_manager{
         file_size = false;
         segmentation = false;
         filters = false;
+        debug = false;
 
         time_t timer;
         struct tm y2k = {0};
@@ -104,6 +106,8 @@ class AnalysisData: public Data_manager{
 
         segmentation = false;
         filters = false;
+
+        debug=false;
 
         time_t timer;
         struct tm y2k = {0};

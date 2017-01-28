@@ -71,7 +71,7 @@ int main(int argc, char **argv) {
 
     std::cout << "BENCHMARK INCREASE IMAGE SIZE" << std::endl;
 
-    AnalysisData analysis_data("paper_increase_domain","Benchmark fixed number of spheres with increasing sized imaging domain");
+    AnalysisData analysis_data(options.description,"Benchmark fixed number of spheres with increasing sized imaging domain");
 
     analysis_data.create_float_dataset("num_objects",0);
 
