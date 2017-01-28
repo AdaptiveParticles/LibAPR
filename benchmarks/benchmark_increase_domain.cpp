@@ -74,6 +74,9 @@ int main(int argc, char **argv) {
 
     analysis_data.create_float_dataset("num_objects",0);
 
+    analysis_data.segmentation = true;
+    analysis_data.filters = true;
+
     // In this case we are increasing the number of objects
 
     std::vector<int> image_size;

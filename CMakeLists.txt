@@ -264,6 +264,7 @@ if(BENCHMARKS)
 
         ADD_EXECUTABLE(IncreaseZoom benchmarks/benchmark_increase_zoom.cpp  ${SOURCE_FILES_COMPILED} ${BENCHMARK_SOURCE_FILES} )
 
+        ADD_EXECUTABLE(IncreaseInfoandDomain benchmarks/increase_info_and_domain.cpp  ${SOURCE_FILES_COMPILED} ${BENCHMARK_SOURCE_FILES} )
 
         TARGET_LINK_LIBRARIES(SynImageGen ${ArrayFire_OpenCL_LIBRARIES}
                 ${OpenCL_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT} ${HDF5_LIBRARIES} pthread tiff blosc)
@@ -280,6 +281,9 @@ if(BENCHMARKS)
                 ${OpenCL_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT} ${HDF5_LIBRARIES} pthread tiff blosc)
 
         TARGET_LINK_LIBRARIES(IncreaseZoom ${ArrayFire_OpenCL_LIBRARIES}
+                ${OpenCL_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT} ${HDF5_LIBRARIES} pthread tiff blosc)
+
+        TARGET_LINK_LIBRARIES(IncreaseInfoandDomain ${ArrayFire_OpenCL_LIBRARIES}
                 ${OpenCL_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT} ${HDF5_LIBRARIES} pthread tiff blosc)
 
         add_executable(Example_analysis
