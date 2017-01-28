@@ -542,6 +542,8 @@ void produce_apr_analysis(Mesh_data<T>& input_image,AnalysisData& analysis_data,
         pc_struct.interp_parts_to_pc(rec_img, pc_struct.part_data.particle_data);
         write_image_tiff(rec_img, pars.output_path + pars.name + "_rec.tif");
 
+        write_image_tiff(input_image, pars.output_path + pars.name + "_debug.tif");
+
         write_apr_pc_struct(pc_struct, pars.output_path, pars.name);
 
         write_apr_full_format(pc_struct,pars.output_path, pars.name);

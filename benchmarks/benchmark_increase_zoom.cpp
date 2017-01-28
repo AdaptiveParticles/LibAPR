@@ -44,8 +44,7 @@ int main(int argc, char **argv) {
 
     analysis_data.create_float_dataset("num_objects",0);
 
-    analysis_data.filters = true;
-
+    analysis_data.debug = true;
 
 
     /////////////////////////////////////////////
@@ -53,7 +52,11 @@ int main(int argc, char **argv) {
 
     std::cout << "Generating Templates" << std::endl;
 
+    bs.sig = 3;
+
     obj_properties obj_prop(bs.obj_size,bs.sig);
+
+    obj_prop.sample_rate = 400;
 
     Object_template  basic_object = get_object_template(options,obj_prop);
 
@@ -67,12 +70,12 @@ int main(int argc, char **argv) {
     //
     /////////////////////////////////////////////////////////
 
-    float image_size_max = 400;
+    float image_size_max = 300;
     float image_size_min = 20;
 
     std::vector<float> sampling_rate;
 
-    float real_domain_size = obj_prop.real_size*1.5;
+    float real_domain_size = obj_prop.real_size*0.5;
 
    // float sampling_lower_b = sqrt(log(1/syn_image.PSF_properties.cut_th)*2*pow(bs.sig,2));
     float min_sampling = real_domain_size/image_size_max;
@@ -94,8 +97,6 @@ int main(int argc, char **argv) {
 
 
     for (int j = 0;j < N_par;j++){
-
-
 
         ///////////////////////////////////////////////////////////////////
         //PSF properties
@@ -134,7 +135,9 @@ int main(int argc, char **argv) {
 
             std::cout << "Par: " << j << " of " << N_par << " Rep: " << i << " of " << bs.N_repeats << std::endl;
 
-            generate_objects(syn_image_loc,bs);
+
+            //generate one objects in the center
+            generate_object_center(syn_image_loc,bs);
 
 
             ///////////////////////////////

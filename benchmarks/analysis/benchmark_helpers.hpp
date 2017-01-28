@@ -185,6 +185,15 @@ void set_up_benchmark_defaults(SynImage& syn_image,benchmark_settings& bs){
 }
 void update_domain(SynImage& syn_image,benchmark_settings& bs){
 
+    syn_image.sampling_properties.voxel_real_dims[0] = bs.voxel_size;
+    syn_image.sampling_properties.voxel_real_dims[1] = bs.voxel_size;
+    syn_image.sampling_properties.voxel_real_dims[2] = bs.voxel_size;
+
+    //sampling rate/delta
+    syn_image.sampling_properties.sampling_delta[0] = bs.sampling_delta;
+    syn_image.sampling_properties.sampling_delta[1] = bs.sampling_delta;
+    syn_image.sampling_properties.sampling_delta[2] = bs.sampling_delta;
+
     //real size of domain
     bs.dom_size_y = bs.y_num*bs.sampling_delta;
     bs.dom_size_x = bs.x_num*bs.sampling_delta;
@@ -253,6 +262,43 @@ void generate_objects(SynImage& syn_image_loc,benchmark_settings& bs){
 
 
 }
+
+void generate_object_center(SynImage& syn_image_loc,benchmark_settings& bs){
+    //
+    //  Bevan Cheeseman 2017
+    //
+    //  Adds one object in the center
+    //
+
+    Genrand_uni gen_rand;
+
+    //remove previous objects
+    syn_image_loc.real_objects.resize(0);
+
+    // loop over the objects
+    //loop over the different template objects
+
+    Real_object temp_obj;
+
+    //set the template id
+    temp_obj.template_id = 0;
+
+    Object_template curr_obj = syn_image_loc.object_templates[temp_obj.template_id];
+
+    temp_obj.location[0] = -.5*curr_obj.real_size[0] + .5*syn_image_loc.real_domain.dims[0][1];
+    temp_obj.location[1] = -.5*curr_obj.real_size[1] + .5*syn_image_loc.real_domain.dims[1][1];
+    temp_obj.location[2] = -.5*curr_obj.real_size[2] + .5*syn_image_loc.real_domain.dims[2][1];
+
+    float obj_int =  bs.int_scale_max * bs.desired_I;
+
+    temp_obj.int_scale = (
+                    ((curr_obj.real_deltas[0] * curr_obj.real_deltas[1] * curr_obj.real_deltas[2]) * obj_int) /
+                    (curr_obj.max_sample * pow(bs.voxel_size, 3)));
+
+    syn_image_loc.real_objects.push_back(temp_obj);
+
+}
+
 
 void set_up_part_rep(SynImage& syn_image_loc,Part_rep& p_rep,benchmark_settings& bs){
 
