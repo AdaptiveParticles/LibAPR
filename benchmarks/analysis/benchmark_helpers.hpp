@@ -212,7 +212,7 @@ void set_gaussian_psf(SynImage& syn_image_loc,benchmark_settings& bs){
 
     syn_image_loc.PSF_properties.I0 = 1/(pow(2*3.14159265359,1.5)*syn_image_loc.PSF_properties.real_sigmas[0]*syn_image_loc.PSF_properties.real_sigmas[1]*syn_image_loc.PSF_properties.real_sigmas[2]);
 
-    syn_image_loc.PSF_properties.cut_th = 0.01;
+    syn_image_loc.PSF_properties.cut_th = 0.00001;
 
     syn_image_loc.PSF_properties.set_guassian_window_size();
 
@@ -289,11 +289,12 @@ void generate_object_center(SynImage& syn_image_loc,benchmark_settings& bs){
     temp_obj.location[1] = -.5*curr_obj.real_size[1] + .5*syn_image_loc.real_domain.dims[1][1];
     temp_obj.location[2] = -.5*curr_obj.real_size[2] + .5*syn_image_loc.real_domain.dims[2][1];
 
-    float obj_int =  bs.int_scale_max * bs.desired_I;
+    float obj_int =  bs.int_scale_min * bs.desired_I;
 
-    temp_obj.int_scale = (
-                    ((curr_obj.real_deltas[0] * curr_obj.real_deltas[1] * curr_obj.real_deltas[2]) * obj_int) /
-                    (curr_obj.max_sample * pow(bs.voxel_size, 3)));
+    temp_obj.int_scale = (pow(bs.voxel_size, 3)* obj_int) /
+                    (curr_obj.max_sample *(curr_obj.real_deltas[0] * curr_obj.real_deltas[1] * curr_obj.real_deltas[2]));
+
+    temp_obj.int_scale =  obj_int;
 
     syn_image_loc.real_objects.push_back(temp_obj);
 

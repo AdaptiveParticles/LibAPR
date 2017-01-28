@@ -11,6 +11,7 @@
 #include "../../src/io/parameters.h"
 #include "SynImageClasses.hpp"
 #include "numerics_benchmarks.hpp"
+#include "../../src/numerics/misc_numerics.hpp"
 
 
 void calc_information_content(SynImage syn_image,AnalysisData& analysis_data);
@@ -104,7 +105,7 @@ void bench_get_apr(Mesh_data<T>& input_image,Part_rep& p_rep,PartCellStructure<f
 
     //float lambda = expf((-1.0f/0.6161f) * logf((pars.var_th/pars.noise_sigma)));
 
-    float lambda_min = 0.05f;
+    float lambda_min = 0.1f;
     float lambda_max = 5000;
 
     p_rep.pars.lambda = std::max(lambda_min,p_rep.pars.lambda);
@@ -112,21 +113,24 @@ void bench_get_apr(Mesh_data<T>& input_image,Part_rep& p_rep,PartCellStructure<f
 
     std::cout << "Lamda: " << p_rep.pars.lambda << std::endl;
 
-    if(p_rep.pars.lambda > 10) {
+    float max_var_th = 1.2f * p_rep.pars.noise_sigma * expf(-0.5138f * logf(p_rep.pars.lambda)) *
+                       (0.1821f * logf(p_rep.pars.lambda) + 1.522f);
+
+    if(p_rep.pars.lambda > 0) {
 
         float max_var_th = 1.2f * p_rep.pars.noise_sigma * expf(-0.5138f * logf(p_rep.pars.lambda)) *
                            (0.1821f * logf(p_rep.pars.lambda) + 1.522f);
         if (max_var_th > .25*p_rep.pars.var_th){
             float desired_th = 0.1*p_rep.pars.var_th;
             p_rep.pars.lambda = std::max((float)exp((-1.0/0.5138)*log(desired_th/p_rep.pars.noise_sigma)),p_rep.pars.lambda);
-            p_rep.pars.var_th_max = .25*p_rep.pars.var_th;
+            p_rep.pars.var_th_max = .75*p_rep.pars.var_th;
 
         } else {
-            p_rep.pars.var_th_max = max_var_th;
+            p_rep.pars.var_th_max = .75*p_rep.pars.var_th;
 
         }
     } else {
-        p_rep.pars.var_th_max = 0.25*p_rep.pars.var_th;
+        p_rep.pars.var_th_max =  .75*p_rep.pars.var_th;
     }
 
 
@@ -547,6 +551,18 @@ void produce_apr_analysis(Mesh_data<T>& input_image,AnalysisData& analysis_data,
         write_apr_pc_struct(pc_struct, pars.output_path, pars.name);
 
         write_apr_full_format(pc_struct,pars.output_path, pars.name);
+
+        Mesh_data<float> variance;
+
+        get_variance(input_image,variance,pars);
+
+        debug_write(variance,"var");
+
+        Mesh_data<uint8_t> k_img;
+
+        interp_depth_to_mesh(k_img,pc_struct);
+
+        write_image_tiff(k_img, pars.output_path + pars.name + "_k.tif");
     }
 
 

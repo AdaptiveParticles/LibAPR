@@ -70,7 +70,7 @@ int main(int argc, char **argv) {
     //
     /////////////////////////////////////////////////////////
 
-    float image_size_max = 300;
+    float image_size_max = 400;
     float image_size_min = 20;
 
     std::vector<float> sampling_rate;
@@ -91,7 +91,9 @@ int main(int argc, char **argv) {
 
     //sampling_rate.push_back(max_sampling);
 
-    bs.desired_I = sqrt(bs.shift)*20;
+    bs.desired_I = sqrt(bs.shift)*5;
+
+    //syn_image.noise_properties.noise_type = "none";
 
     int N_par = (int)sampling_rate.size();
 
