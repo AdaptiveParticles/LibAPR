@@ -1,22 +1,11 @@
 //
-// Created by cheesema on 27/01/17.
+// Created by cheesema on 28/01/17.
 //
 
-#include "benchmark_increase_domain.hpp"
-
-
-////////////////////////
-//
-//  Bevan Cheeseman 2017
-//
-//  Generating Increasing Domain Size
-//
-////////////////////////
-
+#include "benchmark_increase_zoom.hpp"
 
 
 int main(int argc, char **argv) {
-
 
     //////////////////////////////////////////
     //
@@ -26,38 +15,19 @@ int main(int argc, char **argv) {
     //
     ///////////////////////////////////////////
 
+    std::cout << "Increase Reconstruction Error Parameter Benchmark" << std::endl;
+
     cmdLineOptionsBench options = read_command_line_options(argc,argv);
 
     SynImage syn_image;
 
     std::string image_name = options.template_name;
 
-
-    ///////////////////////////////////////////////////////////////////
-    //  PSF properties
-    //////////////////////////////////////////////////////////////////
-
     benchmark_settings bs;
-
-
-    bs.sig = 2;
 
     set_up_benchmark_defaults(syn_image,bs);
 
-    /////////////////////////////////////////////
-    // GENERATE THE OBJECT TEMPLATE
-
-    std::cout << "Generating Templates" << std::endl;
-
-    bs.obj_size = 4;
-
-    obj_properties obj_prop(bs.obj_size,bs.sig);
-
-
-    Object_template  basic_object = get_object_template(options,obj_prop);
-
-    syn_image.object_templates.push_back(basic_object);
-
+    Genrand_uni gen_rand;
 
     /////////////////////////////////////////////////////////////////
     //
@@ -68,38 +38,86 @@ int main(int argc, char **argv) {
     //
     //////////////////////////////////////////////////////////////////
 
-    std::cout << "BENCHMARK INCREASE IMAGE SIZE" << std::endl;
+    AnalysisData analysis_data(options.description,"Test");
 
-    AnalysisData analysis_data(options.description,"Benchmark fixed number of spheres with increasing sized imaging domain");
+    std::string analysis_type = "quality_metrics";
 
     analysis_data.create_float_dataset("num_objects",0);
 
-    // In this case we are increasing the number of objects
+    analysis_data.filters = true;
 
-    std::vector<int> image_size;
 
-    float min_size = 100;
-    float max_size =  300;
-    float delta = 10;
 
-    for (int i = min_size; i < max_size; i = i + delta) {
-        image_size.push_back(i);
+    /////////////////////////////////////////////
+    // GENERATE THE OBJECT TEMPLATE
+
+    std::cout << "Generating Templates" << std::endl;
+
+    obj_properties obj_prop(bs.obj_size,bs.sig);
+
+    Object_template  basic_object = get_object_template(options,obj_prop);
+
+    syn_image.object_templates.push_back(basic_object);
+
+    //////////////////////////////////////////////////////////
+    //
+    //
+    //  Change rel_error and sigma
+    //
+    //
+    /////////////////////////////////////////////////////////
+
+    float image_size_max = 400;
+    float image_size_min = 20;
+
+    std::vector<float> sampling_rate;
+
+    float real_domain_size = obj_prop.real_size*1.5;
+
+   // float sampling_lower_b = sqrt(log(1/syn_image.PSF_properties.cut_th)*2*pow(bs.sig,2));
+    float min_sampling = real_domain_size/image_size_max;
+    float max_sampling = real_domain_size/image_size_min;
+    float num_points = 30;
+    float delta = (max_sampling - min_sampling)/num_points;
+
+    for (float i = min_sampling; i < max_sampling; i = i + delta) {
+        sampling_rate.push_back(i);
     }
 
-    bs.num_objects = 5;
+    //sampling_rate.push_back(min_sampling);
 
-    bs.N_repeats = 1; // so you have this many realisations at the parameter set
-    int N_par = (int)image_size.size(); // this many different parameter values to be run
+    //sampling_rate.push_back(max_sampling);
 
-    Part_timer b_timer;
-    b_timer.verbose_flag = false;
+    bs.desired_I = sqrt(bs.shift)*20;
+
+    int N_par = (int)sampling_rate.size();
 
 
     for (int j = 0;j < N_par;j++){
 
+
+
+        ///////////////////////////////////////////////////////////////////
+        //PSF properties
+
+
+        bs.voxel_size = sampling_rate[j];
+        bs.sampling_delta = sampling_rate[j];
+
+        set_gaussian_psf(syn_image,bs);
+
+        bs.x_num = round(real_domain_size/bs.sampling_delta);
+        bs.y_num = round(real_domain_size/bs.sampling_delta);
+        bs.z_num = round(real_domain_size/bs.sampling_delta);
+
+        update_domain(syn_image,bs);
+
+
+
         for(int i = 0; i < bs.N_repeats; i++){
 
-            b_timer.start_timer("one_it");
+            //af::sync();
+            af::deviceGC();
 
             ///////////////////////////////
             //
@@ -107,27 +125,14 @@ int main(int argc, char **argv) {
             //
             ///////////////////////////////
 
-            analysis_data.get_data_ref<float>("num_objects")->data.push_back(bs.num_objects);
-            analysis_data.part_data_list["num_objects"].print_flag = true;
+            analysis_data.add_float_data("num_objects",bs.num_objects);
 
             SynImage syn_image_loc = syn_image;
 
+            //add the basic sphere as the standard template
+
+
             std::cout << "Par: " << j << " of " << N_par << " Rep: " << i << " of " << bs.N_repeats << std::endl;
-
-            Mesh_data<uint16_t> input_image;
-
-
-            /////////////////////////////////////////
-            //////////////////////////////////////////
-            // SET UP THE DOMAIN SIZE
-
-            bs.x_num = image_size[j];
-            bs.y_num = image_size[j];
-            bs.z_num = image_size[j];
-
-            update_domain(syn_image_loc,bs);
-
-            //Generate objects
 
             generate_objects(syn_image_loc,bs);
 
@@ -175,10 +180,9 @@ int main(int argc, char **argv) {
             af::sync();
             af::deviceGC();
 
-            b_timer.stop_timer();
-
         }
     }
+
 
     //write the analysis output
     analysis_data.write_analysis_data_hdf5();
@@ -186,6 +190,4 @@ int main(int argc, char **argv) {
     af::info();
 
     return 0;
-
-
 }

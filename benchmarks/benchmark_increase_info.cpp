@@ -152,7 +152,7 @@ int main(int argc, char **argv) {
         // GENERATE THE OBJECT TEMPLATE
         //////////////////////////////////////////////
 
-        obj_properties obj_prop(bs.obj_size,bs.sig,syn_image.sampling_properties.sampling_delta[0]);
+        obj_properties obj_prop(bs.obj_size,bs.sig);
 
         Object_template  basic_object = get_object_template(options,obj_prop);
 

@@ -22,17 +22,16 @@ struct obj_properties {
     float real_size = 0;
     float rad_ratio_template = 0;
 
-    obj_properties(float obj_size,float sig,float sampling_delta): obj_size(obj_size){
+    obj_properties(float obj_size,float sig): obj_size(obj_size){
         sample_rate = 200;
 
         obj_size_vec = {obj_size,obj_size,obj_size};
 
-        real_size = obj_size + 8*sig*sampling_delta;
+        real_size = obj_size + 8*sig;
         rad_ratio = (obj_size/2)/real_size;
 
         float density = 1000000;
 
-        real_size =  obj_size*.5 + 8*sig*sampling_delta;
         rad_ratio_template = (obj_size/2)/real_size;
     }
 

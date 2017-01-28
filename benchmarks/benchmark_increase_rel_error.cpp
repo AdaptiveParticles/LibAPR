@@ -46,7 +46,8 @@ int main(int argc, char **argv) {
 
     analysis_data.create_float_dataset("num_objects",0);
 
-    analysis_data.filters = true;
+    analysis_data.quality_metrics_input = true;
+    analysis_data.quality_metrics_gt = true;
 
     //////////////////////////////////////////////////////////
     //
@@ -55,8 +56,6 @@ int main(int argc, char **argv) {
     //
     //
     /////////////////////////////////////////////////////////
-
-    float rel_error = 0.1;
 
     std::vector<float> sig_vec;
     std::vector<float> rel_error_vec;
@@ -110,11 +109,7 @@ int main(int argc, char **argv) {
 
         bs.sig = sig_vec[p];
 
-        float obj_size = 4;
-
-        obj_properties obj_prop(obj_size,bs.sig,syn_image.sampling_properties.sampling_delta[0]);
-
-        obj_prop.sample_rate = 100;
+        obj_properties obj_prop(bs.obj_size,bs.sig);
 
         Object_template  basic_object = get_object_template(options,obj_prop);
 
