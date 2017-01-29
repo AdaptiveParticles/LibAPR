@@ -74,7 +74,6 @@ int main(int argc, char **argv) {
     min_rel_error = .1;
     max_rel_error = 1.0;
     num_steps = options.delta;
-    num_steps = 1;
 
     del = (max_rel_error - min_rel_error)/num_steps;
 
@@ -105,6 +104,8 @@ int main(int argc, char **argv) {
     Genrand_uni gen_rand;
 
     bs.desired_I = 400;
+
+    bs.int_scale_min = 3;
 
     for (int p = 0; p < N_par2;p++){
 
