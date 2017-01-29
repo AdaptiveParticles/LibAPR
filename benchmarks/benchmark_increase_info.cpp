@@ -61,7 +61,7 @@ int main(int argc, char **argv) {
     //
     //////////////////////////////////////////////////////
 
-    int num_obj =200;
+    int num_obj =400;
     std::vector<int> number_obj;
     int step = options.delta;
 
