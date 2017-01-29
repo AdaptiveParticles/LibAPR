@@ -36,6 +36,7 @@ Compilation (out of source):
 
 CC="/usr/local/opt/llvm/bin/clang" CXX="/usr/local/opt/llvm/bin/clang++" LDFLAGS="-L/usr/local/opt/llvm/lib -Wl,-rpath,/usr/local/opt/llvm/lib" CPPFLAGS="-I/usr/local/opt/llvm/include" cmake -H. -Bbuild ..
 ```
+CC="/usr/local/opt/llvm/bin/clang" CXX="/usr/local/opt/llvm/bin/clang++" LDFLAGS="-L/usr/local/opt/llvm/lib -Wl,-rpath,/usr/local/opt/llvm/lib" CPPFLAGS="-I/usr/local/opt/llvm/include" cmake -H. -Bbuild ..
 
 Developer dependencies (optional):
 
@@ -79,3 +80,8 @@ Remember to pass TESTS flag to CMAKE!
    cmake -H. -DTESTS=1 -Bbuild ..
 ```
 
+## Benchmarks
+
+Requires SynImageGen Library
+
+cmake -H. -DTESTS=1 -Bbuild.. -DBENCHMARKS=1 -DSynImage_PATH="PATH_TO_SYNIMAGEGEN"
