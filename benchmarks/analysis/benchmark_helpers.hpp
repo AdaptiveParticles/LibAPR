@@ -356,9 +356,10 @@ void generate_objects(SynImage& syn_image_loc,benchmark_settings& bs){
 
             Object_template curr_obj = syn_image_loc.object_templates[temp_obj.template_id];
 
-            temp_obj.location[0] = gen_rand.rand_num(0, bs.dom_size_y - curr_obj.real_size[0]);
-            temp_obj.location[1] = gen_rand.rand_num(0, bs.dom_size_x - curr_obj.real_size[0]);
-            temp_obj.location[2] = gen_rand.rand_num(0, bs.dom_size_z - curr_obj.real_size[0]);
+            //have them avoid the boundary, to avoid boundary effects
+            temp_obj.location[0] = gen_rand.rand_num(bs.dom_size_y*.1, .9*bs.dom_size_y - curr_obj.real_size[0]);
+            temp_obj.location[1] = gen_rand.rand_num(bs.dom_size_y*.1, .9*bs.dom_size_x - curr_obj.real_size[0]);
+            temp_obj.location[2] = gen_rand.rand_num(bs.dom_size_y*.1, .9*bs.dom_size_z - curr_obj.real_size[0]);
 
             float obj_int = gen_rand.rand_num(bs.int_scale_min, bs.int_scale_max) * bs.desired_I;
 
