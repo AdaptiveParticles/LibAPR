@@ -168,6 +168,8 @@ int main(int argc, char **argv) {
 
                 bs.rel_error = rel_error_vec[j];
 
+                analysis_data.add_float_data("rel_error",bs.rel_error);
+
                 Part_rep p_rep;
 
                 set_up_part_rep(syn_image_loc,p_rep,bs);

@@ -424,7 +424,10 @@ void set_up_part_rep(SynImage& syn_image_loc,Part_rep& p_rep,benchmark_settings&
     p_rep.pars.rel_error = bs.rel_error;
     p_rep.len_scale = p_rep.pars.dx*pow(2.0,p_rep.pl_map.k_max+1);
     p_rep.pars.noise_sigma = sqrt(bs.shift);
-    p_rep.pars.interp_type = 0;
+
+    if(bs.noise_type == "none") {
+        p_rep.pars.interp_type = 2;
+    }
 
     p_rep.pars.lambda = bs.lambda;
 
