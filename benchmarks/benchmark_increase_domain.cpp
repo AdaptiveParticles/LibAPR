@@ -33,6 +33,8 @@ int main(int argc, char **argv) {
     std::string image_name = options.template_name;
 
 
+
+
     ///////////////////////////////////////////////////////////////////
     //  PSF properties
     //////////////////////////////////////////////////////////////////
@@ -70,20 +72,20 @@ int main(int argc, char **argv) {
 
     std::cout << "BENCHMARK INCREASE IMAGE SIZE" << std::endl;
 
-    AnalysisData analysis_data(options.description,"Benchmark fixed number of spheres with increasing sized imaging domain");
+    AnalysisData analysis_data(options.description,"Benchmark fixed number of spheres with increasing sized imaging domain",argc,argv);
 
     analysis_data.create_float_dataset("num_objects",0);
 
     analysis_data.segmentation = true;
-    analysis_data.filters = true;
+    analysis_data.filters = false;
 
     // In this case we are increasing the number of objects
 
     std::vector<int> image_size;
 
-    float min_size = 100;
-    float max_size =  300;
-    float delta = 10;
+    float min_size = 50;
+    float max_size = 600;
+    float delta = 50;
 
     for (int i = min_size; i < max_size; i = i + delta) {
         image_size.push_back(i);

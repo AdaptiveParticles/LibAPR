@@ -15,7 +15,7 @@ int main(int argc, char **argv) {
     //
     ///////////////////////////////////////////
 
-    std::cout << "Increase Reconstruction Error Parameter Benchmark" << std::endl;
+    std::cout << "Increase Zoom Benchmark" << std::endl;
 
     cmdLineOptionsBench options = read_command_line_options(argc,argv);
 
@@ -38,13 +38,13 @@ int main(int argc, char **argv) {
     //
     //////////////////////////////////////////////////////////////////
 
-    AnalysisData analysis_data(options.description,"Test");
+    AnalysisData analysis_data(options.description,"Test",argc,argv;
 
     std::string analysis_type = "quality_metrics";
 
     analysis_data.create_float_dataset("num_objects",0);
 
-    analysis_data.debug = true;
+    analysis_data.quality_metrics_gt = true;
 
 
     /////////////////////////////////////////////
@@ -56,7 +56,7 @@ int main(int argc, char **argv) {
 
     obj_properties obj_prop(bs.obj_size,bs.sig);
 
-    obj_prop.sample_rate = 400;
+    obj_prop.sample_rate = 800;
 
     Object_template  basic_object = get_object_template(options,obj_prop);
 
@@ -70,7 +70,7 @@ int main(int argc, char **argv) {
     //
     /////////////////////////////////////////////////////////
 
-    float image_size_max = 400;
+    float image_size_max = 800;
     float image_size_min = 20;
 
     std::vector<float> sampling_rate;
@@ -91,7 +91,7 @@ int main(int argc, char **argv) {
 
     //sampling_rate.push_back(max_sampling);
 
-    bs.desired_I = sqrt(bs.shift)*5;
+    bs.desired_I = sqrt(bs.shift)*30;
 
     //syn_image.noise_properties.noise_type = "none";
 
@@ -180,7 +180,6 @@ int main(int argc, char **argv) {
             ///////////////////////////////
 
             produce_apr_analysis(input_img,analysis_data,pc_struct,syn_image_loc,p_rep.pars);
-
 
             af::sync();
             af::deviceGC();

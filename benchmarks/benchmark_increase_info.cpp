@@ -50,7 +50,7 @@ int main(int argc, char **argv) {
 
     std::cout << "BENCHMARK INCREASE INFO CONTENT" << std::endl;
 
-    AnalysisData analysis_data(options.description,"Benchmark fixed number of spheres with increasing sized imaging domain");
+    AnalysisData analysis_data(options.description,"Benchmark fixed number of spheres with increasing sized imaging domain",argc,argv);
 
     analysis_data.debug = false;
 

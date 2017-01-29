@@ -105,7 +105,7 @@ void bench_get_apr(Mesh_data<T>& input_image,Part_rep& p_rep,PartCellStructure<f
 
     //float lambda = expf((-1.0f/0.6161f) * logf((pars.var_th/pars.noise_sigma)));
 
-    float lambda_min = 0.1f;
+    float lambda_min = 0.5f;
     float lambda_max = 5000;
 
     p_rep.pars.lambda = std::max(lambda_min,p_rep.pars.lambda);
@@ -123,14 +123,14 @@ void bench_get_apr(Mesh_data<T>& input_image,Part_rep& p_rep,PartCellStructure<f
         if (max_var_th > .25*p_rep.pars.var_th){
             float desired_th = 0.1*p_rep.pars.var_th;
             p_rep.pars.lambda = std::max((float)exp((-1.0/0.5138)*log(desired_th/p_rep.pars.noise_sigma)),p_rep.pars.lambda);
-            p_rep.pars.var_th_max = .75*p_rep.pars.var_th;
+            p_rep.pars.var_th_max = .5*p_rep.pars.var_th;
 
         } else {
-            p_rep.pars.var_th_max = .75*p_rep.pars.var_th;
+            p_rep.pars.var_th_max = .5*p_rep.pars.var_th;
 
         }
     } else {
-        p_rep.pars.var_th_max =  .75*p_rep.pars.var_th;
+        p_rep.pars.var_th_max =  .5*p_rep.pars.var_th;
     }
 
 

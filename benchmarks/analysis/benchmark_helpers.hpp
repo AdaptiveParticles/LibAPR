@@ -17,6 +17,9 @@
 #include "GenerateTemplates.hpp"
 #include "SynImagePar.hpp"
 
+
+
+
 struct cmdLineOptionsBench{
     std::string template_dir = "";
     std::string template_name = "";
@@ -79,6 +82,13 @@ cmdLineOptionsBench read_command_line_options(int argc, char **argv){
     return result;
 
 }
+
+
+
+
+
+
+
 
 
 struct benchmark_settings{
@@ -251,11 +261,11 @@ void generate_objects(SynImage& syn_image_loc,benchmark_settings& bs){
 
             float obj_int = gen_rand.rand_num(bs.int_scale_min, bs.int_scale_max) * bs.desired_I;
 
-            temp_obj.int_scale = (
-                    ((curr_obj.real_deltas[0] * curr_obj.real_deltas[1] * curr_obj.real_deltas[2]) * obj_int) /
-                    (curr_obj.max_sample * pow(bs.voxel_size, 3)));
+           // temp_obj.int_scale = (
+                 //   ((curr_obj.real_deltas[0] * curr_obj.real_deltas[1] * curr_obj.real_deltas[2]) * obj_int) /
+                 //   (curr_obj.max_sample * pow(bs.voxel_size, 3)));
 
-
+            temp_obj.int_scale =  obj_int;
             syn_image_loc.real_objects.push_back(temp_obj);
         }
     }
@@ -291,7 +301,7 @@ void generate_object_center(SynImage& syn_image_loc,benchmark_settings& bs){
 
     float obj_int =  bs.int_scale_min * bs.desired_I;
 
-    temp_obj.int_scale = (pow(bs.voxel_size, 3)* obj_int) /
+    //temp_obj.int_scale = (pow(bs.voxel_size, 3)* obj_int) /
                     (curr_obj.max_sample *(curr_obj.real_deltas[0] * curr_obj.real_deltas[1] * curr_obj.real_deltas[2]));
 
     temp_obj.int_scale =  obj_int;

@@ -40,7 +40,7 @@ int main(int argc, char **argv) {
     //
     //////////////////////////////////////////////////////////////////
 
-    AnalysisData analysis_data(options.description,"Test");
+    AnalysisData analysis_data(options.description,"Test",argc,argv;
 
     std::string analysis_type = "quality_metrics";
 

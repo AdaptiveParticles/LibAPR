@@ -10,6 +10,16 @@
 #include "../../src/io/hdf5functions.h"
 #include "../../src/io/write_parts.h"
 
+#include <cstdio>
+#include <iostream>
+#include <memory>
+#include <stdexcept>
+#include <string>
+#include <array>
+
+std::string exec(const char* cmd);
+
+
 class AnalysisData: public Data_manager{
     //
     //  Bevan Cheeseman 2016
@@ -73,9 +83,10 @@ class AnalysisData: public Data_manager{
 
         file_name = name + std::to_string((uint64)seconds);
 
+        get_git_version();
     }
 
-    AnalysisData(std::string name,std::string description): Data_manager(),name(name),description(description)
+    AnalysisData(std::string name,std::string description,int argc, char **argv): Data_manager(),name(name),description(description)
     {
 
         // current date/time based on current system
@@ -122,6 +133,19 @@ class AnalysisData: public Data_manager{
 
 
         file_name = name + std::to_string((uint64)seconds);
+
+        //get the current git version
+        get_git_version();
+
+        std::vector<std::string> arguments(argv + 1, argv + argc);
+
+        //add the command line arguments
+        for (int i = 0; i < arguments.size(); ++i) {
+            create_string_dataset("arg_" + std::to_string(i),0);
+            get_data_ref<std::string>("arg_" + std::to_string(i))->data.push_back(arguments[i]);
+            part_data_list["arg_" + std::to_string(i)].print_flag = true;
+        }
+
 
     };
 
@@ -279,6 +303,7 @@ class AnalysisData: public Data_manager{
     //writes the results to hdf5
     void write_analysis_data_hdf5();
 
+    void get_git_version();
 
 };
 void AnalysisData::write_analysis_data_hdf5(){
@@ -348,5 +373,31 @@ long long GetFileSize(std::string filename)
     return size;
 }
 
+
+std::string exec(const char* cmd) {
+    std::array<char, 128> buffer;
+    std::string result;
+    std::shared_ptr<FILE> pipe(popen(cmd, "r"), pclose);
+    if (!pipe) throw std::runtime_error("popen() failed!");
+    while (!feof(pipe.get())) {
+        if (fgets(buffer.data(), 128, pipe.get()) != NULL)
+            result += buffer.data();
+    }
+    return result;
+}
+
+void AnalysisData::get_git_version(){
+    //
+    //  Get the git hash
+    //
+    //
+
+    std::string git_hash = exec("git rev-parse HEAD");
+
+    create_string_dataset("git_hash",0);
+    get_data_ref<std::string>("git_hash")->data.push_back(git_hash);
+    part_data_list["git_hash"].print_flag = true;
+
+}
 
 #endif //PARTPLAY_ANALYSISDATA_HPP

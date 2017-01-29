@@ -24,10 +24,10 @@ void run_segmentation_benchmark(PartCellStructure<float,uint64_t> pc_struct,Anal
 
     Mesh_data<uint8_t> seg_mesh;
 
-    if(pc_struct.org_dims[0] <400){
-
+    if(pc_struct.org_dims[0] <600){
+        std::cout << "gc_seg_mesh" << std::endl;
         calc_graph_cuts_segmentation_mesh(pc_struct,seg_mesh,parameters_nuc,analysis_data);
-
+        std::cout << "gc_seg_mesh_complete" << std::endl;
     }
 
 }
