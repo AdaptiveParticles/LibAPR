@@ -50,7 +50,7 @@ int main(int argc, char **argv) {
 
     std::cout << "BENCHMARK INCREASE INFO CONTENT" << std::endl;
 
-    AnalysisData analysis_data(options.description,"Benchmark fixed number of spheres with increasing sized imaging domain",argc,argv);
+    AnalysisData analysis_data(options.description,"Fixed Image Size Increasing Number of Particles",argc,argv);
 
     process_input(options,syn_image,analysis_data,bs);
 
@@ -61,9 +61,9 @@ int main(int argc, char **argv) {
     //
     //////////////////////////////////////////////////////
 
-    int num_obj =30;
+    int num_obj =200;
     std::vector<int> number_obj;
-    int step = 2;
+    int step = options.delta;
 
     //number_obj.push_back(num_obj);
 
@@ -93,7 +93,7 @@ int main(int argc, char **argv) {
     float del = (max_mean - min_mean)/num_steps;
 
     for(float i = min_mean;i <= max_mean; i = i + del ){
-        mean_int.push_back(i);
+        //mean_int.push_back(i);
     }
 
     min_mean = 15;
@@ -103,8 +103,10 @@ int main(int argc, char **argv) {
     del = (max_mean - min_mean)/num_steps;
 
     for(float i = min_mean;i <= max_mean; i = i + del ){
-        mean_int.push_back(i);
+        //mean_int.push_back(i);
     }
+
+    mean_int.push_back(30);
 
     std::vector<float> sig_vec;
 
@@ -125,8 +127,6 @@ int main(int argc, char **argv) {
 
     sig_vec.push_back(sig_single);
 
-
-    bs.N_repeats = 1; // so you have this many realisations at the parameter set
     int N_par1 = (int)number_obj.size(); // this many different parameter values to be run
     int N_par2 = (int)mean_int.size();
     int N_par3 = (int)sig_vec.size();
@@ -154,7 +154,7 @@ int main(int argc, char **argv) {
         //add the basic sphere as the standard template
 
         Part_timer b_time;
-        //b_time.verbose_flag = true;
+        b_time.verbose_flag = true;
 
 
         for (int p = 0; p < N_par2;p++){
@@ -163,15 +163,13 @@ int main(int argc, char **argv) {
 
                 for (int i = 0; i < bs.N_repeats; i++) {
 
+                    b_time.start_timer("one_it");
 
                     ///////////////////////////////
                     //
                     //  Individual synthetic image parameters
                     //
                     ///////////////////////////////
-
-
-
 
                     SynImage syn_image_loc = syn_image;
 
@@ -238,6 +236,8 @@ int main(int argc, char **argv) {
 
                     af::sync();
                     af::deviceGC();
+
+                    b_time.stop_timer();
 
                 }
             }

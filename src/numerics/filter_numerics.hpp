@@ -1280,7 +1280,7 @@ void apr_filter_full(PartCellStructure<S,uint64_t>& pc_struct,uint64_t filter_of
     std::vector<float> filter;
 
     timer.verbose_flag = false;
-    timer.start_timer("full previous filter");
+    //timer.start_timer("full previous filter");
     
     filter.resize(filter_offset*2 +1,1);
     
@@ -1290,7 +1290,76 @@ void apr_filter_full(PartCellStructure<S,uint64_t>& pc_struct,uint64_t filter_of
     const int x_num_m = filter_img.x_num;
     const int y_num_m = filter_img.y_num;
     const int z_num_m = filter_img.z_num;
-    
+
+
+
+    timer.start_timer("compute gradient y no interp temp_vec");
+
+    for(int r = 0;r < num_repeats;r++){
+
+
+        std::vector<float> temp_vec;
+        temp_vec.resize(y_dim,0);
+
+        for(uint64_t depth = (part_new.access_data.depth_min);depth <= part_new.access_data.depth_max;depth++){
+            //loop over the resolutions of the structure
+            const unsigned int x_num_ = part_new.access_data.x_num[depth];
+            const unsigned int z_num_ = part_new.access_data.z_num[depth];
+
+            CurrentLevel<float,uint64_t> curr_level;
+            curr_level.set_new_depth(depth,part_new);
+
+#pragma omp parallel for default(shared) private(z_,x_,j_,y_,offset_min,offset_max) firstprivate(curr_level,temp_vec) if(z_num_*x_num_ > 100)
+            for(z_ = 0;z_ < z_num_;z_++){
+                //both z and x are explicitly accessed in the structure
+
+                for(x_ = 0;x_ < x_num_;x_++){
+
+                    curr_level.set_new_xz(x_,z_,part_new);
+
+                    for(j_ = 0;j_ < curr_level.j_num;j_++){
+
+                        bool iscell = curr_level.new_j(j_,part_new);
+
+                        if (iscell){
+                            //Indicates this is a particle cell node
+                            curr_level.update_cell(part_new);
+
+                            y_ = curr_level.y;
+
+                            offset_max = std::min((uint64_t)(y_ + filter_offset),(uint64_t)(y_num_m-1));
+                            offset_min = std::max((uint64_t)(y_ - filter_offset),(uint64_t)0);
+
+                            uint64_t f = 0;
+                            S temp = 0;
+                            for(uint64_t c = offset_min;c <= offset_max;c++){
+
+                                //need to change the below to the vector
+                                temp += temp_vec[c]*filter[f];
+                                f++;
+                            }
+
+                            curr_level.get_val(filter_output) = temp;
+
+
+                        } else {
+
+                            curr_level.update_gap();
+
+                        }
+
+
+                    }
+                }
+            }
+        }
+    }
+
+    timer.stop_timer();
+
+    float time_vec = (timer.t2 - timer.t1);
+
+
     timer.start_timer("compute gradient y");
     
     for(int r = 0;r < num_repeats;r++){
@@ -1487,7 +1556,18 @@ void apr_filter_full(PartCellStructure<S,uint64_t>& pc_struct,uint64_t filter_of
     timer.stop_timer();
     
     float time3 = (timer.t2 - timer.t1);
-    
+
+
+    timer.start_timer("interp");
+    for(int r = 0;r < num_repeats;r++){
+
+        pc_struct.interp_parts_to_pc(pc_struct.part_data.particle_data,filter_img,temp_array);
+
+    }
+    timer.stop_timer();
+
+    float time_interp = (timer.t2 - timer.t1);
+
     //std::cout << "Particle pc Filter z took: " << time3/num_repeats << std::endl;
     
     //std::cout << "Particle pc Filter all took: " << (time + time2 + time3)/num_repeats << std::endl;
@@ -1496,7 +1576,16 @@ void apr_filter_full(PartCellStructure<S,uint64_t>& pc_struct,uint64_t filter_of
     analysis_data.add_float_data("particle_filter_x",time2/num_repeats);
     analysis_data.add_float_data("particle_filter_z",time3/num_repeats);
 
+    analysis_data.add_float_data("particle_filter_y_vec",time_vec/num_repeats);
+
     analysis_data.add_float_data("particle_filter_all",(time + time2 + time3)/num_repeats);
+
+    analysis_data.add_float_data("particle_filter_y_no_interp",(time-time_interp)/num_repeats);
+    analysis_data.add_float_data("particle_filter_x_no_interp",(time2-time_interp)/num_repeats);
+    analysis_data.add_float_data("particle_filter_z_no_interp",(time3-time_interp)/num_repeats);
+
+    analysis_data.add_float_data("particle_filter_all_no_interp",(time + time2 + time3 - time_interp*3)/num_repeats);
+
 }
 template<typename U>
 void sep_neigh_filter(PartCellData<uint64_t>& pc_data,ExtraPartCellData<U>& input_data,std::vector<U>& filter){
