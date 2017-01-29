@@ -21,7 +21,7 @@ void run_segmentation_benchmark_mesh(PartCellStructure<float,uint64_t> pc_struct
     Mesh_data<uint8_t> seg_mesh;
 
     //memory on this machine can't handle anything bigger
-    if(pc_struct.org_dims[0] <600){
+    if(pc_struct.org_dims[0] <= 500){
         std::cout << "gc_seg_mesh" << std::endl;
         calc_graph_cuts_segmentation_mesh(pc_struct,seg_mesh,parameters_nuc,analysis_data);
         std::cout << "gc_seg_mesh_complete" << std::endl;
