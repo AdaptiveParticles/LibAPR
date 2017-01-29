@@ -43,8 +43,10 @@ class AnalysisData: public Data_manager{
     bool quality_metrics_input;
     bool file_size;
     bool information_content;
-    bool segmentation;
-    bool filters;
+    bool segmentation_mesh;
+    bool segmentation_parts;
+    bool filters_parts;
+    bool filters_mesh;
     bool debug;
 
     AnalysisData(){
@@ -65,8 +67,10 @@ class AnalysisData: public Data_manager{
         quality_metrics_input = false;
         information_content = false;
         file_size = false;
-        segmentation = false;
-        filters = false;
+        segmentation_parts = false;
+        filters_parts = false;
+        segmentation_mesh = false;
+        filters_mesh = false;
         debug = false;
 
         time_t timer;
@@ -115,8 +119,10 @@ class AnalysisData: public Data_manager{
         information_content = false;
         file_size = false;
 
-        segmentation = false;
-        filters = false;
+        segmentation_parts = false;
+        filters_parts = false;
+        filters_mesh = false;
+        segmentation_mesh = false;
 
         debug=false;
 

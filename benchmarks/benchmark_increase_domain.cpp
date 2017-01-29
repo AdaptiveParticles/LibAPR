@@ -76,15 +76,13 @@ int main(int argc, char **argv) {
 
     analysis_data.create_float_dataset("num_objects",0);
 
-    analysis_data.segmentation = true;
-    analysis_data.filters = false;
-
+    process_input(options,syn_image,analysis_data,bs);
     // In this case we are increasing the number of objects
 
     std::vector<int> image_size;
 
     float min_size = 50;
-    float max_size = 600;
+    float max_size = options.image_size;
     float delta = 50;
 
     for (int i = min_size; i < max_size; i = i + delta) {
@@ -93,7 +91,6 @@ int main(int argc, char **argv) {
 
     bs.num_objects = 5;
 
-    bs.N_repeats = 1; // so you have this many realisations at the parameter set
     int N_par = (int)image_size.size(); // this many different parameter values to be run
 
     Part_timer b_timer;

@@ -58,38 +58,6 @@ void bench_get_apr(Mesh_data<T>& input_image,Part_rep& p_rep,PartCellStructure<f
     //  Calculates the APR from image
     //
     //
-//
-//    p_rep.pars.tol = 0.0005;
-//
-//    float k_diff = -3.0;
-//
-//    //set lambda
-//    float lambda = exp((-1.0/0.6161)*log((p_rep.pars.var_th/p_rep.pars.noise_sigma)*pow(2.0,k_diff + log2f(p_rep.pars.rel_error))/0.12531));
-//
-//    float lambda_min = .1;
-//    float lambda_max = 5000;
-//
-//    p_rep.pars.lambda = std::max(lambda_min,lambda);
-//    p_rep.pars.lambda = std::min(p_rep.pars.lambda,lambda_max);
-//
-//    p_rep.pars.lambda = 0.1;
-//
-//    std::cout << p_rep.pars.lambda << std::endl;
-//
-//
-//
-//    float max_var_th = 1.2*p_rep.pars.noise_sigma*exp(-0.5138*log(p_rep.pars.lambda))*(0.1821*log(p_rep.pars.lambda)+ 1.522);
-//
-//    if (max_var_th > .25*p_rep.pars.var_th){
-//        float desired_th = 0.1*p_rep.pars.var_th;
-//        p_rep.pars.lambda = std::max((float)exp((-1.0/0.5138)*log(desired_th/p_rep.pars.noise_sigma)),p_rep.pars.lambda);
-//        p_rep.pars.var_th_max = .25*p_rep.pars.var_th;
-//
-//    } else {
-//        p_rep.pars.var_th_max = max_var_th;
-//
-//    }
-
 
     p_rep.pars.tol = 0.0005f;
 
@@ -101,22 +69,15 @@ void bench_get_apr(Mesh_data<T>& input_image,Part_rep& p_rep,PartCellStructure<f
     float lambda = expf((-1.0f/0.6161f) * logf((p_rep.pars.var_th/p_rep.pars.noise_sigma) *
                                                powf(2.0f,k_diff + log2f(p_rep.pars.rel_error))/0.12531f));
 
-    p_rep.pars.lambda = exp((-1.0/0.5138)*log(p_rep.pars.var_th/p_rep.pars.noise_sigma));
+    if(p_rep.pars.lambda == 0) {
 
-    //float lambda = expf((-1.0f/0.6161f) * logf((pars.var_th/pars.noise_sigma)));
+        p_rep.pars.lambda = exp((-1.0/0.5138)*log(p_rep.pars.var_th/p_rep.pars.noise_sigma));
 
-    float lambda_min = 0.5f;
-    float lambda_max = 5000;
+        float lambda_min = 0.05f;
+        float lambda_max = 5000;
 
-    p_rep.pars.lambda = std::max(lambda_min,p_rep.pars.lambda);
-    p_rep.pars.lambda = std::min(p_rep.pars.lambda,lambda_max);
-
-    std::cout << "Lamda: " << p_rep.pars.lambda << std::endl;
-
-    float max_var_th = 1.2f * p_rep.pars.noise_sigma * expf(-0.5138f * logf(p_rep.pars.lambda)) *
-                       (0.1821f * logf(p_rep.pars.lambda) + 1.522f);
-
-    if(p_rep.pars.lambda > 0) {
+        p_rep.pars.lambda = std::max(lambda_min,p_rep.pars.lambda);
+        p_rep.pars.lambda = std::min(p_rep.pars.lambda,lambda_max);
 
         float max_var_th = 1.2f * p_rep.pars.noise_sigma * expf(-0.5138f * logf(p_rep.pars.lambda)) *
                            (0.1821f * logf(p_rep.pars.lambda) + 1.522f);
@@ -133,6 +94,7 @@ void bench_get_apr(Mesh_data<T>& input_image,Part_rep& p_rep,PartCellStructure<f
         p_rep.pars.var_th_max =  .5*p_rep.pars.var_th;
     }
 
+    std::cout << "Lamda: " << p_rep.pars.lambda << std::endl;
 
     get_apr(input_image,p_rep,pc_struct,analysis_data);
 
@@ -468,15 +430,28 @@ void produce_apr_analysis(Mesh_data<T>& input_image,AnalysisData& analysis_data,
     //
     //////////////////////////////////////////////////////////////////
 
-    if(analysis_data.segmentation) {
+    if(analysis_data.segmentation_mesh) {
 
-        run_segmentation_benchmark(pc_struct, analysis_data);
+        run_segmentation_benchmark_mesh(pc_struct, analysis_data);
 
     }
 
-    if(analysis_data.filters){
+    if(analysis_data.segmentation_parts) {
 
-        run_filter_benchmarks(pc_struct, analysis_data);
+        run_segmentation_benchmark_parts(pc_struct, analysis_data);
+
+    }
+
+
+    if(analysis_data.filters_mesh){
+
+        run_filter_benchmarks_mesh(pc_struct, analysis_data);
+
+    }
+
+    if(analysis_data.filters_parts){
+
+        run_filter_benchmarks_parts(pc_struct, analysis_data);
 
     }
 

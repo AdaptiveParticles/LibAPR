@@ -18,8 +18,6 @@
 #include "SynImagePar.hpp"
 
 
-
-
 struct cmdLineOptionsBench{
     std::string template_dir = "";
     std::string template_name = "";
@@ -29,6 +27,25 @@ struct cmdLineOptionsBench{
     std::string input = "";
     std::string description = "";
     bool template_file = false;
+
+    bool quality_metrics_gt = false;
+    bool quality_metrics_input = false;
+    bool information_content = false;
+    bool file_size = false;
+    bool segmentation_parts = false;
+    bool filters_parts = false;
+    bool segmentation_mesh = false;
+    bool filters_mesh = false;
+    bool debug = false;
+    bool nonoise = false;
+
+    float lambda = 0;
+    float rel_error = 0;
+
+    int image_size = 128;
+
+    float num_rep = 1;
+
 };
 
 bool command_option_exists_bench(char **begin, char **end, const std::string &option)
@@ -53,6 +70,77 @@ cmdLineOptionsBench read_command_line_options(int argc, char **argv){
     if(argc == 1) {
         std::cerr << "Usage: \"exec -td template_director -tn template_name -d description\"" << std::endl;
         exit(1);
+    }
+
+
+    if(command_option_exists_bench(argv, argv + argc, "-quality_metrics_gt"))
+    {
+        result.quality_metrics_gt = true;
+    }
+
+    if(command_option_exists_bench(argv, argv + argc, "-quality_metrics_input"))
+    {
+        result.quality_metrics_input = true;
+    }
+
+    if(command_option_exists_bench(argv, argv + argc, "-information_content"))
+    {
+        result.information_content = true;
+    }
+
+    if(command_option_exists_bench(argv, argv + argc, "-file_size"))
+    {
+        result.file_size = true;
+    }
+
+    if(command_option_exists_bench(argv, argv + argc, "-segmentation_parts"))
+    {
+        result.segmentation_parts = true;
+    }
+
+    if(command_option_exists_bench(argv, argv + argc, "-segmentation_mesh"))
+    {
+        result.segmentation_mesh = true;
+    }
+
+    if(command_option_exists_bench(argv, argv + argc, "-filters_mesh"))
+    {
+        result.filters_mesh = true;
+    }
+
+    if(command_option_exists_bench(argv, argv + argc, "-filters_parts"))
+    {
+        result.filters_parts = true;
+    }
+
+    if(command_option_exists_bench(argv, argv + argc, "-debug"))
+    {
+        result.debug = true;
+    }
+
+    if(command_option_exists_bench(argv, argv + argc, "-nonoise"))
+    {
+        result.nonoise = true;
+    }
+
+    if(command_option_exists_bench(argv, argv + argc, "-imgsize"))
+    {
+        result.image_size = std::stoi(std::string(get_command_option_bench(argv, argv + argc, "-imgsize")));
+    }
+
+    if(command_option_exists_bench(argv, argv + argc, "-numrep"))
+    {
+        result.num_rep = std::stoi(std::string(get_command_option_bench(argv, argv + argc, "-numrep")));
+    }
+
+    if(command_option_exists_bench(argv, argv + argc, "-lambda"))
+    {
+        result.lambda = std::stof(std::string(get_command_option_bench(argv, argv + argc, "-lambda")));
+    }
+
+    if(command_option_exists_bench(argv, argv + argc, "-rel_error"))
+    {
+        result.rel_error = std::stof(std::string(get_command_option_bench(argv, argv + argc, "-rel_error")));
     }
 
     if(command_option_exists_bench(argv, argv + argc, "-td"))
@@ -121,6 +209,8 @@ struct benchmark_settings{
     float rel_error = 0.085;
 
     float obj_size = 4;
+
+    float lambda = 0;
 
 };
 
@@ -302,7 +392,7 @@ void generate_object_center(SynImage& syn_image_loc,benchmark_settings& bs){
     float obj_int =  bs.int_scale_min * bs.desired_I;
 
     //temp_obj.int_scale = (pow(bs.voxel_size, 3)* obj_int) /
-                    (curr_obj.max_sample *(curr_obj.real_deltas[0] * curr_obj.real_deltas[1] * curr_obj.real_deltas[2]));
+                  //  (curr_obj.max_sample *(curr_obj.real_deltas[0] * curr_obj.real_deltas[1] * curr_obj.real_deltas[2]));
 
     temp_obj.int_scale =  obj_int;
 
@@ -325,7 +415,49 @@ void set_up_part_rep(SynImage& syn_image_loc,Part_rep& p_rep,benchmark_settings&
     p_rep.pars.noise_sigma = sqrt(bs.shift);
     p_rep.pars.interp_type = 0;
 
+    p_rep.pars.lambda = bs.lambda;
+
     get_test_paths(p_rep.pars.image_path,p_rep.pars.utest_path,p_rep.pars.output_path);
+}
+
+
+void process_input(cmdLineOptionsBench& options,SynImage& syn_image,AnalysisData& analysis_data,benchmark_settings& bs){
+    //
+    //  Bevan Cheeseman 2017
+    //
+    //  Takes the command line input and changes the appropriate variables
+    //
+
+    analysis_data.quality_metrics_gt = options.quality_metrics_gt;
+    analysis_data.quality_metrics_input = options.quality_metrics_input;
+    analysis_data.file_size = options.file_size;
+    analysis_data.segmentation_parts = options.segmentation_parts;
+    analysis_data.segmentation_mesh = options.segmentation_mesh;
+    analysis_data.filters_parts = options.filters_parts;
+    analysis_data.filters_mesh = options.filters_mesh;
+    analysis_data.debug = options.debug;
+
+    if(options.nonoise){
+        syn_image.noise_properties.noise_type = "none";
+        bs.noise_type = "none";
+    }
+
+    bs.N_repeats = options.num_rep;
+
+    bs.x_num = options.image_size;
+    bs.y_num = options.image_size;
+    bs.z_num = options.image_size;
+
+    update_domain(syn_image,bs);
+
+    if(options.rel_error > 0){
+        bs.rel_error = options.rel_error;
+    }
+
+    if(options.lambda > 0){
+        bs.lambda = options.lambda;
+    }
+
 }
 
 #endif //PARTPLAY_BENCHMARK_HELPERS_HPP
