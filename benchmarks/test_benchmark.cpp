@@ -62,7 +62,6 @@ int main(int argc, char **argv) {
 
     AnalysisData analysis_data(options.description,"Test",argc,argv);
 
-    std::string analysis_type = "quality_metrics";
 
     analysis_data.create_float_dataset("num_objects",0);
 

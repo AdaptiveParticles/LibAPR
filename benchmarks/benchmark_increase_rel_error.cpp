@@ -40,7 +40,7 @@ int main(int argc, char **argv) {
     //
     //////////////////////////////////////////////////////////////////
 
-    AnalysisData analysis_data(options.description,"Test",argc,argv;
+    AnalysisData analysis_data(options.description,"Test",argc,argv);
 
     std::string analysis_type = "quality_metrics";
 
@@ -72,7 +72,7 @@ int main(int argc, char **argv) {
         rel_error_vec.push_back(i);
     }
 
-    min_rel_error = .12;
+    min_rel_error = .1;
     max_rel_error = 1.0;
     num_steps = options.delta;
 
