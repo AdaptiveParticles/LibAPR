@@ -46,8 +46,7 @@ int main(int argc, char **argv) {
 
     analysis_data.create_float_dataset("num_objects",0);
 
-    analysis_data.quality_metrics_input = true;
-    analysis_data.quality_metrics_gt = true;
+    process_input(options,syn_image,analysis_data,bs);
 
     //////////////////////////////////////////////////////////
     //
@@ -63,9 +62,9 @@ int main(int argc, char **argv) {
     //two linear sections
 
     //min mean
-    float min_rel_error = .005;
+    float min_rel_error = .001;
     float max_rel_error = .1;
-    float num_steps = 2;
+    float num_steps = options.delta;
 
     float del = (max_rel_error - min_rel_error)/num_steps;
 
@@ -74,8 +73,8 @@ int main(int argc, char **argv) {
     }
 
     min_rel_error = .12;
-    max_rel_error = .4;
-    num_steps = 2;
+    max_rel_error = 1.0;
+    num_steps = options.delta;
 
     del = (max_rel_error - min_rel_error)/num_steps;
 
@@ -84,18 +83,18 @@ int main(int argc, char **argv) {
     }
 
     //min mean
-    float min_sig = 2;
+    float min_sig = 1;
     float max_sig = 4;
-    num_steps = 2;
+    num_steps = 4;
 
     del = (max_sig - min_sig)/num_steps;
 
 
     for(float i = min_sig;i <= max_sig; i = i + del ){
-        //sig_vec.push_back(i);
+        sig_vec.push_back(i);
     }
 
-    sig_vec.push_back(2);
+    //sig_vec.push_back(2);
 
 
     int N_par1 = (int)rel_error_vec.size(); // this many different parameter values to be run

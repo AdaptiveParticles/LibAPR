@@ -52,7 +52,7 @@ int main(int argc, char **argv) {
 
     AnalysisData analysis_data(options.description,"Benchmark fixed number of spheres with increasing sized imaging domain",argc,argv);
 
-    analysis_data.debug = false;
+    process_input(options,syn_image,analysis_data,bs);
 
     // In this case we are increasing the number of objects
     ///////////////////////////////////////////////////////
@@ -72,7 +72,6 @@ int main(int argc, char **argv) {
     }
 
 
-
     //////////////////////////////////////////////////////////
     //
     //
@@ -82,13 +81,7 @@ int main(int argc, char **argv) {
     /////////////////////////////////////////////////////////
 
 
-    float rel_error = 0.1;
-
     std::vector<float> mean_int;
-
-    //minimum intensity
-    float min_int = sqrt(bs.shift);
-
 
     //two linear sections
 

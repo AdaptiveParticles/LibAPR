@@ -73,6 +73,8 @@ int main(int argc, char **argv) {
 
     analysis_data.create_float_dataset("num_objects",0);
 
+    process_input(options,syn_image,analysis_data,bs);
+
     // In this case we are increasing the number of objects
 
     std::vector<int> image_size;

@@ -42,6 +42,8 @@ struct cmdLineOptionsBench{
     float lambda = 0;
     float rel_error = 0;
 
+    float delta = 10;
+
     int image_size = 128;
 
     float num_rep = 1;
@@ -143,6 +145,13 @@ cmdLineOptionsBench read_command_line_options(int argc, char **argv){
         result.rel_error = std::stof(std::string(get_command_option_bench(argv, argv + argc, "-rel_error")));
     }
 
+    if(command_option_exists_bench(argv, argv + argc, "-delta"))
+    {
+        result.delta = std::stof(std::string(get_command_option_bench(argv, argv + argc, "-delta")));
+    }
+
+
+
     if(command_option_exists_bench(argv, argv + argc, "-td"))
     {
         result.template_dir = std::string(get_command_option_bench(argv, argv + argc, "-td"));
@@ -166,6 +175,8 @@ cmdLineOptionsBench read_command_line_options(int argc, char **argv){
         //default
         result.description  = "unnamed";
     }
+
+
 
     return result;
 
