@@ -589,7 +589,7 @@ void produce_apr_analysis(Mesh_data<T>& input_image,AnalysisData& analysis_data,
     timer.stop_timer();
 
 }
-
+template<typename T>
 void produce_apr_analysis(Mesh_data<T>& input_image,AnalysisData& analysis_data,PartCellStructure<float,uint64_t>& pc_struct,Proc_par& pars){
     //
     //  Bevan Cheeseman 2017

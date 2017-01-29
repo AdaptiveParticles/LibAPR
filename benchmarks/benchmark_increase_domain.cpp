@@ -94,7 +94,7 @@ int main(int argc, char **argv) {
     int N_par = (int)image_size.size(); // this many different parameter values to be run
 
     Part_timer b_timer;
-    b_timer.verbose_flag = false;
+    b_timer.verbose_flag = true;
 
 
     for (int j = 0;j < N_par;j++){
