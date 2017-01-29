@@ -323,7 +323,7 @@ void set_gaussian_psf(SynImage& syn_image_loc,benchmark_settings& bs){
 
     syn_image_loc.PSF_properties.I0 = 1/(pow(2*3.14159265359,1.5)*syn_image_loc.PSF_properties.real_sigmas[0]*syn_image_loc.PSF_properties.real_sigmas[1]*syn_image_loc.PSF_properties.real_sigmas[2]);
 
-    syn_image_loc.PSF_properties.cut_th = 0.00001;
+    syn_image_loc.PSF_properties.cut_th = 0.0000001;
 
     syn_image_loc.PSF_properties.set_guassian_window_size();
 
@@ -357,9 +357,9 @@ void generate_objects(SynImage& syn_image_loc,benchmark_settings& bs){
             Object_template curr_obj = syn_image_loc.object_templates[temp_obj.template_id];
 
             //have them avoid the boundary, to avoid boundary effects
-            temp_obj.location[0] = gen_rand.rand_num(bs.dom_size_y*.1, .9*bs.dom_size_y - curr_obj.real_size[0]);
-            temp_obj.location[1] = gen_rand.rand_num(bs.dom_size_y*.1, .9*bs.dom_size_x - curr_obj.real_size[0]);
-            temp_obj.location[2] = gen_rand.rand_num(bs.dom_size_y*.1, .9*bs.dom_size_z - curr_obj.real_size[0]);
+            temp_obj.location[0] = gen_rand.rand_num(bs.dom_size_y*.02, .98*bs.dom_size_y - curr_obj.real_size[0]);
+            temp_obj.location[1] = gen_rand.rand_num(bs.dom_size_x*.02, .98*bs.dom_size_x - curr_obj.real_size[0]);
+            temp_obj.location[2] = gen_rand.rand_num(bs.dom_size_z*.02, .98*bs.dom_size_z - curr_obj.real_size[0]);
 
             float obj_int = gen_rand.rand_num(bs.int_scale_min, bs.int_scale_max) * bs.desired_I;
 

@@ -27,7 +27,7 @@ struct obj_properties {
 
         obj_size_vec = {obj_size,obj_size,obj_size};
 
-        real_size = obj_size + 8*sig;
+        real_size = obj_size + 3*sig;
         rad_ratio = (obj_size/2)/real_size;
 
         float density = 1000000;

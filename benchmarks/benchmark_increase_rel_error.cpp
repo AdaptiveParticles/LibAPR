@@ -42,9 +42,8 @@ int main(int argc, char **argv) {
 
     AnalysisData analysis_data(options.description,"Test",argc,argv);
 
-    std::string analysis_type = "quality_metrics";
-
     analysis_data.create_float_dataset("num_objects",0);
+    analysis_data.create_float_dataset("rel_error",0);
 
     process_input(options,syn_image,analysis_data,bs);
 
@@ -62,7 +61,7 @@ int main(int argc, char **argv) {
     //two linear sections
 
     //min mean
-    float min_rel_error = .001;
+    float min_rel_error = .01;
     float max_rel_error = .1;
     float num_steps = options.delta;
 
@@ -75,6 +74,7 @@ int main(int argc, char **argv) {
     min_rel_error = .1;
     max_rel_error = 1.0;
     num_steps = options.delta;
+    num_steps = 1;
 
     del = (max_rel_error - min_rel_error)/num_steps;
 
@@ -83,9 +83,9 @@ int main(int argc, char **argv) {
     }
 
     //min mean
-    float min_sig = 1;
+    float min_sig = 3;
     float max_sig = 4;
-    num_steps = 4;
+    num_steps = 1;
 
     del = (max_sig - min_sig)/num_steps;
 
@@ -100,14 +100,17 @@ int main(int argc, char **argv) {
     int N_par1 = (int)rel_error_vec.size(); // this many different parameter values to be run
     int N_par2 = (int)sig_vec.size();
 
-    bs.num_objects = 20;
+    bs.num_objects = 10;
 
     Genrand_uni gen_rand;
 
+    bs.desired_I = 400;
 
     for (int p = 0; p < N_par2;p++){
 
         bs.sig = sig_vec[p];
+
+        bs.sampling_delta = 300;
 
         obj_properties obj_prop(bs.obj_size,bs.sig);
 
