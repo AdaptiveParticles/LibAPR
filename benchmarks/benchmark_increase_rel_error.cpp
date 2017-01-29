@@ -105,6 +105,8 @@ int main(int argc, char **argv) {
 
     bs.desired_I = 400;
 
+    bs.shift = 100;
+
     bs.int_scale_min = 3;
 
     for (int p = 0; p < N_par2;p++){
