@@ -590,6 +590,24 @@ void produce_apr_analysis(Mesh_data<T>& input_image,AnalysisData& analysis_data,
 
 }
 
+void produce_apr_analysis(Mesh_data<T>& input_image,AnalysisData& analysis_data,PartCellStructure<float,uint64_t>& pc_struct,Proc_par& pars){
+    //
+    //  Bevan Cheeseman 2017
+    //
+    //  Interface for running on real data without syn image benchmarks
+    //
+    //
+
+    SynImage syn_image_temp;
+
+    //these cannot be run without a syntehtic image ground truth
+    analysis_data.quality_metrics_gt = false;
+    analysis_data.information_content = false;
+
+    produce_apr_analysis(input_image,analysis_data,pc_struct,syn_image_temp,pars);
+
+}
+
 void calc_information_content(SynImage syn_image,AnalysisData& analysis_data){
     //
     //  Bevan Cheeseman 2016
