@@ -428,6 +428,7 @@ void set_up_part_rep(SynImage& syn_image_loc,Part_rep& p_rep,benchmark_settings&
 
     if(bs.noise_type == "none") {
         p_rep.pars.interp_type = 2;
+        p_rep.pars.var_th = 1;
     }
 
     p_rep.pars.lambda = bs.lambda;
