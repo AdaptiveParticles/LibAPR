@@ -84,7 +84,7 @@ int main(int argc, char **argv) {
     //min mean
     float min_sig = 1;
     float max_sig = 5;
-    num_steps = .5;
+    num_steps = 10;
 
     del = (max_sig - min_sig)/num_steps;
 
