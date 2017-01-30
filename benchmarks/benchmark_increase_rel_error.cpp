@@ -57,7 +57,7 @@ int main(int argc, char **argv) {
 
     std::vector<float> sig_vec;
     std::vector<float> rel_error_vec;
-
+    std::vector<float> shift;
     //two linear sections
 
     //min mean
@@ -84,13 +84,24 @@ int main(int argc, char **argv) {
     //min mean
     float min_sig = 1;
     float max_sig = 5;
-    num_steps = 10;
+    num_steps = 1;
 
     del = (max_sig - min_sig)/num_steps;
 
 
     for(float i = min_sig;i <= max_sig; i = i + del ){
         sig_vec.push_back(i);
+    }
+
+    //min mean
+    float min_shift = 100;
+    float max_shift = 5000;
+    num_steps = 200;
+
+    del = (max_shift - min_shift)/num_steps;
+
+    for(float i = min_shift;i <= max_shift; i = i + del ){
+        shift.push_back(i);
     }
 
     //sig_vec.push_back(2);
@@ -104,107 +115,112 @@ int main(int argc, char **argv) {
 
     Genrand_uni gen_rand;
 
-    bs.desired_I = 5000;
-
-    bs.shift = 1000;
+    bs.desired_I = 500;
 
     bs.int_scale_min = 1;
-    bs.int_scale_max = 2;
+    bs.int_scale_max = 1;
 
-    for (int p = 0; p < N_par2;p++){
+    for(int q = 0;q < N_par3) {
 
-        bs.sig = sig_vec[p];
+        for (int p = 0; p < N_par2; p++) {
 
-        bs.sampling_delta = 300;
+            bs.sig = sig_vec[p];
 
-        obj_properties obj_prop(bs.obj_size,bs.sig);
+            bs.sampling_delta = 300;
 
-        Object_template  basic_object = get_object_template(options,obj_prop);
+            obj_properties obj_prop(bs.obj_size, bs.sig);
 
-        syn_image.object_templates.push_back(basic_object);
+            Object_template basic_object = get_object_template(options, obj_prop);
 
-        for (int j = 0;j < N_par1;j++){
+            syn_image.object_templates.push_back(basic_object);
 
-            for(int i = 0; i < bs.N_repeats; i++){
+            for (int j = 0; j < N_par1; j++) {
 
-                //af::sync();
-                af::deviceGC();
+                for (int i = 0; i < bs.N_repeats; i++) {
 
-                ///////////////////////////////
-                //
-                //  Individual synthetic image parameters
-                //
-                ///////////////////////////////
+                    //af::sync();
+                    af::deviceGC();
 
-                analysis_data.get_data_ref<float>("num_objects")->data.push_back(bs.num_objects);
-                analysis_data.part_data_list["num_objects"].print_flag = true;
+                    ///////////////////////////////
+                    //
+                    //  Individual synthetic image parameters
+                    //
+                    ///////////////////////////////
 
-                SynImage syn_image_loc = syn_image;
+                    analysis_data.get_data_ref<float>("num_objects")->data.push_back(bs.num_objects);
+                    analysis_data.part_data_list["num_objects"].print_flag = true;
 
-                //add the basic sphere as the standard template
+                    SynImage syn_image_loc = syn_image;
 
-                ///////////////////////////////////////////////////////////////////
-                //PSF properties
+                    //add the basic sphere as the standard template
 
-                set_gaussian_psf(syn_image_loc,bs);
+                    ///////////////////////////////////////////////////////////////////
+                    //PSF properties
+                    bs.shift = shift[q];
+                    syn_image_loc.global_trans.const_shift = bs.shift;
 
-                std::cout << "Par1: " << j << " of " << N_par1 << " Par2: " << p << " of " << N_par2 << " Rep: " << i << " of " << bs.N_repeats << std::endl;
+                    analysis_data.add_float_data("shift",shift[q]);
 
-                generate_objects(syn_image_loc,bs);
+                    set_gaussian_psf(syn_image_loc, bs);
 
+                    std::cout << "Par1: " << j << " of " << N_par1 << " Par2: " << p << " of " << N_par2 << " Rep: "
+                              << i << " of " << bs.N_repeats << std::endl;
 
-                ///////////////////////////////
-                //
-                //  Generate the image
-                //
-                ////////////////////////////////
-
-                MeshDataAF<uint16_t> gen_image;
-
-                syn_image_loc.generate_syn_image(gen_image);
-
-                Mesh_data<uint16_t> input_img;
-
-                copy_mesh_data_structures(gen_image,input_img);
+                    generate_objects(syn_image_loc, bs);
 
 
-                ///////////////////////////////
-                //
-                //  Get the APR
-                //
-                //////////////////////////////
+                    ///////////////////////////////
+                    //
+                    //  Generate the image
+                    //
+                    ////////////////////////////////
 
-                bs.rel_error = rel_error_vec[j];
+                    MeshDataAF<uint16_t> gen_image;
 
-                analysis_data.add_float_data("rel_error",bs.rel_error);
+                    syn_image_loc.generate_syn_image(gen_image);
 
-                Part_rep p_rep;
+                    Mesh_data<uint16_t> input_img;
 
-                set_up_part_rep(syn_image_loc,p_rep,bs);
-
-                // Get the APR
-
-                PartCellStructure<float,uint64_t> pc_struct;
-
-                bench_get_apr(input_img,p_rep,pc_struct,analysis_data);
-
-                ///////////////////////////////
-                //
-                //  Calculate analysis of the result
-                //
-                ///////////////////////////////
-
-                produce_apr_analysis(input_img,analysis_data,pc_struct,syn_image_loc,p_rep.pars);
+                    copy_mesh_data_structures(gen_image, input_img);
 
 
-                af::sync();
-                af::deviceGC();
+                    ///////////////////////////////
+                    //
+                    //  Get the APR
+                    //
+                    //////////////////////////////
 
+                    bs.rel_error = rel_error_vec[j];
+
+                    analysis_data.add_float_data("rel_error", bs.rel_error);
+
+                    Part_rep p_rep;
+
+                    set_up_part_rep(syn_image_loc, p_rep, bs);
+
+                    // Get the APR
+
+                    PartCellStructure<float, uint64_t> pc_struct;
+
+                    bench_get_apr(input_img, p_rep, pc_struct, analysis_data);
+
+                    ///////////////////////////////
+                    //
+                    //  Calculate analysis of the result
+                    //
+                    ///////////////////////////////
+
+                    produce_apr_analysis(input_img, analysis_data, pc_struct, syn_image_loc, p_rep.pars);
+
+
+                    af::sync();
+                    af::deviceGC();
+
+                }
             }
+
         }
-
     }
-
     //write the analysis output
     analysis_data.write_analysis_data_hdf5();
 
