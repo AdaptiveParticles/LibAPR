@@ -125,7 +125,7 @@ int main(int argc, char **argv) {
                 ///////////////////////////////
 
 
-                analysis_data.add_float_data("num_objects",bs.num_objects);
+
 
                 SynImage syn_image_loc = syn_image;
 
@@ -143,6 +143,8 @@ int main(int argc, char **argv) {
                 bs.z_num = image_size[j];
 
                 bs.num_objects = (image_size[j]/26.0)*num_objects[k];
+
+                analysis_data.add_float_data("num_objects",bs.num_objects);
 
                 update_domain(syn_image_loc, bs);
 

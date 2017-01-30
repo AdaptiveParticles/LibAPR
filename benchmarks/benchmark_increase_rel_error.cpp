@@ -98,6 +98,7 @@ int main(int argc, char **argv) {
 
     int N_par1 = (int)rel_error_vec.size(); // this many different parameter values to be run
     int N_par2 = (int)sig_vec.size();
+    int N_par3 = (int)shift.size();
 
     bs.num_objects = 10;
 
