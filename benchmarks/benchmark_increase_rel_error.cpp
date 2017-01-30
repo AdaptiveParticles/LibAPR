@@ -61,7 +61,7 @@ int main(int argc, char **argv) {
     //two linear sections
 
     //min mean
-    float min_rel_error = .001;
+    float min_rel_error = .005;
     float max_rel_error = .1;
     float num_steps = options.delta;
 
@@ -103,11 +103,12 @@ int main(int argc, char **argv) {
 
     Genrand_uni gen_rand;
 
-    bs.desired_I = 400;
+    bs.desired_I = 1000;
 
     bs.shift = 1000;
 
-    bs.int_scale_min = 3;
+    bs.int_scale_min = 1;
+    bs.int_scale_max = 5;
 
     for (int p = 0; p < N_par2;p++){
 
