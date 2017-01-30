@@ -61,7 +61,7 @@ int main(int argc, char **argv) {
     //two linear sections
 
     //min mean
-    float min_rel_error = .08;
+    float min_rel_error = .001;
     float max_rel_error = .1;
     float num_steps = options.delta;
 
@@ -73,18 +73,18 @@ int main(int argc, char **argv) {
 
     min_rel_error = .1;
     max_rel_error = 1.0;
-    num_steps = options.delta;
+    num_steps = options.delta/2;
 
     del = (max_rel_error - min_rel_error)/num_steps;
 
     for(float i = min_rel_error;i <= max_rel_error; i = i + del ){
-        //rel_error_vec.push_back(i);
+        rel_error_vec.push_back(i);
     }
 
     //min mean
-    float min_sig = 4;
+    float min_sig = 1;
     float max_sig = 5;
-    num_steps = 1;
+    num_steps = .5;
 
     del = (max_sig - min_sig)/num_steps;
 
