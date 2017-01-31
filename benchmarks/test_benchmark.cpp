@@ -129,7 +129,7 @@ int main(int argc, char **argv) {
 
         bs.sig = sig_vec[p];
 
-        obj_properties obj_prop(bs.obj_size,bs.sig);
+        obj_properties obj_prop(bs);
 
         Object_template  basic_object = get_object_template(options,obj_prop);
 

@@ -213,11 +213,6 @@ struct node_key {
         
 };
 
-struct whatever {
-    static const uint8_t neigh_child_dir[6][3];
-};
-
-const uint8_t whatever::neigh_child_dir[6][3] = {{4,2,2},{4,2,2},{0,4,4},{0,4,4},{0,2,2},{0,2,2}};
 
 template <typename T> // type T data structure base type
 class PartCellData {
@@ -1645,8 +1640,8 @@ private:
                 uint64_t temp = neigh_key;
                 
                 //check if its two neighbours exist
-                bool exist0 = check_neigh_exists(org_node,neigh_key,whatever::neigh_child_dir[face][0]);
-                bool exist2 = check_neigh_exists(org_node,neigh_key,whatever::neigh_child_dir[face][2]);
+                bool exist0 = check_neigh_exists(org_node,neigh_key,neigh_child_dir[face][0]);
+                bool exist2 = check_neigh_exists(org_node,neigh_key,neigh_child_dir[face][2]);
                 
                 //changed the ordering
                 
@@ -1661,7 +1656,7 @@ private:
                 //diagonal will exist only if the other two exist
                 
                 if(exist2){
-                    temp = get_neighbour_same_level<whatever::neigh_child_dir[face][2]>(temp);
+                    temp = get_neighbour_same_level<neigh_child_dir[face][2]>(temp);
                     //pc_key_set_status(temp,get_status(get_val(temp)));
                     neigh_keys.push_back(temp);
                 } else {
@@ -1669,7 +1664,7 @@ private:
                 }
                 
                 if(exist0 & exist2){
-                    neigh_key = get_neighbour_same_level<whatever::neigh_child_dir[face][1]>(neigh_key);
+                    neigh_key = get_neighbour_same_level<neigh_child_dir[face][1]>(neigh_key);
                     //pc_key_set_status(neigh_key,get_status(get_val(neigh_key)));
                     neigh_keys.push_back(neigh_key);
                 } else {

@@ -145,7 +145,7 @@ int main(int argc, char **argv) {
         // GENERATE THE OBJECT TEMPLATE
         //////////////////////////////////////////////
 
-        obj_properties obj_prop(bs.obj_size,bs.sig);
+        obj_properties obj_prop(bs);
 
         Object_template  basic_object = get_object_template(options,obj_prop);
 

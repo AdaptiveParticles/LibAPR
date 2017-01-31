@@ -53,7 +53,7 @@ int main(int argc, char **argv) {
 
     bs.sig = 3;
 
-    obj_properties obj_prop(bs.obj_size,bs.sig);
+    obj_properties obj_prop(bs);
 
     obj_prop.sample_rate = 800;
 

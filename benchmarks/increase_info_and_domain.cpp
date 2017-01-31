@@ -50,7 +50,7 @@ int main(int argc, char **argv) {
 
     bs.obj_size = 4;
 
-    obj_properties obj_prop(bs.obj_size,bs.sig);
+    obj_properties obj_prop(bs);
 
 
     Object_template  basic_object = get_object_template(options,obj_prop);
