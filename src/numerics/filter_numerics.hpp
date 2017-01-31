@@ -587,8 +587,8 @@ void particle_linear_neigh_access(PartCellStructure<float,uint64_t>& pc_struct,f
     analysis_data.add_float_data("neigh_part_linear_total",time);
     analysis_data.add_float_data("neigh_part_linear_perm",time/(1.0*pc_struct.get_number_parts()/1000000.0));
 
-    //std::cout << "Get neigh particle linear: " << time << std::endl;
-    //std::cout << "per 1000000 particles took: " << time/(1.0*pc_struct.get_number_parts()/1000000.0) << std::endl;
+    std::cout << "Get neigh particle linear: " << time << std::endl;
+    std::cout << "per 1000000 particles took: " << time/(1.0*pc_struct.get_number_parts()/1000000.0) << std::endl;
     
 }
 void move_cells_random(PartCellData<uint64_t>& pc_data,ParticleDataNew<float, uint64_t> part_new){

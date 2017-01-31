@@ -100,12 +100,15 @@ int main(int argc, char **argv) {
     //set up some new structures used in this test
     AnalysisData analysis_data;
 
-    float num_repeats = 1;
+    float num_repeats = 10;
 
     //Get neighbours (linear)
 
     //particles
-    //particle_linear_neigh_access(pc_struct,num_repeats,analysis_data);
+    //
+    particle_linear_neigh_access(pc_struct,num_repeats,analysis_data);
+
+    particle_linear_neigh_access(pc_struct,num_repeats,analysis_data);
 
     //particle_linear_neigh_access_alt_1(pc_struct);
 
@@ -128,7 +131,7 @@ int main(int argc, char **argv) {
 
   //  pixel_filter_full(pc_struct,pc_struct.org_dims[0],pc_struct.org_dims[1],pc_struct.org_dims[2],filter_offset,num_repeats,analysis_data);
 
-    new_filter_part(pc_struct,filter_offset,num_repeats,analysis_data);
+    //new_filter_part(pc_struct,filter_offset,num_repeats,analysis_data);
 
 
 
