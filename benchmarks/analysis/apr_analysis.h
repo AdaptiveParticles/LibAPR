@@ -84,14 +84,14 @@ void bench_get_apr(Mesh_data<T>& input_image,Part_rep& p_rep,PartCellStructure<f
         if (max_var_th > .25*p_rep.pars.var_th){
             float desired_th = 0.1*p_rep.pars.var_th;
             p_rep.pars.lambda = std::max((float)exp((-1.0/0.5138)*log(desired_th/p_rep.pars.noise_sigma)),p_rep.pars.lambda);
-            p_rep.pars.var_th_max = .5*p_rep.pars.var_th;
+            p_rep.pars.var_th_max = .25*p_rep.pars.var_th;
 
         } else {
-            p_rep.pars.var_th_max = .5*p_rep.pars.var_th;
+            p_rep.pars.var_th_max = .25*p_rep.pars.var_th;
 
         }
     } else {
-        p_rep.pars.var_th_max =  .5*p_rep.pars.var_th;
+        p_rep.pars.var_th_max =  .25*p_rep.pars.var_th;
     }
 
     std::cout << "Lamda: " << p_rep.pars.lambda << std::endl;
@@ -175,14 +175,14 @@ void compare_E(Mesh_data<S>& org_img,Mesh_data<S>& rec_img,Proc_par& pars,std::s
     uint64_t i = 0;
 
     Mesh_data<float> SE;
-    SE.initialize(y_num_o,x_num_o,z_num_o,0);
+    //SE.initialize(y_num_o,x_num_o,z_num_o,0);
 
     double mean = 0;
     double inf_norm = 0;
     uint64_t counter = 0;
     double MSE = 0;
 
-
+#pragma omp parallel for default(shared) private(j,i,k) reduction(+: MSE) reduction(+: counter) reduction(+: mean) reduction(max: inf_norm)
     for(j = 0; j < z_num_o;j++){
         for(i = 0; i < x_num_o;i++){
 
@@ -216,12 +216,11 @@ void compare_E(Mesh_data<S>& org_img,Mesh_data<S>& rec_img,Proc_par& pars,std::s
         for(i = 0; i < x_num_o;i++){
 
             for(k = 0;k < y_num_o;k++){
-                double val = pow(SE.mesh[j*x_num_o*y_num_o + i*y_num_o + k]/1000 - mean,2.0);
 
                 if(variance.mesh[j*x_num_r*y_num_r + i*y_num_r + k] < 50000) {
                     var += pow(pow(org_img.mesh[j*x_num_o*y_num_o + i*y_num_o + k] - rec_img.mesh[j*x_num_o*y_num_o + i*y_num_o + k],2) - MSE,2);
                     MSE_var += pow(pow(org_img.mesh[j*x_num_o*y_num_o + i*y_num_o + k] - rec_img.mesh[j*x_num_o*y_num_o + i*y_num_o + k],2) - MSE,2);
-                    var+=val;
+
                     counter++;
                 }
             }
@@ -352,8 +351,8 @@ void calc_mse(Mesh_data<S>& org_img,Mesh_data<S>& rec_img,std::string name,Analy
     MSE = MSE/(z_num_o*x_num_o*y_num_o*1.0);
 
 
-    Mesh_data<S> SE;
-    SE.initialize(y_num_o,x_num_o,z_num_o,0);
+   // Mesh_data<S> SE;
+    //SE.initialize(y_num_o,x_num_o,z_num_o,0);
 
     double var = 0;
     double counter = 0;

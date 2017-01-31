@@ -199,6 +199,8 @@ struct benchmark_settings{
     float voxel_size = 0.1;
     float sampling_delta = 0.1;
 
+    float image_sampling = 200;
+
     float dom_size_y = 0;
     float dom_size_x = 0;
     float dom_size_z = 0;
@@ -323,6 +325,8 @@ void set_gaussian_psf(SynImage& syn_image_loc,benchmark_settings& bs){
 
     syn_image_loc.PSF_properties.I0 = 1/(pow(2*3.14159265359,1.5)*syn_image_loc.PSF_properties.real_sigmas[0]*syn_image_loc.PSF_properties.real_sigmas[1]*syn_image_loc.PSF_properties.real_sigmas[2]);
 
+    syn_image_loc.PSF_properties.I0 = 1;
+
     syn_image_loc.PSF_properties.cut_th = 0.0000001;
 
     syn_image_loc.PSF_properties.set_guassian_window_size();
@@ -356,13 +360,30 @@ void generate_objects(SynImage& syn_image_loc,benchmark_settings& bs){
 
             Object_template curr_obj = syn_image_loc.object_templates[temp_obj.template_id];
 
-            //have them avoid the boundary, to avoid boundary effects
-            temp_obj.location[0] = gen_rand.rand_num(bs.dom_size_y*.02, .98*bs.dom_size_y - curr_obj.real_size[0]);
-            temp_obj.location[1] = gen_rand.rand_num(bs.dom_size_x*.02, .98*bs.dom_size_x - curr_obj.real_size[0]);
-            temp_obj.location[2] = gen_rand.rand_num(bs.dom_size_z*.02, .98*bs.dom_size_z - curr_obj.real_size[0]);
+            float min_dom = std::min(bs.dom_size_y,std::min(bs.dom_size_x,bs.dom_size_z));
 
-            float obj_int = gen_rand.rand_num(bs.int_scale_min, bs.int_scale_max) * bs.desired_I;
+            float max_obj = std::max(curr_obj.real_size[0],std::max(curr_obj.real_size[1],curr_obj.real_size[2]));
 
+            if(max_obj < min_dom) {
+                //have them avoid the boundary, to avoid boundary effects
+                temp_obj.location[0] = gen_rand.rand_num(bs.dom_size_y * .02,
+                                                         .98 * bs.dom_size_y - curr_obj.real_size[0]);
+                temp_obj.location[1] = gen_rand.rand_num(bs.dom_size_x * .02,
+                                                         .98 * bs.dom_size_x - curr_obj.real_size[1]);
+                temp_obj.location[2] = gen_rand.rand_num(bs.dom_size_z * .02,
+                                                         .98 * bs.dom_size_z - curr_obj.real_size[2]);
+            } else {
+                temp_obj.location[0] = .5 * bs.dom_size_y - curr_obj.real_size[0]/2;
+                temp_obj.location[1] = .5 * bs.dom_size_x - curr_obj.real_size[1]/2;
+                temp_obj.location[2] = .5 * bs.dom_size_z - curr_obj.real_size[2]/2;
+            }
+            float obj_int =  bs.desired_I;
+
+            if(bs.int_scale_min != bs.int_scale_max) {
+
+                float obj_int = gen_rand.rand_num(bs.int_scale_min, bs.int_scale_max) * bs.desired_I;
+
+            }
            // temp_obj.int_scale = (
                  //   ((curr_obj.real_deltas[0] * curr_obj.real_deltas[1] * curr_obj.real_deltas[2]) * obj_int) /
                  //   (curr_obj.max_sample * pow(bs.voxel_size, 3)));

@@ -80,7 +80,7 @@ int main(int argc, char **argv) {
     std::vector<int> image_size;
 
     float min_size = 100;
-    float max_size =  300;
+    float max_size =  1000;
     float delta = 50;
 
     for (int i = min_size; i < max_size; i = i + delta) {
@@ -96,22 +96,21 @@ int main(int argc, char **argv) {
 
     min_size = 1;
     max_size =  30;
-    delta = 4;
+    delta = 1;
 
     for (int i = min_size; i < max_size; i = i + delta) {
         num_objects.push_back(i);
     }
 
 
-    bs.N_repeats = 1; // so you have this many realisations at the parameter set
     int N_par = (int)image_size.size(); // this many different parameter values to be run
     int N_par2 = (int) num_objects.size();
 
     Part_timer b_timer;
-    b_timer.verbose_flag = false;
+    b_timer.verbose_flag = true;
 
     for(int k = 0;k < N_par2;k++) {
-        bs.num_objects = num_objects[k];
+
 
         for (int j = 0; j < N_par; j++) {
 
@@ -126,7 +125,7 @@ int main(int argc, char **argv) {
                 ///////////////////////////////
 
 
-                analysis_data.add_float_data("num_objects",bs.num_objects);
+
 
                 SynImage syn_image_loc = syn_image;
 
@@ -142,6 +141,10 @@ int main(int argc, char **argv) {
                 bs.x_num = image_size[j];
                 bs.y_num = image_size[j];
                 bs.z_num = image_size[j];
+
+                bs.num_objects = (image_size[j]/26.0)*num_objects[k];
+
+                analysis_data.add_float_data("num_objects",bs.num_objects);
 
                 update_domain(syn_image_loc, bs);
 
