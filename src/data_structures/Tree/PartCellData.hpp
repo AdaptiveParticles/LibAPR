@@ -213,7 +213,11 @@ struct node_key {
         
 };
 
+struct whatever {
+    static const uint8_t neigh_child_dir[6][3];
+};
 
+const uint8_t whatever::neigh_child_dir[6][3] = {{4,2,2},{4,2,2},{0,4,4},{0,4,4},{0,2,2},{0,2,2}};
 
 template <typename T> // type T data structure base type
 class PartCellData {
@@ -236,17 +240,22 @@ public:
     const int8_t von_neumann_z_cells[6] = { 0, 0, 0, 0, 1,-1};
     
     //the ordering of retrieval of four neighbour cells
+
     const uint8_t neigh_child_dir[6][3] = {{4,2,2},{4,2,2},{0,4,4},{0,4,4},{0,2,2},{0,2,2}};
-    
+
+//    constexpr uint8_t whatever::neigh_child_dir[6][3] = {{4,2,2},{4,2,2},{0,4,4},{0,4,4},{0,2,2},{0,2,2}};
+//
+
+
     const uint8_t neigh_child_y_offsets[6][4] = {{0,0,0,0},{0,0,0,0},{0,1,0,1},{0,1,0,1},{0,1,0,1},{0,1,0,1}};
-    
+//
     //variables for neighbour search loops
     const uint8_t x_start_vec[6] = {0,0,0,1,0,0};
     const uint8_t x_stop_vec[6] = {0,0,1,0,0,0};
-    
+
     const uint8_t z_start_vec[6] = {0,0,0,0,0,1};
     const uint8_t z_stop_vec[6] = {0,0,0,0,1,0};
-    
+
     const uint8_t y_start_vec[6] = {0,1,0,0,0,0};
     const uint8_t y_stop_vec[6] = {1,0,0,0,0,0};
     
@@ -1443,8 +1452,8 @@ private:
     //  [0,1,2,3,4,5]
     
     
-    template<uint64_t face>
-    uint64_t get_neighbour_same_level(const uint64_t& curr_key)
+    template<uint8_t face>
+    uint64_t get_neighbour_same_level(uint64_t& curr_key)
     {
         /** Get neighbours of a cell in one of the direction that are guranteed to be on the same level
          *
@@ -1526,11 +1535,8 @@ private:
             }
             
         }
-        
-        
     }
-    
-    
+
     template<uint64_t face>
     void get_neighs_face_t(const uint64_t& curr_key,uint64_t node_val,std::vector<uint64_t>& neigh_keys){
         //
@@ -1547,17 +1553,17 @@ private:
         //
         
         
-        constexpr uint64_t depth_mask_dir[6] = {YP_DEPTH_MASK,YM_DEPTH_MASK,XP_DEPTH_MASK,XM_DEPTH_MASK,ZP_DEPTH_MASK,ZM_DEPTH_MASK};
-        constexpr uint64_t depth_shift_dir[6] =  {YP_DEPTH_SHIFT,YM_DEPTH_SHIFT,XP_DEPTH_SHIFT,XM_DEPTH_SHIFT,ZP_DEPTH_SHIFT,ZM_DEPTH_SHIFT};
-        
-        constexpr uint64_t index_mask_dir[6] = {YP_INDEX_MASK,YM_INDEX_MASK,XP_INDEX_MASK,XM_INDEX_MASK,ZP_INDEX_MASK,ZM_INDEX_MASK};
-        constexpr uint64_t index_shift_dir[6] = {YP_INDEX_SHIFT,YM_INDEX_SHIFT,XP_INDEX_SHIFT,XM_INDEX_SHIFT,ZP_INDEX_SHIFT,ZM_INDEX_SHIFT};
-        
-        constexpr int8_t von_neumann_y_cells[6] = { 1,-1, 0, 0, 0, 0};
-        constexpr int8_t von_neumann_x_cells[6] = { 0, 0, 1,-1, 0, 0};
-        constexpr int8_t von_neumann_z_cells[6] = { 0, 0, 0, 0, 1,-1};
-        
-        //the ordering of retrieval of four neighbour cells
+//        constexpr uint64_t depth_mask_dir[6] = {YP_DEPTH_MASK,YM_DEPTH_MASK,XP_DEPTH_MASK,XM_DEPTH_MASK,ZP_DEPTH_MASK,ZM_DEPTH_MASK};
+//        constexpr uint64_t depth_shift_dir[6] =  {YP_DEPTH_SHIFT,YM_DEPTH_SHIFT,XP_DEPTH_SHIFT,XM_DEPTH_SHIFT,ZP_DEPTH_SHIFT,ZM_DEPTH_SHIFT};
+//
+//        constexpr uint64_t index_mask_dir[6] = {YP_INDEX_MASK,YM_INDEX_MASK,XP_INDEX_MASK,XM_INDEX_MASK,ZP_INDEX_MASK,ZM_INDEX_MASK};
+//        constexpr uint64_t index_shift_dir[6] = {YP_INDEX_SHIFT,YM_INDEX_SHIFT,XP_INDEX_SHIFT,XM_INDEX_SHIFT,ZP_INDEX_SHIFT,ZM_INDEX_SHIFT};
+//
+//        constexpr int8_t von_neumann_y_cells[6] = { 1,-1, 0, 0, 0, 0};
+//        constexpr int8_t von_neumann_x_cells[6] = { 0, 0, 1,-1, 0, 0};
+//        constexpr int8_t von_neumann_z_cells[6] = { 0, 0, 0, 0, 1,-1};
+//
+//        the ordering of retrieval of four neighbour cells
         constexpr uint8_t neigh_child_dir[6][3] = {{4,2,2},{4,2,2},{0,4,4},{0,4,4},{0,2,2},{0,2,2}};
         
         
@@ -1639,8 +1645,8 @@ private:
                 uint64_t temp = neigh_key;
                 
                 //check if its two neighbours exist
-                bool exist0 = check_neigh_exists(org_node,neigh_key,neigh_child_dir[face][0]);
-                bool exist2 = check_neigh_exists(org_node,neigh_key,neigh_child_dir[face][2]);
+                bool exist0 = check_neigh_exists(org_node,neigh_key,whatever::neigh_child_dir[face][0]);
+                bool exist2 = check_neigh_exists(org_node,neigh_key,whatever::neigh_child_dir[face][2]);
                 
                 //changed the ordering
                 
@@ -1655,7 +1661,7 @@ private:
                 //diagonal will exist only if the other two exist
                 
                 if(exist2){
-                    temp = get_neighbour_same_level<neigh_child_dir[face][2]>(temp);
+                    temp = get_neighbour_same_level<whatever::neigh_child_dir[face][2]>(temp);
                     //pc_key_set_status(temp,get_status(get_val(temp)));
                     neigh_keys.push_back(temp);
                 } else {
@@ -1663,7 +1669,7 @@ private:
                 }
                 
                 if(exist0 & exist2){
-                    neigh_key = get_neighbour_same_level<neigh_child_dir[face][1]>(neigh_key);
+                    neigh_key = get_neighbour_same_level<whatever::neigh_child_dir[face][1]>(neigh_key);
                     //pc_key_set_status(neigh_key,get_status(get_val(neigh_key)));
                     neigh_keys.push_back(neigh_key);
                 } else {

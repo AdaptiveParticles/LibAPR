@@ -175,7 +175,7 @@ public:
     }
     
     template<typename U>
-    bool move_cell(unsigned int dir,unsigned int index,ParticleDataNew<U, T>& part_data,PartCellData<uint64_t>& pc_data){
+    bool move_cell(unsigned int dir,unsigned int index, ParticleDataNew<U, T>& part_data,PartCellData<uint64_t>& pc_data){
         
         bool edge_domain = false;
         
