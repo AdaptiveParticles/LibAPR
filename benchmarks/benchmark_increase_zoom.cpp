@@ -38,7 +38,7 @@ int main(int argc, char **argv) {
     //
     //////////////////////////////////////////////////////////////////
 
-    AnalysisData analysis_data(options.description,"Test",argc,argv;
+    AnalysisData analysis_data(options.description,"Test",argc,argv);
 
 
     analysis_data.create_float_dataset("num_objects",0);
@@ -79,7 +79,7 @@ int main(int argc, char **argv) {
    // float sampling_lower_b = sqrt(log(1/syn_image.PSF_properties.cut_th)*2*pow(bs.sig,2));
     float min_sampling = real_domain_size/image_size_max;
     float max_sampling = real_domain_size/image_size_min;
-    float num_points = 30;
+    float num_points = options.delta;
     float delta = (max_sampling - min_sampling)/num_points;
 
     for (float i = min_sampling; i < max_sampling; i = i + delta) {
@@ -113,8 +113,6 @@ int main(int argc, char **argv) {
         bs.z_num = round(real_domain_size/bs.sampling_delta);
 
         update_domain(syn_image,bs);
-
-
 
         for(int i = 0; i < bs.N_repeats; i++){
 
