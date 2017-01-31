@@ -104,11 +104,11 @@ int main(int argc, char **argv) {
 
     proj_par proj_pars;
 
-    proj_pars.direction = 4;
+    proj_pars.direction = 5;
     proj_pars.proj_type = 1;
-    proj_pars.Ip_th = 1000;
-    proj_pars.start_th = 5;
-    proj_pars.status_th = 15;
+    proj_pars.Ip_th = 125;
+    proj_pars.start_th = 10;
+    proj_pars.status_th = 20;
     
     proj_pars.avg_flag = true;
     

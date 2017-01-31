@@ -1745,5 +1745,128 @@ void sep_neigh_filter(PartCellData<uint64_t>& pc_data,ExtraPartCellData<U>& inpu
 
     
 }
+template<typename S>
+void new_filter_part(PartCellStructure<S,uint64_t>& pc_struct,uint64_t filter_offset,float num_repeats,AnalysisData& analysis_data){
+//
+//     Bevan Cheeseman 2017
+//
+
+
+    ParticleDataNew<S, uint64_t> part_new;
+
+    part_new.initialize_from_structure(pc_struct);
+
+
+    ExtraPartCellData<S> filter_output;
+    filter_output.initialize_structure_cells(part_new.access_data);
+
+    ExtraPartCellData<S> part_data;
+
+    part_new.create_particles_at_cell_structure(part_data);
+
+
+
+    //
+    Part_timer timer;
+
+    Mesh_data<S> filter_img;
+    Mesh_data<S> temp_array;
+
+    int y_dim = ceil(pc_struct.org_dims[0]/2.0)*2;
+    int x_dim = ceil(pc_struct.org_dims[1]/2.0)*2;
+    int z_dim = ceil(pc_struct.org_dims[2]/2.0)*2;
+
+    filter_img.mesh.resize(x_dim*z_dim*y_dim);
+    temp_array.mesh.resize(x_dim*z_dim*y_dim);
+
+    int x_; // iteration variables
+    int z_; // iteration variables
+    uint64_t j_; // index variable
+    int y_;
+
+    timer.verbose_flag = false;
+
+    std::vector<float> filter;
+
+    timer.verbose_flag = false;
+    //timer.start_timer("full previous filter");
+
+    filter.resize(filter_offset*2 +1,1);
+
+    uint64_t offset_min;
+    uint64_t offset_max;
+
+    const int x_num_m = filter_img.x_num;
+    const int y_num_m = filter_img.y_num;
+    const int z_num_m = filter_img.z_num;
+
+
+    std::vector<float> temp_vec;
+
+
+    timer.start_timer("compute gradient y no interp temp_vec");
+
+    for(int r = 0;r < num_repeats;r++){
+
+
+
+        for(uint64_t depth = (part_new.access_data.depth_min);depth <= part_new.access_data.depth_max;depth++){
+            //loop over the resolutions of the structure
+            const unsigned int x_num_ = part_new.access_data.x_num[depth];
+            const unsigned int z_num_ = part_new.access_data.z_num[depth];
+
+            CurrentLevel<float,uint64_t> curr_level;
+            curr_level.set_new_depth(depth,part_new);
+
+#pragma omp parallel for default(shared) private(z_,x_,j_,y_,offset_min,offset_max) firstprivate(curr_level,temp_vec) if(z_num_*x_num_ > 100)
+            for(z_ = 0;z_ < z_num_;z_++){
+                //both z and x are explicitly accessed in the structure
+
+                temp_vec.resize(y_dim*x_dim,0);
+
+                for(x_ = 0;x_ < x_num_;x_++){
+
+                    curr_level.set_new_xz(x_,z_,part_new);
+
+                    for(j_ = 0;j_ < curr_level.j_num;j_++){
+
+                        bool iscell = curr_level.new_j(j_,part_new);
+
+                        if (iscell){
+                            //Indicates this is a particle cell node
+                            curr_level.update_cell(part_new);
+
+                            y_ = curr_level.y;
+
+                            //float temp =  curr_level.get_val(part_data);
+
+                            temp_vec[y_*x_num_ + x_] =  curr_level.get_val(part_data);
+
+
+
+
+                        } else {
+
+                            curr_level.update_gap();
+
+                        }
+
+
+                    }
+                }
+            }
+        }
+    }
+
+    timer.stop_timer();
+
+    float time_vec = (timer.t2 - timer.t1)/num_repeats;
+
+    std::cout << "time: " << time_vec << std::endl;
+
+
+
+}
+
 
 #endif
