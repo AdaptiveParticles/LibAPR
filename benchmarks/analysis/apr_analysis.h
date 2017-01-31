@@ -428,7 +428,7 @@ void produce_apr_analysis(Mesh_data<T>& input_image,AnalysisData& analysis_data,
         analysis_data.create_float_dataset("comp_image_size", 0);
 
         analysis_data.create_float_dataset("information_content", 0);
-        analysis_data.create_float_dataset("rel_error", 0);
+        analysis_data.create_float_dataset("relerror", 0);
 
     //set up timing variables
 
@@ -542,8 +542,7 @@ void produce_apr_analysis(Mesh_data<T>& input_image,AnalysisData& analysis_data,
         analysis_data.get_data_ref<float>("image_size")->data.push_back(GetFileSize(file_name + ".tif"));
         analysis_data.part_data_list["image_size"].print_flag = true;
 
-        analysis_data.get_data_ref<float>("rel_error")->data.push_back(pars.rel_error);
-        analysis_data.part_data_list["rel_error"].print_flag = true;
+
 
         //produce the compressed image file to get baseline
         std::string compress_file_name = file_name + ".bz2";
@@ -554,7 +553,8 @@ void produce_apr_analysis(Mesh_data<T>& input_image,AnalysisData& analysis_data,
         analysis_data.part_data_list["comp_image_size"].print_flag = true;
     }
 
-
+    analysis_data.get_data_ref<float>("relerror")->data.push_back(pars.rel_error);
+    analysis_data.part_data_list["relerror"].print_flag = true;
 
     ///////////////////////////
     //

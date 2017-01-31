@@ -95,19 +95,32 @@ int main(int argc, char **argv) {
     //single_ray_parrallel(pc_struct);
     
     int projection_type = 1;
+    int direction = 5;
     
     Part_timer timer;
     
     timer.start_timer("parrallel projection content");
     timer.verbose_flag = true;
+
+    proj_par proj_pars;
+
+    proj_pars.direction = 4;
+    proj_pars.proj_type = 1;
+    proj_pars.Ip_th = 1000;
+    proj_pars.start_th = 5;
+    proj_pars.status_th = 15;
     
-    multi_ray_parrallel(pc_struct,projection_type);
+    proj_pars.avg_flag = true;
+    
+    multi_ray_parrallel(pc_struct,proj_pars);
     
     timer.stop_timer();
     
     timer.start_timer("parrallel projection max");
     
-    multi_ray_parrallel(pc_struct,0);
+    proj_pars.proj_type = 0;
+    
+    multi_ray_parrallel(pc_struct,proj_pars);
     
     timer.stop_timer();
 }
