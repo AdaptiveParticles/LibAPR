@@ -62,7 +62,7 @@ int main(int argc, char **argv) {
 
     //min mean
     float min_rel_error = .01;
-    float max_rel_error = .1;
+    float max_rel_error = .2;
     float num_steps = options.delta;
 
     float del = (max_rel_error - min_rel_error)/num_steps;
@@ -71,7 +71,7 @@ int main(int argc, char **argv) {
         rel_error_vec.push_back(i);
     }
 
-    min_rel_error = .1;
+    min_rel_error = .2;
     max_rel_error = 1.0;
     num_steps = options.delta/2;
 
@@ -90,13 +90,15 @@ int main(int argc, char **argv) {
 
 
     for(float i = min_sig;i <= max_sig; i = i + del ){
-        sig_vec.push_back(i);
+        //sig_vec.push_back(i);
     }
 
+    sig_vec.push_back(2);
+
     //min mean
-    float min_shift = 100;
-    float max_shift = 5000;
-    num_steps = 200;
+    float min_shift = 5;
+    float max_shift = 500;
+    num_steps = 10;
 
     del = (max_shift - min_shift)/num_steps;
 
@@ -111,24 +113,29 @@ int main(int argc, char **argv) {
     int N_par2 = (int)sig_vec.size();
     int N_par3 = (int)shift.size();
 
-    bs.num_objects = 3;
+    bs.num_objects = 1;
+
+    bs.obj_size = 3;
 
     Genrand_uni gen_rand;
 
-    bs.desired_I = 500;
+    bs.desired_I = 100;
 
     bs.int_scale_min = 1;
     bs.int_scale_max = 1;
 
-    for(int q = 0;q < N_par3) {
+    Part_timer b_timer;
+    b_timer.verbose_flag = false;
+
+    for(int q = 0;q < N_par3;q++) {
 
         for (int p = 0; p < N_par2; p++) {
 
             bs.sig = sig_vec[p];
 
-            bs.sampling_delta = 300;
+            bs.image_sampling = 128;
 
-            obj_properties obj_prop(bs.obj_size, bs.sig);
+            obj_properties obj_prop(bs);
 
             Object_template basic_object = get_object_template(options, obj_prop);
 
@@ -137,6 +144,8 @@ int main(int argc, char **argv) {
             for (int j = 0; j < N_par1; j++) {
 
                 for (int i = 0; i < bs.N_repeats; i++) {
+
+                    b_timer.start_timer("one it");
 
                     //af::sync();
                     af::deviceGC();
@@ -163,11 +172,14 @@ int main(int argc, char **argv) {
 
                     set_gaussian_psf(syn_image_loc, bs);
 
-                    std::cout << "Par1: " << j << " of " << N_par1 << " Par2: " << p << " of " << N_par2 << " Rep: "
-                              << i << " of " << bs.N_repeats << std::endl;
+                    std::cout << "Par1: " << j << " of " << N_par1 << " Par2: " << p << " of " << N_par2 << " Par: "
+                              << q << " of " << N_par3 << std::endl;
 
                     generate_objects(syn_image_loc, bs);
 
+                    b_timer.stop_timer();
+
+                    b_timer.start_timer("generate_syn_image");
 
                     ///////////////////////////////
                     //
@@ -183,6 +195,7 @@ int main(int argc, char **argv) {
 
                     copy_mesh_data_structures(gen_image, input_img);
 
+                    b_timer.stop_timer();
 
                     ///////////////////////////////
                     //
@@ -200,9 +213,13 @@ int main(int argc, char **argv) {
 
                     // Get the APR
 
+                    b_timer.start_timer("get apr");
+
                     PartCellStructure<float, uint64_t> pc_struct;
 
                     bench_get_apr(input_img, p_rep, pc_struct, analysis_data);
+
+                    b_timer.stop_timer();
 
                     ///////////////////////////////
                     //
@@ -210,11 +227,15 @@ int main(int argc, char **argv) {
                     //
                     ///////////////////////////////
 
+                    b_timer.start_timer("analysis");
+
                     produce_apr_analysis(input_img, analysis_data, pc_struct, syn_image_loc, p_rep.pars);
 
 
                     af::sync();
                     af::deviceGC();
+
+                    b_timer.stop_timer();
 
                 }
             }
