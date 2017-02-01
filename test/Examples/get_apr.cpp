@@ -46,6 +46,11 @@ int main(int argc, char **argv) {
     Mesh_data<uint8_t> k_img;
     interp_depth_to_mesh(k_img,pc_struct);
     debug_write(k_img,"k_debug");
+
+    Mesh_data<uint16_t> interp_img;
+
+    pc_struct.interp_parts_to_pc(interp_img,pc_struct.part_data.particle_data);
+    debug_write(interp_img,"interp_img");
     
 }
 
