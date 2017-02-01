@@ -94,7 +94,7 @@ int main(int argc, char **argv) {
 
     std::vector<int> num_objects;
 
-    min_size = 99;
+    min_size = 1;
     max_size =  100;
     delta = 2;
 
