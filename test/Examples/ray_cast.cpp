@@ -112,13 +112,13 @@ int main(int argc, char **argv) {
     
     proj_pars.avg_flag = true;
     
-    //multi_ray_parrallel(pc_struct,proj_pars);
+    multi_ray_parrallel(pc_struct,proj_pars);
     
     timer.stop_timer();
     
     timer.start_timer("gen projection");
 
-    multi_ray_gen(pc_struct,proj_pars);
+    //multi_ray_gen(pc_struct,proj_pars);
     
     timer.stop_timer();
 }
