@@ -61,6 +61,10 @@ struct ray {
     int counter;
     float value;
 
+    float x_dir = 0;
+    float y_dir = 0;
+    float z_dir = 0;
+
     void init(){
         accum_int = 0;
         accum_status = 0;
@@ -72,7 +76,7 @@ struct ray {
 };
 
 template<typename S>
-bool compare_current_cell_location(CurrentLevel<S,uint64_t>& curr_level,coord& curr_loc){
+bool compare_current_cell_location(const CurrentLevel<S,uint64_t>& curr_level,coord& curr_loc){
     //
     //  Bevan Cheeseman 2017
     //
@@ -86,7 +90,6 @@ bool compare_current_cell_location(CurrentLevel<S,uint64_t>& curr_level,coord& c
     unsigned int depth_offset = pow(2,curr_level.depth_max - curr_level.depth + 1);
 
     int x = curr_loc.x/depth_offset;
-    int y = curr_loc.y/depth_offset;
     int z = curr_loc.z/depth_offset;
 
     if(x != curr_level.x){
@@ -99,7 +102,6 @@ bool compare_current_cell_location(CurrentLevel<S,uint64_t>& curr_level,coord& c
 
     return same_cell;
 }
-
 
 template<typename S>
 move calculate_dir_index_parralell(const CurrentLevel<S,uint64_t>& curr_level,coord& curr_loc,coord& new_loc){
@@ -187,26 +189,25 @@ move calculate_dir_index(const CurrentLevel<S,uint64_t>& curr_level,coord& curr_
     int offset_x = xn - xc;
     int offset_z = zn - zc;
 
-    next_move.dir = (offset_y == -1) + (offset_x == 1)*2 + (offset_x == -1)*3 + (offset_z == 1)*4 + (offset_z == -1)*5;
-
     if(offset_y == 1){
         next_move.dir = 0;
-    } else if(offset_y = -1){
+    } else if(offset_y == -1){
         next_move.dir = 1;
-    } else if(offset_x = 1){
+    } else if(offset_x == 1){
         next_move.dir = 2;
-    } else if(offset_x = -1){
+    } else if(offset_x == -1){
         next_move.dir = 3;
-    } else if(offset_z = 1){
+    } else if(offset_z == 1){
         next_move.dir = 4;
-    } else if(offset_z = -1){
+    } else if(offset_z == -1){
         next_move.dir = 5;
     } else {
         next_move.dir = -1;
     }
 
-
     if(next_move.dir > 0) {
+
+        curr_loc = new_position(curr_level,next_move.dir,curr_loc);
 
         uint64_t child_x = new_loc.x / (depth_offset / 2);
         uint64_t child_y = new_loc.y / (depth_offset / 2);
@@ -250,6 +251,22 @@ coord new_position(const CurrentLevel<S,uint64_t>& curr_level,unsigned int direc
 
 }
 
+template<typename S>
+coord new_position(const CurrentLevel<S,uint64_t>& curr_level,ray& curr_ray,coord& curr_coord){
+    //
+    //
+    //  Demo Ray Case, has a direction and propogrates to next cell along it.
+    //
+    //
+
+    float step_size = pow(2,curr_level.depth_max - curr_level.depth + 1)*.49999; //move half step then you can never hop a child.
+
+    coord new_loc;
+    new_loc.set(curr_coord.x + curr_ray.y_dir*step_size,curr_coord.y + curr_ray.x_dir*step_size,curr_coord.z + curr_ray.z_dir*step_size);
+
+    return new_loc;
+
+}
 
 
 
@@ -358,6 +375,7 @@ void multi_ray_gen(PartCellStructure<S,uint64_t>& pc_struct,proj_par& pars){
 
     float start = 1;
 
+
     switch(pars.direction){
         case(0):{
             //x//z
@@ -415,12 +433,13 @@ void multi_ray_gen(PartCellStructure<S,uint64_t>& pc_struct,proj_par& pars){
         }
     }
 
-
+    float offset_x = dir_x[pars.direction];
+    float offset_y = dir_y[pars.direction];
+    float offset_z = dir_z[pars.direction];
 
     bool end_domain = false;
 
     //choose random direction to propogate along
-
 
     int counter =0;
     float accum_int = 0;
@@ -429,6 +448,10 @@ void multi_ray_gen(PartCellStructure<S,uint64_t>& pc_struct,proj_par& pars){
 
     ray curr_ray;
     curr_ray.init();
+
+    curr_ray.x_dir = offset_x;
+    curr_ray.y_dir = offset_y;
+    curr_ray.z_dir = offset_z;
 
     Part_timer timer;
 
@@ -493,30 +516,39 @@ void multi_ray_gen(PartCellStructure<S,uint64_t>& pc_struct,proj_par& pars){
 
                 curr_level.init(init_key,pc_data);
                 next_loc.set(x,y,z);
+                curr_loc.set(x,y,z);
 
                 while(!end_domain){
                     //iterate through domain until you hit the edge
                     //next becomes current
-                    std::swap(next_loc,curr_loc);
-
-                    //get new position
-                    next_loc = new_position(curr_level,pars.direction,curr_loc);
 
                     //calculate the new move
-                    next_move =  calculate_dir_index_parralell(curr_level,curr_loc,next_loc);
-
-                    //counter1++;
+                    next_move =  calculate_dir_index(curr_level,curr_loc,next_loc);
 
                     if(next_move.dir >= 0){
                         //if its a new cell
                         end_domain = curr_level.move_cell(next_move.dir,next_move.index,part_new,pc_data);
 
-                        //next_move =  calculate_dir_index_parralell(curr_level,curr_loc,next_loc);
+                        if(compare_current_cell_location(curr_level,next_loc)) {
+                            //reached the correct cell
 
-                        end_domain = proj_function(curr_ray,curr_level,particles_int,end_domain,pars);
+                            end_domain = proj_function(curr_ray,curr_level,particles_int,end_domain,pars);
 
-                        //counter2++;
+                            std::swap(curr_loc,next_loc);
+                            //get new position
+                            next_loc = new_position(curr_level, curr_ray, curr_loc);
+
+                        }
+
+
+                    } else {
+                        //not escaped the cell
+                        std::swap(curr_loc,next_loc);
+                        next_loc = new_position(curr_level, curr_ray, curr_loc);
                     }
+
+
+
                 }
 
                 if(pars.proj_type == 0){
