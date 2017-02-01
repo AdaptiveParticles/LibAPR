@@ -226,7 +226,7 @@ public:
     
     
     template<typename U>
-    bool move_cell(unsigned int dir,unsigned int index,PartCellData<uint64_t>& pc_data){
+    bool move_cell(unsigned int dir,unsigned int index,PartCellData<U>& pc_data){
         
         bool edge_domain = false;
         
@@ -251,7 +251,8 @@ public:
             int curr_y = y;
             
             pc_data.get_coordinates_cell(curr_y,curr_key,x,z,y,depth,status);
-            
+
+
             if(depth_prev != depth){
                 x_num = pc_data.x_num[depth];
                 z_num = pc_data.z_num[depth];

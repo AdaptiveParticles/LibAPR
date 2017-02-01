@@ -100,7 +100,7 @@ int main(int argc, char **argv) {
     //set up some new structures used in this test
     AnalysisData analysis_data;
 
-    float num_repeats = 10;
+    float num_repeats = 1;
 
     //Get neighbours (linear)
 
@@ -127,7 +127,7 @@ int main(int argc, char **argv) {
 
     uint64_t filter_offset = 10;
 
-    //apr_filter_full(pc_struct,filter_offset,num_repeats,analysis_data);
+    apr_filter_full(pc_struct,filter_offset,num_repeats,analysis_data);
 
   //  pixel_filter_full(pc_struct,pc_struct.org_dims[0],pc_struct.org_dims[1],pc_struct.org_dims[2],filter_offset,num_repeats,analysis_data);
 

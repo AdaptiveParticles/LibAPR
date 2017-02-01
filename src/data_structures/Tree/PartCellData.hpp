@@ -1448,7 +1448,7 @@ private:
     
     
     template<uint8_t face>
-    uint64_t get_neighbour_same_level(uint64_t& curr_key)
+    uint64_t get_neighbour_same_level(const uint64_t& curr_key)
     {
         /** Get neighbours of a cell in one of the direction that are guranteed to be on the same level
          *
@@ -1498,8 +1498,8 @@ private:
         return neigh_key;
         
     }
-    
-    bool check_neigh_exists(uint64_t node_val,uint64_t curr_key,uint8_t face){
+    template<uint64_t face>
+    bool check_neigh_exists(uint64_t node_val,uint64_t curr_key){
         //checks if node on same level exists or not
         constexpr uint64_t depth_mask_dir[6] = {YP_DEPTH_MASK,YM_DEPTH_MASK,XP_DEPTH_MASK,XM_DEPTH_MASK,ZP_DEPTH_MASK,ZM_DEPTH_MASK};
         constexpr uint64_t depth_shift_dir[6] =  {YP_DEPTH_SHIFT,YM_DEPTH_SHIFT,XP_DEPTH_SHIFT,XM_DEPTH_SHIFT,ZP_DEPTH_SHIFT,ZM_DEPTH_SHIFT};
@@ -1548,15 +1548,15 @@ private:
         //
         
         
-//        constexpr uint64_t depth_mask_dir[6] = {YP_DEPTH_MASK,YM_DEPTH_MASK,XP_DEPTH_MASK,XM_DEPTH_MASK,ZP_DEPTH_MASK,ZM_DEPTH_MASK};
-//        constexpr uint64_t depth_shift_dir[6] =  {YP_DEPTH_SHIFT,YM_DEPTH_SHIFT,XP_DEPTH_SHIFT,XM_DEPTH_SHIFT,ZP_DEPTH_SHIFT,ZM_DEPTH_SHIFT};
+        constexpr uint64_t depth_mask_dir[6] = {YP_DEPTH_MASK,YM_DEPTH_MASK,XP_DEPTH_MASK,XM_DEPTH_MASK,ZP_DEPTH_MASK,ZM_DEPTH_MASK};
+        constexpr uint64_t depth_shift_dir[6] =  {YP_DEPTH_SHIFT,YM_DEPTH_SHIFT,XP_DEPTH_SHIFT,XM_DEPTH_SHIFT,ZP_DEPTH_SHIFT,ZM_DEPTH_SHIFT};
 //
-//        constexpr uint64_t index_mask_dir[6] = {YP_INDEX_MASK,YM_INDEX_MASK,XP_INDEX_MASK,XM_INDEX_MASK,ZP_INDEX_MASK,ZM_INDEX_MASK};
-//        constexpr uint64_t index_shift_dir[6] = {YP_INDEX_SHIFT,YM_INDEX_SHIFT,XP_INDEX_SHIFT,XM_INDEX_SHIFT,ZP_INDEX_SHIFT,ZM_INDEX_SHIFT};
+        constexpr uint64_t index_mask_dir[6] = {YP_INDEX_MASK,YM_INDEX_MASK,XP_INDEX_MASK,XM_INDEX_MASK,ZP_INDEX_MASK,ZM_INDEX_MASK};
+        constexpr uint64_t index_shift_dir[6] = {YP_INDEX_SHIFT,YM_INDEX_SHIFT,XP_INDEX_SHIFT,XM_INDEX_SHIFT,ZP_INDEX_SHIFT,ZM_INDEX_SHIFT};
 //
-//        constexpr int8_t von_neumann_y_cells[6] = { 1,-1, 0, 0, 0, 0};
-//        constexpr int8_t von_neumann_x_cells[6] = { 0, 0, 1,-1, 0, 0};
-//        constexpr int8_t von_neumann_z_cells[6] = { 0, 0, 0, 0, 1,-1};
+        constexpr int8_t von_neumann_y_cells[6] = { 1,-1, 0, 0, 0, 0};
+        constexpr int8_t von_neumann_x_cells[6] = { 0, 0, 1,-1, 0, 0};
+        constexpr int8_t von_neumann_z_cells[6] = { 0, 0, 0, 0, 1,-1};
 //
 //        the ordering of retrieval of four neighbour cells
         constexpr uint8_t neigh_child_dir[6][3] = {{4,2,2},{4,2,2},{0,4,4},{0,4,4},{0,2,2},{0,2,2}};
@@ -1570,7 +1570,6 @@ private:
         
         // +-y direction is different
         if(face < 2){
-            
             
             neigh_key = curr_key;
             
@@ -1640,8 +1639,8 @@ private:
                 uint64_t temp = neigh_key;
                 
                 //check if its two neighbours exist
-                bool exist0 = check_neigh_exists(org_node,neigh_key,neigh_child_dir[face][0]);
-                bool exist2 = check_neigh_exists(org_node,neigh_key,neigh_child_dir[face][2]);
+                bool exist0 = check_neigh_exists<neigh_child_dir[face][0]>(org_node,neigh_key);
+                bool exist2 = check_neigh_exists<neigh_child_dir[face][2]>(org_node,neigh_key);
                 
                 //changed the ordering
                 
@@ -2090,7 +2089,7 @@ private:
                                     y_coord--;
                                     
                                     
-                                    
+
                                 }
                                 
                                 

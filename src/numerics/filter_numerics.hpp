@@ -545,9 +545,12 @@ void particle_linear_neigh_access(PartCellStructure<float,uint64_t>& pc_struct,f
                             
                             pc_data.pc_key_set_j(curr_key,j_);
                             
-                            for(int dir = 0;dir < num_dir;dir++){
-                                pc_data.get_neighs_face(curr_key,node_val_pc,dir,neigh_cell_keys);
-                            }
+                            //for(int dir = 0;dir < num_dir;dir++){
+                               // pc_data.get_neighs_face(curr_key,node_val_pc,dir,neigh_cell_keys);
+                           // }
+
+                            pc_data.get_neighs_all(curr_key,node_val_pc,neigh_cell_keys);
+
                             
                             for(int dir = 0;dir < num_dir;dir++){
                                 //loop over the nieghbours
@@ -1585,6 +1588,9 @@ void apr_filter_full(PartCellStructure<S,uint64_t>& pc_struct,uint64_t filter_of
     analysis_data.add_float_data("particle_filter_z_no_interp",(time3-time_interp)/num_repeats);
 
     analysis_data.add_float_data("particle_filter_all_no_interp",(time + time2 + time3 - time_interp*3)/num_repeats);
+
+    std::cout << time/num_repeats << std::endl;
+    std::cout << time_vec/num_repeats << std::endl;
 
 }
 template<typename U>

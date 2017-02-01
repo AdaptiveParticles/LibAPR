@@ -160,6 +160,75 @@ move calculate_dir_index_parralell(const CurrentLevel<S,uint64_t>& curr_level,co
     return next_move;
 
 }
+
+template<typename S>
+move calculate_dir_index(const CurrentLevel<S,uint64_t>& curr_level,coord& curr_loc,coord& new_loc){
+    //
+    //  Bevan Cheeseman 2017
+    //
+    //  Takes in new coordinate and figure out the direction and index for it
+    //
+    //  Only handles non-diagonal currently
+    //
+
+    move next_move;
+
+    unsigned int depth_offset = pow(2,curr_level.depth_max - curr_level.depth + 1);
+
+    int  yc = (curr_loc.y/depth_offset);
+    int  xc = (curr_loc.x/depth_offset);
+    int  zc = (curr_loc.z/depth_offset);
+
+    int  yn = (new_loc.y/depth_offset);
+    int  xn = (new_loc.x/depth_offset);
+    int  zn = (new_loc.z/depth_offset);
+
+    int offset_y = yn - yc;
+    int offset_x = xn - xc;
+    int offset_z = zn - zc;
+
+    next_move.dir = (offset_y == -1) + (offset_x == 1)*2 + (offset_x == -1)*3 + (offset_z == 1)*4 + (offset_z == -1)*5;
+
+    if(offset_y == 1){
+        next_move.dir = 0;
+    } else if(offset_y = -1){
+        next_move.dir = 1;
+    } else if(offset_x = 1){
+        next_move.dir = 2;
+    } else if(offset_x = -1){
+        next_move.dir = 3;
+    } else if(offset_z = 1){
+        next_move.dir = 4;
+    } else if(offset_z = -1){
+        next_move.dir = 5;
+    } else {
+        next_move.dir = -1;
+    }
+
+
+    if(next_move.dir > 0) {
+
+        uint64_t child_x = new_loc.x / (depth_offset / 2);
+        uint64_t child_y = new_loc.y / (depth_offset / 2);
+        uint64_t child_z = new_loc.z / (depth_offset / 2);
+
+        if (next_move.dir < 2) {
+            // ydirections
+            next_move.index = (child_x & 1) * 2 + (child_z & 1);
+        } else if (next_move.dir < 4) {
+            // xdirections
+            next_move.index = (child_z & 1) * 2 + (child_y & 1);
+        } else {
+            // zdirections
+            next_move.index = (child_x & 1) * 2 + (child_y & 1);
+        }
+
+    }
+
+    return next_move;
+
+}
+
 template<typename S>
 coord new_position(const CurrentLevel<S,uint64_t>& curr_level,unsigned int direction,coord& curr_coord){
     //
@@ -238,6 +307,239 @@ bool proj_function(ray& curr_ray,CurrentLevel<S,uint64_t>& curr_level,ExtraPartC
     return stop_ray;
 
 }
+
+
+template<typename S>
+void multi_ray_gen(PartCellStructure<S,uint64_t>& pc_struct,proj_par& pars){
+    //
+    //  Bevan Cheeseman 2017
+    //
+    //  Simple ray case example, multi ray, accumulating, parralell projection
+    //
+    //
+
+
+    //////////////////////////////
+    //
+    //  This creates data sets where each particle is a cell.
+    //
+    //  This same code can be used where there are multiple particles per cell as in original pc_struct, however, the particles have to be accessed in a different way.
+    //
+    //////////////////////////////
+
+
+    ParticleDataNew<float, uint64_t> part_new;
+    //flattens format to particle = cell, this is in the classic access/part paradigm
+    part_new.initialize_from_structure(pc_struct);
+
+    //generates the nieghbour structure
+    PartCellData<uint64_t> pc_data;
+    part_new.create_pc_data_new(pc_data);
+
+    //Genearate particle at cell locations, easier access
+    ExtraPartCellData<float> particles_int;
+    part_new.create_particles_at_cell_structure(particles_int);
+
+    //used for finding a part cell
+    PartCellParent<uint64_t> parent_cells(pc_data);
+
+    //iterator
+    CurrentLevel<float,uint64_t> curr_level(pc_data);
+
+    //Need to add here a parameters here
+
+    //unsigned int direction = 0;
+    Mesh_data<S> proj_img;
+    Mesh_data<uint64_t> seed_cells;
+
+    float active_x = 2;
+    float active_y = 2;
+    float active_z = 2;
+
+    float start = 1;
+
+    switch(pars.direction){
+        case(0):{
+            //x//z
+            proj_img.initialize(pc_struct.org_dims[1],pc_struct.org_dims[2],1,0);
+            seed_cells.initialize(pc_struct.org_dims[1],pc_struct.org_dims[2],1,0);
+            active_x = 0;
+            active_z = 1;
+            start = 1;
+            break;
+        }
+        case(1): {
+            //x//z
+            proj_img.initialize(pc_struct.org_dims[1], pc_struct.org_dims[2], 1, 0);
+            seed_cells.initialize(pc_struct.org_dims[1], pc_struct.org_dims[2], 1, 0);
+            active_x = 0;
+            active_z = 1;
+            start = 2*(pc_struct.org_dims[0]-1) - 1;
+            break;
+        }
+        case(2):{
+            //y//z
+            proj_img.initialize(pc_struct.org_dims[0], pc_struct.org_dims[2], 1, 0);
+            seed_cells.initialize(pc_struct.org_dims[0], pc_struct.org_dims[2], 1, 0);
+            active_y = 0;
+            active_z = 1;
+            start = 1;
+            break;
+        }
+        case(3):{
+            //yz
+            proj_img.initialize(pc_struct.org_dims[0], pc_struct.org_dims[2], 1, 0);
+            seed_cells.initialize(pc_struct.org_dims[0], pc_struct.org_dims[2], 1, 0);
+            active_y = 0;
+            active_z = 1;
+            start = 2*(pc_struct.org_dims[1]-1) - 1;
+            break;
+        }
+        case(4):{
+            //yx
+            proj_img.initialize(pc_struct.org_dims[0], pc_struct.org_dims[1], 1, 0);
+            seed_cells.initialize(pc_struct.org_dims[0], pc_struct.org_dims[1], 1, 0);
+            active_y = 0;
+            active_x = 1;
+            start = 1;
+            break;
+        }
+        case(5):{
+            //yx
+            proj_img.initialize(pc_struct.org_dims[0], pc_struct.org_dims[1], 1, 0);
+            seed_cells.initialize(pc_struct.org_dims[0], pc_struct.org_dims[1], 1, 0);
+            active_y = 0;
+            active_x = 1;
+            start = 2*(pc_struct.org_dims[2]-1) - 1;
+            break;
+        }
+    }
+
+
+
+    bool end_domain = false;
+
+    //choose random direction to propogate along
+
+
+    int counter =0;
+    float accum_int = 0;
+    float accum_depth = 0;
+    float accum_status = 0;
+
+    ray curr_ray;
+    curr_ray.init();
+
+    Part_timer timer;
+
+    timer.verbose_flag = true;
+
+    timer.start_timer("init");
+
+    move next_move;
+    //current and next location
+    coord next_loc;
+    coord curr_loc;
+
+    std::vector<float> coords = {0,0,0};
+
+    //get starting points
+    for (int dim1 = 0; dim1 < proj_img.y_num; ++dim1) {
+        for (int dim2 = 0; dim2 < proj_img.x_num; ++dim2) {
+            coords[0] = dim1*2 + 1;
+            coords[1] = dim2*2 + 1;
+            coords[2] = start;
+
+            float x = coords[active_x];
+            float y = coords[active_y];
+            float z = coords[active_z];
+
+            //initialize ray
+            uint64_t init_key = parent_cells.find_partcell(x, y, z, pc_data);
+            seed_cells(dim1,dim2,0) = init_key;
+        }
+    }
+
+    timer.stop_timer();
+
+    timer.start_timer("ray cast");
+    next_move.dir =0;
+    next_move.index =0;
+
+    uint64_t counter1 = 0;
+    uint64_t counter2 = 0;
+
+    int dim1,dim2;
+
+#pragma omp parallel for default(shared) private(dim1,dim2,end_domain) firstprivate(next_move,curr_ray,next_loc,curr_loc,curr_level,coords)
+    for (dim1 = 0; dim1 < proj_img.y_num; ++dim1) {
+        for (dim2 = 0; dim2 < proj_img.x_num; ++dim2) {
+            coords[0] = dim1*2 + 1;
+            coords[1] = dim2*2 + 1;
+            coords[2] = start;
+
+            float x = coords[active_x];
+            float y = coords[active_y];
+            float z = coords[active_z];
+
+            end_domain = false;
+
+            curr_ray.init();
+
+            //initialize ray
+            uint64_t init_key = seed_cells(dim1,dim2,0);
+
+            if(init_key > 0){
+
+                curr_level.init(init_key,pc_data);
+                next_loc.set(x,y,z);
+
+                while(!end_domain){
+                    //iterate through domain until you hit the edge
+                    //next becomes current
+                    std::swap(next_loc,curr_loc);
+
+                    //get new position
+                    next_loc = new_position(curr_level,pars.direction,curr_loc);
+
+                    //calculate the new move
+                    next_move =  calculate_dir_index_parralell(curr_level,curr_loc,next_loc);
+
+                    //counter1++;
+
+                    if(next_move.dir >= 0){
+                        //if its a new cell
+                        end_domain = curr_level.move_cell(next_move.dir,next_move.index,part_new,pc_data);
+
+                        //next_move =  calculate_dir_index_parralell(curr_level,curr_loc,next_loc);
+
+                        end_domain = proj_function(curr_ray,curr_level,particles_int,end_domain,pars);
+
+                        //counter2++;
+                    }
+                }
+
+                if(pars.proj_type == 0){
+                    proj_img(dim1,dim2,0) = curr_ray.value;
+                } else {
+                    if(pars.avg_flag) {
+                        proj_img(dim1, dim2, 0) = curr_ray.accum_int / curr_ray.counter;
+                    } else {
+                        proj_img(dim1,dim2,0) = curr_ray.accum_depth;
+                    }
+                }
+            }
+
+        }
+    }
+
+    timer.stop_timer();
+
+    debug_write(proj_img,"parllel_proj" + std::to_string(pars.proj_type));
+
+}
+
+
 
 
 template<typename S>
@@ -469,6 +771,238 @@ void multi_ray_parrallel(PartCellStructure<S,uint64_t>& pc_struct,proj_par& pars
     debug_write(proj_img,"parllel_proj" + std::to_string(pars.proj_type));
 
 }
+
+template<typename S>
+void multi_ray_parrallel_mesh(PartCellStructure<S,uint64_t>& pc_struct,proj_par& pars){
+    //
+    //  Bevan Cheeseman 2017
+    //
+    //  Simple ray case example, multi ray, accumulating, parralell projection
+    //
+    //
+
+
+    //////////////////////////////
+    //
+    //  This creates data sets where each particle is a cell.
+    //
+    //  This same code can be used where there are multiple particles per cell as in original pc_struct, however, the particles have to be accessed in a different way.
+    //
+    //////////////////////////////
+
+
+    ParticleDataNew<float, uint64_t> part_new;
+    //flattens format to particle = cell, this is in the classic access/part paradigm
+    part_new.initialize_from_structure(pc_struct);
+
+    //generates the nieghbour structure
+    PartCellData<uint64_t> pc_data;
+    part_new.create_pc_data_new(pc_data);
+
+    //Genearate particle at cell locations, easier access
+    ExtraPartCellData<float> particles_int;
+    part_new.create_particles_at_cell_structure(particles_int);
+
+    //used for finding a part cell
+    PartCellParent<uint64_t> parent_cells(pc_data);
+
+    //iterator
+    CurrentLevel<float,uint64_t> curr_level(pc_data);
+
+    //Need to add here a parameters here
+
+    //unsigned int direction = 0;
+    Mesh_data<S> proj_img;
+    Mesh_data<uint64_t> seed_cells;
+
+    float active_x = 2;
+    float active_y = 2;
+    float active_z = 2;
+
+    float start = 1;
+
+    switch(pars.direction){
+        case(0):{
+            //x//z
+            proj_img.initialize(pc_struct.org_dims[1],pc_struct.org_dims[2],1,0);
+            seed_cells.initialize(pc_struct.org_dims[1],pc_struct.org_dims[2],1,0);
+            active_x = 0;
+            active_z = 1;
+            start = 1;
+            break;
+        }
+        case(1): {
+            //x//z
+            proj_img.initialize(pc_struct.org_dims[1], pc_struct.org_dims[2], 1, 0);
+            seed_cells.initialize(pc_struct.org_dims[1], pc_struct.org_dims[2], 1, 0);
+            active_x = 0;
+            active_z = 1;
+            start = 2*(pc_struct.org_dims[0]-1) - 1;
+            break;
+        }
+        case(2):{
+            //y//z
+            proj_img.initialize(pc_struct.org_dims[0], pc_struct.org_dims[2], 1, 0);
+            seed_cells.initialize(pc_struct.org_dims[0], pc_struct.org_dims[2], 1, 0);
+            active_y = 0;
+            active_z = 1;
+            start = 1;
+            break;
+        }
+        case(3):{
+            //yz
+            proj_img.initialize(pc_struct.org_dims[0], pc_struct.org_dims[2], 1, 0);
+            seed_cells.initialize(pc_struct.org_dims[0], pc_struct.org_dims[2], 1, 0);
+            active_y = 0;
+            active_z = 1;
+            start = 2*(pc_struct.org_dims[1]-1) - 1;
+            break;
+        }
+        case(4):{
+            //yx
+            proj_img.initialize(pc_struct.org_dims[0], pc_struct.org_dims[1], 1, 0);
+            seed_cells.initialize(pc_struct.org_dims[0], pc_struct.org_dims[1], 1, 0);
+            active_y = 0;
+            active_x = 1;
+            start = 1;
+            break;
+        }
+        case(5):{
+            //yx
+            proj_img.initialize(pc_struct.org_dims[0], pc_struct.org_dims[1], 1, 0);
+            seed_cells.initialize(pc_struct.org_dims[0], pc_struct.org_dims[1], 1, 0);
+            active_y = 0;
+            active_x = 1;
+            start = 2*(pc_struct.org_dims[2]-1) - 1;
+            break;
+        }
+    }
+
+
+
+    bool end_domain = false;
+
+    //choose random direction to propogate along
+
+
+    int counter =0;
+    float accum_int = 0;
+    float accum_depth = 0;
+    float accum_status = 0;
+
+    ray curr_ray;
+    curr_ray.init();
+
+    Part_timer timer;
+
+    timer.verbose_flag = true;
+
+    timer.start_timer("init");
+
+    move next_move;
+    //current and next location
+    coord next_loc;
+    coord curr_loc;
+
+    std::vector<float> coords = {0,0,0};
+
+    //get starting points
+    for (int dim1 = 0; dim1 < proj_img.y_num; ++dim1) {
+        for (int dim2 = 0; dim2 < proj_img.x_num; ++dim2) {
+            coords[0] = dim1*2 + 1;
+            coords[1] = dim2*2 + 1;
+            coords[2] = start;
+
+            float x = coords[active_x];
+            float y = coords[active_y];
+            float z = coords[active_z];
+
+            //initialize ray
+            uint64_t init_key = parent_cells.find_partcell(x, y, z, pc_data);
+            seed_cells(dim1,dim2,0) = init_key;
+        }
+    }
+
+    timer.stop_timer();
+
+    timer.start_timer("ray cast");
+    next_move.dir =0;
+    next_move.index =0;
+
+    uint64_t counter1 = 0;
+    uint64_t counter2 = 0;
+
+    int dim1,dim2;
+
+#pragma omp parallel for default(shared) private(dim1,dim2,end_domain) firstprivate(next_move,curr_ray,next_loc,curr_loc,curr_level,coords)
+    for (dim1 = 0; dim1 < proj_img.y_num; ++dim1) {
+        for (dim2 = 0; dim2 < proj_img.x_num; ++dim2) {
+            coords[0] = dim1*2 + 1;
+            coords[1] = dim2*2 + 1;
+            coords[2] = start;
+
+            float x = coords[active_x];
+            float y = coords[active_y];
+            float z = coords[active_z];
+
+            end_domain = false;
+
+            curr_ray.init();
+
+            //initialize ray
+            uint64_t init_key = seed_cells(dim1,dim2,0);
+
+            if(init_key > 0){
+
+                curr_level.init(init_key,pc_data);
+                next_loc.set(x,y,z);
+
+                while(!end_domain){
+                    //iterate through domain until you hit the edge
+                    //next becomes current
+                    std::swap(next_loc,curr_loc);
+
+                    //get new position
+                    next_loc = new_position(curr_level,pars.direction,curr_loc);
+
+                    //calculate the new move
+                    next_move =  calculate_dir_index_parralell(curr_level,curr_loc,next_loc);
+
+                    //counter1++;
+
+                    if(next_move.dir >= 0){
+                        //if its a new cell
+                        end_domain = curr_level.move_cell(next_move.dir,next_move.index,pc_data);
+
+                        //next_move =  calculate_dir_index_parralell(curr_level,curr_loc,next_loc);
+
+                        end_domain = proj_function(curr_ray,curr_level,particles_int,end_domain,pars);
+
+                        //counter2++;
+                    }
+                }
+
+                if(pars.proj_type == 0){
+                    proj_img(dim1,dim2,0) = curr_ray.value;
+                } else {
+                    if(pars.avg_flag) {
+                        proj_img(dim1, dim2, 0) = curr_ray.accum_int / curr_ray.counter;
+                    } else {
+                        proj_img(dim1,dim2,0) = curr_ray.accum_depth;
+                    }
+                }
+            }
+
+        }
+    }
+
+    timer.stop_timer();
+
+    debug_write(proj_img,"parllel_proj" + std::to_string(pars.proj_type));
+
+}
+
+
 
 template<typename S>
 void single_ray_parrallel(PartCellStructure<S,uint64_t>& pc_struct){
