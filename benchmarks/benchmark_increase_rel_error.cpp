@@ -135,8 +135,6 @@ int main(int argc, char **argv) {
 
             bs.sig = sig_vec[p];
 
-            bs.image_sampling = 128;
-
             obj_properties obj_prop(bs);
 
             Object_template basic_object = get_object_template(options, obj_prop);

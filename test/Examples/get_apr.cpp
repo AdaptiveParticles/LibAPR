@@ -19,9 +19,6 @@
 #include "../../src/algorithm/apr_pipeline.hpp"
 
 
-
-
-
 int main(int argc, char **argv) {
 
     //input parsing
@@ -45,6 +42,10 @@ int main(int argc, char **argv) {
     write_apr_pc_struct(pc_struct,save_loc,file_name);
 
     timer.stop_timer();
+
+    Mesh_data<uint8_t> k_img;
+    interp_depth_to_mesh(k_img,pc_struct);
+    debug_write(k_img,"k_debug");
     
 }
 
