@@ -385,6 +385,39 @@ void calc_abs_diff(Mesh_data<T>& input_image,Mesh_data<T>& var){
 
 
 }
+template<typename T>
+void intensity_th(Mesh_data<T>& input_image,Mesh_data<T>& var,const float threshold){
+    //
+    //  Bevan Cheeseman 2016
+    //
+    //
+
+    const int z_num = input_image.z_num;
+    const int x_num = input_image.x_num;
+    const int y_num = input_image.y_num;
+
+    const float max_th = 60000.0;
+
+    int i,k;
+
+#pragma omp parallel for default(shared) private(i,k)
+    for(int j = 0;j < z_num;j++){
+
+        for(i = 0;i < x_num;i++){
+
+            for (k = 0; k < (y_num);k++){
+
+                if(input_image.mesh[j*x_num*y_num + i*y_num + k] < threshold){
+                    var.mesh[j*x_num*y_num + i*y_num + k] = max_th;
+                }
+
+            }
+
+        }
+    }
+
+
+}
 
 template<typename T>
 void rescale_var_and_threshold(Mesh_data<T>& var,const float var_rescale,Part_rep& p_rep){
@@ -486,6 +519,11 @@ void get_variance_3D(Part_rep &p_rep, Mesh_data<T> &input_image, Mesh_data<T> &v
     calc_sat_mean_x(var,win_x);
     calc_sat_mean_z(var,win_z);
 
+    //if needed threshold the results
+    if(p_rep.pars.I_th > 0) {
+        intensity_th(temp, var,
+        p_rep.pars.I_th);
+    }
 
     timer.start_timer("rescale_var_and_threshold");
 
@@ -493,7 +531,6 @@ void get_variance_3D(Part_rep &p_rep, Mesh_data<T> &input_image, Mesh_data<T> &v
     rescale_var_and_threshold( var,calc_map.var_rescale,p_rep);
 
     timer.stop_timer();
-
 
 
 }

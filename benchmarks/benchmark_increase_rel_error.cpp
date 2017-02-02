@@ -16,7 +16,7 @@ int main(int argc, char **argv) {
 
     std::cout << "Increase Reconstruction Error Parameter Benchmark" << std::endl;
 
-    cmdLineOptionsBench options = read_command_line_options(argc,argv);
+    cmdLineOptionsBench options = read_command_line_options(argc, argv);
 
     SynImage syn_image;
 
@@ -24,7 +24,7 @@ int main(int argc, char **argv) {
 
     benchmark_settings bs;
 
-    set_up_benchmark_defaults(syn_image,bs);
+    set_up_benchmark_defaults(syn_image, bs);
 
     /////////////////////////////////////////////
     // GENERATE THE OBJECT TEMPLATE
@@ -40,12 +40,12 @@ int main(int argc, char **argv) {
     //
     //////////////////////////////////////////////////////////////////
 
-    AnalysisData analysis_data(options.description,"Test",argc,argv);
+    AnalysisData analysis_data(options.description, "Test", argc, argv);
 
-    analysis_data.create_float_dataset("num_objects",0);
-    analysis_data.create_float_dataset("rel_error",0);
+    analysis_data.create_float_dataset("num_objects", 0);
+    analysis_data.create_float_dataset("rel_error", 0);
 
-    process_input(options,syn_image,analysis_data,bs);
+    process_input(options, syn_image, analysis_data, bs);
 
     //////////////////////////////////////////////////////////
     //
@@ -65,19 +65,19 @@ int main(int argc, char **argv) {
     float max_rel_error = .2;
     float num_steps = options.delta;
 
-    float del = (max_rel_error - min_rel_error)/num_steps;
+    float del = (max_rel_error - min_rel_error) / num_steps;
 
-    for(float i = min_rel_error;i <= max_rel_error; i = i + del ){
+    for (float i = min_rel_error; i <= max_rel_error; i = i + del) {
         rel_error_vec.push_back(i);
     }
 
     min_rel_error = .2;
-    max_rel_error = 1.0;
-    num_steps = options.delta/2;
+    max_rel_error = 1;
+    num_steps = options.delta / 2;
 
-    del = (max_rel_error - min_rel_error)/num_steps;
+    del = (max_rel_error - min_rel_error) / num_steps;
 
-    for(float i = min_rel_error;i <= max_rel_error; i = i + del ){
+    for (float i = min_rel_error; i <= max_rel_error; i = i + del) {
         rel_error_vec.push_back(i);
     }
 
@@ -86,10 +86,10 @@ int main(int argc, char **argv) {
     float max_sig = 5;
     num_steps = 1;
 
-    del = (max_sig - min_sig)/num_steps;
+    del = (max_sig - min_sig) / num_steps;
 
 
-    for(float i = min_sig;i <= max_sig; i = i + del ){
+    for (float i = min_sig; i <= max_sig; i = i + del) {
         //sig_vec.push_back(i);
     }
 
@@ -97,32 +97,34 @@ int main(int argc, char **argv) {
 
     //min mean
     float min_shift = 5;
-    float max_shift = 500;
-    num_steps = 10;
+    float max_shift = 1000;
+    num_steps = 0;
 
-    del = (max_shift - min_shift)/num_steps;
+    del = (max_shift - min_shift) / num_steps;
 
-    for(float i = min_shift;i <= max_shift; i = i + del ){
-        shift.push_back(i);
+    if (num_steps > 0) {
+        for (float i = min_shift; i <= max_shift; i = i + del) {
+            shift.push_back(i);
+        }
+    } else {
+        shift.push_back(max_shift);
     }
-
     //sig_vec.push_back(2);
-
 
     int N_par1 = (int)rel_error_vec.size(); // this many different parameter values to be run
     int N_par2 = (int)sig_vec.size();
     int N_par3 = (int)shift.size();
 
-    bs.num_objects = 1;
+    bs.num_objects = 5;
 
     bs.obj_size = 3;
 
     Genrand_uni gen_rand;
 
-    bs.desired_I = 100;
+    bs.desired_I = 1000;
 
     bs.int_scale_min = 1;
-    bs.int_scale_max = 1;
+    bs.int_scale_max = 2;
 
     Part_timer b_timer;
     b_timer.verbose_flag = false;
@@ -132,8 +134,6 @@ int main(int argc, char **argv) {
         for (int p = 0; p < N_par2; p++) {
 
             bs.sig = sig_vec[p];
-
-            bs.image_sampling = 128;
 
             obj_properties obj_prop(bs);
 

@@ -473,6 +473,7 @@ void process_input(cmdLineOptionsBench& options,SynImage& syn_image,AnalysisData
     analysis_data.filters_parts = options.filters_parts;
     analysis_data.filters_mesh = options.filters_mesh;
     analysis_data.debug = options.debug;
+    analysis_data.information_content = options.information_content;
 
     if(options.nonoise){
         syn_image.noise_properties.noise_type = "none";

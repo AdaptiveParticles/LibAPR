@@ -95,7 +95,7 @@ int main(int argc, char **argv) {
     //single_ray_parrallel(pc_struct);
     
     int projection_type = 1;
-    int direction = 5;
+    int direction = 3;
     
     Part_timer timer;
     
@@ -104,10 +104,10 @@ int main(int argc, char **argv) {
 
     proj_par proj_pars;
 
-    proj_pars.direction = 5;
+    proj_pars.direction = 4;
     proj_pars.proj_type = 1;
     proj_pars.Ip_th = 125;
-    proj_pars.start_th = 10;
+    proj_pars.start_th = 5;
     proj_pars.status_th = 20;
     
     proj_pars.avg_flag = true;
@@ -116,6 +116,7 @@ int main(int argc, char **argv) {
     
     timer.stop_timer();
     
+
     timer.start_timer("gen projection");
 
     multi_ray_gen(pc_struct,proj_pars);

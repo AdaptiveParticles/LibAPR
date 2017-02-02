@@ -56,7 +56,9 @@ void write_apr_full_format(PartCellStructure<T,uint64_t>& pc_struct,std::string 
     //  Writes APR to hdf5 file, including xdmf to make readible by paraview, and includes any fields that are flagged extra to print
     //
     //
-    
+
+    register_bosc();
+
     std::cout << "Writing parts to hdf5 file, in full format..." << std::endl;
     
     //containers for all the variables

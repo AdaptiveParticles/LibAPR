@@ -48,7 +48,7 @@ int main(int argc, char **argv) {
 
     std::cout << "Generating Templates" << std::endl;
 
-    bs.obj_size = 4;
+    bs.obj_size = 3;
 
     obj_properties obj_prop(bs);
 
@@ -69,7 +69,7 @@ int main(int argc, char **argv) {
 
     std::cout << "BENCHMARK INCREASE IMAGE SIZE" << std::endl;
 
-    AnalysisData analysis_data(options.description,"Benchmark fixed number of spheres with increasing sized imaging domain",argc,argv);
+    AnalysisData analysis_data(options.description,"Benchmark increasing number of spheres with increasing sized imaging domain",argc,argv);
 
     analysis_data.create_float_dataset("num_objects",0);
 
@@ -80,10 +80,10 @@ int main(int argc, char **argv) {
     std::vector<int> image_size;
 
     float min_size = 100;
-    float max_size =  1000;
-    float delta = 50;
+    float max_size =  400;
+    float delta = 100;
 
-    for (int i = min_size; i < max_size; i = i + delta) {
+    for (int i = min_size; i <= max_size; i = i + delta) {
         image_size.push_back(i);
     }
 
@@ -95,10 +95,10 @@ int main(int argc, char **argv) {
     std::vector<int> num_objects;
 
     min_size = 1;
-    max_size =  30;
-    delta = 1;
+    max_size =  100;
+    delta = 2;
 
-    for (int i = min_size; i < max_size; i = i + delta) {
+    for (int i = min_size; i <= max_size; i = i + delta) {
         num_objects.push_back(i);
     }
 
@@ -142,7 +142,7 @@ int main(int argc, char **argv) {
                 bs.y_num = image_size[j];
                 bs.z_num = image_size[j];
 
-                bs.num_objects = (image_size[j]/26.0)*num_objects[k];
+                bs.num_objects = num_objects[k];
 
                 analysis_data.add_float_data("num_objects",bs.num_objects);
 

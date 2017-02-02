@@ -743,7 +743,7 @@ void calc_information_content(SynImage syn_image,AnalysisData& analysis_data){
 
     float info_content = info_x.af_mesh.scalar<float>()*((syn_image.sampling_properties.voxel_real_dims[0]*syn_image.sampling_properties.voxel_real_dims[1]*syn_image.sampling_properties.voxel_real_dims[2]));
 
-    analysis_data.add_float_data("info_content",info_content);
+    analysis_data.add_float_data("info",info_content);
 
 }
 
