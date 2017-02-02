@@ -118,7 +118,7 @@ int main(int argc, char **argv) {
     
     timer.start_timer("gen projection");
 
-    //multi_ray_gen(pc_struct,proj_pars);
+    multi_ray_gen(pc_struct,proj_pars);
     
     timer.stop_timer();
 }

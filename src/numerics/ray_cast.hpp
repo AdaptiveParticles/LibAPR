@@ -507,7 +507,7 @@ void multi_ray_gen(PartCellStructure<S,uint64_t>& pc_struct,proj_par& pars){
 
             curr_ray.x_dir = offset_x;// + (rand() % 100 - 50)/8000.0 ;
             curr_ray.y_dir = offset_y;// + (rand() % 100 - 50)/8000.0 ;
-            curr_ray.z_dir = offset_z ;// (rand() % 100 - 50)/2000.0 ;
+            curr_ray.z_dir = offset_z;// (rand() % 100 - 50)/2000.0 ;
 
             end_domain = false;
 
