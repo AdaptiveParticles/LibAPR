@@ -72,7 +72,6 @@ int main(int argc, char **argv) {
         number_obj.push_back(i);
     }
 
-
     //////////////////////////////////////////////////////////
     //
     //
@@ -97,7 +96,7 @@ int main(int argc, char **argv) {
         //mean_int.push_back(i);
     }
 
-    mean_int = {1,10,50};
+    mean_int = {50};
 
     min_mean = 15;
     max_mean = 50;
@@ -109,7 +108,7 @@ int main(int argc, char **argv) {
         //mean_int.push_back(i);
     }
 
-    mean_int.push_back(30);
+    //mean_int.push_back(30);
 
     std::vector<float> sig_vec;
 
@@ -128,13 +127,13 @@ int main(int argc, char **argv) {
 
     float sig_single = 2;
     bs.obj_size = 3;
+    bs.sig = 2;
 
-    sig_vec.push_back(sig_single);
+    sig_vec = {0.01,0.1,0.5};
 
     int N_par1 = (int)number_obj.size(); // this many different parameter values to be run
     int N_par2 = (int)mean_int.size();
     int N_par3 = (int)sig_vec.size();
-
 
     for(int m = 0; m < N_par3; m++){
 
@@ -142,7 +141,9 @@ int main(int argc, char **argv) {
         ///////////////////////////////////////////////////////////////////
         //  PSF properties
         //////////////////////////////////////////////////////////////////
-        bs.sig = sig_vec[m];
+        //bs.sig = sig_vec[m];
+        bs.rel_error = sig_vec[m];
+
         set_gaussian_psf(syn_image,bs);
 
         /////////////////////////////////////////////
