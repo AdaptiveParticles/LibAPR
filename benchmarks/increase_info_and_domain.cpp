@@ -79,7 +79,7 @@ int main(int argc, char **argv) {
 
     std::vector<int> image_size;
 
-    float min_size = 100;
+    float min_size = 400;
     float max_size =  400;
     float delta = 100;
 
@@ -94,7 +94,7 @@ int main(int argc, char **argv) {
 
     std::vector<int> num_objects;
 
-    min_size = 1;
+    min_size = 100;
     max_size =  100;
     delta = 2;
 
@@ -123,9 +123,6 @@ int main(int argc, char **argv) {
                 //  Individual synthetic image parameters
                 //
                 ///////////////////////////////
-
-
-
 
                 SynImage syn_image_loc = syn_image;
 
@@ -191,7 +188,6 @@ int main(int argc, char **argv) {
                 ///////////////////////////////
 
                 produce_apr_analysis(input_img, analysis_data, pc_struct, syn_image_loc, p_rep.pars);
-
 
                 af::sync();
                 af::deviceGC();

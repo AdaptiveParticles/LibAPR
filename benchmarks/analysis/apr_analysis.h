@@ -66,12 +66,18 @@ void bench_get_apr(Mesh_data<T>& input_image,Part_rep& p_rep,PartCellStructure<f
     float k_diff = -3.0f;
 
     //set lambda
-    float lambda = expf((-1.0f/0.6161f) * logf((p_rep.pars.var_th/p_rep.pars.noise_sigma) *
-                                               powf(2.0f,k_diff + log2f(p_rep.pars.rel_error))/0.12531f));
+
 
     if(p_rep.pars.lambda == 0) {
 
-        p_rep.pars.lambda = exp((-1.0/0.5138)*log(p_rep.pars.var_th/p_rep.pars.noise_sigma));
+        float lambda = expf((-1.0f/0.6161f) * logf((p_rep.pars.var_th/p_rep.pars.noise_sigma) *
+                                                   powf(2.0f,k_diff + log2f(p_rep.pars.rel_error))/0.12531f));
+        std::cout << lambda << std::endl;
+
+        p_rep.pars.lambda = expf((-1.0f/0.6161f) * logf((p_rep.pars.var_th/p_rep.pars.noise_sigma) *
+                                                        powf(2.0f,k_diff + log2f(.05))/0.12531f));
+
+        std::cout << p_rep.pars.lambda << std::endl;
 
         float lambda_min = 0.05f;
         float lambda_max = 5000;

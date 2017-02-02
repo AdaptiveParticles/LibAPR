@@ -61,13 +61,14 @@ int main(int argc, char **argv) {
     //
     //////////////////////////////////////////////////////
 
-    int num_obj =400;
+    int num_obj_min =1;
+    int num_obj =100;
     std::vector<int> number_obj;
-    int step = options.delta;
+    int step = 4;
 
     //number_obj.push_back(num_obj);
 
-    for(int i = 1; i <= num_obj ; i = i + step ){
+    for(int i = num_obj_min; i <= num_obj ; i = i + step ){
         number_obj.push_back(i);
     }
 
@@ -95,6 +96,8 @@ int main(int argc, char **argv) {
     for(float i = min_mean;i <= max_mean; i = i + del ){
         //mean_int.push_back(i);
     }
+
+    mean_int = {1,10,50};
 
     min_mean = 15;
     max_mean = 50;
@@ -124,6 +127,7 @@ int main(int argc, char **argv) {
     //}
 
     float sig_single = 2;
+    bs.obj_size = 3;
 
     sig_vec.push_back(sig_single);
 
