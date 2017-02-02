@@ -83,17 +83,17 @@ int main(int argc, char **argv) {
 
     //min mean
     float min_sig = 1;
-    float max_sig = 5;
-    num_steps = 1;
+    float max_sig = 10;
+    num_steps = 3;
 
     del = (max_sig - min_sig) / num_steps;
 
 
     for (float i = min_sig; i <= max_sig; i = i + del) {
-        //sig_vec.push_back(i);
+       // sig_vec.push_back(i);
     }
 
-    sig_vec.push_back(2);
+    sig_vec = {1,5,15,25};
 
     //min mean
     float min_shift = 5;
@@ -121,13 +121,13 @@ int main(int argc, char **argv) {
 
     Genrand_uni gen_rand;
 
-    bs.desired_I = 1000;
+    bs.desired_I = 500;
 
     bs.int_scale_min = 1;
-    bs.int_scale_max = 2;
+    bs.int_scale_max = 5;
 
     Part_timer b_timer;
-    b_timer.verbose_flag = false;
+    b_timer.verbose_flag = true;
 
     for(int q = 0;q < N_par3;q++) {
 
