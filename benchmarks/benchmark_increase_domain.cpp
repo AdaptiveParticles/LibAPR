@@ -51,7 +51,7 @@ int main(int argc, char **argv) {
 
     std::cout << "Generating Templates" << std::endl;
 
-    bs.obj_size = 4;
+    bs.obj_size = 3;
 
     obj_properties obj_prop(bs);
 
@@ -89,13 +89,12 @@ int main(int argc, char **argv) {
         image_size.push_back(i);
     }
 
-    bs.num_objects = 5;
+    bs.num_objects = 10;
 
     int N_par = (int)image_size.size(); // this many different parameter values to be run
 
     Part_timer b_timer;
     b_timer.verbose_flag = true;
-
 
     for (int j = 0;j < N_par;j++){
 

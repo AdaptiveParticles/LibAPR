@@ -143,6 +143,7 @@ int main(int argc, char **argv) {
         //////////////////////////////////////////////////////////////////
         //bs.sig = sig_vec[m];
         bs.rel_error = sig_vec[m];
+        bs.sig = 2;
 
         set_gaussian_psf(syn_image,bs);
 
