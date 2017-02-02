@@ -515,9 +515,9 @@ void multi_ray_gen(PartCellStructure<S,uint64_t>& pc_struct,proj_par& pars){
 
             float dist = sqrt(pow((x-camera.x),2) + pow((y-camera.y),2) + pow((z-camera.z),2));
 
-            curr_ray.x_dir = (x-camera.x)/dist;// + (rand() % 100 - 50)/8000.0 ;
-            curr_ray.y_dir = (y-camera.y)/dist;// + (rand() % 100 - 50)/8000.0 ;
-            curr_ray.z_dir = (z-camera.z)/dist;// (rand() % 100 - 50)/2000.0 ;
+            curr_ray.x_dir = -(x-camera.x)/dist;// + (rand() % 100 - 50)/8000.0 ;
+            curr_ray.y_dir = -(y-camera.y)/dist;// + (rand() % 100 - 50)/8000.0 ;
+            curr_ray.z_dir = -(z-camera.z)/dist;// (rand() % 100 - 50)/2000.0 ;
 
             end_domain = false;
 
