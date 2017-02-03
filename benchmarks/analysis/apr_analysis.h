@@ -12,6 +12,7 @@
 #include "SynImageClasses.hpp"
 #include "numerics_benchmarks.hpp"
 #include "../../src/numerics/misc_numerics.hpp"
+#include <assert.h>
 
 
 void calc_information_content(SynImage syn_image,AnalysisData& analysis_data);
@@ -98,6 +99,10 @@ void bench_get_apr(Mesh_data<T>& input_image,Part_rep& p_rep,PartCellStructure<f
         }
     } else {
         p_rep.pars.var_th_max =  .25*p_rep.pars.var_th;
+    }
+
+    if(p_rep.pars.lambda == -1){
+        p_rep.pars.lambda = 0;
     }
 
     std::cout << "Lamda: " << p_rep.pars.lambda << std::endl;
@@ -254,6 +259,15 @@ void compare_E(Mesh_data<S>& org_img,Mesh_data<S>& rec_img,Proc_par& pars,std::s
     analysis_data.add_float_data(name+"_vMSE_sd",sqrt(MSE_var));
     analysis_data.add_float_data(name+"_vPSNR",PSNR);
 
+    float rel_error = pars.rel_error;
+
+    if(pars.lambda == 0) {
+        if (inf_norm > rel_error) {
+            int stop = 1;
+            std::cout << "*********Out of bounds!*********" << std::endl;
+            assert(inf_norm < rel_error);
+        }
+    }
 
 }
 
@@ -312,7 +326,9 @@ void compare_E_debug(Mesh_data<S>& org_img,Mesh_data<S>& rec_img,Proc_par& pars,
 
     debug_write(SE,name + "E_diff");
 
-    if(inf_norm > pars.rel_error){
+    float rel_error = pars.rel_error;
+
+    if(inf_norm > rel_error){
         int stop = 1;
     }
 
