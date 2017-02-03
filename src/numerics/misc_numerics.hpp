@@ -450,19 +450,39 @@ void interp_slice(PartCellStructure<float,uint64_t>& pc_struct,ExtraPartCellData
     x_num_min.resize(pc_struct.depth_max + 1);
     z_num_min.resize(pc_struct.depth_max + 1);
 
+    int x_dim = ceil(org_dims[0]/2.0)*2;
+    int z_dim = ceil(org_dims[1]/2.0)*2;
+    int y_dim = ceil(org_dims[2]/2.0)*2;
+
+
+
 
     if(dir == 2) {
         //yz case
-        for (int i = pc_struct.depth_min; i <= pc_struct.depth_max ; ++i) {
+        z_num = pc_struct.z_num;
 
+        for (int i = pc_struct.depth_min; i <= pc_struct.depth_max ; ++i) {
+            x_num[i] = num/pow(2,pc_struct.depth_max - i);
         }
+
+        prev_k_img.mesh.resize(z_dim*y_dim);
+        curr_k_img.mesh.resize(z_dim*y_dim);
+
+        prev_k_img.set_size(pow(2,depth_min-1),1,pow(2,depth_min-1));
 
     } else {
         //yx case
+        x_num = pc_struct.x_num;
 
+        for (int i = pc_struct.depth_min; i <= pc_struct.depth_max ; ++i) {
+            z_num[i] = num/pow(2,pc_struct.depth_max - i);
+        }
 
+        prev_k_img.mesh.resize(x_dim*y_dim);
+        curr_k_img.mesh.resize(x_dim*y_dim);
+
+        prev_k_img.set_size(pow(2,depth_min-1),pow(2,depth_min-1),1);
     }
-
 
     Mesh_data<U> curr_k_img;
     Mesh_data<U> prev_k_img;
@@ -471,7 +491,6 @@ void interp_slice(PartCellStructure<float,uint64_t>& pc_struct,ExtraPartCellData
     constexpr int x_incr[8] = {0,0,1,1,0,0,1,1};
     constexpr int z_incr[8] = {0,0,0,0,1,1,1,1};
 
-    prev_k_img.set_size(pow(2,depth_min-1),pow(2,depth_min-1),1);
 
     Part_timer timer;
     timer.verbose_flag = false;
