@@ -93,7 +93,7 @@ int main(int argc, char **argv) {
        // sig_vec.push_back(i);
     }
 
-    sig_vec = {1,5,10,20};
+    sig_vec = {5,10,20};
 
     //min mean
     float min_shift = 5;

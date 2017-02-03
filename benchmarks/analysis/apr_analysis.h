@@ -328,8 +328,13 @@ void compare_E_debug(Mesh_data<S>& org_img,Mesh_data<S>& rec_img,Proc_par& pars,
 
     float rel_error = pars.rel_error;
 
-    if(inf_norm > rel_error){
-        int stop = 1;
+
+    if(pars.lambda == 0) {
+        if (inf_norm > rel_error) {
+            int stop = 1;
+            std::cout << "*********Out of bounds!*********" << std::endl;
+            assert(inf_norm < rel_error);
+        }
     }
 
 
