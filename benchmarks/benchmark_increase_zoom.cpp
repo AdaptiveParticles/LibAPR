@@ -49,17 +49,7 @@ int main(int argc, char **argv) {
     /////////////////////////////////////////////
     // GENERATE THE OBJECT TEMPLATE
 
-    std::cout << "Generating Templates" << std::endl;
 
-    bs.sig = 3;
-
-    obj_properties obj_prop(bs);
-
-    obj_prop.sample_rate = 800;
-
-    Object_template  basic_object = get_object_template(options,obj_prop);
-
-    syn_image.object_templates.push_back(basic_object);
 
     //////////////////////////////////////////////////////////
     //
@@ -70,11 +60,13 @@ int main(int argc, char **argv) {
     /////////////////////////////////////////////////////////
 
     float image_size_max = 800;
-    float image_size_min = 20;
+    float image_size_min = 50;
 
     std::vector<float> sampling_rate;
 
-    float real_domain_size = obj_prop.real_size*0.5;
+    float obj_size = 3;
+
+    float real_domain_size = obj_size*3;
 
    // float sampling_lower_b = sqrt(log(1/syn_image.PSF_properties.cut_th)*2*pow(bs.sig,2));
     float min_sampling = real_domain_size/image_size_max;
@@ -96,6 +88,9 @@ int main(int argc, char **argv) {
 
     int N_par = (int)sampling_rate.size();
 
+    float sig =3;
+
+
 
     for (int j = 0;j < N_par;j++){
 
@@ -106,13 +101,28 @@ int main(int argc, char **argv) {
         bs.voxel_size = sampling_rate[j];
         bs.sampling_delta = sampling_rate[j];
 
-        set_gaussian_psf(syn_image,bs);
-
         bs.x_num = round(real_domain_size/bs.sampling_delta);
         bs.y_num = round(real_domain_size/bs.sampling_delta);
         bs.z_num = round(real_domain_size/bs.sampling_delta);
 
         update_domain(syn_image,bs);
+
+        bs.sig = sig*sampling_rate[j]/sampling_rate[0];
+
+        set_gaussian_psf(syn_image,bs);
+
+        std::cout << "Generating Templates" << std::endl;
+
+        bs.sig = 3;
+
+        obj_properties obj_prop(bs);
+
+        obj_prop.sample_rate = bs.x_num;
+        obj_prop.obj_size = obj_size;
+
+        Object_template  basic_object = get_object_template(options,obj_prop);
+
+        syn_image.object_templates.push_back(basic_object);
 
         for(int i = 0; i < bs.N_repeats; i++){
 
