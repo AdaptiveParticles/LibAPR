@@ -62,7 +62,7 @@ int main(int argc, char **argv) {
 
     //min mean
     float min_rel_error = .001;
-    float max_rel_error = .01;
+    float max_rel_error = .1;
     float num_steps = options.delta;
 
     float del = (max_rel_error - min_rel_error) / num_steps;
@@ -71,9 +71,9 @@ int main(int argc, char **argv) {
         rel_error_vec.push_back(i);
     }
 
-    min_rel_error = .01;
-    max_rel_error = .1;
-    num_steps = options.delta / 2;
+    min_rel_error = .1;
+    max_rel_error = 1;
+    num_steps = options.delta;
 
     del = (max_rel_error - min_rel_error) / num_steps;
 
@@ -93,7 +93,7 @@ int main(int argc, char **argv) {
        // sig_vec.push_back(i);
     }
 
-    sig_vec = {5,10,20};
+    sig_vec = {1,5,10,20};
 
     //min mean
     float min_shift = 5;
