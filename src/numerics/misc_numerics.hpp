@@ -427,7 +427,35 @@ void threshold_pixels(PartCellStructure<U,uint64_t>& pc_struct,uint64_t y_num,ui
     std::cout << " Pixel Threshold Size: " << (x_num*y_num*z_num) << " took: " << time << std::endl;
     
 }
+template<typename S>
+void get_coord(const int dir,const CurrentLevel<S, uint64_t> &curr_level,const float step_size,int &dim1,int &dim2){
+    //
+    //  Bevan Cheeseman 2017
+    //
 
+    //calculate real coordinate
+
+
+
+
+    if(dir == 2) {
+        //yz case
+            //y//z
+        dim1 = curr_level.y * step_size;
+        dim2 = curr_level.z * step_size;
+
+    } else {
+            //yx
+
+        dim1 = curr_level.y * step_size;
+        dim2 = curr_level.x * step_size;
+
+
+
+
+    }
+
+}
 
 
 template<typename U,typename V>
@@ -439,373 +467,143 @@ void interp_slice(PartCellStructure<float,uint64_t>& pc_struct,ExtraPartCellData
     //
 
 
-    std::vector<int> x_num_min;
-    std::vector<int> x_num;
 
-    std::vector<int> z_num_min;
-    std::vector<int> z_num;
+    ParticleDataNew<float, uint64_t> part_new;
+    //flattens format to particle = cell, this is in the classic access/part paradigm
+    part_new.initialize_from_structure(pc_struct);
 
-    x_num.resize(pc_struct.depth_max + 1);
-    z_num.resize(pc_struct.depth_max + 1);
-    x_num_min.resize(pc_struct.depth_max + 1);
-    z_num_min.resize(pc_struct.depth_max + 1);
+    //generates the nieghbour structure
+    PartCellData<uint64_t> pc_data;
+    part_new.create_pc_data_new(pc_data);
 
-    int x_dim = ceil(org_dims[0]/2.0)*2;
-    int z_dim = ceil(org_dims[1]/2.0)*2;
-    int y_dim = ceil(org_dims[2]/2.0)*2;
+    //Genearate particle at cell locations, easier access
+    ExtraPartCellData<float> particles_int;
+    part_new.create_particles_at_cell_structure(particles_int);
+
+    //iterator
+    CurrentLevel<float,uint64_t> curr_level(pc_data);
 
 
+    Mesh_data<U> slice;
+
+    std::vector<unsigned int> x_num_min;
+    std::vector<unsigned int> x_num;
+
+    std::vector<unsigned int> z_num_min;
+    std::vector<unsigned int> z_num;
+
+    x_num.resize(pc_data.depth_max + 1);
+    z_num.resize(pc_data.depth_max + 1);
+    x_num_min.resize(pc_data.depth_max + 1);
+    z_num_min.resize(pc_data.depth_max + 1);
+
+    int x_dim = ceil(pc_struct.org_dims[0]/2.0)*2;
+    int z_dim = ceil(pc_struct.org_dims[1]/2.0)*2;
+    int y_dim = ceil(pc_struct.org_dims[2]/2.0)*2;
 
 
     if(dir == 2) {
         //yz case
-        z_num = pc_struct.z_num;
+        z_num = pc_data.z_num;
 
-        for (int i = pc_struct.depth_min; i <= pc_struct.depth_max ; ++i) {
-            x_num[i] = num/pow(2,pc_struct.depth_max - i);
+        for (int i = pc_data.depth_min; i <= pc_data.depth_max ; ++i) {
+            x_num[i] = num/pow(2,pc_data.depth_max - i) + 1;
+            z_num_min[i] = 0;
+            x_num_min[i] = num/pow(2,pc_data.depth_max - i);
         }
 
-        prev_k_img.mesh.resize(z_dim*y_dim);
-        curr_k_img.mesh.resize(z_dim*y_dim);
+        slice.initialize(pc_struct.org_dims[0],pc_struct.org_dims[2],1,0);
 
-        prev_k_img.set_size(pow(2,depth_min-1),1,pow(2,depth_min-1));
 
     } else {
         //yx case
-        x_num = pc_struct.x_num;
+        x_num = pc_data.x_num;
 
-        for (int i = pc_struct.depth_min; i <= pc_struct.depth_max ; ++i) {
-            z_num[i] = num/pow(2,pc_struct.depth_max - i);
+        for (int i = pc_data.depth_min; i <= pc_data.depth_max ; ++i) {
+            z_num[i] = num/pow(2,pc_data.depth_max - i) + 1;
+            x_num_min[i] = 0;
+            z_num_min[i] = num/pow(2,pc_data.depth_max - i);
         }
 
-        prev_k_img.mesh.resize(x_dim*y_dim);
-        curr_k_img.mesh.resize(x_dim*y_dim);
+        slice.initialize(pc_struct.org_dims[0],pc_struct.org_dims[1],1,0);
 
-        prev_k_img.set_size(pow(2,depth_min-1),pow(2,depth_min-1),1);
     }
-
-    Mesh_data<U> curr_k_img;
-    Mesh_data<U> prev_k_img;
-
-    constexpr int y_incr[8] = {0,1,0,1,0,1,0,1};
-    constexpr int x_incr[8] = {0,0,1,1,0,0,1,1};
-    constexpr int z_incr[8] = {0,0,0,0,1,1,1,1};
-
 
     Part_timer timer;
-    timer.verbose_flag = false;
 
-    Part_timer t_n;
-    t_n.verbose_flag = false;
-    t_n.start_timer("loop");
+    timer.verbose_flag = true;
 
-    uint64_t z_ = 0;
-    uint64_t x_ = 0;
-    uint64_t j_ = 0;
-    uint64_t y_coord = 0;
-    uint64_t status = 0;
-    uint64_t part_offset = 0;
-    uint64_t curr_key = 0;
-    uint64_t node_val = 0;
-
-    uint64_t x_p = 0;
-    uint64_t y_p = 0;
-    uint64_t z_p = 0;
-    uint64_t depth_ = 0;
-    uint64_t status_ = 0;
-
-    //loop over all levels of k
-    for (uint64_t d = depth_min; depth_max >= d; d++) {
-
-        ///////////////////////////////////////////////////////////////
-        //
-        //  Transfer previous level to current level
-        //
-        ////////////////////////////////////////////////////////////////
-        timer.start_timer("upsample");
-
-        const_upsample_img(curr_k_img,prev_k_img,org_dims);
-
-        timer.stop_timer();
-
-        /////////////////////////////////////////////////////////////////////
-        //
-        //  Place seed particles
-        //
-        //
-        /////////////////////////////////////////////////////////////////
-
-        timer.start_timer("particle loop");
-
-        if ( d > depth_min){
+    timer.start_timer("ray cast");
 
 
-            const unsigned int x_num_ = x_num[d-1];
-            const unsigned int z_num_ = z_num[d-1];
+    int z_,x_,j_,y_;
 
-            const unsigned int x_num_min = x_num_min[d-1];
-            const unsigned int z_num_min = z_num_min[d-1];
+    for(uint64_t depth = (part_new.access_data.depth_min);depth <= part_new.access_data.depth_max;depth++) {
+        //loop over the resolutions of the structure
+        const unsigned int x_num_ = x_num[depth];
+        const unsigned int z_num_ = z_num[depth];
 
-#pragma omp parallel for default(shared) private(z_,x_,j_,node_val,curr_key,status,part_offset,x_p,y_p,z_p,depth_,status_,y_coord) if(z_num_*x_num_ > 100)
-            for(z_ = z_num_min;z_ < z_num_;z_++){
+        const unsigned int x_num_min_ = x_num_min[depth];
+        const unsigned int z_num_min_ = z_num_min[depth];
 
-                curr_key = 0;
+        CurrentLevel<float, uint64_t> curr_level(pc_data);
+        curr_level.set_new_depth(depth, part_new);
 
-                //set the key values
-                part_data.access_data.pc_key_set_z(curr_key,z_);
-                part_data.access_data.pc_key_set_depth(curr_key,d-1);
+        const float step_size = pow(2,curr_level.depth_max - curr_level.depth);
 
-                for(x_num_min = 0;x_ < x_num_;x_++){
+#pragma omp parallel for default(shared) private(z_,x_,j_) firstprivate(curr_level) if(z_num_*x_num_ > 100)
+        for (z_ = z_num_min_; z_ < z_num_; z_++) {
+            //both z and x are explicitly accessed in the structure
 
-                    part_data.access_data.pc_key_set_x(curr_key,x_);
+            for (x_ = x_num_min_; x_ < x_num_; x_++) {
 
-                    const size_t offset_pc_data = x_num_*z_ + x_;
+                curr_level.set_new_xz(x_, z_, part_new);
 
-                    //number of nodes on the level
-                    const size_t j_num = part_data.access_data.data[d-1][offset_pc_data].size();
+                for (j_ = 0; j_ < curr_level.j_num; j_++) {
 
-                    y_coord = 0;
+                    bool iscell = curr_level.new_j(j_, part_new);
 
-                    for(j_ = 0;j_ < j_num;j_++){
+                    if (iscell) {
+                        //Indicates this is a particle cell node
+                        curr_level.update_cell(part_new);
 
-                        //this value encodes the state and neighbour locations of the particle cell
-                        node_val = part_data.access_data.data[d-1][offset_pc_data][j_];
+                        float temp_int =  curr_level.get_val(particles_int);
 
-                        if (!(node_val&1)){
-                            //This node represents a particle cell
-                            y_coord++;
+                        int dim1 = 0;
+                        int dim2 = 0;
 
-                            //set the key index
-                            part_data.access_data.pc_key_set_j(curr_key,j_);
+                        get_coord(dir,curr_level,step_size,dim1,dim2);
 
-                            //get all the neighbours
-                            status = part_data.access_node_get_status(node_val);
+                        //add to all the required rays
 
-                            if(status == SEED){
+                        for (int k = 0; k < step_size; ++k) {
+#pragma omp simd
+                            for (int i = 0; i < step_size; ++i) {
+                                //slice.mesh[dim1 + i + (dim2 + k)*slice.y_num] = temp_int;
 
-                                part_offset = part_data.access_node_get_part_offset(node_val);
-
-                                part_data.access_data.pc_key_set_status(curr_key,status);
-
-                                part_data.access_data.get_coordinates_cell(y_coord,curr_key,x_p,z_p,y_p,depth_,status_);
-
-
-                                //loop over the particles
-                                for(int p = 0;p < part_data.get_num_parts(status);p++){
-                                    // get coordinates
-                                    part_data.access_data.pc_key_set_index(curr_key,part_offset+p);
-
-                                    curr_k_img.mesh[2*y_p+ y_incr[p] +  curr_k_img.y_num*(2*x_p + x_incr[p]) + curr_k_img.x_num*curr_k_img.y_num*(2*z_p + z_incr[p])] = interp_data.get_part(curr_key);
-
-                                }
-
-                            } else {
-
+                                slice(dim1 + i,(dim2 + k),1) = temp_int;
                             }
-
-                        } else {
-                            //This is a gap node
-                            y_coord += ((node_val & COORD_DIFF_MASK_PARTICLE) >> COORD_DIFF_SHIFT_PARTICLE);
-                            y_coord--;
                         }
 
-                    }
-                }
-            }
-
-        }
-
-        timer.stop_timer();
-
-
-
-        //////////////////////////////////////
-        //
-        //  Get cell info from representation
-        //
-        ///////////////////////////////////
-
-
-        const unsigned int x_num_ = x_num[d];
-        const unsigned int z_num_ = z_num[d];
-
-        const unsigned int x_num_min = x_num_min[d];
-        const unsigned int z_num_min = z_num_min[d];
-
-        timer.start_timer("particle loop");
-
-#pragma omp parallel for default(shared) private(z_,x_,j_,node_val,curr_key,status,part_offset,x_p,y_p,z_p,depth_,status_,y_coord) if(z_num_*x_num_ > 100)
-        for(z_ = z_num_min;z_ < z_num_;z_++){
-
-            curr_key = 0;
-
-            //set the key values
-            part_data.access_data.pc_key_set_z(curr_key,z_);
-            part_data.access_data.pc_key_set_depth(curr_key,d);
-
-            for(x_ = x_num_min;x_ < x_num_;x_++){
-
-                part_data.access_data.pc_key_set_x(curr_key,x_);
-
-                const size_t offset_pc_data = x_num_*z_ + x_;
-
-                //number of nodes on the level
-                const size_t j_num = part_data.access_data.data[d][offset_pc_data].size();
-
-                y_coord = 0;
-
-                for(j_ = 0;j_ < j_num;j_++){
-
-                    //this value encodes the state and neighbour locations of the particle cell
-                    node_val = part_data.access_data.data[d][offset_pc_data][j_];
-
-                    if (!(node_val&1)){
-                        //This node represents a particle cell
-                        y_coord++;
-
-                        //set the key index
-                        part_data.access_data.pc_key_set_j(curr_key,j_);
-
-                        //get all the neighbours
-                        status = part_data.access_node_get_status(node_val);
-
-
-                        if(status == SEED){
-
-
-                        } else {
-
-                            part_offset = part_data.access_node_get_part_offset(node_val);
-
-                            part_data.access_data.pc_key_set_status(curr_key,status);
-
-                            part_data.access_data.get_coordinates_cell(y_coord,curr_key,x_p,z_p,y_p,depth_,status_);
-
-                            part_data.access_data.pc_key_set_index(curr_key,part_offset);
-                            curr_k_img.mesh[y_p + curr_k_img.y_num*x_p + curr_k_img.x_num*curr_k_img.y_num*z_p] = interp_data.get_part(curr_key);
-
-                        }
-
-                    } else {
-                        //This is a gap node
-                        y_coord += ((node_val & COORD_DIFF_MASK_PARTICLE) >> COORD_DIFF_SHIFT_PARTICLE);
-                        y_coord--;
-                    }
-
-                }
-            }
-        }
-
-        timer.stop_timer();
-
-        /////////////////////////////////////////////////
-        //
-        //  Place single particles into image
-        //
-        /////////////////////////////////////////////////
-
-
-        std::swap(prev_k_img,curr_k_img);
-
-    }
-
-    timer.start_timer("upsample");
-
-    const_upsample_img(curr_k_img,prev_k_img,org_dims);
-
-    timer.stop_timer();
-
-
-    timer.start_timer("particle loop");
-
-    const unsigned int x_num_ = x_num[depth_max];
-    const unsigned int z_num_ = z_num[depth_max];
-
-    const unsigned int x_num_min = x_num_min[depth_max];
-    const unsigned int z_num_min = z_num_min[depth_max];
-
-#pragma omp parallel for default(shared) private(z_,x_,j_,node_val,curr_key,status,part_offset,x_p,y_p,z_p,depth_,status_,y_coord) if(z_num_*x_num_ > 100)
-    for(z_ = z_num_min;z_ < z_num_;z_++){
-
-        curr_key = 0;
-
-        //set the key values
-        part_data.access_data.pc_key_set_z(curr_key,z_);
-        part_data.access_data.pc_key_set_depth(curr_key,depth_max);
-
-        for(x_ = x_num_min;x_ < x_num_;x_++){
-
-            part_data.access_data.pc_key_set_x(curr_key,x_);
-
-            const size_t offset_pc_data = x_num_*z_ + x_;
-
-            //number of nodes on the level
-            const size_t j_num = part_data.access_data.data[depth_max][offset_pc_data].size();
-
-            y_coord = 0;
-
-            for(j_ = 0;j_ < j_num;j_++){
-
-                //this value encodes the state and neighbour locations of the particle cell
-                node_val = part_data.access_data.data[depth_max][offset_pc_data][j_];
-
-                if (!(node_val&1)){
-                    //This node represents a particle cell
-                    y_coord++;
-
-                    //set the key index
-                    part_data.access_data.pc_key_set_j(curr_key,j_);
-
-                    //get all the neighbours
-                    status = part_data.access_node_get_status(node_val);
-
-
-                    if(status == SEED){
-
-                        part_offset = part_data.access_node_get_part_offset(node_val);
-
-                        part_data.access_data.pc_key_set_status(curr_key,status);
-
-                        part_data.access_data.get_coordinates_cell(y_coord,curr_key,x_p,z_p,y_p,depth_,status_);
-
-
-                        //loop over the particles
-                        for(int p = 0;p < part_data.get_num_parts(status);p++){
-                            // get coordinates
-                            part_data.access_data.pc_key_set_index(curr_key,part_offset+p);
-
-                            curr_k_img.mesh[2*y_p+ y_incr[p] +  curr_k_img.y_num*(2*x_p + x_incr[p]) + curr_k_img.x_num*curr_k_img.y_num*(2*z_p + z_incr[p])] = interp_data.get_part(curr_key);
-
-                        }
 
                     } else {
 
+                        curr_level.update_gap();
+
                     }
 
-                } else {
-                    //This is a gap node
-                    y_coord += ((node_val & COORD_DIFF_MASK_PARTICLE) >> COORD_DIFF_SHIFT_PARTICLE);
-                    y_coord--;
-                }
 
+                }
             }
         }
     }
 
-
     timer.stop_timer();
 
-    t_n.stop_timer();
+    debug_write(slice,"slice");
 
 
 }
-
-
-};
-
-
-
-
 
 
 #endif

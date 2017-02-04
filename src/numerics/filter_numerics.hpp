@@ -1395,6 +1395,8 @@ void apr_filter_full(PartCellStructure<S,uint64_t>& pc_struct,uint64_t filter_of
                             curr_level.update_cell(part_new);
                             
                             y_ = curr_level.y;
+
+
                             
                             offset_max = std::min((uint64_t)(y_ + filter_offset),(uint64_t)(y_num_m-1));
                             offset_min = std::max((uint64_t)(y_ - filter_offset),(uint64_t)0);
@@ -1460,6 +1462,7 @@ void apr_filter_full(PartCellStructure<S,uint64_t>& pc_struct,uint64_t filter_of
                             curr_level.update_cell(part_new);
                             
                             y_ = curr_level.y;
+
                             
                             offset_max = std::min((uint64_t)(x_ + filter_offset),(uint64_t)(x_num_m-1));
                             offset_min = std::max((uint64_t)(x_ - filter_offset),(uint64_t)0);
@@ -1467,15 +1470,15 @@ void apr_filter_full(PartCellStructure<S,uint64_t>& pc_struct,uint64_t filter_of
                             uint64_t f = 0;
                             S temp = 0;
                             for(uint64_t c = offset_min;c <= offset_max;c++){
-                                
+                                //NEED TO CHANGE THE COORDINATES ARE WRONG!!!!!
+
                                 //need to change the below to the vector
                                 temp += filter_img.mesh[z_*x_num_m*y_num_m + c*y_num_m + y_]*filter[f];
                                 f++;
                             }
                             
                             curr_level.get_val(filter_output) = temp;
-                            
-                            
+
                             
                         } else {
                             
