@@ -162,8 +162,8 @@ void compare_reconstruction_to_original(Mesh_data<S>& org_img,PartCellStructure<
     //compare_E(org_img,rec_img,options,name,analysis_data);
 
 }
-template<typename S>
-void compare_E(Mesh_data<S>& org_img,Mesh_data<S>& rec_img,Proc_par& pars,std::string name,AnalysisData& analysis_data){
+template<typename S,typename T>
+void compare_E(Mesh_data<S>& org_img,Mesh_data<T>& rec_img,Proc_par& pars,std::string name,AnalysisData& analysis_data){
 
     Mesh_data<float> variance;
 
@@ -271,8 +271,8 @@ void compare_E(Mesh_data<S>& org_img,Mesh_data<S>& rec_img,Proc_par& pars,std::s
 
 }
 
-template<typename S>
-void compare_E_debug(Mesh_data<S>& org_img,Mesh_data<S>& rec_img,Proc_par& pars,std::string name,AnalysisData& analysis_data){
+template<typename S,typename T>
+void compare_E_debug(Mesh_data<S>& org_img,Mesh_data<T>& rec_img,Proc_par& pars,std::string name,AnalysisData& analysis_data){
 
     Mesh_data<float> variance;
 
@@ -341,8 +341,8 @@ void compare_E_debug(Mesh_data<S>& org_img,Mesh_data<S>& rec_img,Proc_par& pars,
 }
 
 
-template<typename S>
-void calc_mse(Mesh_data<S>& org_img,Mesh_data<S>& rec_img,std::string name,AnalysisData& analysis_data){
+template<typename S,typename T>
+void calc_mse(Mesh_data<S>& org_img,Mesh_data<T>& rec_img,std::string name,AnalysisData& analysis_data){
     //
     //  Bevan Cheeseman 2017
     //
@@ -592,7 +592,7 @@ void produce_apr_analysis(Mesh_data<T>& input_image,AnalysisData& analysis_data,
 
     timer.start_timer("Image Quality");
 
-    Mesh_data<T> rec_img;
+    Mesh_data<float> rec_img;
     std::string name;
 
     if(analysis_data.quality_metrics_gt || analysis_data.quality_metrics_input) {
@@ -618,6 +618,9 @@ void produce_apr_analysis(Mesh_data<T>& input_image,AnalysisData& analysis_data,
 
         Mesh_data<float> variance;
 
+
+
+
         get_variance(input_image,variance,pars);
 
         debug_write(variance,"var");
@@ -633,7 +636,7 @@ void produce_apr_analysis(Mesh_data<T>& input_image,AnalysisData& analysis_data,
 
 
         name = "debug";
-        compare_E_debug(rec_img, gt_image, pars, name, analysis_data);
+        compare_E_debug( gt_image,rec_img, pars, name, analysis_data);
 
     }
 
@@ -642,7 +645,7 @@ void produce_apr_analysis(Mesh_data<T>& input_image,AnalysisData& analysis_data,
 
 
         //Generate clean gt image
-        Mesh_data<T> gt_image;
+        Mesh_data<uint16_t> gt_image;
         generate_gt_image(gt_image, syn_image);
 
 

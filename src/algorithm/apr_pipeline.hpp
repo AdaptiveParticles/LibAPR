@@ -419,24 +419,27 @@ void calc_median_filter_n2(Mesh_data<U>& output_img,Mesh_data<U>& input_img){
 
 
 }
-
-void get_variance(Mesh_data<uint16_t >& input_image,Mesh_data<float>& variance_u,Proc_par& pars) {
+template<typename S>
+void get_variance(Mesh_data<S>& input_image,Mesh_data<float>& variance_u,Proc_par& pars) {
 
     Part_rep part_rep;
 
 
-
-    Mesh_data<float> input_image_float;
     Mesh_data<float> gradient,variance;
     Mesh_data<float> interp_img;
+
+
+    Mesh_data<float> input_image_float;
+
+    input_image_float.initialize(input_image.y_num,input_image.x_num,input_image.z_num,0);
+
+    std::copy(input_image.mesh.begin(), input_image.mesh.end(), input_image_float.mesh.begin());
+
+
     {
+        gradient.initialize(input_image_float.y_num, input_image_float.x_num, input_image_float.z_num, 0);
+        part_rep.initialize(input_image_float.y_num, input_image_float.x_num, input_image_float.z_num);
 
-
-        gradient.initialize(input_image.y_num, input_image.x_num, input_image.z_num, 0);
-        part_rep.initialize(input_image.y_num, input_image.x_num, input_image.z_num);
-
-        input_image_float = input_image.to_type<float>();
-        interp_img = input_image.to_type<float>();
         // After this block, input_image will be freed.
     }
 
@@ -449,7 +452,6 @@ void get_variance(Mesh_data<uint16_t >& input_image,Mesh_data<float>& variance_u
     Particle_map<float> part_map(part_rep);
     preallocate(part_map.layers, gradient.y_num, gradient.x_num, gradient.z_num, part_rep);
     variance.preallocate(gradient.y_num, gradient.x_num, gradient.z_num, 0);
-    std::vector<Mesh_data<float>> down_sampled_images;
 
     Mesh_data<float> temp;
     temp.preallocate(gradient.y_num, gradient.x_num, gradient.z_num, 0);
@@ -488,6 +490,7 @@ void get_variance(Mesh_data<float>& variance_u,cmdLineOptions& options){
     load_image_tiff(input_image, options.directory + options.input);
 
     get_image_stats(pars, options.directory, options.stats);
+
 
     get_variance(input_image,variance_u,pars);
 
