@@ -138,6 +138,20 @@ int main(int argc, char **argv) {
 
     interp_slice<float,float>(pc_struct,pc_struct.part_data.particle_data,dir,num);
 
+    get_slices<float>(pc_struct);
+
+    Mesh_data<uint16_t> output;
+
+    Part_timer timer;
+
+    timer.verbose_flag = true;
+
+    timer.start_timer("full interp");
+
+    pc_struct.interp_parts_to_pc(output,pc_struct.part_data.particle_data);
+
+    timer.stop_timer();
+
 }
 
 

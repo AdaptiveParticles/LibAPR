@@ -410,7 +410,9 @@ public:
     template<typename U>
     void create_pc_data_new(PartCellData<U>& pc_data_new){
         
-        
+
+        pc_data_new.org_dims = access_data.org_dims;
+
         pc_data_new.y_num = y_num;
         
         //first add the layers

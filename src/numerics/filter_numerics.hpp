@@ -1877,5 +1877,13 @@ void new_filter_part(PartCellStructure<S,uint64_t>& pc_struct,uint64_t filter_of
 
 }
 
+void filter_slice(){
+
+
+
+
+
+}
+
 
 #endif
