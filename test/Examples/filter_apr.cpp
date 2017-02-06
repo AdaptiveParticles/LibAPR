@@ -138,7 +138,7 @@ int main(int argc, char **argv) {
 
     //interp_slice<float,float>(pc_struct,pc_struct.part_data.particle_data,dir,num);
 
-    //get_slices<float>(pc_struct);
+   // get_slices<float>(pc_struct);
 
     Mesh_data<uint16_t> output;
 
@@ -154,7 +154,7 @@ int main(int argc, char **argv) {
 
     std::vector<float> filter;
 
-    filter.resize(filter_offset*2 + 1,1.0/(filter_offset*2 + 1));
+    filter = {.05,.9,.05};
 
     filter_apr_by_slice<float>(pc_struct,filter);
 
