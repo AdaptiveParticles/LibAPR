@@ -17,6 +17,9 @@
 #include "../data_structures/Tree/ExtraPartCellData.hpp"
 #include "filter_help/FilterLevel.hpp"
 
+template<typename U,typename V>
+void interp_img(Mesh_data<U>& img,PartCellData<uint64_t>& pc_data,ParticleDataNew<float, uint64_t>& part_new,ExtraPartCellData<V>& particles_int);
+
 template<typename S>
 void interp_depth_to_mesh(Mesh_data<uint8_t>& k_img,PartCellStructure<S,uint64_t>& pc_struct);
 
@@ -29,6 +32,10 @@ template<typename U,typename V>
 void interp_slice(Mesh_data<U>& slice,PartCellData<uint64_t>& pc_data,ParticleDataNew<float, uint64_t>& part_new,ExtraPartCellData<V>& particles_int,int dir,int num);
 
 void create_y_data(std::vector<std::vector<std::vector<uint16_t>>>& y_vec,PartCellStructure<float,uint64_t>& pc_struct);
+
+template<typename V>
+void filter_slice(std::vector<V>& filter,std::vector<V>& filter_d,ExtraPartCellData<V>& filter_output,Mesh_data<V>& slice,ExtraPartCellData<uint16_t>& y_vec,const int dir,const int num);
+
 
 template<typename S>
 void interp_depth_to_mesh(Mesh_data<uint8_t>& k_img,PartCellStructure<S,uint64_t>& pc_struct){
@@ -728,6 +735,86 @@ void get_slices(PartCellStructure<float,uint64_t>& pc_struct){
 
 
 template<typename U,typename V>
+void interp_img(Mesh_data<U>& img,PartCellData<uint64_t>& pc_data,ParticleDataNew<float, uint64_t>& part_new,ExtraPartCellData<V>& particles_int){
+    //
+    //  Bevan Cheeseman 2016
+    //
+    //  Takes in a APR and creates piece-wise constant image
+    //
+
+    img.initialize(pc_data.org_dims[0],pc_data.org_dims[1],pc_data.org_dims[2],0);
+
+    int z_,x_,j_,y_;
+
+    for(uint64_t depth = (part_new.access_data.depth_min);depth <= part_new.access_data.depth_max;depth++) {
+        //loop over the resolutions of the structure
+        const unsigned int x_num_ = pc_data.x_num[depth];
+        const unsigned int z_num_ = pc_data.z_num[depth];
+
+        const unsigned int x_num_min_ = 0;
+        const unsigned int z_num_min_ = 0;
+
+        CurrentLevel<float, uint64_t> curr_level(pc_data);
+        curr_level.set_new_depth(depth, part_new);
+
+        const float step_size = pow(2,curr_level.depth_max - curr_level.depth);
+
+#pragma omp parallel for default(shared) private(z_,x_,j_) firstprivate(curr_level) if(z_num_*x_num_ > 100)
+        for (z_ = z_num_min_; z_ < z_num_; z_++) {
+            //both z and x are explicitly accessed in the structure
+
+            for (x_ = x_num_min_; x_ < x_num_; x_++) {
+
+                curr_level.set_new_xz(x_, z_, part_new);
+
+                for (j_ = 0; j_ < curr_level.j_num; j_++) {
+
+                    bool iscell = curr_level.new_j(j_, part_new);
+
+                    if (iscell) {
+                        //Indicates this is a particle cell node
+                        curr_level.update_cell(part_new);
+
+                        int dim1 = curr_level.y * step_size;
+                        int dim2 = curr_level.x * step_size;
+                        int dim3 = curr_level.z * step_size;
+
+                        //add to all the required rays
+
+                        const float temp_int = curr_level.get_part(particles_int);
+
+                        const int offset_max_dim1 = std::min((int) img.y_num, (int) (dim1 + step_size));
+                        const int offset_max_dim2 = std::min((int) img.x_num, (int) (dim2 + step_size));
+                        const int offset_max_dim3 = std::min((int) img.z_num, (int) (dim3 + step_size));
+
+                        for (int q = dim3; q < offset_max_dim3; ++q) {
+
+                            for (int k = dim2; k < offset_max_dim2; ++k) {
+    #pragma omp simd
+                                for (int i = dim1; i < offset_max_dim1; ++i) {
+                                    img.mesh[i + (k) * img.y_num + q*img.y_num*img.x_num] = temp_int;
+                                }
+                            }
+                        }
+
+
+                    } else {
+
+                        curr_level.update_gap();
+
+                    }
+
+
+                }
+            }
+        }
+    }
+
+
+
+
+}
+template<typename U,typename V>
 void interp_slice(Mesh_data<U>& slice,PartCellData<uint64_t>& pc_data,ParticleDataNew<float, uint64_t>& part_new,ExtraPartCellData<V>& particles_int,int dir,int num){
     //
     //  Bevan Cheeseman 2016
@@ -746,8 +833,6 @@ void interp_slice(Mesh_data<U>& slice,PartCellData<uint64_t>& pc_data,ParticleDa
     z_num.resize(pc_data.depth_max + 1);
     x_num_min.resize(pc_data.depth_max + 1);
     z_num_min.resize(pc_data.depth_max + 1);
-
-
 
 
     if(dir != 1) {
@@ -862,6 +947,8 @@ void interp_slice(Mesh_data<U>& slice,PartCellData<uint64_t>& pc_data,ParticleDa
 
 
 }
+
+
 void create_y_data(ExtraPartCellData<uint16_t>& y_vec,ParticleDataNew<float, uint64_t>& part_new,PartCellData<uint64_t>& pc_data){
     //
     //  Bevan Cheeseman 2017
@@ -1023,6 +1110,169 @@ void interp_slice(Mesh_data<U>& slice,ExtraPartCellData<uint16_t>& y_vec,PartCel
 
 
 }
+
+
+template<typename U>
+void filter_apr_by_slice(PartCellStructure<float,uint64_t>& pc_struct,int filter_offset){
+
+    ParticleDataNew<float, uint64_t> part_new;
+    //flattens format to particle = cell, this is in the classic access/part paradigm
+    part_new.initialize_from_structure(pc_struct);
+
+    //generates the nieghbour structure
+    PartCellData<uint64_t> pc_data;
+    part_new.create_pc_data_new(pc_data);
+
+    pc_data.org_dims = pc_struct.org_dims;
+    part_new.access_data.org_dims = pc_struct.org_dims;
+
+
+
+    Mesh_data<U> slice;
+
+    Part_timer timer;
+    timer.verbose_flag = true;
+
+    std::vector<U> filter;
+    std::vector<U> filter_d;
+
+    filter.resize(2*filter_offset + 1,1);
+    filter_d.resize(2*filter_offset,0.25);
+
+    ExtraPartCellData<uint16_t> y_vec;
+
+    create_y_data(y_vec,part_new,pc_data);
+
+    ExtraPartCellData<U> filter_output;
+    filter_output.initialize_structure_parts(part_new.particle_data);
+
+    int num_slices = 0;
+
+    timer.start_timer("filter all dir");
+
+    for(int dir = 0; dir < 3;++dir) {
+
+        if (dir != 1) {
+            num_slices = pc_struct.org_dims[1];
+        } else {
+            num_slices = pc_struct.org_dims[2];
+        }
+
+        for (int i = 0; i < num_slices; ++i) {
+            interp_slice(slice, y_vec, pc_data, part_new, dir, i);
+
+            filter_slice(filter,filter_d,filter_output,slice,y_vec,dir,i);
+        }
+
+    }
+
+    timer.stop_timer();
+
+    Mesh_data<U> img;
+
+    ExtraPartCellData<float> particles_int;
+    part_new.create_particles_at_cell_structure(particles_int);
+
+    interp_img(img,pc_data,part_new,filter_output);
+
+    debug_write(img,"filter_img");
+
+};
+
+
+
+template<typename V>
+void filter_slice(std::vector<V>& filter,std::vector<V>& filter_d,ExtraPartCellData<V>& filter_output,Mesh_data<V>& slice,ExtraPartCellData<uint16_t>& y_vec,const int dir,const int num){
+
+    std::vector<unsigned int> x_num_min;
+    std::vector<unsigned int> x_num;
+
+    std::vector<unsigned int> z_num_min;
+    std::vector<unsigned int> z_num;
+
+    x_num.resize(y_vec.depth_max + 1);
+    z_num.resize(y_vec.depth_max + 1);
+    x_num_min.resize(y_vec.depth_max + 1);
+    z_num_min.resize(y_vec.depth_max + 1);
+
+    if (dir != 1) {
+        //yz case
+        z_num = y_vec.z_num;
+
+        for (int i = y_vec.depth_min; i <= y_vec.depth_max; ++i) {
+
+            int step = pow(2, y_vec.depth_max - i);
+            int coord = num/step;
+
+            if((num == ceil((coord+.5)*step)) | (num == floor((coord+.5)*step)) ){
+                x_num[i] = num/step + 1;
+                x_num_min[i] = num/step;
+            }
+            z_num_min[i] = 0;
+        }
+
+    } else {
+        //yx case
+        x_num = y_vec.x_num;
+
+        for (int i = y_vec.depth_min; i <= y_vec.depth_max; ++i) {
+
+            int step = pow(2, y_vec.depth_max - i);
+            int coord = num/step;
+
+            if((num == ceil((coord+.5)*step)) | (num == floor((coord+.5)*step)) ){
+                z_num[i] = num/step + 1;
+                z_num_min[i] = num/step;
+            }
+            x_num_min[i] = 0;
+        }
+    }
+
+    int z_,x_,j_,y_;
+
+    for(uint64_t depth = (y_vec.depth_min);depth <= y_vec.depth_max;depth++) {
+        //loop over the resolutions of the structure
+        const unsigned int x_num_max = x_num[depth];
+        const unsigned int z_num_max = z_num[depth];
+
+        const unsigned int x_num_min_ = x_num_min[depth];
+        const unsigned int z_num_min_ = z_num_min[depth];
+
+        const unsigned int x_num_ = y_vec.x_num[depth];
+
+        const float step_size = pow(2,y_vec.depth_max - depth);
+
+#pragma omp parallel for default(shared) private(z_,x_,j_)
+        for (z_ = z_num_min_; z_ < z_num_max; z_++) {
+            //both z and x are explicitly accessed in the structure
+
+            for (x_ = x_num_min_; x_ < x_num_max; x_++) {
+                const unsigned int pc_offset = x_num_*z_ + x_;
+
+                for (j_ = 0; j_ < y_vec.data[depth][pc_offset].size(); j_++) {
+
+                    int dim1 = 0;
+                    int dim2 = 0;
+
+                    const int y = y_vec.data[depth][pc_offset][j_];
+
+                    get_coord(dir,y,x_,z_,step_size,dim1,dim2);
+
+                    //add to all the required rays
+                    const int offset_max_dim1 = std::min((int)slice.y_num,(int)(dim1 + step_size));
+                    const int offset_max_dim2 = std::min((int)slice.x_num,(int)(dim2 + step_size));
+
+                    filter_output.data[depth][pc_offset][j_] = slice.mesh[ dim1 + (dim2)*slice.y_num];
+
+                }
+            }
+        }
+    }
+
+
+}
+
+
 
 #endif
     

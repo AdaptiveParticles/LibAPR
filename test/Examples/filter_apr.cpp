@@ -148,9 +148,11 @@ int main(int argc, char **argv) {
 
     timer.start_timer("full interp");
 
-    pc_struct.interp_parts_to_pc(output,pc_struct.part_data.particle_data);
+    //pc_struct.interp_parts_to_pc(output,pc_struct.part_data.particle_data);
 
     timer.stop_timer();
+
+    filter_apr_by_slice<float>(pc_struct,6);
 
 }
 

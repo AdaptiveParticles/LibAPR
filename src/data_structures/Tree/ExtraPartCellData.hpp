@@ -40,8 +40,8 @@ public:
     uint64_t depth_max;
     uint64_t depth_min;
     
-    std::vector<uint64_t> z_num;
-    std::vector<uint64_t> x_num;
+    std::vector<unsigned int> z_num;
+    std::vector<unsigned int> x_num;
     
     std::vector<std::vector<std::vector<T>>> data;
     
