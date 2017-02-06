@@ -66,7 +66,7 @@ if (CMAKE_CXX_COMPILER_ID MATCHES "Clang")
 
     if(CMAKE_BUILD_TYPE MATCHES "Release")
         MESSAGE(STATUS "RELEASE BUILD")
-        set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS} -std=c++14 -O3 -ffast-math -Bdynamic")
+        set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS} -std=c++14 -O3 -ffast-math")
     endif()
 
     if(CMAKE_BUILD_TYPE MATCHES "Debug")

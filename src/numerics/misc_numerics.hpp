@@ -36,6 +36,48 @@ void create_y_data(std::vector<std::vector<std::vector<uint16_t>>>& y_vec,PartCe
 template<typename V>
 void filter_slice(std::vector<V>& filter,std::vector<V>& filter_d,ExtraPartCellData<V>& filter_output,Mesh_data<V>& slice,ExtraPartCellData<uint16_t>& y_vec,const int dir,const int num);
 
+template<typename U>
+std::vector<U> create_dog_filter(int size,float t,float K){
+    //
+    //  Bevan Cheeseman 2017
+    //
+    //  Difference of Gaussians Filter
+    //
+    //  https://nenadmarkus.com/posts/3D-DoG/
+    //
+
+    std::vector<U> filter;
+
+    filter.resize(size*2 + 1,0);
+
+    float del_x = 1;
+
+    float pi = 3.14;
+
+    float start_x = -size*del_x;
+
+    float x = start_x;
+
+    float factor1 = 1/pow(2*pi*pow(t,2),.5);
+    float factor2 = 1/pow(2*pi*pow(K*t,2),.5);
+
+    for (int i = 0; i < filter.size(); ++i) {
+        filter[i] = factor1*exp(-pow(x,2)/(2*pow(t,2))) - factor2*exp(-pow(x,2)/(2*pow(K*t,2)));
+        x += del_x;
+    }
+
+    float sum = 0;
+    for (int i = 0; i < filter.size(); ++i) {
+        sum += abs(filter[i]);
+    }
+
+    for (int i = 0; i < filter.size(); ++i) {
+        filter[i] = filter[i]/sum;
+    }
+
+    return filter;
+
+}
 
 template<typename S>
 void interp_depth_to_mesh(Mesh_data<uint8_t>& k_img,PartCellStructure<S,uint64_t>& pc_struct){
@@ -1490,6 +1532,10 @@ void filter_apr_by_slice(PartCellStructure<float,uint64_t>& pc_struct,std::vecto
     Mesh_data<U> img;
 
     interp_img(img,pc_data,part_new,filter_input);
+
+    for (int k = 0; k  < img.mesh.size(); ++k) {
+        img.mesh[k] = 1000*abs(img.mesh[k]);
+    }
 
     debug_write(img,"filter_img");
 
