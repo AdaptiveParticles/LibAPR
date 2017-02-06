@@ -495,6 +495,31 @@ void get_coord(const int& dir,const int& y,const int& x,const int& z,const float
     }
 
 }
+void get_coord_filter(const int& dir,const int& y,const int& x,const int& z,const float& step_size,int &dim1,int &dim2){
+    //
+    //  Bevan Cheeseman 2017
+    //
+
+    //calculate real coordinate
+
+
+    if(dir != 1) {
+        //yz case
+        //y//z
+        dim1 = (y + 0.5) * step_size;
+        dim2 = (z + 0.5) * step_size;
+
+    } else {
+        //yx
+
+        dim1 = (y + 0.5) * step_size;
+        dim2 = (x + 0.5) * step_size;
+
+    }
+
+}
+
+
 
 
 template<typename U,typename V>
@@ -1184,6 +1209,8 @@ void filter_apr_by_slice(PartCellStructure<float,uint64_t>& pc_struct,int filter
 template<typename V>
 void filter_slice(std::vector<V>& filter,std::vector<V>& filter_d,ExtraPartCellData<V>& filter_output,Mesh_data<V>& slice,ExtraPartCellData<uint16_t>& y_vec,const int dir,const int num){
 
+    int filter_offset = filter.size()/2 + 1;
+
     std::vector<unsigned int> x_num_min;
     std::vector<unsigned int> x_num;
 
@@ -1258,11 +1285,21 @@ void filter_slice(std::vector<V>& filter,std::vector<V>& filter_d,ExtraPartCellD
 
                     get_coord(dir,y,x_,z_,step_size,dim1,dim2);
 
-                    //add to all the required rays
-                    const int offset_max_dim1 = std::min((int)slice.y_num,(int)(dim1 + step_size));
-                    const int offset_max_dim2 = std::min((int)slice.x_num,(int)(dim2 + step_size));
+                    const int offset_max = std::min((uint64_t)(dim1 + filter_offset),(uint64_t)(slice.y_num-1));
+                    const int offset_min = std::max((uint64_t)(dim1 - filter_offset),(uint64_t)0);
 
-                    filter_output.data[depth][pc_offset][j_] = slice.mesh[ dim1 + (dim2)*slice.y_num];
+                    int f = 0;
+                    V temp = 0;
+
+                    for(int c = offset_min;c <= offset_max;c++){
+
+                        //need to change the below to the vector
+                        temp += slice.mesh[ c + (dim2)*slice.y_num]*filter[f];
+                        f++;
+                    }
+
+                    filter_output.data[depth][pc_offset][j_] = temp;
+
 
                 }
             }
