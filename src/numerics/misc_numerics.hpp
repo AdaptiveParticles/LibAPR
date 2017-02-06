@@ -479,19 +479,18 @@ void get_coord(const int& dir,const int& y,const int& x,const int& z,const float
     //calculate real coordinate
 
 
-    if(dir != 1) {
-        //yz case
-        //y//z
+    if(dir == 0){
+        //yz
         dim1 = y * step_size;
         dim2 = z * step_size;
-
+    } else if (dir == 1){
+        //xy
+        dim1 = x * step_size;
+        dim2 = y * step_size;
     } else {
-        //yx
-
-        dim1 = y * step_size;
-        dim2 = x * step_size;
-
-
+        //zy
+        dim1 = z * step_size;
+        dim2 = y * step_size;
     }
 
 }
@@ -1064,10 +1063,8 @@ void interp_slice(Mesh_data<U>& slice,ExtraPartCellData<uint16_t>& y_vec,PartCel
             x_num_min[i] = num/pow(2,pc_data.depth_max - i);
         }
 
-        slice.initialize(pc_data.org_dims[0],pc_data.org_dims[2],1,0);
-
-
     } else {
+        //dir = 1 case
         //yx case
         x_num = pc_data.x_num;
 
@@ -1077,9 +1074,23 @@ void interp_slice(Mesh_data<U>& slice,ExtraPartCellData<uint16_t>& y_vec,PartCel
             z_num_min[i] = num/pow(2,pc_data.depth_max - i);
         }
 
-        slice.initialize(pc_data.org_dims[0],pc_data.org_dims[1],1,0);
 
     }
+
+    if(dir == 0){
+        //yz
+        slice.initialize(pc_data.org_dims[0],pc_data.org_dims[2],1,0);
+    } else if (dir == 1){
+        //xy
+        slice.initialize(pc_data.org_dims[1],pc_data.org_dims[0],1,0);
+
+    } else if (dir == 2){
+        //zy
+        slice.initialize(pc_data.org_dims[2],pc_data.org_dims[0],1,0);
+
+    }
+
+
 
     int z_,x_,j_,y_;
 
@@ -1136,9 +1147,36 @@ void interp_slice(Mesh_data<U>& slice,ExtraPartCellData<uint16_t>& y_vec,PartCel
 
 }
 
+template<typename U>
+std::vector<U> shift_filter(std::vector<U>& filter){
+    //
+    //  Filter shift for non resolution part locations
+    //
+    //  Bevan Cheeseman 2017
+    //
+
+    std::vector<U> filter_d;
+
+    filter_d.resize(filter.size() + 1,0);
+
+    float factor = 0.5/4.0;
+
+    filter_d[0] = filter[0]*factor;
+
+    for (int i = 0; i < (filter.size() -1); ++i) {
+        filter_d[i + 1] = filter[i]*factor + filter[i+1]*factor;
+    }
+
+    filter_d.back() = filter.back()*factor;
+
+    return filter_d;
+
+}
+
+
 
 template<typename U>
-void filter_apr_by_slice(PartCellStructure<float,uint64_t>& pc_struct,int filter_offset){
+void filter_apr_by_slice(PartCellStructure<float,uint64_t>& pc_struct,std::vector<U>& filter){
 
     ParticleDataNew<float, uint64_t> part_new;
     //flattens format to particle = cell, this is in the classic access/part paradigm
@@ -1158,11 +1196,20 @@ void filter_apr_by_slice(PartCellStructure<float,uint64_t>& pc_struct,int filter
     Part_timer timer;
     timer.verbose_flag = true;
 
-    std::vector<U> filter;
-    std::vector<U> filter_d;
+    std::vector<U> filter_d = shift_filter(filter);
 
-    filter.resize(2*filter_offset + 1,1);
-    filter_d.resize(2*filter_offset,0.25);
+    float sum1 = 0;
+
+    for (int j = 0; j < filter.size(); ++j) {
+        sum1 += filter[j];
+    }
+
+    float sum2 = 0;
+
+    for (int j = 0; j < filter_d.size(); ++j) {
+        sum2 += filter_d[j];
+    }
+
 
     ExtraPartCellData<uint16_t> y_vec;
 
@@ -1175,7 +1222,7 @@ void filter_apr_by_slice(PartCellStructure<float,uint64_t>& pc_struct,int filter
 
     timer.start_timer("filter all dir");
 
-    for(int dir = 0; dir < 3;++dir) {
+    for(int dir = 0; dir <1;++dir) {
 
         if (dir != 1) {
             num_slices = pc_struct.org_dims[1];
@@ -1202,6 +1249,12 @@ void filter_apr_by_slice(PartCellStructure<float,uint64_t>& pc_struct,int filter
 
     debug_write(img,"filter_img");
 
+    Mesh_data<uint8_t> k_img;
+    interp_depth_to_mesh(k_img,pc_struct);
+
+    debug_write(k_img,"k_img");
+
+
 };
 
 
@@ -1210,6 +1263,7 @@ template<typename V>
 void filter_slice(std::vector<V>& filter,std::vector<V>& filter_d,ExtraPartCellData<V>& filter_output,Mesh_data<V>& slice,ExtraPartCellData<uint16_t>& y_vec,const int dir,const int num){
 
     int filter_offset = filter.size()/2 + 1;
+    //int filter_offset_d = filter_d.size()/2;
 
     std::vector<unsigned int> x_num_min;
     std::vector<unsigned int> x_num;
@@ -1217,42 +1271,54 @@ void filter_slice(std::vector<V>& filter,std::vector<V>& filter_d,ExtraPartCellD
     std::vector<unsigned int> z_num_min;
     std::vector<unsigned int> z_num;
 
-    x_num.resize(y_vec.depth_max + 1);
-    z_num.resize(y_vec.depth_max + 1);
-    x_num_min.resize(y_vec.depth_max + 1);
-    z_num_min.resize(y_vec.depth_max + 1);
+    x_num.resize(y_vec.depth_max + 1,0);
+    z_num.resize(y_vec.depth_max + 1,0);
+    x_num_min.resize(y_vec.depth_max + 1,0);
+    z_num_min.resize(y_vec.depth_max + 1,0);
 
     if (dir != 1) {
         //yz case
         z_num = y_vec.z_num;
 
-        for (int i = y_vec.depth_min; i <= y_vec.depth_max; ++i) {
+        for (int i = y_vec.depth_min; i < y_vec.depth_max; ++i) {
 
             int step = pow(2, y_vec.depth_max - i);
             int coord = num/step;
 
-            if((num == ceil((coord+.5)*step)) | (num == floor((coord+.5)*step)) ){
+            int check1 = ((1.0*coord+.25)*step);
+            int check2 = ((1.0*coord+.25)*step) + 1;
+
+            if((num == check1) || (num == check2 )){
                 x_num[i] = num/step + 1;
                 x_num_min[i] = num/step;
             }
             z_num_min[i] = 0;
         }
+        x_num[y_vec.depth_max] = num + 1;
+        x_num_min[y_vec.depth_max] = num;
 
     } else {
         //yx case
         x_num = y_vec.x_num;
 
-        for (int i = y_vec.depth_min; i <= y_vec.depth_max; ++i) {
+        for (int i = y_vec.depth_min; i < y_vec.depth_max; ++i) {
 
             int step = pow(2, y_vec.depth_max - i);
             int coord = num/step;
 
-            if((num == ceil((coord+.5)*step)) | (num == floor((coord+.5)*step)) ){
+            int check1 = floor((1.0*coord+.25)*step);
+            int check2 = floor((1.0*coord+.25)*step) + 1;
+
+            if((num == check1) || (num == check2 )){
                 z_num[i] = num/step + 1;
                 z_num_min[i] = num/step;
             }
             x_num_min[i] = 0;
         }
+
+        z_num[y_vec.depth_max] = num + 1;
+        z_num_min[y_vec.depth_max] = num;
+
     }
 
     int z_,x_,j_,y_;
@@ -1285,20 +1351,47 @@ void filter_slice(std::vector<V>& filter,std::vector<V>& filter_d,ExtraPartCellD
 
                     get_coord(dir,y,x_,z_,step_size,dim1,dim2);
 
-                    const int offset_max = std::min((uint64_t)(dim1 + filter_offset),(uint64_t)(slice.y_num-1));
-                    const int offset_min = std::max((uint64_t)(dim1 - filter_offset),(uint64_t)0);
+                    if(depth == y_vec.depth_max) {
 
-                    int f = 0;
-                    V temp = 0;
+                        const int offset_max = std::min((uint64_t)(dim1 + filter_offset),(uint64_t)(slice.y_num-1));
+                        const int offset_min = std::max((uint64_t)(dim1 - filter_offset),(uint64_t)0);
 
-                    for(int c = offset_min;c <= offset_max;c++){
+                        int f = 0;
+                        V temp = 0;
 
-                        //need to change the below to the vector
-                        temp += slice.mesh[ c + (dim2)*slice.y_num]*filter[f];
-                        f++;
+                        for (int c = offset_min; c <= offset_max; c++) {
+
+                            //need to change the below to the vector
+                            temp += slice.mesh[c + (dim2) * slice.y_num] * filter[f];
+                            f++;
+                        }
+
+                        filter_output.data[depth][pc_offset][j_] = temp;
+                    } else {
+
+                        const int offset_max = std::min((uint64_t)(dim1 + filter_offset + 1),(uint64_t)(slice.y_num-1));
+                        const int offset_min = std::max((uint64_t)(dim1 - filter_offset),(uint64_t)0);
+
+                        int f = 0;
+                        V temp = 0;
+
+                        const int dim2p = std::min(dim2 + 1,slice.x_num-1);
+                        const int dim2m = dim2;
+
+                        for (int c = offset_min; c <= offset_max; c++) {
+
+                            //need to change the below to the vector
+                            temp += (slice.mesh[c + (dim2m) * slice.y_num] + slice.mesh[c + (dim2p) * slice.y_num])  * filter_d[f];
+                            f++;
+                        }
+
+                        f = 0;
+
+                        filter_output.data[depth][pc_offset][j_] += temp;
+
+
                     }
 
-                    filter_output.data[depth][pc_offset][j_] = temp;
 
 
                 }

@@ -125,7 +125,7 @@ int main(int argc, char **argv) {
 
     // Filtering
 
-    //uint64_t filter_offset = 10;
+    uint64_t filter_offset = 3;
 
     //apr_filter_full(pc_struct,filter_offset,num_repeats,analysis_data);
 
@@ -136,9 +136,9 @@ int main(int argc, char **argv) {
     int num = 800;
     int dir = 2;
 
-    interp_slice<float,float>(pc_struct,pc_struct.part_data.particle_data,dir,num);
+    //interp_slice<float,float>(pc_struct,pc_struct.part_data.particle_data,dir,num);
 
-    get_slices<float>(pc_struct);
+    //get_slices<float>(pc_struct);
 
     Mesh_data<uint16_t> output;
 
@@ -152,7 +152,12 @@ int main(int argc, char **argv) {
 
     timer.stop_timer();
 
-    filter_apr_by_slice<float>(pc_struct,6);
+    std::vector<float> filter;
+
+    filter.resize(filter_offset*2 + 1,1.0/(filter_offset*2 + 1));
+
+    filter_apr_by_slice<float>(pc_struct,filter);
+
 
 }
 
