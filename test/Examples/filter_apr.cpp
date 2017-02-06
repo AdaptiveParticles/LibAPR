@@ -125,11 +125,11 @@ int main(int argc, char **argv) {
 
     // Filtering
 
-    uint64_t filter_offset = 8;
+    uint64_t filter_offset = 10;
 
     //apr_filter_full(pc_struct,filter_offset,num_repeats,analysis_data);
 
-   // pixel_filter_full(pc_struct,pc_struct.org_dims[0],pc_struct.org_dims[1],pc_struct.org_dims[2],filter_offset,num_repeats,analysis_data);
+    pixel_filter_full(pc_struct,pc_struct.org_dims[0],pc_struct.org_dims[1],pc_struct.org_dims[2],filter_offset,num_repeats,analysis_data);
 
     //new_filter_part(pc_struct,filter_offset,num_repeats,analysis_data);
 
@@ -151,7 +151,7 @@ int main(int argc, char **argv) {
 
     std::vector<float> filter;
 
-    filter = create_dog_filter<float>(10,1.5,3);
+    filter = create_dog_filter<float>(filter_offset,1.5,3);
 
     filter_apr_by_slice<float>(pc_struct,filter);
 
