@@ -125,11 +125,11 @@ int main(int argc, char **argv) {
 
     // Filtering
 
-    uint64_t filter_offset = 3;
+    uint64_t filter_offset = 8;
 
     //apr_filter_full(pc_struct,filter_offset,num_repeats,analysis_data);
 
-  //  pixel_filter_full(pc_struct,pc_struct.org_dims[0],pc_struct.org_dims[1],pc_struct.org_dims[2],filter_offset,num_repeats,analysis_data);
+    pixel_filter_full(pc_struct,pc_struct.org_dims[0],pc_struct.org_dims[1],pc_struct.org_dims[2],filter_offset,num_repeats,analysis_data);
 
     //new_filter_part(pc_struct,filter_offset,num_repeats,analysis_data);
 
@@ -138,7 +138,7 @@ int main(int argc, char **argv) {
 
     //interp_slice<float,float>(pc_struct,pc_struct.part_data.particle_data,dir,num);
 
-   // get_slices<float>(pc_struct);
+    //get_slices<float>(pc_struct);
 
     Mesh_data<uint16_t> output;
 
@@ -154,7 +154,7 @@ int main(int argc, char **argv) {
 
     std::vector<float> filter;
 
-    filter = {.05,.9,.05};
+    filter.resize(2*filter_offset + 1,1.0/(2*filter_offset + 1));
 
     filter_apr_by_slice<float>(pc_struct,filter);
 

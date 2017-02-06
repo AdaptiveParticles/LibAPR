@@ -753,6 +753,27 @@ void get_slices(PartCellStructure<float,uint64_t>& pc_struct){
 
     timer.stop_timer();
 
+
+    timer.start_timer("interp 2 old");
+
+    for(int dir = 0; dir < 3;++dir) {
+
+        if (dir != 1) {
+            num_slices = pc_struct.org_dims[1];
+        } else {
+            num_slices = pc_struct.org_dims[2];
+        }
+        int i = 0;
+
+#pragma omp parallel for default(shared) private(i) firstprivate(slice)
+        for (i = 0; i < num_slices; ++i) {
+            interp_slice(slice, y_vec, part_new.particle_data, dir, i);
+        }
+
+    }
+
+    timer.stop_timer();
+
     interp_slice(slice, y_vec, part_new.particle_data, 0, 500);
     debug_write(slice,"slice3");
 
@@ -839,6 +860,48 @@ void interp_img(Mesh_data<U>& img,PartCellData<uint64_t>& pc_data,ParticleDataNe
 
 
 }
+
+template<typename V>
+void set_zero_minus_1(ExtraPartCellData<V>& parts){
+    //
+    //  Bevan Cheeseman 2016
+    //
+    //  Takes in a APR and creates piece-wise constant image
+    //
+
+
+
+    int z_,x_,j_,y_;
+
+    for(uint64_t depth = (parts.depth_min);depth < parts.depth_max;depth++) {
+        //loop over the resolutions of the structure
+        const unsigned int x_num_ = parts.x_num[depth];
+        const unsigned int z_num_ = parts.z_num[depth];
+
+        const unsigned int x_num_min_ = 0;
+        const unsigned int z_num_min_ = 0;
+
+
+#pragma omp parallel for default(shared) private(z_,x_,j_) if(z_num_*x_num_ > 100)
+        for (z_ = z_num_min_; z_ < z_num_; z_++) {
+            //both z and x are explicitly accessed in the structure
+
+            for (x_ = x_num_min_; x_ < x_num_; x_++) {
+
+                const unsigned int pc_offset = x_num_*z_ + x_;
+
+                std::fill(parts.data[depth][pc_offset].begin(),parts.data[depth][pc_offset].end(),0);
+
+            }
+        }
+    }
+
+
+
+
+}
+
+
 template<typename U,typename V>
 void interp_slice(Mesh_data<U>& slice,PartCellData<uint64_t>& pc_data,ParticleDataNew<float, uint64_t>& part_new,ExtraPartCellData<V>& particles_int,int dir,int num){
     //
@@ -1104,7 +1167,7 @@ void interp_slice(Mesh_data<U>& slice,ExtraPartCellData<uint16_t>& y_vec,ExtraPa
 
         const float step_size = pow(2,y_vec.depth_max - depth);
 
-#pragma omp parallel for default(shared) private(z_,x_,j_)
+//#pragma omp parallel for default(shared) private(z_,x_,j_)
         for (z_ = z_num_min_; z_ < z_num_max; z_++) {
             //both z and x are explicitly accessed in the structure
 
@@ -1164,6 +1227,22 @@ void interp_slice_opt(Mesh_data<U>& slice,ExtraPartCellData<uint16_t>& y_vec,Ext
     x_num_min.resize(y_vec.depth_max + 1,0);
     z_num_min.resize(y_vec.depth_max + 1,0);
 
+    if(num == 0) {
+        if (dir == 0) {
+            //yz
+            slice.initialize(y_vec.org_dims[0], y_vec.org_dims[2], 1, 0);
+        } else if (dir == 1) {
+            //xy
+            slice.initialize(y_vec.org_dims[1], y_vec.org_dims[0], 1, 0);
+
+        } else if (dir == 2) {
+            //zy
+            slice.initialize(y_vec.org_dims[2], y_vec.org_dims[0], 1, 0);
+
+        }
+    }
+
+
     if (dir != 1) {
         //yz case
         z_num = y_vec.z_num;
@@ -1207,7 +1286,10 @@ void interp_slice_opt(Mesh_data<U>& slice,ExtraPartCellData<uint16_t>& y_vec,Ext
 
     }
 
-    int z_,x_,j_,y_;
+    int z_=0;
+    int x_=0;
+    int j_ = 0;
+    int y_ = 0;
 
     for(uint64_t depth = (y_vec.depth_min);depth <= y_vec.depth_max;depth++) {
         //loop over the resolutions of the structure
@@ -1221,10 +1303,10 @@ void interp_slice_opt(Mesh_data<U>& slice,ExtraPartCellData<uint16_t>& y_vec,Ext
 
         const float step_size = pow(2,y_vec.depth_max - depth);
 
-#pragma omp parallel for default(shared) private(z_,x_,j_)
+#pragma omp parallel for default(shared) private(z_,x_,j_) if(dir == 1)
         for (z_ = z_num_min_; z_ < z_num_max; z_++) {
             //both z and x are explicitly accessed in the structure
-
+#pragma omp parallel for default(shared) private(x_,j_) if(dir != 1)
             for (x_ = x_num_min_; x_ < x_num_max; x_++) {
                 const unsigned int pc_offset = x_num_*z_ + x_;
 
@@ -1245,7 +1327,6 @@ void interp_slice_opt(Mesh_data<U>& slice,ExtraPartCellData<uint16_t>& y_vec,Ext
 
 
                     for (int k = dim2; k < offset_max_dim2; ++k) {
-#pragma omp simd
                         for (int i = dim1; i < offset_max_dim1; ++i) {
                             slice.mesh[ i + (k)*slice.y_num] = temp_int;
 
@@ -1334,11 +1415,40 @@ void filter_apr_by_slice(PartCellStructure<float,uint64_t>& pc_struct,std::vecto
     ExtraPartCellData<U> filter_output;
     filter_output.initialize_structure_parts(part_new.particle_data);
 
+    ExtraPartCellData<U> filter_input;
+    filter_input.initialize_structure_parts(part_new.particle_data);
+
+    filter_input.data = part_new.particle_data.data;
+
+
     int num_slices = 0;
+
+//    timer.start_timer("filter all old");
+//
+//    for(int dir = 0; dir <1;++dir) {
+//
+//        if (dir != 1) {
+//            num_slices = pc_struct.org_dims[1];
+//        } else {
+//            num_slices = pc_struct.org_dims[2];
+//        }
+//
+//
+//
+//        for (int i = 0; i < num_slices; ++i) {
+//            interp_slice_opt(slice, y_vec, part_new.particle_data, dir, i);
+//
+//            filter_slice(filter,filter_d,filter_output,slice,y_vec,dir,i);
+//        }
+//
+//    }
+//
+//    timer.stop_timer();
+
 
     timer.start_timer("filter all dir");
 
-    for(int dir = 0; dir <1;++dir) {
+    for(int dir = 0; dir <3;++dir) {
 
         if (dir != 1) {
             num_slices = pc_struct.org_dims[1];
@@ -1346,22 +1456,40 @@ void filter_apr_by_slice(PartCellStructure<float,uint64_t>& pc_struct,std::vecto
             num_slices = pc_struct.org_dims[2];
         }
 
-        for (int i = 0; i < num_slices; ++i) {
-            interp_slice(slice, y_vec, part_new.particle_data, dir, i);
+        if (dir == 0) {
+            //yz
+            slice.initialize(y_vec.org_dims[0], y_vec.org_dims[2], 1, 0);
+        } else if (dir == 1) {
+            //xy
+            slice.initialize(y_vec.org_dims[1], y_vec.org_dims[0], 1, 0);
+
+        } else if (dir == 2) {
+            //zy
+            slice.initialize(y_vec.org_dims[2], y_vec.org_dims[0], 1, 0);
+
+        }
+
+        //set to zero
+        set_zero_minus_1(filter_output);
+
+        int i = 0;
+#pragma omp parallel for default(shared) private(i) firstprivate(slice) schedule(guided)
+        for (i = 0; i < num_slices; ++i) {
+            interp_slice(slice, y_vec, filter_input, dir, i);
 
             filter_slice(filter,filter_d,filter_output,slice,y_vec,dir,i);
         }
 
+        std::swap(filter_input,filter_output);
     }
 
     timer.stop_timer();
 
+    //std::swap(filter_input,filter_output);
+
     Mesh_data<U> img;
 
-    ExtraPartCellData<float> particles_int;
-    part_new.create_particles_at_cell_structure(particles_int);
-
-    interp_img(img,pc_data,part_new,filter_output);
+    interp_img(img,pc_data,part_new,filter_input);
 
     debug_write(img,"filter_img");
 
@@ -1379,7 +1507,7 @@ template<typename V>
 void filter_slice(std::vector<V>& filter,std::vector<V>& filter_d,ExtraPartCellData<V>& filter_output,Mesh_data<V>& slice,ExtraPartCellData<uint16_t>& y_vec,const int dir,const int num){
 
     int filter_offset = (filter.size()-1)/2;
-    //int filter_offset_d = filter_d.size()/2;
+
 
     std::vector<unsigned int> x_num_min;
     std::vector<unsigned int> x_num;
@@ -1391,6 +1519,9 @@ void filter_slice(std::vector<V>& filter,std::vector<V>& filter_d,ExtraPartCellD
     z_num.resize(y_vec.depth_max + 1,0);
     x_num_min.resize(y_vec.depth_max + 1,0);
     z_num_min.resize(y_vec.depth_max + 1,0);
+
+    std::vector<bool> first_flag;
+    first_flag.resize(y_vec.depth_max);
 
     if (dir != 1) {
         //yz case
@@ -1404,9 +1535,14 @@ void filter_slice(std::vector<V>& filter,std::vector<V>& filter_d,ExtraPartCellD
             int check1 = ((1.0*coord+.25)*step);
             int check2 = ((1.0*coord+.25)*step) + 1;
 
-            if((num == check1) || (num == check2 )){
+            if((num == check1) ){
                 x_num[i] = num/step + 1;
                 x_num_min[i] = num/step;
+                first_flag[i] = false;
+            } else if ((num == check2 )){
+                x_num[i] = num/step + 1;
+                x_num_min[i] = num/step;
+                first_flag[i] = false;
             }
             z_num_min[i] = 0;
         }
@@ -1425,10 +1561,16 @@ void filter_slice(std::vector<V>& filter,std::vector<V>& filter_d,ExtraPartCellD
             int check1 = floor((1.0*coord+.25)*step);
             int check2 = floor((1.0*coord+.25)*step) + 1;
 
-            if((num == check1) || (num == check2 )){
+            if((num == check1) ){
                 z_num[i] = num/step + 1;
                 z_num_min[i] = num/step;
+                first_flag[i] = false;
+            } else if ((num == check2 )) {
+                z_num[i] = num/step + 1;
+                z_num_min[i] = num/step;
+                first_flag[i] = false;
             }
+
             x_num_min[i] = 0;
         }
 
@@ -1451,7 +1593,7 @@ void filter_slice(std::vector<V>& filter,std::vector<V>& filter_d,ExtraPartCellD
 
         const float step_size = pow(2,y_vec.depth_max - depth);
 
-#pragma omp parallel for default(shared) private(z_,x_,j_)
+//#pragma omp parallel for default(shared) private(z_,x_,j_)
         for (z_ = z_num_min_; z_ < z_num_max; z_++) {
             //both z and x are explicitly accessed in the structure
 
@@ -1501,10 +1643,7 @@ void filter_slice(std::vector<V>& filter,std::vector<V>& filter_d,ExtraPartCellD
                             f++;
                         }
 
-                        f = 0;
-
                         filter_output.data[depth][pc_offset][j_] += temp;
-
 
                     }
 

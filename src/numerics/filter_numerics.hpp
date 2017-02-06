@@ -1058,7 +1058,7 @@ void pixel_filter_full(PartCellStructure<U,uint64_t>& pc_struct,uint64_t y_num,u
     
    // std::cout << " Pixel Filter Size: " << (x_num*y_num*z_num) << " z took: " << time3 << std::endl;
     
-   // std::cout << " Pixel Filter Size: " << (x_num*y_num*z_num) << " all took: " << (time+time2+time3) << std::endl;
+    std::cout << " Pixel Filter Size: " << (x_num*y_num*z_num) << " all took: " << (time+time2+time3) << std::endl;
 
     analysis_data.add_float_data("pixel_filter_y",time);
     analysis_data.add_float_data("pixel_filter_x",time2);
