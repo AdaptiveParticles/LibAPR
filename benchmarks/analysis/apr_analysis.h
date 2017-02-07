@@ -308,7 +308,7 @@ void compare_E_debug(Mesh_data<S>& org_img,Mesh_data<S>& rec_img,Proc_par& pars,
 
     if(inf_norm > pars.rel_error){
         int stop = 1;
-    }bbbbbbbbbbbbbb
+    }
 
 
 }
