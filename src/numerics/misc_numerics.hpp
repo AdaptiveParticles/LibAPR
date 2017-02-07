@@ -544,18 +544,18 @@ void get_coord_filter(const int& dir,const int& y,const int& x,const int& z,cons
     //calculate real coordinate
 
 
-    if(dir != 1) {
-        //yz case
-        //y//z
-        dim1 = (y + 0.5) * step_size;
-        dim2 = (z + 0.5) * step_size;
-
+    if(dir == 0){
+        //yz
+        dim1 = (1.0*y + 0.5) * step_size;
+        dim2 = (1.0*z + 0.5)  * step_size;
+    } else if (dir == 1){
+        //xy
+        dim1 = (1.0*x + 0.5) * step_size;
+        dim2 = (1.0*y + 0.5) * step_size;
     } else {
-        //yx
-
-        dim1 = (y + 0.5) * step_size;
-        dim2 = (x + 0.5) * step_size;
-
+        //zy
+        dim1 = (1.0*z + 0.5)  * step_size;
+        dim2 = (1.0*y + 0.5)  * step_size;
     }
 
 }
@@ -1411,106 +1411,48 @@ std::vector<U> shift_filter(std::vector<U>& filter){
 
 }
 
-
 template<typename U>
-ExtraPartCellData<U> filter_apr_by_slice(PartCellStructure<float,uint64_t>& pc_struct,std::vector<U>& filter,bool debug = false){
-
-    ParticleDataNew<float, uint64_t> part_new;
-    //flattens format to particle = cell, this is in the classic access/part paradigm
-    part_new.initialize_from_structure(pc_struct);
-
-    //generates the nieghbour structure
-    PartCellData<uint64_t> pc_data;
-    part_new.create_pc_data_new(pc_data);
-
-    pc_data.org_dims = pc_struct.org_dims;
-    part_new.access_data.org_dims = pc_struct.org_dims;
-
-    part_new.particle_data.org_dims = pc_struct.org_dims;
+void filter_apr_dir(ExtraPartCellData<uint16_t>& y_vec,ExtraPartCellData<U>& filter_output,ExtraPartCellData<U>& filter_input,std::vector<U>& filter,std::vector<U>& filter_d,const int dir){
+    //
+    //
+    //
+    //
 
     Mesh_data<U> slice;
 
-    Part_timer timer;
-    timer.verbose_flag = true;
+    int num_slices;
 
-    std::vector<U> filter_d = shift_filter(filter);
+    if (dir != 1) {
+        num_slices = y_vec.org_dims[1];
+    } else {
+        num_slices = y_vec.org_dims[2];
+    }
 
+    if (dir == 0) {
+        //yz
+        slice.initialize(y_vec.org_dims[0], y_vec.org_dims[2], 1, 0);
+    } else if (dir == 1) {
+        //xy
+        slice.initialize(y_vec.org_dims[1], y_vec.org_dims[0], 1, 0);
 
-    ExtraPartCellData<uint16_t> y_vec;
+    } else if (dir == 2) {
+        //zy
+        slice.initialize(y_vec.org_dims[2], y_vec.org_dims[0], 1, 0);
 
-    create_y_data(y_vec,part_new,pc_data);
+    }
 
-    ExtraPartCellData<U> filter_output;
-    filter_output.initialize_structure_parts(part_new.particle_data);
-
-    ExtraPartCellData<U> filter_input;
-    filter_input.initialize_structure_parts(part_new.particle_data);
-
-    filter_input.data = part_new.particle_data.data;
-
-    int num_slices = 0;
-
-
-    timer.start_timer("filter all dir");
-
-    for(int dir = 0; dir <1;++dir) {
-
-        if (dir != 1) {
-            num_slices = pc_struct.org_dims[1];
-        } else {
-            num_slices = pc_struct.org_dims[2];
-        }
-
-        if (dir == 0) {
-            //yz
-            slice.initialize(y_vec.org_dims[0], y_vec.org_dims[2], 1, 0);
-        } else if (dir == 1) {
-            //xy
-            slice.initialize(y_vec.org_dims[1], y_vec.org_dims[0], 1, 0);
-
-        } else if (dir == 2) {
-            //zy
-            slice.initialize(y_vec.org_dims[2], y_vec.org_dims[0], 1, 0);
-
-        }
-
-        //set to zero
-        set_zero_minus_1(filter_output);
-
-        int i = 0;
+    int i = 0;
 #pragma omp parallel for default(shared) private(i) firstprivate(slice) schedule(guided)
-        for (i = 0; i < num_slices; ++i) {
-            interp_slice(slice, y_vec, filter_input, dir, i);
+    for (i = 0; i < num_slices; ++i) {
+        interp_slice(slice, y_vec, filter_input, dir, i);
 
-            filter_slice(filter,filter_d,filter_output,slice,y_vec,dir,i);
-        }
-
-        //std::swap(filter_input,filter_output);
+        filter_slice(filter,filter_d,filter_output,slice,y_vec,dir,i);
     }
 
-    timer.stop_timer();
-
-   // std::swap(filter_input,filter_output);
-
-    if(debug == true) {
-
-        Mesh_data<float> img;
-
-        interp_img(img, pc_data, part_new, filter_output);
-
-        for (int k = 0; k < img.mesh.size(); ++k) {
-            img.mesh[k] = 10 * fabs(img.mesh[k]);
-        }
-
-        debug_write(img, "filter_img");
-    }
-
-    return filter_output;
+}
 
 
 
-
-};
 
 
 
@@ -1618,7 +1560,7 @@ void filter_slice(std::vector<V>& filter,std::vector<V>& filter_d,ExtraPartCellD
 
                     const int y = y_vec.data[depth][pc_offset][j_];
 
-                    get_coord(dir,y,x_,z_,step_size,dim1,dim2);
+                    get_coord_filter(dir,y,x_,z_,step_size,dim1,dim2);
 
                     if(depth == y_vec.depth_max) {
 
@@ -1635,7 +1577,7 @@ void filter_slice(std::vector<V>& filter,std::vector<V>& filter_d,ExtraPartCellD
                             f++;
                         }
 
-                        filter_output.data[depth][pc_offset][j_] = temp;
+                        filter_output.data[depth][pc_offset][j_] += temp;
                     } else {
 
                         const int offset_max = std::min((int)(dim1 + filter_offset + 1),(int)(slice.y_num-1));
@@ -1645,7 +1587,7 @@ void filter_slice(std::vector<V>& filter,std::vector<V>& filter_d,ExtraPartCellD
                         V temp = 0;
 
                         const int dim2p = std::min(dim2 + 1,slice.x_num-1);
-                        const int dim2m = dim2;
+                        const int dim2m = std::min(dim2,slice.x_num-1);
 
                         for (int c = offset_min; c <= offset_max; c++) {
 

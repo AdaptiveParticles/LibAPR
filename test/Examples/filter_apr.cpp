@@ -165,8 +165,7 @@ int main(int argc, char **argv) {
 
     ExtraPartCellData<float> filter_output;
 
-    filter_output = filter_apr_by_slice<float>(pc_struct,filter,true);
-
+    filter_output = filter_apr_by_slice<float>(pc_struct,filter,analysis_data,num_repeats,true);
 
     Mesh_data<float> input_image;
 
@@ -180,7 +179,6 @@ int main(int argc, char **argv) {
         output_image.mesh[k] = 10 * fabs(output_image.mesh[k]);
     }
     debug_write(output_image,"img_filter_full");
-
 
     Mesh_data<uint16_t> input_image_;
 
