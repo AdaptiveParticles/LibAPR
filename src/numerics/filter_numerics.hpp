@@ -927,26 +927,25 @@ void particle_random_access(PartCellStructure<float,uint64_t>& pc_struct,Analysi
 }
 
 
-template<typename U>
-void pixel_filter_full(PartCellStructure<U,uint64_t>& pc_struct,uint64_t y_num,uint64_t x_num,uint64_t z_num,uint64_t filter_offset,float num_repeats,AnalysisData& analysis_data){
+template<typename U,typename V>
+Mesh_data<U> pixel_filter_full(Mesh_data<V>& input_data,std::vector<U>& filter,float num_repeats,AnalysisData& analysis_data){
     //
     //  Compute two, comparitive filters for speed. Original size img, and current particle size comparison
     //
-    
-    Mesh_data<U> input_data;
+
+    int filter_offset = (filter.size()-1)/2;
+
+    unsigned int x_num = input_data.x_num;
+    unsigned int y_num = input_data.y_num;
+    unsigned int z_num = input_data.z_num;
+
     Mesh_data<U> output_data;
-    input_data.initialize((int)y_num,(int)x_num,(int)z_num,23);
     output_data.initialize((int)y_num,(int)x_num,(int)z_num,0);
-    
-    std::vector<float> filter;
     
     Part_timer timer;
     timer.verbose_flag = false;
     timer.start_timer("full previous filter");
-    
-    
-    filter.resize(filter_offset*2 +1,1);
-    
+
     std::vector<U> temp_vec;
     temp_vec.resize(y_num,0);
     
@@ -959,14 +958,14 @@ void pixel_filter_full(PartCellStructure<U,uint64_t>& pc_struct,uint64_t y_num,u
     
     for(int r = 0;r < num_repeats;r++){
         
-#pragma omp parallel for default(shared) private(j,i,k,offset_min,offset_max) firstprivate(temp_vec)
+#pragma omp parallel for default(shared) private(j,i,k,offset_min,offset_max)
         for(j = 0; j < z_num;j++){
             for(i = 0; i < x_num;i++){
                 
                 for(k = 0;k < y_num;k++){
                     
-                    offset_max = std::min((uint64_t)(k + filter_offset),(uint64_t)(y_num-1));
-                    offset_min = std::max((uint64_t)(k - filter_offset),(uint64_t)0);
+                    offset_max = std::min((int)(k + filter_offset),(int)(y_num-1));
+                    offset_min = std::max((int)(k - filter_offset),(int)0);
                     
                     uint64_t f = 0;
                     for(uint64_t c = offset_min;c <= offset_max;c++){
@@ -991,30 +990,30 @@ void pixel_filter_full(PartCellStructure<U,uint64_t>& pc_struct,uint64_t y_num,u
     
     // x loop
     
-    for(int r = 0;r < num_repeats;r++){
-        
-#pragma omp parallel for default(shared) private(j,i,k,offset_min,offset_max) firstprivate(temp_vec)
-        for(j = 0; j < z_num;j++){
-            for(i = 0; i < x_num;i++){
-                
-                for(k = 0;k < y_num;k++){
-                    
-                    offset_max = std::min((uint64_t)(i + filter_offset),(uint64_t)(x_num-1));
-                    offset_min = std::max((uint64_t)(i - filter_offset),(uint64_t)0);
-                    
-                    uint64_t f = 0;
-                    for(uint64_t c = offset_min;c <= offset_max;c++){
-                        
-                        //output_data.mesh[j*x_num*y_num + i*y_num + k] += temp_vec[c]*filter[f];
-                        output_data.mesh[j*x_num*y_num + i*y_num + k] += input_data.mesh[j*x_num*y_num + c*y_num + k]*filter[f];
-                        f++;
-                    }
-                    
-                }
-            }
-        }
-        
-    }
+//    for(int r = 0;r < num_repeats;r++){
+//
+//#pragma omp parallel for default(shared) private(j,i,k,offset_min,offset_max)
+//        for(j = 0; j < z_num;j++){
+//            for(i = 0; i < x_num;i++){
+//
+//                for(k = 0;k < y_num;k++){
+//
+//                    offset_max = std::min((int)(i + filter_offset),(int)(x_num-1));
+//                    offset_min = std::max((int)(i - filter_offset),(int)0);
+//
+//                    uint64_t f = 0;
+//                    for(uint64_t c = offset_min;c <= offset_max;c++){
+//
+//                        //output_data.mesh[j*x_num*y_num + i*y_num + k] += temp_vec[c]*filter[f];
+//                        output_data.mesh[j*x_num*y_num + i*y_num + k] += input_data.mesh[j*x_num*y_num + c*y_num + k]*filter[f];
+//                        f++;
+//                    }
+//
+//                }
+//            }
+//        }
+//
+//    }
     
     (void) output_data.mesh;
     
@@ -1024,32 +1023,32 @@ void pixel_filter_full(PartCellStructure<U,uint64_t>& pc_struct,uint64_t y_num,u
     //std::cout << " Pixel Filter Size: " << (x_num*y_num*z_num) << " x took: " << time2 << std::endl;
     
     // z loop
-    
-    for(int r = 0;r < num_repeats;r++){
-        
-#pragma omp parallel for default(shared) private(j,i,k,offset_min,offset_max) firstprivate(temp_vec)
-         for(j = 0; j < z_num;j++){
-             for(i = 0; i < x_num;i++){
-               
-                
-                for(k = 0;k < y_num;k++){
-                    
-                    offset_max = std::min((uint64_t)(j + filter_offset),(uint64_t)(z_num-1));
-                    offset_min = std::max((uint64_t)(j - filter_offset),(uint64_t)0);
-                    
-                    uint64_t f = 0;
-                    for(uint64_t c = offset_min;c <= offset_max;c++){
-                        
-                        //output_data.mesh[j*x_num*y_num + i*y_num + k] += temp_vec[c]*filter[f];
-                        output_data.mesh[j*x_num*y_num + i*y_num + k] += input_data.mesh[c*x_num*y_num + i*y_num + k]*filter[f];
-                        f++;
-                    }
-                    
-                }
-            }
-        }
-        
-    }
+//
+//    for(int r = 0;r < num_repeats;r++){
+//
+//#pragma omp parallel for default(shared) private(j,i,k,offset_min,offset_max)
+//         for(j = 0; j < z_num;j++){
+//             for(i = 0; i < x_num;i++){
+//
+//
+//                for(k = 0;k < y_num;k++){
+//
+//                    offset_max = std::min((int)(j + filter_offset),(int)(z_num-1));
+//                    offset_min = std::max((int)(j - filter_offset),(int)0);
+//
+//                    uint64_t f = 0;
+//                    for(uint64_t c = offset_min;c <= offset_max;c++){
+//
+//                        //output_data.mesh[j*x_num*y_num + i*y_num + k] += temp_vec[c]*filter[f];
+//                        output_data.mesh[j*x_num*y_num + i*y_num + k] += input_data.mesh[c*x_num*y_num + i*y_num + k]*filter[f];
+//                        f++;
+//                    }
+//
+//                }
+//            }
+//        }
+//
+//    }
     
     (void) output_data.mesh;
     
@@ -1065,6 +1064,8 @@ void pixel_filter_full(PartCellStructure<U,uint64_t>& pc_struct,uint64_t y_num,u
     analysis_data.add_float_data("pixel_filter_z",time3);
 
     analysis_data.add_float_data("pixel_filter_all",time + time2 + time3);
+
+    return output_data;
     
 }
 template<typename U>

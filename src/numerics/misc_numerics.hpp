@@ -68,7 +68,7 @@ std::vector<U> create_dog_filter(int size,float t,float K){
 
     float sum = 0;
     for (int i = 0; i < filter.size(); ++i) {
-        sum += abs(filter[i]);
+        sum += fabs(filter[i]);
     }
 
     for (int i = 0; i < filter.size(); ++i) {
@@ -1412,9 +1412,8 @@ std::vector<U> shift_filter(std::vector<U>& filter){
 }
 
 
-
 template<typename U>
-void filter_apr_by_slice(PartCellStructure<float,uint64_t>& pc_struct,std::vector<U>& filter){
+ExtraPartCellData<U> filter_apr_by_slice(PartCellStructure<float,uint64_t>& pc_struct,std::vector<U>& filter,bool debug = false){
 
     ParticleDataNew<float, uint64_t> part_new;
     //flattens format to particle = cell, this is in the classic access/part paradigm
@@ -1429,25 +1428,12 @@ void filter_apr_by_slice(PartCellStructure<float,uint64_t>& pc_struct,std::vecto
 
     part_new.particle_data.org_dims = pc_struct.org_dims;
 
-
     Mesh_data<U> slice;
 
     Part_timer timer;
     timer.verbose_flag = true;
 
     std::vector<U> filter_d = shift_filter(filter);
-
-    float sum1 = 0;
-
-    for (int j = 0; j < filter.size(); ++j) {
-        sum1 += filter[j];
-    }
-
-    float sum2 = 0;
-
-    for (int j = 0; j < filter_d.size(); ++j) {
-        sum2 += filter_d[j];
-    }
 
 
     ExtraPartCellData<uint16_t> y_vec;
@@ -1462,35 +1448,12 @@ void filter_apr_by_slice(PartCellStructure<float,uint64_t>& pc_struct,std::vecto
 
     filter_input.data = part_new.particle_data.data;
 
-
     int num_slices = 0;
-
-//    timer.start_timer("filter all old");
-//
-//    for(int dir = 0; dir <1;++dir) {
-//
-//        if (dir != 1) {
-//            num_slices = pc_struct.org_dims[1];
-//        } else {
-//            num_slices = pc_struct.org_dims[2];
-//        }
-//
-//
-//
-//        for (int i = 0; i < num_slices; ++i) {
-//            interp_slice_opt(slice, y_vec, part_new.particle_data, dir, i);
-//
-//            filter_slice(filter,filter_d,filter_output,slice,y_vec,dir,i);
-//        }
-//
-//    }
-//
-//    timer.stop_timer();
 
 
     timer.start_timer("filter all dir");
 
-    for(int dir = 0; dir <3;++dir) {
+    for(int dir = 0; dir <1;++dir) {
 
         if (dir != 1) {
             num_slices = pc_struct.org_dims[1];
@@ -1522,27 +1485,29 @@ void filter_apr_by_slice(PartCellStructure<float,uint64_t>& pc_struct,std::vecto
             filter_slice(filter,filter_d,filter_output,slice,y_vec,dir,i);
         }
 
-        std::swap(filter_input,filter_output);
+        //std::swap(filter_input,filter_output);
     }
 
     timer.stop_timer();
 
-    //std::swap(filter_input,filter_output);
+   // std::swap(filter_input,filter_output);
 
-    Mesh_data<U> img;
+    if(debug == true) {
 
-    interp_img(img,pc_data,part_new,filter_input);
+        Mesh_data<float> img;
 
-    for (int k = 0; k  < img.mesh.size(); ++k) {
-        img.mesh[k] = 1000*abs(img.mesh[k]);
+        interp_img(img, pc_data, part_new, filter_output);
+
+        for (int k = 0; k < img.mesh.size(); ++k) {
+            img.mesh[k] = 10 * fabs(img.mesh[k]);
+        }
+
+        debug_write(img, "filter_img");
     }
 
-    debug_write(img,"filter_img");
+    return filter_output;
 
-    //Mesh_data<uint8_t> k_img;
-    //interp_depth_to_mesh(k_img,pc_struct);
 
-    //debug_write(k_img,"k_img");
 
 
 };

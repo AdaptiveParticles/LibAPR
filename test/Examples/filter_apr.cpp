@@ -63,6 +63,11 @@ cmdLineOptions read_command_line_options(int argc, char **argv, Part_rep& part_r
     {
         result.output = std::string(get_command_option(argv, argv + argc, "-o"));
     }
+
+    if(command_option_exists(argv, argv + argc, "-gt"))
+    {
+        result.gt = std::string(get_command_option(argv, argv + argc, "-gt"));
+    }
     
     if(command_option_exists(argv, argv + argc, "-t"))
     {
@@ -129,7 +134,10 @@ int main(int argc, char **argv) {
 
     //apr_filter_full(pc_struct,filter_offset,num_repeats,analysis_data);
 
-    pixel_filter_full(pc_struct,pc_struct.org_dims[0],pc_struct.org_dims[1],pc_struct.org_dims[2],filter_offset,num_repeats,analysis_data);
+
+
+
+
 
     //new_filter_part(pc_struct,filter_offset,num_repeats,analysis_data);
 
@@ -153,8 +161,39 @@ int main(int argc, char **argv) {
 
     filter = create_dog_filter<float>(filter_offset,1.5,3);
 
-    filter_apr_by_slice<float>(pc_struct,filter);
+    //filter = {-1,0,1};
 
+    ExtraPartCellData<float> filter_output;
+
+    filter_output = filter_apr_by_slice<float>(pc_struct,filter,true);
+
+
+    Mesh_data<float> input_image;
+
+    pc_struct.interp_parts_to_pc(input_image,pc_struct.part_data.particle_data);
+
+    Mesh_data<float> output_image;
+
+    output_image =  pixel_filter_full(input_image,filter,num_repeats,analysis_data);
+
+    for (int k = 0; k < output_image.mesh.size(); ++k) {
+        output_image.mesh[k] = 10 * fabs(output_image.mesh[k]);
+    }
+    debug_write(output_image,"img_filter_full");
+
+
+    Mesh_data<uint16_t> input_image_;
+
+    load_image_tiff(input_image_,options.gt);
+
+    input_image = input_image_.to_type<float>();
+
+    output_image =  pixel_filter_full(input_image,filter,num_repeats,analysis_data);
+
+    for (int k = 0; k < output_image.mesh.size(); ++k) {
+        output_image.mesh[k] = 10 * fabs(output_image.mesh[k]);
+    }
+    debug_write(output_image,"img_filter_org");
 
 }
 
