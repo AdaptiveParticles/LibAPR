@@ -40,17 +40,21 @@ public:
     uint64_t depth_max;
     uint64_t depth_min;
     
-    std::vector<uint64_t> z_num;
-    std::vector<uint64_t> x_num;
+    std::vector<unsigned int> z_num;
+    std::vector<unsigned int> x_num;
     
     std::vector<std::vector<std::vector<T>>> data;
+
+    std::vector<unsigned int> org_dims;
     
     template<typename S>
     void initialize_structure_cells(PartCellData<S>& pc_data){
         //
         //  Initialize the structure to the same size as the given structure
         //
-        
+
+        org_dims = pc_data.org_dims;
+
         //first add the layers
         depth_max = pc_data.depth_max;
         depth_min = pc_data.depth_min;
@@ -123,6 +127,8 @@ public:
         x_num.resize(depth_max+1);
         
         data.resize(depth_max+1);
+
+        org_dims = part_data.org_dims;
         
         for(uint64_t i = depth_min;i <= depth_max;i++){
             z_num[i] = part_data.z_num[i];

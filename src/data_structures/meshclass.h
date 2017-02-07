@@ -142,6 +142,17 @@ public :
         //mesh.resize(y_num,std::vector<std::vector<T> >(x_num,std::vector<T>(z_num)));
     }
 
+    void initialize(int y_num_,int x_num_,int z_num_)
+    {
+        y_num = y_num_;
+        x_num = x_num_;
+        z_num = z_num_;
+
+        mesh.resize(y_num*x_num*z_num);
+        //mesh.insert(mesh.begin(),y_num*x_num*z_num,val);
+        //mesh.resize(y_num,std::vector<std::vector<T> >(x_num,std::vector<T>(z_num)));
+    }
+
     void preallocate(int y_num_,int x_num_,int z_num_,T val)
     {
 

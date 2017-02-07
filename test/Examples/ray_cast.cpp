@@ -112,7 +112,7 @@ int main(int argc, char **argv) {
     
     proj_pars.avg_flag = true;
     
-    multi_ray_parrallel(pc_struct,proj_pars);
+    //multi_ray_parrallel(pc_struct,proj_pars);
     
     timer.stop_timer();
     
@@ -122,6 +122,10 @@ int main(int argc, char **argv) {
     multi_ray_gen(pc_struct,proj_pars);
     
     timer.stop_timer();
+
+    multi_ray_parrallel_raster(pc_struct,proj_pars);
+
+    //gen_raster_cast(pc_struct,proj_pars);
 }
 
 

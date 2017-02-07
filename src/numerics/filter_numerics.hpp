@@ -28,6 +28,8 @@
 #include "../../test/utils.h"
 #include "../../benchmarks/analysis/AnalysisData.hpp"
 
+#include "misc_numerics.hpp"
+
 
 template<typename T>
 void iterate_temp_vec(std::vector<T>& temp_vec,std::vector<T>& temp_vec_depth){
@@ -927,26 +929,25 @@ void particle_random_access(PartCellStructure<float,uint64_t>& pc_struct,Analysi
 }
 
 
-template<typename U>
-void pixel_filter_full(PartCellStructure<U,uint64_t>& pc_struct,uint64_t y_num,uint64_t x_num,uint64_t z_num,uint64_t filter_offset,float num_repeats,AnalysisData& analysis_data){
+template<typename U,typename V>
+Mesh_data<U> pixel_filter_full(Mesh_data<V>& input_data,std::vector<U>& filter,float num_repeats,AnalysisData& analysis_data){
     //
     //  Compute two, comparitive filters for speed. Original size img, and current particle size comparison
     //
-    
-    Mesh_data<U> input_data;
+
+    int filter_offset = (filter.size()-1)/2;
+
+    unsigned int x_num = input_data.x_num;
+    unsigned int y_num = input_data.y_num;
+    unsigned int z_num = input_data.z_num;
+
     Mesh_data<U> output_data;
-    input_data.initialize((int)y_num,(int)x_num,(int)z_num,23);
     output_data.initialize((int)y_num,(int)x_num,(int)z_num,0);
-    
-    std::vector<float> filter;
     
     Part_timer timer;
     timer.verbose_flag = false;
     timer.start_timer("full previous filter");
-    
-    
-    filter.resize(filter_offset*2 +1,1);
-    
+
     std::vector<U> temp_vec;
     temp_vec.resize(y_num,0);
     
@@ -959,14 +960,14 @@ void pixel_filter_full(PartCellStructure<U,uint64_t>& pc_struct,uint64_t y_num,u
     
     for(int r = 0;r < num_repeats;r++){
         
-#pragma omp parallel for default(shared) private(j,i,k,offset_min,offset_max) firstprivate(temp_vec)
+#pragma omp parallel for default(shared) private(j,i,k,offset_min,offset_max)
         for(j = 0; j < z_num;j++){
             for(i = 0; i < x_num;i++){
                 
                 for(k = 0;k < y_num;k++){
                     
-                    offset_max = std::min((uint64_t)(k + filter_offset),(uint64_t)(y_num-1));
-                    offset_min = std::max((uint64_t)(k - filter_offset),(uint64_t)0);
+                    offset_max = std::min((int)(k + filter_offset),(int)(y_num-1));
+                    offset_min = std::max((int)(k - filter_offset),(int)0);
                     
                     uint64_t f = 0;
                     for(uint64_t c = offset_min;c <= offset_max;c++){
@@ -992,28 +993,28 @@ void pixel_filter_full(PartCellStructure<U,uint64_t>& pc_struct,uint64_t y_num,u
     // x loop
     
     for(int r = 0;r < num_repeats;r++){
-        
-#pragma omp parallel for default(shared) private(j,i,k,offset_min,offset_max) firstprivate(temp_vec)
+
+#pragma omp parallel for default(shared) private(j,i,k,offset_min,offset_max)
         for(j = 0; j < z_num;j++){
             for(i = 0; i < x_num;i++){
-                
+
                 for(k = 0;k < y_num;k++){
-                    
-                    offset_max = std::min((uint64_t)(i + filter_offset),(uint64_t)(x_num-1));
-                    offset_min = std::max((uint64_t)(i - filter_offset),(uint64_t)0);
-                    
+
+                    offset_max = std::min((int)(i + filter_offset),(int)(x_num-1));
+                    offset_min = std::max((int)(i - filter_offset),(int)0);
+
                     uint64_t f = 0;
                     for(uint64_t c = offset_min;c <= offset_max;c++){
-                        
+
                         //output_data.mesh[j*x_num*y_num + i*y_num + k] += temp_vec[c]*filter[f];
                         output_data.mesh[j*x_num*y_num + i*y_num + k] += input_data.mesh[j*x_num*y_num + c*y_num + k]*filter[f];
                         f++;
                     }
-                    
+
                 }
             }
         }
-        
+
     }
     
     (void) output_data.mesh;
@@ -1024,31 +1025,31 @@ void pixel_filter_full(PartCellStructure<U,uint64_t>& pc_struct,uint64_t y_num,u
     //std::cout << " Pixel Filter Size: " << (x_num*y_num*z_num) << " x took: " << time2 << std::endl;
     
     // z loop
-    
+
     for(int r = 0;r < num_repeats;r++){
-        
-#pragma omp parallel for default(shared) private(j,i,k,offset_min,offset_max) firstprivate(temp_vec)
+
+#pragma omp parallel for default(shared) private(j,i,k,offset_min,offset_max)
          for(j = 0; j < z_num;j++){
              for(i = 0; i < x_num;i++){
-               
-                
+
+
                 for(k = 0;k < y_num;k++){
-                    
-                    offset_max = std::min((uint64_t)(j + filter_offset),(uint64_t)(z_num-1));
-                    offset_min = std::max((uint64_t)(j - filter_offset),(uint64_t)0);
-                    
+
+                    offset_max = std::min((int)(j + filter_offset),(int)(z_num-1));
+                    offset_min = std::max((int)(j - filter_offset),(int)0);
+
                     uint64_t f = 0;
                     for(uint64_t c = offset_min;c <= offset_max;c++){
-                        
+
                         //output_data.mesh[j*x_num*y_num + i*y_num + k] += temp_vec[c]*filter[f];
                         output_data.mesh[j*x_num*y_num + i*y_num + k] += input_data.mesh[c*x_num*y_num + i*y_num + k]*filter[f];
                         f++;
                     }
-                    
+
                 }
             }
         }
-        
+
     }
     
     (void) output_data.mesh;
@@ -1058,13 +1059,15 @@ void pixel_filter_full(PartCellStructure<U,uint64_t>& pc_struct,uint64_t y_num,u
     
    // std::cout << " Pixel Filter Size: " << (x_num*y_num*z_num) << " z took: " << time3 << std::endl;
     
-   // std::cout << " Pixel Filter Size: " << (x_num*y_num*z_num) << " all took: " << (time+time2+time3) << std::endl;
+    std::cout << " Pixel Filter Size: " << (x_num*y_num*z_num) << " all took: " << (time+time2+time3) << std::endl;
 
     analysis_data.add_float_data("pixel_filter_y",time);
     analysis_data.add_float_data("pixel_filter_x",time2);
     analysis_data.add_float_data("pixel_filter_z",time3);
 
     analysis_data.add_float_data("pixel_filter_all",time + time2 + time3);
+
+    return output_data;
     
 }
 template<typename U>
@@ -1395,6 +1398,8 @@ void apr_filter_full(PartCellStructure<S,uint64_t>& pc_struct,uint64_t filter_of
                             curr_level.update_cell(part_new);
                             
                             y_ = curr_level.y;
+
+
                             
                             offset_max = std::min((uint64_t)(y_ + filter_offset),(uint64_t)(y_num_m-1));
                             offset_min = std::max((uint64_t)(y_ - filter_offset),(uint64_t)0);
@@ -1460,6 +1465,7 @@ void apr_filter_full(PartCellStructure<S,uint64_t>& pc_struct,uint64_t filter_of
                             curr_level.update_cell(part_new);
                             
                             y_ = curr_level.y;
+
                             
                             offset_max = std::min((uint64_t)(x_ + filter_offset),(uint64_t)(x_num_m-1));
                             offset_min = std::max((uint64_t)(x_ - filter_offset),(uint64_t)0);
@@ -1467,15 +1473,15 @@ void apr_filter_full(PartCellStructure<S,uint64_t>& pc_struct,uint64_t filter_of
                             uint64_t f = 0;
                             S temp = 0;
                             for(uint64_t c = offset_min;c <= offset_max;c++){
-                                
+                                //NEED TO CHANGE THE COORDINATES ARE WRONG!!!!!
+
                                 //need to change the below to the vector
                                 temp += filter_img.mesh[z_*x_num_m*y_num_m + c*y_num_m + y_]*filter[f];
                                 f++;
                             }
                             
                             curr_level.get_val(filter_output) = temp;
-                            
-                            
+
                             
                         } else {
                             
@@ -1589,8 +1595,8 @@ void apr_filter_full(PartCellStructure<S,uint64_t>& pc_struct,uint64_t filter_of
 
     analysis_data.add_float_data("particle_filter_all_no_interp",(time + time2 + time3 - time_interp*3)/num_repeats);
 
-    std::cout << time/num_repeats << std::endl;
-    std::cout << time_vec/num_repeats << std::endl;
+    std::cout << (time+time2 + time3)/num_repeats << std::endl;
+    //std::cout << time_vec/num_repeats << std::endl;
 
 }
 template<typename U>
@@ -1874,5 +1880,111 @@ void new_filter_part(PartCellStructure<S,uint64_t>& pc_struct,uint64_t filter_of
 
 }
 
+template<typename U>
+ExtraPartCellData<U> filter_apr_by_slice(PartCellStructure<float,uint64_t>& pc_struct,std::vector<U>& filter,AnalysisData& analysis_data,float num_repeats = 1,bool debug = false){
+
+    ParticleDataNew<float, uint64_t> part_new;
+    //flattens format to particle = cell, this is in the classic access/part paradigm
+    part_new.initialize_from_structure(pc_struct);
+
+    //generates the nieghbour structure
+    PartCellData<uint64_t> pc_data;
+    part_new.create_pc_data_new(pc_data);
+
+    pc_data.org_dims = pc_struct.org_dims;
+    part_new.access_data.org_dims = pc_struct.org_dims;
+
+    part_new.particle_data.org_dims = pc_struct.org_dims;
+
+    Mesh_data<U> slice;
+
+    Part_timer timer;
+    timer.verbose_flag = false;
+
+    std::vector<U> filter_d = shift_filter(filter);
+
+    ExtraPartCellData<uint16_t> y_vec;
+
+    create_y_data(y_vec,part_new,pc_data);
+
+    ExtraPartCellData<U> filter_output;
+    filter_output.initialize_structure_parts(part_new.particle_data);
+
+    ExtraPartCellData<U> filter_input;
+    filter_input.initialize_structure_parts(part_new.particle_data);
+
+    filter_input.data = part_new.particle_data.data;
+
+
+    timer.start_timer("filter y");
+
+    //Y Direction
+
+    for (int i = 0; i < num_repeats ; ++i) {
+        filter_apr_dir(y_vec,filter_output,filter_input,filter,filter_d,0);
+    }
+
+    timer.stop_timer();
+
+    float time_y = (timer.t2 - timer.t1)/num_repeats;
+
+    //std::swap(filter_input,filter_output);
+
+    timer.start_timer("filter x");
+
+    //X Direction
+
+    for (int i = 0; i < num_repeats ; ++i) {
+        filter_apr_dir(y_vec,filter_output,filter_input,filter,filter_d,1);
+    }
+
+    timer.stop_timer();
+
+    float time_x = (timer.t2 - timer.t1)/num_repeats;
+
+
+    //std::swap(filter_input,filter_output);
+
+    timer.start_timer("filter z");
+
+    //X Direction
+
+    for (int i = 0; i < num_repeats ; ++i) {
+        filter_apr_dir(y_vec,filter_output,filter_input,filter,filter_d,2);
+    }
+
+    timer.stop_timer();
+
+    float time_z = (timer.t2 - timer.t1)/num_repeats;
+
+    analysis_data.add_float_data("part_filter_y",time_y);
+    analysis_data.add_float_data("part_filter_x",time_x);
+    analysis_data.add_float_data("part_filter_z",time_z);
+
+    analysis_data.add_float_data("part_filter_all",time_y + time_x + time_z);
+
+
+    std::cout << "Part Filter: " << (time_y + time_x + time_z) << std::endl;
+
+
+    if(debug == true) {
+
+        Mesh_data<float> img;
+
+        interp_img(img, pc_data, part_new, filter_output);
+
+        for (int k = 0; k < img.mesh.size(); ++k) {
+            img.mesh[k] = 10 * fabs(img.mesh[k]);
+        }
+
+        debug_write(img, "filter_img");
+    }
+
+    return filter_output;
+
+
+
+
+};
 
 #endif

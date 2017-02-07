@@ -66,7 +66,18 @@ void run_filter_benchmarks_mesh(PartCellStructure<float,uint64_t> pc_struct,Anal
     uint64_t filter_offset = 10;
 
 
-    pixel_filter_full(pc_struct,pc_struct.org_dims[0],pc_struct.org_dims[1],pc_struct.org_dims[2],filter_offset,num_repeats,analysis_data);
+    std::vector<float> filter;
+    filter.resize(2*filter_offset + 1,1.0/(2*filter_offset + 1));
+
+
+    Mesh_data<float> output_image;
+
+    Mesh_data<float> input_image;
+
+    pc_struct.interp_parts_to_pc(input_image,pc_struct.part_data.particle_data);
+
+    output_image =  pixel_filter_full(input_image,filter,num_repeats,analysis_data);
+
 
 
 }
@@ -93,8 +104,12 @@ void run_filter_benchmarks_parts(PartCellStructure<float,uint64_t> pc_struct,Ana
 
     uint64_t filter_offset = 10;
 
-    apr_filter_full(pc_struct,filter_offset,num_repeats,analysis_data);
+    std::vector<float> filter;
+    filter.resize(2*filter_offset + 1,1.0/(2*filter_offset + 1));
 
+    ExtraPartCellData<float> filter_output;
+
+    filter_output = filter_apr_by_slice<float>(pc_struct,filter,analysis_data,num_repeats);
 
 }
 
