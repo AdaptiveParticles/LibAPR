@@ -97,7 +97,6 @@ int main(int argc, char **argv) {
         ///////////////////////////////////////////////////////////////////
         //PSF properties
 
-
         bs.voxel_size = sampling_rate[j];
         bs.sampling_delta = sampling_rate[j];
 
@@ -107,22 +106,20 @@ int main(int argc, char **argv) {
 
         update_domain(syn_image,bs);
 
-        bs.sig = sig*sampling_rate[j]/sampling_rate[0];
+        bs.sig = sig*sampling_rate.back()/sampling_rate[j];
 
         set_gaussian_psf(syn_image,bs);
 
         std::cout << "Generating Templates" << std::endl;
 
-        bs.sig = 3;
-
         obj_properties obj_prop(bs);
 
-        obj_prop.sample_rate = bs.x_num;
+        obj_prop.sample_rate = std::max(bs.x_num,200);
         obj_prop.obj_size = obj_size;
 
         Object_template  basic_object = get_object_template(options,obj_prop);
-
-        syn_image.object_templates.push_back(basic_object);
+        SynImage syn_image_loc = syn_image;
+        syn_image_loc.object_templates.push_back(basic_object);
 
         for(int i = 0; i < bs.N_repeats; i++){
 
@@ -137,7 +134,7 @@ int main(int argc, char **argv) {
 
             analysis_data.add_float_data("num_objects",bs.num_objects);
 
-            SynImage syn_image_loc = syn_image;
+
 
             //add the basic sphere as the standard template
 
