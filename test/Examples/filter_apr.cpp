@@ -151,11 +151,6 @@ int main(int argc, char **argv) {
 
     timer.verbose_flag = true;
 
-    timer.start_timer("full interp");
-
-    //pc_struct.interp_parts_to_pc(output,pc_struct.part_data.particle_data);
-
-    timer.stop_timer();
 
     std::vector<float> filter;
 
@@ -192,6 +187,10 @@ int main(int argc, char **argv) {
         output_image.mesh[k] = 10 * fabs(output_image.mesh[k]);
     }
     debug_write(output_image,"img_filter_org");
+
+    ExtraPartCellData<float> filter_output_mesh;
+
+    filter_output_mesh = filter_apr_input_img<float>(input_image,pc_struct,filter,analysis_data,num_repeats,true);
 
 }
 

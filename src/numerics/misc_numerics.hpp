@@ -1450,7 +1450,97 @@ void filter_apr_dir(ExtraPartCellData<uint16_t>& y_vec,ExtraPartCellData<U>& fil
     }
 
 }
+template<typename U>
+void get_slice(Mesh_data<U>& input_img,Mesh_data<U>& slice,const int dir,const int num){
+    //
+    //  To use the algorithms we must transpose the slice in the correct directions
+    //
+    //
 
+    if (dir == 0) {
+        //yz
+        slice.initialize(input_img.y_num, input_img.z_num, 1, 0);
+
+        int i = 0;
+        int j = 0;
+
+#pragma omp simd
+        for (int i = 0; i < slice.x_num; ++i) {
+            for (int j = 0; j < slice.y_num; ++j) {
+                slice.mesh[j + i*slice.y_num] = input_img.mesh[j + i*input_img.y_num*input_img.x_num + num*input_img.y_num];
+            }
+        }
+
+
+    } else if (dir == 1) {
+        //xy
+        slice.initialize(input_img.x_num, input_img.y_num, 1, 0);
+
+#pragma omp simd
+        for (int i = 0; i < slice.x_num; ++i) {
+            for (int j = 0; j < slice.y_num; ++j) {
+                slice.mesh[j + i*slice.y_num] = input_img.mesh[i + j*input_img.y_num + num*input_img.y_num*input_img.x_num];
+            }
+        }
+
+
+    } else if (dir == 2) {
+        //zy
+        slice.initialize(input_img.z_num, input_img.y_num, 1, 0);
+
+#pragma omp simd
+        for (int i = 0; i < slice.x_num; ++i) {
+            for (int j = 0; j < slice.y_num; ++j) {
+                slice.mesh[j + i*slice.y_num] = input_img.mesh[i + j*input_img.y_num*input_img.x_num + num*input_img.y_num];
+            }
+        }
+
+    }
+
+
+
+}
+
+
+
+template<typename U>
+void filter_apr_mesh_dir(Mesh_data<U>& input_img,ExtraPartCellData<uint16_t>& y_vec,ExtraPartCellData<U>& filter_output,ExtraPartCellData<U>& filter_input,std::vector<U>& filter,std::vector<U>& filter_d,const int dir){
+    //
+    //  This convolves at APR locations from an input mesh
+    //
+
+    Mesh_data<U> slice;
+
+    int num_slices;
+
+    if (dir != 1) {
+        num_slices = y_vec.org_dims[1];
+    } else {
+        num_slices = y_vec.org_dims[2];
+    }
+
+    if (dir == 0) {
+        //yz
+        slice.initialize(y_vec.org_dims[0], y_vec.org_dims[2], 1, 0);
+    } else if (dir == 1) {
+        //xy
+        slice.initialize(y_vec.org_dims[1], y_vec.org_dims[0], 1, 0);
+
+    } else if (dir == 2) {
+        //zy
+        slice.initialize(y_vec.org_dims[2], y_vec.org_dims[0], 1, 0);
+
+    }
+
+    int i = 0;
+#pragma omp parallel for default(shared) private(i) firstprivate(slice) schedule(guided)
+    for (i = 0; i < num_slices; ++i) {
+        get_slice(input_img,slice,dir,i);
+
+        filter_slice(filter,filter_d,filter_output,slice,y_vec,dir,i);
+    }
+
+}
 
 
 
