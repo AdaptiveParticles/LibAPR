@@ -59,14 +59,14 @@ int main(int argc, char **argv) {
     //
     /////////////////////////////////////////////////////////
 
-    float image_size_max = 800;
+    float image_size_max = 600;
     float image_size_min = 50;
 
     std::vector<float> sampling_rate;
 
     float obj_size = 3;
 
-    float real_domain_size = obj_size*3;
+    float real_domain_size = obj_size*6;
 
    // float sampling_lower_b = sqrt(log(1/syn_image.PSF_properties.cut_th)*2*pow(bs.sig,2));
     float min_sampling = real_domain_size/image_size_max;
@@ -87,6 +87,7 @@ int main(int argc, char **argv) {
     //syn_image.noise_properties.noise_type = "none";
 
     int N_par = (int)sampling_rate.size();
+
 
     float sig =3;
 

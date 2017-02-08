@@ -42,7 +42,7 @@ int main(int argc, char **argv) {
     benchmark_settings bs;
 
 
-    bs.sig = 2;
+    bs.sig = 1;
 
     set_up_benchmark_defaults(syn_image,bs);
 
@@ -89,7 +89,7 @@ int main(int argc, char **argv) {
         image_size.push_back(i);
     }
 
-    bs.num_objects = 200;
+    bs.num_objects = 1;
 
     int N_par = (int)image_size.size(); // this many different parameter values to be run
 
