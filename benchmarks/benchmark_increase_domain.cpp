@@ -42,7 +42,7 @@ int main(int argc, char **argv) {
     benchmark_settings bs;
 
 
-    bs.sig = 3;
+    bs.sig = 10;
 
     set_up_benchmark_defaults(syn_image,bs);
 
