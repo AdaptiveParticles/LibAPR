@@ -78,6 +78,9 @@ void run_filter_benchmarks_mesh(PartCellStructure<float,uint64_t> pc_struct,Anal
 
     output_image =  pixel_filter_full(input_image,filter,num_repeats,analysis_data);
 
+    ExtraPartCellData<float> filter_output_mesh;
+
+    filter_output_mesh = filter_apr_input_img<float>(input_image,pc_struct,filter,analysis_data,num_repeats);
 
 
 }
