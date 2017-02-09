@@ -545,8 +545,8 @@ void get_apr(Mesh_data<uint16_t >& input_image,Part_rep& part_rep,PartCellStruct
     part_rep.timer.stop_timer();
 
     // free memory (not used anymore)
-    std::vector<float>().swap(gradient.mesh);
-    std::vector<float>().swap(variance.mesh);
+   // std::vector<float>().swap(gradient.mesh);
+    //std::vector<float>().swap(variance.mesh);
 
     part_rep.timer.start_timer("pushing_scheme");
     part_map.pushing_scheme(part_rep);
