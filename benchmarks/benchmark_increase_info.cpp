@@ -62,9 +62,9 @@ int main(int argc, char **argv) {
     //////////////////////////////////////////////////////
 
     int num_obj_min =1;
-    int num_obj =50;
+    int num_obj =400;
     std::vector<int> number_obj;
-    int step = 2;
+    int step = 20;
 
     //number_obj.push_back(num_obj);
 
@@ -133,6 +133,7 @@ int main(int argc, char **argv) {
     int N_par2 = (int)mean_int.size();
     int N_par3 = (int)sig_vec.size();
 
+    bool part_timing = true;
 
     for(int m = 0; m < N_par3; m++){
 
@@ -164,6 +165,26 @@ int main(int argc, char **argv) {
 
             for (int j = 0;j < N_par1;j++) {
 
+                SynImage syn_image_loc = syn_image;
+
+                Mesh_data<uint16_t> input_image;
+
+                generate_objects(syn_image_loc, bs);
+
+                ///////////////////////////////
+                //
+                //  Generate the image
+                //
+                ////////////////////////////////
+
+                MeshDataAF<uint16_t> gen_image;
+
+                syn_image_loc.generate_syn_image(gen_image);
+
+                Mesh_data<uint16_t> input_img;
+
+                copy_mesh_data_structures(gen_image, input_img);
+
                 for (int i = 0; i < bs.N_repeats; i++) {
 
                     b_time.start_timer("one_it");
@@ -173,13 +194,6 @@ int main(int argc, char **argv) {
                     //  Individual synthetic image parameters
                     //
                     ///////////////////////////////
-
-                    SynImage syn_image_loc = syn_image;
-
-                    std::cout << "Par1: " << j << " of " << N_par1 << " Par2: " << p << " of " << N_par2 << " Rep: " << i << " of " << bs.N_repeats << "iteration % done: " <<  round((j*p*i*m)/(N_par1*N_par2*N_par3*bs.N_repeats)*100) <<  std::endl;
-
-                    Mesh_data<uint16_t> input_image;
-
 
                     /////////////////////////////////////////
                     //////////////////////////////////////////
@@ -196,22 +210,7 @@ int main(int argc, char **argv) {
 
                     //Generate objects
 
-                    generate_objects(syn_image_loc, bs);
-
-                    ///////////////////////////////
-                    //
-                    //  Generate the image
-                    //
-                    ////////////////////////////////
-
-                    MeshDataAF<uint16_t> gen_image;
-
-                    syn_image_loc.generate_syn_image(gen_image);
-
-                    Mesh_data<uint16_t> input_img;
-
-                    copy_mesh_data_structures(gen_image, input_img);
-
+                    std::cout << "Par1: " << j << " of " << N_par1 << " Par2: " << p << " of " << N_par2 << " Rep: " << i << " of " << bs.N_repeats << "iteration % done: " <<  round((j*p*i*m)/(N_par1*N_par2*N_par3*bs.N_repeats)*100) <<  std::endl;
 
                     ///////////////////////////////
                     //
@@ -227,8 +226,11 @@ int main(int argc, char **argv) {
 
                     PartCellStructure<float, uint64_t> pc_struct;
 
-                    bench_get_apr(input_img, p_rep, pc_struct, analysis_data);
-
+                    if(part_timing) {
+                        bench_get_apr_part_time(input_img, p_rep, pc_struct, analysis_data);
+                    } else {
+                        bench_get_apr(input_img, p_rep, pc_struct, analysis_data);
+                    }
                     ///////////////////////////////
                     //
                     //  Calculate analysis of the result

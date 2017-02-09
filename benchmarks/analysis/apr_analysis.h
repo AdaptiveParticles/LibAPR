@@ -112,6 +112,67 @@ void bench_get_apr(Mesh_data<T>& input_image,Part_rep& p_rep,PartCellStructure<f
 
 }
 
+template <typename T>
+void bench_get_apr_part_time(Mesh_data<T>& input_image,Part_rep& p_rep,PartCellStructure<float,uint64_t>& pc_struct,AnalysisData& analysis_data){
+    //
+    //
+    //  Calculates the APR from image
+    //
+    //
+
+    p_rep.pars.tol = 0.0005f;
+
+    p_rep.pars.var_scale = 2;
+
+    float k_diff = -3.0f;
+
+    //set lambda
+
+
+    if(p_rep.pars.lambda == 0) {
+
+        float lambda = expf((-1.0f/0.6161f) * logf((p_rep.pars.var_th/p_rep.pars.noise_sigma) *
+                                                   powf(2.0f,k_diff + log2f(p_rep.pars.rel_error))/0.12531f));
+        std::cout << lambda << std::endl;
+
+        p_rep.pars.lambda = expf((-1.0f/0.6161f) * logf((p_rep.pars.var_th/p_rep.pars.noise_sigma) *
+                                                        powf(2.0f,k_diff + log2f(.05))/0.12531f));
+
+        std::cout << p_rep.pars.lambda << std::endl;
+
+        float lambda_min = 0.05f;
+        float lambda_max = 5000;
+
+        p_rep.pars.lambda = std::max(lambda_min,p_rep.pars.lambda);
+        p_rep.pars.lambda = std::min(p_rep.pars.lambda,lambda_max);
+
+        float max_var_th = 1.2f * p_rep.pars.noise_sigma * expf(-0.5138f * logf(p_rep.pars.lambda)) *
+                           (0.1821f * logf(p_rep.pars.lambda) + 1.522f);
+        if (max_var_th > .25*p_rep.pars.var_th){
+            float desired_th = 0.1*p_rep.pars.var_th;
+            p_rep.pars.lambda = std::max((float)exp((-1.0/0.5138)*log(desired_th/p_rep.pars.noise_sigma)),p_rep.pars.lambda);
+            p_rep.pars.var_th_max = .25*p_rep.pars.var_th;
+
+        } else {
+            p_rep.pars.var_th_max = .25*p_rep.pars.var_th;
+
+        }
+    } else {
+        p_rep.pars.var_th_max =  .25*p_rep.pars.var_th;
+    }
+
+    if(p_rep.pars.lambda == -1){
+        p_rep.pars.lambda = 0;
+    }
+
+    std::cout << "Lamda: " << p_rep.pars.lambda << std::endl;
+
+    get_apr_part_timing(input_image,p_rep,pc_struct,analysis_data);
+
+
+}
+
+
 void gen_parameter_pars(SynImage& syn_image,Proc_par& pars,std::string image_name){
     //
     //
