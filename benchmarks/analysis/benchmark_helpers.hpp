@@ -192,6 +192,13 @@ cmdLineOptionsBench read_command_line_options(int argc, char **argv){
 
 std::vector<std::string> listFiles(const std::string& path,const std::string& extenstion)
 {
+    //
+    //  Bevan Cheeseman 2017, adapted from Stack overflow code
+    //
+    //  For a particular folder, finds files with a certain string in their name and returns as a vector of strings, I don't think this will work on Windows.
+    //
+
+
     DIR* dirFile = opendir( path.c_str() );
 
     std::vector<std::string> file_list;
@@ -211,7 +218,7 @@ std::vector<std::string> listFiles(const std::string& path,const std::string& ex
             // dirFile.name is the name of the file. Do whatever string comparison
             // you want here. Something like:
             if ( strstr( hFile->d_name, extenstion.c_str() )) {
-                printf(" found an .tiff file: %s", hFile->d_name);
+                printf(" found a .tiff file: %s", hFile->d_name);
                 std::cout << std::endl;
                 file_list.push_back(hFile->d_name);
             }
@@ -224,6 +231,10 @@ std::vector<std::string> listFiles(const std::string& path,const std::string& ex
 }
 
 
+inline bool check_file_exists(const std::string& name) {
+    std::ifstream f(name.c_str());
+    return f.good();
+}
 
 
 struct benchmark_settings{
