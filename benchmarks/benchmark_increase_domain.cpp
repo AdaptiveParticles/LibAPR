@@ -81,15 +81,15 @@ int main(int argc, char **argv) {
 
     std::vector<int> image_size;
 
-    float min_size = 50;
+    float min_size = 200;
     float max_size = options.image_size;
-    float delta = 50;
+    float delta = 100;
 
     for (int i = min_size; i < max_size; i = i + delta) {
         image_size.push_back(i);
     }
 
-    bs.num_objects = 1;
+    bs.num_objects = 2000;
 
     int N_par = (int)image_size.size(); // this many different parameter values to be run
 
@@ -97,6 +97,39 @@ int main(int argc, char **argv) {
     b_timer.verbose_flag = true;
 
     for (int j = 0;j < N_par;j++){
+
+        SynImage syn_image_loc = syn_image;
+
+        Mesh_data<uint16_t> input_image;
+
+        /////////////////////////////////////////
+        //////////////////////////////////////////
+        // SET UP THE DOMAIN SIZE
+
+        bs.x_num = image_size[j];
+        bs.y_num = image_size[j];
+        bs.z_num = image_size[j];
+
+        update_domain(syn_image_loc,bs);
+
+        //Generate objects
+
+        generate_objects(syn_image_loc,bs);
+
+
+        ///////////////////////////////
+        //
+        //  Generate the image
+        //
+        ////////////////////////////////
+
+        MeshDataAF<uint16_t> gen_image;
+
+        syn_image_loc.generate_syn_image(gen_image);
+
+        Mesh_data<uint16_t> input_img;
+
+        copy_mesh_data_structures(gen_image,input_img);
 
         for(int i = 0; i < bs.N_repeats; i++){
 
@@ -111,41 +144,7 @@ int main(int argc, char **argv) {
             analysis_data.get_data_ref<float>("num_objects")->data.push_back(bs.num_objects);
             analysis_data.part_data_list["num_objects"].print_flag = true;
 
-            SynImage syn_image_loc = syn_image;
-
             std::cout << "Par: " << j << " of " << N_par << " Rep: " << i << " of " << bs.N_repeats << std::endl;
-
-            Mesh_data<uint16_t> input_image;
-
-
-            /////////////////////////////////////////
-            //////////////////////////////////////////
-            // SET UP THE DOMAIN SIZE
-
-            bs.x_num = image_size[j];
-            bs.y_num = image_size[j];
-            bs.z_num = image_size[j];
-
-            update_domain(syn_image_loc,bs);
-
-            //Generate objects
-
-            generate_objects(syn_image_loc,bs);
-
-
-            ///////////////////////////////
-            //
-            //  Generate the image
-            //
-            ////////////////////////////////
-
-            MeshDataAF<uint16_t> gen_image;
-
-            syn_image_loc.generate_syn_image(gen_image);
-
-            Mesh_data<uint16_t> input_img;
-
-            copy_mesh_data_structures(gen_image,input_img);
 
 
             ///////////////////////////////
@@ -171,7 +170,6 @@ int main(int argc, char **argv) {
             ///////////////////////////////
 
             produce_apr_analysis(input_img,analysis_data,pc_struct,syn_image_loc,p_rep.pars);
-
 
             af::sync();
             af::deviceGC();
