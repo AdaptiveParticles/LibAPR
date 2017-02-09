@@ -563,6 +563,8 @@ void produce_apr_analysis(Mesh_data<T>& input_image,AnalysisData& analysis_data,
             input_image.y_num * input_image.x_num * input_image.z_num);
     analysis_data.part_data_list["num_pixels"].print_flag = true;
 
+    std::cout << (1.0*input_image.y_num * input_image.x_num * input_image.z_num)/(1.0*pc_struct.get_number_parts()) << std::endl;
+
     ////////////////////////////////////////////////////////////////////
     //
     //  Timing Information
