@@ -8,7 +8,6 @@
 // Created by cheesema on 27/01/17.
 //
 
-#include "benchmark_increase_domain.hpp"
 
 
 ////////////////////////
@@ -87,9 +86,9 @@ int main(int argc, char **argv) {
 
     std::vector<int> image_size;
 
-    float min_size = 1000;
+    float min_size = 50;
     float max_size = options.image_size;
-    float delta = 250;
+    float delta = 50;
 
     for (int i = min_size; i <= max_size; i = i + delta) {
         image_size.push_back(i);

@@ -39,8 +39,10 @@ void run_segmentation_benchmark_parts(PartCellStructure<float,uint64_t> pc_struc
     //nuclei
     std::array<uint64_t,10> parameters_nuc = {100,2000,1,1,2,2,2,3,0,0};
 
-    calc_graph_cuts_segmentation(pc_struct, seg_parts,parameters_nuc,analysis_data);
+    if(pc_struct.get_number_parts() <= pow(500,3)) {
 
+        calc_graph_cuts_segmentation(pc_struct, seg_parts, parameters_nuc, analysis_data);
+    }
 }
 
 

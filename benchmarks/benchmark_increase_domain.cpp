@@ -146,7 +146,6 @@ int main(int argc, char **argv) {
 
             std::cout << "Par: " << j << " of " << N_par << " Rep: " << i << " of " << bs.N_repeats << std::endl;
 
-
             ///////////////////////////////
             //
             //  Get the APR
