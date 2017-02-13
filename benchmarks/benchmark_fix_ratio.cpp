@@ -38,8 +38,6 @@ int main(int argc, char **argv) {
     std::string image_name = options.template_name;
 
 
-
-
     ///////////////////////////////////////////////////////////////////
     //  PSF properties
     //////////////////////////////////////////////////////////////////
@@ -94,7 +92,7 @@ int main(int argc, char **argv) {
         image_size.push_back(i);
     }
 
-    float ratio = 5;
+    float ratio = 20;
 
     int N_par = (int)image_size.size(); // this many different parameter values to be run
 
