@@ -270,6 +270,8 @@ if(BENCHMARKS)
 
         ADD_EXECUTABLE(FixRatio benchmarks/benchmark_fix_ratio.cpp  ${SOURCE_FILES_COMPILED} ${BENCHMARK_SOURCE_FILES} )
 
+        ADD_EXECUTABLE(GenImage benchmarks/generate_single_image.cpp  ${SOURCE_FILES_COMPILED} ${BENCHMARK_SOURCE_FILES} )
+
         TARGET_LINK_LIBRARIES(SynImageGen ${ArrayFire_OpenCL_LIBRARIES}
                 ${OpenCL_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT} ${HDF5_LIBRARIES} pthread tiff blosc)
         TARGET_LINK_LIBRARIES(TestBenchmark ${ArrayFire_OpenCL_LIBRARIES}
@@ -294,6 +296,9 @@ if(BENCHMARKS)
                 ${OpenCL_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT} ${HDF5_LIBRARIES} pthread tiff blosc)
 
         TARGET_LINK_LIBRARIES(FixRatio ${ArrayFire_OpenCL_LIBRARIES}
+                ${OpenCL_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT} ${HDF5_LIBRARIES} pthread tiff blosc)
+
+        TARGET_LINK_LIBRARIES(GenImage ${ArrayFire_OpenCL_LIBRARIES}
                 ${OpenCL_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT} ${HDF5_LIBRARIES} pthread tiff blosc)
 
         add_executable(Example_analysis

@@ -474,6 +474,28 @@ void calc_mse(Mesh_data<S>& org_img,Mesh_data<T>& rec_img,std::string name,Analy
     analysis_data.add_float_data(name +"_MSE_sd",sd);
 
 }
+uint64_t get_size_of_pc_struct(PartCellData<uint64_t>& pc_data){
+    //
+    //  Bevan Cheeseman 2017
+    //
+    //  Get the number of elements in the pc struct data structure
+    //
+
+    uint64_t counter = 0;
+
+
+    for(uint64_t depth = (pc_data.depth_min);depth <= pc_data.depth_max;depth++) {
+        //loop over the resolutions of the structure
+         for(int i = 0;i < pc_data.data[depth].size();i++){
+
+             counter += pc_data.data[depth][i].size();
+         }
+
+    }
+
+    return counter;
+
+}
 template<typename T>
 void produce_apr_analysis(Mesh_data<T>& input_image,AnalysisData& analysis_data,PartCellStructure<float,uint64_t>& pc_struct,SynImage& syn_image,Proc_par& pars) {
     //

@@ -167,10 +167,10 @@ void construct_max_flow_graph_mesh(PartCellStructure<V,T>& pc_struct,GraphType& 
     Mesh_data<float> eng_s;
     Mesh_data<float> eng_t;
     
-    pc_struct.interp_parts_to_pc(eng_s,eng1);
-    debug_write(eng_s,"eng1");
-    pc_struct.interp_parts_to_pc(eng_t,eng2);
-    debug_write(eng_t,"eng2");
+    //pc_struct.interp_parts_to_pc(eng_s,eng1);
+    //debug_write(eng_s,"eng1");
+    //pc_struct.interp_parts_to_pc(eng_t,eng2);
+    //debug_write(eng_t,"eng2");
     
     // Now loop over the mesh and add it in.
     
@@ -190,7 +190,7 @@ void construct_max_flow_graph_mesh(PartCellStructure<V,T>& pc_struct,GraphType& 
     interp_status_to_mesh(status_mesh,pc_struct);
     
     
-   debug_write(status_mesh,"status_mesh");
+   //debug_write(status_mesh,"status_mesh");
     
     ////////////////////////////////////
     //
@@ -257,7 +257,9 @@ void construct_max_flow_graph_mesh(PartCellStructure<V,T>& pc_struct,GraphType& 
             }
         }
     }
-
+    
+   // std::cout << neigh_counter << std::endl;
+    
     analysis_data.add_float_data("mesh_num_neigh",(float)neigh_counter);
     
 }
@@ -597,7 +599,7 @@ void calc_graph_cuts_segmentation(PartCellStructure<V,T>& pc_struct,ExtraPartCel
     
     uint64_t num_parts = pc_struct.get_number_parts();
     
-    GraphType *g = new GraphType(num_parts ,num_parts*4 );
+    GraphType *g = new GraphType(num_parts ,num_parts*6.4 );
     
     timer.start_timer("construct_graph_parts");
     
@@ -714,7 +716,7 @@ void calc_graph_cuts_segmentation(PartCellStructure<V,T>& pc_struct,ExtraPartCel
     //
     AnalysisData analysis_data;
 
-    calc_graph_cuts_segmentation(pc_struct,seg_parts,parameters);
+    calc_graph_cuts_segmentation(pc_struct,seg_parts,parameters,analysis_data);
 
 
 };
@@ -733,11 +735,11 @@ void calc_graph_cuts_segmentation_mesh(PartCellStructure<V,T>& pc_struct,Mesh_da
     
     Part_timer timer;
     
-    timer.verbose_flag = false;
+    timer.verbose_flag = true;
     
-    uint64_t num_parts = pc_struct.get_number_parts();
+    uint64_t num_parts = pc_struct.org_dims[0]*pc_struct.org_dims[1]*pc_struct.org_dims[2];
     
-    GraphType *g = new GraphType(num_parts ,num_parts*4 );
+    GraphType *g = new GraphType(num_parts ,num_parts*5.95 );
     
     timer.start_timer("construct_graph_mesh");
     

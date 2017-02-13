@@ -182,12 +182,13 @@ void particle_linear_neigh_access_alt_1(PartCellStructure<S,uint64_t>& pc_struct
 }
 
 template<typename S>
-void compute_gradient(PartCellStructure<S,uint64_t>& pc_struct,ExtraPartCellData<S>& filter_output){   //  Calculate connected component from a binary mask
+void lin_access_parts(PartCellStructure<S,uint64_t>& pc_struct){   //  Calculate connected component from a binary mask
     //
     //  Should be written with the neighbour iterators instead.
     //
     
-    ParticleDataNew<float, uint64_t> part_new;
+    ExtraPartCellData<S> filter_output;
+    filter_output.initialize_structure_parts(pc_struct.part_data.particle_data);
     
     //part_new.initialize_from_structure(pc_struct.pc_data);
     //part_new.transfer_intensities(pc_struct.part_data);
@@ -268,60 +269,29 @@ void compute_gradient(PartCellStructure<S,uint64_t>& pc_struct,ExtraPartCellData
                             
                             //loop over the particles
                             for(p = 0;p < pc_struct.part_data.get_num_parts(status);p++){
+                                
+                                float temp = 0;
                                 //first set the particle index value in the particle_data array (stores the intensities)
                                 pc_struct.part_data.access_data.pc_key_set_index(curr_key,part_offset+p);
                                 //get all the neighbour particles in (+y,-y,+x,-x,+z,-z) ordering
                                 
-                                pc_struct.part_data.get_part_neighs_face(0,p,node_val_pc,curr_key,status,part_offset,neigh_cell_keys,neigh_part_keys,pc_struct.pc_data);
-                                pc_struct.part_data.get_part_neighs_face(1,p,node_val_pc,curr_key,status,part_offset,neigh_cell_keys,neigh_part_keys,pc_struct.pc_data);
-                            
+                                pc_struct.part_data.get_part_neighs_all(p,node_val_pc,curr_key,status,part_offset,neigh_cell_keys,neigh_part_keys,pc_struct.pc_data);
                                 
-                                float val_1 = 0;
-                                float val_2 = 0;
-                                
-                                for(int n = 0; n < neigh_part_keys.neigh_face[0].size();n++){
-                                    uint64_t neigh_part = neigh_part_keys.neigh_face[0][n];
-                                    
-                                    
-                                    if(neigh_part > 0){
+                                for(int dir = 0;dir < 6;++dir){
+                                    for(int n = 0; n < neigh_part_keys.neigh_face[dir].size();n++){
+                                        // Check if the neighbour exisits (if neigh_cell_value = 0, the neighbour doesn't exist)
+                                        uint64_t neigh_key = neigh_part_keys.neigh_face[dir][n];
                                         
-                                        //do something
-                                        val_1 += pc_struct.part_data.particle_data.get_part(neigh_part);
+                                        if(neigh_key > 0){
+                                            //get information about the nieghbour (need to provide face and neighbour number (n) and the current y coordinate)
+                                            temp += pc_struct.part_data.get_part(neigh_key);
+                                        }
                                         
                                     }
                                     
                                 }
                                 
-                                (void) val_1;
-                                
-                                if(val_1 > 0){
-                                    val_1 = val_1/neigh_part_keys.neigh_face[0].size();
-                                }
-                                
-                                
-                                for(int n = 0; n < neigh_part_keys.neigh_face[1].size();n++){
-                                    uint64_t neigh_part = neigh_part_keys.neigh_face[1][n];
-                                    
-                                    
-                                    if(neigh_part > 0){
-                                        
-                                        //do something
-                                        val_2 += pc_struct.part_data.particle_data.get_part(neigh_part);
-                                        
-                                    }
-                                    
-                                }
-                                
-                                if(val_2 > 0){
-                                    val_2 = val_2/neigh_part_keys.neigh_face[1].size();
-                                }
-                                
-                                (void) val_2;
-//
-//                                
-//                                float grad = (val_1 - val_2)/2;
-                                
-                                //filter_output.data[i][offset_pc_data][part_offset+p] = abs(grad);
+                                filter_output.data[i][offset_pc_data][part_offset+p] = temp;
                             }
                             
                         } else {
@@ -341,7 +311,7 @@ void compute_gradient(PartCellStructure<S,uint64_t>& pc_struct,ExtraPartCellData
     
     float time = (timer.t2 - timer.t1)/num_repeats;
     
-    std::cout << "Compute Gradient Old: " << time << std::endl;
+    std::cout << "Get Neigh Old: " << time << std::endl;
     
 }
 

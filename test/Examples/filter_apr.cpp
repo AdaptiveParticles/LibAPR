@@ -22,6 +22,7 @@
 
 
 
+
 bool command_option_exists(char **begin, char **end, const std::string &option)
 {
     return std::find(begin, end, option) != end;
@@ -113,7 +114,33 @@ int main(int argc, char **argv) {
     //
    // particle_linear_neigh_access(pc_struct,num_repeats,analysis_data);
 
-    //particle_linear_neigh_access(pc_struct,num_repeats,analysis_data);
+    particle_linear_neigh_access(pc_struct,num_repeats,analysis_data);
+
+
+
+    lin_access_parts(pc_struct);
+
+    ParticleDataNew<float, uint64_t> part_new;
+
+    part_new.initialize_from_structure(pc_struct);
+
+    PartCellData<uint64_t> pc_data;
+    part_new.create_pc_data_new(pc_data);
+
+    uint64_t counter = 0;
+
+
+    for(uint64_t depth = (pc_data.depth_min);depth <= pc_data.depth_max;depth++) {
+        //loop over the resolutions of the structure
+        for(int i = 0;i < pc_data.data[depth].size();i++){
+
+            counter += pc_data.data[depth][i].size();
+        }
+
+    }
+
+    std::cout << counter << std::endl;
+    std::cout << pc_struct.get_number_parts() << std::endl;
 
     //particle_linear_neigh_access_alt_1(pc_struct);
 
@@ -145,52 +172,52 @@ int main(int argc, char **argv) {
 
     //get_slices<float>(pc_struct);
 
-    Mesh_data<uint16_t> output;
-
-    Part_timer timer;
-
-    timer.verbose_flag = true;
-
-
-    std::vector<float> filter;
-
-    filter = create_dog_filter<float>(filter_offset,1.5,3);
-
-    //filter = {-1,0,1};
-
-    ExtraPartCellData<float> filter_output;
-
-    filter_output = filter_apr_by_slice<float>(pc_struct,filter,analysis_data,num_repeats,true);
-
-    Mesh_data<float> input_image;
-
-    pc_struct.interp_parts_to_pc(input_image,pc_struct.part_data.particle_data);
-
-    Mesh_data<float> output_image;
-
-    output_image =  pixel_filter_full(input_image,filter,num_repeats,analysis_data);
-
-    for (int k = 0; k < output_image.mesh.size(); ++k) {
-        output_image.mesh[k] = 10 * fabs(output_image.mesh[k]);
-    }
-    debug_write(output_image,"img_filter_full");
-
-    Mesh_data<uint16_t> input_image_;
-
-    load_image_tiff(input_image_,options.gt);
-
-    input_image = input_image_.to_type<float>();
-
-    output_image =  pixel_filter_full(input_image,filter,num_repeats,analysis_data);
-
-    for (int k = 0; k < output_image.mesh.size(); ++k) {
-        output_image.mesh[k] = 10 * fabs(output_image.mesh[k]);
-    }
-    debug_write(output_image,"img_filter_org");
-
-    ExtraPartCellData<float> filter_output_mesh;
-
-    filter_output_mesh = filter_apr_input_img<float>(input_image,pc_struct,filter,analysis_data,num_repeats,true);
+//    Mesh_data<uint16_t> output;
+//
+//    Part_timer timer;
+//
+//    timer.verbose_flag = true;
+//
+//
+//    std::vector<float> filter;
+//
+//    filter = create_dog_filter<float>(filter_offset,1.5,3);
+//
+//    //filter = {-1,0,1};
+//
+//    ExtraPartCellData<float> filter_output;
+//
+//    filter_output = filter_apr_by_slice<float>(pc_struct,filter,analysis_data,num_repeats,true);
+//
+//    Mesh_data<float> input_image;
+//
+//    pc_struct.interp_parts_to_pc(input_image,pc_struct.part_data.particle_data);
+//
+//    Mesh_data<float> output_image;
+//
+//    output_image =  pixel_filter_full(input_image,filter,num_repeats,analysis_data);
+//
+//    for (int k = 0; k < output_image.mesh.size(); ++k) {
+//        output_image.mesh[k] = 10 * fabs(output_image.mesh[k]);
+//    }
+//    debug_write(output_image,"img_filter_full");
+//
+//    Mesh_data<uint16_t> input_image_;
+//
+//    load_image_tiff(input_image_,options.gt);
+//
+//    input_image = input_image_.to_type<float>();
+//
+//    output_image =  pixel_filter_full(input_image,filter,num_repeats,analysis_data);
+//
+//    for (int k = 0; k < output_image.mesh.size(); ++k) {
+//        output_image.mesh[k] = 10 * fabs(output_image.mesh[k]);
+//    }
+//    debug_write(output_image,"img_filter_org");
+//
+//    ExtraPartCellData<float> filter_output_mesh;
+//
+//    filter_output_mesh = filter_apr_input_img<float>(input_image,pc_struct,filter,analysis_data,num_repeats,true);
 
 }
 
