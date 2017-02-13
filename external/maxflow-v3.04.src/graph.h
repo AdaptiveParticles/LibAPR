@@ -83,7 +83,11 @@ public:
 		SINK	= 1
 	} termtype; // terminals 
 	//typedef uint64_t node_id;
-    typedef unsigned long long node_id;
+    //typedef unsigned long long node_id;
+    
+    typedef unsigned int node_id;
+    
+    
 	/////////////////////////////////////////////////////////////////////////
 	//                     BASIC INTERFACE FUNCTIONS                       //
 	//              (should be enough for most applications)               //
