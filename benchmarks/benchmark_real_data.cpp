@@ -42,6 +42,9 @@ int main(int argc, char **argv) {
 
     std::vector<std::string> file_list = listFiles( options.directory,".tif");
 
+    std::string path_parts = get_path("PARTGEN_OUTPUT_PATH");
+    std::string path_image = get_path("PARTGEN_IMAGE_PATH");
+
     int N_par1 = file_list.size();
 
     for (int j = 0; j < N_par1; j++) {
@@ -73,6 +76,15 @@ int main(int argc, char **argv) {
                 get_apr(input_image,part_rep,pc_struct);
 
                 produce_apr_analysis(input_image, analysis_data, pc_struct, part_rep.pars);
+
+                Mesh_data<uint16_t> interp_img;
+                // save pc reconstruction
+                pc_struct.interp_parts_to_pc(interp_img,pc_struct.part_data.particle_data);
+                write_image_tiff(input_image, path_image  + image_name + ".tif");
+                // save APR
+                write_apr_pc_struct(pc_struct,path_parts,image_name);
+                // save APR Full
+                write_apr_full_format(pc_struct,path_parts + "Full/",image_name);
 
             } else {
                 std::cout << "Stats file doesn't exist" << std::endl;
