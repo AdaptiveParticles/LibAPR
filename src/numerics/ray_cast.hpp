@@ -1406,7 +1406,7 @@ void multi_ray_parrallel_raster_alt_d(PartCellStructure<S,uint64_t>& pc_struct,p
 
     timer.verbose_flag = true;
 
-    timer.start_timer("ray cast");
+    timer.start_timer("ray cast parts");
 
     const int dir = pars.direction;
 
@@ -1608,7 +1608,7 @@ void multi_ray_parrallel_raster_mesh(PartCellStructure<S,uint64_t>& pc_struct,pr
 
     timer.verbose_flag = true;
 
-    timer.start_timer("ray cast");
+    timer.start_timer("ray cast mesh");
 
     const int dir = pars.direction;
 
