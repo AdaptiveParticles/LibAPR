@@ -1390,7 +1390,7 @@ void multi_ray_parrallel_raster_alt_d(PartCellStructure<S,uint64_t>& pc_struct,p
     depth_vec.resize(y_vec.depth_max + 1);
 
     for(int i = y_vec.depth_min;i < y_vec.depth_max;i++){
-        int d = pow(2,y_vec.depth_max - i);
+        float d = pow(2,y_vec.depth_max - i);
         depth_slice[i].initialize(ceil(proj_img.y_num/d),ceil(proj_img.x_num/d),1,0);
         depth_vec[i] = d;
     }
@@ -1418,7 +1418,7 @@ void multi_ray_parrallel_raster_alt_d(PartCellStructure<S,uint64_t>& pc_struct,p
         const unsigned int z_num_ = y_vec.z_num[depth];
         const float step_size = 1;
 
-#pragma omp parallel for default(shared) private(z_,x_,j_,i,k)  if(z_num_*x_num_ > 100)
+#pragma omp parallel for default(shared) private(z_,x_,j_,i,k)  schedule(guided) if(z_num_*x_num_ > 100)
         for (z_ = 0; z_ < z_num_; z_++) {
             //both z and x are explicitly accessed in the structure
 
@@ -1463,11 +1463,11 @@ void multi_ray_parrallel_raster_alt_d(PartCellStructure<S,uint64_t>& pc_struct,p
 
     uint64_t depth;
 
-#pragma omp parallel for default(shared) private(z_,x_,j_,i,k,depth)
+
     for(depth = (y_vec.depth_min);depth < y_vec.depth_max;depth++) {
 
         const int step_size = pow(2,y_vec.depth_max - depth);
-
+#pragma omp parallel for default(shared) private(z_,x_,j_,i,k) schedule(guided) if (depth > 9)
         for (x_ = 0; x_ < depth_slice[depth].x_num; x_++) {
             //both z and x are explicitly accessed in the structure
 
@@ -1481,11 +1481,14 @@ void multi_ray_parrallel_raster_alt_d(PartCellStructure<S,uint64_t>& pc_struct,p
                 //add to all the required rays
                 const int offset_max_dim1 = std::min((int)depth_slice[y_vec.depth_max].y_num,(int)(dim1 + step_size));
                 const int offset_max_dim2 = std::min((int)depth_slice[y_vec.depth_max].x_num,(int)(dim2 + step_size));
-
-                for ( k = dim2; k < offset_max_dim2; ++k) {
-                    for (i = dim1; i < offset_max_dim1; ++i) {
-                        depth_slice[y_vec.depth_max].mesh[ i + (k)*depth_slice[y_vec.depth_max].y_num] = std::max(curr_int,depth_slice[y_vec.depth_max].mesh[ i + (k)*depth_slice[y_vec.depth_max].y_num]);
-
+                
+                if(curr_int > 0){
+                    
+                    for ( k = dim2; k < offset_max_dim2; ++k) {
+                        for (i = dim1; i < offset_max_dim1; ++i) {
+                            depth_slice[y_vec.depth_max].mesh[ i + (k)*depth_slice[y_vec.depth_max].y_num] = std::max(curr_int,depth_slice[y_vec.depth_max].mesh[ i + (k)*depth_slice[y_vec.depth_max].y_num]);
+                            
+                        }
                     }
                 }
 

@@ -123,11 +123,11 @@ int main(int argc, char **argv) {
     
     timer.stop_timer();
 
-    multi_ray_parrallel_raster(pc_struct,proj_pars);
+    //multi_ray_parrallel_raster(pc_struct,proj_pars);
 
-    multi_ray_parrallel_raster_alt(pc_struct,proj_pars);
+    //multi_ray_parrallel_raster_alt(pc_struct,proj_pars);
 
-    multi_ray_parrallel_raster_mesh(pc_struct,proj_pars);
+    //multi_ray_parrallel_raster_mesh(pc_struct,proj_pars);
 
     multi_ray_parrallel_raster_alt_d(pc_struct,proj_pars);
 
