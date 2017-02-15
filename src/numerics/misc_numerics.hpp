@@ -1078,6 +1078,93 @@ void interp_slice(Mesh_data<U>& slice,PartCellData<uint64_t>& pc_data,ParticleDa
 
 }
 
+void create_y_offsets(ExtraPartCellData<uint16_t>& y_off,ParticleDataNew<float, uint64_t>& part_new,PartCellData<uint64_t>& pc_data){
+    //
+    //  Bevan Cheeseman 2017
+    //
+    //  Creates y index
+    //
+
+
+    //first add the layers
+    y_off.depth_max = pc_data.depth_max;
+    y_off.depth_min = pc_data.depth_min;
+
+    y_off.z_num.resize(y_off.depth_max+1);
+    y_off.x_num.resize(y_off.depth_max+1);
+
+    y_off.data.resize(y_off.depth_max+1);
+
+    y_off.org_dims = pc_data.org_dims;
+
+    for(uint64_t i = y_off.depth_min;i <= y_off.depth_max;i++){
+        y_off.z_num[i] = pc_data.z_num[i];
+        y_off.x_num[i] = pc_data.x_num[i];
+        y_off.data[i].resize( y_off.z_num[i]*y_off.x_num[i]);
+    }
+
+    int z_,x_,j_,y_;
+
+    for(uint64_t depth = (part_new.access_data.depth_min);depth <= part_new.access_data.depth_max;depth++) {
+        //loop over the resolutions of the structure
+        const unsigned int x_num_ = part_new.access_data.x_num[depth];
+        const unsigned int z_num_ = part_new.access_data.z_num[depth];
+
+        CurrentLevel<float, uint64_t> curr_level(pc_data);
+        curr_level.set_new_depth(depth, part_new);
+
+        const float step_size = pow(2,curr_level.depth_max - curr_level.depth);
+
+#pragma omp parallel for default(shared) private(z_,x_,j_) firstprivate(curr_level) if(z_num_*x_num_ > 100)
+        for (z_ = 0; z_ < z_num_; z_++) {
+            //both z and x are explicitly accessed in the structure
+
+            for (x_ = 0; x_ < x_num_; x_++) {
+
+                curr_level.set_new_xz(x_, z_, part_new);
+
+                int counter = 0;
+
+                int y = 0;
+
+                for (j_ = 0; j_ < curr_level.j_num; j_++) {
+
+                    bool iscell = curr_level.new_j(j_, part_new);
+
+                    if (iscell) {
+                        //Indicates this is a particle cell node
+                        y++;
+
+                    } else {
+
+                        curr_level.update_gap();
+
+                        int y_curr = y;
+
+                        y += ((curr_level.node_val & COORD_DIFF_MASK_PARTICLE) >> COORD_DIFF_SHIFT_PARTICLE);
+
+                        if(y > 0){
+
+                            y_off.data[depth][curr_level.pc_offset].push_back(y_curr);
+                            y_off.data[depth][curr_level.pc_offset].push_back(y);
+
+                        }
+
+                        y--;
+
+
+                    }
+
+
+                }
+            }
+        }
+    }
+
+
+
+}
+
 
 void create_y_data(ExtraPartCellData<uint16_t>& y_vec,ParticleDataNew<float, uint64_t>& part_new,PartCellData<uint64_t>& pc_data){
     //

@@ -115,13 +115,7 @@ int main(int argc, char **argv) {
     //multi_ray_parrallel(pc_struct,proj_pars);
     
     timer.stop_timer();
-    
 
-    timer.start_timer("gen projection");
-
-    //multi_ray_gen(pc_struct,proj_pars);
-    
-    timer.stop_timer();
 
     //multi_ray_parrallel_raster(pc_struct,proj_pars);
 
@@ -130,6 +124,8 @@ int main(int argc, char **argv) {
     //multi_ray_parrallel_raster_mesh(pc_struct,proj_pars);
 
     multi_ray_parrallel_raster_alt_d(pc_struct,proj_pars);
+
+   // multi_ray_parrallel_raster_alt_d_off(pc_struct,proj_pars);
 
     //gen_raster_cast(pc_struct,proj_pars);
 }
