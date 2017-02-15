@@ -94,11 +94,11 @@ int main(int argc, char **argv) {
     }
 
 
-    sig_vec = {1,3,8};
+    sig_vec = {3};
 
     //min mean
     float min_shift = 5;
-    float max_shift = 10000;
+    float max_shift = 1000;
     num_steps = 0;
 
     del = (max_shift - min_shift) / num_steps;
