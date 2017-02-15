@@ -92,7 +92,7 @@ int main(int argc, char **argv) {
         image_size.push_back(i);
     }
 
-    float ratio = 100;
+    float ratio = 5;
 
     int N_par = (int)image_size.size(); // this many different parameter values to be run
 
