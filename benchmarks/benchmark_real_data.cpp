@@ -45,6 +45,8 @@ int main(int argc, char **argv) {
     std::string path_parts = get_path("PARTGEN_OUTPUT_PATH");
     std::string path_image = get_path("PARTGEN_IMAGE_PATH");
 
+    analysis_data.create_string_dataset("file_name",0);
+
     int N_par1 = file_list.size();
 
     for (int j = 0; j < N_par1; j++) {
@@ -85,6 +87,10 @@ int main(int argc, char **argv) {
                 write_apr_pc_struct(pc_struct,path_parts,image_name);
                 // save APR Full
                 write_apr_full_format(pc_struct,path_parts + "Full/",image_name);
+
+                analysis_data.get_data_ref<std::string>("file_name")->data.push_back(
+                        image_name);
+                analysis_data.part_data_list["file_name"].print_flag = true;
 
             } else {
                 std::cout << "Stats file doesn't exist" << std::endl;

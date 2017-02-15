@@ -84,7 +84,7 @@ int main(int argc, char **argv) {
 
     std::vector<int> image_size;
 
-    float min_size = 50;
+    float min_size = 400;
     float max_size = options.image_size;
     float delta = 50;
 
@@ -92,7 +92,7 @@ int main(int argc, char **argv) {
         image_size.push_back(i);
     }
 
-    float ratio = 20;
+    float ratio = 100;
 
     int N_par = (int)image_size.size(); // this many different parameter values to be run
 
@@ -100,8 +100,6 @@ int main(int argc, char **argv) {
     b_timer.verbose_flag = true;
 
     for (int j = 0;j < N_par;j++){
-
-        SynImage syn_image_loc = syn_image;
 
         Mesh_data<uint16_t> input_image;
 
@@ -113,33 +111,35 @@ int main(int argc, char **argv) {
         bs.y_num = image_size[j];
         bs.z_num = image_size[j];
 
-        update_domain(syn_image_loc,bs);
-
         bs.num_objects = pow(bs.x_num,3)/(33400*ratio);
-
-        //Generate objects
-        b_timer.start_timer("generate_image");
-        generate_objects(syn_image_loc,bs);
-
-        ///////////////////////////////
-        //
-        //  Generate the image
-        //
-        ////////////////////////////////
-
-        MeshDataAF<uint16_t> gen_image;
-
-        syn_image_loc.generate_syn_image(gen_image);
-
-        Mesh_data<uint16_t> input_img;
-
-        copy_mesh_data_structures(gen_image,input_img);
-
-        b_timer.stop_timer();
 
         for(int i = 0; i < bs.N_repeats; i++){
 
+            SynImage syn_image_loc = syn_image;
+
+            update_domain(syn_image_loc,bs);
+
             b_timer.start_timer("one_it");
+
+            //Generate objects
+
+            generate_objects(syn_image_loc,bs);
+
+            ///////////////////////////////
+            //
+            //  Generate the image
+            //
+            ////////////////////////////////
+
+            MeshDataAF<uint16_t> gen_image;
+
+            syn_image_loc.generate_syn_image(gen_image);
+
+            Mesh_data<uint16_t> input_img;
+
+            copy_mesh_data_structures(gen_image,input_img);
+
+
 
             ///////////////////////////////
             //

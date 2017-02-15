@@ -21,7 +21,7 @@ void run_segmentation_benchmark_mesh(PartCellStructure<float,uint64_t> pc_struct
     Mesh_data<uint8_t> seg_mesh;
 
     //memory on this machine can't handle anything bigger
-    if(pc_struct.org_dims[0] <= 500){
+    if(pc_struct.org_dims[0] <= 450){
         std::cout << "gc_seg_mesh" << std::endl;
         calc_graph_cuts_segmentation_mesh(pc_struct,seg_mesh,parameters_nuc,analysis_data);
         std::cout << "gc_seg_mesh_complete" << std::endl;
@@ -53,15 +53,26 @@ void run_filter_benchmarks_mesh(PartCellStructure<float,uint64_t> pc_struct,Anal
     //  Runs the filtering and neighbour access benchmarks
     //
 
-    float num_repeats = 10;
+    float num_repeats = 5;
 
     //Get neighbours (linear)
+
+    Part_timer timer;
+
+    timer.verbose_flag = false;
+
+    timer.start_timer("lin");
 
     //pixels
     pixels_linear_neigh_access(pc_struct,pc_struct.org_dims[0],pc_struct.org_dims[1],pc_struct.org_dims[2],num_repeats,analysis_data);
 
+    timer.stop_timer();
+
+    timer.start_timer("random");
 
     pixel_neigh_random(pc_struct,pc_struct.org_dims[0],pc_struct.org_dims[1],pc_struct.org_dims[2],analysis_data);
+
+    timer.stop_timer();
 
     // Filtering
 
@@ -71,19 +82,27 @@ void run_filter_benchmarks_mesh(PartCellStructure<float,uint64_t> pc_struct,Anal
     std::vector<float> filter;
     filter.resize(2*filter_offset + 1,1.0/(2*filter_offset + 1));
 
+    num_repeats = 1;
 
     Mesh_data<float> output_image;
 
     Mesh_data<float> input_image;
 
+    timer.start_timer("filter");
+
     pc_struct.interp_parts_to_pc(input_image,pc_struct.part_data.particle_data);
 
     output_image =  pixel_filter_full(input_image,filter,num_repeats,analysis_data);
 
+    timer.stop_timer();
+
     ExtraPartCellData<float> filter_output_mesh;
+
+    timer.start_timer("full_apr_filter");
 
     filter_output_mesh = filter_apr_input_img<float>(input_image,pc_struct,filter,analysis_data,num_repeats);
 
+    timer.stop_timer();
 
 }
 

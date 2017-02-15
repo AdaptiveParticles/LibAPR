@@ -1145,7 +1145,7 @@ void pixel_neigh_random(PartCellStructure<U,uint64_t>& pc_struct,uint64_t y_num,
     int k_n = 0;
     int i_n = 0;
     
-    float num_repeats = input_data.mesh.size();
+    float num_repeats = 10000000;
     float neigh_sum = 0;
     
     for(int r = 0;r < num_repeats;r++){
@@ -1211,12 +1211,14 @@ void pixel_neigh_random(PartCellStructure<U,uint64_t>& pc_struct,uint64_t y_num,
     
     timer.stop_timer();
     float time2 = (timer.t2 - timer.t1);
+
+    float est_full_time = (time-time2)*(1.0*x_num*y_num*z_num)/num_repeats;
     
     //std::cout << "Random Access Pixel: Size: " << (x_num*y_num*z_num) << " took: " << (time-time2) << std::endl;
     //std::cout << "per 1000000 pixel took: " << (time-time2)/((1.0*x_num*y_num*z_num)/1000000.0) << std::endl;
 
-    analysis_data.add_float_data("random_access_pixel_neigh_total",time-time2);
-    analysis_data.add_float_data("random_access_pixel_neigh_perm",(time-time2)/((1.0*x_num*y_num*z_num)/1000000.0));
+    analysis_data.add_float_data("random_access_pixel_neigh_total",est_full_time);
+    analysis_data.add_float_data("random_access_pixel_neigh_perm",(est_full_time)/((1.0*x_num*y_num*z_num)/1000000.0));
     
 }
 template<typename S>
