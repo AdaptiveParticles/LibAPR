@@ -735,7 +735,7 @@ void calc_graph_cuts_segmentation_mesh(PartCellStructure<V,T>& pc_struct,Mesh_da
     
     Part_timer timer;
     
-    timer.verbose_flag = true;
+    timer.verbose_flag = false;
     
     uint64_t num_parts = pc_struct.org_dims[0]*pc_struct.org_dims[1]*pc_struct.org_dims[2];
     
