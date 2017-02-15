@@ -84,7 +84,7 @@ int main(int argc, char **argv) {
 
     std::vector<int> image_size;
 
-    float min_size = 400;
+    float min_size = 50;
     float max_size = options.image_size;
     float delta = 50;
 
