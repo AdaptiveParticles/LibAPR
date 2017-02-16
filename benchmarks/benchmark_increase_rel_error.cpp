@@ -99,7 +99,7 @@ int main(int argc, char **argv) {
     //min mean
     float min_shift = 5;
     float max_shift = 1000;
-    num_steps = 1;
+    num_steps = 0;
 
     del = (max_shift - min_shift) / num_steps;
 
@@ -110,7 +110,8 @@ int main(int argc, char **argv) {
     } else {
         shift.push_back(max_shift);
     }
-    //sig_vec.push_back(2);
+
+    shift = {1,10,30};
 
     int N_par1 = (int)rel_error_vec.size(); // this many different parameter values to be run
     int N_par2 = (int)sig_vec.size();
@@ -122,13 +123,14 @@ int main(int argc, char **argv) {
 
     Genrand_uni gen_rand;
 
-    bs.desired_I = 500;
-
     bs.int_scale_min = 1;
     bs.int_scale_max = 5;
 
     Part_timer b_timer;
     b_timer.verbose_flag = true;
+
+    bs.shift = 1000;
+    syn_image.global_trans.const_shift = 1000;
 
     for(int q = 0;q < N_par3;q++) {
 
@@ -166,10 +168,10 @@ int main(int argc, char **argv) {
 
                     ///////////////////////////////////////////////////////////////////
                     //PSF properties
-                    bs.shift = shift[q];
-                    syn_image_loc.global_trans.const_shift = bs.shift;
 
-                    analysis_data.add_float_data("shift",shift[q]);
+                    bs.desired_I = sqrt(1000)*shift[q];
+
+                    analysis_data.add_float_data("desired_I",bs.desired_I);
 
                     set_gaussian_psf(syn_image_loc, bs);
 
