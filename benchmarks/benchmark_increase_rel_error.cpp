@@ -99,7 +99,7 @@ int main(int argc, char **argv) {
     //min mean
     float min_shift = 5;
     float max_shift = 1000;
-    num_steps = 0;
+    num_steps = 1;
 
     del = (max_shift - min_shift) / num_steps;
 
