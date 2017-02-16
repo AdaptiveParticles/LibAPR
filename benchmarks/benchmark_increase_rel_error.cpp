@@ -37,7 +37,6 @@ int main(int argc, char **argv) {
     //  Now perform the experiment looping over and generating datasets x times.
     //
     //
-    //
     //////////////////////////////////////////////////////////////////
 
     AnalysisData analysis_data(options.description, "Test", argc, argv);
@@ -94,7 +93,7 @@ int main(int argc, char **argv) {
     }
 
 
-    sig_vec = {3};
+    sig_vec = {1,3,6};
 
     //min mean
     float min_shift = 5;
