@@ -16,6 +16,7 @@
 #include <stdexcept>
 #include <string>
 #include <array>
+#include <ctime>
 
 std::string exec(const char* cmd);
 

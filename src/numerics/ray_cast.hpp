@@ -14,6 +14,7 @@
 #include <iostream>
 #include <vector>
 #include <fstream>
+#include <ctime>
 
 #include "../data_structures/Tree/PartCellStructure.hpp"
 #include "../data_structures/Tree/ExtraPartCellData.hpp"
