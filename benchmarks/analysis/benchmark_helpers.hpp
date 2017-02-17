@@ -16,6 +16,8 @@
 #include "SynImageClasses.hpp"
 #include "GenerateTemplates.hpp"
 #include "SynImagePar.hpp"
+#include <stdio.h>
+#include <dirent.h>
 
 
 struct cmdLineOptionsBench{
@@ -74,6 +76,11 @@ cmdLineOptionsBench read_command_line_options(int argc, char **argv){
         exit(1);
     }
 
+
+    if(command_option_exists(argv, argv + argc, "-dir"))
+    {
+        result.directory = std::string(get_command_option(argv, argv + argc, "-dir"));
+    }
 
     if(command_option_exists_bench(argv, argv + argc, "-quality_metrics_gt"))
     {
@@ -183,11 +190,51 @@ cmdLineOptionsBench read_command_line_options(int argc, char **argv){
 }
 
 
+std::vector<std::string> listFiles(const std::string& path,const std::string& extenstion)
+{
+    //
+    //  Bevan Cheeseman 2017, adapted from Stack overflow code
+    //
+    //  For a particular folder, finds files with a certain string in their name and returns as a vector of strings, I don't think this will work on Windows.
+    //
 
 
+    DIR* dirFile = opendir( path.c_str() );
+
+    std::vector<std::string> file_list;
+
+    if ( dirFile )
+    {
+        struct dirent* hFile;
+        errno = 0;
+        while (( hFile = readdir( dirFile )) != NULL )
+        {
+            if ( !strcmp( hFile->d_name, "."  )) continue;
+            if ( !strcmp( hFile->d_name, ".." )) continue;
+
+            // in linux hidden files all start with '.'
+            //if ( gIgnoreHidden && ( hFile->d_name[0] == '.' )) continue;
+
+            // dirFile.name is the name of the file. Do whatever string comparison
+            // you want here. Something like:
+            if ( strstr( hFile->d_name, extenstion.c_str() )) {
+                printf(" found a .tiff file: %s", hFile->d_name);
+                std::cout << std::endl;
+                file_list.push_back(hFile->d_name);
+            }
+
+        }
+        closedir( dirFile );
+    }
+
+    return file_list;
+}
 
 
-
+inline bool check_file_exists(const std::string& name) {
+    std::ifstream f(name.c_str());
+    return f.good();
+}
 
 
 struct benchmark_settings{
@@ -447,12 +494,15 @@ void set_up_part_rep(SynImage& syn_image_loc,Part_rep& p_rep,benchmark_settings&
     p_rep.len_scale = p_rep.pars.dx*pow(2.0,p_rep.pl_map.k_max+1);
     p_rep.pars.noise_sigma = sqrt(bs.shift);
 
+    p_rep.pars.lambda = bs.lambda;
+
     if(bs.noise_type == "none") {
         p_rep.pars.interp_type = 2;
         p_rep.pars.var_th = 1;
+        p_rep.pars.lambda = -1;
     }
 
-    p_rep.pars.lambda = bs.lambda;
+
 
     get_test_paths(p_rep.pars.image_path,p_rep.pars.utest_path,p_rep.pars.output_path);
 }

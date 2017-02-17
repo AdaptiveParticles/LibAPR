@@ -1,8 +1,13 @@
 //
+// Created by bevanc on 09.02.17.
+//
+
+#include "benchmark_fix_ratio.h"
+
+//
 // Created by cheesema on 27/01/17.
 //
 
-#include "benchmark_increase_domain.hpp"
 
 
 ////////////////////////
@@ -31,8 +36,6 @@ int main(int argc, char **argv) {
     SynImage syn_image;
 
     std::string image_name = options.template_name;
-
-
 
 
     ///////////////////////////////////////////////////////////////////
@@ -70,7 +73,7 @@ int main(int argc, char **argv) {
     //
     //////////////////////////////////////////////////////////////////
 
-    std::cout << "BENCHMARK INCREASE IMAGE SIZE" << std::endl;
+    std::cout << "BENCHMARK INCREASE IMAGE SIZE KEEPING COMP RATIO FIXED" << std::endl;
 
     AnalysisData analysis_data(options.description,"Benchmark fixed number of spheres with increasing sized imaging domain",argc,argv);
 
@@ -81,15 +84,15 @@ int main(int argc, char **argv) {
 
     std::vector<int> image_size;
 
-    float min_size = 200;
+    float min_size = 50;
     float max_size = options.image_size;
-    float delta = 100;
+    float delta = 50;
 
-    for (int i = min_size; i < max_size; i = i + delta) {
+    for (int i = min_size; i <= max_size; i = i + delta) {
         image_size.push_back(i);
     }
 
-    bs.num_objects = 2000;
+    float ratio = options.delta;
 
     int N_par = (int)image_size.size(); // this many different parameter values to be run
 
@@ -97,8 +100,6 @@ int main(int argc, char **argv) {
     b_timer.verbose_flag = true;
 
     for (int j = 0;j < N_par;j++){
-
-        SynImage syn_image_loc = syn_image;
 
         Mesh_data<uint16_t> input_image;
 
@@ -110,30 +111,35 @@ int main(int argc, char **argv) {
         bs.y_num = image_size[j];
         bs.z_num = image_size[j];
 
-        update_domain(syn_image_loc,bs);
-
-        //Generate objects
-
-        generate_objects(syn_image_loc,bs);
-
-
-        ///////////////////////////////
-        //
-        //  Generate the image
-        //
-        ////////////////////////////////
-
-        MeshDataAF<uint16_t> gen_image;
-
-        syn_image_loc.generate_syn_image(gen_image);
-
-        Mesh_data<uint16_t> input_img;
-
-        copy_mesh_data_structures(gen_image,input_img);
+        bs.num_objects = pow(bs.x_num,3)/(33400*ratio);
 
         for(int i = 0; i < bs.N_repeats; i++){
 
+            SynImage syn_image_loc = syn_image;
+
+            update_domain(syn_image_loc,bs);
+
             b_timer.start_timer("one_it");
+
+            //Generate objects
+
+            generate_objects(syn_image_loc,bs);
+
+            ///////////////////////////////
+            //
+            //  Generate the image
+            //
+            ////////////////////////////////
+
+            MeshDataAF<uint16_t> gen_image;
+
+            syn_image_loc.generate_syn_image(gen_image);
+
+            Mesh_data<uint16_t> input_img;
+
+            copy_mesh_data_structures(gen_image,input_img);
+
+
 
             ///////////////////////////////
             //

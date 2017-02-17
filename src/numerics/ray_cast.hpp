@@ -25,6 +25,8 @@
 
 #include "../../test/utils.h"
 
+#include "misc_numerics.hpp"
+
 const int8_t dir_y[6] = { 1, -1, 0, 0, 0, 0};
 const int8_t dir_x[6] = { 0, 0, 1, -1, 0, 0};
 const int8_t dir_z[6] = { 0, 0, 0, 0, 1, -1};
@@ -903,7 +905,6 @@ void multi_ray_parrallel_raster(PartCellStructure<S,uint64_t>& pc_struct,proj_pa
     //
     //////////////////////////////
 
-
     ParticleDataNew<float, uint64_t> part_new;
     //flattens format to particle = cell, this is in the classic access/part paradigm
     part_new.initialize_from_structure(pc_struct);
@@ -1084,6 +1085,798 @@ void multi_ray_parrallel_raster(PartCellStructure<S,uint64_t>& pc_struct,proj_pa
     debug_write(proj_img,"parllel_proj" + std::to_string(pars.proj_type));
 
 }
+void get_ray(const int& dir,const int& y,const int& x,const int& z,const float& step_size,int &dim1,int &dim2){
+    //
+    //  Bevan Cheeseman 2017
+    //
+
+    //calculate real coordinate
+
+
+    if(dir < 2){
+        //xz
+        dim1 = x * step_size;
+        dim2 = z * step_size;
+    } else if (dir < 4){
+        //yz
+        dim1 = y * step_size;
+        dim2 = z * step_size;
+    } else {
+        //yx
+        dim1 = y * step_size;
+        dim2 = x * step_size;
+    }
+
+}
+template<typename S>
+void multi_ray_parrallel_raster_alt(PartCellStructure<S,uint64_t>& pc_struct,proj_par& pars){
+    //
+    //  Bevan Cheeseman 2017
+    //
+    //  Simple ray case example, multi ray, accumulating, parralell projection
+    //
+    //
+
+
+    //////////////////////////////
+    //
+    //  This creates data sets where each particle is a cell.
+    //
+    //  This same code can be used where there are multiple particles per cell as in original pc_struct, however, the particles have to be accessed in a different way.
+    //
+    //////////////////////////////
+
+    ParticleDataNew<float, uint64_t> part_new;
+    //flattens format to particle = cell, this is in the classic access/part paradigm
+    part_new.initialize_from_structure(pc_struct);
+
+    //generates the nieghbour structure
+    PartCellData<uint64_t> pc_data;
+    part_new.create_pc_data_new(pc_data);
+
+    //Genearate particle at cell locations, easier access
+    ExtraPartCellData<float> particles_int;
+    part_new.create_particles_at_cell_structure(particles_int);
+
+    ExtraPartCellData<uint16_t> y_vec;
+
+    create_y_data(y_vec,part_new,pc_data);
+
+    //Need to add here a parameters here
+
+    //unsigned int direction = 0;
+    Mesh_data<S> proj_img;
+    Mesh_data<uint64_t> seed_cells;
+
+    float active_x = 2;
+    float active_y = 2;
+    float active_z = 2;
+
+    float start = 1;
+
+    switch(pars.direction){
+        case(0):{
+            //x//z
+            proj_img.initialize(pc_struct.org_dims[1],pc_struct.org_dims[2],1,0);
+            seed_cells.initialize(pc_struct.org_dims[1],pc_struct.org_dims[2],1,0);
+            active_x = 0;
+            active_z = 1;
+            start = 1;
+            break;
+        }
+        case(1): {
+            //x//z
+            proj_img.initialize(pc_struct.org_dims[1], pc_struct.org_dims[2], 1, 0);
+            seed_cells.initialize(pc_struct.org_dims[1], pc_struct.org_dims[2], 1, 0);
+            active_x = 0;
+            active_z = 1;
+            start = 2*(pc_struct.org_dims[0]-1) - 1;
+            break;
+        }
+        case(2):{
+            //y//z
+            proj_img.initialize(pc_struct.org_dims[0], pc_struct.org_dims[2], 1, 0);
+            seed_cells.initialize(pc_struct.org_dims[0], pc_struct.org_dims[2], 1, 0);
+            active_y = 0;
+            active_z = 1;
+            start = 1;
+            break;
+        }
+        case(3):{
+            //yz
+            proj_img.initialize(pc_struct.org_dims[0], pc_struct.org_dims[2], 1, 0);
+            seed_cells.initialize(pc_struct.org_dims[0], pc_struct.org_dims[2], 1, 0);
+            active_y = 0;
+            active_z = 1;
+            start = 2*(pc_struct.org_dims[1]-1) - 1;
+            break;
+        }
+        case(4):{
+            //yx
+            proj_img.initialize(pc_struct.org_dims[0], pc_struct.org_dims[1], 1, 0);
+            seed_cells.initialize(pc_struct.org_dims[0], pc_struct.org_dims[1], 1, 0);
+            active_y = 0;
+            active_x = 1;
+            start = 1;
+            break;
+        }
+        case(5):{
+            //yx
+            proj_img.initialize(pc_struct.org_dims[0], pc_struct.org_dims[1], 1, 0);
+            seed_cells.initialize(pc_struct.org_dims[0], pc_struct.org_dims[1], 1, 0);
+            active_y = 0;
+            active_x = 1;
+            start = 2*(pc_struct.org_dims[2]-1) - 1;
+            break;
+        }
+    }
+
+
+
+    bool end_domain = false;
+
+    //choose random direction to propogate along
+
+
+    int counter =0;
+
+
+    Part_timer timer;
+
+    timer.verbose_flag = true;
+
+    timer.start_timer("ray cast");
+
+    const int dir = pars.direction;
+
+    int z_,x_,j_,y_,i,k;
+
+    for(uint64_t depth = (y_vec.depth_min);depth <= y_vec.depth_max;depth++) {
+        //loop over the resolutions of the structure
+        const unsigned int x_num_ = y_vec.x_num[depth];
+        const unsigned int z_num_ = y_vec.z_num[depth];
+        const float step_size = pow(2,y_vec.depth_max - depth);
+
+#pragma omp parallel for default(shared) private(z_,x_,j_,i,k)  if(z_num_*x_num_ > 100)
+        for (z_ = 0; z_ < z_num_; z_++) {
+            //both z and x are explicitly accessed in the structure
+
+            for (x_ = 0; x_ < x_num_; x_++) {
+
+                const unsigned int pc_offset = x_num_*z_ + x_;
+
+                for (j_ = 0; j_ < y_vec.data[depth][pc_offset].size(); j_++) {
+
+                    int dim1 = 0;
+                    int dim2 = 0;
+
+                    const int y = y_vec.data[depth][pc_offset][j_];
+
+                    get_ray(dir,y,x_,z_,step_size,dim1,dim2);
+
+                    const float temp_int = part_new.particle_data.data[depth][pc_offset][j_];
+
+                    //add to all the required rays
+                    const int offset_max_dim1 = std::min((int)proj_img.y_num,(int)(dim1 + step_size));
+                    const int offset_max_dim2 = std::min((int)proj_img.x_num,(int)(dim2 + step_size));
+
+                    for ( k = dim2; k < offset_max_dim2; ++k) {
+                        for (i = dim1; i < offset_max_dim1; ++i) {
+                            proj_img.mesh[ i + (k)*proj_img.y_num] = std::max(temp_int,proj_img.mesh[ i + (k)*proj_img.y_num]);
+
+                        }
+                    }
+
+                }
+            }
+        }
+    }
+
+    timer.stop_timer();
+
+    debug_write(proj_img,"parllel_proj_alt" + std::to_string(pars.proj_type));
+
+}
+template<typename S>
+void multi_ray_parrallel_raster_alt_d(PartCellStructure<S,uint64_t>& pc_struct,proj_par& pars){
+    //
+    //  Bevan Cheeseman 2017
+    //
+    //  Simple ray case example, multi ray, accumulating, parralell projection
+    //
+    //
+
+
+    //////////////////////////////
+    //
+    //  This creates data sets where each particle is a cell.
+    //
+    //  This same code can be used where there are multiple particles per cell as in original pc_struct, however, the particles have to be accessed in a different way.
+    //
+    //////////////////////////////
+
+    ParticleDataNew<float, uint64_t> part_new;
+    //flattens format to particle = cell, this is in the classic access/part paradigm
+    part_new.initialize_from_structure(pc_struct);
+
+    //generates the nieghbour structure
+    PartCellData<uint64_t> pc_data;
+    part_new.create_pc_data_new(pc_data);
+
+    //Genearate particle at cell locations, easier access
+    ExtraPartCellData<float> particles_int;
+    part_new.create_particles_at_cell_structure(particles_int);
+
+    ExtraPartCellData<uint16_t> y_vec;
+
+    create_y_data(y_vec,part_new,pc_data);
+
+    //Need to add here a parameters here
+
+    //unsigned int direction = 0;
+    Mesh_data<S> proj_img;
+    Mesh_data<uint64_t> seed_cells;
+
+    float active_x = 2;
+    float active_y = 2;
+    float active_z = 2;
+
+    float start = 1;
+
+    switch(pars.direction){
+        case(0):{
+            //x//z
+            proj_img.initialize(pc_struct.org_dims[1],pc_struct.org_dims[2],1,0);
+            seed_cells.initialize(pc_struct.org_dims[1],pc_struct.org_dims[2],1,0);
+            active_x = 0;
+            active_z = 1;
+            start = 1;
+            break;
+        }
+        case(1): {
+            //x//z
+            proj_img.initialize(pc_struct.org_dims[1], pc_struct.org_dims[2], 1, 0);
+            seed_cells.initialize(pc_struct.org_dims[1], pc_struct.org_dims[2], 1, 0);
+            active_x = 0;
+            active_z = 1;
+            start = 2*(pc_struct.org_dims[0]-1) - 1;
+            break;
+        }
+        case(2):{
+            //y//z
+            proj_img.initialize(pc_struct.org_dims[0], pc_struct.org_dims[2], 1, 0);
+            seed_cells.initialize(pc_struct.org_dims[0], pc_struct.org_dims[2], 1, 0);
+            active_y = 0;
+            active_z = 1;
+            start = 1;
+            break;
+        }
+        case(3):{
+            //yz
+            proj_img.initialize(pc_struct.org_dims[0], pc_struct.org_dims[2], 1, 0);
+            seed_cells.initialize(pc_struct.org_dims[0], pc_struct.org_dims[2], 1, 0);
+            active_y = 0;
+            active_z = 1;
+            start = 2*(pc_struct.org_dims[1]-1) - 1;
+            break;
+        }
+        case(4):{
+            //yx
+            proj_img.initialize(pc_struct.org_dims[0], pc_struct.org_dims[1], 1, 0);
+            seed_cells.initialize(pc_struct.org_dims[0], pc_struct.org_dims[1], 1, 0);
+            active_y = 0;
+            active_x = 1;
+            start = 1;
+            break;
+        }
+        case(5):{
+            //yx
+            proj_img.initialize(pc_struct.org_dims[0], pc_struct.org_dims[1], 1, 0);
+            seed_cells.initialize(pc_struct.org_dims[0], pc_struct.org_dims[1], 1, 0);
+            active_y = 0;
+            active_x = 1;
+            start = 2*(pc_struct.org_dims[2]-1) - 1;
+            break;
+        }
+    }
+
+
+    std::vector<Mesh_data<S>> depth_slice;
+
+    depth_slice.resize(y_vec.depth_max + 1);
+
+    depth_slice[y_vec.depth_max].initialize(proj_img.y_num,proj_img.x_num,1,0);
+
+    std::vector<int> depth_vec;
+    depth_vec.resize(y_vec.depth_max + 1);
+
+    for(int i = y_vec.depth_min;i < y_vec.depth_max;i++){
+        float d = pow(2,y_vec.depth_max - i);
+        depth_slice[i].initialize(ceil(proj_img.y_num/d),ceil(proj_img.x_num/d),1,0);
+        depth_vec[i] = d;
+    }
+
+
+    //choose random direction to propogate along
+
+
+    int counter =0;
+
+
+    Part_timer timer;
+
+    timer.verbose_flag = true;
+
+    timer.start_timer("ray cast parts");
+
+    const int dir = pars.direction;
+
+    int z_,x_,j_,y_,i,k;
+
+    for(uint64_t depth = (y_vec.depth_min);depth <= y_vec.depth_max;depth++) {
+        //loop over the resolutions of the structure
+        const unsigned int x_num_ = y_vec.x_num[depth];
+        const unsigned int z_num_ = y_vec.z_num[depth];
+        const float step_size = 1;
+
+#pragma omp parallel for default(shared) private(z_,x_,j_,i,k)  schedule(guided) if(z_num_*x_num_ > 100)
+        for (z_ = 0; z_ < z_num_; z_++) {
+            //both z and x are explicitly accessed in the structure
+
+            for (x_ = 0; x_ < x_num_; x_++) {
+
+                const unsigned int pc_offset = x_num_*z_ + x_;
+
+                for (j_ = 0; j_ < y_vec.data[depth][pc_offset].size(); j_++) {
+
+                    int dim1 = 0;
+                    int dim2 = 0;
+
+                    const int y = y_vec.data[depth][pc_offset][j_];
+
+                    get_ray(dir,y,x_,z_,step_size,dim1,dim2);
+
+                    const float temp_int = part_new.particle_data.data[depth][pc_offset][j_];
+
+                    depth_slice[depth].mesh[ dim1 + (dim2)*depth_slice[depth].y_num] = std::max(temp_int,depth_slice[depth].mesh[ dim1 + (dim2)*depth_slice[depth].y_num]);
+
+                }
+            }
+        }
+    }
+
+
+//#pragma omp parallel for default(shared) private(z_,x_,j_,i,k)
+//    for (x_ = 0; x_ < depth_slice[y_vec.depth_max].x_num; x_++) {
+//        //both z and x are explicitly accessed in the structure
+//
+//        for (y_ = 0; y_ < depth_slice[y_vec.depth_max].y_num; y_++) {
+//            for(uint64_t depth = (y_vec.depth_min);depth < y_vec.depth_max;depth++) {
+//                //loop over the resolutions of the structure
+//                i = y_/depth_vec[depth];
+//                k = x_/depth_vec[depth];
+//                depth_slice[y_vec.depth_max].mesh[ y_ + (x_)*depth_slice[y_vec.depth_max].y_num] =
+//                        std::max(depth_slice[y_vec.depth_max].mesh[ y_ + (x_)*depth_slice[y_vec.depth_max].y_num],depth_slice[depth].mesh[ i + (k)*depth_slice[depth].y_num]);
+//
+//            }
+//        }
+//    }
+
+
+
+    uint64_t depth;
+
+
+    for(depth = (y_vec.depth_min);depth < y_vec.depth_max;depth++) {
+
+        const int step_size = pow(2,y_vec.depth_max - depth);
+#pragma omp parallel for default(shared) private(z_,x_,j_,i,k) schedule(guided) if (depth > 9)
+        for (x_ = 0; x_ < depth_slice[depth].x_num; x_++) {
+            //both z and x are explicitly accessed in the structure
+
+            for (y_ = 0; y_ < depth_slice[depth].y_num; y_++) {
+
+                const float curr_int = depth_slice[depth].mesh[ y_ + (x_)*depth_slice[depth].y_num];
+
+                const int dim1  = y_*step_size;
+                const int dim2 =  x_*step_size;
+
+                //add to all the required rays
+                const int offset_max_dim1 = std::min((int)depth_slice[y_vec.depth_max].y_num,(int)(dim1 + step_size));
+                const int offset_max_dim2 = std::min((int)depth_slice[y_vec.depth_max].x_num,(int)(dim2 + step_size));
+                
+                if(curr_int > 0){
+                    
+                    for ( k = dim2; k < offset_max_dim2; ++k) {
+                        for (i = dim1; i < offset_max_dim1; ++i) {
+                            depth_slice[y_vec.depth_max].mesh[ i + (k)*depth_slice[y_vec.depth_max].y_num] = std::max(curr_int,depth_slice[y_vec.depth_max].mesh[ i + (k)*depth_slice[y_vec.depth_max].y_num]);
+                            
+                        }
+                    }
+                }
+
+            }
+        }
+    }
+
+    timer.stop_timer();
+
+
+
+    debug_write(depth_slice[y_vec.depth_max],"parllel_proj_alt" + std::to_string(pars.proj_type));
+
+}
+
+template<typename S>
+void multi_ray_parrallel_raster_alt_d_off(PartCellStructure<S,uint64_t>& pc_struct,proj_par& pars){
+    //
+    //  Bevan Cheeseman 2017
+    //
+    //  Simple ray case example, multi ray, accumulating, parralell projection
+    //
+    //
+
+
+    //////////////////////////////
+    //
+    //  This creates data sets where each particle is a cell.
+    //
+    //  This same code can be used where there are multiple particles per cell as in original pc_struct, however, the particles have to be accessed in a different way.
+    //
+    //////////////////////////////
+
+    ParticleDataNew<float, uint64_t> part_new;
+    //flattens format to particle = cell, this is in the classic access/part paradigm
+    part_new.initialize_from_structure(pc_struct);
+
+    //generates the nieghbour structure
+    PartCellData<uint64_t> pc_data;
+    part_new.create_pc_data_new(pc_data);
+
+    //Genearate particle at cell locations, easier access
+    ExtraPartCellData<float> particles_int;
+    part_new.create_particles_at_cell_structure(particles_int);
+
+    ExtraPartCellData<uint16_t> y_off;
+
+    create_y_offsets(y_off,part_new,pc_data);
+
+    //Need to add here a parameters here
+
+    //unsigned int direction = 0;
+    Mesh_data<S> proj_img;
+    Mesh_data<uint64_t> seed_cells;
+
+    float active_x = 2;
+    float active_y = 2;
+    float active_z = 2;
+
+    float start = 1;
+
+    switch(pars.direction){
+        case(0):{
+            //x//z
+            proj_img.initialize(pc_struct.org_dims[1],pc_struct.org_dims[2],1,0);
+            seed_cells.initialize(pc_struct.org_dims[1],pc_struct.org_dims[2],1,0);
+            active_x = 0;
+            active_z = 1;
+            start = 1;
+            break;
+        }
+        case(1): {
+            //x//z
+            proj_img.initialize(pc_struct.org_dims[1], pc_struct.org_dims[2], 1, 0);
+            seed_cells.initialize(pc_struct.org_dims[1], pc_struct.org_dims[2], 1, 0);
+            active_x = 0;
+            active_z = 1;
+            start = 2*(pc_struct.org_dims[0]-1) - 1;
+            break;
+        }
+        case(2):{
+            //y//z
+            proj_img.initialize(pc_struct.org_dims[0], pc_struct.org_dims[2], 1, 0);
+            seed_cells.initialize(pc_struct.org_dims[0], pc_struct.org_dims[2], 1, 0);
+            active_y = 0;
+            active_z = 1;
+            start = 1;
+            break;
+        }
+        case(3):{
+            //yz
+            proj_img.initialize(pc_struct.org_dims[0], pc_struct.org_dims[2], 1, 0);
+            seed_cells.initialize(pc_struct.org_dims[0], pc_struct.org_dims[2], 1, 0);
+            active_y = 0;
+            active_z = 1;
+            start = 2*(pc_struct.org_dims[1]-1) - 1;
+            break;
+        }
+        case(4):{
+            //yx
+            proj_img.initialize(pc_struct.org_dims[0], pc_struct.org_dims[1], 1, 0);
+            seed_cells.initialize(pc_struct.org_dims[0], pc_struct.org_dims[1], 1, 0);
+            active_y = 0;
+            active_x = 1;
+            start = 1;
+            break;
+        }
+        case(5):{
+            //yx
+            proj_img.initialize(pc_struct.org_dims[0], pc_struct.org_dims[1], 1, 0);
+            seed_cells.initialize(pc_struct.org_dims[0], pc_struct.org_dims[1], 1, 0);
+            active_y = 0;
+            active_x = 1;
+            start = 2*(pc_struct.org_dims[2]-1) - 1;
+            break;
+        }
+    }
+
+
+    std::vector<Mesh_data<S>> depth_slice;
+
+    depth_slice.resize(y_off.depth_max + 1);
+
+    depth_slice[y_off.depth_max].initialize(proj_img.y_num,proj_img.x_num,1,0);
+
+    std::vector<int> depth_vec;
+    depth_vec.resize(y_off.depth_max + 1);
+
+    for(int i = y_off.depth_min;i < y_off.depth_max;i++){
+        float d = pow(2,y_off.depth_max - i);
+        depth_slice[i].initialize(ceil(proj_img.y_num/d),ceil(proj_img.x_num/d),1,0);
+        depth_vec[i] = d;
+    }
+
+
+    //choose random direction to propogate along
+
+
+    int counter =0;
+
+
+    Part_timer timer;
+
+    timer.verbose_flag = true;
+
+    timer.start_timer("ray cast parts");
+
+    const int dir = pars.direction;
+
+    int z_,x_,j_,y_,i,k;
+
+    for(uint64_t depth = (y_off.depth_min);depth <= y_off.depth_max;depth++) {
+        //loop over the resolutions of the structure
+        const unsigned int x_num_ = y_off.x_num[depth];
+        const unsigned int z_num_ = y_off.z_num[depth];
+        const float step_size = 1;
+
+#pragma omp parallel for default(shared) private(z_,x_,j_,i,k)  schedule(guided) if(z_num_*x_num_ > 100)
+        for (z_ = 0; z_ < z_num_; z_++) {
+            //both z and x are explicitly accessed in the structure
+
+            for (x_ = 0; x_ < x_num_; x_++) {
+
+                const unsigned int pc_offset = x_num_*z_ + x_;
+
+                int y = 0;
+                int y_next = 0;
+                int y_prev = 0;
+
+                for (j_ = 0; j_ < y_off.data[depth][pc_offset].size(); j_++) {
+
+                    y_next = y_off.data[depth][pc_offset][j_];
+
+                    int dim1 = 0;
+                    int dim2 = 0;
+
+                    get_ray(dir,y,x_,z_,step_size,dim1,dim2);
+
+                    const float temp_int = part_new.particle_data.data[depth][pc_offset][j_];
+
+                    depth_slice[depth].mesh[ dim1 + (dim2)*depth_slice[depth].y_num] = std::max(temp_int,depth_slice[depth].mesh[ dim1 + (dim2)*depth_slice[depth].y_num]);
+
+                }
+            }
+        }
+    }
+
+
+    timer.stop_timer();
+
+    uint64_t depth;
+
+
+    for(depth = (y_off.depth_min);depth < y_off.depth_max;depth++) {
+
+        const int step_size = pow(2,y_off.depth_max - depth);
+#pragma omp parallel for default(shared) private(z_,x_,j_,i,k) schedule(guided) if (depth > 9)
+        for (x_ = 0; x_ < depth_slice[depth].x_num; x_++) {
+            //both z and x are explicitly accessed in the structure
+
+            for (y_ = 0; y_ < depth_slice[depth].y_num; y_++) {
+
+                const float curr_int = depth_slice[depth].mesh[ y_ + (x_)*depth_slice[depth].y_num];
+
+                const int dim1  = y_*step_size;
+                const int dim2 =  x_*step_size;
+
+                //add to all the required rays
+                const int offset_max_dim1 = std::min((int)depth_slice[y_off.depth_max].y_num,(int)(dim1 + step_size));
+                const int offset_max_dim2 = std::min((int)depth_slice[y_off.depth_max].x_num,(int)(dim2 + step_size));
+
+                if(curr_int > 0){
+
+                    for ( k = dim2; k < offset_max_dim2; ++k) {
+                        for (i = dim1; i < offset_max_dim1; ++i) {
+                            depth_slice[y_off.depth_max].mesh[ i + (k)*depth_slice[y_off.depth_max].y_num] = std::max(curr_int,depth_slice[y_off.depth_max].mesh[ i + (k)*depth_slice[y_off.depth_max].y_num]);
+
+                        }
+                    }
+                }
+
+            }
+        }
+    }
+
+
+
+    debug_write(depth_slice[y_off.depth_max],"parllel_proj_alt" + std::to_string(pars.proj_type));
+
+}
+
+
+
+
+
+
+template<typename S>
+void multi_ray_parrallel_raster_mesh(PartCellStructure<S,uint64_t>& pc_struct,proj_par& pars){
+    //
+    //  Bevan Cheeseman 2017
+    //
+    //  Simple ray case example, multi ray, accumulating, parralell projection
+    //
+    //
+
+
+    //////////////////////////////
+    //
+    //  This creates data sets where each particle is a cell.
+    //
+    //  This same code can be used where there are multiple particles per cell as in original pc_struct, however, the particles have to be accessed in a different way.
+    //
+    //////////////////////////////
+
+
+    Mesh_data<S> image;
+
+    pc_struct.interp_parts_to_pc(image,pc_struct.part_data.particle_data);
+
+    //Need to add here a parameters here
+
+    //unsigned int direction = 0;
+    Mesh_data<S> proj_img;
+    Mesh_data<uint64_t> seed_cells;
+
+    float active_x = 2;
+    float active_y = 2;
+    float active_z = 2;
+
+    float start = 1;
+
+    switch(pars.direction){
+        case(0):{
+            //x//z
+            proj_img.initialize(pc_struct.org_dims[1],pc_struct.org_dims[2],1,0);
+            seed_cells.initialize(pc_struct.org_dims[1],pc_struct.org_dims[2],1,0);
+            active_x = 0;
+            active_z = 1;
+            start = 1;
+            break;
+        }
+        case(1): {
+            //x//z
+            proj_img.initialize(pc_struct.org_dims[1], pc_struct.org_dims[2], 1, 0);
+            seed_cells.initialize(pc_struct.org_dims[1], pc_struct.org_dims[2], 1, 0);
+            active_x = 0;
+            active_z = 1;
+            start = 2*(pc_struct.org_dims[0]-1) - 1;
+            break;
+        }
+        case(2):{
+            //y//z
+            proj_img.initialize(pc_struct.org_dims[0], pc_struct.org_dims[2], 1, 0);
+            seed_cells.initialize(pc_struct.org_dims[0], pc_struct.org_dims[2], 1, 0);
+            active_y = 0;
+            active_z = 1;
+            start = 1;
+            break;
+        }
+        case(3):{
+            //yz
+            proj_img.initialize(pc_struct.org_dims[0], pc_struct.org_dims[2], 1, 0);
+            seed_cells.initialize(pc_struct.org_dims[0], pc_struct.org_dims[2], 1, 0);
+            active_y = 0;
+            active_z = 1;
+            start = 2*(pc_struct.org_dims[1]-1) - 1;
+            break;
+        }
+        case(4):{
+            //yx
+            proj_img.initialize(pc_struct.org_dims[0], pc_struct.org_dims[1], 1, 0);
+            seed_cells.initialize(pc_struct.org_dims[0], pc_struct.org_dims[1], 1, 0);
+            active_y = 0;
+            active_x = 1;
+            start = 1;
+            break;
+        }
+        case(5):{
+            //yx
+            proj_img.initialize(pc_struct.org_dims[0], pc_struct.org_dims[1], 1, 0);
+            seed_cells.initialize(pc_struct.org_dims[0], pc_struct.org_dims[1], 1, 0);
+            active_y = 0;
+            active_x = 1;
+            start = 2*(pc_struct.org_dims[2]-1) - 1;
+            break;
+        }
+    }
+
+
+
+    bool end_domain = false;
+
+    //choose random direction to propogate along
+
+
+    int counter =0;
+
+
+    Part_timer timer;
+
+    timer.verbose_flag = true;
+
+    timer.start_timer("ray cast mesh");
+
+    const int dir = pars.direction;
+
+    int z_,x_,j_,y_,i,k;
+
+    //loop over the resolutions of the structure
+    const unsigned int x_num_ = image.x_num;
+    const unsigned int z_num_ = image.z_num;
+    const float step_size = 1;
+    const unsigned int y_num_ = image.y_num;
+
+#pragma omp parallel for default(shared) private(z_,x_,j_,i,k)  if(z_num_*x_num_ > 100)
+    for (z_ = 0; z_ < z_num_; z_++) {
+        //both z and x are explicitly accessed in the structure
+
+        for (x_ = 0; x_ < x_num_; x_++) {
+
+            const unsigned int pc_offset = x_num_*z_ + x_;
+
+            for (j_ = 0; j_ < y_num_; j_++) {
+
+                int dim1 = 0;
+                int dim2 = 0;
+
+                get_ray(dir,j_,x_,z_,step_size,dim1,dim2);
+
+                const float temp_int = image.mesh[j_ + x_*image.y_num + z_*image.x_num*image.y_num];
+
+                proj_img.mesh[ dim1 + (dim2)*proj_img.y_num] = std::max(temp_int,proj_img.mesh[ dim1 + (dim2)*proj_img.y_num]);
+
+            }
+        }
+    }
+
+
+    timer.stop_timer();
+
+    debug_write(proj_img,"parllel_proj_mesh" + std::to_string(pars.proj_type));
+
+}
+
+
 
 template<typename S>
 void gen_raster_cast(PartCellStructure<S,uint64_t>& pc_struct,proj_par& pars){

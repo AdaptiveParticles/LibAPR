@@ -277,23 +277,26 @@ void get_image_stats(Proc_par& pars,std::string output_path,std::string stats_na
     float k_diff = -3.0f;
 
     //set lambda
-    float lambda = expf((-1.0f/0.6161f) * logf((pars.var_th/pars.noise_sigma) *
-                   powf(2.0f,k_diff + log2f(pars.rel_error))/0.12531f));
-    
+    //float lambda = expf((-1.0f/0.6161f) * logf((pars.var_th/pars.noise_sigma) *
+                 //  powf(2.0f,k_diff + log2f(pars.rel_error))/0.12531f));
+    pars.lambda = expf((-1.0f/0.6161f) * logf((pars.var_th/pars.noise_sigma) *
+                                                    powf(2.0f,k_diff + log2f(.05))/0.12531f));
     //float lambda = expf((-1.0f/0.6161f) * logf((pars.var_th/pars.noise_sigma)));
 
     float lambda_min = 0.1f;
     float lambda_max = 5000;
 
-    pars.lambda = std::max(lambda_min,lambda);
+    pars.lambda = std::max(lambda_min,pars.lambda);
     pars.lambda = std::min(pars.lambda,lambda_max);
     
     if(lambda_or >0){
         pars.lambda = lambda_or;
     }
     
-    std::cout << "Lamda: " << lambda << std::endl;
+    //std::cout << "Lamda: " << lambda << std::endl;
     std::cout << "Lamda: " << pars.lambda << std::endl;
+    std::cout << "I_th: " << pars.I_th << std::endl;
+    std::cout << "Rel Error: " << pars.rel_error << std::endl;
     
     //float max_var_th = 1.2f * pars.noise_sigma * expf(-0.5138f * logf(pars.lambda)) *
       //                 (0.1821f * logf(pars.lambda)+ 1.522f);

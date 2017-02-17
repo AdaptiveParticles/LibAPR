@@ -1220,8 +1220,10 @@ void get_gradient_3D(Part_rep &p_rep, Mesh_data<T> &input_image, Mesh_data<T> &g
     Part_timer ptime;
     ptime.verbose_flag = false;
 
-    //fit the splines using recursive filters
-    get_smooth_bspline_3D(input_image,p_rep);
+    if(p_rep.pars.lambda > 0) {
+        //fit the splines using recursive filters
+        get_smooth_bspline_3D(input_image, p_rep);
+    }
 
     ptime.start_timer("calc_bspline_fd_x_y_alt");
 
@@ -1236,16 +1238,19 @@ void get_gradient_3D(Part_rep &p_rep, Mesh_data<T> &input_image, Mesh_data<T> &g
 
     // Getting the BSPLINE fit for the VAR calculation
 
-    ptime.start_timer("calc_inv_bspline_y");
 
-    calc_inv_bspline_y(input_image);
-    ptime.stop_timer();
-    ptime.start_timer("calc_inv_bspline_x");
-    calc_inv_bspline_x(input_image);
-    ptime.stop_timer();
-    ptime.start_timer("calc_inv_bspline_z");
-    calc_inv_bspline_z(input_image);
-    ptime.stop_timer();
+
+    if(p_rep.pars.lambda > 0){
+        ptime.start_timer("calc_inv_bspline_y");
+        calc_inv_bspline_y(input_image);
+        ptime.stop_timer();
+        ptime.start_timer("calc_inv_bspline_x");
+        calc_inv_bspline_x(input_image);
+        ptime.stop_timer();
+        ptime.start_timer("calc_inv_bspline_z");
+        calc_inv_bspline_z(input_image);
+        ptime.stop_timer();
+    }
 
 
 }

@@ -12,6 +12,7 @@
 #include "SynImageClasses.hpp"
 #include "numerics_benchmarks.hpp"
 #include "../../src/numerics/misc_numerics.hpp"
+#include <assert.h>
 
 
 void calc_information_content(SynImage syn_image,AnalysisData& analysis_data);
@@ -66,12 +67,18 @@ void bench_get_apr(Mesh_data<T>& input_image,Part_rep& p_rep,PartCellStructure<f
     float k_diff = -3.0f;
 
     //set lambda
-    float lambda = expf((-1.0f/0.6161f) * logf((p_rep.pars.var_th/p_rep.pars.noise_sigma) *
-                                               powf(2.0f,k_diff + log2f(p_rep.pars.rel_error))/0.12531f));
+
 
     if(p_rep.pars.lambda == 0) {
 
-        p_rep.pars.lambda = exp((-1.0/0.5138)*log(p_rep.pars.var_th/p_rep.pars.noise_sigma));
+        float lambda = expf((-1.0f/0.6161f) * logf((p_rep.pars.var_th/p_rep.pars.noise_sigma) *
+                                                   powf(2.0f,k_diff + log2f(p_rep.pars.rel_error))/0.12531f));
+        std::cout << lambda << std::endl;
+
+        p_rep.pars.lambda = expf((-1.0f/0.6161f) * logf((p_rep.pars.var_th/p_rep.pars.noise_sigma) *
+                                                        powf(2.0f,k_diff + log2f(.05))/0.12531f));
+
+        std::cout << p_rep.pars.lambda << std::endl;
 
         float lambda_min = 0.05f;
         float lambda_max = 5000;
@@ -94,12 +101,77 @@ void bench_get_apr(Mesh_data<T>& input_image,Part_rep& p_rep,PartCellStructure<f
         p_rep.pars.var_th_max =  .25*p_rep.pars.var_th;
     }
 
+    if(p_rep.pars.lambda == -1){
+        p_rep.pars.lambda = 0;
+    }
+
     std::cout << "Lamda: " << p_rep.pars.lambda << std::endl;
 
     get_apr(input_image,p_rep,pc_struct,analysis_data);
 
 
 }
+
+template <typename T>
+void bench_get_apr_part_time(Mesh_data<T>& input_image,Part_rep& p_rep,PartCellStructure<float,uint64_t>& pc_struct,AnalysisData& analysis_data){
+    //
+    //
+    //  Calculates the APR from image
+    //
+    //
+
+    p_rep.pars.tol = 0.0005f;
+
+    p_rep.pars.var_scale = 2;
+
+    float k_diff = -3.0f;
+
+    //set lambda
+
+
+    if(p_rep.pars.lambda == 0) {
+
+        float lambda = expf((-1.0f/0.6161f) * logf((p_rep.pars.var_th/p_rep.pars.noise_sigma) *
+                                                   powf(2.0f,k_diff + log2f(p_rep.pars.rel_error))/0.12531f));
+        std::cout << lambda << std::endl;
+
+        p_rep.pars.lambda = expf((-1.0f/0.6161f) * logf((p_rep.pars.var_th/p_rep.pars.noise_sigma) *
+                                                        powf(2.0f,k_diff + log2f(.05))/0.12531f));
+
+        std::cout << p_rep.pars.lambda << std::endl;
+
+        float lambda_min = 0.05f;
+        float lambda_max = 5000;
+
+        p_rep.pars.lambda = std::max(lambda_min,p_rep.pars.lambda);
+        p_rep.pars.lambda = std::min(p_rep.pars.lambda,lambda_max);
+
+        float max_var_th = 1.2f * p_rep.pars.noise_sigma * expf(-0.5138f * logf(p_rep.pars.lambda)) *
+                           (0.1821f * logf(p_rep.pars.lambda) + 1.522f);
+        if (max_var_th > .25*p_rep.pars.var_th){
+            float desired_th = 0.1*p_rep.pars.var_th;
+            p_rep.pars.lambda = std::max((float)exp((-1.0/0.5138)*log(desired_th/p_rep.pars.noise_sigma)),p_rep.pars.lambda);
+            p_rep.pars.var_th_max = .25*p_rep.pars.var_th;
+
+        } else {
+            p_rep.pars.var_th_max = .25*p_rep.pars.var_th;
+
+        }
+    } else {
+        p_rep.pars.var_th_max =  .25*p_rep.pars.var_th;
+    }
+
+    if(p_rep.pars.lambda == -1){
+        p_rep.pars.lambda = 0;
+    }
+
+    std::cout << "Lamda: " << p_rep.pars.lambda << std::endl;
+
+    get_apr_part_timing(input_image,p_rep,pc_struct,analysis_data);
+
+
+}
+
 
 void gen_parameter_pars(SynImage& syn_image,Proc_par& pars,std::string image_name){
     //
@@ -151,8 +223,8 @@ void compare_reconstruction_to_original(Mesh_data<S>& org_img,PartCellStructure<
     //compare_E(org_img,rec_img,options,name,analysis_data);
 
 }
-template<typename S>
-void compare_E(Mesh_data<S>& org_img,Mesh_data<S>& rec_img,Proc_par& pars,std::string name,AnalysisData& analysis_data){
+template<typename S,typename T>
+void compare_E(Mesh_data<S>& org_img,Mesh_data<T>& rec_img,Proc_par& pars,std::string name,AnalysisData& analysis_data){
 
     Mesh_data<float> variance;
 
@@ -248,11 +320,20 @@ void compare_E(Mesh_data<S>& org_img,Mesh_data<S>& rec_img,Proc_par& pars,std::s
     analysis_data.add_float_data(name+"_vMSE_sd",sqrt(MSE_var));
     analysis_data.add_float_data(name+"_vPSNR",PSNR);
 
+    float rel_error = pars.rel_error;
+
+    if(pars.lambda == 0) {
+        if (inf_norm > rel_error) {
+            int stop = 1;
+            std::cout << "*********Out of bounds!*********" << std::endl;
+           // assert(inf_norm < rel_error);
+        }
+    }
 
 }
 
-template<typename S>
-void compare_E_debug(Mesh_data<S>& org_img,Mesh_data<S>& rec_img,Proc_par& pars,std::string name,AnalysisData& analysis_data){
+template<typename S,typename T>
+void compare_E_debug(Mesh_data<S>& org_img,Mesh_data<T>& rec_img,Proc_par& pars,std::string name,AnalysisData& analysis_data){
 
     Mesh_data<float> variance;
 
@@ -306,16 +387,23 @@ void compare_E_debug(Mesh_data<S>& org_img,Mesh_data<S>& rec_img,Proc_par& pars,
 
     debug_write(SE,name + "E_diff");
 
-    if(inf_norm > pars.rel_error){
-        int stop = 1;
+    float rel_error = pars.rel_error;
+
+
+    if(pars.lambda == 0) {
+        if (inf_norm > rel_error) {
+            int stop = 1;
+            std::cout << "*********Out of bounds!*********" << std::endl;
+            //assert(inf_norm < rel_error);
+        }
     }
 
 
 }
 
 
-template<typename S>
-void calc_mse(Mesh_data<S>& org_img,Mesh_data<S>& rec_img,std::string name,AnalysisData& analysis_data){
+template<typename S,typename T>
+void calc_mse(Mesh_data<S>& org_img,Mesh_data<T>& rec_img,std::string name,AnalysisData& analysis_data){
     //
     //  Bevan Cheeseman 2017
     //
@@ -384,6 +472,28 @@ void calc_mse(Mesh_data<S>& org_img,Mesh_data<S>& rec_img,std::string name,Analy
     analysis_data.add_float_data(name +"_MSE_SE",se);
     analysis_data.add_float_data(name +"_PSNR",PSNR);
     analysis_data.add_float_data(name +"_MSE_sd",sd);
+
+}
+uint64_t get_size_of_pc_struct(PartCellData<uint64_t>& pc_data){
+    //
+    //  Bevan Cheeseman 2017
+    //
+    //  Get the number of elements in the pc struct data structure
+    //
+
+    uint64_t counter = 0;
+
+
+    for(uint64_t depth = (pc_data.depth_min);depth <= pc_data.depth_max;depth++) {
+        //loop over the resolutions of the structure
+         for(int i = 0;i < pc_data.data[depth].size();i++){
+
+             counter += pc_data.data[depth][i].size();
+         }
+
+    }
+
+    return counter;
 
 }
 template<typename T>
@@ -475,6 +585,8 @@ void produce_apr_analysis(Mesh_data<T>& input_image,AnalysisData& analysis_data,
             input_image.y_num * input_image.x_num * input_image.z_num);
     analysis_data.part_data_list["num_pixels"].print_flag = true;
 
+    std::cout << (1.0*input_image.y_num * input_image.x_num * input_image.z_num)/(1.0*pc_struct.get_number_parts()) << std::endl;
+
     ////////////////////////////////////////////////////////////////////
     //
     //  Timing Information
@@ -565,7 +677,7 @@ void produce_apr_analysis(Mesh_data<T>& input_image,AnalysisData& analysis_data,
 
     timer.start_timer("Image Quality");
 
-    Mesh_data<T> rec_img;
+    Mesh_data<float> rec_img;
     std::string name;
 
     if(analysis_data.quality_metrics_gt || analysis_data.quality_metrics_input) {
@@ -591,6 +703,9 @@ void produce_apr_analysis(Mesh_data<T>& input_image,AnalysisData& analysis_data,
 
         Mesh_data<float> variance;
 
+
+
+
         get_variance(input_image,variance,pars);
 
         debug_write(variance,"var");
@@ -606,7 +721,7 @@ void produce_apr_analysis(Mesh_data<T>& input_image,AnalysisData& analysis_data,
 
 
         name = "debug";
-        compare_E_debug(rec_img, gt_image, pars, name, analysis_data);
+        compare_E_debug( gt_image,rec_img, pars, name, analysis_data);
 
     }
 
@@ -615,7 +730,7 @@ void produce_apr_analysis(Mesh_data<T>& input_image,AnalysisData& analysis_data,
 
 
         //Generate clean gt image
-        Mesh_data<T> gt_image;
+        Mesh_data<uint16_t> gt_image;
         generate_gt_image(gt_image, syn_image);
 
 
