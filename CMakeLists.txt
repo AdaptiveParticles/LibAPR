@@ -8,9 +8,11 @@ endif(TESTS)
 
 find_package(OpenMP)
 find_package(HDF5 REQUIRED)
-include_directories(${HDF5_INCLUDE_DIRS} ${GTEST_INCLUDE_DIRS} sources tests)
+find_package(tiff REQUIRED)
+include_directories(${HDF5_INCLUDE_DIRS} ${TIFF_INCLUDE_DIR} ${GTEST_INCLUDE_DIRS} sources tests)
 
-
+add_subdirectory("external/c-blosc")
+include_directories("external/c-blosc/blosc")
 
 set(CMAKE_CXX_STANDARD 11)
 set(SOURCE_FILES
@@ -134,14 +136,14 @@ if(TESTS)
 	     src/io/hdf5functions_blosc.cpp
             )
 
-    target_link_libraries(testBspline ${HDF5_LIBRARIES} ${GTEST_LIBRARIES} pthread tiff blosc)
-    target_link_libraries(testVariance ${HDF5_LIBRARIES} ${GTEST_LIBRARIES} pthread tiff blosc)
-    target_link_libraries(testLevel ${HDF5_LIBRARIES} ${GTEST_LIBRARIES} pthread tiff blosc)
-    target_link_libraries(testResult ${HDF5_LIBRARIES} ${GTEST_LIBRARIES} pthread tiff blosc)
-    target_link_libraries(testLevelIterator ${HDF5_LIBRARIES} ${GTEST_LIBRARIES} pthread tiff blosc)
-    target_link_libraries(testTreeNeighbours ${HDF5_LIBRARIES} ${GTEST_LIBRARIES} pthread tiff blosc)
-    target_link_libraries(testTreeNeighboursFace ${HDF5_LIBRARIES} ${GTEST_LIBRARIES} pthread tiff blosc)
-    target_link_libraries(testSparsePartStruc ${HDF5_LIBRARIES} ${GTEST_LIBRARIES} pthread tiff blosc)
+    target_link_libraries(testBspline ${HDF5_LIBRARIES} ${GTEST_LIBRARIES} pthread tiff blosc_shared)
+    target_link_libraries(testVariance ${HDF5_LIBRARIES} ${GTEST_LIBRARIES} pthread tiff blosc_shared)
+    target_link_libraries(testLevel ${HDF5_LIBRARIES} ${GTEST_LIBRARIES} pthread tiff blosc_shared)
+    target_link_libraries(testResult ${HDF5_LIBRARIES} ${GTEST_LIBRARIES} pthread tiff blosc_shared)
+    target_link_libraries(testLevelIterator ${HDF5_LIBRARIES} ${GTEST_LIBRARIES} pthread tiff blosc_shared)
+    target_link_libraries(testTreeNeighbours ${HDF5_LIBRARIES} ${GTEST_LIBRARIES} pthread tiff blosc_shared)
+    target_link_libraries(testTreeNeighboursFace ${HDF5_LIBRARIES} ${GTEST_LIBRARIES} pthread tiff blosc_shared)
+    target_link_libraries(testSparsePartStruc ${HDF5_LIBRARIES} ${GTEST_LIBRARIES} pthread tiff blosc_shared)
 
 endif(TESTS)
 
@@ -200,14 +202,14 @@ add_executable(Example_segment_gc
 
 
 
-target_link_libraries(pipeline ${HDF5_LIBRARIES} pthread tiff blosc)
-target_link_libraries(Example_get_apr ${HDF5_LIBRARIES} pthread tiff blosc)
-target_link_libraries(Example_compute_cells ${HDF5_LIBRARIES} pthread tiff blosc)
-target_link_libraries(Example_compute_parts ${HDF5_LIBRARIES} pthread tiff blosc)
-target_link_libraries(Example_convert_full_format ${HDF5_LIBRARIES} pthread tiff blosc)
-target_link_libraries(Example_ray_cast ${HDF5_LIBRARIES} pthread tiff blosc)
-target_link_libraries(Example_filter ${HDF5_LIBRARIES} pthread tiff blosc)
-target_link_libraries(Example_segment_gc ${HDF5_LIBRARIES} pthread tiff blosc)
+target_link_libraries(pipeline ${HDF5_LIBRARIES} pthread tiff blosc_shared)
+target_link_libraries(Example_get_apr ${HDF5_LIBRARIES} pthread ${TIFF_LIBRARIES} blosc_shared)
+target_link_libraries(Example_compute_cells ${HDF5_LIBRARIES} pthread tiff blosc_shared)
+target_link_libraries(Example_compute_parts ${HDF5_LIBRARIES} pthread tiff blosc_shared)
+target_link_libraries(Example_convert_full_format ${HDF5_LIBRARIES} pthread tiff blosc_shared)
+target_link_libraries(Example_ray_cast ${HDF5_LIBRARIES} pthread tiff blosc_shared)
+target_link_libraries(Example_filter ${HDF5_LIBRARIES} pthread tiff blosc_shared)
+target_link_libraries(Example_segment_gc ${HDF5_LIBRARIES} pthread tiff blosc_shared)
 
 
 if(BENCHMARKS)
