@@ -211,6 +211,14 @@ target_link_libraries(Example_ray_cast ${HDF5_LIBRARIES} pthread tiff blosc_shar
 target_link_libraries(Example_filter ${HDF5_LIBRARIES} pthread tiff blosc_shared)
 target_link_libraries(Example_segment_gc ${HDF5_LIBRARIES} pthread tiff blosc_shared)
 
+set_target_properties(blosc_shared PROPERTIES
+        RUNTIME_OUTPUT_DIRECTORY_DEBUG ${PROJECT_BINARY_DIR})
+set_target_properties(blosc_shared PROPERTIES
+        RUNTIME_OUTPUT_DIRECTORY_RELEASE ${PROJECT_BINARY_DIR})
+
+list( APPEND ExternalSharedLibraries "${TIFF_LIBRARIES}" )
+message( STATUS "\tCopying shared libraries..." )
+file( COPY ${ExternalSharedLibraries} DESTINATION "${PROJECT_BINARY_DIR}")
 
 if(BENCHMARKS)
 
