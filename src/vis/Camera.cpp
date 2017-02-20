@@ -15,3 +15,11 @@ Camera* Camera::setOrthographicCamera(float nearPlane, float farPlane) {
     this->projection = glm::orthoRH(-1.0f, 1.0f, -1.0f, 1.0f, nearPlane, farPlane);
     return this;
 }
+
+glm::mat4 *Camera::getView() {
+    view = glm::diagonal4x4(glm::vec4(1.0f, 1.0f, 1.0f, 1.0f));
+    view *= glm::toMat4(rotation);
+    view *= glm::translate(this->position);
+
+    return &view;
+}

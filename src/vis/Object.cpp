@@ -25,5 +25,9 @@ Object::~Object() {
 }
 
 glm::mat4 *Object::getModel() {
+    model = glm::diagonal4x4(glm::vec4(1.0f, 1.0f, 1.0f, 1.0f));
+    model *= glm::toMat4(rotation);
+    model *= glm::translate(position);
+
     return &model;
 }

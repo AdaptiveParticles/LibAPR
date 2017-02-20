@@ -26,7 +26,7 @@ public:
     Camera* setPerspectiveCamera(float aspectRatio, float fov, float nearPlane, float farPlane);
     Camera* setOrthographicCamera(float nearPlane, float farPlane);
 
-    inline glm::mat4* getView() { return &this->view; };
+    glm::mat4* getView();
     inline glm::mat4* getProjection() { return &this->projection; };
 };
 
