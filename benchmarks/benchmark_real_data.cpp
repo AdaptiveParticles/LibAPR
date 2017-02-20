@@ -22,7 +22,15 @@ int main(int argc, char **argv) {
     /////////////////////////////////////////////
     // GENERATE THE OBJECT TEMPLATE
 
-    std::cout << "Generating Templates" << std::endl;
+    std::cout << "Find Files" << std::endl;
+
+    benchmark_settings bs;
+    SynImage syn_image;
+
+    AnalysisData analysis_data(options.description, "real data benchmarks", argc, argv);
+
+
+    process_input(options,syn_image,analysis_data,bs);
 
     /////////////////////////////////////////////////////////////////
     //
@@ -33,7 +41,7 @@ int main(int argc, char **argv) {
     //
     //////////////////////////////////////////////////////////////////
 
-    AnalysisData analysis_data(options.description, "real data benchmarks", argc, argv);
+
 
     int N_repeats = 1;
 
