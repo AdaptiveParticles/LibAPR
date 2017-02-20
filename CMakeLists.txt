@@ -14,6 +14,8 @@ include_directories(${HDF5_INCLUDE_DIRS} ${TIFF_INCLUDE_DIR} ${GTEST_INCLUDE_DIR
 add_subdirectory("external/c-blosc")
 include_directories("external/c-blosc/blosc")
 
+include_directories(${PROJECT_SOURCE_DIR}/external/glm)
+
 set(CMAKE_CXX_STANDARD 11)
 set(SOURCE_FILES
 
@@ -176,7 +178,13 @@ add_executable(Example_ray_cast
         test/Examples/ray_cast.cpp
         test/utils.cpp
         ${SOURCE_FILES_COMPILED}
-        )
+        src/vis/Camera.cpp src/vis/Camera.h src/vis/Object.cpp src/vis/Object.h src/vis/RaytracedObject.cpp src/vis/RaytracedObject.h)
+
+add_executable(Example_vis
+        test/Examples/vis_example.cpp
+        test/utils.cpp
+        ${SOURCE_FILES_COMPILED}
+        src/vis/Camera.cpp src/vis/Camera.h src/vis/Object.cpp src/vis/Object.h src/vis/RaytracedObject.cpp src/vis/RaytracedObject.h)
 
 add_executable(pipeline
     src/algorithm/pipeline.cpp
@@ -208,6 +216,7 @@ target_link_libraries(Example_compute_cells ${HDF5_LIBRARIES} pthread tiff blosc
 target_link_libraries(Example_compute_parts ${HDF5_LIBRARIES} pthread tiff blosc_shared)
 target_link_libraries(Example_convert_full_format ${HDF5_LIBRARIES} pthread tiff blosc_shared)
 target_link_libraries(Example_ray_cast ${HDF5_LIBRARIES} pthread tiff blosc_shared)
+target_link_libraries(Example_vis ${HDF5_LIBRARIES} pthread tiff blosc_shared)
 target_link_libraries(Example_filter ${HDF5_LIBRARIES} pthread tiff blosc_shared)
 target_link_libraries(Example_segment_gc ${HDF5_LIBRARIES} pthread tiff blosc_shared)
 
