@@ -83,7 +83,7 @@ int main(int argc, char **argv) {
                 get_image_stats(part_rep.pars, options.directory, stats_file_name);
                 std::cout << "Stats file exists" << std::endl;
 
-                get_apr(input_image,part_rep,pc_struct);
+                get_apr(input_image,part_rep,pc_struct,analysis_data);
 
                 produce_apr_analysis(input_image, analysis_data, pc_struct, part_rep.pars);
 
