@@ -52,6 +52,8 @@ int main(int argc, char **argv) {
     bs.obj_size = 3;
     bs.sig = 3;
     //bs.desired_I = 10000;
+    float ratio = 5;
+    bs.num_objects = pow(bs.x_num,3)/(33400*ratio);
 
     obj_properties obj_prop(bs);
 

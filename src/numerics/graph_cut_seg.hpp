@@ -147,10 +147,10 @@ void construct_max_flow_graph_mesh(PartCellStructure<V,T>& pc_struct,GraphType& 
                                 cap_t = alpha*Ip;
                             }
                             
-                            g.add_tweights(global_part_index,   /* capacities */ cap_s, cap_t);
+                            //g.add_tweights(global_part_index,   /* capacities */ cap_s, cap_t);
                             
-                            eng1.get_part(curr_key) =cap_s +5000;
-                            eng2.get_part(curr_key) =cap_t + 5000;
+                            eng1.get_part(curr_key) =cap_s;
+                            eng2.get_part(curr_key) =cap_t;
                             
                             counter++;
                             
@@ -167,10 +167,10 @@ void construct_max_flow_graph_mesh(PartCellStructure<V,T>& pc_struct,GraphType& 
     Mesh_data<float> eng_s;
     Mesh_data<float> eng_t;
     
-    //pc_struct.interp_parts_to_pc(eng_s,eng1);
-    //debug_write(eng_s,"eng1");
-    //pc_struct.interp_parts_to_pc(eng_t,eng2);
-    //debug_write(eng_t,"eng2");
+    pc_struct.interp_parts_to_pc(eng_s,eng1);
+    //debug_write(eng_s,"eng1_mesh");
+    pc_struct.interp_parts_to_pc(eng_t,eng2);
+    //debug_write(eng_t,"eng2_mesh");
     
     // Now loop over the mesh and add it in.
     
@@ -411,7 +411,10 @@ void construct_max_flow_graph(PartCellStructure<V,T>& pc_struct,GraphType& g,std
                             
                             //eng1.get_part(curr_key) = loc_min;
                             //eng2.get_part(curr_key) = loc_max;
-                            
+
+                            eng1.get_part(curr_key) = cap_s;
+                            eng2.get_part(curr_key) = cap_t;
+
                             counter++;
                             
                         }
@@ -425,10 +428,10 @@ void construct_max_flow_graph(PartCellStructure<V,T>& pc_struct,GraphType& g,std
     }
     
     
-//    pc_struct.interp_parts_to_pc(output_img,eng1);
-//    debug_write(output_img,"eng1p");
-//    pc_struct.interp_parts_to_pc(output_img,eng2);
-//    debug_write(output_img,"eng2p");
+   // pc_struct.interp_parts_to_pc(output_img,eng1);
+   // debug_write(output_img,"eng1p");
+   // pc_struct.interp_parts_to_pc(output_img,eng2);
+   // debug_write(output_img,"eng2p");
     
     
     

@@ -629,6 +629,9 @@ void produce_apr_analysis(Mesh_data<T>& input_image,AnalysisData& analysis_data,
 
     }
 
+    if(analysis_data.segmentation_eval) {
+        evaluate_segmentation(pc_struct,analysis_data,syn_image);
+    }
 
     ////////////////////////////////////////////////////////////////////
     //
@@ -723,10 +726,7 @@ void produce_apr_analysis(Mesh_data<T>& input_image,AnalysisData& analysis_data,
         name = "debug";
         compare_E_debug( gt_image,rec_img, pars, name, analysis_data);
 
-        if(analysis_data.segmentation_mesh) {
 
-            evaluate_segmentation(pc_struct,analysis_data,syn_image);
-        }
 
     }
 

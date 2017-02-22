@@ -40,6 +40,7 @@ struct cmdLineOptionsBench{
     bool filters_mesh = false;
     bool debug = false;
     bool nonoise = false;
+    bool segmentation_eval = false;
 
     float lambda = 0;
     float rel_error = 0;
@@ -110,6 +111,11 @@ cmdLineOptionsBench read_command_line_options(int argc, char **argv){
     if(command_option_exists_bench(argv, argv + argc, "-segmentation_mesh"))
     {
         result.segmentation_mesh = true;
+    }
+
+    if(command_option_exists_bench(argv, argv + argc, "-segmentation_eval"))
+    {
+        result.segmentation_eval = true;
     }
 
     if(command_option_exists_bench(argv, argv + argc, "-filters_mesh"))
@@ -524,6 +530,7 @@ void process_input(cmdLineOptionsBench& options,SynImage& syn_image,AnalysisData
     analysis_data.filters_mesh = options.filters_mesh;
     analysis_data.debug = options.debug;
     analysis_data.information_content = options.information_content;
+    analysis_data.segmentation_eval = options.segmentation_eval;
 
     if(options.nonoise){
         syn_image.noise_properties.noise_type = "none";

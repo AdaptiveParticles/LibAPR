@@ -38,7 +38,7 @@ void generate_gt_seg(Mesh_data<T>& gt_image,SynImage& syn_image){
 
     syn_image_seg.noise_properties.noise_type = "none";
     syn_image_seg.PSF_properties.type = "none";
-    syn_image_seg.global_trans.gt_ind = true;
+    syn_image_seg.global_trans.gt_ind = false;
 
     syn_image_seg.generate_syn_image(gen_img);
 
@@ -48,6 +48,40 @@ void generate_gt_seg(Mesh_data<T>& gt_image,SynImage& syn_image){
 
     //copy accross
     gt_image.mesh = gen_img.mesh;
+
+
+}
+float compute_dice_coeff(Mesh_data<uint16_t>& gt,Mesh_data<uint8_t>& seg){
+    //
+    //  Bevan Cheeseman 2017
+    //
+    //  Calculating the Dice co-efficient for the segmentation
+    //
+    //
+
+    uint64_t correct = 0;
+    uint64_t gt_count = 0;
+    uint64_t seg_count = 0;
+
+
+    for (int i = 0; i < gt.z_num; ++i) {
+        for (int j = 0; j < gt.x_num; ++j) {
+            for (int k = 0; k < gt.y_num; ++k) {
+
+                int gt_val = (gt(i,j,k) > 0);
+                int seg_val = (seg(i,j,k) > 0);
+
+                gt_count += gt_val;
+                seg_count += seg_val;
+                correct += gt_val*seg_val;
+
+
+            }
+        }
+    }
+
+
+    return 2.0*correct/(1.0*gt_count + 1.0*seg_count);
 
 
 }
@@ -61,18 +95,14 @@ void evaluate_segmentation(PartCellStructure<float,uint64_t> pc_struct,AnalysisD
 
     //memory on this machine can't handle anything bigger
     if(pc_struct.org_dims[0] <= 450){
-        std::cout << "gc_seg_mesh" << std::endl;
-        calc_graph_cuts_segmentation_mesh(pc_struct,seg_mesh,parameters_nuc,analysis_data);
-        std::cout << "gc_seg_mesh_complete" << std::endl;
+        calc_graph_cuts_segmentation_mesh(pc_struct,seg_mesh,parameters_nuc);
     }
 
     ExtraPartCellData<uint8_t> seg_parts;
 
-
-
     if(pc_struct.get_number_parts() <= pow(500,3)) {
 
-        calc_graph_cuts_segmentation(pc_struct, seg_parts, parameters_nuc, analysis_data);
+        calc_graph_cuts_segmentation(pc_struct, seg_parts, parameters_nuc);
     }
 
     Mesh_data<uint8_t> seg_img;
@@ -82,10 +112,21 @@ void evaluate_segmentation(PartCellStructure<float,uint64_t> pc_struct,AnalysisD
     Mesh_data<uint16_t> gt_image;
     generate_gt_seg(gt_image,syn_image);
 
-    debug_write(seg_mesh,"seg_mesh");
-    debug_write(seg_img,"seg_parts");
-    debug_write(gt_image,"seg_gt");
+    float dice_mesh = compute_dice_coeff(gt_image,seg_mesh);
+    float dice_parts = compute_dice_coeff(gt_image,seg_img);
 
+    analysis_data.add_float_data("dice_mesh",dice_mesh);
+    analysis_data.add_float_data("dice_parts",dice_parts);
+
+    if(analysis_data.debug) {
+
+        debug_write(seg_mesh, "seg_mesh");
+        debug_write(seg_img, "seg_parts");
+        debug_write(gt_image, "seg_gt");
+
+        std::cout << "Dice m: " << dice_mesh << std::endl;
+        std::cout << "Dice p: " << dice_parts << std::endl;
+    }
 
 }
 
