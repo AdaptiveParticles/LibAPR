@@ -355,9 +355,9 @@ endif(BENCHMARKS)
 IF(FIGURES)
 #
 
-    ADD_EXECUTABLE(CreateEpsSlice benchmarks/generate_single_image.cpp  ${SOURCE_FILES_COMPILED} ${BENCHMARK_SOURCE_FILES} )
+    ADD_EXECUTABLE(CreateEpsSlice figures/create_slice_eps.cpp  ${SOURCE_FILES_COMPILED} )
 
-    TARGET_LINK_LIBRARIES(CreateEpsSlice ${CMAKE_THREAD_LIBS_INIT} ${HDF5_LIBRARIES} pthread tiff blosc libboard)
+    TARGET_LINK_LIBRARIES(CreateEpsSlice ${CMAKE_THREAD_LIBS_INIT} ${HDF5_LIBRARIES} pthread tiff blosc board)
 
 
 ENDIF(FIGURES)
