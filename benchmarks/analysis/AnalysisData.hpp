@@ -16,6 +16,7 @@
 #include <stdexcept>
 #include <string>
 #include <array>
+#include <ctime>
 
 std::string exec(const char* cmd);
 
@@ -48,6 +49,7 @@ class AnalysisData: public Data_manager{
     bool filters_parts;
     bool filters_mesh;
     bool debug;
+    bool segmentation_eval;
 
     AnalysisData(){
 
@@ -72,6 +74,7 @@ class AnalysisData: public Data_manager{
         segmentation_mesh = false;
         filters_mesh = false;
         debug = false;
+        segmentation_eval = false;
 
         time_t timer;
         struct tm y2k = {0};

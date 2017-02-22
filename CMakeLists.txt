@@ -6,11 +6,23 @@ if(TESTS)
     find_package(GTest REQUIRED)
 endif(TESTS)
 
+if(FIGURES)
+
+    set(MYPROJ_RAN_ONCE 1)
+
+    add_subdirectory("external/libboard")
+    include_directories("external/libboard/include")
+endif(FIGURES)
+
 find_package(OpenMP)
 find_package(HDF5 REQUIRED)
-include_directories(${HDF5_INCLUDE_DIRS} ${GTEST_INCLUDE_DIRS} sources tests)
+find_package(tiff REQUIRED)
+include_directories(${HDF5_INCLUDE_DIRS} ${TIFF_INCLUDE_DIR} ${GTEST_INCLUDE_DIRS} sources tests)
 
+add_subdirectory("external/c-blosc")
+include_directories("external/c-blosc/blosc")
 
+include_directories(${PROJECT_SOURCE_DIR}/external/glm)
 
 set(CMAKE_CXX_STANDARD 11)
 set(SOURCE_FILES
@@ -134,14 +146,14 @@ if(TESTS)
 	     src/io/hdf5functions_blosc.cpp
             )
 
-    target_link_libraries(testBspline ${HDF5_LIBRARIES} ${GTEST_LIBRARIES} pthread tiff blosc)
-    target_link_libraries(testVariance ${HDF5_LIBRARIES} ${GTEST_LIBRARIES} pthread tiff blosc)
-    target_link_libraries(testLevel ${HDF5_LIBRARIES} ${GTEST_LIBRARIES} pthread tiff blosc)
-    target_link_libraries(testResult ${HDF5_LIBRARIES} ${GTEST_LIBRARIES} pthread tiff blosc)
-    target_link_libraries(testLevelIterator ${HDF5_LIBRARIES} ${GTEST_LIBRARIES} pthread tiff blosc)
-    target_link_libraries(testTreeNeighbours ${HDF5_LIBRARIES} ${GTEST_LIBRARIES} pthread tiff blosc)
-    target_link_libraries(testTreeNeighboursFace ${HDF5_LIBRARIES} ${GTEST_LIBRARIES} pthread tiff blosc)
-    target_link_libraries(testSparsePartStruc ${HDF5_LIBRARIES} ${GTEST_LIBRARIES} pthread tiff blosc)
+    target_link_libraries(testBspline ${HDF5_LIBRARIES} ${GTEST_LIBRARIES} pthread tiff blosc_shared)
+    target_link_libraries(testVariance ${HDF5_LIBRARIES} ${GTEST_LIBRARIES} pthread tiff blosc_shared)
+    target_link_libraries(testLevel ${HDF5_LIBRARIES} ${GTEST_LIBRARIES} pthread tiff blosc_shared)
+    target_link_libraries(testResult ${HDF5_LIBRARIES} ${GTEST_LIBRARIES} pthread tiff blosc_shared)
+    target_link_libraries(testLevelIterator ${HDF5_LIBRARIES} ${GTEST_LIBRARIES} pthread tiff blosc_shared)
+    target_link_libraries(testTreeNeighbours ${HDF5_LIBRARIES} ${GTEST_LIBRARIES} pthread tiff blosc_shared)
+    target_link_libraries(testTreeNeighboursFace ${HDF5_LIBRARIES} ${GTEST_LIBRARIES} pthread tiff blosc_shared)
+    target_link_libraries(testSparsePartStruc ${HDF5_LIBRARIES} ${GTEST_LIBRARIES} pthread tiff blosc_shared)
 
 endif(TESTS)
 
@@ -174,7 +186,13 @@ add_executable(Example_ray_cast
         test/Examples/ray_cast.cpp
         test/utils.cpp
         ${SOURCE_FILES_COMPILED}
-        )
+        src/vis/Camera.cpp src/vis/Camera.h src/vis/Object.cpp src/vis/Object.h src/vis/RaytracedObject.cpp src/vis/RaytracedObject.h)
+
+add_executable(Example_vis
+        test/Examples/vis_example.cpp
+        test/utils.cpp
+        ${SOURCE_FILES_COMPILED}
+        src/vis/Camera.cpp src/vis/Camera.h src/vis/Object.cpp src/vis/Object.h src/vis/RaytracedObject.cpp src/vis/RaytracedObject.h)
 
 add_executable(pipeline
     src/algorithm/pipeline.cpp
@@ -200,15 +218,24 @@ add_executable(Example_segment_gc
 
 
 
-target_link_libraries(pipeline ${HDF5_LIBRARIES} pthread tiff blosc)
-target_link_libraries(Example_get_apr ${HDF5_LIBRARIES} pthread tiff blosc)
-target_link_libraries(Example_compute_cells ${HDF5_LIBRARIES} pthread tiff blosc)
-target_link_libraries(Example_compute_parts ${HDF5_LIBRARIES} pthread tiff blosc)
-target_link_libraries(Example_convert_full_format ${HDF5_LIBRARIES} pthread tiff blosc)
-target_link_libraries(Example_ray_cast ${HDF5_LIBRARIES} pthread tiff blosc)
-target_link_libraries(Example_filter ${HDF5_LIBRARIES} pthread tiff blosc)
-target_link_libraries(Example_segment_gc ${HDF5_LIBRARIES} pthread tiff blosc)
+target_link_libraries(pipeline ${HDF5_LIBRARIES} pthread tiff blosc_shared)
+target_link_libraries(Example_get_apr ${HDF5_LIBRARIES} pthread ${TIFF_LIBRARIES} blosc_shared)
+target_link_libraries(Example_compute_cells ${HDF5_LIBRARIES} pthread tiff blosc_shared)
+target_link_libraries(Example_compute_parts ${HDF5_LIBRARIES} pthread tiff blosc_shared)
+target_link_libraries(Example_convert_full_format ${HDF5_LIBRARIES} pthread tiff blosc_shared)
+target_link_libraries(Example_ray_cast ${HDF5_LIBRARIES} pthread tiff blosc_shared)
+target_link_libraries(Example_vis ${HDF5_LIBRARIES} pthread tiff blosc_shared)
+target_link_libraries(Example_filter ${HDF5_LIBRARIES} pthread tiff blosc_shared)
+target_link_libraries(Example_segment_gc ${HDF5_LIBRARIES} pthread tiff blosc_shared)
 
+set_target_properties(blosc_shared PROPERTIES
+        RUNTIME_OUTPUT_DIRECTORY_DEBUG ${PROJECT_BINARY_DIR})
+set_target_properties(blosc_shared PROPERTIES
+        RUNTIME_OUTPUT_DIRECTORY_RELEASE ${PROJECT_BINARY_DIR})
+
+list( APPEND ExternalSharedLibraries "${TIFF_LIBRARIES}" )
+message( STATUS "\tCopying shared libraries..." )
+file( COPY ${ExternalSharedLibraries} DESTINATION "${PROJECT_BINARY_DIR}")
 
 if(BENCHMARKS)
 
@@ -270,7 +297,7 @@ if(BENCHMARKS)
 
         ADD_EXECUTABLE(FixRatio benchmarks/benchmark_fix_ratio.cpp  ${SOURCE_FILES_COMPILED} ${BENCHMARK_SOURCE_FILES} )
 
-        ADD_EXECUTABLE(GenImage benchmarks/generate_single_image.cpp  ${SOURCE_FILES_COMPILED} ${BENCHMARK_SOURCE_FILES} )
+        ADD_EXECUTABLE(GenSingleImage benchmarks/generate_single_image.cpp  ${SOURCE_FILES_COMPILED} ${BENCHMARK_SOURCE_FILES} )
 
         TARGET_LINK_LIBRARIES(SynImageGen ${ArrayFire_OpenCL_LIBRARIES}
                 ${OpenCL_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT} ${HDF5_LIBRARIES} pthread tiff blosc)
@@ -298,7 +325,7 @@ if(BENCHMARKS)
         TARGET_LINK_LIBRARIES(FixRatio ${ArrayFire_OpenCL_LIBRARIES}
                 ${OpenCL_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT} ${HDF5_LIBRARIES} pthread tiff blosc)
 
-        TARGET_LINK_LIBRARIES(GenImage ${ArrayFire_OpenCL_LIBRARIES}
+        TARGET_LINK_LIBRARIES(GenSingleImage ${ArrayFire_OpenCL_LIBRARIES}
                 ${OpenCL_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT} ${HDF5_LIBRARIES} pthread tiff blosc)
 
         add_executable(Example_analysis
@@ -327,3 +354,13 @@ if(BENCHMARKS)
 
 
 endif(BENCHMARKS)
+
+IF(FIGURES)
+#
+
+    ADD_EXECUTABLE(CreateEpsSlice figures/create_slice_eps.cpp  ${SOURCE_FILES_COMPILED} )
+
+    TARGET_LINK_LIBRARIES(CreateEpsSlice ${CMAKE_THREAD_LIBS_INIT} ${HDF5_LIBRARIES} pthread tiff blosc board)
+
+
+ENDIF(FIGURES)

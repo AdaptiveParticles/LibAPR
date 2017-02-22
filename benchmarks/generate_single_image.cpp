@@ -49,6 +49,12 @@ int main(int argc, char **argv) {
 
     Genrand_uni gen_rand;
 
+    bs.obj_size = 3;
+    bs.sig = 3;
+    //bs.desired_I = 10000;
+    float ratio = 5;
+    bs.num_objects = pow(bs.x_num,3)/(33400*ratio);
+
     obj_properties obj_prop(bs);
 
     Object_template basic_object = get_object_template(options, obj_prop);
@@ -62,6 +68,8 @@ int main(int argc, char **argv) {
 
     ///////////////////////////////////////////////////////////////////
     //PSF properties
+
+
 
     set_gaussian_psf(syn_image_loc, bs);
 
@@ -97,25 +105,23 @@ int main(int argc, char **argv) {
 
     // Get the APR
 
-    for(int i = 0; i < 4;++i) {
 
-        PartCellStructure<float, uint64_t> pc_struct;
 
-        p_rep.pars.interp_type = i;
+    PartCellStructure<float, uint64_t> pc_struct;
 
-        bench_get_apr(input_img, p_rep, pc_struct, analysis_data);
+    //p_rep.pars.interp_type = i;
 
-        write_image_tiff(input_img, p_rep.pars.output_path + p_rep.pars.name + ".tif");
+    bench_get_apr(input_img, p_rep, pc_struct, analysis_data);
 
-        ///////////////////////////////
-        //
-        //  Calculate analysis of the result
-        //
-        ///////////////////////////////
+    write_image_tiff(input_img, p_rep.pars.output_path + p_rep.pars.name + ".tif");
 
-        produce_apr_analysis(input_img, analysis_data, pc_struct, syn_image_loc, p_rep.pars);
+    ///////////////////////////////
+    //
+    //  Calculate analysis of the result
+    //
+    ///////////////////////////////
 
-    }
+    produce_apr_analysis(input_img, analysis_data, pc_struct, syn_image_loc, p_rep.pars);
 
     //write the analysis output
     analysis_data.write_analysis_data_hdf5();
