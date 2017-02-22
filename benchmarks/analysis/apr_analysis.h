@@ -29,28 +29,7 @@ void copy_mesh_data_structures(MeshDataAF<S>& input_syn,Mesh_data<S>& input_img)
 
 }
 
-template <typename T>
-void generate_gt_image(Mesh_data<T>& gt_image,SynImage& syn_image){
-    //get a clean image
 
-    MeshDataAF<T> gen_img;
-
-    std::string prev_noise =  syn_image.noise_properties.noise_type;
-
-    syn_image.noise_properties.noise_type = "none";
-
-    syn_image.generate_syn_image(gen_img);
-
-    gt_image.y_num = gen_img.y_num;
-    gt_image.x_num = gen_img.x_num;
-    gt_image.z_num = gen_img.z_num;
-
-    //copy accross
-    gt_image.mesh = gen_img.mesh;
-
-    syn_image.noise_properties.noise_type = prev_noise;
-
-}
 
 template <typename T>
 void bench_get_apr(Mesh_data<T>& input_image,Part_rep& p_rep,PartCellStructure<float,uint64_t>& pc_struct,AnalysisData& analysis_data){
@@ -402,78 +381,7 @@ void compare_E_debug(Mesh_data<S>& org_img,Mesh_data<T>& rec_img,Proc_par& pars,
 }
 
 
-template<typename S,typename T>
-void calc_mse(Mesh_data<S>& org_img,Mesh_data<T>& rec_img,std::string name,AnalysisData& analysis_data){
-    //
-    //  Bevan Cheeseman 2017
-    //
-    //  Calculates the mean squared error
-    //
 
-    uint64_t z_num_o = org_img.z_num;
-    uint64_t x_num_o = org_img.x_num;
-    uint64_t y_num_o = org_img.y_num;
-
-    uint64_t z_num_r = rec_img.z_num;
-    uint64_t x_num_r = rec_img.x_num;
-    uint64_t y_num_r = rec_img.y_num;
-
-    uint64_t j = 0;
-    uint64_t k = 0;
-    uint64_t i = 0;
-
-    double MSE = 0;
-
-#pragma omp parallel for default(shared) private(j,i,k) reduction(+: MSE)
-    for(j = 0; j < z_num_o;j++){
-        for(i = 0; i < x_num_o;i++){
-
-            for(k = 0;k < y_num_o;k++){
-
-                MSE += pow(org_img.mesh[j*x_num_o*y_num_o + i*y_num_o + k] - rec_img.mesh[j*x_num_r*y_num_r + i*y_num_r + k],2);
-
-            }
-        }
-    }
-
-    MSE = MSE/(z_num_o*x_num_o*y_num_o*1.0);
-
-
-   // Mesh_data<S> SE;
-    //SE.initialize(y_num_o,x_num_o,z_num_o,0);
-
-    double var = 0;
-    double counter = 0;
-#pragma omp parallel for default(shared) private(j,i,k) reduction(+: var) reduction(+: counter)
-    for(j = 0; j < z_num_o;j++){
-        for(i = 0; i < x_num_o;i++){
-
-            for(k = 0;k < y_num_o;k++){
-
-                //SE.mesh[j*x_num_o*y_num_o + i*y_num_o + k] += pow(org_img.mesh[j*x_num_o*y_num_o + i*y_num_o + k] - rec_img.mesh[j*x_num_r*y_num_r + i*y_num_r + k],2);
-                var += pow(pow(org_img.mesh[j*x_num_o*y_num_o + i*y_num_o + k] - rec_img.mesh[j*x_num_o*y_num_o + i*y_num_o + k],2) - MSE,2);
-                counter++;
-            }
-        }
-    }
-
-    var = var/(counter*1.0);
-
-
-
-    double se = sqrt(var)*1.96;
-
-    double PSNR = 10*log10(64000.0/MSE);
-
-    float sd = sqrt(var);
-
-    //commit results
-    analysis_data.add_float_data(name + "_MSE",MSE);
-    analysis_data.add_float_data(name +"_MSE_SE",se);
-    analysis_data.add_float_data(name +"_PSNR",PSNR);
-    analysis_data.add_float_data(name +"_MSE_sd",sd);
-
-}
 uint64_t get_size_of_pc_struct(PartCellData<uint64_t>& pc_data){
     //
     //  Bevan Cheeseman 2017
@@ -631,6 +539,13 @@ void produce_apr_analysis(Mesh_data<T>& input_image,AnalysisData& analysis_data,
 
     if(analysis_data.segmentation_eval) {
         evaluate_segmentation(pc_struct,analysis_data,syn_image);
+
+        evaluate_filters(pc_struct,analysis_data,syn_image,input_image);
+    }
+
+    if(analysis_data.filters_eval) {
+
+        evaluate_filters(pc_struct,analysis_data,syn_image,input_image);
     }
 
     ////////////////////////////////////////////////////////////////////
