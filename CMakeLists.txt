@@ -16,7 +16,7 @@ endif(FIGURES)
 
 find_package(OpenMP)
 find_package(HDF5 REQUIRED)
-#find_package(tiff REQUIRED)
+find_package(tiff REQUIRED)
 include_directories(${HDF5_INCLUDE_DIRS} ${TIFF_INCLUDE_DIR} ${GTEST_INCLUDE_DIRS} sources tests)
 
 add_subdirectory("external/c-blosc")
