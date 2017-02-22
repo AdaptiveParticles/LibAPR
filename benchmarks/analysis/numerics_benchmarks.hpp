@@ -28,6 +28,66 @@ void run_segmentation_benchmark_mesh(PartCellStructure<float,uint64_t> pc_struct
     }
 
 }
+template <typename T>
+void generate_gt_seg(Mesh_data<T>& gt_image,SynImage& syn_image){
+    //get a clean image
+
+    SynImage syn_image_seg = syn_image;
+
+    MeshDataAF<T> gen_img;
+
+    syn_image_seg.noise_properties.noise_type = "none";
+    syn_image_seg.PSF_properties.type = "none";
+    syn_image_seg.global_trans.gt_ind = true;
+
+    syn_image_seg.generate_syn_image(gen_img);
+
+    gt_image.y_num = gen_img.y_num;
+    gt_image.x_num = gen_img.x_num;
+    gt_image.z_num = gen_img.z_num;
+
+    //copy accross
+    gt_image.mesh = gen_img.mesh;
+
+
+}
+
+void evaluate_segmentation(PartCellStructure<float,uint64_t> pc_struct,AnalysisData& analysis_data,SynImage& syn_image){
+
+    //nuclei
+    std::array<uint64_t,10> parameters_nuc = {100,100,2,2,2,2,2,3,0,0};
+
+    Mesh_data<uint8_t> seg_mesh;
+
+    //memory on this machine can't handle anything bigger
+    if(pc_struct.org_dims[0] <= 450){
+        std::cout << "gc_seg_mesh" << std::endl;
+        calc_graph_cuts_segmentation_mesh(pc_struct,seg_mesh,parameters_nuc,analysis_data);
+        std::cout << "gc_seg_mesh_complete" << std::endl;
+    }
+
+    ExtraPartCellData<uint8_t> seg_parts;
+
+
+
+    if(pc_struct.get_number_parts() <= pow(500,3)) {
+
+        calc_graph_cuts_segmentation(pc_struct, seg_parts, parameters_nuc, analysis_data);
+    }
+
+    Mesh_data<uint8_t> seg_img;
+
+    pc_struct.interp_parts_to_pc(seg_img,seg_parts);
+
+    Mesh_data<uint16_t> gt_image;
+    generate_gt_seg(gt_image,syn_image);
+
+    debug_write(seg_mesh,"seg_mesh");
+    debug_write(seg_img,"seg_parts");
+    debug_write(gt_image,"seg_gt");
+
+
+}
 
 void run_segmentation_benchmark_parts(PartCellStructure<float,uint64_t> pc_struct,AnalysisData& analysis_data){
     //

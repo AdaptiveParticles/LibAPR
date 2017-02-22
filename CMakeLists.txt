@@ -7,6 +7,9 @@ if(TESTS)
 endif(TESTS)
 
 if(FIGURES)
+
+    set(MYPROJ_RAN_ONCE 1)
+
     add_subdirectory("external/libboard")
     include_directories("external/libboard/include")
 endif(FIGURES)
@@ -294,7 +297,7 @@ if(BENCHMARKS)
 
         ADD_EXECUTABLE(FixRatio benchmarks/benchmark_fix_ratio.cpp  ${SOURCE_FILES_COMPILED} ${BENCHMARK_SOURCE_FILES} )
 
-        ADD_EXECUTABLE(GenImage benchmarks/generate_single_image.cpp  ${SOURCE_FILES_COMPILED} ${BENCHMARK_SOURCE_FILES} )
+        ADD_EXECUTABLE(GenSingleImage benchmarks/generate_single_image.cpp  ${SOURCE_FILES_COMPILED} ${BENCHMARK_SOURCE_FILES} )
 
         TARGET_LINK_LIBRARIES(SynImageGen ${ArrayFire_OpenCL_LIBRARIES}
                 ${OpenCL_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT} ${HDF5_LIBRARIES} pthread tiff blosc)
@@ -322,7 +325,7 @@ if(BENCHMARKS)
         TARGET_LINK_LIBRARIES(FixRatio ${ArrayFire_OpenCL_LIBRARIES}
                 ${OpenCL_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT} ${HDF5_LIBRARIES} pthread tiff blosc)
 
-        TARGET_LINK_LIBRARIES(GenImage ${ArrayFire_OpenCL_LIBRARIES}
+        TARGET_LINK_LIBRARIES(GenSingleImage ${ArrayFire_OpenCL_LIBRARIES}
                 ${OpenCL_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT} ${HDF5_LIBRARIES} pthread tiff blosc)
 
         add_executable(Example_analysis
