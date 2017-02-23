@@ -2320,7 +2320,7 @@ ExtraPartCellData<U> filter_apr_by_slice(PartCellStructure<float,uint64_t>& pc_s
 };
 
 template<typename U>
-ExtraPartCellData<U> filter_apr_by_slice_mult(PartCellStructure<float,uint64_t>& pc_struct,std::vector<U>& filter,AnalysisData& analysis_data,float num_repeats = 1,bool debug = false){
+ExtraPartCellData<U> filter_apr_by_slice_mult(PartCellStructure<float,uint64_t>& pc_struct,std::vector<U>& filter_y,std::vector<U>& filter_x,std::vector<U>& filter_z,AnalysisData& analysis_data,float num_repeats = 1,bool debug = false){
 
     ParticleDataNew<float, uint64_t> part_new;
     //flattens format to particle = cell, this is in the classic access/part paradigm

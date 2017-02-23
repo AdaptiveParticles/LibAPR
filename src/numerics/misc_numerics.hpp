@@ -18,7 +18,7 @@
 #include "filter_help/FilterLevel.hpp"
 
 template<typename U,typename V>
-void interp_img(Mesh_data<U>& img,PartCellData<uint64_t>& pc_data,ParticleDataNew<float, uint64_t>& part_new,ExtraPartCellData<V>& particles_int);
+void interp_img(Mesh_data<U>& img,PartCellData<uint64_t>& pc_data,ParticleDataNew<float, uint64_t>& part_new,ExtraPartCellData<V>& particles_int,const bool val = false);
 
 template<typename S>
 void interp_depth_to_mesh(Mesh_data<uint8_t>& k_img,PartCellStructure<S,uint64_t>& pc_struct);
@@ -76,6 +76,42 @@ std::vector<U> create_gauss_filter(int size,float t){
     return filter;
 
 }
+
+
+template<typename U>
+void create_LOG_filter(int size,float s,std::vector<U> filter_f,std::vector<U> filter_b){
+    //
+    //  Bevan Cheeseman 2017
+    //
+    //  Laplacian of Guassians Filters
+    //
+    //  http://bigwww.epfl.ch/publications/sage0501.pdf
+    //
+
+
+    filter_f.resize(size*2 + 1,0);
+    filter_b.resize(size*2 + 1,0);
+
+    float del_x = 1;
+
+    float pi = 3.14;
+
+    float start_x = -size*del_x;
+
+    float x = start_x;
+
+    float C = 1/(pow(2*pi,1.5)*pow(s,3));
+
+    float factor2 = C*((pow(x,2)/pow(s,4)) - (1.0/pow(s,2)));
+
+    for (int i = 0; i < filter_f.size(); ++i) {
+        filter_f[i] = C*((pow(x,2)/pow(s,4)) - (1.0/pow(s,2)))*exp(-pow(x,2)/(2*pow(s,2))) ;
+        filter_b[i] = exp(-pow(x,2)/(2*pow(s,2)));
+        x += del_x;
+    }
+
+}
+
 
 
 template<typename U>
@@ -865,7 +901,7 @@ void get_slices(PartCellStructure<float,uint64_t>& pc_struct){
 
 
 template<typename U,typename V>
-void interp_img(Mesh_data<U>& img,PartCellData<uint64_t>& pc_data,ParticleDataNew<float, uint64_t>& part_new,ExtraPartCellData<V>& particles_int){
+void interp_img(Mesh_data<U>& img,PartCellData<uint64_t>& pc_data,ParticleDataNew<float, uint64_t>& part_new,ExtraPartCellData<V>& particles_int,const bool val){
     //
     //  Bevan Cheeseman 2016
     //
@@ -909,10 +945,13 @@ void interp_img(Mesh_data<U>& img,PartCellData<uint64_t>& pc_data,ParticleDataNe
                         int dim2 = curr_level.x * step_size;
                         int dim3 = curr_level.z * step_size;
 
+                        float temp_int;
                         //add to all the required rays
-
-                        const float temp_int = curr_level.get_part(particles_int);
-
+                        if(val){
+                            temp_int = curr_level.get_val(particles_int);
+                        } else {
+                            temp_int = curr_level.get_part(particles_int);
+                        }
                         const int offset_max_dim1 = std::min((int) img.y_num, (int) (dim1 + step_size));
                         const int offset_max_dim2 = std::min((int) img.x_num, (int) (dim2 + step_size));
                         const int offset_max_dim3 = std::min((int) img.z_num, (int) (dim3 + step_size));

@@ -311,74 +311,7 @@ void compare_E(Mesh_data<S>& org_img,Mesh_data<T>& rec_img,Proc_par& pars,std::s
 
 }
 
-template<typename S,typename T>
-void compare_E_debug(Mesh_data<S>& org_img,Mesh_data<T>& rec_img,Proc_par& pars,std::string name,AnalysisData& analysis_data){
 
-    Mesh_data<float> variance;
-
-    get_variance(org_img,variance,pars);
-
-    uint64_t z_num_o = org_img.z_num;
-    uint64_t x_num_o = org_img.x_num;
-    uint64_t y_num_o = org_img.y_num;
-
-    uint64_t z_num_r = rec_img.z_num;
-    uint64_t x_num_r = rec_img.x_num;
-    uint64_t y_num_r = rec_img.y_num;
-
-    variance.x_num = x_num_r;
-    variance.y_num = y_num_r;
-    variance.z_num = z_num_r;
-
-    uint64_t j = 0;
-    uint64_t k = 0;
-    uint64_t i = 0;
-
-    Mesh_data<float> SE;
-    SE.initialize(y_num_o,x_num_o,z_num_o,0);
-
-    double mean = 0;
-    double inf_norm = 0;
-    uint64_t counter = 0;
-    double MSE = 0;
-
-
-    for(j = 0; j < z_num_o;j++){
-        for(i = 0; i < x_num_o;i++){
-
-            for(k = 0;k < y_num_o;k++){
-                double val = abs(org_img.mesh[j*x_num_o*y_num_o + i*y_num_o + k] - rec_img.mesh[j*x_num_r*y_num_r + i*y_num_r + k])/(1.0*variance.mesh[j*x_num_r*y_num_r + i*y_num_r + k]);
-                SE.mesh[j*x_num_o*y_num_o + i*y_num_o + k] = 1000*val;
-
-                if(variance.mesh[j*x_num_r*y_num_r + i*y_num_r + k] < 50000) {
-                    MSE += pow(org_img.mesh[j*x_num_o*y_num_o + i*y_num_o + k] - rec_img.mesh[j*x_num_r*y_num_r + i*y_num_r + k],2);
-
-                    mean += val;
-                    inf_norm = std::max(inf_norm, val);
-                    counter++;
-                }
-            }
-        }
-    }
-
-    mean = mean/(1.0*counter);
-    MSE = MSE/(1*counter);
-
-    debug_write(SE,name + "E_diff");
-
-    float rel_error = pars.rel_error;
-
-
-    if(pars.lambda == 0) {
-        if (inf_norm > rel_error) {
-            int stop = 1;
-            std::cout << "*********Out of bounds!*********" << std::endl;
-            //assert(inf_norm < rel_error);
-        }
-    }
-
-
-}
 
 
 
@@ -547,6 +480,8 @@ void produce_apr_analysis(Mesh_data<T>& input_image,AnalysisData& analysis_data,
 
        // evaluate_filters(pc_struct,analysis_data,syn_image,input_image);
         evaluate_filters_guassian(pc_struct,analysis_data,syn_image,input_image);
+
+        evaluate_adaptive_smooth(pc_struct,analysis_data,syn_image,input_image);
     }
 
     ////////////////////////////////////////////////////////////////////
@@ -637,7 +572,6 @@ void produce_apr_analysis(Mesh_data<T>& input_image,AnalysisData& analysis_data,
 
         Mesh_data<T> gt_image;
         generate_gt_image(gt_image, syn_image);
-
 
         name = "debug";
         compare_E_debug( gt_image,rec_img, pars, name, analysis_data);
