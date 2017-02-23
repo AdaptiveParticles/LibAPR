@@ -47,7 +47,6 @@ int main(int argc, char **argv) {
 
     bs.num_objects = options.delta;
 
-    Genrand_uni gen_rand;
 
     bs.obj_size = 3;
     bs.sig = 3;

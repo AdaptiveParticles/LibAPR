@@ -2354,6 +2354,13 @@ ExtraPartCellData<U> filter_apr_by_slice_mult(PartCellStructure<float,uint64_t>&
 
     filter_input.data = part_new.particle_data.data;
 
+    Mesh_data<float> img;
+
+    interp_img(img, pc_data, part_new, filter_input);
+
+    debug_write(img, "filter_img_input");
+
+
     timer.start_timer("filter y");
 
     //Y Direction
@@ -2363,6 +2370,11 @@ ExtraPartCellData<U> filter_apr_by_slice_mult(PartCellStructure<float,uint64_t>&
     }
 
     timer.stop_timer();
+
+
+    interp_img(img, pc_data, part_new, filter_output);
+
+    debug_write(img, "filter_img_y");
 
     float time_y = (timer.t2 - timer.t1)/num_repeats;
 
@@ -2382,6 +2394,10 @@ ExtraPartCellData<U> filter_apr_by_slice_mult(PartCellStructure<float,uint64_t>&
 
     float time_x = (timer.t2 - timer.t1)/num_repeats;
 
+    interp_img(img, pc_data, part_new, filter_output);
+
+    debug_write(img, "filter_img_x");
+
 
     std::swap(filter_input,filter_output);
 
@@ -2398,6 +2414,10 @@ ExtraPartCellData<U> filter_apr_by_slice_mult(PartCellStructure<float,uint64_t>&
     timer.stop_timer();
 
     float time_z = (timer.t2 - timer.t1)/num_repeats;
+
+    interp_img(img, pc_data, part_new, filter_output);
+
+    debug_write(img, "filter_img_z");
 
     analysis_data.add_float_data("part_filter_y",time_y);
     analysis_data.add_float_data("part_filter_x",time_x);

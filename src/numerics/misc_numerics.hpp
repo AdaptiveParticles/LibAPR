@@ -1605,7 +1605,7 @@ void filter_apr_dir(ExtraPartCellData<uint16_t>& y_vec,ExtraPartCellData<U>& fil
     }
 
     int i = 0;
-#pragma omp parallel for default(shared) private(i) firstprivate(slice) schedule(guided)
+#pragma omp parallel for default(shared) private(i) firstprivate(slice) schedule(static)
     for (i = 0; i < num_slices; ++i) {
         interp_slice(slice, y_vec, filter_input, dir, i);
 

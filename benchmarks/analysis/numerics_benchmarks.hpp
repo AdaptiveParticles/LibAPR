@@ -376,6 +376,7 @@ void evaluate_filters(PartCellStructure<float,uint64_t> pc_struct,AnalysisData& 
     std::vector<float> filter;
     filter.resize(2*filter_offset + 1,1.0/(2*filter_offset + 1));
 
+    //filter = create_gauss_filter<float>(filter_offset,1.5);
     filter = create_dog_filter<float>(filter_offset,1.5,3);
 
     float num_repeats = 1;

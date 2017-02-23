@@ -545,7 +545,7 @@ void produce_apr_analysis(Mesh_data<T>& input_image,AnalysisData& analysis_data,
 
     if(analysis_data.filters_eval) {
 
-        evaluate_filters(pc_struct,analysis_data,syn_image,input_image);
+       // evaluate_filters(pc_struct,analysis_data,syn_image,input_image);
         evaluate_filters_guassian(pc_struct,analysis_data,syn_image,input_image);
     }
 
