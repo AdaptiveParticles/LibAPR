@@ -37,6 +37,48 @@ template<typename V>
 void filter_slice(std::vector<V>& filter,std::vector<V>& filter_d,ExtraPartCellData<V>& filter_output,Mesh_data<V>& slice,ExtraPartCellData<uint16_t>& y_vec,const int dir,const int num);
 
 template<typename U>
+std::vector<U> create_gauss_filter(int size,float t){
+    //
+    //  Bevan Cheeseman 2017
+    //
+    //  Guassian Filter
+    //
+    //
+
+    std::vector<U> filter;
+
+    filter.resize(size*2 + 1,0);
+
+    float del_x = 1;
+
+    float pi = 3.14;
+
+    float start_x = -size*del_x;
+
+    float x = start_x;
+
+    float factor1 = 1/pow(2*pi*pow(t,2),.5);
+
+    for (int i = 0; i < filter.size(); ++i) {
+        filter[i] = factor1*exp(-pow(x,2)/(2*pow(t,2)));
+        x += del_x;
+    }
+
+    float sum = 0;
+    for (int i = 0; i < filter.size(); ++i) {
+        sum += fabs(filter[i]);
+    }
+
+    for (int i = 0; i < filter.size(); ++i) {
+        filter[i] = filter[i]/sum;
+    }
+
+    return filter;
+
+}
+
+
+template<typename U>
 std::vector<U> create_dog_filter(int size,float t,float K){
     //
     //  Bevan Cheeseman 2017
@@ -942,6 +984,45 @@ void set_zero_minus_1(ExtraPartCellData<V>& parts){
 
 
 }
+template<typename V>
+void set_zero(ExtraPartCellData<V>& parts){
+    //
+    //  Bevan Cheeseman 2016
+    //
+    //  Takes in a APR and creates piece-wise constant image
+    //
+
+
+
+    int z_,x_,j_,y_;
+
+    for(uint64_t depth = (parts.depth_min);depth <= parts.depth_max;depth++) {
+        //loop over the resolutions of the structure
+        const unsigned int x_num_ = parts.x_num[depth];
+        const unsigned int z_num_ = parts.z_num[depth];
+
+        const unsigned int x_num_min_ = 0;
+        const unsigned int z_num_min_ = 0;
+
+
+#pragma omp parallel for default(shared) private(z_,x_,j_) if(z_num_*x_num_ > 100)
+        for (z_ = z_num_min_; z_ < z_num_; z_++) {
+            //both z and x are explicitly accessed in the structure
+
+            for (x_ = x_num_min_; x_ < x_num_; x_++) {
+
+                const unsigned int pc_offset = x_num_*z_ + x_;
+
+                std::fill(parts.data[depth][pc_offset].begin(),parts.data[depth][pc_offset].end(),0);
+
+            }
+        }
+    }
+
+
+
+
+}
 
 
 template<typename U,typename V>
@@ -1023,8 +1104,6 @@ void interp_slice(Mesh_data<U>& slice,PartCellData<uint64_t>& pc_data,ParticleDa
                         //Indicates this is a particle cell node
                         curr_level.update_cell(part_new);
 
-
-
                         int dim1 = 0;
                         int dim2 = 0;
 
@@ -1048,9 +1127,6 @@ void interp_slice(Mesh_data<U>& slice,PartCellData<uint64_t>& pc_data,ParticleDa
                         const int offset_max_dim1 = std::min((int)slice.y_num,(int)(dim1 + step_size));
                         const int offset_max_dim2 = std::min((int)slice.x_num,(int)(dim2 + step_size));
 
-                        if(depth == pc_data.depth_max){
-                            int stop = 1;
-                        }
 
                         for (int k = dim2; k < offset_max_dim2; ++k) {
 #pragma omp simd

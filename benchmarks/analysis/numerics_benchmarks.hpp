@@ -78,6 +78,8 @@ void calc_mse(Mesh_data<S>& org_img,Mesh_data<T>& rec_img,std::string name,Analy
     analysis_data.add_float_data(name +"_PSNR",PSNR);
     analysis_data.add_float_data(name +"_MSE_sd",sd);
 
+    std::cout << PSNR << std::endl;
+
 }
 
 template <typename T>
@@ -422,7 +424,7 @@ void evaluate_filters(PartCellStructure<float,uint64_t> pc_struct,AnalysisData& 
 
     remove_boundary(output_image_rec,2*filter_offset +1);
 
-    calc_mse(gt_output,output_image_rec,"filt_org",analysis_data);
+    calc_mse(gt_output,output_image_rec,"filt_rec",analysis_data);
 
     debug_write(output_image_rec,"filt_rec");
 
@@ -451,7 +453,7 @@ void evaluate_filters(PartCellStructure<float,uint64_t> pc_struct,AnalysisData& 
 
     remove_boundary(output_image_apr,2*filter_offset +1);
 
-    calc_mse(gt_output,output_image_apr,"filt_org",analysis_data);
+    calc_mse(gt_output,output_image_apr,"filt_apr",analysis_data);
 
     debug_write(output_image_apr,"filt_apr");
 
@@ -463,7 +465,110 @@ void evaluate_filters(PartCellStructure<float,uint64_t> pc_struct,AnalysisData& 
     }
 
 }
+template<typename T>
+void evaluate_filters_guassian(PartCellStructure<float,uint64_t> pc_struct,AnalysisData& analysis_data,SynImage& syn_image,Mesh_data<T>& input_image){
+    //
+    //  Bevan Cheeseman 2017
+    //
+    //  Evaluate the accuracy of the filters
+    //
+    //
 
+    //filter set up
+    uint64_t filter_offset = 5;
+
+    std::vector<float> filter;
+
+    //filter = create_dog_filter<float>(filter_offset,1.5,3);
+    filter = create_gauss_filter<float>(filter_offset,1.5);
+
+    float num_repeats = 1;
+
+    //Generate clean gt image
+    Mesh_data<uint16_t> gt_image;
+    generate_gt_image(gt_image, syn_image);
+
+    Mesh_data<float> gt_image_f;
+    gt_image_f.initialize(input_image.y_num,input_image.x_num,input_image.z_num,0);
+    std::copy(gt_image.mesh.begin(),gt_image.mesh.end(),gt_image_f.mesh.begin());
+
+    Mesh_data<float> gt_output;
+
+    gt_output =  pixel_filter_full_mult(gt_image_f,filter,num_repeats,analysis_data);
+
+    remove_boundary(gt_output,2*filter_offset +1);
+
+    debug_write(gt_output,"gauss_filt_gt");
+
+    // Compute Full Filter on input
+    Mesh_data<float> output_image_org;
+
+    Mesh_data<float> input_image_org;
+
+    //transfer across to float
+    input_image_org.initialize(input_image.y_num,input_image.x_num,input_image.z_num,0);
+    std::copy(input_image.mesh.begin(),input_image.mesh.end(),input_image_org.mesh.begin());
+
+    output_image_org =  pixel_filter_full_mult(input_image_org,filter,num_repeats,analysis_data);
+
+    remove_boundary(output_image_org,2*filter_offset +1);
+
+    calc_mse(gt_output,output_image_org,"gauss_filt_org",analysis_data);
+
+    debug_write(output_image_org,"gauss_filt_org");
+
+    // Compute Full Filter on APR reconstruction
+    Mesh_data<float> output_image_rec;
+
+    Mesh_data<float> input_image_rec;
+
+    pc_struct.interp_parts_to_pc(input_image_rec,pc_struct.part_data.particle_data);
+
+    output_image_rec =  pixel_filter_full_mult(input_image_rec,filter,num_repeats,analysis_data);
+
+    remove_boundary(output_image_rec,2*filter_offset +1);
+
+    calc_mse(gt_output,output_image_rec,"gauss_filt_rec",analysis_data);
+
+    debug_write(output_image_rec,"gauss_filt_rec");
+
+    //Compute APR Filter
+
+    ExtraPartCellData<float> filter_output;
+
+    filter_output = filter_apr_by_slice_mult<float>(pc_struct,filter,analysis_data,num_repeats);
+
+    Mesh_data<float> output_image_apr;
+
+    ParticleDataNew<float, uint64_t> part_new;
+    //flattens format to particle = cell, this is in the classic access/part paradigm
+    part_new.initialize_from_structure(pc_struct);
+
+    //generates the nieghbour structure
+    PartCellData<uint64_t> pc_data;
+    part_new.create_pc_data_new(pc_data);
+
+    pc_data.org_dims = pc_struct.org_dims;
+    part_new.access_data.org_dims = pc_struct.org_dims;
+
+    part_new.particle_data.org_dims = pc_struct.org_dims;
+
+    interp_img(output_image_apr, pc_data, part_new, filter_output);
+
+    remove_boundary(output_image_apr,2*filter_offset +1);
+
+    calc_mse(gt_output,output_image_apr,"gauss_filt_apr",analysis_data);
+
+    debug_write(output_image_apr,"gauss_filt_apr");
+
+    if(analysis_data.debug){
+        //
+        //
+        //
+        //
+    }
+
+}
 
 
 
