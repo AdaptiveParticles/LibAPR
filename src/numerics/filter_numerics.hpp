@@ -1041,12 +1041,12 @@ Mesh_data<U> pixel_filter_full(Mesh_data<V>& input_data,std::vector<U>& filter,f
 
 }
 template<typename U,typename V>
-Mesh_data<U> pixel_filter_full_mult(Mesh_data<V>& input_data,std::vector<U>& filter,float num_repeats,AnalysisData& analysis_data){
+Mesh_data<U> pixel_filter_full_mult(Mesh_data<V> input_data,std::vector<U> filter_y,std::vector<U> filter_x,std::vector<U> filter_z,float num_repeats,AnalysisData& analysis_data){
     //
     //  Compute two, comparitive filters for speed. Original size img, and current particle size comparison
     //
 
-    int filter_offset = (filter.size()-1)/2;
+    int filter_offset = (filter_y.size()-1)/2;
 
     unsigned int x_num = input_data.x_num;
     unsigned int y_num = input_data.y_num;
@@ -1086,7 +1086,7 @@ Mesh_data<U> pixel_filter_full_mult(Mesh_data<V>& input_data,std::vector<U>& fil
                     for(uint64_t c = offset_min;c <= offset_max;c++){
 
                         //output_data.mesh[j*x_num*y_num + i*y_num + k] += temp_vec[c]*filter[f];
-                        output_data.mesh[j*x_num*y_num + i*y_num + k] += input_data.mesh[j*x_num*y_num + i*y_num + c]*filter[f];
+                        output_data.mesh[j*x_num*y_num + i*y_num + k] += input_data.mesh[j*x_num*y_num + i*y_num + c]*filter_y[f];
                         f++;
                     }
 
@@ -1125,7 +1125,7 @@ Mesh_data<U> pixel_filter_full_mult(Mesh_data<V>& input_data,std::vector<U>& fil
                     for(uint64_t c = offset_min;c <= offset_max;c++){
 
                         //output_data.mesh[j*x_num*y_num + i*y_num + k] += temp_vec[c]*filter[f];
-                        output_data.mesh[j*x_num*y_num + i*y_num + k] += input_data.mesh[j*x_num*y_num + c*y_num + k]*filter[f];
+                        output_data.mesh[j*x_num*y_num + i*y_num + k] += input_data.mesh[j*x_num*y_num + c*y_num + k]*filter_x[f];
                         f++;
                     }
 
@@ -1163,7 +1163,7 @@ Mesh_data<U> pixel_filter_full_mult(Mesh_data<V>& input_data,std::vector<U>& fil
                     for(uint64_t c = offset_min;c <= offset_max;c++){
 
                         //output_data.mesh[j*x_num*y_num + i*y_num + k] += temp_vec[c]*filter[f];
-                        output_data.mesh[j*x_num*y_num + i*y_num + k] += input_data.mesh[c*x_num*y_num + i*y_num + k]*filter[f];
+                        output_data.mesh[j*x_num*y_num + i*y_num + k] += input_data.mesh[c*x_num*y_num + i*y_num + k]*filter_z[f];
                         f++;
                     }
 
@@ -2340,7 +2340,9 @@ ExtraPartCellData<U> filter_apr_by_slice_mult(PartCellStructure<float,uint64_t>&
     Part_timer timer;
     timer.verbose_flag = false;
 
-    std::vector<U> filter_d = shift_filter(filter);
+    std::vector<U> filter_d_y = shift_filter(filter_y);
+    std::vector<U> filter_d_x = shift_filter(filter_x);
+    std::vector<U> filter_d_z = shift_filter(filter_z);
 
     ExtraPartCellData<uint16_t> y_vec;
 
@@ -2354,27 +2356,17 @@ ExtraPartCellData<U> filter_apr_by_slice_mult(PartCellStructure<float,uint64_t>&
 
     filter_input.data = part_new.particle_data.data;
 
-    Mesh_data<float> img;
-
-    interp_img(img, pc_data, part_new, filter_input);
-
-    debug_write(img, "filter_img_input");
-
-
     timer.start_timer("filter y");
 
     //Y Direction
 
     for (int i = 0; i < num_repeats ; ++i) {
-        filter_apr_dir(y_vec,filter_output,filter_input,filter,filter_d,0);
+        filter_apr_dir(y_vec,filter_output,filter_input,filter_y,filter_d_y,0);
     }
 
     timer.stop_timer();
 
 
-    interp_img(img, pc_data, part_new, filter_output);
-
-    debug_write(img, "filter_img_y");
 
     float time_y = (timer.t2 - timer.t1)/num_repeats;
 
@@ -2387,16 +2379,13 @@ ExtraPartCellData<U> filter_apr_by_slice_mult(PartCellStructure<float,uint64_t>&
     //X Direction
 
     for (int i = 0; i < num_repeats ; ++i) {
-        filter_apr_dir(y_vec,filter_output,filter_input,filter,filter_d,1);
+        filter_apr_dir(y_vec,filter_output,filter_input,filter_x,filter_d_x,1);
     }
 
     timer.stop_timer();
 
     float time_x = (timer.t2 - timer.t1)/num_repeats;
 
-    interp_img(img, pc_data, part_new, filter_output);
-
-    debug_write(img, "filter_img_x");
 
 
     std::swap(filter_input,filter_output);
@@ -2408,16 +2397,13 @@ ExtraPartCellData<U> filter_apr_by_slice_mult(PartCellStructure<float,uint64_t>&
     //Z Direction
 
     for (int i = 0; i < num_repeats ; ++i) {
-        filter_apr_dir(y_vec,filter_output,filter_input,filter,filter_d,2);
+        filter_apr_dir(y_vec,filter_output,filter_input,filter_z,filter_d_z,2);
     }
 
     timer.stop_timer();
 
     float time_z = (timer.t2 - timer.t1)/num_repeats;
 
-    interp_img(img, pc_data, part_new, filter_output);
-
-    debug_write(img, "filter_img_z");
 
     analysis_data.add_float_data("part_filter_y",time_y);
     analysis_data.add_float_data("part_filter_x",time_x);
@@ -2446,6 +2432,176 @@ ExtraPartCellData<U> filter_apr_by_slice_mult(PartCellStructure<float,uint64_t>&
 
 
 };
+
+
+template<typename U>
+ExtraPartCellData<U> sep_neigh_grad(PartCellData<uint64_t>& pc_data,ExtraPartCellData<U>& input_data,int dir){
+    //
+    //  Should be written with the neighbour iterators instead.
+    //
+
+    //copy across
+    ExtraPartCellData<U> filter_output;
+    filter_output.initialize_structure_cells(pc_data);
+
+    Part_timer timer;
+
+    //initialize variables required
+    uint64_t node_val_pc; // node variable encoding neighbour and cell information
+
+    int x_; // iteration variables
+    int z_; // iteration variables
+    uint64_t j_; // index variable
+    uint64_t curr_key = 0; // key used for accessing and particles and cells
+    PartCellNeigh<uint64_t> neigh_cell_keys;
+    //
+    // Extra variables required
+    //
+
+
+
+    timer.verbose_flag = false;
+
+
+    timer.start_timer("neigh_cell_comp");
+
+
+
+
+    for(uint64_t i = pc_data.depth_min;i <= pc_data.depth_max;i++){
+
+
+        float h_depth = pow(2,pc_data.depth_max - i);
+
+        //loop over the resolutions of the structure
+        const unsigned int x_num_ = pc_data.x_num[i];
+        const unsigned int z_num_ = pc_data.z_num[i];
+#pragma omp parallel for default(shared) private(z_,x_,j_,node_val_pc,curr_key)  firstprivate(neigh_cell_keys) if(z_num_*x_num_ > 100)
+        for(z_ = 0;z_ < z_num_;z_++){
+            //both z and x are explicitly accessed in the structure
+            curr_key = 0;
+
+            pc_data.pc_key_set_z(curr_key,z_);
+            pc_data.pc_key_set_depth(curr_key,i);
+
+
+            for(x_ = 0;x_ < x_num_;x_++){
+
+                pc_data.pc_key_set_x(curr_key,x_);
+
+                const size_t offset_pc_data = x_num_*z_ + x_;
+
+                const size_t j_num = pc_data.data[i][offset_pc_data].size();
+
+                //the y direction loop however is sparse, and must be accessed accordinagly
+                for(j_ = 0;j_ < j_num;j_++){
+
+                    //particle cell node value, used here as it is requried for getting the particle neighbours
+                    node_val_pc = pc_data.data[i][offset_pc_data][j_];
+
+                    if (!(node_val_pc&1)){
+                        //Indicates this is a particle cell node
+                        //y_coord++;
+
+                        pc_data.pc_key_set_j(curr_key,j_);
+
+                        pc_data.get_neighs_axis(curr_key,node_val_pc,neigh_cell_keys,dir);
+
+                        U temp_int = 0;
+                        int counter= 0;
+
+                        U curr_int = input_data.get_val(curr_key);
+
+                        U accum_int = 0;
+
+                        if(curr_int > 0){
+                            //(+direction)
+                            //loop over the nieghbours
+                            float h = h_depth;
+
+                            for(int n = 0; n < neigh_cell_keys.neigh_face[2*dir].size();n++){
+                                // Check if the neighbour exisits (if neigh_cell_value = 0, the neighbour doesn't exist)
+                                uint64_t neigh_key = neigh_cell_keys.neigh_face[2*dir][n];
+
+                                uint64_t ndepth = pc_data.pc_key_get_depth(neigh_key);
+                                h = .5*pow(2,pc_data.depth_max - ndepth) + .5*h_depth;
+
+                                if(neigh_key > 0){
+                                    //get information about the nieghbour (need to provide face and neighbour number (n) and the current y coordinate)
+                                    temp_int += input_data.get_val(neigh_key);
+                                    counter++;
+                                }
+
+
+                            }
+
+                            if(temp_int==0){
+                                temp_int = curr_int;
+                            } else {
+                                temp_int = temp_int/counter;
+                            }
+                            counter = 0;
+
+                            accum_int += .5*(temp_int - curr_int)/h;
+
+                            temp_int = 0;
+                            //(-direction)
+                            //loop over the nieghbours
+                            for(int n = 0; n < neigh_cell_keys.neigh_face[2*dir+1].size();n++){
+                                // Check if the neighbour exisits (if neigh_cell_value = 0, the neighbour doesn't exist)
+                                uint64_t neigh_key = neigh_cell_keys.neigh_face[2*dir+1][n];
+
+                                uint64_t ndepth = pc_data.pc_key_get_depth(neigh_key);
+                                h = .5*pow(2,pc_data.depth_max - ndepth) + .5*h_depth;
+
+                                if(neigh_key > 0){
+                                    //get information about the nieghbour (need to provide face and neighbour number (n) and the current y coordinate)
+                                    temp_int += input_data.get_val(neigh_key);
+                                    counter++;
+                                }
+                            }
+
+                            if(temp_int==0){
+                                temp_int = curr_int;
+                            } else {
+                                temp_int = temp_int/counter;
+                            }
+
+                            accum_int += .5*(curr_int - temp_int)/h;
+
+                        }
+
+                        filter_output.get_val(curr_key) = accum_int;
+
+
+
+                    } else {
+                        // Inidicates this is not a particle cell node, and is a gap node
+
+                    }
+
+                }
+
+            }
+
+        }
+    }
+
+
+
+
+
+    timer.stop_timer();
+
+    float time = (timer.t2 - timer.t1);
+
+    //std::cout << "Seperable Smoothing Filter: " << time << std::endl;
+    return filter_output;
+
+
+}
+
+
 
 
 #endif

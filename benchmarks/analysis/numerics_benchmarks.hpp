@@ -196,7 +196,7 @@ void calc_mse_part_locations(Mesh_data<S>& org_img,Mesh_data<T>& rec_img,std::st
 
     double PSNR = 10*log10(64000.0/MSE);
 
-    std::cout << PSNR << std::endl;
+    //std::cout << PSNR << std::endl;
 
 
 }
@@ -740,7 +740,7 @@ void evaluate_filters(PartCellStructure<float,uint64_t> pc_struct,AnalysisData& 
 
 
 template<typename T>
-void evaluate_filters_guassian(PartCellStructure<float,uint64_t> pc_struct,AnalysisData& analysis_data,SynImage& syn_image,Mesh_data<T>& input_image){
+void evaluate_filters_guassian(PartCellStructure<float,uint64_t> pc_struct,AnalysisData& analysis_data,SynImage& syn_image,Mesh_data<T>& input_image,float sigma){
     //
     //  Bevan Cheeseman 2017
     //
@@ -749,12 +749,15 @@ void evaluate_filters_guassian(PartCellStructure<float,uint64_t> pc_struct,Analy
     //
 
     //filter set up
-    uint64_t filter_offset = 4;
+
 
     std::vector<float> filter;
 
+    uint64_t filter_offset = 8;
+
     //filter = create_dog_filter<float>(filter_offset,1.5,3);
-    filter = create_gauss_filter<float>(filter_offset,1);
+    filter = create_gauss_filter<float>(sigma,filter_offset);
+
 
     float num_repeats = 1;
 
@@ -769,11 +772,11 @@ void evaluate_filters_guassian(PartCellStructure<float,uint64_t> pc_struct,Analy
 
     Mesh_data<float> gt_output;
 
-    gt_output =  pixel_filter_full_mult(gt_image_f,filter,num_repeats,analysis_data);
+    gt_output =  pixel_filter_full_mult(gt_image_f,filter,filter,filter,num_repeats,analysis_data);
 
     remove_boundary(gt_output,2*filter_offset +2);
 
-    debug_write(gt_output,"gauss_filt_gt");
+    //debug_write(gt_output,"gauss_filt_gt_" + std::to_string(sigma));
 
     // Compute Full Filter on input
     Mesh_data<float> output_image_org;
@@ -784,14 +787,14 @@ void evaluate_filters_guassian(PartCellStructure<float,uint64_t> pc_struct,Analy
     input_image_org.initialize(input_image.y_num,input_image.x_num,input_image.z_num,0);
     std::copy(input_image.mesh.begin(),input_image.mesh.end(),input_image_org.mesh.begin());
 
-    output_image_org =  pixel_filter_full_mult(input_image_org,filter,num_repeats,analysis_data);
+    output_image_org =  pixel_filter_full_mult(input_image_org,filter,filter,filter,num_repeats,analysis_data);
 
     remove_boundary(output_image_org,2*filter_offset +2);
 
-    calc_mse_debug(gt_output,output_image_org,"gauss_filt_org",analysis_data);
-    calc_mse_part_locations(gt_output,output_image_org,"gauss_filt_org",analysis_data,pc_struct);
+    calc_mse(gt_output,output_image_org,"gauss_filt_org" + std::to_string(sigma),analysis_data);
+    calc_mse_part_locations(gt_output,output_image_org,"gauss_filt_org" + std::to_string(sigma),analysis_data,pc_struct);
 
-    debug_write(output_image_org,"gauss_filt_org");
+    //debug_write(output_image_org,"gauss_filt_org"  + std::to_string(sigma));
 
     // Compute Full Filter on APR reconstruction
     Mesh_data<float> output_image_rec;
@@ -800,20 +803,20 @@ void evaluate_filters_guassian(PartCellStructure<float,uint64_t> pc_struct,Analy
 
     pc_struct.interp_parts_to_pc(input_image_rec,pc_struct.part_data.particle_data);
 
-    output_image_rec =  pixel_filter_full_mult(input_image_rec,filter,num_repeats,analysis_data);
+    output_image_rec =  pixel_filter_full_mult(input_image_rec,filter,filter,filter,num_repeats,analysis_data);
 
     remove_boundary(output_image_rec,2*filter_offset +2);
 
-    calc_mse_debug(gt_output,output_image_rec,"gauss_filt_rec",analysis_data);
-    calc_mse_part_locations(gt_output,output_image_rec,"gauss_filt_rec",analysis_data,pc_struct);
+    calc_mse(gt_output,output_image_rec,"gauss_filt_rec" + std::to_string(sigma),analysis_data);
+    calc_mse_part_locations(gt_output,output_image_rec,"gauss_filt_rec" + std::to_string(sigma),analysis_data,pc_struct);
 
-    debug_write(output_image_rec,"gauss_filt_rec");
+    //debug_write(output_image_rec,"gauss_filt_rec" + std::to_string(sigma));
 
     //Compute APR Filter
 
     ExtraPartCellData<float> filter_output;
 
-    filter_output = filter_apr_by_slice_mult<float>(pc_struct,filter,analysis_data,num_repeats);
+    filter_output = filter_apr_by_slice_mult<float>(pc_struct,filter,filter,filter,analysis_data,num_repeats);
 
     Mesh_data<float> output_image_apr;
 
@@ -834,10 +837,10 @@ void evaluate_filters_guassian(PartCellStructure<float,uint64_t> pc_struct,Analy
 
     remove_boundary(output_image_apr,2*filter_offset +2);
 
-    calc_mse_debug(gt_output,output_image_apr,"gauss_filt_apr",analysis_data);
-    calc_mse_part_locations(gt_output,output_image_apr,"gauss_filt_apr",analysis_data,pc_struct);
+    calc_mse(gt_output,output_image_apr,"gauss_filt_apr" + std::to_string(sigma),analysis_data);
+    calc_mse_part_locations(gt_output,output_image_apr,"gauss_filt_apr" + std::to_string(sigma),analysis_data,pc_struct);
 
-    debug_write(output_image_apr,"gauss_filt_apr");
+   // debug_write(output_image_apr,"gauss_filt_apr" + std::to_string(sigma));
 
 }
 template<typename T>
@@ -850,13 +853,15 @@ void evaluate_filters_log(PartCellStructure<float,uint64_t> pc_struct,AnalysisDa
     //
 
     //filter set up
-    uint64_t filter_offset = 4;
-    float sigma = 1;
+    uint64_t filter_offset = 8;
+    float sigma = 0.1;
 
     std::vector<float> filter_f;
     std::vector<float> filter_b;
 
     create_LOG_filter(filter_offset,sigma,filter_f,filter_b);
+    filter_f = create_dog_filter<float>(filter_offset,1.5,3);
+    filter_b = create_gauss_filter<float>(sigma,filter_offset);
 
     float num_repeats = 1;
 
@@ -871,75 +876,124 @@ void evaluate_filters_log(PartCellStructure<float,uint64_t> pc_struct,AnalysisDa
 
     Mesh_data<float> gt_output;
 
-    gt_output =  pixel_filter_full_mult(gt_image_f,filter,num_repeats,analysis_data);
+    Mesh_data<float> temp;
+    temp.initialize(gt_image.y_num,gt_image.x_num,gt_image.z_num,0);
+
+    //first y direction
+    gt_output =  pixel_filter_full_mult(gt_image_f,filter_f,filter_b,filter_b,num_repeats,analysis_data);
+
+    for (int k = 0; k < gt_output.mesh.size(); ++k) {
+        temp.mesh[k] += (gt_output.mesh[k]);
+    }
+
+    //first x direction
+    gt_output =  pixel_filter_full_mult(gt_image_f,filter_b,filter_f,filter_b,num_repeats,analysis_data);
+
+    //std::transform (temp.mesh.begin(), temp.mesh.end(), gt_output.mesh.begin(), gt_output.mesh.begin(), std::plus<float>());
+
+    for (int k = 0; k < gt_output.mesh.size(); ++k) {
+        temp.mesh[k] += (gt_output.mesh[k]);
+    }
+
+    //first z direction
+    gt_output =  pixel_filter_full_mult(gt_image_f,filter_b,filter_b,filter_f,num_repeats,analysis_data);
+
+    for (int k = 0; k < gt_output.mesh.size(); ++k) {
+        gt_output.mesh[k] += (temp.mesh[k]);
+    }
+
+    //std::transform (gt_output.mesh.begin(), gt_output.mesh.end(), temp.mesh.begin(), gt_output.mesh.begin(), std::plus<float>());
+
+    for (int k = 0; k < gt_output.mesh.size(); ++k) {
+        gt_output.mesh[k] = (gt_output.mesh[k]);
+    }
 
     remove_boundary(gt_output,2*filter_offset +2);
 
-    debug_write(gt_output,"gauss_filt_gt");
+    debug_write(gt_output,"log_filt_gt");
 
-    // Compute Full Filter on input
+
+
+}
+
+
+void compute_guass_smooth(float sigma,Mesh_data<float> input,Mesh_data<float> gt_output,AnalysisData& analysis_data,std::string name){
+    //
+    //  Performs Guassian Smoothing on Image and compares to GT.
+    //
+    std::vector<float> filter;
+
+    uint64_t filter_offset = 10;
+
+    float num_repeats = 1;
+
+    filter = create_gauss_filter<float>(sigma,filter_offset);
+
     Mesh_data<float> output_image_org;
 
-    Mesh_data<float> input_image_org;
-
-    //transfer across to float
-    input_image_org.initialize(input_image.y_num,input_image.x_num,input_image.z_num,0);
-    std::copy(input_image.mesh.begin(),input_image.mesh.end(),input_image_org.mesh.begin());
-
-    output_image_org =  pixel_filter_full_mult(input_image_org,filter,num_repeats,analysis_data);
+    output_image_org =  pixel_filter_full_mult(input,filter,filter,filter,num_repeats,analysis_data);
 
     remove_boundary(output_image_org,2*filter_offset +2);
+    remove_boundary(gt_output,2*filter_offset +2);
 
-    calc_mse_debug(gt_output,output_image_org,"gauss_filt_org",analysis_data);
-    calc_mse_part_locations(gt_output,output_image_org,"gauss_filt_org",analysis_data,pc_struct);
+    calc_mse(gt_output,output_image_org,"test_smooth_" + name + std::to_string(sigma),analysis_data);
 
-    debug_write(output_image_org,"gauss_filt_org");
+}
 
-    // Compute Full Filter on APR reconstruction
-    Mesh_data<float> output_image_rec;
 
-    Mesh_data<float> input_image_rec;
 
-    pc_struct.interp_parts_to_pc(input_image_rec,pc_struct.part_data.particle_data);
+template<typename T>
+Mesh_data<float> compute_grad(Mesh_data<T> gt_image){
+    //
+    //
+    //
+    //
+    //
 
-    output_image_rec =  pixel_filter_full_mult(input_image_rec,filter,num_repeats,analysis_data);
+    AnalysisData analysis_data;
+    float num_repeats = 1;
 
-    remove_boundary(output_image_rec,2*filter_offset +2);
+    std::vector<float> filter_f = {-.5,0,.5};
+    std::vector<float> filter_b = {0,1,0};
 
-    calc_mse_debug(gt_output,output_image_rec,"gauss_filt_rec",analysis_data);
-    calc_mse_part_locations(gt_output,output_image_rec,"gauss_filt_rec",analysis_data,pc_struct);
+    Mesh_data<float> gt_image_f;
+    gt_image_f.initialize(gt_image.y_num,gt_image.x_num,gt_image.z_num,0);
+    std::copy(gt_image.mesh.begin(),gt_image.mesh.end(),gt_image_f.mesh.begin());
 
-    debug_write(output_image_rec,"gauss_filt_rec");
+    Mesh_data<float> gt_output;
 
-    //Compute APR Filter
+    Mesh_data<float> temp;
+    temp.initialize(gt_image.y_num,gt_image.x_num,gt_image.z_num,0);
 
-    ExtraPartCellData<float> filter_output;
+    //first y direction
+    gt_output =  pixel_filter_full_mult(gt_image_f,filter_f,filter_b,filter_b,num_repeats,analysis_data);
 
-    filter_output = filter_apr_by_slice_mult<float>(pc_struct,filter,analysis_data,num_repeats);
+    for (int k = 0; k < gt_output.mesh.size(); ++k) {
+        temp.mesh[k] += pow(gt_output.mesh[k],2);
+    }
 
-    Mesh_data<float> output_image_apr;
+    //first x direction
+    gt_output =  pixel_filter_full_mult(gt_image_f,filter_b,filter_f,filter_b,num_repeats,analysis_data);
 
-    ParticleDataNew<float, uint64_t> part_new;
-    //flattens format to particle = cell, this is in the classic access/part paradigm
-    part_new.initialize_from_structure(pc_struct);
+    //std::transform (temp.mesh.begin(), temp.mesh.end(), gt_output.mesh.begin(), gt_output.mesh.begin(), std::plus<float>());
 
-    //generates the nieghbour structure
-    PartCellData<uint64_t> pc_data;
-    part_new.create_pc_data_new(pc_data);
+    for (int k = 0; k < gt_output.mesh.size(); ++k) {
+        temp.mesh[k] += pow(gt_output.mesh[k],2);
+    }
 
-    pc_data.org_dims = pc_struct.org_dims;
-    part_new.access_data.org_dims = pc_struct.org_dims;
+    //first z direction
+    gt_output =  pixel_filter_full_mult(gt_image_f,filter_b,filter_b,filter_f,num_repeats,analysis_data);
 
-    part_new.particle_data.org_dims = pc_struct.org_dims;
+    for (int k = 0; k < gt_output.mesh.size(); ++k) {
+        temp.mesh[k] += pow(gt_output.mesh[k],2);
+    }
 
-    interp_img(output_image_apr, pc_data, part_new, filter_output);
+    for (int k = 0; k < gt_output.mesh.size(); ++k) {
+        gt_output.mesh[k] = sqrt(temp.mesh[k]);
+    }
 
-    remove_boundary(output_image_apr,2*filter_offset +2);
+    return gt_output;
 
-    calc_mse_debug(gt_output,output_image_apr,"gauss_filt_apr",analysis_data);
-    calc_mse_part_locations(gt_output,output_image_apr,"gauss_filt_apr",analysis_data,pc_struct);
-
-    debug_write(output_image_apr,"gauss_filt_apr");
 
 }
 template<typename T>
@@ -950,6 +1004,10 @@ void evaluate_adaptive_smooth(PartCellStructure<float,uint64_t> pc_struct,Analys
     //  Evaluate the accuracy of the filters
     //
     //
+
+
+
+
 
     float num_repeats = 1;
 
@@ -970,8 +1028,15 @@ void evaluate_adaptive_smooth(PartCellStructure<float,uint64_t> pc_struct,Analys
     input_image_org.initialize(input_image.y_num,input_image.x_num,input_image.z_num,0);
     std::copy(input_image.mesh.begin(),input_image.mesh.end(),input_image_org.mesh.begin());
 
-    calc_mse_debug(gt_image_f,input_image_org,"org_psnr",analysis_data);
+    calc_mse(gt_image_f,input_image_org,"org_psnr",analysis_data);
 
+    // Compute multiple smoothed versions of the original, and check the psnr how does that compare??
+
+    std::vector<float> sig_vec = {0.5,.75,1,1.5,2,4,8};
+
+    for (int i = 0; i < sig_vec.size(); ++i) {
+        compute_guass_smooth(sig_vec[i],input_image_org,gt_image_f,analysis_data,"org");
+    }
 
     // Compute Full Filter on APR reconstruction
 
@@ -979,8 +1044,11 @@ void evaluate_adaptive_smooth(PartCellStructure<float,uint64_t> pc_struct,Analys
 
     pc_struct.interp_parts_to_pc(input_image_rec,pc_struct.part_data.particle_data);
 
-    calc_mse_debug(gt_image_f,input_image_rec,"rec_psnr",analysis_data);
+    calc_mse(gt_image_f,input_image_rec,"rec_psnr",analysis_data);
 
+    for (int i = 0; i < sig_vec.size(); ++i) {
+        compute_guass_smooth(sig_vec[i],input_image_rec,gt_image_f,analysis_data,"rec");
+    }
 
     Mesh_data<float> output_image_apr;
 
@@ -1004,23 +1072,149 @@ void evaluate_adaptive_smooth(PartCellStructure<float,uint64_t> pc_struct,Analys
     part_new.create_particles_at_cell_structure(particle_data);
 
     sep_neigh_filter(pc_data,particle_data,filter_s);
-    sep_neigh_filter(pc_data,particle_data,filter_s);
-    sep_neigh_filter(pc_data,particle_data,filter_s);
-    sep_neigh_filter(pc_data,particle_data,filter_s);
-    sep_neigh_filter(pc_data,particle_data,filter_s);
-
-
 
     interp_img(output_image_apr, pc_data, part_new, particle_data,true);
     //remove_boundary(output_image_apr,2*filter_offset +1);
-    debug_write(output_image_apr,"adaptive_smooth");
+    //debug_write(output_image_apr,"adaptive_smooth_1");
+    calc_mse(gt_image_f,output_image_apr,"adaptive_smooth_1",analysis_data);
 
-    calc_mse_debug(gt_image_f,output_image_apr,"5tap_smooth",analysis_data);
+    sep_neigh_filter(pc_data,particle_data,filter_s);
+
+    interp_img(output_image_apr, pc_data, part_new, particle_data,true);
+    //remove_boundary(output_image_apr,2*filter_offset +1);
+   // debug_write(output_image_apr,"adaptive_smooth_2");
+    calc_mse(gt_image_f,output_image_apr,"adaptive_smooth_2",analysis_data);
+
+    sep_neigh_filter(pc_data,particle_data,filter_s);
+
+    interp_img(output_image_apr, pc_data, part_new, particle_data,true);
+    //remove_boundary(output_image_apr,2*filter_offset +1);
+   // debug_write(output_image_apr,"adaptive_smooth_3");
+    calc_mse(gt_image_f,output_image_apr,"adaptive_smooth_3",analysis_data);
+
+    sep_neigh_filter(pc_data,particle_data,filter_s);
+
+    interp_img(output_image_apr, pc_data, part_new, particle_data,true);
+    //remove_boundary(output_image_apr,2*filter_offset +1);
+   // debug_write(output_image_apr,"adaptive_smooth_4");
+    calc_mse(gt_image_f,output_image_apr,"adaptive_smooth_4",analysis_data);
+
+    sep_neigh_filter(pc_data,particle_data,filter_s);
+
+    interp_img(output_image_apr, pc_data, part_new, particle_data,true);
+    //remove_boundary(output_image_apr,2*filter_offset +1);
+   // debug_write(output_image_apr,"adaptive_smooth_5");
+    calc_mse(gt_image_f,output_image_apr,"adaptive_smooth_5",analysis_data);
+
+    sep_neigh_filter(pc_data,particle_data,filter_s);
+
+    interp_img(output_image_apr, pc_data, part_new, particle_data,true);
+    //remove_boundary(output_image_apr,2*filter_offset +1);
+    //debug_write(output_image_apr,"adaptive_smooth_6");
+    calc_mse(gt_image_f,output_image_apr,"adaptive_smooth_6",analysis_data);
+
+    sep_neigh_filter(pc_data,particle_data,filter_s);
+
+    interp_img(output_image_apr, pc_data, part_new, particle_data,true);
+    //remove_boundary(output_image_apr,2*filter_offset +1);
+   // debug_write(output_image_apr,"adaptive_smooth_7");
+    calc_mse(gt_image_f,output_image_apr,"adaptive_smooth_7",analysis_data);
 
 }
+template<typename T>
+void evaluate_adaptive_grad(PartCellStructure<float,uint64_t> pc_struct,AnalysisData& analysis_data,SynImage& syn_image,Mesh_data<T>& input_image){
+    //
+    //  Bevan Cheeseman 2017
+    //
+    //  Evaluate the accuracy of the filters
+    //
+    //
 
 
+    //get gt and original gradient
 
+    //Generate clean gt image
+    Mesh_data<uint16_t> gt_image;
+    generate_gt_image(gt_image, syn_image);
+
+
+    debug_write(gt_image,"gt_image");
+
+    Mesh_data<float> output_gt;
+    output_gt = compute_grad(gt_image);
+
+    remove_boundary(output_gt,2);
+    debug_write(output_gt,"gt_grad");
+
+    Mesh_data<float> output_org;
+    output_org = compute_grad(input_image);
+
+    remove_boundary(output_org,2);
+    debug_write(output_org,"org_grad");
+
+    calc_mse(output_gt,output_org,"org_grad",analysis_data);
+
+    //compute grad on APR reconstructed
+
+    Mesh_data<float> input_image_rec;
+
+    pc_struct.interp_parts_to_pc(input_image_rec,pc_struct.part_data.particle_data);
+
+    Mesh_data<float> output_rec;
+    output_rec = compute_grad(input_image_rec);
+
+    remove_boundary(output_rec,2);
+    debug_write(output_rec,"rec_grad");
+
+    calc_mse(output_gt,output_rec,"rec_grad",analysis_data);
+
+    Mesh_data<float> output_image_apr;
+
+    ParticleDataNew<float, uint64_t> part_new;
+    //flattens format to particle = cell, this is in the classic access/part paradigm
+    part_new.initialize_from_structure(pc_struct);
+
+    //generates the nieghbour structure
+    PartCellData<uint64_t> pc_data;
+    part_new.create_pc_data_new(pc_data);
+
+    pc_data.org_dims = pc_struct.org_dims;
+    part_new.access_data.org_dims = pc_struct.org_dims;
+
+    part_new.particle_data.org_dims = pc_struct.org_dims;
+
+    ExtraPartCellData<float> particle_data;
+
+    part_new.create_particles_at_cell_structure(particle_data);
+
+    ExtraPartCellData<float> grad_output_y =  sep_neigh_grad(pc_data,particle_data,0);
+
+    ExtraPartCellData<float> grad_output_x =  sep_neigh_grad(pc_data,particle_data,1);
+
+    grad_output_y = transform_parts(grad_output_y,square<float>);
+    grad_output_x = transform_parts(grad_output_x,square<float>);
+
+    transform_parts(grad_output_y,grad_output_x,std::plus<float>());
+
+    ExtraPartCellData<float> grad_output_z =  sep_neigh_grad(pc_data,particle_data,2);
+
+    grad_output_z = transform_parts(grad_output_z,square<float>);
+
+    transform_parts(grad_output_y,grad_output_z,std::plus<float>());
+
+    grad_output_y = transform_parts(grad_output_y,square_root<float>);
+
+    interp_img(output_image_apr, pc_data, part_new, grad_output_y,true);
+
+    remove_boundary(output_image_apr,2);
+    debug_write(output_image_apr,"adaptive_grad");
+
+    remove_boundary(input_image,2);
+    debug_write(input_image,"input_image");
+
+    calc_mse(output_gt,output_image_apr,"adaptive_grad",analysis_data);
+
+}
 
 
 #endif //PARTPLAY_NUMERICS_BENCHMARKS_HPP
