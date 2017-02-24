@@ -29,6 +29,92 @@ void copy_mesh_data_structures(MeshDataAF<S>& input_syn,Mesh_data<S>& input_img)
 
 }
 
+void get_apr_ground_thruth(SynImage& syn_image,Part_rep& part_rep,PartCellStructure<float,uint64_t>& pc_struct,AnalysisData& analysis_data){
+    //
+    //  Bevan Cheeseman 2017
+    //
+    //  Calculates Ground Truth APR, using synthetic image generator
+    //
+    //
+
+    int interp_type = part_rep.pars.interp_type;
+
+    // COMPUTATIONS
+
+    Mesh_data<float> input_image_float;
+    Mesh_data<float> gradient, variance;
+    Mesh_data<float> interp_img;
+
+    gradient.initialize(input_image.y_num, input_image.x_num, input_image.z_num, 0);
+    part_rep.initialize(input_image.y_num, input_image.x_num, input_image.z_num);
+
+    input_image_float = input_image.to_type<float>();
+    interp_img = input_image.to_type<float>();
+    // After this block, input_image will be freed.
+
+    Part_timer t;
+    t.verbose_flag = false;
+
+    // preallocate_memory
+    Particle_map<float> part_map(part_rep);
+    preallocate(part_map.layers, gradient.y_num, gradient.x_num, gradient.z_num, part_rep);
+    variance.preallocate(gradient.y_num, gradient.x_num, gradient.z_num, 0);
+    std::vector<Mesh_data<float>> down_sampled_images;
+
+    Mesh_data<float> temp;
+    temp.preallocate(gradient.y_num, gradient.x_num, gradient.z_num, 0);
+
+
+    generate_gt_image(Mesh_data<T>& gt_image,SynImage& syn_image)
+
+
+    t.start_timer("whole");
+
+
+    part_rep.timer.start_timer("get_level_3D");
+    get_level_3D(variance, gradient, part_rep, part_map, temp);
+    part_rep.timer.stop_timer();
+
+    // free memory (not used anymore)
+    std::vector<float>().swap(gradient.mesh);
+    std::vector<float>().swap(variance.mesh);
+
+    part_rep.timer.start_timer("pushing_scheme");
+    part_map.pushing_scheme(part_rep);
+    part_rep.timer.stop_timer();
+
+
+    part_rep.timer.start_timer("sample");
+
+    if (interp_type == 0) {
+        part_map.downsample(interp_img);
+        calc_median_filter(part_map.downsampled[part_map.k_max+1]);
+    }
+
+    if (interp_type == 1) {
+        part_map.downsample(input_image_float);
+    } else if (interp_type == 2) {
+        part_map.downsample(interp_img);
+    } else if (interp_type ==3){
+        part_map.downsample(interp_img);
+        calc_median_filter_n(part_map.downsampled[part_map.k_max+1],input_image_float);
+    }
+
+    part_rep.timer.stop_timer();
+
+    part_rep.timer.start_timer("construct_pcstruct");
+
+    pc_struct.initialize_structure(part_map);
+
+    part_rep.timer.stop_timer();
+
+    t.stop_timer();
+
+
+
+}
+
+
 
 
 template <typename T>

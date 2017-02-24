@@ -374,6 +374,34 @@ void generate_gt_image(Mesh_data<T>& gt_image,SynImage& syn_image){
     syn_image.noise_properties.noise_type = prev_noise;
 
 }
+template <typename T>
+void generate_gt_norm_grad(Mesh_data<T>& gt_image,SynImage syn_image){
+    //get a clean image
+
+    MeshDataAF<T> gen_img;
+
+    syn_image.noise_properties.noise_type = "none";
+
+    syn_image.PSF_properties.type = "gauss_dsum";
+    syn_image.noise_properties.noise_type = "none";
+    syn_image.global_trans.gt_ind = false;
+    syn_image.PSF_properties.normalize = true;
+
+    syn_image.generate_syn_image(gen_img);
+
+    gt_image.y_num = gen_img.y_num;
+    gt_image.x_num = gen_img.x_num;
+    gt_image.z_num = gen_img.z_num;
+
+    //copy accross
+    gt_image.mesh = gen_img.mesh;
+
+}
+
+
+
+
+
 void run_segmentation_benchmark_mesh(PartCellStructure<float,uint64_t> pc_struct,AnalysisData& analysis_data){
     //
     //  Runs the graph cuts segmentation benchmarks
@@ -1038,6 +1066,8 @@ void evaluate_adaptive_smooth(PartCellStructure<float,uint64_t> pc_struct,Analys
         compute_guass_smooth(sig_vec[i],input_image_org,gt_image_f,analysis_data,"org");
     }
 
+    debug_write(input_image_org,"org_image");
+
     // Compute Full Filter on APR reconstruction
 
     Mesh_data<float> input_image_rec;
@@ -1049,6 +1079,8 @@ void evaluate_adaptive_smooth(PartCellStructure<float,uint64_t> pc_struct,Analys
     for (int i = 0; i < sig_vec.size(); ++i) {
         compute_guass_smooth(sig_vec[i],input_image_rec,gt_image_f,analysis_data,"rec");
     }
+
+    debug_write(input_image_rec,"rec_image");
 
     Mesh_data<float> output_image_apr;
 
@@ -1096,7 +1128,7 @@ void evaluate_adaptive_smooth(PartCellStructure<float,uint64_t> pc_struct,Analys
 
     interp_img(output_image_apr, pc_data, part_new, particle_data,true);
     //remove_boundary(output_image_apr,2*filter_offset +1);
-   // debug_write(output_image_apr,"adaptive_smooth_4");
+    debug_write(output_image_apr,"adaptive_smooth_4");
     calc_mse(gt_image_f,output_image_apr,"adaptive_smooth_4",analysis_data);
 
     sep_neigh_filter(pc_data,particle_data,filter_s);

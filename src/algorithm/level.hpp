@@ -124,4 +124,71 @@ void get_level_3D(Mesh_data<T> &var, Mesh_data<T> &grad_input, Part_rep &p_rep, 
 
 }
 
+template< typename T>
+void get_level_3D_ground_truth(Mesh_data<T> &grad_input, Part_rep &p_rep, Particle_map<T> &part_map,
+                  Mesh_data<T> &grad){
+    //
+    //
+    //  Calculate the local resolution estimates k
+    //
+    //
+
+    Part_timer timer;
+    //timer.verbose_flag = true;
+
+    //first step is to perform a max down sample of the gradient
+    timer.start_timer("level_downsample_main");
+
+    down_sample(grad_input,grad,
+                [](T x, T y) { return std::max(x,y); },
+                [](T x) { return x; });
+
+    timer.stop_timer();
+
+    float k_factor;
+
+    float min_dim = std::min(p_rep.pars.dy,std::min(p_rep.pars.dx,p_rep.pars.dz));
+
+    k_factor = pow(2,p_rep.pl_map.k_max+1)*min_dim;
+
+    timer.start_timer("level_kcalc");
+
+    //calculate the k value at each time step
+
+    compute_k_for_array(grad,k_factor,p_rep.pars.rel_error);
+
+    timer.stop_timer();
+
+    timer.start_timer("level_partmap");
+
+
+    part_map.initialize(p_rep.org_dims);
+
+    Mesh_data<T> test_a_ds;
+
+    //first do k_max
+    part_map.fill(p_rep.pl_map.k_max,grad);
+
+    timer.stop_timer();
+    timer.start_timer("level_loop");
+
+
+    for(int k_ = p_rep.pl_map.k_max - 1; k_ >= p_rep.pl_map.k_min; k_--){
+
+        //down sample the resolution level k, using a max reduction
+        down_sample(grad,test_a_ds,
+                    [](T x, T y) { return std::max(x,y); },
+                    [](T x) { return x; }, true);
+        //for those value of level k, add to the hash table
+        part_map.fill(k_,test_a_ds);
+        //assign the previous mesh to now be resampled.
+        std::swap(grad, test_a_ds);
+
+    }
+
+    timer.stop_timer();
+
+}
+
+
 #endif //PARTPLAY_K_HPP
