@@ -27,6 +27,10 @@
 
 #include "misc_numerics.hpp"
 
+#include "../../src/vis/Camera.h"
+#include "../../src/vis/RaytracedObject.h"
+
+
 const int8_t dir_y[6] = { 1, -1, 0, 0, 0, 0};
 const int8_t dir_x[6] = { 0, 0, 1, -1, 0, 0};
 const int8_t dir_z[6] = { 0, 0, 0, 0, 1, -1};
@@ -1863,7 +1867,7 @@ void multi_ray_parrallel_raster_mesh(PartCellStructure<S,uint64_t>& pc_struct,pr
 
                 const float temp_int = image.mesh[j_ + x_*image.y_num + z_*image.x_num*image.y_num];
 
-                proj_img.mesh[ dim1 + (dim2)*proj_img.y_num] = std::max(temp_int,proj_img.mesh[ dim1 + (dim2)*proj_img.y_num]);
+                proj_img.mesh[dim1 + (dim2)*proj_img.y_num] = std::max(temp_int,proj_img.mesh[ dim1 + (dim2)*proj_img.y_num]);
 
             }
         }
@@ -2184,6 +2188,115 @@ void single_ray_parrallel(PartCellStructure<S,uint64_t>& pc_struct){
         std::cout << "outside domain" << std::endl;
     }
 
+
+}
+
+/////////////////////////////////////////////////////
+//
+//  New Non Parallell Projections
+//
+//
+///////////////////////////////////////////////////
+
+
+template<typename S>
+void prospective_mesh_raycast(PartCellStructure<S,uint64_t>& pc_struct,proj_par& pars){
+    //
+    //  Bevan Cheeseman 2017
+    //
+    //  Max Ray Cast Proposective Projection
+    //
+    //
+
+
+
+    Mesh_data<S> image;
+
+    pc_struct.interp_parts_to_pc(image,pc_struct.part_data.particle_data);
+
+    ///////////////////////////////////////////
+    //
+    //  Set up Perspective
+    //
+    ////////////////////////////////////////////
+
+
+    Camera cam = Camera(glm::vec3(0.0f, 0.0f, -1.5*image.z_num), glm::fquat(1.0f, 0.0f, 0.0f, 0.0f));
+    cam.setPerspectiveCamera(1.0f, (float) (50.0f / 180.0f * M_PI), 1.0f, 2000.0f);
+
+    // ray traced object, sitting on the origin, with no rotation applied
+    RaytracedObject o = RaytracedObject(glm::vec3(0.0f, 0.0f, 0.0f), glm::fquat(1.0f, 0.0f, 0.0f, 0.0f));
+
+
+    unsigned int imageWidth = image.x_num;
+    unsigned int imageHeight = image.y_num;
+
+    auto start = std::chrono::high_resolution_clock::now();
+    glm::mat4 inverse_projection = glm::inverse(*cam.getProjection());
+    glm::mat4 inverse_modelview = glm::inverse((*cam.getView()) * (*o.getModel()));
+
+
+    Mesh_data<S> proj_img;
+    proj_img.initialize(imageHeight,imageWidth,1,0);
+
+    //Need to add here a parameters here
+
+
+    bool end_domain = false;
+
+    //choose random direction to propogate along
+
+
+    int counter =0;
+
+
+    Part_timer timer;
+
+    timer.verbose_flag = true;
+
+    timer.start_timer("ray cast mesh prospective");
+
+    const int dir = pars.direction;
+
+    int z_,x_,j_,y_,i,k;
+
+    //loop over the resolutions of the structure
+    const unsigned int x_num_ = image.x_num;
+    const unsigned int z_num_ = image.z_num;
+    const float step_size = 1;
+    const unsigned int y_num_ = image.y_num;
+
+//#pragma omp parallel for default(shared) private(z_,x_,j_,i,k)
+    for (z_ = 0; z_ < z_num_; z_++) {
+        //both z and x are explicitly accessed in the structure
+
+        for (x_ = 0; x_ < x_num_; x_++) {
+
+            const unsigned int pc_offset = x_num_*z_ + x_;
+
+            for (j_ = 0; j_ < y_num_; j_++) {
+
+
+                glm::vec2 pos = o.worldToScreen(cam, glm::vec3((float)x_, (float)j_, (float)z_), imageWidth, imageHeight);
+
+                const float temp_int = image.mesh[j_ + x_*image.y_num + z_*image.x_num*image.y_num];
+
+                const int dim1 = -floor( pos.y);
+                const int dim2 = -floor( pos.x);
+
+                if(dim1 > 0 & dim2 > 0) {
+
+                    proj_img.mesh[dim1 + (dim2) * proj_img.y_num] = std::max(temp_int, proj_img.mesh[dim1 + (dim2) *
+                                                                                                            proj_img.y_num]);
+                }
+            }
+        }
+    }
+
+
+    timer.stop_timer();
+
+    debug_write(proj_img,"perspective_proj_mesh" + std::to_string(pars.proj_type));
 
 }
 
