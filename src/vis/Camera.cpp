@@ -15,11 +15,11 @@ Camera* Camera::setPerspectiveCamera(float aspectRatio, float fov, float nearPla
     return this;
 }
 
-Camera* Camera::setOrthographicCamera(float nearPlane, float farPlane) {
+Camera* Camera::setOrthographicCamera(unsigned int width, unsigned int height, float nearPlane, float farPlane) {
     this->nearPlaneDistance = nearPlane;
     this->farPlaneDistance = farPlane;
 
-    this->projection = glm::orthoRH(-1.0f, 1.0f, -1.0f, 1.0f, nearPlane, farPlane);
+    this->projection = glm::orthoRH(1.0f*width, 1.0f*width, -1.0f*height, 1.0f*height, nearPlane, farPlane);
     return this;
 }
 

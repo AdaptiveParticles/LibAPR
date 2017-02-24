@@ -2220,16 +2220,17 @@ void prospective_mesh_raycast(PartCellStructure<S,uint64_t>& pc_struct,proj_par&
     //
     ////////////////////////////////////////////
 
+    unsigned int imageWidth = image.x_num;
+    unsigned int imageHeight = image.y_num;
 
-    Camera cam = Camera(glm::vec3(0.0f, 0.0f, -1.5*image.z_num), glm::fquat(1.0f, 0.0f, 0.0f, 0.0f));
-    cam.setPerspectiveCamera(1.0f, (float) (50.0f / 180.0f * M_PI), 1.0f, 2000.0f);
+    Camera cam = Camera(glm::vec3(0.0f, 0.0f, 1.5*image.z_num), glm::fquat(1.0f, 0.0f, 0.0f, 0.0f));
+//    cam.setPerspectiveCamera((float)imageWidth/(float)imageHeight, (float) (50.0f / 180.0f * M_PI), 1.0f, 2000.0f);
 
+    cam.setOrthographicCamera(imageWidth, imageHeight, 1.0f, 200.0f);
     // ray traced object, sitting on the origin, with no rotation applied
     RaytracedObject o = RaytracedObject(glm::vec3(0.0f, 0.0f, 0.0f), glm::fquat(1.0f, 0.0f, 0.0f, 0.0f));
 
 
-    unsigned int imageWidth = image.x_num;
-    unsigned int imageHeight = image.y_num;
 
     auto start = std::chrono::high_resolution_clock::now();
     glm::mat4 inverse_projection = glm::inverse(*cam.getProjection());
@@ -2266,6 +2267,8 @@ void prospective_mesh_raycast(PartCellStructure<S,uint64_t>& pc_struct,proj_par&
     const float step_size = 1;
     const unsigned int y_num_ = image.y_num;
 
+    const glm::mat4 mvp = (*cam.getProjection()) * (*cam.getView());
+
 //#pragma omp parallel for default(shared) private(z_,x_,j_,i,k)
     for (z_ = 0; z_ < z_num_; z_++) {
         //both z and x are explicitly accessed in the structure
@@ -2277,7 +2280,7 @@ void prospective_mesh_raycast(PartCellStructure<S,uint64_t>& pc_struct,proj_par&
             for (j_ = 0; j_ < y_num_; j_++) {
 
 
-                glm::vec2 pos = o.worldToScreen(cam, glm::vec3((float)x_, (float)j_, (float)z_), imageWidth, imageHeight);
+                glm::vec2 pos = o.worldToScreen(mvp, glm::vec3((float)x_, (float)j_, (float)z_), imageWidth, imageHeight);
 
                 const float temp_int = image.mesh[j_ + x_*image.y_num + z_*image.x_num*image.y_num];
 

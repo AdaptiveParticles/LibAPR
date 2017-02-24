@@ -34,11 +34,12 @@ public:
     Camera(glm::vec3 position, glm::fquat rotation);
 
     Camera* setPerspectiveCamera(float aspectRatio, float fov, float nearPlane, float farPlane);
-    Camera* setOrthographicCamera(float nearPlane, float farPlane);
 
     glm::mat4* getView();
     void setCoordinateSystem();
     inline glm::mat4* getProjection() { return &this->projection; };
+
+    Camera *setOrthographicCamera(unsigned int width, unsigned int height, float nearPlane, float farPlane);
 };
 
 
