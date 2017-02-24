@@ -88,8 +88,8 @@ std::pair<bool, glm::vec3> RaytracedObject::rayOriginForCoordinates(Camera &obse
 
 std::pair<bool, glm::vec3> RaytracedObject::intersect(glm::vec3 origin, glm::vec3 direction) {
 
-    glm::vec4 min = this->model * glm::vec4(extent_min, 1.0f);
-    glm::vec4 max = this->model * glm::vec4(extent_max, 1.0f);
+    glm::vec4 min = *this->getModel() * glm::vec4(extent_min, 1.0f);
+    glm::vec4 max = *this->getModel() * glm::vec4(extent_max, 1.0f);
 
     glm::vec3 invDir = glm::vec3(1.0f/direction.x, 1.0f/direction.y, 1.0f/direction.z);
 
