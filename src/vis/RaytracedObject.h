@@ -27,6 +27,9 @@ public:
     rayOriginForCoordinates(Camera& observer, glm::ivec2 coordinates, unsigned int imageSizeX, unsigned int imageSizeY);
 
     void setExtent(glm::vec3 min, glm::vec3 max) { this->extent_min = min; this->extent_max = max; };
+
+    glm::vec2
+    worldToScreen(Camera &observer, glm::vec3 worldPosition, unsigned int imageSizeX, unsigned int imageSizeY);
 };
 
 #endif //PARTPLAY_RAYTRACEDOBJECT_H

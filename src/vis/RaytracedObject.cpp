@@ -113,3 +113,10 @@ std::pair<bool, glm::vec3> RaytracedObject::intersect(glm::vec3 origin, glm::vec
 
     return std::pair<bool, glm::vec3>(true, origin + tmin * direction);
 }
+
+glm::vec2 RaytracedObject::worldToScreen(Camera& observer, glm::vec3 worldPosition, unsigned int imageSizeX, unsigned int imageSizeY) {
+    glm::vec4 clip = (*observer.getProjection()) * (*observer.getView()) * glm::vec4(worldPosition, 1.0);
+    glm::vec2 ndc = glm::vec2(clip.x/clip.w, clip.y/clip.w);
+
+    return ((ndc - glm::vec2(1.0f))/2.0f * glm::vec2(imageSizeX, imageSizeY));
+}

@@ -7,21 +7,21 @@
 #include "../../src/vis/RaytracedObject.h"
 
 // uncomment to see output of ray origins/directions
-#define DEBUG_OUTPUT
+//#define DEBUG_OUTPUT
 
 int main(int argc, char **argv) {
 
     // perspective camera, sitting at 5 units down from the origin on the positive Z axis,
     // with no rotation applied, facing down negative Z axis
-    Camera cam = Camera(glm::vec3(0.0f, 0.0f, 15.0f), glm::fquat(1.0f, 0.0f, 0.0f, 0.0f));
+    Camera cam = Camera(glm::vec3(0.0f, 0.0f, 5.0f), glm::fquat(1.0f, 0.0f, 0.0f, 0.0f));
     cam.setPerspectiveCamera(1.0f, (float) (50.0f / 180.0f * M_PI), 1.0f, 15.0f);
 
     // ray traced object, sitting on the origin, with no rotation applied
     RaytracedObject o = RaytracedObject(glm::vec3(0.0f, 0.0f, 0.0f), glm::fquat(1.0f, 0.0f, 0.0f, 0.0f));
     o.setExtent(glm::vec3(-5.0f, -5.0f, -5.0f), glm::vec3(5.0f, 5.0f, 5.0f));
 
-    unsigned int imageWidth = 100;
-    unsigned int imageHeight = 100;
+    unsigned int imageWidth = 1280;
+    unsigned int imageHeight = 720;
 
     auto start = std::chrono::high_resolution_clock::now();
     glm::mat4 inverse_projection = glm::inverse(*cam.getProjection());
@@ -70,6 +70,10 @@ int main(int argc, char **argv) {
     duration = end - start;
 
     std::cout << "Calculating " << imageWidth * imageHeight << " origins took " << duration.count() << "s" << std::endl;
+
+    glm::vec2 pos = o.worldToScreen(cam, glm::vec3(0.1f, 0.2f, 20.0f), imageWidth, imageHeight);
+
+    std::cout << pos.x << "/" << pos.y << std::endl;
 
     return 0;
 }
