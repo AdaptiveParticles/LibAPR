@@ -1103,49 +1103,49 @@ void evaluate_adaptive_smooth(PartCellStructure<float,uint64_t> pc_struct,Analys
 
     part_new.create_particles_at_cell_structure(particle_data);
 
-    sep_neigh_filter(pc_data,particle_data,filter_s);
+    particle_data = sep_neigh_filter(pc_data,particle_data,filter_s);
 
     interp_img(output_image_apr, pc_data, part_new, particle_data,true);
     //remove_boundary(output_image_apr,2*filter_offset +1);
     //debug_write(output_image_apr,"adaptive_smooth_1");
     calc_mse(gt_image_f,output_image_apr,"adaptive_smooth_1",analysis_data);
 
-    sep_neigh_filter(pc_data,particle_data,filter_s);
+    particle_data = sep_neigh_filter(pc_data,particle_data,filter_s);
 
     interp_img(output_image_apr, pc_data, part_new, particle_data,true);
     //remove_boundary(output_image_apr,2*filter_offset +1);
    // debug_write(output_image_apr,"adaptive_smooth_2");
     calc_mse(gt_image_f,output_image_apr,"adaptive_smooth_2",analysis_data);
 
-    sep_neigh_filter(pc_data,particle_data,filter_s);
+    particle_data = sep_neigh_filter(pc_data,particle_data,filter_s);
 
     interp_img(output_image_apr, pc_data, part_new, particle_data,true);
     //remove_boundary(output_image_apr,2*filter_offset +1);
    // debug_write(output_image_apr,"adaptive_smooth_3");
     calc_mse(gt_image_f,output_image_apr,"adaptive_smooth_3",analysis_data);
 
-    sep_neigh_filter(pc_data,particle_data,filter_s);
+    particle_data = sep_neigh_filter(pc_data,particle_data,filter_s);
 
     interp_img(output_image_apr, pc_data, part_new, particle_data,true);
     //remove_boundary(output_image_apr,2*filter_offset +1);
     debug_write(output_image_apr,"adaptive_smooth_4");
     calc_mse(gt_image_f,output_image_apr,"adaptive_smooth_4",analysis_data);
 
-    sep_neigh_filter(pc_data,particle_data,filter_s);
+    particle_data = sep_neigh_filter(pc_data,particle_data,filter_s);
 
     interp_img(output_image_apr, pc_data, part_new, particle_data,true);
     //remove_boundary(output_image_apr,2*filter_offset +1);
    // debug_write(output_image_apr,"adaptive_smooth_5");
     calc_mse(gt_image_f,output_image_apr,"adaptive_smooth_5",analysis_data);
 
-    sep_neigh_filter(pc_data,particle_data,filter_s);
+    particle_data = sep_neigh_filter(pc_data,particle_data,filter_s);
 
     interp_img(output_image_apr, pc_data, part_new, particle_data,true);
     //remove_boundary(output_image_apr,2*filter_offset +1);
     //debug_write(output_image_apr,"adaptive_smooth_6");
     calc_mse(gt_image_f,output_image_apr,"adaptive_smooth_6",analysis_data);
 
-    sep_neigh_filter(pc_data,particle_data,filter_s);
+    particle_data = sep_neigh_filter(pc_data,particle_data,filter_s);
 
     interp_img(output_image_apr, pc_data, part_new, particle_data,true);
     //remove_boundary(output_image_apr,2*filter_offset +1);

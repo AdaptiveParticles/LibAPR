@@ -102,11 +102,53 @@ int main(int argc, char **argv) {
     //  Different access and filter test examples
     //
     //////////////////////////////////
-    
+
+    ParticleDataNew<float, uint64_t> part_new;
+    //flattens format to particle = cell, this is in the classic access/part paradigm
+    part_new.initialize_from_structure(pc_struct);
+
+    //generates the nieghbour structure
+    PartCellData<uint64_t> pc_data;
+    part_new.create_pc_data_new(pc_data);
+
+    pc_data.org_dims = pc_struct.org_dims;
+    part_new.access_data.org_dims = pc_struct.org_dims;
+
+    part_new.particle_data.org_dims = pc_struct.org_dims;
+
+    ExtraPartCellData<float> particle_data;
+
+    part_new.create_particles_at_cell_structure(particle_data);
+
     //set up some new structures used in this test
     AnalysisData analysis_data;
 
     float num_repeats = 1;
+
+    std::vector<float> filter = {.05,.9,.05};
+    std::vector<float> delta = {1,1,4};
+
+    int num_tap = 4;
+
+    ExtraPartCellData<float> smoothed_parts = adaptive_smooth(pc_data,particle_data,num_tap,filter);
+
+    ExtraPartCellData<float> gradient_mag = adaptive_grad(pc_data,particle_data,3,delta);
+
+    ExtraPartCellData<float> smoothed_gradient_mag = adaptive_grad(pc_data,smoothed_parts,3,delta);
+
+    Mesh_data<float> output_img;
+    interp_img(output_img, pc_data, part_new, smoothed_parts,true);
+
+    debug_write(output_img,"adapt_smooth");
+
+    interp_img(output_img, pc_data, part_new, gradient_mag,true);
+
+    debug_write(output_img,"grad_mag");
+
+    interp_img(output_img, pc_data, part_new, smoothed_gradient_mag,true);
+
+    debug_write(output_img,"grad_mag_smooth");
+
 
     //Get neighbours (linear)
 
@@ -114,33 +156,33 @@ int main(int argc, char **argv) {
     //
    // particle_linear_neigh_access(pc_struct,num_repeats,analysis_data);
 
-    particle_linear_neigh_access(pc_struct,num_repeats,analysis_data);
+//    particle_linear_neigh_access(pc_struct,num_repeats,analysis_data);
 
 
 
-    lin_access_parts(pc_struct);
-
-    ParticleDataNew<float, uint64_t> part_new;
-
-    part_new.initialize_from_structure(pc_struct);
-
-    PartCellData<uint64_t> pc_data;
-    part_new.create_pc_data_new(pc_data);
-
-    uint64_t counter = 0;
-
-
-    for(uint64_t depth = (pc_data.depth_min);depth <= pc_data.depth_max;depth++) {
-        //loop over the resolutions of the structure
-        for(int i = 0;i < pc_data.data[depth].size();i++){
-
-            counter += pc_data.data[depth][i].size();
-        }
-
-    }
-
-    std::cout << counter << std::endl;
-    std::cout << pc_struct.get_number_parts() << std::endl;
+//    lin_access_parts(pc_struct);
+//
+//    ParticleDataNew<float, uint64_t> part_new;
+//
+//    part_new.initialize_from_structure(pc_struct);
+//
+//    PartCellData<uint64_t> pc_data;
+//    part_new.create_pc_data_new(pc_data);
+//
+//    uint64_t counter = 0;
+//
+//
+//    for(uint64_t depth = (pc_data.depth_min);depth <= pc_data.depth_max;depth++) {
+//        //loop over the resolutions of the structure
+//        for(int i = 0;i < pc_data.data[depth].size();i++){
+//
+//            counter += pc_data.data[depth][i].size();
+//        }
+//
+//    }
+//
+//    std::cout << counter << std::endl;
+//    std::cout << pc_struct.get_number_parts() << std::endl;
 
     //particle_linear_neigh_access_alt_1(pc_struct);
 
