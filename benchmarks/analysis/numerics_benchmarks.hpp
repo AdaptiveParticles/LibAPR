@@ -971,60 +971,6 @@ void compute_guass_smooth(float sigma,Mesh_data<float> input,Mesh_data<float> gt
 
 
 template<typename T>
-Mesh_data<float> compute_grad(Mesh_data<T> gt_image){
-    //
-    //
-    //
-    //
-    //
-
-    AnalysisData analysis_data;
-    float num_repeats = 1;
-
-    std::vector<float> filter_f = {-.5,0,.5};
-    std::vector<float> filter_b = {0,1,0};
-
-    Mesh_data<float> gt_image_f;
-    gt_image_f.initialize(gt_image.y_num,gt_image.x_num,gt_image.z_num,0);
-    std::copy(gt_image.mesh.begin(),gt_image.mesh.end(),gt_image_f.mesh.begin());
-
-    Mesh_data<float> gt_output;
-
-    Mesh_data<float> temp;
-    temp.initialize(gt_image.y_num,gt_image.x_num,gt_image.z_num,0);
-
-    //first y direction
-    gt_output =  pixel_filter_full_mult(gt_image_f,filter_f,filter_b,filter_b,num_repeats,analysis_data);
-
-    for (int k = 0; k < gt_output.mesh.size(); ++k) {
-        temp.mesh[k] += pow(gt_output.mesh[k],2);
-    }
-
-    //first x direction
-    gt_output =  pixel_filter_full_mult(gt_image_f,filter_b,filter_f,filter_b,num_repeats,analysis_data);
-
-    //std::transform (temp.mesh.begin(), temp.mesh.end(), gt_output.mesh.begin(), gt_output.mesh.begin(), std::plus<float>());
-
-    for (int k = 0; k < gt_output.mesh.size(); ++k) {
-        temp.mesh[k] += pow(gt_output.mesh[k],2);
-    }
-
-    //first z direction
-    gt_output =  pixel_filter_full_mult(gt_image_f,filter_b,filter_b,filter_f,num_repeats,analysis_data);
-
-    for (int k = 0; k < gt_output.mesh.size(); ++k) {
-        temp.mesh[k] += pow(gt_output.mesh[k],2);
-    }
-
-    for (int k = 0; k < gt_output.mesh.size(); ++k) {
-        gt_output.mesh[k] = sqrt(temp.mesh[k]);
-    }
-
-    return gt_output;
-
-
-}
-template<typename T>
 void evaluate_adaptive_smooth(PartCellStructure<float,uint64_t> pc_struct,AnalysisData& analysis_data,SynImage& syn_image,Mesh_data<T>& input_image){
     //
     //  Bevan Cheeseman 2017

@@ -2663,4 +2663,65 @@ ExtraPartCellData<T> adaptive_grad(PartCellData<uint64_t>& pc_data,ExtraPartCell
 }
 
 
+template<typename T>
+Mesh_data<float> compute_grad(Mesh_data<T> gt_image,std::vector<float> delta = {1,1,1}){
+    //
+    //
+    //  Computes Gradient Magnitude Using FD
+    //
+    //
+
+    AnalysisData analysis_data;
+    float num_repeats = 1;
+
+    std::vector<float> filter_f = {-.5,0,.5};
+    std::vector<float> filter_b = {0,1,0};
+
+
+    std::vector<float> filter_y = {(float)-.5/delta[0],0,(float).5/delta[0]};
+    std::vector<float> filter_x = {(float)-.5/delta[1],0,(float).5/delta[1]};
+    std::vector<float> filter_z = {(float)-.5/delta[2],0,(float).5/delta[2]};
+
+    Mesh_data<float> gt_image_f;
+    gt_image_f.initialize(gt_image.y_num,gt_image.x_num,gt_image.z_num,0);
+    std::copy(gt_image.mesh.begin(),gt_image.mesh.end(),gt_image_f.mesh.begin());
+
+    Mesh_data<float> gt_output;
+
+    Mesh_data<float> temp;
+    temp.initialize(gt_image.y_num,gt_image.x_num,gt_image.z_num,0);
+
+    //first y direction
+    gt_output =  pixel_filter_full_mult(gt_image_f,filter_y,filter_b,filter_b,num_repeats,analysis_data);
+
+    for (int k = 0; k < gt_output.mesh.size(); ++k) {
+        temp.mesh[k] += pow(gt_output.mesh[k],2);
+    }
+
+    //first x direction
+    gt_output =  pixel_filter_full_mult(gt_image_f,filter_b,filter_x,filter_b,num_repeats,analysis_data);
+
+    //std::transform (temp.mesh.begin(), temp.mesh.end(), gt_output.mesh.begin(), gt_output.mesh.begin(), std::plus<float>());
+
+    for (int k = 0; k < gt_output.mesh.size(); ++k) {
+        temp.mesh[k] += pow(gt_output.mesh[k],2);
+    }
+
+    //first z direction
+    gt_output =  pixel_filter_full_mult(gt_image_f,filter_b,filter_b,filter_z,num_repeats,analysis_data);
+
+    for (int k = 0; k < gt_output.mesh.size(); ++k) {
+        temp.mesh[k] += pow(gt_output.mesh[k],2);
+    }
+
+    for (int k = 0; k < gt_output.mesh.size(); ++k) {
+        gt_output.mesh[k] = sqrt(temp.mesh[k]);
+    }
+
+    return gt_output;
+
+
+}
+
+
 #endif

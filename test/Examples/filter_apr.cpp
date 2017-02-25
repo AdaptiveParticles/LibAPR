@@ -54,6 +54,11 @@ cmdLineOptions read_command_line_options(int argc, char **argv, Part_rep& part_r
         std::cout << "Input file required" << std::endl;
         exit(2);
     }
+
+    if(command_option_exists(argv, argv + argc, "-org_image"))
+    {
+        result.original_file = std::string(get_command_option(argv, argv + argc, "-org_image"));
+    }
     
     if(command_option_exists(argv, argv + argc, "-d"))
     {
@@ -148,6 +153,27 @@ int main(int argc, char **argv) {
     interp_img(output_img, pc_data, part_new, smoothed_gradient_mag,true);
 
     debug_write(output_img,"grad_mag_smooth");
+
+    if(options.original_file != ""){
+        //
+        //  If there is input for the original image, perform the gradient on it
+        //
+
+        Mesh_data<uint16_t> input_image;
+
+        load_image_tiff(input_image, options.original_file);
+
+        Mesh_data<float> input_image_float;
+
+        input_image_float = input_image.to_type<float>();
+
+        Mesh_data<float> grad;
+
+        grad = compute_grad(input_image_float,delta);
+
+        debug_write(grad,"input_grad");
+
+    }
 
 
     //Get neighbours (linear)
