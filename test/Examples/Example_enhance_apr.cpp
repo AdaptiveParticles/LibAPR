@@ -108,7 +108,7 @@ int main(int argc, char **argv) {
 
     Mesh_data<float> output_img;
 
-    compute_guided_apr(output_img,pc_struct);
+    compute_guided_apr(output_img,pc_struct,part_rep);
 
 
 
