@@ -201,11 +201,19 @@ add_executable(pipeline
 )
 
 add_executable(Example_filter
-    test/Examples/filter_apr.cpp
-    test/utils.cpp
-    src/io/write_parts.cpp
-    ${SOURCE_FILES_COMPILED}
-)
+        test/Examples/filter_apr.cpp
+        test/utils.cpp
+        src/io/write_parts.cpp
+        ${SOURCE_FILES_COMPILED}
+        )
+
+add_executable(Example_enhance_apr
+        test/Examples/Example_enhance_apr.cpp
+        test/utils.cpp
+        src/io/write_parts.cpp
+        ${SOURCE_FILES_COMPILED}
+        )
+
 
 add_executable(Example_segment_gc
     test/Examples/segmentation_apr.cpp
@@ -227,6 +235,7 @@ target_link_libraries(Example_ray_cast ${HDF5_LIBRARIES} pthread tiff blosc_shar
 target_link_libraries(Example_vis ${HDF5_LIBRARIES} pthread tiff blosc_shared)
 target_link_libraries(Example_filter ${HDF5_LIBRARIES} pthread tiff blosc_shared)
 target_link_libraries(Example_segment_gc ${HDF5_LIBRARIES} pthread tiff blosc_shared)
+target_link_libraries(Example_enhance_apr ${HDF5_LIBRARIES} pthread tiff blosc_shared)
 
 set_target_properties(blosc_shared PROPERTIES
         RUNTIME_OUTPUT_DIRECTORY_DEBUG ${PROJECT_BINARY_DIR})

@@ -1,10 +1,15 @@
-#ifndef PARTPLAY_FILTER_H
-#define PARTPLAY_FILTER_H
+//
+// Created by cheesema on 25/02/17.
+//
+
+#ifndef PARTPLAY_EXAMPLE_ENHANCE_APR_HPP
+#define PARTPLAY_EXAMPLE_ENHANCE_APR_HPP
 
 #include <functional>
 #include <string>
 
 #include "../../src/data_structures/structure_parts.h"
+
 
 struct cmdLineOptions_filter{
     std::string output = "output";
@@ -22,4 +27,5 @@ bool command_option_exists_filter(char **begin, char **end, const std::string &o
 
 char* get_command_option_filter(char **begin, char **end, const std::string &option);
 
-#endif //PARTPLAY_FILTER_H
+
+#endif //PARTPLAY_EXAMPLE_ENHANCE_APR_HPP

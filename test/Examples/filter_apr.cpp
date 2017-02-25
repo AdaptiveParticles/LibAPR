@@ -19,16 +19,16 @@
 
 #include "../../src/numerics/misc_numerics.hpp"
 #include "../../src/numerics/filter_numerics.hpp"
+#include "../../src/numerics/enhance_parts.hpp"
 
 
 
-
-bool command_option_exists(char **begin, char **end, const std::string &option)
+bool command_option_exists_filter(char **begin, char **end, const std::string &option)
 {
     return std::find(begin, end, option) != end;
 }
 
-char* get_command_option(char **begin, char **end, const std::string &option)
+char* get_command_option_filter(char **begin, char **end, const std::string &option)
 {
     char ** itr = std::find(begin, end, option);
     if (itr != end && ++itr != end)
@@ -38,9 +38,9 @@ char* get_command_option(char **begin, char **end, const std::string &option)
     return 0;
 }
 
-cmdLineOptions read_command_line_options(int argc, char **argv, Part_rep& part_rep){
+cmdLineOptions_filter read_command_line_options_filter(int argc, char **argv, Part_rep& part_rep){
     
-    cmdLineOptions result;
+    cmdLineOptions_filter result;
     
     if(argc == 1) {
         std::cerr << "Usage: \"pipeline -i inputfile -d directory [-t] [-o outputfile]\"" << std::endl;
@@ -90,7 +90,7 @@ int main(int argc, char **argv) {
     
     // INPUT PARSING
     
-    cmdLineOptions options = read_command_line_options(argc, argv, part_rep);
+    cmdLineOptions_filter options = read_command_line_options_filter(argc, argv, part_rep);
     
     // APR data structure
     PartCellStructure<float,uint64_t> pc_struct;
@@ -148,11 +148,14 @@ int main(int argc, char **argv) {
 
     interp_img(output_img, pc_data, part_new, gradient_mag,true);
 
-    //debug_write(output_img,"grad_mag");
+    debug_write(output_img,"grad_mag");
 
     interp_img(output_img, pc_data, part_new, smoothed_gradient_mag,true);
 
     debug_write(output_img,"grad_mag_smooth");
+
+
+
 
     if(options.original_file != ""){
         //
