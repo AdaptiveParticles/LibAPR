@@ -148,7 +148,7 @@ int main(int argc, char **argv) {
 
     interp_img(output_img, pc_data, part_new, gradient_mag,true);
 
-    debug_write(output_img,"grad_mag");
+    //debug_write(output_img,"grad_mag");
 
     interp_img(output_img, pc_data, part_new, smoothed_gradient_mag,true);
 
@@ -167,11 +167,39 @@ int main(int argc, char **argv) {
 
         input_image_float = input_image.to_type<float>();
 
+        // Grad magniute FD
+
         Mesh_data<float> grad;
 
         grad = compute_grad(input_image_float,delta);
 
         debug_write(grad,"input_grad");
+
+        Mesh_data<float> grad_bspline;
+
+        grad_bspline.initialize(grad.y_num,grad.x_num,grad.z_num,0);
+
+        //Grad magnitude Smoothing bsplines
+
+        //fit the splines using recursive filters
+        float tol = 0.0001;
+        float lambda = .5;
+
+        //Y direction bspline
+        bspline_filt_rec_y(input_image_float,lambda,tol);
+
+        //Z direction bspline
+        bspline_filt_rec_z(input_image_float,lambda,tol);
+
+        //X direction bspline
+        bspline_filt_rec_x(input_image_float,lambda,tol);
+
+
+        calc_bspline_fd_x_y_alt(input_image_float,grad_bspline,delta[0],delta[1]);
+
+        calc_bspline_fd_z_alt(input_image_float,grad_bspline,delta[2]);
+
+        debug_write(grad_bspline,"input_grad_bspline");
 
     }
 
