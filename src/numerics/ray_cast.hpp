@@ -2223,14 +2223,12 @@ void prospective_mesh_raycast(PartCellStructure<S,uint64_t>& pc_struct,proj_par&
     unsigned int imageWidth = image.x_num;
     unsigned int imageHeight = image.y_num;
 
-    Camera cam = Camera(glm::vec3(0.0f, 0.0f, 1.5*image.z_num), glm::fquat(1.0f, 0.0f, 0.0f, 0.0f));
-//    cam.setPerspectiveCamera((float)imageWidth/(float)imageHeight, (float) (50.0f / 180.0f * M_PI), 1.0f, 2000.0f);
+    Camera cam = Camera(glm::vec3(0.0f, 0.0f, 5.5f*image.z_num), glm::fquat(1.0f, 0.0f, 0.0f, 0.0f));
+    cam.setPerspectiveCamera((float)imageWidth/(float)imageHeight, (float) (60.0f / 180.0f * M_PI), 0.5f, 70.0f);
 
-    cam.setOrthographicCamera(imageWidth, imageHeight, 1.0f, 200.0f);
+//    cam.setOrthographicCamera(imageWidth, imageHeight, 1.0f, 200.0f);
     // ray traced object, sitting on the origin, with no rotation applied
     RaytracedObject o = RaytracedObject(glm::vec3(0.0f, 0.0f, 0.0f), glm::fquat(1.0f, 0.0f, 0.0f, 0.0f));
-
-
 
     auto start = std::chrono::high_resolution_clock::now();
     glm::mat4 inverse_projection = glm::inverse(*cam.getProjection());

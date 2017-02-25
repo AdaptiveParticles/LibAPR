@@ -19,7 +19,7 @@ Camera* Camera::setOrthographicCamera(unsigned int width, unsigned int height, f
     this->nearPlaneDistance = nearPlane;
     this->farPlaneDistance = farPlane;
 
-    this->projection = glm::orthoRH(1.0f*width, 1.0f*width, -1.0f*height, 1.0f*height, nearPlane, farPlane);
+    this->projection = glm::orthoRH(-1.0f*width, 1.0f*width, -1.0f*height, 1.0f*height, -1.0f, 1.0f);
     return this;
 }
 
