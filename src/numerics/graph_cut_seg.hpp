@@ -647,8 +647,8 @@ void construct_max_flow_graph_new(PartCellStructure<V,T>& pc_struct,GraphType& g
     ExtraPartCellData<float> adaptive_max;
 
     //offsets past on cell status (resolution)
-    std::vector<unsigned int> status_offsets_min = {1,1,2};
-    std::vector<unsigned int> status_offsets_max = {1,1,2};
+    std::vector<unsigned int> status_offsets_min = {1,2,3};
+    std::vector<unsigned int> status_offsets_max = {1,2,3};
 
     get_adaptive_min_max(pc_struct,adaptive_min,adaptive_max,status_offsets_min,status_offsets_max,0,0);
 
@@ -775,7 +775,7 @@ void construct_max_flow_graph_new(PartCellStructure<V,T>& pc_struct,GraphType& g
 //
 //    debug_write(check,"Ip");
 
-    float Ip_min = 180;
+    float Ip_min = 98;
 
 
     counter = 0;
