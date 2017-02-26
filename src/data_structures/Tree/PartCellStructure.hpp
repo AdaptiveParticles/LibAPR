@@ -1638,9 +1638,9 @@ public:
         Mesh_data<U> curr_k_img;
         Mesh_data<U> prev_k_img;
         
-        int x_dim = ceil(org_dims[0]/2.0)*2;
-        int z_dim = ceil(org_dims[1]/2.0)*2;
-        int y_dim = ceil(org_dims[2]/2.0)*2;
+        int y_dim = ceil(org_dims[0]/2.0)*2;
+        int x_dim = ceil(org_dims[1]/2.0)*2;
+        int z_dim = ceil(org_dims[2]/2.0)*2;
         
         prev_k_img.mesh.resize(x_dim*z_dim*y_dim);
         curr_k_img.mesh.resize(x_dim*z_dim*y_dim);
@@ -1805,7 +1805,7 @@ public:
             
             timer.start_timer("particle loop");
             
-#pragma omp parallel for default(shared) private(z_,x_,j_,node_val,curr_key,status,part_offset,x_p,y_p,z_p,depth_,status_,y_coord) if(z_num_*x_num_ > 100)
+//#pragma omp parallel for default(shared) private(z_,x_,j_,node_val,curr_key,status,part_offset,x_p,y_p,z_p,depth_,status_,y_coord) if(z_num_*x_num_ > 100)
             for(z_ = 0;z_ < z_num_;z_++){
                 
                 curr_key = 0;

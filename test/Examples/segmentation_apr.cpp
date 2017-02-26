@@ -87,6 +87,10 @@ int main(int argc, char **argv) {
     read_apr_pc_struct(pc_struct,file_name);
     
     //Part Segmentation
+    Mesh_data<uint8_t> k_img;
+    interp_depth_to_mesh(k_img,pc_struct);
+    debug_write(k_img,"k_debug_old");
+
     
     AnalysisData analysis_data;
     
@@ -98,13 +102,33 @@ int main(int argc, char **argv) {
     //nuclei
     std::array<uint64_t,10> parameters_mem = {100,2000,2,2,2,2,2,3,0,0};
     
-    calc_graph_cuts_segmentation(pc_struct, seg_parts,parameters_nuc,analysis_data);
-    
+    //calc_graph_cuts_segmentation(pc_struct, seg_parts,parameters_nuc,analysis_data);
+
+    calc_graph_cuts_segmentation_new(pc_struct, seg_parts,analysis_data);
+
+
+    ParticleDataNew<float, uint64_t> part_new;
+    //flattens format to particle = cell, this is in the classic access/part paradigm
+    part_new.initialize_from_structure(pc_struct);
+
+    //generates the nieghbour structure
+    PartCellData<uint64_t> pc_data;
+    part_new.create_pc_data_new(pc_data);
+
+    pc_data.org_dims = pc_struct.org_dims;
+    part_new.access_data.org_dims = pc_struct.org_dims;
+
+    part_new.particle_data.org_dims = pc_struct.org_dims;
+
     Mesh_data<uint8_t> seg_mesh;
+
+    interp_img(seg_mesh, pc_data, part_new, seg_parts,true);
+
+    debug_write(seg_mesh,"new_seg");
     
     //if(pc_struct.org_dims[0] <400){
     
-    calc_graph_cuts_segmentation_mesh(pc_struct,seg_mesh,parameters_nuc,analysis_data);
+    //calc_graph_cuts_segmentation_mesh(pc_struct,seg_mesh,parameters_nuc,analysis_data);
     
     std::cout << " Num Parts: " << pc_struct.get_number_parts() << std::endl;
     std::cout << " Num Pixels: " << pc_struct.org_dims[0]*pc_struct.org_dims[1]*pc_struct.org_dims[2] << std::endl;

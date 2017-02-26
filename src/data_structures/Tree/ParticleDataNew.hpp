@@ -539,7 +539,7 @@ public:
         
     }
     
-    template<typename U>
+   template<typename U>
     void create_particles_at_cell_structure(ExtraPartCellData<U>& pdata_new){
         //
         //  Bevan Cheesean 2017
@@ -548,50 +548,101 @@ public:
         //
         //  Uses more memory, but has quicker access
         //
-        
+
         pdata_new.initialize_structure_cells(access_data);
-        
+
         uint64_t z_,x_,j_,node_val;
         uint64_t part_offset;
-        
+
         for(uint64_t i = access_data.depth_min;i <= access_data.depth_max;i++){
-            
+
             const unsigned int x_num_ = access_data.x_num[i];
             const unsigned int z_num_ = access_data.z_num[i];
-            
+
 #pragma omp parallel for default(shared) private(z_,x_,j_,part_offset,node_val)  if(z_num_*x_num_ > 100)
             for(z_ = 0;z_ < z_num_;z_++){
-                
+
                 for(x_ = 0;x_ < x_num_;x_++){
                     const size_t offset_pc_data = x_num_*z_ + x_;
                     const size_t j_num = access_data.data[i][offset_pc_data].size();
-                    
+
                     for(j_ = 0; j_ < j_num;j_++){
                         //raster over both structures, generate the index for the particles, set the status and offset_y_coord diff
-                        
+
                         node_val = access_data.data[i][offset_pc_data][j_];
-                        
+
                         if(!(node_val&1)){
-                            
+
                             part_offset = access_node_get_part_offset(node_val);
-                            
+
                             pdata_new.data[i][offset_pc_data][j_] = particle_data.data[i][offset_pc_data][part_offset];
-                            
+
                         } else {
-                            
+
                         }
-                        
+
                     }
                 }
             }
         }
-        
-        
-        
+
+
+
     }
-    
-    
-    
+    template<typename U>
+    void create_particles_at_cell_structure(ExtraPartCellData<U>& pdata_new,ExtraPartCellData<U>& pdata_old){
+        //
+        //  Bevan Cheesean 2017
+        //
+        //  This places particles so they are no longer contiguous, with gaps mirroring those in the cell data structure, such that no additional key is needed
+        //
+        //  Uses more memory, but has quicker access
+        //
+
+        pdata_new.initialize_structure_cells(access_data);
+
+        uint64_t z_,x_,j_,node_val;
+        uint64_t part_offset;
+
+        for(uint64_t i = access_data.depth_min;i <= access_data.depth_max;i++){
+
+            const unsigned int x_num_ = access_data.x_num[i];
+            const unsigned int z_num_ = access_data.z_num[i];
+
+#pragma omp parallel for default(shared) private(z_,x_,j_,part_offset,node_val)  if(z_num_*x_num_ > 100)
+            for(z_ = 0;z_ < z_num_;z_++){
+
+                for(x_ = 0;x_ < x_num_;x_++){
+                    const size_t offset_pc_data = x_num_*z_ + x_;
+                    const size_t j_num = access_data.data[i][offset_pc_data].size();
+
+                    for(j_ = 0; j_ < j_num;j_++){
+                        //raster over both structures, generate the index for the particles, set the status and offset_y_coord diff
+
+                        node_val = access_data.data[i][offset_pc_data][j_];
+
+                        if(!(node_val&1)){
+
+                            part_offset = access_node_get_part_offset(node_val);
+
+                            pdata_new.data[i][offset_pc_data][j_] = pdata_old.data[i][offset_pc_data][part_offset];
+
+                        } else {
+
+                        }
+
+                    }
+                }
+            }
+        }
+
+
+
+    }
+
+
+
+
     template<typename U>
     void utest_structure(PartCellStructure<U,uint64_t>& pc_struct,std::vector<Mesh_data<uint64_t>> link_array){
         //

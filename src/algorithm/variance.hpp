@@ -386,17 +386,21 @@ void calc_abs_diff(Mesh_data<T>& input_image,Mesh_data<T>& var){
 
 }
 template<typename T>
-void intensity_th(Mesh_data<T>& input_image,Mesh_data<T>& var,const float threshold){
+void intensity_th(Mesh_data<T>& input_image,Mesh_data<T>& var,const float threshold,float max_th_input = 60000){
     //
     //  Bevan Cheeseman 2016
     //
     //
 
-    const int z_num = input_image.z_num;
-    const int x_num = input_image.x_num;
-    const int y_num = input_image.y_num;
+    const int z_num = var.z_num;
+    const int x_num = var.x_num;
+    const int y_num = var.y_num;
 
-    const float max_th = 60000.0;
+    const int z_num_i = input_image.z_num;
+    const int x_num_i = input_image.x_num;
+    const int y_num_i = input_image.y_num;
+
+    const float max_th = max_th_input;
 
     int i,k;
 
@@ -407,7 +411,7 @@ void intensity_th(Mesh_data<T>& input_image,Mesh_data<T>& var,const float thresh
 
             for (k = 0; k < (y_num);k++){
 
-                if(input_image.mesh[j*x_num*y_num + i*y_num + k] < threshold){
+                if(input_image.mesh[j*x_num_i*y_num_i + i*y_num_i + k] < threshold){
                     var.mesh[j*x_num*y_num + i*y_num + k] = max_th;
                 }
 

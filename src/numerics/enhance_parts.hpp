@@ -38,8 +38,9 @@ PartCellStructure<U,uint64_t> compute_guided_apr(Mesh_data<U> input_image,PartCe
     part_rep.pars.dy = part_rep.pars.dx = part_rep.pars.dz = 1;
     part_rep.pars.psfx = part_rep.pars.psfy = part_rep.pars.psfz = 1;
     part_rep.pars.rel_error = 0.1;
-    part_rep.pars.var_th = 0;
-    part_rep.pars.var_th_max = 0;
+    part_rep.pars.var_th = 5;
+    part_rep.pars.var_th_max = 10;
+    part_rep.pars.I_th = 950;
 
     ParticleDataNew<float, uint64_t> part_new;
     //flattens format to particle = cell, this is in the classic access/part paradigm
@@ -63,15 +64,19 @@ PartCellStructure<U,uint64_t> compute_guided_apr(Mesh_data<U> input_image,PartCe
 
     float num_repeats = 1;
 
-    std::vector<float> filter = {.05,.9,.05};
+    std::vector<float> filter = {.0125,.975,.0125};
     std::vector<float> delta = {1,1,4};
 
-    int num_tap = 4;
+    int num_tap = 1;
 
-    ExtraPartCellData<float> smoothed_parts = adaptive_smooth(pc_data,particle_data,num_tap,filter);
+   //
 
-    ExtraPartCellData<float> smoothed_gradient_mag = adaptive_grad(pc_data,smoothed_parts,3,delta);
+    ExtraPartCellData<float> smoothed_gradient_mag = adaptive_grad(pc_data,particle_data,3,delta);
 
+    if(input_image.x_num == 0){
+        ExtraPartCellData<float> smoothed_parts = adaptive_smooth(pc_data,particle_data,num_tap,filter);
+        interp_img(input_image, pc_data, part_new, smoothed_parts,true);
+    }
 
     //adaptive mean
     ExtraPartCellData<float> adaptive_min;
@@ -83,8 +88,9 @@ PartCellStructure<U,uint64_t> compute_guided_apr(Mesh_data<U> input_image,PartCe
 
     get_adaptive_min_max(pc_struct,adaptive_min,adaptive_max,status_offsets_min,status_offsets_max,0,0);
 
-    transform_parts(adaptive_max,adaptive_min,std::minus<float>());
 
+
+    transform_parts(adaptive_max,adaptive_min,std::minus<float>());
 
     //pc_struct.interp_parts_to_pc(var,adaptive_max);
 
@@ -94,45 +100,68 @@ PartCellStructure<U,uint64_t> compute_guided_apr(Mesh_data<U> input_image,PartCe
     //
 
     Mesh_data<float> grad;
-
+//
     interp_img(grad, pc_data, part_new, smoothed_gradient_mag,true);
-
+//
     Mesh_data<float> var;
-    float min = 100;
+
+    float min = 10;
     var.preallocate(grad.y_num, grad.x_num, grad.z_num, 0);
 
-    // preallocate_memory
+
+//
+//    // preallocate_memory
     Particle_map<float> part_map(part_rep);
     preallocate(part_map.layers, grad.y_num, grad.x_num, grad.z_num, part_rep);
-
+//
     Mesh_data<float> temp;
-
-
+//
+//
     interp_extrapc_to_mesh(temp,pc_struct,adaptive_max);
 
+
+    Mesh_data<float> norm_grad;
+    interp_img(norm_grad, pc_data, part_new, smoothed_gradient_mag,true);
+
+        for (int j = 0; j < norm_grad.z_num; ++j) {
+        for (int i = 0; i < norm_grad.x_num; ++i) {
+            for (int k = 0; k < norm_grad.y_num; ++k) {
+                if (var(i,j,k) > min) {
+                    norm_grad(i,j,k) = 1000*norm_grad(i,j,k) / temp(i,j,k);
+                } else {
+                    norm_grad(i,j,k) = 1000*norm_grad(i,j,k) / min;
+                }
+            }
+        }
+    }
+
+    debug_write(norm_grad,"norm_grad");
+
+
+    if(part_rep.pars.I_th > 0) {
+        intensity_th(input_image, temp,
+                     part_rep.pars.I_th);
+    }
+
+    debug_write(temp,"var_input");
+
+
+//
     down_sample(temp,var,
                 [](float x, float y) { return x+y; },
                 [](float x) { return x * (1.0/8.0); },true);
 
 
-
-    //debug_write(norm_grad,"adaptive_max");
+    rescale_var_and_threshold( temp,1,part_rep);
 
 //
-//    for (int j = 0; j < norm_grad.z_num; ++j) {
-//        for (int i = 0; i < norm_grad.x_num; ++i) {
-//            for (int k = 0; k < norm_grad.y_num; ++k) {
-//                if (var(i,j,k) > min) {
-//                    norm_grad(i,j,k) = 1000*norm_grad(i,j,k) / var(i,j,k);
-//                } else {
-//                    norm_grad(i,j,k) = 1000*norm_grad(i,j,k) / min;
-//                }
-//            }
-//        }
-//    }
+//
+//
+    //debug_write(norm_grad,"adaptive_max");
+//
+////
 
-    //debug_write(norm_grad,"norm_grad");
-    temp.initialize(grad.y_num, grad.x_num, grad.z_num, 0);
+    temp.preallocate(grad.y_num, grad.x_num, grad.z_num, 0);
 
     get_level_3D(var, grad, part_rep,part_map,
                  temp);
@@ -140,7 +169,10 @@ PartCellStructure<U,uint64_t> compute_guided_apr(Mesh_data<U> input_image,PartCe
     part_map.pushing_scheme(part_rep);
 
 
+
     part_map.downsample(input_image);
+
+    //debug_write(part_map.layers[pc_struct.depth_max].mesh);
 
     PartCellStructure<float,uint64_t> pc_struct_new;
 

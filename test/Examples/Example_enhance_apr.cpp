@@ -106,10 +106,48 @@ int main(int argc, char **argv) {
     // Read the apr file into the part cell structure
     read_apr_pc_struct(pc_struct,file_name);
 
-    Mesh_data<float> output_img;
-
-    compute_guided_apr(output_img,pc_struct,part_rep);
+    Mesh_data<float> input_img;
 
 
+
+    Mesh_data<float> input_image_float;
+    //
+    //  If there is input for the original image, perform the gradient on it
+    //
+
+    if(options.original_file != ""){
+        Mesh_data<uint16_t> input_image;
+
+        load_image_tiff(input_image, options.original_file);
+
+
+        input_image_float = input_image.to_type<float>();
+
+    }
+
+
+
+    PartCellStructure<float,uint64_t> pc_struct_new = compute_guided_apr(input_image_float,pc_struct,part_rep);
+
+
+
+    write_apr_full_format(pc_struct_new,options.directory ,options.output + "full");
+
+    write_apr_full_format(pc_struct,options.directory ,options.output + "full_old");
+
+    write_apr_pc_struct(pc_struct_new,options.directory,"parts");
+
+    Mesh_data<float> output;
+
+    pc_struct_new.interp_parts_to_pc(output,pc_struct_new.part_data.particle_data);
+
+    debug_write(output,"new_apr");
+
+    Mesh_data<uint8_t> k_img;
+    interp_depth_to_mesh(k_img,pc_struct);
+    debug_write(k_img,"k_debug_old");
+
+    interp_depth_to_mesh(k_img,pc_struct_new);
+    debug_write(k_img,"k_debug_new");
 
 }

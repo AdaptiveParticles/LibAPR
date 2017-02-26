@@ -1096,6 +1096,48 @@ void transform_parts(ExtraPartCellData<V>& parts,ExtraPartCellData<V>& parts2,Un
     }
 
 }
+template<typename V,class BinaryPredicate>
+void threshold_parts(ExtraPartCellData<V>& parts,ExtraPartCellData<V>& parts2,V th,V set_val,BinaryPredicate pred){
+    //
+    //  Bevan Cheeseman 2017
+    //
+    //  Takes two particle and compares them in some way then replaces them if the condition is met
+    //
+
+    int z_,x_,j_,y_;
+
+    for(uint64_t depth = (parts.depth_min);depth <= parts.depth_max;depth++) {
+        //loop over the resolutions of the structure
+        const unsigned int x_num_ = parts.x_num[depth];
+        const unsigned int z_num_ = parts.z_num[depth];
+
+        const unsigned int x_num_min_ = 0;
+        const unsigned int z_num_min_ = 0;
+
+
+#pragma omp parallel for default(shared) private(z_,x_,j_) if(z_num_*x_num_ > 100)
+        for (z_ = z_num_min_; z_ < z_num_; z_++) {
+            //both z and x are explicitly accessed in the structure
+
+            for (x_ = x_num_min_; x_ < x_num_; x_++) {
+
+                const unsigned int pc_offset = x_num_*z_ + x_;
+
+                for (j_ = 0; j_ < parts.data[depth][pc_offset].size(); ++j_) {
+
+                    float val_th = parts2.data[depth][pc_offset][j_];
+
+                    if(pred(val_th,th)){
+                        parts2.data[depth][pc_offset][j_] = set_val;
+                    }
+
+                }
+
+            }
+        }
+    }
+
+}
 template<typename V>
 V square(V input){
     return pow(input,2);
@@ -1826,8 +1868,245 @@ void filter_apr_mesh_dir(Mesh_data<U>& input_img,ExtraPartCellData<uint16_t>& y_
 
 }
 
+template<typename U,typename S>
+void convert_from_old_structure(ExtraPartCellData<U>& particle_data,PartCellStructure<U,uint64_t>& pc_struct,PartCellData<S>& pc_data,ExtraPartCellData<U>& old_part_data,bool type){
 
 
+    //first add the layers
+    particle_data.depth_max = pc_struct.depth_max + 1;
+    particle_data.depth_min = pc_struct.depth_min;
+
+
+    particle_data.z_num.resize(particle_data.depth_max+1);
+    particle_data.x_num.resize(particle_data.depth_max+1);
+
+    particle_data.data.resize(particle_data.depth_max+1);
+
+    for(uint64_t i = particle_data.depth_min;i < particle_data.depth_max;i++){
+        particle_data.z_num[i] = pc_struct.z_num[i];
+        particle_data.x_num[i] = pc_struct.x_num[i];
+        particle_data.data[i].resize(particle_data.z_num[i]*particle_data.x_num[i]);
+    }
+
+    particle_data.z_num[particle_data.depth_max] = pc_struct.org_dims[2];
+    particle_data.x_num[particle_data.depth_max] = pc_struct.org_dims[1];
+    particle_data.data[particle_data.depth_max].resize(particle_data.z_num[particle_data.depth_max]*particle_data.x_num[particle_data.depth_max]);
+
+    pc_data.z_num.resize(pc_data.depth_max+1);
+    pc_data.x_num.resize(pc_data.depth_max+1);
+    pc_data.y_num.resize(pc_data.depth_max+1);
+
+
+    for(uint64_t i = pc_data.depth_min;i < pc_data.depth_max;i++){
+        pc_data.z_num[i] = pc_struct.z_num[i];
+        pc_data.x_num[i] = pc_struct.x_num[i];
+        pc_data.y_num[i] = pc_struct.y_num[i];
+
+    }
+
+    pc_data.z_num[pc_data.depth_max] = pc_struct.org_dims[2];
+    pc_data.x_num[pc_data.depth_max] = pc_struct.org_dims[1];
+    pc_data.y_num[pc_data.depth_max] = pc_struct.org_dims[0];
+
+
+    //initialize loop variables
+    int x_;
+    int z_;
+    int y_;
+
+    int x_seed;
+    int z_seed;
+    int y_seed;
+
+    uint64_t j_;
+
+    uint64_t status;
+    uint64_t node_val;
+    uint16_t node_val_part;
+
+    //next initialize the entries;
+    Part_timer timer;
+    timer.verbose_flag = false;
+
+    std::vector<uint16_t> temp_exist;
+    std::vector<uint16_t> temp_location;
+
+    timer.start_timer("intiialize access data structure");
+
+    for(uint64_t i = pc_data.depth_max;i >= pc_data.depth_min;i--){
+
+        const unsigned int x_num = pc_data.x_num[i];
+        const unsigned int z_num = pc_data.z_num[i];
+
+
+        const unsigned int x_num_seed = pc_data.x_num[i-1];
+        const unsigned int z_num_seed = pc_data.z_num[i-1];
+
+        temp_exist.resize(pc_data.y_num[i]);
+        temp_location.resize(pc_data.y_num[i]);
+
+#pragma omp parallel for default(shared) private(j_,z_,x_,y_,node_val,status,z_seed,x_seed,node_val_part) firstprivate(temp_exist,temp_location) if(z_num*x_num > 100)
+        for(z_ = 0;z_ < z_num;z_++){
+
+            for(x_ = 0;x_ < x_num;x_++){
+
+                std::fill(temp_exist.begin(), temp_exist.end(), 0);
+                std::fill(temp_location.begin(), temp_location.end(), 0);
+
+                if( i < pc_data.depth_max){
+                    //access variables
+                    const size_t offset_pc_data = x_num*z_ + x_;
+                    const size_t j_num = pc_struct.pc_data.data[i][offset_pc_data].size();
+
+                    y_ = 0;
+
+                    //first loop over
+                    for(j_ = 0; j_ < j_num;j_++){
+                        //raster over both structures, generate the index for the particles, set the status and offset_y_coord diff
+
+                        node_val = pc_struct.pc_data.data[i][offset_pc_data][j_];
+                        node_val_part = pc_struct.part_data.access_data.data[i][offset_pc_data][j_];
+
+                        if(!(node_val&1)){
+                            //normal node
+                            y_++;
+                            //create pindex, and create status (0,1,2,3) and type
+                            status = (node_val & STATUS_MASK) >> STATUS_SHIFT;  //need the status masks here, need to move them into the datastructure I think so that they are correctly accessible then to these routines.
+                            uint16_t part_offset = (node_val_part & Y_PINDEX_MASK_PARTICLE) >> Y_PINDEX_SHIFT_PARTICLE;
+
+                            if(status > SEED){
+                                temp_exist[y_] = status;
+                                temp_location[y_] = part_offset;
+                            }
+
+                        } else {
+
+                            y_ = (node_val & NEXT_COORD_MASK) >> NEXT_COORD_SHIFT;
+                            y_--;
+                        }
+                    }
+                }
+
+                x_seed = x_/2;
+                z_seed = z_/2;
+
+                if( i > pc_data.depth_min){
+                    //access variables
+                    size_t offset_pc_data = x_num_seed*z_seed + x_seed;
+                    const size_t j_num = pc_struct.pc_data.data[i-1][offset_pc_data].size();
+
+
+                    y_ = 0;
+
+                    //first loop over
+                    for(j_ = 0; j_ < j_num;j_++){
+                        //raster over both structures, generate the index for the particles, set the status and offset_y_coord diff
+
+                        node_val_part = pc_struct.part_data.access_data.data[i-1][offset_pc_data][j_];
+                        node_val = pc_struct.pc_data.data[i-1][offset_pc_data][j_];
+
+                        if(!(node_val&1)){
+                            //normal node
+                            y_++;
+                            //create pindex, and create status (0,1,2,3) and type
+                            status = (node_val & STATUS_MASK) >> STATUS_SHIFT;  //need the status masks here, need to move them into the datastructure I think so that they are correctly accessible then to these routines.
+                            uint16_t part_offset = (node_val_part & Y_PINDEX_MASK_PARTICLE) >> Y_PINDEX_SHIFT_PARTICLE;
+
+                            if(status == SEED){
+                                temp_exist[2*y_] = status;
+                                temp_exist[2*y_+1] = status;
+
+                                temp_location[2*y_] = part_offset + (z_&1)*4 + (x_&1)*2;
+                                temp_location[2*y_+1] = part_offset + (z_&1)*4 + (x_&1)*2 + 1;
+
+                            }
+
+                        } else {
+
+                            y_ = (node_val & NEXT_COORD_MASK) >> NEXT_COORD_SHIFT;
+                            y_--;
+                        }
+                    }
+                }
+
+
+                size_t first_empty = 0;
+
+                size_t offset_pc_data = x_num*z_ + x_;
+                size_t offset_pc_data_seed = x_num_seed*z_seed + x_seed;
+                size_t curr_index = 0;
+                size_t prev_ind = 0;
+
+                //first value handle the duplication of the gap node
+
+
+
+                size_t part_total= 0;
+
+                for(y_ = 0;y_ < temp_exist.size();y_++){
+
+                    status = temp_exist[y_];
+
+                    if(status> 0){
+                        curr_index+= 1 + prev_ind;
+                        prev_ind = 0;
+                        part_total++;
+                    } else {
+                        prev_ind = 1;
+                    }
+                }
+
+
+                //initialize particles
+                particle_data.data[i][offset_pc_data].resize(part_total);
+
+                curr_index = 0;
+                prev_ind = 1;
+                size_t prev_coord = 0;
+
+                size_t part_counter=0;
+
+
+
+                for(y_ = 0;y_ < temp_exist.size();y_++){
+
+                    status = temp_exist[y_];
+
+                    if((status> 0)){
+
+                        curr_index++;
+
+
+                        //lastly retrieve the intensities
+                        if(status == SEED){
+                            //seed from up one level
+                            particle_data.data[i][offset_pc_data][part_counter] = old_part_data.data[i-1][offset_pc_data_seed][temp_location[y_]];
+                        }
+                        else {
+                            //non seed same level
+                            particle_data.data[i][offset_pc_data][part_counter] = old_part_data.data[i][offset_pc_data][temp_location[y_]];
+                        }
+
+                        part_counter++;
+
+
+                        prev_ind = 0;
+                    } else {
+
+                    }
+                }
+
+
+            }
+
+        }
+    }
+
+
+
+
+
+}
 
 
 template<typename V>

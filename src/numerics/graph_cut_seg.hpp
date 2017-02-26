@@ -587,6 +587,503 @@ void construct_max_flow_graph(PartCellStructure<V,T>& pc_struct,GraphType& g,std
     
 }
 template<typename T,typename V>
+void construct_max_flow_graph_new(PartCellStructure<V,T>& pc_struct,GraphType& g,ExtraPartCellData<uint8_t>& seg_parts,AnalysisData& analysis_data){
+    //
+    //  Constructs naiive max flow model for APR
+    //
+    //
+
+    Part_timer timer;
+
+    pc_struct.part_data.initialize_global_index();
+
+
+    uint64_t num_parts = pc_struct.get_number_parts();
+
+
+    //Get the other part rep information
+
+
+    ParticleDataNew<float, uint64_t> part_new;
+    //flattens format to particle = cell, this is in the classic access/part paradigm
+    part_new.initialize_from_structure(pc_struct);
+
+    //generates the nieghbour structure
+    PartCellData<uint64_t> pc_data;
+    part_new.create_pc_data_new(pc_data);
+
+    pc_data.org_dims = pc_struct.org_dims;
+    part_new.access_data.org_dims = pc_struct.org_dims;
+
+    part_new.particle_data.org_dims = pc_struct.org_dims;
+
+    ExtraPartCellData<float> particle_data;
+
+    part_new.create_particles_at_cell_structure(particle_data);
+
+
+    float beta = 1000;
+    float k_max = pc_struct.depth_max;
+    float k_min = pc_struct.depth_min;
+    float alpha = 1;
+
+    for(int i = 0; i < num_parts; i++){
+        //adds the node
+        g.add_node();
+
+    }
+
+    std::vector<float> filter = {.0125,.975,.0125};
+    std::vector<float> delta = {1,1,4};
+
+    int num_tap = 1;
+
+    ExtraPartCellData<float> smoothed_parts = adaptive_smooth(pc_data,particle_data,num_tap,filter);
+
+    ExtraPartCellData<float> smoothed_gradient_mag = adaptive_grad(pc_data,smoothed_parts,3,delta);
+
+    //adaptive mean
+    ExtraPartCellData<float> adaptive_min;
+    ExtraPartCellData<float> adaptive_max;
+
+    //offsets past on cell status (resolution)
+    std::vector<unsigned int> status_offsets_min = {1,1,2};
+    std::vector<unsigned int> status_offsets_max = {1,1,2};
+
+    get_adaptive_min_max(pc_struct,adaptive_min,adaptive_max,status_offsets_min,status_offsets_max,0,0);
+
+    Mesh_data<float> output_img;
+
+    //initialize variables required
+    uint64_t node_val_part; // node variable encoding part offset status information
+    int x_; // iteration variables
+    int z_; // iteration variables
+    uint64_t j_; // index variable
+    uint64_t curr_key = 0; // key used for accessing and particles and cells
+    // Extra variables required
+    //
+
+    uint64_t status=0;
+    uint64_t part_offset=0;
+    uint64_t p;
+
+    ExtraPartCellData<float> new_adaptive_max;
+    ExtraPartCellData<float> new_adaptive_min;
+
+    new_adaptive_min.initialize_structure_parts(pc_struct.part_data.particle_data);
+    new_adaptive_max.initialize_structure_parts(pc_struct.part_data.particle_data);
+
+
+
+    //////////////////////////////////
+    //
+    // First convert to particle location data
+    //
+    //////////////////////////////////
+
+    uint64_t counter = 0;
+
+    for(uint64_t i = pc_struct.pc_data.depth_min;i <= pc_struct.pc_data.depth_max;i++){
+        //loop over the resolutions of the structure
+        const unsigned int x_num_ = pc_struct.pc_data.x_num[i];
+        const unsigned int z_num_ = pc_struct.pc_data.z_num[i];
+
+#pragma omp parallel for default(shared) private(p,z_,x_,j_,node_val_part,curr_key,status,part_offset) if(z_num_*x_num_ > 100)
+
+        for(z_ = 0;z_ < z_num_;z_++){
+            //both z and x are explicitly accessed in the structure
+            curr_key = 0;
+
+            pc_struct.pc_data.pc_key_set_z(curr_key,z_);
+            pc_struct.pc_data.pc_key_set_depth(curr_key,i);
+
+            for(x_ = 0;x_ < x_num_;x_++){
+
+                pc_struct.pc_data.pc_key_set_x(curr_key,x_);
+
+                const size_t offset_pc_data = x_num_*z_ + x_;
+
+                const size_t j_num = pc_struct.pc_data.data[i][offset_pc_data].size();
+
+                //the y direction loop however is sparse, and must be accessed accordinagly
+                for(j_ = 0;j_ < j_num;j_++){
+
+                    //particle cell node value, used here as it is requried for getting the particle neighbours
+                    node_val_part = pc_struct.part_data.access_data.data[i][offset_pc_data][j_];
+
+                    if (!(node_val_part&1)){
+                        //Indicates this is a particle cell node
+                        pc_struct.part_data.access_data.pc_key_set_j(curr_key,j_);
+
+                        status = pc_struct.part_data.access_node_get_status(node_val_part);
+                        part_offset = pc_struct.part_data.access_node_get_part_offset(node_val_part);
+
+                        float loc_min = adaptive_min.get_val(curr_key);
+                        float loc_max = adaptive_max.get_val(curr_key);
+
+
+
+                        //loop over the particles
+                        for(p = 0;p < pc_struct.part_data.get_num_parts(status);p++){
+                            //first set the particle index value in the particle_data array (stores the intensities)
+                            pc_struct.part_data.access_data.pc_key_set_index(curr_key,part_offset+p);
+                            //get all the neighbour particles in (+y,-y,+x,-x,+z,-z) ordering
+
+                            new_adaptive_min.get_part(curr_key) = loc_min;
+                            new_adaptive_max.get_part(curr_key) = loc_max;
+
+                        }
+                    }
+
+                }
+
+            }
+
+        }
+    }
+
+
+    convert_from_old_structure(adaptive_max,pc_struct,pc_data,new_adaptive_max,false);
+    part_new.create_particles_at_cell_structure(new_adaptive_max,adaptive_max);
+
+    convert_from_old_structure(adaptive_min,pc_struct,pc_data,new_adaptive_min,false);
+    part_new.create_particles_at_cell_structure(new_adaptive_min,adaptive_min);
+
+
+    ExtraPartCellData<uint64_t> part_id;
+    part_id.initialize_structure_cells(pc_data);
+
+    //initialize variables required
+    uint64_t node_val_pc; // node variable encoding neighbour and cell information
+
+    // Extra variables required
+    //
+
+    //check everything
+//
+//    Mesh_data<float> check;
+//
+//    interp_img(check, pc_data, part_new, new_adaptive_min,true);
+//
+//    debug_write(check,"min");
+//
+//    interp_img(check, pc_data, part_new, new_adaptive_max,true);
+//
+//    debug_write(check,"max");
+//
+//    interp_img(check, pc_data, part_new, smoothed_parts,true);
+//
+//    debug_write(check,"Ip");
+
+    float Ip_min = 180;
+
+
+    counter = 0;
+
+    for(uint64_t i = pc_data.depth_min;i <= pc_data.depth_max;i++){
+
+
+        //loop over the resolutions of the structure
+        const unsigned int x_num_ = pc_data.x_num[i];
+        const unsigned int z_num_ = pc_data.z_num[i];
+//#pragma omp parallel for default(shared) private(z_,x_,j_,node_val_pc,curr_key)  firstprivate(neigh_cell_keys) if(z_num_*x_num_ > 100)
+        for(z_ = 0;z_ < z_num_;z_++){
+            //both z and x are explicitly accessed in the structure
+            curr_key = 0;
+
+            pc_data.pc_key_set_z(curr_key,z_);
+            pc_data.pc_key_set_depth(curr_key,i);
+
+            for(x_ = 0;x_ < x_num_;x_++){
+
+                pc_data.pc_key_set_x(curr_key,x_);
+
+                const size_t offset_pc_data = x_num_*z_ + x_;
+
+                const size_t j_num = pc_data.data[i][offset_pc_data].size();
+
+                //the y direction loop however is sparse, and must be accessed accordinagly
+                for(j_ = 0;j_ < j_num;j_++){
+
+                    //particle cell node value, used here as it is requried for getting the particle neighbours
+                    node_val_pc = pc_data.data[i][offset_pc_data][j_];
+
+                    if (!(node_val_pc&1)){
+                        //Indicates this is a particle cell node
+                        //y_coord++;
+
+
+                        pc_data.pc_key_set_j(curr_key,j_);
+
+                        part_id.get_val(curr_key) = counter;
+
+                        float Ip = smoothed_parts.get_val(curr_key);
+                        float loc_min = new_adaptive_min.get_val(curr_key);
+                        float loc_max = new_adaptive_max.get_val(curr_key);
+
+                        float cap_s;
+                        float cap_t;
+
+                        if((loc_min > 0) & (loc_max > 0) & (Ip > Ip_min)){
+                            cap_s =   alpha*abs((Ip - loc_min)/(loc_max-loc_min));
+                            cap_t =   alpha*abs((loc_max-Ip)/(loc_max-loc_min));
+
+                            cap_s =   alpha*abs((Ip - loc_min));
+                            cap_t =   alpha*abs((loc_max-Ip));
+
+                            //cap_s =   alpha/(1+exp(-(cap_s-(loc_max*.5 + loc_min*.5))));
+                            //cap_t =  alpha/(1+exp(-(cap_t -(loc_max*.5 + loc_min*.5))));
+
+                        } else {
+                            cap_s = 0;
+                            cap_t = 100000;
+                        }
+
+
+                        g.add_tweights(counter,   /* capacities */ cap_s, cap_t);
+
+                        counter++;
+
+
+                    } else {
+                        // Inidicates this is not a particle cell node, and is a gap node
+
+                    }
+
+                }
+
+            }
+
+        }
+    }
+
+
+
+
+
+    ////////////////////////////////////
+    //
+    //  Assign Neighbour Relationships
+    //
+    /////////////////////////////////////
+
+    PartCellNeigh<uint64_t> neigh_cell_keys;
+    //
+    // Extra variables required
+    //
+
+    uint64_t  neigh_counter= 0;
+
+    timer.verbose_flag = false;
+
+
+    timer.start_timer("neigh_cell_comp");
+
+
+
+
+    for(uint64_t i = pc_data.depth_min;i <= pc_data.depth_max;i++){
+
+
+        float h_depth = pow(2,pc_data.depth_max - i);
+
+        //loop over the resolutions of the structure
+        const unsigned int x_num_ = pc_data.x_num[i];
+        const unsigned int z_num_ = pc_data.z_num[i];
+//#pragma omp parallel for default(shared) private(z_,x_,j_,node_val_pc,curr_key)  firstprivate(neigh_cell_keys) if(z_num_*x_num_ > 100)
+        for(z_ = 0;z_ < z_num_;z_++){
+            //both z and x are explicitly accessed in the structure
+            curr_key = 0;
+
+            pc_data.pc_key_set_z(curr_key,z_);
+            pc_data.pc_key_set_depth(curr_key,i);
+
+
+            for(x_ = 0;x_ < x_num_;x_++){
+
+                pc_data.pc_key_set_x(curr_key,x_);
+
+                const size_t offset_pc_data = x_num_*z_ + x_;
+
+                const size_t j_num = pc_data.data[i][offset_pc_data].size();
+
+                //the y direction loop however is sparse, and must be accessed accordinagly
+                for(j_ = 0;j_ < j_num;j_++){
+
+                    //particle cell node value, used here as it is requried for getting the particle neighbours
+                    node_val_pc = pc_data.data[i][offset_pc_data][j_];
+
+                    if (!(node_val_pc&1)){
+                        //Indicates this is a particle cell node
+                        //y_coord++;
+
+                        pc_data.pc_key_set_j(curr_key,j_);
+
+                        pc_data.get_neighs_all(curr_key,node_val_pc,neigh_cell_keys);
+
+                        uint64_t global_index = part_id.get_val(curr_key);
+
+                        float grad = smoothed_gradient_mag.get_val(curr_key);
+                        float loc_min = new_adaptive_min.get_val(curr_key);
+                        float loc_max = new_adaptive_max.get_val(curr_key);
+                        float scale = abs(loc_max - loc_min);
+                        float Ip = smoothed_parts.get_val(curr_key);
+
+                        if((loc_min == 0) || (loc_max == 0)){
+                            scale = 1000;
+                        }
+
+                        std::vector<int> dirs = {0,1,2,3,4,5};
+
+                        //(+direction)
+                        //loop over the nieghbours
+                        for (int d = 0; d < dirs.size(); ++d) {
+
+                            for (int n = 0; n < neigh_cell_keys.neigh_face[dirs[d]].size(); n++) {
+                                // Check if the neighbour exisits (if neigh_cell_value = 0, the neighbour doesn't exist)
+                                uint64_t neigh_key = neigh_cell_keys.neigh_face[dirs[d]][n];
+
+                                float delta_s;
+
+                                if(dirs[d]>4){
+                                    delta_s = delta[2];
+                                } else{
+                                    delta_s = delta[0];
+                                }
+
+
+                                if (neigh_key > 0) {
+                                    //get information about the nieghbour (need to provide face and neighbour number (n) and the current y coordinate)
+
+                                    uint64_t ndepth = pc_data.pc_key_get_depth(neigh_key);
+                                    float h = .5*pow(2,pc_data.depth_max - ndepth) + .5*h_depth;
+
+                                    float Iq = smoothed_parts.get_val(neigh_key);
+                                    float grad_n = smoothed_gradient_mag.get_val(neigh_key);
+                                    uint64_t global_index_neigh = part_id.get_val(neigh_key);
+
+                                    //scale = 1;
+
+                                    float cap_1;
+                                    float cap_2;
+
+                                    if((Ip - Iq)>0.05*scale){
+                                        cap_1 = 1;
+                                        cap_2 = exp(-10*abs(Ip - Iq)/(h*delta_s));
+
+
+                                    } else {
+
+                                        cap_2 = 1;
+                                        cap_1 = exp(-10*abs(Ip - Iq)/(h*delta_s));
+
+                                    }
+
+                                    grad = abs(Ip - Iq)/(h*delta_s*.1);
+                                    grad_n = abs(Ip - Iq)/(h*delta_s*.1);
+
+
+                                    g.add_edge( global_index, global_index_neigh,    /* capacities */  beta*exp(-10*(grad)/pow(scale,1)), beta*exp(-10*(grad_n)/pow(scale,1)));
+
+                                    //g.add_edge( global_index, global_index_neigh,   /* capacities */  beta*cap_1, beta*cap_2);
+
+                                    neigh_counter++;
+
+                                }
+
+                            }
+
+                        }
+
+
+
+                    } else {
+                        // Inidicates this is not a particle cell node, and is a gap node
+
+                    }
+
+                }
+
+            }
+
+        }
+    }
+
+
+    seg_parts.initialize_structure_cells(pc_data);
+
+
+    //float temp2 = seg_parts.get_part(curr_key);
+    timer.start_timer("max flow");
+    int flow = g.maxflow();
+    timer.stop_timer();
+
+
+
+    for(uint64_t i = pc_data.depth_min;i <= pc_data.depth_max;i++){
+
+        float h_depth = pow(2,pc_data.depth_max - i);
+        //loop over the resolutions of the structure
+        const unsigned int x_num_ = pc_data.x_num[i];
+        const unsigned int z_num_ = pc_data.z_num[i];
+//#pragma omp parallel for default(shared) private(z_,x_,j_,node_val_pc,curr_key)  firstprivate(neigh_cell_keys) if(z_num_*x_num_ > 100)
+        for(z_ = 0;z_ < z_num_;z_++){
+            //both z and x are explicitly accessed in the structure
+            curr_key = 0;
+
+            pc_data.pc_key_set_z(curr_key,z_);
+            pc_data.pc_key_set_depth(curr_key,i);
+
+            for(x_ = 0;x_ < x_num_;x_++){
+
+                pc_data.pc_key_set_x(curr_key,x_);
+
+                const size_t offset_pc_data = x_num_*z_ + x_;
+
+                const size_t j_num = pc_data.data[i][offset_pc_data].size();
+
+                //the y direction loop however is sparse, and must be accessed accordinagly
+                for(j_ = 0;j_ < j_num;j_++){
+
+                    //particle cell node value, used here as it is requried for getting the particle neighbours
+                    node_val_pc = pc_data.data[i][offset_pc_data][j_];
+
+                    if (!(node_val_pc&1)){
+                        //Indicates this is a particle cell node
+
+                        pc_data.pc_key_set_j(curr_key,j_);
+
+                        part_id.get_val(curr_key);
+
+                        uint64_t global_part_index = part_id.get_val(curr_key);
+
+                        float temp = 255*(g.what_segment((int)global_part_index) == GraphType::SOURCE);
+
+                        seg_parts.get_val(curr_key) = temp;
+
+
+                    } else {
+                        // Inidicates this is not a particle cell node, and is a gap node
+
+                    }
+
+                }
+
+            }
+
+        }
+    }
+
+    analysis_data.add_float_data("part_num_neigh_new",(float)neigh_counter);
+
+
+
+}
+
+
+
+
+template<typename T,typename V>
 void calc_graph_cuts_segmentation(PartCellStructure<V,T>& pc_struct,ExtraPartCellData<uint8_t>& seg_parts,std::array<uint64_t,10> parameters,AnalysisData& analysis_data){
     //
     //
@@ -710,6 +1207,33 @@ void calc_graph_cuts_segmentation(PartCellStructure<V,T>& pc_struct,ExtraPartCel
     
     
 }
+
+template<typename T,typename V>
+void calc_graph_cuts_segmentation_new(PartCellStructure<V,T>& pc_struct,ExtraPartCellData<uint8_t>& seg_parts,AnalysisData& analysis_data){
+    //
+    //
+    //  Bevan Cheeseman 2016
+    //
+    //  Input the structure it outputs an extra data structure with 0,1 on the particles if in out the region
+    //
+    //
+
+    Part_timer timer;
+
+    timer.verbose_flag = false;
+
+    uint64_t num_parts = pc_struct.get_number_parts();
+
+    GraphType *g = new GraphType(num_parts ,num_parts*6.4 );
+
+    timer.start_timer("construct_graph_parts");
+
+    construct_max_flow_graph_new(pc_struct,*g,seg_parts,analysis_data);
+
+    timer.stop_timer();
+
+}
+
 
 template<typename T,typename V>
 void calc_graph_cuts_segmentation(PartCellStructure<V,T>& pc_struct,ExtraPartCellData<uint8_t>& seg_parts,std::array<uint64_t,10> parameters){

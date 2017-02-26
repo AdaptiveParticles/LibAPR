@@ -130,10 +130,10 @@ int main(int argc, char **argv) {
 
     float num_repeats = 1;
 
-    std::vector<float> filter = {.05,.9,.05};
+    std::vector<float> filter = {.025,.95,.025};
     std::vector<float> delta = {1,1,4};
 
-    int num_tap = 4;
+    int num_tap = 1;
 
     ExtraPartCellData<float> smoothed_parts = adaptive_smooth(pc_data,particle_data,num_tap,filter);
 
@@ -154,6 +154,11 @@ int main(int argc, char **argv) {
 
     debug_write(output_img,"grad_mag_smooth");
 
+    ExtraPartCellData<float> diff_diff = adaptive_grad(pc_data,gradient_mag,3,delta);
+
+    interp_img(output_img, pc_data, part_new, diff_diff,true);
+
+    debug_write(output_img,"second_dir");
 
 
 

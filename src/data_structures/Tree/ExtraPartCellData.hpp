@@ -46,6 +46,8 @@ public:
     std::vector<std::vector<std::vector<T>>> data;
 
     std::vector<unsigned int> org_dims;
+
+    std::vector<std::vector<uint64_t>> global_index_offset;
     
     template<typename S>
     void initialize_structure_cells(PartCellData<S>& pc_data){
@@ -142,8 +144,10 @@ public:
         }
         
     }
-    
-    
+
+
+
+
     
     T&  get_val(const uint64_t& pc_key){
         // data access
@@ -167,6 +171,66 @@ public:
         return data[depth][x_num[depth]*z_ + x_][index];
         
     }
+
+    uint64_t get_global_index(const uint64_t part_key){
+
+        const uint64_t depth = (part_key & PC_KEY_DEPTH_MASK) >> PC_KEY_DEPTH_SHIFT;
+        const uint64_t x_ = (part_key & PC_KEY_X_MASK) >> PC_KEY_X_SHIFT;
+        const uint64_t z_ = (part_key & PC_KEY_Z_MASK) >> PC_KEY_Z_SHIFT;
+        const uint64_t index = (part_key & PC_KEY_INDEX_MASK) >> PC_KEY_INDEX_SHIFT;
+
+        return global_index_offset[depth][x_num[depth]*z_ + x_] + index;
+
+    }
+
+    void initialize_global_index(){
+        //
+        //  Bevan Cheeseman 2016
+        //
+        //  Offset vector used for calculating a global index for each particle
+        //
+        //  (Can be useful for certain parallel routines)
+        //
+        //  Global particle index = index_offset + j;
+        //
+
+        uint64_t x_;
+        uint64_t z_;
+        uint64_t counter = 0;
+
+        //initialize
+        global_index_offset.resize(depth_max+1);
+
+        for(uint64_t i = depth_min;i <= depth_max;i++){
+
+            size_t x_num_ = x_num[i];
+            size_t z_num_ = z_num[i];
+
+            global_index_offset[i].resize(x_num_*z_num_);
+
+            // SEED PARTICLE STATUS LOOP (requires access to three data structures, particle access, particle data, and the part-map)
+            for(z_ = 0;z_ < z_num_;z_++){
+
+                for(x_ = 0;x_ < x_num_;x_++){
+
+                    const size_t offset_pc_data = x_num_*z_ + x_;
+
+                    const size_t j_num = data[i][offset_pc_data].size();
+
+                    global_index_offset[i][offset_pc_data] = counter;
+
+                    counter += j_num;
+
+
+                }
+            }
+        }
+
+
+
+    }
+
+
     
 private:
     
