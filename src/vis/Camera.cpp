@@ -24,9 +24,13 @@ Camera* Camera::setOrthographicCamera(unsigned int width, unsigned int height, f
 }
 
 glm::mat4 *Camera::getView() {
-    view = glm::diagonal4x4(glm::vec4(1.0f, 1.0f, 1.0f, 1.0f));
-    view *= glm::toMat4(rotation);
-    view *= glm::translate(this->position);
+    if(!targeted) {
+        view = glm::diagonal4x4(glm::vec4(1.0f, 1.0f, 1.0f, 1.0f));
+        view *= glm::toMat4(rotation);
+        view *= glm::translate(this->position);
+    } else {
+        view = glm::lookAt(position, target, glm::vec3(0.0f, 1.0f, 0.0f));
+    }
 
     setCoordinateSystem();
 
@@ -37,4 +41,13 @@ void Camera::setCoordinateSystem() {
     this->forward = glm::normalize(glm::vec3(view[0][2], view[1][2], view[2][2]));
     this->right =   glm::normalize(glm::vec3(view[0][0], view[1][0], view[2][0]));
     this->up =      glm::normalize(glm::vec3(view[0][1], view[1][1], view[2][1]));
+}
+
+void Camera::setTargeted(glm::vec3 t) {
+    targeted = true;
+    target = t;
+}
+
+void Camera::setUntargeted() {
+    targeted = false;
 }

@@ -2232,7 +2232,9 @@ void prospective_mesh_raycast(PartCellStructure<S,uint64_t>& pc_struct,proj_par&
     unsigned int imageWidth = image.x_num;
     unsigned int imageHeight = image.y_num;
 
-    Camera cam = Camera(glm::vec3(x0, y0 + sin(theta)*radius, z0 + radius*cos(theta)), glm::fquat(cos(theta/2), sin(theta/2),sin(theta/2) , sin(theta/2)));
+    Camera cam = Camera(glm::vec3(x0, y0 + sin(theta)*radius, z0 + radius*cos(theta)), glm::fquat(1.0f, 0.0f, 0.0f, 0.0f));
+    cam.setTargeted(glm::vec3(0.0f, 0.0f, 0.0f));
+
     cam.setPerspectiveCamera((float)imageWidth/(float)imageHeight, (float) (60.0f / 180.0f * M_PI), 0.5f, 70.0f);
 
 //    cam.setOrthographicCamera(imageWidth, imageHeight, 1.0f, 200.0f);

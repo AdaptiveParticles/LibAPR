@@ -21,6 +21,8 @@ protected:
     glm::mat4 view;
     glm::mat4 projection;
 
+    bool targeted = false;
+
     glm::vec3 target = glm::vec3(0.0f);
     glm::vec3 up = glm::vec3(0.0f);
     glm::vec3 forward = glm::vec3(0.0f);
@@ -36,6 +38,8 @@ public:
     Camera* setPerspectiveCamera(float aspectRatio, float fov, float nearPlane, float farPlane);
 
     glm::mat4* getView();
+    void setTargeted(glm::vec3 t);
+    void setUntargeted();
     void setCoordinateSystem();
     inline glm::mat4* getProjection() { return &this->projection; };
 
