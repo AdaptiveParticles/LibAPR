@@ -2222,9 +2222,13 @@ void prospective_mesh_raycast(PartCellStructure<S,uint64_t>& pc_struct,proj_par&
     //
     ////////////////////////////////////////////
 
-    float x0 = -height * image.x_num;
-    float y0 = -image.y_num * .5;
-    float z0 = -image.z_num * .5;
+    float x0 = height * image.x_num;
+    float y0 = image.y_num * .5;
+    float z0 = image.z_num * .5;
+
+    float x0f = height * image.x_num;
+    float y0f = image.y_num * .5;
+    float z0f = image.z_num * .5;
 
     unsigned int imageWidth = image.x_num;
     unsigned int imageHeight = image.y_num;
@@ -2235,10 +2239,10 @@ void prospective_mesh_raycast(PartCellStructure<S,uint64_t>& pc_struct,proj_par&
 
     timer.start_timer("ray cast mesh prospective");
 
-    for (float theta = 0.0f; theta < 0.4f; theta += 0.02f) {
-        Camera cam = Camera(glm::vec3(x0 + radius*sin(theta), y0 , z0 + radius * cos(theta)),
+    for (float theta = 0.0f; theta <= 4; theta += 0.02f) {
+        Camera cam = Camera(glm::vec3(x0 , y0 + radius*sin(theta), z0 + radius * cos(theta)),
                             glm::fquat(1.0f, 0.0f, 0.0f, 0.0f));
-        cam.setTargeted(glm::vec3(0.0f, 0.0f, 0.0f));
+        cam.setTargeted(glm::vec3(x0f, y0f, z0f));
 
         cam.setPerspectiveCamera((float) imageWidth / (float) imageHeight, (float) (60.0f / 180.0f * M_PI), 0.5f,
                                  70.0f);
@@ -2266,8 +2270,6 @@ void prospective_mesh_raycast(PartCellStructure<S,uint64_t>& pc_struct,proj_par&
         int counter = 0;
 
 
-
-
         const int dir = pars.direction;
 
         int z_, x_, j_, y_, i, k;
@@ -2280,7 +2282,7 @@ void prospective_mesh_raycast(PartCellStructure<S,uint64_t>& pc_struct,proj_par&
 
         const glm::mat4 mvp = (*cam.getProjection()) * (*cam.getView());
 
-//#pragma omp parallel for default(shared) private(z_,x_,j_,i,k)
+#pragma omp parallel for default(shared) private(z_,x_,j_,i,k)
         for (z_ = 0; z_ < z_num_; z_++) {
             //both z and x are explicitly accessed in the structure
 
