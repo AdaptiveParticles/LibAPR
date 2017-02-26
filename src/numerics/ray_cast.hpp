@@ -2208,11 +2208,16 @@ void prospective_mesh_raycast(PartCellStructure<S,uint64_t>& pc_struct,proj_par&
     //
     //
 
+    float height = 0.5;
+
+    float theta = 0;
 
 
     Mesh_data<S> image;
 
     pc_struct.interp_parts_to_pc(image,pc_struct.part_data.particle_data);
+
+    float radius = 8.5*image.z_num;
 
     ///////////////////////////////////////////
     //
@@ -2220,10 +2225,14 @@ void prospective_mesh_raycast(PartCellStructure<S,uint64_t>& pc_struct,proj_par&
     //
     ////////////////////////////////////////////
 
+    float x0 = -height*image.x_num;
+    float y0 = -image.y_num*.5;
+    float z0 = -image.z_num*.5;
+
     unsigned int imageWidth = image.x_num;
     unsigned int imageHeight = image.y_num;
 
-    Camera cam = Camera(glm::vec3(0.0f, 0.0f, 5.5f*image.z_num), glm::fquat(1.0f, 0.0f, 0.0f, 0.0f));
+    Camera cam = Camera(glm::vec3(x0, y0 + sin(theta)*radius, z0 + radius*cos(theta)), glm::fquat(cos(theta/2), sin(theta/2),sin(theta/2) , sin(theta/2)));
     cam.setPerspectiveCamera((float)imageWidth/(float)imageHeight, (float) (60.0f / 180.0f * M_PI), 0.5f, 70.0f);
 
 //    cam.setOrthographicCamera(imageWidth, imageHeight, 1.0f, 200.0f);
@@ -2285,7 +2294,7 @@ void prospective_mesh_raycast(PartCellStructure<S,uint64_t>& pc_struct,proj_par&
                 const int dim1 = -floor( pos.y);
                 const int dim2 = -floor( pos.x);
 
-                if(dim1 > 0 & dim2 > 0) {
+                if(dim1 > 0 & dim2 > 0 & (dim1 < proj_img.y_num) & (dim2 < proj_img.x_num)) {
 
                     proj_img.mesh[dim1 + (dim2) * proj_img.y_num] = std::max(temp_int, proj_img.mesh[dim1 + (dim2) *
                                                                                                             proj_img.y_num]);
