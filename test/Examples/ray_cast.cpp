@@ -123,11 +123,13 @@ int main(int argc, char **argv) {
 
     //multi_ray_parrallel_raster_mesh(pc_struct,proj_pars);
 
-   // multi_ray_parrallel_raster_alt_d(pc_struct,proj_pars);
+    //multi_ray_parrallel_raster_alt_d(pc_struct,proj_pars);
 
-    prospective_mesh_raycast(pc_struct,proj_pars);
+    //prospective_mesh_raycast(pc_struct,proj_pars);
 
-   // multi_ray_parrallel_raster_alt_d_off(pc_struct,proj_pars);
+    apr_prospective_raycast(pc_struct,proj_pars);
+
+    //multi_ray_parrallel_raster_alt_d_off(pc_struct,proj_pars);
 
     //gen_raster_cast(pc_struct,proj_pars);
 }
