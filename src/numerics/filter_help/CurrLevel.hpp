@@ -80,6 +80,25 @@ public:
         depth_min = pc_data.depth_min;
         
     };
+
+    template<typename U>
+    CurrentLevel(ParticleDataNew<U, T>& part_data){
+        depth = 0;
+        x = 0;
+        z = 0;
+        j = 0;
+        pc_offset = 0;
+        y = 0;
+        j_num = 0;
+        x_num = 0;
+        z_num = 0;
+        status = 0;
+        node_val = 0;
+
+        depth_max = part_data.depth_max;
+        depth_min = part_data.depth_min;
+
+    };
     
     template<typename U>
     void set_new_depth(T depth_,ParticleDataNew<U, T>& part_data){

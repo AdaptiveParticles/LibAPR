@@ -116,16 +116,22 @@ int main(int argc, char **argv) {
     
     timer.stop_timer();
 
+    ParticleDataNew<float, uint64_t> part_new;
+    //flattens format to particle = cell, this is in the classic access/part paradigm
+    part_new.initialize_from_structure(pc_struct);
 
-    //multi_ray_parrallel_raster(pc_struct,proj_pars);
+    ExtraPartCellData<uint16_t> y_vec;
 
-    //multi_ray_parrallel_raster_alt(pc_struct,proj_pars);
+    create_y_data(y_vec,part_new);
 
-    multi_ray_parrallel_raster_mesh(pc_struct,proj_pars);
+    ExtraPartCellData<uint16_t> particles_int;
+    part_new.create_particles_at_cell_structure(particles_int);
 
-    multi_ray_parrallel_raster_alt_d(pc_struct,proj_pars);
+    shift_particles_from_cells(part_new,particles_int);
 
-   // multi_ray_parrallel_raster_alt_d_off(pc_struct,proj_pars);
+    apr_prospective_raycast(y_vec,particles_int,proj_pars,[] (const uint16_t& a,const uint16_t& b) {return std::max(a,b);});
+
+    //multi_ray_parrallel_raster_alt_d_off(pc_struct,proj_pars);
 
     //gen_raster_cast(pc_struct,proj_pars);
 }

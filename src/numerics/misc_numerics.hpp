@@ -1186,7 +1186,59 @@ ExtraPartCellData<V> transform_parts(ExtraPartCellData<V>& parts,UnaryOperator o
     return output;
 
 }
+template<typename U,typename T,typename S>
+void shift_particles_from_cells(ParticleDataNew<S, T>& part_new,ExtraPartCellData<U>& pdata_old){
+    //
+    //  Bevan Cheesean 2017
+    //
+    //  Transfers them to align with the part data, to align with particle data no gaps
+    //
+    //
 
+    ExtraPartCellData<U> pdata_new;
+
+    pdata_new.initialize_structure_parts(part_new.particle_data);
+
+    uint64_t z_,x_,j_,node_val;
+    uint64_t part_offset;
+
+    for(uint64_t i = part_new.access_data.depth_min;i <= part_new.access_data.depth_max;i++){
+
+        const unsigned int x_num_ = part_new.access_data.x_num[i];
+        const unsigned int z_num_ = part_new.access_data.z_num[i];
+
+#pragma omp parallel for default(shared) private(z_,x_,j_,part_offset,node_val)  if(z_num_*x_num_ > 100)
+        for(z_ = 0;z_ < z_num_;z_++){
+
+            for(x_ = 0;x_ < x_num_;x_++){
+                const size_t offset_pc_data = x_num_*z_ + x_;
+                const size_t j_num = part_new.access_data.data[i][offset_pc_data].size();
+
+                int counter = 0;
+
+                for(j_ = 0; j_ < j_num;j_++){
+                    //raster over both structures, generate the index for the particles, set the status and offset_y_coord diff
+
+                    node_val = part_new.access_data.data[i][offset_pc_data][j_];
+
+                    if(!(node_val&1)){
+
+                        pdata_new.data[i][offset_pc_data][counter] = pdata_old.data[i][offset_pc_data][j_];
+
+                        counter++;
+
+                    } else {
+
+                    }
+
+                }
+            }
+        }
+    }
+
+    std::swap(pdata_new,pdata_old);
+
+}
 
 template<typename U,typename V>
 void interp_slice(Mesh_data<U>& slice,PartCellData<uint64_t>& pc_data,ParticleDataNew<float, uint64_t>& part_new,ExtraPartCellData<V>& particles_int,int dir,int num){
@@ -1415,6 +1467,8 @@ void create_y_data(ExtraPartCellData<uint16_t>& y_vec,ParticleDataNew<float, uin
 
     y_vec.initialize_structure_parts(part_new.particle_data);
 
+    y_vec.org_dims = part_new.access_data.org_dims;
+
     int z_,x_,j_,y_;
 
     for(uint64_t depth = (part_new.access_data.depth_min);depth <= part_new.access_data.depth_max;depth++) {
@@ -1422,7 +1476,7 @@ void create_y_data(ExtraPartCellData<uint16_t>& y_vec,ParticleDataNew<float, uin
         const unsigned int x_num_ = part_new.access_data.x_num[depth];
         const unsigned int z_num_ = part_new.access_data.z_num[depth];
 
-        CurrentLevel<float, uint64_t> curr_level(pc_data);
+        CurrentLevel<float, uint64_t> curr_level(part_new);
         curr_level.set_new_depth(depth, part_new);
 
         const float step_size = pow(2,curr_level.depth_max - curr_level.depth);
@@ -1463,6 +1517,14 @@ void create_y_data(ExtraPartCellData<uint16_t>& y_vec,ParticleDataNew<float, uin
 
 
 }
+void create_y_data(ExtraPartCellData<uint16_t>& y_vec,ParticleDataNew<float, uint64_t>& part_new){
+
+    PartCellData<uint64_t> pc_data_temp;
+
+    create_y_data(y_vec,part_new,pc_data_temp);
+
+}
+
 template<typename U>
 void interp_slice(Mesh_data<U>& slice,ExtraPartCellData<uint16_t>& y_vec,ExtraPartCellData<U>& particle_data,const int dir,const int num){
     //
@@ -1471,6 +1533,7 @@ void interp_slice(Mesh_data<U>& slice,ExtraPartCellData<uint16_t>& y_vec,ExtraPa
     //  Takes in a APR and creates piece-wise constant image
     //
     //
+
 
     std::vector<unsigned int> x_num_min;
     std::vector<unsigned int> x_num;
