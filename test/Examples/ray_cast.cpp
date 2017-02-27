@@ -15,6 +15,7 @@
 #include "../../src/io/partcell_io.h"
 #include "../../src/data_structures/Tree/PartCellParent.hpp"
 #include "../../src/numerics/ray_cast.hpp"
+#include "../../src/numerics/filter_numerics.hpp"
 
 bool command_option_exists(char **begin, char **end, const std::string &option)
 {
@@ -91,34 +92,24 @@ int main(int argc, char **argv) {
     std::string file_name = options.directory + options.input;
     
     read_apr_pc_struct(pc_struct,file_name);
+
     
-    //single_ray_parrallel(pc_struct);
-    
-    int projection_type = 1;
-    int direction = 3;
-    
+
     Part_timer timer;
-    
-    timer.start_timer("parrallel projection content");
-    timer.verbose_flag = true;
+
+    /////////////////
+    //
+    //  Parameters
+    ////////////////
 
     proj_par proj_pars;
 
-    proj_pars.direction = 4;
-    proj_pars.proj_type = 1;
-    proj_pars.Ip_th = 125;
-    proj_pars.start_th = 5;
-    proj_pars.status_th = 20;
+    proj_pars.theta_0 = -1.569;
+    proj_pars.theta_final = 1.569;
+    proj_pars.radius_factor = 1;
+    proj_pars.theta_delta = 0.0075;
+    proj_pars.scale_z = 4.0f;
 
-    proj_pars.theta_final = 3.14;
-    proj_pars.radius_factor = .99;
-    proj_pars.scale_z = 3.5;
-
-    proj_pars.avg_flag = true;
-    
-    //multi_ray_parrallel(pc_struct,proj_pars);
-    
-    timer.stop_timer();
 
     ParticleDataNew<float, uint64_t> part_new;
     //flattens format to particle = cell, this is in the classic access/part paradigm
@@ -135,9 +126,23 @@ int main(int argc, char **argv) {
 
     apr_prospective_raycast(y_vec,particles_int,proj_pars,[] (const uint16_t& a,const uint16_t& b) {return std::max(a,b);});
 
-    //multi_ray_parrallel_raster_alt_d_off(pc_struct,proj_pars);
+    ///////////////////////////////////
+    //
+    //  Normalized Gradient Ray Cast
+    //
+    //////////////////////////////////
 
-    //gen_raster_cast(pc_struct,proj_pars);
+//    ExtraPartCellData<float> adapt_grad =  compute_normalized_grad_mag<float,float,uint64_t>(pc_struct,3);
+//
+//    adapt_grad = transform_parts(adapt_grad,[] (const float& a) {return 1000*a;});
+//
+//    shift_particles_from_cells(part_new,adapt_grad);
+//
+//
+//
+//    apr_prospective_raycast(y_vec,adapt_grad,proj_pars,[] (const uint16_t& a,const uint16_t& b) {return std::max(a,b);});
+
+
 }
 
 

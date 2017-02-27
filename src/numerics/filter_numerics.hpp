@@ -29,6 +29,7 @@
 #include "../../benchmarks/analysis/AnalysisData.hpp"
 
 #include "misc_numerics.hpp"
+#include "parent_numerics.hpp"
 
 
 template<typename T>
@@ -2722,6 +2723,83 @@ Mesh_data<float> compute_grad(Mesh_data<T> gt_image,std::vector<float> delta = {
 
 
 }
+template<typename U,typename V,typename T>
+ExtraPartCellData<U> compute_normalized_grad_mag(PartCellStructure<V,T>& pc_struct,int num_taps){
+    //
+    //
+    //
+    //
+
+    ExtraPartCellData<U> norm_grad;
+
+    std::vector<float> delta = {1,1,4};
+    //offsets past on cell status (resolution)
+    std::vector<unsigned int> status_offsets_min = {1,2,3};
+    std::vector<unsigned int> status_offsets_max = {1,2,3};
+
+    std::vector<float> filter = {.0125,.975,.0125};
+
+
+
+    ParticleDataNew<float, uint64_t> part_new;
+    //flattens format to particle = cell, this is in the classic access/part paradigm
+    part_new.initialize_from_structure(pc_struct);
+
+    //generates the nieghbour structure
+    PartCellData<uint64_t> pc_data;
+    part_new.create_pc_data_new(pc_data);
+
+    pc_data.org_dims = pc_struct.org_dims;
+    part_new.access_data.org_dims = pc_struct.org_dims;
+
+    part_new.particle_data.org_dims = pc_struct.org_dims;
+
+    ExtraPartCellData<float> particle_data;
+
+    part_new.create_particles_at_cell_structure(particle_data);
+
+    ExtraPartCellData<float> smoothed_parts;
+
+    if(num_taps > 0) {
+        smoothed_parts = adaptive_smooth(pc_data, particle_data, num_taps, filter);
+    } else {
+        smoothed_parts = particle_data;
+    }
+
+    ExtraPartCellData<float> gradient_mag = adaptive_grad(pc_data,smoothed_parts,3,delta);
+
+    //adaptive mean
+    ExtraPartCellData<float> adaptive_min;
+    ExtraPartCellData<float> adaptive_max;
+
+
+    get_adaptive_min_max(pc_struct,adaptive_min,adaptive_max,status_offsets_min,status_offsets_max,0,0);
+
+    transform_parts(adaptive_max,adaptive_min,std::minus<float>());
+
+    float min_th = 5;
+    float set_val = 10000000;
+
+    threshold_parts(adaptive_max,min_th,set_val,std::less<float>());
+
+    ExtraPartCellData<float> local_scale =  convert_cell_to_part(pc_struct,adaptive_max);
+
+    convert_from_old_structure(adaptive_max,pc_struct,pc_data,local_scale,false);
+
+    part_new.create_particles_at_cell_structure(local_scale,adaptive_max);
+
+    transform_parts(gradient_mag,local_scale,std::divides<float>());
+
+
+
+
+    return gradient_mag;
+
+
+}
+
+
+
 
 
 #endif

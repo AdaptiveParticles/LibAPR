@@ -105,7 +105,7 @@ int main(int argc, char **argv) {
     
     //calc_graph_cuts_segmentation(pc_struct, seg_parts,parameters_nuc,analysis_data);
 
-    float Ip_threshold = 1030;
+    float Ip_threshold = 1050;
 
     calc_graph_cuts_segmentation_new(pc_struct, seg_parts,analysis_data,Ip_threshold);
 
@@ -133,8 +133,9 @@ int main(int argc, char **argv) {
 
     proj_pars.theta_0 = -1.569;
     proj_pars.theta_final = 1.569;
-    proj_pars.radius_factor = 0.98;
+    proj_pars.radius_factor = 1;
     proj_pars.theta_delta = 0.0075;
+    proj_pars.scale_z = 4.0f;
 
     ExtraPartCellData<uint16_t> y_vec;
 
