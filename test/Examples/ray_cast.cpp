@@ -109,7 +109,10 @@ int main(int argc, char **argv) {
     proj_pars.Ip_th = 125;
     proj_pars.start_th = 5;
     proj_pars.status_th = 20;
-    
+
+    proj_pars.theta_final = 3.14;
+
+
     proj_pars.avg_flag = true;
     
     //multi_ray_parrallel(pc_struct,proj_pars);

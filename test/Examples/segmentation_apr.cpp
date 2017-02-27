@@ -17,6 +17,7 @@
 #include "../../src/numerics/misc_numerics.hpp"
 #include "../../src/numerics/graph_cut_seg.hpp"
 #include "../../src/numerics/apr_segment.hpp"
+#include "../../src/numerics/ray_cast.hpp"
 
 bool command_option_exists(char **begin, char **end, const std::string &option)
 {
@@ -87,14 +88,14 @@ int main(int argc, char **argv) {
     read_apr_pc_struct(pc_struct,file_name);
     
     //Part Segmentation
-    Mesh_data<uint8_t> k_img;
-    interp_depth_to_mesh(k_img,pc_struct);
-    debug_write(k_img,"k_debug_old");
+   // Mesh_data<uint8_t> k_img;
+    //interp_depth_to_mesh(k_img,pc_struct);
+    //debug_write(k_img,"k_debug_old");
 
     
     AnalysisData analysis_data;
     
-    ExtraPartCellData<uint8_t> seg_parts;
+    ExtraPartCellData<uint16_t> seg_parts;
     
     //nuclei
     std::array<uint64_t,10> parameters_nuc = {100,2000,1,1,2,2,2,3,0,0};
@@ -104,7 +105,9 @@ int main(int argc, char **argv) {
     
     //calc_graph_cuts_segmentation(pc_struct, seg_parts,parameters_nuc,analysis_data);
 
-    calc_graph_cuts_segmentation_new(pc_struct, seg_parts,analysis_data);
+    float Ip_threshold = 1030;
+
+    calc_graph_cuts_segmentation_new(pc_struct, seg_parts,analysis_data,Ip_threshold);
 
 
     ParticleDataNew<float, uint64_t> part_new;
@@ -120,12 +123,30 @@ int main(int argc, char **argv) {
 
     part_new.particle_data.org_dims = pc_struct.org_dims;
 
-    Mesh_data<uint8_t> seg_mesh;
+   // Mesh_data<uint16_t> seg_mesh;
 
-    interp_img(seg_mesh, pc_data, part_new, seg_parts,true);
+    //interp_img(seg_mesh, pc_data, part_new, seg_parts,true);
 
-    debug_write(seg_mesh,"new_seg");
-    
+    //debug_write(seg_mesh,"new_seg");
+
+    proj_par proj_pars;
+
+    proj_pars.theta_0 = -1.569;
+    proj_pars.theta_final = 1.569;
+    proj_pars.radius_factor = 0.98;
+    proj_pars.theta_delta = 0.0075;
+
+    ExtraPartCellData<uint16_t> y_vec;
+
+    create_y_data(y_vec,part_new);
+
+    shift_particles_from_cells(part_new,seg_parts);
+
+    ExtraPartCellData<uint16_t> seg_parts_depth = multiply_by_depth(seg_parts);
+
+    apr_prospective_raycast(y_vec,seg_parts_depth,proj_pars,[] (const uint8_t& a,const uint8_t& b) {return std::max(a,b);});
+
+
     //if(pc_struct.org_dims[0] <400){
     
     //calc_graph_cuts_segmentation_mesh(pc_struct,seg_mesh,parameters_nuc,analysis_data);

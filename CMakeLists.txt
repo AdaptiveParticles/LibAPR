@@ -223,7 +223,7 @@ add_executable(Example_segment_gc
     external/maxflow-v3.04.src/graph.cpp
     test/utils.cpp
     src/io/write_parts.cpp
-    ${SOURCE_FILES_COMPILED}
+    ${SOURCE_FILES_COMPILED} src/vis/Camera.cpp src/vis/Camera.h src/vis/Object.cpp src/vis/Object.h src/vis/RaytracedObject.cpp src/vis/RaytracedObject.h
 )
 
 

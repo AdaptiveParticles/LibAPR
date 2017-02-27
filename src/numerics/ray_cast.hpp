@@ -43,6 +43,14 @@ struct proj_par{
     int direction = 0;
     bool avg_flag = true;
 
+    //new parameters
+    float height = 0.5;
+    float radius_factor = 1.5;
+    float theta_0 = 0;
+    float theta_final = .1;
+    float theta_delta = 0.01;
+
+
 };
 
 struct move {
@@ -2353,9 +2361,9 @@ void apr_prospective_raycast(ExtraPartCellData<uint16_t>& y_vec,ExtraPartCellDat
     //
     //
 
-    float height = 0.5;
+    float height = pars.height;
 
-    float radius = 1.2 * y_vec.org_dims[0];
+    float radius = pars.radius_factor * y_vec.org_dims[0];
 
     ///////////////////////////////////////////
     //
@@ -2371,9 +2379,9 @@ void apr_prospective_raycast(ExtraPartCellData<uint16_t>& y_vec,ExtraPartCellDat
     float y0f = y_vec.org_dims[0] * .5;
     float z0f = y_vec.org_dims[2] * .5;
 
-    float theta_0 = 0.0f;
-    float theta_f = 0.1f;
-    float theta_delta = 0.01f;
+    float theta_0 = pars.theta_0;
+    float theta_f = pars.theta_final;
+    float theta_delta = pars.theta_delta;
 
     int num_views = floor((theta_f - theta_0)/theta_delta) + 1;
 

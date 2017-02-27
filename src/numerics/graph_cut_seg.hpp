@@ -586,8 +586,8 @@ void construct_max_flow_graph(PartCellStructure<V,T>& pc_struct,GraphType& g,std
     
     
 }
-template<typename T,typename V>
-void construct_max_flow_graph_new(PartCellStructure<V,T>& pc_struct,GraphType& g,ExtraPartCellData<uint8_t>& seg_parts,AnalysisData& analysis_data){
+template<typename T,typename V,typename U>
+void construct_max_flow_graph_new(PartCellStructure<V,T>& pc_struct,GraphType& g,ExtraPartCellData<U>& seg_parts,AnalysisData& analysis_data,float Ip_threshold){
     //
     //  Constructs naiive max flow model for APR
     //
@@ -775,13 +775,11 @@ void construct_max_flow_graph_new(PartCellStructure<V,T>& pc_struct,GraphType& g
 //
 //    debug_write(check,"Ip");
 
-    float Ip_min = 98;
-
+    float Ip_min = Ip_threshold;
 
     counter = 0;
 
     for(uint64_t i = pc_data.depth_min;i <= pc_data.depth_max;i++){
-
 
         //loop over the resolutions of the structure
         const unsigned int x_num_ = pc_data.x_num[i];
@@ -1208,8 +1206,8 @@ void calc_graph_cuts_segmentation(PartCellStructure<V,T>& pc_struct,ExtraPartCel
     
 }
 
-template<typename T,typename V>
-void calc_graph_cuts_segmentation_new(PartCellStructure<V,T>& pc_struct,ExtraPartCellData<uint8_t>& seg_parts,AnalysisData& analysis_data){
+template<typename T,typename V,typename U>
+void calc_graph_cuts_segmentation_new(PartCellStructure<V,T>& pc_struct,ExtraPartCellData<U>& seg_parts,AnalysisData& analysis_data,float Ip_threshold){
     //
     //
     //  Bevan Cheeseman 2016
@@ -1228,7 +1226,7 @@ void calc_graph_cuts_segmentation_new(PartCellStructure<V,T>& pc_struct,ExtraPar
 
     timer.start_timer("construct_graph_parts");
 
-    construct_max_flow_graph_new(pc_struct,*g,seg_parts,analysis_data);
+    construct_max_flow_graph_new(pc_struct,*g,seg_parts,analysis_data,Ip_threshold);
 
     timer.stop_timer();
 
