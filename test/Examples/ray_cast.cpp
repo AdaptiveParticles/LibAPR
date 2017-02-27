@@ -124,7 +124,12 @@ int main(int argc, char **argv) {
 
     create_y_data(y_vec,part_new);
 
-    apr_prospective_raycast(y_vec,part_new.particle_data,proj_pars,[] (const float& a,const float& b) {return std::max(a,b);});
+    ExtraPartCellData<uint16_t> particles_int;
+    part_new.create_particles_at_cell_structure(particles_int);
+
+    shift_particles_from_cells(part_new,particles_int);
+
+    apr_prospective_raycast(y_vec,particles_int,proj_pars,[] (const uint16_t& a,const uint16_t& b) {return std::max(a,b);});
 
     //multi_ray_parrallel_raster_alt_d_off(pc_struct,proj_pars);
 
