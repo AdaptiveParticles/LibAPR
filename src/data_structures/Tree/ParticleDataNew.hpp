@@ -118,7 +118,10 @@ public:
         y_num = pc_struct.y_num;
         z_num = pc_struct.z_num;
         
-        
+
+        access_data.org_dims = pc_struct.org_dims;
+        particle_data.org_dims = pc_struct.org_dims;
+
         //first add the layers
         particle_data.depth_max = pc_struct.depth_max + 1;
         particle_data.depth_min = pc_struct.depth_min;

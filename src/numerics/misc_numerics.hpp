@@ -1373,6 +1373,8 @@ void create_y_data(ExtraPartCellData<uint16_t>& y_vec,ParticleDataNew<float, uin
 
     y_vec.initialize_structure_parts(part_new.particle_data);
 
+    y_vec.org_dims = part_new.access_data.org_dims;
+
     int z_,x_,j_,y_;
 
     for(uint64_t depth = (part_new.access_data.depth_min);depth <= part_new.access_data.depth_max;depth++) {
@@ -1380,7 +1382,7 @@ void create_y_data(ExtraPartCellData<uint16_t>& y_vec,ParticleDataNew<float, uin
         const unsigned int x_num_ = part_new.access_data.x_num[depth];
         const unsigned int z_num_ = part_new.access_data.z_num[depth];
 
-        CurrentLevel<float, uint64_t> curr_level(pc_data);
+        CurrentLevel<float, uint64_t> curr_level(part_new);
         curr_level.set_new_depth(depth, part_new);
 
         const float step_size = pow(2,curr_level.depth_max - curr_level.depth);
@@ -1421,6 +1423,14 @@ void create_y_data(ExtraPartCellData<uint16_t>& y_vec,ParticleDataNew<float, uin
 
 
 }
+void create_y_data(ExtraPartCellData<uint16_t>& y_vec,ParticleDataNew<float, uint64_t>& part_new){
+
+    PartCellData<uint64_t> pc_data_temp;
+
+    create_y_data(y_vec,part_new,pc_data_temp);
+
+}
+
 template<typename U>
 void interp_slice(Mesh_data<U>& slice,ExtraPartCellData<uint16_t>& y_vec,ExtraPartCellData<U>& particle_data,const int dir,const int num){
     //
@@ -1429,6 +1439,7 @@ void interp_slice(Mesh_data<U>& slice,ExtraPartCellData<uint16_t>& y_vec,ExtraPa
     //  Takes in a APR and creates piece-wise constant image
     //
     //
+
 
     std::vector<unsigned int> x_num_min;
     std::vector<unsigned int> x_num;

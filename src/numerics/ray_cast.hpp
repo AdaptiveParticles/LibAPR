@@ -2323,8 +2323,8 @@ void prospective_mesh_raycast(PartCellStructure<S,uint64_t>& pc_struct,proj_par&
 
 }
 
-template<typename S>
-void apr_prospective_raycast(PartCellStructure<S,uint64_t>& pc_struct,proj_par& pars){
+template<typename S,class UnaryOperator>
+void apr_prospective_raycast(ExtraPartCellData<uint16_t>& y_vec,ExtraPartCellData<S>& particle_data,proj_par& pars,UnaryOperator op){
     //
     //  Bevan Cheeseman 2017
     //
@@ -2340,26 +2340,12 @@ void apr_prospective_raycast(PartCellStructure<S,uint64_t>& pc_struct,proj_par& 
     //
     //////////////////////////////
 
-    ParticleDataNew<float, uint64_t> part_new;
-    //flattens format to particle = cell, this is in the classic access/part paradigm
-    part_new.initialize_from_structure(pc_struct);
 
-    //generates the nieghbour structure
-    PartCellData<uint64_t> pc_data;
-    part_new.create_pc_data_new(pc_data);
-
-    //Genearate particle at cell locations, easier access
-    ExtraPartCellData<float> particles_int;
-    part_new.create_particles_at_cell_structure(particles_int);
-
-    ExtraPartCellData<uint16_t> y_vec;
-
-    create_y_data(y_vec,part_new,pc_data);
 
     //Need to add here a parameters here
 
-    unsigned int imageWidth = pc_struct.org_dims[1];
-    unsigned int imageHeight = pc_struct.org_dims[0];
+    unsigned int imageWidth = y_vec.org_dims[1];
+    unsigned int imageHeight = y_vec.org_dims[0];
 
     //
     //  Set up the projection stuff
@@ -2369,7 +2355,7 @@ void apr_prospective_raycast(PartCellStructure<S,uint64_t>& pc_struct,proj_par& 
 
     float height = 0.5;
 
-    float radius = 8.5 * pc_struct.org_dims[2];
+    float radius = 1.2 * y_vec.org_dims[0];
 
     ///////////////////////////////////////////
     //
@@ -2377,38 +2363,43 @@ void apr_prospective_raycast(PartCellStructure<S,uint64_t>& pc_struct,proj_par& 
     //
     ////////////////////////////////////////////
 
-    float x0 = height * pc_struct.org_dims[1];
-    float y0 = pc_struct.org_dims[0] * .5;
-    float z0 = pc_struct.org_dims[2] * .5;
+    float x0 = height * y_vec.org_dims[1];
+    float y0 = y_vec.org_dims[0] * .5;
+    float z0 = y_vec.org_dims[2] * .5;
 
-    float x0f = height * pc_struct.org_dims[1];
-    float y0f = pc_struct.org_dims[0] * .5;
-    float z0f = pc_struct.org_dims[2] * .5;
+    float x0f = height * y_vec.org_dims[1];
+    float y0f = y_vec.org_dims[0] * .5;
+    float z0f = y_vec.org_dims[2] * .5;
+
+    float theta_0 = 0.0f;
+    float theta_f = 0.1f;
+    float theta_delta = 0.01f;
+
+    int num_views = floor((theta_f - theta_0)/theta_delta) + 1;
+
+    Mesh_data<S> cast_views;
+
+    cast_views.initialize(imageHeight,imageWidth,num_views,0);
+
+    unsigned int view_count = 0;
 
 
-
-    float theta = 1.96;
-
-    for (float theta = 0.0f; theta <= 1.0; theta += 0.005f) {
-
-        Mesh_data<S> proj_img;
-        proj_img.initialize(imageHeight, imageWidth, 1, 0);
+    for (float theta = theta_0; theta <= theta_f; theta += theta_delta) {
 
         std::vector<Mesh_data<S>> depth_slice;
 
         depth_slice.resize(y_vec.depth_max + 1);
 
-        depth_slice[y_vec.depth_max].initialize(proj_img.y_num,proj_img.x_num,1,0);
+        depth_slice[y_vec.depth_max].initialize(imageHeight,imageWidth,1,0);
 
         std::vector<int> depth_vec;
         depth_vec.resize(y_vec.depth_max + 1);
 
         for(int i = y_vec.depth_min;i < y_vec.depth_max;i++){
             float d = pow(2,y_vec.depth_max - i);
-            depth_slice[i].initialize(ceil(proj_img.y_num/d),ceil(proj_img.x_num/d),1,0);
+            depth_slice[i].initialize(ceil(depth_slice[y_vec.depth_max].y_num/d),ceil(depth_slice[y_vec.depth_max].x_num/d),1,0);
             depth_vec[i] = d;
         }
-
 
         Camera cam = Camera(glm::vec3(x0, y0 + radius * sin(theta), z0 + radius * cos(theta)),
                             glm::fquat(1.0f, 0.0f, 0.0f, 0.0f));
@@ -2425,10 +2416,6 @@ void apr_prospective_raycast(PartCellStructure<S,uint64_t>& pc_struct,proj_par& 
         glm::mat4 inverse_modelview = glm::inverse((*cam.getView()) * (*o.getModel()));
 
         const glm::mat4 mvp = (*cam.getProjection()) * (*cam.getView());
-
-
-        int counter = 0;
-
 
         Part_timer timer;
 
@@ -2450,6 +2437,7 @@ void apr_prospective_raycast(PartCellStructure<S,uint64_t>& pc_struct,proj_par& 
 
             const float step_size = pow(2, y_vec.depth_max - depth);
 
+
 #pragma omp parallel for default(shared) private(z_,x_,j_,i,k) firstprivate(mvp)  schedule(guided) if(z_num_*x_num_ > 1000)
             for (z_ = 0; z_ < z_num_; z_++) {
                 //both z and x are explicitly accessed in the structure
@@ -2463,20 +2451,19 @@ void apr_prospective_raycast(PartCellStructure<S,uint64_t>& pc_struct,proj_par& 
 
                         const int y = y_vec.data[depth][pc_offset][j_];
 
-                        glm::vec2 pos = o.worldToScreen(mvp, glm::vec3((float) x_ * step_size, (float) y * step_size,
-                                                                       (float) z_ * step_size), x_size,
+                        glm::vec2 pos = o.worldToScreen(mvp, glm::vec3((float) (x_+0.5) * step_size, (float) (y+0.5) * step_size,
+                                                                       (float) (z_+0.5) * step_size), x_size,
                                                         y_size);
-
 
                         const int dim1 = -floor(pos.y);
                         const int dim2 = -floor(pos.x);
 
-                        const float temp_int = part_new.particle_data.data[depth][pc_offset][j_];
+                        const float temp_int = particle_data.data[depth][pc_offset][j_];
 
                         if (dim1 > 0 & dim2 > 0 & (dim1 < depth_slice[depth].y_num) &
                             (dim2 < depth_slice[depth].x_num)) {
 
-                            depth_slice[depth].mesh[dim1 + (dim2) * depth_slice[depth].y_num] = std::max(temp_int,
+                            depth_slice[depth].mesh[dim1 + (dim2) * depth_slice[depth].y_num] = op(temp_int,
                                                                                                          depth_slice[depth].mesh[
                                                                                                                  dim1 +
                                                                                                                  (dim2) *
@@ -2490,8 +2477,10 @@ void apr_prospective_raycast(PartCellStructure<S,uint64_t>& pc_struct,proj_par& 
 
         uint64_t depth;
 
+        uint64_t depth_min = y_vec.depth_min;
 
-        for (depth = (y_vec.depth_min); depth < y_vec.depth_max; depth++) {
+
+        for (depth = (depth_min); depth < y_vec.depth_max; depth++) {
 
             const int step_size = pow(2, y_vec.depth_max - depth);
 #pragma omp parallel for default(shared) private(z_,x_,j_,i,k) schedule(guided) if (depth > 8)
@@ -2516,7 +2505,7 @@ void apr_prospective_raycast(PartCellStructure<S,uint64_t>& pc_struct,proj_par& 
                         for (k = dim2; k < offset_max_dim2; ++k) {
                             for (i = dim1; i < offset_max_dim1; ++i) {
                                 depth_slice[y_vec.depth_max].mesh[i +
-                                                                  (k) * depth_slice[y_vec.depth_max].y_num] = std::max(
+                                                                  (k) * depth_slice[y_vec.depth_max].y_num] = op(
                                         curr_int, depth_slice[y_vec.depth_max].mesh[i + (k) *
                                                                                         depth_slice[y_vec.depth_max].y_num]);
 
@@ -2530,9 +2519,14 @@ void apr_prospective_raycast(PartCellStructure<S,uint64_t>& pc_struct,proj_par& 
 
         timer.stop_timer();
 
+        //copy data across
+        std::copy(depth_slice[y_vec.depth_max].mesh.begin(),depth_slice[y_vec.depth_max].mesh.end(),cast_views.mesh.begin() + view_count*imageHeight*imageWidth);
 
-        debug_write(depth_slice[y_vec.depth_max], "perpective_part" + std::to_string(theta));
+        view_count++;
     }
+
+    debug_write(cast_views, "perspective_part_projection");
+
 }
 
 #endif
