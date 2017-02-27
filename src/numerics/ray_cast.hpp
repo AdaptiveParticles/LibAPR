@@ -50,6 +50,10 @@ struct proj_par{
     float theta_final = .1;
     float theta_delta = 0.01;
 
+    float scale_y = 1.0;
+    float scale_x = 1.0;
+    float scale_z = 1.0;
+
 
 };
 
@@ -2371,13 +2375,13 @@ void apr_prospective_raycast(ExtraPartCellData<uint16_t>& y_vec,ExtraPartCellDat
     //
     ////////////////////////////////////////////
 
-    float x0 = height * y_vec.org_dims[1];
-    float y0 = y_vec.org_dims[0] * .5;
-    float z0 = y_vec.org_dims[2] * .5;
+    float x0 = height * y_vec.org_dims[1] * pars.scale_x;
+    float y0 = y_vec.org_dims[0] * .5 * pars.scale_y;
+    float z0 = y_vec.org_dims[2] * .5 * pars.scale_z;
 
-    float x0f = height * y_vec.org_dims[1];
-    float y0f = y_vec.org_dims[0] * .5;
-    float z0f = y_vec.org_dims[2] * .5;
+    float x0f = height * y_vec.org_dims[1]* pars.scale_x;
+    float y0f = y_vec.org_dims[0] * .5 * pars.scale_y;
+    float z0f = y_vec.org_dims[2] * .5 * pars.scale_z;
 
     float theta_0 = pars.theta_0;
     float theta_f = pars.theta_final;
@@ -2443,7 +2447,9 @@ void apr_prospective_raycast(ExtraPartCellData<uint16_t>& y_vec,ExtraPartCellDat
             const unsigned int y_size = depth_slice[depth].y_num;
             const unsigned int x_size = depth_slice[depth].x_num;
 
-            const float step_size = pow(2, y_vec.depth_max - depth);
+            const float step_size_x = pow(2, y_vec.depth_max - depth)* pars.scale_x;
+            const float step_size_y = pow(2, y_vec.depth_max - depth)* pars.scale_y;
+            const float step_size_z = pow(2, y_vec.depth_max - depth)* pars.scale_z;
 
 
 #pragma omp parallel for default(shared) private(z_,x_,j_,i,k) firstprivate(mvp)  schedule(guided) if(z_num_*x_num_ > 1000)
@@ -2459,8 +2465,8 @@ void apr_prospective_raycast(ExtraPartCellData<uint16_t>& y_vec,ExtraPartCellDat
 
                         const int y = y_vec.data[depth][pc_offset][j_];
 
-                        glm::vec2 pos = o.worldToScreen(mvp, glm::vec3((float) (x_+0.5) * step_size, (float) (y+0.5) * step_size,
-                                                                       (float) (z_+0.5) * step_size), x_size,
+                        glm::vec2 pos = o.worldToScreen(mvp, glm::vec3((float) (x_+0.5) * step_size_x , (float) (y+0.5) * step_size_y,
+                                                                       (float) (z_+0.5) * step_size_z), x_size,
                                                         y_size);
 
                         const int dim1 = round(-pos.y);
