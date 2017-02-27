@@ -111,6 +111,7 @@ int main(int argc, char **argv) {
     proj_pars.status_th = 20;
 
     proj_pars.theta_final = 3.14;
+    proj_pars.radius_factor = .99;
 
 
     proj_pars.avg_flag = true;

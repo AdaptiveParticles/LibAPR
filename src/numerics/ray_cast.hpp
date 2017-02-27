@@ -2463,8 +2463,8 @@ void apr_prospective_raycast(ExtraPartCellData<uint16_t>& y_vec,ExtraPartCellDat
                                                                        (float) (z_+0.5) * step_size), x_size,
                                                         y_size);
 
-                        const int dim1 = -floor(pos.y);
-                        const int dim2 = -floor(pos.x);
+                        const int dim1 = round(-pos.y);
+                        const int dim2 = round(-pos.x);
 
                         const float temp_int = particle_data.data[depth][pc_offset][j_];
 
