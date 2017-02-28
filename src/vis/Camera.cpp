@@ -29,7 +29,7 @@ glm::mat4 *Camera::getView() {
         view *= glm::toMat4(rotation);
         view *= glm::translate(this->position);
     } else {
-        view = glm::lookAt(position, target, glm::vec3(0.0f, 1.0f, 0.0f));
+        view = glm::lookAt(position, target, glm::cross(glm::normalize(target-position), glm::vec3(1.0f, 0.0f, 0.0f)));
     }
 
     setCoordinateSystem();
