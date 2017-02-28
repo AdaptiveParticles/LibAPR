@@ -1276,7 +1276,61 @@ ExtraPartCellData<V> multiply_by_depth(ExtraPartCellData<V>& parts){
     return output;
 
 }
+template<typename V>
+ExtraPartCellData<V> multiply_by_dist_center(ExtraPartCellData<V>& parts,ExtraPartCellData<uint16_t>& y_vec){
+    //
+    //  Bevan Cheeseman 2017
+    //
+    //  Sets value to depth if non-zero
+    //
 
+    float x_c = y_vec.org_dims[1]*.5;
+    float y_c = y_vec.org_dims[0]*.5;
+    float z_c = y_vec.org_dims[2]*.5;
+
+
+    ExtraPartCellData<V> output;
+    output.initialize_structure_parts(parts);
+
+    int z_,x_,j_,y_;
+
+    for(uint64_t depth = (parts.depth_min);depth <= parts.depth_max;depth++) {
+        //loop over the resolutions of the structure
+        const unsigned int x_num_ = parts.x_num[depth];
+        const unsigned int z_num_ = parts.z_num[depth];
+
+        const unsigned int x_num_min_ = 0;
+        const unsigned int z_num_min_ = 0;
+
+        const float step = pow(2,parts.depth_max - depth);
+
+
+#pragma omp parallel for default(shared) private(z_,x_,j_) if(z_num_*x_num_ > 100)
+        for (z_ = z_num_min_; z_ < z_num_; z_++) {
+            //both z and x are explicitly accessed in the structure
+
+            for (x_ = x_num_min_; x_ < x_num_; x_++) {
+
+                const unsigned int pc_offset = x_num_*z_ + x_;
+
+                for (int i = 0; i < parts.data[depth][pc_offset].size(); ++i) {
+                    if((parts.data[depth][pc_offset][i]> 0)) {
+
+                        unsigned int y_ = y_vec.data[depth][pc_offset][i];
+                        float dist = sqrt(pow((1.0 * (z_ + 0.5)) * step - z_c,2) + pow((1.0 * (x_ + 0.5)) * step - x_c,2) + pow((1.0 * (y_ + 0.5)) * step - y_c,2));
+
+                        output.data[depth][pc_offset][i] = dist;
+                        //output.data[depth][pc_offset][i] = parts.data[depth][pc_offset][i];
+                    }
+                }
+
+            }
+        }
+    }
+
+    return output;
+
+}
 
 
 template<typename U,typename T,typename V>

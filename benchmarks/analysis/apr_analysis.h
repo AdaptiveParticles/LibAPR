@@ -557,12 +557,18 @@ void produce_apr_analysis(Mesh_data<T>& input_image,AnalysisData& analysis_data,
     }
 
     if(analysis_data.segmentation_eval) {
-        evaluate_segmentation(pc_struct,analysis_data,syn_image);
+        //evaluate_segmentation(pc_struct,analysis_data,syn_image);
 
-        evaluate_filters(pc_struct,analysis_data,syn_image,input_image);
+        //evaluate_filters(pc_struct,analysis_data,syn_image,input_image);
 
         Part_rep p_rep;
         p_rep.pars = pars;
+
+
+        run_real_segmentation(pc_struct,analysis_data, pars);
+
+        run_ray_cast(pc_struct,analysis_data,input_image,pars);
+
 
        // evaluate_enhancement(pc_struct,analysis_data,syn_image,input_image,p_rep);
     }

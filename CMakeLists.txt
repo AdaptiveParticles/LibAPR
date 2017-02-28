@@ -280,7 +280,7 @@ if(BENCHMARKS)
     MESSAGE(STATUS ${SynImage_PATH})
 
     set(BENCHMARK_SOURCE_FILES  external/maxflow-v3.04.src/maxflow.cpp
-            external/maxflow-v3.04.src/graph.cpp)
+            external/maxflow-v3.04.src/graph.cpp src/vis/Camera.cpp src/vis/Camera.h src/vis/Object.cpp src/vis/Object.h src/vis/RaytracedObject.cpp src/vis/RaytracedObject.h)
 
     # Include the ArrayFire hreaders
     INCLUDE_DIRECTORIES(${ArrayFire_INCLUDE_DIRS})

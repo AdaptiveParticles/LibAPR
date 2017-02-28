@@ -105,7 +105,7 @@ int main(int argc, char **argv) {
     
     //calc_graph_cuts_segmentation(pc_struct, seg_parts,parameters_nuc,analysis_data);
 
-    float Ip_threshold = 1030;
+    float Ip_threshold = 200;
 
     std::array<float,10> parameters_new = {Ip_threshold,1,2,3,1,2,3,1,1,4};
 
@@ -148,6 +148,7 @@ int main(int argc, char **argv) {
     proj_pars.theta_delta = 0.1;
     proj_pars.scale_z = 4.0f;
 
+
     ExtraPartCellData<uint16_t> y_vec;
 
     create_y_data(y_vec,part_new);
@@ -156,11 +157,24 @@ int main(int argc, char **argv) {
 
     ExtraPartCellData<uint16_t> seg_parts_depth = multiply_by_depth(seg_parts);
 
-   // apr_perspective_raycast(y_vec,seg_parts,proj_pars,[] (const uint16_t& a,const uint16_t& b) {return std::min(a,b);},true);
+    ExtraPartCellData<uint16_t> seg_parts_center= multiply_by_dist_center(seg_parts,y_vec);
 
-    apr_perspective_raycast(y_vec,seg_parts_depth,proj_pars,[] (const uint16_t& a,const uint16_t& b) {return std::max(a,b);},false);
+
+    //apr_perspective_raycast(y_vec,seg_parts,proj_pars,[] (const uint16_t& a,const uint16_t& b) {return std::min(a,b);},true);
+
+    //apr_perspective_raycast(y_vec,seg_parts_depth,proj_pars,[] (const uint16_t& a,const uint16_t& b) {return std::max(a,b);},false);
+
+    proj_pars.name = "intensity";
 
     apr_perspective_raycast_depth(y_vec,seg_parts,part_new.particle_data,proj_pars,[] (const uint16_t& a,const uint16_t& b) {return std::max(a,b);},true);
+
+    proj_pars.name = "z_depth";
+
+    apr_perspective_raycast_depth(y_vec,seg_parts,seg_parts_depth,proj_pars,[] (const uint16_t& a,const uint16_t& b) {return std::max(a,b);},true);
+
+    proj_pars.name = "center";
+
+    apr_perspective_raycast_depth(y_vec,seg_parts,seg_parts_center,proj_pars,[] (const uint16_t& a,const uint16_t& b) {return std::max(a,b);},true);
 
     //if(pc_struct.org_dims[0] <400){
     

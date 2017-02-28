@@ -54,6 +54,8 @@ struct proj_par{
     float scale_x = 1.0;
     float scale_z = 1.0;
 
+    std::string name = "raycast";
+
 
 };
 
@@ -2336,7 +2338,7 @@ void prospective_mesh_raycast(PartCellStructure<S,uint64_t>& pc_struct,proj_par&
 }
 
 template<typename S,class UnaryOperator>
-void apr_perspective_raycast(ExtraPartCellData<uint16_t>& y_vec,ExtraPartCellData<S>& particle_data,proj_par& pars,UnaryOperator op,const bool depth_scale = false){
+float apr_perspective_raycast(ExtraPartCellData<uint16_t>& y_vec,ExtraPartCellData<S>& particle_data,proj_par& pars,UnaryOperator op,const bool depth_scale = false){
     //
     //  Bevan Cheeseman 2017
     //
@@ -2406,6 +2408,14 @@ void apr_perspective_raycast(ExtraPartCellData<uint16_t>& y_vec,ExtraPartCellDat
     }
 
 
+    Part_timer timer;
+
+    timer.verbose_flag = false;
+
+
+    timer.start_timer("ray cast parts");
+
+
     for (float theta = theta_0; theta <= theta_f; theta += theta_delta) {
 
         std::vector<Mesh_data<S>> depth_slice;
@@ -2439,12 +2449,7 @@ void apr_perspective_raycast(ExtraPartCellData<uint16_t>& y_vec,ExtraPartCellDat
 
         const glm::mat4 mvp = (*cam.getProjection()) * (*cam.getView());
 
-        Part_timer timer;
 
-        timer.verbose_flag = true;
-
-
-        timer.start_timer("ray cast parts");
 
         const float x_camera = x0;
         const float y_camera = y0 + radius * sin(theta);
@@ -2568,7 +2573,6 @@ void apr_perspective_raycast(ExtraPartCellData<uint16_t>& y_vec,ExtraPartCellDat
             }
         }
 
-        timer.stop_timer();
 
         //copy data across
         std::copy(depth_slice[y_vec.depth_max].mesh.begin(),depth_slice[y_vec.depth_max].mesh.end(),cast_views.mesh.begin() + view_count*imageHeight*imageWidth);
@@ -2576,11 +2580,16 @@ void apr_perspective_raycast(ExtraPartCellData<uint16_t>& y_vec,ExtraPartCellDat
         view_count++;
     }
 
-    debug_write(cast_views, "perspective_part_projection");
+    timer.stop_timer();
+
+
+    debug_write(cast_views, pars.name +  "perspective_part_projection");
+
+    return (timer.t2 - timer.t1);
 
 }
 template<typename S,typename U>
-void perpsective_mesh_raycast(PartCellStructure<U,uint64_t>& pc_struct,proj_par& pars,Mesh_data<S>& image) {
+float perpsective_mesh_raycast(PartCellStructure<U,uint64_t>& pc_struct,proj_par& pars,Mesh_data<S>& image) {
     //
     //  Bevan Cheeseman 2017
     //
@@ -2623,15 +2632,15 @@ void perpsective_mesh_raycast(PartCellStructure<U,uint64_t>& pc_struct,proj_par&
 
     Part_timer timer;
 
-    timer.verbose_flag = true;
+    timer.verbose_flag = false;
 
     uint64_t view_count = 0;
 
-
+    timer.start_timer("ray cast mesh prospective");
 
     for (float theta = theta_0; theta <= theta_f; theta += theta_delta) {
 
-        timer.start_timer("ray cast mesh prospective");
+
 
         Camera cam = Camera(glm::vec3(x0, y0 + radius * sin(theta), z0 + radius * cos(theta)),
                             glm::fquat(1.0f, 0.0f, 0.0f, 0.0f));
@@ -2706,13 +2715,17 @@ void perpsective_mesh_raycast(PartCellStructure<U,uint64_t>& pc_struct,proj_par&
 
         view_count++;
 
-        timer.stop_timer();
+
     }
 
+    timer.stop_timer();
 
 
 
-    debug_write(cast_views, "perspective_mesh_projection");
+
+    debug_write(cast_views, pars.name + "perspective_mesh_projection");
+
+    return (timer.t2 - timer.t1);
 
 
 }
@@ -2974,7 +2987,7 @@ void apr_perspective_raycast_depth(ExtraPartCellData<uint16_t>& y_vec,ExtraPartC
         view_count++;
     }
 
-    debug_write(cast_views, "perspective_part_projection_dual");
+    debug_write(cast_views, pars.name + "_perspective_part_projection_dual");
 
 }
 

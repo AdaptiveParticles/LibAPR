@@ -1534,6 +1534,8 @@ public:
     
     unsigned int depth_min;
     unsigned int depth_max;
+
+    std::string name;
     
     std::vector<unsigned int> x_num;
     std::vector<unsigned int> y_num;
