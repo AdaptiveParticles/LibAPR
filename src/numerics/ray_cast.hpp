@@ -2267,7 +2267,7 @@ void prospective_mesh_raycast(PartCellStructure<S,uint64_t>& pc_struct,proj_par&
         // ray traced object, sitting on the origin, with no rotation applied
         RaytracedObject o = RaytracedObject(glm::vec3(0.0f, 0.0f, 0.0f), glm::fquat(1.0f, 0.0f, 0.0f, 0.0f));
 
-        auto start = std::chrono::high_resolution_clock::now();
+//        auto start = std::chrono::high_resolution_clock::now();
         glm::mat4 inverse_projection = glm::inverse(*cam.getProjection());
         glm::mat4 inverse_modelview = glm::inverse((*cam.getView()) * (*o.getModel()));
 

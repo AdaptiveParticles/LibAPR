@@ -110,10 +110,9 @@ int main(int argc, char **argv) {
 
     proj_pars.theta_0 = -.3;
     proj_pars.theta_final = .3;
-    proj_pars.radius_factor = 1.5;
+    proj_pars.radius_factor = 1.2;
     proj_pars.theta_delta = 0.005;
     proj_pars.scale_z = 1.0f;
-
 
     ParticleDataNew<float, uint64_t> part_new;
     //flattens format to particle = cell, this is in the classic access/part paradigm
