@@ -587,7 +587,7 @@ void construct_max_flow_graph(PartCellStructure<V,T>& pc_struct,GraphType& g,std
     
 }
 template<typename T,typename V,typename U>
-void construct_max_flow_graph_new(PartCellStructure<V,T>& pc_struct,GraphType& g,ExtraPartCellData<U>& seg_parts,AnalysisData& analysis_data,float Ip_threshold){
+void construct_max_flow_graph_new(PartCellStructure<V,T>& pc_struct,GraphType& g,ExtraPartCellData<U>& seg_parts,AnalysisData& analysis_data,std::array<float,10> parameters){
     //
     //  Constructs naiive max flow model for APR
     //
@@ -634,7 +634,7 @@ void construct_max_flow_graph_new(PartCellStructure<V,T>& pc_struct,GraphType& g
     }
 
     std::vector<float> filter = {.0125,.975,.0125};
-    std::vector<float> delta = {1,1,4};
+    std::vector<float> delta = {parameters[7],parameters[8],parameters[9]};
 
     int num_tap = 1;
 
@@ -647,8 +647,8 @@ void construct_max_flow_graph_new(PartCellStructure<V,T>& pc_struct,GraphType& g
     ExtraPartCellData<float> adaptive_max;
 
     //offsets past on cell status (resolution)
-    std::vector<unsigned int> status_offsets_min = {1,2,3};
-    std::vector<unsigned int> status_offsets_max = {1,2,3};
+    std::vector<unsigned int> status_offsets_min = {(unsigned int)parameters[1],(unsigned int)parameters[2],(unsigned int)parameters[3]};
+    std::vector<unsigned int> status_offsets_max = {(unsigned int)parameters[4],(unsigned int)parameters[5],(unsigned int)parameters[6]};
 
     get_adaptive_min_max(pc_struct,adaptive_min,adaptive_max,status_offsets_min,status_offsets_max,0,0);
 
@@ -775,7 +775,7 @@ void construct_max_flow_graph_new(PartCellStructure<V,T>& pc_struct,GraphType& g
 //
 //    debug_write(check,"Ip");
 
-    float Ip_min = Ip_threshold;
+    float Ip_min = parameters[0];
 
     counter = 0;
 
@@ -1207,7 +1207,7 @@ void calc_graph_cuts_segmentation(PartCellStructure<V,T>& pc_struct,ExtraPartCel
 }
 
 template<typename T,typename V,typename U>
-void calc_graph_cuts_segmentation_new(PartCellStructure<V,T>& pc_struct,ExtraPartCellData<U>& seg_parts,AnalysisData& analysis_data,float Ip_threshold){
+void calc_graph_cuts_segmentation_new(PartCellStructure<V,T>& pc_struct,ExtraPartCellData<U>& seg_parts,AnalysisData& analysis_data,std::array<float,10> parameters){
     //
     //
     //  Bevan Cheeseman 2016
@@ -1226,7 +1226,7 @@ void calc_graph_cuts_segmentation_new(PartCellStructure<V,T>& pc_struct,ExtraPar
 
     timer.start_timer("construct_graph_parts");
 
-    construct_max_flow_graph_new(pc_struct,*g,seg_parts,analysis_data,Ip_threshold);
+    construct_max_flow_graph_new(pc_struct,*g,seg_parts,analysis_data,parameters);
 
     timer.stop_timer();
 

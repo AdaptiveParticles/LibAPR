@@ -71,6 +71,10 @@ cmdLineOptions read_command_line_options(int argc, char **argv, Part_rep& part_r
         part_rep.timer.verbose_flag = true;
     }
 
+    if(command_option_exists(argv, argv + argc, "-org_file"))
+    {
+        result.org_file = std::string(get_command_option(argv, argv + argc, "-org_file"));
+    }
 
     return result;
 
@@ -104,11 +108,11 @@ int main(int argc, char **argv) {
 
     proj_par proj_pars;
 
-    proj_pars.theta_0 = 0.0f;
-    proj_pars.theta_final = 2.0f*(float)M_PI;
-    proj_pars.radius_factor = 1;
-    proj_pars.theta_delta = 0.05;
-    proj_pars.scale_z = 4.0f;
+    proj_pars.theta_0 = -.3;
+    proj_pars.theta_final = .3;
+    proj_pars.radius_factor = 1.5;
+    proj_pars.theta_delta = 0.005;
+    proj_pars.scale_z = 1.0f;
 
 
     ParticleDataNew<float, uint64_t> part_new;
@@ -125,6 +129,16 @@ int main(int argc, char **argv) {
     shift_particles_from_cells(part_new,particles_int);
 
     apr_prospective_raycast(y_vec,particles_int,proj_pars,[] (const uint16_t& a,const uint16_t& b) {return std::max(a,b);});
+
+    if(options.org_file != ""){
+
+        Mesh_data<uint16_t> input_image;
+
+        load_image_tiff(input_image, options.org_file);
+
+        perpsective_mesh_raycast(pc_struct,proj_pars,input_image);
+
+    }
 
     ///////////////////////////////////
     //

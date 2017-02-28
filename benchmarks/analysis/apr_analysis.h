@@ -560,6 +560,11 @@ void produce_apr_analysis(Mesh_data<T>& input_image,AnalysisData& analysis_data,
         evaluate_segmentation(pc_struct,analysis_data,syn_image);
 
         evaluate_filters(pc_struct,analysis_data,syn_image,input_image);
+
+        Part_rep p_rep;
+        p_rep.pars = pars;
+
+       // evaluate_enhancement(pc_struct,analysis_data,syn_image,input_image,p_rep);
     }
 
     if(analysis_data.filters_eval) {

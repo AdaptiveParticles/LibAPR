@@ -29,18 +29,18 @@ PartCellStructure<U,uint64_t> compute_guided_apr(Mesh_data<U> input_image,PartCe
 
     part_rep.initialize(pc_struct.org_dims[0],pc_struct.org_dims[1],pc_struct.org_dims[2]);
 
-    part_rep.pars.rel_error = 0.1;
+    //part_rep.pars.rel_error = 0.1;
 
     part_rep.pars.ydim = pc_struct.org_dims[0];
     part_rep.pars.xdim = pc_struct.org_dims[1];
     part_rep.pars.zdim = pc_struct.org_dims[2];
 
     part_rep.pars.dy = part_rep.pars.dx = part_rep.pars.dz = 1;
-    part_rep.pars.psfx = part_rep.pars.psfy = part_rep.pars.psfz = 1;
-    part_rep.pars.rel_error = 0.1;
-    part_rep.pars.var_th = 5;
-    part_rep.pars.var_th_max = 10;
-    part_rep.pars.I_th = 950;
+    //part_rep.pars.psfx = part_rep.pars.psfy = part_rep.pars.psfz = 1;
+    //part_rep.pars.rel_error = 0.1;
+    //part_rep.pars.var_th = 5;
+    part_rep.pars.var_th_max = 5;
+    //part_rep.pars.I_th = 950;
 
     ParticleDataNew<float, uint64_t> part_new;
     //flattens format to particle = cell, this is in the classic access/part paradigm
@@ -64,18 +64,20 @@ PartCellStructure<U,uint64_t> compute_guided_apr(Mesh_data<U> input_image,PartCe
 
     float num_repeats = 1;
 
-    std::vector<float> filter = {.0125,.975,.0125};
-    std::vector<float> delta = {1,1,4};
+    std::vector<float> filter =  {.1,.8,.1};
+    std::vector<float> delta = {part_rep.pars.dy,part_rep.pars.dx,part_rep.pars.dz};
 
-    int num_tap = 1;
+    int num_tap = 4;
 
    //
+    ExtraPartCellData<float> smoothed_parts = adaptive_smooth(pc_data,particle_data,num_tap,filter);
+    interp_img(input_image, pc_data, part_new, smoothed_parts,true);
 
-    ExtraPartCellData<float> smoothed_gradient_mag = adaptive_grad(pc_data,particle_data,3,delta);
+
+    ExtraPartCellData<float> smoothed_gradient_mag = adaptive_grad(pc_data,smoothed_parts,3,delta);
 
     if(input_image.x_num == 0){
-        ExtraPartCellData<float> smoothed_parts = adaptive_smooth(pc_data,particle_data,num_tap,filter);
-        interp_img(input_image, pc_data, part_new, smoothed_parts,true);
+
     }
 
     //adaptive mean
@@ -87,8 +89,6 @@ PartCellStructure<U,uint64_t> compute_guided_apr(Mesh_data<U> input_image,PartCe
     std::vector<unsigned int> status_offsets_max = {2,2,2};
 
     get_adaptive_min_max(pc_struct,adaptive_min,adaptive_max,status_offsets_min,status_offsets_max,0,0);
-
-
 
     transform_parts(adaptive_max,adaptive_min,std::minus<float>());
 

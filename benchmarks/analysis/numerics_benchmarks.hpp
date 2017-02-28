@@ -8,6 +8,7 @@
 #include "../../src/numerics/graph_cut_seg.hpp"
 #include "../../src/numerics/filter_numerics.hpp"
 #include "../../src/numerics/ray_cast.hpp"
+#include "../../src/numerics/enhance_parts.hpp"
 
 template<typename S,typename T>
 void compare_E_debug(Mesh_data<S>& org_img,Mesh_data<T>& rec_img,Proc_par& pars,std::string name,AnalysisData& analysis_data){
@@ -478,6 +479,7 @@ float compute_dice_coeff(Mesh_data<uint16_t>& gt,Mesh_data<uint8_t>& seg){
 
 }
 
+
 void evaluate_segmentation(PartCellStructure<float,uint64_t> pc_struct,AnalysisData& analysis_data,SynImage& syn_image){
 
     //nuclei
@@ -510,14 +512,43 @@ void evaluate_segmentation(PartCellStructure<float,uint64_t> pc_struct,AnalysisD
     analysis_data.add_float_data("dice_mesh",dice_mesh);
     analysis_data.add_float_data("dice_parts",dice_parts);
 
+
+    Mesh_data<uint8_t> seg_img_new;
+
+    ExtraPartCellData<uint8_t> seg_parts_new;
+
+    std::array<float,10> parameters_new = {0,2,2,2,2,2,3,1,1,1};
+
+    if(pc_struct.get_number_parts() <= pow(500,3)) {
+
+        calc_graph_cuts_segmentation_new(pc_struct, seg_parts_new,analysis_data,parameters_new);
+    }
+
+
+    ParticleDataNew<float, uint64_t> part_new;
+    //flattens format to particle = cell, this is in the classic access/part paradigm
+    part_new.initialize_from_structure(pc_struct);
+
+    //generates the nieghbour structure
+    PartCellData<uint64_t> pc_data;
+    part_new.create_pc_data_new(pc_data);
+
+
+    interp_img(seg_img_new, pc_data, part_new, seg_parts_new,true);
+
+    float dice_parts_new = compute_dice_coeff(gt_image,seg_img_new);
+
+
     if(analysis_data.debug) {
 
         debug_write(seg_mesh, "seg_mesh");
         debug_write(seg_img, "seg_parts");
         debug_write(gt_image, "seg_gt");
+        debug_write(seg_img_new, "seg_img_new");
 
         std::cout << "Dice m: " << dice_mesh << std::endl;
         std::cout << "Dice p: " << dice_parts << std::endl;
+        std::cout << "Dice p_n: " << dice_parts_new << std::endl;
     }
 
 }
@@ -658,6 +689,44 @@ void remove_boundary(Mesh_data<T>& img,int sz){
 
 
 }
+
+template<typename T>
+void evaluate_enhancement(PartCellStructure<float,uint64_t> pc_struct,AnalysisData& analysis_data,SynImage& syn_image,Mesh_data<T>& input_image,Part_rep& part_rep){
+    //
+    //  Benchmark Code to Evaluate Enhancement
+    //
+    //
+    //
+
+
+    Mesh_data<float> input_image_float;
+
+    //transfer across to float
+    input_image_float.initialize(input_image.y_num,input_image.x_num,input_image.z_num,0);
+    std::copy(input_image.mesh.begin(),input_image.mesh.end(),input_image_float.mesh.begin());
+
+    PartCellStructure<float,uint64_t> pc_struct_new = compute_guided_apr(input_image_float,pc_struct,part_rep);
+
+    Mesh_data<float> output;
+
+    pc_struct_new.interp_parts_to_pc(output,pc_struct_new.part_data.particle_data);
+
+    debug_write(output,"new_apr");
+
+    Mesh_data<uint8_t> k_img;
+    interp_depth_to_mesh(k_img,pc_struct);
+    debug_write(k_img,"k_debug_old");
+
+    interp_depth_to_mesh(k_img,pc_struct_new);
+    debug_write(k_img,"k_debug_new");
+
+
+
+
+};
+
+
+
 
 template<typename T>
 void evaluate_filters(PartCellStructure<float,uint64_t> pc_struct,AnalysisData& analysis_data,SynImage& syn_image,Mesh_data<T>& input_image){
@@ -1108,13 +1177,11 @@ void evaluate_adaptive_grad(PartCellStructure<float,uint64_t> pc_struct,Analysis
     //
     //
 
-
     //get gt and original gradient
 
     //Generate clean gt image
     Mesh_data<uint16_t> gt_image;
     generate_gt_image(gt_image, syn_image);
-
 
     debug_write(gt_image,"gt_image");
 

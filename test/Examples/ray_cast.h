@@ -12,6 +12,7 @@ struct cmdLineOptions{
     std::string directory = "";
     std::string input = "";
     bool stats_file = false;
+    std::string org_file = "";
 };
 
 cmdLineOptions read_command_line_options(int argc, char **argv, Part_rep& part_rep);
