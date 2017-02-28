@@ -105,10 +105,17 @@ int main(int argc, char **argv) {
     
     //calc_graph_cuts_segmentation(pc_struct, seg_parts,parameters_nuc,analysis_data);
 
-    float Ip_threshold = 40;
+    float Ip_threshold = 1030;
 
-    calc_graph_cuts_segmentation_new(pc_struct, seg_parts,analysis_data,Ip_threshold);
+    std::array<float,10> parameters_new = {Ip_threshold,1,2,3,1,2,3,1,1,4};
 
+    Part_timer timer;
+    timer.verbose_flag = true;
+    timer.start_timer("full seg");
+
+    calc_graph_cuts_segmentation_new(pc_struct, seg_parts,analysis_data,parameters_new);
+
+    timer.stop_timer();
 
     ParticleDataNew<float, uint64_t> part_new;
     //flattens format to particle = cell, this is in the classic access/part paradigm
@@ -123,18 +130,22 @@ int main(int argc, char **argv) {
 
     part_new.particle_data.org_dims = pc_struct.org_dims;
 
-   // Mesh_data<uint16_t> seg_mesh;
+    Mesh_data<uint16_t> seg_mesh;
 
-    //interp_img(seg_mesh, pc_data, part_new, seg_parts,true);
+    timer.start_timer("interp_img");
 
-    //debug_write(seg_mesh,"new_seg");
+    interp_img(seg_mesh, pc_data, part_new, seg_parts,true);
+
+    timer.stop_timer();
+
+    debug_write(seg_mesh,"new_seg");
 
     proj_par proj_pars;
 
-    proj_pars.theta_0 = -1.569;
-    proj_pars.theta_final = 1.569;
-    proj_pars.radius_factor = 1;
-    proj_pars.theta_delta = 0.0075;
+    proj_pars.theta_0 = 0;
+    proj_pars.theta_final = 3.14;
+    proj_pars.radius_factor = 1.00;
+    proj_pars.theta_delta = 0.1;
     proj_pars.scale_z = 4.0f;
 
     ExtraPartCellData<uint16_t> y_vec;
@@ -145,8 +156,11 @@ int main(int argc, char **argv) {
 
     ExtraPartCellData<uint16_t> seg_parts_depth = multiply_by_depth(seg_parts);
 
-    apr_prospective_raycast(y_vec,seg_parts_depth,proj_pars,[] (const uint8_t& a,const uint8_t& b) {return std::max(a,b);});
+   // apr_perspective_raycast(y_vec,seg_parts,proj_pars,[] (const uint16_t& a,const uint16_t& b) {return std::min(a,b);},true);
 
+    apr_perspective_raycast(y_vec,seg_parts_depth,proj_pars,[] (const uint16_t& a,const uint16_t& b) {return std::max(a,b);},false);
+
+    apr_perspective_raycast_depth(y_vec,seg_parts,part_new.particle_data,proj_pars,[] (const uint16_t& a,const uint16_t& b) {return std::max(a,b);},true);
 
     //if(pc_struct.org_dims[0] <400){
     
@@ -154,8 +168,7 @@ int main(int argc, char **argv) {
     
     std::cout << " Num Parts: " << pc_struct.get_number_parts() << std::endl;
     std::cout << " Num Pixels: " << pc_struct.org_dims[0]*pc_struct.org_dims[1]*pc_struct.org_dims[2] << std::endl;
-    
-    
+
     //}
     //Now we will view the output by creating the binary image implied by the segmentation
     

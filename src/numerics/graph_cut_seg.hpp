@@ -1009,10 +1009,10 @@ void construct_max_flow_graph_new(PartCellStructure<V,T>& pc_struct,GraphType& g
 
 
     seg_parts.initialize_structure_cells(pc_data);
-
+    timer.verbose_flag = true;
 
     //float temp2 = seg_parts.get_part(curr_key);
-    timer.start_timer("max flow");
+    timer.start_timer("maxflow_new_parts");
     int flow = g.maxflow();
     timer.stop_timer();
 

@@ -108,10 +108,10 @@ int main(int argc, char **argv) {
 
     proj_par proj_pars;
 
-    proj_pars.theta_0 = -.3;
-    proj_pars.theta_final = .3;
-    proj_pars.radius_factor = 1.2;
-    proj_pars.theta_delta = 0.005;
+    proj_pars.theta_0 = 0;
+    proj_pars.theta_final = 3.14;
+    proj_pars.radius_factor = .98f;
+    proj_pars.theta_delta = 0.1f;
     proj_pars.scale_z = 1.0f;
 
     ParticleDataNew<float, uint64_t> part_new;
@@ -127,7 +127,9 @@ int main(int argc, char **argv) {
 
     shift_particles_from_cells(part_new,particles_int);
 
-    apr_prospective_raycast(y_vec,particles_int,proj_pars,[] (const uint16_t& a,const uint16_t& b) {return std::max(a,b);});
+    apr_perspective_raycast(y_vec,particles_int,proj_pars,[] (const uint16_t& a,const uint16_t& b) {return std::max(a,b);});
+
+
 
     if(options.org_file != ""){
 
