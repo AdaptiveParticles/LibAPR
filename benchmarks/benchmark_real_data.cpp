@@ -50,8 +50,8 @@ int main(int argc, char **argv) {
 
     std::vector<std::string> file_list = listFiles( options.directory,".tif");
 
-    std::string path_parts = get_path("PARTGEN_OUTPUT_PATH");
-    std::string path_image = get_path("PARTGEN_IMAGE_PATH");
+    std::string path_parts = get_path("IMAGE_GEN_PATH");
+    std::string path_image = get_path("IMAGE_GEN_PATH");
 
     analysis_data.create_string_dataset("file_name",0);
 
@@ -96,7 +96,7 @@ int main(int argc, char **argv) {
                 // save APR
                 write_apr_pc_struct(pc_struct,path_parts,image_name);
                 // save APR Full
-                write_apr_full_format(pc_struct,path_parts + "Full/",image_name);
+                write_apr_full_format(pc_struct,path_parts ,image_name);
 
                 analysis_data.get_data_ref<std::string>("file_name")->data.push_back(
                         image_name);
