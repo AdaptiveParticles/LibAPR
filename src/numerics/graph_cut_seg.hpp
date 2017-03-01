@@ -596,13 +596,13 @@ void construct_max_flow_graph_new(PartCellStructure<V,T>& pc_struct,GraphType& g
     Part_timer timer;
 
     pc_struct.part_data.initialize_global_index();
-
+    timer.verbose_flag = true;
 
     uint64_t num_parts = pc_struct.get_number_parts();
 
 
     //Get the other part rep information
-
+    timer.start_timer("initialize vals");
 
     ParticleDataNew<float, uint64_t> part_new;
     //flattens format to particle = cell, this is in the classic access/part paradigm
@@ -621,6 +621,10 @@ void construct_max_flow_graph_new(PartCellStructure<V,T>& pc_struct,GraphType& g
 
     part_new.create_particles_at_cell_structure(particle_data);
 
+    timer.stop_timer();
+
+
+    timer.start_timer("add_nodes");
 
     float beta = 1000;
     float k_max = pc_struct.depth_max;
@@ -633,15 +637,22 @@ void construct_max_flow_graph_new(PartCellStructure<V,T>& pc_struct,GraphType& g
 
     }
 
+    timer.stop_timer();
+
     std::vector<float> filter = {.0125,.975,.0125};
     std::vector<float> delta = {parameters[7],parameters[8],parameters[9]};
+
+    timer.start_timer("smooth");
 
     int num_tap = 1;
 
     ExtraPartCellData<float> smoothed_parts = adaptive_smooth(pc_data,particle_data,num_tap,filter);
 
-    ExtraPartCellData<float> smoothed_gradient_mag = adaptive_grad(pc_data,smoothed_parts,3,delta);
+    //ExtraPartCellData<float> smoothed_gradient_mag = adaptive_grad(pc_data,smoothed_parts,3,delta);
 
+    timer.stop_timer();
+
+    timer.start_timer("get_adaptive_min_max");
     //adaptive mean
     ExtraPartCellData<float> adaptive_min;
     ExtraPartCellData<float> adaptive_max;
@@ -651,6 +662,8 @@ void construct_max_flow_graph_new(PartCellStructure<V,T>& pc_struct,GraphType& g
     std::vector<unsigned int> status_offsets_max = {(unsigned int)parameters[4],(unsigned int)parameters[5],(unsigned int)parameters[6]};
 
     get_adaptive_min_max(pc_struct,adaptive_min,adaptive_max,status_offsets_min,status_offsets_max,0,0);
+
+    timer.stop_timer();
 
     Mesh_data<float> output_img;
 
@@ -667,12 +680,13 @@ void construct_max_flow_graph_new(PartCellStructure<V,T>& pc_struct,GraphType& g
     uint64_t part_offset=0;
     uint64_t p;
 
+    timer.start_timer("convert structures");
+
     ExtraPartCellData<float> new_adaptive_max;
     ExtraPartCellData<float> new_adaptive_min;
 
     new_adaptive_min.initialize_structure_parts(pc_struct.part_data.particle_data);
     new_adaptive_max.initialize_structure_parts(pc_struct.part_data.particle_data);
-
 
 
     //////////////////////////////////
@@ -721,8 +735,6 @@ void construct_max_flow_graph_new(PartCellStructure<V,T>& pc_struct,GraphType& g
                         float loc_min = adaptive_min.get_val(curr_key);
                         float loc_max = adaptive_max.get_val(curr_key);
 
-
-
                         //loop over the particles
                         for(p = 0;p < pc_struct.part_data.get_num_parts(status);p++){
                             //first set the particle index value in the particle_data array (stores the intensities)
@@ -749,31 +761,74 @@ void construct_max_flow_graph_new(PartCellStructure<V,T>& pc_struct,GraphType& g
     convert_from_old_structure(adaptive_min,pc_struct,pc_data,new_adaptive_min,false);
     part_new.create_particles_at_cell_structure(new_adaptive_min,adaptive_min);
 
+    timer.stop_timer();
 
     ExtraPartCellData<uint64_t> part_id;
     part_id.initialize_structure_cells(pc_data);
 
+
+
     //initialize variables required
     uint64_t node_val_pc; // node variable encoding neighbour and cell information
 
-    // Extra variables required
-    //
+    timer.start_timer("get counter");
 
-    //check everything
-//
-//    Mesh_data<float> check;
-//
-//    interp_img(check, pc_data, part_new, new_adaptive_min,true);
-//
-//    debug_write(check,"min");
-//
-//    interp_img(check, pc_data, part_new, new_adaptive_max,true);
-//
-//    debug_write(check,"max");
-//
-//    interp_img(check, pc_data, part_new, smoothed_parts,true);
-//
-//    debug_write(check,"Ip");
+    counter = 0;
+
+    for(uint64_t i = pc_data.depth_min;i <= pc_data.depth_max;i++){
+
+        //loop over the resolutions of the structure
+        const unsigned int x_num_ = pc_data.x_num[i];
+        const unsigned int z_num_ = pc_data.z_num[i];
+
+        for(z_ = 0;z_ < z_num_;z_++){
+            //both z and x are explicitly accessed in the structure
+            curr_key = 0;
+
+            pc_data.pc_key_set_z(curr_key,z_);
+            pc_data.pc_key_set_depth(curr_key,i);
+
+            for(x_ = 0;x_ < x_num_;x_++){
+
+                pc_data.pc_key_set_x(curr_key,x_);
+
+                const size_t offset_pc_data = x_num_*z_ + x_;
+
+                const size_t j_num = pc_data.data[i][offset_pc_data].size();
+
+                //the y direction loop however is sparse, and must be accessed accordinagly
+                for(j_ = 0;j_ < j_num;j_++){
+
+                    //particle cell node value, used here as it is requried for getting the particle neighbours
+                    node_val_pc = pc_data.data[i][offset_pc_data][j_];
+
+                    if (!(node_val_pc&1)){
+                        //Indicates this is a particle cell node
+                        //y_coord++;
+
+                        pc_data.pc_key_set_j(curr_key,j_);
+
+                        part_id.get_val(curr_key) = counter;
+
+
+                        counter++;
+
+
+                    } else {
+                        // Inidicates this is not a particle cell node, and is a gap node
+
+                    }
+
+                }
+
+            }
+
+        }
+    }
+
+    timer.stop_timer();
+
+    timer.start_timer("init weights");
 
     float Ip_min = parameters[0];
 
@@ -784,7 +839,7 @@ void construct_max_flow_graph_new(PartCellStructure<V,T>& pc_struct,GraphType& g
         //loop over the resolutions of the structure
         const unsigned int x_num_ = pc_data.x_num[i];
         const unsigned int z_num_ = pc_data.z_num[i];
-//#pragma omp parallel for default(shared) private(z_,x_,j_,node_val_pc,curr_key)  firstprivate(neigh_cell_keys) if(z_num_*x_num_ > 100)
+#pragma omp parallel for default(shared) private(z_,x_,j_,node_val_pc,curr_key)  if(z_num_*x_num_ > 100)
         for(z_ = 0;z_ < z_num_;z_++){
             //both z and x are explicitly accessed in the structure
             curr_key = 0;
@@ -813,7 +868,7 @@ void construct_max_flow_graph_new(PartCellStructure<V,T>& pc_struct,GraphType& g
 
                         pc_data.pc_key_set_j(curr_key,j_);
 
-                        part_id.get_val(curr_key) = counter;
+                        uint64_t curr_id =  part_id.get_val(curr_key);
 
                         float Ip = smoothed_parts.get_val(curr_key);
                         float loc_min = new_adaptive_min.get_val(curr_key);
@@ -823,8 +878,8 @@ void construct_max_flow_graph_new(PartCellStructure<V,T>& pc_struct,GraphType& g
                         float cap_t;
 
                         if((loc_min > 0) & (loc_max > 0) & (Ip > Ip_min)){
-                            cap_s =   alpha*abs((Ip - loc_min)/(loc_max-loc_min));
-                            cap_t =   alpha*abs((loc_max-Ip)/(loc_max-loc_min));
+                            //cap_s =   alpha*abs((Ip - loc_min)/(loc_max-loc_min));
+                            //cap_t =   alpha*abs((loc_max-Ip)/(loc_max-loc_min));
 
                             cap_s =   alpha*abs((Ip - loc_min));
                             cap_t =   alpha*abs((loc_max-Ip));
@@ -837,10 +892,7 @@ void construct_max_flow_graph_new(PartCellStructure<V,T>& pc_struct,GraphType& g
                             cap_t = 100000;
                         }
 
-
-                        g.add_tweights(counter,   /* capacities */ cap_s, cap_t);
-
-                        counter++;
+                        g.add_tweights(curr_id,   /* capacities */ cap_s, cap_t);
 
 
                     } else {
@@ -856,7 +908,7 @@ void construct_max_flow_graph_new(PartCellStructure<V,T>& pc_struct,GraphType& g
     }
 
 
-
+    timer.stop_timer();
 
 
     ////////////////////////////////////
@@ -872,12 +924,8 @@ void construct_max_flow_graph_new(PartCellStructure<V,T>& pc_struct,GraphType& g
 
     uint64_t  neigh_counter= 0;
 
-    timer.verbose_flag = false;
-
 
     timer.start_timer("neigh_cell_comp");
-
-
 
 
     for(uint64_t i = pc_data.depth_min;i <= pc_data.depth_max;i++){
@@ -888,7 +936,7 @@ void construct_max_flow_graph_new(PartCellStructure<V,T>& pc_struct,GraphType& g
         //loop over the resolutions of the structure
         const unsigned int x_num_ = pc_data.x_num[i];
         const unsigned int z_num_ = pc_data.z_num[i];
-//#pragma omp parallel for default(shared) private(z_,x_,j_,node_val_pc,curr_key)  firstprivate(neigh_cell_keys) if(z_num_*x_num_ > 100)
+//#pragma omp parallel for default(shared) private(z_,x_,j_,node_val_pc,curr_key,h_depth)  firstprivate(neigh_cell_keys) if(z_num_*x_num_ > 100)
         for(z_ = 0;z_ < z_num_;z_++){
             //both z and x are explicitly accessed in the structure
             curr_key = 0;
@@ -921,7 +969,7 @@ void construct_max_flow_graph_new(PartCellStructure<V,T>& pc_struct,GraphType& g
 
                         uint64_t global_index = part_id.get_val(curr_key);
 
-                        float grad = smoothed_gradient_mag.get_val(curr_key);
+                        //float grad = smoothed_gradient_mag.get_val(curr_key);
                         float loc_min = new_adaptive_min.get_val(curr_key);
                         float loc_max = new_adaptive_max.get_val(curr_key);
                         float scale = abs(loc_max - loc_min);
@@ -931,7 +979,7 @@ void construct_max_flow_graph_new(PartCellStructure<V,T>& pc_struct,GraphType& g
                             scale = 1000;
                         }
 
-                        std::vector<int> dirs = {0,1,2,3,4,5};
+                        std::vector<int> dirs = {0,2,4};
 
                         //(+direction)
                         //loop over the nieghbours
@@ -957,35 +1005,23 @@ void construct_max_flow_graph_new(PartCellStructure<V,T>& pc_struct,GraphType& g
                                     float h = .5*pow(2,pc_data.depth_max - ndepth) + .5*h_depth;
 
                                     float Iq = smoothed_parts.get_val(neigh_key);
-                                    float grad_n = smoothed_gradient_mag.get_val(neigh_key);
+                                    //float grad_n = smoothed_gradient_mag.get_val(neigh_key);
                                     uint64_t global_index_neigh = part_id.get_val(neigh_key);
 
-                                    //scale = 1;
+                                    float scale_n = abs(new_adaptive_max.get_val(neigh_key) - new_adaptive_min.get_val(neigh_key));
 
-                                    float cap_1;
-                                    float cap_2;
-
-                                    if((Ip - Iq)>0.05*scale){
-                                        cap_1 = 1;
-                                        cap_2 = exp(-10*abs(Ip - Iq)/(h*delta_s));
-
-
-                                    } else {
-
-                                        cap_2 = 1;
-                                        cap_1 = exp(-10*abs(Ip - Iq)/(h*delta_s));
-
+                                    if(scale_n <= 0){
+                                        scale_n = 1000;
                                     }
 
-                                    grad = abs(Ip - Iq)/(h*delta_s*.1);
-                                    grad_n = abs(Ip - Iq)/(h*delta_s*.1);
+                                    float grad = abs(Ip - Iq)/(h*delta_s*.1);
+                                    float grad_n = abs(Ip - Iq)/(h*delta_s*.1);
 
 
-                                    g.add_edge( global_index, global_index_neigh,    /* capacities */  beta*exp(-10*(grad)/pow(scale,1)), beta*exp(-10*(grad_n)/pow(scale,1)));
+                                    g.add_edge( global_index, global_index_neigh,    /* capacities */  beta*exp(-10*(grad)/pow(scale,1)), beta*exp(-10*(grad_n)/pow(scale_n,1)));
 
                                     //g.add_edge( global_index, global_index_neigh,   /* capacities */  beta*cap_1, beta*cap_2);
 
-                                    neigh_counter++;
 
                                 }
 
@@ -1007,13 +1043,16 @@ void construct_max_flow_graph_new(PartCellStructure<V,T>& pc_struct,GraphType& g
         }
     }
 
+    timer.stop_timer();
 
     seg_parts.initialize_structure_cells(pc_data);
-    timer.verbose_flag = true;
+
 
     //float temp2 = seg_parts.get_part(curr_key);
     timer.start_timer("maxflow_new_parts");
+
     int flow = g.maxflow();
+
     timer.stop_timer();
 
 
@@ -1024,7 +1063,7 @@ void construct_max_flow_graph_new(PartCellStructure<V,T>& pc_struct,GraphType& g
         //loop over the resolutions of the structure
         const unsigned int x_num_ = pc_data.x_num[i];
         const unsigned int z_num_ = pc_data.z_num[i];
-//#pragma omp parallel for default(shared) private(z_,x_,j_,node_val_pc,curr_key)  firstprivate(neigh_cell_keys) if(z_num_*x_num_ > 100)
+#pragma omp parallel for default(shared) private(z_,x_,j_,node_val_pc,curr_key)  firstprivate(neigh_cell_keys) if(z_num_*x_num_ > 100)
         for(z_ = 0;z_ < z_num_;z_++){
             //both z and x are explicitly accessed in the structure
             curr_key = 0;

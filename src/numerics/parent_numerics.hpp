@@ -98,8 +98,7 @@ void push_down_tree(PartCellStructure<U,T>& pc_struct,PartCellParent<T>& pc_pare
     //
     
     std::vector<T> temp_vec;
-    
-    
+
     
     temp_vec.resize(pc_struct.depth_max);
     
@@ -140,7 +139,7 @@ void push_down_tree(PartCellStructure<U,T>& pc_struct,PartCellParent<T>& pc_pare
     
     curr_k = i;
     
-    //#pragma omp parallel for default(shared) private(z_,x_,j_,node_val_parent,curr_key,status,node_val_part) firstprivate(children_keys,children_ind) if(z_num_*x_num_ > 100)
+    #pragma omp parallel for default(shared) private(z_,x_,j_,node_val_parent,curr_key,status,node_val_part) firstprivate(children_keys,children_ind) if(z_num_*x_num_ > 100)
     for(z_ = 0;z_ < z_num_;z_++){
         //both z and x are explicitly accessed in the structure
         curr_key = 0;
@@ -271,7 +270,7 @@ void calc_cell_min_max(PartCellStructure<T,S>& pc_struct,PartCellParent<S>& pc_p
         const unsigned int z_num_ =  pc_parent.neigh_info.z_num[i];
         
         
-//#pragma omp parallel for default(shared) private(z_,x_,j_,node_val_parent,curr_key,status,part_offset,node_val_part) firstprivate(children_keys,children_ind) if(z_num_*x_num_ > 100)
+#pragma omp parallel for default(shared) private(z_,x_,j_,node_val_parent,curr_key,status,part_offset,node_val_part) firstprivate(children_keys,children_ind) if(z_num_*x_num_ > 100)
         for(z_ = 0;z_ < z_num_;z_++){
             //both z and x are explicitly accessed in the structure
             curr_key = 0;
@@ -373,7 +372,7 @@ void calc_cell_min_max(PartCellStructure<T,S>& pc_struct,PartCellParent<S>& pc_p
         const unsigned int z_num_ =  pc_parent.neigh_info.z_num[i];
         
         
-        //#pragma omp parallel for default(shared) private(z_,x_,j_,node_val_parent,curr_key,status,part_offset,node_val_part) firstprivate(children_keys,children_ind) if(z_num_*x_num_ > 100)
+        #pragma omp parallel for default(shared) private(z_,x_,j_,node_val_parent,curr_key,status,part_offset,node_val_part) firstprivate(children_keys,children_ind) if(z_num_*x_num_ > 100)
         for(z_ = 0;z_ < z_num_;z_++){
             //both z and x are explicitly accessed in the structure
             curr_key = 0;
@@ -397,16 +396,13 @@ void calc_cell_min_max(PartCellStructure<T,S>& pc_struct,PartCellParent<S>& pc_p
                     
                     if (!(node_val_parent&1)){
                         //Indicates this is a particle cell node
-                        
-                        
+
                         pc_parent.neigh_info.pc_key_set_j(curr_key,j_);
                         
                         
                         float check_min = min_data.get_val(curr_key);
                         float check_max = max_data.get_val(curr_key);
-                        
-                        
-                        
+
                         
                     }
                 }
@@ -631,7 +627,7 @@ void smooth_parent_result_sep(PartCellParent<U>& pc_parent,ExtraPartCellData<T>&
         const unsigned int x_num_ =  pc_parent.neigh_info.x_num[i];
         const unsigned int z_num_ =  pc_parent.neigh_info.z_num[i];
         
-        //#pragma omp parallel for default(shared) private(z_,x_,j_,node_val_parent,curr_key,status,node_val_part)  if(z_num_*x_num_ > 100)
+        #pragma omp parallel for default(shared) private(z_,x_,j_,node_val_parent,curr_key,status,node_val_part)  if(z_num_*x_num_ > 100)
         for(z_ = 0;z_ < z_num_;z_++){
             //both z and x are explicitly accessed in the structure
             curr_key = 0;
@@ -677,7 +673,7 @@ void smooth_parent_result_sep(PartCellParent<U>& pc_parent,ExtraPartCellData<T>&
         const unsigned int x_num_ =  pc_parent.neigh_info.x_num[i];
         const unsigned int z_num_ =  pc_parent.neigh_info.z_num[i];
         
-        //#pragma omp parallel for default(shared) private(z_,x_,j_,node_val_parent,curr_key,status,node_val_part)  if(z_num_*x_num_ > 100)
+        #pragma omp parallel for default(shared) private(z_,x_,j_,node_val_parent,curr_key,status,node_val_part)  if(z_num_*x_num_ > 100)
         for(z_ = 0;z_ < z_num_;z_++){
             //both z and x are explicitly accessed in the structure
             curr_key = 0;
@@ -722,7 +718,7 @@ void smooth_parent_result_sep(PartCellParent<U>& pc_parent,ExtraPartCellData<T>&
         const unsigned int x_num_ =  pc_parent.neigh_info.x_num[i];
         const unsigned int z_num_ =  pc_parent.neigh_info.z_num[i];
         
-        //#pragma omp parallel for default(shared) private(z_,x_,j_,node_val_parent,curr_key,status,node_val_part)  if(z_num_*x_num_ > 100)
+        #pragma omp parallel for default(shared) private(z_,x_,j_,node_val_parent,curr_key,status,node_val_part)  if(z_num_*x_num_ > 100)
         for(z_ = 0;z_ < z_num_;z_++){
             //both z and x are explicitly accessed in the structure
             curr_key = 0;
@@ -1157,9 +1153,12 @@ void get_adaptive_min_max(PartCellStructure<U,T>& pc_struct,ExtraPartCellData<V>
     //
     //  Computes a locally adapted min and max using the tree structure of the representaion and using resolution offsets set in status offset= {seed offset, boundary offset, filler offset}
     //
-    
+
+
     PartCellParent<uint64_t> pc_parent(pc_struct);
-    
+
+
+
     ExtraPartCellData<float> min_data;
     ExtraPartCellData<float> max_data;
     

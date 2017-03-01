@@ -105,7 +105,7 @@ int main(int argc, char **argv) {
     
     //calc_graph_cuts_segmentation(pc_struct, seg_parts,parameters_nuc,analysis_data);
 
-    float Ip_threshold = 995;
+    float Ip_threshold = 195;
 
     std::array<float,10> parameters_new = {Ip_threshold,1,2,3,1,2,3,1,1,4};
 
@@ -173,9 +173,9 @@ int main(int argc, char **argv) {
 
     apr_perspective_raycast_depth(y_vec,seg_parts,seg_parts_depth,proj_pars,[] (const uint16_t& a,const uint16_t& b) {return std::max(a,b);},true);
 
-    proj_pars.name = "center";
+    //proj_pars.name = "center";
 
-    apr_perspective_raycast_depth(y_vec,seg_parts,seg_parts_center,proj_pars,[] (const uint16_t& a,const uint16_t& b) {return std::max(a,b);},true);
+    //apr_perspective_raycast_depth(y_vec,seg_parts,seg_parts_center,proj_pars,[] (const uint16_t& a,const uint16_t& b) {return std::max(a,b);},true);
 
     //if(pc_struct.org_dims[0] <400){
     
