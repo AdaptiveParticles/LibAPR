@@ -2662,6 +2662,112 @@ ExtraPartCellData<T> adaptive_grad(PartCellData<uint64_t>& pc_data,ExtraPartCell
 
 
 }
+template<typename T>
+ExtraPartCellData<std::array<float,3>> adaptive_gradient_normal(PartCellStructure<float,uint64_t>& pc_struct,std::vector<T> delta = {1,1,1}){
+
+
+    ParticleDataNew<float, uint64_t> part_new;
+    //flattens format to particle = cell, this is in the classic access/part paradigm
+    part_new.initialize_from_structure(pc_struct);
+
+    //generates the nieghbour structure
+    PartCellData<uint64_t> pc_data;
+    part_new.create_pc_data_new(pc_data);
+
+    pc_data.org_dims = pc_struct.org_dims;
+    part_new.access_data.org_dims = pc_struct.org_dims;
+
+    part_new.particle_data.org_dims = pc_struct.org_dims;
+
+    ExtraPartCellData<float> particle_data;
+
+    part_new.create_particles_at_cell_structure(particle_data);
+
+
+    // compute gradient magnitude
+
+    ExtraPartCellData<float> grad_y =  sep_neigh_grad(pc_data,particle_data,0,delta[0]);
+
+    ExtraPartCellData<float> grad_x =  sep_neigh_grad(pc_data,particle_data,1,delta[1]);
+
+    ExtraPartCellData<float> mag;
+    ExtraPartCellData<float> temp;
+
+    //square the two gradients
+    temp = transform_parts(grad_y,square<float>);
+    mag = transform_parts(grad_x,square<float>);
+
+    //then add them together
+    transform_parts(mag,temp,std::plus<float>());
+
+    ExtraPartCellData<float> grad_z =  sep_neigh_grad(pc_data,particle_data,2,delta[2]);
+
+    temp = transform_parts(grad_z,square<float>);
+    transform_parts(mag,temp,std::plus<float>());
+
+    ExtraPartCellData<std::array<float,3>> normal_vec;
+
+    //first add the layers
+    normal_vec.depth_max = particle_data.depth_max;
+    normal_vec.depth_min = particle_data.depth_min;
+
+    normal_vec.z_num.resize(normal_vec.depth_max+1);
+    normal_vec.x_num.resize(normal_vec.depth_max+1);
+
+    normal_vec.data.resize(normal_vec.depth_max+1);
+
+    normal_vec.org_dims = particle_data.org_dims;
+
+    for(uint64_t i = normal_vec.depth_min;i <= normal_vec.depth_max;i++){
+        normal_vec.z_num[i] = particle_data.z_num[i];
+        normal_vec.x_num[i] = particle_data.x_num[i];
+        normal_vec.data[i].resize(normal_vec.z_num[i]*normal_vec.x_num[i]);
+
+        for(int j = 0;j < particle_data.data[i].size();j++){
+            normal_vec.data[i][j].resize(particle_data.data[i][j].size());
+        }
+
+    }
+
+    int z_,x_,j_,y_;
+
+    for(uint64_t depth = (normal_vec.depth_min);depth <= normal_vec.depth_max;depth++) {
+        //loop over the resolutions of the structure
+        const unsigned int x_num_ = normal_vec.x_num[depth];
+        const unsigned int z_num_ = normal_vec.z_num[depth];
+
+        const unsigned int x_num_min_ = 0;
+        const unsigned int z_num_min_ = 0;
+
+
+#pragma omp parallel for default(shared) private(z_,x_,j_) if(z_num_*x_num_ > 100)
+        for (z_ = z_num_min_; z_ < z_num_; z_++) {
+            //both z and x are explicitly accessed in the structure
+
+            for (x_ = x_num_min_; x_ < x_num_; x_++) {
+
+                const unsigned int pc_offset = x_num_*z_ + x_;
+
+                for (j_ = 0; j_ < normal_vec.data[depth][pc_offset].size(); ++j_) {
+
+                    normal_vec.data[depth][pc_offset][j_][0] = grad_y.data[depth][pc_offset][j_]/mag.data[depth][pc_offset][j_];
+                    normal_vec.data[depth][pc_offset][j_][1] = grad_x.data[depth][pc_offset][j_]/mag.data[depth][pc_offset][j_];
+                    normal_vec.data[depth][pc_offset][j_][2] = grad_z.data[depth][pc_offset][j_]/mag.data[depth][pc_offset][j_];
+
+                }
+
+            }
+        }
+    }
+
+
+
+    return normal_vec;
+
+
+
+
+}
 
 
 template<typename T>
@@ -2724,7 +2830,7 @@ Mesh_data<float> compute_grad(Mesh_data<T> gt_image,std::vector<float> delta = {
 
 }
 template<typename U,typename V,typename T>
-ExtraPartCellData<U> compute_normalized_grad_mag(PartCellStructure<V,T>& pc_struct,int num_taps){
+ExtraPartCellData<U> compute_normalized_grad_mag(PartCellStructure<V,T>& pc_struct,int num_taps,std::vector<float> delta){
     //
     //
     //
@@ -2732,7 +2838,7 @@ ExtraPartCellData<U> compute_normalized_grad_mag(PartCellStructure<V,T>& pc_stru
 
     ExtraPartCellData<U> norm_grad;
 
-    std::vector<float> delta = {1,1,4};
+
     //offsets past on cell status (resolution)
     std::vector<unsigned int> status_offsets_min = {1,2,3};
     std::vector<unsigned int> status_offsets_max = {1,2,3};

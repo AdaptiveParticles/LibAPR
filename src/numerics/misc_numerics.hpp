@@ -1096,8 +1096,8 @@ void transform_parts(ExtraPartCellData<V>& parts,ExtraPartCellData<V>& parts2,Un
     }
 
 }
-template<typename V,class BinaryPredicate>
-void threshold_parts(ExtraPartCellData<V>& parts,ExtraPartCellData<V>& parts2,V th,V set_val,BinaryPredicate pred){
+template<typename V,typename U,class BinaryPredicate>
+void threshold_parts(ExtraPartCellData<V>& parts,ExtraPartCellData<U>& parts2,float th,float set_val,BinaryPredicate pred){
     //
     //  Bevan Cheeseman 2017
     //

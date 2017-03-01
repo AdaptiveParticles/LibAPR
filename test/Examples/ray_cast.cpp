@@ -16,6 +16,7 @@
 #include "../../src/data_structures/Tree/PartCellParent.hpp"
 #include "../../src/numerics/ray_cast.hpp"
 #include "../../src/numerics/filter_numerics.hpp"
+#include "../../src/numerics/misc_numerics.hpp"
 
 bool command_option_exists(char **begin, char **end, const std::string &option)
 {
@@ -112,7 +113,7 @@ int main(int argc, char **argv) {
     proj_pars.theta_final = 3.14;
     proj_pars.radius_factor = .98f;
     proj_pars.theta_delta = 0.1f;
-    proj_pars.scale_z = 1.0f;
+    proj_pars.scale_z = 3.0f;
 
     ParticleDataNew<float, uint64_t> part_new;
     //flattens format to particle = cell, this is in the classic access/part paradigm
@@ -146,8 +147,28 @@ int main(int argc, char **argv) {
     //  Normalized Gradient Ray Cast
     //
     //////////////////////////////////
+    std::vector<float> delta = {1,1,4};
 
-//    ExtraPartCellData<float> adapt_grad =  compute_normalized_grad_mag<float,float,uint64_t>(pc_struct,3);
+
+    ExtraPartCellData<float> normalized_grad =  compute_normalized_grad_mag<float,float,uint64_t>(pc_struct,3,delta);
+
+    shift_particles_from_cells(part_new,normalized_grad);
+
+    ExtraPartCellData<std::array<float,3>> grad_norm = adaptive_gradient_normal(pc_struct,delta);
+
+    //threshold by intensity first
+    float intensity_threshold = 250;
+
+    threshold_parts(normalized_grad,particles_int,intensity_threshold,0,std::less<float>());
+
+    float min_th = .2;
+    float set_val = 0;
+
+    threshold_parts(normalized_grad,min_th,set_val,std::less<float>());
+
+    apr_perspective_raycast_depth(y_vec,normalized_grad,part_new.particle_data,proj_pars,[] (const uint16_t& a,const uint16_t& b) {return std::max(a,b);},true);
+
+
 //
 //    adapt_grad = transform_parts(adapt_grad,[] (const float& a) {return 1000*a;});
 //
