@@ -569,6 +569,8 @@ void produce_apr_analysis(Mesh_data<T>& input_image,AnalysisData& analysis_data,
 
         run_ray_cast(pc_struct,analysis_data,input_image,pars);
 
+        real_adaptive_grad(pc_struct,analysis_data,input_image, pars);
+
 
        // evaluate_enhancement(pc_struct,analysis_data,syn_image,input_image,p_rep);
     }

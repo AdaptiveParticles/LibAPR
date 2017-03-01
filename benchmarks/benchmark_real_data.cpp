@@ -57,7 +57,7 @@ int main(int argc, char **argv) {
 
     int N_par1 = file_list.size();
 
-    for (int j = 6; j < N_par1; j++) {
+    for (int j = 0; j < N_par1; j++) {
 
         for (int i = 0; i < N_repeats; i++) {
 
