@@ -1283,6 +1283,8 @@ void run_ray_cast(PartCellStructure<float,uint64_t> pc_struct,AnalysisData& anal
 
     shift_particles_from_cells(part_new,particles_int);
 
+    proj_pars.name = pc_struct.name;
+
     timer.start_timer("ray_cast_max_part");
 
     float t_apr = apr_perspective_raycast(y_vec,particles_int,proj_pars,[] (const uint16_t& a,const uint16_t& b) {return std::max(a,b);});

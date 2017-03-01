@@ -85,9 +85,10 @@ int main(int argc, char **argv) {
 
                 get_apr(input_image,part_rep,pc_struct,analysis_data);
 
+                pc_struct.name = image_name;
+
                 produce_apr_analysis(input_image, analysis_data, pc_struct, part_rep.pars);
 
-                pc_struct.name = image_name;
 
                 Mesh_data<uint16_t> interp_img;
                 // save pc reconstruction
