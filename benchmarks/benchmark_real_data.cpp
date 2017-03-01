@@ -22,7 +22,7 @@ int main(int argc, char **argv) {
     /////////////////////////////////////////////
     // GENERATE THE OBJECT TEMPLATE
 
-    std::cout << "Find Files" << std::endl;
+    std::cout << "Find Files " << std::endl;
 
     benchmark_settings bs;
     SynImage syn_image;
@@ -50,14 +50,14 @@ int main(int argc, char **argv) {
 
     std::vector<std::string> file_list = listFiles( options.directory,".tif");
 
-    std::string path_parts = get_path("IMAGE_GEN_PATH");
-    std::string path_image = get_path("IMAGE_GEN_PATH");
+    std::string path_parts = get_path("PARTGEN_OUTPUT_PATH");
+    std::string path_image = get_path("PARTGEN_OUTPUT_PATH");
 
     analysis_data.create_string_dataset("file_name",0);
 
     int N_par1 = file_list.size();
 
-    for (int j = 0; j < N_par1; j++) {
+    for (int j = 6; j < N_par1; j++) {
 
         for (int i = 0; i < N_repeats; i++) {
 

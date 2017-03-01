@@ -2722,7 +2722,6 @@ float perpsective_mesh_raycast(PartCellStructure<U,uint64_t>& pc_struct,proj_par
 
 
 
-
     debug_write(cast_views, pars.name + "perspective_mesh_projection");
 
     return (timer.t2 - timer.t1);
@@ -2801,6 +2800,14 @@ void apr_perspective_raycast_depth(ExtraPartCellData<uint16_t>& y_vec,ExtraPartC
     }
 
 
+    Part_timer timer;
+
+    timer.verbose_flag = true;
+
+
+    timer.start_timer("ray cast parts");
+
+
     for (float theta = theta_0; theta <= theta_f; theta += theta_delta) {
 
         std::vector<Mesh_data<float>> depth_slice;
@@ -2848,12 +2855,6 @@ void apr_perspective_raycast_depth(ExtraPartCellData<uint16_t>& y_vec,ExtraPartC
 
         const glm::mat4 mvp = (*cam.getProjection()) * (*cam.getView());
 
-        Part_timer timer;
-
-        timer.verbose_flag = true;
-
-
-        timer.start_timer("ray cast parts");
 
         const float x_camera = x0;
         const float y_camera = y0 + radius * sin(theta);
@@ -2979,13 +2980,15 @@ void apr_perspective_raycast_depth(ExtraPartCellData<uint16_t>& y_vec,ExtraPartC
             }
         }
 
-        timer.stop_timer();
 
         //copy data across
         std::copy(depth_slice_2[y_vec.depth_max].mesh.begin(),depth_slice_2[y_vec.depth_max].mesh.end(),cast_views.mesh.begin() + view_count*imageHeight*imageWidth);
 
         view_count++;
     }
+
+    timer.stop_timer();
+
 
     debug_write(cast_views, pars.name + "_perspective_part_projection_dual");
 
