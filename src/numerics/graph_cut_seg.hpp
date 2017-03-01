@@ -975,7 +975,7 @@ void construct_max_flow_graph_new(PartCellStructure<V,T>& pc_struct,GraphType& g
                         float scale = abs(loc_max - loc_min);
                         float Ip = smoothed_parts.get_val(curr_key);
 
-                        if((loc_min == 0) || (loc_max == 0)){
+                        if(scale <= 0){
                             scale = 1000;
                         }
 
