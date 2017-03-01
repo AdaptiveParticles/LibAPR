@@ -1394,5 +1394,73 @@ void evaluate_adaptive_grad(PartCellStructure<float,uint64_t> pc_struct,Analysis
 
 }
 
+template<typename T>
+void real_adaptive_grad(PartCellStructure<float,uint64_t> pc_struct,AnalysisData& analysis_data,Mesh_data<T>& input_image,Proc_par& pars){
+    //
+    //  Bevan Cheeseman 2017
+    //
+    //  Evaluate the accuracy of the filters
+    //
+    //
+
+    Part_timer timer;
+
+    Mesh_data<float> output_org;
+
+
+    //compute grad on APR reconstructed
+    Mesh_data<float> input_image_org;
+
+
+    //transfer across to float
+    input_image_org.initialize(input_image.y_num,input_image.x_num,input_image.z_num,0);
+    std::copy(input_image.mesh.begin(),input_image.mesh.end(),input_image_org.mesh.begin());
+
+    timer.start_timer("mesh_adapt_grad");
+
+    output_org = compute_grad(input_image_org);
+
+    timer.stop_timer();
+
+
+    remove_boundary(output_org,2);
+    debug_write(output_org,pc_struct.name + "_org_grad");
+
+    ParticleDataNew<float, uint64_t> part_new;
+    //flattens format to particle = cell, this is in the classic access/part paradigm
+    part_new.initialize_from_structure(pc_struct);
+
+    //generates the nieghbour structure
+    PartCellData<uint64_t> pc_data;
+    part_new.create_pc_data_new(pc_data);
+
+    pc_data.org_dims = pc_struct.org_dims;
+    part_new.access_data.org_dims = pc_struct.org_dims;
+
+    part_new.particle_data.org_dims = pc_struct.org_dims;
+
+    std::vector<float> delta = {pars.dy/pars.dy,pars.dx/pars.dy,pars.dz/pars.dy};
+
+    ExtraPartCellData<float> particle_data;
+
+    part_new.create_particles_at_cell_structure(particle_data);
+
+    timer.start_timer("mesh_adapt_grad");
+
+    ExtraPartCellData<float> smoothed_gradient_mag = adaptive_grad(pc_data,particle_data,3,delta);
+
+    timer.stop_timer();
+
+    Mesh_data<float> output_image_apr;
+
+    interp_img(output_image_apr, pc_data, part_new, smoothed_gradient_mag,true);
+
+    remove_boundary(output_image_apr,2);
+    debug_write(output_image_apr,pc_struct.name + "adaptive_grad");
+
+    analysis_data.add_timer(timer);
+
+}
+
 
 #endif //PARTPLAY_NUMERICS_BENCHMARKS_HPP

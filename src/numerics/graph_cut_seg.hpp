@@ -1224,11 +1224,13 @@ void calc_graph_cuts_segmentation_new(PartCellStructure<V,T>& pc_struct,ExtraPar
 
     GraphType *g = new GraphType(num_parts ,num_parts*6.4 );
 
-    timer.start_timer("construct_graph_parts");
+    timer.start_timer("construct_graph_parts_new");
 
     construct_max_flow_graph_new(pc_struct,*g,seg_parts,analysis_data,parameters);
 
     timer.stop_timer();
+
+    delete g;
 
 }
 
