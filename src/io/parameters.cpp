@@ -269,6 +269,18 @@ void get_image_stats(Proc_par& pars,std::string output_path,std::string stats_na
 
     }
 
+    //file name (relative path)
+    std::getline(path_file,out_line);
+
+    found = out_line.find("var_th_max: ");
+
+    if (found!=std::string::npos){
+
+        pars.var_th_max = stof(out_line.substr(found+12));
+    } else {
+        pars.var_th_max = 0;
+    }
+
 
     pars.tol = 0.0005f;
 
@@ -301,7 +313,12 @@ void get_image_stats(Proc_par& pars,std::string output_path,std::string stats_na
     //float max_var_th = 1.2f * pars.noise_sigma * expf(-0.5138f * logf(pars.lambda)) *
       //                 (0.1821f * logf(pars.lambda)+ 1.522f);
 
-    pars.var_th_max = 0.5*pars.var_th;
+    if(pars.var_th_max == 0){
+        pars.var_th_max = 0.5*pars.var_th;
+
+    }
+
+
 
 
 //    if (max_var_th > .25f*pars.var_th){

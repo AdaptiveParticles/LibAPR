@@ -157,7 +157,7 @@ int main(int argc, char **argv) {
     ExtraPartCellData<std::array<float,3>> grad_norm = adaptive_gradient_normal(pc_struct,delta);
 
     //threshold by intensity first
-    float intensity_threshold = 250;
+    float intensity_threshold = 3;
 
     threshold_parts(normalized_grad,particles_int,intensity_threshold,0,std::less<float>());
 
