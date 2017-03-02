@@ -237,9 +237,10 @@ add_executable(Example_segment_gc
 )
 
 SWIG_ADD_MODULE(apr java libapr.i
+        src/io/partcell_io.cpp
+        src/io/write_parts.cpp
         ${SOURCE_FILES_COMPILED}
         src/algorithm/pipeline.cpp
-        src/io/partcell_io.cpp
         )
 
 SWIG_LINK_LIBRARIES(apr ${HDF5_LIBRARIES} blosc_shared tiff)

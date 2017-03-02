@@ -41,9 +41,6 @@ void write_apr_wavelet(PartCellStructure<T,uint64_t>& pc_struct,std::string save
 
 
 template<typename T>
-void read_apr_pc_struct(PartCellStructure<T,uint64_t>& pc_struct,std::string save_loc,std::string file_name);
-
-template<typename T>
 void read_apr_full_format(PartCellStructure<T,uint64_t>& pc_struct,std::string save_loc,std::string file_name);
 
 

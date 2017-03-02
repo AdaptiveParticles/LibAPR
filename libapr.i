@@ -79,3 +79,6 @@ namespace std {
 %template(PartCellStructureStd) PartCellStructure<float, uint64_t>;
 %template(PartCellBaseStd) PartCellBase<float, uint64_t>;
 %template(PartCellDataStd) PartCellData<uint64_t>;
+
+// function templates
+%template(ReadFloatAPRFromFile) read_apr_pc_struct<float>;
