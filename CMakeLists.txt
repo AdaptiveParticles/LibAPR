@@ -21,7 +21,7 @@ find_package(JNI REQUIRED)
 INCLUDE(${SWIG_USE_FILE})
 
 set(CMAKE_SWIG_OUTDIR "${CMAKE_CURRENT_SOURCE_DIR}/src/main/java/de/mpicbg/mosaic/apr")
-set(CMAKE_SWIG_FLAGS -package de.mpicbg.mosaic.apr)
+set(CMAKE_SWIG_FLAGS -package de.mpicbg.mosaic.apr -Wall)
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/src/natives")
 
 SET_SOURCE_FILES_PROPERTIES(libapr.i PROPERTIES CPLUSPLUS ON)
@@ -30,6 +30,8 @@ find_package(TIFF REQUIRED)
 
 include_directories(${HDF5_INCLUDE_DIRS} ${TIFF_INCLUDE_DIR} ${GTEST_INCLUDE_DIRS} sources tests ${JNI_INCLUDE_DIRS} ${CMAKE_CURRENT_SOURCE_DIR})
 
+SET(BUILD_TESTS OFF CACHE BOOL "")
+SET(BUILD_BENCHMARKS OFF CACHE BOOL "")
 add_subdirectory("external/c-blosc")
 include_directories("external/c-blosc/blosc")
 
