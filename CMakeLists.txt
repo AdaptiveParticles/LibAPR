@@ -59,6 +59,7 @@ set(SOURCE_FILES
 
 set(SOURCE_FILES_COMPILED
         src/data_structures/structure_parts.cpp
+        src/data_structures/Tree/PartCellData.cpp
         src/io/parameters.cpp
         src/io/hdf5functions.cpp
         src/io/blosc_filter.c
@@ -238,6 +239,7 @@ add_executable(Example_segment_gc
 SWIG_ADD_MODULE(apr java libapr.i
         ${SOURCE_FILES_COMPILED}
         src/algorithm/pipeline.cpp
+        src/io/partcell_io.cpp
         )
 
 SWIG_LINK_LIBRARIES(apr ${HDF5_LIBRARIES} blosc_shared tiff)

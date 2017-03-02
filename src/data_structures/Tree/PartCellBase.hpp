@@ -30,7 +30,7 @@ public:
     
     
     //returns the status of a particle cell
-    inline uint8_t get_status(S node) const;
+//    inline uint8_t get_status(S node) const;
     
 private:
     

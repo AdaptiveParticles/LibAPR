@@ -11,6 +11,7 @@
  // type T data structure base type
 
 #include "PartCellData.hpp"
+#include <vector>
 
 #define NUM_FACES 6
 
