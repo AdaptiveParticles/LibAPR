@@ -1095,7 +1095,7 @@ void create_part_eps_type(ParticlesFull& parts_slice,std::string save_loc,std::s
 
         ParulaColorMix(col,parts_slice.type_vec[i],crange[0],crange[1]);
 
-        double size = 2*parts_slice.depth_max*parts_slice.depth_min/((float)pow(1.5,parts_slice.k_vec[i]));
+        double size = 5*parts_slice.depth_max*parts_slice.depth_min/((float)pow(1.5,parts_slice.k_vec[i]));
 
         g << Circle( parts_slice.y_c[i], -parts_slice.x_c[i],size , Color::Null, Color(col[0],col[1],col[2]),0.1 );
 
@@ -1139,7 +1139,7 @@ void create_part_eps_depth(ParticlesFull& parts_slice,std::string save_loc,std::
 
         ParulaColorMix(col,(double) parts_slice.k_vec[i],crange[0],crange[1],true);
 
-        double size = 2*parts_slice.depth_max*parts_slice.depth_min/((float)pow(1.5,parts_slice.k_vec[i]));
+        double size = 5*parts_slice.depth_max*parts_slice.depth_min/((float)pow(1.5,parts_slice.k_vec[i]));
 
         g << Circle( parts_slice.y_c[i], -parts_slice.x_c[i],size , Color::Null, Color(col[0],col[1],col[2]),0.1 );
 

@@ -43,6 +43,7 @@ struct cmdLineOptions{
     std::string name = "name";
     float min = 100;
     float max = 2000;
+    std::string input_slice = "";
 };
 
 

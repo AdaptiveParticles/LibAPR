@@ -83,6 +83,12 @@ cmdLineOptions read_command_line_options(int argc, char **argv, Part_rep& part_r
         result.max = std::stof(std::string(get_command_option(argv, argv + argc, "-max")));
     }
 
+    if(command_option_exists(argv, argv + argc, "-input_slice_file"))
+    {
+        result.input_slice = (std::string(get_command_option(argv, argv + argc, "-input_slice_file")));
+    }
+
+
     return result;
 
 }
@@ -132,6 +138,49 @@ int main(int argc, char **argv) {
 
     //write the slice
     write_image_tiff(slice,save_loc + name + ".tif");
+
+
+    if(options.input_slice != ""){
+
+        Mesh_data<uint16_t> input_image;
+        std::string input_file_name = options.input_slice;
+
+        load_image_tiff(input_image, input_file_name);
+
+        int num_pixels = input_image.y_num*input_image.x_num;
+
+        ParticlesFull img_slice;
+
+        img_slice.x_c.resize(num_pixels,0);
+        img_slice.y_c.resize(num_pixels,0);
+        img_slice.z_c.resize(num_pixels,0);
+
+        img_slice.Ip.resize(num_pixels,0);
+        img_slice.k_vec.resize(num_pixels,0);
+
+        img_slice.depth_max = parts_slice.depth_max;
+        img_slice.depth_min = parts_slice.depth_min;
+
+        int counter = 0;
+
+        int in;
+
+
+        for (int i = 0; i < input_image.x_num; ++i) {
+            for (int j = 0; j < input_image.y_num; ++j) {
+                img_slice.x_c[counter] = 2*i;
+                img_slice.y_c[counter] = 2*j;
+                img_slice.Ip[counter] = input_image.mesh[counter];
+                img_slice.k_vec[counter] = img_slice.depth_max+1;
+
+                counter++;
+            }
+        }
+
+        create_part_eps(img_slice,save_loc,name + "_mesh",crange);
+
+
+    }
 
 
 }
