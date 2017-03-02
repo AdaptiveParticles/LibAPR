@@ -393,8 +393,8 @@ private:
         
     }
     
-    
-    void create_partcell_structure(Particle_map<T>& part_map){
+    template<typename U>
+    void create_partcell_structure(Particle_map<U>& part_map){
         //
         //  Bevan Cheeseman 2016
         //
@@ -1593,7 +1593,8 @@ public:
     }
                                    
     //decleration
-    void initialize_structure(Particle_map<T>& particle_map){
+    template<typename U>
+    void initialize_structure(Particle_map<U>& particle_map){
 
 
         depth_min = particle_map.k_min;

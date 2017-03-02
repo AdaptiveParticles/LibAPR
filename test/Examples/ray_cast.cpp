@@ -109,7 +109,7 @@ int main(int argc, char **argv) {
 
     proj_par proj_pars;
 
-    proj_pars.theta_0 = 0;
+    proj_pars.theta_0 = -3.14;
     proj_pars.theta_final = 3.14;
     proj_pars.radius_factor = .98f;
     proj_pars.theta_delta = 0.1f;

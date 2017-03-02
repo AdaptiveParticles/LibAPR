@@ -713,8 +713,93 @@ void get_apr(Mesh_data<uint16_t >& input_image,Part_rep& part_rep,PartCellStruct
 
 
 }
+template<typename S,typename U>
+void get_apr_t(Mesh_data<S >& input_image,Part_rep& part_rep,PartCellStructure<U,uint64_t>& pc_struct,AnalysisData& analysis_data){
+
+    int interp_type = part_rep.pars.interp_type;
+
+    // COMPUTATIONS
+
+    Mesh_data<S> input_image_float;
+    Mesh_data<S> gradient, variance;
+    Mesh_data<S> interp_img;
+
+    gradient.initialize(input_image.y_num, input_image.x_num, input_image.z_num, 0);
+    part_rep.initialize(input_image.y_num, input_image.x_num, input_image.z_num);
+
+    //input_image_float = input_image.to_type<float>();
+    interp_img = input_image;
+    // After this block, input_image will be freed.
+
+    Part_timer t;
+    t.verbose_flag = false;
+
+    // preallocate_memory
+    Particle_map<S> part_map(part_rep);
+    preallocate(part_map.layers, gradient.y_num, gradient.x_num, gradient.z_num, part_rep);
+    variance.preallocate(gradient.y_num, gradient.x_num, gradient.z_num, 0);
+    std::vector<Mesh_data<S>> down_sampled_images;
+
+    Mesh_data<S> temp;
+    temp.preallocate(gradient.y_num, gradient.x_num, gradient.z_num, 0);
+
+    t.start_timer("whole");
+
+    //    std::swap(part_map.downsampled[part_map.k_max+1],input_image_float);
+
+    part_rep.timer.start_timer("get_gradient_3D");
+    get_gradient_3D(part_rep, input_image, gradient);
+    part_rep.timer.stop_timer();
+
+    part_rep.timer.start_timer("get_variance_3D");
+    get_variance_3D(part_rep, input_image, variance);
+    part_rep.timer.stop_timer();
+
+    part_rep.timer.start_timer("get_level_3D");
+    get_level_3D(variance, gradient, part_rep, part_map, temp);
+    part_rep.timer.stop_timer();
+
+    // free memory (not used anymore)
+    std::vector<S>().swap(gradient.mesh);
+    std::vector<S>().swap(variance.mesh);
+
+    part_rep.timer.start_timer("pushing_scheme");
+    part_map.pushing_scheme(part_rep);
+    part_rep.timer.stop_timer();
 
 
+    part_rep.timer.start_timer("sample");
+
+    if (interp_type == 0) {
+        part_map.downsample(interp_img);
+        calc_median_filter(part_map.downsampled[part_map.k_max+1]);
+    }
+
+    if (interp_type == 1) {
+        part_map.downsample(input_image);
+    } else if (interp_type == 2) {
+        part_map.downsample(interp_img);
+    } else if (interp_type ==3){
+        part_map.downsample(interp_img);
+        calc_median_filter_n(part_map.downsampled[part_map.k_max+1],input_image_float);
+    }
+
+    part_rep.timer.stop_timer();
+
+    part_rep.timer.start_timer("construct_pcstruct");
+
+    pc_struct.initialize_structure(part_map);
+
+    part_rep.timer.stop_timer();
+
+    t.stop_timer();
+
+    //add the timer data
+    analysis_data.add_timer(part_rep.timer);
+    analysis_data.add_timer(t);
+
+
+}
 
 void get_apr(Mesh_data<uint16_t >& input_image,Part_rep& part_rep,PartCellStructure<float,uint64_t>& pc_struct){
     //interface without analysis_data
