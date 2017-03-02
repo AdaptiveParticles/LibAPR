@@ -105,7 +105,7 @@ int main(int argc, char **argv) {
     
     //calc_graph_cuts_segmentation(pc_struct, seg_parts,parameters_nuc,analysis_data);
 
-    float Ip_threshold = 950;
+    float Ip_threshold = 990;
 
     std::array<float,10> parameters_new = {Ip_threshold,1,2,3,1,2,3,1,1,4};
 
