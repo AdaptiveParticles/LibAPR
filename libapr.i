@@ -1,4 +1,4 @@
-%module libapr
+%module apr
 
 //%include "stl.i"
 %include "std_vector.i"

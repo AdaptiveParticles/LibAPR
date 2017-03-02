@@ -22,6 +22,7 @@ INCLUDE(${SWIG_USE_FILE})
 
 set(CMAKE_SWIG_OUTDIR "${CMAKE_CURRENT_SOURCE_DIR}/src/main/java/de/mpicbg/mosaic/apr")
 set(CMAKE_SWIG_FLAGS -package de.mpicbg.mosaic.apr)
+set(CMAKE_LIBRARY_OUTPUT_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/src/natives")
 
 SET_SOURCE_FILES_PROPERTIES(libapr.i PROPERTIES CPLUSPLUS ON)
 
@@ -234,12 +235,12 @@ add_executable(Example_segment_gc
     ${SOURCE_FILES_COMPILED} src/vis/Camera.cpp src/vis/Camera.h src/vis/Object.cpp src/vis/Object.h src/vis/RaytracedObject.cpp src/vis/RaytracedObject.h
 )
 
-SWIG_ADD_MODULE(libapr java libapr.i
+SWIG_ADD_MODULE(apr java libapr.i
         ${SOURCE_FILES_COMPILED}
         src/algorithm/pipeline.cpp
         )
 
-SWIG_LINK_LIBRARIES(libapr ${HDF5_LIBRARIES} blosc_shared tiff)
+SWIG_LINK_LIBRARIES(apr ${HDF5_LIBRARIES} blosc_shared tiff)
 
 
 target_link_libraries(pipeline ${HDF5_LIBRARIES} pthread tiff blosc_shared)
