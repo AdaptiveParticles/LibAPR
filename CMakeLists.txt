@@ -16,10 +16,18 @@ endif(FIGURES)
 
 find_package(OpenMP)
 find_package(HDF5 REQUIRED)
+find_package(SWIG 3.0 REQUIRED)
+find_package(JNI REQUIRED)
+INCLUDE(${SWIG_USE_FILE})
+
+set(CMAKE_SWIG_OUTDIR "${CMAKE_CURRENT_SOURCE_DIR}/src/main/java/de/mpicbg/mosaic/apr")
+set(CMAKE_SWIG_FLAGS -package de.mpicbg.mosaic.apr)
+
+SET_SOURCE_FILES_PROPERTIES(libapr.i PROPERTIES CPLUSPLUS ON)
 
 find_package(TIFF REQUIRED)
 
-include_directories(${HDF5_INCLUDE_DIRS} ${TIFF_INCLUDE_DIR} ${GTEST_INCLUDE_DIRS} sources tests)
+include_directories(${HDF5_INCLUDE_DIRS} ${TIFF_INCLUDE_DIR} ${GTEST_INCLUDE_DIRS} sources tests ${JNI_INCLUDE_DIRS} ${CMAKE_CURRENT_SOURCE_DIR})
 
 add_subdirectory("external/c-blosc")
 include_directories("external/c-blosc/blosc")
@@ -226,6 +234,12 @@ add_executable(Example_segment_gc
     ${SOURCE_FILES_COMPILED} src/vis/Camera.cpp src/vis/Camera.h src/vis/Object.cpp src/vis/Object.h src/vis/RaytracedObject.cpp src/vis/RaytracedObject.h
 )
 
+SWIG_ADD_MODULE(libapr java libapr.i
+        ${SOURCE_FILES_COMPILED}
+        src/algorithm/pipeline.cpp
+        )
+
+SWIG_LINK_LIBRARIES(libapr ${HDF5_LIBRARIES} blosc_shared tiff)
 
 
 target_link_libraries(pipeline ${HDF5_LIBRARIES} pthread tiff blosc_shared)
