@@ -122,6 +122,52 @@ public:
 
     }
 
+    void set_up_var_filters_2D(){
+
+
+        var_window_size1 = std::min((float)(1.0+2*round(var_scale*real_window_size[0]/sampling_delta[0])),max_filter_size);
+
+        var_window_size1 = std::max((float)3.0,(float)var_window_size1);
+
+        var_window_size2 = std::min((float)(1.0+2*round(var_scale*real_window_size[1]/sampling_delta[1])),max_filter_size);
+
+        var_window_size2 = std::max((float)3.0,(float)var_window_size2);
+
+        var_window_size3 = std::min((float)(1.0+2*round(var_scale*real_window_size[2]/sampling_delta[2])),max_filter_size);
+
+        var_window_size3 = std::max((float)3.0,(float)var_window_size3);
+
+        var_window_size3 = 1;
+
+
+
+        max_filter_len1 = std::max(max_filter_len1,(unsigned int)((var_window_size1-1)/2.0));
+        max_filter_len2 = std::max(max_filter_len2,(unsigned int)((var_window_size2-1)/2.0));
+        max_filter_len3 = std::max(max_filter_len3,(unsigned int)((var_window_size3-1)/2.0));
+
+
+        window_ref =std::max((float)3.0,(float)(1+2*round(real_window_size[0]/sampling_delta[0])));
+
+
+        float window_rel1 = 1.0*var_window_size1/(std::max((float)3.0,(float)(1+2*round(real_window_size[0]/sampling_delta[0]))));
+
+        float window_rel2 = 1.0*var_window_size2/(std::max((float)3.0,(float)(1+2*round(real_window_size[1]/sampling_delta[1]))));
+
+        float window_rel3 = 1.0*var_window_size3/(std::max((float)3.0,(float)(1+2*round(real_window_size[2]/sampling_delta[2]))));
+        window_rel3 = 1;
+
+
+        float rescale_par = pow(window_rel1*window_rel2*window_rel3,1.0/3.0);
+
+
+        var_rescale = 1.0/(0.02201*pow(rescale_par,3.0) - 0.146*pow(rescale_par,2.0) + 0.3521*rescale_par - 0.09969);
+
+        //var_rescale = 6.9541;
+        //var_rescale = 7.1748;
+
+    }
+
+
 
 
 };
@@ -457,6 +503,83 @@ void rescale_var_and_threshold(Mesh_data<T>& var,const float var_rescale,Part_re
 
         }
     }
+
+}
+
+template<typename T>
+void get_variance_2D(Part_rep &p_rep, Mesh_data<T> &input_image, Mesh_data<T> &var){
+    //
+    //  Bevan Cheeseman 2016
+    //
+    //  Calculates the local variance using recursive SAT
+    //
+
+    Part_timer timer;
+
+
+    // first down sample the image by 2, then calculate...
+    down_sample(input_image,var,
+                [](T x, T y) { return x+y; },
+                [](T x) { return x * (1.0/8.0); });
+
+    // copy constructor
+    Mesh_data<T> temp = var;
+
+    Map_calc_cpu calc_map(0,p_rep.pars);
+
+    calc_map.set_up_var_filters_2D();
+
+    int win_y = ceil((calc_map.var_window_size1 - 1)/4.0);
+    int win_x = ceil((calc_map.var_window_size2 - 1)/4.0);
+    int win_z = ceil((calc_map.var_window_size3 - 1)/4.0);
+
+    //Perform first spatial average output to var
+
+    debug_write(temp,"temp");
+
+    timer.start_timer("calc_sat_mean_y");
+
+    calc_sat_mean_y(var,win_y);
+
+    timer.stop_timer();
+
+
+    timer.start_timer("calc_sat_mean_x");
+
+
+    calc_sat_mean_x(var,win_x);
+
+    timer.stop_timer();
+
+
+
+
+    timer.start_timer("calc_abs_diff");
+
+
+    //calculate abs and subtract from original
+    calc_abs_diff(temp,var);
+
+    timer.stop_timer();
+    //Second spatial average
+    calc_sat_mean_y(var,win_y);
+    calc_sat_mean_x(var,win_x);
+
+
+
+    //if needed threshold the results
+    if(p_rep.pars.I_th > 0) {
+        intensity_th(temp, var,
+                     p_rep.pars.I_th);
+    }
+
+    timer.start_timer("rescale_var_and_threshold");
+
+    //rescaling the variance estimate
+    rescale_var_and_threshold( var,calc_map.var_rescale,p_rep);
+
+    timer.stop_timer();
+
 
 }
 

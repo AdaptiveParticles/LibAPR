@@ -105,10 +105,12 @@ int main(int argc, char **argv) {
     
     //calc_graph_cuts_segmentation(pc_struct, seg_parts,parameters_nuc,analysis_data);
 
-    float Ip_threshold = 3;
+    float Ip_threshold = 5;
+    float Ip_max = 50;
+    float beta = 1000;
+    float var_th = 4;
 
-
-    std::array<float,10> parameters_new = {Ip_threshold,1,2,3,1,2,3,1,1,4};
+    std::array<float,13> parameters_new = {Ip_threshold,1,2,3,1,2,3,1,1,4,Ip_max,beta,var_th};
 
     Part_timer timer;
     timer.verbose_flag = true;
@@ -117,7 +119,6 @@ int main(int argc, char **argv) {
     calc_graph_cuts_segmentation_new(pc_struct, seg_parts,analysis_data,parameters_new);
 
     timer.stop_timer();
-
 
     ParticleDataNew<float, uint64_t> part_new;
     //flattens format to particle = cell, this is in the classic access/part paradigm

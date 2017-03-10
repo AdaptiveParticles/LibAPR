@@ -587,7 +587,7 @@ void construct_max_flow_graph(PartCellStructure<V,T>& pc_struct,GraphType& g,std
     
 }
 template<typename T,typename V,typename U>
-void construct_max_flow_graph_new(PartCellStructure<V,T>& pc_struct,GraphType& g,ExtraPartCellData<U>& seg_parts,AnalysisData& analysis_data,std::array<float,10> parameters){
+void construct_max_flow_graph_new(PartCellStructure<V,T>& pc_struct,GraphType& g,ExtraPartCellData<U>& seg_parts,AnalysisData& analysis_data,std::array<float,13> parameters){
     //
     //  Constructs naiive max flow model for APR
     //
@@ -626,7 +626,7 @@ void construct_max_flow_graph_new(PartCellStructure<V,T>& pc_struct,GraphType& g
 
     timer.start_timer("add_nodes");
 
-    float beta = 1000;
+    float beta = parameters[11];
     float k_max = pc_struct.depth_max;
     float k_min = pc_struct.depth_min;
     float alpha = 1;
@@ -831,6 +831,8 @@ void construct_max_flow_graph_new(PartCellStructure<V,T>& pc_struct,GraphType& g
     timer.start_timer("init weights");
 
     float Ip_min = parameters[0];
+    float Ip_max = parameters[10];
+    float var_th = parameters[12];
 
     counter = 0;
 
@@ -877,7 +879,7 @@ void construct_max_flow_graph_new(PartCellStructure<V,T>& pc_struct,GraphType& g
                         float cap_s;
                         float cap_t;
 
-                        if((loc_min > 0) & (loc_max > 0) & (Ip > Ip_min)){
+                        if((loc_min > 0) & (loc_max > 0) & (Ip > Ip_min) & ((loc_max-loc_min) > var_th)){
                             //cap_s =   alpha*abs((Ip - loc_min)/(loc_max-loc_min));
                             //cap_t =   alpha*abs((loc_max-Ip)/(loc_max-loc_min));
 
@@ -890,6 +892,11 @@ void construct_max_flow_graph_new(PartCellStructure<V,T>& pc_struct,GraphType& g
                         } else {
                             cap_s = 0;
                             cap_t = 100000;
+                        }
+
+                        if(Ip > Ip_max){
+                            cap_s = 100000;
+                            cap_t = 0;
                         }
 
                         g.add_tweights(curr_id,   /* capacities */ cap_s, cap_t);
@@ -1246,7 +1253,7 @@ void calc_graph_cuts_segmentation(PartCellStructure<V,T>& pc_struct,ExtraPartCel
 }
 
 template<typename T,typename V,typename U>
-void calc_graph_cuts_segmentation_new(PartCellStructure<V,T>& pc_struct,ExtraPartCellData<U>& seg_parts,AnalysisData& analysis_data,std::array<float,10> parameters){
+void calc_graph_cuts_segmentation_new(PartCellStructure<V,T>& pc_struct,ExtraPartCellData<U>& seg_parts,AnalysisData& analysis_data,std::array<float,13> parameters){
     //
     //
     //  Bevan Cheeseman 2016
