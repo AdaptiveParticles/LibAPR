@@ -23,8 +23,8 @@ namespace std {
 #include "src/algorithm/gradient.hpp"
 #include "src/algorithm/pipeline.h"
 #include "src/io/partcell_io.h"
-#include "src/data_structures/Tree/ParticleData.hpp"
-#include "src/data_structures/Tree/PartCellStructure.hpp"
+//#include "src/data_structures/Tree/ParticleData.hpp"
+//#include "src/data_structures/Tree/PartCellStructure.hpp"
 %}
 
 %include "src/data_structures/particle_map.hpp"
