@@ -25,7 +25,6 @@ namespace std {
 #include "src/io/partcell_io.h"
 #include "src/data_structures/Tree/ParticleData.hpp"
 #include "src/data_structures/Tree/PartCellStructure.hpp"
-#include "src/data_structures/Tree/PartCellBase.hpp"
 %}
 
 %include "src/data_structures/particle_map.hpp"
@@ -33,7 +32,6 @@ namespace std {
 %include "src/algorithm/gradient.hpp"
 %include "src/algorithm/pipeline.h"
 %include "src/io/partcell_io.h"
-%include "src/data_structures/Tree/PartCellBase.hpp"
 %include "src/data_structures/Tree/ParticleData.hpp"
 %include "src/data_structures/Tree/PartCellData.hpp"
 %include "src/data_structures/Tree/PartCellStructure.hpp"
@@ -43,7 +41,6 @@ namespace std {
 %template(PartDataUint16) Part_data<uint16_t>;
 %template(PartDataUint8) Part_data<uint8_t>;
 
-%template(PartCellBaseStd) PartCellBase<float, uint64_t>;
 %template(ParticleDataStd) ParticleData<float, uint64_t>;
 %template(PartCellStructureStd) PartCellStructure<float, uint64_t>;
 %template(PartCellDataStd) PartCellData<uint64_t>;

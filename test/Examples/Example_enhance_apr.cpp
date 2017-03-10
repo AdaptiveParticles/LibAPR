@@ -12,7 +12,6 @@
 
 #include "../../src/algorithm/gradient.hpp"
 #include "../../src/data_structures/particle_map.hpp"
-#include "../../src/data_structures/Tree/PartCellBase.hpp"
 #include "../../src/data_structures/Tree/PartCellStructure.hpp"
 #include "../../src/data_structures/Tree/ParticleDataNew.hpp"
 #include "../../src/algorithm/level.hpp"
