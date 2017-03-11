@@ -13,6 +13,8 @@
 #include "PartCellData.hpp"
 
 #define NUM_FACES 6
+#define NUM_EDGES 12
+#define NUM_CORNERS 8
 
 template<typename T>
 class PartCellNeigh {
@@ -27,7 +29,11 @@ public:
         neigh_face.resize(NUM_FACES);
         curr = 0;
     };
-    
+
+    PartCellNeigh(unsigned int num_neigh){
+        neigh_face.resize(num_neigh);
+        curr = 0;
+    };
     
     
     
