@@ -276,3 +276,9 @@ xcuserdata/
 
 test/files
 test/files.tar.bz2
+
+# Maven-generated files
+target/
+
+# SWIG-generated Java classes
+src/main/

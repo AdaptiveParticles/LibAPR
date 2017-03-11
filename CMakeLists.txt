@@ -16,11 +16,22 @@ endif(FIGURES)
 
 find_package(OpenMP)
 find_package(HDF5 REQUIRED)
+find_package(SWIG 3.0 REQUIRED)
+find_package(JNI REQUIRED)
+INCLUDE(${SWIG_USE_FILE})
+
+set(CMAKE_SWIG_OUTDIR "${CMAKE_CURRENT_SOURCE_DIR}/src/main/java/de/mpicbg/mosaic/apr")
+set(CMAKE_SWIG_FLAGS -package de.mpicbg.mosaic.apr -Wall)
+set(CMAKE_LIBRARY_OUTPUT_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/src/natives")
+
+SET_SOURCE_FILES_PROPERTIES(libapr.i PROPERTIES CPLUSPLUS ON)
 
 find_package(TIFF REQUIRED)
 
-include_directories(${HDF5_INCLUDE_DIRS} ${TIFF_INCLUDE_DIR} ${GTEST_INCLUDE_DIRS} sources tests)
+include_directories(${HDF5_INCLUDE_DIRS} ${TIFF_INCLUDE_DIR} ${GTEST_INCLUDE_DIRS} sources tests ${JNI_INCLUDE_DIRS} ${CMAKE_CURRENT_SOURCE_DIR})
 
+SET(BUILD_TESTS OFF CACHE BOOL "")
+SET(BUILD_BENCHMARKS OFF CACHE BOOL "")
 add_subdirectory("external/c-blosc")
 include_directories("external/c-blosc/blosc")
 
@@ -50,6 +61,7 @@ set(SOURCE_FILES
 
 set(SOURCE_FILES_COMPILED
         src/data_structures/structure_parts.cpp
+        src/data_structures/Tree/PartCellData.cpp
         src/io/parameters.cpp
         src/io/hdf5functions.cpp
         src/io/blosc_filter.c
@@ -226,6 +238,14 @@ add_executable(Example_segment_gc
     ${SOURCE_FILES_COMPILED} src/vis/Camera.cpp src/vis/Camera.h src/vis/Object.cpp src/vis/Object.h src/vis/RaytracedObject.cpp src/vis/RaytracedObject.h
 )
 
+SWIG_ADD_MODULE(apr java libapr.i
+        src/io/partcell_io.cpp
+        src/io/write_parts.cpp
+        ${SOURCE_FILES_COMPILED}
+        src/algorithm/pipeline.cpp
+        )
+
+SWIG_LINK_LIBRARIES(apr ${HDF5_LIBRARIES} blosc_shared tiff)
 
 
 target_link_libraries(pipeline ${HDF5_LIBRARIES} pthread tiff blosc_shared)

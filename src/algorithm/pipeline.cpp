@@ -11,7 +11,6 @@
 #include "../data_structures/Tree/Content.hpp"
 #include "../data_structures/Tree/LevelIterator.hpp"
 #include "../data_structures/Tree/Tree.hpp"
-#include "../data_structures/Tree/PartCellBase.hpp"
 #include "../data_structures/Tree/PartCellStructure.hpp"
 #include "level.hpp"
 #include "../io/writeimage.h"

@@ -19,7 +19,6 @@
 #include <algorithm>
 #include <array>
 
-#include "PartCellBase.hpp"
 #include "PartCellData.hpp"
 #include "ParticleData.hpp"
 #include "../particle_map.hpp"
@@ -33,7 +32,7 @@
 
 
 template <typename T,typename S> // type T is the image type, type S is the data structure base type
-class PartCellStructure: public PartCellBase<T,S> {
+class PartCellStructure {
     
     
     
@@ -1542,6 +1541,20 @@ public:
     std::vector<unsigned int> z_num;
     
     std::vector<unsigned int> org_dims;
+
+    PartCellStructure(){
+
+        org_dims.resize(3);
+
+    }
+
+    PartCellStructure(Particle_map<T> &particle_map){
+        //
+        //  initialization of the tree structure
+        //
+
+        initialize_structure(particle_map);
+    }
     
     uint64_t get_number_parts(){
         //calculated on initialization
@@ -1620,21 +1633,6 @@ public:
 
         create_partcell_structure(particle_map);
     }
-    
-    PartCellStructure(){
-        
-        org_dims.resize(3);
-        
-    }
-    
-    PartCellStructure(Particle_map<T> &particle_map){
-        //
-        //  initialization of the tree structure
-        //
-        
-        initialize_structure(particle_map);
-    }
-    
     
     template<typename U,typename V>
     void interp_parts_to_pc(Mesh_data<U>& out_image,ExtraPartCellData<V>& interp_data){

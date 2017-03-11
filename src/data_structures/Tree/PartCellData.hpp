@@ -107,9 +107,9 @@
 
 struct pc_key {
     
-    const uint8_t seed_part_y[8] = {0, 1, 0, 1, 0, 1, 0, 1};
-    const uint8_t seed_part_x[8] = {0, 0, 1, 1, 0, 0, 1, 1};
-    const uint8_t seed_part_z[8] = {0, 0, 0, 0, 1, 1, 1, 1};
+    static constexpr uint8_t seed_part_y[8] = {0, 1, 0, 1, 0, 1, 0, 1};
+    static constexpr uint8_t seed_part_x[8] = {0, 0, 1, 1, 0, 0, 1, 1};
+    static constexpr uint8_t seed_part_z[8] = {0, 0, 0, 0, 1, 1, 1, 1};
     
     int x,z,j,depth,p,status,y;
     int x_p,z_p,j_p,depth_p,y_p;
@@ -155,6 +155,7 @@ struct pc_key {
     
     
 };
+
 struct node_key {
     
     
@@ -223,55 +224,55 @@ public:
      * Number of layers without the root and the contents.
      */
     
-    
-    const uint64_t depth_mask_dir[6] = {YP_DEPTH_MASK,YM_DEPTH_MASK,XP_DEPTH_MASK,XM_DEPTH_MASK,ZP_DEPTH_MASK,ZM_DEPTH_MASK};
-    const uint64_t depth_shift_dir[6] =  {YP_DEPTH_SHIFT,YM_DEPTH_SHIFT,XP_DEPTH_SHIFT,XM_DEPTH_SHIFT,ZP_DEPTH_SHIFT,ZM_DEPTH_SHIFT};
-    
-    const uint64_t index_mask_dir[6] = {YP_INDEX_MASK,YM_INDEX_MASK,XP_INDEX_MASK,XM_INDEX_MASK,ZP_INDEX_MASK,ZM_INDEX_MASK};
-    const uint64_t index_shift_dir[6] = {YP_INDEX_SHIFT,YM_INDEX_SHIFT,XP_INDEX_SHIFT,XM_INDEX_SHIFT,ZP_INDEX_SHIFT,ZM_INDEX_SHIFT};
-    
-    const int8_t von_neumann_y_cells[6] = { 1,-1, 0, 0, 0, 0};
-    const int8_t von_neumann_x_cells[6] = { 0, 0, 1,-1, 0, 0};
-    const int8_t von_neumann_z_cells[6] = { 0, 0, 0, 0, 1,-1};
-    
+
+    static constexpr uint64_t depth_mask_dir[6] = {YP_DEPTH_MASK,YM_DEPTH_MASK,XP_DEPTH_MASK,XM_DEPTH_MASK,ZP_DEPTH_MASK,ZM_DEPTH_MASK};
+    static constexpr uint64_t depth_shift_dir[6] =  {YP_DEPTH_SHIFT,YM_DEPTH_SHIFT,XP_DEPTH_SHIFT,XM_DEPTH_SHIFT,ZP_DEPTH_SHIFT,ZM_DEPTH_SHIFT};
+
+    static constexpr uint64_t index_mask_dir[6] = {YP_INDEX_MASK,YM_INDEX_MASK,XP_INDEX_MASK,XM_INDEX_MASK,ZP_INDEX_MASK,ZM_INDEX_MASK};
+    static constexpr uint64_t index_shift_dir[6] = {YP_INDEX_SHIFT,YM_INDEX_SHIFT,XP_INDEX_SHIFT,XM_INDEX_SHIFT,ZP_INDEX_SHIFT,ZM_INDEX_SHIFT};
+
+    static constexpr int8_t von_neumann_y_cells[6] = { 1,-1, 0, 0, 0, 0};
+    static constexpr int8_t von_neumann_x_cells[6] = { 0, 0, 1,-1, 0, 0};
+    static constexpr int8_t von_neumann_z_cells[6] = { 0, 0, 0, 0, 1,-1};
+
     //the ordering of retrieval of four neighbour cells
 
-    const uint8_t neigh_child_dir[6][3] = {{4,2,2},{4,2,2},{0,4,4},{0,4,4},{0,2,2},{0,2,2}};
+    static constexpr uint8_t neigh_child_dir[6][3] = {{4,2,2},{4,2,2},{0,4,4},{0,4,4},{0,2,2},{0,2,2}};
 
 //    constexpr uint8_t whatever::neigh_child_dir[6][3] = {{4,2,2},{4,2,2},{0,4,4},{0,4,4},{0,2,2},{0,2,2}};
 //
 
 
-    const uint8_t neigh_child_y_offsets[6][4] = {{0,0,0,0},{0,0,0,0},{0,1,0,1},{0,1,0,1},{0,1,0,1},{0,1,0,1}};
+    static constexpr uint8_t neigh_child_y_offsets[6][4] = {{0,0,0,0},{0,0,0,0},{0,1,0,1},{0,1,0,1},{0,1,0,1},{0,1,0,1}};
 //
     //variables for neighbour search loops
-    const uint8_t x_start_vec[6] = {0,0,0,1,0,0};
-    const uint8_t x_stop_vec[6] = {0,0,1,0,0,0};
+    static constexpr uint8_t x_start_vec[6] = {0,0,0,1,0,0};
+    static constexpr uint8_t x_stop_vec[6] = {0,0,1,0,0,0};
 
-    const uint8_t z_start_vec[6] = {0,0,0,0,0,1};
-    const uint8_t z_stop_vec[6] = {0,0,0,0,1,0};
+    static constexpr uint8_t z_start_vec[6] = {0,0,0,0,0,1};
+    static constexpr uint8_t z_stop_vec[6] = {0,0,0,0,1,0};
 
-    const uint8_t y_start_vec[6] = {0,1,0,0,0,0};
-    const uint8_t y_stop_vec[6] = {1,0,0,0,0,0};
-    
+    static constexpr uint8_t y_start_vec[6] = {0,1,0,0,0,0};
+    static constexpr uint8_t y_stop_vec[6] = {1,0,0,0,0,0};
+
     //replication of above
-    const int8_t x_offset_vec[6] = {0,0,1,-1,0,0};
-    const int8_t z_offset_vec[6] = {0,0,0,0,1,-1};
-    const int8_t y_offset_vec[6] = {1,-1,0,0,0,0};
-    
-    const uint64_t index_shift_dir_sym[6] = {YM_INDEX_SHIFT,YP_INDEX_SHIFT,XM_INDEX_SHIFT,XP_INDEX_SHIFT,ZM_INDEX_SHIFT,ZP_INDEX_SHIFT};
-    const uint64_t depth_shift_dir_sym[6] = {YM_DEPTH_SHIFT,YP_DEPTH_SHIFT,XM_DEPTH_SHIFT,XP_DEPTH_SHIFT,ZM_DEPTH_SHIFT,ZP_DEPTH_SHIFT};
-    
-    const uint64_t index_mask_dir_sym[6] = {YM_INDEX_MASK,YP_INDEX_MASK,XM_INDEX_MASK,XP_INDEX_MASK,ZM_INDEX_MASK,ZP_INDEX_MASK};
-    const uint64_t depth_mask_dir_sym[6] = {YM_DEPTH_MASK,YP_DEPTH_MASK,XM_DEPTH_MASK,XP_DEPTH_MASK,ZM_DEPTH_MASK,ZP_DEPTH_MASK};
-    
-    const uint64_t next_prev_mask_vec[6] = {PREV_COORD_MASK,NEXT_COORD_MASK,0,0,0,0};
-    const uint64_t next_prev_shift_vec[6] = {PREV_COORD_SHIFT,NEXT_COORD_SHIFT,0,0,0,0};
-    
-    const uint8_t seed_part_y[8] = {0, 1, 0, 1, 0, 1, 0, 1};
-    const uint8_t seed_part_x[8] = {0, 0, 1, 1, 0, 0, 1, 1};
-    const uint8_t seed_part_z[8] = {0, 0, 0, 0, 1, 1, 1, 1};
-    
+    static constexpr int8_t x_offset_vec[6] = {0,0,1,-1,0,0};
+    static constexpr int8_t z_offset_vec[6] = {0,0,0,0,1,-1};
+    static constexpr int8_t y_offset_vec[6] = {1,-1,0,0,0,0};
+
+    static constexpr uint64_t index_shift_dir_sym[6] = {YM_INDEX_SHIFT,YP_INDEX_SHIFT,XM_INDEX_SHIFT,XP_INDEX_SHIFT,ZM_INDEX_SHIFT,ZP_INDEX_SHIFT};
+    static constexpr uint64_t depth_shift_dir_sym[6] = {YM_DEPTH_SHIFT,YP_DEPTH_SHIFT,XM_DEPTH_SHIFT,XP_DEPTH_SHIFT,ZM_DEPTH_SHIFT,ZP_DEPTH_SHIFT};
+
+    static constexpr uint64_t index_mask_dir_sym[6] = {YM_INDEX_MASK,YP_INDEX_MASK,XM_INDEX_MASK,XP_INDEX_MASK,ZM_INDEX_MASK,ZP_INDEX_MASK};
+    static constexpr uint64_t depth_mask_dir_sym[6] = {YM_DEPTH_MASK,YP_DEPTH_MASK,XM_DEPTH_MASK,XP_DEPTH_MASK,ZM_DEPTH_MASK,ZP_DEPTH_MASK};
+
+    static constexpr uint64_t next_prev_mask_vec[6] = {PREV_COORD_MASK,NEXT_COORD_MASK,0,0,0,0};
+    static constexpr uint64_t next_prev_shift_vec[6] = {PREV_COORD_SHIFT,NEXT_COORD_SHIFT,0,0,0,0};
+
+    static constexpr uint8_t seed_part_y[8] = {0, 1, 0, 1, 0, 1, 0, 1};
+    static constexpr uint8_t seed_part_x[8] = {0, 0, 1, 1, 0, 0, 1, 1};
+    static constexpr uint8_t seed_part_z[8] = {0, 0, 0, 0, 1, 1, 1, 1};
+
     uint64_t depth_max;
     uint64_t depth_min;
     
@@ -2134,5 +2135,44 @@ private:
     
     
 };
+
+template<typename T> constexpr uint64_t PartCellData<T>::depth_mask_dir[];
+template<typename T> constexpr uint64_t PartCellData<T>::depth_shift_dir[];
+
+template<typename T> constexpr uint64_t PartCellData<T>::index_mask_dir[];
+template<typename T> constexpr uint64_t PartCellData<T>::index_shift_dir[];
+
+template<typename T> constexpr int8_t PartCellData<T>::von_neumann_y_cells[];
+template<typename T> constexpr int8_t PartCellData<T>::von_neumann_x_cells[];
+template<typename T> constexpr int8_t PartCellData<T>::von_neumann_z_cells[];
+
+template<typename T> constexpr uint8_t PartCellData<T>::neigh_child_dir[][3];
+
+template<typename T> constexpr uint8_t PartCellData<T>::neigh_child_y_offsets[][4];
+template<typename T> constexpr uint8_t PartCellData<T>::x_start_vec[];
+template<typename T> constexpr uint8_t PartCellData<T>::x_stop_vec[];
+
+template<typename T> constexpr uint8_t PartCellData<T>::z_start_vec[];
+template<typename T> constexpr uint8_t PartCellData<T>::z_stop_vec[];
+
+template<typename T> constexpr uint8_t PartCellData<T>::y_start_vec[];
+template<typename T> constexpr uint8_t PartCellData<T>::y_stop_vec[];
+
+template<typename T> constexpr int8_t PartCellData<T>::x_offset_vec[];
+template<typename T> constexpr int8_t PartCellData<T>::z_offset_vec[];
+template<typename T> constexpr int8_t PartCellData<T>::y_offset_vec[];
+
+template<typename T> constexpr uint64_t PartCellData<T>::index_shift_dir_sym[];
+template<typename T> constexpr uint64_t PartCellData<T>::depth_shift_dir_sym[];
+
+template<typename T> constexpr uint64_t PartCellData<T>::index_mask_dir_sym[];
+template<typename T> constexpr uint64_t PartCellData<T>::depth_mask_dir_sym[];
+
+template<typename T> constexpr uint64_t PartCellData<T>::next_prev_mask_vec[];
+template<typename T> constexpr uint64_t PartCellData<T>::next_prev_shift_vec[];
+
+template<typename T> constexpr uint8_t PartCellData<T>::seed_part_y[];
+template<typename T> constexpr uint8_t PartCellData<T>::seed_part_x[];
+template<typename T> constexpr uint8_t PartCellData<T>::seed_part_z[];
 
 #endif //PARTPLAY_PARTCELLDATA_HPP
