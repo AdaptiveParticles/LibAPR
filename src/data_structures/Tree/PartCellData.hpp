@@ -273,6 +273,18 @@ public:
     static constexpr uint8_t seed_part_x[8] = {0, 0, 1, 1, 0, 0, 1, 1};
     static constexpr uint8_t seed_part_z[8] = {0, 0, 0, 0, 1, 1, 1, 1};
 
+    //Edge and corner neighbour look ups
+
+    static constexpr uint8_t edges_face[12] = {0,1,0,1,4,4,4,4,5,5,5,5};
+    static constexpr uint8_t edges_face_index[12][2] = {{2,3},{2,3},{0,1},{0,1},{1,3},{0,2},{2,3},{0,1},{1,3},{0,2},{2,3},{0,1}};
+    static constexpr uint8_t edges_face_dir[12] = {2,2,3,3,0,1,2,3,0,1,2,3};
+    static constexpr uint8_t edges_child_index[12][2] = {{0,2},{1,3},{0,2},{1,3},{0,2},{0,2},{0,1},{0,1},{1,3},{1,3},{2,3},{2,3}};
+
+    static constexpr uint8_t corner_edge[8] = {6,6,7,7,10,10,11,11};
+    static constexpr uint8_t corner_edge_index[8] = {1,0,1,0,1,0,1,0};
+    static constexpr uint8_t corner_edge_dir[8] = {0,1,0,1,0,1,0,1};
+    static constexpr uint8_t corner_edge_move_index[8] = {0,0,2,2,2,2,3,3};
+
     uint64_t depth_max;
     uint64_t depth_min;
     
@@ -1292,6 +1304,160 @@ public:
         get_neighs_face_t<4>(curr_key,node_val,neigh_keys.neigh_face[4]);
         get_neighs_face_t<5>(curr_key,node_val,neigh_keys.neigh_face[5]);
         
+    }
+
+    void get_edge_neighs_all(const uint64_t& curr_key,PartCellNeigh<uint64_t>& neigh_keys_face,PartCellNeigh<uint64_t>& neigh_keys_edge) {
+        //
+        //  Bevan Cheeseman 2017
+        //
+        //  Gets the edge neighbours
+        //
+        //
+
+        neigh_keys_edge.curr = curr_key;
+
+        neigh_keys_edge.neigh_face[0].resize(0);
+        neigh_keys_edge.neigh_face[1].resize(0);
+        neigh_keys_edge.neigh_face[2].resize(0);
+        neigh_keys_edge.neigh_face[3].resize(0);
+        neigh_keys_edge.neigh_face[4].resize(0);
+        neigh_keys_edge.neigh_face[5].resize(0);
+        neigh_keys_edge.neigh_face[6].resize(0);
+        neigh_keys_edge.neigh_face[7].resize(0);
+        neigh_keys_edge.neigh_face[8].resize(0);
+        neigh_keys_edge.neigh_face[9].resize(0);
+        neigh_keys_edge.neigh_face[10].resize(0);
+        neigh_keys_edge.neigh_face[11].resize(0);
+
+        uint64_t face_key;
+        uint64_t curr_node_val;
+
+        std::vector<uint64_t> neigh_keys_temp;
+
+        for (int i = 0; i < NUM_EDGES; ++i) {
+            if(neigh_keys_face.neigh_face[edges_face[i]].size()>1){
+                //will be two neighbours
+                for (int j = 0; j < 2; ++j) {
+
+                    face_key = neigh_keys_face.neigh_face[edges_face[i]][edges_face_index[i][j]];
+
+                    if(face_key > 0) {
+
+                        curr_node_val = get_val(face_key);
+
+                        get_neighs_face_t<edges_face_dir[i]>(curr_key, curr_node_val, neigh_keys_temp);
+
+                        if (neigh_keys_temp.size() == 1) {
+                            //can only be one
+                            neigh_keys_edge.neigh_face[i].push_back(neigh_keys_temp[0]);
+                        }
+                    }
+
+                }
+
+
+            } else {
+                //same level
+                face_key = neigh_keys_face.neigh_face[edges_face[i]][0];
+
+                if(face_key > 0) {
+
+                    curr_node_val = get_val(face_key);
+
+                    get_neighs_face_t<edges_face_dir[i]>(curr_key, curr_node_val, neigh_keys_temp);
+
+                    if (neigh_keys_temp.size() == 1) {
+                        neigh_keys_edge.neigh_face[i].push_back(neigh_keys_temp[0]);
+                    } else if (neigh_keys_temp.size() > 1) {
+                        neigh_keys_edge.neigh_face[i].push_back(neigh_keys_temp[edges_child_index[i][0]]);
+                        neigh_keys_edge.neigh_face[i].push_back(neigh_keys_temp[edges_child_index[i][0]]);
+                    }
+                }
+
+            }
+
+        }
+
+
+    }
+    void get_corner_neighs_all(const uint64_t& curr_key,PartCellNeigh<uint64_t>& neigh_keys_edge,PartCellNeigh<uint64_t>& neigh_keys_corner) {
+        //
+        //  Bevan Cheeseman 2017
+        //
+        //  Gets the edge neighbours
+        //
+        //
+
+        neigh_keys_corner.curr = curr_key;
+
+        neigh_keys_corner.neigh_face[0].resize(0);
+
+
+        uint64_t edge_key;
+        uint64_t curr_node_val;
+
+        std::vector<uint64_t> neigh_keys_temp;
+
+        for (int i = 0; i < NUM_CORNERS; ++i) {
+            if(neigh_keys_edge.neigh_face[edges_face[i]].size()>1){
+                //will be two neighbours
+
+                edge_key = neigh_keys_edge.neigh_face[corner_edge[i]][corner_edge_index[i]];
+
+                if(edge_key > 0) {
+
+                    curr_node_val = get_val(edge_key);
+
+                    get_neighs_face_t<corner_edge_dir[i]>(curr_key, curr_node_val, neigh_keys_temp);
+
+                    if (neigh_keys_temp.size() == 1) {
+                        //can only be one
+                        neigh_keys_corner.neigh_face[i].push_back(neigh_keys_temp[0]);
+                    }
+
+                }
+
+
+            } else {
+                //same level
+                edge_key = neigh_keys_edge.neigh_face[corner_edge[i]][0];
+
+                if(edge_key > 0) {
+
+                    curr_node_val = get_val(edge_key);
+
+                    get_neighs_face_t<corner_edge_dir[i]>(curr_key, curr_node_val, neigh_keys_temp);
+
+                    if (neigh_keys_temp.size() == 1) {
+                        //can only be one
+                        neigh_keys_corner.neigh_face[i].push_back(neigh_keys_temp[corner_edge_move_index[i]]);
+                    } else {
+
+                    }
+
+                }
+
+            }
+
+        }
+
+
+    }
+
+    void get_neighs_all_diag(const uint64_t& curr_key,uint64_t node_val,std::vector<PartCellNeigh<uint64_t>>& neigh_keys){
+        //
+        //  Bevan Cheeseman 2017
+        //
+        //  Gets all cell neighbours including diagonals
+        //
+        //
+
+        get_neighs_all(curr_key,node_val,neigh_keys[0]);
+
+        get_edge_neighs_all(curr_key,neigh_keys[0],neigh_keys[1]);
+
+        get_corner_neighs_all(curr_key,neigh_keys[1],neigh_keys[2]);
+
     }
 
     
