@@ -1414,7 +1414,7 @@ public:
                         curr_node_val = get_val(face_key);
 
 
-                        get_neighs_face(curr_key,curr_node_val,edges_face_dir[i],neigh_keys_temp);
+                        get_neighs_face(face_key,curr_node_val,edges_face_dir[i],neigh_keys_temp);
 
                         if (neigh_keys_temp.size() == 1) {
                             //there can be only one....
@@ -1425,7 +1425,7 @@ public:
                 }
 
 
-            } else {
+            } else if (neigh_keys_face.neigh_face[edges_face[i]].size() == 1) {
                 //same level or parent
                 face_key = neigh_keys_face.neigh_face[edges_face[i]][0];
 
@@ -1433,7 +1433,7 @@ public:
 
                     curr_node_val = get_val(face_key);
 
-                    get_neighs_face(curr_key,curr_node_val,edges_face_dir[i],neigh_keys_temp);
+                    get_neighs_face(face_key,curr_node_val,edges_face_dir[i],neigh_keys_temp);
 
                     if (neigh_keys_temp.size() == 1) {
 
@@ -1497,7 +1497,7 @@ public:
         std::vector<uint64_t> neigh_keys_temp;
 
         for (int i = 0; i < NUM_CORNERS; ++i) {
-            if(neigh_keys_edge.neigh_face[edges_face[i]].size()>1){
+            if(neigh_keys_edge.neigh_face[corner_edge[i]].size()>1){
                 //will be two neighbours
 
                 edge_key = neigh_keys_edge.neigh_face[corner_edge[i]][corner_edge_index[i]];
@@ -1506,7 +1506,7 @@ public:
 
                     curr_node_val = get_val(edge_key);
 
-                    get_neighs_face(curr_key,curr_node_val,corner_edge_dir[i],neigh_keys_temp);
+                    get_neighs_face(edge_key,curr_node_val,corner_edge_dir[i],neigh_keys_temp);
 
                     if (neigh_keys_temp.size() == 1) {
                         //can only be one
@@ -1517,7 +1517,7 @@ public:
                 }
 
 
-            } else {
+            } else if(neigh_keys_edge.neigh_face[corner_edge[i]].size()==1){
                 //same level or parent
                 edge_key = neigh_keys_edge.neigh_face[corner_edge[i]][0];
 
@@ -1525,7 +1525,7 @@ public:
 
                     curr_node_val = get_val(edge_key);
 
-                    get_neighs_face(curr_key,curr_node_val,corner_edge_dir[i],neigh_keys_temp);
+                    get_neighs_face(edge_key,curr_node_val,corner_edge_dir[i],neigh_keys_temp);
 
                     if (neigh_keys_temp.size() == 1) {
                         //can only be one

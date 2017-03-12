@@ -3282,13 +3282,22 @@ bool utest_moore_neighbours(PartCellStructure<float,uint64_t>& pc_struct){
     PartCellData<uint64_t> pc_data;
     part_new.create_pc_data_new(pc_data);
 
+
     std::vector<PartCellNeigh<uint64_t>> neigh_keys;
+
+    PartCellNeigh<uint64_t> face_neigh;
+    PartCellNeigh<uint64_t> edge_neigh(NUM_EDGES);
+    PartCellNeigh<uint64_t> corner_neigh(NUM_CORNERS);
+
+    neigh_keys.push_back(face_neigh);
+    neigh_keys.push_back(edge_neigh);
+    neigh_keys.push_back(corner_neigh);
 
     std::vector<uint16_t> coords = {0,0,0};
 
     uint64_t curr_key;
 
-    int z_, x_, j_, y_, i, k;
+    uint64_t z_, x_, j_, y_, i, k;
 
     for (uint64_t depth = (y_vec.depth_min); depth <= y_vec.depth_max; depth++) {
         //loop over the resolutions of the structure
