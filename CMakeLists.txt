@@ -41,7 +41,7 @@ set(CMAKE_CXX_STANDARD 11)
 set(SOURCE_FILES
 
         test/tests.cpp
-        test/utils.cpp
+
         test/k_test.cpp
         test/alg_cells_test.cpp
 
@@ -116,24 +116,24 @@ if(TESTS)
             test/tests.cpp
             test/bspline_test.cpp
             ${SOURCE_FILES_COMPILED}
-            test/utils.cpp
+            #test/utils.cpp
             )
     add_executable(testVariance
             test/tests.cpp
             test/variance_test.cpp
             ${SOURCE_FILES_COMPILED}
-            test/utils.cpp
+            #test/utils.cpp
             )
     add_executable(testLevel
             test/k_test.cpp
             ${SOURCE_FILES_COMPILED}
-            test/utils.cpp
+            #test/utils.cpp
             )
     add_executable(testResult
             test/alg_cells_test.cpp
             src/io/write_parts.cpp
             ${SOURCE_FILES_COMPILED}
-            test/utils.cpp
+            #test/utils.cpp
             )
 
     add_executable(testLevelIterator
@@ -153,11 +153,12 @@ if(TESTS)
 
     add_executable(testSparsePartStruc
             test/test_tree/tree_fixtures.cpp
-	     test/test_tree/create_part_cell_structure.cpp
+
+            #test/test_tree/create_part_cell_structure.cpp
             test/test_tree/sparse_rep_test.cpp
             ${SOURCE_FILES_COMPILED}
-            test/utils.cpp
-	     src/io/hdf5functions_blosc.cpp
+
+	        src/io/hdf5functions_blosc.cpp
             )
 
     target_link_libraries(testBspline ${HDF5_LIBRARIES} ${GTEST_LIBRARIES} pthread tiff blosc_shared)
@@ -175,7 +176,7 @@ add_executable(Example_get_apr
         test/Examples/get_apr.cpp
         src/io/write_parts.cpp
         ${SOURCE_FILES_COMPILED}
-	 test/utils.cpp
+	    #test/utils.cpp
         )
 
 add_executable(Example_compute_cells
@@ -198,13 +199,13 @@ add_executable(Example_convert_full_format
 
 add_executable(Example_ray_cast
         test/Examples/ray_cast.cpp
-        test/utils.cpp
+        #test/utils.cpp
         ${SOURCE_FILES_COMPILED}
         src/vis/Camera.cpp src/vis/Camera.h src/vis/Object.cpp src/vis/Object.h src/vis/RaytracedObject.cpp src/vis/RaytracedObject.h)
 
 add_executable(Example_vis
         test/Examples/vis_example.cpp
-        test/utils.cpp
+        #test/utils.cpp
         ${SOURCE_FILES_COMPILED}
         src/vis/Camera.cpp src/vis/Camera.h src/vis/Object.cpp src/vis/Object.h src/vis/RaytracedObject.cpp src/vis/RaytracedObject.h)
 
@@ -216,14 +217,14 @@ add_executable(pipeline
 
 add_executable(Example_filter
         test/Examples/filter_apr.cpp
-        test/utils.cpp
+        #test/utils.cpp
         src/io/write_parts.cpp
         ${SOURCE_FILES_COMPILED}
         )
 
 add_executable(Example_enhance_apr
         test/Examples/Example_enhance_apr.cpp
-        test/utils.cpp
+        #test/utils.cpp
         src/io/write_parts.cpp
         ${SOURCE_FILES_COMPILED}
         )
@@ -233,7 +234,7 @@ add_executable(Example_segment_gc
     test/Examples/segmentation_apr.cpp
     external/maxflow-v3.04.src/maxflow.cpp
     external/maxflow-v3.04.src/graph.cpp
-    test/utils.cpp
+    #test/utils.cpp
     src/io/write_parts.cpp
     ${SOURCE_FILES_COMPILED} src/vis/Camera.cpp src/vis/Camera.h src/vis/Object.cpp src/vis/Object.h src/vis/RaytracedObject.cpp src/vis/RaytracedObject.h
 )

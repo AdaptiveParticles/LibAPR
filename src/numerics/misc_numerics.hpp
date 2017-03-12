@@ -5,8 +5,8 @@
 //
 //
 //////////////////////////////////
-#ifndef _misc_num_h
-#define _misc_num_h
+#ifndef MISC_NUM
+#define MISC_NUM
 
 #include <algorithm>
 #include <iostream>

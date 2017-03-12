@@ -517,7 +517,7 @@ void evaluate_segmentation(PartCellStructure<float,uint64_t> pc_struct,AnalysisD
 
     ExtraPartCellData<uint8_t> seg_parts_new;
 
-    std::array<float,10> parameters_new = {0,2,2,2,2,2,3,1,1,1};
+    std::array<float,13> parameters_new = {0,2,2,2,2,2,3,1,1,1,60000,0};
 
     if(pc_struct.get_number_parts() <= pow(500,3)) {
 
@@ -1173,7 +1173,7 @@ void run_real_segmentation(PartCellStructure<float,uint64_t> pc_struct,AnalysisD
 
     ExtraPartCellData<uint16_t> seg_parts;
 
-    std::array<float,10> parameters_new = {pars.I_th,1,2,3,1,2,3,pars.dy/pars.dy,pars.dx/pars.dy,pars.dz/pars.dy};
+    std::array<float,13> parameters_new = {pars.I_th,1,2,3,1,2,3,pars.dy/pars.dy,pars.dx/pars.dy,pars.dz/pars.dy,60000,0};
 
     Part_timer timer;
     timer.verbose_flag = true;

@@ -1251,9 +1251,9 @@ public:
     
     void get_neighs_face(const uint64_t& curr_key,uint64_t node_val,uint64_t face,PartCellNeigh<uint64_t>& neigh_keys){
         // Selects the neighbour in the correct direction
-        
+
         neigh_keys.curr = curr_key;
-        
+
         switch(face){
             case 0: {
                 neigh_keys.neigh_face[0].resize(0);
@@ -1285,9 +1285,51 @@ public:
                 get_neighs_face_t<5>(curr_key,node_val,neigh_keys.neigh_face[5]);
                 break;
             }
-                
+
         }
-        
+
+    }
+
+    void get_neighs_face(const uint64_t& curr_key,uint64_t node_val,uint64_t face,std::vector<uint64_t>& neigh_vec){
+        // Selects the neighbour in the correct direction
+
+
+        neigh_vec.resize(0);
+
+        switch(face){
+            case 0: {
+
+                get_neighs_face_t<0>(curr_key,node_val,neigh_vec);
+                break;
+            }
+            case 1: {
+
+                get_neighs_face_t<1>(curr_key,node_val,neigh_vec);
+                break;
+            }
+            case 2: {
+
+                get_neighs_face_t<2>(curr_key,node_val,neigh_vec);
+                break;
+            }
+            case 3: {
+
+                get_neighs_face_t<3>(curr_key,node_val,neigh_vec);
+                break;
+            }
+            case 4: {
+
+                get_neighs_face_t<4>(curr_key,node_val,neigh_vec);
+                break;
+            }
+            case 5: {
+
+                get_neighs_face_t<5>(curr_key,node_val,neigh_vec);
+                break;
+            }
+
+        }
+
     }
     
     void get_neighs_all(const uint64_t& curr_key,uint64_t node_val,PartCellNeigh<uint64_t>& neigh_keys){
@@ -1371,7 +1413,8 @@ public:
 
                         curr_node_val = get_val(face_key);
 
-                        get_neighs_face_t<edges_face_dir[i]>(curr_key, curr_node_val, neigh_keys_temp);
+
+                        get_neighs_face(curr_key,curr_node_val,edges_face_dir[i],neigh_keys_temp);
 
                         if (neigh_keys_temp.size() == 1) {
                             //there can be only one....
@@ -1390,7 +1433,7 @@ public:
 
                     curr_node_val = get_val(face_key);
 
-                    get_neighs_face_t<edges_face_dir[i]>(curr_key, curr_node_val, neigh_keys_temp);
+                    get_neighs_face(curr_key,curr_node_val,edges_face_dir[i],neigh_keys_temp);
 
                     if (neigh_keys_temp.size() == 1) {
 
@@ -1463,14 +1506,10 @@ public:
 
                     curr_node_val = get_val(edge_key);
 
-                    get_neighs_face_t<corner_edge_dir[i]>(curr_key, curr_node_val, neigh_keys_temp);
+                    get_neighs_face(curr_key,curr_node_val,corner_edge_dir[i],neigh_keys_temp);
 
                     if (neigh_keys_temp.size() == 1) {
                         //can only be one
-
-
-
-
 
                         neigh_keys_corner.neigh_face[i].push_back(neigh_keys_temp[0]);
                     }
@@ -1486,7 +1525,7 @@ public:
 
                     curr_node_val = get_val(edge_key);
 
-                    get_neighs_face_t<corner_edge_dir[i]>(curr_key, curr_node_val, neigh_keys_temp);
+                    get_neighs_face(curr_key,curr_node_val,corner_edge_dir[i],neigh_keys_temp);
 
                     if (neigh_keys_temp.size() == 1) {
                         //can only be one
@@ -2412,5 +2451,19 @@ template<typename T> constexpr uint64_t PartCellData<T>::next_prev_shift_vec[];
 template<typename T> constexpr uint8_t PartCellData<T>::seed_part_y[];
 template<typename T> constexpr uint8_t PartCellData<T>::seed_part_x[];
 template<typename T> constexpr uint8_t PartCellData<T>::seed_part_z[];
+
+template<typename T> constexpr uint8_t PartCellData<T>::edges_face[];
+template<typename T> constexpr uint8_t PartCellData<T>::edges_face_index[][2];
+template<typename T> constexpr uint8_t PartCellData<T>::edges_face_dir[];
+template<typename T> constexpr uint8_t PartCellData<T>::edges_child_index[][2];
+template<typename T> constexpr uint8_t PartCellData<T>::edges_parent_ind[][2];
+template<typename T> constexpr uint8_t PartCellData<T>::edges_parent_type[];
+
+template<typename T> constexpr uint8_t PartCellData<T>::corner_edge[];
+template<typename T> constexpr uint8_t PartCellData<T>::corner_edge_index[];
+template<typename T> constexpr uint8_t PartCellData<T>::corner_edge_dir[];
+template<typename T> constexpr uint8_t PartCellData<T>::corner_edge_move_index[];
+template<typename T> constexpr uint8_t PartCellData<T>::corner_parent_ind[][3];
+
 
 #endif //PARTPLAY_PARTCELLDATA_HPP

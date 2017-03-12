@@ -1,75 +1,296 @@
 //
 // Created by Bevan Cheeseman 3.11.2016
 //
-#include "../utils.h"
+
 #include "tree_fixtures.hpp"
 #include "create_part_cell_structure.hpp"
-#include "../../src/data_structures/Tree/PartCellStructure.hpp"
 
-TEST_F(CreateSphereTest, SPARSE_STRUCTURE_SPHERE_TEST)
-{
-    
+TEST_F(CreateSphereTest, COMPARE_PART_MAP) {
+
     //
     //  Sparse Particle Structure Test Cases
     //
     //
-    
-   
-    
-    //test general structure
-    ASSERT_TRUE(compare_sparse_rep_with_part_map(particle_map,pc_struct,false));
-    //test neighbour cell search
-    ASSERT_TRUE(compare_sparse_rep_neighcell_with_part_map(particle_map,pc_struct));
-    //test y_coordinate offsets
-    ASSERT_TRUE(compare_y_coords(pc_struct));
-    //test part neighbour search
-    ASSERT_TRUE(compare_sparse_rep_neighpart_with_part_map(particle_map,pc_struct));
-    //test io
-    ASSERT_TRUE(read_write_structure_test(pc_struct));
-    
-    ASSERT_TRUE(parent_structure_test(pc_struct));
-    ASSERT_TRUE(find_part_cell_test(pc_struct));
-    
-    ASSERT_TRUE(utest_neigh_cells(pc_struct));
-    
-    ASSERT_TRUE(utest_neigh_parts(pc_struct));
-    
-    ASSERT_TRUE(utest_alt_part_struct(pc_struct));
-    
-    
-    
-}
 
-TEST_F(CreateMembraneTest, SPARSE_STRUCTURE_MEMBRANE_LARGE_TEST)
-{
-    
+
+    //test general structure
+    ASSERT_TRUE(compare_sparse_rep_with_part_map(particle_map, pc_struct, false));
+
+}
+TEST_F(CreateSphereTest, COMPARE_PART_MAP_NEIGH_CELL) {
+
     //
     //  Sparse Particle Structure Test Cases
     //
     //
-    
+
+
     //test general structure
-    ASSERT_TRUE(compare_sparse_rep_with_part_map(particle_map,pc_struct,false));
-    //test neighbour cell search
     ASSERT_TRUE(compare_sparse_rep_neighcell_with_part_map(particle_map,pc_struct));
+
+}
+
+TEST_F(CreateSphereTest, TEST_Y_COORDS) {
+
+    //
+    //  Sparse Particle Structure Test Cases
+    //
+    //
+
     //test y_coordinate offsets
     ASSERT_TRUE(compare_y_coords(pc_struct));
+
+}
+
+TEST_F(CreateSphereTest, PART_NEIGH) {
+
+    //
+    //  Sparse Particle Structure Test Cases
+    //
+    //
+
     //test part neighbour search
     ASSERT_TRUE(compare_sparse_rep_neighpart_with_part_map(particle_map,pc_struct));
+
+}
+TEST_F(CreateSphereTest, READ_WRITE) {
+
+    //
+    //  Sparse Particle Structure Test Cases
+    //
+    //
+
     //test io
     ASSERT_TRUE(read_write_structure_test(pc_struct));
-    
+
+}
+
+TEST_F(CreateSphereTest, PARENT_STRUCTURE) {
+
+    //
+    //  Sparse Particle Structure Test Cases
+    //
+    //
+
+    //test io
     ASSERT_TRUE(parent_structure_test(pc_struct));
-    
+
+}
+TEST_F(CreateSphereTest, FIND_CELL) {
+
+    //
+    //  Sparse Particle Structure Test Cases
+    //
+    //
+
+    //test io
     ASSERT_TRUE(find_part_cell_test(pc_struct));
-    
+
+}
+
+TEST_F(CreateSphereTest, NEIGH_CELL_TEST) {
+
+    //
+    //  Sparse Particle Structure Test Cases
+    //
+    //
+
+    //test io
     ASSERT_TRUE(utest_neigh_cells(pc_struct));
-    
+
+}
+
+TEST_F(CreateSphereTest, NEIGH_PART_TEST) {
+
+    //
+    //  Sparse Particle Structure Test Cases
+    //
+    //
+
+    //test io
     ASSERT_TRUE(utest_neigh_parts(pc_struct));
-    
+
+}
+
+TEST_F(CreateSphereTest, NEW_STRUCTURE) {
+
+    //
+    //  Sparse Particle Structure Test Cases
+    //
+    //
+
+    //test io
     ASSERT_TRUE(utest_alt_part_struct(pc_struct));
+
+}
+
+TEST_F(CreateSphereTest, MOORE_NEIGHBOURHOOD) {
+
+    //test neighbour cell search
+
+
+    //ASSERT_TRUE(utest_moore_neighbours(pc_struct));
     
 }
+
+TEST_F(CreateMembraneTest, COMPARE_PART_MAP) {
+
+    //
+    //  Sparse Particle Structure Test Cases
+    //
+    //
+
+
+    //test general structure
+    ASSERT_TRUE(compare_sparse_rep_with_part_map(particle_map, pc_struct, false));
+
+}
+TEST_F(CreateMembraneTest, COMPARE_PART_MAP_NEIGH_CELL) {
+
+    //
+    //  Sparse Particle Structure Test Cases
+    //
+    //
+
+
+    //test general structure
+    ASSERT_TRUE(compare_sparse_rep_neighcell_with_part_map(particle_map,pc_struct));
+
+}
+
+TEST_F(CreateMembraneTest, TEST_Y_COORDS) {
+
+    //
+    //  Sparse Particle Structure Test Cases
+    //
+    //
+
+    //test y_coordinate offsets
+    ASSERT_TRUE(compare_y_coords(pc_struct));
+
+}
+
+TEST_F(CreateMembraneTest, PART_NEIGH) {
+
+    //
+    //  Sparse Particle Structure Test Cases
+    //
+    //
+
+    //test part neighbour search
+    ASSERT_TRUE(compare_sparse_rep_neighpart_with_part_map(particle_map,pc_struct));
+
+}
+TEST_F(CreateMembraneTest, READ_WRITE) {
+
+    //
+    //  Sparse Particle Structure Test Cases
+    //
+    //
+
+    //test io
+    ASSERT_TRUE(read_write_structure_test(pc_struct));
+
+}
+
+TEST_F(CreateMembraneTest, PARENT_STRUCTURE) {
+
+    //
+    //  Sparse Particle Structure Test Cases
+    //
+    //
+
+    //test io
+    ASSERT_TRUE(parent_structure_test(pc_struct));
+
+}
+TEST_F(CreateMembraneTest, FIND_CELL) {
+
+    //
+    //  Sparse Particle Structure Test Cases
+    //
+    //
+
+    //test io
+    ASSERT_TRUE(find_part_cell_test(pc_struct));
+
+}
+
+TEST_F(CreateMembraneTest, NEIGH_CELL_TEST) {
+
+    //
+    //  Sparse Particle Structure Test Cases
+    //
+    //
+
+    //test io
+    ASSERT_TRUE(utest_neigh_cells(pc_struct));
+
+}
+
+TEST_F(CreateMembraneTest, NEIGH_PART_TEST) {
+
+    //
+    //  Sparse Particle Structure Test Cases
+    //
+    //
+
+    //test io
+    ASSERT_TRUE(utest_neigh_parts(pc_struct));
+
+}
+
+TEST_F(CreateMembraneTest, NEW_STRUCTURE) {
+
+    //
+    //  Sparse Particle Structure Test Cases
+    //
+    //
+
+    //test io
+    ASSERT_TRUE(utest_alt_part_struct(pc_struct));
+
+}
+
+TEST_F(CreateMembraneTest, MOORE_NEIGHBOURHOOD) {
+
+    //test neighbour cell search
+
+
+    //ASSERT_TRUE(utest_moore_neighbours(pc_struct));
+
+}
+
+//TEST_F(CreateMembraneTest, SPARSE_STRUCTURE_MEMBRANE_LARGE_TEST)
+//{
+//
+//    //
+//    //  Sparse Particle Structure Test Cases
+//    //
+//    //
+//
+//    //test general structure
+//    ASSERT_TRUE(compare_sparse_rep_with_part_map(particle_map,pc_struct,false));
+//    //test neighbour cell search
+//    ASSERT_TRUE(compare_sparse_rep_neighcell_with_part_map(particle_map,pc_struct));
+//    //test y_coordinate offsets
+//    ASSERT_TRUE(compare_y_coords(pc_struct));
+//    //test part neighbour search
+//    ASSERT_TRUE(compare_sparse_rep_neighpart_with_part_map(particle_map,pc_struct));
+//    //test io
+//    ASSERT_TRUE(read_write_structure_test(pc_struct));
+//
+//    ASSERT_TRUE(parent_structure_test(pc_struct));
+//
+//    ASSERT_TRUE(find_part_cell_test(pc_struct));
+//
+//    ASSERT_TRUE(utest_neigh_cells(pc_struct));
+//
+//    ASSERT_TRUE(utest_neigh_parts(pc_struct));
+//
+//    ASSERT_TRUE(utest_alt_part_struct(pc_struct));
+//
+//}
 
 
 
