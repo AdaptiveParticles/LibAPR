@@ -2194,6 +2194,98 @@ void create_j_reference_structure(PartCellStructure<float,uint64_t>& pc_struct,s
 
 
 }
+void create_j_reference_structure(PartCellData<uint64_t>& pc_data,std::vector<Mesh_data<uint64_t>>& j_array){
+    //
+    //  Creates an array that can be used to link the new particle data structure for the filtering with the newer one.
+    //
+    //  Bevan Cheeseman 2017
+    //
+    //
+
+
+    j_array.resize(pc_data.depth_max + 1);
+
+    for(int i = pc_data.depth_min; i <= pc_data.depth_max;i++){
+        j_array[i].initialize(pc_data.y_num[i],pc_data.x_num[i],pc_data.z_num[i],0);
+    }
+
+    uint64_t y_coord; // y coordinate needs to be tracked and is not explicitly stored in the structure
+
+    uint64_t p;
+    uint64_t z_;
+    uint64_t x_;
+    uint64_t j_;
+    uint64_t node_val_pc;
+    uint64_t node_val_part;
+    uint64_t curr_key;
+    uint64_t status;
+    uint64_t part_offset;
+
+
+    for(uint64_t i = pc_data.depth_min;i <= pc_data.depth_max;i++){
+        //loop over the resolutions of the structure
+        const unsigned int x_num_ = pc_data.x_num[i];
+        const unsigned int z_num_ = pc_data.z_num[i];
+
+
+        //#pragma omp parallel for default(shared) private(p,z_,x_,j_,node_val_pc,node_val_part,curr_key,status,part_offset)  if(z_num_*x_num_ > 100)
+        for(z_ = 0;z_ < z_num_;z_++){
+            //both z and x are explicitly accessed in the structure
+            curr_key = 0;
+
+            pc_data.pc_key_set_z(curr_key,z_);
+            pc_data.pc_key_set_depth(curr_key,i);
+
+
+            for(x_ = 0;x_ < x_num_;x_++){
+
+                pc_data.pc_key_set_x(curr_key,x_);
+
+                const size_t offset_pc_data = x_num_*z_ + x_;
+
+                const size_t j_num = pc_data.data[i][offset_pc_data].size();
+
+                uint64_t status_current;
+                uint64_t x_current;
+                uint64_t y_current = 0;
+                uint64_t z_current;
+                uint64_t depth_current;
+                y_coord= 0;
+
+                //the y direction loop however is sparse, and must be accessed accordinagly
+                for(j_ = 0;j_ < j_num;j_++){
+
+                    //particle cell node value, used here as it is requried for getting the particle neighbours
+                    node_val_pc = pc_data.data[i][offset_pc_data][j_];
+
+                    if (!(node_val_pc&1)){
+                        //Indicates this is a particle cell node
+                        y_coord++;
+
+                        pc_data.pc_key_set_j(curr_key,j_);
+
+
+                        j_array[i](y_coord,x_,z_) = j_;
+
+
+                    } else {
+                        // Inidicates this is not a particle cell node, and is a gap node
+                        y_coord = (node_val_pc & NEXT_COORD_MASK) >> NEXT_COORD_SHIFT;
+                        y_coord--;
+                    }
+
+                }
+
+            }
+
+        }
+    }
+
+
+
+
+
+}
 pc_key find_neigh_cell(pc_key curr_cell,int dir,std::vector<Mesh_data<uint64_t>>& j_array){
     //
     //  Bevan Cheeseman 2017
@@ -2305,17 +2397,239 @@ pc_key find_neigh_cell(pc_key curr_cell,int dir,std::vector<Mesh_data<uint64_t>>
 
     }
 
+    //
+
+    return neigh_key;
+
+}
+pc_key find_neigh_cell_edge(pc_key curr_cell,int dir,std::vector<Mesh_data<uint64_t>>& j_array){
+    //
+    //  Bevan Cheeseman 2017
+    //
+    //  Debugging Code, takes a node and brute force finds its neighbour
+    //
+    //
+
+    pc_key neigh_key;
+
+    const int8_t dir_y[12] = { 1, -1, 1, -1, 1, -1, 0, 0, 1, -1, 0, 0};
+    const int8_t dir_x[12] = { 1, 1, -1, -1, 0, 0, 1, -1, 0, 0, 1, -1};
+    const int8_t dir_z[12] = { 0, 0, 0, 0, 1, 1, 1, 1, -1, -1, -1, -1};
+
+    int offset_y = dir_y[dir];
+    int offset_x = dir_x[dir];
+    int offset_z = dir_z[dir];
+
+    //same level
+    int depth = curr_cell.depth;
+    int x = curr_cell.x + offset_x;
+    int y = curr_cell.y + offset_y;
+    int z = curr_cell.z + offset_z;
+
+    uint64_t j= 0;
+
+    if(x > 0 & x < j_array[depth].x_num){
+        if(y > 0 & y < j_array[depth].y_num){
+            if(z > 0 & z < j_array[depth].z_num){
 
 
+                j = j_array[depth](y,x,z);
+
+            }
+        }
+    }
+
+    if(j != 0){
+        //neighbour is on same level
+        neigh_key.y = y;
+        neigh_key.x = x;
+        neigh_key.z = z;
+        neigh_key.j = (int)j;
+        neigh_key.depth = depth;
+
+    } else {
+
+        //parent check
+        depth = curr_cell.depth - 1;
+        x = (curr_cell.x + offset_x)/2;
+        y = (curr_cell.y + offset_y)/2;
+        z = (curr_cell.z + offset_z)/2;
+        j = 0;
+
+        if(x > 0 & x < j_array[depth].x_num){
+            if(y > 0 & y < j_array[depth].y_num){
+                if(z > 0 & z < j_array[depth].z_num){
+
+                    j = j_array[depth](y,x,z);
+
+                }
+            }
+        }
+
+        if(j != 0){
+            //neighbour is on same level
+            neigh_key.y = y;
+            neigh_key.x = x;
+            neigh_key.z = z;
+            neigh_key.j = (int)j;
+            neigh_key.depth = depth;
+
+        } else {
+
+            //child check
+            depth = curr_cell.depth + 1;
+            x = 2*(curr_cell.x + offset_x) + (offset_x < 0);
+            y = 2*(curr_cell.y + offset_y) + (offset_y < 0);
+            z = 2*(curr_cell.z + offset_z) + (offset_z < 0);
+            j = 0;
+
+            if ( depth < j_array.size()){
+
+                if(x > 0 & x < j_array[depth].x_num){
+                    if(y > 0 & y < j_array[depth].y_num){
+                        if(z > 0 & z < j_array[depth].z_num){
 
 
+                            j = j_array[depth](y,x,z);
+
+                        }
+                    }
+                }
+            }
+
+            if(j != 0){
+                //neighbour is on same level
+                neigh_key.y = y;
+                neigh_key.x = x;
+                neigh_key.z = z;
+                neigh_key.j = (int)j;
+                neigh_key.depth = depth;
+            }
+
+
+        }
+
+    }
 
     //
 
     return neigh_key;
 
 }
+pc_key find_neigh_cell_corner(pc_key curr_cell,int dir,std::vector<Mesh_data<uint64_t>>& j_array){
+    //
+    //  Bevan Cheeseman 2017
+    //
+    //  Debugging Code, takes a node and brute force finds its neighbour
+    //
+    //
 
+    pc_key neigh_key;
+
+    const int8_t dir_y[8] = { 1, -1, 1, -1, 1, -1, 1, -1};
+    const int8_t dir_x[8] = { 1, 1, -1, -1, 1, 1, -1, -1};
+    const int8_t dir_z[8] = { 1, 1, 1, 1, -1, -1, -1, -1};
+
+    int offset_y = dir_y[dir];
+    int offset_x = dir_x[dir];
+    int offset_z = dir_z[dir];
+
+    //same level
+    int depth = curr_cell.depth;
+    int x = curr_cell.x + offset_x;
+    int y = curr_cell.y + offset_y;
+    int z = curr_cell.z + offset_z;
+
+    uint64_t j= 0;
+
+    if(x > 0 & x < j_array[depth].x_num){
+        if(y > 0 & y < j_array[depth].y_num){
+            if(z > 0 & z < j_array[depth].z_num){
+
+
+                j = j_array[depth](y,x,z);
+
+            }
+        }
+    }
+
+    if(j != 0){
+        //neighbour is on same level
+        neigh_key.y = y;
+        neigh_key.x = x;
+        neigh_key.z = z;
+        neigh_key.j = (int)j;
+        neigh_key.depth = depth;
+
+    } else {
+
+        //parent check
+        depth = curr_cell.depth - 1;
+        x = (curr_cell.x + offset_x)/2;
+        y = (curr_cell.y + offset_y)/2;
+        z = (curr_cell.z + offset_z)/2;
+        j = 0;
+
+        if(x > 0 & x < j_array[depth].x_num){
+            if(y > 0 & y < j_array[depth].y_num){
+                if(z > 0 & z < j_array[depth].z_num){
+
+                    j = j_array[depth](y,x,z);
+
+                }
+            }
+        }
+
+        if(j != 0){
+            //neighbour is on same level
+            neigh_key.y = y;
+            neigh_key.x = x;
+            neigh_key.z = z;
+            neigh_key.j = (int)j;
+            neigh_key.depth = depth;
+
+        } else {
+
+            //child check
+            depth = curr_cell.depth + 1;
+            x = 2*(curr_cell.x + offset_x) + (offset_x < 0);
+            y = 2*(curr_cell.y + offset_y) + (offset_y < 0);
+            z = 2*(curr_cell.z + offset_z) + (offset_z < 0);
+            j = 0;
+
+            if ( depth < j_array.size()){
+
+                if(x > 0 & x < j_array[depth].x_num){
+                    if(y > 0 & y < j_array[depth].y_num){
+                        if(z > 0 & z < j_array[depth].z_num){
+
+
+                            j = j_array[depth](y,x,z);
+
+                        }
+                    }
+                }
+            }
+
+            if(j != 0){
+                //neighbour is on same level
+                neigh_key.y = y;
+                neigh_key.x = x;
+                neigh_key.z = z;
+                neigh_key.j = (int)j;
+                neigh_key.depth = depth;
+            }
+
+
+        }
+
+    }
+
+    //
+
+    return neigh_key;
+
+}
 
 
 
@@ -3130,11 +3444,6 @@ bool utest_neigh_cells(PartCellStructure<float,uint64_t>& pc_struct){   //  Calc
                             pc_key neigh_miss = find_neigh_cell(curr_cell,direction,j_array);
 
 
-
-
-
-
-
                             pc_struct.pc_data.get_neighs_face(curr_key,node_val_pc,direction,neigh_cell_keys);
 
 
@@ -3268,6 +3577,11 @@ bool utest_neigh_cells(PartCellStructure<float,uint64_t>& pc_struct){   //  Calc
 
 }
 bool utest_moore_neighbours(PartCellStructure<float,uint64_t>& pc_struct){
+    //
+    //  Bevan Cheeseman 2017
+    //
+    //  Testing for full moore neighbourhood, it is seprated into face, edge, and corner.
+    //
 
 
     ParticleDataNew<float, uint64_t> part_new;
@@ -3282,6 +3596,9 @@ bool utest_moore_neighbours(PartCellStructure<float,uint64_t>& pc_struct){
     PartCellData<uint64_t> pc_data;
     part_new.create_pc_data_new(pc_data);
 
+    std::vector<Mesh_data<uint64_t>> j_array;
+
+    create_j_reference_structure(pc_data,j_array);
 
     std::vector<PartCellNeigh<uint64_t>> neigh_keys;
 
@@ -3312,7 +3629,6 @@ bool utest_moore_neighbours(PartCellStructure<float,uint64_t>& pc_struct){
             pc_data.pc_key_set_z(curr_key,z_);
             pc_data.pc_key_set_depth(curr_key,depth);
 
-
             for (x_ = 0; x_ < x_num_; x_++) {
                 coords[1] = x_;
                 pc_data.pc_key_set_x(curr_key,x_);
@@ -3333,6 +3649,23 @@ bool utest_moore_neighbours(PartCellStructure<float,uint64_t>& pc_struct){
                         coords[0] = y;
 
                         pc_data.get_neighs_all_diag(curr_key, node_val, neigh_keys, coords);
+
+                        pc_key curr_cell;
+                        curr_cell.update_cell(curr_key);
+
+                        for (int n = 0; n < neigh_keys[1].neigh_face.size(); ++n) {
+                            if(neigh_keys[1].neigh_face[n].size() > 0) {
+
+                                pc_key neigh_miss = find_neigh_cell_edge(curr_cell, n, j_array);
+
+                                pc_key neigh_edge;
+                                uint64_t neigh = neigh_keys[1].neigh_face[n][0];
+                                neigh_edge.update_cell(neigh);
+
+                                int stop = 1;
+                            }
+                        }
+
 
                         y_counter++;
                     }

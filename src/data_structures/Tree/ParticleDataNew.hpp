@@ -424,7 +424,11 @@ public:
         
         pc_data_new.z_num.resize(access_data.depth_max+1);
         pc_data_new.x_num.resize(access_data.depth_max+1);
-        
+
+        pc_data_new.y_num.resize(access_data.depth_max+1);
+
+        pc_data_new.y_num[access_data.depth_max] = access_data.org_dims[0];
+
         pc_data_new.data.resize(access_data.depth_max+1);
         
         for(uint64_t i = access_data.depth_min;i <= access_data.depth_max;i++){

@@ -257,7 +257,7 @@ TEST_F(CreateMembraneTest, MOORE_NEIGHBOURHOOD) {
     //test neighbour cell search
 
 
-    //ASSERT_TRUE(utest_moore_neighbours(pc_struct));
+    ASSERT_TRUE(utest_moore_neighbours(pc_struct));
 
 }
 
