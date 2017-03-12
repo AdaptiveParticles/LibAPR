@@ -280,10 +280,15 @@ public:
     static constexpr uint8_t edges_face_dir[12] = {2,2,3,3,0,1,2,3,0,1,2,3};
     static constexpr uint8_t edges_child_index[12][2] = {{0,2},{1,3},{0,2},{1,3},{0,2},{0,2},{0,1},{0,1},{1,3},{1,3},{2,3},{2,3}};
 
+    static constexpr uint8_t edges_parent_ind[12][2] = {{1,1},{0,1},{1,0},{0,0},{1,1},{0,1},{1,1},{0,1},{1,0},{0,0},{1,0},{0,0}};
+    static constexpr uint8_t edges_parent_type[12] = {2,2,2,2,1,1,0,0,1,1,0,0};
+
     static constexpr uint8_t corner_edge[8] = {6,6,7,7,10,10,11,11};
     static constexpr uint8_t corner_edge_index[8] = {1,0,1,0,1,0,1,0};
     static constexpr uint8_t corner_edge_dir[8] = {0,1,0,1,0,1,0,1};
     static constexpr uint8_t corner_edge_move_index[8] = {0,0,2,2,2,2,3,3};
+
+    static constexpr uint8_t corner_parent_ind[8][3] = {{1,1,1},{0,1,1},{1,0,1},{0,0,1},{1,1,0},{0,1,0},{1,0,0},{0,0,0}};
 
     uint64_t depth_max;
     uint64_t depth_min;
@@ -1305,13 +1310,33 @@ public:
         get_neighs_face_t<5>(curr_key,node_val,neigh_keys.neigh_face[5]);
         
     }
+    bool check_parent_edge(std::vector<uint16_t>& coords,uint8_t index){
+        //Coords is ordered [y,x,z]
+        bool add_parent;
 
-    void get_edge_neighs_all(const uint64_t& curr_key,PartCellNeigh<uint64_t>& neigh_keys_face,PartCellNeigh<uint64_t>& neigh_keys_edge) {
+        if (edges_parent_type[index] == 0){
+            //xz case
+            add_parent = ((coords[1]&1) == edges_parent_ind[index][0]) && ((coords[2]&1) == edges_parent_ind[index][1]);
+
+        } else if(edges_parent_type[index] == 0){
+            //yz case
+            add_parent = ((coords[0]&1) == edges_parent_ind[index][0]) && ((coords[2]&1) == edges_parent_ind[index][1]);
+        } else {
+            //yx case
+            add_parent = ((coords[0]&1) == edges_parent_ind[index][0]) && ((coords[1]&1) == edges_parent_ind[index][1]);
+        }
+
+        return add_parent;
+
+    }
+
+
+    void get_edge_neighs_all(const uint64_t& curr_key,PartCellNeigh<uint64_t>& neigh_keys_face,PartCellNeigh<uint64_t>& neigh_keys_edge,std::vector<uint16_t>& coords) {
         //
         //  Bevan Cheeseman 2017
         //
         //  Gets the edge neighbours
-        //
+        //  Coords is ordered [y,x,z]
         //
 
         neigh_keys_edge.curr = curr_key;
@@ -1331,6 +1356,7 @@ public:
 
         uint64_t face_key;
         uint64_t curr_node_val;
+        uint64_t curr_depth = pc_key_get_depth(curr_key);
 
         std::vector<uint64_t> neigh_keys_temp;
 
@@ -1348,7 +1374,7 @@ public:
                         get_neighs_face_t<edges_face_dir[i]>(curr_key, curr_node_val, neigh_keys_temp);
 
                         if (neigh_keys_temp.size() == 1) {
-                            //can only be one
+                            //there can be only one....
                             neigh_keys_edge.neigh_face[i].push_back(neigh_keys_temp[0]);
                         }
                     }
@@ -1357,7 +1383,7 @@ public:
 
 
             } else {
-                //same level
+                //same level or parent
                 face_key = neigh_keys_face.neigh_face[edges_face[i]][0];
 
                 if(face_key > 0) {
@@ -1367,7 +1393,19 @@ public:
                     get_neighs_face_t<edges_face_dir[i]>(curr_key, curr_node_val, neigh_keys_temp);
 
                     if (neigh_keys_temp.size() == 1) {
-                        neigh_keys_edge.neigh_face[i].push_back(neigh_keys_temp[0]);
+
+                        //check if to include the parent or not
+                        if(curr_depth < pc_key_get_depth(neigh_keys_temp[0])){
+                            //parent need to check
+                            if(check_parent_edge(coords,i)){
+                                neigh_keys_edge.neigh_face[i].push_back(neigh_keys_temp[0]);
+                            }
+
+                        } else {
+                            //not parent add
+                            neigh_keys_edge.neigh_face[i].push_back(neigh_keys_temp[0]);
+                        }
+
                     } else if (neigh_keys_temp.size() > 1) {
                         neigh_keys_edge.neigh_face[i].push_back(neigh_keys_temp[edges_child_index[i][0]]);
                         neigh_keys_edge.neigh_face[i].push_back(neigh_keys_temp[edges_child_index[i][0]]);
@@ -1380,12 +1418,28 @@ public:
 
 
     }
-    void get_corner_neighs_all(const uint64_t& curr_key,PartCellNeigh<uint64_t>& neigh_keys_edge,PartCellNeigh<uint64_t>& neigh_keys_corner) {
+
+    bool check_parent_corner(std::vector<uint16_t>& coords,uint8_t index){
+        //
+        //  Checks if the coordinates are correct, such that this parent is actually the correct neighbour, or has not already been added
+        //  Coords is ordered [y,x,z]
+
+        bool add_parent;
+
+        add_parent = ((coords[0]&1) == corner_parent_ind[index][0]) && ((coords[1]&1) == corner_parent_ind[index][1]) && ((coords[2]&1) == corner_parent_ind[index][2]);
+
+        return add_parent;
+
+    }
+
+
+
+    void get_corner_neighs_all(const uint64_t& curr_key,PartCellNeigh<uint64_t>& neigh_keys_edge,PartCellNeigh<uint64_t>& neigh_keys_corner,std::vector<uint16_t>& coords) {
         //
         //  Bevan Cheeseman 2017
         //
         //  Gets the edge neighbours
-        //
+        //  Coords is ordered [y,x,z]
         //
 
         neigh_keys_corner.curr = curr_key;
@@ -1395,6 +1449,7 @@ public:
 
         uint64_t edge_key;
         uint64_t curr_node_val;
+        uint64_t curr_depth = pc_key_get_depth(curr_key);
 
         std::vector<uint64_t> neigh_keys_temp;
 
@@ -1412,6 +1467,11 @@ public:
 
                     if (neigh_keys_temp.size() == 1) {
                         //can only be one
+
+
+
+
+
                         neigh_keys_corner.neigh_face[i].push_back(neigh_keys_temp[0]);
                     }
 
@@ -1419,7 +1479,7 @@ public:
 
 
             } else {
-                //same level
+                //same level or parent
                 edge_key = neigh_keys_edge.neigh_face[corner_edge[i]][0];
 
                 if(edge_key > 0) {
@@ -1430,8 +1490,19 @@ public:
 
                     if (neigh_keys_temp.size() == 1) {
                         //can only be one
-                        neigh_keys_corner.neigh_face[i].push_back(neigh_keys_temp[corner_edge_move_index[i]]);
-                    } else {
+                        //check if to include the parent or not
+                        if(curr_depth < pc_key_get_depth(corner_edge_move_index[i])){
+                            //parent need to check
+                            if(check_parent_corner(coords,i)){
+                                neigh_keys_corner.neigh_face[i].push_back(neigh_keys_temp[corner_edge_move_index[i]]);
+                            }
+
+                        } else {
+                            //not parent add
+                            neigh_keys_corner.neigh_face[i].push_back(neigh_keys_temp[corner_edge_move_index[i]]);
+                        }
+
+
 
                     }
 
@@ -1444,19 +1515,20 @@ public:
 
     }
 
-    void get_neighs_all_diag(const uint64_t& curr_key,uint64_t node_val,std::vector<PartCellNeigh<uint64_t>>& neigh_keys){
+    void get_neighs_all_diag(const uint64_t& curr_key,uint64_t node_val,std::vector<PartCellNeigh<uint64_t>>& neigh_keys,std::vector<uint16_t>& coords){
         //
         //  Bevan Cheeseman 2017
         //
         //  Gets all cell neighbours including diagonals
         //
+        //  Coords is ordered [y,x,z]
         //
 
         get_neighs_all(curr_key,node_val,neigh_keys[0]);
 
-        get_edge_neighs_all(curr_key,neigh_keys[0],neigh_keys[1]);
+        get_edge_neighs_all(curr_key,neigh_keys[0],neigh_keys[1],coords);
 
-        get_corner_neighs_all(curr_key,neigh_keys[1],neigh_keys[2]);
+        get_corner_neighs_all(curr_key,neigh_keys[1],neigh_keys[2],coords);
 
     }
 
