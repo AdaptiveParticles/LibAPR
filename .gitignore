@@ -122,6 +122,7 @@ CTestTestfile.cmake
 
 build/
 .idea/
+src/natives/*
 
 
 #########################
