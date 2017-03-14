@@ -27,6 +27,7 @@ class CreateSphereTest : public CreatePartCellTest
 {
 public:
     void SetUp() override;
+    void TestBody() override;
 };
 
 class CreateMembraneTest : public CreatePartCellTest
@@ -35,6 +36,7 @@ public:
     void SetUp() override;
 };
 
+void CreateSphereTest::TestBody(){}
 
 void CreateSphereTest::SetUp(){
 

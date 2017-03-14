@@ -89,7 +89,7 @@ bool utest_neigh_parts(PartCellStructure<float,uint64_t>& pc_struct);
 
 bool utest_alt_part_struct(PartCellStructure<float,uint64_t>& pc_struct);
 
-bool utest_moore_neighbours(PartCellStructure<float,uint64_t>& pc_struct);
+//bool utest_moore_neighbours(PartCellStructure<float,uint64_t>& pc_struct);
 
 bool compare_two_images(const Mesh_data<uint16_t>& in_memory, std::string filename) {
 
@@ -3674,6 +3674,8 @@ bool utest_moore_neighbours(PartCellStructure<float,uint64_t>& pc_struct){
             }
         }
     }
+
+    std::cout << " Finished MOORE neighbourhood test" << std::endl;
 
 
     bool success = true;
