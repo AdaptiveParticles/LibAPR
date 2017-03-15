@@ -3652,6 +3652,7 @@ bool utest_moore_neighbours(PartCellStructure<float,uint64_t>& pc_struct){
 
                         pc_key curr_cell;
                         curr_cell.update_cell(curr_key);
+                        curr_cell.y = y;
 
                         for (int n = 0; n < neigh_keys[1].neigh_face.size(); ++n) {
                             if(neigh_keys[1].neigh_face[n].size() > 0) {
