@@ -2410,7 +2410,7 @@ float apr_perspective_raycast(ExtraPartCellData<uint16_t>& y_vec,ExtraPartCellDa
 
     Part_timer timer;
 
-    timer.verbose_flag = false;
+    timer.verbose_flag = true;
 
 
     timer.start_timer("ray cast parts");
