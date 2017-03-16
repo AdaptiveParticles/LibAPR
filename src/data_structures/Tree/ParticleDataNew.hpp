@@ -551,10 +551,6 @@ public:
         
     }
 
-    void create_particles_at_cell_structure(ExtraPartCellData<float>& pdata_new) {
-        create_particles_at_cell_structure(pdata_new);
-    }
-    
    template<typename U>
     void create_particles_at_cell_structure(ExtraPartCellData<U>& pdata_new){
         //
