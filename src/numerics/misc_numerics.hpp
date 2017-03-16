@@ -31,7 +31,7 @@ void interp_slice(Mesh_data<U>& slice,std::vector<std::vector<std::vector<uint16
 template<typename U,typename V>
 void interp_slice(Mesh_data<U>& slice,PartCellData<uint64_t>& pc_data,ParticleDataNew<float, uint64_t>& part_new,ExtraPartCellData<V>& particles_int,int dir,int num);
 
-void create_y_data(std::vector<std::vector<std::vector<uint16_t>>>& y_vec,PartCellStructure<float,uint64_t>& pc_struct);
+//void create_y_data(std::vector<std::vector<std::vector<uint16_t>>>& y_vec,PartCellStructure<float,uint64_t>& pc_struct);
 
 template<typename V>
 void filter_slice(std::vector<V>& filter,std::vector<V>& filter_d,ExtraPartCellData<V>& filter_output,Mesh_data<V>& slice,ExtraPartCellData<uint16_t>& y_vec,const int dir,const int num);
@@ -1458,7 +1458,7 @@ void shift_particles_from_cells(ParticleDataNew<S, T>& part_new,ExtraPartCellDat
         const unsigned int x_num_ = part_new.access_data.x_num[i];
         const unsigned int z_num_ = part_new.access_data.z_num[i];
 
-#pragma omp parallel for default(shared) private(z_,x_,j_,part_offset,node_val)  if(z_num_*x_num_ > 100)
+//#pragma omp parallel for default(shared) private(z_,x_,j_,part_offset,node_val)  if(z_num_*x_num_ > 100)
         for(z_ = 0;z_ < z_num_;z_++){
 
             for(x_ = 0;x_ < x_num_;x_++){
@@ -1489,6 +1489,10 @@ void shift_particles_from_cells(ParticleDataNew<S, T>& part_new,ExtraPartCellDat
 
     std::swap(pdata_new,pdata_old);
 
+}
+
+void shift_particles_from_cells_std(ParticleDataNew<float, uint64_t>& part_new, ExtraPartCellData<float>& pdata_old) {
+    shift_particles_from_cells(part_new, pdata_old);
 }
 
 template<typename U,typename V>
