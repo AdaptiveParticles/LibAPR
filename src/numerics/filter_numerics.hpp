@@ -791,8 +791,8 @@ void particle_random_access(PartCellStructure<float,uint64_t>& pc_struct,Analysi
     
     for(int r = 0;r < num_repeats;r++){
         
-        depth = std::rand()%(pc_data.depth_max-pc_data.depth_min) + pc_data.depth_min;
-        
+        depth = std::rand()%(pc_data.depth_max-pc_data.depth_min +1) + pc_data.depth_min;
+
         int x_num_ = pc_data.x_num[depth];
         int z_num_ = pc_data.z_num[depth];
         
@@ -804,8 +804,7 @@ void particle_random_access(PartCellStructure<float,uint64_t>& pc_struct,Analysi
         j_num = pc_data.data[depth][offset_pc_data].size();
         
         j_ = std::rand()%j_num;
-        
-        
+
         //both z and x are explicitly accessed in the structure
         curr_key = 0;
         
