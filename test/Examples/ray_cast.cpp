@@ -17,6 +17,8 @@
 #include "../../src/numerics/filter_numerics.hpp"
 #include "../../src/numerics/misc_numerics.hpp"
 
+#include "../../src/data_structures/APR/APR.hpp"
+
 bool command_option_exists(char **begin, char **end, const std::string &option)
 {
     return std::find(begin, end, option) != end;
@@ -114,20 +116,12 @@ int main(int argc, char **argv) {
     proj_pars.theta_delta = 0.1f;
     proj_pars.scale_z = 1.0f;
 
-    ParticleDataNew<float, uint64_t> part_new;
-    //flattens format to particle = cell, this is in the classic access/part paradigm
-    part_new.initialize_from_structure(pc_struct);
 
-    ExtraPartCellData<uint16_t> y_vec;
 
-    create_y_data(y_vec,part_new);
+    APR<float> curr_apr(pc_struct);
 
-    ExtraPartCellData<uint16_t> particles_int;
-    part_new.create_particles_at_cell_structure(particles_int);
 
-    shift_particles_from_cells(part_new,particles_int);
-
-    apr_perspective_raycast(y_vec,particles_int,proj_pars,[] (const uint16_t& a,const uint16_t& b) {return std::max(a,b);});
+    apr_perspective_raycast(curr_apr.y_vec,curr_apr.particles_int,proj_pars,[] (const uint16_t& a,const uint16_t& b) {return std::max(a,b);});
 
 
 
@@ -151,21 +145,21 @@ int main(int argc, char **argv) {
 
     ExtraPartCellData<float> normalized_grad =  compute_normalized_grad_mag<float,float,uint64_t>(pc_struct,3,delta);
 
-    shift_particles_from_cells(part_new,normalized_grad);
+    shift_particles_from_cells(curr_apr.part_new,normalized_grad);
 
     ExtraPartCellData<std::array<float,3>> grad_norm = adaptive_gradient_normal(pc_struct,delta);
 
     //threshold by intensity first
     float intensity_threshold = 3;
 
-    threshold_parts(normalized_grad,particles_int,intensity_threshold,0,std::less<float>());
+    threshold_parts(normalized_grad,curr_apr.particles_int,intensity_threshold,0,std::less<float>());
 
     float min_th = .2;
     float set_val = 0;
 
     threshold_parts(normalized_grad,min_th,set_val,std::less<float>());
 
-    apr_perspective_raycast_depth(y_vec,normalized_grad,part_new.particle_data,proj_pars,[] (const uint16_t& a,const uint16_t& b) {return std::max(a,b);},true);
+    apr_perspective_raycast_depth(curr_apr.y_vec,normalized_grad,curr_apr.part_new.particle_data,proj_pars,[] (const uint16_t& a,const uint16_t& b) {return std::max(a,b);},true);
 
 
 //
