@@ -104,12 +104,12 @@ int main(int argc, char **argv) {
     
     //calc_graph_cuts_segmentation(pc_struct, seg_parts,parameters_nuc,analysis_data);
 
-    float Ip_threshold = 20;
-    float Ip_max = 80;
-    float beta = 1000;
-    float var_th = 5;
+    float Ip_threshold = 110;
+    float Ip_max = 10000;
+    float beta = 100;
+    float var_th = 0;
 
-    std::array<float,13> parameters_new = {Ip_threshold,1,2,3,1,2,3,1,1,4,Ip_max,beta,var_th};
+    std::array<float,13> parameters_new = {Ip_threshold,1,2,3,1,2,3,1,1,1.5,Ip_max,beta,var_th};
 
     Part_timer timer;
     timer.verbose_flag = true;
@@ -144,11 +144,11 @@ int main(int argc, char **argv) {
 
     proj_par proj_pars;
 
-    proj_pars.theta_0 = 0;
+    proj_pars.theta_0 = -3.14;
     proj_pars.theta_final = 3.14;
-    proj_pars.radius_factor = 1.00;
-    proj_pars.theta_delta = 0.1;
-    proj_pars.scale_z = 4.0f;
+    proj_pars.radius_factor = 1.1;
+    proj_pars.theta_delta = 0.025;
+    proj_pars.scale_z = 1;
 
 
     ExtraPartCellData<uint16_t> y_vec;

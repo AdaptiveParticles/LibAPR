@@ -112,7 +112,7 @@ int main(int argc, char **argv) {
     proj_pars.theta_final = 3.14;
     proj_pars.radius_factor = .98f;
     proj_pars.theta_delta = 0.1f;
-    proj_pars.scale_z = 3.0f;
+    proj_pars.scale_z = 1.0f;
 
     ParticleDataNew<float, uint64_t> part_new;
     //flattens format to particle = cell, this is in the classic access/part paradigm

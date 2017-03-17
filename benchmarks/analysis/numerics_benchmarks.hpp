@@ -414,8 +414,9 @@ void run_segmentation_benchmark_mesh(PartCellStructure<float,uint64_t> pc_struct
     Mesh_data<uint8_t> seg_mesh;
 
     //memory on this machine can't handle anything bigger
-    if(pc_struct.org_dims[0] <= 450){
+    if(pc_struct.org_dims[0] <= 550){
         std::cout << "gc_seg_mesh" << std::endl;
+        std:: cout << pc_struct.org_dims[0] << std::endl;
         calc_graph_cuts_segmentation_mesh(pc_struct,seg_mesh,parameters_nuc,analysis_data);
         std::cout << "gc_seg_mesh_complete" << std::endl;
     }
@@ -488,13 +489,13 @@ void evaluate_segmentation(PartCellStructure<float,uint64_t> pc_struct,AnalysisD
     Mesh_data<uint8_t> seg_mesh;
 
     //memory on this machine can't handle anything bigger
-    if(pc_struct.org_dims[0] <= 450){
+    if(pc_struct.org_dims[0] <= 550){
         calc_graph_cuts_segmentation_mesh(pc_struct,seg_mesh,parameters_nuc);
     }
 
     ExtraPartCellData<uint8_t> seg_parts;
 
-    if(pc_struct.get_number_parts() <= pow(500,3)) {
+    if(pc_struct.get_number_parts() <= pow(550,3)) {
 
         calc_graph_cuts_segmentation(pc_struct, seg_parts, parameters_nuc);
     }
@@ -563,7 +564,7 @@ void run_segmentation_benchmark_parts(PartCellStructure<float,uint64_t> pc_struc
     //nuclei
     std::array<uint64_t,10> parameters_nuc = {100,2000,1,1,2,2,2,3,0,0};
 
-    if(pc_struct.get_number_parts() <= pow(500,3)) {
+    if(pc_struct.get_number_parts() <= pow(550,3)) {
 
         calc_graph_cuts_segmentation(pc_struct, seg_parts, parameters_nuc, analysis_data);
     }
@@ -642,7 +643,7 @@ void run_filter_benchmarks_parts(PartCellStructure<float,uint64_t> pc_struct,Ana
     //Get neighbours (linear)
 
     //particles
-    particle_linear_neigh_access(pc_struct,num_repeats,analysis_data);
+   // particle_linear_neigh_access(pc_struct,num_repeats,analysis_data);
 
     //Get neighbours (random access)
 
@@ -657,7 +658,7 @@ void run_filter_benchmarks_parts(PartCellStructure<float,uint64_t> pc_struct,Ana
 
     ExtraPartCellData<float> filter_output;
 
-    filter_output = filter_apr_by_slice<float>(pc_struct,filter,analysis_data,num_repeats);
+  //  filter_output = filter_apr_by_slice<float>(pc_struct,filter,analysis_data,num_repeats);
 
 }
 
