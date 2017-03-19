@@ -25,7 +25,7 @@
 #include "filter_help/CurrLevel.hpp"
 #include "filter_help/NeighOffset.hpp"
 
-#include "../../test/utils.h"
+//#include "../../test/utils.h"
 #include "../../benchmarks/analysis/AnalysisData.hpp"
 
 #include "misc_numerics.hpp"

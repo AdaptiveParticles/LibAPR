@@ -23,7 +23,7 @@
 #include "filter_help/CurrLevel.hpp"
 #include "filter_help/NeighOffset.hpp"
 
-#include "../../test/utils.h"
+//#include "../../test/utils.h"
 
 #include "misc_numerics.hpp"
 
