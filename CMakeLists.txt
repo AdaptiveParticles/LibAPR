@@ -274,7 +274,7 @@ SWIG_ADD_LIBRARY(apr
         src/algorithm/pipeline.cpp
 	TYPE SHARED)
 
-SWIG_LINK_LIBRARIES(apr ${HDF5_LIBRARIES} blosc_shared ${TIFF_LIBRARIES})
+SWIG_LINK_LIBRARIES(apr ${HDF5_LIBRARIES} blosc_static ${TIFF_LIBRARIES})
 
 
 target_link_libraries(pipeline ${HDF5_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT} ${TIFF_LIBRARIES} blosc_shared)
