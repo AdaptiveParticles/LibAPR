@@ -2304,7 +2304,7 @@ pc_key find_neigh_cell(pc_key curr_cell,int dir,std::vector<Mesh_data<uint64_t>>
     int offset_x = dir_x[dir];
     int offset_z = dir_z[dir];
 
-
+    neigh_key.j = 0;
 
     //same level
     int depth = curr_cell.depth;
@@ -2314,9 +2314,9 @@ pc_key find_neigh_cell(pc_key curr_cell,int dir,std::vector<Mesh_data<uint64_t>>
 
     uint64_t j= 0;
 
-    if(x > 0 & x < j_array[depth].x_num){
-        if(y > 0 & y < j_array[depth].y_num){
-            if(z > 0 & z < j_array[depth].z_num){
+    if(x >= 0 & x < j_array[depth].x_num){
+        if(y >= 0 & y < j_array[depth].y_num){
+            if(z >= 0 & z < j_array[depth].z_num){
 
 
                 j = j_array[depth](y,x,z);
@@ -2342,9 +2342,9 @@ pc_key find_neigh_cell(pc_key curr_cell,int dir,std::vector<Mesh_data<uint64_t>>
         z = (curr_cell.z + offset_z)/2;
         j = 0;
 
-        if(x > 0 & x < j_array[depth].x_num){
-            if(y > 0 & y < j_array[depth].y_num){
-                if(z > 0 & z < j_array[depth].z_num){
+        if(x >= 0 & x < j_array[depth].x_num){
+            if(y >= 0 & y < j_array[depth].y_num){
+                if(z >= 0 & z < j_array[depth].z_num){
 
                     j = j_array[depth](y,x,z);
 
@@ -2371,9 +2371,9 @@ pc_key find_neigh_cell(pc_key curr_cell,int dir,std::vector<Mesh_data<uint64_t>>
 
             if ( depth < j_array.size()){
 
-                if(x > 0 & x < j_array[depth].x_num){
-                    if(y > 0 & y < j_array[depth].y_num){
-                        if(z > 0 & z < j_array[depth].z_num){
+                if(x >= 0 & x < j_array[depth].x_num){
+                    if(y >= 0 & y < j_array[depth].y_num){
+                        if(z >= 0 & z < j_array[depth].z_num){
 
 
                             j = j_array[depth](y,x,z);
@@ -2412,6 +2412,8 @@ pc_key find_neigh_cell_edge(pc_key curr_cell,int dir,std::vector<Mesh_data<uint6
 
     pc_key neigh_key;
 
+    neigh_key.j = 0;
+
     const int8_t dir_y[12] = { 1, -1, 1, -1, 1, -1, 0, 0, 1, -1, 0, 0};
     const int8_t dir_x[12] = { 1, 1, -1, -1, 0, 0, 1, -1, 0, 0, 1, -1};
     const int8_t dir_z[12] = { 0, 0, 0, 0, 1, 1, 1, 1, -1, -1, -1, -1};
@@ -2428,9 +2430,9 @@ pc_key find_neigh_cell_edge(pc_key curr_cell,int dir,std::vector<Mesh_data<uint6
 
     uint64_t j= 0;
 
-    if(x > 0 & x < j_array[depth].x_num){
-        if(y > 0 & y < j_array[depth].y_num){
-            if(z > 0 & z < j_array[depth].z_num){
+    if(x >= 0 & x < j_array[depth].x_num){
+        if(y >= 0 & y < j_array[depth].y_num){
+            if(z >= 0 & z < j_array[depth].z_num){
 
 
                 j = j_array[depth](y,x,z);
@@ -2456,9 +2458,9 @@ pc_key find_neigh_cell_edge(pc_key curr_cell,int dir,std::vector<Mesh_data<uint6
         z = (curr_cell.z + offset_z)/2;
         j = 0;
 
-        if(x > 0 & x < j_array[depth].x_num){
-            if(y > 0 & y < j_array[depth].y_num){
-                if(z > 0 & z < j_array[depth].z_num){
+        if(x >= 0 & x < j_array[depth].x_num){
+            if(y >= 0 & y < j_array[depth].y_num){
+                if(z >= 0 & z < j_array[depth].z_num){
 
                     j = j_array[depth](y,x,z);
 
@@ -2485,9 +2487,9 @@ pc_key find_neigh_cell_edge(pc_key curr_cell,int dir,std::vector<Mesh_data<uint6
 
             if ( depth < j_array.size()){
 
-                if(x > 0 & x < j_array[depth].x_num){
-                    if(y > 0 & y < j_array[depth].y_num){
-                        if(z > 0 & z < j_array[depth].z_num){
+                if(x >= 0 & x < j_array[depth].x_num){
+                    if(y >= 0 & y < j_array[depth].y_num){
+                        if(z >= 0 & z < j_array[depth].z_num){
 
 
                             j = j_array[depth](y,x,z);
@@ -2533,6 +2535,8 @@ pc_key find_neigh_cell_corner(pc_key curr_cell,int dir,std::vector<Mesh_data<uin
     int offset_y = dir_y[dir];
     int offset_x = dir_x[dir];
     int offset_z = dir_z[dir];
+
+    neigh_key.j = 0;
 
     //same level
     int depth = curr_cell.depth;
@@ -3576,6 +3580,22 @@ bool utest_neigh_cells(PartCellStructure<float,uint64_t>& pc_struct){   //  Calc
     return success;
 
 }
+
+
+bool compare_cells(pc_key key1,pc_key key2){
+    int same = (key1.x == key2.x) + (key1.z == key2.z) + (key1.j == key2.j) + (key1.depth == key2.depth);
+
+    if(same == 4){
+        return true;
+    } else {
+        return false;
+    }
+
+
+}
+
+
+
 bool utest_moore_neighbours(PartCellStructure<float,uint64_t>& pc_struct){
     //
     //  Bevan Cheeseman 2017
@@ -3613,6 +3633,8 @@ bool utest_moore_neighbours(PartCellStructure<float,uint64_t>& pc_struct){
     std::vector<uint16_t> coords = {0,0,0};
 
     uint64_t curr_key;
+
+    bool success = true;
 
     uint64_t z_, x_, j_, y_, i, k;
 
@@ -3654,17 +3676,145 @@ bool utest_moore_neighbours(PartCellStructure<float,uint64_t>& pc_struct){
                         curr_cell.update_cell(curr_key);
                         curr_cell.y = y;
 
-                        for (int n = 0; n < neigh_keys[1].neigh_face.size(); ++n) {
-                            if(neigh_keys[1].neigh_face[n].size() > 0) {
+                        ////////////////////////////////////////////////////////
+                        //
+                        //  Tsting edges
+                        //
+                        /////////////////////////////////////////////////////////
 
-                                pc_key neigh_miss = find_neigh_cell_edge(curr_cell, n, j_array);
+                        std::vector<pc_key> j_neigh;
+
+                        std::vector<pc_key> neigh_moore;
+
+                        unsigned int counter_edges = 0;
+
+                        for (int n = 0; n < neigh_keys[1].neigh_face.size(); ++n) {
+
+                            pc_key neigh_miss = find_neigh_cell_edge(curr_cell, n, j_array);
+
+                            if(neigh_miss.j > 0){
+                                j_neigh.push_back(neigh_miss);
+                            }
+
+                            if(neigh_keys[1].neigh_face[n].size() > 0) {
 
                                 pc_key neigh_edge;
                                 uint64_t neigh = neigh_keys[1].neigh_face[n][0];
                                 neigh_edge.update_cell(neigh);
 
-                                int stop = 1;
+                                uint64_t test_i = pc_data.get_val(neigh);
+
+                                bool same = neigh_edge.compare_cell(neigh_miss);
+
+                                neigh_moore.push_back(neigh_edge);
+
+
+                                counter_edges++;
+
+                                if(!same){
+                                    success = false;
+
+                                }
                             }
+                        }
+
+                        ///////////////////////////////////////////////////////////////
+                        //
+                        //  Testing corners
+                        //
+                        /////////////////////////////////////////////////////////////
+
+                        unsigned int counter_corners = 0;
+
+
+                        for (int n = 0; n < neigh_keys[2].neigh_face.size(); ++n) {
+
+                            pc_key neigh_miss = find_neigh_cell_corner(curr_cell, n, j_array);
+
+                            if(neigh_miss.j > 0){
+                                j_neigh.push_back(neigh_miss);
+                            }
+
+
+                            if(neigh_keys[2].neigh_face[n].size() > 0) {
+
+
+
+                                pc_key neigh_corner;
+                                uint64_t neigh = neigh_keys[2].neigh_face[n][0];
+                                neigh_corner.update_cell(neigh);
+
+                                uint64_t test_i = pc_data.get_val(neigh);
+
+                                bool same = neigh_corner.compare_cell(neigh_miss);
+
+
+                                neigh_moore.push_back(neigh_corner);
+
+                                if(!same){
+                                    success = false;
+
+                                }
+
+                                counter_corners++;
+
+                            }
+                        }
+
+
+                        //faces
+
+                        unsigned int counter_face = 0;
+
+                        for (int n = 0; n < neigh_keys[0].neigh_face.size(); ++n) {
+
+                            pc_key neigh_miss = find_neigh_cell(curr_cell, n, j_array);
+
+                            if(neigh_miss.j > 0){
+                                j_neigh.push_back(neigh_miss);
+                            }
+
+                            if(neigh_keys[0].neigh_face[n].size() > 0) {
+
+                                pc_key neigh_face;
+                                uint64_t neigh = neigh_keys[0].neigh_face[n][0];
+                                neigh_face.update_cell(neigh);
+
+                                uint64_t test_i = pc_data.get_val(neigh);
+
+                                bool same = neigh_face.compare_cell(neigh_miss);
+
+                                neigh_moore.push_back(neigh_face);
+
+                                counter_face++;
+
+                                if(!same){
+                                    success = false;
+
+                                }
+                            }
+                        }
+
+                        pc_key comp;
+
+                        unsigned int size_before = neigh_moore.size();
+
+
+                        std::unique(neigh_moore.begin(),neigh_moore.end(),compare_cells);
+
+                        unsigned int size_after = neigh_moore.size();
+
+                        unsigned int num_j_before = j_neigh.size();
+
+                        std::unique(j_neigh.begin(),j_neigh.end(),compare_cells);
+
+                        unsigned int num_j = j_neigh.size();
+
+
+                        if((size_before == size_after) & (num_j == size_after) ){
+
+                        } else {
+                            success = false;
                         }
 
 
@@ -3678,8 +3828,6 @@ bool utest_moore_neighbours(PartCellStructure<float,uint64_t>& pc_struct){
 
     std::cout << " Finished MOORE neighbourhood test" << std::endl;
 
-
-    bool success = true;
 
     return success;
 
