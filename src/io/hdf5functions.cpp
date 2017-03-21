@@ -28,7 +28,7 @@ void hdf5_write_data(hid_t obj_id,hid_t type_id,const char* ds_name,hsize_t rank
 
     //Declare the required hdf5 shiz
     hid_t space_id,dset_id,plist_id;
-    hsize_t cdims[rank]; //chunking dims
+    hsize_t *cdims = new hsize_t[rank]; //chunking dims
 
     //compression parameters
     int deflate_level = 9;
@@ -89,7 +89,7 @@ void hdf5_write_attribute(hid_t obj_id,hid_t type_id,const char* attr_name,hsize
 
     //Declare the required hdf5 shiz
     hid_t space_id,dset_id,attr_id;
-    hsize_t cdims[rank]; //chunking dims
+    hsize_t *cdims = new hsize_t[rank]; //chunking dims
 
     space_id = H5Screate_simple(rank, dims, NULL);
     //plist_id  = H5Pcreate(H5P_ATTRIBUTE_CREATE);

@@ -1,4 +1,4 @@
-///////////////////
+﻿///////////////////
 //
 //  Bevan Cheeseman 2016
 //
@@ -25,6 +25,41 @@
 #include "../meshclass.h"
 #include "../../io/writeimage.h"
 
+#ifdef _MSC_VER
+#define NOMINMAX
+#include <intrin.h>
+#include <Windows.h>
+
+uint32_t __inline __builtin_ctz(uint32_t value)
+{
+	DWORD trailing_zero = 0;
+
+	if (_BitScanForward(&trailing_zero, value))
+	{
+		return trailing_zero;
+	}
+	else
+	{
+		// This is undefined, I better choose 32 than 0
+		return 32;
+	}
+}
+
+uint32_t __inline __builtin_clz(uint32_t value)
+{
+	DWORD leading_zero = 0;
+
+	if (_BitScanReverse(&leading_zero, value))
+	{
+		return 31 - leading_zero;
+	}
+	else
+	{
+		// Same remarks as above
+		return 32;
+	}
+}
+#endif
 
 //parent node defitions
 

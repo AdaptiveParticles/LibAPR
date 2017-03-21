@@ -11,8 +11,10 @@
 #ifndef PARTPLAY_HDF5FUNCTIONS_BLOSC_H
 #define PARTPLAY_HDF5FUNCTIONS_BLOSC_H
 
-#include "hdf5.h"
-#include "blosc_filter.h"
+extern "C" {
+	#include "hdf5.h"
+	#include "blosc_filter.h"
+}
 #include <string>
 
 void register_bosc();

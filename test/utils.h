@@ -9,6 +9,7 @@
 #ifndef PARTPLAY_UTILS_H_RAH
 #define PARTPLAY_UTILS_H_RAH
 
+#define NOMINMAX
 #define K_BENCHMARK_REL_ERROR 1000
 
 #include <cmath>
