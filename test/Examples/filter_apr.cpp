@@ -129,8 +129,8 @@ int main(int argc, char **argv) {
 
     float num_repeats = 1;
 
-    std::vector<float> filter = {.025,.95,.025};
-    std::vector<float> delta = {1,1,4};
+    std::vector<float> filter = {.025f,.95f,.025f};
+    std::vector<float> delta = {1.0,1.0,4.0};
 
     int num_tap = 1;
 
