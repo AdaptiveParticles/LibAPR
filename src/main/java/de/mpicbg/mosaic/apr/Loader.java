@@ -25,14 +25,10 @@ public class Loader {
         String lp = System.getProperty("java.library.path");
         File tmpDir = Files.createTempDirectory("apr-natives-tmp").toFile();
 
-        System.err.println("tmpdir is " + tmpDir.getCanonicalPath());
-
         String[] jars = System.getProperty("java.class.path").split(File.pathSeparator);
 
-        for(int i = 0; i < jars.length; i ++) {
-            String s = jars[i];
-
-            if(!(s.contains("apr") && s.contains("natives"))) {
+        for (String s : jars) {
+            if (!(s.contains("apr") && s.contains("natives"))) {
                 continue;
             }
 
@@ -57,13 +53,21 @@ public class Loader {
                     }
 
                     InputStream ins = jar.getInputStream(entry);
+                    ByteArrayOutputStream baos = new ByteArrayOutputStream();
                     FileOutputStream fos = new FileOutputStream(f);
 
-                    while (ins.available() > 0) {
-                        fos.write(ins.read());
+                    byte[] buffer = new byte[1024];
+                    int len;
+
+                    while ((len = ins.read(buffer)) > -1) {
+                        baos.write(buffer, 0, len);
                     }
 
+                    baos.flush();
+                    fos.write(baos.toByteArray());
+
                     fos.close();
+                    baos.close();
                     ins.close();
                 }
 
@@ -94,6 +98,9 @@ public class Loader {
             String osclass = osname.substring(0, osname.indexOf(' ')).toLowerCase();
 
             System.err.println("Did you include apr-natives-" + osclass + " in your dependencies?");
+            System.err.println("java.library.path=" + System.getProperty("java.library.path"));
+
+            throw e;
         }
 
         nativesReady = true;
