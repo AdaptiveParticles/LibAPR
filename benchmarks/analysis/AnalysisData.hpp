@@ -51,6 +51,7 @@ class AnalysisData: public Data_manager{
     bool debug;
     bool segmentation_eval;
     bool filters_eval;
+    bool quality_true_int;
 
     AnalysisData(){
 
@@ -77,6 +78,8 @@ class AnalysisData: public Data_manager{
         debug = false;
         segmentation_eval = false;
         filters_eval = false;
+
+        quality_true_int = false;
 
         time_t timer;
         struct tm y2k = {0};
@@ -130,7 +133,7 @@ class AnalysisData: public Data_manager{
         segmentation_mesh = false;
         segmentation_eval = false;
         filters_eval = false;
-
+        quality_true_int = false;
 
         debug=false;
 

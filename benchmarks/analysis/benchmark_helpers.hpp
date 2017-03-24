@@ -42,6 +42,7 @@ struct cmdLineOptionsBench{
     bool nonoise = false;
     bool segmentation_eval = false;
     bool filters_eval = false;
+    bool quality_true_int = false;
 
     float lambda = 0;
     float rel_error = 0;
@@ -92,6 +93,12 @@ cmdLineOptionsBench read_command_line_options(int argc, char **argv){
     if(command_option_exists_bench(argv, argv + argc, "-quality_metrics_input"))
     {
         result.quality_metrics_input = true;
+    }
+
+
+    if(command_option_exists_bench(argv, argv + argc, "-quality_true_int"))
+    {
+        result.quality_true_int = true;
     }
 
     if(command_option_exists_bench(argv, argv + argc, "-information_content"))

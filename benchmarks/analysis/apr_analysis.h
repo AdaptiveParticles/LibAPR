@@ -12,6 +12,7 @@
 #include "SynImageClasses.hpp"
 #include "numerics_benchmarks.hpp"
 #include "../../src/numerics/misc_numerics.hpp"
+#include "../../src/data_structures/APR/APR.h"
 #include <assert.h>
 
 
@@ -660,9 +661,6 @@ void produce_apr_analysis(Mesh_data<T>& input_image,AnalysisData& analysis_data,
 
         Mesh_data<float> variance;
 
-
-
-
         get_variance(input_image,variance,pars);
 
         debug_write(variance,"var");
@@ -682,6 +680,70 @@ void produce_apr_analysis(Mesh_data<T>& input_image,AnalysisData& analysis_data,
 
 
     }
+
+
+    if(analysis_data.quality_true_int) {
+
+        //Generate clean gt image
+        Mesh_data<uint16_t> gt_image;
+        generate_gt_image(gt_image, syn_image);
+
+        Part_rep p_rep;
+        p_rep.pars = pars;
+
+        APR t_apr(pc_struct);
+
+        ExtraPartCellData<float> true_parts;
+        true_parts.initialize_structure_parts(t_apr.y_vec);
+
+        Particle_map<float> part_map(p_rep);
+
+        part_map.downsample(gt_image);
+
+        t_apr.particles_int
+
+        int z_, x_, j_, y_, i, k;
+
+        for (uint64_t depth = (t_apr.y_vec.depth_min); depth <= t_apr.y_vec.depth_max; depth++) {
+            //loop over the resolutions of the structure
+            const unsigned int x_num_ = t_apr.y_vec.x_num[depth];
+            const unsigned int z_num_ = t_apr.y_vec.z_num[depth];
+
+            const unsigned int y_size = t_apr.depth_slice[depth].y_num;
+            const unsigned int x_size = t_apr.depth_slice[depth].x_num;
+
+            const float step_size_x = pow(2, t_apr.y_vec.depth_max - depth);
+            const float step_size_y = pow(2, t_apr.y_vec.depth_max - depth);
+            const float step_size_z = pow(2, t_apr.y_vec.depth_max - depth);
+
+            for (z_ = 0; z_ < z_num_; z_++) {
+                //both z and x are explicitly accessed in the structure
+
+                for (x_ = 0; x_ < x_num_; x_++) {
+
+                    const unsigned int pc_offset = x_num_ * z_ + x_;
+
+                    for (j_ = 0; j_ < t_apr.y_vec.data[depth][pc_offset].size(); j_++) {
+
+
+                        const int y = t_apr.y_vec.data[depth][pc_offset][j_];
+
+                        const float y_actual = floor((y+0.5) * step_size_y);
+                        const float x_actual = floor((x_+0.5) * step_size_x);
+                        const float z_actual = floor((z_+0.5) * step_size_z);
+
+                        true_parts.data[depth][pc_offset][j_] = part_map.downsampled[depth](y_actual,x_actual,z_actual);
+
+                    }
+                }
+            }
+        }
+
+
+
+    }
+
+
 
 
     if(analysis_data.quality_metrics_gt) {
