@@ -751,9 +751,9 @@ void produce_apr_analysis(Mesh_data<T>& input_image,AnalysisData& analysis_data,
 
         calc_mse(true_int_m, gt_image, name, analysis_data);
 
-        debug_write(true_int_m,"true");
-        debug_write(gt_image,"gt");
-        debug_write(input_image,"input");
+        //debug_write(true_int_m,"true");
+        //debug_write(gt_image,"gt");
+        //debug_write(input_image,"input");
 
 
 
