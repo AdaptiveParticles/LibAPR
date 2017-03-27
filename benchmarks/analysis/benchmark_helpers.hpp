@@ -447,7 +447,7 @@ void generate_objects(SynImage& syn_image_loc,benchmark_settings& bs){
 
             if(bs.int_scale_min != bs.int_scale_max) {
 
-                float obj_int = gen_rand.rand_num(bs.int_scale_min, bs.int_scale_max) * bs.desired_I;
+                obj_int = gen_rand.rand_num(bs.int_scale_min, bs.int_scale_max) * bs.desired_I;
 
             }
            // temp_obj.int_scale = (
