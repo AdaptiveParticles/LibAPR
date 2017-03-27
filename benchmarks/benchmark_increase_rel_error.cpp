@@ -168,7 +168,7 @@ int main(int argc, char **argv) {
                     ///////////////////////////////////////////////////////////////////
                     //PSF properties
 
-                    bs.desired_I = sqrt(1000)*shift[q];
+                    bs.desired_I = 500;
 
                     analysis_data.add_float_data("desired_I",bs.desired_I);
 
