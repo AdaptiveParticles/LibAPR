@@ -743,7 +743,7 @@ void produce_apr_analysis(Mesh_data<T>& input_image,AnalysisData& analysis_data,
             }
         }
 
-        Mesh_data<uint16_t> true_int_m;
+        Mesh_data<float> true_int_m;
 
         t_apr.init_pc_data();
 
@@ -754,9 +754,9 @@ void produce_apr_analysis(Mesh_data<T>& input_image,AnalysisData& analysis_data,
         generate_gt_image(gt_image, syn_image);
 
         name = "true";
-        compare_E(true_int_m, gt_image, pars, name, analysis_data);
+        //compare_E(true_int_m, gt_image, pars, name, analysis_data);
 
-        calc_mse(true_int_m, gt_image, name, analysis_data);
+        //calc_mse(true_int_m, gt_image, name, analysis_data);
 
         compare_E(gt_image,true_int_m, pars, name, analysis_data);
 
