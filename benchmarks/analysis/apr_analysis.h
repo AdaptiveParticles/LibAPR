@@ -12,7 +12,7 @@
 #include "SynImageClasses.hpp"
 #include "numerics_benchmarks.hpp"
 #include "../../src/numerics/misc_numerics.hpp"
-#include "../../src/data_structures/APR/APR.h"
+#include "../../src/data_structures/APR/APR.hpp"
 #include <assert.h>
 
 
@@ -691,16 +691,15 @@ void produce_apr_analysis(Mesh_data<T>& input_image,AnalysisData& analysis_data,
         Part_rep p_rep;
         p_rep.pars = pars;
 
-        APR t_apr(pc_struct);
+        APR<float> t_apr(pc_struct);
 
         ExtraPartCellData<float> true_parts;
         true_parts.initialize_structure_parts(t_apr.y_vec);
 
-        Particle_map<float> part_map(p_rep);
+        Particle_map<uint16_t> part_map(p_rep);
 
         part_map.downsample(gt_image);
 
-        t_apr.particles_int
 
         int z_, x_, j_, y_, i, k;
 
@@ -708,9 +707,6 @@ void produce_apr_analysis(Mesh_data<T>& input_image,AnalysisData& analysis_data,
             //loop over the resolutions of the structure
             const unsigned int x_num_ = t_apr.y_vec.x_num[depth];
             const unsigned int z_num_ = t_apr.y_vec.z_num[depth];
-
-            const unsigned int y_size = t_apr.depth_slice[depth].y_num;
-            const unsigned int x_size = t_apr.depth_slice[depth].x_num;
 
             const float step_size_x = pow(2, t_apr.y_vec.depth_max - depth);
             const float step_size_y = pow(2, t_apr.y_vec.depth_max - depth);
@@ -738,6 +734,18 @@ void produce_apr_analysis(Mesh_data<T>& input_image,AnalysisData& analysis_data,
                 }
             }
         }
+
+        Mesh_data<uint16_t> true_int_m;
+
+        t_apr.init_pc_data();
+
+        interp_img(true_int_m, t_apr.pc_data, t_apr.part_new, true_parts,true);
+
+
+        name = "true";
+        compare_E(true_int_m, gt_image, pars, name, analysis_data);
+
+        calc_mse(true_int_m, gt_image, name, analysis_data);
 
 
 
