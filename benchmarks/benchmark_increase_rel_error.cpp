@@ -74,6 +74,7 @@ int main(int argc, char **argv) {
     max_rel_error = 1;
     num_steps = options.delta;
 
+
     del = (max_rel_error - min_rel_error) / num_steps;
 
     for (float i = min_rel_error; i <= max_rel_error; i = i + del) {

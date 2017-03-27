@@ -650,8 +650,10 @@ void produce_apr_analysis(Mesh_data<T>& input_image,AnalysisData& analysis_data,
 
     if(analysis_data.debug == true){
 
-        pc_struct.interp_parts_to_pc(rec_img, pc_struct.part_data.particle_data);
-        write_image_tiff(rec_img, pars.output_path + pars.name + "_rec.tif");
+        Mesh_data<T> rec_img_d;
+
+        pc_struct.interp_parts_to_pc(rec_img_d, pc_struct.part_data.particle_data);
+        write_image_tiff(rec_img_d, pars.output_path + pars.name + "_rec.tif");
 
         write_image_tiff(input_image, pars.output_path + pars.name + "_debug.tif");
 
@@ -678,6 +680,11 @@ void produce_apr_analysis(Mesh_data<T>& input_image,AnalysisData& analysis_data,
         compare_E_debug( gt_image,rec_img, pars, name, analysis_data);
 
 
+        debug_write(gt_image,"gt_image");
+
+        generate_gt_seg(gt_image,syn_image);
+
+        debug_write(gt_image,"template_image");
 
     }
 
@@ -751,6 +758,10 @@ void produce_apr_analysis(Mesh_data<T>& input_image,AnalysisData& analysis_data,
 
         calc_mse(true_int_m, gt_image, name, analysis_data);
 
+        compare_E(gt_image,true_int_m, pars, name, analysis_data);
+
+        calc_mse(gt_image,true_int_m, name, analysis_data);
+
         //debug_write(true_int_m,"true");
         //debug_write(gt_image,"gt");
         //debug_write(input_image,"input");
@@ -771,9 +782,9 @@ void produce_apr_analysis(Mesh_data<T>& input_image,AnalysisData& analysis_data,
 
 
         name = "orggt";
-        compare_E(input_image, gt_image, pars, name, analysis_data);
+        compare_E(gt_image, input_image, pars, name, analysis_data);
 
-        calc_mse(input_image, gt_image, name, analysis_data);
+        calc_mse(gt_image, input_image, name, analysis_data);
 
         name = "recgt";
 
