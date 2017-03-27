@@ -546,6 +546,8 @@ void process_input(cmdLineOptionsBench& options,SynImage& syn_image,AnalysisData
     analysis_data.segmentation_eval = options.segmentation_eval;
     analysis_data.filters_eval = options.filters_eval;
 
+    analysis_data.quality_true_int = options.quality_true_int;
+
     if(options.nonoise){
         syn_image.noise_properties.noise_type = "none";
         bs.noise_type = "none";

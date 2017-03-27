@@ -688,7 +688,8 @@ void produce_apr_analysis(Mesh_data<T>& input_image,AnalysisData& analysis_data,
         Mesh_data<uint16_t> gt_image;
         generate_gt_image(gt_image, syn_image);
 
-        Part_rep p_rep;
+        Part_rep p_rep(input_image.y_num,input_image.x_num,input_image.z_num);
+
         p_rep.pars = pars;
 
         APR<float> t_apr(pc_struct);
@@ -741,6 +742,7 @@ void produce_apr_analysis(Mesh_data<T>& input_image,AnalysisData& analysis_data,
 
         interp_img(true_int_m, t_apr.pc_data, t_apr.part_new, true_parts,true);
 
+        generate_gt_image(gt_image, syn_image);
 
         name = "true";
         compare_E(true_int_m, gt_image, pars, name, analysis_data);

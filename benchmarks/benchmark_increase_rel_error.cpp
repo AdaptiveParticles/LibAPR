@@ -71,7 +71,7 @@ int main(int argc, char **argv) {
     }
 
     min_rel_error = .1;
-    max_rel_error = .4;
+    max_rel_error = 1;
     num_steps = options.delta;
 
     del = (max_rel_error - min_rel_error) / num_steps;
@@ -93,7 +93,7 @@ int main(int argc, char **argv) {
     }
 
 
-    sig_vec = {1,3,6};
+    sig_vec = {1};
 
     //min mean
     float min_shift = 5;
@@ -110,7 +110,7 @@ int main(int argc, char **argv) {
         shift.push_back(max_shift);
     }
 
-    shift = {1,10,30};
+    shift = {10};
 
     int N_par1 = (int)rel_error_vec.size(); // this many different parameter values to be run
     int N_par2 = (int)sig_vec.size();
