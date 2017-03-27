@@ -725,9 +725,9 @@ void produce_apr_analysis(Mesh_data<T>& input_image,AnalysisData& analysis_data,
 
                         const int y = t_apr.y_vec.data[depth][pc_offset][j_];
 
-                        const float y_actual = floor((y+0.5) * step_size_y);
-                        const float x_actual = floor((x_+0.5) * step_size_x);
-                        const float z_actual = floor((z_+0.5) * step_size_z);
+                        const unsigned int y_actual = floor((y+0.5) );
+                        const unsigned int x_actual = floor((x_+0.5));
+                        const unsigned int z_actual = floor((z_+0.5) );
 
                         true_parts.data[depth][pc_offset][j_] = part_map.downsampled[depth](y_actual,x_actual,z_actual);
 
@@ -740,7 +740,9 @@ void produce_apr_analysis(Mesh_data<T>& input_image,AnalysisData& analysis_data,
 
         t_apr.init_pc_data();
 
-        interp_img(true_int_m, t_apr.pc_data, t_apr.part_new, true_parts,true);
+        //interp_img(true_int_m, t_apr.pc_data, t_apr.part_new, true_parts,false);
+
+        interp_img(true_int_m,t_apr.y_vec,true_parts);
 
         generate_gt_image(gt_image, syn_image);
 
@@ -748,7 +750,6 @@ void produce_apr_analysis(Mesh_data<T>& input_image,AnalysisData& analysis_data,
         compare_E(true_int_m, gt_image, pars, name, analysis_data);
 
         calc_mse(true_int_m, gt_image, name, analysis_data);
-
 
 
     }

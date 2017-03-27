@@ -900,6 +900,72 @@ void get_slices(PartCellStructure<float,uint64_t>& pc_struct){
 };
 
 
+
+template<typename U,typename V>
+void interp_img(Mesh_data<U>& img,ExtraPartCellData<uint16_t>& y_vec,ExtraPartCellData<V>& particles_int){
+    //
+    //  Bevan Cheeseman 2016
+    //
+    //  Takes in a APR and creates piece-wise constant image
+    //
+
+    img.initialize(y_vec.org_dims[0],y_vec.org_dims[1],y_vec.org_dims[2],0);
+
+    int z_,x_,j_,y_;
+
+    for(uint64_t depth = (y_vec.depth_min);depth <= y_vec.depth_max;depth++) {
+        //loop over the resolutions of the structure
+        const unsigned int x_num_ = y_vec.x_num[depth];
+        const unsigned int z_num_ = y_vec.z_num[depth];
+
+        const unsigned int x_num_min_ = 0;
+        const unsigned int z_num_min_ = 0;
+
+        const float step_size = pow(2,y_vec.depth_max - depth);
+
+#pragma omp parallel for default(shared) private(z_,x_,j_) if(z_num_*x_num_ > 100)
+        for (z_ = z_num_min_; z_ < z_num_; z_++) {
+            //both z and x are explicitly accessed in the structure
+
+            for (x_ = x_num_min_; x_ < x_num_; x_++) {
+
+                const unsigned int pc_offset = x_num_ * z_ + x_;
+
+                for (j_ = 0; j_ <y_vec.data[depth][pc_offset].size(); j_++) {
+
+                        int dim1 = y_vec.data[depth][pc_offset][j_] * step_size;
+                        int dim2 = x_ * step_size;
+                        int dim3 = z_ * step_size;
+
+                        const V temp_int = particles_int.data[depth][pc_offset][j_];
+                        //add to all the required rays
+
+                        const int offset_max_dim1 = std::min((int) img.y_num, (int) (dim1 + step_size));
+                        const int offset_max_dim2 = std::min((int) img.x_num, (int) (dim2 + step_size));
+                        const int offset_max_dim3 = std::min((int) img.z_num, (int) (dim3 + step_size));
+
+                        for (int q = dim3; q < offset_max_dim3; ++q) {
+
+                            for (int k = dim2; k < offset_max_dim2; ++k) {
+#pragma omp simd
+                                for (int i = dim1; i < offset_max_dim1; ++i) {
+                                    img.mesh[i + (k) * img.y_num + q*img.y_num*img.x_num] = temp_int;
+                                }
+                            }
+                        }
+
+
+                }
+            }
+        }
+    }
+
+
+
+
+}
+
+
 template<typename U,typename V>
 void interp_img(Mesh_data<U>& img,PartCellData<uint64_t>& pc_data,ParticleDataNew<float, uint64_t>& part_new,ExtraPartCellData<V>& particles_int,const bool val){
     //
