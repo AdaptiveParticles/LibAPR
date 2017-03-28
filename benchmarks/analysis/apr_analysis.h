@@ -320,11 +320,13 @@ void compare_E(Mesh_data<S>& org_img,Mesh_data<T>& rec_img,Proc_par& pars,std::s
     uint64_t counter = 0;
     double MSE = 0;
 
-#pragma omp parallel for default(shared) private(j,i,k) reduction(+: MSE) reduction(+: counter) reduction(+: mean) reduction(max: inf_norm)
-    for(j = 0; j < z_num_o;j++){
-        for(i = 0; i < x_num_o;i++){
+    int b = 5;
 
-            for(k = 0;k < y_num_o;k++){
+#pragma omp parallel for default(shared) private(j,i,k) reduction(+: MSE) reduction(+: counter) reduction(+: mean) reduction(max: inf_norm)
+    for(j = b; j < (z_num_o-b);j++){
+        for(i = b; i < (x_num_o-b);i++){
+
+            for(k = b;k < (y_num_o-b);k++){
                 double val = abs(org_img.mesh[j*x_num_o*y_num_o + i*y_num_o + k] - rec_img.mesh[j*x_num_r*y_num_r + i*y_num_r + k])/(1.0*variance.mesh[j*x_num_r*y_num_r + i*y_num_r + k]);
                 //SE.mesh[j*x_num_o*y_num_o + i*y_num_o + k] = 1000*val;
 
@@ -350,10 +352,10 @@ void compare_E(Mesh_data<S>& org_img,Mesh_data<T>& rec_img,Proc_par& pars,std::s
     counter = 0;
 
 #pragma omp parallel for default(shared) private(j,i,k) reduction(+: var) reduction(+: counter) reduction(+: MSE_var)
-    for(j = 0; j < z_num_o;j++){
-        for(i = 0; i < x_num_o;i++){
+    for(j = b; j < (z_num_o-b);j++){
+        for(i = b; i < (x_num_o-b);i++){
 
-            for(k = 0;k < y_num_o;k++){
+            for(k = b;k < (y_num_o-b);k++){
 
                 if(variance.mesh[j*x_num_r*y_num_r + i*y_num_r + k] < 50000) {
                     var += pow(pow(org_img.mesh[j*x_num_o*y_num_o + i*y_num_o + k] - rec_img.mesh[j*x_num_o*y_num_o + i*y_num_o + k],2) - MSE,2);
@@ -392,6 +394,11 @@ void compare_E(Mesh_data<S>& org_img,Mesh_data<T>& rec_img,Proc_par& pars,std::s
         if (inf_norm > rel_error) {
             int stop = 1;
             std::cout << "*********Out of bounds!*********" << std::endl;
+
+            debug_write(org_image,"org_img_out_bounds");
+            debug_write(rec_img,"rec_img_out_bounds");
+            debug_write(variance,"var_img_out_bounds");
+
            // assert(inf_norm < rel_error);
         }
     }
