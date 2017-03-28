@@ -395,7 +395,7 @@ void compare_E(Mesh_data<S>& org_img,Mesh_data<T>& rec_img,Proc_par& pars,std::s
             int stop = 1;
             std::cout << "*********Out of bounds!*********" << std::endl;
 
-            debug_write(org_image,"org_img_out_bounds");
+            debug_write(org_img,"org_img_out_bounds");
             debug_write(rec_img,"rec_img_out_bounds");
             debug_write(variance,"var_img_out_bounds");
 
