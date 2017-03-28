@@ -692,8 +692,8 @@ void produce_apr_analysis(Mesh_data<T>& input_image,AnalysisData& analysis_data,
     if(analysis_data.quality_true_int) {
 
         //Generate clean gt image
-        Mesh_data<uint16_t> gt_image;
-        generate_gt_image(gt_image, syn_image);
+        Mesh_data<float> gt_imaged;
+        generate_gt_image(gt_imaged, syn_image);
 
         Part_rep p_rep(input_image.y_num,input_image.x_num,input_image.z_num);
 
@@ -704,9 +704,9 @@ void produce_apr_analysis(Mesh_data<T>& input_image,AnalysisData& analysis_data,
         ExtraPartCellData<float> true_parts;
         true_parts.initialize_structure_parts(t_apr.y_vec);
 
-        Particle_map<uint16_t> part_map(p_rep);
+        Particle_map<float> part_map(p_rep);
 
-        part_map.downsample(gt_image);
+        part_map.downsample(gt_imaged);
 
 
         int z_, x_, j_, y_, i, k;
@@ -732,9 +732,9 @@ void produce_apr_analysis(Mesh_data<T>& input_image,AnalysisData& analysis_data,
 
                         const int y = t_apr.y_vec.data[depth][pc_offset][j_];
 
-                        const unsigned int y_actual = floor((y+0.5) );
-                        const unsigned int x_actual = floor((x_+0.5));
-                        const unsigned int z_actual = floor((z_+0.5) );
+                        const unsigned int y_actual = ((y) );
+                        const unsigned int x_actual = ((x_));
+                        const unsigned int z_actual = ((z_));
 
                         true_parts.data[depth][pc_offset][j_] = part_map.downsampled[depth](y_actual,x_actual,z_actual);
 
@@ -744,6 +744,8 @@ void produce_apr_analysis(Mesh_data<T>& input_image,AnalysisData& analysis_data,
         }
 
         Mesh_data<float> true_int_m;
+
+        Mesh_data<uint16_t> gt_image;
 
         t_apr.init_pc_data();
 
