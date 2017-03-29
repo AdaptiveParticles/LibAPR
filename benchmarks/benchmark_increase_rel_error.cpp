@@ -94,7 +94,7 @@ int main(int argc, char **argv) {
     }
 
 
-    sig_vec = {1,3,6};
+    sig_vec = {6};
 
     //min mean
     float min_shift = 5;
@@ -124,7 +124,7 @@ int main(int argc, char **argv) {
     Genrand_uni gen_rand;
 
     bs.int_scale_min = 1;
-    bs.int_scale_max = 5;
+    bs.int_scale_max = 10;
 
     Part_timer b_timer;
     b_timer.verbose_flag = true;
@@ -142,9 +142,13 @@ int main(int argc, char **argv) {
 
             Object_template basic_object = get_object_template(options, obj_prop);
 
-            syn_image.object_templates.push_back(basic_object);
+            SynImage syn_image_n = syn_image;
+
+            syn_image_n.object_templates.push_back(basic_object);
 
             for (int j = 0; j < N_par1; j++) {
+
+                int stop = 1;
 
                 for (int i = 0; i < bs.N_repeats; i++) {
 
@@ -162,7 +166,12 @@ int main(int argc, char **argv) {
                     analysis_data.get_data_ref<float>("num_objects")->data.push_back(bs.num_objects);
                     analysis_data.part_data_list["num_objects"].print_flag = true;
 
-                    SynImage syn_image_loc = syn_image;
+                    SynImage syn_image_loc ;
+
+                    set_up_benchmark_defaults(syn_image_loc, bs);
+
+                    update_domain(syn_image_loc,bs);
+                    syn_image_loc.object_templates.push_back(basic_object);
 
                     //add the basic sphere as the standard template
 
