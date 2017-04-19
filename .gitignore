@@ -285,3 +285,7 @@ target/
 
 # SWIG-generated Java classes
 src/main/
+APR_tests/
+bin/
+lib/
+src/natives/
