@@ -320,7 +320,8 @@ void compare_E(Mesh_data<S>& org_img,Mesh_data<T>& rec_img,Proc_par& pars,std::s
     uint64_t counter = 0;
     double MSE = 0;
 
-    int b = 5;
+    //ignored boundary layer
+    int b = 0;
 
 #pragma omp parallel for default(shared) private(j,i,k) reduction(+: MSE) reduction(+: counter) reduction(+: mean) reduction(max: inf_norm)
     for(j = b; j < (z_num_o-b);j++){
