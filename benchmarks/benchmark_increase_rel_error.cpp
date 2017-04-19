@@ -94,7 +94,7 @@ int main(int argc, char **argv) {
     }
 
 
-    sig_vec = {6};
+    sig_vec = {1,3,6};
 
     //min mean
     float min_shift = 5;
