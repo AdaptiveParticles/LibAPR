@@ -139,8 +139,6 @@ int main(int argc, char **argv) {
 
             copy_mesh_data_structures(gen_image,input_img);
 
-
-
             ///////////////////////////////
             //
             //  Individual synthetic image parameters
