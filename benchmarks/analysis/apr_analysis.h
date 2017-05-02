@@ -406,8 +406,55 @@ void compare_E(Mesh_data<S>& org_img,Mesh_data<T>& rec_img,Proc_par& pars,std::s
 
 }
 
+std::vector<double> get_cell_types(PartCellStructure<float,uint64_t>& pc_struct) {
 
 
+    std::vector<double> status_vec = {0,0,0}; //(Seed,Boundary,Filler)
+
+    uint64_t z_,x_,j_,status,node_val_pc;
+
+    for (int i = pc_struct.pc_data.depth_min; i <= pc_struct.pc_data.depth_max; i++) {
+//loop over the resolutions of the structure
+        const unsigned int x_num_ = pc_struct.pc_data.x_num[i];
+        const unsigned int z_num_ = pc_struct.pc_data.z_num[i];
+
+        for (z_ = 0; z_ < z_num_; z_++) {
+//both z and x are explicitly accessed in the structure
+
+            for (x_ = 0; x_ < x_num_; x_++) {
+
+
+                const size_t offset_pc_data = x_num_ * z_ + x_;
+
+                const size_t j_num = pc_struct.pc_data.data[i][offset_pc_data].size();
+
+
+                for (j_ = 0; j_ < j_num; j_++) {
+
+                    node_val_pc = pc_struct.pc_data.data[i][offset_pc_data][j_];
+
+                    if (!(node_val_pc & 1)) {
+
+
+                        status = pc_struct.pc_data.get_status(node_val_pc);
+
+                        status_vec[status-1]++;
+
+                    } else {
+
+                    }
+
+                }
+
+            }
+
+        }
+    }
+
+
+    return status_vec;
+
+}
 
 
 uint64_t get_size_of_pc_struct(PartCellData<uint64_t>& pc_data){
@@ -494,15 +541,18 @@ void produce_apr_analysis(Mesh_data<T>& input_image,AnalysisData& analysis_data,
     analysis_data.get_data_ref<int>("num_parts")->data.push_back(pc_struct.get_number_parts());
     analysis_data.part_data_list["num_parts"].print_flag = true;
 
+
+    std::vector<double> status_vec = get_cell_types(pc_struct);
+
     //calc number of active cells
-    int num_seed_cells = 0;
-    int num_boundary_cells = 0;
-    int num_filler_cells = 0;
+    int num_seed_cells = status_vec[0];
+    int num_boundary_cells = status_vec[1];
+    int num_filler_cells = status_vec[2];
     int num_ghost_cells = 0;
     int num_cells = 0;
 
 
-    analysis_data.get_data_ref<int>("num_cells")->data.push_back(pc_struct.get_number_parts());
+    analysis_data.get_data_ref<int>("num_cells")->data.push_back(num_seed_cells + num_boundary_cells + num_filler_cells);
     analysis_data.part_data_list["num_cells"].print_flag = true;
 
     analysis_data.get_data_ref<int>("num_boundary_cells")->data.push_back(num_boundary_cells);
