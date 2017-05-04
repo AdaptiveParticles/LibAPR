@@ -135,7 +135,7 @@ int main(int argc, char **argv) {
 
     debug_write(interp_out,"interp_out_n");
 
-    Mesh_data<double> w_interp_out;
+    Mesh_data<float> w_interp_out;
 
     weigted_interp_img(w_interp_out, pc_data, part_new, part_new.particle_data,false);
 
