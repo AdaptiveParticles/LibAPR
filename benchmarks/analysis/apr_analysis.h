@@ -537,10 +537,8 @@ void produce_apr_analysis(Mesh_data<T>& input_image,AnalysisData& analysis_data,
     //
     //////////////////////////////////////////////
 
-
     analysis_data.get_data_ref<int>("num_parts")->data.push_back(pc_struct.get_number_parts());
     analysis_data.part_data_list["num_parts"].print_flag = true;
-
 
     std::vector<double> status_vec = get_cell_types(pc_struct);
 

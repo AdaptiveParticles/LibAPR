@@ -112,8 +112,35 @@ int main(int argc, char **argv) {
     
     Mesh_data<uint8_t> status_img;
     //creates a depth interpoaltion from the apr
-    interp_status_to_mesh(status_img,pcell_test);
+    interp_status_to_mesh(status_img,pc_struct );
     debug_write(status_img,"status_img");
+
+
+    ParticleDataNew<float, uint64_t> part_new;
+    //flattens format to particle = cell, this is in the classic access/part paradigm
+    part_new.initialize_from_structure(pc_struct);
+
+    //generates the nieghbour structure
+    PartCellData<uint64_t> pc_data;
+    part_new.create_pc_data_new(pc_data);
+
+    pc_data.org_dims = pc_struct.org_dims;
+    part_new.access_data.org_dims = pc_struct.org_dims;
+
+    part_new.particle_data.org_dims = pc_struct.org_dims;
+
+    Mesh_data<float> interp_out;
+
+    interp_img(interp_out, pc_data, part_new, part_new.particle_data,false);
+
+    debug_write(interp_out,"interp_out_n");
+
+    Mesh_data<double> w_interp_out;
+
+    weigted_interp_img(w_interp_out, pc_data, part_new, part_new.particle_data,false);
+
+    debug_write(w_interp_out,"weighted_interp_out_n");
+
 }
 
 
