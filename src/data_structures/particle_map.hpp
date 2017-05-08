@@ -564,7 +564,7 @@ public :
         //
 
 
-        const int type = 1;
+        int type = p_rep.pars.pull_scheme;
 
         if(type==1) {
 

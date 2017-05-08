@@ -348,7 +348,14 @@ void test_local_scale(Mesh_data<uint16_t >& input_image,Part_rep& part_rep,PartC
                     for(uint64_t b = offset_min_x;b <= offset_max_x;b++){
                         for(uint64_t c = offset_min_y;c <= offset_max_y;c++){
 
-                            local_max.mesh[j*x_num*y_num + i*y_num + k] = std::max(local_max.mesh[j*x_num*y_num + i*y_num + k],temp.mesh[a*x_num*y_num + b*y_num + c]);
+                            float dist = sqrt(pow(a-j,2)+ pow(b-i,2)+ pow(c-k,2));
+
+                            if (dist <= step_size) {
+
+                                local_max.mesh[j * x_num * y_num + i * y_num + k] = std::max(
+                                        local_max.mesh[j * x_num * y_num + i * y_num + k],
+                                        temp.mesh[a * x_num * y_num + b * y_num + c]);
+                            }
 
                         }
                     }
@@ -416,8 +423,14 @@ void test_local_scale(Mesh_data<uint16_t >& input_image,Part_rep& part_rep,PartC
                     for(uint64_t b = offset_min_x;b <= offset_max_x;b++){
                         for(uint64_t c = offset_min_y;c <= offset_max_y;c++){
 
-                            test_l.mesh[j*x_num*y_num + i*y_num + k] = std::max(test_l.mesh[j*x_num*y_num + i*y_num + k],(float)temp.mesh[a*x_num*y_num + b*y_num + c]);
+                            float dist = sqrt(pow(a-j,2)+ pow(b-i,2)+ pow(c-k,2));
 
+                            if (dist <= step_size) {
+
+                                test_l.mesh[j * x_num * y_num + i * y_num + k] = std::max(
+                                        test_l.mesh[j * x_num * y_num + i * y_num + k],
+                                        (float) temp.mesh[a * x_num * y_num + b * y_num + c]);
+                            }
                         }
                     }
                 }
@@ -429,6 +442,69 @@ void test_local_scale(Mesh_data<uint16_t >& input_image,Part_rep& part_rep,PartC
 
     debug_write(test_l,"test_l");
 
+
+
+    Mesh_data<float> compare_org;
+    compare_org.initialize(temp.y_num, temp.x_num, temp.z_num, 0);
+
+    int counter_c = 0;
+
+    int counter_d = 0;
+
+    int counter_h = 0;
+
+    for(int i = 0; i < compare_org.mesh.size(); i++)
+    {
+
+        compare_org.mesh[i] = std::max(local_max.mesh[i]-k_img_ds.mesh[i], (float) 0);
+
+        if(compare_org.mesh[i] > 0){
+            counter_c++;
+
+            if(k_img_ds.mesh[i] > (k_max -3)){
+                counter_h++;
+            }
+
+
+        }
+
+        if(compare_org.mesh[i] > 1){
+            counter_d++;
+
+
+        }
+
+
+
+    }
+
+    std::cout << "max_c: " << counter_c << std::endl;
+
+    std::cout << "max_c_d: " << counter_d << std::endl;
+
+    std::cout << "max_c_h: " << counter_h << std::endl;
+
+    debug_write(compare_org,"compare");
+
+    Mesh_data<float> compare_l;
+    compare_l.initialize(temp.y_num, temp.x_num, temp.z_num, 0);
+
+    int counter_l = 0;
+
+    for(int i = 0; i < compare_l.mesh.size(); i++)
+    {
+
+        compare_l.mesh[i] = std::max(test_l.mesh[i]-k_img_ds.mesh[i], (float) 0);
+
+        if(compare_l.mesh[i] > 0){
+            counter_l++;
+        }
+
+    }
+
+    debug_write(compare_l,"compare_l");
+
+    std::cout << "lc: " << counter_l << std::endl;
 
 }
 

@@ -102,9 +102,13 @@ int main(int argc, char **argv) {
 
     set_up_part_rep(syn_image_loc, p_rep, bs);
 
+    bs.sig = 0.2;
+
+    bs.rel_error = 0.1;
+
     // Get the APR
 
-
+    p_rep.pars.pull_scheme = 2;
 
     PartCellStructure<float, uint64_t> pc_struct;
 
@@ -114,13 +118,21 @@ int main(int argc, char **argv) {
 
     write_image_tiff(input_img, p_rep.pars.output_path + p_rep.pars.name + ".tif");
 
+
+    std::cout << pc_struct.get_number_parts() << std::endl;
+
     ///////////////////////////////
     //
     //  Calculate analysis of the result
     //
     ///////////////////////////////
 
+
+
     produce_apr_analysis(input_img, analysis_data, pc_struct, syn_image_loc, p_rep.pars);
+
+
+
 
     //write the analysis output
     analysis_data.write_analysis_data_hdf5();
