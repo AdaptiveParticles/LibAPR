@@ -43,6 +43,7 @@ struct cmdLineOptionsBench{
     bool segmentation_eval = false;
     bool filters_eval = false;
     bool quality_true_int = false;
+    bool check_scale = false;
 
     float lambda = 0;
     float rel_error = 0;
@@ -149,6 +150,11 @@ cmdLineOptionsBench read_command_line_options(int argc, char **argv){
     if(command_option_exists_bench(argv, argv + argc, "-nonoise"))
     {
         result.nonoise = true;
+    }
+
+    if(command_option_exists_bench(argv, argv + argc, "-check_scale"))
+    {
+        result.check_scale = true;
     }
 
     if(command_option_exists_bench(argv, argv + argc, "-imgsize"))
@@ -545,6 +551,7 @@ void process_input(cmdLineOptionsBench& options,SynImage& syn_image,AnalysisData
     analysis_data.information_content = options.information_content;
     analysis_data.segmentation_eval = options.segmentation_eval;
     analysis_data.filters_eval = options.filters_eval;
+    analysis_data.check_scale = options.check_scale;
 
     analysis_data.quality_true_int = options.quality_true_int;
 

@@ -3603,7 +3603,7 @@ bool utest_moore_neighbours(PartCellStructure<float,uint64_t>& pc_struct){
     //  Testing for full moore neighbourhood, it is seprated into face, edge, and corner.
     //
 
-    std::cout << "Should break here" << std::endl;
+    //std::cout << "Should break here" << std::endl;
     ParticleDataNew<float, uint64_t> part_new;
     //flattens format to particle = cell, this is in the classic access/part paradigm
     part_new.initialize_from_structure(pc_struct);

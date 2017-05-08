@@ -238,6 +238,201 @@ void bench_get_apr_part_time(Mesh_data<T>& input_image,Part_rep& p_rep,PartCellS
 
 }
 
+void test_local_scale(Mesh_data<uint16_t >& input_image,Part_rep& part_rep,PartCellStructure<float,uint64_t>& pc_struct,AnalysisData& analysis_data){
+
+    int interp_type = part_rep.pars.interp_type;
+
+    // COMPUTATIONS
+
+    Mesh_data<float> input_image_float;
+    Mesh_data<float> gradient, variance;
+    Mesh_data<float> interp_img;
+
+    gradient.initialize(input_image.y_num, input_image.x_num, input_image.z_num, 0);
+    part_rep.initialize(input_image.y_num, input_image.x_num, input_image.z_num);
+
+    input_image_float = input_image.to_type<float>();
+    interp_img = input_image.to_type<float>();
+    // After this block, input_image will be freed.
+
+    Part_timer t;
+    t.verbose_flag = false;
+
+    // preallocate_memory
+    Particle_map<float> part_map(part_rep);
+    preallocate(part_map.layers, gradient.y_num, gradient.x_num, gradient.z_num, part_rep);
+    variance.preallocate(gradient.y_num, gradient.x_num, gradient.z_num, 0);
+    std::vector<Mesh_data<float>> down_sampled_images;
+
+    Mesh_data<float> temp;
+    temp.preallocate(gradient.y_num, gradient.x_num, gradient.z_num, 0);
+
+    t.start_timer("whole");
+
+    //    std::swap(part_map.downsampled[part_map.k_max+1],input_image_float);
+
+    part_rep.timer.start_timer("get_gradient_3D");
+    get_gradient_3D(part_rep, input_image_float, gradient);
+    part_rep.timer.stop_timer();
+
+    part_rep.timer.start_timer("get_variance_3D");
+    get_variance_3D(part_rep, input_image_float, variance);
+    part_rep.timer.stop_timer();
+
+
+
+
+
+
+    down_sample(gradient,temp,
+                [](float x, float y) { return std::max(x,y); },
+                [](float x) { return x; });
+
+
+    debug_write(temp,"grad_ds");
+
+    /////////////////////////////////////////////
+    //
+    //  Now we want to loop over and calculate the maximum in the area given by the apr
+    //
+    //////////////////////////////////////////////
+
+
+    Mesh_data<float> local_max;
+    local_max.initialize(temp.y_num, temp.x_num, temp.z_num, 0);
+
+    Mesh_data<uint8_t> k_img;
+
+    Mesh_data<uint8_t> k_img_ds;
+
+
+    interp_depth_to_mesh(k_img,pc_struct);
+
+    k_img_ds.preallocate(local_max.y_num, local_max.x_num, local_max.z_num, 0);
+
+    down_sample(k_img,k_img_ds,
+                [](uint8_t x, uint8_t y) { return std::max(x,y); },
+                [](uint8_t x) { return x; },true);
+
+
+    int a = 1;
+
+    debug_write(k_img_ds,"k_ds");
+
+    int x_num = temp.x_num;
+    int y_num = temp.y_num;
+    int z_num = temp.z_num;
+
+    int k_max = part_rep.pl_map.k_max;
+
+    for(int j = 0; j < temp.z_num;j++){
+        for(int i = 0; i < temp.x_num;i++){
+
+            for(int k = 0;k < temp.y_num;k++){
+
+                float curr_l = k_img_ds.mesh[j*x_num*y_num + i*y_num + k];
+
+                float step_size = floor(pow(2,k_max - curr_l));
+
+
+                int offset_max_y = std::min((int)(k + step_size),(int)(y_num-1));
+                int offset_min_y = std::max((int)(k - step_size),(int)0);
+
+                int offset_max_x = std::min((int)(i + step_size),(int)(x_num-1));
+                int offset_min_x = std::max((int)(i - step_size),(int)0);
+
+                int offset_max_z = std::min((int)(j + step_size),(int)(z_num-1));
+                int offset_min_z = std::max((int)(j - step_size),(int)0);
+
+                for(uint64_t a = offset_min_z;a <= offset_max_z;a++){
+                    for(uint64_t b = offset_min_x;b <= offset_max_x;b++){
+                        for(uint64_t c = offset_min_y;c <= offset_max_y;c++){
+
+                            local_max.mesh[j*x_num*y_num + i*y_num + k] = std::max(local_max.mesh[j*x_num*y_num + i*y_num + k],temp.mesh[a*x_num*y_num + b*y_num + c]);
+
+                        }
+                    }
+                }
+
+            }
+        }
+    }
+
+    debug_write(local_max,"local_max");
+
+
+#pragma omp parallel for default(shared)
+    for(int i = 0; i < temp.mesh.size(); i++)
+    {
+        local_max.mesh[i] /= variance.mesh[i];
+        temp.mesh[i] /= variance.mesh[i];
+    }
+
+
+    float k_factor;
+
+    float min_dim = std::min(part_rep.pars.dy,std::min(part_rep.pars.dx,part_rep.pars.dz));
+
+    k_factor = pow(2,part_rep.pl_map.k_max+1)*min_dim;
+
+    compute_k_for_array(temp,k_factor,part_rep.pars.rel_error);
+
+    compute_k_for_array(local_max,k_factor,part_rep.pars.rel_error);
+
+    debug_write(temp,"l_array");
+
+    for(int i = 0; i < temp.mesh.size(); i++)
+    {
+        local_max.mesh[i] = std::min(local_max.mesh[i],(float)part_rep.pl_map.k_max);
+        temp.mesh[i] = std::min(temp.mesh[i],(float)part_rep.pl_map.k_max);
+    }
+
+
+    debug_write(local_max,"max_l");
+
+    Mesh_data<float> test_l;
+    test_l.initialize(temp.y_num, temp.x_num, temp.z_num, 0);
+
+
+    for(int j = 0; j < temp.z_num;j++){
+        for(int i = 0; i < temp.x_num;i++){
+
+            for(int k = 0;k < temp.y_num;k++){
+
+                float curr_l = k_img_ds.mesh[j*x_num*y_num + i*y_num + k];
+
+                float step_size = floor(pow(2,k_max - curr_l));
+
+                int offset_max_y = std::min((int)(k + step_size),(int)(y_num-1));
+                int offset_min_y = std::max((int)(k - step_size),(int)0);
+
+                int offset_max_x = std::min((int)(i + step_size),(int)(x_num-1));
+                int offset_min_x = std::max((int)(i - step_size),(int)0);
+
+                int offset_max_z = std::min((int)(j + step_size),(int)(z_num-1));
+                int offset_min_z = std::max((int)(j - step_size),(int)0);
+
+                for(uint64_t a = offset_min_z;a <= offset_max_z;a++){
+                    for(uint64_t b = offset_min_x;b <= offset_max_x;b++){
+                        for(uint64_t c = offset_min_y;c <= offset_max_y;c++){
+
+                            test_l.mesh[j*x_num*y_num + i*y_num + k] = std::max(test_l.mesh[j*x_num*y_num + i*y_num + k],(float)temp.mesh[a*x_num*y_num + b*y_num + c]);
+
+                        }
+                    }
+                }
+
+            }
+        }
+    }
+
+
+    debug_write(test_l,"test_l");
+
+
+}
+
+
 
 void gen_parameter_pars(SynImage& syn_image,Proc_par& pars,std::string image_name){
     //
@@ -733,7 +928,7 @@ void produce_apr_analysis(Mesh_data<T>& input_image,AnalysisData& analysis_data,
         generate_gt_image(gt_image, syn_image);
 
         name = "debug";
-        compare_E_debug( gt_image,rec_img, pars, name, analysis_data);
+        compare_E_debug( gt_image,rec_img_d, pars, name, analysis_data);
 
 
         debug_write(gt_image,"gt_image");
@@ -744,6 +939,15 @@ void produce_apr_analysis(Mesh_data<T>& input_image,AnalysisData& analysis_data,
 
     }
 
+
+    if(analysis_data.check_scale){
+
+        Part_rep p_rep;
+        p_rep.pars = pars;
+
+        test_local_scale(input_image, p_rep,pc_struct,analysis_data);
+
+    }
 
     if(analysis_data.quality_true_int) {
 

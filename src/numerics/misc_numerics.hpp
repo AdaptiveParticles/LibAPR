@@ -221,8 +221,13 @@ void interp_depth_to_mesh(Mesh_data<uint8_t>& k_img,PartCellStructure<S,uint64_t
                         status = pc_struct.part_data.access_node_get_status(node_val_part);
                         part_offset = pc_struct.part_data.access_node_get_part_offset(node_val_part);
                         
-                        uint8_t depth = 2*i + (status == SEED);
-                        
+                        uint8_t depth = i + (status == SEED);
+
+
+                        depth = i + (status < FILLER);
+
+
+
                         //loop over the particles
                         for(p = 0;p < pc_struct.part_data.get_num_parts(status);p++){
                             //first set the particle index value in the particle_data array (stores the intensities)
