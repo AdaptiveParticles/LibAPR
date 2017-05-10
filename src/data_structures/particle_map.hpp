@@ -122,6 +122,8 @@ private:
         all_parts += parts;
     }
 
+
+
     void fill_neighbours_alt(int level)
     {
         const int x_num = layers[level].x_num;
@@ -291,6 +293,8 @@ private:
         }
     }
 
+
+
     void set_ascendant_filler(int level)
     {
 
@@ -406,6 +410,9 @@ private:
 
         all_parts += parts;
     }
+
+
+
 
     void set_slope_new(int level)
     {

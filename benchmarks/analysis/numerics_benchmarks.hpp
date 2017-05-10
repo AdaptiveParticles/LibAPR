@@ -67,6 +67,7 @@ void compare_E_debug(Mesh_data<S>& org_img,Mesh_data<T>& rec_img,Proc_par& pars,
 
     float rel_error = pars.rel_error;
 
+    std::cout << name << " E: " << pars.rel_error << " inf_norm: " << inf_norm << std::endl;
 
     if(pars.lambda == 0) {
         if (inf_norm > rel_error) {
@@ -76,6 +77,14 @@ void compare_E_debug(Mesh_data<S>& org_img,Mesh_data<T>& rec_img,Proc_par& pars,
         }
     }
 
+    for (int l = 0; l < SE.mesh.size(); ++l) {
+        if(SE.mesh[i] < 1000*rel_error){
+            SE.mesh[i] = 0;
+
+        }
+    }
+
+    debug_write(SE,name + "E_break_bound");
 
 }
 template<typename S,typename T>

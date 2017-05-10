@@ -69,6 +69,14 @@ int main(int argc, char **argv) {
     //PSF properties
 
 
+    //bs.sig = 5;
+
+    bs.rel_error = 0.01;
+
+    // Get the APR
+    //bs.num_objects = 10;
+
+
 
     set_gaussian_psf(syn_image_loc, bs);
 
@@ -81,6 +89,9 @@ int main(int argc, char **argv) {
     //  Generate the image
     //
     ////////////////////////////////
+
+
+
 
     MeshDataAF<uint16_t> gen_image;
 
@@ -98,38 +109,36 @@ int main(int argc, char **argv) {
     //////////////////////////////
 
 
-    Part_rep p_rep;
-
-    set_up_part_rep(syn_image_loc, p_rep, bs);
-
-    bs.sig = 0.2;
-
-    bs.rel_error = 0.1;
-
-    // Get the APR
-
-    p_rep.pars.pull_scheme = 2;
-
-    PartCellStructure<float, uint64_t> pc_struct;
-
-    //p_rep.pars.interp_type = i;
-
-    bench_get_apr(input_img, p_rep, pc_struct, analysis_data);
-
-    write_image_tiff(input_img, p_rep.pars.output_path + p_rep.pars.name + ".tif");
 
 
-    std::cout << pc_struct.get_number_parts() << std::endl;
+        Part_rep p_rep;
 
-    ///////////////////////////////
-    //
-    //  Calculate analysis of the result
-    //
-    ///////////////////////////////
+        set_up_part_rep(syn_image_loc, p_rep, bs);
 
 
+        p_rep.timer.verbose_flag = true;
 
-    produce_apr_analysis(input_img, analysis_data, pc_struct, syn_image_loc, p_rep.pars);
+        p_rep.pars.pull_scheme = 2;
+
+        PartCellStructure<float, uint64_t> pc_struct;
+
+        //p_rep.pars.interp_type = i;
+
+        bench_get_apr(input_img, p_rep, pc_struct, analysis_data);
+
+
+        write_image_tiff(input_img, p_rep.pars.output_path + p_rep.pars.name + ".tif");
+
+
+        std::cout << pc_struct.get_number_parts() << std::endl;
+
+        ///////////////////////////////
+        //
+        //  Calculate analysis of the result
+        //
+        ///////////////////////////////
+
+        produce_apr_analysis(input_img, analysis_data, pc_struct, syn_image_loc, p_rep.pars);
 
 
 
@@ -138,6 +147,63 @@ int main(int argc, char **argv) {
     analysis_data.write_analysis_data_hdf5();
 
     af::info();
+
+
+    ParticleDataNew<float, uint64_t> part_new;
+    //flattens format to particle = cell, this is in the classic access/part paradigm
+    part_new.initialize_from_structure(pc_struct);
+
+    //generates the nieghbour structure
+    PartCellData<uint64_t> pc_data;
+    part_new.create_pc_data_new(pc_data);
+
+    pc_data.org_dims = pc_struct.org_dims;
+    part_new.access_data.org_dims = pc_struct.org_dims;
+
+    part_new.particle_data.org_dims = pc_struct.org_dims;
+
+    Mesh_data<float> w_interp_out;
+
+    weigted_interp_img(w_interp_out, pc_data, part_new, part_new.particle_data,false,false);
+
+    debug_write(w_interp_out,"weighted_interp_out_n");
+
+
+    Mesh_data<float> min_img;
+    Mesh_data<float> max_img;
+
+    min_max_interp(min_img,max_img,pc_data,part_new,part_new.particle_data,false);
+
+    debug_write(max_img,"max_img");
+    debug_write(min_img,"min_img");
+
+//    for (int i = 0; i < max_img.mesh.size(); ++i) {
+//
+//        max_img.mesh[i] += min_img.mesh[i];
+//        max_img.mesh[i] *= 0.5;
+//
+//    }
+
+    debug_write(max_img,"avg_img");
+
+    Mesh_data<uint16_t> gt_image;
+    generate_gt_image(gt_image, syn_image_loc);
+
+    std::string name = "we_";
+    compare_E_debug( gt_image,w_interp_out, p_rep.pars, name, analysis_data);
+
+    name = "max_";
+    compare_E_debug( gt_image,max_img, p_rep.pars, name, analysis_data);
+
+    name = "min_";
+    compare_E_debug( gt_image,min_img, p_rep.pars, name, analysis_data);
+
+    Mesh_data<float> interp;
+    interp_img(interp, pc_data, part_new, part_new.particle_data,false);
+
+    name = "interp_";
+    compare_E_debug( gt_image,interp, p_rep.pars, name, analysis_data);
+
 
     return 0;
 }

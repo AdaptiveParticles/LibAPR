@@ -238,6 +238,36 @@ void bench_get_apr_part_time(Mesh_data<T>& input_image,Part_rep& p_rep,PartCellS
 
 }
 
+template<typename T>
+void flip_lr(Mesh_data<T>& input) {
+    //
+    //  Bevan Cheeseman 2017: Flips LR
+    //
+
+    int y_num = input.y_num;
+    int x_num = input.x_num;
+    int z_num = input.z_num;
+
+
+    Mesh_data<T> temp;
+    temp.initialize(input.y_num, input.x_num, input.z_num, 0);
+
+    for (int j = 0; j < temp.z_num; j++) {
+        for (int i = 0; i < temp.x_num; i++) {
+
+            for (int k = 0; k < temp.y_num; k++) {
+                int k_lr = temp.y_num - 1 - k;
+                temp.mesh[j * x_num * y_num + i * y_num + k] = input.mesh[j * x_num * y_num + i * y_num + k_lr];
+            }
+        }
+    }
+
+
+
+    std::swap(input.mesh, temp.mesh);
+
+}
+
 void test_local_scale(Mesh_data<uint16_t >& input_image,Part_rep& part_rep,PartCellStructure<float,uint64_t>& pc_struct,AnalysisData& analysis_data){
 
     int interp_type = part_rep.pars.interp_type;
@@ -289,7 +319,6 @@ void test_local_scale(Mesh_data<uint16_t >& input_image,Part_rep& part_rep,PartC
                 [](float x) { return x; });
 
 
-    debug_write(temp,"grad_ds");
 
     /////////////////////////////////////////////
     //
@@ -317,7 +346,6 @@ void test_local_scale(Mesh_data<uint16_t >& input_image,Part_rep& part_rep,PartC
 
     int a = 1;
 
-    debug_write(k_img_ds,"k_ds");
 
     int x_num = temp.x_num;
     int y_num = temp.y_num;
@@ -325,14 +353,28 @@ void test_local_scale(Mesh_data<uint16_t >& input_image,Part_rep& part_rep,PartC
 
     int k_max = part_rep.pl_map.k_max;
 
-    for(int j = 0; j < temp.z_num;j++){
-        for(int i = 0; i < temp.x_num;i++){
 
-            for(int k = 0;k < temp.y_num;k++){
+
+
+
+    //
+    //
+    //  FLIP LR BOTH OF THEM< SEE IF THE ERROR FLIPS SIDES
+    //
+    //
+    //
+
+
+
+
+    for(float j = 0; j < temp.z_num;j++){
+        for(float i = 0; i < temp.x_num;i++){
+
+            for(float k = 0;k < temp.y_num;k++){
 
                 float curr_l = k_img_ds.mesh[j*x_num*y_num + i*y_num + k];
 
-                float step_size = floor(pow(2,k_max - curr_l));
+                int step_size = floor(pow(2,k_max - curr_l));
 
 
                 int offset_max_y = std::min((int)(k + step_size),(int)(y_num-1));
@@ -344,11 +386,13 @@ void test_local_scale(Mesh_data<uint16_t >& input_image,Part_rep& part_rep,PartC
                 int offset_max_z = std::min((int)(j + step_size),(int)(z_num-1));
                 int offset_min_z = std::max((int)(j - step_size),(int)0);
 
-                for(uint64_t a = offset_min_z;a <= offset_max_z;a++){
-                    for(uint64_t b = offset_min_x;b <= offset_max_x;b++){
-                        for(uint64_t c = offset_min_y;c <= offset_max_y;c++){
+                for(float a = offset_min_z;a <= offset_max_z;a++){
+                    for(float b = offset_min_x;b <= offset_max_x;b++){
+                        for(float c = offset_min_y;c <= offset_max_y;c++){
 
-                            float dist = sqrt(pow(a-j,2)+ pow(b-i,2)+ pow(c-k,2));
+                            float dist = sqrt(pow(round(a-j),2.0)+ pow(round(b-i),2.0)+ pow(round(c-k),2.0));
+                            //float dist = sqrt(pow(a-j,2)+ pow(b-i,2)+ pow(c-k,2));
+
 
                             if (dist <= step_size) {
 
@@ -365,7 +409,7 @@ void test_local_scale(Mesh_data<uint16_t >& input_image,Part_rep& part_rep,PartC
         }
     }
 
-    debug_write(local_max,"local_max");
+
 
 
 #pragma omp parallel for default(shared)
@@ -386,7 +430,7 @@ void test_local_scale(Mesh_data<uint16_t >& input_image,Part_rep& part_rep,PartC
 
     compute_k_for_array(local_max,k_factor,part_rep.pars.rel_error);
 
-    debug_write(temp,"l_array");
+
 
     for(int i = 0; i < temp.mesh.size(); i++)
     {
@@ -395,7 +439,7 @@ void test_local_scale(Mesh_data<uint16_t >& input_image,Part_rep& part_rep,PartC
     }
 
 
-    debug_write(local_max,"max_l");
+
 
     Mesh_data<float> test_l;
     test_l.initialize(temp.y_num, temp.x_num, temp.z_num, 0);
@@ -440,7 +484,7 @@ void test_local_scale(Mesh_data<uint16_t >& input_image,Part_rep& part_rep,PartC
     }
 
 
-    debug_write(test_l,"test_l");
+
 
 
 
@@ -502,7 +546,6 @@ void test_local_scale(Mesh_data<uint16_t >& input_image,Part_rep& part_rep,PartC
 
     }
 
-    debug_write(compare_l,"compare_l");
 
     std::cout << "lc: " << counter_l << std::endl;
 
