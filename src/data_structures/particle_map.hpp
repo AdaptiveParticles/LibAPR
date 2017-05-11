@@ -665,6 +665,63 @@ public :
         }
     }
 
+    void closest_pixel(Mesh_data<T> &original_image){
+        //
+        //  Scheme for calculating at best estimate f(x_p) = f_p for the noise free analysis, requried since particles of higher resolution levels sit on off pixel locations
+        //
+
+        downsample(original_image);
+
+        float x,y,z;
+
+
+        for (int level = k_max; level > k_min; level--) {
+
+            float step_size = pow(2,k_max + 1 - level);
+
+            for (int q = 0; q < downsampled[level].z_num; ++q) {
+                for (int k = 0; k < downsampled[level].x_num; ++k) {
+                    for (int i = 0; i < downsampled[level].y_num; ++i) {
+
+                        x = round((k+0.5)*step_size)-1;
+                        y = round((i+0.5)*step_size)-1;
+                        z = round((q+0.5)*step_size)-1;
+
+                        float temp = 0;
+
+                        int max_x = std::min((int)(x+1),downsampled[k_max+1].x_num-1);
+                        int max_y = std::min((int)(y+1),downsampled[k_max+1].y_num-1);
+                        int max_z = std::min((int)(z+1),downsampled[k_max+1].z_num-1);
+
+                        float counter = 0;
+
+                        //ydirection
+                        for (int l_z = z; l_z <= max_z; ++l_z) {
+                            for (int l_x = x; l_x <= max_x; ++l_x) {
+                                for (int l_y = y; l_y <= max_y; ++l_y) {
+
+                                    temp += downsampled[k_max+1].mesh[l_y + (l_x) * downsampled[k_max+1].y_num + l_z * downsampled[k_max+1].y_num * downsampled[k_max+1].x_num];
+                                    counter++;
+                                }
+                            }
+                        }
+
+
+
+                        downsampled[level].mesh[i + (k) * downsampled[level].y_num + q * downsampled[level].y_num * downsampled[level].x_num] = temp/counter;
+
+                    }
+                }
+            }
+
+
+        }
+
+
+
+    }
+
+
     void fill(float k, Mesh_data<T> &input)
     {
         //

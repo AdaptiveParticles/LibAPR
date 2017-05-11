@@ -78,8 +78,8 @@ void compare_E_debug(Mesh_data<S>& org_img,Mesh_data<T>& rec_img,Proc_par& pars,
     }
 
     for (int l = 0; l < SE.mesh.size(); ++l) {
-        if(SE.mesh[i] < 1000*rel_error){
-            SE.mesh[i] = 0;
+        if(SE.mesh[l] < 1000*rel_error){
+            SE.mesh[l] = 0;
 
         }
     }

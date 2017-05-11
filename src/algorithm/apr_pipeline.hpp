@@ -786,6 +786,8 @@ void get_apr(Mesh_data<uint16_t >& input_image,Part_rep& part_rep,PartCellStruct
     } else if (interp_type ==3){
         part_map.downsample(interp_img);
         calc_median_filter_n(part_map.downsampled[part_map.k_max+1],input_image_float);
+    } else if (interp_type ==4){
+        part_map.closest_pixel(interp_img);
     }
 
     part_rep.timer.stop_timer();

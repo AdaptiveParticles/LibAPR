@@ -71,7 +71,7 @@ int main(int argc, char **argv) {
 
     //bs.sig = 5;
 
-    bs.rel_error = 0.01;
+    bs.rel_error = 0.5;
 
     // Get the APR
     //bs.num_objects = 10;
@@ -89,7 +89,6 @@ int main(int argc, char **argv) {
     //  Generate the image
     //
     ////////////////////////////////
-
 
 
 
@@ -119,6 +118,9 @@ int main(int argc, char **argv) {
         p_rep.timer.verbose_flag = true;
 
         p_rep.pars.pull_scheme = 2;
+
+
+        p_rep.pars.interp_type = 4;
 
         PartCellStructure<float, uint64_t> pc_struct;
 
@@ -164,7 +166,7 @@ int main(int argc, char **argv) {
 
     Mesh_data<float> w_interp_out;
 
-    weigted_interp_img(w_interp_out, pc_data, part_new, part_new.particle_data,false,false);
+    weigted_interp_img(w_interp_out, pc_data, part_new, part_new.particle_data,false,true);
 
     debug_write(w_interp_out,"weighted_interp_out_n");
 
@@ -204,6 +206,7 @@ int main(int argc, char **argv) {
     name = "interp_";
     compare_E_debug( gt_image,interp, p_rep.pars, name, analysis_data);
 
+    debug_write(interp,"pc_interp");
 
     return 0;
 }

@@ -1331,10 +1331,10 @@ void weigted_interp_img(Mesh_data<U>& img,PartCellData<uint64_t>& pc_data,Partic
 
                                     float neigh_size = pow(2,curr_level.depth_max - d_img.mesh[i + (k) * img.y_num + q*img.y_num*img.x_num]);
 
-                                    float w =  integral_weight_func((i-mid_1),(k-mid_2), (q-mid_3),step_size,neigh_size);
+                                    float w =  integral_weight_func((i-mid_1),(k-mid_2), (q-mid_3),step_size,step_size);
 
-                                    img.mesh[i + (k) * img.y_num + q*img.y_num*img.x_num] += temp_int*w;
-                                    weight_img.mesh[i + (k) * img.y_num + q*img.y_num*img.x_num] += w;
+                                    img.mesh[i + (k) * img.y_num + q*img.y_num*img.x_num] += temp_int*(w/10.0f);
+                                    weight_img.mesh[i + (k) * img.y_num + q*img.y_num*img.x_num] += w/10.0f;
 
                                 }
                             }
@@ -1430,8 +1430,11 @@ void weigted_interp_img(Mesh_data<U>& img,PartCellData<uint64_t>& pc_data,Partic
         }
     }
 
-    //debug_write(img,"img");
-    //debug_write(weight_img,"weight");
+    debug_write(img,"img");
+
+
+
+
 
     //then loop over and divide the two
 #pragma omp parallel for default(shared) private(z_)
@@ -1439,7 +1442,11 @@ void weigted_interp_img(Mesh_data<U>& img,PartCellData<uint64_t>& pc_data,Partic
 
         img.mesh[z_] = round(img.mesh[z_]/weight_img.mesh[z_]);
 
+        weight_img.mesh[z_] = weight_img.mesh[z_]*10000;
+
     }
+
+    debug_write(weight_img,"weight");
 
 
 
@@ -1476,7 +1483,7 @@ void min_max_interp(Mesh_data<U>& min_img,Mesh_data<U>& max_img,PartCellData<uin
         CurrentLevel<float, uint64_t> curr_level(pc_data);
         curr_level.set_new_depth(depth, part_new);
 
-        const float step_size = pow(2,curr_level.depth_max - curr_level.depth);
+        const double step_size = pow(2,curr_level.depth_max - curr_level.depth);
 
 //#pragma omp parallel for default(shared) private(z_,x_,j_) firstprivate(curr_level) if(z_num_*x_num_ > 100)
         for (z_ = z_num_min_; z_ < z_num_; z_++) {
@@ -1498,9 +1505,9 @@ void min_max_interp(Mesh_data<U>& min_img,Mesh_data<U>& max_img,PartCellData<uin
 
                         int offset_max_dim1,offset_max_dim2,offset_max_dim3;
 
-                        dim1 = std::max(((float) curr_level.y - 1.00f) * step_size, 0.0f);
-                        dim2 = std::max(((float) curr_level.x - 1.00f) * step_size, 0.0f);
-                        dim3 = std::max(((float) curr_level.z - 1.00f) * step_size, 0.0f);
+                        dim1 = round(std::max(((double) curr_level.y - 1.00f) * step_size, 0.0));
+                        dim2 = round(std::max(((double) curr_level.x - 1.00f) * step_size, 0.0));
+                        dim3 = round(std::max(((double) curr_level.z - 1.00f) * step_size, 0.0));
 
                         offset_max_dim1 = std::min((int) min_img.y_num, (int) (dim1 + 3*step_size));
                         offset_max_dim2 = std::min((int) min_img.x_num, (int) (dim2 + 3*step_size));
@@ -1514,9 +1521,9 @@ void min_max_interp(Mesh_data<U>& min_img,Mesh_data<U>& max_img,PartCellData<uin
                             temp_int = curr_level.get_part(particles_int);
                         }
 
-                        float mid_1 = (curr_level.y + 0.50f) * step_size;
-                        float mid_2 = (curr_level.x + 0.50f) * step_size;
-                        float mid_3 = (curr_level.z + 0.50f) * step_size;
+                        double mid_1 = (curr_level.y + 0.5f) * step_size;
+                        double mid_2 = (curr_level.x + 0.5f) * step_size;
+                        double mid_3 = (curr_level.z + 0.5f) * step_size;
 
                         if(step_size ==1){
                             mid_1 = curr_level.y;
@@ -1531,16 +1538,24 @@ void min_max_interp(Mesh_data<U>& min_img,Mesh_data<U>& max_img,PartCellData<uin
 
                                 for (int i = dim1; i < offset_max_dim1; ++i) {
 
-                                    float neigh_size = pow(2,curr_level.depth_max - d_img.mesh[i + (k) * min_img.y_num + q*min_img.y_num*min_img.x_num]);
+                                    double neigh_size = pow(2,curr_level.depth_max - d_img.mesh[i + (k) * min_img.y_num + q*min_img.y_num*min_img.x_num]);
 
                                   //  max_img.mesh[i + (k) * min_img.y_num + q * min_img.y_num * min_img.x_num] = std::max(temp_int,max_img.mesh[i + (k) * min_img.y_num + q * min_img.y_num * min_img.x_num]);
                                  //   min_img.mesh[i + (k) * min_img.y_num + q * min_img.y_num * min_img.x_num] = std::min(temp_int,min_img.mesh[i + (k) * min_img.y_num + q * min_img.y_num * min_img.x_num]);
+                                    double dist = sqrt(pow( round(i-mid_1),2.0 ) + pow( round(k-mid_2),2.0 ) + pow( round(q-mid_3),2.0 ));
 
 
-                                    if ( integral_check_neigh(round(i-mid_1),round(k-mid_2), round(q-mid_3),step_size,neigh_size)) {
+                                    if ( dist < neigh_size) {
                                         max_img.mesh[i + (k) * min_img.y_num + q * min_img.y_num * min_img.x_num] = std::max(temp_int,max_img.mesh[i + (k) * min_img.y_num + q * min_img.y_num * min_img.x_num]);
                                         min_img.mesh[i + (k) * min_img.y_num + q * min_img.y_num * min_img.x_num] = std::min(temp_int,min_img.mesh[i + (k) * min_img.y_num + q * min_img.y_num * min_img.x_num]);
                                     }
+
+
+
+//                                    if ( integral_check_neigh(round(i-mid_1),round(k-mid_2), round(q-mid_3),step_size,step_size)) {
+//                                        max_img.mesh[i + (k) * min_img.y_num + q * min_img.y_num * min_img.x_num] = std::max(temp_int,max_img.mesh[i + (k) * min_img.y_num + q * min_img.y_num * min_img.x_num]);
+//                                        min_img.mesh[i + (k) * min_img.y_num + q * min_img.y_num * min_img.x_num] = std::min(temp_int,min_img.mesh[i + (k) * min_img.y_num + q * min_img.y_num * min_img.x_num]);
+//                                    }
 
                                 }
                             }
@@ -1575,7 +1590,7 @@ void min_max_interp(Mesh_data<U>& min_img,Mesh_data<U>& max_img,PartCellData<uin
 
     const float step_size = pow(2,curr_level.depth_max - curr_level.depth);
 
-#pragma omp parallel for default(shared) private(z_,x_,j_) firstprivate(curr_level) if(z_num_*x_num_ > 100)
+//#pragma omp parallel for default(shared) private(z_,x_,j_) firstprivate(curr_level) if(z_num_*x_num_ > 100)
     for (z_ = z_num_min_; z_ < z_num_; z_++) {
         //both z and x are explicitly accessed in the structure
 
