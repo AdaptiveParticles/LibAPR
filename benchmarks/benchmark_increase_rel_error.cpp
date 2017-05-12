@@ -135,6 +135,8 @@ int main(int argc, char **argv) {
     bs.shift = 1000;
     syn_image.global_trans.const_shift = 1000;
 
+
+
     for(int q = 0;q < N_par3;q++) {
 
         for (int p = 0; p < N_par2; p++) {

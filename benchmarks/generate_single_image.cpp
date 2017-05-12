@@ -56,9 +56,11 @@ int main(int argc, char **argv) {
 
     //bs.num_objects = 1;
 
-    bs.desired_I = 1000;
+    bs.desired_I = 500;
     //bs.int_scale_max = 1;
     //bs.int_scale_min = 1;
+    bs.int_scale_min = 1;
+    bs.int_scale_max = 10;
 
     obj_properties obj_prop(bs);
 
