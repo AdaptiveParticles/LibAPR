@@ -1331,12 +1331,16 @@ void weigted_interp_img(Mesh_data<U>& img,PartCellData<uint64_t>& pc_data,Partic
 
                                     float neigh_size = pow(2,curr_level.depth_max - d_img.mesh[i + (k) * img.y_num + q*img.y_num*img.x_num]);
 
-                                    float w =  integral_weight_func((i-mid_1),(k-mid_2), (q-mid_3),step_size,step_size);
+                                    double w =  integral_weight_func((i-mid_1),(k-mid_2), (q-mid_3),step_size,step_size);
+
+                                    double temp = w*100.0f;
 
                                     if(w > 0.001) {
+
+
                                         img.mesh[i + (k) * img.y_num + q * img.y_num * img.x_num] +=
-                                                temp_int * (w) * 100.0f;
-                                        weight_img.mesh[i + (k) * img.y_num + q * img.y_num * img.x_num] += w * 100.0f;
+                                                temp_int * temp;
+                                        weight_img.mesh[i + (k) * img.y_num + q * img.y_num * img.x_num] += temp;
                                     }
 
                                 }
