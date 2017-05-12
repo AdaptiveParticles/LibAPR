@@ -1338,7 +1338,7 @@ void weigted_interp_img(Mesh_data<U>& img,PartCellData<uint64_t>& pc_data,Partic
 
                                     double w =  integral_weight_func((i-mid_1),(k-mid_2), (q-mid_3),step_size,neigh_size);
 
-                                    double temp = w*100.0f;
+                                    double temp = w;
 
                                     if(w > 0.001) {
 
@@ -1453,12 +1453,14 @@ void weigted_interp_img(Mesh_data<U>& img,PartCellData<uint64_t>& pc_data,Partic
     for(z_ = 0;z_ < img.mesh.size();z_++){
 
         img.mesh[z_] = round(weight_int.mesh[z_]/weight_img.mesh[z_]);
-        
+        weight_img.mesh[z_] = 1000*weight_img.mesh[z_];
 
     }
 
 
 
+    debug_write(weight_img,"weight_img");
+    debug_write(weight_int,"weight_int");
 
 
 
