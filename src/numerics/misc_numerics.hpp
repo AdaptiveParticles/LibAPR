@@ -1459,8 +1459,8 @@ void weigted_interp_img(Mesh_data<U>& img,PartCellData<uint64_t>& pc_data,Partic
 
 
 
-    debug_write(weight_img,"weight_img");
-    debug_write(weight_int,"weight_int");
+   // debug_write(weight_img,"weight_img");
+   // debug_write(weight_int,"weight_int");
 
 
 
