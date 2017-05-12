@@ -1449,12 +1449,11 @@ void weigted_interp_img(Mesh_data<U>& img,PartCellData<uint64_t>& pc_data,Partic
 
 
     //then loop over and divide the two
-#pragma omp parallel for default(shared) private(z_)
+
     for(z_ = 0;z_ < img.mesh.size();z_++){
 
         img.mesh[z_] = round(weight_int.mesh[z_]/weight_img.mesh[z_]);
-
-        weight_img.mesh[z_] = weight_img.mesh[z_]*10000;
+        
 
     }
 
