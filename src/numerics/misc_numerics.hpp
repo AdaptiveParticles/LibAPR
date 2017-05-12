@@ -1148,13 +1148,13 @@ float square_dist(float x,float y,float a,float b){
     //  Calculates the distance of a combination of x,y to a rectangle of sides a.b
     //
 
-    float theta = atan2(x,y);
+    float theta = std::atan2(x,y);
     float d;
 
-    if (abs(tan(theta)) > a/b) {
-        d = a / abs(sin(theta));
+    if (std::abs(std::tan(theta)) > a/b) {
+        d = a / std::abs(std::sin(theta));
     } else {
-        d = b / abs(cos(theta));
+        d = b / std::abs(std::cos(theta));
     }
 
     return d;
