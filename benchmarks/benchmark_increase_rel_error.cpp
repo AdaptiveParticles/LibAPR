@@ -67,7 +67,7 @@ int main(int argc, char **argv) {
     float del = (max_rel_error - min_rel_error) / num_steps;
 
     for (float i = min_rel_error; i <= max_rel_error; i = i + del) {
-        //rel_error_vec.push_back(i);
+        rel_error_vec.push_back(i);
     }
 
     min_rel_error = .1;
@@ -78,10 +78,10 @@ int main(int argc, char **argv) {
     del = (max_rel_error - min_rel_error) / num_steps;
 
     for (float i = min_rel_error; i <= max_rel_error; i = i + del) {
-        //rel_error_vec.push_back(i);
+        rel_error_vec.push_back(i);
     }
 
-    rel_error_vec = {0.1};
+    //rel_error_vec = {0.1};
 
 
     //min mean
