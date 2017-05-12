@@ -169,6 +169,7 @@ void bench_get_apr(Mesh_data<T>& input_image,Part_rep& p_rep,PartCellStructure<f
 
     if(p_rep.pars.lambda == -1){
         p_rep.pars.lambda = 0;
+        p_rep.pars.var_th_max = 1;
     }
 
     std::cout << "Lamda: " << p_rep.pars.lambda << std::endl;

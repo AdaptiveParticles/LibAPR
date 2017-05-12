@@ -1311,9 +1311,9 @@ void weigted_interp_img(Mesh_data<U>& img,PartCellData<uint64_t>& pc_data,Partic
                             temp_int = curr_level.get_part(particles_int);
                         }
 
-                        float mid_1 = (curr_level.y + 0.50f) * step_size;
-                        float mid_2 = (curr_level.x + 0.50f) * step_size;
-                        float mid_3 = (curr_level.z + 0.50f) * step_size;
+                        float mid_1 = ((float)curr_level.y) * step_size + (step_size-1)/2.0f;
+                        float mid_2 = ((float)curr_level.x) * step_size + (step_size-1)/2.0f;
+                        float mid_3 = ((float)curr_level.z) * step_size + (step_size-1)/2.0f;
 
                         if(step_size ==1){
                             mid_1 = curr_level.y;
@@ -1521,9 +1521,9 @@ void min_max_interp(Mesh_data<U>& min_img,Mesh_data<U>& max_img,PartCellData<uin
                             temp_int = curr_level.get_part(particles_int);
                         }
 
-                        double mid_1 = (curr_level.y + 0.5f) * step_size;
-                        double mid_2 = (curr_level.x + 0.5f) * step_size;
-                        double mid_3 = (curr_level.z + 0.5f) * step_size;
+                        double mid_1 = ((float)curr_level.y) * step_size + (step_size-1)/2.0f;
+                        double mid_2 = ((float)curr_level.x) * step_size + (step_size-1)/2.0f;
+                        double mid_3 = ((float)curr_level.z) * step_size + (step_size-1)/2.0f;
 
                         if(step_size ==1){
                             mid_1 = curr_level.y;
@@ -1542,12 +1542,30 @@ void min_max_interp(Mesh_data<U>& min_img,Mesh_data<U>& max_img,PartCellData<uin
 
                                   //  max_img.mesh[i + (k) * min_img.y_num + q * min_img.y_num * min_img.x_num] = std::max(temp_int,max_img.mesh[i + (k) * min_img.y_num + q * min_img.y_num * min_img.x_num]);
                                  //   min_img.mesh[i + (k) * min_img.y_num + q * min_img.y_num * min_img.x_num] = std::min(temp_int,min_img.mesh[i + (k) * min_img.y_num + q * min_img.y_num * min_img.x_num]);
-                                    double dist = sqrt(pow( round(i-mid_1),2.0 ) + pow( round(k-mid_2),2.0 ) + pow( round(q-mid_3),2.0 ));
+                                    double dist = sqrt(pow( (i-mid_1),2.0 ) + pow( (k-mid_2),2.0 ) + pow( (q-mid_3),2.0 ));
 
 
-                                    if ( dist < neigh_size) {
-                                        max_img.mesh[i + (k) * min_img.y_num + q * min_img.y_num * min_img.x_num] = std::max(temp_int,max_img.mesh[i + (k) * min_img.y_num + q * min_img.y_num * min_img.x_num]);
-                                        min_img.mesh[i + (k) * min_img.y_num + q * min_img.y_num * min_img.x_num] = std::min(temp_int,min_img.mesh[i + (k) * min_img.y_num + q * min_img.y_num * min_img.x_num]);
+                                    if ( dist <= step_size) {
+
+                                        if ( integral_check_neigh((i-mid_1),(k-mid_2), (q-mid_3),step_size,neigh_size)) {
+
+                                            max_img.mesh[i + (k) * min_img.y_num +
+                                                         q * min_img.y_num * min_img.x_num] = std::max(temp_int,
+                                                                                                       max_img.mesh[i +
+                                                                                                                    (k) *
+                                                                                                                    min_img.y_num +
+                                                                                                                    q *
+                                                                                                                    min_img.y_num *
+                                                                                                                    min_img.x_num]);
+                                            min_img.mesh[i + (k) * min_img.y_num +
+                                                         q * min_img.y_num * min_img.x_num] = std::min(temp_int,
+                                                                                                       min_img.mesh[i +
+                                                                                                                    (k) *
+                                                                                                                    min_img.y_num +
+                                                                                                                    q *
+                                                                                                                    min_img.y_num *
+                                                                                                                    min_img.x_num]);
+                                        }
                                     }
 
 

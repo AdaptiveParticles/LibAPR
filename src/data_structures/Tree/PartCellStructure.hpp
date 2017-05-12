@@ -485,8 +485,7 @@ private:
         
         uint64_t prev_coord = 0;
 
-
-        const bool sampling_type = true;
+        const bool sampling_type = false;
 
         
         for(int i = pc_data.depth_min;i <= pc_data.depth_max;i++){

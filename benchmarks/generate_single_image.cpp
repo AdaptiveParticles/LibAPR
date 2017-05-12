@@ -54,6 +54,12 @@ int main(int argc, char **argv) {
     float ratio = 5;
     bs.num_objects = pow(bs.x_num,3)/(33400*ratio);
 
+    //bs.num_objects = 1;
+
+    bs.desired_I = 1000;
+    //bs.int_scale_max = 1;
+    //bs.int_scale_min = 1;
+
     obj_properties obj_prop(bs);
 
     Object_template basic_object = get_object_template(options, obj_prop);
@@ -119,8 +125,8 @@ int main(int argc, char **argv) {
 
         p_rep.pars.pull_scheme = 2;
 
-
-        p_rep.pars.interp_type = 4;
+        p_rep.pars.var_th = 1000;
+        //p_rep.pars.interp_type = 4;
 
         PartCellStructure<float, uint64_t> pc_struct;
 
