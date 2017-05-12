@@ -719,6 +719,8 @@ void compare_E(Mesh_data<S>& org_img,Mesh_data<T>& rec_img,Proc_par& pars,std::s
         }
     }
 
+    std::cout << name << " E: " << pars.rel_error << " inf_norm: " << inf_norm << std::endl;
+
 }
 
 std::vector<double> get_cell_types(PartCellStructure<float,uint64_t>& pc_struct) {
@@ -1192,9 +1194,6 @@ void produce_apr_analysis(Mesh_data<T>& input_image,AnalysisData& analysis_data,
         Mesh_data<float> w_interp_out;
 
         weigted_interp_img(w_interp_out, pc_data, part_new, part_new.particle_data,false,true);
-
-        debug_write(w_interp_out,"weighted_interp_out_n");
-
 
         Mesh_data<float> min_img;
         Mesh_data<float> max_img;
