@@ -1238,10 +1238,10 @@ void weigted_interp_img(Mesh_data<U>& img,PartCellData<uint64_t>& pc_data,Partic
     //  Takes in a APR and creates piece-wise constant image
     //
 
-    img.initialize(pc_data.org_dims[0],pc_data.org_dims[1],pc_data.org_dims[2],0);
+    img.initialize(pc_data.org_dims[0],pc_data.org_dims[1],pc_data.org_dims[2],0.0f);
 
     Mesh_data<float> weight_img;
-    weight_img.initialize(pc_data.org_dims[0],pc_data.org_dims[1],pc_data.org_dims[2],0);
+    weight_img.initialize(pc_data.org_dims[0],pc_data.org_dims[1],pc_data.org_dims[2],0.0f);
 
     Mesh_data<float> d_img;
 
@@ -1333,10 +1333,10 @@ void weigted_interp_img(Mesh_data<U>& img,PartCellData<uint64_t>& pc_data,Partic
 
                                     float w =  integral_weight_func((i-mid_1),(k-mid_2), (q-mid_3),step_size,step_size);
 
-                                    if(w > 0.0001) {
+                                    if(w > 0.001) {
                                         img.mesh[i + (k) * img.y_num + q * img.y_num * img.x_num] +=
-                                                temp_int * (w / 10.0f);
-                                        weight_img.mesh[i + (k) * img.y_num + q * img.y_num * img.x_num] += w / 10.0f;
+                                                temp_int * (w);
+                                        weight_img.mesh[i + (k) * img.y_num + q * img.y_num * img.x_num] += w;
                                     }
 
                                 }
