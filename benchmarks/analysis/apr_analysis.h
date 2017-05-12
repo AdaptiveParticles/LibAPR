@@ -506,19 +506,16 @@ void test_local_scale(Mesh_data<uint16_t >& input_image,Part_rep& part_rep,PartC
         if(compare_org.mesh[i] > 0){
             counter_c++;
 
-            if(k_img_ds.mesh[i] > (k_max -3)){
+            if(k_img_ds.mesh[i] > (k_max -2)){
                 counter_h++;
             }
-
 
         }
 
         if(compare_org.mesh[i] > 1){
             counter_d++;
 
-
         }
-
 
 
     }
@@ -529,26 +526,30 @@ void test_local_scale(Mesh_data<uint16_t >& input_image,Part_rep& part_rep,PartC
 
     std::cout << "max_c_h: " << counter_h << std::endl;
 
+    analysis_data.add_float_data("max_c:",counter_c);
+    analysis_data.add_float_data("max_c_d:",counter_h);
+    analysis_data.add_float_data("max_c_h:",counter_d);
+
     //debug_write(compare_org,"compare");
 
-    Mesh_data<float> compare_l;
-    compare_l.initialize(temp.y_num, temp.x_num, temp.z_num, 0);
-
-    int counter_l = 0;
-
-    for(int i = 0; i < compare_l.mesh.size(); i++)
-    {
-
-        compare_l.mesh[i] = std::max(test_l.mesh[i]-k_img_ds.mesh[i], (float) 0);
-
-        if(compare_l.mesh[i] > 0){
-            counter_l++;
-        }
-
-    }
-
-
-    std::cout << "lc: " << counter_l << std::endl;
+//    Mesh_data<float> compare_l;
+//    compare_l.initialize(temp.y_num, temp.x_num, temp.z_num, 0);
+//
+//    int counter_l = 0;
+//
+//    for(int i = 0; i < compare_l.mesh.size(); i++)
+//    {
+//
+//        compare_l.mesh[i] = std::max(test_l.mesh[i]-k_img_ds.mesh[i], (float) 0);
+//
+//        if(compare_l.mesh[i] > 0){
+//            counter_l++;
+//        }
+//
+//    }
+//
+//
+//    std::cout << "lc: " << counter_l << std::endl;
 
 }
 
