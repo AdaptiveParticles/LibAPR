@@ -529,7 +529,7 @@ void test_local_scale(Mesh_data<uint16_t >& input_image,Part_rep& part_rep,PartC
 
     std::cout << "max_c_h: " << counter_h << std::endl;
 
-    debug_write(compare_org,"compare");
+    //debug_write(compare_org,"compare");
 
     Mesh_data<float> compare_l;
     compare_l.initialize(temp.y_num, temp.x_num, temp.z_num, 0);
@@ -1173,6 +1173,46 @@ void produce_apr_analysis(Mesh_data<T>& input_image,AnalysisData& analysis_data,
         //get the MSE
         calc_mse(gt_image, rec_img, name, analysis_data);
         compare_E(gt_image, rec_img, pars, name, analysis_data);
+
+
+        ParticleDataNew<float, uint64_t> part_new;
+        //flattens format to particle = cell, this is in the classic access/part paradigm
+        part_new.initialize_from_structure(pc_struct);
+
+        //generates the nieghbour structure
+        PartCellData<uint64_t> pc_data;
+        part_new.create_pc_data_new(pc_data);
+
+        pc_data.org_dims = pc_struct.org_dims;
+        part_new.access_data.org_dims = pc_struct.org_dims;
+
+        part_new.particle_data.org_dims = pc_struct.org_dims;
+
+
+        Mesh_data<float> w_interp_out;
+
+        weigted_interp_img(w_interp_out, pc_data, part_new, part_new.particle_data,false,true);
+
+        debug_write(w_interp_out,"weighted_interp_out_n");
+
+
+        Mesh_data<float> min_img;
+        Mesh_data<float> max_img;
+
+        min_max_interp(min_img,max_img,pc_data,part_new,part_new.particle_data,false);
+
+
+        std::string name = "we_";
+        compare_E( gt_image,w_interp_out, pars, name, analysis_data);
+
+        name = "max_";
+        compare_E( gt_image,max_img, pars, name, analysis_data);
+
+        name = "min_";
+        compare_E( gt_image,min_img, pars, name, analysis_data);
+
+
+
     }
 
     if(analysis_data.quality_metrics_input){
@@ -1182,6 +1222,11 @@ void produce_apr_analysis(Mesh_data<T>& input_image,AnalysisData& analysis_data,
         //get the MSE
         calc_mse(input_image, rec_img, name, analysis_data);
         compare_E(input_image, rec_img, pars, name, analysis_data);
+
+
+
+
+
 
     }
 

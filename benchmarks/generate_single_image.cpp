@@ -77,7 +77,7 @@ int main(int argc, char **argv) {
 
     //bs.sig = 5;
 
-    bs.rel_error = 0.5;
+    bs.rel_error = 0.1;
 
     // Get the APR
     //bs.num_objects = 10;
@@ -125,7 +125,7 @@ int main(int argc, char **argv) {
 
         p_rep.pars.pull_scheme = 2;
 
-        p_rep.pars.var_th = 1000;
+        //p_rep.pars.var_th = 1000;
         //p_rep.pars.interp_type = 4;
 
         PartCellStructure<float, uint64_t> pc_struct;
