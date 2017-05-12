@@ -1344,7 +1344,7 @@ void weigted_interp_img(Mesh_data<U>& img,PartCellData<uint64_t>& pc_data,Partic
 
 
                                         weight_int.mesh[i + (k) * img.y_num + q * img.y_num * img.x_num] +=
-                                                temp_int * temp;
+                                                ((double) temp_int) * temp;
                                         weight_img.mesh[i + (k) * img.y_num + q * img.y_num * img.x_num] += temp;
                                     }
 
