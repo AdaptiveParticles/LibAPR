@@ -1238,10 +1238,15 @@ void weigted_interp_img(Mesh_data<U>& img,PartCellData<uint64_t>& pc_data,Partic
     //  Takes in a APR and creates piece-wise constant image
     //
 
-    img.initialize(pc_data.org_dims[0],pc_data.org_dims[1],pc_data.org_dims[2],0.0f);
+    img.initialize(pc_data.org_dims[0],pc_data.org_dims[1],pc_data.org_dims[2],0.0);
 
-    Mesh_data<float> weight_img;
-    weight_img.initialize(pc_data.org_dims[0],pc_data.org_dims[1],pc_data.org_dims[2],0.0f);
+    Mesh_data<double> weight_img;
+    weight_img.initialize(pc_data.org_dims[0],pc_data.org_dims[1],pc_data.org_dims[2],0.0);
+
+    Mesh_data<double> weight_int;
+    weight_int.initialize(pc_data.org_dims[0],pc_data.org_dims[1],pc_data.org_dims[2],0.0);
+
+
 
     Mesh_data<float> d_img;
 
@@ -1331,14 +1336,14 @@ void weigted_interp_img(Mesh_data<U>& img,PartCellData<uint64_t>& pc_data,Partic
 
                                     float neigh_size = pow(2,curr_level.depth_max - d_img.mesh[i + (k) * img.y_num + q*img.y_num*img.x_num]);
 
-                                    double w =  integral_weight_func((i-mid_1),(k-mid_2), (q-mid_3),step_size,step_size);
+                                    double w =  integral_weight_func((i-mid_1),(k-mid_2), (q-mid_3),step_size,neigh_size);
 
                                     double temp = w*100.0f;
 
                                     if(w > 0.001) {
 
 
-                                        img.mesh[i + (k) * img.y_num + q * img.y_num * img.x_num] +=
+                                        weight_int.mesh[i + (k) * img.y_num + q * img.y_num * img.x_num] +=
                                                 temp_int * temp;
                                         weight_img.mesh[i + (k) * img.y_num + q * img.y_num * img.x_num] += temp;
                                     }
@@ -1417,7 +1422,7 @@ void weigted_interp_img(Mesh_data<U>& img,PartCellData<uint64_t>& pc_data,Partic
                                     //float dist = sqrt(pow( (q-dim3-mid),2 ) + pow( (k-dim2-mid),2 ) + pow( (i-dim1-mid),2 ));
                                     //float w =  weight_func<float>(dist,step_size*2);
 
-                                    img.mesh[i + (k) * img.y_num + q * img.y_num * img.x_num] = temp_int * 1;
+                                    weight_int.mesh[i + (k) * img.y_num + q * img.y_num * img.x_num] = temp_int * 1;
                                     weight_img.mesh[i + (k) * img.y_num + q * img.y_num * img.x_num] = 1;
 
                                 }
@@ -1447,7 +1452,7 @@ void weigted_interp_img(Mesh_data<U>& img,PartCellData<uint64_t>& pc_data,Partic
 #pragma omp parallel for default(shared) private(z_)
     for(z_ = 0;z_ < img.mesh.size();z_++){
 
-        img.mesh[z_] = round(img.mesh[z_]/weight_img.mesh[z_]);
+        img.mesh[z_] = round(weight_int.mesh[z_]/weight_img.mesh[z_]);
 
         weight_img.mesh[z_] = weight_img.mesh[z_]*10000;
 
