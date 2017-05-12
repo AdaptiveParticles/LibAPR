@@ -83,7 +83,7 @@ endif(OPENMP_FOUND)
 
 if(CMAKE_COMPILER_IS_GNUCC)
    # set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++14 -O3 -ffast-math -I /usr/include/hdf5/serial/ -Bdynamic -ldl")
-   set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++14 -O3  -I /usr/include/hdf5/serial/ ")
+   set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++14 -O1  -I /usr/include/hdf5/serial/ ")
     set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS}")
     set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS} -std=c++11 -O0 -g -I /usr/include/hdf5/serial/")
     set(CMAKE_EXE_LINKER_FLAGS  "${CMAKE_EXE_LINKER_FLAGS} -Bdynamic -ldl ")
