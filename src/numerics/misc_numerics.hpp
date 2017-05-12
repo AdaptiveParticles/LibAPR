@@ -1335,8 +1335,8 @@ void weigted_interp_img(Mesh_data<U>& img,PartCellData<uint64_t>& pc_data,Partic
 
                                     if(w > 0.001) {
                                         img.mesh[i + (k) * img.y_num + q * img.y_num * img.x_num] +=
-                                                temp_int * (w);
-                                        weight_img.mesh[i + (k) * img.y_num + q * img.y_num * img.x_num] += w;
+                                                temp_int * (w) * 100.0f;
+                                        weight_img.mesh[i + (k) * img.y_num + q * img.y_num * img.x_num] += w * 100.0f;
                                     }
 
                                 }
@@ -1407,7 +1407,7 @@ void weigted_interp_img(Mesh_data<U>& img,PartCellData<uint64_t>& pc_data,Partic
                         for (int q = dim3; q < offset_max_dim3; ++q) {
 
                             for (int k = dim2; k < offset_max_dim2; ++k) {
-#pragma omp simd
+
                                 for (int i = dim1; i < offset_max_dim1; ++i) {
 
                                     //float dist = sqrt(pow( (q-dim3-mid),2 ) + pow( (k-dim2-mid),2 ) + pow( (i-dim1-mid),2 ));
