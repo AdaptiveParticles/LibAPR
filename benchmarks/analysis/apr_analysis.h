@@ -552,7 +552,248 @@ void test_local_scale(Mesh_data<uint16_t >& input_image,Part_rep& part_rep,PartC
 //    std::cout << "lc: " << counter_l << std::endl;
 
 }
+void cont_solution(Mesh_data<uint16_t >& input_image,Part_rep& part_rep,PartCellStructure<float,uint64_t>& pc_struct,AnalysisData& analysis_data){
 
+    int interp_type = part_rep.pars.interp_type;
+
+    // COMPUTATIONS
+
+    Mesh_data<float> input_image_float;
+    Mesh_data<float> gradient, variance;
+    Mesh_data<float> interp_img;
+
+    gradient.initialize(input_image.y_num, input_image.x_num, input_image.z_num, 0);
+    part_rep.initialize(input_image.y_num, input_image.x_num, input_image.z_num);
+
+    input_image_float = input_image.to_type<float>();
+    interp_img = input_image.to_type<float>();
+    // After this block, input_image will be freed.
+
+    Part_timer t;
+    t.verbose_flag = false;
+
+    // preallocate_memory
+    Particle_map<float> part_map(part_rep);
+    preallocate(part_map.layers, gradient.y_num, gradient.x_num, gradient.z_num, part_rep);
+    variance.preallocate(gradient.y_num, gradient.x_num, gradient.z_num, 0);
+    std::vector<Mesh_data<float>> down_sampled_images;
+
+    Mesh_data<float> temp;
+    temp.preallocate(gradient.y_num, gradient.x_num, gradient.z_num, 0);
+
+    t.start_timer("whole");
+
+    //    std::swap(part_map.downsampled[part_map.k_max+1],input_image_float);
+
+    part_rep.timer.start_timer("get_gradient_3D");
+    get_gradient_3D(part_rep, input_image_float, gradient);
+    part_rep.timer.stop_timer();
+
+    part_rep.timer.start_timer("get_variance_3D");
+    get_variance_3D(part_rep, input_image_float, variance);
+    part_rep.timer.stop_timer();
+
+
+    Mesh_data<float> variance_u;
+
+    int x_dim = ceil(gradient.x_num/2.0)*2;
+    int z_dim = ceil(gradient.z_num/2.0)*2;
+    int y_dim = ceil(gradient.y_num/2.0)*2;
+
+    variance_u.mesh.resize(x_dim*z_dim*y_dim,0);
+
+    std::vector<unsigned int> dims = {(unsigned int)gradient.y_num,(unsigned int)gradient.x_num,(unsigned int)gradient.z_num};
+
+    const_upsample_img(variance_u,variance,dims);
+
+    float k_factor;
+
+    float min_dim = std::min(part_rep.pars.dy,std::min(part_rep.pars.dx,part_rep.pars.dz));
+
+    k_factor = pow(2,part_rep.pl_map.k_max+1)*min_dim;
+
+    compute_k_for_array(temp,k_factor,part_rep.pars.rel_error);
+
+
+    for (int l = 0; l < gradient.mesh.size(); ++l) {
+
+        if(gradient.mesh[l] > 0.0001) {
+            gradient.mesh[l] = (k_factor * variance_u.mesh[l] * part_rep.pars.rel_error) / abs(gradient.mesh[l]);
+        } else {
+            gradient.mesh[l] = k_factor;
+        }
+    }
+
+
+    /////////////////////////////////////////////
+    //
+    //  Now we want to loop over and calculate the maximum in the area given by the apr
+    //
+    //////////////////////////////////////////////
+
+
+    Mesh_data<float> resolution;
+    resolution.initialize(gradient.y_num, gradient.x_num, gradient.z_num, 0);
+
+
+    int a = 1;
+
+
+    int x_num = gradient.x_num;
+    int y_num = gradient.y_num;
+    int z_num = gradient.z_num;
+
+    int k_max = part_rep.pl_map.k_max;
+
+    Part_timer timer;
+
+    timer.verbose_flag = true;
+
+    timer.start_timer("brute force loop");
+
+    float cumsum = 0;
+
+    for(float j = 0; j < gradient.z_num;j++){
+        for(float i = 0; i < gradient.x_num;i++){
+
+            for(float k = 0;k < gradient.y_num;k++){
+
+
+                bool bound = true;
+                int R = 1;
+
+                while(bound) {
+
+                    int step_size = R;
+
+
+                    int offset_max_y = std::min((int) (k + step_size), (int) (y_num - 1));
+                    int offset_min_y = std::max((int) (k - step_size), (int) 0);
+
+                    int offset_max_x = std::min((int) (i + step_size), (int) (x_num - 1));
+                    int offset_min_x = std::max((int) (i - step_size), (int) 0);
+
+                    int offset_max_z = std::min((int) (j + step_size), (int) (z_num - 1));
+                    int offset_min_z = std::max((int) (j - step_size), (int) 0);
+
+                    for (float a = offset_min_z; a <= offset_max_z; a++) {
+                        for (float b = offset_min_x; b <= offset_max_x; b++) {
+                            for (float c = offset_min_y; c <= offset_max_y; c++) {
+
+                                float dist = sqrt(
+                                        pow(round(a - j), 2.0) + pow(round(b - i), 2.0) + pow(round(c - k), 2.0));
+
+
+
+                                if (dist <= step_size) {
+
+                                    float curr_L = gradient.mesh[a * x_num * y_num + b * y_num + c];
+
+                                    if(R*part_rep.pars.dx > curr_L){
+                                        bound = false;
+                                        goto escape;
+
+                                    }
+
+
+                                }
+
+                             }
+                        }
+                    }
+
+                    escape:
+
+                    R++;
+
+                }
+
+                resolution.mesh[j * x_num * y_num + i * y_num + k] = (R-1);
+                cumsum += (R-1)*part_rep.pars.dx*part_rep.pars.dx;
+            }
+        }
+    }
+
+
+    timer.stop_timer();
+
+
+//    timer.start_timer("new loop");
+//
+//    float cumsum = 0;
+//
+//    for(float j = 0; j < gradient.z_num;j++){
+//        for(float i = 0; i < gradient.x_num;i++){
+//
+//            for(float k = 0;k < gradient.y_num;k++){
+//
+//
+//                bool bound = true;
+//                int R = 1;
+//
+//
+//
+//                    int step_size = R;
+//
+//
+//                    int offset_max_y = std::min((int) (k + step_size), (int) (y_num - 1));
+//                    int offset_min_y = std::max((int) (k - step_size), (int) 0);
+//
+//                    int offset_max_x = std::min((int) (i + step_size), (int) (x_num - 1));
+//                    int offset_min_x = std::max((int) (i - step_size), (int) 0);
+//
+//                    int offset_max_z = std::min((int) (j + step_size), (int) (z_num - 1));
+//                    int offset_min_z = std::max((int) (j - step_size), (int) 0);
+//
+//                    for (float a = 0; a <= offset_max_z; a++) {
+//                        for (float b = 0; b <= offset_max_x; b++) {
+//                            for (float c = 0; c <= offset_max_y; c++) {
+//
+//                                float dist = sqrt(
+//                                        pow(round(a - j), 2.0) + pow(round(b - i), 2.0) + pow(round(c - k), 2.0));
+//
+//
+//
+//                                if (dist <= step_size) {
+//
+//                                    float curr_L = gradient.mesh[a * x_num * y_num + b * y_num + c];
+//
+//                                    if(R*part_rep.pars.dx > curr_L){
+//                                        bound = false;
+//                                        goto escape;
+//
+//                                    }
+//
+//
+//                                }
+//
+//                            }
+//                        }
+//                    }
+//
+//
+//                escape:
+//
+//                R++;
+//
+//
+//
+//                resolution.mesh[j * x_num * y_num + i * y_num + k] = (R-1);
+//                cumsum += (R-1)*part_rep.pars.dx*part_rep.pars.dx;
+//            }
+//        }
+//    }
+//
+//
+//    timer.stop_timer();
+
+
+
+    debug_write(resolution,"resolution");
+
+    std::cout << "sum: " << cumsum << std::endl;
+
+}
 
 
 void gen_parameter_pars(SynImage& syn_image,Proc_par& pars,std::string image_name){
@@ -1069,6 +1310,8 @@ void produce_apr_analysis(Mesh_data<T>& input_image,AnalysisData& analysis_data,
         p_rep.pars = pars;
 
         test_local_scale(input_image, p_rep,pc_struct,analysis_data);
+
+        cont_solution(input_image, p_rep,pc_struct,analysis_data);
 
     }
 

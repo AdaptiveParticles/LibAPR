@@ -56,7 +56,7 @@ int main(int argc, char **argv) {
 
     //bs.num_objects = 1;
 
-    bs.desired_I = 500;
+    bs.desired_I = 500  ;
     //bs.int_scale_max = 1;
     //bs.int_scale_min = 1;
     bs.int_scale_min = 1;
@@ -158,63 +158,65 @@ int main(int argc, char **argv) {
 
     af::info();
 
+    std::cout << "Num Parts: " << pc_struct.get_number_parts() << std::endl;
 
-    ParticleDataNew<float, uint64_t> part_new;
-    //flattens format to particle = cell, this is in the classic access/part paradigm
-    part_new.initialize_from_structure(pc_struct);
-
-    //generates the nieghbour structure
-    PartCellData<uint64_t> pc_data;
-    part_new.create_pc_data_new(pc_data);
-
-    pc_data.org_dims = pc_struct.org_dims;
-    part_new.access_data.org_dims = pc_struct.org_dims;
-
-    part_new.particle_data.org_dims = pc_struct.org_dims;
-
-    Mesh_data<float> w_interp_out;
-
-    weigted_interp_img(w_interp_out, pc_data, part_new, part_new.particle_data,false,true);
-
-    debug_write(w_interp_out,"weighted_interp_out_n");
-
-
-    Mesh_data<float> min_img;
-    Mesh_data<float> max_img;
-
-    min_max_interp(min_img,max_img,pc_data,part_new,part_new.particle_data,false);
-
-    debug_write(max_img,"max_img");
-    debug_write(min_img,"min_img");
-
-//    for (int i = 0; i < max_img.mesh.size(); ++i) {
 //
-//        max_img.mesh[i] += min_img.mesh[i];
-//        max_img.mesh[i] *= 0.5;
+//    ParticleDataNew<float, uint64_t> part_new;
+//    //flattens format to particle = cell, this is in the classic access/part paradigm
+//    part_new.initialize_from_structure(pc_struct);
 //
-//    }
-
-    debug_write(max_img,"avg_img");
-
-    Mesh_data<uint16_t> gt_image;
-    generate_gt_image(gt_image, syn_image_loc);
-
-    std::string name = "we_";
-    compare_E_debug( gt_image,w_interp_out, p_rep.pars, name, analysis_data);
-
-    name = "max_";
-    compare_E_debug( gt_image,max_img, p_rep.pars, name, analysis_data);
-
-    name = "min_";
-    compare_E_debug( gt_image,min_img, p_rep.pars, name, analysis_data);
-
-    Mesh_data<float> interp;
-    interp_img(interp, pc_data, part_new, part_new.particle_data,false);
-
-    name = "interp_";
-    compare_E_debug( gt_image,interp, p_rep.pars, name, analysis_data);
-
-    debug_write(interp,"pc_interp");
+//    //generates the nieghbour structure
+//    PartCellData<uint64_t> pc_data;
+//    part_new.create_pc_data_new(pc_data);
+//
+//    pc_data.org_dims = pc_struct.org_dims;
+//    part_new.access_data.org_dims = pc_struct.org_dims;
+//
+//    part_new.particle_data.org_dims = pc_struct.org_dims;
+//
+//    Mesh_data<float> w_interp_out;
+//
+//    weigted_interp_img(w_interp_out, pc_data, part_new, part_new.particle_data,false,true);
+//
+//    debug_write(w_interp_out,"weighted_interp_out_n");
+//
+//
+//    Mesh_data<float> min_img;
+//    Mesh_data<float> max_img;
+//
+//    min_max_interp(min_img,max_img,pc_data,part_new,part_new.particle_data,false);
+//
+//    debug_write(max_img,"max_img");
+//    debug_write(min_img,"min_img");
+//
+////    for (int i = 0; i < max_img.mesh.size(); ++i) {
+////
+////        max_img.mesh[i] += min_img.mesh[i];
+////        max_img.mesh[i] *= 0.5;
+////
+////    }
+//
+//    debug_write(max_img,"avg_img");
+//
+//    Mesh_data<uint16_t> gt_image;
+//    generate_gt_image(gt_image, syn_image_loc);
+//
+//    std::string name = "we_";
+//    compare_E_debug( gt_image,w_interp_out, p_rep.pars, name, analysis_data);
+//
+//    name = "max_";
+//    compare_E_debug( gt_image,max_img, p_rep.pars, name, analysis_data);
+//
+//    name = "min_";
+//    compare_E_debug( gt_image,min_img, p_rep.pars, name, analysis_data);
+//
+//    Mesh_data<float> interp;
+//    interp_img(interp, pc_data, part_new, part_new.particle_data,false);
+//
+//    name = "interp_";
+//    compare_E_debug( gt_image,interp, p_rep.pars, name, analysis_data);
+//
+//    debug_write(interp,"pc_interp");
 
     return 0;
 }
