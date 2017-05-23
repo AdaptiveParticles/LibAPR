@@ -48,13 +48,13 @@ int main(int argc, char **argv) {
     bs.num_objects = options.delta;
 
 
-    bs.obj_size = 3;
-    bs.sig = 3;
+    bs.obj_size = 1;
+    bs.sig = 2;
     //bs.desired_I = 10000;
     float ratio = 5;
     bs.num_objects = pow(bs.x_num,3)/(33400*ratio);
 
-    //bs.num_objects = 1;
+    bs.num_objects = 4;
 
     bs.desired_I = 500  ;
     //bs.int_scale_max = 1;

@@ -649,79 +649,6 @@ void cont_solution(Mesh_data<uint16_t >& input_image,Part_rep& part_rep,PartCell
 
     timer.verbose_flag = true;
 
-//    timer.start_timer("brute force loop");
-//
-//    float cumsum = 0;
-//
-//    for(float j = 0; j < gradient.z_num;j++){
-//        for(float i = 0; i < gradient.x_num;i++){
-//
-//            for(float k = 0;k < gradient.y_num;k++){
-//
-//
-//                bool bound = true;
-//                int R = 1;
-//
-//                while(bound) {
-//
-//                    int step_size = R;
-//
-//
-//                    int offset_max_y = std::min((int) (k + step_size), (int) (y_num - 1));
-//                    int offset_min_y = std::max((int) (k - step_size), (int) 0);
-//
-//                    int offset_max_x = std::min((int) (i + step_size), (int) (x_num - 1));
-//                    int offset_min_x = std::max((int) (i - step_size), (int) 0);
-//
-//                    int offset_max_z = std::min((int) (j + step_size), (int) (z_num - 1));
-//                    int offset_min_z = std::max((int) (j - step_size), (int) 0);
-//
-//                    for (float a = offset_min_z; a <= offset_max_z; a++) {
-//                        for (float b = offset_min_x; b <= offset_max_x; b++) {
-//                            for (float c = offset_min_y; c <= offset_max_y; c++) {
-//
-//                                float dist = sqrt(
-//                                        pow(round(a - j), 2.0) + pow(round(b - i), 2.0) + pow(round(c - k), 2.0));
-//
-//
-//
-//                                    if (dist <= step_size) {
-//
-//                                        float curr_L = gradient.mesh[a * x_num * y_num + b * y_num + c];
-//
-//                                        if (R * part_rep.pars.dx > curr_L) {
-//                                            bound = false;
-//                                            goto escape;
-//
-//                                        }
-//
-//
-//                                    }
-//
-//
-//                            }
-//                        }
-//                    }
-//
-//                    escape:
-//
-//                    R++;
-//
-//                }
-//
-//                resolution.mesh[j * x_num * y_num + i * y_num + k] = (R-1);
-//                cumsum += (R-1)*part_rep.pars.dx*part_rep.pars.dx;
-//            }
-//        }
-//    }
-//
-//
-//    timer.stop_timer();
-//
-//
-//    debug_write(resolution,"resolution1");
-//
-//    std::cout << "sum: " << cumsum << std::endl;
 
     timer.start_timer("brute force loop");
 
@@ -868,7 +795,8 @@ void cont_solution(Mesh_data<uint16_t >& input_image,Part_rep& part_rep,PartCell
                 }
 
                 resolution.mesh[j * x_num * y_num + i * y_num + k] = (R-1);
-                cumsum += (R-1)*part_rep.pars.dx*part_rep.pars.dx;
+                //cumsum += (R-1)*part_rep.pars.dx*part_rep.pars.dx;
+                cumsum += std::min(1.0f/(R-1.0f),1.0f);
             }
         }
     }
@@ -877,8 +805,9 @@ void cont_solution(Mesh_data<uint16_t >& input_image,Part_rep& part_rep,PartCell
     timer.stop_timer();
 
 
+    analysis_data.add_timer(timer);
 
-
+    analysis_data.add_float_data("R_c",cumsum);
 
     debug_write(resolution,"resolution2");
 
@@ -1199,6 +1128,10 @@ void produce_apr_analysis(Mesh_data<T>& input_image,AnalysisData& analysis_data,
     int num_ghost_cells = 0;
     int num_cells = 0;
 
+    int full_sampling = num_filler_cells + 8*(num_seed_cells + num_boundary_cells);
+
+
+    analysis_data.add_float_data("num_parts_full",full_sampling);
 
     analysis_data.get_data_ref<int>("num_cells")->data.push_back(num_seed_cells + num_boundary_cells + num_filler_cells);
     analysis_data.part_data_list["num_cells"].print_flag = true;
@@ -1400,10 +1333,12 @@ void produce_apr_analysis(Mesh_data<T>& input_image,AnalysisData& analysis_data,
         Part_rep p_rep;
         p_rep.pars = pars;
 
-        test_local_scale(input_image, p_rep,pc_struct,analysis_data);
+        //test_local_scale(input_image, p_rep,pc_struct,analysis_data);
 
         cont_solution(input_image, p_rep,pc_struct,analysis_data);
 
+
+        std::cout << " full  sampling: " << full_sampling << std::endl;
     }
 
     if(analysis_data.quality_true_int) {
