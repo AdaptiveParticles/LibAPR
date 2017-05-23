@@ -49,7 +49,7 @@ int main(int argc, char **argv) {
 
 
     bs.obj_size = 1;
-    bs.sig = 2;
+    bs.sig = 1;
     //bs.desired_I = 10000;
     float ratio = 5;
     bs.num_objects = pow(bs.x_num,3)/(33400*ratio);
@@ -79,7 +79,7 @@ int main(int argc, char **argv) {
 
     //bs.sig = 5;
 
-    bs.rel_error = 0.1;
+    bs.rel_error = 0.05;
 
     // Get the APR
     //bs.num_objects = 10;

@@ -97,7 +97,7 @@ int main(int argc, char **argv) {
     }
 
 
-    sig_vec = {3};
+    sig_vec = {1.5};
 
     //min mean
     float min_shift = 5;
@@ -120,9 +120,9 @@ int main(int argc, char **argv) {
     int N_par2 = (int)sig_vec.size();
     int N_par3 = (int)shift.size();
 
-    bs.num_objects = 5;
+    bs.num_objects = 10;
 
-    bs.obj_size = 3;
+    bs.obj_size = 1;
 
     Genrand_uni gen_rand;
 
@@ -250,6 +250,7 @@ int main(int argc, char **argv) {
 
                     produce_apr_analysis(input_img, analysis_data, pc_struct, syn_image_loc, p_rep.pars);
 
+                    std::cout << "Num Parts: " << pc_struct.get_number_parts() << std::endl;
 
                     af::sync();
                     af::deviceGC();
