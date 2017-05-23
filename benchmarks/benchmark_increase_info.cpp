@@ -62,9 +62,9 @@ int main(int argc, char **argv) {
     //////////////////////////////////////////////////////
 
     int num_obj_min =1;
-    int num_obj =400;
+    int num_obj =40;
     std::vector<int> number_obj;
-    int step = 20;
+    int step = 1;
 
     //number_obj.push_back(num_obj);
 
@@ -96,7 +96,7 @@ int main(int argc, char **argv) {
         //mean_int.push_back(i);
     }
 
-    mean_int = {50};
+    mean_int = {500};
 
     min_mean = 15;
     max_mean = 50;
@@ -125,9 +125,9 @@ int main(int argc, char **argv) {
     //}
 
     float sig_single = 2;
-    bs.obj_size = 3;
+    bs.obj_size = 1.5;
 
-    sig_vec = {0.1};
+    sig_vec = {1.5};
 
     int N_par1 = (int)number_obj.size(); // this many different parameter values to be run
     int N_par2 = (int)mean_int.size();
@@ -142,7 +142,7 @@ int main(int argc, char **argv) {
         //////////////////////////////////////////////////////////////////
         //bs.sig = sig_vec[m];
         bs.rel_error = sig_vec[m];
-        bs.sig = 3;
+        bs.sig = 1.5;
 
         set_gaussian_psf(syn_image,bs);
 
@@ -236,6 +236,8 @@ int main(int argc, char **argv) {
                     //  Calculate analysis of the result
                     //
                     ///////////////////////////////
+
+                    std::cout << "Num Parts: " << pc_struct.get_number_parts() << std::endl;
 
                     produce_apr_analysis(input_img, analysis_data, pc_struct, syn_image_loc, p_rep.pars);
 
