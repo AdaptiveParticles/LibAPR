@@ -796,7 +796,8 @@ void cont_solution(Mesh_data<uint16_t >& input_image,Part_rep& part_rep,PartCell
 
                 resolution.mesh[j * x_num * y_num + i * y_num + k] = (R-1);
                 //cumsum += (R-1)*part_rep.pars.dx*part_rep.pars.dx;
-                cumsum += std::min(1.0f/(R-1.0f),1.0f);
+                float R_ = std::max(R-1,1);
+                cumsum += 1.0f/(R_);
             }
         }
     }
@@ -809,7 +810,7 @@ void cont_solution(Mesh_data<uint16_t >& input_image,Part_rep& part_rep,PartCell
 
     analysis_data.add_float_data("R_c",cumsum);
 
-    debug_write(resolution,"resolution2");
+   // debug_write(resolution,"resolution2");
 
     std::cout << "sum: " << cumsum << std::endl;
 

@@ -141,7 +141,7 @@ int main(int argc, char **argv) {
         //  PSF properties
         //////////////////////////////////////////////////////////////////
         //bs.sig = sig_vec[m];
-        bs.rel_error = sig_vec[m];
+        bs.rel_error = .1;
         bs.sig = 1.5;
 
         set_gaussian_psf(syn_image,bs);
