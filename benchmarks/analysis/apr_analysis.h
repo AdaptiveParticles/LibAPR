@@ -649,14 +649,91 @@ void cont_solution(Mesh_data<uint16_t >& input_image,Part_rep& part_rep,PartCell
 
     timer.verbose_flag = true;
 
+//    timer.start_timer("brute force loop");
+//
+//    float cumsum = 0;
+//
+//    for(float j = 0; j < gradient.z_num;j++){
+//        for(float i = 0; i < gradient.x_num;i++){
+//
+//            for(float k = 0;k < gradient.y_num;k++){
+//
+//
+//                bool bound = true;
+//                int R = 1;
+//
+//                while(bound) {
+//
+//                    int step_size = R;
+//
+//
+//                    int offset_max_y = std::min((int) (k + step_size), (int) (y_num - 1));
+//                    int offset_min_y = std::max((int) (k - step_size), (int) 0);
+//
+//                    int offset_max_x = std::min((int) (i + step_size), (int) (x_num - 1));
+//                    int offset_min_x = std::max((int) (i - step_size), (int) 0);
+//
+//                    int offset_max_z = std::min((int) (j + step_size), (int) (z_num - 1));
+//                    int offset_min_z = std::max((int) (j - step_size), (int) 0);
+//
+//                    for (float a = offset_min_z; a <= offset_max_z; a++) {
+//                        for (float b = offset_min_x; b <= offset_max_x; b++) {
+//                            for (float c = offset_min_y; c <= offset_max_y; c++) {
+//
+//                                float dist = sqrt(
+//                                        pow(round(a - j), 2.0) + pow(round(b - i), 2.0) + pow(round(c - k), 2.0));
+//
+//
+//
+//                                    if (dist <= step_size) {
+//
+//                                        float curr_L = gradient.mesh[a * x_num * y_num + b * y_num + c];
+//
+//                                        if (R * part_rep.pars.dx > curr_L) {
+//                                            bound = false;
+//                                            goto escape;
+//
+//                                        }
+//
+//
+//                                    }
+//
+//
+//                            }
+//                        }
+//                    }
+//
+//                    escape:
+//
+//                    R++;
+//
+//                }
+//
+//                resolution.mesh[j * x_num * y_num + i * y_num + k] = (R-1);
+//                cumsum += (R-1)*part_rep.pars.dx*part_rep.pars.dx;
+//            }
+//        }
+//    }
+//
+//
+//    timer.stop_timer();
+//
+//
+//    debug_write(resolution,"resolution1");
+//
+//    std::cout << "sum: " << cumsum << std::endl;
+
     timer.start_timer("brute force loop");
 
     float cumsum = 0;
 
-    for(float j = 0; j < gradient.z_num;j++){
-        for(float i = 0; i < gradient.x_num;i++){
+    int i,j,k;
 
-            for(float k = 0;k < gradient.y_num;k++){
+#pragma omp parallel for default(shared) private(j,i,k) reduction(+: cumsum)
+    for(j = 0; j < gradient.z_num;j++){
+        for(i = 0; i < gradient.x_num;i++){
+
+            for(k = 0;k < gradient.y_num;k++){
 
 
                 bool bound = true;
@@ -677,32 +754,114 @@ void cont_solution(Mesh_data<uint16_t >& input_image,Part_rep& part_rep,PartCell
                     int offset_min_z = std::max((int) (j - step_size), (int) 0);
 
                     for (float a = offset_min_z; a <= offset_max_z; a++) {
-                        for (float b = offset_min_x; b <= offset_max_x; b++) {
-                            for (float c = offset_min_y; c <= offset_max_y; c++) {
 
-                                float dist = sqrt(
-                                        pow(round(a - j), 2.0) + pow(round(b - i), 2.0) + pow(round(c - k), 2.0));
+                        if(a == offset_min_z || a == offset_max_z) {
+                            for (float b = offset_min_x; b <= offset_max_x; b++) {
+
+                                if (b == offset_min_z || b == offset_max_z) {
+
+                                    for (float c = offset_min_y; c <= offset_max_y; c++) {
+
+                                        float dist = sqrt(
+                                                pow(round(a - j), 2.0) + pow(round(b - i), 2.0) +
+                                                pow(round(c - k), 2.0));
 
 
+                                        if (dist <= step_size) {
 
-                                if (dist <= step_size) {
+                                            float curr_L = gradient.mesh[a * x_num * y_num + b * y_num + c];
 
-                                    float curr_L = gradient.mesh[a * x_num * y_num + b * y_num + c];
+                                            if (R * part_rep.pars.dx > curr_L) {
+                                                bound = false;
+                                                goto escape2;
 
-                                    if(R*part_rep.pars.dx > curr_L){
-                                        bound = false;
-                                        goto escape;
+                                            }
+
+
+                                        }
+
+                                    }
+
+                                } else {
+
+                                    float c = offset_min_y;
+
+                                    float dist = sqrt(
+                                            pow(round(a - j), 2.0) + pow(round(b - i), 2.0) +
+                                            pow(round(c - k), 2.0));
+
+
+                                    if (dist <= step_size) {
+
+                                        float curr_L = gradient.mesh[a * x_num * y_num + b * y_num + c];
+
+                                        if (R * part_rep.pars.dx > curr_L) {
+                                            bound = false;
+                                            goto escape2;
+
+                                        }
+
+
+                                    }
+
+                                    c = offset_max_y;
+
+                                    dist = sqrt(
+                                            pow(round(a - j), 2.0) + pow(round(b - i), 2.0) +
+                                            pow(round(c - k), 2.0));
+
+
+                                    if (dist <= step_size) {
+
+                                        float curr_L = gradient.mesh[a * x_num * y_num + b * y_num + c];
+
+                                        if (R * part_rep.pars.dx > curr_L) {
+                                            bound = false;
+                                            goto escape2;
+
+                                        }
+
 
                                     }
 
 
                                 }
 
-                             }
+
+                            }
+
+                        }else {
+                            for (float b = offset_min_x; b <= offset_max_x; b++) {
+                                for (float c = offset_min_y; c <= offset_max_y; c++) {
+
+                                    float dist = sqrt(
+                                            pow(round(a - j), 2.0) + pow(round(b - i), 2.0) + pow(round(c - k), 2.0));
+
+
+
+                                    if (dist <= step_size) {
+
+                                        float curr_L = gradient.mesh[a * x_num * y_num + b * y_num + c];
+
+                                        if (R * part_rep.pars.dx > curr_L) {
+                                            bound = false;
+                                            goto escape2;
+
+                                        }
+
+
+                                    }
+
+                                }
+                            }
                         }
+
+
+
                     }
 
-                    escape:
+
+                    escape2:
 
                     R++;
 
@@ -718,78 +877,10 @@ void cont_solution(Mesh_data<uint16_t >& input_image,Part_rep& part_rep,PartCell
     timer.stop_timer();
 
 
-//    timer.start_timer("new loop");
-//
-//    float cumsum = 0;
-//
-//    for(float j = 0; j < gradient.z_num;j++){
-//        for(float i = 0; i < gradient.x_num;i++){
-//
-//            for(float k = 0;k < gradient.y_num;k++){
-//
-//
-//                bool bound = true;
-//                int R = 1;
-//
-//
-//
-//                    int step_size = R;
-//
-//
-//                    int offset_max_y = std::min((int) (k + step_size), (int) (y_num - 1));
-//                    int offset_min_y = std::max((int) (k - step_size), (int) 0);
-//
-//                    int offset_max_x = std::min((int) (i + step_size), (int) (x_num - 1));
-//                    int offset_min_x = std::max((int) (i - step_size), (int) 0);
-//
-//                    int offset_max_z = std::min((int) (j + step_size), (int) (z_num - 1));
-//                    int offset_min_z = std::max((int) (j - step_size), (int) 0);
-//
-//                    for (float a = 0; a <= offset_max_z; a++) {
-//                        for (float b = 0; b <= offset_max_x; b++) {
-//                            for (float c = 0; c <= offset_max_y; c++) {
-//
-//                                float dist = sqrt(
-//                                        pow(round(a - j), 2.0) + pow(round(b - i), 2.0) + pow(round(c - k), 2.0));
-//
-//
-//
-//                                if (dist <= step_size) {
-//
-//                                    float curr_L = gradient.mesh[a * x_num * y_num + b * y_num + c];
-//
-//                                    if(R*part_rep.pars.dx > curr_L){
-//                                        bound = false;
-//                                        goto escape;
-//
-//                                    }
-//
-//
-//                                }
-//
-//                            }
-//                        }
-//                    }
-//
-//
-//                escape:
-//
-//                R++;
-//
-//
-//
-//                resolution.mesh[j * x_num * y_num + i * y_num + k] = (R-1);
-//                cumsum += (R-1)*part_rep.pars.dx*part_rep.pars.dx;
-//            }
-//        }
-//    }
-//
-//
-//    timer.stop_timer();
 
 
 
-    debug_write(resolution,"resolution");
+    debug_write(resolution,"resolution2");
 
     std::cout << "sum: " << cumsum << std::endl;
 
@@ -957,7 +1048,7 @@ void compare_E(Mesh_data<S>& org_img,Mesh_data<T>& rec_img,Proc_par& pars,std::s
             debug_write(rec_img,"rec_img_out_bounds");
             debug_write(variance,"var_img_out_bounds");
 
-           // assert(inf_norm < rel_error);
+            // assert(inf_norm < rel_error);
         }
     }
 
@@ -1028,10 +1119,10 @@ uint64_t get_size_of_pc_struct(PartCellData<uint64_t>& pc_data){
 
     for(uint64_t depth = (pc_data.depth_min);depth <= pc_data.depth_max;depth++) {
         //loop over the resolutions of the structure
-         for(int i = 0;i < pc_data.data[depth].size();i++){
+        for(int i = 0;i < pc_data.data[depth].size();i++){
 
-             counter += pc_data.data[depth][i].size();
-         }
+            counter += pc_data.data[depth][i].size();
+        }
 
     }
 
@@ -1061,9 +1152,9 @@ void produce_apr_analysis(Mesh_data<T>& input_image,AnalysisData& analysis_data,
     Part_data<int> *check_ref = analysis_data.get_data_ref<int>("num_parts");
 
     if (check_ref == nullptr) {
-    // First experiment need to set up the variables
+        // First experiment need to set up the variables
 
-    //pipeline parameters
+        //pipeline parameters
         analysis_data.create_int_dataset("num_parts", 0);
         analysis_data.create_int_dataset("num_cells", 0);
         analysis_data.create_int_dataset("num_seed_cells", 0);
@@ -1081,7 +1172,7 @@ void produce_apr_analysis(Mesh_data<T>& input_image,AnalysisData& analysis_data,
         analysis_data.create_float_dataset("information_content", 0);
         analysis_data.create_float_dataset("relerror", 0);
 
-    //set up timing variables
+        //set up timing variables
 
         for (int i = 0; i < timer.timings.size(); i++) {
             analysis_data.create_float_dataset(timer.timing_names[i], 0);
@@ -1188,12 +1279,12 @@ void produce_apr_analysis(Mesh_data<T>& input_image,AnalysisData& analysis_data,
         real_adaptive_grad(pc_struct,analysis_data,input_image, pars);
 
 
-       // evaluate_enhancement(pc_struct,analysis_data,syn_image,input_image,p_rep);
+        // evaluate_enhancement(pc_struct,analysis_data,syn_image,input_image,p_rep);
     }
 
     if(analysis_data.filters_eval) {
 
-       // evaluate_filters(pc_struct,analysis_data,syn_image,input_image);
+        // evaluate_filters(pc_struct,analysis_data,syn_image,input_image);
         evaluate_filters_guassian(pc_struct,analysis_data,syn_image,input_image,.5);
         evaluate_filters_guassian(pc_struct,analysis_data,syn_image,input_image, 2);
 
