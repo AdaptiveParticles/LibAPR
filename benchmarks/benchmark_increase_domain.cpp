@@ -42,7 +42,7 @@ int main(int argc, char **argv) {
     benchmark_settings bs;
 
 
-    bs.sig = 3;
+    bs.sig = 1.5;
 
     set_up_benchmark_defaults(syn_image,bs);
 
@@ -51,7 +51,7 @@ int main(int argc, char **argv) {
 
     std::cout << "Generating Templates" << std::endl;
 
-    bs.obj_size = 3;
+    bs.obj_size = 1.5;
 
     obj_properties obj_prop(bs);
 
@@ -81,15 +81,15 @@ int main(int argc, char **argv) {
 
     std::vector<int> image_size;
 
-    float min_size = 200;
+    float min_size = 24;
     float max_size = options.image_size;
-    float delta = 100;
+    float delta = 2;
 
     for (int i = min_size; i < max_size; i = i + delta) {
         image_size.push_back(i);
     }
 
-    bs.num_objects = 2000;
+    bs.num_objects = 2;
 
     int N_par = (int)image_size.size(); // this many different parameter values to be run
 
@@ -174,6 +174,8 @@ int main(int argc, char **argv) {
             af::deviceGC();
 
             b_timer.stop_timer();
+
+            std::cout << "Num Parts: " << pc_struct.get_number_parts() << std::endl;
 
         }
     }
