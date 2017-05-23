@@ -133,7 +133,7 @@ int main(int argc, char **argv) {
     int N_par2 = (int)mean_int.size();
     int N_par3 = (int)sig_vec.size();
 
-    bool part_timing = true;
+    bool part_timing = false;
 
     for(int m = 0; m < N_par3; m++){
 
