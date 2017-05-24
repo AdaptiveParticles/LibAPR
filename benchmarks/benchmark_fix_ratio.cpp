@@ -45,7 +45,7 @@ int main(int argc, char **argv) {
     benchmark_settings bs;
 
 
-    bs.sig = 3;
+    bs.sig = 1.0;
 
     set_up_benchmark_defaults(syn_image,bs);
 
@@ -54,7 +54,7 @@ int main(int argc, char **argv) {
 
     std::cout << "Generating Templates" << std::endl;
 
-    bs.obj_size = 3;
+    bs.obj_size = 0.75;
 
     obj_properties obj_prop(bs);
 
@@ -111,15 +111,19 @@ int main(int argc, char **argv) {
         bs.y_num = image_size[j];
         bs.z_num = image_size[j];
 
-        bs.num_objects = pow(bs.x_num,3)/(33400*ratio);
+        bs.num_objects = 5*pow(bs.x_num,3)/(33400*ratio);
+
+        bs.rel_error = 0.1;
 
         for(int i = 0; i < bs.N_repeats; i++){
+
+            b_timer.start_timer("one_it");
 
             SynImage syn_image_loc = syn_image;
 
             update_domain(syn_image_loc,bs);
 
-            b_timer.start_timer("one_it");
+
 
             //Generate objects
 
@@ -156,6 +160,8 @@ int main(int argc, char **argv) {
             //
             //////////////////////////////
 
+            b_timer.stop_timer();
+
             Part_rep p_rep;
 
             set_up_part_rep(syn_image_loc,p_rep,bs);
@@ -166,6 +172,8 @@ int main(int argc, char **argv) {
 
             bench_get_apr(input_img,p_rep,pc_struct,analysis_data);
 
+
+
             ///////////////////////////////
             //
             //  Calculate analysis of the result
@@ -174,10 +182,14 @@ int main(int argc, char **argv) {
 
             produce_apr_analysis(input_img,analysis_data,pc_struct,syn_image_loc,p_rep.pars);
 
+
+
+
+
             af::sync();
             af::deviceGC();
 
-            b_timer.stop_timer();
+
 
         }
     }

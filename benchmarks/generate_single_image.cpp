@@ -48,13 +48,13 @@ int main(int argc, char **argv) {
     bs.num_objects = options.delta;
 
 
-    bs.obj_size = 1;
-    bs.sig = 1;
+    bs.obj_size = 1.5;
+    bs.sig = 1.5;
     //bs.desired_I = 10000;
     float ratio = 5;
     bs.num_objects = pow(bs.x_num,3)/(33400*ratio);
 
-    bs.num_objects = 4;
+    bs.num_objects = 20;
 
     bs.desired_I = 500  ;
     //bs.int_scale_max = 1;
@@ -79,7 +79,7 @@ int main(int argc, char **argv) {
 
     //bs.sig = 5;
 
-    bs.rel_error = 0.05;
+    bs.rel_error = 0.1;
 
     // Get the APR
     //bs.num_objects = 10;

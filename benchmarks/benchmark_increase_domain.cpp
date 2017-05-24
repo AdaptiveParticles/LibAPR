@@ -91,6 +91,8 @@ int main(int argc, char **argv) {
 
     bs.num_objects = 2;
 
+    bs.rel_error = 0.1;
+
     int N_par = (int)image_size.size(); // this many different parameter values to be run
 
     Part_timer b_timer;
