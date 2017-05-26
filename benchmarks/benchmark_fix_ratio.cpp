@@ -84,9 +84,9 @@ int main(int argc, char **argv) {
 
     std::vector<int> image_size;
 
-    float min_size = 12;
+    float min_size = 100;
     float max_size = options.image_size;
-    float delta = 10;
+    float delta = 100;
 
     for (int i = min_size; i <= max_size; i = i + delta) {
         image_size.push_back(i);
