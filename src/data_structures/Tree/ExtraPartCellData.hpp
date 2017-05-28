@@ -147,7 +147,32 @@ public:
         
     }
 
+    template<typename S>
+    void initialize_structure_parts_empty(ExtraPartCellData<S>& part_data){
+        //
+        //  Initialize the structure to the same size as the given structure
+        //
 
+        //first add the layers
+        depth_max = part_data.depth_max;
+        depth_min = part_data.depth_min;
+
+        z_num.resize(depth_max+1);
+        x_num.resize(depth_max+1);
+
+        data.resize(depth_max+1);
+
+        org_dims = part_data.org_dims;
+
+        for(uint64_t i = depth_min;i <= depth_max;i++){
+            z_num[i] = part_data.z_num[i];
+            x_num[i] = part_data.x_num[i];
+            data[i].resize(z_num[i]*x_num[i]);
+
+
+        }
+
+    }
 
 
     
@@ -232,7 +257,38 @@ public:
 
     }
 
+    uint64_t structure_size(){
+        //
+        //  Simply counts the amount of data in the structure
+        //
+        //
+        uint64_t x_;
+        uint64_t z_;
+        uint64_t counter = 0;
 
+        for(uint64_t i = depth_min;i <= depth_max;i++){
+
+            size_t x_num_ = x_num[i];
+            size_t z_num_ = z_num[i];
+
+            for(z_ = 0;z_ < z_num_;z_++){
+
+                for(x_ = 0;x_ < x_num_;x_++){
+
+                    const size_t offset_pc_data = x_num_*z_ + x_;
+
+                    const size_t j_num = data[i][offset_pc_data].size();
+
+                    counter += j_num;
+
+                }
+            }
+        }
+
+        return counter;
+
+
+    }
     
 private:
     

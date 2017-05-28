@@ -76,7 +76,7 @@ int main(int argc, char **argv) {
 
 
     //time parameters
-    float T_num = 5 ;
+    float T_num = 4 ;
     float Et = 0.05;
     std::vector<float> t_dim = {0,1};
 
@@ -102,7 +102,7 @@ int main(int argc, char **argv) {
 
     set_gaussian_psf(syn_image, bs);
 
-
+    Part_timer timer;
 
     for (int t = 0; t < T_num; ++t) {
 
@@ -165,6 +165,9 @@ int main(int argc, char **argv) {
         APR<float> apr_c(pc_struct);
 
         ExtraPartCellData<float> curr_scale =  get_scale_parts(apr_c,input_img,p_rep.pars);
+        timer.verbose_flag = true;
+
+        timer.start_timer("time_loop");
 
         if(t == 0){
 
@@ -178,10 +181,27 @@ int main(int argc, char **argv) {
 
         } else {
 
-            apr_t.integrate_new_t(apr_c,curr_scale);
+            apr_t.integrate_new_t(apr_c,curr_scale,t);
+
+            float add = apr_t.add[t].structure_size();
+            float remove =apr_t.remove[t].structure_size();
+            float same = apr_t.same_index.structure_size();
+            float total_parts = apr_c.y_vec.structure_size();
+            float total_2 = add + same;
+
+            std::cout << "add: " << add << std::endl;
+            std::cout << "remove: " << remove << std::endl;
+            std::cout << "same: " << same << std::endl;
+            std::cout << "total parts: " << total_parts << std::endl;
+            std::cout << "total parts 2: " << total_2 << std::endl;
 
 
         }
+
+        timer.stop_timer();
+
+
+
 
         write_image_tiff(input_img, p_rep.pars.output_path + p_rep.pars.name + "_time_seq_" + std::to_string(t) + ".tif");
 
