@@ -328,17 +328,7 @@ class APR_Time {
 
                         add_index.data[depth][pc_offset].resize(it - add_index.data[depth][pc_offset].begin());
 
-                        std::vector<uint16_t> test;
 
-                        test.resize(std::max(curr_yp.data[depth][pc_offset].size(),
-                                                                         apr_c.y_vec.data[depth][pc_offset].size()));
-
-                        it = std::set_difference(apr_c.y_vec.data[depth][pc_offset].begin(),
-                                            apr_c.y_vec.data[depth][pc_offset].end(),curr_yp.data[depth][pc_offset].begin(),
-                                            curr_yp.data[depth][pc_offset].end(),
-                                            test.begin());
-
-                        test.resize(it - test.begin());
 
 
 
@@ -376,7 +366,7 @@ class APR_Time {
                     for (int i = 0; i < add_index.data[depth][pc_offset].size(); ++i) {
 
 
-                        //add_fp[t].data[depth][pc_offset][i] = apr_c.particles_int.data[depth][pc_offset][add_index.data[depth][pc_offset][i]];
+                        add_fp[t].data[depth][pc_offset][i] = apr_c.particles_int.data[depth][pc_offset][add_index.data[depth][pc_offset][i]];
 
 
 
@@ -385,15 +375,8 @@ class APR_Time {
 
                     for (int i = 0; i < add_index.data[depth][pc_offset].size(); ++i) {
 
-                        int index = add_index.data[depth][pc_offset][i];
 
-                        int y_sz = apr_c.y_vec.data[depth][pc_offset].size();
-
-                        if(index >= y_sz){
-                            int stop = 1;
-                        }
-
-                        //add[t].data[depth][pc_offset][i] = apr_c.y_vec.data[depth][pc_offset][add_index.data[depth][pc_offset][i]];
+                        add[t].data[depth][pc_offset][i] = apr_c.y_vec.data[depth][pc_offset][add_index.data[depth][pc_offset][i]];
 
                     }
 
@@ -459,6 +442,8 @@ class APR_Time {
                         float l_t;
 
                         curr_l.data[depth][pc_offset].resize(apr_c.y_vec.data[depth][pc_offset].size());
+                        curr_sp.data[depth][pc_offset].resize(apr_c.y_vec.data[depth][pc_offset].size());
+                        curr_tp.data[depth][pc_offset].resize(apr_c.y_vec.data[depth][pc_offset].size());
 
                         for (int i = 0; i < same_index.data[depth][pc_offset].size(); ++i) {
 
@@ -483,7 +468,7 @@ class APR_Time {
                             }
 
                             curr_l.data[depth][pc_offset][same_index.data[depth][pc_offset][i]] = l_t;
-                            curr_l.data[depth][pc_offset][same_index.data[depth][pc_offset][i]] = 1;
+
                         }
 
 
@@ -491,6 +476,132 @@ class APR_Time {
                 }
             }
         }
+
+
+
+        update_fp[t].initialize_structure_parts_empty(apr_c.y_vec);
+        update_y[t].initialize_structure_parts_empty(apr_c.y_vec);
+
+
+
+
+        //////////////////////////////
+        ////
+        ////    Pulling Scheme Loop
+        ////
+        ////
+        //////////////////////////////
+
+        for(uint64_t depth = (apr_c.y_vec.depth_min);depth <= apr_c.y_vec.depth_max;depth++) {
+            //loop over the resolutions of the structure
+            const unsigned int x_num_ = apr_c.y_vec.x_num[depth];
+            const unsigned int z_num_ = apr_c.y_vec.z_num[depth];
+
+            const unsigned int x_num_min_ = 0;
+            const unsigned int z_num_min_ = 0;
+
+
+//#pragma omp parallel for default(shared) private(z_,x_,j_) if(z_num_*x_num_ > 100)
+            for (z_ = z_num_min_; z_ < z_num_; z_++) {
+                //both z and x are explicitly accessed in the structure
+
+                for (x_ = x_num_min_; x_ < x_num_; x_++) {
+
+                    const unsigned int pc_offset = x_num_*z_ + x_;
+
+                    float L_t;
+                    float l_t;
+
+
+
+                    for (int i = 0; i < same_index.data[depth][pc_offset].size(); ++i) {
+
+                        int old_index = same_index_old.data[depth][pc_offset][i];
+                        int new_index = same_index.data[depth][pc_offset][i];
+
+
+                        float curr_lt = curr_l.data[depth][pc_offset][new_index];
+                        float prev_lt = prev_l.data[depth][pc_offset][old_index];
+
+                        if(curr_lt > prev_lt){
+
+                            curr_tp.data[depth][pc_offset][new_index] = t;
+                            curr_sp.data[depth][pc_offset][new_index] = 1;
+
+                            update_fp[t].data[depth][pc_offset].push_back(apr_c.particles_int.data[depth][pc_offset][new_index]);
+                            update_y[t].data[depth][pc_offset].push_back(apr_c.y_vec.data[depth][pc_offset][new_index]);
+
+
+                        } else {
+
+                            float t_int = pow(2,lt_max-curr_lt);
+
+                            if((t - prev_tp.data[depth][pc_offset][old_index]) >= t_int){
+
+                                float status_p = prev_sp.data[depth][pc_offset][old_index];
+
+                                if(status_p == 1){
+                                    // seed, same level, pad with boundary
+                                    curr_sp.data[depth][pc_offset][new_index] = 2;
+                                    curr_l.data[depth][pc_offset][new_index] = prev_l.data[depth][pc_offset][old_index];
+                                    curr_tp.data[depth][pc_offset][new_index] = t;
+
+                                    update_fp[t].data[depth][pc_offset].push_back(apr_c.particles_int.data[depth][pc_offset][new_index]);
+                                    update_y[t].data[depth][pc_offset].push_back(apr_c.y_vec.data[depth][pc_offset][new_index]);
+
+
+                                } else if (status_p == 2){
+                                    // boundary, same level, pad with filler
+                                    curr_sp.data[depth][pc_offset][new_index] = 3;
+                                    curr_l.data[depth][pc_offset][new_index] = prev_l.data[depth][pc_offset][old_index];
+                                    curr_tp.data[depth][pc_offset][new_index] = t;
+
+                                    update_fp[t].data[depth][pc_offset].push_back(apr_c.particles_int.data[depth][pc_offset][new_index]);
+                                    update_y[t].data[depth][pc_offset].push_back(apr_c.y_vec.data[depth][pc_offset][new_index]);
+
+                                } else {
+                                    // filler, go up a level
+                                    curr_sp.data[depth][pc_offset][new_index] = 3;
+                                    curr_l.data[depth][pc_offset][new_index] = prev_l.data[depth][pc_offset][old_index]-1;
+                                    curr_tp.data[depth][pc_offset][new_index] = t;
+
+                                    update_fp[t].data[depth][pc_offset].push_back(apr_c.particles_int.data[depth][pc_offset][new_index]);
+                                    update_y[t].data[depth][pc_offset].push_back(apr_c.y_vec.data[depth][pc_offset][new_index]);
+
+                                }
+
+
+
+                            } else {
+
+                                curr_tp.data[depth][pc_offset][new_index] = prev_tp.data[depth][pc_offset][old_index];
+                                curr_sp.data[depth][pc_offset][new_index] = prev_tp.data[depth][pc_offset][old_index];
+                                curr_l.data[depth][pc_offset][new_index] = prev_l.data[depth][pc_offset][old_index];
+                            }
+
+                            if(curr_lt == prev_lt){
+                                // stay the same set to seed.
+                                curr_sp.data[depth][pc_offset][new_index]=1;
+
+                            }
+
+
+                        }
+
+                    }
+
+                }
+            }
+        }
+
+
+        //////////////////////////////
+        ////
+        ////    Update those where the apr structure changed
+        ////
+        ////
+        //////////////////////////////
+
 
 
         //now construct the add_fp and set add to y
@@ -517,16 +628,13 @@ class APR_Time {
 
                         int index = add_index.data[depth][pc_offset][i];
 
-                        int curr_sz = curr_l.data[depth][pc_offset].size();
-
-                        int y_sz = apr_c.y_vec.data[depth][pc_offset].size();
-
-                        if(index >= curr_l.data[depth][pc_offset].size()){
-                            int stop = 1;
-                        }
 
 
-                        //curr_l.data[depth][pc_offset][index] = 2;
+                        curr_l.data[depth][pc_offset][index] = lt_max;
+
+                        curr_sp.data[depth][pc_offset][index] = 1;
+
+                        curr_tp.data[depth][pc_offset][index] = t;
 
                     }
 
@@ -558,6 +666,11 @@ class APR_Time {
 
         calc_ip_updates(apr_c);
 
+        Mesh_data<float> test_scale;
+
+        interp_img(test_scale,apr_c.y_vec,curr_l);
+
+        debug_write(test_scale,"l_"+ std::to_string((int)t));
 
 
         // end of time step change over the variables;

@@ -185,11 +185,7 @@ int main(int argc, char **argv) {
             float total_parts = apr_c.y_vec.structure_size();
             float total_2 = add + same;
 
-            Mesh_data<float> test_scale;
 
-            //interp_img(test_scale,apr_c.y_vec,apr_t.prev_l);
-
-            //debug_write(test_scale,"l_"+ std::to_string(t));
 
 
         }
