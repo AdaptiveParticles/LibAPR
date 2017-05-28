@@ -33,6 +33,7 @@ class APR_Time {
     std::vector<ExtraPartCellData<float>> update_y;
 
     ExtraPartCellData<uint16_t> same_index;
+    ExtraPartCellData<uint16_t> same_index_old;
 
     //init APR
     APR<float> init_APR;
@@ -45,7 +46,13 @@ class APR_Time {
     ExtraPartCellData<float> curr_sp;
     ExtraPartCellData<float> curr_tp;
 
+    ExtraPartCellData<uint8_t> curr_l;
+    ExtraPartCellData<uint8_t> prev_l;
 
+    ExtraPartCellData<float> prev_scale;
+
+    ExtraPartCellData<float> prev_sp;
+    ExtraPartCellData<float> prev_tp;
 
     APR_Time(){
 
@@ -71,7 +78,15 @@ class APR_Time {
         curr_sp.initialize_structure_parts(initial_APR.y_vec);
         curr_tp.initialize_structure_parts(initial_APR.y_vec);
 
+        prev_sp.initialize_structure_parts(initial_APR.y_vec);
+        prev_tp.initialize_structure_parts(initial_APR.y_vec);
+        prev_scale.initialize_structure_parts(initial_APR.y_vec);
+
+        curr_l.initialize_structure_parts(initial_APR.y_vec);
+        prev_l.initialize_structure_parts(initial_APR.y_vec);
+
         same_index.initialize_structure_parts(initial_APR.y_vec);
+        same_index_old.initialize_structure_parts(initial_APR.y_vec);
 
         Nt = Nt_;
         Et = Et_;
@@ -111,8 +126,9 @@ class APR_Time {
                         curr_sp.data[depth][pc_offset][j_] = 3;
                         curr_tp.data[depth][pc_offset][j_] = 1;
                         curr_scale.data[depth][pc_offset][j_] = scale.data[depth][pc_offset][j_];
+                        prev_scale.data[depth][pc_offset][j_] = scale.data[depth][pc_offset][j_];
+                        prev_l.data[depth][pc_offset][j_] = lt_max;
                     }
-
 
 
                 }
@@ -120,6 +136,47 @@ class APR_Time {
         }
 
 
+    }
+
+
+    template <class InputIterator1, class InputIterator2, class OutputIterator>
+    std::vector<OutputIterator> set_intersection_index (InputIterator1 first1, InputIterator1 last1,
+                                     InputIterator2 first2, InputIterator2 last2,
+                                     OutputIterator result,OutputIterator result2)
+    {
+        auto first1_ind = first1;
+        auto first2_ind = first2;
+
+        while (first1!=last1 && first2!=last2)
+        {
+            if (*first1<*first2) ++first1;
+            else if (*first2<*first1) ++first2;
+            else {
+                *result = std::distance(first1_ind,first1);
+                *result2 = std::distance(first2_ind,first2);
+                ++result; ++first1; ++first2;++result2;
+            }
+        }
+
+        std::vector<OutputIterator> results = {result,result2};
+
+        return results;
+    }
+
+    template <class InputIterator1, class InputIterator2, class OutputIterator>
+    OutputIterator set_difference (InputIterator1 first1, InputIterator1 last1,
+                                   InputIterator2 first2, InputIterator2 last2,
+                                   OutputIterator result)
+    {
+        auto first1_ind = first1;
+
+        while (first1!=last1 && first2!=last2)
+        {
+            if (*first1<*first2) { *result = std::distance(first1_ind,first1); ++result; ++first1; }
+            else if (*first2<*first1) ++first2;
+            else { ++first1; ++first2; }
+        }
+        return std::copy(first1,last1,result);
     }
 
     void calc_apr_diff(APR<float>& apr_c){
@@ -136,99 +193,6 @@ class APR_Time {
         remove[t].initialize_structure_parts_empty(apr_c.y_vec);
 
 
-//        for(uint64_t depth = (apr_c.y_vec.depth_min);depth <= apr_c.y_vec.depth_max;depth++) {
-//            //loop over the resolutions of the structure
-//            const unsigned int x_num_ = apr_c.y_vec.x_num[depth];
-//            const unsigned int z_num_ = apr_c.y_vec.z_num[depth];
-//
-//            const unsigned int x_num_min_ = 0;
-//            const unsigned int z_num_min_ = 0;
-//
-//
-////#pragma omp parallel for default(shared) private(z_,x_,j_) if(z_num_*x_num_ > 100)
-//            for (z_ = z_num_min_; z_ < z_num_; z_++) {
-//                //both z and x are explicitly accessed in the structure
-//
-//                for (x_ = x_num_min_; x_ < x_num_; x_++) {
-//
-//                    const unsigned int pc_offset = x_num_*z_ + x_;
-//
-//                    same_index.data[depth][pc_offset].resize(0);
-//
-//                    int j_old = 0;
-//                    int j_old_max = curr_yp.data[depth][pc_offset].size();
-//
-//                    float y_old=999999999;
-//                    float y_new=0;
-//
-//                    for (int j_ = 0; j_ < apr_c.y_vec.data[depth][pc_offset].size(); ++j_) {
-//                        if(j_old < j_old_max) {
-//                            y_old = curr_yp.data[depth][pc_offset][j_old];
-//                        }
-//                        y_new = apr_c.y_vec.data[depth][pc_offset][j_];
-//
-//                        if(y_old == y_new) {
-//                            //still the same do nothing
-//
-//                            //add to the same index
-//                            same_index.data[depth][pc_offset].push_back(j_);
-//
-//
-//                            if (j_old < j_old_max) {
-//
-//                                j_old++;
-//                            }
-//
-//
-//
-//                        } else {
-//                            if(y_old < y_new){
-//
-//                                if(y_old < y_new){
-//                                    remove[t].data[depth][pc_offset].push_back(y_old);
-//
-//                                }
-//                                while(y_old < y_new & (j_old+1) < j_old_max){
-//
-//                                    j_old++;
-//                                    y_old = curr_yp.data[depth][pc_offset][j_old];
-//
-//                                    if(y_old < y_new) {
-//                                        remove[t].data[depth][pc_offset].push_back(y_old);
-//
-//                                    }
-//
-//
-//                                }
-//
-//                                if(y_old == y_new){
-//                                    same_index.data[depth][pc_offset].push_back(j_);
-//
-//                                    j_old++;
-//
-//                                }
-//
-//
-//                            } else {
-//                                add[t].data[depth][pc_offset].push_back(y_new);
-//                                add_fp[t].data[depth][pc_offset].push_back(apr_c.particles_int.data[depth][pc_offset][j_]);
-//
-//                            }
-//
-//                        }
-//
-//
-//
-//                    }
-//
-//
-//
-//                }
-//            }
-//        }
-
-
-
         int same = 0;
         int add_total = 0;
         int rem_total = 0;
@@ -237,6 +201,8 @@ class APR_Time {
 
         std::vector<uint16_t>::iterator it;
         std::vector<uint16_t>::iterator it_f;
+
+        std::vector<std::vector<uint16_t>::iterator> its;
 
         //intersection loop
 
@@ -261,20 +227,21 @@ class APR_Time {
 
                         same_index.data[depth][pc_offset].resize(std::max(curr_yp.data[depth][pc_offset].size(),
                                           apr_c.y_vec.data[depth][pc_offset].size()));
+                        same_index_old.data[depth][pc_offset].resize(std::max(curr_yp.data[depth][pc_offset].size(),
+                                                                          apr_c.y_vec.data[depth][pc_offset].size()));
 
-                        it = std::set_intersection(curr_yp.data[depth][pc_offset].begin(),
+                        its = set_intersection_index(curr_yp.data[depth][pc_offset].begin(),
                                             curr_yp.data[depth][pc_offset].end(),
                                             apr_c.y_vec.data[depth][pc_offset].begin(),
-                                            apr_c.y_vec.data[depth][pc_offset].end(), same_index.data[depth][pc_offset].begin());
+                                            apr_c.y_vec.data[depth][pc_offset].end(), same_index_old.data[depth][pc_offset].begin(),same_index.data[depth][pc_offset].begin());
 
-                        same_index.data[depth][pc_offset].resize(it - same_index.data[depth][pc_offset].begin());
-
-                        int sz = same_index.data[depth][pc_offset].size();
-
+                        same_index.data[depth][pc_offset].resize(its[1] - same_index.data[depth][pc_offset].begin());
+                        same_index_old.data[depth][pc_offset].resize(its[0] - same_index_old.data[depth][pc_offset].begin());
 
 
                     } else {
                         same_index.data[depth][pc_offset].resize(0);
+                        same_index_old.data[depth][pc_offset].resize(0);
                     }
                 }
             }
@@ -340,7 +307,7 @@ class APR_Time {
                         add[t].data[depth][pc_offset].resize(std::max(curr_yp.data[depth][pc_offset].size(),
                                                                       apr_c.y_vec.data[depth][pc_offset].size()));
 
-                        it = std::set_difference(apr_c.y_vec.data[depth][pc_offset].begin(),
+                        it = set_difference(apr_c.y_vec.data[depth][pc_offset].begin(),
                                                  apr_c.y_vec.data[depth][pc_offset].end(),curr_yp.data[depth][pc_offset].begin(),
                                                  curr_yp.data[depth][pc_offset].end(),
                                                   add[t].data[depth][pc_offset].begin());
@@ -349,6 +316,44 @@ class APR_Time {
 
 
                     }
+                }
+            }
+        }
+
+
+        //now construct the add_fp and set add to y
+        for(uint64_t depth = (apr_c.y_vec.depth_min);depth <= apr_c.y_vec.depth_max;depth++) {
+            //loop over the resolutions of the structure
+            const unsigned int x_num_ = apr_c.y_vec.x_num[depth];
+            const unsigned int z_num_ = apr_c.y_vec.z_num[depth];
+
+            const unsigned int x_num_min_ = 0;
+            const unsigned int z_num_min_ = 0;
+
+
+//#pragma omp parallel for default(shared) private(z_,x_,j_) if(z_num_*x_num_ > 100)
+            for (z_ = z_num_min_; z_ < z_num_; z_++) {
+                //both z and x are explicitly accessed in the structure
+
+                for (x_ = x_num_min_; x_ < x_num_; x_++) {
+
+                    const unsigned int pc_offset = x_num_*z_ + x_;
+
+                    add_fp[t].data[depth][pc_offset].resize(add[t].data[depth][pc_offset].size());
+
+                    for (int i = 0; i < add[t].data[depth][pc_offset].size(); ++i) {
+
+                        add_fp[t].data[depth][pc_offset][i] = apr_c.particles_int.data[depth][pc_offset][add[t].data[depth][pc_offset][i]];
+
+                    }
+
+                    for (int i = 0; i < add[t].data[depth][pc_offset].size(); ++i) {
+
+                        add[t].data[depth][pc_offset][i] = apr_c.y_vec.data[depth][pc_offset][add[t].data[depth][pc_offset][i]];
+
+                    }
+
+
                 }
             }
         }
@@ -371,6 +376,85 @@ class APR_Time {
 
     }
 
+    void calc_ip_updates(APR<float>& apr_c){
+
+        //
+        //  Calculate the time pulling scheme
+        //
+        //
+
+
+
+        //////////////////
+        ////
+        ////    First compute l_t
+        ////
+        //////////////////
+
+        int z_,x_,j_,y_;
+        //check the same indices
+
+        for(uint64_t depth = (apr_c.y_vec.depth_min);depth <= apr_c.y_vec.depth_max;depth++) {
+            //loop over the resolutions of the structure
+            const unsigned int x_num_ = apr_c.y_vec.x_num[depth];
+            const unsigned int z_num_ = apr_c.y_vec.z_num[depth];
+
+            const unsigned int x_num_min_ = 0;
+            const unsigned int z_num_min_ = 0;
+
+
+//#pragma omp parallel for default(shared) private(z_,x_,j_) if(z_num_*x_num_ > 100)
+            for (z_ = z_num_min_; z_ < z_num_; z_++) {
+                //both z and x are explicitly accessed in the structure
+
+                for (x_ = x_num_min_; x_ < x_num_; x_++) {
+
+                    const unsigned int pc_offset = x_num_*z_ + x_;
+
+                        float L_t;
+                        float l_t;
+
+                        curr_l.data[depth][pc_offset].resize(apr_c.y_vec.data[depth][pc_offset].size());
+
+                        for (int i = 0; i < same_index.data[depth][pc_offset].size(); ++i) {
+
+                            float sigma_c = curr_scale.data[depth][pc_offset][same_index.data[depth][pc_offset][i]];
+                            float sigma_p = prev_scale.data[depth][pc_offset][same_index_old.data[depth][pc_offset][i]];
+                            float f_diff = abs(curr_fp.data[depth][pc_offset][same_index_old.data[depth][pc_offset][i]] - apr_c.particles_int.data[depth][pc_offset][same_index.data[depth][pc_offset][i]]);
+
+                            if(f_diff == 0) {
+                                l_t = 1.0;
+
+                            } else {
+                                L_t = Et*dt*(sigma_c + sigma_p)/(f_diff*2);
+
+                                l_t = ceil(log2(Sigma_t/L_t));
+
+                                l_t = std::max(l_t,1.0f);
+
+                                l_t = std::min(l_t,lt_max);
+
+                                curr_l.data[depth][pc_offset][same_index.data[depth][pc_offset][i]] = l_t;
+
+                            }
+
+
+
+                        }
+
+
+
+                }
+            }
+        }
+
+
+
+
+    }
+
+
+
 
     void integrate_new_t(APR<float>& apr_c,ExtraPartCellData<float>& scale,int t_){
         //
@@ -384,147 +468,21 @@ class APR_Time {
 
         calc_apr_diff(apr_c);
 
+        std::swap(curr_scale.data,scale.data);
+
+        calc_ip_updates(apr_c);
+
+
+
+        // end of time step change over the variables;
         std::swap(curr_yp,apr_c.y_vec);
         std::swap(curr_fp,apr_c.particles_int);
 
-//
-//        %% Handle Change in Sampling
-//
-//        nt = apr_pt.nt;
-//
-//        [apr_pt.add{nt},indx_a] = setdiff(apr.y_p,apr_pt.curr_y);
-//
-//        same_c = logical(ones(size(apr.y_p)));
-//        same_c(indx_a) = false;
-//
-//        apr_pt.add_fp{nt} = apr.f_p(indx_a);
-//
-//        [apr_pt.remove{nt},indx_r] = setdiff(apr_pt.curr_y,apr.y_p);
-//
-//        same_p =  logical(ones(size(apr_pt.curr_y)));
-//        same_p(indx_r) = false;
-//
-//        %% Handle Adaptive Sampling Through Time.
-//
-//                                            %check all those that are not the above!^^
-//
-//                                                                                   y_c = apr.y_p(same_c);
-//        y_p = apr_pt.curr_y(same_p);
-//
-//        f_c = apr.f_p(same_c);
-//        f_p = apr_pt.curr_f(same_p);
-//
-//        %% Compute l
-//        scale = (apr.scale(1) + apr_pt.curr_scale)/2;
-//        L = (apr_pt.Et*scale*apr_pt.dt)./(abs(f_p-f_c));
-//        lt = compute_time_level(L,apr_pt);
-//
-//        % previous variables
-//        lt_p = apr_pt.curr_lt(same_p);
-//        status_p = apr_pt.curr_s(same_p);
-//        t_p = apr_pt.curr_t(same_p);
-//
-//        lt_c = apr_pt.curr_lt(same_p);
-//        status_c = apr_pt.curr_s(same_p);
-//        t_c = apr_pt.curr_t(same_p);
-//
-//        for i = 1:length(lt)
-//        if(lt(i) > lt_p(i))
-//        %propogate new solution for this point
-//                t_c(i) = nt;
-//        status_c(i) = 1;
-//        lt_c(i) = lt(i);
-//
-//        apr_pt.update_fp{nt}(end+1) = f_c(i);
-//        apr_pt.update_y{nt}(end+1) = y_c(i);
-//
-//        else
-//
-//
-//        if (nt - t_p(i)) >= 2^(apr_pt.lt_max-lt_p(i))
-//        if(status_p(i) == 1)
-//        %seed, same level, pad with boundary
-//        status_c(i) = 2;
-//        lt_c(i) = lt_p(i);
-//        t_c(i) = nt;
-//
-//        apr_pt.update_fp{nt}(end+1) = f_c(i);
-//        apr_pt.update_y{nt}(end+1) = y_c(i);
-//
-//        elseif(status_p(i) == 2)
-//        %boundary, same level
-//                lt_c(i) = lt_p(i);
-//        status_c(i) = 3;
-//        t_c(i) = nt;
-//
-//        apr_pt.update_fp{nt}(end+1) = f_c(i);
-//        apr_pt.update_y{nt}(end+1) = y_c(i);
-//
-//        else
-//        %filler, go up a level
-//        status_c(i) = 3;
-//        lt_c(i) = lt_p(i)-1;
-//        t_c(i) = nt;
-//        apr_pt.update_fp{nt}(end+1) = f_c(i);
-//        apr_pt.update_y{nt}(end+1) = y_c(i);
-//
-//        end
-//
-//        else
-//        % do nothing
-//                    lt_c(i) = lt_p(i);
-//        status_c(i) = status_p(i);
-//        t_c(i) = t_p(i);
-//        end
-//
-//        if(lt(i) == lt_p(i))
-//        %stay the same, and set to seed
-//        status_c(i) = 1;
-//        lt_c(i) = lt(i);
-//        end
-//                end
-//
-//        end
-//
-//        % figure(gcf);plot(y_c,lt);hold on
-//                                        % xlim([-10,10])
-//        % ylim([0,apr_pt.lt_max+2])
-//        % %plot(apr.y_p,apr.f_p);
-//        % drawnow();
-//        % hold off
-//               % pause(0.1)
-//
-//               %% update for next time step
-//
-//        apr_pt.nt = nt + 1;
-//
-//        apr_pt.curr_y = apr.y_p;
-//
-//        apr_pt.curr_f = apr.f_p;
-//
-//        apr_pt.curr_scale = apr.scale(1);
-//
-//        apr_pt.curr_lt = zeros(size(apr_pt.curr_f));
-//        apr_pt.curr_s = zeros(size(apr_pt.curr_f));
-//        apr_pt.curr_t = zeros(size(apr_pt.curr_f));
-//
-//        %% Update those the fixed space cells
-//
-//        apr_pt.curr_lt(same_c) = lt_c;
-//
-//        apr_pt.curr_s(same_c) = status_c;
-//
-//        apr_pt.curr_t(same_c) = t_c;
-//
-//        %% Update those that changed
-//
-//        apr_pt.curr_lt(~same_c) = apr_pt.lt_max;
-//
-//        apr_pt.curr_s(~same_c) = 1;
-//
-//        apr_pt.curr_t(~same_c) = nt;
+        std::swap(curr_scale.data,prev_scale.data);
 
-
+        std::swap(curr_l.data,prev_l.data);
+        std::swap(curr_tp.data,prev_tp.data);
+        std::swap(curr_sp.data,prev_sp.data);
 
 
     }

@@ -189,11 +189,7 @@ int main(int argc, char **argv) {
             float total_parts = apr_c.y_vec.structure_size();
             float total_2 = add + same;
 
-            std::cout << "add: " << add << std::endl;
-            std::cout << "remove: " << remove << std::endl;
-            std::cout << "same: " << same << std::endl;
-            std::cout << "total parts: " << total_parts << std::endl;
-            std::cout << "total parts 2: " << total_2 << std::endl;
+
 
 
         }
