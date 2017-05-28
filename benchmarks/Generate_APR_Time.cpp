@@ -173,11 +173,7 @@ int main(int argc, char **argv) {
 
             apr_t.initialize(apr_c,t_dim,Et,T_num,curr_scale);
 
-            //Mesh_data<float> test_scale;
 
-            //interp_img(test_scale,apr_c.y_vec,curr_scale);
-
-            //debug_write(test_scale,"test_scale");
 
         } else {
 
@@ -189,7 +185,11 @@ int main(int argc, char **argv) {
             float total_parts = apr_c.y_vec.structure_size();
             float total_2 = add + same;
 
+            Mesh_data<float> test_scale;
 
+            //interp_img(test_scale,apr_c.y_vec,apr_t.prev_l);
+
+            //debug_write(test_scale,"l_"+ std::to_string(t));
 
 
         }
