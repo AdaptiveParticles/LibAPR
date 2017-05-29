@@ -52,13 +52,13 @@ int main(int argc, char **argv) {
 
 
 
-    bs.obj_size = .75;
-    bs.sig = 1.0;
+    bs.obj_size = 1.5;
+    bs.sig = 2.0;
     //bs.desired_I = 10000;
     float ratio = 10;
     bs.num_objects = 5*pow(bs.x_num,3)/(33400*ratio);
 
-    bs.num_objects = 40;
+    //bs.num_objects = 40;
 
     bs.desired_I = 500;
     //bs.int_scale_max = 1;
@@ -80,11 +80,12 @@ int main(int argc, char **argv) {
     float Et = 0.1;
     std::vector<float> t_dim = {0,1};
 
-    bs.rel_error = 0.1;
-
     generate_objects(syn_image, bs);
 
-    float prop_move = 0.1;
+    float prop_move = bs.rel_error;
+
+    bs.rel_error = 0.1;
+
 
 
     for (int i = 0; i < syn_image.real_objects.size(); ++i) {
