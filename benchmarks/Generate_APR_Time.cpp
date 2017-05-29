@@ -49,7 +49,7 @@ int main(int argc, char **argv) {
 
     process_input(options, syn_image, analysis_data, bs);
 
-    bs.num_objects = options.delta;
+
 
 
     bs.obj_size = .75;
@@ -58,9 +58,9 @@ int main(int argc, char **argv) {
     float ratio = 10;
     bs.num_objects = 5*pow(bs.x_num,3)/(33400*ratio);
 
-    bs.num_objects = 20;
+    bs.num_objects = 40;
 
-    bs.desired_I = 500  ;
+    bs.desired_I = 500;
     //bs.int_scale_max = 1;
     //bs.int_scale_min = 1;
     bs.int_scale_min = 1;
@@ -76,20 +76,29 @@ int main(int argc, char **argv) {
 
 
     //time parameters
-    float T_num = 4 ;
-    float Et = 0.05;
+    float T_num = options.delta ;
+    float Et = 0.1;
     std::vector<float> t_dim = {0,1};
 
     bs.rel_error = 0.1;
 
     generate_objects(syn_image, bs);
 
+    float prop_move = 0.1;
+
+
     for (int i = 0; i < syn_image.real_objects.size(); ++i) {
         cell_model.location[i][0] = syn_image.real_objects[i].location[0];
         cell_model.location[i][1] = syn_image.real_objects[i].location[1];
         cell_model.location[i][2] = syn_image.real_objects[i].location[2];
 
-        cell_model.move_speed[i] = cell_model.gen_rand.rand_num(0,0.1);
+        if((i/bs.num_objects) < prop_move) {
+
+            cell_model.move_speed[i] = cell_model.gen_rand.rand_num(0, 0.05);
+
+        } else {
+            cell_model.move_speed[i] = 0;
+        }
 
         cell_model.theta[i] = cell_model.gen_rand.rand_num(0,M_PI);
         cell_model.phi[i] = cell_model.gen_rand.rand_num(0,2*M_PI);
@@ -98,11 +107,18 @@ int main(int argc, char **argv) {
     }
 
 
+
+
+
     APR_Time apr_t;
 
     set_gaussian_psf(syn_image, bs);
 
     Part_timer timer;
+
+    float total_p = 0;
+    float total_used = 0;
+
 
     for (int t = 0; t < T_num; ++t) {
 
@@ -177,15 +193,69 @@ int main(int argc, char **argv) {
 
         } else {
 
+            APR<float> apr_temp = apr_c;
+
             apr_t.integrate_new_t(apr_c,curr_scale,t);
 
             float add = apr_t.add[t].structure_size();
             float remove =apr_t.remove[t].structure_size();
             float same = apr_t.same_index.structure_size();
-            float total_parts = apr_c.y_vec.structure_size();
-            float total_2 = add + same;
+            float total_parts = pc_struct.get_number_parts();
 
 
+            float update = apr_t.update_fp[t].structure_size();
+
+            float total_2 = add + remove + update;
+
+            std::cout << "add: " << add << std::endl;
+            std::cout << "remove: " << remove << std::endl;
+            std::cout << "same: " << same << std::endl;
+            std::cout << "update: " << update << std::endl;
+            std::cout << "parts: " << total_parts << std::endl;
+            std::cout << "used: " << total_2 << std::endl;
+
+            total_p += total_parts;
+            total_used += total_2;
+
+            analysis_data.add_float_data("add",add);
+            analysis_data.add_float_data("remove",remove);
+            analysis_data.add_float_data("update",update);
+            analysis_data.add_float_data("same",same);
+            analysis_data.add_float_data("total_used",total_used);
+
+
+            Mesh_data<float> test_recon;
+
+            interp_img(test_recon,apr_temp.y_vec,apr_t.parts_recon_prev);
+
+            debug_write(test_recon,"recon_"+ std::to_string((int)t));
+
+            std::string name = "recgt";
+
+            //get the MSE
+            calc_mse(input_img, test_recon, name, analysis_data);
+            compare_E(input_img, test_recon,p_rep.pars, name, analysis_data);
+
+
+//            Mesh_data<float> tp;
+//
+//            interp_img(tp,apr_temp.y_vec,apr_t.prev_tp);
+//
+//            debug_write(tp,"tp_"+ std::to_string((int)t));
+//
+//
+//            Mesh_data<float> sp;
+//
+//            interp_img(sp,apr_temp.y_vec,apr_t.prev_sp);
+//
+//            debug_write(test_recon,"sp_"+ std::to_string((int)t));
+//
+//
+//            Mesh_data<float> lp;
+//
+//            interp_img(lp,apr_temp.y_vec,apr_t.prev_l);
+//
+//            debug_write(test_recon,"lp_"+ std::to_string((int)t));
 
 
         }
@@ -195,7 +265,9 @@ int main(int argc, char **argv) {
 
 
 
-        write_image_tiff(input_img, p_rep.pars.output_path + p_rep.pars.name + "_time_seq_" + std::to_string(t) + ".tif");
+        //write_image_tiff(input_img, p_rep.pars.output_path + p_rep.pars.name + "_time_seq_" + std::to_string(t) + ".tif");
+
+
 
         std::cout << pc_struct.get_number_parts() << std::endl;
 
@@ -205,10 +277,15 @@ int main(int argc, char **argv) {
         //
         ///////////////////////////////
 
-        //produce_apr_analysis(input_img, analysis_data, pc_struct, syn_image_loc, p_rep.pars);
+        produce_apr_analysis(input_img, analysis_data, pc_struct, syn_image_loc, p_rep.pars);
 
 
     }
+
+    std::cout << "used total: " << total_used << std::endl;
+    std::cout << "prats total: " << total_p << std::endl;
+    std::cout << "ratio: " << total_p/total_used << std::endl;
+    std::cout << "total ratio: " << (pow(bs.x_num,3)*T_num)/total_used << std::endl;
 
     //write the analysis output
     analysis_data.write_analysis_data_hdf5();
