@@ -224,11 +224,11 @@ int main(int argc, char **argv) {
             analysis_data.add_float_data("total_used",total_used);
 
 
-            Mesh_data<float> test_recon;
+           Mesh_data<float> test_recon;
 
             interp_img(test_recon,apr_temp.y_vec,apr_t.parts_recon_prev);
 
-            debug_write(test_recon,"recon_"+ std::to_string((int)t));
+            //debug_write(test_recon,"recon_"+ std::to_string((int)t));
 
             std::string name = "recgt";
 
