@@ -111,7 +111,6 @@ int main(int argc, char **argv) {
 
 
 
-
     APR_Time apr_t;
 
     set_gaussian_psf(syn_image, bs);
@@ -121,8 +120,14 @@ int main(int argc, char **argv) {
     float total_p = 0;
     float total_used = 0;
 
+    bool smoothing;
+    if(bs.noise_type == "none") {
 
-    bool smoothing = true;
+        smoothing = false;
+
+    } else {
+        smoothing = true;
+    }
 
     for (int t = 0; t < T_num; ++t) {
 
