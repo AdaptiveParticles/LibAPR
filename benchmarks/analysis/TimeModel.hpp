@@ -22,6 +22,8 @@ public:
     //direction change
     std::vector<float> intensity_speed;
 
+    float dt = 0.1;
+
     Genrand_uni gen_rand;
 
     int num_objects;

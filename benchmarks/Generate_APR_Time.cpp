@@ -86,7 +86,7 @@ int main(int argc, char **argv) {
 
     bs.rel_error = 0.1;
 
-
+    cell_model.dt = 0.1;
 
     for (int i = 0; i < syn_image.real_objects.size(); ++i) {
         cell_model.location[i][0] = syn_image.real_objects[i].location[0];
@@ -95,18 +95,19 @@ int main(int argc, char **argv) {
 
         if((i/bs.num_objects) < prop_move) {
 
-            cell_model.move_speed[i] = cell_model.gen_rand.rand_num(0, 0.05);
+            cell_model.move_speed[i] = cell_model.gen_rand.rand_num(0, 1);
 
         } else {
             cell_model.move_speed[i] = 0;
         }
+
+        //cell_model.move_speed[i] = 0;
 
         cell_model.theta[i] = cell_model.gen_rand.rand_num(0,M_PI);
         cell_model.phi[i] = cell_model.gen_rand.rand_num(0,2*M_PI);
 
         cell_model.direction_speed[i] = cell_model.gen_rand.rand_num(0,0.1);
     }
-
 
 
 
@@ -120,6 +121,8 @@ int main(int argc, char **argv) {
     float total_p = 0;
     float total_used = 0;
 
+
+    bool smoothing = true;
 
     for (int t = 0; t < T_num; ++t) {
 
@@ -167,6 +170,7 @@ int main(int argc, char **argv) {
 
         set_up_part_rep(syn_image_loc, p_rep, bs);
 
+        //p_rep.pars.lambda = 5;
 
         p_rep.timer.verbose_flag = true;
 
@@ -183,6 +187,30 @@ int main(int argc, char **argv) {
 
         ExtraPartCellData<float> curr_scale =  get_scale_parts(apr_c,input_img,p_rep.pars);
         timer.verbose_flag = true;
+
+        if(smoothing) {
+            std::vector<float> filter = {.1, .8, .1};
+            std::vector<float> delta = {p_rep.pars.dy, p_rep.pars.dx, p_rep.pars.dz};
+
+            int num_tap = 4;
+
+            ExtraPartCellData<float> particle_data;
+
+            PartCellData<uint64_t> pc_data;
+            apr_c.part_new.create_pc_data_new(pc_data);
+
+
+            apr_c.part_new.create_particles_at_cell_structure(particle_data);
+
+            //
+            ExtraPartCellData<float> smoothed_parts = adaptive_smooth(pc_data, particle_data, num_tap, filter);
+
+            apr_c.shift_particles_from_cells(smoothed_parts);
+
+            std::swap(smoothed_parts,apr_c.particles_int);
+
+        }
+
 
         timer.start_timer("time_loop");
 
@@ -229,7 +257,7 @@ int main(int argc, char **argv) {
 
             interp_img(test_recon,apr_temp.y_vec,apr_t.parts_recon_prev);
 
-            //debug_write(test_recon,"recon_"+ std::to_string((int)t));
+            debug_write(test_recon,"recon_"+ std::to_string((int)t));
 
             std::string name = "recgt";
 
@@ -237,12 +265,19 @@ int main(int argc, char **argv) {
             calc_mse(input_img, test_recon, name, analysis_data);
             compare_E(input_img, test_recon,p_rep.pars, name, analysis_data);
 
+            debug_write(input_img,"input_time");
 
-//            Mesh_data<float> tp;
-//
-//            interp_img(tp,apr_temp.y_vec,apr_t.prev_tp);
-//
-//            debug_write(tp,"tp_"+ std::to_string((int)t));
+
+
+
+
+
+
+           // Mesh_data<float> tp;
+
+            //interp_img(tp,apr_temp.y_vec,apr_t.prev_tp);
+
+            //debug_write(tp,"tp_"+ std::to_string((int)t));
 //
 //
 //            Mesh_data<float> sp;

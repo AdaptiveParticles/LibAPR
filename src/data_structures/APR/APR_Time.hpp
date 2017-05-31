@@ -458,7 +458,8 @@ class APR_Time {
                                 l_t = 1.0;
 
                             } else {
-                                L_t = Et*dt*(sigma_c)/(f_diff);
+                                //L_t = Et*dt*(sigma_c)/(f_diff);
+                                L_t = Et*dt*(sigma_c + sigma_p)/(2*f_diff);
 
                                 l_t = ceil(log2(Sigma_t/L_t));
 
@@ -617,7 +618,8 @@ class APR_Time {
         ////
         //////////////////////////////
 
-
+        ExtraPartCellData<float> change_loc;
+        change_loc.initialize_structure_parts(apr_c.y_vec);
 
         //now construct the add_fp and set add to y
         for(uint64_t depth = (apr_c.y_vec.depth_min);depth <= apr_c.y_vec.depth_max;depth++) {
@@ -646,6 +648,7 @@ class APR_Time {
 
 
                         curr_l.data[depth][pc_offset][index] = lt_max;
+                        curr_l.data[depth][pc_offset][index] = 1;
 
                         curr_sp.data[depth][pc_offset][index] = 1;
 
@@ -653,6 +656,7 @@ class APR_Time {
 
                         parts_recon.data[depth][pc_offset][index] = apr_c.particles_int.data[depth][pc_offset][index];
 
+                        change_loc.data[depth][pc_offset][index] = 1;
 
                     }
 
@@ -661,6 +665,12 @@ class APR_Time {
             }
         }
 
+
+//        Mesh_data<float> tp;
+//
+//        interp_img(tp,apr_c.y_vec,change_loc);
+//
+//        debug_write(tp,"change_"+ std::to_string((int)t));
 
 
     }

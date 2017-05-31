@@ -479,9 +479,9 @@ void move_objects(SynImage& syn_image_loc,benchmark_settings& bs,TimeModel& t_mo
     for(int o = 0;o < syn_image_loc.real_objects.size();o++) {
 
 
-        float dx = t_model.move_speed[o]*sin(t_model.theta[o])*cos(t_model.phi[o]);
-        float dy = t_model.move_speed[o]*sin(t_model.theta[o])*sin(t_model.phi[o]);
-        float dz = t_model.move_speed[o]*cos(t_model.theta[o]);
+        float dx = t_model.dt*t_model.move_speed[o]*sin(t_model.theta[o])*cos(t_model.phi[o]);
+        float dy =  t_model.dt*t_model.move_speed[o]*sin(t_model.theta[o])*sin(t_model.phi[o]);
+        float dz =  t_model.dt*t_model.move_speed[o]*cos(t_model.theta[o]);
 
         //loop over the different template objects
         syn_image_loc.real_objects[o].location[0] = t_model.location[o][0] + dx;
@@ -493,8 +493,8 @@ void move_objects(SynImage& syn_image_loc,benchmark_settings& bs,TimeModel& t_mo
         t_model.location[o][1] = syn_image_loc.real_objects[o].location[1];
         t_model.location[o][2] = syn_image_loc.real_objects[o].location[2];
 
-        t_model.theta[o] += t_model.gen_rand.rand_num(0.0,1.0)*t_model.direction_speed[o];
-        t_model.phi[o] += t_model.gen_rand.rand_num(0.0,1.0)*t_model.direction_speed[o];
+        t_model.theta[o] += t_model.dt*t_model.gen_rand.rand_num(0.0,1.0)*t_model.direction_speed[o];
+        t_model.phi[o] += t_model.dt*t_model.gen_rand.rand_num(0.0,1.0)*t_model.direction_speed[o];
 
     }
 
