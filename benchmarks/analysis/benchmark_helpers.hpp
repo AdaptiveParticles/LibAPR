@@ -604,6 +604,9 @@ void process_input(cmdLineOptionsBench& options,SynImage& syn_image,AnalysisData
 
     if(options.rel_error > 0){
         bs.rel_error = options.rel_error;
+    } else {
+        std::cout << "negative rel_error" << std::endl;
+        bs.rel_error = options.rel_error;
     }
 
     if(options.lambda > 0){

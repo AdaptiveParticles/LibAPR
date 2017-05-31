@@ -101,8 +101,9 @@ int main(int argc, char **argv) {
             cell_model.move_speed[i] = 0;
         }
 
-        //cell_model.move_speed[i] = 0;
-
+        if(prop_move <= 0) {
+            cell_model.move_speed[i] = 0;
+        }
         cell_model.theta[i] = cell_model.gen_rand.rand_num(0,M_PI);
         cell_model.phi[i] = cell_model.gen_rand.rand_num(0,2*M_PI);
 
