@@ -60,7 +60,7 @@ int main(int argc, char **argv) {
 
     //bs.num_objects = 40;
 
-    bs.desired_I = 500;
+    bs.desired_I = 1000;
     //bs.int_scale_max = 1;
     //bs.int_scale_min = 1;
     bs.int_scale_min = 1;
@@ -77,7 +77,7 @@ int main(int argc, char **argv) {
 
     //time parameters
     float T_num = options.delta ;
-    float Et = 0.1;
+    float Et = 0.2;
     std::vector<float> t_dim = {0,1};
 
     generate_objects(syn_image, bs);
@@ -85,6 +85,7 @@ int main(int argc, char **argv) {
     float prop_move = bs.rel_error;
 
     bs.rel_error = 0.1;
+    syn_image.global_trans.const_shift = 1000;
 
     cell_model.dt = 0.1;
 
@@ -120,6 +121,7 @@ int main(int argc, char **argv) {
 
     float total_p = 0;
     float total_used = 0;
+    float total_addr = 0;
 
     bool smoothing;
     if(bs.noise_type == "none") {
@@ -129,6 +131,9 @@ int main(int argc, char **argv) {
     } else {
         smoothing = true;
     }
+
+    smoothing = false;
+
 
     for (int t = 0; t < T_num; ++t) {
 
@@ -182,19 +187,35 @@ int main(int argc, char **argv) {
 
         p_rep.pars.pull_scheme = 2;
 
+        p_rep.pars.var_th = 500;
+
 
         PartCellStructure<float, uint64_t> pc_struct;
 
+       // p_rep.pars.var_th = 20000;
 
         bench_get_apr(input_img, p_rep, pc_struct, analysis_data);
 
 
-        APR<float> apr_c(pc_struct);
+        APR<float> apr_c;
 
-        ExtraPartCellData<float> curr_scale =  get_scale_parts(apr_c,input_img,p_rep.pars);
-        timer.verbose_flag = true;
+
+        Mesh_data<float> input_image_float;
+
+        input_image_float.initialize(input_img.y_num,input_img.x_num,input_img.z_num);
+
+        std::copy(input_img.mesh.begin(),input_img.mesh.end(),input_image_float.mesh.begin());
+
+        PartCellStructure<float,uint64_t> pc_struct_new = compute_guided_apr(input_image_float,pc_struct,p_rep);
 
         if(smoothing) {
+
+
+            apr_c.init(pc_struct_new);
+            //apr_c.init(pc_struct);
+
+            //std::swap(apr_new,apr_c);
+
             std::vector<float> filter = {.1, .8, .1};
             std::vector<float> delta = {p_rep.pars.dy, p_rep.pars.dx, p_rep.pars.dz};
 
@@ -215,8 +236,12 @@ int main(int argc, char **argv) {
 
             std::swap(smoothed_parts,apr_c.particles_int);
 
+        } else {
+            apr_c.init(pc_struct);
         }
 
+        ExtraPartCellData<float> curr_scale =  get_scale_parts(apr_c,input_img,p_rep.pars);
+        timer.verbose_flag = true;
 
         timer.start_timer("time_loop");
 
@@ -251,6 +276,7 @@ int main(int argc, char **argv) {
 
             total_p += total_parts;
             total_used += total_2;
+            total_addr += add + remove;
 
             analysis_data.add_float_data("add",add);
             analysis_data.add_float_data("remove",remove);
@@ -277,13 +303,11 @@ int main(int argc, char **argv) {
 
 
 
+            Mesh_data<float> tp;
 
+            interp_img(tp,apr_temp.y_vec,apr_t.prev_scale);
 
-           // Mesh_data<float> tp;
-
-            //interp_img(tp,apr_temp.y_vec,apr_t.prev_tp);
-
-            //debug_write(tp,"tp_"+ std::to_string((int)t));
+            debug_write(tp,"scale_"+ std::to_string((int)t));
 //
 //
 //            Mesh_data<float> sp;
@@ -327,6 +351,7 @@ int main(int argc, char **argv) {
     std::cout << "used total: " << total_used << std::endl;
     std::cout << "prats total: " << total_p << std::endl;
     std::cout << "ratio: " << total_p/total_used << std::endl;
+    std::cout << "ratio: " << total_p/total_addr << std::endl;
     std::cout << "total ratio: " << (pow(bs.x_num,3)*T_num)/total_used << std::endl;
 
     //write the analysis output

@@ -26,8 +26,16 @@ public:
 
     PartCellData<uint64_t> pc_data;
 
-    APR(PartCellStructure<float,uint64_t>& pc_struct){
+    APR(){
 
+    }
+
+    APR(PartCellStructure<float,uint64_t>& pc_struct){
+        init(pc_struct);
+
+    }
+
+    void init(PartCellStructure<float,uint64_t>& pc_struct){
         part_new.initialize_from_structure(pc_struct);
 
         create_y_data();
@@ -38,12 +46,9 @@ public:
 
         part_new.initialize_from_structure(pc_struct);
 
-    }
-
-    APR(){
-
 
     }
+
 
     void init_pc_data(){
 

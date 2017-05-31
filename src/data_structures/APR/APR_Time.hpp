@@ -666,11 +666,11 @@ class APR_Time {
         }
 
 
-//        Mesh_data<float> tp;
-//
-//        interp_img(tp,apr_c.y_vec,change_loc);
-//
-//        debug_write(tp,"change_"+ std::to_string((int)t));
+       Mesh_data<float> tp;
+
+        interp_img(tp,apr_c.y_vec,change_loc);
+
+        debug_write(tp,"change_"+ std::to_string((int)t));
 
 
     }
