@@ -62,15 +62,17 @@ int main(int argc, char **argv) {
     //////////////////////////////////////////////////////
 
     int num_obj_min =1;
-    int num_obj =40;
+    int num_obj =100;
     std::vector<int> number_obj;
-    int step = 1;
+    int step = 4;
 
     //number_obj.push_back(num_obj);
 
     for(int i = num_obj_min; i <= num_obj ; i = i + step ){
         number_obj.push_back(i);
     }
+
+    //number_obj = {40};
 
     //////////////////////////////////////////////////////////
     //
@@ -96,7 +98,15 @@ int main(int argc, char **argv) {
         //mean_int.push_back(i);
     }
 
-    mean_int = {500};
+    mean_int = {1,10,30};
+
+    //mean_int = {30};
+
+    bs.int_scale_min = 1;
+    bs.int_scale_max = 10;
+
+    analysis_data.add_float_data("int_scale_min",bs.int_scale_min);
+    analysis_data.add_float_data("int_scale_max",bs.int_scale_max);
 
     min_mean = 15;
     max_mean = 50;
@@ -125,9 +135,11 @@ int main(int argc, char **argv) {
     //}
 
     float sig_single = 2;
-    bs.obj_size = 1.5;
+    bs.obj_size = 3;
 
-    sig_vec = {1.5};
+    analysis_data.add_float_data("obj_size",bs.obj_size);
+
+    sig_vec = {2};
 
     int N_par1 = (int)number_obj.size(); // this many different parameter values to be run
     int N_par2 = (int)mean_int.size();
@@ -142,7 +154,7 @@ int main(int argc, char **argv) {
         //////////////////////////////////////////////////////////////////
         //bs.sig = sig_vec[m];
         bs.rel_error = .1;
-        bs.sig = 1.5;
+        bs.sig = 2.0;
 
         set_gaussian_psf(syn_image,bs);
 
@@ -168,6 +180,8 @@ int main(int argc, char **argv) {
                 SynImage syn_image_loc = syn_image;
 
                 Mesh_data<uint16_t> input_image;
+
+                bs.num_objects = number_obj[j];
 
                 generate_objects(syn_image_loc, bs);
 
@@ -200,7 +214,7 @@ int main(int argc, char **argv) {
                     // SET UP THE DOMAIN SIZE
 
 
-                    bs.num_objects = number_obj[j];
+
 
                     analysis_data.add_float_data("num_objects",bs.num_objects);
 
