@@ -79,7 +79,7 @@ int main(int argc, char **argv) {
 
     //bs.sig = 5;
 
-    bs.rel_error = 0.1;
+    bs.rel_error = 0.000000001;
 
     // Get the APR
     //bs.num_objects = 10;

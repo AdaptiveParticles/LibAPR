@@ -204,14 +204,14 @@ int main(int argc, char **argv) {
 
         input_image_float.initialize(input_img.y_num,input_img.x_num,input_img.z_num);
 
-        std::copy(input_img.mesh.begin(),input_img.mesh.end(),input_image_float.mesh.begin());
+       /// std::copy(input_img.mesh.begin(),input_img.mesh.end(),input_image_float.mesh.begin());
 
-        PartCellStructure<float,uint64_t> pc_struct_new = compute_guided_apr(input_image_float,pc_struct,p_rep);
+       // PartCellStructure<float,uint64_t> pc_struct_new = compute_guided_apr(input_image_float,pc_struct,p_rep);
 
         if(smoothing) {
 
 
-            apr_c.init(pc_struct_new);
+           // apr_c.init(pc_struct_new);
             //apr_c.init(pc_struct);
 
             //std::swap(apr_new,apr_c);
