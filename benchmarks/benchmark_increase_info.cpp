@@ -72,7 +72,7 @@ int main(int argc, char **argv) {
         number_obj.push_back(i);
     }
 
-    //number_obj = {1,20,40};
+    number_obj = {40};
 
     //////////////////////////////////////////////////////////
     //
@@ -100,7 +100,7 @@ int main(int argc, char **argv) {
 
     mean_int = {1,10,30};
 
-    //mean_int = {30};
+    mean_int = {30};
 
     bs.int_scale_min = 1;
     bs.int_scale_max = 10;
@@ -154,8 +154,6 @@ int main(int argc, char **argv) {
         //////////////////////////////////////////////////////////////////
         //bs.sig = sig_vec[m];
 
-
-
         bs.sig = sig_vec[m];
         bs.rel_error = .1;
 
@@ -166,9 +164,6 @@ int main(int argc, char **argv) {
         /////////////////////////////////////////////
         // GENERATE THE OBJECT TEMPLATE
         //////////////////////////////////////////////
-
-
-
 
         //add the basic sphere as the standard template
 
@@ -212,6 +207,12 @@ int main(int argc, char **argv) {
 
                     bs.num_objects = number_obj[j];
 
+                    analysis_data.add_float_data("num_objects",bs.num_objects);
+
+                    bs.desired_I = mean_int[p]*sqrt(bs.shift);
+
+                    analysis_data.add_float_data("desired_I",bs.desired_I);
+
                     generate_objects(syn_image_loc, bs);
 
                     ///////////////////////////////
@@ -228,11 +229,7 @@ int main(int argc, char **argv) {
 
                     copy_mesh_data_structures(gen_image, input_img);
 
-                    analysis_data.add_float_data("num_objects",bs.num_objects);
 
-                    bs.desired_I = mean_int[p]*sqrt(bs.shift);
-
-                    analysis_data.add_float_data("desired_I",bs.desired_I);
 
                     //Generate objects
 
