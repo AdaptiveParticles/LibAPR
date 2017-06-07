@@ -175,6 +175,8 @@ int main(int argc, char **argv) {
 
                     set_up_benchmark_defaults(syn_image_loc, bs);
 
+                    bs.sig = sig_vec[p];
+
                     update_domain(syn_image_loc,bs);
                     syn_image_loc.object_templates.push_back(basic_object);
 

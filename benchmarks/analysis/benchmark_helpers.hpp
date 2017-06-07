@@ -284,7 +284,7 @@ struct benchmark_settings{
 
     float linear_shift = 0;
 
-    float desired_I = 0;
+    float desired_I = sqrt(1000)*10;
     float N_repeats = 1;
     float num_objects = 1;
     float sig = 1;
@@ -292,7 +292,7 @@ struct benchmark_settings{
     float int_scale_min = 1;
     float int_scale_max = 10;
 
-    float rel_error = 0.085;
+    float rel_error = 0.1;
 
     float obj_size = 4;
 
@@ -364,7 +364,7 @@ void set_up_benchmark_defaults(SynImage& syn_image,benchmark_settings& bs){
     syn_image.global_trans.grad_z = bs.linear_shift*gen_rand.rand_num(-min_grad,max_grad);
 
 
-    bs.desired_I = sqrt(background)*10;
+
 
     set_gaussian_psf(syn_image,bs);
 

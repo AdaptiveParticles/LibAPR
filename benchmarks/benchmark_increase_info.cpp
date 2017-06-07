@@ -72,7 +72,7 @@ int main(int argc, char **argv) {
         number_obj.push_back(i);
     }
 
-    //number_obj = {40};
+    //number_obj = {1,20,40};
 
     //////////////////////////////////////////////////////////
     //
@@ -153,20 +153,22 @@ int main(int argc, char **argv) {
         //  PSF properties
         //////////////////////////////////////////////////////////////////
         //bs.sig = sig_vec[m];
-        bs.rel_error = .1;
-        bs.sig = 2.0;
 
-        set_gaussian_psf(syn_image,bs);
+
+
+        bs.sig = sig_vec[m];
+        bs.rel_error = .1;
+
+        obj_properties obj_prop(bs);
+
+        Object_template basic_object = get_object_template(options, obj_prop);
 
         /////////////////////////////////////////////
         // GENERATE THE OBJECT TEMPLATE
         //////////////////////////////////////////////
 
-        obj_properties obj_prop(bs);
 
-        Object_template  basic_object = get_object_template(options,obj_prop);
 
-        syn_image.object_templates.push_back(basic_object);
 
         //add the basic sphere as the standard template
 
@@ -175,29 +177,10 @@ int main(int argc, char **argv) {
 
         for (int p = 0; p < N_par2;p++){
 
+
             for (int j = 0;j < N_par1;j++) {
 
-                SynImage syn_image_loc = syn_image;
 
-                Mesh_data<uint16_t> input_image;
-
-                bs.num_objects = number_obj[j];
-
-                generate_objects(syn_image_loc, bs);
-
-                ///////////////////////////////
-                //
-                //  Generate the image
-                //
-                ////////////////////////////////
-
-                MeshDataAF<uint16_t> gen_image;
-
-                syn_image_loc.generate_syn_image(gen_image);
-
-                Mesh_data<uint16_t> input_img;
-
-                copy_mesh_data_structures(gen_image, input_img);
 
                 for (int i = 0; i < bs.N_repeats; i++) {
 
@@ -212,9 +195,38 @@ int main(int argc, char **argv) {
                     /////////////////////////////////////////
                     //////////////////////////////////////////
                     // SET UP THE DOMAIN SIZE
+                    SynImage syn_image_loc ;
+
+                    set_up_benchmark_defaults(syn_image_loc, bs);
+
+                    bs.sig = sig_vec[m];
+                    bs.rel_error = .1;
+
+                    update_domain(syn_image_loc,bs);
+                    set_gaussian_psf(syn_image_loc,bs);
+
+                    syn_image_loc.object_templates.push_back(basic_object);
 
 
+                    Mesh_data<uint16_t> input_image;
 
+                    bs.num_objects = number_obj[j];
+
+                    generate_objects(syn_image_loc, bs);
+
+                    ///////////////////////////////
+                    //
+                    //  Generate the image
+                    //
+                    ////////////////////////////////
+
+                    MeshDataAF<uint16_t> gen_image;
+
+                    syn_image_loc.generate_syn_image(gen_image);
+
+                    Mesh_data<uint16_t> input_img;
+
+                    copy_mesh_data_structures(gen_image, input_img);
 
                     analysis_data.add_float_data("num_objects",bs.num_objects);
 
