@@ -897,6 +897,7 @@ void compare_E(Mesh_data<S>& org_img,Mesh_data<T>& rec_img,Proc_par& pars,std::s
     double inf_norm = 0;
     uint64_t counter = 0;
     double MSE = 0;
+    double L1 = 0;
 
     //ignored boundary layer
     int b = 0;
@@ -911,6 +912,7 @@ void compare_E(Mesh_data<S>& org_img,Mesh_data<T>& rec_img,Proc_par& pars,std::s
 
                 if(variance.mesh[j*x_num_r*y_num_r + i*y_num_r + k] < 60000) {
                     MSE += pow(org_img.mesh[j*x_num_o*y_num_o + i*y_num_o + k] - rec_img.mesh[j*x_num_r*y_num_r + i*y_num_r + k],2);
+                    L1 += abs(org_img.mesh[j*x_num_o*y_num_o + i*y_num_o + k] - rec_img.mesh[j*x_num_r*y_num_r + i*y_num_r + k]);
 
                     mean += val;
                     inf_norm = std::max(inf_norm, val);
@@ -922,6 +924,7 @@ void compare_E(Mesh_data<S>& org_img,Mesh_data<T>& rec_img,Proc_par& pars,std::s
 
     mean = mean/(1.0*counter);
     MSE = MSE/(1*counter);
+    L1 = L1/(1*counter);
 
     //debug_write(SE,name + "E_diff");
 
@@ -964,6 +967,7 @@ void compare_E(Mesh_data<S>& org_img,Mesh_data<T>& rec_img,Proc_par& pars,std::s
     double PSNR = 10*log10(64000.0/MSE);
 
     analysis_data.add_float_data(name+"_vMSE",MSE);
+    analysis_data.add_float_data(name+"_vL1",L1);
     analysis_data.add_float_data(name+"_vMSE_sd",sqrt(MSE_var));
     analysis_data.add_float_data(name+"_vPSNR",PSNR);
 

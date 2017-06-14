@@ -42,7 +42,7 @@ int main(int argc, char **argv) {
     benchmark_settings bs;
 
 
-    bs.sig = 1.5;
+    bs.sig = 2;
 
     set_up_benchmark_defaults(syn_image,bs);
 
@@ -51,7 +51,7 @@ int main(int argc, char **argv) {
 
     std::cout << "Generating Templates" << std::endl;
 
-    bs.obj_size = 1.5;
+    bs.obj_size = 3;
 
     obj_properties obj_prop(bs);
 
@@ -81,9 +81,9 @@ int main(int argc, char **argv) {
 
     std::vector<int> image_size;
 
-    float min_size = 24;
+    float min_size = 100;
     float max_size = options.image_size;
-    float delta = 2;
+    float delta = 50;
 
     for (int i = min_size; i < max_size; i = i + delta) {
         image_size.push_back(i);

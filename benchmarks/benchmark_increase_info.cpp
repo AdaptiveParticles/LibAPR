@@ -72,7 +72,7 @@ int main(int argc, char **argv) {
         number_obj.push_back(i);
     }
 
-    //number_obj = {40};
+    number_obj = {100};
 
     //////////////////////////////////////////////////////////
     //
@@ -100,7 +100,7 @@ int main(int argc, char **argv) {
 
     mean_int = {1,10,30};
 
-   // mean_int = {30};
+    mean_int = {10};
 
     bs.int_scale_min = 1;
     bs.int_scale_max = 10;

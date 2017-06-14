@@ -233,6 +233,7 @@ void calc_mse(Mesh_data<S>& org_img,Mesh_data<T>& rec_img,std::string name,Analy
     uint64_t i = 0;
 
     double MSE = 0;
+    double L1 = 0;
 
 #pragma omp parallel for default(shared) private(j,i,k) reduction(+: MSE)
     for(j = 0; j < z_num_o;j++){
@@ -241,13 +242,13 @@ void calc_mse(Mesh_data<S>& org_img,Mesh_data<T>& rec_img,std::string name,Analy
             for(k = 0;k < y_num_o;k++){
 
                 MSE += pow(org_img.mesh[j*x_num_o*y_num_o + i*y_num_o + k] - rec_img.mesh[j*x_num_r*y_num_r + i*y_num_r + k],2);
-
+                L1 += abs(org_img.mesh[j*x_num_o*y_num_o + i*y_num_o + k] - rec_img.mesh[j*x_num_r*y_num_r + i*y_num_r + k]);
             }
         }
     }
 
     MSE = MSE/(z_num_o*x_num_o*y_num_o*1.0);
-
+    L1 = L1/(z_num_o*x_num_o*y_num_o*1.0);
 
     // Mesh_data<S> SE;
     //SE.initialize(y_num_o,x_num_o,z_num_o,0);
@@ -276,6 +277,7 @@ void calc_mse(Mesh_data<S>& org_img,Mesh_data<T>& rec_img,std::string name,Analy
     float sd = sqrt(var);
 
     //commit results
+    analysis_data.add_float_data(name + "_L1",L1);
     analysis_data.add_float_data(name + "_MSE",MSE);
     analysis_data.add_float_data(name +"_MSE_SE",se);
     analysis_data.add_float_data(name +"_PSNR",PSNR);
