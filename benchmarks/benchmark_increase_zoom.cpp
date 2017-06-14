@@ -87,7 +87,7 @@ int main(int argc, char **argv) {
     //syn_image.noise_properties.noise_type = "none";
 
     int N_par = (int)sampling_rate.size();
-
+    set_up_benchmark_defaults(syn_image,bs);
 
     float sig =2;
 
@@ -132,6 +132,8 @@ int main(int argc, char **argv) {
             Object_template  basic_object = get_object_template(options,obj_prop);
 
             syn_image_loc.object_templates.push_back(basic_object);
+
+            syn_image_loc.noise_properties.noise_type = "gaussian";
 
 
             //af::sync();
