@@ -89,7 +89,7 @@ int main(int argc, char **argv) {
         image_size.push_back(i);
     }
 
-    bs.num_objects = 2;
+    bs.num_objects = 10;
 
     bs.rel_error = 0.1;
 
