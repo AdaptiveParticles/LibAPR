@@ -120,7 +120,7 @@ public:
 
         var_rescale = 1.0/(0.02201*pow(rescale_par,3.0) - 0.146*pow(rescale_par,2.0) + 0.3521*rescale_par - 0.09969);
 
-        if(real_sigmas[0] < 0.7615){
+        if(real_sigmas[0] < 0.62){
 
             var_rescale = 1.0/(0.79*pow(real_sigmas[0],3.0) - 1.7*pow(real_sigmas[0],2.0) + .87*pow(real_sigmas[0],1.0)-.012);
 
