@@ -903,6 +903,8 @@ void check_var(Mesh_data<S>& org_img,Proc_par& pars,std::string name,AnalysisDat
     analysis_data.add_float_data("img_val",img_val);
     analysis_data.add_float_data("var_val",var_val);
 
+    std::cout << var_val << " " << img_val << std::endl;
+
 
 };
 
