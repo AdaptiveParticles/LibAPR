@@ -199,6 +199,9 @@ int main(int argc, char **argv) {
 
             // Get the APR
 
+            p_rep.pars.var_th = 1;
+            p_rep.pars.lambda = 1.0*(bs.x_num/50);
+
             PartCellStructure<float,uint64_t> pc_struct;
 
             bench_get_apr(input_img,p_rep,pc_struct,analysis_data);
@@ -208,7 +211,7 @@ int main(int argc, char **argv) {
             //  Calculate analysis of the result
             //
             ///////////////////////////////
-            p_rep.pars.var_th = 1;
+
 
 
             produce_apr_analysis(input_img,analysis_data,pc_struct,syn_image_loc,p_rep.pars);
