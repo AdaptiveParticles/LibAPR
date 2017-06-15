@@ -60,7 +60,7 @@ int main(int argc, char **argv) {
     /////////////////////////////////////////////////////////
 
     float image_size_max = options.image_size;
-    float image_size_min = 50;
+    float image_size_min = 256;
 
     std::vector<float> sampling_rate;
 
@@ -89,8 +89,7 @@ int main(int argc, char **argv) {
     int N_par = (int)sampling_rate.size();
     set_up_benchmark_defaults(syn_image,bs);
 
-    float sig =5;
-
+    float sig =3;
 
 
 
@@ -117,11 +116,11 @@ int main(int argc, char **argv) {
             bs.y_num = round(real_domain_size/bs.sampling_delta);
             bs.z_num = round(real_domain_size/bs.sampling_delta);
 
-            update_domain(syn_image,bs);
+            update_domain(syn_image_loc,bs);
 
             bs.sig = sig*sampling_rate.back()/sampling_rate[j];
 
-            set_gaussian_psf(syn_image,bs);
+            set_gaussian_psf(syn_image_loc,bs);
 
             std::cout << "Generating Templates" << std::endl;
 
@@ -199,7 +198,7 @@ int main(int argc, char **argv) {
             //  Calculate analysis of the result
             //
             ///////////////////////////////
-            p_rep.pars.var_th = bs.desired_I;
+            p_rep.pars.var_th = 1;
 
 
             produce_apr_analysis(input_img,analysis_data,pc_struct,syn_image_loc,p_rep.pars);
@@ -209,6 +208,9 @@ int main(int argc, char **argv) {
 
         }
     }
+
+
+
 
 
     //write the analysis output

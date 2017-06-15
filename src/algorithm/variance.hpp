@@ -53,7 +53,7 @@ public:
         max_filter_len3 = 0;
 
 
-        max_filter_size = 1000;
+        max_filter_size = round(par_.xdim/(par_.dx*2.0)-1);
 
         cut_th = 0.01;
 
@@ -113,6 +113,9 @@ public:
 
 
         float rescale_par = pow(window_rel1*window_rel2*window_rel3,1.0/3.0);
+
+        window_ref = rescale_par;
+
 
 
         var_rescale = 1.0/(0.02201*pow(rescale_par,3.0) - 0.146*pow(rescale_par,2.0) + 0.3521*rescale_par - 0.09969);

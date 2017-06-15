@@ -867,6 +867,46 @@ void compare_reconstruction_to_original(Mesh_data<S>& org_img,PartCellStructure<
     //compare_E(org_img,rec_img,options,name,analysis_data);
 
 }
+
+template<typename S>
+void check_var(Mesh_data<S>& org_img,Proc_par& pars,std::string name,AnalysisData& analysis_data,SynImage& syn_image){
+    //
+    //
+    //  Bevan Cheeseman 2017
+    //
+    //  Rescaling check
+    //
+
+
+    Mesh_data<float> variance;
+
+    get_variance(org_img,variance,pars);
+
+    Map_calc_cpu calc_map(0,pars);
+
+    calc_map.set_up_var_filters_3D();
+
+    analysis_data.add_float_data("re_scale",calc_map.var_rescale);
+
+    analysis_data.add_float_data("window_ref",calc_map.window_ref);
+
+    analysis_data.add_float_data("window_size",calc_map.var_window_size1);
+
+    float cen_offset = round(1.5/syn_image.sampling_properties.sampling_delta[0]);
+
+    float mid = round(variance.y_num/2);
+
+    float var_val = variance(mid + cen_offset,mid + cen_offset,mid + cen_offset);
+    float img_val = org_img(mid ,mid ,mid ) - syn_image.global_trans.const_shift;
+
+
+    analysis_data.add_float_data("img_val",img_val);
+    analysis_data.add_float_data("var_val",var_val);
+
+
+};
+
+
 template<typename S,typename T>
 void compare_E(Mesh_data<S>& org_img,Mesh_data<T>& rec_img,Proc_par& pars,std::string name,AnalysisData& analysis_data){
 
@@ -1291,6 +1331,7 @@ void produce_apr_analysis(Mesh_data<T>& input_image,AnalysisData& analysis_data,
 
     }
 
+    check_var(input_image,pars,"test",analysis_data,syn_image);
 
     if(analysis_data.debug == true){
 
