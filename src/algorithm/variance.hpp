@@ -168,11 +168,11 @@ public:
 
         if(real_sigmas[0] < 5.5){
 
-            var_rescale = 710*pow(real_sigmas[0],3.0) - 1500*pow(real_sigmas[0],2.0) + 810*pow(real_sigmas[0],1.0)-11;
+            var_rescale = 1.0/(0.79*pow(real_sigmas[0],3.0) - 1.7*pow(real_sigmas[0],2.0) + .87*pow(real_sigmas[0],1.0)-.012);
 
 
         } else {
-            var_rescale = 64 - 23*real_sigmas[0];
+            var_rescale = .015 + .046*real_sigmas[0];
         }
 
         //var_rescale = 6.9541;
