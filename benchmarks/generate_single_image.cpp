@@ -49,7 +49,7 @@ int main(int argc, char **argv) {
 
 
     bs.obj_size = 3;
-    bs.sig = 6.0;
+    bs.sig = 3.0;
     //bs.desired_I = 10000;
     float ratio = 10;
     bs.num_objects = 5*pow(bs.x_num,3)/(33400*ratio);

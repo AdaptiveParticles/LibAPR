@@ -117,16 +117,18 @@ public:
         window_ref = rescale_par;
 
 
+        float sig = pow(real_sigmas[0]*real_sigmas[1]*real_sigmas[2],1.0/3.0);
+
 
         var_rescale = 1.0/(0.02201*pow(rescale_par,3.0) - 0.146*pow(rescale_par,2.0) + 0.3521*rescale_par - 0.09969);
 
-        if(real_sigmas[0] < 0.62){
+        if(sig < 0.73){
 
-            var_rescale = 1.0/(0.79*pow(real_sigmas[0],3.0) - 1.7*pow(real_sigmas[0],2.0) + .87*pow(real_sigmas[0],1.0)-.012);
+            var_rescale = 1.0/(0.79*pow(sig,3.0) - 1.7*pow(sig,2.0) + .87*pow(sig,1.0)-.012);
 
 
         } else {
-            var_rescale = 1.0/(.015 + .046*real_sigmas[0]);
+            var_rescale = 1.0/(.015 + .046*sig);
         }
 
         //var_rescale = 6.9541;
