@@ -193,7 +193,7 @@ int main(int argc, char **argv) {
             //
             //////////////////////////////
 
-            bs.lambda = 5*pow(bs.x_num/50,3);
+            bs.lambda = 20*pow(bs.x_num/50,2);
 
             Part_rep p_rep;
 

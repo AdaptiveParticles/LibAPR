@@ -589,7 +589,7 @@ void bspline_filt_rec_y(Mesh_data<T>& image,float lambda,float tol){
     const int x_num = image.x_num;
     const int y_num = image.y_num;
 
-    const int k0 = (ceil(std::abs(log(tol)/log(rho))));
+    const int k0 = std::min((int)(ceil(std::abs(log(tol)/log(rho)))),z_num);
 
     float temp = 0;
     float temp1 = 0;
@@ -779,7 +779,7 @@ void bspline_filt_rec_x(Mesh_data<T>& image,float lambda,float tol){
     const int x_num = image.x_num;
     const int y_num = image.y_num;
 
-    const int k0 = (ceil(std::abs(log(tol)/log(rho))));
+    const int k0 = std::min((int)(ceil(std::abs(log(tol)/log(rho)))),z_num);
 
     const float norm_factor = pow((1 - 2.0*rho*cos(omg) + pow(rho,2)),2);
 
@@ -991,7 +991,7 @@ void bspline_filt_rec_z(Mesh_data<T>& image,float lambda,float tol){
     const int x_num = image.x_num;
     const int y_num = image.y_num;
 
-    const int k0 = (ceil(std::abs(log(tol)/log(rho))));
+    const int k0 = std::min((int)(ceil(std::abs(log(tol)/log(rho)))),z_num);
 
     const float norm_factor = pow((1 - 2.0*rho*cos(omg) + pow(rho,2)),2);
 

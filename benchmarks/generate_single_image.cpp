@@ -83,7 +83,7 @@ int main(int argc, char **argv) {
 
     // Get the APR
     //bs.num_objects = 10;
-
+    bs.lambda = 50;
 
 
     set_gaussian_psf(syn_image_loc, bs);
