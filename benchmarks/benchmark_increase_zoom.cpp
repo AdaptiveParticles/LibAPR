@@ -193,6 +193,8 @@ int main(int argc, char **argv) {
             //
             //////////////////////////////
 
+            bs.lambda = 1.0*(bs.x_num/50);
+
             Part_rep p_rep;
 
             set_up_part_rep(syn_image_loc,p_rep,bs);
@@ -200,7 +202,7 @@ int main(int argc, char **argv) {
             // Get the APR
 
             p_rep.pars.var_th = 1;
-            p_rep.pars.lambda = 1.0*(bs.x_num/50);
+
 
             PartCellStructure<float,uint64_t> pc_struct;
 
