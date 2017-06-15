@@ -166,6 +166,15 @@ public:
 
         var_rescale = 1.0/(0.02201*pow(rescale_par,3.0) - 0.146*pow(rescale_par,2.0) + 0.3521*rescale_par - 0.09969);
 
+        if(real_sigmas[0] < 5.5){
+
+            var_rescale = 710*pow(real_sigmas[0],3.0) - 1500*pow(real_sigmas[0],2.0) + 810*pow(real_sigmas[0],1.0)-11;
+
+
+        } else {
+            var_rescale = 64 - 23*real_sigmas[0];
+        }
+
         //var_rescale = 6.9541;
         //var_rescale = 7.1748;
 
