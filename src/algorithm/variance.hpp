@@ -162,6 +162,7 @@ public:
 
         float rescale_par = pow(window_rel1*window_rel2*window_rel3,1.0/3.0);
 
+        window_ref = rescale_par;
 
         var_rescale = 1.0/(0.02201*pow(rescale_par,3.0) - 0.146*pow(rescale_par,2.0) + 0.3521*rescale_par - 0.09969);
 
