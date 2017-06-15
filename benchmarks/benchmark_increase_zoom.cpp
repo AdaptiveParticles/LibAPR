@@ -84,7 +84,7 @@ int main(int argc, char **argv) {
 
     //min mean
     float min_sig = 1;
-    float max_sig = 10;
+    float max_sig = 15;
     float num_steps = bs.N_repeats;
 
     float del = (max_sig - min_sig) / num_steps;
