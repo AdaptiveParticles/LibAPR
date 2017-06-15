@@ -60,7 +60,7 @@ int main(int argc, char **argv) {
     /////////////////////////////////////////////////////////
 
     float image_size_max = options.image_size;
-    float image_size_min = 256;
+    float image_size_min = 128;
 
     std::vector<float> sampling_rate;
 
@@ -75,10 +75,10 @@ int main(int argc, char **argv) {
     float delta = (max_sampling - min_sampling)/num_points;
 
     for (float i = min_sampling; i < max_sampling; i = i + delta) {
-        //sampling_rate.push_back(i);
+        sampling_rate.push_back(i);
     }
 
-    sampling_rate.push_back(max_sampling);
+    //sampling_rate.push_back(max_sampling);
 
     //sampling_rate.push_back(max_sampling);
 
