@@ -133,7 +133,7 @@ int main(int argc, char **argv) {
 
             syn_image_loc.object_templates.push_back(basic_object);
 
-            syn_image_loc.noise_properties.noise_type = "gaussian";
+            //syn_image_loc.noise_properties.noise_type = "gaussian";
 
 
             //af::sync();
