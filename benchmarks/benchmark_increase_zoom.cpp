@@ -89,7 +89,8 @@ int main(int argc, char **argv) {
     int N_par = (int)sampling_rate.size();
     set_up_benchmark_defaults(syn_image,bs);
 
-    float sig =2;
+    float sig =5;
+
 
 
 
@@ -134,7 +135,10 @@ int main(int argc, char **argv) {
             syn_image_loc.object_templates.push_back(basic_object);
 
             //syn_image_loc.noise_properties.noise_type = "gaussian";
+            bs.int_scale_min = 1;
+            bs.int_scale_max = 1;
 
+            bs.rel_error = 0.12;
 
             //af::sync();
             af::deviceGC();
@@ -195,6 +199,8 @@ int main(int argc, char **argv) {
             //  Calculate analysis of the result
             //
             ///////////////////////////////
+            p_rep.pars.var_th = bs.desired_I;
+
 
             produce_apr_analysis(input_img,analysis_data,pc_struct,syn_image_loc,p_rep.pars);
 
