@@ -627,6 +627,11 @@ void get_variance_3D(Part_rep &p_rep, Mesh_data<T> &input_image, Mesh_data<T> &v
     int win_x = ceil((calc_map.var_window_size2 - 1)/4.0);
     int win_z = ceil((calc_map.var_window_size3 - 1)/4.0);
 
+
+    win_y = 2;
+    win_x = 2;
+    win_z = 2;
+
     //Perform first spatial average output to var
 
     timer.start_timer("calc_sat_mean_y");

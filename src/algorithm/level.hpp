@@ -79,8 +79,6 @@ void get_level_3D(Mesh_data<T> &var, Mesh_data<T> &grad_input, Part_rep &p_rep, 
 
     timer.stop_timer();
 
-    debug_write(var,"varin");
-    debug_write(grad,"div");
 
     float k_factor;
 

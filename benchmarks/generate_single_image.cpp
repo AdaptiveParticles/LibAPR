@@ -54,13 +54,13 @@ int main(int argc, char **argv) {
     float ratio = 10;
     bs.num_objects = 5*pow(bs.x_num,3)/(33400*ratio);
 
-    bs.num_objects = 10;
+    bs.num_objects = 20;
 
     bs.desired_I = 1000  ;
     //bs.int_scale_max = 1;
     //bs.int_scale_min = 1;
     bs.int_scale_min = 1;
-    bs.int_scale_max = 10;
+    bs.int_scale_max = 20;
 
     obj_properties obj_prop(bs);
 
@@ -166,7 +166,7 @@ int main(int argc, char **argv) {
     PartCellStructure<float, uint64_t> pc_struct_perfect;
     get_apr_perfect(input_img,norm_grad_image,p_rep,pc_struct_perfect,analysis_data);
 
-    //produce_apr_analysis(input_img, analysis_data, pc_struct_perfect, syn_image_loc, p_rep.pars);
+    produce_apr_analysis(input_img, analysis_data, pc_struct_perfect, syn_image_loc, p_rep.pars);
 
 
     //write the analysis output
