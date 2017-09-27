@@ -49,12 +49,12 @@ int main(int argc, char **argv) {
 
 
     bs.obj_size = 3;
-    bs.sig = 3.0;
+    bs.sig = 2.0;
     //bs.desired_I = 10000;
     float ratio = 10;
     bs.num_objects = 5*pow(bs.x_num,3)/(33400*ratio);
 
-    bs.num_objects = 1;
+    bs.num_objects = 10;
 
     bs.desired_I = 1000  ;
     //bs.int_scale_max = 1;
@@ -83,7 +83,7 @@ int main(int argc, char **argv) {
 
     // Get the APR
     //bs.num_objects = 10;
-    bs.lambda = 50;
+    //bs.lambda = 50;
 
 
     set_gaussian_psf(syn_image_loc, bs);
@@ -153,12 +153,31 @@ int main(int argc, char **argv) {
 
 
 
+
+    p_rep.pars.name = "perfect";
+
+    Mesh_data<float> norm_grad_image;
+
+
+    generate_gt_norm_grad(norm_grad_image,syn_image_loc);
+
+    debug_write(norm_grad_image,"norm_grad");
+
+    PartCellStructure<float, uint64_t> pc_struct_perfect;
+    get_apr_perfect(input_img,norm_grad_image,p_rep,pc_struct_perfect,analysis_data);
+
+    //produce_apr_analysis(input_img, analysis_data, pc_struct_perfect, syn_image_loc, p_rep.pars);
+
+
     //write the analysis output
     analysis_data.write_analysis_data_hdf5();
 
     af::info();
 
     std::cout << "Num Parts: " << pc_struct.get_number_parts() << std::endl;
+
+    std::cout << "Num Parts Perfect: " << pc_struct_perfect.get_number_parts() << std::endl;
+
 
 //
 //    ParticleDataNew<float, uint64_t> part_new;

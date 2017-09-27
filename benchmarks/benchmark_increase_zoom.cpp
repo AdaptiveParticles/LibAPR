@@ -99,7 +99,7 @@ int main(int argc, char **argv) {
     int N_par = (int)sampling_rate.size();
     set_up_benchmark_defaults(syn_image,bs);
 
-    float sig =3;
+    float sig =1;
 
 
 
