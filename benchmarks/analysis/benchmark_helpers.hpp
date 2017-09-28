@@ -46,6 +46,8 @@ struct cmdLineOptionsBench{
     bool quality_true_int = false;
     bool check_scale = false;
 
+    bool comp_perfect = false;
+
     float lambda = 0;
     float rel_error = 0;
 
@@ -156,6 +158,11 @@ cmdLineOptionsBench read_command_line_options(int argc, char **argv){
     if(command_option_exists_bench(argv, argv + argc, "-check_scale"))
     {
         result.check_scale = true;
+    }
+
+    if(command_option_exists_bench(argv, argv + argc, "-comp_perfect"))
+    {
+        result.comp_perfect = true;
     }
 
     if(command_option_exists_bench(argv, argv + argc, "-imgsize"))

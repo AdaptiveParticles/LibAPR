@@ -387,32 +387,111 @@ void generate_gt_image(Mesh_data<T>& gt_image,SynImage& syn_image){
 
 }
 template <typename T>
-void generate_gt_norm_grad(Mesh_data<T>& gt_image,SynImage syn_image){
+void generate_gt_norm_grad(Mesh_data<T>& gt_image,SynImage syn_image,bool normalize,float hx,float hy,float hz){
     //get a clean image
 
-    MeshDataAF<T> gen_img;
+    MeshDataAF<T> gen_imgx;
+
+    //for (int i = 0; i < syn_image.real_objects.size(); ++i) {
+      //  syn_image.real_objects[i].int_scale = 1000;
+    //}
 
     syn_image.noise_properties.noise_type = "none";
 
-    syn_image.PSF_properties.type = "gauss_dsum";
+    syn_image.PSF_properties.type = "gauss_dx";
+    //syn_image.PSF_properties.type = "var";
     syn_image.noise_properties.noise_type = "none";
     syn_image.global_trans.gt_ind = false;
-    syn_image.PSF_properties.normalize = true;
+    syn_image.PSF_properties.normalize = normalize;
 
-    syn_image.generate_syn_image(gen_img);
+    syn_image.generate_syn_image(gen_imgx);
 
-    gt_image.y_num = gen_img.y_num;
-    gt_image.x_num = gen_img.x_num;
-    gt_image.z_num = gen_img.z_num;
+    MeshDataAF<T> gen_imgy;
+
+    //for (int i = 0; i < syn_image.real_objects.size(); ++i) {
+    //  syn_image.real_objects[i].int_scale = 1000;
+    //}
+
+    syn_image.noise_properties.noise_type = "none";
+
+    syn_image.PSF_properties.type = "gauss_dy";
+    //syn_image.PSF_properties.type = "var";
+    syn_image.noise_properties.noise_type = "none";
+    syn_image.global_trans.gt_ind = false;
+    syn_image.PSF_properties.normalize = normalize;
+
+    syn_image.generate_syn_image(gen_imgy);
+
+    MeshDataAF<T> gen_imgz;
+
+    //for (int i = 0; i < syn_image.real_objects.size(); ++i) {
+    //  syn_image.real_objects[i].int_scale = 1000;
+    //}
+
+    syn_image.noise_properties.noise_type = "none";
+
+    syn_image.PSF_properties.type = "gauss_dz";
+    //syn_image.PSF_properties.type = "var";
+    syn_image.noise_properties.noise_type = "none";
+    syn_image.global_trans.gt_ind = false;
+    syn_image.PSF_properties.normalize = normalize;
+
+    syn_image.generate_syn_image(gen_imgz);
+
+
+    gt_image.y_num = gen_imgx.y_num;
+    gt_image.x_num = gen_imgx.x_num;
+    gt_image.z_num = gen_imgx.z_num;
 
     //copy accross
-    gt_image.mesh = gen_img.mesh;
+    gt_image.mesh = gen_imgx.mesh;
+
+
+    for (int i = 0; i < gen_imgz.mesh.size(); ++i) {
+        gt_image.mesh[i] = sqrt(pow(gen_imgx.mesh[i]/hx,2.0) + pow(gen_imgy.mesh[i]/hy,2.0) + pow(gen_imgz.mesh[i]/hz,2.0));
+    }
+
+
+    //copy accross
+    //gt_image.mesh = gen_img.mesh;
 
 }
 
+template <typename T>
+void generate_gt_var(Mesh_data<T>& gt_image,SynImage syn_image,Proc_par& pars){
+    //get a clean image
 
 
+    Mesh_data<float> norm_grad_image;
 
+    generate_gt_norm_grad(norm_grad_image,syn_image,true,pars.dx,pars.dy,pars.dz);
+    debug_write(norm_grad_image,"norm_grad");
+
+    Mesh_data<float> grad_image;
+
+    generate_gt_norm_grad(grad_image,syn_image,false,pars.dx,pars.dy,pars.dz);
+    debug_write(grad_image,"grad");
+
+    Mesh_data<float> norm;
+
+    norm.initialize(grad_image.y_num,grad_image.x_num,grad_image.z_num,0);
+
+    for (int i = 0; i < norm.mesh.size(); ++i) {
+        if(grad_image.mesh[i] > 1) {
+            norm.mesh[i] = 1000 * grad_image.mesh[i] / norm_grad_image.mesh[i];
+        } else {
+            norm.mesh[i] = 64000;
+        }
+    }
+
+    gt_image.y_num = norm.y_num;
+    gt_image.x_num = norm.x_num;
+    gt_image.z_num = norm.z_num;
+
+    //copy accross
+    gt_image.mesh = norm.mesh;
+
+}
 
 void run_segmentation_benchmark_mesh(PartCellStructure<float,uint64_t> pc_struct,AnalysisData& analysis_data){
     //

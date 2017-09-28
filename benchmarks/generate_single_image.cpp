@@ -54,7 +54,7 @@ int main(int argc, char **argv) {
     float ratio = 10;
     bs.num_objects = 5*pow(bs.x_num,3)/(33400*ratio);
 
-    bs.num_objects = 20;
+    bs.num_objects = 10;
 
     bs.desired_I = 1000  ;
     //bs.int_scale_max = 1;
@@ -127,7 +127,7 @@ int main(int argc, char **argv) {
 
         p_rep.pars.pull_scheme = 2;
 
-        //p_rep.pars.var_th = 1000;
+        p_rep.pars.var_th = 500;
         //p_rep.pars.interp_type = 4;
 
         PartCellStructure<float, uint64_t> pc_struct;
@@ -159,15 +159,28 @@ int main(int argc, char **argv) {
     Mesh_data<float> norm_grad_image;
 
 
-    generate_gt_norm_grad(norm_grad_image,syn_image_loc);
-
+    generate_gt_norm_grad(norm_grad_image,syn_image_loc,true,.1,.1,.1);
     debug_write(norm_grad_image,"norm_grad");
 
+
+    Mesh_data<float> grad_image;
+
+
+    generate_gt_norm_grad(grad_image,syn_image_loc,false,p_rep.pars.dx,p_rep.pars.dy,p_rep.pars.dz);
+    debug_write(grad_image,"grad");
+
+
+    Mesh_data<float> var_gt;
+
+    generate_gt_var(var_gt,syn_image_loc,p_rep.pars);
+
+    debug_write(var_gt,"var_gt");
+
+
     PartCellStructure<float, uint64_t> pc_struct_perfect;
-    get_apr_perfect(input_img,norm_grad_image,p_rep,pc_struct_perfect,analysis_data);
+    get_apr_perfect(input_img,grad_image,var_gt,p_rep,pc_struct_perfect,analysis_data);
 
     produce_apr_analysis(input_img, analysis_data, pc_struct_perfect, syn_image_loc, p_rep.pars);
-
 
     //write the analysis output
     analysis_data.write_analysis_data_hdf5();

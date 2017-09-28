@@ -861,7 +861,7 @@ void get_apr(Mesh_data<uint16_t >& input_image,Part_rep& part_rep,PartCellStruct
 
 
 }
-void get_apr_perfect(Mesh_data<uint16_t >& input_image,Mesh_data<float>& norm_gradient,Part_rep& part_rep,PartCellStructure<float,uint64_t>& pc_struct,AnalysisData& analysis_data){
+void get_apr_perfect(Mesh_data<uint16_t >& input_image,Mesh_data<float>& grad_gt,Mesh_data<float>& var_gt,Part_rep& part_rep,PartCellStructure<float,uint64_t>& pc_struct,AnalysisData& analysis_data){
 
     int interp_type = part_rep.pars.interp_type;
 
@@ -902,17 +902,14 @@ void get_apr_perfect(Mesh_data<uint16_t >& input_image,Mesh_data<float>& norm_gr
    // get_variance_3D(part_rep, input_image_float, variance);
     //part_rep.timer.stop_timer();
 
-    const int z_num_ds = (int) ceil(1.0*input_image.z_num/2.0);
-    const int x_num_ds = (int) ceil(1.0*input_image.x_num/2.0);
-    const int y_num_ds = (int) ceil(1.0*input_image.y_num/2.0);
-    variance.initialize(y_num_ds, x_num_ds, z_num_ds, 1.0);
 
-    for (int i = 0; i < variance.mesh.size(); ++i) {
-        variance.mesh[i] = 1000;
-    }
+    down_sample(var_gt,variance,
+                [](float x, float y) { return std::max(x,y); },
+                [](float x) { return x; });
+
 
     part_rep.timer.start_timer("get_level_3D");
-    get_level_3D(variance, norm_gradient, part_rep, part_map, temp);
+    get_level_3D(variance, grad_gt, part_rep, part_map, temp);
     part_rep.timer.stop_timer();
 
     // free memory (not used anymore)
