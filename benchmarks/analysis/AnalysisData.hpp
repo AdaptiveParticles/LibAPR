@@ -53,6 +53,7 @@ class AnalysisData: public Data_manager{
     bool filters_eval;
     bool quality_true_int;
     bool check_scale;
+    bool comp_perfect;
 
     AnalysisData(){
 
@@ -82,6 +83,7 @@ class AnalysisData: public Data_manager{
 
         quality_true_int = false;
         check_scale = false;
+        comp_perfect = false;
 
         time_t timer;
         struct tm y2k = {0};
@@ -137,6 +139,8 @@ class AnalysisData: public Data_manager{
         filters_eval = false;
         quality_true_int = false;
         check_scale = false;
+
+        comp_perfect = false;
 
         debug=false;
 

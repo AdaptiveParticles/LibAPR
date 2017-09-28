@@ -908,13 +908,19 @@ void check_var(Mesh_data<S>& org_img,Proc_par& pars,std::string name,AnalysisDat
 
 };
 
-
 template<typename S,typename T>
-void compare_E(Mesh_data<S>& org_img,Mesh_data<T>& rec_img,Proc_par& pars,std::string name,AnalysisData& analysis_data){
-
+void compare_E(Mesh_data<S>& org_img,Mesh_data<T>& rec_img,Proc_par& pars,std::string name,AnalysisData& analysis_data) {
     Mesh_data<float> variance;
 
-    get_variance(org_img,variance,pars);
+    get_variance(org_img, variance, pars);
+
+    compare_E(org_img,rec_img,pars,name,analysis_data,variance);
+
+}
+
+template<typename S,typename T>
+void compare_E(Mesh_data<S>& org_img,Mesh_data<T>& rec_img,Proc_par& pars,std::string name,AnalysisData& analysis_data,Mesh_data<float>& variance){
+
 
     uint64_t z_num_o = org_img.z_num;
     uint64_t x_num_o = org_img.x_num;
@@ -1020,9 +1026,9 @@ void compare_E(Mesh_data<S>& org_img,Mesh_data<T>& rec_img,Proc_par& pars,std::s
             int stop = 1;
             std::cout << "*********Out of bounds!*********" << std::endl;
 
-            debug_write(org_img,"org_img_out_bounds");
-            debug_write(rec_img,"rec_img_out_bounds");
-            debug_write(variance,"var_img_out_bounds");
+            //debug_write(org_img,"org_img_out_bounds");
+            //debug_write(rec_img,"rec_img_out_bounds");
+            //debug_write(variance,"var_img_out_bounds");
 
             // assert(inf_norm < rel_error);
         }
@@ -1563,6 +1569,81 @@ void produce_apr_analysis(Mesh_data<T>& input_image,AnalysisData& analysis_data,
 
     }
     timer.stop_timer();
+
+
+    if(analysis_data.comp_perfect) {
+
+        Mesh_data<float> norm_grad_image;
+
+
+        //generate_gt_norm_grad(norm_grad_image,syn_image,true,pars.dx,pars.dy,pars.dz);
+
+
+        Mesh_data<float> grad_image;
+
+
+        generate_gt_norm_grad(grad_image,syn_image,false,pars.dx,pars.dy,pars.dz);
+
+
+        Mesh_data<float> var_gt;
+
+        generate_gt_var(var_gt,syn_image,pars);
+
+
+        Part_rep p_rep;
+        p_rep.pars = pars;
+        p_rep.pars.name = "perfect";
+
+        p_rep.initialize(input_image.y_num,input_image.x_num,input_image.z_num);
+
+        PartCellStructure<float, uint64_t> pc_struct_perfect;
+        get_apr_perfect(input_image,grad_image,var_gt,p_rep,pc_struct_perfect,analysis_data);
+
+        std::cout << "Num Parts: " << pc_struct.get_number_parts() << std::endl;
+
+        std::cout << "Num Parts Perfect: " << pc_struct_perfect.get_number_parts() << std::endl;
+
+        analysis_data.add_float_data("perfect_parts",pc_struct_perfect.get_number_parts());
+
+        // Get the ground truth variance
+
+        Mesh_data<float> variance_u;
+        //need to down sample / then upsample variance
+        down_sample(var_gt,variance_u,
+                    [](float x, float y) { return std::max(x,y); },
+                    [](float x) { return x; },true);
+
+        std::vector<unsigned int> dims = {(unsigned int)var_gt.y_num,(unsigned int)var_gt.x_num,(unsigned int)var_gt.z_num};
+        const_upsample_img(var_gt,variance_u,dims);
+
+
+        Mesh_data<float> rec_perfect;
+
+        pc_struct_perfect.interp_parts_to_pc(rec_perfect, pc_struct_perfect.part_data.particle_data);
+
+        Mesh_data<uint16_t> gt_image;
+        generate_gt_image(gt_image, syn_image);
+
+
+        // Compute Image Stats
+        std::string name_p = "rv_perfect";
+
+        compare_E(gt_image,rec_perfect, pars, name_p, analysis_data);
+
+        std::string name_p_v = "gtv_perfect";
+
+        compare_E(gt_image,rec_perfect, pars, name_p_v, analysis_data,var_gt);
+
+        std::string name_p_vr = "gtv_rec";
+
+        compare_E(gt_image,rec_img, pars, name_p_vr, analysis_data,var_gt);
+
+        calc_mse(input_image, rec_perfect, "perfect", analysis_data);
+
+
+    }
+
+
 
 }
 template<typename T>

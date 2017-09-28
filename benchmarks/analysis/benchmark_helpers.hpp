@@ -594,6 +594,8 @@ void process_input(cmdLineOptionsBench& options,SynImage& syn_image,AnalysisData
     analysis_data.filters_eval = options.filters_eval;
     analysis_data.check_scale = options.check_scale;
 
+    analysis_data.comp_perfect = options.comp_perfect;
+
     analysis_data.quality_true_int = options.quality_true_int;
 
     if(options.nonoise){
