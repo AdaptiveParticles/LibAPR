@@ -1111,6 +1111,98 @@ uint64_t get_size_of_pc_struct(PartCellData<uint64_t>& pc_data){
     return counter;
 
 }
+void compare_depth_rep(PartCellStructure<float,uint64_t>& pc_struct,PartCellStructure<float,uint64_t>& pc_struct_perfect,AnalysisData& analysis_data){
+    //
+    //  Bevan Cheeseman 2017
+    //
+    //  Compare the depth of the two APRs
+    //
+    //
+
+
+    Mesh_data<uint8_t> k_img;
+
+    interp_depth_to_mesh(k_img,pc_struct);
+
+    Mesh_data<uint8_t> k_img_perfect;
+
+    interp_depth_to_mesh(k_img_perfect,pc_struct_perfect);
+
+    Mesh_data<float> diff;
+
+    diff.initialize(k_img.x_num,k_img.y_num,k_img.z_num,0);
+
+    float counter_p = 0;
+    float counter_m = 0;
+    float sum_p = 0;
+    float sum_m  = 0;
+    float max_m = 0;
+
+
+    for (int i = 0; i < k_img.mesh.size(); ++i) {
+        diff.mesh[i] = 10 + k_img.mesh[i] - k_img_perfect.mesh[i];
+
+        if(diff.mesh[i] > 10){
+            counter_p++;
+            sum_p += diff.mesh[i] - 10;
+        }
+
+        if(diff.mesh[i] < 10){
+            counter_m++;
+            sum_m += -(diff.mesh[i] - 10);
+            max_m = std::max(-(diff.mesh[i] - 10),max_m);
+        }
+
+    }
+
+
+    analysis_data.add_float_data("k_plus",counter_p/k_img.mesh.size());
+    analysis_data.add_float_data("k_minus",counter_m/k_img.mesh.size());
+    analysis_data.add_float_data("k_minus_avg",sum_m/counter_m);
+    analysis_data.add_float_data("k_minus_avg",sum_m/counter_m);
+
+}
+
+void compare_var_func(PartCellStructure<float,uint64_t>& pc_struct_perfect,Mesh_data<float> var_gt,Mesh_data<float> var_comp,AnalysisData& analysis_data){
+    //
+    //  Evaluates and compares the variance at high resolution areas between the ground truth and the computed var
+    //
+    //  Bevan Cheeseman 2017
+    //
+    //
+
+    Mesh_data<uint8_t> k_img_perfect;
+
+    interp_depth_to_mesh(k_img_perfect,pc_struct_perfect);
+
+    float max_ratio = 0;
+    float min_ratio = 99999999;
+    float sum_ratio = 0;
+    float counter_ratio = 0 ;
+
+    float val =pc_struct_perfect.pc_data.depth_max + 1;
+
+    for (int i = 0; i < k_img_perfect.mesh.size(); ++i) {
+        if(k_img_perfect.mesh[i] == val){
+            counter_ratio++;
+            sum_ratio += var_comp.mesh[i]/var_gt.mesh[i];
+            max_ratio = std::max(var_comp.mesh[i]/var_gt.mesh[i],max_ratio);
+            max_ratio = std::min(var_comp.mesh[i]/var_gt.mesh[i],min_ratio);
+        }
+
+    }
+
+
+    analysis_data.add_float_data("var_ratio",sum_ratio/counter_ratio);
+
+    analysis_data.add_float_data("max_ratio",max_ratio);
+
+    analysis_data.add_float_data("min_ratio",min_ratio);
+
+
+}
+
+
 template<typename T>
 void produce_apr_analysis(Mesh_data<T>& input_image,AnalysisData& analysis_data,PartCellStructure<float,uint64_t>& pc_struct,SynImage& syn_image,Proc_par& pars) {
     //
@@ -1638,8 +1730,22 @@ void produce_apr_analysis(Mesh_data<T>& input_image,AnalysisData& analysis_data,
 
         compare_E(gt_image,rec_img, pars, name_p_vr, analysis_data,var_gt);
 
-        calc_mse(input_image, rec_perfect, "perfect", analysis_data);
+        name_p_vr = "gtv_org";
 
+        compare_E(gt_image,input_image, pars, name_p_vr, analysis_data,var_gt);
+
+        // compute perfect MSE and PSNR everywhere
+
+        calc_mse(gt_image, rec_perfect, "perfect", analysis_data);
+
+
+        compare_depth_rep(pc_struct,pc_struct_perfect,analysis_data);
+
+        Mesh_data<float> variance;
+
+        get_variance(input_image, variance, pars);
+
+        compare_var_func(pc_struct_perfect,var_gt,variance,analysis_data);
 
     }
 
