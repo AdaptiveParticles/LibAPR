@@ -87,12 +87,15 @@ int main(int argc, char **argv) {
         // sig_vec.push_back(i);
     }
 
-    sig_vec = {2};
+    sig_vec = {0.5,1,2,3,4,5};
 
     //min mean
 
-    std::vector<float> window_1;
-    std::vector<float> window_2;
+    std::vector<int> window_1;
+    std::vector<int> window_2;
+
+    window_1 = {1,2,3,4,5,6,7,8,9,10};
+    window_2 = {1,2,3,4,5,6,7,8,9,10};
 
     int N_par1 = (int)rel_error_vec.size(); // this many different parameter values to be run
     int N_par2 = (int)sig_vec.size();
@@ -113,6 +116,7 @@ int main(int argc, char **argv) {
 
     bs.shift = 1000;
     syn_image.global_trans.const_shift = 1000;
+
 
     for(int u = 0;u < N_par4;u++) {
 
@@ -206,6 +210,11 @@ int main(int argc, char **argv) {
                         Part_rep p_rep;
 
                         set_up_part_rep(syn_image_loc, p_rep, bs);
+
+                        p_rep.pars.padd_dims = {window_1[q],window_1[q],window_1[q],window_2[u],window_2[u],window_2[u]};
+
+                        analysis_data.add_float_data("var_window_1",window_1[q]);
+                        analysis_data.add_float_data("var_window_2",window_2[u]);
 
                         // Get the APR
 

@@ -623,14 +623,27 @@ void get_variance_3D(Part_rep &p_rep, Mesh_data<T> &input_image, Mesh_data<T> &v
 
     calc_map.set_up_var_filters_3D();
 
+
+
     int win_y = ceil((calc_map.var_window_size1 - 1)/4.0);
     int win_x = ceil((calc_map.var_window_size2 - 1)/4.0);
     int win_z = ceil((calc_map.var_window_size3 - 1)/4.0);
 
+    int win_y2 = ceil((calc_map.var_window_size1 - 1)/4.0);
+    int win_x2 = ceil((calc_map.var_window_size2 - 1)/4.0);
+    int win_z2 = ceil((calc_map.var_window_size3 - 1)/4.0);
 
-    win_y = 2;
-    win_x = 2;
-    win_z = 2;
+    if(p_rep.pars.padd_dims.size() == 6) {
+
+        win_y = p_rep.pars.padd_dims[0];
+        win_x = p_rep.pars.padd_dims[1];
+        win_z = p_rep.pars.padd_dims[2];
+
+        win_y2 = p_rep.pars.padd_dims[3];
+        win_x2 = p_rep.pars.padd_dims[4];
+        win_z2 = p_rep.pars.padd_dims[5];
+
+    }
 
     //Perform first spatial average output to var
 
@@ -664,9 +677,9 @@ void get_variance_3D(Part_rep &p_rep, Mesh_data<T> &input_image, Mesh_data<T> &v
 
     timer.stop_timer();
     //Second spatial average
-    calc_sat_mean_y(var,win_y);
-    calc_sat_mean_x(var,win_x);
-    calc_sat_mean_z(var,win_z);
+    calc_sat_mean_y(var,win_y2);
+    calc_sat_mean_x(var,win_x2);
+    calc_sat_mean_z(var,win_z2);
 
     //if needed threshold the results
     if(p_rep.pars.I_th > 0) {
