@@ -1187,7 +1187,7 @@ void compare_var_func(PartCellStructure<float,uint64_t>& pc_struct_perfect,Mesh_
             counter_ratio++;
             sum_ratio += var_comp.mesh[i]/var_gt.mesh[i];
             max_ratio = std::max(var_comp.mesh[i]/var_gt.mesh[i],max_ratio);
-            max_ratio = std::min(var_comp.mesh[i]/var_gt.mesh[i],min_ratio);
+            min_ratio = std::min(var_comp.mesh[i]/var_gt.mesh[i],min_ratio);
         }
 
     }

@@ -1,8 +1,8 @@
 //
-// Created by cheesema on 28/01/17.
+// Created by cheesema on 29.09.17.
 //
 
-#include "benchmark_increase_rel_error.hpp"
+#include "benchmark_local_scale.hpp"
 
 int main(int argc, char **argv) {
 
@@ -74,6 +74,7 @@ int main(int argc, char **argv) {
     max_rel_error = 1;
     num_steps = options.delta;
 
+
     del = (max_rel_error - min_rel_error) / num_steps;
 
     for (float i = min_rel_error; i <= max_rel_error; i = i + del) {
@@ -92,7 +93,7 @@ int main(int argc, char **argv) {
 
 
     for (float i = min_sig; i <= max_sig; i = i + del) {
-       // sig_vec.push_back(i);
+        // sig_vec.push_back(i);
     }
 
 
