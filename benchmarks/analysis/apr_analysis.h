@@ -1193,12 +1193,28 @@ void compare_var_func(PartCellStructure<float,uint64_t>& pc_struct_perfect,Mesh_
     }
 
 
+    float mean = sum_ratio/counter_ratio;
+
+    float var = 0;
+
+    for (int i = 0; i < k_img_perfect.mesh.size(); ++i) {
+        if(k_img_perfect.mesh[i] == val){
+
+            var += pow((var_comp.mesh[i]/var_gt.mesh[i] - mean),2);
+
+        }
+
+    }
+
+    var = var/counter_ratio;
+
     analysis_data.add_float_data("var_ratio",sum_ratio/counter_ratio);
 
     analysis_data.add_float_data("max_ratio",max_ratio);
 
     analysis_data.add_float_data("min_ratio",min_ratio);
 
+    analysis_data.add_float_data("std_ratio",sqrt(var));
 
 }
 
