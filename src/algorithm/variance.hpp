@@ -131,6 +131,8 @@ public:
             var_rescale = 1.0/(.015 + .046*sig);
         }
 
+        var_rescale = 1;
+
         //var_rescale = 6.9541;
         //var_rescale = 7.1748;
 

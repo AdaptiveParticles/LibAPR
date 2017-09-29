@@ -1159,7 +1159,7 @@ void compare_depth_rep(PartCellStructure<float,uint64_t>& pc_struct,PartCellStru
     analysis_data.add_float_data("k_plus",counter_p/k_img.mesh.size());
     analysis_data.add_float_data("k_minus",counter_m/k_img.mesh.size());
     analysis_data.add_float_data("k_minus_avg",sum_m/counter_m);
-    analysis_data.add_float_data("k_minus_avg",sum_m/counter_m);
+    analysis_data.add_float_data("k_plus_avg",sum_m/counter_m);
 
 }
 
