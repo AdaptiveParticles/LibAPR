@@ -56,23 +56,33 @@ int main(int argc, char **argv) {
 
     std::vector<float> sig_vec;
     std::vector<float> rel_error_vec;
-
+    std::vector<float> shift;
     //two linear sections
 
     //min mean
-    float min_rel_error = .1;
+    float min_rel_error = .001;
     float max_rel_error = .1;
     float num_steps = options.delta;
 
-//    float del = (max_rel_error - min_rel_error) / num_steps;
-//
-//    for (float i = min_rel_error; i <= max_rel_error; i = i + del) {
-//        rel_error_vec.push_back(i);
-//    }
+    float del = (max_rel_error - min_rel_error) / num_steps;
 
-    float del = 0;
+    for (float i = min_rel_error; i <= max_rel_error; i = i + del) {
+        rel_error_vec.push_back(i);
+    }
 
-    rel_error_vec = {0.1};
+    min_rel_error = .1;
+    max_rel_error = 1;
+    num_steps = options.delta;
+
+
+    del = (max_rel_error - min_rel_error) / num_steps;
+
+    for (float i = min_rel_error; i <= max_rel_error; i = i + del) {
+        rel_error_vec.push_back(i);
+    }
+
+    //rel_error_vec = {0.1};
+
 
     //min mean
     float min_sig = 1;
@@ -83,20 +93,32 @@ int main(int argc, char **argv) {
 
 
     for (float i = min_sig; i <= max_sig; i = i + del) {
-       // sig_vec.push_back(i);
+        // sig_vec.push_back(i);
     }
 
-    sig_vec = {2};
+
+    sig_vec = {1.5};
 
     //min mean
+    float min_shift = 5;
+    float max_shift = 1000;
+    num_steps = 0;
 
-    std::vector<float> window_1;
-    std::vector<float> window_2;
+    del = (max_shift - min_shift) / num_steps;
+
+    if (num_steps > 0) {
+        for (float i = min_shift; i <= max_shift; i = i + del) {
+            shift.push_back(i);
+        }
+    } else {
+        shift.push_back(max_shift);
+    }
+
+    //shift = {};
 
     int N_par1 = (int)rel_error_vec.size(); // this many different parameter values to be run
     int N_par2 = (int)sig_vec.size();
-    int N_par3 = (int)window_1.size();
-    int N_par4 = (int)window_2.size();
+    int N_par3 = (int)shift.size();
 
     bs.num_objects = 10;
 
@@ -105,7 +127,7 @@ int main(int argc, char **argv) {
     Genrand_uni gen_rand;
 
     bs.int_scale_min = 1;
-    bs.int_scale_max = 20;
+    bs.int_scale_max = 10;
 
     Part_timer b_timer;
     b_timer.verbose_flag = true;
@@ -113,132 +135,133 @@ int main(int argc, char **argv) {
     bs.shift = 1000;
     syn_image.global_trans.const_shift = 1000;
 
-    for(int u = 0;u < N_par4;u++) {
 
-        for (int q = 0; q < N_par3; q++) {
 
-            for (int p = 0; p < N_par2; p++) {
+    for(int q = 0;q < N_par3;q++) {
 
-                bs.sig = sig_vec[p];
+        for (int p = 0; p < N_par2; p++) {
 
-                obj_properties obj_prop(bs);
+            bs.sig = sig_vec[p];
 
-                Object_template basic_object = get_object_template(options, obj_prop);
+            obj_properties obj_prop(bs);
 
-                SynImage syn_image_n = syn_image;
+            Object_template basic_object = get_object_template(options, obj_prop);
 
-                syn_image_n.object_templates.push_back(basic_object);
+            SynImage syn_image_n = syn_image;
 
-                for (int j = 0; j < N_par1; j++) {
+            syn_image_n.object_templates.push_back(basic_object);
 
-                    for (int i = 0; i < bs.N_repeats; i++) {
+            for (int j = 0; j < N_par1; j++) {
 
-                        b_timer.start_timer("one it");
+                int stop = 1;
 
-                        //af::sync();
-                        af::deviceGC();
+                for (int i = 0; i < bs.N_repeats; i++) {
 
-                        ///////////////////////////////
-                        //
-                        //  Individual synthetic image parameters
-                        //
-                        ///////////////////////////////
+                    b_timer.start_timer("one it");
 
-                        analysis_data.get_data_ref<float>("num_objects")->data.push_back(bs.num_objects);
-                        analysis_data.part_data_list["num_objects"].print_flag = true;
+                    //af::sync();
+                    af::deviceGC();
 
-                        SynImage syn_image_loc;
+                    ///////////////////////////////
+                    //
+                    //  Individual synthetic image parameters
+                    //
+                    ///////////////////////////////
 
-                        set_up_benchmark_defaults(syn_image_loc, bs);
+                    analysis_data.get_data_ref<float>("num_objects")->data.push_back(bs.num_objects);
+                    analysis_data.part_data_list["num_objects"].print_flag = true;
 
-                        bs.sig = sig_vec[p];
+                    SynImage syn_image_loc ;
 
-                        update_domain(syn_image_loc, bs);
-                        syn_image_loc.object_templates.push_back(basic_object);
+                    set_up_benchmark_defaults(syn_image_loc, bs);
 
-                        //add the basic sphere as the standard template
+                    bs.sig = sig_vec[p];
 
-                        ///////////////////////////////////////////////////////////////////
-                        //PSF properties
+                    update_domain(syn_image_loc,bs);
+                    syn_image_loc.object_templates.push_back(basic_object);
 
-                        bs.desired_I = 500;
+                    //add the basic sphere as the standard template
 
-                        analysis_data.add_float_data("desired_I", bs.desired_I);
+                    ///////////////////////////////////////////////////////////////////
+                    //PSF properties
 
-                        set_gaussian_psf(syn_image_loc, bs);
+                    bs.desired_I = 500;
 
-                        std::cout << "Par1: " << j << " of " << N_par1 << " Par2: " << p << " of " << N_par2 << " Par: "
-                                  << q << " of " << N_par3 << std::endl;
+                    analysis_data.add_float_data("desired_I",bs.desired_I);
 
-                        generate_objects(syn_image_loc, bs);
+                    set_gaussian_psf(syn_image_loc, bs);
 
-                        b_timer.stop_timer();
+                    std::cout << "Par1: " << j << " of " << N_par1 << " Par2: " << p << " of " << N_par2 << " Par: "
+                              << q << " of " << N_par3 << std::endl;
 
-                        b_timer.start_timer("generate_syn_image");
+                    generate_objects(syn_image_loc, bs);
 
-                        ///////////////////////////////
-                        //
-                        //  Generate the image
-                        //
-                        ////////////////////////////////
+                    b_timer.stop_timer();
 
-                        MeshDataAF<uint16_t> gen_image;
+                    b_timer.start_timer("generate_syn_image");
 
-                        syn_image_loc.generate_syn_image(gen_image);
+                    ///////////////////////////////
+                    //
+                    //  Generate the image
+                    //
+                    ////////////////////////////////
 
-                        Mesh_data<uint16_t> input_img;
+                    MeshDataAF<uint16_t> gen_image;
 
-                        copy_mesh_data_structures(gen_image, input_img);
+                    syn_image_loc.generate_syn_image(gen_image);
 
-                        b_timer.stop_timer();
+                    Mesh_data<uint16_t> input_img;
 
-                        ///////////////////////////////
-                        //
-                        //  Get the APR
-                        //
-                        //////////////////////////////
+                    copy_mesh_data_structures(gen_image, input_img);
 
-                        bs.rel_error = rel_error_vec[j];
+                    b_timer.stop_timer();
 
-                        analysis_data.add_float_data("rel_error", bs.rel_error);
+                    ///////////////////////////////
+                    //
+                    //  Get the APR
+                    //
+                    //////////////////////////////
 
-                        Part_rep p_rep;
+                    bs.rel_error = rel_error_vec[j];
 
-                        set_up_part_rep(syn_image_loc, p_rep, bs);
+                    analysis_data.add_float_data("rel_error", bs.rel_error);
 
-                        // Get the APR
+                    Part_rep p_rep;
 
-                        b_timer.start_timer("get apr");
+                    set_up_part_rep(syn_image_loc, p_rep, bs);
 
-                        PartCellStructure<float, uint64_t> pc_struct;
+                    // Get the APR
 
-                        //p_rep.pars.var_th = 1;
+                    b_timer.start_timer("get apr");
 
-                        bench_get_apr(input_img, p_rep, pc_struct, analysis_data);
+                    PartCellStructure<float, uint64_t> pc_struct;
 
-                        b_timer.stop_timer();
+                    //p_rep.pars.var_th = 1;
 
-                        ///////////////////////////////
-                        //
-                        //  Calculate analysis of the result
-                        //
-                        ///////////////////////////////
+                    bench_get_apr(input_img, p_rep, pc_struct, analysis_data);
 
-                        b_timer.start_timer("analysis");
+                    b_timer.stop_timer();
 
-                        produce_apr_analysis(input_img, analysis_data, pc_struct, syn_image_loc, p_rep.pars);
+                    ///////////////////////////////
+                    //
+                    //  Calculate analysis of the result
+                    //
+                    ///////////////////////////////
 
-                        std::cout << "Num Parts: " << pc_struct.get_number_parts() << std::endl;
+                    b_timer.start_timer("analysis");
 
-                        af::sync();
-                        af::deviceGC();
+                    produce_apr_analysis(input_img, analysis_data, pc_struct, syn_image_loc, p_rep.pars);
 
-                        b_timer.stop_timer();
+                    std::cout << "Num Parts: " << pc_struct.get_number_parts() << std::endl;
 
-                    }
+                    af::sync();
+                    af::deviceGC();
+
+                    b_timer.stop_timer();
+
                 }
-
             }
+
         }
     }
     //write the analysis output
