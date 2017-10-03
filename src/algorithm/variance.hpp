@@ -139,7 +139,7 @@ public:
 
         int window_ind_1 = std::min(par.padd_dims[0] - 1,9);
         int window_ind_2 = std::min(par.padd_dims[3] - 1,9);
-        int psf_ind = std::max(round(par.psfx/par.dx) - 1,(float)0);
+        int psf_ind = std::max(((float) (round(par.psfx/par.dx) - 1)),((float)0.0f);
 
        // var_rescale = 1.0/rescale_store[psf_ind][window_ind_2][window_ind_1];
 
