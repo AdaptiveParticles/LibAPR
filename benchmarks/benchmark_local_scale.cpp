@@ -106,10 +106,13 @@ int main(int argc, char **argv) {
 
     bs.obj_size = 2;
 
+    analysis_data.add_float_data("obj_size",bs.obj_size);
+    analysis_data.add_float_data("num_objects",bs.num_objects);
+
     Genrand_uni gen_rand;
 
     bs.int_scale_min = 1;
-    bs.int_scale_max = 20;
+    bs.int_scale_max = 5;
 
     Part_timer b_timer;
     b_timer.verbose_flag = true;
@@ -163,6 +166,9 @@ int main(int argc, char **argv) {
 
                         //add the basic sphere as the standard template
 
+                        analysis_data.add_float_data("psf",sig_vec[p]);
+                        analysis_data.add_float_data("rep",i);
+
                         ///////////////////////////////////////////////////////////////////
                         //PSF properties
 
@@ -175,7 +181,7 @@ int main(int argc, char **argv) {
                         std::cout << "Par1: " << j << " of " << N_par1 << " Par2: " << p << " of " << N_par2 << " Par: "
                                   << q << " of " << N_par3 << std::endl;
 
-                        std::cout << "Outer loop: " << u << std::endl;
+                        std::cout << "Outer loop%: " << 100*u/N_par4 << std::endl;
 
                         generate_objects(syn_image_loc, bs);
 
