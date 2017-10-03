@@ -87,7 +87,7 @@ int main(int argc, char **argv) {
         // sig_vec.push_back(i);
     }
 
-    sig_vec = {0.5,1,2,3,4,5};
+    sig_vec = {1,2,3,4,5};
 
     //min mean
 
