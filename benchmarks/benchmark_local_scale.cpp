@@ -94,8 +94,8 @@ int main(int argc, char **argv) {
     std::vector<int> window_1;
     std::vector<int> window_2;
 
-    window_1 = {1,2,3,4,5,6,7,8,9,10,20};
-    window_2 = {1,2,3,4,5,6,7,8,9,10,20};
+    window_1 = {1,2,3,4,5,6,7,8,9,10,13,16,20,30};
+    window_2 = {1,2,3,4,5,6,7,8,9,10,13,16,20,30};
 
     int N_par1 = (int)rel_error_vec.size(); // this many different parameter values to be run
     int N_par2 = (int)sig_vec.size();

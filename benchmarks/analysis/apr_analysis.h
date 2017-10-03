@@ -1138,28 +1138,36 @@ void compare_depth_rep(PartCellStructure<float,uint64_t>& pc_struct,PartCellStru
     float sum_m  = 0;
     float max_m = 0;
 
+    float norm_total = 0;
+
 
     for (int i = 0; i < k_img.mesh.size(); ++i) {
         diff.mesh[i] = 10 + k_img.mesh[i] - k_img_perfect.mesh[i];
 
         if(diff.mesh[i] > 10){
-            counter_p++;
+            counter_p+=1.0/pow(2,pc_struct_perfect.depth_max + 1 - k_img_perfect.mesh[i]);
             sum_p += diff.mesh[i] - 10;
         }
 
         if(diff.mesh[i] < 10){
-            counter_m++;
+            counter_m+=1.0/pow(2,pc_struct_perfect.depth_max + 1 - k_img_perfect.mesh[i]);
             sum_m += -(diff.mesh[i] - 10);
             max_m = std::max(-(diff.mesh[i] - 10),max_m);
         }
 
+        norm_total +=1.0/pow(2,pc_struct_perfect.depth_max + 1 - k_img_perfect.mesh[i]);
+
     }
 
 
-    analysis_data.add_float_data("k_plus",counter_p/k_img.mesh.size());
-    analysis_data.add_float_data("k_minus",counter_m/k_img.mesh.size());
+    debug_write(k_img_perfect,"k_perfect");
+
+    debug_write(diff,"diff_img");
+
+    analysis_data.add_float_data("k_plus",counter_p/norm_total);
+    analysis_data.add_float_data("k_minus",counter_m/norm_total);
     analysis_data.add_float_data("k_minus_avg",sum_m/counter_m);
-    analysis_data.add_float_data("k_plus_avg",sum_m/counter_m);
+    analysis_data.add_float_data("k_plus_avg",sum_p/counter_m);
 
 }
 
