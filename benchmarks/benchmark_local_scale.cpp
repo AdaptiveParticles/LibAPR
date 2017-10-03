@@ -87,15 +87,15 @@ int main(int argc, char **argv) {
         // sig_vec.push_back(i);
     }
 
-    sig_vec = {1,2,3,4,5};
+    sig_vec = {1,2,3,4,5,6};
 
     //min mean
 
     std::vector<int> window_1;
     std::vector<int> window_2;
 
-    window_1 = {1,2,3,4,5,6,7,8,9,10};
-    window_2 = {1,2,3,4,5,6,7,8,9,10};
+    window_1 = {1,2,3,4,5,6,7,8,9,10,20};
+    window_2 = {1,2,3,4,5,6,7,8,9,10,20};
 
     int N_par1 = (int)rel_error_vec.size(); // this many different parameter values to be run
     int N_par2 = (int)sig_vec.size();
@@ -104,7 +104,7 @@ int main(int argc, char **argv) {
 
     bs.num_objects = 10;
 
-    bs.obj_size = 1;
+    bs.obj_size = 2;
 
     Genrand_uni gen_rand;
 
@@ -175,6 +175,8 @@ int main(int argc, char **argv) {
                         std::cout << "Par1: " << j << " of " << N_par1 << " Par2: " << p << " of " << N_par2 << " Par: "
                                   << q << " of " << N_par3 << std::endl;
 
+                        std::cout << "Outer loop: " << u << std::endl;
+
                         generate_objects(syn_image_loc, bs);
 
                         b_timer.stop_timer();
@@ -220,25 +222,31 @@ int main(int argc, char **argv) {
 
                         b_timer.start_timer("get apr");
 
-                        PartCellStructure<float, uint64_t> pc_struct;
+                        p_rep.pars.var_scale = 1.0;
+                        p_rep.pars.var_th = 0;
 
-                        //p_rep.pars.var_th = 1;
+                        compute_var_ratio_perfect(syn_image_loc,p_rep,input_img,analysis_data);
 
-                        bench_get_apr(input_img, p_rep, pc_struct, analysis_data);
 
-                        b_timer.stop_timer();
+//                        PartCellStructure<float, uint64_t> pc_struct;
+//
+//                        //p_rep.pars.var_th = 1;
+//
+//                        bench_get_apr(input_img, p_rep, pc_struct, analysis_data);
+//
+//                        b_timer.stop_timer();
+//
+//                        ///////////////////////////////
+//                        //
+//                        //  Calculate analysis of the result
+//                        //
+//                        ///////////////////////////////
+//
+//                        b_timer.start_timer("analysis");
+//
+ //                       produce_apr_analysis(input_img, analysis_data, pc_struct, syn_image_loc, p_rep.pars);
 
-                        ///////////////////////////////
-                        //
-                        //  Calculate analysis of the result
-                        //
-                        ///////////////////////////////
-
-                        b_timer.start_timer("analysis");
-
-                        produce_apr_analysis(input_img, analysis_data, pc_struct, syn_image_loc, p_rep.pars);
-
-                        std::cout << "Num Parts: " << pc_struct.get_number_parts() << std::endl;
+                        //std::cout << "Num Parts: " << pc_struct.get_number_parts() << std::endl;
 
                         af::sync();
                         af::deviceGC();

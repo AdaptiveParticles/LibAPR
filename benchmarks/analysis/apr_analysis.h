@@ -128,7 +128,7 @@ void bench_get_apr(Mesh_data<T>& input_image,Part_rep& p_rep,PartCellStructure<f
 
     p_rep.pars.tol = 0.0005f;
 
-    p_rep.pars.var_scale = 2;
+    //p_rep.pars.var_scale = 2;
 
     float k_diff = -3.0f;
 
@@ -1763,6 +1763,8 @@ void produce_apr_analysis(Mesh_data<T>& input_image,AnalysisData& analysis_data,
 
         compare_var_func(pc_struct_perfect,var_gt,variance,analysis_data);
 
+        debug_write(var_gt,"var_gt");
+
     }
 
 
@@ -1784,6 +1786,50 @@ void produce_apr_analysis(Mesh_data<T>& input_image,AnalysisData& analysis_data,
     analysis_data.information_content = false;
 
     produce_apr_analysis(input_image,analysis_data,pc_struct,syn_image_temp,pars);
+
+}
+
+void compute_var_ratio_perfect(SynImage& syn_image_loc,Part_rep& p_rep,Mesh_data<uint16_t>& input_img,AnalysisData& analysis_data){
+    Mesh_data<float> grad_image;
+
+
+generate_gt_norm_grad(grad_image,syn_image_loc,false,p_rep.pars.dx,p_rep.pars.dy,p_rep.pars.dz);
+
+//debug_write(grad_image,"grad_img");
+
+Mesh_data<float> var_gt;
+
+generate_gt_var(var_gt,syn_image_loc,p_rep.pars);
+//debug_write(var_gt,"var_gt");
+
+//Part_rep p_rep;
+//p_rep.pars = p_rep.pars;
+p_rep.pars.name = "perfect";
+
+p_rep.initialize(input_img.y_num,input_img.x_num,input_img.z_num);
+
+PartCellStructure<float, uint64_t> pc_struct_perfect;
+get_apr_perfect(input_img,grad_image,var_gt,p_rep,pc_struct_perfect,analysis_data);
+
+Mesh_data<float> variance;
+
+
+Mesh_data<float> variance_u;
+//need to down sample / then upsample variance
+down_sample(var_gt,variance_u,
+[](float x, float y) { return std::max(x,y); },
+[](float x) { return x; },true);
+
+std::vector<unsigned int> dims = {(unsigned int)var_gt.y_num,(unsigned int)var_gt.x_num,(unsigned int)var_gt.z_num};
+const_upsample_img(var_gt,variance_u,dims);
+
+get_variance(input_img, variance, p_rep.pars);
+
+//debug_write(variance,"vvar");
+
+compare_var_func(pc_struct_perfect,var_gt,variance,analysis_data);
+
+//debug_write(var_gt,"var_g2t");
 
 }
 

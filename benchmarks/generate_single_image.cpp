@@ -60,7 +60,7 @@ int main(int argc, char **argv) {
     //bs.int_scale_max = 1;
     //bs.int_scale_min = 1;
     bs.int_scale_min = 1;
-    bs.int_scale_max = 20;
+    bs.int_scale_max = 10;
 
     obj_properties obj_prop(bs);
 
@@ -116,8 +116,6 @@ int main(int argc, char **argv) {
     //////////////////////////////
 
 
-
-
         Part_rep p_rep;
 
         set_up_part_rep(syn_image_loc, p_rep, bs);
@@ -127,14 +125,23 @@ int main(int argc, char **argv) {
 
         p_rep.pars.pull_scheme = 2;
 
-        p_rep.pars.var_th = 500;
+        p_rep.pars.var_th = 1;
+
+        p_rep.pars.lambda = 1.0;
+
         //p_rep.pars.interp_type = 4;
 
         PartCellStructure<float, uint64_t> pc_struct;
 
         //p_rep.pars.interp_type = i;
 
-        bench_get_apr(input_img, p_rep, pc_struct, analysis_data);
+       // p_rep.pars.lambda = 4;
+
+        p_rep.pars.var_scale = 1.0;
+
+        p_rep.pars.padd_dims = {2,2,2,2,2,2};
+
+        //bench_get_apr(input_img, p_rep, pc_struct, analysis_data);
 
 
         write_image_tiff(input_img, p_rep.pars.output_path + p_rep.pars.name + ".tif");
@@ -148,11 +155,11 @@ int main(int argc, char **argv) {
         //
         ///////////////////////////////
 
-        produce_apr_analysis(input_img, analysis_data, pc_struct, syn_image_loc, p_rep.pars);
+        //produce_apr_analysis(input_img, analysis_data, pc_struct, syn_image_loc, p_rep.pars);
 
 
 
-
+    compute_var_ratio_perfect(syn_image_loc,p_rep,input_img,analysis_data);
 
 //    p_rep.pars.name = "perfect";
 //

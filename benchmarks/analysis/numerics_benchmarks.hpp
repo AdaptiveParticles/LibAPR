@@ -465,12 +465,12 @@ void generate_gt_var(Mesh_data<T>& gt_image,SynImage syn_image,Proc_par& pars){
     Mesh_data<float> norm_grad_image;
 
     generate_gt_norm_grad(norm_grad_image,syn_image,true,pars.dx,pars.dy,pars.dz);
-    debug_write(norm_grad_image,"norm_grad");
+   // debug_write(norm_grad_image,"norm_grad");
 
     Mesh_data<float> grad_image;
 
     generate_gt_norm_grad(grad_image,syn_image,false,pars.dx,pars.dy,pars.dz);
-    debug_write(grad_image,"grad");
+   // debug_write(grad_image,"grad");
 
     Mesh_data<float> norm;
 
