@@ -1715,7 +1715,7 @@ void produce_apr_analysis(Mesh_data<T>& input_image,AnalysisData& analysis_data,
 
         Mesh_data<float> var_gt;
 
-        generate_gt_var(var_gt,syn_image,pars);
+        generate_gt_var(gt_image,var_gt,syn_image,pars);
 
 
         p_rep.initialize(input_image.y_num,input_image.x_num,input_image.z_num);
@@ -1778,9 +1778,9 @@ void produce_apr_analysis(Mesh_data<T>& input_image,AnalysisData& analysis_data,
 
         compare_var_func(pc_struct_perfect,var_gt,variance,analysis_data);
 
-        //debug_write(var_gt,"var_gt");
+       // debug_write(var_gt,"var_gt");
 
-        //debug_write(rec_perfect,"rec_perfect");
+       // debug_write(rec_perfect,"rec_perfect");
 
     }
 
@@ -1829,7 +1829,7 @@ void compute_var_ratio_perfect(SynImage& syn_image_loc,Part_rep& p_rep,Mesh_data
 
 Mesh_data<float> var_gt;
 
-generate_gt_var(var_gt,syn_image_loc,p_rep.pars);
+generate_gt_var(gt_image,var_gt,syn_image_loc,p_rep.pars);
 //debug_write(var_gt,"var_gt");
 
 //Part_rep p_rep;

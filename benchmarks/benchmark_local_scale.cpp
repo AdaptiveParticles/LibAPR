@@ -172,7 +172,7 @@ int main(int argc, char **argv) {
                         ///////////////////////////////////////////////////////////////////
                         //PSF properties
 
-                        bs.desired_I = 500;
+                        bs.desired_I = 1000;
 
                         analysis_data.add_float_data("desired_I", bs.desired_I);
 

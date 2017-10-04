@@ -458,38 +458,54 @@ void generate_gt_norm_grad(Mesh_data<T>& gt_image,SynImage syn_image,bool normal
 }
 
 template <typename T>
-void generate_gt_var(Mesh_data<T>& gt_image,SynImage syn_image,Proc_par& pars){
+void generate_gt_var(Mesh_data<T>& gt_image,Mesh_data<T>& var_out,SynImage syn_image,Proc_par& pars){
     //get a clean image
 
 
     Mesh_data<float> norm_grad_image;
 
     generate_gt_norm_grad(norm_grad_image,syn_image,true,pars.dx,pars.dy,pars.dz);
-   // debug_write(norm_grad_image,"norm_grad");
+    debug_write(norm_grad_image,"norm_grad");
 
     Mesh_data<float> grad_image;
 
     generate_gt_norm_grad(grad_image,syn_image,false,pars.dx,pars.dy,pars.dz);
    // debug_write(grad_image,"grad");
 
+
+   // Mesh_data<float> grad_image;
+
+    //grad_image.initialize(gt_image.y_num,gt_image.x_num,gt_image.z_num,0);
+
+   // Part_rep p_rep(gt_image.y_num,gt_image.x_num,gt_image.z_num);
+   // p_rep.pars = pars;
+
+   // p_rep.pars.lambda = -1;
+
+    //generate_gt_norm_grad(norm_grad_image,syn_image,true,pars.dx,pars.dy,pars.dz);
+   // get_gradient_3D(p_rep, gt_image, grad_image);
+
+
     Mesh_data<float> norm;
 
     norm.initialize(grad_image.y_num,grad_image.x_num,grad_image.z_num,0);
 
+    //std::cout << round(1000*syn_image.scaling_factor/syn_image.object_templates[0].max_sampled_int) << std::endl;
+
     for (int i = 0; i < norm.mesh.size(); ++i) {
         if(grad_image.mesh[i] > 1) {
-            norm.mesh[i] = 1000 * grad_image.mesh[i] / norm_grad_image.mesh[i];
+            norm.mesh[i] = round(1000*syn_image.scaling_factor/syn_image.object_templates[0].max_sampled_int) * grad_image.mesh[i] / norm_grad_image.mesh[i];
         } else {
             norm.mesh[i] = 64000;
         }
     }
 
-    gt_image.y_num = norm.y_num;
-    gt_image.x_num = norm.x_num;
-    gt_image.z_num = norm.z_num;
+    var_out.y_num = norm.y_num;
+    var_out.x_num = norm.x_num;
+    var_out.z_num = norm.z_num;
 
     //copy accross
-    gt_image.mesh = norm.mesh;
+    var_out.mesh = norm.mesh;
 
 }
 

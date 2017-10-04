@@ -49,14 +49,14 @@ int main(int argc, char **argv) {
 
 
     bs.obj_size = 2;
-    bs.sig = 4.0;
+    bs.sig = 6.0;
     //bs.desired_I = 10000;
     float ratio = 10;
     bs.num_objects = 5*pow(bs.x_num,3)/(33400*ratio);
 
     bs.num_objects = 10;
 
-    bs.desired_I = 500  ;
+    bs.desired_I = 1000  ;
     //bs.int_scale_max = 1;
     //bs.int_scale_min = 1;
     bs.int_scale_min = 1;
