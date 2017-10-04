@@ -48,8 +48,8 @@ int main(int argc, char **argv) {
     bs.num_objects = options.delta;
 
 
-    bs.obj_size = 2;
-    bs.sig = 6.0;
+    bs.obj_size = 3;
+    bs.sig = 2.0;
     //bs.desired_I = 10000;
     float ratio = 10;
     bs.num_objects = 5*pow(bs.x_num,3)/(33400*ratio);
@@ -139,7 +139,7 @@ int main(int argc, char **argv) {
 
         //p_rep.pars.var_scale = 1.0;
 
-        p_rep.pars.padd_dims = {2,2,2,2,2,2};
+        p_rep.pars.padd_dims = {2,2,2,8,8,8};
 
         bench_get_apr(input_img, p_rep, pc_struct, analysis_data);
 

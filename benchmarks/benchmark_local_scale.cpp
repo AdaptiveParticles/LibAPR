@@ -185,9 +185,9 @@ int main(int argc, char **argv) {
 
                         generate_objects(syn_image_loc, bs);
 
-                        b_timer.stop_timer();
+                        //b_timer.stop_timer();
 
-                        b_timer.start_timer("generate_syn_image");
+                        //b_timer.start_timer("generate_syn_image");
 
                         ///////////////////////////////
                         //
@@ -203,7 +203,7 @@ int main(int argc, char **argv) {
 
                         copy_mesh_data_structures(gen_image, input_img);
 
-                        b_timer.stop_timer();
+
 
                         ///////////////////////////////
                         //
@@ -226,19 +226,19 @@ int main(int argc, char **argv) {
 
                         // Get the APR
 
-                        b_timer.start_timer("get apr");
+
 
                         //p_rep.pars.var_scale = 1.0;
-                        p_rep.pars.var_th = 0;
+                        //p_rep.pars.var_th = 0;
 
-                        compute_var_ratio_perfect(syn_image_loc,p_rep,input_img,analysis_data);
+                        //compute_var_ratio_perfect(syn_image_loc,p_rep,input_img,analysis_data);
 
 
                         PartCellStructure<float, uint64_t> pc_struct;
 
                         //p_rep.pars.var_th = 1;
 
-                       // bench_get_apr(input_img, p_rep, pc_struct, analysis_data);
+                        bench_get_apr(input_img, p_rep, pc_struct, analysis_data);
 
                         //b_timer.stop_timer();
 
@@ -250,14 +250,14 @@ int main(int argc, char **argv) {
 
                        // b_timer.start_timer("analysis");
 
-                       // produce_apr_analysis(input_img, analysis_data, pc_struct, syn_image_loc, p_rep.pars);
+                        produce_apr_analysis(input_img, analysis_data, pc_struct, syn_image_loc, p_rep.pars);
 
                      //   std::cout << "Num Parts: " << pc_struct.get_number_parts() << std::endl;
 
                         af::sync();
                         af::deviceGC();
 
-                       // b_timer.stop_timer();
+                        b_timer.stop_timer();
 
                     }
                 }

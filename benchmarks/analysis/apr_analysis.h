@@ -1160,9 +1160,9 @@ void compare_depth_rep(PartCellStructure<float,uint64_t>& pc_struct,PartCellStru
     }
 
 
-    debug_write(k_img_perfect,"k_perfect");
+    //debug_write(k_img_perfect,"k_perfect");
 
-    debug_write(diff,"diff_img");
+    //debug_write(diff,"diff_img");
 
     analysis_data.add_float_data("k_plus",counter_p/norm_total);
     analysis_data.add_float_data("k_minus",counter_m/norm_total);
