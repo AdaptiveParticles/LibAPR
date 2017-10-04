@@ -56,7 +56,7 @@ int main(int argc, char **argv) {
 
     bs.num_objects = 10;
 
-    bs.desired_I = 1000  ;
+    bs.desired_I = 500  ;
     //bs.int_scale_max = 1;
     //bs.int_scale_min = 1;
     bs.int_scale_min = 1;
@@ -127,7 +127,7 @@ int main(int argc, char **argv) {
 
        // p_rep.pars.var_th = 1;
 
-        p_rep.pars.lambda = 1.0;
+       // p_rep.pars.lambda = 3.0;
 
         //p_rep.pars.interp_type = 4;
 
@@ -139,7 +139,7 @@ int main(int argc, char **argv) {
 
         //p_rep.pars.var_scale = 1.0;
 
-        p_rep.pars.padd_dims = {1,1,1,8,8,8};
+        p_rep.pars.padd_dims = {2,2,2,2,2,2};
 
         bench_get_apr(input_img, p_rep, pc_struct, analysis_data);
 

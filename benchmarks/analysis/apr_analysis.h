@@ -1689,26 +1689,34 @@ void produce_apr_analysis(Mesh_data<T>& input_image,AnalysisData& analysis_data,
 
     if(analysis_data.comp_perfect) {
 
+        Part_rep p_rep;
+        p_rep.pars = pars;
+        p_rep.pars.name = "perfect";
+
         Mesh_data<float> norm_grad_image;
 
+        Mesh_data<float> gt_image;
+        generate_gt_image(gt_image, syn_image);
 
-        //generate_gt_norm_grad(norm_grad_image,syn_image,true,pars.dx,pars.dy,pars.dz);
-
+        p_rep.pars.lambda = -1;
 
         Mesh_data<float> grad_image;
 
+        grad_image.initialize(gt_image.y_num,gt_image.x_num,gt_image.z_num,0);
 
-        generate_gt_norm_grad(grad_image,syn_image,false,pars.dx,pars.dy,pars.dz);
+        //generate_gt_norm_grad(norm_grad_image,syn_image,true,pars.dx,pars.dy,pars.dz);
+        get_gradient_3D(p_rep, gt_image, grad_image);
 
+
+
+       // generate_gt_norm_grad(grad_image,syn_image,false,1,1,1);
+
+        //debug_write(grad_image,"grad_p");
 
         Mesh_data<float> var_gt;
 
         generate_gt_var(var_gt,syn_image,pars);
 
-
-        Part_rep p_rep;
-        p_rep.pars = pars;
-        p_rep.pars.name = "perfect";
 
         p_rep.initialize(input_image.y_num,input_image.x_num,input_image.z_num);
 
@@ -1737,8 +1745,7 @@ void produce_apr_analysis(Mesh_data<T>& input_image,AnalysisData& analysis_data,
 
         pc_struct_perfect.interp_parts_to_pc(rec_perfect, pc_struct_perfect.part_data.particle_data);
 
-        Mesh_data<uint16_t> gt_image;
-        generate_gt_image(gt_image, syn_image);
+
 
 
         // Compute Image Stats
@@ -1771,7 +1778,9 @@ void produce_apr_analysis(Mesh_data<T>& input_image,AnalysisData& analysis_data,
 
         compare_var_func(pc_struct_perfect,var_gt,variance,analysis_data);
 
-        debug_write(var_gt,"var_gt");
+        //debug_write(var_gt,"var_gt");
+
+        //debug_write(rec_perfect,"rec_perfect");
 
     }
 
