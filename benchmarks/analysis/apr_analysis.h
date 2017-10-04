@@ -1807,10 +1807,23 @@ void produce_apr_analysis(Mesh_data<T>& input_image,AnalysisData& analysis_data,
 }
 
 void compute_var_ratio_perfect(SynImage& syn_image_loc,Part_rep& p_rep,Mesh_data<uint16_t>& input_img,AnalysisData& analysis_data){
+
+
+    p_rep.pars.name = "perfect";
+
+    Mesh_data<float> norm_grad_image;
+
+    Mesh_data<float> gt_image;
+    generate_gt_image(gt_image, syn_image_loc);
+
+    p_rep.pars.lambda = -1;
+
     Mesh_data<float> grad_image;
 
+    grad_image.initialize(gt_image.y_num,gt_image.x_num,gt_image.z_num,0);
 
-generate_gt_norm_grad(grad_image,syn_image_loc,false,p_rep.pars.dx,p_rep.pars.dy,p_rep.pars.dz);
+    //generate_gt_norm_grad(norm_grad_image,syn_image,true,pars.dx,pars.dy,pars.dz);
+    get_gradient_3D(p_rep, gt_image, grad_image);
 
 //debug_write(grad_image,"grad_img");
 
