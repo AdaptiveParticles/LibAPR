@@ -166,7 +166,7 @@ public:
 
         var_rescale = rescale_store[psf_ind][window_ind_2][window_ind_1];
 
-        //var_rescale = 1;
+        var_rescale = 1;
 
         //var_rescale = par.var_scale;
 
