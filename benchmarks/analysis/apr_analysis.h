@@ -1225,6 +1225,77 @@ void compare_var_func(PartCellStructure<float,uint64_t>& pc_struct_perfect,Mesh_
     analysis_data.add_float_data("std_ratio",sqrt(var));
 
 }
+template<typename T>
+void true_int(Mesh_data<T>& input_image,AnalysisData& analysis_data,PartCellStructure<float,uint64_t>& pc_struct,SynImage& syn_image,Proc_par& pars,std::string name,Mesh_data<float>& var) {
+//Generate clean gt image&
+    Mesh_data<float> gt_imaged;
+    generate_gt_image(gt_imaged, syn_image);
+
+    Part_rep p_rep(input_image.y_num, input_image.x_num, input_image.z_num);
+
+    p_rep.pars = pars;
+
+    APR<float> t_apr(pc_struct);
+
+    ExtraPartCellData<float> true_parts;
+    true_parts.initialize_structure_parts(t_apr.y_vec);
+
+    Particle_map<float> part_map(p_rep);
+
+    part_map.downsample(gt_imaged);
+
+
+    int z_, x_, j_, y_, i, k;
+
+    for (uint64_t depth = (t_apr.y_vec.depth_min); depth <= t_apr.y_vec.depth_max; depth++) {
+//loop over the resolutions of the structure
+        const unsigned int x_num_ = t_apr.y_vec.x_num[depth];
+        const unsigned int z_num_ = t_apr.y_vec.z_num[depth];
+
+        const float step_size_x = pow(2, t_apr.y_vec.depth_max - depth);
+        const float step_size_y = pow(2, t_apr.y_vec.depth_max - depth);
+        const float step_size_z = pow(2, t_apr.y_vec.depth_max - depth);
+
+        for (z_ = 0; z_ < z_num_; z_++) {
+//both z and x are explicitly accessed in the structure
+
+            for (x_ = 0; x_ < x_num_; x_++) {
+
+                const unsigned int pc_offset = x_num_ * z_ + x_;
+
+                for (j_ = 0; j_ < t_apr.y_vec.data[depth][pc_offset].size(); j_++) {
+
+
+                    const int y = t_apr.y_vec.data[depth][pc_offset][j_];
+
+                    const unsigned int y_actual = ((y));
+                    const unsigned int x_actual = ((x_));
+                    const unsigned int z_actual = ((z_));
+
+                    true_parts.data[depth][pc_offset][j_] = part_map.downsampled[depth](y_actual, x_actual, z_actual);
+
+                }
+            }
+        }
+    }
+
+    Mesh_data<float> true_int_m;
+
+    Mesh_data<uint16_t> gt_image;
+
+    t_apr.init_pc_data();
+
+    interp_img(true_int_m, t_apr.y_vec, true_parts);
+
+    generate_gt_image(gt_image, syn_image);
+
+    name = name + "_true";
+
+    compare_E(gt_image, true_int_m, pars, name, analysis_data,var);
+
+    calc_mse(gt_image, true_int_m, name, analysis_data);
+
+}
 
 
 template<typename T>
@@ -1782,8 +1853,11 @@ void produce_apr_analysis(Mesh_data<T>& input_image,AnalysisData& analysis_data,
 
        // debug_write(rec_perfect,"rec_perfect");
 
-    }
 
+        true_int(input_image,analysis_data,pc_struct_perfect,syn_image,pars,"perfect",var_gt);
+
+
+    }
 
 
 }
