@@ -62,9 +62,9 @@ int main(int argc, char **argv) {
     //////////////////////////////////////////////////////
 
     int num_obj_min =1;
-    int num_obj =100;
+    int num_obj =40;
     std::vector<int> number_obj;
-    int step = 4;
+    int step = num_obj/20;
 
     //number_obj.push_back(num_obj);
 
@@ -72,7 +72,7 @@ int main(int argc, char **argv) {
         number_obj.push_back(i);
     }
 
-    number_obj = {100};
+    //number_obj = {100};
 
     //////////////////////////////////////////////////////////
     //
@@ -100,7 +100,7 @@ int main(int argc, char **argv) {
 
     mean_int = {1,10,30};
 
-    mean_int = {10};
+    //mean_int = {10};
 
     bs.int_scale_min = 1;
     bs.int_scale_max = 10;
@@ -119,7 +119,6 @@ int main(int argc, char **argv) {
     }
 
     //mean_int.push_back(30);
-
     std::vector<float> sig_vec;
 
     //min mean
@@ -134,12 +133,11 @@ int main(int argc, char **argv) {
     //    sig_vec.push_back(i);
     //}
 
-    float sig_single = 2;
     bs.obj_size = 3;
 
     analysis_data.add_float_data("obj_size",bs.obj_size);
 
-    sig_vec = {2};
+    sig_vec = {1,3,6};
 
     int N_par1 = (int)number_obj.size(); // this many different parameter values to be run
     int N_par2 = (int)mean_int.size();

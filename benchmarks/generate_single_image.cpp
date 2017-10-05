@@ -49,14 +49,14 @@ int main(int argc, char **argv) {
 
 
     bs.obj_size = 1;
-    bs.sig = 3.0;
+    bs.sig = 6;
     //bs.desired_I = 10000;
     float ratio = 10;
     bs.num_objects = 5*pow(bs.x_num,3)/(33400*ratio);
 
-    bs.num_objects = 20;
+    bs.num_objects = 200;
 
-    bs.desired_I = 1000;
+    bs.desired_I = sqrt(1000)*30;
     //bs.int_scale_max = 1;
     //bs.int_scale_min = 1;
     bs.int_scale_min = 1;
@@ -69,7 +69,6 @@ int main(int argc, char **argv) {
     Object_template basic_object = get_object_template(options, obj_prop);
 
     syn_image.object_templates.push_back(basic_object);
-
 
     SynImage syn_image_loc = syn_image;
 

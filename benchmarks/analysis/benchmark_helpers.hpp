@@ -562,6 +562,11 @@ void set_up_part_rep(SynImage& syn_image_loc,Part_rep& p_rep,benchmark_settings&
 
     p_rep.pars.lambda = bs.lambda;
 
+    float scale_factor = syn_image_loc.scaling_factor/syn_image_loc.object_templates[0].max_sampled_int;
+
+    p_rep.pars.var_th = scale_factor*p_rep.pars.var_th;
+    p_rep.pars.var_th_max = scale_factor*p_rep.pars.var_th_max;
+
     if(bs.noise_type == "none") {
         p_rep.pars.interp_type = 2;
         p_rep.pars.var_th = 1;
