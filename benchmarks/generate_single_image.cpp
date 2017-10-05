@@ -139,7 +139,7 @@ int main(int argc, char **argv) {
 
         //p_rep.pars.var_scale = 1.0;
 
-        p_rep.pars.padd_dims = {2,2,2,8,8,8};
+        //p_rep.pars.padd_dims = {2,2,2,8,8,8};
 
         bench_get_apr(input_img, p_rep, pc_struct, analysis_data);
 

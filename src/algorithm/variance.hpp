@@ -42,6 +42,8 @@ public:
     unsigned int var_window_size2;
     unsigned int var_window_size3;
 
+    std::vector<int> var_win;
+
 
     Proc_par par;
 
@@ -135,6 +137,23 @@ public:
 
         std::vector<int> windows = {1,2,3,4,5,6,7,8,9,10,13,16,20,30};
 
+        int psf_ind = std::max(((float) (round(par.psfx/par.dx) - 1)),((float)0.0f));
+
+        psf_ind = std::min(psf_ind,5);
+
+
+        std::vector<int> win_1 = {1,1,2,1,1,1};
+        std::vector<int> win_2 = {2,5,3,4,5,6};
+
+        var_win.resize(6);
+
+        var_win[0] = win_1[psf_ind];
+        var_win[1] = win_1[psf_ind];
+        var_win[2] = win_1[psf_ind];
+        var_win[3] = win_2[psf_ind];
+        var_win[4] = win_2[psf_ind];
+        var_win[5] = win_2[psf_ind];
+
         int window_ind_1 = 0;
         int window_ind_2 = 0;
 
@@ -142,14 +161,14 @@ public:
         int curr_dist_2 = 99;
 
         for (int i = 0; i < windows.size(); ++i) {
-            if(abs(windows[i] - par.padd_dims[0]) < curr_dist_1){
+            if(abs(windows[i] - var_win[0]) < curr_dist_1){
                 window_ind_1 = i;
-                curr_dist_1 = abs(windows[i] - par.padd_dims[0]);
+                curr_dist_1 = abs(windows[i] - var_win[0]);
             }
 
-            if(abs(windows[i] - par.padd_dims[3]) < curr_dist_2){
+            if(abs(windows[i] - var_win[3]) < curr_dist_2){
                 window_ind_2 = i;
-                curr_dist_2 = abs(windows[i] - par.padd_dims[3]);
+                curr_dist_2 = abs(windows[i] - var_win[3]);
             }
 
 
@@ -160,9 +179,7 @@ public:
 
         //(PSF,window2,window1) with 0 indexing
 
-        int psf_ind = std::max(((float) (round(par.psfx/par.dx) - 1)),((float)0.0f));
 
-        psf_ind = std::min(psf_ind,5);
 
         var_rescale = rescale_store[psf_ind][window_ind_2][window_ind_1];
 
@@ -170,7 +187,7 @@ public:
 
         //var_rescale = par.var_scale;
 
-        std::cout << "**scale: " << var_rescale << std::endl;
+        //std::cout << "**scale: " << var_rescale << std::endl;
 
         //int stop = 1;
 
@@ -676,17 +693,17 @@ void get_variance_3D(Part_rep &p_rep, Mesh_data<T> &input_image, Mesh_data<T> &v
     int win_x2 = ceil((calc_map.var_window_size2 - 1)/4.0);
     int win_z2 = ceil((calc_map.var_window_size3 - 1)/4.0);
 
-    if(p_rep.pars.padd_dims.size() == 6) {
 
-        win_y = p_rep.pars.padd_dims[0];
-        win_x = p_rep.pars.padd_dims[1];
-        win_z = p_rep.pars.padd_dims[2];
 
-        win_y2 = p_rep.pars.padd_dims[3];
-        win_x2 = p_rep.pars.padd_dims[4];
-        win_z2 = p_rep.pars.padd_dims[5];
+        win_y = calc_map.var_win[0];
+        win_x = calc_map.var_win[1];
+        win_z = calc_map.var_win[2];
 
-    }
+        win_y2 = calc_map.var_win[3];
+        win_x2 = calc_map.var_win[4];
+        win_z2 = calc_map.var_win[5];
+
+
 
     //Perform first spatial average output to var
 
