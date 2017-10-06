@@ -142,7 +142,7 @@ public:
         psf_ind = std::min(psf_ind,5);
 
 
-        std::vector<int> win_1 = {1,1,2,1,1,1};
+        std::vector<int> win_1 = {1,1,1,1,1,1};
         std::vector<int> win_2 = {2,5,3,4,5,6};
 
         var_win.resize(6);
