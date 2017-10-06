@@ -356,6 +356,9 @@ if(BENCHMARKS)
 
         ADD_EXECUTABLE(TestLocalScale benchmarks/benchmark_local_scale.cpp  ${SOURCE_FILES_COMPILED} ${BENCHMARK_SOURCE_FILES} )
 
+        ADD_EXECUTABLE(GenAnisoImage benchmarks/generate_anisotropic_single.cpp  ${SOURCE_FILES_COMPILED} ${BENCHMARK_SOURCE_FILES} )
+
+
         TARGET_LINK_LIBRARIES(SynImageGen ${ArrayFire_OpenCL_LIBRARIES}
                 ${OpenCL_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT} ${HDF5_LIBRARIES} pthread tiff blosc)
         TARGET_LINK_LIBRARIES(TestBenchmark ${ArrayFire_OpenCL_LIBRARIES}
@@ -389,6 +392,9 @@ if(BENCHMARKS)
                 ${OpenCL_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT} ${HDF5_LIBRARIES} pthread tiff blosc)
 
         TARGET_LINK_LIBRARIES(TestLocalScale ${ArrayFire_OpenCL_LIBRARIES}
+                ${OpenCL_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT} ${HDF5_LIBRARIES} pthread tiff blosc)
+
+        TARGET_LINK_LIBRARIES(GenAnisoImage ${ArrayFire_OpenCL_LIBRARIES}
                 ${OpenCL_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT} ${HDF5_LIBRARIES} pthread tiff blosc)
 
         add_executable(Example_analysis
