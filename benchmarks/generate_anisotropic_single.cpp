@@ -87,11 +87,13 @@ int main(int argc, char **argv) {
 
     SynImage syn_image_aniso = syn_image_loc;
 
+    float z_ratio = 6;
+
     float dx = 0.1;
-    float dz = 0.4;
+    float dz = 0.1;
 
     float psfx = bs.sig;
-    float psfz = bs.sig*3;
+    float psfz = bs.sig*z_ratio;
 
     syn_image_aniso.sampling_properties.sampling_delta[0] = dx;
     syn_image_aniso.sampling_properties.sampling_delta[1] = dx;
