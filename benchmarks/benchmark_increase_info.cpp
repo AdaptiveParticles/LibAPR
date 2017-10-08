@@ -62,7 +62,7 @@ int main(int argc, char **argv) {
     //////////////////////////////////////////////////////
 
     int num_obj_min =1;
-    int num_obj =100;
+    int num_obj =200;
     std::vector<int> number_obj;
     int step = num_obj/20;
 
