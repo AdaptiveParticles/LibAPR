@@ -52,7 +52,7 @@ int main(int argc, char **argv) {
     bs.num_objects = options.delta;
 
 
-    bs.obj_size = 1;
+    bs.obj_size = 3;
     bs.sig = 3;
     //bs.desired_I = 10000;
     float ratio = 10;
@@ -87,14 +87,19 @@ int main(int argc, char **argv) {
 
     SynImage syn_image_aniso = syn_image_loc;
 
-    syn_image_aniso.sampling_properties.sampling_delta[0] = 0.1;
-    syn_image_aniso.sampling_properties.sampling_delta[1] = 0.1;
-    syn_image_aniso.sampling_properties.sampling_delta[2] = 0.3;
+    float dx = 0.1;
+    float dz = 0.4;
 
-    syn_image_aniso.PSF_properties.real_sigmas[0] = bs.sig*syn_image_aniso.sampling_properties.sampling_delta[0];
-    syn_image_aniso.PSF_properties.real_sigmas[1] = bs.sig*syn_image_aniso.sampling_properties.sampling_delta[1];
-    syn_image_aniso.PSF_properties.real_sigmas[2] = bs.sig*syn_image_aniso.sampling_properties.sampling_delta[2];
+    float psfx = bs.sig;
+    float psfz = bs.sig*3;
 
+    syn_image_aniso.sampling_properties.sampling_delta[0] = dx;
+    syn_image_aniso.sampling_properties.sampling_delta[1] = dx;
+    syn_image_aniso.sampling_properties.sampling_delta[2] = dz;
+
+    syn_image_aniso.PSF_properties.real_sigmas[0] = psfx*dx;
+    syn_image_aniso.PSF_properties.real_sigmas[1] = psfx*dx;
+    syn_image_aniso.PSF_properties.real_sigmas[2] = psfz*dx;
 
     syn_image_aniso.PSF_properties.set_guassian_window_size();
 
@@ -127,11 +132,11 @@ int main(int argc, char **argv) {
     set_up_part_rep(syn_image_loc, p_rep, bs);
 
     PartCellStructure<float, uint64_t> pc_struct;
-    bench_get_apr(input_img, p_rep, pc_struct, analysis_data);
+    //bench_get_apr(input_img, p_rep, pc_struct, analysis_data);
 
-    write_image_tiff(input_img, p_rep.pars.output_path + p_rep.pars.name + ".tif");
+    //write_image_tiff(input_img, p_rep.pars.output_path + p_rep.pars.name + ".tif");
 
-    std::cout << pc_struct.get_number_parts() << std::endl;
+    //std::cout << pc_struct.get_number_parts() << std::endl;
 
 
 
@@ -172,13 +177,15 @@ int main(int argc, char **argv) {
 
     p_rep_a.pars.name = "aniso";
 
+    p_rep_a.pars.dz = dz;
+    p_rep_a.pars.psfz = psfz*dx;
+
     PartCellStructure<float, uint64_t> pc_struct_a;
     bench_get_apr(input_img_a, p_rep_a, pc_struct_a, analysis_data);
 
     write_image_tiff(input_img_a, p_rep_a.pars.output_path + p_rep_a.pars.name + ".tif");
 
     std::cout << pc_struct_a.get_number_parts() << std::endl;
-
 
     ///////////////////////////////
     //

@@ -988,8 +988,8 @@ void compare_E(Mesh_data<S>& org_img,Mesh_data<T>& rec_img,Proc_par& pars,std::s
             for(k = b;k < (y_num_o-b);k++){
 
                 if(variance.mesh[j*x_num_r*y_num_r + i*y_num_r + k] < 60000) {
-                    var += pow(pow(org_img.mesh[j*x_num_o*y_num_o + i*y_num_o + k] - rec_img.mesh[j*x_num_o*y_num_o + i*y_num_o + k],2) - MSE,2);
-                    MSE_var += pow(pow(org_img.mesh[j*x_num_o*y_num_o + i*y_num_o + k] - rec_img.mesh[j*x_num_o*y_num_o + i*y_num_o + k],2) - MSE,2);
+                    var += pow(pow(org_img.mesh[j*x_num_o*y_num_o + i*y_num_o + k] - rec_img.mesh[j*x_num_r*y_num_r + i*y_num_r + k],2) - MSE,2);
+                    MSE_var += pow(pow(org_img.mesh[j*x_num_o*y_num_o + i*y_num_o + k] - rec_img.mesh[j*x_num_o*y_num_r + i*y_num_r + k],2) - MSE,2);
 
                     counter++;
                 }
@@ -1809,14 +1809,23 @@ void produce_apr_analysis(Mesh_data<T>& input_image,AnalysisData& analysis_data,
                     [](float x) { return x; },true);
 
         std::vector<unsigned int> dims = {(unsigned int)var_gt.y_num,(unsigned int)var_gt.x_num,(unsigned int)var_gt.z_num};
-        const_upsample_img(var_gt,variance_u,dims);
 
+
+        int y_size_max = ceil(dims[0]/2.0)*2;
+        int x_size_max = ceil(dims[1]/2.0)*2;
+        int z_size_max = ceil(dims[2]/2.0)*2;
+
+        const int z_num = std::min(var_gt.z_num*2,z_size_max);
+        const int x_num = std::min(var_gt.x_num*2,x_size_max);
+        const int y_num = std::min(var_gt.y_num*2,y_size_max);
+
+        var_gt.initialize(y_num,x_num,z_num,0);
+
+        const_upsample_img(var_gt,variance_u,dims);
 
         Mesh_data<float> rec_perfect;
 
         pc_struct_perfect.interp_parts_to_pc(rec_perfect, pc_struct_perfect.part_data.particle_data);
-
-
 
 
         // Compute Image Stats
@@ -1849,9 +1858,9 @@ void produce_apr_analysis(Mesh_data<T>& input_image,AnalysisData& analysis_data,
 
         compare_var_func(pc_struct_perfect,var_gt,variance,analysis_data);
 
-       // debug_write(var_gt,"var_gt");
+        debug_write(var_gt,"var_gt");
 
-       // debug_write(rec_perfect,"rec_perfect");
+        debug_write(rec_perfect,"rec_perfect");
 
 
         true_int(input_image,analysis_data,pc_struct_perfect,syn_image,pars,"perfect",var_gt);
