@@ -126,7 +126,7 @@ int main(int argc, char **argv) {
 
         p_rep.pars.pull_scheme = 2;
 
-       // p_rep.pars.var_th = 1;
+        p_rep.pars.var_th = 1;
 
        // p_rep.pars.lambda = 3.0;
 
@@ -140,9 +140,10 @@ int main(int argc, char **argv) {
 
         //p_rep.pars.var_scale = 1.0;
 
-        //p_rep.pars.padd_dims = {2,2,2,8,8,8};
+        p_rep.pars.padd_dims = {1,1,1,3,3,3};
 
-        bench_get_apr(input_img, p_rep, pc_struct, analysis_data);
+
+        //bench_get_apr(input_img, p_rep, pc_struct, analysis_data);
 
 
         write_image_tiff(input_img, p_rep.pars.output_path + p_rep.pars.name + ".tif");
@@ -156,15 +157,17 @@ int main(int argc, char **argv) {
         //
         ///////////////////////////////
 
-        produce_apr_analysis(input_img, analysis_data, pc_struct, syn_image_loc, p_rep.pars);
+        //produce_apr_analysis(input_img, analysis_data, pc_struct, syn_image_loc, p_rep.pars);
 
 
-    Mesh_data<float> smooth_img;
+    //Mesh_data<float> smooth_img;
 
-    interp_parts_to_smooth(smooth_img,pc_struct.part_data.particle_data,pc_struct);
+    //interp_parts_to_smooth(smooth_img,pc_struct.part_data.particle_data,pc_struct);
+
+    //debug_write(smooth_img,"smooth_test");
 
 
-       //compute_var_ratio_perfect(syn_image_loc,p_rep,input_img,analysis_data);
+       compute_var_ratio_perfect(syn_image_loc,p_rep,input_img,analysis_data);
 
 //    p_rep.pars.name = "perfect";
 //

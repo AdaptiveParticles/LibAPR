@@ -229,7 +229,7 @@ int main(int argc, char **argv) {
 
 
                         //p_rep.pars.var_scale = 1.0;
-                        //p_rep.pars.var_th = 0;
+                        p_rep.pars.var_th = 0;
 
                         compute_var_ratio_perfect(syn_image_loc,p_rep,input_img,analysis_data);
 

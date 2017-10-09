@@ -454,6 +454,115 @@ void interp_parts_to_smooth(Mesh_data<U>& out_image,ExtraPartCellData<V>& interp
 
     interp_depth_to_mesh(k_img,pc_struct);
 
+    int filter_offset = 0;
+
+    unsigned int x_num = pc_image.x_num;
+    unsigned int y_num = pc_image.y_num;
+    unsigned int z_num = pc_image.z_num;
+
+    Mesh_data<U> output_data;
+    output_data.initialize((int)y_num,(int)x_num,(int)z_num,0);
+
+    std::vector<U> temp_vec;
+    temp_vec.resize(y_num,0);
+
+    uint64_t offset_min;
+    uint64_t offset_max;
+
+    uint64_t j = 0;
+    uint64_t k = 0;
+    uint64_t i = 0;
+
+    float factor = .1;
+
+    int k_max = pc_struct.depth_max + 1;
+
+
+#pragma omp parallel for default(shared) private(j,i,k,offset_min,offset_max)
+        for(j = 0; j < z_num;j++){
+            for(i = 0; i < x_num;i++){
+
+                for(k = 0;k < y_num;k++){
+
+                    filter_offset = floor(pow(2,k_max - k_img.mesh[j*x_num*y_num + i*y_num + k])/2.0);
+
+                    offset_max = std::min((int)(k + filter_offset),(int)(y_num-1));
+                    offset_min = std::max((int)(k - filter_offset),(int)0);
+
+                    factor = 1.0/(offset_max - offset_min+1);
+
+                    uint64_t f = 0;
+                    for(uint64_t c = offset_min;c <= offset_max;c++){
+
+                        //output_data.mesh[j*x_num*y_num + i*y_num + k] += temp_vec[c]*filter[f];
+                        //output_data.mesh[j*x_num*y_num + i*y_num + k] += input_data.mesh[j*x_num*y_num + i*y_num + c]*filter[f];
+                        output_data.mesh[j*x_num*y_num + i*y_num + k] += pc_image.mesh[j*x_num*y_num + i*y_num + c]*factor;
+                        f++;
+                    }
+
+                }
+            }
+        }
+
+
+    out_image = output_data;
+
+//
+//    for(int r = 0;r < num_repeats;r++){
+//
+//#pragma omp parallel for default(shared) private(j,i,k,offset_min,offset_max)
+//        for(j = 0; j < z_num;j++){
+//            for(i = 0; i < x_num;i++){
+//
+//                for(k = 0;k < y_num;k++){
+//
+//                    offset_max = std::min((int)(i + filter_offset),(int)(x_num-1));
+//                    offset_min = std::max((int)(i - filter_offset),(int)0);
+//
+//                    uint64_t f = 0;
+//                    for(uint64_t c = offset_min;c <= offset_max;c++){
+//
+//                        //output_data.mesh[j*x_num*y_num + i*y_num + k] += temp_vec[c]*filter[f];
+//                        output_data.mesh[j*x_num*y_num + i*y_num + k] += input_data.mesh[j*x_num*y_num + c*y_num + k]*filter[f];
+//                        f++;
+//                    }
+//
+//                }
+//            }
+//        }
+//
+//    }
+//
+//    // z loop
+//
+//    for(int r = 0;r < num_repeats;r++){
+//
+//#pragma omp parallel for default(shared) private(j,i,k,offset_min,offset_max)
+//        for(j = 0; j < z_num;j++){
+//            for(i = 0; i < x_num;i++){
+//
+//
+//                for(k = 0;k < y_num;k++){
+//
+//                    offset_max = std::min((int)(j + filter_offset),(int)(z_num-1));
+//                    offset_min = std::max((int)(j - filter_offset),(int)0);
+//
+//                    uint64_t f = 0;
+//                    for(uint64_t c = offset_min;c <= offset_max;c++){
+//
+//                        //output_data.mesh[j*x_num*y_num + i*y_num + k] += temp_vec[c]*filter[f];
+//                        output_data.mesh[j*x_num*y_num + i*y_num + k] += input_data.mesh[c*x_num*y_num + i*y_num + k]*filter[f];
+//                        f++;
+//                    }
+//
+//                }
+//            }
+//        }
+//
+//    }
+
+
+
 }
 template<typename T>
 void threshold_part(PartCellStructure<float,uint64_t>& pc_struct,ExtraPartCellData<T>& th_output,float threshold){
