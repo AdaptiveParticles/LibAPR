@@ -444,7 +444,7 @@ void interp_extrapc_to_mesh(Mesh_data<T>& output_img,PartCellStructure<S,uint64_
 
 
 template<typename U,typename V>
-void interp_parts_to_smooth(Mesh_data<U>& out_image,ExtraPartCellData<V>& interp_data,PartCellStructure<float,uint64_t>& pc_struct){
+void interp_parts_to_smooth(Mesh_data<U>& out_image,ExtraPartCellData<V>& interp_data,PartCellStructure<float,uint64_t>& pc_struct,std::vector<float> scale_d){
 
 
     Mesh_data<U> pc_image;
@@ -484,7 +484,7 @@ void interp_parts_to_smooth(Mesh_data<U>& out_image,ExtraPartCellData<V>& interp
 
                 for(k = 0;k < y_num;k++){
 
-                    filter_offset = floor(pow(2,k_max - k_img.mesh[j*x_num*y_num + i*y_num + k])/0.5);
+                    filter_offset = floor(pow(2,k_max - k_img.mesh[j*x_num*y_num + i*y_num + k])/scale_d[0]);
 
                     offset_max = std::min((int)(k + filter_offset),(int)(y_num-1));
                     offset_min = std::max((int)(k - filter_offset),(int)0);
@@ -518,7 +518,7 @@ void interp_parts_to_smooth(Mesh_data<U>& out_image,ExtraPartCellData<V>& interp
 
                 for(k = 0;k < y_num;k++){
 
-                    filter_offset = floor(pow(2,k_max - k_img.mesh[j*x_num*y_num + i*y_num + k])/0.5);
+                    filter_offset = floor(pow(2,k_max - k_img.mesh[j*x_num*y_num + i*y_num + k])/scale_d[1]);
 
                     offset_max = std::min((int)(i + filter_offset),(int)(x_num-1));
                     offset_min = std::max((int)(i - filter_offset),(int)0);
@@ -551,7 +551,7 @@ void interp_parts_to_smooth(Mesh_data<U>& out_image,ExtraPartCellData<V>& interp
 
                 for(k = 0;k < y_num;k++){
 
-                    filter_offset = floor(pow(2,k_max - k_img.mesh[j*x_num*y_num + i*y_num + k])/0.5);
+                    filter_offset = floor(pow(2,k_max - k_img.mesh[j*x_num*y_num + i*y_num + k])/scale_d[2]);
 
                     offset_max = std::min((int)(j + filter_offset),(int)(z_num-1));
                     offset_min = std::max((int)(j - filter_offset),(int)0);

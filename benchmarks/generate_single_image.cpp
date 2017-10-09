@@ -49,7 +49,7 @@ int main(int argc, char **argv) {
 
 
     bs.obj_size = 2;
-    bs.sig = 1;
+    bs.sig = 6;
     //bs.desired_I = 10000;
     float ratio = 10;
     bs.num_objects = 5*pow(bs.x_num,3)/(33400*ratio);
@@ -160,13 +160,19 @@ int main(int argc, char **argv) {
       //  produce_apr_analysis(input_img, analysis_data, pc_struct, syn_image_loc, p_rep.pars);
 
 
+    std::vector<float> scale = {2,2,2};
+
    Mesh_data<float> smooth_img;
 
-    interp_parts_to_smooth(smooth_img,pc_struct.part_data.particle_data,pc_struct);
+    interp_parts_to_smooth(smooth_img,pc_struct.part_data.particle_data,pc_struct,scale);
 
     debug_write(smooth_img,"smooth_test");
 
+    Mesh_data<float> rec_img;
 
+    pc_struct.interp_parts_to_pc(rec_img,pc_struct.part_data.particle_data);
+
+    debug_write(rec_img,"rec_img");
       // compute_var_ratio_perfect(syn_image_loc,p_rep,input_img,analysis_data);
 
 //    p_rep.pars.name = "perfect";
