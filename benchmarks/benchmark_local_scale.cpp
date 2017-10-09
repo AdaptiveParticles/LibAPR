@@ -172,7 +172,7 @@ int main(int argc, char **argv) {
                         ///////////////////////////////////////////////////////////////////
                         //PSF properties
 
-                        bs.desired_I = 200;
+                        bs.desired_I = 1000;
 
                         analysis_data.add_float_data("desired_I", bs.desired_I);
 
@@ -227,7 +227,7 @@ int main(int argc, char **argv) {
                         // Get the APR
 
 
-                        p_rep.pars.lambda = 5.0;
+                        p_rep.pars.lambda = 1.0;
                         //p_rep.pars.var_scale = 1.0;
                         p_rep.pars.var_th = 0;
 

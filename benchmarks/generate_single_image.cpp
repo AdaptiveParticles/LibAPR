@@ -56,7 +56,7 @@ int main(int argc, char **argv) {
 
     bs.num_objects = 10;
 
-    bs.desired_I = 200;
+    bs.desired_I = 1000;
     //bs.int_scale_max = 1;
     //bs.int_scale_min = 1;
     bs.int_scale_min = 1;
@@ -128,17 +128,17 @@ int main(int argc, char **argv) {
 
         //p_rep.pars.var_th = 1;
 
-        p_rep.pars.lambda = 5.0;
+        //p_rep.pars.lambda = 5.0;
 
         p_rep.pars.interp_type = 2;
 
         PartCellStructure<float, uint64_t> pc_struct;
 
         //p_rep.pars.interp_type = i;
-
+        //p_rep.pars.lambda = 5.0;
         //p_rep.pars.lambda = 10;
 
-        p_rep.pars.var_scale = 1.0;
+        //p_rep.pars.var_scale = 1.0;
 
         p_rep.pars.padd_dims = {1,1,1,2,2,2};
 
@@ -160,11 +160,11 @@ int main(int argc, char **argv) {
         produce_apr_analysis(input_img, analysis_data, pc_struct, syn_image_loc, p_rep.pars);
 
 
-  // Mesh_data<float> smooth_img;
+   Mesh_data<float> smooth_img;
 
-   // interp_parts_to_smooth(smooth_img,pc_struct.part_data.particle_data,pc_struct);
+    interp_parts_to_smooth(smooth_img,pc_struct.part_data.particle_data,pc_struct);
 
-   // debug_write(smooth_img,"smooth_test");
+    debug_write(smooth_img,"smooth_test");
 
 
        compute_var_ratio_perfect(syn_image_loc,p_rep,input_img,analysis_data);
