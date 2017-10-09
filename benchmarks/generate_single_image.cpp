@@ -54,13 +54,13 @@ int main(int argc, char **argv) {
     float ratio = 10;
     bs.num_objects = 5*pow(bs.x_num,3)/(33400*ratio);
 
-    bs.num_objects = 10;
+    bs.num_objects = 30;
 
-    bs.desired_I = 1000;
+    bs.desired_I = 10;
     //bs.int_scale_max = 1;
     //bs.int_scale_min = 1;
     bs.int_scale_min = 1;
-    bs.int_scale_max = 10;
+    bs.int_scale_max = 3;
 
     syn_image.global_trans.const_shift = 1000;
 
@@ -128,7 +128,7 @@ int main(int argc, char **argv) {
 
         //p_rep.pars.var_th = 1;
 
-        //p_rep.pars.lambda = 5.0;
+       // p_rep.pars.lambda = 1.0;
 
         p_rep.pars.interp_type = 2;
 
@@ -157,7 +157,7 @@ int main(int argc, char **argv) {
         //
         ///////////////////////////////
 
-        produce_apr_analysis(input_img, analysis_data, pc_struct, syn_image_loc, p_rep.pars);
+      //  produce_apr_analysis(input_img, analysis_data, pc_struct, syn_image_loc, p_rep.pars);
 
 
    Mesh_data<float> smooth_img;
@@ -167,7 +167,7 @@ int main(int argc, char **argv) {
     debug_write(smooth_img,"smooth_test");
 
 
-       compute_var_ratio_perfect(syn_image_loc,p_rep,input_img,analysis_data);
+      // compute_var_ratio_perfect(syn_image_loc,p_rep,input_img,analysis_data);
 
 //    p_rep.pars.name = "perfect";
 //

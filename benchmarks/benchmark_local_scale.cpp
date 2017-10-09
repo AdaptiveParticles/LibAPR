@@ -211,7 +211,7 @@ int main(int argc, char **argv) {
                         //
                         //////////////////////////////
 
-                        bs.rel_error = rel_error_vec[j];
+                        bs.rel_error = 0.1;
 
                         analysis_data.add_float_data("rel_error", bs.rel_error);
 
@@ -227,7 +227,7 @@ int main(int argc, char **argv) {
                         // Get the APR
 
 
-                        p_rep.pars.lambda = 1.0;
+                        p_rep.pars.lambda = 0;
                         //p_rep.pars.var_scale = 1.0;
                         p_rep.pars.var_th = 0;
 

@@ -484,7 +484,7 @@ void interp_parts_to_smooth(Mesh_data<U>& out_image,ExtraPartCellData<V>& interp
 
                 for(k = 0;k < y_num;k++){
 
-                    filter_offset = floor(pow(2,k_max - k_img.mesh[j*x_num*y_num + i*y_num + k])/2.0);
+                    filter_offset = floor(pow(2,k_max - k_img.mesh[j*x_num*y_num + i*y_num + k])/0.5);
 
                     offset_max = std::min((int)(k + filter_offset),(int)(y_num-1));
                     offset_min = std::max((int)(k - filter_offset),(int)0);
@@ -492,6 +492,7 @@ void interp_parts_to_smooth(Mesh_data<U>& out_image,ExtraPartCellData<V>& interp
                     factor = 1.0/(offset_max - offset_min+1);
 
                     uint64_t f = 0;
+                    output_data.mesh[j*x_num*y_num + i*y_num + k] = 0;
                     for(uint64_t c = offset_min;c <= offset_max;c++){
 
                         //output_data.mesh[j*x_num*y_num + i*y_num + k] += temp_vec[c]*filter[f];
@@ -506,67 +507,69 @@ void interp_parts_to_smooth(Mesh_data<U>& out_image,ExtraPartCellData<V>& interp
 
 
 
-//
-//    std::swap(output_data.mesh,pc_image.mesh);
-//
-//
-//
-////#pragma omp parallel for default(shared) private(j,i,k,offset_min,offset_max)
-//        for(j = 0; j < z_num;j++){
-//            for(i = 0; i < x_num;i++){
-//
-//                for(k = 0;k < y_num;k++){
-//
-//                    filter_offset = floor(pow(2,k_max - k_img.mesh[j*x_num*y_num + i*y_num + k])/2.0);
-//
-//                    offset_max = std::min((int)(i + filter_offset),(int)(x_num-1));
-//                    offset_min = std::max((int)(i - filter_offset),(int)0);
-//
-//                    factor = 1.0/(offset_max - offset_min+1);
-//
-//                    uint64_t f = 0;
-//                    for(uint64_t c = offset_min;c <= offset_max;c++){
-//
-//                        //output_data.mesh[j*x_num*y_num + i*y_num + k] += temp_vec[c]*filter[f];
-//                        output_data.mesh[j*x_num*y_num + i*y_num + k] += pc_image.mesh[j*x_num*y_num + c*y_num + k]*factor;
-//                        f++;
-//                    }
-//
-//                }
-//            }
-//        }
-//
+
+    std::swap(output_data.mesh,pc_image.mesh);
+
+
+
+//#pragma omp parallel for default(shared) private(j,i,k,offset_min,offset_max)
+        for(j = 0; j < z_num;j++){
+            for(i = 0; i < x_num;i++){
+
+                for(k = 0;k < y_num;k++){
+
+                    filter_offset = floor(pow(2,k_max - k_img.mesh[j*x_num*y_num + i*y_num + k])/0.5);
+
+                    offset_max = std::min((int)(i + filter_offset),(int)(x_num-1));
+                    offset_min = std::max((int)(i - filter_offset),(int)0);
+
+                    factor = 1.0/(offset_max - offset_min+1);
+
+                    uint64_t f = 0;
+                    output_data.mesh[j*x_num*y_num + i*y_num + k] = 0;
+                    for(uint64_t c = offset_min;c <= offset_max;c++){
+
+                        //output_data.mesh[j*x_num*y_num + i*y_num + k] += temp_vec[c]*filter[f];
+                        output_data.mesh[j*x_num*y_num + i*y_num + k] += pc_image.mesh[j*x_num*y_num + c*y_num + k]*factor;
+                        f++;
+                    }
+
+                }
+            }
+        }
+
 //
 //
 //    // z loop
 //
-//    std::swap(output_data.mesh,pc_image.mesh);
-//
-////#pragma omp parallel for default(shared) private(j,i,k,offset_min,offset_max)
-//        for(j = 0; j < z_num;j++){
-//            for(i = 0; i < x_num;i++){
-//
-//
-//                for(k = 0;k < y_num;k++){
-//
-//                    filter_offset = floor(pow(2,k_max - k_img.mesh[j*x_num*y_num + i*y_num + k])/2.0);
-//
-//                    offset_max = std::min((int)(j + filter_offset),(int)(z_num-1));
-//                    offset_min = std::max((int)(j - filter_offset),(int)0);
-//
-//                    factor = 1.0/(offset_max - offset_min+1);
-//
-//                    uint64_t f = 0;
-//                    for(uint64_t c = offset_min;c <= offset_max;c++){
-//
-//                        //output_data.mesh[j*x_num*y_num + i*y_num + k] += temp_vec[c]*filter[f];
-//                        output_data.mesh[j*x_num*y_num + i*y_num + k] += pc_image.mesh[c*x_num*y_num + i*y_num + k]*factor;
-//                        f++;
-//                    }
-//
-//                }
-//            }
-//        }
+    std::swap(output_data.mesh,pc_image.mesh);
+
+//#pragma omp parallel for default(shared) private(j,i,k,offset_min,offset_max)
+        for(j = 0; j < z_num;j++){
+            for(i = 0; i < x_num;i++){
+
+
+                for(k = 0;k < y_num;k++){
+
+                    filter_offset = floor(pow(2,k_max - k_img.mesh[j*x_num*y_num + i*y_num + k])/0.5);
+
+                    offset_max = std::min((int)(j + filter_offset),(int)(z_num-1));
+                    offset_min = std::max((int)(j - filter_offset),(int)0);
+
+                    factor = 1.0/(offset_max - offset_min+1);
+
+                    uint64_t f = 0;
+                    output_data.mesh[j*x_num*y_num + i*y_num + k]=0;
+                    for(uint64_t c = offset_min;c <= offset_max;c++){
+
+                        //output_data.mesh[j*x_num*y_num + i*y_num + k] += temp_vec[c]*filter[f];
+                        output_data.mesh[j*x_num*y_num + i*y_num + k] += pc_image.mesh[c*x_num*y_num + i*y_num + k]*factor;
+                        f++;
+                    }
+
+                }
+            }
+        }
 
 
 
