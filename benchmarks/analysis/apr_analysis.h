@@ -1891,6 +1891,9 @@ void produce_apr_analysis(Mesh_data<T>& input_image,AnalysisData& analysis_data,
 
 void compute_var_ratio_perfect(SynImage& syn_image_loc,Part_rep& p_rep,Mesh_data<uint16_t>& input_img,AnalysisData& analysis_data){
 
+    Mesh_data<float> variance;
+
+    get_variance(input_img, variance, p_rep.pars);
 
     p_rep.pars.name = "perfect";
 
@@ -1924,8 +1927,6 @@ p_rep.initialize(input_img.y_num,input_img.x_num,input_img.z_num);
 PartCellStructure<float, uint64_t> pc_struct_perfect;
 get_apr_perfect(input_img,grad_image,var_gt,p_rep,pc_struct_perfect,analysis_data);
 
-Mesh_data<float> variance;
-
 
 Mesh_data<float> variance_u;
 //need to down sample / then upsample variance
@@ -1936,7 +1937,6 @@ down_sample(var_gt,variance_u,
 std::vector<unsigned int> dims = {(unsigned int)var_gt.y_num,(unsigned int)var_gt.x_num,(unsigned int)var_gt.z_num};
 const_upsample_img(var_gt,variance_u,dims);
 
-get_variance(input_img, variance, p_rep.pars);
 
 //debug_write(variance,"vvar");
 

@@ -224,23 +224,7 @@ public:
         }
 
 
-
-        //(PSF,window2,window1) with 0 indexing
-
-
-
-
-
-        //var_rescale = 1;
-
-        //var_rescale = par.var_scale;
-
-        //std::cout << "**scale: " << var_rescale << std::endl;
-
-        //int stop = 1;
-
-        //var_rescale = 6.9541;
-        //var_rescale = 7.1748;
+        var_rescale = 1;
 
     }
 
