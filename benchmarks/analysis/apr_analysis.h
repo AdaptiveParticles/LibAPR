@@ -126,6 +126,11 @@ void bench_get_apr(Mesh_data<T>& input_image,Part_rep& p_rep,PartCellStructure<f
     //
     //
 
+
+    std::vector<float> scaling_var_th = {0.9170,0.8545,0.8212,0.7761,0.7760,0.7075,0.6777,0.6336,0.5592,0.4962,0.4624,0.3956,0.3368,0.2780};
+
+    std::vector<float> lambda_sch = { 0.5000,0.7500,1.0000,1.5000,2.0000,3.0000,4.0000,5.0000,10.0000,15.0000,20.0000,30.0000,50.0000,100.0000};
+
     p_rep.pars.tol = 0.0005f;
 
     //p_rep.pars.var_scale = 2;
@@ -172,10 +177,25 @@ void bench_get_apr(Mesh_data<T>& input_image,Part_rep& p_rep,PartCellStructure<f
         p_rep.pars.var_th_max = 1;
     }
 
+
+    float scales_down = 0;
+    int index_scale = 0;
+
+    for (int i = 0; i < lambda_sch.size(); ++i) {
+        if(p_rep.pars.lambda > lambda_sch[i]){
+            index_scale = i;
+        }
+    }
+
+
+    p_rep.pars.var_th = scaling_var_th[index_scale]*p_rep.pars.var_th;
+    p_rep.pars.var_th_max = scaling_var_th[index_scale]*p_rep.pars.var_th_max;
+
     std::cout << "Lamda: " << p_rep.pars.lambda << std::endl;
 
     get_apr(input_image,p_rep,pc_struct,analysis_data);
 
+    p_rep.pars.mean_scale = scaling_var_th[index_scale];
 
 }
 

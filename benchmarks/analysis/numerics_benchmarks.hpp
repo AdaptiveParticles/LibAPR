@@ -485,6 +485,8 @@ void generate_gt_var(Mesh_data<T>& gt_image,Mesh_data<T>& var_out,SynImage syn_i
     //generate_gt_norm_grad(norm_grad_image,syn_image,true,pars.dx,pars.dy,pars.dz);
    // get_gradient_3D(p_rep, gt_image, grad_image);
 
+    float factor = pars.mean_scale;
+
 
     Mesh_data<float> norm;
 
@@ -494,7 +496,7 @@ void generate_gt_var(Mesh_data<T>& gt_image,Mesh_data<T>& var_out,SynImage syn_i
 
     for (int i = 0; i < norm.mesh.size(); ++i) {
         if(grad_image.mesh[i] > 1) {
-            norm.mesh[i] = round(1000*syn_image.scaling_factor/syn_image.object_templates[0].max_sampled_int) * grad_image.mesh[i] / norm_grad_image.mesh[i];
+            norm.mesh[i] = round(factor*1000*syn_image.scaling_factor/syn_image.object_templates[0].max_sampled_int) * grad_image.mesh[i] / norm_grad_image.mesh[i];
         } else {
             norm.mesh[i] = 64000;
         }
