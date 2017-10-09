@@ -156,11 +156,15 @@ int main(int argc, char **argv) {
         //
         ///////////////////////////////
 
-       // produce_apr_analysis(input_img, analysis_data, pc_struct, syn_image_loc, p_rep.pars);
+        produce_apr_analysis(input_img, analysis_data, pc_struct, syn_image_loc, p_rep.pars);
 
 
+    Mesh_data<float> smooth_img;
 
-       compute_var_ratio_perfect(syn_image_loc,p_rep,input_img,analysis_data);
+    interp_parts_to_smooth(smooth_img,pc_struct.part_data.particle_data,pc_struct);
+
+
+       //compute_var_ratio_perfect(syn_image_loc,p_rep,input_img,analysis_data);
 
 //    p_rep.pars.name = "perfect";
 //

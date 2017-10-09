@@ -441,6 +441,20 @@ void interp_extrapc_to_mesh(Mesh_data<T>& output_img,PartCellStructure<S,uint64_
     
     
 }
+
+
+template<typename U,typename V>
+void interp_parts_to_smooth(Mesh_data<U>& out_image,ExtraPartCellData<V>& interp_data,PartCellStructure<float,uint64_t>& pc_struct){
+
+
+    Mesh_data<U> pc_image;
+    Mesh_data<uint8_t> k_img;
+
+    pc_struct.interp_parts_to_pc(pc_image,interp_data);
+
+    interp_depth_to_mesh(k_img,pc_struct);
+
+}
 template<typename T>
 void threshold_part(PartCellStructure<float,uint64_t>& pc_struct,ExtraPartCellData<T>& th_output,float threshold){
     //
