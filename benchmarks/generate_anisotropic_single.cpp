@@ -52,15 +52,15 @@ int main(int argc, char **argv) {
     bs.num_objects = options.delta;
 
 
-    bs.obj_size = 3;
-    bs.sig = 3;
+    bs.obj_size = 2;
+    bs.sig = 1;
     //bs.desired_I = 10000;
     float ratio = 10;
     bs.num_objects = 5*pow(bs.x_num,3)/(33400*ratio);
 
-    bs.num_objects = 5;
+    bs.num_objects = 10;
 
-    bs.desired_I = sqrt(1000)*10;
+    bs.desired_I = 200;
     //bs.int_scale_max = 1;
     //bs.int_scale_min = 1;
     bs.int_scale_min = 1;
@@ -87,7 +87,7 @@ int main(int argc, char **argv) {
 
     SynImage syn_image_aniso = syn_image_loc;
 
-    float z_ratio = 6;
+    float z_ratio = 1;
 
     float dx = 0.1;
     float dz = 0.1;
