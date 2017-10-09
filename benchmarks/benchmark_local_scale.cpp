@@ -73,7 +73,7 @@ int main(int argc, char **argv) {
 
     float del = 0;
 
-    rel_error_vec = {0.1};
+    rel_error_vec = {0.5,0.75,1.0,1.5,2.0,3.0,4.0,5.0,10.0,15.0,20.0,30,50,100};
 
     //min mean
     float min_sig = 1;
@@ -87,15 +87,15 @@ int main(int argc, char **argv) {
         // sig_vec.push_back(i);
     }
 
-    sig_vec = {1,2,3,4,5,6};
+    sig_vec = {1};
 
     //min mean
 
     std::vector<int> window_1;
     std::vector<int> window_2;
 
-    window_1 = {1,2,3};
-    window_2 = {1,2,3,4,5,6,7,8};
+    window_1 = {1};
+    window_2 = {2};
 
     int N_par1 = (int)rel_error_vec.size(); // this many different parameter values to be run
     int N_par2 = (int)sig_vec.size();
@@ -203,8 +203,6 @@ int main(int argc, char **argv) {
 
                         copy_mesh_data_structures(gen_image, input_img);
 
-
-
                         ///////////////////////////////
                         //
                         //  Get the APR
@@ -227,7 +225,7 @@ int main(int argc, char **argv) {
                         // Get the APR
 
 
-                        //p_rep.pars.lambda = 0;
+                        p_rep.pars.lambda = rel_error_vec[j];
                         //p_rep.pars.var_scale = 1.0;
                         p_rep.pars.var_th = 0;
 
