@@ -222,10 +222,12 @@ int main(int argc, char **argv) {
                         analysis_data.add_float_data("var_window_1",window_1[q]);
                         analysis_data.add_float_data("var_window_2",window_2[u]);
 
-                        // Get the APR
-
+                        // Get the APRgit
 
                         p_rep.pars.lambda = rel_error_vec[j];
+
+                        analysis_data.add_float_data("lambda",rel_error_vec[j]);
+
                         //p_rep.pars.var_scale = 1.0;
                         p_rep.pars.var_th = 0;
 
