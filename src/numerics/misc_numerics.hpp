@@ -478,7 +478,7 @@ void interp_parts_to_smooth(Mesh_data<U>& out_image,ExtraPartCellData<V>& interp
     int k_max = pc_struct.depth_max + 1;
 
 
-#pragma omp parallel for default(shared) private(j,i,k,offset_min,offset_max)
+//#pragma omp parallel for default(shared) private(j,i,k,offset_min,offset_max)
         for(j = 0; j < z_num;j++){
             for(i = 0; i < x_num;i++){
 
@@ -505,63 +505,72 @@ void interp_parts_to_smooth(Mesh_data<U>& out_image,ExtraPartCellData<V>& interp
         }
 
 
+
+
+    std::swap(output_data.mesh,pc_image.mesh);
+
+
+
+//#pragma omp parallel for default(shared) private(j,i,k,offset_min,offset_max)
+        for(j = 0; j < z_num;j++){
+            for(i = 0; i < x_num;i++){
+
+                for(k = 0;k < y_num;k++){
+
+                    filter_offset = floor(pow(2,k_max - k_img.mesh[j*x_num*y_num + i*y_num + k])/2.0);
+
+                    offset_max = std::min((int)(i + filter_offset),(int)(x_num-1));
+                    offset_min = std::max((int)(i - filter_offset),(int)0);
+
+                    factor = 1.0/(offset_max - offset_min+1);
+
+                    uint64_t f = 0;
+                    for(uint64_t c = offset_min;c <= offset_max;c++){
+
+                        //output_data.mesh[j*x_num*y_num + i*y_num + k] += temp_vec[c]*filter[f];
+                        output_data.mesh[j*x_num*y_num + i*y_num + k] += pc_image.mesh[j*x_num*y_num + c*y_num + k]*factor;
+                        f++;
+                    }
+
+                }
+            }
+        }
+
+
+
+    // z loop
+
+    std::swap(output_data.mesh,pc_image.mesh);
+
+//#pragma omp parallel for default(shared) private(j,i,k,offset_min,offset_max)
+        for(j = 0; j < z_num;j++){
+            for(i = 0; i < x_num;i++){
+
+
+                for(k = 0;k < y_num;k++){
+
+                    filter_offset = floor(pow(2,k_max - k_img.mesh[j*x_num*y_num + i*y_num + k])/2.0);
+
+                    offset_max = std::min((int)(j + filter_offset),(int)(z_num-1));
+                    offset_min = std::max((int)(j - filter_offset),(int)0);
+
+                    factor = 1.0/(offset_max - offset_min+1);
+
+                    uint64_t f = 0;
+                    for(uint64_t c = offset_min;c <= offset_max;c++){
+
+                        //output_data.mesh[j*x_num*y_num + i*y_num + k] += temp_vec[c]*filter[f];
+                        output_data.mesh[j*x_num*y_num + i*y_num + k] += pc_image.mesh[c*x_num*y_num + i*y_num + k]*factor;
+                        f++;
+                    }
+
+                }
+            }
+        }
+
+
+
     out_image = output_data;
-
-//
-//    for(int r = 0;r < num_repeats;r++){
-//
-//#pragma omp parallel for default(shared) private(j,i,k,offset_min,offset_max)
-//        for(j = 0; j < z_num;j++){
-//            for(i = 0; i < x_num;i++){
-//
-//                for(k = 0;k < y_num;k++){
-//
-//                    offset_max = std::min((int)(i + filter_offset),(int)(x_num-1));
-//                    offset_min = std::max((int)(i - filter_offset),(int)0);
-//
-//                    uint64_t f = 0;
-//                    for(uint64_t c = offset_min;c <= offset_max;c++){
-//
-//                        //output_data.mesh[j*x_num*y_num + i*y_num + k] += temp_vec[c]*filter[f];
-//                        output_data.mesh[j*x_num*y_num + i*y_num + k] += input_data.mesh[j*x_num*y_num + c*y_num + k]*filter[f];
-//                        f++;
-//                    }
-//
-//                }
-//            }
-//        }
-//
-//    }
-//
-//    // z loop
-//
-//    for(int r = 0;r < num_repeats;r++){
-//
-//#pragma omp parallel for default(shared) private(j,i,k,offset_min,offset_max)
-//        for(j = 0; j < z_num;j++){
-//            for(i = 0; i < x_num;i++){
-//
-//
-//                for(k = 0;k < y_num;k++){
-//
-//                    offset_max = std::min((int)(j + filter_offset),(int)(z_num-1));
-//                    offset_min = std::max((int)(j - filter_offset),(int)0);
-//
-//                    uint64_t f = 0;
-//                    for(uint64_t c = offset_min;c <= offset_max;c++){
-//
-//                        //output_data.mesh[j*x_num*y_num + i*y_num + k] += temp_vec[c]*filter[f];
-//                        output_data.mesh[j*x_num*y_num + i*y_num + k] += input_data.mesh[c*x_num*y_num + i*y_num + k]*filter[f];
-//                        f++;
-//                    }
-//
-//                }
-//            }
-//        }
-//
-//    }
-
-
 
 }
 template<typename T>

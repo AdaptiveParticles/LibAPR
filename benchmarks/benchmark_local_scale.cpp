@@ -227,7 +227,7 @@ int main(int argc, char **argv) {
                         // Get the APR
 
 
-
+                        p_rep.pars.lambda = 5.0;
                         //p_rep.pars.var_scale = 1.0;
                         p_rep.pars.var_th = 0;
 
