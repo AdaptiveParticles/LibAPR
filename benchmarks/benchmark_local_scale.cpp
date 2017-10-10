@@ -73,7 +73,7 @@ int main(int argc, char **argv) {
 
     float del = 0;
 
-    rel_error_vec = {0.1};
+    rel_error_vec = {50,200,1000};
 
     //min mean
     float min_sig = 1;
@@ -172,7 +172,8 @@ int main(int argc, char **argv) {
                         ///////////////////////////////////////////////////////////////////
                         //PSF properties
 
-                        bs.desired_I = 200;
+
+                        bs.desired_I = rel_error_vec[j];
 
                         analysis_data.add_float_data("desired_I", bs.desired_I);
 
@@ -224,9 +225,7 @@ int main(int argc, char **argv) {
 
                         // Get the APRgit
 
-                        //p_rep.pars.lambda = rel_error_vec[j];
 
-                        //analysis_data.add_float_data("lambda",rel_error_vec[j]);
 
                         //p_rep.pars.var_scale = 1.0;
                         //p_rep.pars.var_th = 0;
