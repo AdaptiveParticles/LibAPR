@@ -485,7 +485,7 @@ void generate_gt_var(Mesh_data<T>& gt_image,Mesh_data<T>& var_out,SynImage syn_i
     //generate_gt_norm_grad(norm_grad_image,syn_image,true,pars.dx,pars.dy,pars.dz);
    // get_gradient_3D(p_rep, gt_image, grad_image);
 
-    float factor = pars.mean_scale;
+    float factor = 1.0;
 
 
     Mesh_data<float> norm;

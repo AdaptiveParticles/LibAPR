@@ -49,7 +49,7 @@ int main(int argc, char **argv) {
 
 
     bs.obj_size = 2;
-    bs.sig = 1;
+    bs.sig = 4;
     //bs.desired_I = 10000;
     float ratio = 10;
     bs.num_objects = 5*pow(bs.x_num,3)/(33400*ratio);
@@ -60,7 +60,7 @@ int main(int argc, char **argv) {
     //bs.int_scale_max = 1;
     //bs.int_scale_min = 1;
     bs.int_scale_min = 1;
-    bs.int_scale_max = 3;
+    bs.int_scale_max = 10;
 
     syn_image.global_trans.const_shift = 1000;
 
@@ -160,7 +160,7 @@ int main(int argc, char **argv) {
         produce_apr_analysis(input_img, analysis_data, pc_struct, syn_image_loc, p_rep.pars);
 
 
-    std::vector<float> scale = {2,2,2};
+    std::vector<float> scale = {1,1,1};
 
    Mesh_data<float> smooth_img;
 

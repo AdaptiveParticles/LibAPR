@@ -53,18 +53,18 @@ int main(int argc, char **argv) {
 
 
     bs.obj_size = 2;
-    bs.sig = 1;
+    bs.sig = 2;
     //bs.desired_I = 10000;
     float ratio = 10;
     bs.num_objects = 5*pow(bs.x_num,3)/(33400*ratio);
 
     bs.num_objects = 10;
 
-    bs.desired_I = 200;
+    bs.desired_I = 1000;
     //bs.int_scale_max = 1;
     //bs.int_scale_min = 1;
     bs.int_scale_min = 1;
-    bs.int_scale_max = 10;
+    bs.int_scale_max = 1;
 
     syn_image.global_trans.const_shift = 1000;
 
@@ -87,10 +87,10 @@ int main(int argc, char **argv) {
 
     SynImage syn_image_aniso = syn_image_loc;
 
-    float z_ratio = 1;
+    float z_ratio = 4;
 
     float dx = 0.1;
-    float dz = 0.1;
+    float dz = 0.4;
 
     float psfx = bs.sig;
     float psfz = bs.sig*z_ratio;
@@ -182,6 +182,8 @@ int main(int argc, char **argv) {
     p_rep_a.pars.dz = dz;
     p_rep_a.pars.psfz = psfz*dx;
 
+    p_rep_a.pars.padd_dims = {1,1,1,2,2,2};
+
     PartCellStructure<float, uint64_t> pc_struct_a;
     bench_get_apr(input_img_a, p_rep_a, pc_struct_a, analysis_data);
 
@@ -200,6 +202,20 @@ int main(int argc, char **argv) {
     analysis_data.write_analysis_data_hdf5();
 
     af::info();
+
+    std::vector<float> scale = {1,1,8};
+
+    Mesh_data<float> smooth_img;
+
+    interp_parts_to_smooth(smooth_img,pc_struct_a.part_data.particle_data,pc_struct_a,scale);
+
+    debug_write(smooth_img,"smooth_test");
+
+    Mesh_data<float> rec_img;
+
+    pc_struct_a.interp_parts_to_pc(rec_img,pc_struct_a.part_data.particle_data);
+
+    debug_write(rec_img,"rec_img");
 
 
     return 0;
