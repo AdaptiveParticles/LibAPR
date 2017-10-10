@@ -182,7 +182,7 @@ int main(int argc, char **argv) {
     p_rep_a.pars.dz = dz;
     p_rep_a.pars.psfz = psfz*dx;
 
-    p_rep_a.pars.padd_dims = {1,1,1,4,4,2};
+
 
     PartCellStructure<float, uint64_t> pc_struct_a;
     bench_get_apr(input_img_a, p_rep_a, pc_struct_a, analysis_data);
@@ -203,7 +203,7 @@ int main(int argc, char **argv) {
 
     af::info();
 
-    std::vector<float> scale = {1,1,8};
+    std::vector<float> scale = {2,2,4};
 
     Mesh_data<float> smooth_img;
 

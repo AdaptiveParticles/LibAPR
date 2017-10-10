@@ -73,7 +73,7 @@ int main(int argc, char **argv) {
 
     float del = 0;
 
-    rel_error_vec = {2};
+    rel_error_vec = {1,2,3};
     //rel_error_vec = {0.1,0.25,0.5000,0.7500,1.0000,1.5000,2.0000,3.0000,4.0000,5.0000,10.0000,15.0000,20.0000,30.0000,50.0000,100.0000};
     //min mean
     float min_sig = 1;
@@ -87,15 +87,17 @@ int main(int argc, char **argv) {
         // sig_vec.push_back(i);
     }
 
-    sig_vec = {1,2,3,4,5,6};
+    sig_vec = {1,3,6};
 
     //min mean
 
-    std::vector<int> window_1;
-    std::vector<int> window_2;
+    // window_1;
+    std::vector<float> window_2;
 
-    window_1 = {1,2,3};
-    window_2 = {1,2,3,4,5,6,7,8};
+    const float factor = static_cast<float>(sqrt(1000));
+
+    window_2 = {1,5,10,20,30};
+    std::vector<float> window_1 = {static_cast<float>(1.0*factor),static_cast<float>(factor*10),static_cast<float>(factor*30)};
 
    // window_1 = {1};
    // window_2 = {3};
@@ -107,10 +109,8 @@ int main(int argc, char **argv) {
 
     bs.num_objects = 10;
 
-
-
-    analysis_data.add_float_data("obj_size",bs.obj_size);
-    analysis_data.add_float_data("num_objects",bs.num_objects);
+    //analysis_data.add_float_data("obj_size",bs.obj_size);
+    //analysis_data.add_float_data("num_objects",bs.num_objects);
 
     Genrand_uni gen_rand;
 
@@ -179,8 +179,16 @@ int main(int argc, char **argv) {
                         //PSF properties
 
 
+                        //p_rep.pars.padd_dims = {window_1[q],window_1[q],window_1[q],window_2[u],window_2[u],window_2[u]};
+
+                        analysis_data.add_float_data("desired_I",window_1[q]);
+                        analysis_data.add_float_data("number_objects",window_2[u]);
+
+
                        // bs.desired_I = rel_error_vec[j];
-                        bs.desired_I = 1000;
+                        bs.desired_I = window_1[q];
+
+                        bs.num_objects = window_2[u];
 
                         analysis_data.add_float_data("obj_size", bs.obj_size);
 
@@ -225,10 +233,7 @@ int main(int argc, char **argv) {
 
                         set_up_part_rep(syn_image_loc, p_rep, bs);
 
-                        p_rep.pars.padd_dims = {window_1[q],window_1[q],window_1[q],window_2[u],window_2[u],window_2[u]};
 
-                        analysis_data.add_float_data("var_window_1",window_1[q]);
-                        analysis_data.add_float_data("var_window_2",window_2[u]);
 
                         // Get the APRgit
 
