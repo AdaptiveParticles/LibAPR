@@ -160,24 +160,8 @@ public:
             var_win[4] = win_2[psf_ind];
             var_win[5] = win_2[psf_ind];
 
-            int window_ind_1 = 0;
-            int window_ind_2 = 0;
-
-            int curr_dist_1 = 99;
-            int curr_dist_2 = 99;
-
-            for (int i = 0; i < windows.size(); ++i) {
-                if (abs(windows[i] - var_win[0]) < curr_dist_1) {
-                    window_ind_1 = i;
-                    curr_dist_1 = abs(windows[i] - var_win[0]);
-                }
-
-                if (abs(windows[i] - var_win[3]) < curr_dist_2) {
-                    window_ind_2 = i;
-                    curr_dist_2 = abs(windows[i] - var_win[3]);
-                }
-
-            }
+            int window_ind_1 =  win_1[psf_ind] - 1;
+            int window_ind_2 =  win_2[psf_ind] - 1;
 
             var_rescale = rescale_store[psf_ind][window_ind_2][window_ind_1];
 
@@ -188,8 +172,6 @@ public:
 
             psf_indz = std::min(psf_indz,5);
 
-           // psf_indz = psf_ind;
-
             var_win[0] = win_1[psf_ind];
             var_win[1] = win_1[psf_ind];
             var_win[2] = win_1[psf_indz];
@@ -197,28 +179,8 @@ public:
             var_win[4] = win_2[psf_ind];
             var_win[5] = win_2[psf_indz];
 
-            int window_ind_1 = 0;
-            int window_ind_2 = 0;
-
-            int window_ind_1_z = 0;
-            int window_ind_2_z = 0;
-
-            int curr_dist_1 = 99;
-            int curr_dist_2 = 99;
-
-            for (int i = 0; i < windows.size(); ++i) {
-                if (abs(windows[i] - var_win[0]) < curr_dist_1) {
-                    window_ind_1 = i;
-                    curr_dist_1 = abs(windows[i] - var_win[0]);
-                }
-
-                if (abs(windows[i] - var_win[3]) < curr_dist_2) {
-                    window_ind_2 = i;
-                    curr_dist_2 = abs(windows[i] - var_win[3]);
-                }
-
-
-            }
+            int window_ind_1 =  win_1[psf_ind] - 1;
+            int window_ind_2 =  win_2[psf_ind] - 1;
 
             var_rescale = rescale_store[psf_ind][window_ind_2][window_ind_1];
 

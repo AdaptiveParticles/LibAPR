@@ -1714,6 +1714,30 @@ void produce_apr_analysis(Mesh_data<T>& input_image,AnalysisData& analysis_data,
         compare_E(gt_image, rec_img, pars, name, analysis_data);
 
 
+        std::vector<float> scale = {2,2,2};
+
+        Mesh_data<float> smooth_img;
+
+        interp_parts_to_smooth(smooth_img,pc_struct.part_data.particle_data,pc_struct,scale);
+
+        name = "smoothgt2";
+
+        //get the MSE
+        calc_mse(gt_image, smooth_img, name, analysis_data);
+        compare_E(gt_image, smooth_img, pars, name, analysis_data);
+
+         scale = {1,1,1};
+
+        interp_parts_to_smooth(smooth_img,pc_struct.part_data.particle_data,pc_struct,scale);
+
+        name = "smoothgt1";
+
+        //get the MSE
+        calc_mse(gt_image, smooth_img, name, analysis_data);
+        compare_E(gt_image, smooth_img, pars, name, analysis_data);
+
+        //debug_write(smooth_img,"smooth_img");
+
 //        ParticleDataNew<float, uint64_t> part_new;
 //        //flattens format to particle = cell, this is in the classic access/part paradigm
 //        part_new.initialize_from_structure(pc_struct);

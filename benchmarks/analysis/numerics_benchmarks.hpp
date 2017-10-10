@@ -318,7 +318,7 @@ void calc_mse_debug(Mesh_data<S>& org_img,Mesh_data<T>& rec_img,std::string name
             for(k = 0;k < y_num_o;k++){
 
                 MSE += pow(org_img.mesh[j*x_num_o*y_num_o + i*y_num_o + k] - rec_img.mesh[j*x_num_r*y_num_r + i*y_num_r + k],2);
-                SE.mesh[j*x_num_o*y_num_o + i*y_num_o + k] =  pow(org_img.mesh[j*x_num_o*y_num_o + i*y_num_o + k] - rec_img.mesh[j*x_num_r*y_num_r + i*y_num_r + k],2);
+                SE.mesh[j*x_num_o*y_num_o + i*y_num_o + k] =  abs(org_img.mesh[j*x_num_o*y_num_o + i*y_num_o + k] - rec_img.mesh[j*x_num_r*y_num_r + i*y_num_r + k]);
             }
         }
     }

@@ -224,7 +224,7 @@ void interp_depth_to_mesh(Mesh_data<uint8_t>& k_img,PartCellStructure<S,uint64_t
                         uint8_t depth = i + (status == SEED);
 
 
-                        depth = i + (status < FILLER);
+                        //depth = i + (status < FILLER);
 
 
 
