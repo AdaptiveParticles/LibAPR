@@ -73,8 +73,8 @@ int main(int argc, char **argv) {
 
     float del = 0;
 
-   // rel_error_vec = {50,200,1000};
-    rel_error_vec = {0.1,0.25,0.5000,0.7500,1.0000,1.5000,2.0000,3.0000,4.0000,5.0000,10.0000,15.0000,20.0000,30.0000,50.0000,100.0000};
+    rel_error_vec = {1,2,3};
+    //rel_error_vec = {0.1,0.25,0.5000,0.7500,1.0000,1.5000,2.0000,3.0000,4.0000,5.0000,10.0000,15.0000,20.0000,30.0000,50.0000,100.0000};
     //min mean
     float min_sig = 1;
     float max_sig = 10;
@@ -94,11 +94,11 @@ int main(int argc, char **argv) {
     std::vector<int> window_1;
     std::vector<int> window_2;
 
-   // window_1 = {1,2,3};
-   // window_2 = {1,2,3,4,5,6,7,8};
+    window_1 = {1,2,3};
+    window_2 = {1,2,3,4,5,6,7,8};
 
-    window_1 = {1};
-    window_2 = {3};
+   // window_1 = {1};
+   // window_2 = {3};
 
     int N_par1 = (int)rel_error_vec.size(); // this many different parameter values to be run
     int N_par2 = (int)sig_vec.size();
@@ -107,7 +107,7 @@ int main(int argc, char **argv) {
 
     bs.num_objects = 10;
 
-    bs.obj_size = 2;
+
 
     analysis_data.add_float_data("obj_size",bs.obj_size);
     analysis_data.add_float_data("num_objects",bs.num_objects);
@@ -130,17 +130,20 @@ int main(int argc, char **argv) {
 
             for (int p = 0; p < N_par2; p++) {
 
-                bs.sig = sig_vec[p];
-
-                obj_properties obj_prop(bs);
-
-                Object_template basic_object = get_object_template(options, obj_prop);
-
-                SynImage syn_image_n = syn_image;
-
-                syn_image_n.object_templates.push_back(basic_object);
 
                 for (int j = 0; j < N_par1; j++) {
+
+                    bs.sig = sig_vec[p];
+
+                    bs.obj_size = rel_error_vec[j];
+
+                    obj_properties obj_prop(bs);
+
+                    Object_template basic_object = get_object_template(options, obj_prop);
+
+                    SynImage syn_image_n = syn_image;
+
+                    syn_image_n.object_templates.push_back(basic_object);
 
                     for (int i = 0; i < bs.N_repeats; i++) {
 
@@ -179,7 +182,7 @@ int main(int argc, char **argv) {
                        // bs.desired_I = rel_error_vec[j];
                         bs.desired_I = 1000;
 
-                        analysis_data.add_float_data("desired_I", bs.desired_I);
+                        analysis_data.add_float_data("obj_size", bs.obj_size);
 
                         set_gaussian_psf(syn_image_loc, bs);
 
@@ -229,20 +232,20 @@ int main(int argc, char **argv) {
 
                         // Get the APRgit
 
-                        p_rep.pars.lambda = rel_error_vec[j];
-                        analysis_data.add_float_data("lambda",rel_error_vec[j]);
+                       // p_rep.pars.lambda = rel_error_vec[j];
+                       // analysis_data.add_float_data("lambda",rel_error_vec[j]);
 
                         //p_rep.pars.var_scale = 1.0;
                         //p_rep.pars.var_th = 0;
 
-                        compute_var_ratio_perfect(syn_image_loc,p_rep,input_img,analysis_data);
+                       // compute_var_ratio_perfect(syn_image_loc,p_rep,input_img,analysis_data);
 
 
 
                         PartCellStructure<float, uint64_t> pc_struct;
 
                         //p_rep.pars.var_th = 1;
-                        //bench_get_apr(input_img, p_rep, pc_struct, analysis_data);
+                        bench_get_apr(input_img, p_rep, pc_struct, analysis_data);
 
                         //b_timer.stop_timer();
 
@@ -254,7 +257,7 @@ int main(int argc, char **argv) {
 
                        // b_timer.start_timer("analysis");
 
-                       // produce_apr_analysis(input_img, analysis_data, pc_struct, syn_image_loc, p_rep.pars);
+                        produce_apr_analysis(input_img, analysis_data, pc_struct, syn_image_loc, p_rep.pars);
 
                      //   std::cout << "Num Parts: " << pc_struct.get_number_parts() << std::endl;
 
