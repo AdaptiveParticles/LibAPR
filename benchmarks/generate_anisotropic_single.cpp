@@ -53,7 +53,7 @@ int main(int argc, char **argv) {
 
 
     bs.obj_size = 2;
-    bs.sig = 2;
+    bs.sig = 4;
     //bs.desired_I = 10000;
     float ratio = 10;
     bs.num_objects = 5*pow(bs.x_num,3)/(33400*ratio);
@@ -182,7 +182,7 @@ int main(int argc, char **argv) {
     p_rep_a.pars.dz = dz;
     p_rep_a.pars.psfz = psfz*dx;
 
-    p_rep_a.pars.padd_dims = {1,1,1,2,2,2};
+    p_rep_a.pars.padd_dims = {1,1,1,4,4,2};
 
     PartCellStructure<float, uint64_t> pc_struct_a;
     bench_get_apr(input_img_a, p_rep_a, pc_struct_a, analysis_data);

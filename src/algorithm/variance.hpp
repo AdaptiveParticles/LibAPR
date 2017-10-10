@@ -146,95 +146,85 @@ public:
         psf_ind = std::min(psf_ind,5);
 
 
-        std::vector<int> win_1 = {1,1,1,1,1,1};
-        std::vector<int> win_2 = {2,5,3,4,5,6};
+        std::vector<int> win_1 = {1,1,1,2,2,3};
+        std::vector<int> win_2 = {2,3,4,4,5,6};
 
         var_win.resize(6);
 
-//        if(par.dx == par.dz) {
-//
-//            var_win[0] = win_1[psf_ind];
-//            var_win[1] = win_1[psf_ind];
-//            var_win[2] = win_1[psf_ind];
-//            var_win[3] = win_2[psf_ind];
-//            var_win[4] = win_2[psf_ind];
-//            var_win[5] = win_2[psf_ind];
-//
-//            int window_ind_1 = 0;
-//            int window_ind_2 = 0;
-//
-//            int curr_dist_1 = 99;
-//            int curr_dist_2 = 99;
-//
-//            for (int i = 0; i < windows.size(); ++i) {
-//                if (abs(windows[i] - var_win[0]) < curr_dist_1) {
-//                    window_ind_1 = i;
-//                    curr_dist_1 = abs(windows[i] - var_win[0]);
-//                }
-//
-//                if (abs(windows[i] - var_win[3]) < curr_dist_2) {
-//                    window_ind_2 = i;
-//                    curr_dist_2 = abs(windows[i] - var_win[3]);
-//                }
-//
-//            }
-//
-//            //var_rescale = rescale_store[psf_ind][window_ind_2][window_ind_1];
-//
-//        } else {
-//
-//
-//            int psf_indz = std::max(((float) (round(par.psfz/par.dz) - 1)),((float)0.0f));
-//
-//            psf_indz = std::min(psf_indz,5);
-//
-//           // psf_indz = psf_ind;
-//
-//            var_win[0] = win_1[psf_ind];
-//            var_win[1] = win_1[psf_ind];
-//            var_win[2] = win_1[psf_indz];
-//            var_win[3] = win_2[psf_ind];
-//            var_win[4] = win_2[psf_ind];
-//            var_win[5] = win_2[psf_indz];
-//
-//            int window_ind_1 = 0;
-//            int window_ind_2 = 0;
-//
-//            int window_ind_1_z = 0;
-//            int window_ind_2_z = 0;
-//
-//            int curr_dist_1 = 99;
-//            int curr_dist_2 = 99;
-//
-//            for (int i = 0; i < windows.size(); ++i) {
-//                if (abs(windows[i] - var_win[0]) < curr_dist_1) {
-//                    window_ind_1 = i;
-//                    curr_dist_1 = abs(windows[i] - var_win[0]);
-//                }
-//
-//                if (abs(windows[i] - var_win[3]) < curr_dist_2) {
-//                    window_ind_2 = i;
-//                    curr_dist_2 = abs(windows[i] - var_win[3]);
-//                }
-//
-//
-//            }
-//
-//           // var_rescale = rescale_store[psf_ind][window_ind_2][window_ind_1];
-//
-//        }
+        if(par.dx == par.dz) {
+
+            var_win[0] = win_1[psf_ind];
+            var_win[1] = win_1[psf_ind];
+            var_win[2] = win_1[psf_ind];
+            var_win[3] = win_2[psf_ind];
+            var_win[4] = win_2[psf_ind];
+            var_win[5] = win_2[psf_ind];
+
+            int window_ind_1 = 0;
+            int window_ind_2 = 0;
+
+            int curr_dist_1 = 99;
+            int curr_dist_2 = 99;
+
+            for (int i = 0; i < windows.size(); ++i) {
+                if (abs(windows[i] - var_win[0]) < curr_dist_1) {
+                    window_ind_1 = i;
+                    curr_dist_1 = abs(windows[i] - var_win[0]);
+                }
+
+                if (abs(windows[i] - var_win[3]) < curr_dist_2) {
+                    window_ind_2 = i;
+                    curr_dist_2 = abs(windows[i] - var_win[3]);
+                }
+
+            }
+
+            var_rescale = rescale_store[psf_ind][window_ind_2][window_ind_1];
+
+        } else {
 
 
-        var_win = par.padd_dims;
+            int psf_indz = std::max(((float) (round(par.psfz/par.dz) - 1)),((float)0.0f));
 
-        int window_ind_1 = par.padd_dims[0]-1;
-        int window_ind_2 = par.padd_dims[3]-1;
+            psf_indz = std::min(psf_indz,5);
+
+           // psf_indz = psf_ind;
+
+            var_win[0] = win_1[psf_ind];
+            var_win[1] = win_1[psf_ind];
+            var_win[2] = win_1[psf_indz];
+            var_win[3] = win_2[psf_ind];
+            var_win[4] = win_2[psf_ind];
+            var_win[5] = win_2[psf_indz];
+
+            int window_ind_1 = 0;
+            int window_ind_2 = 0;
+
+            int window_ind_1_z = 0;
+            int window_ind_2_z = 0;
+
+            int curr_dist_1 = 99;
+            int curr_dist_2 = 99;
+
+            for (int i = 0; i < windows.size(); ++i) {
+                if (abs(windows[i] - var_win[0]) < curr_dist_1) {
+                    window_ind_1 = i;
+                    curr_dist_1 = abs(windows[i] - var_win[0]);
+                }
+
+                if (abs(windows[i] - var_win[3]) < curr_dist_2) {
+                    window_ind_2 = i;
+                    curr_dist_2 = abs(windows[i] - var_win[3]);
+                }
 
 
-        var_rescale = rescale_store[psf_ind][window_ind_2][window_ind_1];
+            }
+
+            var_rescale = rescale_store[psf_ind][window_ind_2][window_ind_1];
+
+        }
 
 
-        //var_rescale = 1.0;
 
     }
 
