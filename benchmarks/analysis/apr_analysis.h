@@ -168,7 +168,7 @@ void bench_get_apr(Mesh_data<T>& input_image,Part_rep& p_rep,PartCellStructure<f
             p_rep.pars.var_th_max = .25*p_rep.pars.var_th;
 
         } else {
-            p_rep.pars.var_th_max = .25*p_rep.pars.var_th;
+            p_rep.pars.var_th_max = .5*p_rep.pars.var_th;
 
         }
     } else {
@@ -191,14 +191,14 @@ void bench_get_apr(Mesh_data<T>& input_image,Part_rep& p_rep,PartCellStructure<f
     }
 
 
-    p_rep.pars.var_th = scaling_var_th[psf_ind][index_scale]*p_rep.pars.var_th;
-    p_rep.pars.var_th_max = scaling_var_th[psf_ind][index_scale]*p_rep.pars.var_th_max;
+    p_rep.pars.var_th = scaling_var_th[index_scale][psf_ind]*p_rep.pars.var_th;
+    p_rep.pars.var_th_max = scaling_var_th[index_scale][psf_ind]*p_rep.pars.var_th_max;
 
     std::cout << "Lamda: " << p_rep.pars.lambda << std::endl;
 
     get_apr(input_image,p_rep,pc_struct,analysis_data);
 
-    p_rep.pars.mean_scale = scaling_var_th[psf_ind][index_scale];
+    p_rep.pars.mean_scale = scaling_var_th[index_scale][psf_ind];
 
 }
 

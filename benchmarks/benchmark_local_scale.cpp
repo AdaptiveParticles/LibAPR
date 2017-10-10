@@ -73,7 +73,7 @@ int main(int argc, char **argv) {
 
     float del = 0;
 
-    rel_error_vec = {1,2,3};
+    rel_error_vec = {2};
     //rel_error_vec = {0.1,0.25,0.5000,0.7500,1.0000,1.5000,2.0000,3.0000,4.0000,5.0000,10.0000,15.0000,20.0000,30.0000,50.0000,100.0000};
     //min mean
     float min_sig = 1;

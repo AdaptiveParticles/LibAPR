@@ -465,7 +465,7 @@ void generate_gt_var(Mesh_data<T>& gt_image,Mesh_data<T>& var_out,SynImage syn_i
     Mesh_data<float> norm_grad_image;
 
     generate_gt_norm_grad(norm_grad_image,syn_image,true,pars.dx,pars.dy,pars.dz);
-    debug_write(norm_grad_image,"norm_grad");
+    //debug_write(norm_grad_image,"norm_grad");
 
     Mesh_data<float> grad_image;
 
