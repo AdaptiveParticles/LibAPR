@@ -54,7 +54,7 @@ int main(int argc, char **argv) {
     float ratio = 10;
     bs.num_objects = 5*pow(bs.x_num,3)/(33400*ratio);
 
-    bs.num_objects = 3;
+    bs.num_objects = 30;
 
     bs.desired_I = 1000;
     //bs.int_scale_max = 1;
@@ -80,7 +80,7 @@ int main(int argc, char **argv) {
 
     //bs.sig = 5;
 
-    bs.rel_error = 0.1;
+    bs.rel_error = 0.05;
 
     // Get the APR
     //bs.num_objects = 10;
@@ -160,7 +160,7 @@ int main(int argc, char **argv) {
         produce_apr_analysis(input_img, analysis_data, pc_struct, syn_image_loc, p_rep.pars);
 
 
-    std::vector<float> scale = {1,1,1};
+    std::vector<float> scale = {2,2,2};
 
    Mesh_data<float> smooth_img;
 

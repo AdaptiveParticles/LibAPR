@@ -94,15 +94,15 @@ int main(int argc, char **argv) {
     std::vector<int> window_1;
     std::vector<float> z_ratio;
 
-    z_ratio = {.1,.2,.3,.4,.5,.6,.7,.8,.9,1.0,1.5,2.0,2.5,3.0,3.5,4.0,5.0,6.0};
-    window_1 = {1,2,3};
+    z_ratio = {1,2,3,4,5,6};
+    window_1 = {1};
 
     int N_par1 = (int)rel_error_vec.size(); // this many different parameter values to be run
     int N_par2 = (int)sig_vec.size();
     int N_par3 = (int)window_1.size();
     int N_par4 = (int)z_ratio.size();
 
-    bs.num_objects = 10;
+    bs.num_objects = 5;
 
     analysis_data.add_float_data("obj_size",bs.obj_size);
     analysis_data.add_float_data("num_objects",bs.num_objects);
@@ -118,14 +118,13 @@ int main(int argc, char **argv) {
     bs.shift = 1000;
     syn_image.global_trans.const_shift = 1000;
 
+    bs.obj_size = 2;
 
     for(int u = 0;u < N_par4;u++) {
 
         for (int q = 0; q < N_par3; q++) {
 
             for (int p = 0; p < N_par2; p++) {
-
-                bs.obj_size = window_1[q];
 
                 bs.sig = sig_vec[p];
 
@@ -172,7 +171,7 @@ int main(int argc, char **argv) {
                         ///////////////////////////////////////////////////////////////////
                         //PSF properties
 
-                        bs.desired_I = 200;
+                        bs.desired_I = 1000;
 
                         analysis_data.add_float_data("desired_I", bs.desired_I);
 
@@ -185,13 +184,12 @@ int main(int argc, char **argv) {
 
                         analysis_data.add_float_data("z_ratio", z_ratio[u]);
 
-                        analysis_data.add_float_data("obj_size",window_1[q]);
 
                         float dx = 0.1;
                         float dz = 0.1;
 
                         float psfx = bs.sig;
-                        float psfz = bs.sig*z_ratio[u];
+                        float psfz = z_ratio[u];
 
                         syn_image_loc.sampling_properties.sampling_delta[0] = dx;
                         syn_image_loc.sampling_properties.sampling_delta[1] = dx;

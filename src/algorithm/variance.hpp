@@ -151,40 +151,24 @@ public:
 
         var_win.resize(6);
 
-        if(par.dx == par.dz) {
 
-            var_win[0] = win_1[psf_ind];
-            var_win[1] = win_1[psf_ind];
-            var_win[2] = win_1[psf_ind];
-            var_win[3] = win_2[psf_ind];
-            var_win[4] = win_2[psf_ind];
-            var_win[5] = win_2[psf_ind];
+        int psf_indz = std::max(((float) (round(par.psfz/par.dz) - 1)),((float)0.0f));
 
-            int window_ind_1 =  win_1[psf_ind] - 1;
-            int window_ind_2 =  win_2[psf_ind] - 1;
+        psf_indz = std::min(psf_indz,5);
 
-            var_rescale = rescale_store[psf_ind][window_ind_2][window_ind_1];
+        var_win[0] = win_1[psf_ind];
+        var_win[1] = win_1[psf_ind];
+        var_win[2] = win_1[psf_indz];
+        var_win[3] = win_2[psf_ind];
+        var_win[4] = win_2[psf_ind];
+        var_win[5] = win_2[psf_indz];
 
-        } else {
+        int window_ind_1 =  win_1[psf_ind] - 1;
+        int window_ind_2 =  win_2[psf_ind] - 1;
+
+        var_rescale = rescale_store[psf_ind][window_ind_2][window_ind_1];
 
 
-            int psf_indz = std::max(((float) (round(par.psfz/par.dz) - 1)),((float)0.0f));
-
-            psf_indz = std::min(psf_indz,5);
-
-            var_win[0] = win_1[psf_ind];
-            var_win[1] = win_1[psf_ind];
-            var_win[2] = win_1[psf_indz];
-            var_win[3] = win_2[psf_ind];
-            var_win[4] = win_2[psf_ind];
-            var_win[5] = win_2[psf_indz];
-
-            int window_ind_1 =  win_1[psf_ind] - 1;
-            int window_ind_2 =  win_2[psf_ind] - 1;
-
-            var_rescale = rescale_store[psf_ind][window_ind_2][window_ind_1];
-
-        }
 
 
 

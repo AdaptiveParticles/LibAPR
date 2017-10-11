@@ -51,14 +51,13 @@ int main(int argc, char **argv) {
 
     bs.num_objects = options.delta;
 
-
     bs.obj_size = 2;
-    bs.sig = 4;
+    bs.sig = 1;
     //bs.desired_I = 10000;
     float ratio = 10;
     bs.num_objects = 5*pow(bs.x_num,3)/(33400*ratio);
 
-    bs.num_objects = 10;
+    bs.num_objects = 5;
 
     bs.desired_I = 1000;
     //bs.int_scale_max = 1;
@@ -87,10 +86,10 @@ int main(int argc, char **argv) {
 
     SynImage syn_image_aniso = syn_image_loc;
 
-    float z_ratio = 4;
+    float z_ratio = 2;
 
     float dx = 0.1;
-    float dz = 0.4;
+    float dz = 0.1;
 
     float psfx = bs.sig;
     float psfz = bs.sig*z_ratio;
@@ -104,7 +103,6 @@ int main(int argc, char **argv) {
     syn_image_aniso.PSF_properties.real_sigmas[2] = psfz*dx;
 
     syn_image_aniso.PSF_properties.set_guassian_window_size();
-
 
     bs.rel_error = 0.1;
 
