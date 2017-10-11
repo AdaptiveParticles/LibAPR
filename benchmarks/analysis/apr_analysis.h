@@ -1145,11 +1145,11 @@ void compare_depth_rep(PartCellStructure<float,uint64_t>& pc_struct,PartCellStru
 
     Mesh_data<uint8_t> k_img;
 
-    interp_depth_to_mesh(k_img,pc_struct);
+    interp_depth_to_mesh(k_img,pc_struct,0);
 
     Mesh_data<uint8_t> k_img_perfect;
 
-    interp_depth_to_mesh(k_img_perfect,pc_struct_perfect);
+    interp_depth_to_mesh(k_img_perfect,pc_struct_perfect,0);
 
     Mesh_data<float> diff;
 

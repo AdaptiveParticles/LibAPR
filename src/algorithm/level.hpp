@@ -97,7 +97,7 @@ void get_level_3D(Mesh_data<T> &var, Mesh_data<T> &grad_input, Part_rep &p_rep, 
     timer.start_timer("level_partmap");
 
 
-
+    debug_write(grad,"k_raw");
 
     part_map.initialize(p_rep.org_dims);
 

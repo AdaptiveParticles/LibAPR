@@ -223,7 +223,7 @@ void interp_depth_to_mesh(Mesh_data<uint8_t>& k_img,PartCellStructure<S,uint64_t
                         uint8_t depth = i + (status == SEED);
 
 
-                        depth = i + (status < FILLER)*bound_flag;
+                        depth = depth + (status < FILLER)*bound_flag;
 
 
 
@@ -477,18 +477,18 @@ void interp_parts_to_smooth(Mesh_data<U>& out_image,ExtraPartCellData<V>& interp
     int k_max = pc_struct.depth_max + 1;
 
 
-//#pragma omp parallel for default(shared) private(j,i,k,offset_min,offset_max)
+#pragma omp parallel for default(shared) private(j,i,k,offset_min,offset_max)
         for(j = 0; j < z_num;j++){
             for(i = 0; i < x_num;i++){
 
                 for(k = 0;k < y_num;k++){
 
-                    filter_offset = floor(pow(2,k_max - k_img.mesh[j*x_num*y_num + i*y_num + k])/scale_d[0]);
+                    float filter_offset = floor(pow(2,k_max - k_img.mesh[j*x_num*y_num + i*y_num + k])/scale_d[0]);
 
                     offset_max = std::min((int)(k + filter_offset),(int)(y_num-1));
                     offset_min = std::max((int)(k - filter_offset),(int)0);
 
-                    factor = 1.0/(offset_max - offset_min+1);
+                    float factor = 1.0/(offset_max - offset_min+1);
 
                     uint64_t f = 0;
                     output_data.mesh[j*x_num*y_num + i*y_num + k] = 0;
@@ -511,18 +511,18 @@ void interp_parts_to_smooth(Mesh_data<U>& out_image,ExtraPartCellData<V>& interp
 
 
 
-//#pragma omp parallel for default(shared) private(j,i,k,offset_min,offset_max)
+#pragma omp parallel for default(shared) private(j,i,k,offset_min,offset_max)
         for(j = 0; j < z_num;j++){
             for(i = 0; i < x_num;i++){
 
                 for(k = 0;k < y_num;k++){
 
-                    filter_offset = floor(pow(2,k_max - k_img.mesh[j*x_num*y_num + i*y_num + k])/scale_d[1]);
+                    float filter_offset = floor(pow(2,k_max - k_img.mesh[j*x_num*y_num + i*y_num + k])/scale_d[1]);
 
                     offset_max = std::min((int)(i + filter_offset),(int)(x_num-1));
                     offset_min = std::max((int)(i - filter_offset),(int)0);
 
-                    factor = 1.0/(offset_max - offset_min+1);
+                    float factor = 1.0/(offset_max - offset_min+1);
 
                     uint64_t f = 0;
                     output_data.mesh[j*x_num*y_num + i*y_num + k] = 0;
@@ -543,19 +543,19 @@ void interp_parts_to_smooth(Mesh_data<U>& out_image,ExtraPartCellData<V>& interp
 //
     std::swap(output_data.mesh,pc_image.mesh);
 
-//#pragma omp parallel for default(shared) private(j,i,k,offset_min,offset_max)
+#pragma omp parallel for default(shared) private(j,i,k,offset_min,offset_max)
         for(j = 0; j < z_num;j++){
             for(i = 0; i < x_num;i++){
 
 
                 for(k = 0;k < y_num;k++){
 
-                    filter_offset = floor(pow(2,k_max - k_img.mesh[j*x_num*y_num + i*y_num + k])/scale_d[2]);
+                    float filter_offset = floor(pow(2,k_max - k_img.mesh[j*x_num*y_num + i*y_num + k])/scale_d[2]);
 
                     offset_max = std::min((int)(j + filter_offset),(int)(z_num-1));
                     offset_min = std::max((int)(j - filter_offset),(int)0);
 
-                    factor = 1.0/(offset_max - offset_min+1);
+                    float factor = 1.0/(offset_max - offset_min+1);
 
                     uint64_t f = 0;
                     output_data.mesh[j*x_num*y_num + i*y_num + k]=0;

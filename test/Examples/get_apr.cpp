@@ -42,7 +42,7 @@ int main(int argc, char **argv) {
     timer.stop_timer();
 
     Mesh_data<uint8_t> k_img;
-    interp_depth_to_mesh(k_img,pc_struct);
+    interp_depth_to_mesh(k_img,pc_struct,0);
     debug_write(k_img,"k_debug");
 
     Mesh_data<uint16_t> interp_img;
@@ -51,6 +51,15 @@ int main(int argc, char **argv) {
     debug_write(interp_img,"interp_img");
 
     write_apr_full_format(pc_struct,options.output_dir + "Full/",options.output);
+
+    std::vector<float> scale = {1,1,4};
+
+    Mesh_data<float> smooth_img;
+    timer.start_timer("smooth recon");
+    interp_parts_to_smooth(smooth_img,pc_struct.part_data.particle_data,pc_struct,scale);
+    timer.stop_timer();
+
+    debug_write(smooth_img,"smooth_test");
     
 }
 

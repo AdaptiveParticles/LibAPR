@@ -86,7 +86,7 @@ int main(int argc, char **argv) {
 
     SynImage syn_image_aniso = syn_image_loc;
 
-    float z_ratio = 1;
+    float z_ratio = 4;
 
     float dx = 0.1;
     float dz = 0.1;
