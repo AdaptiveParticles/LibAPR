@@ -20,8 +20,7 @@
 template<typename U,typename V>
 void interp_img(Mesh_data<U>& img,PartCellData<uint64_t>& pc_data,ParticleDataNew<float, uint64_t>& part_new,ExtraPartCellData<V>& particles_int,const bool val = false);
 
-template<typename S>
-void interp_depth_to_mesh(Mesh_data<uint8_t>& k_img,PartCellStructure<S,uint64_t>& pc_struct);
+
 
 void create_y_data(ExtraPartCellData<uint16_t>& y_vec,ParticleDataNew<float, uint64_t>& part_new,PartCellData<uint64_t>& pc_data);
 
@@ -158,7 +157,7 @@ std::vector<U> create_dog_filter(int size,float t,float K){
 }
 
 template<typename S>
-void interp_depth_to_mesh(Mesh_data<uint8_t>& k_img,PartCellStructure<S,uint64_t>& pc_struct){
+void interp_depth_to_mesh(Mesh_data<uint8_t>& k_img,PartCellStructure<S,uint64_t>& pc_struct,int bound_flag = 1){
     //
     //  Bevan Cheeseman 2016
     //
@@ -224,7 +223,7 @@ void interp_depth_to_mesh(Mesh_data<uint8_t>& k_img,PartCellStructure<S,uint64_t
                         uint8_t depth = i + (status == SEED);
 
 
-                        depth = i + (status < FILLER);
+                        depth = i + (status < FILLER)*bound_flag;
 
 
 
@@ -452,7 +451,7 @@ void interp_parts_to_smooth(Mesh_data<U>& out_image,ExtraPartCellData<V>& interp
 
     pc_struct.interp_parts_to_pc(pc_image,interp_data);
 
-    interp_depth_to_mesh(k_img,pc_struct);
+    interp_depth_to_mesh(k_img,pc_struct,0);
 
     int filter_offset = 0;
 
