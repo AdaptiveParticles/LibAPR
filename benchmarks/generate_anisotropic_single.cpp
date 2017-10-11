@@ -57,13 +57,13 @@ int main(int argc, char **argv) {
     float ratio = 10;
     bs.num_objects = 5*pow(bs.x_num,3)/(33400*ratio);
 
-    bs.num_objects = 5;
+    bs.num_objects = 10;
 
     bs.desired_I = 1000;
     //bs.int_scale_max = 1;
     //bs.int_scale_min = 1;
     bs.int_scale_min = 1;
-    bs.int_scale_max = 1;
+    bs.int_scale_max = 10;
 
     syn_image.global_trans.const_shift = 1000;
 
@@ -86,7 +86,7 @@ int main(int argc, char **argv) {
 
     SynImage syn_image_aniso = syn_image_loc;
 
-    float z_ratio = 2;
+    float z_ratio = 1;
 
     float dx = 0.1;
     float dz = 0.1;

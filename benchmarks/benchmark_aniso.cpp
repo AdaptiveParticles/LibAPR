@@ -102,7 +102,7 @@ int main(int argc, char **argv) {
     int N_par3 = (int)window_1.size();
     int N_par4 = (int)z_ratio.size();
 
-    bs.num_objects = 5;
+    bs.num_objects = 10;
 
     analysis_data.add_float_data("obj_size",bs.obj_size);
     analysis_data.add_float_data("num_objects",bs.num_objects);
@@ -237,6 +237,8 @@ int main(int argc, char **argv) {
                         Part_rep p_rep;
 
                         set_up_part_rep(syn_image_loc, p_rep, bs);
+
+
 
 
                         // Get the APR
