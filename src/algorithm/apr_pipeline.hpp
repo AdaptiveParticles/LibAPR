@@ -813,10 +813,6 @@ void get_apr(Mesh_data<uint16_t >& input_image,Part_rep& part_rep,PartCellStruct
     get_variance_3D(part_rep, input_image_float, variance);
     part_rep.timer.stop_timer();
 
-    debug_write(gradient,"grad");
-
-    debug_write(variance,"var");
-
     part_rep.timer.start_timer("get_level_3D");
     get_level_3D(variance, gradient, part_rep, part_map, temp);
     part_rep.timer.stop_timer();
