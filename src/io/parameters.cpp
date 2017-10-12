@@ -281,6 +281,18 @@ void get_image_stats(Proc_par& pars,std::string output_path,std::string stats_na
         pars.var_th_max = 0;
     }
 
+    //file name (relative path)
+    std::getline(path_file,out_line);
+
+    found = out_line.find("z_factor: ");
+
+    if (found!=std::string::npos){
+
+        pars.z_factor = stof(out_line.substr(found+12));
+    } else {
+        pars.z_factor = 1.0;
+    }
+
 
     pars.tol = 0.0005f;
 
@@ -319,7 +331,7 @@ void get_image_stats(Proc_par& pars,std::string output_path,std::string stats_na
     }
 
     std::cout << "Var Th: " << pars.var_th << std::endl;
-    std::cout << "Var Th Max: " << pars.var_th << std::endl;
+    std::cout << "Var Th Max: " << pars.var_th_max << std::endl;
 
 
 //    if (max_var_th > .25f*pars.var_th){
