@@ -332,6 +332,7 @@ void get_image_stats(Proc_par& pars,std::string output_path,std::string stats_na
 
     std::cout << "Var Th: " << pars.var_th << std::endl;
     std::cout << "Var Th Max: " << pars.var_th_max << std::endl;
+    std::cout << "Z factor: " << pars.z_factor << std::endl;
 
 
 //    if (max_var_th > .25f*pars.var_th){
