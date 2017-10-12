@@ -644,7 +644,7 @@ void construct_max_flow_graph_new(PartCellStructure<V,T>& pc_struct,GraphType& g
 
     timer.stop_timer();
 
-    std::vector<float> filter = {.0125,.975,.0125};
+    std::vector<float> filter = {.25,.5,.25};
     std::vector<float> delta = {parameters[7],parameters[8],parameters[9]};
 
     timer.start_timer("smooth");

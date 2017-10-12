@@ -53,7 +53,7 @@ int uf_make_set(std::vector<int>& labels) {
 
 
 template<typename S>
-void calc_connected_component(PartCellStructure<S,uint64_t>& pc_struct,ExtraPartCellData<uint8_t>& binary_mask,ExtraPartCellData<uint16_t>& component_label){
+void calc_connected_component(PartCellStructure<S,uint64_t>& pc_struct,ExtraPartCellData<uint16_t>& binary_mask,ExtraPartCellData<uint16_t>& component_label){
     //
     //  Calculate connected component from a binary mask
     //
