@@ -52,7 +52,7 @@ int main(int argc, char **argv) {
 
     write_apr_full_format(pc_struct,options.output_dir + "Full/",options.output);
 
-    std::vector<float> scale = {1,1,4};
+    std::vector<float> scale = {1,1,2};
 
     Mesh_data<float> smooth_img;
     timer.start_timer("smooth recon");

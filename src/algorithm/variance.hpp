@@ -720,15 +720,17 @@ void get_variance_3D(Part_rep &p_rep, Mesh_data<T> &input_image, Mesh_data<T> &v
     calc_sat_mean_z(var,win_z2);
 
     //if needed threshold the results
-    if(p_rep.pars.I_th > 0) {
-        intensity_th(temp, var,
-        p_rep.pars.I_th);
-    }
+
 
     timer.start_timer("rescale_var_and_threshold");
 
     //rescaling the variance estimate
     rescale_var_and_threshold( var,calc_map.var_rescale,p_rep);
+
+    if(p_rep.pars.I_th > 0) {
+        intensity_th(temp, var,
+                     p_rep.pars.I_th);
+    }
 
     timer.stop_timer();
 
