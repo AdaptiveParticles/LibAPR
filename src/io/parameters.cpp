@@ -314,11 +314,12 @@ void get_image_stats(Proc_par& pars,std::string output_path,std::string stats_na
       //                 (0.1821f * logf(pars.lambda)+ 1.522f);
 
     if(pars.var_th_max == 0){
-        pars.var_th_max = 0.5*pars.var_th;
+        pars.var_th_max = 0.75*pars.var_th;
 
     }
 
-
+    std::cout << "Var Th: " << pars.var_th << std::endl;
+    std::cout << "Var Th Max: " << pars.var_th << std::endl;
 
 
 //    if (max_var_th > .25f*pars.var_th){
