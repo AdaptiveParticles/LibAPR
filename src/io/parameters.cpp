@@ -284,15 +284,14 @@ void get_image_stats(Proc_par& pars,std::string output_path,std::string stats_na
     //file name (relative path)
     std::getline(path_file,out_line);
 
-    found = out_line.find("z_factor: ");
+    found = out_line.find("aniso: ");
 
     if (found!=std::string::npos){
 
-        pars.z_factor = stof(out_line.substr(found+12));
+        pars.aniso = stof(out_line.substr(found+12));
     } else {
-        pars.z_factor = 1.0;
+        pars.aniso = 1.0;
     }
-
 
     pars.tol = 0.0005f;
 

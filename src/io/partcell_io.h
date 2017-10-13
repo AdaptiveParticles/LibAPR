@@ -623,6 +623,8 @@ void write_apr_pc_struct(PartCellStructure<T,uint64_t>& pc_struct,std::string sa
 
     hdf5_write_attribute(pr_groupid,H5T_NATIVE_FLOAT,"rel_error",1,dims_out, &pc_struct.pars.rel_error);
 
+    hdf5_write_attribute(pr_groupid,H5T_NATIVE_FLOAT,"aniso",1,dims_out, &pc_struct.pars.aniso);
+
     //////////////////////////////////////////////////////////////////
     //
     //  Write data to the file
@@ -1546,6 +1548,9 @@ void read_apr_pc_struct(PartCellStructure<T,uint64_t>& pc_struct,std::string fil
     H5Aread(attr_id,H5T_NATIVE_FLOAT,&pc_struct.pars.rel_error ) ;
     H5Aclose(attr_id);
 
+    attr_id = 	H5Aopen(pr_groupid,"aniso",H5P_DEFAULT);
+    H5Aread(attr_id,H5T_NATIVE_FLOAT,&pc_struct.pars.aniso ) ;
+    H5Aclose(attr_id);
 
     std::cout << "Number particles: " << num_parts << " Number Cells: " << num_cells << std::endl;
     
