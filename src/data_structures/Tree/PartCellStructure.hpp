@@ -1558,6 +1558,8 @@ public:
     unsigned int depth_max;
 
     std::string name;
+
+    Proc_par pars;
     
     std::vector<unsigned int> x_num;
     std::vector<unsigned int> y_num;

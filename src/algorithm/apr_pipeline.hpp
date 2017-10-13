@@ -1095,6 +1095,8 @@ void get_apr(int argc, char **argv,PartCellStructure<float,uint64_t>& pc_struct,
 
     get_apr(input_image,part_rep,pc_struct);
 
+    pc_struct.pars = part_rep.pars;
+
 }
 
 

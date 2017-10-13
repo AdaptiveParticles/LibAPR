@@ -41,6 +41,7 @@ int main(int argc, char **argv) {
 
     timer.stop_timer();
 
+
     Mesh_data<uint8_t> k_img;
     interp_adapt_to_mesh(k_img,pc_struct);
     debug_write(k_img,"depth_debug");

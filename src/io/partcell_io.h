@@ -29,6 +29,8 @@
 #include "../numerics/apr_compression.hpp"
 
 
+std::string exec(const char* cmd);
+
 template<typename T>
 void write_apr_full_format(PartCellStructure<T,uint64_t>& pc_struct,std::string save_loc,std::string file_name);
 
@@ -590,7 +592,37 @@ void write_apr_pc_struct(PartCellStructure<T,uint64_t>& pc_struct,std::string sa
     hdf5_write_attribute(pr_groupid,H5T_NATIVE_INT,"num_parts",1,dims_out, &num_parts );
     
     hdf5_write_attribute(pr_groupid,H5T_NATIVE_INT,"num_cells",1,dims_out, &num_cells );
-    
+
+    // New parameter and background data
+
+    hdf5_write_string(pr_groupid,"name",pc_struct.pars.name);
+
+    std::string git_hash = exec("git rev-parse HEAD");
+
+    hdf5_write_string(pr_groupid,"git-hash",git_hash);
+
+    hdf5_write_attribute(pr_groupid,H5T_NATIVE_FLOAT,"lambda",1,dims_out, &pc_struct.pars.lambda );
+
+    hdf5_write_attribute(pr_groupid,H5T_NATIVE_FLOAT,"var_th",1,dims_out, &pc_struct.pars.var_th );
+
+    hdf5_write_attribute(pr_groupid,H5T_NATIVE_FLOAT,"var_th_max",1,dims_out, &pc_struct.pars.var_th_max );
+
+    hdf5_write_attribute(pr_groupid,H5T_NATIVE_FLOAT,"I_th",1,dims_out, &pc_struct.pars.I_th );
+
+    hdf5_write_attribute(pr_groupid,H5T_NATIVE_FLOAT,"dx",1,dims_out, &pc_struct.pars.dx );
+
+    hdf5_write_attribute(pr_groupid,H5T_NATIVE_FLOAT,"dy",1,dims_out, &pc_struct.pars.dy );
+
+    hdf5_write_attribute(pr_groupid,H5T_NATIVE_FLOAT,"dz",1,dims_out, &pc_struct.pars.dz );
+
+    hdf5_write_attribute(pr_groupid,H5T_NATIVE_FLOAT,"psfx",1,dims_out, &pc_struct.pars.psfx );
+
+    hdf5_write_attribute(pr_groupid,H5T_NATIVE_FLOAT,"psfy",1,dims_out, &pc_struct.pars.psfy );
+
+    hdf5_write_attribute(pr_groupid,H5T_NATIVE_FLOAT,"psfz",1,dims_out, &pc_struct.pars.psfz );
+
+    hdf5_write_attribute(pr_groupid,H5T_NATIVE_FLOAT,"rel_error",1,dims_out, &pc_struct.pars.rel_error);
+
     //////////////////////////////////////////////////////////////////
     //
     //  Write data to the file
@@ -1414,8 +1446,34 @@ void read_apr_pc_struct(PartCellStructure<T,uint64_t>& pc_struct,std::string fil
     //  Get metadata
     //
     //////////////////////////////////////////////
-    
-    
+
+    hid_t       aid, atype, attr;
+
+    aid = H5Screate(H5S_SCALAR);
+
+    pc_struct.name.reserve(100);
+
+    //std::string string_out;
+
+    //std::vector<char> string_out;
+    //string_out.resize(80);
+
+    //atype = H5Tcopy (H5T_C_S1);
+
+    char string_out[100];
+
+    attr_id = 	H5Aopen(pr_groupid,"name",H5P_DEFAULT);
+
+    atype = H5Aget_type(attr_id);
+
+    hid_t atype_mem = H5Tget_native_type(atype, H5T_DIR_ASCEND);
+
+    H5Aread(attr_id,atype_mem,string_out) ;
+    H5Aclose(attr_id);
+
+    pc_struct.name= string_out;
+    pc_struct.pars.name = string_out;
+
     attr_id = 	H5Aopen(pr_groupid,"y_num",H5P_DEFAULT);
     H5Aread(attr_id,H5T_NATIVE_INT,&pc_struct.org_dims[0]) ;
     H5Aclose(attr_id);
@@ -1443,8 +1501,52 @@ void read_apr_pc_struct(PartCellStructure<T,uint64_t>& pc_struct,std::string fil
     attr_id = 	H5Aopen(pr_groupid,"depth_min",H5P_DEFAULT);
     H5Aread(attr_id,H5T_NATIVE_INT,&pc_struct.depth_min) ;
     H5Aclose(attr_id);
-    
-    
+
+    attr_id = 	H5Aopen(pr_groupid,"lambda",H5P_DEFAULT);
+    H5Aread(attr_id,H5T_NATIVE_FLOAT,&pc_struct.pars.lambda ) ;
+    H5Aclose(attr_id);
+
+    attr_id = 	H5Aopen(pr_groupid,"var_th",H5P_DEFAULT);
+    H5Aread(attr_id,H5T_NATIVE_FLOAT,&pc_struct.pars.var_th ) ;
+    H5Aclose(attr_id);
+
+    attr_id = 	H5Aopen(pr_groupid,"var_th_max",H5P_DEFAULT);
+    H5Aread(attr_id,H5T_NATIVE_FLOAT,&pc_struct.pars.var_th_max ) ;
+    H5Aclose(attr_id);
+
+    attr_id = 	H5Aopen(pr_groupid,"I_th",H5P_DEFAULT);
+    H5Aread(attr_id,H5T_NATIVE_FLOAT,&pc_struct.pars.I_th ) ;
+    H5Aclose(attr_id);
+
+    attr_id = 	H5Aopen(pr_groupid,"dx",H5P_DEFAULT);
+    H5Aread(attr_id,H5T_NATIVE_FLOAT,&pc_struct.pars.dx ) ;
+    H5Aclose(attr_id);
+
+    attr_id = 	H5Aopen(pr_groupid,"dy",H5P_DEFAULT);
+    H5Aread(attr_id,H5T_NATIVE_FLOAT,&pc_struct.pars.dy ) ;
+    H5Aclose(attr_id);
+
+    attr_id = 	H5Aopen(pr_groupid,"dz",H5P_DEFAULT);
+    H5Aread(attr_id,H5T_NATIVE_FLOAT,&pc_struct.pars.dz ) ;
+    H5Aclose(attr_id);
+
+    attr_id = 	H5Aopen(pr_groupid,"psfx",H5P_DEFAULT);
+    H5Aread(attr_id,H5T_NATIVE_FLOAT,&pc_struct.pars.psfx ) ;
+    H5Aclose(attr_id);
+
+    attr_id = 	H5Aopen(pr_groupid,"psfy",H5P_DEFAULT);
+    H5Aread(attr_id,H5T_NATIVE_FLOAT,&pc_struct.pars.psfy ) ;
+    H5Aclose(attr_id);
+
+    attr_id = 	H5Aopen(pr_groupid,"psfz",H5P_DEFAULT);
+    H5Aread(attr_id,H5T_NATIVE_FLOAT,&pc_struct.pars.psfz ) ;
+    H5Aclose(attr_id);
+
+    attr_id = 	H5Aopen(pr_groupid,"rel_error",H5P_DEFAULT);
+    H5Aread(attr_id,H5T_NATIVE_FLOAT,&pc_struct.pars.rel_error ) ;
+    H5Aclose(attr_id);
+
+
     std::cout << "Number particles: " << num_parts << " Number Cells: " << num_cells << std::endl;
     
     std::vector<std::vector<uint8_t>> p_map_load;
