@@ -1464,6 +1464,10 @@ void read_apr_pc_struct(PartCellStructure<T,uint64_t>& pc_struct,std::string fil
 
     char string_out[100];
 
+    for (int j = 0; j < 100; ++j) {
+        string_out[j] = 0;
+    }
+
     attr_id = 	H5Aopen(pr_groupid,"name",H5P_DEFAULT);
 
     atype = H5Aget_type(attr_id);

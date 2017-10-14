@@ -288,7 +288,7 @@ void get_image_stats(Proc_par& pars,std::string output_path,std::string stats_na
 
     if (found!=std::string::npos){
 
-        pars.aniso = stof(out_line.substr(found+12));
+        pars.aniso = stof(out_line.substr(found+7));
     } else {
         pars.aniso = 1.0;
     }

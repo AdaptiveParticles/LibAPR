@@ -1473,9 +1473,9 @@ void produce_apr_analysis(Mesh_data<T>& input_image,AnalysisData& analysis_data,
 
         run_real_segmentation(pc_struct,analysis_data, pars);
 
-        run_ray_cast(pc_struct,analysis_data,input_image,pars);
+        //run_ray_cast(pc_struct,analysis_data,input_image,pars);
 
-        real_adaptive_grad(pc_struct,analysis_data,input_image, pars);
+        //real_adaptive_grad(pc_struct,analysis_data,input_image, pars);
 
 
         // evaluate_enhancement(pc_struct,analysis_data,syn_image,input_image,p_rep);
@@ -1552,7 +1552,7 @@ void produce_apr_analysis(Mesh_data<T>& input_image,AnalysisData& analysis_data,
 
     }
 
-    check_var(input_image,pars,"test",analysis_data,syn_image);
+    //check_var(input_image,pars,"test",analysis_data,syn_image);
 
     if(analysis_data.debug == true){
 

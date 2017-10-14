@@ -17,6 +17,7 @@
 #include "../../src/numerics/graph_cut_seg.hpp"
 #include "../../src/numerics/apr_segment.hpp"
 #include "../../src/numerics/ray_cast.hpp"
+#include "../../src/data_structures/APR/APR.hpp"
 
 bool command_option_exists(char **begin, char **end, const std::string &option)
 {
@@ -107,15 +108,13 @@ int main(int argc, char **argv) {
     
     std::cout << "Num_parts: " << pc_struct.get_number_parts() << std::endl;
 
-    
-    
     Mesh_data<uint16_t> seg_mesh;
 
     //calc_graph_cuts_segmentation_mesh(pc_struct,seg_mesh,parameters_nuc,analysis_data);
     
     std::cout << "Num_pixels: " <<seg_mesh.mesh.size() << std::endl;
     
-    float Ip_threshold = 1100;
+    float Ip_threshold = pc_struct.pars.I_th;
     float Ip_max = 10000;
     float beta = 100;
     float var_th = 0;
@@ -145,8 +144,7 @@ int main(int argc, char **argv) {
 
     interp_img(seg_mesh, pc_data, part_new, seg_parts,true);
 
-    debug_write(seg_mesh,"new_seg");
-
+    debug_write(seg_mesh,pc_struct.name + "_gc_seg");
 
 
     proj_par proj_pars;
@@ -155,49 +153,18 @@ int main(int argc, char **argv) {
     proj_pars.theta_final = 3.14;
     proj_pars.radius_factor = 1.1;
     proj_pars.theta_delta = 0.025;
-    proj_pars.scale_z = 4;
+    proj_pars.scale_z = pc_struct.pars.aniso;
 
+    APR<float> curr_apr(pc_struct);
 
-    ExtraPartCellData<uint16_t> y_vec;
-
-    create_y_data(y_vec,part_new);
-
-    shift_particles_from_cells(part_new,seg_parts);
+    shift_particles_from_cells(curr_apr.part_new,seg_parts);
 
     ExtraPartCellData<uint16_t> seg_parts_depth = multiply_by_depth(seg_parts);
 
-    ExtraPartCellData<uint16_t> seg_parts_center= multiply_by_dist_center(seg_parts,y_vec);
+    proj_pars.name = pc_struct.name + "depth";
 
-    proj_pars.name = "intensity";
+    apr_perspective_raycast_depth(curr_apr.y_vec,seg_parts,seg_parts_depth,proj_pars,[] (const uint16_t& a,const uint16_t& b) {return std::max(a,b);},true);
 
-    apr_perspective_raycast_depth(y_vec,seg_parts,part_new.particle_data,proj_pars,[] (const uint16_t& a,const uint16_t& b) {return std::max(a,b);},true);
-
-    proj_pars.name = "z_depth";
-
-    apr_perspective_raycast_depth(y_vec,seg_parts,seg_parts_depth,proj_pars,[] (const uint16_t& a,const uint16_t& b) {return std::max(a,b);},true);
-
-    proj_pars.name = "center";
-
-    apr_perspective_raycast_depth(y_vec,seg_parts,seg_parts_center,proj_pars,[] (const uint16_t& a,const uint16_t& b) {return std::max(a,b);},true);
-
-    //if(pc_struct.org_dims[0] <400){
-    
-    //
-    
-    //std::cout << " Num Parts: " << pc_struct.get_number_parts() << std::endl;
-    //std::cout << " Num Pixels: " << pc_struct.org_dims[0]*pc_struct.org_dims[1]*pc_struct.org_dims[2] << std::endl;
-
-    //}
-    //Now we will view the output by creating the binary image implied by the segmentation
-    
-    //Mesh_data<uint8_t> seg_img;
-    
-    //pc_struct.interp_parts_to_pc(seg_img,seg_parts);
-    
-    //debug_write(seg_img,"segmentation_mask");
-    
-    //debug_write(seg_mesh,"segmentation_mesh_mask");
-    
     ////////////////////////////////////
     //
     //

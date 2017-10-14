@@ -649,7 +649,7 @@ void construct_max_flow_graph_new(PartCellStructure<V,T>& pc_struct,GraphType& g
 
     timer.start_timer("smooth");
 
-    int num_tap = 1;
+    int num_tap = 2;
 
     ExtraPartCellData<float> smoothed_parts = adaptive_smooth(pc_data,particle_data,num_tap,filter);
 

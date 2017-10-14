@@ -1321,8 +1321,7 @@ void run_real_segmentation(PartCellStructure<float,uint64_t> pc_struct,AnalysisD
     proj_pars.theta_final = 3.14;
     proj_pars.radius_factor = 1.00;
     proj_pars.theta_delta = 0.1;
-    proj_pars.scale_z = 4.0f;
-
+    proj_pars.scale_z = pc_struct.pars.aniso;
 
     ExtraPartCellData<uint16_t> y_vec;
 
@@ -1332,26 +1331,11 @@ void run_real_segmentation(PartCellStructure<float,uint64_t> pc_struct,AnalysisD
 
     ExtraPartCellData<uint16_t> seg_parts_depth = multiply_by_depth(seg_parts);
 
-    ExtraPartCellData<uint16_t> seg_parts_center= multiply_by_dist_center(seg_parts,y_vec);
-
-
-    //apr_perspective_raycast(y_vec,seg_parts,proj_pars,[] (const uint16_t& a,const uint16_t& b) {return std::min(a,b);},true);
-
-    //apr_perspective_raycast(y_vec,seg_parts_depth,proj_pars,[] (const uint16_t& a,const uint16_t& b) {return std::max(a,b);},false);
-
-    proj_pars.name = pc_struct.name +"_intensity";
-
-    apr_perspective_raycast_depth(y_vec,seg_parts,part_new.particle_data,proj_pars,[] (const uint16_t& a,const uint16_t& b) {return std::max(a,b);},true);
-
     proj_pars.name = pc_struct.name +"_z_depth";
 
     apr_perspective_raycast_depth(y_vec,seg_parts,seg_parts_depth,proj_pars,[] (const uint16_t& a,const uint16_t& b) {return std::max(a,b);},true);
 
-    proj_pars.name = pc_struct.name + "_center";
-
-    apr_perspective_raycast_depth(y_vec,seg_parts,seg_parts_center,proj_pars,[] (const uint16_t& a,const uint16_t& b) {return std::max(a,b);},true);
-
-
+    analysis_data.add_timer(timer);
 }
 template<typename T>
 void run_ray_cast(PartCellStructure<float,uint64_t> pc_struct,AnalysisData& analysis_data,Mesh_data<T>& input_image,Proc_par& pars){
@@ -1362,7 +1346,6 @@ void run_ray_cast(PartCellStructure<float,uint64_t> pc_struct,AnalysisData& anal
     //
     //
 
-
     Part_timer timer;
 
     /////////////////
@@ -1372,12 +1355,11 @@ void run_ray_cast(PartCellStructure<float,uint64_t> pc_struct,AnalysisData& anal
 
     proj_par proj_pars;
 
-
     proj_pars.theta_0 = 0;
     proj_pars.theta_final = 3.14;
     proj_pars.radius_factor = 1.00;
     proj_pars.theta_delta = 0.1;
-    proj_pars.scale_z = pars.dz/pars.dy;
+    proj_pars.scale_z = pars.aniso;
 
     ParticleDataNew<float, uint64_t> part_new;
     //flattens format to particle = cell, this is in the classic access/part paradigm
