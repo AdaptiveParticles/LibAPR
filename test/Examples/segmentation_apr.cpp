@@ -155,15 +155,15 @@ int main(int argc, char **argv) {
     proj_pars.theta_delta = 0.025;
     proj_pars.scale_z = pc_struct.pars.aniso;
 
-    APR<float> curr_apr(pc_struct);
+    //APR<float> curr_apr(pc_struct);
 
-    shift_particles_from_cells(curr_apr.part_new,seg_parts);
+    //shift_particles_from_cells(curr_apr.part_new,seg_parts);
 
-    ExtraPartCellData<uint16_t> seg_parts_depth = multiply_by_depth(seg_parts);
+    //ExtraPartCellData<uint16_t> seg_parts_depth = multiply_by_depth(seg_parts);
 
     proj_pars.name = pc_struct.name + "depth";
 
-    apr_perspective_raycast_depth(curr_apr.y_vec,seg_parts,seg_parts_depth,proj_pars,[] (const uint16_t& a,const uint16_t& b) {return std::max(a,b);},true);
+    //apr_perspective_raycast_depth(curr_apr.y_vec,seg_parts,seg_parts_depth,proj_pars,[] (const uint16_t& a,const uint16_t& b) {return std::max(a,b);},true);
 
     ////////////////////////////////////
     //
@@ -173,7 +173,7 @@ int main(int argc, char **argv) {
     //
     /////////////////////////////////////
 
-    bool connected_comp = false;
+    bool connected_comp = true;
 
     if(connected_comp) {
 
@@ -185,14 +185,18 @@ int main(int argc, char **argv) {
 
         //Now we will view the output by creating the binary image implied by the segmentation
 
+        std::cout << "boom" << std::endl;
 
-        Mesh_data<uint16_t> comp_img;
+        Mesh_data<float> comp_img;
 
 
         pc_struct.interp_parts_to_pc(comp_img, component_label);
 
 
-        debug_write(comp_img,"comp_mask");
+        //interp_img(comp_img, pc_data, part_new, component_label,true);
+
+        debug_write(comp_img,pc_struct.name + "_cc");
+
 
     }
     

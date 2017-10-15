@@ -12,61 +12,9 @@
 #include "../../src/io/writeimage.h"
 #include "../../src/io/write_parts.h"
 #include "../../src/io/partcell_io.h"
-#include "../../src/data_structures/Tree/PartCellParent.hpp"
 #include "../utils.h"
 #include "../../src/numerics/misc_numerics.hpp"
-
-bool command_option_exists(char **begin, char **end, const std::string &option)
-{
-    return std::find(begin, end, option) != end;
-}
-
-char* get_command_option(char **begin, char **end, const std::string &option)
-{
-    char ** itr = std::find(begin, end, option);
-    if (itr != end && ++itr != end)
-    {
-        return *itr;
-    }
-    return 0;
-}
-
-cmdLineOptions read_command_line_options(int argc, char **argv, Part_rep& part_rep){
-    
-    cmdLineOptions result;
-    
-    if(argc == 1) {
-        std::cerr << "Usage: \"pipeline -i inputfile -d directory [-t] [-o outputfile]\"" << std::endl;
-        exit(1);
-    }
-    
-    if(command_option_exists(argv, argv + argc, "-i"))
-    {
-        result.input = std::string(get_command_option(argv, argv + argc, "-i"));
-    } else {
-        std::cout << "Input file required" << std::endl;
-        exit(2);
-    }
-    
-    if(command_option_exists(argv, argv + argc, "-d"))
-    {
-        result.directory = std::string(get_command_option(argv, argv + argc, "-d"));
-    }
-    
-    if(command_option_exists(argv, argv + argc, "-o"))
-    {
-        result.output = std::string(get_command_option(argv, argv + argc, "-o"));
-    }
-    
-    if(command_option_exists(argv, argv + argc, "-t"))
-    {
-        part_rep.timer.verbose_flag = true;
-    }
-    
-    return result;
-    
-}
-
+#include "../../src/algorithm/apr_pipeline.hpp"
 
 int main(int argc, char **argv) {
     
@@ -95,51 +43,62 @@ int main(int argc, char **argv) {
     Part_timer timer;
     
     timer.verbose_flag = true;
-    
+
+    write_apr_pc_struct(pc_struct,options.directory,pc_struct.name + "_comp");
+
     timer.start_timer("interp to pc");
     //creates pc interpolation mesh from the apr
     pc_struct.interp_parts_to_pc(interp,pc_struct.part_data.particle_data);
    
     timer.stop_timer();
     
-    debug_write(interp,"interp_out");
-    
-    Mesh_data<uint8_t> k_img;
-    //creates a depth interpoaltion from the apr
-    interp_depth_to_mesh(k_img,pc_struct);
-    
-    debug_write(k_img,"k_img");
-    
-    Mesh_data<uint8_t> status_img;
-    //creates a depth interpoaltion from the apr
-    interp_status_to_mesh(status_img,pc_struct );
-    debug_write(status_img,"status_img");
+    debug_write(interp,"interp_pc");
 
+    std::vector<float> scale = {1,1,2};
 
-    ParticleDataNew<float, uint64_t> part_new;
-    //flattens format to particle = cell, this is in the classic access/part paradigm
-    part_new.initialize_from_structure(pc_struct);
+    Mesh_data<float> smooth_img;
+    timer.start_timer("smooth recon");
+    interp_parts_to_smooth(smooth_img,pc_struct.part_data.particle_data,pc_struct,scale);
+    timer.stop_timer();
 
-    //generates the nieghbour structure
-    PartCellData<uint64_t> pc_data;
-    part_new.create_pc_data_new(pc_data);
+    debug_write(smooth_img,"interp_smooth");
 
-    pc_data.org_dims = pc_struct.org_dims;
-    part_new.access_data.org_dims = pc_struct.org_dims;
+//    Mesh_data<uint8_t> k_img;
+//    //creates a depth interpoaltion from the apr
+//    interp_depth_to_mesh(k_img,pc_struct);
+//
+//    debug_write(k_img,"k_img");
+//
+//    Mesh_data<uint8_t> status_img;
+//    //creates a depth interpoaltion from the apr
+//    interp_status_to_mesh(status_img,pc_struct );
+//    debug_write(status_img,"status_img");
 
-    part_new.particle_data.org_dims = pc_struct.org_dims;
-
-    Mesh_data<float> interp_out;
-
-    interp_img(interp_out, pc_data, part_new, part_new.particle_data,false);
-
-    debug_write(interp_out,"interp_out_n");
-
-    Mesh_data<float> w_interp_out;
-
-    weigted_interp_img(w_interp_out, pc_data, part_new, part_new.particle_data,false);
-
-    debug_write(w_interp_out,"weighted_interp_out_n");
+//
+//    ParticleDataNew<float, uint64_t> part_new;
+//    //flattens format to particle = cell, this is in the classic access/part paradigm
+//    part_new.initialize_from_structure(pc_struct);
+//
+//    //generates the nieghbour structure
+//    PartCellData<uint64_t> pc_data;
+//    part_new.create_pc_data_new(pc_data);
+//
+//    pc_data.org_dims = pc_struct.org_dims;
+//    part_new.access_data.org_dims = pc_struct.org_dims;
+//
+//    part_new.particle_data.org_dims = pc_struct.org_dims;
+//
+//    Mesh_data<float> interp_out;
+//
+//    interp_img(interp_out, pc_data, part_new, part_new.particle_data,false);
+//
+//    debug_write(interp_out,"interp_out_n");
+//
+//    Mesh_data<float> w_interp_out;
+//
+//    weigted_interp_img(w_interp_out, pc_data, part_new, part_new.particle_data,false);
+//
+//    debug_write(w_interp_out,"weighted_interp_out_n");
 
 }
 

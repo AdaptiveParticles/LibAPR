@@ -599,7 +599,7 @@ void write_apr_pc_struct(PartCellStructure<T,uint64_t>& pc_struct,std::string sa
 
     std::string git_hash = exec("git rev-parse HEAD");
 
-    hdf5_write_string(pr_groupid,"git-hash",git_hash);
+    hdf5_write_string(pr_groupid,"githash",git_hash);
 
     hdf5_write_attribute(pr_groupid,H5T_NATIVE_FLOAT,"lambda",1,dims_out, &pc_struct.pars.lambda );
 
