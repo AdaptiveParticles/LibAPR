@@ -15,6 +15,7 @@
 #include "../utils.h"
 #include "../../src/numerics/misc_numerics.hpp"
 #include "../../src/algorithm/apr_pipeline.hpp"
+#include "../../src/numerics/apr_segment.hpp"
 
 int main(int argc, char **argv) {
     
@@ -44,24 +45,36 @@ int main(int argc, char **argv) {
     
     timer.verbose_flag = true;
 
+    pc_struct.name = options.input;
+
     write_apr_pc_struct(pc_struct,options.directory,pc_struct.name + "_comp");
 
     timer.start_timer("interp to pc");
     //creates pc interpolation mesh from the apr
-    pc_struct.interp_parts_to_pc(interp,pc_struct.part_data.particle_data);
-   
+    //pc_struct.interp_parts_to_pc(interp,pc_struct.part_data.particle_data);
+
     timer.stop_timer();
-    
-    debug_write(interp,"interp_pc");
+
+   // debug_write(interp,"interp_pc");
 
     std::vector<float> scale = {1,1,2};
 
     Mesh_data<float> smooth_img;
     timer.start_timer("smooth recon");
-    interp_parts_to_smooth(smooth_img,pc_struct.part_data.particle_data,pc_struct,scale);
+    //interp_parts_to_smooth(smooth_img,pc_struct.part_data.particle_data,pc_struct,scale);
     timer.stop_timer();
 
-    debug_write(smooth_img,"interp_smooth");
+    //debug_write(smooth_img,"interp_smooth");
+
+    //Mesh_data<uint16_t> comp_label;
+
+    //Mesh_data<uint8_t> k_img;
+    //interp_adapt_to_mesh(k_img,pc_struct);
+    //debug_write(k_img,"depth_debug");
+
+    //calc_cc_mesh(k_img,(uint8_t) 28,comp_label);
+
+    //debug_write(comp_label,"k_cc");
 
 //    Mesh_data<uint8_t> k_img;
 //    //creates a depth interpoaltion from the apr

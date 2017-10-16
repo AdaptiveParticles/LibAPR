@@ -177,25 +177,26 @@ int main(int argc, char **argv) {
 
     if(connected_comp) {
 
-        ExtraPartCellData<uint16_t> component_label;
+        //ExtraPartCellData<uint16_t> component_label;
 
         //calculate the connected component
 
-        calc_connected_component(pc_struct, seg_parts, component_label);
+        //calc_connected_component(pc_struct, seg_parts, component_label);
 
         //Now we will view the output by creating the binary image implied by the segmentation
 
         std::cout << "boom" << std::endl;
 
-        Mesh_data<float> comp_img;
+        Mesh_data<uint16_t> comp_label;
+
+        calc_cc_mesh(seg_mesh,(uint16_t) 255,comp_label);
 
 
-        pc_struct.interp_parts_to_pc(comp_img, component_label);
-
+        //pc_struct.interp_parts_to_pc(comp_img, component_label);
 
         //interp_img(comp_img, pc_data, part_new, component_label,true);
 
-        debug_write(comp_img,pc_struct.name + "_cc");
+        debug_write(comp_label,pc_struct.name + "_cc");
 
 
     }
