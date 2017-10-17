@@ -46,13 +46,13 @@ int main(int argc, char **argv) {
     Mesh_data<uint16_t> interp;
 
     //creates pc interpolation mesh from the apr
-    pc_struct.interp_parts_to_pc(interp,pc_struct.part_data.particle_data);
+    //pc_struct.interp_parts_to_pc(interp,pc_struct.part_data.particle_data);
 
-    debug_write(interp,"interp_pc_org");
+    //debug_write(interp,"interp_pc_org");
 
     PartCellStructure<float,uint64_t> pc_struct_t = pc_struct;
 
-    float Th = 800;
+    float Th = 100;
     int level = 2;
     Wavelet wl = WL_CDF_97;
 
@@ -70,9 +70,16 @@ int main(int argc, char **argv) {
     write_apr_wavelet(pc_struct,options.directory,pc_struct.name + "wavelet",Th,level,wl);
 
 
+    PartCellStructure<float,uint64_t> pc_struct_w;
+
+    read_apr_wavelet(pc_struct_w,options.directory + pc_struct.name + "wavelet_pcstruct_part.h5",wl);
+
     //read_write_apr_pc_struct(pc_struct,file_name);
 
-    
+    pc_struct_w.interp_parts_to_pc(interp,pc_struct_w.part_data.particle_data);
+
+    debug_write(interp,"interp_pc_wavelet_2");
+
 //    int num_cells = pc_struct.get_number_cells();
 //    int num_parts = pc_struct.get_number_parts();
 //
@@ -93,13 +100,13 @@ int main(int argc, char **argv) {
 //
 
 //
-    std::vector<float> scale = {1,1,2};
+    //std::vector<float> scale = {1,1,2};
 //
-    Mesh_data<float> smooth_img;
+    //Mesh_data<float> smooth_img;
 //    timer.start_timer("smooth recon");
-    interp_parts_to_smooth(smooth_img,pc_struct_t.part_data.particle_data,pc_struct_t,scale);
+    //interp_parts_to_smooth(smooth_img,pc_struct_t.part_data.particle_data,pc_struct_t,scale);
 //    timer.stop_timer();
-    debug_write(smooth_img,"smooth_recon");
+   // debug_write(smooth_img,"smooth_recon");
 
 //    unsigned nBits = 6;
 //    unsigned nDims = 3;

@@ -83,6 +83,12 @@ void wavelet_th_return(std::vector<T>& input,float Th,int mlevel,Wavelet wl){
           decomp_t.coeffs(sig, idx(i)) = decomp2.coeffs(sig_d, idx(i));
 
 
+//    if(input.size() < 700) {
+//
+//        std::cout << sig << std::endl;
+//
+//    }
+
     decomp_t.applyInv(sig);
 
     std::copy(sig.data(),sig.data() + input.size(),input.begin());
@@ -142,6 +148,43 @@ void get_wavelet_coeffs(std::vector<S>& output,std::vector<T>& input,float Th,in
     output.resize(input.size());
 
     std::copy(sig_d.data(),sig_d.data() + input.size(),output.begin());
+
+
+}
+
+template<typename T,typename S>
+void get_recon(std::vector<S>& output,std::vector<T>& input,int max_l,Wavelet wl){
+
+    typedef float numtype;
+
+    std::vector<numtype> temp;
+
+    temp.resize(input.size());
+    std::copy(input.begin(),input.end(),temp.begin());
+
+    Array<numtype, 1> sig(temp.data(),shape(temp.size()),duplicateData);
+
+    WaveletDecomp<1> decomp_t(wl, NONSTD_DECOMP, max_l);
+
+    WaveletDecomp<1> decomp2(decomp_t, SEPARATED_COEFFS);
+
+    Array<TinyVector<int,1>, 1> idx( decomp2.indices(sig) );
+
+    Array<numtype, 1> sig_d(sig.shape());
+
+    for (int i=0; i<idx.rows(); ++i) {
+        decomp_t.coeffs(sig_d, idx(i)) = decomp2.coeffs(sig, idx(i));
+    }
+
+    //std::cout << sig_d << std::endl;
+
+    decomp_t.applyInv(sig_d);
+
+    output.resize(input.size());
+
+    std::copy(sig_d.data(),sig_d.data() + input.size(),output.begin());
+
+    int stop = 1;
 
 
 }
@@ -224,16 +267,20 @@ void test_wavelet(PartCellStructure<T,uint64_t>& pc_struct,float th,int mlevel,W
 
         }
 
-        float th_l = th/pow(2,(pc_struct.pc_data.depth_max-i)*4);
+        if(Ip[i].size() > 0) {
 
-        if((pc_struct.pc_data.depth_max - i) > 1){
-            th_l = 0;
+            float th_l = th / pow(2, (pc_struct.pc_data.depth_max - i) * 4);
+
+            if ((pc_struct.pc_data.depth_max - i) > 0) {
+                th_l = 0;
+            }
+
+            int num_levels = floor(log2(Ip[i].size()));
+            num_levels = max(2, num_levels - 4);
+
+            wavelet_th_return(Ip[i], th_l, num_levels, wl);
+
         }
-
-        int num_levels = floor(log2(Ip[i].size()));
-        num_levels = max(2,num_levels-4);
-
-        wavelet_th_return(Ip[i],th_l,num_levels,wl);
 
         p_map_load[i].resize(x_num_*z_num_*y_num_,0);
 
@@ -458,7 +505,7 @@ void write_apr_wavelet(PartCellStructure<T,uint64_t>& pc_struct,std::string save
 
             float th_l = th/pow(2,(pc_struct.pc_data.depth_max-i)*4);
 
-            if((pc_struct.pc_data.depth_max - i) > 1){
+            if((pc_struct.pc_data.depth_max - i) > 0){
                 th_l = 0;
             }
 
@@ -558,6 +605,230 @@ void write_apr_wavelet(PartCellStructure<T,uint64_t>& pc_struct,std::string save
 
 }
 
+template<typename T>
+void read_apr_wavelet(PartCellStructure<T,uint64_t>& pc_struct,std::string file_name,Wavelet wl)
+{
+
+
+    //hdf5 inits
+    hid_t fid, pr_groupid, obj_id,attr_id;
+    H5G_info_t info;
+
+    //need to register the filters so they work properly
+    register_bosc();
+
+    int num_parts,num_cells;
+
+    fid = H5Fopen(file_name.c_str(),H5F_ACC_RDONLY,H5P_DEFAULT);
+
+    //Get the group you want to open
+
+    pr_groupid = H5Gopen2(fid,"ParticleRepr",H5P_DEFAULT);
+    H5Gget_info( pr_groupid, &info );
+
+    //Getting an attribute
+    obj_id =  H5Oopen_by_idx( fid, "ParticleRepr", H5_INDEX_NAME, H5_ITER_INC,0,H5P_DEFAULT);
+
+    //Load the attributes
+
+
+    /////////////////////////////////////////////
+    //  Get metadata
+    //
+    //////////////////////////////////////////////
+
+    hid_t       aid, atype, attr;
+
+    aid = H5Screate(H5S_SCALAR);
+
+    pc_struct.name.reserve(100);
+
+    //std::string string_out;
+
+    //std::vector<char> string_out;
+    //string_out.resize(80);
+
+    //atype = H5Tcopy (H5T_C_S1);
+
+    char string_out[100];
+
+    for (int j = 0; j < 100; ++j) {
+        string_out[j] = 0;
+    }
+
+    attr_id = 	H5Aopen(pr_groupid,"name",H5P_DEFAULT);
+
+    atype = H5Aget_type(attr_id);
+
+    hid_t atype_mem = H5Tget_native_type(atype, H5T_DIR_ASCEND);
+
+    H5Aread(attr_id,atype_mem,string_out) ;
+    H5Aclose(attr_id);
+
+    pc_struct.name= string_out;
+    pc_struct.pars.name = string_out;
+
+    attr_id = 	H5Aopen(pr_groupid,"y_num",H5P_DEFAULT);
+    H5Aread(attr_id,H5T_NATIVE_INT,&pc_struct.org_dims[0]) ;
+    H5Aclose(attr_id);
+
+    attr_id = 	H5Aopen(pr_groupid,"x_num",H5P_DEFAULT);
+    H5Aread(attr_id,H5T_NATIVE_INT,&pc_struct.org_dims[1]) ;
+    H5Aclose(attr_id);
+
+    attr_id = 	H5Aopen(pr_groupid,"z_num",H5P_DEFAULT);
+    H5Aread(attr_id,H5T_NATIVE_INT,&pc_struct.org_dims[2]) ;
+    H5Aclose(attr_id);
+
+    attr_id = 	H5Aopen(pr_groupid,"num_parts",H5P_DEFAULT);
+    H5Aread(attr_id,H5T_NATIVE_INT,&num_parts) ;
+    H5Aclose(attr_id);
+
+    attr_id = 	H5Aopen(pr_groupid,"num_cells",H5P_DEFAULT);
+    H5Aread(attr_id,H5T_NATIVE_INT,&num_cells) ;
+    H5Aclose(attr_id);
+
+    attr_id = 	H5Aopen(pr_groupid,"depth_max",H5P_DEFAULT);
+    H5Aread(attr_id,H5T_NATIVE_INT,&pc_struct.depth_max) ;
+    H5Aclose(attr_id);
+
+    attr_id = 	H5Aopen(pr_groupid,"depth_min",H5P_DEFAULT);
+    H5Aread(attr_id,H5T_NATIVE_INT,&pc_struct.depth_min) ;
+    H5Aclose(attr_id);
+
+    attr_id = 	H5Aopen(pr_groupid,"lambda",H5P_DEFAULT);
+    H5Aread(attr_id,H5T_NATIVE_FLOAT,&pc_struct.pars.lambda ) ;
+    H5Aclose(attr_id);
+
+    attr_id = 	H5Aopen(pr_groupid,"var_th",H5P_DEFAULT);
+    H5Aread(attr_id,H5T_NATIVE_FLOAT,&pc_struct.pars.var_th ) ;
+    H5Aclose(attr_id);
+
+    attr_id = 	H5Aopen(pr_groupid,"var_th_max",H5P_DEFAULT);
+    H5Aread(attr_id,H5T_NATIVE_FLOAT,&pc_struct.pars.var_th_max ) ;
+    H5Aclose(attr_id);
+
+    attr_id = 	H5Aopen(pr_groupid,"I_th",H5P_DEFAULT);
+    H5Aread(attr_id,H5T_NATIVE_FLOAT,&pc_struct.pars.I_th ) ;
+    H5Aclose(attr_id);
+
+    attr_id = 	H5Aopen(pr_groupid,"dx",H5P_DEFAULT);
+    H5Aread(attr_id,H5T_NATIVE_FLOAT,&pc_struct.pars.dx ) ;
+    H5Aclose(attr_id);
+
+    attr_id = 	H5Aopen(pr_groupid,"dy",H5P_DEFAULT);
+    H5Aread(attr_id,H5T_NATIVE_FLOAT,&pc_struct.pars.dy ) ;
+    H5Aclose(attr_id);
+
+    attr_id = 	H5Aopen(pr_groupid,"dz",H5P_DEFAULT);
+    H5Aread(attr_id,H5T_NATIVE_FLOAT,&pc_struct.pars.dz ) ;
+    H5Aclose(attr_id);
+
+    attr_id = 	H5Aopen(pr_groupid,"psfx",H5P_DEFAULT);
+    H5Aread(attr_id,H5T_NATIVE_FLOAT,&pc_struct.pars.psfx ) ;
+    H5Aclose(attr_id);
+
+    attr_id = 	H5Aopen(pr_groupid,"psfy",H5P_DEFAULT);
+    H5Aread(attr_id,H5T_NATIVE_FLOAT,&pc_struct.pars.psfy ) ;
+    H5Aclose(attr_id);
+
+    attr_id = 	H5Aopen(pr_groupid,"psfz",H5P_DEFAULT);
+    H5Aread(attr_id,H5T_NATIVE_FLOAT,&pc_struct.pars.psfz ) ;
+    H5Aclose(attr_id);
+
+    attr_id = 	H5Aopen(pr_groupid,"rel_error",H5P_DEFAULT);
+    H5Aread(attr_id,H5T_NATIVE_FLOAT,&pc_struct.pars.rel_error ) ;
+    H5Aclose(attr_id);
+
+    attr_id = 	H5Aopen(pr_groupid,"aniso",H5P_DEFAULT);
+    H5Aread(attr_id,H5T_NATIVE_FLOAT,&pc_struct.pars.aniso ) ;
+    H5Aclose(attr_id);
+
+    std::cout << "Number particles: " << num_parts << " Number Cells: " << num_cells << std::endl;
+
+    std::vector<std::vector<uint8_t>> p_map_load;
+    std::vector<std::vector<uint16_t>> Ip;
+
+    p_map_load.resize(pc_struct.depth_max+1);
+    Ip.resize(pc_struct.depth_max+1);
+
+    std::string name;
+
+    pc_struct.x_num.resize(pc_struct.depth_max+1);
+    pc_struct.z_num.resize(pc_struct.depth_max+1);
+    pc_struct.y_num.resize(pc_struct.depth_max+1);
+
+    for(int i = pc_struct.depth_min;i <= pc_struct.depth_max; i++){
+
+        //get the info
+
+        int x_num;
+        name = "p_map_x_num_"+std::to_string(i);
+
+        attr_id = 	H5Aopen(pr_groupid,name.c_str(),H5P_DEFAULT);
+        H5Aread(attr_id,H5T_NATIVE_INT,&x_num) ;
+        H5Aclose(attr_id);
+
+        int y_num;
+        name = "p_map_y_num_"+std::to_string(i);
+
+        attr_id = 	H5Aopen(pr_groupid,name.c_str(),H5P_DEFAULT);
+        H5Aread(attr_id,H5T_NATIVE_INT,&y_num) ;
+        H5Aclose(attr_id);
+
+        int z_num;
+        name = "p_map_z_num_"+std::to_string(i);
+
+        attr_id = 	H5Aopen(pr_groupid,name.c_str(),H5P_DEFAULT);
+        H5Aread(attr_id,H5T_NATIVE_INT,&z_num) ;
+        H5Aclose(attr_id);
+
+        int Ip_num;
+        name = "wc_size_"+std::to_string(i);
+
+        attr_id = 	H5Aopen(pr_groupid,name.c_str(),H5P_DEFAULT);
+        H5Aread(attr_id,H5T_NATIVE_INT,&Ip_num);
+        H5Aclose(attr_id);
+
+        p_map_load[i].resize(x_num*y_num*z_num);
+        Ip[i].resize(Ip_num);
+        std::vector<float> temp;
+        temp.resize(Ip_num);
+
+        if(p_map_load[i].size() > 0){
+            name = "p_map_"+std::to_string(i);
+            //Load the data then update the particle dataset
+            hdf5_load_data(obj_id,H5T_NATIVE_UINT8,p_map_load[i].data(),name.c_str());
+        }
+
+        if(Ip[i].size()>0){
+            name = "wc_"+std::to_string(i);
+            hdf5_load_data(obj_id,H5T_NATIVE_FLOAT,temp.data(),name.c_str());
+
+            //read back the wavelet coeffficients in here
+            int num_levels = floor(log2(Ip[i].size()));
+            num_levels = max(2,num_levels-4);
+
+            get_recon(Ip[i],temp,num_levels,wl);
+
+        }
+
+        pc_struct.x_num[i] = x_num;
+        pc_struct.y_num[i] = y_num;
+        pc_struct.z_num[i] = z_num;
+
+    }
+
+
+    //close shiz
+    H5Gclose(obj_id);
+    H5Gclose(pr_groupid);
+    H5Fclose(fid);
+
+    pc_struct.initialize_structure_read(p_map_load,Ip);
+
+
+}
 
 
 #endif //PARTPLAY_WAVELET_COMP_HPP

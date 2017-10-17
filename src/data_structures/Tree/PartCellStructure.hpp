@@ -408,8 +408,7 @@ private:
         pc_data.initialize_base_structure(part_map);
         timer.stop_timer();
         
-        
-        
+
         //initialize loop variables
         uint64_t x_;
         uint64_t z_;
