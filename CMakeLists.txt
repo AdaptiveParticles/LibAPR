@@ -254,6 +254,9 @@ add_executable(Example_recon
 
         src/io/write_parts.cpp
         ${SOURCE_FILES_COMPILED}
+        external/blitzwave/src/arrayTools.cxx
+        external/blitzwave/src/Wavelet.cxx
+        external/blitzwave/src/WaveletDecomp.cxx
         )
 
 
@@ -279,7 +282,7 @@ target_link_libraries(Example_filter ${HDF5_LIBRARIES} pthread tiff blosc_shared
 target_link_libraries(Example_segment_gc ${HDF5_LIBRARIES} pthread tiff blosc_shared)
 target_link_libraries(Example_enhance_apr ${HDF5_LIBRARIES} pthread tiff blosc_shared)
 target_link_libraries(Example_neigh ${HDF5_LIBRARIES} pthread tiff blosc_shared)
-target_link_libraries(Example_recon ${HDF5_LIBRARIES} pthread tiff blosc_shared)
+target_link_libraries(Example_recon ${HDF5_LIBRARIES} pthread tiff blosc_shared blitz)
 
 set_target_properties(blosc_shared PROPERTIES
         RUNTIME_OUTPUT_DIRECTORY_DEBUG ${PROJECT_BINARY_DIR})

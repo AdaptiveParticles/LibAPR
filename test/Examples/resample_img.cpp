@@ -17,6 +17,15 @@
 #include "../../src/algorithm/apr_pipeline.hpp"
 #include "../../src/numerics/apr_segment.hpp"
 
+#include "../../external/blitzwave/src/Wavelet.h"
+#include "../../external/blitzwave/src/WaveletDecomp.h"
+#include "../../external/blitzwave/src/arrayTools.h"
+
+#include "../../src/io/wavelet_comp.hpp"
+
+using namespace std;
+using namespace blitz;
+using namespace bwave;
 
 int main(int argc, char **argv) {
     
@@ -31,8 +40,33 @@ int main(int argc, char **argv) {
     
     //output
     std::string file_name = options.directory + options.input;
-    
-    //read_apr_pc_struct(pc_struct,file_name);
+
+    read_apr_pc_struct(pc_struct,file_name);
+
+    Mesh_data<uint16_t> interp;
+
+    //creates pc interpolation mesh from the apr
+    pc_struct.interp_parts_to_pc(interp,pc_struct.part_data.particle_data);
+
+    debug_write(interp,"interp_pc_org");
+
+    float Th = 200;
+    int level = 2;
+    Wavelet wl = WL_D_4;
+
+    test_wavelet(pc_struct,Th,level,wl);;
+
+    //creates pc interpolation mesh from the apr
+    pc_struct.interp_parts_to_pc(interp,pc_struct.part_data.particle_data);
+
+    debug_write(interp,"interp_pc_wavelet");
+
+    //
+
+    write_apr_pc_struct(pc_struct,options.directory,pc_struct.name  + "org");
+
+    write_apr_wavelet(pc_struct,options.directory,pc_struct.name + "wavelet",Th,level,wl);
+
 
     //read_write_apr_pc_struct(pc_struct,file_name);
 
@@ -55,13 +89,7 @@ int main(int argc, char **argv) {
 //
     //write_apr_pc_struct_hilbert(pc_struct,options.directory,pc_struct.name + "_comp_hilbert");
 //
-//    timer.start_timer("interp to pc");
-//    //creates pc interpolation mesh from the apr
-//    //pc_struct.interp_parts_to_pc(interp,pc_struct.part_data.particle_data);
-//
-//    timer.stop_timer();
-//
-//   // debug_write(interp,"interp_pc");
+
 //
 //    std::vector<float> scale = {1,1,2};
 //
