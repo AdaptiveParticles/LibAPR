@@ -17,6 +17,7 @@
 #include "../../src/algorithm/apr_pipeline.hpp"
 #include "../../src/numerics/apr_segment.hpp"
 
+
 int main(int argc, char **argv) {
     
     Part_rep part_rep;
@@ -31,38 +32,70 @@ int main(int argc, char **argv) {
     //output
     std::string file_name = options.directory + options.input;
     
-    read_apr_pc_struct(pc_struct,file_name);
+    //read_apr_pc_struct(pc_struct,file_name);
+
+    //read_write_apr_pc_struct(pc_struct,file_name);
+
     
-    int num_cells = pc_struct.get_number_cells();
-    int num_parts = pc_struct.get_number_parts();
-    
-    std::cout << "Number cells: " << num_cells << std::endl;
-    std::cout << "Number parts: " << num_parts << std::endl;
-    
-    Mesh_data<uint16_t> interp;
-    
-    Part_timer timer;
-    
-    timer.verbose_flag = true;
+//    int num_cells = pc_struct.get_number_cells();
+//    int num_parts = pc_struct.get_number_parts();
+//
+//    std::cout << "Number cells: " << num_cells << std::endl;
+//    std::cout << "Number parts: " << num_parts << std::endl;
+//
+//    Mesh_data<uint16_t> interp;
+//
+//    Part_timer timer;
+//
+//    timer.verbose_flag = true;
+//
+//    pc_struct.name = options.input;
+//
+   // write_apr_pc_struct(pc_struct,options.directory,pc_struct.name + "_comp");
+//
+    //write_apr_pc_struct_hilbert(pc_struct,options.directory,pc_struct.name + "_comp_hilbert");
+//
+//    timer.start_timer("interp to pc");
+//    //creates pc interpolation mesh from the apr
+//    //pc_struct.interp_parts_to_pc(interp,pc_struct.part_data.particle_data);
+//
+//    timer.stop_timer();
+//
+//   // debug_write(interp,"interp_pc");
+//
+//    std::vector<float> scale = {1,1,2};
+//
+//    Mesh_data<float> smooth_img;
+//    timer.start_timer("smooth recon");
+//    //interp_parts_to_smooth(smooth_img,pc_struct.part_data.particle_data,pc_struct,scale);
+//    timer.stop_timer();
 
-    pc_struct.name = options.input;
 
-    write_apr_pc_struct(pc_struct,options.directory,pc_struct.name + "_comp");
+//    unsigned nBits = 6;
+//    unsigned nDims = 3;
+//    std::vector<bitmask_t> coord = {2,5,6};
+//
+//    hilbert_incr_v(nBits,nDims , coord);
+//
+//    std::cout << coord[0] << coord[1] << coord[2] << std::endl;
+//
+//    hilbert_incr_v(nBits,nDims , coord);
+//
+//    std::cout << coord[0] << coord[1] << coord[2] << std::endl;
+//
+//    hilbert_incr_v(nBits,nDims , coord);
+//
+//    std::cout << coord[0] << coord[1] << coord[2] << std::endl;
+//
+//    for (int i = 0; i < 20; ++i) {
+//        bitmask_t index = i;
+//        bitmask_t coord[3] = {0,0,0};
+//
+//        hilbert_i2c(nDims,nBits, index, coord);
+//
+//        std::cout << coord[0] << coord[1] << coord[2] << std::endl;
+//    }
 
-    timer.start_timer("interp to pc");
-    //creates pc interpolation mesh from the apr
-    //pc_struct.interp_parts_to_pc(interp,pc_struct.part_data.particle_data);
-
-    timer.stop_timer();
-
-   // debug_write(interp,"interp_pc");
-
-    std::vector<float> scale = {1,1,2};
-
-    Mesh_data<float> smooth_img;
-    timer.start_timer("smooth recon");
-    //interp_parts_to_smooth(smooth_img,pc_struct.part_data.particle_data,pc_struct,scale);
-    timer.stop_timer();
 
     //debug_write(smooth_img,"interp_smooth");
 
