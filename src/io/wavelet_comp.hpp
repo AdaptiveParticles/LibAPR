@@ -44,9 +44,7 @@ void wavelet_th_return(std::vector<T>& input,float Th,int mlevel,Wavelet wl){
 
     decomp_t.apply(sig);
 
-
-
-    std::cout << idx << std::endl;
+    double norm_f = 0;
 
     for (int ix=0; ix<(idx.rows()-2); ++ix) {
         TinyVector<int,1> index = idx(ix);
@@ -56,7 +54,7 @@ void wavelet_th_return(std::vector<T>& input,float Th,int mlevel,Wavelet wl){
         //double thresh = Th;
         numtype ithresh = numtype(thresh);
 
-        double norm_f = decomp_t.normFactor(index);
+        norm_f = decomp_t.normFactor(index);
 
        // std::cout << coeffs << std::endl;
 
@@ -64,39 +62,64 @@ void wavelet_th_return(std::vector<T>& input,float Th,int mlevel,Wavelet wl){
             coeffs(i) = abs(coeffs(i)) > ithresh ? coeffs(i) : 0;
     }
 
+    sig = floor(sig);
+
     std::cout << 1.0*sum(sig==0)/input.size() << std::endl;
+
+    std::cout << max(sig/norm_f) << std::endl;
+
+    //sig = floor(sig);
+
+   // std::cout << sig << std::endl;
+
+    Array<numtype, 1> sig_d(sig.shape());
+
+    for (int i=0; i<idx.rows(); ++i)
+        decomp2.coeffs(sig_d, idx(i)) = decomp_t.coeffs(sig, idx(i));
+
+    sig = 0;
+
+    for (int i=0; i<idx.rows(); ++i)
+          decomp_t.coeffs(sig, idx(i)) = decomp2.coeffs(sig_d, idx(i));
+
 
     decomp_t.applyInv(sig);
 
     std::copy(sig.data(),sig.data() + input.size(),input.begin());
 
 
+    //std::cout << sig_d << std::endl;
+
+
 }
 
 
-template<typename T>
-void get_wavelet_coeffs(std::vector<int>& output,std::vector<T>& input,float Th,int max_l,Wavelet wl){
+template<typename T,typename S>
+void get_wavelet_coeffs(std::vector<S>& output,std::vector<T>& input,float Th,int max_l,Wavelet wl){
 
-    output.resize(input.size());
-    std::copy(input.begin(),input.end(),output.begin());
+    typedef float numtype;
 
-    Array<int, 1> sig(output.data(),shape(output.size()),duplicateData);
+    std::vector<numtype> temp;
+
+    temp.resize(input.size());
+    std::copy(input.begin(),input.end(),temp.begin());
+
+    Array<numtype, 1> sig(temp.data(),shape(temp.size()),duplicateData);
 
     WaveletDecomp<1> decomp_t(wl, NONSTD_DECOMP, max_l);
 
     decomp_t.apply(sig);
 
-    Array<TinyVector<int,1>, 1> idx( decomp_t.indices(sig) );
+    WaveletDecomp<1> decomp2(decomp_t, SEPARATED_COEFFS);
 
-    typedef int numtype;
+    Array<TinyVector<int,1>, 1> idx( decomp2.indices(sig) );
 
-    for (int ix=0; ix<idx.rows(); ++ix) {
+    for (int ix=0; ix<(idx.rows()-2); ++ix) {
         TinyVector<int,1> index = idx(ix);
         Array<numtype, 1> coeffs = decomp_t.coeffs(sig, index);
 
         double thresh = Th / decomp_t.normFactor(index);
         numtype ithresh = numtype(thresh);
-
 
         for (int i=0; i<coeffs.rows(); ++i)
             coeffs(i) = abs(coeffs(i)) > ithresh ? coeffs(i) : 0;
@@ -104,11 +127,21 @@ void get_wavelet_coeffs(std::vector<int>& output,std::vector<T>& input,float Th,
 
     //std::cout << max(abs(sig)) << std::endl;
 
-    //decomp_t.applyInv(sig);
+    sig = floor(sig);
+
+    std::cout << 1.0*sum(sig==0)/input.size() << std::endl;
+
+    Array<numtype, 1> sig_d(sig.shape());
+
+    for (int i=0; i<idx.rows(); ++i) {
+        decomp2.coeffs(sig_d, idx(i)) = decomp_t.coeffs(sig, idx(i));
+    }
+
+    std::cout << 1.0*sum(sig_d==0)/input.size() << std::endl;
 
     output.resize(input.size());
 
-    std::copy(sig.data(),sig.data() + input.size(),output.begin());
+    std::copy(sig_d.data(),sig_d.data() + input.size(),output.begin());
 
 
 }
@@ -191,7 +224,11 @@ void test_wavelet(PartCellStructure<T,uint64_t>& pc_struct,float th,int mlevel,W
 
         }
 
-        float th_l = th/pow(2,(pc_struct.pc_data.depth_max-i)*3);
+        float th_l = th/pow(2,(pc_struct.pc_data.depth_max-i)*4);
+
+        if((pc_struct.pc_data.depth_max - i) > 1){
+            th_l = 0;
+        }
 
         int num_levels = floor(log2(Ip[i].size()));
         num_levels = max(2,num_levels-4);
@@ -416,21 +453,27 @@ void write_apr_wavelet(PartCellStructure<T,uint64_t>& pc_struct,std::string save
 
         if(Ip.size() > 0){
 
-            float th_l = th/pow(2,(pc_struct.pc_data.depth_max-i)*3);
+            int num_levels = floor(log2(Ip.size()));
+            num_levels = max(2,num_levels-4);
 
-            std::vector<int> coeffs;
-            get_wavelet_coeffs(coeffs,Ip,th_l,mlevel,wl);
+            float th_l = th/pow(2,(pc_struct.pc_data.depth_max-i)*4);
+
+            if((pc_struct.pc_data.depth_max - i) > 1){
+                th_l = 0;
+            }
+
+            std::vector<float> coeffs;
+            //std::vector<int> coeffs;
+            get_wavelet_coeffs(coeffs,Ip,th_l,num_levels,wl);
 
             dims = coeffs.size();
 
             std::string name = "wc_size_"+std::to_string(i);
             hdf5_write_attribute(pr_groupid,H5T_NATIVE_INT,name.c_str(),1,&dim_a,&dims);
 
-
             //write the parts
-
             name = "wc_"+std::to_string(i);
-            hdf5_write_data_blosc(obj_id,H5T_NATIVE_INT32,name.c_str(),rank,&dims, coeffs.data());
+            hdf5_write_data_blosc(obj_id,H5T_NATIVE_FLOAT,name.c_str(),rank,&dims, coeffs.data());
 
         }
         p_map.resize(x_num_*z_num_*y_num_,0);
