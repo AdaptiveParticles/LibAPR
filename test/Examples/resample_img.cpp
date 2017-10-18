@@ -52,7 +52,7 @@ int main(int argc, char **argv) {
 
     PartCellStructure<float,uint64_t> pc_struct_t = pc_struct;
 
-    float Th = 0;
+    float Th = 400;
     int level = 2;
     Wavelet wl = WL_CDF_97;
 
@@ -67,19 +67,17 @@ int main(int argc, char **argv) {
 
     //write_apr_pc_struct(pc_struct,options.directory,pc_struct.name  + "org");
 
-    //write_apr_wavelet(pc_struct,options.directory,pc_struct.name + "wavelet",Th,level,wl);
+    write_apr_wavelet(pc_struct,options.directory,pc_struct.name + "wavelet",Th,level,wl);
 
     write_apr_wavelet_partnew(pc_struct,options.directory,pc_struct.name + "wavelet_part",Th,wl);
 
-    //PartCellStructure<float,uint64_t> pc_struct_w;
+    PartCellStructure<float,uint64_t> pc_struct_w;
 
-    //read_apr_wavelet(pc_struct_w,options.directory + pc_struct.name + "wavelet_pcstruct_part.h5",wl);
+    read_apr_wavelet(pc_struct_w,options.directory + pc_struct.name + "wavelet_pcstruct_part.h5",wl);
 
-    //read_write_apr_pc_struct(pc_struct,file_name);
+    pc_struct_w.interp_parts_to_pc(interp,pc_struct_w.part_data.particle_data);
 
-    //pc_struct_w.interp_parts_to_pc(interp,pc_struct_w.part_data.particle_data);
-
-    //debug_write(interp,"interp_pc_wavelet_2");
+    debug_write(interp,"interp_pc_wavelet_2");
 
 //    int num_cells = pc_struct.get_number_cells();
 //    int num_parts = pc_struct.get_number_parts();

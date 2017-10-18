@@ -1255,30 +1255,28 @@ void write_apr_wavelet_partnew(PartCellStructure<T,uint64_t>& pc_struct,std::str
             }
 
 
-//            //std::vector<int> coeffs;
-//            get_wavelet_coeffs(coeffs,Ip,th_l,num_levels,wl);
-//
-//            dims = coeffs.size();
-//
-//            std::string name = "wc_size_"+std::to_string(depth);
-//            hdf5_write_attribute(pr_groupid,H5T_NATIVE_INT,name.c_str(),1,&dim_a,&dims);
-//
-//            //write the parts
-//            name = "wc_"+std::to_string(depth);
-//            hdf5_write_data_blosc(obj_id,H5T_NATIVE_FLOAT,name.c_str(),rank,&dims, coeffs.data());
+            //std::vector<int> coeffs;
+            get_wavelet_coeffs(coeffs,Ip,th_l,num_levels,wl);
+
+            dims = coeffs.size();
+
+            std::string name = "wc_size_"+std::to_string(depth);
+            hdf5_write_attribute(pr_groupid,H5T_NATIVE_INT,name.c_str(),1,&dim_a,&dims);
+
+            //write the parts
+            name = "wc_"+std::to_string(depth);
+            hdf5_write_data_blosc(obj_id,H5T_NATIVE_FLOAT,name.c_str(),rank,&dims, coeffs.data());
 
 
         }
 
         if(Ip.size() > 0){
 
-
-
             //read back the wavelet coeffficients in here
             int num_levels = floor(log2(Ip.size()));
             num_levels = max(2,num_levels-4);
 
-            //get_recon(Ip,coeffs,num_levels,wl);
+            get_recon(Ip,coeffs,num_levels,wl);
 
             undo_re_order_local(curr_apr,Ip,depth);
 
