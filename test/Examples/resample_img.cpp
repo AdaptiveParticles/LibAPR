@@ -46,9 +46,9 @@ int main(int argc, char **argv) {
     Mesh_data<uint16_t> interp;
 
     //creates pc interpolation mesh from the apr
-    //pc_struct.interp_parts_to_pc(interp,pc_struct.part_data.particle_data);
+    pc_struct.interp_parts_to_pc(interp,pc_struct.part_data.particle_data);
 
-    //debug_write(interp,"interp_pc_org");
+    debug_write(interp,"interp_pc_org");
 
     PartCellStructure<float,uint64_t> pc_struct_t = pc_struct;
 
