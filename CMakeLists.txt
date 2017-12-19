@@ -6,13 +6,6 @@ if(TESTS)
     find_package(GTest REQUIRED)
 endif(TESTS)
 
-if(FIGURES)
-
-    set(MYPROJ_RAN_ONCE 1)
-
-    add_subdirectory("external/libboard")
-    include_directories("external/libboard/include")
-endif(FIGURES)
 
 find_package(OpenMP)
 find_package(HDF5 REQUIRED)
@@ -420,12 +413,3 @@ if(BENCHMARKS)
 
 endif(BENCHMARKS)
 
-IF(FIGURES)
-#
-
-    ADD_EXECUTABLE(CreateEpsSlice figures/create_slice_eps.cpp  ${SOURCE_FILES_COMPILED} )
-
-    TARGET_LINK_LIBRARIES(CreateEpsSlice ${CMAKE_THREAD_LIBS_INIT} ${HDF5_LIBRARIES} pthread tiff blosc board)
-
-
-ENDIF(FIGURES)

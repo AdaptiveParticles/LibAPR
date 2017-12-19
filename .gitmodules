@@ -6,6 +6,3 @@
 [submodule "external/c-blosc"]
 	path = external/c-blosc
 	url = https://github.com/Blosc/c-blosc
-[submodule "external/libboard"]
-	path = external/libboard
-	url = https://github.com/c-koi/libboard
