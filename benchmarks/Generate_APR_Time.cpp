@@ -181,7 +181,7 @@ int main(int argc, char **argv) {
 
         set_up_part_rep(syn_image_loc, p_rep, bs);
 
-        //p_rep.pars.lambda = 5;
+        //p_rep.pars.lambda = 0;
 
         p_rep.timer.verbose_flag = true;
 
@@ -240,7 +240,8 @@ int main(int argc, char **argv) {
             apr_c.init(pc_struct);
         }
 
-        ExtraPartCellData<float> curr_scale =  get_scale_parts(apr_c,input_img,p_rep.pars);
+        //ExtraPartCellData<float> curr_scale =  get_scale_parts(apr_c,input_img,p_rep.pars);
+        ExtraPartCellData<float> curr_scale =  get_scale_parts_guided(apr_c,input_img,p_rep.pars,p_rep);
         timer.verbose_flag = true;
 
         timer.start_timer("time_loop");
@@ -289,7 +290,7 @@ int main(int argc, char **argv) {
 
             interp_img(test_recon,apr_temp.y_vec,apr_t.parts_recon_prev);
 
-            debug_write(test_recon,"recon_"+ std::to_string((int)t));
+            //debug_write(test_recon,"recon_"+ std::to_string((int)t));
 
             std::string name = "recgt";
 
@@ -297,7 +298,7 @@ int main(int argc, char **argv) {
             calc_mse(input_img, test_recon, name, analysis_data);
             compare_E(input_img, test_recon,p_rep.pars, name, analysis_data);
 
-            debug_write(input_img,"input_time");
+            //debug_write(input_img,"input_time");
 
 
 
@@ -317,11 +318,11 @@ int main(int argc, char **argv) {
 //            debug_write(test_recon,"sp_"+ std::to_string((int)t));
 //
 //
-//            Mesh_data<float> lp;
+            Mesh_data<float> lp;
 //
-//            interp_img(lp,apr_temp.y_vec,apr_t.prev_l);
+            interp_img(lp,apr_temp.y_vec,apr_t.prev_l);
 //
-//            debug_write(test_recon,"lp_"+ std::to_string((int)t));
+            debug_write(lp,"lp_"+ std::to_string((int)t));
 
 
         }
@@ -353,6 +354,8 @@ int main(int argc, char **argv) {
     std::cout << "ratio: " << total_p/total_used << std::endl;
     std::cout << "ratio: " << total_p/total_addr << std::endl;
     std::cout << "total ratio: " << (pow(bs.x_num,3)*T_num)/total_used << std::endl;
+    std::cout << "original ratio: " << (pow(bs.x_num,3)*T_num)/total_p << std::endl;
+    std::cout << "time ratio: " << total_p/total_used << std::endl;
 
     //write the analysis output
     analysis_data.write_analysis_data_hdf5();

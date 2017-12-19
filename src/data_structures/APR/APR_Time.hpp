@@ -695,8 +695,6 @@ class APR_Time {
         calc_ip_updates(apr_c);
 
 
-
-
         // end of time step change over the variables;
         std::swap(curr_yp,apr_c.y_vec);
         std::swap(curr_fp,apr_c.particles_int);

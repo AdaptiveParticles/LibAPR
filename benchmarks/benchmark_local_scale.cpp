@@ -73,7 +73,7 @@ int main(int argc, char **argv) {
 
     float del = 0;
 
-    rel_error_vec = {1,2,3};
+    rel_error_vec = {1};
     //rel_error_vec = {0.1,0.25,0.5000,0.7500,1.0000,1.5000,2.0000,3.0000,4.0000,5.0000,10.0000,15.0000,20.0000,30.0000,50.0000,100.0000};
     //min mean
     float min_sig = 1;
@@ -96,7 +96,7 @@ int main(int argc, char **argv) {
 
     const float factor = static_cast<float>(sqrt(1000));
 
-    window_2 = {1,5,10,20,30};
+    window_2 = {1,10,20};
     std::vector<float> window_1 = {static_cast<float>(1.0*factor),static_cast<float>(factor*10),static_cast<float>(factor*30)};
 
    // window_1 = {1};
@@ -107,7 +107,7 @@ int main(int argc, char **argv) {
     int N_par3 = (int)window_1.size();
     int N_par4 = (int)window_2.size();
 
-    bs.num_objects = 10;
+    //bs.num_objects = 10;
 
     //analysis_data.add_float_data("obj_size",bs.obj_size);
     //analysis_data.add_float_data("num_objects",bs.num_objects);
@@ -115,7 +115,7 @@ int main(int argc, char **argv) {
     Genrand_uni gen_rand;
 
     bs.int_scale_min = 1;
-    bs.int_scale_max = 10;
+    bs.int_scale_max = 5;
 
     Part_timer b_timer;
     b_timer.verbose_flag = true;

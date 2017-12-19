@@ -480,6 +480,71 @@ void get_variance(Mesh_data<S>& input_image,Mesh_data<float>& variance_u,Proc_pa
     t.stop_timer();
 
 }
+
+
+template<typename T,typename S>
+ExtraPartCellData<T> get_scale_parts_guided(APR<T>& apr,Mesh_data<S>& input_image,Proc_par& pars,Part_rep& part_rep){
+
+    Mesh_data<float> variance_u;
+
+    get_variance(input_image,variance_u,pars);
+
+
+    // now need the pyramid data-structure
+
+
+    Particle_map<float> part_map(part_rep);
+
+
+
+    ExtraPartCellData<T> scale_parts;
+
+    scale_parts.initialize_structure_parts(apr.particles_int);
+
+    int z_, x_, j_, y_, i, k;
+
+    for (uint64_t depth = (apr.y_vec.depth_min); depth <= apr.y_vec.depth_max; depth++) {
+        //loop over the resolutions of the structure
+        const unsigned int x_num_ = apr.y_vec.x_num[depth];
+        const unsigned int z_num_ = apr.y_vec.z_num[depth];
+
+        const float step_size_x = pow(2, apr.y_vec.depth_max - depth);
+        const float step_size_y = pow(2, apr.y_vec.depth_max - depth);
+        const float step_size_z = pow(2, apr.y_vec.depth_max - depth);
+
+
+#pragma omp parallel for default(shared) private(z_,x_,j_,i,k) schedule(guided) if(z_num_*x_num_ > 1000)
+        for (z_ = 0; z_ < z_num_; z_++) {
+            //both z and x are explicitly accessed in the structure
+
+            for (x_ = 0; x_ < x_num_; x_++) {
+
+                const unsigned int pc_offset = x_num_ * z_ + x_;
+
+                for (j_ = 0; j_ < apr.y_vec.data[depth][pc_offset].size(); j_++) {
+
+
+                    const int y = apr.y_vec.data[depth][pc_offset][j_];
+
+                    const float y_actual = floor((y+0.5) * step_size_y);
+                    const float x_actual = floor((x_+0.5) * step_size_x);
+                    const float z_actual = floor((z_+0.5) * step_size_z);
+
+                    scale_parts.data[depth][pc_offset][j_]=variance_u(y_actual,x_actual,z_actual);
+
+
+                }
+            }
+        }
+    }
+
+
+
+    return scale_parts;
+
+}
+
+
 template<typename T,typename S>
 ExtraPartCellData<T> get_scale_parts(APR<T>& apr,Mesh_data<S>& input_image,Proc_par& pars){
 

@@ -50,7 +50,7 @@ int main(int argc, char **argv) {
     pc_struct.interp_parts_to_pc(interp_img,pc_struct.part_data.particle_data);
     debug_write(interp_img,"interp_img");
 
-    write_apr_full_format(pc_struct,options.output_dir + "Full/",options.output);
+    write_apr_full_format(pc_struct,options.output_dir ,options.output);
 
     std::vector<float> scale = {1,1,2};
 

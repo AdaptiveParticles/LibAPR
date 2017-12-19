@@ -210,11 +210,11 @@ add_executable(Example_vis
         ${SOURCE_FILES_COMPILED}
         src/vis/Camera.cpp src/vis/Camera.h src/vis/Object.cpp src/vis/Object.h src/vis/RaytracedObject.cpp src/vis/RaytracedObject.h)
 
-add_executable(pipeline
-    src/algorithm/pipeline.cpp
-    src/io/write_parts.cpp
-    ${SOURCE_FILES_COMPILED}
-)
+#add_executable(pipeline
+ #   src/algorithm/pipeline.cpp
+ #   src/io/write_parts.cpp
+ #   ${SOURCE_FILES_COMPILED}
+#)
 
 add_executable(Example_filter
         test/Examples/filter_apr.cpp
@@ -271,7 +271,7 @@ SWIG_ADD_MODULE(apr java libapr.i
 SWIG_LINK_LIBRARIES(apr ${HDF5_LIBRARIES} blosc_shared tiff)
 
 
-target_link_libraries(pipeline ${HDF5_LIBRARIES} pthread tiff blosc_shared)
+#target_link_libraries(pipeline ${HDF5_LIBRARIES} pthread tiff blosc_shared)
 target_link_libraries(Example_get_apr ${HDF5_LIBRARIES} pthread ${TIFF_LIBRARIES} blosc_shared)
 target_link_libraries(Example_compute_cells ${HDF5_LIBRARIES} pthread tiff blosc_shared)
 target_link_libraries(Example_compute_parts ${HDF5_LIBRARIES} pthread tiff blosc_shared)

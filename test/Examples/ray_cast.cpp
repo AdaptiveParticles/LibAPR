@@ -112,16 +112,13 @@ int main(int argc, char **argv) {
     proj_pars.theta_0 = -3.14;
     proj_pars.theta_final = 3.14;
     proj_pars.radius_factor = .98f;
-    proj_pars.theta_delta = .025f;
+    proj_pars.theta_delta = .05f;
     proj_pars.scale_z = pc_struct.pars.aniso;
-
-
 
     APR<float> curr_apr(pc_struct);
 
     proj_pars.name = pc_struct.name;
     apr_perspective_raycast(curr_apr.y_vec,curr_apr.particles_int,proj_pars,[] (const uint16_t& a,const uint16_t& b) {return std::max(a,b);});
-
 
 
     if(options.org_file != ""){
@@ -139,28 +136,28 @@ int main(int argc, char **argv) {
     //  Normalized Gradient Ray Cast
     //
     //////////////////////////////////
-    std::vector<float> delta = {1,1,1};
-
-
-    ExtraPartCellData<float> normalized_grad =  compute_normalized_grad_mag<float,float,uint64_t>(pc_struct,3,delta);
-
-    shift_particles_from_cells(curr_apr.part_new,normalized_grad);
-
-    ExtraPartCellData<std::array<float,3>> grad_norm = adaptive_gradient_normal(pc_struct,delta);
-
-    //threshold by intensity first
-    float intensity_threshold = pc_struct.pars.I_th;
-
-    threshold_parts(normalized_grad,curr_apr.particles_int,intensity_threshold,0,std::less<float>());
-
-    float min_th = .5;
-    float set_val = 0;
-
-    threshold_parts(normalized_grad,min_th,set_val,std::less<float>());
-
-    proj_pars.name = pc_struct.name + "_norm_grad";
-
-    apr_perspective_raycast_depth(curr_apr.y_vec,normalized_grad,curr_apr.part_new.particle_data,proj_pars,[] (const uint16_t& a,const uint16_t& b) {return std::max(a,b);},true);
+//    std::vector<float> delta = {1,1,1};
+//
+//
+//    ExtraPartCellData<float> normalized_grad =  compute_normalized_grad_mag<float,float,uint64_t>(pc_struct,3,delta);
+//
+//    shift_particles_from_cells(curr_apr.part_new,normalized_grad);
+//
+//    ExtraPartCellData<std::array<float,3>> grad_norm = adaptive_gradient_normal(pc_struct,delta);
+//
+//    //threshold by intensity first
+//    float intensity_threshold = pc_struct.pars.I_th;
+//
+//    threshold_parts(normalized_grad,curr_apr.particles_int,intensity_threshold,0,std::less<float>());
+//
+//    float min_th = .5;
+//    float set_val = 0;
+//
+//    threshold_parts(normalized_grad,min_th,set_val,std::less<float>());
+//
+//    proj_pars.name = pc_struct.name + "_norm_grad";
+//
+//    apr_perspective_raycast_depth(curr_apr.y_vec,normalized_grad,curr_apr.part_new.particle_data,proj_pars,[] (const uint16_t& a,const uint16_t& b) {return std::max(a,b);},true);
 
 
     //ExtraPartCellData<float>  adapt_grad = transform_parts(adapt_grad,[] (const float& a) {return 1000*a;});
