@@ -97,7 +97,7 @@ int main(int argc, char **argv) {
     }
 
 
-    sig_vec = {3};
+    sig_vec = {1,3,6};
 
     //min mean
     float min_shift = 5;
@@ -114,7 +114,7 @@ int main(int argc, char **argv) {
 //        shift.push_back(max_shift);
 //    }
 
-    shift = {sqrt(1000),10.0*sqrt(1000),sqrt(1000)*30.0};
+    shift = {10.0*sqrt(1000)};
 
     int N_par1 = (int)rel_error_vec.size(); // this many different parameter values to be run
     int N_par2 = (int)sig_vec.size();
