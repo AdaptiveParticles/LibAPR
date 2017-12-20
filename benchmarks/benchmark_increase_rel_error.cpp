@@ -136,7 +136,6 @@ int main(int argc, char **argv) {
     syn_image.global_trans.const_shift = 1000;
 
 
-
     for(int q = 0;q < N_par3;q++) {
 
         for (int p = 0; p < N_par2; p++) {
@@ -185,7 +184,7 @@ int main(int argc, char **argv) {
                     ///////////////////////////////////////////////////////////////////
                     //PSF properties
 
-                    bs.desired_I = shift[p];
+                    bs.desired_I = shift[q];
 
                     analysis_data.add_float_data("desired_I",bs.desired_I);
 
