@@ -64,7 +64,7 @@ bool compare_sparse_rep_neighpart_with_part_map(const Particle_map<float>& part_
 
 bool compare_y_coords(PartCellStructure<float,uint64_t>& pc_struct);
 
-bool read_write_structure_test(PartCellStructure<float,uint64_t>& pc_struct);
+bool read_write_structure_test(PartCellStructure<float,uint64_t>& aParticleCells, const std::string& aTestFileSuffix = "");
 
 bool parent_structure_test(PartCellStructure<float,uint64_t>& pc_struct);
 

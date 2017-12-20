@@ -892,37 +892,28 @@ bool compare_y_coords(PartCellStructure<float,uint64_t>& pc_struct){
 
     return pass_test;
 }
-bool read_write_structure_test(PartCellStructure<float,uint64_t>& pc_struct){
+
+bool read_write_structure_test(PartCellStructure<float,uint64_t>& aParticleCells, const std::string& aTestFileSuffix) {
     //
-    //  Bevan Cheeseman 2016
+    // Bevan Cheeseman 2016
     //
-    //  Test for the reading and writing of the particle cell sparse structure
+    // Test saves provided Particle Cells and then reads saved file. Compares if both - provided and saved -
+    // have same contents.
     //
-    //
 
+    std::string saveLocation = "";
+    std::string fileName = "io_test_file" + aTestFileSuffix;
 
-    uint64_t x_;
-    uint64_t z_;
-    uint64_t j_;
-    uint64_t curr_key;
+    write_apr_pc_struct(aParticleCells, saveLocation, fileName);
 
-    bool pass_test = true;
+    PartCellStructure<float, uint64_t> readParticleCells;
+    // TODO: File suffix "_pcstruct_part.h5" should be defined in a one place
+    read_apr_pc_struct(readParticleCells, saveLocation + fileName + "_pcstruct_part.h5");
 
-
-    std::string save_loc = "";
-    std::string file_name = "io_test_file";
-
-    write_apr_pc_struct(pc_struct,save_loc,file_name);
-
-    PartCellStructure<float,uint64_t> pc_struct_read;
-    read_apr_pc_struct(pc_struct_read,save_loc + file_name + "_pcstruct_part.h5");
-
-    //compare all the different thigns and check they are correct;
-
-    return(compare_two_structures_test(pc_struct,pc_struct_read));
-
-
+    //compare all the different things and check they are correct
+    return compare_two_structures_test(aParticleCells, readParticleCells);
 }
+
 bool compare_two_structures_test(PartCellStructure<float,uint64_t>& pc_struct,PartCellStructure<float,uint64_t>& pc_struct_read){
     //
     //  Bevan Cheeseman 2016
