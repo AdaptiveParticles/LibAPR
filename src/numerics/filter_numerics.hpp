@@ -33,7 +33,7 @@
 
 
 template<typename T>
-void iterate_temp_vec(std::vector<T>& temp_vec,std::vector<T>& temp_vec_depth){
+static void iterate_temp_vec(std::vector<T>& temp_vec,std::vector<T>& temp_vec_depth){
     //
     //  Iterates forward these arrays
     //
@@ -50,7 +50,7 @@ void iterate_temp_vec(std::vector<T>& temp_vec,std::vector<T>& temp_vec_depth){
     temp_vec_depth.back() = temp_vec_depth[0];
 }
 template<typename T>
-void iterate_temp_vec(std::vector<T>& temp_vec){
+static void iterate_temp_vec(std::vector<T>& temp_vec){
     //
     //  Iterates forward these arrays
     //
@@ -65,7 +65,7 @@ void iterate_temp_vec(std::vector<T>& temp_vec){
 }
 
 template<typename S>
-void particle_linear_neigh_access_alt_1(PartCellStructure<S,uint64_t>& pc_struct){
+static void particle_linear_neigh_access_alt_1(PartCellStructure<S,uint64_t>& pc_struct){
     //
     //  Calculate Neighbours Using Iterators
     //
@@ -316,7 +316,7 @@ void lin_access_parts(PartCellStructure<S,uint64_t>& pc_struct){   //  Calculate
     
 }
 
-void neigh_cells(PartCellData<uint64_t>& pc_data){
+static void neigh_cells(PartCellData<uint64_t>& pc_data){
     //
     //  Should be written with the neighbour iterators instead.
     //
@@ -439,7 +439,7 @@ void neigh_cells(PartCellData<uint64_t>& pc_data){
     
    
 }
-void particle_linear_neigh_access(PartCellStructure<float,uint64_t>& pc_struct,float num_repeats,AnalysisData& analysis_data){   //  Calculate connected component from a binary mask
+static void particle_linear_neigh_access(PartCellStructure<float,uint64_t>& pc_struct,float num_repeats,AnalysisData& analysis_data){   //  Calculate connected component from a binary mask
     //
     //  Should be written with the neighbour iterators instead.
     //
@@ -567,7 +567,7 @@ void particle_linear_neigh_access(PartCellStructure<float,uint64_t>& pc_struct,f
     std::cout << "per 1000000 particles took: " << time/(1.0*pc_struct.get_number_parts()/1000000.0) << std::endl;
     
 }
-void move_cells_random(PartCellData<uint64_t>& pc_data,ParticleDataNew<float, uint64_t> part_new){
+static void move_cells_random(PartCellData<uint64_t>& pc_data,ParticleDataNew<float, uint64_t> part_new){
     //
     //  Bevan Cheeseman 2017
     //
@@ -743,7 +743,7 @@ void pixels_move_random(PartCellStructure<U,uint64_t>& pc_struct,uint64_t y_num,
 }
 
 
-void particle_random_access(PartCellStructure<float,uint64_t>& pc_struct,AnalysisData& analysis_data){   //  Calculate connected component from a binary mask
+static void particle_random_access(PartCellStructure<float,uint64_t>& pc_struct,AnalysisData& analysis_data){   //  Calculate connected component from a binary mask
     //
     //  Should be written with the neighbour iterators instead.
     //

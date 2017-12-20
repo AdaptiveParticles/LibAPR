@@ -22,7 +22,7 @@ void interp_img(Mesh_data<U>& img,PartCellData<uint64_t>& pc_data,ParticleDataNe
 
 
 
-void create_y_data(ExtraPartCellData<uint16_t>& y_vec,ParticleDataNew<float, uint64_t>& part_new,PartCellData<uint64_t>& pc_data);
+static void create_y_data(ExtraPartCellData<uint16_t>& y_vec,ParticleDataNew<float, uint64_t>& part_new,PartCellData<uint64_t>& pc_data);
 
 template<typename U,typename V>
 void interp_slice(Mesh_data<U>& slice,std::vector<std::vector<std::vector<uint16_t>>>& y_vec,PartCellData<uint64_t>& pc_data,ParticleDataNew<float, uint64_t>& part_new,int dir,int num);
@@ -30,7 +30,7 @@ void interp_slice(Mesh_data<U>& slice,std::vector<std::vector<std::vector<uint16
 template<typename U,typename V>
 void interp_slice(Mesh_data<U>& slice,PartCellData<uint64_t>& pc_data,ParticleDataNew<float, uint64_t>& part_new,ExtraPartCellData<V>& particles_int,int dir,int num);
 
-void create_y_data(std::vector<std::vector<std::vector<uint16_t>>>& y_vec,PartCellStructure<float,uint64_t>& pc_struct);
+static void create_y_data(std::vector<std::vector<std::vector<uint16_t>>>& y_vec,PartCellStructure<float,uint64_t>& pc_struct);
 
 template<typename V>
 void filter_slice(std::vector<V>& filter,std::vector<V>& filter_d,ExtraPartCellData<V>& filter_output,Mesh_data<V>& slice,ExtraPartCellData<uint16_t>& y_vec,const int dir,const int num);
@@ -819,7 +819,7 @@ void threshold_pixels(PartCellStructure<U,uint64_t>& pc_struct,uint64_t y_num,ui
     
 }
 template<typename S>
-void get_coord(const int dir,const CurrentLevel<S, uint64_t> &curr_level,const float step_size,int &dim1,int &dim2){
+static void get_coord(const int dir,const CurrentLevel<S, uint64_t> &curr_level,const float step_size,int &dim1,int &dim2){
     //
     //  Bevan Cheeseman 2017
     //
@@ -846,7 +846,7 @@ void get_coord(const int dir,const CurrentLevel<S, uint64_t> &curr_level,const f
 
 }
 
-void get_coord(const int& dir,const int& y,const int& x,const int& z,const float& step_size,int &dim1,int &dim2){
+static void get_coord(const int& dir,const int& y,const int& x,const int& z,const float& step_size,int &dim1,int &dim2){
     //
     //  Bevan Cheeseman 2017
     //
@@ -869,7 +869,7 @@ void get_coord(const int& dir,const int& y,const int& x,const int& z,const float
     }
 
 }
-void get_coord_filter(const int& dir,const int& y,const int& x,const int& z,const float& step_size,int &dim1,int &dim2){
+static void get_coord_filter(const int& dir,const int& y,const int& x,const int& z,const float& step_size,int &dim1,int &dim2){
     //
     //  Bevan Cheeseman 2017
     //
@@ -1391,7 +1391,7 @@ U weight_func(const float d,const float sd){
     //return 1.0f;
 }
 
-float square_dist(float x,float y,float a,float b){
+static float square_dist(float x,float y,float a,float b){
     //
     //  Bevan Cheeseman 2017
     //
@@ -1410,7 +1410,7 @@ float square_dist(float x,float y,float a,float b){
     return d;
 }
 
-float cube_dist(float x,float y,float z,float a){
+static float cube_dist(float x,float y,float z,float a){
     //
     //  Bevan Cheeseman 2017
     //
@@ -1426,7 +1426,7 @@ float cube_dist(float x,float y,float z,float a){
     return d;
 }
 
-float integral_weight_func(const float x,const float y, const float z,const float r1,const float r2){
+static float integral_weight_func(const float x,const float y, const float z,const float r1,const float r2){
 
     float dist = sqrt(pow( x,2 ) + pow( y,2 ) + pow( z,2 ));
 
@@ -1451,7 +1451,7 @@ float integral_weight_func(const float x,const float y, const float z,const floa
 
 
 }
-bool integral_check_neigh(const float x,const float y, const float z,const float r1,const float r2){
+static bool integral_check_neigh(const float x,const float y, const float z,const float r1,const float r2){
 
     float dist = sqrt(pow( x,2.0 ) + pow( y,2.0 ) + pow( z,2.0 ));
 
@@ -2589,7 +2589,7 @@ void interp_slice(Mesh_data<U>& slice,PartCellData<uint64_t>& pc_data,ParticleDa
 
 }
 
-void create_y_offsets(ExtraPartCellData<uint16_t>& y_off,ParticleDataNew<float, uint64_t>& part_new,PartCellData<uint64_t>& pc_data){
+static void create_y_offsets(ExtraPartCellData<uint16_t>& y_off,ParticleDataNew<float, uint64_t>& part_new,PartCellData<uint64_t>& pc_data){
     //
     //  Bevan Cheeseman 2017
     //
@@ -2677,7 +2677,7 @@ void create_y_offsets(ExtraPartCellData<uint16_t>& y_off,ParticleDataNew<float, 
 }
 
 
-void create_y_data(ExtraPartCellData<uint16_t>& y_vec,ParticleDataNew<float, uint64_t>& part_new,PartCellData<uint64_t>& pc_data){
+static void create_y_data(ExtraPartCellData<uint16_t>& y_vec,ParticleDataNew<float, uint64_t>& part_new,PartCellData<uint64_t>& pc_data){
     //
     //  Bevan Cheeseman 2017
     //
@@ -2737,7 +2737,7 @@ void create_y_data(ExtraPartCellData<uint16_t>& y_vec,ParticleDataNew<float, uin
 
 
 }
-void create_y_data(ExtraPartCellData<uint16_t>& y_vec,ParticleDataNew<float, uint64_t>& part_new){
+static void create_y_data(ExtraPartCellData<uint16_t>& y_vec,ParticleDataNew<float, uint64_t>& part_new){
 
     PartCellData<uint64_t> pc_data_temp;
 

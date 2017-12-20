@@ -1103,7 +1103,7 @@ void multi_ray_parrallel_raster(PartCellStructure<S,uint64_t>& pc_struct,proj_pa
     debug_write(proj_img,"parllel_proj" + std::to_string(pars.proj_type));
 
 }
-void get_ray(const int& dir,const int& y,const int& x,const int& z,const float& step_size,int &dim1,int &dim2){
+static void get_ray(const int& dir,const int& y,const int& x,const int& z,const float& step_size,int &dim1,int &dim2){
     //
     //  Bevan Cheeseman 2017
     //
