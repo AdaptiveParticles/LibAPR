@@ -62,7 +62,7 @@ int main(int argc, char **argv) {
     //min mean
     float min_rel_error = .001;
     float max_rel_error = .1;
-    float num_steps = options.delta;
+    float num_steps = 40;
 
     float del = (max_rel_error - min_rel_error) / num_steps;
 
@@ -72,7 +72,7 @@ int main(int argc, char **argv) {
 
     min_rel_error = .1;
     max_rel_error = 1;
-    num_steps = options.delta;
+    num_steps = 40;
 
 
     del = (max_rel_error - min_rel_error) / num_steps;
@@ -97,7 +97,7 @@ int main(int argc, char **argv) {
     }
 
 
-    sig_vec = {1.5};
+    sig_vec = {3};
 
     //min mean
     float min_shift = 5;
@@ -106,23 +106,23 @@ int main(int argc, char **argv) {
 
     del = (max_shift - min_shift) / num_steps;
 
-    if (num_steps > 0) {
-        for (float i = min_shift; i <= max_shift; i = i + del) {
-            shift.push_back(i);
-        }
-    } else {
-        shift.push_back(max_shift);
-    }
+//    if (num_steps > 0) {
+//        for (float i = min_shift; i <= max_shift; i = i + del) {
+//            shift.push_back(i);
+//        }
+//    } else {
+//        shift.push_back(max_shift);
+//    }
 
-    //shift = {};
+    shift = {10.0*sqrt(1000)};
 
     int N_par1 = (int)rel_error_vec.size(); // this many different parameter values to be run
     int N_par2 = (int)sig_vec.size();
     int N_par3 = (int)shift.size();
 
-    bs.num_objects = 10;
+    bs.num_objects = 5;
 
-    bs.obj_size = 1;
+    bs.obj_size = 2;
 
     Genrand_uni gen_rand;
 
@@ -185,7 +185,7 @@ int main(int argc, char **argv) {
                     ///////////////////////////////////////////////////////////////////
                     //PSF properties
 
-                    bs.desired_I = 500;
+                    bs.desired_I = shift[p];
 
                     analysis_data.add_float_data("desired_I",bs.desired_I);
 
