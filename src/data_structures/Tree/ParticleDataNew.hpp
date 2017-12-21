@@ -106,6 +106,11 @@ public:
     std::vector<unsigned int> z_num;
     std::vector<unsigned int> x_num;
     std::vector<unsigned int> y_num;
+
+    // default function
+    void initialize_from_std_structure(PartCellStructure<float, uint64_t>& pc_struct) {
+        initialize_from_structure(pc_struct);
+    }
     
     template<typename U>
     void initialize_from_structure(PartCellStructure<U,uint64_t>& pc_struct){
@@ -545,7 +550,6 @@ public:
     
         
     }
-
 
    template<typename U>
     void create_particles_at_cell_structure(ExtraPartCellData<U>& pdata_new){

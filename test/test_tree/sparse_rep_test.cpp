@@ -61,8 +61,7 @@ TEST_F(CreateSphereTest, READ_WRITE) {
     //
 
     //test io
-    ASSERT_TRUE(read_write_structure_test(pc_struct));
-
+    ASSERT_TRUE(read_write_structure_test(pc_struct, "1"));
 }
 
 TEST_F(CreateSphereTest, PARENT_STRUCTURE) {
@@ -195,8 +194,7 @@ TEST_F(CreateMembraneTest, READ_WRITE) {
     //
 
     //test io
-    ASSERT_TRUE(read_write_structure_test(pc_struct));
-
+    ASSERT_TRUE(read_write_structure_test(pc_struct, "2"));
 }
 
 TEST_F(CreateMembraneTest, PARENT_STRUCTURE) {

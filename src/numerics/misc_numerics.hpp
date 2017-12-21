@@ -21,8 +21,76 @@ template<typename U,typename V>
 void interp_img(Mesh_data<U>& img,PartCellData<uint64_t>& pc_data,ParticleDataNew<float, uint64_t>& part_new,ExtraPartCellData<V>& particles_int,const bool val = false);
 
 
+static void create_y_data(ExtraPartCellData<uint16_t>& y_vec,ParticleDataNew<float, uint64_t>& part_new,PartCellData<uint64_t>& pc_data){
+    //
+    //  Bevan Cheeseman 2017
+    //
+    //  Creates y index
+    //
 
-void create_y_data(ExtraPartCellData<uint16_t>& y_vec,ParticleDataNew<float, uint64_t>& part_new,PartCellData<uint64_t>& pc_data);
+
+    y_vec.initialize_structure_parts(part_new.particle_data);
+
+    y_vec.org_dims = part_new.access_data.org_dims;
+
+    int z_,x_,j_,y_;
+
+    for(uint64_t depth = (part_new.access_data.depth_min);depth <= part_new.access_data.depth_max;depth++) {
+        //loop over the resolutions of the structure
+        const unsigned int x_num_ = part_new.access_data.x_num[depth];
+        const unsigned int z_num_ = part_new.access_data.z_num[depth];
+
+        CurrentLevel<float, uint64_t> curr_level(part_new);
+        curr_level.set_new_depth(depth, part_new);
+
+        const float step_size = pow(2,curr_level.depth_max - curr_level.depth);
+
+#pragma omp parallel for default(shared) private(z_,x_,j_) firstprivate(curr_level) if(z_num_*x_num_ > 100)
+        for (z_ = 0; z_ < z_num_; z_++) {
+            //both z and x are explicitly accessed in the structure
+
+            for (x_ = 0; x_ < x_num_; x_++) {
+
+                curr_level.set_new_xz(x_, z_, part_new);
+
+                int counter = 0;
+
+                for (j_ = 0; j_ < curr_level.j_num; j_++) {
+
+                    bool iscell = curr_level.new_j(j_, part_new);
+
+                    if (iscell) {
+                        //Indicates this is a particle cell node
+                        curr_level.update_cell(part_new);
+
+                        y_vec.data[depth][curr_level.pc_offset][counter] = curr_level.y;
+
+                        counter++;
+                    } else {
+
+                        curr_level.update_gap();
+
+                    }
+
+
+                }
+            }
+        }
+    }
+
+
+
+}
+static void create_y_data(ExtraPartCellData<uint16_t>& y_vec,ParticleDataNew<float, uint64_t>& part_new){
+
+    PartCellData<uint64_t> pc_data_temp;
+
+    create_y_data(y_vec,part_new,pc_data_temp);
+
+}
+
+
+//void create_y_data(ExtraPartCellData<uint16_t>& y_vec,ParticleDataNew<float, uint64_t>& part_new,PartCellData<uint64_t>& pc_data);
 
 template<typename U,typename V>
 void interp_slice(Mesh_data<U>& slice,std::vector<std::vector<std::vector<uint16_t>>>& y_vec,PartCellData<uint64_t>& pc_data,ParticleDataNew<float, uint64_t>& part_new,int dir,int num);
@@ -30,7 +98,7 @@ void interp_slice(Mesh_data<U>& slice,std::vector<std::vector<std::vector<uint16
 template<typename U,typename V>
 void interp_slice(Mesh_data<U>& slice,PartCellData<uint64_t>& pc_data,ParticleDataNew<float, uint64_t>& part_new,ExtraPartCellData<V>& particles_int,int dir,int num);
 
-void create_y_data(std::vector<std::vector<std::vector<uint16_t>>>& y_vec,PartCellStructure<float,uint64_t>& pc_struct);
+//void create_y_data(std::vector<std::vector<std::vector<uint16_t>>>& y_vec,PartCellStructure<float,uint64_t>& pc_struct);
 
 template<typename V>
 void filter_slice(std::vector<V>& filter,std::vector<V>& filter_d,ExtraPartCellData<V>& filter_output,Mesh_data<V>& slice,ExtraPartCellData<uint16_t>& y_vec,const int dir,const int num);
@@ -819,7 +887,7 @@ void threshold_pixels(PartCellStructure<U,uint64_t>& pc_struct,uint64_t y_num,ui
     
 }
 template<typename S>
-void get_coord(const int dir,const CurrentLevel<S, uint64_t> &curr_level,const float step_size,int &dim1,int &dim2){
+static void get_coord(const int dir,const CurrentLevel<S, uint64_t> &curr_level,const float step_size,int &dim1,int &dim2){
     //
     //  Bevan Cheeseman 2017
     //
@@ -846,7 +914,7 @@ void get_coord(const int dir,const CurrentLevel<S, uint64_t> &curr_level,const f
 
 }
 
-void get_coord(const int& dir,const int& y,const int& x,const int& z,const float& step_size,int &dim1,int &dim2){
+static void get_coord(const int& dir,const int& y,const int& x,const int& z,const float& step_size,int &dim1,int &dim2){
     //
     //  Bevan Cheeseman 2017
     //
@@ -869,7 +937,7 @@ void get_coord(const int& dir,const int& y,const int& x,const int& z,const float
     }
 
 }
-void get_coord_filter(const int& dir,const int& y,const int& x,const int& z,const float& step_size,int &dim1,int &dim2){
+static void get_coord_filter(const int& dir,const int& y,const int& x,const int& z,const float& step_size,int &dim1,int &dim2){
     //
     //  Bevan Cheeseman 2017
     //
@@ -1391,7 +1459,7 @@ U weight_func(const float d,const float sd){
     //return 1.0f;
 }
 
-float square_dist(float x,float y,float a,float b){
+static float square_dist(float x,float y,float a,float b){
     //
     //  Bevan Cheeseman 2017
     //
@@ -1410,7 +1478,7 @@ float square_dist(float x,float y,float a,float b){
     return d;
 }
 
-float cube_dist(float x,float y,float z,float a){
+static float cube_dist(float x,float y,float z,float a){
     //
     //  Bevan Cheeseman 2017
     //
@@ -1426,7 +1494,7 @@ float cube_dist(float x,float y,float z,float a){
     return d;
 }
 
-float integral_weight_func(const float x,const float y, const float z,const float r1,const float r2){
+static float integral_weight_func(const float x,const float y, const float z,const float r1,const float r2){
 
     float dist = sqrt(pow( x,2 ) + pow( y,2 ) + pow( z,2 ));
 
@@ -1451,7 +1519,7 @@ float integral_weight_func(const float x,const float y, const float z,const floa
 
 
 }
-bool integral_check_neigh(const float x,const float y, const float z,const float r1,const float r2){
+static bool integral_check_neigh(const float x,const float y, const float z,const float r1,const float r2){
 
     float dist = sqrt(pow( x,2.0 ) + pow( y,2.0 ) + pow( z,2.0 ));
 
@@ -2427,7 +2495,7 @@ void shift_particles_from_cells(ParticleDataNew<S, T>& part_new,ExtraPartCellDat
         const unsigned int x_num_ = part_new.access_data.x_num[i];
         const unsigned int z_num_ = part_new.access_data.z_num[i];
 
-#pragma omp parallel for default(shared) private(z_,x_,j_,part_offset,node_val)  if(z_num_*x_num_ > 100)
+//#pragma omp parallel for default(shared) private(z_,x_,j_,part_offset,node_val)  if(z_num_*x_num_ > 100)
         for(z_ = 0;z_ < z_num_;z_++){
 
             for(x_ = 0;x_ < x_num_;x_++){
@@ -2458,6 +2526,10 @@ void shift_particles_from_cells(ParticleDataNew<S, T>& part_new,ExtraPartCellDat
 
     std::swap(pdata_new,pdata_old);
 
+}
+
+void shift_particles_from_cells_std(ParticleDataNew<float, uint64_t>& part_new, ExtraPartCellData<float>& pdata_old) {
+    shift_particles_from_cells(part_new, pdata_old);
 }
 
 template<typename U,typename V>
@@ -2589,7 +2661,7 @@ void interp_slice(Mesh_data<U>& slice,PartCellData<uint64_t>& pc_data,ParticleDa
 
 }
 
-void create_y_offsets(ExtraPartCellData<uint16_t>& y_off,ParticleDataNew<float, uint64_t>& part_new,PartCellData<uint64_t>& pc_data){
+static void create_y_offsets(ExtraPartCellData<uint16_t>& y_off,ParticleDataNew<float, uint64_t>& part_new,PartCellData<uint64_t>& pc_data){
     //
     //  Bevan Cheeseman 2017
     //
@@ -2676,74 +2748,6 @@ void create_y_offsets(ExtraPartCellData<uint16_t>& y_off,ParticleDataNew<float, 
 
 }
 
-
-void create_y_data(ExtraPartCellData<uint16_t>& y_vec,ParticleDataNew<float, uint64_t>& part_new,PartCellData<uint64_t>& pc_data){
-    //
-    //  Bevan Cheeseman 2017
-    //
-    //  Creates y index
-    //
-
-
-    y_vec.initialize_structure_parts(part_new.particle_data);
-
-    y_vec.org_dims = part_new.access_data.org_dims;
-
-    int z_,x_,j_,y_;
-
-    for(uint64_t depth = (part_new.access_data.depth_min);depth <= part_new.access_data.depth_max;depth++) {
-        //loop over the resolutions of the structure
-        const unsigned int x_num_ = part_new.access_data.x_num[depth];
-        const unsigned int z_num_ = part_new.access_data.z_num[depth];
-
-        CurrentLevel<float, uint64_t> curr_level(part_new);
-        curr_level.set_new_depth(depth, part_new);
-
-        const float step_size = pow(2,curr_level.depth_max - curr_level.depth);
-
-#pragma omp parallel for default(shared) private(z_,x_,j_) firstprivate(curr_level) if(z_num_*x_num_ > 100)
-        for (z_ = 0; z_ < z_num_; z_++) {
-            //both z and x are explicitly accessed in the structure
-
-            for (x_ = 0; x_ < x_num_; x_++) {
-
-                curr_level.set_new_xz(x_, z_, part_new);
-
-                int counter = 0;
-
-                for (j_ = 0; j_ < curr_level.j_num; j_++) {
-
-                    bool iscell = curr_level.new_j(j_, part_new);
-
-                    if (iscell) {
-                        //Indicates this is a particle cell node
-                        curr_level.update_cell(part_new);
-
-                        y_vec.data[depth][curr_level.pc_offset][counter] = curr_level.y;
-
-                        counter++;
-                    } else {
-
-                        curr_level.update_gap();
-
-                    }
-
-
-                }
-            }
-        }
-    }
-
-
-
-}
-void create_y_data(ExtraPartCellData<uint16_t>& y_vec,ParticleDataNew<float, uint64_t>& part_new){
-
-    PartCellData<uint64_t> pc_data_temp;
-
-    create_y_data(y_vec,part_new,pc_data_temp);
-
-}
 
 template<typename U>
 void interp_slice(Mesh_data<U>& slice,ExtraPartCellData<uint16_t>& y_vec,ExtraPartCellData<U>& particle_data,const int dir,const int num){

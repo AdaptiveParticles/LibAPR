@@ -4,6 +4,7 @@
 #include <cmath>
 #include <iostream>
 #include <fstream>
+#include <algorithm>
 
 std::string get_path(std::string PATH_ENV){
     //
@@ -50,8 +51,7 @@ void get_image_stats(Proc_par& pars,std::string output_path,std::string stats_na
     //  Bevan Cheeseman 2016
     //
     //
-    std::cout << output_path + stats_name << std::endl;
-
+    std::cout << "output path: " << output_path << std::endl;
 
     //open the files
     std::ifstream path_file;

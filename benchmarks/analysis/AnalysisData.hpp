@@ -18,7 +18,7 @@
 #include <array>
 #include <ctime>
 
-std::string exec(const char* cmd);
+static std::string exec(const char* cmd);
 
 
 class AnalysisData: public Data_manager{
@@ -330,7 +330,7 @@ class AnalysisData: public Data_manager{
     void get_git_version();
 
 };
-void AnalysisData::write_analysis_data_hdf5(){
+inline void AnalysisData::write_analysis_data_hdf5(){
 
     std::string save_loc = get_path("ANALYSIS_DATA_PATH");
 
@@ -385,9 +385,7 @@ void AnalysisData::write_analysis_data_hdf5(){
 }
 
 
-long long GetFileSize(std::string filename);
-
-long long GetFileSize(std::string filename)
+static long long GetFileSize(std::string filename)
 {
     std::ifstream mySource;
     mySource.open(filename, std::ios_base::binary);
@@ -397,8 +395,13 @@ long long GetFileSize(std::string filename)
     return size;
 }
 
+#ifdef _MSC_VER
+#define popen _popen
+#define pclose _pclose
+#endif
 
-std::string exec(const char* cmd) {
+
+static std::string exec(const char* cmd) {
     std::array<char, 128> buffer;
     std::string result;
     std::shared_ptr<FILE> pipe(popen(cmd, "r"), pclose);
@@ -410,7 +413,7 @@ std::string exec(const char* cmd) {
     return result;
 }
 
-void AnalysisData::get_git_version(){
+inline void AnalysisData::get_git_version(){
     //
     //  Get the git hash
     //

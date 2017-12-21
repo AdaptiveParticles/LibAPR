@@ -5,9 +5,10 @@ Library for processing on APR representation
 ## Dependencies:
 
 * HDF5 library installed and the library linked/included (libhdf5-dev)
-* CMake
+* OpenMP > 3.0
+* CMake > 3.6
 * tiffio (libtiff5-dev debian/ubuntu)
-* Blosc (http://blosc.org/) (https://github.com/Blosc/c-blosc) and (https://github.com/Blosc/hdf5-blosc)
+* [Blosc](https://github.com/Blosc/c-blosc), now included with the repository
 
 ## Building
 
@@ -25,9 +26,15 @@ All further cmake commands then have to be prepended by
 CC="/usr/local/opt/llvm/bin/clang" CXX="/usr/local/opt/llvm/bin/clang++" LDFLAGS="-L/usr/local/opt/llvm/lib -Wl,-rpath,/usr/local/opt/llvm/lib" CPPFLAGS="-I/usr/local/opt/llvm/include"
 ```
 
+### Windows preliminaries
+
+__Compilation only works with mingw64/clang or Visual Studio/Intel C++ Compiler, due to Visual Studio's lack of support for current OpenMP versions__
+
+For Windows, APR needs to have HDF5 installed (get it from [The HDF Group](http://hdfgroup.org) and LibTIFF (get it from [SimpleSystems](http://www.simplesystems.org/libtiff/). HDF5 can be installed just from the binary distribution, LibTIFF needs to be compiled via CMake. LibTIFF's install target will then install the library into `C:\Program Files\tiff`.
+
 ### Compilation
 
-Compilation (out of source):
+Compilation (out of source), on OSX/Linux:
 
 ```
    mkdir build
@@ -36,7 +43,14 @@ Compilation (out of source):
 
 CC="/usr/local/opt/llvm/bin/clang" CXX="/usr/local/opt/llvm/bin/clang++" LDFLAGS="-L/usr/local/opt/llvm/lib -Wl,-rpath,/usr/local/opt/llvm/lib" CPPFLAGS="-I/usr/local/opt/llvm/include" cmake -H. -Bbuild ..
 ```
-CC="/usr/local/opt/llvm/bin/clang" CXX="/usr/local/opt/llvm/bin/clang++" LDFLAGS="-L/usr/local/opt/llvm/lib -Wl,-rpath,/usr/local/opt/llvm/lib" CPPFLAGS="-I/usr/local/opt/llvm/include" cmake -H. -Bbuild ..
+
+For Windows, some additional flags for CMake are needed:
+
+```
+cmake -G "Visual Studio 14 2015 Win64" -DTIFF_INCLUDE_DIR="C:/Program Files/tiff/include" -DTIFF_LIBRARY="C:/Program Files/tiff/lib/tiff.lib " -DHDF5_ROOT="C:/Program Files/HDF_Group/HDF5/1.8.17"  -T "Intel C++ Compiler 17.0" ..
+```
+
+This will set the appropriate hints for Visual Studio to find both LibTIFF and HDF5.
 
 Developer dependencies (optional):
 

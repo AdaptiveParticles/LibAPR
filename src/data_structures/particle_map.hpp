@@ -781,7 +781,9 @@ public :
 #pragma omp parallel for default(shared) private(i,q,temp) if(z_num*x_num*y_num > 100000)
             for(int j = 0;j < z_num;j++){
                 for(i = 0;i < x_num;i++){
+#ifndef _MSC_VER
 #pragma omp simd
+#endif
                     for (q = 0; q < y_num;q++){
 
                         temp = input.mesh[j*x_num*y_num + i*y_num + q] == k;
