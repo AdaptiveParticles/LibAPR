@@ -267,12 +267,10 @@ add_executable(Example_segment_gc
 #        ${SOURCE_FILES_COMPILED}
 #        )
 
-SWIG_ADD_LIBRARY(apr 
-	LANGUAGE java 
-	SOURCES libapr.i
+SWIG_ADD_MODULE(apr java libapr.i
         src/io/write_parts.cpp
         ${SOURCE_FILES_COMPILED}
-	TYPE SHARED)
+        )
 
 SWIG_LINK_LIBRARIES(apr ${HDF5_LIBRARIES} blosc_static ${TIFF_LIBRARIES})
 
