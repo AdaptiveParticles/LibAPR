@@ -5,6 +5,11 @@
 #include <iostream>
 #include "../../src/vis/Camera.h"
 #include "../../src/vis/RaytracedObject.h"
+#ifdef _WINDOWS
+#define _USE_MATH_DEFINES
+#include <math.h>
+#endif
+#include <chrono>
 
 // uncomment to see output of ray origins/directions
 //#define DEBUG_OUTPUT

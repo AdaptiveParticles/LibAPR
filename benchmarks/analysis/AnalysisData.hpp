@@ -395,6 +395,11 @@ static long long GetFileSize(std::string filename)
     return size;
 }
 
+#ifdef _MSC_VER
+#define popen _popen
+#define pclose _pclose
+#endif
+
 
 static std::string exec(const char* cmd) {
     std::array<char, 128> buffer;

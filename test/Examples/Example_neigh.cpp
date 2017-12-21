@@ -6,19 +6,6 @@
 #include <iostream>
 
 #include "Example_neigh.hpp"
-#include "../../src/data_structures/meshclass.h"
-#include "../../src/io/readimage.h"
-
-#include "../../src/algorithm/gradient.hpp"
-#include "../../src/data_structures/particle_map.hpp"
-#include "../../src/data_structures/Tree/PartCellStructure.hpp"
-#include "../../src/algorithm/level.hpp"
-#include "../../src/io/writeimage.h"
-#include "../../src/io/write_parts.h"
-#include "../../src/io/partcell_io.h"
-#include "../../src/numerics/parent_numerics.hpp"
-#include "../../src/numerics/misc_numerics.hpp"
-
 #include "../../test/utils.h"
 
 bool command_option_exists(char **begin, char **end, const std::string &option)
