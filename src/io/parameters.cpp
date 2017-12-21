@@ -51,9 +51,6 @@ void get_image_stats(Proc_par& pars,std::string output_path,std::string stats_na
     //
     //
     std::cout << "output path: " << output_path << std::endl;
-    std::cout << "image name: " << image_name << std::endl;
-    std::cout << output_path + image_name + "_stats.txt" << std::endl;
-
 
     //open the files
     std::ifstream path_file;
