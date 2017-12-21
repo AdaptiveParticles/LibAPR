@@ -49,6 +49,10 @@ namespace std {
 %template(PartDataUint16) Part_data<uint16_t>;
 %template(PartDataUint8) Part_data<uint8_t>;
 
+%template(FloatVec) std::vector<float>;
+%template(FloatVecVec) std::vector< std::vector<float> >;
+%template(FloatVecVecVec) std::vector< std::vector< std::vector<float> > >;
+
 %template(ParticleDataStd) ParticleData<float, uint64_t>;
 %template(PartCellStructureStd) PartCellStructure<float, uint64_t>;
 %template(PartCellDataStd) PartCellData<uint64_t>;
