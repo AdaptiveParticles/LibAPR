@@ -11,9 +11,11 @@
 #include "../data_structures/Tree/Content.hpp"
 #include "../data_structures/Tree/LevelIterator.hpp"
 #include "../data_structures/Tree/Tree.hpp"
+#include "../data_structures/Tree/PartCellStructure.hpp"
 #include "level.hpp"
 #include "../io/writeimage.h"
 #include "../io/write_parts.h"
+#include "../io/partcell_io.h"
 
 bool command_option_exists(char **begin, char **end, const std::string &option)
 {
@@ -161,7 +163,8 @@ int main(int argc, char **argv) {
     part_rep.timer.start_timer("pushing_scheme");
     part_map.pushing_scheme(part_rep);
     part_rep.timer.stop_timer();
-
+    
+ 
     part_rep.timer.start_timer("estimate_part_intensity");
     
     std::swap(part_map.downsampled[part_map.k_max+1],input_image_float);
@@ -171,35 +174,6 @@ int main(int argc, char **argv) {
 
     t.stop_timer();
 
-
-    part_rep.timer.start_timer("iterating");
-
-    size_t main_elems = 0;
-    std::vector<size_t> elems(25, 0);
-    std::vector<uint64_t> neighbours(20);
-    std::vector<coords3d> part_coords;
-    
-    uint64_t curr;
-    size_t curr_status;
-    
-    for(int l = part_rep.pl_map.k_min;l <= part_rep.pl_map.k_max + 1;l++){
-        for(LevelIterator<float> it(tree, l); it != it.end(); it++)
-        {
-            curr = *it;
-            
-            curr_status = tree.get_status(*it);
-            
-            it.get_current_particle_coords(part_coords);
-            
-            neighbours.resize(24);
-            tree.get_neighbours(*it, it.get_current_coords(), it.level_multiplier,
-                                it.child_index, neighbours);
-            main_elems++;
-            
-            elems[neighbours.size()]++;
-            
-        }
-    }
 
     part_rep.timer.stop_timer();
     
@@ -216,6 +190,27 @@ int main(int argc, char **argv) {
     //output
     std::string save_loc = options.output;
     std::string file_name = options.stats;
-    write_apr_full_format(part_rep,tree,save_loc,file_name);
+    
 
+    
+    //testing sparse format
+    
+    part_rep.timer.start_timer("compute new structure");
+    PartCellStructure<float,uint64_t> pcell_test(part_map);
+    part_rep.timer.stop_timer();
+    
+    write_apr_full_format(pcell_test,save_loc,file_name);
+    write_apr_pc_struct(pcell_test,save_loc,file_name);
+
+    
+    PartCellStructure<float,uint64_t> pc_read;
+    read_apr_pc_struct(pc_read,save_loc + file_name + "_pcstruct_part.h5");
+
+    std::cout << pc_read.get_number_cells() << " " << pcell_test.get_number_cells() << std::endl;
+    std::cout << pc_read.get_number_parts() << " " << pcell_test.get_number_parts() << std::endl;
+    
+    write_apr_full_format(pc_read,save_loc,file_name + "2");
+    
 }
+
+

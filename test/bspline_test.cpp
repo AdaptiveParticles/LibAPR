@@ -16,7 +16,7 @@ TEST_P(CreateImageFromFileTest, BSPLINE_FROMFILE_IMAGE_PARAM)
 
     std::string stats_filename = std::get<2>(GetParam());
     if( stats_filename.length() ) {
-        get_image_stats(p_rep.pars, tests_directory, stats_filename);
+        get_image_stats(p_rep.pars, tests_directory, stats_filename + "_stats.txt");
     } else {
         p_rep.pars.dy = p_rep.pars.dx = p_rep.pars.dz = 1;
     }

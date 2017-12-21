@@ -20,10 +20,13 @@
 #include "../data_structures/structure_parts.h"
 #include "../data_structures/Tree/Tree.hpp"
 #include "../data_structures/Tree/LevelIterator.hpp"
+//#include "../data_structures/Tree/PartCellStructure.hpp"
 
 #include <fstream>
 #include <vector>
 
+void write_apr_partmap_format(Part_rep& p_rep,Particle_map<float>& p_map,Tree<float>& tree,std::string save_loc,std::string file_name);
+void write_apr_tree_format(Part_rep& p_rep,Tree<float>& tree,std::string save_loc,std::string file_name);
 
 void write_apr_full_format(Part_rep& p_rep,Tree<float>& tree,std::string save_loc,std::string file_name);
 

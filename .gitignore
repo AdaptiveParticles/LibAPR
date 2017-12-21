@@ -122,6 +122,7 @@ CTestTestfile.cmake
 
 build/
 .idea/
+src/natives/*
 
 
 #########################
@@ -203,8 +204,10 @@ DerivedData/
 # NB: slash on the end, so we only remove the FOLDER, not any files that were badly named "build"
 
 build/
-
-
+cmake-build-debug/
+cmake-build-release/
+cmake-build*
+xcode*
 #####
 # Xcode private settings (window sizes, bookmarks, breakpoints, custom executables, smart groups)
 #
@@ -276,3 +279,13 @@ xcuserdata/
 
 test/files
 test/files.tar.bz2
+
+# Maven-generated files
+target/
+
+# SWIG-generated Java classes
+src/main/
+APR_tests/
+bin/
+lib/
+src/natives/

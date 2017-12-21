@@ -77,6 +77,9 @@ void hdf5_write_data(hid_t obj_id,hid_t type_id,const char* ds_name,hsize_t rank
 
     H5Dclose(dset_id);
 
+    H5Pclose(plist_id);
+
+    H5Sclose(space_id);
 
 };
 
@@ -121,7 +124,29 @@ void hdf5_write_string(hid_t obj_id,const char* attr_name,std::string output_str
 }
 
 
+void hdf5_read_string(hid_t obj_id,const char* attr_name,std::string output_str){
+    //
+    //  Writes string information as an attribute
+    //
+    //
 
+    hid_t       aid, atype, attr;
+    herr_t      status;
+
+    aid = H5Screate(H5S_SCALAR);
+
+    atype = H5Tcopy (H5T_C_S1);
+
+    if (output_str.size() > 0){
+
+        status = H5Tset_size (atype, output_str.size());
+
+        attr = H5Acreate2(obj_id, attr_name, atype, aid, H5P_DEFAULT,H5P_DEFAULT);
+
+        status = H5Awrite (attr, atype,output_str.c_str());
+    }
+
+}
 
 
 void hdf5_create_file(std::string file_name){

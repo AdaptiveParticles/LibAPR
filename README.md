@@ -7,6 +7,7 @@ Library for processing on APR representation
 * HDF5 library installed and the library linked/included (libhdf5-dev)
 * CMake
 * tiffio (libtiff5-dev debian/ubuntu)
+* Blosc (http://blosc.org/) (https://github.com/Blosc/c-blosc) and (https://github.com/Blosc/hdf5-blosc)
 
 ## Building
 
@@ -21,9 +22,7 @@ brew install llvm
 All further cmake commands then have to be prepended by
 
 ```
-CC="/usr/local/opt/llvm/bin/clang" CXX="/usr/local/opt/llvm/bin/clang++"
-LDFLAGS="-L/usr/local/opt/llvm/lib -Wl,-rpath,/usr/local/opt/llvm/lib"
-CPPFLAGS="-I/usr/local/opt/llvm/include" CXXFLAGS="-std=c++14"
+CC="/usr/local/opt/llvm/bin/clang" CXX="/usr/local/opt/llvm/bin/clang++" LDFLAGS="-L/usr/local/opt/llvm/lib -Wl,-rpath,/usr/local/opt/llvm/lib" CPPFLAGS="-I/usr/local/opt/llvm/include"
 ```
 
 ### Compilation
@@ -34,7 +33,10 @@ Compilation (out of source):
    mkdir build
    cd build
    cmake -H. -Bbuild ..
+
+CC="/usr/local/opt/llvm/bin/clang" CXX="/usr/local/opt/llvm/bin/clang++" LDFLAGS="-L/usr/local/opt/llvm/lib -Wl,-rpath,/usr/local/opt/llvm/lib" CPPFLAGS="-I/usr/local/opt/llvm/include" cmake -H. -Bbuild ..
 ```
+CC="/usr/local/opt/llvm/bin/clang" CXX="/usr/local/opt/llvm/bin/clang++" LDFLAGS="-L/usr/local/opt/llvm/lib -Wl,-rpath,/usr/local/opt/llvm/lib" CPPFLAGS="-I/usr/local/opt/llvm/include" cmake -H. -Bbuild ..
 
 Developer dependencies (optional):
 
@@ -78,3 +80,8 @@ Remember to pass TESTS flag to CMAKE!
    cmake -H. -DTESTS=1 -Bbuild ..
 ```
 
+## Benchmarks
+
+Requires SynImageGen Library
+
+cmake -H. -DTESTS=1 -Bbuild.. -DBENCHMARKS=1 -DSynImage_PATH="PATH_TO_SYNIMAGEGEN"

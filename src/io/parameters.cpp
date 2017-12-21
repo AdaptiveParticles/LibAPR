@@ -43,7 +43,7 @@ void get_test_paths(std::string& image_path,std::string& utest_path,std::string&
 
 
 }
-void get_image_stats(Proc_par& pars,std::string output_path,std::string image_name){
+void get_image_stats(Proc_par& pars,std::string output_path,std::string stats_name){
     //
     //  Gets the image parameters for the specific file to be run
     //
@@ -57,7 +57,7 @@ void get_image_stats(Proc_par& pars,std::string output_path,std::string image_na
 
     //open the files
     std::ifstream path_file;
-    path_file.open (output_path + image_name + "_stats.txt");
+    path_file.open (output_path + stats_name);
 
     std::string out_line;
 
@@ -222,47 +222,127 @@ void get_image_stats(Proc_par& pars,std::string output_path,std::string image_na
     //file name (relative path)
     std::getline(path_file,out_line);
 
-    found = out_line.find("background: ");
+    found = out_line.find("min_signal: ");
 
     if (found!=std::string::npos){
 
-        pars.background = stof(out_line.substr(found+12));
+        pars.var_th = stof(out_line.substr(found+12));
     } else {
 
         std::cout << "Setting file incomplete" << std::endl;
 
     }
+    
+    //file name (relative path)
+    std::getline(path_file,out_line);
+    
+    found = out_line.find("rel_error: ");
+    
+    if (found!=std::string::npos){
+        
+        pars.rel_error = stof(out_line.substr(found+11));
+    } else {
+        
+    }
+    
+    //file name (relative path)
+    std::getline(path_file,out_line);
+    
+    float lambda_or=0;
+    
+    found = out_line.find("lambda: ");
+    
+    if (found!=std::string::npos){
+        
+        lambda_or = stof(out_line.substr(found+8));
+    } else {
+        
+    }
+
+    //file name (relative path)
+    std::getline(path_file,out_line);
+
+    found = out_line.find("I_th: ");
+
+    if (found!=std::string::npos){
+
+        pars.I_th = stof(out_line.substr(found+6));
+    } else {
+
+    }
+
+    //file name (relative path)
+    std::getline(path_file,out_line);
+
+    found = out_line.find("var_th_max: ");
+
+    if (found!=std::string::npos){
+
+        pars.var_th_max = stof(out_line.substr(found+12));
+    } else {
+        pars.var_th_max = 0;
+    }
+
+    //file name (relative path)
+    std::getline(path_file,out_line);
+
+    found = out_line.find("aniso: ");
+
+    if (found!=std::string::npos){
+
+        pars.aniso = stof(out_line.substr(found+7));
+    } else {
+        pars.aniso = 1.0;
+    }
 
     pars.tol = 0.0005f;
-
-    pars.var_th = pars.noise_sigma;
-
-    pars.noise_sigma = sqrtf(pars.background);
 
     pars.var_scale = 2;
 
     float k_diff = -3.0f;
 
     //set lambda
-    float lambda = expf((-1.0f/0.6161f) * logf((pars.var_th/pars.noise_sigma) *
-                   powf(2.0f,k_diff + log2f(pars.rel_error))/0.12531f));
+    //float lambda = expf((-1.0f/0.6161f) * logf((pars.var_th/pars.noise_sigma) *
+                 //  powf(2.0f,k_diff + log2f(pars.rel_error))/0.12531f));
+    pars.lambda = expf((-1.0f/0.6161f) * logf((pars.var_th/pars.noise_sigma) *
+                                                    powf(2.0f,k_diff + log2f(.05))/0.12531f));
+    //float lambda = expf((-1.0f/0.6161f) * logf((pars.var_th/pars.noise_sigma)));
 
-    float lambda_min = .5f;
+    float lambda_min = 0.1f;
     float lambda_max = 5000;
 
-    pars.lambda = std::max(lambda_min,lambda);
+    pars.lambda = std::max(lambda_min,pars.lambda);
     pars.lambda = std::min(pars.lambda,lambda_max);
-
-    float max_var_th = 1.2f * pars.noise_sigma * expf(-0.5138f * logf(pars.lambda)) *
-                       (0.1821f * logf(pars.lambda)+ 1.522f);
-
-    if (max_var_th > .25f*pars.var_th){
-        float desired_th = 0.1f*pars.var_th;
-        pars.lambda = std::max((float)exp((-1.0/0.5138) * log(desired_th/pars.noise_sigma)),pars.lambda);
-        pars.var_th_max = .25f*pars.var_th;
-    } else {
-        pars.var_th_max = max_var_th;
+    
+    if(lambda_or >0){
+        pars.lambda = lambda_or;
     }
+    
+    //std::cout << "Lamda: " << lambda << std::endl;
+    std::cout << "Lamda: " << pars.lambda << std::endl;
+    std::cout << "I_th: " << pars.I_th << std::endl;
+    std::cout << "Rel Error: " << pars.rel_error << std::endl;
+    
+    //float max_var_th = 1.2f * pars.noise_sigma * expf(-0.5138f * logf(pars.lambda)) *
+      //                 (0.1821f * logf(pars.lambda)+ 1.522f);
+
+    if(pars.var_th_max == 0){
+        pars.var_th_max = 0.75*pars.var_th;
+
+    }
+
+    std::cout << "Var Th: " << pars.var_th << std::endl;
+    std::cout << "Var Th Max: " << pars.var_th_max << std::endl;
+    std::cout << "Z factor: " << pars.z_factor << std::endl;
+
+
+//    if (max_var_th > .25f*pars.var_th){
+//        float desired_th = 0.1f*pars.var_th;
+//        pars.lambda = std::max((float)exp((-1.0/0.5138) * log(desired_th/pars.noise_sigma)),pars.lambda);
+//        pars.var_th_max = .25f*pars.var_th;
+//    } else {
+//        pars.var_th_max = max_var_th;
+//    }
 
 }
 void get_image_parameters(Proc_par& pars,std::string output_path,std::string image_name){

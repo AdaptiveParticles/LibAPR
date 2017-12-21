@@ -432,8 +432,18 @@ public:
         org_dims[1] = x_num;
         org_dims[2] = z_num;
 
-        int max_dim = std::max(std::max(org_dims[1],org_dims[0]),org_dims[2]);
-        int min_dim = std::min(std::min(org_dims[1],org_dims[0]),org_dims[2]);
+        int max_dim;
+        int min_dim;
+
+        if(z_num == 1) {
+            max_dim = (std::max(org_dims[1], org_dims[0]));
+            min_dim = (std::min(org_dims[1], org_dims[0]));
+        }
+        else{
+            max_dim = std::max(std::max(org_dims[1], org_dims[0]), org_dims[2]);
+            min_dim = std::min(std::min(org_dims[1], org_dims[0]), org_dims[2]);
+        }
+
 
         int k_max_ = ceil(M_LOG2E*log(max_dim)) - 1;
         int k_min_ = std::max( (int)(k_max_ - floor(M_LOG2E*log(min_dim)) + 1),2);
@@ -499,5 +509,6 @@ void get_all_part_type(Part_rep& p_rep,Part_data<uint8_t>& type_vec);
 void get_cell_properties(Part_rep& p_rep,Part_data<uint16_t>& y_coords_cell,Part_data<uint16_t>& x_coords_cell,
                          Part_data<uint16_t>& z_coords_cell,Part_data<uint8_t>& k_vec,Part_data<uint8_t>& type_vec,
                          int type_or_status = 1,int raw_coords = 0);
+
 
 #endif

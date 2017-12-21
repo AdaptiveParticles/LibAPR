@@ -589,7 +589,7 @@ void bspline_filt_rec_y(Mesh_data<T>& image,float lambda,float tol){
     const int x_num = image.x_num;
     const int y_num = image.y_num;
 
-    const int k0 = (ceil(std::abs(log(tol)/log(rho))));
+    const int k0 = std::min((int)(ceil(std::abs(log(tol)/log(rho)))),z_num);
 
     float temp = 0;
     float temp1 = 0;
@@ -779,7 +779,7 @@ void bspline_filt_rec_x(Mesh_data<T>& image,float lambda,float tol){
     const int x_num = image.x_num;
     const int y_num = image.y_num;
 
-    const int k0 = (ceil(std::abs(log(tol)/log(rho))));
+    const int k0 = std::min((int)(ceil(std::abs(log(tol)/log(rho)))),z_num);
 
     const float norm_factor = pow((1 - 2.0*rho*cos(omg) + pow(rho,2)),2);
 
@@ -991,7 +991,7 @@ void bspline_filt_rec_z(Mesh_data<T>& image,float lambda,float tol){
     const int x_num = image.x_num;
     const int y_num = image.y_num;
 
-    const int k0 = (ceil(std::abs(log(tol)/log(rho))));
+    const int k0 = std::min((int)(ceil(std::abs(log(tol)/log(rho)))),z_num);
 
     const float norm_factor = pow((1 - 2.0*rho*cos(omg) + pow(rho,2)),2);
 
@@ -1174,6 +1174,33 @@ void bspline_filt_rec_z(Mesh_data<T>& image,float lambda,float tol){
 
 }
 template<typename T>
+void get_smooth_bspline_2D(Mesh_data<T>& input,Part_rep& p_rep){
+    //
+    //  Gets smoothing bspline co-efficients for 3D
+    //
+    //
+
+    Part_timer spline_timer;
+
+    spline_timer.verbose_flag = false;
+
+    float tol = 0.0001;
+    float lambda = p_rep.pars.lambda;
+
+
+    //Y direction bspline
+    bspline_filt_rec_y(input,lambda,tol);
+
+
+    spline_timer.start_timer("bspline_filt_rec_x");
+
+    //X direction bspline
+    bspline_filt_rec_x(input,lambda,tol);
+
+    spline_timer.stop_timer();
+
+}
+template<typename T>
 void get_smooth_bspline_3D(Mesh_data<T>& input,Part_rep& p_rep){
     //
     //  Gets smoothing bspline co-efficients for 3D
@@ -1207,7 +1234,6 @@ void get_smooth_bspline_3D(Mesh_data<T>& input,Part_rep& p_rep){
 
 }
 
-
 template< typename T>
 void get_gradient_3D(Part_rep &p_rep, Mesh_data<T> &input_image, Mesh_data<T> &grad_image){
     //
@@ -1220,8 +1246,10 @@ void get_gradient_3D(Part_rep &p_rep, Mesh_data<T> &input_image, Mesh_data<T> &g
     Part_timer ptime;
     ptime.verbose_flag = false;
 
-    //fit the splines using recursive filters
-    get_smooth_bspline_3D(input_image,p_rep);
+    if(p_rep.pars.lambda > 0) {
+        //fit the splines using recursive filters
+        get_smooth_bspline_3D(input_image, p_rep);
+    }
 
     ptime.start_timer("calc_bspline_fd_x_y_alt");
 
@@ -1230,22 +1258,74 @@ void get_gradient_3D(Part_rep &p_rep, Mesh_data<T> &input_image, Mesh_data<T> &g
     ptime.stop_timer();
     ptime.start_timer("calc_spline_fd_zalt");
 
-    calc_bspline_fd_z_alt(input_image,grad_image,p_rep.pars.dy);
+    calc_bspline_fd_z_alt(input_image,grad_image,p_rep.pars.z_factor*p_rep.pars.dy);
 
     ptime.stop_timer();
 
     // Getting the BSPLINE fit for the VAR calculation
 
-    ptime.start_timer("calc_inv_bspline_y");
 
-    calc_inv_bspline_y(input_image);
+
+    if(p_rep.pars.lambda > 0){
+        ptime.start_timer("calc_inv_bspline_y");
+        calc_inv_bspline_y(input_image);
+        ptime.stop_timer();
+        ptime.start_timer("calc_inv_bspline_x");
+        calc_inv_bspline_x(input_image);
+        ptime.stop_timer();
+        ptime.start_timer("calc_inv_bspline_z");
+        calc_inv_bspline_z(input_image);
+        ptime.stop_timer();
+    }
+
+
+}
+template< typename T>
+void get_gradient_2D(Part_rep &p_rep, Mesh_data<T> &input_image, Mesh_data<T> &grad_image){
+    //
+    //  Bevan Cheeseman 2016
+    //
+    //  CPU pipeline for calculating gradient magnitude and bspline fit using recursive filters
+    //
+
+
+    Part_timer ptime;
+    ptime.verbose_flag = false;
+
+    if(p_rep.pars.lambda > 0) {
+        //fit the splines using recursive filters
+        get_smooth_bspline_2D(input_image, p_rep);
+    }
+
+    ptime.start_timer("calc_bspline_fd_x_y_alt");
+
+    calc_bspline_fd_x_y_alt(input_image,grad_image,p_rep.pars.dx,p_rep.pars.dy);
+
     ptime.stop_timer();
-    ptime.start_timer("calc_inv_bspline_x");
-    calc_inv_bspline_x(input_image);
+    ptime.start_timer("calc_spline_fd_zalt");
+
+    int i;
+
+#pragma omp parallel for default(shared) private(i)
+    for (i = 0; i < grad_image.mesh.size(); ++i) {
+        grad_image.mesh[i] = sqrt(grad_image.mesh[i]);
+    }
+
+    //need to do the sqrt operation here
+
     ptime.stop_timer();
-    ptime.start_timer("calc_inv_bspline_z");
-    calc_inv_bspline_z(input_image);
-    ptime.stop_timer();
+
+    // Getting the BSPLINE fit for the VAR calculation
+
+
+    if(p_rep.pars.lambda > 0){
+        ptime.start_timer("calc_inv_bspline_y");
+        calc_inv_bspline_y(input_image);
+        ptime.stop_timer();
+        ptime.start_timer("calc_inv_bspline_x");
+        calc_inv_bspline_x(input_image);
+        ptime.stop_timer();
+    }
 
 
 }

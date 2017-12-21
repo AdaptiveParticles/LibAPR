@@ -10,6 +10,10 @@
 #ifndef PARTPLAY_WRITEIMAGE_H
 #define PARTPLAY_WRITEIMAGE_H
 
+#include <tiffio.h>
+#include "../data_structures/meshclass.h"
+#include "parameters.h"
+
 template <typename T>
 void write_image_tiff(Mesh_data<T>& image,std::string filename){
     //
@@ -25,7 +29,6 @@ void write_image_tiff(Mesh_data<T>& image,std::string filename){
 
 
     TIFF* tif = TIFFOpen(filename.c_str() , "w");
-    int dircount = 0;
     uint32 width;
     uint32 height;
     unsigned short nbits;
@@ -57,12 +60,11 @@ void write_image_tiff(Mesh_data<T>& image,std::string filename){
     int test_field;
     TIFFGetField(tif, TIFFTAG_IMAGEWIDTH, &test_field);
 
-    int ScanlineSize= TIFFScanlineSize(tif);
-    int StripSize =  TIFFStripSize(tif);
+    int ScanlineSize= (int)TIFFScanlineSize(tif);
+    int StripSize =  (int)TIFFStripSize(tif);
     int rowsPerStrip;
     int nRowsToConvert;
 
-    tsample_t vSample=1;
     raster = _TIFFmalloc(StripSize);
     T *TBuf = (T*)raster;
 

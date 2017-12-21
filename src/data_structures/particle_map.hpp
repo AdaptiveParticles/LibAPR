@@ -11,6 +11,8 @@
 #define SLOPESTATUS 2
 #define NEIGHBOURSTATUS 4
 #define ASCENDANT 8
+#define SEEDASCENDANT 9
+#define PROPOGATE 15
 #define ASCENDANTNEIGHBOUR 16
 
 #define MOORE 1
@@ -50,7 +52,7 @@ private:
     std::vector<int> dims;
 
     bool neigh_type = MOORE;
-
+    
     void check_boundaries(short axis, int var, int limit, short (&boundaries)[3][2])
     {
 
@@ -96,7 +98,7 @@ private:
                         CHECKBOUNDARIES(2, k, y_num - 1, boundaries);
                         status = layers[level].mesh[index + k];
 
-                        if (status == TAKENSTATUS) {
+                        if (status == TAKENSTATUS || status == PROPOGATE) {
 
                             NEIGHBOURLOOP(jn, in, kn, boundaries) {
                                         neighbour_index = index + jn * x_num * y_num + in * y_num + kn + k;
@@ -120,18 +122,66 @@ private:
         all_parts += parts;
     }
 
-    void fill_parent(int j, int i, int k, int x_num, int y_num, int new_level)
+
+
+    void fill_neighbours_alt(int level)
     {
+        const int x_num = layers[level].x_num;
+        const int y_num = layers[level].y_num;
+        const int z_num = layers[level].z_num;
 
-        if(new_level >= k_min) {
-            int new_x_num = ((x_num + 1) / 2);
-            int new_y_num = ((y_num + 1) / 2);
-            int new_index = (j / 2) * new_x_num * new_y_num + (i / 2) * new_y_num + (k / 2);
+        int j,i,k,neighbour_index,jn,in,kn,index,parts = 0;
+        uint8_t status;
 
-            if (layers[new_level].mesh[new_index] != TAKENSTATUS)
-                layers[new_level].mesh[new_index] = ASCENDANT;
+        short boundaries[3][2] = {{0,2},{0,2},{0,2}};
+
+        // loop unrolling in order to avoid concurrent write
+        for(int out = 0; out < std::min(3,z_num); out ++) {
+
+
+#pragma omp parallel for default(shared) private(j,i,k,neighbour_index,jn,in,kn,status,index) firstprivate(boundaries) \
+        reduction(+:parts) if(z_num * x_num * y_num > 100000)
+            for (int j = out; j < z_num; j += 3) {
+
+                CHECKBOUNDARIES(0, j, z_num - 1, boundaries);
+
+                for (i = 0; i < x_num; i++) {
+
+                    CHECKBOUNDARIES(1, i, x_num - 1, boundaries);
+                    index = j * x_num * y_num + i * y_num;
+
+                    for (k = 0; k < y_num; k++) {
+
+                        CHECKBOUNDARIES(2, k, y_num - 1, boundaries);
+                        status = layers[level].mesh[index + k];
+
+                        if (status == TAKENSTATUS) {
+
+                            NEIGHBOURLOOP(jn, in, kn, boundaries) {
+                                        neighbour_index = index + jn * x_num * y_num + in * y_num + kn + k;
+
+                                        if (layers[level].mesh[neighbour_index] == EMPTY) {
+                                            layers[level].mesh[neighbour_index] = NEIGHBOURSTATUS;
+                                            parts++;
+                                            fill_parent(jn, in, kn, x_num, y_num, level - 1);
+                                        }
+                                    }
+                            parts += 8;
+
+                            fill_parent_seed(j, i, k, x_num, y_num, level - 1);
+                        } else if (status == ASCENDANT) {
+                            fill_parent_seed(j, i, k, x_num, y_num, level - 1);
+                        }
+                    }
+                }
+            }
         }
+
+        all_parts += parts;
     }
+
+
+
 
 
 
@@ -147,7 +197,6 @@ private:
         int i,k,jn,in,kn,neighbour_index,index;
 
         uint8_t status;
-
 
         // loop unrolling in order to avoid concurrent write
         for(int out = 0; out < std::min(3,z_num); out ++) {
@@ -172,9 +221,15 @@ private:
 
                                         neighbour_index = index + jn * x_num * y_num + in * y_num + kn + k;
 
-                                        if (layers[level].mesh[neighbour_index] <= TAKENSTATUS) {
+                                        if (layers[level].mesh[neighbour_index] == EMPTY) {
                                             // EMPTY or TAKENSTATUS
                                             layers[level].mesh[neighbour_index] = ASCENDANTNEIGHBOUR;
+                                        }
+
+                                        if (layers[level].mesh[neighbour_index] == TAKENSTATUS) {
+                                            // EMPTY or TAKENSTATUS
+                                            layers[level].mesh[neighbour_index] = ASCENDANTNEIGHBOUR;
+
                                         }
                                     }
                         }
@@ -183,6 +238,112 @@ private:
             }
         }
     }
+
+    void set_ascendant_neighbours_1(int level)
+    {
+
+        const int x_num = layers[level].x_num;
+        const int y_num = layers[level].y_num;
+        const int z_num = layers[level].z_num;
+
+        short boundaries[3][2] = {{0,2},{0,2},{0,2}};
+
+        int i,k,jn,in,kn,neighbour_index,index;
+
+        uint8_t status;
+
+        // loop unrolling in order to avoid concurrent write
+        for(int out = 0; out < std::min(3,z_num); out ++) {
+
+#pragma omp parallel for default(shared) private(i,k,neighbour_index,jn,in,kn,status,index) firstprivate(boundaries) \
+        if(z_num * x_num * y_num > 100000) schedule(static)
+            for (int j = out; j < z_num; j += 3) {
+
+                CHECKBOUNDARIES(0, j, z_num - 1, boundaries);
+
+                for (i = 0; i < x_num; i++) {
+                    CHECKBOUNDARIES(1, i, x_num - 1, boundaries);
+                    index = j * x_num * y_num + i * y_num;
+
+                    for (k = 0; k < y_num; k++) {
+
+                        CHECKBOUNDARIES(2, k, y_num - 1, boundaries);
+                        status = layers[level].mesh[index + k];
+
+                        if (status == ASCENDANT) {
+                            NEIGHBOURLOOP(jn, in, kn, boundaries) {
+
+                                        neighbour_index = index + jn * x_num * y_num + in * y_num + kn + k;
+
+                                        if (layers[level].mesh[neighbour_index] == EMPTY) {
+                                            // EMPTY or TAKENSTATUS
+                                            layers[level].mesh[neighbour_index] = ASCENDANTNEIGHBOUR;
+                                        }
+
+                                        if (layers[level].mesh[neighbour_index] == TAKENSTATUS) {
+                                            // EMPTY or TAKENSTATUS
+
+                                            layers[level].mesh[neighbour_index] = PROPOGATE;
+                                        }
+                                    }
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+
+
+    void set_ascendant_filler(int level)
+    {
+
+        const int x_num = layers[level].x_num;
+        const int y_num = layers[level].y_num;
+        const int z_num = layers[level].z_num;
+
+        short boundaries[3][2] = {{0,2},{0,2},{0,2}};
+
+        int i,k,jn,in,kn,neighbour_index,index;
+
+        uint8_t status;
+
+        // loop unrolling in order to avoid concurrent write
+        for(int out = 0; out < std::min(3,z_num); out ++) {
+
+#pragma omp parallel for default(shared) private(i,k,neighbour_index,jn,in,kn,status,index) firstprivate(boundaries) \
+        if(z_num * x_num * y_num > 100000) schedule(static)
+            for (int j = out; j < z_num; j += 3) {
+
+                CHECKBOUNDARIES(0, j, z_num - 1, boundaries);
+
+                for (i = 0; i < x_num; i++) {
+                    CHECKBOUNDARIES(1, i, x_num - 1, boundaries);
+                    index = j * x_num * y_num + i * y_num;
+
+                    for (k = 0; k < y_num; k++) {
+
+                        CHECKBOUNDARIES(2, k, y_num - 1, boundaries);
+                        status = layers[level].mesh[index + k];
+
+                        if (status == ASCENDANT || status == SEEDASCENDANT) {
+                            NEIGHBOURLOOP(jn, in, kn, boundaries) {
+
+                                        neighbour_index = index + jn * x_num * y_num + in * y_num + kn + k;
+
+                                        if (layers[level].mesh[neighbour_index] == EMPTY) {
+                                            // EMPTY or TAKENSTATUS
+                                            layers[level].mesh[neighbour_index] = SLOPESTATUS;
+                                        }
+
+                                    }
+                        }
+                    }
+                }
+            }
+        }
+    }
+
 
     void set_slope(int level)
     {
@@ -228,7 +389,7 @@ private:
 
                     status = layers[level].mesh[index + k];
 
-                    if(status == ASCENDANTNEIGHBOUR) {
+                    if(status == ASCENDANTNEIGHBOUR || status == PROPOGATE) {
 
                         // go down, and set empty children to SLOPESTATUS
                         CHILDRENLOOP(jn, in, kn, children_boundaries) {
@@ -249,6 +410,118 @@ private:
 
         all_parts += parts;
     }
+
+
+
+
+    void set_slope_new(int level)
+    {
+        short children_boundaries[3] = {2,2,2};
+        const int x_num = layers[level].x_num;
+        const int y_num = layers[level].y_num;
+        const int z_num = layers[level].z_num;
+
+        int prev_x_num = layers[level + 1].x_num;
+        int prev_y_num = layers[level + 1].y_num;
+        int prev_z_num = layers[level + 1].z_num;
+
+        int i, k, jn, in, kn, children_index, index, parts=0;
+        uint8_t children_status, status;
+
+#pragma omp parallel for default(shared) \
+        private(i,k,children_index,jn,in,kn,children_status,status,index) \
+        if(z_num * x_num * y_num > 10000) reduction(+:parts) firstprivate(level, children_boundaries)
+        for(int j = 0; j < z_num; j++) {
+
+            if( j == z_num - 1 && prev_z_num % 2 ) {
+                children_boundaries[0] = 1;
+            }
+
+            for ( i = 0; i < x_num; i++) {
+
+                if( i == x_num - 1 && prev_x_num % 2 ) {
+                    children_boundaries[1] = 1;
+                } else if( i == 0 ){
+                    children_boundaries[1] = 2;
+                }
+
+                index = j * x_num * y_num + i * y_num;
+
+
+                for ( k = 0; k < y_num; k++) {
+
+                    if( k == y_num - 1 && prev_y_num % 2 ) {
+                        children_boundaries[2] = 1;
+                    } else if( k == 0 ){
+                        children_boundaries[2] = 2;
+                    }
+
+                    status = layers[level].mesh[index + k];
+
+                    if(status == ASCENDANT) {
+
+                        // go down, and set empty children to SLOPESTATUS
+                        CHILDRENLOOP(jn, in, kn, children_boundaries) {
+
+                                    children_index = jn * prev_x_num * prev_y_num + in * prev_y_num + kn;
+                                    children_status = layers[level + 1].mesh[children_index];
+                                    if(children_status == EMPTY) {
+                                        layers[level + 1].mesh[children_index] = SLOPESTATUS;
+                                        parts++;
+                                    }
+                                }
+
+                    }
+
+                }
+            }
+        }
+
+        all_parts += parts;
+    }
+
+
+    void fill_parent(int j, int i, int k, int x_num, int y_num, int new_level)
+    {
+
+        if(new_level >= k_min) {
+            int new_x_num = ((x_num + 1) / 2);
+            int new_y_num = ((y_num + 1) / 2);
+            int new_index = (j / 2) * new_x_num * new_y_num + (i / 2) * new_y_num + (k / 2);
+
+            if (layers[new_level].mesh[new_index] != TAKENSTATUS)
+                layers[new_level].mesh[new_index] = ASCENDANT;
+        }
+    }
+
+    void fill_parent_seed(int j, int i, int k, int x_num, int y_num, int new_level)
+    {
+
+        if(new_level >= k_min) {
+            int new_x_num = ((x_num + 1) / 2);
+            int new_y_num = ((y_num + 1) / 2);
+            int new_index = (j / 2) * new_x_num * new_y_num + (i / 2) * new_y_num + (k / 2);
+
+            layers[new_level].mesh[new_index] = SEEDASCENDANT;
+
+        }
+    }
+
+    void fill_parent_neigh_filler(int j, int i, int k, int x_num, int y_num, int new_level)
+    {
+
+        if(new_level >= k_min) {
+            int new_x_num = ((x_num + 1) / 2);
+            int new_y_num = ((y_num + 1) / 2);
+            int new_index = (j / 2) * new_x_num * new_y_num + (i / 2) * new_y_num + (k / 2);
+
+            if (layers[new_level].mesh[new_index] != SEEDASCENDANT)
+                layers[new_level].mesh[new_index] = ASCENDANT;
+
+        }
+    }
+
+
 
 public :
 
@@ -272,7 +545,10 @@ public :
         k_min = p_rep.pl_map.k_min;
         k_max = p_rep.pl_map.k_max;
     }
-
+    
+        
+    
+    
     void initialize(std::vector<int> dims)
     {
         //make so you can reference the array as k
@@ -295,28 +571,83 @@ public :
         //
 
 
-        //loop over all levels of k
-        for (int level = p_rep.pl_map.k_max; p_rep.pl_map.k_min <= level; level--) {
+        int type = p_rep.pars.pull_scheme;
 
-            // firstly push up
+        if(type==1) {
 
-            // SPREAD DIRECT NEIGHBOURSTATUS
+            //loop over all levels of k
+            for (int level = p_rep.pl_map.k_max; p_rep.pl_map.k_min <= level; level--) {
 
-            const int x_num = layers[level].x_num;
-            const int y_num = layers[level].y_num;
-            const int z_num = layers[level].z_num;
+                // firstly push up
 
-            if( level != p_rep.pl_map.k_max ) {
+                // SPREAD DIRECT NEIGHBOURSTATUS
 
-                set_ascendant_neighbours(level);
+                if (level != p_rep.pl_map.k_max) {
 
-                set_slope(level);
+                    set_ascendant_neighbours(level);
+
+                    set_slope(level);
+
+                }
+
+                fill_neighbours(level);
 
             }
 
-            fill_neighbours(level);
+        } else if(type==2){
+
+            //loop over all levels of k
+            for (int level = p_rep.pl_map.k_max; p_rep.pl_map.k_min <= level; level--) {
+
+                // firstly push up
+
+                // SPREAD DIRECT NEIGHBOURSTATUS
+
+                if (level != p_rep.pl_map.k_max) {
+
+                    set_ascendant_neighbours_1(level);
+
+                    set_slope(level);
+
+                }
+
+                fill_neighbours(level);
+
+            }
+
+
+        } else if (type==3){
+
+            //loop over all levels of k
+            for (int level = p_rep.pl_map.k_max; p_rep.pl_map.k_min <= level; level--) {
+
+                // firstly push up
+
+                // SPREAD DIRECT NEIGHBOURSTATUS
+
+                if (level != p_rep.pl_map.k_max) {
+
+                    set_slope_new(level);
+
+                }
+
+                fill_neighbours_alt(level);
+
+
+                if (level != p_rep.pl_map.k_max) {
+
+                    set_ascendant_filler(level);
+
+                }
+
+            }
+
+
 
         }
+
+
+
 
 
     }
@@ -333,6 +664,63 @@ public :
             down_sample(downsampled[level], downsampled[level - 1], sum, divide_by_8, true);
         }
     }
+
+    void closest_pixel(Mesh_data<T> &original_image){
+        //
+        //  Scheme for calculating at best estimate f(x_p) = f_p for the noise free analysis, requried since particles of higher resolution levels sit on off pixel locations
+        //
+
+        downsample(original_image);
+
+        float x,y,z;
+
+
+        for (int level = k_max; level > k_min; level--) {
+
+            float step_size = pow(2,k_max + 1 - level);
+
+            for (int q = 0; q < downsampled[level].z_num; ++q) {
+                for (int k = 0; k < downsampled[level].x_num; ++k) {
+                    for (int i = 0; i < downsampled[level].y_num; ++i) {
+
+                        x = round((k+0.5)*step_size)-1;
+                        y = round((i+0.5)*step_size)-1;
+                        z = round((q+0.5)*step_size)-1;
+
+                        float temp = 0;
+
+                        int max_x = std::min((int)(x+1),downsampled[k_max+1].x_num-1);
+                        int max_y = std::min((int)(y+1),downsampled[k_max+1].y_num-1);
+                        int max_z = std::min((int)(z+1),downsampled[k_max+1].z_num-1);
+
+                        float counter = 0;
+
+                        //ydirection
+                        for (int l_z = z; l_z <= max_z; ++l_z) {
+                            for (int l_x = x; l_x <= max_x; ++l_x) {
+                                for (int l_y = y; l_y <= max_y; ++l_y) {
+
+                                    temp += downsampled[k_max+1].mesh[l_y + (l_x) * downsampled[k_max+1].y_num + l_z * downsampled[k_max+1].y_num * downsampled[k_max+1].x_num];
+                                    counter++;
+                                }
+                            }
+                        }
+
+
+
+                        downsampled[level].mesh[i + (k) * downsampled[level].y_num + q * downsampled[level].y_num * downsampled[level].x_num] = temp/counter;
+
+                    }
+                }
+            }
+
+
+        }
+
+
+
+    }
+
 
     void fill(float k, Mesh_data<T> &input)
     {
