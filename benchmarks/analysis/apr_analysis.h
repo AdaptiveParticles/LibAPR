@@ -1689,6 +1689,7 @@ void produce_apr_analysis(Mesh_data<T>& input_image,AnalysisData& analysis_data,
 
 
 
+
     }
 
 
@@ -1706,6 +1707,23 @@ void produce_apr_analysis(Mesh_data<T>& input_image,AnalysisData& analysis_data,
         compare_E(gt_image, input_image, pars, name, analysis_data);
 
         calc_mse(gt_image, input_image, name, analysis_data);
+
+
+
+        Mesh_data<float> median_filt_img;
+
+        median_filt_img.initialize(input_image.y_num,input_image.x_num,input_image.z_num);
+
+        std::copy(input_image.mesh.begin(),input_image.mesh.end(),median_filt_img.mesh.begin());
+
+        calc_median_filter(median_filt_img);
+
+
+        name = "mediangt";
+        compare_E(gt_image, median_filt_img, pars, name, analysis_data);
+
+        calc_mse(gt_image, median_filt_img, name, analysis_data);
+
 
         name = "recgt";
 
