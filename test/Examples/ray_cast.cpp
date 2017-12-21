@@ -118,7 +118,7 @@ int main(int argc, char **argv) {
     APR<float> curr_apr(pc_struct);
 
     proj_pars.name = pc_struct.name;
-    apr_perspective_raycast(curr_apr.y_vec,curr_apr.particles_int,proj_pars,[] (const uint16_t& a,const uint16_t& b) {return std::max(a,b);});
+    //apr_perspective_raycast(curr_apr.y_vec,curr_apr.particles_int,proj_pars,[] (const uint16_t& a,const uint16_t& b) {return std::max(a,b);});
 
 
     if(options.org_file != ""){
@@ -130,6 +130,21 @@ int main(int argc, char **argv) {
         perpsective_mesh_raycast(pc_struct,proj_pars,input_image);
 
     }
+
+    curr_apr.init_pc_data();
+
+    ExtraPartCellData<uint8_t> type;
+    curr_apr.get_type(type);
+
+
+
+
+    Mesh_data<float> type_test;
+
+    interp_img(type_test, curr_apr.pc_data, curr_apr.part_new, type,false);
+
+    debug_write(type_test,pc_struct.name + "type_test");
+
 
     ///////////////////////////////////
     //
