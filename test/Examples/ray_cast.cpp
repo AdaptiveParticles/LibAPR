@@ -143,7 +143,7 @@ int main(int argc, char **argv) {
 //
 //    shift_particles_from_cells(curr_apr.part_new,normalized_grad);
 //
-//    ExtraPartCellData<std::array<float,3>> grad_norm = adaptive_gradient_normal(pc_struct,delta);
+    // ExtraPartCellData<std::array<float,3>> grad_norm = adaptive_gradient_normal(pc_struct,delta);
 //
 //    //threshold by intensity first
 //    float intensity_threshold = pc_struct.pars.I_th;

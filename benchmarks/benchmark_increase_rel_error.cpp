@@ -97,7 +97,7 @@ int main(int argc, char **argv) {
     }
 
 
-    sig_vec = {1,3,6};
+    sig_vec = {3};
 
     //min mean
     float min_shift = 5;
@@ -134,7 +134,6 @@ int main(int argc, char **argv) {
 
     bs.shift = 1000;
     syn_image.global_trans.const_shift = 1000;
-
 
     for(int q = 0;q < N_par3;q++) {
 
@@ -236,6 +235,8 @@ int main(int argc, char **argv) {
                     PartCellStructure<float, uint64_t> pc_struct;
 
                     //p_rep.pars.var_th = 1;
+
+                    p_rep.pars.interp_type = 0;
 
                     bench_get_apr(input_img, p_rep, pc_struct, analysis_data);
 
