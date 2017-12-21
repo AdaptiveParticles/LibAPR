@@ -67,6 +67,7 @@ void compare_E_debug(Mesh_data<S>& org_img,Mesh_data<T>& rec_img,Proc_par& pars,
 
     float rel_error = pars.rel_error;
 
+    std::cout << name << " E: " << pars.rel_error << " inf_norm: " << inf_norm << std::endl;
 
     if(pars.lambda == 0) {
         if (inf_norm > rel_error) {
@@ -76,6 +77,14 @@ void compare_E_debug(Mesh_data<S>& org_img,Mesh_data<T>& rec_img,Proc_par& pars,
         }
     }
 
+    for (int l = 0; l < SE.mesh.size(); ++l) {
+        if(SE.mesh[l] < 1000*rel_error){
+            SE.mesh[l] = 0;
+
+        }
+    }
+
+    debug_write(SE,name + "E_break_bound");
 
 }
 template<typename S,typename T>
@@ -224,6 +233,7 @@ void calc_mse(Mesh_data<S>& org_img,Mesh_data<T>& rec_img,std::string name,Analy
     uint64_t i = 0;
 
     double MSE = 0;
+    double L1 = 0;
 
 #pragma omp parallel for default(shared) private(j,i,k) reduction(+: MSE)
     for(j = 0; j < z_num_o;j++){
@@ -232,13 +242,13 @@ void calc_mse(Mesh_data<S>& org_img,Mesh_data<T>& rec_img,std::string name,Analy
             for(k = 0;k < y_num_o;k++){
 
                 MSE += pow(org_img.mesh[j*x_num_o*y_num_o + i*y_num_o + k] - rec_img.mesh[j*x_num_r*y_num_r + i*y_num_r + k],2);
-
+                L1 += abs(org_img.mesh[j*x_num_o*y_num_o + i*y_num_o + k] - rec_img.mesh[j*x_num_r*y_num_r + i*y_num_r + k]);
             }
         }
     }
 
     MSE = MSE/(z_num_o*x_num_o*y_num_o*1.0);
-
+    L1 = L1/(z_num_o*x_num_o*y_num_o*1.0);
 
     // Mesh_data<S> SE;
     //SE.initialize(y_num_o,x_num_o,z_num_o,0);
@@ -252,7 +262,7 @@ void calc_mse(Mesh_data<S>& org_img,Mesh_data<T>& rec_img,std::string name,Analy
             for(k = 0;k < y_num_o;k++){
 
                 //SE.mesh[j*x_num_o*y_num_o + i*y_num_o + k] += pow(org_img.mesh[j*x_num_o*y_num_o + i*y_num_o + k] - rec_img.mesh[j*x_num_r*y_num_r + i*y_num_r + k],2);
-                var += pow(pow(org_img.mesh[j*x_num_o*y_num_o + i*y_num_o + k] - rec_img.mesh[j*x_num_o*y_num_o + i*y_num_o + k],2) - MSE,2);
+                var += pow(pow(org_img.mesh[j*x_num_o*y_num_o + i*y_num_o + k] - rec_img.mesh[j*x_num_r*y_num_r + i*y_num_r + k],2) - MSE,2);
                 counter++;
             }
         }
@@ -267,6 +277,7 @@ void calc_mse(Mesh_data<S>& org_img,Mesh_data<T>& rec_img,std::string name,Analy
     float sd = sqrt(var);
 
     //commit results
+    analysis_data.add_float_data(name + "_L1",L1);
     analysis_data.add_float_data(name + "_MSE",MSE);
     analysis_data.add_float_data(name +"_MSE_SE",se);
     analysis_data.add_float_data(name +"_PSNR",PSNR);
@@ -307,7 +318,7 @@ void calc_mse_debug(Mesh_data<S>& org_img,Mesh_data<T>& rec_img,std::string name
             for(k = 0;k < y_num_o;k++){
 
                 MSE += pow(org_img.mesh[j*x_num_o*y_num_o + i*y_num_o + k] - rec_img.mesh[j*x_num_r*y_num_r + i*y_num_r + k],2);
-                SE.mesh[j*x_num_o*y_num_o + i*y_num_o + k] =  pow(org_img.mesh[j*x_num_o*y_num_o + i*y_num_o + k] - rec_img.mesh[j*x_num_r*y_num_r + i*y_num_r + k],2);
+                SE.mesh[j*x_num_o*y_num_o + i*y_num_o + k] =  abs(org_img.mesh[j*x_num_o*y_num_o + i*y_num_o + k] - rec_img.mesh[j*x_num_r*y_num_r + i*y_num_r + k]);
             }
         }
     }
@@ -376,32 +387,129 @@ void generate_gt_image(Mesh_data<T>& gt_image,SynImage& syn_image){
 
 }
 template <typename T>
-void generate_gt_norm_grad(Mesh_data<T>& gt_image,SynImage syn_image){
+void generate_gt_norm_grad(Mesh_data<T>& gt_image,SynImage syn_image,bool normalize,float hx,float hy,float hz){
     //get a clean image
 
-    MeshDataAF<T> gen_img;
+    MeshDataAF<T> gen_imgx;
+
+    //for (int i = 0; i < syn_image.real_objects.size(); ++i) {
+      //  syn_image.real_objects[i].int_scale = 1000;
+    //}
 
     syn_image.noise_properties.noise_type = "none";
 
-    syn_image.PSF_properties.type = "gauss_dsum";
+    syn_image.PSF_properties.type = "gauss_dx";
+    //syn_image.PSF_properties.type = "var";
     syn_image.noise_properties.noise_type = "none";
     syn_image.global_trans.gt_ind = false;
-    syn_image.PSF_properties.normalize = true;
+    syn_image.PSF_properties.normalize = normalize;
 
-    syn_image.generate_syn_image(gen_img);
+    syn_image.generate_syn_image(gen_imgx);
 
-    gt_image.y_num = gen_img.y_num;
-    gt_image.x_num = gen_img.x_num;
-    gt_image.z_num = gen_img.z_num;
+    MeshDataAF<T> gen_imgy;
+
+    //for (int i = 0; i < syn_image.real_objects.size(); ++i) {
+    //  syn_image.real_objects[i].int_scale = 1000;
+    //}
+
+    syn_image.noise_properties.noise_type = "none";
+
+    syn_image.PSF_properties.type = "gauss_dy";
+    //syn_image.PSF_properties.type = "var";
+    syn_image.noise_properties.noise_type = "none";
+    syn_image.global_trans.gt_ind = false;
+    syn_image.PSF_properties.normalize = normalize;
+
+    syn_image.generate_syn_image(gen_imgy);
+
+    MeshDataAF<T> gen_imgz;
+
+    //for (int i = 0; i < syn_image.real_objects.size(); ++i) {
+    //  syn_image.real_objects[i].int_scale = 1000;
+    //}
+
+    syn_image.noise_properties.noise_type = "none";
+
+    syn_image.PSF_properties.type = "gauss_dz";
+    //syn_image.PSF_properties.type = "var";
+    syn_image.noise_properties.noise_type = "none";
+    syn_image.global_trans.gt_ind = false;
+    syn_image.PSF_properties.normalize = normalize;
+
+    syn_image.generate_syn_image(gen_imgz);
+
+
+    gt_image.y_num = gen_imgx.y_num;
+    gt_image.x_num = gen_imgx.x_num;
+    gt_image.z_num = gen_imgx.z_num;
 
     //copy accross
-    gt_image.mesh = gen_img.mesh;
+    gt_image.mesh = gen_imgx.mesh;
+
+
+    for (int i = 0; i < gen_imgz.mesh.size(); ++i) {
+        gt_image.mesh[i] = sqrt(pow(gen_imgx.mesh[i]/hx,2.0) + pow(gen_imgy.mesh[i]/hy,2.0) + pow(gen_imgz.mesh[i]/hz,2.0));
+    }
+
+
+    //copy accross
+    //gt_image.mesh = gen_img.mesh;
 
 }
 
+template <typename T>
+void generate_gt_var(Mesh_data<T>& gt_image,Mesh_data<T>& var_out,SynImage syn_image,Proc_par& pars){
+    //get a clean image
 
 
+    Mesh_data<float> norm_grad_image;
 
+    generate_gt_norm_grad(norm_grad_image,syn_image,true,pars.dx,pars.dy,pars.dz);
+    //debug_write(norm_grad_image,"norm_grad");
+
+    Mesh_data<float> grad_image;
+
+    generate_gt_norm_grad(grad_image,syn_image,false,pars.dx,pars.dy,pars.dz);
+   // debug_write(grad_image,"grad");
+
+
+   // Mesh_data<float> grad_image;
+
+    //grad_image.initialize(gt_image.y_num,gt_image.x_num,gt_image.z_num,0);
+
+   // Part_rep p_rep(gt_image.y_num,gt_image.x_num,gt_image.z_num);
+   // p_rep.pars = pars;
+
+   // p_rep.pars.lambda = -1;
+
+    //generate_gt_norm_grad(norm_grad_image,syn_image,true,pars.dx,pars.dy,pars.dz);
+   // get_gradient_3D(p_rep, gt_image, grad_image);
+
+    float factor = 1.0;
+
+
+    Mesh_data<float> norm;
+
+    norm.initialize(grad_image.y_num,grad_image.x_num,grad_image.z_num,0);
+
+    //std::cout << round(1000*syn_image.scaling_factor/syn_image.object_templates[0].max_sampled_int) << std::endl;
+
+    for (int i = 0; i < norm.mesh.size(); ++i) {
+        if(grad_image.mesh[i] > 1) {
+            norm.mesh[i] = round(factor*1000*syn_image.scaling_factor/syn_image.object_templates[0].max_sampled_int) * grad_image.mesh[i] / norm_grad_image.mesh[i];
+        } else {
+            norm.mesh[i] = 64000;
+        }
+    }
+
+    var_out.y_num = norm.y_num;
+    var_out.x_num = norm.x_num;
+    var_out.z_num = norm.z_num;
+
+    //copy accross
+    var_out.mesh = norm.mesh;
+
+}
 
 void run_segmentation_benchmark_mesh(PartCellStructure<float,uint64_t> pc_struct,AnalysisData& analysis_data){
     //
@@ -414,8 +522,9 @@ void run_segmentation_benchmark_mesh(PartCellStructure<float,uint64_t> pc_struct
     Mesh_data<uint8_t> seg_mesh;
 
     //memory on this machine can't handle anything bigger
-    if(pc_struct.org_dims[0] <= 450){
+    if(pc_struct.org_dims[0] <= 550){
         std::cout << "gc_seg_mesh" << std::endl;
+        std:: cout << pc_struct.org_dims[0] << std::endl;
         calc_graph_cuts_segmentation_mesh(pc_struct,seg_mesh,parameters_nuc,analysis_data);
         std::cout << "gc_seg_mesh_complete" << std::endl;
     }
@@ -488,13 +597,13 @@ void evaluate_segmentation(PartCellStructure<float,uint64_t> pc_struct,AnalysisD
     Mesh_data<uint8_t> seg_mesh;
 
     //memory on this machine can't handle anything bigger
-    if(pc_struct.org_dims[0] <= 450){
+    if(pc_struct.org_dims[0] <= 550){
         calc_graph_cuts_segmentation_mesh(pc_struct,seg_mesh,parameters_nuc);
     }
 
     ExtraPartCellData<uint8_t> seg_parts;
 
-    if(pc_struct.get_number_parts() <= pow(500,3)) {
+    if(pc_struct.get_number_parts() <= pow(550,3)) {
 
         calc_graph_cuts_segmentation(pc_struct, seg_parts, parameters_nuc);
     }
@@ -563,7 +672,7 @@ void run_segmentation_benchmark_parts(PartCellStructure<float,uint64_t> pc_struc
     //nuclei
     std::array<uint64_t,10> parameters_nuc = {100,2000,1,1,2,2,2,3,0,0};
 
-    if(pc_struct.get_number_parts() <= pow(500,3)) {
+    if(pc_struct.get_number_parts() <= pow(550,3)) {
 
         calc_graph_cuts_segmentation(pc_struct, seg_parts, parameters_nuc, analysis_data);
     }
@@ -642,7 +751,7 @@ void run_filter_benchmarks_parts(PartCellStructure<float,uint64_t> pc_struct,Ana
     //Get neighbours (linear)
 
     //particles
-    particle_linear_neigh_access(pc_struct,num_repeats,analysis_data);
+   // particle_linear_neigh_access(pc_struct,num_repeats,analysis_data);
 
     //Get neighbours (random access)
 
@@ -657,7 +766,7 @@ void run_filter_benchmarks_parts(PartCellStructure<float,uint64_t> pc_struct,Ana
 
     ExtraPartCellData<float> filter_output;
 
-    filter_output = filter_apr_by_slice<float>(pc_struct,filter,analysis_data,num_repeats);
+  //  filter_output = filter_apr_by_slice<float>(pc_struct,filter,analysis_data,num_repeats);
 
 }
 
@@ -1212,8 +1321,7 @@ void run_real_segmentation(PartCellStructure<float,uint64_t> pc_struct,AnalysisD
     proj_pars.theta_final = 3.14;
     proj_pars.radius_factor = 1.00;
     proj_pars.theta_delta = 0.1;
-    proj_pars.scale_z = 4.0f;
-
+    proj_pars.scale_z = pc_struct.pars.aniso;
 
     ExtraPartCellData<uint16_t> y_vec;
 
@@ -1223,26 +1331,11 @@ void run_real_segmentation(PartCellStructure<float,uint64_t> pc_struct,AnalysisD
 
     ExtraPartCellData<uint16_t> seg_parts_depth = multiply_by_depth(seg_parts);
 
-    ExtraPartCellData<uint16_t> seg_parts_center= multiply_by_dist_center(seg_parts,y_vec);
-
-
-    //apr_perspective_raycast(y_vec,seg_parts,proj_pars,[] (const uint16_t& a,const uint16_t& b) {return std::min(a,b);},true);
-
-    //apr_perspective_raycast(y_vec,seg_parts_depth,proj_pars,[] (const uint16_t& a,const uint16_t& b) {return std::max(a,b);},false);
-
-    proj_pars.name = pc_struct.name +"_intensity";
-
-    apr_perspective_raycast_depth(y_vec,seg_parts,part_new.particle_data,proj_pars,[] (const uint16_t& a,const uint16_t& b) {return std::max(a,b);},true);
-
     proj_pars.name = pc_struct.name +"_z_depth";
 
     apr_perspective_raycast_depth(y_vec,seg_parts,seg_parts_depth,proj_pars,[] (const uint16_t& a,const uint16_t& b) {return std::max(a,b);},true);
 
-    proj_pars.name = pc_struct.name + "_center";
-
-    apr_perspective_raycast_depth(y_vec,seg_parts,seg_parts_center,proj_pars,[] (const uint16_t& a,const uint16_t& b) {return std::max(a,b);},true);
-
-
+    analysis_data.add_timer(timer);
 }
 template<typename T>
 void run_ray_cast(PartCellStructure<float,uint64_t> pc_struct,AnalysisData& analysis_data,Mesh_data<T>& input_image,Proc_par& pars){
@@ -1253,7 +1346,6 @@ void run_ray_cast(PartCellStructure<float,uint64_t> pc_struct,AnalysisData& anal
     //
     //
 
-
     Part_timer timer;
 
     /////////////////
@@ -1263,12 +1355,11 @@ void run_ray_cast(PartCellStructure<float,uint64_t> pc_struct,AnalysisData& anal
 
     proj_par proj_pars;
 
-
     proj_pars.theta_0 = 0;
     proj_pars.theta_final = 3.14;
     proj_pars.radius_factor = 1.00;
     proj_pars.theta_delta = 0.1;
-    proj_pars.scale_z = pars.dz/pars.dy;
+    proj_pars.scale_z = pars.aniso;
 
     ParticleDataNew<float, uint64_t> part_new;
     //flattens format to particle = cell, this is in the classic access/part paradigm

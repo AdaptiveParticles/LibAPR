@@ -62,15 +62,17 @@ int main(int argc, char **argv) {
     //////////////////////////////////////////////////////
 
     int num_obj_min =1;
-    int num_obj =400;
+    int num_obj =200;
     std::vector<int> number_obj;
-    int step = 20;
+    int step = num_obj/20;
 
     //number_obj.push_back(num_obj);
 
     for(int i = num_obj_min; i <= num_obj ; i = i + step ){
         number_obj.push_back(i);
     }
+
+    //number_obj = {100};
 
     //////////////////////////////////////////////////////////
     //
@@ -96,7 +98,15 @@ int main(int argc, char **argv) {
         //mean_int.push_back(i);
     }
 
-    mean_int = {50};
+    mean_int = {1,10,30};
+
+    //mean_int = {10};
+
+    bs.int_scale_min = 1;
+    bs.int_scale_max = 10;
+
+    analysis_data.add_float_data("int_scale_min",bs.int_scale_min);
+    analysis_data.add_float_data("int_scale_max",bs.int_scale_max);
 
     min_mean = 15;
     max_mean = 50;
@@ -109,7 +119,6 @@ int main(int argc, char **argv) {
     }
 
     //mean_int.push_back(30);
-
     std::vector<float> sig_vec;
 
     //min mean
@@ -124,16 +133,17 @@ int main(int argc, char **argv) {
     //    sig_vec.push_back(i);
     //}
 
-    float sig_single = 2;
-    bs.obj_size = 3;
+    bs.obj_size = 2;
 
-    sig_vec = {0.1};
+    analysis_data.add_float_data("obj_size",bs.obj_size);
+
+    sig_vec = {1,3,6};
 
     int N_par1 = (int)number_obj.size(); // this many different parameter values to be run
     int N_par2 = (int)mean_int.size();
     int N_par3 = (int)sig_vec.size();
 
-    bool part_timing = true;
+    bool part_timing = false;
 
     for(int m = 0; m < N_par3; m++){
 
@@ -141,20 +151,17 @@ int main(int argc, char **argv) {
         //  PSF properties
         //////////////////////////////////////////////////////////////////
         //bs.sig = sig_vec[m];
-        bs.rel_error = sig_vec[m];
-        bs.sig = 3;
 
-        set_gaussian_psf(syn_image,bs);
+        bs.sig = sig_vec[m];
+        bs.rel_error = .1;
+
+        obj_properties obj_prop(bs);
+
+        Object_template basic_object = get_object_template(options, obj_prop);
 
         /////////////////////////////////////////////
         // GENERATE THE OBJECT TEMPLATE
         //////////////////////////////////////////////
-
-        obj_properties obj_prop(bs);
-
-        Object_template  basic_object = get_object_template(options,obj_prop);
-
-        syn_image.object_templates.push_back(basic_object);
 
         //add the basic sphere as the standard template
 
@@ -163,27 +170,10 @@ int main(int argc, char **argv) {
 
         for (int p = 0; p < N_par2;p++){
 
+
             for (int j = 0;j < N_par1;j++) {
 
-                SynImage syn_image_loc = syn_image;
 
-                Mesh_data<uint16_t> input_image;
-
-                generate_objects(syn_image_loc, bs);
-
-                ///////////////////////////////
-                //
-                //  Generate the image
-                //
-                ////////////////////////////////
-
-                MeshDataAF<uint16_t> gen_image;
-
-                syn_image_loc.generate_syn_image(gen_image);
-
-                Mesh_data<uint16_t> input_img;
-
-                copy_mesh_data_structures(gen_image, input_img);
 
                 for (int i = 0; i < bs.N_repeats; i++) {
 
@@ -198,7 +188,20 @@ int main(int argc, char **argv) {
                     /////////////////////////////////////////
                     //////////////////////////////////////////
                     // SET UP THE DOMAIN SIZE
+                    SynImage syn_image_loc ;
 
+                    set_up_benchmark_defaults(syn_image_loc, bs);
+
+                    bs.sig = sig_vec[m];
+                    bs.rel_error = .1;
+
+                    update_domain(syn_image_loc,bs);
+                    set_gaussian_psf(syn_image_loc,bs);
+
+                    syn_image_loc.object_templates.push_back(basic_object);
+
+
+                    Mesh_data<uint16_t> input_image;
 
                     bs.num_objects = number_obj[j];
 
@@ -207,6 +210,24 @@ int main(int argc, char **argv) {
                     bs.desired_I = mean_int[p]*sqrt(bs.shift);
 
                     analysis_data.add_float_data("desired_I",bs.desired_I);
+
+                    generate_objects(syn_image_loc, bs);
+
+                    ///////////////////////////////
+                    //
+                    //  Generate the image
+                    //
+                    ////////////////////////////////
+
+                    MeshDataAF<uint16_t> gen_image;
+
+                    syn_image_loc.generate_syn_image(gen_image);
+
+                    Mesh_data<uint16_t> input_img;
+
+                    copy_mesh_data_structures(gen_image, input_img);
+
+
 
                     //Generate objects
 
@@ -236,6 +257,8 @@ int main(int argc, char **argv) {
                     //  Calculate analysis of the result
                     //
                     ///////////////////////////////
+
+                    std::cout << "Num Parts: " << pc_struct.get_number_parts() << std::endl;
 
                     produce_apr_analysis(input_img, analysis_data, pc_struct, syn_image_loc, p_rep.pars);
 

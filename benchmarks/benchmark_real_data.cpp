@@ -18,7 +18,6 @@ int main(int argc, char **argv) {
 
     cmdLineOptionsBench options = read_command_line_options(argc, argv);
 
-
     /////////////////////////////////////////////
     // GENERATE THE OBJECT TEMPLATE
 

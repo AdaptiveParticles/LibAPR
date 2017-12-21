@@ -282,6 +282,17 @@ void get_image_stats(Proc_par& pars,std::string output_path,std::string stats_na
         pars.var_th_max = 0;
     }
 
+    //file name (relative path)
+    std::getline(path_file,out_line);
+
+    found = out_line.find("aniso: ");
+
+    if (found!=std::string::npos){
+
+        pars.aniso = stof(out_line.substr(found+7));
+    } else {
+        pars.aniso = 1.0;
+    }
 
     pars.tol = 0.0005f;
 
@@ -315,11 +326,13 @@ void get_image_stats(Proc_par& pars,std::string output_path,std::string stats_na
       //                 (0.1821f * logf(pars.lambda)+ 1.522f);
 
     if(pars.var_th_max == 0){
-        pars.var_th_max = 0.5*pars.var_th;
+        pars.var_th_max = 0.75*pars.var_th;
 
     }
 
-
+    std::cout << "Var Th: " << pars.var_th << std::endl;
+    std::cout << "Var Th Max: " << pars.var_th_max << std::endl;
+    std::cout << "Z factor: " << pars.z_factor << std::endl;
 
 
 //    if (max_var_th > .25f*pars.var_th){

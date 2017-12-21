@@ -226,11 +226,11 @@ void construct_max_flow_graph_mesh(PartCellStructure<V,T>& pc_struct,GraphType& 
                     neigh_counter++;
                 }
                 
-                if(ym != k){
-                    cap = beta*pow(status_mesh(i,j,k)*status_mesh(i,j,ym),2)/pow(9.0,2);
-                    g.add_edge( i*x_num*y_num + j*y_num + k, i*x_num*y_num + j*y_num + ym,    /* capacities */  cap, cap );
-                    neigh_counter++;
-                }
+//                if(ym != k){
+//                    cap = beta*pow(status_mesh(i,j,k)*status_mesh(i,j,ym),2)/pow(9.0,2);
+//                    g.add_edge( i*x_num*y_num + j*y_num + k, i*x_num*y_num + j*y_num + ym,    /* capacities */  cap, cap );
+//                    neigh_counter++;
+//                }
                 
                 if(xp != j){
                     cap = beta*pow(status_mesh(i,j,k)*status_mesh(i,xp,k),2)/pow(9.0,2);
@@ -238,21 +238,21 @@ void construct_max_flow_graph_mesh(PartCellStructure<V,T>& pc_struct,GraphType& 
                     neigh_counter++;
                 }
                 
-                if(xm != j){
-                    cap = beta*pow(status_mesh(i,j,k)*status_mesh(i,xm,k),2)/pow(9.0,2);
-                    g.add_edge( i*x_num*y_num + j*y_num + k, i*x_num*y_num + xm*y_num + k,    /* capacities */  cap, cap );
-                    neigh_counter++;
-                }
+//                if(xm != j){
+//                    cap = beta*pow(status_mesh(i,j,k)*status_mesh(i,xm,k),2)/pow(9.0,2);
+//                    g.add_edge( i*x_num*y_num + j*y_num + k, i*x_num*y_num + xm*y_num + k,    /* capacities */  cap, cap );
+//                    neigh_counter++;
+//                }
                 if(zp != i){
                     cap = beta*pow(status_mesh(i,j,k)*status_mesh(zp,j,k),2)/pow(9.0,2);
                     g.add_edge( i*x_num*y_num + j*y_num + k, zp*x_num*y_num + j*y_num + k,    /* capacities */  cap, cap );
                     neigh_counter++;
                 }
-                if(zm != i){
-                    cap = beta*pow(status_mesh(i,j,k)*status_mesh(zm,j,k),2)/pow(9.0,2);
-                    g.add_edge( i*x_num*y_num + j*y_num + k, zm*x_num*y_num + j*y_num + k,    /* capacities */  cap, cap );
-                    neigh_counter++;
-                }
+//                if(zm != i){
+//                    cap = beta*pow(status_mesh(i,j,k)*status_mesh(zm,j,k),2)/pow(9.0,2);
+//                    g.add_edge( i*x_num*y_num + j*y_num + k, zm*x_num*y_num + j*y_num + k,    /* capacities */  cap, cap );
+//                    neigh_counter++;
+//                }
                 
             }
         }
@@ -324,8 +324,8 @@ void construct_max_flow_graph(PartCellStructure<V,T>& pc_struct,GraphType& g,std
     uint64_t p;
     
     //adaptive mean
-    ExtraPartCellData<float> eng1(pc_struct.part_data.particle_data);
-    ExtraPartCellData<float> eng2(pc_struct.part_data.particle_data);
+    //ExtraPartCellData<float> eng1(pc_struct.part_data.particle_data);
+    //ExtraPartCellData<float> eng2(pc_struct.part_data.particle_data);
     
     
     //////////////////////////////////
@@ -412,8 +412,8 @@ void construct_max_flow_graph(PartCellStructure<V,T>& pc_struct,GraphType& g,std
                             //eng1.get_part(curr_key) = loc_min;
                             //eng2.get_part(curr_key) = loc_max;
 
-                            eng1.get_part(curr_key) = cap_s;
-                            eng2.get_part(curr_key) = cap_t;
+                            //eng1.get_part(curr_key) = cap_s;
+                            //eng2.get_part(curr_key) = cap_t;
 
                             counter++;
                             
@@ -510,8 +510,13 @@ void construct_max_flow_graph(PartCellStructure<V,T>& pc_struct,GraphType& g,std
                             uint64_t status_neigh;
                             float depth_neigh;
                             float cap =0;
-                            
-                            for(uint64_t face = 0;face<6;face++){
+
+                            std::vector<int> dirs = {0,2,4};
+
+                            //(+direction)
+                            //loop over the nieghbours
+                            for (int d = 0; d < dirs.size(); ++d) {
+                                uint64_t face = dirs[d];
                                 for(uint64_t n = 0; n < neigh_part_keys.neigh_face[face].size();n++){
                                     uint64_t neigh_key = neigh_part_keys.neigh_face[face][n];
                                     if (neigh_key > 0){
@@ -639,12 +644,12 @@ void construct_max_flow_graph_new(PartCellStructure<V,T>& pc_struct,GraphType& g
 
     timer.stop_timer();
 
-    std::vector<float> filter = {.0125,.975,.0125};
+    std::vector<float> filter = {.25,.5,.25};
     std::vector<float> delta = {parameters[7],parameters[8],parameters[9]};
 
     timer.start_timer("smooth");
 
-    int num_tap = 1;
+    int num_tap = 2;
 
     ExtraPartCellData<float> smoothed_parts = adaptive_smooth(pc_data,particle_data,num_tap,filter);
 

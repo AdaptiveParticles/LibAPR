@@ -206,6 +206,8 @@ DerivedData/
 build/
 cmake-build-debug/
 cmake-build-release/
+cmake-build*
+xcode*
 #####
 # Xcode private settings (window sizes, bookmarks, breakpoints, custom executables, smart groups)
 #
@@ -283,3 +285,7 @@ target/
 
 # SWIG-generated Java classes
 src/main/
+APR_tests/
+bin/
+lib/
+src/natives/

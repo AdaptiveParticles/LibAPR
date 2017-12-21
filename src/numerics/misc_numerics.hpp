@@ -20,10 +20,9 @@
 template<typename U,typename V>
 void interp_img(Mesh_data<U>& img,PartCellData<uint64_t>& pc_data,ParticleDataNew<float, uint64_t>& part_new,ExtraPartCellData<V>& particles_int,const bool val = false);
 
-template<typename S>
-void interp_depth_to_mesh(Mesh_data<uint8_t>& k_img,PartCellStructure<S,uint64_t>& pc_struct);
 
-void create_y_data(ExtraPartCellData<uint16_t>& y_vec,ParticleDataNew<float, uint64_t>& part_new,PartCellData<uint64_t>& pc_data);
+
+static void create_y_data(ExtraPartCellData<uint16_t>& y_vec,ParticleDataNew<float, uint64_t>& part_new,PartCellData<uint64_t>& pc_data);
 
 template<typename U,typename V>
 void interp_slice(Mesh_data<U>& slice,std::vector<std::vector<std::vector<uint16_t>>>& y_vec,PartCellData<uint64_t>& pc_data,ParticleDataNew<float, uint64_t>& part_new,int dir,int num);
@@ -31,7 +30,7 @@ void interp_slice(Mesh_data<U>& slice,std::vector<std::vector<std::vector<uint16
 template<typename U,typename V>
 void interp_slice(Mesh_data<U>& slice,PartCellData<uint64_t>& pc_data,ParticleDataNew<float, uint64_t>& part_new,ExtraPartCellData<V>& particles_int,int dir,int num);
 
-//void create_y_data(std::vector<std::vector<std::vector<uint16_t>>>& y_vec,PartCellStructure<float,uint64_t>& pc_struct);
+static void create_y_data(std::vector<std::vector<std::vector<uint16_t>>>& y_vec,PartCellStructure<float,uint64_t>& pc_struct);
 
 template<typename V>
 void filter_slice(std::vector<V>& filter,std::vector<V>& filter_d,ExtraPartCellData<V>& filter_output,Mesh_data<V>& slice,ExtraPartCellData<uint16_t>& y_vec,const int dir,const int num);
@@ -158,7 +157,7 @@ std::vector<U> create_dog_filter(int size,float t,float K){
 }
 
 template<typename S>
-void interp_depth_to_mesh(Mesh_data<uint8_t>& k_img,PartCellStructure<S,uint64_t>& pc_struct){
+void interp_depth_to_mesh(Mesh_data<uint8_t>& k_img,PartCellStructure<S,uint64_t>& pc_struct,int bound_flag = 1){
     //
     //  Bevan Cheeseman 2016
     //
@@ -221,8 +220,13 @@ void interp_depth_to_mesh(Mesh_data<uint8_t>& k_img,PartCellStructure<S,uint64_t
                         status = pc_struct.part_data.access_node_get_status(node_val_part);
                         part_offset = pc_struct.part_data.access_node_get_part_offset(node_val_part);
                         
-                        uint8_t depth = 2*i + (status == SEED);
-                        
+                        uint8_t depth = i + (status == SEED);
+
+
+                        depth = depth + (status < FILLER)*bound_flag;
+
+
+
                         //loop over the particles
                         for(p = 0;p < pc_struct.part_data.get_num_parts(status);p++){
                             //first set the particle index value in the particle_data array (stores the intensities)
@@ -248,6 +252,99 @@ void interp_depth_to_mesh(Mesh_data<uint8_t>& k_img,PartCellStructure<S,uint64_t
     pc_struct.interp_parts_to_pc(k_img,k_parts);
     
     
+}
+template<typename S>
+void interp_adapt_to_mesh(Mesh_data<uint8_t>& k_img,PartCellStructure<S,uint64_t>& pc_struct){
+    //
+    //  Bevan Cheeseman 2016
+    //
+    //  Takes a pc_struct and interpolates the depth to the mesh
+    //
+    //
+
+    //initialize dataset to interp to
+    ExtraPartCellData<uint8_t> k_parts(pc_struct.part_data.particle_data);
+
+
+
+    //initialize variables required
+    uint64_t node_val_part; // node variable encoding part offset status information
+    int x_; // iteration variables
+    int z_; // iteration variables
+    uint64_t j_; // index variable
+    uint64_t curr_key = 0; // key used for accessing and particles and cells
+    // Extra variables required
+    //
+
+    uint64_t status=0;
+    uint64_t part_offset=0;
+    uint64_t p;
+
+    for(uint64_t i = pc_struct.pc_data.depth_min;i <= pc_struct.pc_data.depth_max;i++){
+        //loop over the resolutions of the structure
+        const unsigned int x_num_ = pc_struct.pc_data.x_num[i];
+        const unsigned int z_num_ = pc_struct.pc_data.z_num[i];
+
+
+#pragma omp parallel for default(shared) private(p,z_,x_,j_,node_val_part,curr_key,status,part_offset) if(z_num_*x_num_ > 100)
+        for(z_ = 0;z_ < z_num_;z_++){
+            //both z and x are explicitly accessed in the structure
+            curr_key = 0;
+
+            pc_struct.pc_data.pc_key_set_z(curr_key,z_);
+            pc_struct.pc_data.pc_key_set_depth(curr_key,i);
+
+
+            for(x_ = 0;x_ < x_num_;x_++){
+
+                pc_struct.pc_data.pc_key_set_x(curr_key,x_);
+
+                const size_t offset_pc_data = x_num_*z_ + x_;
+
+                const size_t j_num = pc_struct.pc_data.data[i][offset_pc_data].size();
+
+                //the y direction loop however is sparse, and must be accessed accordinagly
+                for(j_ = 0;j_ < j_num;j_++){
+
+                    //particle cell node value, used here as it is requried for getting the particle neighbours
+                    node_val_part = pc_struct.part_data.access_data.data[i][offset_pc_data][j_];
+
+                    if (!(node_val_part&1)){
+                        //Indicates this is a particle cell node
+
+                        pc_struct.part_data.access_data.pc_key_set_j(curr_key,j_);
+
+                        status = pc_struct.part_data.access_node_get_status(node_val_part);
+                        part_offset = pc_struct.part_data.access_node_get_part_offset(node_val_part);
+
+                        uint8_t depth = (i-1)*3 + (status == SEED)*2 + (status == BOUNDARY);
+
+
+                        //loop over the particles
+                        for(p = 0;p < pc_struct.part_data.get_num_parts(status);p++){
+                            //first set the particle index value in the particle_data array (stores the intensities)
+                            pc_struct.part_data.access_data.pc_key_set_index(curr_key,part_offset+p);
+                            //get all the neighbour particles in (+y,-y,+x,-x,+z,-z) ordering
+                            k_parts.get_part(curr_key) = depth;
+
+                        }
+
+                    } else {
+                        // Inidicates this is not a particle cell node, and is a gap node
+                    }
+
+                }
+
+            }
+
+        }
+    }
+
+
+    //now interpolate this to the mesh
+    pc_struct.interp_parts_to_pc(k_img,k_parts);
+
+
 }
 
 
@@ -436,6 +533,164 @@ void interp_extrapc_to_mesh(Mesh_data<T>& output_img,PartCellStructure<S,uint64_
     
     
 }
+
+
+template<typename U,typename V>
+void interp_parts_to_smooth(Mesh_data<U>& out_image,ExtraPartCellData<V>& interp_data,PartCellStructure<float,uint64_t>& pc_struct,std::vector<float> scale_d){
+
+
+
+    Part_timer timer;
+    timer.verbose_flag = true;
+
+    timer.start_timer("init images pc");
+    Mesh_data<U> pc_image;
+    Mesh_data<uint8_t> k_img;
+
+    pc_struct.interp_parts_to_pc(pc_image,interp_data);
+
+    timer.stop_timer();
+
+    timer.start_timer("init images depth");
+
+    interp_depth_to_mesh(k_img,pc_struct,0);
+
+    timer.stop_timer();
+
+    int filter_offset = 0;
+
+    unsigned int x_num = pc_image.x_num;
+    unsigned int y_num = pc_image.y_num;
+    unsigned int z_num = pc_image.z_num;
+
+    Mesh_data<U> output_data;
+    output_data.initialize((int)y_num,(int)x_num,(int)z_num,0);
+
+    std::vector<U> temp_vec;
+    temp_vec.resize(y_num,0);
+
+    uint64_t offset_min;
+    uint64_t offset_max;
+
+    uint64_t j = 0;
+    uint64_t k = 0;
+    uint64_t i = 0;
+
+    float factor = .1;
+
+    int k_max = pc_struct.depth_max + 1;
+
+    timer.start_timer("x direction");
+
+    std::copy(k_img.mesh.begin(),k_img.mesh.end(),output_data.mesh.begin());
+
+
+#pragma omp parallel for default(shared) private(j,i,k,offset_min,offset_max,filter_offset,factor)
+        for(j = 0; j < z_num;j++){
+            for(i = 0; i < x_num;i++){
+
+                for(k = 0;k < y_num;k++){
+
+                    filter_offset = floor(pow(2,k_max - output_data.mesh[j*x_num*y_num + i*y_num + k])/scale_d[0]);
+
+                    offset_max = std::min((int)(k + filter_offset),(int)(y_num-1));
+                    offset_min = std::max((int)(k - filter_offset),(int)0);
+
+                    factor = 1.0/(offset_max - offset_min+1);
+
+                    uint64_t f = 0;
+                    output_data.mesh[j*x_num*y_num + i*y_num + k] = 0;
+                    for(uint64_t c = offset_min;c <= offset_max;c++){
+
+                        //output_data.mesh[j*x_num*y_num + i*y_num + k] += temp_vec[c]*filter[f];
+                        //output_data.mesh[j*x_num*y_num + i*y_num + k] += input_data.mesh[j*x_num*y_num + i*y_num + c]*filter[f];
+                        output_data.mesh[j*x_num*y_num + i*y_num + k] += pc_image.mesh[j*x_num*y_num + i*y_num + c]*factor;
+                        //f++;
+                    }
+
+                }
+            }
+        }
+
+    timer.stop_timer();
+
+    timer.start_timer("y direction");
+
+    std::swap(output_data.mesh,pc_image.mesh);
+
+    std::copy(k_img.mesh.begin(),k_img.mesh.end(),output_data.mesh.begin());
+
+#pragma omp parallel for default(shared) private(j,i,k,offset_min,offset_max,filter_offset,factor)
+        for(j = 0; j < z_num;j++){
+            for(i = 0; i < x_num;i++){
+
+                for(k = 0;k < y_num;k++){
+
+                    filter_offset = floor(pow(2,k_max - output_data.mesh[j*x_num*y_num + i*y_num + k])/scale_d[1]);
+
+                    offset_max = std::min((int)(i + filter_offset),(int)(x_num-1));
+                    offset_min = std::max((int)(i - filter_offset),(int)0);
+
+                    factor = 1.0/(offset_max - offset_min+1);
+
+                    uint64_t f = 0;
+                    output_data.mesh[j*x_num*y_num + i*y_num + k] = 0;
+                    for(uint64_t c = offset_min;c <= offset_max;c++){
+
+                        //output_data.mesh[j*x_num*y_num + i*y_num + k] += temp_vec[c]*filter[f];
+                        output_data.mesh[j*x_num*y_num + i*y_num + k] += pc_image.mesh[j*x_num*y_num + c*y_num + k]*factor;
+                        //f++;
+                    }
+
+                }
+            }
+        }
+
+//
+//
+//    // z loop
+//
+
+    timer.stop_timer();
+
+    std::swap(output_data.mesh,pc_image.mesh);
+
+    timer.start_timer("z direction");
+
+    std::copy(k_img.mesh.begin(),k_img.mesh.end(),output_data.mesh.begin());
+
+#pragma omp parallel for default(shared) private(j,i,k,offset_min,offset_max,filter_offset,factor)
+        for(j = 0; j < z_num;j++){
+            for(i = 0; i < x_num;i++){
+
+
+                for(k = 0;k < y_num;k++){
+
+                    filter_offset = floor(pow(2,k_max - output_data.mesh[j*x_num*y_num + i*y_num + k])/scale_d[2]);
+
+                    offset_max = std::min((int)(j + filter_offset),(int)(z_num-1));
+                    offset_min = std::max((int)(j - filter_offset),(int)0);
+
+                    factor = 1.0/(offset_max - offset_min+1);
+
+                    uint64_t f = 0;
+                    output_data.mesh[j*x_num*y_num + i*y_num + k]=0;
+                    for(uint64_t c = offset_min;c <= offset_max;c++){
+
+                        //output_data.mesh[j*x_num*y_num + i*y_num + k] += temp_vec[c]*filter[f];
+                        output_data.mesh[j*x_num*y_num + i*y_num + k] += pc_image.mesh[c*x_num*y_num + i*y_num + k]*factor;
+                        //f++;
+                    }
+
+                }
+            }
+        }
+
+    timer.stop_timer();
+
+    out_image = output_data;
+
+}
 template<typename T>
 void threshold_part(PartCellStructure<float,uint64_t>& pc_struct,ExtraPartCellData<T>& th_output,float threshold){
     //
@@ -564,7 +819,7 @@ void threshold_pixels(PartCellStructure<U,uint64_t>& pc_struct,uint64_t y_num,ui
     
 }
 template<typename S>
-void get_coord(const int dir,const CurrentLevel<S, uint64_t> &curr_level,const float step_size,int &dim1,int &dim2){
+static void get_coord(const int dir,const CurrentLevel<S, uint64_t> &curr_level,const float step_size,int &dim1,int &dim2){
     //
     //  Bevan Cheeseman 2017
     //
@@ -591,7 +846,7 @@ void get_coord(const int dir,const CurrentLevel<S, uint64_t> &curr_level,const f
 
 }
 
-void get_coord(const int& dir,const int& y,const int& x,const int& z,const float& step_size,int &dim1,int &dim2){
+static void get_coord(const int& dir,const int& y,const int& x,const int& z,const float& step_size,int &dim1,int &dim2){
     //
     //  Bevan Cheeseman 2017
     //
@@ -614,7 +869,7 @@ void get_coord(const int& dir,const int& y,const int& x,const int& z,const float
     }
 
 }
-void get_coord_filter(const int& dir,const int& y,const int& x,const int& z,const float& step_size,int &dim1,int &dim2){
+static void get_coord_filter(const int& dir,const int& y,const int& x,const int& z,const float& step_size,int &dim1,int &dim2){
     //
     //  Bevan Cheeseman 2017
     //
@@ -900,6 +1155,149 @@ void get_slices(PartCellStructure<float,uint64_t>& pc_struct){
 };
 
 
+
+template<typename U,typename V>
+void interp_img(Mesh_data<U>& img,ExtraPartCellData<uint16_t>& y_vec,ExtraPartCellData<V>& particles_int){
+    //
+    //  Bevan Cheeseman 2016
+    //
+    //  Takes in a APR and creates piece-wise constant image
+    //
+
+    img.initialize(y_vec.org_dims[0],y_vec.org_dims[1],y_vec.org_dims[2],0);
+
+    int z_,x_,j_,y_;
+
+    for(uint64_t depth = (y_vec.depth_min);depth <= y_vec.depth_max;depth++) {
+        //loop over the resolutions of the structure
+        const unsigned int x_num_ = y_vec.x_num[depth];
+        const unsigned int z_num_ = y_vec.z_num[depth];
+
+        const unsigned int x_num_min_ = 0;
+        const unsigned int z_num_min_ = 0;
+
+        const float step_size = pow(2,y_vec.depth_max - depth);
+
+#pragma omp parallel for default(shared) private(z_,x_,j_) if(z_num_*x_num_ > 100)
+        for (z_ = z_num_min_; z_ < z_num_; z_++) {
+            //both z and x are explicitly accessed in the structure
+
+            for (x_ = x_num_min_; x_ < x_num_; x_++) {
+
+                const unsigned int pc_offset = x_num_ * z_ + x_;
+
+                for (j_ = 0; j_ <y_vec.data[depth][pc_offset].size(); j_++) {
+
+                        int dim1 = y_vec.data[depth][pc_offset][j_] * step_size;
+                        int dim2 = x_ * step_size;
+                        int dim3 = z_ * step_size;
+
+                        const V temp_int = particles_int.data[depth][pc_offset][j_];
+                        //add to all the required rays
+
+                        const int offset_max_dim1 = std::min((int) img.y_num, (int) (dim1 + step_size));
+                        const int offset_max_dim2 = std::min((int) img.x_num, (int) (dim2 + step_size));
+                        const int offset_max_dim3 = std::min((int) img.z_num, (int) (dim3 + step_size));
+
+                        for (int q = dim3; q < offset_max_dim3; ++q) {
+
+                            for (int k = dim2; k < offset_max_dim2; ++k) {
+#pragma omp simd
+                                for (int i = dim1; i < offset_max_dim1; ++i) {
+                                    img.mesh[i + (k) * img.y_num + q*img.y_num*img.x_num] = temp_int;
+                                }
+                            }
+                        }
+
+
+                }
+            }
+        }
+    }
+
+
+
+
+}
+
+template<typename U>
+void interp_depth(Mesh_data<U>& img,PartCellData<uint64_t>& pc_data,ParticleDataNew<float, uint64_t>& part_new){
+    //
+    //  Bevan Cheeseman 2016
+    //
+    //  Takes in a APR and creates piece-wise constant image
+    //
+
+    img.initialize(pc_data.org_dims[0],pc_data.org_dims[1],pc_data.org_dims[2],0);
+
+    int z_,x_,j_,y_;
+
+    for(uint64_t depth = (part_new.access_data.depth_min);depth <= part_new.access_data.depth_max;depth++) {
+        //loop over the resolutions of the structure
+        const unsigned int x_num_ = pc_data.x_num[depth];
+        const unsigned int z_num_ = pc_data.z_num[depth];
+
+        const unsigned int x_num_min_ = 0;
+        const unsigned int z_num_min_ = 0;
+
+        CurrentLevel<float, uint64_t> curr_level(pc_data);
+        curr_level.set_new_depth(depth, part_new);
+
+        const float step_size = pow(2,curr_level.depth_max - curr_level.depth);
+
+#pragma omp parallel for default(shared) private(z_,x_,j_) firstprivate(curr_level) if(z_num_*x_num_ > 100)
+        for (z_ = z_num_min_; z_ < z_num_; z_++) {
+            //both z and x are explicitly accessed in the structure
+
+            for (x_ = x_num_min_; x_ < x_num_; x_++) {
+
+                curr_level.set_new_xz(x_, z_, part_new);
+
+                for (j_ = 0; j_ < curr_level.j_num; j_++) {
+
+                    bool iscell = curr_level.new_j(j_, part_new);
+
+                    if (iscell) {
+                        //Indicates this is a particle cell node
+                        curr_level.update_cell(part_new);
+
+                        int dim1 = curr_level.y * step_size;
+                        int dim2 = curr_level.x * step_size;
+                        int dim3 = curr_level.z * step_size;
+
+                        const int offset_max_dim1 = std::min((int) img.y_num, (int) (dim1 + step_size));
+                        const int offset_max_dim2 = std::min((int) img.x_num, (int) (dim2 + step_size));
+                        const int offset_max_dim3 = std::min((int) img.z_num, (int) (dim3 + step_size));
+
+                        for (int q = dim3; q < offset_max_dim3; ++q) {
+
+                            for (int k = dim2; k < offset_max_dim2; ++k) {
+#pragma omp simd
+                                for (int i = dim1; i < offset_max_dim1; ++i) {
+                                    img.mesh[i + (k) * img.y_num + q*img.y_num*img.x_num] = depth;
+                                }
+                            }
+                        }
+
+
+                    } else {
+
+                        curr_level.update_gap();
+
+                    }
+
+
+                }
+            }
+        }
+    }
+
+
+
+
+}
+
+
 template<typename U,typename V>
 void interp_img(Mesh_data<U>& img,PartCellData<uint64_t>& pc_data,ParticleDataNew<float, uint64_t>& part_new,ExtraPartCellData<V>& particles_int,const bool val){
     //
@@ -978,6 +1376,577 @@ void interp_img(Mesh_data<U>& img,PartCellData<uint64_t>& pc_data,ParticleDataNe
             }
         }
     }
+
+
+
+
+}
+
+template<typename U>
+U weight_func(const float d,const float sd){
+
+    //return exp(-pow(d,2)/pow(sd,2))*(d <= sd);
+    return exp(-pow(d,2)/pow(sd,1));
+    //return (sd*(1.05)-d)/sd;
+    //return 1.0f;
+}
+
+static float square_dist(float x,float y,float a,float b){
+    //
+    //  Bevan Cheeseman 2017
+    //
+    //  Calculates the distance of a combination of x,y to a rectangle of sides a.b
+    //
+
+    float theta = std::atan2(x,y);
+    float d;
+
+    if (std::abs(std::tan(theta)) > a/b) {
+        d = a / std::abs(std::sin(theta));
+    } else {
+        d = b / std::abs(std::cos(theta));
+    }
+
+    return d;
+}
+
+static float cube_dist(float x,float y,float z,float a){
+    //
+    //  Bevan Cheeseman 2017
+    //
+    //  Calculates the distance of a combination of x,y,z to a cube with sides a
+    //
+
+    float d_p = square_dist(x,y,a,a);
+
+    float dist_2D = sqrt(pow(x,2) + pow(y,2));
+
+    float d = square_dist(dist_2D,z,d_p,a);
+
+    return d;
+}
+
+static float integral_weight_func(const float x,const float y, const float z,const float r1,const float r2){
+
+    float dist = sqrt(pow( x,2 ) + pow( y,2 ) + pow( z,2 ));
+
+    float dist_c = cube_dist(x,y,z,r1);
+
+    float int_dist;
+
+    if(dist > dist_c){
+        int_dist = (dist-dist_c)*(1.0f/r2) + dist_c*(1.0f/r1);
+
+    } else {
+        int_dist = dist*(1.0f/r1);
+    }
+
+    if (int_dist <=1){
+        return weight_func<float>(int_dist,r2/r1);
+
+    } else {
+
+        return 0;
+    }
+
+
+}
+static bool integral_check_neigh(const float x,const float y, const float z,const float r1,const float r2){
+
+    float dist = sqrt(pow( x,2.0 ) + pow( y,2.0 ) + pow( z,2.0 ));
+
+    float dist_c = cube_dist(x,y,z,r1);
+
+    float int_dist;
+
+    if(dist > dist_c){
+        int_dist = (dist-dist_c)*(1.0f/r2) + dist_c*(1.0f/r1);
+
+    } else {
+        int_dist = dist*(1.0f/r1);
+    }
+
+    if (int_dist <=1){
+        return true;
+
+    } else {
+
+        return false;
+    }
+
+
+}
+
+
+
+
+template<typename U,typename V>
+void weigted_interp_img(Mesh_data<U>& img,PartCellData<uint64_t>& pc_data,ParticleDataNew<float, uint64_t>& part_new,ExtraPartCellData<V>& particles_int,const bool val,bool smooth = true){
+    //
+    //  Bevan Cheeseman 2016
+    //
+    //  Takes in a APR and creates piece-wise constant image
+    //
+
+    img.initialize(pc_data.org_dims[0],pc_data.org_dims[1],pc_data.org_dims[2],0.0);
+
+    Mesh_data<double> weight_img;
+    weight_img.initialize(pc_data.org_dims[0],pc_data.org_dims[1],pc_data.org_dims[2],0.0);
+
+    Mesh_data<double> weight_int;
+    weight_int.initialize(pc_data.org_dims[0],pc_data.org_dims[1],pc_data.org_dims[2],0.0);
+
+
+
+    Mesh_data<float> d_img;
+
+    interp_depth(d_img, pc_data, part_new);
+
+    int z_,x_,j_,y_;
+
+    for(uint64_t depth = (part_new.access_data.depth_min);depth <= part_new.access_data.depth_max;depth++) {
+        //loop over the resolutions of the structure
+        const unsigned int x_num_ = pc_data.x_num[depth];
+        const unsigned int z_num_ = pc_data.z_num[depth];
+
+        const unsigned int x_num_min_ = 0;
+        const unsigned int z_num_min_ = 0;
+
+        CurrentLevel<float, uint64_t> curr_level(pc_data);
+        curr_level.set_new_depth(depth, part_new);
+
+        const float step_size = pow(2,curr_level.depth_max - curr_level.depth);
+
+#pragma omp parallel for default(shared) private(z_,x_,j_) firstprivate(curr_level) if(z_num_*x_num_ > 100)
+        for (z_ = z_num_min_; z_ < z_num_; z_++) {
+            //both z and x are explicitly accessed in the structure
+
+            for (x_ = x_num_min_; x_ < x_num_; x_++) {
+
+                curr_level.set_new_xz(x_, z_, part_new);
+
+                for (j_ = 0; j_ < curr_level.j_num; j_++) {
+
+                    bool iscell = curr_level.new_j(j_, part_new);
+
+                    if (iscell) {
+                        //Indicates this is a particle cell node
+                        curr_level.update_cell(part_new);
+
+                        int dim1,dim2,dim3;
+
+                        int offset_max_dim1,offset_max_dim2,offset_max_dim3;
+
+                        if (curr_level.status < 0){
+                            dim1 = std::max(((float) curr_level.y ) * step_size, 0.0f);
+                            dim2 = std::max(((float) curr_level.x ) * step_size, 0.0f);
+                            dim3 = std::max(((float) curr_level.z ) * step_size, 0.0f);
+
+                            offset_max_dim1 = std::min((int) img.y_num, (int) (dim1 + step_size));
+                            offset_max_dim2 = std::min((int) img.x_num, (int) (dim2 + step_size));
+                            offset_max_dim3 = std::min((int) img.z_num, (int) (dim3 + step_size));
+
+                        } else {
+
+                            dim1 = std::max(((float) curr_level.y - 1.00f) * step_size, 0.0f);
+                            dim2 = std::max(((float) curr_level.x - 1.00f) * step_size, 0.0f);
+                            dim3 = std::max(((float) curr_level.z - 1.00f) * step_size, 0.0f);
+
+                            offset_max_dim1 = std::min((int) img.y_num, (int) (dim1 + 3*step_size));
+                            offset_max_dim2 = std::min((int) img.x_num, (int) (dim2 + 3*step_size));
+                            offset_max_dim3 = std::min((int) img.z_num, (int) (dim3 + 3*step_size));
+
+                        }
+
+                        float temp_int;
+                        //add to all the required rays
+                        if(val){
+                            temp_int = curr_level.get_val(particles_int);
+                        } else {
+                            temp_int = curr_level.get_part(particles_int);
+                        }
+
+                        float mid_1 = ((float)curr_level.y) * step_size + (step_size-1)/2.0f;
+                        float mid_2 = ((float)curr_level.x) * step_size + (step_size-1)/2.0f;
+                        float mid_3 = ((float)curr_level.z) * step_size + (step_size-1)/2.0f;
+
+                        if(step_size ==1){
+                            mid_1 = curr_level.y;
+                            mid_2 = curr_level.x;
+                            mid_3 = curr_level.z;
+                        }
+
+                        for (int q = dim3; q < offset_max_dim3; ++q) {
+
+                            for (int k = dim2; k < offset_max_dim2; ++k) {
+
+                                for (int i = dim1; i < offset_max_dim1; ++i) {
+
+
+
+                                    float neigh_size = pow(2,curr_level.depth_max - d_img.mesh[i + (k) * img.y_num + q*img.y_num*img.x_num]);
+
+                                    double w =  integral_weight_func((i-mid_1),(k-mid_2), (q-mid_3),step_size,neigh_size);
+
+                                    double temp = w;
+
+//                                    if(w > 0.001) {
+//
+//
+//                                        weight_int.mesh[i + (k) * img.y_num + q * img.y_num * img.x_num] +=
+//                                                ((double) temp_int) * temp;
+//                                        weight_img.mesh[i + (k) * img.y_num + q * img.y_num * img.x_num] += temp;
+//
+//
+//
+//                                    }
+
+                                    if(w > 0) {
+
+                                        weight_img.mesh[i + (k) * img.y_num + q * img.y_num * img.x_num] += w;
+
+                                        temp = w / weight_img.mesh[i + (k) * img.y_num + q * img.y_num * img.x_num];
+
+
+                                        weight_int.mesh[i + (k) * img.y_num + q * img.y_num * img.x_num] =
+                                                ((double) temp_int) * temp + (1.0f - temp) *
+                                                                             weight_int.mesh[i + (k) * img.y_num +
+                                                                                             q * img.y_num * img.x_num];
+                                    }
+
+
+                                }
+                            }
+                        }
+
+
+                    } else {
+
+                        curr_level.update_gap();
+
+                    }
+
+
+                }
+            }
+        }
+    }
+
+
+    if(smooth) {
+        uint64_t depth = part_new.access_data.depth_max;
+        //loop over the resolutions of the structure
+        const unsigned int x_num_ = pc_data.x_num[depth];
+        const unsigned int z_num_ = pc_data.z_num[depth];
+
+        const unsigned int x_num_min_ = 0;
+        const unsigned int z_num_min_ = 0;
+
+        CurrentLevel<float, uint64_t> curr_level(pc_data);
+        curr_level.set_new_depth(depth, part_new);
+
+        const float step_size = pow(2, curr_level.depth_max - curr_level.depth);
+
+#pragma omp parallel for default(shared) private(z_,x_,j_) firstprivate(curr_level) if(z_num_*x_num_ > 100)
+        for (z_ = z_num_min_; z_ < z_num_; z_++) {
+            //both z and x are explicitly accessed in the structure
+
+            for (x_ = x_num_min_; x_ < x_num_; x_++) {
+
+                curr_level.set_new_xz(x_, z_, part_new);
+
+                for (j_ = 0; j_ < curr_level.j_num; j_++) {
+
+                    bool iscell = curr_level.new_j(j_, part_new);
+
+                    if (iscell) {
+                        //Indicates this is a particle cell node
+                        curr_level.update_cell(part_new);
+
+                        int dim1 = std::max(((float) curr_level.y) * step_size, 0.0f);
+                        int dim2 = std::max(((float) curr_level.x) * step_size, 0.0f);
+                        int dim3 = std::max(((float) curr_level.z) * step_size, 0.0f);
+
+                        float temp_int;
+                        //add to all the required rays
+                        if (val) {
+                            temp_int = curr_level.get_val(particles_int);
+                        } else {
+                            temp_int = curr_level.get_part(particles_int);
+                        }
+                        const int offset_max_dim1 = std::min((int) img.y_num, (int) (dim1 + 1 * step_size));
+                        const int offset_max_dim2 = std::min((int) img.x_num, (int) (dim2 + 1 * step_size));
+                        const int offset_max_dim3 = std::min((int) img.z_num, (int) (dim3 + 1 * step_size));
+
+                        const float mid = 3 * step_size / 2;
+
+                        for (int q = dim3; q < offset_max_dim3; ++q) {
+
+                            for (int k = dim2; k < offset_max_dim2; ++k) {
+
+                                for (int i = dim1; i < offset_max_dim1; ++i) {
+
+                                    //float dist = sqrt(pow( (q-dim3-mid),2 ) + pow( (k-dim2-mid),2 ) + pow( (i-dim1-mid),2 ));
+                                    //float w =  weight_func<float>(dist,step_size*2);
+
+                                    weight_int.mesh[i + (k) * img.y_num + q * img.y_num * img.x_num] = (temp_int) * 1;
+                                    weight_img.mesh[i + (k) * img.y_num + q * img.y_num * img.x_num] = 1;
+
+                                }
+                            }
+                        }
+
+
+                    } else {
+
+                        curr_level.update_gap();
+
+                    }
+
+
+                }
+            }
+        }
+    }
+
+
+
+
+
+
+
+    //then loop over and divide the two
+
+    for(z_ = 0;z_ < img.mesh.size();z_++){
+
+        img.mesh[z_] = round(weight_int.mesh[z_]);
+        //weight_img.mesh[z_] = 1000*weight_img.mesh[z_];
+
+    }
+
+
+
+    //debug_write(weight_img,"weight_img");
+   // debug_write(weight_int,"weight_int");
+
+
+
+
+
+}
+template<typename U,typename V>
+void min_max_interp(Mesh_data<U>& min_img,Mesh_data<U>& max_img,PartCellData<uint64_t>& pc_data,ParticleDataNew<float, uint64_t>& part_new,ExtraPartCellData<V>& particles_int,const bool val){
+    //
+    //  Bevan Cheeseman 2016
+    //
+    //  Takes in a APR and creates piece-wise constant image
+    //
+
+    min_img.initialize(pc_data.org_dims[0],pc_data.org_dims[1],pc_data.org_dims[2],660000);
+    max_img.initialize(pc_data.org_dims[0],pc_data.org_dims[1],pc_data.org_dims[2],0);
+
+    Mesh_data<uint8_t> d_img;
+
+    interp_depth(d_img, pc_data, part_new);
+
+    int z_,x_,j_,y_;
+
+    for(uint64_t depth = (part_new.access_data.depth_min);depth < part_new.access_data.depth_max;depth++) {
+        //loop over the resolutions of the structure
+        const unsigned int x_num_ = pc_data.x_num[depth];
+        const unsigned int z_num_ = pc_data.z_num[depth];
+
+        const unsigned int x_num_min_ = 0;
+        const unsigned int z_num_min_ = 0;
+
+        CurrentLevel<float, uint64_t> curr_level(pc_data);
+        curr_level.set_new_depth(depth, part_new);
+
+        const double step_size = pow(2,curr_level.depth_max - curr_level.depth);
+
+//#pragma omp parallel for default(shared) private(z_,x_,j_) firstprivate(curr_level) if(z_num_*x_num_ > 100)
+        for (z_ = z_num_min_; z_ < z_num_; z_++) {
+            //both z and x are explicitly accessed in the structure
+
+            for (x_ = x_num_min_; x_ < x_num_; x_++) {
+
+                curr_level.set_new_xz(x_, z_, part_new);
+
+                for (j_ = 0; j_ < curr_level.j_num; j_++) {
+
+                    bool iscell = curr_level.new_j(j_, part_new);
+
+                    if (iscell) {
+                        //Indicates this is a particle cell node
+                        curr_level.update_cell(part_new);
+
+                        int dim1,dim2,dim3;
+
+                        int offset_max_dim1,offset_max_dim2,offset_max_dim3;
+
+                        dim1 = round(std::max(((double) curr_level.y - 1.00f) * step_size, 0.0));
+                        dim2 = round(std::max(((double) curr_level.x - 1.00f) * step_size, 0.0));
+                        dim3 = round(std::max(((double) curr_level.z - 1.00f) * step_size, 0.0));
+
+                        offset_max_dim1 = std::min((int) min_img.y_num, (int) (dim1 + 3*step_size));
+                        offset_max_dim2 = std::min((int) min_img.x_num, (int) (dim2 + 3*step_size));
+                        offset_max_dim3 = std::min((int) min_img.z_num, (int) (dim3 + 3*step_size));
+
+                        float temp_int;
+                        //add to all the required rays
+                        if(val){
+                            temp_int = curr_level.get_val(particles_int);
+                        } else {
+                            temp_int = curr_level.get_part(particles_int);
+                        }
+
+                        double mid_1 = ((float)curr_level.y) * step_size + (step_size-1)/2.0f;
+                        double mid_2 = ((float)curr_level.x) * step_size + (step_size-1)/2.0f;
+                        double mid_3 = ((float)curr_level.z) * step_size + (step_size-1)/2.0f;
+
+                        if(step_size ==1){
+                            mid_1 = curr_level.y;
+                            mid_2 = curr_level.x;
+                            mid_3 = curr_level.z;
+                        }
+
+
+                        for (int q = dim3; q < offset_max_dim3; ++q) {
+
+                            for (int k = dim2; k < offset_max_dim2; ++k) {
+
+                                for (int i = dim1; i < offset_max_dim1; ++i) {
+
+                                    double neigh_size = pow(2,curr_level.depth_max - d_img.mesh[i + (k) * min_img.y_num + q*min_img.y_num*min_img.x_num]);
+
+                                  //  max_img.mesh[i + (k) * min_img.y_num + q * min_img.y_num * min_img.x_num] = std::max(temp_int,max_img.mesh[i + (k) * min_img.y_num + q * min_img.y_num * min_img.x_num]);
+                                 //   min_img.mesh[i + (k) * min_img.y_num + q * min_img.y_num * min_img.x_num] = std::min(temp_int,min_img.mesh[i + (k) * min_img.y_num + q * min_img.y_num * min_img.x_num]);
+                                    double dist = sqrt(pow( (i-mid_1),2.0 ) + pow( (k-mid_2),2.0 ) + pow( (q-mid_3),2.0 ));
+
+
+                                    if ( dist <= step_size) {
+
+                                        if ( integral_check_neigh((i-mid_1),(k-mid_2), (q-mid_3),step_size,neigh_size)) {
+
+                                            max_img.mesh[i + (k) * min_img.y_num +
+                                                         q * min_img.y_num * min_img.x_num] = std::max(temp_int,
+                                                                                                       max_img.mesh[i +
+                                                                                                                    (k) *
+                                                                                                                    min_img.y_num +
+                                                                                                                    q *
+                                                                                                                    min_img.y_num *
+                                                                                                                    min_img.x_num]);
+                                            min_img.mesh[i + (k) * min_img.y_num +
+                                                         q * min_img.y_num * min_img.x_num] = std::min(temp_int,
+                                                                                                       min_img.mesh[i +
+                                                                                                                    (k) *
+                                                                                                                    min_img.y_num +
+                                                                                                                    q *
+                                                                                                                    min_img.y_num *
+                                                                                                                    min_img.x_num]);
+                                        }
+                                    }
+
+
+
+//                                    if ( integral_check_neigh(round(i-mid_1),round(k-mid_2), round(q-mid_3),step_size,step_size)) {
+//                                        max_img.mesh[i + (k) * min_img.y_num + q * min_img.y_num * min_img.x_num] = std::max(temp_int,max_img.mesh[i + (k) * min_img.y_num + q * min_img.y_num * min_img.x_num]);
+//                                        min_img.mesh[i + (k) * min_img.y_num + q * min_img.y_num * min_img.x_num] = std::min(temp_int,min_img.mesh[i + (k) * min_img.y_num + q * min_img.y_num * min_img.x_num]);
+//                                    }
+
+                                }
+                            }
+                        }
+
+
+
+                    } else {
+
+                        curr_level.update_gap();
+
+                    }
+
+
+                }
+            }
+        }
+    }
+
+
+
+    uint64_t depth = part_new.access_data.depth_max;
+    //loop over the resolutions of the structure
+    const unsigned int x_num_ = pc_data.x_num[depth];
+    const unsigned int z_num_ = pc_data.z_num[depth];
+
+    const unsigned int x_num_min_ = 0;
+    const unsigned int z_num_min_ = 0;
+
+    CurrentLevel<float, uint64_t> curr_level(pc_data);
+    curr_level.set_new_depth(depth, part_new);
+
+    const float step_size = pow(2,curr_level.depth_max - curr_level.depth);
+
+//#pragma omp parallel for default(shared) private(z_,x_,j_) firstprivate(curr_level) if(z_num_*x_num_ > 100)
+    for (z_ = z_num_min_; z_ < z_num_; z_++) {
+        //both z and x are explicitly accessed in the structure
+
+        for (x_ = x_num_min_; x_ < x_num_; x_++) {
+
+            curr_level.set_new_xz(x_, z_, part_new);
+
+            for (j_ = 0; j_ < curr_level.j_num; j_++) {
+
+                bool iscell = curr_level.new_j(j_, part_new);
+
+                if (iscell) {
+                    //Indicates this is a particle cell node
+                    curr_level.update_cell(part_new);
+
+                    int dim1 = std::max(((float)curr_level.y) * step_size,0.0f);
+                    int dim2 = std::max(((float)curr_level.x) * step_size,0.0f);
+                    int dim3 = std::max(((float)curr_level.z) * step_size,0.0f);
+
+                    float temp_int;
+                    //add to all the required rays
+                    if(val){
+                        temp_int = curr_level.get_val(particles_int);
+                    } else {
+                        temp_int = curr_level.get_part(particles_int);
+                    }
+                    const int offset_max_dim1 = std::min((int) min_img.y_num, (int) (dim1 + 1*step_size));
+                    const int offset_max_dim2 = std::min((int) min_img.x_num, (int) (dim2 + 1*step_size));
+                    const int offset_max_dim3 = std::min((int) min_img.z_num, (int) (dim3 + 1*step_size));
+
+                    const float mid = 3*step_size/2;
+
+                    for (int q = dim3; q < offset_max_dim3; ++q) {
+
+                        for (int k = dim2; k < offset_max_dim2; ++k) {
+
+                            for (int i = dim1; i < offset_max_dim1; ++i) {
+
+                                max_img.mesh[i + (k) * min_img.y_num + q * min_img.y_num * min_img.x_num] = temp_int;
+                                min_img.mesh[i + (k) * min_img.y_num + q * min_img.y_num * min_img.x_num] = temp_int;
+
+                            }
+                        }
+                    }
+
+
+                } else {
+
+                    curr_level.update_gap();
+
+                }
+
+
+            }
+        }
+    }
+
+
+
 
 
 
@@ -1624,7 +2593,7 @@ void interp_slice(Mesh_data<U>& slice,PartCellData<uint64_t>& pc_data,ParticleDa
 
 }
 
-void create_y_offsets(ExtraPartCellData<uint16_t>& y_off,ParticleDataNew<float, uint64_t>& part_new,PartCellData<uint64_t>& pc_data){
+static void create_y_offsets(ExtraPartCellData<uint16_t>& y_off,ParticleDataNew<float, uint64_t>& part_new,PartCellData<uint64_t>& pc_data){
     //
     //  Bevan Cheeseman 2017
     //
@@ -1712,7 +2681,7 @@ void create_y_offsets(ExtraPartCellData<uint16_t>& y_off,ParticleDataNew<float, 
 }
 
 
-void create_y_data(ExtraPartCellData<uint16_t>& y_vec,ParticleDataNew<float, uint64_t>& part_new,PartCellData<uint64_t>& pc_data){
+static void create_y_data(ExtraPartCellData<uint16_t>& y_vec,ParticleDataNew<float, uint64_t>& part_new,PartCellData<uint64_t>& pc_data){
     //
     //  Bevan Cheeseman 2017
     //
@@ -1772,7 +2741,7 @@ void create_y_data(ExtraPartCellData<uint16_t>& y_vec,ParticleDataNew<float, uin
 
 
 }
-void create_y_data(ExtraPartCellData<uint16_t>& y_vec,ParticleDataNew<float, uint64_t>& part_new){
+static void create_y_data(ExtraPartCellData<uint16_t>& y_vec,ParticleDataNew<float, uint64_t>& part_new){
 
     PartCellData<uint64_t> pc_data_temp;
 

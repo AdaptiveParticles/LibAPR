@@ -59,7 +59,7 @@ int main(int argc, char **argv) {
     //
     /////////////////////////////////////////////////////////
 
-    float image_size_max = 600;
+    float image_size_max = options.image_size;
     float image_size_min = 50;
 
     std::vector<float> sampling_rate;
@@ -78,18 +78,28 @@ int main(int argc, char **argv) {
         sampling_rate.push_back(i);
     }
 
-    //sampling_rate.push_back(min_sampling);
+    //sampling_rate.push_back(max_sampling);
 
     //sampling_rate.push_back(max_sampling);
 
-    bs.desired_I = sqrt(bs.shift)*30;
-
-    //syn_image.noise_properties.noise_type = "none";
-
+//    //min mean
+//    float min_sig = 1;
+//    float max_sig = 10;
+//    float num_steps = bs.N_repeats;
+//
+//    float del = (max_sig - min_sig) / num_steps;
+//    std::vector<float> sig_vec;
+//
+//    for (float i = min_sig; i <= max_sig; i = i + del) {
+//         sig_vec.push_back(i);
+//    }
+//
+//    //syn_image.noise_properties.noise_type = "none";
+//
     int N_par = (int)sampling_rate.size();
+    set_up_benchmark_defaults(syn_image,bs);
 
-
-    float sig =3;
+    float sig =1;
 
 
 
@@ -98,31 +108,46 @@ int main(int argc, char **argv) {
         ///////////////////////////////////////////////////////////////////
         //PSF properties
 
-        bs.voxel_size = sampling_rate[j];
-        bs.sampling_delta = sampling_rate[j];
 
-        bs.x_num = round(real_domain_size/bs.sampling_delta);
-        bs.y_num = round(real_domain_size/bs.sampling_delta);
-        bs.z_num = round(real_domain_size/bs.sampling_delta);
-
-        update_domain(syn_image,bs);
-
-        bs.sig = sig*sampling_rate.back()/sampling_rate[j];
-
-        set_gaussian_psf(syn_image,bs);
-
-        std::cout << "Generating Templates" << std::endl;
-
-        obj_properties obj_prop(bs);
-
-        obj_prop.sample_rate = std::max(bs.x_num,200);
-        obj_prop.obj_size = obj_size;
-
-        Object_template  basic_object = get_object_template(options,obj_prop);
-        SynImage syn_image_loc = syn_image;
-        syn_image_loc.object_templates.push_back(basic_object);
 
         for(int i = 0; i < bs.N_repeats; i++){
+
+            SynImage syn_image_loc = syn_image;
+
+
+            set_up_benchmark_defaults(syn_image_loc,bs);
+
+            bs.desired_I = sqrt(bs.shift)*30;
+
+            bs.voxel_size = sampling_rate[j];
+            bs.sampling_delta = sampling_rate[j];
+
+            bs.x_num = round(real_domain_size/bs.sampling_delta);
+            bs.y_num = round(real_domain_size/bs.sampling_delta);
+            bs.z_num = round(real_domain_size/bs.sampling_delta);
+
+            update_domain(syn_image_loc,bs);
+
+            bs.sig = sig*sampling_rate.back()/sampling_rate[j];
+
+            set_gaussian_psf(syn_image_loc,bs);
+
+            std::cout << "Generating Templates" << std::endl;
+
+            obj_properties obj_prop(bs);
+
+            obj_prop.sample_rate = std::max(bs.x_num,200);
+            obj_prop.obj_size = obj_size;
+
+            Object_template  basic_object = get_object_template(options,obj_prop);
+
+            syn_image_loc.object_templates.push_back(basic_object);
+
+            //syn_image_loc.noise_properties.noise_type = "gaussian";
+            bs.int_scale_min = 1;
+            bs.int_scale_max = 1;
+
+            bs.rel_error = 0.12;
 
             //af::sync();
             af::deviceGC();
@@ -168,11 +193,16 @@ int main(int argc, char **argv) {
             //
             //////////////////////////////
 
+            bs.lambda = 20*pow(bs.x_num/50,2);
+
             Part_rep p_rep;
 
             set_up_part_rep(syn_image_loc,p_rep,bs);
 
             // Get the APR
+
+            p_rep.pars.var_th = 1;
+
 
             PartCellStructure<float,uint64_t> pc_struct;
 
@@ -184,6 +214,8 @@ int main(int argc, char **argv) {
             //
             ///////////////////////////////
 
+
+
             produce_apr_analysis(input_img,analysis_data,pc_struct,syn_image_loc,p_rep.pars);
 
             af::sync();
@@ -191,6 +223,8 @@ int main(int argc, char **argv) {
 
         }
     }
+
+
 
 
     //write the analysis output

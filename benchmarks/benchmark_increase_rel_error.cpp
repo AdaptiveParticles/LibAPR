@@ -71,14 +71,18 @@ int main(int argc, char **argv) {
     }
 
     min_rel_error = .1;
-    max_rel_error = .4;
+    max_rel_error = 1;
     num_steps = options.delta;
+
 
     del = (max_rel_error - min_rel_error) / num_steps;
 
     for (float i = min_rel_error; i <= max_rel_error; i = i + del) {
         rel_error_vec.push_back(i);
     }
+
+    //rel_error_vec = {0.1};
+
 
     //min mean
     float min_sig = 1;
@@ -89,11 +93,11 @@ int main(int argc, char **argv) {
 
 
     for (float i = min_sig; i <= max_sig; i = i + del) {
-       // sig_vec.push_back(i);
+        // sig_vec.push_back(i);
     }
 
 
-    sig_vec = {1,3,6};
+    sig_vec = {1.5};
 
     //min mean
     float min_shift = 5;
@@ -110,26 +114,28 @@ int main(int argc, char **argv) {
         shift.push_back(max_shift);
     }
 
-    shift = {1,10,30};
+    //shift = {};
 
     int N_par1 = (int)rel_error_vec.size(); // this many different parameter values to be run
     int N_par2 = (int)sig_vec.size();
     int N_par3 = (int)shift.size();
 
-    bs.num_objects = 5;
+    bs.num_objects = 10;
 
-    bs.obj_size = 3;
+    bs.obj_size = 1;
 
     Genrand_uni gen_rand;
 
     bs.int_scale_min = 1;
-    bs.int_scale_max = 5;
+    bs.int_scale_max = 10;
 
     Part_timer b_timer;
     b_timer.verbose_flag = true;
 
     bs.shift = 1000;
     syn_image.global_trans.const_shift = 1000;
+
+
 
     for(int q = 0;q < N_par3;q++) {
 
@@ -141,9 +147,13 @@ int main(int argc, char **argv) {
 
             Object_template basic_object = get_object_template(options, obj_prop);
 
-            syn_image.object_templates.push_back(basic_object);
+            SynImage syn_image_n = syn_image;
+
+            syn_image_n.object_templates.push_back(basic_object);
 
             for (int j = 0; j < N_par1; j++) {
+
+                int stop = 1;
 
                 for (int i = 0; i < bs.N_repeats; i++) {
 
@@ -161,14 +171,21 @@ int main(int argc, char **argv) {
                     analysis_data.get_data_ref<float>("num_objects")->data.push_back(bs.num_objects);
                     analysis_data.part_data_list["num_objects"].print_flag = true;
 
-                    SynImage syn_image_loc = syn_image;
+                    SynImage syn_image_loc ;
+
+                    set_up_benchmark_defaults(syn_image_loc, bs);
+
+                    bs.sig = sig_vec[p];
+
+                    update_domain(syn_image_loc,bs);
+                    syn_image_loc.object_templates.push_back(basic_object);
 
                     //add the basic sphere as the standard template
 
                     ///////////////////////////////////////////////////////////////////
                     //PSF properties
 
-                    bs.desired_I = sqrt(1000)*shift[q];
+                    bs.desired_I = 500;
 
                     analysis_data.add_float_data("desired_I",bs.desired_I);
 
@@ -219,6 +236,8 @@ int main(int argc, char **argv) {
 
                     PartCellStructure<float, uint64_t> pc_struct;
 
+                    //p_rep.pars.var_th = 1;
+
                     bench_get_apr(input_img, p_rep, pc_struct, analysis_data);
 
                     b_timer.stop_timer();
@@ -233,6 +252,7 @@ int main(int argc, char **argv) {
 
                     produce_apr_analysis(input_img, analysis_data, pc_struct, syn_image_loc, p_rep.pars);
 
+                    std::cout << "Num Parts: " << pc_struct.get_number_parts() << std::endl;
 
                     af::sync();
                     af::deviceGC();

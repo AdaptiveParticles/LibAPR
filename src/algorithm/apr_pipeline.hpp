@@ -19,6 +19,7 @@
 #include "../../src/io/partcell_io.h"
 #include "../../src/data_structures/Tree/PartCellParent.hpp"
 #include "../../benchmarks/analysis/AnalysisData.hpp"
+#include "../../src/data_structures/APR/APR.hpp"
 
 struct cmdLineOptions{
     std::string gt_input = "";
@@ -480,6 +481,125 @@ void get_variance(Mesh_data<S>& input_image,Mesh_data<float>& variance_u,Proc_pa
 
 }
 
+
+template<typename T,typename S>
+ExtraPartCellData<T> get_scale_parts_guided(APR<T>& apr,Mesh_data<S>& input_image,Proc_par& pars,Part_rep& part_rep){
+
+    Mesh_data<float> variance_u;
+
+    get_variance(input_image,variance_u,pars);
+
+
+    // now need the pyramid data-structure
+
+
+    Particle_map<float> part_map(part_rep);
+
+
+
+    ExtraPartCellData<T> scale_parts;
+
+    scale_parts.initialize_structure_parts(apr.particles_int);
+
+    int z_, x_, j_, y_, i, k;
+
+    for (uint64_t depth = (apr.y_vec.depth_min); depth <= apr.y_vec.depth_max; depth++) {
+        //loop over the resolutions of the structure
+        const unsigned int x_num_ = apr.y_vec.x_num[depth];
+        const unsigned int z_num_ = apr.y_vec.z_num[depth];
+
+        const float step_size_x = pow(2, apr.y_vec.depth_max - depth);
+        const float step_size_y = pow(2, apr.y_vec.depth_max - depth);
+        const float step_size_z = pow(2, apr.y_vec.depth_max - depth);
+
+
+#pragma omp parallel for default(shared) private(z_,x_,j_,i,k) schedule(guided) if(z_num_*x_num_ > 1000)
+        for (z_ = 0; z_ < z_num_; z_++) {
+            //both z and x are explicitly accessed in the structure
+
+            for (x_ = 0; x_ < x_num_; x_++) {
+
+                const unsigned int pc_offset = x_num_ * z_ + x_;
+
+                for (j_ = 0; j_ < apr.y_vec.data[depth][pc_offset].size(); j_++) {
+
+
+                    const int y = apr.y_vec.data[depth][pc_offset][j_];
+
+                    const float y_actual = floor((y+0.5) * step_size_y);
+                    const float x_actual = floor((x_+0.5) * step_size_x);
+                    const float z_actual = floor((z_+0.5) * step_size_z);
+
+                    scale_parts.data[depth][pc_offset][j_]=variance_u(y_actual,x_actual,z_actual);
+
+
+                }
+            }
+        }
+    }
+
+
+
+    return scale_parts;
+
+}
+
+
+template<typename T,typename S>
+ExtraPartCellData<T> get_scale_parts(APR<T>& apr,Mesh_data<S>& input_image,Proc_par& pars){
+
+    Mesh_data<float> variance_u;
+
+    get_variance(input_image,variance_u,pars);
+
+    ExtraPartCellData<T> scale_parts;
+
+    scale_parts.initialize_structure_parts(apr.particles_int);
+
+    int z_, x_, j_, y_, i, k;
+
+    for (uint64_t depth = (apr.y_vec.depth_min); depth <= apr.y_vec.depth_max; depth++) {
+        //loop over the resolutions of the structure
+        const unsigned int x_num_ = apr.y_vec.x_num[depth];
+        const unsigned int z_num_ = apr.y_vec.z_num[depth];
+
+        const float step_size_x = pow(2, apr.y_vec.depth_max - depth);
+        const float step_size_y = pow(2, apr.y_vec.depth_max - depth);
+        const float step_size_z = pow(2, apr.y_vec.depth_max - depth);
+
+
+#pragma omp parallel for default(shared) private(z_,x_,j_,i,k) schedule(guided) if(z_num_*x_num_ > 1000)
+        for (z_ = 0; z_ < z_num_; z_++) {
+            //both z and x are explicitly accessed in the structure
+
+            for (x_ = 0; x_ < x_num_; x_++) {
+
+                const unsigned int pc_offset = x_num_ * z_ + x_;
+
+                for (j_ = 0; j_ < apr.y_vec.data[depth][pc_offset].size(); j_++) {
+
+
+                    const int y = apr.y_vec.data[depth][pc_offset][j_];
+
+                    const float y_actual = floor((y+0.5) * step_size_y);
+                    const float x_actual = floor((x_+0.5) * step_size_x);
+                    const float z_actual = floor((z_+0.5) * step_size_z);
+
+                    scale_parts.data[depth][pc_offset][j_]=variance_u(y_actual,x_actual,z_actual);
+
+
+                }
+            }
+        }
+    }
+
+
+
+    return scale_parts;
+
+}
+
+
 void get_variance(Mesh_data<float>& variance_u,cmdLineOptions& options){
 
     Proc_par pars;
@@ -782,9 +902,12 @@ void get_apr(Mesh_data<uint16_t >& input_image,Part_rep& part_rep,PartCellStruct
         part_map.downsample(input_image_float);
     } else if (interp_type == 2) {
         part_map.downsample(interp_img);
+        //part_map.downsampled[part_map.k_max+1]=input_image_float;
     } else if (interp_type ==3){
         part_map.downsample(interp_img);
         calc_median_filter_n(part_map.downsampled[part_map.k_max+1],input_image_float);
+    } else if (interp_type ==4){
+        part_map.closest_pixel(interp_img);
     }
 
     part_rep.timer.stop_timer();
@@ -803,6 +926,103 @@ void get_apr(Mesh_data<uint16_t >& input_image,Part_rep& part_rep,PartCellStruct
 
 
 }
+void get_apr_perfect(Mesh_data<uint16_t >& input_image,Mesh_data<float>& grad_gt,Mesh_data<float>& var_gt,Part_rep& part_rep,PartCellStructure<float,uint64_t>& pc_struct,AnalysisData& analysis_data){
+
+    int interp_type = part_rep.pars.interp_type;
+
+    // COMPUTATIONS
+
+    Mesh_data<float> input_image_float;
+    Mesh_data<float> gradient, variance;
+    Mesh_data<float> interp_img;
+
+    gradient.initialize(input_image.y_num, input_image.x_num, input_image.z_num, 0);
+    part_rep.initialize(input_image.y_num, input_image.x_num, input_image.z_num);
+
+    input_image_float = input_image.to_type<float>();
+    interp_img = input_image.to_type<float>();
+    // After this block, input_image will be freed.
+
+    Part_timer t;
+    t.verbose_flag = false;
+
+    // preallocate_memory
+    Particle_map<float> part_map(part_rep);
+    preallocate(part_map.layers, gradient.y_num, gradient.x_num, gradient.z_num, part_rep);
+    variance.preallocate(gradient.y_num, gradient.x_num, gradient.z_num, 0);
+    std::vector<Mesh_data<float>> down_sampled_images;
+
+    Mesh_data<float> temp;
+    temp.preallocate(gradient.y_num, gradient.x_num, gradient.z_num, 0);
+
+    t.start_timer("whole");
+
+    //    std::swap(part_map.downsampled[part_map.k_max+1],input_image_float);
+
+    //part_rep.timer.start_timer("get_gradient_3D");
+    //get_gradient_3D(part_rep, input_image_float, gradient);
+    //part_rep.timer.stop_timer();
+
+    //part_rep.timer.start_timer("get_variance_3D");
+   // get_variance_3D(part_rep, input_image_float, variance);
+    //part_rep.timer.stop_timer();
+
+
+    down_sample(var_gt,variance,
+                [](float x, float y) { return std::max(x,y); },
+                [](float x) { return x; });
+
+
+    part_rep.timer.start_timer("get_level_3D");
+    get_level_3D(variance, grad_gt, part_rep, part_map, temp);
+    part_rep.timer.stop_timer();
+
+    // free memory (not used anymore)
+    std::vector<float>().swap(gradient.mesh);
+    std::vector<float>().swap(variance.mesh);
+
+    part_rep.timer.start_timer("pushing_scheme");
+    part_map.pushing_scheme(part_rep);
+    part_rep.timer.stop_timer();
+
+
+    part_rep.timer.start_timer("sample");
+
+    if (interp_type == 0) {
+        part_map.downsample(interp_img);
+        calc_median_filter(part_map.downsampled[part_map.k_max+1]);
+    }
+
+    if (interp_type == 1) {
+        part_map.downsample(input_image_float);
+    } else if (interp_type == 2) {
+        part_map.downsample(interp_img);
+    } else if (interp_type ==3){
+        part_map.downsample(interp_img);
+        calc_median_filter_n(part_map.downsampled[part_map.k_max+1],input_image_float);
+    } else if (interp_type ==4){
+        part_map.closest_pixel(interp_img);
+    }
+
+    part_rep.timer.stop_timer();
+
+    part_rep.timer.start_timer("construct_pcstruct");
+
+    pc_struct.initialize_structure(part_map);
+
+    part_rep.timer.stop_timer();
+
+    t.stop_timer();
+
+    //add the timer data
+    analysis_data.add_timer(part_rep.timer);
+    analysis_data.add_timer(t);
+
+
+}
+
+
+
 template<typename S,typename U>
 void get_apr_t(Mesh_data<S >& input_image,Part_rep& part_rep,PartCellStructure<U,uint64_t>& pc_struct,AnalysisData& analysis_data){
 
@@ -939,6 +1159,8 @@ void get_apr(int argc, char **argv,PartCellStructure<float,uint64_t>& pc_struct,
     }
 
     get_apr(input_image,part_rep,pc_struct);
+
+    pc_struct.pars = part_rep.pars;
 
 }
 

@@ -12,6 +12,7 @@
 #define PARTPLAY_BENCHMARK_HELPERS_HPP
 
 #include "AnalysisData.hpp"
+#include "TimeModel.hpp"
 #include "MeshDataAF.h"
 #include "SynImageClasses.hpp"
 #include "GenerateTemplates.hpp"
@@ -42,6 +43,10 @@ struct cmdLineOptionsBench{
     bool nonoise = false;
     bool segmentation_eval = false;
     bool filters_eval = false;
+    bool quality_true_int = false;
+    bool check_scale = false;
+
+    bool comp_perfect = false;
 
     float lambda = 0;
     float rel_error = 0;
@@ -94,6 +99,12 @@ cmdLineOptionsBench read_command_line_options(int argc, char **argv){
         result.quality_metrics_input = true;
     }
 
+
+    if(command_option_exists_bench(argv, argv + argc, "-quality_true_int"))
+    {
+        result.quality_true_int = true;
+    }
+
     if(command_option_exists_bench(argv, argv + argc, "-information_content"))
     {
         result.information_content = true;
@@ -142,6 +153,16 @@ cmdLineOptionsBench read_command_line_options(int argc, char **argv){
     if(command_option_exists_bench(argv, argv + argc, "-nonoise"))
     {
         result.nonoise = true;
+    }
+
+    if(command_option_exists_bench(argv, argv + argc, "-check_scale"))
+    {
+        result.check_scale = true;
+    }
+
+    if(command_option_exists_bench(argv, argv + argc, "-comp_perfect"))
+    {
+        result.comp_perfect = true;
     }
 
     if(command_option_exists_bench(argv, argv + argc, "-imgsize"))
@@ -270,7 +291,7 @@ struct benchmark_settings{
 
     float linear_shift = 0;
 
-    float desired_I = 0;
+    float desired_I = sqrt(1000)*10;
     float N_repeats = 1;
     float num_objects = 1;
     float sig = 1;
@@ -278,7 +299,7 @@ struct benchmark_settings{
     float int_scale_min = 1;
     float int_scale_max = 10;
 
-    float rel_error = 0.085;
+    float rel_error = 0.1;
 
     float obj_size = 4;
 
@@ -350,7 +371,7 @@ void set_up_benchmark_defaults(SynImage& syn_image,benchmark_settings& bs){
     syn_image.global_trans.grad_z = bs.linear_shift*gen_rand.rand_num(-min_grad,max_grad);
 
 
-    bs.desired_I = sqrt(background)*10;
+
 
     set_gaussian_psf(syn_image,bs);
 
@@ -440,7 +461,7 @@ void generate_objects(SynImage& syn_image_loc,benchmark_settings& bs){
 
             if(bs.int_scale_min != bs.int_scale_max) {
 
-                float obj_int = gen_rand.rand_num(bs.int_scale_min, bs.int_scale_max) * bs.desired_I;
+                obj_int = gen_rand.rand_num(bs.int_scale_min, bs.int_scale_max) * bs.desired_I;
 
             }
            // temp_obj.int_scale = (
@@ -454,6 +475,39 @@ void generate_objects(SynImage& syn_image_loc,benchmark_settings& bs){
 
 
 }
+void move_objects(SynImage& syn_image_loc,benchmark_settings& bs,TimeModel& t_model){
+    //
+    //  Moves objects around.
+    //
+    //
+
+
+    // loop over the objects
+    for(int o = 0;o < syn_image_loc.real_objects.size();o++) {
+
+
+        float dx = t_model.dt*t_model.move_speed[o]*sin(t_model.theta[o])*cos(t_model.phi[o]);
+        float dy =  t_model.dt*t_model.move_speed[o]*sin(t_model.theta[o])*sin(t_model.phi[o]);
+        float dz =  t_model.dt*t_model.move_speed[o]*cos(t_model.theta[o]);
+
+        //loop over the different template objects
+        syn_image_loc.real_objects[o].location[0] = t_model.location[o][0] + dx;
+        syn_image_loc.real_objects[o].location[1] = t_model.location[o][1] + dy;
+        syn_image_loc.real_objects[o].location[2] = t_model.location[o][2] + dz;
+
+        //update location
+        t_model.location[o][0] = syn_image_loc.real_objects[o].location[0];
+        t_model.location[o][1] = syn_image_loc.real_objects[o].location[1];
+        t_model.location[o][2] = syn_image_loc.real_objects[o].location[2];
+
+        t_model.theta[o] += t_model.dt*t_model.gen_rand.rand_num(0.0,1.0)*t_model.direction_speed[o];
+        t_model.phi[o] += t_model.dt*t_model.gen_rand.rand_num(0.0,1.0)*t_model.direction_speed[o];
+
+    }
+
+
+}
+
 
 void generate_object_center(SynImage& syn_image_loc,benchmark_settings& bs){
     //
@@ -508,6 +562,11 @@ void set_up_part_rep(SynImage& syn_image_loc,Part_rep& p_rep,benchmark_settings&
 
     p_rep.pars.lambda = bs.lambda;
 
+    float scale_factor = syn_image_loc.scaling_factor/syn_image_loc.object_templates[0].max_sampled_int;
+
+    p_rep.pars.var_th = scale_factor*p_rep.pars.var_th;
+    p_rep.pars.var_th_max = scale_factor*p_rep.pars.var_th_max;
+
     if(bs.noise_type == "none") {
         p_rep.pars.interp_type = 2;
         p_rep.pars.var_th = 1;
@@ -538,6 +597,11 @@ void process_input(cmdLineOptionsBench& options,SynImage& syn_image,AnalysisData
     analysis_data.information_content = options.information_content;
     analysis_data.segmentation_eval = options.segmentation_eval;
     analysis_data.filters_eval = options.filters_eval;
+    analysis_data.check_scale = options.check_scale;
+
+    analysis_data.comp_perfect = options.comp_perfect;
+
+    analysis_data.quality_true_int = options.quality_true_int;
 
     if(options.nonoise){
         syn_image.noise_properties.noise_type = "none";
@@ -553,6 +617,9 @@ void process_input(cmdLineOptionsBench& options,SynImage& syn_image,AnalysisData
     update_domain(syn_image,bs);
 
     if(options.rel_error > 0){
+        bs.rel_error = options.rel_error;
+    } else {
+        std::cout << "negative rel_error" << std::endl;
         bs.rel_error = options.rel_error;
     }
 

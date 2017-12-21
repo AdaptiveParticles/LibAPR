@@ -152,9 +152,26 @@ struct pc_key {
 
         
     }
+
+    bool compare_cell(pc_key comp){
+        int same = (comp.x == x) + (comp.z == z) + (comp.j == j) + (comp.depth == depth);
+
+        if(same == 4){
+            return true;
+        } else {
+            return false;
+        }
+
+
+    }
+
+
     
     
 };
+
+
+
 
 struct node_key {
     

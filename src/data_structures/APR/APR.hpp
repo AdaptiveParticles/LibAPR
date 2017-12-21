@@ -24,8 +24,18 @@ public:
 
     ExtraPartCellData<ImageType> particles_int;
 
-    APR(PartCellStructure<float,uint64_t>& pc_struct){
+    PartCellData<uint64_t> pc_data;
 
+    APR(){
+
+    }
+
+    APR(PartCellStructure<float,uint64_t>& pc_struct){
+        init(pc_struct);
+
+    }
+
+    void init(PartCellStructure<float,uint64_t>& pc_struct){
         part_new.initialize_from_structure(pc_struct);
 
         create_y_data();
@@ -36,11 +46,16 @@ public:
 
         part_new.initialize_from_structure(pc_struct);
 
+
     }
 
-    APR(){
+
+    void init_pc_data(){
 
 
+        part_new.create_pc_data_new(pc_data);
+
+        pc_data.org_dims = y_vec.org_dims;
     }
 
     void create_y_data(){

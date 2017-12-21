@@ -23,7 +23,7 @@
 #include "filter_help/CurrLevel.hpp"
 #include "filter_help/NeighOffset.hpp"
 
-#include "../../test/utils.h"
+//#include "../../test/utils.h"
 
 #include "misc_numerics.hpp"
 
@@ -1103,7 +1103,7 @@ void multi_ray_parrallel_raster(PartCellStructure<S,uint64_t>& pc_struct,proj_pa
     debug_write(proj_img,"parllel_proj" + std::to_string(pars.proj_type));
 
 }
-void get_ray(const int& dir,const int& y,const int& x,const int& z,const float& step_size,int &dim1,int &dim2){
+static void get_ray(const int& dir,const int& y,const int& x,const int& z,const float& step_size,int &dim1,int &dim2){
     //
     //  Bevan Cheeseman 2017
     //
@@ -2411,7 +2411,6 @@ float apr_perspective_raycast(ExtraPartCellData<uint16_t>& y_vec,ExtraPartCellDa
     Part_timer timer;
 
     timer.verbose_flag = true;
-
 
     timer.start_timer("ray cast parts");
 

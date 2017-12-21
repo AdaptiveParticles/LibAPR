@@ -17,6 +17,7 @@
 #include "../../src/numerics/graph_cut_seg.hpp"
 #include "../../src/numerics/apr_segment.hpp"
 #include "../../src/numerics/ray_cast.hpp"
+#include "../../src/data_structures/APR/APR.hpp"
 
 bool command_option_exists(char **begin, char **end, const std::string &option)
 {
@@ -103,13 +104,22 @@ int main(int argc, char **argv) {
     std::array<uint64_t,10> parameters_mem = {100,2000,2,2,2,2,2,3,0,0};
     
     //calc_graph_cuts_segmentation(pc_struct, seg_parts,parameters_nuc,analysis_data);
+    
+    
+    std::cout << "Num_parts: " << pc_struct.get_number_parts() << std::endl;
 
-    float Ip_threshold = 20;
-    float Ip_max = 80;
-    float beta = 1000;
-    float var_th = 5;
+    Mesh_data<uint16_t> seg_mesh;
 
-    std::array<float,13> parameters_new = {Ip_threshold,1,2,3,1,2,3,1,1,4,Ip_max,beta,var_th};
+    //calc_graph_cuts_segmentation_mesh(pc_struct,seg_mesh,parameters_nuc,analysis_data);
+    
+    std::cout << "Num_pixels: " <<seg_mesh.mesh.size() << std::endl;
+    
+    float Ip_threshold = pc_struct.pars.I_th;
+    float Ip_max = 10000;
+    float beta = 100;
+    float var_th = 0;
+
+    std::array<float,13> parameters_new = {Ip_threshold,1,2,3,1,2,3,1,1,1.5,Ip_max,beta,var_th};
 
     Part_timer timer;
     timer.verbose_flag = true;
@@ -132,70 +142,29 @@ int main(int argc, char **argv) {
 
     part_new.particle_data.org_dims = pc_struct.org_dims;
 
-    Mesh_data<uint16_t> seg_mesh;
-
-    timer.start_timer("interp_img");
-
     interp_img(seg_mesh, pc_data, part_new, seg_parts,true);
 
-    timer.stop_timer();
+    debug_write(seg_mesh,pc_struct.name + "_gc_seg");
 
-    debug_write(seg_mesh,"new_seg");
 
     proj_par proj_pars;
 
-    proj_pars.theta_0 = 0;
+    proj_pars.theta_0 = -3.14;
     proj_pars.theta_final = 3.14;
-    proj_pars.radius_factor = 1.00;
-    proj_pars.theta_delta = 0.1;
-    proj_pars.scale_z = 4.0f;
+    proj_pars.radius_factor = 1.1;
+    proj_pars.theta_delta = 0.025;
+    proj_pars.scale_z = pc_struct.pars.aniso;
 
+    //APR<float> curr_apr(pc_struct);
 
-    ExtraPartCellData<uint16_t> y_vec;
+    //shift_particles_from_cells(curr_apr.part_new,seg_parts);
 
-    create_y_data(y_vec,part_new);
+    //ExtraPartCellData<uint16_t> seg_parts_depth = multiply_by_depth(seg_parts);
 
-    shift_particles_from_cells(part_new,seg_parts);
+    proj_pars.name = pc_struct.name + "depth";
 
-    ExtraPartCellData<uint16_t> seg_parts_depth = multiply_by_depth(seg_parts);
+    //apr_perspective_raycast_depth(curr_apr.y_vec,seg_parts,seg_parts_depth,proj_pars,[] (const uint16_t& a,const uint16_t& b) {return std::max(a,b);},true);
 
-    ExtraPartCellData<uint16_t> seg_parts_center= multiply_by_dist_center(seg_parts,y_vec);
-
-
-    //apr_perspective_raycast(y_vec,seg_parts,proj_pars,[] (const uint16_t& a,const uint16_t& b) {return std::min(a,b);},true);
-
-    //apr_perspective_raycast(y_vec,seg_parts_depth,proj_pars,[] (const uint16_t& a,const uint16_t& b) {return std::max(a,b);},false);
-
-    proj_pars.name = "intensity";
-
-    apr_perspective_raycast_depth(y_vec,seg_parts,part_new.particle_data,proj_pars,[] (const uint16_t& a,const uint16_t& b) {return std::max(a,b);},true);
-
-    proj_pars.name = "z_depth";
-
-    apr_perspective_raycast_depth(y_vec,seg_parts,seg_parts_depth,proj_pars,[] (const uint16_t& a,const uint16_t& b) {return std::max(a,b);},true);
-
-    //proj_pars.name = "center";
-
-    //apr_perspective_raycast_depth(y_vec,seg_parts,seg_parts_center,proj_pars,[] (const uint16_t& a,const uint16_t& b) {return std::max(a,b);},true);
-
-    //if(pc_struct.org_dims[0] <400){
-    
-    //calc_graph_cuts_segmentation_mesh(pc_struct,seg_mesh,parameters_nuc,analysis_data);
-    
-    std::cout << " Num Parts: " << pc_struct.get_number_parts() << std::endl;
-    std::cout << " Num Pixels: " << pc_struct.org_dims[0]*pc_struct.org_dims[1]*pc_struct.org_dims[2] << std::endl;
-
-    //}
-    //Now we will view the output by creating the binary image implied by the segmentation
-    
-    //Mesh_data<uint8_t> seg_img;
-    
-    //pc_struct.interp_parts_to_pc(seg_img,seg_parts);
-    
-    //debug_write(seg_img,"segmentation_mask");
-    
-    //debug_write(seg_mesh,"segmentation_mesh_mask");
-    
     ////////////////////////////////////
     //
     //
@@ -203,25 +172,34 @@ int main(int argc, char **argv) {
     //
     //
     /////////////////////////////////////
-    
-    //ExtraPartCellData<uint16_t> component_label;
-    
-    //calculate the connected component
-    
-    //calc_connected_component(pc_struct,seg_parts,component_label);
-    
-    //Now we will view the output by creating the binary image implied by the segmentation
-    
-    
-    //Mesh_data<uint16_t> comp_img;
-    
-    
-    //pc_struct.interp_parts_to_pc(comp_img,component_label);
-    
 
-    //debug_write(comp_img,"comp_mask");
+    bool connected_comp = true;
 
-    
+    if(connected_comp) {
+
+        //ExtraPartCellData<uint16_t> component_label;
+
+        //calculate the connected component
+
+        //calc_connected_component(pc_struct, seg_parts, component_label);
+
+        //Now we will view the output by creating the binary image implied by the segmentation
+
+        std::cout << "boom" << std::endl;
+
+        Mesh_data<uint16_t> comp_label;
+
+        calc_cc_mesh(seg_mesh,(uint16_t) 255,comp_label);
+
+
+        //pc_struct.interp_parts_to_pc(comp_img, component_label);
+
+        //interp_img(comp_img, pc_data, part_new, component_label,true);
+
+        debug_write(comp_label,pc_struct.name + "_cc");
+
+
+    }
     
 
 }

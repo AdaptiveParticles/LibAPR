@@ -443,8 +443,7 @@ private:
         pc_data.initialize_base_structure(part_map);
         timer.stop_timer();
         
-        
-        
+
         //initialize loop variables
         uint64_t x_;
         uint64_t z_;
@@ -519,7 +518,9 @@ private:
         //
         
         uint64_t prev_coord = 0;
-        
+
+        const bool sampling_type = false;
+
         
         for(int i = pc_data.depth_min;i <= pc_data.depth_max;i++){
             
@@ -571,25 +572,46 @@ private:
                             pc_data.data[i][offset_pc_data][curr_index-1] |= (NO_NEIGHBOUR << XM_DEPTH_SHIFT);
                             pc_data.data[i][offset_pc_data][curr_index-1] |= (NO_NEIGHBOUR << ZP_DEPTH_SHIFT);
                             pc_data.data[i][offset_pc_data][curr_index-1] |= (NO_NEIGHBOUR << ZM_DEPTH_SHIFT);
-                            
-                            //set the status
-                            switch(status){
-                                case TAKENSTATUS:
-                                {
-                                    pc_data.data[i][offset_pc_data][curr_index-1] |= SEED_SHIFTED;
-                                    break;
+
+                            if(sampling_type) {
+
+                                //set the status
+                                switch (status) {
+                                    case TAKENSTATUS: {
+                                        pc_data.data[i][offset_pc_data][curr_index - 1] |= SEED_SHIFTED;
+                                        break;
+                                    }
+                                    case NEIGHBOURSTATUS: {
+                                        pc_data.data[i][offset_pc_data][curr_index - 1] |= SEED_SHIFTED;
+                                        break;
+                                    }
+                                    case SLOPESTATUS: {
+                                        pc_data.data[i][offset_pc_data][curr_index - 1] |= FILLER_SHIFTED;
+                                        break;
+                                    }
+
                                 }
-                                case NEIGHBOURSTATUS:
-                                {
-                                    pc_data.data[i][offset_pc_data][curr_index-1] |= BOUNDARY_SHIFTED;
-                                    break;
+
+                            } else {
+
+                                //set the status
+                                switch (status) {
+                                    case TAKENSTATUS: {
+                                        pc_data.data[i][offset_pc_data][curr_index - 1] |= SEED_SHIFTED;
+                                        break;
+                                    }
+                                    case NEIGHBOURSTATUS: {
+                                        pc_data.data[i][offset_pc_data][curr_index - 1] |= BOUNDARY_SHIFTED;
+                                        break;
+                                    }
+                                    case SLOPESTATUS: {
+                                        pc_data.data[i][offset_pc_data][curr_index - 1] |= FILLER_SHIFTED;
+                                        break;
+                                    }
+
                                 }
-                                case SLOPESTATUS:
-                                {
-                                    pc_data.data[i][offset_pc_data][curr_index-1] |= FILLER_SHIFTED;
-                                    break;
-                                }
-                                    
+
+
                             }
                             
                             prev_ind = 0;
@@ -1570,6 +1592,8 @@ public:
     unsigned int depth_max;
 
     std::string name;
+
+    Proc_par pars;
     
     std::vector<unsigned int> x_num;
     std::vector<unsigned int> y_num;
@@ -2006,6 +2030,8 @@ public:
 
     
 };
+
+
 
 
 #endif //PARTPLAY_PARTCELLSTRUCTURE_HPP

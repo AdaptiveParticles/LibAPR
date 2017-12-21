@@ -8,13 +8,6 @@ if(TESTS)
     find_package(GTest REQUIRED)
 endif(TESTS)
 
-if(FIGURES)
-
-    set(MYPROJ_RAN_ONCE 1)
-
-    add_subdirectory("external/libboard")
-    include_directories("external/libboard/include")
-endif(FIGURES)
 
 find_package(OpenMP REQUIRED)
 
@@ -98,7 +91,8 @@ endif(OPENMP_FOUND)
 #set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -qopenmp")
 
 if(CMAKE_COMPILER_IS_GNUCC)
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11 -O3 -ffast-math -I /usr/include/hdf5/serial/ -Bdynamic -ldl")
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++14 -O3 -ffast-math -I /usr/include/hdf5/serial/ -Bdynamic -ldl")
+   #set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++14 -O1  -I /usr/include/hdf5/serial/ ")
     set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS}")
     set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS} -std=c++11 -O0 -g -I /usr/include/hdf5/serial/")
     set(CMAKE_EXE_LINKER_FLAGS  "${CMAKE_EXE_LINKER_FLAGS} -Bdynamic -ldl ")
@@ -132,24 +126,24 @@ if(TESTS)
             test/tests.cpp
             test/bspline_test.cpp
             ${SOURCE_FILES_COMPILED}
-            #test/utils.cpp
+            test/utils.cpp
             )
     add_executable(testVariance
             test/tests.cpp
             test/variance_test.cpp
             ${SOURCE_FILES_COMPILED}
-            #test/utils.cpp
+            test/utils.cpp
             )
     add_executable(testLevel
             test/k_test.cpp
             ${SOURCE_FILES_COMPILED}
-            #test/utils.cpp
+            test/utils.cpp
             )
     add_executable(testResult
             test/alg_cells_test.cpp
             src/io/write_parts.cpp
             ${SOURCE_FILES_COMPILED}
-            #test/utils.cpp
+            test/utils.cpp
             )
 
     add_executable(testLevelIterator
@@ -160,6 +154,8 @@ if(TESTS)
     add_executable(testTreeNeighbours
             test/test_tree/tree_fixtures.cpp
             test/test_tree/neighbours_test.cpp
+	    test/utils.cpp
+	    ${SOURCE_FILES_COMPILED}
             )
 
     add_executable(testTreeNeighboursFace
@@ -173,7 +169,7 @@ if(TESTS)
             #test/test_tree/create_part_cell_structure.cpp
             test/test_tree/sparse_rep_test.cpp
             ${SOURCE_FILES_COMPILED}
-
+            test/utils.cpp
 	        src/io/hdf5functions_blosc.cpp
             )
 
@@ -225,11 +221,11 @@ add_executable(Example_vis
         ${SOURCE_FILES_COMPILED}
         src/vis/Camera.cpp src/vis/Camera.h src/vis/Object.cpp src/vis/Object.h src/vis/RaytracedObject.cpp src/vis/RaytracedObject.h)
 
-add_executable(pipeline
-    src/algorithm/pipeline.cpp
-    src/io/write_parts.cpp
-    ${SOURCE_FILES_COMPILED}
-)
+#add_executable(pipeline
+ #   src/algorithm/pipeline.cpp
+ #   src/io/write_parts.cpp
+ #   ${SOURCE_FILES_COMPILED}
+#)
 
 add_executable(Example_filter
         test/Examples/filter_apr.cpp
@@ -258,24 +254,22 @@ add_executable(Example_segment_gc
 
 add_executable(Example_neigh
         test/Examples/Example_neigh.cpp
-
+        test/utils.cpp
         src/io/write_parts.cpp
         ${SOURCE_FILES_COMPILED}
         )
 
 
 
+
 SWIG_ADD_LIBRARY(apr 
 	LANGUAGE java 
 	SOURCES libapr.i
-        src/io/partcell_io.cpp
         src/io/write_parts.cpp
         ${SOURCE_FILES_COMPILED}
-        src/algorithm/pipeline.cpp
 	TYPE SHARED)
 
 SWIG_LINK_LIBRARIES(apr ${HDF5_LIBRARIES} blosc_static ${TIFF_LIBRARIES})
-
 
 target_link_libraries(pipeline ${HDF5_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT} ${TIFF_LIBRARIES} blosc_shared)
 target_link_libraries(Example_get_apr ${HDF5_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT} ${TIFF_LIBRARIES} blosc_shared)
@@ -364,6 +358,15 @@ if(BENCHMARKS)
 
         ADD_EXECUTABLE(GenSingleImage benchmarks/generate_single_image.cpp  ${SOURCE_FILES_COMPILED} ${BENCHMARK_SOURCE_FILES} )
 
+        ADD_EXECUTABLE(GenAPRTime benchmarks/Generate_APR_Time.cpp  ${SOURCE_FILES_COMPILED} ${BENCHMARK_SOURCE_FILES} )
+
+        ADD_EXECUTABLE(TestLocalScale benchmarks/benchmark_local_scale.cpp  ${SOURCE_FILES_COMPILED} ${BENCHMARK_SOURCE_FILES} )
+
+        ADD_EXECUTABLE(GenAnisoImage benchmarks/generate_anisotropic_single.cpp  ${SOURCE_FILES_COMPILED} ${BENCHMARK_SOURCE_FILES} )
+
+        ADD_EXECUTABLE(BenchAnisoImage benchmarks/benchmark_aniso.cpp  ${SOURCE_FILES_COMPILED} ${BENCHMARK_SOURCE_FILES} )
+
+
         TARGET_LINK_LIBRARIES(SynImageGen ${ArrayFire_OpenCL_LIBRARIES}
                 ${OpenCL_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT} ${HDF5_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT} ${TIFF_LIBRARIES} blosc)
         TARGET_LINK_LIBRARIES(TestBenchmark ${ArrayFire_OpenCL_LIBRARIES}
@@ -393,6 +396,18 @@ if(BENCHMARKS)
         TARGET_LINK_LIBRARIES(GenSingleImage ${ArrayFire_OpenCL_LIBRARIES}
                 ${OpenCL_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT} ${HDF5_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT} ${TIFF_LIBRARIES} blosc)
 
+        TARGET_LINK_LIBRARIES(GenAPRTime ${ArrayFire_OpenCL_LIBRARIES}
+                ${OpenCL_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT} ${HDF5_LIBRARIES} pthread tiff blosc)
+
+        TARGET_LINK_LIBRARIES(TestLocalScale ${ArrayFire_OpenCL_LIBRARIES}
+                ${OpenCL_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT} ${HDF5_LIBRARIES} pthread tiff blosc)
+
+        TARGET_LINK_LIBRARIES(GenAnisoImage ${ArrayFire_OpenCL_LIBRARIES}
+                ${OpenCL_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT} ${HDF5_LIBRARIES} pthread tiff blosc)
+
+        TARGET_LINK_LIBRARIES(BenchAnisoImage ${ArrayFire_OpenCL_LIBRARIES}
+                ${OpenCL_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT} ${HDF5_LIBRARIES} pthread tiff blosc)
+
         add_executable(Example_analysis
                 ${BENCHMARK_SOURCE_FILES}
                 test/utils.cpp
@@ -419,13 +434,3 @@ if(BENCHMARKS)
 
 
 endif(BENCHMARKS)
-
-IF(FIGURES)
-#
-
-    ADD_EXECUTABLE(CreateEpsSlice figures/create_slice_eps.cpp  ${SOURCE_FILES_COMPILED} )
-
-    TARGET_LINK_LIBRARIES(CreateEpsSlice ${CMAKE_THREAD_LIBS_INIT} ${HDF5_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT} ${TIFF_LIBRARIES} blosc board)
-
-
-ENDIF(FIGURES)

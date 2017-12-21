@@ -39,7 +39,7 @@ PartCellStructure<U,uint64_t> compute_guided_apr(Mesh_data<U> input_image,PartCe
     //part_rep.pars.psfx = part_rep.pars.psfy = part_rep.pars.psfz = 1;
     //part_rep.pars.rel_error = 0.1;
     //part_rep.pars.var_th = 5;
-    part_rep.pars.var_th_max = 5;
+    //part_rep.pars.var_th_max = 5;
     //part_rep.pars.I_th = 950;
 
     ParticleDataNew<float, uint64_t> part_new;
@@ -64,7 +64,7 @@ PartCellStructure<U,uint64_t> compute_guided_apr(Mesh_data<U> input_image,PartCe
 
     float num_repeats = 1;
 
-    std::vector<float> filter =  {.1,.8,.1};
+    std::vector<float> filter =  {.2,.6,.2};
     std::vector<float> delta = {part_rep.pars.dy,part_rep.pars.dx,part_rep.pars.dz};
 
     int num_tap = 4;

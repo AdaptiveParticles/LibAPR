@@ -18,7 +18,7 @@
 
 #include "hdf5functions.h"
 
-void read_parts_from_encoded_hdf5(Part_rep& p_rep,std::string file_name){
+static void read_parts_from_encoded_hdf5(Part_rep& p_rep,std::string file_name){
     //
     //
     //  Bevan Cheeseman 2015
@@ -224,7 +224,7 @@ void read_parts_from_encoded_hdf5(Part_rep& p_rep,std::string file_name){
     
     
 }
-void read_parts_from_full_hdf5(Part_rep& p_rep,std::string file_name){
+static void read_parts_from_full_hdf5(Part_rep& p_rep,std::string file_name){
     //
     //
     //  Bevan Cheeseman 2015
@@ -456,7 +456,7 @@ void read_parts_from_full_hdf5(Part_rep& p_rep,std::string file_name){
     
     
 }
-void read_cells_hdf5(Part_rep& p_rep,std::string file_name){
+static void read_cells_hdf5(Part_rep& p_rep,std::string file_name){
     //
     //
     //  Bevan Cheeseman 2015
