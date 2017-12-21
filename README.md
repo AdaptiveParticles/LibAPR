@@ -1,13 +1,13 @@
-# PartPlay
+# The Adaptive Particle Representation Library
 
-Library for processing on APR representation
+Library for processing the Adaptive Particle Representation (APR).
 
 ## Dependencies:
 
 * HDF5 library installed and the library linked/included (libhdf5-dev)
 * OpenMP > 3.0
 * CMake > 3.6
-* tiffio (libtiff5-dev debian/ubuntu)
+* LibTIFF > 5.0
 * [Blosc](https://github.com/Blosc/c-blosc), now included with the repository
 
 ## Building
@@ -20,15 +20,9 @@ OSX currently ships with an older version of clang that does not support OpenMP.
 brew install llvm
 ```
 
-All further cmake commands then have to be prepended by
-
-```
-CC="/usr/local/opt/llvm/bin/clang" CXX="/usr/local/opt/llvm/bin/clang++" LDFLAGS="-L/usr/local/opt/llvm/lib -Wl,-rpath,/usr/local/opt/llvm/lib" CPPFLAGS="-I/usr/local/opt/llvm/include"
-```
-
 ### Windows preliminaries
 
-__Compilation only works with mingw64/clang or Visual Studio/Intel C++ Compiler, due to Visual Studio's lack of support for current OpenMP versions__
+__Compilation only works with mingw64/clang or Visual Studio/Intel C++ Compiler, due to Visual Studio's lack of support for current OpenMP versions, with Intel C++ being the recommended way__
 
 For Windows, APR needs to have HDF5 installed (get it from [The HDF Group](http://hdfgroup.org) and LibTIFF (get it from [SimpleSystems](http://www.simplesystems.org/libtiff/). HDF5 can be installed just from the binary distribution, LibTIFF needs to be compiled via CMake. LibTIFF's install target will then install the library into `C:\Program Files\tiff`.
 
@@ -37,11 +31,15 @@ For Windows, APR needs to have HDF5 installed (get it from [The HDF Group](http:
 Compilation (out of source), on OSX/Linux:
 
 ```
-   mkdir build
-   cd build
-   cmake -H. -Bbuild ..
+mkdir build
+cd build
+cmake ..
+```
 
-CC="/usr/local/opt/llvm/bin/clang" CXX="/usr/local/opt/llvm/bin/clang++" LDFLAGS="-L/usr/local/opt/llvm/lib -Wl,-rpath,/usr/local/opt/llvm/lib" CPPFLAGS="-I/usr/local/opt/llvm/include" cmake -H. -Bbuild ..
+Be aware that Apple's clang does not support OpenMP out of the box, so you might need to install another clang version via homebrew. For CMake to then pick this one up, run
+
+```
+CC="/usr/local/opt/llvm/bin/clang" CXX="/usr/local/opt/llvm/bin/clang++" LDFLAGS="-L/usr/local/opt/llvm/lib -Wl,-rpath,/usr/local/opt/llvm/lib" CPPFLAGS="-I/usr/local/opt/llvm/include" cmake ..
 ```
 
 For Windows, some additional flags for CMake are needed:
@@ -52,9 +50,10 @@ cmake -G "Visual Studio 14 2015 Win64" -DTIFF_INCLUDE_DIR="C:/Program Files/tiff
 
 This will set the appropriate hints for Visual Studio to find both LibTIFF and HDF5.
 
-Developer dependencies (optional):
+### Development
+An additional requirements for development and testing is the Google test library. To install it, 
 
-* Google test library installed. For debian/ubuntu users:
+* for debian/ubuntu users:
 
 ```
     sudo apt-get install libgtest-dev
@@ -64,7 +63,8 @@ Developer dependencies (optional):
     sudo mv libg* /usr/lib/
 ```
 
-For OSX users, clone the repository at https://github.com/google/googletest, then within the repo :
+* for OSX users, clone the repository at https://github.com/google googletest, then within the repo:
+  
 ```
 mkdir build
 cd build
@@ -72,8 +72,6 @@ cmake ..
 make
 make install
 ```
-
-## How to run tests?
 
 Tests are stored in a submodule. Run these commands in order to run tests:
 
