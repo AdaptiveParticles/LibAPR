@@ -481,9 +481,81 @@ void get_variance(Mesh_data<S>& input_image,Mesh_data<float>& variance_u,Proc_pa
 
 }
 
+template<typename S>
+void spread_values(Mesh_data<S>& input_image){
+    // spread the value if zero to the neighbours.
+
+
+    int x_num = input_image.x_num;
+    int y_num = input_image.y_num;
+    int z_num = input_image.z_num;
+
+    const int8_t dir_y[6] = { 1, -1, 0, 0, 0, 0};
+    const int8_t dir_x[6] = { 0, 0, 1, -1, 0, 0};
+    const int8_t dir_z[6] = { 0, 0, 0, 0, 1, -1};
+
+    Mesh_data<S> output_data;
+
+    output_data.initialize((int)y_num,(int)x_num,(int)z_num,0);
+
+    int j = 0;
+    int k = 0;
+    int i = 0;
+
+    int j_n = 0;
+    int k_n = 0;
+    int i_n = 0;
+
+    //float neigh_sum = 0;
+
+
+#pragma omp parallel for default(shared) private(j,i,k,i_n,k_n,j_n)
+        for(j = 0; j < z_num;j++){
+            for(i = 0; i < x_num;i++){
+                for(k = 0;k < y_num;k++){
+                    float neigh_sum = 0;
+                    int count = 0;
+
+
+                    for(int  d  = 0;d < 6;d++){
+
+                        i_n = i + dir_x[d];
+                        k_n = k + dir_y[d];
+                        j_n = j + dir_z[d];
+
+                        //check boundary conditions
+                        if((i_n >=0) & (i_n < x_num) ){
+                            if((j_n >=0) & (j_n < z_num) ){
+                                if((k_n >=0) & (k_n < y_num) ){
+                                    if(input_image.mesh[j_n * x_num * y_num + i_n * y_num + k_n] > 0) {
+                                        neigh_sum += input_image.mesh[j_n * x_num * y_num + i_n * y_num + k_n];
+                                        count++;
+                                    }
+                                }
+                            }
+                        }
+
+                    }
+                    if(count > 0) {
+                        output_data.mesh[j * x_num * y_num + i * y_num + k] = neigh_sum/count;
+                    } else{
+                        output_data.mesh[j * x_num * y_num + i * y_num + k] = 0;
+                    }
+
+
+                }
+            }
+        }
+
+    std::swap(input_image,output_data);
+
+}
 
 template<typename T,typename S>
 ExtraPartCellData<T> get_scale_parts_guided(APR<T>& apr,Mesh_data<S>& input_image,Proc_par& pars,Part_rep& part_rep){
+    //
+    //  Produces a new scale estimate that uses the previous time steps APR to estimate.
+    //
 
     Mesh_data<float> variance_u;
 
@@ -491,17 +563,84 @@ ExtraPartCellData<T> get_scale_parts_guided(APR<T>& apr,Mesh_data<S>& input_imag
 
 
     // now need the pyramid data-structure
-
-
     Particle_map<float> part_map(part_rep);
 
+    std::vector<Mesh_data<float>> layers;
+
+    int k_max = apr.y_vec.depth_max;
+    int k_min = part_map.k_min;
+
+    std::vector<unsigned int> dims = apr.y_vec.org_dims;
+
+    layers.resize(k_max + 1);
+
+    for(int k_ = k_min; k_ < (k_max + 1) ;k_ ++){
+        layers[k_].initialize(ceil(1.0*dims[0]/pow(2.0,1.0*k_max - k_)),
+                              ceil(1.0*dims[1]/pow(2.0,1.0*k_max - k_)),
+                              ceil(1.0*dims[2]/pow(2.0,1.0*k_max - k_)),
+                              EMPTY);
+    }
+
+    int z_, x_, j_, y_, i, k;
+    //loop over particle locations and set equal to the var value
+
+    uint64_t depth = apr.y_vec.depth_max;
+    //loop over the resolutions of the structure
+    const unsigned int x_num_ = apr.y_vec.x_num[depth];
+    const unsigned int z_num_ = apr.y_vec.z_num[depth];
+
+    const float step_size_x = pow(2, apr.y_vec.depth_max - depth);
+    const float step_size_y = pow(2, apr.y_vec.depth_max - depth);
+    const float step_size_z = pow(2, apr.y_vec.depth_max - depth);
+
+#pragma omp parallel for default(shared) private(z_,x_,j_,i,k) schedule(guided) if(z_num_*x_num_ > 1000)
+        for (z_ = 0; z_ < z_num_; z_++) {
+            //both z and x are explicitly accessed in the structure
+
+            for (x_ = 0; x_ < x_num_; x_++) {
+
+                const unsigned int pc_offset = x_num_ * z_ + x_;
+
+                for (j_ = 0; j_ < apr.y_vec.data[depth][pc_offset].size(); j_++) {
+
+
+                    const int y = apr.y_vec.data[depth][pc_offset][j_];
+
+                    const float y_actual = floor((y+0.5) * step_size_y);
+                    const float x_actual = floor((x_+0.5) * step_size_x);
+                    const float z_actual = floor((z_+0.5) * step_size_z);
+
+                    layers[depth](y_actual,x_actual,z_actual)=variance_u(y_actual,x_actual,z_actual);
+
+                }
+            }
+        }
+
+
+
+    for (uint64_t depth = apr.y_vec.depth_max; depth > apr.y_vec.depth_min; depth--) {
+
+        spread_values(layers[depth]);
+
+        //loop over the levels
+
+        //then create a spread function
+        down_sample(layers[depth], layers[depth - 1],
+                    [](T x, T y) { return std::max(x, y); },
+                    [](T x) { return x; }, false);
+
+        //then down-sample
+    }
+
+    //then sample from either the new one if non-zero, else the old one.
 
 
     ExtraPartCellData<T> scale_parts;
 
     scale_parts.initialize_structure_parts(apr.particles_int);
 
-    int z_, x_, j_, y_, i, k;
+
+
 
     for (uint64_t depth = (apr.y_vec.depth_min); depth <= apr.y_vec.depth_max; depth++) {
         //loop over the resolutions of the structure
@@ -530,7 +669,15 @@ ExtraPartCellData<T> get_scale_parts_guided(APR<T>& apr,Mesh_data<S>& input_imag
                     const float x_actual = floor((x_+0.5) * step_size_x);
                     const float z_actual = floor((z_+0.5) * step_size_z);
 
-                    scale_parts.data[depth][pc_offset][j_]=variance_u(y_actual,x_actual,z_actual);
+                    float var = layers[depth](y,x_,z_);
+
+                    if(var > 0){
+                        scale_parts.data[depth][pc_offset][j_] = var;
+                    } else {
+
+                        scale_parts.data[depth][pc_offset][j_] = variance_u(y_actual, x_actual, z_actual);
+
+                    }
 
 
                 }
@@ -538,7 +685,7 @@ ExtraPartCellData<T> get_scale_parts_guided(APR<T>& apr,Mesh_data<S>& input_imag
         }
     }
 
-
+    debug_write(variance_u,"var");
 
     return scale_parts;
 
@@ -902,10 +1049,10 @@ void get_apr(Mesh_data<uint16_t >& input_image,Part_rep& part_rep,PartCellStruct
         part_map.downsample(input_image_float);
     } else if (interp_type == 2) {
         part_map.downsample(interp_img);
-        //part_map.downsampled[part_map.k_max+1]=input_image_float;
     } else if (interp_type ==3){
         part_map.downsample(interp_img);
-        calc_median_filter_n(part_map.downsampled[part_map.k_max+1],input_image_float);
+        //calc_median_filter_n(part_map.downsampled[part_map.k_max+1],input_image_float);
+        part_map.downsampled[part_map.k_max+1]=input_image_float;
     } else if (interp_type ==4){
         part_map.closest_pixel(interp_img);
     }

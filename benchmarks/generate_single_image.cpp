@@ -157,21 +157,25 @@ int main(int argc, char **argv) {
         //
         ///////////////////////////////
 
-        produce_apr_analysis(input_img, analysis_data, pc_struct, syn_image_loc, p_rep.pars);
+       // produce_apr_analysis(input_img, analysis_data, pc_struct, syn_image_loc, p_rep.pars);
 
 
-    std::vector<float> scale = {2,2,2};
+    Mesh_data<float> input_image_float =  input_img.to_type<float>();
 
-   Mesh_data<float> smooth_img;
+    PartCellStructure<float,uint64_t> pc_struct_new = compute_guided_apr(input_image_float,pc_struct,p_rep);
 
-    interp_parts_to_smooth(smooth_img,pc_struct.part_data.particle_data,pc_struct,scale);
-
-    debug_write(smooth_img,"smooth_test");
-
+//    std::vector<float> scale = {2,2,2};
+//
+//   Mesh_data<float> smooth_img;
+//
+//    interp_parts_to_smooth(smooth_img,pc_struct.part_data.particle_data,pc_struct,scale);
+//
+//    debug_write(smooth_img,"smooth_test");
+//
     Mesh_data<float> rec_img;
 
-    pc_struct.interp_parts_to_pc(rec_img,pc_struct.part_data.particle_data);
-
+    pc_struct_new.interp_parts_to_pc(rec_img,pc_struct_new.part_data.particle_data);
+//
     debug_write(rec_img,"rec_img");
       // compute_var_ratio_perfect(syn_image_loc,p_rep,input_img,analysis_data);
 

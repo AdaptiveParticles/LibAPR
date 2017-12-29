@@ -1908,7 +1908,7 @@ void produce_apr_analysis(Mesh_data<T>& input_image,AnalysisData& analysis_data,
 
         compare_var_func(pc_struct_perfect,var_gt,variance,analysis_data,pars.mean_scale);
 
-        //debug_write(var_gt,"var_gt");
+        debug_write(var_gt,"var_gt");
 
         //debug_write(rec_perfect,"rec_perfect");
 

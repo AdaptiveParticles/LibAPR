@@ -83,6 +83,8 @@ int main(int argc, char **argv) {
     
     // Now write the apr file to full explicit format readible from paraview
     write_apr_full_format(pc_struct,options.directory,options.output);
+
+    write_apr_pc_struct(pc_struct,options.directory,options.output);
     
 }
 

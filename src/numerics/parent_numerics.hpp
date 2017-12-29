@@ -139,7 +139,7 @@ void push_down_tree(PartCellStructure<U,T>& pc_struct,PartCellParent<T>& pc_pare
     
     curr_k = i;
     
-    #pragma omp parallel for default(shared) private(z_,x_,j_,node_val_parent,curr_key,status,node_val_part) firstprivate(children_keys,children_ind) if(z_num_*x_num_ > 100)
+    //#pragma omp parallel for default(shared) private(z_,x_,j_,node_val_parent,curr_key,status,node_val_part) firstprivate(children_keys,children_ind) if(z_num_*x_num_ > 100)
     for(z_ = 0;z_ < z_num_;z_++){
         //both z and x are explicitly accessed in the structure
         curr_key = 0;
@@ -321,19 +321,29 @@ void calc_cell_min_max(PartCellStructure<T,S>& pc_struct,PartCellParent<S>& pc_p
                                         status = pc_struct.part_data.access_node_get_status(node_val_part);
                                         part_offset = pc_struct.part_data.access_node_get_part_offset(node_val_part);
                                         
-                                        float mean = 0;
+                                        float temp_v = 0;
+                                        float max_t = 0;
+                                        int counter = 0;
                                         
                                         //loop over the particles
                                         for(int p = 0;p < pc_struct.part_data.get_num_parts(status);p++){
                                             pc_struct.part_data.access_data.pc_key_set_index(child,part_offset+p);
                                             
-                                            mean += pc_struct.part_data.particle_data.get_part(child);
+
+                                           // mean += pc_struct.part_data.particle_data.get_part(child);
+
+                                            temp_v = pc_struct.part_data.particle_data.get_part(child);
+
+                                            min_temp = std::min(temp_v,min_temp);
+                                            max_temp = std::max(temp_v,max_temp);
+
+
                                         }
                                         
-                                        mean = mean/pc_struct.part_data.get_num_parts(status);
+                                        //mean = mean/counter;
                                         
-                                        min_temp = std::min(mean,min_temp);
-                                        max_temp = std::max(mean,max_temp);
+                                        //min_temp = std::min(mean,min_temp);
+                                       // max_temp = std::max(mean,max_temp);
                                         
                                     } else {
                                         min_temp = std::min(min_data.get_val(child),min_temp);
@@ -486,6 +496,82 @@ T compute_parent_cell_neigh_mean_axis(const U& parent_node,const U& parent_key,E
     return (temp/counter);
     
 }
+
+template<typename T,typename U>
+T compute_parent_cell_neigh_max_axis(const U& parent_node,const U& parent_key,ExtraPartCellData<T>& parent_data,PartCellParent<U>& parent_cells,int dir){
+    //
+    //  Bevan Cheeseman 2016
+    //
+    //  Given a data set defined on parent cells, compute the mean over the parent neighbours on the same level
+    //
+    //
+
+    PartCellNeigh<U> neigh_keys;
+
+    parent_cells.get_neighs_parent_axis(parent_key,parent_node,neigh_keys,dir);
+
+    T temp = parent_data.get_val(parent_key);
+    float counter = 1;
+    T val=0;
+
+    for(uint64_t face = 0; face < neigh_keys.neigh_face.size();face++){
+
+        for(uint64_t n = 0; n < neigh_keys.neigh_face[face].size();n++){
+            uint64_t neigh_key = neigh_keys.neigh_face[face][n];
+
+            if(neigh_key > 0){
+                val= parent_data.get_val(neigh_key);
+                if (val > 0){
+
+                    temp=std::max(temp,val);
+                }
+            }
+
+        }
+    }
+
+    return (temp);
+
+}
+
+template<typename T,typename U>
+T compute_parent_cell_neigh_min_axis(const U& parent_node,const U& parent_key,ExtraPartCellData<T>& parent_data,PartCellParent<U>& parent_cells,int dir){
+    //
+    //  Bevan Cheeseman 2016
+    //
+    //  Given a data set defined on parent cells, compute the mean over the parent neighbours on the same level
+    //
+    //
+
+    PartCellNeigh<U> neigh_keys;
+
+    parent_cells.get_neighs_parent_axis(parent_key,parent_node,neigh_keys,dir);
+
+    T temp = parent_data.get_val(parent_key);
+    float counter = 1;
+    T val=0;
+
+    for(uint64_t face = 0; face < neigh_keys.neigh_face.size();face++){
+
+        for(uint64_t n = 0; n < neigh_keys.neigh_face[face].size();n++){
+            uint64_t neigh_key = neigh_keys.neigh_face[face][n];
+
+            if(neigh_key > 0){
+                val= parent_data.get_val(neigh_key);
+                if (val > 0){
+
+                    temp=std::min(temp,val);
+                }
+            }
+
+        }
+    }
+
+    return (temp);
+
+}
+
+
 template<typename T,typename U,typename V>
 T compute_cell_neigh_mean_axis(const U& parent_node,const U& parent_key,ExtraPartCellData<T>& parent_data,PartCellStructure<V, U>& pc_struct,int dir){
     //
@@ -597,7 +683,7 @@ void smooth_parent_result(PartCellParent<U>& pc_parent,ExtraPartCellData<T>& par
 
 }
 template<typename T,typename U>
-void smooth_parent_result_sep(PartCellParent<U>& pc_parent,ExtraPartCellData<T>& parent_data){
+void smooth_parent_result_sep(PartCellParent<U>& pc_parent,ExtraPartCellData<T>& parent_data,int type = 0){
     //
     //
     //  Calculates an average on every part level
@@ -653,8 +739,18 @@ void smooth_parent_result_sep(PartCellParent<U>& pc_parent,ExtraPartCellData<T>&
                         //Indicates this is a particle cell node
                         
                         pc_parent.neigh_info.pc_key_set_j(curr_key,j_);
-                        
-                        output.get_val(curr_key) = compute_parent_cell_neigh_mean_axis(node_val_parent,curr_key,parent_data,pc_parent,0);
+
+                        if(type == 0){
+                            output.get_val(curr_key) = compute_parent_cell_neigh_mean_axis(node_val_parent,curr_key,parent_data,pc_parent,0);
+                        } else if (type == 1){
+                            output.get_val(curr_key) = compute_parent_cell_neigh_max_axis(node_val_parent,curr_key,parent_data,pc_parent,0);
+                        } else if (type == 2){
+                            output.get_val(curr_key) = compute_parent_cell_neigh_min_axis(node_val_parent,curr_key,parent_data,pc_parent,0);
+
+                        }
+
+
+
                         
                     }
                 }
@@ -663,7 +759,7 @@ void smooth_parent_result_sep(PartCellParent<U>& pc_parent,ExtraPartCellData<T>&
     }
     
     //set the output
-    std::swap(output,parent_data);
+    //std::swap(output,parent_data);
     
     timer.stop_timer();
     
@@ -699,8 +795,15 @@ void smooth_parent_result_sep(PartCellParent<U>& pc_parent,ExtraPartCellData<T>&
                         //Indicates this is a particle cell node
                         
                         pc_parent.neigh_info.pc_key_set_j(curr_key,j_);
-                        
-                        output.get_val(curr_key) = compute_parent_cell_neigh_mean_axis(node_val_parent,curr_key,parent_data,pc_parent,1);
+
+                        if(type == 0){
+                            output.get_val(curr_key) = compute_parent_cell_neigh_mean_axis(node_val_parent,curr_key,parent_data,pc_parent,1);
+                        } else if (type == 1){
+                            output.get_val(curr_key) = std::max(output.get_val(curr_key),compute_parent_cell_neigh_max_axis(node_val_parent,curr_key,parent_data,pc_parent,1));
+                        } else if (type == 2){
+                            output.get_val(curr_key) = std::min(output.get_val(curr_key),compute_parent_cell_neigh_min_axis(node_val_parent,curr_key,parent_data,pc_parent,1));
+
+                        }
                         
                     }
                 }
@@ -709,7 +812,7 @@ void smooth_parent_result_sep(PartCellParent<U>& pc_parent,ExtraPartCellData<T>&
     }
     
     //set the output
-    std::swap(output,parent_data);
+    //std::swap(output,parent_data);
     
     
     //reverse loop direction
@@ -744,8 +847,15 @@ void smooth_parent_result_sep(PartCellParent<U>& pc_parent,ExtraPartCellData<T>&
                         //Indicates this is a particle cell node
                         
                         pc_parent.neigh_info.pc_key_set_j(curr_key,j_);
-                        
-                        output.get_val(curr_key) = compute_parent_cell_neigh_mean_axis(node_val_parent,curr_key,parent_data,pc_parent,2);
+
+                        if(type == 0){
+                            output.get_val(curr_key) = compute_parent_cell_neigh_mean_axis(node_val_parent,curr_key,parent_data,pc_parent,2);
+                        } else if (type == 1){
+                            output.get_val(curr_key) = std::max(output.get_val(curr_key),compute_parent_cell_neigh_max_axis(node_val_parent,curr_key,parent_data,pc_parent,2));
+                        } else if (type == 2){
+                            output.get_val(curr_key) = std::min(output.get_val(curr_key),compute_parent_cell_neigh_min_axis(node_val_parent,curr_key,parent_data,pc_parent,2));
+
+                        }
                         
                     }
                 }
@@ -1158,15 +1268,14 @@ void get_adaptive_min_max(PartCellStructure<U,T>& pc_struct,ExtraPartCellData<V>
     PartCellParent<uint64_t> pc_parent(pc_struct);
 
 
-
     ExtraPartCellData<float> min_data;
     ExtraPartCellData<float> max_data;
     
     calc_cell_min_max<float,uint64_t,float>(pc_struct,pc_parent,pc_struct.part_data.particle_data,min_data,max_data);
     
     //need to do the smoothing loop (min and max)
-    smooth_parent_result_sep(pc_parent,min_data);
-    smooth_parent_result_sep(pc_parent,max_data);
+    smooth_parent_result_sep(pc_parent,min_data,2);
+    smooth_parent_result_sep(pc_parent,max_data,1);
     
     if(smooth_min ==1){
         smooth_parent_result_sep(pc_parent,min_data);
@@ -1194,9 +1303,9 @@ void get_adaptive_min_max(PartCellStructure<U,T>& pc_struct,ExtraPartCellData<V>
     std::vector<V> filter_max = {0.333,.333,.333};
     
     sep_neigh_filter(pc_struct.pc_data,partcell_min,filter_min);
-    sep_neigh_filter(pc_struct.pc_data,partcell_min,filter_min);
+    //sep_neigh_filter(pc_struct.pc_data,partcell_min,filter_min);
     sep_neigh_filter(pc_struct.pc_data,partcell_max,filter_max);
-    sep_neigh_filter(pc_struct.pc_data,partcell_max,filter_max);
+    //sep_neigh_filter(pc_struct.pc_data,partcell_max,filter_max);
     
 }
 
