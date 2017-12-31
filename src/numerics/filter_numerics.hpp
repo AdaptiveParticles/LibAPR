@@ -1260,8 +1260,8 @@ void pixels_linear_neigh_access(PartCellStructure<U,uint64_t>& pc_struct,uint64_
     timer.stop_timer();
     float time = (timer.t2 - timer.t1)/num_repeats;
     
-    //std::cout << "Pixel Linear Neigh: " << (x_num*y_num*z_num) << " took: " << time << std::endl;
-    //std::cout << "per 1000000 pixel took: " << (time)/((1.0*x_num*y_num*z_num)/1000000.0) << std::endl;
+    std::cout << "Pixel Linear Neigh: " << (x_num*y_num*z_num) << " took: " << time << std::endl;
+    std::cout << "per 1000000 pixel took: " << (time)/((1.0*x_num*y_num*z_num)/1000000.0) << std::endl;
 
     analysis_data.add_float_data("neigh_pixel_linear_total",time);
     analysis_data.add_float_data("neigh_pixel_linear_perm",(time)/((1.0*x_num*y_num*z_num)/1000000.0));

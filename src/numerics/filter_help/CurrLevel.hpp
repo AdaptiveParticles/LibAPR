@@ -38,7 +38,8 @@ public:
     T depth_max;
     T depth_min;
     
-    uint16_t node_val;
+    T node_val;
+
     T y_num;
     
     uint64_t curr_key;
@@ -59,6 +60,7 @@ public:
         z_num = 0;
         status = 0;
         node_val = 0;
+        curr_key = 0;
         
         
     };
@@ -109,6 +111,16 @@ public:
         
         part_data.access_data.pc_key_set_depth(curr_key,depth);
         
+    }
+
+    void set_new_depth(T depth_,PartCellData<T>& pc_data){
+        // updates the key with the new current depth
+        depth = depth_;
+        x_num = pc_data.x_num[depth];
+        z_num = pc_data.z_num[depth];
+
+        pc_data.pc_key_set_depth(curr_key,depth);
+
     }
     
     
@@ -333,6 +345,59 @@ public:
         return part_int;
         
     }
+
+
+    template<typename U>
+    void update_and_get_neigh_all(ExtraPartCellData<U>& parts,PartCellData<uint64_t>& pc_data,std::vector<U>& neigh_val){
+        //
+        //  Loops over and returns a vector with the average of the particles in each of the 6 directions
+        //
+        //
+
+        pc_key debug_key;
+
+        debug_key.update_cell(curr_key);
+
+        //get the neighbours
+        pc_data.get_neighs_all(curr_key,node_val,neigh_part_keys);
+
+        U part_int=0;
+        int counter=0;
+
+        neigh_val.resize(0);
+
+        //loop over the 6 directions
+        for (int dir = 0; dir < 6; ++dir) {
+
+            //loop over the nieghbours
+            for(int n = 0; n < neigh_part_keys.neigh_face[dir].size();n++){
+                // Check if the neighbour exisits (if neigh_cell_value = 0, the neighbour doesn't exist)
+                uint64_t neigh_key = neigh_part_keys.neigh_face[dir][n];
+
+                part_int = 0;
+                counter = 0;
+
+                if(neigh_key > 0){
+                    //get information about the nieghbour (need to provide face and neighbour number (n) and the current y coordinate)
+
+                    part_int += pc_data.get_val(neigh_key);
+                    counter++;
+
+                }
+
+            }
+            if(counter>0) {
+                neigh_val.push_back(part_int / counter);
+            } else {
+                //no neighbour in that direction
+                neigh_val.push_back(0);
+            }
+        }
+
+
+    }
+
+
     
     template<typename U>
     U get_neigh_int(unsigned int dir,ParticleDataNew<U, T>& part_data,PartCellData<uint64_t>& pc_data){
@@ -373,36 +438,66 @@ public:
         
     }
     
-    
-    template<typename U>
-    void set_new_xz(T x_,T z_,ParticleDataNew<U, T>& part_data){
+
+    void set_new_xz(T x_,T z_,PartCellData<T>& pc_data){
         
         x = x_;
         z = z_;
         
         pc_offset = x_num*z + x;
+        j_num = pc_data.data[depth][pc_offset].size();
+        part_offset = 0;
+        y = 0;
+
+        pc_data.pc_key_set_x(curr_key,x);
+        pc_data.pc_key_set_z(curr_key,z);
+
+    }
+
+    template<typename U>
+    void set_new_xz(T x_,T z_,ParticleDataNew<U, T>& part_data){
+
+        x = x_;
+        z = z_;
+
+        pc_offset = x_num*z + x;
         j_num = part_data.access_data.data[depth][pc_offset].size();
         part_offset = 0;
         y = 0;
-        
-        part_data.access_data.pc_key_set_z(curr_key,x);
+
+        part_data.access_data.pc_key_set_x(curr_key,x);
         part_data.access_data.pc_key_set_z(curr_key,z);
-        
-        
+
+
     }
     
-    template<typename U>
-    bool new_j(T j_,ParticleDataNew<U, T>& part_data){
+
+    bool new_j(T j_,PartCellData<T>& pc_data){
         j = j_;
+
+        pc_data.pc_key_set_j(curr_key,j_);
         
-        part_data.access_data.pc_key_set_j(curr_key,j_);
-        
-        node_val = part_data.access_data.data[depth][pc_offset][j_];
+        node_val = pc_data.data[depth][pc_offset][j_];
         
         //returns if it is a cell or not
         return !(node_val&1);
         
     }
+
+
+    template<typename U>
+    bool new_j(T j_,ParticleDataNew<U, T>& part_data){
+        j = j_;
+
+        part_data.access_data.pc_key_set_j(curr_key,j_);
+
+        node_val = part_data.access_data.data[depth][pc_offset][j_];
+
+        //returns if it is a cell or not
+        return !(node_val&1);
+
+    }
+
     
     template<typename U>
     inline U& get_part(ExtraPartCellData<U>& particle_data){
@@ -439,6 +534,17 @@ public:
         //seed offset accoutns for which (x,z) you are doing
         part_offset = part_data.access_node_get_part_offset(node_val);
         
+    }
+
+    template<typename U>
+    void update_cell(PartCellData<T>& pc_data){
+
+        status = pc_data.get_status(node_val);
+
+        pc_data.pc_key_set_status(curr_key,status);
+
+        y++;
+
     }
     
     

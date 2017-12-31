@@ -110,6 +110,13 @@ ExtraPartCellData<float> update_new_particles(Mesh_data<U>& input_image,APR<floa
 
     return new_particle_intensities;
 
+
+
+
+
+
+
+
 }
 
 
@@ -131,18 +138,17 @@ PartCellStructure<U,uint64_t> compute_guided_apr_time(Mesh_data<U>& input_image,
     preallocate(part_map.layers, input_image.y_num, input_image.x_num, input_image.z_num, part_rep);
 
 
+    //ExtraPartCellData<float> particles_update = update_new_particles(input_image,apr_c);
 
-    ExtraPartCellData<float> particles_update = update_new_particles(input_image,apr_c);
-
-    ExtraPartCellData<float> gradient_mag = adaptive_grad(apr_c.pc_data,particles_update,3,delta);
+    ExtraPartCellData<float> gradient_mag = adaptive_grad(apr_c.pc_data,apr_c.particles_int,3,delta);
 
     //adaptive mean
     ExtraPartCellData<float> adaptive_min;
     ExtraPartCellData<float> adaptive_max;
 
     //offsets past on cell status (resolution)
-    std::vector<unsigned int> status_offsets_min = {1,2,3};
-    std::vector<unsigned int> status_offsets_max = {1,2,3};
+    std::vector<unsigned int> status_offsets_min = {2,2,3};
+    std::vector<unsigned int> status_offsets_max = {2,2,3};
 
     part_map.downsample(input_image);
 
@@ -169,12 +175,17 @@ PartCellStructure<U,uint64_t> compute_guided_apr_time(Mesh_data<U>& input_image,
     }
 
 
+    rescale_var_and_threshold( temp,1,part_rep);
+
+
+
     down_sample(temp,var,
                 [](float x, float y) { return x+y; },
                 [](float x) { return x * (1.0/8.0); },true);
 
+    debug_write(var,"var");
+    debug_write(grad,"grad");
 
-    rescale_var_and_threshold( temp,1,part_rep);
 
     scale = update_new_particles(temp,apr_c);
 
@@ -186,7 +197,6 @@ PartCellStructure<U,uint64_t> compute_guided_apr_time(Mesh_data<U>& input_image,
     part_map.pushing_scheme(part_rep);
 
 
-    //debug_write(part_map.layers[pc_struct.depth_max].mesh);
 
     PartCellStructure<float,uint64_t> pc_struct_new;
 
