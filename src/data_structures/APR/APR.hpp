@@ -256,6 +256,13 @@ public:
 
     }
 
+
+    ////////////////////////
+    //
+    //  Accessing info when iterating. Does not make sense outisde of a looping structure
+    //
+    //////////////////////////
+
     inline unsigned int x(){
         //get x
         return curr_level.x;
@@ -280,6 +287,120 @@ public:
         //get x
         return curr_level.depth;
     }
+
+    inline unsigned int x_nearest_pixel(){
+        //get x
+        return floor((curr_level.x+0.5)*pow(2, pc_data.depth_max - curr_level.depth));
+    }
+
+    inline float x_global(){
+        //get x
+        return (curr_level.x+0.5)*pow(2, pc_data.depth_max - curr_level.depth);
+    }
+
+    inline unsigned int y_nearest_pixel(){
+        //get x
+        return floor((curr_level.y+0.5)*pow(2, pc_data.depth_max - curr_level.depth));
+    }
+
+    inline float y_global(){
+        //get x
+        return (curr_level.y+0.5)*pow(2, pc_data.depth_max - curr_level.depth);
+    }
+
+    inline unsigned int z_nearest_pixel(){
+        //get x
+        return floor((curr_level.z+0.5)*pow(2, pc_data.depth_max - curr_level.depth));
+    }
+
+    inline float z_global(){
+        //get x
+        return (curr_level.z+0.5)*pow(2, pc_data.depth_max - curr_level.depth);
+    }
+
+    template<typename U,typename V>
+    void interp_img(Mesh_data<U>& img,ExtraPartCellData<V>& parts){
+        //
+        //  Bevan Cheeseman 2016
+        //
+        //  Takes in a APR and creates piece-wise constant image
+        //
+
+        img.initialize(pc_data.org_dims[0],pc_data.org_dims[1],pc_data.org_dims[2],0);
+
+        int z_,x_,j_,y_;
+
+        for(uint64_t depth = (pc_data.depth_min);depth <= pc_data.depth_max;depth++) {
+            //loop over the resolutions of the structure
+            const unsigned int x_num_ = pc_data.x_num[depth];
+            const unsigned int z_num_ = pc_data.z_num[depth];
+
+            const unsigned int x_num_min_ = 0;
+            const unsigned int z_num_min_ = 0;
+
+            CurrentLevel<float, uint64_t> curr_level_l(pc_data);
+            curr_level_l.set_new_depth(depth, pc_data);
+
+            const float step_size = pow(2,curr_level_l.depth_max - curr_level_l.depth);
+
+#pragma omp parallel for default(shared) private(z_,x_,j_) firstprivate(curr_level_l) if(z_num_*x_num_ > 100)
+            for (z_ = z_num_min_; z_ < z_num_; z_++) {
+                //both z and x are explicitly accessed in the structure
+
+                for (x_ = x_num_min_; x_ < x_num_; x_++) {
+
+                    curr_level_l.set_new_xz(x_, z_, pc_data);
+
+                    for (j_ = 0; j_ < curr_level_l.j_num; j_++) {
+
+                        bool iscell = curr_level_l.new_j(j_, pc_data);
+
+                        if (iscell) {
+                            //Indicates this is a particle cell node
+                            curr_level_l.update_cell(pc_data);
+
+                            int dim1 = curr_level_l.y * step_size;
+                            int dim2 = curr_level_l.x * step_size;
+                            int dim3 = curr_level_l.z * step_size;
+
+                            float temp_int;
+                            //add to all the required rays
+
+                            temp_int = curr_level_l.get_val(parts);
+
+                            const int offset_max_dim1 = std::min((int) img.y_num, (int) (dim1 + step_size));
+                            const int offset_max_dim2 = std::min((int) img.x_num, (int) (dim2 + step_size));
+                            const int offset_max_dim3 = std::min((int) img.z_num, (int) (dim3 + step_size));
+
+                            for (int q = dim3; q < offset_max_dim3; ++q) {
+
+                                for (int k = dim2; k < offset_max_dim2; ++k) {
+#pragma omp simd
+                                    for (int i = dim1; i < offset_max_dim1; ++i) {
+                                        img.mesh[i + (k) * img.y_num + q*img.y_num*img.x_num] = temp_int;
+                                    }
+                                }
+                            }
+
+
+                        } else {
+
+                            curr_level_l.update_gap(pc_data);
+
+                        }
+
+
+                    }
+                }
+            }
+        }
+
+
+
+
+    }
+
+
 
 //    APR& operator++(unsigned int depth){
 //
