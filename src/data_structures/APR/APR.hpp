@@ -12,6 +12,8 @@
 #include "src/numerics/filter_numerics.hpp"
 #include "src/numerics/misc_numerics.hpp"
 
+#include "src/numerics/filter_help/CurrLevel.hpp"
+
 template<typename ImageType>
 class APR {
 
@@ -25,6 +27,8 @@ public:
     ExtraPartCellData<ImageType> particles_int;
 
     PartCellData<uint64_t> pc_data;
+
+    CurrentLevel<ImageType,uint64_t> curr_level;
 
     APR(){
 
@@ -46,6 +50,23 @@ public:
 
         part_new.initialize_from_structure(pc_struct);
 
+
+    }
+
+    void init_cells(PartCellStructure<float,uint64_t>& pc_struct){
+        part_new.initialize_from_structure(pc_struct);
+
+        create_y_data();
+
+        part_new.create_particles_at_cell_structure(particles_int);
+
+        //shift_particles_from_cells(particles_int);
+
+        part_new.initialize_from_structure(pc_struct);
+
+        part_new.create_pc_data_new(pc_data);
+
+        curr_level.init(pc_data);
 
     }
 
@@ -173,6 +194,111 @@ public:
     }
 
 
+    uint64_t begin(){
+
+        return curr_level.init_iterate(pc_data);
+
+    }
+
+    uint64_t begin(unsigned int depth){
+
+    }
+
+
+    uint64_t end(){
+        return curr_level.counter > 0;
+    }
+
+    uint64_t end(unsigned int depth){
+
+    }
+
+    uint64_t it_forward(){
+
+        curr_level.move_to_next_pc(pc_data);
+
+        return curr_level.counter;
+    }
+
+    template<typename S>
+    void get_neigh_all(ExtraPartCellData<S>& parts,std::vector<std::vector<S>>& neigh_vec){
+        //
+        // gets all particle neighbours and returns them in a vector with 6 vectors of the particles on each face of the Particle Cell
+        //
+
+        curr_level.update_and_get_neigh_all(parts,pc_data,neigh_vec);
+
+    }
+
+    template<typename S>
+    void get_neigh_all_avg(ExtraPartCellData<S>& parts,std::vector<std::vector<S>>& neigh_vec){
+        //
+        // gets all particle neighbours and returns them in a vector with 6 vectors, if exists provides the average of the neighbours
+        //
+
+        curr_level.update_and_get_neigh_all_avg(parts,pc_data,neigh_vec);
+
+    }
+
+    template<typename S>
+    void get_neigh_dir(ExtraPartCellData<S>& parts,std::vector<S>& neigh_vec,unsigned int dir){
+        //
+        // gets all particle neighbours and returns them in a vector with 6 vectors, if exists provides the average of the neighbours
+        //
+
+        curr_level.update_get_neigh_dir(parts,pc_data,neigh_vec,dir);
+
+    }
+
+    template<typename S>
+    S& operator()(ExtraPartCellData<S>& parts){
+        return curr_level.get_val(parts);
+
+    }
+
+    inline unsigned int x(){
+        //get x
+        return curr_level.x;
+    }
+
+    inline unsigned int y(){
+        //get x
+        return curr_level.y;
+    }
+
+    inline unsigned int z(){
+        //get x
+        return curr_level.z;
+    }
+
+    inline unsigned int type(){
+        //get x
+        return curr_level.status;
+    }
+
+    inline unsigned int depth(){
+        //get x
+        return curr_level.depth;
+    }
+
+//    APR& operator++(unsigned int depth){
+//
+//
+//        return *this;
+//    }
+
+
+
+//    bool operator==(){
+//
+//        return curr_level.counter > 0;
+//    }
+
+//    APR& operator==(unsigned int depth){
+//
+//
+//        return *this;
+//    }
 
 
 };
