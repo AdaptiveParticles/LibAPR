@@ -401,25 +401,196 @@ public:
     }
 
 
+    template<typename U>
+    void interp_depth(Mesh_data<U>& img){
 
-//    APR& operator++(unsigned int depth){
+        //get depth
+        ExtraPartCellData<U> depth_parts;
+        depth_parts.initialize_structure_cells(pc_data);
+
+        for (begin(); end() == true ; it_forward()) {
+            //
+            //  Demo APR iterator
+            //
+
+            //access and info
+            curr_level.get_val(depth_parts) = this->depth();
+
+        }
+
+        interp_img(img,depth_parts);
+
+
+    }
+
+    template<typename U>
+    void interp_type(Mesh_data<U>& img){
+
+        //get depth
+        ExtraPartCellData<U> type_parts;
+        type_parts.initialize_structure_cells(pc_data);
+
+        for (begin(); end() == true ; it_forward()) {
+            //
+            //  Demo APR iterator
+            //
+
+            //access and info
+            curr_level.get_val(type_parts) = this->type();
+
+        }
+
+        interp_img(img,type_parts);
+
+
+    }
+
+
+    template<typename U,typename V>
+    void interp_parts_smooth(Mesh_data<U>& out_image,ExtraPartCellData<V>& interp_data,std::vector<float> scale_d = {1,1,1}){
+        //
+        //  Performs a smooth interpolation, based on the depth (level l) in each direction.
+        //
+
+        Part_timer timer;
+        timer.verbose_flag = true;
+
+        Mesh_data<U> pc_image;
+        Mesh_data<uint8_t> k_img;
+
+        interp_img(pc_image,interp_data);
+
+        interp_depth(k_img);
+
+        int filter_offset = 0;
+
+        unsigned int x_num = pc_image.x_num;
+        unsigned int y_num = pc_image.y_num;
+        unsigned int z_num = pc_image.z_num;
+
+        Mesh_data<U> output_data;
+        output_data.initialize((int)y_num,(int)x_num,(int)z_num,0);
+
+        std::vector<U> temp_vec;
+        temp_vec.resize(y_num,0);
+
+        uint64_t offset_min;
+        uint64_t offset_max;
+
+        uint64_t j = 0;
+        uint64_t k = 0;
+        uint64_t i = 0;
+
+        float factor = 0;
+
+        int k_max = pc_data.depth_max;
+
+        timer.start_timer("x direction");
+
+        std::copy(k_img.mesh.begin(),k_img.mesh.end(),output_data.mesh.begin());
+
+#pragma omp parallel for default(shared) private(j,i,k,offset_min,offset_max,filter_offset,factor)
+        for(j = 0; j < z_num;j++){
+            for(i = 0; i < x_num;i++){
+
+                for(k = 0;k < y_num;k++){
+
+                    filter_offset = floor(pow(2,k_max - output_data.mesh[j*x_num*y_num + i*y_num + k])/scale_d[0]);
+
+                    offset_max = std::min((int)(k + filter_offset),(int)(y_num-1));
+                    offset_min = std::max((int)(k - filter_offset),(int)0);
+
+                    factor = 1.0/(offset_max - offset_min+1);
+
+                    uint64_t f = 0;
+                    output_data.mesh[j*x_num*y_num + i*y_num + k] = 0;
+                    for(uint64_t c = offset_min;c <= offset_max;c++){
+
+                        output_data.mesh[j*x_num*y_num + i*y_num + k] += pc_image.mesh[j*x_num*y_num + i*y_num + c]*factor;
+
+                    }
+
+                }
+            }
+        }
+
+        timer.stop_timer();
+
+        timer.start_timer("y direction");
+
+        std::swap(output_data.mesh,pc_image.mesh);
+
+        std::copy(k_img.mesh.begin(),k_img.mesh.end(),output_data.mesh.begin());
+
+#pragma omp parallel for default(shared) private(j,i,k,offset_min,offset_max,filter_offset,factor)
+        for(j = 0; j < z_num;j++){
+            for(i = 0; i < x_num;i++){
+
+                for(k = 0;k < y_num;k++){
+
+                    filter_offset = floor(pow(2,k_max - output_data.mesh[j*x_num*y_num + i*y_num + k])/scale_d[1]);
+
+                    offset_max = std::min((int)(i + filter_offset),(int)(x_num-1));
+                    offset_min = std::max((int)(i - filter_offset),(int)0);
+
+                    factor = 1.0/(offset_max - offset_min+1);
+
+                    uint64_t f = 0;
+                    output_data.mesh[j*x_num*y_num + i*y_num + k] = 0;
+                    for(uint64_t c = offset_min;c <= offset_max;c++){
+
+                        output_data.mesh[j*x_num*y_num + i*y_num + k] += pc_image.mesh[j*x_num*y_num + c*y_num + k]*factor;
+                    }
+
+                }
+            }
+        }
+
 //
 //
-//        return *this;
-//    }
-
-
-
-//    bool operator==(){
+//    // z loop
 //
-//        return curr_level.counter > 0;
-//    }
 
-//    APR& operator==(unsigned int depth){
-//
-//
-//        return *this;
-//    }
+        timer.stop_timer();
+
+        std::swap(output_data.mesh,pc_image.mesh);
+
+        timer.start_timer("z direction");
+
+        std::copy(k_img.mesh.begin(),k_img.mesh.end(),output_data.mesh.begin());
+
+#pragma omp parallel for default(shared) private(j,i,k,offset_min,offset_max,filter_offset,factor)
+        for(j = 0; j < z_num;j++){
+            for(i = 0; i < x_num;i++){
+
+
+                for(k = 0;k < y_num;k++){
+
+                    filter_offset = floor(pow(2,k_max - output_data.mesh[j*x_num*y_num + i*y_num + k])/scale_d[2]);
+
+                    offset_max = std::min((int)(j + filter_offset),(int)(z_num-1));
+                    offset_min = std::max((int)(j - filter_offset),(int)0);
+
+                    factor = 1.0/(offset_max - offset_min+1);
+
+                    uint64_t f = 0;
+                    output_data.mesh[j*x_num*y_num + i*y_num + k]=0;
+                    for(uint64_t c = offset_min;c <= offset_max;c++){
+
+                        output_data.mesh[j*x_num*y_num + i*y_num + k] += pc_image.mesh[c*x_num*y_num + i*y_num + k]*factor;
+
+                    }
+
+                }
+            }
+        }
+
+        timer.stop_timer();
+
+        out_image = output_data;
+
+    }
+
 
 
 };
