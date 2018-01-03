@@ -269,6 +269,14 @@ public:
     }
 
 
+    inline unsigned int depth_max(){
+        return pc_data.depth_max;
+    }
+
+    inline unsigned int depth_min(){
+        return pc_data.depth_min;
+    }
+
     ////////////////////////
     //
     //  Accessing info when iterating. Does not make sense outisde of a looping structure
@@ -1548,15 +1556,9 @@ public:
             H5Aread(attr_id,H5T_NATIVE_INT,&z_num) ;
             H5Aclose(attr_id);
 
-            int Ip_num;
-            name = "Ip_size_"+std::to_string(i);
-
-            attr_id = 	H5Aopen(pr_groupid,name.c_str(),H5P_DEFAULT);
-            H5Aread(attr_id,H5T_NATIVE_INT,&Ip_num);
-            H5Aclose(attr_id);
 
             p_map_load[i].resize(x_num*y_num*z_num);
-            Ip[i].resize(Ip_num);
+
 
             if(p_map_load[i].size() > 0){
                 name = "p_map_"+std::to_string(i);
@@ -1564,14 +1566,31 @@ public:
                 hdf5_load_data(obj_id,H5T_NATIVE_UINT8,p_map_load[i].data(),name.c_str());
             }
 
-            if(Ip[i].size()>0){
-                name = "Ip_"+std::to_string(i);
-                hdf5_load_data(obj_id,H5T_NATIVE_UINT16,Ip[i].data(),name.c_str());
-            }
 
             pc_data.x_num[i] = x_num;
             pc_data.y_num[i] = y_num;
             pc_data.z_num[i] = z_num;
+
+        }
+
+        for(int i = pc_data.depth_min;i <= pc_data.depth_max; i++){
+
+            //get the info
+
+            int Ip_num;
+            name = "Ip_size_"+std::to_string(i);
+
+            attr_id = 	H5Aopen(pr_groupid,name.c_str(),H5P_DEFAULT);
+            H5Aread(attr_id,H5T_NATIVE_INT,&Ip_num);
+            H5Aclose(attr_id);
+
+
+            Ip[i].resize(Ip_num);
+
+            if(Ip[i].size()>0){
+                name = "Ip_"+std::to_string(i);
+                hdf5_load_data(obj_id,H5T_NATIVE_UINT16,Ip[i].data(),name.c_str());
+            }
 
         }
 
@@ -1585,9 +1604,27 @@ public:
         H5Gclose(pr_groupid);
         H5Fclose(fid);
 
+        //
+        //
+        //  Transfer back the intensities
+        //
+        //
         create_partcell_structure(p_map_load);
 
-        //initialize_structure_read(p_map_load,Ip);
+        particles_int.initialize_structure_cells(pc_data);
+
+        for (int depth = this->depth_min(); depth <= this->depth_max(); ++depth) {
+
+            uint64_t counter = 0;
+
+            for (this->begin(depth); this->end() == true ; this->it_forward(depth)) {
+
+                curr_level.get_val(particles_int) = Ip[depth][counter];
+
+                counter++;
+
+            }
+        }
 
 
     }
@@ -1600,7 +1637,6 @@ public:
         //  Writes the APR to the particle cell structure sparse format, using the p_map for reconstruction
         //
         //
-
 
         //initialize
         uint64_t node_val_part;
