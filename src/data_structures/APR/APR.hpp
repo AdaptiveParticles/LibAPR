@@ -57,6 +57,8 @@ public:
 
         part_new.create_particles_at_cell_structure(particles_int);
 
+        part_new.create_pc_data_new(pc_data);
+
         shift_particles_from_cells(particles_int);
 
         part_new.initialize_from_structure(pc_struct);
@@ -151,29 +153,29 @@ public:
 
         ExtraPartCellData<U> pdata_new;
 
-        pdata_new.initialize_structure_parts(part_new.particle_data);
+        pdata_new.initialize_structure_cells(pc_data);
 
         uint64_t z_,x_,j_,node_val;
         uint64_t part_offset;
 
-        for(uint64_t i = part_new.access_data.depth_min;i <= part_new.access_data.depth_max;i++){
+        for(uint64_t i = pc_data.depth_min;i <= pc_data.depth_max;i++){
 
-            const unsigned int x_num_ = part_new.access_data.x_num[i];
-            const unsigned int z_num_ = part_new.access_data.z_num[i];
+            const unsigned int x_num_ = pc_data.x_num[i];
+            const unsigned int z_num_ = pc_data.z_num[i];
 
-#pragma omp parallel for default(shared) private(z_,x_,j_,part_offset,node_val)  if(z_num_*x_num_ > 100)
+#pragma omp parallel for default(shared) private(z_,x_,j_,node_val)  if(z_num_*x_num_ > 100)
             for(z_ = 0;z_ < z_num_;z_++){
 
                 for(x_ = 0;x_ < x_num_;x_++){
                     const size_t offset_pc_data = x_num_*z_ + x_;
-                    const size_t j_num = part_new.access_data.data[i][offset_pc_data].size();
+                    const size_t j_num = pc_data.data[i][offset_pc_data].size();
 
                     int counter = 0;
 
                     for(j_ = 0; j_ < j_num;j_++){
                         //raster over both structures, generate the index for the particles, set the status and offset_y_coord diff
 
-                        node_val = part_new.access_data.data[i][offset_pc_data][j_];
+                        node_val = pc_data.data[i][offset_pc_data][j_];
 
                         if(!(node_val&1)){
 
@@ -186,6 +188,8 @@ public:
                         }
 
                     }
+
+                    pdata_new.data[i][offset_pc_data].resize(counter); //reduce to new size
                 }
             }
         }
@@ -202,21 +206,27 @@ public:
     }
 
     uint64_t begin(unsigned int depth){
-
+        return curr_level.init_iterate(pc_data,depth);
     }
-
 
     uint64_t end(){
         return curr_level.counter > 0;
     }
 
-    uint64_t end(unsigned int depth){
-
-    }
+//    uint64_t end(unsigned int depth){
+//
+//    }
 
     uint64_t it_forward(){
 
         curr_level.move_to_next_pc(pc_data);
+
+        return curr_level.counter;
+    }
+
+    uint64_t it_forward(unsigned int depth){
+
+        curr_level.move_to_next_pc(pc_data,depth);
 
         return curr_level.counter;
     }
@@ -1505,7 +1515,7 @@ public:
         pc_data.depth_max = pc_data.depth_max;
 
         p_map_load.resize(pc_data.depth_max);
-        Ip.resize(pc_data.depth_max);
+        Ip.resize(pc_data.depth_max+1);
 
         std::string name;
 
@@ -1711,6 +1721,13 @@ public:
 
         std::vector<uint16_t> Ip;
 
+        ExtraPartCellData<ImageType> temp_int;
+        temp_int.initialize_structure_cells(pc_data);
+        temp_int.data = particles_int.data;
+
+        shift_particles_from_cells(temp_int);
+
+
         for(uint64_t i = pc_data.depth_min;i <= pc_data.depth_max;i++){
 
             const unsigned int x_num_ = pc_data.x_num[i];
@@ -1723,19 +1740,16 @@ public:
 
             for(z_ = 0;z_ < z_num_;z_++){
 
-                curr_key = 0;
-
                 for(x_ = 0;x_ < x_num_;x_++){
 
-                    pc_data.pc_key_set_x(curr_key,x_);
                     const size_t offset_pc_data = x_num_*z_ + x_;
 
-                    const size_t j_num = pc_data.data[i][offset_pc_data].size();
+                    const size_t j_num = temp_int.data[i][offset_pc_data].size();
 
                     uint64_t curr_size = Ip.size();
                     Ip.resize(curr_size+ j_num);
 
-                    std::copy(particles_int.data[i][offset_pc_data].begin(),particles_int.data[i][offset_pc_data].end(),Ip.begin() + curr_size);
+                    std::copy(temp_int.data[i][offset_pc_data].begin(),temp_int.data[i][offset_pc_data].end(),Ip.begin() + curr_size);
 
                 }
 
@@ -1753,7 +1767,6 @@ public:
                 hdf5_write_data_blosc(obj_id,H5T_NATIVE_UINT16,name.c_str(),rank,&dims, Ip.data());
 
             }
-
 
         }
 
@@ -1867,20 +1880,19 @@ public:
             }
 
 
-
             dims = p_map.size();
             name = "p_map_"+std::to_string(i);
             hdf5_write_data_blosc(obj_id,H5T_NATIVE_UINT8,name.c_str(),rank,&dims, p_map.data());
 
             name = "p_map_x_num_"+std::to_string(i);
-            hsize_t attr = x_num_;
+            hsize_t attr = x_num_d;
             hdf5_write_attribute(pr_groupid,H5T_NATIVE_INT,name.c_str(),1,&dim_a, &attr);
 
-            attr = y_num_;
+            attr = y_num_d;
             name = "p_map_y_num_"+std::to_string(i);
             hdf5_write_attribute(pr_groupid,H5T_NATIVE_INT,name.c_str(),1,&dim_a, &attr);
 
-            attr = z_num_;
+            attr = z_num_d;
             name = "p_map_z_num_"+std::to_string(i);
             hdf5_write_attribute(pr_groupid,H5T_NATIVE_INT,name.c_str(),1,&dim_a, &attr);
 
@@ -1902,7 +1914,6 @@ public:
         H5Fclose(fid);
 
         std::cout << "Writing Complete" << std::endl;
-
 
 
     }
