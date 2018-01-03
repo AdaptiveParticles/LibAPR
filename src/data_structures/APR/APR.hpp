@@ -14,8 +14,10 @@
 
 #include "src/numerics/filter_help/CurrLevel.hpp"
 
+#include "src/data_structures/APR/APR_iterator.hpp"
+
 template<typename ImageType>
-class APR {
+class APR : public APR_iterator<ImageType>{
 
 public:
 
@@ -28,26 +30,26 @@ public:
 
     PartCellData<uint64_t> pc_data;
 
-    CurrentLevel<ImageType,uint64_t> curr_level;
-
     std::vector<float> num_parts;
 
     std::vector<float> num_elements;
+
+    ExtraPartCellData<uint64_t> num_parts_xy;
 
     std::string name;
 
     Proc_par pars;
 
-    double num_parts_total;
+
     double num_elements_total;
 
     APR(){
-
+        this->pc_data_pointer = &pc_data;
     }
 
     APR(PartCellStructure<float,uint64_t>& pc_struct){
         init(pc_struct);
-
+        this->pc_data_pointer = &pc_data;
     }
 
     void init(PartCellStructure<float,uint64_t>& pc_struct){
@@ -66,10 +68,28 @@ public:
 
     }
 
+
+    void init_by_part_iteration(APR_iterator<float>& apr_it){
+        //
+        //  Initializes the required datastructures for by particles and parralell iteration
+        //
+
+        get_part_numbers();
+        set_part_numbers_xz();
+
+        apr_it.num_parts = &this->num_parts;
+        apr_it.num_parts_xz_pointer = &this->num_parts_xy;
+        apr_it.num_parts_total = this->num_parts_total;
+        apr_it.pc_data_pointer = &pc_data;
+
+        apr_it.curr_level.init(pc_data);
+    }
+
+
     void init_cells(PartCellStructure<float,uint64_t>& pc_struct){
         create_pc_data_new(pc_struct);
 
-        curr_level.init(pc_data);
+        this->curr_level.init(pc_data);
 
     }
 
@@ -198,19 +218,18 @@ public:
 
     }
 
-
     uint64_t begin(){
 
-        return curr_level.init_iterate(pc_data);
+        return this->curr_level.init_iterate(pc_data);
 
     }
 
     uint64_t begin(unsigned int depth){
-        return curr_level.init_iterate(pc_data,depth);
+        return this->curr_level.init_iterate(pc_data,depth);
     }
 
     uint64_t end(){
-        return curr_level.counter > 0;
+        return this->curr_level.counter > 0;
     }
 
 //    uint64_t end(unsigned int depth){
@@ -219,63 +238,19 @@ public:
 
     uint64_t it_forward(){
 
-        curr_level.move_to_next_pc(pc_data);
+        this->curr_level.move_to_next_pc(pc_data);
 
-        return curr_level.counter;
+        return this->curr_level.counter;
     }
 
     uint64_t it_forward(unsigned int depth){
 
-        curr_level.move_to_next_pc(pc_data,depth);
+        this->curr_level.move_to_next_pc(pc_data,depth);
 
-        return curr_level.counter;
-    }
-
-    template<typename S>
-    void get_neigh_all(ExtraPartCellData<S>& parts,std::vector<std::vector<S>>& neigh_vec){
-        //
-        // gets all particle neighbours and returns them in a vector with 6 vectors of the particles on each face of the Particle Cell
-        //
-
-        curr_level.update_and_get_neigh_all(parts,pc_data,neigh_vec);
-
-    }
-
-    template<typename S>
-    void get_neigh_all_avg(ExtraPartCellData<S>& parts,std::vector<std::vector<S>>& neigh_vec){
-        //
-        // gets all particle neighbours and returns them in a vector with 6 vectors, if exists provides the average of the neighbours
-        //
-
-        curr_level.update_and_get_neigh_all_avg(parts,pc_data,neigh_vec);
-
-    }
-
-    template<typename S>
-    void get_neigh_dir(ExtraPartCellData<S>& parts,std::vector<S>& neigh_vec,unsigned int dir){
-        //
-        // gets all particle neighbours and returns them in a vector with 6 vectors, if exists provides the average of the neighbours
-        //
-
-        curr_level.update_get_neigh_dir(parts,pc_data,neigh_vec,dir);
-
-    }
-
-    template<typename S>
-    S& operator()(ExtraPartCellData<S>& parts){
-        //accesses the value of particle data when iterating
-        return curr_level.get_val(parts);
-
+        return this->curr_level.counter;
     }
 
 
-    inline unsigned int depth_max(){
-        return pc_data.depth_max;
-    }
-
-    inline unsigned int depth_min(){
-        return pc_data.depth_min;
-    }
 
     ////////////////////////
     //
@@ -283,60 +258,9 @@ public:
     //
     //////////////////////////
 
-    inline unsigned int x(){
-        //get x
-        return curr_level.x;
-    }
 
-    inline unsigned int y(){
-        //get x
-        return curr_level.y;
-    }
 
-    inline unsigned int z(){
-        //get x
-        return curr_level.z;
-    }
 
-    inline unsigned int type(){
-        //get x
-        return curr_level.status;
-    }
-
-    inline unsigned int depth(){
-        //get x
-        return curr_level.depth;
-    }
-
-    inline unsigned int x_nearest_pixel(){
-        //get x
-        return floor((curr_level.x+0.5)*pow(2, pc_data.depth_max - curr_level.depth));
-    }
-
-    inline float x_global(){
-        //get x
-        return (curr_level.x+0.5)*pow(2, pc_data.depth_max - curr_level.depth);
-    }
-
-    inline unsigned int y_nearest_pixel(){
-        //get x
-        return floor((curr_level.y+0.5)*pow(2, pc_data.depth_max - curr_level.depth));
-    }
-
-    inline float y_global(){
-        //get x
-        return (curr_level.y+0.5)*pow(2, pc_data.depth_max - curr_level.depth);
-    }
-
-    inline unsigned int z_nearest_pixel(){
-        //get x
-        return floor((curr_level.z+0.5)*pow(2, pc_data.depth_max - curr_level.depth));
-    }
-
-    inline float z_global(){
-        //get x
-        return (curr_level.z+0.5)*pow(2, pc_data.depth_max - curr_level.depth);
-    }
 
     template<typename U,typename V>
     void interp_img(Mesh_data<U>& img,ExtraPartCellData<V>& parts){
@@ -434,7 +358,7 @@ public:
             //
 
             //access and info
-            curr_level.get_val(depth_parts) = this->depth();
+            this->curr_level.get_val(depth_parts) = this->depth();
 
         }
 
@@ -456,7 +380,7 @@ public:
             //
 
             //access and info
-            curr_level.get_val(type_parts) = this->type();
+            this->curr_level.get_val(type_parts) = this->type();
 
         }
 
@@ -747,12 +671,13 @@ public:
         //  Computes totals of total number of particles, and the total number of elements (PC and gap nodes)
         //
 
-
-
         this->num_parts.resize(pc_data.depth_max + 1);
         this->num_elements.resize(pc_data.depth_max + 1);
 
         int z_, x_, j_, y_;
+
+        uint64_t counter_parts = 0;
+        uint64_t counter_elements = 0;
 
         for (uint64_t depth = (pc_data.depth_min); depth <= pc_data.depth_max; depth++) {
             //loop over the resolutions of the structure
@@ -767,8 +692,6 @@ public:
 
             const float step_size = pow(2, curr_level_l.depth_max - curr_level_l.depth);
 
-            uint64_t counter_parts = 0;
-            uint64_t counter_elements = 0;
 
             for (z_ = z_num_min_; z_ < z_num_; z_++) {
                 //both z and x are explicitly accessed in the structure
@@ -805,12 +728,78 @@ public:
 
         }
 
-        num_parts_total = 0;
+        this->num_parts_total = 0;
         num_elements_total = 0;
 
-        for (int i = 0; i < pc_data.depth_max; ++i) {
-            num_parts_total += num_parts[i];
+        for (int i = 0; i <= pc_data.depth_max; ++i) {
+
             num_elements_total += num_elements[i];
+        }
+
+        this->num_parts_total += num_parts[pc_data.depth_max];
+
+    }
+
+    void set_part_numbers_xz() {
+        //
+        //  Computes totals of total number of particles in each xz
+        //
+
+        num_parts_xy.initialize_structure_parts_empty(particles_int);
+
+        int z_, x_, j_, y_;
+
+        uint64_t counter_parts = 0;
+
+        for (uint64_t depth = (pc_data.depth_min); depth <= pc_data.depth_max; depth++) {
+            //loop over the resolutions of the structure
+            const unsigned int x_num_ = pc_data.x_num[depth];
+            const unsigned int z_num_ = pc_data.z_num[depth];
+
+            const unsigned int x_num_min_ = 0;
+            const unsigned int z_num_min_ = 0;
+
+            CurrentLevel<float, uint64_t> curr_level_l(pc_data);
+            curr_level_l.set_new_depth(depth, pc_data);
+
+            const float step_size = pow(2, curr_level_l.depth_max - curr_level_l.depth);
+
+
+
+            for (z_ = z_num_min_; z_ < z_num_; z_++) {
+                //both z and x are explicitly accessed in the structure
+
+                for (x_ = x_num_min_; x_ < x_num_; x_++) {
+
+                    curr_level_l.set_new_xz(x_, z_, pc_data);
+
+
+
+                    for (j_ = 0; j_ < curr_level_l.j_num; j_++) {
+
+                        bool iscell = curr_level_l.new_j(j_, pc_data);
+
+
+                        if (iscell) {
+                            //Indicates this is a particle cell node
+                            curr_level_l.update_cell(pc_data);
+
+                            counter_parts++;
+
+                        } else {
+
+                            curr_level_l.update_gap(pc_data);
+
+                        }
+
+
+                    }
+
+                    num_parts_xy.data[curr_level_l.depth][curr_level_l.pc_offset].push_back(counter_parts);
+
+                }
+            }
+
         }
 
     }
@@ -1619,7 +1608,7 @@ public:
 
             for (this->begin(depth); this->end() == true ; this->it_forward(depth)) {
 
-                curr_level.get_val(particles_int) = Ip[depth][counter];
+                this->curr_level.get_val(particles_int) = Ip[depth][counter];
 
                 counter++;
 
@@ -1701,8 +1690,8 @@ public:
 
         //just an identifier in here for the reading of the parts
 
-        int num_parts = num_parts_total;
-        int num_cells = num_elements_total;
+        int num_parts = this->num_parts_total;
+        int num_cells = this->num_elements_total;
 
         hdf5_write_attribute(pr_groupid,H5T_NATIVE_INT,"num_parts",1,dims_out, &num_parts );
 
@@ -1988,7 +1977,7 @@ public:
 
                 if (neigh_vec.size() > 0) {
                     //check if the depth is less
-                    if (pc_data.pc_key_get_depth(curr_level.neigh_part_keys.neigh_face[dir[j]][0]) <= this->depth()) {
+                    if (pc_data.pc_key_get_depth(this->curr_level.neigh_part_keys.neigh_face[dir[j]][0]) <= this->depth()) {
                         for (int i = 0; i < neigh_vec.size(); ++i) {
                             pred += neigh_vec[i];
                             counter++;
@@ -2001,7 +1990,7 @@ public:
                 pred = floor(pred/counter);
             }
 
-            curr_level.get_val(delta) = curr_level.get_val(parts) - pred;
+            this->curr_level.get_val(delta) = this->curr_level.get_val(parts) - pred;
 
 
         }
