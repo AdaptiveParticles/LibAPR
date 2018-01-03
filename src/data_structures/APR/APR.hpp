@@ -1629,7 +1629,7 @@ public:
 
     }
 
-    void write_apr(std::string save_loc,std::string file_name){
+    void write_apr(std::string save_loc,std::string file_name,bool predict = false){
         //
         //
         //  Bevan Cheeseman 2018
@@ -1800,8 +1800,12 @@ public:
                 //write the parts
 
                 name = "Ip_"+std::to_string(i);
-                hdf5_write_data_blosc(obj_id,H5T_NATIVE_UINT16,name.c_str(),rank,&dims, Ip.data());
+                if(predict) {
 
+                    hdf5_write_data_blosc(obj_id, H5T_NATIVE_INT16, name.c_str(), rank, &dims, Ip.data());
+                } else {
+                    hdf5_write_data_blosc(obj_id, H5T_NATIVE_UINT16, name.c_str(), rank, &dims, Ip.data());
+                }
             }
 
         }
@@ -1951,6 +1955,58 @@ public:
 
         std::cout << "Writing Complete" << std::endl;
 
+
+    }
+
+    template<typename S>
+    void predict_intensities(ExtraPartCellData<S>& parts){
+        //
+        //  Reduce the entropy of the saved sequence by predicting the intensity and storing \delta
+        //
+
+        //init temp data
+        ExtraPartCellData<S> delta;
+        delta.initialize_structure_cells(pc_data);
+
+        std::vector<S> neigh_vec;
+
+        std::vector<unsigned int> dir = {1,3,5};
+
+        //loops from lowest level to highest
+        for (this->begin(); this->end() == true ; this->it_forward()) {
+
+            //get the minus neighbours (1,3,5)
+
+            float pred = 0;
+            float counter = 0;
+
+            for (int j = 0; j < dir.size(); ++j) {
+
+                get_neigh_dir(parts, neigh_vec, dir[j]);
+
+
+
+                if (neigh_vec.size() > 0) {
+                    //check if the depth is less
+                    if (pc_data.pc_key_get_depth(curr_level.neigh_part_keys.neigh_face[dir[j]][0]) <= this->depth()) {
+                        for (int i = 0; i < neigh_vec.size(); ++i) {
+                            pred += neigh_vec[i];
+                            counter++;
+                        }
+                    }
+                }
+            }
+
+            if(counter > 0){
+                pred = floor(pred/counter);
+            }
+
+            curr_level.get_val(delta) = curr_level.get_val(parts) - pred;
+
+
+        }
+
+        std::swap(parts,delta);
 
     }
 
