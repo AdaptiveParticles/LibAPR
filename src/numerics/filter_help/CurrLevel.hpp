@@ -184,9 +184,29 @@ public:
 
     void init(PartCellData<T>& pc_data){
 
+        depth = 0;
+        x = 0;
+        z = 0;
+        j = 0;
+        pc_offset = 0;
+        y = 0;
+        j_num = 0;
+        x_num = 0;
+        z_num = 0;
+        status = 0;
+        node_val = 0;
+        counter = 1;
+        y_num = 0;
+        type = 0;
+
+        depth_max = pc_data.depth_max;
+        depth_min = pc_data.depth_min;
+
+
         depth = pc_data.depth_min;
         x_num = pc_data.x_num[depth];
         z_num = pc_data.z_num[depth];
+        z_num = pc_data.y_num[depth];
 
         x = 0;
         z = 0;
@@ -200,8 +220,7 @@ public:
 
     }
 
-    
-    
+
     template<typename U>
     void init(T x_,T z_,T j_,T depth_,ParticleDataNew<U, T>& part_data){
         
@@ -331,10 +350,35 @@ public:
 
     }
 
+    bool move_to_next_pc(PartCellData<T>& pc_data,unsigned int depth){
+        //move to new particle cell, if it reaches the end it returns false
 
-    uint64_t init_iterate(int depth,PartCellData<T>& pc_data){
+        iterate_forward(pc_data,depth);
+
+        while((node_val&1) & counter!=0){
+            iterate_forward(pc_data,depth);
+        }
+
+        return (counter != 0);
+
+    }
 
 
+    uint64_t init_iterate(PartCellData<T>& pc_data,unsigned int depth){
+
+        counter=1;
+
+        depth_min = pc_data.depth_min;
+        depth_max = pc_data.depth_max;
+
+        set_new_depth(depth,pc_data);
+        set_new_x(0,pc_data);
+        set_new_z(0,pc_data);
+        update_j(pc_data,0);
+
+        move_to_next_pc(pc_data,depth);
+
+        return counter;
 
     }
 
@@ -392,9 +436,54 @@ public:
         return counter;
     }
 
+    uint64_t iterate_forward(PartCellData<T>& pc_data,unsigned int depth){
+        // iterate forward
+
+        if(j < (j_num-1)){
+            //move j
+            update_j(pc_data,j+1);
+            counter++;
+
+        } else {
+            if(x < (x_num-1)){
+                set_new_x(x+1,pc_data);
+                update_j(pc_data,0);
+                counter++;
+                y=0;
+
+            } else{
+                if(z < (z_num-1)) {
+                    set_new_z(z+1,pc_data);
+                    set_new_x(0,pc_data);
+                    update_j(pc_data,0);
+                    counter++;
+                    y=0;
+
+                } else{
+
+                    counter = 0;
+                    return 0;
+
+                }
+
+            }
 
 
-    
+        }
+
+        if(!(node_val&1)){
+            update_cell(pc_data);
+        } else{
+            update_gap(pc_data);
+        }
+
+        return counter;
+    }
+
+
+
+
+
     template<typename U>
     bool move_cell(unsigned int dir,unsigned int index,PartCellData<U>& pc_data){
         

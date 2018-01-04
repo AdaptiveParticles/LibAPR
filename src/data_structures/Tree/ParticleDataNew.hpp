@@ -2,7 +2,7 @@
 //
 //  Bevan Cheeseman 2016
 //
-//  PartCellData class, the data container for CRS sparse format for APR
+//  PartCellData class, the data container for CRS sparse format for APR (New Data structure need to update)
 //
 ///////////////
 

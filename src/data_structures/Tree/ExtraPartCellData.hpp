@@ -44,6 +44,7 @@ public:
     
     std::vector<unsigned int> z_num;
     std::vector<unsigned int> x_num;
+    std::vector<unsigned int> y_num;
     
     std::vector<std::vector<std::vector<T>>> data;
 

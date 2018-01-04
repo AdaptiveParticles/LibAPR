@@ -173,7 +173,7 @@ int main(int argc, char **argv) {
     //
     /////////////////////////////////////
 
-    bool connected_comp = true;
+    bool connected_comp = false;
 
     if(connected_comp) {
 

@@ -131,9 +131,7 @@ struct pc_key {
         j = (raw_key & PC_KEY_J_MASK) >> PC_KEY_J_SHIFT;
         p = (raw_key & PC_KEY_PARTNUM_MASK) >> PC_KEY_PARTNUM_SHIFT;
         status = (raw_key & PC_KEY_STATUS_MASK) >> PC_KEY_STATUS_SHIFT;
-        
-        
-        
+
         if(status == SEED){
             int part_num = p;
             
@@ -1159,6 +1157,10 @@ public:
         y_num = part_cell_data.y_num;
 
     }
+
+
+
+
 
     void debug_node(T node_val){
         //

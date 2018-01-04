@@ -427,7 +427,8 @@ int main(int argc, char **argv) {
     ////////////////////////////////////////////////
 
     APR<float> apr; //new datastructure
-    apr.init_cells(pc_struct);
+    apr.init(pc_struct);
+    apr.init_pc_data();
 
     // Example 4: SARI Particle Neighbour Access
 
@@ -683,55 +684,61 @@ int main(int argc, char **argv) {
 
     // Example 8. Demo Iterator
 
+    APR<float> apr2;
+
+    apr2.init_cells(pc_struct);
+
     ExtraPartCellData<float> test;
-    test.initialize_structure_cells(apr.pc_data);
+    test.initialize_structure_cells(apr2.pc_data);
 
     timer.start_timer("APR iterator");
 
-    for (apr.begin(); apr.end() == true ; apr.it_forward()) {
+    for (apr2.begin(); apr2.end() == true ; apr2.it_forward()) {
         //
         //  Demo APR iterator
         //
 
         //access and assignment
-        apr(test)= apr(apr.particles_int);
+        apr2(test)= apr2(apr2.particles_int);
 
     }
 
     timer.stop_timer();
 
     ExtraPartCellData<float> neigh_avg;
-    neigh_avg.initialize_structure_cells(apr.pc_data);
+    neigh_avg.initialize_structure_cells(apr2.pc_data);
 
     timer.start_timer("APR iterator neighbours");
 
     std::vector<std::vector<float>> neigh_vals;
 
-    for (apr.begin(); apr.end() == true ; apr.it_forward()) {
-        //
-        //  Demo APR iterator
-        //
+    for (int k = 0; k < 1; ++k) {
 
-        //
-        // Neighbour definitions
-        // [+y,-y,+x,-x,+z,-z]
-        //  [0,1,2,3,4,5]
-        //
+        //demo iterator
+        for (apr2.begin(); apr2.end() == true; apr2.it_forward()) {
 
-        //update all
-        apr.get_neigh_all(apr.particles_int,neigh_vals);
+            //
+            // Neighbour definitions
+            // [+y,-y,+x,-x,+z,-z]
+            //  [0,1,2,3,4,5]
+            //
 
-        float counter = 0;
+            //update all
+            apr2.get_neigh_all(apr2.particles_int, neigh_vals);
 
-        for (int i = 0; i < neigh_vals.size(); ++i) {
+            float counter = 0;
 
-            for (int j = 0; j < neigh_vals[i].size(); ++j) {
-                apr(neigh_avg) += neigh_vals[i][j];
-                counter++;
+            for (int i = 0; i < neigh_vals.size(); ++i) {
+
+                for (int j = 0; j < neigh_vals[i].size(); ++j) {
+                    apr2(neigh_avg) += neigh_vals[i][j];
+                    counter++;
+                }
             }
-        }
 
-        apr(neigh_avg) = apr(neigh_avg)/(counter);
+            apr2(neigh_avg) = apr2(neigh_avg) / (counter);
+
+        }
 
     }
 
@@ -739,49 +746,212 @@ int main(int argc, char **argv) {
 
     Mesh_data<float> output_img;
 
-    interp_img(output_img, apr.pc_data, apr.part_new, test,true);
+    apr2.interp_img(output_img,test);
 
     debug_write(output_img,"it_test");
 
-    interp_img(output_img, apr.pc_data, apr.part_new, neigh_avg,true);
+    apr2.interp_img(output_img,neigh_avg);
 
     debug_write(output_img,"it_test_neigh");
-
 
     ExtraPartCellData<float> info;
     info.initialize_structure_cells(apr.pc_data);
 
     timer.start_timer("APR iterator info");
 
-    for (apr.begin(); apr.end() == true ; apr.it_forward()) {
+    for (apr2.begin(); apr2.end() == true ; apr2.it_forward()) {
         //
         //  Demo APR iterator
         //
 
         //access and info
-        apr(info)= apr.depth();
+        apr2(info)= apr2.y_global();
+
 
     }
 
     timer.stop_timer();
 
-    interp_img(output_img, apr.pc_data, apr.part_new, info,true);
 
-    debug_write(output_img,"it_test_info");
+    Mesh_data<float> output_img_info;
+    apr2.interp_img(output_img_info,info);
 
+    //interp_img(output_img_info, apr.pc_data, apr.part_new, info,true);
+
+    debug_write(output_img_info,"it_test_info");
+
+
+    std::vector<float> scale = {1,1,2};
+
+    apr2.interp_parts_smooth(output_img_info,apr2.particles_int);
+
+    debug_write(output_img_info,"it_test_smooth");
+
+
+
+    for (apr2.begin(); apr2.end() == true ; apr2.it_forward()) {
+        //
+        //  Demo APR iterator
+        //
+
+        //access and info
+        apr2(info)= apr2(apr2.particles_int);
+
+    }
+
+    apr2.interp_img(output_img_info,info);
+
+    //interp_img(output_img_info, apr.pc_data, apr.part_new, info,true);
+
+    debug_write(output_img_info,"it_test_info_2");
+
+    apr2.write_apr(options.directory,"test_write");
+
+
+    APR<float> apr3;
+
+    apr3.read_apr(options.directory + "test_write_apr.h5");
+
+    //apr3.read_apr(options.directory + options.input);
+
+
+    timer.start_timer("standard iterate and set");
+
+    for (int k = 0; k < 5; ++k) {
+
+        for (apr3.begin(); apr3.end() == true; apr3.it_forward()) {
+            //
+            //  Demo APR iterator
+            //
+
+            //access and info
+            apr3(info) = apr3(apr2.particles_int) + 5000;
+
+        }
+
+    }
+
+
+    timer.stop_timer();
+
+    Mesh_data<float> output_3;
+    apr3.interp_img(output_3,info);
+
+    debug_write(output_3,"read_test");
+
+    //iterate by depth
+
+    int counter = 0;
+
+    for (int depth = apr.depth_min(); depth <= apr.depth_max(); ++depth) {
+        for (apr3.begin(depth); apr3.end() == true ; apr3.it_forward(depth)) {
+
+            //access and info
+            apr3(info)= counter;
+
+            counter++;
+
+        }
+    }
+
+    apr3.interp_img(output_3,info);
+
+    debug_write(output_3,"depth_iterate_test");
+
+
+    APR_iterator<float> apr_it;
+    uint64_t part;
+    apr3.init_by_part_iteration(apr_it);
+
+    apr_it.set_part(9942);
+
+    int t = apr_it(info);
+
+    timer.start_timer("par loop");
+
+
+    for (int k = 0; k < 1; ++k) {
+
+
+
+#pragma omp parallel for schedule(static) private(part) firstprivate(apr_it)
+    for (part = 0; part < apr3.num_parts_total; ++part) {
+        apr_it.set_part(part);
+
+        //apr_it(info) = apr_it(apr3.particles_int) + 5000;
+
+        if(apr_it(info) != part){
+            std::cout << "broke" << std::endl;
+
+        }
+
+    }
+
+    }
+
+
+    timer.stop_timer();
+
+    apr3.interp_img(output_3,info);
+
+    debug_write(output_3,"parrallel_iterate_test");
+
+
+    timer.start_timer("neigh par loop");
+
+
+    for (int k = 0; k < 5; ++k) {
+
+
+#pragma omp parallel for schedule(static) private(part) firstprivate(apr_it,neigh_vals)
+        for (part = 0; part < apr3.num_parts_total; ++part) {
+            apr_it.set_part(part);
+
+            apr_it.get_neigh_all(apr3.particles_int,neigh_vals);
+
+            float counter = 0;
+            float temp = 0;
+
+            for (int i = 0; i < neigh_vals.size(); ++i) {
+
+                for (int j = 0; j < neigh_vals[i].size(); ++j) {
+                    temp += neigh_vals[i][j];
+                    counter++;
+                }
+            }
+
+            apr_it(neigh_avg) = temp/(counter);
+
+        }
+
+    }
+
+
+    timer.stop_timer();
+
+    std::cout << "Parallel Iterator Neighbour: " <<  (timer.t2 - timer.t1)/5.0 <<std::endl;
+
+    //demo for a hash access
+
+
+
+
+
+
+    //demo additional compression step
 
     //
     //  Benchmarks
     //
 
     AnalysisData analysis_data;
-
-    particle_linear_neigh_access_alt_1(pc_struct);
-
+//
+//    particle_linear_neigh_access_alt_1(pc_struct);
+//
     lin_access_parts(pc_struct);
-
-    particle_linear_neigh_access(pc_struct,50,analysis_data);
-
+//
+    particle_linear_neigh_access(pc_struct,5,analysis_data);
+//
     pixels_linear_neigh_access(pc_struct,pc_struct.org_dims[0],pc_struct.org_dims[1],pc_struct.org_dims[2],50,analysis_data);
 
 }

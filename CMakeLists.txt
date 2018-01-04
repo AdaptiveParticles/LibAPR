@@ -194,7 +194,7 @@ add_executable(Example_convert_full_format
         )
 
 add_executable(Example_ray_cast
-        test/Examples/ray_cast.cpp
+        test/Examples/Example_ray_cast.cpp
         #test/utils.cpp
         ${SOURCE_FILES_COMPILED}
         src/vis/Camera.cpp src/vis/Camera.h src/vis/Object.cpp src/vis/Object.h src/vis/RaytracedObject.cpp src/vis/RaytracedObject.h)

@@ -89,7 +89,7 @@ int main(int argc, char **argv) {
     uint64_t j_;
     uint64_t curr_key = 0;
     PartCellNeigh<uint64_t> neigh_keys;
-    
+    PartCellNeigh<uint64_t> neigh_cell_keys;
     
     int num_cells = pc_struct.get_number_cells();
     int num_parts = pc_struct.get_number_parts();
@@ -229,7 +229,7 @@ int main(int argc, char **argv) {
                         //get some information about the current cell
                         pc_struct.pc_data.get_coordinates_cell(y_coord,curr_key,x_current,z_current,y_current,depth_current,status_current);
                         
-                        //get all the neighbours
+                        //get one neighbour
                         // (Neighbour directions are (+y,-y,+x,-x,+z,-z)
                         uint64_t face = 2; // +x direction
                     
@@ -249,8 +249,7 @@ int main(int argc, char **argv) {
                                 //then we can get the status from this
                                 status_neigh = pc_struct.pc_data.get_status(neigh_node);
                             }
-                            
-                            
+
                         }
                         
                         

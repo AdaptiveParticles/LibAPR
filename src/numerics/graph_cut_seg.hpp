@@ -1347,7 +1347,6 @@ void calc_graph_cuts_segmentation_mesh(PartCellStructure<V,T>& pc_struct,Mesh_da
     for(int i = 0;i < seg_mesh.mesh.size();i++){
         seg_mesh.mesh[i] = 255*(g->what_segment(i) == GraphType::SOURCE);
     }
-    
 
     
     delete g;
