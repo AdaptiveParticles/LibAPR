@@ -21,11 +21,11 @@ int main(int argc, char **argv) {
 
     //input parsing
     cmdLineOptions options;
-
     //init structure
-    PartCellStructure<float,uint64_t> pc_struct;
 
-    get_apr(argc,argv,pc_struct,options);
+    APR<float> apr;
+
+    get_apr(argc,argv,apr,options);
     
     //output
     std::string save_loc = options.output_dir;
@@ -36,31 +36,11 @@ int main(int argc, char **argv) {
     timer.verbose_flag = true;
 
     timer.start_timer("writing output");
-  
-    write_apr_pc_struct(pc_struct,save_loc,file_name);
+
+    apr.write_apr(save_loc,file_name);
 
     timer.stop_timer();
 
-    Mesh_data<uint8_t> k_img;
-    interp_adapt_to_mesh(k_img,pc_struct);
-    debug_write(k_img,"depth_debug");
-
-    Mesh_data<uint16_t> interp_img;
-
-    pc_struct.interp_parts_to_pc(interp_img,pc_struct.part_data.particle_data);
-    debug_write(interp_img,"interp_img");
-
-    write_apr_full_format(pc_struct,options.output_dir ,options.output);
-
-    std::vector<float> scale = {1,1,2};
-
-    Mesh_data<float> smooth_img;
-    timer.start_timer("smooth recon");
-    interp_parts_to_smooth(smooth_img,pc_struct.part_data.particle_data,pc_struct,scale);
-    timer.stop_timer();
-
-    debug_write(smooth_img,"smooth_test");
-    
 }
 
 

@@ -48,7 +48,6 @@ public:
 
     Proc_par pars;
 
-
     double num_elements_total;
 
     APR(){
@@ -697,10 +696,6 @@ public:
                             //Indicates this is a particle cell node
                             curr_level_l.update_cell(pc_data);
 
-                            int dim1 = floor((curr_level_l.y+0.5) * step_size);
-                            int dim2 = floor((curr_level_l.x+0.5) * step_size);
-                            int dim3 = floor((curr_level_l.z+0.5) * step_size);
-
                             curr_level_l.get_val(parts) = img_by_level[depth](curr_level_l.y,curr_level_l.x,curr_level_l.z);
 
                         } else {
@@ -1193,11 +1188,50 @@ public:
 
     }
 
+
+    void init_from_pulling_scheme(std::vector<Mesh_data<uint8_t>>& layers){
+        //
+        //
+        //  INITIALIZE THE PARTICLE CELL STRUCTURE FORM THE OUTPUT OF THE PULLING SCHEME
+        //
+        //
+
+        //INITIALIZE THE DOMAIN SIZES
+
+        pc_data.x_num.resize(this->depth_max()+1);
+        pc_data.y_num.resize(this->depth_max()+1);
+        pc_data.z_num.resize(this->depth_max()+1);
+
+        for(int i = pc_data.depth_min;i < pc_data.depth_max;i++){
+            pc_data.x_num[i] = layers[i].x_num;
+            pc_data.y_num[i] = layers[i].y_num;
+            pc_data.z_num[i] = layers[i].z_num;
+
+        }
+
+        pc_data.y_num[pc_data.depth_max] = pc_data.org_dims[0];
+        pc_data.x_num[pc_data.depth_max] = pc_data.org_dims[1];
+        pc_data.z_num[pc_data.depth_max] = pc_data.org_dims[2];
+
+        //transfer over data-structure to make the same (re-use of function for read-write)
+
+        std::vector<std::vector<uint8_t>> p_map;
+        p_map.resize(pc_data.depth_max);
+
+        for (int k = 0; k < pc_data.depth_max; ++k) {
+            std::swap(p_map[k],layers[k].mesh);
+        }
+
+        create_partcell_structure(p_map);
+
+    }
+
+
     void create_partcell_structure(std::vector<std::vector<uint8_t>>& p_map){
         //
         //  Bevan Cheeseman 2017
         //
-        //  Takes an optimal part_map configuration from the pushing scheme and creates an efficient data structure for procesing using V, instead of V_n as in original
+        //  Takes an optimal part_map configuration from the pushing scheme and creates an efficient data structure for procesing using V, instead of V_n as in original (needs to be optimized)
         //
 
         //initialize the structure
@@ -1210,7 +1244,6 @@ public:
 
         Part_timer timer;
         timer.verbose_flag = true;
-
 
         //initialize loop variables
         uint64_t x_;
@@ -1239,11 +1272,10 @@ public:
             const unsigned int z_num_ = z_num[i];
             const unsigned int y_num_ = y_num[i];
 
-//#pragma omp parallel for default(shared) private(z_,x_,y_,curr_index,status,prev_ind) if(z_num_*x_num_ > 100)
+#pragma omp parallel for schedule(dynamic) default(shared) private(z_,x_,y_,curr_index,status,prev_ind) firstprivate(status_temp) if(z_num_*x_num_ > 100)
             for(z_ = 0;z_ < z_num_;z_++){
 
                 for(x_ = 0;x_ < x_num_;x_++){
-
 
                     status_temp.resize(y_num_,0);
                     std::fill(status_temp.begin(), status_temp.end(), 0);
@@ -1270,7 +1302,6 @@ public:
                         for(y_ = 0;y_ < y_num[i-1];y_++) {
 
                             status = p_map[i-1][offs + y_];
-
 
                             if (status == SEED) {
 
@@ -1404,9 +1435,12 @@ public:
         //
         /////////////////////////////////
 
+        timer.start_timer("set_up_neigh");
+
         //(+y,-y,+x,-x,+z,-z)
         pc_data.set_neighbor_relationships();
 
+        timer.stop_timer();
 
     }
 

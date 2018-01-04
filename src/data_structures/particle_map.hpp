@@ -4,6 +4,8 @@
 
 #include "meshclass.h"
 #include "structure_parts.h"
+
+//#include "APR/APR.hpp"
 #include <cassert>
 
 #define EMPTY 0
@@ -49,7 +51,7 @@ class Particle_map {
     //Defines what a particle is and what characteristics it has
 private:
 
-    std::vector<int> dims;
+    std::vector<unsigned int> dims;
 
     bool neigh_type = MOORE;
     
@@ -545,11 +547,15 @@ public :
         k_min = p_rep.pl_map.k_min;
         k_max = p_rep.pl_map.k_max;
     }
-    
-        
-    
-    
-    void initialize(std::vector<int> dims)
+
+    Particle_map(std::vector<unsigned int> org_dims,unsigned int depth_min,unsigned int depth_max)
+    {
+        dims = org_dims;
+        k_min = depth_min;
+        k_max = depth_max - 1;
+    }
+
+    void initialize(std::vector<unsigned int> dims)
     {
         //make so you can reference the array as k
         layers.resize(k_max + 1);
@@ -818,5 +824,27 @@ void preallocate(std::vector<Mesh_data<T>> &to_prealocate, const int y_num, cons
     }
 
 }
+
+template <typename T>
+void preallocate(std::vector<Mesh_data<T>> &to_prealocate, const int y_num, const int x_num,
+                 const int z_num, const unsigned int k_max,const unsigned int k_min)
+{
+
+    int z_num_ds = (int) ceil(1.0*z_num/2.0);
+    int x_num_ds = (int) ceil(1.0*x_num/2.0);
+    int y_num_ds = (int) ceil(1.0*y_num/2.0);
+
+    to_prealocate.resize(k_max + 1);
+
+    for(int i = k_max; i >= k_min; i--)
+    {
+        to_prealocate[i].initialize(y_num_ds,x_num_ds,z_num_ds,0);
+        z_num_ds = (int) ceil(1.0*z_num_ds/2.0);
+        x_num_ds = (int) ceil(1.0*x_num_ds/2.0);
+        y_num_ds = (int) ceil(1.0*y_num_ds/2.0);
+    }
+
+}
+
 
 #endif //PARTPLAY_PARTICLE_MAP_HPP
