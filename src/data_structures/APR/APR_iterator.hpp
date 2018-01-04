@@ -125,6 +125,11 @@ public:
         return curr_level.z;
     }
 
+    inline unsigned int j(){
+        //get x
+        return curr_level.j;
+    }
+
     inline unsigned int type(){
         //get x
         return curr_level.status;
