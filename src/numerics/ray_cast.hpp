@@ -47,6 +47,10 @@ struct proj_par{
     float scale_x = 1.0;
     float scale_z = 1.0;
 
+    float jitter_factor = 0.5;
+
+    bool jitter = false;
+
     std::string name = "raycast";
 
 };
@@ -93,7 +97,6 @@ void apr_raycast(APR<U>& apr,ExtraPartCellData<S>& particle_data,proj_par& pars,
 
     int num_views = floor((theta_f - theta_0)/theta_delta) + 1;
 
-
     cast_views.initialize(imageHeight,imageWidth,num_views,0);
 
     unsigned int view_count = 0;
@@ -108,6 +111,35 @@ void apr_raycast(APR<U>& apr,ExtraPartCellData<S>& particle_data,proj_par& pars,
 
     timer.start_timer("ray cast parts");
 
+    //
+    //  Initialization of loop variables
+    //
+
+
+    std::vector<Mesh_data<S>> depth_slice;
+
+    depth_slice.resize(apr.pc_data.depth_max + 1);
+
+    std::vector<float> depth_vec;
+    depth_vec.resize(apr.pc_data.depth_max + 1);
+
+    depth_slice[apr.pc_data.depth_max].initialize(imageHeight,imageWidth,1,init_val);
+
+
+    for(int i = apr.pc_data.depth_min;i < apr.pc_data.depth_max;i++){
+        float d = pow(2,apr.pc_data.depth_max - i);
+        depth_slice[i].initialize(ceil(depth_slice[apr.pc_data.depth_max].y_num/d),ceil(depth_slice[apr.pc_data.depth_max].x_num/d),1,init_val);
+        depth_vec[i] = d;
+    }
+
+    depth_vec[apr.depth_max()] = 1;
+
+    //initialize the iterator
+    APR_iterator<float> apr_it(apr);
+
+    const bool jitter = pars.jitter;
+    const float jitter_factor = pars.jitter_factor;
+
     for (float theta = theta_0; theta <= theta_f; theta += theta_delta) {
 
         //////////////////////////////
@@ -116,19 +148,8 @@ void apr_raycast(APR<U>& apr,ExtraPartCellData<S>& particle_data,proj_par& pars,
         ///
         //////////////////////////////
 
-        std::vector<Mesh_data<S>> depth_slice;
-
-        depth_slice.resize(apr.pc_data.depth_max + 1);
-
-        depth_slice[apr.pc_data.depth_max].initialize(imageHeight,imageWidth,1,init_val);
-
-        std::vector<int> depth_vec;
-        depth_vec.resize(apr.pc_data.depth_max + 1);
-
-        for(int i = apr.pc_data.depth_min;i < apr.pc_data.depth_max;i++){
-            float d = pow(2,apr.pc_data.depth_max - i);
-            depth_slice[i].initialize(ceil(depth_slice[apr.pc_data.depth_max].y_num/d),ceil(depth_slice[apr.pc_data.depth_max].x_num/d),1,init_val);
-            depth_vec[i] = d;
+        for(int i = apr.pc_data.depth_min;i <= apr.pc_data.depth_max;i++){
+            std::fill(depth_slice[i].mesh.begin(),depth_slice[i].mesh.end(),init_val);
         }
 
         //////////////////////////////
@@ -165,20 +186,28 @@ void apr_raycast(APR<U>& apr,ExtraPartCellData<S>& particle_data,proj_par& pars,
 
         //  Set up the APR parallel iterators (these are required for the parallel iteration)
 
-        APR_iterator<float> apr_it;
         uint64_t part;
-        apr.init_by_part_iteration(apr_it);
 
-#pragma omp parallel for schedule(static) private(part) firstprivate(apr_it,mvp)
+        float y_actual,x_actual,z_actual;
+
+#pragma omp parallel for schedule(static) private(part,y_actual,x_actual,z_actual) firstprivate(apr_it,mvp)
         for (part = 0; part < apr.num_parts_total; ++part) {
             apr_it.set_part(part);
 
             //get apr info
-            const int y = apr_it.y();
 
-            const float y_actual = apr_it.y_global()*pars.scale_y;
-            const float x_actual = apr_it.x_global()*pars.scale_x;
-            const float z_actual = apr_it.z_global()*pars.scale_z;
+            if(jitter){
+
+                 y_actual = (apr_it.y() + 0.5 + jitter_factor*((std::rand()-50)%100)/100.0)*pars.scale_y*depth_vec[apr_it.depth()];
+                 x_actual = (apr_it.x() + 0.5 + jitter_factor*((std::rand()-50)%100)/100.0)*pars.scale_x*depth_vec[apr_it.depth()];
+                 z_actual = (apr_it.z() + 0.5 + jitter_factor*((std::rand()-50)%100)/100.0)*pars.scale_z*depth_vec[apr_it.depth()];
+
+            } else{
+                 y_actual = apr_it.y_global()*pars.scale_y;
+                 x_actual = apr_it.x_global()*pars.scale_x;
+                 z_actual = apr_it.z_global()*pars.scale_z;
+
+            }
 
             const int depth = apr_it.depth();
 

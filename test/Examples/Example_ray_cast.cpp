@@ -105,13 +105,16 @@ int main(int argc, char **argv) {
     proj_pars.theta_delta = .1f; //steps
     proj_pars.scale_z = apr.pars.aniso; //z scaling
 
+    proj_pars.jitter = true;
+    proj_pars.jitter_factor = 0.5;
+
     proj_pars.name = apr.name;
 
     Mesh_data<float> output;
 
     /////////////
     ///
-    ///  Compute APR raycast
+    ///  Compute APR (maximum projection) raycast
     ///
     /////////////
 
