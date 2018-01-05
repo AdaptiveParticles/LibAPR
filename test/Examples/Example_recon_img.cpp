@@ -122,15 +122,16 @@ int main(int argc, char **argv) {
     //write output as tiff
     type_recon.write_image_tiff(output_path);
 
+    //smooth reconstruction (slow) - requires float as well
+    Mesh_data<float> recon_smooth;
 
-//    //smooth reconstruction (slow) - requires float as well
-//    Mesh_data<float> recon_smooth;
-//
-//    apr.interp_parts_smooth(recon_smooth,apr.particles_int);
-//
-//    output_path = options.directory + apr.name + "_smooth.tif";
-//
-//    //write to tiff casting to unsigned 16 bit integer
-//    recon_smooth.write_image_tiff_uint16(output_path);
+    std::vector<float> scale_d = {2,2,2};
+
+    apr.interp_parts_smooth(recon_smooth,apr.particles_int,scale_d);
+
+    output_path = options.directory + apr.name + "_smooth.tif";
+
+    //write to tiff casting to unsigned 16 bit integer
+    recon_smooth.write_image_tiff_uint16(output_path);
 
 }
