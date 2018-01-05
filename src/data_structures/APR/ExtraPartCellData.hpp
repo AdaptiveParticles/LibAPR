@@ -15,6 +15,9 @@
 
 #include <functional>
 
+template<typename V>
+class APR;
+
 template<typename T>
 class ExtraPartCellData {
     
@@ -37,8 +40,12 @@ public:
         initialize_structure_parts(part_data);
     };
 
-    
-    
+    template<typename S>
+    ExtraPartCellData(APR<S>& apr){
+        // do nothing
+        initialize_structure_cells(apr.pc_data);
+    }
+
     uint64_t depth_max;
     uint64_t depth_min;
     
@@ -51,7 +58,9 @@ public:
     std::vector<unsigned int> org_dims;
 
     std::vector<std::vector<uint64_t>> global_index_offset;
-    
+
+
+
     template<typename S>
     void initialize_structure_cells(PartCellData<S>& pc_data){
         //

@@ -80,11 +80,9 @@ int main(int argc, char **argv) {
     ///
     /////////////////////////////////
 
-    ExtraPartCellData<float> neigh_avg;
-    neigh_avg.initialize_structure_cells(apr.pc_data);
+    ExtraPartCellData<float> neigh_avg(apr);
 
-    APR_iterator<float> neigh_it;
-    apr.init_iterator(neigh_it);
+    APR_iterator<float> neigh_it(apr);
 
     timer.start_timer("APR serial iterator neighbours loop");
 
@@ -127,13 +125,10 @@ int main(int argc, char **argv) {
     ///////////////////////////
 
     //initialization of the iteration structures
-    APR_iterator<float> apr_it; //this is required for parallel access
-    uint64_t part;
-    apr.init_by_part_iteration(apr_it);
+    APR_iterator<float> apr_it(apr); //this is required for parallel access
+    uint64_t part; //declare parallel iteration variable
 
-    ExtraPartCellData<float> neigh_xm;
-
-    neigh_xm.initialize_structure_cells(apr.pc_data);
+    ExtraPartCellData<float> neigh_xm(apr);
 
     timer.start_timer("APR parallel iterator neighbour loop");
 
@@ -144,8 +139,6 @@ int main(int argc, char **argv) {
 
         //compute neighbours as previously, now using the apr_it class, instead of the apr class for access.
         apr_it.update_neigh_all();
-
-        float counter = 0;
 
         //loop over all the neighbours and set the neighbour iterator to it
         for (int dir = 0; dir < 6; ++dir) {
@@ -173,8 +166,7 @@ int main(int argc, char **argv) {
     ///
     /////////////////////////
 
-    ExtraPartCellData<float> type_sum;
-    type_sum.initialize_structure_cells(apr.pc_data);
+    ExtraPartCellData<float> type_sum(apr);
 
     //need to initialize the neighbour iterator with the APR you are iterating over.
 

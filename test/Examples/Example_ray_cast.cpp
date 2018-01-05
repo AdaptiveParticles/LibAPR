@@ -123,6 +123,8 @@ int main(int argc, char **argv) {
     ///
     //////////////////
 
-    debug_write(output,apr.name + "_ray_cast_views");
+    std::string output_loc = options.directory + apr.name + "_ray_cast_views.tif";
+
+    output.write_image_tiff_uint16(output_loc);
 
 }

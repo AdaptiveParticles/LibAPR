@@ -48,6 +48,9 @@ set(SOURCE_FILES
         src/data_structures/meshclass.h
         src/data_structures/structure_parts.cpp
 
+        src/data_structures/APR/APR.hpp
+        src/data_structures/APR/APR_iterator.hpp
+
         src/algorithm/pipeline.cpp
 
         )

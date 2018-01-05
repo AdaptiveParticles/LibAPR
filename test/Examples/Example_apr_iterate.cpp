@@ -82,8 +82,8 @@ int main(int argc, char **argv) {
     /////////////////////////////////
 
     //Create particle datasets, once intiailized this has the same layout as the Particle Cells
-    ExtraPartCellData<float> calc_ex;
-    calc_ex.initialize_structure_cells(apr.pc_data);
+    ExtraPartCellData<float> calc_ex(apr);
+
 
     timer.start_timer("APR serial iterator loop");
 
@@ -103,13 +103,11 @@ int main(int argc, char **argv) {
     ///////////////////////////
 
     //initialization of the iteration structures
-    APR_iterator<float> apr_it; //this is required for parallel access
+    APR_iterator<float> apr_it(apr); //this is required for parallel access
     uint64_t part;
-    apr.init_by_part_iteration(apr_it);
 
     //create particle dataset
-    ExtraPartCellData<float> calc_ex2;
-    calc_ex2.initialize_structure_cells(apr.pc_data);
+    ExtraPartCellData<float> calc_ex2(apr);
 
     timer.start_timer("APR parallel iterator loop");
 

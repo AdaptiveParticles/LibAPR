@@ -25,6 +25,10 @@
 
 #include "src/data_structures/APR/APR.hpp"
 
+
+template<typename U>
+class APR;
+
 template<typename ImageType>
 class APR_iterator {
 
@@ -47,6 +51,23 @@ public:
     APR_iterator(){
         current_part = 0;
     }
+
+
+    APR_iterator(APR<ImageType>& apr){
+        current_part = 0;
+
+        apr.get_part_numbers();
+        apr.set_part_numbers_xz();
+
+        this->num_parts = &(apr.num_parts);
+        this->num_parts_xz_pointer = &(apr.num_parts_xy);
+        this->num_parts_total = apr.num_parts_total;
+        this->pc_data_pointer = &(apr.pc_data);
+
+        this->curr_level.init(apr.pc_data);
+
+    }
+
 
     bool set_part(uint64_t part_num){
         //
