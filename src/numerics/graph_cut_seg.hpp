@@ -7,7 +7,7 @@
 #include <fstream>
 
 #include "../data_structures/Tree/PartCellStructure.hpp"
-#include "../data_structures/Tree/ExtraPartCellData.hpp"
+#include "src/data_structures/APR/ExtraPartCellData.hpp"
 #include "../data_structures/Tree/PartCellParent.hpp"
 
 #include "../../external/maxflow-v3.04.src/instances.inc"

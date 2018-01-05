@@ -10,7 +10,7 @@
 
 #include "filter_numerics.hpp"
 #include "../data_structures/Tree/PartCellStructure.hpp"
-#include "../data_structures/Tree/ExtraPartCellData.hpp"
+#include "src/data_structures/APR/ExtraPartCellData.hpp"
 #include "../data_structures/Tree/PartCellParent.hpp"
 
 

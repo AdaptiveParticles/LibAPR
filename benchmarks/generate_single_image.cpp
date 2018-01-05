@@ -162,7 +162,7 @@ int main(int argc, char **argv) {
 
     Mesh_data<float> input_image_float =  input_img.to_type<float>();
 
-    PartCellStructure<float,uint64_t> pc_struct_new = compute_guided_apr(input_image_float,pc_struct,p_rep);
+   // PartCellStructure<float,uint64_t> pc_struct_new = compute_guided_apr(input_image_float,pc_struct,p_rep);
 
 //    std::vector<float> scale = {2,2,2};
 //
@@ -171,12 +171,33 @@ int main(int argc, char **argv) {
 //    interp_parts_to_smooth(smooth_img,pc_struct.part_data.particle_data,pc_struct,scale);
 //
 //    debug_write(smooth_img,"smooth_test");
+
+    APR<float> apr_c;
+
+    apr_c.init_cells(pc_struct);
+
+    ExtraPartCellData<float> curr_scale;
+
+
+    //get the guided APR
+    PartCellStructure<float, uint64_t> pc_struct_new = compute_guided_apr_time(input_image_float,pc_struct,p_rep,apr_c,curr_scale);
+
+    APR<float> apr_c2;
+
+    apr_c2.init_cells(pc_struct_new);
+
+    input_image_float = input_img.to_type<float>();
+
+    PartCellStructure<float, uint64_t> pc_struct_new2 = compute_guided_apr_time(input_image_float,pc_struct_new,p_rep,apr_c2,curr_scale);
+
 //
     Mesh_data<float> rec_img;
 
-    pc_struct_new.interp_parts_to_pc(rec_img,pc_struct_new.part_data.particle_data);
+    pc_struct_new2.interp_parts_to_pc(rec_img,pc_struct_new2.part_data.particle_data);
 //
     debug_write(rec_img,"rec_img");
+
+
       // compute_var_ratio_perfect(syn_image_loc,p_rep,input_img,analysis_data);
 
 //    p_rep.pars.name = "perfect";

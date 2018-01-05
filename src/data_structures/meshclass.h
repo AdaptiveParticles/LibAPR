@@ -18,6 +18,7 @@
 
 #include "structure_parts.h"
 
+
 struct coords3d {
     int x,y,z;
 
@@ -205,7 +206,10 @@ public :
 
     }
 
+    void write_image(std::string filename){
 
+        write_image_tiff(*this,filename);
+    }
 
 };
 

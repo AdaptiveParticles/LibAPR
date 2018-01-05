@@ -12,8 +12,7 @@
 #include <stdint.h>
 
 #include "PartCellData.hpp"
-#include "ExtraPartCellData.hpp"
-
+#include "../APR/ExtraPartCellData.hpp"
 
 #define SEED_NUM_PARTICLES 8
 #define NON_SEED_NUM_PARTICLES 1

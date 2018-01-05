@@ -16,7 +16,7 @@
 #include <fstream>
 #include <ctime>
 
-#include "../data_structures/Tree/ExtraPartCellData.hpp"
+#include "src/data_structures/APR/ExtraPartCellData.hpp"
 
 #include "../data_structures/APR/APR.hpp"
 

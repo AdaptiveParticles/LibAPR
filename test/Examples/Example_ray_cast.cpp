@@ -80,14 +80,15 @@ int main(int argc, char **argv) {
     // INPUT PARSING
     
     cmdLineOptions options = read_command_line_options(argc, argv);
-    
-    // COMPUTATIONS
-    PartCellStructure<float,uint64_t> pc_struct;
-    
-    //output
+
+    // Filename
     std::string file_name = options.directory + options.input;
-    
-    read_apr_pc_struct(pc_struct,file_name);
+
+    // APR datastructure
+    APR<float> apr;
+
+    //read file
+    apr.read_apr(file_name);
 
     Part_timer timer;
 
@@ -102,13 +103,9 @@ int main(int argc, char **argv) {
     proj_pars.theta_final = 3.14; //stop radians
     proj_pars.radius_factor = .98f; //radius scaling
     proj_pars.theta_delta = .1f; //steps
-    proj_pars.scale_z = pc_struct.pars.aniso; //z scaling
+    proj_pars.scale_z = apr.pars.aniso; //z scaling
 
-    APR<float> curr_apr;
-
-    curr_apr.init_cells(pc_struct);
-
-    proj_pars.name = pc_struct.name;
+    proj_pars.name = apr.name;
 
     Mesh_data<float> output;
 
@@ -118,7 +115,7 @@ int main(int argc, char **argv) {
     ///
     /////////////
 
-    apr_raycast(curr_apr,curr_apr.particles_int,proj_pars,output,[] (const uint16_t& a,const uint16_t& b) {return std::max(a,b);});
+    apr_raycast(apr,apr.particles_int,proj_pars,output,[] (const uint16_t& a,const uint16_t& b) {return std::max(a,b);});
 
     //////////////
     ///
@@ -126,6 +123,6 @@ int main(int argc, char **argv) {
     ///
     //////////////////
 
-    debug_write(output,curr_apr.name + "_ray_cast_views");
+    debug_write(output,apr.name + "_ray_cast_views");
 
 }

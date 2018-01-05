@@ -175,14 +175,8 @@ add_executable(Example_get_apr
 	    #test/utils.cpp
         )
 
-add_executable(Example_compute_cells
-        test/Examples/compute_cells.cpp
-        src/io/write_parts.cpp
-        ${SOURCE_FILES_COMPILED}
-        )
-
-add_executable(Example_compute_parts
-        test/Examples/compute_parts.cpp
+add_executable(Example_apr_iterate
+        test/Examples/Example_apr_iterate.cpp
         src/io/write_parts.cpp
         ${SOURCE_FILES_COMPILED}
         )
@@ -257,8 +251,7 @@ SWIG_LINK_LIBRARIES(apr ${HDF5_LIBRARIES} blosc_shared tiff)
 
 #target_link_libraries(pipeline ${HDF5_LIBRARIES} pthread tiff blosc_shared)
 target_link_libraries(Example_get_apr ${HDF5_LIBRARIES} pthread ${TIFF_LIBRARIES} blosc_shared)
-target_link_libraries(Example_compute_cells ${HDF5_LIBRARIES} pthread tiff blosc_shared)
-target_link_libraries(Example_compute_parts ${HDF5_LIBRARIES} pthread tiff blosc_shared)
+target_link_libraries(Example_apr_iterate ${HDF5_LIBRARIES} pthread tiff blosc_shared)
 target_link_libraries(Example_convert_full_format ${HDF5_LIBRARIES} pthread tiff blosc_shared)
 target_link_libraries(Example_ray_cast ${HDF5_LIBRARIES} pthread tiff blosc_shared)
 target_link_libraries(Example_vis ${HDF5_LIBRARIES} pthread tiff blosc_shared)
