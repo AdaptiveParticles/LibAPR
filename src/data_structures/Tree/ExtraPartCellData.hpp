@@ -13,7 +13,7 @@
 #include "PartCellData.hpp"
 #include "ParticleData.hpp"
 
-
+#include <functional>
 
 template<typename T>
 class ExtraPartCellData {
@@ -290,9 +290,216 @@ public:
 
 
     }
-    
+
+    template<typename V>
+    void set_val(V val){
+        //
+        //  Bevan Cheeseman 2016
+        //
+        //  Takes in a APR and fills all particles with a value V.
+        //
+
+        int z_,x_,j_,y_;
+
+        for(uint64_t depth = (depth_min);depth <= depth_max;depth++) {
+            //loop over the resolutions of the structure
+            const unsigned int x_num_ = x_num[depth];
+            const unsigned int z_num_ = z_num[depth];
+
+            const unsigned int x_num_min_ = 0;
+            const unsigned int z_num_min_ = 0;
+
+#pragma omp parallel for default(shared) private(z_,x_,j_) if(z_num_*x_num_ > 100)
+            for (z_ = z_num_min_; z_ < z_num_; z_++) {
+                //both z and x are explicitly accessed in the structure
+
+                for (x_ = x_num_min_; x_ < x_num_; x_++) {
+
+                    const unsigned int pc_offset = x_num_*z_ + x_;
+
+                    std::fill(data[depth][pc_offset].begin(),data[depth][pc_offset].end(),val);
+
+                }
+            }
+        }
+    }
+    template<typename V,class BinaryOperation>
+    void transform_parts(ExtraPartCellData<V>& parts2,BinaryOperation op){
+        //
+        //  Bevan Cheeseman 2017
+        //
+        //  Takes two particle data sets and adds them, and puts it in the first one
+        //
+        //  See std::transform for examples of Unary Operators
+        //
+        //
+
+        int z_,x_,j_,y_;
+
+        for(uint64_t depth = (depth_min);depth <= depth_max;depth++) {
+            //loop over the resolutions of the structure
+            const unsigned int x_num_ = x_num[depth];
+            const unsigned int z_num_ = z_num[depth];
+
+            const unsigned int x_num_min_ = 0;
+            const unsigned int z_num_min_ = 0;
+
+#pragma omp parallel for default(shared) private(z_,x_,j_) if(z_num_*x_num_ > 100)
+            for (z_ = z_num_min_; z_ < z_num_; z_++) {
+                //both z and x are explicitly accessed in the structure
+
+                for (x_ = x_num_min_; x_ < x_num_; x_++) {
+
+                    const unsigned int pc_offset = x_num_*z_ + x_;
+
+                    std::transform(data[depth][pc_offset].begin(), data[depth][pc_offset].end(), parts2.data[depth][pc_offset].begin(), data[depth][pc_offset].begin(), op);
+
+                }
+            }
+        }
+
+    }
+
+    template<typename V,class BinaryOperation>
+    ExtraPartCellData<V> transform_parts_output(ExtraPartCellData<V>& parts2,BinaryOperation op){
+        //
+        //  Bevan Cheeseman 2017
+        //
+        //  Takes two particle data sets and adds them, and puts it in the first one
+        //
+        //  See std::transform for examples of BinaryOperation
+        //
+        //  Returns the result to another particle dataset
+        //
+
+        ExtraPartCellData<V> output;
+        output.initialize_structure_parts(*this);
+
+        int z_,x_,j_,y_;
+
+        for(uint64_t depth = (depth_min);depth <= depth_max;depth++) {
+            //loop over the resolutions of the structure
+            const unsigned int x_num_ = x_num[depth];
+            const unsigned int z_num_ = z_num[depth];
+
+            const unsigned int x_num_min_ = 0;
+            const unsigned int z_num_min_ = 0;
+
+#pragma omp parallel for default(shared) private(z_,x_,j_) if(z_num_*x_num_ > 100)
+            for (z_ = z_num_min_; z_ < z_num_; z_++) {
+                //both z and x are explicitly accessed in the structure
+
+                for (x_ = x_num_min_; x_ < x_num_; x_++) {
+
+                    const unsigned int pc_offset = x_num_*z_ + x_;
+
+                    std::transform(data[depth][pc_offset].begin(), data[depth][pc_offset].end(), parts2.data[depth][pc_offset].begin(), output.data[depth][pc_offset].begin(), op);
+
+                }
+            }
+        }
+
+        return output;
+
+    }
+
+
+
+    template<class UnaryOperator>
+    ExtraPartCellData<T> transform_parts_output(UnaryOperator op){
+        //
+        //  Bevan Cheeseman 2018
+        //
+        //  Performs a unary operator on a particle dataset in parrallel and returns a new dataset with the result
+        //
+        //  See std::transform for examples of different operators to use
+        //
+        //
+
+        ExtraPartCellData<T> output;
+        output.initialize_structure_parts(*this);
+
+        int z_,x_,j_,y_;
+
+        for(uint64_t depth = (depth_min);depth <= depth_max;depth++) {
+            //loop over the resolutions of the structure
+            const unsigned int x_num_ = x_num[depth];
+            const unsigned int z_num_ = z_num[depth];
+
+            const unsigned int x_num_min_ = 0;
+            const unsigned int z_num_min_ = 0;
+
+#pragma omp parallel for default(shared) private(z_,x_,j_) if(z_num_*x_num_ > 100)
+            for (z_ = z_num_min_; z_ < z_num_; z_++) {
+                //both z and x are explicitly accessed in the structure
+
+                for (x_ = x_num_min_; x_ < x_num_; x_++) {
+
+                    const unsigned int pc_offset = x_num_*z_ + x_;
+
+                    std::transform(data[depth][pc_offset].begin(),data[depth][pc_offset].end(),output.data[depth][pc_offset].begin(),op);
+
+                }
+            }
+        }
+
+        return output;
+
+    }
+
+    template<class UnaryOperator>
+    void transform_parts(UnaryOperator op){
+        //
+        //  Bevan Cheeseman 2018
+        //
+        //  Performs a unary operator on a particle dataset in parrallel and returns a new dataset with the result
+        //
+        //  See std::transform for examples of different operators to use
+        //
+
+        int z_,x_,j_,y_;
+
+        for(uint64_t depth = (depth_min);depth <= depth_max;depth++) {
+            //loop over the resolutions of the structure
+            const unsigned int x_num_ = x_num[depth];
+            const unsigned int z_num_ = z_num[depth];
+
+            const unsigned int x_num_min_ = 0;
+            const unsigned int z_num_min_ = 0;
+
+#pragma omp parallel for default(shared) private(z_,x_,j_) if(z_num_*x_num_ > 100)
+            for (z_ = z_num_min_; z_ < z_num_; z_++) {
+                //both z and x are explicitly accessed in the structure
+
+                for (x_ = x_num_min_; x_ < x_num_; x_++) {
+
+                    const unsigned int pc_offset = x_num_*z_ + x_;
+
+                    std::transform(data[depth][pc_offset].begin(),data[depth][pc_offset].end(),data[depth][pc_offset].begin(),op);
+
+                }
+            }
+        }
+
+    }
+
+    /// some helpers functions for the transform_parts above
+    template<typename V>
+    V square(V input){
+        return pow(input,2);
+    }
+    template<typename V>
+    V square_root(V input){
+        return sqrt(input);
+    }
+
+
 private:
     
 };
+
+
+
+
 
 #endif //PARTPLAY_PARTNEIGH_HPP

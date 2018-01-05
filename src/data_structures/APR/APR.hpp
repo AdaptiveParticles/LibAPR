@@ -13,6 +13,8 @@
 
 #include "src/numerics/filter_help/CurrLevel.hpp"
 
+#include "src/io/hdf5functions_blosc.h"
+
 #include "src/data_structures/APR/APR_iterator.hpp"
 
 #include <map>
@@ -91,6 +93,20 @@ public:
 
         apr_it.curr_level.init(pc_data);
     }
+
+    void init_iterator(APR_iterator<float>& apr_it){
+        //
+        //  Initializes the required datastructures for by particles and parralell iteration
+        //
+
+        apr_it.num_parts = &this->num_parts;
+        apr_it.num_parts_xz_pointer = &this->num_parts_xy;
+        apr_it.num_parts_total = this->num_parts_total;
+        apr_it.pc_data_pointer = &pc_data;
+
+        apr_it.curr_level.init(pc_data);
+    }
+
 
 
     void init_cells(PartCellStructure<float,uint64_t>& pc_struct){
@@ -1288,7 +1304,7 @@ public:
 
                             status = p_map[i][offset_part_map + y_];
 
-                            if (status > 1) {
+                            if ( (status == BOUNDARY) | (status == FILLER)) {
                                 status_temp[ y_] = status;
                             }
                         }

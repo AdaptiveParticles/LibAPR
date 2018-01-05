@@ -1,7 +1,7 @@
 #include <algorithm>
 #include <iostream>
 
-#include "compute_parts.h"
+#include "Example_apr_iterate.h"
 #include "../../src/data_structures/meshclass.h"
 #include "../../src/io/readimage.h"
 

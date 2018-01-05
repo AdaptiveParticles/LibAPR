@@ -51,8 +51,8 @@ struct proj_par{
 
 };
 
-template<typename U,typename S,typename V,class UnaryOperator>
-void apr_raycast(APR<U>& apr,ExtraPartCellData<S>& particle_data,proj_par& pars,Mesh_data<V>& cast_views,UnaryOperator op) {
+template<typename U,typename S,typename V,class BinaryOperation>
+void apr_raycast(APR<U>& apr,ExtraPartCellData<S>& particle_data,proj_par& pars,Mesh_data<V>& cast_views,BinaryOperation op) {
 
     //
     //  Bevan Cheeseman 2018

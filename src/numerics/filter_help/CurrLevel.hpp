@@ -150,17 +150,20 @@ public:
 
 
     void init(T init_key,PartCellData<T>& pc_data){
-        
+
+        curr_key = 0;
+
         pc_key init_pc_key;
         init_pc_key.update_cell(init_key);
-        
-        
+
         depth = init_pc_key.depth;
         x_num = pc_data.x_num[depth];
         z_num = pc_data.z_num[depth];
         
         x = init_pc_key.x;
         z = init_pc_key.z;
+
+        status = init_pc_key.status;
         
         pc_offset = x_num*z + x;
         j_num = pc_data.data[depth][pc_offset].size();
@@ -569,8 +572,25 @@ public:
         }
 
     }
-    
-        
+
+
+    void update_neigh_all(PartCellData<uint64_t>& pc_data) {
+        //
+        //  Loops over and returns a vector with vectors  of the particles in each of the 6 directions
+        //
+
+        //get the neighbours
+        pc_data.get_neighs_all(curr_key, node_val, neigh_part_keys);
+    }
+
+    void update_neigh_dir(PartCellData<uint64_t>& pc_data,unsigned int dir) {
+        //
+        //  Loops over and returns a vector with vectors  of the particles in each of the 6 directions
+        //
+
+        pc_data.get_neighs_face(curr_key, node_val,dir, neigh_part_keys);
+
+    }
 
 
     template<typename U>
