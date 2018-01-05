@@ -2,7 +2,7 @@
 #include <algorithm>
 #include <iostream>
 
-#include "get_apr.h"
+#include "Example_get_apr.h"
 #include "../../src/data_structures/meshclass.h"
 #include "../../src/io/readimage.h"
 

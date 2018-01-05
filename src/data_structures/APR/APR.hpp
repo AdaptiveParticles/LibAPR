@@ -681,50 +681,69 @@ public:
 
         parts.initialize_structure_cells(pc_data);
 
-        int z_,x_,j_,y_;
+        //initialization of the iteration structures
+        APR_iterator<float> apr_it(*this); //this is required for parallel access
+        uint64_t part;
 
-        for(uint64_t depth = (pc_data.depth_min);depth <= pc_data.depth_max;depth++) {
-            //loop over the resolutions of the structure
-            const unsigned int x_num_ = pc_data.x_num[depth];
-            const unsigned int z_num_ = pc_data.z_num[depth];
+#pragma omp parallel for schedule(static) private(part) firstprivate(apr_it)
+        for (part = 0; part < this->num_parts_total; ++part) {
+            //needed step for any parallel loop (update to the next part)
+            apr_it.set_part(part);
 
-            const unsigned int x_num_min_ = 0;
-            const unsigned int z_num_min_ = 0;
+            apr_it(parts) = img_by_level[apr_it.depth()](apr_it.y(),apr_it.x(),apr_it.z());
 
-            CurrentLevel<float, uint64_t> curr_level_l(pc_data);
-            curr_level_l.set_new_depth(depth, pc_data);
-
-            const float step_size = pow(2,curr_level_l.depth_max - curr_level_l.depth);
-
-#pragma omp parallel for default(shared) private(z_,x_,j_) firstprivate(curr_level_l) if(z_num_*x_num_ > 100)
-            for (z_ = z_num_min_; z_ < z_num_; z_++) {
-                //both z and x are explicitly accessed in the structure
-
-                for (x_ = x_num_min_; x_ < x_num_; x_++) {
-
-                    curr_level_l.set_new_xz(x_, z_, pc_data);
-
-                    for (j_ = 0; j_ < curr_level_l.j_num; j_++) {
-
-                        bool iscell = curr_level_l.new_j(j_, pc_data);
-
-                        if (iscell) {
-                            //Indicates this is a particle cell node
-                            curr_level_l.update_cell(pc_data);
-
-                            curr_level_l.get_val(parts) = img_by_level[depth](curr_level_l.y,curr_level_l.x,curr_level_l.z);
-
-                        } else {
-
-                            curr_level_l.update_gap(pc_data);
-
-                        }
-
-
-                    }
-                }
+            if(apr_it(parts)==0){
+                int stop = 1;
+                std::cout << "broke" << std::endl;
             }
+
         }
+
+
+//        int z_,x_,j_,y_;
+//
+//        for(uint64_t depth = (pc_data.depth_min);depth <= pc_data.depth_max;depth++) {
+//            //loop over the resolutions of the structure
+//            const unsigned int x_num_ = pc_data.x_num[depth];
+//            const unsigned int z_num_ = pc_data.z_num[depth];
+//
+//            const unsigned int x_num_min_ = 0;
+//            const unsigned int z_num_min_ = 0;
+//
+//            CurrentLevel<float, uint64_t> curr_level_l(pc_data);
+//            curr_level_l.set_new_depth(depth, pc_data);
+//
+//            const float step_size = pow(2,curr_level_l.depth_max - curr_level_l.depth);
+//
+//#pragma omp parallel for default(shared) private(z_,x_,j_) firstprivate(curr_level_l) if(z_num_*x_num_ > 100)
+//            for (z_ = z_num_min_; z_ < z_num_; z_++) {
+//                //both z and x are explicitly accessed in the structure
+//
+//                for (x_ = x_num_min_; x_ < x_num_; x_++) {
+//
+//                    curr_level_l.set_new_xz(x_, z_, pc_data);
+//
+//                    for (j_ = 0; j_ < curr_level_l.j_num; j_++) {
+//
+//                        bool iscell = curr_level_l.new_j(j_, pc_data);
+//
+//                        if (iscell) {
+//                            //Indicates this is a particle cell node
+//                            curr_level_l.update_cell(pc_data);
+//
+//                            curr_level_l.get_val(parts) = img_by_level[depth](curr_level_l.y,curr_level_l.x,curr_level_l.z);
+//
+//                        } else {
+//
+//                            curr_level_l.update_gap(pc_data);
+//
+//                        }
+//
+//
+//                    }
+//                }
+//            }
+//        }
 
 
 
@@ -1304,8 +1323,10 @@ public:
 
                             status = p_map[i][offset_part_map + y_];
 
-                            if ( (status == BOUNDARY) | (status == FILLER)) {
-                                status_temp[ y_] = status;
+                            if ( status == NEIGHBOURSTATUS) {
+                                status_temp[ y_] = BOUNDARY;
+                            } else if(status == SLOPESTATUS) {
+                                status_temp[ y_] = FILLER;
                             }
                         }
                     }
@@ -1321,8 +1342,8 @@ public:
 
                             if (status == SEED) {
 
-                                status_temp[2 * y_] = status;
-                                status_temp[2 * y_ + 1] = status;
+                                status_temp[2 * y_] = SEED;
+                                status_temp[2 * y_ + 1] = SEED;
                             }
                         }
 

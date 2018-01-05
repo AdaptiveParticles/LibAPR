@@ -39,7 +39,7 @@ cmdLineOptions read_command_line_options(int argc, char **argv){
     cmdLineOptions result;
 
     if(argc == 1) {
-        std::cerr << "Usage: \"pipeline -i inputfile [-t] [-s statsfile -d directory] [-o outputfile]\"" << std::endl;
+        std::cerr << "Usage: \"Example_ray_cast -i inputfile [-d directory] [-o outputdir]\"" << std::endl;
         exit(1);
     }
 
@@ -63,12 +63,6 @@ cmdLineOptions read_command_line_options(int argc, char **argv){
         result.directory = std::string(get_command_option(argv, argv + argc, "-d"));
     }
 
-
-
-    if(command_option_exists(argv, argv + argc, "-org_file"))
-    {
-        result.org_file = std::string(get_command_option(argv, argv + argc, "-org_file"));
-    }
 
     return result;
 

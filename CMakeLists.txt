@@ -172,7 +172,7 @@ if(TESTS)
 endif(TESTS)
 
 add_executable(Example_get_apr
-        test/Examples/get_apr.cpp
+        test/Examples/Example_get_apr.cpp
         src/io/write_parts.cpp
         ${SOURCE_FILES_COMPILED}
 	    #test/utils.cpp
@@ -184,8 +184,8 @@ add_executable(Example_apr_iterate
         ${SOURCE_FILES_COMPILED}
         )
 
-add_executable(Example_convert_full_format
-        test/Examples/write_full_apr_format.cpp
+add_executable(Example_recon_img
+        test/Examples/Example_recon_img.cpp
         src/io/write_parts.cpp
         ${SOURCE_FILES_COMPILED}
         )
@@ -195,32 +195,6 @@ add_executable(Example_ray_cast
         #test/utils.cpp
         ${SOURCE_FILES_COMPILED}
         src/vis/Camera.cpp src/vis/Camera.h src/vis/Object.cpp src/vis/Object.h src/vis/RaytracedObject.cpp src/vis/RaytracedObject.h)
-
-add_executable(Example_vis
-        test/Examples/vis_example.cpp
-        #test/utils.cpp
-        ${SOURCE_FILES_COMPILED}
-        src/vis/Camera.cpp src/vis/Camera.h src/vis/Object.cpp src/vis/Object.h src/vis/RaytracedObject.cpp src/vis/RaytracedObject.h)
-
-#add_executable(pipeline
- #   src/algorithm/pipeline.cpp
- #   src/io/write_parts.cpp
- #   ${SOURCE_FILES_COMPILED}
-#)
-
-add_executable(Example_filter
-        test/Examples/filter_apr.cpp
-        #test/utils.cpp
-        src/io/write_parts.cpp
-        ${SOURCE_FILES_COMPILED}
-        )
-
-add_executable(Example_enhance_apr
-        test/Examples/Example_enhance_apr.cpp
-        #test/utils.cpp
-        src/io/write_parts.cpp
-        ${SOURCE_FILES_COMPILED}
-        )
 
 
 add_executable(Example_segment_gc
@@ -255,12 +229,9 @@ SWIG_LINK_LIBRARIES(apr ${HDF5_LIBRARIES} blosc_shared tiff)
 #target_link_libraries(pipeline ${HDF5_LIBRARIES} pthread tiff blosc_shared)
 target_link_libraries(Example_get_apr ${HDF5_LIBRARIES} pthread ${TIFF_LIBRARIES} blosc_shared)
 target_link_libraries(Example_apr_iterate ${HDF5_LIBRARIES} pthread tiff blosc_shared)
-target_link_libraries(Example_convert_full_format ${HDF5_LIBRARIES} pthread tiff blosc_shared)
 target_link_libraries(Example_ray_cast ${HDF5_LIBRARIES} pthread tiff blosc_shared)
-target_link_libraries(Example_vis ${HDF5_LIBRARIES} pthread tiff blosc_shared)
-target_link_libraries(Example_filter ${HDF5_LIBRARIES} pthread tiff blosc_shared)
+target_link_libraries(Example_recon_img ${HDF5_LIBRARIES} pthread tiff blosc_shared)
 target_link_libraries(Example_segment_gc ${HDF5_LIBRARIES} pthread tiff blosc_shared)
-target_link_libraries(Example_enhance_apr ${HDF5_LIBRARIES} pthread tiff blosc_shared)
 target_link_libraries(Example_neigh ${HDF5_LIBRARIES} pthread tiff blosc_shared)
 
 set_target_properties(blosc_shared PROPERTIES

@@ -27,7 +27,7 @@ cmdLineOptions read_command_line_options(int argc, char **argv){
     cmdLineOptions result;
 
     if(argc == 1) {
-        std::cerr << "Usage: \"Example_neigh -i input_apr_file -d directory [-t] [-o outputfile]\"" << std::endl;
+        std::cerr << "Usage: \"Example_apr_iterate -i input_apr_file -d directory [-t] [-o outputfile]\"" << std::endl;
         exit(1);
     }
 

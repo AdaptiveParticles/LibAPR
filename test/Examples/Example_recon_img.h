@@ -4,7 +4,7 @@
 #include <functional>
 #include <string>
 
-#include "../../src/data_structures/structure_parts.h"
+#include "../../src/data_structures/APR/APR.hpp"
 
 struct cmdLineOptions{
     std::string output = "output";
@@ -14,7 +14,7 @@ struct cmdLineOptions{
     bool stats_file = false;
 };
 
-cmdLineOptions read_command_line_options(int argc, char **argv, Part_rep& part_rep);
+cmdLineOptions read_command_line_options(int argc, char **argv);
 
 bool command_option_exists(char **begin, char **end, const std::string &option);
 
