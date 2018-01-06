@@ -1,23 +1,29 @@
+////////////////////////////////////////
+///
+/// Bevan Cheeseman 2018
+///
+/// Ray cast example:
+///
+/// Creates a maximum projection ray cast from an APR and outputs to a tiff image.
+///
+/// Usage:
+///
+/// Example_ray_cast -i inputfile [-d directory]
+///
+/// Optional:
+///
+/// -aniso z_stretch (stretches the ray cast in the z axis)
+/// -jitter jitter_factor (0-1) (perturbs the particles randomly in the ray case, in an effort to remove artifacts from alignement of view in the ray-cast)
+/// -numviews The number of views that are calculated and output to the tiff file.
+///
+/// e.g. Example_ray_cast -i nuc_apr.h5 -d /Test/Input_examples/ -aniso 2.0 -jitter 0.1 -numviews 60
+///
+////////////////////////////////////////
+
 #include <algorithm>
 #include <iostream>
 
 #include "Example_ray_cast.h"
-#include "../../src/data_structures/meshclass.h"
-#include "../../src/io/readimage.h"
-
-#include "../../src/algorithm/gradient.hpp"
-#include "../../src/data_structures/particle_map.hpp"
-#include "../../src/data_structures/Tree/PartCellStructure.hpp"
-#include "../../src/algorithm/level.hpp"
-#include "../../src/io/writeimage.h"
-#include "../../src/io/write_parts.h"
-#include "../../src/io/partcell_io.h"
-#include "../../src/data_structures/Tree/PartCellParent.hpp"
-#include "../../src/numerics/ray_cast.hpp"
-#include "../../src/numerics/filter_numerics.hpp"
-#include "../../src/numerics/misc_numerics.hpp"
-
-#include "../../src/data_structures/APR/APR.hpp"
 
 bool command_option_exists(char **begin, char **end, const std::string &option)
 {
@@ -39,7 +45,7 @@ cmdLineOptions read_command_line_options(int argc, char **argv){
     cmdLineOptions result;
 
     if(argc == 1) {
-        std::cerr << "Usage: \"Example_ray_cast -i inputfile [-d directory] [-o outputdir]\"" << std::endl;
+        std::cerr << "Usage: \"Example_ray_cast -i inputfile [-d directory] [-aniso z_stretch] [-jitter jitter_factor] [-numviews number_views]\"" << std::endl;
         exit(1);
     }
 
@@ -48,6 +54,7 @@ cmdLineOptions read_command_line_options(int argc, char **argv){
         result.input = std::string(get_command_option(argv, argv + argc, "-i"));
     } else {
         std::cout << "Input file required" << std::endl;
+        std::cerr << "Usage: \"Example_ray_cast -i inputfile [-d directory] [-aniso z_stretch] [-jitter jitter_factor] [-numviews number_views]\"" << std::endl;
         exit(2);
     }
 
@@ -56,13 +63,25 @@ cmdLineOptions read_command_line_options(int argc, char **argv){
         result.output = std::string(get_command_option(argv, argv + argc, "-o"));
     }
 
-
-
     if(command_option_exists(argv, argv + argc, "-d"))
     {
         result.directory = std::string(get_command_option(argv, argv + argc, "-d"));
     }
 
+    if(command_option_exists(argv, argv + argc, "-aniso"))
+    {
+        result.aniso = std::stof(std::string(get_command_option(argv, argv + argc, "-aniso")));
+    }
+
+    if(command_option_exists(argv, argv + argc, "-jitter"))
+    {
+        result.jitter = std::stof(std::string(get_command_option(argv, argv + argc, "-jitter")));
+    }
+
+    if(command_option_exists(argv, argv + argc, "-numviews"))
+    {
+        result.num_views = std::stoi(std::string(get_command_option(argv, argv + argc, "-numviews")));
+    }
 
     return result;
 
@@ -89,6 +108,7 @@ int main(int argc, char **argv) {
     /////////////////
     ///
     ///  Raycast Parameters
+    ///
     ////////////////
 
     proj_par proj_pars;
@@ -96,15 +116,15 @@ int main(int argc, char **argv) {
     proj_pars.theta_0 = -3.14; //start
     proj_pars.theta_final = 3.14; //stop radians
     proj_pars.radius_factor = .98f; //radius scaling
-    proj_pars.theta_delta = .1f; //steps
-    proj_pars.scale_z = apr.pars.aniso; //z scaling
+    proj_pars.theta_delta = (proj_pars.theta_final - proj_pars.theta_0)/(options.num_views*1.0); //steps
+    proj_pars.scale_z = options.aniso; //z scaling
 
-    proj_pars.jitter = true;
-    proj_pars.jitter_factor = 0.5;
+    proj_pars.jitter = (options.jitter > 0);
+    proj_pars.jitter_factor = options.jitter;
 
     proj_pars.name = apr.name;
 
-    Mesh_data<float> output;
+    Mesh_data<float> views;
 
     /////////////
     ///
@@ -112,7 +132,7 @@ int main(int argc, char **argv) {
     ///
     /////////////
 
-    apr_raycast(apr,apr.particles_int,proj_pars,output,[] (const uint16_t& a,const uint16_t& b) {return std::max(a,b);});
+    apr_raycast(apr,apr.particles_int,proj_pars,views,[] (const uint16_t& a,const uint16_t& b) {return std::max(a,b);});
 
     //////////////
     ///
@@ -122,6 +142,6 @@ int main(int argc, char **argv) {
 
     std::string output_loc = options.directory + apr.name + "_ray_cast_views.tif";
 
-    output.write_image_tiff_uint16(output_loc);
+    views.write_image_tiff_uint16(output_loc);
 
 }

@@ -32,6 +32,10 @@
 #define COORD_DIFF_MASK_PARTICLE ((((uint64_t)1) << 13) - 1) << 3
 #define COORD_DIFF_SHIFT_PARTICLE 3
 
+
+template<typename T>
+class ExtraPartCellData;
+
 template <typename T,typename S> // type T is the image type, type S is the data structure base type
 class ParticleData {
     

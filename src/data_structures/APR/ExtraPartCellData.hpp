@@ -42,7 +42,7 @@ public:
 
     template<typename S>
     ExtraPartCellData(APR<S>& apr){
-        // do nothing
+        // intialize from apr
         initialize_structure_cells(apr.pc_data);
     }
 
@@ -59,6 +59,11 @@ public:
 
     std::vector<std::vector<uint64_t>> global_index_offset;
 
+    template<typename S>
+    void init(APR<S>& apr){
+        // do nothing
+        initialize_structure_cells(apr.pc_data);
+    }
 
 
     template<typename S>

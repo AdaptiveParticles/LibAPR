@@ -1,10 +1,9 @@
 #ifndef PARTPLAY_RAYCAST_H
 #define PARTPLAY_RAYCAST_H
 
-#include <functional>
-#include <string>
 
-#include "../../src/data_structures/structure_parts.h"
+#include "../../src/numerics/ray_cast.hpp"
+#include "../../src/data_structures/APR/APR.hpp"
 
 struct cmdLineOptions{
     std::string output = "output";
@@ -13,6 +12,9 @@ struct cmdLineOptions{
     std::string input = "";
     bool stats_file = false;
     std::string org_file = "";
+    float jitter = 0;
+    float aniso = 1.0;
+    unsigned int num_views= 60;
 };
 
 cmdLineOptions read_command_line_options(int argc, char **argv, Part_rep& part_rep);

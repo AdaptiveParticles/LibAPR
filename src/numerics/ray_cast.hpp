@@ -109,12 +109,11 @@ void apr_raycast(APR<U>& apr,ExtraPartCellData<S>& particle_data,proj_par& pars,
 
     timer.verbose_flag = true;
 
-    timer.start_timer("ray cast parts");
+    timer.start_timer("Compute APR maximum projection raycast");
 
     //
     //  Initialization of loop variables
     //
-
 
     std::vector<Mesh_data<S>> depth_slice;
 
@@ -137,8 +136,32 @@ void apr_raycast(APR<U>& apr,ExtraPartCellData<S>& particle_data,proj_par& pars,
     //initialize the iterator
     APR_iterator<float> apr_it(apr);
 
+
+    //jitter the parts to remove ray cast artifacts
     const bool jitter = pars.jitter;
     const float jitter_factor = pars.jitter_factor;
+
+    ExtraPartCellData<float> jitter_x;
+    ExtraPartCellData<float> jitter_y;
+    ExtraPartCellData<float> jitter_z;
+
+    if(jitter){
+
+        jitter_x.init(apr);
+        jitter_y.init(apr);
+        jitter_z.init(apr);
+
+        for (int i = apr.begin(); apr.end() ; apr.it_forward()) {
+
+            apr(jitter_x) = jitter_factor*((std::rand()-500)%1000)/1000.0;
+            apr(jitter_y) = jitter_factor*((std::rand()-500)%1000)/1000.0;
+            apr(jitter_z) = jitter_factor*((std::rand()-500)%1000)/1000.0;
+
+        }
+
+
+    }
+
 
     for (float theta = theta_0; theta <= theta_f; theta += theta_delta) {
 
@@ -198,9 +221,9 @@ void apr_raycast(APR<U>& apr,ExtraPartCellData<S>& particle_data,proj_par& pars,
 
             if(jitter){
 
-                 y_actual = (apr_it.y() + 0.5 + jitter_factor*((std::rand()-50)%100)/100.0)*pars.scale_y*depth_vec[apr_it.depth()];
-                 x_actual = (apr_it.x() + 0.5 + jitter_factor*((std::rand()-50)%100)/100.0)*pars.scale_x*depth_vec[apr_it.depth()];
-                 z_actual = (apr_it.z() + 0.5 + jitter_factor*((std::rand()-50)%100)/100.0)*pars.scale_z*depth_vec[apr_it.depth()];
+                 y_actual = (apr_it.y() + 0.5 + apr_it(jitter_y))*pars.scale_y*depth_vec[apr_it.depth()];
+                 x_actual = (apr_it.x() + 0.5 + apr_it(jitter_x))*pars.scale_x*depth_vec[apr_it.depth()];
+                 z_actual = (apr_it.z() + 0.5 + apr_it(jitter_z))*pars.scale_z*depth_vec[apr_it.depth()];
 
             } else{
                  y_actual = apr_it.y_global()*pars.scale_y;
@@ -284,6 +307,10 @@ void apr_raycast(APR<U>& apr,ExtraPartCellData<S>& particle_data,proj_par& pars,
 
     timer.stop_timer();
 
+    std::cout << (timer.t2 - timer.t1)/(view_count*1.0) <<  " seconds per view" << std::endl;
+
+
+
 };
 
 template<typename S,typename U>
@@ -294,8 +321,6 @@ float perpsective_mesh_raycast(PartCellStructure<U,uint64_t>& pc_struct,proj_par
     //  Max Ray Cast Proposective Projection
     //
     //
-
-
 
     unsigned int imageWidth = image.x_num;
     unsigned int imageHeight = image.y_num;
