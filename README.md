@@ -63,8 +63,6 @@ An additional requirements for development and testing is the Google test librar
     sudo mv libg* /usr/lib/
 ```
 
-## Test Framework
-
 * for OSX users, clone the repository at https://github.com/google googletest, then within the repo:
   
 ```
@@ -75,7 +73,7 @@ make
 make install
 ```
 
-Tests are stored in a submodule. Run these commands in order to run tests:
+Tests are stored in a submodule. Run these commands in order to run tests: (REMOVE????, not sure if this is still valid, we will do a different approach host the files somewhere))
 
 ```
     git submodule init
@@ -94,8 +92,9 @@ Remember to pass TESTS flag to CMAKE!
    cmake -H. -DTESTS=1 -Bbuild ..
 ```
 
-## Benchmarks
+### Benchmarks and Synthetic Images
 
-Requires SynImageGen Library
-
+Requires SynImageGen Library, contact (bevan.cheeseman@gmail.com if you are interested in access))
+```
 cmake -H. -DTESTS=1 -Bbuild.. -DBENCHMARKS=1 -DSynImage_PATH="PATH_TO_SYNIMAGEGEN"
+```

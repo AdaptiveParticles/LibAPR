@@ -56,7 +56,6 @@ set(SOURCE_FILES
 
         test/test_tree/level_iterator_test.cpp
         test/test_tree/tree_fixtures.cpp
-        test/test_tree/raytrace_test.cpp
 
         src/io/readimage.h
         src/io/writeimage.h
@@ -132,6 +131,7 @@ if(TESTS)
             ${SOURCE_FILES_COMPILED}
             test/utils.cpp
             )
+        #this is currently failing, as the files need to be updated
     add_executable(testVariance
             test/tests.cpp
             test/variance_test.cpp
@@ -150,29 +150,6 @@ if(TESTS)
             test/utils.cpp
             )
 
-    add_executable(testLevelIterator
-            test/test_tree/tree_fixtures.cpp
-            test/test_tree/level_iterator_test.cpp
-            )
-
-    add_executable(testTreeNeighbours
-            test/test_tree/tree_fixtures.cpp
-            test/test_tree/neighbours_test.cpp
-	    ${SOURCE_FILES_COMPILED}
-            )
-
-    add_executable(testTreeNeighboursFace
-            test/test_tree/tree_fixtures.cpp
-            test/test_tree/face_neighbours_test.cpp
-            )
-
-    add_executable(testRaytrace
-            test/test_tree/tree_fixtures.cpp
-            test/test_tree/raytrace_test.cpp
-            ${SOURCE_FILES_COMPILED}
-            test/utils.cpp
-            )
-
     add_executable(testSparsePartStruc
             test/test_tree/tree_fixtures.cpp
 
@@ -183,15 +160,11 @@ if(TESTS)
 	        src/io/hdf5functions_blosc.cpp
             )
 
+    target_link_libraries(testSparsePartStruc ${HDF5_LIBRARIES} ${GTEST_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT} ${TIFF_LIBRARIES} blosc_shared)
     target_link_libraries(testBspline ${HDF5_LIBRARIES} ${GTEST_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT} ${TIFF_LIBRARIES} blosc_shared)
     target_link_libraries(testVariance ${HDF5_LIBRARIES} ${GTEST_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT} ${TIFF_LIBRARIES} blosc_shared)
     target_link_libraries(testLevel ${HDF5_LIBRARIES} ${GTEST_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT} ${TIFF_LIBRARIES} blosc_shared)
     target_link_libraries(testResult ${HDF5_LIBRARIES} ${GTEST_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT} ${TIFF_LIBRARIES} blosc_shared)
-    target_link_libraries(testLevelIterator ${HDF5_LIBRARIES} ${GTEST_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT} ${TIFF_LIBRARIES} blosc_shared)
-    target_link_libraries(testTreeNeighbours ${HDF5_LIBRARIES} ${GTEST_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT} ${TIFF_LIBRARIES} blosc_shared)
-    target_link_libraries(testTreeNeighboursFace ${HDF5_LIBRARIES} ${GTEST_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT} ${TIFF_LIBRARIES} blosc_shared)
-    target_link_libraries(testSparsePartStruc ${HDF5_LIBRARIES} ${GTEST_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT} ${TIFF_LIBRARIES} blosc_shared)
-    target_link_libraries(testRaytrace ${HDF5_LIBRARIES} ${GTEST_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT} ${TIFF_LIBRARIES} blosc_shared)
 
 endif(TESTS)
 
