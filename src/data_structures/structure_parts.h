@@ -18,12 +18,17 @@
 #define PARTPLAY_STRUCTURE_PARTS_H
 
 #include <algorithm>
+#ifdef _WINDOWS
+#define _USE_MATH_DEFINES
+#include <math.h>
+#endif
 #include <cmath>
 #include <iostream>
 #include <map>
 #include <stdint.h>
 #include <string>
 #include <vector>
+#include <algorithm>
 
 #include "omp.h"
 #include "../io/parameters.h"

@@ -5,6 +5,7 @@
 #include "RaytracedObject.h"
 #include <glm/gtc/matrix_access.hpp>
 #include <iostream>
+#include <algorithm>
 
 RaytracedObject::RaytracedObject(glm::vec3 position, glm::fquat rotation) : Object(position, rotation) { this->position = position; this->rotation = rotation; }
 

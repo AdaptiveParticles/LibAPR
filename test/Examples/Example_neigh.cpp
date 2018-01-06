@@ -7,7 +7,6 @@
 
 #include "Example_neigh.hpp"
 
-
 bool command_option_exists(char **begin, char **end, const std::string &option)
 {
     return std::find(begin, end, option) != end;

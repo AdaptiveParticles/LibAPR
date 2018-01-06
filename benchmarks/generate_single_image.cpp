@@ -51,10 +51,10 @@ int main(int argc, char **argv) {
     bs.obj_size = 2;
     bs.sig = 3;
     //bs.desired_I = 10000;
-    float ratio = 10;
+    float ratio = 20;
     bs.num_objects = 5*pow(bs.x_num,3)/(33400*ratio);
 
-    bs.num_objects = 20;
+    //bs.num_objects = 20;
 
     bs.desired_I = 30*sqrt(1000);
     //bs.int_scale_max = 1;
