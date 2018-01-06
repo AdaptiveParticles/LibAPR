@@ -3256,6 +3256,235 @@ bool utest_alt_part_struct(PartCellStructure<float,uint64_t>& pc_struct){
     return success;
 
 }
+bool utest_apr_serial_iterate(PartCellStructure<float,uint64_t>& pc_struct){
+    //
+    //  Bevan Cheeseman 2018
+    //
+    //  Test for the serial APR iterator
+    //
+
+
+    bool success = true;
+
+    APR<float> apr;
+
+    apr.init_cells(pc_struct);
+
+    std::vector<Mesh_data<float>> int_array;
+
+    create_intensity_reference_structure(pc_struct,int_array);
+
+    for ( apr.begin(); apr.end() ; apr.it_forward()) {
+        float apr_val = apr(apr.particles_int);
+
+        float check_val = int_array[apr.depth()](apr.y(),apr.x(),apr.z());
+
+        if(check_val!=apr_val){
+            success = false;
+        }
+
+    }
+
+    return success;
+}
+
+bool utest_apr_parallel_iterate(PartCellStructure<float,uint64_t>& pc_struct){
+    //
+    //  Bevan Cheeseman 2018
+    //
+    //  Test of the APR openmp parallel iteration
+    //
+    bool success = true;
+
+    APR<float> apr;
+
+    apr.init_cells(pc_struct);
+
+    std::vector<Mesh_data<float>> int_array;
+
+    create_intensity_reference_structure(pc_struct,int_array);
+
+    APR_iterator<float> apr_it(apr);
+    unsigned int part = 0;
+
+#pragma omp parallel for schedule(static) private(part) firstprivate(apr_it)
+    for (part = 0; part < apr.num_parts_total; ++part) {
+        //needed step for any parallel loop (update to the next part)
+        apr_it.set_part(part);
+
+        float apr_val = apr_it(apr.particles_int);
+
+        float check_val = int_array[apr_it.depth()](apr_it.y(),apr_it.x(),apr_it.z());
+
+        if(check_val!=apr_val){
+            success = false;
+        }
+
+    }
+
+
+    return success;
+
+}
+
+bool utest_apr_serial_neigh(PartCellStructure<float,uint64_t>& pc_struct){
+    //
+    //  Bevan Cheeseman 2018
+    //
+    //  Test for the serial APR iterator neighbours
+    //
+
+
+    bool success = true;
+
+    APR<float> apr;
+
+    apr.init_cells(pc_struct);
+
+    std::vector<Mesh_data<float>> int_array;
+
+    APR_iterator<float> neigh_it(apr);
+
+    create_intensity_reference_structure(pc_struct,int_array);
+
+    for ( apr.begin(); apr.end() ; apr.it_forward()) {
+
+        //now we only update the neighbours, and directly access them through a neighbour iterator
+        apr.update_neigh_all();
+
+        //loop over all the neighbours and set the neighbour iterator to it
+        for (int dir = 0; dir < 6; ++dir) {
+            // Neighbour Particle Cell Face definitions [+y,-y,+x,-x,+z,-z] =  [0,1,2,3,4,5]
+
+            for (int index = 0; index < apr.number_neigh(dir); ++index) {
+                // on each face, there can be 0-4 neighbours accessed by index
+                if(neigh_it.set_neigh_it(apr,dir,index)){
+                    //will return true if there is a neighbour defined
+                    float apr_val = neigh_it(apr.particles_int);
+                    float check_val = int_array[neigh_it.depth()](neigh_it.y(),neigh_it.x(),neigh_it.z());
+
+                    if(check_val!=apr_val){
+                        success = false;
+                    }
+
+                }
+            }
+        }
+
+    }
+
+
+    for ( apr.begin(); apr.end() ; apr.it_forward()) {
+
+        //now we only update the neighbours, and directly access them through a neighbour iterator
+
+        //loop over all the neighbours and set the neighbour iterator to it
+        for (int dir = 0; dir < 6; ++dir) {
+            // Neighbour Particle Cell Face definitions [+y,-y,+x,-x,+z,-z] =  [0,1,2,3,4,5]
+            apr.update_neigh_dir(dir);
+
+            for (int index = 0; index < apr.number_neigh(dir); ++index) {
+                // on each face, there can be 0-4 neighbours accessed by index
+                if(neigh_it.set_neigh_it(apr,dir,index)){
+                    //will return true if there is a neighbour defined
+                    float apr_val = neigh_it(apr.particles_int);
+                    float check_val = int_array[neigh_it.depth()](neigh_it.y(),neigh_it.x(),neigh_it.z());
+
+                    if(check_val!=apr_val){
+                        success = false;
+                    }
+
+                }
+            }
+        }
+
+    }
+
+    return success;
+
+
+};
+
+bool utest_apr_parallel_neigh(PartCellStructure<float,uint64_t>& pc_struct){
+
+    bool success = true;
+
+    APR<float> apr;
+
+    apr.init_cells(pc_struct);
+
+    std::vector<Mesh_data<float>> int_array;
+
+    APR_iterator<float> neigh_it(apr);
+
+    create_intensity_reference_structure(pc_struct,int_array);
+
+    APR_iterator<float> apr_it(apr);
+    unsigned int part = 0;
+
+#pragma omp parallel for schedule(static) private(part) firstprivate(apr_it,neigh_it)
+    for (part = 0; part < apr.num_parts_total; ++part) {
+        //needed step for any parallel loop (update to the next part)
+        apr_it.set_part(part);
+
+        //now we only update the neighbours, and directly access them through a neighbour iterator
+        apr_it.update_neigh_all();
+
+        //loop over all the neighbours and set the neighbour iterator to it
+        for (int dir = 0; dir < 6; ++dir) {
+            // Neighbour Particle Cell Face definitions [+y,-y,+x,-x,+z,-z] =  [0,1,2,3,4,5]
+
+            for (int index = 0; index < apr_it.number_neigh(dir); ++index) {
+                // on each face, there can be 0-4 neighbours accessed by index
+                if(neigh_it.set_neigh_it(apr_it,dir,index)){
+                    //will return true if there is a neighbour defined
+                    float apr_val = neigh_it(apr.particles_int);
+                    float check_val = int_array[neigh_it.depth()](neigh_it.y(),neigh_it.x(),neigh_it.z());
+
+                    if(check_val!=apr_val){
+                        success = false;
+                    }
+
+                }
+            }
+        }
+
+    }
+
+
+#pragma omp parallel for schedule(static) private(part) firstprivate(apr_it,neigh_it)
+    for (part = 0; part < apr.num_parts_total; ++part) {
+        //needed step for any parallel loop (update to the next part)
+        apr_it.set_part(part);
+
+        //now we only update the neighbours, and directly access them through a neighbour iterator
+
+        //loop over all the neighbours and set the neighbour iterator to it
+        for (int dir = 0; dir < 6; ++dir) {
+            // Neighbour Particle Cell Face definitions [+y,-y,+x,-x,+z,-z] =  [0,1,2,3,4,5]
+            apr_it.update_neigh_dir(dir);
+
+            for (int index = 0; index < apr_it.number_neigh(dir); ++index) {
+                // on each face, there can be 0-4 neighbours accessed by index
+                if(neigh_it.set_neigh_it(apr_it,dir,index)){
+                    //will return true if there is a neighbour defined
+                    float apr_val = neigh_it(apr.particles_int);
+                    float check_val = int_array[neigh_it.depth()](neigh_it.y(),neigh_it.x(),neigh_it.z());
+
+                    if(check_val!=apr_val){
+                        success = false;
+                    }
+
+                }
+            }
+        }
+
+    }
+
+    return success;
+
+}
+
 
 bool utest_neigh_cells(PartCellStructure<float,uint64_t>& pc_struct){   //  Calculate connected component from a binary mask
     //

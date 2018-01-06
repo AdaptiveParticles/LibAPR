@@ -123,20 +123,20 @@ TEST_F(CreateSphereTest, NEW_STRUCTURE) {
 
 }
 
-TEST_F(CreateSphereTest, MOORE_NEIGHBOURHOOD) {
-
-    //test neighbour cell search
-
-
-    std::cout << "moore neighbourhood test off" << std::endl;
-
-    //ASSERT_TRUE(utest_moore_neighbours(pc_struct));
-
-    ASSERT_TRUE(true);
-
-    //utest_moore_neighbours(pc_struct);
-    
-}
+//TEST_F(CreateSphereTest, MOORE_NEIGHBOURHOOD) {
+//
+//    //test neighbour cell search
+//
+//
+//    std::cout << "moore neighbourhood test off" << std::endl;
+//
+//    //ASSERT_TRUE(utest_moore_neighbours(pc_struct));
+//
+//    ASSERT_TRUE(true);
+//
+//    //utest_moore_neighbours(pc_struct);
+//
+//}
 
 TEST_F(CreateMembraneTest, COMPARE_PART_MAP) {
 
@@ -256,15 +256,66 @@ TEST_F(CreateMembraneTest, NEW_STRUCTURE) {
 
 }
 
-TEST_F(CreateMembraneTest, MOORE_NEIGHBOURHOOD) {
 
-    //test neighbour cell search
+TEST_F(CreateMembraneTest, APR_SERIAL_ITERATOR) {
 
-    std::cout << "moore test turned off" << std::endl;
-    //ASSERT_TRUE(utest_moore_neighbours(pc_struct));
-    ASSERT_TRUE(true);
+    //
+    //  Sparse Particle Structure Test Cases
+    //
+    //
+
+    //test iteration
+    ASSERT_TRUE(utest_apr_serial_iterate(pc_struct));
 
 }
+
+TEST_F(CreateMembraneTest, APR_SERIAL_NEIGH) {
+
+    //
+    //  Sparse Particle Structure Test Cases
+    //
+    //
+
+    //test get face neighbours
+    ASSERT_TRUE(utest_apr_serial_neigh(pc_struct));
+
+}
+
+
+TEST_F(CreateMembraneTest, APR_PARALELL_ITERATOR) {
+
+    //
+    //  Sparse Particle Structure Test Cases
+    //
+    //
+
+    //test io
+    ASSERT_TRUE(utest_apr_parallel_iterate(pc_struct));
+
+}
+
+TEST_F(CreateMembraneTest, APR_PARALELL_NEIGH) {
+
+    //
+    //  Sparse Particle Structure Test Cases
+    //
+    //
+
+    //test io
+    ASSERT_TRUE(utest_apr_parallel_neigh(pc_struct));
+
+}
+
+
+//TEST_F(CreateMembraneTest, MOORE_NEIGHBOURHOOD) {
+//
+//    //test neighbour cell search
+//
+//    std::cout << "moore test turned off" << std::endl;
+//    //ASSERT_TRUE(utest_moore_neighbours(pc_struct));
+//    ASSERT_TRUE(true);
+//
+//}
 
 //TEST_F(CreateMembraneTest, SPARSE_STRUCTURE_MEMBRANE_LARGE_TEST)
 //{

@@ -151,7 +151,7 @@ if(TESTS)
             )
 
     add_executable(testSparsePartStruc
-            test/test_tree/tree_fixtures.cpp
+            #test/test_tree/tree_fixtures.cpp
 
             #test/test_tree/create_part_cell_structure.cpp
             test/test_tree/sparse_rep_test.cpp

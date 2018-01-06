@@ -29,6 +29,8 @@
 #include "../src/numerics/filter_help/CurrLevel.hpp"
 #include "../src/numerics/misc_numerics.hpp"
 
+#include "../src/data_structures/APR/APR.hpp"
+
 #include <algorithm>
 #include <functional>
 #include <iostream>
@@ -83,12 +85,19 @@ void create_j_reference_structure(PartCellStructure<float,uint64_t>& pc_struct,s
 
 pc_key find_neigh_cell(pc_key curr_cell,int dir,std::vector<Mesh_data<uint64_t>>& j_array);
 
-
 bool utest_neigh_cells(PartCellStructure<float,uint64_t>& pc_struct);
 
 bool utest_neigh_parts(PartCellStructure<float,uint64_t>& pc_struct);
 
 bool utest_alt_part_struct(PartCellStructure<float,uint64_t>& pc_struct);
+
+bool utest_apr_serial_iterate(PartCellStructure<float,uint64_t>& pc_struct);
+
+bool utest_apr_parallel_iterate(PartCellStructure<float,uint64_t>& pc_struct);
+
+bool utest_apr_serial_neigh(PartCellStructure<float,uint64_t>& pc_struct);
+
+bool utest_apr_parallel_neigh(PartCellStructure<float,uint64_t>& pc_struct);
 
 bool utest_moore_neighbours(PartCellStructure<float,uint64_t>& pc_struct);
 
