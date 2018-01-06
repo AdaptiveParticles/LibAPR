@@ -91,6 +91,12 @@ Remember to pass TESTS flag to CMAKE!
 ```
    cmake -H. -DTESTS=1 -Bbuild ..
 ```
+### Examples and Documentation
+There are five basic examples, that show how to generate and compute with the APR. 
+
+They can be found in test/Examples/.
+
+For tutorial on how to use the examples, and explanation of data-structures see documentation/guide.
 
 ### Benchmarks and Synthetic Images
 
