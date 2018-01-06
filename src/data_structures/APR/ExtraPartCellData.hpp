@@ -10,7 +10,7 @@
 #define PARTPLAY_EXTRAPARTCELLDATA_HPP
 // type T data structure base type
 
-#include "src/data_structures/Tree/PartCellData.hpp"
+#include "PartCellData.hpp"
 #include "src/data_structures/Tree/ParticleData.hpp"
 
 #include <functional>

@@ -10,7 +10,7 @@
 #define PARTPLAY_PARTCELLNEIGH_HPP
  // type T data structure base type
 
-#include "PartCellData.hpp"
+#include "src/data_structures/APR/PartCellData.hpp"
 #include <vector>
 
 #define NUM_FACES 6

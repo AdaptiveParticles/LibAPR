@@ -4,9 +4,9 @@
 
 #include "analyze_apr.h"
 
-#include "../../src/algorithm/apr_pipeline.hpp"
+#include "src/algorithm/apr_pipeline.hpp"
 
-#include "../../benchmarks/analysis/apr_analysis.h"
+#include "benchmarks/analysis/apr_analysis.h"
 
 int main(int argc, char **argv) {
     //input parsing

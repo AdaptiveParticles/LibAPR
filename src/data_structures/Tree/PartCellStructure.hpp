@@ -19,7 +19,7 @@
 #include <algorithm>
 #include <array>
 
-#include "PartCellData.hpp"
+#include "src/data_structures/APR/PartCellData.hpp"
 #include "ParticleData.hpp"
 #include "../particle_map.hpp"
 #include "../meshclass.h"

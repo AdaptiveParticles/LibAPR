@@ -9,8 +9,8 @@
 #ifndef PARTPLAY_PARENT_HPP
 #define PARTPLAY_PARENT_HPP
 
-#include "PartCellNeigh.hpp"
-#include "PartCellData.hpp"
+#include "src/data_structures/APR/PartCellNeigh.hpp"
+#include "src/data_structures/APR/PartCellData.hpp"
 
 // Parent / Child Relation Nodes (parent_info)
 #define PARENT_MASK ((((uint64_t)1) << 12) - 1) << 0

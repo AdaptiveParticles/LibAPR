@@ -63,6 +63,8 @@ An additional requirements for development and testing is the Google test librar
     sudo mv libg* /usr/lib/
 ```
 
+## Test Framework
+
 * for OSX users, clone the repository at https://github.com/google googletest, then within the repo:
   
 ```

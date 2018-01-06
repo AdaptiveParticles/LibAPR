@@ -114,7 +114,7 @@ int main(int argc, char **argv) {
 //        shift.push_back(max_shift);
 //    }
 
-    shift = {10.0*sqrt(1000)};
+    shift.push_back( 10.0*sqrt(1000));
 
     int N_par1 = (int)rel_error_vec.size(); // this many different parameter values to be run
     int N_par2 = (int)sig_vec.size();

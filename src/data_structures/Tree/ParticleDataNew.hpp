@@ -11,9 +11,12 @@
 
 #include <stdint.h>
 
-#include "PartCellData.hpp"
-#include "src/data_structures/APR/ExtraPartCellData.hpp"
+#include "src/data_structures/APR/PartCellData.hpp"
+//#include "src/data_structures/APR/ExtraPartCellData.hpp"
 #include "PartCellStructure.hpp"
+
+template<typename T>
+class ExtraPartCellData;
 
 
 #define SEED_NUM_PARTICLES 8

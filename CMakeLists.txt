@@ -74,7 +74,7 @@ set(SOURCE_FILES
 
 set(SOURCE_FILES_COMPILED
         src/data_structures/structure_parts.cpp
-        src/data_structures/Tree/PartCellData.cpp
+        src/data_structures/APR/PartCellData.cpp
         src/io/parameters.cpp
         src/io/hdf5functions.cpp
         src/io/blosc_filter.c
@@ -332,7 +332,7 @@ if(BENCHMARKS)
         ADD_EXECUTABLE(BenchAnisoImage benchmarks/benchmark_aniso.cpp  ${SOURCE_FILES_COMPILED} ${BENCHMARK_SOURCE_FILES} )
 
         add_executable(Example_segment_gc
-                test/Examples/segmentation_apr.cpp
+                benchmarks/development/segmentation_apr.cpp
                 external/maxflow-v3.04.src/maxflow.cpp
                 external/maxflow-v3.04.src/graph.cpp
                 #test/utils.cpp
@@ -388,7 +388,7 @@ if(BENCHMARKS)
                 test/utils.cpp
                 src/io/write_parts.cpp
                 ${SOURCE_FILES_COMPILED}
-                test/Examples/analyze_apr.cpp )
+                benchmarks/development/analyze_apr.cpp)
 
         TARGET_LINK_LIBRARIES(Example_analysis ${ArrayFire_OpenCL_LIBRARIES}
                 ${OpenCL_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT} ${HDF5_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT} ${TIFF_LIBRARIES} blosc)

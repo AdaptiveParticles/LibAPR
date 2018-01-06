@@ -345,7 +345,7 @@ public:
 
         iterate_forward(pc_data);
 
-        while((node_val&1) & counter!=0){
+        while((node_val&1) & (counter!=0)){
             iterate_forward(pc_data);
         }
 
@@ -358,7 +358,7 @@ public:
 
         iterate_forward(pc_data,depth);
 
-        while((node_val&1) & counter!=0){
+        while((node_val&1) & (counter!=0)){
             iterate_forward(pc_data,depth);
         }
 
