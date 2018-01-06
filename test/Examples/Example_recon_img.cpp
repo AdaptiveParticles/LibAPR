@@ -100,6 +100,7 @@ int main(int argc, char **argv) {
 
     //create particle dataset
     ExtraPartCellData<float> type(apr);
+    ExtraPartCellData<float> level(apr);
 
     timer.start_timer("APR parallel iterator loop");
 
@@ -109,6 +110,7 @@ int main(int argc, char **argv) {
         apr_it.set_part(part);
 
         apr_it(type) = apr_it.type();
+        apr_it(level) = apr_it.depth();
     }
 
     timer.stop_timer();
@@ -118,6 +120,14 @@ int main(int argc, char **argv) {
     apr.interp_img(type_recon,type);
 
     output_path = options.directory + apr.name + "_type.tif";
+
+    //write output as tiff
+    type_recon.write_image_tiff(output_path);
+
+    //pc interp
+    apr.interp_img(type_recon,level);
+
+    output_path = options.directory + apr.name + "_level.tif";
 
     //write output as tiff
     type_recon.write_image_tiff(output_path);
@@ -133,5 +143,9 @@ int main(int argc, char **argv) {
 
     //write to tiff casting to unsigned 16 bit integer
     recon_smooth.write_image_tiff_uint16(output_path);
+
+
+
+
 
 }

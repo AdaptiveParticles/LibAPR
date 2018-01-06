@@ -25,21 +25,25 @@ int main(int argc, char **argv) {
 
     APR<float> apr;
 
-    get_apr(argc,argv,apr,options);
-    
-    //output
-    std::string save_loc = options.output_dir;
-    std::string file_name = options.output;
+    if(get_apr(argc,argv,apr,options)){
 
-    Part_timer timer;
+        //output
+        std::string save_loc = options.output_dir;
+        std::string file_name = options.output;
 
-    timer.verbose_flag = true;
+        Part_timer timer;
 
-    timer.start_timer("writing output");
+        timer.verbose_flag = true;
 
-    apr.write_apr(save_loc,file_name);
+        timer.start_timer("writing output");
 
-    timer.stop_timer();
+        apr.write_apr(save_loc,file_name);
+
+        timer.stop_timer();
+
+    } else {
+        std::cout << "Oops, something went wrong. APR not computed :(." << std::endl;
+    }
 
 }
 

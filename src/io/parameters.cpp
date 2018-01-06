@@ -43,7 +43,7 @@ void get_test_paths(std::string& image_path,std::string& utest_path,std::string&
 
 
 }
-void get_image_stats(Proc_par& pars,std::string output_path,std::string stats_name){
+bool get_image_stats(Proc_par& pars,std::string output_path,std::string stats_name){
     //
     //  Gets the image parameters for the specific file to be run
     //
@@ -52,6 +52,7 @@ void get_image_stats(Proc_par& pars,std::string output_path,std::string stats_na
     //
     std::cout << output_path + stats_name << std::endl;
 
+    bool correct_file = true;
 
     //open the files
     std::ifstream path_file;
@@ -73,7 +74,7 @@ void get_image_stats(Proc_par& pars,std::string output_path,std::string stats_na
         pars.name = out_line.substr(found+6);
     } else {
 
-        std::cout << "Setting file incomplete" << std::endl;
+
 
     }
 
@@ -87,7 +88,7 @@ void get_image_stats(Proc_par& pars,std::string output_path,std::string stats_na
         pars.dx = stof(out_line.substr(found+4));
     } else {
 
-        std::cout << "Setting file incomplete" << std::endl;
+
 
     }
 
@@ -101,7 +102,7 @@ void get_image_stats(Proc_par& pars,std::string output_path,std::string stats_na
         pars.dy = stof(out_line.substr(found+4));
     } else {
 
-        std::cout << "Setting file incomplete" << std::endl;
+
 
     }
 
@@ -115,7 +116,7 @@ void get_image_stats(Proc_par& pars,std::string output_path,std::string stats_na
         pars.dz = stof(out_line.substr(found+4));
     } else {
 
-        std::cout << "Setting file incomplete" << std::endl;
+
 
     }
 
@@ -129,7 +130,7 @@ void get_image_stats(Proc_par& pars,std::string output_path,std::string stats_na
         pars.xdim = stof(out_line.substr(found+6));
     } else {
 
-        std::cout << "Setting file incomplete" << std::endl;
+
 
     }
 
@@ -143,7 +144,7 @@ void get_image_stats(Proc_par& pars,std::string output_path,std::string stats_na
         pars.ydim = stof(out_line.substr(found + 6));
     } else {
 
-        std::cout << "Setting file incomplete" << std::endl;
+
 
     }
 
@@ -157,7 +158,6 @@ void get_image_stats(Proc_par& pars,std::string output_path,std::string stats_na
         pars.zdim = stof(out_line.substr(found + 6));
     } else {
 
-        std::cout << "Setting file incomplete" << std::endl;
 
     }
 
@@ -171,7 +171,7 @@ void get_image_stats(Proc_par& pars,std::string output_path,std::string stats_na
         pars.psfx = stof(out_line.substr(found + 6));
     } else {
 
-        std::cout << "Setting file incomplete" << std::endl;
+
 
     }
 
@@ -185,7 +185,7 @@ void get_image_stats(Proc_par& pars,std::string output_path,std::string stats_na
         pars.psfy = stof(out_line.substr(found+6));
     } else {
 
-        std::cout << "Setting file incomplete" << std::endl;
+
 
     }
 
@@ -199,7 +199,7 @@ void get_image_stats(Proc_par& pars,std::string output_path,std::string stats_na
         pars.psfz = stof(out_line.substr(found+6));
     } else {
 
-        std::cout << "Setting file incomplete" << std::endl;
+
 
     }
 
@@ -213,7 +213,7 @@ void get_image_stats(Proc_par& pars,std::string output_path,std::string stats_na
         pars.noise_sigma = stof(out_line.substr(found+13));
     } else {
 
-        std::cout << "Setting file incomplete" << std::endl;
+
 
     }
 
@@ -229,6 +229,8 @@ void get_image_stats(Proc_par& pars,std::string output_path,std::string stats_na
 
         std::cout << "Setting file incomplete" << std::endl;
 
+        correct_file = false;
+
     }
     
     //file name (relative path)
@@ -240,7 +242,7 @@ void get_image_stats(Proc_par& pars,std::string output_path,std::string stats_na
         
         pars.rel_error = stof(out_line.substr(found+11));
     } else {
-        
+        correct_file = false;
     }
     
     //file name (relative path)
@@ -254,7 +256,7 @@ void get_image_stats(Proc_par& pars,std::string output_path,std::string stats_na
         
         lambda_or = stof(out_line.substr(found+8));
     } else {
-        
+        correct_file = false;
     }
 
     //file name (relative path)
@@ -333,6 +335,8 @@ void get_image_stats(Proc_par& pars,std::string output_path,std::string stats_na
     std::cout << "Var Th Max: " << pars.var_th_max << std::endl;
     std::cout << "Z factor: " << pars.z_factor << std::endl;
 
+
+    return correct_file;
 
 //    if (max_var_th > .25f*pars.var_th){
 //        float desired_th = 0.1f*pars.var_th;

@@ -174,6 +174,11 @@ public:
         return curr_level.depth;
     }
 
+    inline unsigned int level(){
+        //get x
+        return curr_level.depth;
+    }
+
     bool set_neigh_it(APR_iterator<ImageType>& org_it,unsigned int dir,unsigned int index){
         //
         //  Update the iterator to the neighbour
