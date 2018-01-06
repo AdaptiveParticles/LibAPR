@@ -112,11 +112,6 @@ ExtraPartCellData<float> update_new_particles(Mesh_data<U>& input_image,APR<floa
 
 
 
-
-
-
-
-
 }
 
 

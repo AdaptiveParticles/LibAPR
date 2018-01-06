@@ -692,11 +692,6 @@ public:
 
             apr_it(parts) = img_by_level[apr_it.depth()](apr_it.y(),apr_it.x(),apr_it.z());
 
-            if(apr_it(parts)==0){
-                int stop = 1;
-                std::cout << "broke" << std::endl;
-            }
-
         }
 
 

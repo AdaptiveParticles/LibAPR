@@ -95,7 +95,7 @@ void apr_raycast(APR<U>& apr,ExtraPartCellData<S>& particle_data,proj_par& pars,
     float theta_f = pars.theta_final;
     float theta_delta = pars.theta_delta;
 
-    int num_views = floor((theta_f - theta_0)/theta_delta) + 1;
+    int num_views = floor((theta_f - theta_0)/theta_delta) ;
 
     cast_views.initialize(imageHeight,imageWidth,num_views,0);
 

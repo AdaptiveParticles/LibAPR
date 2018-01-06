@@ -28,7 +28,14 @@ struct cmdLineOptions{
     std::string stats = "";
     std::string directory = "";
     std::string input = "";
+    std::string mask_file = "";
     bool stats_file = false;
+
+    float Ip_th = -1;
+    float SNR_min = 0;
+    float lambda = -1;
+    float min_signal = -1;
+
 };
 
 bool command_option_exists(char **begin, char **end, const std::string &option)
@@ -51,7 +58,7 @@ cmdLineOptions read_command_line_options(int argc, char **argv, Proc_par& pars){
     cmdLineOptions result;
 
     if(argc == 1) {
-        std::cerr << "Usage: \"pipeline -i inputfile [-t] [-s statsfile -d directory] [-o outputfile]\"" << std::endl;
+        std::cerr << "Usage: \"Example_get_apr -i inputfile [-t] [-s statsfile -d directory] [-o outputfile]\"" << std::endl;
         exit(1);
     }
 
@@ -92,6 +99,32 @@ cmdLineOptions read_command_line_options(int argc, char **argv, Proc_par& pars){
     } else {
         result.gt_input = "";
     }
+
+    if(command_option_exists(argv, argv + argc, "-lambda"))
+    {
+        result.lambda = std::stof(std::string(get_command_option(argv, argv + argc, "-lambda")));
+    }
+
+    if(command_option_exists(argv, argv + argc, "-I_th"))
+    {
+        result.Ip_th = std::stof(std::string(get_command_option(argv, argv + argc, "-I_th")));
+    }
+
+    if(command_option_exists(argv, argv + argc, "-SNR_min"))
+    {
+        result.SNR_min = std::stof(std::string(get_command_option(argv, argv + argc, "-SNR_min")));
+    }
+
+    if(command_option_exists(argv, argv + argc, "-min_signal"))
+    {
+        result.min_signal = std::stof(std::string(get_command_option(argv, argv + argc, "-min_signal")));
+    }
+
+    if(command_option_exists(argv, argv + argc, "-mask_file"))
+    {
+        result.mask_file = std::string(get_command_option(argv, argv + argc, "-mask_file"));
+    }
+
 
     return result;
 
@@ -148,8 +181,6 @@ void calc_median_filter(Mesh_data<U>& input_img){
     timer.stop_timer();
 
     float time = (timer.t2 - timer.t1);
-
-
 
     std::vector<U> temp_vecp;
     temp_vecp.resize(y_num_m);
@@ -749,14 +780,12 @@ void auto_parameters(Mesh_data<T>& input_img,Proc_par& pars){
 
     std::vector<T> slice_mean;
 
-
-
     //minimum element
     T min_val = *std::min_element(input_img.mesh.begin(),input_img.mesh.end());
 
     // will need to deal with grouped constant or zero sections in the image somewhere.... but lets keep it simple for now.
 
-    std::vector<T> freq;
+    std::vector<uint64_t> freq;
     unsigned int num_bins = 10000;
     freq.resize(num_bins);
 
@@ -767,8 +796,10 @@ void auto_parameters(Mesh_data<T>& input_img,Proc_par& pars){
 
         if(input_img.mesh[i] < (min_val + num_bins-1)){
             freq[input_img.mesh[i]-min_val]++;
-            counter++;
-            total += input_img.mesh[i];
+            if(input_img.mesh[i] > 0) {
+                counter++;
+                total += input_img.mesh[i];
+            }
         }
     }
 
@@ -913,7 +944,13 @@ finish:
 
     float sd = sqrt(var);
 
+
+
     float min_snr = 6;
+
+    if(pars.noise_scale > 0){
+        min_snr = pars.noise_scale;
+    }
 
     float Ip_th = mean + sd;
 
@@ -921,12 +958,29 @@ finish:
 
     float var_th_max = sd*min_snr*.5;
 
-    pars.I_th = Ip_th;
+    if(pars.I_th < 0 ){
+        pars.I_th = Ip_th;
+    }
 
-    pars.lambda = 3.0;
+    if(pars.lambda < 0){
+        pars.lambda = 3.0;
+    }
 
-    pars.var_th = var_th;
-    pars.var_th_max = var_th_max;
+    if(pars.var_th < 0){
+        pars.var_th = var_th;
+        pars.var_th_max = var_th_max;
+    } else{
+        pars.var_th_max = pars.var_th*0.5;
+    }
+
+
+
+    std::cout << "I_th: " << pars.I_th << std::endl;
+    std::cout << "Var_th: " << pars.var_th << std::endl;
+    std::cout << "Var_th_max: " << pars.var_th_max << std::endl;
+    std::cout << "Rel Error: " << pars.rel_error << std::endl;
+    std::cout << "Lambda: " << pars.lambda << std::endl;
+
 
 }
 
@@ -1644,12 +1698,16 @@ bool get_apr(int argc, char **argv,APR<float>& apr,cmdLineOptions& options) {
     if (!options.stats_file) {
         // defaults
 
-
         apr.pars.dy = apr.pars.dx = apr.pars.dz = 1;
         apr.pars.psfx = apr.pars.psfy = apr.pars.psfz = 2;
         apr.pars.rel_error = 0.1;
         apr.pars.var_th = 0;
         apr.pars.var_th_max = 0;
+
+        apr.pars.I_th = options.Ip_th;
+        apr.pars.noise_scale = options.SNR_min;
+        apr.pars.lambda = options.lambda;
+        apr.pars.var_th = options.min_signal;
 
         if(input_image.mesh.size() == 0){
             std::cout << "Image Not Found" << std::endl;
@@ -1659,9 +1717,9 @@ bool get_apr(int argc, char **argv,APR<float>& apr,cmdLineOptions& options) {
 
         auto_parameters(input_image,apr.pars);
 
-        std::cout << "Need status file" << std::endl;
 
         apr.pars.name = options.output;
+        apr.name = options.output;
 
         //return false;
     }

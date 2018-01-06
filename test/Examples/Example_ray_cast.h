@@ -10,8 +10,6 @@ struct cmdLineOptions{
     std::string stats = "";
     std::string directory = "";
     std::string input = "";
-    bool stats_file = false;
-    std::string org_file = "";
     float jitter = 0;
     float aniso = 1.0;
     unsigned int num_views= 60;
