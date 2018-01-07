@@ -192,6 +192,28 @@ int main(int argc, char **argv) {
     output_2 = calc_ex.transform_parts_output(calc_ex2,[] (const float& a,const float& b) {return std::max(a,b);});
     timer.stop_timer();
 
+
+    /////////////////////////////////////////////
+    ///
+    /// Reading and writing additional particle information
+    ///
+    /// (Current supports uint8, uint16, and float)
+    ///
+    /// Requires the APR that was used to write it to be read back in.
+    ///
+    /////////////////////////////////////////////
+
+    //write one of the above results to file
+    apr.write_particles_only(options.directory,"example_output",output_2);
+
+    std::string extra_file_name = options.directory + "example_output" + "_apr_extra_parts.h5";
+
+    ExtraPartCellData<float> output_2_read;
+
+    //you need the same apr used to write it to load it (doesn't save location data)
+    apr.read_parts_only(extra_file_name,output_2_read);
+
+
 }
 
 

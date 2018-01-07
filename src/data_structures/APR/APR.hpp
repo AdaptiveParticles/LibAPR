@@ -2226,57 +2226,339 @@ public:
 
     }
 
+
+
     template<typename S>
-    void predict_intensities(ExtraPartCellData<S>& parts){
+    void write_particles_only(std::string save_loc,std::string file_name,ExtraPartCellData<S>& parts_extra){
         //
-        //  Reduce the entropy of the saved sequence by predicting the intensity and storing \delta
+        //
+        //  Bevan Cheeseman 2018
+        //
+        //  Writes only the particle data, requires the same APR to be read in correctly.
+        //
+        //  #FIX_ME Extend me.
+        //
         //
 
-        //init temp data
-        ExtraPartCellData<S> delta;
-        delta.initialize_structure_cells(pc_data);
+        std::cout << "Either uint8, uint16, or float" << std::endl;
 
-        std::vector<S> neigh_vec;
+        //initialize
+        uint64_t node_val_part;
+        uint64_t y_coord;
+        int x_;
+        int z_;
 
-        std::vector<unsigned int> dir = {1,3,5};
-
-        //loops from lowest level to highest
-        for (this->begin(); this->end() == true ; this->it_forward()) {
-
-            //get the minus neighbours (1,3,5)
-
-            float pred = 0;
-            float counter = 0;
-
-            for (int j = 0; j < dir.size(); ++j) {
-
-                get_neigh_dir(parts, neigh_vec, dir[j]);
+        uint64_t j_;
+        uint64_t status;
+        uint64_t curr_key=0;
+        uint64_t part_offset=0;
 
 
+        //Neighbour Routine Checking
 
-                if (neigh_vec.size() > 0) {
-                    //check if the depth is less
-                    if (pc_data.pc_key_get_depth(this->curr_level.neigh_part_keys.neigh_face[dir[j]][0]) <= this->depth()) {
-                        for (int i = 0; i < neigh_vec.size(); ++i) {
-                            pred += neigh_vec[i];
-                            counter++;
-                        }
-                    }
+        uint64_t p;
+
+        register_bosc();
+
+        std::string hdf5_file_name = save_loc + file_name + "_apr_extra_parts.h5";
+
+        file_name = file_name + "_apr_extra_parts";
+
+        hdf5_create_file(hdf5_file_name);
+
+        //hdf5 inits
+        hid_t fid, pr_groupid, obj_id;
+        H5G_info_t info;
+
+        hsize_t     dims_out[2];
+
+        hsize_t rank = 1;
+
+        hsize_t dims;
+        hsize_t dim_a=1;
+
+        fid = H5Fopen(hdf5_file_name.c_str(),H5F_ACC_RDWR,H5P_DEFAULT);
+
+        //Get the group you want to open
+
+        //////////////////////////////////////////////////////////////////
+        //
+        //  Write meta-data to the file
+        //
+        //
+        //
+        ///////////////////////////////////////////////////////////////////////
+        dims = 1;
+
+        pr_groupid = H5Gcreate2(fid,"ParticleRepr",H5P_DEFAULT,H5P_DEFAULT,H5P_DEFAULT);
+        H5Gget_info( pr_groupid, &info );
+
+        hdf5_write_attribute(pr_groupid,H5T_NATIVE_INT,"x_num",1,&dims, &pc_data.org_dims[1] );
+        hdf5_write_attribute(pr_groupid,H5T_NATIVE_INT,"y_num",1,&dims, &pc_data.org_dims[0] );
+        hdf5_write_attribute(pr_groupid,H5T_NATIVE_INT,"z_num",1,&dims, &pc_data.org_dims[2] );
+
+
+        obj_id = H5Gcreate2(fid,"ParticleRepr/t",H5P_DEFAULT,H5P_DEFAULT,H5P_DEFAULT);
+
+        dims_out[0] = 1;
+        dims_out[1] = 1;
+
+        //just an identifier in here for the reading of the parts
+
+        int num_parts = this->num_parts_total;
+        int num_cells = this->num_elements_total;
+
+        hdf5_write_attribute(pr_groupid,H5T_NATIVE_INT,"num_parts",1,dims_out, &num_parts );
+
+        hdf5_write_attribute(pr_groupid,H5T_NATIVE_INT,"num_cells",1,dims_out, &num_cells );
+
+        // New parameter and background data
+
+        if(pars.name.size() == 0){
+            pars.name = "no_name";
+            name = "no_name";
+        }
+
+        hdf5_write_string(pr_groupid,"name",pars.name);
+
+        std::string git_hash = exec("git rev-parse HEAD");
+
+        hdf5_write_string(pr_groupid,"githash",git_hash);
+
+
+        S val = 0;
+        hid_t type = get_type(val);
+        int type_id = type;
+
+        hdf5_write_attribute(pr_groupid,H5T_NATIVE_INT,"data_type",1,dims_out, &type_id);
+
+        //////////////////////////////////////////////////////////////////
+        //
+        //  Write data to the file
+        //
+        //
+        //
+        ///////////////////////////////////////////////////////////////////////
+
+        uint64_t depth_min = pc_data.depth_min;
+
+        std::vector<S> Ip;
+
+        ExtraPartCellData<S> temp_int;
+        temp_int.initialize_structure_cells(pc_data);
+        temp_int.data = parts_extra.data;
+
+        shift_particles_from_cells(temp_int);
+
+
+        for(uint64_t i = pc_data.depth_min;i <= pc_data.depth_max;i++){
+
+            const unsigned int x_num_ = pc_data.x_num[i];
+            const unsigned int z_num_ = pc_data.z_num[i];
+            const unsigned int y_num_ = pc_data.y_num[i];
+
+            //write the vals
+
+            Ip.resize(0);
+
+            for(z_ = 0;z_ < z_num_;z_++){
+
+                for(x_ = 0;x_ < x_num_;x_++){
+
+                    const size_t offset_pc_data = x_num_*z_ + x_;
+
+                    const size_t j_num = temp_int.data[i][offset_pc_data].size();
+
+                    uint64_t curr_size = Ip.size();
+                    Ip.resize(curr_size+ j_num);
+
+                    std::copy(temp_int.data[i][offset_pc_data].begin(),temp_int.data[i][offset_pc_data].end(),Ip.begin() + curr_size);
+
                 }
+
             }
 
-            if(counter > 0){
-                pred = floor(pred/counter);
+            dims = Ip.size();
+
+            std::string name = "Ip_size_"+std::to_string(i);
+            hdf5_write_attribute(pr_groupid,H5T_NATIVE_INT,name.c_str(),1,&dim_a,&dims);
+
+            if(Ip.size() > 0){
+                //write the parts
+
+                name = "Ip_"+std::to_string(i);
+
+                S val = 0;
+
+                hdf5_write_data_blosc(obj_id, get_type(val), name.c_str(), rank, &dims, Ip.data());
+
             }
-
-            this->curr_level.get_val(delta) = this->curr_level.get_val(parts) - pred;
-
 
         }
 
-        std::swap(parts,delta);
+        hsize_t attr = pc_data.depth_min;
+        hdf5_write_attribute(pr_groupid,H5T_NATIVE_INT,"depth_max",1,&dim_a, &pc_data.depth_max );
+        hdf5_write_attribute(pr_groupid,H5T_NATIVE_INT,"depth_min",1,&dim_a, &attr );
+
+        // output the file size
+        hsize_t file_size;
+        H5Fget_filesize(fid, &file_size);
+
+        std::cout << "HDF5 Filesize: " << file_size*1.0/1000000.0 << " MB" << std::endl;
+
+        //close shiz
+        H5Gclose(obj_id);
+        H5Gclose(pr_groupid);
+        H5Fclose(fid);
+
+        std::cout << "Writing ExtraPartCellData Complete" << std::endl;
 
     }
+
+    template<typename T>
+    void read_parts_only(std::string file_name,ExtraPartCellData<T>& extra_parts)
+    {
+
+        //hdf5 inits
+        hid_t fid, pr_groupid, obj_id,attr_id;
+        H5G_info_t info;
+
+        //need to register the filters so they work properly
+        register_bosc();
+
+        int num_parts,num_cells;
+
+        fid = H5Fopen(file_name.c_str(),H5F_ACC_RDONLY,H5P_DEFAULT);
+
+        //Get the group you want to open
+
+        pr_groupid = H5Gopen2(fid,"ParticleRepr",H5P_DEFAULT);
+        H5Gget_info( pr_groupid, &info );
+
+        //Getting an attribute
+        obj_id =  H5Oopen_by_idx( fid, "ParticleRepr", H5_INDEX_NAME, H5_ITER_INC,0,H5P_DEFAULT);
+
+        //Load the attributes
+
+
+        /////////////////////////////////////////////
+        //  Get metadata
+        //
+        //////////////////////////////////////////////
+
+        hid_t       aid, atype, attr;
+
+        aid = H5Screate(H5S_SCALAR);
+
+        int data_type;
+
+        attr_id = 	H5Aopen(pr_groupid,"data_type",H5P_DEFAULT);
+        H5Aread(attr_id,H5T_NATIVE_INT,&data_type ) ;
+        H5Aclose(attr_id);
+
+        hid_t hdf5_data_type = data_type;
+
+        std::vector<std::vector<T>> Ip;
+
+        Ip.resize(pc_data.depth_max+1);
+
+        for(int i = pc_data.depth_min;i <= pc_data.depth_max; i++){
+
+            //get the info
+
+            int Ip_num;
+            name = "Ip_size_"+std::to_string(i);
+
+            attr_id = 	H5Aopen(pr_groupid,name.c_str(),H5P_DEFAULT);
+            H5Aread(attr_id,H5T_NATIVE_INT,&Ip_num);
+            H5Aclose(attr_id);
+
+            Ip[i].resize(Ip_num);
+
+            if(Ip[i].size()>0){
+                name = "Ip_"+std::to_string(i);
+                hdf5_load_data(obj_id,hdf5_data_type,Ip[i].data(),name.c_str());
+            }
+
+        }
+
+        //close shiz
+        H5Gclose(obj_id);
+        H5Gclose(pr_groupid);
+        H5Fclose(fid);
+
+        extra_parts.initialize_structure_cells(pc_data);
+
+        for (int depth = this->depth_min(); depth <= this->depth_max(); ++depth) {
+
+            uint64_t counter = 0;
+
+            for (this->begin(depth); this->end() == true ; this->it_forward(depth)) {
+
+                this->curr_level.get_val(extra_parts) = Ip[depth][counter];
+
+                counter++;
+
+            }
+        }
+
+
+    }
+
+
+
+
+//    template<typename S>
+//    void predict_intensities(ExtraPartCellData<S>& parts){
+//        //
+//        //  Reduce the entropy of the saved sequence by predicting the intensity and storing \delta
+//        //
+//
+//        //init temp data
+//        ExtraPartCellData<S> delta;
+//        delta.initialize_structure_cells(pc_data);
+//
+//        std::vector<S> neigh_vec;
+//
+//        std::vector<unsigned int> dir = {1,3,5};
+//
+//        //loops from lowest level to highest
+//        for (this->begin(); this->end() == true ; this->it_forward()) {
+//
+//            //get the minus neighbours (1,3,5)
+//
+//            float pred = 0;
+//            float counter = 0;
+//
+//            for (int j = 0; j < dir.size(); ++j) {
+//
+//                get_neigh_dir(parts, neigh_vec, dir[j]);
+//
+//
+//
+//                if (neigh_vec.size() > 0) {
+//                    //check if the depth is less
+//                    if (pc_data.pc_key_get_depth(this->curr_level.neigh_part_keys.neigh_face[dir[j]][0]) <= this->depth()) {
+//                        for (int i = 0; i < neigh_vec.size(); ++i) {
+//                            pred += neigh_vec[i];
+//                            counter++;
+//                        }
+//                    }
+//                }
+//            }
+//
+//            if(counter > 0){
+//                pred = floor(pred/counter);
+//            }
+//
+//            this->curr_level.get_val(delta) = this->curr_level.get_val(parts) - pred;
+//
+//
+//        }
+//
+//        std::swap(parts,delta);
+//
+//    }
 
 
 };

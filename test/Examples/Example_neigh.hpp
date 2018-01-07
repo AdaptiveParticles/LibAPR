@@ -24,5 +24,4 @@ bool command_option_exists(char **begin, char **end, const std::string &option);
 char* get_command_option(char **begin, char **end, const std::string &option);
 
 
-
 #endif //PARTPLAY_EXAMPLE_NEIGH_HPP
