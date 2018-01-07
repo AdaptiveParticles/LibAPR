@@ -1,6 +1,16 @@
-//
-// Created by cheesema on 14/03/17.
-//
+//////////////////////////////////////////////////////
+///
+/// Bevan Cheeseman 2018
+///
+/// Examples of iteration and access to particle neighbours on the face of the Particle Cells.
+///
+/// Usage:
+///
+/// (using output of Example_get_apr (hdf5 apr file)
+///
+/// Example_neigh -i input_image_tiff -d input_directory
+///
+/////////////////////////////////////////////////////
 
 #include <algorithm>
 #include <iostream>
@@ -27,7 +37,7 @@ cmdLineOptions read_command_line_options(int argc, char **argv){
     cmdLineOptions result;
 
     if(argc == 1) {
-        std::cerr << "Usage: \"Example_neigh -i input_apr_file -d directory [-t] [-o outputfile]\"" << std::endl;
+        std::cerr << "Usage: \"Example_neigh -i input_apr_file -d directory\"" << std::endl;
         exit(1);
     }
 
@@ -144,11 +154,8 @@ int main(int argc, char **argv) {
             for (int index = 0; index < apr_it.number_neigh(dir); ++index) {
 
                 if(neigh_it.set_neigh_it(apr_it,dir,index)){
-                    //showing how you have complete access then to the current and neighbour information
-                    if((neigh_it.type() == 1) & (neigh_it.depth() <= neigh_it.depth_max())){
-                        apr_it(neigh_xm) += neigh_it(apr.particles_int)*(apr_it.y() - neigh_it.y());
-                    }
-
+                    //neigh_it works just like apr, and apr_it (you could also call neighbours)
+                    apr_it(neigh_xm) += neigh_it(apr.particles_int)*(apr_it.y() - neigh_it.y());
                 }
 
             }
@@ -183,6 +190,7 @@ int main(int argc, char **argv) {
         for (int index = 0; index < apr_it.number_neigh(dir); ++index) {
             // from 0 to 4 neighbours
             if(neigh_it.set_neigh_it(apr_it,dir,index)){
+                //access data and perform a conditional sum (neigh_it has all access like the normal iterator)
                 if((neigh_it.type() == 1) & (neigh_it.depth() <= neigh_it.depth_max())){
                     apr_it(type_sum) += neigh_it(apr.particles_int)*apr_it.type();
                 }

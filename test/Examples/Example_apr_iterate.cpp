@@ -2,7 +2,7 @@
 ///
 /// Bevan Cheeseman 2018
 ///
-/// Examples of simple iteration an access to Particle Cell, and particle information. (See Example_apr_neigh, for neighbor access)
+/// Examples of simple iteration an access to Particle Cell, and particle information. (See Example_neigh, for neighbor access)
 ///
 /// Usage:
 ///
