@@ -1,6 +1,16 @@
-//
-// Created by cheesema on 14/03/17.
-//
+//////////////////////////////////////////////////////
+///
+/// Bevan Cheeseman 2018
+///
+/// Examples of simple iteration an access to Particle Cell, and particle information. (See Example_apr_neigh, for neighbor access)
+///
+/// Usage:
+///
+/// (using output of Example_get_apr)
+///
+/// Example_apr_iterate -i input_image_tiff -d input_directory
+///
+/////////////////////////////////////////////////////
 
 #include <algorithm>
 #include <iostream>
@@ -27,7 +37,7 @@ cmdLineOptions read_command_line_options(int argc, char **argv){
     cmdLineOptions result;
 
     if(argc == 1) {
-        std::cerr << "Usage: \"Example_apr_iterate -i input_apr_file -d directory [-t] [-o outputfile]\"" << std::endl;
+        std::cerr << "Usage: \"Example_apr_iterate -i input_apr_file -d directory\"" << std::endl;
         exit(1);
     }
 
