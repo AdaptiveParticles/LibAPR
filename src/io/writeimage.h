@@ -11,8 +11,9 @@
 #define PARTPLAY_WRITEIMAGE_H
 
 #include <tiffio.h>
-#include "../data_structures/meshclass.h"
 #include "parameters.h"
+
+#include "src/data_structures/meshclass.h"
 
 template <typename T>
 void write_image_tiff(Mesh_data<T>& image,std::string filename){

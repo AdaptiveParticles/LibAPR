@@ -5,7 +5,7 @@
 #ifndef PARTPLAY_APR_TIME_HPP
 #define PARTPLAY_APR_TIME_HPP
 
-#include "../Tree/ExtraPartCellData.hpp"
+#include "ExtraPartCellData.hpp"
 #include "APR.hpp"
 
 

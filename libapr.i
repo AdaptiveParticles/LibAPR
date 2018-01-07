@@ -38,8 +38,8 @@ namespace std {
 %include "src/io/partcell_io.h"
 %include "src/data_structures/Tree/ParticleData.hpp"
 %include "src/data_structures/Tree/ParticleDataNew.hpp"
-%include "src/data_structures/Tree/ExtraPartCellData.hpp"
-%include "src/data_structures/Tree/PartCellData.hpp"
+%include "src/data_structures/APR/ExtraPartCellData.hpp"
+%include "src/data_structures/APR/PartCellData.hpp"
 %include "src/data_structures/Tree/PartCellStructure.hpp"
 %include "src/data_structures/particle_map.hpp"
 %include "src/data_structures/meshclass.h"
@@ -63,4 +63,4 @@ namespace std {
 
 // function templates
 %template(ReadFloatAPRFromFile) read_apr_pc_struct<float>;
-%template(ShiftParticlesFromCellsStd) shift_particles_from_cells<uint16_t, uint64_t, float>;
+//%template(ShiftParticlesFromCellsStd) shift_particles_from_cells<uint16_t, uint64_t, float>;

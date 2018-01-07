@@ -7,23 +7,23 @@
 #include <algorithm>
 #include <iostream>
 
-#include "../../src/data_structures/meshclass.h"
-#include "../../src/io/readimage.h"
+#include "src/data_structures/meshclass.h"
+#include "src/io/readimage.h"
 
-#include "../../src/algorithm/gradient.hpp"
-#include "../../src/data_structures/particle_map.hpp"
-#include "../../src/data_structures/Tree/PartCellStructure.hpp"
-#include "../../src/data_structures/Tree/ParticleDataNew.hpp"
-#include "../../src/algorithm/level.hpp"
-#include "../../src/io/writeimage.h"
-#include "../../src/io/write_parts.h"
-#include "../../src/io/partcell_io.h"
+#include "src/algorithm/gradient.hpp"
+#include "src/data_structures/particle_map.hpp"
+#include "src/data_structures/Tree/PartCellStructure.hpp"
+#include "src/data_structures/Tree/ParticleDataNew.hpp"
+#include "src/algorithm/level.hpp"
+#include "src/io/writeimage.h"
+#include "src/io/write_parts.h"
+#include "src/io/partcell_io.h"
 
-#include "../../test/utils.h"
+#include "test/utils.h"
 
-#include "../../src/numerics/misc_numerics.hpp"
-#include "../../src/numerics/filter_numerics.hpp"
-#include "../../src/numerics/enhance_parts.hpp"
+#include "src/numerics/misc_numerics.hpp"
+#include "src/numerics/filter_numerics.hpp"
+#include "src/numerics/enhance_parts.hpp"
 
 
 

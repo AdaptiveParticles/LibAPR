@@ -402,7 +402,7 @@ public:
     float len_scale;
     
     //original image dimensions
-    std::vector<int> org_dims;
+    std::vector<unsigned int> org_dims;
     
     Part_data<uint16_t> Ip;
     Part_data<uint8_t> status;

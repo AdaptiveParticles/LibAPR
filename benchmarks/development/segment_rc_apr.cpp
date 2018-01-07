@@ -1,17 +1,20 @@
 #include <algorithm>
 #include <iostream>
 
-#include "compute_parts.h"
-#include "../../src/data_structures/meshclass.h"
-#include "../../src/io/readimage.h"
+#include "segmentation_apr.h"
+#include "src/data_structures/meshclass.h"
+#include "src/io/readimage.h"
 
-#include "../../src/algorithm/gradient.hpp"
-#include "../../src/data_structures/particle_map.hpp"
-#include "../../src/data_structures/Tree/PartCellStructure.hpp"
-#include "../../src/algorithm/level.hpp"
-#include "../../src/io/writeimage.h"
-#include "../../src/io/write_parts.h"
-#include "../../src/io/partcell_io.h"
+#include "src/data_structures/particle_map.hpp"
+#include "src/data_structures/Tree/PartCellStructure.hpp"
+#include "src/data_structures/Tree/ParticleDataNew.hpp"
+#include "src/algorithm/level.hpp"
+#include "src/io/writeimage.h"
+#include "src/io/write_parts.h"
+#include "src/io/partcell_io.h"
+#include "src/numerics/parent_numerics.hpp"
+#include "src/numerics/misc_numerics.hpp"
+#include "src/numerics/apr_segment.hpp"
 
 bool command_option_exists(char **begin, char **end, const std::string &option)
 {
@@ -81,9 +84,35 @@ int main(int argc, char **argv) {
     // Read the apr file into the part cell structure
     read_apr_pc_struct(pc_struct,file_name);
     
-    // Now write the apr file to full explicit format readible from paraview
-    write_apr_full_format(pc_struct,options.directory,options.output);
+    //Part Segmentation
     
+    ExtraPartCellData<uint8_t> binary_mask;
+    
+    threshold_part(pc_struct,binary_mask,200);
+    
+    
+    ExtraPartCellData<uint16_t> component_label;
+    
+   //calculate the connected component
+    
+    calc_connected_component(pc_struct,binary_mask,component_label);
+    
+    //calc_connected_component_alt(pc_struct,binary_mask,component_label);
+    
+    //Now we will view the output by creating the binary image implied by the segmentation
+    
+    Mesh_data<uint8_t> binary_img;
+    Mesh_data<uint16_t> comp_img;
+//    
+    pc_struct.interp_parts_to_pc(binary_img,binary_mask);
+    pc_struct.interp_parts_to_pc(comp_img,component_label);
+//    
+    debug_write(binary_img,"binary_mask");
+    debug_write(comp_img,"comp_mask");
+    
+   
+
+
 }
 
 

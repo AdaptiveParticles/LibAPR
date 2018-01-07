@@ -1,20 +1,19 @@
 #include <algorithm>
 #include <iostream>
 
-#include "segmentation_apr.h"
-#include "../../src/data_structures/meshclass.h"
-#include "../../src/io/readimage.h"
+#include "compress_apr.h"
+#include "src/data_structures/meshclass.h"
+#include "src/io/readimage.h"
 
-#include "../../src/data_structures/particle_map.hpp"
-#include "../../src/data_structures/Tree/PartCellStructure.hpp"
-#include "../../src/data_structures/Tree/ParticleDataNew.hpp"
-#include "../../src/algorithm/level.hpp"
-#include "../../src/io/writeimage.h"
-#include "../../src/io/write_parts.h"
-#include "../../src/io/partcell_io.h"
-#include "../../src/numerics/parent_numerics.hpp"
-#include "../../src/numerics/misc_numerics.hpp"
-#include "../../src/numerics/apr_segment.hpp"
+#include "src/algorithm/gradient.hpp"
+#include "src/data_structures/particle_map.hpp"
+#include "src/data_structures/Tree/PartCellStructure.hpp"
+#include "src/algorithm/level.hpp"
+#include "src/io/writeimage.h"
+#include "src/io/write_parts.h"
+#include "src/io/partcell_io.h"
+#include "src/numerics/apr_compression.hpp"
+#include "test/utils.h"
 
 bool command_option_exists(char **begin, char **end, const std::string &option)
 {
@@ -81,38 +80,42 @@ int main(int argc, char **argv) {
     // Filename
     std::string file_name = options.directory + options.input;
     
+    part_rep.timer.start_timer("read_pc_struct");
     // Read the apr file into the part cell structure
     read_apr_pc_struct(pc_struct,file_name);
     
-    //Part Segmentation
+    part_rep.timer.stop_timer();
     
-    ExtraPartCellData<uint8_t> binary_mask;
+    part_rep.timer.start_timer("write_wavelet");
     
-    threshold_part(pc_struct,binary_mask,200);
+    write_apr_wavelet<float,int8_t>(pc_struct,options.directory,"wavelet_test",3);
     
+    part_rep.timer.stop_timer();
     
-    ExtraPartCellData<uint16_t> component_label;
+    part_rep.timer.start_timer("write");
     
-   //calculate the connected component
+    write_apr_pc_struct(pc_struct,options.directory,"standard");
     
-    calc_connected_component(pc_struct,binary_mask,component_label);
+    part_rep.timer.stop_timer();
     
-    //calc_connected_component_alt(pc_struct,binary_mask,component_label);
+    part_rep.timer.start_timer("read_wavelet");
     
-    //Now we will view the output by creating the binary image implied by the segmentation
+    file_name = options.directory + "wavelet_test_pcstruct_part.h5";
     
-    Mesh_data<uint8_t> binary_img;
-    Mesh_data<uint16_t> comp_img;
-//    
-    pc_struct.interp_parts_to_pc(binary_img,binary_mask);
-    pc_struct.interp_parts_to_pc(comp_img,component_label);
-//    
-    debug_write(binary_img,"binary_mask");
-    debug_write(comp_img,"comp_mask");
+    // APR data structure
+    PartCellStructure<float,uint64_t> wavelet_struct;
     
-   
-
-
+    read_apr_wavelet<float,int8_t>(wavelet_struct,file_name);
+    
+    part_rep.timer.stop_timer();
+    
+    //write_apr_pc_struct(wavelet_struct,options.directory,"standard");
+    
+    write_apr_full_format(wavelet_struct,options.directory,options.output);
+    
+    // comapre
+    
+    //compare_two_structures_test(pc_struct,wavelet_struct);
 }
 
 

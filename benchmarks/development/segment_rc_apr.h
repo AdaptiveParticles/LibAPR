@@ -1,10 +1,10 @@
-#ifndef PARTPLAY_RAYCAST_H
-#define PARTPLAY_RAYCAST_H
+#ifndef PARTPLAY_SEGMENT_RC_H
+#define PARTPLAY_SEGMENT_RC_H
 
 #include <functional>
 #include <string>
 
-#include "../../src/data_structures/structure_parts.h"
+#include "src/data_structures/structure_parts.h"
 
 struct cmdLineOptions{
     std::string output = "output";
@@ -12,7 +12,6 @@ struct cmdLineOptions{
     std::string directory = "";
     std::string input = "";
     bool stats_file = false;
-    std::string org_file = "";
 };
 
 cmdLineOptions read_command_line_options(int argc, char **argv, Part_rep& part_rep);

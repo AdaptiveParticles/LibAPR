@@ -2,22 +2,22 @@
 #include <iostream>
 
 #include "segmentation_apr.h"
-#include "../../src/data_structures/meshclass.h"
-#include "../../src/io/readimage.h"
+#include "src/data_structures/meshclass.h"
+#include "src/io/readimage.h"
 
-#include "../../src/algorithm/gradient.hpp"
-#include "../../src/data_structures/particle_map.hpp"
-#include "../../src/data_structures/Tree/PartCellStructure.hpp"
-#include "../../src/algorithm/level.hpp"
-#include "../../src/io/writeimage.h"
-#include "../../src/io/write_parts.h"
-#include "../../src/io/partcell_io.h"
-#include "../../src/numerics/parent_numerics.hpp"
-#include "../../src/numerics/misc_numerics.hpp"
-#include "../../src/numerics/graph_cut_seg.hpp"
-#include "../../src/numerics/apr_segment.hpp"
-#include "../../src/numerics/ray_cast.hpp"
-#include "../../src/data_structures/APR/APR.hpp"
+#include "src/algorithm/gradient.hpp"
+#include "src/data_structures/particle_map.hpp"
+#include "src/data_structures/Tree/PartCellStructure.hpp"
+#include "src/algorithm/level.hpp"
+#include "src/io/writeimage.h"
+#include "src/io/write_parts.h"
+#include "src/io/partcell_io.h"
+#include "src/numerics/parent_numerics.hpp"
+#include "src/numerics/misc_numerics.hpp"
+#include "src/numerics/graph_cut_seg.hpp"
+#include "src/numerics/apr_segment.hpp"
+#include "src/numerics/ray_cast.hpp"
+#include "src/data_structures/APR/APR.hpp"
 
 bool command_option_exists(char **begin, char **end, const std::string &option)
 {
@@ -173,7 +173,7 @@ int main(int argc, char **argv) {
     //
     /////////////////////////////////////
 
-    bool connected_comp = true;
+    bool connected_comp = false;
 
     if(connected_comp) {
 

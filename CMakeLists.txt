@@ -56,7 +56,6 @@ set(SOURCE_FILES
 
         test/test_tree/level_iterator_test.cpp
         test/test_tree/tree_fixtures.cpp
-        test/test_tree/raytrace_test.cpp
 
         src/io/readimage.h
         src/io/writeimage.h
@@ -65,13 +64,16 @@ set(SOURCE_FILES
         src/data_structures/meshclass.h
         src/data_structures/structure_parts.cpp
 
+        src/data_structures/APR/APR.hpp
+        src/data_structures/APR/APR_iterator.hpp
+
         src/algorithm/pipeline.cpp
 
         )
 
 set(SOURCE_FILES_COMPILED
         src/data_structures/structure_parts.cpp
-        src/data_structures/Tree/PartCellData.cpp
+        src/data_structures/APR/PartCellData.cpp
         src/io/parameters.cpp
         src/io/hdf5functions.cpp
         src/io/blosc_filter.c
@@ -129,6 +131,7 @@ if(TESTS)
             ${SOURCE_FILES_COMPILED}
             test/utils.cpp
             )
+        #this is currently failing, as the files need to be updated
     add_executable(testVariance
             test/tests.cpp
             test/variance_test.cpp
@@ -147,31 +150,8 @@ if(TESTS)
             test/utils.cpp
             )
 
-    add_executable(testLevelIterator
-            test/test_tree/tree_fixtures.cpp
-            test/test_tree/level_iterator_test.cpp
-            )
-
-    add_executable(testTreeNeighbours
-            test/test_tree/tree_fixtures.cpp
-            test/test_tree/neighbours_test.cpp
-	    ${SOURCE_FILES_COMPILED}
-            )
-
-    add_executable(testTreeNeighboursFace
-            test/test_tree/tree_fixtures.cpp
-            test/test_tree/face_neighbours_test.cpp
-            )
-
-    add_executable(testRaytrace
-            test/test_tree/tree_fixtures.cpp
-            test/test_tree/raytrace_test.cpp
-            ${SOURCE_FILES_COMPILED}
-            test/utils.cpp
-            )
-
     add_executable(testSparsePartStruc
-            test/test_tree/tree_fixtures.cpp
+            #test/test_tree/tree_fixtures.cpp
 
             #test/test_tree/create_part_cell_structure.cpp
             test/test_tree/sparse_rep_test.cpp
@@ -180,112 +160,66 @@ if(TESTS)
 	        src/io/hdf5functions_blosc.cpp
             )
 
+    target_link_libraries(testSparsePartStruc ${HDF5_LIBRARIES} ${GTEST_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT} ${TIFF_LIBRARIES} blosc_shared)
     target_link_libraries(testBspline ${HDF5_LIBRARIES} ${GTEST_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT} ${TIFF_LIBRARIES} blosc_shared)
     target_link_libraries(testVariance ${HDF5_LIBRARIES} ${GTEST_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT} ${TIFF_LIBRARIES} blosc_shared)
     target_link_libraries(testLevel ${HDF5_LIBRARIES} ${GTEST_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT} ${TIFF_LIBRARIES} blosc_shared)
     target_link_libraries(testResult ${HDF5_LIBRARIES} ${GTEST_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT} ${TIFF_LIBRARIES} blosc_shared)
-    target_link_libraries(testLevelIterator ${HDF5_LIBRARIES} ${GTEST_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT} ${TIFF_LIBRARIES} blosc_shared)
-    target_link_libraries(testTreeNeighbours ${HDF5_LIBRARIES} ${GTEST_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT} ${TIFF_LIBRARIES} blosc_shared)
-    target_link_libraries(testTreeNeighboursFace ${HDF5_LIBRARIES} ${GTEST_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT} ${TIFF_LIBRARIES} blosc_shared)
-    target_link_libraries(testSparsePartStruc ${HDF5_LIBRARIES} ${GTEST_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT} ${TIFF_LIBRARIES} blosc_shared)
-    target_link_libraries(testRaytrace ${HDF5_LIBRARIES} ${GTEST_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT} ${TIFF_LIBRARIES} blosc_shared)
 
 endif(TESTS)
 
 add_executable(Example_get_apr
-        test/Examples/get_apr.cpp
+        test/Examples/Example_get_apr.cpp
         src/io/write_parts.cpp
         ${SOURCE_FILES_COMPILED}
 	    #test/utils.cpp
         )
 
-add_executable(Example_compute_cells
-        test/Examples/compute_cells.cpp
+add_executable(Example_apr_iterate
+        test/Examples/Example_apr_iterate.cpp
         src/io/write_parts.cpp
         ${SOURCE_FILES_COMPILED}
         )
 
-add_executable(Example_compute_parts
-        test/Examples/compute_parts.cpp
-        src/io/write_parts.cpp
-        ${SOURCE_FILES_COMPILED}
-        )
-
-add_executable(Example_convert_full_format
-        test/Examples/write_full_apr_format.cpp
+add_executable(Example_recon_img
+        test/Examples/Example_recon_img.cpp
         src/io/write_parts.cpp
         ${SOURCE_FILES_COMPILED}
         )
 
 add_executable(Example_ray_cast
-        test/Examples/ray_cast.cpp
+        test/Examples/Example_ray_cast.cpp
         #test/utils.cpp
         ${SOURCE_FILES_COMPILED}
         src/vis/Camera.cpp src/vis/Camera.h src/vis/Object.cpp src/vis/Object.h src/vis/RaytracedObject.cpp src/vis/RaytracedObject.h)
 
-add_executable(Example_vis
-        test/Examples/vis_example.cpp
-        #test/utils.cpp
-        ${SOURCE_FILES_COMPILED}
-        src/vis/Camera.cpp src/vis/Camera.h src/vis/Object.cpp src/vis/Object.h src/vis/RaytracedObject.cpp src/vis/RaytracedObject.h)
 
-add_executable(pipeline
-   src/algorithm/pipeline.cpp
-   src/io/write_parts.cpp
-   ${SOURCE_FILES_COMPILED}
-)
 
-add_executable(Example_filter
-        test/Examples/filter_apr.cpp
-        #test/utils.cpp
+
+
+
+add_executable(Example_neigh
+        test/Examples/Example_neigh.cpp
         src/io/write_parts.cpp
         ${SOURCE_FILES_COMPILED}
         )
-
-add_executable(Example_enhance_apr
-        test/Examples/Example_enhance_apr.cpp
-        #test/utils.cpp
-        src/io/write_parts.cpp
-        ${SOURCE_FILES_COMPILED}
-        )
-
-
-add_executable(Example_segment_gc
-    test/Examples/segmentation_apr.cpp
-    external/maxflow-v3.04.src/maxflow.cpp
-    external/maxflow-v3.04.src/graph.cpp
-    #test/utils.cpp
-    src/io/write_parts.cpp
-    ${SOURCE_FILES_COMPILED} src/vis/Camera.cpp src/vis/Camera.h src/vis/Object.cpp src/vis/Object.h src/vis/RaytracedObject.cpp src/vis/RaytracedObject.h
-)
-
-# FIXME: Broken at the moment due to duplicate symbols
-#add_executable(Example_neigh
-#        test/Examples/Example_neigh.cpp
-#        test/utils.cpp
-#        src/io/write_parts.cpp
-#        ${SOURCE_FILES_COMPILED}
-#        )
 
 SWIG_ADD_MODULE(apr java libapr.i
         src/io/write_parts.cpp
         ${SOURCE_FILES_COMPILED}
         )
 
+
 SWIG_LINK_LIBRARIES(apr ${HDF5_LIBRARIES} blosc_static ${TIFF_LIBRARIES})
 
-target_link_libraries(pipeline ${HDF5_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT} ${TIFF_LIBRARIES} blosc_shared)
+#target_link_libraries(pipeline ${HDF5_LIBRARIES} pthread tiff blosc_shared)
 target_link_libraries(Example_get_apr ${HDF5_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT} ${TIFF_LIBRARIES} blosc_shared)
-target_link_libraries(Example_compute_cells ${HDF5_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT} ${TIFF_LIBRARIES} blosc_shared)
-target_link_libraries(Example_compute_parts ${HDF5_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT} ${TIFF_LIBRARIES} blosc_shared)
-target_link_libraries(Example_convert_full_format ${HDF5_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT} ${TIFF_LIBRARIES} blosc_shared)
+target_link_libraries(Example_apr_iterate ${HDF5_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT} ${TIFF_LIBRARIES} blosc_shared)
 target_link_libraries(Example_ray_cast ${HDF5_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT} ${TIFF_LIBRARIES} blosc_shared)
-target_link_libraries(Example_vis ${HDF5_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT} ${TIFF_LIBRARIES} blosc_shared)
-target_link_libraries(Example_filter ${HDF5_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT} ${TIFF_LIBRARIES} blosc_shared)
-target_link_libraries(Example_segment_gc ${HDF5_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT} ${TIFF_LIBRARIES} blosc_shared)
-target_link_libraries(Example_enhance_apr ${HDF5_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT} ${TIFF_LIBRARIES} blosc_shared)
-# FIXME: see fixme above
-#target_link_libraries(Example_neigh ${HDF5_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT} ${TIFF_LIBRARIES} blosc_shared)
+target_link_libraries(Example_recon_img ${HDF5_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT} ${TIFF_LIBRARIES} blosc_shared)
+
+target_link_libraries(Example_neigh ${HDF5_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT} ${TIFF_LIBRARIES} blosc_shared)
+
 
 set_target_properties(blosc_shared PROPERTIES
         RUNTIME_OUTPUT_DIRECTORY_DEBUG ${PROJECT_BINARY_DIR})
@@ -370,6 +304,16 @@ if(BENCHMARKS)
 
         ADD_EXECUTABLE(BenchAnisoImage benchmarks/benchmark_aniso.cpp  ${SOURCE_FILES_COMPILED} ${BENCHMARK_SOURCE_FILES} )
 
+        add_executable(Example_segment_gc
+                benchmarks/development/segmentation_apr.cpp
+                external/maxflow-v3.04.src/maxflow.cpp
+                external/maxflow-v3.04.src/graph.cpp
+                #test/utils.cpp
+                src/io/write_parts.cpp
+                ${SOURCE_FILES_COMPILED} src/vis/Camera.cpp src/vis/Camera.h src/vis/Object.cpp src/vis/Object.h src/vis/RaytracedObject.cpp src/vis/RaytracedObject.h
+                )
+
+        target_link_libraries(Example_segment_gc ${HDF5_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT} ${TIFF_LIBRARIES} blosc_shared)
 
         TARGET_LINK_LIBRARIES(SynImageGen ${ArrayFire_OpenCL_LIBRARIES}
                 ${OpenCL_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT} ${HDF5_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT} ${TIFF_LIBRARIES} blosc)
@@ -417,7 +361,7 @@ if(BENCHMARKS)
                 test/utils.cpp
                 src/io/write_parts.cpp
                 ${SOURCE_FILES_COMPILED}
-                test/Examples/analyze_apr.cpp )
+                benchmarks/development/analyze_apr.cpp)
 
         TARGET_LINK_LIBRARIES(Example_analysis ${ArrayFire_OpenCL_LIBRARIES}
                 ${OpenCL_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT} ${HDF5_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT} ${TIFF_LIBRARIES} blosc)

@@ -17,6 +17,8 @@
 #include <cmath>
 
 #include "structure_parts.h"
+#include <tiffio.h>
+
 
 struct coords3d {
     int x,y,z;
@@ -205,9 +207,130 @@ public :
 
     }
 
+    void write_image_tiff(std::string& filename);
 
+    void write_image_tiff_uint16(std::string& filename);
+
+private:
+
+    template<typename V>
+    void write_image_tiff(std::vector<V>& data,std::string& filename);
 
 };
+
+template<typename T> template<typename V>
+void Mesh_data<T>::write_image_tiff(std::vector<V>& data,std::string& filename){
+    //
+    //
+    //  Bevan Cheeseman 2015
+    //
+    //
+    //  Code for writing tiff image to file
+    //
+
+
+    TIFF* tif = TIFFOpen(filename.c_str() , "w");
+    uint32 width;
+    uint32 height;
+    unsigned short nbits;
+    unsigned short samples;
+    void* raster;
+
+    //set the size
+    width = this->y_num;
+    height = this->x_num;
+    samples = 1;
+    //bit size
+    nbits = sizeof(V)*8;
+
+    int num_dir = this->z_num;
+
+    //set up the tiff file
+    TIFFSetField(tif, TIFFTAG_IMAGEWIDTH, width);
+    TIFFSetField(tif, TIFFTAG_IMAGELENGTH, height);
+    TIFFSetField(tif, TIFFTAG_BITSPERSAMPLE, nbits);
+    TIFFSetField(tif, TIFFTAG_SAMPLESPERPIXEL, samples);
+    TIFFSetField(tif, TIFFTAG_ORIENTATION, ORIENTATION_TOPLEFT);
+    TIFFSetField(tif, TIFFTAG_PLANARCONFIG, PLANARCONFIG_CONTIG);
+    TIFFSetField(tif, TIFFTAG_PHOTOMETRIC, PHOTOMETRIC_MINISBLACK);
+
+    TIFFSetField(tif, TIFFTAG_ROWSPERSTRIP,TIFFDefaultStripSize(tif, width*samples));
+
+    int test_field;
+    TIFFGetField(tif, TIFFTAG_IMAGEWIDTH, &test_field);
+
+    int ScanlineSize= (int)TIFFScanlineSize(tif);
+    int StripSize =  (int)TIFFStripSize(tif);
+    int rowsPerStrip;
+    int nRowsToConvert;
+
+    raster = _TIFFmalloc(StripSize);
+    V *TBuf = (V*)raster;
+
+    TIFFGetField(tif, TIFFTAG_ROWSPERSTRIP, &rowsPerStrip);
+
+    int z_start = 0;
+    int z_end = num_dir-1;
+
+    int row_count = 0;
+
+    for(int i = z_start; i < (z_end+1); i++) {
+        if (i > z_start) {
+            TIFFWriteDirectory(tif);
+
+        }
+
+        //set up the tiff file
+        TIFFSetField(tif, TIFFTAG_IMAGEWIDTH, width);
+        TIFFSetField(tif, TIFFTAG_IMAGELENGTH, height);
+        TIFFSetField(tif, TIFFTAG_BITSPERSAMPLE, nbits);
+        TIFFSetField(tif, TIFFTAG_SAMPLESPERPIXEL, samples);
+        TIFFSetField(tif, TIFFTAG_ORIENTATION, ORIENTATION_TOPLEFT);
+        TIFFSetField(tif, TIFFTAG_PLANARCONFIG, PLANARCONFIG_CONTIG);
+        TIFFSetField(tif, TIFFTAG_PHOTOMETRIC, PHOTOMETRIC_MINISBLACK);
+        TIFFSetField(tif, TIFFTAG_ROWSPERSTRIP,TIFFDefaultStripSize(tif, width*samples));
+
+        row_count = 0;
+
+        for (int topRow = 0; topRow < height; topRow += rowsPerStrip) {
+            nRowsToConvert = (topRow + rowsPerStrip >height?height- topRow : rowsPerStrip);
+
+            std::copy(data.begin() + i*width*height + row_count,data.begin() + i*width*height + row_count + nRowsToConvert*width, TBuf);
+
+            row_count += nRowsToConvert*width;
+
+            TIFFWriteEncodedStrip(tif, TIFFComputeStrip(tif, topRow, 0), TBuf, nRowsToConvert*ScanlineSize);
+
+        }
+
+    }
+
+    _TIFFfree(raster);
+
+
+    TIFFClose(tif);
+
+}
+
+template<typename T>
+void Mesh_data<T>::write_image_tiff(std::string& filename) {
+    Mesh_data::write_image_tiff(this->mesh,filename);
+};
+
+template<typename T>
+void Mesh_data<T>::write_image_tiff_uint16(std::string& filename){
+    //
+    //  Converts the data to uint16t then writes it (requires creation of a complete copy of the data)
+    //
+
+    std::vector<uint16_t> data;
+    data.resize(this->y_num*this->x_num*this->z_num);
+
+    std::copy(this->mesh.begin(),this->mesh.end(),data.begin());
+
+    Mesh_data::write_image_tiff<uint16_t>(data, filename);
+
+}
 
 
 template<typename T>
@@ -350,8 +473,8 @@ void const_upsample_img(Mesh_data<T>& input_us,Mesh_data<T>& input,std::vector<u
     
 }
 
-template<typename T, typename L1, typename L2>
-void down_sample(Mesh_data<T>& test_a, Mesh_data<T>& test_a_ds, L1 reduce, L2 constant_operator,
+template<typename T, typename S,typename L1, typename L2>
+void down_sample(Mesh_data<T>& test_a, Mesh_data<S>& test_a_ds, L1 reduce, L2 constant_operator,
                  bool with_allocation = false){
     //
     //

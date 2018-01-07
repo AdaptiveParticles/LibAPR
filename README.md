@@ -73,7 +73,7 @@ make
 make install
 ```
 
-Tests are stored in a submodule. Run these commands in order to run tests:
+Tests are stored in a submodule. Run these commands in order to run tests: (REMOVE????, not sure if this is still valid, we will do a different approach host the files somewhere))
 
 ```
     git submodule init
@@ -91,9 +91,16 @@ Remember to pass TESTS flag to CMAKE!
 ```
    cmake -H. -DTESTS=1 -Bbuild ..
 ```
+## Examples and Documentation
+There are five basic examples, that show how to generate and compute with the APR. 
 
-## Benchmarks
+The examples can be found in test/Examples/.
 
-Requires SynImageGen Library
+For tutorial on how to use the examples, and explanation of data-structures see documentation/guide.
 
+### Benchmarks and Synthetic Images
+
+Requires SynImageGen Library, contact (bevan.cheeseman@gmail.com if you are interested in access))
+```
 cmake -H. -DTESTS=1 -Bbuild.. -DBENCHMARKS=1 -DSynImage_PATH="PATH_TO_SYNIMAGEGEN"
+```
