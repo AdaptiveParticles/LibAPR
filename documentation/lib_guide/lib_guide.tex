@@ -1,0 +1,50 @@
+\documentclass[12pt]{article}
+
+\usepackage{xcolor}
+\usepackage{listings}
+
+\lstdefinestyle{customc}{
+	belowcaptionskip=1\baselineskip,
+	breaklines=true,
+	frame=L,
+	xleftmargin=\parindent,
+	language=C++,
+	showstringspaces=false,
+	basicstyle=\footnotesize\ttfamily,
+	keywordstyle=\bfseries\color{green!40!black},
+	commentstyle=\itshape\color{purple!40!black},
+	identifierstyle=\color{blue},
+	stringstyle=\color{orange},
+}
+
+\lstdefinestyle{customasm}{
+	belowcaptionskip=1\baselineskip,
+	frame=L,
+	xleftmargin=\parindent,
+	language=[x86masm]Assembler,
+	basicstyle=\footnotesize\ttfamily,
+	commentstyle=\itshape\color{purple!40!black},
+}
+
+\lstset{escapechar=@,style=customc}
+%opening
+\title{APRLib Documentation}
+\author
+{Bevan L. Cheeseman, Ulrik G{\"u}nther, Matteusz Susik}
+
+\begin{document}
+
+\maketitle
+
+\begin{lstlisting}
+	for (apr.begin(); apr.end() != 0; apr.it_forward()) {
+		float particle_intensity = apr(apr.particles_int);
+	}
+\end{lstlisting}
+
+\section{APR Iterator}
+
+
+
+
+\end{document}
