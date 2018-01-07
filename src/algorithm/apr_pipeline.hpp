@@ -35,6 +35,7 @@ struct cmdLineOptions{
     float SNR_min = 0;
     float lambda = -1;
     float min_signal = -1;
+    float rel_error = 0.1;
 
 };
 
@@ -118,6 +119,11 @@ cmdLineOptions read_command_line_options(int argc, char **argv, Proc_par& pars){
     if(command_option_exists(argv, argv + argc, "-min_signal"))
     {
         result.min_signal = std::stof(std::string(get_command_option(argv, argv + argc, "-min_signal")));
+    }
+
+    if(command_option_exists(argv, argv + argc, "-rel_error"))
+    {
+        result.rel_error = std::stof(std::string(get_command_option(argv, argv + argc, "-rel_error")));
     }
 
     if(command_option_exists(argv, argv + argc, "-mask_file"))
@@ -778,7 +784,6 @@ void auto_parameters(Mesh_data<T>& input_img,Proc_par& pars){
     //  Simple automatic parameter selection for 3D APR Flouresence Images
     //
 
-    std::vector<T> slice_mean;
 
     //minimum element
     T min_val = *std::min_element(input_img.mesh.begin(),input_img.mesh.end());
@@ -790,22 +795,24 @@ void auto_parameters(Mesh_data<T>& input_img,Proc_par& pars){
     freq.resize(num_bins);
 
     uint64_t counter = 0;
-    double total;
+    double total=0;
 
-    for (int i = 0; i < input_img.mesh.size(); ++i) {
+    uint64_t q =0;
+//#pragma omp parallel for default(shared) private(q)
+    for (q = 0; q < input_img.mesh.size(); ++q) {
 
-        if(input_img.mesh[i] < (min_val + num_bins-1)){
-            freq[input_img.mesh[i]-min_val]++;
-            if(input_img.mesh[i] > 0) {
+        if(input_img.mesh[q] < (min_val + num_bins-1)){
+            freq[input_img.mesh[q]-min_val]++;
+            if(input_img.mesh[q] > 0) {
                 counter++;
-                total += input_img.mesh[i];
+                total += input_img.mesh[q];
             }
         }
     }
 
     float img_mean = total/(counter*1.0);
 
-    float prop_total_th = 0.05; //assume there is atleast 1% background in the image
+    float prop_total_th = 0.05; //assume there is atleast 5% background in the image
     float prop_total = 0;
 
     uint64_t min_j = 0;
@@ -950,7 +957,11 @@ finish:
 
     if(pars.noise_scale > 0){
         min_snr = pars.noise_scale;
+    } else {
+        std::cout << "**Assuming a minimum SNR of 6" << std::endl;
     }
+
+    std::cout << "**Assuming image has atleast 5% dark background" << std::endl;
 
     float Ip_th = mean + sd;
 
@@ -974,13 +985,11 @@ finish:
     }
 
 
-
     std::cout << "I_th: " << pars.I_th << std::endl;
-    std::cout << "Var_th: " << pars.var_th << std::endl;
-    std::cout << "Var_th_max: " << pars.var_th_max << std::endl;
-    std::cout << "Rel Error: " << pars.rel_error << std::endl;
+    std::cout << "sigma_th: " << pars.var_th << std::endl;
+    std::cout << "sigma_th_max: " << pars.var_th_max << std::endl;
+    std::cout << "relative error (E): " << pars.rel_error << std::endl;
     std::cout << "Lambda: " << pars.lambda << std::endl;
-
 
 }
 
@@ -1237,9 +1246,9 @@ void mask_variance(Mesh_data<float>& variance,Mesh_data<float>& temp,APR<float>&
     down_sample(mask,temp,
                 [](float x, float y) { return std::max(x,y); },
                 [](float x) { return x; });
-
-
-    for (int i = 0; i < variance.mesh.size(); ++i) {
+    uint64_t i = 0;
+#pragma omp parallel for default(shared) private(i)
+    for ( i = 0; i < variance.mesh.size(); ++i) {
 
         if(temp.mesh[i]==0){
             variance.mesh[i] = 64000;
@@ -1746,16 +1755,23 @@ bool get_apr(int argc, char **argv,APR<float>& apr,cmdLineOptions& options) {
 
     options = read_command_line_options(argc, argv, apr.pars);
 
+    Part_timer timer;
+    timer.verbose_flag = true;
+
+    timer.start_timer("read tif input image");
+
     Mesh_data<uint16_t> input_image;
 
     load_image_tiff(input_image, options.directory + options.input);
+
+    timer.stop_timer();
 
     if (!options.stats_file) {
         // defaults
 
         apr.pars.dy = apr.pars.dx = apr.pars.dz = 1;
         apr.pars.psfx = apr.pars.psfy = apr.pars.psfz = 2;
-        apr.pars.rel_error = 0.1;
+        //apr.pars.rel_error = 0.1;
         apr.pars.var_th = 0;
         apr.pars.var_th_max = 0;
 
@@ -1775,8 +1791,9 @@ bool get_apr(int argc, char **argv,APR<float>& apr,cmdLineOptions& options) {
             return false;
         }
 
+        timer.start_timer("calculate automatic parameters");
         auto_parameters(input_image,apr.pars);
-
+        timer.stop_timer();
 
         apr.pars.name = options.output;
         apr.name = options.output;

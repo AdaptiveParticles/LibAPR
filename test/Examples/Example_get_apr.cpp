@@ -21,6 +21,7 @@
 /// -lambda lambda_value (directly set the value of the gradient smoothing parameter lambda, default: 3)
 /// -min_signal min_signal_val (directly sets a minimum absolute signal size relative to the local background, also useful for removing background, otherwise set using noise estimate)
 /// -mask_file mask_file_tiff (takes an input image uint16_t, assumes all zero regions should be ignored by the APR, useful for pre-processing of isolating desired content, or using another channel as a mask)
+/// -rel_error rel_error_value (Reasonable ranges are from .08-.15), Default: 0.1
 ///
 /////////////////////////////////////////////////////
 
