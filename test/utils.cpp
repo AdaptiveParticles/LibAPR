@@ -3485,7 +3485,119 @@ bool utest_apr_parallel_neigh(PartCellStructure<float,uint64_t>& pc_struct){
 
 }
 
+bool utest_apr_read_write(PartCellStructure<float,uint64_t>& pc_struct){
+    //
+    //  Bevan Cheeseman 2018
+    //
+    //  Checks the IO of the APR hdf5 datasets, also of the ExtraPartCellData
+    //
+    //
 
+
+    bool success = true;
+
+    APR<float> apr;
+
+    apr.init_cells(pc_struct);
+
+    std::string save_loc = "";
+    std::string file_name = "read_write_test";
+
+    //write the APR
+    apr.write_apr(save_loc,file_name);
+
+    APR<float> apr_read;
+
+    apr_read.read_apr(save_loc + file_name + "_apr.h5");
+
+    apr_read.begin();
+    for (apr.begin();apr.end() ;apr.it_forward()) {
+
+        //check the functionality
+        if(apr(apr.particles_int)!=apr_read(apr_read.particles_int)){
+            success = false;
+        }
+
+        if(apr.depth()!=apr_read.depth()){
+            success = false;
+        }
+
+        if(apr.x()!=apr_read.x()){
+            success = false;
+        }
+
+        if(apr.y()!=apr_read.y()){
+            success = false;
+        }
+
+        if(apr.z()!=apr_read.z()){
+            success = false;
+        }
+
+        if(apr.type()!=apr_read.type()){
+            success = false;
+        }
+
+        apr_read.it_forward();
+    }
+
+    //
+    // Now check the Extra Part Cell Data
+    //
+
+    ExtraPartCellData<float> extra_data(apr);
+
+    for (apr.begin();apr.end() ;apr.it_forward()) {
+        apr(extra_data) = apr.type();
+
+    }
+
+    //write one of the above results to file
+    apr.write_particles_only(save_loc,"example_output",extra_data);
+
+    std::string extra_file_name = save_loc + "example_output" + "_apr_extra_parts.h5";
+
+    ExtraPartCellData<float> extra_data_read;
+
+    //you need the same apr used to write it to load it (doesn't save location data)
+    apr.read_parts_only(extra_file_name,extra_data_read);
+
+    for (apr.begin();apr.end() ;apr.it_forward()) {
+        if(apr(extra_data) != apr(extra_data_read)){
+            success = false;
+        }
+    }
+
+
+    //Repeat with different data-type
+    ExtraPartCellData<uint16_t> extra_data16(apr);
+
+    for (apr.begin();apr.end() ;apr.it_forward()) {
+        apr(extra_data16) = apr.type();
+
+    }
+
+    //write one of the above results to file
+    apr.write_particles_only(save_loc,"example_output16",extra_data16);
+
+    std::string extra_file_name16 = save_loc + "example_output16" + "_apr_extra_parts.h5";
+
+    ExtraPartCellData<uint16_t> extra_data_read16;
+
+    //you need the same apr used to write it to load it (doesn't save location data)
+    apr.read_parts_only(extra_file_name16,extra_data_read16);
+
+    for (apr.begin();apr.end() ;apr.it_forward()) {
+        if(apr(extra_data16) != apr(extra_data_read16)){
+            success = false;
+        }
+    }
+
+
+    return success;
+
+
+}
 bool utest_neigh_cells(PartCellStructure<float,uint64_t>& pc_struct){   //  Calculate connected component from a binary mask
     //
     //  Should be written with the neighbour iterators instead.

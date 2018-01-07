@@ -306,6 +306,18 @@ TEST_F(CreateMembraneTest, APR_PARALELL_NEIGH) {
 
 }
 
+TEST_F(CreateMembraneTest, APR_INPUT_OUTPUT) {
+
+    //
+    //  Sparse Particle Structure Test Cases
+    //
+    //
+
+    //test io
+    ASSERT_TRUE(utest_apr_parallel_neigh(pc_struct));
+
+}
+
 
 //TEST_F(CreateMembraneTest, MOORE_NEIGHBOURHOOD) {
 //

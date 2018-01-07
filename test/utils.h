@@ -99,6 +99,7 @@ bool utest_apr_serial_neigh(PartCellStructure<float,uint64_t>& pc_struct);
 
 bool utest_apr_parallel_neigh(PartCellStructure<float,uint64_t>& pc_struct);
 
+bool utest_apr_read_write(PartCellStructure<float,uint64_t>& pc_struct);
 bool utest_moore_neighbours(PartCellStructure<float,uint64_t>& pc_struct);
 
 #endif
