@@ -1222,7 +1222,44 @@ void get_apr_2D(Mesh_data<uint16_t >& input_image,Part_rep& part_rep,PartCellStr
 
 
 }
+void mask_variance(Mesh_data<float>& variance,Mesh_data<float>& temp,APR<float>& apr){
+    //
+    //  Bevan Cheeseman 2018
+    //
+    //  Loads in a tiff image file and masks the variance according to it
+    //
+    //
+
+    Mesh_data<uint16_t> mask;
+
+    load_image_tiff(mask, apr.pars.mask_file);
+
+    down_sample(mask,temp,
+                [](float x, float y) { return std::max(x,y); },
+                [](float x) { return x; });
+
+
+    for (int i = 0; i < variance.mesh.size(); ++i) {
+
+        if(temp.mesh[i]==0){
+            variance.mesh[i] = 64000;
+        }
+
+    }
+
+}
+
+
 void get_apr(Mesh_data<uint16_t >& input_image,APR<float>& apr){
+    //
+    //  NEEDS TO BE CLEANED UP *quick hacks to get it workgin directly with the new datastructures
+    //
+
+    Part_timer t;
+    t.verbose_flag = false;
+
+    Part_timer timer;
+    timer.verbose_flag = true;
 
     int interp_type = apr.pars.interp_type;
 
@@ -1259,6 +1296,8 @@ void get_apr(Mesh_data<uint16_t >& input_image,APR<float>& apr){
     part_rep.pl_map.k_max = k_max_;
     part_rep.pl_map.k_min = k_min_;
 
+    timer.start_timer("initializing memory");
+
     Mesh_data<float> input_image_float;
     Mesh_data<float> gradient, variance;
     Mesh_data<float> interp_img;
@@ -1271,34 +1310,47 @@ void get_apr(Mesh_data<uint16_t >& input_image,APR<float>& apr){
     interp_img = input_image.to_type<float>();
     // After this block, input_image will be freed.
 
-    Part_timer t;
-    t.verbose_flag = false;
-
-    Part_timer timer;
-    timer.verbose_flag = true;
-
     // preallocate_memory
     Particle_map<float> part_map(apr.pc_data.org_dims,apr.pc_data.depth_min,apr.pc_data.depth_max);
     preallocate(part_map.layers, gradient.y_num, gradient.x_num, gradient.z_num, apr.pc_data.depth_max - 1,apr.pc_data.depth_min);
+
+
+    //allocating to be half size
     variance.preallocate(gradient.y_num, gradient.x_num, gradient.z_num, 0);
-    std::vector<Mesh_data<float>> down_sampled_images;
 
     Mesh_data<float> temp;
     temp.preallocate(gradient.y_num, gradient.x_num, gradient.z_num, 0);
 
+
+    timer.stop_timer();
+
     t.start_timer("whole");
 
-    //    std::swap(part_map.downsampled[part_map.k_max+1],input_image_float);
 
-    timer.start_timer("get_gradient_3D");
+    timer.start_timer("compute gradient magnitude");
     get_gradient_3D(part_rep, input_image_float, gradient);
     timer.stop_timer();
 
-    timer.start_timer("get_variance_3D");
+    timer.start_timer("calculate Local Intensity Scale");
     get_variance_3D(part_rep, input_image_float, variance);
     timer.stop_timer();
 
-    timer.start_timer("get_level_3D");
+    if((interp_type == 0) | (interp_type == 2)){
+        //frees the memory of the smooth image
+        std::vector<float>().swap(input_image_float.mesh);
+    }
+
+    if(apr.pars.mask_file!= ""){
+        //
+        //  Now threshold the variance according to the mask (think this should be changed to the gradient actually)
+        //
+        timer.start_timer("masking variance");
+        mask_variance(variance,temp,apr);
+        timer.stop_timer();
+    }
+
+
+    timer.start_timer("construct Local Particle Set (L_n)");
     get_level_3D(variance, gradient, part_rep, part_map, temp);
     timer.stop_timer();
 
@@ -1306,11 +1358,16 @@ void get_apr(Mesh_data<uint16_t >& input_image,APR<float>& apr){
     std::vector<float>().swap(gradient.mesh);
     std::vector<float>().swap(variance.mesh);
 
-    timer.start_timer("pushing_scheme");
+    timer.start_timer("pulling scheme (compute OVPC V_n)");
     part_map.pushing_scheme(part_rep);
     timer.stop_timer();
 
-    timer.start_timer("sample");
+    timer.start_timer("sample particle intensities");
+
+    if (interp_type == 2) {
+        part_map.downsample(interp_img);
+    }
+
 
     if (interp_type == 0) {
         part_map.downsample(interp_img);
@@ -1319,8 +1376,6 @@ void get_apr(Mesh_data<uint16_t >& input_image,APR<float>& apr){
 
     if (interp_type == 1) {
         part_map.downsample(input_image_float);
-    } else if (interp_type == 2) {
-        part_map.downsample(interp_img);
     } else if (interp_type ==3){
         part_map.downsample(interp_img);
         //calc_median_filter_n(part_map.downsampled[part_map.k_max+1],input_image_float);
@@ -1331,7 +1386,7 @@ void get_apr(Mesh_data<uint16_t >& input_image,APR<float>& apr){
 
     timer.stop_timer();
 
-    timer.start_timer("construct_pcstruct");
+    timer.start_timer("construct the APR data-structure");
 
     //construct the pc-data
     apr.init_from_pulling_scheme(part_map.layers);
@@ -1704,10 +1759,15 @@ bool get_apr(int argc, char **argv,APR<float>& apr,cmdLineOptions& options) {
         apr.pars.var_th = 0;
         apr.pars.var_th_max = 0;
 
+        // setting the command line options
         apr.pars.I_th = options.Ip_th;
         apr.pars.noise_scale = options.SNR_min;
         apr.pars.lambda = options.lambda;
         apr.pars.var_th = options.min_signal;
+
+        if(options.mask_file != "") {
+            apr.pars.mask_file = options.directory + options.mask_file;
+        }
 
         if(input_image.mesh.size() == 0){
             std::cout << "Image Not Found" << std::endl;

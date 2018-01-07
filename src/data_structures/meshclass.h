@@ -473,8 +473,8 @@ void const_upsample_img(Mesh_data<T>& input_us,Mesh_data<T>& input,std::vector<u
     
 }
 
-template<typename T, typename L1, typename L2>
-void down_sample(Mesh_data<T>& test_a, Mesh_data<T>& test_a_ds, L1 reduce, L2 constant_operator,
+template<typename T, typename S,typename L1, typename L2>
+void down_sample(Mesh_data<T>& test_a, Mesh_data<S>& test_a_ds, L1 reduce, L2 constant_operator,
                  bool with_allocation = false){
     //
     //

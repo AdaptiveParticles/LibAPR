@@ -75,6 +75,7 @@ public:
     std::string output_path;
     std::string data_path;
 
+    std::string mask_file;
 
     //
     int interp_type;

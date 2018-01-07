@@ -672,13 +672,13 @@ void get_variance_3D(Part_rep &p_rep, Mesh_data<T> &input_image, Mesh_data<T> &v
 
 
 
-        win_y = calc_map.var_win[0];
-        win_x = calc_map.var_win[1];
-        win_z = calc_map.var_win[2];
+    win_y = calc_map.var_win[0];
+    win_x = calc_map.var_win[1];
+    win_z = calc_map.var_win[2];
 
-        win_y2 = calc_map.var_win[3];
-        win_x2 = calc_map.var_win[4];
-        win_z2 = calc_map.var_win[5];
+    win_y2 = calc_map.var_win[3];
+    win_x2 = calc_map.var_win[4];
+    win_z2 = calc_map.var_win[5];
 
 
 
@@ -703,8 +703,6 @@ void get_variance_3D(Part_rep &p_rep, Mesh_data<T> &input_image, Mesh_data<T> &v
     calc_sat_mean_z(var,win_z);
 
     timer.stop_timer();
-
-
 
     timer.start_timer("calc_abs_diff");
 
