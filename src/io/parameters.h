@@ -75,6 +75,7 @@ public:
     std::string output_path;
     std::string data_path;
 
+    std::string mask_file;
 
     //
     int interp_type;
@@ -102,7 +103,7 @@ public:
     std::vector<int> padd_dims;
 
     Proc_par()
-    :aniso(1),pull_scheme(2),interp_type(2),window_mean(3),window_smooth(1),window_var(10),num_p_grad(1),grad_h(1),E0(1),I_th(0),var_th(10),h_max(0.00999),z_factor(1),var_th_max(0),slices_per_read(1),min_var(1),bit_rate(16),comp_scale(20),type_float(0),max_I(0),min_I(0),lambda(1),tol(0.01),var_scale(2),mean_scale(1),grad_method(1),var_method(2),k_method(3),padd_flag(1),rel_error(0.25),part_config(1),noise_model(1),noise_scale(2),len_scale(0)
+    :aniso(1),pull_scheme(2),interp_type(2),window_mean(3),window_smooth(1),window_var(10),num_p_grad(1),grad_h(1),E0(1),I_th(0),var_th(10),h_max(0.00999),z_factor(1),var_th_max(0),slices_per_read(1),min_var(1),bit_rate(16),comp_scale(20),type_float(0),max_I(0),min_I(0),lambda(1),tol(0.01),var_scale(2),mean_scale(1),grad_method(1),var_method(2),k_method(3),padd_flag(1),rel_error(0.1),part_config(1),noise_model(1),noise_scale(2),len_scale(0)
     {};
 
 
@@ -112,7 +113,7 @@ public:
 
 std::string get_path(std::string PATH_ENV);
 void get_test_paths(std::string& image_path,std::string& utest_path,std::string& output_path);
-void get_image_stats(Proc_par& pars,std::string output_path,std::string image_name);
+bool get_image_stats(Proc_par& pars,std::string output_path,std::string image_name);
 void get_image_parameters(Proc_par& pars,std::string output_path,std::string image_name);
 void setup_output_folder(Proc_par& pars);
 void get_file_names(std::vector<std::string>& file_names,std::string file_list_path);

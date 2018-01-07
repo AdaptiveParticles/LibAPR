@@ -14,7 +14,7 @@
 #include <fstream>
 
 #include "../data_structures/Tree/PartCellStructure.hpp"
-#include "../data_structures/Tree/ExtraPartCellData.hpp"
+#include "src/data_structures/APR/ExtraPartCellData.hpp"
 #include "filter_help/FilterLevel.hpp"
 
 template<typename U,typename V>
@@ -1605,26 +1605,26 @@ void weigted_interp_img(Mesh_data<U>& img,PartCellData<uint64_t>& pc_data,Partic
 
                         int offset_max_dim1,offset_max_dim2,offset_max_dim3;
 
-                        if (curr_level.status < 0){
-                            dim1 = std::max(((float) curr_level.y ) * step_size, 0.0f);
-                            dim2 = std::max(((float) curr_level.x ) * step_size, 0.0f);
-                            dim3 = std::max(((float) curr_level.z ) * step_size, 0.0f);
+//                        if (curr_level.status < 0){
+//                            dim1 = std::max(((float) curr_level.y ) * step_size, 0.0f);
+//                            dim2 = std::max(((float) curr_level.x ) * step_size, 0.0f);
+//                            dim3 = std::max(((float) curr_level.z ) * step_size, 0.0f);
+//
+//                            offset_max_dim1 = std::min((int) img.y_num, (int) (dim1 + step_size));
+//                            offset_max_dim2 = std::min((int) img.x_num, (int) (dim2 + step_size));
+//                            offset_max_dim3 = std::min((int) img.z_num, (int) (dim3 + step_size));
+//
+//                        } else {
 
-                            offset_max_dim1 = std::min((int) img.y_num, (int) (dim1 + step_size));
-                            offset_max_dim2 = std::min((int) img.x_num, (int) (dim2 + step_size));
-                            offset_max_dim3 = std::min((int) img.z_num, (int) (dim3 + step_size));
+                        dim1 = std::max(((float) curr_level.y - 1.00f) * step_size, 0.0f);
+                        dim2 = std::max(((float) curr_level.x - 1.00f) * step_size, 0.0f);
+                        dim3 = std::max(((float) curr_level.z - 1.00f) * step_size, 0.0f);
 
-                        } else {
+                        offset_max_dim1 = std::min((int) img.y_num, (int) (dim1 + 3*step_size));
+                        offset_max_dim2 = std::min((int) img.x_num, (int) (dim2 + 3*step_size));
+                        offset_max_dim3 = std::min((int) img.z_num, (int) (dim3 + 3*step_size));
 
-                            dim1 = std::max(((float) curr_level.y - 1.00f) * step_size, 0.0f);
-                            dim2 = std::max(((float) curr_level.x - 1.00f) * step_size, 0.0f);
-                            dim3 = std::max(((float) curr_level.z - 1.00f) * step_size, 0.0f);
-
-                            offset_max_dim1 = std::min((int) img.y_num, (int) (dim1 + 3*step_size));
-                            offset_max_dim2 = std::min((int) img.x_num, (int) (dim2 + 3*step_size));
-                            offset_max_dim3 = std::min((int) img.z_num, (int) (dim3 + 3*step_size));
-
-                        }
+                     //   }
 
                         float temp_int;
                         //add to all the required rays
@@ -2474,63 +2474,63 @@ ExtraPartCellData<U> convert_cell_to_part(PartCellStructure<V,T>& pc_struct,Extr
 
 
 
-template<typename U,typename T,typename S>
-void shift_particles_from_cells(ParticleDataNew<S, T>& part_new,ExtraPartCellData<U>& pdata_old){
-    //
-    //  Bevan Cheesean 2017
-    //
-    //  Transfers them to align with the part data, to align with particle data no gaps
-    //
-    //
+//template<typename U,typename T,typename S>
+//void shift_particles_from_cells(ParticleDataNew<S, T>& part_new,ExtraPartCellData<U>& pdata_old){
+//    //
+//    //  Bevan Cheesean 2017
+//    //
+//    //  Transfers them to align with the part data, to align with particle data no gaps
+//    //
+//    //
+//
+//    ExtraPartCellData<U> pdata_new;
+//
+//    pdata_new.initialize_structure_parts(part_new.particle_data);
+//
+//    uint64_t z_,x_,j_,node_val;
+//    uint64_t part_offset;
+//
+//    for(uint64_t i = part_new.access_data.depth_min;i <= part_new.access_data.depth_max;i++){
+//
+//        const unsigned int x_num_ = part_new.access_data.x_num[i];
+//        const unsigned int z_num_ = part_new.access_data.z_num[i];
+//
+////#pragma omp parallel for default(shared) private(z_,x_,j_,part_offset,node_val)  if(z_num_*x_num_ > 100)
+//        for(z_ = 0;z_ < z_num_;z_++){
+//
+//            for(x_ = 0;x_ < x_num_;x_++){
+//                const size_t offset_pc_data = x_num_*z_ + x_;
+//                const size_t j_num = part_new.access_data.data[i][offset_pc_data].size();
+//
+//                int counter = 0;
+//
+//                for(j_ = 0; j_ < j_num;j_++){
+//                    //raster over both structures, generate the index for the particles, set the status and offset_y_coord diff
+//
+//                    node_val = part_new.access_data.data[i][offset_pc_data][j_];
+//
+//                    if(!(node_val&1)){
+//
+//                        pdata_new.data[i][offset_pc_data][counter] = pdata_old.data[i][offset_pc_data][j_];
+//
+//                        counter++;
+//
+//                    } else {
+//
+//                    }
+//
+//                }
+//            }
+//        }
+//    }
+//
+//    std::swap(pdata_new,pdata_old);
+//
+//}
 
-    ExtraPartCellData<U> pdata_new;
-
-    pdata_new.initialize_structure_parts(part_new.particle_data);
-
-    uint64_t z_,x_,j_,node_val;
-    uint64_t part_offset;
-
-    for(uint64_t i = part_new.access_data.depth_min;i <= part_new.access_data.depth_max;i++){
-
-        const unsigned int x_num_ = part_new.access_data.x_num[i];
-        const unsigned int z_num_ = part_new.access_data.z_num[i];
-
-//#pragma omp parallel for default(shared) private(z_,x_,j_,part_offset,node_val)  if(z_num_*x_num_ > 100)
-        for(z_ = 0;z_ < z_num_;z_++){
-
-            for(x_ = 0;x_ < x_num_;x_++){
-                const size_t offset_pc_data = x_num_*z_ + x_;
-                const size_t j_num = part_new.access_data.data[i][offset_pc_data].size();
-
-                int counter = 0;
-
-                for(j_ = 0; j_ < j_num;j_++){
-                    //raster over both structures, generate the index for the particles, set the status and offset_y_coord diff
-
-                    node_val = part_new.access_data.data[i][offset_pc_data][j_];
-
-                    if(!(node_val&1)){
-
-                        pdata_new.data[i][offset_pc_data][counter] = pdata_old.data[i][offset_pc_data][j_];
-
-                        counter++;
-
-                    } else {
-
-                    }
-
-                }
-            }
-        }
-    }
-
-    std::swap(pdata_new,pdata_old);
-
-}
-
-void shift_particles_from_cells_std(ParticleDataNew<float, uint64_t>& part_new, ExtraPartCellData<float>& pdata_old) {
-    shift_particles_from_cells(part_new, pdata_old);
-}
+//void shift_particles_from_cells_std(ParticleDataNew<float, uint64_t>& part_new, ExtraPartCellData<float>& pdata_old) {
+//    shift_particles_from_cells(part_new, pdata_old);
+//}
 
 template<typename U,typename V>
 void interp_slice(Mesh_data<U>& slice,PartCellData<uint64_t>& pc_data,ParticleDataNew<float, uint64_t>& part_new,ExtraPartCellData<V>& particles_int,int dir,int num){

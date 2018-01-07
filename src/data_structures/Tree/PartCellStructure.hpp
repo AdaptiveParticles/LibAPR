@@ -19,7 +19,7 @@
 #include <algorithm>
 #include <array>
 
-#include "PartCellData.hpp"
+#include "src/data_structures/APR/PartCellData.hpp"
 #include "ParticleData.hpp"
 #include "../particle_map.hpp"
 #include "../meshclass.h"
@@ -367,7 +367,9 @@ private:
 
         
     }
-    
+
+
+
     void create_particle_structures(std::vector<std::vector<uint16_t>>& Ip){
         
         /////////////////////////////////////
@@ -845,7 +847,7 @@ private:
         
     }
     
-    
+
     
     void test_get_neigh_dir_memory(){
         //
@@ -1663,7 +1665,159 @@ public:
         create_partcell_structure(p_map);
         pc_data.y_num = y_num;
     }
-                                   
+
+
+    template<typename U>
+    void update_parts(Particle_map<U>& part_map){
+
+        S part_offset;
+        S node_val;
+        S y_coord;
+
+
+        //initialize loop variables
+        uint64_t x_;
+        uint64_t z_;
+        uint64_t y_;
+        uint64_t j_;
+
+        //next initialize the entries;
+
+        uint16_t curr_index;
+        uint8_t status;
+        uint8_t prev_ind = 0;
+
+
+
+        for(int i = pc_data.depth_min;i <= pc_data.depth_max;i++){
+
+            const unsigned int x_num = pc_data.x_num[i];
+            const unsigned int z_num = pc_data.z_num[i];
+
+
+            //For each depth there are two loops, one for SEED status particles, at depth + 1, and one for BOUNDARY and FILLER CELLS, to ensure contiguous memory access patterns.
+
+            // SEED PARTICLE STATUS LOOP (requires access to three data structures, particle access, particle data, and the part-map)
+#pragma omp parallel for default(shared) private(z_,x_,j_,node_val,status,y_coord,part_offset) if(z_num*x_num > 100)
+            for(z_ = 0;z_ < z_num;z_++){
+
+                for(x_ = 0;x_ < x_num;x_++){
+
+                    const size_t offset_pc_data = x_num*z_ + x_;
+                    y_coord = 0;
+                    const size_t j_num = part_data.access_data.data[i][offset_pc_data].size();
+
+
+                    S x_2p = std::min(2*x_+1,(S)(part_map.downsampled[i+1].x_num-1));
+                    S z_2p = std::min(2*z_+1,(S)(part_map.downsampled[i+1].z_num-1));
+
+                    const size_t offset_part_map_data_0 = part_map.downsampled[i+1].y_num*part_map.downsampled[i+1].x_num*2*z_ + part_map.downsampled[i+1].y_num*2*x_;
+                    const size_t offset_part_map_data_1 = part_map.downsampled[i+1].y_num*part_map.downsampled[i+1].x_num*2*z_ + part_map.downsampled[i+1].y_num*x_2p;
+                    const size_t offset_part_map_data_2 = part_map.downsampled[i+1].y_num*part_map.downsampled[i+1].x_num*z_2p + part_map.downsampled[i+1].y_num*2*x_;
+                    const size_t offset_part_map_data_3 = part_map.downsampled[i+1].y_num*part_map.downsampled[i+1].x_num*z_2p + part_map.downsampled[i+1].y_num*x_2p;
+
+                    for(j_ = 0;j_ < j_num;j_++){
+
+                        node_val = part_data.access_data.data[i][offset_pc_data][j_];
+
+                        if (node_val&1){
+                            //get the index gap node
+                            y_coord += (node_val & COORD_DIFF_MASK_PARTICLE) >> COORD_DIFF_SHIFT_PARTICLE;
+                            y_coord--;
+
+                        } else {
+                            //normal node
+                            y_coord++;
+
+                            //get and check status
+                            status = (node_val & STATUS_MASK_PARTICLE) >> STATUS_SHIFT_PARTICLE;
+
+                            if(status == SEED){
+
+
+                                S y_2p = std::min(2*y_coord+1,(S)(part_map.downsampled[i+1].y_num-1));
+                                //need to sampled the image at depth + 1
+                                part_offset = (node_val & Y_PINDEX_MASK_PARTICLE) >> Y_PINDEX_SHIFT_PARTICLE;
+
+
+                                part_data.particle_data.data[i][offset_pc_data][part_offset] = part_map.downsampled[i+1].mesh[offset_part_map_data_0 + 2*y_coord];
+                                part_data.particle_data.data[i][offset_pc_data][part_offset+1] = part_map.downsampled[i+1].mesh[offset_part_map_data_0 + y_2p];
+                                //1
+                                part_data.particle_data.data[i][offset_pc_data][part_offset+2] = part_map.downsampled[i+1].mesh[offset_part_map_data_1 + 2*y_coord];
+                                part_data.particle_data.data[i][offset_pc_data][part_offset+3] = part_map.downsampled[i+1].mesh[offset_part_map_data_1 + y_2p];
+                                //3
+                                part_data.particle_data.data[i][offset_pc_data][part_offset+4] = part_map.downsampled[i+1].mesh[offset_part_map_data_2 + 2*y_coord];
+                                part_data.particle_data.data[i][offset_pc_data][part_offset+5] = part_map.downsampled[i+1].mesh[offset_part_map_data_2 + y_2p];
+                                //4
+                                part_data.particle_data.data[i][offset_pc_data][part_offset+6] = part_map.downsampled[i+1].mesh[offset_part_map_data_3 + 2*y_coord];
+                                part_data.particle_data.data[i][offset_pc_data][part_offset+7] = part_map.downsampled[i+1].mesh[offset_part_map_data_3 + y_2p];
+
+                            }
+
+
+                        }
+                    }
+
+                }
+            }
+
+            // BOUNDARY/FILLER PARTICLE STATUS LOOP (requires access to three data structures, particle access, particle data, and the part-map)
+#pragma omp parallel for default(shared) private(z_,x_,j_,node_val,status,y_coord,part_offset) if(z_num*x_num > 100)
+            for(z_ = 0;z_ < z_num;z_++){
+
+                for(x_ = 0;x_ < x_num;x_++){
+
+                    const size_t offset_pc_data = x_num*z_ + x_;
+                    y_coord = 0;
+                    const size_t j_num = part_data.access_data.data[i][offset_pc_data].size();
+
+                    const size_t offset_part_map_data_0 = part_map.downsampled[i].y_num*part_map.downsampled[i].x_num*z_ + part_map.downsampled[i].y_num*x_;
+
+                    for(j_ = 0;j_ < j_num;j_++){
+
+
+
+                        node_val = part_data.access_data.data[i][offset_pc_data][j_];
+
+                        if (node_val&1){
+                            //get the index gap node
+                            y_coord += (node_val & COORD_DIFF_MASK_PARTICLE) >> COORD_DIFF_SHIFT_PARTICLE;
+                            y_coord--;
+
+
+                        } else {
+                            //normal node
+                            y_coord++;
+
+                            //get and check status
+                            status = (node_val & STATUS_MASK_PARTICLE) >> STATUS_SHIFT_PARTICLE;
+
+                            //boundary and filler cells only have one particle
+                            if(status > SEED){
+                                //need to sampled the image at depth + 1
+                                part_offset = (node_val & Y_PINDEX_MASK_PARTICLE) >> Y_PINDEX_SHIFT_PARTICLE;
+
+                                //0
+
+                                part_data.particle_data.data[i][offset_pc_data][part_offset] = part_map.downsampled[i].mesh[offset_part_map_data_0 + y_coord];
+
+
+                            }
+
+
+                        }
+                    }
+
+                }
+            }
+
+        }
+
+
+
+    }
+
+
     //decleration
     template<typename U>
     void initialize_structure(Particle_map<U>& particle_map){

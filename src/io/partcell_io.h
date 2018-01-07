@@ -595,6 +595,11 @@ void write_apr_pc_struct(PartCellStructure<T,uint64_t>& pc_struct,std::string sa
 
     // New parameter and background data
 
+    if(pc_struct.pars.name.size() == 0){
+        pc_struct.pars.name = "no_name";
+        pc_struct.name = "no_name";
+    }
+
     hdf5_write_string(pr_groupid,"name",pc_struct.pars.name);
 
     std::string git_hash = exec("git rev-parse HEAD");

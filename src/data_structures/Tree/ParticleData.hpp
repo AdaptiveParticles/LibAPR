@@ -11,9 +11,8 @@
 
 #include <stdint.h>
 
-#include "PartCellData.hpp"
-#include "ExtraPartCellData.hpp"
-
+#include "src/data_structures/APR/PartCellData.hpp"
+#include "../APR/ExtraPartCellData.hpp"
 
 #define SEED_NUM_PARTICLES 8
 #define NON_SEED_NUM_PARTICLES 1
@@ -32,6 +31,10 @@
 #define Y_DEPTH_SHIFT_PARTICLE 1
 #define COORD_DIFF_MASK_PARTICLE ((((uint64_t)1) << 13) - 1) << 3
 #define COORD_DIFF_SHIFT_PARTICLE 3
+
+
+template<typename T>
+class ExtraPartCellData;
 
 template <typename T,typename S> // type T is the image type, type S is the data structure base type
 class ParticleData {

@@ -5,6 +5,8 @@
 #ifndef PARTPLAY_NUMERICS_BENCHMARKS_HPP
 #define PARTPLAY_NUMERICS_BENCHMARKS_HPP
 
+#include "../../src/data_structures/APR/APR.hpp"
+
 #include "../../src/numerics/graph_cut_seg.hpp"
 #include "../../src/numerics/filter_numerics.hpp"
 #include "../../src/numerics/ray_cast.hpp"
@@ -1327,7 +1329,11 @@ void run_real_segmentation(PartCellStructure<float,uint64_t> pc_struct,AnalysisD
 
     create_y_data(y_vec,part_new);
 
-    shift_particles_from_cells(part_new,seg_parts);
+    APR<float> apr;
+
+    apr.init(pc_struct);
+
+    apr.shift_particles_from_cells(seg_parts);
 
     ExtraPartCellData<uint16_t> seg_parts_depth = multiply_by_depth(seg_parts);
 
@@ -1337,60 +1343,63 @@ void run_real_segmentation(PartCellStructure<float,uint64_t> pc_struct,AnalysisD
 
     analysis_data.add_timer(timer);
 }
-template<typename T>
-void run_ray_cast(PartCellStructure<float,uint64_t> pc_struct,AnalysisData& analysis_data,Mesh_data<T>& input_image,Proc_par& pars){
-    //
-    //  Bevan Cheeseman 2017
-    //
-    //  Benchmark Ray Cast
-    //
-    //
 
-    Part_timer timer;
+//NEEDS TO BE UPDATED BELOW TO NEW STRUCTURES IF I WANT TO BE ABLE TO KEEP IT IN
 
-    /////////////////
-    //
-    //  Parameters
-    ////////////////
-
-    proj_par proj_pars;
-
-    proj_pars.theta_0 = 0;
-    proj_pars.theta_final = 3.14;
-    proj_pars.radius_factor = 1.00;
-    proj_pars.theta_delta = 0.1;
-    proj_pars.scale_z = pars.aniso;
-
-    ParticleDataNew<float, uint64_t> part_new;
-    //flattens format to particle = cell, this is in the classic access/part paradigm
-    part_new.initialize_from_structure(pc_struct);
-
-    ExtraPartCellData<uint16_t> y_vec;
-
-    create_y_data(y_vec,part_new);
-
-    ExtraPartCellData<uint16_t> particles_int;
-    part_new.create_particles_at_cell_structure(particles_int);
-
-    shift_particles_from_cells(part_new,particles_int);
-
-    proj_pars.name = pc_struct.name;
-
-    timer.start_timer("ray_cast_max_part");
-
-    float t_apr = apr_perspective_raycast(y_vec,particles_int,proj_pars,[] (const uint16_t& a,const uint16_t& b) {return std::max(a,b);});
-
-    timer.stop_timer();
-
-    timer.start_timer("ray_cast_max_mesh");
-    float t_mesh = perpsective_mesh_raycast(pc_struct,proj_pars,input_image);
-    timer.stop_timer();
-
-    analysis_data.add_float_data("apr_ray_cast",t_apr);
-    analysis_data.add_float_data("mesh_ray_cast",t_mesh);
-
-
-}
+//template<typename T>
+//void run_ray_cast(PartCellStructure<float,uint64_t> pc_struct,AnalysisData& analysis_data,Mesh_data<T>& input_image,Proc_par& pars){
+//    //
+//    //  Bevan Cheeseman 2017
+//    //
+//    //  Benchmark Ray Cast
+//    //
+//    //
+//
+//    Part_timer timer;
+//
+//    /////////////////
+//    //
+//    //  Parameters
+//    ////////////////
+//
+//    proj_par proj_pars;
+//
+//    proj_pars.theta_0 = 0;
+//    proj_pars.theta_final = 3.14;
+//    proj_pars.radius_factor = 1.00;
+//    proj_pars.theta_delta = 0.1;
+//    proj_pars.scale_z = pars.aniso;
+//
+//    ParticleDataNew<float, uint64_t> part_new;
+//    //flattens format to particle = cell, this is in the classic access/part paradigm
+//    part_new.initialize_from_structure(pc_struct);
+//
+//    ExtraPartCellData<uint16_t> y_vec;
+//
+//    create_y_data(y_vec,part_new);
+//
+//    ExtraPartCellData<uint16_t> particles_int;
+//    part_new.create_particles_at_cell_structure(particles_int);
+//
+//    shift_particles_from_cells(part_new,particles_int);
+//
+//    proj_pars.name = pc_struct.name;
+//
+//    timer.start_timer("ray_cast_max_part");
+//
+//    float t_apr = apr_perspective_raycast(y_vec,particles_int,proj_pars,[] (const uint16_t& a,const uint16_t& b) {return std::max(a,b);});
+//
+//    timer.stop_timer();
+//
+//    timer.start_timer("ray_cast_max_mesh");
+//    float t_mesh = perpsective_mesh_raycast(pc_struct,proj_pars,input_image);
+//    timer.stop_timer();
+//
+//    analysis_data.add_float_data("apr_ray_cast",t_apr);
+//    analysis_data.add_float_data("mesh_ray_cast",t_mesh);
+//
+//
+//}
 
 template<typename T>
 void evaluate_adaptive_grad(PartCellStructure<float,uint64_t> pc_struct,AnalysisData& analysis_data,SynImage& syn_image,Mesh_data<T>& input_image){

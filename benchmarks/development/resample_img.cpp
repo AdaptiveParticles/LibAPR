@@ -2,26 +2,26 @@
 #include <iostream>
 
 #include "resample_img.h"
-#include "../../src/data_structures/meshclass.h"
-#include "../../src/io/readimage.h"
+#include "src/data_structures/meshclass.h"
+#include "src/io/readimage.h"
 
-#include "../../src/algorithm/gradient.hpp"
-#include "../../src/data_structures/particle_map.hpp"
-#include "../../src/data_structures/Tree/PartCellStructure.hpp"
-#include "../../src/algorithm/level.hpp"
-#include "../../src/io/writeimage.h"
-#include "../../src/io/write_parts.h"
-#include "../../src/io/partcell_io.h"
-#include "../utils.h"
-#include "../../src/numerics/misc_numerics.hpp"
-#include "../../src/algorithm/apr_pipeline.hpp"
-#include "../../src/numerics/apr_segment.hpp"
+#include "src/algorithm/gradient.hpp"
+#include "src/data_structures/particle_map.hpp"
+#include "src/data_structures/Tree/PartCellStructure.hpp"
+#include "src/algorithm/level.hpp"
+#include "src/io/writeimage.h"
+#include "src/io/write_parts.h"
+#include "src/io/partcell_io.h"
+#include "test/utils.h"
+#include "src/numerics/misc_numerics.hpp"
+#include "src/algorithm/apr_pipeline.hpp"
+#include "src/numerics/apr_segment.hpp"
 
-#include "../../external/blitzwave/src/Wavelet.h"
-#include "../../external/blitzwave/src/WaveletDecomp.h"
-#include "../../external/blitzwave/src/arrayTools.h"
+#include "external/blitzwave/src/Wavelet.h"
+#include "external/blitzwave/src/WaveletDecomp.h"
+#include "external/blitzwave/src/arrayTools.h"
 
-#include "../../src/io/wavelet_comp.hpp"
+#include "src/io/wavelet_comp.hpp"
 
 using namespace std;
 using namespace blitz;

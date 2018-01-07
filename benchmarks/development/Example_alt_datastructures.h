@@ -1,10 +1,10 @@
-#ifndef PARTPLAY_COMPUTEPARTS_H
-#define PARTPLAY_COMPUTEPARTS_H
+#ifndef PARTPLAY_COMPUTECELLS_H
+#define PARTPLAY_COMPUTECELLS_H
 
 #include <functional>
 #include <string>
 
-#include "../../src/data_structures/structure_parts.h"
+#include "src/data_structures/structure_parts.h"
 
 struct cmdLineOptions{
     std::string output = "output";

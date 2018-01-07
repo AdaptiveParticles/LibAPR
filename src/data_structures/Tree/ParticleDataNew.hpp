@@ -2,7 +2,7 @@
 //
 //  Bevan Cheeseman 2016
 //
-//  PartCellData class, the data container for CRS sparse format for APR
+//  PartCellData class, the data container for CRS sparse format for APR (New Data structure need to update)
 //
 ///////////////
 
@@ -11,9 +11,12 @@
 
 #include <stdint.h>
 
-#include "PartCellData.hpp"
-#include "ExtraPartCellData.hpp"
+#include "src/data_structures/APR/PartCellData.hpp"
+//#include "src/data_structures/APR/ExtraPartCellData.hpp"
 #include "PartCellStructure.hpp"
+
+template<typename T>
+class ExtraPartCellData;
 
 
 #define SEED_NUM_PARTICLES 8

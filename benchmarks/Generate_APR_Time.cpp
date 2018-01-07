@@ -135,6 +135,10 @@ int main(int argc, char **argv) {
     smoothing = false;
 
 
+    PartCellStructure<float, uint64_t> pc_struct;
+
+    APR<float> apr_c;
+
     for (int t = 0; t < T_num; ++t) {
 
 
@@ -187,61 +191,35 @@ int main(int argc, char **argv) {
 
         p_rep.pars.pull_scheme = 2;
 
-        p_rep.pars.var_th = 500;
+        p_rep.pars.var_th = 1000;
+
+        p_rep.pars.interp_type = 3;
 
 
-        PartCellStructure<float, uint64_t> pc_struct;
 
-       // p_rep.pars.var_th = 20000;
+        if(t==0) {
 
-        bench_get_apr(input_img, p_rep, pc_struct, analysis_data);
+            bench_get_apr(input_img, p_rep, pc_struct, analysis_data);
+            apr_c.init(pc_struct);
+        }
 
-
-        APR<float> apr_c;
 
 
         Mesh_data<float> input_image_float;
 
         input_image_float.initialize(input_img.y_num,input_img.x_num,input_img.z_num);
 
-       /// std::copy(input_img.mesh.begin(),input_img.mesh.end(),input_image_float.mesh.begin());
+        input_image_float = input_img.to_type<float>();
 
-       // PartCellStructure<float,uint64_t> pc_struct_new = compute_guided_apr(input_image_float,pc_struct,p_rep);
+        ExtraPartCellData<float> curr_scale;
 
-        if(smoothing) {
+        apr_c.init_pc_data();
 
+        //get the guided APR
+        PartCellStructure<float, uint64_t> pc_struct_new = compute_guided_apr_time(input_image_float,pc_struct,p_rep,apr_c,curr_scale);
 
-           // apr_c.init(pc_struct_new);
-            //apr_c.init(pc_struct);
+        apr_c.init(pc_struct_new);
 
-            //std::swap(apr_new,apr_c);
-
-            std::vector<float> filter = {.1, .8, .1};
-            std::vector<float> delta = {p_rep.pars.dy, p_rep.pars.dx, p_rep.pars.dz};
-
-            int num_tap = 4;
-
-            ExtraPartCellData<float> particle_data;
-
-            PartCellData<uint64_t> pc_data;
-            apr_c.part_new.create_pc_data_new(pc_data);
-
-
-            apr_c.part_new.create_particles_at_cell_structure(particle_data);
-
-            //
-            ExtraPartCellData<float> smoothed_parts = adaptive_smooth(pc_data, particle_data, num_tap, filter);
-
-            apr_c.shift_particles_from_cells(smoothed_parts);
-
-            std::swap(smoothed_parts,apr_c.particles_int);
-
-        } else {
-            apr_c.init(pc_struct);
-        }
-
-        //ExtraPartCellData<float> curr_scale =  get_scale_parts(apr_c,input_img,p_rep.pars);
-        ExtraPartCellData<float> curr_scale =  get_scale_parts_guided(apr_c,input_img,p_rep.pars,p_rep);
         timer.verbose_flag = true;
 
         timer.start_timer("time_loop");

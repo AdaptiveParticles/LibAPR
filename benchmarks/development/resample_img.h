@@ -4,6 +4,6 @@
 #include <functional>
 #include <string>
 
-#include "../../src/data_structures/structure_parts.h"
+#include "src/data_structures/structure_parts.h"
 
 #endif //PARTPLAY_PIPELINE_H
