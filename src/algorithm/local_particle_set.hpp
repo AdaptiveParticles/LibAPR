@@ -1,0 +1,8 @@
+//
+// Created by cheesema on 08.01.18.
+//
+
+#ifndef PARTPLAY_LOCAL_PARTICLE_SET_HPP
+#define PARTPLAY_LOCAL_PARTICLE_SET_HPP
+
+#endif //PARTPLAY_LOCAL_PARTICLE_SET_HPP
