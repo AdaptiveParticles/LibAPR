@@ -59,7 +59,7 @@ set(SOURCE_FILES
 
         benchmarks/development/old_io/readimage.h
         benchmarks/development/old_io/writeimage.h
-        src/io/parameters.cpp
+        benchmarks/development/old_io/parameters.cpp
 
         src/data_structures/Mesh/meshclass.h
         benchmarks/development/old_structures/structure_parts.cpp
@@ -69,16 +69,21 @@ set(SOURCE_FILES
 
         benchmarks/development/old_algorithm/pipeline.cpp
 
+
         )
 
 set(SOURCE_FILES_COMPILED
         benchmarks/development/old_structures/structure_parts.cpp
         src/data_structures/APR/PartCellData.cpp
-        src/io/parameters.cpp
+        benchmarks/development/old_io/parameters.cpp
         benchmarks/development/old_io/hdf5functions.cpp
         src/io/blosc_filter.c
         src/io/hdf5functions_blosc.cpp
         benchmarks/development/old_io/write_parts.cpp
+
+        src/misc/APR_timer.cpp
+
+        src/algorithm/APR_parameters.cpp
         )
 
 

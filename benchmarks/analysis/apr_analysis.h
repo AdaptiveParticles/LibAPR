@@ -8,7 +8,7 @@
 #include "benchmarks/development/old_algorithm/apr_pipeline.hpp"
 #include "AnalysisData.hpp"
 #include "MeshDataAF.h"
-#include "../../src/io/parameters.h"
+#include "benchmarks/development/old_io/parameters.h"
 #include "SynImageClasses.hpp"
 #include "numerics_benchmarks.hpp"
 #include "benchmarks/development/old_numerics/misc_numerics.hpp"

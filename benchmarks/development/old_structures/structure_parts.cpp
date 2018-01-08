@@ -3,7 +3,7 @@
 #include <bitset>
 #include <fstream>
 
-#include "src/io/parameters.h"
+#include "benchmarks/development/old_io/parameters.h"
 
 bool operator==(const Cell_id & lhs, const Cell_id & rhs){
     //relational operator for particle cell ids

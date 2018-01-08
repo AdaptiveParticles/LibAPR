@@ -6,7 +6,7 @@
 #define PARTPLAY_ANALYSISDATA_HPP
 
 #include "benchmarks/development/old_structures/structure_parts.h"
-#include "../../src/io/parameters.h"
+#include "benchmarks/development/old_io/parameters.h"
 #include "benchmarks/development/old_io/hdf5functions.h"
 #include "benchmarks/development/old_io/write_parts.h"
 

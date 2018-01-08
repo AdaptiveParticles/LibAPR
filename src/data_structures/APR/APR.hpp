@@ -17,9 +17,14 @@
 
 #include "src/data_structures/APR/APR_iterator.hpp"
 
+#include "src/misc/APR_timer.hpp"
+
+#include "src/algorithm/APR_parameters.hpp"
+
 #include <map>
 #include <unordered_map>
 
+class APR_parameters;
 
 typedef std::unordered_map<uint16_t,uint16_t> hash_map;
 //typedef std::map<uint16_t,uint16_t> hash_map;
