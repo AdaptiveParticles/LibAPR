@@ -37,6 +37,9 @@ public:
         //  Different input image types
         //
 
+        //set the pointer ot the data-structure
+        apr_ = &apr;
+
         if(image_type == "uint8"){
             return get_apr_method<uint8_t>(apr);
         } else if (image_type == "float"){
@@ -47,12 +50,23 @@ public:
 
     };
 
-
-
-
 private:
+
+    /*
+     * Private member variables
+     */
+
+    //pointer to the APR structure so member functions can have access if they need
+    APR<ImageType>* apr_;
+
+    Mesh_data<ImageType> image_temp; // global image variable useful for passing between methods, or re-using memory
+
+    /*
+     * Private member functions
+     */
+
     template<typename T>
-    void init_apr(Mesh_data<T>& input_img);
+    void init_apr(APR<ImageType>& apr,Mesh_data<T>& input_image);
 
     template<typename T>
     void auto_parameters(Mesh_data<T>& input_img);
@@ -60,13 +74,80 @@ private:
     template<typename T>
     bool get_apr_method(APR<ImageType>& apr);
 
+    template<typename T,typename S>
+    void get_gradient(Mesh_data<T>& input_img,Mesh_data<S>& gradient);
+
+
 };
 
 /*
  * Implimentations
  */
+template<typename ImageType> template<typename T,typename S>
+void APR_converter<ImageType>::get_gradient(Mesh_data<T>& input_img,Mesh_data<S>& gradient){
+    //
+    //  Calculate the gradient from the input image. (You could replace this method with your own)
+    //
+    //  Input: full sized image.
+    //
+    //  Output: down-sampled gradient (h)
+    //
+
+    //initialize the storage of the B-spline co-efficients
+    image_temp.initialize(input_img);
+
+    Mesh_data<uint16_t> temp;
+
+    temp.initialize(input_img);
+    std::copy(input_img.mesh.begin(),input_img.mesh.end(),temp.mesh.begin());
+
+    get_smooth_bspline_3D(temp,this->par);
+
+    std::string name = par.output_dir + "_bspline.tif";
+
+    temp.write_image_tiff(name);
+
+}
+
+template<typename ImageType> template<typename T>
+void APR_converter<ImageType>::init_apr(APR<ImageType>& apr,Mesh_data<T>& input_image){
+    //
+    //  Initializing the size of the APR, min and maximum level (in the data structures it is called depth)
+    //
+    //
+
+    apr.pc_data.org_dims.resize(3,0);
+
+    apr.pc_data.org_dims[0] = input_image.y_num;
+    apr.pc_data.org_dims[1] = input_image.x_num;
+    apr.pc_data.org_dims[2] = input_image.z_num;
+
+    int max_dim;
+    int min_dim;
+
+    if(input_image.z_num == 1) {
+        max_dim = (std::max(apr.pc_data.org_dims[1], apr.pc_data.org_dims[0]));
+        min_dim = (std::min(apr.pc_data.org_dims[1], apr.pc_data.org_dims[0]));
+    }
+    else{
+        max_dim = std::max(std::max(apr.pc_data.org_dims[1], apr.pc_data.org_dims[0]), apr.pc_data.org_dims[2]);
+        min_dim = std::min(std::min(apr.pc_data.org_dims[1], apr.pc_data.org_dims[0]), apr.pc_data.org_dims[2]);
+    }
+
+    int k_max_ = ceil(M_LOG2E*log(max_dim)) - 1;
+    int k_min_ = std::max( (int)(k_max_ - floor(M_LOG2E*log(min_dim)) + 1),2);
+
+    apr.pc_data.depth_min = k_min_;
+    apr.pc_data.depth_max = k_max_ + 1;
+
+}
+
 template<typename ImageType> template<typename T>
 bool APR_converter<ImageType>::get_apr_method(APR<ImageType>& apr) {
+    //
+    //  Main method for constructing the APR from an input image
+    //
+
 
     APR_timer timer;
     timer.verbose_flag = true;
@@ -86,9 +167,16 @@ bool APR_converter<ImageType>::get_apr_method(APR<ImageType>& apr) {
         return false;
     }
 
+    init_apr(apr,input_image);
+
     timer.start_timer("calculate automatic parameters");
     auto_parameters(input_image);
     timer.stop_timer();
+
+    Mesh_data<T> gradient;
+
+    this->get_gradient(input_image,gradient);
+
 
 
     return false;

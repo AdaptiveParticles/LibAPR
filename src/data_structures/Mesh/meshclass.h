@@ -133,6 +133,20 @@ public :
         //mesh.resize(y_num,std::vector<std::vector<T> >(x_num,std::vector<T>(z_num)));
     }
 
+    template<typename S>
+    void initialize(Mesh_data<S>& other_img){
+        //
+        //  Initialize using another image
+        //
+
+        y_num = other_img.y_num;
+        x_num = other_img.x_num;
+        z_num = other_img.z_num;
+
+        mesh.resize(y_num*x_num*z_num,0);
+
+    }
+
     void initialize(int y_num_,int x_num_,int z_num_,T val)
     {
         y_num = y_num_;
