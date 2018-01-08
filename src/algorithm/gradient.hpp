@@ -442,10 +442,10 @@ void bspline_filt_rec_z(Mesh_data<T>& image,float lambda,float tol){
 
 #pragma omp simd
             for (k = y_num - 1; k >= 0; k--){
-                image.mesh[index + k] = image.mesh[index + k] +  b1*temp_vec3[k]+  b2*temp_vec4[k];
+                image.mesh[index + k] = (image.mesh[index + k] +  b1*temp_vec3[k]+  b2*temp_vec4[k])*norm_factor;
                 temp_vec4[k] = temp_vec3[k];
-                temp_vec3[k] = image.mesh[index + k];
-                image.mesh[index + k] *= norm_factor;
+                temp_vec3[k] = image.mesh[index + k]*(1/norm_factor);
+                //image.mesh[index + k] *= norm_factor;
             }
 
         }
@@ -655,10 +655,10 @@ void bspline_filt_rec_x(Mesh_data<T>& image,float lambda,float tol){
 
 #pragma omp simd
             for (k = y_num - 1; k >= 0; k--){
-                image.mesh[index + k] = image.mesh[index + k] + b1*temp_vec3[ k]+  b2*temp_vec4[ k];
+                image.mesh[index + k] = (image.mesh[index + k] + b1*temp_vec3[ k]+  b2*temp_vec4[ k])*norm_factor;
                 temp_vec4[k] = temp_vec3[k];
-                temp_vec3[k] = image.mesh[index + k];
-                image.mesh[index + k] *= norm_factor;
+                temp_vec3[k] = image.mesh[index + k]*(1/norm_factor);
+                //image.mesh[index + k] *= norm_factor;
             }
 
         }
@@ -830,14 +830,14 @@ void get_smooth_bspline_3D(Mesh_data<T>& input,APR_parameters& pars){
     spline_timer.start_timer("bspline_filt_rec_z");
 
     //Z direction bspline
-    //bspline_filt_rec_z(input,lambda,tol);
+    bspline_filt_rec_z(input,lambda,tol);
 
     spline_timer.stop_timer();
 
     spline_timer.start_timer("bspline_filt_rec_x");
 
     //X direction bspline
-    //bspline_filt_rec_x(input,lambda,tol);
+    bspline_filt_rec_x(input,lambda,tol);
 
     spline_timer.stop_timer();
 
