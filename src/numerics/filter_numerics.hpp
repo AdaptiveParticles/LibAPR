@@ -22,7 +22,7 @@
 #include "filter_help/FilterOffset.hpp"
 #include "filter_help/FilterLevel.hpp"
 
-#include "filter_help/CurrLevel.hpp"
+#include "src/data_structures/APR/CurrLevel.hpp"
 #include "filter_help/NeighOffset.hpp"
 
 //#include "../../test/utils.h"

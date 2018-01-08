@@ -16,7 +16,7 @@
 
 
 #include "benchmarks/development/Tree/PartCellStructure.hpp"
-#include "CurrLevel.hpp"
+#include "src/data_structures/APR/CurrLevel.hpp"
 
 template<typename V,typename T>
 class NeighIterator {

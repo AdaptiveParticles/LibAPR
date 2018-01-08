@@ -3,15 +3,15 @@
 
 #include "resample_img.h"
 #include "src/data_structures/Mesh/meshclass.h"
-#include "src/io/readimage.h"
+#include "benchmarks/development/old_io/readimage.h"
 
 #include "benchmarks/development/old_algorithm/gradient.hpp"
 #include "benchmarks/development/old_structures/particle_map.hpp"
 #include "benchmarks/development/Tree/PartCellStructure.hpp"
 #include "benchmarks/development/old_algorithm/level.hpp"
-#include "src/io/writeimage.h"
-#include "src/io/write_parts.h"
-#include "src/io/partcell_io.h"
+#include "benchmarks/development/old_io/writeimage.h"
+#include "benchmarks/development/old_io/write_parts.h"
+#include "benchmarks/development/old_io/partcell_io.h"
 #include "test/utils.h"
 #include "src/numerics/misc_numerics.hpp"
 #include "benchmarks/development/old_algorithm/apr_pipeline.hpp"
@@ -21,7 +21,7 @@
 #include "external/blitzwave/src/WaveletDecomp.h"
 #include "external/blitzwave/src/arrayTools.h"
 
-#include "src/io/wavelet_comp.hpp"
+#include "benchmarks/development/old_io/wavelet_comp.hpp"
 
 using namespace std;
 using namespace blitz;

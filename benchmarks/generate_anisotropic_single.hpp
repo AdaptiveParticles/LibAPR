@@ -11,7 +11,7 @@
 #include "GenerateTemplates.hpp"
 #include "SynImagePar.hpp"
 
-#include "../src/io/writeimage.h"
+#include "benchmarks/development/old_io/writeimage.h"
 #include "benchmarks/development/old_structures/structure_parts.h"
 #include "src/data_structures/Mesh/meshclass.h"
 #include "analysis/AnalysisData.hpp"

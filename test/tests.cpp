@@ -9,7 +9,7 @@
 #include "tests.h"
 #include "utils.h"
 
-#include "../src/io/readimage.h"
+#include "benchmarks/development/old_io/readimage.h"
 
 Mesh_data<uint16_t> CreateImageTest::create_bspline_empty() {
 

@@ -5,8 +5,8 @@
 #include "alg_cells_test.h"
 #include "utils.h"
 
-#include "../src/io/readimage.h"
-#include "../src/io/write_parts.h"
+#include "benchmarks/development/old_io/readimage.h"
+#include "benchmarks/development/old_io/write_parts.h"
 #include "benchmarks/development/old_structures/particle_map.hpp"
 
 void CreateResultTest::SetUp(){

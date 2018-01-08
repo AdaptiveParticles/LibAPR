@@ -10,17 +10,17 @@
 #include <vector>
 #include <fstream>
 
-#include "hdf5functions.h"
-#include "hdf5functions_blosc.h"
+#include "benchmarks/development/old_io/hdf5functions.h"
+#include "src/io/hdf5functions_blosc.h"
 #include "benchmarks/development/Tree/PartCellStructure.hpp"
 #include "write_parts.h"
 #include "writeimage.h"
-#include "../numerics/apr_compression.hpp"
-#include "../../src/data_structures/APR/APR.hpp"
+#include "src/numerics/apr_compression.hpp"
+#include "src/data_structures/APR/APR.hpp"
 
-#include "../../external/blitzwave/src/Wavelet.h"
-#include "../../external/blitzwave/src/WaveletDecomp.h"
-#include "../../external/blitzwave/src/arrayTools.h"
+#include "external/blitzwave/src/Wavelet.h"
+#include "external/blitzwave/src/WaveletDecomp.h"
+#include "external/blitzwave/src/arrayTools.h"
 
 using namespace blitz;
 using namespace bwave;

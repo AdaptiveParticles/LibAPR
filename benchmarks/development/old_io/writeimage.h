@@ -11,7 +11,7 @@
 #define PARTPLAY_WRITEIMAGE_H
 
 #include <tiffio.h>
-#include "parameters.h"
+#include "src/io/parameters.h"
 
 #include "src/data_structures/Mesh/meshclass.h"
 

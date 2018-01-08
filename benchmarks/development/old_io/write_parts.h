@@ -16,7 +16,7 @@
 #ifndef PARTPLAY_WRITE_PARTS_H
 #define PARTPLAY_WRITE_PARTS_H
 
-#include "hdf5functions.h"
+#include "benchmarks/development/old_io/hdf5functions.h"
 #include "benchmarks/development/old_structures/structure_parts.h"
 #include "benchmarks/development/Tree/Tree.hpp"
 #include "benchmarks/development/Tree/LevelIterator.hpp"

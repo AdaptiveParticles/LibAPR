@@ -22,11 +22,11 @@ namespace std {
 #include "benchmarks/development/old_structures/structure_parts.h"
 #include "benchmarks/development/old_algorithm/gradient.hpp"
 //#include "src/algorithm/pipeline.h"
-#include "src/io/partcell_io.h"
+#include "benchmarks/development/old_io/partcell_io.h"
 //#include "src/data_structures/Tree/ParticleData.hpp"
 #include "benchmarks/development/Tree/ParticleDataNew.hpp"
 //#include "src/data_structures/Tree/PartCellStructure.hpp"
-#include "src/numerics/filter_help/CurrLevel.hpp"
+#include "src/data_structures/APR/CurrLevel.hpp"
 #include "src/numerics/misc_numerics.hpp"
 #include "src/data_structures/APR/APR.hpp"
 %}

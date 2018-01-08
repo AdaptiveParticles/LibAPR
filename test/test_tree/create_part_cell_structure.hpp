@@ -6,7 +6,7 @@
 #define PARTPLAY_CREATE_PARTCELL_HPP_Q
 
 #include "benchmarks/development/Tree/PartCellStructure.hpp"
-#include "../../src/io/partcell_io.h"
+#include "benchmarks/development/old_io/partcell_io.h"
 
 #include "../utils.h"
 

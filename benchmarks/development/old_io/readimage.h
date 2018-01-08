@@ -21,7 +21,7 @@
 
 #ifndef PARTPLAY_READIMAGE_H
 #define PARTPLAY_READIMAGE_H
-#include "hdf5functions.h"
+#include "benchmarks/development/old_io/hdf5functions.h"
 #include <tiffio.h>
 
 template <typename T>

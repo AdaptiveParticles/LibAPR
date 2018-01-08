@@ -19,7 +19,7 @@
 #ifndef PARTPLAY_APR_ITERATOR_HPP
 #define PARTPLAY_APR_ITERATOR_HPP
 
-#include "src/numerics/filter_help/CurrLevel.hpp"
+#include "CurrLevel.hpp"
 
 #include "benchmarks/development/Tree/PartCellStructure.hpp"
 

@@ -5,8 +5,8 @@
 #ifndef PARTPLAY_APR_TIME_HPP
 #define PARTPLAY_APR_TIME_HPP
 
-#include "ExtraPartCellData.hpp"
-#include "APR.hpp"
+#include "src/data_structures/APR/ExtraPartCellData.hpp"
+#include "src/data_structures/APR/APR.hpp"
 
 
 class APR_Time {

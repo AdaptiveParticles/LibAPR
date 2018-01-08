@@ -12,7 +12,7 @@
 #include "SynImagePar.hpp"
 #include "analysis/TimeModel.hpp"
 
-#include "../src/io/writeimage.h"
+#include "benchmarks/development/old_io/writeimage.h"
 #include "benchmarks/development/old_structures/structure_parts.h"
 #include "src/data_structures/Mesh/meshclass.h"
 #include "analysis/AnalysisData.hpp"
@@ -22,6 +22,6 @@
 #include "analysis/benchmark_helpers.hpp"
 #include "../../src/numerics/enhance_parts.hpp"
 
-#include "../src/data_structures/APR/APR_Time.hpp"
+#include "benchmarks/development/Time/APR_Time.hpp"
 
 #endif //PARTPLAY_GENERATE_APR_TIME_HPP

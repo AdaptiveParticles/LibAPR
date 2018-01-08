@@ -57,8 +57,8 @@ set(SOURCE_FILES
         test/test_tree/level_iterator_test.cpp
         test/test_tree/tree_fixtures.cpp
 
-        src/io/readimage.h
-        src/io/writeimage.h
+        benchmarks/development/old_io/readimage.h
+        benchmarks/development/old_io/writeimage.h
         src/io/parameters.cpp
 
         src/data_structures/Mesh/meshclass.h
@@ -75,10 +75,10 @@ set(SOURCE_FILES_COMPILED
         benchmarks/development/old_structures/structure_parts.cpp
         src/data_structures/APR/PartCellData.cpp
         src/io/parameters.cpp
-        src/io/hdf5functions.cpp
+        benchmarks/development/old_io/hdf5functions.cpp
         src/io/blosc_filter.c
         src/io/hdf5functions_blosc.cpp
-        src/io/write_parts.cpp
+        benchmarks/development/old_io/write_parts.cpp
         )
 
 
@@ -145,7 +145,7 @@ if(TESTS)
             )
     add_executable(testResult
             test/alg_cells_test.cpp
-            src/io/write_parts.cpp
+            benchmarks/development/old_io/write_parts.cpp
             ${SOURCE_FILES_COMPILED}
             test/utils.cpp
             )
@@ -170,20 +170,20 @@ endif(TESTS)
 
 add_executable(Example_get_apr
         test/Examples/Example_get_apr.cpp
-        src/io/write_parts.cpp
+        benchmarks/development/old_io/write_parts.cpp
         ${SOURCE_FILES_COMPILED}
 	    #test/utils.cpp
         )
 
 add_executable(Example_apr_iterate
         test/Examples/Example_apr_iterate.cpp
-        src/io/write_parts.cpp
+        benchmarks/development/old_io/write_parts.cpp
         ${SOURCE_FILES_COMPILED}
         )
 
 add_executable(Example_recon_img
         test/Examples/Example_recon_img.cpp
-        src/io/write_parts.cpp
+        benchmarks/development/old_io/write_parts.cpp
         ${SOURCE_FILES_COMPILED}
         )
 
@@ -200,12 +200,12 @@ add_executable(Example_ray_cast
 
 add_executable(Example_neigh
         test/Examples/Example_neigh.cpp
-        src/io/write_parts.cpp
+        benchmarks/development/old_io/write_parts.cpp
         ${SOURCE_FILES_COMPILED}
         )
 
 SWIG_ADD_MODULE(apr java libapr.i
-        src/io/write_parts.cpp
+        benchmarks/development/old_io/write_parts.cpp
         ${SOURCE_FILES_COMPILED}
         )
 
@@ -309,7 +309,7 @@ if(BENCHMARKS)
                 external/maxflow-v3.04.src/maxflow.cpp
                 external/maxflow-v3.04.src/graph.cpp
                 #test/utils.cpp
-                src/io/write_parts.cpp
+                benchmarks/development/old_io/write_parts.cpp
                 ${SOURCE_FILES_COMPILED} src/vis/Camera.cpp src/vis/Camera.h src/vis/Object.cpp src/vis/Object.h src/vis/RaytracedObject.cpp src/vis/RaytracedObject.h
                 )
 
@@ -359,7 +359,7 @@ if(BENCHMARKS)
         add_executable(Example_analysis
                 ${BENCHMARK_SOURCE_FILES}
                 test/utils.cpp
-                src/io/write_parts.cpp
+                benchmarks/development/old_io/write_parts.cpp
                 ${SOURCE_FILES_COMPILED}
                 benchmarks/development/analyze_apr.cpp)
 

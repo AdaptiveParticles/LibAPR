@@ -11,7 +11,7 @@
 #include "src/numerics/filter_numerics.hpp"
 #include "src/numerics/misc_numerics.hpp"
 
-#include "src/numerics/filter_help/CurrLevel.hpp"
+#include "CurrLevel.hpp"
 
 #include "src/io/hdf5functions_blosc.h"
 

@@ -7,8 +7,8 @@
 
 #include "benchmarks/development/old_structures/structure_parts.h"
 #include "../../src/io/parameters.h"
-#include "../../src/io/hdf5functions.h"
-#include "../../src/io/write_parts.h"
+#include "benchmarks/development/old_io/hdf5functions.h"
+#include "benchmarks/development/old_io/write_parts.h"
 
 #include <cstdio>
 #include <iostream>
