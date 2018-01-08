@@ -109,8 +109,10 @@ int main(int argc, char **argv) {
     //  You can also iterate over by level, this is in the datastrucrure called depth, Particle Cells range from depth_min() to depth_max(), coinciding with level = l_min and level = l_max
     //
 
-    for (unsigned int level = 0; level <= apr.depth_max(); ++level) {
-        for (apr.begin(level); apr.end(level) != 0; apr.it_forward(level)) {
+    for (unsigned int level = apr.depth_min(); level <= apr.depth_max(); ++level) {
+        for (apr.begin(level); apr.end(level)!=0 ; apr.it_forward(level)) {
+
+            //these are the same
             unsigned int curr_level = apr.level();
             unsigned int curr_depth = apr.depth();
 

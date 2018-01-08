@@ -461,7 +461,7 @@ public:
     }
 
     template<typename T>
-    void calc_sat_adaptive_y(Mesh_data<T>& input,Mesh_data<uint8_t>& offset_img){
+    void calc_sat_adaptive_y(Mesh_data<T>& input,Mesh_data<uint8_t>& offset_img,float scale_in,unsigned int offset_max_in){
         //
         //  Bevan Cheeseman 2016
         //
@@ -484,9 +484,9 @@ public:
         float counter, temp, divisor,offset;
 
         //need to introduce an offset max to make the algorithm still work, and it also makes sense.
-        const int offset_max = 10;
+        const int offset_max = offset_max_in;
 
-        float scale = 1;
+        float scale = scale_in;
 
         const unsigned int d_max = this->depth_max();
 
@@ -586,7 +586,7 @@ public:
 
     }
     template<typename T>
-    void calc_sat_adaptive_x(Mesh_data<T>& input,Mesh_data<uint8_t>& offset_img){
+    void calc_sat_adaptive_x(Mesh_data<T>& input,Mesh_data<uint8_t>& offset_img,float scale_in,unsigned int offset_max_in){
         //
         //  Adaptive form of Matteusz' SAT code.
         //
@@ -596,7 +596,7 @@ public:
         const int x_num = input.x_num;
         const int y_num = input.y_num;
 
-        unsigned int offset_max = 10;
+        unsigned int offset_max = offset_max_in;
 
         std::vector<T> temp_vec;
         temp_vec.resize(y_num*(2*offset_max + 2),0);
@@ -605,7 +605,7 @@ public:
         float temp;
         int index_modulo, previous_modulo, current_index, jxnumynum, offset,forward_modulo,backward_modulo;
 
-        const float scale = 1;
+        const float scale = scale_in;
         const unsigned int d_max = this->depth_max();
 
 
@@ -702,7 +702,7 @@ public:
 
 
     template<typename T>
-    void calc_sat_adaptive_z(Mesh_data<T>& input,Mesh_data<uint8_t>& offset_img){
+    void calc_sat_adaptive_z(Mesh_data<T>& input,Mesh_data<uint8_t>& offset_img,float scale_in,unsigned int offset_max_in){
 
         // The same, but in place
 
@@ -715,8 +715,8 @@ public:
         int index_modulo, previous_modulo, current_index, iynum,forward_modulo,backward_modulo,offset;
         int xnumynum = x_num * y_num;
 
-        const int offset_max = 10;
-        const float scale = 1.0;
+        const int offset_max = offset_max_in;
+        const float scale = scale_in;
         const unsigned int d_max = this->depth_max();
 
         std::vector<T> temp_vec;
@@ -818,10 +818,12 @@ public:
         //
 
         Part_timer timer;
-        timer.verbose_flag = true;
+        timer.verbose_flag = false;
 
         Mesh_data<U> pc_image;
         Mesh_data<uint8_t> k_img;
+
+        unsigned int offset_max = 20;
 
         interp_img(pc_image,interp_data);
 
@@ -829,155 +831,26 @@ public:
 
         timer.start_timer("sat");
         //demo
-        calc_sat_adaptive_y(pc_image,k_img);
+        calc_sat_adaptive_y(pc_image,k_img,scale_d[0],offset_max);
 
         timer.stop_timer();
 
         timer.start_timer("sat");
 
-        calc_sat_adaptive_x(pc_image,k_img);
+        calc_sat_adaptive_x(pc_image,k_img,scale_d[1],offset_max);
 
         timer.stop_timer();
 
         timer.start_timer("sat");
 
-        calc_sat_adaptive_z(pc_image,k_img);
+        calc_sat_adaptive_z(pc_image,k_img,scale_d[2],offset_max);
 
         timer.stop_timer();
 
-        debug_write(pc_image,"adapt_test");
 
-
-        int filter_offset = 0;
-
-        unsigned int x_num = pc_image.x_num;
-        unsigned int y_num = pc_image.y_num;
-        unsigned int z_num = pc_image.z_num;
-
-        Mesh_data<U> output_data;
-        output_data.initialize((int)y_num,(int)x_num,(int)z_num,0);
-
-        std::vector<U> temp_vec;
-        temp_vec.resize(y_num,0);
-
-        uint64_t offset_min;
-        uint64_t offset_max;
-
-        uint64_t j = 0;
-        uint64_t k = 0;
-        uint64_t i = 0;
-
-        float factor = 0;
-
-        int k_max = pc_data.depth_max;
-
-        timer.start_timer("x direction");
-
-        std::copy(k_img.mesh.begin(),k_img.mesh.end(),output_data.mesh.begin());
-
-#pragma omp parallel for default(shared) private(j,i,k,offset_min,offset_max,filter_offset,factor)
-        for(j = 0; j < z_num;j++){
-            for(i = 0; i < x_num;i++){
-
-                for(k = 0;k < y_num;k++){
-
-                    filter_offset = floor(pow(2,k_max - output_data.mesh[j*x_num*y_num + i*y_num + k])/scale_d[0]);
-
-                    offset_max = std::min((int)(k + filter_offset),(int)(y_num-1));
-                    offset_min = std::max((int)(k - filter_offset),(int)0);
-
-                    factor = 1.0/(offset_max - offset_min+1);
-
-                    uint64_t f = 0;
-                    output_data.mesh[j*x_num*y_num + i*y_num + k] = 0;
-                    for(uint64_t c = offset_min;c <= offset_max;c++){
-
-                        output_data.mesh[j*x_num*y_num + i*y_num + k] += pc_image.mesh[j*x_num*y_num + i*y_num + c]*factor;
-
-                    }
-
-                }
-            }
-        }
-
-        timer.stop_timer();
-
-        timer.start_timer("y direction");
-
-        std::swap(output_data.mesh,pc_image.mesh);
-
-        std::copy(k_img.mesh.begin(),k_img.mesh.end(),output_data.mesh.begin());
-
-#pragma omp parallel for default(shared) private(j,i,k,offset_min,offset_max,filter_offset,factor)
-        for(j = 0; j < z_num;j++){
-            for(i = 0; i < x_num;i++){
-
-                for(k = 0;k < y_num;k++){
-
-                    filter_offset = floor(pow(2,k_max - output_data.mesh[j*x_num*y_num + i*y_num + k])/scale_d[1]);
-
-                    offset_max = std::min((int)(i + filter_offset),(int)(x_num-1));
-                    offset_min = std::max((int)(i - filter_offset),(int)0);
-
-                    factor = 1.0/(offset_max - offset_min+1);
-
-                    uint64_t f = 0;
-                    output_data.mesh[j*x_num*y_num + i*y_num + k] = 0;
-                    for(uint64_t c = offset_min;c <= offset_max;c++){
-
-                        output_data.mesh[j*x_num*y_num + i*y_num + k] += pc_image.mesh[j*x_num*y_num + c*y_num + k]*factor;
-                    }
-
-                }
-            }
-        }
-
-//
-//
-//    // z loop
-//
-
-        timer.stop_timer();
-
-        std::swap(output_data.mesh,pc_image.mesh);
-
-        timer.start_timer("z direction");
-
-        std::copy(k_img.mesh.begin(),k_img.mesh.end(),output_data.mesh.begin());
-
-#pragma omp parallel for default(shared) private(j,i,k,offset_min,offset_max,filter_offset,factor)
-        for(j = 0; j < z_num;j++){
-            for(i = 0; i < x_num;i++){
-
-
-                for(k = 0;k < y_num;k++){
-
-                    filter_offset = floor(pow(2,k_max - output_data.mesh[j*x_num*y_num + i*y_num + k])/scale_d[2]);
-
-                    offset_max = std::min((int)(j + filter_offset),(int)(z_num-1));
-                    offset_min = std::max((int)(j - filter_offset),(int)0);
-
-                    factor = 1.0/(offset_max - offset_min+1);
-
-                    uint64_t f = 0;
-                    output_data.mesh[j*x_num*y_num + i*y_num + k]=0;
-                    for(uint64_t c = offset_min;c <= offset_max;c++){
-
-                        output_data.mesh[j*x_num*y_num + i*y_num + k] += pc_image.mesh[c*x_num*y_num + i*y_num + k]*factor;
-
-                    }
-
-                }
-            }
-        }
-
-        timer.stop_timer();
-
-        out_image = output_data;
+        std::swap(pc_image,out_image);
 
     }
-
-
 
     template<typename U,typename V>
     void get_parts_from_img(Mesh_data<U>& img,ExtraPartCellData<V>& parts){

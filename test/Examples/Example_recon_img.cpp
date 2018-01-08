@@ -82,11 +82,12 @@ int main(int argc, char **argv) {
 
     timer.stop_timer();
 
+    std::cout << "PC recon " << (recon_pc.x_num*recon_pc.y_num*recon_pc.z_num)/((timer.t2 - timer.t1)*1000000.0) << " million pixels per second"  <<  std::endl;
+
     std::string output_path = options.directory + apr.name + "_pc.tif";
 
     //write output as tiff
     recon_pc.write_image_tiff(output_path);
-
 
     //////////////////////////
     ///
@@ -132,20 +133,23 @@ int main(int argc, char **argv) {
     //write output as tiff
     type_recon.write_image_tiff(output_path);
 
-    //smooth reconstruction (slow) - requires float as well
+    //smooth reconstruction - requires float
     Mesh_data<float> recon_smooth;
 
     std::vector<float> scale_d = {2,2,2};
 
+    timer.start_timer("smooth reconstrution");
+
     apr.interp_parts_smooth(recon_smooth,apr.particles_int,scale_d);
+
+    timer.stop_timer();
+
+    std::cout << "Smooth recon " << (recon_smooth.x_num*recon_smooth.y_num*recon_smooth.z_num)/((timer.t2 - timer.t1)*1000000.0) << " million pixels per second"  <<  std::endl;
 
     output_path = options.directory + apr.name + "_smooth.tif";
 
     //write to tiff casting to unsigned 16 bit integer
     recon_smooth.write_image_tiff_uint16(output_path);
-
-
-
 
 
 }
