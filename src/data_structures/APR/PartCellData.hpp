@@ -102,7 +102,7 @@
 #define PC_KEY_PARTICLE_MASK ((((uint64_t)1) << 20) - 1) << 43
 
 #include "PartCellNeigh.hpp"
-#include "src/data_structures/particle_map.hpp"
+#include "benchmarks/development/old_structures/particle_map.hpp"
 
 
 struct pc_key {

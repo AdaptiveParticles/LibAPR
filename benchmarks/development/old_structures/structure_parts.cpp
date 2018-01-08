@@ -1,9 +1,9 @@
-#include "structure_parts.h"
+#include "benchmarks/development/old_structures/structure_parts.h"
 
 #include <bitset>
 #include <fstream>
 
-#include "../io/parameters.h"
+#include "src/io/parameters.h"
 
 bool operator==(const Cell_id & lhs, const Cell_id & rhs){
     //relational operator for particle cell ids

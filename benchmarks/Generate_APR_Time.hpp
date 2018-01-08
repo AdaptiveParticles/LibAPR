@@ -13,8 +13,8 @@
 #include "analysis/TimeModel.hpp"
 
 #include "../src/io/writeimage.h"
-#include "../src/data_structures/structure_parts.h"
-#include "../src/data_structures/meshclass.h"
+#include "benchmarks/development/old_structures/structure_parts.h"
+#include "src/data_structures/Mesh/meshclass.h"
 #include "analysis/AnalysisData.hpp"
 #include "analysis/apr_analysis.h"
 #include "analysis/syn_templates.h"

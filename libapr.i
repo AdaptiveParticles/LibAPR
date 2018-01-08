@@ -18,8 +18,8 @@ namespace std {
 %rename(less_than) operator<;
 
 %{
-#include "src/data_structures/particle_map.hpp"
-#include "src/data_structures/structure_parts.h"
+#include "benchmarks/development/old_structures/particle_map.hpp"
+#include "benchmarks/development/old_structures/structure_parts.h"
 #include "benchmarks/development/old_algorithm/gradient.hpp"
 //#include "src/algorithm/pipeline.h"
 #include "src/io/partcell_io.h"

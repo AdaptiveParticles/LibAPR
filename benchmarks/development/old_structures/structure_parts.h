@@ -31,7 +31,7 @@
 #include <algorithm>
 
 #include "omp.h"
-#include "../io/parameters.h"
+#include "src/io/parameters.h"
 
 class Part_map;
 template <typename T>

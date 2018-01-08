@@ -12,8 +12,8 @@
 #include <functional>
 #include <gtest/gtest.h>
 
-#include "../src/data_structures/structure_parts.h"
-#include "../src/data_structures/meshclass.h"
+#include "benchmarks/development/old_structures/structure_parts.h"
+#include "src/data_structures/Mesh/meshclass.h"
 #include "benchmarks/development/old_algorithm/gradient.hpp"
 #include "benchmarks/development/old_algorithm/variance.hpp"
 

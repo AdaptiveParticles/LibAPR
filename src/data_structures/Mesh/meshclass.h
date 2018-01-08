@@ -16,7 +16,7 @@
 #include <vector>
 #include <cmath>
 
-#include "structure_parts.h"
+#include "benchmarks/development/old_structures/structure_parts.h"
 #include <tiffio.h>
 
 

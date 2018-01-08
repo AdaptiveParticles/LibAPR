@@ -3,11 +3,11 @@
 #include <iostream>
 
 #include "pipeline.h"
-#include "src/data_structures/meshclass.h"
+#include "src/data_structures/Mesh/meshclass.h"
 #include "src/io/readimage.h"
 
 #include "benchmarks/development/old_algorithm/gradient.hpp"
-#include "src/data_structures/particle_map.hpp"
+#include "benchmarks/development/old_structures/particle_map.hpp"
 #include "benchmarks/development/Tree/Content.hpp"
 #include "benchmarks/development/Tree/LevelIterator.hpp"
 #include "benchmarks/development/Tree/Tree.hpp"

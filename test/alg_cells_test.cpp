@@ -7,7 +7,7 @@
 
 #include "../src/io/readimage.h"
 #include "../src/io/write_parts.h"
-#include "../src/data_structures/particle_map.hpp"
+#include "benchmarks/development/old_structures/particle_map.hpp"
 
 void CreateResultTest::SetUp(){
     tests_directory = get_source_directory();

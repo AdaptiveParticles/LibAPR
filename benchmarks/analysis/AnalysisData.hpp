@@ -5,7 +5,7 @@
 #ifndef PARTPLAY_ANALYSISDATA_HPP
 #define PARTPLAY_ANALYSISDATA_HPP
 
-#include "../../src/data_structures/structure_parts.h"
+#include "benchmarks/development/old_structures/structure_parts.h"
 #include "../../src/io/parameters.h"
 #include "../../src/io/hdf5functions.h"
 #include "../../src/io/write_parts.h"

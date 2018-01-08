@@ -4,7 +4,7 @@
 #include <functional>
 #include <string>
 
-#include "../../src/data_structures/meshclass.h"
+#include "src/data_structures/Mesh/meshclass.h"
 
 #include "benchmarks/development/old_algorithm/apr_pipeline.hpp"
 

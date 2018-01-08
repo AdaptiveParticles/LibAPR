@@ -8,8 +8,8 @@
 #define PARTPLAY_TREE_HPP
 
 #include "benchmarks/development/Tree/Content.hpp"
-#include "src/data_structures/particle_map.hpp"
-#include "src/data_structures/meshclass.h"
+#include "benchmarks/development/old_structures/particle_map.hpp"
+#include "src/data_structures/Mesh/meshclass.h"
 
 #include <bitset>
 #include <cmath>

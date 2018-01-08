@@ -5,13 +5,13 @@
 #ifndef PARTPLAY_APR_PIPELINE_HPP
 #define PARTPLAY_APR_PIPELINE_HPP
 
-#include "src/data_structures/structure_parts.h"
+#include "benchmarks/development/old_structures/structure_parts.h"
 
-#include "src/data_structures/meshclass.h"
+#include "src/data_structures/Mesh/meshclass.h"
 #include "src/io/readimage.h"
 
 #include "gradient.hpp"
-#include "src/data_structures/particle_map.hpp"
+#include "benchmarks/development/old_structures/particle_map.hpp"
 #include "benchmarks/development/Tree/PartCellStructure.hpp"
 #include "level.hpp"
 #include "src/io/writeimage.h"

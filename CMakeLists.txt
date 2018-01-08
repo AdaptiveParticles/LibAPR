@@ -61,8 +61,8 @@ set(SOURCE_FILES
         src/io/writeimage.h
         src/io/parameters.cpp
 
-        src/data_structures/meshclass.h
-        src/data_structures/structure_parts.cpp
+        src/data_structures/Mesh/meshclass.h
+        benchmarks/development/old_structures/structure_parts.cpp
 
         src/data_structures/APR/APR.hpp
         src/data_structures/APR/APR_iterator.hpp
@@ -72,7 +72,7 @@ set(SOURCE_FILES
         )
 
 set(SOURCE_FILES_COMPILED
-        src/data_structures/structure_parts.cpp
+        benchmarks/development/old_structures/structure_parts.cpp
         src/data_structures/APR/PartCellData.cpp
         src/io/parameters.cpp
         src/io/hdf5functions.cpp

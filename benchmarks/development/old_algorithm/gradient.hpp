@@ -3,8 +3,8 @@
 
 // Mateusz Susik, 2016
 
-#include "src/data_structures/meshclass.h"
-#include "src/data_structures/structure_parts.h"
+#include "src/data_structures/Mesh/meshclass.h"
+#include "benchmarks/development/old_structures/structure_parts.h"
 
 struct three_temps{
     float temp_1, temp_2, temp_3;
