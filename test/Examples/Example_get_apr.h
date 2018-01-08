@@ -10,5 +10,6 @@
 
 #include "../../src/data_structures/APR/APR.hpp"
 
+#include "src/algorithm/APR_converter.hpp"
 
 #endif //PARTPLAY_PIPELINE_H

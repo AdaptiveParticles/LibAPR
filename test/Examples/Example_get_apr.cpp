@@ -65,6 +65,10 @@ int main(int argc, char **argv) {
         //write output as tiff
         level.write_image_tiff(output_path);
 
+        APR_converter<float> apr_converter;
+
+
+
     } else {
         std::cout << "Oops, something went wrong. APR not computed :(." << std::endl;
     }
