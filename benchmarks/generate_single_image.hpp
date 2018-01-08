@@ -20,6 +20,6 @@
 #include "analysis/numerics_benchmarks.hpp"
 #include "analysis/benchmark_helpers.hpp"
 
-#include "../src/numerics/enhance_parts.hpp"
+#include "benchmarks/development/old_numerics/enhance_parts.hpp"
 
 #endif //PARTPLAY_GENERATE_SINGLE_IMAGE_HPP

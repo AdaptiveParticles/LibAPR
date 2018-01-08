@@ -11,7 +11,7 @@
 #include "../../src/io/parameters.h"
 #include "SynImageClasses.hpp"
 #include "numerics_benchmarks.hpp"
-#include "../../src/numerics/misc_numerics.hpp"
+#include "benchmarks/development/old_numerics/misc_numerics.hpp"
 #include "../../src/data_structures/APR/APR.hpp"
 #include <assert.h>
 

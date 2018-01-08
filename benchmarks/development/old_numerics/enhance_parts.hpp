@@ -14,11 +14,11 @@
 #include "benchmarks/development/Tree/PartCellParent.hpp"
 
 
-#include "../../benchmarks/analysis/AnalysisData.hpp"
+#include "benchmarks/analysis/AnalysisData.hpp"
 #include "parent_numerics.hpp"
 #include "misc_numerics.hpp"
 #include "benchmarks/development/old_algorithm/apr_pipeline.hpp"
-#include "../../src/data_structures/APR/APR.hpp"
+#include "src/data_structures/APR/APR.hpp"
 
 template<typename U>
 void compute_guided_var(Mesh_data<U> input_image,PartCellStructure<U,uint64_t>& pc_struct,Part_rep& part_rep){

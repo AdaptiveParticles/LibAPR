@@ -8,8 +8,8 @@
 #include "benchmarks/development/Tree/PartCellStructure.hpp"
 
 #include "benchmarks/development/Tree/PartCellParent.hpp"
-#include "src/numerics/filter_numerics.hpp"
-#include "src/numerics/misc_numerics.hpp"
+#include "benchmarks/development/old_numerics/filter_numerics.hpp"
+#include "benchmarks/development/old_numerics/misc_numerics.hpp"
 
 #include "CurrLevel.hpp"
 

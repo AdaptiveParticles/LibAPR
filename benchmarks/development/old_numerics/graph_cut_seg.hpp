@@ -10,9 +10,9 @@
 #include "src/data_structures/APR/ExtraPartCellData.hpp"
 #include "benchmarks/development/Tree/PartCellParent.hpp"
 
-#include "../../external/maxflow-v3.04.src/instances.inc"
+#include "external/maxflow-v3.04.src/instances.inc"
 
-#include "../../benchmarks/analysis/AnalysisData.hpp"
+#include "benchmarks/analysis/AnalysisData.hpp"
 #include "parent_numerics.hpp"
 #include "misc_numerics.hpp"
 

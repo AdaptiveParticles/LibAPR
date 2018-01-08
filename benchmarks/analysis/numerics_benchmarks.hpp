@@ -7,10 +7,10 @@
 
 #include "../../src/data_structures/APR/APR.hpp"
 
-#include "../../src/numerics/graph_cut_seg.hpp"
-#include "../../src/numerics/filter_numerics.hpp"
+#include "benchmarks/development/old_numerics/graph_cut_seg.hpp"
+#include "benchmarks/development/old_numerics/filter_numerics.hpp"
 #include "../../src/numerics/ray_cast.hpp"
-#include "../../src/numerics/enhance_parts.hpp"
+#include "benchmarks/development/old_numerics/enhance_parts.hpp"
 
 template<typename S,typename T>
 void compare_E_debug(Mesh_data<S>& org_img,Mesh_data<T>& rec_img,Proc_par& pars,std::string name,AnalysisData& analysis_data){

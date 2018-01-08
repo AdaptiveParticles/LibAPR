@@ -21,9 +21,9 @@
 
 #include "test/utils.h"
 
-#include "src/numerics/misc_numerics.hpp"
-#include "src/numerics/filter_numerics.hpp"
-#include "src/numerics/enhance_parts.hpp"
+#include "benchmarks/development/old_numerics/misc_numerics.hpp"
+#include "benchmarks/development/old_numerics/filter_numerics.hpp"
+#include "benchmarks/development/old_numerics/enhance_parts.hpp"
 
 
 

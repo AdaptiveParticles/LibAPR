@@ -12,7 +12,7 @@
 #include "benchmarks/development/old_io/writeimage.h"
 #include "benchmarks/development/old_io/write_parts.h"
 #include "benchmarks/development/old_io/partcell_io.h"
-#include "src/numerics/apr_compression.hpp"
+#include "benchmarks/development/old_numerics/apr_compression.hpp"
 #include "test/utils.h"
 
 bool command_option_exists(char **begin, char **end, const std::string &option)

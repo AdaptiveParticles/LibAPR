@@ -16,11 +16,11 @@
 #include "src/data_structures/APR/ExtraPartCellData.hpp"
 #include "benchmarks/development/Tree/PartCellParent.hpp"
 
-#include "filter_help/FilterOffset.hpp"
-#include "filter_help/FilterLevel.hpp"
+#include "FilterOffset.hpp"
+#include "FilterLevel.hpp"
 
 #include "src/data_structures/APR/CurrLevel.hpp"
-#include "filter_help/NeighOffset.hpp"
+#include "NeighOffset.hpp"
 
 int uf_find(int x,std::vector<int>& labels) {
     int y = x;

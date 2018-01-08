@@ -25,9 +25,9 @@
 
 #include "benchmarks/development/Tree/ParticleDataNew.hpp"
 
-#include "../src/numerics/filter_help/NeighOffset.hpp"
+#include "benchmarks/development/old_numerics/NeighOffset.hpp"
 #include "src/data_structures/APR/CurrLevel.hpp"
-#include "../src/numerics/misc_numerics.hpp"
+#include "benchmarks/development/old_numerics/misc_numerics.hpp"
 
 #include "../src/data_structures/APR/APR.hpp"
 

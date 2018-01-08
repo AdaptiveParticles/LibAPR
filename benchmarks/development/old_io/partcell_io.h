@@ -26,7 +26,7 @@
 #include "benchmarks/development/Tree/PartCellStructure.hpp"
 #include "write_parts.h"
 #include "writeimage.h"
-#include "src/numerics/apr_compression.hpp"
+#include "benchmarks/development/old_numerics/apr_compression.hpp"
 #include "src/data_structures/APR/APR.hpp"
 
 std::string exec(const char* cmd);

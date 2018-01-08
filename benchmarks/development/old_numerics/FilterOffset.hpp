@@ -20,7 +20,7 @@
 
 #include "benchmarks/development/Tree/PartCellStructure.hpp"
 #include "benchmarks/development/Tree/ParticleDataNew.hpp"
-#include "FilterLevel.hpp"
+#include "benchmarks/development/old_numerics/FilterLevel.hpp"
 
 template<typename T,typename V>
 class FilterOffset {

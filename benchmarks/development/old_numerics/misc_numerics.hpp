@@ -15,7 +15,7 @@
 
 #include "benchmarks/development/Tree/PartCellStructure.hpp"
 #include "src/data_structures/APR/ExtraPartCellData.hpp"
-#include "filter_help/FilterLevel.hpp"
+#include "FilterLevel.hpp"
 
 template<typename U,typename V>
 void interp_img(Mesh_data<U>& img,PartCellData<uint64_t>& pc_data,ParticleDataNew<float, uint64_t>& part_new,ExtraPartCellData<V>& particles_int,const bool val = false);

@@ -13,9 +13,9 @@
 #include "benchmarks/development/old_io/write_parts.h"
 #include "benchmarks/development/old_io/partcell_io.h"
 #include "test/utils.h"
-#include "src/numerics/misc_numerics.hpp"
+#include "benchmarks/development/old_numerics/misc_numerics.hpp"
 #include "benchmarks/development/old_algorithm/apr_pipeline.hpp"
-#include "src/numerics/apr_segment.hpp"
+#include "benchmarks/development/old_numerics/apr_segment.hpp"
 
 #include "external/blitzwave/src/Wavelet.h"
 #include "external/blitzwave/src/WaveletDecomp.h"

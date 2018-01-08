@@ -17,7 +17,7 @@
 
 #include "benchmarks/development/Tree/PartCellStructure.hpp"
 #include "src/data_structures/APR/CurrLevel.hpp"
-#include "NeighIterator.hpp"
+#include "benchmarks/development/old_numerics/NeighIterator.hpp"
 
 template<typename V,typename T>
 class NeighOffset {
