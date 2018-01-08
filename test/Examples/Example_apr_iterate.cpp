@@ -105,6 +105,24 @@ int main(int argc, char **argv) {
 
     timer.stop_timer();
 
+    //
+    //  You can also iterate over by level, this is in the datastrucrure called depth, Particle Cells range from depth_min() to depth_max(), coinciding with level = l_min and level = l_max
+    //
+
+    for (unsigned int level = 0; level <= apr.depth_max(); ++level) {
+        for (apr.begin(level); apr.end(level) != 0; apr.it_forward(level)) {
+            unsigned int curr_level = apr.level();
+            unsigned int curr_depth = apr.depth();
+
+            if(apr(apr.particles_int) > 100){
+                //set all particles in calc_ex with an particle intensity greater then 100 to 0.
+                apr(calc_ex) = 0;
+
+            }
+        }
+    }
+
+
     ////////////////////////////
     ///
     /// OpenMP Parallel loop iteration (requires seperate iterators from the apr structure used in the serial examples above
@@ -130,11 +148,11 @@ int main(int argc, char **argv) {
             //get global y co-ordinate of the particle and put result in calc_ex2 at the current Particle Cell (PC) location
             apr_it(calc_ex2) = apr_it.y_global();
 
-            apr_it.x(); // gets the Particle cell spatial index x.
+            int x = apr_it.x(); // gets the Particle cell spatial index x.
 
-            apr_it.z_nearest_pixel(); //gets the rounded up nearest pixel to the co-ordinate from original image (Larger then PC pixels don't align with pixels)
+            int z_pixel = apr_it.z_nearest_pixel(); //gets the rounded up nearest pixel to the co-ordinate from original image (Larger then PC pixels don't align with pixels)
 
-            apr_it.depth(); // gets the level of the Particle Cell (higher the level (depth), the smaller the Particle Cell --> higher resolution locally) PC at pixel resolution depth = depth_max();
+            unsigned int depth =  apr_it.depth(); // gets the level of the Particle Cell (higher the level (depth), the smaller the Particle Cell --> higher resolution locally) PC at pixel resolution depth = depth_max();
 
         }
     }

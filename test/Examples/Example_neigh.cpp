@@ -166,11 +166,9 @@ int main(int argc, char **argv) {
     timer.stop_timer();
 
 
-    ////////////////////////////
-    ///
-    /// Access only one directions neighbour
-    ///
-    /////////////////////////
+    /*
+     *  Access only one directions neighbour
+     */
 
     ExtraPartCellData<float> type_sum(apr);
 

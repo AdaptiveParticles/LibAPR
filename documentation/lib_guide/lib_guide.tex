@@ -30,19 +30,56 @@
 %opening
 \title{APRLib Documentation}
 \author
-{Bevan L. Cheeseman, Ulrik G{\"u}nther, Matteusz Susik}
+{Bevan L. Cheeseman}
 
 \begin{document}
 
 \maketitle
 
+\section{Installation}
+see Readme.md
+
+\section{Calculating the APR}
+
+\section{The APR Data structure}
+
+
+\subsection{Input-Output}
+
+\section{Data Access and Processing}
+
+
+\subsection{Serial Iteration}
+
 \begin{lstlisting}
-	for (apr.begin(); apr.end() != 0; apr.it_forward()) {
-		float particle_intensity = apr(apr.particles_int);
-	}
+for (apr.begin(); apr.end() != 0; apr.it_forward()) {
+float particle_intensity = apr(apr.particles_int);
+}
 \end{lstlisting}
 
-\section{APR Iterator}
+\subsection{Parallel Iteration}
+
+
+\subsection{Neighbor Iteration}
+
+
+\subsection{Particle Transforms}
+
+\section{Pixel Images and Reconstruction}
+\subsection{Mesh\_data class}
+
+\subsection{Input - Output}
+
+\subsection{Reconstruction}
+
+\section{MISC}
+
+
+
+
+
+
+
 
 
 
