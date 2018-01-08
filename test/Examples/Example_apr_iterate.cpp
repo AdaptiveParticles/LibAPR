@@ -175,8 +175,8 @@ int main(int argc, char **argv) {
 
     /// Single dataset, unary operation, overwrite result
     //compute the square the of the dataset
-    timer.start_timer("Using transform_parts: square the dataset");
-    calc_ex.transform_parts([] (const float& a){return pow(a,2);});
+    timer.start_timer("Using map: square the dataset");
+    calc_ex.map_inplace([](const float &a) { return pow(a, 2); });
     timer.stop_timer();
 
     //compare to explicit loop
@@ -196,12 +196,12 @@ int main(int argc, char **argv) {
     timer.start_timer("Take the absolute value and output");
     ExtraPartCellData<float> output_1;
     //return the absolute value of the part dataset (includes initialization of the output result)
-    output_1 = calc_ex.transform_parts_output([] (const float& a){return abs(a);});
+    output_1 = calc_ex.map([](const float &a) { return abs(a); });
     timer.stop_timer();
 
     /// Two datasets, binary operation, return result to the particle dataset form which it is performed.
     timer.start_timer("Add two particle datasets");
-    calc_ex2.transform_parts(calc_ex,std::plus<float>()); // adds calc_ex to calc_ex2 and returns the result to calc_ex
+    calc_ex2.zip_inplace(calc_ex, std::plus<float>()); // adds calc_ex to calc_ex2 and returns the result to calc_ex
     timer.stop_timer();
 
     /// Two datasets, binary operation, return result to the particle dataset form which it is performed.
@@ -209,7 +209,7 @@ int main(int argc, char **argv) {
     ExtraPartCellData<float> output_2;
     //return the maximum of the two datasets
     timer.start_timer("Calculate and return the max of two particle datasets");
-    output_2 = calc_ex.transform_parts_output(calc_ex2,[] (const float& a,const float& b) {return std::max(a,b);});
+    output_2 = calc_ex.zip(calc_ex2, [](const float &a, const float &b) { return std::max(a, b); });
     timer.stop_timer();
 
 

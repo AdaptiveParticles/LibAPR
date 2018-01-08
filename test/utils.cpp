@@ -201,7 +201,7 @@ std::string get_source_directory(){
 
 bool compare_sparse_rep_with_part_map(const Particle_map<float>& part_map,PartCellStructure<float,uint64_t>& pc_struct,bool status_flag){
     //
-    //  Compares the sparse representation with the particle map original data used to generate it
+    //  Compares the sparse representation with the particle map_inplace original data used to generate it
     //
 
     //initialize
@@ -1278,7 +1278,7 @@ bool parent_structure_test(PartCellStructure<float,uint64_t>& pc_struct){
 
         p_map[i].resize(x_num_*z_num_*y_num_,0);
 
-        // First create the particle map
+        // First create the particle map_inplace
         for(z_ = 0;z_ < z_num_;z_++){
 
             for(x_ = 0;x_ < x_num_;x_++){
@@ -1794,7 +1794,7 @@ void create_test_dataset_from_hdf5(Particle_map<float>& particle_map,PartCellStr
 
     read_apr_pc_struct(pc_struct,file_name);
 
-    //Now we need to generate the particle map
+    //Now we need to generate the particle map_inplace
     particle_map.k_max = pc_struct.depth_max;
     particle_map.k_min = pc_struct.depth_min;
 
@@ -1832,7 +1832,7 @@ void create_test_dataset_from_hdf5(Particle_map<float>& particle_map,PartCellStr
         particle_map.downsampled[i].z_num = z_num_;
         particle_map.downsampled[i].mesh.resize(x_num_*z_num_*y_num_,0);
 
-        // First create the particle map
+        // First create the particle map_inplace
         for(z_ = 0;z_ < z_num_;z_++){
 
             for(x_ = 0;x_ < x_num_;x_++){
@@ -2691,7 +2691,7 @@ bool find_part_cell_test(PartCellStructure<float,uint64_t>& pc_struct){
         const unsigned int x_num_ = pc_struct.x_num[i];
         const unsigned int z_num_ = pc_struct.z_num[i];
 
-        // First create the particle map
+        // First create the particle map_inplace
         for(z_ = 0;z_ < z_num_;z_++){
 
             for(x_ = 0;x_ < x_num_;x_++){
