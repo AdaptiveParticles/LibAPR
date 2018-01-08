@@ -4,8 +4,8 @@
 #include <algorithm>
 #include <functional>
 
-#include "../data_structures/meshclass.h"
-#include "../data_structures/structure_parts.h"
+#include "src/data_structures/meshclass.h"
+#include "src/data_structures/structure_parts.h"
 
 class Map_calc_cpu{
     //

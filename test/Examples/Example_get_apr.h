@@ -6,7 +6,7 @@
 
 #include "../../src/data_structures/meshclass.h"
 
-#include "../../src/algorithm/apr_pipeline.hpp"
+#include "benchmarks/development/old_algorithm/apr_pipeline.hpp"
 
 #include "../../src/data_structures/APR/APR.hpp"
 

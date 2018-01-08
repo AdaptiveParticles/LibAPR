@@ -14,8 +14,8 @@
 
 #include "../src/data_structures/structure_parts.h"
 #include "../src/data_structures/meshclass.h"
-#include "../src/algorithm/gradient.hpp"
-#include "../src/algorithm/variance.hpp"
+#include "benchmarks/development/old_algorithm/gradient.hpp"
+#include "benchmarks/development/old_algorithm/variance.hpp"
 
 
 #define SIZE 100

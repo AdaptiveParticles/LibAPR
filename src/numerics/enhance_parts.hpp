@@ -17,7 +17,7 @@
 #include "../../benchmarks/analysis/AnalysisData.hpp"
 #include "parent_numerics.hpp"
 #include "misc_numerics.hpp"
-#include "../../src/algorithm/apr_pipeline.hpp"
+#include "benchmarks/development/old_algorithm/apr_pipeline.hpp"
 #include "../../src/data_structures/APR/APR.hpp"
 
 template<typename U>

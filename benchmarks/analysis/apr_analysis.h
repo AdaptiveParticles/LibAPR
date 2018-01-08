@@ -5,7 +5,7 @@
 #ifndef PARTPLAY_APR_ANALYSIS_H
 #define PARTPLAY_APR_ANALYSIS_H
 
-#include "../../src/algorithm/apr_pipeline.hpp"
+#include "benchmarks/development/old_algorithm/apr_pipeline.hpp"
 #include "AnalysisData.hpp"
 #include "MeshDataAF.h"
 #include "../../src/io/parameters.h"

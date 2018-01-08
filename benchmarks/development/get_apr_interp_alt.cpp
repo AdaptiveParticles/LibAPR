@@ -6,10 +6,10 @@
 #include "src/data_structures/meshclass.h"
 #include "src/io/readimage.h"
 
-#include "src/algorithm/gradient.hpp"
+#include "benchmarks/development/old_algorithm/gradient.hpp"
 #include "src/data_structures/particle_map.hpp"
 #include "benchmarks/development/Tree/PartCellStructure.hpp"
-#include "src/algorithm/level.hpp"
+#include "benchmarks/development/old_algorithm/level.hpp"
 #include "src/io/writeimage.h"
 #include "src/io/write_parts.h"
 #include "src/io/partcell_io.h"

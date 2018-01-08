@@ -3,19 +3,19 @@
 #include <iostream>
 
 #include "pipeline.h"
-#include "../data_structures/meshclass.h"
-#include "../io/readimage.h"
+#include "src/data_structures/meshclass.h"
+#include "src/io/readimage.h"
 
-#include "gradient.hpp"
-#include "../data_structures/particle_map.hpp"
+#include "benchmarks/development/old_algorithm/gradient.hpp"
+#include "src/data_structures/particle_map.hpp"
 #include "benchmarks/development/Tree/Content.hpp"
 #include "benchmarks/development/Tree/LevelIterator.hpp"
 #include "benchmarks/development/Tree/Tree.hpp"
 #include "benchmarks/development/Tree/PartCellStructure.hpp"
-#include "level.hpp"
-#include "../io/writeimage.h"
-#include "../io/write_parts.h"
-#include "../io/partcell_io.h"
+#include "benchmarks/development/old_algorithm/level.hpp"
+#include "src/io/writeimage.h"
+#include "src/io/write_parts.h"
+#include "src/io/partcell_io.h"
 
 bool command_option_exists(char **begin, char **end, const std::string &option)
 {

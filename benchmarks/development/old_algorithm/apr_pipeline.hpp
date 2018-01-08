@@ -5,21 +5,21 @@
 #ifndef PARTPLAY_APR_PIPELINE_HPP
 #define PARTPLAY_APR_PIPELINE_HPP
 
-#include "../../src/data_structures/structure_parts.h"
+#include "src/data_structures/structure_parts.h"
 
-#include "../../src/data_structures/meshclass.h"
-#include "../../src/io/readimage.h"
+#include "src/data_structures/meshclass.h"
+#include "src/io/readimage.h"
 
-#include "../../src/algorithm/gradient.hpp"
-#include "../../src/data_structures/particle_map.hpp"
+#include "gradient.hpp"
+#include "src/data_structures/particle_map.hpp"
 #include "benchmarks/development/Tree/PartCellStructure.hpp"
-#include "../../src/algorithm/level.hpp"
-#include "../../src/io/writeimage.h"
-#include "../../src/io/write_parts.h"
-#include "../../src/io/partcell_io.h"
+#include "level.hpp"
+#include "src/io/writeimage.h"
+#include "src/io/write_parts.h"
+#include "src/io/partcell_io.h"
 #include "benchmarks/development/Tree/PartCellParent.hpp"
-#include "../../benchmarks/analysis/AnalysisData.hpp"
-#include "../../src/data_structures/APR/APR.hpp"
+#include "benchmarks/analysis/AnalysisData.hpp"
+#include "src/data_structures/APR/APR.hpp"
 
 struct cmdLineOptions{
     std::string gt_input = "";

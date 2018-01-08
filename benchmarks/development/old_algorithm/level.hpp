@@ -5,7 +5,7 @@
 #ifndef PARTPLAY_K_HPP
 #define PARTPLAY_K_HPP
 
-#include "../data_structures/particle_map.hpp"
+#include "src/data_structures/particle_map.hpp"
 #include "variance.hpp"
 
 

@@ -24,9 +24,7 @@ class ExtraPartCellData {
 public:
     
     //the neighbours arranged by face
-    
-    
-    
+
     ExtraPartCellData(){
     };
     

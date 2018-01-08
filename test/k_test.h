@@ -6,7 +6,7 @@
 #define PARTPLAY_K_TEST_H
 
 #include <gtest/gtest.h>
-#include "../src/algorithm/level.hpp"
+#include "benchmarks/development/old_algorithm/level.hpp"
 
 #include "../src/data_structures/structure_parts.h"
 #include "../src/data_structures/meshclass.h"

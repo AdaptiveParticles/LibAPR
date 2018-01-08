@@ -20,7 +20,7 @@ namespace std {
 %{
 #include "src/data_structures/particle_map.hpp"
 #include "src/data_structures/structure_parts.h"
-#include "src/algorithm/gradient.hpp"
+#include "benchmarks/development/old_algorithm/gradient.hpp"
 //#include "src/algorithm/pipeline.h"
 #include "src/io/partcell_io.h"
 //#include "src/data_structures/Tree/ParticleData.hpp"
