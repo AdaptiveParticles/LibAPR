@@ -19,11 +19,11 @@
 
 #include "../src/data_structures/meshclass.h"
 #include "../src/algorithm/level.hpp"
-#include "../src/data_structures/Tree/PartCellStructure.hpp"
+#include "benchmarks/development/Tree/PartCellStructure.hpp"
 #include "../src/io/partcell_io.h"
-#include "../src/data_structures/Tree/PartCellParent.hpp"
+#include "benchmarks/development/Tree/PartCellParent.hpp"
 
-#include "../src/data_structures/Tree/ParticleDataNew.hpp"
+#include "benchmarks/development/Tree/ParticleDataNew.hpp"
 
 #include "../src/numerics/filter_help/NeighOffset.hpp"
 #include "../src/numerics/filter_help/CurrLevel.hpp"

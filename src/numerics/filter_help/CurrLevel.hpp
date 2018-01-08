@@ -10,8 +10,8 @@
 #define PARTPLAY_CURRENTLEVEL_HPP
 // type T data structure base type
 
-#include "../../data_structures/Tree/PartCellStructure.hpp"
-#include "../../data_structures/Tree/ParticleDataNew.hpp"
+#include "benchmarks/development/Tree/PartCellStructure.hpp"
+#include "benchmarks/development/Tree/ParticleDataNew.hpp"
 
 template<typename V,typename T>
 class CurrentLevel {

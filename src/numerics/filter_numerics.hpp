@@ -15,9 +15,9 @@
 #include <vector>
 #include <fstream>
 
-#include "../data_structures/Tree/PartCellStructure.hpp"
+#include "benchmarks/development/Tree/PartCellStructure.hpp"
 #include "src/data_structures/APR/ExtraPartCellData.hpp"
-#include "../data_structures/Tree/PartCellParent.hpp"
+#include "benchmarks/development/Tree/PartCellParent.hpp"
 
 #include "filter_help/FilterOffset.hpp"
 #include "filter_help/FilterLevel.hpp"

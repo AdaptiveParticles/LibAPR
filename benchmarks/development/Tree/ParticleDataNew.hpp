@@ -13,7 +13,7 @@
 
 #include "src/data_structures/APR/PartCellData.hpp"
 //#include "src/data_structures/APR/ExtraPartCellData.hpp"
-#include "PartCellStructure.hpp"
+#include "benchmarks/development/Tree/PartCellStructure.hpp"
 
 template<typename T>
 class ExtraPartCellData;

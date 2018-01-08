@@ -21,7 +21,7 @@
 
 #include "src/numerics/filter_help/CurrLevel.hpp"
 
-#include "src/data_structures/Tree/PartCellStructure.hpp"
+#include "benchmarks/development/Tree/PartCellStructure.hpp"
 
 #include "src/data_structures/APR/APR.hpp"
 

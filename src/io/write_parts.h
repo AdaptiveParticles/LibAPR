@@ -18,8 +18,8 @@
 
 #include "hdf5functions.h"
 #include "../data_structures/structure_parts.h"
-#include "../data_structures/Tree/Tree.hpp"
-#include "../data_structures/Tree/LevelIterator.hpp"
+#include "benchmarks/development/Tree/Tree.hpp"
+#include "benchmarks/development/Tree/LevelIterator.hpp"
 //#include "../data_structures/Tree/PartCellStructure.hpp"
 
 #include <fstream>

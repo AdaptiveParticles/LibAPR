@@ -12,12 +12,12 @@
 
 #include "../../src/algorithm/gradient.hpp"
 #include "../../src/data_structures/particle_map.hpp"
-#include "../../src/data_structures/Tree/PartCellStructure.hpp"
+#include "benchmarks/development/Tree/PartCellStructure.hpp"
 #include "../../src/algorithm/level.hpp"
 #include "../../src/io/writeimage.h"
 #include "../../src/io/write_parts.h"
 #include "../../src/io/partcell_io.h"
-#include "../../src/data_structures/Tree/PartCellParent.hpp"
+#include "benchmarks/development/Tree/PartCellParent.hpp"
 #include "../../benchmarks/analysis/AnalysisData.hpp"
 #include "../../src/data_structures/APR/APR.hpp"
 

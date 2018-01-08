@@ -5,9 +5,9 @@
 #ifndef PARTPLAY_APR_HPP
 #define PARTPLAY_APR_HPP
 
-#include "src/data_structures/Tree/PartCellStructure.hpp"
+#include "benchmarks/development/Tree/PartCellStructure.hpp"
 
-#include "src/data_structures/Tree/PartCellParent.hpp"
+#include "benchmarks/development/Tree/PartCellParent.hpp"
 #include "src/numerics/filter_numerics.hpp"
 #include "src/numerics/misc_numerics.hpp"
 

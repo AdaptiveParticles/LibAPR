@@ -10,7 +10,7 @@
 #define PARTPLAY_FILTERLEVEL_HPP
 // type T data structure base type
 
-#include "../../data_structures/Tree/PartCellStructure.hpp"
+#include "benchmarks/development/Tree/PartCellStructure.hpp"
 
 template<typename T,typename V>
 class FilterLevel {

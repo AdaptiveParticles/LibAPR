@@ -13,7 +13,7 @@
 #include <vector>
 #include <fstream>
 
-#include "../data_structures/Tree/PartCellStructure.hpp"
+#include "benchmarks/development/Tree/PartCellStructure.hpp"
 #include "src/data_structures/APR/ExtraPartCellData.hpp"
 #include "filter_help/FilterLevel.hpp"
 

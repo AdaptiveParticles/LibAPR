@@ -21,9 +21,9 @@
 
 #include "src/data_structures/APR/PartCellData.hpp"
 #include "ParticleData.hpp"
-#include "../particle_map.hpp"
-#include "../meshclass.h"
-#include "../../io/writeimage.h"
+#include "src/data_structures/particle_map.hpp"
+#include "src/data_structures/meshclass.h"
+#include "src/io/writeimage.h"
 
 #ifdef _MSC_VER
 #define NOMINMAX

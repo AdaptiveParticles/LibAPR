@@ -12,7 +12,7 @@
 
 #include "hdf5functions.h"
 #include "hdf5functions_blosc.h"
-#include "../data_structures/Tree/PartCellStructure.hpp"
+#include "benchmarks/development/Tree/PartCellStructure.hpp"
 #include "write_parts.h"
 #include "writeimage.h"
 #include "../numerics/apr_compression.hpp"

@@ -8,7 +8,7 @@
 
 #include "src/algorithm/gradient.hpp"
 #include "src/data_structures/particle_map.hpp"
-#include "src/data_structures/Tree/PartCellStructure.hpp"
+#include "benchmarks/development/Tree/PartCellStructure.hpp"
 #include "src/algorithm/level.hpp"
 #include "src/io/writeimage.h"
 #include "src/io/write_parts.h"

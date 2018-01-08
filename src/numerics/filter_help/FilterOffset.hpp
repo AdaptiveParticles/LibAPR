@@ -18,8 +18,8 @@
 #define INACTIVE 0
 
 
-#include "../../data_structures/Tree/PartCellStructure.hpp"
-#include "../../data_structures/Tree/ParticleDataNew.hpp"
+#include "benchmarks/development/Tree/PartCellStructure.hpp"
+#include "benchmarks/development/Tree/ParticleDataNew.hpp"
 #include "FilterLevel.hpp"
 
 template<typename T,typename V>

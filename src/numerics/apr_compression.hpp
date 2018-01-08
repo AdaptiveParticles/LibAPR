@@ -6,9 +6,9 @@
 #include <vector>
 #include <fstream>
 
-#include "../data_structures/Tree/PartCellStructure.hpp"
+#include "benchmarks/development/Tree/PartCellStructure.hpp"
 #include "src/data_structures/APR/ExtraPartCellData.hpp"
-#include "../data_structures/Tree/PartCellParent.hpp"
+#include "benchmarks/development/Tree/PartCellParent.hpp"
 
 template<typename T>
 void get_wavelet_parts(std::vector<T>& parts,uint8_t& scale){

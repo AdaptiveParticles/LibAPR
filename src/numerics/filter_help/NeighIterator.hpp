@@ -15,7 +15,7 @@
 #define CHILD_LEVEL 3
 
 
-#include "../../data_structures/Tree/PartCellStructure.hpp"
+#include "benchmarks/development/Tree/PartCellStructure.hpp"
 #include "CurrLevel.hpp"
 
 template<typename V,typename T>
