@@ -105,6 +105,26 @@ int main(int argc, char **argv) {
 
     timer.stop_timer();
 
+    //
+    //  You can also iterate over by level, this is in the datastrucrure called depth, Particle Cells range from depth_min() to depth_max(), coinciding with level = l_min and level = l_max
+    //
+
+    for (unsigned int level = apr.depth_min(); level <= apr.depth_max(); ++level) {
+        for (apr.begin(level); apr.end(level)!=0 ; apr.it_forward(level)) {
+
+            //these are the same
+            unsigned int curr_level = apr.level();
+            unsigned int curr_depth = apr.depth();
+
+            if(apr(apr.particles_int) > 100){
+                //set all particles in calc_ex with an particle intensity greater then 100 to 0.
+                apr(calc_ex) = 0;
+
+            }
+        }
+    }
+
+
     ////////////////////////////
     ///
     /// OpenMP Parallel loop iteration (requires seperate iterators from the apr structure used in the serial examples above
@@ -130,11 +150,11 @@ int main(int argc, char **argv) {
             //get global y co-ordinate of the particle and put result in calc_ex2 at the current Particle Cell (PC) location
             apr_it(calc_ex2) = apr_it.y_global();
 
-            apr_it.x(); // gets the Particle cell spatial index x.
+            int x = apr_it.x(); // gets the Particle cell spatial index x.
 
-            apr_it.z_nearest_pixel(); //gets the rounded up nearest pixel to the co-ordinate from original image (Larger then PC pixels don't align with pixels)
+            int z_pixel = apr_it.z_nearest_pixel(); //gets the rounded up nearest pixel to the co-ordinate from original image (Larger then PC pixels don't align with pixels)
 
-            apr_it.depth(); // gets the level of the Particle Cell (higher the level (depth), the smaller the Particle Cell --> higher resolution locally) PC at pixel resolution depth = depth_max();
+            unsigned int depth =  apr_it.depth(); // gets the level of the Particle Cell (higher the level (depth), the smaller the Particle Cell --> higher resolution locally) PC at pixel resolution depth = depth_max();
 
         }
     }
@@ -155,8 +175,8 @@ int main(int argc, char **argv) {
 
     /// Single dataset, unary operation, overwrite result
     //compute the square the of the dataset
-    timer.start_timer("Using transform_parts: square the dataset");
-    calc_ex.transform_parts([] (const float& a){return pow(a,2);});
+    timer.start_timer("Using map: square the dataset");
+    calc_ex.map_inplace([](const float &a) { return pow(a, 2); });
     timer.stop_timer();
 
     //compare to explicit loop
@@ -176,12 +196,12 @@ int main(int argc, char **argv) {
     timer.start_timer("Take the absolute value and output");
     ExtraPartCellData<float> output_1;
     //return the absolute value of the part dataset (includes initialization of the output result)
-    output_1 = calc_ex.transform_parts_output([] (const float& a){return abs(a);});
+    output_1 = calc_ex.map([](const float &a) { return abs(a); });
     timer.stop_timer();
 
     /// Two datasets, binary operation, return result to the particle dataset form which it is performed.
     timer.start_timer("Add two particle datasets");
-    calc_ex2.transform_parts(calc_ex,std::plus<float>()); // adds calc_ex to calc_ex2 and returns the result to calc_ex
+    calc_ex2.zip_inplace(calc_ex, std::plus<float>()); // adds calc_ex to calc_ex2 and returns the result to calc_ex
     timer.stop_timer();
 
     /// Two datasets, binary operation, return result to the particle dataset form which it is performed.
@@ -189,7 +209,7 @@ int main(int argc, char **argv) {
     ExtraPartCellData<float> output_2;
     //return the maximum of the two datasets
     timer.start_timer("Calculate and return the max of two particle datasets");
-    output_2 = calc_ex.transform_parts_output(calc_ex2,[] (const float& a,const float& b) {return std::max(a,b);});
+    output_2 = calc_ex.zip(calc_ex2, [](const float &a, const float &b) { return std::max(a, b); });
     timer.stop_timer();
 
 

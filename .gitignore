@@ -11,6 +11,12 @@
 *.o
 *.obj
 
+*.aux
+*.bbl
+*.log
+*.bbl
+
+
 # Precompiled Headers
 *.gch
 *.pch

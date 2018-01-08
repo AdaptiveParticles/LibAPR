@@ -338,7 +338,7 @@ public:
         }
     }
     template<typename V,class BinaryOperation>
-    void transform_parts(ExtraPartCellData<V>& parts2,BinaryOperation op){
+    void zip_inplace(ExtraPartCellData<V> &parts2, BinaryOperation op){
         //
         //  Bevan Cheeseman 2017
         //
@@ -375,7 +375,7 @@ public:
     }
 
     template<typename V,class BinaryOperation>
-    ExtraPartCellData<V> transform_parts_output(ExtraPartCellData<V>& parts2,BinaryOperation op){
+    ExtraPartCellData<V> zip(ExtraPartCellData<V> &parts2, BinaryOperation op){
         //
         //  Bevan Cheeseman 2017
         //
@@ -420,7 +420,7 @@ public:
 
 
     template<class UnaryOperator>
-    ExtraPartCellData<T> transform_parts_output(UnaryOperator op){
+    ExtraPartCellData<T> map(UnaryOperator op){
         //
         //  Bevan Cheeseman 2018
         //
@@ -462,7 +462,7 @@ public:
     }
 
     template<class UnaryOperator>
-    void transform_parts(UnaryOperator op){
+    void map_inplace(UnaryOperator op){
         //
         //  Bevan Cheeseman 2018
         //

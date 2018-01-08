@@ -170,7 +170,7 @@ template<typename key, typename val>
 struct my_hash_map
 {
     //
-    //  Template class for the hash table or, ordered map I use.
+    //  Template class for the hash table or, ordered map_inplace I use.
     //
     
     
@@ -179,7 +179,7 @@ struct my_hash_map
     typedef std::map<key,val> type;
 };
 class Part_map{
-    //hash map structures for organisizing the data.
+    //hash map_inplace structures for organisizing the data.
 public:
     //vector of hash-maps for every resolution level
     std::vector<my_hash_map<Cell_id,unsigned int>::type> pl;
@@ -224,7 +224,7 @@ public:
         
     }
     
-    //commented out because to check existence you will still need to compare with the end address of the map
+    //commented out because to check existence you will still need to compare with the end address of the map_inplace
     //    my_hash_map<Cell_id,Cell_index*>::type::iterator search_cell(Cell_id new_cell_id){
     //        //allows you to search for a cell and returns its iterator if its successful otherwise,
     //
@@ -391,7 +391,7 @@ class Part_rep: public Data_manager {
     
 public:
     
-    //part_list map
+    //part_list map_inplace
     Part_map pl_map;
     
     
