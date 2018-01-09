@@ -14,6 +14,8 @@
 
 #include "src/algorithm/gradient.hpp"
 #include "src/algorithm/local_intensity_scale.hpp"
+#include "src/algorithm/local_particle_set.hpp"
+#include "src/algorithm/pulling_scheme.hpp"
 
 template<typename ImageType>
 class APR_converter {
@@ -68,6 +70,12 @@ private:
 
     Mesh_data<ImageType> local_scale_temp; //
 
+    Mesh_data<ImageType> local_scale_temp2; //
+
+    //storage of the particle cell tree for computing the pulling scheme
+
+    std::vector<Mesh_data<uint8_t>> particle_cell_tree;
+
     float bspline_offset=0;
 
     /*
@@ -90,31 +98,81 @@ private:
     void get_local_intensity_scale(Mesh_data<T>& input_img,Mesh_data<S>& local_intensity_scale);
 
 
+    template<typename T,typename S>
+    void compute_local_particle_cell_set(Mesh_data<T>& grad_image_ds,Mesh_data<S>& local_intensity_scale_ds);
+
 };
 
 /*
  * Implimentations
  */
 template<typename ImageType> template<typename T,typename S>
+void APR_converter<ImageType>::compute_local_particle_cell_set(Mesh_data<T>& grad_image_ds,Mesh_data<S>& local_intensity_scale_ds) {
+    //
+    //  Computes the Local Particle Cell Set from a down-sampled local intensity scale (\sigma) and gradient magnitude
+    //
+    //  Down-sampled due to the Equivalence Optimization
+    //
+
+    //divide gradient magnitude by Local Intensity Scale (first step in calculating the Local Resolution Estimate L(y), minus constants)
+#pragma omp parallel for default(shared)
+    for(int i = 0; i < grad_temp.mesh.size(); i++)
+    {
+        grad_temp.mesh[i] /= local_scale_temp.mesh[i];
+    }
+
+    //free up memory not needed anymore
+    //std::vector<ImageType>().swap(local_scale_temp.mesh);
+
+    float level_factor;
+
+    float min_dim = std::min(this->par.dy,std::min(this->par.dx,this->par.dz));
+
+    level_factor = pow(2,(*apr_).depth_max())*min_dim;
+
+    unsigned int l_max = (*apr_).depth_max() - 1;
+    unsigned int l_min = (*apr_).depth_min();
+
+    //incorporate other factors and compute the level of the Particle Cell, effectively construct LPC L_n
+    compute_level_for_array(grad_temp,level_factor,this->par.rel_error);
+
+    fill(l_max,grad_temp,particle_cell_tree, l_max,l_min);
+
+    timer.start_timer("level_loop");
+
+    for(int l_ = l_max - 1; l_ >= l_min; l_--){
+
+        //down sample the resolution level k, using a max reduction
+        down_sample(grad_temp,local_scale_temp,
+                    [](T x, T y) { return std::max(x,y); },
+                    [](T x) { return x; }, true);
+        //for those value of level k, add to the hash table
+        fill(l_,local_scale_temp,particle_cell_tree, l_max,l_min);
+        //assign the previous mesh to now be resampled.
+        std::swap(grad_temp, local_scale_temp);
+
+    }
+
+    timer.stop_timer();
+
+
+}
+
+
+template<typename ImageType> template<typename T,typename S>
 void APR_converter<ImageType>::get_gradient(Mesh_data<T>& input_img,Mesh_data<S>& gradient){
+    //
+    //  Bevan Cheeseman 2018
     //
     //  Calculate the gradient from the input image. (You could replace this method with your own)
     //
     //  Input: full sized image.
     //
-    //  Output: down-sampled by 2 gradient magnitude
+    //  Output: down-sampled by 2 gradient magnitude (Note, the gradient is calculated at pixel level then maximum down sampled within the loops below)
     //
 
     timer.verbose_flag = true;
 
-    timer.start_timer("init and copy image");
-
-    //initialize the storage of the B-spline co-efficients
-    image_temp.initialize(input_img);
-
-    std::copy(input_img.mesh.begin(),input_img.mesh.end(),image_temp.mesh.begin());
-
-    timer.stop_timer();
 
     timer.start_timer("offset image");
 
@@ -143,73 +201,11 @@ void APR_converter<ImageType>::get_gradient(Mesh_data<T>& input_img,Mesh_data<S>
 
     timer.stop_timer();
 
-    Mesh_data<float> grad;
-    grad.initialize(input_img);
-
-
-    timer.start_timer("calc_bspline_fd_x_y_alt");
-
-    calc_bspline_fd_x_y_alt(image_temp,grad,par.dx,par.dy);
-
-    timer.stop_timer();
-
-    timer.start_timer("calc_spline_fd_zalt");
-
-    calc_bspline_fd_z_alt(image_temp,grad,par.dz);
-
-    timer.stop_timer();
-
-
-    std::string name = par.output_dir + "bspline_coeffs.tif";
-
-    //image_temp.write_image_tiff(name);
-
-    //name = par.output_dir + "grad.tif";
-
-    //grad_temp.write_image_tiff(name);
-
-
-    //Mesh_data<float> grad_ds;
-    grad_temp.preallocate(input_img.y_num,input_img.x_num,input_img.z_num,0);
-
-    //grad_ds.initialize(grad_temp);
 
     timer.start_timer("calc_bspline_fd_x_y_ds");
     calc_bspline_fd_ds_mag(image_temp,grad_temp,par.dx,par.dy,par.dz);
     timer.stop_timer();
 
-    name = par.output_dir + "grad_ds.tif";
-
-    grad_temp.write_image_tiff(name);
-
-    down_sample(grad,grad_temp,
-                [](T x, T y) { return std::max(x,y); },
-                [](T x) { return x; });
-
-
-
-    name = par.output_dir + "grad_ds_direct.tif";
-
-    grad_temp.write_image_tiff(name);
-
-}
-
-template<typename ImageType> template<typename T,typename S>
-void APR_converter<ImageType>::get_local_intensity_scale(Mesh_data<T>& input_img,Mesh_data<S>& local_intensity_scale){
-    //
-    //  Calculate the gradient from the input image. (You could replace this method with your own)
-    //
-    //  Input: full sized image.
-    //
-    //  Output: down-sampled gradient (h)
-    //
-
-    APR_timer var_timer;
-    var_timer.verbose_flag = true;
-
-    var_timer.start_timer("compute local intensity scale");
-
-    local_scale_temp.initialize(grad_temp);
 
     timer.start_timer("down-sample b-spline");
     down_sample(image_temp,local_scale_temp,
@@ -217,9 +213,7 @@ void APR_converter<ImageType>::get_local_intensity_scale(Mesh_data<T>& input_img
                 [](T x) { return x * (1.0/8.0); });
     timer.stop_timer();
 
-    std::vector<ImageType>().swap(image_temp.mesh);
-
-
+    timer.start_timer("compute smoothed function for local intenisty scale");
     if(par.lambda > 0){
         timer.start_timer("calc_inv_bspline_y");
         calc_inv_bspline_y(local_scale_temp);
@@ -231,9 +225,41 @@ void APR_converter<ImageType>::get_local_intensity_scale(Mesh_data<T>& input_img
         calc_inv_bspline_z(local_scale_temp);
         timer.stop_timer();
     }
+    timer.stop_timer();
 
-    // copy constructor
-    Mesh_data<ImageType> temp = local_scale_temp;
+    timer.start_timer("load and apply mask");
+    // Apply mask if given
+    if(this->par.mask_file != ""){
+        mask_gradient(grad_temp,local_scale_temp2,image_temp, this->par);
+    }
+    timer.stop_timer();
+
+    std::vector<ImageType>().swap(image_temp.mesh);
+
+    timer.start_timer("Threshold ");
+    threshold_gradient(grad_temp,local_scale_temp,par.Ip_th);
+    timer.stop_timer();
+
+}
+
+template<typename ImageType> template<typename T,typename S>
+void APR_converter<ImageType>::get_local_intensity_scale(Mesh_data<T>& input_img,Mesh_data<S>& local_intensity_scale){
+    //
+    //  Calculate the Local Intensity Scale (You could replace this method with your own)
+    //
+    //  Input: full sized image.
+    //
+    //  Output: down-sampled Local Intensity Scale (h) (Due to the Equivalence Optimization we only need down-sampled values)
+    //
+
+    APR_timer var_timer;
+    var_timer.verbose_flag = true;
+
+    var_timer.start_timer("compute local intensity scale");
+
+
+    //copy across the intensities
+    std::copy(local_scale_temp.mesh.begin(),local_scale_temp.mesh.end(),local_scale_temp2.mesh.begin());
 
     float var_rescale;
     std::vector<int> var_win;
@@ -268,10 +294,13 @@ void APR_converter<ImageType>::get_local_intensity_scale(Mesh_data<T>& input_img
 
     timer.stop_timer();
 
+    timer.start_timer("second pass and rescale");
 
     //calculate abs and subtract from original
-    calc_abs_diff(temp,local_scale_temp);
+    calc_abs_diff(local_scale_temp2,local_scale_temp);
 
+    //free up the memory not needed anymore
+    std::vector<ImageType>().swap(local_scale_temp2.mesh);
 
     //Second spatial average
     calc_sat_mean_y(local_scale_temp,win_y2);
@@ -279,6 +308,8 @@ void APR_converter<ImageType>::get_local_intensity_scale(Mesh_data<T>& input_img
     calc_sat_mean_z(local_scale_temp,win_z2);
 
     rescale_var_and_threshold( local_scale_temp,var_rescale,this->par);
+
+    timer.stop_timer();
 
     var_timer.stop_timer();
 
@@ -350,18 +381,58 @@ bool APR_converter<ImageType>::get_apr_method(APR<ImageType>& apr) {
     auto_parameters(input_image);
     timer.stop_timer();
 
-    Mesh_data<T> gradient;
+
+
+    timer.start_timer("init and copy image");
+
+    //initialize the storage of the B-spline co-efficients
+    image_temp.initialize(input_image);
+
+    std::copy(input_image.mesh.begin(),input_image.mesh.end(),image_temp.mesh.begin());
+
+    //allocate require memory for the down-sampled structures
+
+    ////////////////////////////////////////
+    ///
+    /// Memory allocation of variables
+    ///
+    ////////////////////////////////////////
+
+    //compute the gradient
+    grad_temp.preallocate(input_image.y_num,input_image.x_num,input_image.z_num,0);
+
+    local_scale_temp.preallocate(input_image.y_num,input_image.x_num,input_image.z_num,0);
+
+    local_scale_temp2.preallocate(input_image.y_num,input_image.x_num,input_image.z_num,0);
+
+    timer.stop_timer();
 
     APR_timer st;
     st.verbose_flag = true;
 
     st.start_timer("grad");
 
-    this->get_gradient(input_image,gradient);
+    Mesh_data<T> gradient;
+
+    this->get_gradient(input_image,gradient); //note in the current pipeline don't actually use these variables, but here for interface (Use shared member allocated above variables)
 
     st.stop_timer();
 
-    this->get_local_intensity_scale(input_image,gradient);
+    Mesh_data<T> local_scale;
+
+    this->get_local_intensity_scale(input_image,local_scale);  //note in the current pipeline don't actually use these variables, but here for interface (Use shared member allocated above variables)
+
+    st.start_timer("init Particle Cell Image Pyramid structure");
+    initialize_particle_cell_tree(particle_cell_tree,apr);
+    st.stop_timer();
+
+    st.start_timer("Compute LPC");
+    this->compute_local_particle_cell_set(local_scale,gradient); //note in the current pipeline don't actually use these variables, but here for interface (Use shared member allocated above variables)
+    st.end_timer();
+
+    st.start_timer("Pulling Scheme: Compute OVPC V_n from LPC");
+    pulling_scheme_main(particle_cell_tree,apr);
+    st.stop_timer();
 
 
     return false;
@@ -373,6 +444,8 @@ void APR_converter<ImageType>::auto_parameters(Mesh_data<T>& input_img){
     //  Simple automatic parameter selection for 3D APR Flouresence Images
     //
 
+
+    // TO DO : make only from a subset of total slices to improve performance on large images
 
     //minimum element
     T min_val = *std::min_element(input_img.mesh.begin(),input_img.mesh.end());

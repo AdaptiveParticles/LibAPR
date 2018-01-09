@@ -70,6 +70,69 @@ void calc_bspline_fd_ds_mag(Mesh_data<T> &input, Mesh_data<S> &grad, const float
  */
 
 template<typename T>
+void mask_gradient(Mesh_data<T>& grad_ds,Mesh_data<T>& temp_ds,Mesh_data<T>& temp_full,APR_parameters& par){
+    //
+    //  Bevan Cheeseman 2018
+    //
+    //  Loads in a tiff image file and masks the gradient according to it
+    //
+    //
+
+    //location
+    std::string file_name = par.input_dir + par.mask_file;
+
+    temp_full.load_image_tiff(file_name);
+
+    down_sample(temp_ds,temp_full,
+                [](float x, float y) { return std::max(x,y); },
+                [](float x) { return x; });
+
+    uint64_t i = 0;
+
+#pragma omp parallel for default(shared) private(i)
+    for ( i = 0; i < grad_ds.mesh.size(); ++i) {
+
+        if(temp_ds.mesh[i]==0){
+            grad_ds.mesh[i] = 0;
+        }
+    }
+
+}
+
+template<typename T>
+void threshold_gradient(Mesh_data<T>& grad,Mesh_data<T>& img,const float Ip_th){
+    //
+    //  Bevan Cheeseman 2016
+    //
+    //
+
+    const int z_num = img.z_num;
+    const int x_num = img.x_num;
+    const int y_num = img.y_num;
+
+
+    int i,k;
+    float rescaled;
+
+#pragma omp parallel for default(shared) private(i,k,rescaled)
+    for(int j = 0;j < z_num;j++){
+
+        for(i = 0;i < x_num;i++){
+
+            for (k = 0; k < (y_num);k++){
+                if(img.mesh[j*x_num*y_num + i*y_num + k] < Ip_th){
+                    grad.mesh[j*x_num*y_num + i*y_num + k] = 0;
+                }
+            }
+        }
+    }
+
+}
+
+
+
+
+template<typename T>
 void bspline_filt_rec_y(Mesh_data<T>& image,float lambda,float tol){
     //
     //  Bevan Cheeseman 2016
