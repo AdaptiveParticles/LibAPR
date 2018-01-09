@@ -436,7 +436,7 @@ bool APR_converter<ImageType>::get_apr_method(APR<ImageType>& apr) {
     st.stop_timer();
 
     st.start_timer("Compute LPC");
-    this->compute_local_particle_cell_set(local_scale,gradient); //note in the current pipeline don't actually use these variables, but here for interface (Use shared member allocated above variables)
+    this->get_local_particle_cell_set(local_scale,gradient); //note in the current pipeline don't actually use these variables, but here for interface (Use shared member allocated above variables)
     st.stop_timer();
 
     st.start_timer("Pulling Scheme: Compute OVPC V_n from LPC");
