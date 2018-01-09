@@ -76,6 +76,8 @@ private:
 
     std::vector<Mesh_data<uint8_t>> particle_cell_tree;
 
+
+
     float bspline_offset=0;
 
     /*
@@ -240,6 +242,9 @@ void APR_converter<ImageType>::get_gradient(Mesh_data<T>& input_img,Mesh_data<S>
     threshold_gradient(grad_temp,local_scale_temp,par.Ip_th);
     timer.stop_timer();
 
+
+
+
 }
 
 template<typename ImageType> template<typename T,typename S>
@@ -382,7 +387,6 @@ bool APR_converter<ImageType>::get_apr_method(APR<ImageType>& apr) {
     timer.stop_timer();
 
 
-
     timer.start_timer("init and copy image");
 
     //initialize the storage of the B-spline co-efficients
@@ -428,15 +432,30 @@ bool APR_converter<ImageType>::get_apr_method(APR<ImageType>& apr) {
 
     st.start_timer("Compute LPC");
     this->compute_local_particle_cell_set(local_scale,gradient); //note in the current pipeline don't actually use these variables, but here for interface (Use shared member allocated above variables)
-    st.end_timer();
+    st.stop_timer();
 
     st.start_timer("Pulling Scheme: Compute OVPC V_n from LPC");
     pulling_scheme_main(particle_cell_tree,apr);
     st.stop_timer();
 
+    st.start_timer("Down sample image");
+    std::vector<Mesh_data<T>> downsampled_img;
+    //Down-sample the image for particle intensity estimation
+    downsample_pyrmaid(input_image,downsampled_img,apr.depth_max()-1,apr.depth_min());
+    st.stop_timer();
 
-    return false;
+    st.start_timer("Init data structure");
+    apr.init_from_pulling_scheme(particle_cell_tree);
+    st.stop_timer();
+
+    st.start_timer("sample particles");
+    apr.get_parts_from_img(downsampled_img,apr.particles_int);
+    st.stop_timer();
+
+    return true;
 }
+
+
 
 template<typename ImageType> template<typename T>
 void APR_converter<ImageType>::auto_parameters(Mesh_data<T>& input_img){

@@ -410,6 +410,13 @@ void Mesh_data<T>::write_image_tiff(std::vector<V>& data,std::string& filename){
 
 }
 
+template<typename T, typename S,typename L1, typename L2>
+void down_sample(Mesh_data<T>& test_a, Mesh_data<S>& test_a_ds, L1 reduce, L2 constant_operator,
+                 bool with_allocation = false);
+
+template<typename T>
+void const_upsample_img(Mesh_data<T>& input_us,Mesh_data<T>& input,std::vector<unsigned int>& max_dims);
+
 template<typename T>
 void Mesh_data<T>::write_image_tiff(std::string& filename) {
     Mesh_data::write_image_tiff(this->mesh,filename);
@@ -430,6 +437,21 @@ void Mesh_data<T>::write_image_tiff_uint16(std::string& filename){
 
 }
 
+
+
+template<typename T>
+void downsample_pyrmaid(Mesh_data<T> &original_image,std::vector<Mesh_data<T>>& downsampled,unsigned int l_max, unsigned int l_min)
+{
+    downsampled.resize(l_max+2);
+    downsampled.back() = std::move(original_image);
+
+    auto sum = [](T x, T y) { return x+y; };
+    auto divide_by_8 = [](T x) { return x * (1.0/8.0); };
+
+    for (int level = l_max+1; level > l_min; level--) {
+        down_sample(downsampled[level], downsampled[level - 1], sum, divide_by_8, true);
+    }
+}
 
 template<typename T>
 void const_upsample_img(Mesh_data<T>& input_us,Mesh_data<T>& input,std::vector<unsigned int>& max_dims){
@@ -573,7 +595,7 @@ void const_upsample_img(Mesh_data<T>& input_us,Mesh_data<T>& input,std::vector<u
 
 template<typename T, typename S,typename L1, typename L2>
 void down_sample(Mesh_data<T>& test_a, Mesh_data<S>& test_a_ds, L1 reduce, L2 constant_operator,
-                 bool with_allocation = false){
+                 bool with_allocation ){
     //
     //
     //  Bevan Cheeseman 2016

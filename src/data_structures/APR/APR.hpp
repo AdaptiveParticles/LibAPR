@@ -87,7 +87,7 @@ public:
     }
 
 
-    void init_by_part_iteration(APR_iterator<float>& apr_it){
+    void init_by_part_iteration(APR_iterator<ImageType>& apr_it){
         //
         //  Initializes the required datastructures for by particles and parralell iteration
         //
@@ -103,7 +103,7 @@ public:
         apr_it.curr_level.init(pc_data);
     }
 
-    void init_iterator(APR_iterator<float>& apr_it){
+    void init_iterator(APR_iterator<ImageType>& apr_it){
         //
         //  Initializes the required datastructures for by particles and parralell iteration
         //
@@ -935,7 +935,7 @@ public:
         parts.initialize_structure_cells(pc_data);
 
         //initialization of the iteration structures
-        APR_iterator<float> apr_it(*this); //this is required for parallel access
+        APR_iterator<ImageType> apr_it(*this); //this is required for parallel access
         uint64_t part;
 
 #pragma omp parallel for schedule(static) private(part) firstprivate(apr_it)
@@ -1020,7 +1020,7 @@ public:
             const unsigned int x_num_min_ = 0;
             const unsigned int z_num_min_ = 0;
 
-            CurrentLevel<float, uint64_t> curr_level_l(pc_data);
+            CurrentLevel<ImageType, uint64_t> curr_level_l(pc_data);
             curr_level_l.set_new_depth(depth, pc_data);
 
             const float step_size = pow(2, curr_level_l.depth_max - curr_level_l.depth);
@@ -1092,7 +1092,7 @@ public:
             const unsigned int x_num_min_ = 0;
             const unsigned int z_num_min_ = 0;
 
-            CurrentLevel<float, uint64_t> curr_level_l(pc_data);
+            CurrentLevel<ImageType, uint64_t> curr_level_l(pc_data);
             curr_level_l.set_new_depth(depth, pc_data);
 
             const float step_size = pow(2, curr_level_l.depth_max - curr_level_l.depth);
