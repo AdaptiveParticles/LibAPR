@@ -11,6 +11,7 @@
 #include "hdf5functions_blosc.h"
 #include <array>
 #include <string>
+#include <memory>
 
 std::string exec_blosc(const char* cmd) {
     std::array<char, 128> buffer;
