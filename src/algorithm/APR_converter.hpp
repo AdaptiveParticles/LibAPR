@@ -182,7 +182,15 @@ void APR_converter<ImageType>::get_gradient(Mesh_data<T>& input_img,Mesh_data<S>
 
     grad_temp.write_image_tiff(name);
 
+    down_sample(grad,grad_temp,
+                [](T x, T y) { return std::max(x,y); },
+                [](T x) { return x; });
 
+
+
+    name = par.output_dir + "grad_ds_direct.tif";
+
+    grad_temp.write_image_tiff(name);
 
 }
 
@@ -195,6 +203,11 @@ void APR_converter<ImageType>::get_local_intensity_scale(Mesh_data<T>& input_img
     //
     //  Output: down-sampled gradient (h)
     //
+
+    APR_timer var_timer;
+    var_timer.verbose_flag = true;
+
+    var_timer.start_timer("compute local intensity scale");
 
     local_scale_temp.initialize(grad_temp);
 
@@ -219,6 +232,9 @@ void APR_converter<ImageType>::get_local_intensity_scale(Mesh_data<T>& input_img
         timer.stop_timer();
     }
 
+    // copy constructor
+    Mesh_data<ImageType> temp = local_scale_temp;
+
     float var_rescale;
     std::vector<int> var_win;
 
@@ -242,7 +258,6 @@ void APR_converter<ImageType>::get_local_intensity_scale(Mesh_data<T>& input_img
 
     timer.start_timer("calc_sat_mean_x");
 
-
     calc_sat_mean_x(local_scale_temp,win_x);
 
     timer.stop_timer();
@@ -252,6 +267,21 @@ void APR_converter<ImageType>::get_local_intensity_scale(Mesh_data<T>& input_img
     calc_sat_mean_z(local_scale_temp,win_z);
 
     timer.stop_timer();
+
+
+    //calculate abs and subtract from original
+    calc_abs_diff(temp,local_scale_temp);
+
+
+    //Second spatial average
+    calc_sat_mean_y(local_scale_temp,win_y2);
+    calc_sat_mean_x(local_scale_temp,win_x2);
+    calc_sat_mean_z(local_scale_temp,win_z2);
+
+    rescale_var_and_threshold( local_scale_temp,var_rescale,this->par);
+
+    var_timer.stop_timer();
+
 
 }
 
@@ -322,7 +352,14 @@ bool APR_converter<ImageType>::get_apr_method(APR<ImageType>& apr) {
 
     Mesh_data<T> gradient;
 
+    APR_timer st;
+    st.verbose_flag = true;
+
+    st.start_timer("grad");
+
     this->get_gradient(input_image,gradient);
+
+    st.stop_timer();
 
     this->get_local_intensity_scale(input_image,gradient);
 

@@ -1080,8 +1080,11 @@ void calc_bspline_fd_ds_mag(Mesh_data<T> &input, Mesh_data<S> &grad, const float
                 grad.mesh[j_2*x_num_ds*y_num_ds + i_2*y_num_ds + k] = std::max(temp_vec_6[2*k],grad.mesh[j_2*x_num_ds*y_num_ds + i_2*y_num_ds + k]);
             }
 
+            int k_s;
+
 #pragma omp simd
             for (k = 0; k < (y_num_ds);k++) {
+                k_s = std::min(2*k+1,y_num-1);
                 grad.mesh[j_2*x_num_ds*y_num_ds + i_2*y_num_ds + k] = std::max(temp_vec_6[2*k+1],grad.mesh[j_2*x_num_ds*y_num_ds + i_2*y_num_ds + k]);
             }
 

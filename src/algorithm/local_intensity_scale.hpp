@@ -12,6 +12,9 @@
  */
 
 template<typename T>
+void calc_abs_diff(Mesh_data<T>& input_image,Mesh_data<T>& var);
+
+template<typename T>
 void calc_sat_mean_z(Mesh_data<T>& input,const int offset);
 
 template<typename T>
@@ -25,6 +28,72 @@ void get_window(float var_rescale,std::vector<int>& var_win,APR_parameters& par)
 /*
  * Implimentations
  */
+
+template<typename T>
+void rescale_var_and_threshold(Mesh_data<T>& var,const float var_rescale,APR_parameters& par){
+    //
+    //  Bevan Cheeseman 2016
+    //
+    //
+
+    const int z_num = var.z_num;
+    const int x_num = var.x_num;
+    const int y_num = var.y_num;
+    const float max_th = 60000.0;
+
+    int i,k;
+    float rescaled;
+
+#pragma omp parallel for default(shared) private(i,k,rescaled)
+    for(int j = 0;j < z_num;j++){
+
+        for(i = 0;i < x_num;i++){
+
+            for (k = 0; k < (y_num);k++){
+
+                float rescaled = var.mesh[j*x_num*y_num + i*y_num + k] * var_rescale;
+                if(rescaled < par.sigma_th_max){
+                    rescaled = max_th;
+                }
+                if(rescaled < par.sigma_th){
+                    rescaled = par.sigma_th;
+                }
+                var.mesh[j*x_num*y_num + i*y_num + k] = rescaled;
+            }
+
+        }
+    }
+
+}
+
+template<typename T>
+void calc_abs_diff(Mesh_data<T>& input_image,Mesh_data<T>& var){
+    //
+    //  Bevan Cheeseman 2016
+    //
+    //
+
+    const int z_num = input_image.z_num;
+    const int x_num = input_image.x_num;
+    const int y_num = input_image.y_num;
+
+    int i,k;
+
+#pragma omp parallel for default(shared) private(i,k)
+    for(int j = 0;j < z_num;j++){
+
+        for(i = 0;i < x_num;i++){
+
+            for (k = 0; k < (y_num);k++){
+                var.mesh[j*x_num*y_num + i*y_num + k] = std::abs(var.mesh[j*x_num*y_num + i*y_num + k] - input_image.mesh[j*x_num*y_num + i*y_num + k]);
+            }
+
+        }
+    }
+
+
+}
+
 
 void get_window(float var_rescale,std::vector<int>& var_win,APR_parameters& par){
     //
