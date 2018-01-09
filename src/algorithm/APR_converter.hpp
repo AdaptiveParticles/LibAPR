@@ -13,6 +13,7 @@
 #include "src/data_structures/APR/APR.hpp"
 
 #include "src/algorithm/gradient.hpp"
+#include "src/algorithm/local_intensity_scale.hpp"
 
 template<typename ImageType>
 class APR_converter {
@@ -63,7 +64,9 @@ private:
 
     Mesh_data<ImageType> image_temp; // global image variable useful for passing between methods, or re-using memory
 
-    Mesh_data<float> grad_temp; //
+    Mesh_data<ImageType> grad_temp; //
+
+    Mesh_data<ImageType> local_scale_temp; //
 
     float bspline_offset=0;
 
@@ -132,23 +135,27 @@ void APR_converter<ImageType>::get_gradient(Mesh_data<T>& input_img,Mesh_data<S>
 
     timer.start_timer("smooth bspline");
 
-    get_smooth_bspline_3D(image_temp,this->par);
+    if(par.lambda > 0) {
+
+        get_smooth_bspline_3D(image_temp, this->par);
+
+    }
 
     timer.stop_timer();
 
-
-    grad_temp.initialize(input_img);
+    Mesh_data<float> grad;
+    grad.initialize(input_img);
 
 
     timer.start_timer("calc_bspline_fd_x_y_alt");
 
-    calc_bspline_fd_x_y_alt(image_temp,grad_temp,par.dx,par.dy);
+    calc_bspline_fd_x_y_alt(image_temp,grad,par.dx,par.dy);
 
     timer.stop_timer();
 
     timer.start_timer("calc_spline_fd_zalt");
 
-    calc_bspline_fd_z_alt(image_temp,grad_temp,par.dz);
+    calc_bspline_fd_z_alt(image_temp,grad,par.dz);
 
     timer.stop_timer();
 
@@ -157,23 +164,24 @@ void APR_converter<ImageType>::get_gradient(Mesh_data<T>& input_img,Mesh_data<S>
 
     //image_temp.write_image_tiff(name);
 
-    name = par.output_dir + "grad.tif";
+    //name = par.output_dir + "grad.tif";
 
-    grad_temp.write_image_tiff(name);
+    //grad_temp.write_image_tiff(name);
 
 
-    Mesh_data<float> grad_ds;
-    grad_ds.preallocate(input_img.y_num,input_img.x_num,input_img.z_num,0);
+    //Mesh_data<float> grad_ds;
+    grad_temp.preallocate(input_img.y_num,input_img.x_num,input_img.z_num,0);
 
     //grad_ds.initialize(grad_temp);
 
     timer.start_timer("calc_bspline_fd_x_y_ds");
-    calc_bspline_fd_x_y_ds(image_temp,grad_ds,par.dx,par.dy);
+    calc_bspline_fd_ds_mag(image_temp,grad_temp,par.dx,par.dy,par.dz);
     timer.stop_timer();
 
     name = par.output_dir + "grad_ds.tif";
 
-    grad_ds.write_image_tiff(name);
+    grad_temp.write_image_tiff(name);
+
 
 
 }
@@ -188,7 +196,53 @@ void APR_converter<ImageType>::get_local_intensity_scale(Mesh_data<T>& input_img
     //  Output: down-sampled gradient (h)
     //
 
+    local_scale_temp.initialize(grad_temp);
 
+    timer.start_timer("down-sample b-spline");
+    down_sample(image_temp,local_scale_temp,
+                [](T x, T y) { return x+y; },
+                [](T x) { return x * (1.0/8.0); });
+    timer.stop_timer();
+
+    std::vector<ImageType>().swap(image_temp.mesh);
+
+
+    if(par.lambda > 0){
+        timer.start_timer("calc_inv_bspline_y");
+        calc_inv_bspline_y(local_scale_temp);
+        timer.stop_timer();
+        timer.start_timer("calc_inv_bspline_x");
+        calc_inv_bspline_x(local_scale_temp);
+        timer.stop_timer();
+        timer.start_timer("calc_inv_bspline_z");
+        calc_inv_bspline_z(local_scale_temp);
+        timer.stop_timer();
+    }
+
+    float var_rescale;
+    std::vector<int> var_win;
+
+    get_window(var_rescale,var_win,this->par);
+
+
+//    timer.start_timer("calc_sat_mean_y");
+//
+//    calc_sat_mean_y(var,win_y);
+//
+//    timer.stop_timer();
+//
+//    timer.start_timer("calc_sat_mean_x");
+//
+//
+//    calc_sat_mean_x(var,win_x);
+//
+//    timer.stop_timer();
+//
+//    timer.start_timer("calc_sat_mean_z");
+//
+//    calc_sat_mean_z(var,win_z);
+//
+//    timer.stop_timer();
 
 }
 
@@ -261,6 +315,7 @@ bool APR_converter<ImageType>::get_apr_method(APR<ImageType>& apr) {
 
     this->get_gradient(input_image,gradient);
 
+    this->get_local_intensity_scale(input_image,gradient);
 
 
     return false;

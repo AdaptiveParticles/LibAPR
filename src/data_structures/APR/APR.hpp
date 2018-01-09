@@ -7,9 +7,12 @@
 
 #include "benchmarks/development/Tree/PartCellStructure.hpp"
 
-#include "benchmarks/development/Tree/PartCellParent.hpp"
-#include "benchmarks/development/old_numerics/filter_numerics.hpp"
-#include "benchmarks/development/old_numerics/misc_numerics.hpp"
+//#include "benchmarks/development/old_numerics/filter_numerics.hpp"
+//#include "benchmarks/development/old_numerics/misc_numerics.hpp"
+
+#include "src/data_structures/APR/PartCellData.hpp"
+
+//#include "benchmarks/development/Tree/PartCellStructure.hpp"
 
 #include "CurrLevel.hpp"
 
@@ -2080,7 +2083,7 @@ public:
             if(p_map_load[i].size() > 0){
                 name = "p_map_"+std::to_string(i);
                 //Load the data then update the particle dataset
-                hdf5_load_data(obj_id,H5T_NATIVE_UINT8,p_map_load[i].data(),name.c_str());
+                hdf5_load_data_blosc(obj_id,H5T_NATIVE_UINT8,p_map_load[i].data(),name.c_str());
             }
 
 
@@ -2106,7 +2109,7 @@ public:
 
             if(Ip[i].size()>0){
                 name = "Ip_"+std::to_string(i);
-                hdf5_load_data(obj_id,H5T_NATIVE_UINT16,Ip[i].data(),name.c_str());
+                hdf5_load_data_blosc(obj_id,H5T_NATIVE_UINT16,Ip[i].data(),name.c_str());
             }
 
         }
@@ -2177,7 +2180,7 @@ public:
 
         file_name = file_name + "_apr";
 
-        hdf5_create_file(hdf5_file_name);
+        hdf5_create_file_blosc(hdf5_file_name);
 
         //hdf5 inits
         hid_t fid, pr_groupid, obj_id;
@@ -2206,9 +2209,9 @@ public:
         pr_groupid = H5Gcreate2(fid,"ParticleRepr",H5P_DEFAULT,H5P_DEFAULT,H5P_DEFAULT);
         H5Gget_info( pr_groupid, &info );
 
-        hdf5_write_attribute(pr_groupid,H5T_NATIVE_INT,"x_num",1,&dims, &pc_data.org_dims[1] );
-        hdf5_write_attribute(pr_groupid,H5T_NATIVE_INT,"y_num",1,&dims, &pc_data.org_dims[0] );
-        hdf5_write_attribute(pr_groupid,H5T_NATIVE_INT,"z_num",1,&dims, &pc_data.org_dims[2] );
+        hdf5_write_attribute_blosc(pr_groupid,H5T_NATIVE_INT,"x_num",1,&dims, &pc_data.org_dims[1] );
+        hdf5_write_attribute_blosc(pr_groupid,H5T_NATIVE_INT,"y_num",1,&dims, &pc_data.org_dims[0] );
+        hdf5_write_attribute_blosc(pr_groupid,H5T_NATIVE_INT,"z_num",1,&dims, &pc_data.org_dims[2] );
 
 
         obj_id = H5Gcreate2(fid,"ParticleRepr/t",H5P_DEFAULT,H5P_DEFAULT,H5P_DEFAULT);
@@ -2221,9 +2224,9 @@ public:
         int num_parts = this->num_parts_total;
         int num_cells = this->num_elements_total;
 
-        hdf5_write_attribute(pr_groupid,H5T_NATIVE_INT,"num_parts",1,dims_out, &num_parts );
+        hdf5_write_attribute_blosc(pr_groupid,H5T_NATIVE_INT,"num_parts",1,dims_out, &num_parts );
 
-        hdf5_write_attribute(pr_groupid,H5T_NATIVE_INT,"num_cells",1,dims_out, &num_cells );
+        hdf5_write_attribute_blosc(pr_groupid,H5T_NATIVE_INT,"num_cells",1,dims_out, &num_cells );
 
         // New parameter and background data
 
@@ -2232,35 +2235,35 @@ public:
             name = "no_name";
         }
 
-        hdf5_write_string(pr_groupid,"name",pars.name);
+        hdf5_write_string_blosc(pr_groupid,"name",pars.name);
 
-        std::string git_hash = exec("git rev-parse HEAD");
+        std::string git_hash = exec_blosc("git rev-parse HEAD");
 
-        hdf5_write_string(pr_groupid,"githash",git_hash);
+        hdf5_write_string_blosc(pr_groupid,"githash",git_hash);
 
-        hdf5_write_attribute(pr_groupid,H5T_NATIVE_FLOAT,"lambda",1,dims_out, &pars.lambda );
+        hdf5_write_attribute_blosc(pr_groupid,H5T_NATIVE_FLOAT,"lambda",1,dims_out, &pars.lambda );
 
-        hdf5_write_attribute(pr_groupid,H5T_NATIVE_FLOAT,"var_th",1,dims_out, &pars.var_th );
+        hdf5_write_attribute_blosc(pr_groupid,H5T_NATIVE_FLOAT,"var_th",1,dims_out, &pars.var_th );
 
-        hdf5_write_attribute(pr_groupid,H5T_NATIVE_FLOAT,"var_th_max",1,dims_out, &pars.var_th_max );
+        hdf5_write_attribute_blosc(pr_groupid,H5T_NATIVE_FLOAT,"var_th_max",1,dims_out, &pars.var_th_max );
 
-        hdf5_write_attribute(pr_groupid,H5T_NATIVE_FLOAT,"I_th",1,dims_out, &pars.I_th );
+        hdf5_write_attribute_blosc(pr_groupid,H5T_NATIVE_FLOAT,"I_th",1,dims_out, &pars.I_th );
 
-        hdf5_write_attribute(pr_groupid,H5T_NATIVE_FLOAT,"dx",1,dims_out, &pars.dx );
+        hdf5_write_attribute_blosc(pr_groupid,H5T_NATIVE_FLOAT,"dx",1,dims_out, &pars.dx );
 
-        hdf5_write_attribute(pr_groupid,H5T_NATIVE_FLOAT,"dy",1,dims_out, &pars.dy );
+        hdf5_write_attribute_blosc(pr_groupid,H5T_NATIVE_FLOAT,"dy",1,dims_out, &pars.dy );
 
-        hdf5_write_attribute(pr_groupid,H5T_NATIVE_FLOAT,"dz",1,dims_out, &pars.dz );
+        hdf5_write_attribute_blosc(pr_groupid,H5T_NATIVE_FLOAT,"dz",1,dims_out, &pars.dz );
 
-        hdf5_write_attribute(pr_groupid,H5T_NATIVE_FLOAT,"psfx",1,dims_out, &pars.psfx );
+        hdf5_write_attribute_blosc(pr_groupid,H5T_NATIVE_FLOAT,"psfx",1,dims_out, &pars.psfx );
 
-        hdf5_write_attribute(pr_groupid,H5T_NATIVE_FLOAT,"psfy",1,dims_out, &pars.psfy );
+        hdf5_write_attribute_blosc(pr_groupid,H5T_NATIVE_FLOAT,"psfy",1,dims_out, &pars.psfy );
 
-        hdf5_write_attribute(pr_groupid,H5T_NATIVE_FLOAT,"psfz",1,dims_out, &pars.psfz );
+        hdf5_write_attribute_blosc(pr_groupid,H5T_NATIVE_FLOAT,"psfz",1,dims_out, &pars.psfz );
 
-        hdf5_write_attribute(pr_groupid,H5T_NATIVE_FLOAT,"rel_error",1,dims_out, &pars.rel_error);
+        hdf5_write_attribute_blosc(pr_groupid,H5T_NATIVE_FLOAT,"rel_error",1,dims_out, &pars.rel_error);
 
-        hdf5_write_attribute(pr_groupid,H5T_NATIVE_FLOAT,"aniso",1,dims_out, &pars.aniso);
+        hdf5_write_attribute_blosc(pr_groupid,H5T_NATIVE_FLOAT,"aniso",1,dims_out, &pars.aniso);
 
         //////////////////////////////////////////////////////////////////
         //
@@ -2311,7 +2314,7 @@ public:
             dims = Ip.size();
 
             std::string name = "Ip_size_"+std::to_string(i);
-            hdf5_write_attribute(pr_groupid,H5T_NATIVE_INT,name.c_str(),1,&dim_a,&dims);
+            hdf5_write_attribute_blosc(pr_groupid,H5T_NATIVE_INT,name.c_str(),1,&dim_a,&dims);
 
             if(Ip.size() > 0){
                 //write the parts
@@ -2443,21 +2446,21 @@ public:
 
             name = "p_map_x_num_"+std::to_string(i);
             hsize_t attr = x_num_d;
-            hdf5_write_attribute(pr_groupid,H5T_NATIVE_INT,name.c_str(),1,&dim_a, &attr);
+            hdf5_write_attribute_blosc(pr_groupid,H5T_NATIVE_INT,name.c_str(),1,&dim_a, &attr);
 
             attr = y_num_d;
             name = "p_map_y_num_"+std::to_string(i);
-            hdf5_write_attribute(pr_groupid,H5T_NATIVE_INT,name.c_str(),1,&dim_a, &attr);
+            hdf5_write_attribute_blosc(pr_groupid,H5T_NATIVE_INT,name.c_str(),1,&dim_a, &attr);
 
             attr = z_num_d;
             name = "p_map_z_num_"+std::to_string(i);
-            hdf5_write_attribute(pr_groupid,H5T_NATIVE_INT,name.c_str(),1,&dim_a, &attr);
+            hdf5_write_attribute_blosc(pr_groupid,H5T_NATIVE_INT,name.c_str(),1,&dim_a, &attr);
 
         }
 
         hsize_t attr = pc_data.depth_min;
-        hdf5_write_attribute(pr_groupid,H5T_NATIVE_INT,"depth_max",1,&dim_a, &pc_data.depth_max );
-        hdf5_write_attribute(pr_groupid,H5T_NATIVE_INT,"depth_min",1,&dim_a, &attr );
+        hdf5_write_attribute_blosc(pr_groupid,H5T_NATIVE_INT,"depth_max",1,&dim_a, &pc_data.depth_max );
+        hdf5_write_attribute_blosc(pr_groupid,H5T_NATIVE_INT,"depth_min",1,&dim_a, &attr );
 
         // output the file size
         hsize_t file_size;
@@ -2513,7 +2516,7 @@ public:
 
         file_name = file_name + "_apr_extra_parts";
 
-        hdf5_create_file(hdf5_file_name);
+        hdf5_create_file_blosc(hdf5_file_name);
 
         //hdf5 inits
         hid_t fid, pr_groupid, obj_id;
@@ -2542,9 +2545,9 @@ public:
         pr_groupid = H5Gcreate2(fid,"ParticleRepr",H5P_DEFAULT,H5P_DEFAULT,H5P_DEFAULT);
         H5Gget_info( pr_groupid, &info );
 
-        hdf5_write_attribute(pr_groupid,H5T_NATIVE_INT,"x_num",1,&dims, &pc_data.org_dims[1] );
-        hdf5_write_attribute(pr_groupid,H5T_NATIVE_INT,"y_num",1,&dims, &pc_data.org_dims[0] );
-        hdf5_write_attribute(pr_groupid,H5T_NATIVE_INT,"z_num",1,&dims, &pc_data.org_dims[2] );
+        hdf5_write_attribute_blosc(pr_groupid,H5T_NATIVE_INT,"x_num",1,&dims, &pc_data.org_dims[1] );
+        hdf5_write_attribute_blosc(pr_groupid,H5T_NATIVE_INT,"y_num",1,&dims, &pc_data.org_dims[0] );
+        hdf5_write_attribute_blosc(pr_groupid,H5T_NATIVE_INT,"z_num",1,&dims, &pc_data.org_dims[2] );
 
 
         obj_id = H5Gcreate2(fid,"ParticleRepr/t",H5P_DEFAULT,H5P_DEFAULT,H5P_DEFAULT);
@@ -2557,9 +2560,9 @@ public:
         int num_parts = this->num_parts_total;
         int num_cells = this->num_elements_total;
 
-        hdf5_write_attribute(pr_groupid,H5T_NATIVE_INT,"num_parts",1,dims_out, &num_parts );
+        hdf5_write_attribute_blosc(pr_groupid,H5T_NATIVE_INT,"num_parts",1,dims_out, &num_parts );
 
-        hdf5_write_attribute(pr_groupid,H5T_NATIVE_INT,"num_cells",1,dims_out, &num_cells );
+        hdf5_write_attribute_blosc(pr_groupid,H5T_NATIVE_INT,"num_cells",1,dims_out, &num_cells );
 
         // New parameter and background data
 
@@ -2568,18 +2571,18 @@ public:
             name = "no_name";
         }
 
-        hdf5_write_string(pr_groupid,"name",pars.name);
+        hdf5_write_string_blosc(pr_groupid,"name",pars.name);
 
-        std::string git_hash = exec("git rev-parse HEAD");
+        std::string git_hash = exec_blosc("git rev-parse HEAD");
 
-        hdf5_write_string(pr_groupid,"githash",git_hash);
+        hdf5_write_string_blosc(pr_groupid,"githash",git_hash);
 
 
         S val = 0;
-        hid_t type = get_type(val);
+        hid_t type = get_type_blosc(val);
         int type_id = type;
 
-        hdf5_write_attribute(pr_groupid,H5T_NATIVE_INT,"data_type",1,dims_out, &type_id);
+        hdf5_write_attribute_blosc(pr_groupid,H5T_NATIVE_INT,"data_type",1,dims_out, &type_id);
 
         //////////////////////////////////////////////////////////////////
         //
@@ -2630,7 +2633,7 @@ public:
             dims = Ip.size();
 
             std::string name = "Ip_size_"+std::to_string(i);
-            hdf5_write_attribute(pr_groupid,H5T_NATIVE_INT,name.c_str(),1,&dim_a,&dims);
+            hdf5_write_attribute_blosc(pr_groupid,H5T_NATIVE_INT,name.c_str(),1,&dim_a,&dims);
 
             if(Ip.size() > 0){
                 //write the parts
@@ -2639,15 +2642,15 @@ public:
 
                 S val = 0;
 
-                hdf5_write_data_blosc(obj_id, get_type(val), name.c_str(), rank, &dims, Ip.data());
+                hdf5_write_data_blosc(obj_id, get_type_blosc(val), name.c_str(), rank, &dims, Ip.data());
 
             }
 
         }
 
         hsize_t attr = pc_data.depth_min;
-        hdf5_write_attribute(pr_groupid,H5T_NATIVE_INT,"depth_max",1,&dim_a, &pc_data.depth_max );
-        hdf5_write_attribute(pr_groupid,H5T_NATIVE_INT,"depth_min",1,&dim_a, &attr );
+        hdf5_write_attribute_blosc(pr_groupid,H5T_NATIVE_INT,"depth_max",1,&dim_a, &pc_data.depth_max );
+        hdf5_write_attribute_blosc(pr_groupid,H5T_NATIVE_INT,"depth_min",1,&dim_a, &attr );
 
         // output the file size
         hsize_t file_size;
@@ -2726,7 +2729,7 @@ public:
 
             if(Ip[i].size()>0){
                 name = "Ip_"+std::to_string(i);
-                hdf5_load_data(obj_id,hdf5_data_type,Ip[i].data(),name.c_str());
+                hdf5_load_data_blosc(obj_id,hdf5_data_type,Ip[i].data(),name.c_str());
             }
 
         }

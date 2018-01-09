@@ -62,6 +62,8 @@ void calc_bspline_fd_x_y_alt(Mesh_data<T>& input,Mesh_data<S>& grad,const float 
 template<typename T,typename S>
 void calc_bspline_fd_z_alt(Mesh_data<T>& input,Mesh_data<S>& grad,const float h);
 
+template<typename T,typename S>
+void calc_bspline_fd_ds_mag(Mesh_data<T> &input, Mesh_data<S> &grad, const float hx, const float hy,const float hz);
 
 /*
  * Implimentations
@@ -985,7 +987,7 @@ void calc_bspline_fd_x(Mesh_data<T>& input){
 
 
 template<typename T,typename S>
-void calc_bspline_fd_x_y_ds(Mesh_data<T>& input,Mesh_data<S>& grad,const float hx,const float hy){
+void calc_bspline_fd_ds_mag(Mesh_data<T> &input, Mesh_data<S> &grad, const float hx, const float hy,const float hz){
     //
     //
     //  Bevan Cheeseman 2016
@@ -994,7 +996,6 @@ void calc_bspline_fd_x_y_ds(Mesh_data<T>& input,Mesh_data<S>& grad,const float h
     //
     //
 
-    const float hz = hx;
 
     const int z_num = input.z_num;
     const int x_num = input.x_num;
@@ -1066,11 +1067,7 @@ void calc_bspline_fd_x_y_ds(Mesh_data<T>& input,Mesh_data<S>& grad,const float h
             //do the y gradient
 #pragma omp simd
             for (k = 1; k < (y_num-1);k++){
-                //grad.mesh[j*x_num*y_num + i*y_num + k] = sqrt(pow(a1*temp_vec_4[k] + a3*temp_vec_5[k],2.0) +  pow((a1*temp_vec_2[k-1] + a3*temp_vec_2[k+1])/hy,2.0) + pow((a1*temp_vec_1[k] + a3*temp_vec_3[k])/hx,2.0));
                 temp_vec_6[k] =  sqrt(pow((a1*temp_vec_4[k] + a3*temp_vec_5[k])/hz,2.0) +  pow((a1*temp_vec_2[k-1] + a3*temp_vec_2[k+1])/hy,2.0) + pow((a1*temp_vec_1[k] + a3*temp_vec_3[k])/hx,2.0));
-
-               // grad.mesh[(j/2)*x_num_ds*y_num_ds + (i/2)*y_num_ds + (k/2)] = std::max(grad.mesh[(j/2)*x_num_ds*y_num_ds + (i/2)*y_num_ds + (k/2)],(S)sqrt(pow(a1*temp_vec_4[k] + a3*temp_vec_5[k],2.0) +  pow((a1*temp_vec_2[k-1] + a3*temp_vec_2[k+1])/hy,2.0) + pow((a1*temp_vec_1[k] + a3*temp_vec_3[k])/hx,2.0)));
-
             }
 
             temp_vec_6[y_num - 1] = sqrt(pow((a1*temp_vec_1[(y_num-1)] + a3*temp_vec_3[(y_num-1)])/hx,2.0)  + pow((a1*temp_vec_4[(y_num-1)] + a3*temp_vec_5[(y_num-1)])/hz,2.0));
