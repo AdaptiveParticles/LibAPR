@@ -45,13 +45,17 @@ public:
         //set the pointer ot the data-structure
         apr_ = &apr;
 
+
         if(image_type == "uint8"){
             return get_apr_method<uint8_t>(apr);
         } else if (image_type == "float"){
             return get_apr_method<float>(apr);
+
         } else {
             return get_apr_method<uint16_t>(apr);
         }
+
+
 
     };
 
@@ -169,7 +173,7 @@ void APR_converter<ImageType>::get_gradient(Mesh_data<T>& input_img,Mesh_data<S>
     //  Output: down-sampled by 2 gradient magnitude (Note, the gradient is calculated at pixel level then maximum down sampled within the loops below)
     //
 
-    timer.verbose_flag = true;
+    timer.verbose_flag = false;
 
 
     timer.start_timer("offset image");
@@ -367,6 +371,11 @@ bool APR_converter<ImageType>::get_apr_method(APR<ImageType>& apr) {
     //
 
 
+    APR_timer full;
+    full.verbose_flag = true;
+
+    full.start_timer("GET APR");
+
     APR_timer timer;
     timer.verbose_flag = true;
 
@@ -456,6 +465,8 @@ bool APR_converter<ImageType>::get_apr_method(APR<ImageType>& apr) {
     st.start_timer("sample particles");
     apr.get_parts_from_img(downsampled_img,apr.particles_int);
     st.stop_timer();
+
+    full.stop_timer();
 
     return true;
 }

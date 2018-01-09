@@ -831,7 +831,7 @@ public:
         Mesh_data<U> pc_image;
         Mesh_data<uint8_t> k_img;
 
-        unsigned int offset_max = 20;
+        unsigned int offset_max = 40;
 
         interp_img(pc_image,interp_data);
 
