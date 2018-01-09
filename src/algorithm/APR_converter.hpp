@@ -224,25 +224,34 @@ void APR_converter<ImageType>::get_local_intensity_scale(Mesh_data<T>& input_img
 
     get_window(var_rescale,var_win,this->par);
 
+    int win_x,win_y,win_z,win_y2,win_x2,win_z2;
 
-//    timer.start_timer("calc_sat_mean_y");
-//
-//    calc_sat_mean_y(var,win_y);
-//
-//    timer.stop_timer();
-//
-//    timer.start_timer("calc_sat_mean_x");
-//
-//
-//    calc_sat_mean_x(var,win_x);
-//
-//    timer.stop_timer();
-//
-//    timer.start_timer("calc_sat_mean_z");
-//
-//    calc_sat_mean_z(var,win_z);
-//
-//    timer.stop_timer();
+    win_y = var_win[0];
+    win_x = var_win[1];
+    win_z = var_win[2];
+
+    win_y2 = var_win[3];
+    win_x2 = var_win[4];
+    win_z2 = var_win[5];
+
+    timer.start_timer("calc_sat_mean_y");
+
+    calc_sat_mean_y(local_scale_temp,win_y);
+
+    timer.stop_timer();
+
+    timer.start_timer("calc_sat_mean_x");
+
+
+    calc_sat_mean_x(local_scale_temp,win_x);
+
+    timer.stop_timer();
+
+    timer.start_timer("calc_sat_mean_z");
+
+    calc_sat_mean_z(local_scale_temp,win_z);
+
+    timer.stop_timer();
 
 }
 
