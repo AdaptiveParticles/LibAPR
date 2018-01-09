@@ -23,7 +23,7 @@ void calc_sat_mean_x(Mesh_data<T>& input,const int offset);
 template<typename T>
 void calc_sat_mean_y(Mesh_data<T>& input,const int offset);
 
-void get_window(float var_rescale,std::vector<int>& var_win,APR_parameters& par);
+void get_window(float& var_rescale,std::vector<int>& var_win,APR_parameters& par);
 
 /*
  * Implimentations
@@ -95,7 +95,7 @@ void calc_abs_diff(Mesh_data<T>& input_image,Mesh_data<T>& var){
 }
 
 
-void get_window(float var_rescale,std::vector<int>& var_win,APR_parameters& par){
+void get_window(float& var_rescale,std::vector<int>& var_win,APR_parameters& par){
     //
     //
     //  Compute the window size and set the re-scaling factor

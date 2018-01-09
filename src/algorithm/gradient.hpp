@@ -69,8 +69,8 @@ void calc_bspline_fd_ds_mag(Mesh_data<T> &input, Mesh_data<S> &grad, const float
  * Implimentations
  */
 
-template<typename T>
-void mask_gradient(Mesh_data<T>& grad_ds,Mesh_data<T>& temp_ds,Mesh_data<T>& temp_full,APR_parameters& par){
+template<typename T,typename S>
+void mask_gradient(Mesh_data<T>& grad_ds,Mesh_data<S>& temp_ds,Mesh_data<T>& temp_full,APR_parameters& par){
     //
     //  Bevan Cheeseman 2018
     //
@@ -99,8 +99,8 @@ void mask_gradient(Mesh_data<T>& grad_ds,Mesh_data<T>& temp_ds,Mesh_data<T>& tem
 
 }
 
-template<typename T>
-void threshold_gradient(Mesh_data<T>& grad,Mesh_data<T>& img,const float Ip_th){
+template<typename T,typename S>
+void threshold_gradient(Mesh_data<T>& grad,Mesh_data<S>& img,const float Ip_th){
     //
     //  Bevan Cheeseman 2016
     //
@@ -120,7 +120,7 @@ void threshold_gradient(Mesh_data<T>& grad,Mesh_data<T>& img,const float Ip_th){
         for(i = 0;i < x_num;i++){
 
             for (k = 0; k < (y_num);k++){
-                if(img.mesh[j*x_num*y_num + i*y_num + k] < Ip_th){
+                if(img.mesh[j*x_num*y_num + i*y_num + k] <= Ip_th){
                     grad.mesh[j*x_num*y_num + i*y_num + k] = 0;
                 }
             }

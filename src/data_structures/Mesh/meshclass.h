@@ -649,7 +649,7 @@ void down_sample(Mesh_data<T>& test_a, Mesh_data<S>& test_a_ds, L1 reduce, L2 co
             //then do the operations two by two
             for (k = 0; k < y_num_ds; k++) {
                 sk_ = std::min(2 * k + 1, y_num - 1);
-                test_a_ds.mesh[j * x_num_ds * y_num_ds + i * y_num_ds + k] = temp_vec[2 * k];
+                test_a_ds.mesh[j * x_num_ds * y_num_ds + i * y_num_ds + k] = reduce(0,temp_vec[2 * k]);
                 test_a_ds.mesh[j * x_num_ds * y_num_ds + i * y_num_ds + k] =
                         reduce(test_a_ds.mesh[j * x_num_ds * y_num_ds + i * y_num_ds + k], temp_vec[sk_]);
             }
@@ -658,7 +658,6 @@ void down_sample(Mesh_data<T>& test_a, Mesh_data<S>& test_a_ds, L1 reduce, L2 co
             for (k = 0; k < y_num; k++) {
                 temp_vec[k] = test_a.mesh[2 * j * x_num * y_num + si_ * y_num + k];
             }
-
 
             //then do the operations two by two
             for (k = 0; k < y_num_ds; k++) {
