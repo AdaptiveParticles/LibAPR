@@ -994,37 +994,44 @@ void calc_bspline_fd_x_y_ds(Mesh_data<T>& input,Mesh_data<S>& grad,const float h
     //
     //
 
+    const float hz = hx;
+
     const int z_num = input.z_num;
     const int x_num = input.x_num;
     const int y_num = input.y_num;
 
+    const int z_num_ds = grad.z_num;
+    const int x_num_ds = grad.x_num;
+    const int y_num_ds = grad.y_num;
+
     const float a1 = -1.0/2.0;
     const float a3 = 1.0/2.0;
 
-    std::vector<float> temp_vec_1;
+    std::vector<S> temp_vec_1;
     temp_vec_1.resize(y_num,0);
 
-    std::vector<float> temp_vec_2;
+    std::vector<S> temp_vec_2;
     temp_vec_2.resize(y_num,0);
 
-    std::vector<float> temp_vec_3;
+    std::vector<S> temp_vec_3;
     temp_vec_3.resize(y_num,0);
 
-    std::vector<float> temp_vec_4;
+    std::vector<S> temp_vec_4;
     temp_vec_4.resize(y_num,0);
 
-    std::vector<float> temp_vec_5;
+    std::vector<S> temp_vec_5;
     temp_vec_5.resize(y_num,0);
 
-    int i,k;
+    std::vector<S> temp_vec_6;
+    temp_vec_6.resize(y_num,0);
+
+    int i,k,j;
 
     int xnumynum = x_num * y_num;
 
 
-
-
-#pragma omp parallel for default(shared) private(k,i) firstprivate(temp_vec_1, temp_vec_2, temp_vec_3,temp_vec_4,temp_vec_5)
-    for(int j = 0;j < z_num;j++){
+#pragma omp parallel for default(shared) private(k,i,j) firstprivate(temp_vec_1, temp_vec_2, temp_vec_3,temp_vec_4,temp_vec_5,temp_vec_6)
+    for(j = 0;j < z_num;j++){
 
         //initialize the loop
         for (k = 0; k < (y_num);k++){
@@ -1035,7 +1042,7 @@ void calc_bspline_fd_x_y_ds(Mesh_data<T>& input,Mesh_data<S>& grad,const float h
         //LHS boundary condition is accounted for wiht this initialization
 
         const int j_m = std::max(0,j-1);
-        const int j_p = std::max(z_num-1,j+1);
+        const int j_p = std::min(z_num-1,j+1);
 
         for(i = 0;i < x_num-1;i++){
 
@@ -1043,7 +1050,7 @@ void calc_bspline_fd_x_y_ds(Mesh_data<T>& input,Mesh_data<S>& grad,const float h
 #pragma omp simd
             for (k = 0; k < (y_num); k++) {
                 temp_vec_4[k] = input.mesh[j_m*xnumynum + i * y_num + k];
-                temp_vec_5[k] = input.mesh[j_p*i * y_num + k];
+                temp_vec_5[k] = input.mesh[j_p*xnumynum +  i * y_num + k];
             }
 
             //initialize the loop
@@ -1054,14 +1061,32 @@ void calc_bspline_fd_x_y_ds(Mesh_data<T>& input,Mesh_data<S>& grad,const float h
 
 
             //compute the boundary values
-            grad.mesh[j*x_num*y_num + i*y_num ] = pow((a1*temp_vec_1[0] + a3*temp_vec_3[0])/hx,2.0)  + pow(a1*temp_vec_4[0] + a3*temp_vec_5[0],2.0);
+            temp_vec_6[0] = sqrt(pow((a1*temp_vec_1[0] + a3*temp_vec_3[0])/hx,2.0)  + pow((a1*temp_vec_4[0] + a3*temp_vec_5[0])/hz,2.0));
+
             //do the y gradient
 #pragma omp simd
             for (k = 1; k < (y_num-1);k++){
-                grad.mesh[j*x_num*y_num + i*y_num + k] = pow(a1*temp_vec_4[k] + a3*temp_vec_5[k],2.0) +  pow((a1*temp_vec_2[k-1] + a3*temp_vec_2[k+1])/hy,2.0) + pow((a1*temp_vec_1[k] + a3*temp_vec_3[k])/hx,2.0);
+                //grad.mesh[j*x_num*y_num + i*y_num + k] = sqrt(pow(a1*temp_vec_4[k] + a3*temp_vec_5[k],2.0) +  pow((a1*temp_vec_2[k-1] + a3*temp_vec_2[k+1])/hy,2.0) + pow((a1*temp_vec_1[k] + a3*temp_vec_3[k])/hx,2.0));
+                temp_vec_6[k] =  sqrt(pow((a1*temp_vec_4[k] + a3*temp_vec_5[k])/hz,2.0) +  pow((a1*temp_vec_2[k-1] + a3*temp_vec_2[k+1])/hy,2.0) + pow((a1*temp_vec_1[k] + a3*temp_vec_3[k])/hx,2.0));
+
+               // grad.mesh[(j/2)*x_num_ds*y_num_ds + (i/2)*y_num_ds + (k/2)] = std::max(grad.mesh[(j/2)*x_num_ds*y_num_ds + (i/2)*y_num_ds + (k/2)],(S)sqrt(pow(a1*temp_vec_4[k] + a3*temp_vec_5[k],2.0) +  pow((a1*temp_vec_2[k-1] + a3*temp_vec_2[k+1])/hy,2.0) + pow((a1*temp_vec_1[k] + a3*temp_vec_3[k])/hx,2.0)));
+
             }
 
-            grad.mesh[j*x_num*y_num + i*y_num + (y_num-1)] = pow((a1*temp_vec_1[(y_num-1)] + a3*temp_vec_3[(y_num-1)])/hx,2.0)  + pow(a1*temp_vec_4[(y_num-1)] + a3*temp_vec_5[(y_num-1)],2.0);
+            temp_vec_6[y_num - 1] = sqrt(pow((a1*temp_vec_1[(y_num-1)] + a3*temp_vec_3[(y_num-1)])/hx,2.0)  + pow((a1*temp_vec_4[(y_num-1)] + a3*temp_vec_5[(y_num-1)])/hz,2.0));
+
+            int j_2 = j/2;
+            int i_2 = i/2;
+
+#pragma omp simd
+            for (k = 0; k < (y_num_ds);k++) {
+                grad.mesh[j_2*x_num_ds*y_num_ds + i_2*y_num_ds + k] = std::max(temp_vec_6[2*k],grad.mesh[j_2*x_num_ds*y_num_ds + i_2*y_num_ds + k]);
+            }
+
+#pragma omp simd
+            for (k = 0; k < (y_num_ds);k++) {
+                grad.mesh[j_2*x_num_ds*y_num_ds + i_2*y_num_ds + k] = std::max(temp_vec_6[2*k+1],grad.mesh[j_2*x_num_ds*y_num_ds + i_2*y_num_ds + k]);
+            }
 
 
             std::swap(temp_vec_1, temp_vec_2);

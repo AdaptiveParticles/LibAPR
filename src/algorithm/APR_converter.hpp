@@ -159,13 +159,13 @@ void APR_converter<ImageType>::get_gradient(Mesh_data<T>& input_img,Mesh_data<S>
 
     name = par.output_dir + "grad.tif";
 
-    //grad_temp.write_image_tiff(name);
+    grad_temp.write_image_tiff(name);
 
 
     Mesh_data<float> grad_ds;
-    //grad_ds.preallocate(input_img.y_num,input_img.x_num,input_img.z_num,0);
+    grad_ds.preallocate(input_img.y_num,input_img.x_num,input_img.z_num,0);
 
-    grad_ds.initialize(grad_temp);
+    //grad_ds.initialize(grad_temp);
 
     timer.start_timer("calc_bspline_fd_x_y_ds");
     calc_bspline_fd_x_y_ds(image_temp,grad_ds,par.dx,par.dy);
@@ -173,7 +173,7 @@ void APR_converter<ImageType>::get_gradient(Mesh_data<T>& input_img,Mesh_data<S>
 
     name = par.output_dir + "grad_ds.tif";
 
-    //grad_ds.write_image_tiff(name);
+    grad_ds.write_image_tiff(name);
 
 
 }
