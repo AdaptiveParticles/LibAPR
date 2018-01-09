@@ -5,7 +5,9 @@ project(PartPlay)
 set(CMAKE_CXX_STANDARD 14)
 
 if(TESTS)
-    find_package(GTest REQUIRED)
+    #find_package(GTest REQUIRED)
+    add_subdirectory("external/gtest")
+    set(GTEST_LIBRARIES gtest)
 endif(TESTS)
 
 
@@ -42,6 +44,7 @@ include_directories(${HDF5_INCLUDE_DIRS} ${HDF5_INCLUDE_DIR} ${TIFF_INCLUDE_DIR}
 
 SET(BUILD_TESTS OFF CACHE BOOL "")
 SET(BUILD_BENCHMARKS OFF CACHE BOOL "")
+SET(CMAKE_POSITION_INDEPENDENT_CODE ON)
 add_subdirectory("external/c-blosc")
 include_directories("external/c-blosc/blosc")
 
