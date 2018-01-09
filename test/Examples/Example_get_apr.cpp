@@ -40,9 +40,9 @@ int main(int argc, char **argv) {
     options = read_command_line_options(argc,argv);
 
     //the apr datastructure
-    APR<float> apr;
+    APR<uint16_t> apr;
 
-    APR_converter<float> apr_converter;
+    APR_converter<uint16_t> apr_converter;
 
     //read in the command line options into the parameters file
     apr_converter.par.Ip_th = options.Ip_th;

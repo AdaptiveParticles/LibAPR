@@ -25,6 +25,8 @@ public:
 
     APR_parameters par;
 
+    APR_timer timer;
+
     std::string image_type; //default uint16
 
     /*
@@ -61,6 +63,10 @@ private:
 
     Mesh_data<ImageType> image_temp; // global image variable useful for passing between methods, or re-using memory
 
+    Mesh_data<float> grad_temp; //
+
+    float bspline_offset=0;
+
     /*
      * Private member functions
      */
@@ -77,6 +83,9 @@ private:
     template<typename T,typename S>
     void get_gradient(Mesh_data<T>& input_img,Mesh_data<S>& gradient);
 
+    template<typename T,typename S>
+    void get_local_intensity_scale(Mesh_data<T>& input_img,Mesh_data<S>& local_intensity_scale);
+
 
 };
 
@@ -90,24 +99,99 @@ void APR_converter<ImageType>::get_gradient(Mesh_data<T>& input_img,Mesh_data<S>
     //
     //  Input: full sized image.
     //
-    //  Output: down-sampled gradient (h)
+    //  Output: down-sampled by 2 gradient magnitude
     //
+
+    timer.verbose_flag = true;
+
+    timer.start_timer("init and copy image");
 
     //initialize the storage of the B-spline co-efficients
     image_temp.initialize(input_img);
 
-    Mesh_data<uint16_t> temp;
+    std::copy(input_img.mesh.begin(),input_img.mesh.end(),image_temp.mesh.begin());
 
-    temp.initialize(input_img);
-    std::copy(input_img.mesh.begin(),input_img.mesh.end(),temp.mesh.begin());
+    timer.stop_timer();
 
-    get_smooth_bspline_3D(temp,this->par);
+    timer.start_timer("offset image");
 
-    std::string name = par.output_dir + "_bspline.tif";
+    //offset image by factor (this is required if there are zero areas in the background with uint16_t and uint8_t images, as the Bspline co-efficients otherwise may be negative!)
+    // Warning both of these could result in over-flow
+    if(this->image_type == "uint16"){
+        //
+        std::transform(image_temp.mesh.begin(),image_temp.mesh.end(),image_temp.mesh.begin(),[](const float &a) { return a + 100; });
+        bspline_offset = 100;
+    } else if (this->image_type == "uint8"){
+        std::transform(image_temp.mesh.begin(),image_temp.mesh.end(),image_temp.mesh.begin(),[](const float &a) { return a + 5; });
+        bspline_offset = 5;
+    } else {
+        bspline_offset = 0;
+    }
 
-    temp.write_image_tiff(name);
+    timer.stop_timer();
+
+    timer.start_timer("smooth bspline");
+
+    get_smooth_bspline_3D(image_temp,this->par);
+
+    timer.stop_timer();
+
+
+    grad_temp.initialize(input_img);
+
+
+    timer.start_timer("calc_bspline_fd_x_y_alt");
+
+    calc_bspline_fd_x_y_alt(image_temp,grad_temp,par.dx,par.dy);
+
+    timer.stop_timer();
+
+    timer.start_timer("calc_spline_fd_zalt");
+
+    calc_bspline_fd_z_alt(image_temp,grad_temp,par.dz);
+
+    timer.stop_timer();
+
+
+    std::string name = par.output_dir + "bspline_coeffs.tif";
+
+    //image_temp.write_image_tiff(name);
+
+    name = par.output_dir + "grad.tif";
+
+    //grad_temp.write_image_tiff(name);
+
+
+    Mesh_data<float> grad_ds;
+    //grad_ds.preallocate(input_img.y_num,input_img.x_num,input_img.z_num,0);
+
+    grad_ds.initialize(grad_temp);
+
+    timer.start_timer("calc_bspline_fd_x_y_ds");
+    calc_bspline_fd_x_y_ds(image_temp,grad_ds,par.dx,par.dy);
+    timer.stop_timer();
+
+    name = par.output_dir + "grad_ds.tif";
+
+    //grad_ds.write_image_tiff(name);
+
 
 }
+
+template<typename ImageType> template<typename T,typename S>
+void APR_converter<ImageType>::get_local_intensity_scale(Mesh_data<T>& input_img,Mesh_data<S>& local_intensity_scale){
+    //
+    //  Calculate the gradient from the input image. (You could replace this method with your own)
+    //
+    //  Input: full sized image.
+    //
+    //  Output: down-sampled gradient (h)
+    //
+
+
+
+}
+
 
 template<typename ImageType> template<typename T>
 void APR_converter<ImageType>::init_apr(APR<ImageType>& apr,Mesh_data<T>& input_image){
