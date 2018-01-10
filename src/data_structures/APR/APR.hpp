@@ -1555,164 +1555,89 @@ public:
 
         timer.start_timer("intiialize part_cells");
 
-        for(uint64_t i = pc_data.depth_max;i >= pc_data.depth_min;i--){
+
+        for(uint64_t i = pc_data.depth_min;i <= pc_data.depth_max;i++){
 
             const unsigned int x_num_ = x_num[i];
             const unsigned int z_num_ = z_num[i];
             const unsigned int y_num_ = y_num[i];
 
-            status_temp.resize(y_num_,0);
+            const unsigned int x_num_ds = x_num[i-1];
+            const unsigned int z_num_ds = z_num[i-1];
+            const unsigned int y_num_ds = y_num[i-1];
 
-#pragma omp parallel for schedule(dynamic) default(shared) private(z_,x_,y_,curr_index,status,prev_ind) firstprivate(status_temp) if(z_num_*x_num_ > 100)
+#pragma omp parallel for default(shared) private(z_,x_,y_,curr_index,status,prev_ind) if(z_num_*x_num_ > 100)
             for(z_ = 0;z_ < z_num_;z_++){
 
                 for(x_ = 0;x_ < x_num_;x_++){
 
-                    std::fill(status_temp.begin(), status_temp.end(), 0);
-
-                    //interpolate filler and boundaries
-                    if(i < pc_data.depth_max){
-                        uint64_t offset_part_map = x_*y_num[i] + z_*y_num[i]*x_num[i];
-
-                        for(y_ = 0;y_ < y_num[i];y_++) {
-
-                            status = p_map[i][offset_part_map + y_];
-
-                            if ( status == NEIGHBOURSTATUS) {
-                                status_temp[ y_] = BOUNDARY;
-                            } else if(status == SLOPESTATUS) {
-                                status_temp[ y_] = FILLER;
-                            }
-                        }
-                    }
-
-                    //interpolate seed
-                    if((i > pc_data.depth_min) && (i <= pc_data.depth_max)){
-
-                        uint64_t offs = (x_/2)*y_num[i-1] + (z_/2)*y_num[i-1]*x_num[i-1];
-
-                        for(y_ = 0;y_ < y_num[i-1];y_++) {
-
-                            status = p_map[i-1][offs + y_];
-
-                            if (status == SEED) {
-
-                                status_temp[2 * y_] = SEED;
-                                status_temp[2 * y_ + 1] = SEED;
-                            }
-                        }
-
-                    }
-
-
                     size_t first_empty = 0;
-
-                    const uint64_t offset_pc_data = x_num_*z_ + x_;
+                    const size_t offset_part_map = x_*y_num_ + z_*y_num_*x_num_;
+                    const size_t offset_part_map_ds = (x_/2)*y_num_ds + (z_/2)*y_num_ds*x_num_ds;
+                    const size_t offset_pc_data = x_num_*z_ + x_;
                     curr_index = 0;
                     prev_ind = 0;
 
                     //first value handle the duplication of the gap node
 
-                    status =  status_temp[0];
-                    if((status> 0)){
-                        first_empty = 0;
-                    } else {
-                        first_empty = 1;
-                    }
 
-                    for(y_ = 0;y_ < (y_num_);y_++){
 
-                        status = status_temp[y_];
+                    if(i == (pc_data.depth_max)) {
 
-                        if(status> 0){
-                            curr_index+= 1 + prev_ind;
-                            prev_ind = 0;
-                        } else {
-                            prev_ind = 1;
-                        }
-                    }
+                        for (y_ = 0; y_ < y_num_/2; y_++) {
 
-                    if(curr_index == 0){
-                        pc_data.data[i][offset_pc_data].resize(1,0); //always first adds an extra entry for intialization and extra info
-                    } else {
+                            status = p_map[i-1][ offset_part_map_ds + y_];
 
-                        pc_data.data[i][offset_pc_data].resize(curr_index + 2 - first_empty,0); //gap node to begin, already finishes with a gap node
-
-                    }
-
-                    curr_index = 0;
-                    prev_ind = 1;
-                    prev_coord = 0;
-
-                    //initialize the first values type
-                    pc_data.data[i][offset_pc_data][0] = TYPE_GAP_END;
-
-                    for(y_ = 0;y_ < y_num_;y_++){
-
-                        status = status_temp[y_];
-
-                        if(status> 0){
-
-                            curr_index++;
-
-                            //set starting type
-                            if(prev_ind == 1){
-                                //gap node
-                                //set type
-                                pc_data.data[i][offset_pc_data][curr_index-1] = TYPE_GAP;
-                                pc_data.data[i][offset_pc_data][curr_index-1] |= (y_ << NEXT_COORD_SHIFT);
-                                pc_data.data[i][offset_pc_data][curr_index-1] |= ( prev_coord << PREV_COORD_SHIFT);
-                                pc_data.data[i][offset_pc_data][curr_index-1] |= (NO_NEIGHBOUR << YP_DEPTH_SHIFT);
-                                pc_data.data[i][offset_pc_data][curr_index-1] |= (NO_NEIGHBOUR << YM_DEPTH_SHIFT);
-
-                                curr_index++;
+                            if (status == SEED) {
+                                curr_index += 1 + prev_ind;
+                                prev_ind = 0;
+                                curr_index += 1 + prev_ind;
+                            } else {
+                                prev_ind = 1;
                             }
-                            prev_coord = y_;
-                            //set type
-                            pc_data.data[i][offset_pc_data][curr_index-1] = TYPE_PC;
-
-                            //initialize the neighbours to empty (to be over-written later if not the case) (Boundary Conditions)
-                            pc_data.data[i][offset_pc_data][curr_index-1] |= (NO_NEIGHBOUR << XP_DEPTH_SHIFT);
-                            pc_data.data[i][offset_pc_data][curr_index-1] |= (NO_NEIGHBOUR << XM_DEPTH_SHIFT);
-                            pc_data.data[i][offset_pc_data][curr_index-1] |= (NO_NEIGHBOUR << ZP_DEPTH_SHIFT);
-                            pc_data.data[i][offset_pc_data][curr_index-1] |= (NO_NEIGHBOUR << ZM_DEPTH_SHIFT);
-
-                            //set the status
-                            switch(status){
-                                case SEED:
-                                {
-                                    pc_data.data[i][offset_pc_data][curr_index-1] |= SEED_SHIFTED;
-                                    break;
-                                }
-                                case BOUNDARY:
-                                {
-                                    pc_data.data[i][offset_pc_data][curr_index-1] |= BOUNDARY_SHIFTED;
-                                    break;
-                                }
-                                case FILLER:
-                                {
-                                    pc_data.data[i][offset_pc_data][curr_index-1] |= FILLER_SHIFTED;
-                                    break;
-                                }
-
-                            }
-
-                            prev_ind = 0;
-                        } else {
-                            //store for setting above
-                            if(prev_ind == 0){
-                                //prev_coord = y_;
-                            }
-
-                            prev_ind = 1;
 
                         }
+
+                        if (curr_index == 0) {
+                            pc_data.data[i][offset_pc_data].resize(
+                                    1); //always first adds an extra entry for intialization and extra info
+                        } else {
+
+                            pc_data.data[i][offset_pc_data].resize(curr_index + 2 - first_empty,
+                                                                   0); //gap node to begin, already finishes with a gap node
+
+                        }
+                    } else {
+
+                        status = p_map[i][offset_part_map];
+                        if((status> 0)){
+                            first_empty = 0;
+                        } else {
+                            first_empty = 1;
+                        }
+
+                        for(y_ = 0;y_ < y_num_;y_++){
+
+                            status = p_map[i][offset_part_map + y_];
+
+                            if(status> 0){
+                                curr_index+= 1 + prev_ind;
+                                prev_ind = 0;
+                            } else {
+                                prev_ind = 1;
+                            }
+                        }
+
+                        if(curr_index == 0){
+                            pc_data.data[i][offset_pc_data].resize(1); //always first adds an extra entry for intialization and extra info
+                        } else {
+
+                            pc_data.data[i][offset_pc_data].resize(curr_index + 2 - first_empty,0); //gap node to begin, already finishes with a gap node
+
+                        }
+
                     }
 
-                    //Initialize the last value GAP END indicators to no neighbour
-                    pc_data.data[i][offset_pc_data][pc_data.data[i][offset_pc_data].size()-1] = TYPE_GAP_END;
-                    pc_data.data[i][offset_pc_data][pc_data.data[i][offset_pc_data].size()-1] |= (NO_NEIGHBOUR << YP_DEPTH_SHIFT);
-                    pc_data.data[i][offset_pc_data][pc_data.data[i][offset_pc_data].size()-1] |= (NO_NEIGHBOUR << YM_DEPTH_SHIFT);
 
                 }
             }
@@ -1720,6 +1645,544 @@ public:
         }
 
         timer.stop_timer();
+
+
+        timer.start_timer("second loop");
+
+        prev_coord = 0;
+
+
+        for(uint64_t i = pc_data.depth_min;i <= pc_data.depth_max;i++){
+
+            const unsigned int x_num_ = x_num[i];
+            const unsigned int z_num_ = z_num[i];
+            const unsigned int y_num_ = y_num[i];
+
+            const unsigned int x_num_ds = x_num[i-1];
+            const unsigned int z_num_ds = z_num[i-1];
+            const unsigned int y_num_ds = y_num[i-1];
+
+#pragma omp parallel for default(shared) private(z_,x_,y_,curr_index,status,prev_ind,prev_coord) if(z_num_*x_num_ > 100)
+            for(z_ = 0;z_ < z_num_;z_++){
+
+                for(x_ = 0;x_ < x_num_;x_++){
+
+                    const size_t offset_part_map_ds = (x_/2)*y_num_ds + (z_/2)*y_num_ds*x_num_ds;
+                    const size_t offset_part_map = x_*y_num_ + z_*y_num_*x_num_;
+                    const size_t offset_pc_data = x_num_*z_ + x_;
+                    curr_index = 0;
+                    prev_ind = 1;
+                    prev_coord = 0;
+
+                    if(i == pc_data.depth_max){
+                        //initialize the first values type
+                        pc_data.data[i][offset_pc_data][0] = TYPE_GAP_END;
+
+                        uint64_t y_u;
+
+                        for (y_ = 0; y_ < y_num_/2; y_++) {
+
+                            status = p_map[i - 1][offset_part_map_ds + y_];
+
+                            if (status == SEED) {
+
+                                for (int k = 0; k < 2; ++k) {
+
+                                    y_u = 2*y_ + k;
+
+                                    curr_index++;
+
+                                    //set starting type
+                                    if (prev_ind == 1) {
+                                        //gap node
+                                        //set type
+                                        pc_data.data[i][offset_pc_data][curr_index - 1] = TYPE_GAP;
+                                        pc_data.data[i][offset_pc_data][curr_index - 1] |= (y_u << NEXT_COORD_SHIFT);
+                                        pc_data.data[i][offset_pc_data][curr_index - 1] |= (prev_coord
+                                                << PREV_COORD_SHIFT);
+                                        pc_data.data[i][offset_pc_data][curr_index - 1] |= (NO_NEIGHBOUR
+                                                << YP_DEPTH_SHIFT);
+                                        pc_data.data[i][offset_pc_data][curr_index - 1] |= (NO_NEIGHBOUR
+                                                << YM_DEPTH_SHIFT);
+
+                                        curr_index++;
+                                    }
+                                    prev_coord = y_u;
+                                    //set type
+                                    pc_data.data[i][offset_pc_data][curr_index - 1] = TYPE_PC;
+
+                                    //initialize the neighbours to empty (to be over-written later if not the case) (Boundary Conditions)
+                                    pc_data.data[i][offset_pc_data][curr_index - 1] |= (NO_NEIGHBOUR << XP_DEPTH_SHIFT);
+                                    pc_data.data[i][offset_pc_data][curr_index - 1] |= (NO_NEIGHBOUR << XM_DEPTH_SHIFT);
+                                    pc_data.data[i][offset_pc_data][curr_index - 1] |= (NO_NEIGHBOUR << ZP_DEPTH_SHIFT);
+                                    pc_data.data[i][offset_pc_data][curr_index - 1] |= (NO_NEIGHBOUR << ZM_DEPTH_SHIFT);
+
+                                    //set the status
+                                    switch (status) {
+                                        case SEED: {
+                                            pc_data.data[i][offset_pc_data][curr_index - 1] |= SEED_SHIFTED;
+                                            break;
+                                        }
+                                        case BOUNDARY: {
+                                            pc_data.data[i][offset_pc_data][curr_index - 1] |= BOUNDARY_SHIFTED;
+                                            break;
+                                        }
+                                        case FILLER: {
+                                            pc_data.data[i][offset_pc_data][curr_index - 1] |= FILLER_SHIFTED;
+                                            break;
+                                        }
+
+                                    }
+
+                                    prev_ind = 0;
+                                }
+                            } else {
+                                //store for setting above
+                                if (prev_ind == 0) {
+                                    //prev_coord = y_;
+                                }
+
+                                prev_ind = 1;
+
+                            }
+
+                        }
+
+                        //Initialize the last value GAP END indicators to no neighbour
+                        pc_data.data[i][offset_pc_data][pc_data.data[i][offset_pc_data].size() - 1] = TYPE_GAP_END;
+                        pc_data.data[i][offset_pc_data][pc_data.data[i][offset_pc_data].size() - 1] |= (NO_NEIGHBOUR
+                                << YP_DEPTH_SHIFT);
+                        pc_data.data[i][offset_pc_data][pc_data.data[i][offset_pc_data].size() - 1] |= (NO_NEIGHBOUR
+                                << YM_DEPTH_SHIFT);
+
+
+
+                    } else {
+
+                        //initialize the first values type
+                        pc_data.data[i][offset_pc_data][0] = TYPE_GAP_END;
+
+
+
+                        for (y_ = 0; y_ < y_num_; y_++) {
+
+                            status = p_map[i][offset_part_map + y_];
+
+                            if (status > 0) {
+
+                                curr_index++;
+
+                                //set starting type
+                                if (prev_ind == 1) {
+                                    //gap node
+                                    //set type
+                                    pc_data.data[i][offset_pc_data][curr_index - 1] = TYPE_GAP;
+                                    pc_data.data[i][offset_pc_data][curr_index - 1] |= (y_ << NEXT_COORD_SHIFT);
+                                    pc_data.data[i][offset_pc_data][curr_index - 1] |= (prev_coord << PREV_COORD_SHIFT);
+                                    pc_data.data[i][offset_pc_data][curr_index - 1] |= (NO_NEIGHBOUR << YP_DEPTH_SHIFT);
+                                    pc_data.data[i][offset_pc_data][curr_index - 1] |= (NO_NEIGHBOUR << YM_DEPTH_SHIFT);
+
+                                    curr_index++;
+                                }
+                                prev_coord = y_;
+                                //set type
+                                pc_data.data[i][offset_pc_data][curr_index - 1] = TYPE_PC;
+
+                                //initialize the neighbours to empty (to be over-written later if not the case) (Boundary Conditions)
+                                pc_data.data[i][offset_pc_data][curr_index - 1] |= (NO_NEIGHBOUR << XP_DEPTH_SHIFT);
+                                pc_data.data[i][offset_pc_data][curr_index - 1] |= (NO_NEIGHBOUR << XM_DEPTH_SHIFT);
+                                pc_data.data[i][offset_pc_data][curr_index - 1] |= (NO_NEIGHBOUR << ZP_DEPTH_SHIFT);
+                                pc_data.data[i][offset_pc_data][curr_index - 1] |= (NO_NEIGHBOUR << ZM_DEPTH_SHIFT);
+
+                                //set the status
+                                switch (status) {
+                                    case SEED: {
+                                        pc_data.data[i][offset_pc_data][curr_index - 1] |= SEED_SHIFTED;
+                                        break;
+                                    }
+                                    case BOUNDARY: {
+                                        pc_data.data[i][offset_pc_data][curr_index - 1] |= BOUNDARY_SHIFTED;
+                                        break;
+                                    }
+                                    case FILLER: {
+                                        pc_data.data[i][offset_pc_data][curr_index - 1] |= FILLER_SHIFTED;
+                                        break;
+                                    }
+
+                                }
+
+                                prev_ind = 0;
+                            } else {
+
+
+                                prev_ind = 1;
+
+                            }
+                        }
+
+                        //Initialize the last value GAP END indicators to no neighbour
+                        pc_data.data[i][offset_pc_data][pc_data.data[i][offset_pc_data].size() - 1] = TYPE_GAP_END;
+                        pc_data.data[i][offset_pc_data][pc_data.data[i][offset_pc_data].size() - 1] |= (NO_NEIGHBOUR
+                                << YP_DEPTH_SHIFT);
+                        pc_data.data[i][offset_pc_data][pc_data.data[i][offset_pc_data].size() - 1] |= (NO_NEIGHBOUR
+                                << YM_DEPTH_SHIFT);
+                    }
+                }
+            }
+
+        }
+
+        timer.stop_timer();
+
+
+
+//
+//
+//        for(uint64_t i = pc_data.depth_max;i >= pc_data.depth_min;i--){
+//
+//            const unsigned int x_num_ = x_num[i];
+//            const unsigned int z_num_ = z_num[i];
+//            const unsigned int y_num_ = y_num[i];
+//
+//            //status_temp.resize(y_num_,0);
+//
+//#pragma omp parallel for schedule(dynamic) default(shared) private(z_,x_,y_,curr_index,status,prev_ind) firstprivate(status_temp) if(z_num_*x_num_ > 100)
+//            for(z_ = 0;z_ < z_num_;z_++){
+//
+//                for(x_ = 0;x_ < x_num_;x_++){
+//
+//                    //interpolate filler and boundaries
+//                    if(i < pc_data.depth_max){
+//                        uint64_t offset_part_map = x_*y_num[i] + z_*y_num[i]*x_num[i];
+//
+//                        for(y_ = 0;y_ < y_num[i];y_++) {
+//
+//                            status = p_map[i][offset_part_map + y_];
+//
+//                            if ( status == NEIGHBOURSTATUS) {
+//                                status_temp[ y_] = BOUNDARY;
+//                            } else if(status == SLOPESTATUS) {
+//                                status_temp[ y_] = FILLER;
+//                            }
+//                        }
+//                    }
+//
+//                    //interpolate seed
+//                    if((i > pc_data.depth_min) && (i <= pc_data.depth_max)){
+//
+//                        uint64_t offs = (x_/2)*y_num[i-1] + (z_/2)*y_num[i-1]*x_num[i-1];
+//
+//                        for(y_ = 0;y_ < y_num[i-1];y_++) {
+//
+//                            status = p_map[i-1][offs + y_];
+//
+//                            if (status == SEED) {
+//
+//                                status_temp[2 * y_] = SEED;
+//                                status_temp[2 * y_ + 1] = SEED;
+//                            }
+//                        }
+//                    }
+//
+//                    //first value handle the duplication of the gap node
+//
+//
+//                    size_t first_empty = 0;
+//                    const uint64_t offset_pc_data = x_num_*z_ + x_;
+//                    curr_index = 0;
+//                    prev_ind = 0;
+//
+//
+//                    status =  status_temp[0];
+//                    if((status> 0)){
+//                        first_empty = 0;
+//                    } else {
+//                        first_empty = 1;
+//                    }
+//
+//
+//
+//                    for(y_ = 0;y_ < (y_num_);y_++){
+//
+//                        status = status_temp[y_];
+//
+//                        if(status> 0){
+//                            curr_index+= 1 + prev_ind;
+//                            prev_ind = 0;
+//                        } else {
+//                            prev_ind = 1;
+//                        }
+//                    }
+//
+//                    if(curr_index == 0){
+//                        pc_data.data[i][offset_pc_data].resize(1,0); //always first adds an extra entry for intialization and extra info
+//                    } else {
+//
+//                        pc_data.data[i][offset_pc_data].resize(curr_index + 2 - first_empty,0); //gap node to begin, already finishes with a gap node
+//
+//                    }
+
+
+
+//
+//
+//
+//
+
+//
+
+//
+//
+//
+//                    curr_index = 0;
+//                    prev_ind = 1;
+//                    prev_coord = 0;
+//
+//                    //initialize the first values type
+//                    pc_data.data[i][offset_pc_data][0] = TYPE_GAP_END;
+//
+//                    for(y_ = 0;y_ < y_num_;y_++){
+//
+//                        status = status_temp[y_];
+//
+//                        if(status> 0){
+//
+//                            curr_index++;
+//
+//                            //set starting type
+//                            if(prev_ind == 1){
+//                                //gap node
+//                                //set type
+//                                pc_data.data[i][offset_pc_data][curr_index-1] = TYPE_GAP;
+//                                pc_data.data[i][offset_pc_data][curr_index-1] |= (y_ << NEXT_COORD_SHIFT);
+//                                pc_data.data[i][offset_pc_data][curr_index-1] |= ( prev_coord << PREV_COORD_SHIFT);
+//                                pc_data.data[i][offset_pc_data][curr_index-1] |= (NO_NEIGHBOUR << YP_DEPTH_SHIFT);
+//                                pc_data.data[i][offset_pc_data][curr_index-1] |= (NO_NEIGHBOUR << YM_DEPTH_SHIFT);
+//
+//                                curr_index++;
+//                            }
+//                            prev_coord = y_;
+//                            //set type
+//                            pc_data.data[i][offset_pc_data][curr_index-1] = TYPE_PC;
+//
+//                            //initialize the neighbours to empty (to be over-written later if not the case) (Boundary Conditions)
+//                            pc_data.data[i][offset_pc_data][curr_index-1] |= (NO_NEIGHBOUR << XP_DEPTH_SHIFT);
+//                            pc_data.data[i][offset_pc_data][curr_index-1] |= (NO_NEIGHBOUR << XM_DEPTH_SHIFT);
+//                            pc_data.data[i][offset_pc_data][curr_index-1] |= (NO_NEIGHBOUR << ZP_DEPTH_SHIFT);
+//                            pc_data.data[i][offset_pc_data][curr_index-1] |= (NO_NEIGHBOUR << ZM_DEPTH_SHIFT);
+//
+//                            //set the status
+//                            switch(status){
+//                                case SEED:
+//                                {
+//                                    pc_data.data[i][offset_pc_data][curr_index-1] |= SEED_SHIFTED;
+//                                    break;
+//                                }
+//                                case BOUNDARY:
+//                                {
+//                                    pc_data.data[i][offset_pc_data][curr_index-1] |= BOUNDARY_SHIFTED;
+//                                    break;
+//                                }
+//                                case FILLER:
+//                                {
+//                                    pc_data.data[i][offset_pc_data][curr_index-1] |= FILLER_SHIFTED;
+//                                    break;
+//                                }
+//
+//                            }
+//
+//                            prev_ind = 0;
+//                        } else {
+//                            //store for setting above
+//                            if(prev_ind == 0){
+//                                //prev_coord = y_;
+//                            }
+//
+//                            prev_ind = 1;
+//
+//                        }
+//                    }
+//
+//                    //Initialize the last value GAP END indicators to no neighbour
+//                    pc_data.data[i][offset_pc_data][pc_data.data[i][offset_pc_data].size()-1] = TYPE_GAP_END;
+//                    pc_data.data[i][offset_pc_data][pc_data.data[i][offset_pc_data].size()-1] |= (NO_NEIGHBOUR << YP_DEPTH_SHIFT);
+//                    pc_data.data[i][offset_pc_data][pc_data.data[i][offset_pc_data].size()-1] |= (NO_NEIGHBOUR << YM_DEPTH_SHIFT);
+
+//                }
+//            }
+//
+//        }
+
+
+
+
+
+
+//        for(uint64_t i = pc_data.depth_max;i >= pc_data.depth_min;i--){
+//
+//            const unsigned int x_num_ = x_num[i];
+//            const unsigned int z_num_ = z_num[i];
+//            const unsigned int y_num_ = y_num[i];
+//
+//            status_temp.resize(y_num_,0);
+//
+//#pragma omp parallel for schedule(dynamic) default(shared) private(z_,x_,y_,curr_index,status,prev_ind) firstprivate(status_temp) if(z_num_*x_num_ > 100)
+//            for(z_ = 0;z_ < z_num_;z_++){
+//
+//                for(x_ = 0;x_ < x_num_;x_++){
+//
+//                    std::fill(status_temp.begin(), status_temp.end(), 0);
+//
+//                    //interpolate filler and boundaries
+//                    if(i < pc_data.depth_max){
+//                        uint64_t offset_part_map = x_*y_num[i] + z_*y_num[i]*x_num[i];
+//
+//                        for(y_ = 0;y_ < y_num[i];y_++) {
+//
+//                            status = p_map[i][offset_part_map + y_];
+//
+//                            if ( status == NEIGHBOURSTATUS) {
+//                                status_temp[ y_] = BOUNDARY;
+//                            } else if(status == SLOPESTATUS) {
+//                                status_temp[ y_] = FILLER;
+//                            }
+//                        }
+//                    }
+//
+//                    //interpolate seed
+//                    if((i > pc_data.depth_min) && (i <= pc_data.depth_max)){
+//
+//                        uint64_t offs = (x_/2)*y_num[i-1] + (z_/2)*y_num[i-1]*x_num[i-1];
+//
+//                        for(y_ = 0;y_ < y_num[i-1];y_++) {
+//
+//                            status = p_map[i-1][offs + y_];
+//
+//                            if (status == SEED) {
+//
+//                                status_temp[2 * y_] = SEED;
+//                                status_temp[2 * y_ + 1] = SEED;
+//                            }
+//                        }
+//
+//                    }
+//
+//
+//                    size_t first_empty = 0;
+//
+//                    const uint64_t offset_pc_data = x_num_*z_ + x_;
+//                    curr_index = 0;
+//                    prev_ind = 0;
+//
+//                    //first value handle the duplication of the gap node
+//
+//                    status =  status_temp[0];
+//                    if((status> 0)){
+//                        first_empty = 0;
+//                    } else {
+//                        first_empty = 1;
+//                    }
+//
+//                    for(y_ = 0;y_ < (y_num_);y_++){
+//
+//                        status = status_temp[y_];
+//
+//                        if(status> 0){
+//                            curr_index+= 1 + prev_ind;
+//                            prev_ind = 0;
+//                        } else {
+//                            prev_ind = 1;
+//                        }
+//                    }
+//
+//                    if(curr_index == 0){
+//                        pc_data.data[i][offset_pc_data].resize(1,0); //always first adds an extra entry for intialization and extra info
+//                    } else {
+//
+//                        pc_data.data[i][offset_pc_data].resize(curr_index + 2 - first_empty,0); //gap node to begin, already finishes with a gap node
+//
+//                    }
+//
+//                    curr_index = 0;
+//                    prev_ind = 1;
+//                    prev_coord = 0;
+//
+//                    //initialize the first values type
+//                    pc_data.data[i][offset_pc_data][0] = TYPE_GAP_END;
+//
+//                    for(y_ = 0;y_ < y_num_;y_++){
+//
+//                        status = status_temp[y_];
+//
+//                        if(status> 0){
+//
+//                            curr_index++;
+//
+//                            //set starting type
+//                            if(prev_ind == 1){
+//                                //gap node
+//                                //set type
+//                                pc_data.data[i][offset_pc_data][curr_index-1] = TYPE_GAP;
+//                                pc_data.data[i][offset_pc_data][curr_index-1] |= (y_ << NEXT_COORD_SHIFT);
+//                                pc_data.data[i][offset_pc_data][curr_index-1] |= ( prev_coord << PREV_COORD_SHIFT);
+//                                pc_data.data[i][offset_pc_data][curr_index-1] |= (NO_NEIGHBOUR << YP_DEPTH_SHIFT);
+//                                pc_data.data[i][offset_pc_data][curr_index-1] |= (NO_NEIGHBOUR << YM_DEPTH_SHIFT);
+//
+//                                curr_index++;
+//                            }
+//                            prev_coord = y_;
+//                            //set type
+//                            pc_data.data[i][offset_pc_data][curr_index-1] = TYPE_PC;
+//
+//                            //initialize the neighbours to empty (to be over-written later if not the case) (Boundary Conditions)
+//                            pc_data.data[i][offset_pc_data][curr_index-1] |= (NO_NEIGHBOUR << XP_DEPTH_SHIFT);
+//                            pc_data.data[i][offset_pc_data][curr_index-1] |= (NO_NEIGHBOUR << XM_DEPTH_SHIFT);
+//                            pc_data.data[i][offset_pc_data][curr_index-1] |= (NO_NEIGHBOUR << ZP_DEPTH_SHIFT);
+//                            pc_data.data[i][offset_pc_data][curr_index-1] |= (NO_NEIGHBOUR << ZM_DEPTH_SHIFT);
+//
+//                            //set the status
+//                            switch(status){
+//                                case SEED:
+//                                {
+//                                    pc_data.data[i][offset_pc_data][curr_index-1] |= SEED_SHIFTED;
+//                                    break;
+//                                }
+//                                case BOUNDARY:
+//                                {
+//                                    pc_data.data[i][offset_pc_data][curr_index-1] |= BOUNDARY_SHIFTED;
+//                                    break;
+//                                }
+//                                case FILLER:
+//                                {
+//                                    pc_data.data[i][offset_pc_data][curr_index-1] |= FILLER_SHIFTED;
+//                                    break;
+//                                }
+//
+//                            }
+//
+//                            prev_ind = 0;
+//                        } else {
+//                            //store for setting above
+//                            if(prev_ind == 0){
+//                                //prev_coord = y_;
+//                            }
+//
+//                            prev_ind = 1;
+//
+//                        }
+//                    }
+//
+//                    //Initialize the last value GAP END indicators to no neighbour
+//                    pc_data.data[i][offset_pc_data][pc_data.data[i][offset_pc_data].size()-1] = TYPE_GAP_END;
+//                    pc_data.data[i][offset_pc_data][pc_data.data[i][offset_pc_data].size()-1] |= (NO_NEIGHBOUR << YP_DEPTH_SHIFT);
+//                    pc_data.data[i][offset_pc_data][pc_data.data[i][offset_pc_data].size()-1] |= (NO_NEIGHBOUR << YM_DEPTH_SHIFT);
+//
+//                }
+//            }
+//
+//        }
+
+        //timer.stop_timer();
 
         ///////////////////////////////////
         //
