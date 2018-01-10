@@ -662,7 +662,7 @@ void APR_converter<ImageType>::auto_parameters(Mesh_data<T>& input_img){
     uint64_t counter_p = 0;
 
     for (int s = 0; s < selected_slices.size(); ++s) {
-        j = selected_slices[s];
+        j = std::max((int)selected_slices[s],(int)1);
         for(i = 1; i < (x_num-1);i++){
             for(k = 1;k < (y_num-1);k++){
 

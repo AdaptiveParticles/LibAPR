@@ -1550,6 +1550,7 @@ public:
 
         std::vector<uint64_t> status_temp;
 
+
         uint64_t prev_coord = 0;
 
         timer.start_timer("intiialize part_cells");
@@ -1560,12 +1561,13 @@ public:
             const unsigned int z_num_ = z_num[i];
             const unsigned int y_num_ = y_num[i];
 
+            status_temp.resize(y_num_,0);
+
 #pragma omp parallel for schedule(dynamic) default(shared) private(z_,x_,y_,curr_index,status,prev_ind) firstprivate(status_temp) if(z_num_*x_num_ > 100)
             for(z_ = 0;z_ < z_num_;z_++){
 
                 for(x_ = 0;x_ < x_num_;x_++){
 
-                    status_temp.resize(y_num_,0);
                     std::fill(status_temp.begin(), status_temp.end(), 0);
 
                     //interpolate filler and boundaries
