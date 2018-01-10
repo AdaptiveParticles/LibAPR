@@ -1531,7 +1531,7 @@ public:
         }
 
         Part_timer timer;
-        timer.verbose_flag = true;
+        timer.verbose_flag = false;
 
         //initialize loop variables
         uint64_t x_;
@@ -1643,11 +1643,6 @@ public:
             }
 
         }
-
-        timer.stop_timer();
-
-
-        timer.start_timer("second loop");
 
         prev_coord = 0;
 
@@ -1834,355 +1829,6 @@ public:
 
         timer.stop_timer();
 
-
-
-//
-//
-//        for(uint64_t i = pc_data.depth_max;i >= pc_data.depth_min;i--){
-//
-//            const unsigned int x_num_ = x_num[i];
-//            const unsigned int z_num_ = z_num[i];
-//            const unsigned int y_num_ = y_num[i];
-//
-//            //status_temp.resize(y_num_,0);
-//
-//#pragma omp parallel for schedule(dynamic) default(shared) private(z_,x_,y_,curr_index,status,prev_ind) firstprivate(status_temp) if(z_num_*x_num_ > 100)
-//            for(z_ = 0;z_ < z_num_;z_++){
-//
-//                for(x_ = 0;x_ < x_num_;x_++){
-//
-//                    //interpolate filler and boundaries
-//                    if(i < pc_data.depth_max){
-//                        uint64_t offset_part_map = x_*y_num[i] + z_*y_num[i]*x_num[i];
-//
-//                        for(y_ = 0;y_ < y_num[i];y_++) {
-//
-//                            status = p_map[i][offset_part_map + y_];
-//
-//                            if ( status == NEIGHBOURSTATUS) {
-//                                status_temp[ y_] = BOUNDARY;
-//                            } else if(status == SLOPESTATUS) {
-//                                status_temp[ y_] = FILLER;
-//                            }
-//                        }
-//                    }
-//
-//                    //interpolate seed
-//                    if((i > pc_data.depth_min) && (i <= pc_data.depth_max)){
-//
-//                        uint64_t offs = (x_/2)*y_num[i-1] + (z_/2)*y_num[i-1]*x_num[i-1];
-//
-//                        for(y_ = 0;y_ < y_num[i-1];y_++) {
-//
-//                            status = p_map[i-1][offs + y_];
-//
-//                            if (status == SEED) {
-//
-//                                status_temp[2 * y_] = SEED;
-//                                status_temp[2 * y_ + 1] = SEED;
-//                            }
-//                        }
-//                    }
-//
-//                    //first value handle the duplication of the gap node
-//
-//
-//                    size_t first_empty = 0;
-//                    const uint64_t offset_pc_data = x_num_*z_ + x_;
-//                    curr_index = 0;
-//                    prev_ind = 0;
-//
-//
-//                    status =  status_temp[0];
-//                    if((status> 0)){
-//                        first_empty = 0;
-//                    } else {
-//                        first_empty = 1;
-//                    }
-//
-//
-//
-//                    for(y_ = 0;y_ < (y_num_);y_++){
-//
-//                        status = status_temp[y_];
-//
-//                        if(status> 0){
-//                            curr_index+= 1 + prev_ind;
-//                            prev_ind = 0;
-//                        } else {
-//                            prev_ind = 1;
-//                        }
-//                    }
-//
-//                    if(curr_index == 0){
-//                        pc_data.data[i][offset_pc_data].resize(1,0); //always first adds an extra entry for intialization and extra info
-//                    } else {
-//
-//                        pc_data.data[i][offset_pc_data].resize(curr_index + 2 - first_empty,0); //gap node to begin, already finishes with a gap node
-//
-//                    }
-
-
-
-//
-//
-//
-//
-
-//
-
-//
-//
-//
-//                    curr_index = 0;
-//                    prev_ind = 1;
-//                    prev_coord = 0;
-//
-//                    //initialize the first values type
-//                    pc_data.data[i][offset_pc_data][0] = TYPE_GAP_END;
-//
-//                    for(y_ = 0;y_ < y_num_;y_++){
-//
-//                        status = status_temp[y_];
-//
-//                        if(status> 0){
-//
-//                            curr_index++;
-//
-//                            //set starting type
-//                            if(prev_ind == 1){
-//                                //gap node
-//                                //set type
-//                                pc_data.data[i][offset_pc_data][curr_index-1] = TYPE_GAP;
-//                                pc_data.data[i][offset_pc_data][curr_index-1] |= (y_ << NEXT_COORD_SHIFT);
-//                                pc_data.data[i][offset_pc_data][curr_index-1] |= ( prev_coord << PREV_COORD_SHIFT);
-//                                pc_data.data[i][offset_pc_data][curr_index-1] |= (NO_NEIGHBOUR << YP_DEPTH_SHIFT);
-//                                pc_data.data[i][offset_pc_data][curr_index-1] |= (NO_NEIGHBOUR << YM_DEPTH_SHIFT);
-//
-//                                curr_index++;
-//                            }
-//                            prev_coord = y_;
-//                            //set type
-//                            pc_data.data[i][offset_pc_data][curr_index-1] = TYPE_PC;
-//
-//                            //initialize the neighbours to empty (to be over-written later if not the case) (Boundary Conditions)
-//                            pc_data.data[i][offset_pc_data][curr_index-1] |= (NO_NEIGHBOUR << XP_DEPTH_SHIFT);
-//                            pc_data.data[i][offset_pc_data][curr_index-1] |= (NO_NEIGHBOUR << XM_DEPTH_SHIFT);
-//                            pc_data.data[i][offset_pc_data][curr_index-1] |= (NO_NEIGHBOUR << ZP_DEPTH_SHIFT);
-//                            pc_data.data[i][offset_pc_data][curr_index-1] |= (NO_NEIGHBOUR << ZM_DEPTH_SHIFT);
-//
-//                            //set the status
-//                            switch(status){
-//                                case SEED:
-//                                {
-//                                    pc_data.data[i][offset_pc_data][curr_index-1] |= SEED_SHIFTED;
-//                                    break;
-//                                }
-//                                case BOUNDARY:
-//                                {
-//                                    pc_data.data[i][offset_pc_data][curr_index-1] |= BOUNDARY_SHIFTED;
-//                                    break;
-//                                }
-//                                case FILLER:
-//                                {
-//                                    pc_data.data[i][offset_pc_data][curr_index-1] |= FILLER_SHIFTED;
-//                                    break;
-//                                }
-//
-//                            }
-//
-//                            prev_ind = 0;
-//                        } else {
-//                            //store for setting above
-//                            if(prev_ind == 0){
-//                                //prev_coord = y_;
-//                            }
-//
-//                            prev_ind = 1;
-//
-//                        }
-//                    }
-//
-//                    //Initialize the last value GAP END indicators to no neighbour
-//                    pc_data.data[i][offset_pc_data][pc_data.data[i][offset_pc_data].size()-1] = TYPE_GAP_END;
-//                    pc_data.data[i][offset_pc_data][pc_data.data[i][offset_pc_data].size()-1] |= (NO_NEIGHBOUR << YP_DEPTH_SHIFT);
-//                    pc_data.data[i][offset_pc_data][pc_data.data[i][offset_pc_data].size()-1] |= (NO_NEIGHBOUR << YM_DEPTH_SHIFT);
-
-//                }
-//            }
-//
-//        }
-
-
-
-
-
-
-//        for(uint64_t i = pc_data.depth_max;i >= pc_data.depth_min;i--){
-//
-//            const unsigned int x_num_ = x_num[i];
-//            const unsigned int z_num_ = z_num[i];
-//            const unsigned int y_num_ = y_num[i];
-//
-//            status_temp.resize(y_num_,0);
-//
-//#pragma omp parallel for schedule(dynamic) default(shared) private(z_,x_,y_,curr_index,status,prev_ind) firstprivate(status_temp) if(z_num_*x_num_ > 100)
-//            for(z_ = 0;z_ < z_num_;z_++){
-//
-//                for(x_ = 0;x_ < x_num_;x_++){
-//
-//                    std::fill(status_temp.begin(), status_temp.end(), 0);
-//
-//                    //interpolate filler and boundaries
-//                    if(i < pc_data.depth_max){
-//                        uint64_t offset_part_map = x_*y_num[i] + z_*y_num[i]*x_num[i];
-//
-//                        for(y_ = 0;y_ < y_num[i];y_++) {
-//
-//                            status = p_map[i][offset_part_map + y_];
-//
-//                            if ( status == NEIGHBOURSTATUS) {
-//                                status_temp[ y_] = BOUNDARY;
-//                            } else if(status == SLOPESTATUS) {
-//                                status_temp[ y_] = FILLER;
-//                            }
-//                        }
-//                    }
-//
-//                    //interpolate seed
-//                    if((i > pc_data.depth_min) && (i <= pc_data.depth_max)){
-//
-//                        uint64_t offs = (x_/2)*y_num[i-1] + (z_/2)*y_num[i-1]*x_num[i-1];
-//
-//                        for(y_ = 0;y_ < y_num[i-1];y_++) {
-//
-//                            status = p_map[i-1][offs + y_];
-//
-//                            if (status == SEED) {
-//
-//                                status_temp[2 * y_] = SEED;
-//                                status_temp[2 * y_ + 1] = SEED;
-//                            }
-//                        }
-//
-//                    }
-//
-//
-//                    size_t first_empty = 0;
-//
-//                    const uint64_t offset_pc_data = x_num_*z_ + x_;
-//                    curr_index = 0;
-//                    prev_ind = 0;
-//
-//                    //first value handle the duplication of the gap node
-//
-//                    status =  status_temp[0];
-//                    if((status> 0)){
-//                        first_empty = 0;
-//                    } else {
-//                        first_empty = 1;
-//                    }
-//
-//                    for(y_ = 0;y_ < (y_num_);y_++){
-//
-//                        status = status_temp[y_];
-//
-//                        if(status> 0){
-//                            curr_index+= 1 + prev_ind;
-//                            prev_ind = 0;
-//                        } else {
-//                            prev_ind = 1;
-//                        }
-//                    }
-//
-//                    if(curr_index == 0){
-//                        pc_data.data[i][offset_pc_data].resize(1,0); //always first adds an extra entry for intialization and extra info
-//                    } else {
-//
-//                        pc_data.data[i][offset_pc_data].resize(curr_index + 2 - first_empty,0); //gap node to begin, already finishes with a gap node
-//
-//                    }
-//
-//                    curr_index = 0;
-//                    prev_ind = 1;
-//                    prev_coord = 0;
-//
-//                    //initialize the first values type
-//                    pc_data.data[i][offset_pc_data][0] = TYPE_GAP_END;
-//
-//                    for(y_ = 0;y_ < y_num_;y_++){
-//
-//                        status = status_temp[y_];
-//
-//                        if(status> 0){
-//
-//                            curr_index++;
-//
-//                            //set starting type
-//                            if(prev_ind == 1){
-//                                //gap node
-//                                //set type
-//                                pc_data.data[i][offset_pc_data][curr_index-1] = TYPE_GAP;
-//                                pc_data.data[i][offset_pc_data][curr_index-1] |= (y_ << NEXT_COORD_SHIFT);
-//                                pc_data.data[i][offset_pc_data][curr_index-1] |= ( prev_coord << PREV_COORD_SHIFT);
-//                                pc_data.data[i][offset_pc_data][curr_index-1] |= (NO_NEIGHBOUR << YP_DEPTH_SHIFT);
-//                                pc_data.data[i][offset_pc_data][curr_index-1] |= (NO_NEIGHBOUR << YM_DEPTH_SHIFT);
-//
-//                                curr_index++;
-//                            }
-//                            prev_coord = y_;
-//                            //set type
-//                            pc_data.data[i][offset_pc_data][curr_index-1] = TYPE_PC;
-//
-//                            //initialize the neighbours to empty (to be over-written later if not the case) (Boundary Conditions)
-//                            pc_data.data[i][offset_pc_data][curr_index-1] |= (NO_NEIGHBOUR << XP_DEPTH_SHIFT);
-//                            pc_data.data[i][offset_pc_data][curr_index-1] |= (NO_NEIGHBOUR << XM_DEPTH_SHIFT);
-//                            pc_data.data[i][offset_pc_data][curr_index-1] |= (NO_NEIGHBOUR << ZP_DEPTH_SHIFT);
-//                            pc_data.data[i][offset_pc_data][curr_index-1] |= (NO_NEIGHBOUR << ZM_DEPTH_SHIFT);
-//
-//                            //set the status
-//                            switch(status){
-//                                case SEED:
-//                                {
-//                                    pc_data.data[i][offset_pc_data][curr_index-1] |= SEED_SHIFTED;
-//                                    break;
-//                                }
-//                                case BOUNDARY:
-//                                {
-//                                    pc_data.data[i][offset_pc_data][curr_index-1] |= BOUNDARY_SHIFTED;
-//                                    break;
-//                                }
-//                                case FILLER:
-//                                {
-//                                    pc_data.data[i][offset_pc_data][curr_index-1] |= FILLER_SHIFTED;
-//                                    break;
-//                                }
-//
-//                            }
-//
-//                            prev_ind = 0;
-//                        } else {
-//                            //store for setting above
-//                            if(prev_ind == 0){
-//                                //prev_coord = y_;
-//                            }
-//
-//                            prev_ind = 1;
-//
-//                        }
-//                    }
-//
-//                    //Initialize the last value GAP END indicators to no neighbour
-//                    pc_data.data[i][offset_pc_data][pc_data.data[i][offset_pc_data].size()-1] = TYPE_GAP_END;
-//                    pc_data.data[i][offset_pc_data][pc_data.data[i][offset_pc_data].size()-1] |= (NO_NEIGHBOUR << YP_DEPTH_SHIFT);
-//                    pc_data.data[i][offset_pc_data][pc_data.data[i][offset_pc_data].size()-1] |= (NO_NEIGHBOUR << YM_DEPTH_SHIFT);
-//
-//                }
-//            }
-//
-//        }
-
-        //timer.stop_timer();
 
         ///////////////////////////////////
         //
@@ -2628,6 +2274,10 @@ public:
         //
         //
 
+        APR_timer write_timer;
+
+        write_timer.verbose_flag = true;
+
         //initialize
         uint64_t node_val_part;
         uint64_t y_coord;
@@ -2743,6 +2393,8 @@ public:
         //
         ///////////////////////////////////////////////////////////////////////
 
+        write_timer.start_timer("intensities");
+
         uint64_t depth_min = pc_data.depth_min;
 
         std::vector<uint16_t> Ip;
@@ -2753,6 +2405,10 @@ public:
 
         shift_particles_from_cells(temp_int);
 
+        write_timer.stop_timer();
+
+        write_timer.start_timer("write int");
+
 
         for(uint64_t i = pc_data.depth_min;i <= pc_data.depth_max;i++){
 
@@ -2761,8 +2417,25 @@ public:
             const unsigned int y_num_ = pc_data.y_num[i];
 
             //write the vals
-
             Ip.resize(0);
+
+            uint64_t total_p = 0;
+
+            for(z_ = 0;z_ < z_num_;z_++) {
+
+                for (x_ = 0; x_ < x_num_; x_++) {
+
+                    const size_t offset_pc_data = x_num_ * z_ + x_;
+
+                    const size_t j_num = temp_int.data[i][offset_pc_data].size();
+
+                    total_p += j_num;
+                }
+            }
+
+            Ip.resize(total_p);
+
+            total_p = 0;
 
             for(z_ = 0;z_ < z_num_;z_++){
 
@@ -2772,10 +2445,9 @@ public:
 
                     const size_t j_num = temp_int.data[i][offset_pc_data].size();
 
-                    uint64_t curr_size = Ip.size();
-                    Ip.resize(curr_size+ j_num);
+                    std::copy(temp_int.data[i][offset_pc_data].begin(),temp_int.data[i][offset_pc_data].end(),Ip.begin() + total_p);
 
-                    std::copy(temp_int.data[i][offset_pc_data].begin(),temp_int.data[i][offset_pc_data].end(),Ip.begin() + curr_size);
+                    total_p += j_num;
 
                 }
 
@@ -2790,15 +2462,17 @@ public:
                 //write the parts
 
                 name = "Ip_"+std::to_string(i);
-                if(predict) {
 
-                    hdf5_write_data_blosc(obj_id, H5T_NATIVE_INT16, name.c_str(), rank, &dims, Ip.data());
-                } else {
-                    hdf5_write_data_blosc(obj_id, H5T_NATIVE_UINT16, name.c_str(), rank, &dims, Ip.data());
-                }
+                hdf5_write_data_blosc(obj_id, H5T_NATIVE_UINT16, name.c_str(), rank, &dims, Ip.data());
+
             }
 
         }
+
+        write_timer.stop_timer();
+
+
+        write_timer.start_timer("pc_data");
 
 
         for(uint64_t i = pc_data.depth_min;i < pc_data.depth_max;i++){
@@ -2927,6 +2601,8 @@ public:
             hdf5_write_attribute_blosc(pr_groupid,H5T_NATIVE_INT,name.c_str(),1,&dim_a, &attr);
 
         }
+
+        write_timer.stop_timer();
 
         hsize_t attr = pc_data.depth_min;
         hdf5_write_attribute_blosc(pr_groupid,H5T_NATIVE_INT,"depth_max",1,&dim_a, &pc_data.depth_max );
