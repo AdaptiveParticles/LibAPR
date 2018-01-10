@@ -84,7 +84,7 @@ int main(int argc, char **argv) {
     apr.read_apr(file_name);
 
     float e = 1.6;
-    float background = 850;
+    float background = 300;
     float cnv = 65636/30000;
     float q = .5;
 

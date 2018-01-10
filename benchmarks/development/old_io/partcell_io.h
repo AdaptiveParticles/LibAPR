@@ -861,7 +861,7 @@ void write_apr_pc_struct_hilbert(PartCellStructure<T,uint64_t>& pc_struct,std::s
 
     hdf5_write_string(pr_groupid,"name",pc_struct.pars.name);
 
-    std::string git_hash = exec_blos"git rev-parse HEAD");
+    std::string git_hash = exec_blosc("git rev-parse HEAD");
 
     hdf5_write_string(pr_groupid,"githash",git_hash);
 

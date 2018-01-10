@@ -1645,6 +1645,13 @@ public:
 
                     if(i == (pc_data.depth_max)) {
 
+                        status = p_map[i-1][ offset_part_map_ds];
+                        if(status == SEED){
+                            first_empty = 0;
+                        } else {
+                            first_empty = 1;
+                        }
+
                         for (y_ = 0; y_ < y_num_/2; y_++) {
 
                             status = p_map[i-1][ offset_part_map_ds + y_];
