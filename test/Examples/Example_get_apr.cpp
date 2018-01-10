@@ -70,6 +70,25 @@ int main(int argc, char **argv) {
 
         timer.verbose_flag = true;
 
+
+
+        Mesh_data<uint16_t> level;
+        apr.interp_depth_ds(level);
+
+
+        std::string output_path = save_loc + file_name + "_level.tif";
+
+        //write output as tiff
+        level.write_image_tiff(output_path);
+        output_path = save_loc + file_name + "_pc.tif";
+
+        //write output as tiff
+        level.write_image_tiff(output_path);
+
+        apr.interp_img(level,apr.particles_int);
+        level.write_image_tiff(output_path);
+
+
         timer.start_timer("writing output");
 
         //write the APR to hdf5 file
@@ -77,14 +96,7 @@ int main(int argc, char **argv) {
 
         timer.stop_timer();
 
-        Mesh_data<uint16_t> level;
-        apr.interp_depth(level);
 
-
-        std::string output_path = save_loc + file_name + "_level.tif";
-
-        //write output as tiff
-        level.write_image_tiff(output_path);
 
 
     } else {

@@ -422,6 +422,10 @@ void Mesh_data<T>::write_image_tiff(std::string& filename) {
     Mesh_data::write_image_tiff(this->mesh,filename);
 };
 
+template<typename T, typename S,typename L1, typename L2>
+void down_sample_overflow_proct(Mesh_data<T>& test_a, Mesh_data<S>& test_a_ds, L1 reduce, L2 constant_operator,
+                                bool with_allocation = false );
+
 template<typename T>
 void Mesh_data<T>::write_image_tiff_uint16(std::string& filename){
     //
@@ -445,11 +449,11 @@ void downsample_pyrmaid(Mesh_data<T> &original_image,std::vector<Mesh_data<T>>& 
     downsampled.resize(l_max+2);
     downsampled.back() = std::move(original_image);
 
-    auto sum = [](T x, T y) { return x+y; };
-    auto divide_by_8 = [](T x) { return x * (1.0/8.0); };
+    auto sum = [](float x, float y) { return x+y; };
+    auto divide_by_8 = [](float x) { return x * (1.0/8.0); };
 
     for (int level = l_max+1; level > l_min; level--) {
-        down_sample(downsampled[level], downsampled[level - 1], sum, divide_by_8, true);
+        down_sample_overflow_proct(downsampled[level], downsampled[level - 1], sum, divide_by_8, true);
     }
 }
 
@@ -592,6 +596,128 @@ void const_upsample_img(Mesh_data<T>& input_us,Mesh_data<T>& input,std::vector<u
     
     
 }
+template<typename T, typename S,typename L1, typename L2>
+void down_sample_overflow_proct(Mesh_data<T>& test_a, Mesh_data<S>& test_a_ds, L1 reduce, L2 constant_operator,
+                 bool with_allocation ){
+    //
+    //
+    //  Bevan Cheeseman 2016
+    //
+    //  Downsampling
+    //
+    //
+    //  Updated method to protect over=flow of down-sampling
+    //
+
+    const int z_num = test_a.z_num;
+    const int x_num = test_a.x_num;
+    const int y_num = test_a.y_num;
+
+    const int z_num_ds = (int) ceil(1.0*z_num/2.0);
+    const int x_num_ds = (int) ceil(1.0*x_num/2.0);
+    const int y_num_ds = (int) ceil(1.0*y_num/2.0);
+
+    Part_timer timer;
+    //timer.verbose_flag = true;
+
+    if(with_allocation) {
+        timer.start_timer("downsample_initalize");
+
+        test_a_ds.initialize(y_num_ds, x_num_ds, z_num_ds, 0);
+
+        timer.stop_timer();
+    }
+
+    timer.start_timer("downsample_loop");
+    std::vector<float> temp_vec;
+    temp_vec.resize(y_num,0);
+
+    std::vector<float> temp_vec2;
+    temp_vec2.resize(y_num_ds,0);
+
+
+    int i, k, si_, sj_, sk_;
+
+#pragma omp parallel for default(shared) private(i,k,si_,sj_,sk_) firstprivate(temp_vec,temp_vec2)
+    for(int j = 0;j < z_num_ds; j++) {
+
+
+        for (i = 0; i < x_num_ds; i++) {
+
+            si_ = std::min(2 * i + 1, x_num - 1);
+            sj_ = std::min(2 * j + 1, z_num - 1);
+
+            //four passes
+
+            //first take into cache
+            for (k = 0; k < y_num; k++) {
+                temp_vec[k] = test_a.mesh[2 * j * x_num * y_num + 2 * i * y_num + k];
+            }
+
+            //then do the operations two by two
+            for (k = 0; k < y_num_ds; k++) {
+                sk_ = std::min(2 * k + 1, y_num - 1);
+                temp_vec2[k] = reduce(0,temp_vec[2 * k]);
+                temp_vec2[k] = reduce(temp_vec2[k], temp_vec[sk_]);
+            }
+
+            //first take into cache
+            for (k = 0; k < y_num; k++) {
+                temp_vec[k] = test_a.mesh[2 * j * x_num * y_num + si_ * y_num + k];
+            }
+
+            //then do the operations two by two
+            for (k = 0; k < y_num_ds; k++) {
+                sk_ = std::min(2 * k + 1, y_num - 1);
+                temp_vec2[k] =
+                        reduce(temp_vec2[k], temp_vec[2 * k]);
+                temp_vec2[k] =
+                        reduce(temp_vec2[k], temp_vec[sk_]);
+            }
+
+
+            //first take into cache
+            for (k = 0; k < y_num; k++) {
+                temp_vec[k] = test_a.mesh[sj_ * x_num * y_num + 2 * i * y_num + k];
+            }
+
+
+            //then do the operations two by two
+            for (k = 0; k < y_num_ds; k++) {
+                sk_ = std::min(2 * k + 1, y_num - 1);
+                temp_vec2[k] =
+                        reduce(temp_vec2[k], temp_vec[2 * k]);
+                temp_vec2[k] =
+                        reduce(temp_vec2[k], temp_vec[sk_]);
+            }
+
+            //first take into cache
+            for (k = 0; k < y_num; k++) {
+                temp_vec[k] = test_a.mesh[sj_ * x_num * y_num + si_ * y_num + k];
+            }
+
+
+            //then do the operations two by two
+            for (k = 0; k < y_num_ds; k++) {
+                sk_ = std::min(2 * k + 1, y_num - 1);
+                temp_vec2[k] =
+                        reduce(temp_vec2[k], temp_vec[2 * k]);
+                temp_vec2[k] =
+                        reduce(temp_vec2[k], temp_vec[sk_]);
+                //final operaions
+                test_a_ds.mesh[j * x_num_ds * y_num_ds + i * y_num_ds + k] =
+                        constant_operator(temp_vec2[k]);
+            }
+
+        }
+
+    }
+
+    timer.stop_timer();
+
+}
+
+
 
 template<typename T, typename S,typename L1, typename L2>
 void down_sample(Mesh_data<T>& test_a, Mesh_data<S>& test_a_ds, L1 reduce, L2 constant_operator,

@@ -422,7 +422,7 @@ public:
 
 
     template<typename U>
-    void interp_depth(Mesh_data<U>& img){
+    void interp_depth_ds(Mesh_data<U>& img){
         //
         //  Returns an image of the depth, this is down-sampled by one, as the Particle Cell solution reflects this
         //
@@ -448,6 +448,34 @@ public:
         down_sample(temp,img,
                     [](U x, U y) { return std::max(x,y); },
                     [](U x) { return x; }, true);
+
+    }
+
+    template<typename U>
+    void interp_depth(Mesh_data<U>& img){
+        //
+        //  Returns an image of the depth, this is down-sampled by one, as the Particle Cell solution reflects this
+        //
+
+        //get depth
+        ExtraPartCellData<U> depth_parts;
+        depth_parts.initialize_structure_cells(pc_data);
+
+        for (begin(); end() == true ; it_forward()) {
+            //
+            //  Demo APR iterator
+            //
+
+            //access and info
+            this->curr_level.get_val(depth_parts) = this->depth();
+
+        }
+
+
+
+        interp_img(img,depth_parts);
+
+
 
     }
 
@@ -1556,6 +1584,41 @@ public:
         timer.start_timer("intiialize part_cells");
 
 
+        const uint8_t seed_us = 4; //deal with the equivalence optimization
+
+        for(uint64_t i = (pc_data.depth_min+1);i < pc_data.depth_max;i++) {
+
+            const unsigned int x_num_ = x_num[i];
+            const unsigned int z_num_ = z_num[i];
+            const unsigned int y_num_ = y_num[i];
+
+            const unsigned int x_num_ds = x_num[i - 1];
+            const unsigned int z_num_ds = z_num[i - 1];
+            const unsigned int y_num_ds = y_num[i - 1];
+
+#pragma omp parallel for default(shared) private(z_, x_, y_, curr_index, status, prev_ind) if(z_num_*x_num_ > 100)
+            for (z_ = 0; z_ < z_num_; z_++) {
+
+                for (x_ = 0; x_ < x_num_; x_++) {
+                    const size_t offset_part_map_ds = (x_ / 2) * y_num_ds + (z_ / 2) * y_num_ds * x_num_ds;
+                    const size_t offset_part_map = x_ * y_num_ + z_ * y_num_ * x_num_;
+
+                    for (y_ = 0; y_ < y_num_ / 2; y_++) {
+
+                        status = p_map[i - 1][offset_part_map_ds + y_];
+
+                        if (status == SEED) {
+                            p_map[i][offset_part_map + 2 * y_] = seed_us;
+                            p_map[i][offset_part_map + 2 * y_ + 1] = seed_us;
+                        }
+                    }
+                }
+
+            }
+        }
+
+
+
         for(uint64_t i = pc_data.depth_min;i <= pc_data.depth_max;i++){
 
             const unsigned int x_num_ = x_num[i];
@@ -1579,8 +1642,6 @@ public:
                     prev_ind = 0;
 
                     //first value handle the duplication of the gap node
-
-
 
                     if(i == (pc_data.depth_max)) {
 
@@ -1610,7 +1671,7 @@ public:
                     } else {
 
                         status = p_map[i][offset_part_map];
-                        if((status> 0)){
+                        if((status> 1) & (status < 5)){
                             first_empty = 0;
                         } else {
                             first_empty = 1;
@@ -1620,7 +1681,7 @@ public:
 
                             status = p_map[i][offset_part_map + y_];
 
-                            if(status> 0){
+                            if((status> 1) & (status < 5)){
                                 curr_index+= 1 + prev_ind;
                                 prev_ind = 0;
                             } else {
@@ -1763,7 +1824,7 @@ public:
 
                             status = p_map[i][offset_part_map + y_];
 
-                            if (status > 0) {
+                            if((status> 1) & (status < 5)) {
 
                                 curr_index++;
 
@@ -1791,7 +1852,7 @@ public:
 
                                 //set the status
                                 switch (status) {
-                                    case SEED: {
+                                    case seed_us: {
                                         pc_data.data[i][offset_pc_data][curr_index - 1] |= SEED_SHIFTED;
                                         break;
                                     }
