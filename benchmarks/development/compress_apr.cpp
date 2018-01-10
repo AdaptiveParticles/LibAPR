@@ -84,9 +84,9 @@ int main(int argc, char **argv) {
     apr.read_apr(file_name);
 
     float e = 1.6;
-    float background = 950;
+    float background = 850;
     float cnv = 65636/30000;
-    float q = 1;
+    float q = .5;
 
 
     Mesh_data<uint16_t> pc;
@@ -112,7 +112,7 @@ int main(int argc, char **argv) {
 
     ExtraPartCellData<float> prediction(apr);
 
-    std::vector<unsigned int> dir = {1};
+    std::vector<unsigned int> dir = {1,3};
 
     APR_iterator<uint16_t> neigh_it(apr);
 
@@ -146,7 +146,7 @@ int main(int argc, char **argv) {
             }
         }
 
-        if(temp > 0){
+        if(counter > 0){
             apr(prediction) = apr(var_scaled) - temp/counter;
         } else {
             apr(prediction) = apr(var_scaled);
@@ -154,17 +154,17 @@ int main(int argc, char **argv) {
 
     }
 
-    Mesh_data<float> pimg;
-
-    apr.interp_img(pimg,prediction);
-
-    std::string name = options.directory + "pimg.tif";
-    pimg.write_image_tiff(name);
-
-    apr.interp_img(pimg,var_scaled);
-
-    name = options.directory + "varscale.tif";
-    pimg.write_image_tiff(name);
+//    Mesh_data<float> pimg;
+//
+//    apr.interp_img(pimg,prediction);
+//
+//    std::string name = options.directory + "pimg.tif";
+//    pimg.write_image_tiff(name);
+//
+//    apr.interp_img(pimg,var_scaled);
+//
+//    name = options.directory + "varscale.tif";
+//    pimg.write_image_tiff(name);
 
 
 
@@ -186,6 +186,22 @@ int main(int argc, char **argv) {
 
     apr.write_particles_only(options.directory,"original",apr.particles_int);
 
+    ExtraPartCellData<uint16_t> symbols_max(apr);
+
+    for (apr.begin(); apr.end() != 0; apr.it_forward()) {
+        if(apr.depth() == apr.depth_max()) {
+            apr(symbols_max) = apr(symbols);
+        } else {
+            apr(symbols_max) = apr(apr.particles_int);
+        }
+
+
+    }
+
+    apr.write_particles_only(options.directory,"symbols_max",symbols_max);
+
+
+
     //Convert back from symbols to signed
 
     ExtraPartCellData<float> unsymbol(apr);
@@ -198,54 +214,70 @@ int main(int argc, char **argv) {
 
     }
 
-    apr.interp_img(pimg,unsymbol);
-
-    name = options.directory + "un_prediction.tif";
-    pimg.write_image_tiff(name);
+//    apr.interp_img(pimg,unsymbol);
+//
+//    name = options.directory + "un_prediction.tif";
+//    pimg.write_image_tiff(name);
 
 
     ExtraPartCellData<float> prediction_reverse(apr);
 
     //need re predict here.
 
-    //loops from lowest level to highest
+
     for (apr.begin(); apr.end() != 0; apr.it_forward()) {
-
-        //get the minus neighbours (1,3,5)
-
-        //now we only update the neighbours, and directly access them through a neighbour iterator
-        apr.update_neigh_all();
-
-        float counter = 0;
-        float temp = 0;
-
-        //loop over all the neighbours and set the neighbour iterator to it
-        for (int f = 0; f < dir.size(); ++f) {
-            // Neighbour Particle Cell Face definitions [+y,-y,+x,-x,+z,-z] =  [0,1,2,3,4,5]
-            unsigned int face = dir[f];
-
-            for (int index = 0; index < apr.number_neigh(face); ++index) {
-                // on each face, there can be 0-4 neighbours accessed by index
-                if(neigh_it.set_neigh_it(apr,face,index)){
-                    //will return true if there is a neighbour defined
-                    if(neigh_it.depth() <= apr.depth()) {
-                        temp += neigh_it(prediction_reverse);
-                        counter++;
-                    }
-
-                }
-            }
+        if(apr.depth() < apr.depth_max()) {
+            apr(unsymbol) = apr(prediction);
         }
 
-        if(temp > 0){
-            apr(prediction_reverse) = apr(unsymbol) + temp/counter;
-        } else {
-            apr(prediction_reverse) = apr(unsymbol);
-        }
 
     }
 
 
+
+
+        for (apr.begin(); apr.end() != 0; apr.it_forward()) {
+
+            //get the minus neighbours (1,3,5)
+
+            //now we only update the neighbours, and directly access them through a neighbour iterator
+            apr.update_neigh_all();
+
+            float counter = 0;
+            float temp = 0;
+
+            //loop over all the neighbours and set the neighbour iterator to it
+            for (int f = 0; f < dir.size(); ++f) {
+                // Neighbour Particle Cell Face definitions [+y,-y,+x,-x,+z,-z] =  [0,1,2,3,4,5]
+                unsigned int face = dir[f];
+
+                for (int index = 0; index < apr.number_neigh(face); ++index) {
+                    // on each face, there can be 0-4 neighbours accessed by index
+                    if(neigh_it.set_neigh_it(apr,face,index)){
+                        //will return true if there is a neighbour defined
+                        if(neigh_it.depth() <= apr.depth()) {
+                            temp += neigh_it(prediction_reverse);
+                            counter++;
+                        }
+
+                    }
+                }
+            }
+
+            if(counter > 0){
+                apr(prediction_reverse) = apr(unsymbol) + temp/counter;
+            } else {
+                apr(prediction_reverse) = apr(unsymbol);
+            }
+
+        }
+
+
+
+//    apr.interp_img(pimg,prediction_reverse);
+//
+//    name = options.directory + "after_prediction.tif";
+//    pimg.write_image_tiff(name);
 
     ExtraPartCellData<uint16_t> recon(apr);
 
@@ -254,20 +286,51 @@ int main(int argc, char **argv) {
         float D = q*apr(prediction_reverse) + 2*e;
 
         if(D >= 2*e){
-            apr(recon) = (pow(D,2)/4 - pow(e,2))*cnv + background;
+            D = (pow(D,2)/4.0 - pow(e,2))*cnv + background;
+            apr(recon) = (uint16_t) D;
         } else {
             apr(recon) = background;
         }
     }
 
-    Mesh_data<uint16_t> img;
 
-    apr.interp_img(img,recon);
-    name = options.directory + "decomp.tif";
-    img.write_image_tiff(name);
+    for (apr.begin(); apr.end() != 0; apr.it_forward()) {
+        if(apr.depth() == apr.depth_max()) {
+        } else {
+            apr(recon) = apr(apr.particles_int);
+        }
+    }
 
-    apr.write_particles_only(options.directory,"recon",recon);
 
+//    Mesh_data<uint16_t> img;
+//
+//    apr.interp_img(img,recon);
+//    name = options.directory + "decomp.tif";
+//    img.write_image_tiff(name);
+//
+//    apr.write_particles_only(options.directory,"recon",recon);
+
+
+    float max_level = 0;
+    float total = 0;
+
+    for (apr.begin(); apr.end() != 0; apr.it_forward()) {
+        if(apr.depth_max() == apr.depth()){
+
+            max_level++;
+        }
+        total++;
+
+
+    }
+    std::cout << max_level/total << std::endl;
+
+//
+//    Mesh_data<uint8_t> level;
+//    apr.interp_depth(level);
+//    name = options.directory + "level.tif";
+//
+//    level.write_image_tiff(name);
 
     //    void vstCPU(float* in, float* out, int num, float offset, float conversion, float sigma)
 //    {

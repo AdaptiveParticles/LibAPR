@@ -32,6 +32,8 @@
 
 #include "Example_get_apr.h"
 
+#include "test/utils.h"
+
 int main(int argc, char **argv) {
 
     //input parsing

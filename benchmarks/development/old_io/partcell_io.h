@@ -29,7 +29,6 @@
 #include "benchmarks/development/old_numerics/apr_compression.hpp"
 #include "src/data_structures/APR/APR.hpp"
 
-std::string exec(const char* cmd);
 
 template<typename T>
 void write_apr_full_format(PartCellStructure<T,uint64_t>& pc_struct,std::string save_loc,std::string file_name);
@@ -602,7 +601,7 @@ void write_apr_pc_struct(PartCellStructure<T,uint64_t>& pc_struct,std::string sa
 
     hdf5_write_string(pr_groupid,"name",pc_struct.pars.name);
 
-    std::string git_hash = exec("git rev-parse HEAD");
+    std::string git_hash = exec_blosc("git rev-parse HEAD");
 
     hdf5_write_string(pr_groupid,"githash",git_hash);
 
@@ -862,7 +861,7 @@ void write_apr_pc_struct_hilbert(PartCellStructure<T,uint64_t>& pc_struct,std::s
 
     hdf5_write_string(pr_groupid,"name",pc_struct.pars.name);
 
-    std::string git_hash = exec("git rev-parse HEAD");
+    std::string git_hash = exec_blos"git rev-parse HEAD");
 
     hdf5_write_string(pr_groupid,"githash",git_hash);
 

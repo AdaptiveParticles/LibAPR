@@ -29,8 +29,6 @@
 #include "src/data_structures/APR/CurrLevel.hpp"
 #include "benchmarks/development/old_numerics/misc_numerics.hpp"
 
-#include "../src/data_structures/APR/APR.hpp"
-
 #include <algorithm>
 #include <functional>
 #include <iostream>
@@ -40,6 +38,7 @@
 #include "benchmarks/development/old_io/write_parts.h"
 #include "benchmarks/development/old_io/read_parts.h"
 
+#include "src/data_structures/APR/APR.hpp"
 
 bool compare_two_images(const Mesh_data<uint16_t>& in_memory, std::string filename);
 bool compare_two_ks(const Particle_map<float>& in_memory, std::string filename);

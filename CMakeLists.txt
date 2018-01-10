@@ -180,7 +180,7 @@ add_executable(Example_get_apr
         test/Examples/Example_get_apr.cpp
         benchmarks/development/old_io/write_parts.cpp
         ${SOURCE_FILES_COMPILED}
-	    #test/utils.cpp
+	    test/utils.cpp
         )
 
 add_executable(Example_apr_iterate

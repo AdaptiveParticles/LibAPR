@@ -18,7 +18,7 @@
 #include <array>
 #include <ctime>
 
-static std::string exec(const char* cmd);
+std::string exec(const char* cmd);
 
 
 class AnalysisData: public Data_manager{
@@ -401,7 +401,7 @@ static long long GetFileSize(std::string filename)
 #endif
 
 
-static std::string exec(const char* cmd) {
+std::string exec(const char* cmd) {
     std::array<char, 128> buffer;
     std::string result;
     std::shared_ptr<FILE> pipe(popen(cmd, "r"), pclose);

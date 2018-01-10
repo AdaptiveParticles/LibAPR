@@ -7,30 +7,36 @@
 
 #include "src/algorithm/APR_parameters.hpp"
 
+class LocalIntensityScale {
+
+public:
 /*
  * Declerations
  */
 
-template<typename T>
-void calc_abs_diff(Mesh_data<T>& input_image,Mesh_data<T>& var);
+    template<typename T>
+    void calc_abs_diff(Mesh_data<T> &input_image, Mesh_data<T> &var);
 
-template<typename T>
-void calc_sat_mean_z(Mesh_data<T>& input,const int offset);
+    template<typename T>
+    void calc_sat_mean_z(Mesh_data<T> &input, const int offset);
 
-template<typename T>
-void calc_sat_mean_x(Mesh_data<T>& input,const int offset);
+    template<typename T>
+    void calc_sat_mean_x(Mesh_data<T> &input, const int offset);
 
-template<typename T>
-void calc_sat_mean_y(Mesh_data<T>& input,const int offset);
+    template<typename T>
+    void calc_sat_mean_y(Mesh_data<T> &input, const int offset);
 
-void get_window(float& var_rescale,std::vector<int>& var_win,APR_parameters& par);
+    void get_window(float &var_rescale, std::vector<int> &var_win, APR_parameters &par);
+    template<typename T>
+    void rescale_var_and_threshold(Mesh_data<T>& var,const float var_rescale,APR_parameters& par);
 
+};
 /*
  * Implimentations
  */
 
 template<typename T>
-void rescale_var_and_threshold(Mesh_data<T>& var,const float var_rescale,APR_parameters& par){
+void LocalIntensityScale::rescale_var_and_threshold(Mesh_data<T>& var,const float var_rescale,APR_parameters& par){
     //
     //  Bevan Cheeseman 2016
     //
@@ -67,7 +73,7 @@ void rescale_var_and_threshold(Mesh_data<T>& var,const float var_rescale,APR_par
 }
 
 template<typename T>
-void calc_abs_diff(Mesh_data<T>& input_image,Mesh_data<T>& var){
+void LocalIntensityScale::calc_abs_diff(Mesh_data<T>& input_image,Mesh_data<T>& var){
     //
     //  Bevan Cheeseman 2016
     //
@@ -95,7 +101,7 @@ void calc_abs_diff(Mesh_data<T>& input_image,Mesh_data<T>& var){
 }
 
 
-void get_window(float& var_rescale,std::vector<int>& var_win,APR_parameters& par){
+void LocalIntensityScale::get_window(float& var_rescale,std::vector<int>& var_win,APR_parameters& par){
     //
     //
     //  Compute the window size and set the re-scaling factor
@@ -138,7 +144,7 @@ void get_window(float& var_rescale,std::vector<int>& var_win,APR_parameters& par
 
 
 template<typename T>
-void calc_sat_mean_y(Mesh_data<T>& input,const int offset){
+void LocalIntensityScale::calc_sat_mean_y(Mesh_data<T>& input,const int offset){
     //
     //  Bevan Cheeseman 2016
     //
@@ -212,7 +218,7 @@ void calc_sat_mean_y(Mesh_data<T>& input,const int offset){
 }
 
 template<typename T>
-void calc_sat_mean_x(Mesh_data<T>& input,const int offset){
+void LocalIntensityScale::calc_sat_mean_x(Mesh_data<T>& input,const int offset){
     // The same, but in place
 
     const int z_num = input.z_num;
@@ -290,7 +296,7 @@ void calc_sat_mean_x(Mesh_data<T>& input,const int offset){
 
 
 template<typename T>
-void calc_sat_mean_z(Mesh_data<T>& input,const int offset) {
+void LocalIntensityScale::calc_sat_mean_z(Mesh_data<T>& input,const int offset) {
 
     // The same, but in place
 

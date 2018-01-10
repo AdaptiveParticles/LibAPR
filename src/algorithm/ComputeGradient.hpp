@@ -10,67 +10,79 @@
 #include "src/algorithm/APR_parameters.hpp"
 #include "src/misc/APR_timer.hpp"
 
+class ComputeGradient {
+
+public:
 /*
  * Declerations
  */
 
-template<typename T>
-void bspline_filt_rec_y(Mesh_data<T>& image,float lambda,float tol);
+    template<typename T>
+    void bspline_filt_rec_y(Mesh_data<T> &image, float lambda, float tol);
 
-template<typename T>
-void bspline_filt_rec_x(Mesh_data<T>& image,float lambda,float tol);
+    template<typename T>
+    void bspline_filt_rec_x(Mesh_data<T> &image, float lambda, float tol);
 
-template<typename T>
-void bspline_filt_rec_z(Mesh_data<T>& image,float lambda,float tol);
+    template<typename T>
+    void bspline_filt_rec_z(Mesh_data<T> &image, float lambda, float tol);
 
-inline float impulse_resp(float k,float rho,float omg);
+    inline float impulse_resp(float k, float rho, float omg);
 
-inline float impulse_resp_back(float k,float rho,float omg,float gamma,float c0);
+    inline float impulse_resp_back(float k, float rho, float omg, float gamma, float c0);
 
-template<typename T>
-void get_smooth_bspline_3D(Mesh_data<T>& input,APR_parameters& pars);
+    template<typename T>
+    void get_smooth_bspline_3D(Mesh_data<T> &input, APR_parameters &pars);
 
 // Calculate inverse B-Spline Transform
 
-template<typename T>
-void calc_inv_bspline_y(Mesh_data<T>& input);
+    template<typename T>
+    void calc_inv_bspline_y(Mesh_data<T> &input);
 
-template<typename T>
-void calc_inv_bspline_x(Mesh_data<T>& input);
+    template<typename T>
+    void calc_inv_bspline_x(Mesh_data<T> &input);
 
-template<typename T>
-void calc_inv_bspline_z(Mesh_data<T>& input);
+    template<typename T>
+    void calc_inv_bspline_z(Mesh_data<T> &input);
 
-struct three_temps{
-    float temp_1, temp_2, temp_3;
-};
+    struct three_temps {
+        float temp_1, temp_2, temp_3;
+    };
 
 // Gradient computation
 
-template<typename T>
-void calc_bspline_fd_y(Mesh_data<T>& input);
+    template<typename T>
+    void calc_bspline_fd_y(Mesh_data<T> &input);
 
-template<typename T>
-void calc_bspline_fd_x(Mesh_data<T>& input);
+    template<typename T>
+    void calc_bspline_fd_x(Mesh_data<T> &input);
 
-template<typename T>
-void calc_bspline_fd_z(Mesh_data<T>& input);
+    template<typename T>
+    void calc_bspline_fd_z(Mesh_data<T> &input);
 
-template<typename T,typename S>
-void calc_bspline_fd_x_y_alt(Mesh_data<T>& input,Mesh_data<S>& grad,const float hx,const float hy);
+    template<typename T, typename S>
+    void calc_bspline_fd_x_y_alt(Mesh_data<T> &input, Mesh_data<S> &grad, const float hx, const float hy);
 
-template<typename T,typename S>
-void calc_bspline_fd_z_alt(Mesh_data<T>& input,Mesh_data<S>& grad,const float h);
+    template<typename T, typename S>
+    void calc_bspline_fd_z_alt(Mesh_data<T> &input, Mesh_data<S> &grad, const float h);
 
-template<typename T,typename S>
-void calc_bspline_fd_ds_mag(Mesh_data<T> &input, Mesh_data<S> &grad, const float hx, const float hy,const float hz);
+    template<typename T, typename S>
+    void
+    calc_bspline_fd_ds_mag(Mesh_data<T> &input, Mesh_data<S> &grad, const float hx, const float hy, const float hz);
 
+    template<typename T,typename S>
+    void mask_gradient(Mesh_data<T>& grad_ds,Mesh_data<S>& temp_ds,Mesh_data<T>& temp_full,APR_parameters& par);
+
+    template<typename T,typename S>
+    void threshold_gradient(Mesh_data<T>& grad,Mesh_data<S>& img,const float Ip_th);
+
+
+};
 /*
  * Implimentations
  */
 
 template<typename T,typename S>
-void mask_gradient(Mesh_data<T>& grad_ds,Mesh_data<S>& temp_ds,Mesh_data<T>& temp_full,APR_parameters& par){
+void ComputeGradient::mask_gradient(Mesh_data<T>& grad_ds,Mesh_data<S>& temp_ds,Mesh_data<T>& temp_full,APR_parameters& par){
     //
     //  Bevan Cheeseman 2018
     //
@@ -100,7 +112,7 @@ void mask_gradient(Mesh_data<T>& grad_ds,Mesh_data<S>& temp_ds,Mesh_data<T>& tem
 }
 
 template<typename T,typename S>
-void threshold_gradient(Mesh_data<T>& grad,Mesh_data<S>& img,const float Ip_th){
+void ComputeGradient::threshold_gradient(Mesh_data<T>& grad,Mesh_data<S>& img,const float Ip_th){
     //
     //  Bevan Cheeseman 2016
     //
@@ -133,7 +145,7 @@ void threshold_gradient(Mesh_data<T>& grad,Mesh_data<S>& img,const float Ip_th){
 
 
 template<typename T>
-void bspline_filt_rec_y(Mesh_data<T>& image,float lambda,float tol){
+void ComputeGradient::bspline_filt_rec_y(Mesh_data<T>& image,float lambda,float tol){
     //
     //  Bevan Cheeseman 2016
     //
@@ -323,7 +335,7 @@ void bspline_filt_rec_y(Mesh_data<T>& image,float lambda,float tol){
 }
 
 template<typename T>
-void bspline_filt_rec_z(Mesh_data<T>& image,float lambda,float tol){
+void ComputeGradient::bspline_filt_rec_z(Mesh_data<T>& image,float lambda,float tol){
     //
     //  Bevan Cheeseman 2016
     //
@@ -538,7 +550,7 @@ void bspline_filt_rec_z(Mesh_data<T>& image,float lambda,float tol){
 }
 
 template<typename T>
-void bspline_filt_rec_x(Mesh_data<T>& image,float lambda,float tol){
+void ComputeGradient::bspline_filt_rec_x(Mesh_data<T>& image,float lambda,float tol){
     //
     //  Bevan Cheeseman 2016
     //
@@ -751,7 +763,7 @@ void bspline_filt_rec_x(Mesh_data<T>& image,float lambda,float tol){
 }
 
 template<typename T>
-void calc_inv_bspline_z(Mesh_data<T>& input){
+void ComputeGradient::calc_inv_bspline_z(Mesh_data<T>& input){
     //
     //
     //  Bevan Cheeseman 2016
@@ -822,7 +834,7 @@ void calc_inv_bspline_z(Mesh_data<T>& input){
 
 
 template<typename T>
-void calc_inv_bspline_x(Mesh_data<T>& input){
+void ComputeGradient::calc_inv_bspline_x(Mesh_data<T>& input){
     //
     //
     //  Bevan Cheeseman 2016
@@ -893,7 +905,7 @@ void calc_inv_bspline_x(Mesh_data<T>& input){
 }
 
 template<typename T>
-void get_smooth_bspline_3D(Mesh_data<T>& input,APR_parameters& pars){
+void ComputeGradient::get_smooth_bspline_3D(Mesh_data<T>& input,APR_parameters& pars){
     //
     //  Gets smoothing bspline co-efficients for 3D
     //
@@ -930,7 +942,7 @@ void get_smooth_bspline_3D(Mesh_data<T>& input,APR_parameters& pars){
  */
 
 template<typename T>
-void calc_bspline_fd_y(Mesh_data<T>& input){
+void ComputeGradient::calc_bspline_fd_y(Mesh_data<T>& input){
     //
     //
     //  Bevan Cheeseman 2016
@@ -978,7 +990,7 @@ void calc_bspline_fd_y(Mesh_data<T>& input){
 
 }
 template<typename T>
-void calc_bspline_fd_x(Mesh_data<T>& input){
+void ComputeGradient::calc_bspline_fd_x(Mesh_data<T>& input){
     //
     //
     //  Bevan Cheeseman 2016
@@ -1050,7 +1062,7 @@ void calc_bspline_fd_x(Mesh_data<T>& input){
 
 
 template<typename T,typename S>
-void calc_bspline_fd_ds_mag(Mesh_data<T> &input, Mesh_data<S> &grad, const float hx, const float hy,const float hz){
+void ComputeGradient::calc_bspline_fd_ds_mag(Mesh_data<T> &input, Mesh_data<S> &grad, const float hx, const float hy,const float hz){
     //
     //
     //  Bevan Cheeseman 2016
@@ -1167,7 +1179,7 @@ void calc_bspline_fd_ds_mag(Mesh_data<T> &input, Mesh_data<S> &grad, const float
 
 
 template<typename T,typename S>
-void calc_bspline_fd_x_y_alt(Mesh_data<T>& input,Mesh_data<S>& grad,const float hx,const float hy){
+void ComputeGradient::calc_bspline_fd_x_y_alt(Mesh_data<T>& input,Mesh_data<S>& grad,const float hx,const float hy){
     //
     //
     //  Bevan Cheeseman 2016
@@ -1240,7 +1252,7 @@ void calc_bspline_fd_x_y_alt(Mesh_data<T>& input,Mesh_data<S>& grad,const float 
 }
 
 template<typename T,typename S>
-void calc_bspline_fd_z_alt(Mesh_data<T>& input,Mesh_data<S>& grad,const float h){
+void ComputeGradient::calc_bspline_fd_z_alt(Mesh_data<T>& input,Mesh_data<S>& grad,const float h){
 
     //
     //
@@ -1307,7 +1319,7 @@ void calc_bspline_fd_z_alt(Mesh_data<T>& input,Mesh_data<S>& grad,const float h)
 }
 
 template<typename T>
-void calc_bspline_fd_z(Mesh_data<T>& input){
+void ComputeGradient::calc_bspline_fd_z(Mesh_data<T>& input){
     //
     //
     //  Bevan Cheeseman 2016
@@ -1378,7 +1390,7 @@ void calc_bspline_fd_z(Mesh_data<T>& input){
  */
 
 template<typename T>
-void calc_inv_bspline_y(Mesh_data<T>& input){
+void ComputeGradient::calc_inv_bspline_y(Mesh_data<T>& input){
     //
     //
     //  Bevan Cheeseman 2016
@@ -1438,7 +1450,7 @@ void calc_inv_bspline_y(Mesh_data<T>& input){
 
 
 
-inline float impulse_resp(float k,float rho,float omg){
+inline float ComputeGradient::impulse_resp(float k,float rho,float omg){
     //
     //  Impulse Response Function
     //
@@ -1448,7 +1460,7 @@ inline float impulse_resp(float k,float rho,float omg){
     return (pow(rho,(std::abs(k)))*sin((std::abs(k) + 1)*omg))/(sin(omg));
 
 }
-inline float impulse_resp_back(float k,float rho,float omg,float gamma,float c0){
+inline float ComputeGradient::impulse_resp_back(float k,float rho,float omg,float gamma,float c0){
     //
     //  Impulse Response Function
     //

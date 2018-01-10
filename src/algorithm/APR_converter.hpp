@@ -12,13 +12,13 @@
 #include "src/data_structures/Mesh/meshclass.h"
 #include "src/data_structures/APR/APR.hpp"
 
-#include "src/algorithm/gradient.hpp"
-#include "src/algorithm/local_intensity_scale.hpp"
-#include "src/algorithm/local_particle_set.hpp"
-#include "src/algorithm/pulling_scheme.hpp"
+#include "src/algorithm/ComputeGradient.hpp"
+#include "src/algorithm/LocalIntensityScale.hpp"
+#include "src/algorithm/LocalParticleCellSet.hpp"
+#include "src/algorithm/PullingScheme.hpp"
 
 template<typename ImageType>
-class APR_converter {
+class APR_converter: public LocalIntensityScale, public ComputeGradient, public LocalParticleCellSet, public PullingScheme {
 
 public:
 

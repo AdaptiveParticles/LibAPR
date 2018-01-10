@@ -56,34 +56,40 @@ for(jn = j * 2; jn < j * 2 + children_boundaries[0]; jn++) \
     }
 
 
+class PullingScheme {
+
 /*
  *  Declerations
  */
 
-template<typename T>
-void fill(float k, Mesh_data<T> &input,std::vector<Mesh_data<uint8_t>>& particle_cell_tree,unsigned int l_max,unsigned int l_min);
+    template<typename T>
+    void fill(float k, Mesh_data<T> &input, std::vector<Mesh_data<uint8_t>> &particle_cell_tree, unsigned int l_max,
+              unsigned int l_min);
 
 
-template<typename T>
-void pulling_scheme_main(std::vector<Mesh_data<uint8_t>>& particle_cell_tree,APR<T>& apr);
+    template<typename T>
+    void pulling_scheme_main(std::vector<Mesh_data<uint8_t>> &particle_cell_tree, APR<T> &apr);
 
-void check_boundaries(short axis, int var, int limit, short (&boundaries)[3][2]);
+    void check_boundaries(short axis, int var, int limit, short (&boundaries)[3][2]);
 
-void set_ascendant_neighbours(int level,std::vector<Mesh_data<uint8_t>>& particle_cell_tree);
+    void set_ascendant_neighbours(int level, std::vector<Mesh_data<uint8_t>> &particle_cell_tree);
 
-void set_filler(int level,std::vector<Mesh_data<uint8_t>>& particle_cell_tree);
+    void set_filler(int level, std::vector<Mesh_data<uint8_t>> &particle_cell_tree);
 
-void fill_neighbours(int level,unsigned int l_min,std::vector<Mesh_data<uint8_t>>& particle_cell_tree);
+    void fill_neighbours(int level, unsigned int l_min, std::vector<Mesh_data<uint8_t>> &particle_cell_tree);
 
-void fill_parent(int j, int i, int k, int x_num, int y_num, int new_level,unsigned int l_min,std::vector<Mesh_data<uint8_t>>& particle_cell_tree);
+    void fill_parent(int j, int i, int k, int x_num, int y_num, int new_level, unsigned int l_min,
+                     std::vector<Mesh_data<uint8_t>> &particle_cell_tree);
 
+
+};
 /*
  *  Definitions
  */
 
 
 template<typename T>
-void pulling_scheme_main(std::vector<Mesh_data<uint8_t>>& particle_cell_tree,APR<T>& apr)
+void PullingScheme::pulling_scheme_main(std::vector<Mesh_data<uint8_t>>& particle_cell_tree,APR<T>& apr)
 {
     //
     //  Bevan Cheeseman 2016
@@ -115,7 +121,7 @@ void pulling_scheme_main(std::vector<Mesh_data<uint8_t>>& particle_cell_tree,APR
 }
 
 template<typename T>
-void fill(float k, Mesh_data<T> &input,std::vector<Mesh_data<uint8_t>>& particle_cell_tree,unsigned int l_max,unsigned int l_min)
+void PullingScheme::fill(float k, Mesh_data<T> &input,std::vector<Mesh_data<uint8_t>>& particle_cell_tree,unsigned int l_max,unsigned int l_min)
 {
     //
     //  Bevan Cheeseman 2016
@@ -194,7 +200,7 @@ void fill(float k, Mesh_data<T> &input,std::vector<Mesh_data<uint8_t>>& particle
 
 
 
-void check_boundaries(short axis, int var, int limit, short (&boundaries)[3][2])
+void PullingScheme::check_boundaries(short axis, int var, int limit, short (&boundaries)[3][2])
 {
 
     if (var == 0) {
@@ -209,7 +215,7 @@ void check_boundaries(short axis, int var, int limit, short (&boundaries)[3][2])
 }
 
 
-void set_ascendant_neighbours(int level,std::vector<Mesh_data<uint8_t>>& particle_cell_tree)
+void PullingScheme::set_ascendant_neighbours(int level,std::vector<Mesh_data<uint8_t>>& particle_cell_tree)
 {
 
     const int x_num = particle_cell_tree[level].x_num;
@@ -262,7 +268,7 @@ void set_ascendant_neighbours(int level,std::vector<Mesh_data<uint8_t>>& particl
     }
 }
 
-void set_filler(int level,std::vector<Mesh_data<uint8_t>>& particle_cell_tree)
+void PullingScheme::set_filler(int level,std::vector<Mesh_data<uint8_t>>& particle_cell_tree)
 {
     short children_boundaries[3] = {2,2,2};
     const int x_num = particle_cell_tree[level].x_num;
@@ -327,7 +333,7 @@ void set_filler(int level,std::vector<Mesh_data<uint8_t>>& particle_cell_tree)
 
 }
 
-void fill_neighbours(int level,unsigned int l_min,std::vector<Mesh_data<uint8_t>>& particle_cell_tree)
+void PullingScheme::fill_neighbours(int level,unsigned int l_min,std::vector<Mesh_data<uint8_t>>& particle_cell_tree)
 {
     const int x_num = particle_cell_tree[level].x_num;
     const int y_num = particle_cell_tree[level].y_num;
@@ -381,7 +387,7 @@ void fill_neighbours(int level,unsigned int l_min,std::vector<Mesh_data<uint8_t>
 
 }
 
-void fill_parent(int j, int i, int k, int x_num, int y_num, int new_level,unsigned int l_min,std::vector<Mesh_data<uint8_t>>& particle_cell_tree)
+void PullingScheme::fill_parent(int j, int i, int k, int x_num, int y_num, int new_level,unsigned int l_min,std::vector<Mesh_data<uint8_t>>& particle_cell_tree)
 {
 
     if(new_level >= l_min) {

@@ -6,7 +6,6 @@
 //
 ////////////////////////
 
-
 #include "utils.h"
 
 bool compare_two_images(const Mesh_data<uint16_t>& in_memory, std::string filename) {

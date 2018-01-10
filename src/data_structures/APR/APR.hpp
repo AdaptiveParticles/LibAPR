@@ -2314,7 +2314,7 @@ public:
 
             uint64_t counter = 0;
 
-            for (this->begin(depth); this->end() == true ; this->it_forward(depth)) {
+            for (this->begin(depth); this->end(depth) != 0 ; this->it_forward(depth)) {
 
                 this->curr_level.get_val(particles_int) = Ip[depth][counter];
 
