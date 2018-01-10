@@ -836,7 +836,7 @@ public:
         Mesh_data<U> pc_image;
         Mesh_data<uint8_t> k_img;
 
-        unsigned int offset_max = 40;
+        unsigned int offset_max = 20;
 
         interp_img(pc_image,interp_data);
 
@@ -2276,7 +2276,7 @@ public:
 
         APR_timer write_timer;
 
-        write_timer.verbose_flag = true;
+        write_timer.verbose_flag = false;
 
         //initialize
         uint64_t node_val_part;
@@ -2958,54 +2958,19 @@ public:
 
 
 
-//    void vstCPU(float* in, float* out, int num, float offset, float conversion, float sigma)
-//    {
-//        //#pragma omp parallel for
-//        for (int x = 0; x < num; x++)
-//        {
-//            out[x] = 2 * sqrtf((fmaxf(in[x] - offset, 0)) / conversion + sigma*sigma) - 2 * sigma;
-//        }
-//        return;
-//    }
+
+
 //
-//    void invVstCPU(float* in, float* out, int num, float offset, float conversion, float sigma)
-//    {
-//        float D = 0;
-//        //#pragma omp parallel for
-//        for (int x = 0; x < num; x++)
-//        {
-//            D = in[x];
-//            D = D + 2 * sigma; // remove offset
-//            if (D >= 2 * sigma) {
-//                out[x] = ((D*D / 4) - sigma*sigma)*conversion + offset;
-//            }
-//            else {
-//                out[x] = offset;
-//            }
-//        }
-//        return;
-//    }
-//
-//    // convert signed shorts to symbols (>= 0 -> even, < 0 -> odd)
-//    void symbolizeCPU(ushort* pSymbols, const short* pData, uint sizeX, uint sizeY, uint sizeZ, uint rowPitchSrc, uint slicePitchSrc)
-//    {
-//        for (size_t i = 0; i < sizeX*sizeY*sizeZ; i++)
-//        {
-//            pSymbols[i] = 2 * abs(pData[i]) + getNegativeSign(pData[i]);
-//        }
-//        return;
-//    }
-//
-//    void unsymbolizeCPU(short* pData, const ushort* pSymbols, uint sizeX, uint sizeY, uint sizeZ, uint rowPitchDst, uint slicePitchDst)
-//    {
-//        int negative = 0;
-//        for (size_t i = 0; i < sizeX*sizeY*sizeZ; i++)
-//        {
-//            negative = pSymbols[i] % 2;
-//            pData[i] = (1 - 2 * negative) * ((pSymbols[i] + negative) / 2);
-//        }
-//        return;
-//    }
+//    cudaCompress::util::u2f((uint16_t*)dpImage, dpBuffer, sizeX * sizeY);
+//    // variance stabilization
+//    cudaCompress::util::vst(dpBuffer, dpBuffer, sizeX * sizeY, bgLevel, conversion, readNoise);
+//    // scale with quantization step
+//    cudaCompress::util::multiply(dpBuffer, dpBuffer, 1 / quantStep, sizeX * sizeY);
+//    // run  quantization first then prediction
+//    cudaCompress::util::f2u(dpBuffer, (uint16_t*)dpScratch, sizeX * sizeY);
+//    //cudaMemcpy(dpImage, dpScratch, sizeX*sizeY * sizeof(int16_t), cudaMemcpyDeviceToDevice);
+//    cudaCompress::util::predictor7_tiles((int16_t*)dpScratch, dpImage, sizeX * sizeof(int16_t), sizeX, sizeY, tileSize);
+//    cudaCompress::util::symbolize(dpSymbols, dpImage, sizeX, sizeY, sizeZ);
 
 };
 
