@@ -426,6 +426,9 @@ public:
 
     template<typename U>
     void interp_depth(Mesh_data<U>& img){
+        //
+        //  Returns an image of the depth, this is down-sampled by one, as the Particle Cell solution reflects this
+        //
 
         //get depth
         ExtraPartCellData<U> depth_parts;
@@ -441,8 +444,13 @@ public:
 
         }
 
-        interp_img(img,depth_parts);
+        Mesh_data<U> temp;
 
+        interp_img(temp,depth_parts);
+
+        down_sample(temp,img,
+                    [](U x, U y) { return std::max(x,y); },
+                    [](U x) { return x; }, true);
 
     }
 
@@ -2760,58 +2768,106 @@ public:
 
 
 
-//    template<typename S>
-//    void predict_intensities(ExtraPartCellData<S>& parts){
-//        //
-//        //  Reduce the entropy of the saved sequence by predicting the intensity and storing \delta
-//        //
-//
-//        //init temp data
-//        ExtraPartCellData<S> delta;
-//        delta.initialize_structure_cells(pc_data);
-//
-//        std::vector<S> neigh_vec;
-//
-//        std::vector<unsigned int> dir = {1,3,5};
-//
-//        //loops from lowest level to highest
-//        for (this->begin(); this->end() == true ; this->it_forward()) {
-//
-//            //get the minus neighbours (1,3,5)
-//
-//            float pred = 0;
-//            float counter = 0;
-//
-//            for (int j = 0; j < dir.size(); ++j) {
-//
-//                get_neigh_dir(parts, neigh_vec, dir[j]);
-//
-//
-//
-//                if (neigh_vec.size() > 0) {
-//                    //check if the depth is less
-//                    if (pc_data.pc_key_get_depth(this->curr_level.neigh_part_keys.neigh_face[dir[j]][0]) <= this->depth()) {
-//                        for (int i = 0; i < neigh_vec.size(); ++i) {
-//                            pred += neigh_vec[i];
-//                            counter++;
-//                        }
-//                    }
-//                }
-//            }
-//
-//            if(counter > 0){
-//                pred = floor(pred/counter);
-//            }
-//
-//            this->curr_level.get_val(delta) = this->curr_level.get_val(parts) - pred;
-//
-//
-//        }
-//
-//        std::swap(parts,delta);
-//
-//    }
+    template<typename S>
+    void predict_intensities(ExtraPartCellData<S>& parts){
+        //
+        //  Reduce the entropy of the saved sequence by predicting the intensity and storing \delta
+        //
 
+        //init temp data
+        ExtraPartCellData<S> delta;
+        delta.initialize_structure_cells(pc_data);
+
+        std::vector<S> neigh_vec;
+
+        std::vector<unsigned int> dir = {1,3};
+
+        //loops from lowest level to highest
+        for (this->begin(); this->end() != 0 ; this->it_forward()) {
+
+            //get the minus neighbours (1,3,5)
+
+            float pred = 0;
+            float counter = 0;
+
+            for (int j = 0; j < dir.size(); ++j) {
+
+                get_neigh_dir(parts, neigh_vec, dir[j]);
+
+                if (neigh_vec.size() > 0) {
+                    //check if the depth is less
+                    if (pc_data.pc_key_get_depth(this->curr_level.neigh_part_keys.neigh_face[dir[j]][0]) <= this->depth()) {
+                        for (int i = 0; i < neigh_vec.size(); ++i) {
+                            pred += neigh_vec[i];
+                            counter++;
+                        }
+                    }
+                }
+            }
+
+            if(counter > 0){
+                pred = floor(pred/counter);
+            }
+
+            this->curr_level.get_val(delta) = this->curr_level.get_val(parts) - pred;
+
+
+        }
+
+        std::swap(parts,delta);
+
+    }
+
+
+
+//    void vstCPU(float* in, float* out, int num, float offset, float conversion, float sigma)
+//    {
+//        //#pragma omp parallel for
+//        for (int x = 0; x < num; x++)
+//        {
+//            out[x] = 2 * sqrtf((fmaxf(in[x] - offset, 0)) / conversion + sigma*sigma) - 2 * sigma;
+//        }
+//        return;
+//    }
+//
+//    void invVstCPU(float* in, float* out, int num, float offset, float conversion, float sigma)
+//    {
+//        float D = 0;
+//        //#pragma omp parallel for
+//        for (int x = 0; x < num; x++)
+//        {
+//            D = in[x];
+//            D = D + 2 * sigma; // remove offset
+//            if (D >= 2 * sigma) {
+//                out[x] = ((D*D / 4) - sigma*sigma)*conversion + offset;
+//            }
+//            else {
+//                out[x] = offset;
+//            }
+//        }
+//        return;
+//    }
+//
+//    // convert signed shorts to symbols (>= 0 -> even, < 0 -> odd)
+//    void symbolizeCPU(ushort* pSymbols, const short* pData, uint sizeX, uint sizeY, uint sizeZ, uint rowPitchSrc, uint slicePitchSrc)
+//    {
+//        for (size_t i = 0; i < sizeX*sizeY*sizeZ; i++)
+//        {
+//            pSymbols[i] = 2 * abs(pData[i]) + getNegativeSign(pData[i]);
+//        }
+//        return;
+//    }
+//
+//    void unsymbolizeCPU(short* pData, const ushort* pSymbols, uint sizeX, uint sizeY, uint sizeZ, uint rowPitchDst, uint slicePitchDst)
+//    {
+//        int negative = 0;
+//        for (size_t i = 0; i < sizeX*sizeY*sizeZ; i++)
+//        {
+//            negative = pSymbols[i] % 2;
+//            pData[i] = (1 - 2 * negative) * ((pSymbols[i] + negative) / 2);
+//        }
+//        return;
+//    }
 
 };
 

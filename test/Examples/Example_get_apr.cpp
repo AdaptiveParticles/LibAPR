@@ -78,8 +78,8 @@ int main(int argc, char **argv) {
         timer.stop_timer();
 
         Mesh_data<uint16_t> level;
-
         apr.interp_depth(level);
+
 
         std::string output_path = save_loc + file_name + "_level.tif";
 
