@@ -28,7 +28,12 @@ public:
 
     APR_parameters par;
 
-    APR_timer timer;
+    APR_timer total_timer;
+    APR_timer allocation_timer;
+
+    APR_timer computation_timer;
+
+    APR_timer misc_timer;
 
     std::string image_type; //default uint16
 
@@ -68,19 +73,19 @@ private:
     //pointer to the APR structure so member functions can have access if they need
     APR<ImageType>* apr_;
 
-    Mesh_data<ImageType> image_temp; // global image variable useful for passing between methods, or re-using memory
+    Mesh_data<ImageType> image_temp; // global image variable useful for passing between methods, or re-using memory (should be the only full sized copy of the image)
 
-    Mesh_data<ImageType> grad_temp; //
+    Mesh_data<ImageType> grad_temp; // should be a down-sampled image
 
-    Mesh_data<float> local_scale_temp; //
+    Mesh_data<float> local_scale_temp; //   Used as down-sampled images for some averaging steps where it is useful to not lose precision, or get over-flow errors
 
-    Mesh_data<float> local_scale_temp2; //
+    Mesh_data<float> local_scale_temp2;  //   Used as down-sampled images for some averaging steps where it is useful to not lose precision, or get over-flow errors
+
+    //assuming uint16, the total memory cost shoudl be approximately (1 + 1 + 1/8 + 2/8 + 2/8) = 2 5/8 original image size in u16bit
 
     //storage of the particle cell tree for computing the pulling scheme
 
     std::vector<Mesh_data<uint8_t>> particle_cell_tree;
-
-
 
     float bspline_offset=0;
 
@@ -118,6 +123,8 @@ void APR_converter<ImageType>::get_local_particle_cell_set(Mesh_data<T>& grad_im
     //
     //  Down-sampled due to the Equivalence Optimization
     //
+
+    APR_timer timer;
 
     //divide gradient magnitude by Local Intensity Scale (first step in calculating the Local Resolution Estimate L(y), minus constants)
 #pragma omp parallel for default(shared)
@@ -172,6 +179,8 @@ void APR_converter<ImageType>::get_gradient(Mesh_data<T>& input_img,Mesh_data<S>
     //
     //  Output: down-sampled by 2 gradient magnitude (Note, the gradient is calculated at pixel level then maximum down sampled within the loops below)
     //
+
+    APR_timer timer;
 
     timer.verbose_flag = false;
 
@@ -260,6 +269,8 @@ void APR_converter<ImageType>::get_local_intensity_scale(Mesh_data<T>& input_img
     //
     //  Output: down-sampled Local Intensity Scale (h) (Due to the Equivalence Optimization we only need down-sampled values)
     //
+
+    APR_timer timer;
 
     APR_timer var_timer;
     var_timer.verbose_flag = true;
@@ -425,8 +436,12 @@ bool APR_converter<ImageType>::get_apr_method(APR<ImageType>& apr) {
 
     timer.stop_timer();
 
+    computation_timer.start_timer("Calculations");
+
+    computation_timer.verbose_flag = true;
+
     APR_timer st;
-    st.verbose_flag = true;
+    st.verbose_flag = false;
 
     st.start_timer("grad");
 
@@ -468,6 +483,8 @@ bool APR_converter<ImageType>::get_apr_method(APR<ImageType>& apr) {
 
     full.stop_timer();
 
+    computation_timer.stop_timer();
+
     return true;
 }
 
@@ -480,10 +497,43 @@ void APR_converter<ImageType>::auto_parameters(Mesh_data<T>& input_img){
     //
 
 
-    // TO DO : make only from a subset of total slices to improve performance on large images
+
+    APR_timer par_timer;
+
+    par_timer.verbose_flag = true;
+
+    //
+    //  Do not compute the statistics over the whole image, but only a smaller sub-set.
+    //
+
+    double total_required_pixel = 10*1000*1000;
+
+    std::vector<unsigned int> selected_slices;
+
+    unsigned int num_slices = std::min((unsigned int)ceil(total_required_pixel/(1.0*input_img.y_num*input_img.x_num)),(unsigned int)input_img.z_num);
+
+    unsigned int delta = std::max((unsigned int)1,(unsigned int)(input_img.z_num/num_slices));
+
+    //evenly space the slices across the image
+    for (int i1 = 0; i1 < num_slices; ++i1) {
+        selected_slices.push_back(delta*i1);
+    }
+
+    float min_val = 99999999;
+
+    par_timer.start_timer("get_min");
+
+    for (int k1 = 0; k1 < selected_slices.size(); ++k1) {
+        min_val = std::min((float)*std::min_element(input_img.mesh.begin() + selected_slices[k1]*(input_img.y_num*input_img.x_num),input_img.mesh.begin()  + (selected_slices[k1]+1)*(input_img.y_num*input_img.x_num)),min_val);
+    }
+
+    par_timer.stop_timer();
+
 
     //minimum element
-    T min_val = *std::min_element(input_img.mesh.begin(),input_img.mesh.end());
+    //T min_val = *std::min_element(input_img.mesh.begin(),input_img.mesh.end());
+
+
 
     // will need to deal with grouped constant or zero sections in the image somewhere.... but lets keep it simple for now.
 
@@ -496,16 +546,37 @@ void APR_converter<ImageType>::auto_parameters(Mesh_data<T>& input_img){
 
     uint64_t q =0;
 //#pragma omp parallel for default(shared) private(q)
-    for (q = 0; q < input_img.mesh.size(); ++q) {
 
-        if(input_img.mesh[q] < (min_val + num_bins-1)){
-            freq[input_img.mesh[q]-min_val]++;
-            if(input_img.mesh[q] > 0) {
-                counter++;
-                total += input_img.mesh[q];
+    unsigned int xnumynum = input_img.x_num*input_img.y_num;
+
+    par_timer.start_timer("get_histogram");
+
+    for (int s = 0; s < selected_slices.size(); ++s) {
+
+        for (int q= selected_slices[s]*xnumynum; q < (selected_slices[s]+1)*xnumynum; ++q) {
+            if(input_img.mesh[q] < (min_val + num_bins-1)){
+                freq[input_img.mesh[q]-min_val]++;
+                if(input_img.mesh[q] > 0) {
+                    counter++;
+                    total += input_img.mesh[q];
+                }
             }
         }
+
     }
+
+    par_timer.stop_timer();
+
+//    for (q = 0; q < input_img.mesh.size(); ++q) {
+//
+//        if(input_img.mesh[q] < (min_val + num_bins-1)){
+//            freq[input_img.mesh[q]-min_val]++;
+//            if(input_img.mesh[q] > 0) {
+//                counter++;
+//                total += input_img.mesh[q];
+//            }
+//        }
+//    }
 
     float img_mean = total/(counter*1.0);
 
@@ -586,9 +657,12 @@ void APR_converter<ImageType>::auto_parameters(Mesh_data<T>& input_img){
     int k_n = 0;
     int i_n = 0;
 
+    par_timer.start_timer("get_patches");
+
     uint64_t counter_p = 0;
 
-    for(j = 1; j < (z_num-1);j++){
+    for (int s = 0; s < selected_slices.size(); ++s) {
+        j = selected_slices[s];
         for(i = 1; i < (x_num-1);i++){
             for(k = 1;k < (y_num-1);k++){
 
@@ -619,6 +693,8 @@ void APR_converter<ImageType>::auto_parameters(Mesh_data<T>& input_img){
     }
 
     finish:
+
+    par_timer.stop_timer();
 
     //first compute the mean over all the patches.
 
