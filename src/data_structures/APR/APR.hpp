@@ -1596,14 +1596,14 @@ public:
             const unsigned int z_num_ds = z_num[i - 1];
             const unsigned int y_num_ds = y_num[i - 1];
 
-#pragma omp parallel for default(shared) private(z_, x_, y_, curr_index, status, prev_ind) if(z_num_*x_num_ > 100)
+//#pragma omp parallel for default(shared) private(z_, x_, y_, curr_index, status, prev_ind) if(z_num_*x_num_ > 100)
             for (z_ = 0; z_ < z_num_; z_++) {
 
                 for (x_ = 0; x_ < x_num_; x_++) {
                     const size_t offset_part_map_ds = (x_ / 2) * y_num_ds + (z_ / 2) * y_num_ds * x_num_ds;
                     const size_t offset_part_map = x_ * y_num_ + z_ * y_num_ * x_num_;
 
-                    for (y_ = 0; y_ < y_num_ / 2; y_++) {
+                    for (y_ = 0; y_ < y_num_ds; y_++) {
 
                         status = p_map[i - 1][offset_part_map_ds + y_];
 
@@ -1629,7 +1629,7 @@ public:
             const unsigned int z_num_ds = z_num[i-1];
             const unsigned int y_num_ds = y_num[i-1];
 
-#pragma omp parallel for default(shared) private(z_,x_,y_,curr_index,status,prev_ind) if(z_num_*x_num_ > 100)
+//#pragma omp parallel for default(shared) private(z_,x_,y_,curr_index,status,prev_ind) if(z_num_*x_num_ > 100)
             for(z_ = 0;z_ < z_num_;z_++){
 
                 for(x_ = 0;x_ < x_num_;x_++){
@@ -1652,7 +1652,7 @@ public:
                             first_empty = 1;
                         }
 
-                        for (y_ = 0; y_ < y_num_/2; y_++) {
+                        for (y_ = 0; y_ < y_num_ds; y_++) {
 
                             status = p_map[i-1][ offset_part_map_ds + y_];
 
@@ -1725,7 +1725,7 @@ public:
             const unsigned int z_num_ds = z_num[i-1];
             const unsigned int y_num_ds = y_num[i-1];
 
-#pragma omp parallel for default(shared) private(z_,x_,y_,curr_index,status,prev_ind,prev_coord) if(z_num_*x_num_ > 100)
+//#pragma omp parallel for default(shared) private(z_,x_,y_,curr_index,status,prev_ind,prev_coord) if(z_num_*x_num_ > 100)
             for(z_ = 0;z_ < z_num_;z_++){
 
                 for(x_ = 0;x_ < x_num_;x_++){
@@ -1743,7 +1743,7 @@ public:
 
                         uint64_t y_u;
 
-                        for (y_ = 0; y_ < y_num_/2; y_++) {
+                        for (y_ = 0; y_ < y_num_ds; y_++) {
 
                             status = p_map[i - 1][offset_part_map_ds + y_];
 
@@ -1825,13 +1825,11 @@ public:
                         //initialize the first values type
                         pc_data.data[i][offset_pc_data][0] = TYPE_GAP_END;
 
-
-
                         for (y_ = 0; y_ < y_num_; y_++) {
 
                             status = p_map[i][offset_part_map + y_];
 
-                            if((status> 1) & (status < 5)) {
+                            if((status> 1) && (status < 5)) {
 
                                 curr_index++;
 

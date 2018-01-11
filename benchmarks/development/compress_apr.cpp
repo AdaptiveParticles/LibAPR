@@ -84,7 +84,7 @@ int main(int argc, char **argv) {
     apr.read_apr(file_name);
 
     float e = 1.6;
-    float background = 300;
+    float background = 900;
     float cnv = 65636/30000;
     float q = .5;
 
@@ -112,7 +112,7 @@ int main(int argc, char **argv) {
 
     ExtraPartCellData<float> prediction(apr);
 
-    std::vector<unsigned int> dir = {1,3};
+    std::vector<unsigned int> dir = {1,3,5};
 
     APR_iterator<uint16_t> neigh_it(apr);
 
@@ -302,12 +302,12 @@ int main(int argc, char **argv) {
     }
 
 
-//    Mesh_data<uint16_t> img;
-//
-//    apr.interp_img(img,recon);
-//    name = options.directory + "decomp.tif";
-//    img.write_image_tiff(name);
-//
+    Mesh_data<uint16_t> img;
+
+    apr.interp_img(img,recon);
+    std::string name = options.directory + "decomp.tif";
+    img.write_image_tiff(name);
+
 //    apr.write_particles_only(options.directory,"recon",recon);
 
 

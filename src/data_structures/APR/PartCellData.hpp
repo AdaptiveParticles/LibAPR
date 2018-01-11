@@ -1904,19 +1904,44 @@ private:
             }
             case(LEVEL_DOWN):{
                 // Neighbour is on parent level (depth - 1)
-                
+
+
+                pc_key ck;
+                ck.update_cell(curr_key);
+
+                pc_key nk;
+
                 neigh_key = curr_key;
                 
                 pc_key_set_j(neigh_key, node_get_val(node_val,index_mask_dir[face],index_shift_dir[face]));
+
+                nk.update_cell(neigh_key);
+
                 pc_key_set_x(neigh_key,pc_key_get_x(neigh_key)/2 + von_neumann_x_cells[face]);
+
+                nk.update_cell(neigh_key);
+
+                uint64_t t = pc_key_get_z(neigh_key)/2 + von_neumann_z_cells[face];
+                uint64_t zt = pc_key_get_z(neigh_key);
+                uint64_t zt2 = pc_key_get_z(neigh_key)/2;
+                uint64_t z3 = von_neumann_z_cells[face];
+
                 pc_key_set_z(neigh_key,pc_key_get_z(neigh_key)/2 + von_neumann_z_cells[face]);
-                
+
+                nk.update_cell(neigh_key);
+
                 pc_key_offset_depth(neigh_key,-1);
-                
+
+                nk.update_cell(neigh_key);
+
                // pc_key_set_status(neigh_key,get_status(get_val(neigh_key)));
                 neigh_keys.push_back(neigh_key);
-                
-                
+
+
+                nk.update_cell(neigh_key);
+
+
+
                 return;
             }
             case(LEVEL_UP):{

@@ -17,6 +17,9 @@
 #include "src/algorithm/LocalParticleCellSet.hpp"
 #include "src/algorithm/PullingScheme.hpp"
 
+//debug remove
+#include "benchmarks/development/old_structures/particle_map.hpp"
+
 template<typename ImageType>
 class APR_converter: public LocalIntensityScale, public ComputeGradient, public LocalParticleCellSet, public PullingScheme {
 
@@ -85,7 +88,6 @@ private:
 
     //storage of the particle cell tree for computing the pulling scheme
 
-    std::vector<Mesh_data<uint8_t>> particle_cell_tree;
 
     float bspline_offset=0;
 
@@ -145,7 +147,7 @@ void APR_converter<ImageType>::get_local_particle_cell_set(Mesh_data<T>& grad_im
     //incorporate other factors and compute the level of the Particle Cell, effectively construct LPC L_n
     compute_level_for_array(local_scale_temp,level_factor,this->par.rel_error);
 
-    fill(l_max,local_scale_temp,particle_cell_tree, l_max,l_min);
+    fill(l_max,local_scale_temp);
 
     timer.start_timer("level_loop");
 
@@ -156,14 +158,13 @@ void APR_converter<ImageType>::get_local_particle_cell_set(Mesh_data<T>& grad_im
                     [](T x, T y) { return std::max(x,y); },
                     [](T x) { return x; }, true);
         //for those value of level k, add to the hash table
-        fill(l_,image_temp,particle_cell_tree, l_max,l_min);
+        fill(l_,image_temp);
         //assign the previous mesh to now be resampled.
         std::swap(grad_temp, image_temp);
 
     }
 
     timer.stop_timer();
-
 
 }
 
@@ -254,9 +255,6 @@ void APR_converter<ImageType>::get_gradient(Mesh_data<T>& input_img,Mesh_data<S>
     timer.start_timer("Threshold ");
     threshold_gradient(grad_temp,local_scale_temp,par.Ip_th + bspline_offset);
     timer.stop_timer();
-
-
-
 
 }
 
@@ -456,16 +454,65 @@ bool APR_converter<ImageType>::get_apr_method(APR<ImageType>& apr) {
     this->get_local_intensity_scale(input_image,local_scale);  //note in the current pipeline don't actually use these variables, but here for interface (Use shared member allocated above variables)
 
     st.start_timer("init Particle Cell Image Pyramid structure");
-    initialize_particle_cell_tree(particle_cell_tree,apr);
+    initialize_particle_cell_tree(apr);
     st.stop_timer();
 
     st.start_timer("Compute LPC");
     this->get_local_particle_cell_set(local_scale,gradient); //note in the current pipeline don't actually use these variables, but here for interface (Use shared member allocated above variables)
     st.stop_timer();
 
+
+    Particle_map<uint16_t> pmap;
+    Part_rep pr;
+
+    pmap.k_max = l_max;
+    pmap.k_min = l_min;
+
+    pmap.layers.resize(l_max+1);
+
+
+    for (int i = apr.depth_min(); i < apr.depth_max() ; ++i) {
+        debug_write(particle_cell_tree[i],"before_pct" + std::to_string(i));
+    }
+
+
+
+    for (int j = l_min; j <= l_max; ++j) {
+
+        pmap.layers[j].initialize(particle_cell_tree[j]);
+
+        std::copy(particle_cell_tree[j].mesh.begin(),particle_cell_tree[j].mesh.end(),pmap.layers[j].mesh.begin());
+
+    }
+
+    pr.pl_map.k_max = l_max;
+    pr.pl_map.k_min = l_min;
+    pr.pars.pull_scheme = 2;
+
+    pmap.pushing_scheme(pr);
+
     st.start_timer("Pulling Scheme: Compute OVPC V_n from LPC");
-    pulling_scheme_main(particle_cell_tree,apr);
+    PullingScheme::pulling_scheme_main();
     st.stop_timer();
+
+    for (int j = l_min; j <= l_max; ++j) {
+        for (int i = 0; i < particle_cell_tree[j].mesh.size(); ++i) {
+            if(particle_cell_tree[j].mesh[i] == pmap.layers[j].mesh[i]){
+
+            } else {
+                std::cout << "different" << std::endl;
+             }
+        }
+
+    }
+
+
+    for (int j = l_min; j <= l_max; ++j) {
+
+        std::copy(pmap.layers[j].mesh.begin(),pmap.layers[j].mesh.end(),particle_cell_tree[j].mesh.begin());
+
+    }
+
 
     st.start_timer("Down sample image");
     std::vector<Mesh_data<T>> downsampled_img;
@@ -473,9 +520,13 @@ bool APR_converter<ImageType>::get_apr_method(APR<ImageType>& apr) {
     downsample_pyrmaid(input_image,downsampled_img,apr.depth_max()-1,apr.depth_min());
     st.stop_timer();
 
+
+
     st.start_timer("Init data structure");
     apr.init_from_pulling_scheme(particle_cell_tree);
     st.stop_timer();
+
+
 
     st.start_timer("sample particles");
     apr.get_parts_from_img(downsampled_img,apr.particles_int);

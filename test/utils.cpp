@@ -3544,6 +3544,41 @@ bool utest_apr_read_write(PartCellStructure<float,uint64_t>& pc_struct){
     // Now check the Extra Part Cell Data
     //
 
+
+
+    std::vector<Mesh_data<float>> int_array;
+
+    APR_iterator<float> neigh_it(apr_read);
+
+    create_intensity_reference_structure(pc_struct,int_array);
+
+    for ( apr_read.begin(); apr_read.end() ; apr_read.it_forward()) {
+
+        //now we only update the neighbours, and directly access them through a neighbour iterator
+        apr_read.update_neigh_all();
+
+        //loop over all the neighbours and set the neighbour iterator to it
+        for (int dir = 0; dir < 6; ++dir) {
+            // Neighbour Particle Cell Face definitions [+y,-y,+x,-x,+z,-z] =  [0,1,2,3,4,5]
+
+            for (int index = 0; index < apr_read.number_neigh(dir); ++index) {
+                // on each face, there can be 0-4 neighbours accessed by index
+                if(neigh_it.set_neigh_it(apr_read,dir,index)){
+                    //will return true if there is a neighbour defined
+                    float apr_val = neigh_it(apr_read.particles_int);
+                    float check_val = int_array[neigh_it.depth()](neigh_it.y(),neigh_it.x(),neigh_it.z());
+
+                    if(check_val!=apr_val){
+                        success = false;
+                    }
+
+                }
+            }
+        }
+
+    }
+
+
     ExtraPartCellData<float> extra_data(apr);
 
     for (apr.begin();apr.end() ;apr.it_forward()) {

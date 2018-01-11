@@ -53,25 +53,7 @@ class LocalParticleCellSet {
 
     }
 
-    template<typename T>
-    void initialize_particle_cell_tree(std::vector<Mesh_data<uint8_t>>& particle_cell_tree,APR<T>& apr)
-    {   //
-        //  Initializes the particle cell tree structure
-        //
-        //  Contains pc up to l_max - 1,
-        //
 
-        unsigned int l_max = apr.depth_max() - 1;
-        unsigned int l_min = apr.depth_min();
-        //make so you can reference the array as l
-        particle_cell_tree.resize(l_max + 1);
-
-        for(int l = l_min; l < (l_max + 1) ;l ++){
-            particle_cell_tree[l].initialize(ceil(1.0*apr.pc_data.org_dims[0]/pow(2.0,1.0*l_max - l + 1)),
-                                             ceil(1.0*apr.pc_data.org_dims[1]/pow(2.0,1.0*l_max - l + 1)),
-                                             ceil(1.0*apr.pc_data.org_dims[2]/pow(2.0,1.0*l_max - l + 1)), EMPTY);
-        }
-    }
 
 
 

@@ -98,6 +98,11 @@ int main(int argc, char **argv) {
     //Basic serial iteration over all particles
     for (apr.begin(); apr.end() != 0; apr.it_forward()) {
 
+
+        if(apr.curr_level.counter == 325976){
+            int stop = 1;
+        }
+
         //now we only update the neighbours, and directly access them through a neighbour iterator
         apr.update_neigh_all();
 
@@ -107,6 +112,7 @@ int main(int argc, char **argv) {
         //loop over all the neighbours and set the neighbour iterator to it
         for (int dir = 0; dir < 6; ++dir) {
             // Neighbour Particle Cell Face definitions [+y,-y,+x,-x,+z,-z] =  [0,1,2,3,4,5]
+
 
             for (int index = 0; index < apr.number_neigh(dir); ++index) {
                 // on each face, there can be 0-4 neighbours accessed by index

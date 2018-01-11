@@ -75,13 +75,16 @@ int main(int argc, char **argv) {
 
 
         Mesh_data<uint16_t> level;
-        apr.interp_depth_ds(level);
+        apr.interp_depth(level);
+
+        //apr.interp_depth_ds(level);
 
 
         std::string output_path = save_loc + file_name + "_level.tif";
 
         //write output as tiff
         level.write_image_tiff(output_path);
+
         output_path = save_loc + file_name + "_pc.tif";
 
         //write output as tiff
@@ -98,11 +101,8 @@ int main(int argc, char **argv) {
 
         timer.stop_timer();
 
-        APR<uint16_t> apr2;
 
-        apr2.read_apr(save_loc + file_name + "_apr.h5");
-
-        std::vector<unsigned int> dir = {1,3};
+        std::vector<unsigned int> dir = {0,1,2,3,4,5};
 
         APR_iterator<uint16_t> neigh_it(apr);
 
@@ -136,6 +136,7 @@ int main(int argc, char **argv) {
                 }
             }
         }
+
 
 
 
