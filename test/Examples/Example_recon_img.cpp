@@ -108,7 +108,7 @@ int main(int argc, char **argv) {
 #pragma omp parallel for schedule(static) private(part) firstprivate(apr_it)
     for (part = 0; part < apr.num_parts_total; ++part) {
         //needed step for any parallel loop (update to the next part)
-        apr_it.set_part(part);
+        apr_it.set_iterator_to_particle_by_number(part);
 
         apr_it(type) = apr_it.type();
         apr_it(level) = apr_it.depth();

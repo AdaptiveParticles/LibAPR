@@ -73,24 +73,11 @@ int main(int argc, char **argv) {
         timer.verbose_flag = true;
 
 
-
         Mesh_data<uint16_t> level;
-        apr.interp_depth(level);
 
-        //apr.interp_depth_ds(level);
-
-
+        apr.interp_depth_ds(level);
         std::string output_path = save_loc + file_name + "_level.tif";
-
         //write output as tiff
-        level.write_image_tiff(output_path);
-
-        output_path = save_loc + file_name + "_type.tif";
-
-        //write output as tiff
-        level.write_image_tiff(output_path);
-
-        apr.interp_type(level);
         level.write_image_tiff(output_path);
 
 
@@ -100,45 +87,6 @@ int main(int argc, char **argv) {
         apr.write_apr(save_loc,file_name);
 
         timer.stop_timer();
-
-
-        std::vector<unsigned int> dir = {0,1,2,3,4,5};
-
-        APR_iterator<uint16_t> neigh_it(apr);
-
-        //loops from lowest level to highest
-        for (apr.begin(); apr.end() != 0; apr.it_forward()) {
-
-            //get the minus neighbours (1,3,5)
-
-            //now we only update the neighbours, and directly access them through a neighbour iterator
-            apr.update_neigh_all();
-
-            float counter = 0;
-            float temp = 0;
-
-            //loop over all the neighbours and set the neighbour iterator to it
-            for (int f = 0; f < dir.size(); ++f) {
-                // Neighbour Particle Cell Face definitions [+y,-y,+x,-x,+z,-z] =  [0,1,2,3,4,5]
-                unsigned int face = dir[f];
-
-                for (int index = 0; index < apr.number_neigh(face); ++index) {
-                    // on each face, there can be 0-4 neighbours accessed by index
-                    if (neigh_it.set_neigh_it(apr, face, index)) {
-                        //will return true if there is a neighbour defined
-                        if (neigh_it.depth() <= apr.depth()) {
-
-                            temp += neigh_it(apr.particles_int);
-                            counter++;
-                        }
-
-                    }
-                }
-            }
-        }
-
-
-
 
 
         } else {

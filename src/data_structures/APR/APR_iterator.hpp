@@ -69,7 +69,7 @@ public:
     }
 
 
-    bool set_part(uint64_t part_num){
+    bool set_iterator_to_particle_by_number(uint64_t part_num){
         //
         //  Moves the iterator to be at the set particle number (from depth_min to depth_max, iterating y, x, then z)
         //
@@ -179,7 +179,7 @@ public:
         return curr_level.depth;
     }
 
-    bool set_neigh_it(APR_iterator<ImageType>& org_it,unsigned int dir,unsigned int index){
+    bool set_neighbour_iterator(APR_iterator<ImageType> &org_it, unsigned int dir, unsigned int index){
         //
         //  Update the iterator to the neighbour
         //
@@ -213,17 +213,17 @@ public:
 
     }
 
-    inline unsigned int number_neigh(unsigned int dir){
+    inline unsigned int number_neighbours_in_direction(unsigned int dir){
         return this->curr_level.neigh_part_keys.neigh_face[dir].size();
     }
 
 
-    void update_neigh_all(){
+    void update_all_neighbours(){
         //updates the internal neighbour structures with the keys to all the neighbours
         this->curr_level.update_neigh_all(*pc_data_pointer);
     }
 
-    void update_neigh_dir(unsigned int dir){
+    void update_direction_neighbours(unsigned int dir){
         //updates the internal neighbour structures with the keys to all the neighbours
         this->curr_level.update_neigh_dir(*pc_data_pointer,dir);
     }

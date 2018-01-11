@@ -1582,56 +1582,6 @@ public:
         uint64_t prev_coord = 0;
 
 
-        std::vector<Mesh_data<uint8_t>> recon_map;
-        recon_map.resize(p_map.size());
-        recon_map[pc_data.depth_min].mesh.resize(p_map[pc_data.depth_min].size(),0);
-
-        for(uint64_t i = (pc_data.depth_min+1);i < pc_data.depth_max;i++) {
-
-            const unsigned int x_num_ = x_num[i];
-            const unsigned int z_num_ = z_num[i];
-            const unsigned int y_num_ = y_num[i];
-
-            const unsigned int x_num_ds = x_num[i - 1];
-            const unsigned int z_num_ds = z_num[i - 1];
-            const unsigned int y_num_ds = y_num[i - 1];
-
-            recon_map[i].mesh.resize(p_map[i].size(),0);
-            recon_map[i].y_num = y_num_;
-            recon_map[i].x_num = x_num_;
-            recon_map[i].z_num = z_num_;
-
-//#pragma omp parallel for default(shared) private(z_, x_, y_, curr_index, status, prev_ind) if(z_num_*x_num_ > 100)
-            for (z_ = 0; z_ < z_num_; z_++) {
-
-                for (x_ = 0; x_ < x_num_; x_++) {
-                    const size_t offset_part_map_ds = (x_ / 2) * y_num_ds + (z_ / 2) * y_num_ds * x_num_ds;
-                    const size_t offset_part_map = x_ * y_num_ + z_ * y_num_ * x_num_;
-
-                    for (y_ = 0; y_ < y_num_; y_++) {
-
-                        status = p_map[i][offset_part_map + y_];
-
-                        if ((status > 1) & (status < 4)) {
-                            //recon_map[i].mesh[offset_part_map +  y_] = i;
-                            recon_map[i].mesh[offset_part_map +  y_] = status;
-
-                        } else if (status == SEED) {
-                            //recon_map[i].mesh[offset_part_map + y_] = i+1;
-                            recon_map[i].mesh[offset_part_map +  y_] = status;
-
-
-                        } else if (recon_map[i - 1].mesh[offset_part_map_ds + y_/2]> 0) {
-                            recon_map[i].mesh[offset_part_map + y_] = recon_map[i - 1].mesh[offset_part_map_ds + y_/2];
-                        }
-                    }
-                }
-
-            }
-        }
-
-        debug_write(recon_map[pc_data.depth_max-1],"recon_map");
-
         timer.start_timer("intiialize part_cells");
 
         const uint8_t seed_us = 4; //deal with the equivalence optimization
@@ -1646,7 +1596,7 @@ public:
             const unsigned int z_num_ds = z_num[i - 1];
             const unsigned int y_num_ds = y_num[i - 1];
 
-//#pragma omp parallel for default(shared) private(z_, x_, y_, curr_index, status, prev_ind) if(z_num_*x_num_ > 100)
+#pragma omp parallel for default(shared) private(z_, x_, y_, curr_index, status, prev_ind) if(z_num_*x_num_ > 100)
             for (z_ = 0; z_ < z_num_; z_++) {
 
                 for (x_ = 0; x_ < x_num_; x_++) {
@@ -1679,7 +1629,7 @@ public:
             const unsigned int z_num_ds = z_num[i-1];
             const unsigned int y_num_ds = y_num[i-1];
 
-//#pragma omp parallel for default(shared) private(z_,x_,y_,curr_index,status,prev_ind) if(z_num_*x_num_ > 100)
+#pragma omp parallel for default(shared) private(z_,x_,y_,curr_index,status,prev_ind) if(z_num_*x_num_ > 100)
             for(z_ = 0;z_ < z_num_;z_++){
 
                 for(x_ = 0;x_ < x_num_;x_++){
@@ -1775,7 +1725,7 @@ public:
             const unsigned int z_num_ds = z_num[i-1];
             const unsigned int y_num_ds = y_num[i-1];
 
-//#pragma omp parallel for default(shared) private(z_,x_,y_,curr_index,status,prev_ind,prev_coord) if(z_num_*x_num_ > 100)
+#pragma omp parallel for default(shared) private(z_,x_,y_,curr_index,status,prev_ind,prev_coord) if(z_num_*x_num_ > 100)
             for(z_ = 0;z_ < z_num_;z_++){
 
                 for(x_ = 0;x_ < x_num_;x_++){

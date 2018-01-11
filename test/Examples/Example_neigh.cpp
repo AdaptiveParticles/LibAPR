@@ -91,20 +91,15 @@ int main(int argc, char **argv) {
 
     ExtraPartCellData<float> neigh_avg(apr);
 
-    APR_iterator<float> neigh_it(apr);
+    APR_iterator<float> neighbour_iterator(apr);
 
     timer.start_timer("APR serial iterator neighbours loop");
 
     //Basic serial iteration over all particles
     for (apr.begin(); apr.end() != 0; apr.it_forward()) {
 
-
-        if(apr.curr_level.counter == 325976){
-            int stop = 1;
-        }
-
         //now we only update the neighbours, and directly access them through a neighbour iterator
-        apr.update_neigh_all();
+        apr.update_all_neighbours();
 
         float counter = 0;
         float temp = 0;
@@ -114,12 +109,12 @@ int main(int argc, char **argv) {
             // Neighbour Particle Cell Face definitions [+y,-y,+x,-x,+z,-z] =  [0,1,2,3,4,5]
 
 
-            for (int index = 0; index < apr.number_neigh(dir); ++index) {
+            for (int index = 0; index < apr.number_neighbours_in_direction(dir); ++index) {
                 // on each face, there can be 0-4 neighbours accessed by index
-                if(neigh_it.set_neigh_it(apr,dir,index)){
+                if(neighbour_iterator.set_neighbour_iterator(apr, dir, index)){
                     //will return true if there is a neighbour defined
 
-                    temp += neigh_it(apr.particles_int);
+                    temp += neighbour_iterator(apr.particles_int);
                     counter++;
 
                 }
@@ -140,7 +135,7 @@ int main(int argc, char **argv) {
     ///////////////////////////
 
     //initialization of the iteration structures
-    APR_iterator<float> apr_it(apr); //this is required for parallel access
+    APR_iterator<float> apr_parallel_iterator(apr); //this is required for parallel access
     uint64_t part; //declare parallel iteration variable
 
     ExtraPartCellData<float> neigh_xm(apr);
@@ -150,18 +145,18 @@ int main(int argc, char **argv) {
 #pragma omp parallel for schedule(static) private(part) firstprivate(apr_it,neigh_it)
     for (part = 0; part < apr.num_parts_total; ++part) {
         //needed step for any parallel loop (update to the next part)
-        apr_it.set_part(part);
+        apr_parallel_iterator.set_iterator_to_particle_by_number(part);
 
-        //compute neighbours as previously, now using the apr_it class, instead of the apr class for access.
-        apr_it.update_neigh_all();
+        //compute neighbours as previously, now using the apr_parallel_iterator (APR_iterator), instead of the apr class for access.
+        apr_parallel_iterator.update_all_neighbours();
 
         //loop over all the neighbours and set the neighbour iterator to it
         for (int dir = 0; dir < 6; ++dir) {
-            for (int index = 0; index < apr_it.number_neigh(dir); ++index) {
+            for (int index = 0; index < apr_parallel_iterator.number_neighbours_in_direction(dir); ++index) {
 
-                if(neigh_it.set_neigh_it(apr_it,dir,index)){
-                    //neigh_it works just like apr, and apr_it (you could also call neighbours)
-                    apr_it(neigh_xm) += neigh_it(apr.particles_int)*(apr_it.y() - neigh_it.y());
+                if(neighbour_iterator.set_neighbour_iterator(apr_parallel_iterator, dir, index)){
+                    //neighbour_iterator works just like apr, and apr_parallel_iterator (you could also call neighbours)
+                    apr_parallel_iterator(neigh_xm) += neighbour_iterator(apr.particles_int)*(apr_parallel_iterator.y() - neighbour_iterator.y());
                 }
 
             }
@@ -185,18 +180,18 @@ int main(int argc, char **argv) {
 #pragma omp parallel for schedule(static) private(part) firstprivate(apr_it,neigh_it)
     for (part = 0; part < apr.num_parts_total; ++part) {
         //needed step for any parallel loop (update to the next part)
-        apr_it.set_part(part);
+        apr_parallel_iterator.set_iterator_to_particle_by_number(part);
 
         const unsigned int dir = 3;
         //now we only update the neighbours, and directly access them through a neighbour iterator
-        apr_it.update_neigh_dir(dir); // 3 = -x face
+        apr_parallel_iterator.update_direction_neighbours(dir); // 3 = -x face
 
-        for (int index = 0; index < apr_it.number_neigh(dir); ++index) {
+        for (int index = 0; index < apr_parallel_iterator.number_neighbours_in_direction(dir); ++index) {
             // from 0 to 4 neighbours
-            if(neigh_it.set_neigh_it(apr_it,dir,index)){
-                //access data and perform a conditional sum (neigh_it has all access like the normal iterator)
-                if((neigh_it.type() == 1) & (neigh_it.depth() <= neigh_it.depth_max())){
-                    apr_it(type_sum) += neigh_it(apr.particles_int)*apr_it.type();
+            if(neighbour_iterator.set_neighbour_iterator(apr_parallel_iterator, dir, index)){
+                //access data and perform a conditional sum (neighbour_iterator has all access like the normal iterator)
+                if((neighbour_iterator.type() == 1) & (neighbour_iterator.depth() <= neighbour_iterator.depth_max())){
+                    apr_parallel_iterator(type_sum) += neighbour_iterator(apr.particles_int)*apr_parallel_iterator.type();
                 }
             }
         }

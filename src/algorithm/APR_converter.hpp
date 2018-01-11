@@ -121,8 +121,7 @@ bool APR_converter<ImageType>::get_apr_method(APR<ImageType>& apr) {
     //
     //  Main method for constructing the APR from an input image
     //
-
-
+    
     APR_timer full;
     full.verbose_flag = true;
 
@@ -182,7 +181,7 @@ bool APR_converter<ImageType>::get_apr_method(APR<ImageType>& apr) {
     computation_timer.verbose_flag = true;
 
     APR_timer st;
-    st.verbose_flag = false;
+    st.verbose_flag = true;
 
     st.start_timer("grad");
 

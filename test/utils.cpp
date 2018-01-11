@@ -3309,7 +3309,7 @@ bool utest_apr_parallel_iterate(PartCellStructure<float,uint64_t>& pc_struct){
 #pragma omp parallel for schedule(static) private(part) firstprivate(apr_it)
     for (part = 0; part < apr.num_parts_total; ++part) {
         //needed step for any parallel loop (update to the next part)
-        apr_it.set_part(part);
+        apr_it.set_iterator_to_particle_by_number(part);
 
         float apr_val = apr_it(apr.particles_int);
 
@@ -3349,15 +3349,15 @@ bool utest_apr_serial_neigh(PartCellStructure<float,uint64_t>& pc_struct){
     for ( apr.begin(); apr.end() ; apr.it_forward()) {
 
         //now we only update the neighbours, and directly access them through a neighbour iterator
-        apr.update_neigh_all();
+        apr.update_all_neighbours();
 
         //loop over all the neighbours and set the neighbour iterator to it
         for (int dir = 0; dir < 6; ++dir) {
             // Neighbour Particle Cell Face definitions [+y,-y,+x,-x,+z,-z] =  [0,1,2,3,4,5]
 
-            for (int index = 0; index < apr.number_neigh(dir); ++index) {
+            for (int index = 0; index < apr.number_neighbours_in_direction(dir); ++index) {
                 // on each face, there can be 0-4 neighbours accessed by index
-                if(neigh_it.set_neigh_it(apr,dir,index)){
+                if(neigh_it.set_neighbour_iterator(apr, dir, index)){
                     //will return true if there is a neighbour defined
                     float apr_val = neigh_it(apr.particles_int);
                     float check_val = int_array[neigh_it.depth()](neigh_it.y(),neigh_it.x(),neigh_it.z());
@@ -3380,11 +3380,11 @@ bool utest_apr_serial_neigh(PartCellStructure<float,uint64_t>& pc_struct){
         //loop over all the neighbours and set the neighbour iterator to it
         for (int dir = 0; dir < 6; ++dir) {
             // Neighbour Particle Cell Face definitions [+y,-y,+x,-x,+z,-z] =  [0,1,2,3,4,5]
-            apr.update_neigh_dir(dir);
+            apr.update_direction_neighbours(dir);
 
-            for (int index = 0; index < apr.number_neigh(dir); ++index) {
+            for (int index = 0; index < apr.number_neighbours_in_direction(dir); ++index) {
                 // on each face, there can be 0-4 neighbours accessed by index
-                if(neigh_it.set_neigh_it(apr,dir,index)){
+                if(neigh_it.set_neighbour_iterator(apr, dir, index)){
                     //will return true if there is a neighbour defined
                     float apr_val = neigh_it(apr.particles_int);
                     float check_val = int_array[neigh_it.depth()](neigh_it.y(),neigh_it.x(),neigh_it.z());
@@ -3424,18 +3424,18 @@ bool utest_apr_parallel_neigh(PartCellStructure<float,uint64_t>& pc_struct){
 #pragma omp parallel for schedule(static) private(part) firstprivate(apr_it,neigh_it)
     for (part = 0; part < apr.num_parts_total; ++part) {
         //needed step for any parallel loop (update to the next part)
-        apr_it.set_part(part);
+        apr_it.set_iterator_to_particle_by_number(part);
 
         //now we only update the neighbours, and directly access them through a neighbour iterator
-        apr_it.update_neigh_all();
+        apr_it.update_all_neighbours();
 
         //loop over all the neighbours and set the neighbour iterator to it
         for (int dir = 0; dir < 6; ++dir) {
             // Neighbour Particle Cell Face definitions [+y,-y,+x,-x,+z,-z] =  [0,1,2,3,4,5]
 
-            for (int index = 0; index < apr_it.number_neigh(dir); ++index) {
+            for (int index = 0; index < apr_it.number_neighbours_in_direction(dir); ++index) {
                 // on each face, there can be 0-4 neighbours accessed by index
-                if(neigh_it.set_neigh_it(apr_it,dir,index)){
+                if(neigh_it.set_neighbour_iterator(apr_it, dir, index)){
                     //will return true if there is a neighbour defined
                     float apr_val = neigh_it(apr.particles_int);
                     float check_val = int_array[neigh_it.depth()](neigh_it.y(),neigh_it.x(),neigh_it.z());
@@ -3454,18 +3454,18 @@ bool utest_apr_parallel_neigh(PartCellStructure<float,uint64_t>& pc_struct){
 #pragma omp parallel for schedule(static) private(part) firstprivate(apr_it,neigh_it)
     for (part = 0; part < apr.num_parts_total; ++part) {
         //needed step for any parallel loop (update to the next part)
-        apr_it.set_part(part);
+        apr_it.set_iterator_to_particle_by_number(part);
 
         //now we only update the neighbours, and directly access them through a neighbour iterator
 
         //loop over all the neighbours and set the neighbour iterator to it
         for (int dir = 0; dir < 6; ++dir) {
             // Neighbour Particle Cell Face definitions [+y,-y,+x,-x,+z,-z] =  [0,1,2,3,4,5]
-            apr_it.update_neigh_dir(dir);
+            apr_it.update_direction_neighbours(dir);
 
-            for (int index = 0; index < apr_it.number_neigh(dir); ++index) {
+            for (int index = 0; index < apr_it.number_neighbours_in_direction(dir); ++index) {
                 // on each face, there can be 0-4 neighbours accessed by index
-                if(neigh_it.set_neigh_it(apr_it,dir,index)){
+                if(neigh_it.set_neighbour_iterator(apr_it, dir, index)){
                     //will return true if there is a neighbour defined
                     float apr_val = neigh_it(apr.particles_int);
                     float check_val = int_array[neigh_it.depth()](neigh_it.y(),neigh_it.x(),neigh_it.z());
@@ -3555,15 +3555,15 @@ bool utest_apr_read_write(PartCellStructure<float,uint64_t>& pc_struct){
     for ( apr_read.begin(); apr_read.end() ; apr_read.it_forward()) {
 
         //now we only update the neighbours, and directly access them through a neighbour iterator
-        apr_read.update_neigh_all();
+        apr_read.update_all_neighbours();
 
         //loop over all the neighbours and set the neighbour iterator to it
         for (int dir = 0; dir < 6; ++dir) {
             // Neighbour Particle Cell Face definitions [+y,-y,+x,-x,+z,-z] =  [0,1,2,3,4,5]
 
-            for (int index = 0; index < apr_read.number_neigh(dir); ++index) {
+            for (int index = 0; index < apr_read.number_neighbours_in_direction(dir); ++index) {
                 // on each face, there can be 0-4 neighbours accessed by index
-                if(neigh_it.set_neigh_it(apr_read,dir,index)){
+                if(neigh_it.set_neighbour_iterator(apr_read, dir, index)){
                     //will return true if there is a neighbour defined
                     float apr_val = neigh_it(apr_read.particles_int);
                     float check_val = int_array[neigh_it.depth()](neigh_it.y(),neigh_it.x(),neigh_it.z());

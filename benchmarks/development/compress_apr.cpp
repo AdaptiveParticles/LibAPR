@@ -84,7 +84,7 @@ int main(int argc, char **argv) {
     apr.read_apr(file_name);
 
     float e = 1.6;
-    float background = 900;
+    float background = 1;
     float cnv = 65636/30000;
     float q = .5;
 
@@ -122,7 +122,7 @@ int main(int argc, char **argv) {
         //get the minus neighbours (1,3,5)
 
         //now we only update the neighbours, and directly access them through a neighbour iterator
-        apr.update_neigh_all();
+        apr.update_all_neighbours();
 
         float counter = 0;
         float temp = 0;
@@ -132,9 +132,9 @@ int main(int argc, char **argv) {
             // Neighbour Particle Cell Face definitions [+y,-y,+x,-x,+z,-z] =  [0,1,2,3,4,5]
             unsigned int face = dir[f];
 
-            for (int index = 0; index < apr.number_neigh(face); ++index) {
+            for (int index = 0; index < apr.number_neighbours_in_direction(face); ++index) {
                 // on each face, there can be 0-4 neighbours accessed by index
-                if(neigh_it.set_neigh_it(apr,face,index)){
+                if(neigh_it.set_neighbour_iterator(apr, face, index)){
                     //will return true if there is a neighbour defined
                     if(neigh_it.depth() <= apr.depth()) {
 
@@ -241,7 +241,7 @@ int main(int argc, char **argv) {
             //get the minus neighbours (1,3,5)
 
             //now we only update the neighbours, and directly access them through a neighbour iterator
-            apr.update_neigh_all();
+            apr.update_all_neighbours();
 
             float counter = 0;
             float temp = 0;
@@ -251,9 +251,9 @@ int main(int argc, char **argv) {
                 // Neighbour Particle Cell Face definitions [+y,-y,+x,-x,+z,-z] =  [0,1,2,3,4,5]
                 unsigned int face = dir[f];
 
-                for (int index = 0; index < apr.number_neigh(face); ++index) {
+                for (int index = 0; index < apr.number_neighbours_in_direction(face); ++index) {
                     // on each face, there can be 0-4 neighbours accessed by index
-                    if(neigh_it.set_neigh_it(apr,face,index)){
+                    if(neigh_it.set_neighbour_iterator(apr, face, index)){
                         //will return true if there is a neighbour defined
                         if(neigh_it.depth() <= apr.depth()) {
                             temp += neigh_it(prediction_reverse);
