@@ -239,21 +239,19 @@ int main(int argc, char **argv) {
     ///
     ////////////////////////////////////////////////////
 
+    ///
+    ///  By Level
+    ///
+
     uint64_t counter = 0;
 
     for (int level = apr.level_min(); level <= apr.level_max(); ++level) {
-
-
-        //apr_iterator.current_part = -2;
 
 #pragma omp parallel for schedule(static) private(particle_number) firstprivate(apr_iterator) reduction(+:counter)
         for (particle_number = apr_iterator.particles_level_begin(level); particle_number <  apr_iterator.particles_level_end(level); ++particle_number) {
             //
             //  Parallel loop over level
             //
-//            std::cout << apr_iterator.particles_level_begin(level) << std::endl;
-//            std::cout << particle_number << std::endl;
-
             apr_iterator.set_iterator_to_particle_by_number(particle_number);
 
             counter++;
@@ -263,13 +261,49 @@ int main(int argc, char **argv) {
             } else{
                 std::cout << "broken" << std::endl;
             }
-
         }
     }
 
     if(counter != apr.num_parts_total){
         std::cout << "NOT TOTAL ITERATION" << std::endl;
     }
+
+
+    ///
+    ///  By level and z slice
+    ///
+
+    counter = 0;
+
+    for (int level = apr.level_min(); level <= apr.level_max(); ++level) {
+        for(unsigned int z = 0; z < apr.spatial_index_z_max(level); ++z) {
+
+            uint64_t  begin = apr_iterator.particles_z_begin(level,z);
+            uint64_t  end = apr_iterator.particles_z_end(level,z);
+
+#pragma omp parallel for schedule(static) private(particle_number) firstprivate(apr_iterator) reduction(+:counter)
+            for (particle_number = apr_iterator.particles_z_begin(level,z);
+                 particle_number < apr_iterator.particles_z_end(level,z); ++particle_number) {
+                //
+                //  Parallel loop over level
+                //
+                apr_iterator.set_iterator_to_particle_by_number(particle_number);
+
+                counter++;
+
+                if (apr_iterator.z() == z) {
+
+                } else {
+                    std::cout << "broken" << std::endl;
+                }
+            }
+        }
+    }
+
+    if(counter != apr.num_parts_total){
+        std::cout << "NOT TOTAL ITERATION" << std::endl;
+    }
+
 
 
 

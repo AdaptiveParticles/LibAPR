@@ -87,23 +87,41 @@ public:
         //
         //  Used for finding the starting particle on a given level
         //
-        return (*num_parts)[level-1];
+        if(z > 0) {
+            return ((*num_parts_xz_pointer).data[level][(*pc_data_pointer).x_num[level] * (z-1) + (*pc_data_pointer).x_num[level]-1][0]);
+        } else {
+            return (*num_parts)[level-1];
+        }
     }
 
     inline unsigned int particles_z_end(unsigned int level,unsigned int z){
         //
         //  Used for finding the starting particle on a given level
         //
-        return (*num_parts)[level-1];
+
+        return ((*num_parts_xz_pointer).data[level][(*pc_data_pointer).x_num[level] * z + (*pc_data_pointer).x_num[level]-1][0]);
+
     }
 
-    inline unsigned int particles_zx_end(unsigned int level,unsigned int z,unsigned int x){
+    inline unsigned int particles_zx_begin(unsigned int level,unsigned int z, unsigned int x){
         //
         //  Used for finding the starting particle on a given level
         //
-        return (*num_parts)[level-1];
+        if(x > 0) {
+            return ((*num_parts_xz_pointer).data[level][(*pc_data_pointer).x_num[level] * (z) + (x-1)][0]);
+        } else {
+            return particles_z_begin(level,z);
+        }
     }
 
+    inline unsigned int particles_zx_end(unsigned int level,unsigned int z, unsigned int x){
+        //
+        //  Used for finding the starting particle on a given level
+        //
+
+        return ((*num_parts_xz_pointer).data[level][(*pc_data_pointer).x_num[level] * (z) + (x)][0]);
+
+    }
 
 
     bool set_iterator_to_particle_by_number(uint64_t part_num){
@@ -347,6 +365,18 @@ public:
 
     inline unsigned int level_max(){
         return (*pc_data_pointer).depth_max;
+    }
+
+    inline unsigned int spatial_index_x_max(unsigned int level){
+        return (*pc_data_pointer).x_num[level];
+    }
+
+    inline unsigned int spatial_index_y_max(unsigned int level){
+        return (*pc_data_pointer).y_num[level];
+    }
+
+    inline unsigned int spatial_index_z_max(unsigned int level){
+        return (*pc_data_pointer).z_num[level];
     }
 
 
