@@ -72,20 +72,6 @@ public:
     //deprecitated
     ExtraPartCellData<uint16> y_vec;
 
-    void init_iterator(APR_iterator<ImageType>& apr_it){
-        //
-        //  Initializes the required datastructures for by particles and parralell iteration
-        //
-
-        apr_it.num_parts = &this->num_parts;
-        apr_it.num_parts_xz_pointer = &this->num_parts_xy;
-        apr_it.num_parts_total = this->num_parts_total;
-        apr_it.pc_data_pointer = &pc_data;
-
-        apr_it.curr_level.init(pc_data);
-    }
-
-
 
     void init_cells(PartCellStructure<float,uint64_t>& pc_struct){
         create_pc_data_new(pc_struct);
@@ -2067,51 +2053,55 @@ public:
         H5Aclose(attr_id);
 
         attr_id = 	H5Aopen(pr_groupid,"lambda",H5P_DEFAULT);
-        H5Aread(attr_id,H5T_NATIVE_FLOAT,&pars.lambda ) ;
+        H5Aread(attr_id,H5T_NATIVE_FLOAT,&parameters.lambda ) ;
         H5Aclose(attr_id);
 
-        attr_id = 	H5Aopen(pr_groupid,"var_th",H5P_DEFAULT);
-        H5Aread(attr_id,H5T_NATIVE_FLOAT,&pars.var_th ) ;
+        attr_id = 	H5Aopen(pr_groupid,"sigma_th",H5P_DEFAULT);
+        H5Aread(attr_id,H5T_NATIVE_FLOAT,&parameters.sigma_th ) ;
         H5Aclose(attr_id);
 
-        attr_id = 	H5Aopen(pr_groupid,"var_th_max",H5P_DEFAULT);
-        H5Aread(attr_id,H5T_NATIVE_FLOAT,&pars.var_th_max ) ;
+        attr_id = 	H5Aopen(pr_groupid,"sigma_th_max",H5P_DEFAULT);
+        H5Aread(attr_id,H5T_NATIVE_FLOAT,&parameters.sigma_th_max ) ;
         H5Aclose(attr_id);
 
         attr_id = 	H5Aopen(pr_groupid,"I_th",H5P_DEFAULT);
-        H5Aread(attr_id,H5T_NATIVE_FLOAT,&pars.I_th ) ;
+        H5Aread(attr_id,H5T_NATIVE_FLOAT,&parameters.Ip_th ) ;
         H5Aclose(attr_id);
 
         attr_id = 	H5Aopen(pr_groupid,"dx",H5P_DEFAULT);
-        H5Aread(attr_id,H5T_NATIVE_FLOAT,&pars.dx ) ;
+        H5Aread(attr_id,H5T_NATIVE_FLOAT,&parameters.dx ) ;
         H5Aclose(attr_id);
 
         attr_id = 	H5Aopen(pr_groupid,"dy",H5P_DEFAULT);
-        H5Aread(attr_id,H5T_NATIVE_FLOAT,&pars.dy ) ;
+        H5Aread(attr_id,H5T_NATIVE_FLOAT,&parameters.dy ) ;
         H5Aclose(attr_id);
 
         attr_id = 	H5Aopen(pr_groupid,"dz",H5P_DEFAULT);
-        H5Aread(attr_id,H5T_NATIVE_FLOAT,&pars.dz ) ;
+        H5Aread(attr_id,H5T_NATIVE_FLOAT,&parameters.dz ) ;
         H5Aclose(attr_id);
 
         attr_id = 	H5Aopen(pr_groupid,"psfx",H5P_DEFAULT);
-        H5Aread(attr_id,H5T_NATIVE_FLOAT,&pars.psfx ) ;
+        H5Aread(attr_id,H5T_NATIVE_FLOAT,&parameters.psfx ) ;
         H5Aclose(attr_id);
 
         attr_id = 	H5Aopen(pr_groupid,"psfy",H5P_DEFAULT);
-        H5Aread(attr_id,H5T_NATIVE_FLOAT,&pars.psfy ) ;
+        H5Aread(attr_id,H5T_NATIVE_FLOAT,&parameters.psfy ) ;
         H5Aclose(attr_id);
 
         attr_id = 	H5Aopen(pr_groupid,"psfz",H5P_DEFAULT);
-        H5Aread(attr_id,H5T_NATIVE_FLOAT,&pars.psfz ) ;
+        H5Aread(attr_id,H5T_NATIVE_FLOAT,&parameters.psfz ) ;
         H5Aclose(attr_id);
 
         attr_id = 	H5Aopen(pr_groupid,"rel_error",H5P_DEFAULT);
-        H5Aread(attr_id,H5T_NATIVE_FLOAT,&pars.rel_error ) ;
+        H5Aread(attr_id,H5T_NATIVE_FLOAT,&parameters.rel_error ) ;
         H5Aclose(attr_id);
 
-        attr_id = 	H5Aopen(pr_groupid,"aniso",H5P_DEFAULT);
-        H5Aread(attr_id,H5T_NATIVE_FLOAT,&pars.aniso ) ;
+        attr_id = 	H5Aopen(pr_groupid,"background_intensity_estimate",H5P_DEFAULT);
+        H5Aread(attr_id,H5T_NATIVE_FLOAT,&parameters.background_intensity_estimate ) ;
+        H5Aclose(attr_id);
+
+        attr_id = 	H5Aopen(pr_groupid,"noise_sd_estimate",H5P_DEFAULT);
+        H5Aread(attr_id,H5T_NATIVE_FLOAT,&parameters.noise_sd_estimate ) ;
         H5Aclose(attr_id);
 
         //std::cout << "Number particles: " << num_parts << " Number Cells: " << num_cells << std::endl;
@@ -2324,29 +2314,31 @@ public:
 
         hdf5_write_string_blosc(pr_groupid,"githash",git_hash);
 
-        hdf5_write_attribute_blosc(pr_groupid,H5T_NATIVE_FLOAT,"lambda",1,dims_out, &pars.lambda );
+        hdf5_write_attribute_blosc(pr_groupid,H5T_NATIVE_FLOAT,"lambda",1,dims_out, &parameters.lambda );
 
-        hdf5_write_attribute_blosc(pr_groupid,H5T_NATIVE_FLOAT,"var_th",1,dims_out, &pars.var_th );
+        hdf5_write_attribute_blosc(pr_groupid,H5T_NATIVE_FLOAT,"sigma_th",1,dims_out, &parameters.sigma_th );
 
-        hdf5_write_attribute_blosc(pr_groupid,H5T_NATIVE_FLOAT,"var_th_max",1,dims_out, &pars.var_th_max );
+        hdf5_write_attribute_blosc(pr_groupid,H5T_NATIVE_FLOAT,"sigma_th_max",1,dims_out, &parameters.sigma_th_max );
 
-        hdf5_write_attribute_blosc(pr_groupid,H5T_NATIVE_FLOAT,"I_th",1,dims_out, &pars.I_th );
+        hdf5_write_attribute_blosc(pr_groupid,H5T_NATIVE_FLOAT,"I_th",1,dims_out, &parameters.Ip_th );
 
-        hdf5_write_attribute_blosc(pr_groupid,H5T_NATIVE_FLOAT,"dx",1,dims_out, &pars.dx );
+        hdf5_write_attribute_blosc(pr_groupid,H5T_NATIVE_FLOAT,"dx",1,dims_out, &parameters.dx );
 
-        hdf5_write_attribute_blosc(pr_groupid,H5T_NATIVE_FLOAT,"dy",1,dims_out, &pars.dy );
+        hdf5_write_attribute_blosc(pr_groupid,H5T_NATIVE_FLOAT,"dy",1,dims_out, &parameters.dy );
 
-        hdf5_write_attribute_blosc(pr_groupid,H5T_NATIVE_FLOAT,"dz",1,dims_out, &pars.dz );
+        hdf5_write_attribute_blosc(pr_groupid,H5T_NATIVE_FLOAT,"dz",1,dims_out, &parameters.dz );
 
-        hdf5_write_attribute_blosc(pr_groupid,H5T_NATIVE_FLOAT,"psfx",1,dims_out, &pars.psfx );
+        hdf5_write_attribute_blosc(pr_groupid,H5T_NATIVE_FLOAT,"psfx",1,dims_out, &parameters.psfx );
 
-        hdf5_write_attribute_blosc(pr_groupid,H5T_NATIVE_FLOAT,"psfy",1,dims_out, &pars.psfy );
+        hdf5_write_attribute_blosc(pr_groupid,H5T_NATIVE_FLOAT,"psfy",1,dims_out, &parameters.psfy );
 
-        hdf5_write_attribute_blosc(pr_groupid,H5T_NATIVE_FLOAT,"psfz",1,dims_out, &pars.psfz );
+        hdf5_write_attribute_blosc(pr_groupid,H5T_NATIVE_FLOAT,"psfz",1,dims_out, &parameters.psfz );
 
-        hdf5_write_attribute_blosc(pr_groupid,H5T_NATIVE_FLOAT,"rel_error",1,dims_out, &pars.rel_error);
+        hdf5_write_attribute_blosc(pr_groupid,H5T_NATIVE_FLOAT,"rel_error",1,dims_out, &parameters.rel_error);
 
-        hdf5_write_attribute_blosc(pr_groupid,H5T_NATIVE_FLOAT,"aniso",1,dims_out, &pars.aniso);
+        hdf5_write_attribute_blosc(pr_groupid,H5T_NATIVE_FLOAT,"noise_sd_estimate",1,dims_out, &parameters.noise_sd_estimate);
+
+        hdf5_write_attribute_blosc(pr_groupid,H5T_NATIVE_FLOAT,"background_intensity_estimate",1,dims_out, &parameters.background_intensity_estimate);
 
         //////////////////////////////////////////////////////////////////
         //

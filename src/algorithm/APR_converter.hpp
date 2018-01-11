@@ -229,6 +229,8 @@ bool APR_converter<ImageType>::get_apr_method(APR<ImageType>& apr) {
 
     computation_timer.stop_timer();
 
+    apr.parameters = par;
+
     return true;
 }
 
@@ -732,6 +734,14 @@ void APR_converter<ImageType>::auto_parameters(Mesh_data<T>& input_img){
 
     float sd = sqrt(var);
 
+    par.noise_sd_estimate = sd;
+
+    for (int l1 = 1; l1 < histogram.mesh.size(); ++l1) {
+        if(histogram.mesh[l1] > 0){
+            par.background_intensity_estimate = l1 + min_val;
+        }
+    }
+
     float min_snr = 6;
 
     if(this->par.SNR_min > 0){
@@ -768,7 +778,7 @@ void APR_converter<ImageType>::auto_parameters(Mesh_data<T>& input_img){
     std::cout << "sigma_th: " << this->par.sigma_th << std::endl;
     std::cout << "sigma_th_max: " << this->par.sigma_th_max << std::endl;
     std::cout << "relative error (E): " << this->par.rel_error << std::endl;
-    std::cout << "Lambda: " << this->par.lambda << std::endl;
+    std::cout << "lambda: " << this->par.lambda << std::endl;
 
 }
 

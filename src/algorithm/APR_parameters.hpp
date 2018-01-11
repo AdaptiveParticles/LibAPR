@@ -35,6 +35,9 @@ public:
     std::string input_dir;
     std::string mask_file;
 
+    float noise_sd_estimate = 0;
+    float background_intensity_estimate = 0;
+
     unsigned int interp_type = 2;
 
     APR_parameters(){
