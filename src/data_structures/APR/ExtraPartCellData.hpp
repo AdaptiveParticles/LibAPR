@@ -11,7 +11,7 @@
 // type T data structure base type
 
 #include "PartCellData.hpp"
-#include "src/data_structures/Tree/ParticleData.hpp"
+#include "benchmarks/development/Tree/ParticleData.hpp"
 
 #include <functional>
 
@@ -24,9 +24,7 @@ class ExtraPartCellData {
 public:
     
     //the neighbours arranged by face
-    
-    
-    
+
     ExtraPartCellData(){
     };
     

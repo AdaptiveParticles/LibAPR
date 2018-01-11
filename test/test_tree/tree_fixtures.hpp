@@ -5,7 +5,7 @@
 #ifndef PARTPLAY_TREE_FIXTURES_HPP
 #define PARTPLAY_TREE_FIXTURES_HPP
 
-#include "../../src/data_structures/Tree/Tree.hpp"
+#include "benchmarks/development/Tree/Tree.hpp"
 
 #include <gtest/gtest.h>
 

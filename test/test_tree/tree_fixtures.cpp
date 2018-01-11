@@ -2,7 +2,7 @@
 // Created by msusik on 04.10.16.
 //
 
-#include "../../src/data_structures/Tree/Tree.hpp"
+#include "benchmarks/development/Tree/Tree.hpp"
 #include "tree_fixtures.hpp"
 
 

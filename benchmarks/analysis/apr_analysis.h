@@ -5,13 +5,13 @@
 #ifndef PARTPLAY_APR_ANALYSIS_H
 #define PARTPLAY_APR_ANALYSIS_H
 
-#include "../../src/algorithm/apr_pipeline.hpp"
+#include "benchmarks/development/old_algorithm/apr_pipeline.hpp"
 #include "AnalysisData.hpp"
 #include "MeshDataAF.h"
-#include "../../src/io/parameters.h"
+#include "benchmarks/development/old_io/parameters.h"
 #include "SynImageClasses.hpp"
 #include "numerics_benchmarks.hpp"
-#include "../../src/numerics/misc_numerics.hpp"
+#include "benchmarks/development/old_numerics/misc_numerics.hpp"
 #include "../../src/data_structures/APR/APR.hpp"
 #include <assert.h>
 
@@ -1263,55 +1263,57 @@ void true_int(Mesh_data<T>& input_image,AnalysisData& analysis_data,PartCellStru
 
     APR<float> t_apr(pc_struct);
 
-    ExtraPartCellData<float> true_parts;
-    true_parts.initialize_structure_parts(t_apr.y_vec);
+    ExtraPartCellData<float> true_parts(t_apr);
+
 
     Particle_map<float> part_map(p_rep);
 
     part_map.downsample(gt_imaged);
 
 
-    int z_, x_, j_, y_, i, k;
+    t_apr.get_parts_from_img(part_map.downsampled,true_parts);
 
-    for (uint64_t depth = (t_apr.y_vec.depth_min); depth <= t_apr.y_vec.depth_max; depth++) {
-//loop over the resolutions of the structure
-        const unsigned int x_num_ = t_apr.y_vec.x_num[depth];
-        const unsigned int z_num_ = t_apr.y_vec.z_num[depth];
-
-        const float step_size_x = pow(2, t_apr.y_vec.depth_max - depth);
-        const float step_size_y = pow(2, t_apr.y_vec.depth_max - depth);
-        const float step_size_z = pow(2, t_apr.y_vec.depth_max - depth);
-
-        for (z_ = 0; z_ < z_num_; z_++) {
-//both z and x are explicitly accessed in the structure
-
-            for (x_ = 0; x_ < x_num_; x_++) {
-
-                const unsigned int pc_offset = x_num_ * z_ + x_;
-
-                for (j_ = 0; j_ < t_apr.y_vec.data[depth][pc_offset].size(); j_++) {
-
-
-                    const int y = t_apr.y_vec.data[depth][pc_offset][j_];
-
-                    const unsigned int y_actual = ((y));
-                    const unsigned int x_actual = ((x_));
-                    const unsigned int z_actual = ((z_));
-
-                    true_parts.data[depth][pc_offset][j_] = part_map.downsampled[depth](y_actual, x_actual, z_actual);
-
-                }
-            }
-        }
-    }
+//
+//
+//    int z_, x_, j_, y_, i, k;
+//
+//    for (uint64_t depth = (t_apr.y_vec.depth_min); depth <= t_apr.y_vec.depth_max; depth++) {
+////loop over the resolutions of the structure
+//        const unsigned int x_num_ = t_apr.y_vec.x_num[depth];
+//        const unsigned int z_num_ = t_apr.y_vec.z_num[depth];
+//
+//        const float step_size_x = pow(2, t_apr.y_vec.depth_max - depth);
+//        const float step_size_y = pow(2, t_apr.y_vec.depth_max - depth);
+//        const float step_size_z = pow(2, t_apr.y_vec.depth_max - depth);
+//
+//        for (z_ = 0; z_ < z_num_; z_++) {
+////both z and x are explicitly accessed in the structure
+//
+//            for (x_ = 0; x_ < x_num_; x_++) {
+//
+//                const unsigned int pc_offset = x_num_ * z_ + x_;
+//
+//                for (j_ = 0; j_ < t_apr.y_vec.data[depth][pc_offset].size(); j_++) {
+//
+//
+//                    const int y = t_apr.y_vec.data[depth][pc_offset][j_];
+//
+//                    const unsigned int y_actual = ((y));
+//                    const unsigned int x_actual = ((x_));
+//                    const unsigned int z_actual = ((z_));
+//
+//                    true_parts.data[depth][pc_offset][j_] = part_map.downsampled[depth](y_actual, x_actual, z_actual);
+//
+//                }
+//            }
+//        }
+//    }
 
     Mesh_data<float> true_int_m;
 
     Mesh_data<uint16_t> gt_image;
 
-    t_apr.init_pc_data();
-
-    interp_img(true_int_m, t_apr.y_vec, true_parts);
+    t_apr.interp_img(true_int_m,true_parts);
 
     generate_gt_image(gt_image, syn_image);
 
@@ -1620,57 +1622,22 @@ void produce_apr_analysis(Mesh_data<T>& input_image,AnalysisData& analysis_data,
 
         APR<float> t_apr(pc_struct);
 
-        ExtraPartCellData<float> true_parts;
-        true_parts.initialize_structure_parts(t_apr.y_vec);
+        ExtraPartCellData<float> true_parts(t_apr);
 
         Particle_map<float> part_map(p_rep);
 
         part_map.downsample(gt_imaged);
 
+        t_apr.get_parts_from_img(part_map.downsampled,true_parts);
 
-        int z_, x_, j_, y_, i, k;
-
-        for (uint64_t depth = (t_apr.y_vec.depth_min); depth <= t_apr.y_vec.depth_max; depth++) {
-            //loop over the resolutions of the structure
-            const unsigned int x_num_ = t_apr.y_vec.x_num[depth];
-            const unsigned int z_num_ = t_apr.y_vec.z_num[depth];
-
-            const float step_size_x = pow(2, t_apr.y_vec.depth_max - depth);
-            const float step_size_y = pow(2, t_apr.y_vec.depth_max - depth);
-            const float step_size_z = pow(2, t_apr.y_vec.depth_max - depth);
-
-            for (z_ = 0; z_ < z_num_; z_++) {
-                //both z and x are explicitly accessed in the structure
-
-                for (x_ = 0; x_ < x_num_; x_++) {
-
-                    const unsigned int pc_offset = x_num_ * z_ + x_;
-
-                    for (j_ = 0; j_ < t_apr.y_vec.data[depth][pc_offset].size(); j_++) {
-
-
-                        const int y = t_apr.y_vec.data[depth][pc_offset][j_];
-
-                        const unsigned int y_actual = ((y) );
-                        const unsigned int x_actual = ((x_));
-                        const unsigned int z_actual = ((z_));
-
-                        true_parts.data[depth][pc_offset][j_] = part_map.downsampled[depth](y_actual,x_actual,z_actual);
-
-                    }
-                }
-            }
-        }
 
         Mesh_data<float> true_int_m;
 
         Mesh_data<uint16_t> gt_image;
 
-        t_apr.init_pc_data();
 
-        //interp_img(true_int_m, t_apr.pc_data, t_apr.part_new, true_parts,false);
+        t_apr.interp_img(true_int_m,true_parts);
 
-        interp_img(true_int_m,t_apr.y_vec,true_parts);
 
         generate_gt_image(gt_image, syn_image);
 

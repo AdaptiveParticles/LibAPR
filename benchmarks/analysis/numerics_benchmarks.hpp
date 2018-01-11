@@ -7,10 +7,10 @@
 
 #include "../../src/data_structures/APR/APR.hpp"
 
-#include "../../src/numerics/graph_cut_seg.hpp"
-#include "../../src/numerics/filter_numerics.hpp"
+#include "benchmarks/development/old_numerics/graph_cut_seg.hpp"
+#include "benchmarks/development/old_numerics/filter_numerics.hpp"
 #include "../../src/numerics/ray_cast.hpp"
-#include "../../src/numerics/enhance_parts.hpp"
+#include "benchmarks/development/old_numerics/enhance_parts.hpp"
 
 template<typename S,typename T>
 void compare_E_debug(Mesh_data<S>& org_img,Mesh_data<T>& rec_img,Proc_par& pars,std::string name,AnalysisData& analysis_data){
@@ -1317,31 +1317,31 @@ void run_real_segmentation(PartCellStructure<float,uint64_t> pc_struct,AnalysisD
 
     debug_write(seg_mesh,pc_struct.name + "_new_seg");
 
-    proj_par proj_pars;
-
-    proj_pars.theta_0 = 0;
-    proj_pars.theta_final = 3.14;
-    proj_pars.radius_factor = 1.00;
-    proj_pars.theta_delta = 0.1;
-    proj_pars.scale_z = pc_struct.pars.aniso;
-
-    ExtraPartCellData<uint16_t> y_vec;
-
-    create_y_data(y_vec,part_new);
-
-    APR<float> apr;
-
-    apr.init(pc_struct);
-
-    apr.shift_particles_from_cells(seg_parts);
-
-    ExtraPartCellData<uint16_t> seg_parts_depth = multiply_by_depth(seg_parts);
-
-    proj_pars.name = pc_struct.name +"_z_depth";
-
-    apr_perspective_raycast_depth(y_vec,seg_parts,seg_parts_depth,proj_pars,[] (const uint16_t& a,const uint16_t& b) {return std::max(a,b);},true);
-
-    analysis_data.add_timer(timer);
+//    proj_par proj_pars;
+//
+//    proj_pars.theta_0 = 0;
+//    proj_pars.theta_final = 3.14;
+//    proj_pars.radius_factor = 1.00;
+//    proj_pars.theta_delta = 0.1;
+//    proj_pars.scale_z = pc_struct.pars.aniso;
+//
+//    ExtraPartCellData<uint16_t> y_vec;
+//
+//    create_y_data(y_vec,part_new);
+//
+//    APR<float> apr;
+//
+//    apr.init(pc_struct);
+//
+//    apr.shift_particles_from_cells(seg_parts);
+//
+//    ExtraPartCellData<uint16_t> seg_parts_depth = multiply_by_depth(seg_parts);
+//
+//    proj_pars.name = pc_struct.name +"_z_depth";
+//
+//    apr_perspective_raycast_depth(y_vec,seg_parts,seg_parts_depth,proj_pars,[] (const uint16_t& a,const uint16_t& b) {return std::max(a,b);},true);
+//
+//    analysis_data.add_timer(timer);
 }
 
 //NEEDS TO BE UPDATED BELOW TO NEW STRUCTURES IF I WANT TO BE ABLE TO KEEP IT IN

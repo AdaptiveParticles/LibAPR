@@ -139,193 +139,193 @@ int main(int argc, char **argv) {
 
     APR<float> apr_c;
 
-    for (int t = 0; t < T_num; ++t) {
-
-
-        SynImage syn_image_loc = syn_image;
-
-        //add the basic sphere as the standard template
-
-        ///////////////////////////////////////////////////////////////////
-        //PSF properties
-
-        move_objects(syn_image_loc,bs,cell_model);
-        //bs.sig = 5;
-
-
-        // Get the APR
-        //bs.num_objects = 10;
-
-
-        ///////////////////////////////
-        //
-        //  Generate the image
-        //
-        ////////////////////////////////
-
-
-
-        MeshDataAF<uint16_t> gen_image;
-
-        syn_image_loc.generate_syn_image(gen_image);
-
-        Mesh_data<uint16_t> input_img;
-
-        copy_mesh_data_structures(gen_image, input_img);
-
-
-        ///////////////////////////////
-        //
-        //  Get the APR
-        //
-        //////////////////////////////
-
-
-        Part_rep p_rep;
-
-        set_up_part_rep(syn_image_loc, p_rep, bs);
-
-        //p_rep.pars.lambda = 0;
-
-        p_rep.timer.verbose_flag = true;
-
-        p_rep.pars.pull_scheme = 2;
-
-        p_rep.pars.var_th = 1000;
-
-        p_rep.pars.interp_type = 3;
-
-
-
-        if(t==0) {
-
-            bench_get_apr(input_img, p_rep, pc_struct, analysis_data);
-            apr_c.init(pc_struct);
-        }
-
-
-
-        Mesh_data<float> input_image_float;
-
-        input_image_float.initialize(input_img.y_num,input_img.x_num,input_img.z_num);
-
-        input_image_float = input_img.to_type<float>();
-
-        ExtraPartCellData<float> curr_scale;
-
-        apr_c.init_pc_data();
-
-        //get the guided APR
-        PartCellStructure<float, uint64_t> pc_struct_new = compute_guided_apr_time(input_image_float,pc_struct,p_rep,apr_c,curr_scale);
-
-        apr_c.init(pc_struct_new);
-
-        timer.verbose_flag = true;
-
-        timer.start_timer("time_loop");
-
-        if(t == 0){
-
-            apr_t.initialize(apr_c,t_dim,Et,T_num,curr_scale);
-
-
-
-        } else {
-
-            APR<float> apr_temp = apr_c;
-
-            apr_t.integrate_new_t(apr_c,curr_scale,t);
-
-            float add = apr_t.add[t].structure_size();
-            float remove =apr_t.remove[t].structure_size();
-            float same = apr_t.same_index.structure_size();
-            float total_parts = pc_struct.get_number_parts();
-
-
-            float update = apr_t.update_fp[t].structure_size();
-
-            float total_2 = add + remove + update;
-
-            std::cout << "add: " << add << std::endl;
-            std::cout << "remove: " << remove << std::endl;
-            std::cout << "same: " << same << std::endl;
-            std::cout << "update: " << update << std::endl;
-            std::cout << "parts: " << total_parts << std::endl;
-            std::cout << "used: " << total_2 << std::endl;
-
-            total_p += total_parts;
-            total_used += total_2;
-            total_addr += add + remove;
-
-            analysis_data.add_float_data("add",add);
-            analysis_data.add_float_data("remove",remove);
-            analysis_data.add_float_data("update",update);
-            analysis_data.add_float_data("same",same);
-            analysis_data.add_float_data("total_used",total_used);
-
-
-           Mesh_data<float> test_recon;
-
-            interp_img(test_recon,apr_temp.y_vec,apr_t.parts_recon_prev);
-
-            //debug_write(test_recon,"recon_"+ std::to_string((int)t));
-
-            std::string name = "recgt";
-
-            //get the MSE
-            calc_mse(input_img, test_recon, name, analysis_data);
-            compare_E(input_img, test_recon,p_rep.pars, name, analysis_data);
-
-            //debug_write(input_img,"input_time");
-
-
-
-
-
-            Mesh_data<float> tp;
-
-            interp_img(tp,apr_temp.y_vec,apr_t.prev_scale);
-
-            debug_write(tp,"scale_"+ std::to_string((int)t));
+//    for (int t = 0; t < T_num; ++t) {
 //
 //
-//            Mesh_data<float> sp;
+//        SynImage syn_image_loc = syn_image;
 //
-//            interp_img(sp,apr_temp.y_vec,apr_t.prev_sp);
+//        //add the basic sphere as the standard template
 //
-//            debug_write(test_recon,"sp_"+ std::to_string((int)t));
+//        ///////////////////////////////////////////////////////////////////
+//        //PSF properties
+//
+//        move_objects(syn_image_loc,bs,cell_model);
+//        //bs.sig = 5;
 //
 //
-            Mesh_data<float> lp;
+//        // Get the APR
+//        //bs.num_objects = 10;
 //
-            interp_img(lp,apr_temp.y_vec,apr_t.prev_l);
 //
-            debug_write(lp,"lp_"+ std::to_string((int)t));
-
-
-        }
-
-        timer.stop_timer();
-
-
-
-
-        //write_image_tiff(input_img, p_rep.pars.output_path + p_rep.pars.name + "_time_seq_" + std::to_string(t) + ".tif");
-
-
-
-        std::cout << pc_struct.get_number_parts() << std::endl;
-
-        ///////////////////////////////
-        //
-        //  Calculate analysis of the result
-        //
-        ///////////////////////////////
-
-        produce_apr_analysis(input_img, analysis_data, pc_struct, syn_image_loc, p_rep.pars);
-
-
-    }
+//        ///////////////////////////////
+//        //
+//        //  Generate the image
+//        //
+//        ////////////////////////////////
+//
+//
+//
+//        MeshDataAF<uint16_t> gen_image;
+//
+//        syn_image_loc.generate_syn_image(gen_image);
+//
+//        Mesh_data<uint16_t> input_img;
+//
+//        copy_mesh_data_structures(gen_image, input_img);
+//
+//
+//        ///////////////////////////////
+//        //
+//        //  Get the APR
+//        //
+//        //////////////////////////////
+//
+//
+//        Part_rep p_rep;
+//
+//        set_up_part_rep(syn_image_loc, p_rep, bs);
+//
+//        //p_rep.pars.lambda = 0;
+//
+//        p_rep.timer.verbose_flag = true;
+//
+//        p_rep.pars.pull_scheme = 2;
+//
+//        p_rep.pars.var_th = 1000;
+//
+//        p_rep.pars.interp_type = 3;
+//
+//
+//
+//        if(t==0) {
+//
+//            bench_get_apr(input_img, p_rep, pc_struct, analysis_data);
+//            apr_c.init(pc_struct);
+//        }
+//
+//
+//
+//        Mesh_data<float> input_image_float;
+//
+//        input_image_float.initialize(input_img.y_num,input_img.x_num,input_img.z_num);
+//
+//        input_image_float = input_img.to_type<float>();
+//
+//        ExtraPartCellData<float> curr_scale;
+//
+//        apr_c.init_pc_data();
+//
+//        //get the guided APR
+//        PartCellStructure<float, uint64_t> pc_struct_new = compute_guided_apr_time(input_image_float,pc_struct,p_rep,apr_c,curr_scale);
+//
+//        apr_c.init(pc_struct_new);
+//
+//        timer.verbose_flag = true;
+//
+//        timer.start_timer("time_loop");
+//
+//        if(t == 0){
+//
+//            apr_t.initialize(apr_c,t_dim,Et,T_num,curr_scale);
+//
+//
+//
+//        } else {
+//
+//            APR<float> apr_temp = apr_c;
+//
+//            apr_t.integrate_new_t(apr_c,curr_scale,t);
+//
+//            float add = apr_t.add[t].structure_size();
+//            float remove =apr_t.remove[t].structure_size();
+//            float same = apr_t.same_index.structure_size();
+//            float total_parts = pc_struct.get_number_parts();
+//
+//
+//            float update = apr_t.update_fp[t].structure_size();
+//
+//            float total_2 = add + remove + update;
+//
+//            std::cout << "add: " << add << std::endl;
+//            std::cout << "remove: " << remove << std::endl;
+//            std::cout << "same: " << same << std::endl;
+//            std::cout << "update: " << update << std::endl;
+//            std::cout << "parts: " << total_parts << std::endl;
+//            std::cout << "used: " << total_2 << std::endl;
+//
+//            total_p += total_parts;
+//            total_used += total_2;
+//            total_addr += add + remove;
+//
+//            analysis_data.add_float_data("add",add);
+//            analysis_data.add_float_data("remove",remove);
+//            analysis_data.add_float_data("update",update);
+//            analysis_data.add_float_data("same",same);
+//            analysis_data.add_float_data("total_used",total_used);
+//
+//
+//           Mesh_data<float> test_recon;
+//
+//           // interp_img(test_recon,apr_temp.y_vec,apr_t.parts_recon_prev);
+//
+//            //debug_write(test_recon,"recon_"+ std::to_string((int)t));
+//
+//            std::string name = "recgt";
+//
+//            //get the MSE
+//            calc_mse(input_img, test_recon, name, analysis_data);
+//            compare_E(input_img, test_recon,p_rep.pars, name, analysis_data);
+//
+//            //debug_write(input_img,"input_time");
+//
+//
+//
+//
+//
+//            Mesh_data<float> tp;
+//
+//            //interp_img(tp,apr_temp.y_vec,apr_t.prev_scale);
+//
+//            debug_write(tp,"scale_"+ std::to_string((int)t));
+////
+////
+////            Mesh_data<float> sp;
+////
+////            interp_img(sp,apr_temp.y_vec,apr_t.prev_sp);
+////
+////            debug_write(test_recon,"sp_"+ std::to_string((int)t));
+////
+////
+//            Mesh_data<float> lp;
+////
+//           // interp_img(lp,apr_temp.y_vec,apr_t.prev_l);
+////
+//            debug_write(lp,"lp_"+ std::to_string((int)t));
+//
+//
+//        }
+//
+//        timer.stop_timer();
+//
+//
+//
+//
+//        //write_image_tiff(input_img, p_rep.pars.output_path + p_rep.pars.name + "_time_seq_" + std::to_string(t) + ".tif");
+//
+//
+//
+//        std::cout << pc_struct.get_number_parts() << std::endl;
+//
+//        ///////////////////////////////
+//        //
+//        //  Calculate analysis of the result
+//        //
+//        ///////////////////////////////
+//
+//        produce_apr_analysis(input_img, analysis_data, pc_struct, syn_image_loc, p_rep.pars);
+//
+//
+//    }
 
     std::cout << "used total: " << total_used << std::endl;
     std::cout << "prats total: " << total_p << std::endl;

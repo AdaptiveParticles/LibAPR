@@ -144,7 +144,7 @@ int main(int argc, char **argv) {
 #pragma omp parallel for schedule(static) private(part) firstprivate(apr_it)
     for (part = 0; part < apr.num_parts_total; ++part) {
         //needed step for any parallel loop (update to the next part)
-        apr_it.set_part(part);
+        apr_it.set_iterator_to_particle_by_number(part);
 
         if(apr_it.depth() < apr_it.depth_max()) {
             //get global y co-ordinate of the particle and put result in calc_ex2 at the current Particle Cell (PC) location
@@ -185,7 +185,7 @@ int main(int argc, char **argv) {
 #pragma omp parallel for schedule(static) private(part) firstprivate(apr_it)
     for (part = 0; part < apr.num_parts_total; ++part) {
         //needed step for any parallel loop (update to the next part)
-        apr_it.set_part(part);
+        apr_it.set_iterator_to_particle_by_number(part);
 
         apr_it(calc_ex) = pow(apr_it(calc_ex),2);
     }
@@ -232,6 +232,11 @@ int main(int argc, char **argv) {
 
     //you need the same apr used to write it to load it (doesn't save location data)
     apr.read_parts_only(extra_file_name,output_2_read);
+
+
+
+
+
 
 
 }

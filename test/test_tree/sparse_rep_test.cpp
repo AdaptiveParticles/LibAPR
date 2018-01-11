@@ -314,7 +314,7 @@ TEST_F(CreateMembraneTest, APR_INPUT_OUTPUT) {
     //
 
     //test io
-    ASSERT_TRUE(utest_apr_parallel_neigh(pc_struct));
+    ASSERT_TRUE(utest_apr_read_write(pc_struct));
 
 }
 

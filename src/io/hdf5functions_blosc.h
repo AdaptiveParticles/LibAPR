@@ -16,6 +16,12 @@ extern "C" {
 	#include "blosc_filter.h"
 }
 #include <string>
+#include <algorithm>
+#include <iostream>
+#include <vector>
+#include <fstream>
+
+std::string exec_blosc(const char* cmd);
 
 void register_bosc();
 void hdf5_create_file_blosc(std::string file_name);

@@ -3,7 +3,7 @@
 
 #include <algorithm>
 
-#include "../src/io/writeimage.h"
+#include "benchmarks/development/old_io/writeimage.h"
 
 TEST_P(CreateImageFromFileTest, VARIANCE_FROMFILE_IMAGE_PARAM){
 

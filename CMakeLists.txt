@@ -5,7 +5,9 @@ project(PartPlay)
 set(CMAKE_CXX_STANDARD 14)
 
 if(TESTS)
-    find_package(GTest REQUIRED)
+    #find_package(GTest REQUIRED)
+    add_subdirectory("external/gtest")
+    set(GTEST_LIBRARIES gtest)
 endif(TESTS)
 
 
@@ -42,6 +44,7 @@ include_directories(${HDF5_INCLUDE_DIRS} ${HDF5_INCLUDE_DIR} ${TIFF_INCLUDE_DIR}
 
 SET(BUILD_TESTS OFF CACHE BOOL "")
 SET(BUILD_BENCHMARKS OFF CACHE BOOL "")
+SET(CMAKE_POSITION_INDEPENDENT_CODE ON)
 add_subdirectory("external/c-blosc")
 include_directories("external/c-blosc/blosc")
 
@@ -57,28 +60,33 @@ set(SOURCE_FILES
         test/test_tree/level_iterator_test.cpp
         test/test_tree/tree_fixtures.cpp
 
-        src/io/readimage.h
-        src/io/writeimage.h
-        src/io/parameters.cpp
+        benchmarks/development/old_io/readimage.h
+        benchmarks/development/old_io/writeimage.h
+        benchmarks/development/old_io/parameters.cpp
 
-        src/data_structures/meshclass.h
-        src/data_structures/structure_parts.cpp
+        src/data_structures/Mesh/meshclass.h
+        benchmarks/development/old_structures/structure_parts.cpp
 
         src/data_structures/APR/APR.hpp
         src/data_structures/APR/APR_iterator.hpp
 
-        src/algorithm/pipeline.cpp
+        benchmarks/development/old_algorithm/pipeline.cpp
+
 
         )
 
 set(SOURCE_FILES_COMPILED
-        src/data_structures/structure_parts.cpp
+        benchmarks/development/old_structures/structure_parts.cpp
         src/data_structures/APR/PartCellData.cpp
-        src/io/parameters.cpp
-        src/io/hdf5functions.cpp
+        benchmarks/development/old_io/parameters.cpp
+        benchmarks/development/old_io/hdf5functions.cpp
         src/io/blosc_filter.c
         src/io/hdf5functions_blosc.cpp
-        src/io/write_parts.cpp
+        benchmarks/development/old_io/write_parts.cpp
+
+        src/misc/APR_timer.cpp
+
+        src/algorithm/APR_parameters.cpp
         )
 
 
@@ -145,7 +153,7 @@ if(TESTS)
             )
     add_executable(testResult
             test/alg_cells_test.cpp
-            src/io/write_parts.cpp
+            benchmarks/development/old_io/write_parts.cpp
             ${SOURCE_FILES_COMPILED}
             test/utils.cpp
             )
@@ -170,20 +178,20 @@ endif(TESTS)
 
 add_executable(Example_get_apr
         test/Examples/Example_get_apr.cpp
-        src/io/write_parts.cpp
+        benchmarks/development/old_io/write_parts.cpp
         ${SOURCE_FILES_COMPILED}
-	    #test/utils.cpp
+	    test/utils.cpp
         )
 
 add_executable(Example_apr_iterate
         test/Examples/Example_apr_iterate.cpp
-        src/io/write_parts.cpp
+        benchmarks/development/old_io/write_parts.cpp
         ${SOURCE_FILES_COMPILED}
         )
 
 add_executable(Example_recon_img
         test/Examples/Example_recon_img.cpp
-        src/io/write_parts.cpp
+        benchmarks/development/old_io/write_parts.cpp
         ${SOURCE_FILES_COMPILED}
         )
 
@@ -195,17 +203,22 @@ add_executable(Example_ray_cast
 
 
 
+add_executable(Example_compress
+        benchmarks/development/compress_apr.cpp
+        benchmarks/development/old_io/write_parts.cpp
+        ${SOURCE_FILES_COMPILED}
+        )
 
 
 
 add_executable(Example_neigh
         test/Examples/Example_neigh.cpp
-        src/io/write_parts.cpp
+        benchmarks/development/old_io/write_parts.cpp
         ${SOURCE_FILES_COMPILED}
         )
 
 SWIG_ADD_MODULE(apr java libapr.i
-        src/io/write_parts.cpp
+        benchmarks/development/old_io/write_parts.cpp
         ${SOURCE_FILES_COMPILED}
         )
 
@@ -219,6 +232,8 @@ target_link_libraries(Example_ray_cast ${HDF5_LIBRARIES} ${CMAKE_THREAD_LIBS_INI
 target_link_libraries(Example_recon_img ${HDF5_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT} ${TIFF_LIBRARIES} blosc_shared)
 
 target_link_libraries(Example_neigh ${HDF5_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT} ${TIFF_LIBRARIES} blosc_shared)
+
+target_link_libraries(Example_compress ${HDF5_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT} ${TIFF_LIBRARIES} blosc_shared)
 
 
 set_target_properties(blosc_shared PROPERTIES
@@ -309,7 +324,7 @@ if(BENCHMARKS)
                 external/maxflow-v3.04.src/maxflow.cpp
                 external/maxflow-v3.04.src/graph.cpp
                 #test/utils.cpp
-                src/io/write_parts.cpp
+                benchmarks/development/old_io/write_parts.cpp
                 ${SOURCE_FILES_COMPILED} src/vis/Camera.cpp src/vis/Camera.h src/vis/Object.cpp src/vis/Object.h src/vis/RaytracedObject.cpp src/vis/RaytracedObject.h
                 )
 
@@ -359,7 +374,7 @@ if(BENCHMARKS)
         add_executable(Example_analysis
                 ${BENCHMARK_SOURCE_FILES}
                 test/utils.cpp
-                src/io/write_parts.cpp
+                benchmarks/development/old_io/write_parts.cpp
                 ${SOURCE_FILES_COMPILED}
                 benchmarks/development/analyze_apr.cpp)
 

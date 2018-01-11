@@ -5,21 +5,29 @@
 #ifndef PARTPLAY_APR_HPP
 #define PARTPLAY_APR_HPP
 
-#include "src/data_structures/Tree/PartCellStructure.hpp"
+#include "benchmarks/development/Tree/PartCellStructure.hpp"
 
-#include "src/data_structures/Tree/PartCellParent.hpp"
-#include "src/numerics/filter_numerics.hpp"
-#include "src/numerics/misc_numerics.hpp"
+//#include "benchmarks/development/old_numerics/filter_numerics.hpp"
+//#include "benchmarks/development/old_numerics/misc_numerics.hpp"
 
-#include "src/numerics/filter_help/CurrLevel.hpp"
+#include "src/data_structures/APR/PartCellData.hpp"
+
+//#include "benchmarks/development/Tree/PartCellStructure.hpp"
+
+#include "CurrLevel.hpp"
 
 #include "src/io/hdf5functions_blosc.h"
 
 #include "src/data_structures/APR/APR_iterator.hpp"
 
+#include "src/misc/APR_timer.hpp"
+
+#include "src/algorithm/APR_parameters.hpp"
+
 #include <map>
 #include <unordered_map>
 
+class APR_parameters;
 
 typedef std::unordered_map<uint16_t,uint16_t> hash_map;
 //typedef std::map<uint16_t,uint16_t> hash_map;
@@ -29,73 +37,42 @@ class APR : public APR_iterator<ImageType>{
 
 public:
 
-    ParticleDataNew<ImageType, uint64_t> part_new;
-    //flattens format to particle = cell, this is in the classic access/part paradigm
 
-    ExtraPartCellData<uint16_t> y_vec;
+    //Main internal datastructures
 
-    ExtraPartCellData<ImageType> particles_int;
+    ExtraPartCellData<ImageType> particles_int; // holds the particles intenisty information
 
-    PartCellData<uint64_t> pc_data;
+    PartCellData<uint64_t> pc_data; // holds the spatial and neighbours access information and methods
 
+    //used for storing number of paritcles and cells per level for parallel access iterators
     std::vector<float> num_parts;
-
     std::vector<float> num_elements;
-
-
     ExtraPartCellData<uint64_t> num_parts_xy;
-
-    ExtraPartCellData<hash_map> random_access;
+    double num_elements_total;
 
     std::string name;
+    APR_parameters parameters;
 
+
+    //old parameters (depreciated)
     Proc_par pars;
 
-    double num_elements_total;
+    //Experimental
+    ExtraPartCellData<hash_map> random_access;
 
     APR(){
         this->pc_data_pointer = &pc_data;
     }
 
     APR(PartCellStructure<float,uint64_t>& pc_struct){
-        init(pc_struct);
+        init_cells(pc_struct);
         this->pc_data_pointer = &pc_data;
     }
 
-    void init(PartCellStructure<float,uint64_t>& pc_struct){
-        part_new.initialize_from_structure(pc_struct);
+    //deprecitated
+    ExtraPartCellData<uint16> y_vec;
 
-        create_y_data();
-
-        part_new.create_particles_at_cell_structure(particles_int);
-
-        part_new.create_pc_data_new(pc_data);
-
-        shift_particles_from_cells(particles_int);
-
-        part_new.initialize_from_structure(pc_struct);
-
-
-    }
-
-
-    void init_by_part_iteration(APR_iterator<float>& apr_it){
-        //
-        //  Initializes the required datastructures for by particles and parralell iteration
-        //
-
-        get_part_numbers();
-        set_part_numbers_xz();
-
-        apr_it.num_parts = &this->num_parts;
-        apr_it.num_parts_xz_pointer = &this->num_parts_xy;
-        apr_it.num_parts_total = this->num_parts_total;
-        apr_it.pc_data_pointer = &pc_data;
-
-        apr_it.curr_level.init(pc_data);
-    }
-
-    void init_iterator(APR_iterator<float>& apr_it){
+    void init_iterator(APR_iterator<ImageType>& apr_it){
         //
         //  Initializes the required datastructures for by particles and parralell iteration
         //
@@ -160,78 +137,6 @@ public:
 
     }
 
-
-
-
-
-
-    void init_pc_data(){
-
-
-        part_new.create_pc_data_new(pc_data);
-
-        pc_data.org_dims = y_vec.org_dims;
-    }
-
-    void create_y_data(){
-        //
-        //  Bevan Cheeseman 2017
-        //
-        //  Creates y index
-        //
-
-        y_vec.initialize_structure_parts(part_new.particle_data);
-
-        y_vec.org_dims = part_new.access_data.org_dims;
-
-        int z_,x_,j_,y_;
-
-        for(uint64_t depth = (part_new.access_data.depth_min);depth <= part_new.access_data.depth_max;depth++) {
-            //loop over the resolutions of the structure
-            const unsigned int x_num_ = part_new.access_data.x_num[depth];
-            const unsigned int z_num_ = part_new.access_data.z_num[depth];
-
-            CurrentLevel<ImageType, uint64_t> curr_level(part_new);
-            curr_level.set_new_depth(depth, part_new);
-
-            const float step_size = pow(2,curr_level.depth_max - curr_level.depth);
-
-#pragma omp parallel for default(shared) private(z_,x_,j_) firstprivate(curr_level) if(z_num_*x_num_ > 100)
-            for (z_ = 0; z_ < z_num_; z_++) {
-                //both z and x are explicitly accessed in the structure
-
-                for (x_ = 0; x_ < x_num_; x_++) {
-
-                    curr_level.set_new_xz(x_, z_, part_new);
-
-                    int counter = 0;
-
-                    for (j_ = 0; j_ < curr_level.j_num; j_++) {
-
-                        bool iscell = curr_level.new_j(j_, part_new);
-
-                        if (iscell) {
-                            //Indicates this is a particle cell node
-                            curr_level.update_cell(part_new);
-
-                            y_vec.data[depth][curr_level.pc_offset][counter] = curr_level.y;
-
-                            counter++;
-                        } else {
-
-                            curr_level.update_gap();
-
-                        }
-
-
-                    }
-                }
-            }
-        }
-
-
-
-    }
 
     template<typename U>
     void shift_particles_from_cells(ExtraPartCellData<U>& pdata_old){
@@ -410,14 +315,14 @@ public:
             }
         }
 
-
-
-
     }
 
 
     template<typename U>
-    void interp_depth(Mesh_data<U>& img){
+    void interp_depth_ds(Mesh_data<U>& img){
+        //
+        //  Returns an image of the depth, this is down-sampled by one, as the Particle Cell solution reflects this
+        //
 
         //get depth
         ExtraPartCellData<U> depth_parts;
@@ -433,7 +338,40 @@ public:
 
         }
 
+        Mesh_data<U> temp;
+
+        interp_img(temp,depth_parts);
+
+        down_sample(temp,img,
+                    [](U x, U y) { return std::max(x,y); },
+                    [](U x) { return x; }, true);
+
+    }
+
+    template<typename U>
+    void interp_depth(Mesh_data<U>& img){
+        //
+        //  Returns an image of the depth, this is down-sampled by one, as the Particle Cell solution reflects this
+        //
+
+        //get depth
+        ExtraPartCellData<U> depth_parts;
+        depth_parts.initialize_structure_cells(pc_data);
+
+        for (begin(); end() == true ; it_forward()) {
+            //
+            //  Demo APR iterator
+            //
+
+            //access and info
+            this->curr_level.get_val(depth_parts) = this->depth();
+
+        }
+
+
+
         interp_img(img,depth_parts);
+
 
 
     }
@@ -927,13 +865,13 @@ public:
         parts.initialize_structure_cells(pc_data);
 
         //initialization of the iteration structures
-        APR_iterator<float> apr_it(*this); //this is required for parallel access
+        APR_iterator<ImageType> apr_it(*this); //this is required for parallel access
         uint64_t part;
 
 #pragma omp parallel for schedule(static) private(part) firstprivate(apr_it)
         for (part = 0; part < this->num_parts_total; ++part) {
             //needed step for any parallel loop (update to the next part)
-            apr_it.set_part(part);
+            apr_it.set_iterator_to_particle_by_number(part);
 
             apr_it(parts) = img_by_level[apr_it.depth()](apr_it.y(),apr_it.x(),apr_it.z());
 
@@ -1012,7 +950,7 @@ public:
             const unsigned int x_num_min_ = 0;
             const unsigned int z_num_min_ = 0;
 
-            CurrentLevel<float, uint64_t> curr_level_l(pc_data);
+            CurrentLevel<ImageType, uint64_t> curr_level_l(pc_data);
             curr_level_l.set_new_depth(depth, pc_data);
 
             const float step_size = pow(2, curr_level_l.depth_max - curr_level_l.depth);
@@ -1084,7 +1022,7 @@ public:
             const unsigned int x_num_min_ = 0;
             const unsigned int z_num_min_ = 0;
 
-            CurrentLevel<float, uint64_t> curr_level_l(pc_data);
+            CurrentLevel<ImageType, uint64_t> curr_level_l(pc_data);
             curr_level_l.set_new_depth(depth, pc_data);
 
             const float step_size = pow(2, curr_level_l.depth_max - curr_level_l.depth);
@@ -1518,7 +1456,7 @@ public:
         }
 
         Part_timer timer;
-        timer.verbose_flag = true;
+        timer.verbose_flag = false;
 
         //initialize loop variables
         uint64_t x_;
@@ -1537,174 +1475,323 @@ public:
 
         std::vector<uint64_t> status_temp;
 
+
         uint64_t prev_coord = 0;
+
 
         timer.start_timer("intiialize part_cells");
 
-        for(uint64_t i = pc_data.depth_max;i >= pc_data.depth_min;i--){
+        const uint8_t seed_us = 4; //deal with the equivalence optimization
+
+        for(uint64_t i = (pc_data.depth_min+1);i < pc_data.depth_max;i++) {
 
             const unsigned int x_num_ = x_num[i];
             const unsigned int z_num_ = z_num[i];
             const unsigned int y_num_ = y_num[i];
 
-#pragma omp parallel for schedule(dynamic) default(shared) private(z_,x_,y_,curr_index,status,prev_ind) firstprivate(status_temp) if(z_num_*x_num_ > 100)
+            const unsigned int x_num_ds = x_num[i - 1];
+            const unsigned int z_num_ds = z_num[i - 1];
+            const unsigned int y_num_ds = y_num[i - 1];
+
+#pragma omp parallel for default(shared) private(z_, x_, y_, curr_index, status, prev_ind) if(z_num_*x_num_ > 100)
+            for (z_ = 0; z_ < z_num_; z_++) {
+
+                for (x_ = 0; x_ < x_num_; x_++) {
+                    const size_t offset_part_map_ds = (x_ / 2) * y_num_ds + (z_ / 2) * y_num_ds * x_num_ds;
+                    const size_t offset_part_map = x_ * y_num_ + z_ * y_num_ * x_num_;
+
+                    for (y_ = 0; y_ < y_num_ds; y_++) {
+
+                        status = p_map[i - 1][offset_part_map_ds + y_];
+
+                        if (status == SEED) {
+                            p_map[i][offset_part_map + 2 * y_] = seed_us;
+                            p_map[i][offset_part_map + 2 * y_ + 1] = seed_us;
+                        }
+                    }
+                }
+
+            }
+        }
+
+
+
+        for(uint64_t i = pc_data.depth_min;i <= pc_data.depth_max;i++){
+
+            const unsigned int x_num_ = x_num[i];
+            const unsigned int z_num_ = z_num[i];
+            const unsigned int y_num_ = y_num[i];
+
+            const unsigned int x_num_ds = x_num[i-1];
+            const unsigned int z_num_ds = z_num[i-1];
+            const unsigned int y_num_ds = y_num[i-1];
+
+#pragma omp parallel for default(shared) private(z_,x_,y_,curr_index,status,prev_ind) if(z_num_*x_num_ > 100)
             for(z_ = 0;z_ < z_num_;z_++){
 
                 for(x_ = 0;x_ < x_num_;x_++){
 
-                    status_temp.resize(y_num_,0);
-                    std::fill(status_temp.begin(), status_temp.end(), 0);
-
-                    //interpolate filler and boundaries
-                    if(i < pc_data.depth_max){
-                        uint64_t offset_part_map = x_*y_num[i] + z_*y_num[i]*x_num[i];
-
-                        for(y_ = 0;y_ < y_num[i];y_++) {
-
-                            status = p_map[i][offset_part_map + y_];
-
-                            if ( status == NEIGHBOURSTATUS) {
-                                status_temp[ y_] = BOUNDARY;
-                            } else if(status == SLOPESTATUS) {
-                                status_temp[ y_] = FILLER;
-                            }
-                        }
-                    }
-
-                    //interpolate seed
-                    if((i > pc_data.depth_min) && (i <= pc_data.depth_max)){
-
-                        uint64_t offs = (x_/2)*y_num[i-1] + (z_/2)*y_num[i-1]*x_num[i-1];
-
-                        for(y_ = 0;y_ < y_num[i-1];y_++) {
-
-                            status = p_map[i-1][offs + y_];
-
-                            if (status == SEED) {
-
-                                status_temp[2 * y_] = SEED;
-                                status_temp[2 * y_ + 1] = SEED;
-                            }
-                        }
-
-                    }
-
-
                     size_t first_empty = 0;
-
-                    const uint64_t offset_pc_data = x_num_*z_ + x_;
+                    const size_t offset_part_map = x_*y_num_ + z_*y_num_*x_num_;
+                    const size_t offset_part_map_ds = (x_/2)*y_num_ds + (z_/2)*y_num_ds*x_num_ds;
+                    const size_t offset_pc_data = x_num_*z_ + x_;
                     curr_index = 0;
                     prev_ind = 0;
 
                     //first value handle the duplication of the gap node
 
-                    status =  status_temp[0];
-                    if((status> 0)){
-                        first_empty = 0;
-                    } else {
-                        first_empty = 1;
-                    }
+                    if(i == (pc_data.depth_max)) {
 
-                    for(y_ = 0;y_ < (y_num_);y_++){
-
-                        status = status_temp[y_];
-
-                        if(status> 0){
-                            curr_index+= 1 + prev_ind;
-                            prev_ind = 0;
+                        status = p_map[i-1][ offset_part_map_ds];
+                        if(status == SEED){
+                            first_empty = 0;
                         } else {
-                            prev_ind = 1;
+                            first_empty = 1;
                         }
-                    }
 
-                    if(curr_index == 0){
-                        pc_data.data[i][offset_pc_data].resize(1,0); //always first adds an extra entry for intialization and extra info
-                    } else {
+                        for (y_ = 0; y_ < y_num_ds; y_++) {
 
-                        pc_data.data[i][offset_pc_data].resize(curr_index + 2 - first_empty,0); //gap node to begin, already finishes with a gap node
+                            status = p_map[i-1][ offset_part_map_ds + y_];
 
-                    }
-
-                    curr_index = 0;
-                    prev_ind = 1;
-                    prev_coord = 0;
-
-                    //initialize the first values type
-                    pc_data.data[i][offset_pc_data][0] = TYPE_GAP_END;
-
-                    for(y_ = 0;y_ < y_num_;y_++){
-
-                        status = status_temp[y_];
-
-                        if(status> 0){
-
-                            curr_index++;
-
-                            //set starting type
-                            if(prev_ind == 1){
-                                //gap node
-                                //set type
-                                pc_data.data[i][offset_pc_data][curr_index-1] = TYPE_GAP;
-                                pc_data.data[i][offset_pc_data][curr_index-1] |= (y_ << NEXT_COORD_SHIFT);
-                                pc_data.data[i][offset_pc_data][curr_index-1] |= ( prev_coord << PREV_COORD_SHIFT);
-                                pc_data.data[i][offset_pc_data][curr_index-1] |= (NO_NEIGHBOUR << YP_DEPTH_SHIFT);
-                                pc_data.data[i][offset_pc_data][curr_index-1] |= (NO_NEIGHBOUR << YM_DEPTH_SHIFT);
-
-                                curr_index++;
+                            if (status == SEED) {
+                                curr_index += 1 + prev_ind;
+                                prev_ind = 0;
+                                curr_index += 1 + prev_ind;
+                            } else {
+                                prev_ind = 1;
                             }
-                            prev_coord = y_;
-                            //set type
-                            pc_data.data[i][offset_pc_data][curr_index-1] = TYPE_PC;
-
-                            //initialize the neighbours to empty (to be over-written later if not the case) (Boundary Conditions)
-                            pc_data.data[i][offset_pc_data][curr_index-1] |= (NO_NEIGHBOUR << XP_DEPTH_SHIFT);
-                            pc_data.data[i][offset_pc_data][curr_index-1] |= (NO_NEIGHBOUR << XM_DEPTH_SHIFT);
-                            pc_data.data[i][offset_pc_data][curr_index-1] |= (NO_NEIGHBOUR << ZP_DEPTH_SHIFT);
-                            pc_data.data[i][offset_pc_data][curr_index-1] |= (NO_NEIGHBOUR << ZM_DEPTH_SHIFT);
-
-                            //set the status
-                            switch(status){
-                                case SEED:
-                                {
-                                    pc_data.data[i][offset_pc_data][curr_index-1] |= SEED_SHIFTED;
-                                    break;
-                                }
-                                case BOUNDARY:
-                                {
-                                    pc_data.data[i][offset_pc_data][curr_index-1] |= BOUNDARY_SHIFTED;
-                                    break;
-                                }
-                                case FILLER:
-                                {
-                                    pc_data.data[i][offset_pc_data][curr_index-1] |= FILLER_SHIFTED;
-                                    break;
-                                }
-
-                            }
-
-                            prev_ind = 0;
-                        } else {
-                            //store for setting above
-                            if(prev_ind == 0){
-                                //prev_coord = y_;
-                            }
-
-                            prev_ind = 1;
 
                         }
+
+                        if (curr_index == 0) {
+                            pc_data.data[i][offset_pc_data].resize(
+                                    1); //always first adds an extra entry for intialization and extra info
+                        } else {
+
+                            pc_data.data[i][offset_pc_data].resize(curr_index + 2 - first_empty,
+                                                                   0); //gap node to begin, already finishes with a gap node
+
+                        }
+                    } else {
+
+                        status = p_map[i][offset_part_map];
+                        if((status> 1) & (status < 5)){
+                            first_empty = 0;
+                        } else {
+                            first_empty = 1;
+                        }
+
+                        for(y_ = 0;y_ < y_num_;y_++){
+
+                            status = p_map[i][offset_part_map + y_];
+
+                            if((status> 1) & (status < 5)){
+                                curr_index+= 1 + prev_ind;
+                                prev_ind = 0;
+                            } else {
+                                prev_ind = 1;
+                            }
+                        }
+
+                        if(curr_index == 0){
+                            pc_data.data[i][offset_pc_data].resize(1); //always first adds an extra entry for intialization and extra info
+                        } else {
+
+                            pc_data.data[i][offset_pc_data].resize(curr_index + 2 - first_empty,0); //gap node to begin, already finishes with a gap node
+
+                        }
+
                     }
 
-                    //Initialize the last value GAP END indicators to no neighbour
-                    pc_data.data[i][offset_pc_data][pc_data.data[i][offset_pc_data].size()-1] = TYPE_GAP_END;
-                    pc_data.data[i][offset_pc_data][pc_data.data[i][offset_pc_data].size()-1] |= (NO_NEIGHBOUR << YP_DEPTH_SHIFT);
-                    pc_data.data[i][offset_pc_data][pc_data.data[i][offset_pc_data].size()-1] |= (NO_NEIGHBOUR << YM_DEPTH_SHIFT);
 
                 }
             }
 
         }
 
+        prev_coord = 0;
+
+
+        for(uint64_t i = pc_data.depth_min;i <= pc_data.depth_max;i++){
+
+            const unsigned int x_num_ = x_num[i];
+            const unsigned int z_num_ = z_num[i];
+            const unsigned int y_num_ = y_num[i];
+
+            const unsigned int x_num_ds = x_num[i-1];
+            const unsigned int z_num_ds = z_num[i-1];
+            const unsigned int y_num_ds = y_num[i-1];
+
+#pragma omp parallel for default(shared) private(z_,x_,y_,curr_index,status,prev_ind,prev_coord) if(z_num_*x_num_ > 100)
+            for(z_ = 0;z_ < z_num_;z_++){
+
+                for(x_ = 0;x_ < x_num_;x_++){
+
+                    const size_t offset_part_map_ds = (x_/2)*y_num_ds + (z_/2)*y_num_ds*x_num_ds;
+                    const size_t offset_part_map = x_*y_num_ + z_*y_num_*x_num_;
+                    const size_t offset_pc_data = x_num_*z_ + x_;
+                    curr_index = 0;
+                    prev_ind = 1;
+                    prev_coord = 0;
+
+                    if(i == pc_data.depth_max){
+                        //initialize the first values type
+                        pc_data.data[i][offset_pc_data][0] = TYPE_GAP_END;
+
+                        uint64_t y_u;
+
+                        for (y_ = 0; y_ < y_num_ds; y_++) {
+
+                            status = p_map[i - 1][offset_part_map_ds + y_];
+
+                            if (status == SEED) {
+
+                                for (int k = 0; k < 2; ++k) {
+
+                                    y_u = 2*y_ + k;
+
+                                    curr_index++;
+
+                                    //set starting type
+                                    if (prev_ind == 1) {
+                                        //gap node
+                                        //set type
+                                        pc_data.data[i][offset_pc_data][curr_index - 1] = TYPE_GAP;
+                                        pc_data.data[i][offset_pc_data][curr_index - 1] |= (y_u << NEXT_COORD_SHIFT);
+                                        pc_data.data[i][offset_pc_data][curr_index - 1] |= (prev_coord
+                                                << PREV_COORD_SHIFT);
+                                        pc_data.data[i][offset_pc_data][curr_index - 1] |= (NO_NEIGHBOUR
+                                                << YP_DEPTH_SHIFT);
+                                        pc_data.data[i][offset_pc_data][curr_index - 1] |= (NO_NEIGHBOUR
+                                                << YM_DEPTH_SHIFT);
+
+                                        curr_index++;
+                                    }
+                                    prev_coord = y_u;
+                                    //set type
+                                    pc_data.data[i][offset_pc_data][curr_index - 1] = TYPE_PC;
+
+                                    //initialize the neighbours to empty (to be over-written later if not the case) (Boundary Conditions)
+                                    pc_data.data[i][offset_pc_data][curr_index - 1] |= (NO_NEIGHBOUR << XP_DEPTH_SHIFT);
+                                    pc_data.data[i][offset_pc_data][curr_index - 1] |= (NO_NEIGHBOUR << XM_DEPTH_SHIFT);
+                                    pc_data.data[i][offset_pc_data][curr_index - 1] |= (NO_NEIGHBOUR << ZP_DEPTH_SHIFT);
+                                    pc_data.data[i][offset_pc_data][curr_index - 1] |= (NO_NEIGHBOUR << ZM_DEPTH_SHIFT);
+
+                                    //set the status
+                                    switch (status) {
+                                        case SEED: {
+                                            pc_data.data[i][offset_pc_data][curr_index - 1] |= SEED_SHIFTED;
+                                            break;
+                                        }
+                                        case BOUNDARY: {
+                                            pc_data.data[i][offset_pc_data][curr_index - 1] |= BOUNDARY_SHIFTED;
+                                            break;
+                                        }
+                                        case FILLER: {
+                                            pc_data.data[i][offset_pc_data][curr_index - 1] |= FILLER_SHIFTED;
+                                            break;
+                                        }
+
+                                    }
+
+                                    prev_ind = 0;
+                                }
+                            } else {
+                                //store for setting above
+                                if (prev_ind == 0) {
+                                    //prev_coord = y_;
+                                }
+
+                                prev_ind = 1;
+
+                            }
+
+                        }
+
+                        //Initialize the last value GAP END indicators to no neighbour
+                        pc_data.data[i][offset_pc_data][pc_data.data[i][offset_pc_data].size() - 1] = TYPE_GAP_END;
+                        pc_data.data[i][offset_pc_data][pc_data.data[i][offset_pc_data].size() - 1] |= (NO_NEIGHBOUR
+                                << YP_DEPTH_SHIFT);
+                        pc_data.data[i][offset_pc_data][pc_data.data[i][offset_pc_data].size() - 1] |= (NO_NEIGHBOUR
+                                << YM_DEPTH_SHIFT);
+
+
+
+                    } else {
+
+                        //initialize the first values type
+                        pc_data.data[i][offset_pc_data][0] = TYPE_GAP_END;
+
+                        for (y_ = 0; y_ < y_num_; y_++) {
+
+                            status = p_map[i][offset_part_map + y_];
+
+                            if((status> 1) && (status < 5)) {
+
+                                curr_index++;
+
+                                //set starting type
+                                if (prev_ind == 1) {
+                                    //gap node
+                                    //set type
+                                    pc_data.data[i][offset_pc_data][curr_index - 1] = TYPE_GAP;
+                                    pc_data.data[i][offset_pc_data][curr_index - 1] |= (y_ << NEXT_COORD_SHIFT);
+                                    pc_data.data[i][offset_pc_data][curr_index - 1] |= (prev_coord << PREV_COORD_SHIFT);
+                                    pc_data.data[i][offset_pc_data][curr_index - 1] |= (NO_NEIGHBOUR << YP_DEPTH_SHIFT);
+                                    pc_data.data[i][offset_pc_data][curr_index - 1] |= (NO_NEIGHBOUR << YM_DEPTH_SHIFT);
+
+                                    curr_index++;
+                                }
+                                prev_coord = y_;
+                                //set type
+                                pc_data.data[i][offset_pc_data][curr_index - 1] = TYPE_PC;
+
+                                //initialize the neighbours to empty (to be over-written later if not the case) (Boundary Conditions)
+                                pc_data.data[i][offset_pc_data][curr_index - 1] |= (NO_NEIGHBOUR << XP_DEPTH_SHIFT);
+                                pc_data.data[i][offset_pc_data][curr_index - 1] |= (NO_NEIGHBOUR << XM_DEPTH_SHIFT);
+                                pc_data.data[i][offset_pc_data][curr_index - 1] |= (NO_NEIGHBOUR << ZP_DEPTH_SHIFT);
+                                pc_data.data[i][offset_pc_data][curr_index - 1] |= (NO_NEIGHBOUR << ZM_DEPTH_SHIFT);
+
+                                //set the status
+                                switch (status) {
+                                    case seed_us: {
+                                        pc_data.data[i][offset_pc_data][curr_index - 1] |= SEED_SHIFTED;
+                                        break;
+                                    }
+                                    case BOUNDARY: {
+                                        pc_data.data[i][offset_pc_data][curr_index - 1] |= BOUNDARY_SHIFTED;
+                                        break;
+                                    }
+                                    case FILLER: {
+                                        pc_data.data[i][offset_pc_data][curr_index - 1] |= FILLER_SHIFTED;
+                                        break;
+                                    }
+
+                                }
+
+                                prev_ind = 0;
+                            } else {
+
+
+                                prev_ind = 1;
+
+                            }
+                        }
+
+                        //Initialize the last value GAP END indicators to no neighbour
+                        pc_data.data[i][offset_pc_data][pc_data.data[i][offset_pc_data].size() - 1] = TYPE_GAP_END;
+                        pc_data.data[i][offset_pc_data][pc_data.data[i][offset_pc_data].size() - 1] |= (NO_NEIGHBOUR
+                                << YP_DEPTH_SHIFT);
+                        pc_data.data[i][offset_pc_data][pc_data.data[i][offset_pc_data].size() - 1] |= (NO_NEIGHBOUR
+                                << YM_DEPTH_SHIFT);
+                    }
+                }
+            }
+
+        }
+
         timer.stop_timer();
+
 
         ///////////////////////////////////
         //
@@ -2075,7 +2162,7 @@ public:
             if(p_map_load[i].size() > 0){
                 name = "p_map_"+std::to_string(i);
                 //Load the data then update the particle dataset
-                hdf5_load_data(obj_id,H5T_NATIVE_UINT8,p_map_load[i].data(),name.c_str());
+                hdf5_load_data_blosc(obj_id,H5T_NATIVE_UINT8,p_map_load[i].data(),name.c_str());
             }
 
 
@@ -2101,7 +2188,7 @@ public:
 
             if(Ip[i].size()>0){
                 name = "Ip_"+std::to_string(i);
-                hdf5_load_data(obj_id,H5T_NATIVE_UINT16,Ip[i].data(),name.c_str());
+                hdf5_load_data_blosc(obj_id,H5T_NATIVE_UINT16,Ip[i].data(),name.c_str());
             }
 
         }
@@ -2129,7 +2216,7 @@ public:
 
             uint64_t counter = 0;
 
-            for (this->begin(depth); this->end() == true ; this->it_forward(depth)) {
+            for (this->begin(depth); this->end(depth) != 0 ; this->it_forward(depth)) {
 
                 this->curr_level.get_val(particles_int) = Ip[depth][counter];
 
@@ -2149,6 +2236,10 @@ public:
         //  Writes the APR to the particle cell structure sparse format, using the p_map for reconstruction
         //
         //
+
+        APR_timer write_timer;
+
+        write_timer.verbose_flag = false;
 
         //initialize
         uint64_t node_val_part;
@@ -2172,7 +2263,7 @@ public:
 
         file_name = file_name + "_apr";
 
-        hdf5_create_file(hdf5_file_name);
+        hdf5_create_file_blosc(hdf5_file_name);
 
         //hdf5 inits
         hid_t fid, pr_groupid, obj_id;
@@ -2201,9 +2292,9 @@ public:
         pr_groupid = H5Gcreate2(fid,"ParticleRepr",H5P_DEFAULT,H5P_DEFAULT,H5P_DEFAULT);
         H5Gget_info( pr_groupid, &info );
 
-        hdf5_write_attribute(pr_groupid,H5T_NATIVE_INT,"x_num",1,&dims, &pc_data.org_dims[1] );
-        hdf5_write_attribute(pr_groupid,H5T_NATIVE_INT,"y_num",1,&dims, &pc_data.org_dims[0] );
-        hdf5_write_attribute(pr_groupid,H5T_NATIVE_INT,"z_num",1,&dims, &pc_data.org_dims[2] );
+        hdf5_write_attribute_blosc(pr_groupid,H5T_NATIVE_INT,"x_num",1,&dims, &pc_data.org_dims[1] );
+        hdf5_write_attribute_blosc(pr_groupid,H5T_NATIVE_INT,"y_num",1,&dims, &pc_data.org_dims[0] );
+        hdf5_write_attribute_blosc(pr_groupid,H5T_NATIVE_INT,"z_num",1,&dims, &pc_data.org_dims[2] );
 
 
         obj_id = H5Gcreate2(fid,"ParticleRepr/t",H5P_DEFAULT,H5P_DEFAULT,H5P_DEFAULT);
@@ -2216,9 +2307,9 @@ public:
         int num_parts = this->num_parts_total;
         int num_cells = this->num_elements_total;
 
-        hdf5_write_attribute(pr_groupid,H5T_NATIVE_INT,"num_parts",1,dims_out, &num_parts );
+        hdf5_write_attribute_blosc(pr_groupid,H5T_NATIVE_INT,"num_parts",1,dims_out, &num_parts );
 
-        hdf5_write_attribute(pr_groupid,H5T_NATIVE_INT,"num_cells",1,dims_out, &num_cells );
+        hdf5_write_attribute_blosc(pr_groupid,H5T_NATIVE_INT,"num_cells",1,dims_out, &num_cells );
 
         // New parameter and background data
 
@@ -2227,35 +2318,35 @@ public:
             name = "no_name";
         }
 
-        hdf5_write_string(pr_groupid,"name",pars.name);
+        hdf5_write_string_blosc(pr_groupid,"name",pars.name);
 
-        std::string git_hash = exec("git rev-parse HEAD");
+        std::string git_hash = exec_blosc("git rev-parse HEAD");
 
-        hdf5_write_string(pr_groupid,"githash",git_hash);
+        hdf5_write_string_blosc(pr_groupid,"githash",git_hash);
 
-        hdf5_write_attribute(pr_groupid,H5T_NATIVE_FLOAT,"lambda",1,dims_out, &pars.lambda );
+        hdf5_write_attribute_blosc(pr_groupid,H5T_NATIVE_FLOAT,"lambda",1,dims_out, &pars.lambda );
 
-        hdf5_write_attribute(pr_groupid,H5T_NATIVE_FLOAT,"var_th",1,dims_out, &pars.var_th );
+        hdf5_write_attribute_blosc(pr_groupid,H5T_NATIVE_FLOAT,"var_th",1,dims_out, &pars.var_th );
 
-        hdf5_write_attribute(pr_groupid,H5T_NATIVE_FLOAT,"var_th_max",1,dims_out, &pars.var_th_max );
+        hdf5_write_attribute_blosc(pr_groupid,H5T_NATIVE_FLOAT,"var_th_max",1,dims_out, &pars.var_th_max );
 
-        hdf5_write_attribute(pr_groupid,H5T_NATIVE_FLOAT,"I_th",1,dims_out, &pars.I_th );
+        hdf5_write_attribute_blosc(pr_groupid,H5T_NATIVE_FLOAT,"I_th",1,dims_out, &pars.I_th );
 
-        hdf5_write_attribute(pr_groupid,H5T_NATIVE_FLOAT,"dx",1,dims_out, &pars.dx );
+        hdf5_write_attribute_blosc(pr_groupid,H5T_NATIVE_FLOAT,"dx",1,dims_out, &pars.dx );
 
-        hdf5_write_attribute(pr_groupid,H5T_NATIVE_FLOAT,"dy",1,dims_out, &pars.dy );
+        hdf5_write_attribute_blosc(pr_groupid,H5T_NATIVE_FLOAT,"dy",1,dims_out, &pars.dy );
 
-        hdf5_write_attribute(pr_groupid,H5T_NATIVE_FLOAT,"dz",1,dims_out, &pars.dz );
+        hdf5_write_attribute_blosc(pr_groupid,H5T_NATIVE_FLOAT,"dz",1,dims_out, &pars.dz );
 
-        hdf5_write_attribute(pr_groupid,H5T_NATIVE_FLOAT,"psfx",1,dims_out, &pars.psfx );
+        hdf5_write_attribute_blosc(pr_groupid,H5T_NATIVE_FLOAT,"psfx",1,dims_out, &pars.psfx );
 
-        hdf5_write_attribute(pr_groupid,H5T_NATIVE_FLOAT,"psfy",1,dims_out, &pars.psfy );
+        hdf5_write_attribute_blosc(pr_groupid,H5T_NATIVE_FLOAT,"psfy",1,dims_out, &pars.psfy );
 
-        hdf5_write_attribute(pr_groupid,H5T_NATIVE_FLOAT,"psfz",1,dims_out, &pars.psfz );
+        hdf5_write_attribute_blosc(pr_groupid,H5T_NATIVE_FLOAT,"psfz",1,dims_out, &pars.psfz );
 
-        hdf5_write_attribute(pr_groupid,H5T_NATIVE_FLOAT,"rel_error",1,dims_out, &pars.rel_error);
+        hdf5_write_attribute_blosc(pr_groupid,H5T_NATIVE_FLOAT,"rel_error",1,dims_out, &pars.rel_error);
 
-        hdf5_write_attribute(pr_groupid,H5T_NATIVE_FLOAT,"aniso",1,dims_out, &pars.aniso);
+        hdf5_write_attribute_blosc(pr_groupid,H5T_NATIVE_FLOAT,"aniso",1,dims_out, &pars.aniso);
 
         //////////////////////////////////////////////////////////////////
         //
@@ -2264,6 +2355,8 @@ public:
         //
         //
         ///////////////////////////////////////////////////////////////////////
+
+        write_timer.start_timer("intensities");
 
         uint64_t depth_min = pc_data.depth_min;
 
@@ -2275,6 +2368,10 @@ public:
 
         shift_particles_from_cells(temp_int);
 
+        write_timer.stop_timer();
+
+        write_timer.start_timer("write int");
+
 
         for(uint64_t i = pc_data.depth_min;i <= pc_data.depth_max;i++){
 
@@ -2283,8 +2380,25 @@ public:
             const unsigned int y_num_ = pc_data.y_num[i];
 
             //write the vals
-
             Ip.resize(0);
+
+            uint64_t total_p = 0;
+
+            for(z_ = 0;z_ < z_num_;z_++) {
+
+                for (x_ = 0; x_ < x_num_; x_++) {
+
+                    const size_t offset_pc_data = x_num_ * z_ + x_;
+
+                    const size_t j_num = temp_int.data[i][offset_pc_data].size();
+
+                    total_p += j_num;
+                }
+            }
+
+            Ip.resize(total_p);
+
+            total_p = 0;
 
             for(z_ = 0;z_ < z_num_;z_++){
 
@@ -2294,10 +2408,9 @@ public:
 
                     const size_t j_num = temp_int.data[i][offset_pc_data].size();
 
-                    uint64_t curr_size = Ip.size();
-                    Ip.resize(curr_size+ j_num);
+                    std::copy(temp_int.data[i][offset_pc_data].begin(),temp_int.data[i][offset_pc_data].end(),Ip.begin() + total_p);
 
-                    std::copy(temp_int.data[i][offset_pc_data].begin(),temp_int.data[i][offset_pc_data].end(),Ip.begin() + curr_size);
+                    total_p += j_num;
 
                 }
 
@@ -2306,21 +2419,23 @@ public:
             dims = Ip.size();
 
             std::string name = "Ip_size_"+std::to_string(i);
-            hdf5_write_attribute(pr_groupid,H5T_NATIVE_INT,name.c_str(),1,&dim_a,&dims);
+            hdf5_write_attribute_blosc(pr_groupid,H5T_NATIVE_INT,name.c_str(),1,&dim_a,&dims);
 
             if(Ip.size() > 0){
                 //write the parts
 
                 name = "Ip_"+std::to_string(i);
-                if(predict) {
 
-                    hdf5_write_data_blosc(obj_id, H5T_NATIVE_INT16, name.c_str(), rank, &dims, Ip.data());
-                } else {
-                    hdf5_write_data_blosc(obj_id, H5T_NATIVE_UINT16, name.c_str(), rank, &dims, Ip.data());
-                }
+                hdf5_write_data_blosc(obj_id, H5T_NATIVE_UINT16, name.c_str(), rank, &dims, Ip.data());
+
             }
 
         }
+
+        write_timer.stop_timer();
+
+
+        write_timer.start_timer("pc_data");
 
 
         for(uint64_t i = pc_data.depth_min;i < pc_data.depth_max;i++){
@@ -2438,21 +2553,23 @@ public:
 
             name = "p_map_x_num_"+std::to_string(i);
             hsize_t attr = x_num_d;
-            hdf5_write_attribute(pr_groupid,H5T_NATIVE_INT,name.c_str(),1,&dim_a, &attr);
+            hdf5_write_attribute_blosc(pr_groupid,H5T_NATIVE_INT,name.c_str(),1,&dim_a, &attr);
 
             attr = y_num_d;
             name = "p_map_y_num_"+std::to_string(i);
-            hdf5_write_attribute(pr_groupid,H5T_NATIVE_INT,name.c_str(),1,&dim_a, &attr);
+            hdf5_write_attribute_blosc(pr_groupid,H5T_NATIVE_INT,name.c_str(),1,&dim_a, &attr);
 
             attr = z_num_d;
             name = "p_map_z_num_"+std::to_string(i);
-            hdf5_write_attribute(pr_groupid,H5T_NATIVE_INT,name.c_str(),1,&dim_a, &attr);
+            hdf5_write_attribute_blosc(pr_groupid,H5T_NATIVE_INT,name.c_str(),1,&dim_a, &attr);
 
         }
 
+        write_timer.stop_timer();
+
         hsize_t attr = pc_data.depth_min;
-        hdf5_write_attribute(pr_groupid,H5T_NATIVE_INT,"depth_max",1,&dim_a, &pc_data.depth_max );
-        hdf5_write_attribute(pr_groupid,H5T_NATIVE_INT,"depth_min",1,&dim_a, &attr );
+        hdf5_write_attribute_blosc(pr_groupid,H5T_NATIVE_INT,"depth_max",1,&dim_a, &pc_data.depth_max );
+        hdf5_write_attribute_blosc(pr_groupid,H5T_NATIVE_INT,"depth_min",1,&dim_a, &attr );
 
         // output the file size
         hsize_t file_size;
@@ -2508,7 +2625,7 @@ public:
 
         file_name = file_name + "_apr_extra_parts";
 
-        hdf5_create_file(hdf5_file_name);
+        hdf5_create_file_blosc(hdf5_file_name);
 
         //hdf5 inits
         hid_t fid, pr_groupid, obj_id;
@@ -2537,9 +2654,9 @@ public:
         pr_groupid = H5Gcreate2(fid,"ParticleRepr",H5P_DEFAULT,H5P_DEFAULT,H5P_DEFAULT);
         H5Gget_info( pr_groupid, &info );
 
-        hdf5_write_attribute(pr_groupid,H5T_NATIVE_INT,"x_num",1,&dims, &pc_data.org_dims[1] );
-        hdf5_write_attribute(pr_groupid,H5T_NATIVE_INT,"y_num",1,&dims, &pc_data.org_dims[0] );
-        hdf5_write_attribute(pr_groupid,H5T_NATIVE_INT,"z_num",1,&dims, &pc_data.org_dims[2] );
+        hdf5_write_attribute_blosc(pr_groupid,H5T_NATIVE_INT,"x_num",1,&dims, &pc_data.org_dims[1] );
+        hdf5_write_attribute_blosc(pr_groupid,H5T_NATIVE_INT,"y_num",1,&dims, &pc_data.org_dims[0] );
+        hdf5_write_attribute_blosc(pr_groupid,H5T_NATIVE_INT,"z_num",1,&dims, &pc_data.org_dims[2] );
 
 
         obj_id = H5Gcreate2(fid,"ParticleRepr/t",H5P_DEFAULT,H5P_DEFAULT,H5P_DEFAULT);
@@ -2552,9 +2669,9 @@ public:
         int num_parts = this->num_parts_total;
         int num_cells = this->num_elements_total;
 
-        hdf5_write_attribute(pr_groupid,H5T_NATIVE_INT,"num_parts",1,dims_out, &num_parts );
+        hdf5_write_attribute_blosc(pr_groupid,H5T_NATIVE_INT,"num_parts",1,dims_out, &num_parts );
 
-        hdf5_write_attribute(pr_groupid,H5T_NATIVE_INT,"num_cells",1,dims_out, &num_cells );
+        hdf5_write_attribute_blosc(pr_groupid,H5T_NATIVE_INT,"num_cells",1,dims_out, &num_cells );
 
         // New parameter and background data
 
@@ -2563,18 +2680,18 @@ public:
             name = "no_name";
         }
 
-        hdf5_write_string(pr_groupid,"name",pars.name);
+        hdf5_write_string_blosc(pr_groupid,"name",pars.name);
 
-        std::string git_hash = exec("git rev-parse HEAD");
+        std::string git_hash = exec_blosc("git rev-parse HEAD");
 
-        hdf5_write_string(pr_groupid,"githash",git_hash);
+        hdf5_write_string_blosc(pr_groupid,"githash",git_hash);
 
 
         S val = 0;
-        hid_t type = get_type(val);
+        hid_t type = get_type_blosc(val);
         int type_id = type;
 
-        hdf5_write_attribute(pr_groupid,H5T_NATIVE_INT,"data_type",1,dims_out, &type_id);
+        hdf5_write_attribute_blosc(pr_groupid,H5T_NATIVE_INT,"data_type",1,dims_out, &type_id);
 
         //////////////////////////////////////////////////////////////////
         //
@@ -2625,7 +2742,7 @@ public:
             dims = Ip.size();
 
             std::string name = "Ip_size_"+std::to_string(i);
-            hdf5_write_attribute(pr_groupid,H5T_NATIVE_INT,name.c_str(),1,&dim_a,&dims);
+            hdf5_write_attribute_blosc(pr_groupid,H5T_NATIVE_INT,name.c_str(),1,&dim_a,&dims);
 
             if(Ip.size() > 0){
                 //write the parts
@@ -2634,15 +2751,15 @@ public:
 
                 S val = 0;
 
-                hdf5_write_data_blosc(obj_id, get_type(val), name.c_str(), rank, &dims, Ip.data());
+                hdf5_write_data_blosc(obj_id, get_type_blosc(val), name.c_str(), rank, &dims, Ip.data());
 
             }
 
         }
 
         hsize_t attr = pc_data.depth_min;
-        hdf5_write_attribute(pr_groupid,H5T_NATIVE_INT,"depth_max",1,&dim_a, &pc_data.depth_max );
-        hdf5_write_attribute(pr_groupid,H5T_NATIVE_INT,"depth_min",1,&dim_a, &attr );
+        hdf5_write_attribute_blosc(pr_groupid,H5T_NATIVE_INT,"depth_max",1,&dim_a, &pc_data.depth_max );
+        hdf5_write_attribute_blosc(pr_groupid,H5T_NATIVE_INT,"depth_min",1,&dim_a, &attr );
 
         // output the file size
         hsize_t file_size;
@@ -2721,7 +2838,7 @@ public:
 
             if(Ip[i].size()>0){
                 name = "Ip_"+std::to_string(i);
-                hdf5_load_data(obj_id,hdf5_data_type,Ip[i].data(),name.c_str());
+                hdf5_load_data_blosc(obj_id,hdf5_data_type,Ip[i].data(),name.c_str());
             }
 
         }
@@ -2752,58 +2869,71 @@ public:
 
 
 
-//    template<typename S>
-//    void predict_intensities(ExtraPartCellData<S>& parts){
-//        //
-//        //  Reduce the entropy of the saved sequence by predicting the intensity and storing \delta
-//        //
-//
-//        //init temp data
-//        ExtraPartCellData<S> delta;
-//        delta.initialize_structure_cells(pc_data);
-//
-//        std::vector<S> neigh_vec;
-//
-//        std::vector<unsigned int> dir = {1,3,5};
-//
-//        //loops from lowest level to highest
-//        for (this->begin(); this->end() == true ; this->it_forward()) {
-//
-//            //get the minus neighbours (1,3,5)
-//
-//            float pred = 0;
-//            float counter = 0;
-//
-//            for (int j = 0; j < dir.size(); ++j) {
-//
-//                get_neigh_dir(parts, neigh_vec, dir[j]);
-//
-//
-//
-//                if (neigh_vec.size() > 0) {
-//                    //check if the depth is less
-//                    if (pc_data.pc_key_get_depth(this->curr_level.neigh_part_keys.neigh_face[dir[j]][0]) <= this->depth()) {
-//                        for (int i = 0; i < neigh_vec.size(); ++i) {
-//                            pred += neigh_vec[i];
-//                            counter++;
-//                        }
-//                    }
-//                }
-//            }
-//
-//            if(counter > 0){
-//                pred = floor(pred/counter);
-//            }
-//
-//            this->curr_level.get_val(delta) = this->curr_level.get_val(parts) - pred;
-//
-//
-//        }
-//
-//        std::swap(parts,delta);
-//
-//    }
+    template<typename S>
+    void predict_intensities(ExtraPartCellData<S>& parts){
+        //
+        //  Reduce the entropy of the saved sequence by predicting the intensity and storing \delta
+        //
 
+        //init temp data
+        ExtraPartCellData<S> delta;
+        delta.initialize_structure_cells(pc_data);
+
+        std::vector<S> neigh_vec;
+
+        std::vector<unsigned int> dir = {1,3};
+
+        //loops from lowest level to highest
+        for (this->begin(); this->end() != 0 ; this->it_forward()) {
+
+            //get the minus neighbours (1,3,5)
+
+            float pred = 0;
+            float counter = 0;
+
+            for (int j = 0; j < dir.size(); ++j) {
+
+                get_neigh_dir(parts, neigh_vec, dir[j]);
+
+                if (neigh_vec.size() > 0) {
+                    //check if the depth is less
+                    if (pc_data.pc_key_get_depth(this->curr_level.neigh_part_keys.neigh_face[dir[j]][0]) <= this->depth()) {
+                        for (int i = 0; i < neigh_vec.size(); ++i) {
+                            pred += neigh_vec[i];
+                            counter++;
+                        }
+                    }
+                }
+            }
+
+            if(counter > 0){
+                pred = floor(pred/counter);
+            }
+
+            this->curr_level.get_val(delta) = this->curr_level.get_val(parts) - pred;
+
+
+        }
+
+        std::swap(parts,delta);
+
+    }
+
+
+
+
+
+//
+//    cudaCompress::util::u2f((uint16_t*)dpImage, dpBuffer, sizeX * sizeY);
+//    // variance stabilization
+//    cudaCompress::util::vst(dpBuffer, dpBuffer, sizeX * sizeY, bgLevel, conversion, readNoise);
+//    // scale with quantization step
+//    cudaCompress::util::multiply(dpBuffer, dpBuffer, 1 / quantStep, sizeX * sizeY);
+//    // run  quantization first then prediction
+//    cudaCompress::util::f2u(dpBuffer, (uint16_t*)dpScratch, sizeX * sizeY);
+//    //cudaMemcpy(dpImage, dpScratch, sizeX*sizeY * sizeof(int16_t), cudaMemcpyDeviceToDevice);
+//    cudaCompress::util::predictor7_tiles((int16_t*)dpScratch, dpImage, sizeX * sizeof(int16_t), sizeX, sizeY, tileSize);
+//    cudaCompress::util::symbolize(dpSymbols, dpImage, sizeX, sizeY, sizeZ);
 
 };
 

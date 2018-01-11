@@ -2,26 +2,26 @@
 #include <iostream>
 
 #include "resample_img.h"
-#include "src/data_structures/meshclass.h"
-#include "src/io/readimage.h"
+#include "src/data_structures/Mesh/meshclass.h"
+#include "benchmarks/development/old_io/readimage.h"
 
-#include "src/algorithm/gradient.hpp"
-#include "src/data_structures/particle_map.hpp"
-#include "src/data_structures/Tree/PartCellStructure.hpp"
-#include "src/algorithm/level.hpp"
-#include "src/io/writeimage.h"
-#include "src/io/write_parts.h"
-#include "src/io/partcell_io.h"
+#include "benchmarks/development/old_algorithm/gradient.hpp"
+#include "benchmarks/development/old_structures/particle_map.hpp"
+#include "benchmarks/development/Tree/PartCellStructure.hpp"
+#include "benchmarks/development/old_algorithm/level.hpp"
+#include "benchmarks/development/old_io/writeimage.h"
+#include "benchmarks/development/old_io/write_parts.h"
+#include "benchmarks/development/old_io/partcell_io.h"
 #include "test/utils.h"
-#include "src/numerics/misc_numerics.hpp"
-#include "src/algorithm/apr_pipeline.hpp"
-#include "src/numerics/apr_segment.hpp"
+#include "benchmarks/development/old_numerics/misc_numerics.hpp"
+#include "benchmarks/development/old_algorithm/apr_pipeline.hpp"
+#include "benchmarks/development/old_numerics/apr_segment.hpp"
 
 #include "external/blitzwave/src/Wavelet.h"
 #include "external/blitzwave/src/WaveletDecomp.h"
 #include "external/blitzwave/src/arrayTools.h"
 
-#include "src/io/wavelet_comp.hpp"
+#include "benchmarks/development/old_io/wavelet_comp.hpp"
 
 using namespace std;
 using namespace blitz;

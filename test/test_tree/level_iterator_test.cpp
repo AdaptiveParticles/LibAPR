@@ -3,8 +3,8 @@
 //
 
 #include "tree_fixtures.hpp"
-#include "../../src/data_structures/Tree/Tree.hpp"
-#include "../../src/data_structures/Tree/LevelIterator.hpp"
+#include "benchmarks/development/Tree/Tree.hpp"
+#include "benchmarks/development/Tree/LevelIterator.hpp"
 
 
 TEST_F(CreateSmallTreeTest, LEVEL_ITERATOR_SMALL_TEST)

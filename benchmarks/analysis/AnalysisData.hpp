@@ -5,10 +5,10 @@
 #ifndef PARTPLAY_ANALYSISDATA_HPP
 #define PARTPLAY_ANALYSISDATA_HPP
 
-#include "../../src/data_structures/structure_parts.h"
-#include "../../src/io/parameters.h"
-#include "../../src/io/hdf5functions.h"
-#include "../../src/io/write_parts.h"
+#include "benchmarks/development/old_structures/structure_parts.h"
+#include "benchmarks/development/old_io/parameters.h"
+#include "benchmarks/development/old_io/hdf5functions.h"
+#include "benchmarks/development/old_io/write_parts.h"
 
 #include <cstdio>
 #include <iostream>
@@ -18,7 +18,7 @@
 #include <array>
 #include <ctime>
 
-static std::string exec(const char* cmd);
+std::string exec(const char* cmd);
 
 
 class AnalysisData: public Data_manager{
@@ -401,7 +401,7 @@ static long long GetFileSize(std::string filename)
 #endif
 
 
-static std::string exec(const char* cmd) {
+std::string exec(const char* cmd) {
     std::array<char, 128> buffer;
     std::string result;
     std::shared_ptr<FILE> pipe(popen(cmd, "r"), pclose);

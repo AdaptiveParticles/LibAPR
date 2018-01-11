@@ -8,7 +8,7 @@
 #include <functional>
 #include <string>
 
-#include "src/data_structures/structure_parts.h"
+#include "benchmarks/development/old_structures/structure_parts.h"
 
 
 struct cmdLineOptions_filter{

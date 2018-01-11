@@ -1,8 +1,8 @@
 #include "k_test.h"
 #include "utils.h"
 
-#include "../src/io/readimage.h"
-#include "../src/io/writeimage.h"
+#include "benchmarks/development/old_io/readimage.h"
+#include "benchmarks/development/old_io/writeimage.h"
 
 
 #include <algorithm>

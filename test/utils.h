@@ -17,29 +17,28 @@
 
 #include "tiffio.h"
 
-#include "../src/data_structures/meshclass.h"
-#include "../src/algorithm/level.hpp"
-#include "../src/data_structures/Tree/PartCellStructure.hpp"
-#include "../src/io/partcell_io.h"
-#include "../src/data_structures/Tree/PartCellParent.hpp"
+#include "src/data_structures/Mesh/meshclass.h"
+#include "benchmarks/development/old_algorithm/level.hpp"
+#include "benchmarks/development/Tree/PartCellStructure.hpp"
+#include "benchmarks/development/old_io/partcell_io.h"
+#include "benchmarks/development/Tree/PartCellParent.hpp"
 
-#include "../src/data_structures/Tree/ParticleDataNew.hpp"
+#include "benchmarks/development/Tree/ParticleDataNew.hpp"
 
-#include "../src/numerics/filter_help/NeighOffset.hpp"
-#include "../src/numerics/filter_help/CurrLevel.hpp"
-#include "../src/numerics/misc_numerics.hpp"
-
-#include "../src/data_structures/APR/APR.hpp"
+#include "benchmarks/development/old_numerics/NeighOffset.hpp"
+#include "src/data_structures/APR/CurrLevel.hpp"
+#include "benchmarks/development/old_numerics/misc_numerics.hpp"
 
 #include <algorithm>
 #include <functional>
 #include <iostream>
 #include <random>
 
-#include "../src/io/readimage.h"
-#include "../src/io/write_parts.h"
-#include "../src/io/read_parts.h"
+#include "benchmarks/development/old_io/readimage.h"
+#include "benchmarks/development/old_io/write_parts.h"
+#include "benchmarks/development/old_io/read_parts.h"
 
+#include "src/data_structures/APR/APR.hpp"
 
 bool compare_two_images(const Mesh_data<uint16_t>& in_memory, std::string filename);
 bool compare_two_ks(const Particle_map<float>& in_memory, std::string filename);
