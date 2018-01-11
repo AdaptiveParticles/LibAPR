@@ -12,10 +12,11 @@
 
 #include "src/data_structures/APR/APR.hpp"
 
-class CompressAPR {
+class APRCompress {
 
 public:
 
+    template<typename U>
     void compress(APR<U>& apr) {
 
 
@@ -26,7 +27,9 @@ public:
 
         unsigned int level = apr.level_max();
 
-        predict_particles_by_level(apr,level,predict_directions,predict_output,predict_input);
+        unsigned int num_blocks = 10;
+
+        predict_particles_by_level(apr,level,predict_output,predict_input,predict_directions,num_blocks);
 
     }
 
@@ -52,19 +55,19 @@ private:
     T inverse_calculate_symbols(S input);
 
     template<typename T,typename S,typename U>
-    void predict_particles_by_level(APR<U>& apr,unsigned int level,ExtraPartCellData<T>& predict_input,ExtraPartCellData<S>& predict_output,std::vector<unsigned int>& predict_directions);
+    void predict_particles_by_level(APR<U>& apr,unsigned int level,ExtraPartCellData<T>& predict_input,ExtraPartCellData<S>& predict_output,std::vector<unsigned int>& predict_directions,unsigned int num_z_blocks);
 
 };
 
 template<typename T,typename S>
-T CompressAPR::variance_stabilitzation(S input){
+T APRCompress::variance_stabilitzation(S input){
 
     return (2*sqrt(std::max((T) (input-background),(T)0)/cnv + pow(e,2)) - 2*e)/q;
 
 };
 
 template<typename T,typename S>
-T CompressAPR::inverse_variance_stabilitzation(S input){
+T APRCompress::inverse_variance_stabilitzation(S input){
 
     float D = q*input + 2*e;
 
@@ -78,7 +81,7 @@ T CompressAPR::inverse_variance_stabilitzation(S input){
 };
 
 template<typename T,typename S>
-T CompressAPR::calculate_symbols(S input){
+T APRCompress::calculate_symbols(S input){
 
     int16_t val = input;
     return 2*(abs(val)) + (val >> 15);
@@ -86,7 +89,7 @@ T CompressAPR::calculate_symbols(S input){
 
 
 template<typename T,typename S>
-T CompressAPR::inverse_calculate_symbols(S input){
+T APRCompress::inverse_calculate_symbols(S input){
 
     int16_t negative = input % 2;
 
@@ -94,7 +97,7 @@ T CompressAPR::inverse_calculate_symbols(S input){
 };
 
 template<typename T,typename S,typename U>
-void CompressAPR::predict_particles_by_level(APR<U>& apr,unsigned int level,ExtraPartCellData<T>& predict_input,ExtraPartCellData<S>& predict_output,std::vector<unsigned int>& predict_directions,unsigned int num_z_blocks){
+void APRCompress::predict_particles_by_level(APR<U>& apr,unsigned int level,ExtraPartCellData<T>& predict_input,ExtraPartCellData<S>& predict_output,std::vector<unsigned int>& predict_directions,unsigned int num_z_blocks){
     //
     //  Performs prediction step using the predict directions in chunks of the dataset, given by z_index slice.
     //
@@ -118,18 +121,20 @@ void CompressAPR::predict_particles_by_level(APR<U>& apr,unsigned int level,Extr
 
     unsigned int size_of_block = floor(z_num/num_z_blocks);
 
-    unsigned int counter = 0;
+    unsigned int csum = 0; //cumulative sum
 
     for (int i = 0; i < num_z_blocks; ++i) {
-        z_block_begin[i] = counter;
-        z_block_end[i] = counter + size_of_block;
+        z_block_begin[i] = csum;
+        z_block_end[i] = csum + size_of_block;
 
-        counter+=size_of_block;
+        csum+=size_of_block;
 
     }
 
     z_block_end[num_z_blocks-1] = z_num; //fill in the extras;
 
+    unsigned int z_block;
+    uint64_t counter = 0;
 
 #pragma omp parallel for schedule(static) private(z_block) firstprivate(apr_iterator,neighbour_iterator) reduction(+:counter)
 
@@ -142,9 +147,7 @@ void CompressAPR::predict_particles_by_level(APR<U>& apr,unsigned int level,Extr
 
             for (uint64_t particle_number = apr_iterator.particles_z_begin(level, z);
                  particle_number < apr_iterator.particles_z_end(level, z); ++particle_number) {
-                //
-                //  Parallel loop over level
-                //
+
                 apr_iterator.set_iterator_to_particle_by_number(particle_number);
 
                 counter++;
@@ -158,47 +161,6 @@ void CompressAPR::predict_particles_by_level(APR<U>& apr,unsigned int level,Extr
         }
     }
 }
-
-
-
-//    for (apr.begin(); apr.end() != 0; apr.it_forward()) {
-//
-//        //get the minus neighbours (1,3,5)
-//
-//        //now we only update the neighbours, and directly access them through a neighbour iterator
-//        apr.update_all_neighbours();
-//
-//        float counter = 0;
-//        float temp = 0;
-//
-//        //loop over all the neighbours and set the neighbour iterator to it
-//        for (int f = 0; f < dir.size(); ++f) {
-//            // Neighbour Particle Cell Face definitions [+y,-y,+x,-x,+z,-z] =  [0,1,2,3,4,5]
-//            unsigned int face = dir[f];
-//
-//            for (int index = 0; index < apr.number_neighbours_in_direction(face); ++index) {
-//                // on each face, there can be 0-4 neighbours accessed by index
-//                if(neigh_it.set_neighbour_iterator(apr, face, index)){
-//                    //will return true if there is a neighbour defined
-//                    if(neigh_it.depth() <= apr.depth()) {
-//                        temp += neigh_it(prediction_reverse);
-//                        counter++;
-//                    }
-//
-//                }
-//            }
-//        }
-//
-//        if(counter > 0){
-//            apr(prediction_reverse) = apr(unsymbol) + temp/counter;
-//        } else {
-//            apr(prediction_reverse) = apr(unsymbol);
-//        }
-//
-//    }
-
-
-};
 
 
 #endif //PARTPLAY_COMPRESSAPR_HPP
