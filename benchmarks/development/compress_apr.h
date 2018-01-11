@@ -4,7 +4,9 @@
 #include <functional>
 #include <string>
 
-#include "../../src/data_structures/APR/APR.hpp"
+#include "src/data_structures/APR/APR.hpp"
+
+#include "src/numerics/CompressAPR.hpp"
 
 struct cmdLineOptions{
     std::string output = "output";
