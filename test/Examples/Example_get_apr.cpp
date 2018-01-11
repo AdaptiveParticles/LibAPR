@@ -85,12 +85,12 @@ int main(int argc, char **argv) {
         //write output as tiff
         level.write_image_tiff(output_path);
 
-        output_path = save_loc + file_name + "_pc.tif";
+        output_path = save_loc + file_name + "_type.tif";
 
         //write output as tiff
         level.write_image_tiff(output_path);
 
-        apr.interp_img(level,apr.particles_int);
+        apr.interp_type(level);
         level.write_image_tiff(output_path);
 
 

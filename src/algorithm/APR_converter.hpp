@@ -17,8 +17,6 @@
 #include "src/algorithm/LocalParticleCellSet.hpp"
 #include "src/algorithm/PullingScheme.hpp"
 
-//debug remove
-#include "benchmarks/development/old_structures/particle_map.hpp"
 
 template<typename ImageType>
 class APR_converter: public LocalIntensityScale, public ComputeGradient, public LocalParticleCellSet, public PullingScheme {
@@ -118,6 +116,125 @@ private:
 /*
  * Implimentations
  */
+template<typename ImageType> template<typename T>
+bool APR_converter<ImageType>::get_apr_method(APR<ImageType>& apr) {
+    //
+    //  Main method for constructing the APR from an input image
+    //
+
+
+    APR_timer full;
+    full.verbose_flag = true;
+
+    full.start_timer("GET APR");
+
+    APR_timer timer;
+    timer.verbose_flag = true;
+
+    timer.start_timer("read tif input image");
+
+    //input type
+    Mesh_data<T> input_image;
+
+    input_image.load_image_tiff(par.input_dir + par.input_image_name);
+
+    timer.stop_timer();
+
+    //    was there an image found
+    if(input_image.mesh.size() == 0){
+        std::cout << "Image Not Found" << std::endl;
+        return false;
+    }
+
+    init_apr(apr,input_image);
+
+    timer.start_timer("calculate automatic parameters");
+    auto_parameters(input_image);
+    timer.stop_timer();
+
+
+    timer.start_timer("init and copy image");
+
+    //initialize the storage of the B-spline co-efficients
+    image_temp.initialize(input_image);
+
+    std::copy(input_image.mesh.begin(),input_image.mesh.end(),image_temp.mesh.begin());
+
+    //allocate require memory for the down-sampled structures
+
+    ////////////////////////////////////////
+    ///
+    /// Memory allocation of variables
+    ///
+    ////////////////////////////////////////
+
+    //compute the gradient
+    grad_temp.preallocate(input_image.y_num,input_image.x_num,input_image.z_num,0);
+
+    local_scale_temp.preallocate(input_image.y_num,input_image.x_num,input_image.z_num,0);
+
+    local_scale_temp2.preallocate(input_image.y_num,input_image.x_num,input_image.z_num,0);
+
+    timer.stop_timer();
+
+    computation_timer.start_timer("Calculations");
+
+    computation_timer.verbose_flag = true;
+
+    APR_timer st;
+    st.verbose_flag = false;
+
+    st.start_timer("grad");
+
+    Mesh_data<T> gradient;
+
+    this->get_gradient(input_image,gradient); //note in the current pipeline don't actually use these variables, but here for interface (Use shared member allocated above variables)
+
+    st.stop_timer();
+
+    Mesh_data<T> local_scale;
+
+    this->get_local_intensity_scale(input_image,local_scale);  //note in the current pipeline don't actually use these variables, but here for interface (Use shared member allocated above variables)
+
+    st.start_timer("init Particle Cell Image Pyramid structure");
+    initialize_particle_cell_tree(apr);
+    st.stop_timer();
+
+    st.start_timer("Compute LPC");
+    this->get_local_particle_cell_set(local_scale,gradient); //note in the current pipeline don't actually use these variables, but here for interface (Use shared member allocated above variables)
+    st.stop_timer();
+
+
+    st.start_timer("Pulling Scheme: Compute OVPC V_n from LPC");
+    PullingScheme::pulling_scheme_main();
+    st.stop_timer();
+
+
+    st.start_timer("Down sample image");
+    std::vector<Mesh_data<T>> downsampled_img;
+    //Down-sample the image for particle intensity estimation
+    downsample_pyrmaid(input_image,downsampled_img,apr.depth_max()-1,apr.depth_min());
+    st.stop_timer();
+
+
+    st.start_timer("Init data structure");
+    apr.init_from_pulling_scheme(particle_cell_tree);
+    st.stop_timer();
+
+
+    st.start_timer("sample particles");
+    apr.get_parts_from_img(downsampled_img,apr.particles_int);
+    st.stop_timer();
+
+    full.stop_timer();
+
+    computation_timer.stop_timer();
+
+    return true;
+}
+
+
+
 template<typename ImageType> template<typename T,typename S>
 void APR_converter<ImageType>::get_local_particle_cell_set(Mesh_data<T>& grad_image_ds,Mesh_data<S>& local_intensity_scale_ds) {
     //
@@ -154,13 +271,13 @@ void APR_converter<ImageType>::get_local_particle_cell_set(Mesh_data<T>& grad_im
     for(int l_ = l_max - 1; l_ >= l_min; l_--){
 
         //down sample the resolution level k, using a max reduction
-        down_sample(grad_temp,image_temp,
-                    [](T x, T y) { return std::max(x,y); },
-                    [](T x) { return x; }, true);
+        down_sample(local_scale_temp,local_scale_temp2,
+                    [](float x, float y) { return std::max(x,y); },
+                    [](float x) { return x; }, true);
         //for those value of level k, add to the hash table
-        fill(l_,image_temp);
+        fill(l_,local_scale_temp2);
         //assign the previous mesh to now be resampled.
-        std::swap(grad_temp, image_temp);
+        std::swap(local_scale_temp, local_scale_temp2);
 
     }
 
@@ -373,171 +490,6 @@ void APR_converter<ImageType>::init_apr(APR<ImageType>& apr,Mesh_data<T>& input_
 
 }
 
-template<typename ImageType> template<typename T>
-bool APR_converter<ImageType>::get_apr_method(APR<ImageType>& apr) {
-    //
-    //  Main method for constructing the APR from an input image
-    //
-
-
-    APR_timer full;
-    full.verbose_flag = true;
-
-    full.start_timer("GET APR");
-
-    APR_timer timer;
-    timer.verbose_flag = true;
-
-    timer.start_timer("read tif input image");
-
-    //input type
-    Mesh_data<T> input_image;
-
-    input_image.load_image_tiff(par.input_dir + par.input_image_name);
-
-    timer.stop_timer();
-
-    //    was there an image found
-    if(input_image.mesh.size() == 0){
-        std::cout << "Image Not Found" << std::endl;
-        return false;
-    }
-
-    init_apr(apr,input_image);
-
-    timer.start_timer("calculate automatic parameters");
-    auto_parameters(input_image);
-    timer.stop_timer();
-
-
-    timer.start_timer("init and copy image");
-
-    //initialize the storage of the B-spline co-efficients
-    image_temp.initialize(input_image);
-
-    std::copy(input_image.mesh.begin(),input_image.mesh.end(),image_temp.mesh.begin());
-
-    //allocate require memory for the down-sampled structures
-
-    ////////////////////////////////////////
-    ///
-    /// Memory allocation of variables
-    ///
-    ////////////////////////////////////////
-
-    //compute the gradient
-    grad_temp.preallocate(input_image.y_num,input_image.x_num,input_image.z_num,0);
-
-    local_scale_temp.preallocate(input_image.y_num,input_image.x_num,input_image.z_num,0);
-
-    local_scale_temp2.preallocate(input_image.y_num,input_image.x_num,input_image.z_num,0);
-
-    timer.stop_timer();
-
-    computation_timer.start_timer("Calculations");
-
-    computation_timer.verbose_flag = true;
-
-    APR_timer st;
-    st.verbose_flag = false;
-
-    st.start_timer("grad");
-
-    Mesh_data<T> gradient;
-
-    this->get_gradient(input_image,gradient); //note in the current pipeline don't actually use these variables, but here for interface (Use shared member allocated above variables)
-
-    st.stop_timer();
-
-    Mesh_data<T> local_scale;
-
-    this->get_local_intensity_scale(input_image,local_scale);  //note in the current pipeline don't actually use these variables, but here for interface (Use shared member allocated above variables)
-
-    st.start_timer("init Particle Cell Image Pyramid structure");
-    initialize_particle_cell_tree(apr);
-    st.stop_timer();
-
-    st.start_timer("Compute LPC");
-    this->get_local_particle_cell_set(local_scale,gradient); //note in the current pipeline don't actually use these variables, but here for interface (Use shared member allocated above variables)
-    st.stop_timer();
-
-
-    Particle_map<uint16_t> pmap;
-    Part_rep pr;
-
-    pmap.k_max = l_max;
-    pmap.k_min = l_min;
-
-    pmap.layers.resize(l_max+1);
-
-
-    for (int i = apr.depth_min(); i < apr.depth_max() ; ++i) {
-        debug_write(particle_cell_tree[i],"before_pct" + std::to_string(i));
-    }
-
-
-
-    for (int j = l_min; j <= l_max; ++j) {
-
-        pmap.layers[j].initialize(particle_cell_tree[j]);
-
-        std::copy(particle_cell_tree[j].mesh.begin(),particle_cell_tree[j].mesh.end(),pmap.layers[j].mesh.begin());
-
-    }
-
-    pr.pl_map.k_max = l_max;
-    pr.pl_map.k_min = l_min;
-    pr.pars.pull_scheme = 2;
-
-    pmap.pushing_scheme(pr);
-
-    st.start_timer("Pulling Scheme: Compute OVPC V_n from LPC");
-    PullingScheme::pulling_scheme_main();
-    st.stop_timer();
-
-    for (int j = l_min; j <= l_max; ++j) {
-        for (int i = 0; i < particle_cell_tree[j].mesh.size(); ++i) {
-            if(particle_cell_tree[j].mesh[i] == pmap.layers[j].mesh[i]){
-
-            } else {
-                std::cout << "different" << std::endl;
-             }
-        }
-
-    }
-
-
-    for (int j = l_min; j <= l_max; ++j) {
-
-        std::copy(pmap.layers[j].mesh.begin(),pmap.layers[j].mesh.end(),particle_cell_tree[j].mesh.begin());
-
-    }
-
-
-    st.start_timer("Down sample image");
-    std::vector<Mesh_data<T>> downsampled_img;
-    //Down-sample the image for particle intensity estimation
-    downsample_pyrmaid(input_image,downsampled_img,apr.depth_max()-1,apr.depth_min());
-    st.stop_timer();
-
-
-
-    st.start_timer("Init data structure");
-    apr.init_from_pulling_scheme(particle_cell_tree);
-    st.stop_timer();
-
-
-
-    st.start_timer("sample particles");
-    apr.get_parts_from_img(downsampled_img,apr.particles_int);
-    st.stop_timer();
-
-    full.stop_timer();
-
-    computation_timer.stop_timer();
-
-    return true;
-}
 
 
 
