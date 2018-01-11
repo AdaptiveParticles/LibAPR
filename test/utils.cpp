@@ -3303,22 +3303,122 @@ bool utest_apr_parallel_iterate(PartCellStructure<float,uint64_t>& pc_struct){
 
     create_intensity_reference_structure(pc_struct,int_array);
 
-    APR_iterator<float> apr_it(apr);
-    unsigned int part = 0;
+    APR_iterator<float> apr_iterator(apr);
+    uint64_t particle_number = 0;
 
-#pragma omp parallel for schedule(static) private(part) firstprivate(apr_it)
-    for (part = 0; part < apr.num_parts_total; ++part) {
-        //needed step for any parallel loop (update to the next part)
-        apr_it.set_iterator_to_particle_by_number(part);
+#pragma omp parallel for schedule(static) private(particle_number) firstprivate(apr_iterator)
+    for (particle_number = 0; particle_number < apr.num_parts_total; ++particle_number) {
+        //needed step for any parallel loop (update to the next particle_number)
+        apr_iterator.set_iterator_to_particle_by_number(particle_number);
 
-        float apr_val = apr_it(apr.particles_int);
+        float apr_val = apr_iterator(apr.particles_int);
 
-        float check_val = int_array[apr_it.depth()](apr_it.y(),apr_it.x(),apr_it.z());
+        float check_val = int_array[apr_iterator.depth()](apr_iterator.y(),apr_iterator.x(),apr_iterator.z());
 
         if(check_val!=apr_val){
             success = false;
         }
 
+    }
+
+
+    uint64_t counter = 0;
+
+    for (int level = apr.level_min(); level <= apr.level_max(); ++level) {
+
+#pragma omp parallel for schedule(static) private(particle_number) firstprivate(apr_iterator) reduction(+:counter)
+        for (particle_number = apr_iterator.particles_level_begin(level); particle_number <  apr_iterator.particles_level_end(level); ++particle_number) {
+            //
+            //  Parallel loop over level
+            //
+            apr_iterator.set_iterator_to_particle_by_number(particle_number);
+
+            counter++;
+
+            if(apr_iterator.level() == level){
+
+            } else{
+                success = false;
+            }
+        }
+    }
+
+    if(counter != apr.num_parts_total){
+        success = false;
+    }
+
+
+    ///
+    ///  By level and z slice (loop over x and then y)
+    ///
+
+    counter = 0;
+
+    for (int level = apr.level_min(); level <= apr.level_max(); ++level) {
+        for(unsigned int z = 0; z < apr.spatial_index_z_max(level); ++z) {
+
+            uint64_t  begin = apr_iterator.particles_z_begin(level,z);
+            uint64_t  end = apr_iterator.particles_z_end(level,z);
+
+#pragma omp parallel for schedule(static) private(particle_number) firstprivate(apr_iterator) reduction(+:counter)
+            for (particle_number = apr_iterator.particles_z_begin(level,z);
+                 particle_number < apr_iterator.particles_z_end(level,z); ++particle_number) {
+                //
+                //  Parallel loop over level
+                //
+                apr_iterator.set_iterator_to_particle_by_number(particle_number);
+
+                counter++;
+
+                if (apr_iterator.z() == z) {
+
+                } else {
+                    success = false;
+                }
+            }
+        }
+    }
+
+    if(counter != apr.num_parts_total){
+        success = false;
+    }
+
+
+    ///
+    ///  By level and z slice and x (loop over particles in y (memory order))
+    ///
+
+    counter = 0;
+
+    for (int level = apr.level_min(); level <= apr.level_max(); ++level) {
+        for (unsigned int z = 0; z < apr.spatial_index_z_max(level); ++z) {
+            for (unsigned int x = 0; x < apr.spatial_index_x_max(level); ++x) {
+
+                uint64_t begin = apr_iterator.particles_zx_begin(level, z, x);
+                uint64_t end = apr_iterator.particles_zx_end(level, z, x);
+
+#pragma omp parallel for schedule(static) private(particle_number) firstprivate(apr_iterator) reduction(+:counter)
+                for (particle_number = apr_iterator.particles_zx_begin(level, z, x);
+                     particle_number < apr_iterator.particles_zx_end(level, z, x); ++particle_number) {
+                    //
+                    //  Parallel loop over level
+                    //
+                    apr_iterator.set_iterator_to_particle_by_number(particle_number);
+
+                    counter++;
+
+                    if (apr_iterator.x() == x) {
+
+                    } else {
+                        success = false;
+                    }
+                }
+            }
+        }
+    }
+
+    if(counter != apr.num_parts_total){
+        success = false;
     }
 
 
@@ -3398,6 +3498,13 @@ bool utest_apr_serial_neigh(PartCellStructure<float,uint64_t>& pc_struct){
         }
 
     }
+
+
+
+
+
+
+
 
     return success;
 

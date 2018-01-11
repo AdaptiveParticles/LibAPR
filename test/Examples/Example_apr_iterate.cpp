@@ -270,7 +270,7 @@ int main(int argc, char **argv) {
 
 
     ///
-    ///  By level and z slice
+    ///  By level and z slice (loop over x and then y)
     ///
 
     counter = 0;
@@ -305,7 +305,79 @@ int main(int argc, char **argv) {
     }
 
 
+    ///
+    ///  By level and z slice and x (loop over particles in y (memory order))
+    ///
 
+    counter = 0;
+
+    for (int level = apr.level_min(); level <= apr.level_max(); ++level) {
+        for (unsigned int z = 0; z < apr.spatial_index_z_max(level); ++z) {
+            for (unsigned int x = 0; x < apr.spatial_index_x_max(level); ++x) {
+
+                uint64_t begin = apr_iterator.particles_zx_begin(level, z, x);
+                uint64_t end = apr_iterator.particles_zx_end(level, z, x);
+
+#pragma omp parallel for schedule(static) private(particle_number) firstprivate(apr_iterator) reduction(+:counter)
+                for (particle_number = apr_iterator.particles_zx_begin(level, z, x);
+                     particle_number < apr_iterator.particles_zx_end(level, z, x); ++particle_number) {
+                    //
+                    //  Parallel loop over level
+                    //
+                    apr_iterator.set_iterator_to_particle_by_number(particle_number);
+
+                    counter++;
+
+                    if (apr_iterator.x() == x) {
+
+                    } else {
+                        std::cout << "broken" << std::endl;
+                    }
+                }
+            }
+        }
+    }
+
+    if(counter != apr.num_parts_total){
+        std::cout << "NOT TOTAL ITERATION" << std::endl;
+    }
+
+    ///
+    /// Alternative Paralellization Strategy (OpenMP splits up the z-slices)
+    ///
+
+    counter = 0;
+
+    for (int level = apr.level_min(); level <= apr.level_max(); ++level) {
+
+        int z = 0;
+#pragma omp parallel for schedule(static) private(particle_number,z) firstprivate(apr_iterator) reduction(+:counter)
+        for(z = 0; z < apr.spatial_index_z_max(level); ++z) {
+
+            uint64_t  begin = apr_iterator.particles_z_begin(level,z);
+            uint64_t  end = apr_iterator.particles_z_end(level,z);
+
+            for (particle_number = apr_iterator.particles_z_begin(level,z);
+                 particle_number < apr_iterator.particles_z_end(level,z); ++particle_number) {
+                //
+                //  Parallel loop over level
+                //
+                apr_iterator.set_iterator_to_particle_by_number(particle_number);
+
+                counter++;
+
+                if (apr_iterator.z() == z) {
+
+                } else {
+                    std::cout << "broken" << std::endl;
+                }
+            }
+        }
+    }
+
+    if(counter != apr.num_parts_total){
+        std::cout << "NOT TOTAL ITERATION" << std::endl;
+    }
 
 }
 
