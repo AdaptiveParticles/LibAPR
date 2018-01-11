@@ -304,7 +304,7 @@ void PullingScheme::set_filler(int level)
 
 #pragma omp parallel for default(shared) \
         private(i,k,children_index,jn,in,kn,children_status,status,index) \
-        if(z_num * x_num * y_num > 10000) reduction(+:parts) firstprivate(level, children_boundaries)
+        if(z_num * x_num * y_num > 10000) firstprivate(level, children_boundaries)
     for(int j = 0; j < z_num; j++) {
 
         if( j == z_num - 1 && prev_z_num % 2 ) {
@@ -341,7 +341,6 @@ void PullingScheme::set_filler(int level)
                                 children_status = particle_cell_tree[level + 1].mesh[children_index];
                                 if(children_status == EMPTY) {
                                     particle_cell_tree[level + 1].mesh[children_index] = FILLER_TYPE;
-                                    parts++;
                                 }
                             }
 
@@ -369,7 +368,7 @@ void PullingScheme::fill_neighbours(int level)
 
 
 #pragma omp parallel for default(shared) private(j,i,k,neighbour_index,jn,in,kn,status,index) firstprivate(boundaries) \
-        reduction(+:parts) if(z_num * x_num * y_num > 100000)
+        if(z_num * x_num * y_num > 100000)
         for (int j = out; j < z_num; j += 3) {
 
             CHECKBOUNDARIES(0, j, z_num - 1, boundaries);
@@ -391,7 +390,6 @@ void PullingScheme::fill_neighbours(int level)
 
                                     if (particle_cell_tree[level].mesh[neighbour_index] == EMPTY) {
                                         particle_cell_tree[level].mesh[neighbour_index] = BOUNDARY_TYPE;
-                                        parts++;
                                     }
                                 }
                         parts += 8;

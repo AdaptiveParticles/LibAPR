@@ -54,7 +54,7 @@ public:
 
 
     APR_iterator(APR<ImageType>& apr){
-        current_part = 0;
+        current_part = -2;
 
         apr.get_part_numbers();
         apr.set_part_numbers_xz();
@@ -67,6 +67,43 @@ public:
         this->curr_level.init(apr.pc_data);
 
     }
+
+
+    inline unsigned int particles_level_begin(unsigned int level_){
+        //
+        //  Used for finding the starting particle on a given level
+        //
+        return (*num_parts)[level_-1];
+    }
+
+    inline unsigned int particles_level_end(unsigned int level_){
+        //
+        //  Find the last particle on a given level
+        //
+        return (*num_parts)[level_];
+    }
+
+    inline unsigned int particles_z_begin(unsigned int level,unsigned int z){
+        //
+        //  Used for finding the starting particle on a given level
+        //
+        return (*num_parts)[level-1];
+    }
+
+    inline unsigned int particles_z_end(unsigned int level,unsigned int z){
+        //
+        //  Used for finding the starting particle on a given level
+        //
+        return (*num_parts)[level-1];
+    }
+
+    inline unsigned int particles_zx_end(unsigned int level,unsigned int z,unsigned int x){
+        //
+        //  Used for finding the starting particle on a given level
+        //
+        return (*num_parts)[level-1];
+    }
+
 
 
     bool set_iterator_to_particle_by_number(uint64_t part_num){
@@ -93,7 +130,7 @@ public:
 
             uint64_t depth = (*pc_data_pointer).depth_min;
             //first depth search
-            while((part_num > (*num_parts)[depth]) | ((*num_parts)[depth] ==0) ){
+            while(((part_num) >= ((*num_parts)[depth])) | ((*num_parts)[depth] ==0) ){
                 depth++;
             }
 
@@ -129,15 +166,16 @@ public:
             }
 
 
-        } else if(part_num ==0){
-            curr_level.set_new_depth((*pc_data_pointer).depth_min,*pc_data_pointer);
-            curr_level.set_new_z(0,*pc_data_pointer);
-            curr_level.set_new_x(0,*pc_data_pointer);
-            curr_level.update_j(*pc_data_pointer,0);
-
-            curr_level.move_to_next_pc(*pc_data_pointer);
-
         }
+//        else if(part_num ==0){
+//            curr_level.set_new_depth((*pc_data_pointer).depth_min,*pc_data_pointer);
+//            curr_level.set_new_z(0,*pc_data_pointer);
+//            curr_level.set_new_x(0,*pc_data_pointer);
+//            curr_level.update_j(*pc_data_pointer,0);
+//
+//            curr_level.move_to_next_pc(*pc_data_pointer);
+//
+//        }
 
         return true;
 
@@ -301,6 +339,14 @@ public:
 
     inline unsigned int depth_min(){
         return (*pc_data_pointer).depth_min;
+    }
+
+    inline unsigned int level_min(){
+        return (*pc_data_pointer).depth_min;
+    }
+
+    inline unsigned int level_max(){
+        return (*pc_data_pointer).depth_max;
     }
 
 
