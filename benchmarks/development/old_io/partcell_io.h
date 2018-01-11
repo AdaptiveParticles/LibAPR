@@ -986,8 +986,8 @@ void write_apr_pc_struct_hilbert(PartCellStructure<T,uint64_t>& pc_struct,std::s
 
     for(uint64_t depth = (curr_apr.particles_int.depth_min);depth <= curr_apr.particles_int.depth_max;depth++) {
         //loop over the resolutions of the structure
-        const unsigned int x_num_ = curr_apr.y_vec.x_num[depth];
-        const unsigned int z_num_ = curr_apr.y_vec.z_num[depth];
+        const unsigned int x_num_ = curr_apr.particles_int.x_num[depth];
+        const unsigned int z_num_ = curr_apr.particles_int.z_num[depth];
         unsigned int y_num_ = 0;
         if(depth == curr_apr.particles_int.depth_max) {
              y_num_ = pc_struct.org_dims[0];

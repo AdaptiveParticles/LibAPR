@@ -37,71 +37,40 @@ class APR : public APR_iterator<ImageType>{
 
 public:
 
-    ParticleDataNew<ImageType, uint64_t> part_new;
-    //flattens format to particle = cell, this is in the classic access/part paradigm
 
-    ExtraPartCellData<uint16_t> y_vec;
+    //Main internal datastructures
 
-    ExtraPartCellData<ImageType> particles_int;
+    ExtraPartCellData<ImageType> particles_int; // holds the particles intenisty information
 
-    PartCellData<uint64_t> pc_data;
+    PartCellData<uint64_t> pc_data; // holds the spatial and neighbours access information and methods
 
+    //used for storing number of paritcles and cells per level for parallel access iterators
     std::vector<float> num_parts;
-
     std::vector<float> num_elements;
-
-
     ExtraPartCellData<uint64_t> num_parts_xy;
-
-    ExtraPartCellData<hash_map> random_access;
+    double num_elements_total;
 
     std::string name;
+    APR_parameters parameters;
 
+
+    //old parameters (depreciated)
     Proc_par pars;
 
-    double num_elements_total;
+    //Experimental
+    ExtraPartCellData<hash_map> random_access;
 
     APR(){
         this->pc_data_pointer = &pc_data;
     }
 
     APR(PartCellStructure<float,uint64_t>& pc_struct){
-        init(pc_struct);
+        init_cells(pc_struct);
         this->pc_data_pointer = &pc_data;
     }
 
-    void init(PartCellStructure<float,uint64_t>& pc_struct){
-        part_new.initialize_from_structure(pc_struct);
-
-        create_y_data();
-
-        part_new.create_particles_at_cell_structure(particles_int);
-
-        part_new.create_pc_data_new(pc_data);
-
-        shift_particles_from_cells(particles_int);
-
-        part_new.initialize_from_structure(pc_struct);
-
-
-    }
-
-
-    void init_by_part_iteration(APR_iterator<ImageType>& apr_it){
-        //
-        //  Initializes the required datastructures for by particles and parralell iteration
-        //
-
-        get_part_numbers();
-        set_part_numbers_xz();
-
-        apr_it.num_parts = &this->num_parts;
-        apr_it.num_parts_xz_pointer = &this->num_parts_xy;
-        apr_it.num_parts_total = this->num_parts_total;
-        apr_it.pc_data_pointer = &pc_data;
-
-        apr_it.curr_level.init(pc_data);
-    }
+    //deprecitated
+    ExtraPartCellData<uint16> y_vec;
 
     void init_iterator(APR_iterator<ImageType>& apr_it){
         //
@@ -168,78 +137,6 @@ public:
 
     }
 
-
-
-
-
-
-    void init_pc_data(){
-
-
-        part_new.create_pc_data_new(pc_data);
-
-        pc_data.org_dims = y_vec.org_dims;
-    }
-
-    void create_y_data(){
-        //
-        //  Bevan Cheeseman 2017
-        //
-        //  Creates y index
-        //
-
-        y_vec.initialize_structure_parts(part_new.particle_data);
-
-        y_vec.org_dims = part_new.access_data.org_dims;
-
-        int z_,x_,j_,y_;
-
-        for(uint64_t depth = (part_new.access_data.depth_min);depth <= part_new.access_data.depth_max;depth++) {
-            //loop over the resolutions of the structure
-            const unsigned int x_num_ = part_new.access_data.x_num[depth];
-            const unsigned int z_num_ = part_new.access_data.z_num[depth];
-
-            CurrentLevel<ImageType, uint64_t> curr_level(part_new);
-            curr_level.set_new_depth(depth, part_new);
-
-            const float step_size = pow(2,curr_level.depth_max - curr_level.depth);
-
-#pragma omp parallel for default(shared) private(z_,x_,j_) firstprivate(curr_level) if(z_num_*x_num_ > 100)
-            for (z_ = 0; z_ < z_num_; z_++) {
-                //both z and x are explicitly accessed in the structure
-
-                for (x_ = 0; x_ < x_num_; x_++) {
-
-                    curr_level.set_new_xz(x_, z_, part_new);
-
-                    int counter = 0;
-
-                    for (j_ = 0; j_ < curr_level.j_num; j_++) {
-
-                        bool iscell = curr_level.new_j(j_, part_new);
-
-                        if (iscell) {
-                            //Indicates this is a particle cell node
-                            curr_level.update_cell(part_new);
-
-                            y_vec.data[depth][curr_level.pc_offset][counter] = curr_level.y;
-
-                            counter++;
-                        } else {
-
-                            curr_level.update_gap();
-
-                        }
-
-
-                    }
-                }
-            }
-        }
-
-
-
-    }
 
     template<typename U>
     void shift_particles_from_cells(ExtraPartCellData<U>& pdata_old){
@@ -974,7 +871,7 @@ public:
 #pragma omp parallel for schedule(static) private(part) firstprivate(apr_it)
         for (part = 0; part < this->num_parts_total; ++part) {
             //needed step for any parallel loop (update to the next part)
-            apr_it.set_part(part);
+            apr_it.set_iterator_to_particle_by_number(part);
 
             apr_it(parts) = img_by_level[apr_it.depth()](apr_it.y(),apr_it.x(),apr_it.z());
 

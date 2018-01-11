@@ -215,7 +215,7 @@ void apr_raycast(APR<U>& apr,ExtraPartCellData<S>& particle_data,proj_par& pars,
 
 #pragma omp parallel for schedule(static) private(part,y_actual,x_actual,z_actual) firstprivate(apr_it,mvp)
         for (part = 0; part < apr.num_parts_total; ++part) {
-            apr_it.set_part(part);
+            apr_it.set_iterator_to_particle_by_number(part);
 
             //get apr info
 

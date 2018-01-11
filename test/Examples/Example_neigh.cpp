@@ -142,7 +142,7 @@ int main(int argc, char **argv) {
 
     timer.start_timer("APR parallel iterator neighbour loop");
 
-#pragma omp parallel for schedule(static) private(part) firstprivate(apr_it,neigh_it)
+#pragma omp parallel for schedule(static) private(part) firstprivate(apr_parallel_iterator,neighbour_iterator)
     for (part = 0; part < apr.num_parts_total; ++part) {
         //needed step for any parallel loop (update to the next part)
         apr_parallel_iterator.set_iterator_to_particle_by_number(part);
@@ -177,7 +177,7 @@ int main(int argc, char **argv) {
 
     timer.start_timer("APR parallel iterator neighbours loop only -x face neighbours");
 
-#pragma omp parallel for schedule(static) private(part) firstprivate(apr_it,neigh_it)
+#pragma omp parallel for schedule(static) private(part) firstprivate(apr_parallel_iterator,neighbour_iterator)
     for (part = 0; part < apr.num_parts_total; ++part) {
         //needed step for any parallel loop (update to the next part)
         apr_parallel_iterator.set_iterator_to_particle_by_number(part);
