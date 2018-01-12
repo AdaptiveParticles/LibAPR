@@ -29,16 +29,42 @@ public:
 
         std::vector<unsigned int> predict_directions = {1,3,5};
 
-        unsigned int level = apr.level_max();
-
         unsigned int num_blocks = 10;
 
         predict_input.copy_parts(apr.particles_int);
 
-        //predict_input.map_inplace([this](const float a){return variance_stabilitzation<float>(a);},apr.level_max());
+        //conver the bottom tow layers over
+        predict_input.map_inplace([this](const float a){return variance_stabilitzation<float>(a);},apr.level_max());
 
-        //predict_input.map_inplace([this](const float a){return calculate_symbols<float>(a);},apr.level_max());
+        ///////////////////////////
+        ///
+        /// Only perform variance stabilization on the highest level particles
+        ///
+        ///////////////////////////
 
+
+        predict_input.map_inplace([this](const float a){return variance_stabilitzation<float>(a);},apr.level_max()-1);
+
+        predict_particles_by_level(apr,apr.level_max(),predict_input,predict_output,predict_directions,num_blocks,0);
+
+        ///////////////////////////
+        ///
+        /// Otherwise just predict the intensities (at lower levels)
+        ///
+        ///////////////////////////
+
+        //copy over the original intensities again
+        predict_input.copy_parts(apr.particles_int,apr.level_max()-1);
+
+        for (int level = apr.level_min(); level < apr.level_max(); ++level) {
+            predict_particles_by_level(apr,level,predict_input,predict_output,predict_directions,num_blocks,0);
+        }
+
+        //compute the symbols
+        ExtraPartCellData<uint16_t> symbols;
+        symbols = predict_output.map<uint16_t>([this](const float a){return calculate_symbols<uint16_t,float>(a);});
+
+        apr.write_particles_only(apr.parameters.input_dir,"symbols",symbols);
 
         //predict_particles_by_level(apr,level,predict_output,predict_input,predict_directions,num_blocks,0);
 
@@ -58,8 +84,8 @@ private:
     template<typename S>
     S variance_stabilitzation(const S input);
 
-    template<typename T,typename S>
-    T inverse_variance_stabilitzation(S input);
+    template<typename S>
+    S inverse_variance_stabilitzation(const S input);
 
     template<typename T,typename S>
     T calculate_symbols(S input);
@@ -79,16 +105,16 @@ S APRCompress::variance_stabilitzation(const S input){
 
 };
 
-template<typename T,typename S>
-T APRCompress::inverse_variance_stabilitzation(S input){
+template<typename S>
+S APRCompress::inverse_variance_stabilitzation(const S input){
 
     float D = q*input + 2*e;
 
     if(D >= 2*e){
         D = (pow(D,2)/4.0 - pow(e,2))*cnv + background;
-        return ((T) D);
+        return ((S) D);
     } else {
-        return ((T) background);
+        return ((S) background);
     }
 
 };

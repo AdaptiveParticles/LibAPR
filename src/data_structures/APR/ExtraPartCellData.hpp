@@ -96,6 +96,34 @@ public:
 
     }
 
+    template<typename S>
+    void copy_parts(ExtraPartCellData<S>& parts_to_copy,const unsigned int level){
+        //
+        //  Copy's the data from one particle dataset to another, assumes it is already intialized, for a specific level
+        //
+
+        uint64_t x_;
+        uint64_t z_;
+
+        const unsigned int x_num_ = x_num[level];
+        const unsigned int z_num_ = z_num[level];
+
+#pragma omp parallel for private(z_,x_)
+        for(z_ = 0;z_ < z_num_;z_++){
+
+            for(x_ = 0;x_ < x_num_;x_++){
+
+                const size_t offset_pc_data = x_num_*z_ + x_;
+                const size_t j_num = data[level][offset_pc_data].size();
+
+                std::copy(parts_to_copy.data[level][offset_pc_data].begin(),parts_to_copy.data[level][offset_pc_data].end(),data[level][offset_pc_data].begin());
+
+            }
+        }
+
+
+    }
+
 
     template<typename S>
     void initialize_structure_cells(PartCellData<S>& pc_data){
@@ -452,8 +480,8 @@ public:
 
 
 
-    template<class UnaryOperator>
-    ExtraPartCellData<T> map(UnaryOperator op){
+    template<typename U,class UnaryOperator>
+    ExtraPartCellData<U> map(UnaryOperator op){
         //
         //  Bevan Cheeseman 2018
         //
@@ -463,7 +491,7 @@ public:
         //
         //
 
-        ExtraPartCellData<T> output;
+        ExtraPartCellData<U> output;
         output.initialize_structure_parts(*this);
 
         int z_,x_,j_,y_;
