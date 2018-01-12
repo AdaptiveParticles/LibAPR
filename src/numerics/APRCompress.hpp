@@ -31,6 +31,10 @@ public:
 
         unsigned int num_blocks = 10;
 
+        this->background = apr.parameters.Ip_th;
+
+        std::cout << background << std::endl;
+
         predict_input.copy_parts(apr.particles_int);
 
         //conver the bottom tow layers over

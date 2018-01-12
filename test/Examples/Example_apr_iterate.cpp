@@ -101,6 +101,8 @@ int main(int argc, char **argv) {
     for (apr.begin(); apr.end() != 0; apr.it_forward()) {
         // multiple the Particle Cell type by the particle intensity (the intensity is stored as a ExtraPartCellData and therefore is no different from any additional datasets)
         apr(calc_ex) = apr.type()*apr(apr.particles_int);
+
+
     }
 
     timer.stop_timer();

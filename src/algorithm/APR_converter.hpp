@@ -157,7 +157,10 @@ bool APR_converter<ImageType>::get_apr_method(APR<ImageType>& apr) {
     //initialize the storage of the B-spline co-efficients
     image_temp.initialize(input_image);
 
-    std::copy(input_image.mesh.begin(),input_image.mesh.end(),image_temp.mesh.begin());
+    //std::copy(input_image.mesh.begin(),input_image.mesh.end(),image_temp.mesh.begin());
+
+    image_temp.block_copy_data(input_image,20);
+
 
     //allocate require memory for the down-sampled structures
 

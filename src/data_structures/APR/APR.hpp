@@ -53,7 +53,6 @@ public:
     std::string name;
     APR_parameters parameters;
 
-
     //old parameters (depreciated)
     Proc_par pars;
 

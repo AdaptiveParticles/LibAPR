@@ -10,6 +10,11 @@
 class APR_parameters {
 
 public:
+
+    APR_parameters(){
+
+    };
+
     // pixel spacing
     float dx = 1;
     float dy = 1;
@@ -29,20 +34,20 @@ public:
     float sigma_th = 0;
     float sigma_th_max = 0;
 
+    float noise_sd_estimate = 0;
+    float background_intensity_estimate = 0;
+
     std::string name;
     std::string output_dir;
     std::string input_image_name;
     std::string input_dir;
     std::string mask_file;
 
-    float noise_sd_estimate = 0;
-    float background_intensity_estimate = 0;
+
 
     unsigned int interp_type = 2;
 
-    APR_parameters(){
 
-    };
 
 };
 
