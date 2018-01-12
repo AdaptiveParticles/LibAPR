@@ -27,7 +27,10 @@ public:
 
         unsigned int level = apr.level_max();
 
-        unsigned int num_blocks = 10;
+        unsigned int num_blocks = 4;
+
+
+        predict_input.map_inplace([this](const float a){return variance_stabilitzation<float>(a);},apr.level_max());
 
         predict_particles_by_level(apr,level,predict_output,predict_input,predict_directions,num_blocks);
 
@@ -42,8 +45,8 @@ private:
     float cnv = 65636/30000;
     float q = .5;
 
-    template<typename T,typename S>
-    T variance_stabilitzation(S input);
+    template<typename S>
+    S variance_stabilitzation(const S input);
 
     template<typename T,typename S>
     T inverse_variance_stabilitzation(S input);
@@ -59,10 +62,10 @@ private:
 
 };
 
-template<typename T,typename S>
-T APRCompress::variance_stabilitzation(S input){
+template<typename S>
+S APRCompress::variance_stabilitzation(const S input){
 
-    return (2*sqrt(std::max((T) (input-background),(T)0)/cnv + pow(e,2)) - 2*e)/q;
+    return (2*sqrt(std::max((S) (input-background),(S)0)/cnv + pow(e,2)) - 2*e)/q;
 
 };
 

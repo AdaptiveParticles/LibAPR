@@ -495,6 +495,45 @@ public:
 
     }
 
+
+    template<class UnaryOperator>
+    void map_inplace(UnaryOperator op,unsigned int level){
+        //
+        //  Bevan Cheeseman 2018
+        //
+        //  Performs a unary operator on a particle dataset in parrallel and returns a new dataset with the result
+        //
+        //  See std::transform for examples of different operators to use
+        //
+
+        int z_,x_,j_,y_;
+
+        //loop over the resolutions of the structure
+        const unsigned int x_num_ = x_num[level];
+        const unsigned int z_num_ = z_num[level];
+
+        const unsigned int x_num_min_ = 0;
+        const unsigned int z_num_min_ = 0;
+
+#pragma omp parallel for default(shared) private(z_,x_,j_) if(z_num_*x_num_ > 100)
+        for (z_ = z_num_min_; z_ < z_num_; z_++) {
+            //both z and x are explicitly accessed in the structure
+
+            for (x_ = x_num_min_; x_ < x_num_; x_++) {
+
+                const unsigned int pc_offset = x_num_*z_ + x_;
+
+                std::transform(data[level][pc_offset].begin(),data[level][pc_offset].end(),data[level][pc_offset].begin(),op);
+
+            }
+        }
+
+
+    }
+
+
+
+
     /// some helpers functions for the transform_parts above
     template<typename V>
     V square(V input){

@@ -85,8 +85,9 @@ int main(int argc, char **argv) {
 
     APRCompress comp;
 
+    timer.start_timer("compress");
     comp.compress(apr);
-
+    timer.stop_timer();
 
 
 //    float e = 1.6;
