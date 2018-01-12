@@ -73,7 +73,7 @@ int main(int argc, char **argv) {
     std::string file_name = options.directory + options.input;
 
     // Read the apr file into the part cell structure
-    Part_timer timer;
+    APR_timer timer;
 
     timer.verbose_flag = true;
 
@@ -87,6 +87,24 @@ int main(int argc, char **argv) {
 
     timer.start_timer("compress");
     comp.compress(apr);
+    timer.stop_timer();
+
+    Mesh_data<uint16_t> input;
+    input.initialize(1200,1200,1200);
+
+    Mesh_data<uint16_t> output;
+    output.initialize(1200,1200,1200);
+
+
+    timer.start_timer("parallel");
+
+    input.block_copy_data(output,100);
+
+    timer.stop_timer();
+
+    timer.start_timer("serial");
+
+    std::copy(input.mesh.begin(),input.mesh.begin() + input.mesh.size() - 1,output.mesh.begin());
     timer.stop_timer();
 
 

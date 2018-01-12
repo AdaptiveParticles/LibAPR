@@ -33,15 +33,16 @@ public:
 
         unsigned int num_blocks = 10;
 
+        predict_input.copy_parts(apr.particles_int);
 
         //predict_input.map_inplace([this](const float a){return variance_stabilitzation<float>(a);},apr.level_max());
 
         //predict_input.map_inplace([this](const float a){return calculate_symbols<float>(a);},apr.level_max());
 
 
-        predict_particles_by_level(apr,level,predict_output,predict_input,predict_directions,num_blocks,0);
+        //predict_particles_by_level(apr,level,predict_output,predict_input,predict_directions,num_blocks,0);
 
-        predict_particles_by_level(apr,level,predict_output,predict_input,predict_directions,num_blocks,1);
+        //predict_particles_by_level(apr,level,predict_output,predict_input,predict_directions,num_blocks,1);
 
     }
 

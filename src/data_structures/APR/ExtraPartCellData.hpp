@@ -65,6 +65,39 @@ public:
 
 
     template<typename S>
+    void copy_parts(ExtraPartCellData<S>& parts_to_copy){
+        //
+        //  Copy's the data from one particle dataset to another, assumes it is already intialized.
+        //
+
+        uint64_t x_;
+        uint64_t z_;
+
+        for(uint64_t i = depth_min;i <= depth_max;i++){
+
+            const unsigned int x_num_ = x_num[i];
+            const unsigned int z_num_ = z_num[i];
+
+#pragma omp parallel for private(z_,x_)
+            for(z_ = 0;z_ < z_num_;z_++){
+
+                for(x_ = 0;x_ < x_num_;x_++){
+
+                    const size_t offset_pc_data = x_num_*z_ + x_;
+                    const size_t j_num = data[i][offset_pc_data].size();
+
+                    std::copy(parts_to_copy.data[i][offset_pc_data].begin(),parts_to_copy.data[i][offset_pc_data].end(),data[i][offset_pc_data].begin());
+
+                }
+            }
+
+        }
+
+
+    }
+
+
+    template<typename S>
     void initialize_structure_cells(PartCellData<S>& pc_data){
         //
         //  Initialize the structure to the same size as the given structure
@@ -85,8 +118,10 @@ public:
             z_num[i] = pc_data.z_num[i];
             x_num[i] = pc_data.x_num[i];
             data[i].resize(z_num[i]*x_num[i]);
-            
-            for(int j = 0;j < pc_data.data[i].size();j++){
+
+            int j = 0;
+#pragma omp parallel for private(j)
+            for(j = 0;j < pc_data.data[i].size();j++){
                 data[i][j].resize(pc_data.data[i][j].size(),0);
             }
             
