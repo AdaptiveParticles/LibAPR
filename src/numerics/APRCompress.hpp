@@ -16,6 +16,10 @@ class APRCompress {
 
 public:
 
+    APRCompress(){
+
+    };
+
     template<typename U>
     void compress(APR<U>& apr) {
 
@@ -27,12 +31,17 @@ public:
 
         unsigned int level = apr.level_max();
 
-        unsigned int num_blocks = 4;
+        unsigned int num_blocks = 10;
 
 
-        predict_input.map_inplace([this](const float a){return variance_stabilitzation<float>(a);},apr.level_max());
+        //predict_input.map_inplace([this](const float a){return variance_stabilitzation<float>(a);},apr.level_max());
 
-        predict_particles_by_level(apr,level,predict_output,predict_input,predict_directions,num_blocks);
+        //predict_input.map_inplace([this](const float a){return calculate_symbols<float>(a);},apr.level_max());
+
+
+        predict_particles_by_level(apr,level,predict_output,predict_input,predict_directions,num_blocks,0);
+
+        predict_particles_by_level(apr,level,predict_output,predict_input,predict_directions,num_blocks,1);
 
     }
 
@@ -58,7 +67,7 @@ private:
     T inverse_calculate_symbols(S input);
 
     template<typename T,typename S,typename U>
-    void predict_particles_by_level(APR<U>& apr,unsigned int level,ExtraPartCellData<T>& predict_input,ExtraPartCellData<S>& predict_output,std::vector<unsigned int>& predict_directions,unsigned int num_z_blocks);
+    void predict_particles_by_level(APR<U>& apr,const unsigned int level,ExtraPartCellData<T>& predict_input,ExtraPartCellData<S>& predict_output,std::vector<unsigned int>& predict_directions,unsigned int num_z_blocks,const int decode_encode_flag);
 
 };
 
@@ -100,13 +109,14 @@ T APRCompress::inverse_calculate_symbols(S input){
 };
 
 template<typename T,typename S,typename U>
-void APRCompress::predict_particles_by_level(APR<U>& apr,unsigned int level,ExtraPartCellData<T>& predict_input,ExtraPartCellData<S>& predict_output,std::vector<unsigned int>& predict_directions,unsigned int num_z_blocks){
+void APRCompress::predict_particles_by_level(APR<U>& apr,const unsigned int level,ExtraPartCellData<T>& predict_input,ExtraPartCellData<S>& predict_output,std::vector<unsigned int>& predict_directions,unsigned int num_z_blocks,const int decode_encode_flag){
     //
     //  Performs prediction step using the predict directions in chunks of the dataset, given by z_index slice.
     //
     //  This allows parallelization of a recursive prediction process.
     //
-
+    //  The decode and encode flag is used if it is predicting or reconstructing
+    //
 
     APR_iterator<U> apr_iterator(apr);
     APR_iterator<U> neighbour_iterator(apr);
@@ -131,39 +141,120 @@ void APRCompress::predict_particles_by_level(APR<U>& apr,unsigned int level,Extr
         z_block_end[i] = csum + size_of_block;
 
         csum+=size_of_block;
-
     }
 
     z_block_end[num_z_blocks-1] = z_num; //fill in the extras;
 
     unsigned int z_block;
-    uint64_t counter = 0;
 
-#pragma omp parallel for schedule(static) private(z_block) firstprivate(apr_iterator,neighbour_iterator) reduction(+:counter)
 
+    APR_timer timer;
+    timer.verbose_flag = true;
+
+    timer.start_timer("loop");
+
+#pragma omp parallel for schedule(dynamic) private(z_block) firstprivate(apr_iterator,neighbour_iterator,z_block_begin,z_block_end)
     for (z_block = 0; z_block < num_z_blocks; ++z_block) {
 
         for (unsigned int z = z_block_begin[z_block]; z < z_block_end[z_block]; ++z) {
-
-            uint64_t begin = apr_iterator.particles_z_begin(level, z);
-            uint64_t end = apr_iterator.particles_z_end(level, z);
 
             for (uint64_t particle_number = apr_iterator.particles_z_begin(level, z);
                  particle_number < apr_iterator.particles_z_end(level, z); ++particle_number) {
 
                 apr_iterator.set_iterator_to_particle_by_number(particle_number);
 
-                counter++;
+                apr_iterator.update_all_neighbours();
 
-                if (apr_iterator.z() == z) {
+                float count_neighbours = 0;
+                float temp = 0;
 
-                } else {
-                    std::cout << "broken" << std::endl;
+                //Handle the z_blocking, neighbours shoudl not be used on the zblock begin
+                if(z != z_block_begin[z_block]) {
+
+                    //loop over all the neighbours and set the neighbour iterator to it
+                    for (int f = 0; f < predict_directions.size(); ++f) {
+                        // Neighbour Particle Cell Face definitions [+y,-y,+x,-x,+z,-z] =  [0,1,2,3,4,5]
+
+                        unsigned int face = predict_directions[f];
+                        apr_iterator.update_direction_neighbours(f);
+
+                        for (int index = 0; index < apr_iterator.number_neighbours_in_direction(face); ++index) {
+                            // on each face, there can be 0-4 neighbours accessed by index
+                            if (neighbour_iterator.set_neighbour_iterator(apr_iterator, face, index)) {
+                                //will return true if there is a neighbour defined
+
+                                if (neighbour_iterator.depth() <= apr_iterator.depth()) {
+                                    if(decode_encode_flag == 0) {
+                                        //Encode
+                                        temp += neighbour_iterator(predict_input);
+                                    } else if (decode_encode_flag == 1) {
+                                        //Decode
+                                        temp += neighbour_iterator(predict_output);
+                                    }
+                                    count_neighbours++;
+                                }
+                            }
+                        }
+                    }
                 }
+
+                if(decode_encode_flag == 0) {
+                    //Encode
+                    if (count_neighbours > 0) {
+                        apr_iterator(predict_output) =  apr_iterator(predict_input) - temp/count_neighbours;
+                    } else {
+                        apr_iterator(predict_output) = apr_iterator(predict_input);
+                    }
+                } else if (decode_encode_flag == 1) {
+                    //Decode
+                    if(count_neighbours > 0){
+                        apr_iterator(predict_output) = apr(predict_input) + temp/count_neighbours;
+                     } else {
+                        apr_iterator(predict_output) = apr(predict_input);
+                    }
+
+                }
+
+
             }
         }
     }
+
+    timer.stop_timer();
+
 }
+
+
+//        //now we only update the neighbours, and directly access them through a neighbour iterator
+//        apr.update_all_neighbours();
+//
+//        float counter = 0;
+//        float temp = 0;
+//
+//        //loop over all the neighbours and set the neighbour iterator to it
+//        for (int f = 0; f < dir.size(); ++f) {
+//            // Neighbour Particle Cell Face definitions [+y,-y,+x,-x,+z,-z] =  [0,1,2,3,4,5]
+//            unsigned int face = dir[f];
+//
+//            for (int index = 0; index < apr.number_neighbours_in_direction(face); ++index) {
+//                // on each face, there can be 0-4 neighbours accessed by index
+//                if(neigh_it.set_neighbour_iterator(apr, face, index)){
+//                    //will return true if there is a neighbour defined
+//                    if(neigh_it.depth() <= apr.depth()) {
+//
+//                        temp += neigh_it(var_scaled);
+//                        counter++;
+//                    }
+//
+//                }
+//            }
+//        }
+//
+//        if(counter > 0){
+//            apr(prediction) = apr(var_scaled) - temp/counter;
+//        } else {
+//            apr(prediction) = apr(var_scaled);
+//        }
 
 
 #endif //PARTPLAY_COMPRESSAPR_HPP
