@@ -57,13 +57,13 @@ public:
         predict_input.map_inplace([this](const float a){return variance_stabilitzation<float>(a);},apr.level_max()-1);
         timer.stop_timer();
 
-        apr.write_particles_only(apr.parameters.input_dir , "predict_input_code",predict_input);
+
 
         timer.start_timer("level max prediction");
         predict_particles_by_level(apr,apr.level_max(),predict_input,predict_output,predict_directions,num_blocks,0);
         timer.stop_timer();
 
-        apr.write_particles_only(apr.parameters.input_dir , "predict_output_code",predict_output);
+
 
         ///////////////////////////
         ///
@@ -112,12 +112,12 @@ public:
         predict_output.map_inplace([this](const float a){return round(a);},apr.level_max()-1);
         predict_output.map_inplace([this](const float a){return variance_stabilitzation<float>(a);},apr.level_max()-1);
 
-        apr.write_particles_only(apr.parameters.input_dir , "predict_input",predict_input);
+
 
         //decode predict
         predict_particles_by_level(apr,apr.level_max(),predict_input,predict_output,predict_directions,num_blocks,1);
 
-        apr.write_particles_only(apr.parameters.input_dir , "predict_output",predict_output);
+
         //invert the stabilization
         predict_output.map_inplace([this](const float a){return inverse_variance_stabilitzation<float>(a);},apr.level_max());
         predict_output.map_inplace([this](const float a){return inverse_variance_stabilitzation<float>(a);},apr.level_max()-1);
@@ -127,7 +127,9 @@ public:
 
     }
 
-
+    void set_quantization_factor(float q_){
+        q = q_;
+    }
 
 private:
 
@@ -177,7 +179,7 @@ S APRCompress::inverse_variance_stabilitzation(const S input){
 template<typename T,typename S>
 T APRCompress::calculate_symbols(S input){
 
-    int16_t val = input;
+    int16_t val = round(input);
     return 2*(abs(val)) + (val >> 15);
 };
 

@@ -92,6 +92,8 @@ int main(int argc, char **argv) {
     APRCompress comp;
     ExtraPartCellData<uint16_t> symbols;
 
+    comp.set_quantization_factor(1);
+
     timer.start_timer("compress");
     comp.compress(apr,symbols);
     timer.stop_timer();
@@ -119,6 +121,19 @@ int main(int argc, char **argv) {
     output = options.directory + name + "_compress.tif";
     img.write_image_tiff(output);
 
+    std::vector<int> v;
+    std::cout << v.max_size() << std::endl;
+
+    std::vector<float> v2;
+    std::cout << v2.max_size() << std::endl;
+
+    std::vector<uint16_t> v3;
+    std::cout << v3.max_size() << std::endl;
+
+
+
+//    Mesh_data<uint16_t> md;
+//    md.mesh.resize(1300*1300*1300);
 
 
 //    float e = 1.6;
