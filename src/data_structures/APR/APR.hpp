@@ -24,6 +24,8 @@
 
 #include "src/algorithm/APR_parameters.hpp"
 
+#include "src/numerics/APRCompress.hpp"
+
 #include <map>
 #include <unordered_map>
 
@@ -1977,6 +1979,9 @@ public:
     void read_apr(std::string file_name)
     {
 
+        //currently only supporting 16 bit compress
+        APRCompress<ImageType> apr_compress;
+
         //hdf5 inits
         hid_t fid, pr_groupid, obj_id,attr_id;
         H5G_info_t info;
@@ -2069,6 +2074,16 @@ public:
 
         attr_id = 	H5Aopen(pr_groupid,"lambda",H5P_DEFAULT);
         H5Aread(attr_id,H5T_NATIVE_FLOAT,&parameters.lambda ) ;
+        H5Aclose(attr_id);
+
+        int compress_type;
+        attr_id = 	H5Aopen(pr_groupid,"compress_type",H5P_DEFAULT);
+        H5Aread(attr_id,H5T_NATIVE_INT,&compress_type ) ;
+        H5Aclose(attr_id);
+
+        float quantization_factor;
+        attr_id = 	H5Aopen(pr_groupid,"quantization_factor",H5P_DEFAULT);
+        H5Aread(attr_id,H5T_NATIVE_FLOAT,&quantization_factor ) ;
         H5Aclose(attr_id);
 
         attr_id = 	H5Aopen(pr_groupid,"sigma_th",H5P_DEFAULT);
@@ -2230,10 +2245,27 @@ public:
             }
         }
 
+        if(compress_type > 0){
+
+            apr_compress.set_compression_type(compress_type);
+            apr_compress.set_quantization_factor(quantization_factor);
+
+            apr_compress.decompress((*this),particles_int);
+
+        }
 
     }
 
-    void write_apr(std::string save_loc,std::string file_name,bool predict = false){
+    void write_apr(std::string save_loc,std::string file_name){
+        //compress
+        APRCompress<ImageType> apr_compressor;
+        apr_compressor.set_compression_type(0);
+
+        write_apr(save_loc,file_name,apr_compressor);
+
+    }
+
+    void write_apr(std::string save_loc,std::string file_name,APRCompress<ImageType>& apr_compressor,unsigned int blosc_comp_type = BLOSC_ZSTD,unsigned int blosc_comp_level = 6,unsigned int blosc_shuffle=1){
         //
         //
         //  Bevan Cheeseman 2018
@@ -2242,9 +2274,12 @@ public:
         //
         //
 
+        int compress_type_num = apr_compressor.get_compression_type();
+        float quantization_factor = apr_compressor.get_quantization_factor();
+
         APR_timer write_timer;
 
-        write_timer.verbose_flag = false;
+        write_timer.verbose_flag = true;
 
         //initialize
         uint64_t node_val_part;
@@ -2329,6 +2364,10 @@ public:
 
         hdf5_write_string_blosc(pr_groupid,"githash",git_hash);
 
+        hdf5_write_attribute_blosc(pr_groupid,H5T_NATIVE_INT,"compress_type",1,dims_out, &compress_type_num);
+
+        hdf5_write_attribute_blosc(pr_groupid,H5T_NATIVE_FLOAT,"quantization_factor",1,dims_out, &quantization_factor);
+
         hdf5_write_attribute_blosc(pr_groupid,H5T_NATIVE_FLOAT,"lambda",1,dims_out, &parameters.lambda );
 
         hdf5_write_attribute_blosc(pr_groupid,H5T_NATIVE_FLOAT,"sigma_th",1,dims_out, &parameters.sigma_th );
@@ -2370,8 +2409,21 @@ public:
         std::vector<uint16_t> Ip;
 
         ExtraPartCellData<ImageType> temp_int;
-        temp_int.initialize_structure_cells(pc_data);
-        temp_int.data = particles_int.data;
+
+        if(compress_type_num > 0){
+
+            apr_compressor.compress((*this),temp_int);
+
+        } else {
+
+            temp_int.initialize_structure_cells(pc_data);
+            temp_int.data = particles_int.data;
+
+        }
+
+        write_timer.stop_timer();
+
+        write_timer.start_timer("shift");
 
         shift_particles_from_cells(temp_int);
 
@@ -2433,7 +2485,7 @@ public:
 
                 name = "Ip_"+std::to_string(i);
 
-                hdf5_write_data_blosc(obj_id, H5T_NATIVE_UINT16, name.c_str(), rank, &dims, Ip.data());
+                hdf5_write_data_blosc(obj_id, H5T_NATIVE_UINT16, name.c_str(), rank, &dims, Ip.data(),blosc_comp_type,blosc_comp_level,blosc_shuffle);
 
             }
 
@@ -2556,7 +2608,7 @@ public:
 
             dims = p_map.size();
             name = "p_map_"+std::to_string(i);
-            hdf5_write_data_blosc(obj_id,H5T_NATIVE_UINT8,name.c_str(),rank,&dims, p_map.data());
+            hdf5_write_data_blosc(obj_id,H5T_NATIVE_UINT8,name.c_str(),rank,&dims, p_map.data(),blosc_comp_type,blosc_comp_level,blosc_shuffle);
 
             name = "p_map_x_num_"+std::to_string(i);
             hsize_t attr = x_num_d;

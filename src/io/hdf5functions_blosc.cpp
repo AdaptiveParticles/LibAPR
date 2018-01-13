@@ -95,7 +95,7 @@ void hdf5_write_data_blosc(hid_t obj_id,hid_t type_id,const char* ds_name,hsize_
     cd_values[4] = 6;       /* compression level */
     cd_values[5] = 2;       /* 0: shuffle not active, 1: shuffle active */
     cd_values[6] = BLOSC_ZSTD; /* the actual compressor to use */
-    
+
     /* Set the filter with 7 params */
     H5Pset_filter(plist_id, FILTER_BLOSC, H5Z_FLAG_OPTIONAL, 7, cd_values);
     

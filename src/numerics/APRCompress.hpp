@@ -21,12 +21,28 @@ public:
 
     };
 
+    void set_compression_type(int type){
+
+        compress_type = type;
+    }
+
+    int get_compression_type(){
+
+        return compress_type;
+    }
+
+
     template<typename U>
-    void compress(APR<U>& apr,ExtraPartCellData<uint16_t>& symbols) {
+    void compress(APR<U>& apr,ExtraPartCellData<ImageType>& symbols) {
 
 
         APR_timer timer;
-        timer.verbose_flag = true;
+        timer.verbose_flag = false;
+
+        APR_timer timer_total;
+        timer_total.verbose_flag = true;
+
+        timer_total.start_timer("total compress");
 
         timer.start_timer("allocation");
         ExtraPartCellData<float> predict_input(apr);
@@ -52,8 +68,7 @@ public:
         ///////////////////////////
 
 
-
-        if(lossy_flag) {
+        if(compress_type == 1) {
             timer.start_timer("variance stabilization max");
             //convert the bottom two levels over
             predict_input.map_inplace([this](const float a) { return variance_stabilitzation<float>(a); },
@@ -87,7 +102,7 @@ public:
                                            0);
             }
             timer.stop_timer();
-        } else {
+        } else if (compress_type == 2) {
             timer.start_timer("predict other levels");
             for (int level = apr.level_min(); level <= apr.level_max(); ++level) {
                 predict_particles_by_level(apr_iterator,neighbour_iterator,apr, level, predict_input, predict_output, predict_directions, num_blocks,
@@ -99,23 +114,29 @@ public:
 
         timer.start_timer("predict symbols");
         //compute the symbols
-        symbols = predict_output.map<uint16_t>([this](const float a){return calculate_symbols<uint16_t,float>(a);});
+        symbols = predict_output.template map<ImageType>([this](const float a){return calculate_symbols<ImageType,float>(a);});
         timer.stop_timer();
+
+        timer_total.stop_timer();
     }
 
     template<typename U>
-    void decompress(APR<U>& apr,ExtraPartCellData<uint16_t>& symbols){
+    void decompress(APR<U>& apr,ExtraPartCellData<ImageType>& symbols){
+
+        APR_timer timer;
+        timer.verbose_flag = true;
+        timer.start_timer("decompress");
 
         ExtraPartCellData<float> predict_input;
         ExtraPartCellData<float> predict_output(apr);
         //turn symbols back to floats.
-        predict_input = symbols.map<float>([this](const uint16_t a){return inverse_calculate_symbols<float,uint16_t>(a);});
+        predict_input = symbols.template map<float>([this](const ImageType a){return inverse_calculate_symbols<float,ImageType>(a);});
 
         apr_iterator.initialize_from_apr(apr);
         neighbour_iterator.initialize_from_apr(apr);
 
         this->background = apr.parameters.background_intensity_estimate - 2*apr.parameters.noise_sd_estimate;
-        if(lossy_flag) {
+        if(compress_type == 1) {
             //decode predict
             for (int level = apr.level_min(); level < apr.level_max(); ++level) {
                 predict_particles_by_level(apr_iterator,neighbour_iterator,apr, level, predict_input, predict_output, predict_directions, num_blocks,
@@ -138,7 +159,7 @@ public:
                                        apr.level_max());
             predict_output.map_inplace([this](const float a) { return inverse_variance_stabilitzation<float>(a); },
                                        apr.level_max() - 1);
-        } else {
+        } else if (compress_type == 2) {
 
             for (int level = apr.level_min(); level <= apr.level_max(); ++level) {
                 predict_particles_by_level(apr_iterator,neighbour_iterator,apr, level, predict_input, predict_output, predict_directions, num_blocks,
@@ -148,10 +169,16 @@ public:
         //now truncate and copy to uint16t
         symbols.copy_parts(predict_output);
 
+        timer.stop_timer();
+
     }
 
     void set_quantization_factor(float q_){
         q = q_;
+    }
+
+    float get_quantization_factor(){
+        return q;
     }
 
 private:
@@ -162,7 +189,7 @@ private:
     float background = 1;
     float cnv = 65636/30000;
     float q = .5;
-    bool lossy_flag = true;
+    int compress_type = 0;
 
     APR_iterator<ImageType> apr_iterator;
     APR_iterator<ImageType> neighbour_iterator;
@@ -218,7 +245,7 @@ T APRCompress<ImageType>::calculate_symbols(S input){
 template<typename ImageType> template<typename T,typename S>
 T APRCompress<ImageType>::inverse_calculate_symbols(S input){
 
-    int16_t negative = input % 2;
+    int16_t negative = ((uint16_t) input) % 2;
 
     return  (1 - 2 * negative) * ((input + negative) / 2);
 };
