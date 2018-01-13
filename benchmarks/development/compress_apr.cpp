@@ -83,12 +83,41 @@ int main(int argc, char **argv) {
     //read file
     apr.read_apr(file_name);
 
+    apr.parameters.input_dir = options.directory;
+
+    std::string name = options.input;
+    //remove the file extension
+    name.erase(name.end()-3,name.end());
+
     APRCompress comp;
+    ExtraPartCellData<uint16_t> symbols;
 
     timer.start_timer("compress");
-    comp.compress(apr);
+    comp.compress(apr,symbols);
     timer.stop_timer();
 
+    apr.write_apr(options.directory ,name + "_original");
+    std::swap(apr.particles_int,symbols);
+    apr.write_apr(options.directory ,name + "_compress");
+
+    apr.write_particles_only(options.directory ,name + "_compress",symbols);
+
+    std::swap(apr.particles_int,symbols);
+
+    timer.start_timer("decompress");
+    comp.decompress(apr,symbols);
+    timer.stop_timer();
+
+    apr.write_particles_only(options.directory ,name + "_compress_after",symbols);
+
+    Mesh_data<uint16_t> img;
+    apr.interp_img(img,apr.particles_int);
+    std::string output = options.directory + name + "pc.tif";
+    img.write_image_tiff(output);
+
+    apr.interp_img(img,symbols);
+    output = options.directory + name + "_compress.tif";
+    img.write_image_tiff(output);
 
 
 

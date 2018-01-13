@@ -179,6 +179,13 @@ bool APR_converter<ImageType>::get_apr_method(APR<ImageType>& apr) {
 
     timer.stop_timer();
 
+    /////////////////////////////////
+    ///
+    /// Pipeline
+    ///
+    ////////////////////////
+
+
     computation_timer.start_timer("Calculations");
 
     computation_timer.verbose_flag = true;
@@ -206,20 +213,18 @@ bool APR_converter<ImageType>::get_apr_method(APR<ImageType>& apr) {
     this->get_local_particle_cell_set(local_scale,gradient); //note in the current pipeline don't actually use these variables, but here for interface (Use shared member allocated above variables)
     st.stop_timer();
 
-
     st.start_timer("Pulling Scheme: Compute OVPC V_n from LPC");
     PullingScheme::pulling_scheme_main();
     st.stop_timer();
 
-
-    st.start_timer("Down sample image");
+    st.start_timer("Down sample image for estimating particle intensities");
     std::vector<Mesh_data<T>> downsampled_img;
     //Down-sample the image for particle intensity estimation
     downsample_pyrmaid(input_image,downsampled_img,apr.depth_max()-1,apr.depth_min());
     st.stop_timer();
 
 
-    st.start_timer("Init data structure");
+    st.start_timer("initialize apr neighbour access structure");
     apr.init_from_pulling_scheme(particle_cell_tree);
     st.stop_timer();
 
@@ -768,6 +773,8 @@ void APR_converter<ImageType>::auto_parameters(Mesh_data<T>& input_img){
     if(this->par.lambda < 0){
         this->par.lambda = 3.0;
     }
+
+    this->par.background_intensity_estimate = estimated_first_mode;
 
     if(this->par.min_signal < 0){
         this->par.sigma_th = var_th;

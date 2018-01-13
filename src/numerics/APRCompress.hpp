@@ -21,24 +21,29 @@ public:
     };
 
     template<typename U>
-    void compress(APR<U>& apr) {
+    void compress(APR<U>& apr,ExtraPartCellData<uint16_t>& symbols) {
 
 
+        APR_timer timer;
+        timer.verbose_flag = true;
+
+        timer.start_timer("allocation");
         ExtraPartCellData<float> predict_input(apr);
         ExtraPartCellData<float> predict_output(apr);
+        timer.stop_timer();
+
 
         std::vector<unsigned int> predict_directions = {1,3,5};
 
         unsigned int num_blocks = 10;
 
-        this->background = apr.parameters.Ip_th;
+        this->background = apr.parameters.background_intensity_estimate - 2*apr.parameters.noise_sd_estimate;
 
         std::cout << background << std::endl;
 
+        timer.start_timer("copy");
         predict_input.copy_parts(apr.particles_int);
-
-        //conver the bottom tow layers over
-        predict_input.map_inplace([this](const float a){return variance_stabilitzation<float>(a);},apr.level_max());
+        timer.stop_timer();
 
         ///////////////////////////
         ///
@@ -46,10 +51,19 @@ public:
         ///
         ///////////////////////////
 
-
+        timer.start_timer("variance stabilization max");
+        //convert the bottom two levels over
+        predict_input.map_inplace([this](const float a){return variance_stabilitzation<float>(a);},apr.level_max());
         predict_input.map_inplace([this](const float a){return variance_stabilitzation<float>(a);},apr.level_max()-1);
+        timer.stop_timer();
 
+        apr.write_particles_only(apr.parameters.input_dir , "predict_input_code",predict_input);
+
+        timer.start_timer("level max prediction");
         predict_particles_by_level(apr,apr.level_max(),predict_input,predict_output,predict_directions,num_blocks,0);
+        timer.stop_timer();
+
+        apr.write_particles_only(apr.parameters.input_dir , "predict_output_code",predict_output);
 
         ///////////////////////////
         ///
@@ -57,22 +71,59 @@ public:
         ///
         ///////////////////////////
 
+        timer.start_timer("copy");
         //copy over the original intensities again
         predict_input.copy_parts(apr.particles_int,apr.level_max()-1);
+        timer.stop_timer();
 
+        timer.start_timer("predict other levels");
         for (int level = apr.level_min(); level < apr.level_max(); ++level) {
             predict_particles_by_level(apr,level,predict_input,predict_output,predict_directions,num_blocks,0);
         }
+        timer.stop_timer();
 
+        timer.start_timer("predict symbols");
         //compute the symbols
-        ExtraPartCellData<uint16_t> symbols;
         symbols = predict_output.map<uint16_t>([this](const float a){return calculate_symbols<uint16_t,float>(a);});
+        timer.stop_timer();
+    }
 
-        apr.write_particles_only(apr.parameters.input_dir,"symbols",symbols);
+    template<typename U>
+    void decompress(APR<U>& apr,ExtraPartCellData<uint16_t>& symbols){
 
-        //predict_particles_by_level(apr,level,predict_output,predict_input,predict_directions,num_blocks,0);
+        ExtraPartCellData<float> predict_input;
+        ExtraPartCellData<float> predict_output(apr);
+        //turn symbols back to floats.
+        predict_input = symbols.map<float>([this](const uint16_t a){return inverse_calculate_symbols<float,uint16_t>(a);});
 
-        //predict_particles_by_level(apr,level,predict_output,predict_input,predict_directions,num_blocks,1);
+        std::vector<unsigned int> predict_directions = {1,3,5};
+
+        unsigned int num_blocks = 10;
+
+        this->background = apr.parameters.background_intensity_estimate - 2*apr.parameters.noise_sd_estimate;
+
+        //decode predict
+        for (int level = apr.level_min(); level < apr.level_max(); ++level) {
+            predict_particles_by_level(apr,level,predict_input,predict_output,predict_directions,num_blocks,1);
+        }
+
+        //predict_input.copy_parts(predict_output,apr.level_max()-1);
+
+        predict_output.map_inplace([this](const float a){return round(a);},apr.level_max()-1);
+        predict_output.map_inplace([this](const float a){return variance_stabilitzation<float>(a);},apr.level_max()-1);
+
+        apr.write_particles_only(apr.parameters.input_dir , "predict_input",predict_input);
+
+        //decode predict
+        predict_particles_by_level(apr,apr.level_max(),predict_input,predict_output,predict_directions,num_blocks,1);
+
+        apr.write_particles_only(apr.parameters.input_dir , "predict_output",predict_output);
+        //invert the stabilization
+        predict_output.map_inplace([this](const float a){return inverse_variance_stabilitzation<float>(a);},apr.level_max());
+        predict_output.map_inplace([this](const float a){return inverse_variance_stabilitzation<float>(a);},apr.level_max()-1);
+
+        //now truncate and copy to uint16t
+        symbols.copy_parts(predict_output);
 
     }
 
@@ -158,33 +209,45 @@ void APRCompress::predict_particles_by_level(APR<U>& apr,const unsigned int leve
 
     unsigned int z_num = apr.spatial_index_z_max(level);
 
-    num_z_blocks = std::min(z_num,num_z_blocks);
+    if(z_num > num_z_blocks*8) {
 
-    z_block_begin.resize(num_z_blocks);
-    z_block_end.resize(num_z_blocks);
+        num_z_blocks = std::min(z_num, num_z_blocks);
 
-    unsigned int size_of_block = floor(z_num/num_z_blocks);
+        z_block_begin.resize(num_z_blocks);
+        z_block_end.resize(num_z_blocks);
 
-    unsigned int csum = 0; //cumulative sum
+        unsigned int size_of_block = floor(z_num / num_z_blocks);
 
-    for (int i = 0; i < num_z_blocks; ++i) {
-        z_block_begin[i] = csum;
-        z_block_end[i] = csum + size_of_block;
+        unsigned int csum = 0; //cumulative sum
 
-        csum+=size_of_block;
+        for (int i = 0; i < num_z_blocks; ++i) {
+            z_block_begin[i] = csum;
+            z_block_end[i] = csum + size_of_block;
+
+            csum += size_of_block;
+        }
+
+        z_block_end[num_z_blocks - 1] = z_num; //fill in the extras;
+
+
+    } else {
+        num_z_blocks = 1;
+        z_block_begin.resize(num_z_blocks);
+        z_block_end.resize(num_z_blocks);
+
+        z_block_begin[0] = 0;
+        z_block_end[0] = z_num;
     }
-
-    z_block_end[num_z_blocks-1] = z_num; //fill in the extras;
 
     unsigned int z_block;
 
 
     APR_timer timer;
-    timer.verbose_flag = true;
+    timer.verbose_flag = false;
 
     timer.start_timer("loop");
 
-#pragma omp parallel for schedule(dynamic) private(z_block) firstprivate(apr_iterator,neighbour_iterator,z_block_begin,z_block_end)
+//#pragma omp parallel for schedule(dynamic) private(z_block) firstprivate(apr_iterator,neighbour_iterator,z_block_begin,z_block_end)
     for (z_block = 0; z_block < num_z_blocks; ++z_block) {
 
         for (unsigned int z = z_block_begin[z_block]; z < z_block_end[z_block]; ++z) {
@@ -239,9 +302,14 @@ void APRCompress::predict_particles_by_level(APR<U>& apr,const unsigned int leve
                 } else if (decode_encode_flag == 1) {
                     //Decode
                     if(count_neighbours > 0){
-                        apr_iterator(predict_output) = apr(predict_input) + temp/count_neighbours;
+
+                        float a =  apr_iterator(predict_input) + temp/count_neighbours;
+                        apr_iterator(predict_output) = apr_iterator(predict_input) + temp/count_neighbours;
+
                      } else {
-                        apr_iterator(predict_output) = apr(predict_input);
+
+                        float a = apr_iterator(predict_input);
+                        apr_iterator(predict_output) = apr_iterator(predict_input);
                     }
 
                 }
