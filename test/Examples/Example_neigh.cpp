@@ -78,7 +78,7 @@ int main(int argc, char **argv) {
     timer.verbose_flag = true;
 
     // APR datastructure
-    APR<float> apr;
+    APR<uint16_t> apr;
 
     //read file
     apr.read_apr(file_name);
@@ -89,9 +89,9 @@ int main(int argc, char **argv) {
     ///
     /////////////////////////////////
 
-    ExtraPartCellData<float> neigh_avg(apr);
+    ExtraPartCellData<uint16_t> neigh_avg(apr);
 
-    APR_iterator<float> neighbour_iterator(apr);
+    APR_iterator<uint16_t> neighbour_iterator(apr);
 
     timer.start_timer("APR serial iterator neighbours loop");
 
@@ -135,7 +135,7 @@ int main(int argc, char **argv) {
     ///////////////////////////
 
     //initialization of the iteration structures
-    APR_iterator<float> apr_parallel_iterator(apr); //this is required for parallel access
+    APR_iterator<uint16_t> apr_parallel_iterator(apr); //this is required for parallel access
     uint64_t part; //declare parallel iteration variable
 
     ExtraPartCellData<float> neigh_xm(apr);
@@ -145,6 +145,7 @@ int main(int argc, char **argv) {
 #pragma omp parallel for schedule(static) private(part) firstprivate(apr_parallel_iterator,neighbour_iterator)
     for (part = 0; part < apr.num_parts_total; ++part) {
         //needed step for any parallel loop (update to the next part)
+
         apr_parallel_iterator.set_iterator_to_particle_by_number(part);
 
         //compute neighbours as previously, now using the apr_parallel_iterator (APR_iterator), instead of the apr class for access.

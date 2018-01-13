@@ -39,7 +39,6 @@ class APR : public APR_iterator<ImageType>{
 
 public:
 
-
     //Main internal datastructures
 
     ExtraPartCellData<ImageType> particles_int; // holds the particles intenisty information
@@ -47,10 +46,10 @@ public:
     PartCellData<uint64_t> pc_data; // holds the spatial and neighbours access information and methods
 
     //used for storing number of paritcles and cells per level for parallel access iterators
-    std::vector<float> num_parts;
-    std::vector<float> num_elements;
+    std::vector<uint64_t> num_parts;
+    std::vector<uint64_t> num_elements;
     ExtraPartCellData<uint64_t> num_parts_xy;
-    double num_elements_total;
+    uint64_t num_elements_total;
 
     std::string name;
     APR_parameters parameters;
@@ -122,6 +121,10 @@ public:
             }
         }
 
+    }
+
+    unsigned int orginal_dimensions(int dim){
+        return pc_data.org_dims[dim];
     }
 
 

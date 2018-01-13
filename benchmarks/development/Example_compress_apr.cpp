@@ -15,7 +15,7 @@
 #include <algorithm>
 #include <iostream>
 
-#include "benchmarks/development/compress_apr.h"
+#include "benchmarks/development/Example_compress_apr.h"
 
 bool command_option_exists(char **begin, char **end, const std::string &option)
 {
@@ -103,25 +103,10 @@ int main(int argc, char **argv) {
     apr.read_apr(options.directory + name + "_compress_apr.h5");
     timer.stop_timer();
 
-//    apr.write_particles_only(options.directory ,name + "_compress",symbols);
-//
-//    std::swap(apr.particles_int,symbols);
-//
-//    timer.start_timer("decompress");
-//    comp.decompress(apr,symbols);
-//    timer.stop_timer();
-//
-//    apr.write_particles_only(options.directory ,name + "_compress_after",symbols);
-//
-//    Mesh_data<uint16_t> img;
-//    apr.interp_img(img,apr.particles_int);
-//    std::string output = options.directory + name + "pc.tif";
-//    img.write_image_tiff(output);
-//
-//    apr.interp_img(img,symbols);
-//    output = options.directory + name + "_compress.tif";
-//    img.write_image_tiff(output);
-
+    Mesh_data<uint16_t> img;
+    apr.interp_img(img,apr.particles_int);
+    std::string output = options.directory + name + "_compress.tif";
+    img.write_image_tiff(output);
 
 
 }

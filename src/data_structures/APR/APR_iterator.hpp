@@ -40,7 +40,7 @@ public:
     PartCellData<uint64_t>* pc_data_pointer;
 
     ExtraPartCellData<uint64_t>* num_parts_xz_pointer;
-    std::vector<float>* num_parts;
+    std::vector<uint64_t>* num_parts;
 
     CurrentLevel<ImageType,uint64_t> curr_level;
 

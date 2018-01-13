@@ -204,7 +204,13 @@ add_executable(Example_ray_cast
 
 
 add_executable(Example_compress
-        benchmarks/development/compress_apr.cpp
+        benchmarks/development/Example_compress_apr.cpp
+        benchmarks/development/old_io/write_parts.cpp
+        ${SOURCE_FILES_COMPILED}
+        )
+
+add_executable(Example_benchmark
+        benchmarks/development/Example_benchmark.cpp
         benchmarks/development/old_io/write_parts.cpp
         ${SOURCE_FILES_COMPILED}
         )
@@ -234,7 +240,7 @@ target_link_libraries(Example_recon_img ${HDF5_LIBRARIES} ${CMAKE_THREAD_LIBS_IN
 target_link_libraries(Example_neigh ${HDF5_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT} ${TIFF_LIBRARIES} blosc_shared)
 
 target_link_libraries(Example_compress ${HDF5_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT} ${TIFF_LIBRARIES} blosc_shared)
-
+target_link_libraries(Example_benchmark ${HDF5_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT} ${TIFF_LIBRARIES} blosc_shared)
 
 set_target_properties(blosc_shared PROPERTIES
         RUNTIME_OUTPUT_DIRECTORY_DEBUG ${PROJECT_BINARY_DIR})
@@ -376,7 +382,7 @@ if(BENCHMARKS)
                 test/utils.cpp
                 benchmarks/development/old_io/write_parts.cpp
                 ${SOURCE_FILES_COMPILED}
-                benchmarks/development/analyze_apr.cpp)
+                benchmarks/development/Example_benchmark.cpp)
 
         TARGET_LINK_LIBRARIES(Example_analysis ${ArrayFire_OpenCL_LIBRARIES}
                 ${OpenCL_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT} ${HDF5_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT} ${TIFF_LIBRARIES} blosc)
