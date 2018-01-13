@@ -101,9 +101,18 @@ int main(int argc, char **argv) {
 
     int num_repeats = 5;
 
+
+    PartCellStructure<float,uint64_t > pc_struct;
+
+    AnalysisData analysisData;
+
+    pixels_linear_neigh_access(pc_struct,(uint64_t)apr.orginal_dimensions(0),(uint64_t)apr.orginal_dimensions(1),(uint64_t)apr.orginal_dimensions(2),num_repeats,analysisData);
+
+    particle_linear_neigh_access(apr,num_repeats,analysisData);
+
     APR_iterator<uint16_t> neighbour_iterator(apr);
 
-    ExtraPartCellData<float> neigh_xm(apr);
+    ExtraPartCellData<uint16_t> neigh_xm(apr);
 
     timer.start_timer("APR parallel iterator neighbour loop");
 
@@ -134,17 +143,7 @@ int main(int argc, char **argv) {
 
     timer.stop_timer();
 
-    std::cout << "New parallel iteration took: " << (timer.t2 - timer.t1)/(num_repeats*1.0);
-
-
-    PartCellStructure<float,uint64_t > pc_struct;
-
-    AnalysisData analysisData;
-
-    pixels_linear_neigh_access(pc_struct,(uint64_t)apr.orginal_dimensions(0),(uint64_t)apr.orginal_dimensions(1),(uint64_t)apr.orginal_dimensions(2),num_repeats,analysisData);
-
-    particle_linear_neigh_access(apr,num_repeats,analysisData);
-
+    std::cout << "New parallel iteration took: " << (timer.t2 - timer.t1)/(num_repeats*1.0) << std::endl;
 
 
 

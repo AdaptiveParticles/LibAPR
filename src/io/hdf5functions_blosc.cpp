@@ -223,3 +223,55 @@ void hdf5_create_file_blosc(std::string file_name){
     H5Fclose(fid);
     
 };
+void write_main_paraview_xdmf_xml(std::string save_loc,std::string file_name,int num_parts){
+    //
+    //
+    //
+    //
+
+    std::string hdf5_file_name = file_name + ".h5";
+    std::string xdmf_file_name = save_loc + file_name + ".xmf";
+
+
+    std::ofstream myfile;
+    myfile.open (xdmf_file_name);
+
+    myfile << "<?xml version=\"1.0\" ?>\n";
+    myfile << "<!DOCTYPE Xdmf SYSTEM \"Xdmf.dtd\" []>\n";
+    myfile << "<Xdmf Version=\"2.0\" xmlns:xi=\"[http://www.w3.org/2001/XInclude]\">\n";
+    myfile <<  " <Domain>\n";
+    myfile <<  "   <Grid Name=\"parts\" GridType=\"Uniform\">\n";
+    myfile <<  "     <Topology TopologyType=\"Polyvertex\" Dimensions=\"" << num_parts << "\"/>\n";
+    myfile <<  "     <Geometry GeometryType=\"X_Y_Z\">\n";
+    myfile <<  "       <DataItem Dimensions=\""<< num_parts <<"\" NumberType=\"UInt\" Precision=\"2\" Format=\"HDF\">\n";
+    myfile <<  "        " << hdf5_file_name << ":/ParticleRepr/t/x\n";
+    myfile <<  "       </DataItem>\n";
+    myfile <<  "       <DataItem Dimensions=\""<< num_parts <<"\" NumberType=\"UInt\" Precision=\"2\" Format=\"HDF\">\n";
+    myfile <<  "        " << hdf5_file_name << ":/ParticleRepr/t/y\n";
+    myfile <<  "       </DataItem>\n";
+    myfile <<  "       <DataItem Dimensions=\""<< num_parts <<"\" NumberType=\"UInt\" Precision=\"2\" Format=\"HDF\">\n";
+    myfile <<  "        " << hdf5_file_name << ":/ParticleRepr/t/z\n";
+    myfile <<  "       </DataItem>\n";
+    myfile <<  "     </Geometry>\n";
+    myfile <<  "     <Attribute Name=\"Ip\" AttributeType=\"Scalar\" Center=\"Node\">\n";
+    myfile <<  "       <DataItem Dimensions=\""<< num_parts <<"\" NumberType=\"UInt\" Precision=\"2\" Format=\"HDF\">\n";
+    myfile <<  "        " << hdf5_file_name << ":/ParticleRepr/t/Ip\n";
+    myfile <<  "       </DataItem>\n";
+    myfile <<  "    </Attribute>\n";
+    myfile <<  "     <Attribute Name=\"level\" AttributeType=\"Scalar\" Center=\"Node\">\n";
+    myfile <<  "       <DataItem Dimensions=\""<< num_parts <<"\" NumberType=\"UInt\" Precision=\"1\" Format=\"HDF\">\n";
+    myfile <<  "        " << hdf5_file_name << ":/ParticleRepr/t/level\n";
+    myfile <<  "       </DataItem>\n";
+    myfile <<  "    </Attribute>\n";
+    myfile <<  "     <Attribute Name=\"type\" AttributeType=\"Scalar\" Center=\"Node\">\n";
+    myfile <<  "       <DataItem Dimensions=\""<< num_parts <<"\" NumberType=\"UInt\" Precision=\"1\" Format=\"HDF\">\n";
+    myfile <<  "        " << hdf5_file_name << ":/ParticleRepr/t/type\n";
+    myfile <<  "       </DataItem>\n";
+    myfile <<  "    </Attribute>\n";
+    myfile <<  "   </Grid>\n";
+    myfile <<  " </Domain>\n";
+    myfile <<  "</Xdmf>\n";
+
+    myfile.close();
+
+}

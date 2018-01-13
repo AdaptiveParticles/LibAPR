@@ -2648,8 +2648,257 @@ public:
 
 
     }
+    template<typename T>
+    void write_apr_paraview(std::string save_loc,std::string file_name,ExtraPartCellData<T>& parts){
+        //
+        //
+        //  Bevan Cheeseman 2018
+        //
+        //  Writes the APR and Extra PartCell Data to
+        //
+        //
+
+        unsigned int blosc_comp_type = BLOSC_ZSTD;
+        unsigned int blosc_comp_level = 1;
+        unsigned int blosc_shuffle = 2;
+
+        APR_timer write_timer;
+
+        write_timer.verbose_flag = true;
+
+        //initialize
+        uint64_t node_val_part;
+        uint64_t y_coord;
+        int x_;
+        int z_;
+
+        uint64_t j_;
+        uint64_t status;
+        uint64_t curr_key=0;
+        uint64_t part_offset=0;
 
 
+        //Neighbour Routine Checking
+
+        uint64_t p;
+
+        register_bosc();
+
+        std::string hdf5_file_name = save_loc + file_name + "_paraview.h5";
+
+        file_name = file_name + "_paraview";
+
+        hdf5_create_file_blosc(hdf5_file_name);
+
+        //hdf5 inits
+        hid_t fid, pr_groupid, obj_id;
+        H5G_info_t info;
+
+        hsize_t     dims_out[2];
+
+        hsize_t rank = 1;
+
+        hsize_t dims;
+        hsize_t dim_a=1;
+
+        fid = H5Fopen(hdf5_file_name.c_str(),H5F_ACC_RDWR,H5P_DEFAULT);
+
+        //Get the group you want to open
+
+        //////////////////////////////////////////////////////////////////
+        //
+        //  Write meta-data to the file
+        //
+        //
+        //
+        ///////////////////////////////////////////////////////////////////////
+        dims = 1;
+
+        pr_groupid = H5Gcreate2(fid,"ParticleRepr",H5P_DEFAULT,H5P_DEFAULT,H5P_DEFAULT);
+        H5Gget_info( pr_groupid, &info );
+
+        obj_id = H5Gcreate2(fid,"ParticleRepr/t",H5P_DEFAULT,H5P_DEFAULT,H5P_DEFAULT);
+
+        dims_out[0] = 1;
+        dims_out[1] = 1;
+
+        //just an identifier in here for the reading of the parts
+
+        int num_parts = this->num_parts_total;
+        int num_cells = this->num_elements_total;
+
+        hdf5_write_attribute_blosc(pr_groupid,H5T_NATIVE_INT,"num_parts",1,dims_out, &num_parts );
+
+        hdf5_write_attribute_blosc(pr_groupid,H5T_NATIVE_INT,"num_cells",1,dims_out, &num_cells );
+
+        // New parameter and background data
+
+        if(pars.name.size() == 0){
+            pars.name = "no_name";
+            name = "no_name";
+        }
+
+        hdf5_write_string_blosc(pr_groupid,"name",pars.name);
+
+        std::string git_hash = exec_blosc("git rev-parse HEAD");
+
+        hdf5_write_string_blosc(pr_groupid,"githash",git_hash);
+
+        //////////////////////////////////////////////////////////////////
+        //
+        //  Write data to the file
+        //
+        //
+        //
+        ///////////////////////////////////////////////////////////////////////
+
+        write_timer.start_timer("intensities");
+
+        uint64_t depth_min = pc_data.depth_min;
+
+        std::vector<T> Ip;
+
+        ExtraPartCellData<T> temp_int;
+
+        temp_int = parts;
+
+        write_timer.stop_timer();
+
+        write_timer.start_timer("shift");
+
+        shift_particles_from_cells(temp_int);
+
+        write_timer.stop_timer();
+
+        write_timer.start_timer("write int");
+
+
+        uint64_t total_p = 0;
+
+
+        for(uint64_t i = pc_data.depth_min;i <= pc_data.depth_max;i++) {
+
+            const unsigned int x_num_ = pc_data.x_num[i];
+            const unsigned int z_num_ = pc_data.z_num[i];
+            const unsigned int y_num_ = pc_data.y_num[i];
+
+
+            for (z_ = 0; z_ < z_num_; z_++) {
+
+                for (x_ = 0; x_ < x_num_; x_++) {
+
+                    const size_t offset_pc_data = x_num_ * z_ + x_;
+
+                    const size_t j_num = temp_int.data[i][offset_pc_data].size();
+
+                    total_p += j_num;
+                }
+            }
+        }
+
+
+        Ip.resize(total_p);
+
+        total_p = 0;
+        for(uint64_t i = pc_data.depth_min;i <= pc_data.depth_max;i++) {
+
+            const unsigned int x_num_ = pc_data.x_num[i];
+            const unsigned int z_num_ = pc_data.z_num[i];
+            const unsigned int y_num_ = pc_data.y_num[i];
+
+            for (z_ = 0; z_ < z_num_; z_++) {
+
+                for (x_ = 0; x_ < x_num_; x_++) {
+
+                    const size_t offset_pc_data = x_num_ * z_ + x_;
+
+                    const size_t j_num = temp_int.data[i][offset_pc_data].size();
+
+                    std::copy(temp_int.data[i][offset_pc_data].begin(), temp_int.data[i][offset_pc_data].end(),
+                              Ip.begin() + total_p);
+
+                    total_p += j_num;
+
+                }
+
+            }
+        }
+
+        dims = Ip.size();
+
+
+            //write the parts
+
+        name = "Ip";
+
+        hdf5_write_data_blosc(obj_id, H5T_NATIVE_UINT16, name.c_str(), rank, &dims, Ip.data(),blosc_comp_type,blosc_comp_level,blosc_shuffle);
+
+
+
+
+        write_timer.stop_timer();
+
+        this->get_part_numbers();
+
+        std::vector<uint16_t> xv;
+        xv.reserve(this->num_parts_total);
+
+        std::vector<uint16_t> yv;
+        yv.reserve(this->num_parts_total);
+
+        std::vector<uint16_t> zv;
+        zv.reserve(this->num_parts_total);
+
+        std::vector<uint8_t> levelv;
+        levelv.reserve(this->num_parts_total);
+
+        std::vector<uint8_t> typev;
+        typev.reserve(this->num_parts_total);
+
+
+        for(this->begin();this->end()!=0;this->it_forward()){
+            xv.push_back((uint16_t)this->x_global());
+            yv.push_back((uint16_t)this->y_global());
+            zv.push_back((uint16_t)this->z_global());
+            levelv.push_back((uint8_t)this->level());
+            typev.push_back((uint8_t)this->type());
+        }
+
+        name = "x";
+        hdf5_write_data_blosc(obj_id, H5T_NATIVE_UINT16, name.c_str(), rank, &dims, xv.data(),blosc_comp_type,blosc_comp_level,blosc_shuffle);
+
+        name = "y";
+        hdf5_write_data_blosc(obj_id, H5T_NATIVE_UINT16, name.c_str(), rank, &dims, yv.data(),blosc_comp_type,blosc_comp_level,blosc_shuffle);
+
+        name = "z";
+        hdf5_write_data_blosc(obj_id, H5T_NATIVE_UINT16, name.c_str(), rank, &dims, zv.data(),blosc_comp_type,blosc_comp_level,blosc_shuffle);
+
+        name = "level";
+        hdf5_write_data_blosc(obj_id, H5T_NATIVE_UINT8, name.c_str(), rank, &dims, levelv.data(),blosc_comp_type,blosc_comp_level,blosc_shuffle);
+
+        name = "type";
+        hdf5_write_data_blosc(obj_id, H5T_NATIVE_UINT8, name.c_str(), rank, &dims, typev.data(),blosc_comp_type,blosc_comp_level,blosc_shuffle);
+
+        hsize_t attr = pc_data.depth_min;
+        hdf5_write_attribute_blosc(pr_groupid,H5T_NATIVE_INT,"depth_max",1,&dim_a, &pc_data.depth_max );
+        hdf5_write_attribute_blosc(pr_groupid,H5T_NATIVE_INT,"depth_min",1,&dim_a, &attr );
+
+        // output the file size
+        hsize_t file_size;
+        H5Fget_filesize(fid, &file_size);
+
+        std::cout << "HDF5 Filesize: " << file_size*1.0/1000000.0 << " MB" << std::endl;
+
+        write_main_paraview_xdmf_xml(save_loc,file_name,this->num_parts_total);
+
+        //close shiz
+        H5Gclose(obj_id);
+        H5Gclose(pr_groupid);
+        H5Fclose(fid);
+
+        std::cout << "Writing Complete" << std::endl;
+
+    }
 
     template<typename S>
     void write_particles_only(std::string save_loc,std::string file_name,ExtraPartCellData<S>& parts_extra){
