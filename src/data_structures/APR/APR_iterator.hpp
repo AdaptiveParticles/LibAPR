@@ -54,10 +54,17 @@ public:
 
 
     APR_iterator(APR<ImageType>& apr){
+        initialize_from_apr(apr);
+
+    }
+
+    void initialize_from_apr(APR<ImageType>& apr){
         current_part = -2;
 
-        apr.get_part_numbers();
-        apr.set_part_numbers_xz();
+        if(apr.num_parts_xy.data.size() == 0) {
+            apr.get_part_numbers();
+            apr.set_part_numbers_xz();
+        }
 
         this->num_parts = &(apr.num_parts);
         this->num_parts_xz_pointer = &(apr.num_parts_xy);
@@ -67,7 +74,6 @@ public:
         this->curr_level.init(apr.pc_data);
 
     }
-
 
     inline unsigned int particles_level_begin(unsigned int level_){
         //

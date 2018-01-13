@@ -940,7 +940,7 @@ public:
 
             const float step_size = pow(2, curr_level_l.depth_max - curr_level_l.depth);
 
-
+#pragma omp parallel for default(shared) private(z_,x_,j_) firstprivate(curr_level_l) reduction(+:counter_parts) reduction(+:counter_elements)  if(z_num_*x_num_ > 100)
             for (z_ = z_num_min_; z_ < z_num_; z_++) {
                 //both z and x are explicitly accessed in the structure
 
@@ -951,8 +951,6 @@ public:
                     for (j_ = 0; j_ < curr_level_l.j_num; j_++) {
 
                         bool iscell = curr_level_l.new_j(j_, pc_data);
-
-                        counter_elements++;
 
                         if (iscell) {
                             //Indicates this is a particle cell node
@@ -966,7 +964,7 @@ public:
 
                         }
 
-
+                        counter_elements++;
                     }
                 }
             }
@@ -1011,22 +1009,19 @@ public:
             curr_level_l.set_new_depth(depth, pc_data);
 
             const float step_size = pow(2, curr_level_l.depth_max - curr_level_l.depth);
-
-
-
+#pragma omp parallel for default(shared) private(z_,x_,j_,counter_parts) firstprivate(curr_level_l)  if(z_num_*x_num_ > 100)
             for (z_ = z_num_min_; z_ < z_num_; z_++) {
                 //both z and x are explicitly accessed in the structure
 
                 for (x_ = x_num_min_; x_ < x_num_; x_++) {
 
+                    counter_parts=0;
+
                     curr_level_l.set_new_xz(x_, z_, pc_data);
-
-
 
                     for (j_ = 0; j_ < curr_level_l.j_num; j_++) {
 
                         bool iscell = curr_level_l.new_j(j_, pc_data);
-
 
                         if (iscell) {
                             //Indicates this is a particle cell node
@@ -1039,16 +1034,37 @@ public:
                             curr_level_l.update_gap(pc_data);
 
                         }
-
-
                     }
-
                     num_parts_xy.data[curr_level_l.depth][curr_level_l.pc_offset].push_back(counter_parts);
-
                 }
             }
 
         }
+
+        counter_parts = 0;
+
+        //it needs to be a cumulative sum
+
+        for (uint64_t depth = (pc_data.depth_min); depth <= pc_data.depth_max; depth++) {
+            //loop over the resolutions of the structure
+            const unsigned int x_num_ = pc_data.x_num[depth];
+            const unsigned int z_num_ = pc_data.z_num[depth];
+
+            const unsigned int x_num_min_ = 0;
+            const unsigned int z_num_min_ = 0;
+
+            for (z_ = z_num_min_; z_ < z_num_; z_++) {
+                //both z and x are explicitly accessed in the structure
+
+                for (x_ = x_num_min_; x_ < x_num_; x_++) {
+                    size_t pc_offset = x_num_*z_ + x_;
+                    counter_parts += num_parts_xy.data[depth][pc_offset][0];
+                    num_parts_xy.data[depth][pc_offset][0] = counter_parts;
+                }
+            }
+
+        }
+
 
     }
 
