@@ -107,6 +107,35 @@ cmdLineOptions read_command_line_options(int argc, char **argv){
 
 }
 
+void get_neigh(unsigned int y,unsigned int x, unsigned int z,unsigned int depth, unsigned int face,uint16_t node){
+    //
+    //
+
+    const int8_t dir_y[6] = { 1, -1, 0, 0, 0, 0};
+    const int8_t dir_x[6] = { 0, 0, 1, -1, 0, 0};
+    const int8_t dir_z[6] = { 0, 0, 0, 0, 1, -1};
+
+    constexpr uint8_t child_offsets[3][3] = {{0,1,1},{1,0,1},{1,1,0}};
+
+    unsigned int depth_n;
+    unsigned int x_n;
+    unsigned int y_n;
+    unsigned int z_n;
+
+    depth_n = depth - 1;
+    x_n = x/2;
+    y_n = y/2;
+    z_n = z/2;
+
+    depth_n = depth + 1;
+    x_n = (x + dir_x[face])*2 + (dir_x[face]<0);
+    y_n = (y + dir_y[face])*2 + (dir_y[face]<0);
+    z_n = (z + dir_z[face])*2 + (dir_z[face]<0);
+
+
+}
+
+
 
 
 int main(int argc, char **argv) {
@@ -484,9 +513,7 @@ int main(int argc, char **argv) {
                 std::cout << depth_dif << " " << node_depth_dif << std::endl;
             }
 
-            if(depth_dif == 3){
-                //std::cout << depth_dif << " " << node_depth_dif << std::endl;
-            }
+
 
 
             //compare with new neighbour structure;
@@ -496,6 +523,45 @@ int main(int argc, char **argv) {
 
         c++;
     }
+
+
+    for(uint64_t i = apr.pc_data.depth_min;i <= apr.pc_data.depth_max;i++) {
+        //loop over the resolutions of the structure
+        const unsigned int x_num_ = apr.pc_data.x_num[i];
+        const unsigned int z_num_ = apr.pc_data.z_num[i];
+
+//#pragma omp parallel for default(shared) private(z_,x_,j_,node_val_pc,curr_key)  firstprivate(neigh_cell_keys) if(z_num_*x_num_ > 100)
+        for (z_ = 0; z_ < z_num_; z_++) {
+            //both z and x are explicitly accessed in the structure
+
+            for (x_ = 0; x_ < x_num_; x_++) {
+
+                const size_t offset_pc_data = x_num_*z_ + x_;
+
+                if(iterator.data[i][offset_pc_data].size() > 0){
+
+                    for (int j = 0; j < gaps.data[i][offset_pc_data].size(); ++j) {
+
+                        uint64_t curr_index = index.data[i][offset_pc_data][j];
+
+                        curr_index--;
+
+                        for (int y = gaps.data[i][offset_pc_data][j];
+                             y <= gaps_end.data[i][offset_pc_data][j]; y++) {
+
+                            curr_index++;
+                            counter_new++;
+
+
+                        }
+
+                    }
+
+                }
+            }
+        }
+    }
+
 
 
 //    apr.write_particles_only(options.directory,name+"gaps",gaps);
