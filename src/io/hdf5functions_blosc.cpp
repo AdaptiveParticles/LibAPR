@@ -275,3 +275,98 @@ void write_main_paraview_xdmf_xml(std::string save_loc,std::string file_name,int
     myfile.close();
 
 }
+void write_paraview_xdmf_xml_extra(std::string save_loc,std::string file_name,int num_parts,std::vector<std::string> extra_data_names,std::vector<std::string> extra_data_types){
+    //
+    //
+    //  Also writes out extra datafields
+    //
+
+
+    std::string hdf5_file_name = file_name + ".h5";
+    std::string xdmf_file_name = save_loc + file_name + ".xmf";
+
+
+    std::ofstream myfile;
+    myfile.open (xdmf_file_name);
+
+    myfile << "<?xml version=\"1.0\" ?>\n";
+    myfile << "<!DOCTYPE Xdmf SYSTEM \"Xdmf.dtd\" []>\n";
+    myfile << "<Xdmf Version=\"2.0\" xmlns:xi=\"[http://www.w3.org/2001/XInclude]\">\n";
+    myfile <<  " <Domain>\n";
+    myfile <<  "   <Grid Name=\"parts\" GridType=\"Uniform\">\n";
+    myfile <<  "     <Topology TopologyType=\"Polyvertex\" Dimensions=\"" << num_parts << "\"/>\n";
+    myfile <<  "     <Geometry GeometryType=\"X_Y_Z\">\n";
+    myfile <<  "       <DataItem Dimensions=\""<< num_parts <<"\" NumberType=\"UInt\" Precision=\"2\" Format=\"HDF\">\n";
+    myfile <<  "        " << hdf5_file_name << ":/ParticleRepr/t/x\n";
+    myfile <<  "       </DataItem>\n";
+    myfile <<  "       <DataItem Dimensions=\""<< num_parts <<"\" NumberType=\"UInt\" Precision=\"2\" Format=\"HDF\">\n";
+    myfile <<  "        " << hdf5_file_name << ":/ParticleRepr/t/y\n";
+    myfile <<  "       </DataItem>\n";
+    myfile <<  "       <DataItem Dimensions=\""<< num_parts <<"\" NumberType=\"UInt\" Precision=\"2\" Format=\"HDF\">\n";
+    myfile <<  "        " << hdf5_file_name << ":/ParticleRepr/t/z\n";
+    myfile <<  "       </DataItem>\n";
+    myfile <<  "     </Geometry>\n";
+    myfile <<  "     <Attribute Name=\"Ip\" AttributeType=\"Scalar\" Center=\"Node\">\n";
+    myfile <<  "       <DataItem Dimensions=\""<< num_parts <<"\" NumberType=\"UInt\" Precision=\"2\" Format=\"HDF\">\n";
+    myfile <<  "        " << hdf5_file_name << ":/ParticleRepr/t/Ip\n";
+    myfile <<  "       </DataItem>\n";
+    myfile <<  "    </Attribute>\n";
+    myfile <<  "     <Attribute Name=\"level\" AttributeType=\"Scalar\" Center=\"Node\">\n";
+    myfile <<  "       <DataItem Dimensions=\""<< num_parts <<"\" NumberType=\"UInt\" Precision=\"1\" Format=\"HDF\">\n";
+    myfile <<  "        " << hdf5_file_name << ":/ParticleRepr/t/level\n";
+    myfile <<  "       </DataItem>\n";
+    myfile <<  "    </Attribute>\n";
+    myfile <<  "     <Attribute Name=\"type\" AttributeType=\"Scalar\" Center=\"Node\">\n";
+    myfile <<  "       <DataItem Dimensions=\""<< num_parts <<"\" NumberType=\"UInt\" Precision=\"1\" Format=\"HDF\">\n";
+    myfile <<  "        " << hdf5_file_name << ":/ParticleRepr/t/type\n";
+    myfile <<  "       </DataItem>\n";
+    myfile <<  "    </Attribute>\n";
+
+    for (int i = 0; i < extra_data_names.size(); i++) {
+        //adds the additional datasets
+
+        std::string num_type;
+        std::string prec;
+
+
+        if (extra_data_types[i]=="uint8_t") {
+            num_type = "UInt";
+            prec = "1";
+        } else if (extra_data_types[i]=="bool"){
+            std::cout << "Bool type can't be stored with xdmf change datatype" << std::endl;
+        } else if (extra_data_types[i]=="uint16_t"){
+            num_type = "UInt";
+            prec = "2";
+        } else if (extra_data_types[i]=="int16_t"){
+            num_type = "Int";
+            prec = "2";
+
+        } else if (extra_data_types[i]=="int"){
+            num_type = "Int";
+            prec = "4";
+        }  else if (extra_data_types[i]=="int8_t"){
+            num_type = "Int";
+            prec = "1";
+        }else if (extra_data_types[i]=="float"){
+            num_type = "Float";
+            prec = "4";
+        } else {
+            std::cout << "Unknown Type in extra printout encournterd" << std::endl;
+
+        }
+
+        myfile <<  "     <Attribute Name=\""<< extra_data_names[i] <<"\" AttributeType=\"Scalar\" Center=\"Node\">\n";
+        myfile <<  "       <DataItem Dimensions=\""<< num_parts <<"\" NumberType=\"" << num_type << "\" Precision=\"" << prec <<"\" Format=\"HDF\">\n";
+        myfile <<  "        " << hdf5_file_name << ":/ParticleRepr/t/" <<  extra_data_names[i] << "\n";
+        myfile <<  "       </DataItem>\n";
+        myfile <<  "    </Attribute>\n";
+
+    }
+
+    myfile <<  "   </Grid>\n";
+    myfile <<  " </Domain>\n";
+    myfile <<  "</Xdmf>\n";
+
+    myfile.close();
+
+}

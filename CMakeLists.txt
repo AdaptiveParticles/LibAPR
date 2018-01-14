@@ -86,7 +86,7 @@ set(SOURCE_FILES_COMPILED
 
         src/misc/APR_timer.cpp
 
-        src/algorithm/APR_parameters.cpp
+        src/algorithm/APRParameters.cpp
         )
 
 
