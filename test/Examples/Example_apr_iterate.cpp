@@ -197,7 +197,7 @@ int main(int argc, char **argv) {
     timer.start_timer("Take the absolute value and output");
     ExtraPartCellData<float> output_1;
     //return the absolute value of the part dataset (includes initialization of the output result)
-    output_1 = calc_ex.map([](const float &a) { return abs(a); });
+    output_1 = calc_ex.map<float>([](const float &a) { return abs(a); });
     timer.stop_timer();
 
     /// Two datasets, binary operation, return result to the particle dataset form which it is performed.
