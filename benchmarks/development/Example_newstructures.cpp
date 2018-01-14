@@ -204,8 +204,6 @@ int main(int argc, char **argv) {
                     //particle cell node value, used here as it is requried for getting the particle neighbours
                     node_val_pc = apr.pc_data.data[i][offset_pc_data][j_];
 
-
-
                     if (!(node_val_pc&1)){
                         //Indicates this is a particle cell node
                         y_coord++;
@@ -249,14 +247,7 @@ int main(int argc, char **argv) {
                         }
 
                         //NEED TO SET YP
-
-
-
-
-
                         prev = 0;
-
-
 
                     } else {
                         // Inidicates this is not a particle cell node, and is a gap node
@@ -437,7 +428,54 @@ int main(int argc, char **argv) {
     }
 
 
+    //now how do I check they are right?, compare with the old structure and request the information out.
 
+    std::vector<uint16_t> shift = {YP_LEVEL_SHIFT,YM_LEVEL_SHIFT,XP_LEVEL_SHIFT,XM_LEVEL_SHIFT,ZP_LEVEL_SHIFT,ZM_LEVEL_SHIFT};
+    std::vector<uint16_t> mask = {YP_LEVEL_MASK,YM_LEVEL_MASK,XP_LEVEL_MASK,XM_LEVEL_MASK,ZP_LEVEL_MASK,ZM_LEVEL_MASK};
+
+    apr.set_part_numbers_xz();
+
+    APR_iterator<uint16_t> neighbour_iterator(apr);
+
+    uint64_t c = 0;
+
+    for (apr.begin();apr.end()!=0 ;apr.it_forward()) {
+
+        uint16_t node = neighbours[c];
+
+        //now we only update the neighbours, and directly access them through a neighbour iterator
+        apr.update_all_neighbours();
+
+        uint16_t type = (node & PC_TYPE_MASK) >> PC_TYPE_SHIFT;
+
+        if(type!= apr.type()){
+            std::cout << "broke" << std::endl;
+        }
+
+        //loop over all the neighbours and set the neighbour iterator to it
+        for (int dir = 0; dir < 6; ++dir) {
+            // Neighbour Particle Cell Face definitions [+y,-y,+x,-x,+z,-z] =  [0,1,2,3,4,5]
+
+            int depth_dif = 0;
+
+
+            for (int index = 0; index < apr.number_neighbours_in_direction(dir); ++index) {
+                // on each face, there can be 0-4 neighbours accessed by index
+                if(neighbour_iterator.set_neighbour_iterator(apr, dir, 0)){
+                    //will return true if there is a neighbour defined
+
+                    depth_dif =  neighbour_iterator.level() - apr.level() + 1;
+
+                }
+            }
+
+            //compare with new neighbour structure;
+
+
+        }
+
+        c++;
+    }
 
 
 //    apr.write_particles_only(options.directory,name+"gaps",gaps);
