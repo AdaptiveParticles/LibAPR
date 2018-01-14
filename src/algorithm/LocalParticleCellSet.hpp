@@ -12,7 +12,7 @@ class LocalParticleCellSet {
  * Declerations
  */
 
-
+public:
     static inline uint32_t asmlog_2(const uint32_t x){
         if(x == 0) return 0;
         return (31 - __builtin_clz (x));

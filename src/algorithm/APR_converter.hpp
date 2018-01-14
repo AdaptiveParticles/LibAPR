@@ -157,7 +157,10 @@ bool APR_converter<ImageType>::get_apr_method(APR<ImageType>& apr) {
     //initialize the storage of the B-spline co-efficients
     image_temp.initialize(input_image);
 
-    std::copy(input_image.mesh.begin(),input_image.mesh.end(),image_temp.mesh.begin());
+    //std::copy(input_image.mesh.begin(),input_image.mesh.end(),image_temp.mesh.begin());
+
+    image_temp.block_copy_data(input_image,20);
+
 
     //allocate require memory for the down-sampled structures
 
@@ -175,6 +178,13 @@ bool APR_converter<ImageType>::get_apr_method(APR<ImageType>& apr) {
     local_scale_temp2.preallocate(input_image.y_num,input_image.x_num,input_image.z_num,0);
 
     timer.stop_timer();
+
+    /////////////////////////////////
+    ///
+    /// Pipeline
+    ///
+    ////////////////////////
+
 
     computation_timer.start_timer("Calculations");
 
@@ -203,20 +213,18 @@ bool APR_converter<ImageType>::get_apr_method(APR<ImageType>& apr) {
     this->get_local_particle_cell_set(local_scale,gradient); //note in the current pipeline don't actually use these variables, but here for interface (Use shared member allocated above variables)
     st.stop_timer();
 
-
     st.start_timer("Pulling Scheme: Compute OVPC V_n from LPC");
     PullingScheme::pulling_scheme_main();
     st.stop_timer();
 
-
-    st.start_timer("Down sample image");
+    st.start_timer("Down sample image for estimating particle intensities");
     std::vector<Mesh_data<T>> downsampled_img;
     //Down-sample the image for particle intensity estimation
     downsample_pyrmaid(input_image,downsampled_img,apr.depth_max()-1,apr.depth_min());
     st.stop_timer();
 
 
-    st.start_timer("Init data structure");
+    st.start_timer("initialize apr neighbour access structure");
     apr.init_from_pulling_scheme(particle_cell_tree);
     st.stop_timer();
 
@@ -228,6 +236,8 @@ bool APR_converter<ImageType>::get_apr_method(APR<ImageType>& apr) {
     full.stop_timer();
 
     computation_timer.stop_timer();
+
+    apr.parameters = par;
 
     return true;
 }
@@ -732,6 +742,14 @@ void APR_converter<ImageType>::auto_parameters(Mesh_data<T>& input_img){
 
     float sd = sqrt(var);
 
+    par.noise_sd_estimate = sd;
+
+    for (int l1 = 1; l1 < histogram.mesh.size(); ++l1) {
+        if(histogram.mesh[l1] > 0){
+            par.background_intensity_estimate = l1 + min_val;
+        }
+    }
+
     float min_snr = 6;
 
     if(this->par.SNR_min > 0){
@@ -756,6 +774,8 @@ void APR_converter<ImageType>::auto_parameters(Mesh_data<T>& input_img){
         this->par.lambda = 3.0;
     }
 
+    this->par.background_intensity_estimate = estimated_first_mode;
+
     if(this->par.min_signal < 0){
         this->par.sigma_th = var_th;
         this->par.sigma_th_max = var_th_max;
@@ -768,7 +788,7 @@ void APR_converter<ImageType>::auto_parameters(Mesh_data<T>& input_img){
     std::cout << "sigma_th: " << this->par.sigma_th << std::endl;
     std::cout << "sigma_th_max: " << this->par.sigma_th_max << std::endl;
     std::cout << "relative error (E): " << this->par.rel_error << std::endl;
-    std::cout << "Lambda: " << this->par.lambda << std::endl;
+    std::cout << "lambda: " << this->par.lambda << std::endl;
 
 }
 

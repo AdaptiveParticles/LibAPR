@@ -1638,7 +1638,6 @@ void produce_apr_analysis(Mesh_data<T>& input_image,AnalysisData& analysis_data,
 
         t_apr.interp_img(true_int_m,true_parts);
 
-
         generate_gt_image(gt_image, syn_image);
 
         name = "true";

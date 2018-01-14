@@ -118,7 +118,6 @@ public :
        return coords.z * (size_t)x_num * y_num + coords.x * y_num + coords.y;
     }
 
-
     void set_size(int y_num_,int x_num_,int z_num_){
 
         y_num = y_num_;
@@ -132,6 +131,55 @@ public :
         //mesh.insert(mesh.begin(),y_num*x_num*z_num,val);
         //mesh.resize(y_num,std::vector<std::vector<T> >(x_num,std::vector<T>(z_num)));
     }
+
+    template<typename U>
+    void block_copy_data(Mesh_data<U>& input,unsigned int num_z_blocks = 10){
+        //
+        //  Attempt to utilize a parallel copy to saturate the memory performance, requires prior initialization
+        //
+
+
+        std::vector<unsigned int> z_block_begin;
+        std::vector<unsigned int> z_block_end;
+
+        num_z_blocks = std::min((unsigned int)this->z_num,num_z_blocks);
+
+        z_block_begin.resize(num_z_blocks);
+        z_block_end.resize(num_z_blocks);
+
+        unsigned int size_of_block = floor(z_num/num_z_blocks);
+
+        unsigned int csum = 0; //cumulative sum
+
+        for (int i = 0; i < num_z_blocks; ++i) {
+            z_block_begin[i] = csum;
+            z_block_end[i] = csum + size_of_block;
+
+            csum+=size_of_block;
+        }
+
+        z_block_end[num_z_blocks-1] = z_num; //fill in the extras;
+
+        unsigned int z_block;
+        unsigned int z;
+
+
+#pragma omp parallel for private(z_block) schedule(dynamic) firstprivate(z_block_begin,z_block_end)
+        for (z_block = 0; z_block < num_z_blocks; ++z_block) {
+
+            const size_t  offset_begin = z_block_begin[z_block]*x_num*y_num;
+            const size_t offset_end = (z_block_end[z_block])*x_num*y_num  - 1;
+
+            std::copy(input.mesh.begin() + offset_begin,input.mesh.begin() + offset_end,mesh.begin() + offset_begin);
+
+        }
+
+
+
+
+
+    }
+
 
     template<typename S>
     void initialize(Mesh_data<S>& other_img){

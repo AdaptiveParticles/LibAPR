@@ -4,7 +4,7 @@
 #include <functional>
 #include <string>
 
-#include "src/algorithm/APR_parameters.hpp"
+#include "src/algorithm/APRParameters.hpp"
 
 #include "src/data_structures/Mesh/meshclass.h"
 
