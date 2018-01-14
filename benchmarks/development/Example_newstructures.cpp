@@ -30,7 +30,7 @@
 #define _FILLER ((uint16_t)3)
 
 #define YP_LEVEL_MASK ((((uint16_t)1) << 2) - 1) << 1
-#define YP_LEVEL_SHIFT (uint16_t)  2
+#define YP_LEVEL_SHIFT (uint16_t)  1
 
 #define YM_LEVEL_MASK ((((uint16_t)1) << 2) - 1) << 3
 #define YM_LEVEL_SHIFT (uint16_t) 3
@@ -254,17 +254,20 @@ int main(int argc, char **argv) {
 
                         prev = 1;
 
-                        uint64_t type = (node_val_pc & TYPE_MASK) >> TYPE_SHIFT;
+                        uint16_t type = (node_val_pc & TYPE_MASK) >> TYPE_SHIFT;
 
-                        uint64_t yp_j = (node_val_pc & YP_INDEX_MASK) >> YP_INDEX_SHIFT;
-                        uint64_t yp_dep = (node_val_pc & YP_DEPTH_MASK) >> YP_DEPTH_SHIFT;
+                        uint16_t yp_j = (node_val_pc & YP_INDEX_MASK) >> YP_INDEX_SHIFT;
+                        uint16_t yp_dep = (node_val_pc & YP_DEPTH_MASK) >> YP_DEPTH_SHIFT;
 
-                        uint64_t ym_j = (node_val_pc & YM_INDEX_MASK) >> YM_INDEX_SHIFT;
-                        uint64_t ym_dep = (node_val_pc & YM_DEPTH_MASK) >> YM_DEPTH_SHIFT;
+                        uint16_t ym_j = (node_val_pc & YM_INDEX_MASK) >> YM_INDEX_SHIFT;
+                        uint16_t ym_dep = (node_val_pc & YM_DEPTH_MASK) >> YM_DEPTH_SHIFT;
 
-                        uint64_t next_y = (node_val_pc & NEXT_COORD_MASK) >> NEXT_COORD_SHIFT;
+                        uint16_t next_y = (node_val_pc & NEXT_COORD_MASK) >> NEXT_COORD_SHIFT;
 
-                        uint64_t prev_y = (node_val_pc & PREV_COORD_MASK) >> PREV_COORD_SHIFT;
+                        uint16_t prev_y = (node_val_pc & PREV_COORD_MASK) >> PREV_COORD_SHIFT;
+
+                        //yp_dep = yp_dep + 2;
+
 
                         if((j_ == 0) & (j_num > 1)){
                             //first node (do forward) (YM)
@@ -274,8 +277,12 @@ int main(int argc, char **argv) {
                             //last node (do behind) (YP)
                             neighbours[count_parts-1] |= (yp_dep << YP_LEVEL_SHIFT);
 
+
+
                         } else if (j_num > 1){
                             // front (YM) and behind (YP)
+
+
 
                             neighbours[count_parts] |= (ym_dep << YM_LEVEL_SHIFT);
                             neighbours[count_parts-1] |= (yp_dep << YP_LEVEL_SHIFT);
@@ -439,6 +446,8 @@ int main(int argc, char **argv) {
 
     uint64_t c = 0;
 
+    std::vector<unsigned int > dir_vec = {0,1,2,3,4,5};
+
     for (apr.begin();apr.end()!=0 ;apr.it_forward()) {
 
         uint16_t node = neighbours[c];
@@ -453,11 +462,13 @@ int main(int argc, char **argv) {
         }
 
         //loop over all the neighbours and set the neighbour iterator to it
-        for (int dir = 0; dir < 6; ++dir) {
+        for (int f = 0; f < dir_vec.size(); ++f) {
             // Neighbour Particle Cell Face definitions [+y,-y,+x,-x,+z,-z] =  [0,1,2,3,4,5]
 
-            int depth_dif = 0;
+            unsigned int dir = dir_vec[f];
 
+            int node_depth_dif = (node & mask[dir]) >> shift[dir];
+            int depth_dif = _NO_NEIGHBOUR;
 
             for (int index = 0; index < apr.number_neighbours_in_direction(dir); ++index) {
                 // on each face, there can be 0-4 neighbours accessed by index
@@ -468,6 +479,15 @@ int main(int argc, char **argv) {
 
                 }
             }
+
+            if(node_depth_dif!=depth_dif){
+                std::cout << depth_dif << " " << node_depth_dif << std::endl;
+            }
+
+            if(depth_dif == 3){
+                //std::cout << depth_dif << " " << node_depth_dif << std::endl;
+            }
+
 
             //compare with new neighbour structure;
 
