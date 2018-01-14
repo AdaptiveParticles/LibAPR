@@ -115,9 +115,11 @@ int main(int argc, char **argv) {
     ExtraPartCellData<uint64_t> gaps_end;
     gaps_end.initialize_structure_parts_empty(apr.particles_int);
 
-
     ExtraPartCellData<uint64_t> index;
     index.initialize_structure_parts_empty(apr.particles_int);
+
+    ExtraPartCellData<uint64_t> iterator;
+    iterator.initialize_structure_parts_empty(apr.particles_int);
 
     uint64_t count_gaps=0;
     uint64_t count_parts = 0;
@@ -142,6 +144,10 @@ int main(int argc, char **argv) {
                 const size_t offset_pc_data = x_num_*z_ + x_;
 
                 const size_t j_num = apr.pc_data.data[i][offset_pc_data].size();
+
+                if(j_num > 1){
+                    iterator.data[i][offset_pc_data].push_back(0);
+                }
 
                 //the y direction loop however is sparse, and must be accessed accordinagly
                 for(j_ = 0;j_ < j_num;j_++){
@@ -186,6 +192,58 @@ int main(int argc, char **argv) {
 
     std::cout << count_gaps << std::endl;
     std::cout << count_parts << std::endl;
+
+
+    std::vector<uint16_t> pint;
+    pint.reserve(count_parts);
+
+    for (apr.begin();apr.end()!=0 ;apr.it_forward()) {
+        pint.push_back(apr(apr.particles_int));
+    }
+
+
+    for(uint64_t i = apr.pc_data.depth_min;i <= apr.pc_data.depth_max;i++) {
+        //loop over the resolutions of the structure
+        const unsigned int x_num_ = apr.pc_data.x_num[i];
+        const unsigned int z_num_ = apr.pc_data.z_num[i];
+
+//#pragma omp parallel for default(shared) private(z_,x_,j_,node_val_pc,curr_key)  firstprivate(neigh_cell_keys) if(z_num_*x_num_ > 100)
+        for (z_ = 0; z_ < z_num_; z_++) {
+            //both z and x are explicitly accessed in the structure
+            const size_t offset_pc_data = x_num_*z_ + x_;
+
+            for (x_ = 0; x_ < x_num_; x_++) {
+
+                if(iterator.data[i][offset_pc_data].size() > 0){
+
+                    for (int j = 0; j < gaps.data[offset_pc_data].size(); ++j) {
+
+                        for (int y = gaps.data[i][offset_pc_data][j]; y  <=  gaps_end.data[i][offset_pc_data][j];y++) {
+
+
+
+                        }
+
+
+                    }
+
+
+
+
+                }
+
+
+            }
+        }
+    }
+
+
+
+//    apr.write_particles_only(options.directory,name+"gaps",gaps);
+//    apr.write_particles_only(options.directory,name+"gaps_end",gaps_end);
+//    apr.write_particles_only(options.directory,name+"index",index);
+//    apr.write_particles_only(options.directory,name+"iterator",iterator);
+
 
 }
 
