@@ -2,4 +2,4 @@
 // Created by cheesema on 08.01.18.
 //
 
-#include "APR_parameters.hpp"
+#include "APRParameters.hpp"

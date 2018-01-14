@@ -7,7 +7,7 @@
 
 #include "src/data_structures/Mesh/meshclass.h"
 #include "omp.h"
-#include "src/algorithm/APR_parameters.hpp"
+#include "src/algorithm/APRParameters.hpp"
 #include "src/misc/APR_timer.hpp"
 
 class ComputeGradient {

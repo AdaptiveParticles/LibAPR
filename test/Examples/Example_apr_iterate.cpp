@@ -78,7 +78,7 @@ int main(int argc, char **argv) {
     timer.verbose_flag = true;
 
     // APR datastructure
-    APR<float> apr;
+    APR<uint16_t> apr;
 
     //read file
     apr.read_apr(file_name);
@@ -101,6 +101,8 @@ int main(int argc, char **argv) {
     for (apr.begin(); apr.end() != 0; apr.it_forward()) {
         // multiple the Particle Cell type by the particle intensity (the intensity is stored as a ExtraPartCellData and therefore is no different from any additional datasets)
         apr(calc_ex) = apr.type()*apr(apr.particles_int);
+
+
     }
 
     timer.stop_timer();
@@ -109,7 +111,7 @@ int main(int argc, char **argv) {
     //  You can also iterate over by level, this is in the datastrucrure called depth, Particle Cells range from depth_min() to depth_max(), coinciding with level = l_min and level = l_max
     //
 
-    for (unsigned int level = apr.depth_min(); level <= apr.depth_max(); ++level) {
+    for (unsigned int level = apr.level_min(); level <= apr.level_max(); ++level) {
         for (apr.begin(level); apr.end(level)!=0 ; apr.it_forward(level)) {
 
             //these are the same
@@ -133,29 +135,28 @@ int main(int argc, char **argv) {
     ///////////////////////////
 
     //initialization of the iteration structures
-    APR_iterator<float> apr_it(apr); //this is required for parallel access
-    uint64_t part;
+    APR_iterator<uint16_t> apr_iterator(apr); //this is required for parallel access
+    uint64_t particle_number;
 
     //create particle dataset
     ExtraPartCellData<float> calc_ex2(apr);
 
     timer.start_timer("APR parallel iterator loop");
 
-#pragma omp parallel for schedule(static) private(part) firstprivate(apr_it)
-    for (part = 0; part < apr.num_parts_total; ++part) {
+#pragma omp parallel for schedule(static) private(particle_number) firstprivate(apr_iterator)
+    for (particle_number = 0; particle_number < apr.num_parts_total; ++particle_number) {
         //needed step for any parallel loop (update to the next part)
-        apr_it.set_iterator_to_particle_by_number(part);
+        apr_iterator.set_iterator_to_particle_by_number(particle_number);
 
-        if(apr_it.depth() < apr_it.depth_max()) {
+        if(apr_iterator.depth() < apr_iterator.depth_max()) {
             //get global y co-ordinate of the particle and put result in calc_ex2 at the current Particle Cell (PC) location
-            apr_it(calc_ex2) = apr_it.y_global();
+            apr_iterator(calc_ex2) = apr_iterator.y_global();
 
-            int x = apr_it.x(); // gets the Particle cell spatial index x.
+            int x = apr_iterator.x(); // gets the Particle cell spatial index x.
 
-            int z_pixel = apr_it.z_nearest_pixel(); //gets the rounded up nearest pixel to the co-ordinate from original image (Larger then PC pixels don't align with pixels)
-
-            unsigned int depth =  apr_it.depth(); // gets the level of the Particle Cell (higher the level (depth), the smaller the Particle Cell --> higher resolution locally) PC at pixel resolution depth = depth_max();
-
+            int z_pixel = apr_iterator.z_nearest_pixel(); //gets the rounded up nearest pixel to the co-ordinate from original image (Larger then PC pixels don't align with pixels)
+             // gets the level of the Particle Cell (higher the level (depth), the smaller the Particle Cell --> higher resolution locally) PC at pixel resolution depth = depth_max();
+            unsigned int level = apr_iterator.level(); //same as above
         }
     }
 
@@ -182,12 +183,12 @@ int main(int argc, char **argv) {
     //compare to explicit loop
     timer.start_timer("Using parallel iterator loop: square the dataset");
 
-#pragma omp parallel for schedule(static) private(part) firstprivate(apr_it)
-    for (part = 0; part < apr.num_parts_total; ++part) {
+#pragma omp parallel for schedule(static) private(particle_number) firstprivate(apr_iterator)
+    for (particle_number = 0; particle_number < apr.num_parts_total; ++particle_number) {
         //needed step for any parallel loop (update to the next part)
-        apr_it.set_iterator_to_particle_by_number(part);
+        apr_iterator.set_iterator_to_particle_by_number(particle_number);
 
-        apr_it(calc_ex) = pow(apr_it(calc_ex),2);
+        apr_iterator(calc_ex) = pow(apr_iterator(calc_ex),2);
     }
 
     timer.stop_timer();
@@ -196,7 +197,7 @@ int main(int argc, char **argv) {
     timer.start_timer("Take the absolute value and output");
     ExtraPartCellData<float> output_1;
     //return the absolute value of the part dataset (includes initialization of the output result)
-    output_1 = calc_ex.map([](const float &a) { return abs(a); });
+    output_1 = calc_ex.map<float>([](const float &a) { return abs(a); });
     timer.stop_timer();
 
     /// Two datasets, binary operation, return result to the particle dataset form which it is performed.
@@ -211,7 +212,6 @@ int main(int argc, char **argv) {
     timer.start_timer("Calculate and return the max of two particle datasets");
     output_2 = calc_ex.zip(calc_ex2, [](const float &a, const float &b) { return std::max(a, b); });
     timer.stop_timer();
-
 
     /////////////////////////////////////////////
     ///
@@ -233,11 +233,168 @@ int main(int argc, char **argv) {
     //you need the same apr used to write it to load it (doesn't save location data)
     apr.read_parts_only(extra_file_name,output_2_read);
 
+    //////////////////////////////////////////////////
+    ///
+    /// Advanced iteration strategies
+    ///
+    /// Below are some examples of further loop splitting that can be useful in image processing applications (See CompressAPR)
+    ///
+    ////////////////////////////////////////////////////
+
+    ///
+    ///  By Level
+    ///
+
+    timer.start_timer("by level");
+
+    uint64_t counter = 0;
+
+    for (int level = apr.level_min(); level <= apr.level_max(); ++level) {
+
+#pragma omp parallel for schedule(static) private(particle_number) firstprivate(apr_iterator) reduction(+:counter)
+        for (particle_number = apr_iterator.particles_level_begin(level); particle_number <  apr_iterator.particles_level_end(level); ++particle_number) {
+            //
+            //  Parallel loop over level
+            //
+            apr_iterator.set_iterator_to_particle_by_number(particle_number);
+
+            counter++;
+
+            if(apr_iterator.level() == level){
+
+            } else{
+                std::cout << "broken" << std::endl;
+            }
+        }
+    }
+
+    timer.stop_timer();
+
+    if(counter != apr.num_parts_total){
+        std::cout << "NOT TOTAL ITERATION" << std::endl;
+    }
 
 
+    ///
+    ///  By level and z slice (loop over x and then y)
+    ///
 
+    timer.start_timer("by level and z");
 
+    counter = 0;
 
+    for (int level = apr.level_min(); level <= apr.level_max(); ++level) {
+        for(unsigned int z = 0; z < apr.spatial_index_z_max(level); ++z) {
+
+            uint64_t  begin = apr_iterator.particles_z_begin(level,z);
+            uint64_t  end = apr_iterator.particles_z_end(level,z);
+
+#pragma omp parallel for schedule(static) private(particle_number) firstprivate(apr_iterator) reduction(+:counter)
+            for (particle_number = apr_iterator.particles_z_begin(level,z);
+                 particle_number < apr_iterator.particles_z_end(level,z); ++particle_number) {
+                //
+                //  Parallel loop over level
+                //
+                apr_iterator.set_iterator_to_particle_by_number(particle_number);
+
+                counter++;
+
+                if (apr_iterator.z() == z) {
+
+                } else {
+                    std::cout << "broken" << std::endl;
+                }
+            }
+        }
+    }
+
+    if(counter != apr.num_parts_total){
+        std::cout << "NOT TOTAL ITERATION" << std::endl;
+    }
+
+    timer.stop_timer();
+
+    ///
+    ///  By level and z slice and x (loop over particles in y (memory order))
+    ///
+
+//    timer.start_timer("by level the z then x");
+//
+//    counter = 0;
+//
+//    for (int level = apr.level_min(); level <= apr.level_max(); ++level) {
+//        for (unsigned int z = 0; z < apr.spatial_index_z_max(level); ++z) {
+//            for (unsigned int x = 0; x < apr.spatial_index_x_max(level); ++x) {
+//
+//                uint64_t begin = apr_iterator.particles_zx_begin(level, z, x);
+//                uint64_t end = apr_iterator.particles_zx_end(level, z, x);
+//
+//#pragma omp parallel for schedule(static) private(particle_number) firstprivate(apr_iterator) reduction(+:counter)
+//                for (particle_number = apr_iterator.particles_zx_begin(level, z, x);
+//                     particle_number < apr_iterator.particles_zx_end(level, z, x); ++particle_number) {
+//                    //
+//                    //  Parallel loop over level
+//                    //
+//                    apr_iterator.set_iterator_to_particle_by_number(particle_number);
+//
+//                    counter++;
+//
+//                    if (apr_iterator.x() == x) {
+//
+//                    } else {
+//                        std::cout << "broken" << std::endl;
+//                    }
+//                }
+//            }
+//        }
+//    }
+//
+//    if(counter != apr.num_parts_total){
+//        std::cout << "NOT TOTAL ITERATION" << std::endl;
+//    }
+//
+//    timer.stop_timer();
+
+    ///
+    /// Alternative Paralellization Strategy (OpenMP splits up the z-slices)
+    ///
+
+    timer.start_timer("By level parallelize by slice");
+
+    counter = 0;
+
+    for (int level = apr.level_min(); level <= apr.level_max(); ++level) {
+
+        int z = 0;
+#pragma omp parallel for schedule(static) private(particle_number,z) firstprivate(apr_iterator) reduction(+:counter)
+        for(z = 0; z < apr.spatial_index_z_max(level); ++z) {
+
+            uint64_t  begin = apr_iterator.particles_z_begin(level,z);
+            uint64_t  end = apr_iterator.particles_z_end(level,z);
+
+            for (particle_number = apr_iterator.particles_z_begin(level,z);
+                 particle_number < apr_iterator.particles_z_end(level,z); ++particle_number) {
+                //
+                //  Parallel loop over level
+                //
+                apr_iterator.set_iterator_to_particle_by_number(particle_number);
+
+                counter++;
+
+                if (apr_iterator.z() == z) {
+
+                } else {
+                    std::cout << "broken" << std::endl;
+                }
+            }
+        }
+    }
+
+    if(counter != apr.num_parts_total){
+        std::cout << "NOT TOTAL ITERATION" << std::endl;
+    }
+
+    timer.stop_timer();
 
 }
 

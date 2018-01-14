@@ -65,6 +65,67 @@ public:
 
 
     template<typename S>
+    void copy_parts(ExtraPartCellData<S>& parts_to_copy){
+        //
+        //  Copy's the data from one particle dataset to another, assumes it is already intialized.
+        //
+
+        uint64_t x_;
+        uint64_t z_;
+
+        for(uint64_t i = depth_min;i <= depth_max;i++){
+
+            const unsigned int x_num_ = x_num[i];
+            const unsigned int z_num_ = z_num[i];
+
+#pragma omp parallel for private(z_,x_)
+            for(z_ = 0;z_ < z_num_;z_++){
+
+                for(x_ = 0;x_ < x_num_;x_++){
+
+                    const size_t offset_pc_data = x_num_*z_ + x_;
+                    const size_t j_num = data[i][offset_pc_data].size();
+
+                    std::copy(parts_to_copy.data[i][offset_pc_data].begin(),parts_to_copy.data[i][offset_pc_data].end(),data[i][offset_pc_data].begin());
+
+                }
+            }
+
+        }
+
+
+    }
+
+    template<typename S>
+    void copy_parts(ExtraPartCellData<S>& parts_to_copy,const unsigned int level){
+        //
+        //  Copy's the data from one particle dataset to another, assumes it is already intialized, for a specific level
+        //
+
+        uint64_t x_;
+        uint64_t z_;
+
+        const unsigned int x_num_ = x_num[level];
+        const unsigned int z_num_ = z_num[level];
+
+#pragma omp parallel for private(z_,x_)
+        for(z_ = 0;z_ < z_num_;z_++){
+
+            for(x_ = 0;x_ < x_num_;x_++){
+
+                const size_t offset_pc_data = x_num_*z_ + x_;
+                const size_t j_num = data[level][offset_pc_data].size();
+
+                std::copy(parts_to_copy.data[level][offset_pc_data].begin(),parts_to_copy.data[level][offset_pc_data].end(),data[level][offset_pc_data].begin());
+
+            }
+        }
+
+
+    }
+
+
+    template<typename S>
     void initialize_structure_cells(PartCellData<S>& pc_data){
         //
         //  Initialize the structure to the same size as the given structure
@@ -85,8 +146,10 @@ public:
             z_num[i] = pc_data.z_num[i];
             x_num[i] = pc_data.x_num[i];
             data[i].resize(z_num[i]*x_num[i]);
-            
-            for(int j = 0;j < pc_data.data[i].size();j++){
+
+            int j = 0;
+#pragma omp parallel for private(j)
+            for(j = 0;j < pc_data.data[i].size();j++){
                 data[i][j].resize(pc_data.data[i][j].size(),0);
             }
             
@@ -417,8 +480,8 @@ public:
 
 
 
-    template<class UnaryOperator>
-    ExtraPartCellData<T> map(UnaryOperator op){
+    template<typename U,class UnaryOperator>
+    ExtraPartCellData<U> map(UnaryOperator op){
         //
         //  Bevan Cheeseman 2018
         //
@@ -428,7 +491,7 @@ public:
         //
         //
 
-        ExtraPartCellData<T> output;
+        ExtraPartCellData<U> output;
         output.initialize_structure_parts(*this);
 
         int z_,x_,j_,y_;
@@ -494,6 +557,45 @@ public:
         }
 
     }
+
+
+    template<class UnaryOperator>
+    void map_inplace(UnaryOperator op,unsigned int level){
+        //
+        //  Bevan Cheeseman 2018
+        //
+        //  Performs a unary operator on a particle dataset in parrallel and returns a new dataset with the result
+        //
+        //  See std::transform for examples of different operators to use
+        //
+
+        int z_,x_,j_,y_;
+
+        //loop over the resolutions of the structure
+        const unsigned int x_num_ = x_num[level];
+        const unsigned int z_num_ = z_num[level];
+
+        const unsigned int x_num_min_ = 0;
+        const unsigned int z_num_min_ = 0;
+
+#pragma omp parallel for default(shared) private(z_,x_,j_) if(z_num_*x_num_ > 100)
+        for (z_ = z_num_min_; z_ < z_num_; z_++) {
+            //both z and x are explicitly accessed in the structure
+
+            for (x_ = x_num_min_; x_ < x_num_; x_++) {
+
+                const unsigned int pc_offset = x_num_*z_ + x_;
+
+                std::transform(data[level][pc_offset].begin(),data[level][pc_offset].end(),data[level][pc_offset].begin(),op);
+
+            }
+        }
+
+
+    }
+
+
+
 
     /// some helpers functions for the transform_parts above
     template<typename V>

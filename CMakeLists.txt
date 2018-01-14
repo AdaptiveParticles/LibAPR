@@ -86,7 +86,7 @@ set(SOURCE_FILES_COMPILED
 
         src/misc/APR_timer.cpp
 
-        src/algorithm/APR_parameters.cpp
+        src/algorithm/APRParameters.cpp
         )
 
 
@@ -105,7 +105,7 @@ if(CMAKE_COMPILER_IS_GNUCC)
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++14 -O3 -ffast-math -I /usr/include/hdf5/serial/ -Bdynamic -ldl")
    #set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++14 -O1  -I /usr/include/hdf5/serial/ ")
     set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS}")
-    set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS} -std=c++11 -O0 -g -I /usr/include/hdf5/serial/")
+    set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS} -std=c++14 -O0 -g -I /usr/include/hdf5/serial/")
     set(CMAKE_EXE_LINKER_FLAGS  "${CMAKE_EXE_LINKER_FLAGS} -Bdynamic -ldl ")
 endif(CMAKE_COMPILER_IS_GNUCC)
 if (CMAKE_CXX_COMPILER_ID MATCHES "Clang")
@@ -113,7 +113,7 @@ if (CMAKE_CXX_COMPILER_ID MATCHES "Clang")
 
     if(CMAKE_BUILD_TYPE MATCHES "Release")
         MESSAGE(STATUS "RELEASE BUILD")
-        set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS} -std=c++14 -O3 -ffast-math")
+        set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS} -std=c++14 -O3 -ffast-math -m64")
     endif()
 
     if(CMAKE_BUILD_TYPE MATCHES "Debug")
@@ -204,12 +204,22 @@ add_executable(Example_ray_cast
 
 
 add_executable(Example_compress
-        benchmarks/development/compress_apr.cpp
+        benchmarks/development/Example_compress_apr.cpp
         benchmarks/development/old_io/write_parts.cpp
         ${SOURCE_FILES_COMPILED}
         )
 
+add_executable(Example_benchmark
+        benchmarks/development/Example_benchmark.cpp
+        benchmarks/development/old_io/write_parts.cpp
+        ${SOURCE_FILES_COMPILED}
+        )
 
+add_executable(Example_newstructures
+        benchmarks/development/Example_newstructures.cpp
+        benchmarks/development/old_io/write_parts.cpp
+        ${SOURCE_FILES_COMPILED}
+        )
 
 add_executable(Example_neigh
         test/Examples/Example_neigh.cpp
@@ -234,7 +244,8 @@ target_link_libraries(Example_recon_img ${HDF5_LIBRARIES} ${CMAKE_THREAD_LIBS_IN
 target_link_libraries(Example_neigh ${HDF5_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT} ${TIFF_LIBRARIES} blosc_shared)
 
 target_link_libraries(Example_compress ${HDF5_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT} ${TIFF_LIBRARIES} blosc_shared)
-
+target_link_libraries(Example_benchmark ${HDF5_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT} ${TIFF_LIBRARIES} blosc_shared)
+target_link_libraries(Example_newstructures ${HDF5_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT} ${TIFF_LIBRARIES} blosc_shared)
 
 set_target_properties(blosc_shared PROPERTIES
         RUNTIME_OUTPUT_DIRECTORY_DEBUG ${PROJECT_BINARY_DIR})
@@ -376,7 +387,7 @@ if(BENCHMARKS)
                 test/utils.cpp
                 benchmarks/development/old_io/write_parts.cpp
                 ${SOURCE_FILES_COMPILED}
-                benchmarks/development/analyze_apr.cpp)
+                benchmarks/development/Example_benchmark.cpp)
 
         TARGET_LINK_LIBRARIES(Example_analysis ${ArrayFire_OpenCL_LIBRARIES}
                 ${OpenCL_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT} ${HDF5_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT} ${TIFF_LIBRARIES} blosc)

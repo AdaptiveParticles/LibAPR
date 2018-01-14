@@ -40,7 +40,7 @@ public:
     PartCellData<uint64_t>* pc_data_pointer;
 
     ExtraPartCellData<uint64_t>* num_parts_xz_pointer;
-    std::vector<float>* num_parts;
+    std::vector<uint64_t>* num_parts;
 
     CurrentLevel<ImageType,uint64_t> curr_level;
 
@@ -54,10 +54,17 @@ public:
 
 
     APR_iterator(APR<ImageType>& apr){
-        current_part = 0;
+        initialize_from_apr(apr);
 
-        apr.get_part_numbers();
-        apr.set_part_numbers_xz();
+    }
+
+    void initialize_from_apr(APR<ImageType>& apr){
+        current_part = -2;
+
+        if(apr.num_parts_xy.data.size() == 0) {
+            apr.get_part_numbers();
+            apr.set_part_numbers_xz();
+        }
 
         this->num_parts = &(apr.num_parts);
         this->num_parts_xz_pointer = &(apr.num_parts_xy);
@@ -65,6 +72,60 @@ public:
         this->pc_data_pointer = &(apr.pc_data);
 
         this->curr_level.init(apr.pc_data);
+
+    }
+
+    inline unsigned int particles_level_begin(unsigned int level_){
+        //
+        //  Used for finding the starting particle on a given level
+        //
+        return (*num_parts)[level_-1];
+    }
+
+    inline unsigned int particles_level_end(unsigned int level_){
+        //
+        //  Find the last particle on a given level
+        //
+        return (*num_parts)[level_];
+    }
+
+    inline unsigned int particles_z_begin(unsigned int level,unsigned int z){
+        //
+        //  Used for finding the starting particle on a given level
+        //
+        if(z > 0) {
+            return ((*num_parts_xz_pointer).data[level][(*pc_data_pointer).x_num[level] * (z-1) + (*pc_data_pointer).x_num[level]-1][0]);
+        } else {
+            return (*num_parts)[level-1];
+        }
+    }
+
+    inline unsigned int particles_z_end(unsigned int level,unsigned int z){
+        //
+        //  Used for finding the starting particle on a given level
+        //
+
+        return ((*num_parts_xz_pointer).data[level][(*pc_data_pointer).x_num[level] * z + (*pc_data_pointer).x_num[level]-1][0]);
+
+    }
+
+    inline unsigned int particles_zx_begin(unsigned int level,unsigned int z, unsigned int x){
+        //
+        //  Used for finding the starting particle on a given level
+        //
+        if(x > 0) {
+            return ((*num_parts_xz_pointer).data[level][(*pc_data_pointer).x_num[level] * (z) + (x-1)][0]);
+        } else {
+            return particles_z_begin(level,z);
+        }
+    }
+
+    inline unsigned int particles_zx_end(unsigned int level,unsigned int z, unsigned int x){
+        //
+        //  Used for finding the starting particle on a given level
+        //
+
+        return ((*num_parts_xz_pointer).data[level][(*pc_data_pointer).x_num[level] * (z) + (x)][0]);
 
     }
 
@@ -93,7 +154,7 @@ public:
 
             uint64_t depth = (*pc_data_pointer).depth_min;
             //first depth search
-            while((part_num > (*num_parts)[depth]) | ((*num_parts)[depth] ==0) ){
+            while(((part_num) >= ((*num_parts)[depth])) | ((*num_parts)[depth] ==0) ){
                 depth++;
             }
 
@@ -129,15 +190,16 @@ public:
             }
 
 
-        } else if(part_num ==0){
-            curr_level.set_new_depth((*pc_data_pointer).depth_min,*pc_data_pointer);
-            curr_level.set_new_z(0,*pc_data_pointer);
-            curr_level.set_new_x(0,*pc_data_pointer);
-            curr_level.update_j(*pc_data_pointer,0);
-
-            curr_level.move_to_next_pc(*pc_data_pointer);
-
         }
+//        else if(part_num ==0){
+//            curr_level.set_new_depth((*pc_data_pointer).depth_min,*pc_data_pointer);
+//            curr_level.set_new_z(0,*pc_data_pointer);
+//            curr_level.set_new_x(0,*pc_data_pointer);
+//            curr_level.update_j(*pc_data_pointer,0);
+//
+//            curr_level.move_to_next_pc(*pc_data_pointer);
+//
+//        }
 
         return true;
 
@@ -301,6 +363,26 @@ public:
 
     inline unsigned int depth_min(){
         return (*pc_data_pointer).depth_min;
+    }
+
+    inline unsigned int level_min(){
+        return (*pc_data_pointer).depth_min;
+    }
+
+    inline unsigned int level_max(){
+        return (*pc_data_pointer).depth_max;
+    }
+
+    inline unsigned int spatial_index_x_max(unsigned int level){
+        return (*pc_data_pointer).x_num[level];
+    }
+
+    inline unsigned int spatial_index_y_max(unsigned int level){
+        return (*pc_data_pointer).y_num[level];
+    }
+
+    inline unsigned int spatial_index_z_max(unsigned int level){
+        return (*pc_data_pointer).z_num[level];
     }
 
 
