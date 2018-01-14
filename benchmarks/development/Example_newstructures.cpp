@@ -19,6 +19,40 @@
 #include "benchmarks/development/Example_newstructures.h"
 
 
+#define _NO_NEIGHBOUR ((uint16_t)3)
+#define _LEVEL_SAME ((uint16_t)1)
+#define _LEVEL_DECREASE ((uint16_t)0)
+#define _LEVEL_INCREASE ((uint16_t)2)
+
+#define _EMPTY ((uint16_t)0)
+#define _SEED ((uint16_t)1)
+#define _BOUNDARY ((uint16_t)2)
+#define _FILLER ((uint16_t)3)
+
+#define YP_LEVEL_MASK ((((uint16_t)1) << 2) - 1) << 1
+#define YP_LEVEL_SHIFT (uint16_t)  2
+
+#define YM_LEVEL_MASK ((((uint16_t)1) << 2) - 1) << 3
+#define YM_LEVEL_SHIFT (uint16_t) 3
+
+#define XP_LEVEL_MASK ((((uint16_t)1) << 2) - 1) << 5
+#define XP_LEVEL_SHIFT 5
+
+#define XM_LEVEL_MASK ((((uint16_t)1) << 2) - 1) << 7
+#define XM_LEVEL_SHIFT 7
+
+#define ZP_LEVEL_MASK ((((uint16_t)1) << 2) - 1) << 9
+#define ZP_LEVEL_SHIFT 9
+
+#define ZM_LEVEL_MASK ((((uint16_t)1) << 2) - 1) << 11
+#define ZM_LEVEL_SHIFT 11
+
+#define PC_TYPE_MASK ((((uint16_t)1) << 2) - 1) << 13
+#define PC_TYPE_SHIFT 13
+
+
+
+
 //xp is x + 1 neigh
 //#define XP_DEPTH_MASK ((((uint64_t)1) << 2) - 1) << 4
 //#define XP_DEPTH_SHIFT 4
@@ -114,8 +148,11 @@ int main(int argc, char **argv) {
 
     uint64_t y_coord;
 
-    std::vector<std::vector<uint16_t>> neighbours;
+    std::vector<uint16_t> neighbours;
 
+    apr.get_part_numbers();
+
+    neighbours.resize(apr.num_parts_total);
 
     ExtraPartCellData<uint64_t> gaps;
     gaps.initialize_structure_parts_empty(apr.particles_int);
@@ -157,6 +194,8 @@ int main(int argc, char **argv) {
                     iterator.data[i][offset_pc_data].push_back(0);
                 }
 
+                uint64_t prev = 0;
+
                 //the y direction loop however is sparse, and must be accessed accordinagly
                 for(j_ = 0;j_ < j_num;j_++){
 
@@ -165,46 +204,92 @@ int main(int argc, char **argv) {
                     //particle cell node value, used here as it is requried for getting the particle neighbours
                     node_val_pc = apr.pc_data.data[i][offset_pc_data][j_];
 
+
+
                     if (!(node_val_pc&1)){
                         //Indicates this is a particle cell node
                         y_coord++;
                         count_parts++;
 
+                        uint16_t status = (node_val_pc & STATUS_MASK) >> STATUS_SHIFT;
+                        uint16_t type = (node_val_pc & TYPE_MASK) >> TYPE_SHIFT;
 
-                        uint64_t status = (node_val_pc & STATUS_MASK) >> STATUS_SHIFT;
-                        uint64_t type = (node_val_pc & TYPE_MASK) >> TYPE_SHIFT;
+                        uint16_t xp_j= (node_val_pc & XP_INDEX_MASK) >> XP_INDEX_SHIFT;
+                        uint16_t xp_dep = (node_val_pc & XP_DEPTH_MASK) >> XP_DEPTH_SHIFT;
 
-                        uint64_t xp_j= (node_val_pc & XP_INDEX_MASK) >> XP_INDEX_SHIFT;
-                        uint64_t xp_dep = (node_val_pc & XP_DEPTH_MASK) >> XP_DEPTH_SHIFT;
+                        uint16_t zp_j = (node_val_pc & ZP_INDEX_MASK) >> ZP_INDEX_SHIFT;
+                        uint16_t zp_dep = (node_val_pc & ZP_DEPTH_MASK) >> ZP_DEPTH_SHIFT;
 
-                        uint64_t zp_j = (node_val_pc & ZP_INDEX_MASK) >> ZP_INDEX_SHIFT;
-                        uint64_t zp_dep = (node_val_pc & ZP_DEPTH_MASK) >> ZP_DEPTH_SHIFT;
+                        uint16_t m_j = (node_val_pc & XM_INDEX_MASK) >> XM_INDEX_SHIFT;
+                        uint16_t xm_dep = (node_val_pc & XM_DEPTH_MASK) >> XM_DEPTH_SHIFT;
 
-                        uint64_t m_j = (node_val_pc & XM_INDEX_MASK) >> XM_INDEX_SHIFT;
-                        uint64_t xm_dep = (node_val_pc & XM_DEPTH_MASK) >> XM_DEPTH_SHIFT;
+                        uint16_t zm_j = (node_val_pc & ZM_INDEX_MASK) >> ZM_INDEX_SHIFT;
+                        uint16_t zm_dep = (node_val_pc & ZM_DEPTH_MASK) >> ZM_DEPTH_SHIFT;
 
-                        uint64_t zm_j = (node_val & ZM_INDEX_MASK) >> ZM_INDEX_SHIFT;
-                        uint64_t zm_dep = (node_val & ZM_DEPTH_MASK) >> ZM_DEPTH_SHIFT;
+//
+//                        pc_data.data[i][offset_pc_data][curr_index-1] = TYPE_GAP;
+//                        pc_data.data[i][offset_pc_data][curr_index-1] |= (((uint64_t)y_) << NEXT_COORD_SHIFT);
+//                        pc_data.data[i][offset_pc_data][curr_index-1] |= ( prev_coord << PREV_COORD_SHIFT);
+//                        pc_data.data[i][offset_pc_data][curr_index-1] |= (NO_NEIGHBOUR << YP_DEPTH_SHIFT);
+//                        pc_data.data[i][offset_pc_data][curr_index-1] |= (NO_NEIGHBOUR << YM_DEPTH_SHIFT);
 
+                        neighbours[count_parts-1] |= (xp_dep << XP_LEVEL_SHIFT);
+                        neighbours[count_parts-1] |= (xm_dep << XM_LEVEL_SHIFT);
+                        neighbours[count_parts-1] |= (zp_dep << ZP_LEVEL_SHIFT);
+                        neighbours[count_parts-1] |= (zm_dep << ZM_LEVEL_SHIFT);
+                        neighbours[count_parts-1] |= (status << PC_TYPE_SHIFT);
+
+                        if(prev == 0){
+                            //add a y same flag
+
+                            neighbours[count_parts-1] |= (_LEVEL_SAME << YM_LEVEL_SHIFT);
+
+                            neighbours[count_parts-2] |= (_LEVEL_SAME << YP_LEVEL_SHIFT);
+
+                        }
+
+                        //NEED TO SET YP
+
+
+
+
+
+                        prev = 0;
 
 
 
                     } else {
                         // Inidicates this is not a particle cell node, and is a gap node
 
+                        prev = 1;
 
-                        type = (node_val & TYPE_MASK) >> TYPE_SHIFT;
+                        uint64_t type = (node_val_pc & TYPE_MASK) >> TYPE_SHIFT;
 
-                        yp_j = (node_val & YP_INDEX_MASK) >> YP_INDEX_SHIFT;
-                        yp_dep = (node_val & YP_DEPTH_MASK) >> YP_DEPTH_SHIFT;
+                        uint64_t yp_j = (node_val_pc & YP_INDEX_MASK) >> YP_INDEX_SHIFT;
+                        uint64_t yp_dep = (node_val_pc & YP_DEPTH_MASK) >> YP_DEPTH_SHIFT;
 
-                        ym_j = (node_val & YM_INDEX_MASK) >> YM_INDEX_SHIFT;
-                        ym_dep = (node_val & YM_DEPTH_MASK) >> YM_DEPTH_SHIFT;
+                        uint64_t ym_j = (node_val_pc & YM_INDEX_MASK) >> YM_INDEX_SHIFT;
+                        uint64_t ym_dep = (node_val_pc & YM_DEPTH_MASK) >> YM_DEPTH_SHIFT;
 
-                        next_y = (node_val & NEXT_COORD_MASK) >> NEXT_COORD_SHIFT;
+                        uint64_t next_y = (node_val_pc & NEXT_COORD_MASK) >> NEXT_COORD_SHIFT;
 
-                        prev_y = (node_val & PREV_COORD_MASK) >> PREV_COORD_SHIFT;
+                        uint64_t prev_y = (node_val_pc & PREV_COORD_MASK) >> PREV_COORD_SHIFT;
 
+                        if((j_ == 0) & (j_num > 1)){
+                            //first node (do forward) (YM)
+                            neighbours[count_parts] |= (ym_dep << YM_LEVEL_SHIFT);
+
+                        } else if (j_ == (j_num-1) & (j_num > 1)){
+                            //last node (do behind) (YP)
+                            neighbours[count_parts-1] |= (yp_dep << YP_LEVEL_SHIFT);
+
+                        } else if (j_num > 1){
+                            // front (YM) and behind (YP)
+
+                            neighbours[count_parts] |= (ym_dep << YM_LEVEL_SHIFT);
+                            neighbours[count_parts-1] |= (yp_dep << YP_LEVEL_SHIFT);
+
+                        }
 
 
                         if(j_>0){
