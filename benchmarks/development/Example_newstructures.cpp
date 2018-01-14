@@ -18,6 +18,15 @@
 
 #include "benchmarks/development/Example_newstructures.h"
 
+
+//xp is x + 1 neigh
+//#define XP_DEPTH_MASK ((((uint64_t)1) << 2) - 1) << 4
+//#define XP_DEPTH_SHIFT 4
+//#define XP_INDEX_MASK ((((uint64_t)1) << 13) - 1) << 6
+//#define XP_INDEX_SHIFT 6
+
+
+
 bool command_option_exists(char **begin, char **end, const std::string &option)
 {
     return std::find(begin, end, option) != end;
@@ -105,9 +114,8 @@ int main(int argc, char **argv) {
 
     uint64_t y_coord;
 
-    std::vector<std::vector<uint16_t>> y_gaps;
+    std::vector<std::vector<uint16_t>> neighbours;
 
-    y_gaps.resize(apr.depth_max());
 
     ExtraPartCellData<uint64_t> gaps;
     gaps.initialize_structure_parts_empty(apr.particles_int);
@@ -162,8 +170,42 @@ int main(int argc, char **argv) {
                         y_coord++;
                         count_parts++;
 
+
+                        uint64_t status = (node_val_pc & STATUS_MASK) >> STATUS_SHIFT;
+                        uint64_t type = (node_val_pc & TYPE_MASK) >> TYPE_SHIFT;
+
+                        uint64_t xp_j= (node_val_pc & XP_INDEX_MASK) >> XP_INDEX_SHIFT;
+                        uint64_t xp_dep = (node_val_pc & XP_DEPTH_MASK) >> XP_DEPTH_SHIFT;
+
+                        uint64_t zp_j = (node_val_pc & ZP_INDEX_MASK) >> ZP_INDEX_SHIFT;
+                        uint64_t zp_dep = (node_val_pc & ZP_DEPTH_MASK) >> ZP_DEPTH_SHIFT;
+
+                        uint64_t m_j = (node_val_pc & XM_INDEX_MASK) >> XM_INDEX_SHIFT;
+                        uint64_t xm_dep = (node_val_pc & XM_DEPTH_MASK) >> XM_DEPTH_SHIFT;
+
+                        uint64_t zm_j = (node_val & ZM_INDEX_MASK) >> ZM_INDEX_SHIFT;
+                        uint64_t zm_dep = (node_val & ZM_DEPTH_MASK) >> ZM_DEPTH_SHIFT;
+
+
+
+
                     } else {
                         // Inidicates this is not a particle cell node, and is a gap node
+
+
+                        type = (node_val & TYPE_MASK) >> TYPE_SHIFT;
+
+                        yp_j = (node_val & YP_INDEX_MASK) >> YP_INDEX_SHIFT;
+                        yp_dep = (node_val & YP_DEPTH_MASK) >> YP_DEPTH_SHIFT;
+
+                        ym_j = (node_val & YM_INDEX_MASK) >> YM_INDEX_SHIFT;
+                        ym_dep = (node_val & YM_DEPTH_MASK) >> YM_DEPTH_SHIFT;
+
+                        next_y = (node_val & NEXT_COORD_MASK) >> NEXT_COORD_SHIFT;
+
+                        prev_y = (node_val & PREV_COORD_MASK) >> PREV_COORD_SHIFT;
+
+
 
                         if(j_>0){
                             gaps_end.data[i][offset_pc_data].push_back(y_coord);
@@ -175,7 +217,7 @@ int main(int argc, char **argv) {
                             if(j_ < (j_num - 1)) {
                                 count_gaps++;
                                 gaps.data[i][offset_pc_data].push_back(y_coord+1);
-                                index.data[i][offset_pc_data].push_back(j_+1);
+                                index.data[i][offset_pc_data].push_back(count_parts);
                             }
 
                         }
@@ -193,14 +235,47 @@ int main(int argc, char **argv) {
     std::cout << count_gaps << std::endl;
     std::cout << count_parts << std::endl;
 
-
     std::vector<uint16_t> pint;
     pint.reserve(count_parts);
 
+    std::vector<uint16_t> px;
+    px.reserve(count_parts);
+
+    std::vector<uint16_t> py;
+    py.reserve(count_parts);
+
+    std::vector<uint16_t> pz;
+    pz.reserve(count_parts);
+
+    timer.verbose_flag = true;
+
+    timer.start_timer("iterate old");
+
     for (apr.begin();apr.end()!=0 ;apr.it_forward()) {
         pint.push_back(apr(apr.particles_int));
+        px.push_back(apr.x());
+        py.push_back(apr.y());
+        pz.push_back(apr.z());
     }
 
+    timer.stop_timer();
+
+    std::vector<uint16_t> pint2;
+    pint2.reserve(count_parts);
+
+    std::vector<uint16_t> px2;
+    px2.reserve(count_parts);
+
+    std::vector<uint16_t> py2;
+    py2.reserve(count_parts);
+
+    std::vector<uint16_t> pz2;
+    pz2.reserve(count_parts);
+
+
+    timer.start_timer("iterate new");
+
+    uint64_t counter_new = -1;
 
     for(uint64_t i = apr.pc_data.depth_min;i <= apr.pc_data.depth_max;i++) {
         //loop over the resolutions of the structure
@@ -210,32 +285,73 @@ int main(int argc, char **argv) {
 //#pragma omp parallel for default(shared) private(z_,x_,j_,node_val_pc,curr_key)  firstprivate(neigh_cell_keys) if(z_num_*x_num_ > 100)
         for (z_ = 0; z_ < z_num_; z_++) {
             //both z and x are explicitly accessed in the structure
-            const size_t offset_pc_data = x_num_*z_ + x_;
 
             for (x_ = 0; x_ < x_num_; x_++) {
 
+                const size_t offset_pc_data = x_num_*z_ + x_;
+
                 if(iterator.data[i][offset_pc_data].size() > 0){
 
-                    for (int j = 0; j < gaps.data[offset_pc_data].size(); ++j) {
+                    for (int j = 0; j < gaps.data[i][offset_pc_data].size(); ++j) {
 
-                        for (int y = gaps.data[i][offset_pc_data][j]; y  <=  gaps_end.data[i][offset_pc_data][j];y++) {
+                        uint64_t curr_index = index.data[i][offset_pc_data][j];
 
+                        uint64_t begin = gaps.data[i][offset_pc_data][j];
+                        uint64_t end = gaps_end.data[i][offset_pc_data][j];
 
+                        curr_index--;
+
+                        for (int y = gaps.data[i][offset_pc_data][j];
+                             y <= gaps_end.data[i][offset_pc_data][j]; y++) {
+
+                            curr_index++;
+                            counter_new++;
+
+                            pint2.push_back(pint[curr_index]);
+                            px2.push_back(x_);
+                            pz2.push_back(z_);
+                            py2.push_back(y);
 
                         }
 
-
                     }
 
-
-
-
                 }
-
-
             }
         }
     }
+
+    timer.stop_timer();
+
+    std::cout << counter_new << std::endl;
+
+    /////////////////
+    ///
+    /// Checking everything is okay here..
+    ///
+    ///////////////////
+
+    for (int k = 0; k < count_parts; ++k) {
+
+        if(pint[k] != pint2[k]){
+            std::cout << "broke" << std::endl;
+        }
+
+        if(py[k] != py2[k]){
+            std::cout << "broke" << std::endl;
+        }
+
+        if(px[k] != px2[k]){
+            std::cout << "broke" << std::endl;
+        }
+
+        if(pz[k] != pz2[k]){
+            std::cout << "broke" << std::endl;
+        }
+
+    }
+
+
 
 
 
