@@ -873,7 +873,7 @@ int main(int argc, char **argv) {
     }
 
 
-    float num_rep = 1;
+    float num_rep = 3;
 
     uint64_t counter_n1= 0;
 
@@ -884,6 +884,11 @@ int main(int argc, char **argv) {
 
     std::vector<int> neigh_count2;
     neigh_count2.resize(apr.num_parts_total,0);
+
+    ExtraPartCellData<float> neigh_sum(apr);
+
+    std::vector<float> neigh_sum_new;
+    neigh_sum_new.resize(apr.num_parts_total,0);
 
     timer.start_timer("APR serial iterator neighbours loop");
 
@@ -906,17 +911,15 @@ int main(int argc, char **argv) {
                     // on each face, there can be 0-4 neighbours accessed by index
                     if (neighbour_iterator.set_neighbour_iterator(apr, dir, index)) {
                         //will return true if there is a neighbour defined
+                        temp+=neighbour_iterator(apr.particles_int);
 
-                        neigh_count[counter_n1]++;
-
-                        neighbour_iterator(apr.particles_int) = neighbour_iterator.x();
-                        //counter++;
-                        q++;
+                        counter++;
 
                     }
                 }
             }
-            counter_n1++;
+
+            apr(neigh_sum) = temp/counter;
 
         }
 
@@ -943,8 +946,6 @@ int main(int argc, char **argv) {
     uint64_t counter_t = 0;
 
     for (int l = 0; l < num_rep; ++l) {
-
-
 
         for (uint64_t i = apr.pc_data.depth_min; i <= apr.pc_data.depth_max; i++) {
             //loop over the resolutions of the structure
@@ -985,11 +986,8 @@ int main(int argc, char **argv) {
 
                                 uint16_t node = neighbours[curr_index];
 
-                                if(curr_index == 857){
-                                    int stop = 1;
-                                }
-
-                                counter_t++;
+                                float counter = 0;
+                                float temp = 0;
 
                                 for (int f = 0; f < dir_vec.size(); ++f) {
                                     // Neighbour Particle Cell Face definitions [+y,-y,+x,-x,+z,-z] =  [0,1,2,3,4,5]
@@ -1007,13 +1005,10 @@ int main(int argc, char **argv) {
                                                     neigh.pc_offset =
                                                             apr.pc_data.x_num[neigh.level] * neigh.z + neigh.x;
 
-
-
                                                     if (find_particle_cell(gap_map, gap_map_it,neigh)) {
                                                         // do something;
-                                                        pint[neigh.global_index] = neigh.x;
-                                                        counter_n++;
-                                                        neigh_count2[curr_index]++;
+                                                        temp+=pint[neigh.global_index];
+                                                        counter++;
                                                     }
 
                                                 }
@@ -1025,9 +1020,9 @@ int main(int argc, char **argv) {
                                                     apr.pc_data.x_num[neigh.level] * neigh.z + neigh.x;
                                             if (find_particle_cell(gap_map, gap_map_it,neigh)) {
                                                 // do something;
-                                                pint[neigh.global_index] = neigh.x;
-                                                counter_n++;
-                                                neigh_count2[curr_index]++;
+                                                temp+=pint[neigh.global_index];
+                                                counter++;
+
                                             }
 
                                         }
@@ -1035,6 +1030,9 @@ int main(int argc, char **argv) {
                                     }
 
                                 }
+
+                                neigh_sum_new[curr_index] = temp/counter;
+
                             }
                         }
                     }
