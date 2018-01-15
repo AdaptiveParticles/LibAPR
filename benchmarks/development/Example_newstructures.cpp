@@ -167,9 +167,9 @@ bool get_neighbour_coordinate(const PartCell& input,PartCell& neigh,const unsign
         case _LEVEL_DECREASE:
             //Larger Particle Cell (Lower Level)
             neigh.level = input.level - 1;
-            neigh.x = input.x/2;
-            neigh.y = input.y/2;
-            neigh.z = input.z/2;
+            neigh.x = (input.x+ dir_x[face])/2;
+            neigh.y = (input.y+ dir_y[face])/2;
+            neigh.z = (input.z+ dir_z[face])/2;
 
             return true;
         case _LEVEL_INCREASE:
@@ -179,7 +179,7 @@ bool get_neighbour_coordinate(const PartCell& input,PartCell& neigh,const unsign
             neigh.y = (input.y + dir_y[face])*2 + (dir_y[face]<0);
             neigh.z = (input.z + dir_z[face])*2 + (dir_z[face]<0);
 
-            dir = (index/2);
+            dir = (face/2);
 
             switch (dir){
                 case 0:
@@ -227,7 +227,7 @@ uint8_t number_neighbours_in_direction(const uint8_t& level_delta){
     return 1;
 }
 
-bool find_particle_cell(const ExtraPartCellData<ParticleCellGapMap>& gap_map,ExtraPartCellData<std::map<uint16_t,YGap_map>::iterator>& gap_map_it,PartCell& part_cell){
+bool find_particle_cell(ExtraPartCellData<ParticleCellGapMap>& gap_map,ExtraPartCellData<std::map<uint16_t,YGap_map>::iterator>& gap_map_it,PartCell& part_cell){
 
     if(gap_map.data[part_cell.level][part_cell.pc_offset].size() > 0) {
 
@@ -239,9 +239,9 @@ bool find_particle_cell(const ExtraPartCellData<ParticleCellGapMap>& gap_map,Ext
 
         if(map_it == current_pc_map.map.end()){
             //check if pointing to a valid key
-            //map_it = current_pc_map->map.begin();
+            map_it = current_pc_map.map.begin();
 
-            map_it--;
+            //map_it--;
         }
 
         if ((part_cell.y >= map_it->first) & (part_cell.y <= map_it->second.y_end)) {
@@ -692,6 +692,7 @@ int main(int argc, char **argv) {
     APR_iterator<uint16_t> neighbour_iterator(apr);
 
     uint64_t c = 0;
+    uint64_t nn= 0;
 
     std::vector<unsigned int > dir_vec = {0,1,2,3,4,5};
 
@@ -719,13 +720,19 @@ int main(int argc, char **argv) {
 
             for (int index = 0; index < apr.number_neighbours_in_direction(dir); ++index) {
                 // on each face, there can be 0-4 neighbours accessed by index
-                if(neighbour_iterator.set_neighbour_iterator(apr, dir, 0)){
+                if(neighbour_iterator.set_neighbour_iterator(apr, dir, index)){
                     //will return true if there is a neighbour defined
 
                     depth_dif =  neighbour_iterator.level() - apr.level() + 1;
 
                 }
             }
+
+            if(depth_dif < 3){
+                nn++;
+                //std::cout << "number wrong" << std::endl;
+            }
+
 
             if(node_depth_dif!=depth_dif){
                 std::cout << depth_dif << " " << node_depth_dif << std::endl;
@@ -738,7 +745,7 @@ int main(int argc, char **argv) {
 
         c++;
     }
-
+    std::cout << nn << std::endl;
 
     ExtraPartCellData<ParticleCellGapMap> gap_map;
     gap_map.initialize_structure_parts_empty(apr.particles_int);
@@ -868,6 +875,12 @@ int main(int argc, char **argv) {
 
     float num_rep = 1;
 
+    uint64_t counter_n1= 0;
+
+
+    std::vector<int> neigh_count;
+    neigh_count.resize(apr.num_parts_total);
+
     timer.start_timer("APR serial iterator neighbours loop");
 
     for (int l = 0; l < num_rep; ++l) {
@@ -892,7 +905,7 @@ int main(int argc, char **argv) {
 
                         neighbour_iterator(apr.particles_int) = neighbour_iterator.x();
                         //counter++;
-
+                        counter_n1++;
                     }
                 }
             }
@@ -903,7 +916,7 @@ int main(int argc, char **argv) {
 
     timer.stop_timer();
 
-
+    std::cout << counter_n1 << std::endl;
 
     ////////////////////////////
     ///
@@ -917,6 +930,9 @@ int main(int argc, char **argv) {
     //initialize_neigh(gap_map);
 
     timer.start_timer("new neighbour loop");
+
+    uint64_t counter_n= 0;
+    uint64_t counter_t = 0;
 
     for (int l = 0; l < num_rep; ++l) {
 
@@ -961,6 +977,8 @@ int main(int argc, char **argv) {
 
                                 uint16_t node = neighbours[curr_index];
 
+                                counter_t++;
+
                                 for (int f = 0; f < dir_vec.size(); ++f) {
                                     // Neighbour Particle Cell Face definitions [+y,-y,+x,-x,+z,-z] =  [0,1,2,3,4,5]
 
@@ -970,18 +988,35 @@ int main(int argc, char **argv) {
 
                                     for (int n = 0; n < number_neighbours_in_direction(level_delta); ++n) {
                                         get_neighbour_coordinate(input, neigh, face, level_delta, n);
+                                        if(number_neighbours_in_direction(level_delta)==4) {
+                                            if (neigh.x < apr.pc_data.x_num[neigh.level]) {
+                                                if (neigh.z < apr.pc_data.z_num[neigh.level]) {
 
-                                        if (neigh.x < apr.pc_data.x_num[neigh.level]) {
-                                            if (neigh.z < apr.pc_data.z_num[neigh.level]) {
+                                                    neigh.pc_offset =
+                                                            apr.pc_data.x_num[neigh.level] * neigh.z + neigh.x;
 
-                                                neigh.pc_offset =
-                                                        apr.pc_data.x_num[neigh.level] * neigh.z + neigh.x;
 
-                                                if (find_particle_cell(gap_map, gap_map_it,neigh)) {
-                                                    // do something;
-                                                    pint[neigh.global_index] = neigh.x;
+
+                                                    if (find_particle_cell(gap_map, gap_map_it,neigh)) {
+                                                        // do something;
+                                                        pint[neigh.global_index] = neigh.x;
+                                                        counter_n++;
+
+                                                    }
+
                                                 }
                                             }
+                                        } else {
+
+
+                                            neigh.pc_offset =
+                                                    apr.pc_data.x_num[neigh.level] * neigh.z + neigh.x;
+                                            if (find_particle_cell(gap_map, gap_map_it,neigh)) {
+                                                // do something;
+                                                pint[neigh.global_index] = neigh.x;
+                                                counter_n++;
+                                            }
+
                                         }
 
                                     }
@@ -996,6 +1031,9 @@ int main(int argc, char **argv) {
     }
 
     timer.stop_timer();
+
+    std::cout << counter_n << std::endl;
+    std::cout << counter_t << std::endl;
 //
 //
 //
