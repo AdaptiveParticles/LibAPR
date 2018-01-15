@@ -118,6 +118,24 @@ struct YGap {
     uint64_t global_index_begin;
 };
 
+struct YGap_map {
+    uint16_t y_end;
+    uint64_t global_index_begin;
+};
+
+struct ParticleCellGapMap{
+    std::map<uint16_t,YGap_map> map;
+    std::map<uint16_t,YGap_map> current_iterator;
+};
+
+
+struct GapIteratorMap {
+
+    //
+
+};
+
+
 struct GapIterator {
     YGap current_gap;
     uint16_t y_min;
@@ -214,83 +232,84 @@ bool find_particle_cell_global_index_forward_iteration(ExtraPartCellData<YGap>& 
     //
     //  Finds the global index for a part_cell if it exists
     //
-    if(gap_iterator.data[part_cell.level][part_cell.pc_offset].size() > 0) {
-        //GapIterator *current_it = &gap_iterator.data[part_cell.level][part_cell.pc_offset][0];
-
-        if ((part_cell.y >= gap_iterator.data[part_cell.level][part_cell.pc_offset][0].current_gap.y_begin) & (part_cell.y <= gap_iterator.data[part_cell.level][part_cell.pc_offset][0].current_gap.y_end)) {
-            part_cell.global_index =
-                    gap_iterator.data[part_cell.level][part_cell.pc_offset][0].current_gap.global_index_begin + (part_cell.y - gap_iterator.data[part_cell.level][part_cell.pc_offset][0].current_gap.y_begin);
-
-            return true;
-
-        } else {
-
-            if((part_cell.y > gap_iterator.data[part_cell.level][part_cell.pc_offset][0].y_max) | (part_cell.y < gap_iterator.data[part_cell.level][part_cell.pc_offset][0].y_min)){
-                return false;
-            }
-            const uint16_t y_prev =  gap_iterator.data[part_cell.level][part_cell.pc_offset][0].current_gap.y_end;
-
-            if(part_cell.y > y_prev) {
-                //first try next iteration (iterate forward)
-                if (gap_iterator.data[part_cell.level][part_cell.pc_offset][0].current_gap_index <
-                    (gap_iterator.data[part_cell.level][part_cell.pc_offset][0].gap_num - 1)) {
-
-                    //need to reset if below.
-                    gap_iterator.data[part_cell.level][part_cell.pc_offset][0].current_gap_index++;
-                    gap_iterator.data[part_cell.level][part_cell.pc_offset][0].current_gap = ygaps.data[part_cell.level][part_cell.pc_offset][gap_iterator.data[part_cell.level][part_cell.pc_offset][0].current_gap_index];
-
-                    if ((part_cell.y >=
-                         gap_iterator.data[part_cell.level][part_cell.pc_offset][0].current_gap.y_begin) &
-                        (part_cell.y <= gap_iterator.data[part_cell.level][part_cell.pc_offset][0].current_gap.y_end)) {
-                        //is it in the next gap
-
-                        part_cell.global_index =
-                                gap_iterator.data[part_cell.level][part_cell.pc_offset][0].current_gap.global_index_begin +
-                                (part_cell.y -
-                                 gap_iterator.data[part_cell.level][part_cell.pc_offset][0].current_gap.y_begin);
-
-                        return true;
-                    } else {
-                        //does it actually exist
-                        if ((part_cell.y > y_prev) & (part_cell.y <
-                                                      gap_iterator.data[part_cell.level][part_cell.pc_offset][0].current_gap.y_begin)) {
-                            //does not exist
-                            return false;
-                        } else {
-                            //must be further along, if possible
-                            if (gap_iterator.data[part_cell.level][part_cell.pc_offset][0].current_gap_index <
-                                (gap_iterator.data[part_cell.level][part_cell.pc_offset][0].gap_num - 1)) {
-
-                                //need to reset if below.
-                                gap_iterator.data[part_cell.level][part_cell.pc_offset][0].current_gap_index++;
-                                gap_iterator.data[part_cell.level][part_cell.pc_offset][0].current_gap = ygaps.data[part_cell.level][part_cell.pc_offset][gap_iterator.data[part_cell.level][part_cell.pc_offset][0].current_gap_index];
-
-                                return find_particle_cell_global_index_forward_iteration(ygaps, gap_iterator,
-                                                                                         part_cell);
-                            } else {
-                                return false;
-                            }
-                        }
-                    }
-
-                } else {
-                    //shouldn't make it here as this should mean outside range
-
-                    return false;
-                }
-            } else {
-                //reset to zero and start again
-                gap_iterator.data[part_cell.level][part_cell.pc_offset][0].current_gap_index=0;
-                gap_iterator.data[part_cell.level][part_cell.pc_offset][0].current_gap = ygaps.data[part_cell.level][part_cell.pc_offset][gap_iterator.data[part_cell.level][part_cell.pc_offset][0].current_gap_index];
-
-                return find_particle_cell_global_index_forward_iteration(ygaps,gap_iterator,part_cell);
-            }
-
-        }
-
-    } else {
-        return false;
-    }
+//    if(gap_iterator.data[part_cell.level][part_cell.pc_offset].size() > 0) {
+//        //GapIterator *current_it = &gap_iterator.data[part_cell.level][part_cell.pc_offset][0];
+//
+//        if ((part_cell.y >= gap_iterator.data[part_cell.level][part_cell.pc_offset][0].current_gap.y_begin) & (part_cell.y <= gap_iterator.data[part_cell.level][part_cell.pc_offset][0].current_gap.y_end)) {
+//            part_cell.global_index =
+//                    gap_iterator.data[part_cell.level][part_cell.pc_offset][0].current_gap.global_index_begin + (part_cell.y - gap_iterator.data[part_cell.level][part_cell.pc_offset][0].current_gap.y_begin);
+//
+//            return true;
+//
+//        } else {
+//
+//            if((part_cell.y > gap_iterator.data[part_cell.level][part_cell.pc_offset][0].y_max) | (part_cell.y < gap_iterator.data[part_cell.level][part_cell.pc_offset][0].y_min)){
+//                return false;
+//            }
+//            const uint16_t y_prev =  gap_iterator.data[part_cell.level][part_cell.pc_offset][0].current_gap.y_end;
+//
+//            if(part_cell.y > y_prev) {
+//                //first try next iteration (iterate forward)
+//                if (gap_iterator.data[part_cell.level][part_cell.pc_offset][0].current_gap_index <
+//                    (gap_iterator.data[part_cell.level][part_cell.pc_offset][0].gap_num - 1)) {
+//
+//                    //need to reset if below.
+//                    gap_iterator.data[part_cell.level][part_cell.pc_offset][0].current_gap_index++;
+//                    gap_iterator.data[part_cell.level][part_cell.pc_offset][0].current_gap = ygaps.data[part_cell.level][part_cell.pc_offset][gap_iterator.data[part_cell.level][part_cell.pc_offset][0].current_gap_index];
+//
+//                    if ((part_cell.y >=
+//                         gap_iterator.data[part_cell.level][part_cell.pc_offset][0].current_gap.y_begin) &
+//                        (part_cell.y <= gap_iterator.data[part_cell.level][part_cell.pc_offset][0].current_gap.y_end)) {
+//                        //is it in the next gap
+//
+//                        part_cell.global_index =
+//                                gap_iterator.data[part_cell.level][part_cell.pc_offset][0].current_gap.global_index_begin +
+//                                (part_cell.y -
+//                                 gap_iterator.data[part_cell.level][part_cell.pc_offset][0].current_gap.y_begin);
+//
+//                        return true;
+//                    } else {
+//                        //does it actually exist
+//                        if ((part_cell.y > y_prev) & (part_cell.y <
+//                                                      gap_iterator.data[part_cell.level][part_cell.pc_offset][0].current_gap.y_begin)) {
+//                            //does not exist
+//                            return false;
+//                        } else {
+//                            //must be further along, if possible
+//                            if (gap_iterator.data[part_cell.level][part_cell.pc_offset][0].current_gap_index <
+//                                (gap_iterator.data[part_cell.level][part_cell.pc_offset][0].gap_num - 1)) {
+//
+//                                //need to reset if below.
+//                                gap_iterator.data[part_cell.level][part_cell.pc_offset][0].current_gap_index++;
+//                                gap_iterator.data[part_cell.level][part_cell.pc_offset][0].current_gap = ygaps.data[part_cell.level][part_cell.pc_offset][gap_iterator.data[part_cell.level][part_cell.pc_offset][0].current_gap_index];
+//
+//                                return find_particle_cell_global_index_forward_iteration(ygaps, gap_iterator,
+//                                                                                         part_cell);
+//                            } else {
+//                                return false;
+//                            }
+//                        }
+//                    }
+//
+//                } else {
+//                    //shouldn't make it here as this should mean outside range
+//
+//                    return false;
+//                }
+//            } else {
+//                //reset to zero and start again
+//                gap_iterator.data[part_cell.level][part_cell.pc_offset][0].current_gap_index=0;
+//                gap_iterator.data[part_cell.level][part_cell.pc_offset][0].current_gap = ygaps.data[part_cell.level][part_cell.pc_offset][gap_iterator.data[part_cell.level][part_cell.pc_offset][0].current_gap_index];
+//
+//                return find_particle_cell_global_index_forward_iteration(ygaps,gap_iterator,part_cell);
+//            }
+//
+//        }
+//
+//    } else {
+//        return false;
+//    }
+    return false;
 
 }
 
@@ -692,16 +711,59 @@ int main(int argc, char **argv) {
             }
 
 
-
-
             //compare with new neighbour structure;
-
 
         }
 
         c++;
     }
 
+
+    ExtraPartCellData<ParticleCellGapMap> gap_map;
+    gap_map.initialize_structure_parts_empty(apr.particles_int);
+
+
+
+    for(uint64_t i = apr.pc_data.depth_min;i <= apr.pc_data.depth_max;i++) {
+        //loop over the resolutions of the structure
+        const unsigned int x_num_ = apr.pc_data.x_num[i];
+        const unsigned int z_num_ = apr.pc_data.z_num[i];
+
+//#pragma omp parallel for default(shared) private(z_,x_,j_,node_val_pc,curr_key)  firstprivate(neigh_cell_keys) if(z_num_*x_num_ > 100)
+        for (z_ = 0; z_ < z_num_; z_++) {
+            //both z and x are explicitly accessed in the structure
+            curr_key = 0;
+
+            for (x_ = 0; x_ < x_num_; x_++) {
+
+
+                const size_t offset_pc_data = x_num_ * z_ + x_;
+
+                const size_t gap_num = ygaps.data[i][offset_pc_data].size();
+
+                YGap_map ygap;
+                YGap old_gap;
+
+                if(gap_num > 0){
+
+                    gap_map.data[i][offset_pc_data].resize(1);
+
+                    for (int j = 0; j < gap_num; ++j) {
+                        old_gap = ygaps.data[i][offset_pc_data][j];
+
+                        ygap.global_index_begin = old_gap.global_index_begin;
+                        ygap.y_end = old_gap.y_end;
+
+                        gap_map.data[i][offset_pc_data][0].map[old_gap.y_begin] = ygap;
+                    }
+
+                }
+
+
+
+            }
+        }
+    }
 
 
 //    timer.start_timer("APR serial iterator neighbours loop");
@@ -737,270 +799,270 @@ int main(int argc, char **argv) {
 
 
 
-    ////////////////////////////
-    ///
-    /// Prototype neighbour access
-    ///
-    //////////////////////////
-
-    PartCell input;
-    PartCell neigh;
-
-    timer.start_timer("new neighbour loop");
-
-    for(uint64_t i = apr.pc_data.depth_min;i <= apr.pc_data.depth_max;i++) {
-        //loop over the resolutions of the structure
-        const unsigned int x_num_ = apr.pc_data.x_num[i];
-        const unsigned int z_num_ = apr.pc_data.z_num[i];
-
-        input.level = i;
-
-//#pragma omp parallel for default(shared) private(z_,x_,j_,node_val_pc,curr_key)  firstprivate(neigh_cell_keys) if(z_num_*x_num_ > 100)
-        for (z_ = 0; z_ < z_num_; z_++) {
-            //both z and x are explicitly accessed in the structure
-
-            input.z = z_;
-
-            for (x_ = 0; x_ < x_num_; x_++) {
-
-                const size_t offset_pc_data = x_num_*z_ + x_;
-
-                input.x = x_;
-
-                if(iterator.data[i][offset_pc_data].size() > 0){
-
-
-                    for (int j = 0; j < ygaps.data[i][offset_pc_data].size(); ++j) {
-
-                        YGap gap = ygaps.data[i][offset_pc_data][j];
-
-                        uint64_t curr_index = gap.global_index_begin;
-
-                        curr_index--;
-
-                        for (int y = gap.y_begin;
-                             y <= gap.y_end; y++) {
-
-                            curr_index++;
-
-                            input.y = y;
-
-                            uint16_t node = neighbours[curr_index];
-
-                            for (int f = 0; f < dir_vec.size(); ++f) {
-                                // Neighbour Particle Cell Face definitions [+y,-y,+x,-x,+z,-z] =  [0,1,2,3,4,5]
-
-                                unsigned int face = dir_vec[f];
-
-                                uint16_t level_delta = (node & mask[face]) >> shift[face];
-
-                                for (int n = 0; n < number_neighbours_in_direction(level_delta); ++n) {
-                                    get_neighbour_coordinate(input,neigh,face,level_delta, n);
-
-                                    if(input.x < apr.spatial_index_x_max(neigh.level)){
-                                        if(input.z < apr.spatial_index_z_max(neigh.level)){
-
-                                            neigh.pc_offset = apr.spatial_index_x_max(neigh.level)*neigh.z + neigh.x;
-
-                                            if(find_particle_cell_global_index_forward_iteration(ygaps, iterator,neigh)){
-                                                // do something;
-                                                pint[neigh.global_index] = neigh.x;
-                                            }
-
-                                        }
-                                    }
-
-                                }
-
-                            }
-                        }
-                    }
-                }
-            }
-        }
-    }
-
-    timer.stop_timer();
-
-
-
-    //////////////////////////////////////////
-    ///
-    ///
-    /// Check the loop
-    ///
-    ///
-    ///////////////////////////////////
-
-    ExtraPartCellData<uint64_t> index_vec(apr);
-
-    uint64_t cp = 0;
-
-    for (apr.begin();apr.end()!=0 ;apr.it_forward()) {
-        apr(index_vec) = cp;
-        cp++;
-    }
-
-
-    Mesh_data<uint64_t> index_image;
-
-    index_image.initialize(apr.orginal_dimensions(0),apr.orginal_dimensions(1),apr.orginal_dimensions(2));
-
-
-    //CHECK THE CHECKING SCHEME FIRST
-
-    //Basic serial iteration over all particles
-    for (apr.begin(); apr.end() != 0; apr.it_forward()) {
-
-        //now we only update the neighbours, and directly access them through a neighbour iterator
-        apr.update_all_neighbours();
-
-        float counter = 0;
-        float temp = 0;
-
-        //loop over all the neighbours and set the neighbour iterator to it
-        for (int dir = 0; dir < 6; ++dir) {
-            // Neighbour Particle Cell Face definitions [+y,-y,+x,-x,+z,-z] =  [0,1,2,3,4,5]
-
-            for (int index = 0; index < apr.number_neighbours_in_direction(dir); ++index) {
-                // on each face, there can be 0-4 neighbours accessed by index
-                if(neighbour_iterator.set_neighbour_iterator(apr, dir, index)){
-                    //will return true if there is a neighbour defined
-
-                    uint16_t x_global = neighbour_iterator.x_nearest_pixel();
-                    uint16_t y_global = neighbour_iterator.y_nearest_pixel();
-                    uint16_t z_global = neighbour_iterator.z_nearest_pixel();
-
-                    index_image(y_global,x_global,z_global) = neighbour_iterator(index_vec);
-
-                }
-            }
-        }
-
-    }
-
-    //Basic serial iteration over all particles
-    for (apr.begin(); apr.end() != 0; apr.it_forward()) {
-
-        //now we only update the neighbours, and directly access them through a neighbour iterator
-        apr.update_all_neighbours();
-
-        float counter = 0;
-        float temp = 0;
-
-        //loop over all the neighbours and set the neighbour iterator to it
-        for (int dir = 0; dir < 6; ++dir) {
-            // Neighbour Particle Cell Face definitions [+y,-y,+x,-x,+z,-z] =  [0,1,2,3,4,5]
-
-            for (int index = 0; index < apr.number_neighbours_in_direction(dir); ++index) {
-                // on each face, there can be 0-4 neighbours accessed by index
-                if(neighbour_iterator.set_neighbour_iterator(apr, dir, index)){
-                    //will return true if there is a neighbour defined
-
-                    uint16_t x_global = neighbour_iterator.x_nearest_pixel();
-                    uint16_t y_global = neighbour_iterator.y_nearest_pixel();
-                    uint16_t z_global = neighbour_iterator.z_nearest_pixel();
-
-                    uint64_t neigh_index = index_image(y_global,x_global,z_global);
-                    uint64_t neigh_truth = neighbour_iterator(index_vec);
-
-                    if(neigh_index != neigh_truth){
-                        std::cout << "test still broke" << std::endl;
-                    }
-                }
-            }
-        }
-
-    }
-
-
-
-
-    for(uint64_t i = apr.pc_data.depth_min;i <= apr.pc_data.depth_max;i++) {
-        //loop over the resolutions of the structure
-        const unsigned int x_num_ = apr.pc_data.x_num[i];
-        const unsigned int z_num_ = apr.pc_data.z_num[i];
-
-        input.level = i;
-
-//#pragma omp parallel for default(shared) private(z_,x_,j_,node_val_pc,curr_key)  firstprivate(neigh_cell_keys) if(z_num_*x_num_ > 100)
-        for (z_ = 0; z_ < z_num_; z_++) {
-            //both z and x are explicitly accessed in the structure
-
-            input.z = z_;
-
-            for (x_ = 0; x_ < x_num_; x_++) {
-
-                const size_t offset_pc_data = x_num_*z_ + x_;
-
-                input.x = x_;
-
-                if(iterator.data[i][offset_pc_data].size() > 0){
-
-                    for (int j = 0; j < ygaps.data[i][offset_pc_data].size(); ++j) {
-
-                        YGap gap = ygaps.data[i][offset_pc_data][j];
-
-                        uint64_t curr_index = gap.global_index_begin;
-
-                        curr_index--;
-
-                        for (int y = gap.y_begin;
-                             y <= gap.y_end; y++) {
-
-                            curr_index++;
-
-                            input.y = y;
-
-                            uint16_t node = neighbours[curr_index];
-
-                            for (int f = 0; f < dir_vec.size(); ++f) {
-                                // Neighbour Particle Cell Face definitions [+y,-y,+x,-x,+z,-z] =  [0,1,2,3,4,5]
-
-                                unsigned int face = dir_vec[f];
-
-                                uint16_t level_delta = (node & mask[face]) >> shift[face];
-
-                                for (int n = 0; n < number_neighbours_in_direction(level_delta); ++n) {
-                                    get_neighbour_coordinate(input,neigh,face,level_delta, n);
-
-                                    if(input.x < apr.spatial_index_x_max(neigh.level)){
-                                        if(input.z < apr.spatial_index_z_max(neigh.level)){
-
-                                            neigh.pc_offset = apr.spatial_index_x_max(neigh.level)*neigh.z + neigh.x;
-
-                                            if(find_particle_cell_global_index_forward_iteration(ygaps, iterator,neigh)){
-                                                // do something;
-
-                                                uint16_t x_global = floor((neigh.x+0.5)*pow(2, apr.level_max() - neigh.level));
-                                                uint16_t y_global = floor((neigh.y+0.5)*pow(2, apr.level_max() - neigh.level));
-                                                uint16_t z_global = floor((neigh.z+0.5)*pow(2, apr.level_max() - neigh.level));
-
-                                                uint64_t neigh_index = index_image(y_global,x_global,z_global);
-                                                uint64_t neigh_index_comp = neigh.global_index;
-
-                                                if(neigh_index != neigh.global_index){
-                                                    std::cout << "broken" << std::endl;
-                                                    std::cout << std::to_string(number_neighbours_in_direction(level_delta)) << std::endl;
-                                                }
-
-                                            }
-
-                                        }
-                                    }
-
-                                }
-
-                            }
-                        }
-                    }
-                }
-            }
-        }
-    }
-
-
-
+//    ////////////////////////////
+//    ///
+//    /// Prototype neighbour access
+//    ///
+//    //////////////////////////
+//
+//    PartCell input;
+//    PartCell neigh;
+//
+//    timer.start_timer("new neighbour loop");
+//
+//    for(uint64_t i = apr.pc_data.depth_min;i <= apr.pc_data.depth_max;i++) {
+//        //loop over the resolutions of the structure
+//        const unsigned int x_num_ = apr.pc_data.x_num[i];
+//        const unsigned int z_num_ = apr.pc_data.z_num[i];
+//
+//        input.level = i;
+//
+////#pragma omp parallel for default(shared) private(z_,x_,j_,node_val_pc,curr_key)  firstprivate(neigh_cell_keys) if(z_num_*x_num_ > 100)
+//        for (z_ = 0; z_ < z_num_; z_++) {
+//            //both z and x are explicitly accessed in the structure
+//
+//            input.z = z_;
+//
+//            for (x_ = 0; x_ < x_num_; x_++) {
+//
+//                const size_t offset_pc_data = x_num_*z_ + x_;
+//
+//                input.x = x_;
+//
+//                if(iterator.data[i][offset_pc_data].size() > 0){
+//
+//
+//                    for (int j = 0; j < ygaps.data[i][offset_pc_data].size(); ++j) {
+//
+//                        YGap gap = ygaps.data[i][offset_pc_data][j];
+//
+//                        uint64_t curr_index = gap.global_index_begin;
+//
+//                        curr_index--;
+//
+//                        for (int y = gap.y_begin;
+//                             y <= gap.y_end; y++) {
+//
+//                            curr_index++;
+//
+//                            input.y = y;
+//
+//                            uint16_t node = neighbours[curr_index];
+//
+//                            for (int f = 0; f < dir_vec.size(); ++f) {
+//                                // Neighbour Particle Cell Face definitions [+y,-y,+x,-x,+z,-z] =  [0,1,2,3,4,5]
+//
+//                                unsigned int face = dir_vec[f];
+//
+//                                uint16_t level_delta = (node & mask[face]) >> shift[face];
+//
+//                                for (int n = 0; n < number_neighbours_in_direction(level_delta); ++n) {
+//                                    get_neighbour_coordinate(input,neigh,face,level_delta, n);
+//
+//                                    if(input.x < apr.spatial_index_x_max(neigh.level)){
+//                                        if(input.z < apr.spatial_index_z_max(neigh.level)){
+//
+//                                            neigh.pc_offset = apr.spatial_index_x_max(neigh.level)*neigh.z + neigh.x;
+//
+//                                            if(find_particle_cell_global_index_forward_iteration(ygaps, iterator,neigh)){
+//                                                // do something;
+//                                                pint[neigh.global_index] = neigh.x;
+//                                            }
+//
+//                                        }
+//                                    }
+//
+//                                }
+//
+//                            }
+//                        }
+//                    }
+//                }
+//            }
+//        }
+//    }
+//
+//    timer.stop_timer();
+//
+//
+//
+//    //////////////////////////////////////////
+//    ///
+//    ///
+//    /// Check the loop
+//    ///
+//    ///
+//    ///////////////////////////////////
+//
+//    ExtraPartCellData<uint64_t> index_vec(apr);
+//
+//    uint64_t cp = 0;
+//
+//    for (apr.begin();apr.end()!=0 ;apr.it_forward()) {
+//        apr(index_vec) = cp;
+//        cp++;
+//    }
+//
+//
+//    Mesh_data<uint64_t> index_image;
+//
+//    index_image.initialize(apr.orginal_dimensions(0),apr.orginal_dimensions(1),apr.orginal_dimensions(2));
+//
+//
+//    //CHECK THE CHECKING SCHEME FIRST
+//
+//    //Basic serial iteration over all particles
+//    for (apr.begin(); apr.end() != 0; apr.it_forward()) {
+//
+//        //now we only update the neighbours, and directly access them through a neighbour iterator
+//        apr.update_all_neighbours();
+//
+//        float counter = 0;
+//        float temp = 0;
+//
+//        //loop over all the neighbours and set the neighbour iterator to it
+//        for (int dir = 0; dir < 6; ++dir) {
+//            // Neighbour Particle Cell Face definitions [+y,-y,+x,-x,+z,-z] =  [0,1,2,3,4,5]
+//
+//            for (int index = 0; index < apr.number_neighbours_in_direction(dir); ++index) {
+//                // on each face, there can be 0-4 neighbours accessed by index
+//                if(neighbour_iterator.set_neighbour_iterator(apr, dir, index)){
+//                    //will return true if there is a neighbour defined
+//
+//                    uint16_t x_global = neighbour_iterator.x_nearest_pixel();
+//                    uint16_t y_global = neighbour_iterator.y_nearest_pixel();
+//                    uint16_t z_global = neighbour_iterator.z_nearest_pixel();
+//
+//                    index_image(y_global,x_global,z_global) = neighbour_iterator(index_vec);
+//
+//                }
+//            }
+//        }
+//
+//    }
+//
+//    //Basic serial iteration over all particles
+//    for (apr.begin(); apr.end() != 0; apr.it_forward()) {
+//
+//        //now we only update the neighbours, and directly access them through a neighbour iterator
+//        apr.update_all_neighbours();
+//
+//        float counter = 0;
+//        float temp = 0;
+//
+//        //loop over all the neighbours and set the neighbour iterator to it
+//        for (int dir = 0; dir < 6; ++dir) {
+//            // Neighbour Particle Cell Face definitions [+y,-y,+x,-x,+z,-z] =  [0,1,2,3,4,5]
+//
+//            for (int index = 0; index < apr.number_neighbours_in_direction(dir); ++index) {
+//                // on each face, there can be 0-4 neighbours accessed by index
+//                if(neighbour_iterator.set_neighbour_iterator(apr, dir, index)){
+//                    //will return true if there is a neighbour defined
+//
+//                    uint16_t x_global = neighbour_iterator.x_nearest_pixel();
+//                    uint16_t y_global = neighbour_iterator.y_nearest_pixel();
+//                    uint16_t z_global = neighbour_iterator.z_nearest_pixel();
+//
+//                    uint64_t neigh_index = index_image(y_global,x_global,z_global);
+//                    uint64_t neigh_truth = neighbour_iterator(index_vec);
+//
+//                    if(neigh_index != neigh_truth){
+//                        std::cout << "test still broke" << std::endl;
+//                    }
+//                }
+//            }
+//        }
+//
+//    }
+//
+//
+//
+//
+//    for(uint64_t i = apr.pc_data.depth_min;i <= apr.pc_data.depth_max;i++) {
+//        //loop over the resolutions of the structure
+//        const unsigned int x_num_ = apr.pc_data.x_num[i];
+//        const unsigned int z_num_ = apr.pc_data.z_num[i];
+//
+//        input.level = i;
+//
+////#pragma omp parallel for default(shared) private(z_,x_,j_,node_val_pc,curr_key)  firstprivate(neigh_cell_keys) if(z_num_*x_num_ > 100)
+//        for (z_ = 0; z_ < z_num_; z_++) {
+//            //both z and x are explicitly accessed in the structure
+//
+//            input.z = z_;
+//
+//            for (x_ = 0; x_ < x_num_; x_++) {
+//
+//                const size_t offset_pc_data = x_num_*z_ + x_;
+//
+//                input.x = x_;
+//
+//                if(iterator.data[i][offset_pc_data].size() > 0){
+//
+//                    for (int j = 0; j < ygaps.data[i][offset_pc_data].size(); ++j) {
+//
+//                        YGap gap = ygaps.data[i][offset_pc_data][j];
+//
+//                        uint64_t curr_index = gap.global_index_begin;
+//
+//                        curr_index--;
+//
+//                        for (int y = gap.y_begin;
+//                             y <= gap.y_end; y++) {
+//
+//                            curr_index++;
+//
+//                            input.y = y;
+//
+//                            uint16_t node = neighbours[curr_index];
+//
+//                            for (int f = 0; f < dir_vec.size(); ++f) {
+//                                // Neighbour Particle Cell Face definitions [+y,-y,+x,-x,+z,-z] =  [0,1,2,3,4,5]
+//
+//                                unsigned int face = dir_vec[f];
+//
+//                                uint16_t level_delta = (node & mask[face]) >> shift[face];
+//
+//                                for (int n = 0; n < number_neighbours_in_direction(level_delta); ++n) {
+//                                    get_neighbour_coordinate(input,neigh,face,level_delta, n);
+//
+//                                    if(input.x < apr.spatial_index_x_max(neigh.level)){
+//                                        if(input.z < apr.spatial_index_z_max(neigh.level)){
+//
+//                                            neigh.pc_offset = apr.spatial_index_x_max(neigh.level)*neigh.z + neigh.x;
+//
+//                                            if(find_particle_cell_global_index_forward_iteration(ygaps, iterator,neigh)){
+//                                                // do something;
+//
+//                                                uint16_t x_global = floor((neigh.x+0.5)*pow(2, apr.level_max() - neigh.level));
+//                                                uint16_t y_global = floor((neigh.y+0.5)*pow(2, apr.level_max() - neigh.level));
+//                                                uint16_t z_global = floor((neigh.z+0.5)*pow(2, apr.level_max() - neigh.level));
+//
+//                                                uint64_t neigh_index = index_image(y_global,x_global,z_global);
+//                                                uint64_t neigh_index_comp = neigh.global_index;
+//
+//                                                if(neigh_index != neigh.global_index){
+//                                                    std::cout << "broken" << std::endl;
+//                                                    std::cout << std::to_string(number_neighbours_in_direction(level_delta)) << std::endl;
+//                                                }
+//
+//                                            }
+//
+//                                        }
+//                                    }
+//
+//                                }
+//
+//                            }
+//                        }
+//                    }
+//                }
+//            }
+//        }
+//    }
+//
+//
+//
 
 
 //    apr.write_particles_only(options.directory,name+"gaps",gaps);
