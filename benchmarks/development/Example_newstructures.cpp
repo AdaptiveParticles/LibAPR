@@ -123,7 +123,7 @@ struct YGap_map {
 
 struct ParticleCellGapMap{
     std::map<uint16_t,YGap_map> map;
-    std::map<uint16_t,YGap_map>::iterator current_iterator;
+    //std::map<uint16_t,YGap_map>::iterator current_iterator;
     //uint16_t last_value = 0;
 };
 
@@ -227,17 +227,17 @@ uint8_t number_neighbours_in_direction(const uint8_t& level_delta){
     return 1;
 }
 
-bool find_particle_cell(ExtraPartCellData<ParticleCellGapMap>& gap_map,PartCell& part_cell){
+bool find_particle_cell(const ExtraPartCellData<ParticleCellGapMap>& gap_map,ExtraPartCellData<std::map<uint16_t,YGap_map>::iterator>& gap_map_it,PartCell& part_cell){
 
     if(gap_map.data[part_cell.level][part_cell.pc_offset].size() > 0) {
 
-        ParticleCellGapMap* current_pc_map = &gap_map.data[part_cell.level][part_cell.pc_offset][0];
+        ParticleCellGapMap& current_pc_map = gap_map.data[part_cell.level][part_cell.pc_offset][0];
 
-        std::map<uint16_t,YGap_map>::iterator& map_it = (current_pc_map->current_iterator);
+        std::map<uint16_t,YGap_map>::iterator& map_it = gap_map_it.data[part_cell.level][part_cell.pc_offset][0];
         //std::map<uint16_t,YGap_map>::iterator map_it = current_pc_map->map.begin();
         //std::advance (map_it,current_pc_map->last_value);
 
-        if(map_it == current_pc_map->map.end()){
+        if(map_it == current_pc_map.map.end()){
             //check if pointing to a valid key
             //map_it = current_pc_map->map.begin();
 
@@ -254,10 +254,10 @@ bool find_particle_cell(ExtraPartCellData<ParticleCellGapMap>& gap_map,PartCell&
             return true;
         } else {
             //first try next element
-            if(map_it != current_pc_map->map.end()){
+            if(map_it != current_pc_map.map.end()){
                 map_it++;
                 //check if there
-                if(map_it != current_pc_map->map.end()) {
+                if(map_it != current_pc_map.map.end()) {
                     if ((part_cell.y >= map_it->first) &
                         (part_cell.y <= map_it->second.y_end)) {
                         // already pointing to the correct place
@@ -272,9 +272,9 @@ bool find_particle_cell(ExtraPartCellData<ParticleCellGapMap>& gap_map,PartCell&
             }
 
             //otherwise search for it (points to first key that is greater than the y value)
-            map_it = current_pc_map->map.upper_bound(part_cell.y);
+            map_it = current_pc_map.map.upper_bound(part_cell.y);
 
-            if(map_it == current_pc_map->map.begin()){
+            if(map_it == current_pc_map.map.begin()){
                 //less then the first value
                 return false;
             } else{
@@ -399,7 +399,7 @@ void initialize_neigh(ExtraPartCellData<ParticleCellGapMap>& gap_map){
                 const size_t offset_pc_data = x_num_*z_ + x_;
 
                 if(gap_map.data[i][offset_pc_data].size() > 0){
-                    gap_map.data[i][offset_pc_data][0].current_iterator = gap_map.data[i][offset_pc_data][0].map.begin();
+                    //gap_map.data[i][offset_pc_data][0].current_iterator = gap_map.data[i][offset_pc_data][0].map.begin();
                 }
             }
         }
@@ -914,7 +914,7 @@ int main(int argc, char **argv) {
     PartCell input;
     PartCell neigh;
 
-    initialize_neigh(gap_map);
+    //initialize_neigh(gap_map);
 
     timer.start_timer("new neighbour loop");
 
@@ -977,7 +977,7 @@ int main(int argc, char **argv) {
                                                 neigh.pc_offset =
                                                         apr.pc_data.x_num[neigh.level] * neigh.z + neigh.x;
 
-                                                if (find_particle_cell(gap_map, neigh)) {
+                                                if (find_particle_cell(gap_map, gap_map_it,neigh)) {
                                                     // do something;
                                                     pint[neigh.global_index] = neigh.x;
                                                 }
