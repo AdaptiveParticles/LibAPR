@@ -125,7 +125,7 @@ struct YGap_map {
 
 struct ParticleCellGapMap{
     std::map<uint16_t,YGap_map> map;
-    std::map<uint16_t,YGap_map> current_iterator;
+    std::map<uint16_t,YGap_map>::iterator current_iterator;
 };
 
 
@@ -227,6 +227,54 @@ uint8_t number_neighbours_in_direction(const uint8_t& level_delta){
     }
     return 1;
 }
+
+bool find_particle_cell(ExtraPartCellData<ParticleCellGapMap>& gap_map,PartCell& part_cell){
+
+    if(gap_map.data[part_cell.level][part_cell.pc_offset].size() > 0) {
+
+        ParticleCellGapMap* current_pc_map = &gap_map.data[part_cell.level][part_cell.pc_offset][0];
+
+        if ((part_cell.y >= current_pc_map->current_iterator->first) & (part_cell.y <= current_pc_map->current_iterator->second.y_end)) {
+            // already pointing to the correct place
+            part_cell.global_index = current_pc_map->current_iterator->second.global_index_begin +
+                    (part_cell.y - current_pc_map->current_iterator->first);
+
+            return true;
+        } else {
+            //first try next element
+            if(current_pc_map->current_iterator != current_pc_map->map.end()){
+                current_pc_map->current_iterator++;
+                //check if there
+                if ((part_cell.y >= current_pc_map->current_iterator->first) & (part_cell.y <= current_pc_map->current_iterator->second.y_end)) {
+                    // already pointing to the correct place
+                    part_cell.global_index = current_pc_map->current_iterator->second.global_index_begin +
+                                             (part_cell.y - current_pc_map->current_iterator->first);
+
+                    return true;
+                }
+
+            }
+
+            //otherwise search for it (points to first key that is greater than the y value)
+            current_pc_map->current_iterator = current_pc_map->map.upper_bound(part_cell.y);
+            current_pc_map->current_iterator--;
+
+
+            if ((part_cell.y >= current_pc_map->current_iterator->first) & (part_cell.y <= current_pc_map->current_iterator->second.y_end)) {
+                // already pointing to the correct place
+                part_cell.global_index = current_pc_map->current_iterator->second.global_index_begin +
+                                         (part_cell.y - current_pc_map->current_iterator->first);
+
+                return true;
+            }
+        }
+    }
+
+    return false;
+
+}
+
+
 
 bool find_particle_cell_global_index_forward_iteration(ExtraPartCellData<YGap>& ygaps,ExtraPartCellData<GapIterator>& gap_iterator,PartCell& part_cell){
     //
@@ -583,82 +631,7 @@ int main(int argc, char **argv) {
     pz2.reserve(count_parts);
 
 
-    timer.start_timer("iterate new");
 
-    uint64_t counter_new = -1;
-
-    for(uint64_t i = apr.pc_data.depth_min;i <= apr.pc_data.depth_max;i++) {
-        //loop over the resolutions of the structure
-        const unsigned int x_num_ = apr.pc_data.x_num[i];
-        const unsigned int z_num_ = apr.pc_data.z_num[i];
-
-//#pragma omp parallel for default(shared) private(z_,x_,j_,node_val_pc,curr_key)  firstprivate(neigh_cell_keys) if(z_num_*x_num_ > 100)
-        for (z_ = 0; z_ < z_num_; z_++) {
-            //both z and x are explicitly accessed in the structure
-
-            for (x_ = 0; x_ < x_num_; x_++) {
-
-                const size_t offset_pc_data = x_num_*z_ + x_;
-
-                if(iterator.data[i][offset_pc_data].size() > 0){
-
-                    for (int j = 0; j < ygaps.data[i][offset_pc_data].size(); ++j) {
-
-                        YGap gap = ygaps.data[i][offset_pc_data][j];
-
-                        uint64_t curr_index = gap.global_index_begin;
-
-                        curr_index--;
-
-                        for (int y = gap.y_begin;
-                             y <= gap.y_end; y++) {
-
-                            curr_index++;
-                            counter_new++;
-
-                            pint2.push_back(pint[curr_index]);
-                            px2.push_back(x_);
-                            pz2.push_back(z_);
-                            py2.push_back(y);
-
-                        }
-
-                    }
-
-                }
-            }
-        }
-    }
-
-    timer.stop_timer();
-
-    std::cout << counter_new << std::endl;
-
-    /////////////////
-    ///
-    /// Checking everything is okay here..
-    ///
-    ///////////////////
-
-    for (int k = 0; k < count_parts; ++k) {
-
-        if(pint[k] != pint2[k]){
-            std::cout << "broke" << std::endl;
-        }
-
-        if(py[k] != py2[k]){
-            std::cout << "broke" << std::endl;
-        }
-
-        if(px[k] != px2[k]){
-            std::cout << "broke" << std::endl;
-        }
-
-        if(pz[k] != pz2[k]){
-            std::cout << "broke" << std::endl;
-        }
-
-    }
 
 
     //now how do I check they are right?, compare with the old structure and request the information out.
@@ -759,10 +732,87 @@ int main(int argc, char **argv) {
 
                 }
 
-
-
             }
         }
+    }
+
+    timer.start_timer("iterate new");
+
+
+
+    uint64_t counter_new = -1;
+
+    for(uint64_t i = apr.pc_data.depth_min;i <= apr.pc_data.depth_max;i++) {
+        //loop over the resolutions of the structure
+        const unsigned int x_num_ = apr.pc_data.x_num[i];
+        const unsigned int z_num_ = apr.pc_data.z_num[i];
+
+//#pragma omp parallel for default(shared) private(z_,x_,j_,node_val_pc,curr_key)  firstprivate(neigh_cell_keys) if(z_num_*x_num_ > 100)
+        for (z_ = 0; z_ < z_num_; z_++) {
+            //both z and x are explicitly accessed in the structure
+
+            for (x_ = 0; x_ < x_num_; x_++) {
+
+                const size_t offset_pc_data = x_num_*z_ + x_;
+
+                if(gap_map.data[i][offset_pc_data].size() > 0){
+
+                    for ( const auto &p : gap_map.data[i][offset_pc_data][0].map ) {
+
+                            YGap_map gap = p.second;
+                            uint16_t y_begin = p.first;
+
+                            uint64_t curr_index = gap.global_index_begin;
+
+                            curr_index--;
+
+                            for (int y = y_begin;
+                                 y <= gap.y_end; y++) {
+
+                                curr_index++;
+                                counter_new++;
+
+                                pint2.push_back(pint[curr_index]);
+                                px2.push_back(x_);
+                                pz2.push_back(z_);
+                                py2.push_back(y);
+
+                            }
+
+                    }
+                }
+            }
+        }
+    }
+
+    timer.stop_timer();
+
+    std::cout << counter_new << std::endl;
+
+    /////////////////
+    ///
+    /// Checking everything is okay here..
+    ///
+    ///////////////////
+
+    for (int k = 0; k < count_parts; ++k) {
+
+        if(pint[k] != pint2[k]){
+            std::cout << "broke" << std::endl;
+        }
+
+        if(py[k] != py2[k]){
+            std::cout << "broke" << std::endl;
+        }
+
+        if(px[k] != px2[k]){
+            std::cout << "broke" << std::endl;
+        }
+
+        if(pz[k] != pz2[k]){
+            std::cout << "broke" << std::endl;
+        }
+
     }
 
 
