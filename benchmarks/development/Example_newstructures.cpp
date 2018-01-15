@@ -215,44 +215,77 @@ bool find_particle_cell_global_index_forward_iteration(ExtraPartCellData<YGap>& 
     //  Finds the global index for a part_cell if it exists
     //
     if(gap_iterator.data[part_cell.level][part_cell.pc_offset].size() > 0) {
-        GapIterator *current_it = &gap_iterator.data[part_cell.level][part_cell.pc_offset][0];
+        //GapIterator *current_it = &gap_iterator.data[part_cell.level][part_cell.pc_offset][0];
 
-        if ((part_cell.y >= current_it->current_gap.y_begin) & (part_cell.y <= current_it->current_gap.y_end)) {
+        if ((part_cell.y >= gap_iterator.data[part_cell.level][part_cell.pc_offset][0].current_gap.y_begin) & (part_cell.y <= gap_iterator.data[part_cell.level][part_cell.pc_offset][0].current_gap.y_end)) {
             part_cell.global_index =
-                    current_it->current_gap.global_index_begin + (part_cell.y - current_it->current_gap.y_begin);
-
-//            if(part_cell.global_index > 5000000){
-//                int stop = 1;
-//            }
+                    gap_iterator.data[part_cell.level][part_cell.pc_offset][0].current_gap.global_index_begin + (part_cell.y - gap_iterator.data[part_cell.level][part_cell.pc_offset][0].current_gap.y_begin);
 
             return true;
 
         } else {
-            //first try next iteration (iterate forward)
-            if(current_it->current_gap_index < (current_it->gap_num-1)){
-                current_it->current_gap_index++;
-                current_it->current_gap = ygaps.data[part_cell.level][part_cell.pc_offset][current_it->current_gap_index];
 
-                if ((part_cell.y >= current_it->current_gap.y_begin) & (part_cell.y <= current_it->current_gap.y_end)) {
-                    part_cell.global_index =
-                            current_it->current_gap.global_index_begin +
-                            (part_cell.y - current_it->current_gap.y_begin);
-
-//                    if(part_cell.global_index > 5000000){
-//                        int stop = 1;
-//                    }
-
-
-                    return true;
-                } else {
-                    return false;
-                }
-
-            } else {
+            if((part_cell.y > gap_iterator.data[part_cell.level][part_cell.pc_offset][0].y_max) | (part_cell.y < gap_iterator.data[part_cell.level][part_cell.pc_offset][0].y_min)){
                 return false;
             }
+            const uint16_t y_prev =  gap_iterator.data[part_cell.level][part_cell.pc_offset][0].current_gap.y_end;
 
-            //global search scheme.. will leave out for now.
+            if(part_cell.y > y_prev) {
+                //first try next iteration (iterate forward)
+                if (gap_iterator.data[part_cell.level][part_cell.pc_offset][0].current_gap_index <
+                    (gap_iterator.data[part_cell.level][part_cell.pc_offset][0].gap_num - 1)) {
+
+                    //need to reset if below.
+                    gap_iterator.data[part_cell.level][part_cell.pc_offset][0].current_gap_index++;
+                    gap_iterator.data[part_cell.level][part_cell.pc_offset][0].current_gap = ygaps.data[part_cell.level][part_cell.pc_offset][gap_iterator.data[part_cell.level][part_cell.pc_offset][0].current_gap_index];
+
+                    if ((part_cell.y >=
+                         gap_iterator.data[part_cell.level][part_cell.pc_offset][0].current_gap.y_begin) &
+                        (part_cell.y <= gap_iterator.data[part_cell.level][part_cell.pc_offset][0].current_gap.y_end)) {
+                        //is it in the next gap
+
+                        part_cell.global_index =
+                                gap_iterator.data[part_cell.level][part_cell.pc_offset][0].current_gap.global_index_begin +
+                                (part_cell.y -
+                                 gap_iterator.data[part_cell.level][part_cell.pc_offset][0].current_gap.y_begin);
+
+                        return true;
+                    } else {
+                        //does it actually exist
+                        if ((part_cell.y > y_prev) & (part_cell.y <
+                                                      gap_iterator.data[part_cell.level][part_cell.pc_offset][0].current_gap.y_begin)) {
+                            //does not exist
+                            return false;
+                        } else {
+                            //must be further along, if possible
+                            if (gap_iterator.data[part_cell.level][part_cell.pc_offset][0].current_gap_index <
+                                (gap_iterator.data[part_cell.level][part_cell.pc_offset][0].gap_num - 1)) {
+
+                                //need to reset if below.
+                                gap_iterator.data[part_cell.level][part_cell.pc_offset][0].current_gap_index++;
+                                gap_iterator.data[part_cell.level][part_cell.pc_offset][0].current_gap = ygaps.data[part_cell.level][part_cell.pc_offset][gap_iterator.data[part_cell.level][part_cell.pc_offset][0].current_gap_index];
+
+                                return find_particle_cell_global_index_forward_iteration(ygaps, gap_iterator,
+                                                                                         part_cell);
+                            } else {
+                                return false;
+                            }
+                        }
+                    }
+
+                } else {
+                    //shouldn't make it here as this should mean outside range
+
+                    return false;
+                }
+            } else {
+                //reset to zero and start again
+                gap_iterator.data[part_cell.level][part_cell.pc_offset][0].current_gap_index=0;
+                gap_iterator.data[part_cell.level][part_cell.pc_offset][0].current_gap = ygaps.data[part_cell.level][part_cell.pc_offset][gap_iterator.data[part_cell.level][part_cell.pc_offset][0].current_gap_index];
+
+                return find_particle_cell_global_index_forward_iteration(ygaps,gap_iterator,part_cell);
+            }
+
         }
 
     } else {
@@ -290,7 +323,7 @@ int main(int argc, char **argv) {
     //remove the file extension
     name.erase(name.end()-3,name.end());
 
-    apr.write_apr_paraview(options.directory,name,apr.particles_int);
+    //apr.write_apr_paraview(options.directory,name,apr.particles_int);
 
     //initialize variables required
     uint64_t node_val_pc; // node variable encoding neighbour and cell information
@@ -671,36 +704,36 @@ int main(int argc, char **argv) {
 
 
 
-    timer.start_timer("APR serial iterator neighbours loop");
-
-    //Basic serial iteration over all particles
-    for (apr.begin(); apr.end() != 0; apr.it_forward()) {
-
-        //now we only update the neighbours, and directly access them through a neighbour iterator
-        apr.update_all_neighbours();
-
-        float counter = 0;
-        float temp = 0;
-
-        //loop over all the neighbours and set the neighbour iterator to it
-        for (int dir = 0; dir < 6; ++dir) {
-            // Neighbour Particle Cell Face definitions [+y,-y,+x,-x,+z,-z] =  [0,1,2,3,4,5]
-
-            for (int index = 0; index < apr.number_neighbours_in_direction(dir); ++index) {
-                // on each face, there can be 0-4 neighbours accessed by index
-                if(neighbour_iterator.set_neighbour_iterator(apr, dir, index)){
-                    //will return true if there is a neighbour defined
-
-                    neighbour_iterator(apr.particles_int) = neighbour_iterator.x();
-                    //counter++;
-
-                }
-            }
-        }
-
-    }
-
-    timer.stop_timer();
+//    timer.start_timer("APR serial iterator neighbours loop");
+//
+//    //Basic serial iteration over all particles
+//    for (apr.begin(); apr.end() != 0; apr.it_forward()) {
+//
+//        //now we only update the neighbours, and directly access them through a neighbour iterator
+//        apr.update_all_neighbours();
+//
+//        float counter = 0;
+//        float temp = 0;
+//
+//        //loop over all the neighbours and set the neighbour iterator to it
+//        for (int dir = 0; dir < 6; ++dir) {
+//            // Neighbour Particle Cell Face definitions [+y,-y,+x,-x,+z,-z] =  [0,1,2,3,4,5]
+//
+//            for (int index = 0; index < apr.number_neighbours_in_direction(dir); ++index) {
+//                // on each face, there can be 0-4 neighbours accessed by index
+//                if(neighbour_iterator.set_neighbour_iterator(apr, dir, index)){
+//                    //will return true if there is a neighbour defined
+//
+//                    neighbour_iterator(apr.particles_int) = neighbour_iterator.x();
+//                    //counter++;
+//
+//                }
+//            }
+//        }
+//
+//    }
+//
+//    timer.stop_timer();
 
 
 
@@ -736,8 +769,6 @@ int main(int argc, char **argv) {
 
                 if(iterator.data[i][offset_pc_data].size() > 0){
 
-                    iterator.data[i][offset_pc_data][0].current_gap_index = 0;
-                    iterator.data[i][offset_pc_data][0].current_gap = ygaps.data[i][offset_pc_data][0];
 
                     for (int j = 0; j < ygaps.data[i][offset_pc_data].size(); ++j) {
 
@@ -905,9 +936,6 @@ int main(int argc, char **argv) {
                 input.x = x_;
 
                 if(iterator.data[i][offset_pc_data].size() > 0){
-
-                    iterator.data[i][offset_pc_data][0].current_gap_index = 0;
-                    iterator.data[i][offset_pc_data][0].current_gap = ygaps.data[i][offset_pc_data][0];
 
                     for (int j = 0; j < ygaps.data[i][offset_pc_data].size(); ++j) {
 
