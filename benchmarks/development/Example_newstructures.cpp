@@ -51,8 +51,6 @@
 #define PC_TYPE_SHIFT 13
 
 
-
-
 //xp is x + 1 neigh
 //#define XP_DEPTH_MASK ((((uint64_t)1) << 2) - 1) << 4
 //#define XP_DEPTH_SHIFT 4
@@ -126,7 +124,7 @@ struct YGap_map {
 struct ParticleCellGapMap{
     std::map<uint16_t,YGap_map> map;
     std::map<uint16_t,YGap_map>::iterator current_iterator;
-    uint16_t last_value = 0;
+    //uint16_t last_value = 0;
 };
 
 
@@ -235,12 +233,15 @@ bool find_particle_cell(ExtraPartCellData<ParticleCellGapMap>& gap_map,PartCell&
 
         ParticleCellGapMap* current_pc_map = &gap_map.data[part_cell.level][part_cell.pc_offset][0];
 
-        std::map<uint16_t,YGap_map>::iterator map_it = (current_pc_map->map.begin());
+        std::map<uint16_t,YGap_map>::iterator& map_it = (current_pc_map->current_iterator);
+        //std::map<uint16_t,YGap_map>::iterator map_it = current_pc_map->map.begin();
         //std::advance (map_it,current_pc_map->last_value);
 
         if(map_it == current_pc_map->map.end()){
             //check if pointing to a valid key
-            map_it = current_pc_map->map.begin();
+            //map_it = current_pc_map->map.begin();
+
+            map_it--;
         }
 
         if ((part_cell.y >= map_it->first) & (part_cell.y <= map_it->second.y_end)) {
@@ -379,6 +380,32 @@ bool find_particle_cell_global_index_forward_iteration(ExtraPartCellData<YGap>& 
 //        return false;
 //    }
     return false;
+
+}
+
+void initialize_neigh(ExtraPartCellData<ParticleCellGapMap>& gap_map){
+
+    for(uint64_t i = gap_map.depth_min;i <= gap_map.depth_max;i++) {
+        //loop over the resolutions of the structure
+        const unsigned int x_num_ = gap_map.x_num[i];
+        const unsigned int z_num_ = gap_map.z_num[i];
+
+//#pragma omp parallel for default(shared) private(z_,x_,j_,node_val_pc,curr_key)  firstprivate(neigh_cell_keys) if(z_num_*x_num_ > 100)
+        for (int z_ = 0; z_ < z_num_; z_++) {
+            //both z and x are explicitly accessed in the structure
+
+
+            for (int x_ = 0; x_ < x_num_; x_++) {
+                const size_t offset_pc_data = x_num_*z_ + x_;
+
+                if(gap_map.data[i][offset_pc_data].size() > 0){
+                    gap_map.data[i][offset_pc_data][0].current_iterator = gap_map.data[i][offset_pc_data][0].map.begin();
+                }
+            }
+        }
+    }
+
+
 
 }
 
@@ -716,7 +743,8 @@ int main(int argc, char **argv) {
     ExtraPartCellData<ParticleCellGapMap> gap_map;
     gap_map.initialize_structure_parts_empty(apr.particles_int);
 
-
+    ExtraPartCellData<std::map<uint16_t,YGap_map>::iterator> gap_map_it;
+    gap_map_it.initialize_structure_parts_empty(apr.particles_int);
 
     for(uint64_t i = apr.pc_data.depth_min;i <= apr.pc_data.depth_max;i++) {
         //loop over the resolutions of the structure
@@ -741,6 +769,7 @@ int main(int argc, char **argv) {
                 if(gap_num > 0){
 
                     gap_map.data[i][offset_pc_data].resize(1);
+                    gap_map_it.data[i][offset_pc_data].resize(1);
 
                     for (int j = 0; j < gap_num; ++j) {
                         old_gap = ygaps.data[i][offset_pc_data][j];
@@ -751,7 +780,7 @@ int main(int argc, char **argv) {
                         gap_map.data[i][offset_pc_data][0].map[old_gap.y_begin] = ygap;
                     }
                     //initialize the iterator
-                    gap_map.data[i][offset_pc_data][0].last_value = 0;
+                    gap_map_it.data[i][offset_pc_data][0] = gap_map.data[i][offset_pc_data][0].map.begin();
 
                 }
 
@@ -837,7 +866,7 @@ int main(int argc, char **argv) {
     }
 
 
-    float num_rep = 10;
+    float num_rep = 1;
 
     timer.start_timer("APR serial iterator neighbours loop");
 
@@ -885,9 +914,13 @@ int main(int argc, char **argv) {
     PartCell input;
     PartCell neigh;
 
+    initialize_neigh(gap_map);
+
     timer.start_timer("new neighbour loop");
 
     for (int l = 0; l < num_rep; ++l) {
+
+
 
         for (uint64_t i = apr.pc_data.depth_min; i <= apr.pc_data.depth_max; i++) {
             //loop over the resolutions of the structure
@@ -938,11 +971,11 @@ int main(int argc, char **argv) {
                                     for (int n = 0; n < number_neighbours_in_direction(level_delta); ++n) {
                                         get_neighbour_coordinate(input, neigh, face, level_delta, n);
 
-                                        if (input.x < apr.spatial_index_x_max(neigh.level)) {
-                                            if (input.z < apr.spatial_index_z_max(neigh.level)) {
+                                        if (neigh.x < apr.pc_data.x_num[neigh.level]) {
+                                            if (neigh.z < apr.pc_data.z_num[neigh.level]) {
 
                                                 neigh.pc_offset =
-                                                        apr.spatial_index_x_max(neigh.level) * neigh.z + neigh.x;
+                                                        apr.pc_data.x_num[neigh.level] * neigh.z + neigh.x;
 
                                                 if (find_particle_cell(gap_map, neigh)) {
                                                     // do something;
