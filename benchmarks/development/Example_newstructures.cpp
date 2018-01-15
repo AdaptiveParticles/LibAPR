@@ -109,8 +109,22 @@ cmdLineOptions read_command_line_options(int argc, char **argv){
 
 struct PartCell {
     uint16_t x,y,z,level,type;
+    uint64_t pc_offset,global_index;
 };
 
+struct YGap {
+    uint16_t y_begin;
+    uint16_t y_end;
+    uint64_t global_index_begin;
+};
+
+struct GapIterator {
+    YGap current_gap;
+    uint16_t y_min;
+    uint16_t y_max;
+    uint16_t current_gap_index;
+    uint16_t gap_num;
+};
 
 bool get_neighbour_coordinate(const PartCell& input,PartCell& neigh,const unsigned int& face,const uint16_t& level_delta,const uint16_t& index){
     //
@@ -196,17 +210,58 @@ uint8_t number_neighbours_in_direction(const uint8_t& level_delta){
     return 1;
 }
 
-bool find_particle_cell_global_index(){
+bool find_particle_cell_global_index_forward_iteration(ExtraPartCellData<YGap>& ygaps,ExtraPartCellData<GapIterator>& gap_iterator,PartCell& part_cell){
+    //
+    //  Finds the global index for a part_cell if it exists
+    //
+    if(gap_iterator.data[part_cell.level][part_cell.pc_offset].size() > 0) {
+        GapIterator *current_it = &gap_iterator.data[part_cell.level][part_cell.pc_offset][0];
+
+        if ((part_cell.y >= current_it->current_gap.y_begin) & (part_cell.y <= current_it->current_gap.y_end)) {
+            part_cell.global_index =
+                    current_it->current_gap.global_index_begin + (part_cell.y - current_it->current_gap.y_begin);
+
+            if(part_cell.global_index > 5000000){
+                int stop = 1;
+            }
+
+            return true;
+
+        } else {
+            //first try next iteration (iterate forward)
+            if(current_it->current_gap_index < (current_it->gap_num-1)){
+                current_it->current_gap_index++;
+                current_it->current_gap = ygaps.data[part_cell.level][part_cell.pc_offset][current_it->current_gap_index];
+
+                if ((part_cell.y >= current_it->current_gap.y_begin) & (part_cell.y <= current_it->current_gap.y_end)) {
+                    part_cell.global_index =
+                            current_it->current_gap.global_index_begin +
+                            (part_cell.y - current_it->current_gap.y_begin);
+
+                    if(part_cell.global_index > 5000000){
+                        int stop = 1;
+                    }
 
 
+                    return true;
+                } else {
+                    return false;
+                }
+
+            } else {
+                return false;
+            }
+
+            //global search scheme.. will leave out for now.
+        }
+
+    } else {
+        return false;
+    }
 
 }
 
-struct YGAP {
-    uint64_t y_begin;
-    uint64_t y_end;
-    uint64_t global_index_begin;
-};
+
 
 
 int main(int argc, char **argv) {
@@ -254,7 +309,7 @@ int main(int argc, char **argv) {
 
     neighbours.resize(apr.num_parts_total);
 
-    ExtraPartCellData<YGAP> ygaps;
+    ExtraPartCellData<YGap> ygaps;
     ygaps.initialize_structure_parts_empty(apr.particles_int);
 
 //    ExtraPartCellData<uint64_t> gaps_end;
@@ -263,8 +318,10 @@ int main(int argc, char **argv) {
 //    ExtraPartCellData<uint64_t> index;
 //    index.initialize_structure_parts_empty(apr.particles_int);
 
-    ExtraPartCellData<uint64_t> iterator;
+    ExtraPartCellData<GapIterator> iterator;
     iterator.initialize_structure_parts_empty(apr.particles_int);
+
+    GapIterator gap_it;
 
     uint64_t count_gaps=0;
     uint64_t count_parts = 0;
@@ -290,9 +347,7 @@ int main(int argc, char **argv) {
 
                 const size_t j_num = apr.pc_data.data[i][offset_pc_data].size();
 
-                if(j_num > 1){
-                    iterator.data[i][offset_pc_data].push_back(0);
-                }
+
 
                 uint64_t prev = 0;
 
@@ -304,7 +359,7 @@ int main(int argc, char **argv) {
                     //particle cell node value, used here as it is requried for getting the particle neighbours
                     node_val_pc = apr.pc_data.data[i][offset_pc_data][j_];
 
-                    YGAP gap;
+                    YGap gap;
 
                     if (!(node_val_pc&1)){
                         //Indicates this is a particle cell node
@@ -416,6 +471,18 @@ int main(int argc, char **argv) {
 
                     }
 
+
+                }
+
+                if(j_num > 1){
+
+                    gap_it.gap_num = ygaps.data[i][offset_pc_data].size();
+                    gap_it.y_min = ygaps.data[i][offset_pc_data][0].y_begin;
+                    gap_it.current_gap_index = 0;
+                    gap_it.current_gap = ygaps.data[i][offset_pc_data][0];
+                    gap_it.y_max = ygaps.data[i][offset_pc_data].back().y_end;
+
+                    iterator.data[i][offset_pc_data].push_back(gap_it);
                 }
 
             }
@@ -485,7 +552,7 @@ int main(int argc, char **argv) {
 
                     for (int j = 0; j < ygaps.data[i][offset_pc_data].size(); ++j) {
 
-                        YGAP gap = ygaps.data[i][offset_pc_data][j];
+                        YGap gap = ygaps.data[i][offset_pc_data][j];
 
                         uint64_t curr_index = gap.global_index_begin;
 
@@ -624,8 +691,8 @@ int main(int argc, char **argv) {
                 if(neighbour_iterator.set_neighbour_iterator(apr, dir, index)){
                     //will return true if there is a neighbour defined
 
-                    temp += neighbour_iterator(apr.particles_int);
-                    counter++;
+                    neighbour_iterator(apr.particles_int) = neighbour_iterator.x();
+                    //counter++;
 
                 }
             }
@@ -671,7 +738,7 @@ int main(int argc, char **argv) {
 
                     for (int j = 0; j < ygaps.data[i][offset_pc_data].size(); ++j) {
 
-                        YGAP gap = ygaps.data[i][offset_pc_data][j];
+                        YGap gap = ygaps.data[i][offset_pc_data][j];
 
                         uint64_t curr_index = gap.global_index_begin;
 
@@ -681,7 +748,8 @@ int main(int argc, char **argv) {
                              y <= gap.y_end; y++) {
 
                             curr_index++;
-                            counter_new++;
+
+                            input.y = y;
 
                             uint16_t node = neighbours[curr_index];
 
@@ -694,6 +762,21 @@ int main(int argc, char **argv) {
 
                                 for (int n = 0; n < number_neighbours_in_direction(level_delta); ++n) {
                                     get_neighbour_coordinate(input,neigh,face,level_delta, 0);
+
+                                    if(input.x < apr.spatial_index_x_max(neigh.level)){
+                                        if(input.z < apr.spatial_index_z_max(neigh.level)){
+
+                                            neigh.pc_offset = apr.spatial_index_x_max(neigh.level)*neigh.z + neigh.x;
+
+
+                                            if(find_particle_cell_global_index_forward_iteration(ygaps, iterator,neigh)){
+                                                // do something;
+                                                pint[neigh.global_index] = neigh.x;
+                                            }
+
+                                        }
+                                    }
+
                                 }
 
                             }
