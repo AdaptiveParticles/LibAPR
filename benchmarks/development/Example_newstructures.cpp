@@ -126,7 +126,7 @@ struct YGap_map {
 struct ParticleCellGapMap{
     std::map<uint16_t,YGap_map> map;
     std::map<uint16_t,YGap_map>::iterator current_iterator;
-    //uint16_t last_value = 0;
+    uint16_t last_value = 0;
 };
 
 
@@ -235,41 +235,35 @@ bool find_particle_cell(ExtraPartCellData<ParticleCellGapMap>& gap_map,PartCell&
 
         ParticleCellGapMap* current_pc_map = &gap_map.data[part_cell.level][part_cell.pc_offset][0];
 
-        current_pc_map->current_iterator = current_pc_map->map.begin();
+        std::map<uint16_t,YGap_map>::iterator map_it = (current_pc_map->map.begin());
+        //std::advance (map_it,current_pc_map->last_value);
 
-        if(current_pc_map->current_iterator == current_pc_map->map.end()){
+        if(map_it == current_pc_map->map.end()){
             //check if pointing to a valid key
-            current_pc_map->current_iterator = current_pc_map->map.begin();
+            map_it = current_pc_map->map.begin();
         }
 
-        if ((part_cell.y >= current_pc_map->current_iterator->first) & (part_cell.y <= current_pc_map->current_iterator->second.y_end)) {
+        if ((part_cell.y >= map_it->first) & (part_cell.y <= map_it->second.y_end)) {
             // already pointing to the correct place
-            part_cell.global_index = current_pc_map->current_iterator->second.global_index_begin +
-                    (part_cell.y - current_pc_map->current_iterator->first);
+            part_cell.global_index = map_it->second.global_index_begin +
+                    (part_cell.y - map_it->first);
 
-
-            if(part_cell.global_index > 1000000){
-                int stop = 1;
-            }
-
+            //current_pc_map->last_value = std::distance(current_pc_map->map.begin(),map_it);
 
             return true;
         } else {
             //first try next element
-            if(current_pc_map->current_iterator != current_pc_map->map.end()){
-                current_pc_map->current_iterator++;
+            if(map_it != current_pc_map->map.end()){
+                map_it++;
                 //check if there
-                if(current_pc_map->current_iterator != current_pc_map->map.end()) {
-                    if ((part_cell.y >= current_pc_map->current_iterator->first) &
-                        (part_cell.y <= current_pc_map->current_iterator->second.y_end)) {
+                if(map_it != current_pc_map->map.end()) {
+                    if ((part_cell.y >= map_it->first) &
+                        (part_cell.y <= map_it->second.y_end)) {
                         // already pointing to the correct place
-                        part_cell.global_index = current_pc_map->current_iterator->second.global_index_begin +
-                                                 (part_cell.y - current_pc_map->current_iterator->first);
+                        part_cell.global_index = map_it->second.global_index_begin +
+                                                 (part_cell.y - map_it->first);
 
-                        if (part_cell.global_index > 1000000) {
-                            int stop = 1;
-                        }
-
+                        //current_pc_map->last_value = std::distance(current_pc_map->map.begin(),map_it);
                         return true;
                     }
                 }
@@ -277,20 +271,21 @@ bool find_particle_cell(ExtraPartCellData<ParticleCellGapMap>& gap_map,PartCell&
             }
 
             //otherwise search for it (points to first key that is greater than the y value)
-            current_pc_map->current_iterator = current_pc_map->map.upper_bound(part_cell.y);
-            current_pc_map->current_iterator--;
+            map_it = current_pc_map->map.upper_bound(part_cell.y);
 
+            if(map_it == current_pc_map->map.begin()){
+                //less then the first value
+                return false;
+            } else{
+                map_it--;
+            }
 
-            if ((part_cell.y >= current_pc_map->current_iterator->first) & (part_cell.y <= current_pc_map->current_iterator->second.y_end)) {
+            if ((part_cell.y >= map_it->first) & (part_cell.y <= map_it->second.y_end)) {
                 // already pointing to the correct place
-                part_cell.global_index = current_pc_map->current_iterator->second.global_index_begin +
-                                         (part_cell.y - current_pc_map->current_iterator->first);
+                part_cell.global_index = map_it->second.global_index_begin +
+                                         (part_cell.y - map_it->first);
 
-                if(part_cell.global_index > 1000000){
-                    int stop = 1;
-                }
-
-
+                //current_pc_map->last_value = std::distance(current_pc_map->map.begin(),map_it);
                 return true;
             }
         }
@@ -756,7 +751,7 @@ int main(int argc, char **argv) {
                         gap_map.data[i][offset_pc_data][0].map[old_gap.y_begin] = ygap;
                     }
                     //initialize the iterator
-                    gap_map.data[i][offset_pc_data][0].current_iterator = gap_map.data[i][offset_pc_data][0].map.begin();
+                    gap_map.data[i][offset_pc_data][0].last_value = 0;
 
                 }
 
@@ -842,7 +837,7 @@ int main(int argc, char **argv) {
     }
 
 
-    float num_rep = 20;
+    float num_rep = 10;
 
     timer.start_timer("APR serial iterator neighbours loop");
 
