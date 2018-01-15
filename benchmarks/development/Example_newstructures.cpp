@@ -107,7 +107,12 @@ cmdLineOptions read_command_line_options(int argc, char **argv){
 
 }
 
-void get_neigh(unsigned int y,unsigned int x, unsigned int z,unsigned int depth, unsigned int face,uint16_t node){
+struct PartCell {
+    uint16_t x,y,z,level,type;
+};
+
+
+bool get_neighbour_coordinate(const PartCell& input,PartCell& neigh,const unsigned int& face,const uint16_t& level_delta,const uint16_t& index){
     //
     //
 
@@ -115,27 +120,93 @@ void get_neigh(unsigned int y,unsigned int x, unsigned int z,unsigned int depth,
     const int8_t dir_x[6] = { 0, 0, 1, -1, 0, 0};
     const int8_t dir_z[6] = { 0, 0, 0, 0, 1, -1};
 
-    constexpr uint8_t child_offsets[3][3] = {{0,1,1},{1,0,1},{1,1,0}};
+    constexpr uint8_t children_index_offsets[4][2] = {{0,0},{0,1},{1,0},{1,1}};
 
-    unsigned int depth_n;
-    unsigned int x_n;
-    unsigned int y_n;
-    unsigned int z_n;
+    unsigned int dir;
 
-    depth_n = depth - 1;
-    x_n = x/2;
-    y_n = y/2;
-    z_n = z/2;
+    switch (level_delta){
+        case _LEVEL_SAME:
+            //Same Level Particle Cell
+            neigh.x = input.x + dir_x[face];
+            neigh.y = input.y + dir_y[face];
+            neigh.z = input.z + dir_z[face];
+            neigh.level = input.level;
 
-    depth_n = depth + 1;
-    x_n = (x + dir_x[face])*2 + (dir_x[face]<0);
-    y_n = (y + dir_y[face])*2 + (dir_y[face]<0);
-    z_n = (z + dir_z[face])*2 + (dir_z[face]<0);
+            return true;
+        case _LEVEL_DECREASE:
+            //Larger Particle Cell (Lower Level)
+            neigh.level = input.level - 1;
+            neigh.x = input.x/2;
+            neigh.y = input.y/2;
+            neigh.z = input.z/2;
+
+            return true;
+        case _LEVEL_INCREASE:
+            //Higher Level Particle Cell (Smaller/Higher Resolution), there is a maximum of 4 (conditional on boundary conditions)
+            neigh.level = input.level + 1;
+            neigh.x = (input.x + dir_x[face])*2 + (dir_x[face]<0);
+            neigh.y = (input.y + dir_y[face])*2 + (dir_y[face]<0);
+            neigh.z = (input.z + dir_z[face])*2 + (dir_z[face]<0);
+
+            dir = (index/2);
+
+            switch (dir){
+                case 0:
+                    //y+ and y-
+                    neigh.x = neigh.x + children_index_offsets[index][0];
+                    neigh.z = neigh.z + children_index_offsets[index][1];
+
+                    break;
+
+                case 1:
+                    //x+ and x-
+                    neigh.y = neigh.y + children_index_offsets[index][0];
+                    neigh.z = neigh.z + children_index_offsets[index][1];
+
+                    break;
+                case 2:
+                    //z+ and z-
+                    neigh.y = neigh.y + children_index_offsets[index][0];
+                    neigh.x = neigh.x + children_index_offsets[index][1];
+
+                    break;
+            }
+
+            return true;
+        case _NO_NEIGHBOUR:
+
+            return false;
+    }
+
+    return false;
+
+}
+
+uint8_t number_neighbours_in_direction(const uint8_t& level_delta){
+    //
+    //  Gives the maximum number of neighbours in a direction given the level_delta.
+    //
+
+    switch (level_delta){
+        case _LEVEL_INCREASE:
+            return 4;
+        case _NO_NEIGHBOUR:
+            return 0;
+    }
+    return 1;
+}
+
+bool find_particle_cell_global_index(){
+
 
 
 }
 
-
+struct YGAP {
+    uint64_t y_begin;
+    uint64_t y_end;
+    uint64_t global_index_begin;
+};
 
 
 int main(int argc, char **argv) {
@@ -183,14 +254,14 @@ int main(int argc, char **argv) {
 
     neighbours.resize(apr.num_parts_total);
 
-    ExtraPartCellData<uint64_t> gaps;
-    gaps.initialize_structure_parts_empty(apr.particles_int);
+    ExtraPartCellData<YGAP> ygaps;
+    ygaps.initialize_structure_parts_empty(apr.particles_int);
 
-    ExtraPartCellData<uint64_t> gaps_end;
-    gaps_end.initialize_structure_parts_empty(apr.particles_int);
-
-    ExtraPartCellData<uint64_t> index;
-    index.initialize_structure_parts_empty(apr.particles_int);
+//    ExtraPartCellData<uint64_t> gaps_end;
+//    gaps_end.initialize_structure_parts_empty(apr.particles_int);
+//
+//    ExtraPartCellData<uint64_t> index;
+//    index.initialize_structure_parts_empty(apr.particles_int);
 
     ExtraPartCellData<uint64_t> iterator;
     iterator.initialize_structure_parts_empty(apr.particles_int);
@@ -232,6 +303,8 @@ int main(int argc, char **argv) {
 
                     //particle cell node value, used here as it is requried for getting the particle neighbours
                     node_val_pc = apr.pc_data.data[i][offset_pc_data][j_];
+
+                    YGAP gap;
 
                     if (!(node_val_pc&1)){
                         //Indicates this is a particle cell node
@@ -302,7 +375,7 @@ int main(int argc, char **argv) {
                             //first node (do forward) (YM)
                             neighbours[count_parts] |= (ym_dep << YM_LEVEL_SHIFT);
 
-                        } else if (j_ == (j_num-1) & (j_num > 1)){
+                        } else if ((j_ == (j_num-1)) & (j_num > 1)){
                             //last node (do behind) (YP)
                             neighbours[count_parts-1] |= (yp_dep << YP_LEVEL_SHIFT);
 
@@ -320,7 +393,10 @@ int main(int argc, char **argv) {
 
 
                         if(j_>0){
-                            gaps_end.data[i][offset_pc_data].push_back(y_coord);
+                            //gaps_end.data[i][offset_pc_data].push_back(y_coord);
+                            gap.y_end = y_coord;
+                            ygaps.data[i][offset_pc_data].push_back(gap);
+
                         }
 
                         y_coord = (node_val_pc & NEXT_COORD_MASK) >> NEXT_COORD_SHIFT;
@@ -328,8 +404,11 @@ int main(int argc, char **argv) {
                         if(j_num > 1) {
                             if(j_ < (j_num - 1)) {
                                 count_gaps++;
-                                gaps.data[i][offset_pc_data].push_back(y_coord+1);
-                                index.data[i][offset_pc_data].push_back(count_parts);
+
+                                gap.y_begin = y_coord + 1;
+                                gap.global_index_begin = count_parts;
+                                //gaps.data[i][offset_pc_data].push_back(y_coord+1);
+                                //index.data[i][offset_pc_data].push_back(count_parts);
                             }
 
                         }
@@ -404,17 +483,16 @@ int main(int argc, char **argv) {
 
                 if(iterator.data[i][offset_pc_data].size() > 0){
 
-                    for (int j = 0; j < gaps.data[i][offset_pc_data].size(); ++j) {
+                    for (int j = 0; j < ygaps.data[i][offset_pc_data].size(); ++j) {
 
-                        uint64_t curr_index = index.data[i][offset_pc_data][j];
+                        YGAP gap = ygaps.data[i][offset_pc_data][j];
 
-                        uint64_t begin = gaps.data[i][offset_pc_data][j];
-                        uint64_t end = gaps_end.data[i][offset_pc_data][j];
+                        uint64_t curr_index = gap.global_index_begin;
 
                         curr_index--;
 
-                        for (int y = gaps.data[i][offset_pc_data][j];
-                             y <= gaps_end.data[i][offset_pc_data][j]; y++) {
+                        for (int y = gap.y_begin;
+                             y <= gap.y_end; y++) {
 
                             curr_index++;
                             counter_new++;
@@ -525,44 +603,108 @@ int main(int argc, char **argv) {
     }
 
 
+
+    timer.start_timer("APR serial iterator neighbours loop");
+
+    //Basic serial iteration over all particles
+    for (apr.begin(); apr.end() != 0; apr.it_forward()) {
+
+        //now we only update the neighbours, and directly access them through a neighbour iterator
+        apr.update_all_neighbours();
+
+        float counter = 0;
+        float temp = 0;
+
+        //loop over all the neighbours and set the neighbour iterator to it
+        for (int dir = 0; dir < 6; ++dir) {
+            // Neighbour Particle Cell Face definitions [+y,-y,+x,-x,+z,-z] =  [0,1,2,3,4,5]
+
+            for (int index = 0; index < apr.number_neighbours_in_direction(dir); ++index) {
+                // on each face, there can be 0-4 neighbours accessed by index
+                if(neighbour_iterator.set_neighbour_iterator(apr, dir, index)){
+                    //will return true if there is a neighbour defined
+
+                    temp += neighbour_iterator(apr.particles_int);
+                    counter++;
+
+                }
+            }
+        }
+
+    }
+
+    timer.stop_timer();
+
+
+
+    ////////////////////////////
+    ///
+    /// Prototype neighbour access
+    ///
+    //////////////////////////
+
+    PartCell input;
+    PartCell neigh;
+
+    timer.start_timer("new neighbour loop");
+
     for(uint64_t i = apr.pc_data.depth_min;i <= apr.pc_data.depth_max;i++) {
         //loop over the resolutions of the structure
         const unsigned int x_num_ = apr.pc_data.x_num[i];
         const unsigned int z_num_ = apr.pc_data.z_num[i];
 
+        input.level = i;
+
 //#pragma omp parallel for default(shared) private(z_,x_,j_,node_val_pc,curr_key)  firstprivate(neigh_cell_keys) if(z_num_*x_num_ > 100)
         for (z_ = 0; z_ < z_num_; z_++) {
             //both z and x are explicitly accessed in the structure
+
+            input.z = z_;
 
             for (x_ = 0; x_ < x_num_; x_++) {
 
                 const size_t offset_pc_data = x_num_*z_ + x_;
 
+                input.x = x_;
+
                 if(iterator.data[i][offset_pc_data].size() > 0){
 
-                    for (int j = 0; j < gaps.data[i][offset_pc_data].size(); ++j) {
+                    for (int j = 0; j < ygaps.data[i][offset_pc_data].size(); ++j) {
 
-                        uint64_t curr_index = index.data[i][offset_pc_data][j];
+                        YGAP gap = ygaps.data[i][offset_pc_data][j];
+
+                        uint64_t curr_index = gap.global_index_begin;
 
                         curr_index--;
 
-                        for (int y = gaps.data[i][offset_pc_data][j];
-                             y <= gaps_end.data[i][offset_pc_data][j]; y++) {
+                        for (int y = gap.y_begin;
+                             y <= gap.y_end; y++) {
 
                             curr_index++;
                             counter_new++;
 
+                            uint16_t node = neighbours[curr_index];
 
+                            for (int f = 0; f < dir_vec.size(); ++f) {
+                                // Neighbour Particle Cell Face definitions [+y,-y,+x,-x,+z,-z] =  [0,1,2,3,4,5]
+
+                                unsigned int face = dir_vec[f];
+
+                                uint16_t level_delta = (node & mask[face]) >> shift[face];
+
+                                for (int n = 0; n < number_neighbours_in_direction(level_delta); ++n) {
+                                    get_neighbour_coordinate(input,neigh,face,level_delta, 0);
+                                }
+
+                            }
                         }
-
                     }
-
                 }
             }
         }
     }
 
-
+    timer.stop_timer();
 
 //    apr.write_particles_only(options.directory,name+"gaps",gaps);
 //    apr.write_particles_only(options.directory,name+"gaps_end",gaps_end);
