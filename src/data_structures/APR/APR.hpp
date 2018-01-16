@@ -28,6 +28,8 @@
 
 #include "src/io/APRWriter.hpp"
 
+#include "src/data_structures/APR/APRAccess.hpp"
+
 #include <map>
 #include <unordered_map>
 
@@ -37,7 +39,38 @@ typedef std::unordered_map<uint16_t,uint16_t> hash_map;
 //typedef std::map<uint16_t,uint16_t> hash_map;
 
 template<typename ImageType>
-class APR : public APR_iterator<ImageType>,  protected APRWriter{
+class APR : public APR_iterator<ImageType>{
+
+    template<typename S>
+    friend class APR_converter;
+
+    friend class APRWriter;
+
+    friend class PullingScheme;
+
+    template<typename S>
+    friend class APR_iterator;
+
+    template<typename S>
+    friend class ExtraPartCellData;
+
+    friend class APRAccess;
+
+private:
+
+    APRWriter apr_writer;
+
+    PartCellData<uint64_t> pc_data;
+
+    std::vector<uint64_t> num_parts;
+    std::vector<uint64_t> num_elements;
+    ExtraPartCellData<uint64_t> num_parts_xy;
+    uint64_t num_elements_total;
+
+    std::vector<unsigned int> org_dims;
+
+    //Experimental
+    ExtraPartCellData<hash_map> random_access;
 
 public:
 
@@ -45,22 +78,16 @@ public:
 
     ExtraPartCellData<ImageType> particles_int; // holds the particles intenisty information
 
-    PartCellData<uint64_t> pc_data; // holds the spatial and neighbours access information and methods
+    // holds the spatial and neighbours access information and methods
 
     //used for storing number of paritcles and cells per level for parallel access iterators
-    std::vector<uint64_t> num_parts;
-    std::vector<uint64_t> num_elements;
-    ExtraPartCellData<uint64_t> num_parts_xy;
-    uint64_t num_elements_total;
+
 
     std::string name;
     APR_parameters parameters;
 
     //old parameters (depreciated)
     Proc_par pars;
-
-    //Experimental
-    ExtraPartCellData<hash_map> random_access;
 
     APR(){
         this->pc_data_pointer = &pc_data;
@@ -228,33 +255,33 @@ public:
     //basic IO
     void read_apr(std::string file_name){
         //
-        APRWriter::read_apr(*this,file_name);
+        apr_writer.read_apr(*this,file_name);
     }
 
     void write_apr(std::string save_loc,std::string file_name){
-        APRWriter::write_apr(*this, save_loc,file_name);
+        apr_writer.write_apr(*this, save_loc,file_name);
     }
 
     void write_apr(std::string save_loc,std::string file_name,APRCompress<ImageType>& apr_compressor,unsigned int blosc_comp_type,unsigned int blosc_comp_level,unsigned int blosc_shuffle){
-        APRWriter::write_apr((*this),save_loc, file_name, apr_compressor,blosc_comp_type ,blosc_comp_level,blosc_shuffle);
+        apr_writer.write_apr((*this),save_loc, file_name, apr_compressor,blosc_comp_type ,blosc_comp_level,blosc_shuffle);
     }
 
     //generate APR that can be read by paraview
     template<typename T>
     void write_apr_paraview(std::string save_loc,std::string file_name,ExtraPartCellData<T>& parts){
-        APRWriter::write_apr_paraview((*this), save_loc,file_name,parts);
+        apr_writer.write_apr_paraview((*this), save_loc,file_name,parts);
     }
 
     //write out ExtraPartCellData
     template< typename S>
     void write_particles_only( std::string save_loc,std::string file_name,ExtraPartCellData<S>& parts_extra){
-        APRWriter::write_particles_only( *this ,save_loc, file_name, parts_extra);
+        apr_writer.write_particles_only( *this ,save_loc, file_name, parts_extra);
     };
 
     //read in ExtraPartCellData
     template<typename T>
     void read_parts_only(std::string file_name,ExtraPartCellData<T>& extra_parts){
-        APRWriter::read_parts_only(*this,file_name,extra_parts);
+        apr_writer.read_parts_only(*this,file_name,extra_parts);
     };
 
     ////////////////////////
@@ -1858,163 +1885,163 @@ public:
     ///
     ///
     ///////////////////////
-
-    int random_access_pc(uint64_t depth,uint16_t y,uint64_t x,uint64_t z){
-        //
-        //  Random access check for valid x,z, any given y, returns the index of the stored Particle Intensity.
-        //
-
-        int j;
-
-        uint64_t pc_offset = pc_data.x_num[depth]*z + x;
-
-        if(random_access.data[depth][pc_offset].size() > 0) {
-            hash_map::iterator pc = random_access.data[depth][pc_offset][0].find(y);
-
-            if(pc != random_access.data[depth][pc_offset][0].end()){
-                j = pc->second;
-            } else {
-                return -1;
-            }
-
-        } else {
-            return -1;
-
-        }
-
-        return j;
-
-    }
-
-    //////////////////////////
-    ///
-    /// Experimental random access neighbours.
-    ///
-    /// \tparam S data type of the particles
-    /// \param face the neighbour direction (+y,-y,+x,-x,+z,-z)
-    /// \param parts the particles data structure
-    /// \param neigh_val vector returning the particles values of the neighbours
-    ////////////////////////
-
-    template<typename S>
-    void get_neigh_random(unsigned int face,ExtraPartCellData<S>& parts,std::vector<S>& neigh_val){
-        //
-        //  Get APR face neighbours relying on random access through a map, or unordered map structure for y
-        //
-
-        const int8_t dir_y[6] = { 1, -1, 0, 0, 0, 0};
-        const int8_t dir_x[6] = { 0, 0, 1, -1, 0, 0};
-        const int8_t dir_z[6] = { 0, 0, 0, 0, 1, -1};
-
-        constexpr uint8_t neigh_child_dir[6][3] = {{4,2,2},{4,2,2},{0,4,4},{0,4,4},{0,2,2},{0,2,2}};
-
-        constexpr uint8_t child_offsets[3][3] = {{0,1,1},{1,0,1},{1,1,0}};
-
-        //first try on same depth
-        int z_ = this->z() + dir_z[face];
-        int x_ = this->x() + dir_x[face];
-        int y_ = this->y() + dir_y[face];
-        int depth_ = this->depth();
-
-        uint16_t j=0;
-
-        uint64_t pc_offset = pc_data.x_num[depth_]*z_ + x_;
-        bool found = false;
-
-        neigh_val.resize(0);
-
-        if((x_ < 0) | (x_ >= pc_data.x_num[depth_]) | (z_ < 0) | (z_ >= pc_data.z_num[depth_]) ){
-            //out of bounds
-            return;
-        }
-
-        if(random_access.data[depth_][pc_offset].size() > 0) {
-            hash_map::iterator pc = random_access.data[depth_][pc_offset][0].find(y_);
-
-            if(pc != random_access.data[depth_][pc_offset][0].end()){
-                j = pc->second;
-                found = true;
-            }
-        }
-
-        if(!found){
-            //
-            //  Find parents
-            //
-
-            unsigned int depth_p = depth_ - 1;
-            unsigned int x_p = x_/2;
-            unsigned int y_p = y_/2;
-            unsigned int z_p = z_/2;
-
-            pc_offset = pc_data.x_num[depth_p]*z_p + x_p;
-
-            if(random_access.data[depth_p][pc_offset].size() > 0) {
-                hash_map::iterator pc = random_access.data[depth_p][pc_offset][0].find(y_p);
-
-                if(pc != random_access.data[depth_p][pc_offset][0].end()){
-                    j = pc->second;
-                    found = true;
-                }
-            }
-
-            if(!found) {
-
-                if(depth_ < pc_data.depth_max) {
-                    // get the potentially 4 children
-                    unsigned int depth_c = depth_ + 1;
-                    unsigned int x_c = (x_ + dir_x[face])*2 + (dir_x[face]<0);
-                    unsigned int y_c = (y_ + dir_y[face])*2 + (dir_y[face]<0);
-                    unsigned int z_c = (z_ + dir_z[face])*2 + (dir_z[face]<0);
-
-                    unsigned int dir = face/2;
-
-                    for (int i = 0; i < 2; ++i) {
-                        for (int k = 0; k < 2; ++k) {
-                            y_ = y_c + (child_offsets[dir][0])*i + (child_offsets[dir][0])*k;
-                            x_ = x_c + (child_offsets[dir][1])*i + (child_offsets[dir][1])*k;
-                            z_ = z_c + (child_offsets[dir][2])*i + (child_offsets[dir][2])*k;
-
-                            //add of they exist
-                            if((x_ < 0) | (x_ >= pc_data.x_num[depth_c]) | (z_ < 0) | (z_ >= pc_data.z_num[depth_]) ){
-                                //out of bounds
-
-                            } else {
-
-                                pc_offset = pc_data.x_num[depth_c]*z_ + x_;
-
-                                if (random_access.data[depth_c][pc_offset].size() > 0) {
-                                    hash_map::iterator pc = random_access.data[depth_c][pc_offset][0].find(y_);
-
-                                    if (pc != random_access.data[depth_c][pc_offset][0].end()) {
-                                        j = pc->second;
-                                        neigh_val.push_back(parts.data[depth_c][pc_offset][j]);
-                                    }
-                                }
-
-                            }
-
-
-
-                        }
-                    }
-
-
-
-                }
-
-            } else{
-                neigh_val.push_back(parts.data[depth_p][pc_offset][j]);
-            }
-
-        } else{
-
-            neigh_val.push_back(parts.data[depth_][pc_offset][j]);
-
-        }
-
-
-    }
+//
+//    int random_access_pc(uint64_t depth,uint16_t y,uint64_t x,uint64_t z){
+//        //
+//        //  Random access check for valid x,z, any given y, returns the index of the stored Particle Intensity.
+//        //
+//
+//        int j;
+//
+//        uint64_t pc_offset = pc_data.x_num[depth]*z + x;
+//
+//        if(random_access.data[depth][pc_offset].size() > 0) {
+//            hash_map::iterator pc = random_access.data[depth][pc_offset][0].find(y);
+//
+//            if(pc != random_access.data[depth][pc_offset][0].end()){
+//                j = pc->second;
+//            } else {
+//                return -1;
+//            }
+//
+//        } else {
+//            return -1;
+//
+//        }
+//
+//        return j;
+//
+//    }
+//
+//    //////////////////////////
+//    ///
+//    /// Experimental random access neighbours.
+//    ///
+//    /// \tparam S data type of the particles
+//    /// \param face the neighbour direction (+y,-y,+x,-x,+z,-z)
+//    /// \param parts the particles data structure
+//    /// \param neigh_val vector returning the particles values of the neighbours
+//    ////////////////////////
+//
+//    template<typename S>
+//    void get_neigh_random(unsigned int face,ExtraPartCellData<S>& parts,std::vector<S>& neigh_val){
+//        //
+//        //  Get APR face neighbours relying on random access through a map, or unordered map structure for y
+//        //
+//
+//        const int8_t dir_y[6] = { 1, -1, 0, 0, 0, 0};
+//        const int8_t dir_x[6] = { 0, 0, 1, -1, 0, 0};
+//        const int8_t dir_z[6] = { 0, 0, 0, 0, 1, -1};
+//
+//        constexpr uint8_t neigh_child_dir[6][3] = {{4,2,2},{4,2,2},{0,4,4},{0,4,4},{0,2,2},{0,2,2}};
+//
+//        constexpr uint8_t child_offsets[3][3] = {{0,1,1},{1,0,1},{1,1,0}};
+//
+//        //first try on same depth
+//        int z_ = this->z() + dir_z[face];
+//        int x_ = this->x() + dir_x[face];
+//        int y_ = this->y() + dir_y[face];
+//        int depth_ = this->depth();
+//
+//        uint16_t j=0;
+//
+//        uint64_t pc_offset = pc_data.x_num[depth_]*z_ + x_;
+//        bool found = false;
+//
+//        neigh_val.resize(0);
+//
+//        if((x_ < 0) | (x_ >= pc_data.x_num[depth_]) | (z_ < 0) | (z_ >= pc_data.z_num[depth_]) ){
+//            //out of bounds
+//            return;
+//        }
+//
+//        if(random_access.data[depth_][pc_offset].size() > 0) {
+//            hash_map::iterator pc = random_access.data[depth_][pc_offset][0].find(y_);
+//
+//            if(pc != random_access.data[depth_][pc_offset][0].end()){
+//                j = pc->second;
+//                found = true;
+//            }
+//        }
+//
+//        if(!found){
+//            //
+//            //  Find parents
+//            //
+//
+//            unsigned int depth_p = depth_ - 1;
+//            unsigned int x_p = x_/2;
+//            unsigned int y_p = y_/2;
+//            unsigned int z_p = z_/2;
+//
+//            pc_offset = pc_data.x_num[depth_p]*z_p + x_p;
+//
+//            if(random_access.data[depth_p][pc_offset].size() > 0) {
+//                hash_map::iterator pc = random_access.data[depth_p][pc_offset][0].find(y_p);
+//
+//                if(pc != random_access.data[depth_p][pc_offset][0].end()){
+//                    j = pc->second;
+//                    found = true;
+//                }
+//            }
+//
+//            if(!found) {
+//
+//                if(depth_ < pc_data.depth_max) {
+//                    // get the potentially 4 children
+//                    unsigned int depth_c = depth_ + 1;
+//                    unsigned int x_c = (x_ + dir_x[face])*2 + (dir_x[face]<0);
+//                    unsigned int y_c = (y_ + dir_y[face])*2 + (dir_y[face]<0);
+//                    unsigned int z_c = (z_ + dir_z[face])*2 + (dir_z[face]<0);
+//
+//                    unsigned int dir = face/2;
+//
+//                    for (int i = 0; i < 2; ++i) {
+//                        for (int k = 0; k < 2; ++k) {
+//                            y_ = y_c + (child_offsets[dir][0])*i + (child_offsets[dir][0])*k;
+//                            x_ = x_c + (child_offsets[dir][1])*i + (child_offsets[dir][1])*k;
+//                            z_ = z_c + (child_offsets[dir][2])*i + (child_offsets[dir][2])*k;
+//
+//                            //add of they exist
+//                            if((x_ < 0) | (x_ >= pc_data.x_num[depth_c]) | (z_ < 0) | (z_ >= pc_data.z_num[depth_]) ){
+//                                //out of bounds
+//
+//                            } else {
+//
+//                                pc_offset = pc_data.x_num[depth_c]*z_ + x_;
+//
+//                                if (random_access.data[depth_c][pc_offset].size() > 0) {
+//                                    hash_map::iterator pc = random_access.data[depth_c][pc_offset][0].find(y_);
+//
+//                                    if (pc != random_access.data[depth_c][pc_offset][0].end()) {
+//                                        j = pc->second;
+//                                        neigh_val.push_back(parts.data[depth_c][pc_offset][j]);
+//                                    }
+//                                }
+//
+//                            }
+//
+//
+//
+//                        }
+//                    }
+//
+//
+//
+//                }
+//
+//            } else{
+//                neigh_val.push_back(parts.data[depth_p][pc_offset][j]);
+//            }
+//
+//        } else{
+//
+//            neigh_val.push_back(parts.data[depth_][pc_offset][j]);
+//
+//        }
+//
+//
+//    }
 
 
 
