@@ -143,15 +143,15 @@ struct GapIterator {
     uint16_t gap_num;
 };
 
-bool get_neighbour_coordinate(const PartCell& input,PartCell& neigh,const unsigned int& face,const uint16_t& level_delta,const uint16_t& index){
+inline bool get_neighbour_coordinate(const PartCell& input,PartCell& neigh,const unsigned int& face,const uint16_t& level_delta,const uint16_t& index){
     //
     //
 
-    const int8_t dir_y[6] = { 1, -1, 0, 0, 0, 0};
-    const int8_t dir_x[6] = { 0, 0, 1, -1, 0, 0};
-    const int8_t dir_z[6] = { 0, 0, 0, 0, 1, -1};
+    static constexpr int8_t dir_y[6] = { 1, -1, 0, 0, 0, 0};
+    static constexpr int8_t dir_x[6] = { 0, 0, 1, -1, 0, 0};
+    static constexpr int8_t dir_z[6] = { 0, 0, 0, 0, 1, -1};
 
-    constexpr uint8_t children_index_offsets[4][2] = {{0,0},{0,1},{1,0},{1,1}};
+    static constexpr uint8_t children_index_offsets[4][2] = {{0,0},{0,1},{1,0},{1,1}};
 
     unsigned int dir;
 
@@ -213,7 +213,7 @@ bool get_neighbour_coordinate(const PartCell& input,PartCell& neigh,const unsign
 
 }
 
-uint8_t number_neighbours_in_direction(const uint8_t& level_delta){
+inline uint8_t number_neighbours_in_direction(const uint8_t& level_delta){
     //
     //  Gives the maximum number of neighbours in a direction given the level_delta.
     //
@@ -890,6 +890,50 @@ int main(int argc, char **argv) {
     std::vector<float> neigh_sum_new;
     neigh_sum_new.resize(apr.num_parts_total,0);
 
+
+
+    //initialization of the iteration structures
+    APR_iterator<uint16_t> apr_parallel_iterator(apr); //this is required for parallel access
+    uint64_t part; //declare parallel iteration variable
+
+    ExtraPartCellData<float> neigh_xm(apr);
+
+    timer.start_timer("APR parallel iterator neighbour loop");
+
+    for (int l = 0; l < num_rep; ++l) {
+
+#pragma omp parallel for schedule(static) private(part) firstprivate(apr_parallel_iterator,neighbour_iterator)
+        for (part = 0; part < apr.num_parts_total; ++part) {
+            //needed step for any parallel loop (update to the next part)
+
+            apr_parallel_iterator.set_iterator_to_particle_by_number(part);
+
+            //compute neighbours as previously, now using the apr_parallel_iterator (APR_iterator), instead of the apr class for access.
+            apr_parallel_iterator.update_all_neighbours();
+
+            float temp = 0;
+            float counter = 0;
+
+            //loop over all the neighbours and set the neighbour iterator to it
+            for (int dir = 0; dir < 6; ++dir) {
+                for (int index = 0; index < apr_parallel_iterator.number_neighbours_in_direction(dir); ++index) {
+
+                    if (neighbour_iterator.set_neighbour_iterator(apr_parallel_iterator, dir, index)) {
+                        //neighbour_iterator works just like apr, and apr_parallel_iterator (you could also call neighbours)
+                        temp += neighbour_iterator(apr.particles_int);
+                        counter++;
+                    }
+
+                }
+            }
+
+            apr_parallel_iterator(neigh_xm) = temp / counter;
+
+        }
+    }
+
+    timer.stop_timer();
+
     timer.start_timer("APR serial iterator neighbours loop");
 
     for (int l = 0; l < num_rep; ++l) {
@@ -954,7 +998,7 @@ int main(int argc, char **argv) {
 
             input.level = i;
 
-//#pragma omp parallel for default(shared) private(z_,x_,j_,node_val_pc,curr_key)  firstprivate(neigh_cell_keys) if(z_num_*x_num_ > 100)
+#pragma omp parallel for default(shared) private(z_,x_)  firstprivate(input,neigh)
             for (z_ = 0; z_ < z_num_; z_++) {
                 //both z and x are explicitly accessed in the structure
 

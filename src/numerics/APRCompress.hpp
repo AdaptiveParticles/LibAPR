@@ -77,9 +77,8 @@ public:
                                       apr.level_max() - 1);
             timer.stop_timer();
 
-
             timer.start_timer("level max prediction");
-            predict_particles_by_level(apr_iterator,neighbour_iterator,apr, apr.level_max(), predict_input, predict_output, predict_directions,
+            predict_particles_by_level(apr, apr.level_max(), predict_input, predict_output, predict_directions,
                                        num_blocks, 0);
             timer.stop_timer();
 
@@ -98,14 +97,14 @@ public:
 
             timer.start_timer("predict other levels");
             for (int level = apr.level_min(); level < apr.level_max(); ++level) {
-                predict_particles_by_level(apr_iterator,neighbour_iterator,apr, level, predict_input, predict_output, predict_directions, num_blocks,
+                predict_particles_by_level(apr, level, predict_input, predict_output, predict_directions, num_blocks,
                                            0);
             }
             timer.stop_timer();
         } else if (compress_type == 2) {
             timer.start_timer("predict other levels");
             for (int level = apr.level_min(); level <= apr.level_max(); ++level) {
-                predict_particles_by_level(apr_iterator,neighbour_iterator,apr, level, predict_input, predict_output, predict_directions, num_blocks,
+                predict_particles_by_level(apr, level, predict_input, predict_output, predict_directions, num_blocks,
                                            0);
             }
 
@@ -139,7 +138,7 @@ public:
         if(compress_type == 1) {
             //decode predict
             for (int level = apr.level_min(); level < apr.level_max(); ++level) {
-                predict_particles_by_level(apr_iterator,neighbour_iterator,apr, level, predict_input, predict_output, predict_directions, num_blocks,
+                predict_particles_by_level(apr, level, predict_input, predict_output, predict_directions, num_blocks,
                                            1);
             }
 
@@ -150,7 +149,7 @@ public:
                                        apr.level_max() - 1);
 
             //decode predict
-            predict_particles_by_level(apr_iterator,neighbour_iterator,apr, apr.level_max(), predict_input, predict_output, predict_directions,
+            predict_particles_by_level(apr, apr.level_max(), predict_input, predict_output, predict_directions,
                                        num_blocks, 1);
 
 
@@ -162,7 +161,7 @@ public:
         } else if (compress_type == 2) {
 
             for (int level = apr.level_min(); level <= apr.level_max(); ++level) {
-                predict_particles_by_level(apr_iterator,neighbour_iterator,apr, level, predict_input, predict_output, predict_directions, num_blocks,
+                predict_particles_by_level(apr, level, predict_input, predict_output, predict_directions, num_blocks,
                                            1);
             }
         }
@@ -209,8 +208,7 @@ private:
     T inverse_calculate_symbols(S input);
 
     template<typename T,typename S,typename U>
-    void predict_particles_by_level(APR_iterator<ImageType>& apr_iterator,APR_iterator<ImageType>& neighbour_iterator,APR<U>& apr,const unsigned int level,ExtraPartCellData<T>& predict_input,ExtraPartCellData<S>& predict_output,std::vector<unsigned int>& predict_directions,unsigned int num_z_blocks,const int decode_encode_flag);
-
+    void predict_particles_by_level(APR<U>& apr,const unsigned int level,ExtraPartCellData<T>& predict_input,ExtraPartCellData<S>& predict_output,std::vector<unsigned int>& predict_directions,unsigned int num_z_blocks,const int decode_encode_flag);
 };
 
 template<typename ImageType> template<typename S>
@@ -251,7 +249,7 @@ T APRCompress<ImageType>::inverse_calculate_symbols(S input){
 };
 
 template<typename ImageType> template<typename T,typename S,typename U>
-void APRCompress<ImageType>::predict_particles_by_level(APR_iterator<ImageType>& apr_iterator,APR_iterator<ImageType>& neighbour_iterator,APR<U>& apr,const unsigned int level,ExtraPartCellData<T>& predict_input,ExtraPartCellData<S>& predict_output,std::vector<unsigned int>& predict_directions,unsigned int num_z_blocks,const int decode_encode_flag){
+void APRCompress<ImageType>::predict_particles_by_level(APR<U>& apr,const unsigned int level,ExtraPartCellData<T>& predict_input,ExtraPartCellData<S>& predict_output,std::vector<unsigned int>& predict_directions,unsigned int num_z_blocks,const int decode_encode_flag){
     //
     //  Performs prediction step using the predict directions in chunks of the dataset, given by z_index slice.
     //
@@ -264,6 +262,9 @@ void APRCompress<ImageType>::predict_particles_by_level(APR_iterator<ImageType>&
     timer.verbose_flag = false;
 
     timer.start_timer("iterator initialization");
+
+    APR_iterator<ImageType> apr_iterator(apr);
+    APR_iterator<ImageType> neighbour_iterator(apr);
 
     timer.stop_timer();
 
