@@ -1009,11 +1009,9 @@ public:
                 
                 
                 //current cell is seed
-               
-                
+
                 T part_num = pc_key_get_partnum(neigh);
-                
-                
+
                 
                 //check if still in the same cell or not
                 if(pc_key_cell_isequal(curr,neigh)){

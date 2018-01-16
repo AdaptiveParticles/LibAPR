@@ -114,6 +114,12 @@ public :
         //return mesh[i][j][k];
     }
 
+    T& access_no_protection(int i, int j,int k){
+
+        return mesh[y_num*(j) + i + (k)*x_num*y_num];
+
+    }
+
     size_t index(coords3d coords) const{
        return coords.z * (size_t)x_num * y_num + coords.x * y_num + coords.y;
     }

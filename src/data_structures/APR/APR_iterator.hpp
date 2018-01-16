@@ -52,7 +52,6 @@ public:
         current_part = 0;
     }
 
-
     APR_iterator(APR<ImageType>& apr){
         initialize_from_apr(apr);
 
@@ -74,6 +73,43 @@ public:
         this->curr_level.init(apr.pc_data);
 
     }
+
+
+
+    uint64_t begin(){
+
+        return this->curr_level.init_iterate((*pc_data_pointer));
+
+    }
+
+    uint64_t begin(unsigned int depth){
+        return this->curr_level.init_iterate((*pc_data_pointer),depth);
+    }
+
+    uint64_t end(){
+        return this->curr_level.counter > 0;
+    }
+
+    uint64_t end(unsigned int depth){
+        return this->curr_level.counter > 0;
+    }
+
+    uint64_t it_forward(){
+
+        this->curr_level.move_to_next_pc((*pc_data_pointer));
+
+        return this->curr_level.counter;
+    }
+
+    uint64_t it_forward(unsigned int depth){
+
+        this->curr_level.move_to_next_pc((*pc_data_pointer),depth);
+
+        return this->curr_level.counter;
+    }
+
+
+
 
     inline unsigned int particles_level_begin(unsigned int level_){
         //

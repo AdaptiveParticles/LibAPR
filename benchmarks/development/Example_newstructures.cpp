@@ -69,8 +69,6 @@ cmdLineOptions read_command_line_options(int argc, char **argv){
 }
 
 
-
-
 int main(int argc, char **argv) {
 
     // INPUT PARSING
