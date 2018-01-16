@@ -608,6 +608,64 @@ public:
     }
 
 
+    template<typename U>
+    void shift_particles_from_cells(ExtraPartCellData<U>& pdata_old){
+        //
+        //  Bevan Cheesean 2017
+        //
+        //  Transfers them to align with the part data, to align with particle data no gaps
+        //
+        //
+
+        ExtraPartCellData<U> pdata_new;
+
+        pdata_new.initialize_structure_parts(pdata_old);
+
+        uint64_t z_,x_,j_,node_val;
+        uint64_t part_offset;
+
+        for(uint64_t i = pdata_old.depth_min;i <= pdata_old.depth_max;i++){
+
+            const unsigned int x_num_ = pdata_old.x_num[i];
+            const unsigned int z_num_ = pdata_old.z_num[i];
+
+#pragma omp parallel for default(shared) private(z_,x_,j_,node_val)  if(z_num_*x_num_ > 100)
+            for(z_ = 0;z_ < z_num_;z_++){
+
+                for(x_ = 0;x_ < x_num_;x_++){
+                    const size_t offset_pc_data = x_num_*z_ + x_;
+                    const size_t j_num = pdata_old.data[i][offset_pc_data].size();
+
+                    int counter = 0;
+
+                    for(j_ = 0; j_ < j_num;j_++){
+                        //raster over both structures, generate the index for the particles, set the status and offset_y_coord diff
+
+                        node_val = pdata_old.data[i][offset_pc_data][j_];
+
+                        if(!(node_val&1)){
+
+                            pdata_new.data[i][offset_pc_data][counter] = pdata_old.data[i][offset_pc_data][j_];
+
+                            counter++;
+
+                        } else {
+
+                        }
+
+                    }
+
+                    pdata_new.data[i][offset_pc_data].resize(counter); //reduce to new size
+                }
+            }
+        }
+
+        std::swap(pdata_new,pdata_old);
+
+    }
+
+
+
 private:
     
 };

@@ -15,6 +15,7 @@
 #include "../../src/data_structures/APR/APR.hpp"
 #include <assert.h>
 
+#include "test/utils.h"
 
 void calc_information_content(SynImage syn_image,AnalysisData& analysis_data);
 void calc_information_content_new(SynImage syn_image,AnalysisData& analysis_data);
@@ -1261,7 +1262,9 @@ void true_int(Mesh_data<T>& input_image,AnalysisData& analysis_data,PartCellStru
 
     p_rep.pars = pars;
 
-    APR<float> t_apr(pc_struct);
+    APR<float> t_apr;
+
+    create_pc_data_new(t_apr,pc_struct);
 
     ExtraPartCellData<float> true_parts(t_apr);
 
@@ -1620,7 +1623,9 @@ void produce_apr_analysis(Mesh_data<T>& input_image,AnalysisData& analysis_data,
 
         p_rep.pars = pars;
 
-        APR<float> t_apr(pc_struct);
+        APR<float> t_apr;
+
+        create_pc_data_new(t_apr,pc_struct);
 
         ExtraPartCellData<float> true_parts(t_apr);
 

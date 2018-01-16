@@ -223,11 +223,9 @@ bool APR_converter<ImageType>::get_apr_method(APR<ImageType>& apr) {
     downsample_pyrmaid(input_image,downsampled_img,apr.depth_max()-1,apr.depth_min());
     st.stop_timer();
 
-
     st.start_timer("initialize apr neighbour access structure");
-    apr.init_from_pulling_scheme(particle_cell_tree);
+    apr.pc_data.init_from_pulling_scheme(particle_cell_tree);
     st.stop_timer();
-
 
     st.start_timer("sample particles");
     apr.get_parts_from_img(downsampled_img,apr.particles_int);

@@ -87,6 +87,7 @@ set(SOURCE_FILES_COMPILED
         src/misc/APR_timer.cpp
 
         src/algorithm/APRParameters.cpp
+        test/utils.cpp
         )
 
 
@@ -137,25 +138,25 @@ if(TESTS)
             test/tests.cpp
             test/bspline_test.cpp
             ${SOURCE_FILES_COMPILED}
-            test/utils.cpp
+
             )
         #this is currently failing, as the files need to be updated
     add_executable(testVariance
             test/tests.cpp
             test/variance_test.cpp
             ${SOURCE_FILES_COMPILED}
-            test/utils.cpp
+
             )
     add_executable(testLevel
             test/k_test.cpp
             ${SOURCE_FILES_COMPILED}
-            test/utils.cpp
+
             )
     add_executable(testResult
             test/alg_cells_test.cpp
             benchmarks/development/old_io/write_parts.cpp
             ${SOURCE_FILES_COMPILED}
-            test/utils.cpp
+
             )
 
     add_executable(testSparsePartStruc
@@ -164,7 +165,7 @@ if(TESTS)
             #test/test_tree/create_part_cell_structure.cpp
             test/test_tree/sparse_rep_test.cpp
             ${SOURCE_FILES_COMPILED}
-            test/utils.cpp
+
 	        src/io/hdf5functions_blosc.cpp
             )
 
@@ -180,7 +181,7 @@ add_executable(Example_get_apr
         test/Examples/Example_get_apr.cpp
         benchmarks/development/old_io/write_parts.cpp
         ${SOURCE_FILES_COMPILED}
-	    test/utils.cpp
+
         )
 
 add_executable(Example_apr_iterate

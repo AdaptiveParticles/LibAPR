@@ -63,8 +63,8 @@ uint32_t __inline __builtin_clz(uint32_t value)
 
 //parent node defitions
 
-
-
+template<typename T>
+class APR;
 
 template <typename T,typename S> // type T is the image type, type S is the data structure base type
 class PartCellStructure {
@@ -1665,6 +1665,9 @@ public:
         create_partcell_structure(p_map);
         pc_data.y_num = y_num;
     }
+
+
+
 
 
     template<typename U>

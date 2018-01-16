@@ -84,6 +84,8 @@ void create_j_reference_structure(PartCellStructure<float,uint64_t>& pc_struct,s
 
 pc_key find_neigh_cell(pc_key curr_cell,int dir,std::vector<Mesh_data<uint64_t>>& j_array);
 
+void create_pc_data_new(APR<float>& apr,PartCellStructure<float,uint64_t>& pc_struct);
+
 bool utest_neigh_cells(PartCellStructure<float,uint64_t>& pc_struct);
 
 bool utest_neigh_parts(PartCellStructure<float,uint64_t>& pc_struct);

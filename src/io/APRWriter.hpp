@@ -267,7 +267,7 @@ public:
         //  Transfer back the intensities
         //
         //
-        apr.create_partcell_structure(p_map_load);
+        apr.pc_data.create_partcell_structure(p_map_load);
 
         apr.particles_int.initialize_structure_cells(apr.pc_data);
 
@@ -470,7 +470,7 @@ public:
 
         write_timer.start_timer("shift");
 
-        apr.shift_particles_from_cells(temp_int);
+        temp_int.shift_particles_from_cells(temp_int);
 
         write_timer.stop_timer();
 
@@ -1062,7 +1062,7 @@ public:
         temp_int.initialize_structure_cells(apr.pc_data);
         temp_int.data = parts_extra.data;
 
-        apr.shift_particles_from_cells(temp_int);
+        temp_int.shift_particles_from_cells(temp_int);
 
 
         for(uint64_t i =apr.pc_data.depth_min;i <=apr.pc_data.depth_max;i++){
