@@ -32,14 +32,14 @@
 
 #include "src/numerics/APRReconstruction.hpp"
 
+#include "src/data_structures/APR/ExtraParticleData.hpp"
+
 #include <map>
 #include <unordered_map>
 
 
 class APR_parameters;
 
-typedef std::unordered_map<uint16_t,uint16_t> hash_map;
-//typedef std::map<uint16_t,uint16_t> hash_map;
 
 template<typename ImageType>
 class APR : public APR_iterator<ImageType>{
@@ -78,10 +78,11 @@ private:
 
     std::vector<unsigned int> org_dims;
 
-    //Experimental
-    ExtraPartCellData<hash_map> random_access;
+
 
 public:
+
+    ExtraParticleData<ImageType> particles_int_new;
 
     //Main internal datastructures
 

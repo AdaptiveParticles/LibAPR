@@ -40,16 +40,51 @@
 #define PC_TYPE_SHIFT 13
 
 
-//xp is x + 1 neigh
-//#define XP_DEPTH_MASK ((((uint64_t)1) << 2) - 1) << 4
-//#define XP_DEPTH_SHIFT 4
-//#define XP_INDEX_MASK ((((uint64_t)1) << 13) - 1) << 6
-//#define XP_INDEX_SHIFT 6
+struct PartCell {
+    uint16_t x,y,z,level,type;
+    uint64_t pc_offset,global_index;
+};
+
+struct YGap {
+    uint16_t y_begin;
+    uint16_t y_end;
+    uint64_t global_index_begin;
+};
+
+struct YGap_map {
+    uint16_t y_end;
+    uint64_t global_index_begin;
+};
+
+struct ParticleCellGapMap{
+    std::map<uint16_t,YGap_map> map;
+    //std::map<uint16_t,YGap_map>::iterator current_iterator;
+    //uint16_t last_value = 0;
+};
+
+
+struct GapIteratorMap {
+
+    //
+
+};
+
+
+struct GapIterator {
+    YGap current_gap;
+    uint16_t y_min;
+    uint16_t y_max;
+    uint16_t current_gap_index;
+    uint16_t gap_num;
+};
 
 
 class APRAccess {
 
 public:
+
+    ExtraPartCellData<ParticleCellGapMap> gap_map;
+    ExtraPartCellData<std::map<uint16_t,YGap_map>::iterator> gap_map_it;
 
     APRAccess(){
 
@@ -367,10 +402,10 @@ public:
         }
         std::cout << nn << std::endl;
 
-        ExtraPartCellData<ParticleCellGapMap> gap_map;
+
         gap_map.initialize_structure_parts_empty(apr.particles_int);
 
-        ExtraPartCellData<std::map<uint16_t,YGap_map>::iterator> gap_map_it;
+
         gap_map_it.initialize_structure_parts_empty(apr.particles_int);
 
         for(uint64_t i = apr.depth_min();i <= apr.depth_max();i++) {
@@ -909,43 +944,6 @@ public:
 
 
 
-    struct PartCell {
-        uint16_t x,y,z,level,type;
-        uint64_t pc_offset,global_index;
-    };
-
-    struct YGap {
-        uint16_t y_begin;
-        uint16_t y_end;
-        uint64_t global_index_begin;
-    };
-
-    struct YGap_map {
-        uint16_t y_end;
-        uint64_t global_index_begin;
-    };
-
-    struct ParticleCellGapMap{
-        std::map<uint16_t,YGap_map> map;
-        //std::map<uint16_t,YGap_map>::iterator current_iterator;
-        //uint16_t last_value = 0;
-    };
-
-
-    struct GapIteratorMap {
-
-        //
-
-    };
-
-
-    struct GapIterator {
-        YGap current_gap;
-        uint16_t y_min;
-        uint16_t y_max;
-        uint16_t current_gap_index;
-        uint16_t gap_num;
-    };
 
     inline bool get_neighbour_coordinate(const PartCell& input,PartCell& neigh,const unsigned int& face,const uint16_t& level_delta,const uint16_t& index){
         //
