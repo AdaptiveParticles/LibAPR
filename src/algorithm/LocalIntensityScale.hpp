@@ -26,9 +26,9 @@ public:
     template<typename T>
     void calc_sat_mean_y(MeshData<T> &input, const int offset);
 
-    void get_window(float &var_rescale, std::vector<int> &var_win, APR_parameters &par);
+    void get_window(float &var_rescale, std::vector<int> &var_win, APRParameters &par);
     template<typename T>
-    void rescale_var_and_threshold(MeshData<T>& var,const float var_rescale,APR_parameters& par);
+    void rescale_var_and_threshold(MeshData<T>& var,const float var_rescale,APRParameters& par);
 
 };
 /*
@@ -36,7 +36,7 @@ public:
  */
 
 template<typename T>
-void LocalIntensityScale::rescale_var_and_threshold(MeshData<T>& var,const float var_rescale,APR_parameters& par){
+void LocalIntensityScale::rescale_var_and_threshold(MeshData<T>& var,const float var_rescale,APRParameters& par){
     //
     //  Bevan Cheeseman 2016
     //
@@ -101,7 +101,7 @@ void LocalIntensityScale::calc_abs_diff(MeshData<T>& input_image,MeshData<T>& va
 }
 
 
-void LocalIntensityScale::get_window(float& var_rescale,std::vector<int>& var_win,APR_parameters& par){
+void LocalIntensityScale::get_window(float& var_rescale,std::vector<int>& var_win,APRParameters& par){
     //
     //
     //  Compute the window size and set the re-scaling factor

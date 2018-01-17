@@ -9,7 +9,7 @@
 #ifndef PARTPLAY_APR_CONVERTER_HPP
 #define PARTPLAY_APR_CONVERTER_HPP
 
-#include "src/data_structures/Mesh/meshclass.h"
+#include "src/data_structures/Mesh/MeshData.hpp"
 #include "src/data_structures/APR/APR.hpp"
 
 #include "src/algorithm/ComputeGradient.hpp"
@@ -27,14 +27,14 @@ public:
 
     }
 
-    APR_parameters par;
+    APRParameters par;
 
-    APR_timer total_timer;
-    APR_timer allocation_timer;
+    APRTimer total_timer;
+    APRTimer allocation_timer;
 
-    APR_timer computation_timer;
+    APRTimer computation_timer;
 
-    APR_timer misc_timer;
+    APRTimer misc_timer;
 
     std::string image_type; //default uint16
 
@@ -122,12 +122,12 @@ bool APRConverter<ImageType>::get_apr_method(APR<ImageType>& apr) {
     //  Main method for constructing the APR from an input image
     //
     
-    APR_timer full;
+    APRTimer full;
     full.verbose_flag = true;
 
     full.start_timer("GET APR");
 
-    APR_timer timer;
+    APRTimer timer;
     timer.verbose_flag = true;
 
     timer.start_timer("read tif input image");
@@ -190,7 +190,7 @@ bool APRConverter<ImageType>::get_apr_method(APR<ImageType>& apr) {
 
     computation_timer.verbose_flag = true;
 
-    APR_timer st;
+    APRTimer st;
     st.verbose_flag = true;
 
     st.start_timer("grad");
@@ -250,7 +250,7 @@ void APRConverter<ImageType>::get_local_particle_cell_set(MeshData<T>& grad_imag
     //  Down-sampled due to the Equivalence Optimization
     //
 
-    APR_timer timer;
+    APRTimer timer;
 
     //divide gradient magnitude by Local Intensity Scale (first step in calculating the Local Resolution Estimate L(y), minus constants)
 #pragma omp parallel for default(shared)
@@ -305,7 +305,7 @@ void APRConverter<ImageType>::get_gradient(MeshData<T>& input_img,MeshData<S>& g
     //  Output: down-sampled by 2 gradient magnitude (Note, the gradient is calculated at pixel level then maximum down sampled within the loops below)
     //
 
-    APR_timer timer;
+    APRTimer timer;
 
     timer.verbose_flag = false;
 
@@ -392,9 +392,9 @@ void APRConverter<ImageType>::get_local_intensity_scale(MeshData<T>& input_img,M
     //  Output: down-sampled Local Intensity Scale (h) (Due to the Equivalence Optimization we only need down-sampled values)
     //
 
-    APR_timer timer;
+    APRTimer timer;
 
-    APR_timer var_timer;
+    APRTimer var_timer;
     var_timer.verbose_flag = true;
 
     var_timer.start_timer("compute local intensity scale");
@@ -508,7 +508,7 @@ void APRConverter<ImageType>::auto_parameters(MeshData<T>& input_img){
 
 
 
-    APR_timer par_timer;
+    APRTimer par_timer;
 
     par_timer.verbose_flag = true;
 

@@ -77,7 +77,7 @@ int main(int argc, char **argv) {
     std::string file_name = options.directory + options.input;
 
     // Read the apr file into the part cell structure
-    APR_timer timer;
+    APRTimer timer;
 
     timer.verbose_flag = false;
 

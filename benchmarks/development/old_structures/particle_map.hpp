@@ -2,7 +2,7 @@
 #ifndef PARTPLAY_PARTICLE_MAP_HPP
 #define PARTPLAY_PARTICLE_MAP_HPP
 
-#include "src/data_structures/Mesh/meshclass.h"
+#include "src/data_structures/Mesh/MeshData.hpp"
 #include "benchmarks/development/old_structures/structure_parts.h"
 
 //#include "APR/APR.hpp"

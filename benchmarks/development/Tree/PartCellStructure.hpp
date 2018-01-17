@@ -22,7 +22,7 @@
 #include "src/data_structures/APR/PartCellData.hpp"
 #include "ParticleData.hpp"
 #include "benchmarks/development/old_structures/particle_map.hpp"
-#include "src/data_structures/Mesh/meshclass.h"
+#include "src/data_structures/Mesh/MeshData.hpp"
 #include "benchmarks/development/old_io/writeimage.h"
 
 #ifdef _MSC_VER

@@ -13,7 +13,7 @@
 #include <tiffio.h>
 #include "parameters.h"
 
-#include "src/data_structures/Mesh/meshclass.h"
+#include "src/data_structures/Mesh/MeshData.hpp"
 
 template <typename T>
 void write_image_tiff(MeshData<T>& image,std::string filename){

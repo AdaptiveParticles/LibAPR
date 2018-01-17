@@ -5,10 +5,10 @@
 #ifndef PARTPLAY_GRADIENT_HPP
 #define PARTPLAY_GRADIENT_HPP
 
-#include "src/data_structures/Mesh/meshclass.h"
+#include "src/data_structures/Mesh/MeshData.hpp"
 #include "omp.h"
 #include "src/algorithm/APRParameters.hpp"
-#include "src/misc/APR_timer.hpp"
+#include "src/misc/APRTimer.hpp"
 
 class ComputeGradient {
 
@@ -31,7 +31,7 @@ public:
     inline float impulse_resp_back(float k, float rho, float omg, float gamma, float c0);
 
     template<typename T>
-    void get_smooth_bspline_3D(MeshData<T> &input, APR_parameters &pars);
+    void get_smooth_bspline_3D(MeshData<T> &input, APRParameters &pars);
 
 // Calculate inverse B-Spline Transform
 
@@ -70,7 +70,7 @@ public:
     calc_bspline_fd_ds_mag(MeshData<T> &input, MeshData<S> &grad, const float hx, const float hy, const float hz);
 
     template<typename T,typename S>
-    void mask_gradient(MeshData<T>& grad_ds,MeshData<S>& temp_ds,MeshData<T>& temp_full,APR_parameters& par);
+    void mask_gradient(MeshData<T>& grad_ds,MeshData<S>& temp_ds,MeshData<T>& temp_full,APRParameters& par);
 
     template<typename T,typename S>
     void threshold_gradient(MeshData<T>& grad,MeshData<S>& img,const float Ip_th);
@@ -82,7 +82,7 @@ public:
  */
 
 template<typename T,typename S>
-void ComputeGradient::mask_gradient(MeshData<T>& grad_ds,MeshData<S>& temp_ds,MeshData<T>& temp_full,APR_parameters& par){
+void ComputeGradient::mask_gradient(MeshData<T>& grad_ds,MeshData<S>& temp_ds,MeshData<T>& temp_full,APRParameters& par){
     //
     //  Bevan Cheeseman 2018
     //
@@ -905,13 +905,13 @@ void ComputeGradient::calc_inv_bspline_x(MeshData<T>& input){
 }
 
 template<typename T>
-void ComputeGradient::get_smooth_bspline_3D(MeshData<T>& input,APR_parameters& pars){
+void ComputeGradient::get_smooth_bspline_3D(MeshData<T>& input,APRParameters& pars){
     //
     //  Gets smoothing bspline co-efficients for 3D
     //
     //
 
-    APR_timer spline_timer;
+    APRTimer spline_timer;
 
     spline_timer.verbose_flag = false;
 

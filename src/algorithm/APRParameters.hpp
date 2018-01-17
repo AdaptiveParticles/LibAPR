@@ -7,11 +7,11 @@
 
 #include <string>
 
-class APR_parameters {
+class APRParameters {
 
 public:
 
-    APR_parameters(){
+    APRParameters(){
 
     };
 

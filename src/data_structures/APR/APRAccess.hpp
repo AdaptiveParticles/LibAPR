@@ -298,7 +298,7 @@ public:
         std::vector<uint16_t> pz;
         pz.reserve(count_parts);
 
-        APR_timer timer;
+        APRTimer timer;
 
         timer.verbose_flag = true;
 

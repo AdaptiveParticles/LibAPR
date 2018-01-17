@@ -9,7 +9,7 @@
 
 #include "benchmarks/development/Tree/Content.hpp"
 #include "benchmarks/development/old_structures/particle_map.hpp"
-#include "src/data_structures/Mesh/meshclass.h"
+#include "src/data_structures/Mesh/MeshData.hpp"
 
 #include <bitset>
 #include <cmath>

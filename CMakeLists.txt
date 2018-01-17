@@ -64,7 +64,7 @@ set(SOURCE_FILES
         benchmarks/development/old_io/writeimage.h
         benchmarks/development/old_io/parameters.cpp
 
-        src/data_structures/Mesh/meshclass.h
+        src/data_structures/Mesh/MeshData.hpp
         benchmarks/development/old_structures/structure_parts.cpp
 
         src/data_structures/APR/APR.hpp
@@ -84,9 +84,6 @@ set(SOURCE_FILES_COMPILED
         src/io/hdf5functions_blosc.cpp
         benchmarks/development/old_io/write_parts.cpp
 
-        src/misc/APR_timer.cpp
-
-        src/algorithm/APRParameters.cpp
         test/utils.cpp
         )
 

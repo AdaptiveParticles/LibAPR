@@ -2,7 +2,7 @@
 #include <iostream>
 
 #include "filter_apr.h"
-#include "src/data_structures/Mesh/meshclass.h"
+#include "src/data_structures/Mesh/MeshData.hpp"
 #include "benchmarks/development/old_io/readimage.h"
 
 #include "benchmarks/development/old_algorithm/gradient.hpp"

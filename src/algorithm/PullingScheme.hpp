@@ -13,7 +13,7 @@
 
 #include <cassert>
 
-#include "src/data_structures/Mesh/meshclass.h"
+#include "src/data_structures/Mesh/MeshData.hpp"
 #include "src/data_structures/APR/APR.hpp"
 
 #include "omp.h"

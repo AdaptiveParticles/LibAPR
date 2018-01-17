@@ -318,7 +318,7 @@ public:
         int compress_type_num = apr_compressor.get_compression_type();
         float quantization_factor = apr_compressor.get_quantization_factor();
 
-        APR_timer write_timer;
+        APRTimer write_timer;
 
         write_timer.verbose_flag = true;
 
@@ -705,7 +705,7 @@ public:
         unsigned int blosc_comp_level = 1;
         unsigned int blosc_shuffle = 2;
 
-        APR_timer write_timer;
+        APRTimer write_timer;
 
         write_timer.verbose_flag = true;
 

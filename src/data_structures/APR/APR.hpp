@@ -20,7 +20,7 @@
 
 #include "src/data_structures/APR/APRIterator.hpp"
 
-#include "src/misc/APR_timer.hpp"
+#include "src/misc/APRTimer.hpp"
 
 #include "src/algorithm/APRParameters.hpp"
 
@@ -38,21 +38,21 @@
 #include <unordered_map>
 
 
-class APR_parameters;
+class APRParameters;
 
 
 template<typename ImageType>
 class APR : public APRIterator<ImageType>{
 
     template<typename S>
-    friend class APR_converter;
+    friend class APRConverter;
 
     friend class APRWriter;
 
     friend class PullingScheme;
 
     template<typename S>
-    friend class APR_iterator;
+    friend class APRIterator;
 
     template<typename S>
     friend class ExtraPartCellData;
@@ -94,7 +94,7 @@ public:
 
 
     std::string name;
-    APR_parameters parameters;
+    APRParameters parameters;
 
     //old parameters (depreciated)
     Proc_par pars;

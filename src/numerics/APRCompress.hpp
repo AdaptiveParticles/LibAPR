@@ -36,10 +36,10 @@ public:
     void compress(APR<U>& apr,ExtraPartCellData<ImageType>& symbols) {
 
 
-        APR_timer timer;
+        APRTimer timer;
         timer.verbose_flag = false;
 
-        APR_timer timer_total;
+        APRTimer timer_total;
         timer_total.verbose_flag = true;
 
         timer_total.start_timer("total compress");
@@ -122,7 +122,7 @@ public:
     template<typename U>
     void decompress(APR<U>& apr,ExtraPartCellData<ImageType>& symbols){
 
-        APR_timer timer;
+        APRTimer timer;
         timer.verbose_flag = true;
         timer.start_timer("decompress");
 
@@ -258,7 +258,7 @@ void APRCompress<ImageType>::predict_particles_by_level(APR<U>& apr,const unsign
     //  The decode and encode flag is used if it is predicting or reconstructing
     //
 
-    APR_timer timer;
+    APRTimer timer;
     timer.verbose_flag = false;
 
     timer.start_timer("iterator initialization");
