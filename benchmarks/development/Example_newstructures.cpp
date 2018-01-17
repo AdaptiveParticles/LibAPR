@@ -118,5 +118,9 @@ int main(int argc, char **argv) {
     apr_access2.initialize_structure(apr,p_map);
     timer.stop_timer();
 
+    timer.start_timer("flatten");
+    apr_access2.flatten_structure(apr);
+    timer.stop_timer();
+
 }
 

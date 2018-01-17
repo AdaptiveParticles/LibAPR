@@ -118,6 +118,8 @@ public:
 
     uint64_t total_number_gaps;
 
+    uint64_t total_number_non_empty_rows;
+
     std::vector<uint64_t> global_index_by_level_begin;
     std::vector<uint64_t> global_index_by_level_end;
 
@@ -623,6 +625,8 @@ public:
 
         apr_timer.stop_timer();
 
+        total_number_non_empty_rows=0;
+
         apr_timer.start_timer("initialize map");
 
         gap_map.initialize_structure_parts_empty(apr.particles_int);
@@ -636,9 +640,12 @@ public:
             for (z_ = 0; z_ < z_num_; z_++) {
                 for (x_ = 0; x_ < x_num_; x_++) {
                     const size_t offset_pc_data = x_num_ * z_ + x_;
-                    gap_map.data[i][offset_pc_data].resize(1);
-                    gap_map.data[i][offset_pc_data][0].map.insert(y_begin.data[i][offset_pc_data].begin(),y_begin.data[i][offset_pc_data].end());
-
+                    if(y_begin.data[i][offset_pc_data].size() > 0) {
+                        gap_map.data[i][offset_pc_data].resize(1);
+                        gap_map.data[i][offset_pc_data][0].map.insert(y_begin.data[i][offset_pc_data].begin(),
+                                                                      y_begin.data[i][offset_pc_data].end());
+                        total_number_non_empty_rows++;
+                    }
                 }
             }
         }
@@ -652,15 +659,25 @@ public:
 
         std::vector<uint16_t> y_begin;
         std::vector<uint16_t> y_end;
+        std::vector<uint64_t> global_index;
+        std::vector<uint16_t> z;
+        std::vector<uint16_t> x;
+        std::vector<uint8_t> level;
+        std::vector<uint16_t> size;
 
         y_begin.reserve(total_number_gaps);
         y_end.reserve(total_number_gaps);
+        global_index.reserve(total_number_gaps);
 
+        //total_number_non_empty_rows
+        x.reserve(total_number_non_empty_rows);
+        z.reserve(total_number_non_empty_rows);
+        level.reserve(total_number_non_empty_rows);
+        size.reserve(total_number_non_empty_rows);
 
+        uint64_t z_;
+        uint64_t x_;
 
-//        for (auto const& element : input_map) {
-//            retval.push_back(element.first);
-//        }
         for(uint64_t i = (apr.level_min());i <= apr.level_max();i++) {
 
             const unsigned int x_num_ = x_num[i];
@@ -670,6 +687,22 @@ public:
             for (z_ = 0; z_ < z_num_; z_++) {
                 for (x_ = 0; x_ < x_num_; x_++) {
                     const size_t offset_pc_data = x_num_ * z_ + x_;
+                    if(gap_map.data[i][offset_pc_data].size()>0) {
+                        x.push_back(x_);
+                        z.push_back(z_);
+                        level.push_back(i);
+                        size.push_back(gap_map.data[i][offset_pc_data][0].map.size());
+
+                        for (auto const &element : gap_map.data[i][offset_pc_data][0].map) {
+                            y_begin.push_back(element.first);
+                            y_end.push_back(element.second.y_end);
+                            global_index.push_back(element.second.global_index_begin);
+                        }
+                    }
+
+                }
+            }
+        }
 
     }
 
