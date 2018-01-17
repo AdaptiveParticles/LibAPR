@@ -311,6 +311,97 @@ public:
 
         apr_timer.stop_timer();
 
+        apr_timer.start_timer("get totals");
+
+        std::vector<std::vector<uint16_t>> totals;
+        totals.resize(apr.level_max()+1);
+
+        for(uint64_t i = (apr.level_min());i < apr.level_max();i++) {
+
+            const unsigned int x_num_ = x_num[i];
+            const unsigned int z_num_ = z_num[i];
+            const unsigned int y_num_ = y_num[i];
+
+            totals[i].resize(x_num_*z_num_,0);
+
+#pragma omp parallel for default(shared) private(z_, x_, y_, status) if(z_num_*x_num_ > 100)
+            for (z_ = 0; z_ < z_num_; z_++) {
+
+                for (x_ = 0; x_ < x_num_; x_++) {
+
+                    const size_t offset_part_map = x_ * y_num_ + z_ * y_num_ * x_num_;
+                    const size_t offset_pc_data = x_num_*z_ + x_;
+
+                    uint16_t current = 0;
+                    uint16_t previous = 0;
+
+                    for (y_ = 0; y_ < y_num_; y_++) {
+
+                        status = p_map[i][offset_part_map + y_];
+
+                        if((status > 1) & (status < 5)) {
+                            current = 1;
+
+                            if(previous == 0){
+                                totals[i][offset_pc_data]++;
+                            }
+                        } else {
+                            current = 0;
+                        }
+
+                        previous = current;
+                    }
+                }
+
+            }
+        }
+
+        apr_timer.stop_timer();
+
+        for(uint64_t i = (apr.level_min());i < apr.level_max();i++) {
+
+            const unsigned int x_num_ = x_num[i];
+            const unsigned int z_num_ = z_num[i];
+            const unsigned int y_num_ = y_num[i];
+
+            totals[i+1].resize(x_num_*z_num_,0);
+
+#pragma omp parallel for default(shared) private(z_, x_, y_, status) if(z_num_*x_num_ > 100)
+            for (z_ = 0; z_ < z_num_; z_++) {
+
+                for (x_ = 0; x_ < x_num_; x_++) {
+
+                    const size_t offset_part_map = x_ * y_num_ + z_ * y_num_ * x_num_;
+                    const size_t offset_pc_data = x_num_*z_ + x_;
+
+                    uint16_t current = 0;
+                    uint16_t previous = 0;
+
+                    for (y_ = 0; y_ < y_num_; y_++) {
+
+                        status = p_map[i][offset_part_map + y_];
+
+                        if(status==SEED) {
+                            current = 1;
+
+                            if(previous == 0){
+                                totals[i+1][offset_pc_data]++;
+                            }
+                        } else {
+                            current = 0;
+                        }
+
+                        previous = current;
+                    }
+                }
+
+            }
+        }
+
+        apr_timer.stop_timer();
+
+
+
         apr_timer.start_timer("second_step");
 
 //        ExtraPartCellData<uint8_t> status_store;
@@ -328,7 +419,6 @@ public:
             const unsigned int x_num_ = x_num[i];
             const unsigned int z_num_ = z_num[i];
             const unsigned int y_num_ = y_num[i];
-
 
 
 #pragma omp parallel for default(shared) private(z_, x_, y_, status) if(z_num_*x_num_ > 100)
@@ -366,6 +456,11 @@ public:
                         previous = current;
 
                     }
+                    //end node
+                    if(previous==1) {
+                        gap.y_end = (y_num_-1);
+                        y_end.data[i][offset_pc_data].push_back(gap);
+                    }
                 }
 
             }
@@ -393,9 +488,9 @@ public:
                 const uint64_t offset_pc_data = x_num_*z_ + x_;
 
                 const uint64_t offset_pc_data1 = std::min((uint64_t)x_num_us*(2*z_) + (2*x_),(uint64_t) x_num_us*z_num_us - 1);
-                const uint64_t offset_pc_data2 = std::min((uint64_t)x_num_us*(2*z_) + (2*x_+1),(uint64_t) x_num_us*z_num_us - 1);
-                const uint64_t offset_pc_data3 = std::min((uint64_t)x_num_us*(2*z_+1) + (2*x_),(uint64_t) x_num_us*z_num_us - 1);
-                const uint64_t offset_pc_data4 = std::min((uint64_t)x_num_us*(2*z_+1) + (2*x_+1),(uint64_t) x_num_us*z_num_us - 1);
+//                const uint64_t offset_pc_data2 = std::min((uint64_t)x_num_us*(2*z_) + (2*x_+1),(uint64_t) x_num_us*z_num_us - 1);
+//                const uint64_t offset_pc_data3 = std::min((uint64_t)x_num_us*(2*z_+1) + (2*x_),(uint64_t) x_num_us*z_num_us - 1);
+//                const uint64_t offset_pc_data4 = std::min((uint64_t)x_num_us*(2*z_+1) + (2*x_+1),(uint64_t) x_num_us*z_num_us - 1);
 
                 uint16_t current = 0;
                 uint16_t previous = 0;
@@ -411,25 +506,34 @@ public:
 
                         if(previous == 0){
                             y_begin.data[i+1][offset_pc_data1].push_back(2*y_);
-                            y_begin.data[i+1][offset_pc_data2].push_back(2*y_);
-                            y_begin.data[i+1][offset_pc_data3].push_back(2*y_);
-                            y_begin.data[i+1][offset_pc_data4].push_back(2*y_);
+                            //y_begin.data[i+1][offset_pc_data2].push_back(2*y_);
+                            //y_begin.data[i+1][offset_pc_data3].push_back(2*y_);
+                            //y_begin.data[i+1][offset_pc_data4].push_back(2*y_);
                         }
                     } else {
                         current = 0;
 
                         if(previous == 1){
-                            gap.y_end = std::min((uint16_t)(2*y_+1),(uint16_t)y_num_us);
+                            gap.y_end = std::min((uint16_t)(2*y_+1),(uint16_t)(y_num_us-1));
                             y_end.data[i+1][offset_pc_data1].push_back(gap);
-                            y_end.data[i+1][offset_pc_data2].push_back(gap);
-                            y_end.data[i+1][offset_pc_data3].push_back(gap);
-                            y_end.data[i+1][offset_pc_data4].push_back(gap);
+                            //y_end.data[i+1][offset_pc_data2].push_back(gap);
+                            //y_end.data[i+1][offset_pc_data3].push_back(gap);
+                            //y_end.data[i+1][offset_pc_data4].push_back(gap);
                         }
                     }
 
                     previous = current;
 
                 }
+                //last gap
+                if(previous == 1){
+                    gap.y_end = (y_num_us-1);
+                    y_end.data[i+1][offset_pc_data1].push_back(gap);
+                    //y_end.data[i+1][offset_pc_data2].push_back(gap);
+                    //y_end.data[i+1][offset_pc_data3].push_back(gap);
+                    //y_end.data[i+1][offset_pc_data4].push_back(gap);
+                }
+
             }
 
         }
@@ -440,7 +544,7 @@ public:
 
         apr_timer.start_timer("forth loop");
 
-        for(uint64_t i = (apr.level_min());i < apr.level_max();i++) {
+        for(uint64_t i = (apr.level_min());i <= apr.level_max();i++) {
 
             const unsigned int x_num_ = x_num[i];
             const unsigned int z_num_ = z_num[i];
@@ -452,13 +556,9 @@ public:
                 for (x_ = 0; x_ < x_num_; x_++) {
                     const size_t offset_pc_data = x_num_ * z_ + x_;
                     for (int j = 0; j < y_begin.data[i][offset_pc_data].size(); ++j) {
-
-                        cumsum+=y_begin.data[i][offset_pc_data][j];
-
+                        y_end.data[i][offset_pc_data][j].global_index_begin = cumsum;
+                        cumsum+=(y_end.data[i][offset_pc_data][j].y_end-y_begin.data[i][offset_pc_data][j]);
                     }
-
-
-
                 }
             }
         }
