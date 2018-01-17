@@ -11,17 +11,27 @@
 
 class APR_iterator_new {
 
-    uint64_t current_part = 0;
+private:
 
-    uint64_t num_parts_total;
+    PartCell current_particle_cell;
+
+    APRAccess* apr_access;
+
+    uint16_t current_node;
+
+    uint16_t level_delta;
+
+    constexpr uint16_t shift[6] = {YP_LEVEL_SHIFT,YM_LEVEL_SHIFT,XP_LEVEL_SHIFT,XM_LEVEL_SHIFT,ZP_LEVEL_SHIFT,ZM_LEVEL_SHIFT};
+    constexpr uint16_t mask[6] = {YP_LEVEL_MASK,YM_LEVEL_MASK,XP_LEVEL_MASK,XM_LEVEL_MASK,ZP_LEVEL_MASK,ZM_LEVEL_MASK};
+
+public:
 
     APR_iterator(){
         //current_part = 0;
     }
 
-    APR_iterator(APR<ImageType>& apr){
-       // initialize_from_apr(apr);
-
+    APR_iterator(APRAccess& apr_access_){
+       apr_access = &apr_access_;
     }
 
     void initialize_from_apr(APR<ImageType>& apr){
@@ -44,9 +54,8 @@ class APR_iterator_new {
 
 
     uint64_t begin(){
-
-//        return this->curr_level.init_iterate((*pc_data_pointer));
-
+        current_particle_cell.global_index = 0;
+        return 0;
     }
 
     uint64_t begin(unsigned int depth){
@@ -54,7 +63,7 @@ class APR_iterator_new {
     }
 
     uint64_t end(){
-//        return this->curr_level.counter > 0;
+        return (current_particle_cell.global_index == APRAccess->num_parts_total);
     }
 
     uint64_t end(unsigned int depth){
@@ -74,8 +83,6 @@ class APR_iterator_new {
 //
 //        return this->curr_level.counter;
     }
-
-
 
 
     inline unsigned int particles_level_begin(unsigned int level_){
@@ -132,6 +139,10 @@ class APR_iterator_new {
 
     }
 
+
+    bool set_iteartor_by_random_access(PartCell& input){
+
+    }
 
     bool set_iterator_to_particle_by_number(uint64_t part_num){
         //
@@ -209,146 +220,123 @@ class APR_iterator_new {
     }
 
 
-//    inline unsigned int x(){
-//        //get x
-////        return curr_level.x;
-//    }
-//
-//    inline unsigned int y(){
-//        //get x
-////        return curr_level.y;
-//    }
-//
-//    inline unsigned int z(){
-//        //get x
-////        return curr_level.z;
-//    }
-//
-//    inline unsigned int j(){
-//        //get x
-////        return curr_level.j;
-//    }
-//
-//    inline unsigned int type(){
-//        //get x
-////        return curr_level.status;
-//    }
-//
-//    inline unsigned int depth(){
-//        //get x
-////        return curr_level.depth;
-//    }
-//
-//    inline unsigned int level(){
-//        //get x
-////        return curr_level.depth;
-//    }
+    inline unsigned int x(){
+        //get x
+       return current_particle_cell.x;
+    }
 
-    bool set_neighbour_iterator(APR_iterator_new<ImageType> &org_it, unsigned int dir, unsigned int index){
+    inline unsigned int y(){
+        //get x
+        return current_particle_cell.y;
+    }
+
+    inline unsigned int z(){
+        //get x
+        return current_particle_cell.z;
+    }
+
+
+
+    inline unsigned int type(){
+        //get x
+        return current_particle_cell.type;
+    }
+
+
+    inline unsigned int level(){
+        //get x
+        return current_particle_cell.level;
+    }
+
+    bool set_neighbour_iterator(APR_iterator_new<ImageType> &original_iterator, const unsigned int dir, const unsigned int index){
         //
-        //  Update the iterator to the neighbour
+        //  This is sets the this iterator, to the neighbour of the particle cell that original_iterator is pointing to
         //
 
-//        uint64_t neigh_key = org_it.curr_level.neigh_part_keys.neigh_face[dir][index];
-//
-//        if(neigh_key > 0) {
-//
-//            //updates all information except the y info.
-//            this->curr_level.init(neigh_key, *pc_data_pointer);
-//
-//            //update the y info using the current position
-//            if(this->depth() == org_it.depth()){
-//                //neigh is on same layer
-//                this->curr_level.y = org_it.y() + (*pc_data_pointer).von_neumann_y_cells[dir];
-//            }
-//            else if (this->depth() < org_it.depth()){
-//                //neigh is on parent layer
-//                this->curr_level.y = (org_it.y() + (*pc_data_pointer).von_neumann_y_cells[dir])/2;
-//            }
-//            else{
-//                //neigh is on child layer
-//                this->curr_level.y = (org_it.y() + (*pc_data_pointer).von_neumann_y_cells[dir])*2 +  ((*pc_data_pointer).von_neumann_y_cells[dir] < 0) + (*pc_data_pointer).neigh_child_y_offsets[dir][index];
-//            }
-//
-//            return true;
-//        } else{
-//            //no particle
-//            return false;
-//        }
+        apr_access->get_neighbour_coordinate(org_it.current_particle_cell, current_particle_cell, dir, original_iterator.level_delta, index);
+
+        if(index > 0) {
+            //for children need to check boundary conditions
+            if (current_particle_cell.x < spatial_index_x_max(neigh.level)) {
+                if (current_particle_cell.z < spatial_index_z_max(neigh.level)) {
+                    return false;
+                }
+            }
+        }
+
+        return apr_access->find_particle_cell(current_particle_cell);
 
     }
 
-//    inline unsigned int number_neighbours_in_direction(unsigned int dir){
-//        //return this->curr_level.neigh_part_keys.neigh_face[dir].size();
-//    }
-//
-//
-//
-//    template<typename S>
-//    S& operator()(ExtraParticleData<S>& parts){
-//        //accesses the value of particle data when iterating
-//        //return this->curr_level.get_val(parts);
-//        return 0;
-//
-//    }
-//
-//    inline unsigned int x_nearest_pixel(){
-//        //get x
-//        return floor((this->curr_level.x+0.5)*pow(2, (*pc_data_pointer).depth_max - this->curr_level.depth));
-//    }
-//
-//    inline float x_global(){
-//        //get x
-//        return (this->curr_level.x+0.5)*pow(2, (*pc_data_pointer).depth_max - this->curr_level.depth);
-//    }
-//
-//    inline unsigned int y_nearest_pixel(){
-//        //get x
-//        return floor((this->curr_level.y+0.5)*pow(2, (*pc_data_pointer).depth_max - this->curr_level.depth));
-//    }
-//
-//    inline float y_global(){
-//        //get x
-//        return (this->curr_level.y+0.5)*pow(2, (*pc_data_pointer).depth_max - this->curr_level.depth);
-//    }
-//
-//    inline unsigned int z_nearest_pixel(){
-//        //get x
-//        return floor((this->curr_level.z+0.5)*pow(2, (*pc_data_pointer).depth_max - this->curr_level.depth));
-//    }
-//
-//    inline float z_global(){
-//        //get x
-//        return (this->curr_level.z+0.5)*pow(2, (*pc_data_pointer).depth_max - this->curr_level.depth);
-//    }
-//
-//    inline unsigned int depth_max(){
-//        return (*pc_data_pointer).depth_max;
-//    }
-//
-//    inline unsigned int depth_min(){
-//        return (*pc_data_pointer).depth_min;
-//    }
-//
-//    inline unsigned int level_min(){
-//        return (*pc_data_pointer).depth_min;
-//    }
-//
-//    inline unsigned int level_max(){
-//        return (*pc_data_pointer).depth_max;
-//    }
-//
-//    inline unsigned int spatial_index_x_max(unsigned int level){
-//        return (*pc_data_pointer).x_num[level];
-//    }
-//
-//    inline unsigned int spatial_index_y_max(unsigned int level){
-//        return (*pc_data_pointer).y_num[level];
-//    }
-//
-//    inline unsigned int spatial_index_z_max(unsigned int level){
-//        return (*pc_data_pointer).z_num[level];
-//    }
+    inline uint8_t number_neighbours_in_direction(unsigned int dir){
+
+        level_delta =  (current_node & mask[face]) >> shift[face];
+
+        switch (level_delta){
+            case _LEVEL_INCREASE:
+                return 4;
+            case _NO_NEIGHBOUR:
+                return 0;
+        }
+        return 1;
+
+    }
+
+    template<typename S>
+    S& operator()(ExtraParticleData<S>& parts){
+        //accesses the value of particle data when iterating
+        return parts.data[current_particle_cell.global_index];
+    }
+
+    inline unsigned int x_nearest_pixel(){
+        //get x
+        return floor((current_particle_cell.x+0.5)*pow(2, apr_access->level_max - current_particle_cell.level));
+    }
+
+    inline float x_global(){
+        //get x
+        return (current_particle_cell.x+0.5)*pow(2, apr_access->level_max - current_particle_cell.level);
+    }
+
+    inline unsigned int y_nearest_pixel(){
+        //get x
+        return floor((current_particle_cell.y+0.5)*pow(2, apr_access->level_max - current_particle_cell.level));
+    }
+
+    inline float y_global(){
+        //get x
+        return (current_particle_cell.y+0.5)*pow(2, apr_access->level_max - current_particle_cell.level);
+    }
+
+    inline unsigned int z_nearest_pixel(){
+        //get z nearest pixel
+        return floor((current_particle_cell.z+0.5)*pow(2, apr_access->level_max - current_particle_cell.level));
+    }
+
+    inline float z_global(){
+        //get z global coordinate
+        return (current_particle_cell.z+0.5)*pow(2, apr_access->level_max - current_particle_cell.level);
+    }
+
+    inline unsigned int level_min(){
+        return (*apr_access).level_min;
+    }
+
+    inline unsigned int level_max(){
+        return (*apr_access).level_max;
+    }
+
+    inline unsigned int spatial_index_x_max(const unsigned int level){
+        return (*apr_access).x_num[level];
+    }
+
+    inline unsigned int spatial_index_y_max(const unsigned int level){
+        return (*apr_access).y_num[level];
+    }
+
+    inline unsigned int spatial_index_z_max(const unsigned int level){
+        return (*apr_access).z_num[level];
+    }
 
 
 };
