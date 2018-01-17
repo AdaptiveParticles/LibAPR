@@ -7,6 +7,8 @@
 
 #include "src/data_structures/APR/APR.hpp"
 
+#include <map>
+
 #define _NO_NEIGHBOUR ((uint16_t)3)
 #define _LEVEL_SAME ((uint16_t)1)
 #define _LEVEL_DECREASE ((uint16_t)0)
@@ -48,6 +50,10 @@ struct YGap {
     uint16_t y_begin;
     uint16_t y_end;
     uint64_t global_index_begin;
+
+    YGap():y_begin(0),y_end(0),global_index_begin(0){
+
+    }
 };
 
 struct YGap_map {
@@ -153,6 +159,8 @@ public:
 //    ExtraPartCellData<uint64_t> index;
 //    index.initialize_structure_parts_empty(apr.particles_int);
 
+        std::cout << "Number of particles: " << apr.num_parts_total << std::endl;
+
 
         uint64_t count_gaps=0;
         uint64_t count_parts = 0;
@@ -176,10 +184,9 @@ public:
 
                     pc_data.pc_key_set_x(curr_key,x_);
 
-                    const size_t offset_pc_data = x_num_*z_ + x_;
+                    const uint64_t offset_pc_data = x_num_*z_ + x_;
 
-                    const size_t j_num = apr.pc_data.data[i][offset_pc_data].size();
-
+                    const uint64_t j_num = apr.pc_data.data[i][offset_pc_data].size();
 
 
                     uint64_t prev = 0;
@@ -382,7 +389,7 @@ public:
             uint16_t type = (node & PC_TYPE_MASK) >> PC_TYPE_SHIFT;
 
             if(type!= apr.type()){
-                std::cout << "broke" << std::endl;
+                std::cout << "type broke" << std::endl;
             }
 
             //loop over all the neighbours and set the neighbour iterator to it
@@ -445,9 +452,9 @@ public:
                 for (x_ = 0; x_ < x_num_; x_++) {
 
 
-                    const size_t offset_pc_data = x_num_ * z_ + x_;
+                    const uint64_t offset_pc_data = x_num_ * z_ + x_;
 
-                    const size_t gap_num = ygaps.data[i][offset_pc_data].size();
+                    const uint64_t gap_num = ygaps.data[i][offset_pc_data].size();
 
                     YGap_map ygap;
                     YGap old_gap;
@@ -489,7 +496,7 @@ public:
 
                 for (x_ = 0; x_ < x_num_; x_++) {
 
-                    const size_t offset_pc_data = x_num_*z_ + x_;
+                    const uint64_t offset_pc_data = x_num_*z_ + x_;
 
                     if(gap_map.data[i][offset_pc_data].size() > 0){
 
@@ -534,19 +541,19 @@ public:
         for (int k = 0; k < count_parts; ++k) {
 
             if(pint[k] != pint2[k]){
-                std::cout << "broke" << std::endl;
+                //std::cout << "intbroke" << std::endl;
             }
 
             if(py[k] != py2[k]){
-                std::cout << "broke" << std::endl;
+                //std::cout << "ybroke" << std::endl;
             }
 
             if(px[k] != px2[k]){
-                std::cout << "broke" << std::endl;
+               // std::cout << "xbroke" << std::endl;
             }
 
             if(pz[k] != pz2[k]){
-                std::cout << "broke" << std::endl;
+               // std::cout << "zbroke" << std::endl;
             }
 
         }
@@ -680,7 +687,7 @@ public:
 
                 input.level = i;
 
-#pragma omp parallel for schedule(static) default(shared) private(z_,x_) reduction(+:neigh_count) firstprivate(input,neigh,local_iterators)
+//#pragma omp parallel for schedule(static) default(shared) private(z_,x_) reduction(+:neigh_count) firstprivate(input,neigh,local_iterators)
                 for (z_ = 0; z_ < z_num_; z_++) {
                     //both z and x are explicitly accessed in the structure
 
@@ -868,7 +875,7 @@ public:
 
             input.level = i;
 
-#pragma omp parallel for schedule(static) default(shared) private(z_,x_)  firstprivate(input,neigh,local_iterators) if(z_num_*x_num_ > 100)
+//#pragma omp parallel for schedule(static) default(shared) private(z_,x_)  firstprivate(input,neigh,local_iterators) if(z_num_*x_num_ > 100)
             for (z_ = 0; z_ < z_num_; z_++) {
                 //both z and x are explicitly accessed in the structure
 
