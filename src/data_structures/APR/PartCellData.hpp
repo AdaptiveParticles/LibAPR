@@ -1528,7 +1528,7 @@ public:
 
 
 
-    void init_from_pulling_scheme(std::vector<Mesh_data<uint8_t>>& layers){
+    void init_from_pulling_scheme(std::vector<MeshData<uint8_t>>& layers){
         //
         //
         //  INITIALIZE THE PARTICLE CELL STRUCTURE FORM THE OUTPUT OF THE PULLING SCHEME

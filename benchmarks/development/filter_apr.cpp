@@ -140,7 +140,7 @@ int main(int argc, char **argv) {
 
     ExtraPartCellData<float> smoothed_gradient_mag = adaptive_grad(pc_data,smoothed_parts,3,delta);
 
-    Mesh_data<float> output_img;
+    MeshData<float> output_img;
     interp_img(output_img, pc_data, part_new, smoothed_parts,true);
 
     debug_write(output_img,"adapt_smooth");
@@ -166,23 +166,23 @@ int main(int argc, char **argv) {
         //  If there is input for the original image, perform the gradient on it
         //
 
-        Mesh_data<uint16_t> input_image;
+        MeshData<uint16_t> input_image;
 
         load_image_tiff(input_image, options.original_file);
 
-        Mesh_data<float> input_image_float;
+        MeshData<float> input_image_float;
 
         input_image_float = input_image.to_type<float>();
 
         // Grad magniute FD
 
-        Mesh_data<float> grad;
+        MeshData<float> grad;
 
         grad = compute_grad(input_image_float,delta);
 
         debug_write(grad,"input_grad");
 
-        Mesh_data<float> grad_bspline;
+        MeshData<float> grad_bspline;
 
         grad_bspline.initialize(grad.y_num,grad.x_num,grad.z_num,0);
 
@@ -275,7 +275,7 @@ int main(int argc, char **argv) {
 
     //get_slices<float>(pc_struct);
 
-//    Mesh_data<uint16_t> output;
+//    MeshData<uint16_t> output;
 //
 //    Part_timer timer;
 //
@@ -292,11 +292,11 @@ int main(int argc, char **argv) {
 //
 //    filter_output = filter_apr_by_slice<float>(pc_struct,filter,analysis_data,num_repeats,true);
 //
-//    Mesh_data<float> input_image;
+//    MeshData<float> input_image;
 //
 //    pc_struct.interp_parts_to_pc(input_image,pc_struct.part_data.particle_data);
 //
-//    Mesh_data<float> output_image;
+//    MeshData<float> output_image;
 //
 //    output_image =  pixel_filter_full(input_image,filter,num_repeats,analysis_data);
 //
@@ -305,7 +305,7 @@ int main(int argc, char **argv) {
 //    }
 //    debug_write(output_image,"img_filter_full");
 //
-//    Mesh_data<uint16_t> input_image_;
+//    MeshData<uint16_t> input_image_;
 //
 //    load_image_tiff(input_image_,options.gt);
 //

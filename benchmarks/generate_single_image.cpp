@@ -105,7 +105,7 @@ int main(int argc, char **argv) {
 
     syn_image_loc.generate_syn_image(gen_image);
 
-    Mesh_data<uint16_t> input_img;
+    MeshData<uint16_t> input_img;
 
     copy_mesh_data_structures(gen_image, input_img);
 
@@ -160,13 +160,13 @@ int main(int argc, char **argv) {
        // produce_apr_analysis(input_img, analysis_data, pc_struct, syn_image_loc, p_rep.pars);
 
 
-    Mesh_data<float> input_image_float =  input_img.to_type<float>();
+    MeshData<float> input_image_float =  input_img.to_type<float>();
 
    // PartCellStructure<float,uint64_t> pc_struct_new = compute_guided_apr(input_image_float,pc_struct,p_rep);
 
 //    std::vector<float> scale = {2,2,2};
 //
-//   Mesh_data<float> smooth_img;
+//   MeshData<float> smooth_img;
 //
 //    interp_parts_to_smooth(smooth_img,pc_struct.part_data.particle_data,pc_struct,scale);
 //
@@ -191,7 +191,7 @@ int main(int argc, char **argv) {
 //    PartCellStructure<float, uint64_t> pc_struct_new2 = compute_guided_apr_time(input_image_float,pc_struct_new,p_rep,apr_c2,curr_scale);
 //
 ////
-//    Mesh_data<float> rec_img;
+//    MeshData<float> rec_img;
 //
 //    pc_struct_new2.interp_parts_to_pc(rec_img,pc_struct_new2.part_data.particle_data);
 ////
@@ -202,21 +202,21 @@ int main(int argc, char **argv) {
 
 //    p_rep.pars.name = "perfect";
 //
-//    Mesh_data<float> norm_grad_image;
+//    MeshData<float> norm_grad_image;
 //
 //
 //    generate_gt_norm_grad(norm_grad_image,syn_image_loc,true,.1,.1,.1);
 //    debug_write(norm_grad_image,"norm_grad");
 //
 //
-//    Mesh_data<float> grad_image;
+//    MeshData<float> grad_image;
 //
 //
 //    generate_gt_norm_grad(grad_image,syn_image_loc,false,p_rep.pars.dx,p_rep.pars.dy,p_rep.pars.dz);
 //    debug_write(grad_image,"grad");
 //
 //
-//    Mesh_data<float> var_gt;
+//    MeshData<float> var_gt;
 //
 //    generate_gt_var(var_gt,syn_image_loc,p_rep.pars);
 //
@@ -250,15 +250,15 @@ int main(int argc, char **argv) {
 //
 //    part_new.particle_data.org_dims = pc_struct.org_dims;
 //
-//    Mesh_data<float> w_interp_out;
+//    MeshData<float> w_interp_out;
 //
 //    weigted_interp_img(w_interp_out, pc_data, part_new, part_new.particle_data,false,true);
 //
 //    debug_write(w_interp_out,"weighted_interp_out_n");
 //
 //
-//    Mesh_data<float> min_img;
-//    Mesh_data<float> max_img;
+//    MeshData<float> min_img;
+//    MeshData<float> max_img;
 //
 //    min_max_interp(min_img,max_img,pc_data,part_new,part_new.particle_data,false);
 //
@@ -274,7 +274,7 @@ int main(int argc, char **argv) {
 //
 //    debug_write(max_img,"avg_img");
 //
-//    Mesh_data<uint16_t> gt_image;
+//    MeshData<uint16_t> gt_image;
 //    generate_gt_image(gt_image, syn_image_loc);
 //
 //    std::string name = "we_";
@@ -286,7 +286,7 @@ int main(int argc, char **argv) {
 //    name = "min_";
 //    compare_E_debug( gt_image,min_img, p_rep.pars, name, analysis_data);
 //
-//    Mesh_data<float> interp;
+//    MeshData<float> interp;
 //    interp_img(interp, pc_data, part_new, part_new.particle_data,false);
 //
 //    name = "interp_";

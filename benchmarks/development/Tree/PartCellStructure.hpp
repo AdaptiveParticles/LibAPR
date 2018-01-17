@@ -1851,9 +1851,9 @@ public:
     }
     
     template<typename U,typename V>
-    void interp_parts_to_pc(Mesh_data<U>& out_image,ExtraPartCellData<V>& interp_data){
-        Mesh_data<U> curr_k_img;
-        Mesh_data<U> prev_k_img;
+    void interp_parts_to_pc(MeshData<U>& out_image,ExtraPartCellData<V>& interp_data){
+        MeshData<U> curr_k_img;
+        MeshData<U> prev_k_img;
         
         int y_dim = ceil(org_dims[0]/2.0)*2;
         int x_dim = ceil(org_dims[1]/2.0)*2;
@@ -1869,7 +1869,7 @@ public:
     }
     
     template<typename U,typename V>
-    void interp_parts_to_pc(ExtraPartCellData<V>& interp_data,Mesh_data<U>& curr_k_img,Mesh_data<U>& prev_k_img){
+    void interp_parts_to_pc(ExtraPartCellData<V>& interp_data,MeshData<U>& curr_k_img,MeshData<U>& prev_k_img){
         //
         //  Bevan Cheeseman 2016
         //
@@ -1877,8 +1877,8 @@ public:
         //
         
 
-       // Mesh_data<U> curr_k_img;
-        //Mesh_data<U> prev_k_img;
+       // MeshData<U> curr_k_img;
+        //MeshData<U> prev_k_img;
         
         constexpr int y_incr[8] = {0,1,0,1,0,1,0,1};
         constexpr int x_incr[8] = {0,0,1,1,0,0,1,1};

@@ -39,7 +39,7 @@
 #define PC_TYPE_SHIFT 13
 
 
-struct PartCell {
+struct ParticleCell {
     uint16_t x,y,z,level,type;
     uint64_t pc_offset,global_index;
 };
@@ -57,25 +57,8 @@ struct YGap_map {
 
 struct ParticleCellGapMap{
     std::map<uint16_t,YGap_map> map;
-    //std::map<uint16_t,YGap_map>::iterator current_iterator;
-    //uint16_t last_value = 0;
 };
 
-
-struct GapIteratorMap {
-
-    //
-
-};
-
-
-struct GapIterator {
-    YGap current_gap;
-    uint16_t y_min;
-    uint16_t y_max;
-    uint16_t current_gap_index;
-    uint16_t gap_num;
-};
 
 
 class APRAccess {
@@ -139,10 +122,6 @@ public:
 //    ExtraPartCellData<uint64_t> index;
 //    index.initialize_structure_parts_empty(apr.particles_int);
 
-        ExtraPartCellData<GapIterator> iterator;
-        iterator.initialize_structure_parts_empty(apr.particles_int);
-
-        GapIterator gap_it;
 
         uint64_t count_gaps=0;
         uint64_t count_parts = 0;
@@ -297,16 +276,7 @@ public:
 
                     }
 
-                    if(j_num > 1){
 
-                        gap_it.gap_num = ygaps.data[i][offset_pc_data].size();
-                        gap_it.y_min = ygaps.data[i][offset_pc_data][0].y_begin;
-                        gap_it.current_gap_index = 0;
-                        gap_it.current_gap = ygaps.data[i][offset_pc_data][0];
-                        gap_it.y_max = ygaps.data[i][offset_pc_data].back().y_end;
-
-                        iterator.data[i][offset_pc_data].push_back(gap_it);
-                    }
 
                 }
 
@@ -364,7 +334,7 @@ public:
 
         apr.set_part_numbers_xz();
 
-        APR_iterator<uint16_t> neighbour_iterator(apr);
+        APRIterator<uint16_t> neighbour_iterator(apr);
 
         uint64_t c = 0;
         uint64_t nn= 0;
@@ -568,7 +538,7 @@ public:
 
 
         //initialization of the iteration structures
-        APR_iterator<uint16_t> apr_parallel_iterator(apr); //this is required for parallel access
+        APRIterator<uint16_t> apr_parallel_iterator(apr); //this is required for parallel access
         uint64_t part; //declare parallel iteration variable
 
         ExtraPartCellData<float> neigh_xm(apr);
@@ -583,7 +553,7 @@ public:
 
                 apr_parallel_iterator.set_iterator_to_particle_by_number(part);
 
-                //compute neighbours as previously, now using the apr_parallel_iterator (APR_iterator), instead of the apr class for access.
+                //compute neighbours as previously, now using the apr_parallel_iterator (APRIterator), instead of the apr class for access.
                 apr_parallel_iterator.update_all_neighbours();
 
                 float temp = 0;
@@ -654,8 +624,8 @@ public:
         ///
         //////////////////////////
 
-        PartCell input;
-        PartCell neigh;
+        ParticleCell input;
+        ParticleCell neigh;
 
         //initialize_neigh(gap_map);
 
@@ -790,7 +760,7 @@ public:
         }
 
 
-        Mesh_data<uint64_t> index_image;
+        MeshData<uint64_t> index_image;
 
         index_image.initialize(apr.orginal_dimensions(0),apr.orginal_dimensions(1),apr.orginal_dimensions(2));
 
@@ -1068,7 +1038,7 @@ public:
 
 
 
-    inline bool get_neighbour_coordinate(const PartCell& input,PartCell& neigh,const unsigned int& face,const uint16_t& level_delta,const uint16_t& index){
+    inline bool get_neighbour_coordinate(const ParticleCell& input,ParticleCell& neigh,const unsigned int& face,const uint16_t& level_delta,const uint16_t& index){
         //
         //
 
@@ -1185,7 +1155,7 @@ public:
         return 1;
     }
 
-    bool find_particle_cell(PartCell& part_cell){
+    bool find_particle_cell(ParticleCell& part_cell){
 
         if(gap_map.data[part_cell.level][part_cell.pc_offset].size() > 0) {
 

@@ -143,7 +143,7 @@ U median_3(U& a,U& b,U& c) {
 }
 
 template<typename U>
-void calc_median_filter(Mesh_data<U>& input_img){
+void calc_median_filter(MeshData<U>& input_img){
 
 
     uint64_t offset_min;
@@ -275,7 +275,7 @@ void calc_median_filter(Mesh_data<U>& input_img){
 
 }
 template<typename U>
-void calc_median_filter_n(Mesh_data<U>& output_img,Mesh_data<U>& input_img){
+void calc_median_filter_n(MeshData<U>& output_img,MeshData<U>& input_img){
 
 
     uint64_t offset_min_y;
@@ -359,7 +359,7 @@ void calc_median_filter_n(Mesh_data<U>& output_img,Mesh_data<U>& input_img){
 
 }
 template<typename U>
-void calc_median_filter_n2(Mesh_data<U>& output_img,Mesh_data<U>& input_img){
+void calc_median_filter_n2(MeshData<U>& output_img,MeshData<U>& input_img){
 
 
     uint64_t offset_min_y;
@@ -451,16 +451,16 @@ void calc_median_filter_n2(Mesh_data<U>& output_img,Mesh_data<U>& input_img){
 
 }
 template<typename S>
-void get_variance(Mesh_data<S>& input_image,Mesh_data<float>& variance_u,Proc_par& pars) {
+void get_variance(MeshData<S>& input_image,MeshData<float>& variance_u,Proc_par& pars) {
 
     Part_rep part_rep;
 
 
-    Mesh_data<float> gradient,variance;
-    Mesh_data<float> interp_img;
+    MeshData<float> gradient,variance;
+    MeshData<float> interp_img;
 
 
-    Mesh_data<float> input_image_float;
+    MeshData<float> input_image_float;
 
     input_image_float.initialize(input_image.y_num,input_image.x_num,input_image.z_num,0);
 
@@ -484,7 +484,7 @@ void get_variance(Mesh_data<S>& input_image,Mesh_data<float>& variance_u,Proc_pa
     preallocate(part_map.layers, gradient.y_num, gradient.x_num, gradient.z_num, part_rep);
     variance.preallocate(gradient.y_num, gradient.x_num, gradient.z_num, 0);
 
-    Mesh_data<float> temp;
+    MeshData<float> temp;
     temp.preallocate(gradient.y_num, gradient.x_num, gradient.z_num, 0);
 
     t.start_timer("whole");
@@ -513,7 +513,7 @@ void get_variance(Mesh_data<S>& input_image,Mesh_data<float>& variance_u,Proc_pa
 }
 
 template<typename S>
-void spread_values(Mesh_data<S>& input_image){
+void spread_values(MeshData<S>& input_image){
     // spread the value if zero to the neighbours.
 
 
@@ -525,7 +525,7 @@ void spread_values(Mesh_data<S>& input_image){
     const int8_t dir_x[6] = { 0, 0, 1, -1, 0, 0};
     const int8_t dir_z[6] = { 0, 0, 0, 0, 1, -1};
 
-    Mesh_data<S> output_data;
+    MeshData<S> output_data;
 
     output_data.initialize((int)y_num,(int)x_num,(int)z_num,0);
 
@@ -583,12 +583,12 @@ void spread_values(Mesh_data<S>& input_image){
 }
 
 template<typename T,typename S>
-ExtraPartCellData<T> get_scale_parts_guided(APR<T>& apr,Mesh_data<S>& input_image,Proc_par& pars,Part_rep& part_rep){
+ExtraPartCellData<T> get_scale_parts_guided(APR<T>& apr,MeshData<S>& input_image,Proc_par& pars,Part_rep& part_rep){
     //
     //  Produces a new scale estimate that uses the previous time steps APR to estimate.
     //
 
-    Mesh_data<float> variance_u;
+    MeshData<float> variance_u;
 
     get_variance(input_image,variance_u,pars);
 
@@ -596,7 +596,7 @@ ExtraPartCellData<T> get_scale_parts_guided(APR<T>& apr,Mesh_data<S>& input_imag
     // now need the pyramid data-structure
     Particle_map<float> part_map(part_rep);
 
-    std::vector<Mesh_data<float>> layers;
+    std::vector<MeshData<float>> layers;
 
     int k_max = apr.y_vec.depth_max;
     int k_min = part_map.k_min;
@@ -724,9 +724,9 @@ ExtraPartCellData<T> get_scale_parts_guided(APR<T>& apr,Mesh_data<S>& input_imag
 
 
 template<typename T,typename S>
-ExtraPartCellData<T> get_scale_parts(APR<T>& apr,Mesh_data<S>& input_image,Proc_par& pars){
+ExtraPartCellData<T> get_scale_parts(APR<T>& apr,MeshData<S>& input_image,Proc_par& pars){
 
-    Mesh_data<float> variance_u;
+    MeshData<float> variance_u;
 
     get_variance(input_image,variance_u,pars);
 
@@ -779,7 +779,7 @@ ExtraPartCellData<T> get_scale_parts(APR<T>& apr,Mesh_data<S>& input_image,Proc_
 
 
 template<typename T>
-void auto_parameters(Mesh_data<T>& input_img,Proc_par& pars){
+void auto_parameters(MeshData<T>& input_img,Proc_par& pars){
     //
     //  Simple automatic parameter selection for 3D APR Flouresence Images
     //
@@ -829,7 +829,7 @@ void auto_parameters(Mesh_data<T>& input_img,Proc_par& pars){
     }
 
 
-    Mesh_data<T> histogram;
+    MeshData<T> histogram;
     histogram.initialize(num_bins,1,1);
 
     std::copy(freq.begin(),freq.end(),histogram.mesh.begin());
@@ -842,7 +842,7 @@ void auto_parameters(Mesh_data<T>& input_img,Proc_par& pars){
 
     calc_inv_bspline_y(histogram);
 
-    //calc_bspline_fd_y(Mesh_data<T>& input)
+    //calc_bspline_fd_y(MeshData<T>& input)
 
     unsigned int local_max_j = 0;
     uint64_t local_max = 0;
@@ -995,11 +995,11 @@ finish:
 
 
 
-void get_variance(Mesh_data<float>& variance_u,cmdLineOptions& options){
+void get_variance(MeshData<float>& variance_u,cmdLineOptions& options){
 
     Proc_par pars;
 
-    Mesh_data<uint16_t> input_image;
+    MeshData<uint16_t> input_image;
 
     load_image_tiff(input_image, options.directory + options.input);
 
@@ -1011,15 +1011,15 @@ void get_variance(Mesh_data<float>& variance_u,cmdLineOptions& options){
 }
 
 
-void get_apr_part_timing(Mesh_data<uint16_t >& input_image,Part_rep& part_rep,PartCellStructure<float,uint64_t>& pc_struct,AnalysisData& analysis_data){
+void get_apr_part_timing(MeshData<uint16_t >& input_image,Part_rep& part_rep,PartCellStructure<float,uint64_t>& pc_struct,AnalysisData& analysis_data){
 
     int interp_type = part_rep.pars.interp_type;
 
     // COMPUTATIONS
 
-    Mesh_data<float> input_image_float;
-    Mesh_data<float> gradient, variance;
-    Mesh_data<float> interp_img;
+    MeshData<float> input_image_float;
+    MeshData<float> gradient, variance;
+    MeshData<float> interp_img;
 
     gradient.initialize(input_image.y_num, input_image.x_num, input_image.z_num, 0);
     part_rep.initialize(input_image.y_num, input_image.x_num, input_image.z_num);
@@ -1035,9 +1035,9 @@ void get_apr_part_timing(Mesh_data<uint16_t >& input_image,Part_rep& part_rep,Pa
     Particle_map<float> part_map(part_rep);
     preallocate(part_map.layers, gradient.y_num, gradient.x_num, gradient.z_num, part_rep);
     variance.preallocate(gradient.y_num, gradient.x_num, gradient.z_num, 0);
-    std::vector<Mesh_data<float>> down_sampled_images;
+    std::vector<MeshData<float>> down_sampled_images;
 
-    Mesh_data<float> temp;
+    MeshData<float> temp;
     temp.preallocate(gradient.y_num, gradient.x_num, gradient.z_num, 0);
 
     t.start_timer("whole");
@@ -1139,15 +1139,15 @@ void get_apr_part_timing(Mesh_data<uint16_t >& input_image,Part_rep& part_rep,Pa
 }
 
 
-void get_apr_2D(Mesh_data<uint16_t >& input_image,Part_rep& part_rep,PartCellStructure<float,uint64_t>& pc_struct,AnalysisData& analysis_data){
+void get_apr_2D(MeshData<uint16_t >& input_image,Part_rep& part_rep,PartCellStructure<float,uint64_t>& pc_struct,AnalysisData& analysis_data){
 
     int interp_type = part_rep.pars.interp_type;
 
     // COMPUTATIONS
 
-    Mesh_data<float> input_image_float;
-    Mesh_data<float> gradient, variance;
-    Mesh_data<float> interp_img;
+    MeshData<float> input_image_float;
+    MeshData<float> gradient, variance;
+    MeshData<float> interp_img;
 
     gradient.initialize(input_image.y_num, input_image.x_num, input_image.z_num, 0);
     part_rep.initialize(input_image.y_num, input_image.x_num, input_image.z_num);
@@ -1163,9 +1163,9 @@ void get_apr_2D(Mesh_data<uint16_t >& input_image,Part_rep& part_rep,PartCellStr
     Particle_map<float> part_map(part_rep);
     preallocate(part_map.layers, gradient.y_num, gradient.x_num, gradient.z_num, part_rep);
     variance.preallocate(gradient.y_num, gradient.x_num, gradient.z_num, 0);
-    std::vector<Mesh_data<float>> down_sampled_images;
+    std::vector<MeshData<float>> down_sampled_images;
 
-    Mesh_data<float> temp;
+    MeshData<float> temp;
     temp.preallocate(gradient.y_num, gradient.x_num, gradient.z_num, 0);
 
     t.start_timer("whole");
@@ -1231,7 +1231,7 @@ void get_apr_2D(Mesh_data<uint16_t >& input_image,Part_rep& part_rep,PartCellStr
 
 
 }
-void mask_variance(Mesh_data<float>& variance,Mesh_data<float>& temp,APR<float>& apr){
+void mask_variance(MeshData<float>& variance,MeshData<float>& temp,APR<float>& apr){
     //
     //  Bevan Cheeseman 2018
     //
@@ -1239,7 +1239,7 @@ void mask_variance(Mesh_data<float>& variance,Mesh_data<float>& temp,APR<float>&
     //
     //
 
-    Mesh_data<uint16_t> mask;
+    MeshData<uint16_t> mask;
 
     load_image_tiff(mask, apr.pars.mask_file);
 
@@ -1259,7 +1259,7 @@ void mask_variance(Mesh_data<float>& variance,Mesh_data<float>& temp,APR<float>&
 }
 
 
-//void get_apr(Mesh_data<uint16_t >& input_image,APR<float>& apr){
+//void get_apr(MeshData<uint16_t >& input_image,APR<float>& apr){
 //    //
 //    //  NEEDS TO BE CLEANED UP *quick hacks to get it workgin directly with the new datastructures
 //    //
@@ -1307,9 +1307,9 @@ void mask_variance(Mesh_data<float>& variance,Mesh_data<float>& temp,APR<float>&
 //
 //    timer.start_timer("initializing memory");
 //
-//    Mesh_data<float> input_image_float;
-//    Mesh_data<float> gradient, variance;
-//    Mesh_data<float> interp_img;
+//    MeshData<float> input_image_float;
+//    MeshData<float> gradient, variance;
+//    MeshData<float> interp_img;
 //
 //    part_rep.org_dims = apr.pc_data.org_dims;
 //
@@ -1327,7 +1327,7 @@ void mask_variance(Mesh_data<float>& variance,Mesh_data<float>& temp,APR<float>&
 //    //allocating to be half size
 //    variance.preallocate(gradient.y_num, gradient.x_num, gradient.z_num, 0);
 //
-//    Mesh_data<float> temp;
+//    MeshData<float> temp;
 //    temp.preallocate(gradient.y_num, gradient.x_num, gradient.z_num, 0);
 //
 //
@@ -1421,15 +1421,15 @@ void mask_variance(Mesh_data<float>& variance,Mesh_data<float>& temp,APR<float>&
 
 
 
-void get_apr(Mesh_data<uint16_t >& input_image,Part_rep& part_rep,PartCellStructure<float,uint64_t>& pc_struct,AnalysisData& analysis_data){
+void get_apr(MeshData<uint16_t >& input_image,Part_rep& part_rep,PartCellStructure<float,uint64_t>& pc_struct,AnalysisData& analysis_data){
 
     int interp_type = part_rep.pars.interp_type;
 
     // COMPUTATIONS
 
-    Mesh_data<float> input_image_float;
-    Mesh_data<float> gradient, variance;
-    Mesh_data<float> interp_img;
+    MeshData<float> input_image_float;
+    MeshData<float> gradient, variance;
+    MeshData<float> interp_img;
 
     gradient.initialize(input_image.y_num, input_image.x_num, input_image.z_num, 0);
     part_rep.initialize(input_image.y_num, input_image.x_num, input_image.z_num);
@@ -1445,9 +1445,9 @@ void get_apr(Mesh_data<uint16_t >& input_image,Part_rep& part_rep,PartCellStruct
     Particle_map<float> part_map(part_rep);
     preallocate(part_map.layers, gradient.y_num, gradient.x_num, gradient.z_num, part_rep);
     variance.preallocate(gradient.y_num, gradient.x_num, gradient.z_num, 0);
-    std::vector<Mesh_data<float>> down_sampled_images;
+    std::vector<MeshData<float>> down_sampled_images;
 
-    Mesh_data<float> temp;
+    MeshData<float> temp;
     temp.preallocate(gradient.y_num, gradient.x_num, gradient.z_num, 0);
 
     t.start_timer("whole");
@@ -1510,15 +1510,15 @@ void get_apr(Mesh_data<uint16_t >& input_image,Part_rep& part_rep,PartCellStruct
 
 
 }
-void get_apr_perfect(Mesh_data<uint16_t >& input_image,Mesh_data<float>& grad_gt,Mesh_data<float>& var_gt,Part_rep& part_rep,PartCellStructure<float,uint64_t>& pc_struct,AnalysisData& analysis_data){
+void get_apr_perfect(MeshData<uint16_t >& input_image,MeshData<float>& grad_gt,MeshData<float>& var_gt,Part_rep& part_rep,PartCellStructure<float,uint64_t>& pc_struct,AnalysisData& analysis_data){
 
     int interp_type = part_rep.pars.interp_type;
 
     // COMPUTATIONS
 
-    Mesh_data<float> input_image_float;
-    Mesh_data<float> gradient, variance;
-    Mesh_data<float> interp_img;
+    MeshData<float> input_image_float;
+    MeshData<float> gradient, variance;
+    MeshData<float> interp_img;
 
     gradient.initialize(input_image.y_num, input_image.x_num, input_image.z_num, 0);
     part_rep.initialize(input_image.y_num, input_image.x_num, input_image.z_num);
@@ -1534,9 +1534,9 @@ void get_apr_perfect(Mesh_data<uint16_t >& input_image,Mesh_data<float>& grad_gt
     Particle_map<float> part_map(part_rep);
     preallocate(part_map.layers, gradient.y_num, gradient.x_num, gradient.z_num, part_rep);
     variance.preallocate(gradient.y_num, gradient.x_num, gradient.z_num, 0);
-    std::vector<Mesh_data<float>> down_sampled_images;
+    std::vector<MeshData<float>> down_sampled_images;
 
-    Mesh_data<float> temp;
+    MeshData<float> temp;
     temp.preallocate(gradient.y_num, gradient.x_num, gradient.z_num, 0);
 
     t.start_timer("whole");
@@ -1608,15 +1608,15 @@ void get_apr_perfect(Mesh_data<uint16_t >& input_image,Mesh_data<float>& grad_gt
 
 
 template<typename S,typename U>
-void get_apr_t(Mesh_data<S >& input_image,Part_rep& part_rep,PartCellStructure<U,uint64_t>& pc_struct,AnalysisData& analysis_data){
+void get_apr_t(MeshData<S >& input_image,Part_rep& part_rep,PartCellStructure<U,uint64_t>& pc_struct,AnalysisData& analysis_data){
 
     int interp_type = part_rep.pars.interp_type;
 
     // COMPUTATIONS
 
-    Mesh_data<S> input_image_float;
-    Mesh_data<S> gradient, variance;
-    Mesh_data<S> interp_img;
+    MeshData<S> input_image_float;
+    MeshData<S> gradient, variance;
+    MeshData<S> interp_img;
 
     gradient.initialize(input_image.y_num, input_image.x_num, input_image.z_num, 0);
     part_rep.initialize(input_image.y_num, input_image.x_num, input_image.z_num);
@@ -1632,9 +1632,9 @@ void get_apr_t(Mesh_data<S >& input_image,Part_rep& part_rep,PartCellStructure<U
     Particle_map<S> part_map(part_rep);
     preallocate(part_map.layers, gradient.y_num, gradient.x_num, gradient.z_num, part_rep);
     variance.preallocate(gradient.y_num, gradient.x_num, gradient.z_num, 0);
-    std::vector<Mesh_data<S>> down_sampled_images;
+    std::vector<MeshData<S>> down_sampled_images;
 
-    Mesh_data<S> temp;
+    MeshData<S> temp;
     temp.preallocate(gradient.y_num, gradient.x_num, gradient.z_num, 0);
 
     t.start_timer("whole");
@@ -1695,7 +1695,7 @@ void get_apr_t(Mesh_data<S >& input_image,Part_rep& part_rep,PartCellStructure<U
 
 }
 
-void get_apr(Mesh_data<uint16_t >& input_image,Part_rep& part_rep,PartCellStructure<float,uint64_t>& pc_struct){
+void get_apr(MeshData<uint16_t >& input_image,Part_rep& part_rep,PartCellStructure<float,uint64_t>& pc_struct){
     //interface without analysis_data
     AnalysisData analysis_data;
 
@@ -1724,7 +1724,7 @@ void get_apr(int argc, char **argv,PartCellStructure<float,uint64_t>& pc_struct,
 
     options = read_command_line_options(argc, argv, part_rep.pars);
 
-    Mesh_data<uint16_t> input_image;
+    MeshData<uint16_t> input_image;
 
     load_image_tiff(input_image, options.directory + options.input);
 
@@ -1760,7 +1760,7 @@ void get_apr(int argc, char **argv,PartCellStructure<float,uint64_t>& pc_struct,
 //
 //    timer.start_timer("read tif input image");
 //
-//    Mesh_data<uint16_t> input_image;
+//    MeshData<uint16_t> input_image;
 //
 //    load_image_tiff(input_image, options.directory + options.input);
 //

@@ -15,7 +15,7 @@ static inline uint32_t asmlog_2(const uint32_t x){
 }
 
 template< typename T>
-void compute_k_for_array(Mesh_data<T>& input,float k_factor,float rel_error){
+void compute_k_for_array(MeshData<T>& input,float k_factor,float rel_error){
     //
     //  Takes the sqrt of the grad vector to caluclate the magnitude
     //
@@ -48,8 +48,8 @@ void compute_k_for_array(Mesh_data<T>& input,float k_factor,float rel_error){
 
 
 template< typename T>
-void get_level_3D(Mesh_data<T> &var, Mesh_data<T> &grad_input, Part_rep &p_rep, Particle_map<T> &part_map,
-                  Mesh_data<T> &grad){
+void get_level_3D(MeshData<T> &var, MeshData<T> &grad_input, Part_rep &p_rep, Particle_map<T> &part_map,
+                  MeshData<T> &grad){
     //
     //
     //  Calculate the local resolution estimates k
@@ -98,7 +98,7 @@ void get_level_3D(Mesh_data<T> &var, Mesh_data<T> &grad_input, Part_rep &p_rep, 
 
     part_map.initialize(p_rep.org_dims);
 
-    Mesh_data<T> test_a_ds;
+    MeshData<T> test_a_ds;
 
     //first do k_max
     part_map.fill(p_rep.pl_map.k_max,grad);
@@ -125,8 +125,8 @@ void get_level_3D(Mesh_data<T> &var, Mesh_data<T> &grad_input, Part_rep &p_rep, 
 }
 
 template< typename T>
-void get_level_2D(Mesh_data<T> &var, Mesh_data<T> &grad_input, Part_rep &p_rep, Particle_map<T> &part_map,
-                  Mesh_data<T> &grad){
+void get_level_2D(MeshData<T> &var, MeshData<T> &grad_input, Part_rep &p_rep, Particle_map<T> &part_map,
+                  MeshData<T> &grad){
     //
     //
     //  Calculate the local resolution estimates k
@@ -181,7 +181,7 @@ void get_level_2D(Mesh_data<T> &var, Mesh_data<T> &grad_input, Part_rep &p_rep, 
 
     part_map.initialize(p_rep.org_dims);
 
-    Mesh_data<T> test_a_ds;
+    MeshData<T> test_a_ds;
 
     //first do k_max
     part_map.fill(p_rep.pl_map.k_max,grad);
@@ -208,8 +208,8 @@ void get_level_2D(Mesh_data<T> &var, Mesh_data<T> &grad_input, Part_rep &p_rep, 
 }
 
 template< typename T>
-void get_level_3D_ground_truth(Mesh_data<T> &grad_input, Part_rep &p_rep, Particle_map<T> &part_map,
-                  Mesh_data<T> &grad){
+void get_level_3D_ground_truth(MeshData<T> &grad_input, Part_rep &p_rep, Particle_map<T> &part_map,
+                  MeshData<T> &grad){
     //
     //
     //  Calculate the local resolution estimates k
@@ -247,7 +247,7 @@ void get_level_3D_ground_truth(Mesh_data<T> &grad_input, Part_rep &p_rep, Partic
 
     part_map.initialize(p_rep.org_dims);
 
-    Mesh_data<T> test_a_ds;
+    MeshData<T> test_a_ds;
 
     //first do k_max
     part_map.fill(p_rep.pl_map.k_max,grad);

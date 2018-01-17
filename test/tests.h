@@ -29,9 +29,9 @@ public:
     Part_rep p_rep;
 
 
-    Mesh_data<uint16_t> create_test_empty(bool variance);
-    Mesh_data<uint16_t> create_bspline_empty();
-    Mesh_data<uint16_t> create_variance_empty();
+    MeshData<uint16_t> create_test_empty(bool variance);
+    MeshData<uint16_t> create_bspline_empty();
+    MeshData<uint16_t> create_variance_empty();
     std::string tests_directory;
 protected:
 
@@ -43,9 +43,9 @@ protected:
 class CreateImageFromFileTest : public CreateImageTest, public ::testing::WithParamInterface<filepaths_lambda> {
 
 public:
-    Mesh_data<uint16_t> create_test(std::string image_path, bool variance);
-    Mesh_data<uint16_t> create_bspline(std::string image_path);
-    Mesh_data<uint16_t> create_variance(std::string image_path);
+    MeshData<uint16_t> create_test(std::string image_path, bool variance);
+    MeshData<uint16_t> create_bspline(std::string image_path);
+    MeshData<uint16_t> create_variance(std::string image_path);
 };
 
 

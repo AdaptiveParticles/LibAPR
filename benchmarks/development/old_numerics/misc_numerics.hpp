@@ -18,7 +18,7 @@
 #include "FilterLevel.hpp"
 
 template<typename U,typename V>
-void interp_img(Mesh_data<U>& img,PartCellData<uint64_t>& pc_data,ParticleDataNew<float, uint64_t>& part_new,ExtraPartCellData<V>& particles_int,const bool val = false);
+void interp_img(MeshData<U>& img,PartCellData<uint64_t>& pc_data,ParticleDataNew<float, uint64_t>& part_new,ExtraPartCellData<V>& particles_int,const bool val = false);
 
 
 static void create_y_data(ExtraPartCellData<uint16_t>& y_vec,ParticleDataNew<float, uint64_t>& part_new,PartCellData<uint64_t>& pc_data){
@@ -93,15 +93,15 @@ static void create_y_data(ExtraPartCellData<uint16_t>& y_vec,ParticleDataNew<flo
 //void create_y_data(ExtraPartCellData<uint16_t>& y_vec,ParticleDataNew<float, uint64_t>& part_new,PartCellData<uint64_t>& pc_data);
 
 template<typename U,typename V>
-void interp_slice(Mesh_data<U>& slice,std::vector<std::vector<std::vector<uint16_t>>>& y_vec,PartCellData<uint64_t>& pc_data,ParticleDataNew<float, uint64_t>& part_new,int dir,int num);
+void interp_slice(MeshData<U>& slice,std::vector<std::vector<std::vector<uint16_t>>>& y_vec,PartCellData<uint64_t>& pc_data,ParticleDataNew<float, uint64_t>& part_new,int dir,int num);
 
 template<typename U,typename V>
-void interp_slice(Mesh_data<U>& slice,PartCellData<uint64_t>& pc_data,ParticleDataNew<float, uint64_t>& part_new,ExtraPartCellData<V>& particles_int,int dir,int num);
+void interp_slice(MeshData<U>& slice,PartCellData<uint64_t>& pc_data,ParticleDataNew<float, uint64_t>& part_new,ExtraPartCellData<V>& particles_int,int dir,int num);
 
 //void create_y_data(std::vector<std::vector<std::vector<uint16_t>>>& y_vec,PartCellStructure<float,uint64_t>& pc_struct);
 
 template<typename V>
-void filter_slice(std::vector<V>& filter,std::vector<V>& filter_d,ExtraPartCellData<V>& filter_output,Mesh_data<V>& slice,ExtraPartCellData<uint16_t>& y_vec,const int dir,const int num);
+void filter_slice(std::vector<V>& filter,std::vector<V>& filter_d,ExtraPartCellData<V>& filter_output,MeshData<V>& slice,ExtraPartCellData<uint16_t>& y_vec,const int dir,const int num);
 
 template<typename U>
 std::vector<U> create_gauss_filter(float t,int size){
@@ -225,7 +225,7 @@ std::vector<U> create_dog_filter(int size,float t,float K){
 }
 
 template<typename S>
-void interp_depth_to_mesh(Mesh_data<uint8_t>& k_img,PartCellStructure<S,uint64_t>& pc_struct,int bound_flag = 1){
+void interp_depth_to_mesh(MeshData<uint8_t>& k_img,PartCellStructure<S,uint64_t>& pc_struct,int bound_flag = 1){
     //
     //  Bevan Cheeseman 2016
     //
@@ -322,7 +322,7 @@ void interp_depth_to_mesh(Mesh_data<uint8_t>& k_img,PartCellStructure<S,uint64_t
     
 }
 template<typename S>
-void interp_adapt_to_mesh(Mesh_data<uint8_t>& k_img,PartCellStructure<S,uint64_t>& pc_struct){
+void interp_adapt_to_mesh(MeshData<uint8_t>& k_img,PartCellStructure<S,uint64_t>& pc_struct){
     //
     //  Bevan Cheeseman 2016
     //
@@ -417,7 +417,7 @@ void interp_adapt_to_mesh(Mesh_data<uint8_t>& k_img,PartCellStructure<S,uint64_t
 
 
 template<typename S>
-void interp_status_to_mesh(Mesh_data<uint8_t>& status_img,PartCellStructure<S,uint64_t>& pc_struct){
+void interp_status_to_mesh(MeshData<uint8_t>& status_img,PartCellStructure<S,uint64_t>& pc_struct){
     //
     //  Bevan Cheeseman 2016
     //
@@ -509,7 +509,7 @@ void interp_status_to_mesh(Mesh_data<uint8_t>& status_img,PartCellStructure<S,ui
 }
 
 template<typename S,typename T>
-void interp_extrapc_to_mesh(Mesh_data<T>& output_img,PartCellStructure<S,uint64_t>& pc_struct,ExtraPartCellData<T>& cell_data){
+void interp_extrapc_to_mesh(MeshData<T>& output_img,PartCellStructure<S,uint64_t>& pc_struct,ExtraPartCellData<T>& cell_data){
     //
     //  Bevan Cheeseman 2016
     //
@@ -604,7 +604,7 @@ void interp_extrapc_to_mesh(Mesh_data<T>& output_img,PartCellStructure<S,uint64_
 
 
 template<typename U,typename V>
-void interp_parts_to_smooth(Mesh_data<U>& out_image,ExtraPartCellData<V>& interp_data,PartCellStructure<float,uint64_t>& pc_struct,std::vector<float> scale_d){
+void interp_parts_to_smooth(MeshData<U>& out_image,ExtraPartCellData<V>& interp_data,PartCellStructure<float,uint64_t>& pc_struct,std::vector<float> scale_d){
 
 
 
@@ -612,8 +612,8 @@ void interp_parts_to_smooth(Mesh_data<U>& out_image,ExtraPartCellData<V>& interp
     timer.verbose_flag = true;
 
     timer.start_timer("init images pc");
-    Mesh_data<U> pc_image;
-    Mesh_data<uint8_t> k_img;
+    MeshData<U> pc_image;
+    MeshData<uint8_t> k_img;
 
     pc_struct.interp_parts_to_pc(pc_image,interp_data);
 
@@ -631,7 +631,7 @@ void interp_parts_to_smooth(Mesh_data<U>& out_image,ExtraPartCellData<V>& interp
     unsigned int y_num = pc_image.y_num;
     unsigned int z_num = pc_image.z_num;
 
-    Mesh_data<U> output_data;
+    MeshData<U> output_data;
     output_data.initialize((int)y_num,(int)x_num,(int)z_num,0);
 
     std::vector<U> temp_vec;
@@ -843,8 +843,8 @@ void threshold_pixels(PartCellStructure<U,uint64_t>& pc_struct,uint64_t y_num,ui
     
     float threshold = 50;
     
-    Mesh_data<U> input_data;
-    Mesh_data<U> output_data;
+    MeshData<U> input_data;
+    MeshData<U> output_data;
     input_data.initialize((int)y_num,(int)x_num,(int)z_num,23);
     output_data.initialize((int)y_num,(int)x_num,(int)z_num,0);
     
@@ -990,7 +990,7 @@ void interp_slice(PartCellStructure<float,uint64_t>& pc_struct,ExtraPartCellData
     CurrentLevel<float,uint64_t> curr_level(pc_data);
 
 
-    Mesh_data<U> slice;
+    MeshData<U> slice;
 
     std::vector<unsigned int> x_num_min;
     std::vector<unsigned int> x_num;
@@ -1142,7 +1142,7 @@ void get_slices(PartCellStructure<float,uint64_t>& pc_struct){
         num_slices = pc_struct.org_dims[2];
     }
 
-    Mesh_data<U> slice;
+    MeshData<U> slice;
 
     Part_timer timer;
     timer.verbose_flag = true;
@@ -1225,7 +1225,7 @@ void get_slices(PartCellStructure<float,uint64_t>& pc_struct){
 
 
 template<typename U,typename V>
-void interp_img(Mesh_data<U>& img,ExtraPartCellData<uint16_t>& y_vec,ExtraPartCellData<V>& particles_int){
+void interp_img(MeshData<U>& img,ExtraPartCellData<uint16_t>& y_vec,ExtraPartCellData<V>& particles_int){
     //
     //  Bevan Cheeseman 2016
     //
@@ -1289,7 +1289,7 @@ void interp_img(Mesh_data<U>& img,ExtraPartCellData<uint16_t>& y_vec,ExtraPartCe
 }
 
 template<typename U>
-void interp_depth(Mesh_data<U>& img,PartCellData<uint64_t>& pc_data,ParticleDataNew<float, uint64_t>& part_new){
+void interp_depth(MeshData<U>& img,PartCellData<uint64_t>& pc_data,ParticleDataNew<float, uint64_t>& part_new){
     //
     //  Bevan Cheeseman 2016
     //
@@ -1367,7 +1367,7 @@ void interp_depth(Mesh_data<U>& img,PartCellData<uint64_t>& pc_data,ParticleData
 
 
 template<typename U,typename V>
-void interp_img(Mesh_data<U>& img,PartCellData<uint64_t>& pc_data,ParticleDataNew<float, uint64_t>& part_new,ExtraPartCellData<V>& particles_int,const bool val){
+void interp_img(MeshData<U>& img,PartCellData<uint64_t>& pc_data,ParticleDataNew<float, uint64_t>& part_new,ExtraPartCellData<V>& particles_int,const bool val){
     //
     //  Bevan Cheeseman 2016
     //
@@ -1549,7 +1549,7 @@ static bool integral_check_neigh(const float x,const float y, const float z,cons
 
 
 template<typename U,typename V>
-void weigted_interp_img(Mesh_data<U>& img,PartCellData<uint64_t>& pc_data,ParticleDataNew<float, uint64_t>& part_new,ExtraPartCellData<V>& particles_int,const bool val,bool smooth = true){
+void weigted_interp_img(MeshData<U>& img,PartCellData<uint64_t>& pc_data,ParticleDataNew<float, uint64_t>& part_new,ExtraPartCellData<V>& particles_int,const bool val,bool smooth = true){
     //
     //  Bevan Cheeseman 2016
     //
@@ -1558,15 +1558,15 @@ void weigted_interp_img(Mesh_data<U>& img,PartCellData<uint64_t>& pc_data,Partic
 
     img.initialize(pc_data.org_dims[0],pc_data.org_dims[1],pc_data.org_dims[2],0.0);
 
-    Mesh_data<double> weight_img;
+    MeshData<double> weight_img;
     weight_img.initialize(pc_data.org_dims[0],pc_data.org_dims[1],pc_data.org_dims[2],0.0);
 
-    Mesh_data<double> weight_int;
+    MeshData<double> weight_int;
     weight_int.initialize(pc_data.org_dims[0],pc_data.org_dims[1],pc_data.org_dims[2],0.0);
 
 
 
-    Mesh_data<float> d_img;
+    MeshData<float> d_img;
 
     interp_depth(d_img, pc_data, part_new);
 
@@ -1803,7 +1803,7 @@ void weigted_interp_img(Mesh_data<U>& img,PartCellData<uint64_t>& pc_data,Partic
 
 }
 template<typename U,typename V>
-void min_max_interp(Mesh_data<U>& min_img,Mesh_data<U>& max_img,PartCellData<uint64_t>& pc_data,ParticleDataNew<float, uint64_t>& part_new,ExtraPartCellData<V>& particles_int,const bool val){
+void min_max_interp(MeshData<U>& min_img,MeshData<U>& max_img,PartCellData<uint64_t>& pc_data,ParticleDataNew<float, uint64_t>& part_new,ExtraPartCellData<V>& particles_int,const bool val){
     //
     //  Bevan Cheeseman 2016
     //
@@ -1813,7 +1813,7 @@ void min_max_interp(Mesh_data<U>& min_img,Mesh_data<U>& max_img,PartCellData<uin
     min_img.initialize(pc_data.org_dims[0],pc_data.org_dims[1],pc_data.org_dims[2],660000);
     max_img.initialize(pc_data.org_dims[0],pc_data.org_dims[1],pc_data.org_dims[2],0);
 
-    Mesh_data<uint8_t> d_img;
+    MeshData<uint8_t> d_img;
 
     interp_depth(d_img, pc_data, part_new);
 
@@ -2533,7 +2533,7 @@ ExtraPartCellData<U> convert_cell_to_part(PartCellStructure<V,T>& pc_struct,Extr
 //}
 
 template<typename U,typename V>
-void interp_slice(Mesh_data<U>& slice,PartCellData<uint64_t>& pc_data,ParticleDataNew<float, uint64_t>& part_new,ExtraPartCellData<V>& particles_int,int dir,int num){
+void interp_slice(MeshData<U>& slice,PartCellData<uint64_t>& pc_data,ParticleDataNew<float, uint64_t>& part_new,ExtraPartCellData<V>& particles_int,int dir,int num){
     //
     //  Bevan Cheeseman 2016
     //
@@ -2750,7 +2750,7 @@ static void create_y_offsets(ExtraPartCellData<uint16_t>& y_off,ParticleDataNew<
 
 
 template<typename U>
-void interp_slice(Mesh_data<U>& slice,ExtraPartCellData<uint16_t>& y_vec,ExtraPartCellData<U>& particle_data,const int dir,const int num){
+void interp_slice(MeshData<U>& slice,ExtraPartCellData<uint16_t>& y_vec,ExtraPartCellData<U>& particle_data,const int dir,const int num){
     //
     //  Bevan Cheeseman 2016
     //
@@ -2863,7 +2863,7 @@ void interp_slice(Mesh_data<U>& slice,ExtraPartCellData<uint16_t>& y_vec,ExtraPa
 
 }
 template<typename U>
-void interp_slice_opt(Mesh_data<U>& slice,ExtraPartCellData<uint16_t>& y_vec,ExtraPartCellData<U>& particle_data,const int dir,const int num){
+void interp_slice_opt(MeshData<U>& slice,ExtraPartCellData<uint16_t>& y_vec,ExtraPartCellData<U>& particle_data,const int dir,const int num){
     //
     //  Bevan Cheeseman 2016
     //
@@ -3031,7 +3031,7 @@ void filter_apr_dir(ExtraPartCellData<uint16_t>& y_vec,ExtraPartCellData<U>& fil
     //
     //
 
-    Mesh_data<U> slice;
+    MeshData<U> slice;
 
     int num_slices;
 
@@ -3064,7 +3064,7 @@ void filter_apr_dir(ExtraPartCellData<uint16_t>& y_vec,ExtraPartCellData<U>& fil
 
 }
 template<typename U>
-void get_slice(Mesh_data<U>& input_img,Mesh_data<U>& slice,const int dir,const int num){
+void get_slice(MeshData<U>& input_img,MeshData<U>& slice,const int dir,const int num){
     //
     //  To use the algorithms we must transpose the slice in the correct directions
     //
@@ -3117,12 +3117,12 @@ void get_slice(Mesh_data<U>& input_img,Mesh_data<U>& slice,const int dir,const i
 
 
 template<typename U>
-void filter_apr_mesh_dir(Mesh_data<U>& input_img,ExtraPartCellData<uint16_t>& y_vec,ExtraPartCellData<U>& filter_output,ExtraPartCellData<U>& filter_input,std::vector<U>& filter,std::vector<U>& filter_d,const int dir){
+void filter_apr_mesh_dir(MeshData<U>& input_img,ExtraPartCellData<uint16_t>& y_vec,ExtraPartCellData<U>& filter_output,ExtraPartCellData<U>& filter_input,std::vector<U>& filter,std::vector<U>& filter_d,const int dir){
     //
     //  This convolves at APR locations from an input mesh
     //
 
-    Mesh_data<U> slice;
+    MeshData<U> slice;
 
     int num_slices;
 
@@ -3397,7 +3397,7 @@ void convert_from_old_structure(ExtraPartCellData<U>& particle_data,PartCellStru
 
 
 template<typename V>
-void filter_slice(std::vector<V>& filter,std::vector<V>& filter_d,ExtraPartCellData<V>& filter_output,Mesh_data<V>& slice,ExtraPartCellData<uint16_t>& y_vec,const int dir,const int num){
+void filter_slice(std::vector<V>& filter,std::vector<V>& filter_d,ExtraPartCellData<V>& filter_output,MeshData<V>& slice,ExtraPartCellData<uint16_t>& y_vec,const int dir,const int num){
 
     int filter_offset = (filter.size()-1)/2;
 

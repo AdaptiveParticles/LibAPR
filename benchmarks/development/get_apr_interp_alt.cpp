@@ -83,13 +83,13 @@ int main(int argc, char **argv) {
     
     // COMPUTATIONS
     
-    Mesh_data<float> input_image_float;
-    Mesh_data<float> gradient, variance;
+    MeshData<float> input_image_float;
+    MeshData<float> gradient, variance;
     
-    Mesh_data<float> interp_img;
+    MeshData<float> interp_img;
     
     {
-        Mesh_data<uint16_t> input_image;
+        MeshData<uint16_t> input_image;
         
         load_image_tiff(input_image, options.directory + options.input);
         
@@ -118,9 +118,9 @@ int main(int argc, char **argv) {
     Particle_map<float> part_map(part_rep);
     preallocate(part_map.layers, gradient.y_num, gradient.x_num, gradient.z_num, part_rep);
     variance.preallocate(gradient.y_num, gradient.x_num, gradient.z_num, 0);
-    std::vector<Mesh_data<float>> down_sampled_images;
+    std::vector<MeshData<float>> down_sampled_images;
     
-    Mesh_data<float> temp;
+    MeshData<float> temp;
     temp.preallocate(gradient.y_num, gradient.x_num, gradient.z_num, 0);
     
     t.start_timer("whole");
@@ -169,7 +169,7 @@ int main(int argc, char **argv) {
     part_rep.timer.stop_timer();
     
     
-    Mesh_data<uint64_t> interp;
+    MeshData<uint64_t> interp;
     
     
     pcell_test.interp_parts_to_pc(interp,pcell_test.part_data.particle_data);

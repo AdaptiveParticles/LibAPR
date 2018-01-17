@@ -56,7 +56,7 @@ struct proj_par{
 };
 
 template<typename U,typename S,typename V,class BinaryOperation>
-void apr_raycast(APR<U>& apr,ExtraPartCellData<S>& particle_data,proj_par& pars,Mesh_data<V>& cast_views,BinaryOperation op) {
+void apr_raycast(APR<U>& apr,ExtraPartCellData<S>& particle_data,proj_par& pars,MeshData<V>& cast_views,BinaryOperation op) {
 
     //
     //  Bevan Cheeseman 2018
@@ -116,7 +116,7 @@ void apr_raycast(APR<U>& apr,ExtraPartCellData<S>& particle_data,proj_par& pars,
     //  Initialization of loop variables
     //
 
-    std::vector<Mesh_data<S>> depth_slice;
+    std::vector<MeshData<S>> depth_slice;
 
     depth_slice.resize(apr.depth_max() + 1);
 
@@ -135,7 +135,7 @@ void apr_raycast(APR<U>& apr,ExtraPartCellData<S>& particle_data,proj_par& pars,
     depth_vec[apr.depth_max()] = 1;
 
     //initialize the iterator
-    APR_iterator<float> apr_it(apr);
+    APRIterator<float> apr_it(apr);
 
 
     //jitter the parts to remove ray cast artifacts
@@ -315,7 +315,7 @@ void apr_raycast(APR<U>& apr,ExtraPartCellData<S>& particle_data,proj_par& pars,
 };
 
 template<typename S,typename U>
-float perpsective_mesh_raycast(PartCellStructure<U,uint64_t>& pc_struct,proj_par& pars,Mesh_data<S>& image) {
+float perpsective_mesh_raycast(PartCellStructure<U,uint64_t>& pc_struct,proj_par& pars,MeshData<S>& image) {
     //
     //  Bevan Cheeseman 2017
     //
@@ -350,7 +350,7 @@ float perpsective_mesh_raycast(PartCellStructure<U,uint64_t>& pc_struct,proj_par
 
     int num_views = floor((theta_f - theta_0)/theta_delta) + 1;
 
-    Mesh_data<S> cast_views;
+    MeshData<S> cast_views;
 
     cast_views.initialize(imageHeight,imageWidth,num_views,0);
 
@@ -383,7 +383,7 @@ float perpsective_mesh_raycast(PartCellStructure<U,uint64_t>& pc_struct,proj_par
         const glm::mat4 mvp = (*cam.getProjection()) * (*cam.getView());
 
 
-        Mesh_data<S> proj_img;
+        MeshData<S> proj_img;
         proj_img.initialize(imageHeight, imageWidth, 1, 0);
 
         //Need to add here a parameters here
@@ -507,7 +507,7 @@ void apr_perspective_raycast_depth(ExtraPartCellData<uint16_t>& y_vec,ExtraPartC
 
     int num_views = floor((theta_f - theta_0)/theta_delta) + 1;
 
-    Mesh_data<S> cast_views;
+    MeshData<S> cast_views;
 
     cast_views.initialize(imageHeight,imageWidth,num_views,0);
 
@@ -534,7 +534,7 @@ void apr_perspective_raycast_depth(ExtraPartCellData<uint16_t>& y_vec,ExtraPartC
 
     for (float theta = theta_0; theta <= theta_f; theta += theta_delta) {
 
-        std::vector<Mesh_data<float>> depth_slice;
+        std::vector<MeshData<float>> depth_slice;
 
         depth_slice.resize(y_vec.depth_max + 1);
 
@@ -549,7 +549,7 @@ void apr_perspective_raycast_depth(ExtraPartCellData<uint16_t>& y_vec,ExtraPartC
             depth_vec[i] = d;
         }
 
-        std::vector<Mesh_data<S>> depth_slice_2;
+        std::vector<MeshData<S>> depth_slice_2;
 
         depth_slice_2.resize(y_vec.depth_max + 1);
 

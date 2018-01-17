@@ -88,7 +88,7 @@ int main(int argc, char **argv) {
     read_apr_pc_struct(pc_struct,file_name);
     
     //Part Segmentation
-   // Mesh_data<uint8_t> k_img;
+   // MeshData<uint8_t> k_img;
     //interp_depth_to_mesh(k_img,pc_struct);
     //debug_write(k_img,"k_debug_old");
 
@@ -108,7 +108,7 @@ int main(int argc, char **argv) {
     
     std::cout << "Num_parts: " << pc_struct.get_number_parts() << std::endl;
 
-    Mesh_data<uint16_t> seg_mesh;
+    MeshData<uint16_t> seg_mesh;
 
     //calc_graph_cuts_segmentation_mesh(pc_struct,seg_mesh,parameters_nuc,analysis_data);
     
@@ -187,7 +187,7 @@ int main(int argc, char **argv) {
 
         std::cout << "boom" << std::endl;
 
-        Mesh_data<uint16_t> comp_label;
+        MeshData<uint16_t> comp_label;
 
         calc_cc_mesh(seg_mesh,(uint16_t) 255,comp_label);
 

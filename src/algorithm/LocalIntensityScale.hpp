@@ -15,20 +15,20 @@ public:
  */
 
     template<typename T>
-    void calc_abs_diff(Mesh_data<T> &input_image, Mesh_data<T> &var);
+    void calc_abs_diff(MeshData<T> &input_image, MeshData<T> &var);
 
     template<typename T>
-    void calc_sat_mean_z(Mesh_data<T> &input, const int offset);
+    void calc_sat_mean_z(MeshData<T> &input, const int offset);
 
     template<typename T>
-    void calc_sat_mean_x(Mesh_data<T> &input, const int offset);
+    void calc_sat_mean_x(MeshData<T> &input, const int offset);
 
     template<typename T>
-    void calc_sat_mean_y(Mesh_data<T> &input, const int offset);
+    void calc_sat_mean_y(MeshData<T> &input, const int offset);
 
     void get_window(float &var_rescale, std::vector<int> &var_win, APR_parameters &par);
     template<typename T>
-    void rescale_var_and_threshold(Mesh_data<T>& var,const float var_rescale,APR_parameters& par);
+    void rescale_var_and_threshold(MeshData<T>& var,const float var_rescale,APR_parameters& par);
 
 };
 /*
@@ -36,7 +36,7 @@ public:
  */
 
 template<typename T>
-void LocalIntensityScale::rescale_var_and_threshold(Mesh_data<T>& var,const float var_rescale,APR_parameters& par){
+void LocalIntensityScale::rescale_var_and_threshold(MeshData<T>& var,const float var_rescale,APR_parameters& par){
     //
     //  Bevan Cheeseman 2016
     //
@@ -73,7 +73,7 @@ void LocalIntensityScale::rescale_var_and_threshold(Mesh_data<T>& var,const floa
 }
 
 template<typename T>
-void LocalIntensityScale::calc_abs_diff(Mesh_data<T>& input_image,Mesh_data<T>& var){
+void LocalIntensityScale::calc_abs_diff(MeshData<T>& input_image,MeshData<T>& var){
     //
     //  Bevan Cheeseman 2016
     //
@@ -144,7 +144,7 @@ void LocalIntensityScale::get_window(float& var_rescale,std::vector<int>& var_wi
 
 
 template<typename T>
-void LocalIntensityScale::calc_sat_mean_y(Mesh_data<T>& input,const int offset){
+void LocalIntensityScale::calc_sat_mean_y(MeshData<T>& input,const int offset){
     //
     //  Bevan Cheeseman 2016
     //
@@ -218,7 +218,7 @@ void LocalIntensityScale::calc_sat_mean_y(Mesh_data<T>& input,const int offset){
 }
 
 template<typename T>
-void LocalIntensityScale::calc_sat_mean_x(Mesh_data<T>& input,const int offset){
+void LocalIntensityScale::calc_sat_mean_x(MeshData<T>& input,const int offset){
     // The same, but in place
 
     const int z_num = input.z_num;
@@ -296,7 +296,7 @@ void LocalIntensityScale::calc_sat_mean_x(Mesh_data<T>& input,const int offset){
 
 
 template<typename T>
-void LocalIntensityScale::calc_sat_mean_z(Mesh_data<T>& input,const int offset) {
+void LocalIntensityScale::calc_sat_mean_z(MeshData<T>& input,const int offset) {
 
     // The same, but in place
 

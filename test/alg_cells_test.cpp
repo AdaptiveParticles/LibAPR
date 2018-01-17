@@ -16,8 +16,8 @@ void CreateResultTest::SetUp(){
 Particle_map<float> CreateResultFromFilesTest::create_result(std::string grad_path,
                                                              std::string input_path){
 
-    Mesh_data<uint16_t> grad_int, input_int;
-    Mesh_data<float> var, grad, input;
+    MeshData<uint16_t> grad_int, input_int;
+    MeshData<float> var, grad, input;
 
     load_image_tiff(grad_int, grad_path);
     load_image_tiff(input_int, input_path);
@@ -35,7 +35,7 @@ Particle_map<float> CreateResultFromFilesTest::create_result(std::string grad_pa
     Particle_map<float> part_map(p_rep);
     preallocate(part_map.layers, grad.y_num, grad.x_num, grad.z_num, p_rep);
 
-    Mesh_data<float> temp;
+    MeshData<float> temp;
     temp.preallocate(grad.y_num, grad.x_num, grad.z_num, 0);
     var.preallocate(grad.y_num, grad.x_num, grad.z_num, 1);
 
@@ -43,7 +43,7 @@ Particle_map<float> CreateResultFromFilesTest::create_result(std::string grad_pa
 
     part_map.pushing_scheme(p_rep);
 
-    std::vector<Mesh_data<float>> down_sampled_images;
+    std::vector<MeshData<float>> down_sampled_images;
     preallocate(down_sampled_images, grad.y_num, grad.x_num, grad.z_num, p_rep);
 
     return part_map;

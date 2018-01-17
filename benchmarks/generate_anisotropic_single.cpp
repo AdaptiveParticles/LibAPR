@@ -117,7 +117,7 @@ int main(int argc, char **argv) {
 
     syn_image_loc.generate_syn_image(gen_image);
 
-    Mesh_data<uint16_t> input_img;
+    MeshData<uint16_t> input_img;
 
     copy_mesh_data_structures(gen_image, input_img);
 
@@ -161,7 +161,7 @@ int main(int argc, char **argv) {
 
     syn_image_aniso.generate_syn_image(gen_image_a);
 
-    Mesh_data<uint16_t> input_img_a;
+    MeshData<uint16_t> input_img_a;
 
     copy_mesh_data_structures(gen_image_a, input_img_a);
 
@@ -203,13 +203,13 @@ int main(int argc, char **argv) {
 
     std::vector<float> scale = {2,2,4};
 
-    Mesh_data<float> smooth_img;
+    MeshData<float> smooth_img;
 
     interp_parts_to_smooth(smooth_img,pc_struct_a.part_data.particle_data,pc_struct_a,scale);
 
     debug_write(smooth_img,"smooth_test");
 
-    Mesh_data<float> rec_img;
+    MeshData<float> rec_img;
 
     pc_struct_a.interp_parts_to_pc(rec_img,pc_struct_a.part_data.particle_data);
 

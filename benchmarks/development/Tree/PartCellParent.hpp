@@ -976,7 +976,7 @@ private:
         }
         
 //        
-//        Mesh_data<uint8_t> temp;
+//        MeshData<uint8_t> temp;
 //        for(int i = neigh_info.depth_min; i <= neigh_info.depth_max;i++){
 //            temp.y_num = pc_struct.y_num[i];
 //            temp.x_num = pc_struct.x_num[i];

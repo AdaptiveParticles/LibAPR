@@ -264,7 +264,7 @@ public:
     
     //used for debugging
     template<typename S>
-    S get_int(std::vector<Mesh_data<S>>& int_ref){
+    S get_int(std::vector<MeshData<S>>& int_ref){
         
         return int_ref[depth_it](y_it,x_it,z_it);
     }

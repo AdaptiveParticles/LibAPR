@@ -665,8 +665,8 @@ void pixels_move_random(PartCellStructure<U,uint64_t>& pc_struct,uint64_t y_num,
     //  Compute two, comparitive filters for speed. Original size img, and current particle size comparison
     //
     
-    Mesh_data<U> input_data;
-    Mesh_data<U> output_data;
+    MeshData<U> input_data;
+    MeshData<U> output_data;
     input_data.initialize((int)y_num,(int)x_num,(int)z_num,23);
     output_data.initialize((int)y_num,(int)x_num,(int)z_num,0);
     
@@ -900,7 +900,7 @@ static void particle_random_access(PartCellStructure<float,uint64_t>& pc_struct,
 
 
 template<typename U,typename V>
-Mesh_data<U> pixel_filter_full(Mesh_data<V>& input_data,std::vector<U>& filter,float num_repeats,AnalysisData& analysis_data){
+MeshData<U> pixel_filter_full(MeshData<V>& input_data,std::vector<U>& filter,float num_repeats,AnalysisData& analysis_data){
     //
     //  Compute two, comparitive filters for speed. Original size img, and current particle size comparison
     //
@@ -911,7 +911,7 @@ Mesh_data<U> pixel_filter_full(Mesh_data<V>& input_data,std::vector<U>& filter,f
     unsigned int y_num = input_data.y_num;
     unsigned int z_num = input_data.z_num;
 
-    Mesh_data<U> output_data;
+    MeshData<U> output_data;
     output_data.initialize((int)y_num,(int)x_num,(int)z_num,0);
 
     Part_timer timer;
@@ -1041,7 +1041,7 @@ Mesh_data<U> pixel_filter_full(Mesh_data<V>& input_data,std::vector<U>& filter,f
 
 }
 template<typename U,typename V>
-Mesh_data<U> pixel_filter_full_mult(Mesh_data<V> input_data,std::vector<U> filter_y,std::vector<U> filter_x,std::vector<U> filter_z,float num_repeats,AnalysisData& analysis_data){
+MeshData<U> pixel_filter_full_mult(MeshData<V> input_data,std::vector<U> filter_y,std::vector<U> filter_x,std::vector<U> filter_z,float num_repeats,AnalysisData& analysis_data){
     //
     //  Compute two, comparitive filters for speed. Original size img, and current particle size comparison
     //
@@ -1052,7 +1052,7 @@ Mesh_data<U> pixel_filter_full_mult(Mesh_data<V> input_data,std::vector<U> filte
     unsigned int y_num = input_data.y_num;
     unsigned int z_num = input_data.z_num;
 
-    Mesh_data<U> output_data;
+    MeshData<U> output_data;
     output_data.initialize((int)y_num,(int)x_num,(int)z_num,0);
 
     Part_timer timer;
@@ -1204,8 +1204,8 @@ void pixels_linear_neigh_access(PartCellStructure<U,uint64_t>& pc_struct,uint64_
     const int8_t dir_x[6] = { 0, 0, 1, -1, 0, 0};
     const int8_t dir_z[6] = { 0, 0, 0, 0, 1, -1};
     
-    Mesh_data<U> input_data;
-    Mesh_data<U> output_data;
+    MeshData<U> input_data;
+    MeshData<U> output_data;
     input_data.initialize((int)y_num,(int)x_num,(int)z_num,23);
     output_data.initialize((int)y_num,(int)x_num,(int)z_num,0);
     
@@ -1277,8 +1277,8 @@ void pixel_neigh_random(PartCellStructure<U,uint64_t>& pc_struct,uint64_t y_num,
     const int8_t dir_x[6] = { 0, 0, 1, -1, 0, 0};
     const int8_t dir_z[6] = { 0, 0, 0, 0, 1, -1};
     
-    Mesh_data<U> input_data;
-    Mesh_data<U> output_data;
+    MeshData<U> input_data;
+    MeshData<U> output_data;
     input_data.initialize((int)y_num,(int)x_num,(int)z_num,23);
     output_data.initialize((int)y_num,(int)x_num,(int)z_num,0);
     
@@ -1392,8 +1392,8 @@ void apr_filter_full(PartCellStructure<S,uint64_t>& pc_struct,uint64_t filter_of
     //
     Part_timer timer;
     
-    Mesh_data<S> filter_img;
-    Mesh_data<S> temp_array;
+    MeshData<S> filter_img;
+    MeshData<S> temp_array;
     
     int x_dim = ceil(pc_struct.org_dims[0]/2.0)*2;
     int z_dim = ceil(pc_struct.org_dims[1]/2.0)*2;
@@ -1912,8 +1912,8 @@ void new_filter_part(PartCellStructure<S,uint64_t>& pc_struct,uint64_t filter_of
     //
     Part_timer timer;
 
-    Mesh_data<S> filter_img;
-    Mesh_data<S> temp_array;
+    MeshData<S> filter_img;
+    MeshData<S> temp_array;
 
     int y_dim = ceil(pc_struct.org_dims[0]/2.0)*2;
     int x_dim = ceil(pc_struct.org_dims[1]/2.0)*2;
@@ -2026,7 +2026,7 @@ ExtraPartCellData<U> filter_apr_by_slice(PartCellStructure<float,uint64_t>& pc_s
 
     part_new.particle_data.org_dims = pc_struct.org_dims;
 
-    Mesh_data<U> slice;
+    MeshData<U> slice;
 
     Part_timer timer;
     timer.verbose_flag = true;
@@ -2092,7 +2092,7 @@ ExtraPartCellData<U> filter_apr_by_slice(PartCellStructure<float,uint64_t>& pc_s
 
     if(debug == true) {
 
-        Mesh_data<float> img;
+        MeshData<float> img;
 
         interp_img(img, pc_data, part_new, filter_output);
 
@@ -2112,7 +2112,7 @@ ExtraPartCellData<U> filter_apr_by_slice(PartCellStructure<float,uint64_t>& pc_s
 
 
 template<typename U>
-ExtraPartCellData<U> filter_apr_input_img(Mesh_data<U>& input_img,PartCellStructure<float,uint64_t>& pc_struct,std::vector<U>& filter,AnalysisData& analysis_data,float num_repeats = 1,bool debug = false){
+ExtraPartCellData<U> filter_apr_input_img(MeshData<U>& input_img,PartCellStructure<float,uint64_t>& pc_struct,std::vector<U>& filter,AnalysisData& analysis_data,float num_repeats = 1,bool debug = false){
 
     ParticleDataNew<float, uint64_t> part_new;
     //flattens format to particle = cell, this is in the classic access/part paradigm
@@ -2127,7 +2127,7 @@ ExtraPartCellData<U> filter_apr_input_img(Mesh_data<U>& input_img,PartCellStruct
 
     part_new.particle_data.org_dims = pc_struct.org_dims;
 
-    Mesh_data<U> slice;
+    MeshData<U> slice;
 
     Part_timer timer;
     timer.verbose_flag = false;
@@ -2200,7 +2200,7 @@ ExtraPartCellData<U> filter_apr_input_img(Mesh_data<U>& input_img,PartCellStruct
 
     if(debug == true) {
 
-        Mesh_data<float> img;
+        MeshData<float> img;
 
         interp_img(img, pc_data, part_new, filter_output);
 
@@ -2233,7 +2233,7 @@ ExtraPartCellData<U> filter_apr_by_slice(PartCellStructure<float,uint64_t>& pc_s
 
     part_new.particle_data.org_dims = pc_struct.org_dims;
 
-    Mesh_data<U> slice;
+    MeshData<U> slice;
 
     Part_timer timer;
     timer.verbose_flag = false;
@@ -2306,7 +2306,7 @@ ExtraPartCellData<U> filter_apr_by_slice(PartCellStructure<float,uint64_t>& pc_s
 
     if(debug == true) {
 
-        Mesh_data<float> img;
+        MeshData<float> img;
 
         interp_img(img, pc_data, part_new, filter_output);
 
@@ -2340,7 +2340,7 @@ ExtraPartCellData<U> filter_apr_by_slice_mult(PartCellStructure<float,uint64_t>&
 
     part_new.particle_data.org_dims = pc_struct.org_dims;
 
-    Mesh_data<U> slice;
+    MeshData<U> slice;
 
     Part_timer timer;
     timer.verbose_flag = false;
@@ -2422,7 +2422,7 @@ ExtraPartCellData<U> filter_apr_by_slice_mult(PartCellStructure<float,uint64_t>&
 
     if(debug == true) {
 
-        Mesh_data<float> img;
+        MeshData<float> img;
 
         interp_img(img, pc_data, part_new, filter_output);
 
@@ -2770,7 +2770,7 @@ ExtraPartCellData<std::array<float,3>> adaptive_gradient_normal(PartCellStructur
 
 
 template<typename T>
-Mesh_data<float> compute_grad(Mesh_data<T> gt_image,std::vector<float> delta = {1,1,1}){
+MeshData<float> compute_grad(MeshData<T> gt_image,std::vector<float> delta = {1,1,1}){
     //
     //
     //  Computes Gradient Magnitude Using FD
@@ -2788,13 +2788,13 @@ Mesh_data<float> compute_grad(Mesh_data<T> gt_image,std::vector<float> delta = {
     std::vector<float> filter_x = {(float)-.5/delta[1],0,(float).5/delta[1]};
     std::vector<float> filter_z = {(float)-.5/delta[2],0,(float).5/delta[2]};
 
-    Mesh_data<float> gt_image_f;
+    MeshData<float> gt_image_f;
     gt_image_f.initialize(gt_image.y_num,gt_image.x_num,gt_image.z_num,0);
     std::copy(gt_image.mesh.begin(),gt_image.mesh.end(),gt_image_f.mesh.begin());
 
-    Mesh_data<float> gt_output;
+    MeshData<float> gt_output;
 
-    Mesh_data<float> temp;
+    MeshData<float> temp;
     temp.initialize(gt_image.y_num,gt_image.x_num,gt_image.z_num,0);
 
     //first y direction

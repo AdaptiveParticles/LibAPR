@@ -14,8 +14,8 @@ void CreateKTest::SetUp(){
 Particle_map<float> CreateKFromFilesTest::create_k(std::string grad_path,
                                                    std::string output_path){
 
-    Mesh_data<uint16_t > grad_int;
-    Mesh_data<float> var, grad;
+    MeshData<uint16_t > grad_int;
+    MeshData<float> var, grad;
 
     load_image_tiff(grad_int, grad_path);
 
@@ -32,7 +32,7 @@ Particle_map<float> CreateKFromFilesTest::create_k(std::string grad_path,
 
     timer.start_timer("get_level_3D");
 
-    Mesh_data<float> temp;
+    MeshData<float> temp;
     temp.preallocate(grad.y_num, grad.x_num, grad.z_num, 0);
     var.preallocate(grad.y_num, grad.x_num, grad.z_num, 1);
 

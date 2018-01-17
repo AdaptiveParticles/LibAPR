@@ -9,11 +9,11 @@
 
 #include "src/data_structures/APR/APRAccess.hpp"
 
-class APR_iterator_new {
+class APRIteratorNew {
 
 private:
 
-    PartCell current_particle_cell;
+    ParticleCell current_particle_cell;
 
     APRAccess* apr_access;
 
@@ -30,7 +30,7 @@ public:
         //current_part = 0;
     }
 
-    APR_iterator(APRAccess& apr_access_){
+    APRIterator(APRAccess& apr_access_){
        apr_access = &apr_access_;
     }
 
@@ -140,7 +140,7 @@ public:
     }
 
 
-    bool set_iteartor_by_random_access(PartCell& input){
+    bool set_iteartor_by_random_access(ParticleCell& input){
 
     }
 
@@ -248,7 +248,7 @@ public:
         return current_particle_cell.level;
     }
 
-    bool set_neighbour_iterator(APR_iterator_new<ImageType> &original_iterator, const unsigned int dir, const unsigned int index){
+    bool set_neighbour_iterator(APRIteratorNew<ImageType> &original_iterator, const unsigned int dir, const unsigned int index){
         //
         //  This is sets the this iterator, to the neighbour of the particle cell that original_iterator is pointing to
         //

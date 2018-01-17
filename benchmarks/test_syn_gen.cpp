@@ -164,7 +164,7 @@ int main() {
 
     timer.stop_timer();
 
-    Mesh_data<uint16_t> output_img;
+    MeshData<uint16_t> output_img;
     output_img.x_num = test_gen_image.x_num;
     output_img.y_num = test_gen_image.y_num;
     output_img.z_num = test_gen_image.z_num;

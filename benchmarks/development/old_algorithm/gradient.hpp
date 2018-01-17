@@ -11,7 +11,7 @@ struct three_temps{
 };
 
 template<typename T>
-void calc_inv_bspline_y(Mesh_data<T>& input){
+void calc_inv_bspline_y(MeshData<T>& input){
     //
     //
     //  Bevan Cheeseman 2016
@@ -69,7 +69,7 @@ void calc_inv_bspline_y(Mesh_data<T>& input){
 
 
 template<typename T>
-void calc_inv_bspline_x(Mesh_data<T>& input){
+void calc_inv_bspline_x(MeshData<T>& input){
     //
     //
     //  Bevan Cheeseman 2016
@@ -140,7 +140,7 @@ void calc_inv_bspline_x(Mesh_data<T>& input){
 }
 
 template<typename T>
-void calc_inv_bspline_z(Mesh_data<T>& input){
+void calc_inv_bspline_z(MeshData<T>& input){
     //
     //
     //  Bevan Cheeseman 2016
@@ -210,7 +210,7 @@ void calc_inv_bspline_z(Mesh_data<T>& input){
 }
 
 template<typename T>
-void calc_bspline_fd_y(Mesh_data<T>& input){
+void calc_bspline_fd_y(MeshData<T>& input){
     //
     //
     //  Bevan Cheeseman 2016
@@ -258,7 +258,7 @@ void calc_bspline_fd_y(Mesh_data<T>& input){
 
 }
 template<typename T>
-void calc_bspline_fd_x(Mesh_data<T>& input){
+void calc_bspline_fd_x(MeshData<T>& input){
     //
     //
     //  Bevan Cheeseman 2016
@@ -329,7 +329,7 @@ void calc_bspline_fd_x(Mesh_data<T>& input){
 }
 
 template<typename T>
-void calc_bspline_fd_x_y_alt(Mesh_data<T>& input,Mesh_data<T>& grad,const float hx,const float hy){
+void calc_bspline_fd_x_y_alt(MeshData<T>& input,MeshData<T>& grad,const float hx,const float hy){
     //
     //
     //  Bevan Cheeseman 2016
@@ -402,7 +402,7 @@ void calc_bspline_fd_x_y_alt(Mesh_data<T>& input,Mesh_data<T>& grad,const float 
 }
 
 template<typename T>
-void calc_bspline_fd_z_alt(Mesh_data<T>& input,Mesh_data<T>& grad,const float h){
+void calc_bspline_fd_z_alt(MeshData<T>& input,MeshData<T>& grad,const float h){
 
     //
     //
@@ -469,7 +469,7 @@ void calc_bspline_fd_z_alt(Mesh_data<T>& input,Mesh_data<T>& grad,const float h)
 }
 
 template<typename T>
-void calc_bspline_fd_z(Mesh_data<T>& input){
+void calc_bspline_fd_z(MeshData<T>& input){
     //
     //
     //  Bevan Cheeseman 2016
@@ -558,7 +558,7 @@ inline float impulse_resp_back(float k,float rho,float omg,float gamma,float c0)
 
 }
 template<typename T>
-void bspline_filt_rec_y(Mesh_data<T>& image,float lambda,float tol){
+void bspline_filt_rec_y(MeshData<T>& image,float lambda,float tol){
     //
     //  Bevan Cheeseman 2016
     //
@@ -748,7 +748,7 @@ void bspline_filt_rec_y(Mesh_data<T>& image,float lambda,float tol){
 
 }
 template<typename T>
-void bspline_filt_rec_x(Mesh_data<T>& image,float lambda,float tol){
+void bspline_filt_rec_x(MeshData<T>& image,float lambda,float tol){
     //
     //  Bevan Cheeseman 2016
     //
@@ -960,7 +960,7 @@ void bspline_filt_rec_x(Mesh_data<T>& image,float lambda,float tol){
 
 }
 template<typename T>
-void bspline_filt_rec_z(Mesh_data<T>& image,float lambda,float tol){
+void bspline_filt_rec_z(MeshData<T>& image,float lambda,float tol){
     //
     //  Bevan Cheeseman 2016
     //
@@ -1174,7 +1174,7 @@ void bspline_filt_rec_z(Mesh_data<T>& image,float lambda,float tol){
 
 }
 template<typename T>
-void get_smooth_bspline_2D(Mesh_data<T>& input,Part_rep& p_rep){
+void get_smooth_bspline_2D(MeshData<T>& input,Part_rep& p_rep){
     //
     //  Gets smoothing bspline co-efficients for 3D
     //
@@ -1201,7 +1201,7 @@ void get_smooth_bspline_2D(Mesh_data<T>& input,Part_rep& p_rep){
 
 }
 template<typename T>
-void get_smooth_bspline_3D(Mesh_data<T>& input,Part_rep& p_rep){
+void get_smooth_bspline_3D(MeshData<T>& input,Part_rep& p_rep){
     //
     //  Gets smoothing bspline co-efficients for 3D
     //
@@ -1235,7 +1235,7 @@ void get_smooth_bspline_3D(Mesh_data<T>& input,Part_rep& p_rep){
 }
 
 template< typename T>
-void get_gradient_3D(Part_rep &p_rep, Mesh_data<T> &input_image, Mesh_data<T> &grad_image){
+void get_gradient_3D(Part_rep &p_rep, MeshData<T> &input_image, MeshData<T> &grad_image){
     //
     //  Bevan Cheeseman 2016
     //
@@ -1281,7 +1281,7 @@ void get_gradient_3D(Part_rep &p_rep, Mesh_data<T> &input_image, Mesh_data<T> &g
 
 }
 template< typename T>
-void get_gradient_2D(Part_rep &p_rep, Mesh_data<T> &input_image, Mesh_data<T> &grad_image){
+void get_gradient_2D(Part_rep &p_rep, MeshData<T> &input_image, MeshData<T> &grad_image){
     //
     //  Bevan Cheeseman 2016
     //

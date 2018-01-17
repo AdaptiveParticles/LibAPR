@@ -93,10 +93,10 @@ int main(int argc, char **argv) {
     //remove the file extension
     name.erase(name.end()-3,name.end());
 
-    APR_iterator<uint16_t> apr_iterator(apr);
+    APRIterator<uint16_t> apr_iterator(apr);
 
     //initialization of the iteration structures
-    APR_iterator<uint16_t> apr_parallel_iterator(apr); //this is required for parallel access
+    APRIterator<uint16_t> apr_parallel_iterator(apr); //this is required for parallel access
     uint64_t part; //declare parallel iteration variable
 
     int num_repeats = 5;
@@ -110,7 +110,7 @@ int main(int argc, char **argv) {
 
     particle_linear_neigh_access(apr,num_repeats,analysisData);
 
-    APR_iterator<uint16_t> neighbour_iterator(apr);
+    APRIterator<uint16_t> neighbour_iterator(apr);
 
     ExtraPartCellData<uint16_t> neigh_xm(apr);
 
@@ -123,7 +123,7 @@ int main(int argc, char **argv) {
             //needed step for any parallel loop (update to the next part)
             apr_parallel_iterator.set_iterator_to_particle_by_number(part);
 
-            //compute neighbours as previously, now using the apr_parallel_iterator (APR_iterator), instead of the apr class for access.
+            //compute neighbours as previously, now using the apr_parallel_iterator (APRIterator), instead of the apr class for access.
             apr_parallel_iterator.update_all_neighbours();
 
             //loop over all the neighbours and set the neighbour iterator to it

@@ -64,12 +64,12 @@ class PullingScheme {
 
 public:
 
-    std::vector<Mesh_data<uint8_t>> particle_cell_tree;
+    std::vector<MeshData<uint8_t>> particle_cell_tree;
     unsigned int l_min;
     unsigned int l_max;
 
     template<typename T>
-    void fill(float k, Mesh_data<T> &input);
+    void fill(float k, MeshData<T> &input);
 
     void pulling_scheme_main();
 
@@ -143,7 +143,7 @@ void PullingScheme::pulling_scheme_main()
 }
 
 template<typename T>
-void PullingScheme::fill(float k, Mesh_data<T>& input)
+void PullingScheme::fill(float k, MeshData<T>& input)
 {
     //
     //  Bevan Cheeseman 2016

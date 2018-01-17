@@ -13,9 +13,9 @@
 #include "benchmarks/development/old_numerics/enhance_parts.hpp"
 
 template<typename S,typename T>
-void compare_E_debug(Mesh_data<S>& org_img,Mesh_data<T>& rec_img,Proc_par& pars,std::string name,AnalysisData& analysis_data){
+void compare_E_debug(MeshData<S>& org_img,MeshData<T>& rec_img,Proc_par& pars,std::string name,AnalysisData& analysis_data){
 
-    Mesh_data<float> variance;
+    MeshData<float> variance;
 
     get_variance(org_img,variance,pars);
 
@@ -35,7 +35,7 @@ void compare_E_debug(Mesh_data<S>& org_img,Mesh_data<T>& rec_img,Proc_par& pars,
     uint64_t k = 0;
     uint64_t i = 0;
 
-    Mesh_data<float> SE;
+    MeshData<float> SE;
     SE.initialize(y_num_o,x_num_o,z_num_o,0);
 
     double mean = 0;
@@ -90,7 +90,7 @@ void compare_E_debug(Mesh_data<S>& org_img,Mesh_data<T>& rec_img,Proc_par& pars,
 
 }
 template<typename S,typename T>
-void calc_mse_part_locations(Mesh_data<S>& org_img,Mesh_data<T>& rec_img,std::string name,AnalysisData& analysis_data,PartCellStructure<float,uint64_t>& pc_struct) {
+void calc_mse_part_locations(MeshData<S>& org_img,MeshData<T>& rec_img,std::string name,AnalysisData& analysis_data,PartCellStructure<float,uint64_t>& pc_struct) {
 //
     //
     //  Bevan Cheeseman 2017
@@ -215,7 +215,7 @@ void calc_mse_part_locations(Mesh_data<S>& org_img,Mesh_data<T>& rec_img,std::st
 
 
 template<typename S,typename T>
-void calc_mse(Mesh_data<S>& org_img,Mesh_data<T>& rec_img,std::string name,AnalysisData& analysis_data){
+void calc_mse(MeshData<S>& org_img,MeshData<T>& rec_img,std::string name,AnalysisData& analysis_data){
     //
     //  Bevan Cheeseman 2017
     //
@@ -252,7 +252,7 @@ void calc_mse(Mesh_data<S>& org_img,Mesh_data<T>& rec_img,std::string name,Analy
     MSE = MSE/(z_num_o*x_num_o*y_num_o*1.0);
     L1 = L1/(z_num_o*x_num_o*y_num_o*1.0);
 
-    // Mesh_data<S> SE;
+    // MeshData<S> SE;
     //SE.initialize(y_num_o,x_num_o,z_num_o,0);
 
     double var = 0;
@@ -289,7 +289,7 @@ void calc_mse(Mesh_data<S>& org_img,Mesh_data<T>& rec_img,std::string name,Analy
 }
 
 template<typename S,typename T>
-void calc_mse_debug(Mesh_data<S>& org_img,Mesh_data<T>& rec_img,std::string name,AnalysisData& analysis_data){
+void calc_mse_debug(MeshData<S>& org_img,MeshData<T>& rec_img,std::string name,AnalysisData& analysis_data){
     //
     //  Bevan Cheeseman 2017
     //
@@ -310,7 +310,7 @@ void calc_mse_debug(Mesh_data<S>& org_img,Mesh_data<T>& rec_img,std::string name
 
     double MSE = 0;
 
-    Mesh_data<S> SE;
+    MeshData<S> SE;
     SE.initialize(y_num_o,x_num_o,z_num_o,0);
 
 #pragma omp parallel for default(shared) private(j,i,k) reduction(+: MSE)
@@ -367,7 +367,7 @@ void calc_mse_debug(Mesh_data<S>& org_img,Mesh_data<T>& rec_img,std::string name
 
 
 template <typename T>
-void generate_gt_image(Mesh_data<T>& gt_image,SynImage& syn_image){
+void generate_gt_image(MeshData<T>& gt_image,SynImage& syn_image){
     //get a clean image
 
     MeshDataAF<T> gen_img;
@@ -389,7 +389,7 @@ void generate_gt_image(Mesh_data<T>& gt_image,SynImage& syn_image){
 
 }
 template <typename T>
-void generate_gt_norm_grad(Mesh_data<T>& gt_image,SynImage syn_image,bool normalize,float hx,float hy,float hz){
+void generate_gt_norm_grad(MeshData<T>& gt_image,SynImage syn_image,bool normalize,float hx,float hy,float hz){
     //get a clean image
 
     MeshDataAF<T> gen_imgx;
@@ -460,22 +460,22 @@ void generate_gt_norm_grad(Mesh_data<T>& gt_image,SynImage syn_image,bool normal
 }
 
 template <typename T>
-void generate_gt_var(Mesh_data<T>& gt_image,Mesh_data<T>& var_out,SynImage syn_image,Proc_par& pars){
+void generate_gt_var(MeshData<T>& gt_image,MeshData<T>& var_out,SynImage syn_image,Proc_par& pars){
     //get a clean image
 
 
-    Mesh_data<float> norm_grad_image;
+    MeshData<float> norm_grad_image;
 
     generate_gt_norm_grad(norm_grad_image,syn_image,true,pars.dx,pars.dy,pars.dz);
     //debug_write(norm_grad_image,"norm_grad");
 
-    Mesh_data<float> grad_image;
+    MeshData<float> grad_image;
 
     generate_gt_norm_grad(grad_image,syn_image,false,pars.dx,pars.dy,pars.dz);
    // debug_write(grad_image,"grad");
 
 
-   // Mesh_data<float> grad_image;
+   // MeshData<float> grad_image;
 
     //grad_image.initialize(gt_image.y_num,gt_image.x_num,gt_image.z_num,0);
 
@@ -490,7 +490,7 @@ void generate_gt_var(Mesh_data<T>& gt_image,Mesh_data<T>& var_out,SynImage syn_i
     float factor = 1.0;
 
 
-    Mesh_data<float> norm;
+    MeshData<float> norm;
 
     norm.initialize(grad_image.y_num,grad_image.x_num,grad_image.z_num,0);
 
@@ -521,7 +521,7 @@ void run_segmentation_benchmark_mesh(PartCellStructure<float,uint64_t> pc_struct
     //nuclei
     std::array<uint64_t,10> parameters_nuc = {100,2000,1,1,2,2,2,3,0,0};
 
-    Mesh_data<uint8_t> seg_mesh;
+    MeshData<uint8_t> seg_mesh;
 
     //memory on this machine can't handle anything bigger
     if(pc_struct.org_dims[0] <= 550){
@@ -533,7 +533,7 @@ void run_segmentation_benchmark_mesh(PartCellStructure<float,uint64_t> pc_struct
 
 }
 template <typename T>
-void generate_gt_seg(Mesh_data<T>& gt_image,SynImage& syn_image){
+void generate_gt_seg(MeshData<T>& gt_image,SynImage& syn_image){
     //get a clean image
 
     SynImage syn_image_seg = syn_image;
@@ -555,7 +555,7 @@ void generate_gt_seg(Mesh_data<T>& gt_image,SynImage& syn_image){
 
 
 }
-float compute_dice_coeff(Mesh_data<uint16_t>& gt,Mesh_data<uint8_t>& seg){
+float compute_dice_coeff(MeshData<uint16_t>& gt,MeshData<uint8_t>& seg){
     //
     //  Bevan Cheeseman 2017
     //
@@ -596,7 +596,7 @@ void evaluate_segmentation(PartCellStructure<float,uint64_t> pc_struct,AnalysisD
     //nuclei
     std::array<uint64_t,10> parameters_nuc = {100,100,2,2,2,2,2,3,0,0};
 
-    Mesh_data<uint8_t> seg_mesh;
+    MeshData<uint8_t> seg_mesh;
 
     //memory on this machine can't handle anything bigger
     if(pc_struct.org_dims[0] <= 550){
@@ -610,11 +610,11 @@ void evaluate_segmentation(PartCellStructure<float,uint64_t> pc_struct,AnalysisD
         calc_graph_cuts_segmentation(pc_struct, seg_parts, parameters_nuc);
     }
 
-    Mesh_data<uint8_t> seg_img;
+    MeshData<uint8_t> seg_img;
 
     pc_struct.interp_parts_to_pc(seg_img,seg_parts);
 
-    Mesh_data<uint16_t> gt_image;
+    MeshData<uint16_t> gt_image;
     generate_gt_seg(gt_image,syn_image);
 
     float dice_mesh = compute_dice_coeff(gt_image,seg_mesh);
@@ -624,7 +624,7 @@ void evaluate_segmentation(PartCellStructure<float,uint64_t> pc_struct,AnalysisD
     analysis_data.add_float_data("dice_parts",dice_parts);
 
 
-    Mesh_data<uint8_t> seg_img_new;
+    MeshData<uint8_t> seg_img_new;
 
     ExtraPartCellData<uint8_t> seg_parts_new;
 
@@ -719,9 +719,9 @@ void run_filter_benchmarks_mesh(PartCellStructure<float,uint64_t> pc_struct,Anal
 
     num_repeats = 1;
 
-    Mesh_data<float> output_image;
+    MeshData<float> output_image;
 
-    Mesh_data<float> input_image;
+    MeshData<float> input_image;
 
     timer.start_timer("filter");
 
@@ -773,7 +773,7 @@ void run_filter_benchmarks_parts(PartCellStructure<float,uint64_t> pc_struct,Ana
 }
 
 template<typename T>
-void remove_boundary(Mesh_data<T>& img,int sz){
+void remove_boundary(MeshData<T>& img,int sz){
     //
     //  Bevan Cheeseman 2017
     //
@@ -784,7 +784,7 @@ void remove_boundary(Mesh_data<T>& img,int sz){
     unsigned int new_x = img.x_num - 2*sz;
     unsigned int new_z = img.z_num - 2*sz;
 
-    Mesh_data<T> new_mesh;
+    MeshData<T> new_mesh;
     new_mesh.initialize(new_y,new_x,new_z,0);
 
 
@@ -802,7 +802,7 @@ void remove_boundary(Mesh_data<T>& img,int sz){
 }
 
 template<typename T>
-void evaluate_enhancement(PartCellStructure<float,uint64_t> pc_struct,AnalysisData& analysis_data,SynImage& syn_image,Mesh_data<T>& input_image,Part_rep& part_rep){
+void evaluate_enhancement(PartCellStructure<float,uint64_t> pc_struct,AnalysisData& analysis_data,SynImage& syn_image,MeshData<T>& input_image,Part_rep& part_rep){
     //
     //  Benchmark Code to Evaluate Enhancement
     //
@@ -810,7 +810,7 @@ void evaluate_enhancement(PartCellStructure<float,uint64_t> pc_struct,AnalysisDa
     //
 
 
-    Mesh_data<float> input_image_float;
+    MeshData<float> input_image_float;
 
     //transfer across to float
     input_image_float.initialize(input_image.y_num,input_image.x_num,input_image.z_num,0);
@@ -818,13 +818,13 @@ void evaluate_enhancement(PartCellStructure<float,uint64_t> pc_struct,AnalysisDa
 
     PartCellStructure<float,uint64_t> pc_struct_new = compute_guided_apr(input_image_float,pc_struct,part_rep);
 
-    Mesh_data<float> output;
+    MeshData<float> output;
 
     pc_struct_new.interp_parts_to_pc(output,pc_struct_new.part_data.particle_data);
 
     debug_write(output,"new_apr");
 
-    Mesh_data<uint8_t> k_img;
+    MeshData<uint8_t> k_img;
     interp_depth_to_mesh(k_img,pc_struct);
     debug_write(k_img,"k_debug_old");
 
@@ -840,7 +840,7 @@ void evaluate_enhancement(PartCellStructure<float,uint64_t> pc_struct,AnalysisDa
 
 
 template<typename T>
-void evaluate_filters(PartCellStructure<float,uint64_t> pc_struct,AnalysisData& analysis_data,SynImage& syn_image,Mesh_data<T>& input_image){
+void evaluate_filters(PartCellStructure<float,uint64_t> pc_struct,AnalysisData& analysis_data,SynImage& syn_image,MeshData<T>& input_image){
     //
     //  Bevan Cheeseman 2017
     //
@@ -860,14 +860,14 @@ void evaluate_filters(PartCellStructure<float,uint64_t> pc_struct,AnalysisData& 
     float num_repeats = 1;
 
     //Generate clean gt image
-    Mesh_data<uint16_t> gt_image;
+    MeshData<uint16_t> gt_image;
     generate_gt_image(gt_image, syn_image);
 
-    Mesh_data<float> gt_image_f;
+    MeshData<float> gt_image_f;
     gt_image_f.initialize(input_image.y_num,input_image.x_num,input_image.z_num,0);
     std::copy(gt_image.mesh.begin(),gt_image.mesh.end(),gt_image_f.mesh.begin());
 
-    Mesh_data<float> gt_output;
+    MeshData<float> gt_output;
 
     gt_output =  pixel_filter_full(gt_image_f,filter,num_repeats,analysis_data);
 
@@ -876,9 +876,9 @@ void evaluate_filters(PartCellStructure<float,uint64_t> pc_struct,AnalysisData& 
     debug_write(gt_output,"filt_gt");
 
     // Compute Full Filter on input
-    Mesh_data<float> output_image_org;
+    MeshData<float> output_image_org;
 
-    Mesh_data<float> input_image_org;
+    MeshData<float> input_image_org;
 
     //transfer across to float
     input_image_org.initialize(input_image.y_num,input_image.x_num,input_image.z_num,0);
@@ -893,9 +893,9 @@ void evaluate_filters(PartCellStructure<float,uint64_t> pc_struct,AnalysisData& 
     debug_write(output_image_org,"filt_org");
 
     // Compute Full Filter on APR reconstruction
-    Mesh_data<float> output_image_rec;
+    MeshData<float> output_image_rec;
 
-    Mesh_data<float> input_image_rec;
+    MeshData<float> input_image_rec;
 
     pc_struct.interp_parts_to_pc(input_image_rec,pc_struct.part_data.particle_data);
 
@@ -913,7 +913,7 @@ void evaluate_filters(PartCellStructure<float,uint64_t> pc_struct,AnalysisData& 
 
     filter_output = filter_apr_by_slice<float>(pc_struct,filter,analysis_data,num_repeats);
 
-    Mesh_data<float> output_image_apr;
+    MeshData<float> output_image_apr;
 
     ParticleDataNew<float, uint64_t> part_new;
     //flattens format to particle = cell, this is in the classic access/part paradigm
@@ -948,7 +948,7 @@ void evaluate_filters(PartCellStructure<float,uint64_t> pc_struct,AnalysisData& 
 
 
 template<typename T>
-void evaluate_filters_guassian(PartCellStructure<float,uint64_t> pc_struct,AnalysisData& analysis_data,SynImage& syn_image,Mesh_data<T>& input_image,float sigma){
+void evaluate_filters_guassian(PartCellStructure<float,uint64_t> pc_struct,AnalysisData& analysis_data,SynImage& syn_image,MeshData<T>& input_image,float sigma){
     //
     //  Bevan Cheeseman 2017
     //
@@ -970,15 +970,15 @@ void evaluate_filters_guassian(PartCellStructure<float,uint64_t> pc_struct,Analy
     float num_repeats = 1;
 
     //Generate clean gt image
-    Mesh_data<uint16_t> gt_image;
+    MeshData<uint16_t> gt_image;
     generate_gt_image(gt_image, syn_image);
 
 
-    Mesh_data<float> gt_image_f;
+    MeshData<float> gt_image_f;
     gt_image_f.initialize(input_image.y_num,input_image.x_num,input_image.z_num,0);
     std::copy(gt_image.mesh.begin(),gt_image.mesh.end(),gt_image_f.mesh.begin());
 
-    Mesh_data<float> gt_output;
+    MeshData<float> gt_output;
 
     gt_output =  pixel_filter_full_mult(gt_image_f,filter,filter,filter,num_repeats,analysis_data);
 
@@ -987,9 +987,9 @@ void evaluate_filters_guassian(PartCellStructure<float,uint64_t> pc_struct,Analy
     //debug_write(gt_output,"gauss_filt_gt_" + std::to_string(sigma));
 
     // Compute Full Filter on input
-    Mesh_data<float> output_image_org;
+    MeshData<float> output_image_org;
 
-    Mesh_data<float> input_image_org;
+    MeshData<float> input_image_org;
 
     //transfer across to float
     input_image_org.initialize(input_image.y_num,input_image.x_num,input_image.z_num,0);
@@ -1005,9 +1005,9 @@ void evaluate_filters_guassian(PartCellStructure<float,uint64_t> pc_struct,Analy
     //debug_write(output_image_org,"gauss_filt_org"  + std::to_string(sigma));
 
     // Compute Full Filter on APR reconstruction
-    Mesh_data<float> output_image_rec;
+    MeshData<float> output_image_rec;
 
-    Mesh_data<float> input_image_rec;
+    MeshData<float> input_image_rec;
 
     pc_struct.interp_parts_to_pc(input_image_rec,pc_struct.part_data.particle_data);
 
@@ -1026,7 +1026,7 @@ void evaluate_filters_guassian(PartCellStructure<float,uint64_t> pc_struct,Analy
 
     filter_output = filter_apr_by_slice_mult<float>(pc_struct,filter,filter,filter,analysis_data,num_repeats);
 
-    Mesh_data<float> output_image_apr;
+    MeshData<float> output_image_apr;
 
     ParticleDataNew<float, uint64_t> part_new;
     //flattens format to particle = cell, this is in the classic access/part paradigm
@@ -1052,7 +1052,7 @@ void evaluate_filters_guassian(PartCellStructure<float,uint64_t> pc_struct,Analy
 
 }
 template<typename T>
-void evaluate_filters_log(PartCellStructure<float,uint64_t> pc_struct,AnalysisData& analysis_data,SynImage& syn_image,Mesh_data<T>& input_image){
+void evaluate_filters_log(PartCellStructure<float,uint64_t> pc_struct,AnalysisData& analysis_data,SynImage& syn_image,MeshData<T>& input_image){
     //
     //  Bevan Cheeseman 2017
     //
@@ -1074,17 +1074,17 @@ void evaluate_filters_log(PartCellStructure<float,uint64_t> pc_struct,AnalysisDa
     float num_repeats = 1;
 
     //Generate clean gt image
-    Mesh_data<uint16_t> gt_image;
+    MeshData<uint16_t> gt_image;
     generate_gt_image(gt_image, syn_image);
 
 
-    Mesh_data<float> gt_image_f;
+    MeshData<float> gt_image_f;
     gt_image_f.initialize(input_image.y_num,input_image.x_num,input_image.z_num,0);
     std::copy(gt_image.mesh.begin(),gt_image.mesh.end(),gt_image_f.mesh.begin());
 
-    Mesh_data<float> gt_output;
+    MeshData<float> gt_output;
 
-    Mesh_data<float> temp;
+    MeshData<float> temp;
     temp.initialize(gt_image.y_num,gt_image.x_num,gt_image.z_num,0);
 
     //first y direction
@@ -1125,7 +1125,7 @@ void evaluate_filters_log(PartCellStructure<float,uint64_t> pc_struct,AnalysisDa
 }
 
 
-void compute_guass_smooth(float sigma,Mesh_data<float> input,Mesh_data<float> gt_output,AnalysisData& analysis_data,std::string name){
+void compute_guass_smooth(float sigma,MeshData<float> input,MeshData<float> gt_output,AnalysisData& analysis_data,std::string name){
     //
     //  Performs Guassian Smoothing on Image and compares to GT.
     //
@@ -1137,7 +1137,7 @@ void compute_guass_smooth(float sigma,Mesh_data<float> input,Mesh_data<float> gt
 
     filter = create_gauss_filter<float>(sigma,filter_offset);
 
-    Mesh_data<float> output_image_org;
+    MeshData<float> output_image_org;
 
     output_image_org =  pixel_filter_full_mult(input,filter,filter,filter,num_repeats,analysis_data);
 
@@ -1151,7 +1151,7 @@ void compute_guass_smooth(float sigma,Mesh_data<float> input,Mesh_data<float> gt
 
 
 template<typename T>
-void evaluate_adaptive_smooth(PartCellStructure<float,uint64_t> pc_struct,AnalysisData& analysis_data,SynImage& syn_image,Mesh_data<T>& input_image){
+void evaluate_adaptive_smooth(PartCellStructure<float,uint64_t> pc_struct,AnalysisData& analysis_data,SynImage& syn_image,MeshData<T>& input_image){
     //
     //  Bevan Cheeseman 2017
     //
@@ -1166,17 +1166,17 @@ void evaluate_adaptive_smooth(PartCellStructure<float,uint64_t> pc_struct,Analys
     float num_repeats = 1;
 
     //Generate clean gt image
-    Mesh_data<uint16_t> gt_image;
+    MeshData<uint16_t> gt_image;
     generate_gt_image(gt_image, syn_image);
 
     debug_write(gt_image,"gt_image");
 
-    Mesh_data<float> gt_image_f;
+    MeshData<float> gt_image_f;
     gt_image_f.initialize(input_image.y_num,input_image.x_num,input_image.z_num,0);
     std::copy(gt_image.mesh.begin(),gt_image.mesh.end(),gt_image_f.mesh.begin());
 
-    Mesh_data<float> input_image_org;
-    Mesh_data<float> output_image_org;
+    MeshData<float> input_image_org;
+    MeshData<float> output_image_org;
 
     //transfer across to float
     input_image_org.initialize(input_image.y_num,input_image.x_num,input_image.z_num,0);
@@ -1196,7 +1196,7 @@ void evaluate_adaptive_smooth(PartCellStructure<float,uint64_t> pc_struct,Analys
 
     // Compute Full Filter on APR reconstruction
 
-    Mesh_data<float> input_image_rec;
+    MeshData<float> input_image_rec;
 
     pc_struct.interp_parts_to_pc(input_image_rec,pc_struct.part_data.particle_data);
 
@@ -1208,7 +1208,7 @@ void evaluate_adaptive_smooth(PartCellStructure<float,uint64_t> pc_struct,Analys
 
     debug_write(input_image_rec,"rec_image");
 
-    Mesh_data<float> output_image_apr;
+    MeshData<float> output_image_apr;
 
     ParticleDataNew<float, uint64_t> part_new;
     //flattens format to particle = cell, this is in the classic access/part paradigm
@@ -1307,7 +1307,7 @@ void run_real_segmentation(PartCellStructure<float,uint64_t> pc_struct,AnalysisD
 
     part_new.particle_data.org_dims = pc_struct.org_dims;
 
-    Mesh_data<uint16_t> seg_mesh;
+    MeshData<uint16_t> seg_mesh;
 
     timer.start_timer("interp_img");
 
@@ -1347,7 +1347,7 @@ void run_real_segmentation(PartCellStructure<float,uint64_t> pc_struct,AnalysisD
 //NEEDS TO BE UPDATED BELOW TO NEW STRUCTURES IF I WANT TO BE ABLE TO KEEP IT IN
 
 //template<typename T>
-//void run_ray_cast(PartCellStructure<float,uint64_t> pc_struct,AnalysisData& analysis_data,Mesh_data<T>& input_image,Proc_par& pars){
+//void run_ray_cast(PartCellStructure<float,uint64_t> pc_struct,AnalysisData& analysis_data,MeshData<T>& input_image,Proc_par& pars){
 //    //
 //    //  Bevan Cheeseman 2017
 //    //
@@ -1402,7 +1402,7 @@ void run_real_segmentation(PartCellStructure<float,uint64_t> pc_struct,AnalysisD
 //}
 
 template<typename T>
-void evaluate_adaptive_grad(PartCellStructure<float,uint64_t> pc_struct,AnalysisData& analysis_data,SynImage& syn_image,Mesh_data<T>& input_image){
+void evaluate_adaptive_grad(PartCellStructure<float,uint64_t> pc_struct,AnalysisData& analysis_data,SynImage& syn_image,MeshData<T>& input_image){
     //
     //  Bevan Cheeseman 2017
     //
@@ -1413,18 +1413,18 @@ void evaluate_adaptive_grad(PartCellStructure<float,uint64_t> pc_struct,Analysis
     //get gt and original gradient
 
     //Generate clean gt image
-    Mesh_data<uint16_t> gt_image;
+    MeshData<uint16_t> gt_image;
     generate_gt_image(gt_image, syn_image);
 
     debug_write(gt_image,"gt_image");
 
-    Mesh_data<float> output_gt;
+    MeshData<float> output_gt;
     output_gt = compute_grad(gt_image);
 
     remove_boundary(output_gt,2);
     debug_write(output_gt,"gt_grad");
 
-    Mesh_data<float> output_org;
+    MeshData<float> output_org;
     output_org = compute_grad(input_image);
 
     remove_boundary(output_org,2);
@@ -1434,11 +1434,11 @@ void evaluate_adaptive_grad(PartCellStructure<float,uint64_t> pc_struct,Analysis
 
     //compute grad on APR reconstructed
 
-    Mesh_data<float> input_image_rec;
+    MeshData<float> input_image_rec;
 
     pc_struct.interp_parts_to_pc(input_image_rec,pc_struct.part_data.particle_data);
 
-    Mesh_data<float> output_rec;
+    MeshData<float> output_rec;
     output_rec = compute_grad(input_image_rec);
 
     remove_boundary(output_rec,2);
@@ -1446,7 +1446,7 @@ void evaluate_adaptive_grad(PartCellStructure<float,uint64_t> pc_struct,Analysis
 
     calc_mse(output_gt,output_rec,"rec_grad",analysis_data);
 
-    Mesh_data<float> output_image_apr;
+    MeshData<float> output_image_apr;
 
     ParticleDataNew<float, uint64_t> part_new;
     //flattens format to particle = cell, this is in the classic access/part paradigm
@@ -1495,7 +1495,7 @@ void evaluate_adaptive_grad(PartCellStructure<float,uint64_t> pc_struct,Analysis
 }
 
 template<typename T>
-void real_adaptive_grad(PartCellStructure<float,uint64_t> pc_struct,AnalysisData& analysis_data,Mesh_data<T>& input_image,Proc_par& pars){
+void real_adaptive_grad(PartCellStructure<float,uint64_t> pc_struct,AnalysisData& analysis_data,MeshData<T>& input_image,Proc_par& pars){
     //
     //  Bevan Cheeseman 2017
     //
@@ -1505,11 +1505,11 @@ void real_adaptive_grad(PartCellStructure<float,uint64_t> pc_struct,AnalysisData
 
     Part_timer timer;
 
-    Mesh_data<float> output_org;
+    MeshData<float> output_org;
 
 
     //compute grad on APR reconstructed
-    Mesh_data<float> input_image_org;
+    MeshData<float> input_image_org;
 
 
     //transfer across to float
@@ -1551,7 +1551,7 @@ void real_adaptive_grad(PartCellStructure<float,uint64_t> pc_struct,AnalysisData
 
     timer.stop_timer();
 
-    Mesh_data<float> output_image_apr;
+    MeshData<float> output_image_apr;
 
     interp_img(output_image_apr, pc_data, part_new, smoothed_gradient_mag,true);
 

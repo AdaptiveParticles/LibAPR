@@ -18,7 +18,7 @@
 
 #include "src/io/hdf5functions_blosc.h"
 
-#include "src/data_structures/APR/APR_iterator.hpp"
+#include "src/data_structures/APR/APRIterator.hpp"
 
 #include "src/misc/APR_timer.hpp"
 
@@ -42,7 +42,7 @@ class APR_parameters;
 
 
 template<typename ImageType>
-class APR : public APR_iterator<ImageType>{
+class APR : public APRIterator<ImageType>{
 
     template<typename S>
     friend class APR_converter;
@@ -158,7 +158,7 @@ public:
     //////////////////////////
 
     template<typename U,typename V>
-    void interp_img(Mesh_data<U>& img,ExtraPartCellData<V>& parts){
+    void interp_img(MeshData<U>& img,ExtraPartCellData<V>& parts){
         //
         //  Bevan Cheeseman 2016
         //
@@ -171,7 +171,7 @@ public:
 
 
     template<typename U>
-    void interp_depth_ds(Mesh_data<U>& img){
+    void interp_depth_ds(MeshData<U>& img){
         //
         //  Returns an image of the depth, this is down-sampled by one, as the Particle Cell solution reflects this
         //
@@ -182,7 +182,7 @@ public:
     }
 
     template<typename U>
-    void interp_depth(Mesh_data<U>& img){
+    void interp_depth(MeshData<U>& img){
         //
         //  Returns an image of the depth, this is down-sampled by one, as the Particle Cell solution reflects this
         //
@@ -192,7 +192,7 @@ public:
     }
 
     template<typename U>
-    void interp_type(Mesh_data<U>& img){
+    void interp_type(MeshData<U>& img){
         //
         //  Interpolates the APR
         //
@@ -202,7 +202,7 @@ public:
     }
 
     template<typename U,typename V>
-    void interp_parts_smooth(Mesh_data<U>& out_image,ExtraPartCellData<V>& interp_data,std::vector<float> scale_d = {2,2,2}){
+    void interp_parts_smooth(MeshData<U>& out_image,ExtraPartCellData<V>& interp_data,std::vector<float> scale_d = {2,2,2}){
         //
         //  Performs a smooth interpolation, based on the depth (level l) in each direction.
         //
@@ -212,7 +212,7 @@ public:
     }
 
     template<typename U,typename V>
-    void get_parts_from_img(Mesh_data<U>& img,ExtraPartCellData<V>& parts){
+    void get_parts_from_img(MeshData<U>& img,ExtraPartCellData<V>& parts){
         //
         //  Bevan Cheeseman 2016
         //
@@ -224,7 +224,7 @@ public:
         parts.init(*this);
 
         //initialization of the iteration structures
-        APR_iterator<ImageType> apr_it(*this); //this is required for parallel access
+        APRIterator<ImageType> apr_it(*this); //this is required for parallel access
         uint64_t part;
 
 #pragma omp parallel for schedule(static) private(part) firstprivate(apr_it)
@@ -239,7 +239,7 @@ public:
     }
 
     template<typename U,typename V>
-    void get_parts_from_img(std::vector<Mesh_data<U>>& img_by_level,ExtraPartCellData<V>& parts){
+    void get_parts_from_img(std::vector<MeshData<U>>& img_by_level,ExtraPartCellData<V>& parts){
         //
         //  Bevan Cheeseman 2016
         //
@@ -249,7 +249,7 @@ public:
         parts.init(*this);
 
         //initialization of the iteration structures
-        APR_iterator<ImageType> apr_it(*this); //this is required for parallel access
+        APRIterator<ImageType> apr_it(*this); //this is required for parallel access
         uint64_t part;
 
 #pragma omp parallel for schedule(static) private(part) firstprivate(apr_it)

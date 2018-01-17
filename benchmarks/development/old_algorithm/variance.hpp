@@ -234,7 +234,7 @@ public:
 
 
 template<typename T>
-void calc_sat_mean_y(Mesh_data<T>& input,const int offset){
+void calc_sat_mean_y(MeshData<T>& input,const int offset){
     //
     //  Bevan Cheeseman 2016
     //
@@ -308,7 +308,7 @@ void calc_sat_mean_y(Mesh_data<T>& input,const int offset){
 }
 
 template<typename T>
-void calc_sat_mean_x(Mesh_data<T>& input,const int offset){
+void calc_sat_mean_x(MeshData<T>& input,const int offset){
     // The same, but in place
 
     const int z_num = input.z_num;
@@ -386,7 +386,7 @@ void calc_sat_mean_x(Mesh_data<T>& input,const int offset){
 
 
 template<typename T>
-void calc_sat_mean_z(Mesh_data<T>& input,const int offset) {
+void calc_sat_mean_z(MeshData<T>& input,const int offset) {
 
     // The same, but in place
 
@@ -466,7 +466,7 @@ void calc_sat_mean_z(Mesh_data<T>& input,const int offset) {
 
 
 template<typename T>
-void calc_abs_diff(Mesh_data<T>& input_image,Mesh_data<T>& var){
+void calc_abs_diff(MeshData<T>& input_image,MeshData<T>& var){
     //
     //  Bevan Cheeseman 2016
     //
@@ -493,7 +493,7 @@ void calc_abs_diff(Mesh_data<T>& input_image,Mesh_data<T>& var){
 
 }
 template<typename T>
-void intensity_th(Mesh_data<T>& input_image,Mesh_data<T>& var,const float threshold,float max_th_input = 60000){
+void intensity_th(MeshData<T>& input_image,MeshData<T>& var,const float threshold,float max_th_input = 60000){
     //
     //  Bevan Cheeseman 2016
     //
@@ -531,7 +531,7 @@ void intensity_th(Mesh_data<T>& input_image,Mesh_data<T>& var,const float thresh
 }
 
 template<typename T>
-void rescale_var_and_threshold(Mesh_data<T>& var,const float var_rescale,Part_rep& p_rep){
+void rescale_var_and_threshold(MeshData<T>& var,const float var_rescale,Part_rep& p_rep){
     //
     //  Bevan Cheeseman 2016
     //
@@ -568,7 +568,7 @@ void rescale_var_and_threshold(Mesh_data<T>& var,const float var_rescale,Part_re
 }
 
 template<typename T>
-void get_variance_2D(Part_rep &p_rep, Mesh_data<T> &input_image, Mesh_data<T> &var){
+void get_variance_2D(Part_rep &p_rep, MeshData<T> &input_image, MeshData<T> &var){
     //
     //  Bevan Cheeseman 2016
     //
@@ -584,7 +584,7 @@ void get_variance_2D(Part_rep &p_rep, Mesh_data<T> &input_image, Mesh_data<T> &v
                 [](T x) { return x * (1.0/8.0); });
 
     // copy constructor
-    Mesh_data<T> temp = var;
+    MeshData<T> temp = var;
 
     Map_calc_cpu calc_map(0,p_rep.pars);
 
@@ -645,7 +645,7 @@ void get_variance_2D(Part_rep &p_rep, Mesh_data<T> &input_image, Mesh_data<T> &v
 }
 
 template<typename T>
-void get_variance_3D(Part_rep &p_rep, Mesh_data<T> &input_image, Mesh_data<T> &var){
+void get_variance_3D(Part_rep &p_rep, MeshData<T> &input_image, MeshData<T> &var){
     //
     //  Bevan Cheeseman 2016
     //
@@ -661,7 +661,7 @@ void get_variance_3D(Part_rep &p_rep, Mesh_data<T> &input_image, Mesh_data<T> &v
                 [](T x) { return x * (1.0/8.0); });
 
     // copy constructor
-    Mesh_data<T> temp = var;
+    MeshData<T> temp = var;
 
     Map_calc_cpu calc_map(0,p_rep.pars);
 

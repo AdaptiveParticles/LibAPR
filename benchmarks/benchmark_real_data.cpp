@@ -65,7 +65,7 @@ int main(int argc, char **argv) {
 
             Part_rep part_rep;
 
-            Mesh_data<uint16_t> input_image;
+            MeshData<uint16_t> input_image;
 
             std::string image_file_name = options.directory + file_list[j];
 
@@ -89,7 +89,7 @@ int main(int argc, char **argv) {
                 produce_apr_analysis(input_image, analysis_data, pc_struct, part_rep.pars);
 
 
-                Mesh_data<uint16_t> interp_img;
+                MeshData<uint16_t> interp_img;
                 // save pc reconstruction
                 pc_struct.interp_parts_to_pc(interp_img,pc_struct.part_data.particle_data);
                 write_image_tiff(input_image, path_image  + image_name + ".tif");

@@ -8,11 +8,11 @@
 
 #include "utils.h"
 
-bool compare_two_images(const Mesh_data<uint16_t>& in_memory, std::string filename) {
+bool compare_two_images(const MeshData<uint16_t>& in_memory, std::string filename) {
 
     /* Returns true iff two images are the same with tolerance of 1 per pixel. */
 
-    Mesh_data<uint16_t > input_image;
+    MeshData<uint16_t > input_image;
 
     load_image_tiff(input_image, filename);
 
@@ -34,7 +34,7 @@ bool compare_two_ks(const Particle_map<float>& in_memory, std::string filename) 
 
     for (int k = in_memory.k_min;k <= in_memory.k_max;k++) {
 
-        Mesh_data<uint8_t > to_compare;
+        MeshData<uint8_t > to_compare;
 
         // in_memory.layers[k]
         load_image_tiff(to_compare, filename + "_" + std::to_string(k) + ".tif");
@@ -121,7 +121,7 @@ bool compare_part_rep_with_particle_map(const Particle_map<float>& in_memory, st
     return true;
 }
 
-Mesh_data<uint16_t> create_random_test_example(unsigned int size_y, unsigned int size_x,
+MeshData<uint16_t> create_random_test_example(unsigned int size_y, unsigned int size_x,
                                                unsigned int size_z, unsigned int seed) {
     // creates the input image of a given size with given seed
     // uses ranlux48 random number generator
@@ -130,7 +130,7 @@ Mesh_data<uint16_t> create_random_test_example(unsigned int size_y, unsigned int
     std::ranlux48 generator(seed);
     std::normal_distribution<float> distribution(1000, 250);
 
-    Mesh_data<uint16_t> test_example(size_y, size_x, size_z);
+    MeshData<uint16_t> test_example(size_y, size_x, size_z);
 
     std::generate(test_example.mesh.begin(), test_example.mesh.end(),
             // partial application of generator and distribution to get_random_number function
@@ -140,7 +140,7 @@ Mesh_data<uint16_t> create_random_test_example(unsigned int size_y, unsigned int
 
 }
 
-Mesh_data<uint16_t> generate_random_ktest_example(unsigned int size_y, unsigned int size_x,
+MeshData<uint16_t> generate_random_ktest_example(unsigned int size_y, unsigned int size_x,
                                                   unsigned int size_z, unsigned int seed,
                                                   float mean_fraction, float sd_fraction) {
 
@@ -156,7 +156,7 @@ Mesh_data<uint16_t> generate_random_ktest_example(unsigned int size_y, unsigned 
 
     std::normal_distribution<float> distribution(k_max * mean_fraction, k_max * sd_fraction);
 
-    Mesh_data<uint16_t> test_example(size_y, size_x, size_z);
+    MeshData<uint16_t> test_example(size_y, size_x, size_z);
 
 #pragma omp parallel for default(shared)
     for(int i = 0; i < test_example.mesh.size(); i++){
@@ -1436,7 +1436,7 @@ bool parent_structure_test(PartCellStructure<float,uint64_t>& pc_struct){
     PartCellNeigh<uint64_t> neigh_keys;
 
 
-//    Mesh_data<uint8_t> temp;
+//    MeshData<uint8_t> temp;
 //    for(int i = parent_cells.neigh_info.depth_min; i <= parent_cells.neigh_info.depth_max;i++){
 //        temp.y_num = pc_struct.y_num[i];
 //        temp.x_num = pc_struct.x_num[i];
@@ -1881,7 +1881,7 @@ void create_test_dataset_from_hdf5(Particle_map<float>& particle_map,PartCellStr
 
 
 }
-void create_reference_structure(PartCellStructure<float,uint64_t>& pc_struct,std::vector<Mesh_data<uint64_t>>& link_array){
+void create_reference_structure(PartCellStructure<float,uint64_t>& pc_struct,std::vector<MeshData<uint64_t>>& link_array){
     //
     //  Creates an array that can be used to link the new particle data structure for the filtering with the newer one.
     //
@@ -2008,7 +2008,7 @@ void create_reference_structure(PartCellStructure<float,uint64_t>& pc_struct,std
 
 
 }
-void create_j_reference_structure(PartCellStructure<float,uint64_t>& pc_struct,std::vector<Mesh_data<uint64_t>>& j_array){
+void create_j_reference_structure(PartCellStructure<float,uint64_t>& pc_struct,std::vector<MeshData<uint64_t>>& j_array){
     //
     //  Creates an array that can be used to link the new particle data structure for the filtering with the newer one.
     //
@@ -2102,7 +2102,7 @@ void create_j_reference_structure(PartCellStructure<float,uint64_t>& pc_struct,s
 
 
 }
-void create_j_reference_structure(PartCellData<uint64_t>& pc_data,std::vector<Mesh_data<uint64_t>>& j_array){
+void create_j_reference_structure(PartCellData<uint64_t>& pc_data,std::vector<MeshData<uint64_t>>& j_array){
     //
     //  Creates an array that can be used to link the new particle data structure for the filtering with the newer one.
     //
@@ -2194,7 +2194,7 @@ void create_j_reference_structure(PartCellData<uint64_t>& pc_data,std::vector<Me
 
 
 }
-pc_key find_neigh_cell(pc_key curr_cell,int dir,std::vector<Mesh_data<uint64_t>>& j_array){
+pc_key find_neigh_cell(pc_key curr_cell,int dir,std::vector<MeshData<uint64_t>>& j_array){
     //
     //  Bevan Cheeseman 2017
     //
@@ -2310,7 +2310,7 @@ pc_key find_neigh_cell(pc_key curr_cell,int dir,std::vector<Mesh_data<uint64_t>>
     return neigh_key;
 
 }
-pc_key find_neigh_cell_edge(pc_key curr_cell,int dir,std::vector<Mesh_data<uint64_t>>& j_array){
+pc_key find_neigh_cell_edge(pc_key curr_cell,int dir,std::vector<MeshData<uint64_t>>& j_array){
     //
     //  Bevan Cheeseman 2017
     //
@@ -2426,7 +2426,7 @@ pc_key find_neigh_cell_edge(pc_key curr_cell,int dir,std::vector<Mesh_data<uint6
     return neigh_key;
 
 }
-pc_key find_neigh_cell_corner(pc_key curr_cell,int dir,std::vector<Mesh_data<uint64_t>>& j_array){
+pc_key find_neigh_cell_corner(pc_key curr_cell,int dir,std::vector<MeshData<uint64_t>>& j_array){
     //
     //  Bevan Cheeseman 2017
     //
@@ -2545,7 +2545,7 @@ pc_key find_neigh_cell_corner(pc_key curr_cell,int dir,std::vector<Mesh_data<uin
 
 
 
-void create_intensity_reference_structure(PartCellStructure<float,uint64_t>& pc_struct,std::vector<Mesh_data<float>>& int_array){
+void create_intensity_reference_structure(PartCellStructure<float,uint64_t>& pc_struct,std::vector<MeshData<float>>& int_array){
     //
     //  Creates an array that can be used to link the new particle data structure for the filtering with the newer one.
     //
@@ -3135,7 +3135,7 @@ bool utest_alt_part_struct(PartCellStructure<float,uint64_t>& pc_struct){
 
     bool success = true;
 
-    std::vector<Mesh_data<float>> int_array;
+    std::vector<MeshData<float>> int_array;
 
     create_intensity_reference_structure(pc_struct,int_array);
 
@@ -3270,7 +3270,7 @@ bool utest_apr_serial_iterate(PartCellStructure<float,uint64_t>& pc_struct){
     create_pc_data_new(apr,pc_struct);
 
 
-    std::vector<Mesh_data<float>> int_array;
+    std::vector<MeshData<float>> int_array;
 
     create_intensity_reference_structure(pc_struct,int_array);
 
@@ -3300,11 +3300,11 @@ bool utest_apr_parallel_iterate(PartCellStructure<float,uint64_t>& pc_struct){
 
     create_pc_data_new(apr,pc_struct);
 
-    std::vector<Mesh_data<float>> int_array;
+    std::vector<MeshData<float>> int_array;
 
     create_intensity_reference_structure(pc_struct,int_array);
 
-    APR_iterator<float> apr_iterator(apr);
+    APRIterator<float> apr_iterator(apr);
     uint64_t particle_number = 0;
 
 #pragma omp parallel for schedule(static) private(particle_number) firstprivate(apr_iterator)
@@ -3441,9 +3441,9 @@ bool utest_apr_serial_neigh(PartCellStructure<float,uint64_t>& pc_struct){
 
     create_pc_data_new(apr,pc_struct);
 
-    std::vector<Mesh_data<float>> int_array;
+    std::vector<MeshData<float>> int_array;
 
-    APR_iterator<float> neigh_it(apr);
+    APRIterator<float> neigh_it(apr);
 
     create_intensity_reference_structure(pc_struct,int_array);
 
@@ -3520,13 +3520,13 @@ bool utest_apr_parallel_neigh(PartCellStructure<float,uint64_t>& pc_struct){
 
     create_pc_data_new(apr,pc_struct);
 
-    std::vector<Mesh_data<float>> int_array;
+    std::vector<MeshData<float>> int_array;
 
-    APR_iterator<float> neigh_it(apr);
+    APRIterator<float> neigh_it(apr);
 
     create_intensity_reference_structure(pc_struct,int_array);
 
-    APR_iterator<float> apr_it(apr);
+    APRIterator<float> apr_it(apr);
     unsigned int part = 0;
 
 #pragma omp parallel for schedule(static) private(part) firstprivate(apr_it,neigh_it)
@@ -3986,9 +3986,9 @@ bool utest_apr_read_write(PartCellStructure<float,uint64_t>& pc_struct){
 
 
 
-    std::vector<Mesh_data<float>> int_array;
+    std::vector<MeshData<float>> int_array;
 
-    APR_iterator<float> neigh_it(apr_read);
+    APRIterator<float> neigh_it(apr_read);
 
     create_intensity_reference_structure(pc_struct,int_array);
 
@@ -4077,7 +4077,7 @@ bool utest_neigh_cells(PartCellStructure<float,uint64_t>& pc_struct){   //  Calc
     //  Should be written with the neighbour iterators instead.
     //
 
-    std::vector<Mesh_data<uint64_t>> j_array;
+    std::vector<MeshData<uint64_t>> j_array;
 
     create_j_reference_structure(pc_struct,j_array);
 
@@ -4340,7 +4340,7 @@ bool utest_moore_neighbours(PartCellStructure<float,uint64_t>& pc_struct){
     PartCellData<uint64_t> pc_data;
     part_new.create_pc_data_new(pc_data);
 
-    std::vector<Mesh_data<uint64_t>> j_array;
+    std::vector<MeshData<uint64_t>> j_array;
 
     create_j_reference_structure(pc_data,j_array);
 

@@ -169,7 +169,7 @@ int main(int argc, char **argv) {
 //
 //        syn_image_loc.generate_syn_image(gen_image);
 //
-//        Mesh_data<uint16_t> input_img;
+//        MeshData<uint16_t> input_img;
 //
 //        copy_mesh_data_structures(gen_image, input_img);
 //
@@ -205,7 +205,7 @@ int main(int argc, char **argv) {
 //
 //
 //
-//        Mesh_data<float> input_image_float;
+//        MeshData<float> input_image_float;
 //
 //        input_image_float.initialize(input_img.y_num,input_img.x_num,input_img.z_num);
 //
@@ -264,7 +264,7 @@ int main(int argc, char **argv) {
 //            analysis_data.add_float_data("total_used",total_used);
 //
 //
-//           Mesh_data<float> test_recon;
+//           MeshData<float> test_recon;
 //
 //           // interp_img(test_recon,apr_temp.y_vec,apr_t.parts_recon_prev);
 //
@@ -282,7 +282,7 @@ int main(int argc, char **argv) {
 //
 //
 //
-//            Mesh_data<float> tp;
+//            MeshData<float> tp;
 //
 //            //interp_img(tp,apr_temp.y_vec,apr_t.prev_scale);
 //
@@ -296,7 +296,7 @@ int main(int argc, char **argv) {
 ////            debug_write(test_recon,"sp_"+ std::to_string((int)t));
 ////
 ////
-//            Mesh_data<float> lp;
+//            MeshData<float> lp;
 ////
 //           // interp_img(lp,apr_temp.y_vec,apr_t.prev_l);
 ////

@@ -73,7 +73,7 @@ struct coords3d {
 
 
 template <class T>
-class Mesh_data{
+class MeshData{
     //Defines what a particle is and what characteristics it has
 public :
 
@@ -88,19 +88,19 @@ public :
 
 
 
-    Mesh_data()
+    MeshData()
             :y_num(0),x_num(0),z_num(0)
     {}
 
-    Mesh_data(int y_num,int x_num,int z_num)
+    MeshData(int y_num,int x_num,int z_num)
             :y_num(y_num),x_num(x_num),z_num(z_num)
     {
         mesh.resize(y_num*x_num*z_num);
         //mesh.resize(y_num,std::vector<std::vector<T> >(x_num,std::vector<T>(z_num)));
     }
 
-    template <class U> Mesh_data<U> to_type(){
-        Mesh_data<U> new_value(y_num, x_num, z_num);
+    template <class U> MeshData<U> to_type(){
+        MeshData<U> new_value(y_num, x_num, z_num);
         std::copy(mesh.begin(), mesh.end(), new_value.mesh.begin());
         return new_value;
     }
@@ -139,7 +139,7 @@ public :
     }
 
     template<typename U>
-    void block_copy_data(Mesh_data<U>& input,unsigned int num_z_blocks = 10){
+    void block_copy_data(MeshData<U>& input,unsigned int num_z_blocks = 10){
         //
         //  Attempt to utilize a parallel copy to saturate the memory performance, requires prior initialization
         //
@@ -188,7 +188,7 @@ public :
 
 
     template<typename S>
-    void initialize(Mesh_data<S>& other_img){
+    void initialize(MeshData<S>& other_img){
         //
         //  Initialize using another image
         //
@@ -290,7 +290,7 @@ private:
 };
 
 template<typename T>
-void Mesh_data<T>::load_image_tiff(std::string file_name,int z_start, int z_end){
+void MeshData<T>::load_image_tiff(std::string file_name,int z_start, int z_end){
     TIFF* tif = TIFFOpen(file_name.c_str(), "r");
     int dircount = 0;
     uint32 width;
@@ -371,7 +371,7 @@ void Mesh_data<T>::load_image_tiff(std::string file_name,int z_start, int z_end)
 
 
 template<typename T> template<typename V>
-void Mesh_data<T>::write_image_tiff(std::vector<V>& data,std::string& filename){
+void MeshData<T>::write_image_tiff(std::vector<V>& data,std::string& filename){
     //
     //
     //  Bevan Cheeseman 2015
@@ -465,23 +465,23 @@ void Mesh_data<T>::write_image_tiff(std::vector<V>& data,std::string& filename){
 }
 
 template<typename T, typename S,typename L1, typename L2>
-void down_sample(Mesh_data<T>& test_a, Mesh_data<S>& test_a_ds, L1 reduce, L2 constant_operator,
+void down_sample(MeshData<T>& test_a, MeshData<S>& test_a_ds, L1 reduce, L2 constant_operator,
                  bool with_allocation = false);
 
 template<typename T>
-void const_upsample_img(Mesh_data<T>& input_us,Mesh_data<T>& input,std::vector<unsigned int>& max_dims);
+void const_upsample_img(MeshData<T>& input_us,MeshData<T>& input,std::vector<unsigned int>& max_dims);
 
 template<typename T>
-void Mesh_data<T>::write_image_tiff(std::string& filename) {
-    Mesh_data::write_image_tiff(this->mesh,filename);
+void MeshData<T>::write_image_tiff(std::string& filename) {
+    MeshData::write_image_tiff(this->mesh,filename);
 };
 
 template<typename T, typename S,typename L1, typename L2>
-void down_sample_overflow_proct(Mesh_data<T>& test_a, Mesh_data<S>& test_a_ds, L1 reduce, L2 constant_operator,
+void down_sample_overflow_proct(MeshData<T>& test_a, MeshData<S>& test_a_ds, L1 reduce, L2 constant_operator,
                                 bool with_allocation = false );
 
 template<typename T>
-void Mesh_data<T>::write_image_tiff_uint16(std::string& filename){
+void MeshData<T>::write_image_tiff_uint16(std::string& filename){
     //
     //  Converts the data to uint16t then writes it (requires creation of a complete copy of the data)
     //
@@ -491,14 +491,14 @@ void Mesh_data<T>::write_image_tiff_uint16(std::string& filename){
 
     std::copy(this->mesh.begin(),this->mesh.end(),data.begin());
 
-    Mesh_data::write_image_tiff<uint16_t>(data, filename);
+    MeshData::write_image_tiff<uint16_t>(data, filename);
 
 }
 
 
 
 template<typename T>
-void downsample_pyrmaid(Mesh_data<T> &original_image,std::vector<Mesh_data<T>>& downsampled,unsigned int l_max, unsigned int l_min)
+void downsample_pyrmaid(MeshData<T> &original_image,std::vector<MeshData<T>>& downsampled,unsigned int l_max, unsigned int l_min)
 {
     downsampled.resize(l_max+2);
     downsampled.back() = std::move(original_image);
@@ -512,7 +512,7 @@ void downsample_pyrmaid(Mesh_data<T> &original_image,std::vector<Mesh_data<T>>& 
 }
 
 template<typename T>
-void const_upsample_img(Mesh_data<T>& input_us,Mesh_data<T>& input,std::vector<unsigned int>& max_dims){
+void const_upsample_img(MeshData<T>& input_us,MeshData<T>& input,std::vector<unsigned int>& max_dims){
     //
     //
     //  Bevan Cheeseman 2016
@@ -651,7 +651,7 @@ void const_upsample_img(Mesh_data<T>& input_us,Mesh_data<T>& input,std::vector<u
     
 }
 template<typename T, typename S,typename L1, typename L2>
-void down_sample_overflow_proct(Mesh_data<T>& test_a, Mesh_data<S>& test_a_ds, L1 reduce, L2 constant_operator,
+void down_sample_overflow_proct(MeshData<T>& test_a, MeshData<S>& test_a_ds, L1 reduce, L2 constant_operator,
                  bool with_allocation ){
     //
     //
@@ -774,7 +774,7 @@ void down_sample_overflow_proct(Mesh_data<T>& test_a, Mesh_data<S>& test_a_ds, L
 
 
 template<typename T, typename S,typename L1, typename L2>
-void down_sample(Mesh_data<T>& test_a, Mesh_data<S>& test_a_ds, L1 reduce, L2 constant_operator,
+void down_sample(MeshData<T>& test_a, MeshData<S>& test_a_ds, L1 reduce, L2 constant_operator,
                  bool with_allocation ){
     //
     //

@@ -68,7 +68,7 @@ set(SOURCE_FILES
         benchmarks/development/old_structures/structure_parts.cpp
 
         src/data_structures/APR/APR.hpp
-        src/data_structures/APR/APR_iterator.hpp
+        src/data_structures/APR/APRIterator.hpp
 
         benchmarks/development/old_algorithm/pipeline.cpp
 

@@ -12,7 +12,7 @@ public:
 
 
     template<typename U,typename V,typename S>
-    void interp_img(APR<S>& apr, Mesh_data<U>& img,ExtraPartCellData<V>& parts){
+    void interp_img(APR<S>& apr, MeshData<U>& img,ExtraPartCellData<V>& parts){
         //
         //  Bevan Cheeseman 2016
         //
@@ -93,7 +93,7 @@ public:
 
 
     template<typename U,typename S>
-    void interp_depth_ds(APR<S>& apr,Mesh_data<U>& img){
+    void interp_depth_ds(APR<S>& apr,MeshData<U>& img){
         //
         //  Returns an image of the depth, this is down-sampled by one, as the Particle Cell solution reflects this
         //
@@ -111,7 +111,7 @@ public:
 
         }
 
-        Mesh_data<U> temp;
+        MeshData<U> temp;
 
         interp_img(apr,temp,depth_parts);
 
@@ -122,7 +122,7 @@ public:
     }
 
     template<typename U,typename S>
-    void interp_depth(APR<S>& apr,Mesh_data<U>& img){
+    void interp_depth(APR<S>& apr,MeshData<U>& img){
         //
         //  Returns an image of the depth, this is down-sampled by one, as the Particle Cell solution reflects this
         //
@@ -146,7 +146,7 @@ public:
     }
 
     template<typename U,typename S>
-    void interp_type(APR<S>& apr,Mesh_data<U>& img){
+    void interp_type(APR<S>& apr,MeshData<U>& img){
 
         //get depth
         ExtraPartCellData<U> type_parts(apr);
@@ -168,7 +168,7 @@ public:
     }
 
     template<typename T>
-    void calc_sat_adaptive_y(Mesh_data<T>& input,Mesh_data<uint8_t>& offset_img,float scale_in,unsigned int offset_max_in,const unsigned int d_max){
+    void calc_sat_adaptive_y(MeshData<T>& input,MeshData<uint8_t>& offset_img,float scale_in,unsigned int offset_max_in,const unsigned int d_max){
         //
         //  Bevan Cheeseman 2016
         //
@@ -293,7 +293,7 @@ public:
 
     }
     template<typename T>
-    void calc_sat_adaptive_x(Mesh_data<T>& input,Mesh_data<uint8_t>& offset_img,float scale_in,unsigned int offset_max_in,const unsigned int d_max){
+    void calc_sat_adaptive_x(MeshData<T>& input,MeshData<uint8_t>& offset_img,float scale_in,unsigned int offset_max_in,const unsigned int d_max){
         //
         //  Adaptive form of Matteusz' SAT code.
         //
@@ -409,7 +409,7 @@ public:
 
 
     template<typename T>
-    void calc_sat_adaptive_z(Mesh_data<T>& input,Mesh_data<uint8_t>& offset_img,float scale_in,unsigned int offset_max_in,const unsigned int d_max ){
+    void calc_sat_adaptive_z(MeshData<T>& input,MeshData<uint8_t>& offset_img,float scale_in,unsigned int offset_max_in,const unsigned int d_max ){
 
         // The same, but in place
 
@@ -519,7 +519,7 @@ public:
 
 
     template<typename U,typename V,typename S>
-    void interp_parts_smooth(APR<S>& apr,Mesh_data<U>& out_image,ExtraPartCellData<V>& interp_data,std::vector<float> scale_d = {2,2,2}){
+    void interp_parts_smooth(APR<S>& apr,MeshData<U>& out_image,ExtraPartCellData<V>& interp_data,std::vector<float> scale_d = {2,2,2}){
         //
         //  Performs a smooth interpolation, based on the depth (level l) in each direction.
         //
@@ -527,8 +527,8 @@ public:
         Part_timer timer;
         timer.verbose_flag = false;
 
-        Mesh_data<U> pc_image;
-        Mesh_data<uint8_t> k_img;
+        MeshData<U> pc_image;
+        MeshData<uint8_t> k_img;
 
         unsigned int offset_max = 20;
 
