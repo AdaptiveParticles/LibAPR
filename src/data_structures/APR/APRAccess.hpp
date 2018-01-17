@@ -552,7 +552,7 @@ public:
         }
 
 
-        float num_rep = 10;
+        float num_rep = 20;
 
         uint64_t counter_n1= 0;
 
@@ -612,42 +612,42 @@ public:
 
         timer.stop_timer();
 
-        timer.start_timer("APR serial iterator neighbours loop");
-
-        for (int l = 0; l < num_rep; ++l) {
-
-            //Basic serial iteration over all particles
-            for (apr.begin(); apr.end() != 0; apr.it_forward()) {
-
-                //now we only update the neighbours, and directly access them through a neighbour iterator
-                apr.update_all_neighbours();
-
-                float counter = 0;
-                float temp = 0;
-
-                //loop over all the neighbours and set the neighbour iterator to it
-                for (int dir = 0; dir < 6; ++dir) {
-                    // Neighbour Particle Cell Face definitions [+y,-y,+x,-x,+z,-z] =  [0,1,2,3,4,5]
-
-                    for (int index = 0; index < apr.number_neighbours_in_direction(dir); ++index) {
-                        // on each face, there can be 0-4 neighbours accessed by index
-                        if (neighbour_iterator.set_neighbour_iterator(apr, dir, index)) {
-                            //will return true if there is a neighbour defined
-                            temp+=neighbour_iterator(apr.particles_int);
-
-                            counter++;
-
-                        }
-                    }
-                }
-
-                apr(neigh_sum) = temp/counter;
-
-            }
-
-        }
-
-        timer.stop_timer();
+//        timer.start_timer("APR serial iterator neighbours loop");
+//
+//        for (int l = 0; l < num_rep; ++l) {
+//
+//            //Basic serial iteration over all particles
+//            for (apr.begin(); apr.end() != 0; apr.it_forward()) {
+//
+//                //now we only update the neighbours, and directly access them through a neighbour iterator
+//                apr.update_all_neighbours();
+//
+//                float counter = 0;
+//                float temp = 0;
+//
+//                //loop over all the neighbours and set the neighbour iterator to it
+//                for (int dir = 0; dir < 6; ++dir) {
+//                    // Neighbour Particle Cell Face definitions [+y,-y,+x,-x,+z,-z] =  [0,1,2,3,4,5]
+//
+//                    for (int index = 0; index < apr.number_neighbours_in_direction(dir); ++index) {
+//                        // on each face, there can be 0-4 neighbours accessed by index
+//                        if (neighbour_iterator.set_neighbour_iterator(apr, dir, index)) {
+//                            //will return true if there is a neighbour defined
+//                            temp+=neighbour_iterator(apr.particles_int);
+//
+//                            counter++;
+//
+//                        }
+//                    }
+//                }
+//
+//                apr(neigh_sum) = temp/counter;
+//
+//            }
+//
+//        }
+//
+//        timer.stop_timer();
 
         std::cout << q << std::endl;
 
@@ -671,6 +671,8 @@ public:
 
         for (int l = 0; l < num_rep; ++l) {
 
+            uint64_t neigh_count = 0;
+
             for (uint64_t i = apr.depth_min(); i <= apr.depth_max(); i++) {
                 //loop over the resolutions of the structure
                 const unsigned int x_num_ = apr.spatial_index_x_max(i);
@@ -678,7 +680,7 @@ public:
 
                 input.level = i;
 
-#pragma omp parallel for schedule(static) default(shared) private(z_,x_)  firstprivate(input,neigh,local_iterators)
+#pragma omp parallel for schedule(static) default(shared) private(z_,x_) reduction(+:neigh_count) firstprivate(input,neigh,local_iterators)
                 for (z_ = 0; z_ < z_num_; z_++) {
                     //both z and x are explicitly accessed in the structure
 
@@ -733,6 +735,7 @@ public:
                                                             // do something;
                                                             temp+=pint[neigh.global_index];
                                                             counter++;
+                                                            neigh_count++;
                                                         }
 
                                                     }
@@ -745,6 +748,7 @@ public:
                                                     // do something;
                                                     temp+=pint[neigh.global_index];
                                                     counter++;
+                                                    neigh_count++;
 
                                                 }
 
@@ -762,6 +766,9 @@ public:
                     }
                 }
             }
+
+            std::cout << neigh_count << std::endl;
+
         }
 
         timer.stop_timer();
@@ -966,7 +973,12 @@ public:
 
         timer.start_timer("new neighbour loop");
 
+        std::vector<float> neigh_sum_new2;
+        neigh_sum_new2.resize(apr.num_parts_total,0);
+
         for (int l = 0; l < num_rep; ++l) {
+
+            uint64_t neigh_count = 0;
 
             for (uint64_t i = apr.depth_min(); i <= apr.depth_max(); i++) {
                 //loop over the resolutions of the structure
@@ -985,7 +997,8 @@ public:
                     level_check = {_LEVEL_SAME,_LEVEL_DECREASE,_LEVEL_INCREASE};
                 }
 
-#pragma omp parallel for schedule(static) default(shared) private(z_,x_)  firstprivate(input,neigh,local_iterators) if(z_num_*x_num_ > 100)
+
+#pragma omp parallel for schedule(static) default(shared) private(z_,x_)  firstprivate(input,neigh,local_iterators) reduction(+:neigh_count) if(z_num_*x_num_ > 100)
                 for (z_ = 0; z_ < z_num_; z_++) {
                     //both z and x are explicitly accessed in the structure
 
@@ -1050,9 +1063,12 @@ public:
                                                                 temp += pint[neigh.global_index];
                                                                 counter++;
                                                                 found = true;
+                                                                neigh_count++;
                                                             }
 
                                                         }
+                                                    } else {
+                                                        found = true;
                                                     }
                                                 } else {
 
@@ -1065,7 +1081,7 @@ public:
                                                         temp += pint[neigh.global_index];
                                                         counter++;
                                                         found = true;
-
+                                                        neigh_count++;
                                                     }
 
                                                 }
@@ -1079,7 +1095,7 @@ public:
                                         }
                                     }
 
-                                    neigh_sum_new[curr_index] = temp/counter;
+                                    neigh_sum_new2[curr_index] = temp/counter;
 
                                 }
                             }
@@ -1087,10 +1103,161 @@ public:
                     }
                 }
             }
+
+            std::cout << neigh_count << std::endl;
         }
 
         timer.stop_timer();
 
+
+        for (int i1 = 0; i1 < neigh_sum_new2.size(); ++i1) {
+            if(floor(neigh_sum_new[i1])!=floor(neigh_sum_new2[i1])){
+                std::cout << " ns broke " << std::endl;
+            }
+        }
+
+
+
+
+
+        for (uint64_t i = apr.depth_min(); i <= apr.depth_max(); i++) {
+            //loop over the resolutions of the structure
+            const unsigned int x_num_ = apr.spatial_index_x_max(i);
+            const unsigned int z_num_ = apr.spatial_index_z_max(i);
+
+            input.level = i;
+
+            std::vector<uint16_t> level_check;
+
+            if(i == apr.level_max()){
+                level_check = {_LEVEL_SAME,_LEVEL_DECREASE};
+            } else if (i == apr.level_min()){
+                level_check = {_LEVEL_SAME,_LEVEL_INCREASE};
+            } else {
+                level_check = {_LEVEL_SAME,_LEVEL_DECREASE,_LEVEL_INCREASE};
+            }
+
+
+#pragma omp parallel for schedule(static) default(shared) private(z_,x_)  firstprivate(input,neigh,local_iterators) if(z_num_*x_num_ > 100)
+            for (z_ = 0; z_ < z_num_; z_++) {
+                //both z and x are explicitly accessed in the structure
+
+                input.z = z_;
+
+                for (x_ = 0; x_ < x_num_; x_++) {
+
+                    const size_t offset_pc_data = x_num_ * z_ + x_;
+
+                    input.x = x_;
+
+                    if(gap_map.data[i][offset_pc_data].size() > 0){
+
+                        for ( const auto &p : gap_map.data[i][offset_pc_data][0].map ) {
+
+                            YGap_map gap = p.second;
+                            uint16_t y_begin = p.first;
+
+                            uint64_t curr_index = gap.global_index_begin;
+
+                            curr_index--;
+
+                            for (int y = y_begin;
+                                 y <= gap.y_end; y++) {
+
+                                curr_index++;
+
+                                input.y = y;
+
+
+                                float counter = 0;
+                                float temp = 0;
+
+                                bool neigh_check = check_neighbours_flag(x_,z_,i);
+
+                                for (int f = 0; f < dir_vec.size(); ++f) {
+                                    // Neighbour Particle Cell Face definitions [+y,-y,+x,-x,+z,-z] =  [0,1,2,3,4,5]
+
+                                    unsigned int face = dir_vec[f];
+
+                                    bool found = false;
+
+                                    for (int j = 0; j < level_check.size(); ++j) {
+                                        uint16_t level_delta = level_check[j];
+
+
+                                        for (int n = 0; n < number_neighbours_in_direction(level_delta); ++n) {
+                                            get_neighbour_coordinate(input, neigh, face, level_delta, n);
+                                            if (neigh_check) {
+                                                if ((neigh.x < apr.spatial_index_x_max(neigh.level)) & (neigh.x >= 0)) {
+                                                    if ((neigh.z < apr.spatial_index_z_max(neigh.level)) & (neigh.z >= 0)) {
+
+                                                        neigh.pc_offset =
+                                                                apr.spatial_index_x_max(neigh.level) * neigh.z +
+                                                                neigh.x;
+
+                                                        if (find_particle_cell(neigh,
+                                                                               get_local_iterator(local_iterators,
+                                                                                                  level_delta, face,
+                                                                                                  n))) {
+                                                            // do something;
+                                                            uint16_t x_global = floor((neigh.x+0.5)*pow(2, apr.level_max() - neigh.level));
+                                                            uint16_t y_global = floor((neigh.y+0.5)*pow(2, apr.level_max() - neigh.level));
+                                                            uint16_t z_global = floor((neigh.z+0.5)*pow(2, apr.level_max() - neigh.level));
+
+                                                            uint64_t neigh_index = index_image(y_global,x_global,z_global);
+                                                            uint64_t neigh_truth = neigh.global_index;
+
+                                                            if(neigh_index != neigh_truth){
+                                                                std::cout << "neigh broke without" << std::endl;
+                                                            }
+                                                            found = true;
+
+                                                        }
+
+                                                    }
+                                                } else {
+                                                    found = true;
+                                                }
+                                            } else {
+
+                                                neigh.pc_offset =
+                                                        apr.spatial_index_x_max(neigh.level) * neigh.z + neigh.x;
+                                                if (find_particle_cell(neigh, get_local_iterator(local_iterators,
+                                                                                                 level_delta, face,
+                                                                                                 n))) {
+                                                    uint16_t x_global = floor((neigh.x+0.5)*pow(2, apr.level_max() - neigh.level));
+                                                    uint16_t y_global = floor((neigh.y+0.5)*pow(2, apr.level_max() - neigh.level));
+                                                    uint16_t z_global = floor((neigh.z+0.5)*pow(2, apr.level_max() - neigh.level));
+
+                                                    uint64_t neigh_index = index_image(y_global,x_global,z_global);
+                                                    uint64_t neigh_truth = neigh.global_index;
+
+                                                    if(neigh_index != neigh_truth){
+                                                        std::cout << "neigh broke without" << std::endl;
+                                                    }
+                                                    found = true;
+
+                                                }
+
+                                            }
+
+                                        }
+
+                                        if(found){
+                                            break;
+                                        }
+
+                                    }
+                                }
+
+
+
+                            }
+                        }
+                    }
+                }
+            }
+        }
 
 
 
