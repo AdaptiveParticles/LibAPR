@@ -552,7 +552,7 @@ public:
         }
 
 
-        float num_rep = 3;
+        float num_rep = 10;
 
         uint64_t counter_n1= 0;
 
@@ -568,7 +568,6 @@ public:
 
         std::vector<float> neigh_sum_new;
         neigh_sum_new.resize(apr.num_parts_total,0);
-
 
 
         //initialization of the iteration structures
@@ -976,6 +975,16 @@ public:
 
                 input.level = i;
 
+                std::vector<uint16_t> level_check;
+
+                if(i == apr.level_max()){
+                    level_check = {_LEVEL_SAME,_LEVEL_DECREASE};
+                } else if (i == apr.level_min()){
+                    level_check = {_LEVEL_SAME,_LEVEL_INCREASE};
+                } else {
+                    level_check = {_LEVEL_SAME,_LEVEL_DECREASE,_LEVEL_INCREASE};
+                }
+
 #pragma omp parallel for schedule(static) default(shared) private(z_,x_)  firstprivate(input,neigh,local_iterators) if(z_num_*x_num_ > 100)
                 for (z_ = 0; z_ < z_num_; z_++) {
                     //both z and x are explicitly accessed in the structure
@@ -1006,7 +1015,6 @@ public:
 
                                     input.y = y;
 
-                                    uint16_t node = neighbours[curr_index];
 
                                     float counter = 0;
                                     float temp = 0;
@@ -1018,40 +1026,57 @@ public:
 
                                         unsigned int face = dir_vec[f];
 
-                                        uint16_t level_delta = (node & mask[face]) >> shift[face];
+                                        bool found = false;
 
-                                        for (int n = 0; n < number_neighbours_in_direction(level_delta); ++n) {
-                                            get_neighbour_coordinate(input, neigh, face, level_delta, n);
-                                            if(neigh_check) {
-                                                if (neigh.x < apr.spatial_index_x_max(neigh.level) ){
-                                                    if (neigh.z < apr.spatial_index_z_max(neigh.level)) {
+                                        for (int j = 0; j < level_check.size(); ++j) {
+                                            uint16_t level_delta = level_check[j];
 
-                                                        neigh.pc_offset =
-                                                                apr.spatial_index_x_max(neigh.level)* neigh.z + neigh.x;
 
-                                                        if (find_particle_cell(neigh, get_local_iterator(local_iterators,level_delta,face,n))) {
-                                                            // do something;
-                                                            temp+=pint[neigh.global_index];
-                                                            counter++;
+                                            for (int n = 0; n < number_neighbours_in_direction(level_delta); ++n) {
+                                                get_neighbour_coordinate(input, neigh, face, level_delta, n);
+                                                if (neigh_check) {
+                                                    if ((neigh.x < apr.spatial_index_x_max(neigh.level)) & (neigh.x >= 0)) {
+                                                        if ((neigh.z < apr.spatial_index_z_max(neigh.level)) & (neigh.z >= 0)) {
+
+                                                            neigh.pc_offset =
+                                                                    apr.spatial_index_x_max(neigh.level) * neigh.z +
+                                                                    neigh.x;
+
+                                                            if (find_particle_cell(neigh,
+                                                                                   get_local_iterator(local_iterators,
+                                                                                                      level_delta, face,
+                                                                                                      n))) {
+                                                                // do something;
+                                                                temp += pint[neigh.global_index];
+                                                                counter++;
+                                                                found = true;
+                                                            }
+
                                                         }
+                                                    }
+                                                } else {
+
+                                                    neigh.pc_offset =
+                                                            apr.spatial_index_x_max(neigh.level) * neigh.z + neigh.x;
+                                                    if (find_particle_cell(neigh, get_local_iterator(local_iterators,
+                                                                                                     level_delta, face,
+                                                                                                     n))) {
+                                                        // do something;
+                                                        temp += pint[neigh.global_index];
+                                                        counter++;
+                                                        found = true;
 
                                                     }
-                                                }
-                                            } else {
-
-                                                neigh.pc_offset =
-                                                        apr.spatial_index_x_max(neigh.level) * neigh.z + neigh.x;
-                                                if (find_particle_cell(neigh, get_local_iterator(local_iterators,level_delta,face,n))) {
-                                                    // do something;
-                                                    temp+=pint[neigh.global_index];
-                                                    counter++;
 
                                                 }
 
                                             }
 
-                                        }
+                                            if(found){
+                                                break;
+                                            }
 
+                                        }
                                     }
 
                                     neigh_sum_new[curr_index] = temp/counter;
@@ -1222,7 +1247,7 @@ public:
     }
 
     inline bool check_neighbours_flag(const uint16_t& x,const uint16_t& z,const uint16_t& level){
-        return ((x==(x_num[level]-1)) + (z==(z_num[level]-1))) > 0;
+        return ((x==(x_num[level]-1)) + (z==(z_num[level]-1)) + (z==0) + (x==0)) > 0;
     }
 
 
