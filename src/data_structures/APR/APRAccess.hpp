@@ -51,9 +51,9 @@ struct YGap {
     uint16_t y_end;
     uint64_t global_index_begin;
 
-    YGap():y_begin(0),y_end(0),global_index_begin(0){
-
-    }
+//    YGap():y_begin(0),y_end(0),global_index_begin(0){
+//
+//    }
 };
 
 struct YGap_map {
