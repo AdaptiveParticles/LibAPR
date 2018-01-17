@@ -271,18 +271,42 @@ public:
 
         apr.particles_int.initialize_structure_cells(apr.pc_data);
 
-        for (int depth = apr.depth_min(); depth <= apr.depth_max(); ++depth) {
+//        for (int depth = apr.depth_min(); depth <= apr.depth_max(); ++depth) {
+//
+//            uint64_t counter = 0;
+//
+//            for (apr.begin(depth); apr.end(depth) != 0 ; apr.it_forward(depth)) {
+//
+//                float t = apr(apr.particles_int);
+//
+//                apr(apr.particles_int) = Ip[depth][counter];
+//
+//                counter++;
+//
+//            }
+//        }
+
+        APRIterator<ImageType> apr_iterator(apr);
+
+        for (int level = apr.level_min(); level <= apr.level_max(); ++level) {
 
             uint64_t counter = 0;
 
-            for (apr.begin(depth); apr.end(depth) != 0 ; apr.it_forward(depth)) {
+            for (uint64_t particle_number = apr_iterator.particles_level_begin(level); particle_number <  apr_iterator.particles_level_end(level); ++particle_number) {
+                //
+                //  Parallel loop over level
+                //
+                apr_iterator.set_iterator_to_particle_by_number(particle_number);
 
-                apr.curr_level.get_val(apr.particles_int) = Ip[depth][counter];
+                apr_iterator(apr.particles_int) = Ip[level][counter];
 
                 counter++;
 
+
             }
         }
+
+
 
         if(compress_type > 0){
 
@@ -470,7 +494,7 @@ public:
 
         write_timer.start_timer("shift");
 
-        temp_int.shift_particles_from_cells(temp_int);
+        temp_int.shift_particles_from_cells(temp_int,apr.pc_data);
 
         write_timer.stop_timer();
 
@@ -1062,7 +1086,7 @@ public:
         temp_int.initialize_structure_cells(apr.pc_data);
         temp_int.data = parts_extra.data;
 
-        temp_int.shift_particles_from_cells(temp_int);
+        temp_int.shift_particles_from_cells(temp_int,apr.pc_data);
 
 
         for(uint64_t i =apr.pc_data.depth_min;i <=apr.pc_data.depth_max;i++){

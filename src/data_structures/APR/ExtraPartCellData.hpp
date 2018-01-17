@@ -609,7 +609,7 @@ public:
 
 
     template<typename U>
-    void shift_particles_from_cells(ExtraPartCellData<U>& pdata_old){
+    void shift_particles_from_cells(ExtraPartCellData<U>& pdata_old,PartCellData<uint64_t>& pc_data){
         //
         //  Bevan Cheesean 2017
         //
@@ -641,7 +641,7 @@ public:
                     for(j_ = 0; j_ < j_num;j_++){
                         //raster over both structures, generate the index for the particles, set the status and offset_y_coord diff
 
-                        node_val = pdata_old.data[i][offset_pc_data][j_];
+                        node_val = pc_data.data[i][offset_pc_data][j_];
 
                         if(!(node_val&1)){
 

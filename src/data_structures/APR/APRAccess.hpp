@@ -643,7 +643,7 @@ public:
 
                 input.level = i;
 
-#pragma omp parallel for default(shared) private(z_,x_)  firstprivate(input,neigh)
+#pragma omp parallel for schedule(static) default(shared) private(z_,x_)  firstprivate(input,neigh)
                 for (z_ = 0; z_ < z_num_; z_++) {
                     //both z and x are explicitly accessed in the structure
 
@@ -826,7 +826,7 @@ public:
 
             input.level = i;
 
-//#pragma omp parallel for default(shared) private(z_,x_,j_,node_val_pc,curr_key)  firstprivate(neigh_cell_keys) if(z_num_*x_num_ > 100)
+//#pragma omp parallel for default(shared) schedule (static) private(z_,x_,j_,node_val_pc,curr_key)  firstprivate(neigh_cell_keys) if(z_num_*x_num_ > 100)
             for (z_ = 0; z_ < z_num_; z_++) {
                 //both z and x are explicitly accessed in the structure
 
@@ -927,7 +927,7 @@ public:
             }
         }
 
-
+        initialize_pointers();
 
         timer.start_timer("new neighbour loop");
 
@@ -940,7 +940,7 @@ public:
 
                 input.level = i;
 
-#pragma omp parallel for default(shared) private(z_,x_)  firstprivate(input,neigh)
+#pragma omp parallel for schedule(static) default(shared) private(z_,x_)  firstprivate(input,neigh)
                 for (z_ = 0; z_ < z_num_; z_++) {
                     //both z and x are explicitly accessed in the structure
 
@@ -1035,6 +1035,33 @@ public:
 
     }
 
+
+
+    void initialize_pointers(){
+
+        for (uint64_t i =level_min; i <= level_max; i++) {
+            //loop over the resolutions of the structure
+            const unsigned int x_num_ = x_num[i];
+            const unsigned int z_num_ = z_num[i];
+
+            uint64_t z_;
+            uint64_t x_;
+
+#pragma omp parallel for schedule(static) default(shared) private(z_, x_)
+            for (z_ = 0; z_ < z_num_; z_++) {
+                //both z and x are explicitly accessed in the structure
+
+                for (x_ = 0; x_ < x_num_; x_++) {
+
+                    const size_t offset_pc_data = x_num_ * z_ + x_;
+
+                    if (gap_map.data[i][offset_pc_data].size() > 0) {
+                        gap_map_it.data[i][offset_pc_data][0] = gap_map.data[i][offset_pc_data][0].map.begin();
+                    }
+                }
+            }
+        }
+    }
 
 
 

@@ -91,7 +91,7 @@ public:
     }
 
     uint64_t end(unsigned int depth){
-        return this->curr_level.counter > 0;
+        return (this->curr_level.counter > 0);
     }
 
     uint64_t it_forward(){
