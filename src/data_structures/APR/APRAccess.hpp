@@ -9,6 +9,7 @@
 #include "APR.hpp"
 
 #include <map>
+#include <utility>
 
 #define _NO_NEIGHBOUR ((uint16_t)3)
 #define _LEVEL_SAME ((uint16_t)1)
@@ -114,6 +115,8 @@ public:
     std::vector<uint64_t> z_num;
 
     uint64_t total_number_parts;
+
+    uint64_t total_number_gaps;
 
     std::vector<uint64_t> global_index_by_level_begin;
     std::vector<uint64_t> global_index_by_level_end;
@@ -269,6 +272,7 @@ public:
         apr_timer.verbose_flag = true;
 
 
+
         apr_timer.start_timer("first_step");
 
         //initialize loop variables
@@ -311,94 +315,75 @@ public:
 
         apr_timer.stop_timer();
 
-        apr_timer.start_timer("get totals");
+//        apr_timer.start_timer("get totals");
+//
+//        ExtraPartCellData<uint16_t> y_vec;
+//        y_vec.initialize_structure_parts_empty(apr.particles_int);
+//
+//        for(uint64_t i = (apr.level_min());i < apr.level_max();i++) {
+//
+//            const unsigned int x_num_ = x_num[i];
+//            const unsigned int z_num_ = z_num[i];
+//            const unsigned int y_num_ = y_num[i];
+//
+//#pragma omp parallel for default(shared) private(z_, x_, y_, status) if(z_num_*x_num_ > 100)
+//            for (z_ = 0; z_ < z_num_; z_++) {
+//
+//                for (x_ = 0; x_ < x_num_; x_++) {
+//
+//                    const size_t offset_part_map = x_ * y_num_ + z_ * y_num_ * x_num_;
+//                    const size_t offset_pc_data = x_num_*z_ + x_;
+//
+//                    for (y_ = 0; y_ < y_num_; y_++) {
+//
+//                        status = p_map[i][offset_part_map + y_];
+//
+//                        if((status > 1) & (status < 5)) {
+//                            y_vec.data[i][offset_pc_data].push_back(y_);
+//                        }
+//
+//
+//                    }
+//                }
+//
+//            }
+//        }
 
-        std::vector<std::vector<uint16_t>> totals;
-        totals.resize(apr.level_max()+1);
 
-        for(uint64_t i = (apr.level_min());i < apr.level_max();i++) {
+//        for(uint64_t i = (apr.level_min());i < apr.level_max();i++) {
+//
+//            const unsigned int x_num_ = x_num[i];
+//            const unsigned int z_num_ = z_num[i];
+//            const unsigned int y_num_ = y_num[i];
+//
+//
+//#pragma omp parallel for default(shared) private(z_, x_, y_, status) if(z_num_*x_num_ > 100)
+//            for (z_ = 0; z_ < z_num_; z_++) {
+//
+//                for (x_ = 0; x_ < x_num_; x_++) {
+//
+//                    const size_t offset_part_map = x_ * y_num_ + z_ * y_num_ * x_num_;
+//                    const size_t offset_pc_data = x_num_*z_ + x_;
+//
+//                    uint16_t current = 0;
+//                    uint16_t previous = 0;
+//
+//                    for (y_ = 0; y_ < y_num_; y_++) {
+//
+//                        status = p_map[i][offset_part_map + y_];
+//
+//                        if(status==SEED) {
+//
+//                        }
+//
+//
+//                    }
+//                }
+//
+//            }
+//        }
 
-            const unsigned int x_num_ = x_num[i];
-            const unsigned int z_num_ = z_num[i];
-            const unsigned int y_num_ = y_num[i];
-
-            totals[i].resize(x_num_*z_num_,0);
-
-#pragma omp parallel for default(shared) private(z_, x_, y_, status) if(z_num_*x_num_ > 100)
-            for (z_ = 0; z_ < z_num_; z_++) {
-
-                for (x_ = 0; x_ < x_num_; x_++) {
-
-                    const size_t offset_part_map = x_ * y_num_ + z_ * y_num_ * x_num_;
-                    const size_t offset_pc_data = x_num_*z_ + x_;
-
-                    uint16_t current = 0;
-                    uint16_t previous = 0;
-
-                    for (y_ = 0; y_ < y_num_; y_++) {
-
-                        status = p_map[i][offset_part_map + y_];
-
-                        if((status > 1) & (status < 5)) {
-                            current = 1;
-
-                            if(previous == 0){
-                                totals[i][offset_pc_data]++;
-                            }
-                        } else {
-                            current = 0;
-                        }
-
-                        previous = current;
-                    }
-                }
-
-            }
-        }
-
-        apr_timer.stop_timer();
-
-        for(uint64_t i = (apr.level_min());i < apr.level_max();i++) {
-
-            const unsigned int x_num_ = x_num[i];
-            const unsigned int z_num_ = z_num[i];
-            const unsigned int y_num_ = y_num[i];
-
-            totals[i+1].resize(x_num_*z_num_,0);
-
-#pragma omp parallel for default(shared) private(z_, x_, y_, status) if(z_num_*x_num_ > 100)
-            for (z_ = 0; z_ < z_num_; z_++) {
-
-                for (x_ = 0; x_ < x_num_; x_++) {
-
-                    const size_t offset_part_map = x_ * y_num_ + z_ * y_num_ * x_num_;
-                    const size_t offset_pc_data = x_num_*z_ + x_;
-
-                    uint16_t current = 0;
-                    uint16_t previous = 0;
-
-                    for (y_ = 0; y_ < y_num_; y_++) {
-
-                        status = p_map[i][offset_part_map + y_];
-
-                        if(status==SEED) {
-                            current = 1;
-
-                            if(previous == 0){
-                                totals[i+1][offset_pc_data]++;
-                            }
-                        } else {
-                            current = 0;
-                        }
-
-                        previous = current;
-                    }
-                }
-
-            }
-        }
-
-        apr_timer.stop_timer();
+        //apr_timer.stop_timer();
 
 
 
@@ -407,7 +392,13 @@ public:
 //        ExtraPartCellData<uint8_t> status_store;
 //        status_store.initialize_structure_parts_empty(apr.particles_int);
 
-        ExtraPartCellData<uint16_t> y_begin;
+        apr.particles_int.y_num.resize(apr.level_max() + 1);
+
+        for (int k = 0; k <= apr.level_max(); ++k) {
+            apr.particles_int.y_num[k] = y_num[k];
+        }
+
+        ExtraPartCellData<std::pair<uint16_t,YGap_map>> y_begin;
         y_begin.initialize_structure_parts_empty(apr.particles_int);
 
         ExtraPartCellData<YGap_map> y_end;
@@ -420,7 +411,6 @@ public:
             const unsigned int z_num_ = z_num[i];
             const unsigned int y_num_ = y_num[i];
 
-
 #pragma omp parallel for default(shared) private(z_, x_, y_, status) if(z_num_*x_num_ > 100)
             for (z_ = 0; z_ < z_num_; z_++) {
 
@@ -428,12 +418,12 @@ public:
                     const size_t offset_part_map = x_ * y_num_ + z_ * y_num_ * x_num_;
                     const size_t offset_pc_data = x_num_*z_ + x_;
 
-
                     uint16_t current = 0;
                     uint16_t previous = 0;
 
                     YGap_map gap;
                     gap.global_index_begin = 0;
+                    uint64_t counter = 0;
 
                     for (y_ = 0; y_ < y_num_; y_++) {
 
@@ -442,14 +432,16 @@ public:
                             current = 1;
 
                             if(previous == 0){
-                                y_begin.data[i][offset_pc_data].push_back(y_);
+                                y_begin.data[i][offset_pc_data].push_back({y_,gap});
+
                             }
                         } else {
                             current = 0;
 
                             if(previous == 1){
-                                gap.y_end = y_;
-                                y_end.data[i][offset_pc_data].push_back(gap);
+
+                                (y_begin.data[i][offset_pc_data][counter]).second.y_end = y_;
+                                counter++;
                             }
                         }
 
@@ -458,8 +450,8 @@ public:
                     }
                     //end node
                     if(previous==1) {
-                        gap.y_end = (y_num_-1);
-                        y_end.data[i][offset_pc_data].push_back(gap);
+
+                        (y_begin.data[i][offset_pc_data][counter]).second.y_end = (y_num_-1);
                     }
                 }
 
@@ -488,15 +480,15 @@ public:
                 const uint64_t offset_pc_data = x_num_*z_ + x_;
 
                 const uint64_t offset_pc_data1 = std::min((uint64_t)x_num_us*(2*z_) + (2*x_),(uint64_t) x_num_us*z_num_us - 1);
-//                const uint64_t offset_pc_data2 = std::min((uint64_t)x_num_us*(2*z_) + (2*x_+1),(uint64_t) x_num_us*z_num_us - 1);
-//                const uint64_t offset_pc_data3 = std::min((uint64_t)x_num_us*(2*z_+1) + (2*x_),(uint64_t) x_num_us*z_num_us - 1);
-//                const uint64_t offset_pc_data4 = std::min((uint64_t)x_num_us*(2*z_+1) + (2*x_+1),(uint64_t) x_num_us*z_num_us - 1);
+
 
                 uint16_t current = 0;
                 uint16_t previous = 0;
 
                 YGap_map gap;
                 gap.global_index_begin = 0;
+
+                uint64_t counter = 0;
 
                 for (y_ = 0; y_ < y_num_; y_++) {
 
@@ -505,20 +497,18 @@ public:
                         current = 1;
 
                         if(previous == 0){
-                            y_begin.data[i+1][offset_pc_data1].push_back(2*y_);
-                            //y_begin.data[i+1][offset_pc_data2].push_back(2*y_);
-                            //y_begin.data[i+1][offset_pc_data3].push_back(2*y_);
-                            //y_begin.data[i+1][offset_pc_data4].push_back(2*y_);
+                            y_begin.data[i+1][offset_pc_data1].push_back({2*y_,gap});
+
                         }
                     } else {
                         current = 0;
 
                         if(previous == 1){
-                            gap.y_end = std::min((uint16_t)(2*y_+1),(uint16_t)(y_num_us-1));
-                            y_end.data[i+1][offset_pc_data1].push_back(gap);
-                            //y_end.data[i+1][offset_pc_data2].push_back(gap);
-                            //y_end.data[i+1][offset_pc_data3].push_back(gap);
-                            //y_end.data[i+1][offset_pc_data4].push_back(gap);
+
+                            y_begin.data[i+1][offset_pc_data1][counter].second.y_end = std::min((uint16_t)(2*y_+1),(uint16_t)(y_num_us-1));
+
+                            counter++;
+
                         }
                     }
 
@@ -527,16 +517,60 @@ public:
                 }
                 //last gap
                 if(previous == 1){
-                    gap.y_end = (y_num_us-1);
-                    y_end.data[i+1][offset_pc_data1].push_back(gap);
-                    //y_end.data[i+1][offset_pc_data2].push_back(gap);
-                    //y_end.data[i+1][offset_pc_data3].push_back(gap);
-                    //y_end.data[i+1][offset_pc_data4].push_back(gap);
+
+                    y_begin.data[i+1][offset_pc_data1][counter].second.y_end = (y_num_us-1);
+
+                    counter++;
                 }
 
             }
 
         }
+
+#pragma omp parallel for default(shared) private(z_, x_, y_, status) if(z_num_*x_num_ > 100)
+        for (z_ = 0; z_ < z_num_; z_++) {
+
+            for (x_ = 0; x_ < x_num_; x_++) {
+                const uint64_t offset_part_map = x_ * y_num_ + z_ * y_num_ * x_num_;
+                const uint64_t offset_pc_data = x_num_*z_ + x_;
+
+                const uint64_t offset_pc_data1 = std::min((uint64_t)x_num_us*(2*z_) + (2*x_),(uint64_t) x_num_us*z_num_us - 1);
+                const uint64_t offset_pc_data2 = std::min((uint64_t)x_num_us*(2*z_) + (2*x_+1),(uint64_t) x_num_us*z_num_us - 1);
+                const uint64_t offset_pc_data3 = std::min((uint64_t)x_num_us*(2*z_+1) + (2*x_),(uint64_t) x_num_us*z_num_us - 1);
+                const uint64_t offset_pc_data4 = std::min((uint64_t)x_num_us*(2*z_+1) + (2*x_+1),(uint64_t) x_num_us*z_num_us - 1);
+
+                uint16_t current = 0;
+                uint16_t previous = 0;
+
+                YGap_map gap;
+                gap.global_index_begin = 0;
+
+                size_t size_v = y_begin.data[i+1][offset_pc_data1].size();
+
+                y_begin.data[i+1][offset_pc_data2].resize(size_v);
+                std::copy(y_begin.data[i+1][offset_pc_data1].begin(),y_begin.data[i+1][offset_pc_data1].end(),y_begin.data[i+1][offset_pc_data2].begin());
+
+                y_begin.data[i+1][offset_pc_data3].resize(size_v);
+                std::copy(y_begin.data[i+1][offset_pc_data1].begin(),y_begin.data[i+1][offset_pc_data1].end(),y_begin.data[i+1][offset_pc_data3].begin());
+
+                y_begin.data[i+1][offset_pc_data4].resize(size_v);
+                std::copy(y_begin.data[i+1][offset_pc_data1].begin(),y_begin.data[i+1][offset_pc_data1].end(),y_begin.data[i+1][offset_pc_data4].begin());
+
+                //end data copy
+
+                y_end.data[i+1][offset_pc_data2].resize(size_v);
+                std::copy(y_end.data[i+1][offset_pc_data1].begin(),y_end.data[i+1][offset_pc_data1].end(),y_end.data[i+1][offset_pc_data2].begin());
+
+                y_end.data[i+1][offset_pc_data3].resize(size_v);
+                std::copy(y_end.data[i+1][offset_pc_data1].begin(),y_end.data[i+1][offset_pc_data1].end(),y_end.data[i+1][offset_pc_data3].begin());
+
+                y_end.data[i+1][offset_pc_data4].resize(size_v);
+                std::copy(y_end.data[i+1][offset_pc_data1].begin(),y_end.data[i+1][offset_pc_data1].end(),y_end.data[i+1][offset_pc_data4].begin());
+
+            }
+
+        }
+
         //then need to loop over and then do a copy.
         apr_timer.stop_timer();
 
@@ -544,33 +578,104 @@ public:
 
         apr_timer.start_timer("forth loop");
 
+        global_index_by_level_begin.resize(apr.level_max()+1);
+        global_index_by_level_end.resize(apr.level_max()+1);
+
+        cumsum= -1;
+
+        total_number_gaps=0;
+
         for(uint64_t i = (apr.level_min());i <= apr.level_max();i++) {
 
             const unsigned int x_num_ = x_num[i];
             const unsigned int z_num_ = z_num[i];
             const unsigned int y_num_ = y_num[i];
+            //set up the levels here.
+            if(y_begin.data[i][0].size()>0){
+                cumsum++;
+                global_index_by_level_begin[i] = cumsum;
+            } else {
+                global_index_by_level_begin[i] = -1;
+            }
 
-//#pragma omp parallel for default(shared) private(z_, x_, y_, status) if(z_num_*x_num_ > 100)
             for (z_ = 0; z_ < z_num_; z_++) {
 
                 for (x_ = 0; x_ < x_num_; x_++) {
                     const size_t offset_pc_data = x_num_ * z_ + x_;
                     for (int j = 0; j < y_begin.data[i][offset_pc_data].size(); ++j) {
-                        y_end.data[i][offset_pc_data][j].global_index_begin = cumsum;
-                        cumsum+=(y_end.data[i][offset_pc_data][j].y_end-y_begin.data[i][offset_pc_data][j]);
+
+                        y_begin.data[i][offset_pc_data][j].second.global_index_begin = cumsum;
+                        cumsum+=(y_begin.data[i][offset_pc_data][j].second.y_end-y_begin.data[i][offset_pc_data][j].first);
+                        total_number_gaps++;
                     }
+                }
+            }
+
+            if(y_begin.data[i][0].size()>0){
+                cumsum++;
+                global_index_by_level_end[i] = cumsum;
+            } else {
+                global_index_by_level_end[i] = -1;
+            }
+        }
+
+        total_number_parts = cumsum;
+
+        apr_timer.stop_timer();
+
+        apr_timer.start_timer("initialize map");
+
+        gap_map.initialize_structure_parts_empty(apr.particles_int);
+
+        for(uint64_t i = (apr.level_min());i <= apr.level_max();i++) {
+
+            const unsigned int x_num_ = x_num[i];
+            const unsigned int z_num_ = z_num[i];
+            const unsigned int y_num_ = y_num[i];
+#pragma omp parallel for default(shared) private(z_, x_) if(z_num_*x_num_ > 100)
+            for (z_ = 0; z_ < z_num_; z_++) {
+                for (x_ = 0; x_ < x_num_; x_++) {
+                    const size_t offset_pc_data = x_num_ * z_ + x_;
+                    gap_map.data[i][offset_pc_data].resize(1);
+                    gap_map.data[i][offset_pc_data][0].map.insert(y_begin.data[i][offset_pc_data].begin(),y_begin.data[i][offset_pc_data].end());
+
                 }
             }
         }
 
         apr_timer.stop_timer();
 
+    }
+
+    template<typename T>
+    void flatten_structure(APR<T>& apr){
+
+        std::vector<uint16_t> y_begin;
+        std::vector<uint16_t> y_end;
+
+        y_begin.reserve(total_number_gaps);
+        y_end.reserve(total_number_gaps);
+
+
+
+//        for (auto const& element : input_map) {
+//            retval.push_back(element.first);
+//        }
+        for(uint64_t i = (apr.level_min());i <= apr.level_max();i++) {
+
+            const unsigned int x_num_ = x_num[i];
+            const unsigned int z_num_ = z_num[i];
+            const unsigned int y_num_ = y_num[i];
+
+            for (z_ = 0; z_ < z_num_; z_++) {
+                for (x_ = 0; x_ < x_num_; x_++) {
+                    const size_t offset_pc_data = x_num_ * z_ + x_;
 
     }
 
 
 
-        template<typename T>
+    template<typename T>
     void test_method(APR<T>& apr){
 
 

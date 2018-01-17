@@ -250,6 +250,44 @@ public:
 
     }
 
+    template<typename S>
+    void initialize_structure_parts_empty_reserve(ExtraPartCellData<S>& part_data,float ratio){
+        //
+        //  Initialize the structure to the same size as the given structure
+        //
+
+        //first add the layers
+        depth_max = part_data.depth_max;
+        depth_min = part_data.depth_min;
+
+        z_num.resize(depth_max+1);
+        x_num.resize(depth_max+1);
+        y_num.resize(depth_max+1);
+
+        data.resize(depth_max+1);
+
+        org_dims = part_data.org_dims;
+
+        for(uint64_t i = depth_min;i <= depth_max;i++){
+            z_num[i] = part_data.z_num[i];
+            x_num[i] = part_data.x_num[i];
+            y_num[i] = part_data.y_num[i];
+            data[i].resize(z_num[i]*x_num[i]);
+            uint64_t x_num_ = x_num[i];
+            uint64_t z_num_ = x_num[i];
+
+            int j = 0;
+#pragma omp parallel for default(shared) private(j) if(z_num_*x_num_ > 100)
+            for ( j = 0; j < data[i].size(); ++j) {
+                data[i][j].reserve(floor(ratio*part_data.y_num[i]));
+            }
+
+
+        }
+
+    }
+
+
 
     
     T&  get_val(const uint64_t& pc_key){
