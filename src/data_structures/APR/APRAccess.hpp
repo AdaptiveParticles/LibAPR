@@ -47,8 +47,8 @@ struct ParticleCell {
 };
 
 struct YGap {
-    uint16_t y_begin;
-    uint16_t y_end;
+    uint64_t y_begin;
+    uint64_t y_end;
     uint64_t global_index_begin;
 
 //    YGap():y_begin(0),y_end(0),global_index_begin(0){
@@ -136,13 +136,13 @@ public:
         //initialize variables required
         uint64_t node_val_pc; // node variable encoding neighbour and cell information
 
-        int x_; // iteration variables
-        int z_; // iteration variables
+        uint64_t x_; // iteration variables
+        uint64_t z_; // iteration variables
         uint64_t j_; // index variable
         uint64_t curr_key = 0; // key used for accessing and particles and cells
         PartCellNeigh<uint64_t> neigh_cell_keys;
 
-        uint64_t y_coord;
+        uint64_t y_coord = 0;
 
         std::vector<uint16_t> neighbours;
 
@@ -191,6 +191,12 @@ public:
 
                     uint64_t prev = 0;
 
+                    YGap gap;
+
+                        gap.y_begin = 0;
+                        gap.y_end = 0;
+                        gap.global_index_begin = 0;
+
                     //the y direction loop however is sparse, and must be accessed accordinagly
                     for(j_ = 0;j_ < j_num;j_++){
 
@@ -199,7 +205,7 @@ public:
                         //particle cell node value, used here as it is requried for getting the particle neighbours
                         node_val_pc = apr.pc_data.data[i][offset_pc_data][j_];
 
-                        YGap gap;
+
 
                         if (!(node_val_pc&1)){
                             //Indicates this is a particle cell node
@@ -259,9 +265,9 @@ public:
                             uint16_t ym_j = (node_val_pc & YM_INDEX_MASK) >> YM_INDEX_SHIFT;
                             uint16_t ym_dep = (node_val_pc & YM_DEPTH_MASK) >> YM_DEPTH_SHIFT;
 
-                            uint16_t next_y = (node_val_pc & NEXT_COORD_MASK) >> NEXT_COORD_SHIFT;
+                            uint64_t next_y = (node_val_pc & NEXT_COORD_MASK) >> NEXT_COORD_SHIFT;
 
-                            uint16_t prev_y = (node_val_pc & PREV_COORD_MASK) >> PREV_COORD_SHIFT;
+                            uint64_t prev_y = (node_val_pc & PREV_COORD_MASK) >> PREV_COORD_SHIFT;
 
                             //yp_dep = yp_dep + 2;
 
@@ -289,7 +295,7 @@ public:
 
                             if(j_>0){
                                 //gaps_end.data[i][offset_pc_data].push_back(y_coord);
-                                gap.y_end = y_coord;
+                                gap.y_end =  (uint16_t)(y_coord);
                                 ygaps.data[i][offset_pc_data].push_back(gap);
 
                             }
@@ -300,7 +306,7 @@ public:
                                 if(j_ < (j_num - 1)) {
                                     count_gaps++;
 
-                                    gap.y_begin = y_coord + 1;
+                                    gap.y_begin = (uint16_t)(y_coord + 1);
                                     gap.global_index_begin = count_parts;
                                     //gaps.data[i][offset_pc_data].push_back(y_coord+1);
                                     //index.data[i][offset_pc_data].push_back(count_parts);
@@ -439,6 +445,8 @@ public:
 
         it.gap_map_it.initialize_structure_parts_empty(apr.particles_int);
 
+        uint64_t counter_stop = 0;
+
         for(uint64_t i = apr.depth_min();i <= apr.depth_max();i++) {
             //loop over the resolutions of the structure
             const unsigned int x_num_ = apr.spatial_index_x_max(i);
@@ -456,24 +464,33 @@ public:
 
                     const uint64_t gap_num = ygaps.data[i][offset_pc_data].size();
 
-                    YGap_map ygap;
+                    //YGap_map ygap;
                     YGap old_gap;
 
                     if(gap_num > 0){
 
                         gap_map.data[i][offset_pc_data].resize(1);
-                        it.gap_map_it.data[i][offset_pc_data].resize(1);
+
 
                         for (int j = 0; j < gap_num; ++j) {
                             old_gap = ygaps.data[i][offset_pc_data][j];
-
+                            YGap_map ygap;
                             ygap.global_index_begin = old_gap.global_index_begin;
                             ygap.y_end = old_gap.y_end;
 
-                            gap_map.data[i][offset_pc_data][0].map[old_gap.y_begin] = ygap;
+                            uint16_t y_begin = old_gap.y_begin;
+
+                            if(counter_stop==10000){
+                                std::cout << y_begin << " " << ygap.y_end << " " << ygap.global_index_begin << std::endl;
+                            }
+
+                            //gap_map.data[i][offset_pc_data][0].map[old_gap.y_begin] = ygap;
+
+                            gap_map.data[i][offset_pc_data][0].map.insert(std::pair<uint16_t,YGap_map>(y_begin,ygap));
+
+                            counter_stop++;
                         }
                         //initialize the iterator
-                        it.gap_map_it.data[i][offset_pc_data][0] = gap_map.data[i][offset_pc_data][0].map.begin();
 
                     }
 
@@ -500,16 +517,19 @@ public:
 
                     if(gap_map.data[i][offset_pc_data].size() > 0){
 
-                        for ( const auto &p : gap_map.data[i][offset_pc_data][0].map ) {
+                        MapIterator it;
 
-                            YGap_map gap = p.second;
-                            uint16_t y_begin = p.first;
+
+                        for ( it.iterator = gap_map.data[i][offset_pc_data][0].map.begin(); it.iterator != gap_map.data[i][offset_pc_data][0].map.end();it.iterator++) {
+
+                            YGap_map gap = it.iterator->second;
+                            uint16_t y_begin = it.iterator->first;
 
                             uint64_t curr_index = gap.global_index_begin;
 
                             curr_index--;
 
-                            for (int y = y_begin;
+                            for (uint16_t y = y_begin;
                                  y <= gap.y_end; y++) {
 
                                 curr_index++;
@@ -538,26 +558,37 @@ public:
         ///
         ///////////////////
 
+        bool broken = false;
+
         for (int k = 0; k < count_parts; ++k) {
 
             if(pint[k] != pint2[k]){
-                //std::cout << "intbroke" << std::endl;
+                std::cout << "intbroke" << std::endl;
             }
 
             if(py[k] != py2[k]){
-                //std::cout << "ybroke" << std::endl;
+                std::cout << "ybroke" << std::endl;
+                broken = true;
             }
 
             if(px[k] != px2[k]){
-               // std::cout << "xbroke" << std::endl;
+                std::cout << "xbroke" << std::endl;
             }
 
             if(pz[k] != pz2[k]){
-               // std::cout << "zbroke" << std::endl;
+                std::cout << "zbroke" << std::endl;
             }
 
         }
 
+        if(broken){
+            std::cout << "ybroken" << std::endl;
+        }
+
+        std::cout << py2.size() << std::endl;
+        std::cout << py.size() << std::endl;
+
+        //return;
 
         float num_rep = 20;
 
@@ -687,7 +718,7 @@ public:
 
                 input.level = i;
 
-//#pragma omp parallel for schedule(static) default(shared) private(z_,x_) reduction(+:neigh_count) firstprivate(input,neigh,local_iterators)
+#pragma omp parallel for schedule(static) default(shared) private(z_,x_) reduction(+:neigh_count) firstprivate(input,neigh,local_iterators)
                 for (z_ = 0; z_ < z_num_; z_++) {
                     //both z and x are explicitly accessed in the structure
 
