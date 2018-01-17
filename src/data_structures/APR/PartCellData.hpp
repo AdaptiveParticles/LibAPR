@@ -1195,7 +1195,6 @@ public:
 
         uint64_t prev_coord = 0;
 
-
         timer.start_timer("intiialize part_cells");
 
         const uint8_t seed_us = 4; //deal with the equivalence optimization

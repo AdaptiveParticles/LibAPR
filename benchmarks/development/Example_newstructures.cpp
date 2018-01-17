@@ -81,7 +81,7 @@ int main(int argc, char **argv) {
     // Read the apr file into the part cell structure
     APRTimer timer;
 
-    timer.verbose_flag = false;
+    timer.verbose_flag = true;
 
     // APR datastructure
     APR<uint16_t> apr;
@@ -97,10 +97,26 @@ int main(int argc, char **argv) {
 
     APRAccess apr_access;
 
-    apr_access.test_method(apr);
 
+    //just run old code and initialize it there
+    //apr_access.test_method(apr);
 
+    /////
+    //
+    //  Now new data-structures
+    //
+    /////
 
+    APRAccess apr_access2;
+    std::vector<std::vector<uint8_t>> p_map;
+
+    timer.start_timer("generate pmap");
+    apr_access2.generate_pmap(apr,p_map);
+    timer.stop_timer();
+
+    timer.start_timer("generate map structure");
+    apr_access2.initialize_structure(apr,p_map);
+    timer.stop_timer();
 
 }
 
