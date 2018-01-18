@@ -226,10 +226,52 @@ int main(int argc, char **argv) {
             std::cout << "broken y" << std::endl;
         }
 
+        if(apr_it.x() != apr_it(x)){
+            std::cout << "broken x" << std::endl;
+        }
+
+        if(apr_it.z() != apr_it(z)){
+            std::cout << "broken z" << std::endl;
+        }
+
+        if(apr_it.level() != apr_it(level)){
+            std::cout << "broken level" << std::endl;
+        }
+
     }
 
     std::cout << counter << std::endl;
 
+    apr_it.set_iterator_by_particle_number(11554);
+
+    counter = 0;
+
+    uint64_t particle_number;
+//#pragma omp parallel for schedule(static) private(particle_number) firstprivate(apr_it) reduction(+:counter)
+    for (particle_number = 0; particle_number < apr_it.total_number_parts(); ++particle_number) {
+
+        apr_it.set_iterator_by_particle_number(particle_number);
+        counter++;
+
+        if(apr_it.y() != apr_it(y)){
+            std::cout << "broken y" << std::endl;
+        }
+
+        if(apr_it.x() != apr_it(x)){
+            std::cout << "broken x" << std::endl;
+        }
+
+        if(apr_it.z() != apr_it(z)){
+            std::cout << "broken z" << std::endl;
+        }
+
+        if(apr_it.level() != apr_it(level)){
+            std::cout << "broken level" << std::endl;
+        }
+
+    }
+
+    std::cout << counter << std::endl;
 
 //    MapStorageData map_data;
 //
