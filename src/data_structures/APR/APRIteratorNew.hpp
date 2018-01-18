@@ -360,10 +360,43 @@ public:
 
     }
 
-    bool set_neighbour_iterator(APRIteratorNew<ImageType> &original_iterator, const uint8_t& dir, const uint8_t& index){
+    bool find_next_child(const uint8_t& direction,const uint8_t& index){
+
+        level_delta = _LEVEL_INCREASE;
+        apr_access->get_neighbour_coordinate(current_particle_cell,neighbour_particle_cell,direction,level_delta,index);
+
+        if(check_neighbours_particle_cell_in_bounds()){
+            if(apr_access->find_particle_cell(neighbour_particle_cell,apr_access->get_local_iterator(local_iterators, level_delta, direction,index))){
+                //found the neighbour! :D
+                return true;
+            }
+        };
+        return false;
+    }
+
+
+    bool set_neighbour_iterator(APRIteratorNew<ImageType> &original_iterator, const uint8_t& direction, const uint8_t& index){
         //
         //  This is sets the this iterator, to the neighbour of the particle cell that original_iterator is pointing to
         //
+
+        if(level_delta!=_LEVEL_INCREASE){
+            //copy the information from the original iterator
+            current_particle_cell = original_iterator.neighbour_particle_cell;
+            current_gap = apr_access->get_local_iterator(original_iterator.local_iterators,
+                                                                  level_delta, direction,0);
+        } else {
+            if(index==0){
+                current_particle_cell = original_iterator.neighbour_particle_cell;
+                current_gap = apr_access->get_local_iterator(original_iterator.local_iterators,
+                                                             level_delta, direction,0);
+            } else {
+                original_iterator.find_next_child(direction,index);
+                current_particle_cell = original_iterator.neighbour_particle_cell;
+                current_gap = apr_access->get_local_iterator(original_iterator.local_iterators,
+                                                             level_delta, direction,index);
+            }
+        }
 
         //this needs the if clause that finds the neighbour
         return true;
