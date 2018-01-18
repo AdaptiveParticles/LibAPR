@@ -13,6 +13,8 @@
 #include "PartCellData.hpp"
 #include "benchmarks/development/Tree/ParticleData.hpp"
 
+//#include "src/data_structures/APR/APR.hpp"
+
 #include <functional>
 
 template<typename V>
@@ -251,14 +253,14 @@ public:
     }
 
     template<typename S>
-    void initialize_structure_parts_empty_reserve(ExtraPartCellData<S>& part_data,float ratio){
+    void initialize_structure_parts_empty(APR<S>& apr){
         //
         //  Initialize the structure to the same size as the given structure
         //
 
         //first add the layers
-        depth_max = part_data.depth_max;
-        depth_min = part_data.depth_min;
+        depth_max = apr.level_max();
+        depth_min = apr.level_min();
 
         z_num.resize(depth_max+1);
         x_num.resize(depth_max+1);
@@ -266,26 +268,22 @@ public:
 
         data.resize(depth_max+1);
 
-        org_dims = part_data.org_dims;
+        org_dims.resize(3);
+        org_dims[0] = apr.orginal_dimensions(0);
+        org_dims[1] = apr.orginal_dimensions(1);
+        org_dims[2] = apr.orginal_dimensions(2);
 
         for(uint64_t i = depth_min;i <= depth_max;i++){
-            z_num[i] = part_data.z_num[i];
-            x_num[i] = part_data.x_num[i];
-            y_num[i] = part_data.y_num[i];
+            z_num[i] = apr.spatial_index_z_max(i);
+            x_num[i] = apr.spatial_index_x_max(i);
+            y_num[i] = apr.spatial_index_y_max(i);
+
             data[i].resize(z_num[i]*x_num[i]);
-            uint64_t x_num_ = x_num[i];
-            uint64_t z_num_ = x_num[i];
-
-            int j = 0;
-#pragma omp parallel for default(shared) private(j) if(z_num_*x_num_ > 100)
-            for ( j = 0; j < data[i].size(); ++j) {
-                data[i][j].reserve(floor(ratio*part_data.y_num[i]));
-            }
-
 
         }
 
     }
+
 
 
 

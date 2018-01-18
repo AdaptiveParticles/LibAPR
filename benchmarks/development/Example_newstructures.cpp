@@ -115,12 +115,18 @@ int main(int argc, char **argv) {
     timer.stop_timer();
 
     timer.start_timer("generate map structure");
-    apr_access2.initialize_structure(apr,p_map);
+    apr_access2.initialize_structure_from_particle_cell_tree(apr,p_map);
     timer.stop_timer();
 
+    MapStorageData map_data;
+
     timer.start_timer("flatten");
-    apr_access2.flatten_structure(apr);
+    apr_access2.flatten_structure(apr,map_data);
     timer.stop_timer();
+
+    std::cout << apr_access2.total_number_parts << std::endl;
+    std::cout << apr_access2.total_number_gaps << std::endl;
+    std::cout << apr_access2.total_number_non_empty_rows << std::endl;
 
 }
 

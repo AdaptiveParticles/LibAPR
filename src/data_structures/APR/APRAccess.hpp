@@ -99,6 +99,18 @@ struct LocalMapIterators{
 };
 
 
+struct MapStorageData{
+
+    std::vector<uint16_t> y_begin;
+    std::vector<uint16_t> y_end;
+    std::vector<uint64_t> global_index;
+    std::vector<uint16_t> z;
+    std::vector<uint16_t> x;
+    std::vector<uint8_t> level;
+    std::vector<uint16_t> size;
+
+};
+
 
 class APRAccess {
 
@@ -265,7 +277,7 @@ public:
 
 
     template<typename T>
-    void initialize_structure(APR<T>& apr,std::vector<std::vector<uint8_t>>& p_map) {
+    void initialize_structure_from_particle_cell_tree(APR<T>& apr,std::vector<std::vector<uint8_t>>& p_map) {
         //
         //  Initialize the new structure;
         //
@@ -317,101 +329,21 @@ public:
 
         apr_timer.stop_timer();
 
-//        apr_timer.start_timer("get totals");
-//
-//        ExtraPartCellData<uint16_t> y_vec;
-//        y_vec.initialize_structure_parts_empty(apr.particles_int);
-//
-//        for(uint64_t i = (apr.level_min());i < apr.level_max();i++) {
-//
-//            const unsigned int x_num_ = x_num[i];
-//            const unsigned int z_num_ = z_num[i];
-//            const unsigned int y_num_ = y_num[i];
-//
-//#pragma omp parallel for default(shared) private(z_, x_, y_, status) if(z_num_*x_num_ > 100)
-//            for (z_ = 0; z_ < z_num_; z_++) {
-//
-//                for (x_ = 0; x_ < x_num_; x_++) {
-//
-//                    const size_t offset_part_map = x_ * y_num_ + z_ * y_num_ * x_num_;
-//                    const size_t offset_pc_data = x_num_*z_ + x_;
-//
-//                    for (y_ = 0; y_ < y_num_; y_++) {
-//
-//                        status = p_map[i][offset_part_map + y_];
-//
-//                        if((status > 1) & (status < 5)) {
-//                            y_vec.data[i][offset_pc_data].push_back(y_);
-//                        }
-//
-//
-//                    }
-//                }
-//
-//            }
-//        }
-
-
-//        for(uint64_t i = (apr.level_min());i < apr.level_max();i++) {
-//
-//            const unsigned int x_num_ = x_num[i];
-//            const unsigned int z_num_ = z_num[i];
-//            const unsigned int y_num_ = y_num[i];
-//
-//
-//#pragma omp parallel for default(shared) private(z_, x_, y_, status) if(z_num_*x_num_ > 100)
-//            for (z_ = 0; z_ < z_num_; z_++) {
-//
-//                for (x_ = 0; x_ < x_num_; x_++) {
-//
-//                    const size_t offset_part_map = x_ * y_num_ + z_ * y_num_ * x_num_;
-//                    const size_t offset_pc_data = x_num_*z_ + x_;
-//
-//                    uint16_t current = 0;
-//                    uint16_t previous = 0;
-//
-//                    for (y_ = 0; y_ < y_num_; y_++) {
-//
-//                        status = p_map[i][offset_part_map + y_];
-//
-//                        if(status==SEED) {
-//
-//                        }
-//
-//
-//                    }
-//                }
-//
-//            }
-//        }
-
-        //apr_timer.stop_timer();
-
-
 
         apr_timer.start_timer("second_step");
 
 //        ExtraPartCellData<uint8_t> status_store;
 //        status_store.initialize_structure_parts_empty(apr.particles_int);
 
-        apr.particles_int.y_num.resize(apr.level_max() + 1);
-
-        for (int k = 0; k <= apr.level_max(); ++k) {
-            apr.particles_int.y_num[k] = y_num[k];
-        }
 
         ExtraPartCellData<std::pair<uint16_t,YGap_map>> y_begin;
-        y_begin.initialize_structure_parts_empty(apr.particles_int);
-
-        ExtraPartCellData<YGap_map> y_end;
-        y_end.initialize_structure_parts_empty(apr.particles_int);
-
+        y_begin.initialize_structure_parts_empty(apr);
 
         for(uint64_t i = (apr.level_min());i < apr.level_max();i++) {
 
-            const unsigned int x_num_ = x_num[i];
-            const unsigned int z_num_ = z_num[i];
-            const unsigned int y_num_ = y_num[i];
+            const uint64_t x_num_ = x_num[i];
+            const uint64_t z_num_ = z_num[i];
+            const uint64_t y_num_ = y_num[i];
 
 #pragma omp parallel for default(shared) private(z_, x_, y_, status) if(z_num_*x_num_ > 100)
             for (z_ = 0; z_ < z_num_; z_++) {
@@ -522,7 +454,6 @@ public:
 
                     y_begin.data[i+1][offset_pc_data1][counter].second.y_end = (y_num_us-1);
 
-                    counter++;
                 }
 
             }
@@ -560,14 +491,6 @@ public:
 
                 //end data copy
 
-                y_end.data[i+1][offset_pc_data2].resize(size_v);
-                std::copy(y_end.data[i+1][offset_pc_data1].begin(),y_end.data[i+1][offset_pc_data1].end(),y_end.data[i+1][offset_pc_data2].begin());
-
-                y_end.data[i+1][offset_pc_data3].resize(size_v);
-                std::copy(y_end.data[i+1][offset_pc_data1].begin(),y_end.data[i+1][offset_pc_data1].end(),y_end.data[i+1][offset_pc_data3].begin());
-
-                y_end.data[i+1][offset_pc_data4].resize(size_v);
-                std::copy(y_end.data[i+1][offset_pc_data1].begin(),y_end.data[i+1][offset_pc_data1].end(),y_end.data[i+1][offset_pc_data4].begin());
 
             }
 
@@ -629,7 +552,7 @@ public:
 
         apr_timer.start_timer("initialize map");
 
-        gap_map.initialize_structure_parts_empty(apr.particles_int);
+        gap_map.initialize_structure_parts_empty(apr);
 
         for(uint64_t i = (apr.level_min());i <= apr.level_max();i++) {
 
@@ -642,8 +565,13 @@ public:
                     const size_t offset_pc_data = x_num_ * z_ + x_;
                     if(y_begin.data[i][offset_pc_data].size() > 0) {
                         gap_map.data[i][offset_pc_data].resize(1);
-                        gap_map.data[i][offset_pc_data][0].map.insert(y_begin.data[i][offset_pc_data].begin(),
-                                                                      y_begin.data[i][offset_pc_data].end());
+
+//                        for (auto it = y_begin.data[i][offset_pc_data].begin();it != y_begin.data[i][offset_pc_data].end();it++) {
+//                            gap_map.data[i][offset_pc_data][0].map.emplace(it->first,it->second);
+//                        }
+
+
+                        gap_map.data[i][offset_pc_data][0].map.insert(y_begin.data[i][offset_pc_data].begin(),y_begin.data[i][offset_pc_data].end());
                         total_number_non_empty_rows++;
                     }
                 }
@@ -655,25 +583,45 @@ public:
     }
 
     template<typename T>
-    void flatten_structure(APR<T>& apr){
+    void rebuild_map(APR<T>& apr,MapStorageData& map_data){
 
-        std::vector<uint16_t> y_begin;
-        std::vector<uint16_t> y_end;
-        std::vector<uint64_t> global_index;
-        std::vector<uint16_t> z;
-        std::vector<uint16_t> x;
-        std::vector<uint8_t> level;
-        std::vector<uint16_t> size;
+        uint64_t z_;
+        uint64_t x_;
 
-        y_begin.reserve(total_number_gaps);
-        y_end.reserve(total_number_gaps);
-        global_index.reserve(total_number_gaps);
+        for(uint64_t i = (apr.level_min());i <= apr.level_max();i++) {
+
+            const uint64_t x_num_ = x_num[i];
+            const uint64_t z_num_ = z_num[i];
+            const uint64_t y_num_ = y_num[i];
+
+            for (uint64_t j = 0; j < total_number_non_empty_rows; ++j) {
+
+
+
+
+            }
+        }
+
+
+
+    }
+
+
+    template<typename T>
+    void flatten_structure(APR<T>& apr,MapStorageData& map_data){
+        //
+        //  Flatten the map access structure for writing the output
+        //
+
+        map_data.y_begin.reserve(total_number_gaps);
+        map_data.y_end.reserve(total_number_gaps);
+        map_data.global_index.reserve(total_number_gaps);
 
         //total_number_non_empty_rows
-        x.reserve(total_number_non_empty_rows);
-        z.reserve(total_number_non_empty_rows);
-        level.reserve(total_number_non_empty_rows);
-        size.reserve(total_number_non_empty_rows);
+        map_data.x.reserve(total_number_non_empty_rows);
+        map_data.z.reserve(total_number_non_empty_rows);
+        map_data.level.reserve(total_number_non_empty_rows);
+        map_data.size.reserve(total_number_non_empty_rows);
 
         uint64_t z_;
         uint64_t x_;
@@ -686,17 +634,17 @@ public:
 
             for (z_ = 0; z_ < z_num_; z_++) {
                 for (x_ = 0; x_ < x_num_; x_++) {
-                    const size_t offset_pc_data = x_num_ * z_ + x_;
+                    const uint64_t offset_pc_data = x_num_ * z_ + x_;
                     if(gap_map.data[i][offset_pc_data].size()>0) {
-                        x.push_back(x_);
-                        z.push_back(z_);
-                        level.push_back(i);
-                        size.push_back(gap_map.data[i][offset_pc_data][0].map.size());
+                        map_data.x.push_back(x_);
+                        map_data.z.push_back(z_);
+                        map_data.level.push_back(i);
+                        map_data.size.push_back(gap_map.data[i][offset_pc_data][0].map.size());
 
                         for (auto const &element : gap_map.data[i][offset_pc_data][0].map) {
-                            y_begin.push_back(element.first);
-                            y_end.push_back(element.second.y_end);
-                            global_index.push_back(element.second.global_index_begin);
+                            map_data.y_begin.push_back(element.first);
+                            map_data.y_end.push_back(element.second.y_end);
+                            map_data.global_index.push_back(element.second.global_index_begin);
                         }
                     }
 
@@ -903,17 +851,9 @@ public:
                                 }
 
                             }
-
-
                         }
-
-
                     }
-
-
-
                 }
-
             }
         }
 
@@ -958,8 +898,6 @@ public:
 
         std::vector<uint16_t> pz2;
         pz2.reserve(count_parts);
-
-
 
         //now how do I check they are right?, compare with the old structure and request the information out.
 

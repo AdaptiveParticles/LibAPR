@@ -18,6 +18,9 @@
 template<typename T>
 class ExtraPartCellData;
 
+template<typename U,typename V>
+class PartCellStructure;
+
 
 #define SEED_NUM_PARTICLES 8
 #define NON_SEED_NUM_PARTICLES 1
