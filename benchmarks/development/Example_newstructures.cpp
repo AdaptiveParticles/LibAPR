@@ -120,8 +120,21 @@ void compare_two_maps(APR<T>& apr,APRAccess& aa1,APRAccess& aa2){
                         global_index2.push_back(element.second.global_index_begin);
                     }
 
+                    for (int j = 0; j < y_begin.size(); ++j) {
 
-                    int stop = 1;
+                        if(y_begin[j]!=y_begin2[j]){
+                            std::cout << "ybegin broke" << std::endl;
+                        }
+
+                        if(y_end[j]!=y_end2[j]){
+                            std::cout << "ybegin broke" << std::endl;
+                        }
+
+                        if(global_index[j]!=global_index2[j]){
+                            std::cout << "index broke" << std::endl;
+                        }
+
+                    }
 
 
                 }
