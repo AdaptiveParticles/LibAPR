@@ -121,7 +121,7 @@ public:
     }
 
     bool it_begin(){
-        return set_iterator_by_particle_number(0);
+        return set_iterator_to_particle_by_number(0);
     }
 
     bool it_forward(){
@@ -132,14 +132,8 @@ public:
         return (current_particle_cell.global_index != -1);
     }
 
-//    uint64_t end(unsigned int depth){
-////        return this->curr_level.counter > 0;
-//    }
-//    uint64_t begin(unsigned int depth){
-////        return this->curr_level.init_iterate((*pc_data_pointer),depth);
-//    }
 
-    bool set_iterator_by_particle_number(const uint64_t& particle_number){
+    bool set_iterator_to_particle_by_number(const uint64_t &particle_number){
         //
         //  Moves the iterator to point to the particle number (global index of the particle)
         //
@@ -200,30 +194,21 @@ public:
     }
 
 
-
-    uint64_t it_forward(unsigned int depth){
-
-//        this->curr_level.move_to_next_pc((*pc_data_pointer),depth);
-//
-//        return this->curr_level.counter;
-    }
-
-
-    inline unsigned int particles_level_begin(unsigned int level_){
+    inline uint64_t particles_level_begin(unsigned int level_){
         //
         //  Used for finding the starting particle on a given level
         //
-//        return (*num_parts)[level_-1];
+        return apr_access->global_index_by_level_begin[level_];
     }
 
-    inline unsigned int particles_level_end(unsigned int level_){
+    inline uint64_t particles_level_end(unsigned int level_){
         //
         //  Find the last particle on a given level
         //
-//        return (*num_parts)[level_];
+        return (apr_access->global_index_by_level_end[level_]+1l);
     }
 
-    inline unsigned int particles_z_begin(unsigned int level,unsigned int z){
+    inline uint64_t particles_z_begin(unsigned int level,unsigned int z){
         //
         //  Used for finding the starting particle on a given level
         //
@@ -234,7 +219,7 @@ public:
 //        }
     }
 
-    inline unsigned int particles_z_end(unsigned int level,unsigned int z){
+    inline uint64_t particles_z_end(unsigned int level,unsigned int z){
         //
         //  Used for finding the starting particle on a given level
         //
@@ -243,7 +228,7 @@ public:
 
     }
 
-    inline unsigned int particles_zx_begin(unsigned int level,unsigned int z, unsigned int x){
+    inline uint64_t particles_zx_begin(unsigned int level,unsigned int z, unsigned int x){
         //
         //  Used for finding the starting particle on a given level
         //
@@ -254,7 +239,7 @@ public:
 //        }
     }
 
-    inline unsigned int particles_zx_end(unsigned int level,unsigned int z, unsigned int x){
+    inline uint64_t particles_zx_end(unsigned int level,unsigned int z, unsigned int x){
         //
         //  Used for finding the starting particle on a given level
         //
