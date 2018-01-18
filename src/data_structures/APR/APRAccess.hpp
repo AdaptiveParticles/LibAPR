@@ -376,7 +376,7 @@ public:
 
                             if(previous == 1){
 
-                                (y_begin.data[i][offset_pc_data][counter]).second.y_end = y_;
+                                (y_begin.data[i][offset_pc_data][counter]).second.y_end = (y_-1);
                                 counter++;
                             }
                         }
@@ -441,7 +441,7 @@ public:
 
                         if(previous == 1){
 
-                            y_begin.data[i+1][offset_pc_data1][counter].second.y_end = std::min((uint16_t)(2*y_+1),(uint16_t)(y_num_us-1));
+                            y_begin.data[i+1][offset_pc_data1][counter].second.y_end = std::min((uint16_t)(2*(y_-1)+1),(uint16_t)(y_num_us-1));
 
                             counter++;
 
@@ -541,7 +541,7 @@ public:
             }
 
             if(cumsum!=cumsum_begin){
-                global_index_by_level_end[i] = cumsum;
+                global_index_by_level_end[i] = cumsum-1;
             }
         }
 
@@ -549,39 +549,6 @@ public:
 
         apr_timer.stop_timer();
 
-
-        ExtraParticleData<uint8_t> status_vector;
-        status_vector.data.reserve(global_index_by_level_begin[apr.level_max()]);
-
-        //now retrieve the status information for all but hte top resolution, don't need it as they are all SEED
-
-        for(uint64_t i = (apr.level_min());i < apr.level_max();i++) {
-
-            const unsigned int x_num_ = x_num[i];
-            const unsigned int z_num_ = z_num[i];
-            const unsigned int y_num_ = y_num[i];
-
-//#pragma omp parallel for default(shared) private(z_, x_, y_, status) if(z_num_*x_num_ > 100)
-            for (z_ = 0; z_ < z_num_; z_++) {
-
-                for (x_ = 0; x_ < x_num_; x_++) {
-
-                    const size_t offset_part_map = x_ * y_num_ + z_ * y_num_ * x_num_;
-
-                    for (y_ = 0; y_ < y_num_; y_++) {
-
-                        status = p_map[i][offset_part_map + y_];
-
-                        if((status > 1) & (status < 4)) {
-                            status_vector.data.push_back(status);
-                        } else if (status == seed_us){
-                            status_vector.data.push_back(SEED);
-                        }
-                    }
-                }
-
-            }
-        }
 
         total_number_non_empty_rows=0;
 
