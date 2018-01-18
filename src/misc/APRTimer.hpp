@@ -9,7 +9,7 @@
 #include <iostream>
 #include "omp.h"
 
-class APR_timer{
+class APRTimer{
 //
 //
 //  Bevan Cheeseman 2016
@@ -30,7 +30,7 @@ double t2;
 
 bool verbose_flag; //turn to true if you want all the functions to write out their timings to terminal
 
-APR_timer(){
+APRTimer(){
     timer_count = 0;
     timings.resize(0);
     timing_names.resize(0);

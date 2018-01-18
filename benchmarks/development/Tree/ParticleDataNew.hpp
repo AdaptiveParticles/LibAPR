@@ -18,6 +18,9 @@
 template<typename T>
 class ExtraPartCellData;
 
+template<typename U,typename V>
+class PartCellStructure;
+
 
 #define SEED_NUM_PARTICLES 8
 #define NON_SEED_NUM_PARTICLES 1
@@ -659,7 +662,7 @@ public:
 
 
     template<typename U>
-    void utest_structure(PartCellStructure<U,uint64_t>& pc_struct,std::vector<Mesh_data<uint64_t>> link_array){
+    void utest_structure(PartCellStructure<U,uint64_t>& pc_struct,std::vector<MeshData<uint64_t>> link_array){
         //
         //  Bevan Cheeseman 2017
         //

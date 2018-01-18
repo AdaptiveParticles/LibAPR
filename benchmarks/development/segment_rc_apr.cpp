@@ -2,7 +2,7 @@
 #include <iostream>
 
 #include "segmentation_apr.h"
-#include "src/data_structures/Mesh/meshclass.h"
+#include "src/data_structures/Mesh/MeshData.hpp"
 #include "benchmarks/development/old_io/readimage.h"
 
 #include "benchmarks/development/old_structures/particle_map.hpp"
@@ -101,8 +101,8 @@ int main(int argc, char **argv) {
     
     //Now we will view the output by creating the binary image implied by the segmentation
     
-    Mesh_data<uint8_t> binary_img;
-    Mesh_data<uint16_t> comp_img;
+    MeshData<uint8_t> binary_img;
+    MeshData<uint16_t> comp_img;
 //    
     pc_struct.interp_parts_to_pc(binary_img,binary_mask);
     pc_struct.interp_parts_to_pc(comp_img,component_label);

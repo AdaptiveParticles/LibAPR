@@ -164,8 +164,8 @@ void construct_max_flow_graph_mesh(PartCellStructure<V,T>& pc_struct,GraphType& 
         }
     }
     
-    Mesh_data<float> eng_s;
-    Mesh_data<float> eng_t;
+    MeshData<float> eng_s;
+    MeshData<float> eng_t;
     
     pc_struct.interp_parts_to_pc(eng_s,eng1);
     //debug_write(eng_s,"eng1_mesh");
@@ -186,7 +186,7 @@ void construct_max_flow_graph_mesh(PartCellStructure<V,T>& pc_struct,GraphType& 
         }
     }
     
-    Mesh_data<uint8_t> status_mesh;
+    MeshData<uint8_t> status_mesh;
     interp_status_to_mesh(status_mesh,pc_struct);
     
     
@@ -303,7 +303,7 @@ void construct_max_flow_graph(PartCellStructure<V,T>& pc_struct,GraphType& g,std
     
     get_adaptive_min_max(pc_struct,adaptive_min,adaptive_max,status_offsets_min,status_offsets_max,parameters[8],parameters[9]);
     
-    Mesh_data<float> output_img;
+    MeshData<float> output_img;
 //    interp_extrapc_to_mesh(output_img,pc_struct,adaptive_min);
 //    debug_write(output_img,"adapt_min");
 //    
@@ -670,7 +670,7 @@ void construct_max_flow_graph_new(PartCellStructure<V,T>& pc_struct,GraphType& g
 
     timer.stop_timer();
 
-    Mesh_data<float> output_img;
+    MeshData<float> output_img;
 
     //initialize variables required
     uint64_t node_val_part; // node variable encoding part offset status information
@@ -1302,7 +1302,7 @@ void calc_graph_cuts_segmentation(PartCellStructure<V,T>& pc_struct,ExtraPartCel
 
 
 template<typename T,typename V>
-void calc_graph_cuts_segmentation_mesh(PartCellStructure<V,T>& pc_struct,Mesh_data<uint8_t>& seg_mesh,std::array<uint64_t,10> parameters,AnalysisData& analysis_data){
+void calc_graph_cuts_segmentation_mesh(PartCellStructure<V,T>& pc_struct,MeshData<uint8_t>& seg_mesh,std::array<uint64_t,10> parameters,AnalysisData& analysis_data){
     //
     //
     //  Bevan Cheeseman 2016
@@ -1357,7 +1357,7 @@ void calc_graph_cuts_segmentation_mesh(PartCellStructure<V,T>& pc_struct,Mesh_da
 }
 
 template<typename T,typename V>
-void calc_graph_cuts_segmentation_mesh(PartCellStructure<V,T>& pc_struct,Mesh_data<uint8_t>& seg_mesh,std::array<uint64_t,10> parameters){
+void calc_graph_cuts_segmentation_mesh(PartCellStructure<V,T>& pc_struct,MeshData<uint8_t>& seg_mesh,std::array<uint64_t,10> parameters){
     //
     //  Creating interface without analysis_data
     //

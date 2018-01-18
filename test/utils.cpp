@@ -8,11 +8,11 @@
 
 #include "utils.h"
 
-bool compare_two_images(const Mesh_data<uint16_t>& in_memory, std::string filename) {
+bool compare_two_images(const MeshData<uint16_t>& in_memory, std::string filename) {
 
     /* Returns true iff two images are the same with tolerance of 1 per pixel. */
 
-    Mesh_data<uint16_t > input_image;
+    MeshData<uint16_t > input_image;
 
     load_image_tiff(input_image, filename);
 
@@ -34,7 +34,7 @@ bool compare_two_ks(const Particle_map<float>& in_memory, std::string filename) 
 
     for (int k = in_memory.k_min;k <= in_memory.k_max;k++) {
 
-        Mesh_data<uint8_t > to_compare;
+        MeshData<uint8_t > to_compare;
 
         // in_memory.layers[k]
         load_image_tiff(to_compare, filename + "_" + std::to_string(k) + ".tif");
@@ -121,7 +121,7 @@ bool compare_part_rep_with_particle_map(const Particle_map<float>& in_memory, st
     return true;
 }
 
-Mesh_data<uint16_t> create_random_test_example(unsigned int size_y, unsigned int size_x,
+MeshData<uint16_t> create_random_test_example(unsigned int size_y, unsigned int size_x,
                                                unsigned int size_z, unsigned int seed) {
     // creates the input image of a given size with given seed
     // uses ranlux48 random number generator
@@ -130,7 +130,7 @@ Mesh_data<uint16_t> create_random_test_example(unsigned int size_y, unsigned int
     std::ranlux48 generator(seed);
     std::normal_distribution<float> distribution(1000, 250);
 
-    Mesh_data<uint16_t> test_example(size_y, size_x, size_z);
+    MeshData<uint16_t> test_example(size_y, size_x, size_z);
 
     std::generate(test_example.mesh.begin(), test_example.mesh.end(),
             // partial application of generator and distribution to get_random_number function
@@ -140,7 +140,7 @@ Mesh_data<uint16_t> create_random_test_example(unsigned int size_y, unsigned int
 
 }
 
-Mesh_data<uint16_t> generate_random_ktest_example(unsigned int size_y, unsigned int size_x,
+MeshData<uint16_t> generate_random_ktest_example(unsigned int size_y, unsigned int size_x,
                                                   unsigned int size_z, unsigned int seed,
                                                   float mean_fraction, float sd_fraction) {
 
@@ -156,7 +156,7 @@ Mesh_data<uint16_t> generate_random_ktest_example(unsigned int size_y, unsigned 
 
     std::normal_distribution<float> distribution(k_max * mean_fraction, k_max * sd_fraction);
 
-    Mesh_data<uint16_t> test_example(size_y, size_x, size_z);
+    MeshData<uint16_t> test_example(size_y, size_x, size_z);
 
 #pragma omp parallel for default(shared)
     for(int i = 0; i < test_example.mesh.size(); i++){
@@ -1436,7 +1436,7 @@ bool parent_structure_test(PartCellStructure<float,uint64_t>& pc_struct){
     PartCellNeigh<uint64_t> neigh_keys;
 
 
-//    Mesh_data<uint8_t> temp;
+//    MeshData<uint8_t> temp;
 //    for(int i = parent_cells.neigh_info.depth_min; i <= parent_cells.neigh_info.depth_max;i++){
 //        temp.y_num = pc_struct.y_num[i];
 //        temp.x_num = pc_struct.x_num[i];
@@ -1881,7 +1881,7 @@ void create_test_dataset_from_hdf5(Particle_map<float>& particle_map,PartCellStr
 
 
 }
-void create_reference_structure(PartCellStructure<float,uint64_t>& pc_struct,std::vector<Mesh_data<uint64_t>>& link_array){
+void create_reference_structure(PartCellStructure<float,uint64_t>& pc_struct,std::vector<MeshData<uint64_t>>& link_array){
     //
     //  Creates an array that can be used to link the new particle data structure for the filtering with the newer one.
     //
@@ -2008,7 +2008,7 @@ void create_reference_structure(PartCellStructure<float,uint64_t>& pc_struct,std
 
 
 }
-void create_j_reference_structure(PartCellStructure<float,uint64_t>& pc_struct,std::vector<Mesh_data<uint64_t>>& j_array){
+void create_j_reference_structure(PartCellStructure<float,uint64_t>& pc_struct,std::vector<MeshData<uint64_t>>& j_array){
     //
     //  Creates an array that can be used to link the new particle data structure for the filtering with the newer one.
     //
@@ -2102,7 +2102,7 @@ void create_j_reference_structure(PartCellStructure<float,uint64_t>& pc_struct,s
 
 
 }
-void create_j_reference_structure(PartCellData<uint64_t>& pc_data,std::vector<Mesh_data<uint64_t>>& j_array){
+void create_j_reference_structure(PartCellData<uint64_t>& pc_data,std::vector<MeshData<uint64_t>>& j_array){
     //
     //  Creates an array that can be used to link the new particle data structure for the filtering with the newer one.
     //
@@ -2194,7 +2194,7 @@ void create_j_reference_structure(PartCellData<uint64_t>& pc_data,std::vector<Me
 
 
 }
-pc_key find_neigh_cell(pc_key curr_cell,int dir,std::vector<Mesh_data<uint64_t>>& j_array){
+pc_key find_neigh_cell(pc_key curr_cell,int dir,std::vector<MeshData<uint64_t>>& j_array){
     //
     //  Bevan Cheeseman 2017
     //
@@ -2310,7 +2310,7 @@ pc_key find_neigh_cell(pc_key curr_cell,int dir,std::vector<Mesh_data<uint64_t>>
     return neigh_key;
 
 }
-pc_key find_neigh_cell_edge(pc_key curr_cell,int dir,std::vector<Mesh_data<uint64_t>>& j_array){
+pc_key find_neigh_cell_edge(pc_key curr_cell,int dir,std::vector<MeshData<uint64_t>>& j_array){
     //
     //  Bevan Cheeseman 2017
     //
@@ -2426,7 +2426,7 @@ pc_key find_neigh_cell_edge(pc_key curr_cell,int dir,std::vector<Mesh_data<uint6
     return neigh_key;
 
 }
-pc_key find_neigh_cell_corner(pc_key curr_cell,int dir,std::vector<Mesh_data<uint64_t>>& j_array){
+pc_key find_neigh_cell_corner(pc_key curr_cell,int dir,std::vector<MeshData<uint64_t>>& j_array){
     //
     //  Bevan Cheeseman 2017
     //
@@ -2545,7 +2545,7 @@ pc_key find_neigh_cell_corner(pc_key curr_cell,int dir,std::vector<Mesh_data<uin
 
 
 
-void create_intensity_reference_structure(PartCellStructure<float,uint64_t>& pc_struct,std::vector<Mesh_data<float>>& int_array){
+void create_intensity_reference_structure(PartCellStructure<float,uint64_t>& pc_struct,std::vector<MeshData<float>>& int_array){
     //
     //  Creates an array that can be used to link the new particle data structure for the filtering with the newer one.
     //
@@ -3135,7 +3135,7 @@ bool utest_alt_part_struct(PartCellStructure<float,uint64_t>& pc_struct){
 
     bool success = true;
 
-    std::vector<Mesh_data<float>> int_array;
+    std::vector<MeshData<float>> int_array;
 
     create_intensity_reference_structure(pc_struct,int_array);
 
@@ -3267,9 +3267,10 @@ bool utest_apr_serial_iterate(PartCellStructure<float,uint64_t>& pc_struct){
 
     APR<float> apr;
 
-    apr.init_cells(pc_struct);
+    create_pc_data_new(apr,pc_struct);
 
-    std::vector<Mesh_data<float>> int_array;
+
+    std::vector<MeshData<float>> int_array;
 
     create_intensity_reference_structure(pc_struct,int_array);
 
@@ -3297,13 +3298,13 @@ bool utest_apr_parallel_iterate(PartCellStructure<float,uint64_t>& pc_struct){
 
     APR<float> apr;
 
-    apr.init_cells(pc_struct);
+    create_pc_data_new(apr,pc_struct);
 
-    std::vector<Mesh_data<float>> int_array;
+    std::vector<MeshData<float>> int_array;
 
     create_intensity_reference_structure(pc_struct,int_array);
 
-    APR_iterator<float> apr_iterator(apr);
+    APRIterator<float> apr_iterator(apr);
     uint64_t particle_number = 0;
 
 #pragma omp parallel for schedule(static) private(particle_number) firstprivate(apr_iterator)
@@ -3438,11 +3439,11 @@ bool utest_apr_serial_neigh(PartCellStructure<float,uint64_t>& pc_struct){
 
     APR<float> apr;
 
-    apr.init_cells(pc_struct);
+    create_pc_data_new(apr,pc_struct);
 
-    std::vector<Mesh_data<float>> int_array;
+    std::vector<MeshData<float>> int_array;
 
-    APR_iterator<float> neigh_it(apr);
+    APRIterator<float> neigh_it(apr);
 
     create_intensity_reference_structure(pc_struct,int_array);
 
@@ -3517,15 +3518,15 @@ bool utest_apr_parallel_neigh(PartCellStructure<float,uint64_t>& pc_struct){
 
     APR<float> apr;
 
-    apr.init_cells(pc_struct);
+    create_pc_data_new(apr,pc_struct);
 
-    std::vector<Mesh_data<float>> int_array;
+    std::vector<MeshData<float>> int_array;
 
-    APR_iterator<float> neigh_it(apr);
+    APRIterator<float> neigh_it(apr);
 
     create_intensity_reference_structure(pc_struct,int_array);
 
-    APR_iterator<float> apr_it(apr);
+    APRIterator<float> apr_it(apr);
     unsigned int part = 0;
 
 #pragma omp parallel for schedule(static) private(part) firstprivate(apr_it,neigh_it)
@@ -3591,6 +3592,338 @@ bool utest_apr_parallel_neigh(PartCellStructure<float,uint64_t>& pc_struct){
 
 }
 
+void create_pc_data_new(APR<float>& apr,PartCellStructure<float,uint64_t>& pc_struct){
+    //
+    //
+    //  Moves from the old data structure to the new datastructure (PC = particles, stores V)
+    //
+    //
+
+    apr.pc_data.org_dims = pc_struct.org_dims;
+
+    apr.pc_data.y_num = pc_struct.y_num;
+
+    //first add the layers
+    apr.pc_data.depth_max = pc_struct.depth_max + 1;
+    apr.pc_data.depth_min = pc_struct.depth_min;
+
+    apr.pc_data.z_num.resize(apr.pc_data.depth_max+1);
+    apr.pc_data.x_num.resize(apr.pc_data.depth_max+1);
+
+    apr.pc_data.y_num.resize(apr.pc_data.depth_max+1);
+
+    apr.pc_data.y_num[apr.pc_data.depth_max] = pc_struct.org_dims[0];
+
+    apr.pc_data.data.resize(apr.pc_data.depth_max+1);
+
+    for(uint64_t i = apr.pc_data.depth_min;i < apr.pc_data.depth_max;i++){
+        apr.pc_data.z_num[i] = pc_struct.z_num[i];
+        apr.pc_data.x_num[i] = pc_struct.x_num[i];
+        apr.pc_data.y_num[i] = pc_struct.y_num[i];
+        apr.pc_data.data[i].resize(pc_struct.z_num[i]*pc_struct.x_num[i]);
+    }
+
+    apr.pc_data.z_num[apr.pc_data.depth_max] = pc_struct.org_dims[2];
+    apr.pc_data.x_num[apr.pc_data.depth_max] = pc_struct.org_dims[1];
+    apr.pc_data.y_num[apr.pc_data.depth_max] = pc_struct.org_dims[0];
+    apr.pc_data.data[apr.pc_data.depth_max].resize(apr.pc_data.z_num[apr.pc_data.depth_max]*apr.pc_data.x_num[apr.pc_data.depth_max]);
+
+    apr.particles_int.org_dims = pc_struct.org_dims;
+
+    apr.particles_int.y_num = pc_struct.y_num;
+
+    //first add the layers
+    apr.particles_int.depth_max = pc_struct.depth_max + 1;
+    apr.particles_int.depth_min = pc_struct.depth_min;
+
+    apr.particles_int.z_num.resize(apr.pc_data.depth_max+1);
+    apr.particles_int.x_num.resize(apr.pc_data.depth_max+1);
+
+    apr.particles_int.y_num.resize(apr.pc_data.depth_max+1);
+
+    apr.particles_int.y_num[apr.pc_data.depth_max] = pc_struct.org_dims[0];
+
+    apr.particles_int.data.resize(apr.pc_data.depth_max+1);
+
+    for(uint64_t i = apr.particles_int.depth_min;i <= apr.particles_int.depth_max;i++){
+        apr.particles_int.z_num[i] = apr.pc_data.z_num[i];
+        apr.particles_int.x_num[i] = apr.pc_data.x_num[i];
+        apr.particles_int.y_num[i] = apr.pc_data.y_num[i];
+        apr.particles_int.data[i].resize(apr.pc_data.z_num[i]*apr.pc_data.x_num[i]);
+    }
+
+    //now initialize the entries of the two data sets, access structure
+
+    //initialize loop variables
+    int x_;
+    int z_;
+    int y_;
+
+    int x_seed;
+    int z_seed;
+    int y_seed;
+
+    uint64_t j_;
+
+    uint64_t status;
+    uint64_t node_val;
+    uint16_t node_val_part;
+
+    //next initialize the entries;
+    Part_timer timer;
+    timer.verbose_flag = false;
+
+    std::vector<uint16_t> temp_exist;
+    std::vector<uint16_t> temp_location;
+
+    std::vector<float> temp_int;
+
+    timer.start_timer("intiialize access data structure");
+
+    for(uint64_t i = apr.pc_data.depth_max;i >= apr.pc_data.depth_min;i--){
+
+        const unsigned int x_num = apr.pc_data.x_num[i];
+        const unsigned int z_num = apr.pc_data.z_num[i];
+
+
+        const unsigned int x_num_seed = apr.pc_data.x_num[i-1];
+        const unsigned int z_num_seed = apr.pc_data.z_num[i-1];
+
+        temp_exist.resize(apr.pc_data.y_num[i]);
+        temp_location.resize(apr.pc_data.y_num[i]);
+        temp_int.resize(apr.pc_data.y_num[i]);
+
+#pragma omp parallel for default(shared) private(j_,z_,x_,y_,node_val,status,z_seed,x_seed,node_val_part) firstprivate(temp_exist,temp_location) if(z_num*x_num > 100)
+        for(z_ = 0;z_ < z_num;z_++){
+
+            for(x_ = 0;x_ < x_num;x_++){
+
+                std::fill(temp_exist.begin(), temp_exist.end(), 0);
+                std::fill(temp_location.begin(), temp_location.end(), 0);
+
+                std::fill(temp_int.begin(), temp_int.end(), 0);
+
+                if( i < apr.pc_data.depth_max){
+                    //access variables
+                    const size_t offset_pc_data = x_num*z_ + x_;
+                    const size_t j_num = pc_struct.pc_data.data[i][offset_pc_data].size();
+
+                    y_ = 0;
+
+                    //first loop over
+                    for(j_ = 0; j_ < j_num;j_++){
+                        //raster over both structures, generate the index for the particles, set the status and offset_y_coord diff
+
+                        node_val = pc_struct.pc_data.data[i][offset_pc_data][j_];
+                        node_val_part = pc_struct.part_data.access_data.data[i][offset_pc_data][j_];
+
+                        if(!(node_val&1)){
+                            //normal node
+                            y_++;
+                            //create pindex, and create status (0,1,2,3) and type
+                            status = (node_val & STATUS_MASK) >> STATUS_SHIFT;  //need the status masks here, need to move them into the datastructure I think so that they are correctly accessible then to these routines.
+                            uint16_t part_offset = (node_val_part & Y_PINDEX_MASK_PARTICLE) >> Y_PINDEX_SHIFT_PARTICLE;
+
+                            if(status > SEED){
+                                temp_exist[y_] = status;
+                                temp_location[y_] = part_offset;
+                            }
+
+                        } else {
+
+                            y_ = (node_val & NEXT_COORD_MASK) >> NEXT_COORD_SHIFT;
+                            y_--;
+                        }
+                    }
+                }
+
+                x_seed = x_/2;
+                z_seed = z_/2;
+
+                if( i > apr.pc_data.depth_min){
+                    //access variables
+                    size_t offset_pc_data = x_num_seed*z_seed + x_seed;
+                    const size_t j_num = pc_struct.pc_data.data[i-1][offset_pc_data].size();
+
+
+                    y_ = 0;
+
+                    //first loop over
+                    for(j_ = 0; j_ < j_num;j_++){
+                        //raster over both structures, generate the index for the particles, set the status and offset_y_coord diff
+
+                        node_val_part = pc_struct.part_data.access_data.data[i-1][offset_pc_data][j_];
+                        node_val = pc_struct.pc_data.data[i-1][offset_pc_data][j_];
+
+                        if(!(node_val&1)){
+                            //normal node
+                            y_++;
+                            //create pindex, and create status (0,1,2,3) and type
+                            status = (node_val & STATUS_MASK) >> STATUS_SHIFT;  //need the status masks here, need to move them into the datastructure I think so that they are correctly accessible then to these routines.
+                            uint16_t part_offset = (node_val_part & Y_PINDEX_MASK_PARTICLE) >> Y_PINDEX_SHIFT_PARTICLE;
+
+                            if(status == SEED){
+                                temp_exist[2*y_] = status;
+                                temp_exist[2*y_+1] = status;
+
+                                temp_location[2*y_] = part_offset + (z_&1)*4 + (x_&1)*2;
+                                temp_location[2*y_+1] = part_offset + (z_&1)*4 + (x_&1)*2 + 1;
+
+                            }
+
+                        } else {
+
+                            y_ = (node_val & NEXT_COORD_MASK) >> NEXT_COORD_SHIFT;
+                            y_--;
+                        }
+                    }
+                }
+
+
+                size_t first_empty = 0;
+
+                size_t offset_pc_data = x_num*z_ + x_;
+                size_t offset_pc_data_seed = x_num_seed*z_seed + x_seed;
+                size_t curr_index = 0;
+                size_t prev_ind = 0;
+
+                //first value handle the duplication of the gap node
+
+                status = temp_exist[0];
+
+                if((status> 0)){
+                    first_empty = 0;
+                } else {
+                    first_empty = 1;
+                }
+
+                size_t part_total= 0;
+
+                for(y_ = 0;y_ < temp_exist.size();y_++){
+
+                    status = temp_exist[y_];
+
+                    if(status> 0){
+                        curr_index+= 1 + prev_ind;
+                        prev_ind = 0;
+                        part_total++;
+                    } else {
+                        prev_ind = 1;
+                    }
+                }
+
+                if(curr_index == 0){
+                    apr.pc_data.data[i][offset_pc_data].resize(1); //always first adds an extra entry for intialization and extra info
+                } else {
+                    apr.pc_data.data[i][offset_pc_data].resize(curr_index + 2 - first_empty,0); //gap node to begin, already finishes with a gap node
+
+                }
+
+
+
+                curr_index = 0;
+                prev_ind = 1;
+                size_t prev_coord = 0;
+
+                size_t part_counter=0;
+
+                apr.pc_data.data[i][offset_pc_data][0] = 1;
+                apr.pc_data.data[i][offset_pc_data].back() = 1;
+
+                //initialize particles
+                apr.particles_int.data[i][offset_pc_data].resize(apr.pc_data.data[i][offset_pc_data].size());
+
+                for(y_ = 0;y_ < temp_exist.size();y_++){
+
+                    status = temp_exist[y_];
+
+                    if((status> 0)){
+
+                        curr_index++;
+
+                        //set starting type
+                        if(prev_ind == 1){
+                            //gap node
+                            //set type
+
+                            apr.pc_data.data[i][offset_pc_data][curr_index-1] = TYPE_GAP;
+                            apr.pc_data.data[i][offset_pc_data][curr_index-1] |= (((uint64_t)y_) << NEXT_COORD_SHIFT);
+                            apr.pc_data.data[i][offset_pc_data][curr_index-1] |= ( prev_coord << PREV_COORD_SHIFT);
+                            apr.pc_data.data[i][offset_pc_data][curr_index-1] |= (NO_NEIGHBOUR << YP_DEPTH_SHIFT);
+                            apr.pc_data.data[i][offset_pc_data][curr_index-1] |= (NO_NEIGHBOUR << YM_DEPTH_SHIFT);
+                            //CHANGE HERE
+
+                            //gap node
+                            // pc_data.data[i][offset_pc_data][curr_index-1] = 1; //set type to gap
+                            // pc_data.data[i][offset_pc_data][curr_index-1] |= ((y_ - prev_coord) << COORD_DIFF_SHIFT_PARTICLE); //set the coordinate difference
+
+                            curr_index++;
+                        }
+                        prev_coord = y_;
+                        //set type
+
+
+                        apr.pc_data.data[i][offset_pc_data][curr_index-1] = TYPE_PC;
+
+                        //initialize the neighbours to empty (to be over-written later if not the case) (Boundary Conditions)
+                        apr.pc_data.data[i][offset_pc_data][curr_index-1] |= (NO_NEIGHBOUR << XP_DEPTH_SHIFT);
+                        apr.pc_data.data[i][offset_pc_data][curr_index-1] |= (NO_NEIGHBOUR << XM_DEPTH_SHIFT);
+                        apr.pc_data.data[i][offset_pc_data][curr_index-1] |= (NO_NEIGHBOUR << ZP_DEPTH_SHIFT);
+                        apr.pc_data.data[i][offset_pc_data][curr_index-1] |= (NO_NEIGHBOUR << ZM_DEPTH_SHIFT);
+
+                        apr.pc_data.data[i][offset_pc_data][curr_index-1] |= (status << STATUS_SHIFT);
+
+                        //lastly retrieve the intensities
+                        if(status == SEED){
+                            //seed from up one level
+                            apr.particles_int.data[i][offset_pc_data][curr_index-1] = pc_struct.part_data.particle_data.data[i-1][offset_pc_data_seed][temp_location[y_]];
+                        }
+                        else {
+                            //non seed same level
+                            apr.particles_int.data[i][offset_pc_data][curr_index-1] = pc_struct.part_data.particle_data.data[i][offset_pc_data][temp_location[y_]];
+                        }
+
+                        part_counter++;
+
+
+                        prev_ind = 0;
+                    } else {
+                        //store for setting above
+                        if(prev_ind == 0){
+                            //prev_coord = y_;
+                        }
+
+                        prev_ind = 1;
+
+                    }
+                }
+
+
+                int stop = 1;
+
+
+
+            }
+
+        }
+    }
+
+    timer.stop_timer();
+
+
+    ///////////////////////////////////
+    //
+    //  Calculate neighbours
+    //
+    /////////////////////////////////
+
+    //(+y,-y,+x,-x,+z,-z)
+    apr.pc_data.set_neighbor_relationships();
+
+
+}
+
+
 bool utest_apr_read_write(PartCellStructure<float,uint64_t>& pc_struct){
     //
     //  Bevan Cheeseman 2018
@@ -3604,7 +3937,7 @@ bool utest_apr_read_write(PartCellStructure<float,uint64_t>& pc_struct){
 
     APR<float> apr;
 
-    apr.init_cells(pc_struct);
+    create_pc_data_new(apr,pc_struct);
 
     std::string save_loc = "";
     std::string file_name = "read_write_test";
@@ -3653,9 +3986,9 @@ bool utest_apr_read_write(PartCellStructure<float,uint64_t>& pc_struct){
 
 
 
-    std::vector<Mesh_data<float>> int_array;
+    std::vector<MeshData<float>> int_array;
 
-    APR_iterator<float> neigh_it(apr_read);
+    APRIterator<float> neigh_it(apr_read);
 
     create_intensity_reference_structure(pc_struct,int_array);
 
@@ -3744,7 +4077,7 @@ bool utest_neigh_cells(PartCellStructure<float,uint64_t>& pc_struct){   //  Calc
     //  Should be written with the neighbour iterators instead.
     //
 
-    std::vector<Mesh_data<uint64_t>> j_array;
+    std::vector<MeshData<uint64_t>> j_array;
 
     create_j_reference_structure(pc_struct,j_array);
 
@@ -4007,7 +4340,7 @@ bool utest_moore_neighbours(PartCellStructure<float,uint64_t>& pc_struct){
     PartCellData<uint64_t> pc_data;
     part_new.create_pc_data_new(pc_data);
 
-    std::vector<Mesh_data<uint64_t>> j_array;
+    std::vector<MeshData<uint64_t>> j_array;
 
     create_j_reference_structure(pc_data,j_array);
 

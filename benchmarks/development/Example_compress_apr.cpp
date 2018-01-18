@@ -73,7 +73,7 @@ int main(int argc, char **argv) {
     std::string file_name = options.directory + options.input;
 
     // Read the apr file into the part cell structure
-    APR_timer timer;
+    APRTimer timer;
 
     timer.verbose_flag = true;
 
@@ -103,7 +103,7 @@ int main(int argc, char **argv) {
     apr.read_apr(options.directory + name + "_compress_apr.h5");
     timer.stop_timer();
 
-    Mesh_data<uint16_t> img;
+    MeshData<uint16_t> img;
     apr.interp_img(img,apr.particles_int);
     std::string output = options.directory + name + "_compress.tif";
     img.write_image_tiff(output);

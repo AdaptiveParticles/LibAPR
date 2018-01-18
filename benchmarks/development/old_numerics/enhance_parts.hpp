@@ -21,7 +21,7 @@
 #include "src/data_structures/APR/APR.hpp"
 
 template<typename U>
-void compute_guided_var(Mesh_data<U> input_image,PartCellStructure<U,uint64_t>& pc_struct,Part_rep& part_rep){
+void compute_guided_var(MeshData<U> input_image,PartCellStructure<U,uint64_t>& pc_struct,Part_rep& part_rep){
     //
     //  Bevan Cheeseman 2017
     //
@@ -48,11 +48,11 @@ void compute_guided_var(Mesh_data<U> input_image,PartCellStructure<U,uint64_t>& 
 
     get_adaptive_min_max(pc_struct,adaptive_min,adaptive_max,status_offsets_min,status_offsets_max,0,0);
 
-    Mesh_data<float> temp;
+    MeshData<float> temp;
 
     interp_extrapc_to_mesh(temp,pc_struct,adaptive_max);
 
-    Mesh_data<float> var;
+    MeshData<float> var;
 
     down_sample(temp,var,
                 [](float x, float y) { return x+y; },
@@ -61,7 +61,7 @@ void compute_guided_var(Mesh_data<U> input_image,PartCellStructure<U,uint64_t>& 
 }
 
 //template<typename U>
-//ExtraPartCellData<float> update_new_particles(Mesh_data<U>& input_image,APR<float>& apr){
+//ExtraPartCellData<float> update_new_particles(MeshData<U>& input_image,APR<float>& apr){
 //    //
 //    //  Gradient using previous APR structure
 //    //
@@ -117,7 +117,7 @@ void compute_guided_var(Mesh_data<U> input_image,PartCellStructure<U,uint64_t>& 
 
 //
 //template<typename U>
-//PartCellStructure<U,uint64_t> compute_guided_apr_time(Mesh_data<U>& input_image,PartCellStructure<U,uint64_t>& pc_struct,Part_rep& part_rep,APR<float>& apr_c,ExtraPartCellData<float>& scale){
+//PartCellStructure<U,uint64_t> compute_guided_apr_time(MeshData<U>& input_image,PartCellStructure<U,uint64_t>& pc_struct,Part_rep& part_rep,APR<float>& apr_c,ExtraPartCellData<float>& scale){
 //    //
 //    //  Bevan Cheeseman 2017
 //    //
@@ -151,13 +151,13 @@ void compute_guided_var(Mesh_data<U> input_image,PartCellStructure<U,uint64_t>& 
 //
 //    get_adaptive_min_max(pc_struct,adaptive_min,adaptive_max,status_offsets_min,status_offsets_max,0,0);
 //
-//    Mesh_data<float> grad;
+//    MeshData<float> grad;
 ////
 //    interp_img(grad, apr_c.pc_data, apr_c.part_new, gradient_mag,true);
 ////
-//    Mesh_data<float> var;
+//    MeshData<float> var;
 //
-//    Mesh_data<float> temp;
+//    MeshData<float> temp;
 //
 //    float min = 10;
 //    var.preallocate(grad.y_num, grad.x_num, grad.z_num, 0);
@@ -203,7 +203,7 @@ void compute_guided_var(Mesh_data<U> input_image,PartCellStructure<U,uint64_t>& 
 
 
 template<typename U>
-PartCellStructure<U,uint64_t> compute_guided_apr(Mesh_data<U> input_image,PartCellStructure<U,uint64_t>& pc_struct,Part_rep& part_rep){
+PartCellStructure<U,uint64_t> compute_guided_apr(MeshData<U> input_image,PartCellStructure<U,uint64_t>& pc_struct,Part_rep& part_rep){
     //
     //  Bevan Cheeseman 2017
     //
@@ -270,7 +270,7 @@ PartCellStructure<U,uint64_t> compute_guided_apr(Mesh_data<U> input_image,PartCe
     get_adaptive_min_max(pc_struct,adaptive_min,adaptive_max,status_offsets_min,status_offsets_max,0,0);
 
 
-    Mesh_data<float> temp;
+    MeshData<float> temp;
 
     interp_extrapc_to_mesh(temp,pc_struct,adaptive_max);
 
@@ -284,11 +284,11 @@ PartCellStructure<U,uint64_t> compute_guided_apr(Mesh_data<U> input_image,PartCe
 
 
 
-    Mesh_data<float> grad;
+    MeshData<float> grad;
 //
     interp_img(grad, pc_data, part_new, smoothed_gradient_mag,true);
 //
-    Mesh_data<float> var;
+    MeshData<float> var;
 
     float min = 10;
     var.preallocate(grad.y_num, grad.x_num, grad.z_num, 0);

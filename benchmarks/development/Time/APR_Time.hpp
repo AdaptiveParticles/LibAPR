@@ -666,7 +666,7 @@ class APR_Time {
         }
 
 
-       Mesh_data<float> tp;
+       MeshData<float> tp;
 
         interp_img(tp,apr_c.y_vec,change_loc);
 

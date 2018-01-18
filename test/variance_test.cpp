@@ -10,7 +10,7 @@ TEST_P(CreateImageFromFileTest, VARIANCE_FROMFILE_IMAGE_PARAM){
     // param -> tuple<string. string. string, float> (input filename, output filename, stats filename lambda)
     std::string input = tests_directory + std::get<0>(GetParam());
     std::string output = tests_directory + std::get<1>(GetParam());
-    Mesh_data<uint16_t> to_compare = create_variance(input);
+    MeshData<uint16_t> to_compare = create_variance(input);
     //write_image_tiff(to_compare, output);
     ASSERT_TRUE(compare_two_images(to_compare, output));
 }

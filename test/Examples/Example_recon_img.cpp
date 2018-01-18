@@ -74,7 +74,7 @@ int main(int argc, char **argv) {
     apr.read_apr(file_name);
 
     //create mesh data structure for reconstruction
-    Mesh_data<uint16_t> recon_pc;
+    MeshData<uint16_t> recon_pc;
 
     timer.start_timer("pc interp");
     //perform piece-wise constant interpolation
@@ -96,7 +96,7 @@ int main(int argc, char **argv) {
     ////////////////////////////
 
     //initialization of the iteration structures
-    APR_iterator<float> apr_it(apr); //this is required for parallel access
+    APRIterator<float> apr_it(apr); //this is required for parallel access
     uint64_t part;
 
     //create particle dataset
@@ -116,7 +116,7 @@ int main(int argc, char **argv) {
 
     timer.stop_timer();
 
-    Mesh_data<uint16_t> type_recon;
+    MeshData<uint16_t> type_recon;
 
     apr.interp_img(type_recon,type);
 
@@ -134,7 +134,7 @@ int main(int argc, char **argv) {
     type_recon.write_image_tiff(output_path);
 
     //smooth reconstruction - requires float
-    Mesh_data<float> recon_smooth;
+    MeshData<float> recon_smooth;
 
     std::vector<float> scale_d = {2,2,2};
 

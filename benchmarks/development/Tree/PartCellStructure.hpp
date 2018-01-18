@@ -22,7 +22,7 @@
 #include "src/data_structures/APR/PartCellData.hpp"
 #include "ParticleData.hpp"
 #include "benchmarks/development/old_structures/particle_map.hpp"
-#include "src/data_structures/Mesh/meshclass.h"
+#include "src/data_structures/Mesh/MeshData.hpp"
 #include "benchmarks/development/old_io/writeimage.h"
 
 #ifdef _MSC_VER
@@ -63,8 +63,8 @@ uint32_t __inline __builtin_clz(uint32_t value)
 
 //parent node defitions
 
-
-
+template<typename T>
+class APR;
 
 template <typename T,typename S> // type T is the image type, type S is the data structure base type
 class PartCellStructure {
@@ -1667,6 +1667,9 @@ public:
     }
 
 
+
+
+
     template<typename U>
     void update_parts(Particle_map<U>& part_map){
 
@@ -1848,9 +1851,9 @@ public:
     }
     
     template<typename U,typename V>
-    void interp_parts_to_pc(Mesh_data<U>& out_image,ExtraPartCellData<V>& interp_data){
-        Mesh_data<U> curr_k_img;
-        Mesh_data<U> prev_k_img;
+    void interp_parts_to_pc(MeshData<U>& out_image,ExtraPartCellData<V>& interp_data){
+        MeshData<U> curr_k_img;
+        MeshData<U> prev_k_img;
         
         int y_dim = ceil(org_dims[0]/2.0)*2;
         int x_dim = ceil(org_dims[1]/2.0)*2;
@@ -1866,7 +1869,7 @@ public:
     }
     
     template<typename U,typename V>
-    void interp_parts_to_pc(ExtraPartCellData<V>& interp_data,Mesh_data<U>& curr_k_img,Mesh_data<U>& prev_k_img){
+    void interp_parts_to_pc(ExtraPartCellData<V>& interp_data,MeshData<U>& curr_k_img,MeshData<U>& prev_k_img){
         //
         //  Bevan Cheeseman 2016
         //
@@ -1874,8 +1877,8 @@ public:
         //
         
 
-       // Mesh_data<U> curr_k_img;
-        //Mesh_data<U> prev_k_img;
+       // MeshData<U> curr_k_img;
+        //MeshData<U> prev_k_img;
         
         constexpr int y_incr[8] = {0,1,0,1,0,1,0,1};
         constexpr int x_incr[8] = {0,0,1,1,0,0,1,1};

@@ -44,7 +44,7 @@ int main(int argc, char **argv) {
     //the apr datastructure
     APR<uint16_t> apr;
 
-    APR_converter<uint16_t> apr_converter;
+    APRConverter<uint16_t> apr_converter;
 
     //read in the command line options into the parameters file
     apr_converter.par.Ip_th = options.Ip_th;
@@ -73,7 +73,7 @@ int main(int argc, char **argv) {
         timer.verbose_flag = true;
 
 
-        Mesh_data<uint16_t> level;
+        MeshData<uint16_t> level;
 
         apr.interp_depth_ds(level);
         std::string output_path = save_loc + file_name + "_level.tif";

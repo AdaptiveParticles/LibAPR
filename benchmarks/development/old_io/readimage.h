@@ -25,7 +25,7 @@
 #include <tiffio.h>
 
 template <typename T>
-void load_image_tiff(Mesh_data<T>& mesh_data,std::string file_name,int z_start = 0, int z_end = -1){
+void load_image_tiff(MeshData<T>& mesh_data,std::string file_name,int z_start = 0, int z_end = -1){
     TIFF* tif = TIFFOpen(file_name.c_str(), "r");
     int dircount = 0;
     uint32 width;
