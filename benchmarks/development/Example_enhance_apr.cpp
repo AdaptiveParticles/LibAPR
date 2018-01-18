@@ -7,7 +7,7 @@
 #include <algorithm>
 #include <iostream>
 
-#include "src/data_structures/Mesh/meshclass.h"
+#include "src/data_structures/Mesh/MeshData.hpp"
 #include "benchmarks/development/old_io/readimage.h"
 
 #include "benchmarks/development/old_algorithm/gradient.hpp"
@@ -105,17 +105,17 @@ int main(int argc, char **argv) {
     // Read the apr file into the part cell structure
     read_apr_pc_struct(pc_struct,file_name);
 
-    Mesh_data<float> input_img;
+    MeshData<float> input_img;
 
 
 
-    Mesh_data<float> input_image_float;
+    MeshData<float> input_image_float;
     //
     //  If there is input for the original image, perform the gradient on it
     //
 
     if(options.original_file != ""){
-        Mesh_data<uint16_t> input_image;
+        MeshData<uint16_t> input_image;
 
         load_image_tiff(input_image, options.original_file);
 
@@ -136,13 +136,13 @@ int main(int argc, char **argv) {
 
     write_apr_pc_struct(pc_struct_new,options.directory,"parts");
 
-    Mesh_data<float> output;
+    MeshData<float> output;
 
     pc_struct_new.interp_parts_to_pc(output,pc_struct_new.part_data.particle_data);
 
     debug_write(output,"new_apr");
 
-    Mesh_data<uint8_t> k_img;
+    MeshData<uint8_t> k_img;
     interp_depth_to_mesh(k_img,pc_struct);
     debug_write(k_img,"k_debug_old");
 

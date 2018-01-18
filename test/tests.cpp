@@ -11,28 +11,28 @@
 
 #include "benchmarks/development/old_io/readimage.h"
 
-Mesh_data<uint16_t> CreateImageTest::create_bspline_empty() {
+MeshData<uint16_t> CreateImageTest::create_bspline_empty() {
 
     return create_test_empty(false);
 
 }
 
-Mesh_data<uint16_t> CreateImageTest::create_variance_empty() {
+MeshData<uint16_t> CreateImageTest::create_variance_empty() {
 
     return create_test_empty(true);
 
 }
 
-Mesh_data<uint16_t> CreateImageTest::create_test_empty(bool variance) {
+MeshData<uint16_t> CreateImageTest::create_test_empty(bool variance) {
 
     //generate the input image
-    Mesh_data<float> input;
+    MeshData<float> input;
 
     //set to constant 13
     input.initialize(SIZE, SIZE, SIZE, 13);
 
     //the output of the grad magnitude
-    Mesh_data<float> grad;
+    MeshData<float> grad;
 
     grad.initialize(SIZE, SIZE, SIZE, 0);
 
@@ -56,26 +56,26 @@ Mesh_data<uint16_t> CreateImageTest::create_test_empty(bool variance) {
 
     timer.stop_timer();
 
-    Mesh_data<uint16_t> grad2 = grad.to_type<uint16_t>();
+    MeshData<uint16_t> grad2 = grad.to_type<uint16_t>();
 
     return grad2;
 
 }
 
-Mesh_data<uint16_t> CreateImageFromFileTest::create_variance(std::string image_path) {
+MeshData<uint16_t> CreateImageFromFileTest::create_variance(std::string image_path) {
 
     return create_test(image_path, true);
 
 }
 
-Mesh_data<uint16_t> CreateImageFromFileTest::create_bspline(std::string image_path) {
+MeshData<uint16_t> CreateImageFromFileTest::create_bspline(std::string image_path) {
 
     return create_test(image_path, false);
 
 }
 
 
-Mesh_data<uint16_t> CreateImageFromFileTest::create_test(std::string image_path,
+MeshData<uint16_t> CreateImageFromFileTest::create_test(std::string image_path,
                                                          bool variance) {
 
     //////////////////////////////////////////
@@ -87,12 +87,12 @@ Mesh_data<uint16_t> CreateImageFromFileTest::create_test(std::string image_path,
     //////////////////////////////////////////
 
     //generate the input image
-    Mesh_data<uint16_t> input_image;
+    MeshData<uint16_t> input_image;
 
     load_image_tiff(input_image, image_path);
 
     //the output of the grad magnitude
-    Mesh_data<float> grad_tiff;
+    MeshData<float> grad_tiff;
 
     if(!variance) {
         grad_tiff.initialize(input_image.y_num, input_image.x_num, input_image.z_num, 0);
@@ -100,7 +100,7 @@ Mesh_data<uint16_t> CreateImageFromFileTest::create_test(std::string image_path,
 
     //start timer
 
-    Mesh_data<float> input_image_float = input_image.to_type<float>();
+    MeshData<float> input_image_float = input_image.to_type<float>();
     timer.start_timer("whole_part");
 
     //call the pipeline

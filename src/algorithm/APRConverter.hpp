@@ -9,7 +9,7 @@
 #ifndef PARTPLAY_APR_CONVERTER_HPP
 #define PARTPLAY_APR_CONVERTER_HPP
 
-#include "src/data_structures/Mesh/meshclass.h"
+#include "src/data_structures/Mesh/MeshData.hpp"
 #include "src/data_structures/APR/APR.hpp"
 
 #include "src/algorithm/ComputeGradient.hpp"
@@ -19,22 +19,22 @@
 
 
 template<typename ImageType>
-class APR_converter: public LocalIntensityScale, public ComputeGradient, public LocalParticleCellSet, public PullingScheme {
+class APRConverter: public LocalIntensityScale, public ComputeGradient, public LocalParticleCellSet, public PullingScheme {
 
 public:
 
-    APR_converter():image_type("uint16"){
+    APRConverter():image_type("uint16"){
 
     }
 
-    APR_parameters par;
+    APRParameters par;
 
-    APR_timer total_timer;
-    APR_timer allocation_timer;
+    APRTimer total_timer;
+    APRTimer allocation_timer;
 
-    APR_timer computation_timer;
+    APRTimer computation_timer;
 
-    APR_timer misc_timer;
+    APRTimer misc_timer;
 
     std::string image_type; //default uint16
 
@@ -74,13 +74,13 @@ private:
     //pointer to the APR structure so member functions can have access if they need
     APR<ImageType>* apr_;
 
-    Mesh_data<ImageType> image_temp; // global image variable useful for passing between methods, or re-using memory (should be the only full sized copy of the image)
+    MeshData<ImageType> image_temp; // global image variable useful for passing between methods, or re-using memory (should be the only full sized copy of the image)
 
-    Mesh_data<ImageType> grad_temp; // should be a down-sampled image
+    MeshData<ImageType> grad_temp; // should be a down-sampled image
 
-    Mesh_data<float> local_scale_temp; //   Used as down-sampled images for some averaging steps where it is useful to not lose precision, or get over-flow errors
+    MeshData<float> local_scale_temp; //   Used as down-sampled images for some averaging steps where it is useful to not lose precision, or get over-flow errors
 
-    Mesh_data<float> local_scale_temp2;  //   Used as down-sampled images for some averaging steps where it is useful to not lose precision, or get over-flow errors
+    MeshData<float> local_scale_temp2;  //   Used as down-sampled images for some averaging steps where it is useful to not lose precision, or get over-flow errors
 
     //assuming uint16, the total memory cost shoudl be approximately (1 + 1 + 1/8 + 2/8 + 2/8) = 2 5/8 original image size in u16bit
 
@@ -94,22 +94,22 @@ private:
      */
 
     template<typename T>
-    void init_apr(APR<ImageType>& apr,Mesh_data<T>& input_image);
+    void init_apr(APR<ImageType>& apr,MeshData<T>& input_image);
 
     template<typename T>
-    void auto_parameters(Mesh_data<T>& input_img);
+    void auto_parameters(MeshData<T>& input_img);
 
     template<typename T>
     bool get_apr_method(APR<ImageType>& apr);
 
     template<typename T,typename S>
-    void get_gradient(Mesh_data<T>& input_img,Mesh_data<S>& gradient);
+    void get_gradient(MeshData<T>& input_img,MeshData<S>& gradient);
 
     template<typename T,typename S>
-    void get_local_intensity_scale(Mesh_data<T>& input_img,Mesh_data<S>& local_intensity_scale);
+    void get_local_intensity_scale(MeshData<T>& input_img,MeshData<S>& local_intensity_scale);
 
     template<typename T,typename S>
-    void get_local_particle_cell_set(Mesh_data<T>& grad_image_ds,Mesh_data<S>& local_intensity_scale_ds);
+    void get_local_particle_cell_set(MeshData<T>& grad_image_ds,MeshData<S>& local_intensity_scale_ds);
 
 };
 
@@ -117,23 +117,23 @@ private:
  * Implimentations
  */
 template<typename ImageType> template<typename T>
-bool APR_converter<ImageType>::get_apr_method(APR<ImageType>& apr) {
+bool APRConverter<ImageType>::get_apr_method(APR<ImageType>& apr) {
     //
     //  Main method for constructing the APR from an input image
     //
     
-    APR_timer full;
+    APRTimer full;
     full.verbose_flag = true;
 
     full.start_timer("GET APR");
 
-    APR_timer timer;
+    APRTimer timer;
     timer.verbose_flag = true;
 
     timer.start_timer("read tif input image");
 
     //input type
-    Mesh_data<T> input_image;
+    MeshData<T> input_image;
 
     input_image.load_image_tiff(par.input_dir + par.input_image_name);
 
@@ -190,18 +190,18 @@ bool APR_converter<ImageType>::get_apr_method(APR<ImageType>& apr) {
 
     computation_timer.verbose_flag = true;
 
-    APR_timer st;
+    APRTimer st;
     st.verbose_flag = true;
 
     st.start_timer("grad");
 
-    Mesh_data<T> gradient;
+    MeshData<T> gradient;
 
     this->get_gradient(input_image,gradient); //note in the current pipeline don't actually use these variables, but here for interface (Use shared member allocated above variables)
 
     st.stop_timer();
 
-    Mesh_data<T> local_scale;
+    MeshData<T> local_scale;
 
     this->get_local_intensity_scale(input_image,local_scale);  //note in the current pipeline don't actually use these variables, but here for interface (Use shared member allocated above variables)
 
@@ -218,16 +218,14 @@ bool APR_converter<ImageType>::get_apr_method(APR<ImageType>& apr) {
     st.stop_timer();
 
     st.start_timer("Down sample image for estimating particle intensities");
-    std::vector<Mesh_data<T>> downsampled_img;
+    std::vector<MeshData<T>> downsampled_img;
     //Down-sample the image for particle intensity estimation
     downsample_pyrmaid(input_image,downsampled_img,apr.depth_max()-1,apr.depth_min());
     st.stop_timer();
 
-
     st.start_timer("initialize apr neighbour access structure");
-    apr.init_from_pulling_scheme(particle_cell_tree);
+    apr.pc_data.init_from_pulling_scheme(particle_cell_tree);
     st.stop_timer();
-
 
     st.start_timer("sample particles");
     apr.get_parts_from_img(downsampled_img,apr.particles_int);
@@ -245,14 +243,14 @@ bool APR_converter<ImageType>::get_apr_method(APR<ImageType>& apr) {
 
 
 template<typename ImageType> template<typename T,typename S>
-void APR_converter<ImageType>::get_local_particle_cell_set(Mesh_data<T>& grad_image_ds,Mesh_data<S>& local_intensity_scale_ds) {
+void APRConverter<ImageType>::get_local_particle_cell_set(MeshData<T>& grad_image_ds,MeshData<S>& local_intensity_scale_ds) {
     //
     //  Computes the Local Particle Cell Set from a down-sampled local intensity scale (\sigma) and gradient magnitude
     //
     //  Down-sampled due to the Equivalence Optimization
     //
 
-    APR_timer timer;
+    APRTimer timer;
 
     //divide gradient magnitude by Local Intensity Scale (first step in calculating the Local Resolution Estimate L(y), minus constants)
 #pragma omp parallel for default(shared)
@@ -296,7 +294,7 @@ void APR_converter<ImageType>::get_local_particle_cell_set(Mesh_data<T>& grad_im
 
 
 template<typename ImageType> template<typename T,typename S>
-void APR_converter<ImageType>::get_gradient(Mesh_data<T>& input_img,Mesh_data<S>& gradient){
+void APRConverter<ImageType>::get_gradient(MeshData<T>& input_img,MeshData<S>& gradient){
     //
     //  Bevan Cheeseman 2018
     //
@@ -307,7 +305,7 @@ void APR_converter<ImageType>::get_gradient(Mesh_data<T>& input_img,Mesh_data<S>
     //  Output: down-sampled by 2 gradient magnitude (Note, the gradient is calculated at pixel level then maximum down sampled within the loops below)
     //
 
-    APR_timer timer;
+    APRTimer timer;
 
     timer.verbose_flag = false;
 
@@ -385,7 +383,7 @@ void APR_converter<ImageType>::get_gradient(Mesh_data<T>& input_img,Mesh_data<S>
 }
 
 template<typename ImageType> template<typename T,typename S>
-void APR_converter<ImageType>::get_local_intensity_scale(Mesh_data<T>& input_img,Mesh_data<S>& local_intensity_scale){
+void APRConverter<ImageType>::get_local_intensity_scale(MeshData<T>& input_img,MeshData<S>& local_intensity_scale){
     //
     //  Calculate the Local Intensity Scale (You could replace this method with your own)
     //
@@ -394,9 +392,9 @@ void APR_converter<ImageType>::get_local_intensity_scale(Mesh_data<T>& input_img
     //  Output: down-sampled Local Intensity Scale (h) (Due to the Equivalence Optimization we only need down-sampled values)
     //
 
-    APR_timer timer;
+    APRTimer timer;
 
-    APR_timer var_timer;
+    APRTimer var_timer;
     var_timer.verbose_flag = true;
 
     var_timer.start_timer("compute local intensity scale");
@@ -467,7 +465,7 @@ void APR_converter<ImageType>::get_local_intensity_scale(Mesh_data<T>& input_img
 
 
 template<typename ImageType> template<typename T>
-void APR_converter<ImageType>::init_apr(APR<ImageType>& apr,Mesh_data<T>& input_image){
+void APRConverter<ImageType>::init_apr(APR<ImageType>& apr,MeshData<T>& input_image){
     //
     //  Initializing the size of the APR, min and maximum level (in the data structures it is called depth)
     //
@@ -503,14 +501,14 @@ void APR_converter<ImageType>::init_apr(APR<ImageType>& apr,Mesh_data<T>& input_
 
 
 template<typename ImageType> template<typename T>
-void APR_converter<ImageType>::auto_parameters(Mesh_data<T>& input_img){
+void APRConverter<ImageType>::auto_parameters(MeshData<T>& input_img){
     //
     //  Simple automatic parameter selection for 3D APR Flouresence Images
     //
 
 
 
-    APR_timer par_timer;
+    APRTimer par_timer;
 
     par_timer.verbose_flag = true;
 
@@ -609,7 +607,7 @@ void APR_converter<ImageType>::auto_parameters(Mesh_data<T>& input_img){
     }
 
 
-    Mesh_data<T> histogram;
+    MeshData<T> histogram;
     histogram.initialize(num_bins,1,1);
 
     std::copy(freq.begin(),freq.end(),histogram.mesh.begin());

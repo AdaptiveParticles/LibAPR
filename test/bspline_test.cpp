@@ -22,7 +22,7 @@ TEST_P(CreateImageFromFileTest, BSPLINE_FROMFILE_IMAGE_PARAM)
     }
 
     p_rep.pars.lambda = std::get<3>(GetParam());
-    Mesh_data<uint16_t> to_compare = create_bspline(input);
+    MeshData<uint16_t> to_compare = create_bspline(input);
     //write_image_tiff(to_compare, output);
     ASSERT_TRUE(compare_two_images(to_compare, output));
 }

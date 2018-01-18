@@ -17,7 +17,7 @@
 
 #include "tiffio.h"
 
-#include "src/data_structures/Mesh/meshclass.h"
+#include "src/data_structures/Mesh/MeshData.hpp"
 #include "benchmarks/development/old_algorithm/level.hpp"
 #include "benchmarks/development/Tree/PartCellStructure.hpp"
 #include "benchmarks/development/old_io/partcell_io.h"
@@ -40,15 +40,15 @@
 
 #include "src/data_structures/APR/APR.hpp"
 
-bool compare_two_images(const Mesh_data<uint16_t>& in_memory, std::string filename);
+bool compare_two_images(const MeshData<uint16_t>& in_memory, std::string filename);
 bool compare_two_ks(const Particle_map<float>& in_memory, std::string filename);
 bool compare_part_rep_with_particle_map(const Particle_map<float>& in_memory, std::string filename);
 
-Mesh_data<uint16_t> create_random_test_example(unsigned int size_y, unsigned int size_x,
+MeshData<uint16_t> create_random_test_example(unsigned int size_y, unsigned int size_x,
                                                unsigned int size_z, unsigned int seed);
 
 
-Mesh_data<uint16_t> generate_random_ktest_example(unsigned int size_y, unsigned int size_x,
+MeshData<uint16_t> generate_random_ktest_example(unsigned int size_y, unsigned int size_x,
                                                   unsigned int size_z, unsigned int seed,
                                                   float mean_fraction, float sd_fraction);
 
@@ -76,13 +76,15 @@ bool find_part_cell_test(PartCellStructure<float,uint64_t>& pc_struct);
 
 bool compare_two_structures_test(PartCellStructure<float,uint64_t>& pc_struct,PartCellStructure<float,uint64_t>& pc_struct_read);
 
-void create_reference_structure(PartCellStructure<float,uint64_t>& pc_struct,std::vector<Mesh_data<uint64_t>>& link_array);
+void create_reference_structure(PartCellStructure<float,uint64_t>& pc_struct,std::vector<MeshData<uint64_t>>& link_array);
 
-void create_intensity_reference_structure(PartCellStructure<float,uint64_t>& pc_struct,std::vector<Mesh_data<float>>& link_array);
+void create_intensity_reference_structure(PartCellStructure<float,uint64_t>& pc_struct,std::vector<MeshData<float>>& link_array);
 
-void create_j_reference_structure(PartCellStructure<float,uint64_t>& pc_struct,std::vector<Mesh_data<uint64_t>>& j_array);
+void create_j_reference_structure(PartCellStructure<float,uint64_t>& pc_struct,std::vector<MeshData<uint64_t>>& j_array);
 
-pc_key find_neigh_cell(pc_key curr_cell,int dir,std::vector<Mesh_data<uint64_t>>& j_array);
+pc_key find_neigh_cell(pc_key curr_cell,int dir,std::vector<MeshData<uint64_t>>& j_array);
+
+void create_pc_data_new(APR<float>& apr,PartCellStructure<float,uint64_t>& pc_struct);
 
 bool utest_neigh_cells(PartCellStructure<float,uint64_t>& pc_struct);
 

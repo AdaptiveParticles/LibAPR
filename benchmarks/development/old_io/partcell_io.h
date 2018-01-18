@@ -999,7 +999,7 @@ void write_apr_pc_struct_hilbert(PartCellStructure<T,uint64_t>& pc_struct,std::s
 
         Ip.resize(0);
 //
-//        Mesh_data<uint16_t> int_temp;
+//        MeshData<uint16_t> int_temp;
 //        int_temp.initialize(y_num_,x_num_,z_num_,0);
 //
 //        for (z_ = z_num_min_; z_ < z_num_; z_++) {

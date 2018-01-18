@@ -3,7 +3,7 @@
 #include <iostream>
 
 #include "pipeline.h"
-#include "src/data_structures/Mesh/meshclass.h"
+#include "src/data_structures/Mesh/MeshData.hpp"
 #include "benchmarks/development/old_io/readimage.h"
 
 #include "benchmarks/development/old_algorithm/gradient.hpp"
@@ -92,10 +92,10 @@ int main(int argc, char **argv) {
 
     // COMPUTATIONS
 
-    Mesh_data<float> input_image_float;
-    Mesh_data<float> gradient, variance;
+    MeshData<float> input_image_float;
+    MeshData<float> gradient, variance;
     {
-        Mesh_data<uint16_t> input_image;
+        MeshData<uint16_t> input_image;
 
         load_image_tiff(input_image, options.input);
 
@@ -125,13 +125,13 @@ int main(int argc, char **argv) {
     Particle_map<float> part_map(part_rep);
     preallocate(part_map.layers, gradient.y_num, gradient.x_num, gradient.z_num, part_rep);
     variance.preallocate(gradient.y_num, gradient.x_num, gradient.z_num, 0);
-    std::vector<Mesh_data<float>> down_sampled_images;
+    std::vector<MeshData<float>> down_sampled_images;
 
     // variables for tree
     std::vector<uint64_t> tree_mem(gradient.y_num * gradient.x_num * gradient.z_num * 1.25, 0);
     std::vector<Content> contents(gradient.y_num * gradient.x_num * gradient.z_num, {0});
 
-    Mesh_data<float> temp;
+    MeshData<float> temp;
     temp.preallocate(gradient.y_num, gradient.x_num, gradient.z_num, 0);
 
     t.start_timer("whole");

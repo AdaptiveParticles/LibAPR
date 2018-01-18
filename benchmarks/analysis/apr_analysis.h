@@ -15,12 +15,13 @@
 #include "../../src/data_structures/APR/APR.hpp"
 #include <assert.h>
 
+#include "test/utils.h"
 
 void calc_information_content(SynImage syn_image,AnalysisData& analysis_data);
 void calc_information_content_new(SynImage syn_image,AnalysisData& analysis_data);
 
 template<typename S>
-void copy_mesh_data_structures(MeshDataAF<S>& input_syn,Mesh_data<S>& input_img){
+void copy_mesh_data_structures(MeshDataAF<S>& input_syn,MeshData<S>& input_img){
     //copy across metadata
     input_img.y_num = input_syn.y_num;
     input_img.x_num = input_syn.x_num;
@@ -42,9 +43,9 @@ void get_apr_ground_thruth(SynImage& syn_image,Part_rep& part_rep,PartCellStruct
 //
 //    // COMPUTATIONS
 //
-//    Mesh_data<float> input_image_float;
-//    Mesh_data<float> gradient, variance;
-//    Mesh_data<float> interp_img;
+//    MeshData<float> input_image_float;
+//    MeshData<float> gradient, variance;
+//    MeshData<float> interp_img;
 //
 //    gradient.initialize(input_image.y_num, input_image.x_num, input_image.z_num, 0);
 //    part_rep.initialize(input_image.y_num, input_image.x_num, input_image.z_num);
@@ -60,13 +61,13 @@ void get_apr_ground_thruth(SynImage& syn_image,Part_rep& part_rep,PartCellStruct
 //    Particle_map<float> part_map(part_rep);
 //    preallocate(part_map.layers, gradient.y_num, gradient.x_num, gradient.z_num, part_rep);
 //    variance.preallocate(gradient.y_num, gradient.x_num, gradient.z_num, 0);
-//    std::vector<Mesh_data<float>> down_sampled_images;
+//    std::vector<MeshData<float>> down_sampled_images;
 //
-//    Mesh_data<float> temp;
+//    MeshData<float> temp;
 //    temp.preallocate(gradient.y_num, gradient.x_num, gradient.z_num, 0);
 //
 //
-//    generate_gt_image(Mesh_data<T>& gt_image,SynImage& syn_image)
+//    generate_gt_image(MeshData<T>& gt_image,SynImage& syn_image)
 //
 //
 //    t.start_timer("whole");
@@ -119,7 +120,7 @@ void get_apr_ground_thruth(SynImage& syn_image,Part_rep& part_rep,PartCellStruct
 
 
 template <typename T>
-void bench_get_apr(Mesh_data<T>& input_image,Part_rep& p_rep,PartCellStructure<float,uint64_t>& pc_struct,AnalysisData& analysis_data){
+void bench_get_apr(MeshData<T>& input_image,Part_rep& p_rep,PartCellStructure<float,uint64_t>& pc_struct,AnalysisData& analysis_data){
     //
     //
     //  Calculates the APR from image
@@ -203,7 +204,7 @@ void bench_get_apr(Mesh_data<T>& input_image,Part_rep& p_rep,PartCellStructure<f
 }
 
 template <typename T>
-void bench_get_apr_part_time(Mesh_data<T>& input_image,Part_rep& p_rep,PartCellStructure<float,uint64_t>& pc_struct,AnalysisData& analysis_data){
+void bench_get_apr_part_time(MeshData<T>& input_image,Part_rep& p_rep,PartCellStructure<float,uint64_t>& pc_struct,AnalysisData& analysis_data){
     //
     //
     //  Calculates the APR from image
@@ -263,7 +264,7 @@ void bench_get_apr_part_time(Mesh_data<T>& input_image,Part_rep& p_rep,PartCellS
 }
 
 template<typename T>
-void flip_lr(Mesh_data<T>& input) {
+void flip_lr(MeshData<T>& input) {
     //
     //  Bevan Cheeseman 2017: Flips LR
     //
@@ -273,7 +274,7 @@ void flip_lr(Mesh_data<T>& input) {
     int z_num = input.z_num;
 
 
-    Mesh_data<T> temp;
+    MeshData<T> temp;
     temp.initialize(input.y_num, input.x_num, input.z_num, 0);
 
     for (int j = 0; j < temp.z_num; j++) {
@@ -292,15 +293,15 @@ void flip_lr(Mesh_data<T>& input) {
 
 }
 
-void test_local_scale(Mesh_data<uint16_t >& input_image,Part_rep& part_rep,PartCellStructure<float,uint64_t>& pc_struct,AnalysisData& analysis_data){
+void test_local_scale(MeshData<uint16_t >& input_image,Part_rep& part_rep,PartCellStructure<float,uint64_t>& pc_struct,AnalysisData& analysis_data){
 
     int interp_type = part_rep.pars.interp_type;
 
     // COMPUTATIONS
 
-    Mesh_data<float> input_image_float;
-    Mesh_data<float> gradient, variance;
-    Mesh_data<float> interp_img;
+    MeshData<float> input_image_float;
+    MeshData<float> gradient, variance;
+    MeshData<float> interp_img;
 
     gradient.initialize(input_image.y_num, input_image.x_num, input_image.z_num, 0);
     part_rep.initialize(input_image.y_num, input_image.x_num, input_image.z_num);
@@ -316,9 +317,9 @@ void test_local_scale(Mesh_data<uint16_t >& input_image,Part_rep& part_rep,PartC
     Particle_map<float> part_map(part_rep);
     preallocate(part_map.layers, gradient.y_num, gradient.x_num, gradient.z_num, part_rep);
     variance.preallocate(gradient.y_num, gradient.x_num, gradient.z_num, 0);
-    std::vector<Mesh_data<float>> down_sampled_images;
+    std::vector<MeshData<float>> down_sampled_images;
 
-    Mesh_data<float> temp;
+    MeshData<float> temp;
     temp.preallocate(gradient.y_num, gradient.x_num, gradient.z_num, 0);
 
     t.start_timer("whole");
@@ -351,12 +352,12 @@ void test_local_scale(Mesh_data<uint16_t >& input_image,Part_rep& part_rep,PartC
     //////////////////////////////////////////////
 
 
-    Mesh_data<float> local_max;
+    MeshData<float> local_max;
     local_max.initialize(temp.y_num, temp.x_num, temp.z_num, 0);
 
-    Mesh_data<uint8_t> k_img;
+    MeshData<uint8_t> k_img;
 
-    Mesh_data<uint8_t> k_img_ds;
+    MeshData<uint8_t> k_img_ds;
 
 
     interp_depth_to_mesh(k_img,pc_struct);
@@ -465,7 +466,7 @@ void test_local_scale(Mesh_data<uint16_t >& input_image,Part_rep& part_rep,PartC
 
 
 
-    Mesh_data<float> test_l;
+    MeshData<float> test_l;
     test_l.initialize(temp.y_num, temp.x_num, temp.z_num, 0);
 
 
@@ -512,7 +513,7 @@ void test_local_scale(Mesh_data<uint16_t >& input_image,Part_rep& part_rep,PartC
 
 
 
-    Mesh_data<float> compare_org;
+    MeshData<float> compare_org;
     compare_org.initialize(temp.y_num, temp.x_num, temp.z_num, 0);
 
     int counter_c = 0;
@@ -555,7 +556,7 @@ void test_local_scale(Mesh_data<uint16_t >& input_image,Part_rep& part_rep,PartC
 
     //debug_write(compare_org,"compare");
 
-//    Mesh_data<float> compare_l;
+//    MeshData<float> compare_l;
 //    compare_l.initialize(temp.y_num, temp.x_num, temp.z_num, 0);
 //
 //    int counter_l = 0;
@@ -575,15 +576,15 @@ void test_local_scale(Mesh_data<uint16_t >& input_image,Part_rep& part_rep,PartC
 //    std::cout << "lc: " << counter_l << std::endl;
 
 }
-void cont_solution(Mesh_data<uint16_t >& input_image,Part_rep& part_rep,PartCellStructure<float,uint64_t>& pc_struct,AnalysisData& analysis_data){
+void cont_solution(MeshData<uint16_t >& input_image,Part_rep& part_rep,PartCellStructure<float,uint64_t>& pc_struct,AnalysisData& analysis_data){
 
     int interp_type = part_rep.pars.interp_type;
 
     // COMPUTATIONS
 
-    Mesh_data<float> input_image_float;
-    Mesh_data<float> gradient, variance;
-    Mesh_data<float> interp_img;
+    MeshData<float> input_image_float;
+    MeshData<float> gradient, variance;
+    MeshData<float> interp_img;
 
     gradient.initialize(input_image.y_num, input_image.x_num, input_image.z_num, 0);
     part_rep.initialize(input_image.y_num, input_image.x_num, input_image.z_num);
@@ -599,9 +600,9 @@ void cont_solution(Mesh_data<uint16_t >& input_image,Part_rep& part_rep,PartCell
     Particle_map<float> part_map(part_rep);
     preallocate(part_map.layers, gradient.y_num, gradient.x_num, gradient.z_num, part_rep);
     variance.preallocate(gradient.y_num, gradient.x_num, gradient.z_num, 0);
-    std::vector<Mesh_data<float>> down_sampled_images;
+    std::vector<MeshData<float>> down_sampled_images;
 
-    Mesh_data<float> temp;
+    MeshData<float> temp;
     temp.preallocate(gradient.y_num, gradient.x_num, gradient.z_num, 0);
 
     t.start_timer("whole");
@@ -617,7 +618,7 @@ void cont_solution(Mesh_data<uint16_t >& input_image,Part_rep& part_rep,PartCell
     part_rep.timer.stop_timer();
 
 
-    Mesh_data<float> variance_u;
+    MeshData<float> variance_u;
 
     int x_dim = ceil(gradient.x_num/2.0)*2;
     int z_dim = ceil(gradient.z_num/2.0)*2;
@@ -655,7 +656,7 @@ void cont_solution(Mesh_data<uint16_t >& input_image,Part_rep& part_rep,PartCell
     //////////////////////////////////////////////
 
 
-    Mesh_data<float> resolution;
+    MeshData<float> resolution;
     resolution.initialize(gradient.y_num, gradient.x_num, gradient.z_num, 0);
 
 
@@ -869,7 +870,7 @@ void gen_parameter_pars(SynImage& syn_image,Proc_par& pars,std::string image_nam
 
 
 template<typename S,typename U>
-void compare_reconstruction_to_original(Mesh_data<S>& org_img,PartCellStructure<float,U>& pc_struct,cmdLineOptions& options){
+void compare_reconstruction_to_original(MeshData<S>& org_img,PartCellStructure<float,U>& pc_struct,cmdLineOptions& options){
     //
     //  Bevan Cheeseman 2017
     //
@@ -879,7 +880,7 @@ void compare_reconstruction_to_original(Mesh_data<S>& org_img,PartCellStructure<
 
     AnalysisData analysis_data;
 
-    Mesh_data<S> rec_img;
+    MeshData<S> rec_img;
     pc_struct.interp_parts_to_pc(rec_img,pc_struct.part_data.particle_data);
 
     std::string name = "input";
@@ -892,7 +893,7 @@ void compare_reconstruction_to_original(Mesh_data<S>& org_img,PartCellStructure<
 }
 
 template<typename S>
-void check_var(Mesh_data<S>& org_img,Proc_par& pars,std::string name,AnalysisData& analysis_data,SynImage& syn_image){
+void check_var(MeshData<S>& org_img,Proc_par& pars,std::string name,AnalysisData& analysis_data,SynImage& syn_image){
     //
     //
     //  Bevan Cheeseman 2017
@@ -901,7 +902,7 @@ void check_var(Mesh_data<S>& org_img,Proc_par& pars,std::string name,AnalysisDat
     //
 
 
-    Mesh_data<float> variance;
+    MeshData<float> variance;
 
     get_variance(org_img,variance,pars);
 
@@ -932,8 +933,8 @@ void check_var(Mesh_data<S>& org_img,Proc_par& pars,std::string name,AnalysisDat
 };
 
 template<typename S,typename T>
-void compare_E(Mesh_data<S>& org_img,Mesh_data<T>& rec_img,Proc_par& pars,std::string name,AnalysisData& analysis_data) {
-    Mesh_data<float> variance;
+void compare_E(MeshData<S>& org_img,MeshData<T>& rec_img,Proc_par& pars,std::string name,AnalysisData& analysis_data) {
+    MeshData<float> variance;
 
     get_variance(org_img, variance, pars);
 
@@ -942,7 +943,7 @@ void compare_E(Mesh_data<S>& org_img,Mesh_data<T>& rec_img,Proc_par& pars,std::s
 }
 
 template<typename S,typename T>
-void compare_E(Mesh_data<S>& org_img,Mesh_data<T>& rec_img,Proc_par& pars,std::string name,AnalysisData& analysis_data,Mesh_data<float>& variance){
+void compare_E(MeshData<S>& org_img,MeshData<T>& rec_img,Proc_par& pars,std::string name,AnalysisData& analysis_data,MeshData<float>& variance){
 
 
     uint64_t z_num_o = org_img.z_num;
@@ -961,7 +962,7 @@ void compare_E(Mesh_data<S>& org_img,Mesh_data<T>& rec_img,Proc_par& pars,std::s
     uint64_t k = 0;
     uint64_t i = 0;
 
-    Mesh_data<float> SE;
+    MeshData<float> SE;
     //SE.initialize(y_num_o,x_num_o,z_num_o,0);
 
     double mean = 0;
@@ -1143,15 +1144,15 @@ void compare_depth_rep(PartCellStructure<float,uint64_t>& pc_struct,PartCellStru
     //
 
 
-    Mesh_data<uint8_t> k_img;
+    MeshData<uint8_t> k_img;
 
     interp_depth_to_mesh(k_img,pc_struct,0);
 
-    Mesh_data<uint8_t> k_img_perfect;
+    MeshData<uint8_t> k_img_perfect;
 
     interp_depth_to_mesh(k_img_perfect,pc_struct_perfect,0);
 
-    Mesh_data<float> diff;
+    MeshData<float> diff;
 
     diff.initialize(k_img.x_num,k_img.y_num,k_img.z_num,0);
 
@@ -1194,7 +1195,7 @@ void compare_depth_rep(PartCellStructure<float,uint64_t>& pc_struct,PartCellStru
 
 }
 
-void compare_var_func(PartCellStructure<float,uint64_t>& pc_struct_perfect,Mesh_data<float> var_gt,Mesh_data<float> var_comp,AnalysisData& analysis_data,float factor = 1){
+void compare_var_func(PartCellStructure<float,uint64_t>& pc_struct_perfect,MeshData<float> var_gt,MeshData<float> var_comp,AnalysisData& analysis_data,float factor = 1){
     //
     //  Evaluates and compares the variance at high resolution areas between the ground truth and the computed var
     //
@@ -1202,7 +1203,7 @@ void compare_var_func(PartCellStructure<float,uint64_t>& pc_struct_perfect,Mesh_
     //
     //
 
-    Mesh_data<uint8_t> k_img_perfect;
+    MeshData<uint8_t> k_img_perfect;
 
     interp_depth_to_mesh(k_img_perfect,pc_struct_perfect);
 
@@ -1252,16 +1253,18 @@ void compare_var_func(PartCellStructure<float,uint64_t>& pc_struct_perfect,Mesh_
 
 }
 template<typename T>
-void true_int(Mesh_data<T>& input_image,AnalysisData& analysis_data,PartCellStructure<float,uint64_t>& pc_struct,SynImage& syn_image,Proc_par& pars,std::string name,Mesh_data<float>& var) {
+void true_int(MeshData<T>& input_image,AnalysisData& analysis_data,PartCellStructure<float,uint64_t>& pc_struct,SynImage& syn_image,Proc_par& pars,std::string name,MeshData<float>& var) {
 //Generate clean gt image&
-    Mesh_data<float> gt_imaged;
+    MeshData<float> gt_imaged;
     generate_gt_image(gt_imaged, syn_image);
 
     Part_rep p_rep(input_image.y_num, input_image.x_num, input_image.z_num);
 
     p_rep.pars = pars;
 
-    APR<float> t_apr(pc_struct);
+    APR<float> t_apr;
+
+    create_pc_data_new(t_apr,pc_struct);
 
     ExtraPartCellData<float> true_parts(t_apr);
 
@@ -1309,9 +1312,9 @@ void true_int(Mesh_data<T>& input_image,AnalysisData& analysis_data,PartCellStru
 //        }
 //    }
 
-    Mesh_data<float> true_int_m;
+    MeshData<float> true_int_m;
 
-    Mesh_data<uint16_t> gt_image;
+    MeshData<uint16_t> gt_image;
 
     t_apr.interp_img(true_int_m,true_parts);
 
@@ -1327,7 +1330,7 @@ void true_int(Mesh_data<T>& input_image,AnalysisData& analysis_data,PartCellStru
 
 
 template<typename T>
-void produce_apr_analysis(Mesh_data<T>& input_image,AnalysisData& analysis_data,PartCellStructure<float,uint64_t>& pc_struct,SynImage& syn_image,Proc_par& pars) {
+void produce_apr_analysis(MeshData<T>& input_image,AnalysisData& analysis_data,PartCellStructure<float,uint64_t>& pc_struct,SynImage& syn_image,Proc_par& pars) {
     //
     //  Computes anslysis of part rep dataset
     //
@@ -1542,7 +1545,7 @@ void produce_apr_analysis(Mesh_data<T>& input_image,AnalysisData& analysis_data,
 
     timer.start_timer("Image Quality");
 
-    Mesh_data<float> rec_img;
+    MeshData<float> rec_img;
     std::string name;
 
     if(analysis_data.quality_metrics_gt || analysis_data.quality_metrics_input) {
@@ -1558,7 +1561,7 @@ void produce_apr_analysis(Mesh_data<T>& input_image,AnalysisData& analysis_data,
 
     if(analysis_data.debug == true){
 
-        Mesh_data<T> rec_img_d;
+        MeshData<T> rec_img_d;
 
         pc_struct.interp_parts_to_pc(rec_img_d, pc_struct.part_data.particle_data);
         write_image_tiff(rec_img_d, pars.output_path + pars.name + "_rec.tif");
@@ -1569,19 +1572,19 @@ void produce_apr_analysis(Mesh_data<T>& input_image,AnalysisData& analysis_data,
 
         write_apr_full_format(pc_struct,pars.output_path, pars.name);
 
-        Mesh_data<float> variance;
+        MeshData<float> variance;
 
         get_variance(input_image,variance,pars);
 
         debug_write(variance,"var");
 
-        Mesh_data<uint8_t> k_img;
+        MeshData<uint8_t> k_img;
 
         interp_depth_to_mesh(k_img,pc_struct);
 
         write_image_tiff(k_img, pars.output_path + pars.name + "_k.tif");
 
-        Mesh_data<T> gt_image;
+        MeshData<T> gt_image;
         generate_gt_image(gt_image, syn_image);
 
         name = "debug";
@@ -1613,14 +1616,16 @@ void produce_apr_analysis(Mesh_data<T>& input_image,AnalysisData& analysis_data,
     if(analysis_data.quality_true_int) {
 
         //Generate clean gt image
-        Mesh_data<float> gt_imaged;
+        MeshData<float> gt_imaged;
         generate_gt_image(gt_imaged, syn_image);
 
         Part_rep p_rep(input_image.y_num,input_image.x_num,input_image.z_num);
 
         p_rep.pars = pars;
 
-        APR<float> t_apr(pc_struct);
+        APR<float> t_apr;
+
+        create_pc_data_new(t_apr,pc_struct);
 
         ExtraPartCellData<float> true_parts(t_apr);
 
@@ -1631,9 +1636,9 @@ void produce_apr_analysis(Mesh_data<T>& input_image,AnalysisData& analysis_data,
         t_apr.get_parts_from_img(part_map.downsampled,true_parts);
 
 
-        Mesh_data<float> true_int_m;
+        MeshData<float> true_int_m;
 
-        Mesh_data<uint16_t> gt_image;
+        MeshData<uint16_t> gt_image;
 
 
         t_apr.interp_img(true_int_m,true_parts);
@@ -1665,7 +1670,7 @@ void produce_apr_analysis(Mesh_data<T>& input_image,AnalysisData& analysis_data,
 
 
         //Generate clean gt image
-        Mesh_data<uint16_t> gt_image;
+        MeshData<uint16_t> gt_image;
         generate_gt_image(gt_image, syn_image);
 
 
@@ -1676,7 +1681,7 @@ void produce_apr_analysis(Mesh_data<T>& input_image,AnalysisData& analysis_data,
 
 
 
-        Mesh_data<float> median_filt_img;
+        MeshData<float> median_filt_img;
 
         median_filt_img.initialize(input_image.y_num,input_image.x_num,input_image.z_num);
 
@@ -1700,7 +1705,7 @@ void produce_apr_analysis(Mesh_data<T>& input_image,AnalysisData& analysis_data,
 
         std::vector<float> scale = {2,2,2};
 
-        Mesh_data<float> smooth_img;
+        MeshData<float> smooth_img;
 
         interp_parts_to_smooth(smooth_img,pc_struct.part_data.particle_data,pc_struct,scale);
 
@@ -1736,12 +1741,12 @@ void produce_apr_analysis(Mesh_data<T>& input_image,AnalysisData& analysis_data,
 //        part_new.particle_data.org_dims = pc_struct.org_dims;
 //
 //
-//        Mesh_data<float> w_interp_out;
+//        MeshData<float> w_interp_out;
 //
 //        weigted_interp_img(w_interp_out, pc_data, part_new, part_new.particle_data,false,true);
 //
-//        Mesh_data<float> min_img;
-//        Mesh_data<float> max_img;
+//        MeshData<float> min_img;
+//        MeshData<float> max_img;
 //
 //        min_max_interp(min_img,max_img,pc_data,part_new,part_new.particle_data,false);
 //
@@ -1798,14 +1803,14 @@ void produce_apr_analysis(Mesh_data<T>& input_image,AnalysisData& analysis_data,
         p_rep.pars = pars;
         p_rep.pars.name = "perfect";
 
-        Mesh_data<float> norm_grad_image;
+        MeshData<float> norm_grad_image;
 
-        Mesh_data<float> gt_image;
+        MeshData<float> gt_image;
         generate_gt_image(gt_image, syn_image);
 
         p_rep.pars.lambda = -1;
 
-        Mesh_data<float> grad_image;
+        MeshData<float> grad_image;
 
         grad_image.initialize(gt_image.y_num,gt_image.x_num,gt_image.z_num,0);
 
@@ -1818,7 +1823,7 @@ void produce_apr_analysis(Mesh_data<T>& input_image,AnalysisData& analysis_data,
 
         //debug_write(grad_image,"grad_p");
 
-        Mesh_data<float> var_gt;
+        MeshData<float> var_gt;
 
         generate_gt_var(gt_image,var_gt,syn_image,pars);
 
@@ -1836,7 +1841,7 @@ void produce_apr_analysis(Mesh_data<T>& input_image,AnalysisData& analysis_data,
 
         // Get the ground truth variance
 
-        Mesh_data<float> variance_u;
+        MeshData<float> variance_u;
         //need to down sample / then upsample variance
         down_sample(var_gt,variance_u,
                     [](float x, float y) { return std::max(x,y); },
@@ -1857,7 +1862,7 @@ void produce_apr_analysis(Mesh_data<T>& input_image,AnalysisData& analysis_data,
 
         const_upsample_img(var_gt,variance_u,dims);
 
-        Mesh_data<float> rec_perfect;
+        MeshData<float> rec_perfect;
 
         pc_struct_perfect.interp_parts_to_pc(rec_perfect, pc_struct_perfect.part_data.particle_data);
 
@@ -1886,7 +1891,7 @@ void produce_apr_analysis(Mesh_data<T>& input_image,AnalysisData& analysis_data,
 
         compare_depth_rep(pc_struct,pc_struct_perfect,analysis_data);
 
-        Mesh_data<float> variance;
+        MeshData<float> variance;
 
         get_variance(input_image, variance, pars);
 
@@ -1905,7 +1910,7 @@ void produce_apr_analysis(Mesh_data<T>& input_image,AnalysisData& analysis_data,
 
 }
 template<typename T>
-void produce_apr_analysis(Mesh_data<T>& input_image,AnalysisData& analysis_data,PartCellStructure<float,uint64_t>& pc_struct,Proc_par& pars){
+void produce_apr_analysis(MeshData<T>& input_image,AnalysisData& analysis_data,PartCellStructure<float,uint64_t>& pc_struct,Proc_par& pars){
     //
     //  Bevan Cheeseman 2017
     //
@@ -1923,22 +1928,22 @@ void produce_apr_analysis(Mesh_data<T>& input_image,AnalysisData& analysis_data,
 
 }
 
-void compute_var_ratio_perfect(SynImage& syn_image_loc,Part_rep& p_rep,Mesh_data<uint16_t>& input_img,AnalysisData& analysis_data){
+void compute_var_ratio_perfect(SynImage& syn_image_loc,Part_rep& p_rep,MeshData<uint16_t>& input_img,AnalysisData& analysis_data){
 
-    Mesh_data<float> variance;
+    MeshData<float> variance;
 
     get_variance(input_img, variance, p_rep.pars);
 
     p_rep.pars.name = "perfect";
 
-    Mesh_data<float> norm_grad_image;
+    MeshData<float> norm_grad_image;
 
-    Mesh_data<float> gt_image;
+    MeshData<float> gt_image;
     generate_gt_image(gt_image, syn_image_loc);
 
     p_rep.pars.lambda = -1;
 
-    Mesh_data<float> grad_image;
+    MeshData<float> grad_image;
 
     grad_image.initialize(gt_image.y_num,gt_image.x_num,gt_image.z_num,0);
 
@@ -1947,7 +1952,7 @@ void compute_var_ratio_perfect(SynImage& syn_image_loc,Part_rep& p_rep,Mesh_data
 
 //debug_write(grad_image,"grad_img");
 
-Mesh_data<float> var_gt;
+MeshData<float> var_gt;
 
 generate_gt_var(gt_image,var_gt,syn_image_loc,p_rep.pars);
 //debug_write(var_gt,"var_gt");
@@ -1962,7 +1967,7 @@ PartCellStructure<float, uint64_t> pc_struct_perfect;
 get_apr_perfect(input_img,grad_image,var_gt,p_rep,pc_struct_perfect,analysis_data);
 
 
-Mesh_data<float> variance_u;
+MeshData<float> variance_u;
 //need to down sample / then upsample variance
 down_sample(var_gt,variance_u,
 [](float x, float y) { return std::max(x,y); },

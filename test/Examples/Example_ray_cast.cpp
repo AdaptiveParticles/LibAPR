@@ -124,7 +124,7 @@ int main(int argc, char **argv) {
 
     proj_pars.name = apr.name;
 
-    Mesh_data<float> views;
+    MeshData<float> views;
 
     /////////////
     ///

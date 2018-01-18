@@ -936,7 +936,7 @@ void calc_connected_component(PartCellStructure<S,uint64_t>& pc_struct,ExtraPart
 //}
 
 template<typename T>
-void calc_cc_mesh(Mesh_data<T>& input_mask,T include_val,Mesh_data<uint16_t>& comp_label){
+void calc_cc_mesh(MeshData<T>& input_mask,T include_val,MeshData<uint16_t>& comp_label){
 
     Part_timer timer;
 

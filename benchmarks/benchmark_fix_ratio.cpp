@@ -101,7 +101,7 @@ int main(int argc, char **argv) {
 
     for (int j = 0;j < N_par;j++){
 
-        Mesh_data<uint16_t> input_image;
+        MeshData<uint16_t> input_image;
 
         /////////////////////////////////////////
         //////////////////////////////////////////
@@ -139,7 +139,7 @@ int main(int argc, char **argv) {
 
             syn_image_loc.generate_syn_image(gen_image);
 
-            Mesh_data<uint16_t> input_img;
+            MeshData<uint16_t> input_img;
 
             copy_mesh_data_structures(gen_image,input_img);
 

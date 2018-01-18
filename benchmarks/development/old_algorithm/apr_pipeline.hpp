@@ -7,7 +7,7 @@
 
 #include "benchmarks/development/old_structures/structure_parts.h"
 
-#include "src/data_structures/Mesh/meshclass.h"
+#include "src/data_structures/Mesh/MeshData.hpp"
 #include "benchmarks/development/old_io/readimage.h"
 
 #include "gradient.hpp"
@@ -143,7 +143,7 @@ U median_3(U& a,U& b,U& c) {
 }
 
 template<typename U>
-void calc_median_filter(Mesh_data<U>& input_img){
+void calc_median_filter(MeshData<U>& input_img){
 
 
     uint64_t offset_min;
@@ -275,7 +275,7 @@ void calc_median_filter(Mesh_data<U>& input_img){
 
 }
 template<typename U>
-void calc_median_filter_n(Mesh_data<U>& output_img,Mesh_data<U>& input_img){
+void calc_median_filter_n(MeshData<U>& output_img,MeshData<U>& input_img){
 
 
     uint64_t offset_min_y;
@@ -359,7 +359,7 @@ void calc_median_filter_n(Mesh_data<U>& output_img,Mesh_data<U>& input_img){
 
 }
 template<typename U>
-void calc_median_filter_n2(Mesh_data<U>& output_img,Mesh_data<U>& input_img){
+void calc_median_filter_n2(MeshData<U>& output_img,MeshData<U>& input_img){
 
 
     uint64_t offset_min_y;
@@ -451,16 +451,16 @@ void calc_median_filter_n2(Mesh_data<U>& output_img,Mesh_data<U>& input_img){
 
 }
 template<typename S>
-void get_variance(Mesh_data<S>& input_image,Mesh_data<float>& variance_u,Proc_par& pars) {
+void get_variance(MeshData<S>& input_image,MeshData<float>& variance_u,Proc_par& pars) {
 
     Part_rep part_rep;
 
 
-    Mesh_data<float> gradient,variance;
-    Mesh_data<float> interp_img;
+    MeshData<float> gradient,variance;
+    MeshData<float> interp_img;
 
 
-    Mesh_data<float> input_image_float;
+    MeshData<float> input_image_float;
 
     input_image_float.initialize(input_image.y_num,input_image.x_num,input_image.z_num,0);
 
@@ -484,7 +484,7 @@ void get_variance(Mesh_data<S>& input_image,Mesh_data<float>& variance_u,Proc_pa
     preallocate(part_map.layers, gradient.y_num, gradient.x_num, gradient.z_num, part_rep);
     variance.preallocate(gradient.y_num, gradient.x_num, gradient.z_num, 0);
 
-    Mesh_data<float> temp;
+    MeshData<float> temp;
     temp.preallocate(gradient.y_num, gradient.x_num, gradient.z_num, 0);
 
     t.start_timer("whole");
@@ -513,7 +513,7 @@ void get_variance(Mesh_data<S>& input_image,Mesh_data<float>& variance_u,Proc_pa
 }
 
 template<typename S>
-void spread_values(Mesh_data<S>& input_image){
+void spread_values(MeshData<S>& input_image){
     // spread the value if zero to the neighbours.
 
 
@@ -525,7 +525,7 @@ void spread_values(Mesh_data<S>& input_image){
     const int8_t dir_x[6] = { 0, 0, 1, -1, 0, 0};
     const int8_t dir_z[6] = { 0, 0, 0, 0, 1, -1};
 
-    Mesh_data<S> output_data;
+    MeshData<S> output_data;
 
     output_data.initialize((int)y_num,(int)x_num,(int)z_num,0);
 
@@ -583,12 +583,12 @@ void spread_values(Mesh_data<S>& input_image){
 }
 
 template<typename T,typename S>
-ExtraPartCellData<T> get_scale_parts_guided(APR<T>& apr,Mesh_data<S>& input_image,Proc_par& pars,Part_rep& part_rep){
+ExtraPartCellData<T> get_scale_parts_guided(APR<T>& apr,MeshData<S>& input_image,Proc_par& pars,Part_rep& part_rep){
     //
     //  Produces a new scale estimate that uses the previous time steps APR to estimate.
     //
 
-    Mesh_data<float> variance_u;
+    MeshData<float> variance_u;
 
     get_variance(input_image,variance_u,pars);
 
@@ -596,7 +596,7 @@ ExtraPartCellData<T> get_scale_parts_guided(APR<T>& apr,Mesh_data<S>& input_imag
     // now need the pyramid data-structure
     Particle_map<float> part_map(part_rep);
 
-    std::vector<Mesh_data<float>> layers;
+    std::vector<MeshData<float>> layers;
 
     int k_max = apr.y_vec.depth_max;
     int k_min = part_map.k_min;
@@ -724,9 +724,9 @@ ExtraPartCellData<T> get_scale_parts_guided(APR<T>& apr,Mesh_data<S>& input_imag
 
 
 template<typename T,typename S>
-ExtraPartCellData<T> get_scale_parts(APR<T>& apr,Mesh_data<S>& input_image,Proc_par& pars){
+ExtraPartCellData<T> get_scale_parts(APR<T>& apr,MeshData<S>& input_image,Proc_par& pars){
 
-    Mesh_data<float> variance_u;
+    MeshData<float> variance_u;
 
     get_variance(input_image,variance_u,pars);
 
@@ -779,7 +779,7 @@ ExtraPartCellData<T> get_scale_parts(APR<T>& apr,Mesh_data<S>& input_image,Proc_
 
 
 template<typename T>
-void auto_parameters(Mesh_data<T>& input_img,Proc_par& pars){
+void auto_parameters(MeshData<T>& input_img,Proc_par& pars){
     //
     //  Simple automatic parameter selection for 3D APR Flouresence Images
     //
@@ -829,7 +829,7 @@ void auto_parameters(Mesh_data<T>& input_img,Proc_par& pars){
     }
 
 
-    Mesh_data<T> histogram;
+    MeshData<T> histogram;
     histogram.initialize(num_bins,1,1);
 
     std::copy(freq.begin(),freq.end(),histogram.mesh.begin());
@@ -842,7 +842,7 @@ void auto_parameters(Mesh_data<T>& input_img,Proc_par& pars){
 
     calc_inv_bspline_y(histogram);
 
-    //calc_bspline_fd_y(Mesh_data<T>& input)
+    //calc_bspline_fd_y(MeshData<T>& input)
 
     unsigned int local_max_j = 0;
     uint64_t local_max = 0;
@@ -995,11 +995,11 @@ finish:
 
 
 
-void get_variance(Mesh_data<float>& variance_u,cmdLineOptions& options){
+void get_variance(MeshData<float>& variance_u,cmdLineOptions& options){
 
     Proc_par pars;
 
-    Mesh_data<uint16_t> input_image;
+    MeshData<uint16_t> input_image;
 
     load_image_tiff(input_image, options.directory + options.input);
 
@@ -1011,15 +1011,15 @@ void get_variance(Mesh_data<float>& variance_u,cmdLineOptions& options){
 }
 
 
-void get_apr_part_timing(Mesh_data<uint16_t >& input_image,Part_rep& part_rep,PartCellStructure<float,uint64_t>& pc_struct,AnalysisData& analysis_data){
+void get_apr_part_timing(MeshData<uint16_t >& input_image,Part_rep& part_rep,PartCellStructure<float,uint64_t>& pc_struct,AnalysisData& analysis_data){
 
     int interp_type = part_rep.pars.interp_type;
 
     // COMPUTATIONS
 
-    Mesh_data<float> input_image_float;
-    Mesh_data<float> gradient, variance;
-    Mesh_data<float> interp_img;
+    MeshData<float> input_image_float;
+    MeshData<float> gradient, variance;
+    MeshData<float> interp_img;
 
     gradient.initialize(input_image.y_num, input_image.x_num, input_image.z_num, 0);
     part_rep.initialize(input_image.y_num, input_image.x_num, input_image.z_num);
@@ -1035,9 +1035,9 @@ void get_apr_part_timing(Mesh_data<uint16_t >& input_image,Part_rep& part_rep,Pa
     Particle_map<float> part_map(part_rep);
     preallocate(part_map.layers, gradient.y_num, gradient.x_num, gradient.z_num, part_rep);
     variance.preallocate(gradient.y_num, gradient.x_num, gradient.z_num, 0);
-    std::vector<Mesh_data<float>> down_sampled_images;
+    std::vector<MeshData<float>> down_sampled_images;
 
-    Mesh_data<float> temp;
+    MeshData<float> temp;
     temp.preallocate(gradient.y_num, gradient.x_num, gradient.z_num, 0);
 
     t.start_timer("whole");
@@ -1139,15 +1139,15 @@ void get_apr_part_timing(Mesh_data<uint16_t >& input_image,Part_rep& part_rep,Pa
 }
 
 
-void get_apr_2D(Mesh_data<uint16_t >& input_image,Part_rep& part_rep,PartCellStructure<float,uint64_t>& pc_struct,AnalysisData& analysis_data){
+void get_apr_2D(MeshData<uint16_t >& input_image,Part_rep& part_rep,PartCellStructure<float,uint64_t>& pc_struct,AnalysisData& analysis_data){
 
     int interp_type = part_rep.pars.interp_type;
 
     // COMPUTATIONS
 
-    Mesh_data<float> input_image_float;
-    Mesh_data<float> gradient, variance;
-    Mesh_data<float> interp_img;
+    MeshData<float> input_image_float;
+    MeshData<float> gradient, variance;
+    MeshData<float> interp_img;
 
     gradient.initialize(input_image.y_num, input_image.x_num, input_image.z_num, 0);
     part_rep.initialize(input_image.y_num, input_image.x_num, input_image.z_num);
@@ -1163,9 +1163,9 @@ void get_apr_2D(Mesh_data<uint16_t >& input_image,Part_rep& part_rep,PartCellStr
     Particle_map<float> part_map(part_rep);
     preallocate(part_map.layers, gradient.y_num, gradient.x_num, gradient.z_num, part_rep);
     variance.preallocate(gradient.y_num, gradient.x_num, gradient.z_num, 0);
-    std::vector<Mesh_data<float>> down_sampled_images;
+    std::vector<MeshData<float>> down_sampled_images;
 
-    Mesh_data<float> temp;
+    MeshData<float> temp;
     temp.preallocate(gradient.y_num, gradient.x_num, gradient.z_num, 0);
 
     t.start_timer("whole");
@@ -1231,7 +1231,7 @@ void get_apr_2D(Mesh_data<uint16_t >& input_image,Part_rep& part_rep,PartCellStr
 
 
 }
-void mask_variance(Mesh_data<float>& variance,Mesh_data<float>& temp,APR<float>& apr){
+void mask_variance(MeshData<float>& variance,MeshData<float>& temp,APR<float>& apr){
     //
     //  Bevan Cheeseman 2018
     //
@@ -1239,7 +1239,7 @@ void mask_variance(Mesh_data<float>& variance,Mesh_data<float>& temp,APR<float>&
     //
     //
 
-    Mesh_data<uint16_t> mask;
+    MeshData<uint16_t> mask;
 
     load_image_tiff(mask, apr.pars.mask_file);
 
@@ -1259,177 +1259,177 @@ void mask_variance(Mesh_data<float>& variance,Mesh_data<float>& temp,APR<float>&
 }
 
 
-void get_apr(Mesh_data<uint16_t >& input_image,APR<float>& apr){
-    //
-    //  NEEDS TO BE CLEANED UP *quick hacks to get it workgin directly with the new datastructures
-    //
-
-    Part_timer t;
-    t.verbose_flag = false;
-
-    Part_timer timer;
-    timer.verbose_flag = true;
-
-    int interp_type = apr.pars.interp_type;
-
-    // COMPUTATIONS
-    Part_rep part_rep;
-    part_rep.pars = apr.pars;
-
-    apr.pc_data.org_dims.resize(3,0);
-
-    apr.pc_data.org_dims[0] = input_image.y_num;
-    apr.pc_data.org_dims[1] = input_image.x_num;
-    apr.pc_data.org_dims[2] = input_image.z_num;
-
-    int max_dim;
-    int min_dim;
-
-    if(input_image.z_num == 1) {
-        max_dim = (std::max(apr.pc_data.org_dims[1], apr.pc_data.org_dims[0]));
-        min_dim = (std::min(apr.pc_data.org_dims[1], apr.pc_data.org_dims[0]));
-    }
-    else{
-        max_dim = std::max(std::max(apr.pc_data.org_dims[1], apr.pc_data.org_dims[0]), apr.pc_data.org_dims[2]);
-        min_dim = std::min(std::min(apr.pc_data.org_dims[1], apr.pc_data.org_dims[0]), apr.pc_data.org_dims[2]);
-    }
-
-    int k_max_ = ceil(M_LOG2E*log(max_dim)) - 1;
-    int k_min_ = std::max( (int)(k_max_ - floor(M_LOG2E*log(min_dim)) + 1),2);
-
-    apr.pc_data.depth_min = k_min_;
-    apr.pc_data.depth_max = k_max_ + 1;
-
-    //the part_rep needs to be removed and replaced, but leaving in for backward combatability at the moment
-
-    part_rep.pl_map.k_max = k_max_;
-    part_rep.pl_map.k_min = k_min_;
-
-    timer.start_timer("initializing memory");
-
-    Mesh_data<float> input_image_float;
-    Mesh_data<float> gradient, variance;
-    Mesh_data<float> interp_img;
-
-    part_rep.org_dims = apr.pc_data.org_dims;
-
-    gradient.initialize(input_image.y_num, input_image.x_num, input_image.z_num, 0);
-
-    input_image_float = input_image.to_type<float>();
-    interp_img = input_image.to_type<float>();
-    // After this block, input_image will be freed.
-
-    // preallocate_memory
-    Particle_map<float> part_map(apr.pc_data.org_dims,apr.pc_data.depth_min,apr.pc_data.depth_max);
-    preallocate(part_map.layers, gradient.y_num, gradient.x_num, gradient.z_num, apr.pc_data.depth_max - 1,apr.pc_data.depth_min);
-
-
-    //allocating to be half size
-    variance.preallocate(gradient.y_num, gradient.x_num, gradient.z_num, 0);
-
-    Mesh_data<float> temp;
-    temp.preallocate(gradient.y_num, gradient.x_num, gradient.z_num, 0);
-
-
-    timer.stop_timer();
-
-    t.start_timer("whole");
-
-
-    timer.start_timer("compute gradient magnitude");
-    get_gradient_3D(part_rep, input_image_float, gradient);
-    timer.stop_timer();
-
-    timer.start_timer("calculate Local Intensity Scale");
-    get_variance_3D(part_rep, input_image_float, variance);
-    timer.stop_timer();
-
-    if((interp_type == 0) | (interp_type == 2)){
-        //frees the memory of the smooth image
-        std::vector<float>().swap(input_image_float.mesh);
-    }
-
-    if(apr.pars.mask_file!= ""){
-        //
-        //  Now threshold the variance according to the mask (think this should be changed to the gradient actually)
-        //
-        timer.start_timer("masking variance");
-        mask_variance(variance,temp,apr);
-        timer.stop_timer();
-    }
-
-
-    timer.start_timer("construct Local Particle Set (L_n)");
-    get_level_3D(variance, gradient, part_rep, part_map, temp);
-    timer.stop_timer();
-
-    // free memory (not used anymore)
-    std::vector<float>().swap(gradient.mesh);
-    std::vector<float>().swap(variance.mesh);
-
-    timer.start_timer("pulling scheme (compute OVPC V_n)");
-    part_map.pushing_scheme(part_rep);
-    timer.stop_timer();
-
-    timer.start_timer("sample particle intensities");
-
-    if (interp_type == 2) {
-        part_map.downsample(interp_img);
-    }
-
-
-    if (interp_type == 0) {
-        part_map.downsample(interp_img);
-        calc_median_filter(part_map.downsampled[part_map.k_max+1]);
-    }
-
-    if (interp_type == 1) {
-        part_map.downsample(input_image_float);
-    } else if (interp_type ==3){
-        part_map.downsample(interp_img);
-        //calc_median_filter_n(part_map.downsampled[part_map.k_max+1],input_image_float);
-        part_map.downsampled[part_map.k_max+1]=input_image_float;
-    } else if (interp_type ==4){
-        part_map.closest_pixel(interp_img);
-    }
-
-    timer.stop_timer();
-
-    timer.start_timer("construct the APR data-structure");
-
-    //construct the pc-data
-    apr.init_from_pulling_scheme(part_map.layers);
-
-    apr.get_parts_from_img(part_map.downsampled,apr.particles_int);
-
-    //then get the particle data
-
-    timer.stop_timer();
-
-    t.stop_timer();
-
-//    //add the timer data
-//    analysis_data.add_timer(timer);
-//    analysis_data.add_timer(t);
-
-
-}
-
-
+//void get_apr(MeshData<uint16_t >& input_image,APR<float>& apr){
+//    //
+//    //  NEEDS TO BE CLEANED UP *quick hacks to get it workgin directly with the new datastructures
+//    //
+//
+//    Part_timer t;
+//    t.verbose_flag = false;
+//
+//    Part_timer timer;
+//    timer.verbose_flag = true;
+//
+//    int interp_type = apr.pars.interp_type;
+//
+//    // COMPUTATIONS
+//    Part_rep part_rep;
+//    part_rep.pars = apr.pars;
+//
+//    apr.pc_data.org_dims.resize(3,0);
+//
+//    apr.pc_data.org_dims[0] = input_image.y_num;
+//    apr.pc_data.org_dims[1] = input_image.x_num;
+//    apr.pc_data.org_dims[2] = input_image.z_num;
+//
+//    int max_dim;
+//    int min_dim;
+//
+//    if(input_image.z_num == 1) {
+//        max_dim = (std::max(apr.pc_data.org_dims[1], apr.pc_data.org_dims[0]));
+//        min_dim = (std::min(apr.pc_data.org_dims[1], apr.pc_data.org_dims[0]));
+//    }
+//    else{
+//        max_dim = std::max(std::max(apr.pc_data.org_dims[1], apr.pc_data.org_dims[0]), apr.pc_data.org_dims[2]);
+//        min_dim = std::min(std::min(apr.pc_data.org_dims[1], apr.pc_data.org_dims[0]), apr.pc_data.org_dims[2]);
+//    }
+//
+//    int k_max_ = ceil(M_LOG2E*log(max_dim)) - 1;
+//    int k_min_ = std::max( (int)(k_max_ - floor(M_LOG2E*log(min_dim)) + 1),2);
+//
+//    apr.pc_data.depth_min = k_min_;
+//    apr.pc_data.depth_max = k_max_ + 1;
+//
+//    //the part_rep needs to be removed and replaced, but leaving in for backward combatability at the moment
+//
+//    part_rep.pl_map.k_max = k_max_;
+//    part_rep.pl_map.k_min = k_min_;
+//
+//    timer.start_timer("initializing memory");
+//
+//    MeshData<float> input_image_float;
+//    MeshData<float> gradient, variance;
+//    MeshData<float> interp_img;
+//
+//    part_rep.org_dims = apr.pc_data.org_dims;
+//
+//    gradient.initialize(input_image.y_num, input_image.x_num, input_image.z_num, 0);
+//
+//    input_image_float = input_image.to_type<float>();
+//    interp_img = input_image.to_type<float>();
+//    // After this block, input_image will be freed.
+//
+//    // preallocate_memory
+//    Particle_map<float> part_map(apr.pc_data.org_dims,apr.pc_data.depth_min,apr.pc_data.depth_max);
+//    preallocate(part_map.layers, gradient.y_num, gradient.x_num, gradient.z_num, apr.pc_data.depth_max - 1,apr.pc_data.depth_min);
+//
+//
+//    //allocating to be half size
+//    variance.preallocate(gradient.y_num, gradient.x_num, gradient.z_num, 0);
+//
+//    MeshData<float> temp;
+//    temp.preallocate(gradient.y_num, gradient.x_num, gradient.z_num, 0);
+//
+//
+//    timer.stop_timer();
+//
+//    t.start_timer("whole");
+//
+//
+//    timer.start_timer("compute gradient magnitude");
+//    get_gradient_3D(part_rep, input_image_float, gradient);
+//    timer.stop_timer();
+//
+//    timer.start_timer("calculate Local Intensity Scale");
+//    get_variance_3D(part_rep, input_image_float, variance);
+//    timer.stop_timer();
+//
+//    if((interp_type == 0) | (interp_type == 2)){
+//        //frees the memory of the smooth image
+//        std::vector<float>().swap(input_image_float.mesh);
+//    }
+//
+//    if(apr.pars.mask_file!= ""){
+//        //
+//        //  Now threshold the variance according to the mask (think this should be changed to the gradient actually)
+//        //
+//        timer.start_timer("masking variance");
+//        mask_variance(variance,temp,apr);
+//        timer.stop_timer();
+//    }
+//
+//
+//    timer.start_timer("construct Local Particle Set (L_n)");
+//    get_level_3D(variance, gradient, part_rep, part_map, temp);
+//    timer.stop_timer();
+//
+//    // free memory (not used anymore)
+//    std::vector<float>().swap(gradient.mesh);
+//    std::vector<float>().swap(variance.mesh);
+//
+//    timer.start_timer("pulling scheme (compute OVPC V_n)");
+//    part_map.pushing_scheme(part_rep);
+//    timer.stop_timer();
+//
+//    timer.start_timer("sample particle intensities");
+//
+//    if (interp_type == 2) {
+//        part_map.downsample(interp_img);
+//    }
+//
+//
+//    if (interp_type == 0) {
+//        part_map.downsample(interp_img);
+//        calc_median_filter(part_map.downsampled[part_map.k_max+1]);
+//    }
+//
+//    if (interp_type == 1) {
+//        part_map.downsample(input_image_float);
+//    } else if (interp_type ==3){
+//        part_map.downsample(interp_img);
+//        //calc_median_filter_n(part_map.downsampled[part_map.k_max+1],input_image_float);
+//        part_map.downsampled[part_map.k_max+1]=input_image_float;
+//    } else if (interp_type ==4){
+//        part_map.closest_pixel(interp_img);
+//    }
+//
+//    timer.stop_timer();
+//
+//    timer.start_timer("construct the APR data-structure");
+//
+//    //construct the pc-data
+//    apr.init_from_pulling_scheme(part_map.layers);
+//
+//    apr.get_parts_from_img(part_map.downsampled,apr.particles_int);
+//
+//    //then get the particle data
+//
+//    timer.stop_timer();
+//
+//    t.stop_timer();
+//
+////    //add the timer data
+////    analysis_data.add_timer(timer);
+////    analysis_data.add_timer(t);
+//
+//
+//}
 
 
 
 
 
-void get_apr(Mesh_data<uint16_t >& input_image,Part_rep& part_rep,PartCellStructure<float,uint64_t>& pc_struct,AnalysisData& analysis_data){
+
+
+void get_apr(MeshData<uint16_t >& input_image,Part_rep& part_rep,PartCellStructure<float,uint64_t>& pc_struct,AnalysisData& analysis_data){
 
     int interp_type = part_rep.pars.interp_type;
 
     // COMPUTATIONS
 
-    Mesh_data<float> input_image_float;
-    Mesh_data<float> gradient, variance;
-    Mesh_data<float> interp_img;
+    MeshData<float> input_image_float;
+    MeshData<float> gradient, variance;
+    MeshData<float> interp_img;
 
     gradient.initialize(input_image.y_num, input_image.x_num, input_image.z_num, 0);
     part_rep.initialize(input_image.y_num, input_image.x_num, input_image.z_num);
@@ -1445,9 +1445,9 @@ void get_apr(Mesh_data<uint16_t >& input_image,Part_rep& part_rep,PartCellStruct
     Particle_map<float> part_map(part_rep);
     preallocate(part_map.layers, gradient.y_num, gradient.x_num, gradient.z_num, part_rep);
     variance.preallocate(gradient.y_num, gradient.x_num, gradient.z_num, 0);
-    std::vector<Mesh_data<float>> down_sampled_images;
+    std::vector<MeshData<float>> down_sampled_images;
 
-    Mesh_data<float> temp;
+    MeshData<float> temp;
     temp.preallocate(gradient.y_num, gradient.x_num, gradient.z_num, 0);
 
     t.start_timer("whole");
@@ -1510,15 +1510,15 @@ void get_apr(Mesh_data<uint16_t >& input_image,Part_rep& part_rep,PartCellStruct
 
 
 }
-void get_apr_perfect(Mesh_data<uint16_t >& input_image,Mesh_data<float>& grad_gt,Mesh_data<float>& var_gt,Part_rep& part_rep,PartCellStructure<float,uint64_t>& pc_struct,AnalysisData& analysis_data){
+void get_apr_perfect(MeshData<uint16_t >& input_image,MeshData<float>& grad_gt,MeshData<float>& var_gt,Part_rep& part_rep,PartCellStructure<float,uint64_t>& pc_struct,AnalysisData& analysis_data){
 
     int interp_type = part_rep.pars.interp_type;
 
     // COMPUTATIONS
 
-    Mesh_data<float> input_image_float;
-    Mesh_data<float> gradient, variance;
-    Mesh_data<float> interp_img;
+    MeshData<float> input_image_float;
+    MeshData<float> gradient, variance;
+    MeshData<float> interp_img;
 
     gradient.initialize(input_image.y_num, input_image.x_num, input_image.z_num, 0);
     part_rep.initialize(input_image.y_num, input_image.x_num, input_image.z_num);
@@ -1534,9 +1534,9 @@ void get_apr_perfect(Mesh_data<uint16_t >& input_image,Mesh_data<float>& grad_gt
     Particle_map<float> part_map(part_rep);
     preallocate(part_map.layers, gradient.y_num, gradient.x_num, gradient.z_num, part_rep);
     variance.preallocate(gradient.y_num, gradient.x_num, gradient.z_num, 0);
-    std::vector<Mesh_data<float>> down_sampled_images;
+    std::vector<MeshData<float>> down_sampled_images;
 
-    Mesh_data<float> temp;
+    MeshData<float> temp;
     temp.preallocate(gradient.y_num, gradient.x_num, gradient.z_num, 0);
 
     t.start_timer("whole");
@@ -1608,15 +1608,15 @@ void get_apr_perfect(Mesh_data<uint16_t >& input_image,Mesh_data<float>& grad_gt
 
 
 template<typename S,typename U>
-void get_apr_t(Mesh_data<S >& input_image,Part_rep& part_rep,PartCellStructure<U,uint64_t>& pc_struct,AnalysisData& analysis_data){
+void get_apr_t(MeshData<S >& input_image,Part_rep& part_rep,PartCellStructure<U,uint64_t>& pc_struct,AnalysisData& analysis_data){
 
     int interp_type = part_rep.pars.interp_type;
 
     // COMPUTATIONS
 
-    Mesh_data<S> input_image_float;
-    Mesh_data<S> gradient, variance;
-    Mesh_data<S> interp_img;
+    MeshData<S> input_image_float;
+    MeshData<S> gradient, variance;
+    MeshData<S> interp_img;
 
     gradient.initialize(input_image.y_num, input_image.x_num, input_image.z_num, 0);
     part_rep.initialize(input_image.y_num, input_image.x_num, input_image.z_num);
@@ -1632,9 +1632,9 @@ void get_apr_t(Mesh_data<S >& input_image,Part_rep& part_rep,PartCellStructure<U
     Particle_map<S> part_map(part_rep);
     preallocate(part_map.layers, gradient.y_num, gradient.x_num, gradient.z_num, part_rep);
     variance.preallocate(gradient.y_num, gradient.x_num, gradient.z_num, 0);
-    std::vector<Mesh_data<S>> down_sampled_images;
+    std::vector<MeshData<S>> down_sampled_images;
 
-    Mesh_data<S> temp;
+    MeshData<S> temp;
     temp.preallocate(gradient.y_num, gradient.x_num, gradient.z_num, 0);
 
     t.start_timer("whole");
@@ -1695,7 +1695,7 @@ void get_apr_t(Mesh_data<S >& input_image,Part_rep& part_rep,PartCellStructure<U
 
 }
 
-void get_apr(Mesh_data<uint16_t >& input_image,Part_rep& part_rep,PartCellStructure<float,uint64_t>& pc_struct){
+void get_apr(MeshData<uint16_t >& input_image,Part_rep& part_rep,PartCellStructure<float,uint64_t>& pc_struct){
     //interface without analysis_data
     AnalysisData analysis_data;
 
@@ -1724,7 +1724,7 @@ void get_apr(int argc, char **argv,PartCellStructure<float,uint64_t>& pc_struct,
 
     options = read_command_line_options(argc, argv, part_rep.pars);
 
-    Mesh_data<uint16_t> input_image;
+    MeshData<uint16_t> input_image;
 
     load_image_tiff(input_image, options.directory + options.input);
 
@@ -1749,62 +1749,62 @@ void get_apr(int argc, char **argv,PartCellStructure<float,uint64_t>& pc_struct,
 }
 
 
-bool get_apr(int argc, char **argv,APR<float>& apr,cmdLineOptions& options) {
-
-    // INPUT PARSING
-
-    options = read_command_line_options(argc, argv, apr.pars);
-
-    Part_timer timer;
-    timer.verbose_flag = true;
-
-    timer.start_timer("read tif input image");
-
-    Mesh_data<uint16_t> input_image;
-
-    load_image_tiff(input_image, options.directory + options.input);
-
-    timer.stop_timer();
-
-    if (!options.stats_file) {
-        // defaults
-
-        apr.pars.dy = apr.pars.dx = apr.pars.dz = 1;
-        apr.pars.psfx = apr.pars.psfy = apr.pars.psfz = 2;
-        //apr.pars.rel_error = 0.1;
-        apr.pars.var_th = 0;
-        apr.pars.var_th_max = 0;
-
-        // setting the command line options
-        apr.pars.I_th = options.Ip_th;
-        apr.pars.noise_scale = options.SNR_min;
-        apr.pars.lambda = options.lambda;
-        apr.pars.var_th = options.min_signal;
-
-        if(options.mask_file != "") {
-            apr.pars.mask_file = options.directory + options.mask_file;
-        }
-
-        if(input_image.mesh.size() == 0){
-            std::cout << "Image Not Found" << std::endl;
-
-            return false;
-        }
-
-        timer.start_timer("calculate automatic parameters");
-        auto_parameters(input_image,apr.pars);
-        timer.stop_timer();
-
-        apr.pars.name = options.output;
-        apr.name = options.output;
-
-        //return false;
-    }
-
-    get_apr(input_image,apr);
-
-    return true;
-}
+//bool get_apr(int argc, char **argv,APR<float>& apr,cmdLineOptions& options) {
+//
+//    // INPUT PARSING
+//
+//    options = read_command_line_options(argc, argv, apr.pars);
+//
+//    Part_timer timer;
+//    timer.verbose_flag = true;
+//
+//    timer.start_timer("read tif input image");
+//
+//    MeshData<uint16_t> input_image;
+//
+//    load_image_tiff(input_image, options.directory + options.input);
+//
+//    timer.stop_timer();
+//
+//    if (!options.stats_file) {
+//        // defaults
+//
+//        apr.pars.dy = apr.pars.dx = apr.pars.dz = 1;
+//        apr.pars.psfx = apr.pars.psfy = apr.pars.psfz = 2;
+//        //apr.pars.rel_error = 0.1;
+//        apr.pars.var_th = 0;
+//        apr.pars.var_th_max = 0;
+//
+//        // setting the command line options
+//        apr.pars.I_th = options.Ip_th;
+//        apr.pars.noise_scale = options.SNR_min;
+//        apr.pars.lambda = options.lambda;
+//        apr.pars.var_th = options.min_signal;
+//
+//        if(options.mask_file != "") {
+//            apr.pars.mask_file = options.directory + options.mask_file;
+//        }
+//
+//        if(input_image.mesh.size() == 0){
+//            std::cout << "Image Not Found" << std::endl;
+//
+//            return false;
+//        }
+//
+//        timer.start_timer("calculate automatic parameters");
+//        auto_parameters(input_image,apr.pars);
+//        timer.stop_timer();
+//
+//        apr.pars.name = options.output;
+//        apr.name = options.output;
+//
+//        //return false;
+//    }
+//
+//    get_apr(input_image,apr);
+//
+//    return true;
+//}
 
 
 

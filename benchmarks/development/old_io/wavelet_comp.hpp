@@ -1305,7 +1305,7 @@ void write_apr_wavelet_partnew(PartCellStructure<T,uint64_t>& pc_struct,std::str
     }
 
 
-    Mesh_data<uint16_t> interp;
+    MeshData<uint16_t> interp;
 
     interp_img(interp, curr_apr.y_vec, curr_apr.particles_int);
 

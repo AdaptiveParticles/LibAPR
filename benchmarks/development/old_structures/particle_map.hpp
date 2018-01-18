@@ -2,7 +2,7 @@
 #ifndef PARTPLAY_PARTICLE_MAP_HPP
 #define PARTPLAY_PARTICLE_MAP_HPP
 
-#include "src/data_structures/Mesh/meshclass.h"
+#include "src/data_structures/Mesh/MeshData.hpp"
 #include "benchmarks/development/old_structures/structure_parts.h"
 
 //#include "APR/APR.hpp"
@@ -527,8 +527,8 @@ private:
 
 public :
 
-    std::vector<Mesh_data<uint8_t>> layers;
-    std::vector<Mesh_data<T>> downsampled;
+    std::vector<MeshData<uint8_t>> layers;
+    std::vector<MeshData<T>> downsampled;
 
     /*
     std::vector<std::vector<uint32_t>> intensity_pointers;
@@ -658,7 +658,7 @@ public :
 
     }
 
-    void downsample(Mesh_data<T> &original_image)
+    void downsample(MeshData<T> &original_image)
     {
         downsampled.resize(k_max+2);
         downsampled.back() = std::move(original_image);
@@ -671,7 +671,7 @@ public :
         }
     }
 
-    void closest_pixel(Mesh_data<T> &original_image){
+    void closest_pixel(MeshData<T> &original_image){
         //
         //  Scheme for calculating at best estimate f(x_p) = f_p for the noise free analysis, requried since particles of higher resolution levels sit on off pixel locations
         //
@@ -728,7 +728,7 @@ public :
     }
 
 
-    void fill(float k, Mesh_data<T> &input)
+    void fill(float k, MeshData<T> &input)
     {
         //
         //  Bevan Cheeseman 2016
@@ -807,7 +807,7 @@ public :
 };
 
 template <typename T>
-void preallocate(std::vector<Mesh_data<T>> &to_prealocate, const int y_num, const int x_num,
+void preallocate(std::vector<MeshData<T>> &to_prealocate, const int y_num, const int x_num,
                  const int z_num, const Part_rep &p_rep)
 {
 
@@ -828,7 +828,7 @@ void preallocate(std::vector<Mesh_data<T>> &to_prealocate, const int y_num, cons
 }
 
 template <typename T>
-void preallocate(std::vector<Mesh_data<T>> &to_prealocate, const int y_num, const int x_num,
+void preallocate(std::vector<MeshData<T>> &to_prealocate, const int y_num, const int x_num,
                  const int z_num, const unsigned int k_max,const unsigned int k_min)
 {
 

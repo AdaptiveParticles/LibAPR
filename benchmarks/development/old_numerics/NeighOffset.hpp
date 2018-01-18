@@ -171,7 +171,7 @@ public:
     
     //used for debugging
     template<typename S>
-    S get_int(std::vector<Mesh_data<S>>& int_ref){
+    S get_int(std::vector<MeshData<S>>& int_ref){
         if(neigh_same.current_flag == 1){
             return neigh_same.get_int(int_ref);
             

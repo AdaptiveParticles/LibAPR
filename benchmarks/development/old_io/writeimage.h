@@ -13,10 +13,10 @@
 #include <tiffio.h>
 #include "parameters.h"
 
-#include "src/data_structures/Mesh/meshclass.h"
+#include "src/data_structures/Mesh/MeshData.hpp"
 
 template <typename T>
-void write_image_tiff(Mesh_data<T>& image,std::string filename){
+void write_image_tiff(MeshData<T>& image,std::string filename){
     //
     //
     //  Bevan Cheeseman 2015
@@ -115,7 +115,7 @@ void write_image_tiff(Mesh_data<T>& image,std::string filename){
 }
 
 template <typename T>
-void debug_write(Mesh_data<T> input,std::string img_name){
+void debug_write(MeshData<T> input,std::string img_name){
     
     
     std::string image_path;
@@ -126,7 +126,7 @@ void debug_write(Mesh_data<T> input,std::string img_name){
     
     
     //debug
-    Mesh_data<uint16_t> output_int;
+    MeshData<uint16_t> output_int;
     output_int.initialize(input.y_num,input.x_num,input.z_num,0);
     std::copy(input.mesh.begin(),input.mesh.end(),output_int.mesh.begin());
     

@@ -6,11 +6,11 @@
 
 #include "src/algorithm/APRParameters.hpp"
 
-#include "src/data_structures/Mesh/meshclass.h"
+#include "src/data_structures/Mesh/MeshData.hpp"
 
 //#include "benchmarks/development/old_algorithm/apr_pipeline.hpp"
 
-#include "src/algorithm/APR_converter.hpp"
+#include "src/algorithm/APRConverter.hpp"
 
 #include "src/data_structures/APR/APR.hpp"
 

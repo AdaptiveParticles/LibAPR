@@ -23,7 +23,7 @@ public:
  */
 
     template< typename T>
-    void compute_level_for_array(Mesh_data<T>& input,float k_factor,float rel_error){
+    void compute_level_for_array(MeshData<T>& input,float k_factor,float rel_error){
         //
         //  Takes the sqrt of the grad vector to caluclate the magnitude
         //

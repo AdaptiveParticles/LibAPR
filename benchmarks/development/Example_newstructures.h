@@ -5,6 +5,7 @@
 #include <string>
 
 #include "src/data_structures/APR/APR.hpp"
+#include "src/data_structures/APR/APRAccess.hpp"
 
 struct cmdLineOptions{
     std::string output = "output";

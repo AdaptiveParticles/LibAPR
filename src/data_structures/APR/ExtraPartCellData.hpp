@@ -13,6 +13,8 @@
 #include "PartCellData.hpp"
 #include "benchmarks/development/Tree/ParticleData.hpp"
 
+//#include "src/data_structures/APR/APR.hpp"
+
 #include <functional>
 
 template<typename V>
@@ -249,6 +251,40 @@ public:
         }
 
     }
+
+    template<typename S>
+    void initialize_structure_parts_empty(APR<S>& apr){
+        //
+        //  Initialize the structure to the same size as the given structure
+        //
+
+        //first add the layers
+        depth_max = apr.level_max();
+        depth_min = apr.level_min();
+
+        z_num.resize(depth_max+1);
+        x_num.resize(depth_max+1);
+        y_num.resize(depth_max+1);
+
+        data.resize(depth_max+1);
+
+        org_dims.resize(3);
+        org_dims[0] = apr.orginal_dimensions(0);
+        org_dims[1] = apr.orginal_dimensions(1);
+        org_dims[2] = apr.orginal_dimensions(2);
+
+        for(uint64_t i = depth_min;i <= depth_max;i++){
+            z_num[i] = apr.spatial_index_z_max(i);
+            x_num[i] = apr.spatial_index_x_max(i);
+            y_num[i] = apr.spatial_index_y_max(i);
+
+            data[i].resize(z_num[i]*x_num[i]);
+
+        }
+
+    }
+
+
 
 
     
@@ -606,6 +642,64 @@ public:
     V square_root(V input){
         return sqrt(input);
     }
+
+
+    template<typename U>
+    void shift_particles_from_cells(ExtraPartCellData<U>& pdata_old,PartCellData<uint64_t>& pc_data){
+        //
+        //  Bevan Cheesean 2017
+        //
+        //  Transfers them to align with the part data, to align with particle data no gaps
+        //
+        //
+
+        ExtraPartCellData<U> pdata_new;
+
+        pdata_new.initialize_structure_parts(pdata_old);
+
+        uint64_t z_,x_,j_,node_val;
+        uint64_t part_offset;
+
+        for(uint64_t i = pdata_old.depth_min;i <= pdata_old.depth_max;i++){
+
+            const unsigned int x_num_ = pdata_old.x_num[i];
+            const unsigned int z_num_ = pdata_old.z_num[i];
+
+#pragma omp parallel for default(shared) private(z_,x_,j_,node_val)  if(z_num_*x_num_ > 100)
+            for(z_ = 0;z_ < z_num_;z_++){
+
+                for(x_ = 0;x_ < x_num_;x_++){
+                    const size_t offset_pc_data = x_num_*z_ + x_;
+                    const size_t j_num = pdata_old.data[i][offset_pc_data].size();
+
+                    int counter = 0;
+
+                    for(j_ = 0; j_ < j_num;j_++){
+                        //raster over both structures, generate the index for the particles, set the status and offset_y_coord diff
+
+                        node_val = pc_data.data[i][offset_pc_data][j_];
+
+                        if(!(node_val&1)){
+
+                            pdata_new.data[i][offset_pc_data][counter] = pdata_old.data[i][offset_pc_data][j_];
+
+                            counter++;
+
+                        } else {
+
+                        }
+
+                    }
+
+                    pdata_new.data[i][offset_pc_data].resize(counter); //reduce to new size
+                }
+            }
+        }
+
+        std::swap(pdata_new,pdata_old);
+
+    }
+
 
 
 private:
