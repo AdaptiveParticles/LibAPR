@@ -526,7 +526,18 @@ public:
         APRTimer apr_timer;
         apr_timer.verbose_flag = true;
 
+        level_min = apr.level_min();
+        level_max = apr.level_max();
 
+        x_num.resize(apr.depth_max()+1);
+        y_num.resize(apr.depth_max()+1);
+        z_num.resize(apr.depth_max()+1);
+
+        for (int level = apr.depth_min(); level <= apr.depth_max(); level++) {
+            x_num[level] = apr.spatial_index_x_max(level);
+            y_num[level] = apr.spatial_index_y_max(level);
+            z_num[level] = apr.spatial_index_z_max(level);
+        }
 
         apr_timer.start_timer("first_step");
 

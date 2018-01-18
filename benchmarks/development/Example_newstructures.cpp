@@ -14,7 +14,6 @@
 
 #include <algorithm>
 #include <iostream>
-#include <benchmarks/development/old_numerics/filter_numerics.hpp>
 
 #include "benchmarks/development/Example_newstructures.h"
 
@@ -178,11 +177,11 @@ int main(int argc, char **argv) {
     //remove the file extension
     name.erase(name.end()-3,name.end());
 
-    APRAccess apr_access;
+   // APRAccess apr_access;
 
 
     //just run old code and initialize it there
-    apr_access.test_method(apr);
+//    apr_access.test_method(apr);
 
     /////
     //
@@ -201,31 +200,62 @@ int main(int argc, char **argv) {
     apr_access2.initialize_structure_from_particle_cell_tree(apr,p_map);
     timer.stop_timer();
 
-    MapStorageData map_data;
+    APRIteratorNew<uint16_t> apr_it(apr_access2);
 
-    compare_two_maps(apr,apr_access,apr_access2);
+    ExtraParticleData<uint16_t> particles_int;
+    ExtraParticleData<uint16_t> x;
+    ExtraParticleData<uint16_t> y;
+    ExtraParticleData<uint16_t> z;
+    ExtraParticleData<uint16_t> level;
 
-    timer.start_timer("flatten");
-    apr_access2.flatten_structure(apr,map_data);
-    timer.stop_timer();
+    for (apr.begin(); apr.end()!=0;apr.it_forward()) {
+        particles_int.data.push_back(apr(apr.particles_int));
+        x.data.push_back(apr.x());
+        y.data.push_back(apr.y());
+        z.data.push_back(apr.z());
+        level.data.push_back(apr.level());
+    }
 
-    std::cout << apr_access2.total_number_parts << std::endl;
-    std::cout << apr_access2.total_number_gaps << std::endl;
-    std::cout << apr_access2.total_number_non_empty_rows << std::endl;
 
-    APRAccess apr_access3;
+    uint64_t counter = 0;
 
-    apr_access3.total_number_non_empty_rows = apr_access2.total_number_non_empty_rows;
-    apr_access3.total_number_gaps = apr_access2.total_number_gaps;
-    apr_access3.total_number_parts = apr_access2.total_number_parts;
+    for (apr_it.it_begin();apr_it.it_end(); apr_it.it_forward()) {
+        counter++;
 
-    apr_access3.x_num = apr_access2.x_num;
-    apr_access3.y_num = apr_access2.y_num;
-    apr_access3.z_num = apr_access2.z_num;
+        if(apr_it.y() != apr_it(y)){
+            std::cout << "broken y" << std::endl;
+        }
 
-    apr_access3.rebuild_map(apr,map_data);
+    }
 
-    compare_two_maps(apr,apr_access,apr_access3);
+    std::cout << counter << std::endl;
+
+
+//    MapStorageData map_data;
+//
+//    compare_two_maps(apr,apr_access,apr_access2);
+//
+//    timer.start_timer("flatten");
+//    apr_access2.flatten_structure(apr,map_data);
+//    timer.stop_timer();
+//
+//    std::cout << apr_access2.total_number_parts << std::endl;
+//    std::cout << apr_access2.total_number_gaps << std::endl;
+//    std::cout << apr_access2.total_number_non_empty_rows << std::endl;
+//
+//    APRAccess apr_access3;
+//
+//    apr_access3.total_number_non_empty_rows = apr_access2.total_number_non_empty_rows;
+//    apr_access3.total_number_gaps = apr_access2.total_number_gaps;
+//    apr_access3.total_number_parts = apr_access2.total_number_parts;
+//
+//    apr_access3.x_num = apr_access2.x_num;
+//    apr_access3.y_num = apr_access2.y_num;
+//    apr_access3.z_num = apr_access2.z_num;
+//
+//    apr_access3.rebuild_map(apr,map_data);
+//
+//    compare_two_maps(apr,apr_access,apr_access3);
 
 }
 

@@ -21,8 +21,8 @@ private:
 
     MapIterator current_gap;
 
-    constexpr uint16_t shift[6] = {YP_LEVEL_SHIFT,YM_LEVEL_SHIFT,XP_LEVEL_SHIFT,XM_LEVEL_SHIFT,ZP_LEVEL_SHIFT,ZM_LEVEL_SHIFT};
-    constexpr uint16_t mask[6] = {YP_LEVEL_MASK,YM_LEVEL_MASK,XP_LEVEL_MASK,XM_LEVEL_MASK,ZP_LEVEL_MASK,ZM_LEVEL_MASK};
+    const uint16_t shift[6] = {YP_LEVEL_SHIFT,YM_LEVEL_SHIFT,XP_LEVEL_SHIFT,XM_LEVEL_SHIFT,ZP_LEVEL_SHIFT,ZM_LEVEL_SHIFT};
+    const uint16_t mask[6] = {YP_LEVEL_MASK,YM_LEVEL_MASK,XP_LEVEL_MASK,XM_LEVEL_MASK,ZP_LEVEL_MASK,ZM_LEVEL_MASK};
 
     bool move_iterator_to_next_non_empty_row(const uint64_t &maximum_level){
 
@@ -65,6 +65,7 @@ private:
 
         if(particle_number==0){
             current_particle_cell.level = level_min();
+            current_particle_cell.pc_offset=0;
 
             if(move_iterator_to_next_non_empty_row(level_max())){
                 //found and set
@@ -82,7 +83,7 @@ private:
             //otherwise now we have to figure out where to look for the next particle cell;
 
             //first find the level
-            while(particle_number > apr_access->global_index_by_level_end[current_particle_cell.level] & (current_particle_cell.level <= level_max())){
+            while((particle_number > apr_access->global_index_by_level_end[current_particle_cell.level]) & (current_particle_cell.level <= level_max())){
                 current_particle_cell.level++;
             }
 
@@ -107,7 +108,7 @@ private:
             return true;
 
         } else {
-            current_particle_cell.global_index == -1;
+            current_particle_cell.global_index = -1;
             return false; // requested particle number exceeds the number of particles
         }
 
@@ -138,6 +139,7 @@ private:
                 current_particle_cell.y = current_gap.iterator->first; // the key is the first y value for the gap
                 return true;
             } else {
+                current_particle_cell.pc_offset++;
                 //reached the end of the row
                 if(move_iterator_to_next_non_empty_row(level_max())){
                     //found the next row set the iterator to the begining and find the particle cell.
@@ -145,7 +147,7 @@ private:
                     return true;
                 } else {
                     //reached the end of the particle cells
-                    current_particle_cell.global_index == -1;
+                    current_particle_cell.global_index = -1;
                     return false;
                 }
             }
@@ -174,7 +176,7 @@ public:
     }
 
     bool it_begin(){
-        return set_iterator_to_particle_by_number(0);
+        return set_iterator_by_particle_number(0);
     }
 
     bool it_forward(){
@@ -182,7 +184,7 @@ public:
     }
 
     bool it_end(){
-        return (current_particle_cell.global_index == -1);
+        return (current_particle_cell.global_index != -1);
     }
 
 //    uint64_t end(unsigned int depth){
@@ -275,80 +277,80 @@ public:
 
     }
 
-    bool set_iterator_to_particle_by_number(uint64_t part_num){
-        //
-        //  Moves the iterator to be at the set particle number (from depth_min to depth_max, iterating y, x, then z)
-        //
-
-//        if(part_num == (current_part+1)){
-//            curr_level.move_to_next_pc(*pc_data_pointer);
-//            current_part++;
-//        } else if(part_num != current_part) {
-//            //
-//            //  Find the part number
-//            //
+//    bool set_iterator_to_particle_by_number(uint64_t part_num){
+//        //
+//        //  Moves the iterator to be at the set particle number (from depth_min to depth_max, iterating y, x, then z)
+//        //
 //
-//            if(part_num < current_part){
-//                current_part = 0;
-//            }
+////        if(part_num == (current_part+1)){
+////            curr_level.move_to_next_pc(*pc_data_pointer);
+////            current_part++;
+////        } else if(part_num != current_part) {
+////            //
+////            //  Find the part number
+////            //
+////
+////            if(part_num < current_part){
+////                current_part = 0;
+////            }
+////
+////
+////            if(current_part >= (num_parts_total)){
+////                return false;
+////            }
+////
+////            uint64_t depth = (*pc_data_pointer).depth_min;
+////            //first depth search
+////            while(((part_num) >= ((*num_parts)[depth])) | ((*num_parts)[depth] ==0) ){
+////                depth++;
+////            }
+////
+////            uint64_t offset_start = 0;
+////
+////            while(part_num >= (*num_parts_xz_pointer).data[depth][offset_start][0]){
+////                offset_start++;
+////            }
+////
+////            int total = (*num_parts_xz_pointer).data[depth][offset_start][0];
+////
+////            uint64_t z_ = (offset_start)/(*num_parts_xz_pointer).x_num[depth];
+////            uint64_t x_ = (offset_start) - z_*(*num_parts_xz_pointer).x_num[depth];
+////
+////            //now it starts at begining and then must iterate forward
+////            curr_level.set_new_depth(depth,*pc_data_pointer);
+////            curr_level.set_new_z(z_,*pc_data_pointer);
+////            curr_level.set_new_x(x_,*pc_data_pointer);
+////            curr_level.update_j(*pc_data_pointer,0);
+////
+////            if(offset_start == 0){
+////                current_part = (*num_parts)[depth-1];
+////            } else {
+////                current_part = (*num_parts_xz_pointer).data[depth][offset_start-1][0];
+////            }
+////
+////            curr_level.move_to_next_pc(*pc_data_pointer);
+////
+////            while(current_part != part_num){
+////
+////                curr_level.move_to_next_pc(*pc_data_pointer);
+////                current_part++;
+////            }
+////
+////
+////        }
+////        else if(part_num ==0){
+////            curr_level.set_new_depth((*pc_data_pointer).depth_min,*pc_data_pointer);
+////            curr_level.set_new_z(0,*pc_data_pointer);
+////            curr_level.set_new_x(0,*pc_data_pointer);
+////            curr_level.update_j(*pc_data_pointer,0);
+////
+////            curr_level.move_to_next_pc(*pc_data_pointer);
+////
+////        }
 //
+//        return true;
 //
-//            if(current_part >= (num_parts_total)){
-//                return false;
-//            }
-//
-//            uint64_t depth = (*pc_data_pointer).depth_min;
-//            //first depth search
-//            while(((part_num) >= ((*num_parts)[depth])) | ((*num_parts)[depth] ==0) ){
-//                depth++;
-//            }
-//
-//            uint64_t offset_start = 0;
-//
-//            while(part_num >= (*num_parts_xz_pointer).data[depth][offset_start][0]){
-//                offset_start++;
-//            }
-//
-//            int total = (*num_parts_xz_pointer).data[depth][offset_start][0];
-//
-//            uint64_t z_ = (offset_start)/(*num_parts_xz_pointer).x_num[depth];
-//            uint64_t x_ = (offset_start) - z_*(*num_parts_xz_pointer).x_num[depth];
-//
-//            //now it starts at begining and then must iterate forward
-//            curr_level.set_new_depth(depth,*pc_data_pointer);
-//            curr_level.set_new_z(z_,*pc_data_pointer);
-//            curr_level.set_new_x(x_,*pc_data_pointer);
-//            curr_level.update_j(*pc_data_pointer,0);
-//
-//            if(offset_start == 0){
-//                current_part = (*num_parts)[depth-1];
-//            } else {
-//                current_part = (*num_parts_xz_pointer).data[depth][offset_start-1][0];
-//            }
-//
-//            curr_level.move_to_next_pc(*pc_data_pointer);
-//
-//            while(current_part != part_num){
-//
-//                curr_level.move_to_next_pc(*pc_data_pointer);
-//                current_part++;
-//            }
-//
-//
-//        }
-//        else if(part_num ==0){
-//            curr_level.set_new_depth((*pc_data_pointer).depth_min,*pc_data_pointer);
-//            curr_level.set_new_z(0,*pc_data_pointer);
-//            curr_level.set_new_x(0,*pc_data_pointer);
-//            curr_level.update_j(*pc_data_pointer,0);
-//
-//            curr_level.move_to_next_pc(*pc_data_pointer);
-//
-//        }
-
-        return true;
-
-    }
+//    }
 
 
     inline unsigned int x(){
