@@ -200,7 +200,7 @@ int main(int argc, char **argv) {
     apr_access2.initialize_structure_from_particle_cell_tree(apr,p_map);
     timer.stop_timer();
 
-    APRIteratorNew<uint16_t> apr_it(apr_access2);
+    APRIteratorNew<uint16_t> apr_iterator(apr_access2);
 
     ExtraParticleData<uint16_t> particles_int;
     ExtraParticleData<uint16_t> x;
@@ -219,59 +219,96 @@ int main(int argc, char **argv) {
 
     uint64_t counter = 0;
 
-    for (apr_it.it_begin();apr_it.it_end(); apr_it.it_forward()) {
+    timer.start_timer("normal");
+
+    for (apr_iterator.it_begin();apr_iterator.it_end(); apr_iterator.it_forward()) {
         counter++;
 
-        if(apr_it.y() != apr_it(y)){
+        if(apr_iterator.y() != apr_iterator(y)){
             std::cout << "broken y" << std::endl;
         }
 
-        if(apr_it.x() != apr_it(x)){
+        if(apr_iterator.x() != apr_iterator(x)){
             std::cout << "broken x" << std::endl;
         }
 
-        if(apr_it.z() != apr_it(z)){
+        if(apr_iterator.z() != apr_iterator(z)){
             std::cout << "broken z" << std::endl;
         }
 
-        if(apr_it.level() != apr_it(level)){
+        if(apr_iterator.level() != apr_iterator(level)){
             std::cout << "broken level" << std::endl;
         }
 
     }
 
+    timer.stop_timer();
+
     std::cout << counter << std::endl;
 
-    apr_it.set_iterator_by_particle_number(11554);
+    apr_iterator.set_iterator_to_particle_by_number(11554);
 
     counter = 0;
 
-    uint64_t particle_number;
-//#pragma omp parallel for schedule(static) private(particle_number) firstprivate(apr_it) reduction(+:counter)
-    for (particle_number = 0; particle_number < apr_it.total_number_parts(); ++particle_number) {
+    timer.start_timer("parallel");
 
-        apr_it.set_iterator_by_particle_number(particle_number);
+    uint64_t particle_number;
+#pragma omp parallel for schedule(static) private(particle_number) firstprivate(apr_iterator) reduction(+:counter)
+    for (particle_number = 0; particle_number < apr_iterator.total_number_parts(); ++particle_number) {
+
+        apr_iterator.set_iterator_to_particle_by_number(particle_number);
         counter++;
 
-        if(apr_it.y() != apr_it(y)){
+        if(apr_iterator.y() != apr_iterator(y)){
             std::cout << "broken y" << std::endl;
         }
 
-        if(apr_it.x() != apr_it(x)){
+        if(apr_iterator.x() != apr_iterator(x)){
             std::cout << "broken x" << std::endl;
         }
 
-        if(apr_it.z() != apr_it(z)){
+        if(apr_iterator.z() != apr_iterator(z)){
             std::cout << "broken z" << std::endl;
         }
 
-        if(apr_it.level() != apr_it(level)){
+        if(apr_iterator.level() != apr_iterator(level)){
             std::cout << "broken level" << std::endl;
         }
 
     }
 
     std::cout << counter << std::endl;
+
+    timer.stop_timer();
+
+
+
+    timer.start_timer("by level");
+
+    counter = 0;
+
+    for (int level = apr.level_min(); level <= apr.level_max(); ++level) {
+
+#pragma omp parallel for schedule(static) private(particle_number) firstprivate(apr_iterator) reduction(+:counter)
+        for (particle_number = apr_iterator.particles_level_begin(level); particle_number <  apr_iterator.particles_level_end(level); ++particle_number) {
+            //
+            //  Parallel loop over level
+            //
+            apr_iterator.set_iterator_to_particle_by_number(particle_number);
+
+            counter++;
+
+            if(apr_iterator.level() == level){
+
+            } else{
+                std::cout << "broken" << std::endl;
+            }
+        }
+    }
+
+    timer.stop_timer();
+
+
 
 //    MapStorageData map_data;
 //
