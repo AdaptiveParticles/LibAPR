@@ -236,7 +236,7 @@ public:
         //  Used for finding the starting particle on a given level
         //
 
-        return apr_access->get_parts_end(x_,z_,level_);
+        return apr_access->get_parts_end(x_,z_,level_)+1l;
     }
 
     inline uint64_t particles_offset_end(const uint16_t& level,const uint64_t& offset){

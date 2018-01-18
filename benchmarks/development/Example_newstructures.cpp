@@ -343,6 +343,43 @@ int main(int argc, char **argv) {
 
     std::cout << counter << std::endl;
 
+    timer.start_timer("by level the z then x");
+
+    counter = 0;
+    uint64_t x_,z_;
+
+    for (uint16_t level = apr_iterator.level_min(); level <= apr_iterator.level_max(); ++level) {
+        for ( z_ = 0; z_ < apr.spatial_index_z_max(level); ++z_) {
+            for ( x_ = 0; x_ < apr.spatial_index_x_max(level); ++x_) {
+
+                uint64_t begin = apr_iterator.particles_zx_begin(level, z_, x_ );
+                uint64_t end = apr_iterator.particles_zx_end(level, z_, x_ );
+
+                for (particle_number = apr_iterator.particles_zx_begin(level, z_, x_);
+                     particle_number < apr_iterator.particles_zx_end(level, z_, x_); ++particle_number) {
+                    //
+                    //  Parallel loop over level
+                    //
+                    apr_iterator.set_iterator_to_particle_by_number(particle_number);
+
+                    counter++;
+
+                    if (apr_iterator.x() == x_) {
+
+                    } else {
+                        std::cout << "broken" << std::endl;
+                    }
+                }
+            }
+        }
+    }
+
+    std::cout << counter << std::endl;
+
+    timer.stop_timer();
+
+
+
 
 //    MapStorageData map_data;
 //
