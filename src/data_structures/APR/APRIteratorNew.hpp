@@ -389,10 +389,11 @@ public:
                 current_gap = apr_access->get_local_iterator(original_iterator.local_iterators,
                                                              level_delta, direction,0);
             } else {
-                original_iterator.find_next_child(direction,index);
+                bool success = original_iterator.find_next_child(direction,index);
                 current_particle_cell = original_iterator.neighbour_particle_cell;
                 current_gap = apr_access->get_local_iterator(original_iterator.local_iterators,
                                                              level_delta, direction,index);
+                return success;
             }
         }
 

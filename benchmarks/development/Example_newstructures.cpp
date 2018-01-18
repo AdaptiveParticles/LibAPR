@@ -235,37 +235,33 @@ int main(int argc, char **argv) {
     for (particle_number = 0; particle_number < apr_iterator.total_number_parts(); ++particle_number) {
 
         apr_iterator.set_iterator_to_particle_by_number(particle_number);
-        counter++;
+        //counter++;
 
-        float counter = 0;
+
         float temp = 0;
-
-        if(particle_number == 7698){
-            int stop = 1;
-        }
 
        //loop over all the neighbours and set the neighbour iterator to it
         for (int direction = 0; direction < 6; ++direction) {
             // Neighbour Particle Cell Face definitions [+y,-y,+x,-x,+z,-z] =  [0,1,2,3,4,5]
             apr_iterator.find_neighbours_in_direction(direction);
-//
-//            for (int index = 0; index < apr.number_neighbours_in_direction(direction); ++index) {
-//                // on each face, there can be 0-4 neighbours accessed by index
-//                if(neighbour_iterator.set_neighbour_iterator(apr_iterator, direction, index)){
-//                    //will return true if there is a neighbour defined
-//
-//                    temp += neighbour_iterator(particles_int);
-//                    counter++;
-//
-//                }
-//            }
+
+            for (int index = 0; index < apr_iterator.number_neighbours_in_direction(direction); ++index) {
+                // on each face, there can be 0-4 neighbours accessed by index
+                if(neighbour_iterator.set_neighbour_iterator(apr_iterator, direction, index)){
+                    //will return true if there is a neighbour defined
+
+                    temp += neighbour_iterator(particles_int);
+                    counter++;
+
+                }
+            }
         }
 
 
 
     }
 
-
+    std::cout << counter << std::endl;
 
 
 
