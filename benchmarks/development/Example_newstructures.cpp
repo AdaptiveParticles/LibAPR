@@ -287,7 +287,7 @@ int main(int argc, char **argv) {
 
     counter = 0;
 
-    for (int level = apr.level_min(); level <= apr.level_max(); ++level) {
+    for (uint64_t level = apr_iterator.level_min(); level <= apr_iterator.level_max(); ++level) {
 
 #pragma omp parallel for schedule(static) private(particle_number) firstprivate(apr_iterator) reduction(+:counter)
         for (particle_number = apr_iterator.particles_level_begin(level); particle_number <  apr_iterator.particles_level_end(level); ++particle_number) {
@@ -308,6 +308,40 @@ int main(int argc, char **argv) {
 
     timer.stop_timer();
 
+    std::cout << counter << std::endl;
+
+    timer.start_timer("by level and z");
+
+    counter = 0;
+
+    for (int level = apr_iterator.level_min(); level <= apr_iterator.level_max(); ++level) {
+        for(unsigned int z = 0; z < apr_iterator.spatial_index_z_max(level); ++z) {
+
+            uint64_t  begin = apr_iterator.particles_z_begin(level,z);
+            uint64_t  end = apr_iterator.particles_z_end(level,z);
+
+#pragma omp parallel for schedule(static) private(particle_number) firstprivate(apr_iterator) reduction(+:counter)
+            for (particle_number = apr_iterator.particles_z_begin(level,z);
+                 particle_number < apr_iterator.particles_z_end(level,z); ++particle_number) {
+                //
+                //  Parallel loop over level
+                //
+                apr_iterator.set_iterator_to_particle_by_number(particle_number);
+
+                counter++;
+
+                if (apr_iterator.z() == z) {
+
+                } else {
+                    std::cout << "broken" << std::endl;
+                }
+            }
+        }
+    }
+
+    timer.stop_timer();
+
+    std::cout << counter << std::endl;
 
 
 //    MapStorageData map_data;
