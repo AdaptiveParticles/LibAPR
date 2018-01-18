@@ -194,58 +194,49 @@ public:
     }
 
 
-    inline uint64_t particles_level_begin(unsigned int level_){
+    inline uint64_t particles_level_begin(const uint16_t& level_){
         //
         //  Used for finding the starting particle on a given level
         //
         return apr_access->global_index_by_level_begin[level_];
     }
 
-    inline uint64_t particles_level_end(unsigned int level_){
+    inline uint64_t particles_level_end(const uint16_t& level_){
         //
         //  Find the last particle on a given level
         //
         return (apr_access->global_index_by_level_end[level_]+1l);
     }
 
-    inline uint64_t particles_z_begin(unsigned int level,unsigned int z){
+    inline uint64_t particles_z_begin(const uint16_t& level_,const uint64_t& z_){
         //
         //  Used for finding the starting particle on a given level
         //
-//        if(z > 0) {
-//            return ((*num_parts_xz_pointer).data[level][(*pc_data_pointer).x_num[level] * (z-1) + (*pc_data_pointer).x_num[level]-1][0]);
-//        } else {
-//            return (*num_parts)[level-1];
-//        }
+        return apr_access->global_index_by_level_and_z_begin[level_][z_];
     }
 
-    inline uint64_t particles_z_end(unsigned int level,unsigned int z){
+    inline uint64_t particles_z_end(const uint16_t& level_,const uint64_t& z_){
         //
         //  Used for finding the starting particle on a given level
         //
-
-//        return ((*num_parts_xz_pointer).data[level][(*pc_data_pointer).x_num[level] * z + (*pc_data_pointer).x_num[level]-1][0]);
+        return apr_access->global_index_by_level_and_z_end[level_][z_]+1l;
 
     }
 
-    inline uint64_t particles_zx_begin(unsigned int level,unsigned int z, unsigned int x){
+    inline uint64_t particles_zx_begin(const uint16_t& level_,const uint64_t& z_,const uint64_t& x_){
         //
         //  Used for finding the starting particle on a given level
         //
-//        if(x > 0) {
-//            return ((*num_parts_xz_pointer).data[level][(*pc_data_pointer).x_num[level] * (z) + (x-1)][0]);
-//        } else {
-//            return particles_z_begin(level,z);
-//        }
+
+        return apr_access->get_parts_start(x_,z_,level_);
     }
 
-    inline uint64_t particles_zx_end(unsigned int level,unsigned int z, unsigned int x){
+    inline uint64_t particles_zx_end(const uint16_t& level_,const uint64_t& z_,const uint64_t& x_){
         //
         //  Used for finding the starting particle on a given level
         //
 
-//        return ((*num_parts_xz_pointer).data[level][(*pc_data_pointer).x_num[level] * (z) + (x)][0]);
-
+        return apr_access->get_parts_end(x_,z_,level_);
     }
 
     inline uint64_t particles_offset_end(const uint16_t& level,const uint64_t& offset){

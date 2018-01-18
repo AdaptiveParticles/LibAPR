@@ -137,6 +137,9 @@ public:
     std::vector<uint64_t> global_index_by_level_begin;
     std::vector<uint64_t> global_index_by_level_end;
 
+    std::vector<std::vector<uint64_t>> global_index_by_level_and_z_begin;
+    std::vector<std::vector<uint64_t>> global_index_by_level_and_z_end;
+
     APRAccess(){
 
     };
@@ -270,22 +273,23 @@ public:
 
     inline uint64_t get_parts_start(const uint16_t& x,const uint16_t& z,const uint16_t& level){
 
-        uint64_t offset = x_num[level] * z + x;
+        const uint64_t offset = x_num[level] * z + x;
         if(gap_map.data[level][offset].size() > 0){
-            return (*gap_map.data[level][offset][0].map.begin()).first;
+            auto it = (gap_map.data[level][offset][0].map.begin());
+            return it->second.global_index_begin;
         } else {
             return (-1);
         }
 
     }
 
-
     inline uint64_t get_parts_end(const uint16_t& x,const uint16_t& z,const uint16_t& level){
-        uint64_t offset = x_num[level] * z + x;
+        const uint64_t offset = x_num[level] * z + x;
         if(gap_map.data[level][offset].size() > 0){
-            return (*gap_map.data[level][offset][0].map.rbegin()).second.y_end;
+            auto it = (gap_map.data[level][offset][0].map.rbegin());
+            return (it->second.global_index_begin + (it->second.y_end-it->first));
         } else {
-            return (-1);
+            return (0);
         }
 
     }
@@ -584,8 +588,6 @@ public:
 
         apr_timer.start_timer("second_step");
 
-//        ExtraPartCellData<uint8_t> status_store;
-//        status_store.initialize_structure_parts_empty(apr.particles_int);
 
 
         ExtraPartCellData<std::pair<uint16_t,YGap_map>> y_begin;
@@ -755,12 +757,19 @@ public:
 
         apr_timer.start_timer("forth loop");
 
+        //iteration helpers for by level
         global_index_by_level_begin.resize(apr.level_max()+1,0);
         global_index_by_level_end.resize(apr.level_max()+1,0);
 
         cumsum= 0;
 
         total_number_gaps=0;
+
+        uint64_t min_level_find = apr.level_max();
+
+        //set up the iteration helpers for by zslice
+        global_index_by_level_and_z_begin.resize(apr.level_max()+1);
+        global_index_by_level_and_z_end.resize(apr.level_max()+1);
 
         for(uint64_t i = (apr.level_min());i <= apr.level_max();i++) {
 
@@ -771,17 +780,28 @@ public:
 
             uint64_t cumsum_begin = cumsum;
 
+            global_index_by_level_and_z_begin[i].resize(z_num_,(-1));
+            global_index_by_level_and_z_end[i].resize(z_num_,0);
+
             for (z_ = 0; z_ < z_num_; z_++) {
+                uint64_t cumsum_begin_z = cumsum;
+
 
                 for (x_ = 0; x_ < x_num_; x_++) {
                     const size_t offset_pc_data = x_num_ * z_ + x_;
                     for (int j = 0; j < y_begin.data[i][offset_pc_data].size(); ++j) {
+
+                        min_level_find = std::min(i,min_level_find);
 
                         y_begin.data[i][offset_pc_data][j].second.global_index_begin = cumsum;
 
                         cumsum+=(y_begin.data[i][offset_pc_data][j].second.y_end-y_begin.data[i][offset_pc_data][j].first)+1;
                         total_number_gaps++;
                     }
+                }
+                if(cumsum!=cumsum_begin_z) {
+                    global_index_by_level_and_z_end[i][z_] = cumsum - 1;
+                    global_index_by_level_and_z_begin[i][z_] = cumsum_begin_z;
                 }
             }
 
@@ -799,6 +819,9 @@ public:
 
         apr_timer.stop_timer();
 
+
+        //set minimum level now to the first non-empty level.
+        level_min = min_level_find;
 
         total_number_non_empty_rows=0;
 
