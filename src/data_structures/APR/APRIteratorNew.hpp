@@ -93,15 +93,21 @@ private:
                 current_particle_cell.pc_offset++;
             }
 
+            current_particle_cell.z = (current_particle_cell.pc_offset)/spatial_index_x_max(current_particle_cell.level);
+            current_particle_cell.x = (current_particle_cell.pc_offset) - current_particle_cell.z*(spatial_index_x_max(current_particle_cell.level));
+
             current_gap.iterator = current_gap.iterator= apr_access->gap_map.data[current_particle_cell.level][current_particle_cell.pc_offset][0].map.begin();
             //then find the gap.
-            while(particle_number > current_gap.iterator->second.global_index_begin){
+            while((particle_number > apr_access->global_index_end(current_gap))){
                 current_gap.iterator++;
             }
 
-
+            current_particle_cell.y = (current_gap.iterator->first) + (particle_number - current_gap.iterator->second.global_index_begin);
+            current_particle_cell.global_index = particle_number;
+            return true;
 
         } else {
+            current_particle_cell.global_index == -1;
             return false; // requested particle number exceeds the number of particles
         }
 
@@ -139,6 +145,7 @@ private:
                     return true;
                 } else {
                     //reached the end of the particle cells
+                    current_particle_cell.global_index == -1;
                     return false;
                 }
             }
@@ -158,19 +165,7 @@ public:
     }
 
     void initialize_from_apr(APR<ImageType>& apr){
-//        current_part = -2;
-//
-//        if(apr.num_parts_xy.data.size() == 0) {
-//            apr.get_part_numbers();
-//            apr.set_part_numbers_xz();
-//        }
-//
-//        this->num_parts = &(apr.num_parts);
-//        this->num_parts_xz_pointer = &(apr.num_parts_xy);
-//        this->num_parts_total = apr.num_parts_total;
-//        this->pc_data_pointer = &(apr.pc_data);
-//
-//        this->curr_level.init(apr.pc_data);
+
 
     }
 
@@ -178,29 +173,27 @@ public:
         return (apr_access)->total_number_parts;
     }
 
-    uint64_t begin(){
-        current_particle_cell.global_index = 0;
-        return 0;
+    bool it_begin(){
+        return set_iterator_to_particle_by_number(0);
     }
 
-    uint64_t begin(unsigned int depth){
-//        return this->curr_level.init_iterate((*pc_data_pointer),depth);
+    bool it_forward(){
+        return move_to_next_particle_cell();
     }
 
-    uint64_t end(){
-        return (current_particle_cell.global_index == (apr_access)->total_number_parts);
+    bool it_end(){
+        return (current_particle_cell.global_index == -1);
     }
 
-    uint64_t end(unsigned int depth){
-//        return this->curr_level.counter > 0;
-    }
+//    uint64_t end(unsigned int depth){
+////        return this->curr_level.counter > 0;
+//    }
+//    uint64_t begin(unsigned int depth){
+////        return this->curr_level.init_iterate((*pc_data_pointer),depth);
+//    }
 
-    uint64_t it_forward(){
 
-//        this->curr_level.move_to_next_pc((*pc_data_pointer));
-//
-//        return this->curr_level.counter;
-    }
+
 
     uint64_t it_forward(unsigned int depth){
 

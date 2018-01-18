@@ -290,6 +290,10 @@ public:
 
     }
 
+    inline uint64_t global_index_end(MapIterator& it){
+        return (it.iterator->second.global_index_begin + (it.iterator->second.y_end-it.iterator->first));
+    }
+
     inline bool check_neighbours_flag(const uint16_t& x,const uint16_t& z,const uint16_t& level){
         return ((x==(x_num[level]-1)) + (z==(z_num[level]-1)) + (z==0) + (x==0)) > 0;
     }
