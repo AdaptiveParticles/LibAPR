@@ -107,7 +107,7 @@ struct MapStorageData{
     std::vector<uint16_t> z;
     std::vector<uint16_t> x;
     std::vector<uint8_t> level;
-    std::vector<uint16_t> size;
+    std::vector<uint16_t> number_gaps;
 
 };
 
@@ -554,30 +554,29 @@ public:
 
         gap_map.initialize_structure_parts_empty(apr);
 
+        uint64_t counter_rows=0;
+
         for(uint64_t i = (apr.level_min());i <= apr.level_max();i++) {
 
             const unsigned int x_num_ = x_num[i];
             const unsigned int z_num_ = z_num[i];
             const unsigned int y_num_ = y_num[i];
-#pragma omp parallel for default(shared) private(z_, x_) if(z_num_*x_num_ > 100)
+#pragma omp parallel for default(shared) private(z_, x_) reduction(+:counter_rows)if(z_num_*x_num_ > 100)
             for (z_ = 0; z_ < z_num_; z_++) {
                 for (x_ = 0; x_ < x_num_; x_++) {
                     const size_t offset_pc_data = x_num_ * z_ + x_;
                     if(y_begin.data[i][offset_pc_data].size() > 0) {
                         gap_map.data[i][offset_pc_data].resize(1);
 
-//                        for (auto it = y_begin.data[i][offset_pc_data].begin();it != y_begin.data[i][offset_pc_data].end();it++) {
-//                            gap_map.data[i][offset_pc_data][0].map.emplace(it->first,it->second);
-//                        }
-
 
                         gap_map.data[i][offset_pc_data][0].map.insert(y_begin.data[i][offset_pc_data].begin(),y_begin.data[i][offset_pc_data].end());
-                        total_number_non_empty_rows++;
+
+                        counter_rows++;
                     }
                 }
             }
         }
-
+        total_number_non_empty_rows = counter_rows;
         apr_timer.stop_timer();
 
     }
@@ -587,21 +586,49 @@ public:
 
         uint64_t z_;
         uint64_t x_;
+        APRTimer apr_timer;
+        apr_timer.verbose_flag = true;
+        apr_timer.start_timer("initialize map");
 
-        for(uint64_t i = (apr.level_min());i <= apr.level_max();i++) {
+        gap_map.initialize_structure_parts_empty(apr);
 
-            const uint64_t x_num_ = x_num[i];
-            const uint64_t z_num_ = z_num[i];
-            const uint64_t y_num_ = y_num[i];
+        std::vector<uint64_t> cumsum;
+        cumsum.reserve(total_number_non_empty_rows);
+        uint64_t counter=0;
 
-            for (uint64_t j = 0; j < total_number_non_empty_rows; ++j) {
+        uint64_t j;
 
-
-
-
-            }
+        for (j = 0; j < total_number_non_empty_rows; ++j) {
+            cumsum.push_back(counter);
+            counter+=(map_data.number_gaps[j]);
         }
 
+#pragma omp parallel for default(shared) schedule(static) private(j)
+        for (j = 0; j < total_number_non_empty_rows; ++j) {
+
+            const uint64_t level = map_data.level[j];
+
+            const uint64_t offset_pc_data =  x_num[level]* map_data.z[j] + map_data.x[j];
+
+            const uint64_t global_begin = cumsum[j];
+
+            const uint64_t number_gaps = map_data.number_gaps[j];
+
+            YGap_map gap;
+
+            gap_map.data[level][offset_pc_data].resize(1);
+
+            for (int i = global_begin; i < (global_begin + number_gaps) ; ++i) {
+                gap.y_end = map_data.y_end[i];
+                gap.global_index_begin = map_data.global_index[i];
+
+                auto hint = gap_map.data[level][offset_pc_data][0].map.end();
+                gap_map.data[level][offset_pc_data][0].map.insert(hint,{map_data.y_begin[i],gap});
+            }
+
+        }
+
+        apr_timer.stop_timer();
 
 
     }
@@ -621,7 +648,7 @@ public:
         map_data.x.reserve(total_number_non_empty_rows);
         map_data.z.reserve(total_number_non_empty_rows);
         map_data.level.reserve(total_number_non_empty_rows);
-        map_data.size.reserve(total_number_non_empty_rows);
+        map_data.number_gaps.reserve(total_number_non_empty_rows);
 
         uint64_t z_;
         uint64_t x_;
@@ -639,7 +666,7 @@ public:
                         map_data.x.push_back(x_);
                         map_data.z.push_back(z_);
                         map_data.level.push_back(i);
-                        map_data.size.push_back(gap_map.data[i][offset_pc_data][0].map.size());
+                        map_data.number_gaps.push_back(gap_map.data[i][offset_pc_data][0].map.size());
 
                         for (auto const &element : gap_map.data[i][offset_pc_data][0].map) {
                             map_data.y_begin.push_back(element.first);
