@@ -590,7 +590,7 @@ public:
         uint64_t x_;
         APRTimer apr_timer;
         apr_timer.verbose_flag = true;
-        apr_timer.start_timer("initialize map");
+        apr_timer.start_timer("rebuild map");
 
         gap_map.initialize_structure_parts_empty(apr);
 
