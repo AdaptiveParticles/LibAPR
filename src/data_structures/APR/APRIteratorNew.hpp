@@ -13,6 +13,16 @@ class APRIteratorNew {
 
 private:
 
+    LocalMapIterators local_iterators;
+
+    const uint8_t level_check_max[2] = {_LEVEL_SAME,_LEVEL_DECREASE};
+
+    const uint8_t level_check_min[2] = {_LEVEL_SAME,_LEVEL_INCREASE};
+
+    const uint8_t level_check_middle[3] = {_LEVEL_SAME,_LEVEL_DECREASE,_LEVEL_INCREASE};
+
+    ParticleCell neighbour_particle_cell;
+
     ParticleCell current_particle_cell;
 
     APRAccess* apr_access;
@@ -20,6 +30,8 @@ private:
     uint16_t level_delta;
 
     MapIterator current_gap;
+
+    bool check_neigh_flag = false;
 
     const uint16_t shift[6] = {YP_LEVEL_SHIFT,YM_LEVEL_SHIFT,XP_LEVEL_SHIFT,XM_LEVEL_SHIFT,ZP_LEVEL_SHIFT,ZM_LEVEL_SHIFT};
     const uint16_t mask[6] = {YP_LEVEL_MASK,YM_LEVEL_MASK,XP_LEVEL_MASK,XM_LEVEL_MASK,ZP_LEVEL_MASK,ZM_LEVEL_MASK};
@@ -55,9 +67,7 @@ private:
             return true;
         }
 
-
     }
-
 
 
     bool move_to_next_particle_cell(){
@@ -99,7 +109,9 @@ private:
         }
     }
 
-
+    inline void set_neighbour_flag(){
+        check_neigh_flag = apr_access->check_neighbours_flag(current_particle_cell.x,current_particle_cell.z,current_particle_cell.level);
+    }
 
 public:
 
@@ -120,19 +132,6 @@ public:
         return (apr_access)->total_number_parts;
     }
 
-    bool it_begin(){
-        return set_iterator_to_particle_by_number(0);
-    }
-
-    bool it_forward(){
-        return move_to_next_particle_cell();
-    }
-
-    bool it_end(){
-        return (current_particle_cell.global_index != -1);
-    }
-
-
     bool set_iterator_to_particle_by_number(const uint64_t &particle_number){
         //
         //  Moves the iterator to point to the particle number (global index of the particle)
@@ -144,6 +143,7 @@ public:
 
             if(move_iterator_to_next_non_empty_row(level_max())){
                 //found and set
+                set_neighbour_flag();
                 return true;
             } else{
                 return false; //no particle cells, something is wrong
@@ -152,11 +152,12 @@ public:
 
             //iterating just move to next
             if(particle_number == (current_particle_cell.global_index+1)){
-                return move_to_next_particle_cell();
+                bool success = move_to_next_particle_cell();
+                set_neighbour_flag();
+                return success;
             }
 
             current_particle_cell.level = level_min();
-
             //otherwise now we have to figure out where to look for the next particle cell;
 
             //first find the level
@@ -173,6 +174,7 @@ public:
                 int stop = 1;
             }
 
+            //back out your xz from the offset
             current_particle_cell.z = (current_particle_cell.pc_offset)/spatial_index_x_max(current_particle_cell.level);
             current_particle_cell.x = (current_particle_cell.pc_offset) - current_particle_cell.z*(spatial_index_x_max(current_particle_cell.level));
 
@@ -184,6 +186,7 @@ public:
 
             current_particle_cell.y = (current_gap.iterator->first) + (particle_number - current_gap.iterator->second.global_index_begin);
             current_particle_cell.global_index = particle_number;
+            set_neighbour_flag();
             return true;
 
         } else {
@@ -258,80 +261,6 @@ public:
 
     }
 
-//    bool set_iterator_to_particle_by_number(uint64_t part_num){
-//        //
-//        //  Moves the iterator to be at the set particle number (from depth_min to depth_max, iterating y, x, then z)
-//        //
-//
-////        if(part_num == (current_part+1)){
-////            curr_level.move_to_next_pc(*pc_data_pointer);
-////            current_part++;
-////        } else if(part_num != current_part) {
-////            //
-////            //  Find the part number
-////            //
-////
-////            if(part_num < current_part){
-////                current_part = 0;
-////            }
-////
-////
-////            if(current_part >= (num_parts_total)){
-////                return false;
-////            }
-////
-////            uint64_t depth = (*pc_data_pointer).depth_min;
-////            //first depth search
-////            while(((part_num) >= ((*num_parts)[depth])) | ((*num_parts)[depth] ==0) ){
-////                depth++;
-////            }
-////
-////            uint64_t offset_start = 0;
-////
-////            while(part_num >= (*num_parts_xz_pointer).data[depth][offset_start][0]){
-////                offset_start++;
-////            }
-////
-////            int total = (*num_parts_xz_pointer).data[depth][offset_start][0];
-////
-////            uint64_t z_ = (offset_start)/(*num_parts_xz_pointer).x_num[depth];
-////            uint64_t x_ = (offset_start) - z_*(*num_parts_xz_pointer).x_num[depth];
-////
-////            //now it starts at begining and then must iterate forward
-////            curr_level.set_new_depth(depth,*pc_data_pointer);
-////            curr_level.set_new_z(z_,*pc_data_pointer);
-////            curr_level.set_new_x(x_,*pc_data_pointer);
-////            curr_level.update_j(*pc_data_pointer,0);
-////
-////            if(offset_start == 0){
-////                current_part = (*num_parts)[depth-1];
-////            } else {
-////                current_part = (*num_parts_xz_pointer).data[depth][offset_start-1][0];
-////            }
-////
-////            curr_level.move_to_next_pc(*pc_data_pointer);
-////
-////            while(current_part != part_num){
-////
-////                curr_level.move_to_next_pc(*pc_data_pointer);
-////                current_part++;
-////            }
-////
-////
-////        }
-////        else if(part_num ==0){
-////            curr_level.set_new_depth((*pc_data_pointer).depth_min,*pc_data_pointer);
-////            curr_level.set_new_z(0,*pc_data_pointer);
-////            curr_level.set_new_x(0,*pc_data_pointer);
-////            curr_level.update_j(*pc_data_pointer,0);
-////
-////            curr_level.move_to_next_pc(*pc_data_pointer);
-////
-////        }
-//
-//        return true;
-//
-//    }
 
 
     inline unsigned int x(){
@@ -349,42 +278,99 @@ public:
         return current_particle_cell.z;
     }
 
-
-
     inline unsigned int type(){
         //get x
         return current_particle_cell.type;
     }
-
 
     inline unsigned int level(){
         //get x
         return current_particle_cell.level;
     }
 
-    bool set_neighbour_iterator(APRIteratorNew<ImageType> &original_iterator, const unsigned int dir, const unsigned int index){
+    inline bool check_neighbours_particle_cell_in_bounds(){
+        //uses the fact that the coordinates have unsigned type, and therefore if they are negative they will be above the bound
+        if(check_neigh_flag) {
+            return (neighbour_particle_cell.x <= apr_access->x_num[neighbour_particle_cell.level]) &
+                   (neighbour_particle_cell.z <= apr_access->z_num[neighbour_particle_cell.level]);
+        } else {
+            return true;
+        }
+    }
+
+    bool find_neighbours_in_direction(const uint8_t& direction){
+
+        bool found = false;
+
+        //the three cases
+        if(current_particle_cell.level == apr_access->level_max){
+            for (int l = 0; l < 2; ++l) {
+                level_delta = level_check_max[l];
+                apr_access->get_neighbour_coordinate(current_particle_cell,neighbour_particle_cell,direction,level_delta,0);
+
+                if(check_neighbours_particle_cell_in_bounds()){
+                    if(apr_access->find_particle_cell(neighbour_particle_cell,apr_access->get_local_iterator(local_iterators,
+                                                                                               level_delta, direction,0))){
+                        //found the neighbour! :D
+                        found=true;
+                        break;
+                    }
+                };
+
+            }
+
+        } else if(current_particle_cell.level == apr_access->level_min){
+            for (int l = 0; l < 2; ++l) {
+                level_delta = level_check_min[l];
+                apr_access->get_neighbour_coordinate(current_particle_cell,neighbour_particle_cell,direction,level_delta,0);
+
+                if(check_neighbours_particle_cell_in_bounds()){
+                    if(apr_access->find_particle_cell(neighbour_particle_cell,apr_access->get_local_iterator(local_iterators,
+                                                                                                             level_delta, direction,0))){
+                        //found the neighbour! :D
+                        found=true;
+                        break;
+                    }
+                };
+
+            }
+        } else {
+            for (int l = 0; l < 3; ++l) {
+                level_delta = level_check_middle[l];
+                apr_access->get_neighbour_coordinate(current_particle_cell,neighbour_particle_cell,direction,level_delta,0);
+
+                if(check_neighbours_particle_cell_in_bounds()){
+                    if(apr_access->find_particle_cell(neighbour_particle_cell,apr_access->get_local_iterator(local_iterators,
+                                                                                                             level_delta, direction,0))){
+                        //found the neighbour! :D
+                        found=true;
+                        break;
+                    }
+                };
+
+            }
+
+        }
+
+        if(!found){
+            level_delta=_NO_NEIGHBOUR;
+        }
+
+        return found;
+
+    }
+
+    bool set_neighbour_iterator(APRIteratorNew<ImageType> &original_iterator, const uint8_t& dir, const uint8_t& index){
         //
         //  This is sets the this iterator, to the neighbour of the particle cell that original_iterator is pointing to
         //
 
-//        apr_access->get_neighbour_coordinate(original_iterator.current_particle_cell, current_particle_cell, dir, original_iterator.level_delta, index);
-//
-//        if(index > 0) {
-//            //for children need to check boundary conditions
-//            if (current_particle_cell.x < spatial_index_x_max(neigh.level)) {
-//                if (current_particle_cell.z < spatial_index_z_max(neigh.level)) {
-//                    return false;
-//                }
-//            }
-//        }
-//
-//        return apr_access->find_particle_cell(current_particle_cell);
+        //this needs the if clause that finds the neighbour
+        return true;
 
     }
 
-    inline uint8_t number_neighbours_in_direction(unsigned int face){
-
-        //level_delta =  (current_node & mask[face]) >> shift[face];
+    inline uint8_t number_neighbours_in_direction(const uint8_t& face){
 
         switch (level_delta){
             case _LEVEL_INCREASE:
@@ -432,23 +418,23 @@ public:
         return (current_particle_cell.z+0.5)*pow(2, apr_access->level_max - current_particle_cell.level);
     }
 
-    inline unsigned int level_min(){
+    inline uint16_t level_min(){
         return (*apr_access).level_min;
     }
 
-    inline unsigned int level_max(){
+    inline uint16_t level_max(){
         return (*apr_access).level_max;
     }
 
-    inline unsigned int spatial_index_x_max(const unsigned int level){
+    inline uint64_t spatial_index_x_max(const unsigned int level){
         return (*apr_access).x_num[level];
     }
 
-    inline unsigned int spatial_index_y_max(const unsigned int level){
+    inline uint64_t spatial_index_y_max(const unsigned int level){
         return (*apr_access).y_num[level];
     }
 
-    inline unsigned int spatial_index_z_max(const unsigned int level){
+    inline uint64_t spatial_index_z_max(const unsigned int level){
         return (*apr_access).z_num[level];
     }
 

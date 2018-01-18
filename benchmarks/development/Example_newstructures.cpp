@@ -221,162 +221,172 @@ int main(int argc, char **argv) {
 
     timer.start_timer("normal");
 
-    for (apr_iterator.it_begin();apr_iterator.it_end(); apr_iterator.it_forward()) {
-        counter++;
-
-        if(apr_iterator.y() != apr_iterator(y)){
-            std::cout << "broken y" << std::endl;
-        }
-
-        if(apr_iterator.x() != apr_iterator(x)){
-            std::cout << "broken x" << std::endl;
-        }
-
-        if(apr_iterator.z() != apr_iterator(z)){
-            std::cout << "broken z" << std::endl;
-        }
-
-        if(apr_iterator.level() != apr_iterator(level)){
-            std::cout << "broken level" << std::endl;
-        }
-
-    }
 
     timer.stop_timer();
 
     std::cout << counter << std::endl;
 
-    apr_iterator.set_iterator_to_particle_by_number(11554);
+    APRIteratorNew<uint16_t> neighbour_iterator(apr_access2);
 
     counter = 0;
-
-    timer.start_timer("parallel");
-
     uint64_t particle_number;
-#pragma omp parallel for schedule(static) private(particle_number) firstprivate(apr_iterator) reduction(+:counter)
     for (particle_number = 0; particle_number < apr_iterator.total_number_parts(); ++particle_number) {
 
         apr_iterator.set_iterator_to_particle_by_number(particle_number);
         counter++;
 
-        if(apr_iterator.y() != apr_iterator(y)){
-            std::cout << "broken y" << std::endl;
-        }
+        float counter = 0;
+        float temp = 0;
 
-        if(apr_iterator.x() != apr_iterator(x)){
-            std::cout << "broken x" << std::endl;
-        }
+        //loop over all the neighbours and set the neighbour iterator to it
+        for (int direction = 0; direction < 6; ++direction) {
+            // Neighbour Particle Cell Face definitions [+y,-y,+x,-x,+z,-z] =  [0,1,2,3,4,5]
+            apr_iterator.find_neighbours_in_direction(direction);
 
-        if(apr_iterator.z() != apr_iterator(z)){
-            std::cout << "broken z" << std::endl;
-        }
+            for (int index = 0; index < apr.number_neighbours_in_direction(direction); ++index) {
+                // on each face, there can be 0-4 neighbours accessed by index
+                if(neighbour_iterator.set_neighbour_iterator(apr_iterator, direction, index)){
+                    //will return true if there is a neighbour defined
 
-        if(apr_iterator.level() != apr_iterator(level)){
-            std::cout << "broken level" << std::endl;
-        }
-
-    }
-
-    std::cout << counter << std::endl;
-
-    timer.stop_timer();
-
-
-
-    timer.start_timer("by level");
-
-    counter = 0;
-
-    for (uint64_t level = apr_iterator.level_min(); level <= apr_iterator.level_max(); ++level) {
-
-#pragma omp parallel for schedule(static) private(particle_number) firstprivate(apr_iterator) reduction(+:counter)
-        for (particle_number = apr_iterator.particles_level_begin(level); particle_number <  apr_iterator.particles_level_end(level); ++particle_number) {
-            //
-            //  Parallel loop over level
-            //
-            apr_iterator.set_iterator_to_particle_by_number(particle_number);
-
-            counter++;
-
-            if(apr_iterator.level() == level){
-
-            } else{
-                std::cout << "broken" << std::endl;
-            }
-        }
-    }
-
-    timer.stop_timer();
-
-    std::cout << counter << std::endl;
-
-    timer.start_timer("by level and z");
-
-    counter = 0;
-
-    for (int level = apr_iterator.level_min(); level <= apr_iterator.level_max(); ++level) {
-        for(unsigned int z = 0; z < apr_iterator.spatial_index_z_max(level); ++z) {
-
-            uint64_t  begin = apr_iterator.particles_z_begin(level,z);
-            uint64_t  end = apr_iterator.particles_z_end(level,z);
-
-#pragma omp parallel for schedule(static) private(particle_number) firstprivate(apr_iterator) reduction(+:counter)
-            for (particle_number = apr_iterator.particles_z_begin(level,z);
-                 particle_number < apr_iterator.particles_z_end(level,z); ++particle_number) {
-                //
-                //  Parallel loop over level
-                //
-                apr_iterator.set_iterator_to_particle_by_number(particle_number);
-
-                counter++;
-
-                if (apr_iterator.z() == z) {
-
-                } else {
-                    std::cout << "broken" << std::endl;
-                }
-            }
-        }
-    }
-
-    timer.stop_timer();
-
-    std::cout << counter << std::endl;
-
-    timer.start_timer("by level the z then x");
-
-    counter = 0;
-    uint64_t x_,z_;
-
-    for (uint16_t level = apr_iterator.level_min(); level <= apr_iterator.level_max(); ++level) {
-        for ( z_ = 0; z_ < apr.spatial_index_z_max(level); ++z_) {
-            for ( x_ = 0; x_ < apr.spatial_index_x_max(level); ++x_) {
-
-                uint64_t begin = apr_iterator.particles_zx_begin(level, z_, x_ );
-                uint64_t end = apr_iterator.particles_zx_end(level, z_, x_ );
-
-                for (particle_number = apr_iterator.particles_zx_begin(level, z_, x_);
-                     particle_number < apr_iterator.particles_zx_end(level, z_, x_); ++particle_number) {
-                    //
-                    //  Parallel loop over level
-                    //
-                    apr_iterator.set_iterator_to_particle_by_number(particle_number);
-
+                    temp += neighbour_iterator(particles_int);
                     counter++;
 
-                    if (apr_iterator.x() == x_) {
-
-                    } else {
-                        std::cout << "broken" << std::endl;
-                    }
                 }
             }
         }
+
+
+
     }
 
-    std::cout << counter << std::endl;
 
-    timer.stop_timer();
+
+
+
+
+//    timer.start_timer("parallel");
+//
+//    uint64_t particle_number;
+//#pragma omp parallel for schedule(static) private(particle_number) firstprivate(apr_iterator) reduction(+:counter)
+//    for (particle_number = 0; particle_number < apr_iterator.total_number_parts(); ++particle_number) {
+//
+//        apr_iterator.set_iterator_to_particle_by_number(particle_number);
+//        counter++;
+//
+//        if(apr_iterator.y() != apr_iterator(y)){
+//            std::cout << "broken y" << std::endl;
+//        }
+//
+//        if(apr_iterator.x() != apr_iterator(x)){
+//            std::cout << "broken x" << std::endl;
+//        }
+//
+//        if(apr_iterator.z() != apr_iterator(z)){
+//            std::cout << "broken z" << std::endl;
+//        }
+//
+//        if(apr_iterator.level() != apr_iterator(level)){
+//            std::cout << "broken level" << std::endl;
+//        }
+//
+//    }
+//
+//    std::cout << counter << std::endl;
+//
+//    timer.stop_timer();
+//
+//
+//
+//    timer.start_timer("by level");
+//
+//    counter = 0;
+//
+//    for (uint64_t level = apr_iterator.level_min(); level <= apr_iterator.level_max(); ++level) {
+//
+//#pragma omp parallel for schedule(static) private(particle_number) firstprivate(apr_iterator) reduction(+:counter)
+//        for (particle_number = apr_iterator.particles_level_begin(level); particle_number <  apr_iterator.particles_level_end(level); ++particle_number) {
+//            //
+//            //  Parallel loop over level
+//            //
+//            apr_iterator.set_iterator_to_particle_by_number(particle_number);
+//
+//            counter++;
+//
+//            if(apr_iterator.level() == level){
+//
+//            } else{
+//                std::cout << "broken" << std::endl;
+//            }
+//        }
+//    }
+//
+//    timer.stop_timer();
+//
+//    std::cout << counter << std::endl;
+//
+//    timer.start_timer("by level and z");
+//
+//    counter = 0;
+//    uint64_t x_,z_;
+//
+//    for (int level = apr_iterator.level_min(); level <= apr_iterator.level_max(); ++level) {
+//#pragma omp parallel for schedule(static) private(particle_number,z_) firstprivate(apr_iterator) reduction(+:counter)
+//        for ( z_ = 0; z_ < apr.spatial_index_z_max(level); ++z_) {
+//
+//            for (particle_number = apr_iterator.particles_z_begin(level,z_);
+//                 particle_number < apr_iterator.particles_z_end(level,z_); ++particle_number) {
+//                //
+//                //  Parallel loop over level
+//                //
+//                apr_iterator.set_iterator_to_particle_by_number(particle_number);
+//
+//                counter++;
+//
+//                if (apr_iterator.z() == z_) {
+//
+//                } else {
+//                    std::cout << "broken" << std::endl;
+//                }
+//            }
+//        }
+//    }
+//
+//    timer.stop_timer();
+//
+//    std::cout << counter << std::endl;
+//
+//    timer.start_timer("by level the z then x");
+//
+//    counter = 0;
+//
+//
+//    for (uint16_t level = apr_iterator.level_min(); level <= apr_iterator.level_max(); ++level) {
+//#pragma omp parallel for schedule(static) private(particle_number,z_,x_) firstprivate(apr_iterator) reduction(+:counter)
+//        for ( z_ = 0; z_ < apr.spatial_index_z_max(level); ++z_) {
+//            for ( x_ = 0; x_ < apr.spatial_index_x_max(level); ++x_) {
+//
+//                for (particle_number = apr_iterator.particles_zx_begin(level, z_, x_);
+//                     particle_number < apr_iterator.particles_zx_end(level, z_, x_); ++particle_number) {
+//                    //
+//                    //  Parallel loop over level
+//                    //
+//                    apr_iterator.set_iterator_to_particle_by_number(particle_number);
+//
+//                    counter++;
+//
+//                    if (apr_iterator.x() == x_) {
+//
+//                    } else {
+//                        std::cout << "broken" << std::endl;
+//                    }
+//                }
+//            }
+//        }
+//    }
+//
+//    std::cout << counter << std::endl;
+//
+//    timer.stop_timer();
 
 
 

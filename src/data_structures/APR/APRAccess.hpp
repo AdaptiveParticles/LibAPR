@@ -299,7 +299,7 @@ public:
     }
 
     inline bool check_neighbours_flag(const uint16_t& x,const uint16_t& z,const uint16_t& level){
-        return ((x==(x_num[level]-1)) + (z==(z_num[level]-1)) + (z==0) + (x==0)) > 0;
+        return ((uint16_t)(x-1)>(x_num[level]-2)) + ((uint16_t)(x-1)>(x_num[level]-2));
     }
 
 
