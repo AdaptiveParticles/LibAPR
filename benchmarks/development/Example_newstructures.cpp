@@ -67,6 +67,76 @@ cmdLineOptions read_command_line_options(int argc, char **argv){
     return result;
 
 }
+template<typename T>
+void compare_two_maps(APR<T>& apr,APRAccess& aa1,APRAccess& aa2){
+
+
+    uint64_t z_;
+    uint64_t x_;
+
+    //first compare the size
+
+    for(uint64_t i = (apr.level_min());i <= apr.level_max();i++) {
+
+        const unsigned int x_num_ = aa1.x_num[i];
+        const unsigned int z_num_ = aa1.z_num[i];
+        const unsigned int y_num_ = aa1.y_num[i];
+
+        for (z_ = 0; z_ < z_num_; z_++) {
+            for (x_ = 0; x_ < x_num_; x_++) {
+                const uint64_t offset_pc_data = x_num_ * z_ + x_;
+
+
+                if(aa1.gap_map.data[i][offset_pc_data].size()!=aa2.gap_map.data[i][offset_pc_data].size()) {
+                    std::cout << "number of maps size mismatch" << std::endl;
+                }
+
+                if(aa1.gap_map.data[i][offset_pc_data].size()>0){
+                    if(aa1.gap_map.data[i][offset_pc_data][0].map.size()!=aa2.gap_map.data[i][offset_pc_data][0].map.size()) {
+                        std::cout << "number of gaps size mismatch" << std::endl;
+                    }
+                }
+
+
+                if(aa1.gap_map.data[i][offset_pc_data].size()>0) {
+
+                    std::vector<uint16_t> y_begin;
+                    std::vector<uint16_t> y_end;
+                    std::vector<uint64_t> global_index;
+
+                    for (auto const &element : aa1.gap_map.data[i][offset_pc_data][0].map) {
+                        y_begin.push_back(element.first);
+                        y_end.push_back(element.second.y_end);
+                        global_index.push_back(element.second.global_index_begin);
+                    }
+
+                    std::vector<uint16_t> y_begin2;
+                    std::vector<uint16_t> y_end2;
+                    std::vector<uint64_t> global_index2;
+
+                    for (auto const &element : aa2.gap_map.data[i][offset_pc_data][0].map) {
+                        y_begin2.push_back(element.first);
+                        y_end2.push_back(element.second.y_end);
+                        global_index2.push_back(element.second.global_index_begin);
+                    }
+
+
+                    int stop = 1;
+
+
+                }
+
+            }
+        }
+    }
+
+
+
+
+
+
+}
+
 
 
 int main(int argc, char **argv) {
@@ -99,7 +169,7 @@ int main(int argc, char **argv) {
 
 
     //just run old code and initialize it there
-    //apr_access.test_method(apr);
+    apr_access.test_method(apr);
 
     /////
     //
@@ -120,25 +190,27 @@ int main(int argc, char **argv) {
 
     MapStorageData map_data;
 
-    timer.start_timer("flatten");
-    apr_access2.flatten_structure(apr,map_data);
-    timer.stop_timer();
+    compare_two_maps(apr,apr_access,apr_access2);
 
-    std::cout << apr_access2.total_number_parts << std::endl;
-    std::cout << apr_access2.total_number_gaps << std::endl;
-    std::cout << apr_access2.total_number_non_empty_rows << std::endl;
-
-    APRAccess apr_access3;
-
-    apr_access3.total_number_non_empty_rows = apr_access2.total_number_non_empty_rows;
-    apr_access3.total_number_gaps = apr_access2.total_number_gaps;
-    apr_access3.total_number_parts = apr_access2.total_number_parts;
-
-    apr_access3.x_num = apr_access2.x_num;
-    apr_access3.y_num = apr_access2.y_num;
-    apr_access3.z_num = apr_access2.z_num;
-
-    apr_access3.rebuild_map(apr,map_data);
+//    timer.start_timer("flatten");
+//    apr_access2.flatten_structure(apr,map_data);
+//    timer.stop_timer();
+//
+//    std::cout << apr_access2.total_number_parts << std::endl;
+//    std::cout << apr_access2.total_number_gaps << std::endl;
+//    std::cout << apr_access2.total_number_non_empty_rows << std::endl;
+//
+//    APRAccess apr_access3;
+//
+//    apr_access3.total_number_non_empty_rows = apr_access2.total_number_non_empty_rows;
+//    apr_access3.total_number_gaps = apr_access2.total_number_gaps;
+//    apr_access3.total_number_parts = apr_access2.total_number_parts;
+//
+//    apr_access3.x_num = apr_access2.x_num;
+//    apr_access3.y_num = apr_access2.y_num;
+//    apr_access3.z_num = apr_access2.z_num;
+//
+//    apr_access3.rebuild_map(apr,map_data);
 
 }
 
