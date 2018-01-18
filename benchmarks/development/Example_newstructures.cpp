@@ -205,25 +205,27 @@ int main(int argc, char **argv) {
 
     compare_two_maps(apr,apr_access,apr_access2);
 
-//    timer.start_timer("flatten");
-//    apr_access2.flatten_structure(apr,map_data);
-//    timer.stop_timer();
-//
-//    std::cout << apr_access2.total_number_parts << std::endl;
-//    std::cout << apr_access2.total_number_gaps << std::endl;
-//    std::cout << apr_access2.total_number_non_empty_rows << std::endl;
-//
-//    APRAccess apr_access3;
-//
-//    apr_access3.total_number_non_empty_rows = apr_access2.total_number_non_empty_rows;
-//    apr_access3.total_number_gaps = apr_access2.total_number_gaps;
-//    apr_access3.total_number_parts = apr_access2.total_number_parts;
-//
-//    apr_access3.x_num = apr_access2.x_num;
-//    apr_access3.y_num = apr_access2.y_num;
-//    apr_access3.z_num = apr_access2.z_num;
-//
-//    apr_access3.rebuild_map(apr,map_data);
+    timer.start_timer("flatten");
+    apr_access2.flatten_structure(apr,map_data);
+    timer.stop_timer();
+
+    std::cout << apr_access2.total_number_parts << std::endl;
+    std::cout << apr_access2.total_number_gaps << std::endl;
+    std::cout << apr_access2.total_number_non_empty_rows << std::endl;
+
+    APRAccess apr_access3;
+
+    apr_access3.total_number_non_empty_rows = apr_access2.total_number_non_empty_rows;
+    apr_access3.total_number_gaps = apr_access2.total_number_gaps;
+    apr_access3.total_number_parts = apr_access2.total_number_parts;
+
+    apr_access3.x_num = apr_access2.x_num;
+    apr_access3.y_num = apr_access2.y_num;
+    apr_access3.z_num = apr_access2.z_num;
+
+    apr_access3.rebuild_map(apr,map_data);
+
+    compare_two_maps(apr,apr_access,apr_access3);
 
 }
 
