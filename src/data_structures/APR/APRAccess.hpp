@@ -141,6 +141,241 @@ public:
 
     };
 
+    MapIterator& get_local_iterator(LocalMapIterators& local_iterators,const uint16_t& level_delta,const uint16_t& face,const uint16_t& index){
+        //
+        //  Chooses the local iterator required
+        //
+
+        switch (level_delta){
+            case _LEVEL_SAME:
+
+                return local_iterators.same_level[face];
+
+            case _LEVEL_DECREASE:
+
+                return local_iterators.parent_level[face];
+
+            case _LEVEL_INCREASE:
+
+                return local_iterators.child_level[face][index];
+        }
+
+        return local_iterators.same_level[0];
+    }
+
+
+    void initialize_pointers(ExtraPartCellData<std::map<uint16_t,YGap_map>::iterator>& gap_map_it){
+
+        for (uint64_t i =level_min; i <= level_max; i++) {
+            //loop over the resolutions of the structure
+            const unsigned int x_num_ = x_num[i];
+            const unsigned int z_num_ = z_num[i];
+
+            uint64_t z_;
+            uint64_t x_;
+
+#pragma omp parallel for schedule(static) default(shared) private(z_, x_)
+            for (z_ = 0; z_ < z_num_; z_++) {
+                //both z and x are explicitly accessed in the structure
+
+                for (x_ = 0; x_ < x_num_; x_++) {
+
+                    const size_t offset_pc_data = x_num_ * z_ + x_;
+
+                    if (gap_map.data[i][offset_pc_data].size() > 0) {
+                        gap_map_it.data[i][offset_pc_data][0] = gap_map.data[i][offset_pc_data][0].map.begin();
+                    }
+                }
+            }
+        }
+    }
+
+
+
+    inline bool get_neighbour_coordinate(const ParticleCell& input,ParticleCell& neigh,const unsigned int& face,const uint16_t& level_delta,const uint16_t& index){
+        //
+        //
+
+        static constexpr int8_t dir_y[6] = { 1, -1, 0, 0, 0, 0};
+        static constexpr int8_t dir_x[6] = { 0, 0, 1, -1, 0, 0};
+        static constexpr int8_t dir_z[6] = { 0, 0, 0, 0, 1, -1};
+
+        static constexpr uint8_t children_index_offsets[4][2] = {{0,0},{0,1},{1,0},{1,1}};
+
+        unsigned int dir;
+
+        switch (level_delta){
+            case _LEVEL_SAME:
+                //Same Level Particle Cell
+                neigh.x = input.x + dir_x[face];
+                neigh.y = input.y + dir_y[face];
+                neigh.z = input.z + dir_z[face];
+                neigh.level = input.level;
+
+                neigh.pc_offset =  x_num[neigh.level] * neigh.z + neigh.x;
+
+                return true;
+            case _LEVEL_DECREASE:
+                //Larger Particle Cell (Lower Level)
+                neigh.level = input.level - 1;
+                neigh.x = (input.x+ dir_x[face])/2;
+                neigh.y = (input.y+ dir_y[face])/2;
+                neigh.z = (input.z+ dir_z[face])/2;
+
+                neigh.pc_offset =  x_num[neigh.level] * neigh.z + neigh.x;
+
+                return true;
+            case _LEVEL_INCREASE:
+                //Higher Level Particle Cell (Smaller/Higher Resolution), there is a maximum of 4 (conditional on boundary conditions)
+                neigh.level = input.level + 1;
+                neigh.x = (input.x + dir_x[face])*2 + (dir_x[face]<0);
+                neigh.y = (input.y + dir_y[face])*2 + (dir_y[face]<0);
+                neigh.z = (input.z + dir_z[face])*2 + (dir_z[face]<0);
+
+                dir = (face/2);
+
+                switch (dir){
+                    case 0:
+                        //y+ and y-
+                        neigh.x = neigh.x + children_index_offsets[index][0];
+                        neigh.z = neigh.z + children_index_offsets[index][1];
+
+                        break;
+
+                    case 1:
+                        //x+ and x-
+                        neigh.y = neigh.y + children_index_offsets[index][0];
+                        neigh.z = neigh.z + children_index_offsets[index][1];
+
+                        break;
+                    case 2:
+                        //z+ and z-
+                        neigh.y = neigh.y + children_index_offsets[index][0];
+                        neigh.x = neigh.x + children_index_offsets[index][1];
+
+                        break;
+                }
+
+                neigh.pc_offset =  x_num[neigh.level] * neigh.z + neigh.x;
+
+                return true;
+            case _NO_NEIGHBOUR:
+
+                return false;
+        }
+
+        return false;
+
+    }
+
+    inline uint64_t get_parts_start(const uint16_t& x,const uint16_t& z,const uint16_t& level){
+
+        uint64_t offset = x_num[level] * z + x;
+        if(gap_map.data[level][offset].size() > 0){
+            return (*gap_map.data[level][offset][0].map.begin()).first;
+        } else {
+            return (-1);
+        }
+
+    }
+
+
+    inline uint64_t get_parts_end(const uint16_t& x,const uint16_t& z,const uint16_t& level){
+        uint64_t offset = x_num[level] * z + x;
+        if(gap_map.data[level][offset].size() > 0){
+            return (*gap_map.data[level][offset][0].map.rbegin()).second.y_end;
+        } else {
+            return (-1);
+        }
+
+    }
+
+    inline bool check_neighbours_flag(const uint16_t& x,const uint16_t& z,const uint16_t& level){
+        return ((x==(x_num[level]-1)) + (z==(z_num[level]-1)) + (z==0) + (x==0)) > 0;
+    }
+
+
+    inline uint8_t number_neighbours_in_direction(const uint8_t& level_delta){
+        //
+        //  Gives the maximum number of neighbours in a direction given the level_delta.
+        //
+
+        switch (level_delta){
+            case _LEVEL_INCREASE:
+                return 4;
+            case _NO_NEIGHBOUR:
+                return 0;
+        }
+        return 1;
+    }
+
+    bool find_particle_cell(ParticleCell& part_cell,MapIterator& map_iterator){
+
+        if(gap_map.data[part_cell.level][part_cell.pc_offset].size() > 0) {
+
+            ParticleCellGapMap& current_pc_map = gap_map.data[part_cell.level][part_cell.pc_offset][0];
+
+            if((map_iterator.pc_offset != part_cell.pc_offset) | (map_iterator.level != part_cell.level) ){
+                map_iterator.iterator = current_pc_map.map.begin();
+                map_iterator.pc_offset = part_cell.pc_offset;
+                map_iterator.level = part_cell.level;
+            }
+
+            if(map_iterator.iterator == current_pc_map.map.end()){
+                //check if pointing to a valid key
+                map_iterator.iterator = current_pc_map.map.begin();
+            }
+
+            if ((part_cell.y >= map_iterator.iterator->first) & (part_cell.y <= map_iterator.iterator->second.y_end)) {
+                // already pointing to the correct place
+                part_cell.global_index = map_iterator.iterator->second.global_index_begin +
+                                         (part_cell.y - map_iterator.iterator->first);
+
+
+                return true;
+            } else {
+                //first try next element
+                if(map_iterator.iterator != current_pc_map.map.end()){
+                    map_iterator.iterator++;
+                    //check if there
+                    if(map_iterator.iterator != current_pc_map.map.end()) {
+                        if ((part_cell.y >= map_iterator.iterator->first) &
+                            (part_cell.y <= map_iterator.iterator->second.y_end)) {
+                            // already pointing to the correct place
+                            part_cell.global_index = map_iterator.iterator->second.global_index_begin +
+                                                     (part_cell.y - map_iterator.iterator->first);
+
+                            return true;
+                        }
+                    }
+
+                }
+
+                //otherwise search for it (points to first key that is greater than the y value)
+                map_iterator.iterator = current_pc_map.map.upper_bound(part_cell.y);
+
+                if(map_iterator.iterator == current_pc_map.map.begin()){
+                    //less then the first value
+                    return false;
+                } else{
+                    map_iterator.iterator--;
+                }
+
+                if ((part_cell.y >= map_iterator.iterator->first) & (part_cell.y <= map_iterator.iterator->second.y_end)) {
+                    // already pointing to the correct place
+                    part_cell.global_index = map_iterator.iterator->second.global_index_begin +
+                                             (part_cell.y - map_iterator.iterator->first);
+
+                    return true;
+                }
+            }
+        }
+
+        return false;
+
+    }
+
+
     template<typename T>
     void generate_pmap(APR<T>& apr,std::vector<std::vector<uint8_t>>& p_map){
 
@@ -1858,239 +2093,7 @@ public:
     }
 
 
-    MapIterator& get_local_iterator(LocalMapIterators& local_iterators,const uint16_t& level_delta,const uint16_t& face,const uint16_t& index){
-        //
-        //  Chooses the local iterator required
-        //
 
-        switch (level_delta){
-            case _LEVEL_SAME:
-
-                return local_iterators.same_level[face];
-
-            case _LEVEL_DECREASE:
-
-                return local_iterators.parent_level[face];
-
-            case _LEVEL_INCREASE:
-
-                return local_iterators.child_level[face][index];
-        }
-
-        return local_iterators.same_level[0];
-    }
-
-
-    void initialize_pointers(ExtraPartCellData<std::map<uint16_t,YGap_map>::iterator>& gap_map_it){
-
-        for (uint64_t i =level_min; i <= level_max; i++) {
-            //loop over the resolutions of the structure
-            const unsigned int x_num_ = x_num[i];
-            const unsigned int z_num_ = z_num[i];
-
-            uint64_t z_;
-            uint64_t x_;
-
-#pragma omp parallel for schedule(static) default(shared) private(z_, x_)
-            for (z_ = 0; z_ < z_num_; z_++) {
-                //both z and x are explicitly accessed in the structure
-
-                for (x_ = 0; x_ < x_num_; x_++) {
-
-                    const size_t offset_pc_data = x_num_ * z_ + x_;
-
-                    if (gap_map.data[i][offset_pc_data].size() > 0) {
-                        gap_map_it.data[i][offset_pc_data][0] = gap_map.data[i][offset_pc_data][0].map.begin();
-                    }
-                }
-            }
-        }
-    }
-
-
-
-    inline bool get_neighbour_coordinate(const ParticleCell& input,ParticleCell& neigh,const unsigned int& face,const uint16_t& level_delta,const uint16_t& index){
-        //
-        //
-
-        static constexpr int8_t dir_y[6] = { 1, -1, 0, 0, 0, 0};
-        static constexpr int8_t dir_x[6] = { 0, 0, 1, -1, 0, 0};
-        static constexpr int8_t dir_z[6] = { 0, 0, 0, 0, 1, -1};
-
-        static constexpr uint8_t children_index_offsets[4][2] = {{0,0},{0,1},{1,0},{1,1}};
-
-        unsigned int dir;
-
-        switch (level_delta){
-            case _LEVEL_SAME:
-                //Same Level Particle Cell
-                neigh.x = input.x + dir_x[face];
-                neigh.y = input.y + dir_y[face];
-                neigh.z = input.z + dir_z[face];
-                neigh.level = input.level;
-
-                neigh.pc_offset =  x_num[neigh.level] * neigh.z + neigh.x;
-
-                return true;
-            case _LEVEL_DECREASE:
-                //Larger Particle Cell (Lower Level)
-                neigh.level = input.level - 1;
-                neigh.x = (input.x+ dir_x[face])/2;
-                neigh.y = (input.y+ dir_y[face])/2;
-                neigh.z = (input.z+ dir_z[face])/2;
-
-                neigh.pc_offset =  x_num[neigh.level] * neigh.z + neigh.x;
-
-                return true;
-            case _LEVEL_INCREASE:
-                //Higher Level Particle Cell (Smaller/Higher Resolution), there is a maximum of 4 (conditional on boundary conditions)
-                neigh.level = input.level + 1;
-                neigh.x = (input.x + dir_x[face])*2 + (dir_x[face]<0);
-                neigh.y = (input.y + dir_y[face])*2 + (dir_y[face]<0);
-                neigh.z = (input.z + dir_z[face])*2 + (dir_z[face]<0);
-
-                dir = (face/2);
-
-                switch (dir){
-                    case 0:
-                        //y+ and y-
-                        neigh.x = neigh.x + children_index_offsets[index][0];
-                        neigh.z = neigh.z + children_index_offsets[index][1];
-
-                        break;
-
-                    case 1:
-                        //x+ and x-
-                        neigh.y = neigh.y + children_index_offsets[index][0];
-                        neigh.z = neigh.z + children_index_offsets[index][1];
-
-                        break;
-                    case 2:
-                        //z+ and z-
-                        neigh.y = neigh.y + children_index_offsets[index][0];
-                        neigh.x = neigh.x + children_index_offsets[index][1];
-
-                        break;
-                }
-
-                neigh.pc_offset =  x_num[neigh.level] * neigh.z + neigh.x;
-
-                return true;
-            case _NO_NEIGHBOUR:
-
-                return false;
-        }
-
-        return false;
-
-    }
-
-    inline uint64_t get_parts_start(const uint16_t& x,const uint16_t& z,const uint16_t& level){
-
-        uint64_t offset = x_num[level] * z + x;
-        if(gap_map.data[level][offset].size() > 0){
-            return (*gap_map.data[level][offset][0].map.begin()).first;
-        } else {
-            return (-1);
-        }
-
-    }
-
-
-    inline uint64_t get_parts_end(const uint16_t& x,const uint16_t& z,const uint16_t& level){
-        uint64_t offset = x_num[level] * z + x;
-        if(gap_map.data[level][offset].size() > 0){
-            return (*gap_map.data[level][offset][0].map.rbegin()).second.y_end;
-        } else {
-            return (-1);
-        }
-
-    }
-
-    inline bool check_neighbours_flag(const uint16_t& x,const uint16_t& z,const uint16_t& level){
-        return ((x==(x_num[level]-1)) + (z==(z_num[level]-1)) + (z==0) + (x==0)) > 0;
-    }
-
-
-    inline uint8_t number_neighbours_in_direction(const uint8_t& level_delta){
-        //
-        //  Gives the maximum number of neighbours in a direction given the level_delta.
-        //
-
-        switch (level_delta){
-            case _LEVEL_INCREASE:
-                return 4;
-            case _NO_NEIGHBOUR:
-                return 0;
-        }
-        return 1;
-    }
-
-    bool find_particle_cell(ParticleCell& part_cell,MapIterator& map_iterator){
-
-        if(gap_map.data[part_cell.level][part_cell.pc_offset].size() > 0) {
-
-            ParticleCellGapMap& current_pc_map = gap_map.data[part_cell.level][part_cell.pc_offset][0];
-
-            if((map_iterator.pc_offset != part_cell.pc_offset) | (map_iterator.level != part_cell.level) ){
-                map_iterator.iterator = current_pc_map.map.begin();
-                map_iterator.pc_offset = part_cell.pc_offset;
-                map_iterator.level = part_cell.level;
-            }
-
-            if(map_iterator.iterator == current_pc_map.map.end()){
-                //check if pointing to a valid key
-                map_iterator.iterator = current_pc_map.map.begin();
-            }
-
-            if ((part_cell.y >= map_iterator.iterator->first) & (part_cell.y <= map_iterator.iterator->second.y_end)) {
-                // already pointing to the correct place
-                part_cell.global_index = map_iterator.iterator->second.global_index_begin +
-                                         (part_cell.y - map_iterator.iterator->first);
-
-
-                return true;
-            } else {
-                //first try next element
-                if(map_iterator.iterator != current_pc_map.map.end()){
-                    map_iterator.iterator++;
-                    //check if there
-                    if(map_iterator.iterator != current_pc_map.map.end()) {
-                        if ((part_cell.y >= map_iterator.iterator->first) &
-                            (part_cell.y <= map_iterator.iterator->second.y_end)) {
-                            // already pointing to the correct place
-                            part_cell.global_index = map_iterator.iterator->second.global_index_begin +
-                                                     (part_cell.y - map_iterator.iterator->first);
-
-                            return true;
-                        }
-                    }
-
-                }
-
-                //otherwise search for it (points to first key that is greater than the y value)
-                map_iterator.iterator = current_pc_map.map.upper_bound(part_cell.y);
-
-                if(map_iterator.iterator == current_pc_map.map.begin()){
-                    //less then the first value
-                    return false;
-                } else{
-                    map_iterator.iterator--;
-                }
-
-                if ((part_cell.y >= map_iterator.iterator->first) & (part_cell.y <= map_iterator.iterator->second.y_end)) {
-                    // already pointing to the correct place
-                    part_cell.global_index = map_iterator.iterator->second.global_index_begin +
-                                             (part_cell.y - map_iterator.iterator->first);
-
-                    return true;
-                }
-            }
-        }
-
-        return false;
-
-    }
 
 };
 
