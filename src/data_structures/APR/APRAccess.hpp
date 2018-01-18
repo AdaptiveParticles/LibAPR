@@ -755,8 +755,8 @@ public:
 
         apr_timer.start_timer("forth loop");
 
-        global_index_by_level_begin.resize(apr.level_max()+1,-1);
-        global_index_by_level_end.resize(apr.level_max()+1,-1);
+        global_index_by_level_begin.resize(apr.level_max()+1,0);
+        global_index_by_level_end.resize(apr.level_max()+1,0);
 
         cumsum= 0;
 
