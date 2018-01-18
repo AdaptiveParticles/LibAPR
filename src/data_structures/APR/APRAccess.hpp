@@ -299,9 +299,8 @@ public:
     }
 
     inline bool check_neighbours_flag(const uint16_t& x,const uint16_t& z,const uint16_t& level){
-        return ((uint16_t)(x-1)>(x_num[level]-2)) + ((uint16_t)(x-1)>(x_num[level]-2));
+        return ((uint16_t)(x-1)>(x_num[level]-3)) | ((uint16_t)(z-1)>(z_num[level]-3));
     }
-
 
     inline uint8_t number_neighbours_in_direction(const uint8_t& level_delta){
         //
@@ -324,7 +323,7 @@ public:
             ParticleCellGapMap& current_pc_map = gap_map.data[part_cell.level][part_cell.pc_offset][0];
 
             if((map_iterator.pc_offset != part_cell.pc_offset) | (map_iterator.level != part_cell.level) ){
-                map_iterator.iterator = current_pc_map.map.begin();
+                map_iterator.iterator = gap_map.data[part_cell.level][part_cell.pc_offset][0].map.begin();
                 map_iterator.pc_offset = part_cell.pc_offset;
                 map_iterator.level = part_cell.level;
             }
@@ -338,7 +337,6 @@ public:
                 // already pointing to the correct place
                 part_cell.global_index = map_iterator.iterator->second.global_index_begin +
                                          (part_cell.y - map_iterator.iterator->first);
-
 
                 return true;
             } else {

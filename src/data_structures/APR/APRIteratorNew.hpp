@@ -170,8 +170,6 @@ public:
 
             while(particle_number > particles_offset_end(current_particle_cell.level,current_particle_cell.pc_offset)){
                 current_particle_cell.pc_offset++;
-                uint64_t temp = particles_offset_end(current_particle_cell.level,current_particle_cell.pc_offset);
-                int stop = 1;
             }
 
             //back out your xz from the offset
@@ -291,8 +289,8 @@ public:
     inline bool check_neighbours_particle_cell_in_bounds(){
         //uses the fact that the coordinates have unsigned type, and therefore if they are negative they will be above the bound
         if(check_neigh_flag) {
-            return (neighbour_particle_cell.x <= apr_access->x_num[neighbour_particle_cell.level]) &
-                   (neighbour_particle_cell.z <= apr_access->z_num[neighbour_particle_cell.level]);
+            return (neighbour_particle_cell.x < apr_access->x_num[neighbour_particle_cell.level]) &
+                   (neighbour_particle_cell.z < apr_access->z_num[neighbour_particle_cell.level]);
         } else {
             return true;
         }

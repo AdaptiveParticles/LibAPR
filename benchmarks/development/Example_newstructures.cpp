@@ -177,11 +177,11 @@ int main(int argc, char **argv) {
     //remove the file extension
     name.erase(name.end()-3,name.end());
 
-   // APRAccess apr_access;
+    //APRAccess apr_access;
 
 
     //just run old code and initialize it there
-//    apr_access.test_method(apr);
+    //apr_access.test_method(apr);
 
     /////
     //
@@ -199,6 +199,8 @@ int main(int argc, char **argv) {
     timer.start_timer("generate map structure");
     apr_access2.initialize_structure_from_particle_cell_tree(apr,p_map);
     timer.stop_timer();
+
+    //compare_two_maps(apr,apr_access,apr_access2);
 
     APRIteratorNew<uint16_t> apr_iterator(apr_access2);
 
@@ -238,10 +240,14 @@ int main(int argc, char **argv) {
         float counter = 0;
         float temp = 0;
 
-//        //loop over all the neighbours and set the neighbour iterator to it
-//        for (int direction = 0; direction < 6; ++direction) {
-//            // Neighbour Particle Cell Face definitions [+y,-y,+x,-x,+z,-z] =  [0,1,2,3,4,5]
-//            apr_iterator.find_neighbours_in_direction(direction);
+        if(particle_number == 7698){
+            int stop = 1;
+        }
+
+       //loop over all the neighbours and set the neighbour iterator to it
+        for (int direction = 0; direction < 6; ++direction) {
+            // Neighbour Particle Cell Face definitions [+y,-y,+x,-x,+z,-z] =  [0,1,2,3,4,5]
+            apr_iterator.find_neighbours_in_direction(direction);
 //
 //            for (int index = 0; index < apr.number_neighbours_in_direction(direction); ++index) {
 //                // on each face, there can be 0-4 neighbours accessed by index
@@ -253,7 +259,7 @@ int main(int argc, char **argv) {
 //
 //                }
 //            }
-//        }
+        }
 
 
 
