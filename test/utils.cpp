@@ -3427,6 +3427,49 @@ bool utest_apr_parallel_iterate(PartCellStructure<float,uint64_t>& pc_struct){
 
 }
 
+
+bool check_neighbours(APR<float>& apr,APRIteratorNew<float>& current,APRIteratorNew<float>& neigh){
+
+
+    bool success = true;
+
+    if(abs((float)neigh.level() - (float)current.level())>1){
+        success = false;
+    }
+
+    float delta_x = current.x_global() - neigh.x_global();
+    float delta_y = current.y_global() - neigh.y_global();
+    float delta_z = current.z_global() - neigh.z_global();
+
+    float resolution_max = 1.11*(0.5*pow(2,current.level_max()-current.level()) + 0.5*pow(2,neigh.level_max()-neigh.level()));
+
+    float distance = sqrt(pow(delta_x,2)+pow(delta_y,2)+pow(delta_z,2));
+
+    if(distance > resolution_max){
+        success = false;
+    }
+
+    return success;
+}
+
+bool check_neighbour_out_of_bounds(APRIteratorNew<float>& current,uint8_t face){
+
+
+    uint64_t num_neigh = current.number_neighbours_in_direction(face);
+
+    if(num_neigh ==0){
+        ParticleCell neigh = current.get_neigh_particle_cell();
+
+        if( (neigh.x >= current.spatial_index_x_max(neigh.level) ) | (neigh.y >= current.spatial_index_y_max(neigh.level) ) | (neigh.z >= current.spatial_index_z_max(neigh.level) )  ){
+            return true;
+        } else {
+            return false;
+        }
+    }
+
+    return true;
+}
+
 bool utest_apr_serial_neigh(PartCellStructure<float,uint64_t>& pc_struct){
     //
     //  Bevan Cheeseman 2018
@@ -3474,9 +3517,15 @@ bool utest_apr_serial_neigh(PartCellStructure<float,uint64_t>& pc_struct){
     }
 
 
+    ExtraParticleData<float> index_check;
+    uint64_t counter = 0;
+
     for ( apr.begin(); apr.end() ; apr.it_forward()) {
 
         //now we only update the neighbours, and directly access them through a neighbour iterator
+
+        index_check.data.push_back(apr(apr.particles_int));
+        counter++;
 
         //loop over all the neighbours and set the neighbour iterator to it
         for (int dir = 0; dir < 6; ++dir) {
@@ -3501,10 +3550,55 @@ bool utest_apr_serial_neigh(PartCellStructure<float,uint64_t>& pc_struct){
     }
 
 
+    APRAccess apr_access2;
+    std::vector<std::vector<uint8_t>> p_map;
+
+    apr_access2.generate_pmap(apr,p_map);
+
+    apr_access2.initialize_structure_from_particle_cell_tree(apr,p_map);
 
 
+    APRIteratorNew<float> neighbour_iterator(apr_access2);
+    APRIteratorNew<float> apr_iterator(apr_access2);
 
 
+    uint64_t particle_number;
+    for (particle_number = 0; particle_number < apr_iterator.total_number_parts(); ++particle_number) {
+
+        apr_iterator.set_iterator_to_particle_by_number(particle_number);
+        //counter++;
+
+        float temp = 0;
+
+        //loop over all the neighbours and set the neighbour iterator to it
+        for (int direction = 0; direction < 6; ++direction) {
+            // Neighbour Particle Cell Face definitions [+y,-y,+x,-x,+z,-z] =  [0,1,2,3,4,5]
+            apr_iterator.find_neighbours_in_direction(direction);
+
+            success = check_neighbour_out_of_bounds(apr_iterator,direction);
+
+            for (int index = 0; index < apr_iterator.number_neighbours_in_direction(direction); ++index) {
+
+                // on each face, there can be 0-4 neighbours accessed by index
+                if(neighbour_iterator.set_neighbour_iterator(apr_iterator, direction, index)){
+                    //will return true if there is a neighbour defined
+                    float apr_val = neighbour_iterator(index_check);
+                    float check_val = int_array[neighbour_iterator.level()](neighbour_iterator.y(),neighbour_iterator.x(),neighbour_iterator.z());
+
+                    if(check_val!=apr_val){
+                        success = false;
+                    }
+
+                    if(!check_neighbours(apr,apr_iterator,neighbour_iterator)){
+                        success = false;
+                    }
+
+                }
+
+            }
+
+        }
+    }
 
 
     return success;

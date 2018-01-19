@@ -40,6 +40,8 @@
 
 #include "src/data_structures/APR/APR.hpp"
 
+#include "src/data_structures/APR/APRIteratorNew.hpp"
+
 bool compare_two_images(const MeshData<uint16_t>& in_memory, std::string filename);
 bool compare_two_ks(const Particle_map<float>& in_memory, std::string filename);
 bool compare_part_rep_with_particle_map(const Particle_map<float>& in_memory, std::string filename);
@@ -85,6 +87,10 @@ void create_j_reference_structure(PartCellStructure<float,uint64_t>& pc_struct,s
 pc_key find_neigh_cell(pc_key curr_cell,int dir,std::vector<MeshData<uint64_t>>& j_array);
 
 void create_pc_data_new(APR<float>& apr,PartCellStructure<float,uint64_t>& pc_struct);
+
+bool check_neighbours(APR<float>& apr,APRIteratorNew<float>& current,APRIteratorNew<float>& neigh);
+bool check_neighbour_out_of_bounds(APRIteratorNew<float>& current,uint8_t face);
+
 
 bool utest_neigh_cells(PartCellStructure<float,uint64_t>& pc_struct);
 
