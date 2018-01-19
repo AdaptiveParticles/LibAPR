@@ -261,29 +261,34 @@ public:
 
 
 
-    inline unsigned int x(){
+    inline uint16_t x(){
         //get x
        return current_particle_cell.x;
     }
 
-    inline unsigned int y(){
+    inline uint16_t y(){
         //get x
         return current_particle_cell.y;
     }
 
-    inline unsigned int z(){
+    inline uint16_t z(){
         //get x
         return current_particle_cell.z;
     }
 
-    inline unsigned int type(){
+    inline uint8_t type(){
         //get x
         return current_particle_cell.type;
     }
 
-    inline unsigned int level(){
+    inline uint16_t level(){
         //get x
         return current_particle_cell.level;
+    }
+
+    inline uint64_t global_index(){
+        //get x
+        return current_particle_cell.global_index;
     }
 
     inline bool check_neighbours_particle_cell_in_bounds(){
