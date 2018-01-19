@@ -174,16 +174,48 @@ void create_neighbour_checker(APR<T>& apr,std::vector<MeshData<uint64_t>>& tree_
 }
 
 template<typename T>
-void check_neighbours(APR<T>& apr,ParticleCell current,std::vector<std::vector<ParticleCell>>& neigh){
+bool check_neighbours(APR<T>& apr,APRIteratorNew<T>& current,APRIteratorNew<T>& neigh){
 
 
+    bool success = true;
 
+    if(abs((float)neigh.level() - (float)current.level())>1){
+        success = false;
+    }
 
+    float delta_x = current.x_global() - neigh.x_global();
+    float delta_y = current.y_global() - neigh.y_global();
+    float delta_z = current.z_global() - neigh.z_global();
 
+    float resolution_max = 1.11*(0.5*pow(2,current.level_max()-current.level()) + 0.5*pow(2,neigh.level_max()-neigh.level()));
 
+    float distance = sqrt(pow(delta_x,2)+pow(delta_y,2)+pow(delta_z,2));
+
+    if(distance > resolution_max){
+        success = false;
+    }
+
+    return success;
 }
 
+template<typename T>
+bool check_neighbour_out_of_bounds(APRIteratorNew<T>& current,uint8_t face){
 
+
+    uint64_t num_neigh = current.number_neighbours_in_direction(face);
+
+    if(num_neigh ==0){
+        ParticleCell neigh = current.get_neigh_particle_cell();
+
+        if( (neigh.x >= current.spatial_index_x_max(neigh.level) ) | (neigh.y >= current.spatial_index_y_max(neigh.level) ) | (neigh.z >= current.spatial_index_z_max(neigh.level) )  ){
+            return true;
+        } else {
+            return false;
+        }
+    }
+
+    return true;
+}
 
 
 int main(int argc, char **argv) {
@@ -270,6 +302,8 @@ int main(int argc, char **argv) {
 
     APRIteratorNew<uint16_t> neighbour_iterator(apr_access2);
 
+    bool success = true;
+
     counter = 0;
     uint64_t particle_number;
     for (particle_number = 0; particle_number < apr_iterator.total_number_parts(); ++particle_number) {
@@ -284,8 +318,9 @@ int main(int argc, char **argv) {
             // Neighbour Particle Cell Face definitions [+y,-y,+x,-x,+z,-z] =  [0,1,2,3,4,5]
             apr_iterator.find_neighbours_in_direction(direction);
 
-            for (int index = 0; index < apr_iterator.number_neighbours_in_direction(direction); ++index) {
+            success = check_neighbour_out_of_bounds(apr_iterator,direction);
 
+            for (int index = 0; index < apr_iterator.number_neighbours_in_direction(direction); ++index) {
 
                 uint64_t this_index = tree_rep[apr_iterator.level()].access_no_protection(apr_iterator.y(),apr_iterator.x(),apr_iterator.z());
 
@@ -303,15 +338,25 @@ int main(int argc, char **argv) {
                     uint16_t level_n = neighbour_iterator(level);
 
                     if(check_index!=neighbour_iterator.global_index()){
-                        std::cout << "broke" << std::endl;
+                        success = false;
+                    }
+
+                    if(!check_neighbours(apr,apr_iterator,neighbour_iterator)){
+                        success = false;
                     }
 
                     counter++;
                 }
+
             }
+
         }
+    }
 
-
+    if(!success){
+        std::cout << "BROKEN" << std::endl;
+    } else {
+        std::cout << "PASSING" << std::endl;
     }
 
     std::cout << counter << std::endl;

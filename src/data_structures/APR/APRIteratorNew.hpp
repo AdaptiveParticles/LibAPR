@@ -291,6 +291,14 @@ public:
         return current_particle_cell.global_index;
     }
 
+    inline ParticleCell get_current_particle_cell(){
+        return current_particle_cell;
+    }
+
+    inline ParticleCell get_neigh_particle_cell(){
+        return neighbour_particle_cell;
+    }
+
     inline bool check_neighbours_particle_cell_in_bounds(){
         //uses the fact that the coordinates have unsigned type, and therefore if they are negative they will be above the bound
         if(check_neigh_flag) {
