@@ -277,8 +277,14 @@ public:
     }
 
     inline uint8_t type(){
-        //get x
-        return current_particle_cell.type;
+        //get type of the particle cell
+
+        if(current_particle_cell.level==level_max()){
+            return 1; //all highest resolution pcs are seed, when using the nieghborhood optimization/
+        } else {
+            return apr_access->particle_cell_type.data[current_particle_cell.global_index];
+        }
+
     }
 
     inline uint16_t level(){
