@@ -166,9 +166,14 @@ if(TESTS)
 	        src/io/hdf5functions_blosc.cpp
             )
 
-        add_executable(testMeshData
-                test/MeshDataTest.cpp
-                )
+    add_executable(testMeshData
+            test/MeshDataTest.cpp
+            )
+
+    add_executable(testTiff
+            test/TiffTest.cpp
+            src/io/Tiff.cpp
+            )
 
 
     target_link_libraries(testSparsePartStruc ${HDF5_LIBRARIES} ${GTEST_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT} ${TIFF_LIBRARIES} blosc_shared)
@@ -177,6 +182,7 @@ if(TESTS)
     target_link_libraries(testLevel ${HDF5_LIBRARIES} ${GTEST_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT} ${TIFF_LIBRARIES} blosc_shared)
     target_link_libraries(testResult ${HDF5_LIBRARIES} ${GTEST_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT} ${TIFF_LIBRARIES} blosc_shared)
     target_link_libraries(testMeshData ${GTEST_LIBRARIES} ${TIFF_LIBRARIES})
+    target_link_libraries(testTiff ${GTEST_LIBRARIES} ${TIFF_LIBRARIES})
 
 endif(TESTS)
 
