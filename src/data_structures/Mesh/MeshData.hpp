@@ -229,55 +229,15 @@ public :
     void load_image_tiff(std::string file_name,int z_start = 0, int z_end = -1);
 
 
-//    //REMOVE_FLAG
-//    void initialize(T val)
-//    {
-//        mesh.resize(y_num*x_num*z_num,val);
-//        //mesh.insert(mesh.begin(),y_num*x_num*z_num,val);
-//        //mesh.resize(y_num,std::vector<std::vector<T> >(x_num,std::vector<T>(z_num)));
-//    }
-//
-//    //REMOVE_FLAG
-//    void set_size(int y_num_,int x_num_,int z_num_){
-//
-//        y_num = y_num_;
-//        x_num = x_num_;
-//        z_num = z_num_;
-//    }
-//
-//    //REMOVE_FLAG
-//    size_t index(coords3d coords) const{
-//        return coords.z * (size_t)x_num * y_num + coords.x * y_num + coords.y;
-//    }
-//
-//    //REMOVE_FLAG
-//    void setzero()
-//    {
-//        std::fill(mesh.begin(), mesh.end(), 0);
-//    }
-//
-//    //REMOVE_FLAG
-//    void setones()
-//    {
-//        std::fill(mesh.begin(), mesh.end(), 1.0);
-//    }
-//
-//    //REMOVE_FLAG
-//    void transpose(){
-//        std::vector<T> v2;
-//        std::swap(mesh, v2);
-//
-//        for( unsigned int k = 0; k < z_num;k++){
-//            for (unsigned int i = 0; i < y_num; i++) {
-//                for (unsigned int j = 0; j < x_num; j++) {
-//                    mesh.push_back(v2[k*x_num*y_num + j * y_num + i]);
-//                }
-//            }
-//        }
-//
-//        y_num = x_num;
-//        x_num = y_num;
-//    }
+
+    //REMOVE_FLAG
+    void set_size(int y_num_,int x_num_,int z_num_){
+
+        y_num = y_num_;
+        x_num = x_num_;
+        z_num = z_num_;
+    }
+
 
 private:
 
