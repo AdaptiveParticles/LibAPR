@@ -150,6 +150,41 @@ void compare_two_maps(APR<T>& apr,APRAccess& aa1,APRAccess& aa2){
 }
 
 
+template<typename T>
+void create_neighbour_checker(APR<T>& apr,std::vector<MeshData<uint64_t>>& tree_rep){
+
+    tree_rep.resize((apr.level_max()+1));
+
+    for (int j = apr.level_min(); j <= apr.level_max(); ++j) {
+            tree_rep[j].initialize(apr.spatial_index_y_max(j),apr.spatial_index_x_max(j),apr.spatial_index_z_max(j),0);
+    }
+
+    uint64_t counter = 0;
+
+    for (apr.begin(); apr.end()!=0;apr.it_forward()) {
+
+        tree_rep[apr.level()].access_no_protection(apr.y(),apr.x(),apr.z())=counter;
+
+        uint64_t temp = tree_rep[apr.level()].access_no_protection(apr.y(),apr.x(),apr.z());
+
+        counter++;
+
+    }
+
+}
+
+template<typename T>
+void check_neighbours(APR<T>& apr,ParticleCell current,std::vector<std::vector<ParticleCell>>& neigh){
+
+
+
+
+
+
+}
+
+
+
 
 int main(int argc, char **argv) {
 
@@ -209,6 +244,9 @@ int main(int argc, char **argv) {
     ExtraParticleData<uint16_t> y;
     ExtraParticleData<uint16_t> z;
     ExtraParticleData<uint16_t> level;
+    ExtraParticleData<uint64_t> indexd;
+
+    uint64_t counter = 0;
 
     for (apr.begin(); apr.end()!=0;apr.it_forward()) {
         particles_int.data.push_back(apr(apr.particles_int));
@@ -216,15 +254,17 @@ int main(int argc, char **argv) {
         y.data.push_back(apr.y());
         z.data.push_back(apr.z());
         level.data.push_back(apr.level());
+        indexd.data.push_back(counter);
+        counter++;
     }
 
+    counter = 0;
 
-    uint64_t counter = 0;
 
     timer.start_timer("normal");
 
-
-    timer.stop_timer();
+    std::vector<MeshData<uint64_t>> tree_rep;
+    create_neighbour_checker(apr,tree_rep);
 
     std::cout << counter << std::endl;
 
@@ -237,7 +277,6 @@ int main(int argc, char **argv) {
         apr_iterator.set_iterator_to_particle_by_number(particle_number);
         //counter++;
 
-
         float temp = 0;
 
        //loop over all the neighbours and set the neighbour iterator to it
@@ -246,24 +285,38 @@ int main(int argc, char **argv) {
             apr_iterator.find_neighbours_in_direction(direction);
 
             for (int index = 0; index < apr_iterator.number_neighbours_in_direction(direction); ++index) {
+
+
+                uint64_t this_index = tree_rep[apr_iterator.level()].access_no_protection(apr_iterator.y(),apr_iterator.x(),apr_iterator.z());
+
                 // on each face, there can be 0-4 neighbours accessed by index
                 if(neighbour_iterator.set_neighbour_iterator(apr_iterator, direction, index)){
                     //will return true if there is a neighbour defined
 
-                    temp += neighbour_iterator(particles_int);
-                    counter++;
+                    uint64_t check_index = tree_rep[neighbour_iterator.level()].access_no_protection(neighbour_iterator.y(),neighbour_iterator.x(),neighbour_iterator.z());
 
+                    uint64_t check_2 = neighbour_iterator(indexd);
+
+                    uint16_t x_n = neighbour_iterator(x);
+                    uint16_t y_n = neighbour_iterator(y);
+                    uint16_t z_n = neighbour_iterator(z);
+                    uint16_t level_n = neighbour_iterator(level);
+
+                    if(check_index!=neighbour_iterator.global_index()){
+                        std::cout << "broke" << std::endl;
+                    }
+
+                    counter++;
                 }
             }
         }
-
 
 
     }
 
     std::cout << counter << std::endl;
 
-
+    timer.stop_timer();
 
 
 //    timer.start_timer("parallel");
