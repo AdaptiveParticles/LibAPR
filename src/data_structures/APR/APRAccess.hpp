@@ -44,6 +44,8 @@
 #define PC_TYPE_MASK ((((uint16_t)1) << 2) - 1) << 13
 #define PC_TYPE_SHIFT 13
 
+template<typename ImageType>
+class APRIteratorNew;
 
 struct ParticleCell {
     uint16_t x,y,z,level,type;
@@ -120,6 +122,8 @@ public:
 
     ExtraPartCellData<ParticleCellGapMap> gap_map;
     //ExtraPartCellData<std::map<uint16_t,YGap_map>::iterator> gap_map_it;
+
+    ExtraParticleData<uint8_t> particle_cell_type;
 
     uint64_t level_max;
     uint64_t level_min;
@@ -851,6 +855,28 @@ public:
         }
         total_number_non_empty_rows = counter_rows;
         apr_timer.stop_timer();
+
+        APRIteratorNew<T> apr_iterator(*this);
+
+        particle_cell_type.data.resize(global_index_by_level_end[level_max-1]+1,0);
+
+        uint64_t particle_number;
+
+        for (uint64_t level = apr_iterator.level_min(); level < apr_iterator.level_max(); ++level) {
+
+#pragma omp parallel for schedule(static) private(particle_number) firstprivate(apr_iterator)
+        for (particle_number = apr_iterator.particles_level_begin(level); particle_number <  apr_iterator.particles_level_end(level); ++particle_number) {
+                //
+                //  Parallel loop over level
+                //
+                apr_iterator.set_iterator_to_particle_by_number(particle_number);
+                const uint64_t offset_part_map = apr_iterator.x() * apr_iterator.spatial_index_y_max(apr_iterator.level()) + apr_iterator.z() * apr_iterator.spatial_index_y_max(apr_iterator.level()) * apr_iterator.spatial_index_x_max(apr_iterator.level());
+
+                apr_iterator(particle_cell_type) = p_map[apr_iterator.level()][offset_part_map + apr_iterator.y()];
+
+            }
+        }
+
 
     }
 
