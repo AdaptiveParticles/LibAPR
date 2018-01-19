@@ -71,222 +71,218 @@ struct coords3d {
 };
 
 
-
+/**
+ * Provides implementation for 3D mesh with elements of given type.
+ * @tparam T type of mesh elements
+ */
 template <class T>
-class MeshData{
-    //Defines what a particle is and what characteristics it has
+class MeshData {
 public :
-
+    // size of mesh and container for data
     int y_num;
     int x_num;
     int z_num;
-
-    //data on local
     std::vector<T> mesh;
 
-    T type;
+    /**
+     * Constructor - initialize mesh with size of 0,0,0
+     */
+    MeshData() { initialize(0, 0, 0); }
 
+    /**
+     * Constructor - initialize initial size of mesh to provided values
+     * @param aSizeOfY
+     * @param aSizeOfX
+     * @param aSizeOfZ
+     */
+    MeshData(int aSizeOfY, int aSizeOfX, int aSizeOfZ) { initialize(aSizeOfY, aSizeOfX, aSizeOfZ); }
 
-
-    MeshData()
-            :y_num(0),x_num(0),z_num(0)
-    {}
-
-    MeshData(int y_num,int x_num,int z_num)
-            :y_num(y_num),x_num(x_num),z_num(z_num)
-    {
-        mesh.resize(y_num*x_num*z_num);
-        //mesh.resize(y_num,std::vector<std::vector<T> >(x_num,std::vector<T>(z_num)));
-    }
-
-    template <class U> MeshData<U> to_type(){
+    /**
+     * Creates copy of this mesh converting each element to new type
+     * @tparam U new type of mesh
+     * @return created object by value
+     */
+    template <typename U>
+    MeshData<U> to_type() const {
+        // TODO: currently it creates local object and returns it via copy...
+        //       for small objects it's acceptable but when sizes are big it is not so cool.
+        //       Should return (smart)pointer or sth.
         MeshData<U> new_value(y_num, x_num, z_num);
         std::copy(mesh.begin(), mesh.end(), new_value.mesh.begin());
         return new_value;
     }
 
-    T& operator ()(int i, int j,int k){
-        j = std::min(j,x_num-1);
-        i = std::min(i,y_num-1);
-        k = std::min(k,z_num-1);
-
-        return mesh[y_num*(j) + i + (k)*x_num*y_num];
-        //return mesh[i][j][k];
+    /**
+     * access element at provided indices with boundary checking
+     * @param y
+     * @param x
+     * @param z
+     * @return element @(y, x, z)
+    */
+    T& operator()(int y, int x, int z) {
+        y = std::min(y, y_num-1);
+        x = std::min(x, x_num-1);
+        z = std::min(z, z_num-1);
+        size_t idx = (size_t)z * x_num * y_num + x * y_num + y;
+        return mesh[idx];
     }
 
-    T& access_no_protection(int i, int j,int k){
-
-        return mesh[y_num*(j) + i + (k)*x_num*y_num];
-
+    /**
+     * access element at provided indices without boundary checking
+     * @param y
+     * @param x
+     * @param z
+     * @return element @(y, x, z)
+     */
+    T& access_no_protection(int y, int x, int z) {
+        size_t idx = (size_t)z * x_num * y_num + x * y_num + y;
+        return mesh[idx];
     }
 
-    size_t index(coords3d coords) const{
-       return coords.z * (size_t)x_num * y_num + coords.x * y_num + coords.y;
-    }
-
-    void set_size(int y_num_,int x_num_,int z_num_){
-
-        y_num = y_num_;
-        x_num = x_num_;
-        z_num = z_num_;
-    }
-
-    void initialize(T val)
-    {
-        mesh.resize(y_num*x_num*z_num,val);
-        //mesh.insert(mesh.begin(),y_num*x_num*z_num,val);
-        //mesh.resize(y_num,std::vector<std::vector<T> >(x_num,std::vector<T>(z_num)));
-    }
-
+    /**
+     * Copies data from aInputMesh utilizing parallel copy, requires prior initialization
+     * of 'this' object (size and number of elements)
+     * @tparam U type of data
+     * @param aInputMesh input mesh with data
+     * @param aNumberOfBlocks in how many chunks copy will be done
+     */
     template<typename U>
-    void block_copy_data(MeshData<U>& input,unsigned int num_z_blocks = 10){
-        //
-        //  Attempt to utilize a parallel copy to saturate the memory performance, requires prior initialization
-        //
+    void block_copy_data(const MeshData<U> &aInputMesh, unsigned int aNumberOfBlocks = 10) {
+        aNumberOfBlocks = std::min((unsigned int)z_num, aNumberOfBlocks);
+        unsigned int numOfElementsPerBlock = z_num/aNumberOfBlocks;
 
-
-        std::vector<unsigned int> z_block_begin;
-        std::vector<unsigned int> z_block_end;
-
-        num_z_blocks = std::min((unsigned int)this->z_num,num_z_blocks);
-
-        z_block_begin.resize(num_z_blocks);
-        z_block_end.resize(num_z_blocks);
-
-        unsigned int size_of_block = floor(z_num/num_z_blocks);
-
-        unsigned int csum = 0; //cumulative sum
-
-        for (int i = 0; i < num_z_blocks; ++i) {
-            z_block_begin[i] = csum;
-            z_block_end[i] = csum + size_of_block;
-
-            csum+=size_of_block;
-        }
-
-        z_block_end[num_z_blocks-1] = z_num; //fill in the extras;
-
-        unsigned int z_block;
-        unsigned int z;
-
-
-#pragma omp parallel for private(z_block) schedule(dynamic) firstprivate(z_block_begin,z_block_end)
-        for (z_block = 0; z_block < num_z_blocks; ++z_block) {
-
-            const size_t  offset_begin = z_block_begin[z_block]*x_num*y_num;
-            const size_t offset_end = (z_block_end[z_block])*x_num*y_num  - 1;
-
-            std::copy(input.mesh.begin() + offset_begin,input.mesh.begin() + offset_end,mesh.begin() + offset_begin);
-
-        }
-
-
-
-
-
-    }
-
-
-    template<typename S>
-    void initialize(MeshData<S>& other_img){
-        //
-        //  Initialize using another image
-        //
-
-        y_num = other_img.y_num;
-        x_num = other_img.x_num;
-        z_num = other_img.z_num;
-
-        mesh.resize(y_num*x_num*z_num,0);
-
-    }
-
-    void initialize(int y_num_,int x_num_,int z_num_,T val)
-    {
-        y_num = y_num_;
-        x_num = x_num_;
-        z_num = z_num_;
-
-        mesh.resize(y_num*x_num*z_num,val);
-        //mesh.insert(mesh.begin(),y_num*x_num*z_num,val);
-        //mesh.resize(y_num,std::vector<std::vector<T> >(x_num,std::vector<T>(z_num)));
-    }
-
-    void initialize(int y_num_,int x_num_,int z_num_)
-    {
-        y_num = y_num_;
-        x_num = x_num_;
-        z_num = z_num_;
-
-        mesh.resize(y_num*x_num*z_num);
-        //mesh.insert(mesh.begin(),y_num*x_num*z_num,val);
-        //mesh.resize(y_num,std::vector<std::vector<T> >(x_num,std::vector<T>(z_num)));
-    }
-
-    void preallocate(int y_num_,int x_num_,int z_num_,T val)
-    {
-
-
-        const int z_num_ds = ceil(1.0*z_num_/2.0);
-        const int x_num_ds = ceil(1.0*x_num_/2.0);
-        const int y_num_ds = ceil(1.0*y_num_/2.0);
-
-        initialize(y_num_ds, x_num_ds, z_num_ds, val);
-    }
-
-
-
-    void zero()
-    {
-
-        std::vector<T>().swap(mesh);
-    }
-
-
-
-
-    void setzero()
-    {
-
-        std::fill(mesh.begin(), mesh.end(), 0);
-    }
-
-    void setones()
-    {
-
-        std::fill(mesh.begin(), mesh.end(), 1.0);
-    }
-
-    void transpose(){
-
-        std::vector<T> v2;
-        std::swap(mesh, v2);
-
-        for( unsigned int k = 0; k < z_num;k++){
-            for (unsigned int i = 0; i < y_num; i++) {
-                for (unsigned int j = 0; j < x_num; j++) {
-                    mesh.push_back(v2[k*x_num*y_num + j * y_num + i]);
-                }
+        #pragma omp parallel for schedule(dynamic)
+        for (unsigned int blockNum = 0; blockNum < aNumberOfBlocks; ++blockNum) {
+            const size_t elementSize = (size_t)x_num * y_num;
+            const size_t blockSize = numOfElementsPerBlock * elementSize;
+            size_t offsetBegin = blockNum * blockSize;
+            size_t offsetEnd = offsetBegin + blockSize;
+            if (blockNum == aNumberOfBlocks - 1) {
+                // Handle tailing elements if number of blocks does not divide.
+                offsetEnd = z_num * elementSize;
             }
+
+            std::copy(aInputMesh.mesh.begin() + offsetBegin, aInputMesh.mesh.begin() + offsetEnd, mesh.begin() + offsetBegin);
         }
-
-        y_num = x_num;
-        x_num = y_num;
-
     }
+
+    /**
+     * Initilize mesh with provided dimensions and initial value
+     * @param aSizeOfY
+     * @param aSizeOfX
+     * @param aSizeOfZ
+     * @param aInitVal
+     * NOTE: If mesh was already created only added elements (new size > old size) will be initialize with aInitVal
+     */
+    void initialize(int aSizeOfY, int aSizeOfX, int aSizeOfZ, T aInitVal) {
+        y_num = aSizeOfY;
+        x_num = aSizeOfX;
+        z_num = aSizeOfZ;
+        size_t size = (size_t)y_num * x_num * z_num;
+        mesh.resize(size, aInitVal);
+    }
+
+    /**
+     * Initialize mesh with dimensions taken from provided mesh and initializes
+     * its values to 0
+     * @tparam S
+     * @param aInputMesh
+     */
+    template<typename S>
+    void initialize(MeshData<S>& aInputMesh) {
+        initialize(aInputMesh.y_num, aInputMesh.x_num, aInputMesh.z_num, 0);
+    }
+
+    /**
+     * Initializes mesh with provided dimensions with default value of used type
+     * @param aSizeOfY
+     * @param aSizeOfX
+     * @param aSizeOfZ
+     */
+    void initialize(int aSizeOfY, int aSizeOfX, int aSizeOfZ) {
+        y_num = aSizeOfY;
+        x_num = aSizeOfX;
+        z_num = aSizeOfZ;
+        size_t size = (size_t)y_num * x_num * z_num;
+        mesh.resize(size);
+    }
+
+    /**
+     * Initializes mesh with size of half of provided dimensions (rounding up if not divisible by 2)
+     * sets provided val for all elements
+     * @param aSizeOfY
+     * @param aSizeOfX
+     * @param aSizeOfZ
+     * @param aInitVal
+     */
+    void preallocate(int aSizeOfY, int aSizeOfX, int aSizeOfZ, T aInitVal) {
+        const int z_num_ds = ceil(1.0*aSizeOfZ/2.0);
+        const int x_num_ds = ceil(1.0*aSizeOfX/2.0);
+        const int y_num_ds = ceil(1.0*aSizeOfY/2.0);
+
+        initialize(y_num_ds, x_num_ds, z_num_ds, aInitVal);
+    }
+
 
     void write_image_tiff(std::string& filename);
-
     void write_image_tiff_uint16(std::string& filename);
-
-
     void load_image_tiff(std::string file_name,int z_start = 0, int z_end = -1);
+
+
+//    //REMOVE_FLAG
+//    void initialize(T val)
+//    {
+//        mesh.resize(y_num*x_num*z_num,val);
+//        //mesh.insert(mesh.begin(),y_num*x_num*z_num,val);
+//        //mesh.resize(y_num,std::vector<std::vector<T> >(x_num,std::vector<T>(z_num)));
+//    }
+//
+//    //REMOVE_FLAG
+//    void set_size(int y_num_,int x_num_,int z_num_){
+//
+//        y_num = y_num_;
+//        x_num = x_num_;
+//        z_num = z_num_;
+//    }
+//
+//    //REMOVE_FLAG
+//    size_t index(coords3d coords) const{
+//        return coords.z * (size_t)x_num * y_num + coords.x * y_num + coords.y;
+//    }
+//
+//    //REMOVE_FLAG
+//    void setzero()
+//    {
+//        std::fill(mesh.begin(), mesh.end(), 0);
+//    }
+//
+//    //REMOVE_FLAG
+//    void setones()
+//    {
+//        std::fill(mesh.begin(), mesh.end(), 1.0);
+//    }
+//
+//    //REMOVE_FLAG
+//    void transpose(){
+//        std::vector<T> v2;
+//        std::swap(mesh, v2);
+//
+//        for( unsigned int k = 0; k < z_num;k++){
+//            for (unsigned int i = 0; i < y_num; i++) {
+//                for (unsigned int j = 0; j < x_num; j++) {
+//                    mesh.push_back(v2[k*x_num*y_num + j * y_num + i]);
+//                }
+//            }
+//        }
+//
+//        y_num = x_num;
+//        x_num = y_num;
+//    }
 
 private:
 
     template<typename V>
-    void write_image_tiff(std::vector<V>& data,std::string& filename);
-
+    void write_image_tiff(std::vector<V> &data, std::string &filename);
 };
 
 template<typename T>
