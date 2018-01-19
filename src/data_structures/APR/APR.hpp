@@ -49,6 +49,8 @@ class APR : public APRIterator<ImageType>{
 
     friend class APRWriter;
 
+    friend class new_iterator::APRWriter;
+
     friend class PullingScheme;
 
     template<typename S>
@@ -81,6 +83,8 @@ private:
 
 
 public:
+
+    APRAccess apr_access;
 
     ExtraParticleData<ImageType> particles_int_new;
 

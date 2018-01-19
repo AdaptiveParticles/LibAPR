@@ -128,6 +128,8 @@ public:
     uint64_t level_max;
     uint64_t level_min;
 
+    uint64_t org_dims[3]={0,0,0};
+
     std::vector<uint64_t> x_num;
     std::vector<uint64_t> y_num;
     std::vector<uint64_t> z_num;

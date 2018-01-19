@@ -267,6 +267,8 @@ int main(int argc, char **argv) {
     apr_access2.initialize_structure_from_particle_cell_tree(apr,p_map);
     timer.stop_timer();
 
+
+
     //compare_two_maps(apr,apr_access,apr_access2);
 
     APRIteratorNew<uint16_t> apr_iterator(apr_access2);
@@ -292,9 +294,6 @@ int main(int argc, char **argv) {
 
     counter = 0;
 
-
-
-
     std::cout << counter << std::endl;
 
     APRIteratorNew<uint16_t> neighbour_iterator(apr_access2);
@@ -307,98 +306,118 @@ int main(int argc, char **argv) {
 
     float num_rep = 4;
 
-    timer.start_timer("normal");
+    apr.apr_access.initialize_structure_from_particle_cell_tree(apr,p_map);
 
-    for (int i = 0; i < num_rep; ++i) {
+    new_iterator::APRWriter writer;
 
+    apr.particles_int_new = particles_int;
 
-        counter = 0;
-        uint64_t particle_number;
-#pragma omp parallel for schedule(static) private(particle_number) firstprivate(apr_iterator, neighbour_iterator)
-        for (particle_number = 0; particle_number < apr_iterator.total_number_parts(); ++particle_number) {
+    timer.start_timer("writint");
 
-            apr_iterator.set_iterator_to_particle_by_number(particle_number);
+    writer.write_apr(apr,options.directory,name);
 
-            float temp = 0;
-            float counter = 0;
+    timer.stop_timer();
 
-            //loop over all the neighbours and set the neighbour iterator to it
-            for (int direction = 0; direction < 6; ++direction) {
-                // Neighbour Particle Cell Face definitions [+y,-y,+x,-x,+z,-z] =  [0,1,2,3,4,5]
-                apr_iterator.find_neighbours_in_direction(direction);
+    timer.start_timer("writint");
 
-                for (int index = 0; index < apr_iterator.number_neighbours_in_direction(direction); ++index) {
-                    // on each face, there can be 0-4 neighbours accessed by index
-                    if (neighbour_iterator.set_neighbour_iterator(apr_iterator, direction, index)) {
-                        //will return true if there is a neighbour defined
-                        temp += neighbour_iterator(particles_int);
-                        counter++;
-
-                    }
-
-                }
-
-            }
-
-            apr_iterator(neigh_sum) = temp / counter;
-
-        }
-    }
-
-
-    std::cout << total_counter << std::endl;
+    apr.write_apr(options.directory,name+"o");
 
     timer.stop_timer();
 
 
-    //initialization of the iteration structures
-    APRIterator<uint16_t> apr_parallel_iterator(apr);
-    APRIterator<uint16_t> old_neighbour_iterator(apr);
-    //this is required for parallel access
-    uint64_t part; //declare parallel iteration variable
 
-    ExtraPartCellData<float> neigh_xm(apr);
-
-     total_counter  = 0;
-
-    timer.start_timer("APR parallel iterator neighbour loop");
-
-    for (int i = 0; i < num_rep; ++i) {
-#pragma omp parallel for schedule(static) private(part) firstprivate(apr_parallel_iterator, old_neighbour_iterator)
-        for (part = 0; part < apr.num_parts_total; ++part) {
-            //needed step for any parallel loop (update to the next part)
-
-            apr_parallel_iterator.set_iterator_to_particle_by_number(part);
-
-            //compute neighbours as previously, now using the apr_parallel_iterator (APRIterator), instead of the apr class for access.
-            apr_parallel_iterator.update_all_neighbours();
-
-            float temp = 0;
-            float counter = 0;
-
-            //loop over all the neighbours and set the neighbour iterator to it
-            for (int dir = 0; dir < 6; ++dir) {
-                for (int index = 0; index < apr_parallel_iterator.number_neighbours_in_direction(dir); ++index) {
-
-                    if (old_neighbour_iterator.set_neighbour_iterator(apr_parallel_iterator, dir, index)) {
-                        //neighbour_iterator works just like apr, and apr_parallel_iterator (you could also call neighbours)
-
-                        temp += old_neighbour_iterator(apr.particles_int);
-                        counter++;
-
-                    }
-
-                }
-            }
-
-            apr_parallel_iterator(neigh_xm) = temp / counter;
-
-        }
-    }
-
-    timer.stop_timer();
-
-    std::cout << total_counter << std::endl;
+//    timer.start_timer("normal");
+//
+//    for (int i = 0; i < num_rep; ++i) {
+//
+//
+//        counter = 0;
+//        uint64_t particle_number;
+//#pragma omp parallel for schedule(static) private(particle_number) firstprivate(apr_iterator, neighbour_iterator)
+//        for (particle_number = 0; particle_number < apr_iterator.total_number_parts(); ++particle_number) {
+//
+//            apr_iterator.set_iterator_to_particle_by_number(particle_number);
+//
+//            float temp = 0;
+//            float counter = 0;
+//
+//            //loop over all the neighbours and set the neighbour iterator to it
+//            for (int direction = 0; direction < 6; ++direction) {
+//                // Neighbour Particle Cell Face definitions [+y,-y,+x,-x,+z,-z] =  [0,1,2,3,4,5]
+//                apr_iterator.find_neighbours_in_direction(direction);
+//
+//                for (int index = 0; index < apr_iterator.number_neighbours_in_direction(direction); ++index) {
+//                    // on each face, there can be 0-4 neighbours accessed by index
+//                    if (neighbour_iterator.set_neighbour_iterator(apr_iterator, direction, index)) {
+//                        //will return true if there is a neighbour defined
+//                        temp += neighbour_iterator(particles_int);
+//                        counter++;
+//
+//                    }
+//
+//                }
+//
+//            }
+//
+//            apr_iterator(neigh_sum) = temp / counter;
+//
+//        }
+//    }
+//
+//
+//    std::cout << total_counter << std::endl;
+//
+//    timer.stop_timer();
+//
+//
+//    //initialization of the iteration structures
+//    APRIterator<uint16_t> apr_parallel_iterator(apr);
+//    APRIterator<uint16_t> old_neighbour_iterator(apr);
+//    //this is required for parallel access
+//    uint64_t part; //declare parallel iteration variable
+//
+//    ExtraPartCellData<float> neigh_xm(apr);
+//
+//     total_counter  = 0;
+//
+//    timer.start_timer("APR parallel iterator neighbour loop");
+//
+//    for (int i = 0; i < num_rep; ++i) {
+//#pragma omp parallel for schedule(static) private(part) firstprivate(apr_parallel_iterator, old_neighbour_iterator)
+//        for (part = 0; part < apr.num_parts_total; ++part) {
+//            //needed step for any parallel loop (update to the next part)
+//
+//            apr_parallel_iterator.set_iterator_to_particle_by_number(part);
+//
+//            //compute neighbours as previously, now using the apr_parallel_iterator (APRIterator), instead of the apr class for access.
+//            apr_parallel_iterator.update_all_neighbours();
+//
+//            float temp = 0;
+//            float counter = 0;
+//
+//            //loop over all the neighbours and set the neighbour iterator to it
+//            for (int dir = 0; dir < 6; ++dir) {
+//                for (int index = 0; index < apr_parallel_iterator.number_neighbours_in_direction(dir); ++index) {
+//
+//                    if (old_neighbour_iterator.set_neighbour_iterator(apr_parallel_iterator, dir, index)) {
+//                        //neighbour_iterator works just like apr, and apr_parallel_iterator (you could also call neighbours)
+//
+//                        temp += old_neighbour_iterator(apr.particles_int);
+//                        counter++;
+//
+//                    }
+//
+//                }
+//            }
+//
+//            apr_parallel_iterator(neigh_xm) = temp / counter;
+//
+//        }
+//    }
+//
+//    timer.stop_timer();
+//
+//    std::cout << total_counter << std::endl;
 
 //    timer.start_timer("parallel");
 //

@@ -130,7 +130,7 @@ void hdf5_write_data_blosc(hid_t obj_id,hid_t type_id,const char* ds_name,hsize_
     //cdims[0] = 20; //Could try playing with these for compression performance
     //cdims[1] = 20;
     
-    int max_size = 200000;
+    int max_size = 5000000;
     
     if (rank == 1) {
         if (dims[0] < max_size){
