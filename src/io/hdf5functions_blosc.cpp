@@ -223,7 +223,7 @@ void hdf5_create_file_blosc(std::string file_name){
     H5Fclose(fid);
     
 };
-void write_main_paraview_xdmf_xml(std::string save_loc,std::string file_name,int num_parts){
+void write_main_paraview_xdmf_xml(std::string save_loc,std::string file_name,uint64_t num_parts){
     //
     //
     //
@@ -253,9 +253,9 @@ void write_main_paraview_xdmf_xml(std::string save_loc,std::string file_name,int
     myfile <<  "        " << hdf5_file_name << ":/ParticleRepr/t/z\n";
     myfile <<  "       </DataItem>\n";
     myfile <<  "     </Geometry>\n";
-    myfile <<  "     <Attribute Name=\"Ip\" AttributeType=\"Scalar\" Center=\"Node\">\n";
+    myfile <<  "     <Attribute Name=\"particle property\" AttributeType=\"Scalar\" Center=\"Node\">\n";
     myfile <<  "       <DataItem Dimensions=\""<< num_parts <<"\" NumberType=\"UInt\" Precision=\"2\" Format=\"HDF\">\n";
-    myfile <<  "        " << hdf5_file_name << ":/ParticleRepr/t/Ip\n";
+    myfile <<  "        " << hdf5_file_name << ":/ParticleRepr/t/particle property\n";
     myfile <<  "       </DataItem>\n";
     myfile <<  "    </Attribute>\n";
     myfile <<  "     <Attribute Name=\"level\" AttributeType=\"Scalar\" Center=\"Node\">\n";

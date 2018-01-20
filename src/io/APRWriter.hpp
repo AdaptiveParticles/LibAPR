@@ -1790,533 +1790,364 @@ namespace new_iterator{
             std::cout << "Writing Complete" << std::endl;
 
         }
-//        template<typename ImageType,typename T>
-//        void write_apr_paraview(APR<ImageType>& apr,std::string save_loc,std::string file_name,ExtraPartCellData<T>& parts){
-//            //
-//            //
-//            //  Bevan Cheeseman 2018
-//            //
-//            //  Writes the APR and Extra PartCell Data to
-//            //
-//            //
-//
-//            unsigned int blosc_comp_type = BLOSC_ZSTD;
-//            unsigned int blosc_comp_level = 1;
-//            unsigned int blosc_shuffle = 2;
-//
-//            APRTimer write_timer;
-//
-//            write_timer.verbose_flag = true;
-//
-//            //initialize
-//            uint64_t node_val_part;
-//            uint64_t y_coord;
-//            int x_;
-//            int z_;
-//
-//            uint64_t j_;
-//            uint64_t status;
-//            uint64_t curr_key=0;
-//            uint64_t part_offset=0;
-//
-//
-//            //Neighbour Routine Checking
-//
-//            uint64_t p;
-//
-//            register_bosc();
-//
-//            std::string hdf5_file_name = save_loc + file_name + "_paraview.h5";
-//
-//            file_name = file_name + "_paraview";
-//
-//            hdf5_create_file_blosc(hdf5_file_name);
-//
-//            //hdf5 inits
-//            hid_t fid, pr_groupid, obj_id;
-//            H5G_info_t info;
-//
-//            hsize_t     dims_out[2];
-//
-//            hsize_t rank = 1;
-//
-//            hsize_t dims;
-//            hsize_t dim_a=1;
-//
-//            fid = H5Fopen(hdf5_file_name.c_str(),H5F_ACC_RDWR,H5P_DEFAULT);
-//
-//            //Get the group you want to open
-//
-//            //////////////////////////////////////////////////////////////////
-//            //
-//            //  Write meta-data to the file
-//            //
-//            //
-//            //
-//            ///////////////////////////////////////////////////////////////////////
-//            dims = 1;
-//
-//            pr_groupid = H5Gcreate2(fid,"ParticleRepr",H5P_DEFAULT,H5P_DEFAULT,H5P_DEFAULT);
-//            H5Gget_info( pr_groupid, &info );
-//
-//            obj_id = H5Gcreate2(fid,"ParticleRepr/t",H5P_DEFAULT,H5P_DEFAULT,H5P_DEFAULT);
-//
-//            dims_out[0] = 1;
-//            dims_out[1] = 1;
-//
-//            //just an identifier in here for the reading of the parts
-//
-//            int num_parts = apr.num_parts_total;
-//            int num_cells = apr.num_elements_total;
-//
-//            hdf5_write_attribute_blosc(pr_groupid,H5T_NATIVE_INT,"num_parts",1,dims_out, &num_parts );
-//
-//            hdf5_write_attribute_blosc(pr_groupid,H5T_NATIVE_INT,"num_cells",1,dims_out, &num_cells );
-//
-//            // New parameter and background data
-//
-//            if(apr.pars.name.size() == 0){
-//                apr.pars.name = "no_name";
-//                apr.name = "no_name";
-//            }
-//
-//            hdf5_write_string_blosc(pr_groupid,"name",apr.pars.name);
-//
-//            std::string git_hash = exec_blosc("git rev-parse HEAD");
-//
-//            hdf5_write_string_blosc(pr_groupid,"githash",git_hash);
-//
-//            //////////////////////////////////////////////////////////////////
-//            //
-//            //  Write data to the file
-//            //
-//            //
-//            //
-//            ///////////////////////////////////////////////////////////////////////
-//
-//            write_timer.start_timer("intensities");
-//
-//            uint64_t depth_min =apr.pc_data.depth_min;
-//
-//            std::vector<T> Ip;
-//
-//            ExtraPartCellData<T> temp_int;
-//
-//            temp_int = parts;
-//
-//            write_timer.stop_timer();
-//
-//            write_timer.start_timer("shift");
-//
-//            apr.shift_particles_from_cells(temp_int);
-//
-//            write_timer.stop_timer();
-//
-//            write_timer.start_timer("write int");
-//
-//            std::string name;
-//
-//
-//            uint64_t total_p = 0;
-//
-//
-//            for(uint64_t i =apr.pc_data.depth_min;i <=apr.pc_data.depth_max;i++) {
-//
-//                const unsigned int x_num_ =apr.pc_data.x_num[i];
-//                const unsigned int z_num_ =apr.pc_data.z_num[i];
-//                const unsigned int y_num_ =apr.pc_data.y_num[i];
-//
-//
-//                for (z_ = 0; z_ < z_num_; z_++) {
-//
-//                    for (x_ = 0; x_ < x_num_; x_++) {
-//
-//                        const size_t offset_pc_data = x_num_ * z_ + x_;
-//
-//                        const size_t j_num = temp_int.data[i][offset_pc_data].size();
-//
-//                        total_p += j_num;
-//                    }
-//                }
-//            }
-//
-//
-//            Ip.resize(total_p);
-//
-//            total_p = 0;
-//            for(uint64_t i =apr.pc_data.depth_min;i <=apr.pc_data.depth_max;i++) {
-//
-//                const unsigned int x_num_ =apr.pc_data.x_num[i];
-//                const unsigned int z_num_ =apr.pc_data.z_num[i];
-//                const unsigned int y_num_ =apr.pc_data.y_num[i];
-//
-//                for (z_ = 0; z_ < z_num_; z_++) {
-//
-//                    for (x_ = 0; x_ < x_num_; x_++) {
-//
-//                        const size_t offset_pc_data = x_num_ * z_ + x_;
-//
-//                        const size_t j_num = temp_int.data[i][offset_pc_data].size();
-//
-//                        std::copy(temp_int.data[i][offset_pc_data].begin(), temp_int.data[i][offset_pc_data].end(),
-//                                  Ip.begin() + total_p);
-//
-//                        total_p += j_num;
-//
-//                    }
-//
-//                }
-//            }
-//
-//            dims = Ip.size();
-//
-//
-//            //write the parts
-//
-//            name = "Ip";
-//
-//            hdf5_write_data_blosc(obj_id, H5T_NATIVE_UINT16, name.c_str(), rank, &dims, Ip.data(),blosc_comp_type,blosc_comp_level,blosc_shuffle);
-//
-//            write_timer.stop_timer();
-//
-//            apr.get_part_numbers();
-//
-//            std::vector<uint16_t> xv;
-//            xv.reserve(apr.num_parts_total);
-//
-//            std::vector<uint16_t> yv;
-//            yv.reserve(apr.num_parts_total);
-//
-//            std::vector<uint16_t> zv;
-//            zv.reserve(apr.num_parts_total);
-//
-//            std::vector<uint8_t> levelv;
-//            levelv.reserve(apr.num_parts_total);
-//
-//            std::vector<uint8_t> typev;
-//            typev.reserve(apr.num_parts_total);
-//
-//
-//            for(apr.begin();apr.end()!=0;apr.it_forward()){
-//                xv.push_back((uint16_t)apr.x_global());
-//                yv.push_back((uint16_t)apr.y_global());
-//                zv.push_back((uint16_t)apr.z_global());
-//                levelv.push_back((uint8_t)apr.level());
-//                typev.push_back((uint8_t)apr.type());
-//            }
-//
-//            name = "x";
-//            hdf5_write_data_blosc(obj_id, H5T_NATIVE_UINT16, name.c_str(), rank, &dims, xv.data(),blosc_comp_type,blosc_comp_level,blosc_shuffle);
-//
-//            name = "y";
-//            hdf5_write_data_blosc(obj_id, H5T_NATIVE_UINT16, name.c_str(), rank, &dims, yv.data(),blosc_comp_type,blosc_comp_level,blosc_shuffle);
-//
-//            name = "z";
-//            hdf5_write_data_blosc(obj_id, H5T_NATIVE_UINT16, name.c_str(), rank, &dims, zv.data(),blosc_comp_type,blosc_comp_level,blosc_shuffle);
-//
-//            name = "level";
-//            hdf5_write_data_blosc(obj_id, H5T_NATIVE_UINT8, name.c_str(), rank, &dims, levelv.data(),blosc_comp_type,blosc_comp_level,blosc_shuffle);
-//
-//            name = "type";
-//            hdf5_write_data_blosc(obj_id, H5T_NATIVE_UINT8, name.c_str(), rank, &dims, typev.data(),blosc_comp_type,blosc_comp_level,blosc_shuffle);
-//
-//            hsize_t attr =apr.pc_data.depth_min;
-//            hdf5_write_attribute_blosc(pr_groupid,H5T_NATIVE_INT,"depth_max",1,&dim_a, &apr.pc_data.depth_max );
-//            hdf5_write_attribute_blosc(pr_groupid,H5T_NATIVE_INT,"depth_min",1,&dim_a, &attr );
-//
-//            // output the file size
-//            hsize_t file_size;
-//            H5Fget_filesize(fid, &file_size);
-//
-//            std::cout << "HDF5 Filesize: " << file_size*1.0/1000000.0 << " MB" << std::endl;
-//
-//            write_main_paraview_xdmf_xml(save_loc,file_name,apr.num_parts_total);
-//
-//            //close shiz
-//            H5Gclose(obj_id);
-//            H5Gclose(pr_groupid);
-//            H5Fclose(fid);
-//
-//            std::cout << "Writing Complete" << std::endl;
-//
-//        }
-//
-//        template<typename ImageType, typename S>
-//        void write_particles_only(APR<ImageType> apr, std::string save_loc,std::string file_name,ExtraPartCellData<S>& parts_extra){
-//            //
-//            //
-//            //  Bevan Cheeseman 2018
-//            //
-//            //  Writes only the particle data, requires the same APR to be read in correctly.
-//            //
-//            //  #FIX_ME Extend me.
-//            //
-//            //
-//
-//            std::cout << "Either uint8, uint16, or float" << std::endl;
-//
-//            //initialize
-//            uint64_t node_val_part;
-//            uint64_t y_coord;
-//            int x_;
-//            int z_;
-//
-//            uint64_t j_;
-//            uint64_t status;
-//            uint64_t curr_key=0;
-//            uint64_t part_offset=0;
-//
-//
-//            //Neighbour Routine Checking
-//
-//            uint64_t p;
-//
-//            register_bosc();
-//
-//            std::string hdf5_file_name = save_loc + file_name + "_apr_extra_parts.h5";
-//
-//            file_name = file_name + "_apr_extra_parts";
-//
-//            hdf5_create_file_blosc(hdf5_file_name);
-//
-//            //hdf5 inits
-//            hid_t fid, pr_groupid, obj_id;
-//            H5G_info_t info;
-//
-//            hsize_t     dims_out[2];
-//
-//            hsize_t rank = 1;
-//
-//            hsize_t dims;
-//            hsize_t dim_a=1;
-//
-//            fid = H5Fopen(hdf5_file_name.c_str(),H5F_ACC_RDWR,H5P_DEFAULT);
-//
-//            //Get the group you want to open
-//
-//            //////////////////////////////////////////////////////////////////
-//            //
-//            //  Write meta-data to the file
-//            //
-//            //
-//            //
-//            ///////////////////////////////////////////////////////////////////////
-//            dims = 1;
-//
-//            pr_groupid = H5Gcreate2(fid,"ParticleRepr",H5P_DEFAULT,H5P_DEFAULT,H5P_DEFAULT);
-//            H5Gget_info( pr_groupid, &info );
-//
-//            hdf5_write_attribute_blosc(pr_groupid,H5T_NATIVE_INT,"x_num",1,&dims, &apr.pc_data.org_dims[1] );
-//            hdf5_write_attribute_blosc(pr_groupid,H5T_NATIVE_INT,"y_num",1,&dims, &apr.pc_data.org_dims[0] );
-//            hdf5_write_attribute_blosc(pr_groupid,H5T_NATIVE_INT,"z_num",1,&dims, &apr.pc_data.org_dims[2] );
-//
-//
-//            obj_id = H5Gcreate2(fid,"ParticleRepr/t",H5P_DEFAULT,H5P_DEFAULT,H5P_DEFAULT);
-//
-//            dims_out[0] = 1;
-//            dims_out[1] = 1;
-//
-//            //just an identifier in here for the reading of the parts
-//
-//            int num_parts = apr.num_parts_total;
-//            int num_cells = apr.num_elements_total;
-//
-//            hdf5_write_attribute_blosc(pr_groupid,H5T_NATIVE_INT,"num_parts",1,dims_out, &num_parts );
-//
-//            hdf5_write_attribute_blosc(pr_groupid,H5T_NATIVE_INT,"num_cells",1,dims_out, &num_cells );
-//
-//            // New parameter and background data
-//
-//            if(apr.pars.name.size() == 0){
-//                apr.pars.name = "no_name";
-//                apr.name = "no_name";
-//            }
-//
-//            hdf5_write_string_blosc(pr_groupid,"name",apr.pars.name);
-//
-//            std::string git_hash = exec_blosc("git rev-parse HEAD");
-//
-//            hdf5_write_string_blosc(pr_groupid,"githash",git_hash);
-//
-//
-//            S val = 0;
-//            hid_t type = get_type_blosc(val);
-//            int type_id = type;
-//
-//            hdf5_write_attribute_blosc(pr_groupid,H5T_NATIVE_INT,"data_type",1,dims_out, &type_id);
-//
-//            //////////////////////////////////////////////////////////////////
-//            //
-//            //  Write data to the file
-//            //
-//            //
-//            //
-//            ///////////////////////////////////////////////////////////////////////
-//
-//            uint64_t depth_min =apr.pc_data.depth_min;
-//
-//            std::vector<S> Ip;
-//
-//            ExtraPartCellData<S> temp_int;
-//            temp_int.initialize_structure_cells(apr.pc_data);
-//            temp_int.data = parts_extra.data;
-//
-//            temp_int.shift_particles_from_cells(temp_int,apr.pc_data);
-//
-//
-//            for(uint64_t i =apr.pc_data.depth_min;i <=apr.pc_data.depth_max;i++){
-//
-//                const unsigned int x_num_ =apr.pc_data.x_num[i];
-//                const unsigned int z_num_ =apr.pc_data.z_num[i];
-//                const unsigned int y_num_ =apr.pc_data.y_num[i];
-//
-//                //write the vals
-//
-//                Ip.resize(0);
-//
-//                for(z_ = 0;z_ < z_num_;z_++){
-//
-//                    for(x_ = 0;x_ < x_num_;x_++){
-//
-//                        const size_t offset_pc_data = x_num_*z_ + x_;
-//
-//                        const size_t j_num = temp_int.data[i][offset_pc_data].size();
-//
-//                        uint64_t curr_size = Ip.size();
-//                        Ip.resize(curr_size+ j_num);
-//
-//                        std::copy(temp_int.data[i][offset_pc_data].begin(),temp_int.data[i][offset_pc_data].end(),Ip.begin() + curr_size);
-//
-//                    }
-//
-//                }
-//
-//                dims = Ip.size();
-//
-//                std::string name = "Ip_size_"+std::to_string(i);
-//                hdf5_write_attribute_blosc(pr_groupid,H5T_NATIVE_INT,name.c_str(),1,&dim_a,&dims);
-//
-//                if(Ip.size() > 0){
-//                    //write the parts
-//
-//                    name = "Ip_"+std::to_string(i);
-//
-//                    S val = 0;
-//
-//                    hdf5_write_data_blosc(obj_id, get_type_blosc(val), name.c_str(), rank, &dims, Ip.data());
-//
-//                }
-//
-//            }
-//
-//            hsize_t attr =apr.pc_data.depth_min;
-//            hdf5_write_attribute_blosc(pr_groupid,H5T_NATIVE_INT,"depth_max",1,&dim_a, &apr.pc_data.depth_max );
-//            hdf5_write_attribute_blosc(pr_groupid,H5T_NATIVE_INT,"depth_min",1,&dim_a, &attr );
-//
-//            // output the file size
-//            hsize_t file_size;
-//            H5Fget_filesize(fid, &file_size);
-//
-//            std::cout << "HDF5 Filesize: " << file_size*1.0/1000000.0 << " MB" << std::endl;
-//
-//            //close shiz
-//            H5Gclose(obj_id);
-//            H5Gclose(pr_groupid);
-//            H5Fclose(fid);
-//
-//            std::cout << "Writing ExtraPartCellData Complete" << std::endl;
-//
-//        }
-//
-//        template<typename T,typename ImageType>
-//        void read_parts_only(APR<ImageType>& apr,std::string file_name,ExtraPartCellData<T>& extra_parts)
-//        {
-//
-//            //hdf5 inits
-//            hid_t fid, pr_groupid, obj_id,attr_id;
-//            H5G_info_t info;
-//
-//            //need to register the filters so they work properly
-//            register_bosc();
-//
-//            int num_parts,num_cells;
-//
-//            fid = H5Fopen(file_name.c_str(),H5F_ACC_RDONLY,H5P_DEFAULT);
-//
-//            //Get the group you want to open
-//
-//            pr_groupid = H5Gopen2(fid,"ParticleRepr",H5P_DEFAULT);
-//            H5Gget_info( pr_groupid, &info );
-//
-//            //Getting an attribute
-//            obj_id =  H5Oopen_by_idx( fid, "ParticleRepr", H5_INDEX_NAME, H5_ITER_INC,0,H5P_DEFAULT);
-//
-//            //Load the attributes
-//            std::string name;
-//
-//            /////////////////////////////////////////////
-//            //  Get metadata
-//            //
-//            //////////////////////////////////////////////
-//
-//            hid_t       aid, atype, attr;
-//
-//            aid = H5Screate(H5S_SCALAR);
-//
-//            int data_type;
-//
-//            attr_id = 	H5Aopen(pr_groupid,"data_type",H5P_DEFAULT);
-//            H5Aread(attr_id,H5T_NATIVE_INT,&data_type ) ;
-//            H5Aclose(attr_id);
-//
-//            hid_t hdf5_data_type = data_type;
-//
-//            std::vector<std::vector<T>> Ip;
-//
-//            Ip.resize(apr.pc_data.depth_max+1);
-//
-//            for(int i =apr.pc_data.depth_min;i <=apr.pc_data.depth_max; i++){
-//
-//                //get the info
-//
-//                int Ip_num;
-//                name = "Ip_size_"+std::to_string(i);
-//
-//                attr_id = 	H5Aopen(pr_groupid,name.c_str(),H5P_DEFAULT);
-//                H5Aread(attr_id,H5T_NATIVE_INT,&Ip_num);
-//                H5Aclose(attr_id);
-//
-//                Ip[i].resize(Ip_num);
-//
-//                if(Ip[i].size()>0){
-//                    name = "Ip_"+std::to_string(i);
-//                    hdf5_load_data_blosc(obj_id,hdf5_data_type,Ip[i].data(),name.c_str());
-//                }
-//
-//            }
-//
-//            //close shiz
-//            H5Gclose(obj_id);
-//            H5Gclose(pr_groupid);
-//            H5Fclose(fid);
-//
-//            extra_parts.initialize_structure_cells(apr.pc_data);
-//
-//            for (int depth = apr.depth_min(); depth <= apr.depth_max(); ++depth) {
-//
-//                uint64_t counter = 0;
-//
-//                for (apr.begin(depth); apr.end() == true ; apr.it_forward(depth)) {
-//
-//                    apr.curr_level.get_val(extra_parts) = Ip[depth][counter];
-//
-//                    counter++;
-//
-//                }
-//            }
-//
-//
-//        };
+        template<typename ImageType,typename T>
+        void write_apr_paraview(APR<ImageType>& apr,std::string save_loc,std::string file_name,ExtraParticleData<T>& parts){
+            //
+            //
+            //  Bevan Cheeseman 2018
+            //
+            //  Writes the APR and Extra PartCell Data to
+            //
+            //  #TODO auto detect type
+            //
+
+            unsigned int blosc_comp_type = BLOSC_ZSTD;
+            unsigned int blosc_comp_level = 1;
+            unsigned int blosc_shuffle = 2;
+
+            APRTimer write_timer;
+
+            write_timer.verbose_flag = true;
+
+            //initialize
+            uint64_t node_val_part;
+            uint64_t y_coord;
+            int x_;
+            int z_;
+
+            uint64_t j_;
+            uint64_t status;
+            uint64_t curr_key=0;
+            uint64_t part_offset=0;
+
+
+            //Neighbour Routine Checking
+
+            uint64_t p;
+
+            register_bosc();
+
+            std::string hdf5_file_name = save_loc + file_name + "_paraview.h5";
+
+            file_name = file_name + "_paraview";
+
+            hdf5_create_file_blosc(hdf5_file_name);
+
+            //hdf5 inits
+            hid_t fid, pr_groupid, obj_id;
+            H5G_info_t info;
+
+            hsize_t     dims_out[2];
+
+            hsize_t rank = 1;
+
+            hsize_t dims;
+            hsize_t dim_a=1;
+
+            fid = H5Fopen(hdf5_file_name.c_str(),H5F_ACC_RDWR,H5P_DEFAULT);
+
+            //Get the group you want to open
+
+            //////////////////////////////////////////////////////////////////
+            //
+            //  Write meta-data to the file
+            //
+            //
+            //
+            ///////////////////////////////////////////////////////////////////////
+            dims = 1;
+
+            pr_groupid = H5Gcreate2(fid,"ParticleRepr",H5P_DEFAULT,H5P_DEFAULT,H5P_DEFAULT);
+            H5Gget_info( pr_groupid, &info );
+
+            obj_id = H5Gcreate2(fid,"ParticleRepr/t",H5P_DEFAULT,H5P_DEFAULT,H5P_DEFAULT);
+
+            dims_out[0] = 1;
+            dims_out[1] = 1;
+
+            //just an identifier in here for the reading of the parts
+
+
+            int num_parts = apr.apr_access.total_number_parts;
+
+            hdf5_write_attribute_blosc(pr_groupid,H5T_NATIVE_UINT64,"total_number_parts",1,dims_out, &num_parts );
+
+            // New parameter and background data
+
+            if(apr.pars.name.size() == 0){
+                apr.pars.name = "no_name";
+                apr.name = "no_name";
+            }
+
+            hdf5_write_string_blosc(pr_groupid,"name",apr.pars.name);
+
+            std::string git_hash = exec_blosc("git rev-parse HEAD");
+
+            hdf5_write_string_blosc(pr_groupid,"githash",git_hash);
+
+            //////////////////////////////////////////////////////////////////
+            //
+            //  Write data to the file
+            //
+            //
+            //
+            ///////////////////////////////////////////////////////////////////////
+
+            //write the parts
+            std::string name = "particle property";
+
+            T type_example = 0;
+            hid_t data_type =  get_type_blosc(type_example);
+
+
+            APRIteratorNew<ImageType> apr_iterator(apr);
+
+            dims = apr_iterator.total_number_parts();
+            hdf5_write_data_blosc(obj_id, data_type, name.c_str(), rank, &dims, parts.data.data(),blosc_comp_type,blosc_comp_level,blosc_shuffle);
+
+            std::vector<uint16_t> xv;
+            xv.resize(apr_iterator.total_number_parts());
+
+            std::vector<uint16_t> yv;
+            yv.resize(apr_iterator.total_number_parts());
+
+            std::vector<uint16_t> zv;
+            zv.resize(apr_iterator.total_number_parts());
+
+            std::vector<uint8_t> levelv;
+            levelv.resize(apr_iterator.total_number_parts());
+
+            std::vector<uint8_t> typev;
+            typev.resize(apr_iterator.total_number_parts());
+
+            uint64_t particle_number = 0;
+#pragma omp parallel for schedule(static) private(particle_number) firstprivate(apr_iterator)
+            for (particle_number= 0; particle_number < apr_iterator.total_number_parts(); ++particle_number) {
+                apr_iterator.set_iterator_to_particle_by_number(particle_number);
+
+                xv[particle_number] = apr_iterator.x_global();
+                yv[particle_number] = apr_iterator.y_global();
+                zv[particle_number] = apr_iterator.z_global();
+                levelv[particle_number] = apr_iterator.level();
+                typev[particle_number] = apr_iterator.type();
+
+            }
+
+
+
+            name = "x";
+            hdf5_write_data_blosc(obj_id, H5T_NATIVE_UINT16, name.c_str(), rank, &dims, xv.data(),blosc_comp_type,blosc_comp_level,blosc_shuffle);
+
+            name = "y";
+            hdf5_write_data_blosc(obj_id, H5T_NATIVE_UINT16, name.c_str(), rank, &dims, yv.data(),blosc_comp_type,blosc_comp_level,blosc_shuffle);
+
+            name = "z";
+            hdf5_write_data_blosc(obj_id, H5T_NATIVE_UINT16, name.c_str(), rank, &dims, zv.data(),blosc_comp_type,blosc_comp_level,blosc_shuffle);
+
+            name = "level";
+            hdf5_write_data_blosc(obj_id, H5T_NATIVE_UINT8, name.c_str(), rank, &dims, levelv.data(),blosc_comp_type,blosc_comp_level,blosc_shuffle);
+
+            name = "type";
+            hdf5_write_data_blosc(obj_id, H5T_NATIVE_UINT8, name.c_str(), rank, &dims, typev.data(),blosc_comp_type,blosc_comp_level,blosc_shuffle);
+
+            hsize_t attr =apr.apr_access.level_min;
+            hdf5_write_attribute_blosc(pr_groupid,H5T_NATIVE_INT,"level_max",1,&dim_a, &apr.apr_access.level_max );
+            hdf5_write_attribute_blosc(pr_groupid,H5T_NATIVE_INT,"level_min",1,&dim_a, &apr.apr_access.level_min );
+
+            // output the file size
+            hsize_t file_size;
+            H5Fget_filesize(fid, &file_size);
+
+            std::cout << "HDF5 Filesize: " << file_size*1.0/1000000.0 << " MB" << std::endl;
+
+            write_main_paraview_xdmf_xml(save_loc,file_name,apr_iterator.total_number_parts());
+
+            //close shiz
+            H5Gclose(obj_id);
+            H5Gclose(pr_groupid);
+            H5Fclose(fid);
+
+            std::cout << "Writing Complete" << std::endl;
+
+        }
+
+        template<typename S>
+        void write_particles_only(std::string save_loc,std::string file_name,ExtraParticleData<S>& parts_extra){
+            //
+            //
+            //  Bevan Cheeseman 2018
+            //
+            //  Writes only the particle data, requires the same APR to be read in correctly.
+            //
+            //  #FIX_ME Extend me.
+            //
+            //
+
+            std::cout << "Either uint8, uint16, or float" << std::endl;
+
+            //initialize
+            uint64_t node_val_part;
+            uint64_t y_coord;
+            int x_;
+            int z_;
+
+            uint64_t j_;
+            uint64_t status;
+            uint64_t curr_key=0;
+            uint64_t part_offset=0;
+
+
+            //Neighbour Routine Checking
+
+            uint64_t p;
+
+            register_bosc();
+
+            std::string hdf5_file_name = save_loc + file_name + "_apr_extra_parts.h5";
+
+            file_name = file_name + "_apr_extra_parts";
+
+            hdf5_create_file_blosc(hdf5_file_name);
+
+            //hdf5 inits
+            hid_t fid, pr_groupid, obj_id;
+            H5G_info_t info;
+
+            hsize_t     dims_out[2];
+
+            hsize_t rank = 1;
+
+            hsize_t dims;
+            hsize_t dim_a=1;
+
+            fid = H5Fopen(hdf5_file_name.c_str(),H5F_ACC_RDWR,H5P_DEFAULT);
+
+            //Get the group you want to open
+
+            //////////////////////////////////////////////////////////////////
+            //
+            //  Write meta-data to the file
+            //
+            //
+            //
+            ///////////////////////////////////////////////////////////////////////
+            dims = 1;
+
+            pr_groupid = H5Gcreate2(fid,"ParticleRepr",H5P_DEFAULT,H5P_DEFAULT,H5P_DEFAULT);
+            H5Gget_info( pr_groupid, &info );
+
+
+            obj_id = H5Gcreate2(fid,"ParticleRepr/t",H5P_DEFAULT,H5P_DEFAULT,H5P_DEFAULT);
+
+            dims_out[0] = 1;
+            dims_out[1] = 1;
+
+            //just an identifier in here for the reading of the parts
+            S val = 0;
+            hid_t type = get_type_blosc(val);
+            int type_id = type;
+
+            hdf5_write_attribute_blosc(pr_groupid,H5T_NATIVE_INT,"data_type",1,dims_out, &type_id);
+
+            uint64_t total_number_parts = parts_extra.data.size();
+
+            hdf5_write_attribute_blosc(pr_groupid,H5T_NATIVE_UINT64,"total_number_parts",1,dims_out, &total_number_parts );
+
+            //////////////////////////////////////////////////////////////////
+            //
+            //  Write data to the file
+            //
+            //
+            //
+            ///////////////////////////////////////////////////////////////////////
+
+            unsigned int blosc_comp_type = BLOSC_ZSTD;
+            unsigned int blosc_comp_level = 1;
+            unsigned int blosc_shuffle = 2;
+
+            dims = total_number_parts;
+            std::string name = "extra_particle_data";
+            hdf5_write_data_blosc(obj_id, type_id, name.c_str(), rank, &dims, parts_extra.data.data(),blosc_comp_type,blosc_comp_level,blosc_shuffle);
+
+
+            // New parameter and background data
+
+            std::string git_hash = exec_blosc("git rev-parse HEAD");
+
+            hdf5_write_string_blosc(pr_groupid,"githash",git_hash);
+
+            // output the file size
+            hsize_t file_size;
+            H5Fget_filesize(fid, &file_size);
+
+            std::cout << "HDF5 Filesize: " << file_size*1.0/1000000.0 << " MB" << std::endl;
+
+            //close shiz
+            H5Gclose(obj_id);
+            H5Gclose(pr_groupid);
+            H5Fclose(fid);
+
+            std::cout << "Writing ExtraPartCellData Complete" << std::endl;
+
+        }
+
+        template<typename T>
+        void read_parts_only(std::string file_name,ExtraParticleData<T>& extra_parts)
+        {
+
+            //hdf5 inits
+            hid_t fid, pr_groupid, obj_id,attr_id;
+            H5G_info_t info;
+
+            //need to register the filters so they work properly
+            register_bosc();
+
+            int num_parts,num_cells;
+
+            fid = H5Fopen(file_name.c_str(),H5F_ACC_RDONLY,H5P_DEFAULT);
+
+            //Get the group you want to open
+
+            pr_groupid = H5Gopen2(fid,"ParticleRepr",H5P_DEFAULT);
+            H5Gget_info( pr_groupid, &info );
+
+            //Getting an attribute
+            obj_id =  H5Oopen_by_idx( fid, "ParticleRepr", H5_INDEX_NAME, H5_ITER_INC,0,H5P_DEFAULT);
+
+            //Load the attributes
+            std::string name;
+
+            /////////////////////////////////////////////
+            //  Get metadata
+            //
+            //////////////////////////////////////////////
+            uint64_t total_number_parts;
+            attr_id = 	H5Aopen(pr_groupid,"total_number_parts",H5P_DEFAULT);
+            H5Aread(attr_id,H5T_NATIVE_UINT64,&total_number_parts) ;
+            H5Aclose(attr_id);
+
+            hid_t       aid, atype, attr;
+
+            aid = H5Screate(H5S_SCALAR);
+
+            int data_type;
+
+            attr_id = 	H5Aopen(pr_groupid,"data_type",H5P_DEFAULT);
+            H5Aread(attr_id,H5T_NATIVE_INT,&data_type ) ;
+            H5Aclose(attr_id);
+
+            hid_t hdf5_data_type = data_type;
+
+            extra_parts.data.resize(total_number_parts);
+            std::string dataset_name = "extra_particle_data";
+            hdf5_load_data_blosc(obj_id,H5T_NATIVE_UINT16,extra_parts.data.data(),dataset_name.c_str());
+
+            //close shiz
+            H5Gclose(obj_id);
+            H5Gclose(pr_groupid);
+            H5Fclose(fid);
+
+        };
 
 
 

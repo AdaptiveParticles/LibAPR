@@ -115,8 +115,9 @@ private:
 
 public:
 
-    APRIteratorNew(){
-        //current_part = 0;
+
+    APRIteratorNew(APR<ImageType>& apr){
+        apr_access = &apr.apr_access;
     }
 
     APRIteratorNew(APRAccess& apr_access_){
@@ -124,8 +125,7 @@ public:
     }
 
     void initialize_from_apr(APR<ImageType>& apr){
-
-
+        apr_access = &apr.apr_access;
     }
 
     uint64_t total_number_parts(){

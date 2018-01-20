@@ -326,7 +326,11 @@ int main(int argc, char **argv) {
     writer.read_apr(apr2,options.directory + name + "_apr.h5");
     timer.stop_timer();
 
+    writer.write_apr_paraview(apr,options.directory,name,apr.particles_int_new);
 
+    writer.write_particles_only(options.directory,name,apr.particles_int_new);
+
+    writer.read_parts_only(options.directory+name+"_apr_extra_parts.h5",apr.particles_int_new);
 
     timer.start_timer("writint");
 
