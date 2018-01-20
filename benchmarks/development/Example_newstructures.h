@@ -6,7 +6,7 @@
 
 #include "src/data_structures/APR/APR.hpp"
 #include "src/data_structures/APR/APRAccess.hpp"
-#include "src/data_structures/APR/APRIteratorNew.hpp"
+#include "src/data_structures/APR/APRIterator.hpp"
 
 struct cmdLineOptions{
     std::string output = "output";

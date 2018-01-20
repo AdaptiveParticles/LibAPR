@@ -135,7 +135,7 @@ void apr_raycast(APR<U>& apr,ExtraPartCellData<S>& particle_data,proj_par& pars,
     depth_vec[apr.depth_max()] = 1;
 
     //initialize the iterator
-    APRIterator<float> apr_it(apr);
+    APRIteratorOld<float> apr_it(apr);
 
 
     //jitter the parts to remove ray cast artifacts

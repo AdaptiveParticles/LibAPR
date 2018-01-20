@@ -46,7 +46,7 @@
 #define PC_TYPE_SHIFT 13
 
 template<typename ImageType>
-class APRIteratorNew;
+class APRIterator;
 
 struct ParticleCell {
     uint16_t x,y,z,level,type;
@@ -374,7 +374,7 @@ public:
         uint64_t node_val;
         uint64_t status,y_coord;
 
-        APRIterator<float> apr_iterator(apr);
+        APRIteratorOld<float> apr_iterator(apr);
         level_min = apr_iterator.level_min();
         level_max = apr_iterator.level_max();
 
@@ -510,6 +510,36 @@ public:
 
     }
 
+    template<typename T>
+    void initialize_structure_from_particle_cell_tree(APR<T>& apr,std::vector<MeshData<uint8_t>>& layers){
+       x_num.resize(level_max+1);
+       y_num.resize(level_max+1);
+       z_num.resize(level_max+1);
+
+        for(int i = level_min;i < level_max;i++){
+            x_num[i] = layers[i].x_num;
+            y_num[i] = layers[i].y_num;
+            z_num[i] = layers[i].z_num;
+        }
+
+        y_num[level_max] = org_dims[0];
+        x_num[level_max] = org_dims[1];
+        z_num[level_max] = org_dims[2];
+
+        //transfer over data-structure to make the same (re-use of function for read-write)
+
+        std::vector<std::vector<uint8_t>> p_map;
+        p_map.resize(level_max);
+
+        for (int k = 0; k < level_max; ++k) {
+            std::swap(p_map[k],layers[k].mesh);
+        }
+
+        initialize_structure_from_particle_cell_tree(apr, p_map);
+
+
+    }
+
 
     template<typename T>
     void initialize_structure_from_particle_cell_tree(APR<T>& apr,std::vector<std::vector<uint8_t>>& p_map) {
@@ -519,23 +549,6 @@ public:
 
         APRTimer apr_timer;
         apr_timer.verbose_flag = false;
-
-        level_min = apr.level_min();
-        level_max = apr.level_max();
-
-        x_num.resize(apr.level_max()+1);
-        y_num.resize(apr.level_max()+1);
-        z_num.resize(apr.level_max()+1);
-
-        for (int level = apr.level_min(); level <= apr.level_max(); level++) {
-            x_num[level] = apr.spatial_index_x_max(level);
-            y_num[level] = apr.spatial_index_y_max(level);
-            z_num[level] = apr.spatial_index_z_max(level);
-        }
-
-        org_dims[1] = x_num[level_max];
-        org_dims[0] = y_num[level_max];
-        org_dims[2] = z_num[level_max];
 
 
         apr_timer.start_timer("first_step");
@@ -849,7 +862,7 @@ public:
         total_number_non_empty_rows = counter_rows;
         apr_timer.stop_timer();
 
-        APRIteratorNew<T> apr_iterator(*this);
+        APRIterator<T> apr_iterator(*this);
 
         particle_cell_type.data.resize(global_index_by_level_end[level_max-1]+1,0);
 
@@ -1308,7 +1321,7 @@ public:
 
         apr.set_part_numbers_xz();
 
-        APRIterator<uint16_t> neighbour_iterator(apr);
+        APRIteratorOld<uint16_t> neighbour_iterator(apr);
 
         uint64_t c = 0;
         uint64_t nn= 0;

@@ -174,7 +174,7 @@ void create_neighbour_checker(APR<T>& apr,std::vector<MeshData<uint64_t>>& tree_
 }
 
 template<typename T>
-bool check_neighbours(APR<T>& apr,APRIteratorNew<T>& current,APRIteratorNew<T>& neigh){
+bool check_neighbours(APR<T>& apr,APRIterator<T>& current,APRIterator<T>& neigh){
 
 
     bool success = true;
@@ -199,7 +199,7 @@ bool check_neighbours(APR<T>& apr,APRIteratorNew<T>& current,APRIteratorNew<T>& 
 }
 
 template<typename T>
-bool check_neighbour_out_of_bounds(APRIteratorNew<T>& current,uint8_t face){
+bool check_neighbour_out_of_bounds(APRIterator<T>& current,uint8_t face){
 
 
     uint64_t num_neigh = current.number_neighbours_in_direction(face);
@@ -274,7 +274,7 @@ int main(int argc, char **argv) {
 
     //compare_two_maps(apr,apr_access,apr_access2);
 
-    APRIteratorNew<uint16_t> apr_iterator(apr_access2);
+    APRIterator<uint16_t> apr_iterator(apr_access2);
 
     ExtraParticleData<uint16_t> particles_int;
     ExtraParticleData<uint16_t> x;
@@ -299,7 +299,7 @@ int main(int argc, char **argv) {
 
     std::cout << counter << std::endl;
 
-    APRIteratorNew<uint16_t> neighbour_iterator(apr_access2);
+    APRIterator<uint16_t> neighbour_iterator(apr_access2);
 
     ExtraParticleData<float> neigh_sum;
     neigh_sum.data.resize(apr_iterator.total_number_parts());

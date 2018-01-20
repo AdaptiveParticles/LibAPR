@@ -96,7 +96,7 @@ int main(int argc, char **argv) {
     ////////////////////////////
 
     //initialization of the iteration structures
-    APRIterator<float> apr_it(apr); //this is required for parallel access
+    APRIteratorOld<float> apr_it(apr); //this is required for parallel access
     uint64_t part;
 
     //create particle dataset

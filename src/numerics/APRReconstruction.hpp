@@ -101,7 +101,11 @@ public:
         //get depth
         ExtraPartCellData<U> depth_parts(apr);
 
-        for (apr.begin(); apr.end() != 0 ; apr.it_forward()) {
+        APRIterator<S> apr_iterator;
+        uint64_t particle_number;
+
+#pragma omp parallel for schedule(static) private(particle_number) firstprivate(apr_iterator)
+        for (particle_number = 0; particle_number < apr_iterator.total_number_particles(); ++particle_number) {
             //
             //  Demo APR iterator
             //

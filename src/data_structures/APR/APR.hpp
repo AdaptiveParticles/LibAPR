@@ -18,7 +18,7 @@
 
 #include "src/io/hdf5functions_blosc.h"
 
-#include "src/data_structures/APR/APRIterator.hpp"
+#include "src/data_structures/APR/APRIteratorOld.hpp"
 
 #include "src/misc/APRTimer.hpp"
 
@@ -55,6 +55,9 @@ class APR {
 
     template<typename S>
     friend class APRIterator;
+
+    template<typename S>
+    friend class APRIteratorOld;
 
     template<typename S>
     friend class ExtraPartCellData;
@@ -252,7 +255,7 @@ public:
         parts.init(*this);
 
         //initialization of the iteration structures
-        APRIterator<ImageType> apr_it(*this); //this is required for parallel access
+        APRIteratorOld<ImageType> apr_it(*this); //this is required for parallel access
         uint64_t part;
 
 #pragma omp parallel for schedule(static) private(part) firstprivate(apr_it)
@@ -277,7 +280,7 @@ public:
         parts.init(*this);
 
         //initialization of the iteration structures
-        APRIterator<ImageType> apr_it(*this); //this is required for parallel access
+        APRIteratorOld<ImageType> apr_it(*this); //this is required for parallel access
         uint64_t part;
 
 #pragma omp parallel for schedule(static) private(part) firstprivate(apr_it)

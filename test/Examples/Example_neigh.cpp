@@ -91,7 +91,7 @@ int main(int argc, char **argv) {
 
     ExtraPartCellData<uint16_t> neigh_avg(apr);
 
-    APRIterator<uint16_t> neighbour_iterator(apr);
+    APRIteratorOld<uint16_t> neighbour_iterator(apr);
 
     timer.start_timer("APR serial iterator neighbours loop");
 
@@ -135,7 +135,7 @@ int main(int argc, char **argv) {
     ///////////////////////////
 
     //initialization of the iteration structures
-    APRIterator<uint16_t> apr_parallel_iterator(apr); //this is required for parallel access
+    APRIteratorOld<uint16_t> apr_parallel_iterator(apr); //this is required for parallel access
     uint64_t part; //declare parallel iteration variable
 
     ExtraPartCellData<float> neigh_xm(apr);

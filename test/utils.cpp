@@ -3274,7 +3274,7 @@ bool utest_apr_serial_iterate(PartCellStructure<float,uint64_t>& pc_struct){
 
     create_intensity_reference_structure(pc_struct,int_array);
 
-    APRIterator<float> apr_iterator(apr);
+    APRIteratorOld<float> apr_iterator(apr);
     uint64_t particle_number = 0;
 
     for (particle_number = 0; particle_number < apr_iterator.num_parts_total; ++particle_number) {
@@ -3307,7 +3307,7 @@ bool utest_apr_parallel_iterate(PartCellStructure<float,uint64_t>& pc_struct){
 
     create_intensity_reference_structure(pc_struct,int_array);
 
-    APRIterator<float> apr_iterator(apr);
+    APRIteratorOld<float> apr_iterator(apr);
     uint64_t particle_number = 0;
 
 #pragma omp parallel for schedule(static) private(particle_number) firstprivate(apr_iterator)
@@ -3431,7 +3431,7 @@ bool utest_apr_parallel_iterate(PartCellStructure<float,uint64_t>& pc_struct){
 }
 
 
-bool check_neighbours(APR<float>& apr,APRIteratorNew<float>& current,APRIteratorNew<float>& neigh){
+bool check_neighbours(APR<float>& apr,APRIterator<float>& current,APRIterator<float>& neigh){
 
 
     bool success = true;
@@ -3455,7 +3455,7 @@ bool check_neighbours(APR<float>& apr,APRIteratorNew<float>& current,APRIterator
     return success;
 }
 
-bool check_neighbour_out_of_bounds(APRIteratorNew<float>& current,uint8_t face){
+bool check_neighbour_out_of_bounds(APRIterator<float>& current,uint8_t face){
 
 
     uint64_t num_neigh = current.number_neighbours_in_direction(face);
@@ -3489,11 +3489,11 @@ bool utest_apr_serial_neigh(PartCellStructure<float,uint64_t>& pc_struct){
 
     std::vector<MeshData<float>> int_array;
 
-    APRIterator<float> neigh_it(apr);
+    APRIteratorOld<float> neigh_it(apr);
 
     create_intensity_reference_structure(pc_struct,int_array);
 
-    APRIterator<float> apr_iterator_1(apr);
+    APRIteratorOld<float> apr_iterator_1(apr);
 
     uint64_t particle_number;
     for (particle_number = 0; particle_number < apr_iterator_1.num_parts_total; ++particle_number) {
@@ -3565,8 +3565,8 @@ bool utest_apr_serial_neigh(PartCellStructure<float,uint64_t>& pc_struct){
     apr_access2.initialize_structure_from_particle_cell_tree(apr,p_map);
 
 
-    APRIteratorNew<float> neighbour_iterator(apr_access2);
-    APRIteratorNew<float> apr_iterator(apr_access2);
+    APRIterator<float> neighbour_iterator(apr_access2);
+    APRIterator<float> apr_iterator(apr_access2);
 
 
     for (particle_number = 0; particle_number < apr_iterator.total_number_parts(); ++particle_number) {
@@ -3622,11 +3622,11 @@ bool utest_apr_parallel_neigh(PartCellStructure<float,uint64_t>& pc_struct){
 
     std::vector<MeshData<float>> int_array;
 
-    APRIterator<float> neigh_it(apr);
+    APRIteratorOld<float> neigh_it(apr);
 
     create_intensity_reference_structure(pc_struct,int_array);
 
-    APRIterator<float> apr_it(apr);
+    APRIteratorOld<float> apr_it(apr);
     unsigned int part = 0;
 
 #pragma omp parallel for schedule(static) private(part) firstprivate(apr_it,neigh_it)
@@ -4041,13 +4041,13 @@ bool utest_apr_read_write(PartCellStructure<float,uint64_t>& pc_struct){
 
     std::vector<std::vector<uint8_t>> p_map;
 
-    APRIterator<float> apr_iterator_old(apr);
+    APRIteratorOld<float> apr_iterator_old(apr);
 
     apr.apr_access.generate_pmap(apr,p_map);
 
     apr.apr_access.initialize_structure_from_particle_cell_tree(apr,p_map);
 
-    APRIteratorNew<float> apr_iterator(apr);
+    APRIterator<float> apr_iterator(apr);
     apr.particles_int_new.data.resize(apr_iterator.total_number_parts());
 
     uint64_t counter = 0;
@@ -4077,7 +4077,7 @@ bool utest_apr_read_write(PartCellStructure<float,uint64_t>& pc_struct){
     APR<float> apr_read;
 
     writer.read_apr(apr_read,save_loc + file_name + "_apr.h5");
-    APRIteratorNew<float> apr_iterator_read(apr_read);
+    APRIterator<float> apr_iterator_read(apr_read);
 
     for (particle_number = 0; particle_number < apr_iterator.total_number_parts(); ++particle_number) {
 
@@ -4119,8 +4119,8 @@ bool utest_apr_read_write(PartCellStructure<float,uint64_t>& pc_struct){
 
 
 
-    APRIteratorNew<float> neighbour_iterator(apr_read);
-    APRIteratorNew<float> apr_iterator_read2(apr_read);
+    APRIterator<float> neighbour_iterator(apr_read);
+    APRIterator<float> apr_iterator_read2(apr_read);
 
     for (particle_number = 0; particle_number < apr_iterator_read.total_number_parts(); ++particle_number) {
 

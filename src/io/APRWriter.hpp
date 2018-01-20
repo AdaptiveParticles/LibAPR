@@ -288,7 +288,7 @@ public:
 //            }
 //        }
 
-        APRIterator<ImageType> apr_iterator(apr);
+        APRIteratorOld<ImageType> apr_iterator(apr);
 
         for (int level = apr.level_min(); level <= apr.level_max(); ++level) {
 
@@ -1916,7 +1916,7 @@ namespace new_iterator{
             hid_t data_type =  get_type_blosc(type_example);
 
 
-            APRIteratorNew<ImageType> apr_iterator(apr);
+            APRIterator<ImageType> apr_iterator(apr);
 
             dims = apr_iterator.total_number_parts();
             hdf5_write_data_blosc(obj_id, data_type, name.c_str(), rank, &dims, parts.data.data(),blosc_comp_type,blosc_comp_level,blosc_shuffle);

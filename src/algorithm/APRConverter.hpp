@@ -224,7 +224,8 @@ bool APRConverter<ImageType>::get_apr_method(APR<ImageType>& apr) {
     st.stop_timer();
 
     st.start_timer("initialize apr neighbour access structure");
-    apr.pc_data.init_from_pulling_scheme(particle_cell_tree);
+   // apr.pc_data.init_from_pulling_scheme(particle_cell_tree);
+    apr.apr_access.initialize_structure_from_particle_cell_tree(apr,particle_cell_tree);
     st.stop_timer();
 
     st.start_timer("sample particles");
@@ -263,10 +264,10 @@ void APRConverter<ImageType>::get_local_particle_cell_set(MeshData<T>& grad_imag
 
     float min_dim = std::min(this->par.dy,std::min(this->par.dx,this->par.dz));
 
-    level_factor = pow(2,(*apr_).depth_max())*min_dim;
+    level_factor = pow(2,(*apr_).level_max())*min_dim;
 
-    unsigned int l_max = (*apr_).depth_max() - 1;
-    unsigned int l_min = (*apr_).depth_min();
+    unsigned int l_max = (*apr_).level_max() - 1;
+    unsigned int l_min = (*apr_).level_min();
 
     //incorporate other factors and compute the level of the Particle Cell, effectively construct LPC L_n
     compute_level_for_array(local_scale_temp,level_factor,this->par.rel_error);
@@ -471,29 +472,28 @@ void APRConverter<ImageType>::init_apr(APR<ImageType>& apr,MeshData<T>& input_im
     //
     //
 
-    apr.pc_data.org_dims.resize(3,0);
 
-    apr.pc_data.org_dims[0] = input_image.y_num;
-    apr.pc_data.org_dims[1] = input_image.x_num;
-    apr.pc_data.org_dims[2] = input_image.z_num;
+    apr.apr_access.org_dims[0] = input_image.y_num;
+    apr.apr_access.org_dims[1] = input_image.x_num;
+    apr.apr_access.org_dims[2] = input_image.z_num;
 
     int max_dim;
     int min_dim;
 
     if(input_image.z_num == 1) {
-        max_dim = (std::max(apr.pc_data.org_dims[1], apr.pc_data.org_dims[0]));
-        min_dim = (std::min(apr.pc_data.org_dims[1], apr.pc_data.org_dims[0]));
+        max_dim = (std::max(apr.apr_access.org_dims[1], apr.apr_access.org_dims[0]));
+        min_dim = (std::min(apr.apr_access.org_dims[1], apr.apr_access.org_dims[0]));
     }
     else{
-        max_dim = std::max(std::max(apr.pc_data.org_dims[1], apr.pc_data.org_dims[0]), apr.pc_data.org_dims[2]);
-        min_dim = std::min(std::min(apr.pc_data.org_dims[1], apr.pc_data.org_dims[0]), apr.pc_data.org_dims[2]);
+        max_dim = std::max(std::max(apr.apr_access.org_dims[1], apr.apr_access.org_dims[0]), apr.apr_access.org_dims[2]);
+        min_dim = std::min(std::min(apr.apr_access.org_dims[1], apr.apr_access.org_dims[0]), apr.apr_access.org_dims[2]);
     }
 
     int k_max_ = ceil(M_LOG2E*log(max_dim)) - 1;
     int k_min_ = std::max( (int)(k_max_ - floor(M_LOG2E*log(min_dim)) + 1),2);
 
-    apr.pc_data.depth_min = k_min_;
-    apr.pc_data.depth_max = k_max_ + 1;
+    apr.apr_access.level_min = k_min_;
+    apr.apr_access.level_max = k_max_ + 1;
 
 }
 

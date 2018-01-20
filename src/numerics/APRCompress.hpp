@@ -190,8 +190,8 @@ private:
     float q = .5;
     int compress_type = 0;
 
-    APRIterator<ImageType> apr_iterator;
-    APRIterator<ImageType> neighbour_iterator;
+    APRIteratorOld<ImageType> apr_iterator;
+    APRIteratorOld<ImageType> neighbour_iterator;
 
     std::vector<unsigned int> predict_directions = {1,3,5};
 
@@ -263,8 +263,8 @@ void APRCompress<ImageType>::predict_particles_by_level(APR<U>& apr,const unsign
 
     timer.start_timer("iterator initialization");
 
-    APRIterator<ImageType> apr_iterator(apr);
-    APRIterator<ImageType> neighbour_iterator(apr);
+    APRIteratorOld<ImageType> apr_iterator(apr);
+    APRIteratorOld<ImageType> neighbour_iterator(apr);
 
     timer.stop_timer();
 
