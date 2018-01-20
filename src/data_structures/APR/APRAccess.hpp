@@ -135,7 +135,7 @@ public:
     std::vector<uint64_t> y_num;
     std::vector<uint64_t> z_num;
 
-    uint64_t total_number_parts;
+    uint64_t total_number_particles;
 
     uint64_t total_number_gaps;
 
@@ -374,19 +374,29 @@ public:
         uint64_t node_val;
         uint64_t status,y_coord;
 
-        p_map.resize(apr.level_max()+1);
+        APRIterator<float> apr_iterator(apr);
+        level_min = apr_iterator.level_min();
+        level_max = apr_iterator.level_max();
 
-        x_num.resize(apr.depth_max()+1);
-        y_num.resize(apr.depth_max()+1);
-        z_num.resize(apr.depth_max()+1);
 
-        for (int level = apr.depth_min(); level <= apr.depth_max(); level++) {
-            x_num[level] = apr.spatial_index_x_max(level);
-            y_num[level] = apr.spatial_index_y_max(level);
-            z_num[level] = apr.spatial_index_z_max(level);
+        p_map.resize(apr_iterator.level_max()+1);
+
+        x_num.resize(apr_iterator.level_max()+1);
+        y_num.resize(apr_iterator.level_max()+1);
+        z_num.resize(apr_iterator.level_max()+1);
+
+
+        for (int level = apr_iterator.level_min(); level <= apr_iterator.level_max(); level++) {
+            x_num[level] = apr_iterator.spatial_index_x_max(level);
+            y_num[level] = apr_iterator.spatial_index_y_max(level);
+            z_num[level] = apr_iterator.spatial_index_z_max(level);
         }
+        org_dims[1] = x_num[level_max];
+        org_dims[0] = y_num[level_max];
+        org_dims[2] = z_num[level_max];
 
-        for(uint64_t i = apr.level_min();i < apr.level_max();i++){
+
+        for(uint64_t i = apr_iterator.level_min();i < apr_iterator.level_max();i++){
 
 
             unsigned int x_num_ = apr.pc_data.x_num[i];
@@ -513,11 +523,11 @@ public:
         level_min = apr.level_min();
         level_max = apr.level_max();
 
-        x_num.resize(apr.depth_max()+1);
-        y_num.resize(apr.depth_max()+1);
-        z_num.resize(apr.depth_max()+1);
+        x_num.resize(apr.level_max()+1);
+        y_num.resize(apr.level_max()+1);
+        z_num.resize(apr.level_max()+1);
 
-        for (int level = apr.depth_min(); level <= apr.depth_max(); level++) {
+        for (int level = apr.level_min(); level <= apr.level_max(); level++) {
             x_num[level] = apr.spatial_index_x_max(level);
             y_num[level] = apr.spatial_index_y_max(level);
             z_num[level] = apr.spatial_index_z_max(level);
@@ -800,7 +810,7 @@ public:
             }
         }
 
-        total_number_parts = cumsum;
+        total_number_particles = cumsum;
 
         apr_timer.stop_timer();
 

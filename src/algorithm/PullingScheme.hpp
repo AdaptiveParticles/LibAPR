@@ -100,8 +100,8 @@ void PullingScheme::initialize_particle_cell_tree(APR<T>& apr)
     //  Contains pc up to l_max - 1,
     //
 
-    this->l_max = apr.depth_max() - 1;
-    this->l_min = apr.depth_min();
+    this->l_max = apr.level_max() - 1;
+    this->l_min = apr.level_min();
     //make so you can reference the array as l
     particle_cell_tree.resize(l_max + 1);
 

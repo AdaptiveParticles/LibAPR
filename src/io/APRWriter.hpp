@@ -1320,8 +1320,8 @@ namespace new_iterator{
             apr.pars.name = string_out;
 
 
-            attr_id = 	H5Aopen(pr_groupid,"total_number_parts",H5P_DEFAULT);
-            H5Aread(attr_id,H5T_NATIVE_UINT64,&apr.apr_access.total_number_parts) ;
+            attr_id = 	H5Aopen(pr_groupid,"total_number_particles",H5P_DEFAULT);
+            H5Aread(attr_id,H5T_NATIVE_UINT64,&apr.apr_access.total_number_particles) ;
             H5Aclose(attr_id);
 
             attr_id = 	H5Aopen(pr_groupid,"total_number_gaps",H5P_DEFAULT);
@@ -1472,7 +1472,7 @@ namespace new_iterator{
 
             hid_t hdf5_data_type = data_type;
 
-            apr.particles_int_new.data.resize(apr.apr_access.total_number_parts);
+            apr.particles_int_new.data.resize(apr.apr_access.total_number_particles);
 
            if(apr.particles_int_new.data.size()>0){
                 std::string name = "particle_intensities";
@@ -1638,12 +1638,12 @@ namespace new_iterator{
 
             //just an identifier in here for the reading of the parts
 
-            uint64_t total_number_parts = apr.apr_access.total_number_parts;
+            uint64_t total_number_parts = apr.apr_access.total_number_particles;
             uint64_t total_number_gaps = apr.apr_access.total_number_gaps;
             uint64_t total_number_non_empty_rows = apr.apr_access.total_number_non_empty_rows;
             uint64_t type_vector_size = apr.apr_access.particle_cell_type.data.size();
 
-            hdf5_write_attribute_blosc(pr_groupid,H5T_NATIVE_UINT64,"total_number_parts",1,dims_out, &total_number_parts );
+            hdf5_write_attribute_blosc(pr_groupid,H5T_NATIVE_UINT64,"total_number_particles",1,dims_out, &total_number_parts );
 
             hdf5_write_attribute_blosc(pr_groupid,H5T_NATIVE_UINT64,"total_number_gaps",1,dims_out, &total_number_gaps );
             hdf5_write_attribute_blosc(pr_groupid,H5T_NATIVE_UINT64,"total_number_non_empty_rows",1,dims_out, &total_number_non_empty_rows );
@@ -1884,9 +1884,9 @@ namespace new_iterator{
             //just an identifier in here for the reading of the parts
 
 
-            int num_parts = apr.apr_access.total_number_parts;
+            int num_parts = apr.apr_access.total_number_particles;
 
-            hdf5_write_attribute_blosc(pr_groupid,H5T_NATIVE_UINT64,"total_number_parts",1,dims_out, &num_parts );
+            hdf5_write_attribute_blosc(pr_groupid,H5T_NATIVE_UINT64,"total_number_particles",1,dims_out, &num_parts );
 
             // New parameter and background data
 
@@ -2067,7 +2067,7 @@ namespace new_iterator{
 
             uint64_t total_number_parts = parts_extra.data.size();
 
-            hdf5_write_attribute_blosc(pr_groupid,H5T_NATIVE_UINT64,"total_number_parts",1,dims_out, &total_number_parts );
+            hdf5_write_attribute_blosc(pr_groupid,H5T_NATIVE_UINT64,"total_number_particles",1,dims_out, &total_number_parts );
 
             //////////////////////////////////////////////////////////////////
             //
@@ -2138,7 +2138,7 @@ namespace new_iterator{
             //
             //////////////////////////////////////////////
             uint64_t total_number_parts;
-            attr_id = 	H5Aopen(pr_groupid,"total_number_parts",H5P_DEFAULT);
+            attr_id = 	H5Aopen(pr_groupid,"total_number_particles",H5P_DEFAULT);
             H5Aread(attr_id,H5T_NATIVE_UINT64,&total_number_parts) ;
             H5Aclose(attr_id);
 

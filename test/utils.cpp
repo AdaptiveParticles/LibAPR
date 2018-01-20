@@ -3274,10 +3274,13 @@ bool utest_apr_serial_iterate(PartCellStructure<float,uint64_t>& pc_struct){
 
     create_intensity_reference_structure(pc_struct,int_array);
 
-    for ( apr.begin(); apr.end() ; apr.it_forward()) {
-        float apr_val = apr(apr.particles_int);
+    APRIterator<float> apr_iterator(apr);
+    uint64_t particle_number = 0;
 
-        float check_val = int_array[apr.depth()](apr.y(),apr.x(),apr.z());
+    for (particle_number = 0; particle_number < apr_iterator.num_parts_total; ++particle_number) {
+        float apr_val = apr_iterator(apr.particles_int);
+
+        float check_val = int_array[apr_iterator.depth()](apr_iterator.y(),apr_iterator.x(),apr_iterator.z());
 
         if(check_val!=apr_val){
             success = false;
@@ -3308,7 +3311,7 @@ bool utest_apr_parallel_iterate(PartCellStructure<float,uint64_t>& pc_struct){
     uint64_t particle_number = 0;
 
 #pragma omp parallel for schedule(static) private(particle_number) firstprivate(apr_iterator)
-    for (particle_number = 0; particle_number < apr.num_parts_total; ++particle_number) {
+    for (particle_number = 0; particle_number < apr_iterator.num_parts_total; ++particle_number) {
         //needed step for any parallel loop (update to the next particle_number)
         apr_iterator.set_iterator_to_particle_by_number(particle_number);
 
@@ -3325,7 +3328,7 @@ bool utest_apr_parallel_iterate(PartCellStructure<float,uint64_t>& pc_struct){
 
     uint64_t counter = 0;
 
-    for (int level = apr.level_min(); level <= apr.level_max(); ++level) {
+    for (int level = apr_iterator.level_min(); level <= apr_iterator.level_max(); ++level) {
 
 #pragma omp parallel for schedule(static) private(particle_number) firstprivate(apr_iterator) reduction(+:counter)
         for (particle_number = apr_iterator.particles_level_begin(level); particle_number <  apr_iterator.particles_level_end(level); ++particle_number) {
@@ -3344,7 +3347,7 @@ bool utest_apr_parallel_iterate(PartCellStructure<float,uint64_t>& pc_struct){
         }
     }
 
-    if(counter != apr.num_parts_total){
+    if(counter != apr_iterator.num_parts_total){
         success = false;
     }
 
@@ -3355,8 +3358,8 @@ bool utest_apr_parallel_iterate(PartCellStructure<float,uint64_t>& pc_struct){
 
     counter = 0;
 
-    for (int level = apr.level_min(); level <= apr.level_max(); ++level) {
-        for(unsigned int z = 0; z < apr.spatial_index_z_max(level); ++z) {
+    for (int level = apr_iterator.level_min(); level <= apr_iterator.level_max(); ++level) {
+        for(unsigned int z = 0; z < apr_iterator.spatial_index_z_max(level); ++z) {
 
             uint64_t  begin = apr_iterator.particles_z_begin(level,z);
             uint64_t  end = apr_iterator.particles_z_end(level,z);
@@ -3380,7 +3383,7 @@ bool utest_apr_parallel_iterate(PartCellStructure<float,uint64_t>& pc_struct){
         }
     }
 
-    if(counter != apr.num_parts_total){
+    if(counter != apr_iterator.num_parts_total){
         success = false;
     }
 
@@ -3391,9 +3394,9 @@ bool utest_apr_parallel_iterate(PartCellStructure<float,uint64_t>& pc_struct){
 
     counter = 0;
 
-    for (int level = apr.level_min(); level <= apr.level_max(); ++level) {
-        for (unsigned int z = 0; z < apr.spatial_index_z_max(level); ++z) {
-            for (unsigned int x = 0; x < apr.spatial_index_x_max(level); ++x) {
+    for (int level = apr_iterator.level_min(); level <= apr_iterator.level_max(); ++level) {
+        for (unsigned int z = 0; z < apr_iterator.spatial_index_z_max(level); ++z) {
+            for (unsigned int x = 0; x < apr_iterator.spatial_index_x_max(level); ++x) {
 
                 uint64_t begin = apr_iterator.particles_zx_begin(level, z, x);
                 uint64_t end = apr_iterator.particles_zx_end(level, z, x);
@@ -3418,7 +3421,7 @@ bool utest_apr_parallel_iterate(PartCellStructure<float,uint64_t>& pc_struct){
         }
     }
 
-    if(counter != apr.num_parts_total){
+    if(counter != apr_iterator.num_parts_total){
         success = false;
     }
 
@@ -3490,18 +3493,21 @@ bool utest_apr_serial_neigh(PartCellStructure<float,uint64_t>& pc_struct){
 
     create_intensity_reference_structure(pc_struct,int_array);
 
-    for ( apr.begin(); apr.end() ; apr.it_forward()) {
+    APRIterator<float> apr_iterator_1(apr);
 
+    uint64_t particle_number;
+    for (particle_number = 0; particle_number < apr_iterator_1.num_parts_total; ++particle_number) {
+        apr_iterator_1.set_iterator_to_particle_by_number(particle_number);
         //now we only update the neighbours, and directly access them through a neighbour iterator
-        apr.update_all_neighbours();
+        apr_iterator_1.update_all_neighbours();
 
         //loop over all the neighbours and set the neighbour iterator to it
         for (int dir = 0; dir < 6; ++dir) {
             // Neighbour Particle Cell Face definitions [+y,-y,+x,-x,+z,-z] =  [0,1,2,3,4,5]
 
-            for (int index = 0; index < apr.number_neighbours_in_direction(dir); ++index) {
+            for (int index = 0; index < apr_iterator_1.number_neighbours_in_direction(dir); ++index) {
                 // on each face, there can be 0-4 neighbours accessed by index
-                if(neigh_it.set_neighbour_iterator(apr, dir, index)){
+                if(neigh_it.set_neighbour_iterator(apr_iterator_1, dir, index)){
                     //will return true if there is a neighbour defined
                     float apr_val = neigh_it(apr.particles_int);
                     float check_val = int_array[neigh_it.depth()](neigh_it.y(),neigh_it.x(),neigh_it.z());
@@ -3520,21 +3526,22 @@ bool utest_apr_serial_neigh(PartCellStructure<float,uint64_t>& pc_struct){
     ExtraParticleData<float> index_check;
     uint64_t counter = 0;
 
-    for ( apr.begin(); apr.end() ; apr.it_forward()) {
+    for (particle_number = 0; particle_number < apr_iterator_1.num_parts_total; ++particle_number) {
+        apr_iterator_1.set_iterator_to_particle_by_number(particle_number);
 
         //now we only update the neighbours, and directly access them through a neighbour iterator
 
-        index_check.data.push_back(apr(apr.particles_int));
+        index_check.data.push_back(apr_iterator_1(apr.particles_int));
         counter++;
 
         //loop over all the neighbours and set the neighbour iterator to it
         for (int dir = 0; dir < 6; ++dir) {
             // Neighbour Particle Cell Face definitions [+y,-y,+x,-x,+z,-z] =  [0,1,2,3,4,5]
-            apr.update_direction_neighbours(dir);
+            apr_iterator_1.update_direction_neighbours(dir);
 
-            for (int index = 0; index < apr.number_neighbours_in_direction(dir); ++index) {
+            for (int index = 0; index < apr_iterator_1.number_neighbours_in_direction(dir); ++index) {
                 // on each face, there can be 0-4 neighbours accessed by index
-                if(neigh_it.set_neighbour_iterator(apr, dir, index)){
+                if(neigh_it.set_neighbour_iterator(apr_iterator_1, dir, index)){
                     //will return true if there is a neighbour defined
                     float apr_val = neigh_it(apr.particles_int);
                     float check_val = int_array[neigh_it.depth()](neigh_it.y(),neigh_it.x(),neigh_it.z());
@@ -3562,7 +3569,6 @@ bool utest_apr_serial_neigh(PartCellStructure<float,uint64_t>& pc_struct){
     APRIteratorNew<float> apr_iterator(apr_access2);
 
 
-    uint64_t particle_number;
     for (particle_number = 0; particle_number < apr_iterator.total_number_parts(); ++particle_number) {
 
         apr_iterator.set_iterator_to_particle_by_number(particle_number);
@@ -3624,7 +3630,7 @@ bool utest_apr_parallel_neigh(PartCellStructure<float,uint64_t>& pc_struct){
     unsigned int part = 0;
 
 #pragma omp parallel for schedule(static) private(part) firstprivate(apr_it,neigh_it)
-    for (part = 0; part < apr.num_parts_total; ++part) {
+    for (part = 0; part < apr_it.num_parts_total; ++part) {
         //needed step for any parallel loop (update to the next part)
         apr_it.set_iterator_to_particle_by_number(part);
 
@@ -3654,7 +3660,7 @@ bool utest_apr_parallel_neigh(PartCellStructure<float,uint64_t>& pc_struct){
 
 
 #pragma omp parallel for schedule(static) private(part) firstprivate(apr_it,neigh_it)
-    for (part = 0; part < apr.num_parts_total; ++part) {
+    for (part = 0; part < apr_it.num_parts_total; ++part) {
         //needed step for any parallel loop (update to the next part)
         apr_it.set_iterator_to_particle_by_number(part);
 
@@ -4035,6 +4041,8 @@ bool utest_apr_read_write(PartCellStructure<float,uint64_t>& pc_struct){
 
     std::vector<std::vector<uint8_t>> p_map;
 
+    APRIterator<float> apr_iterator_old(apr);
+
     apr.apr_access.generate_pmap(apr,p_map);
 
     apr.apr_access.initialize_structure_from_particle_cell_tree(apr,p_map);
@@ -4044,7 +4052,7 @@ bool utest_apr_read_write(PartCellStructure<float,uint64_t>& pc_struct){
 
     uint64_t counter = 0;
 
-    APRIterator<float> apr_iterator_old(apr);
+
     ExtraParticleData<float> index_check;
     std::vector<MeshData<float>> int_array;
     create_intensity_reference_structure(pc_struct,int_array);

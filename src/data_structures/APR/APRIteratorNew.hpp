@@ -129,7 +129,7 @@ public:
     }
 
     uint64_t total_number_parts(){
-        return (apr_access)->total_number_parts;
+        return (apr_access)->total_number_particles;
     }
 
     bool set_iterator_to_particle_by_number(const uint64_t &particle_number){
@@ -148,7 +148,7 @@ public:
             } else{
                 return false; //no particle cells, something is wrong
             }
-        } else if (particle_number < apr_access->total_number_parts) {
+        } else if (particle_number < apr_access->total_number_particles) {
 
             //iterating just move to next
             if(particle_number == (current_particle_cell.global_index+1)){

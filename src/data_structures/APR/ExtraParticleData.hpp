@@ -31,7 +31,7 @@ public:
     template<typename S>
     ExtraParticleData(APR<S>& apr){
         // intialize from apr
-        data.resize(apr.num_parts_total);
+        data.resize(apr.total_number_particles());
     }
 
     std::vector<DataType> data;

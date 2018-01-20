@@ -42,7 +42,7 @@ class APRParameters;
 
 
 template<typename ImageType>
-class APR : public APRIterator<ImageType>{
+class APR {
 
     template<typename S>
     friend class APRConverter;
@@ -80,7 +80,7 @@ private:
 
     std::vector<unsigned int> org_dims;
 
-
+    uint64_t num_parts_total;
 
 public:
 
@@ -104,7 +104,6 @@ public:
     Proc_par pars;
 
     APR(){
-        this->pc_data_pointer = &pc_data;
     }
 
 
@@ -123,12 +122,28 @@ public:
     //////////////////////////////////
 
     // #TODO remove
-    uint64_t level_max_(){
+    uint64_t level_max(){
         return apr_access.level_max;
     }
 
-    uint64_t level_min_(){
+    uint64_t level_min(){
         return apr_access.level_min;
+    }
+
+    inline uint64_t spatial_index_x_max(const unsigned int level){
+        return (apr_access).x_num[level];
+    }
+
+    inline uint64_t spatial_index_y_max(const unsigned int level){
+        return (apr_access).y_num[level];
+    }
+
+    inline uint64_t spatial_index_z_max(const unsigned int level){
+        return (apr_access).z_num[level];
+    }
+
+    inline uint64_t total_number_particles(){
+        return (apr_access).total_number_particles;
     }
 
 

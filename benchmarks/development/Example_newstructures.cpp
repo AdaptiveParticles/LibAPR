@@ -348,7 +348,7 @@ int main(int argc, char **argv) {
 //        counter = 0;
 //        uint64_t particle_number;
 //#pragma omp parallel for schedule(static) private(particle_number) firstprivate(apr_iterator, neighbour_iterator)
-//        for (particle_number = 0; particle_number < apr_iterator.total_number_parts(); ++particle_number) {
+//        for (particle_number = 0; particle_number < apr_iterator.total_number_particles(); ++particle_number) {
 //
 //            apr_iterator.set_iterator_to_particle_by_number(particle_number);
 //
@@ -437,7 +437,7 @@ int main(int argc, char **argv) {
 //
 //    uint64_t particle_number;
 //#pragma omp parallel for schedule(static) private(particle_number) firstprivate(apr_iterator) reduction(+:counter)
-//    for (particle_number = 0; particle_number < apr_iterator.total_number_parts(); ++particle_number) {
+//    for (particle_number = 0; particle_number < apr_iterator.total_number_particles(); ++particle_number) {
 //
 //        apr_iterator.set_iterator_to_particle_by_number(particle_number);
 //        counter++;
@@ -568,7 +568,7 @@ int main(int argc, char **argv) {
 //    apr_access2.flatten_structure(apr,map_data);
 //    timer.stop_timer();
 //
-//    std::cout << apr_access2.total_number_parts << std::endl;
+//    std::cout << apr_access2.total_number_particles << std::endl;
 //    std::cout << apr_access2.total_number_gaps << std::endl;
 //    std::cout << apr_access2.total_number_non_empty_rows << std::endl;
 //
@@ -576,7 +576,7 @@ int main(int argc, char **argv) {
 //
 //    apr_access3.total_number_non_empty_rows = apr_access2.total_number_non_empty_rows;
 //    apr_access3.total_number_gaps = apr_access2.total_number_gaps;
-//    apr_access3.total_number_parts = apr_access2.total_number_parts;
+//    apr_access3.total_number_particles = apr_access2.total_number_particles;
 //
 //    apr_access3.x_num = apr_access2.x_num;
 //    apr_access3.y_num = apr_access2.y_num;

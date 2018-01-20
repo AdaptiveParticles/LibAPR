@@ -220,7 +220,7 @@ bool APRConverter<ImageType>::get_apr_method(APR<ImageType>& apr) {
     st.start_timer("Down sample image for estimating particle intensities");
     std::vector<MeshData<T>> downsampled_img;
     //Down-sample the image for particle intensity estimation
-    downsample_pyrmaid(input_image,downsampled_img,apr.depth_max()-1,apr.depth_min());
+    downsample_pyrmaid(input_image,downsampled_img,apr.level_max()-1,apr.level_min());
     st.stop_timer();
 
     st.start_timer("initialize apr neighbour access structure");
