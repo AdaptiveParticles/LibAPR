@@ -9,6 +9,7 @@
 #include "APR.hpp"
 
 #include "src/data_structures/APR/ExtraParticleData.hpp"
+#include "src/data_structures/APR/ExtraPartCellData.hpp"
 
 #include <map>
 #include <utility>
@@ -532,7 +533,7 @@ public:
         //
 
         APRTimer apr_timer;
-        apr_timer.verbose_flag = true;
+        apr_timer.verbose_flag = false;
 
         level_min = apr.level_min();
         level_max = apr.level_max();
@@ -546,6 +547,11 @@ public:
             y_num[level] = apr.spatial_index_y_max(level);
             z_num[level] = apr.spatial_index_z_max(level);
         }
+
+        org_dims[1] = x_num[level_max];
+        org_dims[0] = y_num[level_max];
+        org_dims[2] = z_num[level_max];
+
 
         apr_timer.start_timer("first_step");
 
@@ -891,7 +897,30 @@ public:
         apr_timer.verbose_flag = true;
         apr_timer.start_timer("rebuild map");
 
-        gap_map.initialize_structure_parts_empty(apr);
+        //first add the layers
+        gap_map.depth_max = level_max;
+        gap_map.depth_min = level_min;
+
+        gap_map.z_num.resize(gap_map.depth_max+1);
+        gap_map.x_num.resize(gap_map.depth_max+1);
+        gap_map.y_num.resize(gap_map.depth_max+1);
+
+        gap_map.data.resize(gap_map.depth_max+1);
+
+        gap_map.org_dims.resize(3);
+        gap_map.org_dims[0] = org_dims[0];
+        gap_map.org_dims[1] = org_dims[1];
+        gap_map.org_dims[2] = org_dims[2];
+
+        for(uint64_t i = gap_map.depth_min;i <= gap_map.depth_max;i++){
+            gap_map.z_num[i] = z_num[i];
+            gap_map.x_num[i] = x_num[i];
+            gap_map.y_num[i] = y_num[i];
+
+            gap_map.data[i].resize(z_num[i]*x_num[i]);
+
+        }
+
 
         std::vector<uint64_t> cumsum;
         cumsum.reserve(total_number_non_empty_rows);

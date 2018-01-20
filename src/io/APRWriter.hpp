@@ -1254,311 +1254,291 @@ namespace new_iterator{
     class APRWriter {
     public:
 
-//        template<typename ImageType>
-//        void read_apr(APR<ImageType>& apr,std::string file_name)
-//        {
-//
-//            //currently only supporting 16 bit compress
-//            APRCompress<ImageType> apr_compress;
-//
-//            //hdf5 inits
-//            hid_t fid, pr_groupid, obj_id,attr_id;
-//            H5G_info_t info;
-//
-//            //need to register the filters so they work properly
-//            register_bosc();
-//
-//            int num_parts,num_cells;
-//
-//            fid = H5Fopen(file_name.c_str(),H5F_ACC_RDONLY,H5P_DEFAULT);
-//
-//            //Get the group you want to open
-//
-//            pr_groupid = H5Gopen2(fid,"ParticleRepr",H5P_DEFAULT);
-//            H5Gget_info( pr_groupid, &info );
-//
-//            //Getting an attribute
-//            obj_id =  H5Oopen_by_idx( fid, "ParticleRepr", H5_INDEX_NAME, H5_ITER_INC,0,H5P_DEFAULT);
-//
-//            //Load the attributes
-//
-//
-//            /////////////////////////////////////////////
-//            //  Get metadata
-//            //
-//            //////////////////////////////////////////////
-//
-//            hid_t       aid, atype, attr;
-//
-//            aid = H5Screate(H5S_SCALAR);
-//
-//            apr.name.reserve(100);
-//
-//            //std::string string_out;
-//
-//            //std::vector<char> string_out;
-//            //string_out.resize(80);
-//
-//            //atype = H5Tcopy (H5T_C_S1);
-//
-//            char string_out[100];
-//
-//            for (int j = 0; j < 100; ++j) {
-//                string_out[j] = 0;
-//            }
-//
-//            attr_id = 	H5Aopen(pr_groupid,"name",H5P_DEFAULT);
-//
-//            atype = H5Aget_type(attr_id);
-//
-//            hid_t atype_mem = H5Tget_native_type(atype, H5T_DIR_ASCEND);
-//
-//            H5Aread(attr_id,atype_mem,string_out) ;
-//            H5Aclose(attr_id);
-//
-//            apr.name= string_out;
-//            apr.pars.name = string_out;
-//
-//            apr.pc_data.org_dims.resize(3);
-//            apr.pc_data.depth_max = 0;
-//            apr.pc_data.depth_min = 0;
-//
-//            attr_id = 	H5Aopen(pr_groupid,"y_num",H5P_DEFAULT);
-//            H5Aread(attr_id,H5T_NATIVE_INT,&apr.pc_data.org_dims[0]) ;
-//            H5Aclose(attr_id);
-//
-//            attr_id = 	H5Aopen(pr_groupid,"x_num",H5P_DEFAULT);
-//            H5Aread(attr_id,H5T_NATIVE_INT,&apr.pc_data.org_dims[1]) ;
-//            H5Aclose(attr_id);
-//
-//            attr_id = 	H5Aopen(pr_groupid,"z_num",H5P_DEFAULT);
-//            H5Aread(attr_id,H5T_NATIVE_INT,&apr.pc_data.org_dims[2]) ;
-//            H5Aclose(attr_id);
-//
-////        attr_id = 	H5Aopen(pr_groupid,"num_parts",H5P_DEFAULT);
-////        H5Aread(attr_id,H5T_NATIVE_INT,&num_parts) ;
-////        H5Aclose(attr_id);
-////
-////        attr_id = 	H5Aopen(pr_groupid,"num_cells",H5P_DEFAULT);
-////        H5Aread(attr_id,H5T_NATIVE_INT,&num_cells) ;
-////        H5Aclose(attr_id);
-//
-//            attr_id = 	H5Aopen(pr_groupid,"depth_max",H5P_DEFAULT);
-//            H5Aread(attr_id,H5T_NATIVE_INT,&apr.pc_data.depth_max) ;
-//            H5Aclose(attr_id);
-//
-//            attr_id = 	H5Aopen(pr_groupid,"depth_min",H5P_DEFAULT);
-//            H5Aread(attr_id,H5T_NATIVE_INT,&apr.pc_data.depth_min) ;
-//            H5Aclose(attr_id);
-//
-//            attr_id = 	H5Aopen(pr_groupid,"lambda",H5P_DEFAULT);
-//            H5Aread(attr_id,H5T_NATIVE_FLOAT,&apr.parameters.lambda ) ;
-//            H5Aclose(attr_id);
-//
-//            int compress_type;
-//            attr_id = 	H5Aopen(pr_groupid,"compress_type",H5P_DEFAULT);
-//            H5Aread(attr_id,H5T_NATIVE_INT,&compress_type ) ;
-//            H5Aclose(attr_id);
-//
-//            float quantization_factor;
-//            attr_id = 	H5Aopen(pr_groupid,"quantization_factor",H5P_DEFAULT);
-//            H5Aread(attr_id,H5T_NATIVE_FLOAT,&quantization_factor ) ;
-//            H5Aclose(attr_id);
-//
-//            attr_id = 	H5Aopen(pr_groupid,"sigma_th",H5P_DEFAULT);
-//            H5Aread(attr_id,H5T_NATIVE_FLOAT,&apr.parameters.sigma_th ) ;
-//            H5Aclose(attr_id);
-//
-//            attr_id = 	H5Aopen(pr_groupid,"sigma_th_max",H5P_DEFAULT);
-//            H5Aread(attr_id,H5T_NATIVE_FLOAT,&apr.parameters.sigma_th_max ) ;
-//            H5Aclose(attr_id);
-//
-//            attr_id = 	H5Aopen(pr_groupid,"I_th",H5P_DEFAULT);
-//            H5Aread(attr_id,H5T_NATIVE_FLOAT,&apr.parameters.Ip_th ) ;
-//            H5Aclose(attr_id);
-//
-//            attr_id = 	H5Aopen(pr_groupid,"dx",H5P_DEFAULT);
-//            H5Aread(attr_id,H5T_NATIVE_FLOAT,&apr.parameters.dx ) ;
-//            H5Aclose(attr_id);
-//
-//            attr_id = 	H5Aopen(pr_groupid,"dy",H5P_DEFAULT);
-//            H5Aread(attr_id,H5T_NATIVE_FLOAT,&apr.parameters.dy ) ;
-//            H5Aclose(attr_id);
-//
-//            attr_id = 	H5Aopen(pr_groupid,"dz",H5P_DEFAULT);
-//            H5Aread(attr_id,H5T_NATIVE_FLOAT,&apr.parameters.dz ) ;
-//            H5Aclose(attr_id);
-//
-//            attr_id = 	H5Aopen(pr_groupid,"psfx",H5P_DEFAULT);
-//            H5Aread(attr_id,H5T_NATIVE_FLOAT,&apr.parameters.psfx ) ;
-//            H5Aclose(attr_id);
-//
-//            attr_id = 	H5Aopen(pr_groupid,"psfy",H5P_DEFAULT);
-//            H5Aread(attr_id,H5T_NATIVE_FLOAT,&apr.parameters.psfy ) ;
-//            H5Aclose(attr_id);
-//
-//            attr_id = 	H5Aopen(pr_groupid,"psfz",H5P_DEFAULT);
-//            H5Aread(attr_id,H5T_NATIVE_FLOAT,&apr.parameters.psfz ) ;
-//            H5Aclose(attr_id);
-//
-//            attr_id = 	H5Aopen(pr_groupid,"rel_error",H5P_DEFAULT);
-//            H5Aread(attr_id,H5T_NATIVE_FLOAT,&apr.parameters.rel_error ) ;
-//            H5Aclose(attr_id);
-//
-//            attr_id = 	H5Aopen(pr_groupid,"background_intensity_estimate",H5P_DEFAULT);
-//            H5Aread(attr_id,H5T_NATIVE_FLOAT,&apr.parameters.background_intensity_estimate ) ;
-//            H5Aclose(attr_id);
-//
-//            attr_id = 	H5Aopen(pr_groupid,"noise_sd_estimate",H5P_DEFAULT);
-//            H5Aread(attr_id,H5T_NATIVE_FLOAT,&apr.parameters.noise_sd_estimate ) ;
-//            H5Aclose(attr_id);
-//
-//            //std::cout << "Number particles: " << num_parts << " Number Cells: " << num_cells << std::endl;
-//
-//            std::vector<std::vector<uint8_t>> p_map_load;
-//            std::vector<std::vector<uint16_t>> Ip;
-//
-//            apr.pc_data.depth_max = apr.pc_data.depth_max;
-//
-//            p_map_load.resize(apr.pc_data.depth_max);
-//            Ip.resize(apr.pc_data.depth_max+1);
-//
-//            std::string name;
-//
-//            apr.pc_data.x_num.resize(apr.pc_data.depth_max+1);
-//            apr.pc_data.z_num.resize(apr.pc_data.depth_max+1);
-//            apr.pc_data.y_num.resize(apr.pc_data.depth_max+1);
-//
-//            for(int i = apr.pc_data.depth_min;i < apr.pc_data.depth_max; i++){
-//
-//                //get the info
-//
-//                int x_num;
-//                name = "p_map_x_num_"+std::to_string(i);
-//
-//                attr_id = 	H5Aopen(pr_groupid,name.c_str(),H5P_DEFAULT);
-//                H5Aread(attr_id,H5T_NATIVE_INT,&x_num) ;
-//                H5Aclose(attr_id);
-//
-//                int y_num;
-//                name = "p_map_y_num_"+std::to_string(i);
-//
-//                attr_id = 	H5Aopen(pr_groupid,name.c_str(),H5P_DEFAULT);
-//                H5Aread(attr_id,H5T_NATIVE_INT,&y_num) ;
-//                H5Aclose(attr_id);
-//
-//                int z_num;
-//                name = "p_map_z_num_"+std::to_string(i);
-//
-//                attr_id = 	H5Aopen(pr_groupid,name.c_str(),H5P_DEFAULT);
-//                H5Aread(attr_id,H5T_NATIVE_INT,&z_num) ;
-//                H5Aclose(attr_id);
-//
-//
-//                p_map_load[i].resize(x_num*y_num*z_num);
-//
-//
-//                if(p_map_load[i].size() > 0){
-//                    name = "p_map_"+std::to_string(i);
-//                    //Load the data then update the particle dataset
-//                    hdf5_load_data_blosc(obj_id,H5T_NATIVE_UINT8,p_map_load[i].data(),name.c_str());
-//                }
-//
-//
-//                apr.pc_data.x_num[i] = x_num;
-//                apr.pc_data.y_num[i] = y_num;
-//                apr.pc_data.z_num[i] = z_num;
-//
-//            }
-//
-//            for(int i = apr.pc_data.depth_min;i <= apr.pc_data.depth_max; i++){
-//
-//                //get the info
-//
-//                int Ip_num;
-//                name = "Ip_size_"+std::to_string(i);
-//
-//                attr_id = 	H5Aopen(pr_groupid,name.c_str(),H5P_DEFAULT);
-//                H5Aread(attr_id,H5T_NATIVE_INT,&Ip_num);
-//                H5Aclose(attr_id);
-//
-//
-//                Ip[i].resize(Ip_num);
-//
-//                if(Ip[i].size()>0){
-//                    name = "Ip_"+std::to_string(i);
-//                    hdf5_load_data_blosc(obj_id,H5T_NATIVE_UINT16,Ip[i].data(),name.c_str());
-//                }
-//
-//            }
-//
-//            apr.pc_data.y_num[apr.pc_data.depth_max] = apr.pc_data.org_dims[0];
-//            apr.pc_data.x_num[apr.pc_data.depth_max] = apr.pc_data.org_dims[1];
-//            apr.pc_data.z_num[apr.pc_data.depth_max] = apr.pc_data.org_dims[2];
-//
-//
-//            //close shiz
-//            H5Gclose(obj_id);
-//            H5Gclose(pr_groupid);
-//            H5Fclose(fid);
-//
-//            //
-//            //
-//            //  Transfer back the intensities
-//            //
-//            //
-//            apr.pc_data.create_partcell_structure(p_map_load);
-//
-//            apr.particles_int.initialize_structure_cells(apr.pc_data);
-//
-////        for (int depth = apr.depth_min(); depth <= apr.depth_max(); ++depth) {
-////
-////            uint64_t counter = 0;
-////
-////            for (apr.begin(depth); apr.end(depth) != 0 ; apr.it_forward(depth)) {
-////
-////                float t = apr(apr.particles_int);
-////
-////                apr(apr.particles_int) = Ip[depth][counter];
-////
-////                counter++;
-////
-////            }
-////        }
-//
-//            APRIterator<ImageType> apr_iterator(apr);
-//
-//            for (int level = apr.level_min(); level <= apr.level_max(); ++level) {
-//
-//                uint64_t counter = 0;
-//
-//                for (uint64_t particle_number = apr_iterator.particles_level_begin(level); particle_number <  apr_iterator.particles_level_end(level); ++particle_number) {
-//                    //
-//                    //  Parallel loop over level
-//                    //
-//                    apr_iterator.set_iterator_to_particle_by_number(particle_number);
-//
-//                    apr_iterator(apr.particles_int) = Ip[level][counter];
-//
-//                    counter++;
-//
-//
-//                }
-//            }
-//
-//
-//
-//            if(compress_type > 0){
-//
+        template<typename ImageType>
+        void read_apr(APR<ImageType>& apr,std::string file_name)
+        {
+
+            //currently only supporting 16 bit compress
+            APRCompress<ImageType> apr_compress;
+
+            //hdf5 inits
+            hid_t fid, pr_groupid, obj_id,attr_id;
+            H5G_info_t info;
+
+            //need to register the filters so they work properly
+            register_bosc();
+
+            int num_parts,num_cells;
+
+            fid = H5Fopen(file_name.c_str(),H5F_ACC_RDONLY,H5P_DEFAULT);
+
+            //Get the group you want to open
+
+            pr_groupid = H5Gopen2(fid,"ParticleRepr",H5P_DEFAULT);
+            H5Gget_info( pr_groupid, &info );
+
+            //Getting an attribute
+            obj_id =  H5Oopen_by_idx( fid, "ParticleRepr", H5_INDEX_NAME, H5_ITER_INC,0,H5P_DEFAULT);
+
+            //Load the attributes
+
+
+            /////////////////////////////////////////////
+            //  Get metadata
+            //
+            //////////////////////////////////////////////
+
+            hid_t       aid, atype, attr;
+
+            aid = H5Screate(H5S_SCALAR);
+
+            apr.name.reserve(100);
+
+            //std::string string_out;
+
+            //std::vector<char> string_out;
+            //string_out.resize(80);
+
+            //atype = H5Tcopy (H5T_C_S1);
+
+            char string_out[100];
+
+            for (int j = 0; j < 100; ++j) {
+                string_out[j] = 0;
+            }
+
+            attr_id = 	H5Aopen(pr_groupid,"name",H5P_DEFAULT);
+
+            atype = H5Aget_type(attr_id);
+
+            hid_t atype_mem = H5Tget_native_type(atype, H5T_DIR_ASCEND);
+
+            H5Aread(attr_id,atype_mem,string_out) ;
+            H5Aclose(attr_id);
+
+            apr.name= string_out;
+            apr.pars.name = string_out;
+
+
+            attr_id = 	H5Aopen(pr_groupid,"total_number_parts",H5P_DEFAULT);
+            H5Aread(attr_id,H5T_NATIVE_UINT64,&apr.apr_access.total_number_parts) ;
+            H5Aclose(attr_id);
+
+            attr_id = 	H5Aopen(pr_groupid,"total_number_gaps",H5P_DEFAULT);
+            H5Aread(attr_id,H5T_NATIVE_UINT64,&apr.apr_access.total_number_gaps) ;
+            H5Aclose(attr_id);
+
+            attr_id = 	H5Aopen(pr_groupid,"total_number_non_empty_rows",H5P_DEFAULT);
+            H5Aread(attr_id,H5T_NATIVE_UINT64,&apr.apr_access.total_number_non_empty_rows) ;
+            H5Aclose(attr_id);
+
+            uint64_t type_size;
+
+            attr_id = 	H5Aopen(pr_groupid,"type_vector_size",H5P_DEFAULT);
+            H5Aread(attr_id,H5T_NATIVE_UINT64,&type_size) ;
+            H5Aclose(attr_id);
+
+
+
+            attr_id = 	H5Aopen(pr_groupid,"y_num",H5P_DEFAULT);
+            H5Aread(attr_id,H5T_NATIVE_UINT64,&apr.apr_access.org_dims[0]) ;
+            H5Aclose(attr_id);
+
+            attr_id = 	H5Aopen(pr_groupid,"x_num",H5P_DEFAULT);
+            H5Aread(attr_id,H5T_NATIVE_UINT64,&apr.apr_access.org_dims[1]) ;
+            H5Aclose(attr_id);
+
+            attr_id = 	H5Aopen(pr_groupid,"z_num",H5P_DEFAULT);
+            H5Aread(attr_id,H5T_NATIVE_UINT64,&apr.apr_access.org_dims[2]) ;
+            H5Aclose(attr_id);
+
+
+            attr_id = 	H5Aopen(pr_groupid,"level_max",H5P_DEFAULT);
+            H5Aread(attr_id,H5T_NATIVE_UINT64,&apr.apr_access.level_max) ;
+            H5Aclose(attr_id);
+
+            attr_id = 	H5Aopen(pr_groupid,"level_min",H5P_DEFAULT);
+            H5Aread(attr_id,H5T_NATIVE_UINT64,&apr.apr_access.level_min) ;
+            H5Aclose(attr_id);
+
+            attr_id = 	H5Aopen(pr_groupid,"lambda",H5P_DEFAULT);
+            H5Aread(attr_id,H5T_NATIVE_FLOAT,&apr.parameters.lambda ) ;
+            H5Aclose(attr_id);
+
+            int compress_type;
+            attr_id = 	H5Aopen(pr_groupid,"compress_type",H5P_DEFAULT);
+            H5Aread(attr_id,H5T_NATIVE_INT,&compress_type ) ;
+            H5Aclose(attr_id);
+
+            float quantization_factor;
+            attr_id = 	H5Aopen(pr_groupid,"quantization_factor",H5P_DEFAULT);
+            H5Aread(attr_id,H5T_NATIVE_FLOAT,&quantization_factor ) ;
+            H5Aclose(attr_id);
+
+            attr_id = 	H5Aopen(pr_groupid,"sigma_th",H5P_DEFAULT);
+            H5Aread(attr_id,H5T_NATIVE_FLOAT,&apr.parameters.sigma_th ) ;
+            H5Aclose(attr_id);
+
+            attr_id = 	H5Aopen(pr_groupid,"sigma_th_max",H5P_DEFAULT);
+            H5Aread(attr_id,H5T_NATIVE_FLOAT,&apr.parameters.sigma_th_max ) ;
+            H5Aclose(attr_id);
+
+            attr_id = 	H5Aopen(pr_groupid,"I_th",H5P_DEFAULT);
+            H5Aread(attr_id,H5T_NATIVE_FLOAT,&apr.parameters.Ip_th ) ;
+            H5Aclose(attr_id);
+
+            attr_id = 	H5Aopen(pr_groupid,"dx",H5P_DEFAULT);
+            H5Aread(attr_id,H5T_NATIVE_FLOAT,&apr.parameters.dx ) ;
+            H5Aclose(attr_id);
+
+            attr_id = 	H5Aopen(pr_groupid,"dy",H5P_DEFAULT);
+            H5Aread(attr_id,H5T_NATIVE_FLOAT,&apr.parameters.dy ) ;
+            H5Aclose(attr_id);
+
+            attr_id = 	H5Aopen(pr_groupid,"dz",H5P_DEFAULT);
+            H5Aread(attr_id,H5T_NATIVE_FLOAT,&apr.parameters.dz ) ;
+            H5Aclose(attr_id);
+
+            attr_id = 	H5Aopen(pr_groupid,"psfx",H5P_DEFAULT);
+            H5Aread(attr_id,H5T_NATIVE_FLOAT,&apr.parameters.psfx ) ;
+            H5Aclose(attr_id);
+
+            attr_id = 	H5Aopen(pr_groupid,"psfy",H5P_DEFAULT);
+            H5Aread(attr_id,H5T_NATIVE_FLOAT,&apr.parameters.psfy ) ;
+            H5Aclose(attr_id);
+
+            attr_id = 	H5Aopen(pr_groupid,"psfz",H5P_DEFAULT);
+            H5Aread(attr_id,H5T_NATIVE_FLOAT,&apr.parameters.psfz ) ;
+            H5Aclose(attr_id);
+
+            attr_id = 	H5Aopen(pr_groupid,"rel_error",H5P_DEFAULT);
+            H5Aread(attr_id,H5T_NATIVE_FLOAT,&apr.parameters.rel_error ) ;
+            H5Aclose(attr_id);
+
+            attr_id = 	H5Aopen(pr_groupid,"background_intensity_estimate",H5P_DEFAULT);
+            H5Aread(attr_id,H5T_NATIVE_FLOAT,&apr.parameters.background_intensity_estimate ) ;
+            H5Aclose(attr_id);
+
+            attr_id = 	H5Aopen(pr_groupid,"noise_sd_estimate",H5P_DEFAULT);
+            H5Aread(attr_id,H5T_NATIVE_FLOAT,&apr.parameters.noise_sd_estimate ) ;
+            H5Aclose(attr_id);
+
+            //std::cout << "Number particles: " << num_parts << " Number Cells: " << num_cells << std::endl;
+
+            apr.apr_access.x_num.resize(apr.apr_access.level_max+1);
+            apr.apr_access.y_num.resize(apr.apr_access.level_max+1);
+            apr.apr_access.z_num.resize(apr.apr_access.level_max+1);
+
+            for(int i = apr.apr_access.level_min;i < apr.apr_access.level_max; i++){
+
+                //get the info
+
+                int x_num;
+                std::string name = "x_num_"+std::to_string(i);
+
+                attr_id = 	H5Aopen(pr_groupid,name.c_str(),H5P_DEFAULT);
+                H5Aread(attr_id,H5T_NATIVE_INT,&x_num) ;
+                H5Aclose(attr_id);
+
+                int y_num;
+                name = "y_num_"+std::to_string(i);
+
+                attr_id = 	H5Aopen(pr_groupid,name.c_str(),H5P_DEFAULT);
+                H5Aread(attr_id,H5T_NATIVE_INT,&y_num) ;
+                H5Aclose(attr_id);
+
+                int z_num;
+                name = "z_num_"+std::to_string(i);
+
+                attr_id = 	H5Aopen(pr_groupid,name.c_str(),H5P_DEFAULT);
+                H5Aread(attr_id,H5T_NATIVE_INT,&z_num) ;
+                H5Aclose(attr_id);
+
+
+                apr.apr_access.x_num[i] = x_num;
+                apr.apr_access.y_num[i] = y_num;
+                apr.apr_access.z_num[i] = z_num;
+
+            }
+
+
+
+            apr.particles_int_new.data.resize(apr.apr_access.total_number_parts);
+
+           if(apr.particles_int_new.data.size()>0){
+                std::string name = "particle_intensities";
+                hdf5_load_data_blosc(obj_id,H5T_NATIVE_UINT16,apr.particles_int_new.data.data(),name.c_str());
+            }
+
+            apr.apr_access.y_num[apr.apr_access.level_max] = apr.apr_access.org_dims[0];
+            apr.apr_access.x_num[apr.apr_access.level_max] = apr.apr_access.org_dims[1];
+            apr.apr_access.z_num[apr.apr_access.level_max] = apr.apr_access.org_dims[2];
+
+            MapStorageData map_data;
+            //all the access map data
+
+            map_data.global_index.resize(apr.apr_access.total_number_gaps);
+            std::string dataset_name = "map_global_index";
+            hdf5_load_data_blosc(obj_id,H5T_NATIVE_UINT64,map_data.global_index.data(),dataset_name.c_str());
+
+
+            map_data.y_end.resize(apr.apr_access.total_number_gaps);
+            dataset_name = "map_y_end";
+            hdf5_load_data_blosc(obj_id,H5T_NATIVE_UINT16,map_data.y_end.data(),dataset_name.c_str());
+
+
+            map_data.y_begin.resize(apr.apr_access.total_number_gaps);
+            dataset_name = "map_y_begin";
+            hdf5_load_data_blosc(obj_id,H5T_NATIVE_UINT16,map_data.y_begin.data(),dataset_name.c_str());
+
+            map_data.number_gaps.resize(apr.apr_access.total_number_non_empty_rows);
+            dataset_name = "map_number_gaps";
+            hdf5_load_data_blosc(obj_id,H5T_NATIVE_UINT16,map_data.number_gaps.data(),dataset_name.c_str());
+
+            map_data.level.resize(apr.apr_access.total_number_non_empty_rows);
+            dataset_name = "map_level";
+            hdf5_load_data_blosc(obj_id,H5T_NATIVE_UINT8,map_data.level.data(),dataset_name.c_str());
+
+            map_data.x.resize(apr.apr_access.total_number_non_empty_rows);
+            dataset_name = "map_x";
+            hdf5_load_data_blosc(obj_id,H5T_NATIVE_UINT16,map_data.x.data(),dataset_name.c_str());
+
+            map_data.z.resize(apr.apr_access.total_number_non_empty_rows);
+            dataset_name = "map_z";
+            hdf5_load_data_blosc(obj_id,H5T_NATIVE_UINT16,map_data.z.data(),dataset_name.c_str());
+
+            apr.apr_access.particle_cell_type.data.resize(type_size);
+            dataset_name = "particle_cell_type";
+            hdf5_load_data_blosc(obj_id,H5T_NATIVE_UINT8,apr.apr_access.particle_cell_type.data.data(),dataset_name.c_str());
+
+
+            apr.apr_access.rebuild_map(apr,map_data);
+
+
+            //close shiz
+            H5Gclose(obj_id);
+            H5Gclose(pr_groupid);
+            H5Fclose(fid);
+
+            //
+            //
+            //  Transfer back the intensities
+            //
+            //
+
+
+
+            if(compress_type > 0){
+                //#TODO
 //                apr_compress.set_compression_type(compress_type);
 //                apr_compress.set_quantization_factor(quantization_factor);
 //
 //                apr_compress.decompress(apr,apr.particles_int);
-//
-//            }
-//
-//        }
-//
+
+            }
+
+        }
+
         template<typename ImageType>
         void write_apr(APR<ImageType>& apr,std::string save_loc,std::string file_name){
             //compress
@@ -1637,9 +1617,9 @@ namespace new_iterator{
             pr_groupid = H5Gcreate2(fid,"ParticleRepr",H5P_DEFAULT,H5P_DEFAULT,H5P_DEFAULT);
             H5Gget_info( pr_groupid, &info );
 
-            hdf5_write_attribute_blosc(pr_groupid,H5T_NATIVE_INT,"x_num",1,&dims, &apr.apr_access.org_dims[0] );
-            hdf5_write_attribute_blosc(pr_groupid,H5T_NATIVE_INT,"y_num",1,&dims, &apr.apr_access.org_dims[0] );
-            hdf5_write_attribute_blosc(pr_groupid,H5T_NATIVE_INT,"z_num",1,&dims, &apr.apr_access.org_dims[0] );
+            hdf5_write_attribute_blosc(pr_groupid,H5T_NATIVE_UINT64,"x_num",1,&dims, &apr.apr_access.org_dims[1] );
+            hdf5_write_attribute_blosc(pr_groupid,H5T_NATIVE_UINT64,"y_num",1,&dims, &apr.apr_access.org_dims[0] );
+            hdf5_write_attribute_blosc(pr_groupid,H5T_NATIVE_UINT64,"z_num",1,&dims, &apr.apr_access.org_dims[2] );
 
 
             obj_id = H5Gcreate2(fid,"ParticleRepr/t",H5P_DEFAULT,H5P_DEFAULT,H5P_DEFAULT);
@@ -1649,14 +1629,17 @@ namespace new_iterator{
 
             //just an identifier in here for the reading of the parts
 
-            int total_number_parts = apr.apr_access.total_number_parts;
-            int total_number_gaps = apr.apr_access.total_number_gaps;
-            int total_number_non_empty_rows = apr.apr_access.total_number_non_empty_rows;
+            uint64_t total_number_parts = apr.apr_access.total_number_parts;
+            uint64_t total_number_gaps = apr.apr_access.total_number_gaps;
+            uint64_t total_number_non_empty_rows = apr.apr_access.total_number_non_empty_rows;
+            uint64_t type_vector_size = apr.apr_access.particle_cell_type.data.size();
 
-            hdf5_write_attribute_blosc(pr_groupid,H5T_NATIVE_INT,"total_number_parts",1,dims_out, &total_number_parts );
+            hdf5_write_attribute_blosc(pr_groupid,H5T_NATIVE_UINT64,"total_number_parts",1,dims_out, &total_number_parts );
 
-            hdf5_write_attribute_blosc(pr_groupid,H5T_NATIVE_INT,"total_number_gaps",1,dims_out, &total_number_gaps );
-            hdf5_write_attribute_blosc(pr_groupid,H5T_NATIVE_INT,"total_number_non_empty_rows",1,dims_out, &total_number_non_empty_rows );
+            hdf5_write_attribute_blosc(pr_groupid,H5T_NATIVE_UINT64,"total_number_gaps",1,dims_out, &total_number_gaps );
+            hdf5_write_attribute_blosc(pr_groupid,H5T_NATIVE_UINT64,"total_number_non_empty_rows",1,dims_out, &total_number_non_empty_rows );
+
+            hdf5_write_attribute_blosc(pr_groupid,H5T_NATIVE_UINT64,"type_vector_size",1,dims_out, &type_vector_size );
 
             // New parameter and background data
 
@@ -1725,7 +1708,7 @@ namespace new_iterator{
             if(dims > 0){
                 //write the parts
 
-                std::string dataset_name = "Particle_intensities";
+                std::string dataset_name = "particle_intensities";
                 hdf5_write_data_blosc(obj_id, H5T_NATIVE_UINT16, dataset_name.c_str(), rank, &dims, apr.particles_int_new.data.data(),blosc_comp_type,blosc_comp_level,blosc_shuffle);
 
             }
@@ -1759,7 +1742,7 @@ namespace new_iterator{
 
             dims = map_data.level.size();
             dataset_name = "map_level";
-            hdf5_write_data_blosc(obj_id, H5T_NATIVE_UINT16, dataset_name.c_str(), rank, &dims,  map_data.level.data(),blosc_comp_type,blosc_comp_level,blosc_shuffle);
+            hdf5_write_data_blosc(obj_id, H5T_NATIVE_UINT8, dataset_name.c_str(), rank, &dims,  map_data.level.data(),blosc_comp_type,blosc_comp_level,blosc_shuffle);
 
             dims = map_data.x.size();
             dataset_name = "map_x";
@@ -1775,9 +1758,23 @@ namespace new_iterator{
 
             write_timer.stop_timer();
 
+            for (int i = apr.level_min(); i <apr.level_max() ; ++i) {
+                std::string name = "x_num_"+std::to_string(i);
+                hsize_t attr = apr.apr_access.x_num[i];
+                hdf5_write_attribute_blosc(pr_groupid,H5T_NATIVE_INT,name.c_str(),1,&dim_a, &attr);
+
+                attr = apr.apr_access.y_num[i];
+                name = "y_num_"+std::to_string(i);
+                hdf5_write_attribute_blosc(pr_groupid,H5T_NATIVE_INT,name.c_str(),1,&dim_a, &attr);
+
+                attr =apr.apr_access.z_num[i];
+                name = "z_num_"+std::to_string(i);
+                hdf5_write_attribute_blosc(pr_groupid,H5T_NATIVE_INT,name.c_str(),1,&dim_a, &attr);
+            }
+
             hsize_t attr =apr.apr_access.level_min;
-            hdf5_write_attribute_blosc(pr_groupid,H5T_NATIVE_INT,"level_max",1,&dim_a, &apr.apr_access.level_max );
-            hdf5_write_attribute_blosc(pr_groupid,H5T_NATIVE_INT,"level_min",1,&dim_a, &attr );
+            hdf5_write_attribute_blosc(pr_groupid,H5T_NATIVE_UINT64,"level_max",1,&dim_a, &apr.apr_access.level_max );
+            hdf5_write_attribute_blosc(pr_groupid,H5T_NATIVE_UINT64,"level_min",1,&dim_a, &apr.apr_access.level_min );
 
             // output the file size
             hsize_t file_size;

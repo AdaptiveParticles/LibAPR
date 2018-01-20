@@ -236,7 +236,10 @@ int main(int argc, char **argv) {
     APR<uint16_t> apr;
 
     //read file
+    timer.start_timer("reading");
     apr.read_apr(file_name);
+    timer.stop_timer();
+
 
     apr.parameters.input_dir = options.directory;
 
@@ -317,6 +320,13 @@ int main(int argc, char **argv) {
     writer.write_apr(apr,options.directory,name);
 
     timer.stop_timer();
+
+    APR<uint16_t> apr2;
+    timer.start_timer("reading");
+    writer.read_apr(apr2,options.directory + name + "_apr.h5");
+    timer.stop_timer();
+
+
 
     timer.start_timer("writint");
 

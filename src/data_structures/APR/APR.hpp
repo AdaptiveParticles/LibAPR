@@ -122,6 +122,15 @@ public:
     ///
     //////////////////////////////////
 
+    // #TODO remove
+    uint64_t level_max_(){
+        return apr_access.level_max;
+    }
+
+    uint64_t level_min_(){
+        return apr_access.level_min;
+    }
+
 
     //basic IO
     void read_apr(std::string file_name){

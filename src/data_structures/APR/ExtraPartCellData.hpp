@@ -20,6 +20,8 @@
 template<typename V>
 class APR;
 
+class APRAccess;
+
 template<typename T>
 class ExtraPartCellData {
     
@@ -283,6 +285,8 @@ public:
         }
 
     }
+
+
 
 
 
