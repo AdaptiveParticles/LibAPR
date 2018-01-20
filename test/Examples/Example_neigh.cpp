@@ -114,7 +114,7 @@ int main(int argc, char **argv) {
                 if(neighbour_iterator.set_neighbour_iterator(apr, dir, index)){
                     //will return true if there is a neighbour defined
 
-                    temp += neighbour_iterator(apr.particles_int);
+                    temp += neighbour_iterator(apr.particles_int_old);
                     counter++;
 
                 }
@@ -157,7 +157,7 @@ int main(int argc, char **argv) {
 
                 if(neighbour_iterator.set_neighbour_iterator(apr_parallel_iterator, dir, index)){
                     //neighbour_iterator works just like apr, and apr_parallel_iterator (you could also call neighbours)
-                    apr_parallel_iterator(neigh_xm) += neighbour_iterator(apr.particles_int)*(apr_parallel_iterator.y() - neighbour_iterator.y());
+                    apr_parallel_iterator(neigh_xm) += neighbour_iterator(apr.particles_int_old)*(apr_parallel_iterator.y() - neighbour_iterator.y());
                 }
 
             }
@@ -192,7 +192,7 @@ int main(int argc, char **argv) {
             if(neighbour_iterator.set_neighbour_iterator(apr_parallel_iterator, dir, index)){
                 //access data and perform a conditional sum (neighbour_iterator has all access like the normal iterator)
                 if((neighbour_iterator.type() == 1) & (neighbour_iterator.depth() <= neighbour_iterator.depth_max())){
-                    apr_parallel_iterator(type_sum) += neighbour_iterator(apr.particles_int)*apr_parallel_iterator.type();
+                    apr_parallel_iterator(type_sum) += neighbour_iterator(apr.particles_int_old)*apr_parallel_iterator.type();
                 }
             }
         }

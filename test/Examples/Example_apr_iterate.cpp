@@ -100,7 +100,7 @@ int main(int argc, char **argv) {
     //Basic serial iteration over all particles
     for (apr.begin(); apr.end() != 0; apr.it_forward()) {
         // multiple the Particle Cell type by the particle intensity (the intensity is stored as a ExtraPartCellData and therefore is no different from any additional datasets)
-        apr(calc_ex) = apr.type()*apr(apr.particles_int);
+        apr(calc_ex) = apr.type()*apr(apr.particles_int_old);
 
 
     }
@@ -118,7 +118,7 @@ int main(int argc, char **argv) {
             unsigned int curr_level = apr.level();
             unsigned int curr_depth = apr.depth();
 
-            if(apr(apr.particles_int) > 100){
+            if(apr(apr.particles_int_old) > 100){
                 //set all particles in calc_ex with an particle intensity greater then 100 to 0.
                 apr(calc_ex) = 0;
 

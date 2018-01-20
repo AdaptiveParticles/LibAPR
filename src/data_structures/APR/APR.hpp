@@ -47,9 +47,9 @@ class APR {
     template<typename S>
     friend class APRConverter;
 
-    friend class APRWriter;
+    friend class old::APRWriter;
 
-    friend class new_iterator::APRWriter;
+    friend class APRWriter;
 
     friend class PullingScheme;
 
@@ -89,11 +89,11 @@ public:
 
     APRAccess apr_access;
 
-    ExtraParticleData<ImageType> particles_int_new;
+    ExtraParticleData<ImageType> particles_int;
 
     //Main internal datastructures
 
-    ExtraPartCellData<ImageType> particles_int; // holds the particles intenisty information
+    ExtraPartCellData<ImageType> particles_int_old; // holds the particles intenisty information
 
     // holds the spatial and neighbours access information and methods
 
@@ -114,7 +114,7 @@ public:
     ExtraPartCellData<uint16> y_vec;
 
     unsigned int orginal_dimensions(int dim){
-        return pc_data.org_dims[dim];
+        return apr_access.org_dims[dim];
     }
 
 
@@ -270,7 +270,7 @@ public:
     }
 
     template<typename U,typename V>
-    void get_parts_from_img(std::vector<MeshData<U>>& img_by_level,ExtraPartCellData<V>& parts){
+    void get_parts_from_img(std::vector<MeshData<U>>& img_by_level,ExtraParticleData<V>& parts){
         //
         //  Bevan Cheeseman 2016
         //
@@ -280,7 +280,7 @@ public:
         parts.init(*this);
 
         //initialization of the iteration structures
-        APRIteratorOld<ImageType> apr_it(*this); //this is required for parallel access
+        APRIterator<ImageType> apr_it(*this); //this is required for parallel access
         uint64_t part;
 
 #pragma omp parallel for schedule(static) private(part) firstprivate(apr_it)
@@ -288,7 +288,7 @@ public:
             //needed step for any parallel loop (update to the next part)
             apr_it.set_iterator_to_particle_by_number(part);
 
-            apr_it(parts) = img_by_level[apr_it.depth()].access_no_protection(apr_it.y(),apr_it.x(),apr_it.z());
+            apr_it(parts) = img_by_level[apr_it.level()].access_no_protection(apr_it.y(),apr_it.x(),apr_it.z());
 
         }
 
@@ -374,7 +374,7 @@ private:
         //  Computes totals of total number of particles in each xz
         //
 
-        num_parts_xy.initialize_structure_parts_empty(particles_int);
+        num_parts_xy.initialize_structure_parts_empty(particles_int_old);
 
         int z_, x_, j_, y_;
 

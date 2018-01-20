@@ -984,12 +984,12 @@ void write_apr_pc_struct_hilbert(PartCellStructure<T,uint64_t>& pc_struct,std::s
 
 
 
-    for(uint64_t depth = (curr_apr.particles_int.depth_min);depth <= curr_apr.particles_int.depth_max;depth++) {
+    for(uint64_t depth = (curr_apr.particles_int_old.depth_min);depth <= curr_apr.particles_int_old.depth_max;depth++) {
         //loop over the resolutions of the structure
-        const unsigned int x_num_ = curr_apr.particles_int.x_num[depth];
-        const unsigned int z_num_ = curr_apr.particles_int.z_num[depth];
+        const unsigned int x_num_ = curr_apr.particles_int_old.x_num[depth];
+        const unsigned int z_num_ = curr_apr.particles_int_old.z_num[depth];
         unsigned int y_num_ = 0;
-        if(depth == curr_apr.particles_int.depth_max) {
+        if(depth == curr_apr.particles_int_old.depth_max) {
              y_num_ = pc_struct.org_dims[0];
         } else{
             y_num_ = pc_struct.y_num[depth];
@@ -1054,12 +1054,12 @@ void write_apr_pc_struct_hilbert(PartCellStructure<T,uint64_t>& pc_struct,std::s
 
                 const unsigned int pc_offset = x_num_*z_ + x_;
 
-                const size_t j_num = curr_apr.particles_int.data[depth][pc_offset].size();
+                const size_t j_num = curr_apr.particles_int_old.data[depth][pc_offset].size();
 
                 uint64_t curr_size = Ip.size();
                 Ip.resize(curr_size+ j_num);
 
-                std::copy(curr_apr.particles_int.data[depth][pc_offset].begin(),curr_apr.particles_int.data[depth][pc_offset].end(),Ip.begin() + curr_size);
+                std::copy(curr_apr.particles_int_old.data[depth][pc_offset].begin(),curr_apr.particles_int_old.data[depth][pc_offset].end(),Ip.begin() + curr_size);
 
             }
         }

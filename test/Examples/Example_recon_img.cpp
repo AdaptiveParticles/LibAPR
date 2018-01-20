@@ -78,7 +78,7 @@ int main(int argc, char **argv) {
 
     timer.start_timer("pc interp");
     //perform piece-wise constant interpolation
-    apr.interp_img(recon_pc,apr.particles_int);
+    apr.interp_img(recon_pc,apr.particles_int_old);
 
     timer.stop_timer();
 
@@ -140,7 +140,7 @@ int main(int argc, char **argv) {
 
     timer.start_timer("smooth reconstrution");
 
-    apr.interp_parts_smooth(recon_smooth,apr.particles_int,scale_d);
+    apr.interp_parts_smooth(recon_smooth,apr.particles_int_old,scale_d);
 
     timer.stop_timer();
 

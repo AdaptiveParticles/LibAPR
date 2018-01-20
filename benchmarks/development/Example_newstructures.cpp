@@ -274,7 +274,7 @@ int main(int argc, char **argv) {
 
     //compare_two_maps(apr,apr_access,apr_access2);
 
-    APRIterator<uint16_t> apr_iterator(apr_access2);
+    APRIteratorOld<uint16_t> apr_iterator_old(apr);
 
     ExtraParticleData<uint16_t> particles_int;
     ExtraParticleData<uint16_t> x;
@@ -285,12 +285,17 @@ int main(int argc, char **argv) {
 
     uint64_t counter = 0;
 
-    for (apr.begin(); apr.end()!=0;apr.it_forward()) {
-        particles_int.data.push_back(apr(apr.particles_int));
-        x.data.push_back(apr.x());
-        y.data.push_back(apr.y());
-        z.data.push_back(apr.z());
-        level.data.push_back(apr.level());
+    APRIterator<uint16_t > apr_iterator(apr);
+    uint64_t particle_number;
+
+#pragma omp parallel for schedule(static) private(particle_number) firstprivate(apr_iterator)
+    for (particle_number = 0; particle_number < apr_iterator.total_number_particles(); ++particle_number) {
+        apr_iterator.set_iterator_to_particle_by_number(particle_number);
+        particles_int.data.push_back(apr_iterator_old(apr.particles_int_old));
+        x.data.push_back(apr_iterator.x());
+        y.data.push_back(apr_iterator.y());
+        z.data.push_back(apr_iterator.z());
+        level.data.push_back(apr_iterator.level());
         indexd.data.push_back(counter);
         counter++;
     }
@@ -302,7 +307,7 @@ int main(int argc, char **argv) {
     APRIterator<uint16_t> neighbour_iterator(apr_access2);
 
     ExtraParticleData<float> neigh_sum;
-    neigh_sum.data.resize(apr_iterator.total_number_parts());
+    neigh_sum.data.resize(apr_iterator.total_number_particles());
 
     bool success = true;
     uint64_t total_counter  = 0;
@@ -313,7 +318,7 @@ int main(int argc, char **argv) {
 
     new_iterator::APRWriter writer;
 
-    apr.particles_int_new = particles_int;
+    apr.particles_int = particles_int;
 
     timer.start_timer("writint");
 
@@ -326,11 +331,11 @@ int main(int argc, char **argv) {
     writer.read_apr(apr2,options.directory + name + "_apr.h5");
     timer.stop_timer();
 
-    writer.write_apr_paraview(apr,options.directory,name,apr.particles_int_new);
+    writer.write_apr_paraview(apr,options.directory,name,apr.particles_int);
 
-    writer.write_particles_only(options.directory,name,apr.particles_int_new);
+    writer.write_particles_only(options.directory,name,apr.particles_int);
 
-    writer.read_parts_only(options.directory+name+"_apr_extra_parts.h5",apr.particles_int_new);
+    writer.read_parts_only(options.directory+name+"_apr_extra_parts.h5",apr.particles_int);
 
     timer.start_timer("writint");
 

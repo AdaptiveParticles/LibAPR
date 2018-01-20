@@ -3278,7 +3278,7 @@ bool utest_apr_serial_iterate(PartCellStructure<float,uint64_t>& pc_struct){
     uint64_t particle_number = 0;
 
     for (particle_number = 0; particle_number < apr_iterator.num_parts_total; ++particle_number) {
-        float apr_val = apr_iterator(apr.particles_int);
+        float apr_val = apr_iterator(apr.particles_int_old);
 
         float check_val = int_array[apr_iterator.depth()](apr_iterator.y(),apr_iterator.x(),apr_iterator.z());
 
@@ -3315,7 +3315,7 @@ bool utest_apr_parallel_iterate(PartCellStructure<float,uint64_t>& pc_struct){
         //needed step for any parallel loop (update to the next particle_number)
         apr_iterator.set_iterator_to_particle_by_number(particle_number);
 
-        float apr_val = apr_iterator(apr.particles_int);
+        float apr_val = apr_iterator(apr.particles_int_old);
 
         float check_val = int_array[apr_iterator.depth()](apr_iterator.y(),apr_iterator.x(),apr_iterator.z());
 
@@ -3509,7 +3509,7 @@ bool utest_apr_serial_neigh(PartCellStructure<float,uint64_t>& pc_struct){
                 // on each face, there can be 0-4 neighbours accessed by index
                 if(neigh_it.set_neighbour_iterator(apr_iterator_1, dir, index)){
                     //will return true if there is a neighbour defined
-                    float apr_val = neigh_it(apr.particles_int);
+                    float apr_val = neigh_it(apr.particles_int_old);
                     float check_val = int_array[neigh_it.depth()](neigh_it.y(),neigh_it.x(),neigh_it.z());
 
                     if(check_val!=apr_val){
@@ -3531,7 +3531,7 @@ bool utest_apr_serial_neigh(PartCellStructure<float,uint64_t>& pc_struct){
 
         //now we only update the neighbours, and directly access them through a neighbour iterator
 
-        index_check.data.push_back(apr_iterator_1(apr.particles_int));
+        index_check.data.push_back(apr_iterator_1(apr.particles_int_old));
         counter++;
 
         //loop over all the neighbours and set the neighbour iterator to it
@@ -3543,7 +3543,7 @@ bool utest_apr_serial_neigh(PartCellStructure<float,uint64_t>& pc_struct){
                 // on each face, there can be 0-4 neighbours accessed by index
                 if(neigh_it.set_neighbour_iterator(apr_iterator_1, dir, index)){
                     //will return true if there is a neighbour defined
-                    float apr_val = neigh_it(apr.particles_int);
+                    float apr_val = neigh_it(apr.particles_int_old);
                     float check_val = int_array[neigh_it.depth()](neigh_it.y(),neigh_it.x(),neigh_it.z());
 
                     if(check_val!=apr_val){
@@ -3569,7 +3569,7 @@ bool utest_apr_serial_neigh(PartCellStructure<float,uint64_t>& pc_struct){
     APRIterator<float> apr_iterator(apr_access2);
 
 
-    for (particle_number = 0; particle_number < apr_iterator.total_number_parts(); ++particle_number) {
+    for (particle_number = 0; particle_number < apr_iterator.total_number_particles(); ++particle_number) {
 
         apr_iterator.set_iterator_to_particle_by_number(particle_number);
         //counter++;
@@ -3645,7 +3645,7 @@ bool utest_apr_parallel_neigh(PartCellStructure<float,uint64_t>& pc_struct){
                 // on each face, there can be 0-4 neighbours accessed by index
                 if(neigh_it.set_neighbour_iterator(apr_it, dir, index)){
                     //will return true if there is a neighbour defined
-                    float apr_val = neigh_it(apr.particles_int);
+                    float apr_val = neigh_it(apr.particles_int_old);
                     float check_val = int_array[neigh_it.depth()](neigh_it.y(),neigh_it.x(),neigh_it.z());
 
                     if(check_val!=apr_val){
@@ -3675,7 +3675,7 @@ bool utest_apr_parallel_neigh(PartCellStructure<float,uint64_t>& pc_struct){
                 // on each face, there can be 0-4 neighbours accessed by index
                 if(neigh_it.set_neighbour_iterator(apr_it, dir, index)){
                     //will return true if there is a neighbour defined
-                    float apr_val = neigh_it(apr.particles_int);
+                    float apr_val = neigh_it(apr.particles_int_old);
                     float check_val = int_array[neigh_it.depth()](neigh_it.y(),neigh_it.x(),neigh_it.z());
 
                     if(check_val!=apr_val){
@@ -3728,28 +3728,28 @@ void create_pc_data_new(APR<float>& apr,PartCellStructure<float,uint64_t>& pc_st
     apr.pc_data.y_num[apr.pc_data.depth_max] = pc_struct.org_dims[0];
     apr.pc_data.data[apr.pc_data.depth_max].resize(apr.pc_data.z_num[apr.pc_data.depth_max]*apr.pc_data.x_num[apr.pc_data.depth_max]);
 
-    apr.particles_int.org_dims = pc_struct.org_dims;
+    apr.particles_int_old.org_dims = pc_struct.org_dims;
 
-    apr.particles_int.y_num = pc_struct.y_num;
+    apr.particles_int_old.y_num = pc_struct.y_num;
 
     //first add the layers
-    apr.particles_int.depth_max = pc_struct.depth_max + 1;
-    apr.particles_int.depth_min = pc_struct.depth_min;
+    apr.particles_int_old.depth_max = pc_struct.depth_max + 1;
+    apr.particles_int_old.depth_min = pc_struct.depth_min;
 
-    apr.particles_int.z_num.resize(apr.pc_data.depth_max+1);
-    apr.particles_int.x_num.resize(apr.pc_data.depth_max+1);
+    apr.particles_int_old.z_num.resize(apr.pc_data.depth_max+1);
+    apr.particles_int_old.x_num.resize(apr.pc_data.depth_max+1);
 
-    apr.particles_int.y_num.resize(apr.pc_data.depth_max+1);
+    apr.particles_int_old.y_num.resize(apr.pc_data.depth_max+1);
 
-    apr.particles_int.y_num[apr.pc_data.depth_max] = pc_struct.org_dims[0];
+    apr.particles_int_old.y_num[apr.pc_data.depth_max] = pc_struct.org_dims[0];
 
-    apr.particles_int.data.resize(apr.pc_data.depth_max+1);
+    apr.particles_int_old.data.resize(apr.pc_data.depth_max+1);
 
-    for(uint64_t i = apr.particles_int.depth_min;i <= apr.particles_int.depth_max;i++){
-        apr.particles_int.z_num[i] = apr.pc_data.z_num[i];
-        apr.particles_int.x_num[i] = apr.pc_data.x_num[i];
-        apr.particles_int.y_num[i] = apr.pc_data.y_num[i];
-        apr.particles_int.data[i].resize(apr.pc_data.z_num[i]*apr.pc_data.x_num[i]);
+    for(uint64_t i = apr.particles_int_old.depth_min;i <= apr.particles_int_old.depth_max;i++){
+        apr.particles_int_old.z_num[i] = apr.pc_data.z_num[i];
+        apr.particles_int_old.x_num[i] = apr.pc_data.x_num[i];
+        apr.particles_int_old.y_num[i] = apr.pc_data.y_num[i];
+        apr.particles_int_old.data[i].resize(apr.pc_data.z_num[i]*apr.pc_data.x_num[i]);
     }
 
     //now initialize the entries of the two data sets, access structure
@@ -3931,7 +3931,7 @@ void create_pc_data_new(APR<float>& apr,PartCellStructure<float,uint64_t>& pc_st
                 apr.pc_data.data[i][offset_pc_data].back() = 1;
 
                 //initialize particles
-                apr.particles_int.data[i][offset_pc_data].resize(apr.pc_data.data[i][offset_pc_data].size());
+                apr.particles_int_old.data[i][offset_pc_data].resize(apr.pc_data.data[i][offset_pc_data].size());
 
                 for(y_ = 0;y_ < temp_exist.size();y_++){
 
@@ -3976,11 +3976,11 @@ void create_pc_data_new(APR<float>& apr,PartCellStructure<float,uint64_t>& pc_st
                         //lastly retrieve the intensities
                         if(status == SEED){
                             //seed from up one level
-                            apr.particles_int.data[i][offset_pc_data][curr_index-1] = pc_struct.part_data.particle_data.data[i-1][offset_pc_data_seed][temp_location[y_]];
+                            apr.particles_int_old.data[i][offset_pc_data][curr_index-1] = pc_struct.part_data.particle_data.data[i-1][offset_pc_data_seed][temp_location[y_]];
                         }
                         else {
                             //non seed same level
-                            apr.particles_int.data[i][offset_pc_data][curr_index-1] = pc_struct.part_data.particle_data.data[i][offset_pc_data][temp_location[y_]];
+                            apr.particles_int_old.data[i][offset_pc_data][curr_index-1] = pc_struct.part_data.particle_data.data[i][offset_pc_data][temp_location[y_]];
                         }
 
                         part_counter++;
@@ -4048,7 +4048,7 @@ bool utest_apr_read_write(PartCellStructure<float,uint64_t>& pc_struct){
     apr.apr_access.initialize_structure_from_particle_cell_tree(apr,p_map);
 
     APRIterator<float> apr_iterator(apr);
-    apr.particles_int_new.data.resize(apr_iterator.total_number_parts());
+    apr.particles_int.data.resize(apr_iterator.total_number_particles());
 
     uint64_t counter = 0;
 
@@ -4061,7 +4061,7 @@ bool utest_apr_read_write(PartCellStructure<float,uint64_t>& pc_struct){
     for (particle_number = 0; particle_number < apr_iterator_old.num_parts_total; ++particle_number) {
 
         apr_iterator_old.set_iterator_to_particle_by_number(particle_number);
-        apr.particles_int_new.data[particle_number]=apr_iterator_old(apr.particles_int);
+        apr.particles_int.data[particle_number]=apr_iterator_old(apr.particles_int_old);
     }
 
 
@@ -4069,7 +4069,7 @@ bool utest_apr_read_write(PartCellStructure<float,uint64_t>& pc_struct){
     std::string save_loc = "";
     std::string file_name = "read_write_test";
 
-    new_iterator::APRWriter writer;
+    APRWriter writer;
 
     //write the APR
     writer.write_apr(apr,save_loc,file_name);
@@ -4079,14 +4079,14 @@ bool utest_apr_read_write(PartCellStructure<float,uint64_t>& pc_struct){
     writer.read_apr(apr_read,save_loc + file_name + "_apr.h5");
     APRIterator<float> apr_iterator_read(apr_read);
 
-    for (particle_number = 0; particle_number < apr_iterator.total_number_parts(); ++particle_number) {
+    for (particle_number = 0; particle_number < apr_iterator.total_number_particles(); ++particle_number) {
 
         apr_iterator.set_iterator_to_particle_by_number(particle_number);
         apr_iterator_read.set_iterator_to_particle_by_number(particle_number);
         //counter++;
 
         //check the functionality
-        if(apr_iterator(apr.particles_int_new)!=apr_iterator_read(apr_read.particles_int_new)){
+        if(apr_iterator(apr.particles_int)!=apr_iterator_read(apr_read.particles_int)){
             success = false;
         }
 
@@ -4122,7 +4122,7 @@ bool utest_apr_read_write(PartCellStructure<float,uint64_t>& pc_struct){
     APRIterator<float> neighbour_iterator(apr_read);
     APRIterator<float> apr_iterator_read2(apr_read);
 
-    for (particle_number = 0; particle_number < apr_iterator_read.total_number_parts(); ++particle_number) {
+    for (particle_number = 0; particle_number < apr_iterator_read.total_number_particles(); ++particle_number) {
 
         apr_iterator_read2.set_iterator_to_particle_by_number(particle_number);
         //counter++;
@@ -4141,7 +4141,7 @@ bool utest_apr_read_write(PartCellStructure<float,uint64_t>& pc_struct){
                 // on each face, there can be 0-4 neighbours accessed by index
                 if(neighbour_iterator.set_neighbour_iterator(apr_iterator_read2, direction, index)){
                     //will return true if there is a neighbour defined
-                    float apr_val = neighbour_iterator(apr_read.particles_int_new);
+                    float apr_val = neighbour_iterator(apr_read.particles_int);
                     float check_val = int_array[neighbour_iterator.level()](neighbour_iterator.y(),neighbour_iterator.x(),neighbour_iterator.z());
 
                     if(check_val!=apr_val){
@@ -4162,7 +4162,7 @@ bool utest_apr_read_write(PartCellStructure<float,uint64_t>& pc_struct){
 
     ExtraParticleData<float> extra_data(apr);
 
-    for (particle_number = 0; particle_number < apr_iterator_read.total_number_parts(); ++particle_number) {
+    for (particle_number = 0; particle_number < apr_iterator_read.total_number_particles(); ++particle_number) {
         apr_iterator_read.set_iterator_to_particle_by_number(particle_number);
         apr_iterator_read(extra_data) = apr_iterator_read.type();
 
@@ -4178,7 +4178,7 @@ bool utest_apr_read_write(PartCellStructure<float,uint64_t>& pc_struct){
     //you need the same apr used to write it to load it (doesn't save location data)
     writer.read_parts_only(extra_file_name,extra_data_read);
 
-    for (particle_number = 0; particle_number < apr_iterator_read.total_number_parts(); ++particle_number) {
+    for (particle_number = 0; particle_number < apr_iterator_read.total_number_particles(); ++particle_number) {
         apr_iterator_read.set_iterator_to_particle_by_number(particle_number);
 
         apr_iterator_read(extra_data) = apr_iterator_read.type();
@@ -4191,7 +4191,7 @@ bool utest_apr_read_write(PartCellStructure<float,uint64_t>& pc_struct){
     //Repeat with different data-type
     ExtraParticleData<uint16_t> extra_data16(apr);
 
-    for (particle_number = 0; particle_number < apr_iterator_read.total_number_parts(); ++particle_number) {
+    for (particle_number = 0; particle_number < apr_iterator_read.total_number_particles(); ++particle_number) {
         apr_iterator_read.set_iterator_to_particle_by_number(particle_number);
 
         apr_iterator_read(extra_data16) = apr_iterator_read.level();
@@ -4208,7 +4208,7 @@ bool utest_apr_read_write(PartCellStructure<float,uint64_t>& pc_struct){
     //you need the same apr used to write it to load it (doesn't save location data)
     writer.read_parts_only(extra_file_name16,extra_data_read16);
 
-    for (particle_number = 0; particle_number < apr_iterator_read.total_number_parts(); ++particle_number) {
+    for (particle_number = 0; particle_number < apr_iterator_read.total_number_particles(); ++particle_number) {
         apr_iterator_read.set_iterator_to_particle_by_number(particle_number);
 
         if(apr_iterator_read(extra_data16) != apr_iterator_read(extra_data_read16)){

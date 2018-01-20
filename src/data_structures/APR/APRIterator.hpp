@@ -128,7 +128,7 @@ public:
         apr_access = &apr.apr_access;
     }
 
-    uint64_t total_number_parts(){
+    uint64_t total_number_particles(){
         return (apr_access)->total_number_particles;
     }
 

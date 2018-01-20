@@ -40,7 +40,7 @@ public:
     template<typename S>
     void init(APR<S>& apr){
         // do nothing
-        initialize_structure_cells(apr.pc_data);
+        data.resize(apr.total_number_particles());
     }
 
 

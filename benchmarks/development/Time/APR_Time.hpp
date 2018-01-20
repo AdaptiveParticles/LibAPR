@@ -78,8 +78,8 @@ class APR_Time {
         update_fp.resize(Nt_);
         update_y.resize(Nt_);
 
-        parts_recon.initialize_structure_parts(initial_APR.particles_int);
-        parts_recon_prev.initialize_structure_parts(initial_APR.particles_int);
+        parts_recon.initialize_structure_parts(initial_APR.particles_int_old);
+        parts_recon_prev.initialize_structure_parts(initial_APR.particles_int_old);
 
         curr_scale.initialize_structure_parts(initial_APR.y_vec);
         curr_yp.initialize_structure_parts(initial_APR.y_vec);
@@ -133,7 +133,7 @@ class APR_Time {
                     for (int j_ = 0; j_ < initial_APR.y_vec.data[depth][pc_offset].size(); ++j_) {
 
                         curr_yp.data[depth][pc_offset][j_] = initial_APR.y_vec.data[depth][pc_offset][j_];
-                        curr_fp.data[depth][pc_offset][j_] = initial_APR.particles_int.data[depth][pc_offset][j_];
+                        curr_fp.data[depth][pc_offset][j_] = initial_APR.particles_int_old.data[depth][pc_offset][j_];
                         curr_sp.data[depth][pc_offset][j_] = 3;
                         curr_tp.data[depth][pc_offset][j_] = 1;
                         curr_scale.data[depth][pc_offset][j_] = scale.data[depth][pc_offset][j_];
@@ -141,8 +141,8 @@ class APR_Time {
                         prev_l.data[depth][pc_offset][j_] = 1;
                         prev_sp.data[depth][pc_offset][j_] = 3;
 
-                        parts_recon_prev.data[depth][pc_offset][j_] = initial_APR.particles_int.data[depth][pc_offset][j_];
-                        parts_recon.data[depth][pc_offset][j_] = initial_APR.particles_int.data[depth][pc_offset][j_];
+                        parts_recon_prev.data[depth][pc_offset][j_] = initial_APR.particles_int_old.data[depth][pc_offset][j_];
+                        parts_recon.data[depth][pc_offset][j_] = initial_APR.particles_int_old.data[depth][pc_offset][j_];
 
                     }
 
@@ -378,7 +378,7 @@ class APR_Time {
                     for (int i = 0; i < add_index.data[depth][pc_offset].size(); ++i) {
 
 
-                        add_fp[t].data[depth][pc_offset][i] = apr_c.particles_int.data[depth][pc_offset][add_index.data[depth][pc_offset][i]];
+                        add_fp[t].data[depth][pc_offset][i] = apr_c.particles_int_old.data[depth][pc_offset][add_index.data[depth][pc_offset][i]];
 
 
 
@@ -452,7 +452,7 @@ class APR_Time {
 
                             float sigma_c = curr_scale.data[depth][pc_offset][same_index.data[depth][pc_offset][i]];
                             float sigma_p = prev_scale.data[depth][pc_offset][same_index_old.data[depth][pc_offset][i]];
-                            float f_diff = abs(curr_fp.data[depth][pc_offset][same_index_old.data[depth][pc_offset][i]] - apr_c.particles_int.data[depth][pc_offset][same_index.data[depth][pc_offset][i]]);
+                            float f_diff = abs(curr_fp.data[depth][pc_offset][same_index_old.data[depth][pc_offset][i]] - apr_c.particles_int_old.data[depth][pc_offset][same_index.data[depth][pc_offset][i]]);
 
                             if(f_diff == 0) {
                                 l_t = 1.0;
@@ -532,11 +532,11 @@ class APR_Time {
                             curr_tp.data[depth][pc_offset][new_index] = t;
                             curr_sp.data[depth][pc_offset][new_index] = 1;
 
-                            update_fp[t].data[depth][pc_offset].push_back(apr_c.particles_int.data[depth][pc_offset][new_index]);
+                            update_fp[t].data[depth][pc_offset].push_back(apr_c.particles_int_old.data[depth][pc_offset][new_index]);
                             update_y[t].data[depth][pc_offset].push_back(apr_c.y_vec.data[depth][pc_offset][new_index]);
 
 
-                            parts_recon.data[depth][pc_offset][new_index] = apr_c.particles_int.data[depth][pc_offset][new_index];
+                            parts_recon.data[depth][pc_offset][new_index] = apr_c.particles_int_old.data[depth][pc_offset][new_index];
 
                         } else {
 
@@ -552,10 +552,10 @@ class APR_Time {
                                     curr_l.data[depth][pc_offset][new_index] = prev_l.data[depth][pc_offset][old_index];
                                     curr_tp.data[depth][pc_offset][new_index] = t;
 
-                                    update_fp[t].data[depth][pc_offset].push_back(apr_c.particles_int.data[depth][pc_offset][new_index]);
+                                    update_fp[t].data[depth][pc_offset].push_back(apr_c.particles_int_old.data[depth][pc_offset][new_index]);
                                     update_y[t].data[depth][pc_offset].push_back(apr_c.y_vec.data[depth][pc_offset][new_index]);
 
-                                    parts_recon.data[depth][pc_offset][new_index] = apr_c.particles_int.data[depth][pc_offset][new_index];
+                                    parts_recon.data[depth][pc_offset][new_index] = apr_c.particles_int_old.data[depth][pc_offset][new_index];
 
 
                                 } else if (status_p == 2){
@@ -564,10 +564,10 @@ class APR_Time {
                                     curr_l.data[depth][pc_offset][new_index] = prev_l.data[depth][pc_offset][old_index];
                                     curr_tp.data[depth][pc_offset][new_index] = t;
 
-                                    update_fp[t].data[depth][pc_offset].push_back(apr_c.particles_int.data[depth][pc_offset][new_index]);
+                                    update_fp[t].data[depth][pc_offset].push_back(apr_c.particles_int_old.data[depth][pc_offset][new_index]);
                                     update_y[t].data[depth][pc_offset].push_back(apr_c.y_vec.data[depth][pc_offset][new_index]);
 
-                                    parts_recon.data[depth][pc_offset][new_index] = apr_c.particles_int.data[depth][pc_offset][new_index];
+                                    parts_recon.data[depth][pc_offset][new_index] = apr_c.particles_int_old.data[depth][pc_offset][new_index];
 
                                 } else {
                                     // filler, go up a level
@@ -575,10 +575,10 @@ class APR_Time {
                                     curr_l.data[depth][pc_offset][new_index] = prev_l.data[depth][pc_offset][old_index]-1;
                                     curr_tp.data[depth][pc_offset][new_index] = t;
 
-                                    update_fp[t].data[depth][pc_offset].push_back(apr_c.particles_int.data[depth][pc_offset][new_index]);
+                                    update_fp[t].data[depth][pc_offset].push_back(apr_c.particles_int_old.data[depth][pc_offset][new_index]);
                                     update_y[t].data[depth][pc_offset].push_back(apr_c.y_vec.data[depth][pc_offset][new_index]);
 
-                                    parts_recon.data[depth][pc_offset][new_index] = apr_c.particles_int.data[depth][pc_offset][new_index];
+                                    parts_recon.data[depth][pc_offset][new_index] = apr_c.particles_int_old.data[depth][pc_offset][new_index];
 
                                 }
 
@@ -654,7 +654,7 @@ class APR_Time {
 
                         curr_tp.data[depth][pc_offset][index] = t;
 
-                        parts_recon.data[depth][pc_offset][index] = apr_c.particles_int.data[depth][pc_offset][index];
+                        parts_recon.data[depth][pc_offset][index] = apr_c.particles_int_old.data[depth][pc_offset][index];
 
                         change_loc.data[depth][pc_offset][index] = 1;
 
@@ -697,7 +697,7 @@ class APR_Time {
 
         // end of time step change over the variables;
         std::swap(curr_yp,apr_c.y_vec);
-        std::swap(curr_fp,apr_c.particles_int);
+        std::swap(curr_fp,apr_c.particles_int_old);
 
         std::swap(curr_scale.data,prev_scale.data);
 

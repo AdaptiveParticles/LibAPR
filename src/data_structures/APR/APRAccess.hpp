@@ -1104,7 +1104,7 @@ public:
         neighbours.resize(apr.num_parts_total);
 
         ExtraPartCellData<YGap> ygaps;
-        ygaps.initialize_structure_parts_empty(apr.particles_int);
+        ygaps.initialize_structure_parts_empty(apr.particles_int_old);
 
 //    ExtraPartCellData<uint64_t> gaps_end;
 //    gaps_end.initialize_structure_parts_empty(apr.particles_int);
@@ -1294,7 +1294,7 @@ public:
         timer.start_timer("iterate old");
 
         for (apr.begin();apr.end()!=0 ;apr.it_forward()) {
-            pint.push_back(apr(apr.particles_int));
+            pint.push_back(apr(apr.particles_int_old));
             px.push_back(apr.x());
             py.push_back(apr.y());
             pz.push_back(apr.z());
@@ -1381,12 +1381,12 @@ public:
 
 
 
-        gap_map.initialize_structure_parts_empty(apr.particles_int);
+        gap_map.initialize_structure_parts_empty(apr.particles_int_old);
 
         YIterators it;
         //ExtraPartCellData<std::map<uint16_t,YGap_map>::iterator> gap_map_it;
 
-        it.gap_map_it.initialize_structure_parts_empty(apr.particles_int);
+        it.gap_map_it.initialize_structure_parts_empty(apr.particles_int_old);
 
         uint64_t counter_stop = 0;
 

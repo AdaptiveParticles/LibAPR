@@ -12,6 +12,7 @@
 #define PARTPLAY_PULLING_SCHEME_HPP
 
 #include <cassert>
+#include <src/data_structures/APR/APRIterator.hpp>
 
 #include "src/data_structures/Mesh/MeshData.hpp"
 #include "src/data_structures/APR/APR.hpp"
@@ -106,9 +107,9 @@ void PullingScheme::initialize_particle_cell_tree(APR<T>& apr)
     particle_cell_tree.resize(l_max + 1);
 
     for(int l = l_min; l < (l_max + 1) ;l ++){
-        particle_cell_tree[l].initialize(ceil((1.0*apr.pc_data.org_dims[0])/pow(2.0,1.0*l_max - l + 1)),
-                                         ceil((1.0*apr.pc_data.org_dims[1])/pow(2.0,1.0*l_max - l + 1)),
-                                         ceil((1.0*apr.pc_data.org_dims[2])/pow(2.0,1.0*l_max - l + 1)), EMPTY);
+        particle_cell_tree[l].initialize(ceil((1.0*apr.apr_access.org_dims[0])/pow(2.0,1.0*l_max - l + 1)),
+                                         ceil((1.0*apr.apr_access.org_dims[1])/pow(2.0,1.0*l_max - l + 1)),
+                                         ceil((1.0*apr.apr_access.org_dims[2])/pow(2.0,1.0*l_max - l + 1)), EMPTY);
     }
 }
 
