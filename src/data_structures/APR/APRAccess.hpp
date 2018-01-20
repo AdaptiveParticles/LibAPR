@@ -174,31 +174,6 @@ public:
     }
 
 
-    void initialize_pointers(ExtraPartCellData<std::map<uint16_t,YGap_map>::iterator>& gap_map_it){
-
-        for (uint64_t i =level_min; i <= level_max; i++) {
-            //loop over the resolutions of the structure
-            const unsigned int x_num_ = x_num[i];
-            const unsigned int z_num_ = z_num[i];
-
-            uint64_t z_;
-            uint64_t x_;
-
-#pragma omp parallel for schedule(static) default(shared) private(z_, x_)
-            for (z_ = 0; z_ < z_num_; z_++) {
-                //both z and x are explicitly accessed in the structure
-
-                for (x_ = 0; x_ < x_num_; x_++) {
-
-                    const size_t offset_pc_data = x_num_ * z_ + x_;
-
-                    if (gap_map.data[i][offset_pc_data].size() > 0) {
-                        gap_map_it.data[i][offset_pc_data][0] = gap_map.data[i][offset_pc_data][0].map.begin();
-                    }
-                }
-            }
-        }
-    }
 
 
 
@@ -956,6 +931,67 @@ public:
                 gap_map.data[level][offset_pc_data][0].map.insert(hint,{map_data.y_begin[i],gap});
             }
 
+        }
+
+        apr_timer.stop_timer();
+
+
+
+        apr_timer.start_timer("forth loop");
+        //////////////////
+        ///
+        /// Recalculate the iteration helpers
+        ///
+        //////////////////////
+
+        //iteration helpers for by level
+        global_index_by_level_begin.resize(level_max+1,0);
+        global_index_by_level_end.resize(level_max+1,0);
+
+        uint64_t cumsum_parts= 0;
+
+        //set up the iteration helpers for by zslice
+        global_index_by_level_and_z_begin.resize(level_max+1);
+        global_index_by_level_and_z_end.resize(level_max+1);
+
+        for(uint64_t i = level_min;i <= level_max;i++) {
+
+            const unsigned int x_num_ = x_num[i];
+            const unsigned int z_num_ = z_num[i];
+            const unsigned int y_num_ = y_num[i];
+            //set up the levels here.
+
+            uint64_t cumsum_begin = cumsum_parts;
+
+            global_index_by_level_and_z_begin[i].resize(z_num_,(-1));
+            global_index_by_level_and_z_end[i].resize(z_num_,0);
+
+            for (z_ = 0; z_ < z_num_; z_++) {
+                uint64_t cumsum_begin_z = cumsum_parts;
+
+                for (x_ = 0; x_ < x_num_; x_++) {
+                    const size_t offset_pc_data = x_num_ * z_ + x_;
+                    if(gap_map.data[i][offset_pc_data].size() > 0) {
+                        for (auto const &element : gap_map.data[i][offset_pc_data][0].map) {
+                            //count the number of particles in each gap
+                            cumsum_parts += (element.second.y_end - element.first) + 1;
+                        }
+                    }
+                }
+                if(cumsum_parts!=cumsum_begin_z) {
+                    global_index_by_level_and_z_end[i][z_] = cumsum_parts - 1;
+                    global_index_by_level_and_z_begin[i][z_] = cumsum_begin_z;
+                }
+            }
+
+            if(cumsum_parts!=cumsum_begin){
+                //cumsum_begin++;
+                global_index_by_level_begin[i] = cumsum_begin;
+            }
+
+            if(cumsum_parts!=cumsum_begin){
+                global_index_by_level_end[i] = cumsum_parts-1;
+            }
         }
 
         apr_timer.stop_timer();

@@ -4033,46 +4033,77 @@ bool utest_apr_read_write(PartCellStructure<float,uint64_t>& pc_struct){
 
     create_pc_data_new(apr,pc_struct);
 
+    std::vector<std::vector<uint8_t>> p_map;
+
+    apr.apr_access.generate_pmap(apr,p_map);
+
+    apr.apr_access.initialize_structure_from_particle_cell_tree(apr,p_map);
+
+    APRIteratorNew<float> apr_iterator(apr);
+    apr.particles_int_new.data.resize(apr_iterator.total_number_parts());
+
+    uint64_t counter = 0;
+
+    APRIterator<float> apr_iterator_old(apr);
+    ExtraParticleData<float> index_check;
+    std::vector<MeshData<float>> int_array;
+    create_intensity_reference_structure(pc_struct,int_array);
+
+    uint64_t particle_number;
+    for (particle_number = 0; particle_number < apr_iterator_old.num_parts_total; ++particle_number) {
+
+        apr_iterator_old.set_iterator_to_particle_by_number(particle_number);
+        apr.particles_int_new.data[particle_number]=apr_iterator_old(apr.particles_int);
+    }
+
+
+
     std::string save_loc = "";
     std::string file_name = "read_write_test";
 
+    new_iterator::APRWriter writer;
+
     //write the APR
-    apr.write_apr(save_loc,file_name);
+    writer.write_apr(apr,save_loc,file_name);
 
     APR<float> apr_read;
 
-    apr_read.read_apr(save_loc + file_name + "_apr.h5");
+    writer.read_apr(apr_read,save_loc + file_name + "_apr.h5");
+    APRIteratorNew<float> apr_iterator_read(apr_read);
 
-    apr_read.begin();
-    for (apr.begin();apr.end() ;apr.it_forward()) {
+    for (particle_number = 0; particle_number < apr_iterator.total_number_parts(); ++particle_number) {
+
+        apr_iterator.set_iterator_to_particle_by_number(particle_number);
+        apr_iterator_read.set_iterator_to_particle_by_number(particle_number);
+        //counter++;
 
         //check the functionality
-        if(apr(apr.particles_int)!=apr_read(apr_read.particles_int)){
+        if(apr_iterator(apr.particles_int_new)!=apr_iterator_read(apr_read.particles_int_new)){
             success = false;
         }
 
-        if(apr.depth()!=apr_read.depth()){
+        if(apr_iterator.level()!=apr_iterator_read.level()){
             success = false;
         }
 
-        if(apr.x()!=apr_read.x()){
+        if(apr_iterator.x()!=apr_iterator_read.x()){
             success = false;
         }
 
-        if(apr.y()!=apr_read.y()){
+        if(apr_iterator.y()!=apr_iterator_read.y()){
             success = false;
         }
 
-        if(apr.z()!=apr_read.z()){
+        if(apr_iterator.z()!=apr_iterator_read.z()){
             success = false;
         }
 
-        if(apr.type()!=apr_read.type()){
+        if(apr_iterator.type()!=apr_iterator_read.type()){
             success = false;
         }
 
-        apr_read.it_forward();
     }
+
 
     //
     // Now check the Extra Part Cell Data
@@ -4080,87 +4111,105 @@ bool utest_apr_read_write(PartCellStructure<float,uint64_t>& pc_struct){
 
 
 
-    std::vector<MeshData<float>> int_array;
+    APRIteratorNew<float> neighbour_iterator(apr_read);
+    APRIteratorNew<float> apr_iterator_read2(apr_read);
 
-    APRIterator<float> neigh_it(apr_read);
+    for (particle_number = 0; particle_number < apr_iterator_read.total_number_parts(); ++particle_number) {
 
-    create_intensity_reference_structure(pc_struct,int_array);
+        apr_iterator_read2.set_iterator_to_particle_by_number(particle_number);
+        //counter++;
 
-    for ( apr_read.begin(); apr_read.end() ; apr_read.it_forward()) {
+        float temp = 0;
 
-        //now we only update the neighbours, and directly access them through a neighbour iterator
-        apr_read.update_all_neighbours();
+        if(particle_number == 8){
+            int stop = 1;
+        }
 
         //loop over all the neighbours and set the neighbour iterator to it
-        for (int dir = 0; dir < 6; ++dir) {
+        for (int direction = 0; direction < 6; ++direction) {
             // Neighbour Particle Cell Face definitions [+y,-y,+x,-x,+z,-z] =  [0,1,2,3,4,5]
+            apr_iterator_read2.find_neighbours_in_direction(direction);
 
-            for (int index = 0; index < apr_read.number_neighbours_in_direction(dir); ++index) {
+            success = check_neighbour_out_of_bounds(apr_iterator_read2,direction);
+
+            for (int index = 0; index < apr_iterator_read2.number_neighbours_in_direction(direction); ++index) {
+
                 // on each face, there can be 0-4 neighbours accessed by index
-                if(neigh_it.set_neighbour_iterator(apr_read, dir, index)){
+                if(neighbour_iterator.set_neighbour_iterator(apr_iterator_read2, direction, index)){
                     //will return true if there is a neighbour defined
-                    float apr_val = neigh_it(apr_read.particles_int);
-                    float check_val = int_array[neigh_it.depth()](neigh_it.y(),neigh_it.x(),neigh_it.z());
+                    float apr_val = neighbour_iterator(apr_read.particles_int_new);
+                    float check_val = int_array[neighbour_iterator.level()](neighbour_iterator.y(),neighbour_iterator.x(),neighbour_iterator.z());
 
                     if(check_val!=apr_val){
                         success = false;
                     }
 
-                }
-            }
-        }
+                    if(!check_neighbours(apr,apr_iterator_read2,neighbour_iterator)){
+                        success = false;
+                    }
 
+                }
+
+            }
+
+        }
     }
 
 
-    ExtraPartCellData<float> extra_data(apr);
+    ExtraParticleData<float> extra_data(apr);
 
-    for (apr.begin();apr.end() ;apr.it_forward()) {
-        apr(extra_data) = apr.type();
+    for (particle_number = 0; particle_number < apr_iterator_read.total_number_parts(); ++particle_number) {
+        apr_iterator_read.set_iterator_to_particle_by_number(particle_number);
+        apr_iterator_read(extra_data) = apr_iterator_read.type();
 
     }
 
     //write one of the above results to file
-    apr.write_particles_only(save_loc,"example_output",extra_data);
+    writer.write_particles_only(save_loc,"example_output",extra_data);
 
     std::string extra_file_name = save_loc + "example_output" + "_apr_extra_parts.h5";
 
-    ExtraPartCellData<float> extra_data_read;
+    ExtraParticleData<float> extra_data_read;
 
     //you need the same apr used to write it to load it (doesn't save location data)
-    apr.read_parts_only(extra_file_name,extra_data_read);
+    writer.read_parts_only(extra_file_name,extra_data_read);
 
-    for (apr.begin();apr.end() ;apr.it_forward()) {
-        if(apr(extra_data) != apr(extra_data_read)){
+    for (particle_number = 0; particle_number < apr_iterator_read.total_number_parts(); ++particle_number) {
+        apr_iterator_read.set_iterator_to_particle_by_number(particle_number);
+
+        apr_iterator_read(extra_data) = apr_iterator_read.type();
+        if(apr_iterator_read(extra_data) != apr_iterator_read(extra_data_read)){
             success = false;
         }
     }
 
-
     //Repeat with different data-type
-    ExtraPartCellData<uint16_t> extra_data16(apr);
+    ExtraParticleData<uint16_t> extra_data16(apr);
 
-    for (apr.begin();apr.end() ;apr.it_forward()) {
-        apr(extra_data16) = apr.type();
+    for (particle_number = 0; particle_number < apr_iterator_read.total_number_parts(); ++particle_number) {
+        apr_iterator_read.set_iterator_to_particle_by_number(particle_number);
+
+        apr_iterator_read(extra_data16) = apr_iterator_read.level();
 
     }
 
     //write one of the above results to file
-    apr.write_particles_only(save_loc,"example_output16",extra_data16);
+    writer.write_particles_only(save_loc,"example_output16",extra_data16);
 
     std::string extra_file_name16 = save_loc + "example_output16" + "_apr_extra_parts.h5";
 
-    ExtraPartCellData<uint16_t> extra_data_read16;
+    ExtraParticleData<uint16_t> extra_data_read16;
 
     //you need the same apr used to write it to load it (doesn't save location data)
-    apr.read_parts_only(extra_file_name16,extra_data_read16);
+    writer.read_parts_only(extra_file_name16,extra_data_read16);
 
-    for (apr.begin();apr.end() ;apr.it_forward()) {
-        if(apr(extra_data16) != apr(extra_data_read16)){
+    for (particle_number = 0; particle_number < apr_iterator_read.total_number_parts(); ++particle_number) {
+        apr_iterator_read.set_iterator_to_particle_by_number(particle_number);
+
+        if(apr_iterator_read(extra_data16) != apr_iterator_read(extra_data_read16)){
             success = false;
         }
     }
-
 
     return success;
 

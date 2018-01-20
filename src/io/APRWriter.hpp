@@ -1462,12 +1462,21 @@ namespace new_iterator{
             }
 
 
+            aid = H5Screate(H5S_SCALAR);
+
+            int data_type;
+
+            attr_id = 	H5Aopen(pr_groupid,"data_type",H5P_DEFAULT);
+            H5Aread(attr_id,H5T_NATIVE_INT,&data_type ) ;
+            H5Aclose(attr_id);
+
+            hid_t hdf5_data_type = data_type;
 
             apr.particles_int_new.data.resize(apr.apr_access.total_number_parts);
 
            if(apr.particles_int_new.data.size()>0){
                 std::string name = "particle_intensities";
-                hdf5_load_data_blosc(obj_id,H5T_NATIVE_UINT16,apr.particles_int_new.data.data(),name.c_str());
+                hdf5_load_data_blosc(obj_id,hdf5_data_type,apr.particles_int_new.data.data(),name.c_str());
             }
 
             apr.apr_access.y_num[apr.apr_access.level_max] = apr.apr_access.org_dims[0];
@@ -1705,11 +1714,18 @@ namespace new_iterator{
             dims = apr.particles_int_new.data.size();
 
 
+            //just an identifier in here for the reading of the parts
+            ImageType val = 0;
+            hid_t type = get_type_blosc(val);
+            int type_id = type;
+
+            hdf5_write_attribute_blosc(pr_groupid,H5T_NATIVE_INT,"data_type",1,dims_out, &type_id);
+
             if(dims > 0){
                 //write the parts
 
                 std::string dataset_name = "particle_intensities";
-                hdf5_write_data_blosc(obj_id, H5T_NATIVE_UINT16, dataset_name.c_str(), rank, &dims, apr.particles_int_new.data.data(),blosc_comp_type,blosc_comp_level,blosc_shuffle);
+                hdf5_write_data_blosc(obj_id, type, dataset_name.c_str(), rank, &dims, apr.particles_int_new.data.data(),blosc_comp_type,blosc_comp_level,blosc_shuffle);
 
             }
 

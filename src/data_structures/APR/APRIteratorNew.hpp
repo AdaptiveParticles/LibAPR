@@ -397,7 +397,7 @@ public:
         //  This is sets the this iterator, to the neighbour of the particle cell that original_iterator is pointing to
         //
 
-        if(level_delta!=_LEVEL_INCREASE){
+        if(original_iterator.level_delta!=_LEVEL_INCREASE){
             //copy the information from the original iterator
             std::swap(current_particle_cell,original_iterator.neighbour_particle_cell);
             //current_gap = apr_access->get_local_iterator(original_iterator.local_iterators,
