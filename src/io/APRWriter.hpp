@@ -2156,7 +2156,7 @@ namespace new_iterator{
 
             extra_parts.data.resize(total_number_parts);
             std::string dataset_name = "extra_particle_data";
-            hdf5_load_data_blosc(obj_id,H5T_NATIVE_UINT16,extra_parts.data.data(),dataset_name.c_str());
+            hdf5_load_data_blosc(obj_id,data_type,extra_parts.data.data(),dataset_name.c_str());
 
             //close shiz
             H5Gclose(obj_id);

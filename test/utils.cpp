@@ -4121,10 +4121,6 @@ bool utest_apr_read_write(PartCellStructure<float,uint64_t>& pc_struct){
 
         float temp = 0;
 
-        if(particle_number == 8){
-            int stop = 1;
-        }
-
         //loop over all the neighbours and set the neighbour iterator to it
         for (int direction = 0; direction < 6; ++direction) {
             // Neighbour Particle Cell Face definitions [+y,-y,+x,-x,+z,-z] =  [0,1,2,3,4,5]
@@ -4179,6 +4175,7 @@ bool utest_apr_read_write(PartCellStructure<float,uint64_t>& pc_struct){
 
         apr_iterator_read(extra_data) = apr_iterator_read.type();
         if(apr_iterator_read(extra_data) != apr_iterator_read(extra_data_read)){
+
             success = false;
         }
     }
