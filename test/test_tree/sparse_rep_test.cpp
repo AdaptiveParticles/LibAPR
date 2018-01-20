@@ -318,17 +318,17 @@ TEST_F(CreateMembraneTest, APR_INPUT_OUTPUT) {
 
 }
 
-TEST_F(CreateSphereTest, APR_INPUT_OUTPUT_SMALL) {
-
-    //
-    //  Sparse Particle Structure Test Cases
-    //
-    //
-
-    //test io
-    ASSERT_TRUE(utest_apr_read_write(pc_struct));
-
-}
+//TEST_F(CreateSphereTest, APR_INPUT_OUTPUT_SMALL) {
+//
+//    //
+//    //  Sparse Particle Structure Test Cases
+//    //
+//    //
+//
+//    //test io
+//    ASSERT_TRUE(utest_apr_read_write(pc_struct));
+//
+//}
 //TEST_F(CreateMembraneTest, MOORE_NEIGHBOURHOOD) {
 //
 //    //test neighbour cell search
