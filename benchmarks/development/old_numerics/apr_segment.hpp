@@ -19,7 +19,7 @@
 #include "FilterOffset.hpp"
 #include "FilterLevel.hpp"
 
-#include "src/data_structures/APR/CurrLevel.hpp"
+#include "benchmarks/development/Tree/CurrLevel.hpp"
 #include "NeighOffset.hpp"
 
 int uf_find(int x,std::vector<int>& labels) {

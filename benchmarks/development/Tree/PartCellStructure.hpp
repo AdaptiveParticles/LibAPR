@@ -19,7 +19,7 @@
 #include <algorithm>
 #include <array>
 
-#include "src/data_structures/APR/PartCellData.hpp"
+#include "PartCellData.hpp"
 #include "ParticleData.hpp"
 #include "benchmarks/development/old_structures/particle_map.hpp"
 #include "src/data_structures/Mesh/MeshData.hpp"

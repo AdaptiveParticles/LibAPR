@@ -68,7 +68,7 @@ set(SOURCE_FILES
         benchmarks/development/old_structures/structure_parts.cpp
 
         src/data_structures/APR/APR.hpp
-        src/data_structures/APR/APRIteratorOld.hpp
+        benchmarks/development/Tree/APRIteratorOld.hpp
 
         src/data_structures/APR/APRIterator.hpp
         src/data_structures/APR/APRAcess.hpp
@@ -80,7 +80,7 @@ set(SOURCE_FILES
 
 set(SOURCE_FILES_COMPILED
         benchmarks/development/old_structures/structure_parts.cpp
-        src/data_structures/APR/PartCellData.cpp
+        benchmarks/development/Tree/PartCellData.cpp
         benchmarks/development/old_io/parameters.cpp
         benchmarks/development/old_io/hdf5functions.cpp
         src/io/blosc_filter.c
@@ -205,7 +205,7 @@ add_executable(Example_apr_iterate
         )
 
 add_executable(Example_recon_img
-        test/Examples/Example_recon_img.cpp
+        test/Examples/Example_reconstruct_image.cpp
         benchmarks/development/old_io/write_parts.cpp
         ${SOURCE_FILES_COMPILED}
         )

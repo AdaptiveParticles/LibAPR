@@ -29,7 +29,7 @@ class PartCellStructure;
 #include "benchmarks/development/Tree/ParticleDataNew.hpp"
 
 #include "benchmarks/development/old_numerics/NeighOffset.hpp"
-#include "src/data_structures/APR/CurrLevel.hpp"
+#include "benchmarks/development/Tree/CurrLevel.hpp"
 #include "benchmarks/development/old_numerics/misc_numerics.hpp"
 
 #include <algorithm>

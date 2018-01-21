@@ -5,7 +5,7 @@
 #include <algorithm>
 #include <iostream>
 
-#include "Example_recon_img.h"
+#include "Example_reconstruct_image.h"
 
 bool command_option_exists(char **begin, char **end, const std::string &option)
 {

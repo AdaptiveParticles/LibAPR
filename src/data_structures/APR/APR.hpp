@@ -10,15 +10,15 @@
 //#include "benchmarks/development/old_numerics/filter_numerics.hpp"
 //#include "benchmarks/development/old_numerics/misc_numerics.hpp"
 
-#include "src/data_structures/APR/PartCellData.hpp"
+#include "benchmarks/development/Tree/PartCellData.hpp"
 
 //#include "benchmarks/development/Tree/PartCellStructure.hpp"
 
-#include "CurrLevel.hpp"
+#include "benchmarks/development/Tree/CurrLevel.hpp"
 
 #include "src/io/hdf5functions_blosc.h"
 
-#include "src/data_structures/APR/APRIteratorOld.hpp"
+#include "benchmarks/development/Tree/APRIteratorOld.hpp"
 
 #include "src/misc/APRTimer.hpp"
 
