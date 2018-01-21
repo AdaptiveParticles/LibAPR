@@ -774,9 +774,11 @@ void APRConverter<ImageType>::auto_parameters(MeshData<T>& input_img){
 
     this->par.background_intensity_estimate = estimated_first_mode;
 
-    if(this->par.min_signal < 0){
+    if(this->par.min_signal < 0) {
         this->par.sigma_th = var_th;
         this->par.sigma_th_max = var_th_max;
+    } else if (this->par.sigma_th > 0){
+        //keep the defaults
     } else{
         this->par.sigma_th_max = this->par.min_signal*0.5;
         this->par.sigma_th = this->par.min_signal;

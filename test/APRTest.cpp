@@ -5,6 +5,7 @@
 #include <gtest/gtest.h>
 #include "src/data_structures/APR/APR.hpp"
 #include "src/data_structures/Mesh/MeshData.hpp"
+#include "src/algorithm/APRConverter.hpp"
 
 struct TestData{
 
@@ -16,6 +17,9 @@ struct TestData{
     MeshData<uint16_t> img_x;
     MeshData<uint16_t> img_y;
     MeshData<uint16_t> img_z;
+
+    std::string filename;
+    std::string output_name;
 
 };
 
@@ -549,6 +553,100 @@ bool test_apr_iterate(TestData& test_data){
     return success;
 }
 
+
+bool test_apr_pipeline(TestData& test_data){
+    ///
+    /// Tests the pipeline, comparing the results with existing results
+    ///
+
+    bool success = true;
+
+    //the apr datastructure
+    APR<uint16_t> apr;
+
+    APRConverter<uint16_t> apr_converter;
+
+    //read in the command line options into the parameters file
+    apr_converter.par.Ip_th = test_data.apr.parameters.Ip_th;
+    apr_converter.par.rel_error = test_data.apr.parameters.rel_error;
+    apr_converter.par.lambda = test_data.apr.parameters.lambda;
+    apr_converter.par.mask_file = "";
+    apr_converter.par.min_signal = test_data.apr.parameters.min_signal;
+
+    apr_converter.par.sigma_th_max = test_data.apr.parameters.sigma_th_max;
+    apr_converter.par.sigma_th = test_data.apr.parameters.sigma_th;
+
+    apr_converter.par.SNR_min = test_data.apr.parameters.SNR_min;
+    apr_converter.image_type = "uint16";
+
+    //where things are
+    apr_converter.par.input_image_name =test_data.filename;
+    apr_converter.par.input_dir = "";
+    apr_converter.par.name = test_data.output_name;
+    apr_converter.par.output_dir = "";
+
+    //Gets the APR
+    if(apr_converter.get_apr(apr)){
+
+        APRIterator<uint16_t> apr_iterator(apr);
+        uint64_t particle_number = 0;
+
+        for (particle_number = 0; particle_number < apr_iterator.total_number_particles(); ++particle_number) {
+            apr_iterator.set_iterator_to_particle_by_number(particle_number);
+
+            uint16_t apr_intensity = apr_iterator(apr.particles_int);
+            uint16_t check_intensity = test_data.img_pc(apr_iterator.y_nearest_pixel(),apr_iterator.x_nearest_pixel(),apr_iterator.z_nearest_pixel());
+
+            if(check_intensity!=apr_intensity){
+                success = false;
+            }
+
+            uint16_t apr_level = apr_iterator.level();
+            uint16_t check_level = test_data.img_level(apr_iterator.y_nearest_pixel(),apr_iterator.x_nearest_pixel(),apr_iterator.z_nearest_pixel());
+
+            if(check_level!=apr_level){
+                success = false;
+            }
+
+            uint16_t apr_type = apr_iterator.type();
+            uint16_t check_type = test_data.img_type(apr_iterator.y_nearest_pixel(),apr_iterator.x_nearest_pixel(),apr_iterator.z_nearest_pixel());
+
+            if(check_type!=apr_type){
+                success = false;
+            }
+
+            uint16_t apr_x = apr_iterator.x();
+            uint16_t check_x = test_data.img_x(apr_iterator.y_nearest_pixel(),apr_iterator.x_nearest_pixel(),apr_iterator.z_nearest_pixel());
+
+            if(check_x!=apr_x){
+                success = false;
+            }
+
+            uint16_t apr_y = apr_iterator.y();
+            uint16_t check_y = test_data.img_y(apr_iterator.y_nearest_pixel(),apr_iterator.x_nearest_pixel(),apr_iterator.z_nearest_pixel());
+
+            if(check_y!=apr_y){
+                success = false;
+            }
+
+            uint16_t apr_z = apr_iterator.z();
+            uint16_t check_z = test_data.img_z(apr_iterator.y_nearest_pixel(),apr_iterator.x_nearest_pixel(),apr_iterator.z_nearest_pixel());
+
+            if(check_z!=apr_z){
+                success = false;
+            }
+
+        }
+
+    } else {
+
+        success = false;
+    }
+
+
+    return success;
+}
+
 std::string get_source_directory_apr(){
     // returns path to the directory where utils.cpp is stored
 
@@ -586,6 +684,9 @@ void CreateSmallSphereTest::SetUp(){
     file_name = get_source_directory_apr() + "files/Apr/sphere_120/sphere_z.tif";
     test_data.img_z.load_image_tiff(file_name);
 
+    test_data.filename = get_source_directory_apr() + "files/Apr/sphere_120/sphere_original.tif";
+
+    test_data.output_name = "sphere_small";
 }
 
 TEST_F(CreateSmallSphereTest, APR_ITERATION) {
@@ -606,6 +707,13 @@ TEST_F(CreateSmallSphereTest, APR_INPUT_OUTPUT) {
 
 //test iteration
     ASSERT_TRUE(test_apr_input_output(test_data));
+
+}
+
+TEST_F(CreateSmallSphereTest, APR_PIPELINE) {
+
+//test iteration
+    ASSERT_TRUE(test_apr_pipeline(test_data));
 
 }
 
