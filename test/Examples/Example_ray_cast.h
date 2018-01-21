@@ -2,7 +2,7 @@
 #define PARTPLAY_RAYCAST_H
 
 
-#include "../../src/numerics/ray_cast.hpp"
+#include "src/numerics/APRRaycaster.hpp"
 #include "../../src/data_structures/APR/APR.hpp"
 
 struct cmdLineOptions{

@@ -16,7 +16,7 @@
 #include "benchmarks/development/old_numerics/misc_numerics.hpp"
 #include "benchmarks/development/old_numerics/graph_cut_seg.hpp"
 #include "benchmarks/development/old_numerics/apr_segment.hpp"
-#include "src/numerics/ray_cast.hpp"
+#include "src/numerics/APRRaycaster.hpp"
 #include "src/data_structures/APR/APR.hpp"
 
 bool command_option_exists(char **begin, char **end, const std::string &option)

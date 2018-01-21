@@ -204,7 +204,7 @@ add_executable(Example_apr_iterate
         ${SOURCE_FILES_COMPILED}
         )
 
-add_executable(Example_recon_img
+add_executable(Example_reconstruct_image
         test/Examples/Example_reconstruct_image.cpp
         benchmarks/development/old_io/write_parts.cpp
         ${SOURCE_FILES_COMPILED}
@@ -254,7 +254,7 @@ SWIG_LINK_LIBRARIES(apr ${HDF5_LIBRARIES} blosc_static ${TIFF_LIBRARIES})
 target_link_libraries(Example_get_apr ${HDF5_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT} ${TIFF_LIBRARIES} blosc_shared)
 target_link_libraries(Example_apr_iterate ${HDF5_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT} ${TIFF_LIBRARIES} blosc_shared)
 target_link_libraries(Example_ray_cast ${HDF5_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT} ${TIFF_LIBRARIES} blosc_shared)
-target_link_libraries(Example_recon_img ${HDF5_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT} ${TIFF_LIBRARIES} blosc_shared)
+target_link_libraries(Example_reconstruct_image ${HDF5_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT} ${TIFF_LIBRARIES} blosc_shared)
 
 target_link_libraries(Example_apr_neighbour_access ${HDF5_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT} ${TIFF_LIBRARIES} blosc_shared)
 

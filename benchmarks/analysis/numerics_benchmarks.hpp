@@ -9,7 +9,7 @@
 
 #include "benchmarks/development/old_numerics/graph_cut_seg.hpp"
 #include "benchmarks/development/old_numerics/filter_numerics.hpp"
-#include "../../src/numerics/ray_cast.hpp"
+#include "src/numerics/APRRaycaster.hpp"
 #include "benchmarks/development/old_numerics/enhance_parts.hpp"
 
 template<typename S,typename T>
