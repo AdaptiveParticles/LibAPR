@@ -21,18 +21,18 @@ class ExtraParticleData {
 
 private:
 
-    const size_t parallel_particle_number_threshold = 5000000;
+    uint64_t parallel_particle_number_threshold;
 
 public:
 
     //the neighbours arranged by face
 
-    ExtraParticleData(){
+    ExtraParticleData():parallel_particle_number_threshold(5000000l){
     };
 
 
     template<typename S>
-    ExtraParticleData(APR<S>& apr){
+    ExtraParticleData(APR<S>& apr):parallel_particle_number_threshold(5000000l){
         // intialize from apr
         data.resize(apr.total_number_particles());
     }

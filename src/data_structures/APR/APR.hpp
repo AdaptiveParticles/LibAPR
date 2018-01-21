@@ -97,7 +97,6 @@ public:
     }
 
     //deprecitated
-    ExtraPartCellData<uint16> y_vec;
     ExtraPartCellData<ImageType> particles_int_old; // holds the particles intenisty information
 
     unsigned int orginal_dimensions(int dim){

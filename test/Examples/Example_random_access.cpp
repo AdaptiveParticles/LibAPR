@@ -20,7 +20,6 @@
 
 #include <algorithm>
 #include <iostream>
-#include <time.h>
 
 #include "Example_random_access.hpp"
 

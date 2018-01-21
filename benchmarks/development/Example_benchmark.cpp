@@ -119,7 +119,7 @@ int main(int argc, char **argv) {
     for (int i = 0; i < num_repeats; ++i) {
 
 #pragma omp parallel for schedule(static) private(part) firstprivate(apr_parallel_iterator,neighbour_iterator)
-        for (part = 0; part < apr.num_parts_total; ++part) {
+        for (part = 0; part < apr.total_number_particles(); ++part) {
             //needed step for any parallel loop (update to the next part)
             apr_parallel_iterator.set_iterator_to_particle_by_number(part);
 

@@ -250,96 +250,96 @@ int main(int argc, char **argv) {
     //APRAccess apr_access;
 
 
-    //just run old code and initialize it there
-    //apr_access.test_method(apr);
-
-    /////
-    //
-    //  Now new data-structures
-    //
-    /////
-
-    APRAccess apr_access2;
-    std::vector<std::vector<uint8_t>> p_map;
-
-    timer.start_timer("generate pmap");
-    apr_access2.generate_pmap(apr,p_map);
-    timer.stop_timer();
-
-    timer.start_timer("generate map structure");
-    apr_access2.initialize_structure_from_particle_cell_tree(apr,p_map);
-    timer.stop_timer();
-
-    //compare_two_maps(apr,apr_access,apr_access2);
-
-    APRIteratorOld<uint16_t> apr_iterator_old(apr);
-
-    ExtraParticleData<uint16_t> particles_int;
-    ExtraParticleData<uint16_t> x;
-    ExtraParticleData<uint16_t> y;
-    ExtraParticleData<uint16_t> z;
-    ExtraParticleData<uint16_t> level;
-    ExtraParticleData<uint64_t> indexd;
-
-    uint64_t counter = 0;
-
-    APRIterator<uint16_t > apr_iterator(apr);
-    uint64_t particle_number;
-
-#pragma omp parallel for schedule(static) private(particle_number) firstprivate(apr_iterator)
-    for (particle_number = 0; particle_number < apr_iterator.total_number_particles(); ++particle_number) {
-        apr_iterator.set_iterator_to_particle_by_number(particle_number);
-        particles_int.data.push_back(apr_iterator_old(apr.particles_int_old));
-        x.data.push_back(apr_iterator.x());
-        y.data.push_back(apr_iterator.y());
-        z.data.push_back(apr_iterator.z());
-        level.data.push_back(apr_iterator.level());
-        indexd.data.push_back(counter);
-        counter++;
-    }
-
-    counter = 0;
-
-    std::cout << counter << std::endl;
-
-    APRIterator<uint16_t> neighbour_iterator(apr_access2);
-
-    ExtraParticleData<float> neigh_sum;
-    neigh_sum.data.resize(apr_iterator.total_number_particles());
-
-    bool success = true;
-    uint64_t total_counter  = 0;
-
-    float num_rep = 4;
-
-    apr.apr_access.initialize_structure_from_particle_cell_tree(apr,p_map);
-
-    APRWriter writer;
-
-    apr.particles_intensities.copy_parts(apr,particles_int);
-
-    timer.start_timer("writint");
-
-    writer.write_apr(apr,options.directory,name);
-
-    timer.stop_timer();
-
-    APR<uint16_t> apr2;
-    timer.start_timer("reading");
-    writer.read_apr(apr2,options.directory + name + "_apr.h5");
-    timer.stop_timer();
-
-    writer.write_apr_paraview(apr,options.directory,name,apr.particles_intensities);
-
-    writer.write_particles_only(options.directory,name,apr.particles_intensities);
-
-    writer.read_parts_only(options.directory+name+"_apr_extra_parts.h5",apr.particles_intensities);
-
-    timer.start_timer("writint");
-
-    apr.write_apr(options.directory,name+"o");
-
-    timer.stop_timer();
+//    //just run old code and initialize it there
+//    //apr_access.test_method(apr);
+//
+//    /////
+//    //
+//    //  Now new data-structures
+//    //
+//    /////
+//
+//    APRAccess apr_access2;
+//    std::vector<std::vector<uint8_t>> p_map;
+//
+//    timer.start_timer("generate pmap");
+//    apr_access2.generate_pmap(apr,p_map);
+//    timer.stop_timer();
+//
+//    timer.start_timer("generate map structure");
+//    apr_access2.initialize_structure_from_particle_cell_tree(apr,p_map);
+//    timer.stop_timer();
+//
+//    //compare_two_maps(apr,apr_access,apr_access2);
+//
+//    APRIteratorOld<uint16_t> apr_iterator_old(apr);
+//
+//    ExtraParticleData<uint16_t> particles_int;
+//    ExtraParticleData<uint16_t> x;
+//    ExtraParticleData<uint16_t> y;
+//    ExtraParticleData<uint16_t> z;
+//    ExtraParticleData<uint16_t> level;
+//    ExtraParticleData<uint64_t> indexd;
+//
+//    uint64_t counter = 0;
+//
+//    APRIterator<uint16_t > apr_iterator(apr);
+//    uint64_t particle_number;
+//
+//#pragma omp parallel for schedule(static) private(particle_number) firstprivate(apr_iterator)
+//    for (particle_number = 0; particle_number < apr_iterator.total_number_particles(); ++particle_number) {
+//        apr_iterator.set_iterator_to_particle_by_number(particle_number);
+//        particles_int.data.push_back(apr_iterator_old(apr.particles_int_old));
+//        x.data.push_back(apr_iterator.x());
+//        y.data.push_back(apr_iterator.y());
+//        z.data.push_back(apr_iterator.z());
+//        level.data.push_back(apr_iterator.level());
+//        indexd.data.push_back(counter);
+//        counter++;
+//    }
+//
+//    counter = 0;
+//
+//    std::cout << counter << std::endl;
+//
+//    APRIterator<uint16_t> neighbour_iterator(apr_access2);
+//
+//    ExtraParticleData<float> neigh_sum;
+//    neigh_sum.data.resize(apr_iterator.total_number_particles());
+//
+//    bool success = true;
+//    uint64_t total_counter  = 0;
+//
+//    float num_rep = 4;
+//
+//    apr.apr_access.initialize_structure_from_particle_cell_tree(apr,p_map);
+//
+//    APRWriter writer;
+//
+//    apr.particles_intensities.copy_parts(apr,particles_int);
+//
+//    timer.start_timer("writint");
+//
+//    writer.write_apr(apr,options.directory,name);
+//
+//    timer.stop_timer();
+//
+//    APR<uint16_t> apr2;
+//    timer.start_timer("reading");
+//    writer.read_apr(apr2,options.directory + name + "_apr.h5");
+//    timer.stop_timer();
+//
+//    writer.write_apr_paraview(apr,options.directory,name,apr.particles_intensities);
+//
+//    writer.write_particles_only(options.directory,name,apr.particles_intensities);
+//
+//    writer.read_parts_only(options.directory+name+"_apr_extra_parts.h5",apr.particles_intensities);
+//
+//    timer.start_timer("writint");
+//
+//    apr.write_apr(options.directory,name+"o");
+//
+//    timer.stop_timer();
 
 
 

@@ -39,7 +39,7 @@ namespace std {
 %include "benchmarks/development/Tree/ParticleData.hpp"
 %include "benchmarks/development/Tree/ParticleDataNew.hpp"
 %include "src/data_structures/APR/ExtraPartCellData.hpp"
-%include "src/data_structures/APR/PartCellData.hpp"
+%include "benchmarks/development/Tree/PartCellData.hpp"
 %include "benchmarks/development/Tree/PartCellStructure.hpp"
 %include "benchmarks/development/old_structures/particle_map.hpp"
 %include "src/data_structures/Mesh/MeshData.hpp"
