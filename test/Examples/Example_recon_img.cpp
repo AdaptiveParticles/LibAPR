@@ -68,7 +68,7 @@ int main(int argc, char **argv) {
     timer.verbose_flag = true;
 
     // APR datastructure
-    APR<float> apr;
+    APR<uint16_t> apr;
 
     //read file
     apr.read_apr(file_name);
@@ -96,12 +96,12 @@ int main(int argc, char **argv) {
     ////////////////////////////
 
     //initialization of the iteration structures
-    APRIterator<float> apr_iterator(apr); //this is required for parallel access
+    APRIterator<uint16_t> apr_iterator(apr); //this is required for parallel access
     uint64_t particle_number;
 
     //create particle dataset
-    ExtraParticleData<float> type(apr);
-    ExtraParticleData<float> level(apr);
+    ExtraParticleData<uint16_t> type(apr);
+    ExtraParticleData<uint16_t> level(apr);
 
     timer.start_timer("APR parallel iterator loop");
 

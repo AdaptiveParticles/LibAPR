@@ -272,7 +272,7 @@ int main(int argc, char **argv) {
     uint64_t counter = 0;
 
     for (int level = apr_iterator.level_min(); level <= apr_iterator.level_max(); ++level) {
-        for(unsigned int z = 0; z < apr.spatial_index_z_max(level); ++z) {
+        for(unsigned int z = 0; z < apr_iterator.spatial_index_z_max(level); ++z) {
 
             uint64_t  begin = apr_iterator.particles_z_begin(level,z);
             uint64_t  end = apr_iterator.particles_z_end(level,z);
