@@ -54,27 +54,6 @@ public:
     void perform_raycast(APR<U>& apr,ExtraParticleData<S>& particle_data,MeshData<V>& cast_views,BinaryOperation op);
 };
 
-//struct proj_par{
-
-//
-//    //new parameters
-//    float height = 0.5;
-//    float radius_factor = 1.5;
-//    float theta_0 = 0;
-//    float theta_final = .1;
-//    float theta_delta = 0.01;
-//
-//    float scale_y = 1.0;
-//    float scale_x = 1.0;
-//    float scale_z = 1.0;
-//
-//    float jitter_factor = 0.5;
-//
-//    bool jitter = false;
-//
-//    std::string name = "raycast";
-//
-//};
 
 template<typename U,typename S,typename V,class BinaryOperation>
 void APRRaycaster::perform_raycast(APR<U>& apr,ExtraParticleData<S>& particle_data,MeshData<V>& cast_views,BinaryOperation op) {

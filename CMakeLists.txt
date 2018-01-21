@@ -224,6 +224,12 @@ add_executable(Example_compress
         ${SOURCE_FILES_COMPILED}
         )
 
+add_executable(Example_produce_paraview_file
+        test/Examples/Example_produce_paraview_file.cpp
+        benchmarks/development/old_io/write_parts.cpp
+        ${SOURCE_FILES_COMPILED}
+        )
+
 add_executable(Example_benchmark
         benchmarks/development/Example_benchmark.cpp
         benchmarks/development/old_io/write_parts.cpp
@@ -257,6 +263,7 @@ target_link_libraries(Example_ray_cast ${HDF5_LIBRARIES} ${CMAKE_THREAD_LIBS_INI
 target_link_libraries(Example_reconstruct_image ${HDF5_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT} ${TIFF_LIBRARIES} blosc_shared)
 
 target_link_libraries(Example_apr_neighbour_access ${HDF5_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT} ${TIFF_LIBRARIES} blosc_shared)
+target_link_libraries(Example_produce_paraview_file ${HDF5_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT} ${TIFF_LIBRARIES} blosc_shared)
 
 target_link_libraries(Example_compress ${HDF5_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT} ${TIFF_LIBRARIES} blosc_shared)
 target_link_libraries(Example_benchmark ${HDF5_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT} ${TIFF_LIBRARIES} blosc_shared)

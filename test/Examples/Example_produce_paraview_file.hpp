@@ -1,11 +1,14 @@
-#ifndef PARTPLAY_COMPRESS
-#define PARTPLAY_COMPRESS
+//
+// Created by cheesema on 21.01.18.
+//
+
+#ifndef PARTPLAY_EXAMPLE_PRODUCE_PARAVIEW_FILE_HPP
+#define PARTPLAY_EXAMPLE_PRODUCE_PARAVIEW_FILE_HPP
 
 #include <functional>
 #include <string>
 
 #include "src/data_structures/APR/APR.hpp"
-
 
 struct cmdLineOptions{
     std::string output = "output";
@@ -21,4 +24,5 @@ bool command_option_exists(char **begin, char **end, const std::string &option);
 
 char* get_command_option(char **begin, char **end, const std::string &option);
 
-#endif //PARTPLAY_PIPELINE_H
+
+#endif //PARTPLAY_EXAMPLE_PRODUCE_PARAVIEW_FILE_HPP
