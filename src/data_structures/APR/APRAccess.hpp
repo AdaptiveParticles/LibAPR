@@ -5,11 +5,7 @@
 #ifndef PARTPLAY_APRACCESS_HPP
 #define PARTPLAY_APRACCESS_HPP
 
-#include "src/data_structures/APR/APR.hpp"
-#include "APR.hpp"
 
-#include "src/data_structures/APR/ExtraParticleData.hpp"
-#include "src/data_structures/APR/ExtraPartCellData.hpp"
 
 #include <map>
 #include <utility>
@@ -45,8 +41,17 @@
 #define PC_TYPE_MASK ((((uint16_t)1) << 2) - 1) << 13
 #define PC_TYPE_SHIFT 13
 
+template<typename T>
+class ExtraParticleData;
+
 template<typename ImageType>
 class APRIterator;
+
+#include "src/data_structures/APR/APR.hpp"
+
+#include "src/data_structures/APR/ExtraParticleData.hpp"
+#include "src/data_structures/APR/ExtraPartCellData.hpp"
+
 
 struct ParticleCell {
     uint16_t x,y,z,level,type;

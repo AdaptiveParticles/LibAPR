@@ -70,6 +70,9 @@ set(SOURCE_FILES
         src/data_structures/APR/APR.hpp
         src/data_structures/APR/APRIteratorOld.hpp
 
+        src/data_structures/APR/APRIterator.hpp
+        src/data_structures/APR/APRAcess.hpp
+
         benchmarks/development/old_algorithm/pipeline.cpp
 
 

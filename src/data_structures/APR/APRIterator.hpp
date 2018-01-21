@@ -8,6 +8,8 @@
 #include "src/data_structures/APR/APR.hpp"
 
 #include "src/data_structures/APR/APRAccess.hpp"
+
+
 template<typename ImageType>
 class APRIterator {
 
