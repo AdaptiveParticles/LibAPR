@@ -1548,18 +1548,15 @@ namespace old {
 
             //
             //
-            //  Transfer back the intensities
+            //  Decompress if needed
             //
             //
-
-
 
             if(compress_type > 0){
-                //#TODO
-//                apr_compress.set_compression_type(compress_type);
-//                apr_compress.set_quantization_factor(quantization_factor);
-//
-//                apr_compress.decompress(apr,apr.particles_int);
+                apr_compress.set_compression_type(compress_type);
+                apr_compress.set_quantization_factor(quantization_factor);
+
+                apr_compress.decompress(apr,apr.particles_int);
 
             }
 
@@ -1590,7 +1587,7 @@ namespace old {
 
             APRTimer write_timer;
 
-            write_timer.verbose_flag = true;
+            write_timer.verbose_flag = false;
 
             //initialize
             uint64_t node_val_part;
@@ -1724,7 +1721,7 @@ namespace old {
 
             if(compress_type_num > 0){
 
-                //apr_compressor.compress(apr,particles_int);
+                apr_compressor.compress(apr,apr.particles_int);
 
             }
 
@@ -1840,7 +1837,7 @@ namespace old {
 
             APRTimer write_timer;
 
-            write_timer.verbose_flag = true;
+            write_timer.verbose_flag = false;
 
             //initialize
             uint64_t node_val_part;

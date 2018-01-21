@@ -77,7 +77,7 @@ public:
 
         } else {
             particle_number_start = apr_iterator.particles_level_begin(level);
-            particle_number_stop = apr_iterator.particles_level_begin(level);
+            particle_number_stop = apr_iterator.particles_level_end(level);
         }
 
         total_particles_to_iterate = particle_number_stop - particle_number_start;
@@ -89,8 +89,9 @@ public:
 
         const size_t numOfElementsPerBlock = total_particles_to_iterate/aNumberOfBlocks;
 
-#pragma omp parallel for schedule(dynamic)
-        for (unsigned int blockNum = 0; blockNum < aNumberOfBlocks; ++blockNum) {
+        unsigned int blockNum;
+#pragma omp parallel for private(blockNum) schedule(static)
+        for (blockNum = 0; blockNum < aNumberOfBlocks; ++blockNum) {
             size_t offsetBegin = particle_number_start + blockNum * numOfElementsPerBlock;
             size_t offsetEnd = particle_number_start + offsetBegin + numOfElementsPerBlock;
             if (blockNum == aNumberOfBlocks - 1) {
@@ -129,7 +130,7 @@ public:
 
         } else {
             particle_number_start = apr_iterator.particles_level_begin(level);
-            particle_number_stop = apr_iterator.particles_level_begin(level);
+            particle_number_stop = apr_iterator.particles_level_end(level);
         }
 
         total_particles_to_iterate = particle_number_stop - particle_number_start;
@@ -141,8 +142,9 @@ public:
 
         const size_t numOfElementsPerBlock = total_particles_to_iterate/aNumberOfBlocks;
 
-#pragma omp parallel for schedule(dynamic)
-        for (unsigned int blockNum = 0; blockNum < aNumberOfBlocks; ++blockNum) {
+        unsigned int blockNum;
+#pragma omp parallel for private(blockNum) schedule(static)
+        for (blockNum = 0; blockNum < aNumberOfBlocks; ++blockNum) {
             size_t offsetBegin = particle_number_start + blockNum * numOfElementsPerBlock;
             size_t offsetEnd = particle_number_start + offsetBegin + numOfElementsPerBlock;
             if (blockNum == aNumberOfBlocks - 1) {
@@ -151,7 +153,7 @@ public:
             }
 
             //Operation to be performed on the chunk
-            std::transform(data.begin() + offsetBegin,data.end() + offsetEnd, parts2.data.begin() + offsetBegin, data.begin() + offsetBegin, op);
+            std::transform(data.begin() + offsetBegin,data.begin() + offsetEnd, parts2.data.begin() + offsetBegin, data.begin() + offsetBegin, op);
         }
 
 
@@ -159,7 +161,7 @@ public:
     }
 
     template<typename V,class BinaryOperation,typename T>
-    ExtraParticleData<V> zip(APR<T>& apr,ExtraParticleData<V> &parts2, BinaryOperation op,const unsigned int level = 0,unsigned int aNumberOfBlocks = 10){
+    void zip(APR<T>& apr,ExtraParticleData<V> &parts2,ExtraParticleData<V>& output, BinaryOperation op,const unsigned int level = 0,unsigned int aNumberOfBlocks = 10){
         //
         //  Bevan Cheeseman 2017
         //
@@ -170,7 +172,6 @@ public:
         //  Returns the result to another particle dataset
         //
 
-        ExtraParticleData<V> output;
         output.data.resize(data.size());
 
         APRIterator<T> apr_iterator(apr);
@@ -185,7 +186,7 @@ public:
 
         } else {
             particle_number_start = apr_iterator.particles_level_begin(level);
-            particle_number_stop = apr_iterator.particles_level_begin(level);
+            particle_number_stop = apr_iterator.particles_level_end(level);
         }
 
         total_particles_to_iterate = particle_number_stop - particle_number_start;
@@ -197,8 +198,9 @@ public:
 
         const size_t numOfElementsPerBlock = total_particles_to_iterate/aNumberOfBlocks;
 
-#pragma omp parallel for schedule(dynamic)
-        for (unsigned int blockNum = 0; blockNum < aNumberOfBlocks; ++blockNum) {
+        unsigned int blockNum;
+#pragma omp parallel for private(blockNum) schedule(static)
+        for (blockNum = 0; blockNum < aNumberOfBlocks; ++blockNum) {
             size_t offsetBegin = particle_number_start + blockNum * numOfElementsPerBlock;
             size_t offsetEnd = particle_number_start + offsetBegin + numOfElementsPerBlock;
             if (blockNum == aNumberOfBlocks - 1) {
@@ -207,17 +209,15 @@ public:
             }
 
             //Operation to be performed on the chunk
-            std::transform(data.begin() + offsetBegin,data.end() + offsetEnd, parts2.data.begin() + offsetBegin, output.data.begin() + offsetBegin, op);
+            std::transform(data.begin() + offsetBegin,data.begin() + offsetEnd, parts2.data.begin() + offsetBegin, output.data.begin() + offsetBegin, op);
         }
-
-        return output;
 
     }
 
 
 
-    template<typename U,class UnaryOperator,typename T>
-    ExtraParticleData<U> map(APR<T>& apr,UnaryOperator op,const unsigned int level = 0,unsigned int aNumberOfBlocks = 10){
+    template<typename T,typename U,class UnaryOperator>
+    void map(APR<T>& apr,ExtraParticleData<U>& output,UnaryOperator op,const unsigned int level = 0,unsigned int aNumberOfBlocks = 10){
         //
         //  Bevan Cheeseman 2018
         //
@@ -227,7 +227,6 @@ public:
         //
         //
 
-        ExtraParticleData<U> output;
         output.data.resize(data.size());
 
         APRIterator<T> apr_iterator(apr);
@@ -242,7 +241,7 @@ public:
 
         } else {
             particle_number_start = apr_iterator.particles_level_begin(level);
-            particle_number_stop = apr_iterator.particles_level_begin(level);
+            particle_number_stop = apr_iterator.particles_level_end(level);
         }
 
         total_particles_to_iterate = particle_number_stop - particle_number_start;
@@ -254,8 +253,9 @@ public:
 
         const size_t numOfElementsPerBlock = total_particles_to_iterate/aNumberOfBlocks;
 
-#pragma omp parallel for schedule(dynamic)
-        for (unsigned int blockNum = 0; blockNum < aNumberOfBlocks; ++blockNum) {
+        unsigned int blockNum;
+#pragma omp parallel for schedule(static) private(blockNum)
+        for (blockNum = 0; blockNum < aNumberOfBlocks; ++blockNum) {
             size_t offsetBegin = particle_number_start + blockNum * numOfElementsPerBlock;
             size_t offsetEnd = particle_number_start + offsetBegin + numOfElementsPerBlock;
             if (blockNum == aNumberOfBlocks - 1) {
@@ -264,10 +264,8 @@ public:
             }
 
             //Operation to be performed on the chunk
-            std::transform(data.begin() + offsetBegin,data.end() + offsetEnd, output.data.begin() + offsetBegin, op);
+            std::transform(data.begin() + offsetBegin,data.begin() + offsetEnd, output.data.begin() + offsetBegin, op);
         }
-
-        return output;
 
     }
 
@@ -293,7 +291,7 @@ public:
 
         } else {
             particle_number_start = apr_iterator.particles_level_begin(level);
-            particle_number_stop = apr_iterator.particles_level_begin(level);
+            particle_number_stop = apr_iterator.particles_level_end(level);
         }
 
         total_particles_to_iterate = particle_number_stop - particle_number_start;
@@ -305,8 +303,9 @@ public:
 
         const size_t numOfElementsPerBlock = total_particles_to_iterate/aNumberOfBlocks;
 
-#pragma omp parallel for schedule(dynamic)
-        for (unsigned int blockNum = 0; blockNum < aNumberOfBlocks; ++blockNum) {
+        unsigned int blockNum;
+#pragma omp parallel for private(blockNum) schedule(static)
+        for (blockNum = 0; blockNum < aNumberOfBlocks; ++blockNum) {
             size_t offsetBegin = particle_number_start + blockNum * numOfElementsPerBlock;
             size_t offsetEnd = particle_number_start + offsetBegin + numOfElementsPerBlock;
             if (blockNum == aNumberOfBlocks - 1) {
@@ -315,7 +314,7 @@ public:
             }
 
             //Operation to be performed on the chunk
-            std::transform(data.begin() + offsetBegin,data.end() + offsetEnd, data.begin() + offsetBegin, op);
+            std::transform(data.begin() + offsetBegin,data.begin() + offsetEnd, data.begin() + offsetBegin, op);
         }
 
     }

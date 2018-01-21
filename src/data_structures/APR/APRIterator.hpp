@@ -120,14 +120,17 @@ public:
 
     APRIterator(APR<ImageType>& apr){
         apr_access = &apr.apr_access;
+        current_particle_cell.global_index = -1;
     }
 
     APRIterator(APRAccess& apr_access_){
        apr_access = &apr_access_;
+        current_particle_cell.global_index = -1;
     }
 
     void initialize_from_apr(APR<ImageType>& apr){
         apr_access = &apr.apr_access;
+        current_particle_cell.global_index = -1;
     }
 
     uint64_t total_number_particles(){

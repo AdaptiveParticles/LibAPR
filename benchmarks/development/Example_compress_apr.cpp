@@ -90,7 +90,7 @@ int main(int argc, char **argv) {
     name.erase(name.end()-3,name.end());
 
     APRCompress<uint16_t> comp;
-    ExtraPartCellData<uint16_t> symbols;
+    ExtraParticleData<uint16_t> symbols;
 
     comp.set_quantization_factor(1);
     comp.set_compression_type(1);
@@ -104,7 +104,7 @@ int main(int argc, char **argv) {
     timer.stop_timer();
 
     MeshData<uint16_t> img;
-    apr.interp_img(img,apr.particles_int_old);
+    apr.interp_img(img,apr.particles_int);
     std::string output = options.directory + name + "_compress.tif";
     img.write_image_tiff(output);
 

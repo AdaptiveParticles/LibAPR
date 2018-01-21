@@ -270,8 +270,6 @@ int main(int argc, char **argv) {
     apr_access2.initialize_structure_from_particle_cell_tree(apr,p_map);
     timer.stop_timer();
 
-
-
     //compare_two_maps(apr,apr_access,apr_access2);
 
     APRIteratorOld<uint16_t> apr_iterator_old(apr);
@@ -316,9 +314,9 @@ int main(int argc, char **argv) {
 
     apr.apr_access.initialize_structure_from_particle_cell_tree(apr,p_map);
 
-    new_iterator::APRWriter writer;
+    APRWriter writer;
 
-    apr.particles_int = particles_int;
+    apr.particles_int.copy_parts(apr,particles_int);
 
     timer.start_timer("writint");
 
