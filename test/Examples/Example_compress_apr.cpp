@@ -15,7 +15,7 @@
 #include <algorithm>
 #include <iostream>
 
-#include "benchmarks/development/Example_compress_apr.h"
+#include "Example_compress_apr.h"
 
 bool command_option_exists(char **begin, char **end, const std::string &option)
 {

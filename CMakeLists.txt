@@ -219,7 +219,7 @@ add_executable(Example_ray_cast
 
 
 add_executable(Example_compress
-        benchmarks/development/Example_compress_apr.cpp
+        test/Examples/Example_compress_apr.cpp
         benchmarks/development/old_io/write_parts.cpp
         ${SOURCE_FILES_COMPILED}
         )
