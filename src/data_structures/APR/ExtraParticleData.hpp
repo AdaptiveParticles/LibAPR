@@ -30,10 +30,6 @@ public:
     ExtraParticleData(){
     };
 
-    template<typename S>
-    ExtraParticleData(ExtraParticleData<S>& part_data){
-        //initialize_structure_parts(part_data);
-    };
 
     template<typename S>
     ExtraParticleData(APR<S>& apr){
@@ -45,7 +41,6 @@ public:
 
     template<typename S>
     void init(APR<S>& apr){
-        // do nothing
         data.resize(apr.total_number_particles());
     }
 
@@ -108,7 +103,7 @@ public:
 
 
     template<typename V,class BinaryOperation,typename T>
-    void zip_inplace(APR<T>& apr,ExtraPartCellData<V> &parts2, BinaryOperation op,const unsigned int level = 0,unsigned int aNumberOfBlocks = 10){
+    void zip_inplace(APR<T>& apr,ExtraParticleData<V> &parts2, BinaryOperation op,const unsigned int level = 0,unsigned int aNumberOfBlocks = 10){
         //
         //  Bevan Cheeseman 2017
         //

@@ -117,14 +117,6 @@ public:
         return apr_access.org_dims[dim];
     }
 
-
-    ///////////////////////////////////
-    ///
-    /// APR IO Methods (Calls members of the APRWriter class)
-    ///
-    //////////////////////////////////
-
-    // #TODO remove
     uint64_t level_max(){
         return apr_access.level_max;
     }
@@ -149,6 +141,11 @@ public:
         return (apr_access).total_number_particles;
     }
 
+    ///////////////////////////////////
+    ///
+    /// APR IO Methods (Calls members of the APRWriter class)
+    ///
+    //////////////////////////////////
 
     //basic IO
     void read_apr(std::string file_name){
@@ -173,13 +170,13 @@ public:
     //write out ExtraPartCellData
     template< typename S>
     void write_particles_only( std::string save_loc,std::string file_name,ExtraParticleData<S>& parts_extra){
-        apr_writer.write_particles_only( *this ,save_loc, file_name, parts_extra);
+        apr_writer.write_particles_only(save_loc, file_name, parts_extra);
     };
 
     //read in ExtraPartCellData
     template<typename T>
     void read_parts_only(std::string file_name,ExtraParticleData<T>& extra_parts){
-        apr_writer.read_parts_only(*this,file_name,extra_parts);
+        apr_writer.read_parts_only(file_name,extra_parts);
     };
 
     ////////////////////////
