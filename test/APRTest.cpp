@@ -110,7 +110,7 @@ bool test_apr_input_output(TestData& test_data){
         //counter++;
 
         //check the functionality
-        if(apr_iterator(test_data.apr.particles_int)!=apr_iterator_read(apr_read.particles_int)){
+        if(apr_iterator(test_data.apr.particles_intensities)!=apr_iterator_read(apr_read.particles_intensities)){
             success = false;
         }
 
@@ -163,7 +163,7 @@ bool test_apr_input_output(TestData& test_data){
                 // on each face, there can be 0-4 neighbours accessed by index
                 if(neighbour_iterator.set_neighbour_iterator(apr_iterator_read2, direction, index)){
                     //will return true if there is a neighbour defined
-                    uint16_t apr_intensity = neighbour_iterator(test_data.apr.particles_int);
+                    uint16_t apr_intensity = neighbour_iterator(test_data.apr.particles_intensities);
                     uint16_t check_intensity = test_data.img_pc(neighbour_iterator.y_nearest_pixel(),neighbour_iterator.x_nearest_pixel(),neighbour_iterator.z_nearest_pixel());
 
                     if(check_intensity!=apr_intensity){
@@ -268,7 +268,7 @@ bool test_apr_neighbour_access(TestData& test_data){
                 // on each face, there can be 0-4 neighbours accessed by index
                 if(neighbour_iterator.set_neighbour_iterator(apr_iterator, direction, index)){
                     //will return true if there is a neighbour defined
-                    uint16_t apr_intensity = neighbour_iterator(test_data.apr.particles_int);
+                    uint16_t apr_intensity = neighbour_iterator(test_data.apr.particles_intensities);
                     uint16_t check_intensity = test_data.img_pc(neighbour_iterator.y_nearest_pixel(),neighbour_iterator.x_nearest_pixel(),neighbour_iterator.z_nearest_pixel());
 
                     if(check_intensity!=apr_intensity){
@@ -338,7 +338,7 @@ bool test_apr_neighbour_access(TestData& test_data){
                 // on each face, there can be 0-4 neighbours accessed by index
                 if(neighbour_iterator.set_neighbour_iterator(apr_iterator, direction, index)){
                     //will return true if there is a neighbour defined
-                    uint16_t apr_intensity = neighbour_iterator(test_data.apr.particles_int);
+                    uint16_t apr_intensity = neighbour_iterator(test_data.apr.particles_intensities);
                     uint16_t check_intensity = test_data.img_pc(neighbour_iterator.y_nearest_pixel(),neighbour_iterator.x_nearest_pixel(),neighbour_iterator.z_nearest_pixel());
 
                     if(check_intensity!=apr_intensity){
@@ -412,7 +412,7 @@ bool test_apr_iterate(TestData& test_data){
     for (particle_number = 0; particle_number < apr_iterator.total_number_particles(); ++particle_number) {
         apr_iterator.set_iterator_to_particle_by_number(particle_number);
 
-        uint16_t apr_intensity = apr_iterator(test_data.apr.particles_int);
+        uint16_t apr_intensity = apr_iterator(test_data.apr.particles_intensities);
         uint16_t check_intensity = test_data.img_pc(apr_iterator.y_nearest_pixel(),apr_iterator.x_nearest_pixel(),apr_iterator.z_nearest_pixel());
 
         if(check_intensity!=apr_intensity){
@@ -462,7 +462,7 @@ bool test_apr_iterate(TestData& test_data){
     for (particle_number = 0; particle_number < apr_iterator.total_number_particles(); ++particle_number) {
         apr_iterator.set_iterator_to_particle_by_number(particle_number);
 
-        uint16_t apr_intensity = apr_iterator(test_data.apr.particles_int);
+        uint16_t apr_intensity = apr_iterator(test_data.apr.particles_intensities);
         uint16_t check_intensity = test_data.img_pc(apr_iterator.y_nearest_pixel(),apr_iterator.x_nearest_pixel(),apr_iterator.z_nearest_pixel());
 
         if(check_intensity!=apr_intensity){
@@ -594,7 +594,7 @@ bool test_apr_pipeline(TestData& test_data){
         for (particle_number = 0; particle_number < apr_iterator.total_number_particles(); ++particle_number) {
             apr_iterator.set_iterator_to_particle_by_number(particle_number);
 
-            uint16_t apr_intensity = apr_iterator(apr.particles_int);
+            uint16_t apr_intensity = apr_iterator(apr.particles_intensities);
             uint16_t check_intensity = test_data.img_pc(apr_iterator.y_nearest_pixel(),apr_iterator.x_nearest_pixel(),apr_iterator.z_nearest_pixel());
 
             if(check_intensity!=apr_intensity){

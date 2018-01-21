@@ -229,7 +229,7 @@ bool APRConverter<ImageType>::get_apr_method(APR<ImageType>& apr) {
     st.stop_timer();
 
     st.start_timer("sample particles");
-    apr.get_parts_from_img(downsampled_img,apr.particles_int);
+    apr.get_parts_from_img(downsampled_img,apr.particles_intensities);
     st.stop_timer();
 
     full.stop_timer();

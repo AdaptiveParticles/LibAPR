@@ -56,7 +56,7 @@ public:
         std::cout << background << std::endl;
 
         timer.start_timer("copy");
-        predict_input.copy_parts(apr,apr.particles_int);
+        predict_input.copy_parts(apr,apr.particles_intensities);
         timer.stop_timer();
 
         ///////////////////////////
@@ -90,7 +90,7 @@ public:
 
             timer.start_timer("copy");
             //copy over the original intensities again
-            predict_input.copy_parts(apr,apr.particles_int, apr.level_max() - 1);
+            predict_input.copy_parts(apr,apr.particles_intensities, apr.level_max() - 1);
             timer.stop_timer();
 
             timer.start_timer("predict other levels");

@@ -3256,92 +3256,92 @@ bool utest_alt_part_struct(PartCellStructure<float,uint64_t>& pc_struct){
 
 
 
-void create_apr_from_pc_struct(APR<float>& apr,PartCellStructure<float,uint64_t>& pc_struct){
-
-    apr.apr_access.org_dims[0] = pc_struct.org_dims[0];
-    apr.apr_access.org_dims[1] = pc_struct.org_dims[1];
-    apr.apr_access.org_dims[2] = pc_struct.org_dims[2];
-
-    //first add the layers
-    apr.apr_access.level_max = pc_struct.depth_max + 1;
-    apr.apr_access.level_min = pc_struct.depth_min;
-
-    apr.apr_access.z_num.resize(apr.apr_access.level_max+1);
-    apr.apr_access.x_num.resize(apr.apr_access.level_max+1);
-    apr.apr_access.y_num.resize(apr.apr_access.level_max+1);
-
-    for(uint64_t i = apr.apr_access.level_min;i < apr.apr_access.level_max;i++){
-        apr.apr_access.z_num[i] = pc_struct.z_num[i];
-        apr.apr_access.x_num[i] = pc_struct.x_num[i];
-        apr.apr_access.y_num[i] = pc_struct.y_num[i];
-    }
-
-    apr.apr_access.z_num[apr.apr_access.level_max] = pc_struct.org_dims[2];
-    apr.apr_access.x_num[apr.apr_access.level_max] = pc_struct.org_dims[1];
-    apr.apr_access.y_num[apr.apr_access.level_max] = pc_struct.org_dims[0];
-
-    std::vector<std::vector<uint8_t>> p_map;
-    p_map.resize(apr.apr_access.level_max);
-
-    //initialize loop variables
-    int x_;
-    int z_;
-    int y_;
-
-    uint64_t j_;
-
-    uint64_t status;
-    uint64_t node_val;
-    uint16_t node_val_part;
-
-    for(uint64_t i = (apr.apr_access.level_max-1);i >= apr.apr_access.level_min;i--){
-
-        const unsigned int x_num = apr.apr_access.x_num[i];
-        const unsigned int z_num = apr.apr_access.z_num[i];
-        const unsigned int y_num = apr.apr_access.y_num[i];
-
-        p_map[i].resize(x_num*z_num*y_num,0);
-
-#pragma omp parallel for default(shared) private(j_,z_,x_,y_,node_val,status) if(z_num*x_num > 100)
-        for(z_ = 0;z_ < z_num;z_++) {
-
-            for (x_ = 0; x_ < x_num; x_++) {
-
-                //access variables
-                const size_t offset_pc_data = x_num * z_ + x_;
-                const size_t j_num = pc_struct.pc_data.data[i][offset_pc_data].size();
-                const size_t offset_p_map = y_num*x_num*z_ + y_num*x_;
-
-                y_ = 0;
-
-                //first loop over
-                for (j_ = 0; j_ < j_num; j_++) {
-                    //raster over both structures, generate the index for the particles, set the status and offset_y_coord diff
-
-                    node_val = pc_struct.pc_data.data[i][offset_pc_data][j_];
-
-                    if (!(node_val & 1)) {
-                        //normal node
-                        y_++;
-                        //create pindex, and create status (0,1,2,3) and type
-                        status = (node_val & STATUS_MASK)
-                                >> STATUS_SHIFT;  //need the status masks here, need to move them into the datastructure I think so that they are correctly accessible then to these routines.
-
-                        p_map[i][offset_p_map + y_]=status;
-
-                    } else {
-
-                        y_ = (node_val & NEXT_COORD_MASK) >> NEXT_COORD_SHIFT;
-                        y_--;
-                    }
-                }
-            }
-        }
-    }
-
-    apr.apr_access.initialize_structure_from_particle_cell_tree(apr,p_map);
-
-}
+//void create_apr_from_pc_struct(APR<float>& apr,PartCellStructure<float,uint64_t>& pc_struct){
+//
+//    apr.apr_access.org_dims[0] = pc_struct.org_dims[0];
+//    apr.apr_access.org_dims[1] = pc_struct.org_dims[1];
+//    apr.apr_access.org_dims[2] = pc_struct.org_dims[2];
+//
+//    //first add the layers
+//    apr.apr_access.level_max = pc_struct.depth_max + 1;
+//    apr.apr_access.level_min = pc_struct.depth_min;
+//
+//    apr.apr_access.z_num.resize(apr.apr_access.level_max+1);
+//    apr.apr_access.x_num.resize(apr.apr_access.level_max+1);
+//    apr.apr_access.y_num.resize(apr.apr_access.level_max+1);
+//
+//    for(uint64_t i = apr.apr_access.level_min;i < apr.apr_access.level_max;i++){
+//        apr.apr_access.z_num[i] = pc_struct.z_num[i];
+//        apr.apr_access.x_num[i] = pc_struct.x_num[i];
+//        apr.apr_access.y_num[i] = pc_struct.y_num[i];
+//    }
+//
+//    apr.apr_access.z_num[apr.apr_access.level_max] = pc_struct.org_dims[2];
+//    apr.apr_access.x_num[apr.apr_access.level_max] = pc_struct.org_dims[1];
+//    apr.apr_access.y_num[apr.apr_access.level_max] = pc_struct.org_dims[0];
+//
+//    std::vector<std::vector<uint8_t>> p_map;
+//    p_map.resize(apr.apr_access.level_max);
+//
+//    //initialize loop variables
+//    int x_;
+//    int z_;
+//    int y_;
+//
+//    uint64_t j_;
+//
+//    uint64_t status;
+//    uint64_t node_val;
+//    uint16_t node_val_part;
+//
+//    for(uint64_t i = (apr.apr_access.level_max-1);i >= apr.apr_access.level_min;i--){
+//
+//        const unsigned int x_num = apr.apr_access.x_num[i];
+//        const unsigned int z_num = apr.apr_access.z_num[i];
+//        const unsigned int y_num = apr.apr_access.y_num[i];
+//
+//        p_map[i].resize(x_num*z_num*y_num,0);
+//
+//#pragma omp parallel for default(shared) private(j_,z_,x_,y_,node_val,status) if(z_num*x_num > 100)
+//        for(z_ = 0;z_ < z_num;z_++) {
+//
+//            for (x_ = 0; x_ < x_num; x_++) {
+//
+//                //access variables
+//                const size_t offset_pc_data = x_num * z_ + x_;
+//                const size_t j_num = pc_struct.pc_data.data[i][offset_pc_data].size();
+//                const size_t offset_p_map = y_num*x_num*z_ + y_num*x_;
+//
+//                y_ = 0;
+//
+//                //first loop over
+//                for (j_ = 0; j_ < j_num; j_++) {
+//                    //raster over both structures, generate the index for the particles, set the status and offset_y_coord diff
+//
+//                    node_val = pc_struct.pc_data.data[i][offset_pc_data][j_];
+//
+//                    if (!(node_val & 1)) {
+//                        //normal node
+//                        y_++;
+//                        //create pindex, and create status (0,1,2,3) and type
+//                        status = (node_val & STATUS_MASK)
+//                                >> STATUS_SHIFT;  //need the status masks here, need to move them into the datastructure I think so that they are correctly accessible then to these routines.
+//
+//                        p_map[i][offset_p_map + y_]=status;
+//
+//                    } else {
+//
+//                        y_ = (node_val & NEXT_COORD_MASK) >> NEXT_COORD_SHIFT;
+//                        y_--;
+//                    }
+//                }
+//            }
+//        }
+//    }
+//
+//    apr.apr_access.initialize_structure_from_particle_cell_tree(apr,p_map);
+//
+//}
 
 
 void create_pc_data_new(APR<float>& apr,PartCellStructure<float,uint64_t>& pc_struct){

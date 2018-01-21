@@ -1378,16 +1378,16 @@ void run_real_segmentation(PartCellStructure<float,uint64_t> pc_struct,AnalysisD
 //
 //    create_y_data(y_vec,part_new);
 //
-//    ExtraPartCellData<uint16_t> particles_int;
-//    part_new.create_particles_at_cell_structure(particles_int);
+//    ExtraPartCellData<uint16_t> particles_intensities;
+//    part_new.create_particles_at_cell_structure(particles_intensities);
 //
-//    shift_particles_from_cells(part_new,particles_int);
+//    shift_particles_from_cells(part_new,particles_intensities);
 //
 //    proj_pars.name = pc_struct.name;
 //
 //    timer.start_timer("ray_cast_max_part");
 //
-//    float t_apr = apr_perspective_raycast(y_vec,particles_int,proj_pars,[] (const uint16_t& a,const uint16_t& b) {return std::max(a,b);});
+//    float t_apr = apr_perspective_raycast(y_vec,particles_intensities,proj_pars,[] (const uint16_t& a,const uint16_t& b) {return std::max(a,b);});
 //
 //    timer.stop_timer();
 //

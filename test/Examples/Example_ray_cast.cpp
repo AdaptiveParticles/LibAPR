@@ -132,7 +132,7 @@ int main(int argc, char **argv) {
     ///
     /////////////
 
-    apr_raycaster.perform_raycast(apr,apr.particles_int,views,[] (const uint16_t& a,const uint16_t& b) {return std::max(a,b);});
+    apr_raycaster.perform_raycast(apr,apr.particles_intensities,views,[] (const uint16_t& a,const uint16_t& b) {return std::max(a,b);});
 
     //////////////
     ///

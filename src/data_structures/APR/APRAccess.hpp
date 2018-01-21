@@ -1110,10 +1110,10 @@ public:
         ygaps.initialize_structure_parts_empty(apr.particles_int_old);
 
 //    ExtraPartCellData<uint64_t> gaps_end;
-//    gaps_end.initialize_structure_parts_empty(apr.particles_int);
+//    gaps_end.initialize_structure_parts_empty(apr.particles_intensities);
 //
 //    ExtraPartCellData<uint64_t> index;
-//    index.initialize_structure_parts_empty(apr.particles_int);
+//    index.initialize_structure_parts_empty(apr.particles_intensities);
 
         std::cout << "Number of particles: " << apr.num_parts_total << std::endl;
 
@@ -1582,7 +1582,7 @@ public:
 //
 //                        if (neighbour_iterator.set_neighbour_iterator(apr_parallel_iterator, dir, index)) {
 //                            //neighbour_iterator works just like apr, and apr_parallel_iterator (you could also call neighbours)
-//                            temp += neighbour_iterator(apr.particles_int);
+//                            temp += neighbour_iterator(apr.particles_intensities);
 //                            counter++;
 //                        }
 //

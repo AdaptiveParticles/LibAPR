@@ -1013,7 +1013,7 @@ void write_apr_pc_struct_hilbert(PartCellStructure<T,uint64_t>& pc_struct,std::s
 //
 //                    const int y = curr_apr.y_vec.data[depth][pc_offset][j_];
 //
-//                    int_temp(y,x_,z_) = curr_apr.particles_int.data[depth][pc_offset][j_];
+//                    int_temp(y,x_,z_) = curr_apr.particles_intensities.data[depth][pc_offset][j_];
 //
 //                }
 //

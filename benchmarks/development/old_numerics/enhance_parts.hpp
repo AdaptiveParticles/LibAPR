@@ -135,7 +135,7 @@ void compute_guided_var(MeshData<U> input_image,PartCellStructure<U,uint64_t>& p
 //
 //    //ExtraPartCellData<float> particles_update = update_new_particles(input_image,apr_c);
 //
-//    ExtraPartCellData<float> gradient_mag = adaptive_grad(apr_c.pc_data,apr_c.particles_int,3,delta);
+//    ExtraPartCellData<float> gradient_mag = adaptive_grad(apr_c.pc_data,apr_c.particles_intensities,3,delta);
 //
 //    //adaptive mean
 //    ExtraPartCellData<float> adaptive_min;

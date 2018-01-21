@@ -112,7 +112,7 @@ int main(int argc, char **argv) {
         uint64_t current_particle_cell_type = apr_iterator.type();
 
         //you can then also use it to access any particle properties stored as ExtraParticleData
-        apr_iterator(calc_ex) = 10.0*apr_iterator(apr.particles_int);
+        apr_iterator(calc_ex) = 10.0*apr_iterator(apr.particles_intensities);
 
     }
 
@@ -139,7 +139,7 @@ int main(int argc, char **argv) {
             unsigned int y_nearest_pixel = apr_iterator.y_nearest_pixel();
             unsigned int z_nearest_pixel = apr_iterator.z_nearest_pixel();
 
-            if(apr_iterator(apr.particles_int) > 100){
+            if(apr_iterator(apr.particles_intensities) > 100){
                 //set all particles in calc_ex with an particle intensity greater then 100 to 0.
                 apr_iterator(calc_ex) = 0;
             }

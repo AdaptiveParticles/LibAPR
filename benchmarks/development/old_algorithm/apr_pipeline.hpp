@@ -1400,7 +1400,7 @@ void mask_variance(MeshData<float>& variance,MeshData<float>& temp,APR<float>& a
 //    //construct the pc-data
 //    apr.init_from_pulling_scheme(part_map.layers);
 //
-//    apr.get_parts_from_img(part_map.downsampled,apr.particles_int);
+//    apr.get_parts_from_img(part_map.downsampled,apr.particles_intensities);
 //
 //    //then get the particle data
 //

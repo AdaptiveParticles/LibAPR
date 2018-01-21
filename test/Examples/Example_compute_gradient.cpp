@@ -5,9 +5,9 @@
 ///
 /// Bevan Cheeseman 2018
 ///
-/// Example of producing a hdf5 file of the APR that can be read and visualized by Paraview using Xdmf. #todo
+/// Example calculating the gradient, and gradient magnitude of the APR.
 ///
-/// Produces *_paraview.h5 file and *_paraview.xmf
+/// Produces *_paraview.h5 file and *_paraview.xmf and tiff images of the gradient
 ///
 /// To use load the xmf file in Paraview, and select Xdmf Reader. Then click the small eye, to visualize the dataset. (Enable opacity mapping for surfaces, option can be useful)
 ///
@@ -15,13 +15,12 @@
 ///
 /// (using output of Example_compute_gradient)
 ///
-/// Example_compute_gradient -i input_image_tiff -d input_directory
+/// Example_compute_gradient -i input_apr_hdf5 -d input_directory
 ///
 /////////////////////////////////////////////////////
 
 #include <algorithm>
 #include <iostream>
-#include <tuple>
 
 #include "Example_compute_gradient.hpp"
 
@@ -45,7 +44,7 @@ cmdLineOptions read_command_line_options(int argc, char **argv){
     cmdLineOptions result;
 
     if(argc == 1) {
-        std::cerr << "Usage: \"Example_produce_paraview_file -i input_apr_file -d directory\"" << std::endl;
+        std::cerr << "Usage: \"Example_compute_gradient -i input_apr_file -d directory\"" << std::endl;
         exit(1);
     }
 
@@ -123,7 +122,7 @@ int main(int argc, char **argv) {
 
         apr_iterator.set_iterator_to_particle_by_number(particle_number);
 
-        float current_intensity = apr_iterator(apr.particles_int);
+        float current_intensity = apr_iterator(apr.particles_intensities);
 
         //loop over all the neighbours and set the neighbour iterator to it
         for (int dimension = 0; dimension < 3; ++dimension) {
@@ -144,7 +143,7 @@ int main(int argc, char **argv) {
                 // Neighbour Particle Cell Face definitions [+y,-y,+x,-x,+z,-z] =  [0,1,2,3,4,5]
                 for (int index = 0; index < apr_iterator.number_neighbours_in_direction(direction); ++index) {
                     if (neighbour_iterator.set_neighbour_iterator(apr_iterator, direction, index)) {
-                        intensity_sum += neighbour_iterator(apr.particles_int);
+                        intensity_sum += neighbour_iterator(apr.particles_intensities);
                         count_neighbours++;
                     }
                 }

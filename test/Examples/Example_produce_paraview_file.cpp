@@ -94,7 +94,7 @@ int main(int argc, char **argv) {
     //remove the file extension
     name.erase(name.end()-3,name.end());
 
-    apr.write_apr_paraview(options.directory,name,apr.particles_int);
+    apr.write_apr_paraview(options.directory,name,apr.particles_intensities);
     std::cout << "Written the combination of h5 and xmf file that can be read by Paraview, load the xmf file in Paraview and select Xdmf Reader" << std::endl;
 
 }

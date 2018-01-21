@@ -316,7 +316,7 @@ int main(int argc, char **argv) {
 
     APRWriter writer;
 
-    apr.particles_int.copy_parts(apr,particles_int);
+    apr.particles_intensities.copy_parts(apr,particles_int);
 
     timer.start_timer("writint");
 
@@ -329,11 +329,11 @@ int main(int argc, char **argv) {
     writer.read_apr(apr2,options.directory + name + "_apr.h5");
     timer.stop_timer();
 
-    writer.write_apr_paraview(apr,options.directory,name,apr.particles_int);
+    writer.write_apr_paraview(apr,options.directory,name,apr.particles_intensities);
 
-    writer.write_particles_only(options.directory,name,apr.particles_int);
+    writer.write_particles_only(options.directory,name,apr.particles_intensities);
 
-    writer.read_parts_only(options.directory+name+"_apr_extra_parts.h5",apr.particles_int);
+    writer.read_parts_only(options.directory+name+"_apr_extra_parts.h5",apr.particles_intensities);
 
     timer.start_timer("writint");
 
@@ -367,7 +367,7 @@ int main(int argc, char **argv) {
 //                    // on each face, there can be 0-4 neighbours accessed by index
 //                    if (neighbour_iterator.set_neighbour_iterator(apr_iterator, direction, index)) {
 //                        //will return true if there is a neighbour defined
-//                        temp += neighbour_iterator(particles_int);
+//                        temp += neighbour_iterator(particles_intensities);
 //                        counter++;
 //
 //                    }
@@ -419,7 +419,7 @@ int main(int argc, char **argv) {
 //                    if (old_neighbour_iterator.set_neighbour_iterator(apr_parallel_iterator, dir, index)) {
 //                        //neighbour_iterator works just like apr, and apr_parallel_iterator (you could also call neighbours)
 //
-//                        temp += old_neighbour_iterator(apr.particles_int);
+//                        temp += old_neighbour_iterator(apr.particles_intensities);
 //                        counter++;
 //
 //                    }

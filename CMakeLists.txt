@@ -252,6 +252,13 @@ add_executable(Example_compute_gradient
         ${SOURCE_FILES_COMPILED}
         )
 
+add_executable(Example_random_access
+        test/Examples/Example_random_access.cpp
+        benchmarks/development/old_io/write_parts.cpp
+        ${SOURCE_FILES_COMPILED}
+        )
+
+
 SWIG_ADD_MODULE(apr java libapr.i
         benchmarks/development/old_io/write_parts.cpp
         ${SOURCE_FILES_COMPILED}
@@ -272,6 +279,7 @@ target_link_libraries(Example_compress ${HDF5_LIBRARIES} ${CMAKE_THREAD_LIBS_INI
 target_link_libraries(Example_benchmark ${HDF5_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT} ${TIFF_LIBRARIES} blosc_shared)
 target_link_libraries(Example_newstructures ${HDF5_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT} ${TIFF_LIBRARIES} blosc_shared)
 target_link_libraries(Example_compute_gradient ${HDF5_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT} ${TIFF_LIBRARIES} blosc_shared)
+target_link_libraries(Example_random_access ${HDF5_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT} ${TIFF_LIBRARIES} blosc_shared)
 
 set_target_properties(blosc_shared PROPERTIES
         RUNTIME_OUTPUT_DIRECTORY_DEBUG ${PROJECT_BINARY_DIR})
@@ -289,7 +297,6 @@ file( COPY ${ExternalSharedLibraries} DESTINATION "${PROJECT_BINARY_DIR}")
 if(BENCHMARKS)
 
     #   Benchmark codes, requries the SynImage Code
-
 
     if(SynImage_PATH)
 

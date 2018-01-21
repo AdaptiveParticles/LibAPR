@@ -105,7 +105,7 @@ int main(int argc, char **argv) {
     timer.stop_timer();
 
     MeshData<uint16_t> img;
-    apr.interp_img(img,apr.particles_int);
+    apr.interp_img(img,apr.particles_intensities);
     std::string output = options.directory + name + "_compress.tif";
     img.write_image_tiff(output);
 

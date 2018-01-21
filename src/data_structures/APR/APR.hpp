@@ -40,7 +40,6 @@
 
 class APRParameters;
 
-
 template<typename ImageType>
 class APR {
 
@@ -71,35 +70,23 @@ class APR {
 private:
 
     APRWriter apr_writer;
-
     APRReconstruction apr_recon;
+    APRAccess apr_access;
 
+    //deprecated - old access paradigm
     PartCellData<uint64_t> pc_data;
-
     std::vector<uint64_t> num_parts;
     std::vector<uint64_t> num_elements;
     ExtraPartCellData<uint64_t> num_parts_xy;
     uint64_t num_elements_total;
-
-    std::vector<unsigned int> org_dims;
-
     uint64_t num_parts_total;
 
 public:
 
-    APRAccess apr_access;
-
-    ExtraParticleData<ImageType> particles_int;
+    //APR Particle Intensities
+    ExtraParticleData<ImageType> particles_intensities;
 
     //Main internal datastructures
-
-    ExtraPartCellData<ImageType> particles_int_old; // holds the particles intenisty information
-
-    // holds the spatial and neighbours access information and methods
-
-    //used for storing number of paritcles and cells per level for parallel access iterators
-
-
     std::string name;
     APRParameters parameters;
 
@@ -109,9 +96,9 @@ public:
     APR(){
     }
 
-
     //deprecitated
     ExtraPartCellData<uint16> y_vec;
+    ExtraPartCellData<ImageType> particles_int_old; // holds the particles intenisty information
 
     unsigned int orginal_dimensions(int dim){
         return apr_access.org_dims[dim];
@@ -258,7 +245,7 @@ public:
 
 
 #pragma omp parallel for schedule(static) private(particle_number) firstprivate(apr_iterator)
-        for (particle_number = 0; particle_number < this->num_parts_total; ++particle_number) {
+        for (particle_number = 0; particle_number < apr_iterator.total_number_particles(); ++particle_number) {
             //needed step for any parallel loop (update to the next part)
             apr_iterator.set_iterator_to_particle_by_number(particle_number);
 
@@ -450,214 +437,6 @@ private:
 
 
     }
-
-
-    ///////////////////////
-    ///
-    /// Random Access Structures (Experimental) Cheeseman 2018
-    ///
-    ///
-    ///////////////////////
-//
-//    int random_access_pc(uint64_t depth,uint16_t y,uint64_t x,uint64_t z){
-//        //
-//        //  Random access check for valid x,z, any given y, returns the index of the stored Particle Intensity.
-//        //
-//
-//        int j;
-//
-//        uint64_t pc_offset = pc_data.x_num[depth]*z + x;
-//
-//        if(random_access.data[depth][pc_offset].size() > 0) {
-//            hash_map::iterator pc = random_access.data[depth][pc_offset][0].find(y);
-//
-//            if(pc != random_access.data[depth][pc_offset][0].end()){
-//                j = pc->second;
-//            } else {
-//                return -1;
-//            }
-//
-//        } else {
-//            return -1;
-//
-//        }
-//
-//        return j;
-//
-//    }
-//
-//    //////////////////////////
-//    ///
-//    /// Experimental random access neighbours.
-//    ///
-//    /// \tparam S data type of the particles
-//    /// \param face the neighbour direction (+y,-y,+x,-x,+z,-z)
-//    /// \param parts the particles data structure
-//    /// \param neigh_val vector returning the particles values of the neighbours
-//    ////////////////////////
-//
-//    template<typename S>
-//    void get_neigh_random(unsigned int face,ExtraPartCellData<S>& parts,std::vector<S>& neigh_val){
-//        //
-//        //  Get APR face neighbours relying on random access through a map, or unordered map structure for y
-//        //
-//
-//        const int8_t dir_y[6] = { 1, -1, 0, 0, 0, 0};
-//        const int8_t dir_x[6] = { 0, 0, 1, -1, 0, 0};
-//        const int8_t dir_z[6] = { 0, 0, 0, 0, 1, -1};
-//
-//        constexpr uint8_t neigh_child_dir[6][3] = {{4,2,2},{4,2,2},{0,4,4},{0,4,4},{0,2,2},{0,2,2}};
-//
-//        constexpr uint8_t child_offsets[3][3] = {{0,1,1},{1,0,1},{1,1,0}};
-//
-//        //first try on same depth
-//        int z_ = this->z() + dir_z[face];
-//        int x_ = this->x() + dir_x[face];
-//        int y_ = this->y() + dir_y[face];
-//        int depth_ = this->depth();
-//
-//        uint16_t j=0;
-//
-//        uint64_t pc_offset = pc_data.x_num[depth_]*z_ + x_;
-//        bool found = false;
-//
-//        neigh_val.resize(0);
-//
-//        if((x_ < 0) | (x_ >= pc_data.x_num[depth_]) | (z_ < 0) | (z_ >= pc_data.z_num[depth_]) ){
-//            //out of bounds
-//            return;
-//        }
-//
-//        if(random_access.data[depth_][pc_offset].size() > 0) {
-//            hash_map::iterator pc = random_access.data[depth_][pc_offset][0].find(y_);
-//
-//            if(pc != random_access.data[depth_][pc_offset][0].end()){
-//                j = pc->second;
-//                found = true;
-//            }
-//        }
-//
-//        if(!found){
-//            //
-//            //  Find parents
-//            //
-//
-//            unsigned int depth_p = depth_ - 1;
-//            unsigned int x_p = x_/2;
-//            unsigned int y_p = y_/2;
-//            unsigned int z_p = z_/2;
-//
-//            pc_offset = pc_data.x_num[depth_p]*z_p + x_p;
-//
-//            if(random_access.data[depth_p][pc_offset].size() > 0) {
-//                hash_map::iterator pc = random_access.data[depth_p][pc_offset][0].find(y_p);
-//
-//                if(pc != random_access.data[depth_p][pc_offset][0].end()){
-//                    j = pc->second;
-//                    found = true;
-//                }
-//            }
-//
-//            if(!found) {
-//
-//                if(depth_ < pc_data.depth_max) {
-//                    // get the potentially 4 children
-//                    unsigned int depth_c = depth_ + 1;
-//                    unsigned int x_c = (x_ + dir_x[face])*2 + (dir_x[face]<0);
-//                    unsigned int y_c = (y_ + dir_y[face])*2 + (dir_y[face]<0);
-//                    unsigned int z_c = (z_ + dir_z[face])*2 + (dir_z[face]<0);
-//
-//                    unsigned int dir = face/2;
-//
-//                    for (int i = 0; i < 2; ++i) {
-//                        for (int k = 0; k < 2; ++k) {
-//                            y_ = y_c + (child_offsets[dir][0])*i + (child_offsets[dir][0])*k;
-//                            x_ = x_c + (child_offsets[dir][1])*i + (child_offsets[dir][1])*k;
-//                            z_ = z_c + (child_offsets[dir][2])*i + (child_offsets[dir][2])*k;
-//
-//                            //add of they exist
-//                            if((x_ < 0) | (x_ >= pc_data.x_num[depth_c]) | (z_ < 0) | (z_ >= pc_data.z_num[depth_]) ){
-//                                //out of bounds
-//
-//                            } else {
-//
-//                                pc_offset = pc_data.x_num[depth_c]*z_ + x_;
-//
-//                                if (random_access.data[depth_c][pc_offset].size() > 0) {
-//                                    hash_map::iterator pc = random_access.data[depth_c][pc_offset][0].find(y_);
-//
-//                                    if (pc != random_access.data[depth_c][pc_offset][0].end()) {
-//                                        j = pc->second;
-//                                        neigh_val.push_back(parts.data[depth_c][pc_offset][j]);
-//                                    }
-//                                }
-//
-//                            }
-//
-//
-//
-//                        }
-//                    }
-//
-//
-//
-//                }
-//
-//            } else{
-//                neigh_val.push_back(parts.data[depth_p][pc_offset][j]);
-//            }
-//
-//        } else{
-//
-//            neigh_val.push_back(parts.data[depth_][pc_offset][j]);
-//
-//        }
-//
-//
-//    }
-
-//    void init_random_access(){
-//
-//
-//        random_access.initialize_structure_parts_empty(particles_int);
-//
-//        ExtraPartCellData<std::pair<uint16_t,uint16_t>> hash_init;
-//
-//        hash_init.initialize_structure_parts_empty(particles_int);
-//
-//        int counter = 0;
-//
-//        //create the intiializer lists
-//
-//        //loop over all particles
-//        for (this->begin(); this->end() == true; this->it_forward()) {
-//
-//            hash_init.data[this->depth()][this->curr_level.pc_offset].push_back({this->y(),this->j()});
-//
-//        }
-//
-//        //now create the actual hash tables
-//        for(uint64_t i = pc_data.depth_min;i <= pc_data.depth_max;i++) {
-//
-//            const unsigned int x_num_ = pc_data.x_num[i];
-//            const unsigned int z_num_ = pc_data.z_num[i];
-//
-//            for (uint64_t z_ = 0; z_ < z_num_; z_++) {
-//
-//                for (uint64_t x_ = 0; x_ < x_num_; x_++) {
-//                    const uint64_t offset_pc_data = x_num_ * z_ + x_;
-//                    if(hash_init.data[i][offset_pc_data].size() > 0) {
-//                        random_access.data[i][offset_pc_data].resize(1);
-//
-//                        random_access.data[i][offset_pc_data][0].insert(hash_init.data[i][offset_pc_data].begin(),
-//                                                                        hash_init.data[i][offset_pc_data].end());
-//                    }
-//
-//                }
-//            }
-//        }
-//
-//    }
 
 
 

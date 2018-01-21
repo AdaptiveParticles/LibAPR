@@ -235,11 +235,11 @@ public:
 
         hid_t hdf5_data_type = data_type;
 
-        apr.particles_int.data.resize(apr.apr_access.total_number_particles);
+        apr.particles_intensities.data.resize(apr.apr_access.total_number_particles);
 
-        if(apr.particles_int.data.size()>0){
+        if(apr.particles_intensities.data.size()>0){
             std::string name = "particle_intensities";
-            hdf5_load_data_blosc(obj_id,hdf5_data_type,apr.particles_int.data.data(),name.c_str());
+            hdf5_load_data_blosc(obj_id,hdf5_data_type,apr.particles_intensities.data.data(),name.c_str());
         }
 
         apr.apr_access.y_num[apr.apr_access.level_max] = apr.apr_access.org_dims[0];
@@ -302,7 +302,7 @@ public:
             apr_compress.set_compression_type(compress_type);
             apr_compress.set_quantization_factor(quantization_factor);
 
-            apr_compress.decompress(apr,apr.particles_int);
+            apr_compress.decompress(apr,apr.particles_intensities);
 
         }
 
@@ -467,11 +467,11 @@ public:
 
         if(compress_type_num > 0){
 
-            apr_compressor.compress(apr,apr.particles_int);
+            apr_compressor.compress(apr,apr.particles_intensities);
 
         }
 
-        dims = apr.particles_int.data.size();
+        dims = apr.particles_intensities.data.size();
 
 
         //just an identifier in here for the reading of the parts
@@ -485,7 +485,7 @@ public:
             //write the parts
 
             std::string dataset_name = "particle_intensities";
-            hdf5_write_data_blosc(obj_id, type, dataset_name.c_str(), rank, &dims, apr.particles_int.data.data(),blosc_comp_type,blosc_comp_level,blosc_shuffle);
+            hdf5_write_data_blosc(obj_id, type, dataset_name.c_str(), rank, &dims, apr.particles_intensities.data.data(),blosc_comp_type,blosc_comp_level,blosc_shuffle);
 
         }
 
@@ -1196,9 +1196,9 @@ namespace old {
 //
 //            for (apr.begin(depth); apr.end(depth) != 0 ; apr.it_forward(depth)) {
 //
-//                float t = apr(apr.particles_int);
+//                float t = apr(apr.particles_intensities);
 //
-//                apr(apr.particles_int) = Ip[depth][counter];
+//                apr(apr.particles_intensities) = Ip[depth][counter];
 //
 //                counter++;
 //
