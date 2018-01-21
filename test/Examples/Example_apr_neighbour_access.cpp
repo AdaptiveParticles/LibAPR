@@ -15,7 +15,7 @@
 #include <algorithm>
 #include <iostream>
 
-#include "Example_neigh.hpp"
+#include "Example_apr_neighbour_access.hpp"
 
 bool command_option_exists(char **begin, char **end, const std::string &option)
 {
@@ -89,39 +89,43 @@ int main(int argc, char **argv) {
     ///
     /////////////////////////////////
 
-    ExtraPartCellData<uint16_t> neigh_avg(apr);
+    ExtraParticleData<uint16_t> neigh_avg(apr);
 
     APRIterator<uint16_t> neighbour_iterator(apr);
+    APRIterator<uint16_t> apr_iterator(apr);
 
     timer.start_timer("APR serial iterator neighbours loop");
 
     //Basic serial iteration over all particles
-    for (apr.begin(); apr.end() != 0; apr.it_forward()) {
+    uint64_t particle_number;
+    //Basic serial iteration over all particles
+    for (particle_number = 0; particle_number < apr_iterator.total_number_particles(); ++particle_number) {
+        //This step is required for all loops to set the iterator by the particle number
+        apr_iterator.set_iterator_to_particle_by_number(particle_number);
 
         //now we only update the neighbours, and directly access them through a neighbour iterator
-        apr.update_all_neighbours();
 
         float counter = 0;
         float temp = 0;
 
         //loop over all the neighbours and set the neighbour iterator to it
-        for (int dir = 0; dir < 6; ++dir) {
+        for (int direction = 0; direction < 6; ++direction) {
             // Neighbour Particle Cell Face definitions [+y,-y,+x,-x,+z,-z] =  [0,1,2,3,4,5]
+            apr_iterator.find_neighbours_in_direction(direction);
 
-
-            for (int index = 0; index < apr.number_neighbours_in_direction(dir); ++index) {
+            for (int index = 0; index < apr_iterator.number_neighbours_in_direction(direction); ++index) {
                 // on each face, there can be 0-4 neighbours accessed by index
-                if(neighbour_iterator.set_neighbour_iterator(apr, dir, index)){
+                if(neighbour_iterator.set_neighbour_iterator(apr_iterator, direction, index)){
                     //will return true if there is a neighbour defined
 
-                    temp += neighbour_iterator(apr.particles_int);
+                    temp += neighbour_iterator(apr.particles_intensities);
                     counter++;
 
                 }
             }
         }
 
-        apr(neigh_avg) = temp/counter;
+        apr_iterator(neigh_avg) = temp/counter;
 
     }
 
@@ -129,35 +133,31 @@ int main(int argc, char **argv) {
 
     ////////////////////////////
     ///
-    /// OpenMP Parallel loop iteration (requires seperate iterators from the apr structure used in the serial examples above
-    /// however, the functionality and access is exactly the same).
+    /// OpenMP Parallel loop iteration
     ///
     ///////////////////////////
 
     //initialization of the iteration structures
-    APRIterator<uint16_t> apr_parallel_iterator(apr); //this is required for parallel access
-    uint64_t part; //declare parallel iteration variable
 
-    ExtraPartCellData<float> neigh_xm(apr);
+    ExtraParticleData<float> neigh_xm(apr);
 
     timer.start_timer("APR parallel iterator neighbour loop");
 
-#pragma omp parallel for schedule(static) private(part) firstprivate(apr_parallel_iterator,neighbour_iterator)
-    for (part = 0; part < apr.num_parts_total; ++part) {
+#pragma omp parallel for schedule(static) private(particle_number) firstprivate(apr_iterator,neighbour_iterator)
+    for (particle_number = 0; particle_number < apr_iterator.total_number_particles(); ++particle_number) {
         //needed step for any parallel loop (update to the next part)
 
-        apr_parallel_iterator.set_iterator_to_particle_by_number(part);
-
-        //compute neighbours as previously, now using the apr_parallel_iterator (APRIterator), instead of the apr class for access.
-        apr_parallel_iterator.update_all_neighbours();
+        apr_iterator.set_iterator_to_particle_by_number(particle_number);
 
         //loop over all the neighbours and set the neighbour iterator to it
-        for (int dir = 0; dir < 6; ++dir) {
-            for (int index = 0; index < apr_parallel_iterator.number_neighbours_in_direction(dir); ++index) {
+        for (int direction = 0; direction < 6; ++direction) {
+            apr_iterator.find_neighbours_in_direction(direction);
+            // Neighbour Particle Cell Face definitions [+y,-y,+x,-x,+z,-z] =  [0,1,2,3,4,5]
+            for (int index = 0; index < apr_iterator.number_neighbours_in_direction(direction); ++index) {
 
-                if(neighbour_iterator.set_neighbour_iterator(apr_parallel_iterator, dir, index)){
+                if(neighbour_iterator.set_neighbour_iterator(apr_iterator, direction, index)){
                     //neighbour_iterator works just like apr, and apr_parallel_iterator (you could also call neighbours)
-                    apr_parallel_iterator(neigh_xm) += neighbour_iterator(apr.particles_int)*(apr_parallel_iterator.y() - neighbour_iterator.y());
+                    apr_iterator(neigh_xm) += neighbour_iterator(apr.particles_intensities)*(apr_iterator.y() - neighbour_iterator.y());
                 }
 
             }
@@ -172,27 +172,27 @@ int main(int argc, char **argv) {
      *  Access only one directions neighbour
      */
 
-    ExtraPartCellData<float> type_sum(apr);
+    ExtraParticleData<float> type_sum(apr);
 
     //need to initialize the neighbour iterator with the APR you are iterating over.
 
     timer.start_timer("APR parallel iterator neighbours loop only -x face neighbours");
-
-#pragma omp parallel for schedule(static) private(part) firstprivate(apr_parallel_iterator,neighbour_iterator)
-    for (part = 0; part < apr.num_parts_total; ++part) {
+#pragma omp parallel for schedule(static) private(particle_number) firstprivate(apr_iterator,neighbour_iterator)
+    for (particle_number = 0; particle_number < apr_iterator.total_number_particles(); ++particle_number) {
         //needed step for any parallel loop (update to the next part)
-        apr_parallel_iterator.set_iterator_to_particle_by_number(part);
 
-        const unsigned int dir = 3;
+        apr_iterator.set_iterator_to_particle_by_number(particle_number);
+
+        const unsigned int direction = 3;
         //now we only update the neighbours, and directly access them through a neighbour iterator
-        apr_parallel_iterator.update_direction_neighbours(dir); // 3 = -x face
+        apr_iterator.find_neighbours_in_direction(direction); // 3 = -x face
 
-        for (int index = 0; index < apr_parallel_iterator.number_neighbours_in_direction(dir); ++index) {
+        for (int index = 0; index < apr_iterator.number_neighbours_in_direction(direction); ++index) {
             // from 0 to 4 neighbours
-            if(neighbour_iterator.set_neighbour_iterator(apr_parallel_iterator, dir, index)){
+            if(neighbour_iterator.set_neighbour_iterator(apr_iterator, direction, index)){
                 //access data and perform a conditional sum (neighbour_iterator has all access like the normal iterator)
-                if((neighbour_iterator.type() == 1) & (neighbour_iterator.depth() <= neighbour_iterator.depth_max())){
-                    apr_parallel_iterator(type_sum) += neighbour_iterator(apr.particles_int)*apr_parallel_iterator.type();
+                if((neighbour_iterator.type() == 1) & (neighbour_iterator.level() <= neighbour_iterator.level_max())){
+                    apr_iterator(type_sum) += neighbour_iterator(apr.particles_intensities)*apr_iterator.type();
                 }
             }
         }

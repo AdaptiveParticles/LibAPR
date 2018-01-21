@@ -851,20 +851,20 @@ void re_order_local(APR<float>& curr_apr,std::vector<uint16_t>& Ip,int depth){
 
             const unsigned int pc_offset = x_num_*z_ + x_;
 
-            const size_t j_num = curr_apr.particles_int.data[depth][pc_offset].size();
+            const size_t j_num = curr_apr.particles_int_old.data[depth][pc_offset].size();
 
             int prev = -1;
             int counter = 0;
 
             for (int i = 0; i < j_num; ++i) {
                 if((curr_apr.y_vec.data[depth][pc_offset][i]-prev) == 1){
-                    groups[counter].push_back(curr_apr.particles_int.data[depth][pc_offset][i]);
+                    groups[counter].push_back(curr_apr.particles_int_old.data[depth][pc_offset][i]);
                 } else {
                     counter++;
                     if(counter >= groups.size()) {
                         groups.resize(counter + 1);
                     }
-                    groups[counter].push_back(curr_apr.particles_int.data[depth][pc_offset][i]);
+                    groups[counter].push_back(curr_apr.particles_int_old.data[depth][pc_offset][i]);
                 }
                 prev = curr_apr.y_vec.data[depth][pc_offset][i];
             }
@@ -915,7 +915,7 @@ void undo_re_order_local(APR<float>& curr_apr,std::vector<uint16_t>& Ip,int dept
 
             const unsigned int pc_offset = x_num_*z_ + x_;
 
-            const size_t j_num = curr_apr.particles_int.data[depth][pc_offset].size();
+            const size_t j_num = curr_apr.particles_int_old.data[depth][pc_offset].size();
 
             int prev = -1;
             int counter = 0;
@@ -963,7 +963,7 @@ void undo_re_order_local(APR<float>& curr_apr,std::vector<uint16_t>& Ip,int dept
 
             const unsigned int pc_offset = x_num_*z_ + x_;
 
-            const size_t j_num = curr_apr.particles_int.data[depth][pc_offset].size();
+            const size_t j_num = curr_apr.particles_int_old.data[depth][pc_offset].size();
 
             int prev = -1;
             int counter = 0;
@@ -1204,12 +1204,12 @@ void write_apr_wavelet_partnew(PartCellStructure<T,uint64_t>& pc_struct,std::str
 
 
 
-    for(uint64_t depth = (curr_apr.particles_int.depth_min);depth <= curr_apr.particles_int.depth_max;depth++) {
+    for(uint64_t depth = (curr_apr.particles_int_old.depth_min);depth <= curr_apr.particles_int_old.depth_max;depth++) {
         //loop over the resolutions of the structure
         const unsigned int x_num_ = curr_apr.y_vec.x_num[depth];
         const unsigned int z_num_ = curr_apr.y_vec.z_num[depth];
         unsigned int y_num_ = 0;
-        if(depth == curr_apr.particles_int.depth_max) {
+        if(depth == curr_apr.particles_int_old.depth_max) {
             y_num_ = pc_struct.org_dims[0];
         } else{
             y_num_ = pc_struct.y_num[depth];
@@ -1226,12 +1226,12 @@ void write_apr_wavelet_partnew(PartCellStructure<T,uint64_t>& pc_struct,std::str
 
                 const unsigned int pc_offset = x_num_*z_ + x_;
 
-                const size_t j_num = curr_apr.particles_int.data[depth][pc_offset].size();
+                const size_t j_num = curr_apr.particles_int_old.data[depth][pc_offset].size();
 
                 uint64_t curr_size = Ip.size();
                 Ip.resize(curr_size+ j_num);
 
-                std::copy(curr_apr.particles_int.data[depth][pc_offset].begin(),curr_apr.particles_int.data[depth][pc_offset].end(),Ip.begin() + curr_size);
+                std::copy(curr_apr.particles_int_old.data[depth][pc_offset].begin(),curr_apr.particles_int_old.data[depth][pc_offset].end(),Ip.begin() + curr_size);
 
             }
         }
@@ -1248,9 +1248,9 @@ void write_apr_wavelet_partnew(PartCellStructure<T,uint64_t>& pc_struct,std::str
             int num_levels = floor(log2(Ip.size()));
             num_levels = max(2,num_levels-4);
 
-            float th_l = th/pow(2,(curr_apr.particles_int.depth_max-depth)*3);
+            float th_l = th/pow(2,(curr_apr.particles_int_old.depth_max-depth)*3);
 
-            if((curr_apr.particles_int.depth_max - depth) > 1){
+            if((curr_apr.particles_int_old.depth_max - depth) > 1){
                 th_l = 0;
             }
 
@@ -1291,9 +1291,9 @@ void write_apr_wavelet_partnew(PartCellStructure<T,uint64_t>& pc_struct,std::str
 
                 const unsigned int pc_offset = x_num_*z_ + x_;
 
-                const size_t j_num = curr_apr.particles_int.data[depth][pc_offset].size();
+                const size_t j_num = curr_apr.particles_int_old.data[depth][pc_offset].size();
 
-                std::copy(Ip.begin() + curr_size,Ip.begin() + curr_size + j_num,curr_apr.particles_int.data[depth][pc_offset].begin());
+                std::copy(Ip.begin() + curr_size,Ip.begin() + curr_size + j_num,curr_apr.particles_int_old.data[depth][pc_offset].begin());
 
                 curr_size += j_num;
 
@@ -1307,7 +1307,7 @@ void write_apr_wavelet_partnew(PartCellStructure<T,uint64_t>& pc_struct,std::str
 
     MeshData<uint16_t> interp;
 
-    interp_img(interp, curr_apr.y_vec, curr_apr.particles_int);
+    interp_img(interp, curr_apr.y_vec, curr_apr.particles_int_old);
 
     debug_write(interp,"alt_interp");
 

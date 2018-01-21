@@ -668,7 +668,7 @@ ExtraPartCellData<T> get_scale_parts_guided(APR<T>& apr,MeshData<S>& input_image
 
     ExtraPartCellData<T> scale_parts;
 
-    scale_parts.initialize_structure_parts(apr.particles_int);
+    scale_parts.initialize_structure_parts(apr.particles_int_old);
 
 
 
@@ -732,7 +732,7 @@ ExtraPartCellData<T> get_scale_parts(APR<T>& apr,MeshData<S>& input_image,Proc_p
 
     ExtraPartCellData<T> scale_parts;
 
-    scale_parts.initialize_structure_parts(apr.particles_int);
+    scale_parts.initialize_structure_parts(apr.particles_int_old);
 
     int z_, x_, j_, y_, i, k;
 
@@ -1400,7 +1400,7 @@ void mask_variance(MeshData<float>& variance,MeshData<float>& temp,APR<float>& a
 //    //construct the pc-data
 //    apr.init_from_pulling_scheme(part_map.layers);
 //
-//    apr.get_parts_from_img(part_map.downsampled,apr.particles_int);
+//    apr.get_parts_from_img(part_map.downsampled,apr.particles_intensities);
 //
 //    //then get the particle data
 //

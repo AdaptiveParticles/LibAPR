@@ -6,83 +6,64 @@
 #define PARTPLAY_APRRECONSTRUCTION_HPP
 
 #include "src/data_structures/APR/APR.hpp"
+#include "src/data_structures/APR/APRIterator.hpp"
 
 class APRReconstruction {
 public:
 
 
     template<typename U,typename V,typename S>
-    void interp_img(APR<S>& apr, MeshData<U>& img,ExtraPartCellData<V>& parts){
+    void interp_img(APR<S>& apr, MeshData<U>& img,ExtraParticleData<V>& parts){
         //
         //  Bevan Cheeseman 2016
         //
         //  Takes in a APR and creates piece-wise constant image
         //
 
+        APRIterator<S> apr_iterator(apr);
+        uint64_t particle_number;
+
         img.initialize( apr.orginal_dimensions(0), apr.orginal_dimensions(1), apr.orginal_dimensions(2),0);
 
         int z_,x_,j_,y_;
 
-        for(uint64_t depth = (apr.depth_min());depth <= apr.depth_max();depth++) {
+        for (uint64_t level = apr_iterator.level_min(); level <= apr_iterator.level_max(); ++level) {
             //loop over the resolutions of the structure
-            const unsigned int x_num_ =  apr.spatial_index_x_max(depth);
-            const unsigned int z_num_ = apr.spatial_index_z_max(depth);
+            const unsigned int x_num_ =  apr.spatial_index_x_max(level);
+            const unsigned int z_num_ = apr.spatial_index_z_max(level);
 
             const unsigned int x_num_min_ = 0;
             const unsigned int z_num_min_ = 0;
 
-            CurrentLevel<float, uint64_t> curr_level_l(apr.pc_data);
-            curr_level_l.set_new_depth(depth, apr.pc_data);
+            const float step_size = pow(2,apr_iterator.level_max() - level);
 
-            const float step_size = pow(2,curr_level_l.depth_max - curr_level_l.depth);
+#pragma omp parallel for schedule(static) private(particle_number) firstprivate(apr_iterator)
+            for (particle_number = apr_iterator.particles_level_begin(level); particle_number <  apr_iterator.particles_level_end(level); ++particle_number) {
+                //
+                //  Parallel loop over level
+                //
+                apr_iterator.set_iterator_to_particle_by_number(particle_number);
 
-#pragma omp parallel for default(shared) private(z_,x_,j_) firstprivate(curr_level_l) if(z_num_*x_num_ > 100)
-            for (z_ = z_num_min_; z_ < z_num_; z_++) {
-                //both z and x are explicitly accessed in the structure
+                int dim1 = apr_iterator.y() * step_size;
+                int dim2 = apr_iterator.x() * step_size;
+                int dim3 = apr_iterator.z() * step_size;
 
-                for (x_ = x_num_min_; x_ < x_num_; x_++) {
+                float temp_int;
+                //add to all the required rays
 
-                    curr_level_l.set_new_xz(x_, z_, apr.pc_data);
+                temp_int = apr_iterator(parts);
 
-                    for (j_ = 0; j_ < curr_level_l.j_num; j_++) {
+                const int offset_max_dim1 = std::min((int) img.y_num, (int) (dim1 + step_size));
+                const int offset_max_dim2 = std::min((int) img.x_num, (int) (dim2 + step_size));
+                const int offset_max_dim3 = std::min((int) img.z_num, (int) (dim3 + step_size));
 
-                        bool iscell = curr_level_l.new_j(j_, apr.pc_data);
+                for (int q = dim3; q < offset_max_dim3; ++q) {
 
-                        if (iscell) {
-                            //Indicates this is a particle cell node
-                            curr_level_l.update_cell(apr.pc_data);
-
-                            int dim1 = curr_level_l.y * step_size;
-                            int dim2 = curr_level_l.x * step_size;
-                            int dim3 = curr_level_l.z * step_size;
-
-                            float temp_int;
-                            //add to all the required rays
-
-                            temp_int = curr_level_l.get_val(parts);
-
-                            const int offset_max_dim1 = std::min((int) img.y_num, (int) (dim1 + step_size));
-                            const int offset_max_dim2 = std::min((int) img.x_num, (int) (dim2 + step_size));
-                            const int offset_max_dim3 = std::min((int) img.z_num, (int) (dim3 + step_size));
-
-                            for (int q = dim3; q < offset_max_dim3; ++q) {
-
-                                for (int k = dim2; k < offset_max_dim2; ++k) {
-#pragma omp simd
-                                    for (int i = dim1; i < offset_max_dim1; ++i) {
-                                        img.mesh[i + (k) * img.y_num + q*img.y_num*img.x_num] = temp_int;
-                                    }
-                                }
-                            }
-
-
-                        } else {
-
-                            curr_level_l.update_gap(apr.pc_data);
-
+                    for (int k = dim2; k < offset_max_dim2; ++k) {
+    #pragma omp simd
+                        for (int i = dim1; i < offset_max_dim1; ++i) {
+                            img.mesh[i + (k) * img.y_num + q * img.y_num * img.x_num] = temp_int;
                         }
-
-
                     }
                 }
             }
@@ -99,15 +80,17 @@ public:
         //
 
         //get depth
-        ExtraPartCellData<U> depth_parts(apr);
+        ExtraParticleData<U> depth_parts(apr);
 
-        for (apr.begin(); apr.end() != 0 ; apr.it_forward()) {
-            //
-            //  Demo APR iterator
-            //
+        APRIterator<S> apr_iterator(apr);
+        uint64_t particle_number;
+
+#pragma omp parallel for schedule(static) private(particle_number) firstprivate(apr_iterator)
+        for (particle_number = 0; particle_number < apr_iterator.total_number_particles(); ++particle_number) {
+            apr_iterator.set_iterator_to_particle_by_number(particle_number);
 
             //access and info
-            apr.curr_level.get_val(depth_parts) =apr.depth();
+            apr_iterator(depth_parts) =apr_iterator.level();
 
         }
 
@@ -122,26 +105,30 @@ public:
     }
 
     template<typename U,typename S>
-    void interp_depth(APR<S>& apr,MeshData<U>& img){
+    void interp_level(APR<S> &apr, MeshData<U> &img){
         //
         //  Returns an image of the depth, this is down-sampled by one, as the Particle Cell solution reflects this
         //
 
         //get depth
-        ExtraPartCellData<U> depth_parts(apr);
+        ExtraParticleData<U> level_parts(apr);
 
+        APRIterator<S> apr_iterator(apr);
+        uint64_t particle_number;
 
-        for (apr.begin(); apr.end() == true ; apr.it_forward()) {
+#pragma omp parallel for schedule(static) private(particle_number) firstprivate(apr_iterator)
+        for (particle_number = 0; particle_number < apr_iterator.total_number_particles(); ++particle_number) {
+            apr_iterator.set_iterator_to_particle_by_number(particle_number);
             //
             //  Demo APR iterator
             //
 
             //access and info
-            apr.curr_level.get_val(depth_parts) = apr.depth();
+            apr_iterator(level_parts) = apr_iterator.level();
 
         }
 
-        interp_img(apr,img,depth_parts);
+        interp_img(apr,img,level_parts);
 
     }
 
@@ -149,16 +136,21 @@ public:
     void interp_type(APR<S>& apr,MeshData<U>& img){
 
         //get depth
-        ExtraPartCellData<U> type_parts(apr);
+        ExtraParticleData<U> type_parts(apr);
 
 
-        for (apr.begin(); apr.end() == true ; apr.it_forward()) {
+        APRIterator<S> apr_iterator(apr);
+        uint64_t particle_number;
+
+#pragma omp parallel for schedule(static) private(particle_number) firstprivate(apr_iterator)
+        for (particle_number = 0; particle_number < apr_iterator.total_number_particles(); ++particle_number) {
+            apr_iterator.set_iterator_to_particle_by_number(particle_number);
             //
             //  Demo APR iterator
             //
 
             //access and info
-            apr.curr_level.get_val(type_parts) = apr.type();
+            apr_iterator(type_parts) = apr_iterator.type();
 
         }
 
@@ -519,7 +511,7 @@ public:
 
 
     template<typename U,typename V,typename S>
-    void interp_parts_smooth(APR<S>& apr,MeshData<U>& out_image,ExtraPartCellData<V>& interp_data,std::vector<float> scale_d = {2,2,2}){
+    void interp_parts_smooth(APR<S>& apr,MeshData<U>& out_image,ExtraParticleData<V>& interp_data,std::vector<float> scale_d = {2,2,2}){
         //
         //  Performs a smooth interpolation, based on the depth (level l) in each direction.
         //
@@ -534,23 +526,23 @@ public:
 
         interp_img(apr,pc_image,interp_data);
 
-        interp_depth(apr,k_img);
+        interp_level(apr, k_img);
 
         timer.start_timer("sat");
         //demo
-        calc_sat_adaptive_y(pc_image,k_img,scale_d[0],offset_max,apr.depth_max());
+        calc_sat_adaptive_y(pc_image,k_img,scale_d[0],offset_max,apr.level_max());
 
         timer.stop_timer();
 
         timer.start_timer("sat");
 
-        calc_sat_adaptive_x(pc_image,k_img,scale_d[1],offset_max,apr.depth_max());
+        calc_sat_adaptive_x(pc_image,k_img,scale_d[1],offset_max,apr.level_max());
 
         timer.stop_timer();
 
         timer.start_timer("sat");
 
-        calc_sat_adaptive_z(pc_image,k_img,scale_d[2],offset_max,apr.depth_max());
+        calc_sat_adaptive_z(pc_image,k_img,scale_d[2],offset_max,apr.level_max());
 
         timer.stop_timer();
 

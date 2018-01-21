@@ -68,7 +68,10 @@ set(SOURCE_FILES
         benchmarks/development/old_structures/structure_parts.cpp
 
         src/data_structures/APR/APR.hpp
+        benchmarks/development/Tree/APRIteratorOld.hpp
+
         src/data_structures/APR/APRIterator.hpp
+        src/data_structures/APR/APRAcess.hpp
 
         benchmarks/development/old_algorithm/pipeline.cpp
 
@@ -77,7 +80,7 @@ set(SOURCE_FILES
 
 set(SOURCE_FILES_COMPILED
         benchmarks/development/old_structures/structure_parts.cpp
-        src/data_structures/APR/PartCellData.cpp
+        benchmarks/development/Tree/PartCellData.cpp
         benchmarks/development/old_io/parameters.cpp
         benchmarks/development/old_io/hdf5functions.cpp
         src/io/blosc_filter.c
@@ -166,9 +169,16 @@ if(TESTS)
 	        src/io/hdf5functions_blosc.cpp
             )
 
-        add_executable(testMeshData
-                test/MeshDataTest.cpp
-                )
+    add_executable(testMeshData
+            test/MeshDataTest.cpp
+            )
+
+    add_executable(testAPR
+            test/APRTest.cpp
+            ${SOURCE_FILES_COMPILED}
+
+            src/io/hdf5functions_blosc.cpp
+            )
 
 
     target_link_libraries(testSparsePartStruc ${HDF5_LIBRARIES} ${GTEST_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT} ${TIFF_LIBRARIES} blosc_shared)
@@ -177,6 +187,7 @@ if(TESTS)
     target_link_libraries(testLevel ${HDF5_LIBRARIES} ${GTEST_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT} ${TIFF_LIBRARIES} blosc_shared)
     target_link_libraries(testResult ${HDF5_LIBRARIES} ${GTEST_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT} ${TIFF_LIBRARIES} blosc_shared)
     target_link_libraries(testMeshData ${GTEST_LIBRARIES} ${TIFF_LIBRARIES})
+    target_link_libraries(testAPR ${HDF5_LIBRARIES} ${GTEST_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT} ${TIFF_LIBRARIES} blosc_shared)
 
 endif(TESTS)
 
@@ -193,8 +204,8 @@ add_executable(Example_apr_iterate
         ${SOURCE_FILES_COMPILED}
         )
 
-add_executable(Example_recon_img
-        test/Examples/Example_recon_img.cpp
+add_executable(Example_reconstruct_image
+        test/Examples/Example_reconstruct_image.cpp
         benchmarks/development/old_io/write_parts.cpp
         ${SOURCE_FILES_COMPILED}
         )
@@ -205,10 +216,14 @@ add_executable(Example_ray_cast
         ${SOURCE_FILES_COMPILED}
         src/vis/Camera.cpp src/vis/Camera.h src/vis/Object.cpp src/vis/Object.h src/vis/RaytracedObject.cpp src/vis/RaytracedObject.h)
 
-
-
 add_executable(Example_compress
-        benchmarks/development/Example_compress_apr.cpp
+        test/Examples/Example_compress_apr.cpp
+        benchmarks/development/old_io/write_parts.cpp
+        ${SOURCE_FILES_COMPILED}
+        )
+
+add_executable(Example_produce_paraview_file
+        test/Examples/Example_produce_paraview_file.cpp
         benchmarks/development/old_io/write_parts.cpp
         ${SOURCE_FILES_COMPILED}
         )
@@ -225,17 +240,29 @@ add_executable(Example_newstructures
         ${SOURCE_FILES_COMPILED}
         )
 
-add_executable(Example_neigh
-        test/Examples/Example_neigh.cpp
+add_executable(Example_apr_neighbour_access
+        test/Examples/Example_apr_neighbour_access.cpp
         benchmarks/development/old_io/write_parts.cpp
         ${SOURCE_FILES_COMPILED}
         )
+
+add_executable(Example_compute_gradient
+        test/Examples/Example_compute_gradient.cpp
+        benchmarks/development/old_io/write_parts.cpp
+        ${SOURCE_FILES_COMPILED}
+        )
+
+add_executable(Example_random_access
+        test/Examples/Example_random_access.cpp
+        benchmarks/development/old_io/write_parts.cpp
+        ${SOURCE_FILES_COMPILED}
+        )
+
 
 SWIG_ADD_MODULE(apr java libapr.i
         benchmarks/development/old_io/write_parts.cpp
         ${SOURCE_FILES_COMPILED}
         )
-
 
 SWIG_LINK_LIBRARIES(apr ${HDF5_LIBRARIES} blosc_static ${TIFF_LIBRARIES})
 
@@ -243,13 +270,16 @@ SWIG_LINK_LIBRARIES(apr ${HDF5_LIBRARIES} blosc_static ${TIFF_LIBRARIES})
 target_link_libraries(Example_get_apr ${HDF5_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT} ${TIFF_LIBRARIES} blosc_shared)
 target_link_libraries(Example_apr_iterate ${HDF5_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT} ${TIFF_LIBRARIES} blosc_shared)
 target_link_libraries(Example_ray_cast ${HDF5_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT} ${TIFF_LIBRARIES} blosc_shared)
-target_link_libraries(Example_recon_img ${HDF5_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT} ${TIFF_LIBRARIES} blosc_shared)
+target_link_libraries(Example_reconstruct_image ${HDF5_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT} ${TIFF_LIBRARIES} blosc_shared)
 
-target_link_libraries(Example_neigh ${HDF5_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT} ${TIFF_LIBRARIES} blosc_shared)
+target_link_libraries(Example_apr_neighbour_access ${HDF5_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT} ${TIFF_LIBRARIES} blosc_shared)
+target_link_libraries(Example_produce_paraview_file ${HDF5_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT} ${TIFF_LIBRARIES} blosc_shared)
 
 target_link_libraries(Example_compress ${HDF5_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT} ${TIFF_LIBRARIES} blosc_shared)
 target_link_libraries(Example_benchmark ${HDF5_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT} ${TIFF_LIBRARIES} blosc_shared)
 target_link_libraries(Example_newstructures ${HDF5_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT} ${TIFF_LIBRARIES} blosc_shared)
+target_link_libraries(Example_compute_gradient ${HDF5_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT} ${TIFF_LIBRARIES} blosc_shared)
+target_link_libraries(Example_random_access ${HDF5_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT} ${TIFF_LIBRARIES} blosc_shared)
 
 set_target_properties(blosc_shared PROPERTIES
         RUNTIME_OUTPUT_DIRECTORY_DEBUG ${PROJECT_BINARY_DIR})
@@ -267,7 +297,6 @@ file( COPY ${ExternalSharedLibraries} DESTINATION "${PROJECT_BINARY_DIR}")
 if(BENCHMARKS)
 
     #   Benchmark codes, requries the SynImage Code
-
 
     if(SynImage_PATH)
 

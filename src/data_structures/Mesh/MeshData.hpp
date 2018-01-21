@@ -151,8 +151,10 @@ public :
         aNumberOfBlocks = std::min((unsigned int)z_num, aNumberOfBlocks);
         unsigned int numOfElementsPerBlock = z_num/aNumberOfBlocks;
 
-        #pragma omp parallel for schedule(dynamic)
-        for (unsigned int blockNum = 0; blockNum < aNumberOfBlocks; ++blockNum) {
+        unsigned int blockNum;
+
+        #pragma omp parallel for private(blockNum)  schedule(static)
+        for (blockNum = 0; blockNum < aNumberOfBlocks; ++blockNum) {
             const size_t elementSize = (size_t)x_num * y_num;
             const size_t blockSize = numOfElementsPerBlock * elementSize;
             size_t offsetBegin = blockNum * blockSize;

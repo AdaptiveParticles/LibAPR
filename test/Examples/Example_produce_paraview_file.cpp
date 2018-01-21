@@ -1,21 +1,28 @@
+//
+// Created by cheesema on 21.01.18.
+//
 //////////////////////////////////////////////////////
 ///
 /// Bevan Cheeseman 2018
 ///
-/// Examples of simple iteration an access to Particle Cell, and particle information. (See Example_neigh, for neighbor access)
+/// Example of producing a hdf5 file of the APR that can be read and visualized by Paraview using Xdmf.
+///
+/// Produces *_paraview.h5 file and *_paraview.xmf
+///
+/// To use load the xmf file in Paraview, and select Xdmf Reader. Then click the small eye, to visualize the dataset. (Enable opacity mapping for surfaces, option can be useful)
 ///
 /// Usage:
 ///
-/// (using output of Example_get_apr)
+/// (using output of Example_produce_paraview_file) - for input first compute an APR using Example_get_apr
 ///
-/// Example_apr_iterate -i input_image_tiff -d input_directory
+/// Example_produce_paraview_file -i input_apr_hdf5 -d input_directory
 ///
 /////////////////////////////////////////////////////
 
 #include <algorithm>
 #include <iostream>
 
-#include "benchmarks/development/Example_compress_apr.h"
+#include "Example_produce_paraview_file.hpp"
 
 bool command_option_exists(char **begin, char **end, const std::string &option)
 {
@@ -37,7 +44,7 @@ cmdLineOptions read_command_line_options(int argc, char **argv){
     cmdLineOptions result;
 
     if(argc == 1) {
-        std::cerr << "Usage: \"Example_apr_iterate -i input_apr_file -d directory\"" << std::endl;
+        std::cerr << "Usage: \"Example_produce_paraview_file -i input_apr_file -d directory\"" << std::endl;
         exit(1);
     }
 
@@ -83,32 +90,11 @@ int main(int argc, char **argv) {
     //read file
     apr.read_apr(file_name);
 
-    apr.parameters.input_dir = options.directory;
-
     std::string name = options.input;
     //remove the file extension
     name.erase(name.end()-3,name.end());
 
-    APRCompress<uint16_t> comp;
-    ExtraPartCellData<uint16_t> symbols;
-
-    comp.set_quantization_factor(1);
-    comp.set_compression_type(1);
-
-    timer.start_timer("compress");
-    apr.write_apr(options.directory ,name + "_compress",comp,BLOSC_ZSTD,1,2);
-    timer.stop_timer();
-
-    timer.start_timer("decompress");
-    apr.read_apr(options.directory + name + "_compress_apr.h5");
-    timer.stop_timer();
-
-    MeshData<uint16_t> img;
-    apr.interp_img(img,apr.particles_int);
-    std::string output = options.directory + name + "_compress.tif";
-    img.write_image_tiff(output);
-
+    apr.write_apr_paraview(options.directory,name,apr.particles_intensities);
+    std::cout << "Written the combination of h5 and xmf file that can be read by Paraview, load the xmf file in Paraview and select Xdmf Reader" << std::endl;
 
 }
-
-

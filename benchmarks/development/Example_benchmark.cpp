@@ -93,10 +93,10 @@ int main(int argc, char **argv) {
     //remove the file extension
     name.erase(name.end()-3,name.end());
 
-    APRIterator<uint16_t> apr_iterator(apr);
+    APRIteratorOld<uint16_t> apr_iterator(apr);
 
     //initialization of the iteration structures
-    APRIterator<uint16_t> apr_parallel_iterator(apr); //this is required for parallel access
+    APRIteratorOld<uint16_t> apr_parallel_iterator(apr); //this is required for parallel access
     uint64_t part; //declare parallel iteration variable
 
     int num_repeats = 5;
@@ -110,7 +110,7 @@ int main(int argc, char **argv) {
 
     particle_linear_neigh_access(apr,num_repeats,analysisData);
 
-    APRIterator<uint16_t> neighbour_iterator(apr);
+    APRIteratorOld<uint16_t> neighbour_iterator(apr);
 
     ExtraPartCellData<uint16_t> neigh_xm(apr);
 
@@ -119,7 +119,7 @@ int main(int argc, char **argv) {
     for (int i = 0; i < num_repeats; ++i) {
 
 #pragma omp parallel for schedule(static) private(part) firstprivate(apr_parallel_iterator,neighbour_iterator)
-        for (part = 0; part < apr.num_parts_total; ++part) {
+        for (part = 0; part < apr.total_number_particles(); ++part) {
             //needed step for any parallel loop (update to the next part)
             apr_parallel_iterator.set_iterator_to_particle_by_number(part);
 
@@ -132,7 +132,7 @@ int main(int argc, char **argv) {
 
                     if(neighbour_iterator.set_neighbour_iterator(apr_parallel_iterator, dir, index)){
                         //neighbour_iterator works just like apr, and apr_parallel_iterator (you could also call neighbours)
-                        apr_parallel_iterator(neigh_xm) += neighbour_iterator(apr.particles_int);
+                        apr_parallel_iterator(neigh_xm) += neighbour_iterator(apr.particles_int_old);
                     }
                 }
             }

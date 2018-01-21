@@ -11,6 +11,7 @@
 #define PARTPLAY_COMPRESSAPR_HPP
 
 #include "src/data_structures/APR/APR.hpp"
+#include "src/data_structures/APR/ExtraParticleData.hpp"
 
 template<typename ImageType>
 class APRCompress {
@@ -33,7 +34,7 @@ public:
 
 
     template<typename U>
-    void compress(APR<U>& apr,ExtraPartCellData<ImageType>& symbols) {
+    void compress(APR<U>& apr,ExtraParticleData<ImageType>& symbols) {
 
 
         APRTimer timer;
@@ -45,11 +46,8 @@ public:
         timer_total.start_timer("total compress");
 
         timer.start_timer("allocation");
-        ExtraPartCellData<float> predict_input(apr);
-        ExtraPartCellData<float> predict_output(apr);
-
-        apr_iterator.initialize_from_apr(apr);
-        neighbour_iterator.initialize_from_apr(apr);
+        ExtraParticleData<float> predict_input(apr);
+        ExtraParticleData<float> predict_output(apr);
 
         timer.stop_timer();
 
@@ -58,7 +56,7 @@ public:
         std::cout << background << std::endl;
 
         timer.start_timer("copy");
-        predict_input.copy_parts(apr.particles_int);
+        predict_input.copy_parts(apr,apr.particles_intensities);
         timer.stop_timer();
 
         ///////////////////////////
@@ -71,9 +69,9 @@ public:
         if(compress_type == 1) {
             timer.start_timer("variance stabilization max");
             //convert the bottom two levels over
-            predict_input.map_inplace([this](const float a) { return variance_stabilitzation<float>(a); },
+            predict_input.map_inplace(apr,[this](const float a) { return variance_stabilitzation<float>(a); },
                                       apr.level_max());
-            predict_input.map_inplace([this](const float a) { return variance_stabilitzation<float>(a); },
+            predict_input.map_inplace(apr,[this](const float a) { return variance_stabilitzation<float>(a); },
                                       apr.level_max() - 1);
             timer.stop_timer();
 
@@ -92,7 +90,7 @@ public:
 
             timer.start_timer("copy");
             //copy over the original intensities again
-            predict_input.copy_parts(apr.particles_int, apr.level_max() - 1);
+            predict_input.copy_parts(apr,apr.particles_intensities, apr.level_max() - 1);
             timer.stop_timer();
 
             timer.start_timer("predict other levels");
@@ -102,37 +100,32 @@ public:
             }
             timer.stop_timer();
         } else if (compress_type == 2) {
-            timer.start_timer("predict other levels");
+            timer.start_timer("predict levels");
             for (int level = apr.level_min(); level <= apr.level_max(); ++level) {
                 predict_particles_by_level(apr, level, predict_input, predict_output, predict_directions, num_blocks,
                                            0);
             }
-
-
         }
 
         timer.start_timer("predict symbols");
         //compute the symbols
-        symbols = predict_output.template map<ImageType>([this](const float a){return calculate_symbols<ImageType,float>(a);});
+        predict_output.map(apr,symbols,[this](const float a){return calculate_symbols<ImageType,float>(a);});
         timer.stop_timer();
 
         timer_total.stop_timer();
     }
 
     template<typename U>
-    void decompress(APR<U>& apr,ExtraPartCellData<ImageType>& symbols){
+    void decompress(APR<U>& apr,ExtraParticleData<ImageType>& symbols){
 
         APRTimer timer;
         timer.verbose_flag = true;
         timer.start_timer("decompress");
 
-        ExtraPartCellData<float> predict_input;
-        ExtraPartCellData<float> predict_output(apr);
+        ExtraParticleData<float> predict_input(apr);
+        ExtraParticleData<float> predict_output(apr);
         //turn symbols back to floats.
-        predict_input = symbols.template map<float>([this](const ImageType a){return inverse_calculate_symbols<float,ImageType>(a);});
-
-        apr_iterator.initialize_from_apr(apr);
-        neighbour_iterator.initialize_from_apr(apr);
+        symbols.map(apr,predict_input,[this](const ImageType a){return inverse_calculate_symbols<float,ImageType>(a);});
 
         this->background = apr.parameters.background_intensity_estimate - 2*apr.parameters.noise_sd_estimate;
         if(compress_type == 1) {
@@ -144,8 +137,8 @@ public:
 
             //predict_input.copy_parts(predict_output,apr.level_max()-1);
 
-            predict_output.map_inplace([this](const float a) { return round(a); }, apr.level_max() - 1);
-            predict_output.map_inplace([this](const float a) { return variance_stabilitzation<float>(a); },
+            predict_output.map_inplace(apr,[this](const float a) { return round(a); }, apr.level_max() - 1);
+            predict_output.map_inplace(apr,[this](const float a) { return variance_stabilitzation<float>(a); },
                                        apr.level_max() - 1);
 
             //decode predict
@@ -154,9 +147,9 @@ public:
 
 
             //invert the stabilization
-            predict_output.map_inplace([this](const float a) { return inverse_variance_stabilitzation<float>(a); },
+            predict_output.map_inplace(apr,[this](const float a) { return inverse_variance_stabilitzation<float>(a); },
                                        apr.level_max());
-            predict_output.map_inplace([this](const float a) { return inverse_variance_stabilitzation<float>(a); },
+            predict_output.map_inplace(apr,[this](const float a) { return inverse_variance_stabilitzation<float>(a); },
                                        apr.level_max() - 1);
         } else if (compress_type == 2) {
 
@@ -166,7 +159,7 @@ public:
             }
         }
         //now truncate and copy to uint16t
-        symbols.copy_parts(predict_output);
+        symbols.copy_parts(apr,predict_output);
 
         timer.stop_timer();
 
@@ -190,9 +183,6 @@ private:
     float q = .5;
     int compress_type = 0;
 
-    APRIterator<ImageType> apr_iterator;
-    APRIterator<ImageType> neighbour_iterator;
-
     std::vector<unsigned int> predict_directions = {1,3,5};
 
     template<typename S>
@@ -208,7 +198,7 @@ private:
     T inverse_calculate_symbols(S input);
 
     template<typename T,typename S,typename U>
-    void predict_particles_by_level(APR<U>& apr,const unsigned int level,ExtraPartCellData<T>& predict_input,ExtraPartCellData<S>& predict_output,std::vector<unsigned int>& predict_directions,unsigned int num_z_blocks,const int decode_encode_flag);
+    void predict_particles_by_level(APR<U>& apr,const unsigned int level,ExtraParticleData<T>& predict_input,ExtraParticleData<S>& predict_output,std::vector<unsigned int>& predict_directions,unsigned int num_z_blocks,const int decode_encode_flag);
 };
 
 template<typename ImageType> template<typename S>
@@ -249,7 +239,7 @@ T APRCompress<ImageType>::inverse_calculate_symbols(S input){
 };
 
 template<typename ImageType> template<typename T,typename S,typename U>
-void APRCompress<ImageType>::predict_particles_by_level(APR<U>& apr,const unsigned int level,ExtraPartCellData<T>& predict_input,ExtraPartCellData<S>& predict_output,std::vector<unsigned int>& predict_directions,unsigned int num_z_blocks,const int decode_encode_flag){
+void APRCompress<ImageType>::predict_particles_by_level(APR<U>& apr,const unsigned int level,ExtraParticleData<T>& predict_input,ExtraParticleData<S>& predict_output,std::vector<unsigned int>& predict_directions,unsigned int num_z_blocks,const int decode_encode_flag){
     //
     //  Performs prediction step using the predict directions in chunks of the dataset, given by z_index slice.
     //
@@ -306,9 +296,6 @@ void APRCompress<ImageType>::predict_particles_by_level(APR<U>& apr,const unsign
 
     unsigned int z_block;
 
-
-
-
     timer.start_timer("loop");
 
 #pragma omp parallel for schedule(dynamic) private(z_block) firstprivate(neighbour_iterator,apr_iterator,z_block_begin,z_block_end)
@@ -321,8 +308,6 @@ void APRCompress<ImageType>::predict_particles_by_level(APR<U>& apr,const unsign
 
                 apr_iterator.set_iterator_to_particle_by_number(particle_number);
 
-                apr_iterator.update_all_neighbours();
-
                 float count_neighbours = 0;
                 float temp = 0;
 
@@ -334,14 +319,14 @@ void APRCompress<ImageType>::predict_particles_by_level(APR<U>& apr,const unsign
                         // Neighbour Particle Cell Face definitions [+y,-y,+x,-x,+z,-z] =  [0,1,2,3,4,5]
 
                         unsigned int face = predict_directions[f];
-                        apr_iterator.update_direction_neighbours(f);
+                        apr_iterator.find_neighbours_in_direction(face);
 
                         for (int index = 0; index < apr_iterator.number_neighbours_in_direction(face); ++index) {
                             // on each face, there can be 0-4 neighbours accessed by index
                             if (neighbour_iterator.set_neighbour_iterator(apr_iterator, face, index)) {
                                 //will return true if there is a neighbour defined
 
-                                if (neighbour_iterator.depth() <= apr_iterator.depth()) {
+                                if (neighbour_iterator.level() <= apr_iterator.level()) {
                                     if(decode_encode_flag == 0) {
                                         //Encode
                                         temp += neighbour_iterator(predict_input);
