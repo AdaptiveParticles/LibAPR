@@ -9,13 +9,13 @@
 ///
 /// Produces *_paraview.h5 file and *_paraview.xmf
 ///
-/// To use load the xmf file in Paraview, and select Xdmf Reader.
+/// To use load the xmf file in Paraview, and select Xdmf Reader. Then click the small eye, to visualize the dataset. (Enable opacity mapping for surfaces, option can be useful)
 ///
 /// Usage:
 ///
-/// (using output of Example_produce_paraview_file)
+/// (using output of Example_produce_paraview_file) - for input first compute an APR using Example_get_apr
 ///
-/// Example_produce_paraview_file -i input_image_tiff -d input_directory
+/// Example_produce_paraview_file -i input_apr_hdf5 -d input_directory
 ///
 /////////////////////////////////////////////////////
 

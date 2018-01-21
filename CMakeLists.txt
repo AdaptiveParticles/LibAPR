@@ -216,8 +216,6 @@ add_executable(Example_ray_cast
         ${SOURCE_FILES_COMPILED}
         src/vis/Camera.cpp src/vis/Camera.h src/vis/Object.cpp src/vis/Object.h src/vis/RaytracedObject.cpp src/vis/RaytracedObject.h)
 
-
-
 add_executable(Example_compress
         test/Examples/Example_compress_apr.cpp
         benchmarks/development/old_io/write_parts.cpp
@@ -248,11 +246,16 @@ add_executable(Example_apr_neighbour_access
         ${SOURCE_FILES_COMPILED}
         )
 
-SWIG_ADD_MODULE(apr java libapr.i
+add_executable(Example_compute_gradient
+        test/Examples/Example_compute_gradient.cpp
         benchmarks/development/old_io/write_parts.cpp
         ${SOURCE_FILES_COMPILED}
         )
 
+SWIG_ADD_MODULE(apr java libapr.i
+        benchmarks/development/old_io/write_parts.cpp
+        ${SOURCE_FILES_COMPILED}
+        )
 
 SWIG_LINK_LIBRARIES(apr ${HDF5_LIBRARIES} blosc_static ${TIFF_LIBRARIES})
 
@@ -268,6 +271,7 @@ target_link_libraries(Example_produce_paraview_file ${HDF5_LIBRARIES} ${CMAKE_TH
 target_link_libraries(Example_compress ${HDF5_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT} ${TIFF_LIBRARIES} blosc_shared)
 target_link_libraries(Example_benchmark ${HDF5_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT} ${TIFF_LIBRARIES} blosc_shared)
 target_link_libraries(Example_newstructures ${HDF5_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT} ${TIFF_LIBRARIES} blosc_shared)
+target_link_libraries(Example_compute_gradient ${HDF5_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT} ${TIFF_LIBRARIES} blosc_shared)
 
 set_target_properties(blosc_shared PROPERTIES
         RUNTIME_OUTPUT_DIRECTORY_DEBUG ${PROJECT_BINARY_DIR})
