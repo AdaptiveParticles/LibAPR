@@ -105,13 +105,13 @@ public:
     }
 
     template<typename U,typename S>
-    void interp_depth(APR<S>& apr,MeshData<U>& img){
+    void interp_level(APR<S> &apr, MeshData<U> &img){
         //
         //  Returns an image of the depth, this is down-sampled by one, as the Particle Cell solution reflects this
         //
 
         //get depth
-        ExtraParticleData<U> depth_parts(apr);
+        ExtraParticleData<U> level_parts(apr);
 
         APRIterator<S> apr_iterator(apr);
         uint64_t particle_number;
@@ -124,11 +124,11 @@ public:
             //
 
             //access and info
-            apr_iterator(depth_parts) = apr_iterator.depth();
+            apr_iterator(level_parts) = apr_iterator.level();
 
         }
 
-        interp_img(apr,img,depth_parts);
+        interp_img(apr,img,level_parts);
 
     }
 
@@ -526,7 +526,7 @@ public:
 
         interp_img(apr,pc_image,interp_data);
 
-        interp_depth(apr,k_img);
+        interp_level(apr, k_img);
 
         timer.start_timer("sat");
         //demo

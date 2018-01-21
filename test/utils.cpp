@@ -2543,8 +2543,6 @@ pc_key find_neigh_cell_corner(pc_key curr_cell,int dir,std::vector<MeshData<uint
 
 }
 
-
-
 void create_intensity_reference_structure(PartCellStructure<float,uint64_t>& pc_struct,std::vector<MeshData<float>>& int_array){
     //
     //  Creates an array that can be used to link the new particle data structure for the filtering with the newer one.
@@ -3291,6 +3289,38 @@ bool utest_apr_serial_iterate(PartCellStructure<float,uint64_t>& pc_struct){
     return success;
 }
 
+bool utest_apr_serial_iterate(APR<float>& apr){
+    //
+    //  Bevan Cheeseman 2018
+    //
+    //  Test for the serial APR iterator
+    //
+
+
+    bool success = true;
+
+
+    std::vector<MeshData<float>> int_array;
+
+    //create_intensity_reference_structure(pc_struct,int_array);
+
+    APRIteratorOld<float> apr_iterator(apr);
+    uint64_t particle_number = 0;
+
+    for (particle_number = 0; particle_number < apr_iterator.num_parts_total; ++particle_number) {
+        float apr_val = apr_iterator(apr.particles_int_old);
+
+        float check_val = int_array[apr_iterator.depth()](apr_iterator.y(),apr_iterator.x(),apr_iterator.z());
+
+        if(check_val!=apr_val){
+            success = false;
+        }
+
+    }
+
+    return success;
+}
+
 bool utest_apr_parallel_iterate(PartCellStructure<float,uint64_t>& pc_struct){
     //
     //  Bevan Cheeseman 2018
@@ -3692,6 +3722,95 @@ bool utest_apr_parallel_neigh(PartCellStructure<float,uint64_t>& pc_struct){
 
 }
 
+
+void create_apr_from_pc_struct(APR<float>& apr,PartCellStructure<float,uint64_t>& pc_struct){
+
+    apr.apr_access.org_dims[0] = pc_struct.org_dims[0];
+    apr.apr_access.org_dims[1] = pc_struct.org_dims[1];
+    apr.apr_access.org_dims[2] = pc_struct.org_dims[2];
+
+    //first add the layers
+    apr.apr_access.level_max = pc_struct.depth_max + 1;
+    apr.apr_access.level_min = pc_struct.depth_min;
+
+    apr.apr_access.z_num.resize(apr.apr_access.level_max+1);
+    apr.apr_access.x_num.resize(apr.apr_access.level_max+1);
+    apr.apr_access.y_num.resize(apr.apr_access.level_max+1);
+
+    for(uint64_t i = apr.apr_access.level_min;i < apr.apr_access.level_max;i++){
+        apr.apr_access.z_num[i] = pc_struct.z_num[i];
+        apr.apr_access.x_num[i] = pc_struct.x_num[i];
+        apr.apr_access.y_num[i] = pc_struct.y_num[i];
+    }
+
+    apr.apr_access.z_num[apr.apr_access.level_max] = pc_struct.org_dims[2];
+    apr.apr_access.x_num[apr.apr_access.level_max] = pc_struct.org_dims[1];
+    apr.apr_access.y_num[apr.apr_access.level_max] = pc_struct.org_dims[0];
+
+    std::vector<std::vector<uint8_t>> p_map;
+    p_map.resize(apr.apr_access.level_max);
+
+    //initialize loop variables
+    int x_;
+    int z_;
+    int y_;
+
+    uint64_t j_;
+
+    uint64_t status;
+    uint64_t node_val;
+    uint16_t node_val_part;
+
+    for(uint64_t i = (apr.apr_access.level_max-1);i >= apr.apr_access.level_min;i--){
+
+        const unsigned int x_num = apr.apr_access.x_num[i];
+        const unsigned int z_num = apr.apr_access.z_num[i];
+        const unsigned int y_num = apr.apr_access.y_num[i];
+
+        p_map[i].resize(x_num*z_num*y_num,0);
+
+#pragma omp parallel for default(shared) private(j_,z_,x_,y_,node_val,status) if(z_num*x_num > 100)
+        for(z_ = 0;z_ < z_num;z_++) {
+
+            for (x_ = 0; x_ < x_num; x_++) {
+
+                //access variables
+                const size_t offset_pc_data = x_num * z_ + x_;
+                const size_t j_num = pc_struct.pc_data.data[i][offset_pc_data].size();
+                const size_t offset_p_map = y_num*x_num*z_ + y_num*x_;
+
+                y_ = 0;
+
+                //first loop over
+                for (j_ = 0; j_ < j_num; j_++) {
+                    //raster over both structures, generate the index for the particles, set the status and offset_y_coord diff
+
+                    node_val = pc_struct.pc_data.data[i][offset_pc_data][j_];
+
+                    if (!(node_val & 1)) {
+                        //normal node
+                        y_++;
+                        //create pindex, and create status (0,1,2,3) and type
+                        status = (node_val & STATUS_MASK)
+                                >> STATUS_SHIFT;  //need the status masks here, need to move them into the datastructure I think so that they are correctly accessible then to these routines.
+
+                        p_map[i][offset_p_map + y_]=status;
+
+                    } else {
+
+                        y_ = (node_val & NEXT_COORD_MASK) >> NEXT_COORD_SHIFT;
+                        y_--;
+                    }
+                }
+            }
+        }
+    }
+
+    apr.apr_access.initialize_structure_from_particle_cell_tree(apr,p_map);
+
+}
+
+
 void create_pc_data_new(APR<float>& apr,PartCellStructure<float,uint64_t>& pc_struct){
     //
     //
@@ -3919,8 +4038,6 @@ void create_pc_data_new(APR<float>& apr,PartCellStructure<float,uint64_t>& pc_st
 
                 }
 
-
-
                 curr_index = 0;
                 prev_ind = 1;
                 size_t prev_coord = 0;
@@ -4046,6 +4163,8 @@ bool utest_apr_read_write(PartCellStructure<float,uint64_t>& pc_struct){
     apr.apr_access.generate_pmap(apr,p_map);
 
     apr.apr_access.initialize_structure_from_particle_cell_tree(apr,p_map);
+
+    create_apr_from_pc_struct(apr, pc_struct);
 
     APRIterator<float> apr_iterator(apr);
     apr.particles_int.data.resize(apr_iterator.total_number_particles());

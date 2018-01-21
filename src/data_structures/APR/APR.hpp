@@ -215,7 +215,7 @@ public:
         //  Returns an image of the depth, this is down-sampled by one, as the Particle Cell solution reflects this
         //
 
-        apr_recon.interp_depth((*this),img);
+        apr_recon.interp_level((*this), img);
 
     }
 
@@ -230,7 +230,7 @@ public:
     }
 
     template<typename U,typename V>
-    void interp_parts_smooth(MeshData<U>& out_image,ExtraPartCellData<V>& interp_data,std::vector<float> scale_d = {2,2,2}){
+    void interp_parts_smooth(MeshData<U>& out_image,ExtraParticleData<V>& interp_data,std::vector<float> scale_d = {2,2,2}){
         //
         //  Performs a smooth interpolation, based on the depth (level l) in each direction.
         //
@@ -240,7 +240,7 @@ public:
     }
 
     template<typename U,typename V>
-    void get_parts_from_img(MeshData<U>& img,ExtraPartCellData<V>& parts){
+    void get_parts_from_img(MeshData<U>& img,ExtraParticleData<V>& parts){
         //
         //  Bevan Cheeseman 2016
         //
@@ -249,18 +249,20 @@ public:
 
         //re-write this.
 
-        parts.init(*this);
+
 
         //initialization of the iteration structures
-        APRIteratorOld<ImageType> apr_it(*this); //this is required for parallel access
-        uint64_t part;
+        APRIterator<ImageType> apr_iterator(*this); //this is required for parallel access
+        uint64_t particle_number;
+        parts.data.resize(apr_iterator.total_number_particles());
 
-#pragma omp parallel for schedule(static) private(part) firstprivate(apr_it)
-        for (part = 0; part < this->num_parts_total; ++part) {
+
+#pragma omp parallel for schedule(static) private(particle_number) firstprivate(apr_iterator)
+        for (particle_number = 0; particle_number < this->num_parts_total; ++particle_number) {
             //needed step for any parallel loop (update to the next part)
-            apr_it.set_iterator_to_particle_by_number(part);
+            apr_iterator.set_iterator_to_particle_by_number(particle_number);
 
-            apr_it(parts) = img.access_no_protection(apr_it.y_nearest_pixel(),apr_it.x_nearest_pixel(),apr_it.z_nearest_pixel());
+            apr_iterator(parts) = img.access_no_protection(apr_iterator.y_nearest_pixel(),apr_iterator.x_nearest_pixel(),apr_iterator.z_nearest_pixel());
 
         }
 

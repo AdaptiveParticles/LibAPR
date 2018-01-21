@@ -17,6 +17,9 @@
 
 #include "tiffio.h"
 
+template <typename T,typename S>
+class PartCellStructure;
+
 #include "src/data_structures/Mesh/MeshData.hpp"
 #include "benchmarks/development/old_algorithm/level.hpp"
 #include "benchmarks/development/Tree/PartCellStructure.hpp"
@@ -91,6 +94,7 @@ void create_pc_data_new(APR<float>& apr,PartCellStructure<float,uint64_t>& pc_st
 bool check_neighbours(APR<float>& apr,APRIterator<float>& current,APRIterator<float>& neigh);
 bool check_neighbour_out_of_bounds(APRIterator<float>& current,uint8_t face);
 
+void create_apr_from_pc_struct(APR<float>& apr,PartCellStructure<float,uint64_t>& pc_struct);
 
 bool utest_neigh_cells(PartCellStructure<float,uint64_t>& pc_struct);
 
