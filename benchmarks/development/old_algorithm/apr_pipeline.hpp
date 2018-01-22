@@ -163,7 +163,9 @@ void calc_median_filter(MeshData<U>& input_img){
 
     uint64_t x_,z_;
 
-#pragma omp parallel for default(shared) private(z_,x_,offset_min,offset_max) firstprivate(temp_vec)
+#ifdef HAVE_OPENMP
+	#pragma omp parallel for default(shared) private(z_,x_,offset_min,offset_max) firstprivate(temp_vec)
+#endif
     for(z_ = 0;z_ < z_num_m;z_++){
         //both z and x are explicitly accessed in the structure
 
@@ -195,7 +197,9 @@ void calc_median_filter(MeshData<U>& input_img){
     temp_vecm.resize(y_num_m);
 
 
-#pragma omp parallel for default(shared) private(z_,x_,offset_min,offset_max) firstprivate(temp_vec,temp_vecm,temp_vecp)
+#ifdef HAVE_OPENMP
+	#pragma omp parallel for default(shared) private(z_,x_,offset_min,offset_max) firstprivate(temp_vec,temp_vecm,temp_vecp)
+#endif
     for(z_ = 0;z_ < z_num_m;z_++){
         //both z and x are explicitly accessed in the structure
 
@@ -234,7 +238,9 @@ void calc_median_filter(MeshData<U>& input_img){
 
 
 
-#pragma omp parallel for default(shared) private(z_,x_,offset_min,offset_max) firstprivate(temp_vec,temp_vecm,temp_vecp)
+#ifdef HAVE_OPENMP
+	#pragma omp parallel for default(shared) private(z_,x_,offset_min,offset_max) firstprivate(temp_vec,temp_vecm,temp_vecp)
+#endif
     for(x_ = 0;x_ < x_num_m;x_++){
         //both z and x are explicitly accessed in the structure
 
@@ -298,7 +304,9 @@ void calc_median_filter_n(MeshData<U>& output_img,MeshData<U>& input_img){
 
     uint64_t x_,z_;
 
-#pragma omp parallel for default(shared) private(z_,x_,offset_min_x,offset_max_x,offset_min_y,offset_max_y,offset_min_z,offset_max_z)
+#ifdef HAVE_OPENMP
+	#pragma omp parallel for default(shared) private(z_,x_,offset_min_x,offset_max_x,offset_min_y,offset_max_y,offset_min_z,offset_max_z)
+#endif
     for(z_ = 0;z_ < z_num_m;z_++){
         //both z and x are explicitly accessed in the structure
 
@@ -382,7 +390,9 @@ void calc_median_filter_n2(MeshData<U>& output_img,MeshData<U>& input_img){
 
     uint64_t x_,z_;
 
-#pragma omp parallel for default(shared) private(z_,x_,offset_min_x,offset_max_x,offset_min_y,offset_max_y,offset_min_z,offset_max_z)
+#ifdef HAVE_OPENMP
+	#pragma omp parallel for default(shared) private(z_,x_,offset_min_x,offset_max_x,offset_min_y,offset_max_y,offset_min_z,offset_max_z)
+#endif
     for(z_ = 0;z_ < z_num_m;z_++){
         //both z and x are explicitly accessed in the structure
 
@@ -540,7 +550,9 @@ void spread_values(MeshData<S>& input_image){
     //float neigh_sum = 0;
 
 
-#pragma omp parallel for default(shared) private(j,i,k,i_n,k_n,j_n)
+#ifdef HAVE_OPENMP
+	#pragma omp parallel for default(shared) private(j,i,k,i_n,k_n,j_n)
+#endif
         for(j = 0; j < z_num;j++){
             for(i = 0; i < x_num;i++){
                 for(k = 0;k < y_num;k++){
@@ -624,7 +636,9 @@ ExtraPartCellData<T> get_scale_parts_guided(APR<T>& apr,MeshData<S>& input_image
     const float step_size_y = pow(2, apr.y_vec.depth_max - depth);
     const float step_size_z = pow(2, apr.y_vec.depth_max - depth);
 
-#pragma omp parallel for default(shared) private(z_,x_,j_,i,k) schedule(guided) if(z_num_*x_num_ > 1000)
+#ifdef HAVE_OPENMP
+	#pragma omp parallel for default(shared) private(z_,x_,j_,i,k) schedule(guided) if(z_num_*x_num_ > 1000)
+#endif
         for (z_ = 0; z_ < z_num_; z_++) {
             //both z and x are explicitly accessed in the structure
 
@@ -683,7 +697,9 @@ ExtraPartCellData<T> get_scale_parts_guided(APR<T>& apr,MeshData<S>& input_image
         const float step_size_z = pow(2, apr.y_vec.depth_max - depth);
 
 
-#pragma omp parallel for default(shared) private(z_,x_,j_,i,k) schedule(guided) if(z_num_*x_num_ > 1000)
+#ifdef HAVE_OPENMP
+	#pragma omp parallel for default(shared) private(z_,x_,j_,i,k) schedule(guided) if(z_num_*x_num_ > 1000)
+#endif
         for (z_ = 0; z_ < z_num_; z_++) {
             //both z and x are explicitly accessed in the structure
 
@@ -746,7 +762,9 @@ ExtraPartCellData<T> get_scale_parts(APR<T>& apr,MeshData<S>& input_image,Proc_p
         const float step_size_z = pow(2, apr.y_vec.depth_max - depth);
 
 
-#pragma omp parallel for default(shared) private(z_,x_,j_,i,k) schedule(guided) if(z_num_*x_num_ > 1000)
+#ifdef HAVE_OPENMP
+	#pragma omp parallel for default(shared) private(z_,x_,j_,i,k) schedule(guided) if(z_num_*x_num_ > 1000)
+#endif
         for (z_ = 0; z_ < z_num_; z_++) {
             //both z and x are explicitly accessed in the structure
 
@@ -1247,7 +1265,9 @@ void mask_variance(MeshData<float>& variance,MeshData<float>& temp,APR<float>& a
                 [](float x, float y) { return std::max(x,y); },
                 [](float x) { return x; });
     uint64_t i = 0;
-#pragma omp parallel for default(shared) private(i)
+#ifdef HAVE_OPENMP
+	#pragma omp parallel for default(shared) private(i)
+#endif
     for ( i = 0; i < variance.mesh.size(); ++i) {
 
         if(temp.mesh[i]==0){

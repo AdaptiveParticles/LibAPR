@@ -158,7 +158,9 @@ MeshData<uint16_t> generate_random_ktest_example(unsigned int size_y, unsigned i
 
     MeshData<uint16_t> test_example(size_y, size_x, size_z);
 
-#pragma omp parallel for default(shared)
+#ifdef HAVE_OPENMP
+	#pragma omp parallel for default(shared)
+#endif
     for(int i = 0; i < test_example.mesh.size(); i++){
         test_example.mesh[i] = get_random_number_k(generator, distribution, k_max);
     }

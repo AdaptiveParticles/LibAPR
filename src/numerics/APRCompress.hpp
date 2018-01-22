@@ -298,7 +298,9 @@ void APRCompress<ImageType>::predict_particles_by_level(APR<U>& apr,const unsign
 
     timer.start_timer("loop");
 
-#pragma omp parallel for schedule(dynamic) private(z_block) firstprivate(neighbour_iterator,apr_iterator,z_block_begin,z_block_end)
+#ifdef HAVE_OPENMP
+	#pragma omp parallel for schedule(dynamic) private(z_block) firstprivate(neighbour_iterator,apr_iterator,z_block_begin,z_block_end)
+#endif
     for (z_block = 0; z_block < num_z_blocks; ++z_block) {
 
         for (unsigned int z = z_block_begin[z_block]; z < z_block_end[z_block]; ++z) {

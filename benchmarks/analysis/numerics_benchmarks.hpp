@@ -237,7 +237,9 @@ void calc_mse(MeshData<S>& org_img,MeshData<T>& rec_img,std::string name,Analysi
     double MSE = 0;
     double L1 = 0;
 
-#pragma omp parallel for default(shared) private(j,i,k) reduction(+: MSE)
+#ifdef HAVE_OPENMP
+	#pragma omp parallel for default(shared) private(j,i,k) reduction(+: MSE)
+#endif
     for(j = 0; j < z_num_o;j++){
         for(i = 0; i < x_num_o;i++){
 
@@ -257,7 +259,9 @@ void calc_mse(MeshData<S>& org_img,MeshData<T>& rec_img,std::string name,Analysi
 
     double var = 0;
     double counter = 0;
-#pragma omp parallel for default(shared) private(j,i,k) reduction(+: var) reduction(+: counter)
+#ifdef HAVE_OPENMP
+	#pragma omp parallel for default(shared) private(j,i,k) reduction(+: var) reduction(+: counter)
+#endif
     for(j = 0; j < z_num_o;j++){
         for(i = 0; i < x_num_o;i++){
 
@@ -313,7 +317,9 @@ void calc_mse_debug(MeshData<S>& org_img,MeshData<T>& rec_img,std::string name,A
     MeshData<S> SE;
     SE.initialize(y_num_o,x_num_o,z_num_o,0);
 
-#pragma omp parallel for default(shared) private(j,i,k) reduction(+: MSE)
+#ifdef HAVE_OPENMP
+	#pragma omp parallel for default(shared) private(j,i,k) reduction(+: MSE)
+#endif
     for(j = 0; j < z_num_o;j++){
         for(i = 0; i < x_num_o;i++){
 
@@ -332,7 +338,9 @@ void calc_mse_debug(MeshData<S>& org_img,MeshData<T>& rec_img,std::string name,A
 
     double var = 0;
     double counter = 0;
-#pragma omp parallel for default(shared) private(j,i,k) reduction(+: var) reduction(+: counter)
+#ifdef HAVE_OPENMP
+	#pragma omp parallel for default(shared) private(j,i,k) reduction(+: var) reduction(+: counter)
+#endif
     for(j = 0; j < z_num_o;j++){
         for(i = 0; i < x_num_o;i++){
 

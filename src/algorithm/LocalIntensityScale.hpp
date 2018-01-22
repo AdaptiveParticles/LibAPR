@@ -50,7 +50,9 @@ void LocalIntensityScale::rescale_var_and_threshold(MeshData<T>& var,const float
     int i,k;
     float rescaled;
 
-#pragma omp parallel for default(shared) private(i,k,rescaled)
+#ifdef HAVE_OPENMP
+	#pragma omp parallel for default(shared) private(i,k,rescaled)
+#endif
     for(int j = 0;j < z_num;j++){
 
         for(i = 0;i < x_num;i++){
@@ -85,7 +87,9 @@ void LocalIntensityScale::calc_abs_diff(MeshData<T>& input_image,MeshData<T>& va
 
     int i,k;
 
-#pragma omp parallel for default(shared) private(i,k)
+#ifdef HAVE_OPENMP
+	#pragma omp parallel for default(shared) private(i,k)
+#endif
     for(int j = 0;j < z_num;j++){
 
         for(i = 0;i < x_num;i++){
@@ -164,7 +168,9 @@ void LocalIntensityScale::calc_sat_mean_y(MeshData<T>& input,const int offset){
     int i, k, index;
     float counter, temp, divisor = 2*offset_n + 1;
 
-#pragma omp parallel for default(shared) private(i,k,counter,temp,index) firstprivate(temp_vec)
+#ifdef HAVE_OPENMP
+	#pragma omp parallel for default(shared) private(i,k,counter,temp,index) firstprivate(temp_vec)
+#endif
     for(int j = 0;j < z_num;j++){
         for(i = 0;i < x_num;i++){
 
@@ -232,8 +238,10 @@ void LocalIntensityScale::calc_sat_mean_x(MeshData<T>& input,const int offset){
     float temp;
     int index_modulo, previous_modulo, current_index, jxnumynum;
 
-#pragma omp parallel for default(shared) private(i,k,temp,index_modulo, previous_modulo, current_index, jxnumynum) \
+#ifdef HAVE_OPENMP
+	#pragma omp parallel for default(shared) private(i,k,temp,index_modulo, previous_modulo, current_index, jxnumynum) \
         firstprivate(temp_vec)
+#endif
     for(int j = 0; j < z_num; j++) {
 
         jxnumynum = j * x_num * y_num;
@@ -312,8 +320,10 @@ void LocalIntensityScale::calc_sat_mean_z(MeshData<T>& input,const int offset) {
     int index_modulo, previous_modulo, current_index, iynum;
     int xnumynum = x_num * y_num;
 
-#pragma omp parallel for default(shared) private(j,k,temp,index_modulo, previous_modulo, current_index, iynum) \
+#ifdef HAVE_OPENMP
+	#pragma omp parallel for default(shared) private(j,k,temp,index_modulo, previous_modulo, current_index, iynum) \
         firstprivate(temp_vec)
+#endif
     for(int i = 0; i < x_num; i++) {
 
         iynum = i * y_num;

@@ -697,7 +697,9 @@ public:
         typev.resize(apr_iterator.total_number_particles());
 
         uint64_t particle_number = 0;
-#pragma omp parallel for schedule(static) private(particle_number) firstprivate(apr_iterator)
+#ifdef HAVE_OPENMP
+	#pragma omp parallel for schedule(static) private(particle_number) firstprivate(apr_iterator)
+#endif
         for (particle_number= 0; particle_number < apr_iterator.total_number_particles(); ++particle_number) {
             apr_iterator.set_iterator_to_particle_by_number(particle_number);
 
@@ -1513,7 +1515,9 @@ namespace old {
                 //For each depth there are two loops, one for SEED status particles, at depth + 1, and one for BOUNDARY and FILLER CELLS, to ensure contiguous memory access patterns.
 
                 // SEED PARTICLE STATUS LOOP (requires access to three data structures, particle access, particle data, and the part-map)
-#pragma omp parallel for default(shared) private(z_, x_, j_, node_val, status, y_coord) if(z_num_*x_num_ > 100)
+#ifdef HAVE_OPENMP
+	#pragma omp parallel for default(shared) private(z_, x_, j_, node_val, status, y_coord) if(z_num_*x_num_ > 100)
+#endif
                 for (z_ = 0; z_ < z_num_; z_++) {
 
                     for (x_ = 0; x_ < x_num_; x_++) {
@@ -1563,7 +1567,9 @@ namespace old {
                 int z_num_d = apr.pc_data.z_num[i];
                 int y_num_d = apr.pc_data.y_num[i];
 
-#pragma omp parallel for default(shared) private(z_, x_, j_, node_val, status, y_coord) if(z_num_*x_num_ > 100)
+#ifdef HAVE_OPENMP
+	#pragma omp parallel for default(shared) private(z_, x_, j_, node_val, status, y_coord) if(z_num_*x_num_ > 100)
+#endif
                 for (z_ = 0; z_ < z_num_; z_++) {
 
                     for (x_ = 0; x_ < x_num_; x_++) {

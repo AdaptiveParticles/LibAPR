@@ -415,7 +415,9 @@ public:
             //For each depth there are two loops, one for SEED status particles, at depth + 1, and one for BOUNDARY and FILLER CELLS, to ensure contiguous memory access patterns.
 
             // SEED PARTICLE STATUS LOOP (requires access to three data structures, particle access, particle data, and the part-map)
-#pragma omp parallel for default(shared) private(z_,x_,j_,node_val,status,y_coord) if(z_num_*x_num_ > 100)
+#ifdef HAVE_OPENMP
+	#pragma omp parallel for default(shared) private(z_,x_,j_,node_val,status,y_coord) if(z_num_*x_num_ > 100)
+#endif
             for(z_ = 0;z_ < z_num_;z_++){
 
                 for(x_ = 0;x_ < x_num_;x_++){
@@ -465,7 +467,9 @@ public:
             int z_num_d =apr.pc_data.z_num[i];
             int y_num_d =apr.pc_data.y_num[i];
 
-#pragma omp parallel for default(shared) private(z_,x_,j_,node_val,status,y_coord) if(z_num_*x_num_ > 100)
+#ifdef HAVE_OPENMP
+	#pragma omp parallel for default(shared) private(z_,x_,j_,node_val,status,y_coord) if(z_num_*x_num_ > 100)
+#endif
             for(z_ = 0;z_ < z_num_;z_++){
 
                 for(x_ = 0;x_ < x_num_;x_++){
@@ -573,7 +577,9 @@ public:
             const unsigned int z_num_ds = z_num[i - 1];
             const unsigned int y_num_ds = y_num[i - 1];
 
-#pragma omp parallel for default(shared) private(z_, x_, y_, status) if(z_num_*x_num_ > 100)
+#ifdef HAVE_OPENMP
+	#pragma omp parallel for default(shared) private(z_, x_, y_, status) if(z_num_*x_num_ > 100)
+#endif
             for (z_ = 0; z_ < z_num_; z_++) {
 
                 for (x_ = 0; x_ < x_num_; x_++) {
@@ -610,7 +616,9 @@ public:
             const uint64_t z_num_ = z_num[i];
             const uint64_t y_num_ = y_num[i];
 
-#pragma omp parallel for default(shared) private(z_, x_, y_, status) if(z_num_*x_num_ > 100)
+#ifdef HAVE_OPENMP
+	#pragma omp parallel for default(shared) private(z_, x_, y_, status) if(z_num_*x_num_ > 100)
+#endif
             for (z_ = 0; z_ < z_num_; z_++) {
 
                 for (x_ = 0; x_ < x_num_; x_++) {
@@ -671,7 +679,9 @@ public:
         const unsigned int z_num_us = z_num[i + 1];
         const unsigned int y_num_us = y_num[i + 1];
 
-#pragma omp parallel for default(shared) private(z_, x_, y_, status) if(z_num_*x_num_ > 100)
+#ifdef HAVE_OPENMP
+	#pragma omp parallel for default(shared) private(z_, x_, y_, status) if(z_num_*x_num_ > 100)
+#endif
         for (z_ = 0; z_ < z_num_; z_++) {
 
             for (x_ = 0; x_ < x_num_; x_++) {
@@ -725,7 +735,9 @@ public:
 
         }
 
-#pragma omp parallel for default(shared) private(z_, x_, y_, status) if(z_num_*x_num_ > 100)
+#ifdef HAVE_OPENMP
+	#pragma omp parallel for default(shared) private(z_, x_, y_, status) if(z_num_*x_num_ > 100)
+#endif
         for (z_ = 0; z_ < z_num_; z_++) {
 
             for (x_ = 0; x_ < x_num_; x_++) {
@@ -847,7 +859,9 @@ public:
             const unsigned int x_num_ = x_num[i];
             const unsigned int z_num_ = z_num[i];
             const unsigned int y_num_ = y_num[i];
-#pragma omp parallel for default(shared) private(z_, x_) reduction(+:counter_rows)if(z_num_*x_num_ > 100)
+#ifdef HAVE_OPENMP
+	#pragma omp parallel for default(shared) private(z_, x_) reduction(+:counter_rows)if(z_num_*x_num_ > 100)
+#endif
             for (z_ = 0; z_ < z_num_; z_++) {
                 for (x_ = 0; x_ < x_num_; x_++) {
                     const size_t offset_pc_data = x_num_ * z_ + x_;
@@ -873,7 +887,9 @@ public:
 
         for (uint64_t level = apr_iterator.level_min(); level < apr_iterator.level_max(); ++level) {
 
-#pragma omp parallel for schedule(static) private(particle_number) firstprivate(apr_iterator)
+#ifdef HAVE_OPENMP
+	#pragma omp parallel for schedule(static) private(particle_number) firstprivate(apr_iterator)
+#endif
         for (particle_number = apr_iterator.particles_level_begin(level); particle_number <  apr_iterator.particles_level_end(level); ++particle_number) {
                 //
                 //  Parallel loop over level
@@ -934,7 +950,9 @@ public:
             counter+=(map_data.number_gaps[j]);
         }
 
-#pragma omp parallel for default(shared) schedule(static) private(j)
+#ifdef HAVE_OPENMP
+	#pragma omp parallel for default(shared) schedule(static) private(j)
+#endif
         for (j = 0; j < total_number_non_empty_rows; ++j) {
 
             const uint64_t level = map_data.level[j];
