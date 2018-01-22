@@ -30,12 +30,16 @@ void compute_k_for_array(MeshData<T>& input,float k_factor,float rel_error){
 
     int i,k;
 
-#pragma omp parallel for default(shared) private (i,k) if(z_num*x_num*y_num > 100000)
+#ifdef HAVE_OPENMP
+	#pragma omp parallel for default(shared) private (i,k) if(z_num*x_num*y_num > 100000)
+#endif
     for(int j = 0;j < z_num;j++){
 
         for(i = 0;i < x_num;i++){
 
-#pragma omp simd
+#ifdef HAVE_OPENMP
+	#pragma omp simd
+#endif
             for (k = 0; k < (y_num);k++){
 
                 input.mesh[j*x_num*y_num + i*y_num + k] = asmlog_2(input.mesh[j*x_num*y_num + i*y_num + k]*mult_const);
@@ -71,7 +75,9 @@ void get_level_3D(MeshData<T> &var, MeshData<T> &grad_input, Part_rep &p_rep, Pa
     timer.start_timer("level_divide");
     //First need to divide the two grad and var, do this on the cpu
 
-#pragma omp parallel for default(shared)
+#ifdef HAVE_OPENMP
+	#pragma omp parallel for default(shared)
+#endif
     for(int i = 0; i < grad.mesh.size(); i++)
     {
         grad.mesh[i] /= var.mesh[i];
@@ -148,7 +154,9 @@ void get_level_2D(MeshData<T> &var, MeshData<T> &grad_input, Part_rep &p_rep, Pa
     timer.start_timer("level_divide");
     //First need to divide the two grad and var, do this on the cpu
 
-#pragma omp parallel for default(shared)
+#ifdef HAVE_OPENMP
+	#pragma omp parallel for default(shared)
+#endif
     for(int i = 0; i < grad.mesh.size(); i++)
     {
         grad.mesh[i] /= var.mesh[i];

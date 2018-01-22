@@ -1209,7 +1209,9 @@ public:
             const unsigned int z_num_ds = z_num[i - 1];
             const unsigned int y_num_ds = y_num[i - 1];
 
-#pragma omp parallel for default(shared) private(z_, x_, y_, curr_index, status, prev_ind) if(z_num_*x_num_ > 100)
+#ifdef HAVE_OPENMP
+	#pragma omp parallel for default(shared) private(z_, x_, y_, curr_index, status, prev_ind) if(z_num_*x_num_ > 100)
+#endif
             for (z_ = 0; z_ < z_num_; z_++) {
 
                 for (x_ = 0; x_ < x_num_; x_++) {
@@ -1242,7 +1244,9 @@ public:
             const unsigned int z_num_ds = z_num[i-1];
             const unsigned int y_num_ds = y_num[i-1];
 
-#pragma omp parallel for default(shared) private(z_,x_,y_,curr_index,status,prev_ind) if(z_num_*x_num_ > 100)
+#ifdef HAVE_OPENMP
+	#pragma omp parallel for default(shared) private(z_,x_,y_,curr_index,status,prev_ind) if(z_num_*x_num_ > 100)
+#endif
             for(z_ = 0;z_ < z_num_;z_++){
 
                 for(x_ = 0;x_ < x_num_;x_++){
@@ -1338,7 +1342,9 @@ public:
             const unsigned int z_num_ds = z_num[i-1];
             const unsigned int y_num_ds = y_num[i-1];
 
-#pragma omp parallel for default(shared) private(z_,x_,y_,curr_index,status,prev_ind,prev_coord) if(z_num_*x_num_ > 100)
+#ifdef HAVE_OPENMP
+	#pragma omp parallel for default(shared) private(z_,x_,y_,curr_index,status,prev_ind,prev_coord) if(z_num_*x_num_ > 100)
+#endif
             for(z_ = 0;z_ < z_num_;z_++){
 
                 for(x_ = 0;x_ < x_num_;x_++){
@@ -2025,7 +2031,9 @@ public:
             //For each depth there are two loops, one for SEED status particles, at depth + 1, and one for BOUNDARY and FILLER CELLS, to ensure contiguous memory access patterns.
             
             // SEED PARTICLE STATUS LOOP (requires access to three data structures, particle access, particle data, and the part-map_inplace)
-#pragma omp parallel for default(shared) private(z_,x_,j_,node_val,curr_key,neigh_keys) if(z_num_*x_num_ > 100)
+#ifdef HAVE_OPENMP
+	#pragma omp parallel for default(shared) private(z_,x_,j_,node_val,curr_key,neigh_keys) if(z_num_*x_num_ > 100)
+#endif
             for(z_ = 0;z_ < z_num_;z_++){
                 
                 curr_key = 0;
@@ -2080,7 +2088,9 @@ public:
             //For each depth there are two loops, one for SEED status particles, at depth + 1, and one for BOUNDARY and FILLER CELLS, to ensure contiguous memory access patterns.
             
             // SEED PARTICLE STATUS LOOP (requires access to three data structures, particle access, particle data, and the part-map_inplace)
-#pragma omp parallel for default(shared) private(z_,x_,j_,node_val,curr_key,neigh_keys) if(z_num_*x_num_ > 100)
+#ifdef HAVE_OPENMP
+	#pragma omp parallel for default(shared) private(z_,x_,j_,node_val,curr_key,neigh_keys) if(z_num_*x_num_ > 100)
+#endif
             for(z_ = 0;z_ < z_num_;z_++){
                 
                 curr_key = 0;
@@ -2458,7 +2468,9 @@ private:
                 
                 if (i == depth_min){
                     
-#pragma omp parallel for default(shared) private(z_,x_,j_,node_val,y_parent,j_parent,j_neigh,y_neigh,y_coord) if(z_num_*x_num_ > 100)
+#ifdef HAVE_OPENMP
+	#pragma omp parallel for default(shared) private(z_,x_,j_,node_val,y_parent,j_parent,j_neigh,y_neigh,y_coord) if(z_num_*x_num_ > 100)
+#endif
                     for(z_ = z_start;z_ < (z_num_-z_stop);z_++){
                         
                         for(x_ = x_start;x_ < (x_num_-x_stop);x_++){
@@ -2535,7 +2547,9 @@ private:
                     
                     
                 } else {
-#pragma omp parallel for default(shared) private(z_,x_,j_,node_val,y_parent,j_parent,j_neigh,y_neigh,y_coord) if(z_num_*x_num_ > 100)
+#ifdef HAVE_OPENMP
+	#pragma omp parallel for default(shared) private(z_,x_,j_,node_val,y_parent,j_parent,j_neigh,y_neigh,y_coord) if(z_num_*x_num_ > 100)
+#endif
                     for(z_ = z_start;z_ < (z_num_-z_stop);z_++){
                         
                         for(x_ = x_start;x_ < (x_num_-x_stop);x_++){
@@ -2676,7 +2690,9 @@ private:
                 
                 const unsigned int x_num_parent = x_num[i-1];
                 
-#pragma omp parallel for default(shared) private(z_,x_,j_,node_val,y_parent,j_parent,y_coord,node_val_parent) if(z_num_*x_num_ > 100)
+#ifdef HAVE_OPENMP
+	#pragma omp parallel for default(shared) private(z_,x_,j_,node_val,y_parent,j_parent,y_coord,node_val_parent) if(z_num_*x_num_ > 100)
+#endif
                 for(z_ = 0;z_ < (z_num_);z_++){
                     
                     for(x_ = 0;x_ < (x_num_);x_++){

@@ -38,12 +38,16 @@ public:
 
         int i,k;
 
-#pragma omp parallel for default(shared) private (i,k) if(z_num*x_num*y_num > 100000)
+#ifdef HAVE_OPENMP
+	#pragma omp parallel for default(shared) private (i,k) if(z_num*x_num*y_num > 100000)
+#endif
         for(int j = 0;j < z_num;j++){
 
             for(i = 0;i < x_num;i++){
 
-#pragma omp simd
+#ifdef HAVE_OPENMP
+	#pragma omp simd
+#endif
                 for (k = 0; k < (y_num);k++){
                     input.mesh[j*x_num*y_num + i*y_num + k] = asmlog_2(input.mesh[j*x_num*y_num + i*y_num + k]*mult_const);
                 }

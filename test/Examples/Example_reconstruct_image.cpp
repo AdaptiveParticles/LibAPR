@@ -81,8 +81,9 @@ int main(int argc, char **argv) {
     apr.interp_img(recon_pc,apr.particles_intensities);
 
     timer.stop_timer();
+    std::chrono::duration<double> elapsed_seconds = timer.t2 - timer.t1;
 
-    std::cout << "PC recon " << (recon_pc.x_num*recon_pc.y_num*recon_pc.z_num)/((timer.t2 - timer.t1)*1000000.0) << " million pixels per second"  <<  std::endl;
+    std::cout << "PC recon " << (recon_pc.x_num*recon_pc.y_num*recon_pc.z_num)/(elapsed_seconds.count()*1000000.0) << " million pixels per second"  <<  std::endl;
 
     std::string output_path = options.directory + apr.name + "_pc.tif";
 
@@ -105,7 +106,9 @@ int main(int argc, char **argv) {
 
     timer.start_timer("APR parallel iterator loop");
 
-#pragma omp parallel for schedule(static) private(particle_number) firstprivate(apr_iterator)
+#ifdef HAVE_OPENMP
+	#pragma omp parallel for schedule(static) private(particle_number) firstprivate(apr_iterator)
+#endif
     for (particle_number = 0; particle_number < apr_iterator.total_number_particles(); ++particle_number) {
         //needed step for any parallel loop (update to the next part)
         apr_iterator.set_iterator_to_particle_by_number(particle_number);
@@ -143,8 +146,9 @@ int main(int argc, char **argv) {
     apr.interp_parts_smooth(recon_smooth,apr.particles_intensities,scale_d);
 
     timer.stop_timer();
+    elapsed_seconds = timer.t2 - timer.t1;
 
-    std::cout << "Smooth recon " << (recon_smooth.x_num*recon_smooth.y_num*recon_smooth.z_num)/((timer.t2 - timer.t1)*1000000.0) << " million pixels per second"  <<  std::endl;
+    std::cout << "Smooth recon " << (recon_smooth.x_num*recon_smooth.y_num*recon_smooth.z_num)/(elapsed_seconds.count()*1000000.0) << " million pixels per second"  <<  std::endl;
 
     output_path = options.directory + apr.name + "_smooth.tif";
 

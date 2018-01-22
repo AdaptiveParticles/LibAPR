@@ -254,7 +254,9 @@ void APRConverter<ImageType>::get_local_particle_cell_set(MeshData<T>& grad_imag
     APRTimer timer;
 
     //divide gradient magnitude by Local Intensity Scale (first step in calculating the Local Resolution Estimate L(y), minus constants)
-#pragma omp parallel for default(shared)
+#ifdef HAVE_OPENMP
+	#pragma omp parallel for default(shared)
+#endif
     for(int i = 0; i < grad_temp.mesh.size(); i++)
     {
         local_scale_temp.mesh[i] = (1.0*grad_temp.mesh[i])/(local_scale_temp.mesh[i]*1.0);

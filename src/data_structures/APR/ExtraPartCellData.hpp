@@ -82,7 +82,9 @@ public:
             const unsigned int x_num_ = x_num[i];
             const unsigned int z_num_ = z_num[i];
 
-#pragma omp parallel for private(z_,x_)
+#ifdef HAVE_OPENMP
+	#pragma omp parallel for private(z_,x_)
+#endif
             for(z_ = 0;z_ < z_num_;z_++){
 
                 for(x_ = 0;x_ < x_num_;x_++){
@@ -112,7 +114,9 @@ public:
         const unsigned int x_num_ = x_num[level];
         const unsigned int z_num_ = z_num[level];
 
-#pragma omp parallel for private(z_,x_)
+#ifdef HAVE_OPENMP
+	#pragma omp parallel for private(z_,x_)
+#endif
         for(z_ = 0;z_ < z_num_;z_++){
 
             for(x_ = 0;x_ < x_num_;x_++){
@@ -152,7 +156,9 @@ public:
             data[i].resize(z_num[i]*x_num[i]);
 
             int j = 0;
-#pragma omp parallel for private(j)
+#ifdef HAVE_OPENMP
+	#pragma omp parallel for private(j)
+#endif
             for(j = 0;j < pc_data.data[i].size();j++){
                 data[i][j].resize(pc_data.data[i][j].size(),0);
             }
@@ -424,7 +430,9 @@ public:
             const unsigned int x_num_min_ = 0;
             const unsigned int z_num_min_ = 0;
 
-#pragma omp parallel for default(shared) private(z_,x_,j_) if(z_num_*x_num_ > 100)
+#ifdef HAVE_OPENMP
+	#pragma omp parallel for default(shared) private(z_,x_,j_) if(z_num_*x_num_ > 100)
+#endif
             for (z_ = z_num_min_; z_ < z_num_; z_++) {
                 //both z and x are explicitly accessed in the structure
 
@@ -459,7 +467,9 @@ public:
             const unsigned int x_num_min_ = 0;
             const unsigned int z_num_min_ = 0;
 
-#pragma omp parallel for default(shared) private(z_,x_,j_) if(z_num_*x_num_ > 100)
+#ifdef HAVE_OPENMP
+	#pragma omp parallel for default(shared) private(z_,x_,j_) if(z_num_*x_num_ > 100)
+#endif
             for (z_ = z_num_min_; z_ < z_num_; z_++) {
                 //both z and x are explicitly accessed in the structure
 
@@ -500,7 +510,9 @@ public:
             const unsigned int x_num_min_ = 0;
             const unsigned int z_num_min_ = 0;
 
-#pragma omp parallel for default(shared) private(z_,x_,j_) if(z_num_*x_num_ > 100)
+#ifdef HAVE_OPENMP
+	#pragma omp parallel for default(shared) private(z_,x_,j_) if(z_num_*x_num_ > 100)
+#endif
             for (z_ = z_num_min_; z_ < z_num_; z_++) {
                 //both z and x are explicitly accessed in the structure
 
@@ -544,7 +556,9 @@ public:
             const unsigned int x_num_min_ = 0;
             const unsigned int z_num_min_ = 0;
 
-#pragma omp parallel for default(shared) private(z_,x_,j_) if(z_num_*x_num_ > 100)
+#ifdef HAVE_OPENMP
+	#pragma omp parallel for default(shared) private(z_,x_,j_) if(z_num_*x_num_ > 100)
+#endif
             for (z_ = z_num_min_; z_ < z_num_; z_++) {
                 //both z and x are explicitly accessed in the structure
 
@@ -582,7 +596,9 @@ public:
             const unsigned int x_num_min_ = 0;
             const unsigned int z_num_min_ = 0;
 
-#pragma omp parallel for default(shared) private(z_,x_,j_) if(z_num_*x_num_ > 100)
+#ifdef HAVE_OPENMP
+	#pragma omp parallel for default(shared) private(z_,x_,j_) if(z_num_*x_num_ > 100)
+#endif
             for (z_ = z_num_min_; z_ < z_num_; z_++) {
                 //both z and x are explicitly accessed in the structure
 
@@ -618,7 +634,9 @@ public:
         const unsigned int x_num_min_ = 0;
         const unsigned int z_num_min_ = 0;
 
-#pragma omp parallel for default(shared) private(z_,x_,j_) if(z_num_*x_num_ > 100)
+#ifdef HAVE_OPENMP
+	#pragma omp parallel for default(shared) private(z_,x_,j_) if(z_num_*x_num_ > 100)
+#endif
         for (z_ = z_num_min_; z_ < z_num_; z_++) {
             //both z and x are explicitly accessed in the structure
 
@@ -669,7 +687,9 @@ public:
             const unsigned int x_num_ = pdata_old.x_num[i];
             const unsigned int z_num_ = pdata_old.z_num[i];
 
-#pragma omp parallel for default(shared) private(z_,x_,j_,node_val)  if(z_num_*x_num_ > 100)
+#ifdef HAVE_OPENMP
+	#pragma omp parallel for default(shared) private(z_,x_,j_,node_val)  if(z_num_*x_num_ > 100)
+#endif
             for(z_ = 0;z_ < z_num_;z_++){
 
                 for(x_ = 0;x_ < x_num_;x_++){

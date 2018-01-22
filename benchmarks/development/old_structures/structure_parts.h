@@ -29,8 +29,11 @@
 #include <string>
 #include <vector>
 #include <algorithm>
+#include <chrono>
 
-#include "omp.h"
+#ifdef HAVE_OPENMP
+	#include "omp.h"
+#endif
 #include "benchmarks/development/old_io/parameters.h"
 
 class Part_map;
@@ -105,8 +108,8 @@ public:
     
     int timer_count;
     
-    double t1;
-    double t2;
+    std::chrono::system_clock::time_point t1;
+    std::chrono::system_clock::time_point t2;
     
     bool verbose_flag; //turn to true if you want all the functions to write out their timings to terminal
     
@@ -121,19 +124,20 @@ public:
     void start_timer(std::string timing_name){
         timing_names.push_back(timing_name);
         
-        t1 = omp_get_wtime();
+        t1 = std::chrono::system_clock::now();
     }
     
     
     void stop_timer(){
-        t2 = omp_get_wtime();
-        
-        timings.push_back(t2-t1);
+        t2 = std::chrono::system_clock::now();
+
+        std::chrono::duration<double> elapsed_seconds = t2 - t1;
+        timings.push_back(elapsed_seconds.count());
         
         if (verbose_flag){
             //output to terminal the result
             std::cout <<  timing_names[timer_count] << " took "
-            << t2-t1
+            << elapsed_seconds.count()
             << " seconds\n";
         }
         timer_count++;

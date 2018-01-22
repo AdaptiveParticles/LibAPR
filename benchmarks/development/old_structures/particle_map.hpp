@@ -84,8 +84,10 @@ private:
         for(int out = 0; out < std::min(3,z_num); out ++) {
 
 
-#pragma omp parallel for default(shared) private(j,i,k,neighbour_index,jn,in,kn,status,index) firstprivate(boundaries) \
+#ifdef HAVE_OPENMP
+	#pragma omp parallel for default(shared) private(j,i,k,neighbour_index,jn,in,kn,status,index) firstprivate(boundaries) \
         reduction(+:parts) if(z_num * x_num * y_num > 100000)
+#endif
             for (int j = out; j < z_num; j += 3) {
 
                 CHECKBOUNDARIES(0, j, z_num - 1, boundaries);
@@ -141,8 +143,10 @@ private:
         for(int out = 0; out < std::min(3,z_num); out ++) {
 
 
-#pragma omp parallel for default(shared) private(j,i,k,neighbour_index,jn,in,kn,status,index) firstprivate(boundaries) \
+#ifdef HAVE_OPENMP
+	#pragma omp parallel for default(shared) private(j,i,k,neighbour_index,jn,in,kn,status,index) firstprivate(boundaries) \
         reduction(+:parts) if(z_num * x_num * y_num > 100000)
+#endif
             for (int j = out; j < z_num; j += 3) {
 
                 CHECKBOUNDARIES(0, j, z_num - 1, boundaries);
@@ -203,8 +207,10 @@ private:
         // loop unrolling in order to avoid concurrent write
         for(int out = 0; out < std::min(3,z_num); out ++) {
 
-#pragma omp parallel for default(shared) private(i,k,neighbour_index,jn,in,kn,status,index) firstprivate(boundaries) \
+#ifdef HAVE_OPENMP
+	#pragma omp parallel for default(shared) private(i,k,neighbour_index,jn,in,kn,status,index) firstprivate(boundaries) \
         if(z_num * x_num * y_num > 100000) schedule(static)
+#endif
             for (int j = out; j < z_num; j += 3) {
 
                 CHECKBOUNDARIES(0, j, z_num - 1, boundaries);
@@ -257,8 +263,10 @@ private:
         // loop unrolling in order to avoid concurrent write
         for(int out = 0; out < std::min(3,z_num); out ++) {
 
-#pragma omp parallel for default(shared) private(i,k,neighbour_index,jn,in,kn,status,index) firstprivate(boundaries) \
+#ifdef HAVE_OPENMP
+	#pragma omp parallel for default(shared) private(i,k,neighbour_index,jn,in,kn,status,index) firstprivate(boundaries) \
         if(z_num * x_num * y_num > 100000) schedule(static)
+#endif
             for (int j = out; j < z_num; j += 3) {
 
                 CHECKBOUNDARIES(0, j, z_num - 1, boundaries);
@@ -313,8 +321,10 @@ private:
         // loop unrolling in order to avoid concurrent write
         for(int out = 0; out < std::min(3,z_num); out ++) {
 
-#pragma omp parallel for default(shared) private(i,k,neighbour_index,jn,in,kn,status,index) firstprivate(boundaries) \
+#ifdef HAVE_OPENMP
+	#pragma omp parallel for default(shared) private(i,k,neighbour_index,jn,in,kn,status,index) firstprivate(boundaries) \
         if(z_num * x_num * y_num > 100000) schedule(static)
+#endif
             for (int j = out; j < z_num; j += 3) {
 
                 CHECKBOUNDARIES(0, j, z_num - 1, boundaries);
@@ -361,9 +371,11 @@ private:
         int i, k, jn, in, kn, children_index, index, parts=0;
         uint8_t children_status, status;
 
-#pragma omp parallel for default(shared) \
+#ifdef HAVE_OPENMP
+	#pragma omp parallel for default(shared) \
         private(i,k,children_index,jn,in,kn,children_status,status,index) \
         if(z_num * x_num * y_num > 10000) reduction(+:parts) firstprivate(level, children_boundaries)
+#endif
         for(int j = 0; j < z_num; j++) {
 
             if( j == z_num - 1 && prev_z_num % 2 ) {
@@ -430,9 +442,11 @@ private:
         int i, k, jn, in, kn, children_index, index, parts=0;
         uint8_t children_status, status;
 
-#pragma omp parallel for default(shared) \
+#ifdef HAVE_OPENMP
+	#pragma omp parallel for default(shared) \
         private(i,k,children_index,jn,in,kn,children_status,status,index) \
         if(z_num * x_num * y_num > 10000) reduction(+:parts) firstprivate(level, children_boundaries)
+#endif
         for(int j = 0; j < z_num; j++) {
 
             if( j == z_num - 1 && prev_z_num % 2 ) {
@@ -747,7 +761,9 @@ public :
 
         if (k == k_max){
             // k_max loop, has to include
-#pragma omp parallel for default(shared) private(i,q,temp)
+#ifdef HAVE_OPENMP
+	#pragma omp parallel for default(shared) private(i,q,temp)
+#endif
             for(int j = 0;j < z_num;j++){
                 for(i = 0;i < x_num;i++){
                     for (q = 0; q < (y_num);q++){
@@ -765,7 +781,9 @@ public :
 
         } else if (k == k_min){
         // k_max loop, has to include
-#pragma omp parallel for default(shared) private(i,q,temp) if(z_num*x_num*y_num > 100000)
+#ifdef HAVE_OPENMP
+	#pragma omp parallel for default(shared) private(i,q,temp) if(z_num*x_num*y_num > 100000)
+#endif
             for(int j = 0;j < z_num;j++){
                 for(i = 0;i < x_num;i++){
                     for (q = 0; q < (y_num);q++){
@@ -784,11 +802,15 @@ public :
         } else{
             // other k's
 
-#pragma omp parallel for default(shared) private(i,q,temp) if(z_num*x_num*y_num > 100000)
+#ifdef HAVE_OPENMP
+	#pragma omp parallel for default(shared) private(i,q,temp) if(z_num*x_num*y_num > 100000)
+#endif
             for(int j = 0;j < z_num;j++){
                 for(i = 0;i < x_num;i++){
 #ifndef _MSC_VER
-#pragma omp simd
+#ifdef HAVE_OPENMP
+	#pragma omp simd
+#endif
 #endif
                     for (q = 0; q < y_num;q++){
 

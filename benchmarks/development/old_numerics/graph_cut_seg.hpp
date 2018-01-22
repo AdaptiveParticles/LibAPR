@@ -707,7 +707,9 @@ void construct_max_flow_graph_new(PartCellStructure<V,T>& pc_struct,GraphType& g
         const unsigned int x_num_ = pc_struct.pc_data.x_num[i];
         const unsigned int z_num_ = pc_struct.pc_data.z_num[i];
 
-#pragma omp parallel for default(shared) private(p,z_,x_,j_,node_val_part,curr_key,status,part_offset) if(z_num_*x_num_ > 100)
+#ifdef HAVE_OPENMP
+	#pragma omp parallel for default(shared) private(p,z_,x_,j_,node_val_part,curr_key,status,part_offset) if(z_num_*x_num_ > 100)
+#endif
 
         for(z_ = 0;z_ < z_num_;z_++){
             //both z and x are explicitly accessed in the structure
@@ -846,7 +848,9 @@ void construct_max_flow_graph_new(PartCellStructure<V,T>& pc_struct,GraphType& g
         //loop over the resolutions of the structure
         const unsigned int x_num_ = pc_data.x_num[i];
         const unsigned int z_num_ = pc_data.z_num[i];
-#pragma omp parallel for default(shared) private(z_,x_,j_,node_val_pc,curr_key)  if(z_num_*x_num_ > 100)
+#ifdef HAVE_OPENMP
+	#pragma omp parallel for default(shared) private(z_,x_,j_,node_val_pc,curr_key)  if(z_num_*x_num_ > 100)
+#endif
         for(z_ = 0;z_ < z_num_;z_++){
             //both z and x are explicitly accessed in the structure
             curr_key = 0;
@@ -1075,7 +1079,9 @@ void construct_max_flow_graph_new(PartCellStructure<V,T>& pc_struct,GraphType& g
         //loop over the resolutions of the structure
         const unsigned int x_num_ = pc_data.x_num[i];
         const unsigned int z_num_ = pc_data.z_num[i];
-#pragma omp parallel for default(shared) private(z_,x_,j_,node_val_pc,curr_key)  firstprivate(neigh_cell_keys) if(z_num_*x_num_ > 100)
+#ifdef HAVE_OPENMP
+	#pragma omp parallel for default(shared) private(z_,x_,j_,node_val_pc,curr_key)  firstprivate(neigh_cell_keys) if(z_num_*x_num_ > 100)
+#endif
         for(z_ = 0;z_ < z_num_;z_++){
             //both z and x are explicitly accessed in the structure
             curr_key = 0;
@@ -1194,7 +1200,9 @@ void calc_graph_cuts_segmentation(PartCellStructure<V,T>& pc_struct,ExtraPartCel
         const unsigned int x_num_ = pc_struct.pc_data.x_num[i];
         const unsigned int z_num_ = pc_struct.pc_data.z_num[i];
         
-#pragma omp parallel for default(shared) private(p,z_,x_,j_,node_val_part,curr_key,status,part_offset) if(z_num_*x_num_ > 100)
+#ifdef HAVE_OPENMP
+	#pragma omp parallel for default(shared) private(p,z_,x_,j_,node_val_part,curr_key,status,part_offset) if(z_num_*x_num_ > 100)
+#endif
         for(z_ = 0;z_ < z_num_;z_++){
             //both z and x are explicitly accessed in the structure
             curr_key = 0;
