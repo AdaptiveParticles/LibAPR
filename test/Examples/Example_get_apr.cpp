@@ -76,6 +76,7 @@ int main(int argc, char **argv) {
         MeshData<uint16_t> level;
 
         apr.interp_depth_ds(level);
+
         std::string output_path = save_loc + file_name + "_level.tif";
         //write output as tiff
         level.write_image_tiff(output_path);

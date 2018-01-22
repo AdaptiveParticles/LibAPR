@@ -1255,26 +1255,26 @@ void compare_var_func(PartCellStructure<float,uint64_t>& pc_struct_perfect,MeshD
 template<typename T>
 void true_int(MeshData<T>& input_image,AnalysisData& analysis_data,PartCellStructure<float,uint64_t>& pc_struct,SynImage& syn_image,Proc_par& pars,std::string name,MeshData<float>& var) {
 //Generate clean gt image&
-    MeshData<float> gt_imaged;
-    generate_gt_image(gt_imaged, syn_image);
-
-    Part_rep p_rep(input_image.y_num, input_image.x_num, input_image.z_num);
-
-    p_rep.pars = pars;
-
-    APR<float> t_apr;
-
-    create_pc_data_new(t_apr,pc_struct);
-
-    ExtraPartCellData<float> true_parts(t_apr);
-
-
-    Particle_map<float> part_map(p_rep);
-
-    part_map.downsample(gt_imaged);
-
-
-    t_apr.get_parts_from_img(part_map.downsampled,true_parts);
+//    MeshData<float> gt_imaged;
+//    generate_gt_image(gt_imaged, syn_image);
+//
+//    Part_rep p_rep(input_image.y_num, input_image.x_num, input_image.z_num);
+//
+//    p_rep.pars = pars;
+//
+//    APR<float> t_apr;
+//
+//    create_pc_data_new(t_apr,pc_struct);
+//
+//    ExtraPartCellData<float> true_parts(t_apr);
+//
+//
+//    Particle_map<float> part_map(p_rep);
+//
+//    part_map.downsample(gt_imaged);
+//
+//
+//    t_apr.get_parts_from_img(part_map.downsampled,true_parts);
 
 //
 //
@@ -1312,19 +1312,19 @@ void true_int(MeshData<T>& input_image,AnalysisData& analysis_data,PartCellStruc
 //        }
 //    }
 
-    MeshData<float> true_int_m;
-
-    MeshData<uint16_t> gt_image;
-
-    t_apr.interp_img(true_int_m,true_parts);
-
-    generate_gt_image(gt_image, syn_image);
-
-    name = name + "_true";
-
-    compare_E(gt_image, true_int_m, pars, name, analysis_data,var);
-
-    calc_mse(gt_image, true_int_m, name, analysis_data);
+//    MeshData<float> true_int_m;
+//
+//    MeshData<uint16_t> gt_image;
+//
+//    t_apr.interp_img(true_int_m,true_parts);
+//
+//    generate_gt_image(gt_image, syn_image);
+//
+//    name = name + "_true";
+//
+//    compare_E(gt_image, true_int_m, pars, name, analysis_data,var);
+//
+//    calc_mse(gt_image, true_int_m, name, analysis_data);
 
 }
 
@@ -1614,7 +1614,7 @@ void produce_apr_analysis(MeshData<T>& input_image,AnalysisData& analysis_data,P
     }
 
     if(analysis_data.quality_true_int) {
-
+//#fixme
         //Generate clean gt image
         MeshData<float> gt_imaged;
         generate_gt_image(gt_imaged, syn_image);
@@ -1633,7 +1633,7 @@ void produce_apr_analysis(MeshData<T>& input_image,AnalysisData& analysis_data,P
 
         part_map.downsample(gt_imaged);
 
-        t_apr.get_parts_from_img(part_map.downsampled,true_parts);
+        //t_apr.get_parts_from_img(part_map.downsampled,true_parts);
 
 
         MeshData<float> true_int_m;
@@ -1641,7 +1641,7 @@ void produce_apr_analysis(MeshData<T>& input_image,AnalysisData& analysis_data,P
         MeshData<uint16_t> gt_image;
 
 
-        t_apr.interp_img(true_int_m,true_parts);
+        // t_apr.interp_img(true_int_m,true_parts); #broken
 
         generate_gt_image(gt_image, syn_image);
 

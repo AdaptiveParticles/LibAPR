@@ -220,105 +220,19 @@ TEST_F(CreateMembraneTest, FIND_CELL) {
 
 }
 
-TEST_F(CreateMembraneTest, NEIGH_CELL_TEST) {
-
-    //
-    //  Sparse Particle Structure Test Cases
-    //
-    //
-
-    //test io
-    ASSERT_TRUE(utest_neigh_cells(pc_struct));
-
-}
-
-TEST_F(CreateMembraneTest, NEIGH_PART_TEST) {
-
-    //
-    //  Sparse Particle Structure Test Cases
-    //
-    //
-
-    //test io
-    ASSERT_TRUE(utest_neigh_parts(pc_struct));
-
-}
-
-TEST_F(CreateMembraneTest, NEW_STRUCTURE) {
-
-    //
-    //  Sparse Particle Structure Test Cases
-    //
-    //
-
-    //test io
-    ASSERT_TRUE(utest_alt_part_struct(pc_struct));
-
-}
 
 
-TEST_F(CreateMembraneTest, APR_SERIAL_ITERATOR) {
-
-    //
-    //  Sparse Particle Structure Test Cases
-    //
-    //
-
-    //test iteration
-    ASSERT_TRUE(utest_apr_serial_iterate(pc_struct));
-
-}
-
-TEST_F(CreateMembraneTest, APR_SERIAL_NEIGH) {
-
-    //
-    //  Sparse Particle Structure Test Cases
-    //
-    //
-
-    //test get face neighbours
-    ASSERT_TRUE(utest_apr_serial_neigh(pc_struct));
-
-}
-
-
-TEST_F(CreateMembraneTest, APR_PARALELL_ITERATOR) {
-
-    //
-    //  Sparse Particle Structure Test Cases
-    //
-    //
-
-    //test io
-    ASSERT_TRUE(utest_apr_parallel_iterate(pc_struct));
-
-}
-
-TEST_F(CreateMembraneTest, APR_PARALELL_NEIGH) {
-
-    //
-    //  Sparse Particle Structure Test Cases
-    //
-    //
-
-    //test io
-    ASSERT_TRUE(utest_apr_parallel_neigh(pc_struct));
-
-}
-
-TEST_F(CreateMembraneTest, APR_INPUT_OUTPUT) {
-
-    //
-    //  Sparse Particle Structure Test Cases
-    //
-    //
-
-    //test io
-    ASSERT_TRUE(utest_apr_read_write(pc_struct));
-
-}
-
-
+//TEST_F(CreateSphereTest, APR_INPUT_OUTPUT_SMALL) {
+//
+//    //
+//    //  Sparse Particle Structure Test Cases
+//    //
+//    //
+//
+//    //test io
+//    ASSERT_TRUE(utest_apr_read_write(pc_struct));
+//
+//}
 //TEST_F(CreateMembraneTest, MOORE_NEIGHBOURHOOD) {
 //
 //    //test neighbour cell search

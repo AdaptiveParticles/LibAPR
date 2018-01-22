@@ -5,7 +5,7 @@
 #include <algorithm>
 #include <iostream>
 
-#include "Example_recon_img.h"
+#include "Example_reconstruct_image.h"
 
 bool command_option_exists(char **begin, char **end, const std::string &option)
 {
@@ -68,7 +68,7 @@ int main(int argc, char **argv) {
     timer.verbose_flag = true;
 
     // APR datastructure
-    APR<float> apr;
+    APR<uint16_t> apr;
 
     //read file
     apr.read_apr(file_name);
@@ -78,7 +78,7 @@ int main(int argc, char **argv) {
 
     timer.start_timer("pc interp");
     //perform piece-wise constant interpolation
-    apr.interp_img(recon_pc,apr.particles_int);
+    apr.interp_img(recon_pc,apr.particles_intensities);
 
     timer.stop_timer();
 
@@ -96,22 +96,22 @@ int main(int argc, char **argv) {
     ////////////////////////////
 
     //initialization of the iteration structures
-    APRIterator<float> apr_it(apr); //this is required for parallel access
-    uint64_t part;
+    APRIterator<uint16_t> apr_iterator(apr); //this is required for parallel access
+    uint64_t particle_number;
 
     //create particle dataset
-    ExtraPartCellData<float> type(apr);
-    ExtraPartCellData<float> level(apr);
+    ExtraParticleData<uint16_t> type(apr);
+    ExtraParticleData<uint16_t> level(apr);
 
     timer.start_timer("APR parallel iterator loop");
 
-#pragma omp parallel for schedule(static) private(part) firstprivate(apr_it)
-    for (part = 0; part < apr.num_parts_total; ++part) {
+#pragma omp parallel for schedule(static) private(particle_number) firstprivate(apr_iterator)
+    for (particle_number = 0; particle_number < apr_iterator.total_number_particles(); ++particle_number) {
         //needed step for any parallel loop (update to the next part)
-        apr_it.set_iterator_to_particle_by_number(part);
+        apr_iterator.set_iterator_to_particle_by_number(particle_number);
 
-        apr_it(type) = apr_it.type();
-        apr_it(level) = apr_it.depth();
+        apr_iterator(type) = apr_iterator.type();
+        apr_iterator(level) = apr_iterator.level();
     }
 
     timer.stop_timer();
@@ -140,7 +140,7 @@ int main(int argc, char **argv) {
 
     timer.start_timer("smooth reconstrution");
 
-    apr.interp_parts_smooth(recon_smooth,apr.particles_int,scale_d);
+    apr.interp_parts_smooth(recon_smooth,apr.particles_intensities,scale_d);
 
     timer.stop_timer();
 

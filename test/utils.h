@@ -17,6 +17,9 @@
 
 #include "tiffio.h"
 
+template <typename T,typename S>
+class PartCellStructure;
+
 #include "src/data_structures/Mesh/MeshData.hpp"
 #include "benchmarks/development/old_algorithm/level.hpp"
 #include "benchmarks/development/Tree/PartCellStructure.hpp"
@@ -26,7 +29,7 @@
 #include "benchmarks/development/Tree/ParticleDataNew.hpp"
 
 #include "benchmarks/development/old_numerics/NeighOffset.hpp"
-#include "src/data_structures/APR/CurrLevel.hpp"
+#include "benchmarks/development/Tree/CurrLevel.hpp"
 #include "benchmarks/development/old_numerics/misc_numerics.hpp"
 
 #include <algorithm>
@@ -39,6 +42,8 @@
 #include "benchmarks/development/old_io/read_parts.h"
 
 #include "src/data_structures/APR/APR.hpp"
+
+#include "src/data_structures/APR/APRIterator.hpp"
 
 bool compare_two_images(const MeshData<uint16_t>& in_memory, std::string filename);
 bool compare_two_ks(const Particle_map<float>& in_memory, std::string filename);
@@ -85,6 +90,11 @@ void create_j_reference_structure(PartCellStructure<float,uint64_t>& pc_struct,s
 pc_key find_neigh_cell(pc_key curr_cell,int dir,std::vector<MeshData<uint64_t>>& j_array);
 
 void create_pc_data_new(APR<float>& apr,PartCellStructure<float,uint64_t>& pc_struct);
+
+bool check_neighbours(APR<float>& apr,APRIterator<float>& current,APRIterator<float>& neigh);
+bool check_neighbour_out_of_bounds(APRIterator<float>& current,uint8_t face);
+
+void create_apr_from_pc_struct(APR<float>& apr,PartCellStructure<float,uint64_t>& pc_struct);
 
 bool utest_neigh_cells(PartCellStructure<float,uint64_t>& pc_struct);
 

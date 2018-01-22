@@ -16,7 +16,7 @@
 #include "benchmarks/development/old_numerics/misc_numerics.hpp"
 #include "benchmarks/development/old_numerics/graph_cut_seg.hpp"
 #include "benchmarks/development/old_numerics/apr_segment.hpp"
-#include "src/numerics/ray_cast.hpp"
+#include "src/numerics/APRRaycaster.hpp"
 #include "src/data_structures/APR/APR.hpp"
 
 bool command_option_exists(char **begin, char **end, const std::string &option)
@@ -147,21 +147,21 @@ int main(int argc, char **argv) {
     debug_write(seg_mesh,pc_struct.name + "_gc_seg");
 
 
-    proj_par proj_pars;
-
-    proj_pars.theta_0 = -3.14;
-    proj_pars.theta_final = 3.14;
-    proj_pars.radius_factor = 1.1;
-    proj_pars.theta_delta = 0.025;
-    proj_pars.scale_z = pc_struct.pars.aniso;
-
-    //APR<float> curr_apr(pc_struct);
-
-    //shift_particles_from_cells(curr_apr.part_new,seg_parts);
-
-    //ExtraPartCellData<uint16_t> seg_parts_depth = multiply_by_depth(seg_parts);
-
-    proj_pars.name = pc_struct.name + "depth";
+//    proj_par proj_pars;
+//
+//    proj_pars.theta_0 = -3.14;
+//    proj_pars.theta_final = 3.14;
+//    proj_pars.radius_factor = 1.1;
+//    proj_pars.theta_delta = 0.025;
+//    proj_pars.scale_z = pc_struct.pars.aniso;
+//
+//    //APR<float> curr_apr(pc_struct);
+//
+//    //shift_particles_from_cells(curr_apr.part_new,seg_parts);
+//
+//    //ExtraPartCellData<uint16_t> seg_parts_depth = multiply_by_depth(seg_parts);
+//
+//    proj_pars.name = pc_struct.name + "depth";
 
     //apr_perspective_raycast_depth(curr_apr.y_vec,seg_parts,seg_parts_depth,proj_pars,[] (const uint16_t& a,const uint16_t& b) {return std::max(a,b);},true);
 

@@ -11,7 +11,7 @@
 
 #include <stdint.h>
 
-#include "src/data_structures/APR/PartCellData.hpp"
+#include "PartCellData.hpp"
 //#include "src/data_structures/APR/ExtraPartCellData.hpp"
 #include "benchmarks/development/Tree/PartCellStructure.hpp"
 

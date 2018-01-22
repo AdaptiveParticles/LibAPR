@@ -98,12 +98,12 @@ int main(int argc, char **argv) {
     std::string file_name = options.directory + options.input;
 
     // APR datastructure
-    APR<float> apr;
+    APR<uint16_t> apr;
 
     //read file
     apr.read_apr(file_name);
 
-    Part_timer timer;
+    APRTimer timer;
 
     /////////////////
     ///
@@ -111,20 +111,20 @@ int main(int argc, char **argv) {
     ///
     ////////////////
 
-    proj_par proj_pars;
+    APRRaycaster apr_raycaster;
 
-    proj_pars.theta_0 = -3.14; //start
-    proj_pars.theta_final = 3.14; //stop radians
-    proj_pars.radius_factor = .98f; //radius scaling
-    proj_pars.theta_delta = (proj_pars.theta_final - proj_pars.theta_0)/(options.num_views*1.0); //steps
-    proj_pars.scale_z = options.aniso; //z scaling
+    apr_raycaster.theta_0 = -3.14; //start
+    apr_raycaster.theta_final = 3.14; //stop radians
+    apr_raycaster.radius_factor = .98f; //radius scaling
+    apr_raycaster.theta_delta = (apr_raycaster.theta_final - apr_raycaster.theta_0)/(options.num_views*1.0); //steps
+    apr_raycaster.scale_z = options.aniso; //z scaling
 
-    proj_pars.jitter = (options.jitter > 0);
-    proj_pars.jitter_factor = options.jitter;
+    apr_raycaster.jitter = (options.jitter > 0);
+    apr_raycaster.jitter_factor = options.jitter;
 
-    proj_pars.name = apr.name;
+    apr_raycaster.name = apr.name;
 
-    MeshData<float> views;
+    MeshData<uint16_t> views;
 
     /////////////
     ///
@@ -132,7 +132,7 @@ int main(int argc, char **argv) {
     ///
     /////////////
 
-    apr_raycast(apr,apr.particles_int,proj_pars,views,[] (const uint16_t& a,const uint16_t& b) {return std::max(a,b);});
+    apr_raycaster.perform_raycast(apr,apr.particles_intensities,views,[] (const uint16_t& a,const uint16_t& b) {return std::max(a,b);});
 
     //////////////
     ///
@@ -142,6 +142,6 @@ int main(int argc, char **argv) {
 
     std::string output_loc = options.directory + apr.name + "_ray_cast_views.tif";
 
-    views.write_image_tiff_uint16(output_loc);
+    views.write_image_tiff(output_loc);
 
 }

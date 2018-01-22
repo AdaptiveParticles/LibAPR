@@ -16,7 +16,7 @@
 
 
 #include "benchmarks/development/Tree/PartCellStructure.hpp"
-#include "src/data_structures/APR/CurrLevel.hpp"
+#include "benchmarks/development/Tree/CurrLevel.hpp"
 #include "benchmarks/development/old_numerics/NeighIterator.hpp"
 
 template<typename V,typename T>
