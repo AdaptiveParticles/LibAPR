@@ -37,6 +37,9 @@ public:
         data.resize(apr.total_number_particles());
     }
 
+
+
+
     std::vector<DataType> data;
 
     template<typename S>
@@ -48,6 +51,26 @@ public:
         return data.size();
     }
 
+    /////////////////
+    /// ////
+    /// \tparam S
+    /// \param apr_iterator
+    /// \return access to particle data
+
+    template<typename S>
+    DataType& operator[](APRIterator<S>& apr_iterator){
+        return data[apr_iterator.global_index()];
+    }
+
+    template<typename S>
+    DataType get_particle(APRIterator<S>& apr_iterator){
+        return data[apr_iterator.global_index()];
+    }
+
+    template<typename S>
+    void set_particle(APRIterator<S>& apr_iterator,DataType set_val){
+        data[apr_iterator.global_index()] = set_val;
+    }
 
     template<typename S,typename T>
     void copy_parts(APR<T>& apr,ExtraParticleData<S>& parts_to_copy,const unsigned int level = 0,unsigned int aNumberOfBlocks = 10){
