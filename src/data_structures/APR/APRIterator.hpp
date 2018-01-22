@@ -485,7 +485,7 @@ private:
         uint64_t offset_max = apr_access->x_num[current_particle_cell.level]*apr_access->z_num[current_particle_cell.level];
 
         //iterate until you find the next row or hit the end of the level
-        while((apr_access->gap_map.data[current_particle_cell.level][current_particle_cell.pc_offset].size()==0) & (current_particle_cell.pc_offset < offset_max)){
+        while((current_particle_cell.pc_offset < offset_max) && (apr_access->gap_map.data[current_particle_cell.level][current_particle_cell.pc_offset].size()==0)){
             current_particle_cell.pc_offset++;
         }
 
