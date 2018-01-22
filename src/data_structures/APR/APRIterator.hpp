@@ -62,11 +62,12 @@ public:
         return (apr_access)->total_number_particles;
     }
 
-    bool set_iterator_to_particle_by_number(const uint64_t &particle_number){
+    bool set_iterator_to_particle_by_number(const uint64_t particle_number){
         //
         //  Moves the iterator to point to the particle number (global index of the particle)
         //
 
+        std::cerr << particle_number << std::endl;
         if(particle_number==0){
             current_particle_cell.level = level_min();
             current_particle_cell.pc_offset=0;
@@ -530,6 +531,7 @@ private:
         } else {
             //not in the same gap
 
+            std::cerr << "size=" << apr_access->gap_map.data[current_particle_cell.level][current_particle_cell.pc_offset][0].map.size() << std::endl;
             current_gap.iterator++;//move the iterator forward.
 
             if(current_gap.iterator!=(apr_access->gap_map.data[current_particle_cell.level][current_particle_cell.pc_offset][0].map.end())){
@@ -546,7 +548,7 @@ private:
                     return true;
                 } else {
                     //reached the end of the particle cells
-                    current_particle_cell.global_index = -1;
+                    current_particle_cell.global_index = UINT64_MAX;
                     return false;
                 }
             }
