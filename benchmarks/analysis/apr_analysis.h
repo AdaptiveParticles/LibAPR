@@ -1625,13 +1625,13 @@ void produce_apr_analysis(MeshData<T>& input_image,AnalysisData& analysis_data,P
 
         APR<float> t_apr;
 
-        create_pc_data_new(t_apr,pc_struct);
-
-        ExtraPartCellData<float> true_parts(t_apr);
-
-        Particle_map<float> part_map(p_rep);
-
-        part_map.downsample(gt_imaged);
+//        create_pc_data_new(t_apr,pc_struct);
+//
+//        ExtraPartCellData<float> true_parts(t_apr);
+//
+//        Particle_map<float> part_map(p_rep);
+//
+//        part_map.downsample(gt_imaged);
 
         //t_apr.get_parts_from_img(part_map.downsampled,true_parts);
 
