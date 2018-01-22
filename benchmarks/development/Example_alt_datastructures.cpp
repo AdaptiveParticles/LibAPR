@@ -119,7 +119,9 @@ int main(int argc, char **argv) {
         const unsigned int z_num_ = pc_struct.pc_data.z_num[i];
 
 
-#pragma omp parallel for default(shared) private(z_,x_,j_,node_val,curr_key,y_coord) firstprivate(neigh_keys) if(z_num_*x_num_ > 100)
+#ifdef HAVE_OPENMP
+	#pragma omp parallel for default(shared) private(z_,x_,j_,node_val,curr_key,y_coord) firstprivate(neigh_keys) if(z_num_*x_num_ > 100)
+#endif
         for(z_ = 0;z_ < z_num_;z_++){
 
             curr_key = 0;
@@ -231,7 +233,9 @@ int main(int argc, char **argv) {
         const unsigned int z_num_ = pc_struct.pc_data.z_num[i];
 
 
-#pragma omp parallel for default(shared) private(p,z_,x_,j_,node_val_pc,node_val_part,curr_key,status,part_offset) if(z_num_*x_num_ > 100)
+#ifdef HAVE_OPENMP
+	#pragma omp parallel for default(shared) private(p,z_,x_,j_,node_val_pc,node_val_part,curr_key,status,part_offset) if(z_num_*x_num_ > 100)
+#endif
         for(z_ = 0;z_ < z_num_;z_++){
             //both z and x are explicitly accessed in the structure
             curr_key = 0;
@@ -316,7 +320,9 @@ int main(int argc, char **argv) {
         const unsigned int z_num_ = pc_struct.pc_data.z_num[i];
 
 
-#pragma omp parallel for default(shared) private(p,z_,x_,j_,node_val_pc,node_val_part,curr_key,status,part_offset) firstprivate(neigh_part_keys,neigh_cell_keys) if(z_num_*x_num_ > 100)
+#ifdef HAVE_OPENMP
+	#pragma omp parallel for default(shared) private(p,z_,x_,j_,node_val_pc,node_val_part,curr_key,status,part_offset) firstprivate(neigh_part_keys,neigh_cell_keys) if(z_num_*x_num_ > 100)
+#endif
         for(z_ = 0;z_ < z_num_;z_++){
             //both z and x are explicitly accessed in the structure
             curr_key = 0;

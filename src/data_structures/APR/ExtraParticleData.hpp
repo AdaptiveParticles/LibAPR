@@ -108,7 +108,9 @@ public:
         const size_t numOfElementsPerBlock = total_particles_to_iterate/aNumberOfBlocks;
 
         unsigned int blockNum;
-#pragma omp parallel for private(blockNum) schedule(static)
+#ifdef HAVE_OPENMP
+	#pragma omp parallel for private(blockNum) schedule(static)
+#endif
         for (blockNum = 0; blockNum < aNumberOfBlocks; ++blockNum) {
             size_t offsetBegin = particle_number_start + blockNum * numOfElementsPerBlock;
             size_t offsetEnd =  offsetBegin + numOfElementsPerBlock;
@@ -161,7 +163,9 @@ public:
         const size_t numOfElementsPerBlock = total_particles_to_iterate/aNumberOfBlocks;
 
         unsigned int blockNum;
-#pragma omp parallel for private(blockNum) schedule(static)
+#ifdef HAVE_OPENMP
+	#pragma omp parallel for private(blockNum) schedule(static)
+#endif
         for (blockNum = 0; blockNum < aNumberOfBlocks; ++blockNum) {
             size_t offsetBegin = particle_number_start + blockNum * numOfElementsPerBlock;
             size_t offsetEnd =  offsetBegin + numOfElementsPerBlock;
@@ -217,7 +221,9 @@ public:
         const size_t numOfElementsPerBlock = total_particles_to_iterate/aNumberOfBlocks;
 
         unsigned int blockNum;
-#pragma omp parallel for private(blockNum) schedule(static)
+#ifdef HAVE_OPENMP
+	#pragma omp parallel for private(blockNum) schedule(static)
+#endif
         for (blockNum = 0; blockNum < aNumberOfBlocks; ++blockNum) {
             size_t offsetBegin = particle_number_start + blockNum * numOfElementsPerBlock;
             size_t offsetEnd =  offsetBegin + numOfElementsPerBlock;
@@ -272,7 +278,9 @@ public:
         const size_t numOfElementsPerBlock = total_particles_to_iterate/aNumberOfBlocks;
 
         unsigned int blockNum;
-#pragma omp parallel for schedule(static) private(blockNum)
+#ifdef HAVE_OPENMP
+	#pragma omp parallel for schedule(static) private(blockNum)
+#endif
         for (blockNum = 0; blockNum < aNumberOfBlocks; ++blockNum) {
             size_t offsetBegin = particle_number_start + blockNum * numOfElementsPerBlock;
             size_t offsetEnd =  offsetBegin + numOfElementsPerBlock;
@@ -322,7 +330,9 @@ public:
         const size_t numOfElementsPerBlock = total_particles_to_iterate/aNumberOfBlocks;
 
         unsigned int blockNum;
-#pragma omp parallel for private(blockNum) schedule(static)
+#ifdef HAVE_OPENMP
+	#pragma omp parallel for private(blockNum) schedule(static)
+#endif
         for (blockNum = 0; blockNum < aNumberOfBlocks; ++blockNum) {
             size_t offsetBegin = particle_number_start + blockNum * numOfElementsPerBlock;
             size_t offsetEnd =  offsetBegin + numOfElementsPerBlock;

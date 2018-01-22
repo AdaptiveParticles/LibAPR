@@ -235,7 +235,9 @@ public:
         parts.data.resize(apr_iterator.total_number_particles());
 
 
-#pragma omp parallel for schedule(static) private(particle_number) firstprivate(apr_iterator)
+#ifdef HAVE_OPENMP
+	#pragma omp parallel for schedule(static) private(particle_number) firstprivate(apr_iterator)
+#endif
         for (particle_number = 0; particle_number < apr_iterator.total_number_particles(); ++particle_number) {
             //needed step for any parallel loop (update to the next part)
             apr_iterator.set_iterator_to_particle_by_number(particle_number);
@@ -261,7 +263,9 @@ public:
 
         parts.data.resize(apr_iterator.total_number_particles());
 
-#pragma omp parallel for schedule(static) private(particle_number) firstprivate(apr_iterator)
+#ifdef HAVE_OPENMP
+	#pragma omp parallel for schedule(static) private(particle_number) firstprivate(apr_iterator)
+#endif
         for (particle_number = 0; particle_number < apr_iterator.total_number_particles(); ++particle_number) {
             //needed step for any parallel loop (update to the next part)
             apr_iterator.set_iterator_to_particle_by_number(particle_number);
@@ -301,7 +305,9 @@ private:
 
             const float step_size = pow(2, curr_level_l.depth_max - curr_level_l.depth);
 
-#pragma omp parallel for default(shared) private(z_,x_,j_) firstprivate(curr_level_l) reduction(+:counter_parts) reduction(+:counter_elements)  if(z_num_*x_num_ > 100)
+#ifdef HAVE_OPENMP
+	#pragma omp parallel for default(shared) private(z_,x_,j_) firstprivate(curr_level_l) reduction(+:counter_parts) reduction(+:counter_elements)  if(z_num_*x_num_ > 100)
+#endif
             for (z_ = z_num_min_; z_ < z_num_; z_++) {
                 //both z and x are explicitly accessed in the structure
 
@@ -370,7 +376,9 @@ private:
             curr_level_l.set_new_depth(depth, pc_data);
 
             const float step_size = pow(2, curr_level_l.depth_max - curr_level_l.depth);
-#pragma omp parallel for default(shared) private(z_,x_,j_,counter_parts) firstprivate(curr_level_l)  if(z_num_*x_num_ > 100)
+#ifdef HAVE_OPENMP
+	#pragma omp parallel for default(shared) private(z_,x_,j_,counter_parts) firstprivate(curr_level_l)  if(z_num_*x_num_ > 100)
+#endif
             for (z_ = z_num_min_; z_ < z_num_; z_++) {
                 //both z and x are explicitly accessed in the structure
 
