@@ -111,7 +111,7 @@ public:
 #pragma omp parallel for private(blockNum) schedule(static)
         for (blockNum = 0; blockNum < aNumberOfBlocks; ++blockNum) {
             size_t offsetBegin = particle_number_start + blockNum * numOfElementsPerBlock;
-            size_t offsetEnd = particle_number_start + offsetBegin + numOfElementsPerBlock;
+            size_t offsetEnd =  offsetBegin + numOfElementsPerBlock;
             if (blockNum == aNumberOfBlocks - 1) {
                 // Handle tailing elements if number of blocks does not divide.
                 offsetEnd = particle_number_stop;
@@ -164,7 +164,7 @@ public:
 #pragma omp parallel for private(blockNum) schedule(static)
         for (blockNum = 0; blockNum < aNumberOfBlocks; ++blockNum) {
             size_t offsetBegin = particle_number_start + blockNum * numOfElementsPerBlock;
-            size_t offsetEnd = particle_number_start + offsetBegin + numOfElementsPerBlock;
+            size_t offsetEnd =  offsetBegin + numOfElementsPerBlock;
             if (blockNum == aNumberOfBlocks - 1) {
                 // Handle tailing elements if number of blocks does not divide.
                 offsetEnd = particle_number_stop;
@@ -220,7 +220,7 @@ public:
 #pragma omp parallel for private(blockNum) schedule(static)
         for (blockNum = 0; blockNum < aNumberOfBlocks; ++blockNum) {
             size_t offsetBegin = particle_number_start + blockNum * numOfElementsPerBlock;
-            size_t offsetEnd = particle_number_start + offsetBegin + numOfElementsPerBlock;
+            size_t offsetEnd =  offsetBegin + numOfElementsPerBlock;
             if (blockNum == aNumberOfBlocks - 1) {
                 // Handle tailing elements if number of blocks does not divide.
                 offsetEnd = particle_number_stop;
@@ -275,7 +275,7 @@ public:
 #pragma omp parallel for schedule(static) private(blockNum)
         for (blockNum = 0; blockNum < aNumberOfBlocks; ++blockNum) {
             size_t offsetBegin = particle_number_start + blockNum * numOfElementsPerBlock;
-            size_t offsetEnd = particle_number_start + offsetBegin + numOfElementsPerBlock;
+            size_t offsetEnd =  offsetBegin + numOfElementsPerBlock;
             if (blockNum == aNumberOfBlocks - 1) {
                 // Handle tailing elements if number of blocks does not divide.
                 offsetEnd = particle_number_stop;
@@ -325,7 +325,7 @@ public:
 #pragma omp parallel for private(blockNum) schedule(static)
         for (blockNum = 0; blockNum < aNumberOfBlocks; ++blockNum) {
             size_t offsetBegin = particle_number_start + blockNum * numOfElementsPerBlock;
-            size_t offsetEnd = particle_number_start + offsetBegin + numOfElementsPerBlock;
+            size_t offsetEnd =  offsetBegin + numOfElementsPerBlock;
             if (blockNum == aNumberOfBlocks - 1) {
                 // Handle tailing elements if number of blocks does not divide.
                 offsetEnd = particle_number_stop;
