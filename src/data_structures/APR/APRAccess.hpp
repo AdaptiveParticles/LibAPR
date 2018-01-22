@@ -949,7 +949,7 @@ public:
 
             gap_map.data[level][offset_pc_data].resize(1);
 
-            for (int i = global_begin; i < (global_begin + number_gaps) ; ++i) {
+            for (uint64_t i = global_begin; i < (global_begin + number_gaps) ; ++i) {
                 gap.y_end = map_data.y_end[i];
                 gap.global_index_begin = map_data.global_index[i];
 
