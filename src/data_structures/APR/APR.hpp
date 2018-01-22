@@ -5,14 +5,8 @@
 #ifndef PARTPLAY_APR_HPP
 #define PARTPLAY_APR_HPP
 
-#include "benchmarks/development/Tree/PartCellStructure.hpp"
-
-//#include "benchmarks/development/old_numerics/filter_numerics.hpp"
-//#include "benchmarks/development/old_numerics/misc_numerics.hpp"
-
 #include "benchmarks/development/Tree/PartCellData.hpp"
 
-//#include "benchmarks/development/Tree/PartCellStructure.hpp"
 
 #include "benchmarks/development/Tree/CurrLevel.hpp"
 
@@ -64,8 +58,6 @@ class APR {
     friend class APRAccess;
 
     friend class APRReconstruction;
-
-    friend void create_pc_data_new(APR<float>& apr,PartCellStructure<float,uint64_t>& pc_struct); //for testing
 
 private:
 

@@ -347,6 +347,7 @@ public:
         return parts.data[current_particle_cell.global_index];
     }
 
+
     inline unsigned int x_nearest_pixel(){
         //get x
         return floor((current_particle_cell.x+0.5)*pow(2, apr_access->level_max - current_particle_cell.level));

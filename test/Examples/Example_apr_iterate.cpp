@@ -112,7 +112,8 @@ int main(int argc, char **argv) {
         uint64_t current_particle_cell_type = apr_iterator.type();
 
         //you can then also use it to access any particle properties stored as ExtraParticleData
-        apr_iterator(calc_ex) = 10.0*apr_iterator(apr.particles_intensities);
+        calc_ex[apr_iterator]= 10.0*apr.particles_intensities.get_particle(apr_iterator);
+        calc_ex.set_particle(apr_iterator,12.0f);
 
     }
 
