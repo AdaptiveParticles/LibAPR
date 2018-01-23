@@ -244,7 +244,6 @@ int main(int argc, char **argv) {
     ///
     /// Reading and writing additional particle information
     ///
-    /// (Current supports uint8, uint16, and float)
     ///
     /// Requires the APR that was used to write it to be read back in.
     ///

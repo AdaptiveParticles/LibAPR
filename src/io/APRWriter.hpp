@@ -577,7 +577,6 @@ public:
         //
         //  Writes the APR and Extra PartCell Data to
         //
-        //  #TODO auto detect type
         //
 
         unsigned int blosc_comp_type = BLOSC_ZSTD;
@@ -676,8 +675,7 @@ public:
         std::string name = "particle property";
 
         T type_example = 0;
-        hid_t data_type =  get_type_blosc(type_example);
-
+        hid_t data_type =  get_type_data_hdf5(type_example);
 
         APRIterator<ImageType> apr_iterator(apr);
 
@@ -741,6 +739,7 @@ public:
 
         std::cout << "HDF5 Filesize: " << file_size*1.0/1000000.0 << " MB" << std::endl;
 
+        // #TODO This needs to be able extended to handle more general type, currently it is assuming uint16
         write_main_paraview_xdmf_xml(save_loc,file_name,apr_iterator.total_number_particles());
 
         //close shiz
@@ -763,8 +762,6 @@ public:
         //  #FIX_ME Extend me.
         //
         //
-
-        std::cout << "Either uint8, uint16, or float" << std::endl;
 
         //initialize
         uint64_t node_val_part;
@@ -2205,6 +2202,11 @@ hid_t APRWriter::get_type_data_hdf5<uint16_t>(uint16_t o){
 };
 
 template<>
+hid_t APRWriter::get_type_data_hdf5<int16_t>(int16_t o){
+    return H5T_NATIVE_INT16;
+};
+
+template<>
 hid_t APRWriter::get_type_data_hdf5<float>(float o){
     return H5T_NATIVE_FLOAT;
 };
@@ -2212,6 +2214,21 @@ hid_t APRWriter::get_type_data_hdf5<float>(float o){
 template<>
 hid_t APRWriter::get_type_data_hdf5<int>(int o){
     return H5T_NATIVE_INT;
+};
+
+template<>
+hid_t APRWriter::get_type_data_hdf5<unsigned int>(unsigned int o){
+    return H5T_NATIVE_UINT;
+};
+
+template<>
+hid_t APRWriter::get_type_data_hdf5<double>(double o){
+    return H5T_NATIVE_DOUBLE;
+};
+
+template<>
+hid_t APRWriter::get_type_data_hdf5<int8_t>(int8_t o){
+    return H5T_NATIVE_INT8;
 };
 
 template<>
