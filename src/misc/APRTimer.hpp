@@ -56,9 +56,7 @@ void stop_timer(){
 
     if (verbose_flag){
         //output to terminal the result
-        std::cout <<  timing_names[timer_count] << " took "
-                  << elapsed_seconds.count()
-                  << " seconds\n";
+        std::cout <<  timing_names.back() << " took " << std::to_string(timings.back()) << " seconds\n";
     }
     timer_count++;
 }
