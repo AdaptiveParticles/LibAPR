@@ -93,7 +93,7 @@ set(SOURCE_FILES_COMPILED
         src/io/hdf5functions_blosc.cpp
         benchmarks/development/old_io/write_parts.cpp
 
-        test/utils.cpp
+        #test/utils.cpp
         )
 
 
