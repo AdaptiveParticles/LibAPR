@@ -10,7 +10,7 @@
 #include "benchmarks/development/old_structures/particle_map.hpp"
 
 void CreateResultTest::SetUp(){
-    tests_directory = get_source_directory();
+    tests_directory = testFilesDirectory();
 }
 
 Particle_map<float> CreateResultFromFilesTest::create_result(std::string grad_path,

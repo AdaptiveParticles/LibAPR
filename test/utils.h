@@ -61,7 +61,7 @@ uint16_t get_random_number(std::ranlux48& generator, std::normal_distribution<fl
 uint16_t get_random_number_k(std::ranlux48& generator,
                              std::normal_distribution<float>& distribution, float k_max);
 
-std::string get_source_directory();
+std::string testFilesDirectory();
 
 bool compare_sparse_rep_with_part_map(const Particle_map<float>& part_map,PartCellStructure<float,uint64_t>& pc_struct,bool status_flag);
 

@@ -209,6 +209,16 @@ public :
         mesh.resize(size);
     }
 
+    void reserve(int aSizeOfY, int aSizeOfX, int aSizeOfZ) {
+        y_num = aSizeOfY;
+        x_num = aSizeOfX;
+        z_num = aSizeOfZ;
+        size_t size = (size_t)y_num * x_num * z_num;
+        std::cout << "Wanted size: " << size << std::endl;
+        mesh.reserve(size);
+        std::cout << "Reserved" << std::endl;
+    }
+
     /**
      * Initializes mesh with size of half of provided dimensions (rounding up if not divisible by 2)
      * sets provided val for all elements
@@ -225,7 +235,7 @@ public :
         initialize(y_num_ds, x_num_ds, z_num_ds, aInitVal);
     }
 
-
+private:
     void write_image_tiff(std::string& filename);
     void write_image_tiff_uint16(std::string& filename);
     void load_image_tiff(std::string file_name,int z_start = 0, int z_end = -1);
@@ -246,6 +256,13 @@ private:
     template<typename V>
     void write_image_tiff(std::vector<V> &data, std::string &filename);
 };
+
+template<typename T>
+std::ostream & operator<<(std::ostream &os, const MeshData<T> &obj)
+{
+    os << "MeshData: size(Y/X/Z)=" << obj.y_num << "/" << obj.x_num << "/" << obj.z_num << " vSize:" << obj.mesh.size() << " vCapacity:" << obj.mesh.capacity();
+    return os;
+}
 
 template<typename T>
 void MeshData<T>::load_image_tiff(std::string file_name,int z_start, int z_end){

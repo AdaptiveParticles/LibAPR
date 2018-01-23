@@ -175,7 +175,6 @@ if(TESTS)
 
     add_executable(testTiff
             test/TiffTest.cpp
-            src/io/Tiff.cpp
             )
 
     add_executable(testAPR

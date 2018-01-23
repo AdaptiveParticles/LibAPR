@@ -10,6 +10,7 @@
 #define PARTPLAY_APR_CONVERTER_HPP
 
 #include "src/data_structures/Mesh/MeshData.hpp"
+#include "src/io/Tiff.hpp"
 #include "src/data_structures/APR/APR.hpp"
 
 #include "src/algorithm/ComputeGradient.hpp"
@@ -51,17 +52,18 @@ public:
         //set the pointer ot the data-structure
         apr_ = &apr;
 
+        TiffUtils::Tiff inputTiff(par.input_dir + par.input_image_name);
 
-        if(image_type == "uint8"){
-            return get_apr_method<uint8_t>(apr);
-        } else if (image_type == "float"){
-            return get_apr_method<float>(apr);
-
+        if (inputTiff.iType == TiffUtils::Tiff::TiffType::TIFF_UINT8) {
+            return get_apr_method<uint8_t>(apr, inputTiff);
+        } else if (inputTiff.iType == TiffUtils::Tiff::TiffType::TIFF_FLOAT) {
+            return get_apr_method<float>(apr, inputTiff);
+        } else if (inputTiff.iType == TiffUtils::Tiff::TiffType::TIFF_UINT16) {
+            return get_apr_method<uint16_t>(apr, inputTiff);
         } else {
-            return get_apr_method<uint16_t>(apr);
+            std::cerr << "Wrong file type" << std::endl;
+            return false;
         }
-
-
 
     };
 
@@ -100,7 +102,7 @@ private:
     void auto_parameters(MeshData<T>& input_img);
 
     template<typename T>
-    bool get_apr_method(APR<ImageType>& apr);
+    bool get_apr_method(APR<ImageType>& apr, const TiffUtils::Tiff &tiffFile);
 
     template<typename T,typename S>
     void get_gradient(MeshData<T>& input_img,MeshData<S>& gradient);
@@ -117,7 +119,7 @@ private:
  * Implimentations
  */
 template<typename ImageType> template<typename T>
-bool APRConverter<ImageType>::get_apr_method(APR<ImageType>& apr) {
+bool APRConverter<ImageType>::get_apr_method(APR<ImageType>& apr, const TiffUtils::Tiff &tiffFile) {
     //
     //  Main method for constructing the APR from an input image
     //
@@ -133,9 +135,9 @@ bool APRConverter<ImageType>::get_apr_method(APR<ImageType>& apr) {
     timer.start_timer("read tif input image");
 
     //input type
-    MeshData<T> input_image;
+    MeshData<T> input_image = TiffUtils::getMesh<T>(tiffFile);
 
-    input_image.load_image_tiff(par.input_dir + par.input_image_name);
+//    input_image.load_image_tiff(par.input_dir + par.input_image_name);
 
     timer.stop_timer();
 

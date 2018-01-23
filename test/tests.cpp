@@ -131,6 +131,6 @@ void CreateImageTest::SetUp() {
     p_rep = Part_rep(SIZE, SIZE, SIZE);
     //lambda is default set to 1
 
-    tests_directory = get_source_directory();
+    tests_directory = testFilesDirectory();
 }
 

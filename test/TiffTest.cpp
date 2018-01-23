@@ -2,27 +2,84 @@
 #include "src/io/Tiff.hpp"
 
 namespace {
-    TEST(TiffTest, PrintInfoTest) {
-        Tiff t1("/Users/gonciarz/Documents/MOSAIC/work/repo/APR_FILES/101x122x8bit.tif");
-        t1.printInfo();
+    std::string testFilesDirectory(){
+        std::string testDir = std::string(__FILE__);
+        return testDir.substr(0, testDir.find_last_of("\\/") + 1);
+    }
 
-        Tiff t2("/Users/gonciarz/Documents/MOSAIC/work/repo/APR_FILES/102x121x16bit.tif");
-        t2.printInfo();
+    TEST(TiffTest, LoadUint8) {
+        TiffUtils::Tiff t1(testFilesDirectory() + "files/tiffTest/4x3x2x8bit.tif");
+        std::cout << t1 << std::endl;
 
-        Tiff t3("/Users/gonciarz/Documents/MOSAIC/work/repo/APR_FILES/102x122x3xfloat.tif");
-        t3.printInfo();
-
-        Tiff t4("/Users/gonciarz/Documents/MOSAIC/work/repo/APR_FILES/big.tif");
-        t4.printInfo();
-
-        Tiff t5("/Users/gonciarz/Documents/MOSAIC/work/repo/APR_FILES/10x20x30xRGB.tif");
-        t5.printInfo();
-
-        Tiff t6("/Users/gonciarz/Documents/MOSAIC/work/repo/APR_FILES/10x20x30xRGB.tiff");
-        t6.printInfo();
+        const MeshData<uint8_t> &mesh = TiffUtils::getMesh<uint8_t>(t1);
+        for (int i = 0; i < 24; ++i) {
+            ASSERT_EQ(mesh.mesh[i], i + 1);
+        }
 
     }
+
+    TEST(TiffTest, LoadUint16) {
+        std::string fileName = testFilesDirectory() + "files/tiffTest/3x2x4x16bit.tif";
+        TiffUtils::Tiff t1(fileName);
+        std::cout << t1 << std::endl;
+        ASSERT_STREQ(t1.toString().c_str(), ("FileName: [" + fileName + "], Width/Height/Depth: 3/2/4, SamplesPerPixel: 1, Bits per sample: 16, ImageType: uint16, Photometric: 1, StripSize: 12").c_str());
+        ASSERT_EQ(t1.isFileOpened(), true);
+
+        const MeshData<uint16_t> &mesh = TiffUtils::getMesh<uint16_t>(t1);
+        ASSERT_EQ(mesh.x_num, 2);
+        ASSERT_EQ(mesh.y_num, 3);
+        ASSERT_EQ(mesh.z_num, 4);
+        ASSERT_EQ(mesh.mesh.size(), 24);
+        for (int i = 0; i < 24; ++i) {
+            ASSERT_EQ(mesh.mesh[i], i + 1);
+        }
+    }
+
+    TEST(TiffTest, LoadFloat) {
+        TiffUtils::Tiff t1(testFilesDirectory() + "files/tiffTest/2x4x3xfloat.tif");
+        std::cout << t1 << std::endl;
+
+        const MeshData<float> &mesh = TiffUtils::getMesh<float>(t1);
+        ASSERT_EQ(mesh.x_num, 4);
+        ASSERT_EQ(mesh.y_num, 2);
+        ASSERT_EQ(mesh.z_num, 3);
+        ASSERT_EQ(mesh.mesh.size(), 24);
+        for (int i = 0; i < 24; ++i) {
+            ASSERT_EQ(mesh.mesh[i], i + 1);
+        }
+    }
+
+    TEST(TiffTest, NotExistingFile) {
+        TiffUtils::Tiff t("/tmp/forSureThisFileDoesNotExists.tiff666");
+        ASSERT_STREQ(t.toString().c_str(), "<File not opened>");
+        ASSERT_EQ(t.isFileOpened(), false);
+    }
+
+    TEST(TiffTest, TiffSave) {
+        // Test reads test tiff file and then saves it in temp directory
+        // Then reads it again and compares input file and save file if same
+        typedef uint16_t ImgType;
+        TiffUtils::Tiff t(testFilesDirectory() + "files/tiffTest/3x2x4x16bit.tif");
+        MeshData<ImgType> mesh = TiffUtils::getMesh<ImgType>(t);
+        ASSERT_EQ(t.isFileOpened(), true);
+
+        std::string fileName = "/tmp/testAprTiffSave" + std::to_string(time(nullptr)) + ".tif";
+        TiffUtils::saveMeshAsTiff(fileName, mesh);
+
+        TiffUtils::Tiff t2(fileName);
+        ASSERT_EQ(t2.isFileOpened(), true);
+        const MeshData<ImgType> &mesh2 = TiffUtils::getMesh<ImgType>(t2);
+
+        ASSERT_EQ(mesh.mesh.size(), mesh2.mesh.size());
+        for (size_t i = 0; i < mesh.mesh.size(); ++i)
+            ASSERT_EQ(mesh.mesh[i], mesh2.mesh[i]);
+
+        if (remove(fileName.c_str()) != 0) {
+            std::cerr << "Could not remove file [" << fileName << "]" << std::endl;
+        }
+    }
 }
+
 
 int main(int argc, char **argv) {
     testing::InitGoogleTest(&argc, argv);

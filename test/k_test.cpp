@@ -8,7 +8,7 @@
 #include <algorithm>
 
 void CreateKTest::SetUp(){
-    tests_directory = get_source_directory();
+    tests_directory = testFilesDirectory();
 }
 
 Particle_map<float> CreateKFromFilesTest::create_k(std::string grad_path,
