@@ -44,9 +44,9 @@ void hdf5_load_data_blosc(hid_t obj_id,hid_t data_type,void* buff, const char* d
     
     //stuff required to pull the data in
     data_id =  H5Dopen2(obj_id , data_name ,H5P_DEFAULT);
+    hid_t datatype  = H5Dget_type(data_id);
     
-    
-    H5Dread( data_id, data_type, H5S_ALL, H5S_ALL,H5P_DEFAULT, buff );
+    H5Dread( data_id, datatype, H5S_ALL, H5S_ALL,H5P_DEFAULT, buff );
     H5Dclose(data_id);
 };
 
