@@ -93,7 +93,7 @@ set(SOURCE_FILES_COMPILED
         src/io/hdf5functions_blosc.cpp
         benchmarks/development/old_io/write_parts.cpp
 
-        test/utils.cpp
+        #test/utils.cpp
         )
 
 
@@ -135,6 +135,7 @@ if(TESTS)
     add_executable(testBspline
             test/tests.cpp
             test/bspline_test.cpp
+            test/utils.cpp
             ${SOURCE_FILES_COMPILED}
 
             )
@@ -142,24 +143,27 @@ if(TESTS)
     add_executable(testVariance
             test/tests.cpp
             test/variance_test.cpp
+            test/utils.cpp
             ${SOURCE_FILES_COMPILED}
 
             )
     add_executable(testLevel
             test/k_test.cpp
+            test/utils.cpp
             ${SOURCE_FILES_COMPILED}
 
             )
     add_executable(testResult
             test/alg_cells_test.cpp
             benchmarks/development/old_io/write_parts.cpp
+            test/utils.cpp
             ${SOURCE_FILES_COMPILED}
 
             )
 
     add_executable(testSparsePartStruc
             #test/test_tree/tree_fixtures.cpp
-
+            test/utils.cpp
             #test/test_tree/create_part_cell_structure.cpp
             test/test_tree/sparse_rep_test.cpp
             ${SOURCE_FILES_COMPILED}

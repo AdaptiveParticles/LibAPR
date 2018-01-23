@@ -144,9 +144,9 @@ int main(int argc, char **argv) {
     }
 
     timer.stop_timer();
-    std::chrono::duration<double> elapsed_seconds = timer.t2 - timer.t1;
+    float elapsed_seconds = timer.t2 - timer.t1;
 
-    std::cout << "New parallel iteration took: " << elapsed_seconds.count()/(num_repeats*1.0) << std::endl;
+    std::cout << "New parallel iteration took: " << elapsed_seconds/(num_repeats*1.0) << std::endl;
 
 
 

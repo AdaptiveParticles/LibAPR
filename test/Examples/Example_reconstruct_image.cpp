@@ -81,9 +81,9 @@ int main(int argc, char **argv) {
     apr.interp_img(recon_pc,apr.particles_intensities);
 
     timer.stop_timer();
-    std::chrono::duration<double> elapsed_seconds = timer.t2 - timer.t1;
+    float elapsed_seconds = timer.t2 - timer.t1;
 
-    std::cout << "PC recon " << (recon_pc.x_num*recon_pc.y_num*recon_pc.z_num)/(elapsed_seconds.count()*1000000.0) << " million pixels per second"  <<  std::endl;
+    std::cout << "PC recon " << (recon_pc.x_num*recon_pc.y_num*recon_pc.z_num)/(elapsed_seconds*1000000.0) << " million pixels per second"  <<  std::endl;
 
     std::string output_path = options.directory + apr.name + "_pc.tif";
 
@@ -148,7 +148,7 @@ int main(int argc, char **argv) {
     timer.stop_timer();
     elapsed_seconds = timer.t2 - timer.t1;
 
-    std::cout << "Smooth recon " << (recon_smooth.x_num*recon_smooth.y_num*recon_smooth.z_num)/(elapsed_seconds.count()*1000000.0) << " million pixels per second"  <<  std::endl;
+    std::cout << "Smooth recon " << (recon_smooth.x_num*recon_smooth.y_num*recon_smooth.z_num)/(elapsed_seconds*1000000.0) << " million pixels per second"  <<  std::endl;
 
     output_path = options.directory + apr.name + "_smooth.tif";
 
