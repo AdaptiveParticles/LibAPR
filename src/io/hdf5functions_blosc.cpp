@@ -32,7 +32,7 @@ void register_bosc(){
     
     /* Register the filter with the library */
     r = register_blosc(&version, &date);
-    printf("Blosc version info: %s (%s)\n", version, date);
+   //printf("Blosc version info: %s (%s)\n", version, date);
     
     
 }
