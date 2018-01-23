@@ -52,6 +52,7 @@ public:
 
         timings.push_back(t2-t1);
 
+
         if (verbose_flag){
             //output to terminal the result
             std::cout <<  timing_names[timer_count] << " took "
@@ -59,6 +60,7 @@ public:
                       << " seconds\n";
         }
         timer_count++;
+
     }
 
 

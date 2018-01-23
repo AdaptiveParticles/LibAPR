@@ -316,7 +316,7 @@ int main(int argc, char **argv) {
 
         int z = 0;
 #ifdef HAVE_OPENMP
-	#pragma omp parallel for schedule(static) private(particle_number,z) firstprivate(apr_iterator)
+	#pragma omp parallel for schedule(static) private(particle_number,z) firstprivate(apr_iterator) reduction(+:counter)
 #endif
         for(z = 0; z < apr.spatial_index_z_max(level); ++z) {
 
@@ -341,6 +341,8 @@ int main(int argc, char **argv) {
         }
     }
     timer.stop_timer();
+
+    std::cout << counter << " " << apr_iterator.total_number_particles() << std::endl;
 
 }
 
