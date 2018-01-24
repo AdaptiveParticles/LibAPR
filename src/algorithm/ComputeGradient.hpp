@@ -530,11 +530,13 @@ void ComputeGradient::bspline_filt_rec_z(MeshData<T>& image,float lambda,float t
 
     int index, iynum, j, k;
 
+    int i=0;
+
 #ifdef HAVE_OPENMP
-	#pragma omp parallel for default(shared) private(j, k, iynum, index) \
+	#pragma omp parallel for default(shared) private(i,j, k, iynum, index) \
         firstprivate(temp_vec1, temp_vec2, temp_vec3, temp_vec4)
 #endif
-    for(int i = 0; i < x_num; i++){
+    for(i = 0; i < x_num; i++){
 
         std::fill(temp_vec1.begin(), temp_vec1.end(), 0);
         std::fill(temp_vec2.begin(), temp_vec2.end(), 0);
@@ -755,11 +757,13 @@ void ComputeGradient::bspline_filt_rec_x(MeshData<T>& image,float lambda,float t
 
     int k, i, jxnumynum, index;
 
+    int j;
+
 #ifdef HAVE_OPENMP
-	#pragma omp parallel for default(shared) private(i, k, jxnumynum, index) \
+	#pragma omp parallel for default(shared) private(j,i, k, jxnumynum, index) \
         firstprivate(temp_vec1, temp_vec2, temp_vec3, temp_vec4)
 #endif
-    for(int j = 0;j < z_num; j++){
+    for( j = 0;j < z_num; j++){
 
         std::fill(temp_vec1.begin(), temp_vec1.end(), 0);
         std::fill(temp_vec2.begin(), temp_vec2.end(), 0);
@@ -1027,13 +1031,16 @@ void ComputeGradient::get_smooth_bspline_3D(MeshData<T>& input,APRParameters& pa
 
     APRTimer spline_timer;
 
-    spline_timer.verbose_flag = false;
+    spline_timer.verbose_flag = true;
 
     float tol = 0.0001;
     float lambda = pars.lambda;
 
+    spline_timer.start_timer("bspline_filt_rec_y");
     //Y direction bspline
     bspline_filt_rec_y(input,lambda,tol);
+
+    spline_timer.stop_timer();
 
     spline_timer.start_timer("bspline_filt_rec_z");
 
