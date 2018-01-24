@@ -80,7 +80,7 @@ int main(int argc, char **argv) {
     timer.verbose_flag = false;
 
     // APR datastructure
-    APR<uint16_t> apr;
+
 
     std::string name = options.input;
     //remove the file extension
@@ -94,68 +94,27 @@ int main(int argc, char **argv) {
     apr_converter.par.rel_error = 0.1;
     apr_converter.par.lambda = 3;
 
-
     apr_converter.par.input_dir = options.directory;
     apr_converter.par.input_image_name  = options.input;
 
-    apr_converter.fine_grained_timer.verbose_flag = true;
+    apr_converter.fine_grained_timer.verbose_flag = false;
     apr_converter.method_timer.verbose_flag = false;
     apr_converter.allocation_timer.verbose_flag = false;
-    apr_converter.computation_timer.verbose_flag = true;
+    apr_converter.computation_timer.verbose_flag = false;
 
-    TiffUtils::TiffInfo inputTiff(apr_converter.par.input_dir + apr_converter.par.input_image_name);
-    MeshData<uint16_t> input_image = TiffUtils::getMesh<uint16_t>(inputTiff);
-
-    apr_converter.get_apr_method(apr, input_image);
 
     APRBenchmark apr_benchmarks;
 
-    float num_repeats = 1;
+    apr_benchmarks.analysis_data.name = "test_benchmarking";
 
-    apr_benchmarks.pixels_linear_neighbour_access<uint16_t,float>(apr.orginal_dimensions(0),apr.orginal_dimensions(1),apr.orginal_dimensions(2),num_repeats);
-    apr_benchmarks.apr_linear_neighbour_access<uint16_t,float>(apr,num_repeats);
+    apr_benchmarks.analysis_data.file_name = "test";
 
-    float num_repeats_random = 10000000;
+    apr_benchmarks.benchmark_dataset(apr_converter);
 
-    apr_benchmarks.pixel_neighbour_random<uint16_t,float>(apr.orginal_dimensions(0),apr.orginal_dimensions(1),apr.orginal_dimensions(2), num_repeats_random);
-    apr_benchmarks.apr_random_access<uint16_t,float>(apr,num_repeats_random);
+    apr_benchmarks.benchmark_dataset(apr_converter);
 
-    APRCompress<uint16_t> apr_compress;
+    apr_benchmarks.benchmark_dataset(apr_converter);
 
-    APRWriter apr_writer;
-
-    ExtraParticleData<uint16_t> intensities;
-    intensities.copy_parts(apr,apr.particles_intensities);
-
-    apr_compress.set_compression_type(1);
-
-    timer.verbose_flag = true;
-
-    timer.start_timer("compress");
-    float size = apr_writer.write_apr(apr,options.directory ,name + "_compress",apr_compress,BLOSC_ZSTD,3,2);
-    timer.stop_timer();
-
-
-    apr.particles_intensities.copy_parts(apr,intensities);
-    apr_compress.set_compression_type(2);
-
-    timer.start_timer("compress1");
-    float size2 = apr_writer.write_apr(apr,options.directory ,name + "_compress1",apr_compress,BLOSC_ZSTD,3,2);
-    timer.stop_timer();
-
-
-    apr.particles_intensities.copy_parts(apr,intensities);
-    apr_compress.set_compression_type(0);
-
-    timer.start_timer("compress2");
-    float size3 = apr_writer.write_apr(apr,options.directory ,name + "_compress2",apr_compress,BLOSC_ZSTD,3,2);
-    timer.stop_timer();
-
-    float size4 = apr_writer.write_particles_only(options.directory ,name + "_parts_only",intensities);
-
-
-    std::cout << (size3 - size4)/size3  << std::endl;
-
-    std::cout << apr.total_number_particles() << std::endl;
+    apr_benchmarks.analysis_data.write_analysis_data_hdf5();
 
 }

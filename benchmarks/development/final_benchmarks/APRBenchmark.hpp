@@ -32,8 +32,76 @@ public:
     template<typename U,typename V>
     void apr_random_access(APR<U>& apr, float num_repeats);
 
+    template<typename ImageType>
+    void benchmark_dataset(APRConverter<ImageType>& apr_converter);
 
 };
+
+template<typename ImageType>
+void APRBenchmark::benchmark_dataset(APRConverter<ImageType>& apr_converter){
+
+    APR<uint16_t> apr;
+
+    std::string name = apr_converter.par.input_image_name;
+
+    APRTimer timer;
+
+    TiffUtils::TiffInfo inputTiff(apr_converter.par.input_dir + apr_converter.par.input_image_name);
+    MeshData<uint16_t> input_image = TiffUtils::getMesh<uint16_t>(inputTiff);
+
+    apr_converter.get_apr_method(apr, input_image);
+
+    float num_repeats = 1;
+
+    pixels_linear_neighbour_access<uint16_t,float>(apr.orginal_dimensions(0),apr.orginal_dimensions(1),apr.orginal_dimensions(2),num_repeats);
+    apr_linear_neighbour_access<uint16_t,float>(apr,num_repeats);
+
+    float num_repeats_random = 10000000;
+
+    pixel_neighbour_random<uint16_t,float>(apr.orginal_dimensions(0),apr.orginal_dimensions(1),apr.orginal_dimensions(2), num_repeats_random);
+    apr_random_access<uint16_t,float>(apr,num_repeats_random);
+
+    APRCompress<uint16_t> apr_compress;
+
+    APRWriter apr_writer;
+
+    ExtraParticleData<uint16_t> intensities;
+    intensities.copy_parts(apr,apr.particles_intensities);
+
+    apr_compress.set_compression_type(1);
+
+    timer.verbose_flag = false;
+
+    timer.start_timer("compress");
+    float size = apr_writer.write_apr(apr,apr_converter.par.input_dir ,name + "_compress",apr_compress,BLOSC_ZSTD,3,2);
+    timer.stop_timer();
+
+
+    apr.particles_intensities.copy_parts(apr,intensities);
+    apr_compress.set_compression_type(2);
+
+    timer.start_timer("compress1");
+    float size2 = apr_writer.write_apr(apr,apr_converter.par.input_dir ,name + "_compress1",apr_compress,BLOSC_ZSTD,3,2);
+    timer.stop_timer();
+
+
+    apr.particles_intensities.copy_parts(apr,intensities);
+    apr_compress.set_compression_type(0);
+
+    timer.start_timer("compress2");
+    float size3 = apr_writer.write_apr(apr,apr_converter.par.input_dir ,name + "_compress2",apr_compress,BLOSC_ZSTD,3,2);
+    timer.stop_timer();
+
+    float size4 = apr_writer.write_particles_only(apr_converter.par.input_dir ,name + "_parts_only",intensities);
+
+
+    std::cout << (size3 - size4)/size3  << std::endl;
+
+    std::cout << apr.total_number_particles() << std::endl;
+
+}
+
+
 
 template<typename U,typename V>
 void APRBenchmark::apr_linear_neighbour_access(APR<U> apr,float num_repeats){

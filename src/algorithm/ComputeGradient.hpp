@@ -308,7 +308,7 @@ void ComputeGradient::bspline_filt_rec_y(MeshData<T>& image,float lambda,float t
 
     APRTimer btime;
 
-    btime.verbose_flag = true;
+    btime.verbose_flag = false;
 
     btime.start_timer("forward_loop_y");
 
@@ -1031,7 +1031,7 @@ void ComputeGradient::get_smooth_bspline_3D(MeshData<T>& input,APRParameters& pa
 
     APRTimer spline_timer;
 
-    spline_timer.verbose_flag = true;
+    spline_timer.verbose_flag = false;
 
     float tol = 0.0001;
     float lambda = pars.lambda;

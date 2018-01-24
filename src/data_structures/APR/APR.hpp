@@ -59,6 +59,8 @@ class APR {
 
     friend class APRReconstruction;
 
+    friend class APRBenchmark;
+
 private:
 
     APRWriter apr_writer;
