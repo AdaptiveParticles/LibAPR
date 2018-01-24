@@ -55,7 +55,7 @@ public:
 
         if (verbose_flag){
             //output to terminal the result
-            std::cout <<  timing_names[timer_count] << " took "
+            std::cout <<  timing_names.back() << " took "
                       << t2-t1
                       << " seconds\n";
         }
@@ -120,9 +120,7 @@ public:
 
         if (verbose_flag){
             //output to terminal the result
-            std::cout <<  timing_names[timer_count] << " took "
-                      << elapsed_seconds.count()
-                      << " seconds\n";
+            std::cout <<  (timing_names.back()) << " took " << std::to_string(elapsed_seconds.count()) << " seconds" << std::endl;
         }
         timer_count++;
     }
