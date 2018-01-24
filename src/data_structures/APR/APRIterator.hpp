@@ -407,6 +407,7 @@ public:
 
         if(apr_access->find_particle_cell(random_particle_cell,current_gap)){
             current_particle_cell = random_particle_cell;
+            set_neighbour_flag();
             //exists
             return true;
         } else {
@@ -445,6 +446,7 @@ public:
         }
 
         current_particle_cell = particle_cell; //if its in bounds it will always have a particle cell responsible
+        set_neighbour_flag();
         return true;
     }
 

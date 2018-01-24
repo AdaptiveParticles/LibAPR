@@ -217,8 +217,13 @@ void APRBenchmark::pixel_neighbour_random(uint64_t y_num, uint64_t x_num, uint64
     timer.verbose_flag = false;
     timer.start_timer("full previous filter");
 
+    int r;
+
     //Generate random access numbers
-    for(int r = 0;r < num_repeats;r++){
+#ifdef HAVE_OPENMP
+#pragma omp parallel for default(shared) private(j,i,k,i_n,k_n,j_n,r)
+#endif
+    for(r = 0;r < num_repeats;r++){
 
         i = x_random[r];
         j = z_random[r];
@@ -254,7 +259,7 @@ void APRBenchmark::pixel_neighbour_random(uint64_t y_num, uint64_t x_num, uint64
 
     float est_full_time = (time)*(1.0*x_num*y_num*z_num)/num_repeats;
 
-    std::cout << "Random Access Pixel: Size: " << num_repeats << " took: " << (time) << std::endl;
+    std::cout << "Random Access Pixel: Size: " << num_repeats << " took: " << (est_full_time) << std::endl;
     std::cout << "per 1000000 pixel took: " << (time*1000000.0)/((1.0*num_repeats)) << std::endl;
 
     analysis_data.add_float_data("random_access_pixel_neigh_total",est_full_time);
@@ -327,7 +332,12 @@ void APRBenchmark::apr_random_access(APR<U>& apr, float num_repeats){
     timer.verbose_flag = false;
     timer.start_timer("full previous filter");
     //Generate random access numbers
-    for(int r = 0;r < num_repeats;r++){
+    int r;
+
+#ifdef HAVE_OPENMP
+#pragma omp parallel for schedule(static) private(r) firstprivate(apr_iterator, neighbour_iterator,random_particle_cell)
+#endif
+    for(r = 0;r < num_repeats;r++){
 
         random_particle_cell.x = x_random[r];
         random_particle_cell.y = y_random[r];
@@ -337,29 +347,24 @@ void APRBenchmark::apr_random_access(APR<U>& apr, float num_repeats){
         U neigh_sum = 0;
         U counter = 0;
 
-        bool found = apr_iterator.set_iterator_by_particle_cell(random_particle_cell);
+        apr_iterator.set_iterator_by_particle_cell(random_particle_cell);
 
-        if(!found){
-            int stop = 1;
+        //loop over all the neighbours and set the neighbour iterator to it
+        for (int direction = 0; direction < 6; ++direction) {
+            apr_iterator.find_neighbours_in_direction(direction);
+            // Neighbour Particle Cell Face definitions [+y,-y,+x,-x,+z,-z] =  [0,1,2,3,4,5]
+            for (int index = 0; index < apr_iterator.number_neighbours_in_direction(direction); ++index) {
+
+                if (neighbour_iterator.set_neighbour_iterator(apr_iterator, direction, index)) {
+                    //neighbour_iterator works just like apr, and apr_parallel_iterator (you could also call neighbours)
+                    neigh_sum += apr.particles_intensities[neighbour_iterator];
+                    counter++;
+                }
+
+            }
         }
 
-
-//        //loop over all the neighbours and set the neighbour iterator to it
-//        for (int direction = 0; direction < 6; ++direction) {
-//            apr_iterator.find_neighbours_in_direction(direction);
-//            // Neighbour Particle Cell Face definitions [+y,-y,+x,-x,+z,-z] =  [0,1,2,3,4,5]
-//            for (int index = 0; index < apr_iterator.number_neighbours_in_direction(direction); ++index) {
-//
-//                if (neighbour_iterator.set_neighbour_iterator(apr_iterator, direction, index)) {
-//                    //neighbour_iterator works just like apr, and apr_parallel_iterator (you could also call neighbours)
-//                    neigh_sum += apr.particles_intensities[neighbour_iterator];
-//                    counter++;
-//                }
-//
-//            }
-//        }
-//
-//        output[apr_iterator] = neigh_sum/(counter*1.0);
+        output[apr_iterator] = neigh_sum/(counter*1.0);
 
     }
 
@@ -369,8 +374,8 @@ void APRBenchmark::apr_random_access(APR<U>& apr, float num_repeats){
 
     float est_full_time = (time)*(1.0*apr.total_number_particles())/num_repeats;
 
-    std::cout << "Random Access Particle TOTAL : " << num_repeats << " took: " << (time) << std::endl;
-    std::cout << "per 1000000 pixel took: " << (time*1000000.0)/((1.0*num_repeats)) << std::endl;
+    std::cout << "Random Access Particle TOTAL : " << num_repeats << " took: " << (est_full_time) << std::endl;
+    std::cout << "per 1000000 Particles took: " << (time*1000000.0)/((1.0*num_repeats)) << std::endl;
 
     analysis_data.add_float_data("random_access_apr_neigh_total",est_full_time);
     analysis_data.add_float_data("random_access_apr_neigh_perm",(time*1000000.0)/((1.0*num_repeats)));

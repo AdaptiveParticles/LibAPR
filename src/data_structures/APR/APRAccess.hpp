@@ -309,7 +309,7 @@ public:
 
             ParticleCellGapMap& current_pc_map = gap_map.data[part_cell.level][part_cell.pc_offset][0];
 
-            if((map_iterator.pc_offset != part_cell.pc_offset) | (map_iterator.level != part_cell.level) ){
+            if((map_iterator.pc_offset != part_cell.pc_offset) || (map_iterator.level != part_cell.level) ){
                 map_iterator.iterator = gap_map.data[part_cell.level][part_cell.pc_offset][0].map.begin();
                 map_iterator.pc_offset = part_cell.pc_offset;
                 map_iterator.level = part_cell.level;
@@ -320,7 +320,7 @@ public:
                 map_iterator.iterator = current_pc_map.map.begin();
             }
 
-            if ((part_cell.y >= map_iterator.iterator->first) & (part_cell.y <= map_iterator.iterator->second.y_end)) {
+            if ((part_cell.y >= map_iterator.iterator->first) && (part_cell.y <= map_iterator.iterator->second.y_end)) {
                 // already pointing to the correct place
                 part_cell.global_index = map_iterator.iterator->second.global_index_begin +
                                          (part_cell.y - map_iterator.iterator->first);
