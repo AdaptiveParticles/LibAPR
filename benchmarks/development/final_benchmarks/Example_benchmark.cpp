@@ -88,22 +88,17 @@ int main(int argc, char **argv) {
 
     APRConverter<uint16_t> apr_converter;
 
-//    apr_converter.par.Ip_th = 1032;
-//    apr_converter.par.sigma_th = 242.822;
-//    apr_converter.par.sigma_th_max = 95.9877;
-//    apr_converter.par.rel_error = 0.1;
-//    apr_converter.par.lambda = 3;
+    apr_converter.par.Ip_th = 1032;
+    apr_converter.par.sigma_th = 242.822;
+    apr_converter.par.sigma_th_max = 95.9877;
+    apr_converter.par.rel_error = 0.1;
+    apr_converter.par.lambda = 3;
 
-    apr_converter.par.Ip_th = 0;
-    apr_converter.par.sigma_th = 0;
-    apr_converter.par.sigma_th_max = 0;
-    apr_converter.par.rel_error = 0.00000000001;
-    apr_converter.par.lambda = 0.1;
 
     apr_converter.par.input_dir = options.directory;
     apr_converter.par.input_image_name  = options.input;
 
-    apr_converter.fine_grained_timer.verbose_flag = false;
+    apr_converter.fine_grained_timer.verbose_flag = true;
     apr_converter.method_timer.verbose_flag = false;
     apr_converter.allocation_timer.verbose_flag = false;
     apr_converter.computation_timer.verbose_flag = true;

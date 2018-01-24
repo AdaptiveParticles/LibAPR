@@ -353,10 +353,13 @@ void APRConverter<ImageType>::get_gradient(MeshData<T>& input_img,MeshData<S>& g
     calc_bspline_fd_ds_mag(image_temp,grad_temp,par.dx,par.dy,par.dz);
     fine_grained_timer.stop_timer();
 
+    auto sum = [](const T x, const T y) { return x+y; };
+    auto divide_by_8 = [](const T x) { return x * (1.0/8.0); };
+
     fine_grained_timer.start_timer("down-sample_b-spline");
     down_sample(image_temp,local_scale_temp,
-                [](T x, T y) { return (x*8.0+1.0*y)/8.0; },
-                [](T x) { return x ; });
+                sum,
+                divide_by_8);
     fine_grained_timer.stop_timer();
 
 

@@ -1210,12 +1210,19 @@ void ComputeGradient::calc_bspline_fd_ds_mag(MeshData<T> &input, MeshData<S> &gr
 #endif
     for(j = 0;j < z_num;j++){
 
-        //initialize the loop
-        for (k = 0; k < (y_num);k++){
-            temp_vec_1[k] = input.mesh[j*x_num*y_num + 1*y_num + k];
-            temp_vec_2[k] = input.mesh[j*x_num*y_num + (0)*y_num + k];
-        }
+//        //initialize the loop
+//        for (k = 0; k < (y_num);k++){
+//            temp_vec_1[k] = input.mesh[j*x_num*y_num + 1*y_num + k];
+//        }
 
+        std::copy(input.mesh.begin() + j*x_num*y_num + 1*y_num ,input.mesh.begin() + j*x_num*y_num + 1*y_num + y_num,temp_vec_1.begin());
+
+//        //initialize the loop
+//        for (k = 0; k < (y_num);k++){
+//            temp_vec_2[k] = input.mesh[j*x_num*y_num  + k];
+//        }
+
+        std::copy(input.mesh.begin() + j*x_num*y_num  ,input.mesh.begin() + j*x_num*y_num  + y_num,temp_vec_2.begin());
         //LHS boundary condition is accounted for wiht this initialization
 
         const int j_m = std::max(0,j-1);
@@ -1224,22 +1231,25 @@ void ComputeGradient::calc_bspline_fd_ds_mag(MeshData<T> &input, MeshData<S> &gr
         for(i = 0;i < x_num-1;i++){
 
                 //initialize the z loop
-#ifdef HAVE_OPENMP
-	#pragma omp simd
-#endif
-            for (k = 0; k < (y_num); k++) {
-                temp_vec_4[k] = input.mesh[j_m*xnumynum + i * y_num + k];
-                temp_vec_5[k] = input.mesh[j_p*xnumynum +  i * y_num + k];
-            }
+//#ifdef HAVE_OPENMP
+//	#pragma omp simd
+//#endif
+//            for (k = 0; k < (y_num); k++) {
+//                temp_vec_4[k] = input.mesh[j_m*xnumynum + i * y_num + k];
+//                temp_vec_5[k] = input.mesh[j_p*xnumynum +  i * y_num + k];
+//            }
+
+            std::copy(input.mesh.begin() + j_m*xnumynum + i * y_num ,input.mesh.begin() + j_m*xnumynum + i * y_num + y_num,temp_vec_4.begin());
+            std::copy(input.mesh.begin() + j_p*xnumynum + i * y_num ,input.mesh.begin() + j_p*xnumynum + i * y_num + y_num,temp_vec_5.begin());
 
             //initialize the loop
-#ifdef HAVE_OPENMP
-	#pragma omp simd
-#endif
-            for (k = 0; k < (y_num);k++){
-                temp_vec_3[k] = input.mesh[j*x_num*y_num + (i+1)*y_num + k];
-            }
-
+//#ifdef HAVE_OPENMP
+//	#pragma omp simd
+//#endif
+//            for (k = 0; k < (y_num);k++){
+//                temp_vec_3[k] = input.mesh[j*x_num*y_num + (i+1)*y_num + k];
+//            }
+            std::copy(input.mesh.begin() + j*x_num*y_num + (i+1)*y_num ,input.mesh.begin() +j*x_num*y_num + (i+1)*y_num + y_num,temp_vec_3.begin());
 
             //compute the boundary values
             temp_vec_6[0] = sqrt(pow((a1*temp_vec_1[0] + a3*temp_vec_3[0])/hx,2.0)  + pow((a1*temp_vec_4[0] + a3*temp_vec_5[0])/hz,2.0));
@@ -1257,13 +1267,6 @@ void ComputeGradient::calc_bspline_fd_ds_mag(MeshData<T> &input, MeshData<S> &gr
             int j_2 = j/2;
             int i_2 = i/2;
 
-#ifdef HAVE_OPENMP
-	#pragma omp simd
-#endif
-            for (k = 0; k < (y_num_ds);k++) {
-                grad.mesh[j_2*x_num_ds*y_num_ds + i_2*y_num_ds + k] = std::max(temp_vec_6[2*k],grad.mesh[j_2*x_num_ds*y_num_ds + i_2*y_num_ds + k]);
-            }
-
             int k_s;
 
 #ifdef HAVE_OPENMP
@@ -1271,15 +1274,24 @@ void ComputeGradient::calc_bspline_fd_ds_mag(MeshData<T> &input, MeshData<S> &gr
 #endif
             for (k = 0; k < (y_num_ds);k++) {
                 k_s = std::min(2*k+1,y_num-1);
-                grad.mesh[j_2*x_num_ds*y_num_ds + i_2*y_num_ds + k] = std::max(temp_vec_6[k_s],grad.mesh[j_2*x_num_ds*y_num_ds + i_2*y_num_ds + k]);
+                grad.mesh[j_2*x_num_ds*y_num_ds + i_2*y_num_ds + k] = std::max(temp_vec_6[2*k],grad.mesh[j_2*x_num_ds*y_num_ds + i_2*y_num_ds + k]);
+                grad.mesh[j_2*x_num_ds*y_num_ds + i_2*y_num_ds + k]= std::max(temp_vec_6[k_s],grad.mesh[j_2*x_num_ds*y_num_ds + i_2*y_num_ds + k]);
             }
 
+//            int k_s;
+//
+//#ifdef HAVE_OPENMP
+//	#pragma omp simd
+//#endif
+//            for (k = 0; k < (y_num_ds);k++) {
+//                k_s = std::min(2*k+1,y_num-1);
+//                grad.mesh[j_2*x_num_ds*y_num_ds + i_2*y_num_ds + k] = std::max(temp_vec_6[k_s],grad.mesh[j_2*x_num_ds*y_num_ds + i_2*y_num_ds + k]);
+//            }
 
             std::swap(temp_vec_1, temp_vec_2);
             std::swap(temp_vec_2, temp_vec_3);
 
         }
-
 
     }
 
