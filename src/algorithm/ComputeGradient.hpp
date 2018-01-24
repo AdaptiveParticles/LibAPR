@@ -78,10 +78,65 @@ public:
     void threshold_gradient(MeshData<T>& grad,MeshData<S>& img,const float Ip_th);
 
 
+    template<typename V,typename S>
+    void block_offset_by_5(const MeshData<V> &aInputMesh,MeshData<S> &output_mesh,unsigned int aNumberOfBlocks=10);
+
+    template<typename V,typename S>
+    void block_offset_by_100(const MeshData<V> &aInputMesh,MeshData<S> &output_mesh,unsigned int aNumberOfBlocks=10);
+
 };
 /*
  * Implimentations
  */
+
+
+template<typename V,typename S>
+void ComputeGradient::block_offset_by_5(const MeshData<V> &aInputMesh,MeshData<S> &output_mesh,unsigned int aNumberOfBlocks) {
+    aNumberOfBlocks = std::min((unsigned int)aInputMesh.z_num, aNumberOfBlocks);
+    unsigned int numOfElementsPerBlock = aInputMesh.z_num/aNumberOfBlocks;
+
+    unsigned int blockNum;
+
+#ifdef HAVE_OPENMP
+#pragma omp parallel for private(blockNum)  schedule(static)
+#endif
+    for (blockNum = 0; blockNum < aNumberOfBlocks; ++blockNum) {
+        const size_t elementSize = (size_t)aInputMesh.x_num * aInputMesh.y_num;
+        const size_t blockSize = numOfElementsPerBlock * elementSize;
+        size_t offsetBegin = blockNum * blockSize;
+        size_t offsetEnd = offsetBegin + blockSize;
+        if (blockNum == aNumberOfBlocks - 1) {
+            // Handle tailing elements if number of blocks does not divide.
+            offsetEnd = aInputMesh.z_num * elementSize;
+        }
+
+        std::transform(aInputMesh.mesh.begin() + offsetBegin,aInputMesh.mesh.begin() + offsetEnd,output_mesh.mesh.begin() + offsetBegin,[](const V &a) { return (a + 5); });
+    }
+}
+
+template<typename V,typename S>
+void ComputeGradient::block_offset_by_100(const MeshData<V> &aInputMesh,MeshData<S> &output_mesh,unsigned int aNumberOfBlocks) {
+    aNumberOfBlocks = std::min((unsigned int)aInputMesh.z_num, aNumberOfBlocks);
+    unsigned int numOfElementsPerBlock = aInputMesh.z_num/aNumberOfBlocks;
+
+    unsigned int blockNum;
+
+#ifdef HAVE_OPENMP
+#pragma omp parallel for private(blockNum)  schedule(static)
+#endif
+    for (blockNum = 0; blockNum < aNumberOfBlocks; ++blockNum) {
+        const size_t elementSize = (size_t)aInputMesh.x_num * aInputMesh.y_num;
+        const size_t blockSize = numOfElementsPerBlock * elementSize;
+        size_t offsetBegin = blockNum * blockSize;
+        size_t offsetEnd = offsetBegin + blockSize;
+        if (blockNum == aNumberOfBlocks - 1) {
+            // Handle tailing elements if number of blocks does not divide.
+            offsetEnd = aInputMesh.z_num * elementSize;
+        }
+
+        std::transform(aInputMesh.mesh.begin() + offsetBegin,aInputMesh.mesh.begin() + offsetEnd,output_mesh.mesh.begin() + offsetBegin,[](const V &a) { return (a + 100); });
+    }
+}
 
 template<typename T,typename S>
 void ComputeGradient::mask_gradient(MeshData<T>& grad_ds,MeshData<S>& temp_ds,MeshData<T>& temp_full,APRParameters& par){
@@ -1216,7 +1271,7 @@ void ComputeGradient::calc_bspline_fd_ds_mag(MeshData<T> &input, MeshData<S> &gr
 #endif
             for (k = 0; k < (y_num_ds);k++) {
                 k_s = std::min(2*k+1,y_num-1);
-                grad.mesh[j_2*x_num_ds*y_num_ds + i_2*y_num_ds + k] = std::max(temp_vec_6[2*k+1],grad.mesh[j_2*x_num_ds*y_num_ds + i_2*y_num_ds + k]);
+                grad.mesh[j_2*x_num_ds*y_num_ds + i_2*y_num_ds + k] = std::max(temp_vec_6[k_s],grad.mesh[j_2*x_num_ds*y_num_ds + i_2*y_num_ds + k]);
             }
 
 

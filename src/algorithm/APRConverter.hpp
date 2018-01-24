@@ -137,6 +137,8 @@ bool APRConverter<ImageType>::get_apr_method_from_file(APR<ImageType>& apr, cons
 
     allocation_timer.start_timer("read tif input image");
 
+    std::cout << image_type << std::endl;
+
     //input type
     MeshData<T> input_image = TiffUtils::getMesh<T>(tiffFile);
 
@@ -181,7 +183,7 @@ bool APRConverter<ImageType>::get_apr_method(APR<ImageType>& apr, MeshData<T>& i
     //initialize the storage of the B-spline co-efficients
     image_temp.initialize(input_image);
 
-    image_temp.block_copy_data(input_image,20);
+
 
     //allocate require memory for the down-sampled structures
 
@@ -201,6 +203,24 @@ bool APRConverter<ImageType>::get_apr_method(APR<ImageType>& apr, MeshData<T>& i
     ////////////////////////
 
     computation_timer.start_timer("Calculations");
+
+    fine_grained_timer.start_timer("offset image");
+
+    //offset image by factor (this is required if there are zero areas in the background with uint16_t and uint8_t images, as the Bspline co-efficients otherwise may be negative!)
+    // Warning both of these could result in over-flow
+    if(this->image_type == "uint16"){
+        //
+        block_offset_by_100(input_image,image_temp);
+
+        bspline_offset = 100;
+    } else if (this->image_type == "uint8"){
+        block_offset_by_5(input_image,image_temp);
+        bspline_offset = 5;
+    } else {
+        image_temp.block_copy_data(input_image);
+    }
+
+    fine_grained_timer.stop_timer();
 
 
     method_timer.start_timer("compute_gradient_magnitude_using_bsplines");
@@ -320,23 +340,6 @@ void APRConverter<ImageType>::get_gradient(MeshData<T>& input_img,MeshData<S>& g
     //
 
 
-    fine_grained_timer.start_timer("offset image");
-
-    //offset image by factor (this is required if there are zero areas in the background with uint16_t and uint8_t images, as the Bspline co-efficients otherwise may be negative!)
-    // Warning both of these could result in over-flow
-    if(this->image_type == "uint16"){
-        //
-        std::transform(image_temp.mesh.begin(),image_temp.mesh.end(),image_temp.mesh.begin(),[](const float &a) { return a + 100; });
-        bspline_offset = 100;
-    } else if (this->image_type == "uint8"){
-        std::transform(image_temp.mesh.begin(),image_temp.mesh.end(),image_temp.mesh.begin(),[](const float &a) { return a + 5; });
-        bspline_offset = 5;
-    } else {
-        bspline_offset = 0;
-    }
-
-    fine_grained_timer.stop_timer();
-
     fine_grained_timer.start_timer("smooth_bspline");
 
     if(par.lambda > 0) {
@@ -346,7 +349,7 @@ void APRConverter<ImageType>::get_gradient(MeshData<T>& input_img,MeshData<S>& g
     }
     fine_grained_timer.stop_timer();
 
-    fine_grained_timer.start_timer("calc_bspline_fd_x_y_ds");
+    fine_grained_timer.start_timer("calc_bspline_fd_mag_ds");
     calc_bspline_fd_ds_mag(image_temp,grad_temp,par.dx,par.dy,par.dz);
     fine_grained_timer.stop_timer();
 
