@@ -308,7 +308,7 @@ void ComputeGradient::bspline_filt_rec_y(MeshData<T>& image,float lambda,float t
 
     Part_timer btime;
 
-    btime.verbose_flag = false;
+    btime.verbose_flag = true;
 
     btime.start_timer("forward_loop_y");
 
@@ -353,6 +353,18 @@ void ComputeGradient::bspline_filt_rec_y(MeshData<T>& image,float lambda,float t
                 temp2 = temp1;
                 temp1 = temp;
             }
+
+
+//            for (auto it = (image.mesh.begin()+jxnumynum + iynum + 2); it !=  (image.mesh.begin()+jxnumynum + iynum + y_num); ++it) {
+//
+//                temp = temp1*b1 + temp2*b2 + *it;
+//                *it = temp;
+//                temp2 = temp1;
+//                temp1 = temp;
+//            }
+
+
+
 
             image.mesh[jxnumynum + iynum + y_num - 1] = temp4;
             image.mesh[jxnumynum + iynum + y_num - 2] = temp3;
