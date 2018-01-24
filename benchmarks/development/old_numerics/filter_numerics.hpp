@@ -1239,8 +1239,8 @@ void pixels_linear_neigh_access(PartCellStructure<U,uint64_t>& pc_struct,uint64_
     Part_timer timer;
     timer.verbose_flag = false;
     timer.start_timer("full previous filter");
-    
-    
+
+
     int j = 0;
     int k = 0;
     int i = 0;

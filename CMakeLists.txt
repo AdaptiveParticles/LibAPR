@@ -235,7 +235,7 @@ add_executable(Example_produce_paraview_file
         )
 
 add_executable(Example_benchmark
-        benchmarks/development/Example_benchmark.cpp
+        benchmarks/development/final_benchmarks/Example_benchmark.cpp
         benchmarks/development/old_io/write_parts.cpp
         ${SOURCE_FILES_COMPILED}
         )
@@ -426,7 +426,7 @@ if(BENCHMARKS)
                 test/utils.cpp
                 benchmarks/development/old_io/write_parts.cpp
                 ${SOURCE_FILES_COMPILED}
-                benchmarks/development/Example_benchmark.cpp)
+                benchmarks/development/final_benchmarks/Example_benchmark.cpp)
 
         TARGET_LINK_LIBRARIES(Example_analysis ${ArrayFire_OpenCL_LIBRARIES}
                 ${OpenCL_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT} ${HDF5_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT} ${TIFF_LIBRARIES} blosc)
