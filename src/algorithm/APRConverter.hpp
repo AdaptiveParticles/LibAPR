@@ -290,8 +290,7 @@ void APRConverter<ImageType>::get_local_particle_cell_set(MeshData<T>& grad_imag
         //for those value of level k, add to the hash table
         fill(l_,local_scale_temp2);
         //assign the previous mesh to now be resampled.
-        std::swap(local_scale_temp, local_scale_temp2);
-
+        local_scale_temp.swap(local_scale_temp2);
     }
 
     timer.stop_timer();

@@ -77,7 +77,7 @@ namespace {
             for (size_t i = 0; i < md.mesh.size(); ++i) md.mesh[i] = i + 1;
 
             // test constructor
-            MeshData<char> testedMesh(md);
+            MeshData<char> testedMesh(md, true);
             ASSERT_EQ(md.mesh.size(), testedMesh.mesh.size());
             ASSERT_EQ(md.x_num, testedMesh.x_num);
             ASSERT_EQ(md.y_num, testedMesh.y_num);

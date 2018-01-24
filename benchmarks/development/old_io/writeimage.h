@@ -115,7 +115,7 @@ void write_image_tiff(MeshData<T>& image,std::string filename){
 }
 
 template <typename T>
-void debug_write(MeshData<T> input,std::string img_name){
+void debug_write(MeshData<T> &input,std::string img_name){
     
     
     std::string image_path;

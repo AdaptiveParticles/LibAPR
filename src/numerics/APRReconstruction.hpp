@@ -562,8 +562,7 @@ public:
 
         timer.stop_timer();
 
-        std::swap(pc_image,out_image);
-
+        pc_image.swap(out_image);
     }
 
 

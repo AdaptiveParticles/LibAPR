@@ -17,13 +17,13 @@ Particle_map<float> CreateResultFromFilesTest::create_result(std::string grad_pa
                                                              std::string input_path){
 
     MeshData<uint16_t> grad_int, input_int;
-    MeshData<float> var, grad, input;
+    MeshData<float> var;
 
     load_image_tiff(grad_int, grad_path);
     load_image_tiff(input_int, input_path);
 
-    grad = grad_int.to_type<float>();
-    input = input_int.to_type<float>();
+    MeshData<float> grad = grad_int.to_type<float>();
+    MeshData<float> input = input_int.to_type<float>();
 
     p_rep = Part_rep(grad.y_num, grad.x_num, grad.z_num);
     p_rep.pars.dy = 1;

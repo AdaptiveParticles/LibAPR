@@ -102,9 +102,9 @@ public :
      * @param aMesh input mesh
      */
     template<typename U>
-    MeshData(const MeshData<U> aMesh) {
+    MeshData(const MeshData<U> &aMesh, bool aShouldCopyData) {
         initialize(aMesh.y_num, aMesh.x_num, aMesh.z_num);
-        std::copy(aMesh.mesh.begin(), aMesh.mesh.end(), mesh.begin());
+        if (aShouldCopyData) std::copy(aMesh.mesh.begin(), aMesh.mesh.end(), mesh.begin());
     }
 
     /**
@@ -161,12 +161,10 @@ public :
         aNumberOfBlocks = std::min((unsigned int)z_num, aNumberOfBlocks);
         unsigned int numOfElementsPerBlock = z_num/aNumberOfBlocks;
 
-        unsigned int blockNum;
-
         #ifdef HAVE_OPENMP
-	#pragma omp parallel for private(blockNum)  schedule(static)
-#endif
-        for (blockNum = 0; blockNum < aNumberOfBlocks; ++blockNum) {
+	    #pragma omp parallel for schedule(static)
+        #endif
+        for (unsigned int blockNum = 0; blockNum < aNumberOfBlocks; ++blockNum) {
             const size_t elementSize = (size_t)x_num * y_num;
             const size_t blockSize = numOfElementsPerBlock * elementSize;
             size_t offsetBegin = blockNum * blockSize;
@@ -247,7 +245,30 @@ public :
         initialize(y_num_ds, x_num_ds, z_num_ds, aInitVal);
     }
 
+    MeshData(MeshData &&aObj) {
+        x_num = aObj.x_num;
+        y_num = aObj.y_num;
+        z_num = aObj.z_num;
+        mesh = std::move(aObj.mesh);
+    }
+
+    void swap(MeshData &aObj) {
+        std::swap(x_num, aObj.x_num);
+        std::swap(y_num, aObj.y_num);
+        std::swap(z_num, aObj.z_num);
+        mesh.swap(aObj.mesh);
+    }
+
+    void move(MeshData &&aObj) {
+        x_num = aObj.x_num;
+        y_num = aObj.y_num;
+        z_num = aObj.z_num;
+        mesh = std::move(aObj.mesh);
+    }
+
 private:
+    MeshData(const MeshData&) = delete; // make it noncopyable
+    MeshData& operator=(const MeshData&) = delete; // make it not assignable
 
     //REMOVE_FLAG
     void write_image_tiff(std::string& filename);
@@ -488,7 +509,7 @@ template<typename T>
 void downsample_pyrmaid(MeshData<T> &original_image,std::vector<MeshData<T>>& downsampled,unsigned int l_max, unsigned int l_min)
 {
     downsampled.resize(l_max+2);
-    downsampled.back() = std::move(original_image);
+    downsampled.back().swap(original_image);
 
     auto sum = [](float x, float y) { return x+y; };
     auto divide_by_8 = [](float x) { return x * (1.0/8.0); };

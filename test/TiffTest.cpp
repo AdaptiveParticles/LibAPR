@@ -11,7 +11,7 @@ namespace {
     }
 
     TEST(TiffTest, LoadUint8) {
-        const MeshData<uint8_t> &mesh = TiffUtils::getMesh<uint8_t>(testFilesDirectory() + "files/tiffTest/4x3x2x8bit.tif");
+        const MeshData<uint8_t> mesh = TiffUtils::getMesh<uint8_t>(testFilesDirectory() + "files/tiffTest/4x3x2x8bit.tif");
         for (int i = 0; i < 24; ++i) {
             ASSERT_EQ(mesh.mesh[i], i + 1);
         }
@@ -22,9 +22,9 @@ namespace {
         std::cout << t1 << std::endl;
 
         MeshData<uint8_t> meshIn(t1.iImgHeight, t1.iImgWidth, t1.iNumberOfDirectories);
-        const MeshData<uint8_t> &mesh = TiffUtils::getMesh<uint8_t>(t1, meshIn);
+        TiffUtils::getMesh<uint8_t>(t1, meshIn);
         for (int i = 0; i < 24; ++i) {
-            ASSERT_EQ(mesh.mesh[i], i + 1);
+            ASSERT_EQ(meshIn.mesh[i], i + 1);
         }
     }
 

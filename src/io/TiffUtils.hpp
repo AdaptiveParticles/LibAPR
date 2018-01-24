@@ -148,9 +148,7 @@ namespace TiffUtils {
     template<typename T>
     MeshData<T> getMesh(const std::string &aFileName) {
         TiffInfo tiffInfo(aFileName);
-        if (!tiffInfo.isFileOpened()) return MeshData<T>();
-        MeshData<T> mesh(tiffInfo.iImgHeight, tiffInfo.iImgWidth, tiffInfo.iNumberOfDirectories);
-        return getMesh(tiffInfo, mesh);
+        return getMesh<T>(tiffInfo);
     }
 
     /**
@@ -163,7 +161,8 @@ namespace TiffUtils {
     MeshData<T> getMesh(const TiffInfo &aTiff) {
         if (!aTiff.isFileOpened()) return MeshData<T>();
         MeshData<T> mesh(aTiff.iImgHeight, aTiff.iImgWidth, aTiff.iNumberOfDirectories);
-        return getMesh(aTiff, mesh);
+        getMesh(aTiff, mesh);
+        return mesh;
     }
 
     /**
@@ -174,8 +173,8 @@ namespace TiffUtils {
     * @return mesh with tiff or empty mesh if reading file failed
     */
     template<typename T>
-    MeshData<T>& getMesh(const TiffInfo &aTiff, MeshData<T> &aInputMesh) {
-        if (!aTiff.isFileOpened()) return aInputMesh;
+    void getMesh(const TiffInfo &aTiff, MeshData<T> &aInputMesh) {
+        if (!aTiff.isFileOpened()) return;
 
         // Prepeare preallocated MeshData object for TIF
         std::cout << "getMesh: " << aInputMesh << std::endl;
@@ -200,8 +199,6 @@ namespace TiffUtils {
         aInputMesh.z_num = aTiff.iNumberOfDirectories;
         aInputMesh.y_num = aTiff.iImgWidth;
         aInputMesh.x_num = aTiff.iImgHeight;
-
-        return aInputMesh;
     }
 
     /**
@@ -272,7 +269,7 @@ namespace TiffUtils {
     template<typename T>
     void saveMeshAsTiffUint16(const std::string &filename, const MeshData<T> &aData) {
         //  Converts the data to uint16t then writes it (requires creation of a complete copy of the data)
-        MeshData<uint16_t> mesh16{aData};
+        MeshData<uint16_t> mesh16{aData, true /*copy data*/};
         saveMeshAsTiff(filename, mesh16);
     }
 }
