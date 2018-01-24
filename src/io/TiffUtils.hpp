@@ -1,3 +1,8 @@
+/*
+ * Krzysztof Gonciarz 2018
+ *
+ * Implements mesh read/write from/to TIFF files functionality.
+ */
 #ifndef TIFF_HPP
 #define TIFF_HPP
 
@@ -10,16 +15,16 @@
 
 namespace TiffUtils {
 
-    class Tiff {
+    class TiffInfo {
     public:
         enum class TiffType {
             TIFF_UINT8, TIFF_UINT16, TIFF_FLOAT, TIFF_INVALID
         };
 
-        Tiff(const std::string &aFileName) { open(aFileName); }
-        Tiff(Tiff &&obj) = default;
+        TiffInfo(const std::string &aFileName) { open(aFileName); }
+        TiffInfo(TiffInfo &&obj) = default;
 
-        ~Tiff() { close(); }
+        ~TiffInfo() { close(); }
 
         std::string toString() const {
             if (iFile == nullptr) {
@@ -50,7 +55,7 @@ namespace TiffUtils {
             return outputStr.str();
         }
 
-        bool isFileOpened() { return iFile != nullptr; }
+        bool isFileOpened() const { return iFile != nullptr; }
 
         TiffType iType = TiffType::TIFF_INVALID;
         TIFF *iFile = nullptr;
@@ -64,7 +69,8 @@ namespace TiffUtils {
         unsigned short iPhotometric = 0;
 
     private:
-        Tiff( const Tiff& ) = delete; // make it noncopyable
+        TiffInfo(const TiffInfo&) = delete; // make it noncopyable
+        TiffInfo& operator=(const TiffInfo&) = delete; // make it not assignable
 
         bool open(const std::string &aFileName) {
 
@@ -125,20 +131,55 @@ namespace TiffUtils {
         }
     };
 
-    std::ostream& operator<<(std::ostream &os, const Tiff &obj) {
+    std::ostream& operator<<(std::ostream &os, const TiffInfo &obj) {
         os << obj.toString();
         return os;
     }
 
+    /**
+     * Reads TIFF file to mesh
+     * @tparam T type of mesh/image (uint8_t, uint16_t, float)
+     * @param aFileName full absolute file name
+     * @return mesh with tiff or empty mesh if reading file failed
+     */
     template<typename T>
-    MeshData<T> getMesh(const Tiff &aTiff) {
-        // Prepeare preallocated MeshData object for TIF
+    MeshData<T> getMesh(const std::string &aFileName) {
+        TiffInfo tiffInfo(aFileName);
+        if (!tiffInfo.isFileOpened()) return MeshData<T>();
+        MeshData<T> mesh(tiffInfo.iImgHeight, tiffInfo.iImgWidth, tiffInfo.iNumberOfDirectories);
+        return getMesh(tiffInfo, mesh);
+    }
+
+    /**
+     * Reads TIFF file to mesh
+     * @tparam T type of mesh/image (uint8_t, uint16_t, float)
+     * @param aTiff TiffInfo class with opened image
+     * @return mesh with tiff or empty mesh if reading file failed
+     */
+    template<typename T>
+    MeshData<T> getMesh(const TiffInfo &aTiff) {
+        if (!aTiff.isFileOpened()) return MeshData<T>();
         MeshData<T> mesh(aTiff.iImgHeight, aTiff.iImgWidth, aTiff.iNumberOfDirectories);
-        std::cout << mesh << std::endl;
+        return getMesh(aTiff, mesh);
+    }
+
+    /**
+    * Reads TIFF file to provided mesh
+    * @tparam T type of mesh/image (uint8_t, uint16_t, float)
+    * @param aTiff TiffInfo class with opened image
+    * @param aInputMesh pre-created mesh with dimensions of image from aTiff class
+    * @return mesh with tiff or empty mesh if reading file failed
+    */
+    template<typename T>
+    MeshData<T>& getMesh(const TiffInfo &aTiff, MeshData<T> &aInputMesh) {
+        if (!aTiff.isFileOpened()) return aInputMesh;
+
+        // Prepeare preallocated MeshData object for TIF
+        std::cout << "getMesh: " << aInputMesh << std::endl;
 
         // Get some more data from TIFF needed during reading
         const long stripSize = TIFFStripSize(aTiff.iFile);
-        std::cout << "ScanlineSize=" << TIFFScanlineSize(aTiff.iFile) << " StripSize=" << stripSize << " NumberOfStrips=" << TIFFNumberOfStrips(aTiff.iFile) << std::endl;
+        std::cout << "getMesh: ScanlineSize=" << TIFFScanlineSize(aTiff.iFile) << " StripSize=" << stripSize << " NumberOfStrips=" << TIFFNumberOfStrips(aTiff.iFile) << std::endl;
 
         // Read TIF to MeshData
         size_t currentOffset = 0;
@@ -147,22 +188,27 @@ namespace TiffUtils {
 
             // read current directory
             for (tstrip_t strip = 0; strip < TIFFNumberOfStrips(aTiff.iFile); ++strip) {
-                tmsize_t readLen = TIFFReadEncodedStrip(aTiff.iFile, strip, (&mesh.mesh[0] + currentOffset), (tsize_t) -1 /* read as much as possible */);
+                tmsize_t readLen = TIFFReadEncodedStrip(aTiff.iFile, strip, (&aInputMesh.mesh[0] + currentOffset), (tsize_t) -1 /* read as much as possible */);
                 currentOffset += readLen/sizeof(T);
             }
         }
 
         // Set proper dimensions (x and y are exchanged giving transpose w.r.t. original file)
-        mesh.z_num = aTiff.iNumberOfDirectories;
-        mesh.y_num = aTiff.iImgWidth;
-        mesh.x_num = aTiff.iImgHeight;
+        aInputMesh.z_num = aTiff.iNumberOfDirectories;
+        aInputMesh.y_num = aTiff.iImgWidth;
+        aInputMesh.x_num = aTiff.iImgHeight;
 
-        return mesh;
+        return aInputMesh;
     }
 
+    /**
+     * Saves provided mesh as a TIFF file
+     * @tparam T handled types are uint8_t, uint16_t and float
+     * @param aFileName name of output TIFF file
+     * @param aData mesh with data
+     */
     template<typename T>
     void saveMeshAsTiff(const std::string &aFileName, const MeshData<T> &aData) {
-        TIFF *tif = TIFFOpen(aFileName.c_str() , "w8");
 
         // Set proper dimensions (x and y are exchanged giving transpose)
         const uint32_t width = aData.y_num;
@@ -170,6 +216,10 @@ namespace TiffUtils {
         const uint32_t depth = aData.z_num;
         const uint16_t samplesPerPixel = 1;
         const uint16_t bitsPerSample = sizeof(T) * 8;
+
+        size_t imgSize = (size_t)width * height * depth * sizeof(T);
+        bool isBigTiff = imgSize > (2 ^ 32 - 32 * 2^10); // 4GB - 32kB headerSize (should be safe enough)
+        TIFF *tif = TIFFOpen(aFileName.c_str(), isBigTiff ? "w8" : "w");
 
         // Set fileds needed to calculate TIFFDefaultStripSize and set proper TIFFTAG_ROWSPERSTRIP
         TIFFSetField(tif, TIFFTAG_IMAGEWIDTH, width);
@@ -182,7 +232,8 @@ namespace TiffUtils {
 
         size_t StripSize =  (size_t)TIFFStripSize(tif);
         size_t ScanlineSize = (size_t)TIFFScanlineSize(tif);
-        std::cout << "ScanlineSize=" << ScanlineSize << " StripSize: " << StripSize << " NoOfStrips: " << TIFFNumberOfStrips(tif) << std::endl;
+        std::cout << "saveMeshAsTiff: " << aData << std::endl;
+        std::cout << "saveMeshAsTiff: ScanlineSize=" << ScanlineSize << " StripSize: " << StripSize << " NoOfStrips: " << TIFFNumberOfStrips(tif) << std::endl;
 
         size_t currentOffset = 0;
         for(int i = 0; i < depth; ++i) {
@@ -207,6 +258,19 @@ namespace TiffUtils {
         }
 
         TIFFClose(tif);
+    }
+
+    /**
+     * Saves provided mesh as a uint16 TIFF file
+     * @tparam T handled types are uint8_t, uint16_t and float
+     * @param aFileName name of output TIFF file
+     * @param aData mesh with data
+     */
+    template<typename T>
+    void saveMeshAsTiffUint16(const std::string &filename, const MeshData<T> &aData) {
+        //  Converts the data to uint16t then writes it (requires creation of a complete copy of the data)
+        MeshData<uint16_t> mesh16(aData);
+        saveMeshAsTiff(filename, mesh16);
     }
 }
 

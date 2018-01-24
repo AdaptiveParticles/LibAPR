@@ -33,6 +33,7 @@
 #include "Example_get_apr.h"
 
 #include "test/utils.h"
+#include "src/io/TiffUtils.hpp"
 
 int main(int argc, char **argv) {
 
@@ -79,7 +80,7 @@ int main(int argc, char **argv) {
 
         std::string output_path = save_loc + file_name + "_level.tif";
         //write output as tiff
-        level.write_image_tiff(output_path);
+        TiffUtils::saveMeshAsTiff(output_path, level);
 
 
         timer.start_timer("writing output");

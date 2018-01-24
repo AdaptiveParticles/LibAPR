@@ -23,6 +23,7 @@
 #include <iostream>
 
 #include "Example_compute_gradient.hpp"
+#include "src/io/TiffUtils.hpp"
 
 bool command_option_exists(char **begin, char **end, const std::string &option)
 {
@@ -169,7 +170,7 @@ int main(int argc, char **argv) {
     MeshData<float> gradient_magnitude_image;
     apr.interp_img(gradient_magnitude_image,gradient_magnitude);
     std::string image_file_name = options.directory + name + "_gradient.tif";
-    gradient_magnitude_image.write_image_tiff_uint16(image_file_name);
+    TiffUtils::saveMeshAsTiffUint16(image_file_name, gradient_magnitude_image);
 
     // also write to a paraview viewable file
     apr.write_apr_paraview(options.directory,name + "_gradient",gradient_magnitude);
@@ -179,5 +180,5 @@ int main(int argc, char **argv) {
 
     apr.interp_img(gradient_magnitude_image,gradient_y);
     image_file_name = options.directory + name + "_gradient_y.tif";
-    gradient_magnitude_image.write_image_tiff_uint16(image_file_name);
+    TiffUtils::saveMeshAsTiffUint16(image_file_name, gradient_magnitude_image);
 }

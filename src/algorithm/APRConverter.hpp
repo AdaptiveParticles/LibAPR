@@ -10,7 +10,7 @@
 #define PARTPLAY_APR_CONVERTER_HPP
 
 #include "src/data_structures/Mesh/MeshData.hpp"
-#include "src/io/Tiff.hpp"
+#include "src/io/TiffUtils.hpp"
 #include "src/data_structures/APR/APR.hpp"
 
 #include "src/algorithm/ComputeGradient.hpp"
@@ -52,13 +52,13 @@ public:
         //set the pointer ot the data-structure
         apr_ = &apr;
 
-        TiffUtils::Tiff inputTiff(par.input_dir + par.input_image_name);
+        TiffUtils::TiffInfo inputTiff(par.input_dir + par.input_image_name);
 
-        if (inputTiff.iType == TiffUtils::Tiff::TiffType::TIFF_UINT8) {
+        if (inputTiff.iType == TiffUtils::TiffInfo::TiffType::TIFF_UINT8) {
             return get_apr_method<uint8_t>(apr, inputTiff);
-        } else if (inputTiff.iType == TiffUtils::Tiff::TiffType::TIFF_FLOAT) {
+        } else if (inputTiff.iType == TiffUtils::TiffInfo::TiffType::TIFF_FLOAT) {
             return get_apr_method<float>(apr, inputTiff);
-        } else if (inputTiff.iType == TiffUtils::Tiff::TiffType::TIFF_UINT16) {
+        } else if (inputTiff.iType == TiffUtils::TiffInfo::TiffType::TIFF_UINT16) {
             return get_apr_method<uint16_t>(apr, inputTiff);
         } else {
             std::cerr << "Wrong file type" << std::endl;
@@ -102,7 +102,7 @@ private:
     void auto_parameters(MeshData<T>& input_img);
 
     template<typename T>
-    bool get_apr_method(APR<ImageType>& apr, const TiffUtils::Tiff &tiffFile);
+    bool get_apr_method(APR<ImageType>& apr, const TiffUtils::TiffInfo &tiffFile);
 
     template<typename T,typename S>
     void get_gradient(MeshData<T>& input_img,MeshData<S>& gradient);
@@ -119,7 +119,7 @@ private:
  * Implimentations
  */
 template<typename ImageType> template<typename T>
-bool APRConverter<ImageType>::get_apr_method(APR<ImageType>& apr, const TiffUtils::Tiff &tiffFile) {
+bool APRConverter<ImageType>::get_apr_method(APR<ImageType>& apr, const TiffUtils::TiffInfo &tiffFile) {
     //
     //  Main method for constructing the APR from an input image
     //
@@ -674,29 +674,25 @@ void APRConverter<ImageType>::auto_parameters(MeshData<T>& input_img){
     uint64_t counter_p = 0;
 
     for (int s = 0; s < selected_slices.size(); ++s) {
-        j = std::max((int)selected_slices[s],(int)1);
+        j = std::min((int)z_num - 2, std::max((int)selected_slices[s],(int)1));
         for(i = 1; i < (x_num-1);i++){
             for(k = 1;k < (y_num-1);k++){
-
-                float val = input_img.mesh[j*x_num*y_num + i*y_num + k];
-
-                if(val == estimated_first_mode) {
-
+                float val = input_img.mesh[(size_t)j*x_num*y_num + i*y_num + k];
+                if (val == estimated_first_mode) {
                     uint64_t counter_n = 0;
-
                     for (int l = -1; l < 2; ++l) {
                         for (int m = -1; m < 2; ++m) {
                             for (int n = -1; n < 2; ++n) {
-                                patches[counter_p][counter_n] = input_img.mesh[(j+l)*x_num*y_num + (i+m)*y_num + (k+n)];
+                                size_t idx = (size_t)(j+l)*x_num*y_num + (i+m)*y_num + (k+n);
+                                const auto &val = input_img.mesh[idx];
+                                patches[counter_p][counter_n] = val;
                                 counter_n++;
                             }
                         }
                     }
-
                     counter_p++;
-
                 }
-                if(counter_p > (patches.size()-1)){
+                if (counter_p > (patches.size()-1)){
                     goto finish;
                 }
 

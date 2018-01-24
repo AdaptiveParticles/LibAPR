@@ -24,6 +24,7 @@
 #include <iostream>
 
 #include "Example_ray_cast.h"
+#include "src/io/TiffUtils.hpp"
 
 bool command_option_exists(char **begin, char **end, const std::string &option)
 {
@@ -141,7 +142,5 @@ int main(int argc, char **argv) {
     //////////////////
 
     std::string output_loc = options.directory + apr.name + "_ray_cast_views.tif";
-
-    views.write_image_tiff(output_loc);
-
+    TiffUtils::saveMeshAsTiff(output_loc, views);
 }
