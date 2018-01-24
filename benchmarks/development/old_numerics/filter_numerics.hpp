@@ -119,7 +119,9 @@ static void particle_linear_neigh_access_alt_1(PartCellStructure<S,uint64_t>& pc
             neigh_y4.set_new_depth(curr_level,part_new);
             neigh_y5.set_new_depth(curr_level,part_new);
             
-#pragma omp parallel for default(shared) private(z_,x_,j_,int_neigh_p) firstprivate(curr_level,neigh_y,neigh_y1,neigh_y2,neigh_y3,neigh_y4,neigh_y5) if(z_num_*x_num_ > 100)
+#ifdef HAVE_OPENMP
+	#pragma omp parallel for default(shared) private(z_,x_,j_,int_neigh_p) firstprivate(curr_level,neigh_y,neigh_y1,neigh_y2,neigh_y3,neigh_y4,neigh_y5) if(z_num_*x_num_ > 100)
+#endif
             for(z_ = 0;z_ < z_num_;z_++){
                 //both z and x are explicitly accessed in the structure
                 
@@ -173,9 +175,9 @@ static void particle_linear_neigh_access_alt_1(PartCellStructure<S,uint64_t>& pc
     }
     
     timer.stop_timer();
-    
-    float time = (timer.t2 - timer.t1)/num_repeats;
-    
+    std::chrono::duration<float> elapsed_seconds = timer.t2 - timer.t1;
+    float time = elapsed_seconds.count()/num_repeats;
+
     std::cout << "Get neigh particle linear alt: " << time << std::endl;
     std::cout << "per 1000000 particles took: " << time/(1.0*pc_struct.get_number_parts()/1000000.0) << std::endl;
     
@@ -236,7 +238,9 @@ void lin_access_parts(PartCellStructure<S,uint64_t>& pc_struct){   //  Calculate
             const unsigned int x_num_ = pc_struct.pc_data.x_num[i];
             const unsigned int z_num_ = pc_struct.pc_data.z_num[i];
             
-#pragma omp parallel for default(shared) private(p,z_,x_,j_,node_val_pc,node_val_part,curr_key,status,part_offset)  firstprivate(neigh_part_keys,neigh_cell_keys) if(z_num_*x_num_ > 100)
+#ifdef HAVE_OPENMP
+	#pragma omp parallel for default(shared) private(p,z_,x_,j_,node_val_pc,node_val_part,curr_key,status,part_offset)  firstprivate(neigh_part_keys,neigh_cell_keys) if(z_num_*x_num_ > 100)
+#endif
             for(z_ = 0;z_ < z_num_;z_++){
                 //both z and x are explicitly accessed in the structure
                 curr_key = 0;
@@ -309,9 +313,9 @@ void lin_access_parts(PartCellStructure<S,uint64_t>& pc_struct){   //  Calculate
     }
     
     timer.stop_timer();
-    
-    float time = (timer.t2 - timer.t1)/num_repeats;
-    
+    std::chrono::duration<float> elapsed_seconds = timer.t2 - timer.t1;
+    float time = elapsed_seconds.count()/num_repeats;
+
     std::cout << "Get Neigh Old: " << time << std::endl;
     
 }
@@ -354,7 +358,9 @@ static void neigh_cells(PartCellData<uint64_t>& pc_data){
             //loop over the resolutions of the structure
             const unsigned int x_num_ = pc_data.x_num[i];
             const unsigned int z_num_ = pc_data.z_num[i];
-#pragma omp parallel for default(shared) private(z_,x_,j_,node_val_pc,curr_key)  firstprivate(neigh_cell_keys) if(z_num_*x_num_ > 100)
+#ifdef HAVE_OPENMP
+	#pragma omp parallel for default(shared) private(z_,x_,j_,node_val_pc,curr_key)  firstprivate(neigh_cell_keys) if(z_num_*x_num_ > 100)
+#endif
             for(z_ = 0;z_ < z_num_;z_++){
                 //both z and x are explicitly accessed in the structure
                 curr_key = 0;
@@ -432,9 +438,9 @@ static void neigh_cells(PartCellData<uint64_t>& pc_data){
     
     
     timer.stop_timer();
-    
-    float time = (timer.t2 - timer.t1)/num_repeats;
-    
+    std::chrono::duration<float> elapsed_seconds = timer.t2 - timer.t1;
+    float time = elapsed_seconds.count()/num_repeats;
+
     std::cout << "Get neigh: " << time << std::endl;
     
    
@@ -486,7 +492,9 @@ static void particle_linear_neigh_access(PartCellStructure<float,uint64_t>& pc_s
             //loop over the resolutions of the structure
             const unsigned int x_num_ = pc_data.x_num[i];
             const unsigned int z_num_ = pc_data.z_num[i];
-#pragma omp parallel for default(shared) private(z_,x_,j_,node_val_pc,curr_key)  firstprivate(neigh_cell_keys) if(z_num_*x_num_ > 100)
+#ifdef HAVE_OPENMP
+	#pragma omp parallel for default(shared) private(z_,x_,j_,node_val_pc,curr_key)  firstprivate(neigh_cell_keys) if(z_num_*x_num_ > 100)
+#endif
             for(z_ = 0;z_ < z_num_;z_++){
                 //both z and x are explicitly accessed in the structure
                 curr_key = 0;
@@ -557,8 +565,8 @@ static void particle_linear_neigh_access(PartCellStructure<float,uint64_t>& pc_s
 
     
     timer.stop_timer();
-    
-    float time = (timer.t2 - timer.t1)/num_repeats;
+    std::chrono::duration<float> elapsed_seconds = timer.t2 - timer.t1;
+    float time = elapsed_seconds.count()/num_repeats;
 
     analysis_data.add_float_data("neigh_part_linear_total",time);
     analysis_data.add_float_data("neigh_part_linear_perm",time/(1.0*pc_struct.get_number_parts()/1000000.0));
@@ -651,9 +659,9 @@ static void move_cells_random(PartCellData<uint64_t>& pc_data,ParticleDataNew<fl
     
     
     timer.stop_timer();
-    
-    float time = (timer.t2 - timer.t1)/(num_repeats/1000000.0);
-    
+    std::chrono::duration<float> elapsed_seconds = timer.t2 - timer.t1;
+    float time = elapsed_seconds.count()/(num_repeats/1000000.0);
+
     std::cout << "Particle Move random 1000000* : " << time << std::endl;
     
     
@@ -736,8 +744,9 @@ void pixels_move_random(PartCellStructure<U,uint64_t>& pc_struct,uint64_t y_num,
     (void) output_data.mesh;
     
     timer.stop_timer();
-    float time = (timer.t2 - timer.t1);
-    
+    std::chrono::duration<float> elapsed_seconds = timer.t2 - timer.t1;
+    float time = elapsed_seconds.count()/num_repeats;
+
     std::cout << " Pixel Move random 1000000* : " << (x_num*y_num*z_num) << " took: " << time/(num_repeats/1000000.0) << std::endl;
     
 }
@@ -854,9 +863,9 @@ static void particle_random_access(PartCellStructure<float,uint64_t>& pc_struct,
 
 
     timer.stop_timer();
-    
-    float time = (timer.t2 - timer.t1);
-    
+    std::chrono::duration<float> elapsed_seconds = timer.t2 - timer.t1;
+    float time = elapsed_seconds.count()/num_repeats;
+
     timer.start_timer("neigh_cell_comp");
     
     
@@ -886,8 +895,9 @@ static void particle_random_access(PartCellStructure<float,uint64_t>& pc_struct,
     }
     
     timer.stop_timer();
-    
-    float time2 = (timer.t2 - timer.t1);
+
+    elapsed_seconds = timer.t2 - timer.t1;
+    float time2 = elapsed_seconds.count()/num_repeats;
     //std::cout << "Overhead " << time2 << std::endl;
     
     //std::cout << "Random Access Neigh Particles: " << ((time-time2)) << std::endl;
@@ -930,7 +940,9 @@ MeshData<U> pixel_filter_full(MeshData<V>& input_data,std::vector<U>& filter,flo
 
     for(int r = 0;r < num_repeats;r++){
 
-#pragma omp parallel for default(shared) private(j,i,k,offset_min,offset_max)
+#ifdef HAVE_OPENMP
+	#pragma omp parallel for default(shared) private(j,i,k,offset_min,offset_max)
+#endif
         for(j = 0; j < z_num;j++){
             for(i = 0; i < x_num;i++){
 
@@ -956,7 +968,8 @@ MeshData<U> pixel_filter_full(MeshData<V>& input_data,std::vector<U>& filter,flo
     (void) output_data.mesh;
 
     timer.stop_timer();
-    float time = (timer.t2 - timer.t1)/num_repeats;
+    std::chrono::duration<float> elapsed_seconds = timer.t2 - timer.t1;
+    float time = elapsed_seconds.count()/num_repeats;
 
     //std::cout << " Pixel Filter Size: " << (x_num*y_num*z_num) << " y took: " << time << std::endl;
 
@@ -964,7 +977,9 @@ MeshData<U> pixel_filter_full(MeshData<V>& input_data,std::vector<U>& filter,flo
 
     for(int r = 0;r < num_repeats;r++){
 
-#pragma omp parallel for default(shared) private(j,i,k,offset_min,offset_max)
+#ifdef HAVE_OPENMP
+	#pragma omp parallel for default(shared) private(j,i,k,offset_min,offset_max)
+#endif
         for(j = 0; j < z_num;j++){
             for(i = 0; i < x_num;i++){
 
@@ -990,7 +1005,8 @@ MeshData<U> pixel_filter_full(MeshData<V>& input_data,std::vector<U>& filter,flo
     (void) output_data.mesh;
 
     timer.stop_timer();
-    float time2 = (timer.t2 - timer.t1)/num_repeats;
+    elapsed_seconds = timer.t2 - timer.t1;
+    float time2 = elapsed_seconds.count()/num_repeats;
 
     //std::cout << " Pixel Filter Size: " << (x_num*y_num*z_num) << " x took: " << time2 << std::endl;
 
@@ -998,7 +1014,9 @@ MeshData<U> pixel_filter_full(MeshData<V>& input_data,std::vector<U>& filter,flo
 
     for(int r = 0;r < num_repeats;r++){
 
-#pragma omp parallel for default(shared) private(j,i,k,offset_min,offset_max)
+#ifdef HAVE_OPENMP
+	#pragma omp parallel for default(shared) private(j,i,k,offset_min,offset_max)
+#endif
         for(j = 0; j < z_num;j++){
             for(i = 0; i < x_num;i++){
 
@@ -1025,7 +1043,8 @@ MeshData<U> pixel_filter_full(MeshData<V>& input_data,std::vector<U>& filter,flo
     (void) output_data.mesh;
 
     timer.stop_timer();
-    float time3 = (timer.t2 - timer.t1)/num_repeats;
+    elapsed_seconds = timer.t2 - timer.t1;
+    float time3 = elapsed_seconds.count()/num_repeats;
 
     // std::cout << " Pixel Filter Size: " << (x_num*y_num*z_num) << " z took: " << time3 << std::endl;
 
@@ -1071,7 +1090,9 @@ MeshData<U> pixel_filter_full_mult(MeshData<V> input_data,std::vector<U> filter_
 
     for(int r = 0;r < num_repeats;r++){
 
-#pragma omp parallel for default(shared) private(j,i,k,offset_min,offset_max)
+#ifdef HAVE_OPENMP
+	#pragma omp parallel for default(shared) private(j,i,k,offset_min,offset_max)
+#endif
         for(j = 0; j < z_num;j++){
             for(i = 0; i < x_num;i++){
 
@@ -1099,8 +1120,8 @@ MeshData<U> pixel_filter_full_mult(MeshData<V> input_data,std::vector<U> filter_
     (void) output_data.mesh;
 
     timer.stop_timer();
-    float time = (timer.t2 - timer.t1)/num_repeats;
-
+    std::chrono::duration<float> elapsed_seconds = timer.t2 - timer.t1;
+    float time = elapsed_seconds.count()/num_repeats;
 
     std::swap(output_data.mesh,input_data.mesh);
 
@@ -1110,7 +1131,9 @@ MeshData<U> pixel_filter_full_mult(MeshData<V> input_data,std::vector<U> filter_
 
     for(int r = 0;r < num_repeats;r++){
 
-#pragma omp parallel for default(shared) private(j,i,k,offset_min,offset_max)
+#ifdef HAVE_OPENMP
+	#pragma omp parallel for default(shared) private(j,i,k,offset_min,offset_max)
+#endif
         for(j = 0; j < z_num;j++){
             for(i = 0; i < x_num;i++){
 
@@ -1137,7 +1160,8 @@ MeshData<U> pixel_filter_full_mult(MeshData<V> input_data,std::vector<U> filter_
 
 
     timer.stop_timer();
-    float time2 = (timer.t2 - timer.t1)/num_repeats;
+    elapsed_seconds = timer.t2 - timer.t1;
+    float time2 = elapsed_seconds.count()/num_repeats;
 
     std::swap(output_data.mesh,input_data.mesh);
 
@@ -1147,7 +1171,9 @@ MeshData<U> pixel_filter_full_mult(MeshData<V> input_data,std::vector<U> filter_
 
     for(int r = 0;r < num_repeats;r++){
 
-#pragma omp parallel for default(shared) private(j,i,k,offset_min,offset_max)
+#ifdef HAVE_OPENMP
+	#pragma omp parallel for default(shared) private(j,i,k,offset_min,offset_max)
+#endif
         for(j = 0; j < z_num;j++){
             for(i = 0; i < x_num;i++){
 
@@ -1175,7 +1201,8 @@ MeshData<U> pixel_filter_full_mult(MeshData<V> input_data,std::vector<U> filter_
 
 
     timer.stop_timer();
-    float time3 = (timer.t2 - timer.t1)/num_repeats;
+    elapsed_seconds = timer.t2 - timer.t1;
+    float time3 = elapsed_seconds.count()/num_repeats;
 
     // std::cout << " Pixel Filter Size: " << (x_num*y_num*z_num) << " z took: " << time3 << std::endl;
 
@@ -1226,7 +1253,9 @@ void pixels_linear_neigh_access(PartCellStructure<U,uint64_t>& pc_struct,uint64_
     
     for(int r = 0;r < num_repeats;r++){
         
-#pragma omp parallel for default(shared) private(j,i,k,i_n,k_n,j_n)
+#ifdef HAVE_OPENMP
+	#pragma omp parallel for default(shared) private(j,i,k,i_n,k_n,j_n)
+#endif
         for(j = 0; j < z_num;j++){
             for(i = 0; i < x_num;i++){
                 for(k = 0;k < y_num;k++){
@@ -1258,8 +1287,9 @@ void pixels_linear_neigh_access(PartCellStructure<U,uint64_t>& pc_struct,uint64_
     }
     
     timer.stop_timer();
-    float time = (timer.t2 - timer.t1)/num_repeats;
-    
+    std::chrono::duration<float> elapsed_seconds = timer.t2 - timer.t1;
+    float time = elapsed_seconds.count()/num_repeats;
+
     std::cout << "Pixel Linear Neigh: " << (x_num*y_num*z_num) << " took: " << time << std::endl;
     std::cout << "per 1000000 pixel took: " << (time)/((1.0*x_num*y_num*z_num)/1000000.0) << std::endl;
 
@@ -1345,8 +1375,9 @@ void pixel_neigh_random(PartCellStructure<U,uint64_t>& pc_struct,uint64_t y_num,
     }
     
     timer.stop_timer();
-    float time = (timer.t2 - timer.t1);
-    
+    std::chrono::duration<float> elapsed_seconds = timer.t2 - timer.t1;
+    float time = elapsed_seconds.count()/num_repeats;
+
     timer.start_timer("full previous filter");
     
     for(int r = 0;r < num_repeats;r++){
@@ -1364,7 +1395,8 @@ void pixel_neigh_random(PartCellStructure<U,uint64_t>& pc_struct,uint64_t y_num,
     
     
     timer.stop_timer();
-    float time2 = (timer.t2 - timer.t1);
+    elapsed_seconds = timer.t2 - timer.t1;
+    float time2 = elapsed_seconds.count();
 
     float est_full_time = (time-time2)*(1.0*x_num*y_num*z_num)/num_repeats;
     
@@ -1441,7 +1473,9 @@ void apr_filter_full(PartCellStructure<S,uint64_t>& pc_struct,uint64_t filter_of
             CurrentLevel<float,uint64_t> curr_level;
             curr_level.set_new_depth(depth,part_new);
 
-#pragma omp parallel for default(shared) private(z_,x_,j_,y_,offset_min,offset_max) firstprivate(curr_level,temp_vec) if(z_num_*x_num_ > 100)
+#ifdef HAVE_OPENMP
+	#pragma omp parallel for default(shared) private(z_,x_,j_,y_,offset_min,offset_max) firstprivate(curr_level,temp_vec) if(z_num_*x_num_ > 100)
+#endif
             for(z_ = 0;z_ < z_num_;z_++){
                 //both z and x are explicitly accessed in the structure
 
@@ -1489,8 +1523,8 @@ void apr_filter_full(PartCellStructure<S,uint64_t>& pc_struct,uint64_t filter_of
 
     timer.stop_timer();
 
-    float time_vec = (timer.t2 - timer.t1);
-
+    std::chrono::duration<float> elapsed_seconds = timer.t2 - timer.t1;
+    float time_vec = elapsed_seconds.count()/num_repeats;
 
     timer.start_timer("compute gradient y");
     
@@ -1507,7 +1541,9 @@ void apr_filter_full(PartCellStructure<S,uint64_t>& pc_struct,uint64_t filter_of
             CurrentLevel<float,uint64_t> curr_level;
             curr_level.set_new_depth(depth,part_new);
             
-#pragma omp parallel for default(shared) private(z_,x_,j_,y_,offset_min,offset_max) firstprivate(curr_level) if(z_num_*x_num_ > 100)
+#ifdef HAVE_OPENMP
+	#pragma omp parallel for default(shared) private(z_,x_,j_,y_,offset_min,offset_max) firstprivate(curr_level) if(z_num_*x_num_ > 100)
+#endif
             for(z_ = 0;z_ < z_num_;z_++){
                 //both z and x are explicitly accessed in the structure
                 
@@ -1556,9 +1592,10 @@ void apr_filter_full(PartCellStructure<S,uint64_t>& pc_struct,uint64_t filter_of
     }
     
     timer.stop_timer();
-    
-    float time = (timer.t2 - timer.t1);
-    
+
+    elapsed_seconds = timer.t2 - timer.t1;
+    float time = elapsed_seconds.count();
+
     //std::cout << " Adaptive Filter y took: " << time/num_repeats << std::endl;
     
     for(int r = 0;r < num_repeats;r++){
@@ -1574,7 +1611,9 @@ void apr_filter_full(PartCellStructure<S,uint64_t>& pc_struct,uint64_t filter_of
             CurrentLevel<float,uint64_t> curr_level;
             curr_level.set_new_depth(depth,part_new);
             
-#pragma omp parallel for default(shared) private(z_,x_,j_,y_,offset_min,offset_max) firstprivate(curr_level) if(z_num_*x_num_ > 100)
+#ifdef HAVE_OPENMP
+	#pragma omp parallel for default(shared) private(z_,x_,j_,y_,offset_min,offset_max) firstprivate(curr_level) if(z_num_*x_num_ > 100)
+#endif
             for(z_ = 0;z_ < z_num_;z_++){
                 //both z and x are explicitly accessed in the structure
                 
@@ -1623,9 +1662,10 @@ void apr_filter_full(PartCellStructure<S,uint64_t>& pc_struct,uint64_t filter_of
     }
     
     timer.stop_timer();
-    
-    float time2 = (timer.t2 - timer.t1);
-    
+
+    elapsed_seconds = timer.t2 - timer.t1;
+    float time2 = elapsed_seconds.count();
+
     //std::cout << " Adaptive Filter x took: " << time2/num_repeats << std::endl;
     
     for(int r = 0;r < num_repeats;r++){
@@ -1641,7 +1681,9 @@ void apr_filter_full(PartCellStructure<S,uint64_t>& pc_struct,uint64_t filter_of
             CurrentLevel<float,uint64_t> curr_level;
             curr_level.set_new_depth(depth,part_new);
             
-#pragma omp parallel for default(shared) private(z_,x_,j_,y_,offset_min,offset_max) firstprivate(curr_level) if(z_num_*x_num_ > 100)
+#ifdef HAVE_OPENMP
+	#pragma omp parallel for default(shared) private(z_,x_,j_,y_,offset_min,offset_max) firstprivate(curr_level) if(z_num_*x_num_ > 100)
+#endif
             for(z_ = 0;z_ < z_num_;z_++){
                 //both z and x are explicitly accessed in the structure
                 
@@ -1690,7 +1732,8 @@ void apr_filter_full(PartCellStructure<S,uint64_t>& pc_struct,uint64_t filter_of
     
     timer.stop_timer();
     
-    float time3 = (timer.t2 - timer.t1);
+    elapsed_seconds = timer.t2 - timer.t1;
+    float time3 = elapsed_seconds.count();
 
 
     timer.start_timer("interp");
@@ -1701,7 +1744,8 @@ void apr_filter_full(PartCellStructure<S,uint64_t>& pc_struct,uint64_t filter_of
     }
     timer.stop_timer();
 
-    float time_interp = (timer.t2 - timer.t1);
+    elapsed_seconds = timer.t2 - timer.t1;
+    float time_interp = elapsed_seconds.count();
 
     //std::cout << "Particle pc Filter z took: " << time3/num_repeats << std::endl;
     
@@ -1768,7 +1812,9 @@ ExtraPartCellData<U> sep_neigh_filter(PartCellData<uint64_t>& pc_data,ExtraPartC
                 //loop over the resolutions of the structure
                 const unsigned int x_num_ = pc_data.x_num[i];
                 const unsigned int z_num_ = pc_data.z_num[i];
-#pragma omp parallel for default(shared) private(z_,x_,j_,node_val_pc,curr_key)  firstprivate(neigh_cell_keys) if(z_num_*x_num_ > 100)
+#ifdef HAVE_OPENMP
+	#pragma omp parallel for default(shared) private(z_,x_,j_,node_val_pc,curr_key)  firstprivate(neigh_cell_keys) if(z_num_*x_num_ > 100)
+#endif
                 for (z_ = 0; z_ < z_num_; z_++) {
                     //both z and x are explicitly accessed in the structure
                     curr_key = 0;
@@ -1878,7 +1924,8 @@ ExtraPartCellData<U> sep_neigh_filter(PartCellData<uint64_t>& pc_data,ExtraPartC
     
     timer.stop_timer();
     
-    float time = (timer.t2 - timer.t1);
+    std::chrono::duration<float> elapsed_seconds = timer.t2 - timer.t1;
+    float time = elapsed_seconds.count();
     
     std::cout << "Seperable Smoothing Filter: " << time << std::endl;
 
@@ -1961,7 +2008,9 @@ void new_filter_part(PartCellStructure<S,uint64_t>& pc_struct,uint64_t filter_of
             CurrentLevel<float,uint64_t> curr_level;
             curr_level.set_new_depth(depth,part_new);
 
-#pragma omp parallel for default(shared) private(z_,x_,j_,y_,offset_min,offset_max) firstprivate(curr_level,temp_vec) if(z_num_*x_num_ > 100)
+#ifdef HAVE_OPENMP
+	#pragma omp parallel for default(shared) private(z_,x_,j_,y_,offset_min,offset_max) firstprivate(curr_level,temp_vec) if(z_num_*x_num_ > 100)
+#endif
             for(z_ = 0;z_ < z_num_;z_++){
                 //both z and x are explicitly accessed in the structure
 
@@ -2003,7 +2052,8 @@ void new_filter_part(PartCellStructure<S,uint64_t>& pc_struct,uint64_t filter_of
 
     timer.stop_timer();
 
-    float time_vec = (timer.t2 - timer.t1)/num_repeats;
+    std::chrono::duration<float> elapsed_seconds = timer.t2 - timer.t1;
+    float time_vec = elapsed_seconds.count()/num_repeats;
 
     std::cout << "time: " << time_vec << std::endl;
 
@@ -2076,7 +2126,9 @@ ExtraPartCellData<U> filter_apr_by_slice(PartCellStructure<float,uint64_t>& pc_s
         set_zero_minus_1(filter_output);
 
         int i = 0;
-#pragma omp parallel for default(shared) private(i) firstprivate(slice) schedule(guided)
+#ifdef HAVE_OPENMP
+	#pragma omp parallel for default(shared) private(i) firstprivate(slice) schedule(guided)
+#endif
         for (i = 0; i < num_slices; ++i) {
             interp_slice(slice, y_vec, filter_input, dir, i);
 
@@ -2157,7 +2209,8 @@ ExtraPartCellData<U> filter_apr_input_img(MeshData<U>& input_img,PartCellStructu
 
     timer.stop_timer();
 
-    float time_y = (timer.t2 - timer.t1)/num_repeats;
+    std::chrono::duration<float> elapsed_seconds = timer.t2 - timer.t1;
+    float time_y = elapsed_seconds.count()/num_repeats;
 
     //std::swap(filter_input,filter_output);
 
@@ -2171,7 +2224,8 @@ ExtraPartCellData<U> filter_apr_input_img(MeshData<U>& input_img,PartCellStructu
 
     timer.stop_timer();
 
-    float time_x = (timer.t2 - timer.t1)/num_repeats;
+    elapsed_seconds = timer.t2 - timer.t1;
+    float time_x = elapsed_seconds.count()/num_repeats;
 
 
     //std::swap(filter_input,filter_output);
@@ -2186,7 +2240,8 @@ ExtraPartCellData<U> filter_apr_input_img(MeshData<U>& input_img,PartCellStructu
 
     timer.stop_timer();
 
-    float time_z = (timer.t2 - timer.t1)/num_repeats;
+    elapsed_seconds = timer.t2 - timer.t1;
+    float time_z = elapsed_seconds.count()/num_repeats;
 
     analysis_data.add_float_data("part_filter_input_y",time_y);
     analysis_data.add_float_data("part_filter_input_x",time_x);
@@ -2263,7 +2318,8 @@ ExtraPartCellData<U> filter_apr_by_slice(PartCellStructure<float,uint64_t>& pc_s
 
     timer.stop_timer();
 
-    float time_y = (timer.t2 - timer.t1)/num_repeats;
+    std::chrono::duration<float> elapsed_seconds = timer.t2 - timer.t1;
+    float time_y = elapsed_seconds.count()/num_repeats;
 
     //std::swap(filter_input,filter_output);
 
@@ -2277,7 +2333,8 @@ ExtraPartCellData<U> filter_apr_by_slice(PartCellStructure<float,uint64_t>& pc_s
 
     timer.stop_timer();
 
-    float time_x = (timer.t2 - timer.t1)/num_repeats;
+    elapsed_seconds = timer.t2 - timer.t1;
+    float time_x = elapsed_seconds.count()/num_repeats;
 
 
     //std::swap(filter_input,filter_output);
@@ -2292,7 +2349,8 @@ ExtraPartCellData<U> filter_apr_by_slice(PartCellStructure<float,uint64_t>& pc_s
 
     timer.stop_timer();
 
-    float time_z = (timer.t2 - timer.t1)/num_repeats;
+    elapsed_seconds = timer.t2 - timer.t1;
+    float time_z = elapsed_seconds.count()/num_repeats;
 
     analysis_data.add_float_data("part_filter_y",time_y);
     analysis_data.add_float_data("part_filter_x",time_x);
@@ -2373,7 +2431,8 @@ ExtraPartCellData<U> filter_apr_by_slice_mult(PartCellStructure<float,uint64_t>&
 
 
 
-    float time_y = (timer.t2 - timer.t1)/num_repeats;
+    std::chrono::duration<float> elapsed_seconds = timer.t2 - timer.t1;
+    float time_y = elapsed_seconds.count()/num_repeats;
 
     std::swap(filter_input,filter_output);
 
@@ -2389,7 +2448,8 @@ ExtraPartCellData<U> filter_apr_by_slice_mult(PartCellStructure<float,uint64_t>&
 
     timer.stop_timer();
 
-    float time_x = (timer.t2 - timer.t1)/num_repeats;
+    elapsed_seconds = timer.t2 - timer.t1;
+    float time_x = elapsed_seconds.count()/num_repeats;
 
 
 
@@ -2407,7 +2467,8 @@ ExtraPartCellData<U> filter_apr_by_slice_mult(PartCellStructure<float,uint64_t>&
 
     timer.stop_timer();
 
-    float time_z = (timer.t2 - timer.t1)/num_repeats;
+    elapsed_seconds = timer.t2 - timer.t1;
+    float time_z = elapsed_seconds.count()/num_repeats;
 
 
     analysis_data.add_float_data("part_filter_y",time_y);
@@ -2481,7 +2542,9 @@ ExtraPartCellData<U> sep_neigh_grad(PartCellData<uint64_t>& pc_data,ExtraPartCel
         //loop over the resolutions of the structure
         const unsigned int x_num_ = pc_data.x_num[i];
         const unsigned int z_num_ = pc_data.z_num[i];
-#pragma omp parallel for default(shared) private(z_,x_,j_,node_val_pc,curr_key)  firstprivate(neigh_cell_keys) if(z_num_*x_num_ > 100)
+#ifdef HAVE_OPENMP
+	#pragma omp parallel for default(shared) private(z_,x_,j_,node_val_pc,curr_key)  firstprivate(neigh_cell_keys) if(z_num_*x_num_ > 100)
+#endif
         for(z_ = 0;z_ < z_num_;z_++){
             //both z and x are explicitly accessed in the structure
             curr_key = 0;
@@ -2598,7 +2661,8 @@ ExtraPartCellData<U> sep_neigh_grad(PartCellData<uint64_t>& pc_data,ExtraPartCel
 
     timer.stop_timer();
 
-    float time = (timer.t2 - timer.t1);
+    std::chrono::duration<float> elapsed_seconds = timer.t2 - timer.t1;
+    float time = elapsed_seconds.count();
 
     //std::cout << "Seperable Smoothing Filter: " << time << std::endl;
     return filter_output;
@@ -2739,7 +2803,9 @@ ExtraPartCellData<std::array<float,3>> adaptive_gradient_normal(PartCellStructur
         const unsigned int z_num_min_ = 0;
 
 
-#pragma omp parallel for default(shared) private(z_,x_,j_) if(z_num_*x_num_ > 100)
+#ifdef HAVE_OPENMP
+	#pragma omp parallel for default(shared) private(z_,x_,j_) if(z_num_*x_num_ > 100)
+#endif
         for (z_ = z_num_min_; z_ < z_num_; z_++) {
             //both z and x are explicitly accessed in the structure
 

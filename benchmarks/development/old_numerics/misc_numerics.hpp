@@ -45,7 +45,9 @@ static void create_y_data(ExtraPartCellData<uint16_t>& y_vec,ParticleDataNew<flo
 
         const float step_size = pow(2,curr_level.depth_max - curr_level.depth);
 
-#pragma omp parallel for default(shared) private(z_,x_,j_) firstprivate(curr_level) if(z_num_*x_num_ > 100)
+#ifdef HAVE_OPENMP
+	#pragma omp parallel for default(shared) private(z_,x_,j_) firstprivate(curr_level) if(z_num_*x_num_ > 100)
+#endif
         for (z_ = 0; z_ < z_num_; z_++) {
             //both z and x are explicitly accessed in the structure
 
@@ -257,7 +259,9 @@ void interp_depth_to_mesh(MeshData<uint8_t>& k_img,PartCellStructure<S,uint64_t>
         const unsigned int z_num_ = pc_struct.pc_data.z_num[i];
         
         
-#pragma omp parallel for default(shared) private(p,z_,x_,j_,node_val_part,curr_key,status,part_offset) if(z_num_*x_num_ > 100)
+#ifdef HAVE_OPENMP
+	#pragma omp parallel for default(shared) private(p,z_,x_,j_,node_val_part,curr_key,status,part_offset) if(z_num_*x_num_ > 100)
+#endif
         for(z_ = 0;z_ < z_num_;z_++){
             //both z and x are explicitly accessed in the structure
             curr_key = 0;
@@ -354,7 +358,9 @@ void interp_adapt_to_mesh(MeshData<uint8_t>& k_img,PartCellStructure<S,uint64_t>
         const unsigned int z_num_ = pc_struct.pc_data.z_num[i];
 
 
-#pragma omp parallel for default(shared) private(p,z_,x_,j_,node_val_part,curr_key,status,part_offset) if(z_num_*x_num_ > 100)
+#ifdef HAVE_OPENMP
+	#pragma omp parallel for default(shared) private(p,z_,x_,j_,node_val_part,curr_key,status,part_offset) if(z_num_*x_num_ > 100)
+#endif
         for(z_ = 0;z_ < z_num_;z_++){
             //both z and x are explicitly accessed in the structure
             curr_key = 0;
@@ -449,7 +455,9 @@ void interp_status_to_mesh(MeshData<uint8_t>& status_img,PartCellStructure<S,uin
         const unsigned int z_num_ = pc_struct.pc_data.z_num[i];
         
         
-#pragma omp parallel for default(shared) private(p,z_,x_,j_,node_val_part,curr_key,status,part_offset) if(z_num_*x_num_ > 100)
+#ifdef HAVE_OPENMP
+	#pragma omp parallel for default(shared) private(p,z_,x_,j_,node_val_part,curr_key,status,part_offset) if(z_num_*x_num_ > 100)
+#endif
         for(z_ = 0;z_ < z_num_;z_++){
             //both z and x are explicitly accessed in the structure
             curr_key = 0;
@@ -542,7 +550,9 @@ void interp_extrapc_to_mesh(MeshData<T>& output_img,PartCellStructure<S,uint64_t
         const unsigned int z_num_ = pc_struct.pc_data.z_num[i];
         
         
-#pragma omp parallel for default(shared) private(p,z_,x_,j_,node_val_part,curr_key,status,part_offset) if(z_num_*x_num_ > 100)
+#ifdef HAVE_OPENMP
+	#pragma omp parallel for default(shared) private(p,z_,x_,j_,node_val_part,curr_key,status,part_offset) if(z_num_*x_num_ > 100)
+#endif
         for(z_ = 0;z_ < z_num_;z_++){
             //both z and x are explicitly accessed in the structure
             curr_key = 0;
@@ -653,7 +663,9 @@ void interp_parts_to_smooth(MeshData<U>& out_image,ExtraPartCellData<V>& interp_
     std::copy(k_img.mesh.begin(),k_img.mesh.end(),output_data.mesh.begin());
 
 
-#pragma omp parallel for default(shared) private(j,i,k,offset_min,offset_max,filter_offset,factor)
+#ifdef HAVE_OPENMP
+	#pragma omp parallel for default(shared) private(j,i,k,offset_min,offset_max,filter_offset,factor)
+#endif
         for(j = 0; j < z_num;j++){
             for(i = 0; i < x_num;i++){
 
@@ -688,7 +700,9 @@ void interp_parts_to_smooth(MeshData<U>& out_image,ExtraPartCellData<V>& interp_
 
     std::copy(k_img.mesh.begin(),k_img.mesh.end(),output_data.mesh.begin());
 
-#pragma omp parallel for default(shared) private(j,i,k,offset_min,offset_max,filter_offset,factor)
+#ifdef HAVE_OPENMP
+	#pragma omp parallel for default(shared) private(j,i,k,offset_min,offset_max,filter_offset,factor)
+#endif
         for(j = 0; j < z_num;j++){
             for(i = 0; i < x_num;i++){
 
@@ -727,7 +741,9 @@ void interp_parts_to_smooth(MeshData<U>& out_image,ExtraPartCellData<V>& interp_
 
     std::copy(k_img.mesh.begin(),k_img.mesh.end(),output_data.mesh.begin());
 
-#pragma omp parallel for default(shared) private(j,i,k,offset_min,offset_max,filter_offset,factor)
+#ifdef HAVE_OPENMP
+	#pragma omp parallel for default(shared) private(j,i,k,offset_min,offset_max,filter_offset,factor)
+#endif
         for(j = 0; j < z_num;j++){
             for(i = 0; i < x_num;i++){
 
@@ -792,7 +808,9 @@ void threshold_part(PartCellStructure<float,uint64_t>& pc_struct,ExtraPartCellDa
             FilterLevel<uint64_t,float> curr_level;
             curr_level.set_new_depth(depth,pc_struct);
             
-#pragma omp parallel for default(shared) private(z_,x_,j_) firstprivate(curr_level) if(z_num_*x_num_ > 100)
+#ifdef HAVE_OPENMP
+	#pragma omp parallel for default(shared) private(z_,x_,j_) firstprivate(curr_level) if(z_num_*x_num_ > 100)
+#endif
             for(z_ = 0;z_ < z_num_;z_++){
                 //both z and x are explicitly accessed in the structure
                 
@@ -826,7 +844,8 @@ void threshold_part(PartCellStructure<float,uint64_t>& pc_struct,ExtraPartCellDa
     
     
     timer.stop_timer();
-    float time = (timer.t2 - timer.t1)/num_repeats;
+    std::chrono::duration<float> elapsed_seconds = timer.t2 - timer.t1;
+    float time = elapsed_seconds.count()/num_repeats;
     
     std::cout << " Particle Threshold Size: " << pc_struct.get_number_parts() << " took: " << time << std::endl;
     
@@ -865,7 +884,9 @@ void threshold_pixels(PartCellStructure<U,uint64_t>& pc_struct,uint64_t y_num,ui
     
     for(int r = 0;r < num_repeats;r++){
         
-#pragma omp parallel for default(shared) private(j,i,k)
+#ifdef HAVE_OPENMP
+	#pragma omp parallel for default(shared) private(j,i,k)
+#endif
         for(j = 0; j < z_num;j++){
             for(i = 0; i < x_num;i++){
                 
@@ -881,8 +902,9 @@ void threshold_pixels(PartCellStructure<U,uint64_t>& pc_struct,uint64_t y_num,ui
     
     
     timer.stop_timer();
-    float time = (timer.t2 - timer.t1)/num_repeats;
-    
+    std::chrono::duration<float> elapsed_seconds = timer.t2 - timer.t1;
+    float time = elapsed_seconds.count()/num_repeats;
+
     std::cout << " Pixel Threshold Size: " << (x_num*y_num*z_num) << " took: " << time << std::endl;
     
 }
@@ -1057,7 +1079,9 @@ void interp_slice(PartCellStructure<float,uint64_t>& pc_struct,ExtraPartCellData
 
         const float step_size = pow(2,curr_level.depth_max - curr_level.depth);
 
-#pragma omp parallel for default(shared) private(z_,x_,j_) firstprivate(curr_level) if(z_num_*x_num_ > 100)
+#ifdef HAVE_OPENMP
+	#pragma omp parallel for default(shared) private(z_,x_,j_) firstprivate(curr_level) if(z_num_*x_num_ > 100)
+#endif
         for (z_ = z_num_min_; z_ < z_num_; z_++) {
             //both z and x are explicitly accessed in the structure
 
@@ -1085,7 +1109,9 @@ void interp_slice(PartCellStructure<float,uint64_t>& pc_struct,ExtraPartCellData
                         //add to all the required rays
 
                         for (int k = 0; k < step_size; ++k) {
-#pragma omp simd
+#ifdef HAVE_OPENMP
+	#pragma omp simd
+#endif
                             for (int i = 0; i < step_size; ++i) {
                                 //slice.mesh[dim1 + i + (dim2 + k)*slice.y_num] = temp_int;
 
@@ -1208,7 +1234,9 @@ void get_slices(PartCellStructure<float,uint64_t>& pc_struct){
         }
         int i = 0;
 
-#pragma omp parallel for default(shared) private(i) firstprivate(slice)
+#ifdef HAVE_OPENMP
+	#pragma omp parallel for default(shared) private(i) firstprivate(slice)
+#endif
         for (i = 0; i < num_slices; ++i) {
             interp_slice(slice, y_vec, part_new.particle_data, dir, i);
         }
@@ -1246,7 +1274,9 @@ void interp_img(MeshData<U>& img,ExtraPartCellData<uint16_t>& y_vec,ExtraPartCel
 
         const float step_size = pow(2,y_vec.depth_max - depth);
 
-#pragma omp parallel for default(shared) private(z_,x_,j_) if(z_num_*x_num_ > 100)
+#ifdef HAVE_OPENMP
+	#pragma omp parallel for default(shared) private(z_,x_,j_) if(z_num_*x_num_ > 100)
+#endif
         for (z_ = z_num_min_; z_ < z_num_; z_++) {
             //both z and x are explicitly accessed in the structure
 
@@ -1270,7 +1300,9 @@ void interp_img(MeshData<U>& img,ExtraPartCellData<uint16_t>& y_vec,ExtraPartCel
                         for (int q = dim3; q < offset_max_dim3; ++q) {
 
                             for (int k = dim2; k < offset_max_dim2; ++k) {
-#pragma omp simd
+#ifdef HAVE_OPENMP
+	#pragma omp simd
+#endif
                                 for (int i = dim1; i < offset_max_dim1; ++i) {
                                     img.mesh[i + (k) * img.y_num + q*img.y_num*img.x_num] = temp_int;
                                 }
@@ -1313,7 +1345,9 @@ void interp_depth(MeshData<U>& img,PartCellData<uint64_t>& pc_data,ParticleDataN
 
         const float step_size = pow(2,curr_level.depth_max - curr_level.depth);
 
-#pragma omp parallel for default(shared) private(z_,x_,j_) firstprivate(curr_level) if(z_num_*x_num_ > 100)
+#ifdef HAVE_OPENMP
+	#pragma omp parallel for default(shared) private(z_,x_,j_) firstprivate(curr_level) if(z_num_*x_num_ > 100)
+#endif
         for (z_ = z_num_min_; z_ < z_num_; z_++) {
             //both z and x are explicitly accessed in the structure
 
@@ -1340,7 +1374,9 @@ void interp_depth(MeshData<U>& img,PartCellData<uint64_t>& pc_data,ParticleDataN
                         for (int q = dim3; q < offset_max_dim3; ++q) {
 
                             for (int k = dim2; k < offset_max_dim2; ++k) {
-#pragma omp simd
+#ifdef HAVE_OPENMP
+	#pragma omp simd
+#endif
                                 for (int i = dim1; i < offset_max_dim1; ++i) {
                                     img.mesh[i + (k) * img.y_num + q*img.y_num*img.x_num] = depth;
                                 }
@@ -1391,7 +1427,9 @@ void interp_img(MeshData<U>& img,PartCellData<uint64_t>& pc_data,ParticleDataNew
 
         const float step_size = pow(2,curr_level.depth_max - curr_level.depth);
 
-#pragma omp parallel for default(shared) private(z_,x_,j_) firstprivate(curr_level) if(z_num_*x_num_ > 100)
+#ifdef HAVE_OPENMP
+	#pragma omp parallel for default(shared) private(z_,x_,j_) firstprivate(curr_level) if(z_num_*x_num_ > 100)
+#endif
         for (z_ = z_num_min_; z_ < z_num_; z_++) {
             //both z and x are explicitly accessed in the structure
 
@@ -1425,7 +1463,9 @@ void interp_img(MeshData<U>& img,PartCellData<uint64_t>& pc_data,ParticleDataNew
                         for (int q = dim3; q < offset_max_dim3; ++q) {
 
                             for (int k = dim2; k < offset_max_dim2; ++k) {
-    #pragma omp simd
+    #ifdef HAVE_OPENMP
+	#pragma omp simd
+#endif
                                 for (int i = dim1; i < offset_max_dim1; ++i) {
                                     img.mesh[i + (k) * img.y_num + q*img.y_num*img.x_num] = temp_int;
                                 }
@@ -1585,7 +1625,9 @@ void weigted_interp_img(MeshData<U>& img,PartCellData<uint64_t>& pc_data,Particl
 
         const float step_size = pow(2,curr_level.depth_max - curr_level.depth);
 
-#pragma omp parallel for default(shared) private(z_,x_,j_) firstprivate(curr_level) if(z_num_*x_num_ > 100)
+#ifdef HAVE_OPENMP
+	#pragma omp parallel for default(shared) private(z_,x_,j_) firstprivate(curr_level) if(z_num_*x_num_ > 100)
+#endif
         for (z_ = z_num_min_; z_ < z_num_; z_++) {
             //both z and x are explicitly accessed in the structure
 
@@ -1715,7 +1757,9 @@ void weigted_interp_img(MeshData<U>& img,PartCellData<uint64_t>& pc_data,Particl
 
         const float step_size = pow(2, curr_level.depth_max - curr_level.depth);
 
-#pragma omp parallel for default(shared) private(z_,x_,j_) firstprivate(curr_level) if(z_num_*x_num_ > 100)
+#ifdef HAVE_OPENMP
+	#pragma omp parallel for default(shared) private(z_,x_,j_) firstprivate(curr_level) if(z_num_*x_num_ > 100)
+#endif
         for (z_ = z_num_min_; z_ < z_num_; z_++) {
             //both z and x are explicitly accessed in the structure
 
@@ -2042,7 +2086,9 @@ void set_zero_minus_1(ExtraPartCellData<V>& parts){
         const unsigned int z_num_min_ = 0;
 
 
-#pragma omp parallel for default(shared) private(z_,x_,j_) if(z_num_*x_num_ > 100)
+#ifdef HAVE_OPENMP
+	#pragma omp parallel for default(shared) private(z_,x_,j_) if(z_num_*x_num_ > 100)
+#endif
         for (z_ = z_num_min_; z_ < z_num_; z_++) {
             //both z and x are explicitly accessed in the structure
 
@@ -2081,7 +2127,9 @@ void set_zero(ExtraPartCellData<V>& parts){
         const unsigned int z_num_min_ = 0;
 
 
-#pragma omp parallel for default(shared) private(z_,x_,j_) if(z_num_*x_num_ > 100)
+#ifdef HAVE_OPENMP
+	#pragma omp parallel for default(shared) private(z_,x_,j_) if(z_num_*x_num_ > 100)
+#endif
         for (z_ = z_num_min_; z_ < z_num_; z_++) {
             //both z and x are explicitly accessed in the structure
 
@@ -2118,7 +2166,9 @@ void transform_parts(ExtraPartCellData<V>& parts,ExtraPartCellData<V>& parts2,Un
         const unsigned int z_num_min_ = 0;
 
 
-#pragma omp parallel for default(shared) private(z_,x_,j_) if(z_num_*x_num_ > 100)
+#ifdef HAVE_OPENMP
+	#pragma omp parallel for default(shared) private(z_,x_,j_) if(z_num_*x_num_ > 100)
+#endif
         for (z_ = z_num_min_; z_ < z_num_; z_++) {
             //both z and x are explicitly accessed in the structure
 
@@ -2152,7 +2202,9 @@ void threshold_parts(ExtraPartCellData<V>& parts,ExtraPartCellData<U>& parts2,fl
         const unsigned int z_num_min_ = 0;
 
 
-#pragma omp parallel for default(shared) private(z_,x_,j_) if(z_num_*x_num_ > 100)
+#ifdef HAVE_OPENMP
+	#pragma omp parallel for default(shared) private(z_,x_,j_) if(z_num_*x_num_ > 100)
+#endif
         for (z_ = z_num_min_; z_ < z_num_; z_++) {
             //both z and x are explicitly accessed in the structure
 
@@ -2194,7 +2246,9 @@ void threshold_parts(ExtraPartCellData<V>& parts,V th,V set_val,BinaryPredicate 
         const unsigned int z_num_min_ = 0;
 
 
-#pragma omp parallel for default(shared) private(z_,x_,j_) if(z_num_*x_num_ > 100)
+#ifdef HAVE_OPENMP
+	#pragma omp parallel for default(shared) private(z_,x_,j_) if(z_num_*x_num_ > 100)
+#endif
         for (z_ = z_num_min_; z_ < z_num_; z_++) {
             //both z and x are explicitly accessed in the structure
 
@@ -2250,7 +2304,9 @@ ExtraPartCellData<V> transform_parts(ExtraPartCellData<V>& parts,UnaryOperator o
         const unsigned int z_num_min_ = 0;
 
 
-#pragma omp parallel for default(shared) private(z_,x_,j_) if(z_num_*x_num_ > 100)
+#ifdef HAVE_OPENMP
+	#pragma omp parallel for default(shared) private(z_,x_,j_) if(z_num_*x_num_ > 100)
+#endif
         for (z_ = z_num_min_; z_ < z_num_; z_++) {
             //both z and x are explicitly accessed in the structure
 
@@ -2291,7 +2347,9 @@ ExtraPartCellData<V> multiply_by_depth(ExtraPartCellData<V>& parts){
         const float step = pow(2,parts.depth_max - depth);
 
 
-#pragma omp parallel for default(shared) private(z_,x_,j_) if(z_num_*x_num_ > 100)
+#ifdef HAVE_OPENMP
+	#pragma omp parallel for default(shared) private(z_,x_,j_) if(z_num_*x_num_ > 100)
+#endif
         for (z_ = z_num_min_; z_ < z_num_; z_++) {
             //both z and x are explicitly accessed in the structure
 
@@ -2342,7 +2400,9 @@ ExtraPartCellData<V> multiply_by_dist_center(ExtraPartCellData<V>& parts,ExtraPa
         const float step = pow(2,parts.depth_max - depth);
 
 
-#pragma omp parallel for default(shared) private(z_,x_,j_) if(z_num_*x_num_ > 100)
+#ifdef HAVE_OPENMP
+	#pragma omp parallel for default(shared) private(z_,x_,j_) if(z_num_*x_num_ > 100)
+#endif
         for (z_ = z_num_min_; z_ < z_num_; z_++) {
             //both z and x are explicitly accessed in the structure
 
@@ -2413,7 +2473,9 @@ ExtraPartCellData<U> convert_cell_to_part(PartCellStructure<V,T>& pc_struct,Extr
         const unsigned int x_num_ = pc_struct.pc_data.x_num[i];
         const unsigned int z_num_ = pc_struct.pc_data.z_num[i];
 
-#pragma omp parallel for default(shared) private(p,z_,x_,j_,node_val_part,curr_key,status,part_offset) if(z_num_*x_num_ > 100)
+#ifdef HAVE_OPENMP
+	#pragma omp parallel for default(shared) private(p,z_,x_,j_,node_val_part,curr_key,status,part_offset) if(z_num_*x_num_ > 100)
+#endif
 
         for(z_ = 0;z_ < z_num_;z_++){
             //both z and x are explicitly accessed in the structure
@@ -2595,7 +2657,9 @@ void interp_slice(MeshData<U>& slice,PartCellData<uint64_t>& pc_data,ParticleDat
 
         const float step_size = pow(2,curr_level.depth_max - curr_level.depth);
 
-#pragma omp parallel for default(shared) private(z_,x_,j_) firstprivate(curr_level) if(z_num_*x_num_ > 100)
+#ifdef HAVE_OPENMP
+	#pragma omp parallel for default(shared) private(z_,x_,j_) firstprivate(curr_level) if(z_num_*x_num_ > 100)
+#endif
         for (z_ = z_num_min_; z_ < z_num_; z_++) {
             //both z and x are explicitly accessed in the structure
 
@@ -2636,7 +2700,9 @@ void interp_slice(MeshData<U>& slice,PartCellData<uint64_t>& pc_data,ParticleDat
 
 
                         for (int k = dim2; k < offset_max_dim2; ++k) {
-#pragma omp simd
+#ifdef HAVE_OPENMP
+	#pragma omp simd
+#endif
                             for (int i = dim1; i < offset_max_dim1; ++i) {
                                 slice.mesh[ i + (k)*slice.y_num] = temp_int;
 
@@ -2698,7 +2764,9 @@ static void create_y_offsets(ExtraPartCellData<uint16_t>& y_off,ParticleDataNew<
 
         const float step_size = pow(2,curr_level.depth_max - curr_level.depth);
 
-#pragma omp parallel for default(shared) private(z_,x_,j_) firstprivate(curr_level) if(z_num_*x_num_ > 100)
+#ifdef HAVE_OPENMP
+	#pragma omp parallel for default(shared) private(z_,x_,j_) firstprivate(curr_level) if(z_num_*x_num_ > 100)
+#endif
         for (z_ = 0; z_ < z_num_; z_++) {
             //both z and x are explicitly accessed in the structure
 
@@ -2846,7 +2914,9 @@ void interp_slice(MeshData<U>& slice,ExtraPartCellData<uint16_t>& y_vec,ExtraPar
 
 
                     for (int k = dim2; k < offset_max_dim2; ++k) {
-#pragma omp simd
+#ifdef HAVE_OPENMP
+	#pragma omp simd
+#endif
                         for (int i = dim1; i < offset_max_dim1; ++i) {
                             slice.mesh[ i + (k)*slice.y_num] = temp_int;
 
@@ -2958,10 +3028,14 @@ void interp_slice_opt(MeshData<U>& slice,ExtraPartCellData<uint16_t>& y_vec,Extr
 
         const float step_size = pow(2,y_vec.depth_max - depth);
 
-#pragma omp parallel for default(shared) private(z_,x_,j_) if(dir == 1)
+#ifdef HAVE_OPENMP
+	#pragma omp parallel for default(shared) private(z_,x_,j_) if(dir == 1)
+#endif
         for (z_ = z_num_min_; z_ < z_num_max; z_++) {
             //both z and x are explicitly accessed in the structure
-#pragma omp parallel for default(shared) private(x_,j_) if(dir != 1)
+#ifdef HAVE_OPENMP
+	#pragma omp parallel for default(shared) private(x_,j_) if(dir != 1)
+#endif
             for (x_ = x_num_min_; x_ < x_num_max; x_++) {
                 const unsigned int pc_offset = x_num_*z_ + x_;
 
@@ -3055,7 +3129,9 @@ void filter_apr_dir(ExtraPartCellData<uint16_t>& y_vec,ExtraPartCellData<U>& fil
     }
 
     int i = 0;
-#pragma omp parallel for default(shared) private(i) firstprivate(slice) schedule(static)
+#ifdef HAVE_OPENMP
+	#pragma omp parallel for default(shared) private(i) firstprivate(slice) schedule(static)
+#endif
     for (i = 0; i < num_slices; ++i) {
         interp_slice(slice, y_vec, filter_input, dir, i);
 
@@ -3077,7 +3153,9 @@ void get_slice(MeshData<U>& input_img,MeshData<U>& slice,const int dir,const int
         int i = 0;
         int j = 0;
 
-#pragma omp simd
+#ifdef HAVE_OPENMP
+	#pragma omp simd
+#endif
         for (int i = 0; i < slice.x_num; ++i) {
             for (int j = 0; j < slice.y_num; ++j) {
                 slice.mesh[j + i*slice.y_num] = input_img.mesh[j + i*input_img.y_num*input_img.x_num + num*input_img.y_num];
@@ -3089,7 +3167,9 @@ void get_slice(MeshData<U>& input_img,MeshData<U>& slice,const int dir,const int
         //xy
         slice.initialize(input_img.x_num, input_img.y_num, 1, 0);
 
-#pragma omp simd
+#ifdef HAVE_OPENMP
+	#pragma omp simd
+#endif
         for (int i = 0; i < slice.x_num; ++i) {
             for (int j = 0; j < slice.y_num; ++j) {
                 slice.mesh[j + i*slice.y_num] = input_img.mesh[i + j*input_img.y_num + num*input_img.y_num*input_img.x_num];
@@ -3101,7 +3181,9 @@ void get_slice(MeshData<U>& input_img,MeshData<U>& slice,const int dir,const int
         //zy
         slice.initialize(input_img.z_num, input_img.y_num, 1, 0);
 
-#pragma omp simd
+#ifdef HAVE_OPENMP
+	#pragma omp simd
+#endif
         for (int i = 0; i < slice.x_num; ++i) {
             for (int j = 0; j < slice.y_num; ++j) {
                 slice.mesh[j + i*slice.y_num] = input_img.mesh[i + j*input_img.y_num*input_img.x_num + num*input_img.y_num];
@@ -3146,7 +3228,9 @@ void filter_apr_mesh_dir(MeshData<U>& input_img,ExtraPartCellData<uint16_t>& y_v
     }
 
     int i = 0;
-#pragma omp parallel for default(shared) private(i) firstprivate(slice) schedule(guided)
+#ifdef HAVE_OPENMP
+	#pragma omp parallel for default(shared) private(i) firstprivate(slice) schedule(guided)
+#endif
     for (i = 0; i < num_slices; ++i) {
         get_slice(input_img,slice,dir,i);
 
@@ -3232,7 +3316,9 @@ void convert_from_old_structure(ExtraPartCellData<U>& particle_data,PartCellStru
         temp_exist.resize(pc_data.y_num[i]);
         temp_location.resize(pc_data.y_num[i]);
 
-#pragma omp parallel for default(shared) private(j_,z_,x_,y_,node_val,status,z_seed,x_seed,node_val_part) firstprivate(temp_exist,temp_location) if(z_num*x_num > 100)
+#ifdef HAVE_OPENMP
+	#pragma omp parallel for default(shared) private(j_,z_,x_,y_,node_val,status,z_seed,x_seed,node_val_part) firstprivate(temp_exist,temp_location) if(z_num*x_num > 100)
+#endif
         for(z_ = 0;z_ < z_num;z_++){
 
             for(x_ = 0;x_ < x_num;x_++){

@@ -321,7 +321,9 @@ bool test_apr_neighbour_access(TestData& test_data){
         }
     }
 
-#pragma omp parallel for schedule(static) private(particle_number) firstprivate(apr_iterator,neighbour_iterator)
+#ifdef HAVE_OPENMP
+	#pragma omp parallel for schedule(static) private(particle_number) firstprivate(apr_iterator,neighbour_iterator)
+#endif
     for (particle_number = 0; particle_number < apr_iterator.total_number_particles(); ++particle_number) {
 
         apr_iterator.set_iterator_to_particle_by_number(particle_number);
@@ -458,7 +460,9 @@ bool test_apr_iterate(TestData& test_data){
 
     //Test parallel loop
 
-#pragma omp parallel for schedule(static) private(particle_number) firstprivate(apr_iterator)
+#ifdef HAVE_OPENMP
+	#pragma omp parallel for schedule(static) private(particle_number) firstprivate(apr_iterator)
+#endif
     for (particle_number = 0; particle_number < apr_iterator.total_number_particles(); ++particle_number) {
         apr_iterator.set_iterator_to_particle_by_number(particle_number);
 

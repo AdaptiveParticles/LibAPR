@@ -2,30 +2,31 @@
 ///
 /// Bevan Cheeseman 2018
 ///
-/// Form the APR form image: Takes an uint16_t input tiff image and forms the APR and saves it as hdf5. The hdf5 output of this program
-/// can be used with the other apr examples, and also viewed with HDFView.
-///
-/// Usage:
-///
-/// (minimal with auto-parameters)
-///
-/// Example_get_apr -i input_image_tiff -d input_directory [-o name_of_output]
-///
-/// Additional settings (High Level):
-///
-/// -I_th intensity_threshold  (will ignore areas of image below this threshold, useful for removing camera artifacts or auto-flouresence)
-/// -SNR_min minimal_snr (minimal ratio of the signal to the standard deviation of the background, set by default to 6)
-/// -u8bit_img (required flag for using uint8_t tif image as input)
-/// -float_img (required flag for using float tif image as input)
-///
-/// Advanced (Direct) Settings:
-///
-/// -lambda lambda_value (directly set the value of the gradient smoothing parameter lambda, default: 3)
-/// -min_signal min_signal_val (directly sets a minimum absolute signal size relative to the local background, also useful for removing background, otherwise set using noise estimate)
-/// -mask_file mask_file_tiff (takes an input image uint16_t, assumes all zero regions should be ignored by the APR, useful for pre-processing of isolating desired content, or using another channel as a mask)
-/// -rel_error rel_error_value (Reasonable ranges are from .08-.15), Default: 0.1
-///
-/////////////////////////////////////////////////////
+
+const char* usage = R"(
+Form the APR form image: Takes an uint16_t input tiff image and forms the APR and saves it as hdf5. The hdf5 output of this program
+can be used with the other apr examples, and also viewed with HDFView.
+
+Usage:
+
+(minimal with auto-parameters)
+
+Example_get_apr -i input_image_tiff -d input_directory [-o name_of_output]
+
+Additional settings (High Level):
+
+-I_th intensity_threshold  (will ignore areas of image below this threshold, useful for removing camera artifacts or auto-flouresence)
+-SNR_min minimal_snr (minimal ratio of the signal to the standard deviation of the background, set by default to 6)
+-u8bit_img (required flag for using uint8_t tif image as input)
+-float_img (required flag for using float tif image as input)
+
+Advanced (Direct) Settings:
+
+-lambda lambda_value (directly set the value of the gradient smoothing parameter lambda, default: 3)
+-min_signal min_signal_val (directly sets a minimum absolute signal size relative to the local background, also useful for removing background, otherwise set using noise estimate)
+-mask_file mask_file_tiff (takes an input image uint16_t, assumes all zero regions should be ignored by the APR, useful for pre-processing of isolating desired content, or using another channel as a mask)
+-rel_error rel_error_value (Reasonable ranges are from .08-.15), Default: 0.1
+)";
 
 #include <algorithm>
 #include <iostream>
@@ -118,7 +119,10 @@ cmdLineOptions read_command_line_options(int argc, char **argv){
     cmdLineOptions result;
 
     if(argc == 1) {
-        std::cerr << "Usage: \"Example_get_apr -i inputfile [-t] [-s statsfile -d directory] [-o outputfile]\"" << std::endl;
+        std::cerr << argv[0] << std::endl;
+        std::cerr << "Short usage: \"" << argv[0] << " -i inputfile [-t] [-s statsfile -d directory] [-o outputfile]\"" << std::endl;
+
+        std::cerr << usage << std::endl;
         exit(1);
     }
 

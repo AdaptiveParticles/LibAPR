@@ -437,7 +437,9 @@ void test_local_scale(MeshData<uint16_t >& input_image,Part_rep& part_rep,PartCe
 
 
 
-#pragma omp parallel for default(shared)
+#ifdef HAVE_OPENMP
+	#pragma omp parallel for default(shared)
+#endif
     for(int i = 0; i < temp.mesh.size(); i++)
     {
         local_max.mesh[i] /= variance.mesh[i];
@@ -680,7 +682,9 @@ void cont_solution(MeshData<uint16_t >& input_image,Part_rep& part_rep,PartCellS
 
     int i,j,k;
 
-#pragma omp parallel for default(shared) private(j,i,k) reduction(+: cumsum)
+#ifdef HAVE_OPENMP
+	#pragma omp parallel for default(shared) private(j,i,k) reduction(+: cumsum)
+#endif
     for(j = 0; j < gradient.z_num;j++){
         for(i = 0; i < gradient.x_num;i++){
 
@@ -974,7 +978,9 @@ void compare_E(MeshData<S>& org_img,MeshData<T>& rec_img,Proc_par& pars,std::str
     //ignored boundary layer
     int b = 0;
 
-#pragma omp parallel for default(shared) private(j,i,k) reduction(+: MSE) reduction(+: counter) reduction(+: mean) reduction(max: inf_norm)
+#ifdef HAVE_OPENMP
+	#pragma omp parallel for default(shared) private(j,i,k) reduction(+: MSE) reduction(+: counter) reduction(+: mean) reduction(max: inf_norm)
+#endif
     for(j = b; j < (z_num_o-b);j++){
         for(i = b; i < (x_num_o-b);i++){
 
@@ -1005,7 +1011,9 @@ void compare_E(MeshData<S>& org_img,MeshData<T>& rec_img,Proc_par& pars,std::str
     double var = 0;
     counter = 0;
 
-#pragma omp parallel for default(shared) private(j,i,k) reduction(+: var) reduction(+: counter) reduction(+: MSE_var)
+#ifdef HAVE_OPENMP
+	#pragma omp parallel for default(shared) private(j,i,k) reduction(+: var) reduction(+: counter) reduction(+: MSE_var)
+#endif
     for(j = b; j < (z_num_o-b);j++){
         for(i = b; i < (x_num_o-b);i++){
 
@@ -1625,13 +1633,13 @@ void produce_apr_analysis(MeshData<T>& input_image,AnalysisData& analysis_data,P
 
         APR<float> t_apr;
 
-        create_pc_data_new(t_apr,pc_struct);
-
-        ExtraPartCellData<float> true_parts(t_apr);
-
-        Particle_map<float> part_map(p_rep);
-
-        part_map.downsample(gt_imaged);
+//        create_pc_data_new(t_apr,pc_struct);
+//
+//        ExtraPartCellData<float> true_parts(t_apr);
+//
+//        Particle_map<float> part_map(p_rep);
+//
+//        part_map.downsample(gt_imaged);
 
         //t_apr.get_parts_from_img(part_map.downsampled,true_parts);
 

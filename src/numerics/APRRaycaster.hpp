@@ -206,7 +206,9 @@ void APRRaycaster::perform_raycast(APR<U>& apr,ExtraParticleData<S>& particle_da
 
         float y_actual,x_actual,z_actual;
 
-#pragma omp parallel for schedule(static) private(particle_number,y_actual,x_actual,z_actual) firstprivate(apr_iterator,mvp)
+#ifdef HAVE_OPENMP
+	#pragma omp parallel for schedule(static) private(particle_number,y_actual,x_actual,z_actual) firstprivate(apr_iterator,mvp)
+#endif
         for (particle_number = 0; particle_number < apr_iterator.total_number_particles(); ++particle_number) {
             apr_iterator.set_iterator_to_particle_by_number(particle_number);
 
@@ -254,7 +256,9 @@ void APRRaycaster::perform_raycast(APR<U>& apr,ExtraParticleData<S>& particle_da
         for (level = (level_min); level < apr.level_max(); level++) {
 
             const int step_size = pow(2, apr.level_max() - level);
-#pragma omp parallel for default(shared) private(z_,x_,j_,i,k) schedule(guided) if (level > 8)
+#ifdef HAVE_OPENMP
+	#pragma omp parallel for default(shared) private(z_,x_,j_,i,k) schedule(guided) if (level > 8)
+#endif
             for (x_ = 0; x_ < depth_slice[level].x_num; x_++) {
                 //both z and x are explicitly accessed in the structure
 
@@ -296,8 +300,9 @@ void APRRaycaster::perform_raycast(APR<U>& apr,ExtraParticleData<S>& particle_da
     }
 
     timer.stop_timer();
+    std::chrono::duration<float> elapsed_seconds = timer.t2 - timer.t1;
 
-    std::cout << (timer.t2 - timer.t1)/(view_count*1.0) <<  " seconds per view" << std::endl;
+    std::cout << elapsed_seconds.count()/(view_count*1.0) <<  " seconds per view" << std::endl;
 
 
 
@@ -393,7 +398,9 @@ float APRRaycaster::perpsective_mesh_raycast(MeshData<S>& image) {
         const float step_size = 1;
         const unsigned int y_num_ = image.y_num;
 
-#pragma omp parallel for default(shared) private(z_,x_,j_,i,k) firstprivate(mvp)
+#ifdef HAVE_OPENMP
+	#pragma omp parallel for default(shared) private(z_,x_,j_,i,k) firstprivate(mvp)
+#endif
         for (z_ = 0; z_ < z_num_; z_++) {
             //both z and x are explicitly accessed in the structure
 
@@ -429,11 +436,12 @@ float APRRaycaster::perpsective_mesh_raycast(MeshData<S>& image) {
     }
 
     timer.stop_timer();
+    std::chrono::duration<float> elapsed_seconds = timer.t2 - timer.t1;
 
 
     debug_write(cast_views, this->name + "perspective_mesh_projection");
 
-    return (timer.t2 - timer.t1);
+    return elapsed_seconds.count();
 
 
 }

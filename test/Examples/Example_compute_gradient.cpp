@@ -117,7 +117,9 @@ int main(int argc, char **argv) {
     //  Calculates an estimate of the gradient in each direciton, using an average of two one sided FD of the gradient using the average of particles for children.
     //
 
-#pragma omp parallel for schedule(static) private(particle_number) firstprivate(apr_iterator,neighbour_iterator)
+#ifdef HAVE_OPENMP
+	#pragma omp parallel for schedule(static) private(particle_number) firstprivate(apr_iterator,neighbour_iterator)
+#endif
     for (particle_number = 0; particle_number < apr_iterator.total_number_particles(); ++particle_number) {
         //needed step for any parallel loop (update to the next part)
 

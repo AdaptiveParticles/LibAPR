@@ -112,7 +112,8 @@ int main(int argc, char **argv) {
         uint64_t current_particle_cell_type = apr_iterator.type();
 
         //you can then also use it to access any particle properties stored as ExtraParticleData
-        apr_iterator(calc_ex) = 10.0*apr_iterator(apr.particles_intensities);
+        calc_ex[apr_iterator]= 10.0*apr.particles_intensities.get_particle(apr_iterator);
+        calc_ex.set_particle(apr_iterator,12.0f);
 
     }
 
@@ -159,7 +160,9 @@ int main(int argc, char **argv) {
 
     timer.start_timer("APR parallel iterator loop");
 
-#pragma omp parallel for schedule(static) private(particle_number) firstprivate(apr_iterator)
+#ifdef HAVE_OPENMP
+	#pragma omp parallel for schedule(static) private(particle_number) firstprivate(apr_iterator)
+#endif
     for (particle_number = 0; particle_number < apr_iterator.total_number_particles(); ++particle_number) {
         //needed step for any parallel loop (update to the next part)
         apr_iterator.set_iterator_to_particle_by_number(particle_number);
@@ -199,7 +202,9 @@ int main(int argc, char **argv) {
     //compare to explicit loop
     timer.start_timer("Using parallel iterator loop: square the dataset");
 
-#pragma omp parallel for schedule(static) private(particle_number) firstprivate(apr_iterator)
+#ifdef HAVE_OPENMP
+	#pragma omp parallel for schedule(static) private(particle_number) firstprivate(apr_iterator)
+#endif
     for (particle_number = 0; particle_number < apr_iterator.total_number_particles(); ++particle_number) {
         //needed step for any parallel loop (update to the next part)
         apr_iterator.set_iterator_to_particle_by_number(particle_number);
@@ -277,7 +282,9 @@ int main(int argc, char **argv) {
             uint64_t  begin = apr_iterator.particles_z_begin(level,z);
             uint64_t  end = apr_iterator.particles_z_end(level,z);
 
-#pragma omp parallel for schedule(static) private(particle_number) firstprivate(apr_iterator)
+#ifdef HAVE_OPENMP
+	#pragma omp parallel for schedule(static) private(particle_number) firstprivate(apr_iterator)
+#endif
             for (particle_number = apr_iterator.particles_z_begin(level,z);
                  particle_number < apr_iterator.particles_z_end(level,z); ++particle_number) {
                 //
@@ -309,7 +316,9 @@ int main(int argc, char **argv) {
     for (int level = apr_iterator.level_min(); level <= apr_iterator.level_max(); ++level) {
 
         int z = 0;
-#pragma omp parallel for schedule(static) private(particle_number,z) firstprivate(apr_iterator)
+#ifdef HAVE_OPENMP
+	#pragma omp parallel for schedule(static) private(particle_number,z) firstprivate(apr_iterator)
+#endif
         for(z = 0; z < apr.spatial_index_z_max(level); ++z) {
 
             uint64_t  begin = apr_iterator.particles_z_begin(level,z);

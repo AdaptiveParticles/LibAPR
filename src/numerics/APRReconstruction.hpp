@@ -37,7 +37,9 @@ public:
 
             const float step_size = pow(2,apr_iterator.level_max() - level);
 
-#pragma omp parallel for schedule(static) private(particle_number) firstprivate(apr_iterator)
+#ifdef HAVE_OPENMP
+	#pragma omp parallel for schedule(static) private(particle_number) firstprivate(apr_iterator)
+#endif
             for (particle_number = apr_iterator.particles_level_begin(level); particle_number <  apr_iterator.particles_level_end(level); ++particle_number) {
                 //
                 //  Parallel loop over level
@@ -60,7 +62,9 @@ public:
                 for (int q = dim3; q < offset_max_dim3; ++q) {
 
                     for (int k = dim2; k < offset_max_dim2; ++k) {
-    #pragma omp simd
+    #ifdef HAVE_OPENMP
+	#pragma omp simd
+#endif
                         for (int i = dim1; i < offset_max_dim1; ++i) {
                             img.mesh[i + (k) * img.y_num + q * img.y_num * img.x_num] = temp_int;
                         }
@@ -85,7 +89,9 @@ public:
         APRIterator<S> apr_iterator(apr);
         uint64_t particle_number;
 
-#pragma omp parallel for schedule(static) private(particle_number) firstprivate(apr_iterator)
+#ifdef HAVE_OPENMP
+	#pragma omp parallel for schedule(static) private(particle_number) firstprivate(apr_iterator)
+#endif
         for (particle_number = 0; particle_number < apr_iterator.total_number_particles(); ++particle_number) {
             apr_iterator.set_iterator_to_particle_by_number(particle_number);
 
@@ -116,7 +122,9 @@ public:
         APRIterator<S> apr_iterator(apr);
         uint64_t particle_number;
 
-#pragma omp parallel for schedule(static) private(particle_number) firstprivate(apr_iterator)
+#ifdef HAVE_OPENMP
+	#pragma omp parallel for schedule(static) private(particle_number) firstprivate(apr_iterator)
+#endif
         for (particle_number = 0; particle_number < apr_iterator.total_number_particles(); ++particle_number) {
             apr_iterator.set_iterator_to_particle_by_number(particle_number);
             //
@@ -142,7 +150,9 @@ public:
         APRIterator<S> apr_iterator(apr);
         uint64_t particle_number;
 
-#pragma omp parallel for schedule(static) private(particle_number) firstprivate(apr_iterator)
+#ifdef HAVE_OPENMP
+	#pragma omp parallel for schedule(static) private(particle_number) firstprivate(apr_iterator)
+#endif
         for (particle_number = 0; particle_number < apr_iterator.total_number_particles(); ++particle_number) {
             apr_iterator.set_iterator_to_particle_by_number(particle_number);
             //
@@ -189,7 +199,9 @@ public:
 
         //const unsigned int d_max = this->depth_max();
 
-#pragma omp parallel for default(shared) private(i,k,counter,temp,index,divisor,offset) firstprivate(temp_vec,offset_vec)
+#ifdef HAVE_OPENMP
+	#pragma omp parallel for default(shared) private(i,k,counter,temp,index,divisor,offset) firstprivate(temp_vec,offset_vec)
+#endif
         for(int j = 0;j < z_num;j++){
             for(i = 0;i < x_num;i++){
 
@@ -308,8 +320,10 @@ public:
         //const unsigned int d_max = this->depth_max();
 
 
-#pragma omp parallel for default(shared) private(i,k,temp,index_modulo, previous_modulo, forward_modulo,backward_modulo,current_index, jxnumynum,offset) \
+#ifdef HAVE_OPENMP
+	#pragma omp parallel for default(shared) private(i,k,temp,index_modulo, previous_modulo, forward_modulo,backward_modulo,current_index, jxnumynum,offset) \
         firstprivate(temp_vec)
+#endif
         for(int j = 0; j < z_num; j++) {
 
             jxnumynum = j * x_num * y_num;
@@ -421,8 +435,10 @@ public:
         std::vector<T> temp_vec;
         temp_vec.resize(y_num*(2*offset_max + 2),0);
 
-#pragma omp parallel for default(shared) private(j,k,temp,index_modulo, previous_modulo, current_index,backward_modulo,forward_modulo, iynum,offset) \
+#ifdef HAVE_OPENMP
+	#pragma omp parallel for default(shared) private(j,k,temp,index_modulo, previous_modulo, current_index,backward_modulo,forward_modulo, iynum,offset) \
         firstprivate(temp_vec)
+#endif
         for(int i = 0; i < x_num; i++) {
 
             iynum = i * y_num;

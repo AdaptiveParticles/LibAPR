@@ -163,7 +163,9 @@ public :
 
         unsigned int blockNum;
 
-        #pragma omp parallel for private(blockNum)  schedule(static)
+        #ifdef HAVE_OPENMP
+	#pragma omp parallel for private(blockNum)  schedule(static)
+#endif
         for (blockNum = 0; blockNum < aNumberOfBlocks; ++blockNum) {
             const size_t elementSize = (size_t)x_num * y_num;
             const size_t blockSize = numOfElementsPerBlock * elementSize;
@@ -545,7 +547,9 @@ void const_upsample_img(MeshData<T>& input_us,MeshData<T>& input,std::vector<uns
     
     unsigned int j, i, k;
     
-#pragma omp parallel for default(shared) private(j,i,k) firstprivate(temp_vec) if(z_num_ds_l*x_num_ds_l > 100)
+#ifdef HAVE_OPENMP
+	#pragma omp parallel for default(shared) private(j,i,k) firstprivate(temp_vec) if(z_num_ds_l*x_num_ds_l > 100)
+#endif
     for(j = 0;j < z_num_ds_l;j++){
         
         for(i = 0;i < x_num_ds_l;i++){
@@ -677,7 +681,9 @@ void down_sample_overflow_proct(MeshData<T>& test_a, MeshData<S>& test_a_ds, L1 
 
     int i, k, si_, sj_, sk_;
 
-#pragma omp parallel for default(shared) private(i,k,si_,sj_,sk_) firstprivate(temp_vec,temp_vec2)
+#ifdef HAVE_OPENMP
+	#pragma omp parallel for default(shared) private(i,k,si_,sj_,sk_) firstprivate(temp_vec,temp_vec2)
+#endif
     for(int j = 0;j < z_num_ds; j++) {
 
 
@@ -795,7 +801,9 @@ void down_sample(MeshData<T>& test_a, MeshData<S>& test_a_ds, L1 reduce, L2 cons
 
     int i, k, si_, sj_, sk_;
 
-#pragma omp parallel for default(shared) private(i,k,si_,sj_,sk_) firstprivate(temp_vec)
+#ifdef HAVE_OPENMP
+	#pragma omp parallel for default(shared) private(i,k,si_,sj_,sk_) firstprivate(temp_vec)
+#endif
     for(int j = 0;j < z_num_ds; j++) {
 
 

@@ -347,6 +347,7 @@ public:
         return parts.data[current_particle_cell.global_index];
     }
 
+
     inline unsigned int x_nearest_pixel(){
         //get x
         return floor((current_particle_cell.x+0.5)*pow(2, apr_access->level_max - current_particle_cell.level));
@@ -484,7 +485,7 @@ private:
         uint64_t offset_max = apr_access->x_num[current_particle_cell.level]*apr_access->z_num[current_particle_cell.level];
 
         //iterate until you find the next row or hit the end of the level
-        while((apr_access->gap_map.data[current_particle_cell.level][current_particle_cell.pc_offset].size()==0) & (current_particle_cell.pc_offset < offset_max)){
+        while((current_particle_cell.pc_offset < offset_max) && (apr_access->gap_map.data[current_particle_cell.level][current_particle_cell.pc_offset].size()==0)){
             current_particle_cell.pc_offset++;
         }
 

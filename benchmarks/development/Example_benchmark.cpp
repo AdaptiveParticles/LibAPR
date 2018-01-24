@@ -118,7 +118,9 @@ int main(int argc, char **argv) {
 
     for (int i = 0; i < num_repeats; ++i) {
 
-#pragma omp parallel for schedule(static) private(part) firstprivate(apr_parallel_iterator,neighbour_iterator)
+#ifdef HAVE_OPENMP
+	#pragma omp parallel for schedule(static) private(part) firstprivate(apr_parallel_iterator,neighbour_iterator)
+#endif
         for (part = 0; part < apr.total_number_particles(); ++part) {
             //needed step for any parallel loop (update to the next part)
             apr_parallel_iterator.set_iterator_to_particle_by_number(part);
@@ -142,8 +144,9 @@ int main(int argc, char **argv) {
     }
 
     timer.stop_timer();
+    std::chrono::duration<double> elapsed_seconds = timer.t2 - timer.t1;
 
-    std::cout << "New parallel iteration took: " << (timer.t2 - timer.t1)/(num_repeats*1.0) << std::endl;
+    std::cout << "New parallel iteration took: " << elapsed_seconds.count()/(num_repeats*1.0) << std::endl;
 
 
 

@@ -11,7 +11,13 @@ if(TESTS)
 endif(TESTS)
 
 
-find_package(OpenMP REQUIRED)
+find_package(OpenMP)
+if(NOT OPENMP_FOUND)
+    message("OpenMP support not found with current compiler. While APR can compile like this, performance might not be optimal. Please see README.md for instructions.")
+else()
+    set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -DHAVE_OPENMP ${OpenMP_C_FLAGS}")
+    set(CMAKE_CXX_FLAGS "${CMAKE_C_FLAGS} -DHAVE_OPENMP ${OpenMP_CXX_FLAGS}")
+endif()
 
 #set(_SAVED_HDF5_DIR ${HDF5_DIR})
 find_package(HDF5 REQUIRED)
@@ -92,8 +98,6 @@ set(SOURCE_FILES_COMPILED
 
 
 if (OPENMP_FOUND)
-    set (CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${OpenMP_C_FLAGS}")
-    set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${OpenMP_CXX_FLAGS}")
 endif(OPENMP_FOUND)
 
 
@@ -123,12 +127,6 @@ if (CMAKE_CXX_COMPILER_ID MATCHES "Clang")
     endif()
 
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++14")
-
-    if (NOT NO_OPENMP)
-        set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -fopenmp")
-        set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fopenmp")
-        set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -fopenmp")
-    endif()
 endif()
 
 
