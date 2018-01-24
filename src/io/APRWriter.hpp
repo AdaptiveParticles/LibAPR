@@ -861,7 +861,7 @@ public:
         ///////////////////////////////////////////////////////////////////////
 
         unsigned int blosc_comp_type = BLOSC_ZSTD;
-        unsigned int blosc_comp_level = 1;
+        unsigned int blosc_comp_level = 3;
         unsigned int blosc_shuffle = 2;
 
         dims = total_number_parts;

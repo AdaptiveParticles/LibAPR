@@ -88,11 +88,17 @@ int main(int argc, char **argv) {
 
     APRConverter<uint16_t> apr_converter;
 
-    apr_converter.par.Ip_th = 1032;
-    apr_converter.par.sigma_th = 242.822;
-    apr_converter.par.sigma_th_max = 95.9877;
-    apr_converter.par.rel_error = 0.1;
-    apr_converter.par.lambda = 3;
+//    apr_converter.par.Ip_th = 1032;
+//    apr_converter.par.sigma_th = 242.822;
+//    apr_converter.par.sigma_th_max = 95.9877;
+//    apr_converter.par.rel_error = 0.1;
+//    apr_converter.par.lambda = 3;
+
+    apr_converter.par.Ip_th = 0;
+    apr_converter.par.sigma_th = 0;
+    apr_converter.par.sigma_th_max = 0;
+    apr_converter.par.rel_error = 0.00000000001;
+    apr_converter.par.lambda = 0.1;
 
     apr_converter.par.input_dir = options.directory;
     apr_converter.par.input_image_name  = options.input;
@@ -109,15 +115,15 @@ int main(int argc, char **argv) {
 
     APRBenchmark apr_benchmarks;
 
-//    float num_repeats = 1;
-//
-//    apr_benchmarks.pixels_linear_neighbour_access<uint16_t,float>(apr.orginal_dimensions(0),apr.orginal_dimensions(1),apr.orginal_dimensions(2),num_repeats);
-//    apr_benchmarks.apr_linear_neighbour_access<uint16_t,float>(apr,num_repeats);
-//
-//    float num_repeats_random = 10000000;
-//
-//    apr_benchmarks.pixel_neighbour_random<uint16_t,float>(apr.orginal_dimensions(0),apr.orginal_dimensions(1),apr.orginal_dimensions(2), num_repeats_random);
-//    apr_benchmarks.apr_random_access<uint16_t,float>(apr,num_repeats_random);
+    float num_repeats = 1;
+
+    apr_benchmarks.pixels_linear_neighbour_access<uint16_t,float>(apr.orginal_dimensions(0),apr.orginal_dimensions(1),apr.orginal_dimensions(2),num_repeats);
+    apr_benchmarks.apr_linear_neighbour_access<uint16_t,float>(apr,num_repeats);
+
+    float num_repeats_random = 10000000;
+
+    apr_benchmarks.pixel_neighbour_random<uint16_t,float>(apr.orginal_dimensions(0),apr.orginal_dimensions(1),apr.orginal_dimensions(2), num_repeats_random);
+    apr_benchmarks.apr_random_access<uint16_t,float>(apr,num_repeats_random);
 
     APRCompress<uint16_t> apr_compress;
 
@@ -154,5 +160,7 @@ int main(int argc, char **argv) {
 
 
     std::cout << (size3 - size4)/size3  << std::endl;
+
+    std::cout << apr.total_number_particles() << std::endl;
 
 }
