@@ -322,7 +322,7 @@ public:
     }
 
     template<typename ImageType>
-    void write_apr(APR<ImageType>& apr,std::string save_loc,std::string file_name,APRCompress<ImageType>& apr_compressor,unsigned int blosc_comp_type = BLOSC_ZSTD,unsigned int blosc_comp_level = 2,unsigned int blosc_shuffle=1){
+    float write_apr(APR<ImageType>& apr,std::string save_loc,std::string file_name,APRCompress<ImageType>& apr_compressor,unsigned int blosc_comp_type = BLOSC_ZSTD,unsigned int blosc_comp_level = 2,unsigned int blosc_shuffle=1){
         //
         //
         //  Bevan Cheeseman 2018
@@ -500,7 +500,9 @@ public:
         apr.apr_access.flatten_structure(apr,map_data);
 
         //number of gaps
-        blosc_comp_level=2;
+        blosc_comp_level=3;
+        blosc_shuffle = 1;
+        blosc_comp_type = BLOSC_ZSTD;
 
         dims = map_data.global_index.size();
         std::string dataset_name = "map_global_index";
@@ -567,6 +569,8 @@ public:
         H5Fclose(fid);
 
         std::cout << "Writing Complete" << std::endl;
+
+        return file_size*1.0/1000000.0; //filesize in MB
 
     }
     template<typename ImageType,typename T>
@@ -752,14 +756,14 @@ public:
     }
 
     template<typename S>
-    void write_particles_only(std::string save_loc,std::string file_name,ExtraParticleData<S>& parts_extra){
+    float write_particles_only(std::string save_loc,std::string file_name,ExtraParticleData<S>& parts_extra){
         //
         //
         //  Bevan Cheeseman 2018
         //
         //  Writes only the particle data, requires the same APR to be read in correctly.
         //
-        //  #FIX_ME Extend me.
+        //
         //
         //
 
@@ -866,6 +870,8 @@ public:
         H5Fclose(fid);
 
         std::cout << "Writing ExtraPartCellData Complete" << std::endl;
+
+        return file_size*1.0/1000000.0; //returns file size in MB
 
     }
 
