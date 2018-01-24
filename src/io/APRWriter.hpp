@@ -7,7 +7,7 @@
 
 #include <src/data_structures/APR/APR.hpp>
 #include <src/data_structures/APR/APRAccess.hpp>
-
+#include <numeric>
 
 template<typename U>
 class APR;
@@ -253,9 +253,17 @@ public:
         //all the access map data
 
         map_data.global_index.resize(apr.apr_access.total_number_gaps);
-        std::string dataset_name = "map_global_index";
-        hdf5_load_data_blosc(obj_id,H5T_NATIVE_UINT64,map_data.global_index.data(),dataset_name.c_str());
 
+        std::vector<int16_t> index_delta;
+        index_delta.resize(apr.apr_access.total_number_gaps);
+
+        std::string dataset_name = "map_global_index";
+        hdf5_load_data_blosc(obj_id,H5T_NATIVE_INT16,index_delta.data(),dataset_name.c_str());
+
+        std::vector<uint64_t> index_delta_big;
+        index_delta_big.resize(apr.apr_access.total_number_gaps);
+        std::copy(index_delta.begin(),index_delta.end(),index_delta_big.begin());
+        std::partial_sum(index_delta_big.begin(),index_delta_big.end(),map_data.global_index.begin());
 
         map_data.y_end.resize(apr.apr_access.total_number_gaps);
         dataset_name = "map_y_end";
@@ -504,13 +512,22 @@ public:
         blosc_shuffle = 1;
         blosc_comp_type = BLOSC_ZSTD;
 
+        std::vector<uint16_t> index_delta;
+        index_delta.resize(map_data.global_index.size());
+
+        std::adjacent_difference(map_data.global_index.begin(),map_data.global_index.end(),index_delta.begin());
+
         dims = map_data.global_index.size();
         std::string dataset_name = "map_global_index";
-        hdf5_write_data_blosc(obj_id, H5T_NATIVE_UINT64, dataset_name.c_str(), rank, &dims, map_data.global_index.data(),blosc_comp_type,blosc_comp_level,blosc_shuffle);
+        //hdf5_write_data_blosc(obj_id, H5T_NATIVE_UINT64, dataset_name.c_str(), rank, &dims, index_delta.data(),blosc_comp_type,blosc_comp_level,blosc_shuffle);
+        hdf5_write_data_blosc(obj_id, H5T_NATIVE_UINT16, dataset_name.c_str(), rank, &dims, index_delta.data(),blosc_comp_type,blosc_comp_level,blosc_shuffle);
+
+
 
         dims = map_data.y_end.size();
         dataset_name = "map_y_end";
         hdf5_write_data_blosc(obj_id, H5T_NATIVE_UINT16, dataset_name.c_str(), rank, &dims,  map_data.y_end.data(),blosc_comp_type,blosc_comp_level,blosc_shuffle);
+
 
         dims = map_data.y_begin.size();
         dataset_name = "map_y_begin";
