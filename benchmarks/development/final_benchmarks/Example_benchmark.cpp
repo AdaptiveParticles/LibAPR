@@ -86,9 +86,14 @@ int main(int argc, char **argv) {
 
     APRBenchmark apr_benchmarks;
 
-    float num_repeats = 100;
+    float num_repeats = 1;
 
     apr_benchmarks.pixels_linear_neighbour_access<uint16_t,float>(apr.orginal_dimensions(0),apr.orginal_dimensions(1),apr.orginal_dimensions(2),num_repeats);
     apr_benchmarks.apr_linear_neighbour_access<uint16_t,float>(apr,num_repeats);
+
+    float num_repeats_random = 1000000;
+
+    apr_benchmarks.pixel_neighbour_random<uint16_t,float>(apr.orginal_dimensions(0),apr.orginal_dimensions(1),apr.orginal_dimensions(2), num_repeats_random);
+    apr_benchmarks.apr_random_access<uint16_t,float>(apr,num_repeats_random);
 
 }

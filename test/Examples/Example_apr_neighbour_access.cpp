@@ -161,10 +161,8 @@ int main(int argc, char **argv) {
                     //neighbour_iterator works just like apr, and apr_parallel_iterator (you could also call neighbours)
                     apr_iterator(neigh_xm) += neighbour_iterator(apr.particles_intensities)*(apr_iterator.y() - neighbour_iterator.y());
                 }
-
             }
         }
-
     }
 
     timer.stop_timer();
