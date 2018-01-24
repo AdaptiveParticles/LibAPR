@@ -93,6 +93,11 @@ int main(int argc, char **argv) {
     apr_converter.par.input_dir = options.directory;
     apr_converter.par.input_image_name  = options.input;
 
+    apr_converter.fine_grained_timer.verbose_flag = false;
+    apr_converter.method_timer.verbose_flag = true;
+    apr_converter.allocation_timer.verbose_flag = true;
+    apr_converter.computation_timer.verbose_flag = true;
+
     TiffUtils::TiffInfo inputTiff(apr_converter.par.input_dir + apr_converter.par.input_image_name);
     MeshData<uint16_t> input_image = TiffUtils::getMesh<uint16_t>(inputTiff);
 
@@ -109,5 +114,7 @@ int main(int argc, char **argv) {
 
     apr_benchmarks.pixel_neighbour_random<uint16_t,float>(apr.orginal_dimensions(0),apr.orginal_dimensions(1),apr.orginal_dimensions(2), num_repeats_random);
     apr_benchmarks.apr_random_access<uint16_t,float>(apr,num_repeats_random);
+
+
 
 }
