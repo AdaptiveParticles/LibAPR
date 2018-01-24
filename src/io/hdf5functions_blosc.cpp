@@ -32,7 +32,7 @@ void register_bosc(){
     
     /* Register the filter with the library */
     r = register_blosc(&version, &date);
-    printf("Blosc version info: %s (%s)\n", version, date);
+   //printf("Blosc version info: %s (%s)\n", version, date);
     
     
 }
@@ -44,9 +44,9 @@ void hdf5_load_data_blosc(hid_t obj_id,hid_t data_type,void* buff, const char* d
     
     //stuff required to pull the data in
     data_id =  H5Dopen2(obj_id , data_name ,H5P_DEFAULT);
+    hid_t datatype  = H5Dget_type(data_id);
     
-    
-    H5Dread( data_id, data_type, H5S_ALL, H5S_ALL,H5P_DEFAULT, buff );
+    H5Dread( data_id, datatype, H5S_ALL, H5S_ALL,H5P_DEFAULT, buff );
     H5Dclose(data_id);
 };
 
@@ -114,14 +114,15 @@ void hdf5_write_data_blosc(hid_t obj_id,hid_t type_id,const char* ds_name,hsize_
     unsigned int cd_values[7];
     //Declare the required hdf5 shiz
     hid_t space_id,dset_id,plist_id;
-    hsize_t *cdims = new hsize_t[rank]; //chunking dims
+    //hsize_t *cdims = new hsize_t[rank]; //chunking dims
+    hsize_t cdims[1]; //chunking dims
     
     //compression parameters
     
     
     //int szip_options_mask = H5_SZIP_NN_OPTION_MASK;
     //int szip_pixels_per_block = 8;
-    
+    rank = 1;
     //dataspace id
     space_id = H5Screate_simple(rank, dims, NULL);
     plist_id  = H5Pcreate(H5P_DATASET_CREATE);
@@ -132,17 +133,14 @@ void hdf5_write_data_blosc(hid_t obj_id,hid_t type_id,const char* ds_name,hsize_
     
     int max_size = 5000000;
     
-    if (rank == 1) {
-        if (dims[0] < max_size){
-            cdims[0] = dims[0];
-        }else {
-            cdims[0] = max_size;
-        }
+
+    if (dims[0] < max_size){
+        cdims[0] = dims[0];
+    }else {
+        cdims[0] = max_size;
     }
-    else {
-        cdims[0] = 100;
-        cdims[1] = 100;
-    }
+
+
     
     H5Pset_chunk(plist_id, rank, cdims);
     
@@ -172,7 +170,7 @@ void hdf5_write_attribute_blosc(hid_t obj_id,hid_t type_id,const char* attr_name
     
     //Declare the required hdf5 shiz
     hid_t space_id,dset_id,attr_id;
-    hsize_t *cdims = new hsize_t[rank]; //chunking dims
+    //hsize_t *cdims = new hsize_t[rank]; //chunking dims
     
     space_id = H5Screate_simple(rank, dims, NULL);
     //plist_id  = H5Pcreate(H5P_ATTRIBUTE_CREATE);

@@ -300,9 +300,9 @@ void APRRaycaster::perform_raycast(APR<U>& apr,ExtraParticleData<S>& particle_da
     }
 
     timer.stop_timer();
-    std::chrono::duration<float> elapsed_seconds = timer.t2 - timer.t1;
+    float elapsed_seconds = timer.t2 - timer.t1;
 
-    std::cout << elapsed_seconds.count()/(view_count*1.0) <<  " seconds per view" << std::endl;
+    std::cout << elapsed_seconds/(view_count*1.0) <<  " seconds per view" << std::endl;
 
 
 
@@ -436,12 +436,12 @@ float APRRaycaster::perpsective_mesh_raycast(MeshData<S>& image) {
     }
 
     timer.stop_timer();
-    std::chrono::duration<float> elapsed_seconds = timer.t2 - timer.t1;
+    float elapsed_seconds = timer.t2 - timer.t1;
 
 
     debug_write(cast_views, this->name + "perspective_mesh_projection");
 
-    return elapsed_seconds.count();
+    return elapsed_seconds;
 
 
 }
