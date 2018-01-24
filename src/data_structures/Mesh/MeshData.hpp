@@ -98,8 +98,8 @@ public :
     MeshData(int aSizeOfY, int aSizeOfX, int aSizeOfZ) { initialize(aSizeOfY, aSizeOfX, aSizeOfZ); }
 
     /**
-     * Constructor - initialize initial size of mesh to provided mesh
-     * @param aMesh
+     * Constructor - initialize mesh with other mesh (data are copied and casted if needed).
+     * @param aMesh input mesh
      */
     template<typename U>
     MeshData(const MeshData<U> aMesh) {

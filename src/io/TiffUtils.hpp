@@ -1,5 +1,5 @@
 /*
- * Krzysztof Gonciarz 2018
+ * Created by Krzysztof Gonciarz 2018
  *
  * Implements mesh read/write from/to TIFF files functionality.
  */
@@ -15,6 +15,9 @@
 
 namespace TiffUtils {
 
+    /**
+     * Class for reading useful information from TIFF file (dimensions, type of data etc.)
+     */
     class TiffInfo {
     public:
         enum class TiffType {
@@ -179,7 +182,7 @@ namespace TiffUtils {
 
         // Get some more data from TIFF needed during reading
         const long stripSize = TIFFStripSize(aTiff.iFile);
-        std::cout << "getMesh: ScanlineSize=" << TIFFScanlineSize(aTiff.iFile) << " StripSize=" << stripSize << " NumberOfStrips=" << TIFFNumberOfStrips(aTiff.iFile) << std::endl;
+        std::cout << __func__ << ": ScanlineSize=" << TIFFScanlineSize(aTiff.iFile) << " StripSize=" << stripSize << " NumberOfStrips=" << TIFFNumberOfStrips(aTiff.iFile) << std::endl;
 
         // Read TIF to MeshData
         size_t currentOffset = 0;
@@ -232,8 +235,8 @@ namespace TiffUtils {
 
         size_t StripSize =  (size_t)TIFFStripSize(tif);
         size_t ScanlineSize = (size_t)TIFFScanlineSize(tif);
-        std::cout << "saveMeshAsTiff: " << aData << std::endl;
-        std::cout << "saveMeshAsTiff: ScanlineSize=" << ScanlineSize << " StripSize: " << StripSize << " NoOfStrips: " << TIFFNumberOfStrips(tif) << std::endl;
+        std::cout << __func__ << ": " << "FileName: [" << aFileName << "] " << aData << std::endl;
+        std::cout << __func__ << ": ScanlineSize=" << ScanlineSize << " StripSize: " << StripSize << " NoOfStrips: " << TIFFNumberOfStrips(tif) << std::endl;
 
         size_t currentOffset = 0;
         for(int i = 0; i < depth; ++i) {
@@ -269,7 +272,7 @@ namespace TiffUtils {
     template<typename T>
     void saveMeshAsTiffUint16(const std::string &filename, const MeshData<T> &aData) {
         //  Converts the data to uint16t then writes it (requires creation of a complete copy of the data)
-        MeshData<uint16_t> mesh16(aData);
+        MeshData<uint16_t> mesh16{aData};
         saveMeshAsTiff(filename, mesh16);
     }
 }

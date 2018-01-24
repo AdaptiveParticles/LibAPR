@@ -1,6 +1,5 @@
 /*
- * Krzysztof Gonciarz 2018
- *
+ * Created by Krzysztof Gonciarz 2018
  */
 #include <gtest/gtest.h>
 #include "src/io/TiffUtils.hpp"

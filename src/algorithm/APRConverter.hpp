@@ -53,6 +53,7 @@ public:
         apr_ = &apr;
 
         TiffUtils::TiffInfo inputTiff(par.input_dir + par.input_image_name);
+        if (!inputTiff.isFileOpened()) return false;
 
         if (inputTiff.iType == TiffUtils::TiffInfo::TiffType::TIFF_UINT8) {
             return get_apr_method<uint8_t>(apr, inputTiff);
