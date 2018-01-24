@@ -306,7 +306,7 @@ void ComputeGradient::bspline_filt_rec_y(MeshData<T>& image,float lambda,float t
     }
 
 
-    Part_timer btime;
+    APRTimer btime;
 
     btime.verbose_flag = true;
 
@@ -316,10 +316,12 @@ void ComputeGradient::bspline_filt_rec_y(MeshData<T>& image,float lambda,float t
 
     int i, k, jxnumynum, iynum;
 
+    int j;
+
 #ifdef HAVE_OPENMP
-	#pragma omp parallel for default(shared) private(i, k, iynum, jxnumynum, temp1, temp2, temp3, temp4, temp)
+	#pragma omp parallel for default(shared) private(j,i, k, iynum, jxnumynum, temp1, temp2, temp3, temp4, temp)
 #endif
-    for(int j = 0;j < z_num;j++){
+    for(j = 0;j < z_num;j++){
 
         jxnumynum = j * x_num * y_num;
 
@@ -339,7 +341,6 @@ void ComputeGradient::bspline_filt_rec_y(MeshData<T>& image,float lambda,float t
             for (k = 0; k < k0; k++) {
                 temp3 = temp3 + bc3_vec[k]*image.mesh[jxnumynum + iynum + y_num - 1 - k];
                 temp4 = temp4 + bc4_vec[k]*image.mesh[jxnumynum + iynum + y_num - 1 - k];
-
             }
 
 
@@ -347,23 +348,21 @@ void ComputeGradient::bspline_filt_rec_y(MeshData<T>& image,float lambda,float t
             image.mesh[jxnumynum + iynum + 0] = temp2;
             image.mesh[jxnumynum + iynum + 1] = temp1;
 
-            for (k = 2; k < y_num; k++){
-                temp = temp1*b1 + temp2*b2 + image.mesh[jxnumynum + iynum + k];
-                image.mesh[jxnumynum + iynum + k] = temp;
-                temp2 = temp1;
-                temp1 = temp;
-            }
-
-
-//            for (auto it = (image.mesh.begin()+jxnumynum + iynum + 2); it !=  (image.mesh.begin()+jxnumynum + iynum + y_num); ++it) {
-//
-//                temp = temp1*b1 + temp2*b2 + *it;
-//                *it = temp;
+//            for (k = 2; k < y_num; k++){
+//                temp = temp1*b1 + temp2*b2 + image.mesh[jxnumynum + iynum + k];
+//                image.mesh[jxnumynum + iynum + k] = temp;
 //                temp2 = temp1;
 //                temp1 = temp;
 //            }
 
 
+            for (auto it = (image.mesh.begin()+jxnumynum + iynum + 2); it !=  (image.mesh.begin()+jxnumynum + iynum + y_num); ++it) {
+
+                temp = temp1*b1 + temp2*b2 + *it;
+                *it = temp;
+                temp2 = temp1;
+                temp1 = temp;
+            }
 
 
             image.mesh[jxnumynum + iynum + y_num - 1] = temp4;
@@ -380,9 +379,9 @@ void ComputeGradient::bspline_filt_rec_y(MeshData<T>& image,float lambda,float t
     btime.start_timer("backward_loop_y");
 
 #ifdef HAVE_OPENMP
-	#pragma omp parallel for default(shared) private(i, k, iynum, jxnumynum, temp1, temp2, temp)
+	#pragma omp parallel for default(shared) private(j,i, k, iynum, jxnumynum, temp1, temp2, temp)
 #endif
-    for(int j = z_num - 1; j >= 0; j--){
+    for(j = z_num - 1; j >= 0; j--){
 
         jxnumynum = j * x_num * y_num;
 
@@ -397,12 +396,20 @@ void ComputeGradient::bspline_filt_rec_y(MeshData<T>& image,float lambda,float t
             image.mesh[jxnumynum + iynum + y_num - 1]*=norm_factor;
             image.mesh[jxnumynum + iynum + y_num - 2]*=norm_factor;
 
-            for (k = y_num-3; k >= 0; k--){
-                temp = (temp1*b1 + temp2*b2 + image.mesh[jxnumynum + iynum + k]);
-                image.mesh[jxnumynum + iynum + k] = temp*norm_factor;
+            for (auto it = (image.mesh.begin()+jxnumynum + iynum + y_num-3); it !=  (image.mesh.begin()+jxnumynum + iynum-1); --it) {
+                temp = temp1*b1 + temp2*b2 + *it;
+                *it = temp*norm_factor;
                 temp2 = temp1;
                 temp1 = temp;
+
             }
+
+//            for (k = y_num-3; k >= 0; k--){
+//                temp = (temp1*b1 + temp2*b2 + image.mesh[jxnumynum + iynum + k]);
+//                image.mesh[jxnumynum + iynum + k] = temp*norm_factor;
+//                temp2 = temp1;
+//                temp1 = temp;
+//            }
         }
     }
 
