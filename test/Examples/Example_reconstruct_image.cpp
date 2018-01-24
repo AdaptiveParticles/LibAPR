@@ -6,6 +6,8 @@
 #include <iostream>
 
 #include "Example_reconstruct_image.h"
+#include "src/io/TiffUtils.hpp"
+
 
 bool command_option_exists(char **begin, char **end, const std::string &option)
 {
@@ -88,7 +90,7 @@ int main(int argc, char **argv) {
     std::string output_path = options.directory + apr.name + "_pc.tif";
 
     //write output as tiff
-    recon_pc.write_image_tiff(output_path);
+    TiffUtils::saveMeshAsTiff(output_path, recon_pc);
 
     //////////////////////////
     ///
@@ -126,7 +128,7 @@ int main(int argc, char **argv) {
     output_path = options.directory + apr.name + "_type.tif";
 
     //write output as tiff
-    type_recon.write_image_tiff(output_path);
+    TiffUtils::saveMeshAsTiff(output_path, type_recon);
 
     //pc interp
     apr.interp_img(type_recon,level);
@@ -134,7 +136,7 @@ int main(int argc, char **argv) {
     output_path = options.directory + apr.name + "_level.tif";
 
     //write output as tiff
-    type_recon.write_image_tiff(output_path);
+    TiffUtils::saveMeshAsTiff(output_path, type_recon);
 
     //smooth reconstruction - requires float
     MeshData<float> recon_smooth;
@@ -153,7 +155,5 @@ int main(int argc, char **argv) {
     output_path = options.directory + apr.name + "_smooth.tif";
 
     //write to tiff casting to unsigned 16 bit integer
-    recon_smooth.write_image_tiff_uint16(output_path);
-
-
+    TiffUtils::saveMeshAsTiffUint16(output_path, recon_smooth);
 }

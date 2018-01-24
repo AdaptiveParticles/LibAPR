@@ -95,7 +95,7 @@ void ComputeGradient::mask_gradient(MeshData<T>& grad_ds,MeshData<S>& temp_ds,Me
     //location
     std::string file_name = par.input_dir + par.mask_file;
 
-    temp_full.load_image_tiff(file_name);
+    TiffUtils::getMesh(file_name, temp_full);
 
     down_sample(temp_ds,temp_full,
                 [](float x, float y) { return std::max(x,y); },
