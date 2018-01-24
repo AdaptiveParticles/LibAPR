@@ -56,17 +56,21 @@ public:
         if (!inputTiff.isFileOpened()) return false;
 
         if (inputTiff.iType == TiffUtils::TiffInfo::TiffType::TIFF_UINT8) {
-            return get_apr_method<uint8_t>(apr, inputTiff);
+            return get_apr_method_from_file<uint8_t>(apr, inputTiff);
         } else if (inputTiff.iType == TiffUtils::TiffInfo::TiffType::TIFF_FLOAT) {
-            return get_apr_method<float>(apr, inputTiff);
+            return get_apr_method_from_file<float>(apr, inputTiff);
         } else if (inputTiff.iType == TiffUtils::TiffInfo::TiffType::TIFF_UINT16) {
-            return get_apr_method<uint16_t>(apr, inputTiff);
+            return get_apr_method_from_file<uint16_t>(apr, inputTiff);
         } else {
             std::cerr << "Wrong file type" << std::endl;
             return false;
         }
 
     };
+
+    //get apr without setting parameters, and with an already loaded image.
+    template<typename T>
+    bool get_apr_method(APR<ImageType>& apr, MeshData<T>& input_image);
 
 private:
 
@@ -103,7 +107,7 @@ private:
     void auto_parameters(MeshData<T>& input_img);
 
     template<typename T>
-    bool get_apr_method(APR<ImageType>& apr, const TiffUtils::TiffInfo &tiffFile);
+    bool get_apr_method_from_file(APR<ImageType>& apr, const TiffUtils::TiffInfo &tiffFile);
 
     template<typename T,typename S>
     void get_gradient(MeshData<T>& input_img,MeshData<S>& gradient);
@@ -114,21 +118,19 @@ private:
     template<typename T,typename S>
     void get_local_particle_cell_set(MeshData<T>& grad_image_ds,MeshData<S>& local_intensity_scale_ds);
 
+
+
 };
 
 /*
  * Implimentations
  */
+
 template<typename ImageType> template<typename T>
-bool APRConverter<ImageType>::get_apr_method(APR<ImageType>& apr, const TiffUtils::TiffInfo &tiffFile) {
+bool APRConverter<ImageType>::get_apr_method_from_file(APR<ImageType>& apr, const TiffUtils::TiffInfo &tiffFile) {
     //
     //  Main method for constructing the APR from an input image
     //
-    
-    APRTimer full;
-    full.verbose_flag = true;
-
-    full.start_timer("GET APR");
 
     APRTimer timer;
     timer.verbose_flag = true;
@@ -143,17 +145,33 @@ bool APRConverter<ImageType>::get_apr_method(APR<ImageType>& apr, const TiffUtil
     timer.stop_timer();
 
     //    was there an image found
-    if(input_image.mesh.size() == 0){
+    if (input_image.mesh.size() == 0) {
         std::cout << "Image Not Found" << std::endl;
         return false;
     }
-
-    init_apr(apr,input_image);
 
     timer.start_timer("calculate automatic parameters");
     auto_parameters(input_image);
     timer.stop_timer();
 
+    return get_apr_method(apr,input_image);
+
+
+}
+
+
+template<typename ImageType> template<typename T>
+bool APRConverter<ImageType>::get_apr_method(APR<ImageType>& apr, MeshData<T>& input_image) {
+    //
+    //  Main method for constructing the APR from an input image
+    //
+
+    apr_ = &apr; // in case it was called directly
+
+    APRTimer timer;
+    timer.verbose_flag = true;
+
+    init_apr(apr,input_image);
 
     timer.start_timer("init and copy image");
 
@@ -163,7 +181,6 @@ bool APRConverter<ImageType>::get_apr_method(APR<ImageType>& apr, const TiffUtil
     //std::copy(input_image.mesh.begin(),input_image.mesh.end(),image_temp.mesh.begin());
 
     image_temp.block_copy_data(input_image,20);
-
 
     //allocate require memory for the down-sampled structures
 
@@ -234,8 +251,6 @@ bool APRConverter<ImageType>::get_apr_method(APR<ImageType>& apr, const TiffUtil
     st.start_timer("sample particles");
     apr.get_parts_from_img(downsampled_img,apr.particles_intensities);
     st.stop_timer();
-
-    full.stop_timer();
 
     computation_timer.stop_timer();
 
@@ -476,7 +491,6 @@ void APRConverter<ImageType>::init_apr(APR<ImageType>& apr,MeshData<T>& input_im
     //  Initializing the size of the APR, min and maximum level (in the data structures it is called depth)
     //
     //
-
 
     apr.apr_access.org_dims[0] = input_image.y_num;
     apr.apr_access.org_dims[1] = input_image.x_num;

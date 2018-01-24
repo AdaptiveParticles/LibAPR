@@ -14,6 +14,7 @@
 
 #include <algorithm>
 #include <iostream>
+#include <src/algorithm/APRConverter.hpp>
 
 #include "Example_benchmark.h"
 
@@ -81,8 +82,21 @@ int main(int argc, char **argv) {
     // APR datastructure
     APR<uint16_t> apr;
 
-    //read file
-    apr.read_apr(file_name);
+    APRConverter<uint16_t> apr_converter;
+
+    apr_converter.par.Ip_th = 1032;
+    apr_converter.par.sigma_th = 242.822;
+    apr_converter.par.sigma_th_max = 95.9877;
+    apr_converter.par.rel_error = 0.1;
+    apr_converter.par.lambda = 3;
+
+    apr_converter.par.input_dir = options.directory;
+    apr_converter.par.input_image_name  = options.input;
+
+    TiffUtils::TiffInfo inputTiff(apr_converter.par.input_dir + apr_converter.par.input_image_name);
+    MeshData<uint16_t> input_image = TiffUtils::getMesh<uint16_t>(inputTiff);
+
+    apr_converter.get_apr_method(apr, input_image);
 
     APRBenchmark apr_benchmarks;
 
