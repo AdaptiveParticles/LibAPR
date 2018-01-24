@@ -98,6 +98,17 @@ public :
     MeshData(int aSizeOfY, int aSizeOfX, int aSizeOfZ) { initialize(aSizeOfY, aSizeOfX, aSizeOfZ); }
 
     /**
+     * Move constructor
+     * @param aObj mesh to be moved
+     */
+    MeshData(MeshData &&aObj) {
+        x_num = aObj.x_num;
+        y_num = aObj.y_num;
+        z_num = aObj.z_num;
+        mesh = std::move(aObj.mesh);
+    }
+
+    /**
      * Constructor - initialize mesh with other mesh (data are copied and casted if needed).
      * @param aMesh input mesh
      */
@@ -219,16 +230,6 @@ public :
         mesh.resize(size);
     }
 
-    void reserve(int aSizeOfY, int aSizeOfX, int aSizeOfZ) {
-        y_num = aSizeOfY;
-        x_num = aSizeOfX;
-        z_num = aSizeOfZ;
-        size_t size = (size_t)y_num * x_num * z_num;
-        std::cout << "Wanted size: " << size << std::endl;
-        mesh.reserve(size);
-        std::cout << "Reserved" << std::endl;
-    }
-
     /**
      * Initializes mesh with size of half of provided dimensions (rounding up if not divisible by 2)
      * sets provided val for all elements
@@ -245,13 +246,10 @@ public :
         initialize(y_num_ds, x_num_ds, z_num_ds, aInitVal);
     }
 
-    MeshData(MeshData &&aObj) {
-        x_num = aObj.x_num;
-        y_num = aObj.y_num;
-        z_num = aObj.z_num;
-        mesh = std::move(aObj.mesh);
-    }
-
+    /**
+     * Swaps data of meshes this <-> aObj
+     * @param aObj
+     */
     void swap(MeshData &aObj) {
         std::swap(x_num, aObj.x_num);
         std::swap(y_num, aObj.y_num);
@@ -259,6 +257,10 @@ public :
         mesh.swap(aObj.mesh);
     }
 
+    /**
+     * Moves data of aObj mesh to this
+     * @param aObj
+     */
     void move(MeshData &&aObj) {
         x_num = aObj.x_num;
         y_num = aObj.y_num;
@@ -267,6 +269,7 @@ public :
     }
 
 private:
+
     MeshData(const MeshData&) = delete; // make it noncopyable
     MeshData& operator=(const MeshData&) = delete; // make it not assignable
 
@@ -472,22 +475,6 @@ void MeshData<T>::write_image_tiff(std::vector<V>& data,std::string& filename){
 
 }
 
-template<typename T, typename S,typename L1, typename L2>
-void down_sample(MeshData<T>& test_a, MeshData<S>& test_a_ds, L1 reduce, L2 constant_operator,
-                 bool with_allocation = false);
-
-template<typename T>
-void const_upsample_img(MeshData<T>& input_us,MeshData<T>& input,std::vector<unsigned int>& max_dims);
-
-template<typename T>
-void MeshData<T>::write_image_tiff(std::string& filename) {
-    MeshData::write_image_tiff(this->mesh,filename);
-};
-
-template<typename T, typename S,typename L1, typename L2>
-void down_sample_overflow_proct(MeshData<T>& test_a, MeshData<S>& test_a_ds, L1 reduce, L2 constant_operator,
-                                bool with_allocation = false );
-
 template<typename T>
 void MeshData<T>::write_image_tiff_uint16(std::string& filename){
     //
@@ -503,7 +490,21 @@ void MeshData<T>::write_image_tiff_uint16(std::string& filename){
 
 }
 
+template<typename T, typename S,typename L1, typename L2>
+void down_sample(MeshData<T>& test_a, MeshData<S>& test_a_ds, L1 reduce, L2 constant_operator,
+                 bool with_allocation = false);
 
+template<typename T>
+void const_upsample_img(MeshData<T>& input_us,MeshData<T>& input,std::vector<unsigned int>& max_dims);
+
+template<typename T>
+void MeshData<T>::write_image_tiff(std::string& filename) {
+    MeshData::write_image_tiff(this->mesh,filename);
+};
+
+template<typename T, typename S,typename L1, typename L2>
+void down_sample_overflow_proct(MeshData<T>& test_a, MeshData<S>& test_a_ds, L1 reduce, L2 constant_operator,
+                                bool with_allocation = false );
 
 template<typename T>
 void downsample_pyrmaid(MeshData<T> &original_image,std::vector<MeshData<T>>& downsampled,unsigned int l_max, unsigned int l_min)
