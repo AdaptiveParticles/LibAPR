@@ -146,7 +146,7 @@ void PullingScheme::pulling_scheme_main()
 }
 
 template<typename T>
-void PullingScheme::fill(float k, MeshData<T>& input)
+void PullingScheme::fill(const float k, MeshData<T>& input)
 {
     //
     //  Bevan Cheeseman 2016

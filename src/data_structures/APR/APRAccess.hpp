@@ -309,7 +309,7 @@ public:
 
             ParticleCellGapMap& current_pc_map = gap_map.data[part_cell.level][part_cell.pc_offset][0];
 
-            if((map_iterator.pc_offset != part_cell.pc_offset) | (map_iterator.level != part_cell.level) ){
+            if((map_iterator.pc_offset != part_cell.pc_offset) || (map_iterator.level != part_cell.level) ){
                 map_iterator.iterator = gap_map.data[part_cell.level][part_cell.pc_offset][0].map.begin();
                 map_iterator.pc_offset = part_cell.pc_offset;
                 map_iterator.level = part_cell.level;
@@ -320,7 +320,7 @@ public:
                 map_iterator.iterator = current_pc_map.map.begin();
             }
 
-            if ((part_cell.y >= map_iterator.iterator->first) & (part_cell.y <= map_iterator.iterator->second.y_end)) {
+            if ((part_cell.y >= map_iterator.iterator->first) && (part_cell.y <= map_iterator.iterator->second.y_end)) {
                 // already pointing to the correct place
                 part_cell.global_index = map_iterator.iterator->second.global_index_begin +
                                          (part_cell.y - map_iterator.iterator->first);
@@ -848,36 +848,39 @@ public:
 
         total_number_non_empty_rows=0;
 
-        apr_timer.start_timer("initialize map");
+//        apr_timer.start_timer("initialize map");
+//
+//        gap_map.initialize_structure_parts_empty(apr);
+//
+//        uint64_t counter_rows=0;
+//
+//        for(uint64_t i = (apr.level_min());i <= apr.level_max();i++) {
+//
+//            const unsigned int x_num_ = x_num[i];
+//            const unsigned int z_num_ = z_num[i];
+//            const unsigned int y_num_ = y_num[i];
+//#ifdef HAVE_OPENMP
+//	#pragma omp parallel for default(shared) private(z_, x_) reduction(+:counter_rows)if(z_num_*x_num_ > 100)
+//#endif
+//            for (z_ = 0; z_ < z_num_; z_++) {
+//                for (x_ = 0; x_ < x_num_; x_++) {
+//                    const size_t offset_pc_data = x_num_ * z_ + x_;
+//                    if(y_begin.data[i][offset_pc_data].size() > 0) {
+//                        gap_map.data[i][offset_pc_data].resize(1);
+//
+//
+//                        gap_map.data[i][offset_pc_data][0].map.insert(y_begin.data[i][offset_pc_data].begin(),y_begin.data[i][offset_pc_data].end());
+//
+//                        counter_rows++;
+//                    }
+//                }
+//            }
+//        }
+//        total_number_non_empty_rows = counter_rows;
+//        apr_timer.stop_timer();
 
-        gap_map.initialize_structure_parts_empty(apr);
+        allocate_map_insert(apr,y_begin);
 
-        uint64_t counter_rows=0;
-
-        for(uint64_t i = (apr.level_min());i <= apr.level_max();i++) {
-
-            const unsigned int x_num_ = x_num[i];
-            const unsigned int z_num_ = z_num[i];
-            const unsigned int y_num_ = y_num[i];
-#ifdef HAVE_OPENMP
-	#pragma omp parallel for default(shared) private(z_, x_) reduction(+:counter_rows)if(z_num_*x_num_ > 100)
-#endif
-            for (z_ = 0; z_ < z_num_; z_++) {
-                for (x_ = 0; x_ < x_num_; x_++) {
-                    const size_t offset_pc_data = x_num_ * z_ + x_;
-                    if(y_begin.data[i][offset_pc_data].size() > 0) {
-                        gap_map.data[i][offset_pc_data].resize(1);
-
-
-                        gap_map.data[i][offset_pc_data][0].map.insert(y_begin.data[i][offset_pc_data].begin(),y_begin.data[i][offset_pc_data].end());
-
-                        counter_rows++;
-                    }
-                }
-            }
-        }
-        total_number_non_empty_rows = counter_rows;
-        apr_timer.stop_timer();
 
         APRIterator<T> apr_iterator(*this);
 
@@ -906,13 +909,52 @@ public:
     }
 
     template<typename T>
-    void rebuild_map(APR<T>& apr,MapStorageData& map_data){
+    void allocate_map_insert(APR<T>& apr,ExtraPartCellData<std::pair<uint16_t,YGap_map>>& y_begin) {
+        //
+        //  Seperated for checking memory allocation
+        //
 
-        uint64_t z_;
-        uint64_t x_;
         APRTimer apr_timer;
-        apr_timer.verbose_flag = false;
-        apr_timer.start_timer("rebuild map");
+
+        apr_timer.start_timer("initialize map");
+
+        gap_map.initialize_structure_parts_empty(apr);
+
+        uint64_t counter_rows = 0;
+
+        uint64_t z_,x_;
+
+        for (uint64_t i = (apr.level_min()); i <= apr.level_max(); i++) {
+
+            const unsigned int x_num_ = x_num[i];
+            const unsigned int z_num_ = z_num[i];
+            const unsigned int y_num_ = y_num[i];
+#ifdef HAVE_OPENMP
+#pragma omp parallel for default(shared) private(z_, x_) reduction(+:counter_rows)if(z_num_*x_num_ > 100)
+#endif
+            for (z_ = 0; z_ < z_num_; z_++) {
+                for (x_ = 0; x_ < x_num_; x_++) {
+                    const size_t offset_pc_data = x_num_ * z_ + x_;
+                    if (y_begin.data[i][offset_pc_data].size() > 0) {
+                        gap_map.data[i][offset_pc_data].resize(1);
+
+
+                        gap_map.data[i][offset_pc_data][0].map.insert(y_begin.data[i][offset_pc_data].begin(),
+                                                                      y_begin.data[i][offset_pc_data].end());
+
+                        counter_rows++;
+                    }
+                }
+            }
+        }
+        total_number_non_empty_rows = counter_rows;
+        apr_timer.stop_timer();
+
+    }
+
+
+    template<typename T>
+    void allocate_map(APR<T>& apr,MapStorageData& map_data,std::vector<uint64_t>& cumsum){
 
         //first add the layers
         gap_map.depth_max = level_max;
@@ -938,20 +980,9 @@ public:
 
         }
 
-
-        std::vector<uint64_t> cumsum;
-        cumsum.reserve(total_number_non_empty_rows);
-        uint64_t counter=0;
-
         uint64_t j;
-
-        for (j = 0; j < total_number_non_empty_rows; ++j) {
-            cumsum.push_back(counter);
-            counter+=(map_data.number_gaps[j]);
-        }
-
 #ifdef HAVE_OPENMP
-	#pragma omp parallel for default(shared) schedule(static) private(j)
+        #pragma omp parallel for default(shared) schedule(static) private(j)
 #endif
         for (j = 0; j < total_number_non_empty_rows; ++j) {
 
@@ -977,9 +1008,34 @@ public:
 
         }
 
-        apr_timer.stop_timer();
 
 
+    }
+
+    template<typename T>
+    void rebuild_map(APR<T>& apr,MapStorageData& map_data){
+
+        uint64_t z_;
+        uint64_t x_;
+        APRTimer apr_timer;
+        apr_timer.verbose_flag = false;
+        apr_timer.start_timer("rebuild map");
+
+
+
+        std::vector<uint64_t> cumsum;
+        cumsum.reserve(total_number_non_empty_rows);
+        uint64_t counter=0;
+
+        uint64_t j;
+
+        for (j = 0; j < total_number_non_empty_rows; ++j) {
+            cumsum.push_back(counter);
+            counter+=(map_data.number_gaps[j]);
+        }
+
+
+        allocate_map(apr,map_data,cumsum);
 
         apr_timer.start_timer("forth loop");
         //////////////////

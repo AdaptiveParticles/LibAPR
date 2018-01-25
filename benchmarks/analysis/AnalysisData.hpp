@@ -9,6 +9,7 @@
 #include "benchmarks/development/old_io/parameters.h"
 #include "benchmarks/development/old_io/hdf5functions.h"
 #include "benchmarks/development/old_io/write_parts.h"
+#include "src/misc/APRTimer.hpp"
 
 #include <cstdio>
 #include <iostream>
@@ -191,6 +192,16 @@ class AnalysisData: public Data_manager{
     }
 
     void add_timer(Part_timer& timer){
+
+        //set up timing variables
+
+        for (int i = 0; i < timer.timings.size(); i++) {
+            add_float_data(timer.timing_names[i],timer.timings[i]);
+        }
+
+    }
+
+    void add_timer(APRTimer& timer){
 
         //set up timing variables
 

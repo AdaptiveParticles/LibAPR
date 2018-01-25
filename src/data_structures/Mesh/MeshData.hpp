@@ -899,10 +899,7 @@ void down_sample(MeshData<T>& test_a, MeshData<S>& test_a_ds, L1 reduce, L2 cons
 
             //four passes
 
-            //first take into cache
-            for (k = 0; k < y_num; k++) {
-                temp_vec[k] = test_a.mesh[2 * j * x_num * y_num + 2 * i * y_num + k];
-            }
+            std::copy(test_a.mesh.begin() + 2 * j * x_num * y_num + 2 * i * y_num,test_a.mesh.begin() + 2 * j * x_num * y_num + 2 * i * y_num + y_num,temp_vec.begin());
 
             //then do the operations two by two
             for (k = 0; k < y_num_ds; k++) {
@@ -912,25 +909,8 @@ void down_sample(MeshData<T>& test_a, MeshData<S>& test_a_ds, L1 reduce, L2 cons
                         reduce(test_a_ds.mesh[j * x_num_ds * y_num_ds + i * y_num_ds + k], temp_vec[sk_]);
             }
 
-            //first take into cache
-            for (k = 0; k < y_num; k++) {
-                temp_vec[k] = test_a.mesh[2 * j * x_num * y_num + si_ * y_num + k];
-            }
 
-            //then do the operations two by two
-            for (k = 0; k < y_num_ds; k++) {
-                sk_ = std::min(2 * k + 1, y_num - 1);
-                test_a_ds.mesh[j * x_num_ds * y_num_ds + i * y_num_ds + k] =
-                        reduce(test_a_ds.mesh[j * x_num_ds * y_num_ds + i * y_num_ds + k], temp_vec[2 * k]);
-                test_a_ds.mesh[j * x_num_ds * y_num_ds + i * y_num_ds + k] =
-                        reduce(test_a_ds.mesh[j * x_num_ds * y_num_ds + i * y_num_ds + k], temp_vec[sk_]);
-            }
-
-
-            //first take into cache
-            for (k = 0; k < y_num; k++) {
-                temp_vec[k] = test_a.mesh[sj_ * x_num * y_num + 2 * i * y_num + k];
-            }
+            std::copy(test_a.mesh.begin() + 2 * j * x_num * y_num + si_ * y_num,test_a.mesh.begin() + 2 * j * x_num * y_num + si_ * y_num + y_num,temp_vec.begin());
 
 
             //then do the operations two by two
@@ -942,11 +922,19 @@ void down_sample(MeshData<T>& test_a, MeshData<S>& test_a_ds, L1 reduce, L2 cons
                         reduce(test_a_ds.mesh[j * x_num_ds * y_num_ds + i * y_num_ds + k], temp_vec[sk_]);
             }
 
-            //first take into cache
-            for (k = 0; k < y_num; k++) {
-                temp_vec[k] = test_a.mesh[sj_ * x_num * y_num + si_ * y_num + k];
+
+            std::copy(test_a.mesh.begin() + sj_ * x_num * y_num + 2 * i * y_num,test_a.mesh.begin() + sj_ * x_num * y_num + 2 * i * y_num + y_num,temp_vec.begin());
+
+            //then do the operations two by two
+            for (k = 0; k < y_num_ds; k++) {
+                sk_ = std::min(2 * k + 1, y_num - 1);
+                test_a_ds.mesh[j * x_num_ds * y_num_ds + i * y_num_ds + k] =
+                        reduce(test_a_ds.mesh[j * x_num_ds * y_num_ds + i * y_num_ds + k], temp_vec[2 * k]);
+                test_a_ds.mesh[j * x_num_ds * y_num_ds + i * y_num_ds + k] =
+                        reduce(test_a_ds.mesh[j * x_num_ds * y_num_ds + i * y_num_ds + k], temp_vec[sk_]);
             }
 
+            std::copy(test_a.mesh.begin() + sj_ * x_num * y_num + si_ * y_num,test_a.mesh.begin() + sj_ * x_num * y_num + si_ * y_num + y_num,temp_vec.begin());
 
             //then do the operations two by two
             for (k = 0; k < y_num_ds; k++) {
