@@ -479,17 +479,11 @@ float APRBenchmark::apr_random_access(APR<U>& apr, float num_repeats){
     //Generate random access numbers
     size_t number;
 
-<<<<<<< 0068e76515178b92d2542a67799bb13772f656c8
-//#ifdef HAVE_OPENMP
-//#pragma omp parallel for schedule(static) private(r) firstprivate(apr_iterator, neighbour_iterator,random_particle_cell)
-//#endif
-    for(r = 0;r < num_repeats;r++){
-=======
 #ifdef HAVE_OPENMP
 #pragma omp parallel for schedule(static) private(number) firstprivate(apr_iterator, neighbour_iterator,random_particle_cell)
 #endif
     for(number = 0;number < num_r;number++){
->>>>>>> loop problem needed fixing
+
 
         random_particle_cell.x = x_random[number];
         random_particle_cell.y = y_random[number];
