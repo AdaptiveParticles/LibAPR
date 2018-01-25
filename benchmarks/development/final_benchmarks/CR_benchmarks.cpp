@@ -103,6 +103,8 @@ int main(int argc, char **argv) {
     //
     ///////////////////////////////////////////
 
+    af::info();
+
     cmdLineOptions options = read_command_line_options_this(argc,argv);
 
     SynImage syn_image;
@@ -150,7 +152,7 @@ int main(int argc, char **argv) {
 
     std::vector<int> image_size;
 
-    image_size = {200};
+    image_size = {1000};
 
     float ratio = options.CR;
     bs.N_repeats = options.number_reps;
@@ -195,8 +197,11 @@ int main(int argc, char **argv) {
             ////////////////////////////////
 
             MeshDataAF<uint16_t> gen_image;
-
+            b_timer.start_timer("generating image");
             syn_image_loc.generate_syn_image(gen_image);
+            b_timer.stop_timer();
+
+            std::cout << "Image Generated" << std::endl;
 
             MeshData<uint16_t> input_img;
 
@@ -217,6 +222,7 @@ int main(int argc, char **argv) {
             apr_converter.method_timer.verbose_flag = false;
             apr_converter.allocation_timer.verbose_flag = false;
             apr_converter.computation_timer.verbose_flag = false;
+            apr_converter.total_timer.verbose_flag = true;
 
             apr_benchmarks.analysis_data.name = "test_benchmarking";
 
