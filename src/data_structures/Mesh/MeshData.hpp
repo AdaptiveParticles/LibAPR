@@ -123,9 +123,9 @@ template <class T>
 class MeshData {
 public :
     // size of mesh and container for data
-    int y_num;
-    int x_num;
-    int z_num;
+    size_t y_num;
+    size_t x_num;
+    size_t z_num;
     std::unique_ptr<T[]> meshMemory;
     ArrayWrapper<T> mesh;
 
@@ -254,6 +254,7 @@ public :
 
         // Fill values of new buffer in parallel
         // TODO: set dynamicaly number of threads
+        #ifdef HAVE_OPENMP
         #pragma omp parallel num_threads(4)
         {
             auto threadNum = omp_get_thread_num();
@@ -263,6 +264,9 @@ public :
             auto end = (threadNum == numOfThreads - 1) ? array + size : begin + chunkSize;
             std::fill(begin, end, aInitVal);
         }
+        #else
+        std::fill(array, array + size, aInitVal);
+        #endif
     }
 
     /**
@@ -329,6 +333,28 @@ public :
         z_num = aObj.z_num;
         mesh.move(aObj.mesh);
         meshMemory = std::move(aObj.meshMemory);
+    }
+
+    template<typename U>
+    void runUnaryOp(const MeshData<U> &aInputMesh, T (*aOp) (const T& aVal), unsigned int aNumberOfBlocks = 10) {
+        aNumberOfBlocks = std::min((unsigned int)aInputMesh.z_num, aNumberOfBlocks);
+        unsigned int numOfElementsPerBlock = aInputMesh.z_num/aNumberOfBlocks;
+
+        #ifdef HAVE_OPENMP
+        #pragma omp parallel for schedule(static)
+        #endif
+        for (unsigned int blockNum = 0; blockNum < aNumberOfBlocks; ++blockNum) {
+            const size_t elementSize = (size_t)aInputMesh.x_num * aInputMesh.y_num;
+            const size_t blockSize = numOfElementsPerBlock * elementSize;
+            size_t offsetBegin = blockNum * blockSize;
+            size_t offsetEnd = offsetBegin + blockSize;
+            if (blockNum == aNumberOfBlocks - 1) {
+                // Handle tailing elements if number of blocks does not divide.
+                offsetEnd = aInputMesh.z_num * elementSize;
+            }
+
+            std::transform(aInputMesh.mesh.begin() + offsetBegin,aInputMesh.mesh.begin() + offsetEnd, mesh.begin() + offsetBegin, aOp);
+        }
     }
 
 private:
