@@ -14,29 +14,164 @@ class APRBenchmark {
 
 public:
 
-    APRBenchmark(){
+    APRBenchmark() {
 
     }
 
     AnalysisData analysis_data;
-    //Linear neighbour access
-    template<typename U,typename V>
-    float pixels_linear_neighbour_access(uint64_t y_num,uint64_t x_num,uint64_t z_num,float num_repeats);
 
-    template<typename U,typename V>
-    float apr_linear_neighbour_access(APR<U> apr,float num_repeats);
+    //Linear neighbour access
+    template<typename U, typename V>
+    float pixels_linear_neighbour_access(uint64_t y_num, uint64_t x_num, uint64_t z_num, float num_repeats);
+
+    template<typename U, typename V>
+    float apr_linear_neighbour_access(APR<U> apr, float num_repeats);
 
     //Random access
-    template<typename U,typename V>
+    template<typename U, typename V>
     float pixel_neighbour_random(uint64_t y_num, uint64_t x_num, uint64_t z_num, float num_repeats);
 
-    template<typename U,typename V>
-    float apr_random_access(APR<U>& apr, float num_repeats);
+    template<typename U, typename V>
+    float apr_random_access(APR<U> &apr, float num_repeats);
 
     template<typename ImageType>
-    void benchmark_dataset(APRConverter<ImageType>& apr_converter);
+    void benchmark_dataset(APRConverter<ImageType> &apr_converter);
+
+    template<typename ImageType>
+    void benchmark_dataset_synthetic(APRConverter<ImageType> &apr_converter, MeshData<ImageType> &input_image);
 
 };
+template<typename ImageType>
+void APRBenchmark::benchmark_dataset_synthetic(APRConverter<ImageType>& apr_converter,MeshData<ImageType>& input_image){
+
+    APR<uint16_t> apr;
+
+    std::string name = apr_converter.par.input_image_name;
+
+    APRTimer timer;
+
+    apr_converter.total_timer.verbose_flag = true;
+
+    apr_converter.get_apr_method(apr, input_image);
+
+    float num_repeats = 10;
+
+    float linear_pixel_pm = pixels_linear_neighbour_access<uint16_t,float>(apr.orginal_dimensions(0),apr.orginal_dimensions(1),apr.orginal_dimensions(2),num_repeats);
+    float linear_apr_pm = apr_linear_neighbour_access<uint16_t,float>(apr,num_repeats);
+
+    float pp_ratio_linear = linear_pixel_pm/linear_apr_pm;
+    analysis_data.add_float_data("pp_ratio_linear",pp_ratio_linear);
+
+    float num_repeats_random = 10000000;
+
+    float random_pixel_pm = pixel_neighbour_random<uint16_t,float>(apr.orginal_dimensions(0),apr.orginal_dimensions(1),apr.orginal_dimensions(2), num_repeats_random);
+    float random_apr_pm = apr_random_access<uint16_t,float>(apr,num_repeats_random);
+
+    float pp_ratio_random = random_pixel_pm/random_apr_pm;
+    analysis_data.add_float_data("pp_ratio_random",pp_ratio_random);
+
+    APRCompress<uint16_t> apr_compress;
+
+    APRWriter apr_writer;
+
+    ExtraParticleData<uint16_t> intensities;
+    intensities.copy_parts(apr,apr.particles_intensities);
+
+    apr_compress.set_compression_type(1);
+
+    timer.verbose_flag = false;
+
+    timer.start_timer("write_compress_wnl");
+    float apr_wnl_in_mb = apr_writer.write_apr(apr,apr_converter.par.input_dir ,name + "_compress",apr_compress,BLOSC_ZSTD,3,2);
+    timer.stop_timer();
+
+
+    apr.particles_intensities.copy_parts(apr,intensities);
+    apr_compress.set_compression_type(2);
+
+    timer.start_timer("write_compress_predict_only");
+    float apr_predict_in_mb = apr_writer.write_apr(apr,apr_converter.par.input_dir ,name + "_compress1",apr_compress,BLOSC_ZSTD,3,2);
+    timer.stop_timer();
+
+    apr.particles_intensities.copy_parts(apr,intensities);
+    apr_compress.set_compression_type(0);
+
+    timer.start_timer("write_no_compress");
+    float apr_direct_in_mb = apr_writer.write_apr(apr,apr_converter.par.input_dir ,name + "_compress2",apr_compress,BLOSC_ZSTD,3,2);
+    timer.stop_timer();
+
+    timer.start_timer("write_particles_only");
+    float apr_parts_only_mb = apr_writer.write_particles_only(apr_converter.par.input_dir ,name + "_parts_only",intensities);
+
+    timer.stop_timer();
+
+    analysis_data.add_float_data("storage_normal", apr_direct_in_mb );
+    analysis_data.add_float_data("storage_wnl", apr_wnl_in_mb );
+    analysis_data.add_float_data("storage_predict", apr_predict_in_mb );
+    analysis_data.add_float_data("storage_only_particles", apr_parts_only_mb );
+
+    analysis_data.add_float_data("number_particles",apr.apr_access.total_number_particles);
+    analysis_data.add_float_data("total_number_gaps",apr.apr_access.total_number_gaps);
+    analysis_data.add_float_data("total_number_non_empty_rows",apr.apr_access.total_number_non_empty_rows);
+
+    analysis_data.add_float_data("total_number_type_stored",apr.apr_access.global_index_by_level_end[apr.level_max()-1]);
+
+    analysis_data.add_float_data("ratio_access_storage", (apr_direct_in_mb - apr_parts_only_mb)/apr_direct_in_mb );
+
+    analysis_data.add_timer(timer);
+
+    analysis_data.add_timer(apr_converter.fine_grained_timer);
+    analysis_data.add_timer(apr_converter.computation_timer);
+    analysis_data.add_timer(apr_converter.method_timer);
+    analysis_data.add_timer(apr_converter.allocation_timer);
+    analysis_data.add_timer(apr_converter.total_timer);
+
+    float estimated_storage_size_gaps_access  = (3.0727*pow(10.0,-5)*apr.orginal_dimensions(1)*apr.orginal_dimensions(2)) + (2.125*pow(10.0,-6))*apr.apr_access.total_number_gaps*log2(1.0*apr.apr_access.total_number_gaps/(apr.apr_access.total_number_non_empty_rows*1.0));
+
+    float particles_storage_cost = 2*apr.apr_access.total_number_particles/(1000000.0);
+
+    float type_storage_cost = 2*apr.apr_access.global_index_by_level_end[apr.level_max()-1]/1000000.0;
+
+    float apr_access_bits_per_particle = 8*1000000.0*estimated_storage_size_gaps_access/(1.0*apr.apr_access.total_number_particles);
+
+    float total_in_memory_cost_apr = particles_storage_cost + estimated_storage_size_gaps_access;
+
+    float memory_cost_neighbour_pixels = ((2+4)*(apr.orginal_dimensions(0)*apr.orginal_dimensions(1)*apr.orginal_dimensions(2)))/1000000.0;
+
+    float memory_cost_neighbour_apr = estimated_storage_size_gaps_access + 6*apr.apr_access.total_number_particles/(1000000.0);
+
+    analysis_data.add_float_data("memory_cost_neighbour_apr",memory_cost_neighbour_apr);
+    analysis_data.add_float_data("memory_cost_neighbour_pixels",memory_cost_neighbour_pixels);
+    analysis_data.add_float_data("total_in_memory_cost_apr",total_in_memory_cost_apr);
+    analysis_data.add_float_data("apr_access_bits_per_particle",apr_access_bits_per_particle);
+    analysis_data.add_float_data("type_storage_cost",type_storage_cost);
+    analysis_data.add_float_data("estimated_storage_size_gaps_access",estimated_storage_size_gaps_access);
+    analysis_data.add_float_data("particles_storage_cost",particles_storage_cost);
+
+    float total_image_size = ((apr.orginal_dimensions(0)*apr.orginal_dimensions(1)*apr.orginal_dimensions(2))*2)/1000000.0;
+
+    float computational_ratio = (apr.orginal_dimensions(0)*apr.orginal_dimensions(1)*apr.orginal_dimensions(2))/(apr.total_number_particles()*1.0);
+
+    float memory_reduction_neighbour_access = memory_cost_neighbour_pixels/memory_cost_neighbour_apr;
+
+
+    float MCR_normal = total_image_size/apr_direct_in_mb;
+
+    float MCR_predict = total_image_size/apr_predict_in_mb;
+
+    float MCR_winl = total_image_size/apr_wnl_in_mb;
+
+    analysis_data.add_float_data("tota_image_size",total_image_size);
+    analysis_data.add_float_data("computational_ratio",computational_ratio);
+    analysis_data.add_float_data("memory_reduction_neighbour_access",memory_reduction_neighbour_access);
+    analysis_data.add_float_data("MCR_normal",MCR_normal);
+    analysis_data.add_float_data("MCR_predict",MCR_predict);
+    analysis_data.add_float_data("MCR_winl",MCR_winl);
+
+
+}
+
+
 
 template<typename ImageType>
 void APRBenchmark::benchmark_dataset(APRConverter<ImageType>& apr_converter){

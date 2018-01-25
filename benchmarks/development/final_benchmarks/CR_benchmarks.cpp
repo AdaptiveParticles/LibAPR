@@ -107,7 +107,7 @@ int main(int argc, char **argv) {
 
     BenchHelper::benchmark_settings bs;
 
-    bs.sig = 3;
+    bs.sig = 2;
 
     benchHelper.set_up_benchmark_defaults(syn_image,bs);
 
@@ -140,18 +140,19 @@ int main(int argc, char **argv) {
 
     std::vector<int> image_size;
 
-    image_size = {100};
+    image_size = {200};
 
-    float ratio = 5;
+    float ratio = options.CR;
+    bs.N_repeats = options.number_reps;
 
     int N_par = (int)image_size.size(); // this many different parameter values to be run
 
     APRTimer b_timer;
     b_timer.verbose_flag = true;
 
-    for (int j = 0;j < N_par;j++){
+    APRBenchmark apr_benchmarks;
 
-        MeshData<uint16_t> input_image;
+    for (int j = 0;j < N_par;j++){
 
         /////////////////////////////////////////
         //////////////////////////////////////////
@@ -191,6 +192,35 @@ int main(int argc, char **argv) {
 
             benchHelper.copy_mesh_data_structures(gen_image,input_img);
 
+            APRConverter<uint16_t> apr_converter;
+
+            apr_converter.par.Ip_th = 1030;
+            apr_converter.par.sigma_th = 200;
+            apr_converter.par.sigma_th_max = 100;
+            apr_converter.par.rel_error = 0.1;
+            apr_converter.par.lambda = 1.5;
+
+            apr_converter.fine_grained_timer.verbose_flag = false;
+            apr_converter.method_timer.verbose_flag = false;
+            apr_converter.allocation_timer.verbose_flag = false;
+            apr_converter.computation_timer.verbose_flag = false;
+
+            apr_benchmarks.analysis_data.name = "test_benchmarking";
+
+            apr_benchmarks.analysis_data.file_name = "test";
+
+            TiffUtils::saveMeshAsTiff("/Users/cheesema/PhD/ImageGenData/img.tif", input_img);
+
+            apr_benchmarks.benchmark_dataset_synthetic(apr_converter,input_img);
+
+
+
+
+
+
+
+
+
             af::sync();
             af::deviceGC();
 
@@ -198,6 +228,7 @@ int main(int argc, char **argv) {
         }
     }
 
+    apr_benchmarks.analysis_data.write_analysis_data_hdf5();
     //write the analysis output
 
     return 0;

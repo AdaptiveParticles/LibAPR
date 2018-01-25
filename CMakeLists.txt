@@ -360,6 +360,14 @@ if(BENCHMARKS)
                 benchmarks/development/final_benchmarks/Example_benchmark.cpp
                 benchmarks/development/old_io/write_parts.cpp
                 ${SOURCE_FILES_COMPILED}
+                ${BENCHMARK_SOURCE_FILES}
+                )
+
+        add_executable(CR_benchmarks
+                benchmarks/development/final_benchmarks/CR_benchmarks.cpp
+                benchmarks/development/old_io/write_parts.cpp
+                ${SOURCE_FILES_COMPILED}
+                ${BENCHMARK_SOURCE_FILES}
                 )
 
         add_executable(Example_newstructures
@@ -380,8 +388,11 @@ if(BENCHMARKS)
 
         target_link_libraries(Example_segment_gc ${HDF5_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT} ${TIFF_LIBRARIES} blosc_shared)
 
-        target_link_libraries(Example_benchmark ${HDF5_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT} ${TIFF_LIBRARIES} blosc_shared)
-        target_link_libraries(Example_newstructures ${HDF5_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT} ${TIFF_LIBRARIES} blosc_shared)
+        target_link_libraries(Example_benchmark ${HDF5_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT} ${TIFF_LIBRARIES} blosc_shared ${ArrayFire_OpenCL_LIBRARIES})
+
+        target_link_libraries(CR_benchmarks ${HDF5_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT} ${TIFF_LIBRARIES} blosc_shared ${ArrayFire_OpenCL_LIBRARIES})
+
+        target_link_libraries(Example_newstructures ${HDF5_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT} ${TIFF_LIBRARIES} blosc_shared )
 
         #TARGET_LINK_LIBRARIES(SynImageGen ${ArrayFire_OpenCL_LIBRARIES}
           #      ${OpenCL_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT} ${HDF5_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT} ${TIFF_LIBRARIES} blosc)
