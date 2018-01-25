@@ -3,8 +3,8 @@
  *
  * Implements mesh read/write from/to TIFF files functionality.
  */
-#ifndef TIFF_HPP
-#define TIFF_HPP
+#ifndef TIFF_UTILS_HPP
+#define TIFF_UTILS_HPP
 
 
 #include <string>
@@ -132,12 +132,13 @@ namespace TiffUtils {
                 iFile = nullptr;
             }
         }
+
+        friend std::ostream& operator<<(std::ostream &os, const TiffInfo &obj) {
+            os << obj.toString();
+            return os;
+        }
     };
 
-    std::ostream& operator<<(std::ostream &os, const TiffInfo &obj) {
-        os << obj.toString();
-        return os;
-    }
 
     /**
      * Reads TIFF file to mesh

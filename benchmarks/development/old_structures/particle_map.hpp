@@ -757,7 +757,7 @@ public :
         int temp;
         int i,q;
 
-        std::vector<uint8_t> &topvec = layers[k_max].mesh;
+        auto &topvec = layers[k_max].mesh;
 
         if (k == k_max){
             // k_max loop, has to include

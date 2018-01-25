@@ -93,8 +93,8 @@ namespace {
         // Test reads test tiff file and then saves it in temp directory
         // Then reads it again and compares input file and save file if same
         TiffUtils::TiffInfo t(testFilesDirectory() + "files/tiffTest/2x4x3xfloat.tif");
-        MeshData<float> mesh = TiffUtils::getMesh<float>(t);
         ASSERT_EQ(t.isFileOpened(), true);
+        MeshData<float> mesh = TiffUtils::getMesh<float>(t);
 
         std::string fileName = "/tmp/testAprTiffSave" + std::to_string(time(nullptr)) + ".tif";
         TiffUtils::saveMeshAsTiffUint16(fileName, mesh);

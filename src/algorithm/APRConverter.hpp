@@ -312,7 +312,7 @@ void APRConverter<ImageType>::get_gradient(MeshData<T>& input_img,MeshData<S>& g
 
     APRTimer timer;
 
-    timer.verbose_flag = false;
+    timer.verbose_flag = true;
 
 
     timer.start_timer("offset image");
@@ -379,7 +379,7 @@ void APRConverter<ImageType>::get_gradient(MeshData<T>& input_img,MeshData<S>& g
     }
     timer.stop_timer();
 
-    std::vector<ImageType>().swap(image_temp.mesh);
+//    std::vector<ImageType>().swap(image_temp.mesh);
 
     timer.start_timer("Threshold ");
     threshold_gradient(grad_temp,local_scale_temp,par.Ip_th + bspline_offset);
@@ -449,7 +449,7 @@ void APRConverter<ImageType>::get_local_intensity_scale(MeshData<T>& input_img,M
 
 
     //free up the memory not needed anymore
-    std::vector<float>().swap(local_scale_temp2.mesh);
+//    std::vector<float>().swap(local_scale_temp2.mesh);
 
     //Second spatial average
     calc_sat_mean_y(local_scale_temp,win_y2);

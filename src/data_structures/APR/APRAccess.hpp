@@ -535,11 +535,11 @@ public:
 
         //transfer over data-structure to make the same (re-use of function for read-write)
 
-        std::vector<std::vector<uint8_t>> p_map;
+        std::vector<ArrayWrapper<uint8_t>> p_map;
         p_map.resize(level_max);
 
         for (int k = 0; k < level_max; ++k) {
-            std::swap(p_map[k],layers[k].mesh);
+            p_map[k].swap(layers[k].mesh);
         }
 
         initialize_structure_from_particle_cell_tree(apr, p_map);
@@ -549,7 +549,7 @@ public:
 
 
     template<typename T>
-    void initialize_structure_from_particle_cell_tree(APR<T>& apr,std::vector<std::vector<uint8_t>>& p_map) {
+    void initialize_structure_from_particle_cell_tree(APR<T>& apr,std::vector<ArrayWrapper<uint8_t>>& p_map) {
         //
         //  Initialize the new structure;
         //
