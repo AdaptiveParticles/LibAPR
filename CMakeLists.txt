@@ -265,12 +265,12 @@ add_executable(Example_random_access
         )
 
 
-SWIG_ADD_MODULE(apr java libapr.i
-        benchmarks/development/old_io/write_parts.cpp
-        ${SOURCE_FILES_COMPILED}
-        )
+#SWIG_ADD_MODULE(apr java libapr.i
+#        benchmarks/development/old_io/write_parts.cpp
+#        ${SOURCE_FILES_COMPILED}
+#        )
 
-SWIG_LINK_LIBRARIES(apr ${HDF5_LIBRARIES} blosc_static ${TIFF_LIBRARIES})
+#SWIG_LINK_LIBRARIES(apr ${HDF5_LIBRARIES} blosc_static ${TIFF_LIBRARIES})
 
 #target_link_libraries(pipeline ${HDF5_LIBRARIES} pthread tiff blosc_shared)
 target_link_libraries(Example_get_apr ${HDF5_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT} ${TIFF_LIBRARIES} blosc_shared)
@@ -291,10 +291,10 @@ set_target_properties(blosc_shared PROPERTIES
         RUNTIME_OUTPUT_DIRECTORY_DEBUG ${PROJECT_BINARY_DIR})
 set_target_properties(blosc_shared PROPERTIES
         RUNTIME_OUTPUT_DIRECTORY_RELEASE ${PROJECT_BINARY_DIR})
-set_target_properties(apr PROPERTIES
-	RUNTIME_OUTPUT_DIRECTORY_DEBUG ${PROJECT_BINARY_DIR})
-set_target_properties(apr PROPERTIES
-	RUNTIME_OUTPUT_DIRECTORY_RELEASE ${PROJECT_BINARY_DIR})
+#set_target_properties(apr PROPERTIES
+#	RUNTIME_OUTPUT_DIRECTORY_DEBUG ${PROJECT_BINARY_DIR})
+#set_target_properties(apr PROPERTIES
+#	RUNTIME_OUTPUT_DIRECTORY_RELEASE ${PROJECT_BINARY_DIR})
 
 list( APPEND ExternalSharedLibraries "${TIFF_LIBRARIES}" )
 message( STATUS "\tCopying shared libraries..." )

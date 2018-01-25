@@ -15,11 +15,11 @@ Particle_map<float> CreateKFromFilesTest::create_k(std::string grad_path,
                                                    std::string output_path){
 
     MeshData<uint16_t > grad_int;
-    MeshData<float> var, grad;
+    MeshData<float> var;
 
     load_image_tiff(grad_int, grad_path);
 
-    grad = grad_int.to_type<float>();
+    MeshData<float> grad = grad_int.to_type<float>();
 
     p_rep = Part_rep(grad.y_num, grad.x_num, grad.z_num);
     p_rep.pars.dy = 1;

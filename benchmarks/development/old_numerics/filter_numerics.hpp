@@ -1060,7 +1060,7 @@ MeshData<U> pixel_filter_full(MeshData<V>& input_data,std::vector<U>& filter,flo
 
 }
 template<typename U,typename V>
-MeshData<U> pixel_filter_full_mult(MeshData<V> input_data,std::vector<U> filter_y,std::vector<U> filter_x,std::vector<U> filter_z,float num_repeats,AnalysisData& analysis_data){
+MeshData<U> pixel_filter_full_mult(const MeshData<V> &input_data,std::vector<U> filter_y,std::vector<U> filter_x,std::vector<U> filter_z,float num_repeats,AnalysisData& analysis_data){
     //
     //  Compute two, comparitive filters for speed. Original size img, and current particle size comparison
     //
@@ -2858,39 +2858,32 @@ MeshData<float> compute_grad(MeshData<T> gt_image,std::vector<float> delta = {1,
     gt_image_f.initialize(gt_image.y_num,gt_image.x_num,gt_image.z_num,0);
     std::copy(gt_image.mesh.begin(),gt_image.mesh.end(),gt_image_f.mesh.begin());
 
-    MeshData<float> gt_output;
-
     MeshData<float> temp;
     temp.initialize(gt_image.y_num,gt_image.x_num,gt_image.z_num,0);
 
     //first y direction
-    gt_output =  pixel_filter_full_mult(gt_image_f,filter_y,filter_b,filter_b,num_repeats,analysis_data);
-
-    for (int k = 0; k < gt_output.mesh.size(); ++k) {
-        temp.mesh[k] += pow(gt_output.mesh[k],2);
+    MeshData<float> gt_outputY =  pixel_filter_full_mult(gt_image_f,filter_y,filter_b,filter_b,num_repeats,analysis_data);
+    for (int k = 0; k < gt_outputY.mesh.size(); ++k) {
+        temp.mesh[k] += pow(gt_outputY.mesh[k],2);
     }
 
     //first x direction
-    gt_output =  pixel_filter_full_mult(gt_image_f,filter_b,filter_x,filter_b,num_repeats,analysis_data);
-
-    //std::transform (temp.mesh.begin(), temp.mesh.end(), gt_output.mesh.begin(), gt_output.mesh.begin(), std::plus<float>());
-
-    for (int k = 0; k < gt_output.mesh.size(); ++k) {
-        temp.mesh[k] += pow(gt_output.mesh[k],2);
+    MeshData<float> gt_outputX =  pixel_filter_full_mult(gt_image_f,filter_b,filter_x,filter_b,num_repeats,analysis_data);
+    for (int k = 0; k < gt_outputX.mesh.size(); ++k) {
+        temp.mesh[k] += pow(gt_outputX.mesh[k],2);
     }
 
     //first z direction
-    gt_output =  pixel_filter_full_mult(gt_image_f,filter_b,filter_b,filter_z,num_repeats,analysis_data);
-
-    for (int k = 0; k < gt_output.mesh.size(); ++k) {
-        temp.mesh[k] += pow(gt_output.mesh[k],2);
+    MeshData<float> gt_outputZ =  pixel_filter_full_mult(gt_image_f,filter_b,filter_b,filter_z,num_repeats,analysis_data);
+    for (int k = 0; k < gt_outputZ.mesh.size(); ++k) {
+        temp.mesh[k] += pow(gt_outputZ.mesh[k],2);
     }
 
-    for (int k = 0; k < gt_output.mesh.size(); ++k) {
-        gt_output.mesh[k] = sqrt(temp.mesh[k]);
+    for (int k = 0; k < gt_outputZ.mesh.size(); ++k) {
+        gt_outputZ.mesh[k] = sqrt(temp.mesh[k]);
     }
 
-    return gt_output;
+    return gt_outputZ;
 
 
 }

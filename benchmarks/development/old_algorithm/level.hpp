@@ -122,7 +122,7 @@ void get_level_3D(MeshData<T> &var, MeshData<T> &grad_input, Part_rep &p_rep, Pa
         //for those value of level k, add to the hash table
         part_map.fill(k_,test_a_ds);
         //assign the previous mesh to now be resampled.
-        std::swap(grad, test_a_ds);
+        grad.swap(test_a_ds);
 
     }
 

@@ -1157,7 +1157,7 @@ public:
     }
 
 
-    void create_partcell_structure(std::vector<std::vector<uint8_t>>& p_map){
+    void create_partcell_structure(std::vector<ArrayWrapper<uint8_t>>& p_map){
         //
         //  Bevan Cheeseman 2017
         //
@@ -1559,11 +1559,11 @@ public:
 
         //transfer over data-structure to make the same (re-use of function for read-write)
 
-        std::vector<std::vector<uint8_t>> p_map;
+        std::vector<ArrayWrapper<uint8_t>> p_map;
         p_map.resize((*this).depth_max);
 
         for (int k = 0; k < (*this).depth_max; ++k) {
-            std::swap(p_map[k],layers[k].mesh);
+            p_map[k].swap(layers[k].mesh);
         }
 
         (*this).create_partcell_structure(p_map);

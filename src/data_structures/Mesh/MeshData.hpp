@@ -15,10 +15,10 @@
 
 #include <vector>
 #include <cmath>
+#include <memory>
 
 #include "benchmarks/development/old_structures/structure_parts.h"
 #include <tiffio.h>
-
 
 struct coords3d {
     int x,y,z;
@@ -70,6 +70,50 @@ struct coords3d {
 
 };
 
+template <typename T>
+class ArrayWrapper
+{
+public:
+    ArrayWrapper() : iArray(nullptr), iNumOfElements(-1) {}
+    ArrayWrapper(ArrayWrapper &&aObj) {
+        iArray = aObj.iArray; aObj.iArray = nullptr;
+        iNumOfElements = aObj.iNumOfElements; aObj.iNumOfElements = -1;
+    }
+
+    inline void set(T *aInputArray, size_t aNumOfElements) {iArray = aInputArray; iNumOfElements = aNumOfElements;}
+
+    inline T* begin() { return (iArray); }
+    inline T* end() { return (iArray + iNumOfElements); }
+    inline const T* begin() const { return (iArray); }
+    inline const T* end() const { return (iArray + iNumOfElements); }
+
+
+    inline T& operator[](size_t idx) { return iArray[idx]; }
+    inline const T& operator[](size_t idx) const { return iArray[idx]; }
+    inline size_t size() const { return iNumOfElements; }
+    inline size_t capacity() const { return iNumOfElements; }
+
+    inline T* get() {return iArray;}
+    inline const T* get() const {return iArray;}
+
+    inline void swap(ArrayWrapper<T> &aObj) {
+        std::swap(iNumOfElements, aObj.iNumOfElements);
+        std::swap(iArray, aObj.iArray);
+    }
+
+    inline void move(ArrayWrapper<T> &aObj) {
+        iArray = aObj.iArray; aObj.iArray = nullptr;
+        iNumOfElements = aObj.iNumOfElements; aObj.iNumOfElements = -1;
+    }
+
+private:
+    ArrayWrapper(const ArrayWrapper&) = delete; // make it noncopyable
+    ArrayWrapper& operator=(const ArrayWrapper&) = delete; // make it not assignable
+
+    T *iArray;
+    size_t iNumOfElements;
+};
+
 
 /**
  * Provides implementation for 3D mesh with elements of given type.
@@ -82,7 +126,8 @@ public :
     int y_num;
     int x_num;
     int z_num;
-    std::vector<T> mesh;
+    std::unique_ptr<T[]> meshMemory;
+    ArrayWrapper<T> mesh;
 
     /**
      * Constructor - initialize mesh with size of 0,0,0
@@ -98,13 +143,25 @@ public :
     MeshData(int aSizeOfY, int aSizeOfX, int aSizeOfZ) { initialize(aSizeOfY, aSizeOfX, aSizeOfZ); }
 
     /**
+     * Move constructor
+     * @param aObj mesh to be moved
+     */
+    MeshData(MeshData &&aObj) {
+        x_num = aObj.x_num;
+        y_num = aObj.y_num;
+        z_num = aObj.z_num;
+        mesh.move(aObj.mesh);
+        meshMemory = std::move(aObj.meshMemory);
+    }
+
+    /**
      * Constructor - initialize mesh with other mesh (data are copied and casted if needed).
      * @param aMesh input mesh
      */
     template<typename U>
-    MeshData(const MeshData<U> aMesh) {
+    MeshData(const MeshData<U> &aMesh, bool aShouldCopyData) {
         initialize(aMesh.y_num, aMesh.x_num, aMesh.z_num);
-        std::copy(aMesh.mesh.begin(), aMesh.mesh.end(), mesh.begin());
+        if (aShouldCopyData) std::copy(aMesh.mesh.begin(), aMesh.mesh.end(), mesh.begin());
     }
 
     /**
@@ -161,12 +218,10 @@ public :
         aNumberOfBlocks = std::min((unsigned int)z_num, aNumberOfBlocks);
         unsigned int numOfElementsPerBlock = z_num/aNumberOfBlocks;
 
-        unsigned int blockNum;
-
         #ifdef HAVE_OPENMP
-	#pragma omp parallel for private(blockNum)  schedule(static)
-#endif
-        for (blockNum = 0; blockNum < aNumberOfBlocks; ++blockNum) {
+	    #pragma omp parallel for schedule(static)
+        #endif
+        for (unsigned int blockNum = 0; blockNum < aNumberOfBlocks; ++blockNum) {
             const size_t elementSize = (size_t)x_num * y_num;
             const size_t blockSize = numOfElementsPerBlock * elementSize;
             size_t offsetBegin = blockNum * blockSize;
@@ -193,7 +248,21 @@ public :
         x_num = aSizeOfX;
         z_num = aSizeOfZ;
         size_t size = (size_t)y_num * x_num * z_num;
-        mesh.resize(size, aInitVal);
+        meshMemory.reset(new T[size]);
+        T *array = meshMemory.get();
+        mesh.set(array, size);
+
+        // Fill values of new buffer in parallel
+        // TODO: set dynamicaly number of threads
+        #pragma omp parallel num_threads(4)
+        {
+            auto threadNum = omp_get_thread_num();
+            auto numOfThreads = omp_get_num_threads();
+            auto chunkSize = size / numOfThreads;
+            auto begin = array + chunkSize * threadNum;
+            auto end = (threadNum == numOfThreads - 1) ? array + size : begin + chunkSize;
+            std::fill(begin, end, aInitVal);
+        }
     }
 
     /**
@@ -203,7 +272,7 @@ public :
      * @param aInputMesh
      */
     template<typename S>
-    void initialize(MeshData<S>& aInputMesh) {
+    void initialize(const MeshData<S>& aInputMesh) {
         initialize(aInputMesh.y_num, aInputMesh.x_num, aInputMesh.z_num, 0);
     }
 
@@ -218,17 +287,8 @@ public :
         x_num = aSizeOfX;
         z_num = aSizeOfZ;
         size_t size = (size_t)y_num * x_num * z_num;
-        mesh.resize(size);
-    }
-
-    void reserve(int aSizeOfY, int aSizeOfX, int aSizeOfZ) {
-        y_num = aSizeOfY;
-        x_num = aSizeOfX;
-        z_num = aSizeOfZ;
-        size_t size = (size_t)y_num * x_num * z_num;
-        std::cout << "Wanted size: " << size << std::endl;
-        mesh.reserve(size);
-        std::cout << "Reserved" << std::endl;
+        meshMemory.reset(new T[size]);
+        mesh.set(meshMemory.get(), size);
     }
 
     /**
@@ -247,7 +307,34 @@ public :
         initialize(y_num_ds, x_num_ds, z_num_ds, aInitVal);
     }
 
+    /**
+     * Swaps data of meshes this <-> aObj
+     * @param aObj
+     */
+    void swap(MeshData &aObj) {
+        std::swap(x_num, aObj.x_num);
+        std::swap(y_num, aObj.y_num);
+        std::swap(z_num, aObj.z_num);
+        meshMemory.swap(aObj.meshMemory);
+        mesh.swap(aObj.mesh);
+    }
+
+    /**
+     * Moves data of aObj mesh to this
+     * @param aObj
+     */
+    void move(MeshData &&aObj) {
+        x_num = aObj.x_num;
+        y_num = aObj.y_num;
+        z_num = aObj.z_num;
+        mesh.move(aObj.mesh);
+        meshMemory = std::move(aObj.meshMemory);
+    }
+
 private:
+
+    MeshData(const MeshData&) = delete; // make it noncopyable
+    MeshData& operator=(const MeshData&) = delete; // make it not assignable
 
     //REMOVE_FLAG
     void write_image_tiff(std::string& filename);
@@ -451,6 +538,21 @@ void MeshData<T>::write_image_tiff(std::vector<V>& data,std::string& filename){
 
 }
 
+template<typename T>
+void MeshData<T>::write_image_tiff_uint16(std::string& filename){
+    //
+    //  Converts the data to uint16t then writes it (requires creation of a complete copy of the data)
+    //
+
+    std::vector<uint16_t> data;
+    data.resize(this->y_num*this->x_num*this->z_num);
+
+    std::copy(this->mesh.begin(),this->mesh.end(),data.begin());
+
+    MeshData::write_image_tiff<uint16_t>(data, filename);
+
+}
+
 template<typename T, typename S,typename L1, typename L2>
 void down_sample(MeshData<T>& test_a, MeshData<S>& test_a_ds, L1 reduce, L2 constant_operator,
                  bool with_allocation = false);
@@ -468,27 +570,10 @@ void down_sample_overflow_proct(MeshData<T>& test_a, MeshData<S>& test_a_ds, L1 
                                 bool with_allocation = false );
 
 template<typename T>
-void MeshData<T>::write_image_tiff_uint16(std::string& filename){
-    //
-    //  Converts the data to uint16t then writes it (requires creation of a complete copy of the data)
-    //
-
-    std::vector<uint16_t> data;
-    data.resize(this->y_num*this->x_num*this->z_num);
-
-    std::copy(this->mesh.begin(),this->mesh.end(),data.begin());
-
-    MeshData::write_image_tiff<uint16_t>(data, filename);
-
-}
-
-
-
-template<typename T>
 void downsample_pyrmaid(MeshData<T> &original_image,std::vector<MeshData<T>>& downsampled,unsigned int l_max, unsigned int l_min)
 {
     downsampled.resize(l_max+2);
-    downsampled.back() = std::move(original_image);
+    downsampled.back().swap(original_image);
 
     auto sum = [](float x, float y) { return x+y; };
     auto divide_by_8 = [](float x) { return x * (1.0/8.0); };
