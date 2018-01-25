@@ -821,11 +821,22 @@ void ComputeGradient::bspline_filt_rec_x(MeshData<T>& image,float lambda,float t
 	#pragma omp simd
 #endif
             for (k = y_num - 1; k >= 0; k--) {
-                image.mesh[index + k] = image.mesh[index + k] + b1*temp_vec1[k]+  b2*temp_vec2[k];
+                temp_vec2[k] = image.mesh[index + k] + b1*temp_vec1[k]+  b2*temp_vec2[k];
             }
 
+
             std::swap(temp_vec1, temp_vec2);
-            std::copy(image.mesh.begin() + index, image.mesh.begin() + index + y_num, temp_vec1.begin());
+
+            std::copy(temp_vec2.begin(), temp_vec2.begin() + y_num, image.mesh.begin() + index);
+
+
+//            for (k = y_num - 1; k >= 0; k--) {
+//                image.mesh[index + k] = image.mesh[index + k] + b1*temp_vec1[k]+  b2*temp_vec2[k];
+//            }
+
+//
+//            std::swap(temp_vec1, temp_vec2);
+//            std::copy(image.mesh.begin() + index, image.mesh.begin() + index + y_num, temp_vec1.begin());
 
         }
 
@@ -850,13 +861,15 @@ void ComputeGradient::bspline_filt_rec_x(MeshData<T>& image,float lambda,float t
 
             index = jxnumynum + i*y_num;
 
+            float temp;
+
 #ifdef HAVE_OPENMP
 	#pragma omp simd
 #endif
             for (k = y_num - 1; k >= 0; k--){
                 image.mesh[index + k] = (image.mesh[index + k] + b1*temp_vec3[ k]+  b2*temp_vec4[ k])*norm_factor;
                 temp_vec4[k] = temp_vec3[k];
-                temp_vec3[k] = image.mesh[index + k]*(1/norm_factor);
+                temp_vec3[k] = image.mesh[index + k]*(1.0/norm_factor);
                 //image.mesh[index + k] *= norm_factor;
             }
 
@@ -1042,12 +1055,7 @@ void ComputeGradient::get_smooth_bspline_3D(MeshData<T>& input,APRParameters& pa
 
     spline_timer.stop_timer();
 
-    spline_timer.start_timer("bspline_filt_rec_z");
-
-    //Z direction bspline
-    bspline_filt_rec_z(input,lambda,tol);
-
-    spline_timer.stop_timer();
+    debug_write(input,"y");
 
     spline_timer.start_timer("bspline_filt_rec_x");
 
@@ -1055,6 +1063,18 @@ void ComputeGradient::get_smooth_bspline_3D(MeshData<T>& input,APRParameters& pa
     bspline_filt_rec_x(input,lambda,tol);
 
     spline_timer.stop_timer();
+    debug_write(input,"x");
+
+    spline_timer.start_timer("bspline_filt_rec_z");
+
+    //Z direction bspline
+    bspline_filt_rec_z(input,lambda,tol);
+
+    spline_timer.stop_timer();
+
+    debug_write(input,"z");
+
+
 
 }
 
