@@ -181,15 +181,22 @@ void APRBenchmark::benchmark_dataset(APRConverter<ImageType>& apr_converter){
     APR<uint16_t> apr;
 
     std::string name = apr_converter.par.input_image_name;
+    name.erase(name.end()-4,name.end());
 
     APRTimer timer;
 
-    TiffUtils::TiffInfo inputTiff(apr_converter.par.input_dir + apr_converter.par.input_image_name);
-    MeshData<uint16_t> input_image = TiffUtils::getMesh<uint16_t>(inputTiff);
-
     apr_converter.total_timer.verbose_flag = true;
 
-    apr_converter.get_apr_method(apr, input_image);
+    apr_converter.get_apr(apr);
+
+    MeshData<uint16_t> level;
+
+    apr.interp_depth_ds(level);
+
+    std::string output_path = apr_converter.par.input_dir + name + "_level.tif";
+    //write output as tiff
+    TiffUtils::saveMeshAsTiff(output_path, level);
+
 
     float num_repeats = 10;
 
@@ -363,8 +370,8 @@ float APRBenchmark::apr_linear_neighbour_access(APR<U> apr,float num_repeats){
     float elapsed_seconds = timer.t2 - timer.t1;
     float time = elapsed_seconds/num_repeats;
 
-    std::cout << "APR Linear Neigh: " << (apr.total_number_particles()) << " took: " << time << std::endl;
-    std::cout << "per 1000000 particles took: " << (time)/((1.0*apr.total_number_particles())/1000000.0) << std::endl;
+//    std::cout << "APR Linear Neigh: " << (apr.total_number_particles()) << " took: " << time << std::endl;
+//    std::cout << "per 1000000 particles took: " << (time)/((1.0*apr.total_number_particles())/1000000.0) << std::endl;
 
     analysis_data.add_float_data("neigh_apr_linear_total",time);
     analysis_data.add_float_data("neigh_apr_linear_perm",(time)/((1.0*apr.total_number_particles())/1000000.0));
@@ -442,8 +449,8 @@ float APRBenchmark::pixels_linear_neighbour_access(uint64_t y_num,uint64_t x_num
     float elapsed_seconds = timer.t2 - timer.t1;
     float time = elapsed_seconds/num_repeats;
 
-    std::cout << "Pixel Linear Neigh: " << (x_num*y_num*z_num) << " took: " << time << std::endl;
-    std::cout << "per 1000000 pixel took: " << (time)/((1.0*x_num*y_num*z_num)/1000000.0) << std::endl;
+//    std::cout << "Pixel Linear Neigh: " << (x_num*y_num*z_num) << " took: " << time << std::endl;
+//    std::cout << "per 1000000 pixel took: " << (time)/((1.0*x_num*y_num*z_num)/1000000.0) << std::endl;
 
     analysis_data.add_float_data("neigh_pixel_linear_total",time);
     analysis_data.add_float_data("neigh_pixel_linear_perm",(time)/((1.0*x_num*y_num*z_num)/1000000.0));
@@ -540,8 +547,8 @@ float APRBenchmark::pixel_neighbour_random(uint64_t y_num, uint64_t x_num, uint6
 
     float est_full_time = (time)*(1.0*x_num*y_num*z_num)/num_repeats;
 
-    std::cout << "Random Access Pixel: Size: " << num_repeats << " took: " << (est_full_time) << std::endl;
-    std::cout << "per 1000000 pixel took: " << (time*1000000.0)/((1.0*num_repeats)) << std::endl;
+//    std::cout << "Random Access Pixel: Size: " << num_repeats << " took: " << (est_full_time) << std::endl;
+//    std::cout << "per 1000000 pixel took: " << (time*1000000.0)/((1.0*num_repeats)) << std::endl;
 
     analysis_data.add_float_data("random_access_pixel_neigh_total",est_full_time);
     analysis_data.add_float_data("random_access_pixel_neigh_perm",(time*1000000.0)/((1.0*num_repeats)));
@@ -658,8 +665,8 @@ float APRBenchmark::apr_random_access(APR<U>& apr, float num_repeats){
 
     float est_full_time = (time)*(1.0*apr.total_number_particles())/num_repeats;
 
-    std::cout << "Random Access Particle TOTAL : " << num_repeats << " took: " << (est_full_time) << std::endl;
-    std::cout << "per 1000000 Particles took: " << (time*1000000.0)/((1.0*num_repeats)) << std::endl;
+//    std::cout << "Random Access Particle TOTAL : " << num_repeats << " took: " << (est_full_time) << std::endl;
+//    std::cout << "per 1000000 Particles took: " << (time*1000000.0)/((1.0*num_repeats)) << std::endl;
 
     analysis_data.add_float_data("random_access_apr_neigh_total",est_full_time);
     analysis_data.add_float_data("random_access_apr_neigh_perm",(time*1000000.0)/((1.0*num_repeats)));

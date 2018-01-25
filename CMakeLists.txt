@@ -370,6 +370,13 @@ if(BENCHMARKS)
                 ${BENCHMARK_SOURCE_FILES}
                 )
 
+        add_executable(Benchmark_real_datasets
+                benchmarks/development/final_benchmarks/Benchmark_real_datasets.cpp
+                benchmarks/development/old_io/write_parts.cpp
+                ${SOURCE_FILES_COMPILED}
+                ${BENCHMARK_SOURCE_FILES}
+                )
+
         add_executable(Example_newstructures
                 benchmarks/development/Example_newstructures.cpp
                 benchmarks/development/old_io/write_parts.cpp
@@ -391,6 +398,8 @@ if(BENCHMARKS)
         target_link_libraries(Example_benchmark ${HDF5_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT} ${TIFF_LIBRARIES} blosc_shared ${ArrayFire_OpenCL_LIBRARIES} ${OpenCL_LIBRARIES})
 
         target_link_libraries(CR_benchmarks ${HDF5_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT} ${TIFF_LIBRARIES} blosc_shared ${ArrayFire_OpenCL_LIBRARIES} ${OpenCL_LIBRARIES})
+
+        target_link_libraries(Benchmark_real_datasets ${HDF5_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT} ${TIFF_LIBRARIES} blosc_shared ${ArrayFire_OpenCL_LIBRARIES} ${OpenCL_LIBRARIES})
 
         target_link_libraries(Example_newstructures ${HDF5_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT} ${TIFF_LIBRARIES} blosc_shared )
 

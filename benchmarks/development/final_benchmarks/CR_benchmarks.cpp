@@ -226,6 +226,7 @@ int main(int argc, char **argv) {
             apr_converter.par.sigma_th_max = 250;
             apr_converter.par.rel_error = 0.1;
             apr_converter.par.lambda = 3;
+            apr_converter.par.background_intensity_estimate = 950;
 
             apr_converter.par.input_dir = options.directory;
             apr_converter.par.input_image_name = "cr_" + std::to_string(j) + "_" + std::to_string(i) ;
@@ -237,8 +238,6 @@ int main(int argc, char **argv) {
             apr_converter.total_timer.verbose_flag = true;
 
             apr_benchmarks.analysis_data.name = "cr_final_benchmarking";
-
-
 
             apr_benchmarks.benchmark_dataset_synthetic(apr_converter,input_img);
 

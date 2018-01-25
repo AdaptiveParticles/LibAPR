@@ -5,15 +5,28 @@
 #ifndef PARTPLAY_BENCHHELPER_HPP
 #define PARTPLAY_BENCHHELPER_HPP
 
+#include <arrayfire.h>
+#include "MeshDataAF.h"
+#include "src/data_structures/Mesh/MeshData.hpp"
+
 #include <string>
-#include <math.h>
+#include <cmath>
 #include <SynImageClasses.hpp>
 #include <benchmarks/development/old_io/parameters.h>
 
+#include <cstdio>
+#include <dirent.h>
+#include <iostream>
+#include <fstream>
 
 class BenchHelper {
 
 public:
+
+    inline bool check_file_exists(const std::string& name) {
+        std::ifstream f(name.c_str());
+        return f.good();
+    }
 
     struct benchmark_settings{
         //benchmark settings and defaults
@@ -288,6 +301,46 @@ public:
         }
 
     };
+
+    std::vector<std::string> listFiles(const std::string& path,const std::string& extenstion)
+    {
+        //
+        //  Bevan Cheeseman 2017, adapted from Stack overflow code
+        //
+        //  For a particular folder, finds files with a certain string in their name and returns as a vector of strings, I don't think this will work on Windows.
+        //
+
+
+        DIR* dirFile = opendir( path.c_str() );
+
+        std::vector<std::string> file_list;
+
+        if ( dirFile )
+        {
+            struct dirent* hFile;
+            errno = 0;
+            while (( hFile = readdir( dirFile )) != NULL )
+            {
+                if ( !strcmp( hFile->d_name, "."  )) continue;
+                if ( !strcmp( hFile->d_name, ".." )) continue;
+
+                // in linux hidden files all start with '.'
+                //if ( gIgnoreHidden && ( hFile->d_name[0] == '.' )) continue;
+
+                // dirFile.name is the name of the file. Do whatever string comparison
+                // you want here. Something like:
+                if ( strstr( hFile->d_name, extenstion.c_str() )) {
+                    printf(" found a .tiff file: %s", hFile->d_name);
+                    std::cout << std::endl;
+                    file_list.push_back(hFile->d_name);
+                }
+
+            }
+            closedir( dirFile );
+        }
+
+        return file_list;
+    }
 };
 
 
