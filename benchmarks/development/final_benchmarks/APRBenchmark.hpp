@@ -155,6 +155,7 @@ void APRBenchmark::benchmark_dataset(APRConverter<ImageType>& apr_converter){
 
     float memory_reduction_neighbour_access = memory_cost_neighbour_pixels/memory_cost_neighbour_apr;
 
+
     float MCR_normal = total_image_size/apr_direct_in_mb;
 
     float MCR_predict = total_image_size/apr_predict_in_mb;
@@ -483,7 +484,6 @@ float APRBenchmark::apr_random_access(APR<U>& apr, float num_repeats){
 #pragma omp parallel for schedule(static) private(number) firstprivate(apr_iterator, neighbour_iterator,random_particle_cell)
 #endif
     for(number = 0;number < num_r;number++){
-
 
         random_particle_cell.x = x_random[number];
         random_particle_cell.y = y_random[number];
