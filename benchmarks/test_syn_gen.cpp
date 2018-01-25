@@ -169,7 +169,7 @@ int main() {
     output_img.y_num = test_gen_image.y_num;
     output_img.z_num = test_gen_image.z_num;
 
-    output_img.mesh = test_gen_image.mesh;
+    //output_img.mesh = test_gen_image.mesh;
 
     debug_write(output_img,"gen_image");
 

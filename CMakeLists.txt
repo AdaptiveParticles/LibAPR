@@ -118,7 +118,7 @@ if (CMAKE_CXX_COMPILER_ID MATCHES "Clang")
 
     if(CMAKE_BUILD_TYPE MATCHES "Release")
         MESSAGE(STATUS "RELEASE BUILD")
-        set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS} -std=c++14 -O3 -ffast-math -Rpass=loop-vectorize")
+        set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS} -std=c++14 -O3 -ffast-math")
     endif()
 
     if(CMAKE_BUILD_TYPE MATCHES "Debug")
@@ -234,18 +234,6 @@ add_executable(Example_produce_paraview_file
         ${SOURCE_FILES_COMPILED}
         )
 
-add_executable(Example_benchmark
-        benchmarks/development/final_benchmarks/Example_benchmark.cpp
-        benchmarks/development/old_io/write_parts.cpp
-        ${SOURCE_FILES_COMPILED}
-        )
-
-add_executable(Example_newstructures
-        benchmarks/development/Example_newstructures.cpp
-        benchmarks/development/old_io/write_parts.cpp
-        ${SOURCE_FILES_COMPILED}
-        )
-
 add_executable(Example_apr_neighbour_access
         test/Examples/Example_apr_neighbour_access.cpp
         benchmarks/development/old_io/write_parts.cpp
@@ -281,8 +269,8 @@ target_link_libraries(Example_apr_neighbour_access ${HDF5_LIBRARIES} ${CMAKE_THR
 target_link_libraries(Example_produce_paraview_file ${HDF5_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT} ${TIFF_LIBRARIES} blosc_shared)
 
 target_link_libraries(Example_compress ${HDF5_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT} ${TIFF_LIBRARIES} blosc_shared)
-target_link_libraries(Example_benchmark ${HDF5_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT} ${TIFF_LIBRARIES} blosc_shared)
-target_link_libraries(Example_newstructures ${HDF5_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT} ${TIFF_LIBRARIES} blosc_shared)
+
+
 target_link_libraries(Example_compute_gradient ${HDF5_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT} ${TIFF_LIBRARIES} blosc_shared)
 target_link_libraries(Example_random_access ${HDF5_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT} ${TIFF_LIBRARIES} blosc_shared)
 
@@ -341,32 +329,45 @@ if(BENCHMARKS)
     IF(${ArrayFire_OpenCL_FOUND} AND ${OpenCL_FOUND})
         # We need to find OpenCL as transitive linking is disabled on some OSes
         MESSAGE(STATUS "ArrayFire OpenCL backend found.")
-        ADD_EXECUTABLE(SynImageGen benchmarks/test_syn_gen.cpp  ${SOURCE_FILES_COMPILED}  ${BENCHMARK_SOURCE_FILES})
-        ADD_EXECUTABLE(TestBenchmark benchmarks/test_benchmark.cpp  ${SOURCE_FILES_COMPILED} ${BENCHMARK_SOURCE_FILES} )
+        #ADD_EXECUTABLE(SynImageGen benchmarks/test_syn_gen.cpp  ${SOURCE_FILES_COMPILED}  ${BENCHMARK_SOURCE_FILES})
+        #ADD_EXECUTABLE(TestBenchmark benchmarks/test_benchmark.cpp  ${SOURCE_FILES_COMPILED} ${BENCHMARK_SOURCE_FILES} )
 
-        ADD_EXECUTABLE(IncreaseDomain benchmarks/benchmark_increase_domain.cpp  ${SOURCE_FILES_COMPILED} ${BENCHMARK_SOURCE_FILES} )
+        #ADD_EXECUTABLE(IncreaseDomain benchmarks/benchmark_increase_domain.cpp  ${SOURCE_FILES_COMPILED} ${BENCHMARK_SOURCE_FILES} )
 
-        ADD_EXECUTABLE(IncreaseInfo benchmarks/benchmark_increase_info.cpp  ${SOURCE_FILES_COMPILED} ${BENCHMARK_SOURCE_FILES} )
+        #ADD_EXECUTABLE(IncreaseInfo benchmarks/benchmark_increase_info.cpp  ${SOURCE_FILES_COMPILED} ${BENCHMARK_SOURCE_FILES} )
 
-        ADD_EXECUTABLE(IncreaseRelError benchmarks/benchmark_increase_rel_error.cpp  ${SOURCE_FILES_COMPILED} ${BENCHMARK_SOURCE_FILES} )
+        #ADD_EXECUTABLE(IncreaseRelError benchmarks/benchmark_increase_rel_error.cpp  ${SOURCE_FILES_COMPILED} ${BENCHMARK_SOURCE_FILES} )
 
-        ADD_EXECUTABLE(IncreaseZoom benchmarks/benchmark_increase_zoom.cpp  ${SOURCE_FILES_COMPILED} ${BENCHMARK_SOURCE_FILES} )
+        #ADD_EXECUTABLE(IncreaseZoom benchmarks/benchmark_increase_zoom.cpp  ${SOURCE_FILES_COMPILED} ${BENCHMARK_SOURCE_FILES} )
 
-        ADD_EXECUTABLE(IncreaseInfoandDomain benchmarks/increase_info_and_domain.cpp  ${SOURCE_FILES_COMPILED} ${BENCHMARK_SOURCE_FILES} )
+        #ADD_EXECUTABLE(IncreaseInfoandDomain benchmarks/increase_info_and_domain.cpp  ${SOURCE_FILES_COMPILED} ${BENCHMARK_SOURCE_FILES} )
 
-        ADD_EXECUTABLE(RealData benchmarks/benchmark_real_data.cpp  ${SOURCE_FILES_COMPILED} ${BENCHMARK_SOURCE_FILES} )
+        #ADD_EXECUTABLE(RealData benchmarks/benchmark_real_data.cpp  ${SOURCE_FILES_COMPILED} ${BENCHMARK_SOURCE_FILES} )
 
-        ADD_EXECUTABLE(FixRatio benchmarks/benchmark_fix_ratio.cpp  ${SOURCE_FILES_COMPILED} ${BENCHMARK_SOURCE_FILES} )
+        #ADD_EXECUTABLE(FixRatio benchmarks/benchmark_fix_ratio.cpp  ${SOURCE_FILES_COMPILED} ${BENCHMARK_SOURCE_FILES} )
 
-        ADD_EXECUTABLE(GenSingleImage benchmarks/generate_single_image.cpp  ${SOURCE_FILES_COMPILED} ${BENCHMARK_SOURCE_FILES} )
+        #ADD_EXECUTABLE(GenSingleImage benchmarks/generate_single_image.cpp  ${SOURCE_FILES_COMPILED} ${BENCHMARK_SOURCE_FILES} )
 
-        ADD_EXECUTABLE(GenAPRTime benchmarks/Generate_APR_Time.cpp  ${SOURCE_FILES_COMPILED} ${BENCHMARK_SOURCE_FILES} )
+       # ADD_EXECUTABLE(GenAPRTime benchmarks/Generate_APR_Time.cpp  ${SOURCE_FILES_COMPILED} ${BENCHMARK_SOURCE_FILES} )
 
-        ADD_EXECUTABLE(TestLocalScale benchmarks/benchmark_local_scale.cpp  ${SOURCE_FILES_COMPILED} ${BENCHMARK_SOURCE_FILES} )
+        #ADD_EXECUTABLE(TestLocalScale benchmarks/benchmark_local_scale.cpp  ${SOURCE_FILES_COMPILED} ${BENCHMARK_SOURCE_FILES} )
 
-        ADD_EXECUTABLE(GenAnisoImage benchmarks/generate_anisotropic_single.cpp  ${SOURCE_FILES_COMPILED} ${BENCHMARK_SOURCE_FILES} )
+        #ADD_EXECUTABLE(GenAnisoImage benchmarks/generate_anisotropic_single.cpp  ${SOURCE_FILES_COMPILED} ${BENCHMARK_SOURCE_FILES} )
 
-        ADD_EXECUTABLE(BenchAnisoImage benchmarks/benchmark_aniso.cpp  ${SOURCE_FILES_COMPILED} ${BENCHMARK_SOURCE_FILES} )
+        #ADD_EXECUTABLE(BenchAnisoImage benchmarks/benchmark_aniso.cpp  ${SOURCE_FILES_COMPILED} ${BENCHMARK_SOURCE_FILES} )
+
+        add_executable(Example_benchmark
+                benchmarks/development/final_benchmarks/Example_benchmark.cpp
+                benchmarks/development/old_io/write_parts.cpp
+                ${SOURCE_FILES_COMPILED}
+                )
+
+        add_executable(Example_newstructures
+                benchmarks/development/Example_newstructures.cpp
+                benchmarks/development/old_io/write_parts.cpp
+                ${SOURCE_FILES_COMPILED}
+                )
+
 
         add_executable(Example_segment_gc
                 benchmarks/development/segmentation_apr.cpp
@@ -379,56 +380,59 @@ if(BENCHMARKS)
 
         target_link_libraries(Example_segment_gc ${HDF5_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT} ${TIFF_LIBRARIES} blosc_shared)
 
-        TARGET_LINK_LIBRARIES(SynImageGen ${ArrayFire_OpenCL_LIBRARIES}
-                ${OpenCL_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT} ${HDF5_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT} ${TIFF_LIBRARIES} blosc)
-        TARGET_LINK_LIBRARIES(TestBenchmark ${ArrayFire_OpenCL_LIBRARIES}
-                ${OpenCL_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT} ${HDF5_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT} ${TIFF_LIBRARIES} blosc)
+        target_link_libraries(Example_benchmark ${HDF5_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT} ${TIFF_LIBRARIES} blosc_shared)
+        target_link_libraries(Example_newstructures ${HDF5_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT} ${TIFF_LIBRARIES} blosc_shared)
 
-        TARGET_LINK_LIBRARIES(IncreaseDomain ${ArrayFire_OpenCL_LIBRARIES}
-                ${OpenCL_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT} ${HDF5_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT} ${TIFF_LIBRARIES} blosc)
+        #TARGET_LINK_LIBRARIES(SynImageGen ${ArrayFire_OpenCL_LIBRARIES}
+          #      ${OpenCL_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT} ${HDF5_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT} ${TIFF_LIBRARIES} blosc)
+        #TARGET_LINK_LIBRARIES(TestBenchmark ${ArrayFire_OpenCL_LIBRARIES}
+         #       ${OpenCL_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT} ${HDF5_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT} ${TIFF_LIBRARIES} blosc)
 
-        TARGET_LINK_LIBRARIES(IncreaseInfo ${ArrayFire_OpenCL_LIBRARIES}
-                ${OpenCL_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT} ${HDF5_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT} ${TIFF_LIBRARIES} blosc)
+        #TARGET_LINK_LIBRARIES(IncreaseDomain ${ArrayFire_OpenCL_LIBRARIES}
+        #        ${OpenCL_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT} ${HDF5_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT} ${TIFF_LIBRARIES} blosc)
 
-        TARGET_LINK_LIBRARIES(IncreaseRelError ${ArrayFire_OpenCL_LIBRARIES}
-                ${OpenCL_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT} ${HDF5_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT} ${TIFF_LIBRARIES} blosc)
+        #TARGET_LINK_LIBRARIES(IncreaseInfo ${ArrayFire_OpenCL_LIBRARIES}
+         #       ${OpenCL_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT} ${HDF5_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT} ${TIFF_LIBRARIES} blosc)
 
-        TARGET_LINK_LIBRARIES(IncreaseZoom ${ArrayFire_OpenCL_LIBRARIES}
-                ${OpenCL_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT} ${HDF5_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT} ${TIFF_LIBRARIES} blosc)
+        #TARGET_LINK_LIBRARIES(IncreaseRelError ${ArrayFire_OpenCL_LIBRARIES}
+        #        ${OpenCL_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT} ${HDF5_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT} ${TIFF_LIBRARIES} blosc)
 
-        TARGET_LINK_LIBRARIES(IncreaseInfoandDomain ${ArrayFire_OpenCL_LIBRARIES}
-                ${OpenCL_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT} ${HDF5_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT} ${TIFF_LIBRARIES} blosc)
+        #TARGET_LINK_LIBRARIES(IncreaseZoom ${ArrayFire_OpenCL_LIBRARIES}
+        #        ${OpenCL_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT} ${HDF5_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT} ${TIFF_LIBRARIES} blosc)
 
-        TARGET_LINK_LIBRARIES(RealData ${ArrayFire_OpenCL_LIBRARIES}
-                ${OpenCL_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT} ${HDF5_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT} ${TIFF_LIBRARIES} blosc)
+        #TARGET_LINK_LIBRARIES(IncreaseInfoandDomain ${ArrayFire_OpenCL_LIBRARIES}
+        #        ${OpenCL_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT} ${HDF5_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT} ${TIFF_LIBRARIES} blosc)
 
-        TARGET_LINK_LIBRARIES(FixRatio ${ArrayFire_OpenCL_LIBRARIES}
-                ${OpenCL_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT} ${HDF5_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT} ${TIFF_LIBRARIES} blosc)
+        #TARGET_LINK_LIBRARIES(RealData ${ArrayFire_OpenCL_LIBRARIES}
+        #        ${OpenCL_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT} ${HDF5_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT} ${TIFF_LIBRARIES} blosc)
 
-        TARGET_LINK_LIBRARIES(GenSingleImage ${ArrayFire_OpenCL_LIBRARIES}
-                ${OpenCL_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT} ${HDF5_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT} ${TIFF_LIBRARIES} blosc)
+        #TARGET_LINK_LIBRARIES(FixRatio ${ArrayFire_OpenCL_LIBRARIES}
+         #       ${OpenCL_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT} ${HDF5_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT} ${TIFF_LIBRARIES} blosc)
 
-        TARGET_LINK_LIBRARIES(GenAPRTime ${ArrayFire_OpenCL_LIBRARIES}
-                ${OpenCL_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT} ${HDF5_LIBRARIES} pthread tiff blosc)
+        #TARGET_LINK_LIBRARIES(GenSingleImage ${ArrayFire_OpenCL_LIBRARIES}
+         #       ${OpenCL_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT} ${HDF5_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT} ${TIFF_LIBRARIES} blosc)
 
-        TARGET_LINK_LIBRARIES(TestLocalScale ${ArrayFire_OpenCL_LIBRARIES}
-                ${OpenCL_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT} ${HDF5_LIBRARIES} pthread tiff blosc)
+        #TARGET_LINK_LIBRARIES(GenAPRTime ${ArrayFire_OpenCL_LIBRARIES}
+        #        ${OpenCL_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT} ${HDF5_LIBRARIES} pthread tiff blosc)
 
-        TARGET_LINK_LIBRARIES(GenAnisoImage ${ArrayFire_OpenCL_LIBRARIES}
-                ${OpenCL_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT} ${HDF5_LIBRARIES} pthread tiff blosc)
+        #TARGET_LINK_LIBRARIES(TestLocalScale ${ArrayFire_OpenCL_LIBRARIES}
+         #       ${OpenCL_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT} ${HDF5_LIBRARIES} pthread tiff blosc)
 
-        TARGET_LINK_LIBRARIES(BenchAnisoImage ${ArrayFire_OpenCL_LIBRARIES}
-                ${OpenCL_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT} ${HDF5_LIBRARIES} pthread tiff blosc)
+        #TARGET_LINK_LIBRARIES(GenAnisoImage ${ArrayFire_OpenCL_LIBRARIES}
+         #       ${OpenCL_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT} ${HDF5_LIBRARIES} pthread tiff blosc)
 
-        add_executable(Example_analysis
-                ${BENCHMARK_SOURCE_FILES}
-                test/utils.cpp
-                benchmarks/development/old_io/write_parts.cpp
-                ${SOURCE_FILES_COMPILED}
-                benchmarks/development/final_benchmarks/Example_benchmark.cpp)
+        #TARGET_LINK_LIBRARIES(BenchAnisoImage ${ArrayFire_OpenCL_LIBRARIES}
+         #       ${OpenCL_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT} ${HDF5_LIBRARIES} pthread tiff blosc)
 
-        TARGET_LINK_LIBRARIES(Example_analysis ${ArrayFire_OpenCL_LIBRARIES}
-                ${OpenCL_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT} ${HDF5_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT} ${TIFF_LIBRARIES} blosc)
+        #add_executable(Example_analysis
+           #     ${BENCHMARK_SOURCE_FILES}
+           #     test/utils.cpp
+            #    benchmarks/development/old_io/write_parts.cpp
+             #   ${SOURCE_FILES_COMPILED}
+            #    benchmarks/development/final_benchmarks/Example_benchmark.cpp)
+
+        #TARGET_LINK_LIBRARIES(Example_analysis ${ArrayFire_OpenCL_LIBRARIES}
+             #   ${OpenCL_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT} ${HDF5_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT} ${TIFF_LIBRARIES} blosc)
 
     ENDIF()
 
