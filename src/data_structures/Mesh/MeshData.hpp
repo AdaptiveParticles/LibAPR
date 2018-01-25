@@ -15,11 +15,10 @@
 
 #include <vector>
 #include <cmath>
+#include <memory>
 
 #include "benchmarks/development/old_structures/structure_parts.h"
 #include <tiffio.h>
-#include <iterator>
-#include <memory>
 
 struct coords3d {
     int x,y,z;
@@ -71,70 +70,41 @@ struct coords3d {
 
 };
 
-template <class T> class MeshData;
-
 template <typename T>
 class ArrayWrapper
 {
-//    class iterator : public std::iterator<std::random_access_iterator_tag, T>
-//    {
-//        typedef iterator SelfType;
-//    public:
-//        iterator(T *aPointer) : iPosition(aPointer) {}
-//
-//        bool operator==(const iterator& rhs) const {return iPosition == rhs.iPosition;}
-//        bool operator!=(const iterator& rhs) const {return iPosition != rhs.iPosition;}
-//
-//        SelfType operator++(int) {SelfType c = *this; ++iPosition; return c;}
-//        SelfType& operator++() {++iPosition; return *this;}
-//        T& operator*() const { return *iPosition; }
-//        T operator->() const { return iPosition; }
-//
-//        T* operator+(const size_t& aShift) const {return iPosition + aShift;}
-//        size_t operator-(const SelfType& aOther) const {return iPosition - aOther.iPosition;}
-//
-//        ~iterator() { /* nothing to do */ }
-//
-//    private:
-//        T *iPosition;
-//    };
-
 public:
-    ArrayWrapper() {iArray = nullptr; iNumOfElements = -1;}
+    ArrayWrapper() : iArray(nullptr), iNumOfElements(-1) {}
     ArrayWrapper(ArrayWrapper &&aObj) {
-        std::swap(iArray, aObj.iArray);
-        std::swap(iNumOfElements, aObj.iNumOfElements);
+        iArray = aObj.iArray; aObj.iArray = nullptr;
+        iNumOfElements = aObj.iNumOfElements; aObj.iNumOfElements = -1;
     }
-    void set(T *aInputArray, long aNumOfElements) {iArray = aInputArray; iNumOfElements = aNumOfElements;}
 
-//    iterator begin() { return iterator(iArray); }
-//    iterator end() { return iterator(iArray + iNumOfElements); }
-//    const iterator begin() const { return iterator(iArray); }
-//    const iterator end() const { return iterator(iArray + iNumOfElements); }
+    inline void set(T *aInputArray, size_t aNumOfElements) {iArray = aInputArray; iNumOfElements = aNumOfElements;}
 
-    T* begin() { return (iArray); }
-    T* end() { return (iArray + iNumOfElements); }
-    const T* begin() const { return (iArray); }
-    const T* end() const { return (iArray + iNumOfElements); }
+    inline T* begin() { return (iArray); }
+    inline T* end() { return (iArray + iNumOfElements); }
+    inline const T* begin() const { return (iArray); }
+    inline const T* end() const { return (iArray + iNumOfElements); }
 
 
-    T& operator[](size_t idx) { return iArray[idx]; }
-    const T& operator[](size_t idx) const { return iArray[idx]; }
-    size_t size() const { return iNumOfElements; }
-    size_t capacity() const { return iNumOfElements; }
+    inline T& operator[](size_t idx) { return iArray[idx]; }
+    inline const T& operator[](size_t idx) const { return iArray[idx]; }
+    inline size_t size() const { return iNumOfElements; }
+    inline size_t capacity() const { return iNumOfElements; }
 
-    T* get() {return iArray;}
-    const T* get() const {return iArray;}
+    inline T* get() {return iArray;}
+    inline const T* get() const {return iArray;}
 
-    void swap(ArrayWrapper<T> &aObj) {
+    inline void swap(ArrayWrapper<T> &aObj) {
         std::swap(iNumOfElements, aObj.iNumOfElements);
         std::swap(iArray, aObj.iArray);
     }
 
-//    ArrayWrapper(ArrayWrapper &&aObj) {
-//        iArray = aObj.iArray; aObj.iArray = nullptr;
-//        iNumOfElements = aObj.iNumOfElements; aObj.iNumOfElements = -1;
-//    };
+    inline void move(ArrayWrapper<T> &aObj) {
+        iArray = aObj.iArray; aObj.iArray = nullptr;
+        iNumOfElements = aObj.iNumOfElements; aObj.iNumOfElements = -1;
+    }
 
 private:
     ArrayWrapper(const ArrayWrapper&) = delete; // make it noncopyable
@@ -142,8 +112,6 @@ private:
 
     T *iArray;
     size_t iNumOfElements;
-
-    friend MeshData<T>;
 };
 
 
@@ -158,16 +126,9 @@ public :
     int y_num;
     int x_num;
     int z_num;
-    std::unique_ptr<T[]> mesh2;
+    std::unique_ptr<T[]> meshMemory;
     ArrayWrapper<T> mesh;
-//    std::vector<T> mesh;
 
-    void printMesh() const {
-        std::cout << "----- " << *this << std::endl;
-        std::cout << "ptr=" << mesh2.get() << " len=" << mesh.iNumOfElements << " arr=" << mesh.iArray << std::endl;
-        for (size_t i = 0; i < mesh.size(); ++i) std::cout << mesh[i] << " ";
-        std::cout << "\n------------------" << std::endl;
-    }
     /**
      * Constructor - initialize mesh with size of 0,0,0
      */
@@ -189,8 +150,8 @@ public :
         x_num = aObj.x_num;
         y_num = aObj.y_num;
         z_num = aObj.z_num;
-        mesh.swap(aObj.mesh);
-        mesh2.swap(aObj.mesh2);
+        mesh.move(aObj.mesh);
+        meshMemory = std::move(aObj.meshMemory);
     }
 
     /**
@@ -287,11 +248,21 @@ public :
         x_num = aSizeOfX;
         z_num = aSizeOfZ;
         size_t size = (size_t)y_num * x_num * z_num;
-//        mesh.resize(size, aInitVal);
+        meshMemory.reset(new T[size]);
+        T *array = meshMemory.get();
+        mesh.set(array, size);
 
-        mesh2 = std::move(std::make_unique<T[]>(size));
-        std::fill(mesh2.get(), mesh2.get() + size, aInitVal);
-        mesh.set(mesh2.get(), size);
+        // Fill values of new buffer in parallel
+        // TODO: set dynamicaly number of threads
+        #pragma omp parallel num_threads(4)
+        {
+            auto threadNum = omp_get_thread_num();
+            auto numOfThreads = omp_get_num_threads();
+            auto chunkSize = size / numOfThreads;
+            auto begin = array + chunkSize * threadNum;
+            auto end = (threadNum == numOfThreads - 1) ? array + size : begin + chunkSize;
+            std::fill(begin, end, aInitVal);
+        }
     }
 
     /**
@@ -301,7 +272,7 @@ public :
      * @param aInputMesh
      */
     template<typename S>
-    void initialize(MeshData<S>& aInputMesh) {
+    void initialize(const MeshData<S>& aInputMesh) {
         initialize(aInputMesh.y_num, aInputMesh.x_num, aInputMesh.z_num, 0);
     }
 
@@ -316,10 +287,8 @@ public :
         x_num = aSizeOfX;
         z_num = aSizeOfZ;
         size_t size = (size_t)y_num * x_num * z_num;
-//        mesh.resize(size);
-
-        mesh2 = std::move(std::make_unique<T[]>(size));
-        mesh.set(mesh2.get(), size);
+        meshMemory.reset(new T[size]);
+        mesh.set(meshMemory.get(), size);
     }
 
     /**
@@ -346,9 +315,8 @@ public :
         std::swap(x_num, aObj.x_num);
         std::swap(y_num, aObj.y_num);
         std::swap(z_num, aObj.z_num);
-        mesh2.swap(aObj.mesh2);
+        meshMemory.swap(aObj.meshMemory);
         mesh.swap(aObj.mesh);
-//        mesh.swap(aObj.mesh);
     }
 
     /**
@@ -359,8 +327,8 @@ public :
         x_num = aObj.x_num;
         y_num = aObj.y_num;
         z_num = aObj.z_num;
-        mesh.swap(aObj.mesh);
-        mesh2.swap(aObj.mesh2);
+        mesh.move(aObj.mesh);
+        meshMemory = std::move(aObj.meshMemory);
     }
 
 private:

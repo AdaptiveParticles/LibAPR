@@ -312,7 +312,7 @@ void APRConverter<ImageType>::get_gradient(MeshData<T>& input_img,MeshData<S>& g
 
     APRTimer timer;
 
-    timer.verbose_flag = true;
+    timer.verbose_flag = false;
 
 
     timer.start_timer("offset image");
