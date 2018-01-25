@@ -107,7 +107,7 @@ endif(OPENMP_FOUND)
 #set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -qopenmp")
 
 if(CMAKE_COMPILER_IS_GNUCC)
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++14 -O3 -ffast-math -I /usr/include/hdf5/serial/ -Bdynamic -ldl")
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++14 -O3 -ffast-math -I /usr/include/hdf5/serial/ -Bdynamic -ldl ")
    #set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++14 -O1  -I /usr/include/hdf5/serial/ ")
     set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS}")
     set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS} -std=c++14 -O0 -g -I /usr/include/hdf5/serial/")
@@ -118,7 +118,7 @@ if (CMAKE_CXX_COMPILER_ID MATCHES "Clang")
 
     if(CMAKE_BUILD_TYPE MATCHES "Release")
         MESSAGE(STATUS "RELEASE BUILD")
-        set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS} -std=c++14 -O3 -ffast-math -m64")
+        set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS} -std=c++14 -O3 -ffast-math -Rpass=loop-vectorize")
     endif()
 
     if(CMAKE_BUILD_TYPE MATCHES "Debug")
@@ -235,7 +235,7 @@ add_executable(Example_produce_paraview_file
         )
 
 add_executable(Example_benchmark
-        benchmarks/development/Example_benchmark.cpp
+        benchmarks/development/final_benchmarks/Example_benchmark.cpp
         benchmarks/development/old_io/write_parts.cpp
         ${SOURCE_FILES_COMPILED}
         )
@@ -265,12 +265,12 @@ add_executable(Example_random_access
         )
 
 
-SWIG_ADD_MODULE(apr java libapr.i
-        benchmarks/development/old_io/write_parts.cpp
-        ${SOURCE_FILES_COMPILED}
-        )
+#SWIG_ADD_MODULE(apr java libapr.i
+#        benchmarks/development/old_io/write_parts.cpp
+#        ${SOURCE_FILES_COMPILED}
+#        )
 
-SWIG_LINK_LIBRARIES(apr ${HDF5_LIBRARIES} blosc_static ${TIFF_LIBRARIES})
+#SWIG_LINK_LIBRARIES(apr ${HDF5_LIBRARIES} blosc_static ${TIFF_LIBRARIES})
 
 target_link_libraries(Example_get_apr ${HDF5_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT} ${TIFF_LIBRARIES} blosc_shared)
 target_link_libraries(Example_apr_iterate ${HDF5_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT} ${TIFF_LIBRARIES} blosc_shared)
@@ -290,10 +290,10 @@ set_target_properties(blosc_shared PROPERTIES
         RUNTIME_OUTPUT_DIRECTORY_DEBUG ${PROJECT_BINARY_DIR})
 set_target_properties(blosc_shared PROPERTIES
         RUNTIME_OUTPUT_DIRECTORY_RELEASE ${PROJECT_BINARY_DIR})
-set_target_properties(apr PROPERTIES
-	RUNTIME_OUTPUT_DIRECTORY_DEBUG ${PROJECT_BINARY_DIR})
-set_target_properties(apr PROPERTIES
-	RUNTIME_OUTPUT_DIRECTORY_RELEASE ${PROJECT_BINARY_DIR})
+#set_target_properties(apr PROPERTIES
+#	RUNTIME_OUTPUT_DIRECTORY_DEBUG ${PROJECT_BINARY_DIR})
+#set_target_properties(apr PROPERTIES
+#	RUNTIME_OUTPUT_DIRECTORY_RELEASE ${PROJECT_BINARY_DIR})
 
 list( APPEND ExternalSharedLibraries "${TIFF_LIBRARIES}" )
 message( STATUS "\tCopying shared libraries..." )
@@ -425,7 +425,7 @@ if(BENCHMARKS)
                 test/utils.cpp
                 benchmarks/development/old_io/write_parts.cpp
                 ${SOURCE_FILES_COMPILED}
-                benchmarks/development/Example_benchmark.cpp)
+                benchmarks/development/final_benchmarks/Example_benchmark.cpp)
 
         TARGET_LINK_LIBRARIES(Example_analysis ${ArrayFire_OpenCL_LIBRARIES}
                 ${OpenCL_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT} ${HDF5_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT} ${TIFF_LIBRARIES} blosc)

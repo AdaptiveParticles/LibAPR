@@ -92,7 +92,7 @@ void write_apr_partmap_format(Part_rep& p_rep,Particle_map<float>& p_map,Tree<fl
     for(int i = p_map.k_min;i <= (p_map.k_max);i++){
         dims = p_map.layers[i].mesh.size();
         std::string name = "pmap_"+std::to_string(i);
-        hdf5_write_data(obj_id,H5T_NATIVE_UINT8,name.c_str(),rank,&dims, p_map.layers[i].mesh.data());
+        hdf5_write_data(obj_id,H5T_NATIVE_UINT8,name.c_str(),rank,&dims, p_map.layers[i].mesh.get());
     }
     
     

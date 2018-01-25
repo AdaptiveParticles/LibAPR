@@ -19,21 +19,6 @@ TEST_P(CreateImageFromFileTest, VARIANCE_FROMFILE_IMAGE_PARAM){
 #if PROFILING == 0
 
 
-
-TEST_F(CreateImageTest, BSPLINE_EMPTY_IMAGE) {
-    auto uint_grad = create_variance_empty();
-
-    // The result should be a vector of zeros. Below we compute
-    // the vector of unique values
-    auto it = std::unique(uint_grad.mesh.begin(), uint_grad.mesh.end());
-    uint_grad.mesh.resize(std::distance(uint_grad.mesh.begin(), it));
-
-    ASSERT_EQ(uint_grad.mesh.size(), 1);
-
-}
-
-
-
 INSTANTIATE_TEST_CASE_P(BSPLINE_FROMFILE_IMAGE,
                         CreateImageFromFileTest,
                         ::testing::Values(

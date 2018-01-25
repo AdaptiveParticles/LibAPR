@@ -146,7 +146,7 @@ void PullingScheme::pulling_scheme_main()
 }
 
 template<typename T>
-void PullingScheme::fill(float k, MeshData<T>& input)
+void PullingScheme::fill(const float k, MeshData<T>& input)
 {
     //
     //  Bevan Cheeseman 2016
@@ -161,7 +161,7 @@ void PullingScheme::fill(float k, MeshData<T>& input)
     int temp;
     int i,q;
 
-    std::vector<uint8_t> &topvec = particle_cell_tree[l_max].mesh;
+    auto &topvec = particle_cell_tree[l_max].mesh;
 
     if (k == l_max){
         // k_max loop, has to include

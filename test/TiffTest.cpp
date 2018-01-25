@@ -11,7 +11,7 @@ namespace {
     }
 
     TEST(TiffTest, LoadUint8) {
-        const MeshData<uint8_t> &mesh = TiffUtils::getMesh<uint8_t>(testFilesDirectory() + "files/tiffTest/4x3x2x8bit.tif");
+        const MeshData<uint8_t> mesh = TiffUtils::getMesh<uint8_t>(testFilesDirectory() + "files/tiffTest/4x3x2x8bit.tif");
         for (int i = 0; i < 24; ++i) {
             ASSERT_EQ(mesh.mesh[i], i + 1);
         }
@@ -22,9 +22,9 @@ namespace {
         std::cout << t1 << std::endl;
 
         MeshData<uint8_t> meshIn(t1.iImgHeight, t1.iImgWidth, t1.iNumberOfDirectories);
-        const MeshData<uint8_t> &mesh = TiffUtils::getMesh<uint8_t>(t1, meshIn);
+        TiffUtils::getMesh<uint8_t>(t1, meshIn);
         for (int i = 0; i < 24; ++i) {
-            ASSERT_EQ(mesh.mesh[i], i + 1);
+            ASSERT_EQ(meshIn.mesh[i], i + 1);
         }
     }
 
@@ -93,8 +93,8 @@ namespace {
         // Test reads test tiff file and then saves it in temp directory
         // Then reads it again and compares input file and save file if same
         TiffUtils::TiffInfo t(testFilesDirectory() + "files/tiffTest/2x4x3xfloat.tif");
-        MeshData<float> mesh = TiffUtils::getMesh<float>(t);
         ASSERT_EQ(t.isFileOpened(), true);
+        MeshData<float> mesh = TiffUtils::getMesh<float>(t);
 
         std::string fileName = "/tmp/testAprTiffSave" + std::to_string(time(nullptr)) + ".tif";
         TiffUtils::saveMeshAsTiffUint16(fileName, mesh);

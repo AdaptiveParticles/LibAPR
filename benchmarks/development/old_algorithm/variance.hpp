@@ -673,7 +673,7 @@ void get_variance_3D(Part_rep &p_rep, MeshData<T> &input_image, MeshData<T> &var
                 [](T x) { return x * (1.0/8.0); });
 
     // copy constructor
-    MeshData<T> temp = var;
+    MeshData<T> temp{var, true};
 
     Map_calc_cpu calc_map(0,p_rep.pars);
 

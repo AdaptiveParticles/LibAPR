@@ -1810,10 +1810,7 @@ void create_test_dataset_from_hdf5(Particle_map<float>& particle_map,PartCellStr
     particle_map.layers.resize(pc_struct.depth_max+1);
     particle_map.downsampled.resize(pc_struct.depth_max+2);
 
-    particle_map.downsampled[pc_struct.depth_max + 1].x_num = pc_struct.org_dims[1];
-    particle_map.downsampled[pc_struct.depth_max + 1].y_num = pc_struct.org_dims[0];
-    particle_map.downsampled[pc_struct.depth_max + 1].z_num = pc_struct.org_dims[2];
-    particle_map.downsampled[pc_struct.depth_max + 1].mesh.resize(pc_struct.org_dims[1]*pc_struct.org_dims[0]*pc_struct.org_dims[2]);
+    particle_map.downsampled[pc_struct.depth_max + 1].initialize(pc_struct.org_dims[0], pc_struct.org_dims[1], pc_struct.org_dims[2]);
 
     std::cout << "DIM1: " << pc_struct.org_dims[1] << std::endl;
 
@@ -1823,15 +1820,8 @@ void create_test_dataset_from_hdf5(Particle_map<float>& particle_map,PartCellStr
         const unsigned int z_num_ = pc_struct.z_num[i];
         const unsigned int y_num_ = pc_struct.y_num[i];
 
-        particle_map.layers[i].mesh.resize(x_num_*z_num_*y_num_,0);
-        particle_map.layers[i].x_num = x_num_;
-        particle_map.layers[i].y_num = y_num_;
-        particle_map.layers[i].z_num = z_num_;
-
-        particle_map.downsampled[i].x_num = x_num_;
-        particle_map.downsampled[i].y_num = y_num_;
-        particle_map.downsampled[i].z_num = z_num_;
-        particle_map.downsampled[i].mesh.resize(x_num_*z_num_*y_num_,0);
+        particle_map.layers[i].initialize(y_num_, x_num_, z_num_, 0);
+        particle_map.downsampled[i].initialize(y_num_, x_num_, z_num_, 0);
 
         // First create the particle map_inplace
         for(z_ = 0;z_ < z_num_;z_++){

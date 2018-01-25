@@ -48,7 +48,6 @@ template<typename ImageType>
 class APRIterator;
 
 #include "src/data_structures/APR/APR.hpp"
-#include "benchmarks/development/Tree/APRIteratorOld.hpp"
 
 #include "src/data_structures/APR/ExtraParticleData.hpp"
 #include "src/data_structures/APR/ExtraPartCellData.hpp"
@@ -70,12 +69,12 @@ struct YGap {
 };
 
 struct YGap_map {
-    uint16_t y_end = UINT16_MAX;
-    uint64_t global_index_begin = UINT64_MAX;
+    uint16_t y_end;
+    uint64_t global_index_begin;
 };
 
 struct ParticleCellGapMap{
-    std::map<uint16_t,YGap_map> map = std::map<uint16_t, YGap_map>();
+    std::map<uint16_t,YGap_map> map;
 };
 
 struct YIterators{
@@ -85,8 +84,8 @@ struct YIterators{
 
 struct MapIterator{
     std::map<uint16_t,YGap_map>::iterator iterator;
-    uint64_t pc_offset = UINT64_MAX;
-    uint16_t level = UINT16_MAX;
+    uint64_t pc_offset;
+    uint16_t level;
 };
 
 struct LocalMapIterators{
@@ -97,8 +96,8 @@ struct LocalMapIterators{
     LocalMapIterators(){
         //initialize them to be set to pointing to no-where
         MapIterator init;
-        init.pc_offset = UINT64_MAX;
-        init.level = UINT16_MAX;
+        init.pc_offset = -1;
+        init.level = -1;
 
         same_level.resize(6,init);
         parent_level.resize(6,init);
@@ -310,7 +309,7 @@ public:
 
             ParticleCellGapMap& current_pc_map = gap_map.data[part_cell.level][part_cell.pc_offset][0];
 
-            if((map_iterator.pc_offset != part_cell.pc_offset) | (map_iterator.level != part_cell.level) ){
+            if((map_iterator.pc_offset != part_cell.pc_offset) || (map_iterator.level != part_cell.level) ){
                 map_iterator.iterator = gap_map.data[part_cell.level][part_cell.pc_offset][0].map.begin();
                 map_iterator.pc_offset = part_cell.pc_offset;
                 map_iterator.level = part_cell.level;
@@ -321,7 +320,7 @@ public:
                 map_iterator.iterator = current_pc_map.map.begin();
             }
 
-            if ((part_cell.y >= map_iterator.iterator->first) & (part_cell.y <= map_iterator.iterator->second.y_end)) {
+            if ((part_cell.y >= map_iterator.iterator->first) && (part_cell.y <= map_iterator.iterator->second.y_end)) {
                 // already pointing to the correct place
                 part_cell.global_index = map_iterator.iterator->second.global_index_begin +
                                          (part_cell.y - map_iterator.iterator->first);
@@ -536,11 +535,11 @@ public:
 
         //transfer over data-structure to make the same (re-use of function for read-write)
 
-        std::vector<std::vector<uint8_t>> p_map;
+        std::vector<ArrayWrapper<uint8_t>> p_map;
         p_map.resize(level_max);
 
         for (int k = 0; k < level_max; ++k) {
-            std::swap(p_map[k],layers[k].mesh);
+            p_map[k].swap(layers[k].mesh);
         }
 
         initialize_structure_from_particle_cell_tree(apr, p_map);
@@ -550,7 +549,7 @@ public:
 
 
     template<typename T>
-    void initialize_structure_from_particle_cell_tree(APR<T>& apr,std::vector<std::vector<uint8_t>>& p_map) {
+    void initialize_structure_from_particle_cell_tree(APR<T>& apr,std::vector<ArrayWrapper<uint8_t>>& p_map) {
         //
         //  Initialize the new structure;
         //
@@ -849,36 +848,39 @@ public:
 
         total_number_non_empty_rows=0;
 
-        apr_timer.start_timer("initialize map");
+//        apr_timer.start_timer("initialize map");
+//
+//        gap_map.initialize_structure_parts_empty(apr);
+//
+//        uint64_t counter_rows=0;
+//
+//        for(uint64_t i = (apr.level_min());i <= apr.level_max();i++) {
+//
+//            const unsigned int x_num_ = x_num[i];
+//            const unsigned int z_num_ = z_num[i];
+//            const unsigned int y_num_ = y_num[i];
+//#ifdef HAVE_OPENMP
+//	#pragma omp parallel for default(shared) private(z_, x_) reduction(+:counter_rows)if(z_num_*x_num_ > 100)
+//#endif
+//            for (z_ = 0; z_ < z_num_; z_++) {
+//                for (x_ = 0; x_ < x_num_; x_++) {
+//                    const size_t offset_pc_data = x_num_ * z_ + x_;
+//                    if(y_begin.data[i][offset_pc_data].size() > 0) {
+//                        gap_map.data[i][offset_pc_data].resize(1);
+//
+//
+//                        gap_map.data[i][offset_pc_data][0].map.insert(y_begin.data[i][offset_pc_data].begin(),y_begin.data[i][offset_pc_data].end());
+//
+//                        counter_rows++;
+//                    }
+//                }
+//            }
+//        }
+//        total_number_non_empty_rows = counter_rows;
+//        apr_timer.stop_timer();
 
-        gap_map.initialize_structure_parts_empty(apr);
+        allocate_map_insert(apr,y_begin);
 
-        uint64_t counter_rows=0;
-
-        for(uint64_t i = (apr.level_min());i <= apr.level_max();i++) {
-
-            const unsigned int x_num_ = x_num[i];
-            const unsigned int z_num_ = z_num[i];
-            const unsigned int y_num_ = y_num[i];
-#ifdef HAVE_OPENMP
-	#pragma omp parallel for default(shared) private(z_, x_) reduction(+:counter_rows)if(z_num_*x_num_ > 100)
-#endif
-            for (z_ = 0; z_ < z_num_; z_++) {
-                for (x_ = 0; x_ < x_num_; x_++) {
-                    const size_t offset_pc_data = x_num_ * z_ + x_;
-                    if(y_begin.data[i][offset_pc_data].size() > 0) {
-                        gap_map.data[i][offset_pc_data].resize(1, ParticleCellGapMap());
-
-
-                        gap_map.data[i][offset_pc_data][0].map.insert(y_begin.data[i][offset_pc_data].begin(),y_begin.data[i][offset_pc_data].end());
-
-                        counter_rows++;
-                    }
-                }
-            }
-        }
-        total_number_non_empty_rows = counter_rows;
-        apr_timer.stop_timer();
 
         APRIterator<T> apr_iterator(*this);
 
@@ -907,13 +909,52 @@ public:
     }
 
     template<typename T>
-    void rebuild_map(APR<T>& apr,MapStorageData* map_data){
+    void allocate_map_insert(APR<T>& apr,ExtraPartCellData<std::pair<uint16_t,YGap_map>>& y_begin) {
+        //
+        //  Seperated for checking memory allocation
+        //
 
-        uint64_t z_;
-        uint64_t x_;
         APRTimer apr_timer;
-        apr_timer.verbose_flag = false;
-        apr_timer.start_timer("rebuild map");
+
+        apr_timer.start_timer("initialize map");
+
+        gap_map.initialize_structure_parts_empty(apr);
+
+        uint64_t counter_rows = 0;
+
+        uint64_t z_,x_;
+
+        for (uint64_t i = (apr.level_min()); i <= apr.level_max(); i++) {
+
+            const unsigned int x_num_ = x_num[i];
+            const unsigned int z_num_ = z_num[i];
+            const unsigned int y_num_ = y_num[i];
+#ifdef HAVE_OPENMP
+#pragma omp parallel for default(shared) private(z_, x_) reduction(+:counter_rows)if(z_num_*x_num_ > 100)
+#endif
+            for (z_ = 0; z_ < z_num_; z_++) {
+                for (x_ = 0; x_ < x_num_; x_++) {
+                    const size_t offset_pc_data = x_num_ * z_ + x_;
+                    if (y_begin.data[i][offset_pc_data].size() > 0) {
+                        gap_map.data[i][offset_pc_data].resize(1);
+
+
+                        gap_map.data[i][offset_pc_data][0].map.insert(y_begin.data[i][offset_pc_data].begin(),
+                                                                      y_begin.data[i][offset_pc_data].end());
+
+                        counter_rows++;
+                    }
+                }
+            }
+        }
+        total_number_non_empty_rows = counter_rows;
+        apr_timer.stop_timer();
+
+    }
+
+
+    template<typename T>
+    void allocate_map(APR<T>& apr,MapStorageData& map_data,std::vector<uint64_t>& cumsum){
 
         //first add the layers
         gap_map.depth_max = level_max;
@@ -939,6 +980,48 @@ public:
 
         }
 
+        uint64_t j;
+#ifdef HAVE_OPENMP
+        #pragma omp parallel for default(shared) schedule(static) private(j)
+#endif
+        for (j = 0; j < total_number_non_empty_rows; ++j) {
+
+            const uint64_t level = map_data.level[j];
+
+            const uint64_t offset_pc_data =  x_num[level]* map_data.z[j] + map_data.x[j];
+
+            const uint64_t global_begin = cumsum[j];
+
+            const uint64_t number_gaps = map_data.number_gaps[j];
+
+            YGap_map gap;
+
+            gap_map.data[level][offset_pc_data].resize(1);
+
+            for (uint64_t i = global_begin; i < (global_begin + number_gaps) ; ++i) {
+                gap.y_end = map_data.y_end[i];
+                gap.global_index_begin = map_data.global_index[i];
+
+                auto hint = gap_map.data[level][offset_pc_data][0].map.end();
+                gap_map.data[level][offset_pc_data][0].map.insert(hint,{map_data.y_begin[i],gap});
+            }
+
+        }
+
+
+
+    }
+
+    template<typename T>
+    void rebuild_map(APR<T>& apr,MapStorageData& map_data){
+
+        uint64_t z_;
+        uint64_t x_;
+        APRTimer apr_timer;
+        apr_timer.verbose_flag = false;
+        apr_timer.start_timer("rebuild map");
+
+
 
         std::vector<uint64_t> cumsum;
         cumsum.reserve(total_number_non_empty_rows);
@@ -948,39 +1031,11 @@ public:
 
         for (j = 0; j < total_number_non_empty_rows; ++j) {
             cumsum.push_back(counter);
-            counter+=(map_data->number_gaps[j]);
+            counter+=(map_data.number_gaps[j]);
         }
 
-#ifdef HAVE_OPENMP
-	#pragma omp parallel for default(shared) schedule(static) private(j)
-#endif
-        for (j = 0; j < total_number_non_empty_rows; ++j) {
 
-            const uint64_t level = map_data->level[j];
-
-            const uint64_t offset_pc_data =  x_num[level]* map_data->z[j] + map_data->x[j];
-
-            const uint64_t global_begin = cumsum[j];
-
-            const uint64_t number_gaps = map_data->number_gaps[j];
-
-            YGap_map gap;
-
-            gap_map.data[level][offset_pc_data].resize(1, ParticleCellGapMap());
-
-            for (uint64_t i = global_begin; i < (global_begin + number_gaps) ; ++i) {
-                gap.y_end = map_data->y_end[i];
-                gap.global_index_begin = map_data->global_index[i];
-
-                auto hint = gap_map.data[level][offset_pc_data][0].map.end();
-                gap_map.data[level][offset_pc_data][0].map.insert(hint,{map_data->y_begin[i],gap});
-            }
-
-        }
-
-        apr_timer.stop_timer();
-
-
+        allocate_map(apr,map_data,cumsum);
 
         apr_timer.start_timer("forth loop");
         //////////////////
@@ -1434,7 +1489,7 @@ public:
 
                     if(gap_num > 0){
 
-                        gap_map.data[i][offset_pc_data].resize(1, ParticleCellGapMap());
+                        gap_map.data[i][offset_pc_data].resize(1);
 
 
                         for (int j = 0; j < gap_num; ++j) {
@@ -2265,6 +2320,7 @@ public:
 
 
     }
+
 
 
 
