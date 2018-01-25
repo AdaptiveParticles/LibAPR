@@ -48,6 +48,7 @@ template<typename ImageType>
 class APRIterator;
 
 #include "src/data_structures/APR/APR.hpp"
+#include "benchmarks/development/Tree/APRIteratorOld.hpp"
 
 #include "src/data_structures/APR/ExtraParticleData.hpp"
 #include "src/data_structures/APR/ExtraPartCellData.hpp"
@@ -69,12 +70,12 @@ struct YGap {
 };
 
 struct YGap_map {
-    uint16_t y_end;
-    uint64_t global_index_begin;
+    uint16_t y_end = UINT16_MAX;
+    uint64_t global_index_begin = UINT64_MAX;
 };
 
 struct ParticleCellGapMap{
-    std::map<uint16_t,YGap_map> map;
+    std::map<uint16_t,YGap_map> map = std::map<uint16_t, YGap_map>();
 };
 
 struct YIterators{
@@ -84,8 +85,8 @@ struct YIterators{
 
 struct MapIterator{
     std::map<uint16_t,YGap_map>::iterator iterator;
-    uint64_t pc_offset;
-    uint16_t level;
+    uint64_t pc_offset = UINT64_MAX;
+    uint16_t level = UINT16_MAX;
 };
 
 struct LocalMapIterators{
@@ -96,8 +97,8 @@ struct LocalMapIterators{
     LocalMapIterators(){
         //initialize them to be set to pointing to no-where
         MapIterator init;
-        init.pc_offset = -1;
-        init.level = -1;
+        init.pc_offset = UINT64_MAX;
+        init.level = UINT16_MAX;
 
         same_level.resize(6,init);
         parent_level.resize(6,init);
@@ -866,7 +867,7 @@ public:
                 for (x_ = 0; x_ < x_num_; x_++) {
                     const size_t offset_pc_data = x_num_ * z_ + x_;
                     if(y_begin.data[i][offset_pc_data].size() > 0) {
-                        gap_map.data[i][offset_pc_data].resize(1);
+                        gap_map.data[i][offset_pc_data].resize(1, ParticleCellGapMap());
 
 
                         gap_map.data[i][offset_pc_data][0].map.insert(y_begin.data[i][offset_pc_data].begin(),y_begin.data[i][offset_pc_data].end());
@@ -906,7 +907,7 @@ public:
     }
 
     template<typename T>
-    void rebuild_map(APR<T>& apr,MapStorageData& map_data){
+    void rebuild_map(APR<T>& apr,MapStorageData* map_data){
 
         uint64_t z_;
         uint64_t x_;
@@ -947,7 +948,7 @@ public:
 
         for (j = 0; j < total_number_non_empty_rows; ++j) {
             cumsum.push_back(counter);
-            counter+=(map_data.number_gaps[j]);
+            counter+=(map_data->number_gaps[j]);
         }
 
 #ifdef HAVE_OPENMP
@@ -955,24 +956,24 @@ public:
 #endif
         for (j = 0; j < total_number_non_empty_rows; ++j) {
 
-            const uint64_t level = map_data.level[j];
+            const uint64_t level = map_data->level[j];
 
-            const uint64_t offset_pc_data =  x_num[level]* map_data.z[j] + map_data.x[j];
+            const uint64_t offset_pc_data =  x_num[level]* map_data->z[j] + map_data->x[j];
 
             const uint64_t global_begin = cumsum[j];
 
-            const uint64_t number_gaps = map_data.number_gaps[j];
+            const uint64_t number_gaps = map_data->number_gaps[j];
 
             YGap_map gap;
 
-            gap_map.data[level][offset_pc_data].resize(1);
+            gap_map.data[level][offset_pc_data].resize(1, ParticleCellGapMap());
 
             for (uint64_t i = global_begin; i < (global_begin + number_gaps) ; ++i) {
-                gap.y_end = map_data.y_end[i];
-                gap.global_index_begin = map_data.global_index[i];
+                gap.y_end = map_data->y_end[i];
+                gap.global_index_begin = map_data->global_index[i];
 
                 auto hint = gap_map.data[level][offset_pc_data][0].map.end();
-                gap_map.data[level][offset_pc_data][0].map.insert(hint,{map_data.y_begin[i],gap});
+                gap_map.data[level][offset_pc_data][0].map.insert(hint,{map_data->y_begin[i],gap});
             }
 
         }
@@ -1433,7 +1434,7 @@ public:
 
                     if(gap_num > 0){
 
-                        gap_map.data[i][offset_pc_data].resize(1);
+                        gap_map.data[i][offset_pc_data].resize(1, ParticleCellGapMap());
 
 
                         for (int j = 0; j < gap_num; ++j) {
@@ -2264,7 +2265,6 @@ public:
 
 
     }
-
 
 
 
