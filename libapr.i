@@ -19,6 +19,40 @@ namespace std {
 %rename(equals) operator==;
 %rename(less_than) operator<;
 
+%ignore Part_timer;
+%ignore APRIteratorOld;
+
+%typemap(javain) APR<uint16_t>& apr "getCPtrAndAddReference($javainput)"
+%typemap(javacode) APRIterator<uint16_t> %{
+  // ensure premature GC doesn't happen by storing a reference to the APR
+  // in-class
+  private static java.util.ArrayList<APRStd> aprReferences = new java.util.ArrayList<APRStd>();
+  private static long getCPtrAndAddReference(APRStd a) {
+    aprReferences.add(a);
+    return APRStd.getCPtr(a);
+  }
+%}
+
+%typemap(javacode) ExtraParticleData<float> %{
+  // ensure premature GC doesn't happen by storing a reference to the APR
+  // in-class
+  private static java.util.ArrayList<APRStd> aprReferences = new java.util.ArrayList<APRStd>();
+  private static long getCPtrAndAddReference(APRStd a) {
+    aprReferences.add(a);
+    return APRStd.getCPtr(a);
+  }
+%}
+
+%typemap(javacode) ExtraParticleData<uint16_t> %{
+  // ensure premature GC doesn't happen by storing a reference to the APR
+  // in-class
+  private static java.util.ArrayList<APRStd> aprReferences = new java.util.ArrayList<APRStd>();
+  private static long getCPtrAndAddReference(APRStd a) {
+    aprReferences.add(a);
+    return APRStd.getCPtr(a);
+  }
+%}
+
 %{
 #include "src/data_structures/APR/APR.hpp"
 %}
