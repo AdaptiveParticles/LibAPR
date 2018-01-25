@@ -12,7 +12,7 @@ endif(TESTS)
 
 
 find_package(OpenMP)
-if(NOT OPENMP_FOUND)
+if(NOT OPENMP_FOUND OR DISABLE_OPENMP)
     message("OpenMP support not found with current compiler. While APR can compile like this, performance might not be optimal. Please see README.md for instructions.")
 else()
     set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -DHAVE_OPENMP ${OpenMP_C_FLAGS}")
@@ -74,7 +74,7 @@ set(SOURCE_FILES
         benchmarks/development/old_structures/structure_parts.cpp
 
         src/data_structures/APR/APR.hpp
-        benchmarks/development/Tree/APRIteratorOld.hpp
+#        benchmarks/development/Tree/APRIteratorOld.hpp
 
         src/data_structures/APR/APRIterator.hpp
         src/data_structures/APR/APRAcess.hpp
@@ -264,15 +264,14 @@ add_executable(Example_random_access
         ${SOURCE_FILES_COMPILED}
         )
 
+if(BUILD_WRAPPERS)
+  SWIG_ADD_MODULE(apr java libapr.i
+        benchmarks/development/old_io/write_parts.cpp
+        ${SOURCE_FILES_COMPILED}
+        )
+  SWIG_LINK_LIBRARIES(apr ${HDF5_LIBRARIES} blosc_static ${TIFF_LIBRARIES})
+endif()
 
-#SWIG_ADD_MODULE(apr java libapr.i
-#        benchmarks/development/old_io/write_parts.cpp
-#        ${SOURCE_FILES_COMPILED}
-#        )
-
-#SWIG_LINK_LIBRARIES(apr ${HDF5_LIBRARIES} blosc_static ${TIFF_LIBRARIES})
-
-#target_link_libraries(pipeline ${HDF5_LIBRARIES} pthread tiff blosc_shared)
 target_link_libraries(Example_get_apr ${HDF5_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT} ${TIFF_LIBRARIES} blosc_shared)
 target_link_libraries(Example_apr_iterate ${HDF5_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT} ${TIFF_LIBRARIES} blosc_shared)
 target_link_libraries(Example_ray_cast ${HDF5_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT} ${TIFF_LIBRARIES} blosc_shared)

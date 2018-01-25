@@ -249,10 +249,10 @@ public:
         apr.apr_access.x_num[apr.apr_access.level_max] = apr.apr_access.org_dims[1];
         apr.apr_access.z_num[apr.apr_access.level_max] = apr.apr_access.org_dims[2];
 
-        MapStorageData map_data;
+        MapStorageData* map_data = new MapStorageData();
         //all the access map data
 
-        map_data.global_index.resize(apr.apr_access.total_number_gaps);
+        map_data->global_index.resize(apr.apr_access.total_number_gaps);
 
         std::vector<int16_t> index_delta;
         index_delta.resize(apr.apr_access.total_number_gaps);
@@ -263,39 +263,39 @@ public:
         std::vector<uint64_t> index_delta_big;
         index_delta_big.resize(apr.apr_access.total_number_gaps);
         std::copy(index_delta.begin(),index_delta.end(),index_delta_big.begin());
-        std::partial_sum(index_delta_big.begin(),index_delta_big.end(),map_data.global_index.begin());
+        std::partial_sum(index_delta_big.begin(),index_delta_big.end(),map_data->global_index.begin());
 
-        map_data.y_end.resize(apr.apr_access.total_number_gaps);
+        map_data->y_end.resize(apr.apr_access.total_number_gaps);
         dataset_name = "map_y_end";
-        hdf5_load_data_blosc(obj_id,H5T_NATIVE_UINT16,map_data.y_end.data(),dataset_name.c_str());
+        hdf5_load_data_blosc(obj_id,H5T_NATIVE_UINT16,map_data->y_end.data(),dataset_name.c_str());
 
 
-        map_data.y_begin.resize(apr.apr_access.total_number_gaps);
+        map_data->y_begin.resize(apr.apr_access.total_number_gaps);
         dataset_name = "map_y_begin";
-        hdf5_load_data_blosc(obj_id,H5T_NATIVE_UINT16,map_data.y_begin.data(),dataset_name.c_str());
+        hdf5_load_data_blosc(obj_id,H5T_NATIVE_UINT16,map_data->y_begin.data(),dataset_name.c_str());
 
-        map_data.number_gaps.resize(apr.apr_access.total_number_non_empty_rows);
+        map_data->number_gaps.resize(apr.apr_access.total_number_non_empty_rows);
         dataset_name = "map_number_gaps";
-        hdf5_load_data_blosc(obj_id,H5T_NATIVE_UINT16,map_data.number_gaps.data(),dataset_name.c_str());
+        hdf5_load_data_blosc(obj_id,H5T_NATIVE_UINT16,map_data->number_gaps.data(),dataset_name.c_str());
 
-        map_data.level.resize(apr.apr_access.total_number_non_empty_rows);
+        map_data->level.resize(apr.apr_access.total_number_non_empty_rows);
         dataset_name = "map_level";
-        hdf5_load_data_blosc(obj_id,H5T_NATIVE_UINT8,map_data.level.data(),dataset_name.c_str());
+        hdf5_load_data_blosc(obj_id,H5T_NATIVE_UINT8,map_data->level.data(),dataset_name.c_str());
 
-        map_data.x.resize(apr.apr_access.total_number_non_empty_rows);
+        map_data->x.resize(apr.apr_access.total_number_non_empty_rows);
         dataset_name = "map_x";
-        hdf5_load_data_blosc(obj_id,H5T_NATIVE_UINT16,map_data.x.data(),dataset_name.c_str());
+        hdf5_load_data_blosc(obj_id,H5T_NATIVE_UINT16,map_data->x.data(),dataset_name.c_str());
 
-        map_data.z.resize(apr.apr_access.total_number_non_empty_rows);
+        map_data->z.resize(apr.apr_access.total_number_non_empty_rows);
         dataset_name = "map_z";
-        hdf5_load_data_blosc(obj_id,H5T_NATIVE_UINT16,map_data.z.data(),dataset_name.c_str());
+        hdf5_load_data_blosc(obj_id,H5T_NATIVE_UINT16,map_data->z.data(),dataset_name.c_str());
 
         apr.apr_access.particle_cell_type.data.resize(type_size);
         dataset_name = "particle_cell_type";
         hdf5_load_data_blosc(obj_id,H5T_NATIVE_UINT8,apr.apr_access.particle_cell_type.data.data(),dataset_name.c_str());
 
 
-        apr.apr_access.rebuild_map(apr,map_data);
+        apr.apr_access.rebuild_map(apr, *map_data);
 
 
         //close shiz
