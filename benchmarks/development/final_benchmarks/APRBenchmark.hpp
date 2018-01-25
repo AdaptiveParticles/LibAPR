@@ -88,16 +88,15 @@ void APRBenchmark::benchmark_dataset(APRConverter<ImageType>& apr_converter){
     apr.particles_intensities.copy_parts(apr,intensities);
     apr_compress.set_compression_type(2);
 
-    timer.start_timer("write_no_compress");
-    float apr_direct_in_mb = apr_writer.write_apr(apr,apr_converter.par.input_dir ,name + "_compress1",apr_compress,BLOSC_ZSTD,3,2);
+    timer.start_timer("write_compress_predict_only");
+    float apr_predict_in_mb = apr_writer.write_apr(apr,apr_converter.par.input_dir ,name + "_compress1",apr_compress,BLOSC_ZSTD,3,2);
     timer.stop_timer();
-
 
     apr.particles_intensities.copy_parts(apr,intensities);
     apr_compress.set_compression_type(0);
 
-    timer.start_timer("write_compress_predict_only");
-    float apr_predict_in_mb = apr_writer.write_apr(apr,apr_converter.par.input_dir ,name + "_compress2",apr_compress,BLOSC_ZSTD,3,2);
+    timer.start_timer("write_no_compress");
+    float apr_direct_in_mb = apr_writer.write_apr(apr,apr_converter.par.input_dir ,name + "_compress2",apr_compress,BLOSC_ZSTD,3,2);
     timer.stop_timer();
 
     timer.start_timer("write_particles_only");
