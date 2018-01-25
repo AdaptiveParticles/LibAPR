@@ -67,6 +67,7 @@ int main(int argc, char **argv) {
     apr_converter.method_timer.verbose_flag = true;
     apr_converter.computation_timer.verbose_flag = true;
     apr_converter.allocation_timer.verbose_flag = true;
+    apr_converter.total_timer.verbose_flag = true;
 
     //Gets the APR
     if(apr_converter.get_apr(apr)){
