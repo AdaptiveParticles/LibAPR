@@ -1907,9 +1907,13 @@ public:
         constexpr int y_incr[8] = {0,1,0,1,0,1,0,1};
         constexpr int x_incr[8] = {0,0,1,1,0,0,1,1};
         constexpr int z_incr[8] = {0,0,0,0,1,1,1,1};
-        
-        prev_k_img.set_size(pow(2,depth_min-1),pow(2,depth_min-1),pow(2,depth_min-1));
-        
+
+
+
+        prev_k_img.x_num = pow(2,depth_min-1);
+        prev_k_img.y_num = pow(2,depth_min-1);
+        prev_k_img.z_num = pow(2,depth_min-1);
+
         Part_timer timer;
         timer.verbose_flag = false;
         

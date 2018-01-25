@@ -51,11 +51,11 @@ hid_t get_type_blosc(T data_type){
     } else if(num_byts == 1){
         return H5T_NATIVE_UINT8;
     } else {
-        
         return H5T_NATIVE_FLOAT;
     }
     
     
 }
+
 
 #endif

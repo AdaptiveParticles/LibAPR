@@ -6,6 +6,8 @@
 #include <iostream>
 
 #include "Example_reconstruct_image.h"
+#include "src/io/TiffUtils.hpp"
+
 
 bool command_option_exists(char **begin, char **end, const std::string &option)
 {
@@ -81,14 +83,14 @@ int main(int argc, char **argv) {
     apr.interp_img(recon_pc,apr.particles_intensities);
 
     timer.stop_timer();
-    std::chrono::duration<double> elapsed_seconds = timer.t2 - timer.t1;
+    float elapsed_seconds = timer.t2 - timer.t1;
 
-    std::cout << "PC recon " << (recon_pc.x_num*recon_pc.y_num*recon_pc.z_num)/(elapsed_seconds.count()*1000000.0) << " million pixels per second"  <<  std::endl;
+    std::cout << "PC recon " << (recon_pc.x_num*recon_pc.y_num*recon_pc.z_num)/(elapsed_seconds*1000000.0) << " million pixels per second"  <<  std::endl;
 
     std::string output_path = options.directory + apr.name + "_pc.tif";
 
     //write output as tiff
-    recon_pc.write_image_tiff(output_path);
+    TiffUtils::saveMeshAsTiff(output_path, recon_pc);
 
     //////////////////////////
     ///
@@ -126,7 +128,7 @@ int main(int argc, char **argv) {
     output_path = options.directory + apr.name + "_type.tif";
 
     //write output as tiff
-    type_recon.write_image_tiff(output_path);
+    TiffUtils::saveMeshAsTiff(output_path, type_recon);
 
     //pc interp
     apr.interp_img(type_recon,level);
@@ -134,7 +136,7 @@ int main(int argc, char **argv) {
     output_path = options.directory + apr.name + "_level.tif";
 
     //write output as tiff
-    type_recon.write_image_tiff(output_path);
+    TiffUtils::saveMeshAsTiff(output_path, type_recon);
 
     //smooth reconstruction - requires float
     MeshData<float> recon_smooth;
@@ -148,12 +150,10 @@ int main(int argc, char **argv) {
     timer.stop_timer();
     elapsed_seconds = timer.t2 - timer.t1;
 
-    std::cout << "Smooth recon " << (recon_smooth.x_num*recon_smooth.y_num*recon_smooth.z_num)/(elapsed_seconds.count()*1000000.0) << " million pixels per second"  <<  std::endl;
+    std::cout << "Smooth recon " << (recon_smooth.x_num*recon_smooth.y_num*recon_smooth.z_num)/(elapsed_seconds*1000000.0) << " million pixels per second"  <<  std::endl;
 
     output_path = options.directory + apr.name + "_smooth.tif";
 
     //write to tiff casting to unsigned 16 bit integer
-    recon_smooth.write_image_tiff_uint16(output_path);
-
-
+    TiffUtils::saveMeshAsTiffUint16(output_path, recon_smooth);
 }

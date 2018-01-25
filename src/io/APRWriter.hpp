@@ -7,8 +7,6 @@
 
 #include <src/data_structures/APR/APR.hpp>
 #include <src/data_structures/APR/APRAccess.hpp>
-#include "src/data_structures/APR/APR.hpp"
-#include "benchmarks/development/Tree/APRIteratorOld.hpp"
 
 
 template<typename U>
@@ -17,6 +15,9 @@ class APR;
 
 class APRWriter {
 public:
+
+    template<typename T> hid_t get_type_data_hdf5(T o){ return 0; };
+
 
     template<typename ImageType>
     void read_apr(APR<ImageType>& apr,std::string file_name)
@@ -234,7 +235,7 @@ public:
         H5Aread(attr_id,H5T_NATIVE_INT,&data_type ) ;
         H5Aclose(attr_id);
 
-        hid_t hdf5_data_type = data_type;
+        hid_t hdf5_data_type = 0;
 
         apr.particles_intensities.data.resize(apr.apr_access.total_number_particles);
 
@@ -242,6 +243,7 @@ public:
             std::string name = "particle_intensities";
             hdf5_load_data_blosc(obj_id,hdf5_data_type,apr.particles_intensities.data.data(),name.c_str());
         }
+
 
         apr.apr_access.y_num[apr.apr_access.level_max] = apr.apr_access.org_dims[0];
         apr.apr_access.x_num[apr.apr_access.level_max] = apr.apr_access.org_dims[1];
@@ -477,10 +479,10 @@ public:
 
         //just an identifier in here for the reading of the parts
         ImageType val = 0;
-        hid_t type = get_type_blosc(val);
-        int type_id = type;
+        hid_t type = get_type_data_hdf5(val);
+        int type_id = sizeof(val);
 
-        hdf5_write_attribute_blosc(pr_groupid,H5T_NATIVE_INT,"data_type",1,dims_out, &type_id);
+        hdf5_write_attribute_blosc(pr_groupid,H5T_NATIVE_UINT,"data_type",1,dims_out, &type_id);
 
         if(dims > 0){
             //write the parts
@@ -575,7 +577,6 @@ public:
         //
         //  Writes the APR and Extra PartCell Data to
         //
-        //  #TODO auto detect type
         //
 
         unsigned int blosc_comp_type = BLOSC_ZSTD;
@@ -674,8 +675,7 @@ public:
         std::string name = "particle property";
 
         T type_example = 0;
-        hid_t data_type =  get_type_blosc(type_example);
-
+        hid_t data_type =  get_type_data_hdf5(type_example);
 
         APRIterator<ImageType> apr_iterator(apr);
 
@@ -739,6 +739,7 @@ public:
 
         std::cout << "HDF5 Filesize: " << file_size*1.0/1000000.0 << " MB" << std::endl;
 
+        // #TODO This needs to be able extended to handle more general type, currently it is assuming uint16
         write_main_paraview_xdmf_xml(save_loc,file_name,apr_iterator.total_number_particles());
 
         //close shiz
@@ -761,8 +762,6 @@ public:
         //  #FIX_ME Extend me.
         //
         //
-
-        std::cout << "Either uint8, uint16, or float" << std::endl;
 
         //initialize
         uint64_t node_val_part;
@@ -823,8 +822,8 @@ public:
 
         //just an identifier in here for the reading of the parts
         S val = 0;
-        hid_t type = get_type_blosc(val);
-        int type_id = type;
+        hid_t type_id = get_type_blosc(val);
+        hid_t type = get_type_data_hdf5(val);
 
         hdf5_write_attribute_blosc(pr_groupid,H5T_NATIVE_INT,"data_type",1,dims_out, &type_id);
 
@@ -846,7 +845,7 @@ public:
 
         dims = total_number_parts;
         std::string name = "extra_particle_data";
-        hdf5_write_data_blosc(obj_id, type_id, name.c_str(), rank, &dims, parts_extra.data.data(),blosc_comp_type,blosc_comp_level,blosc_shuffle);
+        hdf5_write_data_blosc(obj_id, type, name.c_str(), rank, &dims, parts_extra.data.data(),blosc_comp_type,blosc_comp_level,blosc_shuffle);
 
 
         // New parameter and background data
@@ -915,7 +914,7 @@ public:
         H5Aread(attr_id,H5T_NATIVE_INT,&data_type ) ;
         H5Aclose(attr_id);
 
-        hid_t hdf5_data_type = data_type;
+        hid_t hdf5_data_type = 0;
 
         extra_parts.data.resize(total_number_parts);
         std::string dataset_name = "extra_particle_data";
@@ -2192,7 +2191,50 @@ namespace old {
     };
 }
 
+template<>
+hid_t APRWriter::get_type_data_hdf5<uint8_t>(uint8_t o){
+    return H5T_NATIVE_UINT8;
+};
 
+template<>
+hid_t APRWriter::get_type_data_hdf5<uint16_t>(uint16_t o){
+    return H5T_NATIVE_UINT16;
+};
+
+template<>
+hid_t APRWriter::get_type_data_hdf5<int16_t>(int16_t o){
+    return H5T_NATIVE_INT16;
+};
+
+template<>
+hid_t APRWriter::get_type_data_hdf5<float>(float o){
+    return H5T_NATIVE_FLOAT;
+};
+
+template<>
+hid_t APRWriter::get_type_data_hdf5<int>(int o){
+    return H5T_NATIVE_INT;
+};
+
+template<>
+hid_t APRWriter::get_type_data_hdf5<unsigned int>(unsigned int o){
+    return H5T_NATIVE_UINT;
+};
+
+template<>
+hid_t APRWriter::get_type_data_hdf5<double>(double o){
+    return H5T_NATIVE_DOUBLE;
+};
+
+template<>
+hid_t APRWriter::get_type_data_hdf5<int8_t>(int8_t o){
+    return H5T_NATIVE_INT8;
+};
+
+template<>
+hid_t APRWriter::get_type_data_hdf5<uint64_t>(uint64_t o){
+    return H5T_NATIVE_UINT64;
+};
 
 
 

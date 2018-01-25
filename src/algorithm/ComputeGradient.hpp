@@ -95,7 +95,7 @@ void ComputeGradient::mask_gradient(MeshData<T>& grad_ds,MeshData<S>& temp_ds,Me
     //location
     std::string file_name = par.input_dir + par.mask_file;
 
-    temp_full.load_image_tiff(file_name);
+    TiffUtils::getMesh(file_name, temp_full);
 
     down_sample(temp_ds,temp_full,
                 [](float x, float y) { return std::max(x,y); },
@@ -181,7 +181,7 @@ void ComputeGradient::bspline_filt_rec_y(MeshData<T>& image,float lambda,float t
     const int x_num = image.x_num;
     const int y_num = image.y_num;
 
-    const int k0 = std::min((int)(ceil(std::abs(log(tol)/log(rho)))),z_num);
+    const int k0 = std::max(std::min((int)(ceil(std::abs(log(tol)/log(rho)))),z_num),2);
 
     float temp = 0;
     float temp1 = 0;

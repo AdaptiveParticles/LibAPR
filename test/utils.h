@@ -41,10 +41,6 @@ class PartCellStructure;
 #include "benchmarks/development/old_io/write_parts.h"
 #include "benchmarks/development/old_io/read_parts.h"
 
-#include "src/data_structures/APR/APR.hpp"
-
-#include "src/data_structures/APR/APRIterator.hpp"
-
 bool compare_two_images(const MeshData<uint16_t>& in_memory, std::string filename);
 bool compare_two_ks(const Particle_map<float>& in_memory, std::string filename);
 bool compare_part_rep_with_particle_map(const Particle_map<float>& in_memory, std::string filename);
@@ -61,7 +57,7 @@ uint16_t get_random_number(std::ranlux48& generator, std::normal_distribution<fl
 uint16_t get_random_number_k(std::ranlux48& generator,
                              std::normal_distribution<float>& distribution, float k_max);
 
-std::string get_source_directory();
+std::string testFilesDirectory();
 
 bool compare_sparse_rep_with_part_map(const Particle_map<float>& part_map,PartCellStructure<float,uint64_t>& pc_struct,bool status_flag);
 
@@ -89,12 +85,12 @@ void create_j_reference_structure(PartCellStructure<float,uint64_t>& pc_struct,s
 
 pc_key find_neigh_cell(pc_key curr_cell,int dir,std::vector<MeshData<uint64_t>>& j_array);
 
-void create_pc_data_new(APR<float>& apr,PartCellStructure<float,uint64_t>& pc_struct);
+//void create_pc_data_new(APR<float>& apr,PartCellStructure<float,uint64_t>& pc_struct);
 
-bool check_neighbours(APR<float>& apr,APRIterator<float>& current,APRIterator<float>& neigh);
-bool check_neighbour_out_of_bounds(APRIterator<float>& current,uint8_t face);
+//bool check_neighbours(APR<float>& apr,APRIterator<float>& current,APRIterator<float>& neigh);
+//bool check_neighbour_out_of_bounds(APRIterator<float>& current,uint8_t face);
 
-void create_apr_from_pc_struct(APR<float>& apr,PartCellStructure<float,uint64_t>& pc_struct);
+//void create_apr_from_pc_struct(APR<float>& apr,PartCellStructure<float,uint64_t>& pc_struct);
 
 bool utest_neigh_cells(PartCellStructure<float,uint64_t>& pc_struct);
 

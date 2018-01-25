@@ -98,6 +98,16 @@ public :
     MeshData(int aSizeOfY, int aSizeOfX, int aSizeOfZ) { initialize(aSizeOfY, aSizeOfX, aSizeOfZ); }
 
     /**
+     * Constructor - initialize mesh with other mesh (data are copied and casted if needed).
+     * @param aMesh input mesh
+     */
+    template<typename U>
+    MeshData(const MeshData<U> aMesh) {
+        initialize(aMesh.y_num, aMesh.x_num, aMesh.z_num);
+        std::copy(aMesh.mesh.begin(), aMesh.mesh.end(), mesh.begin());
+    }
+
+    /**
      * Creates copy of this mesh converting each element to new type
      * @tparam U new type of mesh
      * @return created object by value
@@ -211,6 +221,16 @@ public :
         mesh.resize(size);
     }
 
+    void reserve(int aSizeOfY, int aSizeOfX, int aSizeOfZ) {
+        y_num = aSizeOfY;
+        x_num = aSizeOfX;
+        z_num = aSizeOfZ;
+        size_t size = (size_t)y_num * x_num * z_num;
+        std::cout << "Wanted size: " << size << std::endl;
+        mesh.reserve(size);
+        std::cout << "Reserved" << std::endl;
+    }
+
     /**
      * Initializes mesh with size of half of provided dimensions (rounding up if not divisible by 2)
      * sets provided val for all elements
@@ -227,12 +247,14 @@ public :
         initialize(y_num_ds, x_num_ds, z_num_ds, aInitVal);
     }
 
+private:
 
+    //REMOVE_FLAG
     void write_image_tiff(std::string& filename);
+    //REMOVE_FLAG
     void write_image_tiff_uint16(std::string& filename);
+    //REMOVE_FLAG
     void load_image_tiff(std::string file_name,int z_start = 0, int z_end = -1);
-
-
 
     //REMOVE_FLAG
     void set_size(int y_num_,int x_num_,int z_num_){
@@ -242,12 +264,17 @@ public :
         z_num = z_num_;
     }
 
-
-private:
-
+    //REMOVE_FLAG
     template<typename V>
     void write_image_tiff(std::vector<V> &data, std::string &filename);
 };
+
+template<typename T>
+std::ostream & operator<<(std::ostream &os, const MeshData<T> &obj)
+{
+    os << "MeshData: size(Y/X/Z)=" << obj.y_num << "/" << obj.x_num << "/" << obj.z_num << " vSize:" << obj.mesh.size() << " vCapacity:" << obj.mesh.capacity() << " elementSize:" << sizeof(T);
+    return os;
+}
 
 template<typename T>
 void MeshData<T>::load_image_tiff(std::string file_name,int z_start, int z_end){

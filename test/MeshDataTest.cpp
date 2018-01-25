@@ -1,3 +1,6 @@
+/*
+ * Created by Krzysztof Gonciarz 2018
+ */
 #include <gtest/gtest.h>
 #include "src/data_structures/Mesh/MeshData.hpp"
 
@@ -65,6 +68,23 @@ namespace {
             ASSERT_EQ(md.y_num, 100);
             ASSERT_EQ(md.z_num, 300);
             ASSERT_EQ(md.mesh.size(), 100*200*300);
+        }
+
+        // mesh provided
+        {
+            // generate some data
+            MeshData<int> md(3,4,5);
+            for (size_t i = 0; i < md.mesh.size(); ++i) md.mesh[i] = i + 1;
+
+            // test constructor
+            MeshData<char> testedMesh(md);
+            ASSERT_EQ(md.mesh.size(), testedMesh.mesh.size());
+            ASSERT_EQ(md.x_num, testedMesh.x_num);
+            ASSERT_EQ(md.y_num, testedMesh.y_num);
+            ASSERT_EQ(md.z_num, testedMesh.z_num);
+            for (size_t i = 0; i < md.mesh.size(); ++i) {
+                ASSERT_EQ(testedMesh.mesh[i], (char)i + 1);
+            }
         }
     }
 

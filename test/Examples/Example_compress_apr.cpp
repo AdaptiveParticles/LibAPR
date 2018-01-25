@@ -17,6 +17,7 @@
 #include <iostream>
 
 #include "Example_compress_apr.h"
+#include "src/io/TiffUtils.hpp"
 
 bool command_option_exists(char **begin, char **end, const std::string &option)
 {
@@ -107,8 +108,7 @@ int main(int argc, char **argv) {
     MeshData<uint16_t> img;
     apr.interp_img(img,apr.particles_intensities);
     std::string output = options.directory + name + "_compress.tif";
-    img.write_image_tiff(output);
-
+    TiffUtils::saveMeshAsTiff(output, img);
 }
 
 

@@ -190,7 +190,7 @@ uint16_t get_random_number_k(std::ranlux48& generator,
 
 }
 
-std::string get_source_directory(){
+std::string testFilesDirectory(){
     // returns path to the directory where utils.cpp is stored
 
     std::string tests_directory = std::string(__FILE__);
@@ -1788,7 +1788,7 @@ bool parent_structure_test(PartCellStructure<float,uint64_t>& pc_struct){
 }
 void create_test_dataset_from_hdf5(Particle_map<float>& particle_map,PartCellStructure<float, uint64_t>& pc_struct,std::string name){
 
-    std::string test_dir =  get_source_directory();
+    std::string test_dir = testFilesDirectory();
 
     //output
     std::string file_name = test_dir + name;

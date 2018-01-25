@@ -844,8 +844,8 @@ void threshold_part(PartCellStructure<float,uint64_t>& pc_struct,ExtraPartCellDa
     
     
     timer.stop_timer();
-    std::chrono::duration<float> elapsed_seconds = timer.t2 - timer.t1;
-    float time = elapsed_seconds.count()/num_repeats;
+    float elapsed_seconds = timer.t2 - timer.t1;
+    float time = elapsed_seconds/num_repeats;
     
     std::cout << " Particle Threshold Size: " << pc_struct.get_number_parts() << " took: " << time << std::endl;
     
@@ -902,8 +902,8 @@ void threshold_pixels(PartCellStructure<U,uint64_t>& pc_struct,uint64_t y_num,ui
     
     
     timer.stop_timer();
-    std::chrono::duration<float> elapsed_seconds = timer.t2 - timer.t1;
-    float time = elapsed_seconds.count()/num_repeats;
+    float elapsed_seconds = timer.t2 - timer.t1;
+    float time = elapsed_seconds/num_repeats;
 
     std::cout << " Pixel Threshold Size: " << (x_num*y_num*z_num) << " took: " << time << std::endl;
     

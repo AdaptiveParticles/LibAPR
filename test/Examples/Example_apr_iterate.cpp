@@ -73,7 +73,7 @@ int main(int argc, char **argv) {
     std::string file_name = options.directory + options.input;
 
     // Read the apr file into the part cell structure
-    Part_timer timer;
+    APRTimer timer;
 
     timer.verbose_flag = true;
 
@@ -244,7 +244,6 @@ int main(int argc, char **argv) {
     ///
     /// Reading and writing additional particle information
     ///
-    /// (Current supports uint8, uint16, and float)
     ///
     /// Requires the APR that was used to write it to be read back in.
     ///
@@ -317,7 +316,7 @@ int main(int argc, char **argv) {
 
         int z = 0;
 #ifdef HAVE_OPENMP
-	#pragma omp parallel for schedule(static) private(particle_number,z) firstprivate(apr_iterator)
+	#pragma omp parallel for schedule(static) private(particle_number,z) firstprivate(apr_iterator) reduction(+:counter)
 #endif
         for(z = 0; z < apr.spatial_index_z_max(level); ++z) {
 
@@ -342,6 +341,8 @@ int main(int argc, char **argv) {
         }
     }
     timer.stop_timer();
+
+    std::cout << counter << " " << apr_iterator.total_number_particles() << std::endl;
 
 }
 

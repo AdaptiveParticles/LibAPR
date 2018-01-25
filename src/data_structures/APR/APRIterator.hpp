@@ -95,7 +95,7 @@ public:
             //otherwise now we have to figure out where to look for the next particle cell;
 
             //first find the level
-            while((particle_number > apr_access->global_index_by_level_end[current_particle_cell.level]) & (current_particle_cell.level <= level_max())){
+            while((current_particle_cell.level <= level_max()) && (particle_number > apr_access->global_index_by_level_end[current_particle_cell.level])  ){
                 current_particle_cell.level++;
             }
 
@@ -187,10 +187,6 @@ public:
         }
 
     }
-
-
-
-
 
 
     inline uint16_t x(){
@@ -443,7 +439,7 @@ public:
 
         particle_cell.pc_offset =  apr_access->x_num[particle_cell.level] * particle_cell.z + particle_cell.x;
 
-        while(!(apr_access->find_particle_cell(particle_cell,current_gap)) & (particle_cell.level >= level_min())){
+        while( (particle_cell.level >= level_min()) && !(apr_access->find_particle_cell(particle_cell,current_gap)) ){
             particle_cell.y = particle_cell.y/2;
             particle_cell.x = particle_cell.x/2;
             particle_cell.z = particle_cell.z/2;
@@ -484,7 +480,7 @@ private:
         }
     }
 
-    bool move_iterator_to_next_non_empty_row(const uint64_t &maximum_level){
+    bool move_iterator_to_next_non_empty_row(const uint64_t maximum_level){
 
         uint64_t offset_max = apr_access->x_num[current_particle_cell.level]*apr_access->z_num[current_particle_cell.level];
 
@@ -533,6 +529,10 @@ private:
 
         } else {
             //not in the same gap
+            if(current_gap.iterator->first >=120){
+                int stop =1 ;
+            }
+
 
             current_gap.iterator++;//move the iterator forward.
 
