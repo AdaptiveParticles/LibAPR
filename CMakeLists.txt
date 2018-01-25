@@ -264,13 +264,13 @@ add_executable(Example_random_access
         ${SOURCE_FILES_COMPILED}
         )
 
-
-#SWIG_ADD_MODULE(apr java libapr.i
-#        benchmarks/development/old_io/write_parts.cpp
-#        ${SOURCE_FILES_COMPILED}
-#        )
-
-#SWIG_LINK_LIBRARIES(apr ${HDF5_LIBRARIES} blosc_static ${TIFF_LIBRARIES})
+if(BUILD_WRAPPERS)
+  SWIG_ADD_MODULE(apr java libapr.i
+        benchmarks/development/old_io/write_parts.cpp
+        ${SOURCE_FILES_COMPILED}
+        )
+  SWIG_LINK_LIBRARIES(apr ${HDF5_LIBRARIES} blosc_static ${TIFF_LIBRARIES})
+endif()
 
 target_link_libraries(Example_get_apr ${HDF5_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT} ${TIFF_LIBRARIES} blosc_shared)
 target_link_libraries(Example_apr_iterate ${HDF5_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT} ${TIFF_LIBRARIES} blosc_shared)

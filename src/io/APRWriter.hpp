@@ -263,7 +263,7 @@ public:
         std::vector<uint64_t> index_delta_big;
         index_delta_big.resize(apr.apr_access.total_number_gaps);
         std::copy(index_delta.begin(),index_delta.end(),index_delta_big.begin());
-        std::partial_sum(index_delta_big.begin(),index_delta_big.end(),map_data.global_index.begin());
+        std::partial_sum(index_delta_big.begin(),index_delta_big.end(),map_data->global_index.begin());
 
         map_data->y_end.resize(apr.apr_access.total_number_gaps);
         dataset_name = "map_y_end";
@@ -295,7 +295,7 @@ public:
         hdf5_load_data_blosc(obj_id,H5T_NATIVE_UINT8,apr.apr_access.particle_cell_type.data.data(),dataset_name.c_str());
 
 
-        apr.apr_access.rebuild_map(apr, map_data);
+        apr.apr_access.rebuild_map(apr, *map_data);
 
 
         //close shiz
