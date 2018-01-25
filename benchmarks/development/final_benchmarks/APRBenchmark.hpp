@@ -54,15 +54,6 @@ void APRBenchmark::benchmark_dataset_synthetic(APRConverter<ImageType>& apr_conv
 
     apr_converter.get_apr_method(apr, input_image);
 
-    MeshData<uint16_t> level;
-
-    apr.interp_depth_ds(level);
-
-    std::string output_path = apr_converter.par.input_dir + name + "_level.tif";
-    //write output as tiff
-    TiffUtils::saveMeshAsTiff(output_path, level);
-
-
     float num_repeats = 10;
 
     float linear_pixel_pm = pixels_linear_neighbour_access<uint16_t,float>(apr.orginal_dimensions(0),apr.orginal_dimensions(1),apr.orginal_dimensions(2),num_repeats);

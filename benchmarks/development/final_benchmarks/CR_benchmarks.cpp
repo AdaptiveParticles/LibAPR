@@ -130,6 +130,8 @@ int main(int argc, char **argv) {
 
     bs.obj_size = 3;
 
+
+
     BenchHelper::obj_properties obj_prop(bs);
 
     Object_template  basic_object;
@@ -148,11 +150,13 @@ int main(int argc, char **argv) {
     //
     //////////////////////////////////////////////////////////////////
 
+
+
     std::cout << "BENCHMARK  KEEPING COMP RATIO FIXED" << std::endl;
 
     std::vector<int> image_size;
 
-    image_size = {1000};
+    image_size = {200,400,600,800};
 
     float ratio = options.CR;
     bs.N_repeats = options.number_reps;
@@ -163,6 +167,10 @@ int main(int argc, char **argv) {
     b_timer.verbose_flag = true;
 
     APRBenchmark apr_benchmarks;
+
+    apr_benchmarks.analysis_data.add_float_data("FixedCR",ratio);
+    apr_benchmarks.analysis_data.add_float_data("obj_size",bs.obj_size);
+    apr_benchmarks.analysis_data.add_float_data("sig",bs.sig);
 
     for (int j = 0;j < N_par;j++){
 
@@ -181,6 +189,10 @@ int main(int argc, char **argv) {
         for(int i = 0; i < bs.N_repeats; i++){
 
             b_timer.start_timer("one_it");
+
+            apr_benchmarks.analysis_data.add_float_data("width",bs.x_num);
+
+            apr_benchmarks.analysis_data.add_float_data("number_objects",bs.num_objects);
 
             SynImage syn_image_loc = syn_image;
 
@@ -216,7 +228,7 @@ int main(int argc, char **argv) {
             apr_converter.par.lambda = 3;
 
             apr_converter.par.input_dir = options.directory;
-            apr_converter.par.input_image_name = options.output;
+            apr_converter.par.input_image_name = "cr_" + std::to_string(j) + "_" + std::to_string(i) ;
 
             apr_converter.fine_grained_timer.verbose_flag = false;
             apr_converter.method_timer.verbose_flag = false;
@@ -224,29 +236,18 @@ int main(int argc, char **argv) {
             apr_converter.computation_timer.verbose_flag = false;
             apr_converter.total_timer.verbose_flag = true;
 
-            apr_benchmarks.analysis_data.name = "test_benchmarking";
+            apr_benchmarks.analysis_data.name = "cr_final_benchmarking";
 
-            apr_benchmarks.analysis_data.file_name = "test";
 
-            TiffUtils::saveMeshAsTiff(options.directory + "test.tif", input_img);
 
             apr_benchmarks.benchmark_dataset_synthetic(apr_converter,input_img);
-
-
-
-
-
-
-
-
 
             af::sync();
             af::deviceGC();
 
-
         }
     }
-
+    apr_benchmarks.analysis_data.file_name = options.directory + "analysis_data/CR" + std::to_string((int)ratio) + apr_benchmarks.analysis_data.file_name;
     apr_benchmarks.analysis_data.write_analysis_data_hdf5();
     //write the analysis output
 
