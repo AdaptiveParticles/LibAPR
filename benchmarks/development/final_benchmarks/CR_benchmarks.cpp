@@ -1,0 +1,206 @@
+//
+// Created by cheesema on 25.01.18.
+//
+
+#include <functional>
+#include <string>
+
+#include "src/data_structures/APR/APR.hpp"
+
+#include "benchmarks/development/final_benchmarks/APRBenchmark.hpp"
+
+#include <arrayfire.h>
+#include "MeshDataAF.h"
+#include "SynImageClasses.hpp"
+#include "GenerateTemplates.hpp"
+#include "SynImagePar.hpp"
+//#include "benchmarks/analysis/syn_templates.h"
+
+#include "benchmarks/development/final_benchmarks/BenchHelper.hpp"
+
+
+
+bool command_option_exists(char **begin, char **end, const std::string &option)
+{
+    return std::find(begin, end, option) != end;
+}
+
+char* get_command_option(char **begin, char **end, const std::string &option)
+{
+    char ** itr = std::find(begin, end, option);
+    if (itr != end && ++itr != end)
+    {
+        return *itr;
+    }
+    return 0;
+}
+
+struct cmdLineOptions{
+    std::string output = "output";
+    std::string stats = "";
+    std::string directory = "";
+    std::string input = "";
+    float CR = 0;
+    uint64_t number_reps = 1;
+    bool stats_file = false;
+};
+
+
+
+////////////////////////
+//
+//  Bevan Cheeseman 2017
+//
+//  Generating Increasing Domain Size
+//
+////////////////////////
+
+
+cmdLineOptions read_command_line_options_this(int argc, char **argv){
+
+    cmdLineOptions result;
+
+    if(argc == 1) {
+        std::cerr << "Usage: \"CR_benchmarks -CR val\"" << std::endl;
+        exit(1);
+    }
+
+
+    if(command_option_exists(argv, argv + argc, "-CR"))
+    {
+        result.CR = std::stof(std::string(get_command_option(argv, argv + argc, "-CR")));
+    }
+
+    if(command_option_exists(argv, argv + argc, "-number_reps"))
+    {
+        result.number_reps = std::stof(std::string(get_command_option(argv, argv + argc, "-number_reps")));
+    }
+
+    return result;
+
+}
+
+
+
+int main(int argc, char **argv) {
+
+
+    //////////////////////////////////////////
+    //
+    //
+    //  First set up the synthetic problem to be solved
+    //
+    //
+    ///////////////////////////////////////////
+
+    cmdLineOptions options = read_command_line_options_this(argc,argv);
+
+    SynImage syn_image;
+
+    std::string image_name = "sphere";
+
+    ///////////////////////////////////////////////////////////////////
+    //  PSF properties
+    //////////////////////////////////////////////////////////////////
+
+    BenchHelper benchHelper;
+
+    BenchHelper::benchmark_settings bs;
+
+    bs.sig = 3;
+
+    benchHelper.set_up_benchmark_defaults(syn_image,bs);
+
+    /////////////////////////////////////////////
+    // GENERATE THE OBJECT TEMPLATE
+
+    std::cout << "Generating Templates" << std::endl;
+
+    bs.obj_size = 3;
+
+    BenchHelper::obj_properties obj_prop(bs);
+
+    Object_template  basic_object;
+
+    generate_sphere_template(basic_object, obj_prop.sample_rate, obj_prop.real_size, obj_prop.density,
+                             obj_prop.rad_ratio);
+
+    syn_image.object_templates.push_back(basic_object);
+
+    /////////////////////////////////////////////////////////////////
+    //
+    //
+    //  Now perform the experiment looping over and generating datasets x times.
+    //
+    //
+    //
+    //////////////////////////////////////////////////////////////////
+
+    std::cout << "BENCHMARK  KEEPING COMP RATIO FIXED" << std::endl;
+
+    std::vector<int> image_size;
+
+    image_size = {100};
+
+    float ratio = 5;
+
+    int N_par = (int)image_size.size(); // this many different parameter values to be run
+
+    APRTimer b_timer;
+    b_timer.verbose_flag = true;
+
+    for (int j = 0;j < N_par;j++){
+
+        MeshData<uint16_t> input_image;
+
+        /////////////////////////////////////////
+        //////////////////////////////////////////
+        // SET UP THE DOMAIN SIZE
+
+        bs.x_num = image_size[j];
+        bs.y_num = image_size[j];
+        bs.z_num = image_size[j];
+
+        bs.num_objects = 5*pow(bs.x_num,3)/(33400*ratio);
+
+        bs.rel_error = 0.1;
+
+        for(int i = 0; i < bs.N_repeats; i++){
+
+            b_timer.start_timer("one_it");
+
+            SynImage syn_image_loc = syn_image;
+
+            benchHelper.update_domain(syn_image_loc,bs);
+
+            //Generate objects
+
+            benchHelper.generate_objects(syn_image_loc,bs);
+
+            ///////////////////////////////
+            //
+            //  Generate the image
+            //
+            ////////////////////////////////
+
+            MeshDataAF<uint16_t> gen_image;
+
+            syn_image_loc.generate_syn_image(gen_image);
+
+            MeshData<uint16_t> input_img;
+
+            benchHelper.copy_mesh_data_structures(gen_image,input_img);
+
+            af::sync();
+            af::deviceGC();
+
+
+        }
+    }
+
+    //write the analysis output
+
+    return 0;
+
+
+}

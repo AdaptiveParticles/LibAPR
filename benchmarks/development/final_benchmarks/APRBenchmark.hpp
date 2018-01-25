@@ -8,6 +8,7 @@
 
 #include <benchmarks/analysis/AnalysisData.hpp>
 #include "src/data_structures/APR/APR.hpp"
+#include "src/algorithm/APRConverter.hpp"
 
 class APRBenchmark {
 
