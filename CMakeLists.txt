@@ -388,9 +388,9 @@ if(BENCHMARKS)
 
         target_link_libraries(Example_segment_gc ${HDF5_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT} ${TIFF_LIBRARIES} blosc_shared)
 
-        target_link_libraries(Example_benchmark ${HDF5_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT} ${TIFF_LIBRARIES} blosc_shared ${ArrayFire_OpenCL_LIBRARIES})
+        target_link_libraries(Example_benchmark ${HDF5_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT} ${TIFF_LIBRARIES} blosc_shared ${ArrayFire_OpenCL_LIBRARIES} ${OpenCL_LIBRARIES})
 
-        target_link_libraries(CR_benchmarks ${HDF5_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT} ${TIFF_LIBRARIES} blosc_shared ${ArrayFire_OpenCL_LIBRARIES})
+        target_link_libraries(CR_benchmarks ${HDF5_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT} ${TIFF_LIBRARIES} blosc_shared ${ArrayFire_OpenCL_LIBRARIES} ${OpenCL_LIBRARIES})
 
         target_link_libraries(Example_newstructures ${HDF5_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT} ${TIFF_LIBRARIES} blosc_shared )
 

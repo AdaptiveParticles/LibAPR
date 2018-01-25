@@ -76,6 +76,16 @@ cmdLineOptions read_command_line_options_this(int argc, char **argv){
         result.number_reps = std::stof(std::string(get_command_option(argv, argv + argc, "-number_reps")));
     }
 
+    if(command_option_exists(argv, argv + argc, "-o"))
+    {
+        result.output = std::string(get_command_option(argv, argv + argc, "-o"));
+    }
+
+    if(command_option_exists(argv, argv + argc, "-d"))
+    {
+        result.directory = std::string(get_command_option(argv, argv + argc, "-d"));
+    }
+
     return result;
 
 }
@@ -107,7 +117,7 @@ int main(int argc, char **argv) {
 
     BenchHelper::benchmark_settings bs;
 
-    bs.sig = 2;
+    bs.sig = 3;
 
     benchHelper.set_up_benchmark_defaults(syn_image,bs);
 
@@ -162,7 +172,7 @@ int main(int argc, char **argv) {
         bs.y_num = image_size[j];
         bs.z_num = image_size[j];
 
-        bs.num_objects = 5*pow(bs.x_num,3)/(33400*ratio);
+        bs.num_objects = pow(bs.x_num,3)/(33400*ratio);
 
         bs.rel_error = 0.1;
 
@@ -194,11 +204,14 @@ int main(int argc, char **argv) {
 
             APRConverter<uint16_t> apr_converter;
 
-            apr_converter.par.Ip_th = 1030;
-            apr_converter.par.sigma_th = 200;
-            apr_converter.par.sigma_th_max = 100;
+            apr_converter.par.Ip_th = 1100;
+            apr_converter.par.sigma_th = 500;
+            apr_converter.par.sigma_th_max = 250;
             apr_converter.par.rel_error = 0.1;
-            apr_converter.par.lambda = 1.5;
+            apr_converter.par.lambda = 3;
+
+            apr_converter.par.input_dir = options.directory;
+            apr_converter.par.input_image_name = options.output;
 
             apr_converter.fine_grained_timer.verbose_flag = false;
             apr_converter.method_timer.verbose_flag = false;
@@ -209,7 +222,7 @@ int main(int argc, char **argv) {
 
             apr_benchmarks.analysis_data.file_name = "test";
 
-            TiffUtils::saveMeshAsTiff("/Users/cheesema/PhD/ImageGenData/img.tif", input_img);
+            TiffUtils::saveMeshAsTiff(options.directory + "test.tif", input_img);
 
             apr_benchmarks.benchmark_dataset_synthetic(apr_converter,input_img);
 
