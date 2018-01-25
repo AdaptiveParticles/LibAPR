@@ -81,7 +81,6 @@ int main(int argc, char **argv) {
 
     // APR datastructure
 
-
     std::string name = options.input;
     //remove the file extension
     name.erase(name.end()-4,name.end());
@@ -111,9 +110,7 @@ int main(int argc, char **argv) {
 
     apr_benchmarks.benchmark_dataset(apr_converter);
 
-    apr_benchmarks.benchmark_dataset(apr_converter);
-
-    apr_benchmarks.benchmark_dataset(apr_converter);
+    //apr_benchmarks.benchmark_dataset(apr_converter);
 
     apr_benchmarks.analysis_data.write_analysis_data_hdf5();
 

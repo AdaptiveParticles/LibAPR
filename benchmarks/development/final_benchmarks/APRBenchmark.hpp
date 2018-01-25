@@ -72,7 +72,7 @@ void APRBenchmark::benchmark_dataset(APRConverter<ImageType>& apr_converter){
 
     timer.verbose_flag = false;
 
-    timer.start_timer("compress");
+    timer.start_timer("write_compress_wnl");
     float size = apr_writer.write_apr(apr,apr_converter.par.input_dir ,name + "_compress",apr_compress,BLOSC_ZSTD,3,2);
     timer.stop_timer();
 
@@ -80,7 +80,7 @@ void APRBenchmark::benchmark_dataset(APRConverter<ImageType>& apr_converter){
     apr.particles_intensities.copy_parts(apr,intensities);
     apr_compress.set_compression_type(2);
 
-    timer.start_timer("compress1");
+    timer.start_timer("write_no_compress");
     float size2 = apr_writer.write_apr(apr,apr_converter.par.input_dir ,name + "_compress1",apr_compress,BLOSC_ZSTD,3,2);
     timer.stop_timer();
 
@@ -88,16 +88,50 @@ void APRBenchmark::benchmark_dataset(APRConverter<ImageType>& apr_converter){
     apr.particles_intensities.copy_parts(apr,intensities);
     apr_compress.set_compression_type(0);
 
-    timer.start_timer("compress2");
+    timer.start_timer("write_compress_predict_only");
     float size3 = apr_writer.write_apr(apr,apr_converter.par.input_dir ,name + "_compress2",apr_compress,BLOSC_ZSTD,3,2);
     timer.stop_timer();
 
+    timer.start_timer("write_particles_only");
     float size4 = apr_writer.write_particles_only(apr_converter.par.input_dir ,name + "_parts_only",intensities);
 
+    timer.stop_timer();
 
-    std::cout << (size3 - size4)/size3  << std::endl;
+    analysis_data.add_float_data("storage_normal", size3 );
+    analysis_data.add_float_data("storage_wnl", size );
+    analysis_data.add_float_data("storage_predict", size2 );
+    analysis_data.add_float_data("storage_only_particles", size4 );
 
-    std::cout << apr.total_number_particles() << std::endl;
+    analysis_data.add_float_data("number_particles",apr.apr_access.total_number_particles);
+    analysis_data.add_float_data("total_number_gaps",apr.apr_access.total_number_gaps);
+    analysis_data.add_float_data("total_number_non_empty_rows",apr.apr_access.total_number_non_empty_rows);
+
+    analysis_data.add_float_data("total_number_type_stored",apr.apr_access.global_index_by_level_end[apr.level_max()-1]);
+
+    analysis_data.add_float_data("ratio_access_storage", (size3 - size4)/size3 );
+
+    analysis_data.add_timer(timer);
+
+    analysis_data.add_timer(apr_converter.fine_grained_timer);
+    analysis_data.add_timer(apr_converter.computation_timer);
+    analysis_data.add_timer(apr_converter.method_timer);
+    analysis_data.add_timer(apr_converter.allocation_timer);
+    analysis_data.add_timer(apr_converter.total_timer);
+
+
+    // #TODO add estimate storage size
+    float estimated_storage_size_gaps_access = ((2 + 2 + 4 + 4)*apr.apr_access.total_number_gaps + apr.apr_access.x_num[apr.level_max()]*apr.apr_access.z_num[apr.level_max()]*4 + 4*apr.apr_access.total_number_non_empty_rows)/1000000.0; //MB
+
+    float particles_storage_cost = 2*apr.apr_access.total_number_particles/(1000000.0);
+
+    float type_storage_cost = 2*apr.apr_access.global_index_by_level_end[apr.level_max()-1]/1000000.0;
+
+    float apr_access_bits_per_particle = 8*1000000.0*estimated_storage_size_gaps_access/(1.0*apr.apr_access.total_number_particles);
+
+    // #TODO add estimated filter total storage size
+
+    int stop = 1;
+
 
 }
 
