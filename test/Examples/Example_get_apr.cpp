@@ -63,7 +63,10 @@ int main(int argc, char **argv) {
     apr_converter.par.name = options.output;
     apr_converter.par.output_dir = options.output_dir;
 
-    apr_converter.fine_grained_timer.verbose_flag = true;
+    apr_converter.fine_grained_timer.verbose_flag = false;
+    apr_converter.method_timer.verbose_flag = true;
+    apr_converter.computation_timer.verbose_flag = true;
+    apr_converter.allocation_timer.verbose_flag = true;
 
     //Gets the APR
     if(apr_converter.get_apr(apr)){
