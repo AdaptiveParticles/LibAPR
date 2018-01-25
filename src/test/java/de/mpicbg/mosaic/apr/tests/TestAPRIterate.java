@@ -25,11 +25,6 @@ public class TestAPRIterate {
     }
 
     System.err.println("PID=" + getPID());
-    try {
-      Thread.sleep(5000);
-    } catch (InterruptedException e) {
-      e.printStackTrace();
-    }
   }
 
   public static long getPID() {
@@ -52,7 +47,7 @@ public class TestAPRIterate {
     System.out.println("Serial Looping");
     final APRStd apr = new APRStd();
 
-    final String path = this.getClass().getResource("sphere.h5").getPath();
+    final String path = System.getProperty("apr.testfile", this.getClass().getResource("sphere.h5").getPath());
 
     System.out.println("Loading APR file from " + path + " ...");
 
@@ -94,7 +89,7 @@ public class TestAPRIterate {
     System.out.println("Serial Looping by level");
     final APRStd apr = new APRStd();
 
-    final String path = this.getClass().getResource("sphere.h5").getPath();
+    final String path = System.getProperty("apr.testfile", this.getClass().getResource("sphere.h5").getPath());
 
     System.out.println("Loading APR file from " + path + " ...");
 
@@ -113,15 +108,12 @@ public class TestAPRIterate {
 
     long particleNumber = 0l;
     for(int level = aprIterator.level_min(); level <= aprIterator.level_max(); ++level) {
-      System.err.println("L=" + level);
-      System.err.println("min=" + aprIterator.particles_level_begin(level));
-      System.err.println("max=" + aprIterator.particles_level_end(level));
       for(particleNumber = aprIterator.particles_level_begin(level).longValue(); particleNumber < aprIterator.particles_level_end(level).longValue(); ++particleNumber) {
         aprIterator.set_iterator_to_particle_by_number(BigInteger.valueOf(particleNumber));
 
-//        int spatialX = aprIterator.x();
-//        int spatialY = aprIterator.y();
-//        int spatialZ = aprIterator.z();
+        int spatialX = aprIterator.x();
+        int spatialY = aprIterator.y();
+        int spatialZ = aprIterator.z();
 
         long closestPixelX = aprIterator.x_nearest_pixel();
         long closestPixelY = aprIterator.y_nearest_pixel();
