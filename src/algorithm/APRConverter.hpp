@@ -150,9 +150,9 @@ bool APRConverter<ImageType>::get_apr_method_from_file(APR<ImageType>& apr, cons
         return false;
     }
 
-    computation_timer.start_timer("calculate automatic parameters");
+    method_timer.start_timer("calculate automatic parameters");
     auto_parameters(input_image);
-    computation_timer.stop_timer();
+    method_timer.stop_timer();
 
     return get_apr_method(apr,input_image);
 
@@ -167,6 +167,8 @@ bool APRConverter<ImageType>::get_apr_method(APR<ImageType>& apr, MeshData<T>& i
 
     apr_ = &apr; // in case it was called directly
 
+
+    total_timer.start_timer("Total_pipeline_excluding_IO");
 
     //Initialize the apr size parameters from the image
     init_apr(apr,input_image);
@@ -262,6 +264,8 @@ bool APRConverter<ImageType>::get_apr_method(APR<ImageType>& apr, MeshData<T>& i
     computation_timer.stop_timer();
 
     apr.parameters = par;
+
+    total_timer.stop_timer();
 
     return true;
 }
@@ -501,7 +505,7 @@ void APRConverter<ImageType>::auto_parameters(MeshData<T>& input_img){
 
     APRTimer par_timer;
 
-    par_timer.verbose_flag = true;
+    par_timer.verbose_flag = false;
 
     //
     //  Do not compute the statistics over the whole image, but only a smaller sub-set.
