@@ -354,20 +354,22 @@ float APRBenchmark::pixel_neighbour_random(uint64_t y_num, uint64_t x_num, uint6
         z_random.push_back((uint16_t)(std::rand() % z_num));
     }
 
+    uint64_t num_r = num_repeats;
 
     timer.verbose_flag = false;
     timer.start_timer("full previous filter");
 
-    int r;
-    //Generate random access numbers
-//#ifdef HAVE_OPENMP
-//#pragma omp parallel for default(shared) private(j,i,k,i_n,k_n,j_n)
-//#endif
-    for(r = 0;r < num_repeats;r++){
+    uint64_t number=0;
 
-        i = x_random[r];
-        j = z_random[r];
-        k = y_random[r];
+    //Generate random access numbers
+#ifdef HAVE_OPENMP
+#pragma omp parallel for private(number,j,i,k,i_n,k_n,j_n) default(shared)
+#endif
+    for(number = 0;number < num_r;number++){
+
+        i = x_random[number];
+        j = z_random[number];
+        k = y_random[number];
 
         U neigh_sum = 0;
         U counter = 0;
@@ -471,23 +473,31 @@ float APRBenchmark::apr_random_access(APR<U>& apr, float num_repeats){
     ParticleCell random_particle_cell;
 
 
+    uint64_t num_r = num_repeats;
     timer.verbose_flag = false;
     timer.start_timer("full previous filter");
     //Generate random access numbers
-    int r;
+    size_t number;
 
+<<<<<<< 0068e76515178b92d2542a67799bb13772f656c8
 //#ifdef HAVE_OPENMP
 //#pragma omp parallel for schedule(static) private(r) firstprivate(apr_iterator, neighbour_iterator,random_particle_cell)
 //#endif
     for(r = 0;r < num_repeats;r++){
+=======
+#ifdef HAVE_OPENMP
+#pragma omp parallel for schedule(static) private(number) firstprivate(apr_iterator, neighbour_iterator,random_particle_cell)
+#endif
+    for(number = 0;number < num_r;number++){
+>>>>>>> loop problem needed fixing
 
-        random_particle_cell.x = x_random[r];
-        random_particle_cell.y = y_random[r];
-        random_particle_cell.z = z_random[r];
-        random_particle_cell.level = level_random[r];
+        random_particle_cell.x = x_random[number];
+        random_particle_cell.y = y_random[number];
+        random_particle_cell.z = z_random[number];
+        random_particle_cell.level = level_random[number];
 
-        U neigh_sum = 0;
-        U counter = 0;
+        float neigh_sum = 0;
+        float counter = 0;
 
         apr_iterator.set_iterator_by_particle_cell(random_particle_cell);
 
