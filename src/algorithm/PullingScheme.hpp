@@ -172,7 +172,7 @@ void PullingScheme::fill(const float k, MeshData<T>& input)
             for(i = 0;i < x_num;i++){
                 for (q = 0; q < (y_num);q++){
 
-                    temp = input.mesh[(size_t)j*x_num*y_num + i*y_num + q] >= k;
+                    temp = input.mesh[j*x_num*y_num + i*y_num + q] >= k;
 
                     if ( temp ) {
                         topvec[j*x_num*y_num + i*y_num + q] = SEED_TYPE;
@@ -192,10 +192,10 @@ void PullingScheme::fill(const float k, MeshData<T>& input)
             for(i = 0;i < x_num;i++){
                 for (q = 0; q < (y_num);q++){
 
-                    temp = input.mesh[(size_t)j*x_num*y_num + i*y_num + q] <= k;
+                    temp = input.mesh[j*x_num*y_num + i*y_num + q] <= k;
 
                     if ( temp ) {
-                        particle_cell_tree[l_min].mesh[(size_t)j*x_num*y_num + i*y_num + q] = SEED_TYPE;
+                        particle_cell_tree[l_min].mesh[j*x_num*y_num + i*y_num + q] = SEED_TYPE;
                     }
                 }
             }
@@ -218,10 +218,10 @@ void PullingScheme::fill(const float k, MeshData<T>& input)
 #endif
                 for (q = 0; q < y_num;q++){
 
-                    temp = input.mesh[(size_t)j*x_num*y_num + i*y_num + q] == k;
+                    temp = input.mesh[j*x_num*y_num + i*y_num + q] == k;
 
                     if (temp) {
-                        particle_cell_tree[k].mesh[(size_t)j*x_num*y_num + i*y_num + q] = SEED_TYPE;
+                        particle_cell_tree[k].mesh[j*x_num*y_num + i*y_num + q] = SEED_TYPE;
                     }
                 }
             }
@@ -277,21 +277,21 @@ void PullingScheme::set_ascendant_neighbours(int level)
                 for (k = 0; k < y_num; k++) {
 
                     CHECKBOUNDARIES(2, k, y_num - 1, boundaries);
-                    status = particle_cell_tree[level].mesh[(size_t)index + k];
+                    status = particle_cell_tree[level].mesh[index + k];
 
                     if (status == ASCENDANT) {
                         NEIGHBOURLOOP(jn, in, kn, boundaries) {
 
                                     neighbour_index = index + jn * x_num * y_num + in * y_num + kn + k;
 
-                                    if (particle_cell_tree[level].mesh[(size_t)neighbour_index] == EMPTY) {
+                                    if (particle_cell_tree[level].mesh[neighbour_index] == EMPTY) {
                                         // type is EMPTY
-                                        particle_cell_tree[level].mesh[(size_t)neighbour_index] = ASCENDANTNEIGHBOUR;
+                                        particle_cell_tree[level].mesh[neighbour_index] = ASCENDANTNEIGHBOUR;
                                     }
 
-                                    if (particle_cell_tree[level].mesh[(size_t)neighbour_index] == SEED_TYPE) {
+                                    if (particle_cell_tree[level].mesh[neighbour_index] == SEED_TYPE) {
                                         // type is SEED
-                                        particle_cell_tree[level].mesh[(size_t)neighbour_index] = PROPOGATE;
+                                        particle_cell_tree[level].mesh[neighbour_index] = PROPOGATE;
                                     }
                                 }
                     }
@@ -345,7 +345,7 @@ void PullingScheme::set_filler(int level)
                     children_boundaries[2] = 2;
                 }
 
-                status = particle_cell_tree[level].mesh[(size_t)index + k];
+                status = particle_cell_tree[level].mesh[index + k];
 
                 if(status == ASCENDANTNEIGHBOUR || status == PROPOGATE) {
 
@@ -353,9 +353,9 @@ void PullingScheme::set_filler(int level)
                     CHILDRENLOOP(jn, in, kn, children_boundaries) {
 
                                 children_index = jn * prev_x_num * prev_y_num + in * prev_y_num + kn;
-                                children_status = particle_cell_tree[level + 1].mesh[(size_t)children_index];
+                                children_status = particle_cell_tree[level + 1].mesh[children_index];
                                 if(children_status == EMPTY) {
-                                    particle_cell_tree[level + 1].mesh[(size_t)children_index] = FILLER_TYPE;
+                                    particle_cell_tree[level + 1].mesh[children_index] = FILLER_TYPE;
                                 }
                             }
 
@@ -398,15 +398,15 @@ void PullingScheme::fill_neighbours(int level)
                 for (k = 0; k < y_num; k++) {
 
                     CHECKBOUNDARIES(2, k, y_num - 1, boundaries);
-                    status = particle_cell_tree[level].mesh[(size_t)index + k];
+                    status = particle_cell_tree[level].mesh[index + k];
 
                     if (status == SEED_TYPE || status == PROPOGATE) {
 
                         NEIGHBOURLOOP(jn, in, kn, boundaries) {
                                     neighbour_index = index + jn * x_num * y_num + in * y_num + kn + k;
 
-                                    if (particle_cell_tree[level].mesh[(size_t)neighbour_index] == EMPTY) {
-                                        particle_cell_tree[level].mesh[(size_t)neighbour_index] = BOUNDARY_TYPE;
+                                    if (particle_cell_tree[level].mesh[neighbour_index] == EMPTY) {
+                                        particle_cell_tree[level].mesh[neighbour_index] = BOUNDARY_TYPE;
                                     }
                                 }
                         parts += 8;
@@ -430,8 +430,8 @@ void PullingScheme::fill_parent(int j, int i, int k, int x_num, int y_num, int n
         int new_y_num = ((y_num + 1) / 2);
         int new_index = (j / 2) * new_x_num * new_y_num + (i / 2) * new_y_num + (k / 2);
 
-        if (particle_cell_tree[new_level].mesh[(size_t)new_index] != SEED_TYPE) {
-            particle_cell_tree[new_level].mesh[(size_t)new_index] = ASCENDANT;
+        if (particle_cell_tree[new_level].mesh[new_index] != SEED_TYPE) {
+            particle_cell_tree[new_level].mesh[new_index] = ASCENDANT;
         }
     }
 }

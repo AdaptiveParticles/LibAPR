@@ -163,8 +163,8 @@ void ComputeGradient::mask_gradient(MeshData<T>& grad_ds,MeshData<S>& temp_ds,Me
 #endif
     for ( i = 0; i < grad_ds.mesh.size(); ++i) {
 
-        if(temp_ds.mesh[(size_t)i]==0){
-            grad_ds.mesh[(size_t)i] = 0;
+        if(temp_ds.mesh[i]==0){
+            grad_ds.mesh[i] = 0;
         }
     }
 
@@ -193,8 +193,8 @@ void ComputeGradient::threshold_gradient(MeshData<T>& grad,MeshData<S>& img,cons
         for(i = 0;i < x_num;i++){
 
             for (k = 0; k < (y_num);k++){
-                if(img.mesh[(size_t)j*x_num*y_num + i*y_num + k] <= Ip_th){
-                    grad.mesh[(size_t)j*x_num*y_num + i*y_num + k] = 0;
+                if(img.mesh[j*x_num*y_num + i*y_num + k] <= Ip_th){
+                    grad.mesh[j*x_num*y_num + i*y_num + k] = 0;
                 }
             }
         }
@@ -334,23 +334,23 @@ void ComputeGradient::bspline_filt_rec_y(MeshData<T>& image,float lambda,float t
             iynum = i * y_num;
 
             for (k = 0; k < k0; k++) {
-                temp1 = temp1 + bc1_vec[k]*image.mesh[(size_t)jxnumynum + iynum + k];
-                temp2 = temp2 + bc2_vec[k]*image.mesh[(size_t)jxnumynum + iynum + k];
+                temp1 = temp1 + bc1_vec[k]*image.mesh[jxnumynum + iynum + k];
+                temp2 = temp2 + bc2_vec[k]*image.mesh[jxnumynum + iynum + k];
             }
 
             for (k = 0; k < k0; k++) {
-                temp3 = temp3 + bc3_vec[k]*image.mesh[(size_t)jxnumynum + iynum + y_num - 1 - k];
-                temp4 = temp4 + bc4_vec[k]*image.mesh[(size_t)jxnumynum + iynum + y_num - 1 - k];
+                temp3 = temp3 + bc3_vec[k]*image.mesh[jxnumynum + iynum + y_num - 1 - k];
+                temp4 = temp4 + bc4_vec[k]*image.mesh[jxnumynum + iynum + y_num - 1 - k];
             }
 
 
             //initialize the sequence
-            image.mesh[(size_t)jxnumynum + iynum + 0] = temp2;
-            image.mesh[(size_t)jxnumynum + iynum + 1] = temp1;
+            image.mesh[jxnumynum + iynum + 0] = temp2;
+            image.mesh[jxnumynum + iynum + 1] = temp1;
 
 //            for (k = 2; k < y_num; k++){
-//                temp = temp1*b1 + temp2*b2 + image.mesh[(size_t)jxnumynum + iynum + k];
-//                image.mesh[(size_t)jxnumynum + iynum + k] = temp;
+//                temp = temp1*b1 + temp2*b2 + image.mesh[jxnumynum + iynum + k];
+//                image.mesh[jxnumynum + iynum + k] = temp;
 //                temp2 = temp1;
 //                temp1 = temp;
 //            }
@@ -365,8 +365,8 @@ void ComputeGradient::bspline_filt_rec_y(MeshData<T>& image,float lambda,float t
             }
 
 
-            image.mesh[(size_t)jxnumynum + iynum + y_num - 1] = temp4;
-            image.mesh[(size_t)jxnumynum + iynum + y_num - 2] = temp3;
+            image.mesh[jxnumynum + iynum + y_num - 1] = temp4;
+            image.mesh[jxnumynum + iynum + y_num - 2] = temp3;
 
             //then replace the values for the backwards recursion
 
@@ -389,12 +389,12 @@ void ComputeGradient::bspline_filt_rec_y(MeshData<T>& image,float lambda,float t
 
             iynum = i * y_num;
 
-            temp2 = image.mesh[(size_t)jxnumynum + iynum + y_num - 1];
-            temp1 = image.mesh[(size_t)jxnumynum + iynum + y_num - 2];
+            temp2 = image.mesh[jxnumynum + iynum + y_num - 1];
+            temp1 = image.mesh[jxnumynum + iynum + y_num - 2];
             temp = 0;
 
-            image.mesh[(size_t)jxnumynum + iynum + y_num - 1]*=norm_factor;
-            image.mesh[(size_t)jxnumynum + iynum + y_num - 2]*=norm_factor;
+            image.mesh[jxnumynum + iynum + y_num - 1]*=norm_factor;
+            image.mesh[jxnumynum + iynum + y_num - 2]*=norm_factor;
 
             for (auto it = (image.mesh.begin()+jxnumynum + iynum + y_num-3); it !=  (image.mesh.begin()+jxnumynum + iynum-1); --it) {
                 temp = temp1*b1 + temp2*b2 + *it;
@@ -405,8 +405,8 @@ void ComputeGradient::bspline_filt_rec_y(MeshData<T>& image,float lambda,float t
             }
 
 //            for (k = y_num-3; k >= 0; k--){
-//                temp = (temp1*b1 + temp2*b2 + image.mesh[(size_t)jxnumynum + iynum + k]);
-//                image.mesh[(size_t)jxnumynum + iynum + k] = temp*norm_factor;
+//                temp = (temp1*b1 + temp2*b2 + image.mesh[jxnumynum + iynum + k]);
+//                image.mesh[jxnumynum + iynum + k] = temp*norm_factor;
 //                temp2 = temp1;
 //                temp1 = temp;
 //            }
@@ -555,9 +555,9 @@ void ComputeGradient::bspline_filt_rec_z(MeshData<T>& image,float lambda,float t
             //forwards boundary condition loop
             for (k = y_num - 1; k >= 0; k--){
 
-                temp_vec1[k] += bc1_vec[j] * image.mesh[(size_t)index + k];
+                temp_vec1[k] += bc1_vec[j] * image.mesh[index + k];
 
-                temp_vec2[k] += bc2_vec[j] * image.mesh[(size_t)index + k];
+                temp_vec2[k] += bc2_vec[j] * image.mesh[index + k];
 
             }
 
@@ -567,9 +567,9 @@ void ComputeGradient::bspline_filt_rec_z(MeshData<T>& image,float lambda,float t
             //backwards boundary condition loop
             for (k = y_num - 1; k >= 0; k--){
 
-                temp_vec3[k] += bc3_vec[j] * image.mesh[(size_t)(z_num - 1 - j)*x_num*y_num + iynum + k];
+                temp_vec3[k] += bc3_vec[j] * image.mesh[(z_num - 1 - j)*x_num*y_num + iynum + k];
 
-                temp_vec4[k] += bc4_vec[j] * image.mesh[(size_t)(z_num - 1 - j)*x_num*y_num + iynum + k];
+                temp_vec4[k] += bc4_vec[j] * image.mesh[(z_num - 1 - j)*x_num*y_num + iynum + k];
 
             }
 
@@ -583,13 +583,13 @@ void ComputeGradient::bspline_filt_rec_z(MeshData<T>& image,float lambda,float t
         //initialization
         for (k = 0; k < y_num; k++){
             //z(0)
-            image.mesh[(size_t)iynum + k] = temp_vec2[k];
+            image.mesh[iynum + k] = temp_vec2[k];
         }
 
 
         for (k = 0; k < y_num; k++){
             //y(1)
-            image.mesh[(size_t)x_num*y_num  + iynum + k] = temp_vec1[k];
+            image.mesh[x_num*y_num  + iynum + k] = temp_vec1[k];
         }
 
         for(j = 2; j < z_num; j++){
@@ -600,7 +600,7 @@ void ComputeGradient::bspline_filt_rec_z(MeshData<T>& image,float lambda,float t
 	#pragma omp simd
 #endif
             for (k = 0; k < y_num; k++){
-                image.mesh[(size_t)index + k] = image.mesh[(size_t)index + k] + b1*temp_vec1[k]+  b2*temp_vec2[k];
+                image.mesh[index + k] = image.mesh[index + k] + b1*temp_vec1[k]+  b2*temp_vec2[k];
             }
 
             std::swap(temp_vec1, temp_vec2);
@@ -615,13 +615,13 @@ void ComputeGradient::bspline_filt_rec_z(MeshData<T>& image,float lambda,float t
         //initialization
         for (k = y_num - 1; k >= 0; k--){
             //y(N)
-            image.mesh[(size_t)(z_num - 1)*x_num*y_num  + iynum + k] = temp_vec4[k]*norm_factor;
+            image.mesh[(z_num - 1)*x_num*y_num  + iynum + k] = temp_vec4[k]*norm_factor;
         }
 
 
         for (k = y_num - 1; k >= 0; k--){
             //y(N-1)
-            image.mesh[(size_t)(z_num - 2)*x_num*y_num  + iynum + k] = temp_vec3[k]*norm_factor;
+            image.mesh[(z_num - 2)*x_num*y_num  + iynum + k] = temp_vec3[k]*norm_factor;
         }
 
         //main loop
@@ -633,10 +633,10 @@ void ComputeGradient::bspline_filt_rec_z(MeshData<T>& image,float lambda,float t
 	#pragma omp simd
 #endif
             for (k = y_num - 1; k >= 0; k--){
-                image.mesh[(size_t)index + k] = (image.mesh[(size_t)index + k] +  b1*temp_vec3[k]+  b2*temp_vec4[k])*norm_factor;
+                image.mesh[index + k] = (image.mesh[index + k] +  b1*temp_vec3[k]+  b2*temp_vec4[k])*norm_factor;
                 temp_vec4[k] = temp_vec3[k];
-                temp_vec3[k] = image.mesh[(size_t)index + k]*(1/norm_factor);
-                //image.mesh[(size_t)index + k] *= norm_factor;
+                temp_vec3[k] = image.mesh[index + k]*(1/norm_factor);
+                //image.mesh[index + k] *= norm_factor;
             }
 
         }
@@ -778,18 +778,18 @@ void ComputeGradient::bspline_filt_rec_x(MeshData<T>& image,float lambda,float t
             for (k = 0; k < y_num; k++){
 
 
-                temp_vec1[k] += bc1_vec[i]*image.mesh[(size_t)jxnumynum + i*y_num + k];
+                temp_vec1[k] += bc1_vec[i]*image.mesh[jxnumynum + i*y_num + k];
 
-                temp_vec2[k] += bc2_vec[i]*image.mesh[(size_t)jxnumynum + i*y_num + k];
+                temp_vec2[k] += bc2_vec[i]*image.mesh[jxnumynum + i*y_num + k];
 
             }
 
             //backwards boundary condition loop
             for (k = 0; k < y_num;k++){
 
-                temp_vec3[k] += bc3_vec[i]*image.mesh[(size_t)jxnumynum + (x_num - 1 - i)*y_num + k];
+                temp_vec3[k] += bc3_vec[i]*image.mesh[jxnumynum + (x_num - 1 - i)*y_num + k];
 
-                temp_vec4[k] += bc4_vec[i]*image.mesh[(size_t)jxnumynum + (x_num - 1 - i)*y_num + k];
+                temp_vec4[k] += bc4_vec[i]*image.mesh[jxnumynum + (x_num - 1 - i)*y_num + k];
 
             }
 
@@ -804,13 +804,13 @@ void ComputeGradient::bspline_filt_rec_x(MeshData<T>& image,float lambda,float t
         //initialization
         for (k = y_num - 1; k >= 0; k--) {
             //y(0)
-            image.mesh[(size_t)jxnumynum  + k] = temp_vec2[k];
+            image.mesh[jxnumynum  + k] = temp_vec2[k];
         }
 
 
         for (k = y_num - 1; k >= 0; k--) {
             //y(1)
-            image.mesh[(size_t)jxnumynum  + y_num + k] = temp_vec1[k];
+            image.mesh[jxnumynum  + y_num + k] = temp_vec1[k];
         }
 
         for(i = 2;i < x_num;i++){
@@ -821,7 +821,7 @@ void ComputeGradient::bspline_filt_rec_x(MeshData<T>& image,float lambda,float t
 	#pragma omp simd
 #endif
             for (k = y_num - 1; k >= 0; k--) {
-                image.mesh[(size_t)index + k] = image.mesh[(size_t)index + k] + b1*temp_vec1[k]+  b2*temp_vec2[k];
+                image.mesh[index + k] = image.mesh[index + k] + b1*temp_vec1[k]+  b2*temp_vec2[k];
             }
 
             std::swap(temp_vec1, temp_vec2);
@@ -836,13 +836,13 @@ void ComputeGradient::bspline_filt_rec_x(MeshData<T>& image,float lambda,float t
         //initialization
         for (k = y_num - 1; k >= 0; k--){
             //y(N)
-            image.mesh[(size_t)jxnumynum  + (x_num - 1)*y_num + k] = temp_vec4[k]*norm_factor;
+            image.mesh[jxnumynum  + (x_num - 1)*y_num + k] = temp_vec4[k]*norm_factor;
         }
 
 
         for (k = y_num - 1; k >= 0; k--){
             //y(N-1)
-            image.mesh[(size_t)jxnumynum  + (x_num - 2)*y_num + k] = temp_vec3[k]*norm_factor;
+            image.mesh[jxnumynum  + (x_num - 2)*y_num + k] = temp_vec3[k]*norm_factor;
         }
 
         //main loop
@@ -854,10 +854,10 @@ void ComputeGradient::bspline_filt_rec_x(MeshData<T>& image,float lambda,float t
 	#pragma omp simd
 #endif
             for (k = y_num - 1; k >= 0; k--){
-                image.mesh[(size_t)index + k] = (image.mesh[(size_t)index + k] + b1*temp_vec3[ k]+  b2*temp_vec4[ k])*norm_factor;
+                image.mesh[index + k] = (image.mesh[index + k] + b1*temp_vec3[ k]+  b2*temp_vec4[ k])*norm_factor;
                 temp_vec4[k] = temp_vec3[k];
-                temp_vec3[k] = image.mesh[(size_t)index + k]*(1/norm_factor);
-                //image.mesh[(size_t)index + k] *= norm_factor;
+                temp_vec3[k] = image.mesh[index + k]*(1/norm_factor);
+                //image.mesh[index + k] *= norm_factor;
             }
 
         }
@@ -901,8 +901,8 @@ void ComputeGradient::calc_inv_bspline_z(MeshData<T>& input){
 
         //initialize the loop
         for (k = y_num - 1; k >= 0; k--) {
-            temp_vec[k].temp_1 = input.mesh[(size_t)xnumynum + iynum + k];
-            temp_vec[k].temp_2 = input.mesh[(size_t)iynum + k];
+            temp_vec[k].temp_1 = input.mesh[xnumynum + iynum + k];
+            temp_vec[k].temp_2 = input.mesh[iynum + k];
         }
 
         for (j = 0; j < z_num - 1; j++) {
@@ -914,14 +914,14 @@ void ComputeGradient::calc_inv_bspline_z(MeshData<T>& input){
 	#pragma omp simd
 #endif
             for (k = 0; k < (y_num);k++){
-                temp_vec[k].temp_3 = input.mesh[(size_t)jxnumynum + xnumynum + iynum + k];
+                temp_vec[k].temp_3 = input.mesh[jxnumynum + xnumynum + iynum + k];
             }
 
 #ifdef HAVE_OPENMP
 	#pragma omp simd
 #endif
             for (k = 0; k < (y_num);k++){
-                input.mesh[(size_t)jxnumynum + iynum + k] = a1 * temp_vec[k].temp_1 + a2 * temp_vec[k].temp_2 + a3 * temp_vec[k].temp_3;
+                input.mesh[jxnumynum + iynum + k] = a1 * temp_vec[k].temp_1 + a2 * temp_vec[k].temp_2 + a3 * temp_vec[k].temp_3;
             }
 
 #ifdef HAVE_OPENMP
@@ -936,8 +936,8 @@ void ComputeGradient::calc_inv_bspline_z(MeshData<T>& input){
 
         //then do the last boundary point (RHS)
         for (k = 0; k < (y_num);k++){
-            input.mesh[(size_t)(z_num - 1) * xnumynum + iynum + k] = (a1 + a3) * temp_vec[k].temp_1;
-            input.mesh[(size_t)(z_num - 1) * xnumynum + iynum + k] += a2 * temp_vec[k].temp_2;
+            input.mesh[(z_num - 1) * xnumynum + iynum + k] = (a1 + a3) * temp_vec[k].temp_1;
+            input.mesh[(z_num - 1) * xnumynum + iynum + k] += a2 * temp_vec[k].temp_2;
         }
 
     }
@@ -980,8 +980,8 @@ void ComputeGradient::calc_inv_bspline_x(MeshData<T>& input){
 
         //initialize the loop
         for (k = y_num - 1; k >= 0; k--) {
-            temp_vec[k].temp_1 = input.mesh[(size_t)jxnumynum + y_num + k];
-            temp_vec[k].temp_2 = input.mesh[(size_t)jxnumynum + k];
+            temp_vec[k].temp_1 = input.mesh[jxnumynum + y_num + k];
+            temp_vec[k].temp_2 = input.mesh[jxnumynum + k];
         }
 
         //LHS boundary condition is accounted for with this initialization
@@ -995,14 +995,14 @@ void ComputeGradient::calc_inv_bspline_x(MeshData<T>& input){
 	#pragma omp simd
 #endif
             for (k = 0; k < (y_num); k++) {
-                temp_vec[k].temp_3 = input.mesh[(size_t)jxnumynum + iynum + y_num+ k];
+                temp_vec[k].temp_3 = input.mesh[jxnumynum + iynum + y_num+ k];
             }
 
 #ifdef HAVE_OPENMP
 	#pragma omp simd
 #endif
             for (k = 0; k < (y_num); k++) {
-                input.mesh[(size_t)jxnumynum + iynum + k] = a1 * temp_vec[k].temp_1 + a2 * temp_vec[k].temp_2 + a3 * temp_vec[k].temp_3;
+                input.mesh[jxnumynum + iynum + k] = a1 * temp_vec[k].temp_1 + a2 * temp_vec[k].temp_2 + a3 * temp_vec[k].temp_3;
             }
 
             for (k = 0; k < (y_num); k++) {
@@ -1014,7 +1014,7 @@ void ComputeGradient::calc_inv_bspline_x(MeshData<T>& input){
 
         //then do the last boundary point (RHS)
         for (k = y_num - 1; k >= 0; k--) {
-            input.mesh[(size_t)jxnumynum + xnumynum - y_num + k] = (a1+a3) * temp_vec[k].temp_1 + a2 * temp_vec[k].temp_2;
+            input.mesh[jxnumynum + xnumynum - y_num + k] = (a1+a3) * temp_vec[k].temp_1 + a2 * temp_vec[k].temp_2;
         }
 
     }
@@ -1093,19 +1093,19 @@ void ComputeGradient::calc_bspline_fd_y(MeshData<T>& input){
 
 
             for (k = 0; k < (y_num);k++){
-                temp_vec[k] = input.mesh[(size_t)j*x_num*y_num + i*y_num + k];
+                temp_vec[k] = input.mesh[j*x_num*y_num + i*y_num + k];
             }
 
             //LHS boundary condition
-            input.mesh[(size_t)j*x_num*y_num + i*y_num] = 0;
+            input.mesh[j*x_num*y_num + i*y_num] = 0;
 
             for (k = 1; k < (y_num-1);k++){
-                input.mesh[(size_t)j*x_num*y_num + i*y_num + k] = a1*temp_vec[k-1];
-                input.mesh[(size_t)j*x_num*y_num + i*y_num + k] += a3*temp_vec[k+1];
+                input.mesh[j*x_num*y_num + i*y_num + k] = a1*temp_vec[k-1];
+                input.mesh[j*x_num*y_num + i*y_num + k] += a3*temp_vec[k+1];
             }
 
             //RHS boundary condition
-            input.mesh[(size_t)j*x_num*y_num + i*y_num + y_num - 1] = 0;
+            input.mesh[j*x_num*y_num + i*y_num + y_num - 1] = 0;
 
         }
     }
@@ -1147,8 +1147,8 @@ void ComputeGradient::calc_bspline_fd_x(MeshData<T>& input){
 
         //initialize the loop
         for (k = 0; k < (y_num);k++){
-            temp_vec_1[k] = input.mesh[(size_t)j*x_num*y_num + 1*y_num + k];
-            temp_vec_2[k] = input.mesh[(size_t)j*x_num*y_num + (0)*y_num + k];
+            temp_vec_1[k] = input.mesh[j*x_num*y_num + 1*y_num + k];
+            temp_vec_2[k] = input.mesh[j*x_num*y_num + (0)*y_num + k];
         }
 
         //LHS boundary condition is accounted for wiht this initialization
@@ -1158,13 +1158,13 @@ void ComputeGradient::calc_bspline_fd_x(MeshData<T>& input){
 
             //initialize the loop
             for (k = 0; k < (y_num);k++){
-                temp_vec_3[k] = input.mesh[(size_t)j*x_num*y_num + (i+1)*y_num + k];
+                temp_vec_3[k] = input.mesh[j*x_num*y_num + (i+1)*y_num + k];
             }
 
 
             for (k = 0; k < (y_num);k++){
-                input.mesh[(size_t)j*x_num*y_num + i*y_num + k] = a1*temp_vec_1[k];
-                input.mesh[(size_t)j*x_num*y_num + i*y_num + k] += a3*temp_vec_3[k];
+                input.mesh[j*x_num*y_num + i*y_num + k] = a1*temp_vec_1[k];
+                input.mesh[j*x_num*y_num + i*y_num + k] += a3*temp_vec_3[k];
             }
 
             for (k = 0; k < (y_num);k++){
@@ -1176,7 +1176,7 @@ void ComputeGradient::calc_bspline_fd_x(MeshData<T>& input){
 
         //then do the last boundary point (RHS)
         for (k = 0; k < (y_num);k++){
-            input.mesh[(size_t)j*x_num*y_num + (x_num - 1)*y_num + k] = (a1+a3)*temp_vec_1[k];
+            input.mesh[j*x_num*y_num + (x_num - 1)*y_num + k] = (a1+a3)*temp_vec_1[k];
         }
 
     }
@@ -1238,14 +1238,14 @@ void ComputeGradient::calc_bspline_fd_ds_mag(MeshData<T> &input, MeshData<S> &gr
 
 //        //initialize the loop
 //        for (k = 0; k < (y_num);k++){
-//            temp_vec_1[k] = input.mesh[(size_t)j*x_num*y_num + 1*y_num + k];
+//            temp_vec_1[k] = input.mesh[j*x_num*y_num + 1*y_num + k];
 //        }
 
         std::copy(input.mesh.begin() + j*x_num*y_num + 1*y_num ,input.mesh.begin() + j*x_num*y_num + 1*y_num + y_num,temp_vec_1.begin());
 
 //        //initialize the loop
 //        for (k = 0; k < (y_num);k++){
-//            temp_vec_2[k] = input.mesh[(size_t)j*x_num*y_num  + k];
+//            temp_vec_2[k] = input.mesh[j*x_num*y_num  + k];
 //        }
 
         std::copy(input.mesh.begin() + j*x_num*y_num  ,input.mesh.begin() + j*x_num*y_num  + y_num,temp_vec_2.begin());
@@ -1261,8 +1261,8 @@ void ComputeGradient::calc_bspline_fd_ds_mag(MeshData<T> &input, MeshData<S> &gr
 //	#pragma omp simd
 //#endif
 //            for (k = 0; k < (y_num); k++) {
-//                temp_vec_4[k] = input.mesh[(size_t)j_m*xnumynum + i * y_num + k];
-//                temp_vec_5[k] = input.mesh[(size_t)j_p*xnumynum +  i * y_num + k];
+//                temp_vec_4[k] = input.mesh[j_m*xnumynum + i * y_num + k];
+//                temp_vec_5[k] = input.mesh[j_p*xnumynum +  i * y_num + k];
 //            }
 
             std::copy(input.mesh.begin() + j_m*xnumynum + i * y_num ,input.mesh.begin() + j_m*xnumynum + i * y_num + y_num,temp_vec_4.begin());
@@ -1273,7 +1273,7 @@ void ComputeGradient::calc_bspline_fd_ds_mag(MeshData<T> &input, MeshData<S> &gr
 //	#pragma omp simd
 //#endif
 //            for (k = 0; k < (y_num);k++){
-//                temp_vec_3[k] = input.mesh[(size_t)j*x_num*y_num + (i+1)*y_num + k];
+//                temp_vec_3[k] = input.mesh[j*x_num*y_num + (i+1)*y_num + k];
 //            }
             std::copy(input.mesh.begin() + j*x_num*y_num + (i+1)*y_num ,input.mesh.begin() +j*x_num*y_num + (i+1)*y_num + y_num,temp_vec_3.begin());
 
@@ -1300,8 +1300,8 @@ void ComputeGradient::calc_bspline_fd_ds_mag(MeshData<T> &input, MeshData<S> &gr
 #endif
             for (k = 0; k < (y_num_ds);k++) {
                 k_s = std::min(2*k+1,y_num-1);
-                grad.mesh[(size_t)j_2*x_num_ds*y_num_ds + i_2*y_num_ds + k] = std::max(temp_vec_6[2*k],grad.mesh[(size_t)j_2*x_num_ds*y_num_ds + i_2*y_num_ds + k]);
-                grad.mesh[(size_t)j_2*x_num_ds*y_num_ds + i_2*y_num_ds + k]= std::max(temp_vec_6[k_s],grad.mesh[(size_t)j_2*x_num_ds*y_num_ds + i_2*y_num_ds + k]);
+                grad.mesh[j_2*x_num_ds*y_num_ds + i_2*y_num_ds + k] = std::max(temp_vec_6[2*k],grad.mesh[j_2*x_num_ds*y_num_ds + i_2*y_num_ds + k]);
+                grad.mesh[j_2*x_num_ds*y_num_ds + i_2*y_num_ds + k]= std::max(temp_vec_6[k_s],grad.mesh[j_2*x_num_ds*y_num_ds + i_2*y_num_ds + k]);
             }
 
 //            int k_s;
@@ -1311,7 +1311,7 @@ void ComputeGradient::calc_bspline_fd_ds_mag(MeshData<T> &input, MeshData<S> &gr
 //#endif
 //            for (k = 0; k < (y_num_ds);k++) {
 //                k_s = std::min(2*k+1,y_num-1);
-//                grad.mesh[(size_t)j_2*x_num_ds*y_num_ds + i_2*y_num_ds + k] = std::max(temp_vec_6[k_s],grad.mesh[(size_t)j_2*x_num_ds*y_num_ds + i_2*y_num_ds + k]);
+//                grad.mesh[j_2*x_num_ds*y_num_ds + i_2*y_num_ds + k] = std::max(temp_vec_6[k_s],grad.mesh[j_2*x_num_ds*y_num_ds + i_2*y_num_ds + k]);
 //            }
 
             std::swap(temp_vec_1, temp_vec_2);
@@ -1362,8 +1362,8 @@ void ComputeGradient::calc_bspline_fd_x_y_alt(MeshData<T>& input,MeshData<S>& gr
 
         //initialize the loop
         for (k = 0; k < (y_num);k++){
-            temp_vec_1[k] = input.mesh[(size_t)j*x_num*y_num + 1*y_num + k];
-            temp_vec_2[k] = input.mesh[(size_t)j*x_num*y_num + (0)*y_num + k];
+            temp_vec_1[k] = input.mesh[j*x_num*y_num + 1*y_num + k];
+            temp_vec_2[k] = input.mesh[j*x_num*y_num + (0)*y_num + k];
         }
 
         //LHS boundary condition is accounted for wiht this initialization
@@ -1376,7 +1376,7 @@ void ComputeGradient::calc_bspline_fd_x_y_alt(MeshData<T>& input,MeshData<S>& gr
 	#pragma omp simd
 #endif
             for (k = 0; k < (y_num);k++){
-                temp_vec_3[k] = input.mesh[(size_t)j*x_num*y_num + (i+1)*y_num + k];
+                temp_vec_3[k] = input.mesh[j*x_num*y_num + (i+1)*y_num + k];
             }
 
             //do the y gradient
@@ -1384,7 +1384,7 @@ void ComputeGradient::calc_bspline_fd_x_y_alt(MeshData<T>& input,MeshData<S>& gr
 	#pragma omp simd
 #endif
             for (k = 1; k < (y_num-1);k++){
-                grad.mesh[(size_t)j*x_num*y_num + i*y_num + k] = pow((a1*temp_vec_2[k-1] + a3*temp_vec_2[k+1])/hy,2.0);
+                grad.mesh[j*x_num*y_num + i*y_num + k] = pow((a1*temp_vec_2[k-1] + a3*temp_vec_2[k+1])/hy,2.0);
             }
 
 #ifdef HAVE_OPENMP
@@ -1392,7 +1392,7 @@ void ComputeGradient::calc_bspline_fd_x_y_alt(MeshData<T>& input,MeshData<S>& gr
 #endif
             //calc teh x gradient
             for (k = 0; k < (y_num);k++){
-                grad.mesh[(size_t)j*x_num*y_num + i*y_num + k] += pow((a1*temp_vec_1[k] + a3*temp_vec_3[k])/hx,2.0);
+                grad.mesh[j*x_num*y_num + i*y_num + k] += pow((a1*temp_vec_1[k] + a3*temp_vec_3[k])/hx,2.0);
 
             }
 
@@ -1445,8 +1445,8 @@ void ComputeGradient::calc_bspline_fd_z_alt(MeshData<T>& input,MeshData<S>& grad
 
         //initialize the loop
         for (k = 0; k < (y_num);k++){
-            temp_vec_1[k] = input.mesh[(size_t)xnumynum + i*y_num + k];
-            temp_vec_2[k] = input.mesh[(size_t)i*y_num + k];
+            temp_vec_1[k] = input.mesh[xnumynum + i*y_num + k];
+            temp_vec_2[k] = input.mesh[i*y_num + k];
         }
 
         for(j = 0;j < z_num-1;j++){
@@ -1458,14 +1458,14 @@ void ComputeGradient::calc_bspline_fd_z_alt(MeshData<T>& input,MeshData<S>& grad
 	#pragma omp simd
 #endif
             for (k = 0; k < (y_num);k++){
-                temp_vec_3[k] = input.mesh[(size_t)index + xnumynum +  k];
+                temp_vec_3[k] = input.mesh[index + xnumynum +  k];
             }
 
 #ifdef HAVE_OPENMP
 	#pragma omp simd
 #endif
             for (k = 0; k < (y_num);k++){
-                grad.mesh[(size_t)index + k] = sqrt(grad.mesh[(size_t)index + k] + pow((a1*temp_vec_1[k] + a3*temp_vec_3[k])/h,2.0f));
+                grad.mesh[index + k] = sqrt(grad.mesh[index + k] + pow((a1*temp_vec_1[k] + a3*temp_vec_3[k])/h,2.0f));
             }
 
             std::swap(temp_vec_1, temp_vec_2);
@@ -1474,7 +1474,7 @@ void ComputeGradient::calc_bspline_fd_z_alt(MeshData<T>& input,MeshData<S>& grad
         }
         //account for last position
         for (k = 0; k < (y_num);k++){
-            grad.mesh[(size_t)(z_num-1)*x_num*y_num + i*y_num + k] = sqrt(grad.mesh[(size_t)(z_num-1)*x_num*y_num + i*y_num + k]);
+            grad.mesh[(z_num-1)*x_num*y_num + i*y_num + k] = sqrt(grad.mesh[(z_num-1)*x_num*y_num + i*y_num + k]);
         }
 
     }
@@ -1516,20 +1516,20 @@ void ComputeGradient::calc_bspline_fd_z(MeshData<T>& input){
 
         //initialize the loop
         for (k = 0; k < (y_num);k++){
-            temp_vec_1[k] = input.mesh[(size_t)1*x_num*y_num + i*y_num + k];
-            temp_vec_2[k] = input.mesh[(size_t)0*x_num*y_num + i*y_num + k];
+            temp_vec_1[k] = input.mesh[1*x_num*y_num + i*y_num + k];
+            temp_vec_2[k] = input.mesh[0*x_num*y_num + i*y_num + k];
         }
 
         for(j = 0;j < z_num-1;j++){
 
             //initialize the loop
             for (k = 0; k < (y_num);k++){
-                temp_vec_3[k] = input.mesh[(size_t)(j+1)*x_num*y_num + (i)*y_num + k];
+                temp_vec_3[k] = input.mesh[(j+1)*x_num*y_num + (i)*y_num + k];
             }
 
             for (k = 0; k < (y_num);k++){
-                input.mesh[(size_t)j*x_num*y_num + i*y_num + k] = a1*temp_vec_1[k];
-                input.mesh[(size_t)j*x_num*y_num + i*y_num + k] += a3*temp_vec_3[k];
+                input.mesh[j*x_num*y_num + i*y_num + k] = a1*temp_vec_1[k];
+                input.mesh[j*x_num*y_num + i*y_num + k] += a3*temp_vec_3[k];
             }
 
             for (k = 0; k < (y_num);k++){
@@ -1541,7 +1541,7 @@ void ComputeGradient::calc_bspline_fd_z(MeshData<T>& input){
 
         //then do the last boundary point (RHS)
         for (k = 0; k < (y_num);k++){
-            input.mesh[(size_t)(z_num - 1)*x_num*y_num + i*y_num + k] = (a1+a3)*temp_vec_1[k];
+            input.mesh[(z_num - 1)*x_num*y_num + i*y_num + k] = (a1+a3)*temp_vec_1[k];
         }
 
     }
@@ -1590,25 +1590,25 @@ void ComputeGradient::calc_inv_bspline_y(MeshData<T>& input){
 	#pragma omp simd
 #endif
             for (k = 0; k < (y_num);k++){
-                temp_vec[k] = input.mesh[(size_t)j*x_num*y_num + i*y_num + k];
+                temp_vec[k] = input.mesh[j*x_num*y_num + i*y_num + k];
             }
 
             //LHS boundary condition
-            input.mesh[(size_t)j*x_num*y_num + i*y_num] = a2*temp_vec[0];
-            input.mesh[(size_t)j*x_num*y_num + i*y_num] += (a1+a3)*temp_vec[1];
+            input.mesh[j*x_num*y_num + i*y_num] = a2*temp_vec[0];
+            input.mesh[j*x_num*y_num + i*y_num] += (a1+a3)*temp_vec[1];
 
 #ifdef HAVE_OPENMP
 	#pragma omp simd
 #endif
             for (k = 1; k < (y_num-1);k++){
-                input.mesh[(size_t)j*x_num*y_num + i*y_num + k] = a1*temp_vec[k-1];
-                input.mesh[(size_t)j*x_num*y_num + i*y_num + k] += a2*temp_vec[k];
-                input.mesh[(size_t)j*x_num*y_num + i*y_num + k] += a3*temp_vec[k+1];
+                input.mesh[j*x_num*y_num + i*y_num + k] = a1*temp_vec[k-1];
+                input.mesh[j*x_num*y_num + i*y_num + k] += a2*temp_vec[k];
+                input.mesh[j*x_num*y_num + i*y_num + k] += a3*temp_vec[k+1];
             }
 
             //RHS boundary condition
-            input.mesh[(size_t)j*x_num*y_num + i*y_num + y_num - 1] = (a1+a3)*temp_vec[y_num - 2];
-            input.mesh[(size_t)j*x_num*y_num + i*y_num + y_num - 1] += a2*temp_vec[y_num - 1];
+            input.mesh[j*x_num*y_num + i*y_num + y_num - 1] = (a1+a3)*temp_vec[y_num - 2];
+            input.mesh[j*x_num*y_num + i*y_num + y_num - 1] += a2*temp_vec[y_num - 1];
 
 
         }

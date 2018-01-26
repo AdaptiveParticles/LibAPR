@@ -237,7 +237,7 @@ void APRRaycaster::perform_raycast(APR<U>& apr,ExtraParticleData<S>& particle_da
                 //get the particle value
                 S temp_int = apr_iterator(particle_data);
 
-                depth_slice[level].mesh[(size_t)dim1 + (dim2) * depth_slice[level].y_num] = op(temp_int, depth_slice[level].mesh[(size_t)dim1 + (dim2) * depth_slice[level].y_num]);
+                depth_slice[level].mesh[dim1 + (dim2) * depth_slice[level].y_num] = op(temp_int, depth_slice[level].mesh[dim1 + (dim2) * depth_slice[level].y_num]);
             }
         }
 
@@ -264,7 +264,7 @@ void APRRaycaster::perform_raycast(APR<U>& apr,ExtraParticleData<S>& particle_da
 
                 for (y_ = 0; y_ < depth_slice[level].y_num; y_++) {
 
-                    const float curr_int = depth_slice[level].mesh[(size_t)y_ + (x_) * depth_slice[level].y_num];
+                    const float curr_int = depth_slice[level].mesh[y_ + (x_) * depth_slice[level].y_num];
 
                     const int dim1 = y_ * step_size;
                     const int dim2 = x_ * step_size;
@@ -279,9 +279,9 @@ void APRRaycaster::perform_raycast(APR<U>& apr,ExtraParticleData<S>& particle_da
 
                         for (k = dim2; k < offset_max_dim2; ++k) {
                             for (i = dim1; i < offset_max_dim1; ++i) {
-                                depth_slice[apr.level_max()].mesh[(size_t)i +
+                                depth_slice[apr.level_max()].mesh[i +
                                                                   (k) * depth_slice[apr.level_max()].y_num] = op(
-                                        curr_int, depth_slice[apr.level_max()].mesh[(size_t)i + (k) *
+                                        curr_int, depth_slice[apr.level_max()].mesh[i + (k) *
                                                                                         depth_slice[apr.level_max()].y_num]);
 
                             }
@@ -413,14 +413,14 @@ float APRRaycaster::perpsective_mesh_raycast(MeshData<S>& image) {
                     glm::vec2 pos = o.worldToScreen(mvp, glm::vec3((float) x_*this->scale_x, (float) j_*this->scale_y, (float) z_*this->scale_z), imageWidth,
                                                     imageHeight);
 
-                    const S temp_int = image.mesh[(size_t)j_ + x_ * image.y_num + z_ * image.x_num * image.y_num];
+                    const S temp_int = image.mesh[j_ + x_ * image.y_num + z_ * image.x_num * image.y_num];
 
                     const int dim1 = round(-pos.y);
                     const int dim2 = round(-pos.x);
 
                     if (dim1 > 0 & dim2 > 0 & (dim1 < proj_img.y_num) & (dim2 < proj_img.x_num)) {
 
-                        proj_img.mesh[(size_t)dim1 + (dim2) * proj_img.y_num] = std::max(temp_int, proj_img.mesh[(size_t)dim1 + (dim2) *
+                        proj_img.mesh[dim1 + (dim2) * proj_img.y_num] = std::max(temp_int, proj_img.mesh[dim1 + (dim2) *
                                                                                                                 proj_img.y_num]);
                     }
                 }

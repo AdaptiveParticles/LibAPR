@@ -191,7 +191,7 @@ namespace TiffUtils {
 
             // read current directory
             for (tstrip_t strip = 0; strip < TIFFNumberOfStrips(aTiff.iFile); ++strip) {
-                tmsize_t readLen = TIFFReadEncodedStrip(aTiff.iFile, strip, (&aInputMesh.mesh[(size_t)0] + currentOffset), (tsize_t) -1 /* read as much as possible */);
+                tmsize_t readLen = TIFFReadEncodedStrip(aTiff.iFile, strip, (&aInputMesh.mesh[0] + currentOffset), (tsize_t) -1 /* read as much as possible */);
                 currentOffset += readLen/sizeof(T);
             }
         }
@@ -219,7 +219,8 @@ namespace TiffUtils {
         const uint16_t bitsPerSample = sizeof(T) * 8;
 
         size_t imgSize = (size_t)width * height * depth * sizeof(T);
-        bool isBigTiff = imgSize > (2 ^ 32 - 32 * 2^10); // 4GB - 32kB headerSize (should be safe enough)
+        size_t maxSize = ((size_t)1 << 32) - 32 * 1024; // 4GB - 32kB headerSize (should be safe enough)
+        bool isBigTiff = imgSize > maxSize;
         TIFF *tif = TIFFOpen(aFileName.c_str(), isBigTiff ? "w8" : "w");
 
         // Set fileds needed to calculate TIFFDefaultStripSize and set proper TIFFTAG_ROWSPERSTRIP
@@ -234,10 +235,10 @@ namespace TiffUtils {
         size_t StripSize =  (size_t)TIFFStripSize(tif);
         size_t ScanlineSize = (size_t)TIFFScanlineSize(tif);
         std::cout << __func__ << ": " << "FileName: [" << aFileName << "] " << aData << std::endl;
-        std::cout << __func__ << ": ScanlineSize=" << ScanlineSize << " StripSize: " << StripSize << " NoOfStrips: " << TIFFNumberOfStrips(tif) << std::endl;
+        std::cout << __func__ << ": ScanlineSize=" << ScanlineSize << " StripSize: " << StripSize << " NoOfStrips: " << TIFFNumberOfStrips(tif) << " BigTIFF:" << isBigTiff << " ImgSize(data):" << imgSize << std::endl;
 
         size_t currentOffset = 0;
-        for(int i = 0; i < depth; ++i) {
+        for(uint32_t i = 0; i < depth; ++i) {
             TIFFSetField(tif, TIFFTAG_IMAGEWIDTH, width);
             TIFFSetField(tif, TIFFTAG_IMAGELENGTH, height);
             TIFFSetField(tif, TIFFTAG_BITSPERSAMPLE, bitsPerSample);
@@ -250,14 +251,14 @@ namespace TiffUtils {
 
             size_t dataLen = ScanlineSize * height; // length of single image
             for (tstrip_t strip = 0; strip < TIFFNumberOfStrips(tif); ++strip) {
-                tmsize_t writeLen = TIFFWriteEncodedStrip(tif, strip, (void *) (&aData.mesh[(size_t)0] + currentOffset), dataLen >= StripSize ? StripSize : dataLen);
+                tmsize_t writeLen = TIFFWriteEncodedStrip(tif, strip, (void *) (&aData.mesh[0] + currentOffset), dataLen >= StripSize ? StripSize : dataLen);
                 dataLen -= writeLen;
                 currentOffset += writeLen/sizeof(T);
             }
 
-            TIFFWriteDirectory(tif);
+            if (i < depth - 1) TIFFWriteDirectory(tif); // last TIFFWriteDirectory is done by TIFFClose by default.
         }
-
+        std::cout << __func__ << ": Saved. Closing file." << std::endl;
         TIFFClose(tif);
     }
 
