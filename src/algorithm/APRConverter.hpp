@@ -285,7 +285,7 @@ void APRConverter<ImageType>::get_local_particle_cell_set(MeshData<T>& grad_imag
 #endif
     for(i = 0; i < grad_temp.mesh.size(); i++)
     {
-        local_scale_temp.mesh[i] = (1.0*grad_temp.mesh[i])/(local_scale_temp.mesh[i]*1.0);
+        local_scale_temp.mesh[(size_t)i] = (1.0*grad_temp.mesh[(size_t)i])/(local_scale_temp.mesh[(size_t)i]*1.0);
     }
 
     fine_grained_timer.stop_timer();
@@ -555,11 +555,11 @@ void APRConverter<ImageType>::auto_parameters(MeshData<T>& input_img){
     for (int s = 0; s < selected_slices.size(); ++s) {
 
         for (int q= selected_slices[s]*xnumynum; q < (selected_slices[s]+1)*xnumynum; ++q) {
-            if(input_img.mesh[q] < (min_val + num_bins-1)){
-                freq[input_img.mesh[q]-min_val]++;
-                if(input_img.mesh[q] > 0) {
+            if(input_img.mesh[(size_t)q] < (min_val + num_bins-1)){
+                freq[input_img.mesh[(size_t)q]-min_val]++;
+                if(input_img.mesh[(size_t)q] > 0) {
                     counter++;
-                    total += input_img.mesh[q];
+                    total += input_img.mesh[(size_t)q];
                 }
             }
         }
@@ -570,11 +570,11 @@ void APRConverter<ImageType>::auto_parameters(MeshData<T>& input_img){
 
 //    for (q = 0; q < input_img.mesh.size(); ++q) {
 //
-//        if(input_img.mesh[q] < (min_val + num_bins-1)){
-//            freq[input_img.mesh[q]-min_val]++;
-//            if(input_img.mesh[q] > 0) {
+//        if(input_img.mesh[(size_t)q] < (min_val + num_bins-1)){
+//            freq[input_img.mesh[(size_t)q]-min_val]++;
+//            if(input_img.mesh[(size_t)q] > 0) {
 //                counter++;
-//                total += input_img.mesh[q];
+//                total += input_img.mesh[(size_t)q];
 //            }
 //        }
 //    }
@@ -624,9 +624,9 @@ void APRConverter<ImageType>::auto_parameters(MeshData<T>& input_img){
 
     for (int k = min_j; k < num_bins; ++k) {
 
-        if(histogram.mesh[k] >= ((histogram.mesh[k-1] + histogram.mesh[k-2])/2.0)){
+        if(histogram.mesh[(size_t)k] >= ((histogram.mesh[(size_t)k-1] + histogram.mesh[(size_t)k-2])/2.0)){
         } else {
-            local_max = histogram.mesh[k];
+            local_max = histogram.mesh[(size_t)k];
             local_max_j = k;
             break;
         }
@@ -666,14 +666,14 @@ void APRConverter<ImageType>::auto_parameters(MeshData<T>& input_img){
         j = std::min((int)z_num - 2, std::max((int)selected_slices[s],(int)1));
         for(i = 1; i < (x_num-1);i++){
             for(k = 1;k < (y_num-1);k++){
-                float val = input_img.mesh[(size_t)j*x_num*y_num + i*y_num + k];
+                float val = input_img.mesh[(size_t)(size_t)j*x_num*y_num + i*y_num + k];
                 if (val == estimated_first_mode) {
                     uint64_t counter_n = 0;
                     for (int l = -1; l < 2; ++l) {
                         for (int m = -1; m < 2; ++m) {
                             for (int n = -1; n < 2; ++n) {
                                 size_t idx = (size_t)(j+l)*x_num*y_num + (i+m)*y_num + (k+n);
-                                const auto &val = input_img.mesh[idx];
+                                const auto &val = input_img.mesh[(size_t)idx];
                                 patches[counter_p][counter_n] = val;
                                 counter_n++;
                             }
@@ -730,7 +730,7 @@ void APRConverter<ImageType>::auto_parameters(MeshData<T>& input_img){
     par.noise_sd_estimate = sd;
 
     for (int l1 = 1; l1 < histogram.mesh.size(); ++l1) {
-        if(histogram.mesh[l1] > 0){
+        if(histogram.mesh[(size_t)l1] > 0){
             par.background_intensity_estimate = l1 + min_val;
         }
     }

@@ -49,7 +49,7 @@ public:
 	#pragma omp simd
 #endif
                 for (k = 0; k < (y_num);k++){
-                    input.mesh[j*x_num*y_num + i*y_num + k] = asmlog_2(input.mesh[j*x_num*y_num + i*y_num + k]*mult_const);
+                    input.mesh[(size_t)j*x_num*y_num + i*y_num + k] = asmlog_2(input.mesh[(size_t)j*x_num*y_num + i*y_num + k]*mult_const);
                 }
 
             }

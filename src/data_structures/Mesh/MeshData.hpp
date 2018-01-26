@@ -191,7 +191,7 @@ public :
         x = std::min(x, x_num-1);
         z = std::min(z, z_num-1);
         size_t idx = (size_t)z * x_num * y_num + x * y_num + y;
-        return mesh[idx];
+        return mesh[(size_t)idx];
     }
 
     /**
@@ -203,7 +203,7 @@ public :
      */
     T& access_no_protection(int y, int x, int z) {
         size_t idx = (size_t)z * x_num * y_num + x * y_num + y;
-        return mesh[idx];
+        return mesh[(size_t)idx];
     }
 
     /**
@@ -670,7 +670,7 @@ void const_upsample_img(MeshData<T>& input_us,MeshData<T>& input,std::vector<uns
 //            unsigned int offset = j*x_num_ds*y_num_ds + i*y_num_ds;
 //            //first take into cache
 //            for (k = 0; k < y_num_ds_l;k++){
-//                temp_vec[k] = input.mesh[offset + k];
+//                temp_vec[k] = input.mesh[(size_t)offset + k];
 //            }
 //            
 //            //(0,0)
@@ -678,66 +678,66 @@ void const_upsample_img(MeshData<T>& input_us,MeshData<T>& input,std::vector<uns
 //            offset = 2*j*x_num*y_num + 2*i*y_num;
 //            //then do the operations two by two
 //            for (k = 0; k < y_num_ds_l;k++){
-//                input_us.mesh[offset + 2*k] = temp_vec[k];
-//                input_us.mesh[offset + 2*k + 1] = temp_vec[k];
+//                input_us.mesh[(size_t)offset + 2*k] = temp_vec[k];
+//                input_us.mesh[(size_t)offset + 2*k + 1] = temp_vec[k];
 //            }
 //            
 //            //(0,1)
 //            offset = (2*j+1)*x_num*y_num + 2*i*y_num;
 //            //then do the operations two by two
 //            for (k = 0; k < y_num_ds_l;k++){
-//                input_us.mesh[offset + 2*k] = temp_vec[k];
-//                input_us.mesh[offset + 2*k + 1] = temp_vec[k];
+//                input_us.mesh[(size_t)offset + 2*k] = temp_vec[k];
+//                input_us.mesh[(size_t)offset + 2*k + 1] = temp_vec[k];
 //            }
 //            
 //            offset = 2*j*x_num*y_num + (2*i+1)*y_num;
 //            //(1,0)
 //            //then do the operations two by two
 //            for (k = 0; k < y_num_ds_l;k++){
-//                input_us.mesh[offset + 2*k] = temp_vec[k];
-//                input_us.mesh[offset + 2*k + 1] = temp_vec[k];
+//                input_us.mesh[(size_t)offset + 2*k] = temp_vec[k];
+//                input_us.mesh[(size_t)offset + 2*k + 1] = temp_vec[k];
 //            }
 //            
 //            offset = (2*j+1)*x_num*y_num + (2*i+1)*y_num;
 //            //(1,1)
 //            //then do the operations two by two
 //            for (k = 0; k < y_num_ds_l;k++){
-//                input_us.mesh[offset + 2*k] = temp_vec[k];
-//                input_us.mesh[offset + 2*k + 1] = temp_vec[k];
+//                input_us.mesh[(size_t)offset + 2*k] = temp_vec[k];
+//                input_us.mesh[(size_t)offset + 2*k + 1] = temp_vec[k];
 //            }
             //first take into cache
             for (k = 0; k < y_num_ds_l;k++){
-                temp_vec[k] = input.mesh[j*x_num_ds*y_num_ds + i*y_num_ds + k];
+                temp_vec[k] = input.mesh[(size_t)j*x_num_ds*y_num_ds + i*y_num_ds + k];
             }
             
             //(0,0)
             
             //then do the operations two by two
             for (k = 0; k < y_num_ds_l;k++){
-                input_us.mesh[2*j*x_num*y_num + 2*i*y_num + 2*k] = temp_vec[k];
-                input_us.mesh[2*j*x_num*y_num + 2*i*y_num + 2*k + 1] = temp_vec[k];
+                input_us.mesh[(size_t)2*j*x_num*y_num + 2*i*y_num + 2*k] = temp_vec[k];
+                input_us.mesh[(size_t)2*j*x_num*y_num + 2*i*y_num + 2*k + 1] = temp_vec[k];
             }
             
             //(0,1)
             
             //then do the operations two by two
             for (k = 0; k < y_num_ds_l;k++){
-                input_us.mesh[(2*j+1)*x_num*y_num + 2*i*y_num + 2*k] = temp_vec[k];
-                input_us.mesh[(2*j+1)*x_num*y_num + 2*i*y_num + 2*k + 1] = temp_vec[k];
+                input_us.mesh[(size_t)(2*j+1)*x_num*y_num + 2*i*y_num + 2*k] = temp_vec[k];
+                input_us.mesh[(size_t)(2*j+1)*x_num*y_num + 2*i*y_num + 2*k + 1] = temp_vec[k];
             }
             
             //(1,0)
             //then do the operations two by two
             for (k = 0; k < y_num_ds_l;k++){
-                input_us.mesh[2*j*x_num*y_num + (2*i+1)*y_num + 2*k] = temp_vec[k];
-                input_us.mesh[2*j*x_num*y_num + (2*i+1)*y_num + 2*k + 1] = temp_vec[k];
+                input_us.mesh[(size_t)2*j*x_num*y_num + (2*i+1)*y_num + 2*k] = temp_vec[k];
+                input_us.mesh[(size_t)2*j*x_num*y_num + (2*i+1)*y_num + 2*k + 1] = temp_vec[k];
             }
             
             //(1,1)
             //then do the operations two by two
             for (k = 0; k < y_num_ds_l;k++){
-                input_us.mesh[(2*j+1)*x_num*y_num + (2*i+1)*y_num + 2*k] = temp_vec[k];
-                input_us.mesh[(2*j+1)*x_num*y_num + (2*i+1)*y_num + 2*k + 1] = temp_vec[k];
+                input_us.mesh[(size_t)(2*j+1)*x_num*y_num + (2*i+1)*y_num + 2*k] = temp_vec[k];
+                input_us.mesh[(size_t)(2*j+1)*x_num*y_num + (2*i+1)*y_num + 2*k + 1] = temp_vec[k];
             }
             
             
@@ -807,7 +807,7 @@ void down_sample_overflow_proct(MeshData<T>& test_a, MeshData<S>& test_a_ds, L1 
 
             //first take into cache
             for (k = 0; k < y_num; k++) {
-                temp_vec[k] = test_a.mesh[2 * j * x_num * y_num + 2 * i * y_num + k];
+                temp_vec[k] = test_a.mesh[(size_t)2 * j * x_num * y_num + 2 * i * y_num + k];
             }
 
             //then do the operations two by two
@@ -819,7 +819,7 @@ void down_sample_overflow_proct(MeshData<T>& test_a, MeshData<S>& test_a_ds, L1 
 
             //first take into cache
             for (k = 0; k < y_num; k++) {
-                temp_vec[k] = test_a.mesh[2 * j * x_num * y_num + si_ * y_num + k];
+                temp_vec[k] = test_a.mesh[(size_t)2 * j * x_num * y_num + si_ * y_num + k];
             }
 
             //then do the operations two by two
@@ -834,7 +834,7 @@ void down_sample_overflow_proct(MeshData<T>& test_a, MeshData<S>& test_a_ds, L1 
 
             //first take into cache
             for (k = 0; k < y_num; k++) {
-                temp_vec[k] = test_a.mesh[sj_ * x_num * y_num + 2 * i * y_num + k];
+                temp_vec[k] = test_a.mesh[(size_t)sj_ * x_num * y_num + 2 * i * y_num + k];
             }
 
 
@@ -849,7 +849,7 @@ void down_sample_overflow_proct(MeshData<T>& test_a, MeshData<S>& test_a_ds, L1 
 
             //first take into cache
             for (k = 0; k < y_num; k++) {
-                temp_vec[k] = test_a.mesh[sj_ * x_num * y_num + si_ * y_num + k];
+                temp_vec[k] = test_a.mesh[(size_t)sj_ * x_num * y_num + si_ * y_num + k];
             }
 
 
@@ -861,7 +861,7 @@ void down_sample_overflow_proct(MeshData<T>& test_a, MeshData<S>& test_a_ds, L1 
                 temp_vec2[k] =
                         reduce(temp_vec2[k], temp_vec[sk_]);
                 //final operaions
-                test_a_ds.mesh[j * x_num_ds * y_num_ds + i * y_num_ds + k] =
+                test_a_ds.mesh[(size_t)j * x_num_ds * y_num_ds + i * y_num_ds + k] =
                         constant_operator(temp_vec2[k]);
             }
 
@@ -886,13 +886,13 @@ void down_sample(MeshData<T>& test_a, MeshData<S>& test_a_ds, L1 reduce, L2 cons
     //
     //
 
-    const int z_num = test_a.z_num;
-    const int x_num = test_a.x_num;
-    const int y_num = test_a.y_num;
+    const int64_t z_num = test_a.z_num;
+    const int64_t x_num = test_a.x_num;
+    const int64_t y_num = test_a.y_num;
 
-    const int z_num_ds = (int) ceil(1.0*z_num/2.0);
-    const int x_num_ds = (int) ceil(1.0*x_num/2.0);
-    const int y_num_ds = (int) ceil(1.0*y_num/2.0);
+    const int64_t z_num_ds = (int) ceil(1.0*z_num/2.0);
+    const int64_t x_num_ds = (int) ceil(1.0*x_num/2.0);
+    const int64_t y_num_ds = (int) ceil(1.0*y_num/2.0);
 
     Part_timer timer;
     //timer.verbose_flag = true;
@@ -910,12 +910,12 @@ void down_sample(MeshData<T>& test_a, MeshData<S>& test_a_ds, L1 reduce, L2 cons
     temp_vec.resize(y_num,0);
 
 
-    int i, k, si_, sj_, sk_;
+    int64_t i, k, si_, sj_, sk_;
 
 #ifdef HAVE_OPENMP
 	#pragma omp parallel for default(shared) private(i,k,si_,sj_,sk_) firstprivate(temp_vec)
 #endif
-    for(int j = 0;j < z_num_ds; j++) {
+    for(int64_t j = 0;j < z_num_ds; j++) {
 
 
         for (i = 0; i < x_num_ds; i++) {
@@ -930,9 +930,9 @@ void down_sample(MeshData<T>& test_a, MeshData<S>& test_a_ds, L1 reduce, L2 cons
             //then do the operations two by two
             for (k = 0; k < y_num_ds; k++) {
                 sk_ = std::min(2 * k + 1, y_num - 1);
-                test_a_ds.mesh[j * x_num_ds * y_num_ds + i * y_num_ds + k] = reduce(0,temp_vec[2 * k]);
-                test_a_ds.mesh[j * x_num_ds * y_num_ds + i * y_num_ds + k] =
-                        reduce(test_a_ds.mesh[j * x_num_ds * y_num_ds + i * y_num_ds + k], temp_vec[sk_]);
+                test_a_ds.mesh[(size_t)j * x_num_ds * y_num_ds + i * y_num_ds + k] = reduce(0,temp_vec[2 * k]);
+                test_a_ds.mesh[(size_t)j * x_num_ds * y_num_ds + i * y_num_ds + k] =
+                        reduce(test_a_ds.mesh[(size_t)j * x_num_ds * y_num_ds + i * y_num_ds + k], temp_vec[sk_]);
             }
 
 
@@ -942,10 +942,10 @@ void down_sample(MeshData<T>& test_a, MeshData<S>& test_a_ds, L1 reduce, L2 cons
             //then do the operations two by two
             for (k = 0; k < y_num_ds; k++) {
                 sk_ = std::min(2 * k + 1, y_num - 1);
-                test_a_ds.mesh[j * x_num_ds * y_num_ds + i * y_num_ds + k] =
-                        reduce(test_a_ds.mesh[j * x_num_ds * y_num_ds + i * y_num_ds + k], temp_vec[2 * k]);
-                test_a_ds.mesh[j * x_num_ds * y_num_ds + i * y_num_ds + k] =
-                        reduce(test_a_ds.mesh[j * x_num_ds * y_num_ds + i * y_num_ds + k], temp_vec[sk_]);
+                test_a_ds.mesh[(size_t)j * x_num_ds * y_num_ds + i * y_num_ds + k] =
+                        reduce(test_a_ds.mesh[(size_t)j * x_num_ds * y_num_ds + i * y_num_ds + k], temp_vec[2 * k]);
+                test_a_ds.mesh[(size_t)j * x_num_ds * y_num_ds + i * y_num_ds + k] =
+                        reduce(test_a_ds.mesh[(size_t)j * x_num_ds * y_num_ds + i * y_num_ds + k], temp_vec[sk_]);
             }
 
 
@@ -954,10 +954,10 @@ void down_sample(MeshData<T>& test_a, MeshData<S>& test_a_ds, L1 reduce, L2 cons
             //then do the operations two by two
             for (k = 0; k < y_num_ds; k++) {
                 sk_ = std::min(2 * k + 1, y_num - 1);
-                test_a_ds.mesh[j * x_num_ds * y_num_ds + i * y_num_ds + k] =
-                        reduce(test_a_ds.mesh[j * x_num_ds * y_num_ds + i * y_num_ds + k], temp_vec[2 * k]);
-                test_a_ds.mesh[j * x_num_ds * y_num_ds + i * y_num_ds + k] =
-                        reduce(test_a_ds.mesh[j * x_num_ds * y_num_ds + i * y_num_ds + k], temp_vec[sk_]);
+                test_a_ds.mesh[(size_t)j * x_num_ds * y_num_ds + i * y_num_ds + k] =
+                        reduce(test_a_ds.mesh[(size_t)j * x_num_ds * y_num_ds + i * y_num_ds + k], temp_vec[2 * k]);
+                test_a_ds.mesh[(size_t)j * x_num_ds * y_num_ds + i * y_num_ds + k] =
+                        reduce(test_a_ds.mesh[(size_t)j * x_num_ds * y_num_ds + i * y_num_ds + k], temp_vec[sk_]);
             }
 
             std::copy(test_a.mesh.begin() + sj_ * x_num * y_num + si_ * y_num,test_a.mesh.begin() + sj_ * x_num * y_num + si_ * y_num + y_num,temp_vec.begin());
@@ -965,13 +965,13 @@ void down_sample(MeshData<T>& test_a, MeshData<S>& test_a_ds, L1 reduce, L2 cons
             //then do the operations two by two
             for (k = 0; k < y_num_ds; k++) {
                 sk_ = std::min(2 * k + 1, y_num - 1);
-                test_a_ds.mesh[j * x_num_ds * y_num_ds + i * y_num_ds + k] =
-                        reduce(test_a_ds.mesh[j * x_num_ds * y_num_ds + i * y_num_ds + k], temp_vec[2 * k]);
-                test_a_ds.mesh[j * x_num_ds * y_num_ds + i * y_num_ds + k] =
-                        reduce(test_a_ds.mesh[j * x_num_ds * y_num_ds + i * y_num_ds + k], temp_vec[sk_]);
+                test_a_ds.mesh[(size_t)j * x_num_ds * y_num_ds + i * y_num_ds + k] =
+                        reduce(test_a_ds.mesh[(size_t)j * x_num_ds * y_num_ds + i * y_num_ds + k], temp_vec[2 * k]);
+                test_a_ds.mesh[(size_t)j * x_num_ds * y_num_ds + i * y_num_ds + k] =
+                        reduce(test_a_ds.mesh[(size_t)j * x_num_ds * y_num_ds + i * y_num_ds + k], temp_vec[sk_]);
                 //final operaions
-                test_a_ds.mesh[j * x_num_ds * y_num_ds + i * y_num_ds + k] =
-                        constant_operator(test_a_ds.mesh[j * x_num_ds * y_num_ds + i * y_num_ds + k]);
+                test_a_ds.mesh[(size_t)j * x_num_ds * y_num_ds + i * y_num_ds + k] =
+                        constant_operator(test_a_ds.mesh[(size_t)j * x_num_ds * y_num_ds + i * y_num_ds + k]);
             }
 
         }

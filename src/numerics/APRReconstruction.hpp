@@ -66,7 +66,7 @@ public:
 	#pragma omp simd
 #endif
                         for (int i = dim1; i < offset_max_dim1; ++i) {
-                            img.mesh[i + (k) * img.y_num + q * img.y_num * img.x_num] = temp_int;
+                            img.mesh[(size_t)i + (k) * img.y_num + q * img.y_num * img.x_num] = temp_int;
                         }
                     }
                 }
@@ -210,7 +210,7 @@ public:
                 //first update the fixed length scale
                 for (k = 0; k < y_num;k++){
 
-                    offset_vec[k] = std::min((T)floor(pow(2,d_max- offset_img.mesh[index + k])/scale),(T)offset_max);
+                    offset_vec[k] = std::min((T)floor(pow(2,d_max- offset_img.mesh[(size_t)index + k])/scale),(T)offset_max);
 
                 }
 
@@ -218,11 +218,11 @@ public:
                 //first pass over and calculate cumsum
                 temp = 0;
                 for (k = 0; k < y_num;k++){
-                    temp += input.mesh[index + k];
+                    temp += input.mesh[(size_t)index + k];
                     temp_vec[k] = temp;
                 }
 
-                input.mesh[index] = 0;
+                input.mesh[(size_t)index] = 0;
                 //handling boundary conditions (LHS)
                 for (k = 1; k <= (offset_max+1);k++){
                     divisor = 2*offset_vec[k] + 1;
@@ -230,7 +230,7 @@ public:
 
                     if(k <= (offset+1)){
                         //emulate the bc
-                        input.mesh[index + k] = -temp_vec[0]/divisor;
+                        input.mesh[(size_t)index + k] = -temp_vec[0]/divisor;
                     }
 
                 }
@@ -240,7 +240,7 @@ public:
                     divisor = 2*offset_vec[k] + 1;
                     offset = offset_vec[k];
                     if(k >= (offset+1)){
-                        input.mesh[index + k] = -temp_vec[k - offset - 1]/divisor;
+                        input.mesh[(size_t)index + k] = -temp_vec[k - offset - 1]/divisor;
                     }
 
                 }
@@ -251,7 +251,7 @@ public:
                     divisor = 2*offset_vec[k] + 1;
                     offset = offset_vec[k];
                     if(k < (y_num - offset)) {
-                        input.mesh[index + k] += temp_vec[k + offset] / divisor;
+                        input.mesh[(size_t)index + k] += temp_vec[k + offset] / divisor;
                     }
                 }
 
@@ -266,9 +266,9 @@ public:
                     if(k >= (y_num - offset)){
                         counter = k - (y_num-offset)+1;
 
-                        input.mesh[index + k]*= divisor;
-                        input.mesh[index + k]+= temp_vec[y_num-1];
-                        input.mesh[index + k]*= 1.0/(divisor - counter);
+                        input.mesh[(size_t)index + k]*= divisor;
+                        input.mesh[(size_t)index + k]+= temp_vec[y_num-1];
+                        input.mesh[(size_t)index + k]*= 1.0/(divisor - counter);
 
                     }
 
@@ -281,7 +281,7 @@ public:
                     offset = offset_vec[k];
 
                     if(k < (offset + 1)){
-                        input.mesh[index + k] *= divisor/(1.0*k + offset);
+                        input.mesh[(size_t)index + k] *= divisor/(1.0*k + offset);
                     }
 
                 }
@@ -289,7 +289,7 @@ public:
                 //end point boundary condition
                 divisor = 2*offset_vec[0] + 1;
                 offset = offset_vec[0];
-                input.mesh[index] *= divisor/(offset+1);
+                input.mesh[(size_t)index] *= divisor/(offset+1);
             }
         }
 
@@ -332,13 +332,13 @@ public:
 
             for(k = 0; k < y_num ; k++){
                 // std::copy ?
-                temp_vec[k] = input.mesh[jxnumynum + k];
+                temp_vec[k] = input.mesh[(size_t)jxnumynum + k];
             }
 
 
             for(i = 1; i < 2 * offset_max + 1; i++) {
                 for(k = 0; k < y_num; k++) {
-                    temp_vec[i*y_num + k] = input.mesh[jxnumynum + i*y_num + k] + temp_vec[(i-1)*y_num + k];
+                    temp_vec[i*y_num + k] = input.mesh[(size_t)jxnumynum + i*y_num + k] + temp_vec[(i-1)*y_num + k];
                 }
             }
 
@@ -347,9 +347,9 @@ public:
 
             for(i = 0; i < offset_max + 1; i++){
                 for(k = 0; k < y_num; k++) {
-                    offset = std::min((T)floor(pow(2,d_max- offset_img.mesh[jxnumynum + i * y_num + k])/scale),(T)offset_max);
+                    offset = std::min((T)floor(pow(2,d_max- offset_img.mesh[(size_t)jxnumynum + i * y_num + k])/scale),(T)offset_max);
                     if(i < (offset + 1)) {
-                        input.mesh[jxnumynum + i * y_num + k] = (temp_vec[(i + offset) * y_num + k]) / (i + offset + 1);
+                        input.mesh[(size_t)jxnumynum + i * y_num + k] = (temp_vec[(i + offset) * y_num + k]) / (i + offset + 1);
                     }
                 }
             }
@@ -364,14 +364,14 @@ public:
                 for(k = 0; k < y_num; k++) {
 
 
-                    offset = std::min((T)floor(pow(2,d_max- offset_img.mesh[jxnumynum + i * y_num + k])/scale),(T)offset_max);
+                    offset = std::min((T)floor(pow(2,d_max- offset_img.mesh[(size_t)jxnumynum + i * y_num + k])/scale),(T)offset_max);
 
                     if((i >= offset_max + 1) & (i < (x_num - offset_max))) {
                         // update the buffers
 
                         index_modulo = (i + offset_max) % (2 * offset_max + 2);
                         previous_modulo = (i + offset_max - 1) % (2 * offset_max + 2);
-                        temp = input.mesh[jxnumynum + (i + offset_max) * y_num + k] + temp_vec[previous_modulo * y_num + k];
+                        temp = input.mesh[(size_t)jxnumynum + (i + offset_max) * y_num + k] + temp_vec[previous_modulo * y_num + k];
                         temp_vec[index_modulo * y_num + k] = temp;
 
                     }
@@ -381,7 +381,7 @@ public:
                         // calculate the positions in the buffers
                         forward_modulo = (i + offset) % (2 * offset_max + 2);
                         backward_modulo = (i - offset - 1) % (2 * offset_max + 2);
-                        input.mesh[jxnumynum + i * y_num + k] = (temp_vec[forward_modulo * y_num + k] - temp_vec[backward_modulo * y_num + k]) /
+                        input.mesh[(size_t)jxnumynum + i * y_num + k] = (temp_vec[forward_modulo * y_num + k] - temp_vec[backward_modulo * y_num + k]) /
                                                                 (2 * offset + 1);
 
                     }
@@ -395,14 +395,14 @@ public:
 
                 for(k = 0; k < y_num; k++){
 
-                    offset = std::min((T)floor(pow(2,d_max- offset_img.mesh[jxnumynum + i * y_num + k])/scale),(T)offset_max);
+                    offset = std::min((T)floor(pow(2,d_max- offset_img.mesh[(size_t)jxnumynum + i * y_num + k])/scale),(T)offset_max);
 
                     if(i >= (x_num - offset)){
                         // calculate the positions in the buffers
                         backward_modulo  = (i - offset - 1) % (2 * offset_max + 2); //maybe the top and the bottom different
                         forward_modulo = (x_num - 1) % (2 * offset_max + 2); //reached the end so need to use that
 
-                        input.mesh[jxnumynum + i * y_num + k] = (temp_vec[forward_modulo * y_num + k] -
+                        input.mesh[(size_t)jxnumynum + i * y_num + k] = (temp_vec[forward_modulo * y_num + k] -
                                                                  temp_vec[backward_modulo * y_num + k]) /
                                                                 (x_num - i + offset);
                     }
@@ -447,22 +447,22 @@ public:
 
             for(k = 0; k < y_num ; k++){
                 // std::copy ?
-                temp_vec[k] = input.mesh[iynum + k];
+                temp_vec[k] = input.mesh[(size_t)iynum + k];
             }
 
             //(updated z)
             for(j = 1; j < 2 * offset_max+ 1; j++) {
                 for(k = 0; k < y_num; k++) {
-                    temp_vec[j*y_num + k] = input.mesh[j * xnumynum + iynum + k] + temp_vec[(j-1)*y_num + k];
+                    temp_vec[j*y_num + k] = input.mesh[(size_t)j * xnumynum + iynum + k] + temp_vec[(j-1)*y_num + k];
                 }
             }
 
             // LHS boundary (updated)
             for(j = 0; j < offset_max + 1; j++){
                 for(k = 0; k < y_num; k++) {
-                    offset = std::min((T)floor(pow(2,d_max- offset_img.mesh[j * xnumynum + iynum + k])/scale),(T)offset_max);
+                    offset = std::min((T)floor(pow(2,d_max- offset_img.mesh[(size_t)j * xnumynum + iynum + k])/scale),(T)offset_max);
                     if(i < (offset + 1)) {
-                        input.mesh[j * xnumynum + iynum + k] = (temp_vec[(j + offset) * y_num + k]) / (j + offset + 1);
+                        input.mesh[(size_t)j * xnumynum + iynum + k] = (temp_vec[(j + offset) * y_num + k]) / (j + offset + 1);
                     }
                 }
             }
@@ -472,7 +472,7 @@ public:
 
                 for(k = 0; k < y_num; k++) {
 
-                    offset = std::min((T)floor(pow(2,d_max- offset_img.mesh[j * xnumynum + iynum + k])/scale),(T)offset_max);
+                    offset = std::min((T)floor(pow(2,d_max- offset_img.mesh[(size_t)j * xnumynum + iynum + k])/scale),(T)offset_max);
 
                     //update the buffer
                     if((j >= offset_max + 1) & (j < (z_num - offset_max))) {
@@ -481,7 +481,7 @@ public:
                         previous_modulo = (j + offset_max - 1) % (2 * offset_max + 2);
 
                         // the current cumsum
-                        temp = input.mesh[(j + offset_max) * xnumynum + iynum + k] + temp_vec[previous_modulo*y_num + k];
+                        temp = input.mesh[(size_t)(j + offset_max) * xnumynum + iynum + k] + temp_vec[previous_modulo*y_num + k];
                         temp_vec[index_modulo*y_num + k] = temp;
                     }
 
@@ -490,7 +490,7 @@ public:
                         forward_modulo = (j + offset) % (2 * offset_max + 2);
                         backward_modulo = (j - offset - 1) % (2 * offset_max + 2);
 
-                        input.mesh[j * xnumynum + iynum + k] =
+                        input.mesh[(size_t)j * xnumynum + iynum + k] =
                                 (temp_vec[forward_modulo * y_num + k] - temp_vec[backward_modulo * y_num + k]) /
                                 (2 * offset + 1);
 
@@ -503,14 +503,14 @@ public:
             for(j = z_num - offset_max; j < z_num; j++){
                 for(k = 0; k < y_num; k++){
 
-                    offset = std::min((T)floor(pow(2,d_max- offset_img.mesh[j * xnumynum + iynum + k])/scale),(T)offset_max);
+                    offset = std::min((T)floor(pow(2,d_max- offset_img.mesh[(size_t)j * xnumynum + iynum + k])/scale),(T)offset_max);
 
                     if(j >= (z_num - offset)){
                         //calculate the buffer offsets
                         backward_modulo  = (j - offset - 1) % (2 * offset_max + 2); //maybe the top and the bottom different
                         forward_modulo = (z_num - 1) % (2 * offset_max + 2); //reached the end so need to use that
 
-                        input.mesh[j * xnumynum + iynum + k] = (temp_vec[forward_modulo*y_num + k] -
+                        input.mesh[(size_t)j * xnumynum + iynum + k] = (temp_vec[forward_modulo*y_num + k] -
                                                                 temp_vec[backward_modulo*y_num + k]) / (z_num - j + offset);
 
                     }

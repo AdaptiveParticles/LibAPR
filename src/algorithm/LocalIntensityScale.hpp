@@ -59,7 +59,7 @@ void LocalIntensityScale::rescale_var_and_threshold(MeshData<T>& var,const float
 
             for (k = 0; k < (y_num);k++){
 
-                float rescaled = var.mesh[j*x_num*y_num + i*y_num + k] * var_rescale;
+                float rescaled = var.mesh[(size_t)j*x_num*y_num + i*y_num + k] * var_rescale;
 
                 if(rescaled < par.sigma_th){
                     if(rescaled < par.sigma_th_max){
@@ -68,7 +68,7 @@ void LocalIntensityScale::rescale_var_and_threshold(MeshData<T>& var,const float
                         rescaled = par.sigma_th;
                     }
                 }
-                var.mesh[j*x_num*y_num + i*y_num + k] = rescaled;
+                var.mesh[(size_t)j*x_num*y_num + i*y_num + k] = rescaled;
             }
 
         }
@@ -97,7 +97,7 @@ void LocalIntensityScale::calc_abs_diff(MeshData<T>& input_image,MeshData<T>& va
         for(i = 0;i < x_num;i++){
 
             for (k = 0; k < (y_num);k++){
-                var.mesh[j*x_num*y_num + i*y_num + k] = std::abs(var.mesh[j*x_num*y_num + i*y_num + k] - input_image.mesh[j*x_num*y_num + i*y_num + k]);
+                var.mesh[(size_t)j*x_num*y_num + i*y_num + k] = std::abs(var.mesh[(size_t)j*x_num*y_num + i*y_num + k] - input_image.mesh[(size_t)j*x_num*y_num + i*y_num + k]);
             }
 
         }
@@ -181,25 +181,25 @@ void LocalIntensityScale::calc_sat_mean_y(MeshData<T>& input,const int offset){
             //first pass over and calculate cumsum
             temp = 0;
             for (k = 0; k < y_num;k++){
-                temp += input.mesh[index + k];
+                temp += input.mesh[(size_t)index + k];
                 temp_vec[k] = temp;
             }
 
-            input.mesh[index] = 0;
+            input.mesh[(size_t)index] = 0;
             //handling boundary conditions (LHS)
             for (k = 1; k <= (offset+1);k++){
-                input.mesh[index + k] = -temp_vec[0]/divisor;
+                input.mesh[(size_t)index + k] = -temp_vec[0]/divisor;
             }
 
             //second pass calculate mean
             for (k = offset + 1; k < y_num;k++){
-                input.mesh[index + k] = -temp_vec[k - offset - 1]/divisor;
+                input.mesh[(size_t)index + k] = -temp_vec[k - offset - 1]/divisor;
             }
 
 
             //second pass calculate mean
             for (k = 0; k < (y_num-offset);k++){
-                input.mesh[index + k] += temp_vec[k + offset]/divisor;
+                input.mesh[(size_t)index + k] += temp_vec[k + offset]/divisor;
             }
 
 
@@ -207,17 +207,17 @@ void LocalIntensityScale::calc_sat_mean_y(MeshData<T>& input,const int offset){
             //handling boundary conditions (RHS)
             for (k = ( y_num - offset); k < (y_num);k++){
                 counter++;
-                input.mesh[index + k]*= divisor;
-                input.mesh[index + k]+= temp_vec[y_num-1];
-                input.mesh[index + k]*= 1.0/(divisor - counter);
+                input.mesh[(size_t)index + k]*= divisor;
+                input.mesh[(size_t)index + k]+= temp_vec[y_num-1];
+                input.mesh[(size_t)index + k]*= 1.0/(divisor - counter);
             }
 
             //handling boundary conditions (LHS), need to rehandle the boundary
             for (k = 1; k < (offset + 1);k++){
-                input.mesh[index + k] *= divisor/(1.0*k + offset_n);
+                input.mesh[(size_t)index + k] *= divisor/(1.0*k + offset_n);
             }
             //end point boundary condition
-            input.mesh[index] *= divisor/(offset_n+1);
+            input.mesh[(size_t)index] *= divisor/(offset_n+1);
         }
     }
 
@@ -252,12 +252,12 @@ void LocalIntensityScale::calc_sat_mean_x(MeshData<T>& input,const int offset){
 
         for(k = 0; k < y_num ; k++){
             // std::copy ?
-            temp_vec[k] = input.mesh[jxnumynum + k];
+            temp_vec[k] = input.mesh[(size_t)jxnumynum + k];
         }
 
         for(i = 1; i < 2 * offset + 1; i++) {
             for(k = 0; k < y_num; k++) {
-                temp_vec[i*y_num + k] = input.mesh[jxnumynum + i*y_num + k] + temp_vec[(i-1)*y_num + k];
+                temp_vec[i*y_num + k] = input.mesh[(size_t)jxnumynum + i*y_num + k] + temp_vec[(i-1)*y_num + k];
             }
         }
 
@@ -265,7 +265,7 @@ void LocalIntensityScale::calc_sat_mean_x(MeshData<T>& input,const int offset){
 
         for(i = 0; i < offset + 1; i++){
             for(k = 0; k < y_num; k++) {
-                input.mesh[jxnumynum + i * y_num + k] = (temp_vec[(i + offset) * y_num + k]) / (i + offset + 1);
+                input.mesh[(size_t)jxnumynum + i * y_num + k] = (temp_vec[(i + offset) * y_num + k]) / (i + offset + 1);
             }
         }
 
@@ -279,8 +279,8 @@ void LocalIntensityScale::calc_sat_mean_x(MeshData<T>& input,const int offset){
             previous_modulo = (current_index + offset - 1) % (2*offset + 1); // the index of previous cumsum
 
             for(k = 0; k < y_num; k++) {
-                temp = input.mesh[jxnumynum + (i + offset)*y_num + k] + temp_vec[previous_modulo*y_num + k];
-                input.mesh[jxnumynum + i*y_num + k] = (temp - temp_vec[index_modulo*y_num + k]) /
+                temp = input.mesh[(size_t)jxnumynum + (i + offset)*y_num + k] + temp_vec[previous_modulo*y_num + k];
+                input.mesh[(size_t)jxnumynum + i*y_num + k] = (temp - temp_vec[index_modulo*y_num + k]) /
                                                       (2*offset + 1);
                 temp_vec[index_modulo*y_num + k] = temp;
             }
@@ -293,7 +293,7 @@ void LocalIntensityScale::calc_sat_mean_x(MeshData<T>& input,const int offset){
 
         for(i = x_num - offset; i < x_num; i++){
             for(k = 0; k < y_num; k++){
-                input.mesh[jxnumynum + i*y_num + k] = (temp_vec[index_modulo*y_num + k] -
+                input.mesh[(size_t)jxnumynum + i*y_num + k] = (temp_vec[index_modulo*y_num + k] -
                                                        temp_vec[current_index*y_num + k]) / (x_num - i + offset);
             }
 
@@ -334,12 +334,12 @@ void LocalIntensityScale::calc_sat_mean_z(MeshData<T>& input,const int offset) {
 
         for(k = 0; k < y_num ; k++){
             // std::copy ?
-            temp_vec[k] = input.mesh[iynum + k];
+            temp_vec[k] = input.mesh[(size_t)iynum + k];
         }
 
         for(j = 1; j < 2 * offset + 1; j++) {
             for(k = 0; k < y_num; k++) {
-                temp_vec[j*y_num + k] = input.mesh[j * xnumynum + iynum + k] + temp_vec[(j-1)*y_num + k];
+                temp_vec[j*y_num + k] = input.mesh[(size_t)j * xnumynum + iynum + k] + temp_vec[(j-1)*y_num + k];
             }
         }
 
@@ -347,7 +347,7 @@ void LocalIntensityScale::calc_sat_mean_z(MeshData<T>& input,const int offset) {
 
         for(j = 0; j < offset + 1; j++){
             for(k = 0; k < y_num; k++) {
-                input.mesh[j * xnumynum + iynum + k] = (temp_vec[(j + offset)*y_num + k]) / (j + offset + 1);
+                input.mesh[(size_t)j * xnumynum + iynum + k] = (temp_vec[(j + offset)*y_num + k]) / (j + offset + 1);
             }
         }
 
@@ -362,8 +362,8 @@ void LocalIntensityScale::calc_sat_mean_z(MeshData<T>& input,const int offset) {
 
             for(k = 0; k < y_num; k++) {
                 // the current cumsum
-                temp = input.mesh[(j + offset) * xnumynum + iynum + k] + temp_vec[previous_modulo*y_num + k];
-                input.mesh[j * xnumynum + iynum + k] = (temp - temp_vec[index_modulo*y_num + k]) /
+                temp = input.mesh[(size_t)(j + offset) * xnumynum + iynum + k] + temp_vec[previous_modulo*y_num + k];
+                input.mesh[(size_t)j * xnumynum + iynum + k] = (temp - temp_vec[index_modulo*y_num + k]) /
                                                        (2*offset + 1);
                 temp_vec[index_modulo*y_num + k] = temp;
             }
@@ -376,7 +376,7 @@ void LocalIntensityScale::calc_sat_mean_z(MeshData<T>& input,const int offset) {
 
         for(j = z_num - offset; j < z_num; j++){
             for(k = 0; k < y_num; k++){
-                input.mesh[j * xnumynum + iynum + k] = (temp_vec[index_modulo*y_num + k] -
+                input.mesh[(size_t)j * xnumynum + iynum + k] = (temp_vec[index_modulo*y_num + k] -
                                                         temp_vec[current_index*y_num + k]) / (z_num - j + offset);
             }
 
