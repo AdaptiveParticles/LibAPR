@@ -185,8 +185,8 @@ public :
      * @param x
      * @param z
      * @return element @(y, x, z)
-    */
-    T& operator()(int y, int x, int z) {
+    */ //#FIXME changed it to size_t
+    T& operator()(size_t y, size_t x, size_t z) {
         y = std::min(y, y_num-1);
         x = std::min(x, x_num-1);
         z = std::min(z, z_num-1);

@@ -125,7 +125,7 @@ int main(int argc, char **argv) {
 
         apr_iterator.set_iterator_to_particle_by_number(particle_number);
 
-        float current_intensity = apr_iterator(apr.particles_intensities);
+        float current_intensity = apr.particles_intensities[apr_iterator];
 
         //loop over all the neighbours and set the neighbour iterator to it
         for (int dimension = 0; dimension < 3; ++dimension) {
@@ -146,7 +146,7 @@ int main(int argc, char **argv) {
                 // Neighbour Particle Cell Face definitions [+y,-y,+x,-x,+z,-z] =  [0,1,2,3,4,5]
                 for (int index = 0; index < apr_iterator.number_neighbours_in_direction(direction); ++index) {
                     if (neighbour_iterator.set_neighbour_iterator(apr_iterator, direction, index)) {
-                        intensity_sum += neighbour_iterator(apr.particles_intensities);
+                        intensity_sum += apr.particles_intensities[neighbour_iterator];
                         count_neighbours++;
                     }
                 }
@@ -157,7 +157,7 @@ int main(int argc, char **argv) {
                 }
             }
             //store the estimate of the gradient
-            apr_iterator(gradient)[dimension] = gradient_estimate/counter_dir;
+            gradient[apr_iterator][dimension] = gradient_estimate/counter_dir;
         }
 
     }
