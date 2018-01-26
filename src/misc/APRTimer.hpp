@@ -46,7 +46,6 @@ public:
         t1 = omp_get_wtime();
     }
 
-
     void stop_timer(){
         t2 = omp_get_wtime();
 
@@ -60,7 +59,6 @@ public:
                       << " seconds\n";
         }
         timer_count++;
-
     }
 
 
