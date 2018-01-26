@@ -94,7 +94,7 @@ int main(int argc, char **argv) {
     //Create particle datasets, once intiailized this has the same layout as the Particle Cells
     ExtraParticleData<float> calc_ex(apr);
 
-    APRIterator<uint16_t> apr_iterator(apr);
+    APRIterator<uint16_t> apr_iterator(apr); // not STL type iteration
 
     timer.start_timer("APR serial iterator loop");
 
@@ -112,8 +112,7 @@ int main(int argc, char **argv) {
         uint64_t current_particle_cell_type = apr_iterator.type();
 
         //you can then also use it to access any particle properties stored as ExtraParticleData
-        calc_ex[apr_iterator]= 10.0*apr.particles_intensities.get_particle(apr_iterator);
-        calc_ex.set_particle(apr_iterator,12.0f);
+        calc_ex[apr_iterator]= 10.0f*apr.particles_intensities[apr_iterator];
 
     }
 
@@ -142,7 +141,7 @@ int main(int argc, char **argv) {
 
             if(apr_iterator(apr.particles_intensities) > 100){
                 //set all particles in calc_ex with an particle intensity greater then 100 to 0.
-                apr_iterator(calc_ex) = 0;
+                calc_ex[apr_iterator] = 0;
             }
         }
     }
@@ -156,7 +155,7 @@ int main(int argc, char **argv) {
     ///////////////////////////
 
     //create particle dataset
-    ExtraParticleData<float> calc_ex2(apr);
+    ExtraParticleData<float> calc_example_2(apr);
 
     timer.start_timer("APR parallel iterator loop");
 
@@ -168,8 +167,8 @@ int main(int argc, char **argv) {
         apr_iterator.set_iterator_to_particle_by_number(particle_number);
 
         if(apr_iterator.level() < apr_iterator.level_max()) {
-            //get global y co-ordinate of the particle and put result in calc_ex2 at the current Particle Cell (PC) location
-            apr_iterator(calc_ex2) = apr_iterator.y_global();
+            //get global y co-ordinate of the particle and put result in calc_example_2 at the current Particle Cell (PC) location
+            calc_example_2[apr_iterator] = apr_iterator.y_global();
 
             int x = apr_iterator.x(); // gets the Particle cell spatial index x.
 
@@ -209,7 +208,7 @@ int main(int argc, char **argv) {
         //needed step for any parallel loop (update to the next part)
         apr_iterator.set_iterator_to_particle_by_number(particle_number);
 
-        apr_iterator(calc_ex) = pow(apr_iterator(calc_ex),2);
+        calc_ex[apr_iterator] = pow(calc_ex[apr_iterator],2.0f);
     }
 
     timer.stop_timer();
@@ -223,7 +222,7 @@ int main(int argc, char **argv) {
 
     /// Two datasets, binary operation, return result to the particle dataset form which it is performed.
     timer.start_timer("Add two particle datasets");
-    calc_ex2.zip_inplace(apr,calc_ex, std::plus<float>()); // adds calc_ex to calc_ex2 and returns the result to calc_ex
+    calc_example_2.zip_inplace(apr,calc_ex, std::plus<float>()); // adds calc_ex to calc_example_2 and returns the result to calc_ex
     timer.stop_timer();
 
     /// Two datasets, binary operation, return result to the particle dataset form which it is performed.
@@ -231,7 +230,7 @@ int main(int argc, char **argv) {
     ExtraParticleData<float> output_2;
     //return the maximum of the two datasets
     timer.start_timer("Calculate and return the max of two particle datasets");
-    calc_ex.zip(apr,calc_ex2,output_2, [](const float &a, const float &b) { return std::max(a, b); });
+    calc_ex.zip(apr,calc_example_2,output_2, [](const float &a, const float &b) { return std::max(a, b); });
     timer.stop_timer();
 
     /// All of the operations can be done for Particle Cells of a fixed level

@@ -73,7 +73,7 @@ public:
     }
 
     template<typename S,typename T>
-    void copy_parts(APR<T>& apr,ExtraParticleData<S>& parts_to_copy,const unsigned int level = 0,unsigned int aNumberOfBlocks = 10){
+    void copy_parts(APR<T>& apr,ExtraParticleData<S>& parts_to_copy,const uint64_t level = 0,unsigned int aNumberOfBlocks = 10){
         //
         //  Copy's the data from one particle dataset to another
         //
@@ -128,7 +128,7 @@ public:
 
 
     template<typename V,class BinaryOperation,typename T>
-    void zip_inplace(APR<T>& apr,ExtraParticleData<V> &parts2, BinaryOperation op,const unsigned int level = 0,unsigned int aNumberOfBlocks = 10){
+    void zip_inplace(APR<T>& apr,ExtraParticleData<V> &parts2, BinaryOperation op,const uint64_t level = 0,unsigned int aNumberOfBlocks = 10){
         //
         //  Bevan Cheeseman 2017
         //
@@ -183,7 +183,7 @@ public:
     }
 
     template<typename V,class BinaryOperation,typename T>
-    void zip(APR<T>& apr,ExtraParticleData<V> &parts2,ExtraParticleData<V>& output, BinaryOperation op,const unsigned int level = 0,unsigned int aNumberOfBlocks = 10){
+    void zip(APR<T>& apr,ExtraParticleData<V> &parts2,ExtraParticleData<V>& output, BinaryOperation op,const uint64_t level = 0,unsigned int aNumberOfBlocks = 10){
         //
         //  Bevan Cheeseman 2017
         //
@@ -241,7 +241,7 @@ public:
 
 
     template<typename T,typename U,class UnaryOperator>
-    void map(APR<T>& apr,ExtraParticleData<U>& output,UnaryOperator op,const unsigned int level = 0,unsigned int aNumberOfBlocks = 10){
+    void map(APR<T>& apr,ExtraParticleData<U>& output,UnaryOperator op,const uint64_t level = 0,unsigned int aNumberOfBlocks = 10){
         //
         //  Bevan Cheeseman 2018
         //
@@ -296,7 +296,7 @@ public:
     }
 
     template<class UnaryOperator,typename T>
-    void map_inplace(APR<T>& apr,UnaryOperator op,const unsigned int level = 0,unsigned int aNumberOfBlocks = 10){
+    void map_inplace(APR<T>& apr,UnaryOperator op,const uint64_t level = 0,unsigned int aNumberOfBlocks = 10){
         //
         //  Bevan Cheeseman 2018
         //
