@@ -115,8 +115,8 @@ int main(int argc, char **argv) {
         //needed step for any parallel loop (update to the next part)
         apr_iterator.set_iterator_to_particle_by_number(particle_number);
 
-        apr_iterator(type) = apr_iterator.type();
-        apr_iterator(level) = apr_iterator.level();
+        type[apr_iterator] = apr_iterator.type();
+        level[apr_iterator] = apr_iterator.level();
     }
 
     timer.stop_timer();

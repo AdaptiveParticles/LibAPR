@@ -900,7 +900,7 @@ public:
                 apr_iterator.set_iterator_to_particle_by_number(particle_number);
                 const uint64_t offset_part_map = apr_iterator.x() * apr_iterator.spatial_index_y_max(apr_iterator.level()) + apr_iterator.z() * apr_iterator.spatial_index_y_max(apr_iterator.level()) * apr_iterator.spatial_index_x_max(apr_iterator.level());
 
-                apr_iterator(particle_cell_type) = p_map[apr_iterator.level()][offset_part_map + apr_iterator.y()];
+                particle_cell_type[apr_iterator] = p_map[apr_iterator.level()][offset_part_map + apr_iterator.y()];
 
             }
         }

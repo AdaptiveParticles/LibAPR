@@ -139,7 +139,7 @@ int main(int argc, char **argv) {
             unsigned int y_nearest_pixel = apr_iterator.y_nearest_pixel();
             unsigned int z_nearest_pixel = apr_iterator.z_nearest_pixel();
 
-            if(apr_iterator(apr.particles_intensities) > 100){
+            if(apr.particles_intensities[apr_iterator] > 100){
                 //set all particles in calc_ex with an particle intensity greater then 100 to 0.
                 calc_ex[apr_iterator] = 0;
             }
