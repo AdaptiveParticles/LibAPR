@@ -833,7 +833,7 @@ void ComputeGradient::bspline_filt_rec_x(MeshData<T>& image,float lambda,float t
 //            for (k = y_num - 1; k >= 0; k--) {
 //                image.mesh[index + k] = image.mesh[index + k] + b1*temp_vec1[k]+  b2*temp_vec2[k];
 //            }
-
+//
 //
 //            std::swap(temp_vec1, temp_vec2);
 //            std::copy(image.mesh.begin() + index, image.mesh.begin() + index + y_num, temp_vec1.begin());
@@ -867,9 +867,10 @@ void ComputeGradient::bspline_filt_rec_x(MeshData<T>& image,float lambda,float t
 	#pragma omp simd
 #endif
             for (k = y_num - 1; k >= 0; k--){
-                image.mesh[index + k] = (image.mesh[index + k] + b1*temp_vec3[ k]+  b2*temp_vec4[ k])*norm_factor;
+                temp = (image.mesh[index + k] + b1*temp_vec3[ k]+  b2*temp_vec4[ k]);
+                image.mesh[index + k] = temp*norm_factor;
                 temp_vec4[k] = temp_vec3[k];
-                temp_vec3[k] = image.mesh[index + k]*(1.0/norm_factor);
+                temp_vec3[k] = temp;
                 //image.mesh[index + k] *= norm_factor;
             }
 
