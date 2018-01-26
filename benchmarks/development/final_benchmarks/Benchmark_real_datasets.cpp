@@ -81,7 +81,6 @@ int main(int argc, char **argv) {
             apr_converter.par.min_signal = old_pars.var_th;
             apr_converter.par.Ip_th = old_pars.I_th;
 
-
             apr_converter.par.input_image_name = image_name + ".tif";
             apr_converter.par.input_dir = options.directory;
 
@@ -89,7 +88,7 @@ int main(int argc, char **argv) {
 
         }
     }
-    apr_benchmarks.analysis_data.file_name = "real_data_" + apr_benchmarks.analysis_data.file_name;
+    apr_benchmarks.analysis_data.file_name = options.directory + "analysis_data/real_data_" + apr_benchmarks.analysis_data.file_name;
     apr_benchmarks.analysis_data.write_analysis_data_hdf5();
 
 }

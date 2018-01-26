@@ -187,13 +187,26 @@ void APRBenchmark::benchmark_dataset(APRConverter<ImageType>& apr_converter){
 
     apr_converter.total_timer.verbose_flag = true;
 
-    apr_converter.get_apr(apr);
+    analysis_data.create_string_dataset("dataset_name", 0);
+
+    // warm up make sure the os is not distracted
+
+    int num_rep = 10;
+
+    for (int i = 0; i < num_rep; ++i) {
+
+        analysis_data.get_data_ref<std::string>("Date")->data.push_back(name);
+        analysis_data.part_data_list["Date"].print_flag = true;
+
+        apr_converter.get_apr(apr);
+
+    }
 
     MeshData<uint16_t> level;
 
     apr.interp_depth_ds(level);
 
-    std::string output_path = apr_converter.par.input_dir + name + "_level.tif";
+    std::string output_path = apr_converter.par.input_dir + "level_output/" + name + "_level.tif";
     //write output as tiff
     TiffUtils::saveMeshAsTiff(output_path, level);
 
@@ -226,7 +239,7 @@ void APRBenchmark::benchmark_dataset(APRConverter<ImageType>& apr_converter){
     timer.verbose_flag = false;
 
     timer.start_timer("write_compress_wnl");
-    float apr_wnl_in_mb = apr_writer.write_apr(apr,apr_converter.par.input_dir ,name + "_compress",apr_compress,BLOSC_ZSTD,3,2);
+    float apr_wnl_in_mb = apr_writer.write_apr(apr,apr_converter.par.input_dir ,"apr_files/" + name + "_compress",apr_compress,BLOSC_ZSTD,3,2);
     timer.stop_timer();
 
 
@@ -234,18 +247,18 @@ void APRBenchmark::benchmark_dataset(APRConverter<ImageType>& apr_converter){
     apr_compress.set_compression_type(2);
 
     timer.start_timer("write_compress_predict_only");
-    float apr_predict_in_mb = apr_writer.write_apr(apr,apr_converter.par.input_dir ,name + "_compress1",apr_compress,BLOSC_ZSTD,3,2);
+    float apr_predict_in_mb = apr_writer.write_apr(apr,apr_converter.par.input_dir ,"apr_files/" +name + "_compress1",apr_compress,BLOSC_ZSTD,3,2);
     timer.stop_timer();
 
     apr.particles_intensities.copy_parts(apr,intensities);
     apr_compress.set_compression_type(0);
 
     timer.start_timer("write_no_compress");
-    float apr_direct_in_mb = apr_writer.write_apr(apr,apr_converter.par.input_dir ,name + "_compress2",apr_compress,BLOSC_ZSTD,3,2);
+    float apr_direct_in_mb = apr_writer.write_apr(apr,apr_converter.par.input_dir ,"apr_files/" + name + "_compress2",apr_compress,BLOSC_ZSTD,3,2);
     timer.stop_timer();
 
     timer.start_timer("write_particles_only");
-    float apr_parts_only_mb = apr_writer.write_particles_only(apr_converter.par.input_dir ,name + "_parts_only",intensities);
+    float apr_parts_only_mb = apr_writer.write_particles_only(apr_converter.par.input_dir ,"apr_files/" + name + "_parts_only",intensities);
 
     timer.stop_timer();
 
@@ -313,7 +326,6 @@ void APRBenchmark::benchmark_dataset(APRConverter<ImageType>& apr_converter){
     analysis_data.add_float_data("MCR_normal",MCR_normal);
     analysis_data.add_float_data("MCR_predict",MCR_predict);
     analysis_data.add_float_data("MCR_winl",MCR_winl);
-
 
 }
 

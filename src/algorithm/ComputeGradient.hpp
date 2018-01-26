@@ -1074,7 +1074,6 @@ void ComputeGradient::get_smooth_bspline_3D(MeshData<T>& input,APRParameters& pa
 
     spline_timer.stop_timer();
 
-
     spline_timer.start_timer("bspline_filt_rec_z");
 
     //Z direction bspline
