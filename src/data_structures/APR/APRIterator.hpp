@@ -23,13 +23,14 @@ private:
 
     const uint8_t level_check_middle[3] = {_LEVEL_SAME,_LEVEL_DECREASE,_LEVEL_INCREASE};
 
-    ParticleCell neighbour_particle_cell;
+    ParticleCell neighbour_particle_cell{ 0, 0, 0, 0, 0, UINT64_MAX, UINT64_MAX };
 
-    ParticleCell current_particle_cell;
+    ParticleCell current_particle_cell{0, 0, 0, 0, 0, UINT64_MAX, UINT64_MAX };
 
+    APR<ImageType>* aprOwn;
     APRAccess* apr_access;
 
-    uint16_t level_delta;
+    uint16_t level_delta{};
 
     MapIterator current_gap;
 
@@ -43,30 +44,33 @@ private:
 public:
 
 
-    APRIterator(APR<ImageType>& apr){
+    explicit APRIterator(APR<ImageType>& apr){
+        aprOwn = &apr;
         apr_access = &apr.apr_access;
-        current_particle_cell.global_index = -1;
+        current_particle_cell.global_index = UINT64_MAX;
     }
 
-    APRIterator(APRAccess& apr_access_){
+    explicit APRIterator(APRAccess& apr_access_){
        apr_access = &apr_access_;
-        current_particle_cell.global_index = -1;
+        current_particle_cell.global_index = UINT64_MAX;
     }
 
     void initialize_from_apr(APR<ImageType>& apr){
+        aprOwn = &apr;
         apr_access = &apr.apr_access;
-        current_particle_cell.global_index = -1;
+        current_particle_cell.global_index = UINT64_MAX;
     }
 
     uint64_t total_number_particles(){
         return (apr_access)->total_number_particles;
     }
 
-    bool set_iterator_to_particle_by_number(const uint64_t &particle_number){
+    bool set_iterator_to_particle_by_number(const uint64_t particle_number){
         //
         //  Moves the iterator to point to the particle number (global index of the particle)
         //
 
+//        std::cerr << particle_number << std::endl;
         if(particle_number==0){
             current_particle_cell.level = level_min();
             current_particle_cell.pc_offset=0;
@@ -498,7 +502,7 @@ private:
                 return false;
             }
         } else {
-            current_gap.iterator= apr_access->gap_map.data[current_particle_cell.level][current_particle_cell.pc_offset][0].map.begin();
+            current_gap.iterator = apr_access->gap_map.data[current_particle_cell.level][current_particle_cell.pc_offset][0].map.begin();
             current_particle_cell.global_index=current_gap.iterator->second.global_index_begin;
             current_particle_cell.y = current_gap.iterator->first;
 
@@ -548,7 +552,7 @@ private:
                     return true;
                 } else {
                     //reached the end of the particle cells
-                    current_particle_cell.global_index = -1;
+                    current_particle_cell.global_index = UINT64_MAX;
                     return false;
                 }
             }

@@ -305,7 +305,6 @@ void APRRaycaster::perform_raycast(APR<U>& apr,ExtraParticleData<S>& particle_da
     std::cout << elapsed_seconds/(view_count*1.0) <<  " seconds per view" << std::endl;
 
 
-
 };
 
 template<typename S,typename U>
@@ -442,8 +441,6 @@ float APRRaycaster::perpsective_mesh_raycast(MeshData<S>& image) {
     debug_write(cast_views, this->name + "perspective_mesh_projection");
 
     return elapsed_seconds;
-
-
 }
 
 

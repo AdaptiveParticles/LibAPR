@@ -320,11 +320,10 @@ void APRBenchmark::pixel_neighbour_random(uint64_t y_num, uint64_t x_num, uint64
     timer.start_timer("full previous filter");
 
     int r;
-
     //Generate random access numbers
-#ifdef HAVE_OPENMP
-#pragma omp parallel for default(shared) private(j,i,k,i_n,k_n,j_n,r)
-#endif
+//#ifdef HAVE_OPENMP
+//#pragma omp parallel for default(shared) private(j,i,k,i_n,k_n,j_n)
+//#endif
     for(r = 0;r < num_repeats;r++){
 
         i = x_random[r];
@@ -436,9 +435,9 @@ void APRBenchmark::apr_random_access(APR<U>& apr, float num_repeats){
     //Generate random access numbers
     int r;
 
-#ifdef HAVE_OPENMP
-#pragma omp parallel for schedule(static) private(r) firstprivate(apr_iterator, neighbour_iterator,random_particle_cell)
-#endif
+//#ifdef HAVE_OPENMP
+//#pragma omp parallel for schedule(static) private(r) firstprivate(apr_iterator, neighbour_iterator,random_particle_cell)
+//#endif
     for(r = 0;r < num_repeats;r++){
 
         random_particle_cell.x = x_random[r];
