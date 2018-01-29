@@ -75,6 +75,8 @@ int main(int argc, char **argv) {
     //read file
     apr.read_apr(file_name);
 
+    apr.name = options.output;
+
     //create mesh data structure for reconstruction
     MeshData<uint16_t> recon_pc;
 
@@ -106,6 +108,11 @@ int main(int argc, char **argv) {
     ExtraParticleData<uint16_t> type(apr);
     ExtraParticleData<uint16_t> level(apr);
 
+    ExtraParticleData<uint16_t> x(apr);
+    ExtraParticleData<uint16_t> y(apr);
+    ExtraParticleData<uint16_t> z(apr);
+
+
     timer.start_timer("APR parallel iterator loop");
 
 #ifdef HAVE_OPENMP
@@ -117,6 +124,10 @@ int main(int argc, char **argv) {
 
         type[apr_iterator] = apr_iterator.type();
         level[apr_iterator] = apr_iterator.level();
+
+        x[apr_iterator] = apr_iterator.x();
+        y[apr_iterator] = apr_iterator.y();
+        z[apr_iterator] = apr_iterator.z();
     }
 
     timer.stop_timer();
@@ -134,6 +145,31 @@ int main(int argc, char **argv) {
     apr.interp_img(type_recon,level);
 
     output_path = options.directory + apr.name + "_level.tif";
+
+    //write output as tiff
+    TiffUtils::saveMeshAsTiff(output_path, type_recon);
+
+
+    //pc interp
+    apr.interp_img(type_recon,x);
+
+    output_path = options.directory + apr.name + "_x.tif";
+
+    //write output as tiff
+    TiffUtils::saveMeshAsTiff(output_path, type_recon);
+
+    //pc interp
+    apr.interp_img(type_recon,y);
+
+    output_path = options.directory + apr.name + "_y.tif";
+
+    //write output as tiff
+    TiffUtils::saveMeshAsTiff(output_path, type_recon);
+
+    //pc interp
+    apr.interp_img(type_recon,z);
+
+    output_path = options.directory + apr.name + "_z.tif";
 
     //write output as tiff
     TiffUtils::saveMeshAsTiff(output_path, type_recon);
