@@ -79,6 +79,11 @@ public:
         iArray = aObj.iArray; aObj.iArray = nullptr;
         iNumOfElements = aObj.iNumOfElements; aObj.iNumOfElements = -1;
     }
+    ArrayWrapper& operator=(ArrayWrapper&& aObj) {
+        iArray = aObj.iArray; aObj.iArray = nullptr;
+        iNumOfElements = aObj.iNumOfElements; aObj.iNumOfElements = -1;
+        return *this;
+    }
 
     inline void set(T *aInputArray, size_t aNumOfElements) {iArray = aInputArray; iNumOfElements = aNumOfElements;}
 
@@ -99,11 +104,6 @@ public:
     inline void swap(ArrayWrapper<T> &aObj) {
         std::swap(iNumOfElements, aObj.iNumOfElements);
         std::swap(iArray, aObj.iArray);
-    }
-
-    inline void move(ArrayWrapper<T> &aObj) {
-        iArray = aObj.iArray; aObj.iArray = nullptr;
-        iNumOfElements = aObj.iNumOfElements; aObj.iNumOfElements = -1;
     }
 
 private:
@@ -150,8 +150,21 @@ public :
         x_num = aObj.x_num;
         y_num = aObj.y_num;
         z_num = aObj.z_num;
-        mesh.move(aObj.mesh);
+        mesh = std::move(aObj.mesh);
         meshMemory = std::move(aObj.meshMemory);
+    }
+
+    /**
+     * Move assignment operator
+    * @param aObj
+    */
+    MeshData& operator=(MeshData &&aObj) {
+        x_num = aObj.x_num;
+        y_num = aObj.y_num;
+        z_num = aObj.z_num;
+        mesh = std::move(aObj.mesh);
+        meshMemory = std::move(aObj.meshMemory);
+        return *this;
     }
 
     /**
@@ -186,7 +199,7 @@ public :
      * @param z
      * @return element @(y, x, z)
     */
-    T& operator()(int y, int x, int z) {
+    T& operator()(size_t y, size_t x, size_t z) {
         y = std::min(y, y_num-1);
         x = std::min(x, x_num-1);
         z = std::min(z, z_num-1);
@@ -325,17 +338,6 @@ public :
         mesh.swap(aObj.mesh);
     }
 
-    /**
-     * Moves data of aObj mesh to this
-     * @param aObj
-     */
-    void move(MeshData &&aObj) {
-        x_num = aObj.x_num;
-        y_num = aObj.y_num;
-        z_num = aObj.z_num;
-        mesh.move(aObj.mesh);
-        meshMemory = std::move(aObj.meshMemory);
-    }
 
     template<typename U>
     void runUnaryOp(const MeshData<U> &aInputMesh, T (*aOp) (const T& aVal), unsigned int aNumberOfBlocks = 10) {
