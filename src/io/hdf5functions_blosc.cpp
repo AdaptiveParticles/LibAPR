@@ -13,6 +13,12 @@
 #include <string>
 #include <memory>
 
+// TODO: This is not supported for UWP, find a replacement
+#ifdef _WINDOWS
+#define popen _popen
+#define pclose _pclose
+#endif
+
 std::string exec_blosc(const char* cmd) {
     std::array<char, 128> buffer;
     std::string result;
