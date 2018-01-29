@@ -79,6 +79,11 @@ public:
         iArray = aObj.iArray; aObj.iArray = nullptr;
         iNumOfElements = aObj.iNumOfElements; aObj.iNumOfElements = -1;
     }
+    ArrayWrapper& operator=(ArrayWrapper&& aObj) {
+        iArray = aObj.iArray; aObj.iArray = nullptr;
+        iNumOfElements = aObj.iNumOfElements; aObj.iNumOfElements = -1;
+        return *this;
+    }
 
     inline void set(T *aInputArray, size_t aNumOfElements) {iArray = aInputArray; iNumOfElements = aNumOfElements;}
 
@@ -99,11 +104,6 @@ public:
     inline void swap(ArrayWrapper<T> &aObj) {
         std::swap(iNumOfElements, aObj.iNumOfElements);
         std::swap(iArray, aObj.iArray);
-    }
-
-    inline void move(ArrayWrapper<T> &aObj) {
-        iArray = aObj.iArray; aObj.iArray = nullptr;
-        iNumOfElements = aObj.iNumOfElements; aObj.iNumOfElements = -1;
     }
 
 private:
@@ -150,8 +150,21 @@ public :
         x_num = aObj.x_num;
         y_num = aObj.y_num;
         z_num = aObj.z_num;
-        mesh.move(aObj.mesh);
+        mesh = std::move(aObj.mesh);
         meshMemory = std::move(aObj.meshMemory);
+    }
+
+    /**
+     * Move assignment operator
+    * @param aObj
+    */
+    MeshData& operator=(MeshData &&aObj) {
+        x_num = aObj.x_num;
+        y_num = aObj.y_num;
+        z_num = aObj.z_num;
+        mesh = std::move(aObj.mesh);
+        meshMemory = std::move(aObj.meshMemory);
+        return *this;
     }
 
     /**
@@ -185,7 +198,7 @@ public :
      * @param x
      * @param z
      * @return element @(y, x, z)
-    */ //#FIXME changed it to size_t
+     */ //#FIXME changed it to size_t
     T& operator()(size_t y, size_t x, size_t z) {
         y = std::min(y, y_num-1);
         x = std::min(x, x_num-1);
@@ -250,10 +263,11 @@ public :
         size_t size = (size_t)y_num * x_num * z_num;
         meshMemory.reset(new T[size]);
         T *array = meshMemory.get();
+        if (array == nullptr) { std::cerr << "Could not allocate memory!" << size << std::endl; exit(-1); }
         mesh.set(array, size);
 
         // Fill values of new buffer in parallel
-        // TODO: set dynamicaly number of threads
+        // TODO: set dynamically number of threads
         #ifdef HAVE_OPENMP
         #pragma omp parallel num_threads(4)
         {
@@ -292,6 +306,7 @@ public :
         z_num = aSizeOfZ;
         size_t size = (size_t)y_num * x_num * z_num;
         meshMemory.reset(new T[size]);
+        if (meshMemory.get() == nullptr) { std::cerr << "Could not allocate memory!" << size << std::endl; exit(-1); }
         mesh.set(meshMemory.get(), size);
     }
 
@@ -323,17 +338,6 @@ public :
         mesh.swap(aObj.mesh);
     }
 
-    /**
-     * Moves data of aObj mesh to this
-     * @param aObj
-     */
-    void move(MeshData &&aObj) {
-        x_num = aObj.x_num;
-        y_num = aObj.y_num;
-        z_num = aObj.z_num;
-        mesh.move(aObj.mesh);
-        meshMemory = std::move(aObj.meshMemory);
-    }
 
     template<typename U>
     void runUnaryOp(const MeshData<U> &aInputMesh, T (*aOp) (const T& aVal), unsigned int aNumberOfBlocks = 10) {
@@ -763,13 +767,13 @@ void down_sample_overflow_proct(MeshData<T>& test_a, MeshData<S>& test_a_ds, L1 
     //  Updated method to protect over=flow of down-sampling
     //
 
-    const int z_num = test_a.z_num;
-    const int x_num = test_a.x_num;
-    const int y_num = test_a.y_num;
+    const int64_t z_num = test_a.z_num;
+    const int64_t x_num = test_a.x_num;
+    const int64_t y_num = test_a.y_num;
 
-    const int z_num_ds = (int) ceil(1.0*z_num/2.0);
-    const int x_num_ds = (int) ceil(1.0*x_num/2.0);
-    const int y_num_ds = (int) ceil(1.0*y_num/2.0);
+    const int64_t z_num_ds = (int64_t) ceil(1.0*z_num/2.0);
+    const int64_t x_num_ds = (int64_t) ceil(1.0*x_num/2.0);
+    const int64_t y_num_ds = (int64_t) ceil(1.0*y_num/2.0);
 
     Part_timer timer;
     //timer.verbose_flag = true;
@@ -790,7 +794,7 @@ void down_sample_overflow_proct(MeshData<T>& test_a, MeshData<S>& test_a_ds, L1 
     temp_vec2.resize(y_num_ds,0);
 
 
-    int i, k, si_, sj_, sk_;
+    int64_t i, k, si_, sj_, sk_;
 
 #ifdef HAVE_OPENMP
 	#pragma omp parallel for default(shared) private(i,k,si_,sj_,sk_) firstprivate(temp_vec,temp_vec2)
@@ -800,8 +804,8 @@ void down_sample_overflow_proct(MeshData<T>& test_a, MeshData<S>& test_a_ds, L1 
 
         for (i = 0; i < x_num_ds; i++) {
 
-            si_ = std::min(2 * i + 1, x_num - 1);
-            sj_ = std::min(2 * j + 1, z_num - 1);
+            si_ = std::min((int64_t)2 * i + 1, x_num - 1);
+            sj_ = std::min((int64_t)2 * j + 1, z_num - 1);
 
             //four passes
 
@@ -886,13 +890,13 @@ void down_sample(MeshData<T>& test_a, MeshData<S>& test_a_ds, L1 reduce, L2 cons
     //
     //
 
-    const int z_num = test_a.z_num;
-    const int x_num = test_a.x_num;
-    const int y_num = test_a.y_num;
+    const int64_t z_num = test_a.z_num;
+    const int64_t x_num = test_a.x_num;
+    const int64_t y_num = test_a.y_num;
 
-    const int z_num_ds = (int) ceil(1.0*z_num/2.0);
-    const int x_num_ds = (int) ceil(1.0*x_num/2.0);
-    const int y_num_ds = (int) ceil(1.0*y_num/2.0);
+    const int64_t z_num_ds = (int64_t) ceil(1.0*z_num/2.0);
+    const int64_t x_num_ds = (int64_t) ceil(1.0*x_num/2.0);
+    const int64_t y_num_ds = (int64_t) ceil(1.0*y_num/2.0);
 
     Part_timer timer;
     //timer.verbose_flag = true;
@@ -910,12 +914,12 @@ void down_sample(MeshData<T>& test_a, MeshData<S>& test_a_ds, L1 reduce, L2 cons
     temp_vec.resize(y_num,0);
 
 
-    int i, k, si_, sj_, sk_;
+    int64_t i, k, si_, sj_, sk_;
 
 #ifdef HAVE_OPENMP
 	#pragma omp parallel for default(shared) private(i,k,si_,sj_,sk_) firstprivate(temp_vec)
 #endif
-    for(int j = 0;j < z_num_ds; j++) {
+    for(int64_t j = 0;j < z_num_ds; j++) {
 
 
         for (i = 0; i < x_num_ds; i++) {

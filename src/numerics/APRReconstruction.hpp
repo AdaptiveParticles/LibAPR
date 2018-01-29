@@ -29,11 +29,11 @@ public:
 
         for (uint64_t level = apr_iterator.level_min(); level <= apr_iterator.level_max(); ++level) {
             //loop over the resolutions of the structure
-            const unsigned int x_num_ =  apr.spatial_index_x_max(level);
-            const unsigned int z_num_ = apr.spatial_index_z_max(level);
+            const int64_t x_num_ =  apr.spatial_index_x_max(level);
+            const int64_t z_num_ = apr.spatial_index_z_max(level);
 
-            const unsigned int x_num_min_ = 0;
-            const unsigned int z_num_min_ = 0;
+            const int64_t x_num_min_ = 0;
+            const int64_t z_num_min_ = 0;
 
             const float step_size = pow(2,apr_iterator.level_max() - level);
 
@@ -59,13 +59,13 @@ public:
                 const int offset_max_dim2 = std::min((int) img.x_num, (int) (dim2 + step_size));
                 const int offset_max_dim3 = std::min((int) img.z_num, (int) (dim3 + step_size));
 
-                for (int q = dim3; q < offset_max_dim3; ++q) {
+                for (int64_t q = dim3; q < offset_max_dim3; ++q) {
 
-                    for (int k = dim2; k < offset_max_dim2; ++k) {
+                    for (int64_t k = dim2; k < offset_max_dim2; ++k) {
     #ifdef HAVE_OPENMP
 	#pragma omp simd
 #endif
-                        for (int i = dim1; i < offset_max_dim1; ++i) {
+                        for (int64_t i = dim1; i < offset_max_dim1; ++i) {
                             img.mesh[i + (k) * img.y_num + q * img.y_num * img.x_num] = temp_int;
                         }
                     }
@@ -178,9 +178,9 @@ public:
         //
 
 
-        const int z_num = input.z_num;
-        const int x_num = input.x_num;
-        const int y_num = input.y_num;
+        const int64_t z_num = input.z_num;
+        const int64_t x_num = input.x_num;
+        const int64_t y_num = input.y_num;
 
         std::vector<T> temp_vec;
         temp_vec.resize(y_num,0);
@@ -189,7 +189,7 @@ public:
         offset_vec.resize(y_num,0);
 
 
-        int i, k, index;
+        int64_t i, k, index;
         float counter, temp, divisor,offset;
 
         //need to introduce an offset max to make the algorithm still work, and it also makes sense.
@@ -202,7 +202,7 @@ public:
 #ifdef HAVE_OPENMP
 	#pragma omp parallel for default(shared) private(i,k,counter,temp,index,divisor,offset) firstprivate(temp_vec,offset_vec)
 #endif
-        for(int j = 0;j < z_num;j++){
+        for(int64_t j = 0;j < z_num;j++){
             for(i = 0;i < x_num;i++){
 
                 index = j*x_num*y_num + i*y_num;
@@ -292,10 +292,9 @@ public:
                 input.mesh[index] *= divisor/(offset+1);
             }
         }
-
-
-
     }
+
+
     template<typename T>
     void calc_sat_adaptive_x(MeshData<T>& input,MeshData<uint8_t>& offset_img,float scale_in,unsigned int offset_max_in,const unsigned int d_max){
         //
@@ -303,18 +302,18 @@ public:
         //
         //
 
-        const int z_num = input.z_num;
-        const int x_num = input.x_num;
-        const int y_num = input.y_num;
+        const int64_t z_num = input.z_num;
+        const int64_t x_num = input.x_num;
+        const int64_t y_num = input.y_num;
 
         unsigned int offset_max = offset_max_in;
 
         std::vector<T> temp_vec;
         temp_vec.resize(y_num*(2*offset_max + 2),0);
 
-        int i,k;
+        int64_t i,k;
         float temp;
-        int index_modulo, previous_modulo, current_index, jxnumynum, offset,forward_modulo,backward_modulo;
+        int64_t index_modulo, previous_modulo, current_index, jxnumynum, offset,forward_modulo,backward_modulo;
 
         const float scale = scale_in;
         //const unsigned int d_max = this->depth_max();
@@ -419,14 +418,14 @@ public:
 
         // The same, but in place
 
-        const int z_num = input.z_num;
-        const int x_num = input.x_num;
-        const int y_num = input.y_num;
+        const int64_t z_num = input.z_num;
+        const int64_t x_num = input.x_num;
+        const int64_t y_num = input.y_num;
 
-        int j,k;
+        int64_t j,k;
         float temp;
-        int index_modulo, previous_modulo, current_index, iynum,forward_modulo,backward_modulo,offset;
-        int xnumynum = x_num * y_num;
+        int64_t index_modulo, previous_modulo, current_index, iynum,forward_modulo,backward_modulo,offset;
+        int64_t xnumynum = x_num * y_num;
 
         const int offset_max = offset_max_in;
         const float scale = scale_in;

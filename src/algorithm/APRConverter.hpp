@@ -107,7 +107,7 @@ private:
     void init_apr(APR<ImageType>& apr,MeshData<T>& input_image);
 
     template<typename T>
-    void auto_parameters(MeshData<T>& input_img);
+    void auto_parameters(const MeshData<T>& input_img);
 
     template<typename T>
     bool get_apr_method_from_file(APR<ImageType>& apr, const TiffUtils::TiffInfo &tiffFile);
@@ -501,69 +501,46 @@ void APRConverter<ImageType>::init_apr(APR<ImageType>& apr,MeshData<T>& input_im
 
 
 template<typename ImageType> template<typename T>
-void APRConverter<ImageType>::auto_parameters(MeshData<T>& input_img){
+void APRConverter<ImageType>::auto_parameters(const MeshData<T>& input_img){
     //
     //  Simple automatic parameter selection for 3D APR Flouresence Images
     //
 
-
-
     APRTimer par_timer;
-
     par_timer.verbose_flag = false;
 
     //
     //  Do not compute the statistics over the whole image, but only a smaller sub-set.
     //
-
-    double total_required_pixel = 10*1000*1000;
-
-    std::vector<unsigned int> selected_slices;
-
-    unsigned int num_slices = std::min((unsigned int)ceil(total_required_pixel/(1.0*input_img.y_num*input_img.x_num)),(unsigned int)input_img.z_num);
-
-    unsigned int delta = std::max((unsigned int)1,(unsigned int)(input_img.z_num/num_slices));
-
+    const double total_required_pixel = 10*1000*1000;
+    size_t num_slices = std::min((unsigned int)ceil(total_required_pixel/(1.0*input_img.y_num*input_img.x_num)),(unsigned int)input_img.z_num);
+    size_t delta = std::max((unsigned int)1,(unsigned int)(input_img.z_num/num_slices));
+    std::vector<size_t> selectedSlicesOffsets;
+    selectedSlicesOffsets.reserve(num_slices);
     //evenly space the slices across the image
-    for (int i1 = 0; i1 < num_slices; ++i1) {
-        selected_slices.push_back(delta*i1);
+    for (size_t i1 = 0; i1 < num_slices; ++i1) {
+        selectedSlicesOffsets.push_back(delta*i1);
     }
 
-    float min_val = 99999999;
-
+    // Get min value
     par_timer.start_timer("get_min");
-
-    for (int k1 = 0; k1 < selected_slices.size(); ++k1) {
-        min_val = std::min((float)*std::min_element(input_img.mesh.begin() + selected_slices[k1]*(input_img.y_num*input_img.x_num),input_img.mesh.begin()  + (selected_slices[k1]+1)*(input_img.y_num*input_img.x_num)),min_val);
+    float min_val = 99999999;
+    for (size_t k1 = 0; k1 < selectedSlicesOffsets.size(); ++k1) {
+        min_val = std::min((float)*std::min_element(input_img.mesh.begin() + selectedSlicesOffsets[k1]*(input_img.y_num*input_img.x_num),input_img.mesh.begin()  + (selectedSlicesOffsets[k1]+1)*(input_img.y_num*input_img.x_num)),min_val);
     }
-
     par_timer.stop_timer();
 
-
-    //minimum element
-    //T min_val = *std::min_element(input_img.mesh.begin(),input_img.mesh.end());
-
-
-
     // will need to deal with grouped constant or zero sections in the image somewhere.... but lets keep it simple for now.
-
-    std::vector<uint64_t> freq;
-    unsigned int num_bins = 10000;
-    freq.resize(num_bins);
-
+    const size_t num_bins = 10000;
+    std::vector<uint64_t> freq(num_bins);
     uint64_t counter = 0;
     double total=0;
-
     uint64_t q =0;
-//#pragma omp parallel for default(shared) private(q)
 
-    unsigned int xnumynum = input_img.x_num*input_img.y_num;
-
+    size_t xnumynum = input_img.x_num*input_img.y_num;
     par_timer.start_timer("get_histogram");
-
-    for (int s = 0; s < selected_slices.size(); ++s) {
-
-        for (int q= selected_slices[s]*xnumynum; q < (selected_slices[s]+1)*xnumynum; ++q) {
+    for (size_t s = 0; s < selectedSlicesOffsets.size(); ++s) {
+        for (size_t q= selectedSlicesOffsets[s]*xnumynum; q < (selectedSlicesOffsets[s]+1)*xnumynum; ++q) {
             if(input_img.mesh[q] < (min_val + num_bins-1)){
                 freq[input_img.mesh[q]-min_val]++;
                 if(input_img.mesh[q] > 0) {
@@ -574,7 +551,6 @@ void APRConverter<ImageType>::auto_parameters(MeshData<T>& input_img){
         }
 
     }
-
     par_timer.stop_timer();
 
 //    for (q = 0; q < input_img.mesh.size(); ++q) {
@@ -588,11 +564,9 @@ void APRConverter<ImageType>::auto_parameters(MeshData<T>& input_img){
 //        }
 //    }
 
-    float img_mean = total/(counter*1.0);
-
+    float img_mean = counter > 0 ? total/(counter*1.0) : 1;
     float prop_total_th = 0.05; //assume there is atleast 5% background in the image
     float prop_total = 0;
-
     uint64_t min_j = 0;
 
     // set to start at one to ignore potential constant regions thresholded out. (Common in some images)
@@ -631,7 +605,7 @@ void APRConverter<ImageType>::auto_parameters(MeshData<T>& input_img){
     unsigned int local_max_j = 0;
     uint64_t local_max = 0;
 
-    for (int k = min_j; k < num_bins; ++k) {
+    for (size_t k = min_j; k < num_bins; ++k) {
 
         if(histogram.mesh[k] >= ((histogram.mesh[k-1] + histogram.mesh[k-2])/2.0)){
         } else {
@@ -655,13 +629,13 @@ void APRConverter<ImageType>::auto_parameters(MeshData<T>& input_img){
     }
 
 
-    unsigned int z_num = input_img.z_num;
-    unsigned int x_num = input_img.x_num;
-    unsigned int y_num = input_img.y_num;
+    int64_t z_num = input_img.z_num;
+    int64_t x_num = input_img.x_num;
+    int64_t y_num = input_img.y_num;
 
-    int j = 0;
-    int k = 0;
-    int i = 0;
+    int64_t j = 0;
+    int64_t k = 0;
+    int64_t i = 0;
 
     int j_n = 0;
     int k_n = 0;
@@ -671,16 +645,16 @@ void APRConverter<ImageType>::auto_parameters(MeshData<T>& input_img){
 
     uint64_t counter_p = 0;
 
-    for (int s = 0; s < selected_slices.size(); ++s) {
-        j = std::min((int)z_num - 2, std::max((int)selected_slices[s],(int)1));
+    for (size_t s = 0; s < selectedSlicesOffsets.size(); ++s) {
+        j = std::min((int)z_num - 2, std::max((int)selectedSlicesOffsets[s],(int)1));
         for(i = 1; i < (x_num-1);i++){
             for(k = 1;k < (y_num-1);k++){
-                float val = input_img.mesh[(size_t)j*x_num*y_num + i*y_num + k];
+                float val = input_img.mesh[j*x_num*y_num + i*y_num + k];
                 if (val == estimated_first_mode) {
                     uint64_t counter_n = 0;
-                    for (int l = -1; l < 2; ++l) {
-                        for (int m = -1; m < 2; ++m) {
-                            for (int n = -1; n < 2; ++n) {
+                    for (int64_t l = -1; l < 2; ++l) {
+                        for (int64_t m = -1; m < 2; ++m) {
+                            for (int64_t n = -1; n < 2; ++n) {
                                 size_t idx = (size_t)(j+l)*x_num*y_num + (i+m)*y_num + (k+n);
                                 const auto &val = input_img.mesh[idx];
                                 patches[counter_p][counter_n] = val;
@@ -707,8 +681,8 @@ void APRConverter<ImageType>::auto_parameters(MeshData<T>& input_img){
     double total_p=0;
     counter = 0;
 
-    for (int i = 0; i < patches.size(); ++i) {
-        for (int j = 0; j < patches[i].size(); ++j) {
+    for (size_t i = 0; i < patches.size(); ++i) {
+        for (size_t j = 0; j < patches[i].size(); ++j) {
 
             if(patches[i][j] > 0){
                 total_p += patches[i][j];
@@ -717,14 +691,14 @@ void APRConverter<ImageType>::auto_parameters(MeshData<T>& input_img){
         }
     }
 
-    T mean = total_p/(counter*1.0);
+    T mean = counter > 0 ? total_p/(counter*1.0) : 1;
 
     //now compute the standard deviation (sd) of the patches
 
     double var=0;
 
-    for (int i = 0; i < patches.size(); ++i) {
-        for (int j = 0; j < patches[i].size(); ++j) {
+    for (size_t i = 0; i < patches.size(); ++i) {
+        for (size_t j = 0; j < patches[i].size(); ++j) {
 
             if(patches[i][j] > 0){
                 var += pow(patches[i][j]-mean,2);
@@ -732,13 +706,13 @@ void APRConverter<ImageType>::auto_parameters(MeshData<T>& input_img){
         }
     }
 
-    var = var/(counter*1);
+    var = (counter > 0) ? var/(counter*1) : 1;
 
     float sd = sqrt(var);
 
     par.noise_sd_estimate = sd;
 
-    for (int l1 = 1; l1 < histogram.mesh.size(); ++l1) {
+    for (size_t l1 = 1; l1 < histogram.mesh.size(); ++l1) {
         if(histogram.mesh[l1] > 0){
             par.background_intensity_estimate = l1 + min_val;
         }
@@ -755,7 +729,6 @@ void APRConverter<ImageType>::auto_parameters(MeshData<T>& input_img){
     std::cout << "**Assuming image has atleast 5% dark background" << std::endl;
 
     float Ip_th = mean + sd;
-
     float var_th = (img_mean/mean)*sd*min_snr;
 
     float var_th_max = sd*min_snr*.5;
@@ -785,7 +758,6 @@ void APRConverter<ImageType>::auto_parameters(MeshData<T>& input_img){
     std::cout << "sigma_th_max: " << this->par.sigma_th_max << std::endl;
     std::cout << "relative error (E): " << this->par.rel_error << std::endl;
     std::cout << "lambda: " << this->par.lambda << std::endl;
-
 }
 
 

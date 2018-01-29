@@ -668,19 +668,19 @@ void CreateSmallSphereTest::SetUp(){
     test_data.apr.read_apr(file_name);
 
     file_name = get_source_directory_apr() + "files/Apr/sphere_120/sphere_level.tif";
-    test_data.img_level.move(TiffUtils::getMesh<uint16_t>(file_name));
+    test_data.img_level = TiffUtils::getMesh<uint16_t>(file_name);
     file_name = get_source_directory_apr() + "files/Apr/sphere_120/sphere_type.tif";
-    test_data.img_type.move(TiffUtils::getMesh<uint16_t>(file_name));
+    test_data.img_type = TiffUtils::getMesh<uint16_t>(file_name);
     file_name = get_source_directory_apr() + "files/Apr/sphere_120/sphere_original.tif";
-    test_data.img_original.move(TiffUtils::getMesh<uint16_t>(file_name));
+    test_data.img_original = TiffUtils::getMesh<uint16_t>(file_name);
     file_name = get_source_directory_apr() + "files/Apr/sphere_120/sphere_pc.tif";
-    test_data.img_pc.move(TiffUtils::getMesh<uint16_t>(file_name));
+    test_data.img_pc = TiffUtils::getMesh<uint16_t>(file_name);
     file_name = get_source_directory_apr() + "files/Apr/sphere_120/sphere_x.tif";
-    test_data.img_x.move(TiffUtils::getMesh<uint16_t>(file_name));
+    test_data.img_x = TiffUtils::getMesh<uint16_t>(file_name);
     file_name =  get_source_directory_apr() + "files/Apr/sphere_120/sphere_y.tif";
-    test_data.img_y.move(TiffUtils::getMesh<uint16_t>(file_name));
+    test_data.img_y = TiffUtils::getMesh<uint16_t>(file_name);
     file_name =  get_source_directory_apr() + "files/Apr/sphere_120/sphere_z.tif";
-    test_data.img_z.move(TiffUtils::getMesh<uint16_t>(file_name));
+    test_data.img_z = TiffUtils::getMesh<uint16_t>(file_name);
 
     test_data.filename = get_source_directory_apr() + "files/Apr/sphere_120/sphere_original.tif";
     test_data.output_name = "sphere_small";
