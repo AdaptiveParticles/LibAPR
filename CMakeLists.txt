@@ -58,20 +58,20 @@ include_directories(${PROJECT_SOURCE_DIR}/external/glm)
 
 set(SOURCE_FILES
 
-        test/tests.cpp
+  #      test/tests.cpp
 
-        test/k_test.cpp
-        test/alg_cells_test.cpp
+  #      test/k_test.cpp
+   #     test/alg_cells_test.cpp
 
-        test/test_tree/level_iterator_test.cpp
-        test/test_tree/tree_fixtures.cpp
+   #     test/test_tree/level_iterator_test.cpp
+    #    test/test_tree/tree_fixtures.cpp
 
         benchmarks/development/old_io/readimage.h
         benchmarks/development/old_io/writeimage.h
         benchmarks/development/old_io/parameters.cpp
 
         src/data_structures/Mesh/MeshData.hpp
-        benchmarks/development/old_structures/structure_parts.cpp
+   #     benchmarks/development/old_structures/structure_parts.cpp
 
         src/data_structures/APR/APR.hpp
 #        benchmarks/development/Tree/APRIteratorOld.hpp
@@ -79,19 +79,58 @@ set(SOURCE_FILES
         src/data_structures/APR/APRIterator.hpp
         src/data_structures/APR/APRAcess.hpp
 
-        benchmarks/development/old_algorithm/pipeline.cpp
+  #      benchmarks/development/old_algorithm/pipeline.cpp
 
 
         )
 
-set(SOURCE_FILES_COMPILED
-        benchmarks/development/old_structures/structure_parts.cpp
+set(SOURCE_FILES_BENCHMARK
+
+        #      test/tests.cpp
+
+        #      test/k_test.cpp
+        #     test/alg_cells_test.cpp
+
+        #     test/test_tree/level_iterator_test.cpp
+        #   test/test_tree/tree_fixtures.cpp
+
+        benchmarks/development/old_io/readimage.h
+        benchmarks/development/old_io/writeimage.h
+        benchmarks/development/old_io/parameters.cpp
+
+        src/data_structures/Mesh/MeshData.hpp
+             benchmarks/development/old_structures/structure_parts.cpp
+
+        src/data_structures/APR/APR.hpp
+                benchmarks/development/Tree/APRIteratorOld.hpp
+
+        src/data_structures/APR/APRIterator.hpp
+        src/data_structures/APR/APRAcess.hpp
+
+              benchmarks/development/old_algorithm/pipeline.cpp
+
+
+        )
+set(SOURCE_FILES_COMPILED_BENCHMARK
+           benchmarks/development/old_structures/structure_parts.cpp
         benchmarks/development/Tree/PartCellData.cpp
         benchmarks/development/old_io/parameters.cpp
         benchmarks/development/old_io/hdf5functions.cpp
         src/io/blosc_filter.c
         src/io/hdf5functions_blosc.cpp
-        benchmarks/development/old_io/write_parts.cpp
+             benchmarks/development/old_io/write_parts.cpp
+
+        #test/utils.cpp
+        )
+
+set(SOURCE_FILES_COMPILED
+    #    benchmarks/development/old_structures/structure_parts.cpp
+      #  benchmarks/development/Tree/PartCellData.cpp
+    #    benchmarks/development/old_io/parameters.cpp
+    #    benchmarks/development/old_io/hdf5functions.cpp
+        src/io/blosc_filter.c
+        src/io/hdf5functions_blosc.cpp
+   #     benchmarks/development/old_io/write_parts.cpp
 
         #test/utils.cpp
         )
@@ -132,44 +171,44 @@ endif()
 
 if(TESTS)
 
-    add_executable(testBspline
-            test/tests.cpp
-            test/bspline_test.cpp
-            test/utils.cpp
-            ${SOURCE_FILES_COMPILED}
+   # add_executable(testBspline
+     #       test/tests.cpp
+      #      test/bspline_test.cpp
+       #     test/utils.cpp
+        #    ${SOURCE_FILES_COMPILED}
 
-            )
+         #   )
         #this is currently failing, as the files need to be updated
-    add_executable(testVariance
-            test/tests.cpp
-            test/variance_test.cpp
-            test/utils.cpp
-            ${SOURCE_FILES_COMPILED}
+  #  add_executable(testVariance
+    #        test/tests.cpp
+    #        test/variance_test.cpp
+      #      test/utils.cpp
+      #      ${SOURCE_FILES_COMPILED}
 
-            )
-    add_executable(testLevel
-            test/k_test.cpp
-            test/utils.cpp
-            ${SOURCE_FILES_COMPILED}
+         #   )
+  #  add_executable(testLevel
+    #        test/k_test.cpp
+   #         test/utils.cpp
+    #        ${SOURCE_FILES_COMPILED}
 
-            )
-    add_executable(testResult
-            test/alg_cells_test.cpp
-            benchmarks/development/old_io/write_parts.cpp
-            test/utils.cpp
-            ${SOURCE_FILES_COMPILED}
+    #        )
+#    add_executable(testResult
+   #         test/alg_cells_test.cpp
+     #       benchmarks/development/old_io/write_parts.cpp
+     #       test/utils.cpp
+     #       ${SOURCE_FILES_COMPILED}
 
-            )
+      #      )
 
-    add_executable(testSparsePartStruc
+   # add_executable(testSparsePartStruc
             #test/test_tree/tree_fixtures.cpp
-            test/utils.cpp
+       #     test/utils.cpp
             #test/test_tree/create_part_cell_structure.cpp
-            test/test_tree/sparse_rep_test.cpp
-            ${SOURCE_FILES_COMPILED}
+       #     test/test_tree/sparse_rep_test.cpp
+       #     ${SOURCE_FILES_COMPILED}
 
-	        src/io/hdf5functions_blosc.cpp
-            )
+	   #     src/io/hdf5functions_blosc.cpp
+        #    )
 
     add_executable(testMeshData
             test/MeshDataTest.cpp
@@ -186,11 +225,11 @@ if(TESTS)
             )
 
 
-    target_link_libraries(testSparsePartStruc ${HDF5_LIBRARIES} ${GTEST_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT} ${TIFF_LIBRARIES} blosc_shared)
-    target_link_libraries(testBspline ${HDF5_LIBRARIES} ${GTEST_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT} ${TIFF_LIBRARIES} blosc_shared)
-    target_link_libraries(testVariance ${HDF5_LIBRARIES} ${GTEST_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT} ${TIFF_LIBRARIES} blosc_shared)
-    target_link_libraries(testLevel ${HDF5_LIBRARIES} ${GTEST_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT} ${TIFF_LIBRARIES} blosc_shared)
-    target_link_libraries(testResult ${HDF5_LIBRARIES} ${GTEST_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT} ${TIFF_LIBRARIES} blosc_shared)
+   # target_link_libraries(testSparsePartStruc ${HDF5_LIBRARIES} ${GTEST_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT} ${TIFF_LIBRARIES} blosc_shared)
+  #  target_link_libraries(testBspline ${HDF5_LIBRARIES} ${GTEST_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT} ${TIFF_LIBRARIES} blosc_shared)
+   # target_link_libraries(testVariance ${HDF5_LIBRARIES} ${GTEST_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT} ${TIFF_LIBRARIES} blosc_shared)
+    #target_link_libraries(testLevel ${HDF5_LIBRARIES} ${GTEST_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT} ${TIFF_LIBRARIES} blosc_shared)
+    #target_link_libraries(testResult ${HDF5_LIBRARIES} ${GTEST_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT} ${TIFF_LIBRARIES} blosc_shared)
     target_link_libraries(testMeshData ${GTEST_LIBRARIES} ${TIFF_LIBRARIES})
     target_link_libraries(testTiff ${GTEST_LIBRARIES} ${TIFF_LIBRARIES})
     target_link_libraries(testAPR ${HDF5_LIBRARIES} ${GTEST_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT} ${TIFF_LIBRARIES} blosc_shared)
@@ -199,20 +238,20 @@ endif(TESTS)
 
 add_executable(Example_get_apr
         test/Examples/Example_get_apr.cpp
-        benchmarks/development/old_io/write_parts.cpp
+
         ${SOURCE_FILES_COMPILED}
 
         )
 
 add_executable(Example_apr_iterate
         test/Examples/Example_apr_iterate.cpp
-        benchmarks/development/old_io/write_parts.cpp
+
         ${SOURCE_FILES_COMPILED}
         )
 
 add_executable(Example_reconstruct_image
         test/Examples/Example_reconstruct_image.cpp
-        benchmarks/development/old_io/write_parts.cpp
+
         ${SOURCE_FILES_COMPILED}
         )
 
@@ -224,37 +263,37 @@ add_executable(Example_ray_cast
 
 add_executable(Example_compress
         test/Examples/Example_compress_apr.cpp
-        benchmarks/development/old_io/write_parts.cpp
+
         ${SOURCE_FILES_COMPILED}
         )
 
 add_executable(Example_produce_paraview_file
         test/Examples/Example_produce_paraview_file.cpp
-        benchmarks/development/old_io/write_parts.cpp
+
         ${SOURCE_FILES_COMPILED}
         )
 
 add_executable(Example_apr_neighbour_access
         test/Examples/Example_apr_neighbour_access.cpp
-        benchmarks/development/old_io/write_parts.cpp
+
         ${SOURCE_FILES_COMPILED}
         )
 
 add_executable(Example_compute_gradient
         test/Examples/Example_compute_gradient.cpp
-        benchmarks/development/old_io/write_parts.cpp
+
         ${SOURCE_FILES_COMPILED}
         )
 
 add_executable(Example_random_access
         test/Examples/Example_random_access.cpp
-        benchmarks/development/old_io/write_parts.cpp
+
         ${SOURCE_FILES_COMPILED}
         )
 
 if(BUILD_WRAPPERS)
   SWIG_ADD_MODULE(apr java libapr.i
-        benchmarks/development/old_io/write_parts.cpp
+
         ${SOURCE_FILES_COMPILED}
         )
   SWIG_LINK_LIBRARIES(apr ${HDF5_LIBRARIES} blosc_static ${TIFF_LIBRARIES})
@@ -359,28 +398,28 @@ if(BENCHMARKS)
         add_executable(Example_benchmark
                 benchmarks/development/final_benchmarks/Example_benchmark.cpp
                 benchmarks/development/old_io/write_parts.cpp
-                ${SOURCE_FILES_COMPILED}
+                ${SOURCE_FILES_COMPILED_BENCHMARK}
                 ${BENCHMARK_SOURCE_FILES}
                 )
 
         add_executable(CR_benchmarks
                 benchmarks/development/final_benchmarks/CR_benchmarks.cpp
                 benchmarks/development/old_io/write_parts.cpp
-                ${SOURCE_FILES_COMPILED}
+                ${SOURCE_FILES_COMPILED_BENCHMARK}
                 ${BENCHMARK_SOURCE_FILES}
                 )
 
         add_executable(Benchmark_real_datasets
                 benchmarks/development/final_benchmarks/Benchmark_real_datasets.cpp
                 benchmarks/development/old_io/write_parts.cpp
-                ${SOURCE_FILES_COMPILED}
+                ${SOURCE_FILES_COMPILED_BENCHMARK}
                 ${BENCHMARK_SOURCE_FILES}
                 )
 
         add_executable(Example_newstructures
                 benchmarks/development/Example_newstructures.cpp
                 benchmarks/development/old_io/write_parts.cpp
-                ${SOURCE_FILES_COMPILED}
+                ${SOURCE_FILES_COMPILED_BENCHMARK}
                 )
 
 
@@ -390,7 +429,7 @@ if(BENCHMARKS)
                 external/maxflow-v3.04.src/graph.cpp
                 #test/utils.cpp
                 benchmarks/development/old_io/write_parts.cpp
-                ${SOURCE_FILES_COMPILED} src/vis/Camera.cpp src/vis/Camera.h src/vis/Object.cpp src/vis/Object.h src/vis/RaytracedObject.cpp src/vis/RaytracedObject.h
+                ${SOURCE_FILES_COMPILED_BENCHMARK} src/vis/Camera.cpp src/vis/Camera.h src/vis/Object.cpp src/vis/Object.h src/vis/RaytracedObject.cpp src/vis/RaytracedObject.h
                 )
 
         target_link_libraries(Example_segment_gc ${HDF5_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT} ${TIFF_LIBRARIES} blosc_shared)
@@ -458,7 +497,7 @@ if(BENCHMARKS)
 
     if(${ArrayFire_CPU_FOUND})
         MESSAGE(STATUS "ArrayFire CPU backend found.")
-        ADD_EXECUTABLE(SynImageGen_cpu benchmarks/test_syn_gen.cpp ${BENCHMARK_SOURCE_FILES}  ${SOURCE_FILES_COMPILED})
+        ADD_EXECUTABLE(SynImageGen_cpu benchmarks/test_syn_gen.cpp ${BENCHMARK_SOURCE_FILES}  ${SOURCE_FILES_COMPILED_BENCHMARK})
         TARGET_LINK_LIBRARIES(SynImageGen_cpu ${ArrayFire_CPU_LIBRARIES} ${HDF5_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT} ${TIFF_LIBRARIES} blosc
                 ${CMAKE_THREAD_LIBS_INIT})
     ENDIF()
