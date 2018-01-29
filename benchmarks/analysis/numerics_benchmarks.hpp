@@ -10,7 +10,7 @@
 #include "benchmarks/development/old_numerics/graph_cut_seg.hpp"
 #include "benchmarks/development/old_numerics/filter_numerics.hpp"
 #include "src/numerics/APRRaycaster.hpp"
-#include "benchmarks/development/old_numerics/enhance_parts.hpp"
+//#include "benchmarks/development/old_numerics/enhance_parts.hpp"
 
 template<typename S,typename T>
 void compare_E_debug(MeshData<S>& org_img,MeshData<T>& rec_img,Proc_par& pars,std::string name,AnalysisData& analysis_data){

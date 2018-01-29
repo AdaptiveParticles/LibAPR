@@ -59,6 +59,9 @@ struct cmdLineOptionsBench{
 
 };
 
+
+
+
 bool command_option_exists_bench(char **begin, char **end, const std::string &option)
 {
     return std::find(begin, end, option) != end;
@@ -84,9 +87,9 @@ cmdLineOptionsBench read_command_line_options(int argc, char **argv){
     }
 
 
-    if(command_option_exists(argv, argv + argc, "-dir"))
+    if(command_option_exists_bench(argv, argv + argc, "-dir"))
     {
-        result.directory = std::string(get_command_option(argv, argv + argc, "-dir"));
+        result.directory = std::string(get_command_option_bench(argv, argv + argc, "-dir"));
     }
 
     if(command_option_exists_bench(argv, argv + argc, "-quality_metrics_gt"))

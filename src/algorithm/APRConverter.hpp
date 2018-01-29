@@ -150,9 +150,9 @@ bool APRConverter<ImageType>::get_apr_method_from_file(APR<ImageType>& apr, cons
         return false;
     }
 
-    computation_timer.start_timer("calculate automatic parameters");
+    method_timer.start_timer("calculate automatic parameters");
     auto_parameters(input_image);
-    computation_timer.stop_timer();
+    method_timer.stop_timer();
 
     return get_apr_method(apr,input_image);
 
@@ -167,6 +167,8 @@ bool APRConverter<ImageType>::get_apr_method(APR<ImageType>& apr, MeshData<T>& i
 
     apr_ = &apr; // in case it was called directly
 
+
+    total_timer.start_timer("Total_pipeline_excluding_IO");
 
     //Initialize the apr size parameters from the image
     init_apr(apr,input_image);
@@ -207,7 +209,10 @@ bool APRConverter<ImageType>::get_apr_method(APR<ImageType>& apr, MeshData<T>& i
     fine_grained_timer.start_timer("offset image");
 
     //offset image by factor (this is required if there are zero areas in the background with uint16_t and uint8_t images, as the Bspline co-efficients otherwise may be negative!)
-    // Warning both of these could result in over-flow
+    // Warning both of these could result in over-flow (if your image is non zero, with a 'buffer' and has intensities up to uint16_t maximum value then set this->image_type = "", i.e. uncomment the following line)
+
+    //this->image_type = "";
+
     if(this->image_type == "uint16"){
         //
         block_offset_by_100(input_image,image_temp);
@@ -262,6 +267,8 @@ bool APRConverter<ImageType>::get_apr_method(APR<ImageType>& apr, MeshData<T>& i
     computation_timer.stop_timer();
 
     apr.parameters = par;
+
+    total_timer.stop_timer();
 
     return true;
 }
@@ -340,6 +347,7 @@ void APRConverter<ImageType>::get_gradient(MeshData<T>& input_img,MeshData<S>& g
     //
 
 
+
     fine_grained_timer.start_timer("smooth_bspline");
 
     if(par.lambda > 0) {
@@ -348,6 +356,7 @@ void APRConverter<ImageType>::get_gradient(MeshData<T>& input_img,MeshData<S>& g
 
     }
     fine_grained_timer.stop_timer();
+
 
     fine_grained_timer.start_timer("calc_bspline_fd_mag_ds");
     calc_bspline_fd_ds_mag(image_temp,grad_temp,par.dx,par.dy,par.dz);
@@ -501,7 +510,7 @@ void APRConverter<ImageType>::auto_parameters(MeshData<T>& input_img){
 
     APRTimer par_timer;
 
-    par_timer.verbose_flag = true;
+    par_timer.verbose_flag = false;
 
     //
     //  Do not compute the statistics over the whole image, but only a smaller sub-set.

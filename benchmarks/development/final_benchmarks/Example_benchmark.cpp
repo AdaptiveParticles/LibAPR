@@ -110,8 +110,6 @@ int main(int argc, char **argv) {
 
     apr_benchmarks.benchmark_dataset(apr_converter);
 
-    //apr_benchmarks.benchmark_dataset(apr_converter);
-
     apr_benchmarks.analysis_data.write_analysis_data_hdf5();
 
 }
