@@ -115,7 +115,7 @@ int main(int argc, char **argv) {
     if(!found){
         std::cout << "Particle Cell doesn't exist!" << std::endl;
     } else {
-        std::cout << "Particle Cell exists with global index (particle number): " << random_particle_cell.global_index << " and has intensity value: " << apr_iterator(apr.particles_intensities) <<  std::endl;
+        std::cout << "Particle Cell exists with global index (particle number): " << random_particle_cell.global_index << " and has intensity value: " << apr.particles_intensities[apr_iterator] <<  std::endl;
     }
 
     std::cout << std::endl;
@@ -135,7 +135,7 @@ int main(int argc, char **argv) {
     if(!found){
         std::cout << "Particle Cell doesn't exist!" << std::endl;
     } else {
-        std::cout << "Particle Cell exists with global index (particle number): " << random_particle_cell.global_index << " and has intensity value: " << apr_iterator(apr.particles_intensities) <<  std::endl;
+        std::cout << "Particle Cell exists with global index (particle number): " << random_particle_cell.global_index << " and has intensity value: " << apr.particles_intensities[apr_iterator] <<  std::endl;
     }
 
     ///////////////////////
@@ -160,6 +160,6 @@ int main(int argc, char **argv) {
         std::cout << "out of bounds" << std::endl;
     } else {
         std::cout << "Particle Cell found is at level: " << apr_iterator.level() << " with x: " << apr_iterator.x() << " y: " << apr_iterator.y() << " z: " << apr_iterator.z() << std::endl;
-        std::cout << "type: " << std::to_string((uint16_t)apr_iterator.type()) << " with global index: " << apr_iterator.global_index() << " and intensity " << apr_iterator(apr.particles_intensities) << std::endl;
+        std::cout << "type: " << std::to_string((uint16_t)apr_iterator.type()) << " with global index: " << apr_iterator.global_index() << " and intensity " << apr.particles_intensities[apr_iterator] << std::endl;
     }
 }

@@ -53,7 +53,7 @@ public:
                 float temp_int;
                 //add to all the required rays
 
-                temp_int = apr_iterator(parts);
+                temp_int = parts[apr_iterator];
 
                 const int offset_max_dim1 = std::min((int) img.y_num, (int) (dim1 + step_size));
                 const int offset_max_dim2 = std::min((int) img.x_num, (int) (dim2 + step_size));
@@ -96,7 +96,7 @@ public:
             apr_iterator.set_iterator_to_particle_by_number(particle_number);
 
             //access and info
-            apr_iterator(depth_parts) =apr_iterator.level();
+            depth_parts[apr_iterator] =apr_iterator.level();
 
         }
 
@@ -132,7 +132,7 @@ public:
             //
 
             //access and info
-            apr_iterator(level_parts) = apr_iterator.level();
+            level_parts[apr_iterator] = apr_iterator.level();
 
         }
 

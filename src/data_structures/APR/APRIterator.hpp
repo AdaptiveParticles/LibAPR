@@ -341,11 +341,11 @@ public:
 
     }
 
-    template<typename S>
-    S& operator()(ExtraParticleData<S>& parts){
-        //accesses the value of particle data when iterating
-        return parts.data[current_particle_cell.global_index];
-    }
+//    template<typename S>
+//    S& operator()(ExtraParticleData<S>& parts){
+//        //accesses the value of particle data when iterating
+//        return parts.data[current_particle_cell.global_index];
+//    }
 
 
     inline unsigned int x_nearest_pixel(){

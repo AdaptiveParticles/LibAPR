@@ -72,6 +72,7 @@ int main(int argc, char **argv) {
     //read file
     std::string file_name = options.directory + options.input;
     apr.read_apr(file_name);
+    apr.name = options.output;
 
     // Intentionaly block-scoped since local recon_pc will be destructed when block ends and release memory.
     {
@@ -102,6 +103,10 @@ int main(int argc, char **argv) {
     ExtraParticleData<uint16_t> type(apr);
     ExtraParticleData<uint16_t> level(apr);
 
+    ExtraParticleData<uint16_t> x(apr);
+    ExtraParticleData<uint16_t> y(apr);
+    ExtraParticleData<uint16_t> z(apr);
+
     timer.start_timer("APR parallel iterator loop");
     #ifdef HAVE_OPENMP
     #pragma omp parallel for schedule(static) firstprivate(apr_iterator)
@@ -109,24 +114,37 @@ int main(int argc, char **argv) {
     for (uint64_t particle_number = 0; particle_number < apr_iterator.total_number_particles(); ++particle_number) {
         //needed step for any parallel loop (update to the next part)
         apr_iterator.set_iterator_to_particle_by_number(particle_number);
-        apr_iterator(type) = apr_iterator.type();
-        apr_iterator(level) = apr_iterator.level();
+        type[apr_iterator] = apr_iterator.type();
+        level[apr_iterator] = apr_iterator.level();
+
+        x[apr_iterator] = apr_iterator.x();
+        y[apr_iterator] = apr_iterator.y();
+        z[apr_iterator] = apr_iterator.z();
     }
     timer.stop_timer();
 
     // Intentionaly block-scoped since local type_recon will be destructed when block ends and release memory.
     {
         MeshData<uint16_t> type_recon;
-        apr.interp_img(type_recon, type);
 
-        //write output as tiff
+        apr.interp_img(type_recon, type);
         TiffUtils::saveMeshAsTiff(options.directory + apr.name + "_type.tif", type_recon);
 
         //pc interp
         apr.interp_img(type_recon, level);
-
-        //write output as tiff
         TiffUtils::saveMeshAsTiff(options.directory + apr.name + "_level.tif", type_recon);
+
+        //pc interp
+        apr.interp_img(type_recon,x);
+        TiffUtils::saveMeshAsTiff(options.directory + apr.name + "_x.tif", type_recon);
+
+        //pc interp
+        apr.interp_img(type_recon,y);
+        TiffUtils::saveMeshAsTiff(options.directory + apr.name + "_y.tif", type_recon);
+
+        //pc interp
+        apr.interp_img(type_recon,z);
+        TiffUtils::saveMeshAsTiff(options.directory + apr.name + "_z.tif", type_recon);
     }
 
     //smooth reconstruction - requires float

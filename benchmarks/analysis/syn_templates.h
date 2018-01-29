@@ -6,7 +6,7 @@
 #define PARTPLAY_SYN_TEMPLATES_H
 
 #include "GenerateTemplates.hpp"
-#include "apr_analysis.h"
+//#include "apr_analysis.h"
 #include "SynImageClasses.hpp"
 #include "MetaBall.h"
 #include "benchmark_helpers.hpp"

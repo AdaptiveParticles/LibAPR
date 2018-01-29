@@ -331,10 +331,10 @@ void APRCompress<ImageType>::predict_particles_by_level(APR<U>& apr,const unsign
                                 if (neighbour_iterator.level() <= apr_iterator.level()) {
                                     if(decode_encode_flag == 0) {
                                         //Encode
-                                        temp += neighbour_iterator(predict_input);
+                                        temp += predict_input[neighbour_iterator];
                                     } else if (decode_encode_flag == 1) {
                                         //Decode
-                                        temp += neighbour_iterator(predict_output);
+                                        temp += predict_output[neighbour_iterator];
                                     }
                                     count_neighbours++;
                                 }
@@ -346,21 +346,21 @@ void APRCompress<ImageType>::predict_particles_by_level(APR<U>& apr,const unsign
                 if(decode_encode_flag == 0) {
                     //Encode
                     if (count_neighbours > 0) {
-                        apr_iterator(predict_output) =  apr_iterator(predict_input) - temp/count_neighbours;
+                        predict_output[apr_iterator] =  predict_input[apr_iterator] - temp/count_neighbours;
                     } else {
-                        apr_iterator(predict_output) = apr_iterator(predict_input);
+                        predict_output[apr_iterator] = predict_input[apr_iterator];
                     }
                 } else if (decode_encode_flag == 1) {
                     //Decode
                     if(count_neighbours > 0){
 
-                        float a =  apr_iterator(predict_input) + temp/count_neighbours;
-                        apr_iterator(predict_output) = apr_iterator(predict_input) + temp/count_neighbours;
+                        float a =  predict_input[apr_iterator] + temp/count_neighbours;
+                        predict_output[apr_iterator] = predict_input[apr_iterator] + temp/count_neighbours;
 
                      } else {
 
-                        float a = apr_iterator(predict_input);
-                        apr_iterator(predict_output) = apr_iterator(predict_input);
+                        float a = predict_input[apr_iterator];
+                        predict_output[apr_iterator] = predict_input[apr_iterator];
                     }
 
                 }

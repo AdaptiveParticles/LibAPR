@@ -151,9 +151,9 @@ void APRRaycaster::perform_raycast(APR<U>& apr,ExtraParticleData<S>& particle_da
 
         for (particle_number = 0; particle_number < apr_iterator.total_number_particles(); ++particle_number) {
             apr_iterator.set_iterator_to_particle_by_number(particle_number);
-            apr_iterator(jitter_x) = jitter_factor*((std::rand()-500)%1000)/1000.0;
-            apr_iterator(jitter_y) = jitter_factor*((std::rand()-500)%1000)/1000.0;
-            apr_iterator(jitter_z) = jitter_factor*((std::rand()-500)%1000)/1000.0;
+            jitter_x[apr_iterator] = jitter_factor*((std::rand()-500)%1000)/1000.0f;
+            jitter_y[apr_iterator] = jitter_factor*((std::rand()-500)%1000)/1000.0f;
+            jitter_z[apr_iterator] = jitter_factor*((std::rand()-500)%1000)/1000.0f;
         }
     }
 
@@ -215,9 +215,9 @@ void APRRaycaster::perform_raycast(APR<U>& apr,ExtraParticleData<S>& particle_da
             //get apr info
 
             if(jitter){
-                 y_actual = (apr_iterator.y() + 0.5 + apr_iterator(jitter_y))*this->scale_y*depth_vec[apr_iterator.level()];
-                 x_actual = (apr_iterator.x() + 0.5 + apr_iterator(jitter_x))*this->scale_x*depth_vec[apr_iterator.level()];
-                 z_actual = (apr_iterator.z() + 0.5 + apr_iterator(jitter_z))*this->scale_z*depth_vec[apr_iterator.level()];
+                 y_actual = (apr_iterator.y() + 0.5f + jitter_y[apr_iterator])*this->scale_y*depth_vec[apr_iterator.level()];
+                 x_actual = (apr_iterator.x() + 0.5f + jitter_x[apr_iterator])*this->scale_x*depth_vec[apr_iterator.level()];
+                 z_actual = (apr_iterator.z() + 0.5f + jitter_z[apr_iterator])*this->scale_z*depth_vec[apr_iterator.level()];
             } else{
                  y_actual = apr_iterator.y_global()*this->scale_y;
                  x_actual = apr_iterator.x_global()*this->scale_x;
@@ -235,7 +235,7 @@ void APRRaycaster::perform_raycast(APR<U>& apr,ExtraParticleData<S>& particle_da
             if (dim1 > 0 & dim2 > 0 & (dim1 < depth_slice[level].y_num) &
                 (dim2 < depth_slice[level].x_num)) {
                 //get the particle value
-                S temp_int = apr_iterator(particle_data);
+                S temp_int = particle_data[apr_iterator];
 
                 depth_slice[level].mesh[dim1 + (dim2) * depth_slice[level].y_num] = op(temp_int, depth_slice[level].mesh[dim1 + (dim2) * depth_slice[level].y_num]);
             }

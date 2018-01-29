@@ -343,7 +343,7 @@ class AnalysisData: public Data_manager{
 };
 inline void AnalysisData::write_analysis_data_hdf5(){
 
-    std::string save_loc = get_path("ANALYSIS_DATA_PATH");
+    std::string save_loc = "";
 
     std::string hdf5_file_name = save_loc + file_name + ".h5";
 

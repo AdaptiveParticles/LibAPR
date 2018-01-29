@@ -198,7 +198,7 @@ public :
      * @param x
      * @param z
      * @return element @(y, x, z)
-    */
+     */ //#FIXME changed it to size_t
     T& operator()(size_t y, size_t x, size_t z) {
         y = std::min(y, y_num-1);
         x = std::min(x, x_num-1);
@@ -267,7 +267,7 @@ public :
         mesh.set(array, size);
 
         // Fill values of new buffer in parallel
-        // TODO: set dynamicaly number of threads
+        // TODO: set dynamically number of threads
         #ifdef HAVE_OPENMP
         #pragma omp parallel num_threads(4)
         {
