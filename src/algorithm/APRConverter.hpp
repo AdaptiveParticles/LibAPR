@@ -564,7 +564,6 @@ void APRConverter<ImageType>::auto_parameters(const MeshData<T>& input_img){
 //        }
 //    }
 
-    std::cout << "img_mean: " << total << " counter: " << counter << std::endl;
     float img_mean = counter > 0 ? total/(counter*1.0) : 1;
     float prop_total_th = 0.05; //assume there is atleast 5% background in the image
     float prop_total = 0;
@@ -730,7 +729,6 @@ void APRConverter<ImageType>::auto_parameters(const MeshData<T>& input_img){
     std::cout << "**Assuming image has atleast 5% dark background" << std::endl;
 
     float Ip_th = mean + sd;
-    std::cout << "mean: " << mean << " counter: " << counter << std::endl;
     float var_th = (img_mean/mean)*sd*min_snr;
 
     float var_th_max = sd*min_snr*.5;
@@ -748,15 +746,11 @@ void APRConverter<ImageType>::auto_parameters(const MeshData<T>& input_img){
     if(this->par.min_signal < 0) {
         this->par.sigma_th = var_th;
         this->par.sigma_th_max = var_th_max;
-        std::cout << "1: " << var_th << std::endl;
     } else if (this->par.sigma_th > 0){
         //keep the defaults
-
-        std::cout << "defaults!" << std::endl;
     } else{
         this->par.sigma_th_max = this->par.min_signal*0.5;
         this->par.sigma_th = this->par.min_signal;
-        std::cout << "3: " << var_th << std::endl;
     }
 
     std::cout << "I_th: " << this->par.Ip_th << std::endl;
