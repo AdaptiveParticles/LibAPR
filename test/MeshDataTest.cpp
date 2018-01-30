@@ -193,6 +193,18 @@ namespace {
             for (int i = 0; i < size; ++i) ASSERT_EQ(md.mesh[i], 13);
         }
     }
+
+    TEST(MeshDataSimpleTest, UnaryOpTest) {
+        MeshData<int> m(1, 5, 1, 1);
+        for (int i = 0; i < m.mesh.size(); ++i) m.mesh[i] = i + 1;
+
+        MeshData<int> m2(1, 5, 1);
+        m2.initWithUnaryOp(m, [](const int &a) { return a + 5; });
+
+        for (int i = 0; i < m.mesh.size(); ++i) {
+            ASSERT_EQ(m2.mesh[i], i + 1 + 5);
+        }
+    }
 };
 
 

@@ -119,7 +119,7 @@ private:
  * Provides implementation for 3D mesh with elements of given type.
  * @tparam T type of mesh elements
  */
-template <class T>
+template <typename T>
 class MeshData {
 public :
     // size of mesh and container for data
@@ -141,6 +141,15 @@ public :
      * @param aSizeOfZ
      */
     MeshData(int aSizeOfY, int aSizeOfX, int aSizeOfZ) { initialize(aSizeOfY, aSizeOfX, aSizeOfZ); }
+
+    /**
+     * Constructor - creates mesh with provided dimentions initialized to aInitVal
+     * @param aSizeOfY
+     * @param aSizeOfX
+     * @param aSizeOfZ
+     * @param aInitVal - initial value of all elements
+     */
+    MeshData(int aSizeOfY, int aSizeOfX, int aSizeOfZ, T aInitVal) { initialize(aSizeOfY, aSizeOfX, aSizeOfZ, aInitVal); }
 
     /**
      * Move constructor
@@ -338,9 +347,16 @@ public :
         mesh.swap(aObj.mesh);
     }
 
-
+    /**
+     * Initialize in parallel 'this' mesh with aInputMesh elements modified by provided unary operation
+     * NOTE: this mesh must be big enough to contain all elements from aInputMesh
+     * @tparam U - type of data
+     * @param aInputMesh - source data
+     * @param aOp - function/lambda modifing each element of aInputMesh: [](const int &a) { return a + 5; }
+     * @param aNumberOfBlocks - in how many chunks copy will be done
+     */
     template<typename U>
-    void runUnaryOp(const MeshData<U> &aInputMesh, T (*aOp) (const T& aVal), unsigned int aNumberOfBlocks = 10) {
+    void initWithUnaryOp(const MeshData<U> &aInputMesh, std::function<T(const T&)> aOp, unsigned int aNumberOfBlocks = 10) {
         aNumberOfBlocks = std::min((unsigned int)aInputMesh.z_num, aNumberOfBlocks);
         unsigned int numOfElementsPerBlock = aInputMesh.z_num/aNumberOfBlocks;
 
@@ -357,7 +373,10 @@ public :
                 offsetEnd = aInputMesh.z_num * elementSize;
             }
 
-            std::transform(aInputMesh.mesh.begin() + offsetBegin,aInputMesh.mesh.begin() + offsetEnd, mesh.begin() + offsetBegin, aOp);
+            std::transform(aInputMesh.mesh.begin() + offsetBegin,
+                           aInputMesh.mesh.begin() + offsetEnd,
+                           mesh.begin() + offsetBegin,
+                           aOp);
         }
     }
 
