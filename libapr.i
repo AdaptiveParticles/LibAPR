@@ -53,13 +53,25 @@ namespace std {
   }
 %}
 
+%typemap(javacode) ExtraParticleData<std::vector<float>> %{
+  // ensure premature GC doesn't happen by storing a reference to the APR
+  // in-class
+  private static java.util.ArrayList<APRStd> aprReferences = new java.util.ArrayList<APRStd>();
+  private static long getCPtrAndAddReference(APRStd a) {
+    aprReferences.add(a);
+    return APRStd.getCPtr(a);
+  }
+%}
+
 %{
 #include "src/data_structures/APR/APR.hpp"
+#include "src/numerics/APRNumerics.hpp"
 %}
 
 %include "src/data_structures/Mesh/MeshData.hpp"
 %include "src/data_structures/APR/APR.hpp"
 %include "src/data_structures/APR/APRIterator.hpp"
+%include "src/numerics/APRNumerics.hpp"
 %include "src/data_structures/APR/ExtraParticleData.hpp"
 %include "src/data_structures/APR/ExtraPartCellData.hpp"
 
@@ -69,6 +81,9 @@ namespace std {
 %template(FloatVecVec) std::vector< std::vector<float> >;
 %template(FloatVecVecVec) std::vector< std::vector< std::vector<float> > >;
 
+%template(compute_gradient_vector_std) APRNumerics::compute_gradient_vector<uint16_t>;
+%template(compute_gradient_vector_float) APRNumerics::compute_gradient_vector<float>;
+
 %template(get_particle) ExtraParticleData::get_particle<uint16_t>;
 %template(set_particle) ExtraParticleData::set_particle<uint16_t>;
 
@@ -77,6 +92,7 @@ namespace std {
 
 %template(ExtraParticleDataStd) ExtraParticleData<uint16_t>;
 %template(ExtraParticleDataFloat) ExtraParticleData<float>;
+%template(ExtraParticleDataFloatVec) ExtraParticleData<std::vector<float>>;
 
 %template(ExtraPartCellDataStd) ExtraPartCellData<uint16_t>;
 %template(ExtraPartCellDataFloat) ExtraPartCellData<float>;

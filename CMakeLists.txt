@@ -57,43 +57,17 @@ include_directories("external/c-blosc/blosc")
 include_directories(${PROJECT_SOURCE_DIR}/external/glm)
 
 set(SOURCE_FILES
-
-  #      test/tests.cpp
-
-  #      test/k_test.cpp
-   #     test/alg_cells_test.cpp
-
-   #     test/test_tree/level_iterator_test.cpp
-    #    test/test_tree/tree_fixtures.cpp
-
         benchmarks/development/old_io/readimage.h
         benchmarks/development/old_io/writeimage.h
         benchmarks/development/old_io/parameters.cpp
-
         src/data_structures/Mesh/MeshData.hpp
-   #     benchmarks/development/old_structures/structure_parts.cpp
-
         src/data_structures/APR/APR.hpp
-#        benchmarks/development/Tree/APRIteratorOld.hpp
-
         src/data_structures/APR/APRIterator.hpp
         src/data_structures/APR/APRAcess.hpp
-
-  #      benchmarks/development/old_algorithm/pipeline.cpp
-
-
+	src/numerics/APRNumerics.hpp
         )
 
 set(SOURCE_FILES_BENCHMARK
-
-        #      test/tests.cpp
-
-        #      test/k_test.cpp
-        #     test/alg_cells_test.cpp
-
-        #     test/test_tree/level_iterator_test.cpp
-        #   test/test_tree/tree_fixtures.cpp
-
         benchmarks/development/old_io/readimage.h
         benchmarks/development/old_io/writeimage.h
         benchmarks/development/old_io/parameters.cpp
@@ -112,27 +86,20 @@ set(SOURCE_FILES_BENCHMARK
 
         )
 set(SOURCE_FILES_COMPILED_BENCHMARK
-           benchmarks/development/old_structures/structure_parts.cpp
+        benchmarks/development/old_structures/structure_parts.cpp
         benchmarks/development/Tree/PartCellData.cpp
         benchmarks/development/old_io/parameters.cpp
         benchmarks/development/old_io/hdf5functions.cpp
         src/io/blosc_filter.c
         src/io/hdf5functions_blosc.cpp
-             benchmarks/development/old_io/write_parts.cpp
+        benchmarks/development/old_io/write_parts.cpp
 
         #test/utils.cpp
         )
 
 set(SOURCE_FILES_COMPILED
-    #    benchmarks/development/old_structures/structure_parts.cpp
-      #  benchmarks/development/Tree/PartCellData.cpp
-    #    benchmarks/development/old_io/parameters.cpp
-    #    benchmarks/development/old_io/hdf5functions.cpp
         src/io/blosc_filter.c
         src/io/hdf5functions_blosc.cpp
-   #     benchmarks/development/old_io/write_parts.cpp
-
-        #test/utils.cpp
         )
 
 
@@ -170,46 +137,6 @@ endif()
 
 
 if(TESTS)
-
-   # add_executable(testBspline
-     #       test/tests.cpp
-      #      test/bspline_test.cpp
-       #     test/utils.cpp
-        #    ${SOURCE_FILES_COMPILED}
-
-         #   )
-        #this is currently failing, as the files need to be updated
-  #  add_executable(testVariance
-    #        test/tests.cpp
-    #        test/variance_test.cpp
-      #      test/utils.cpp
-      #      ${SOURCE_FILES_COMPILED}
-
-         #   )
-  #  add_executable(testLevel
-    #        test/k_test.cpp
-   #         test/utils.cpp
-    #        ${SOURCE_FILES_COMPILED}
-
-    #        )
-#    add_executable(testResult
-   #         test/alg_cells_test.cpp
-     #       benchmarks/development/old_io/write_parts.cpp
-     #       test/utils.cpp
-     #       ${SOURCE_FILES_COMPILED}
-
-      #      )
-
-   # add_executable(testSparsePartStruc
-            #test/test_tree/tree_fixtures.cpp
-       #     test/utils.cpp
-            #test/test_tree/create_part_cell_structure.cpp
-       #     test/test_tree/sparse_rep_test.cpp
-       #     ${SOURCE_FILES_COMPILED}
-
-	   #     src/io/hdf5functions_blosc.cpp
-        #    )
-
     add_executable(testMeshData
             test/MeshDataTest.cpp
             )
@@ -224,12 +151,6 @@ if(TESTS)
             src/io/hdf5functions_blosc.cpp
             )
 
-
-   # target_link_libraries(testSparsePartStruc ${HDF5_LIBRARIES} ${GTEST_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT} ${TIFF_LIBRARIES} blosc_shared)
-  #  target_link_libraries(testBspline ${HDF5_LIBRARIES} ${GTEST_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT} ${TIFF_LIBRARIES} blosc_shared)
-   # target_link_libraries(testVariance ${HDF5_LIBRARIES} ${GTEST_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT} ${TIFF_LIBRARIES} blosc_shared)
-    #target_link_libraries(testLevel ${HDF5_LIBRARIES} ${GTEST_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT} ${TIFF_LIBRARIES} blosc_shared)
-    #target_link_libraries(testResult ${HDF5_LIBRARIES} ${GTEST_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT} ${TIFF_LIBRARIES} blosc_shared)
     target_link_libraries(testMeshData ${GTEST_LIBRARIES} ${TIFF_LIBRARIES})
     target_link_libraries(testTiff ${GTEST_LIBRARIES} ${TIFF_LIBRARIES})
     target_link_libraries(testAPR ${HDF5_LIBRARIES} ${GTEST_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT} ${TIFF_LIBRARIES} blosc_shared)
