@@ -9,6 +9,7 @@
 #include <string>
 
 #include "src/data_structures/APR/APR.hpp"
+#include "src/numerics/APRNumerics.hpp"
 
 struct cmdLineOptions{
     std::string output = "output";
