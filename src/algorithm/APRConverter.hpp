@@ -214,13 +214,11 @@ bool APRConverter<ImageType>::get_apr_method(APR<ImageType>& apr, MeshData<T>& i
     //this->image_type = "";
 
     if(this->image_type == "uint16"){
-        //
-        block_offset_by_100(input_image,image_temp);
-
         bspline_offset = 100;
+        image_temp.initWithUnaryOp(input_image, [=](const auto &a){return (a + bspline_offset);});
     } else if (this->image_type == "uint8"){
-        block_offset_by_5(input_image,image_temp);
         bspline_offset = 5;
+        image_temp.initWithUnaryOp(input_image, [=](const auto &a){return (a + bspline_offset);});
     } else {
         image_temp.block_copy_data(input_image);
     }
