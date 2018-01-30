@@ -108,21 +108,6 @@
                             <autoReleaseAfterClose>false</autoReleaseAfterClose>
                         </configuration>
                     </plugin>
-                    <plugin>
-                        <groupId>org.honton.chas</groupId>
-                        <artifactId>exists-maven-plugin</artifactId>
-                        <version>0.0.1</version>
-                        <configuration>
-                            <property>maven.deploy.skip</property>
-                        </configuration>
-                        <executions>
-                            <execution>
-                                <goals>
-                                    <goal>exists</goal>
-                                </goals>
-                            </execution>
-                        </executions>
-                    </plugin>
                 </plugins>
 
                 <resources>
