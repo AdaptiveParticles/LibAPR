@@ -225,7 +225,6 @@ bool APRConverter<ImageType>::get_apr_method(APR<ImageType>& apr, MeshData<T>& i
 
     fine_grained_timer.stop_timer();
 
-
     method_timer.start_timer("compute_gradient_magnitude_using_bsplines");
     MeshData<T> gradient;
     this->get_gradient(input_image,gradient); //note in the current pipeline don't actually use these variables, but here for interface (Use shared member allocated above variables)
@@ -251,7 +250,7 @@ bool APRConverter<ImageType>::get_apr_method(APR<ImageType>& apr, MeshData<T>& i
     method_timer.start_timer("downsample_pyramid");
     std::vector<MeshData<T>> downsampled_img;
     //Down-sample the image for particle intensity estimation
-    downsample_pyrmaid(input_image,downsampled_img,apr.level_max()-1,apr.level_min());
+    downsample_pyrmaid(input_image,downsampled_img,apr.level_max(),apr.level_min());
     method_timer.stop_timer();
 
     method_timer.start_timer("compute_apr_datastructure");
@@ -319,8 +318,8 @@ void APRConverter<ImageType>::get_local_particle_cell_set(MeshData<T>& grad_imag
 
         //down sample the resolution level k, using a max reduction
         down_sample(local_scale_temp,local_scale_temp2,
-                    [](float x, float y) { return std::max(x,y); },
-                    [](float x) { return x; }, true);
+                    [](const float &x, const float &y) -> float { return std::max(x,y); },
+                    [](const float &x) -> float { return x; }, true);
         //for those value of level k, add to the hash table
         fill(l_,local_scale_temp2);
         //assign the previous mesh to now be resampled.
@@ -363,8 +362,8 @@ void APRConverter<ImageType>::get_gradient(MeshData<T>& input_img,MeshData<S>& g
 
     fine_grained_timer.start_timer("down-sample_b-spline");
     down_sample(image_temp,local_scale_temp,
-                [](const T x,const  T y) { return (x*8.0+1.0*y)/8.0; },
-                [](const T x) { return x ; });
+                [](const float &x, const float &y) -> float { return x + y;},
+                [](const float &x) -> float { return x/8.0 ; });
     fine_grained_timer.stop_timer();
 
 

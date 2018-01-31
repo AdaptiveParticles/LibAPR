@@ -592,6 +592,8 @@ bool test_apr_pipeline(TestData& test_data){
     //Gets the APR
     if(apr_converter.get_apr(apr)){
 
+        std::cout << "NUM1: " << test_data.apr.total_number_particles() << std::endl;
+        std::cout << "NUM2: " << apr.total_number_particles() << std::endl;
         APRIterator<uint16_t> apr_iterator(apr);
         uint64_t particle_number = 0;
 

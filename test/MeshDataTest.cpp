@@ -205,6 +205,84 @@ namespace {
             ASSERT_EQ(m2.mesh[i], i + 1 + 5);
         }
     }
+
+    TEST(MeshDataSimpleTest, DownSample) {
+        {   // reduce/constant_operator calculate maximum value when downsampling
+            MeshData<int> m(5, 6, 4);
+            for (int i = 0; i < m.mesh.size(); ++i) m.mesh[i] = i + 1;
+
+            MeshData<int> m2;
+            down_sample(m, m2,
+                        [](float x, float y) { return std::max(x, y); },
+                        [](float x) { return x; },
+                        true);
+            int expected[] = {37, 39, 40, 47, 49, 50, 57, 59, 60, 97, 99, 100, 107, 109, 110, 117, 119, 120};
+            for (int i = 0; i < m2.mesh.size(); ++i) {
+                ASSERT_EQ(m2.mesh[i], expected[i]);
+            }
+        }
+        {   // reduce/constant_operator calculate maximum value when downsampling
+            MeshData<int> m(5, 6, 3);
+            for (int i = 0; i < m.mesh.size(); ++i) m.mesh[i] = 5 * 6 * 3 - i;
+
+            MeshData<int> m2;
+            down_sample(m, m2,
+                        [](float x, float y) { return std::max(x, y); },
+                        [](float x) { return x; },
+                        true);
+
+            int expected[] = {90, 88, 86, 80, 78, 76, 70, 68, 66, 30, 28, 26, 20, 18, 16, 10, 8, 6};
+            for (int i = 0; i < m2.mesh.size(); ++i) {
+                ASSERT_EQ(m2.mesh[i], expected[i]);
+            }
+        }
+        {
+            // reduce/constant_operator calculate average value of pixels when downsampling
+            MeshData<uint16_t> m(2, 2, 2);
+            for (int i = 0; i < m.mesh.size(); ++i) m.mesh[i] = 8 - i;
+
+            MeshData<float> m2;
+            down_sample(m, m2,
+                        [](const float &x, const float &y) -> float {return x + y; },
+                        [](const float &x) -> float { return x/8.0; },
+                        true);
+            float expected[] = {4.5}; // (1+2+3+4+5+6+7+8)/8
+            for (int i = 0; i < m2.mesh.size(); ++i) {
+                ASSERT_EQ(m2.mesh[i], expected[i]);
+            }
+        }
+    }
+
+    TEST(MeshDataSimpleTest, DownSamplePyramid) {
+        MeshData<float> m(4, 4, 4);
+        for (int i = 0; i < m.mesh.size(); ++i) m.mesh[i] = i + 1;
+
+        std::vector<MeshData<float>> ds;
+        downsample_pyrmaid(m, ds, 3, 1);
+
+        ASSERT_EQ(ds.size(), 4);
+        ASSERT_EQ(ds[3].mesh.size(), 4 * 4 * 4); // original input
+        ASSERT_EQ(ds[2].mesh.size(), 2 * 2 * 2);
+        ASSERT_EQ(ds[1].mesh.size(), 1 * 1 * 1);
+        ASSERT_EQ(ds[0].mesh.size(), 0); // not used - initialized by default constructor
+
+        // check first and lass mesh
+        for (int i = 0; i < ds[3].mesh.size(); ++i) ASSERT_EQ(ds[3].mesh[i], i + 1); // original
+        ASSERT_EQ(ds[1].mesh[0], 32.5); // last = sum (1 + ... + 64) / 64
+    }
+
+    TEST(MeshDataSimpleTest, GetIdx) {
+        MeshData<int> m(5, 6, 3);
+
+        ASSERT_STREQ(m.getIdx(0).c_str(), "(0, 0, 0)");
+        ASSERT_STREQ(m.getIdx(60).c_str(), "(0, 0, 2)");
+        ASSERT_STREQ(m.getIdx(87).c_str(), "(2, 5, 2)");
+        ASSERT_STREQ(m.getIdx(89).c_str(), "(4, 5, 2)");
+
+        // out of bounds
+        ASSERT_STREQ(m.getIdx(90).c_str(), "(ErrIdx)");
+        ASSERT_STREQ(m.getIdx(-1).c_str(), "(ErrIdx)");
+    }
 };
 
 
