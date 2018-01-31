@@ -14,7 +14,7 @@ Library for processing the Adaptive Particle Representation (APR).
 
 The repository requires sub-modules. These can be included by either cloneing the repository using:
 ```
-git clone ***
+git clone --recursive
 ```
 or after cloning the repository typing:
 ```
