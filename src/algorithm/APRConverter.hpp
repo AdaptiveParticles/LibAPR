@@ -250,7 +250,7 @@ bool APRConverter<ImageType>::get_apr_method(APR<ImageType>& apr, MeshData<T>& i
     method_timer.start_timer("downsample_pyramid");
     std::vector<MeshData<T>> downsampled_img;
     //Down-sample the image for particle intensity estimation
-    downsample_pyrmaid(input_image,downsampled_img,apr.level_max()-1,apr.level_min());
+    downsample_pyrmaid(input_image,downsampled_img,apr.level_max(),apr.level_min());
     method_timer.stop_timer();
 
     method_timer.start_timer("compute_apr_datastructure");

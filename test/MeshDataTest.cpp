@@ -253,6 +253,24 @@ namespace {
         }
     }
 
+    TEST(MeshDataSimpleTest, DownSamplePyramid) {
+        MeshData<float> m(4, 4, 4);
+        for (int i = 0; i < m.mesh.size(); ++i) m.mesh[i] = i + 1;
+
+        std::vector<MeshData<float>> ds;
+        downsample_pyrmaid(m, ds, 3, 1);
+
+        ASSERT_EQ(ds.size(), 4);
+        ASSERT_EQ(ds[3].mesh.size(), 4 * 4 * 4); // original input
+        ASSERT_EQ(ds[2].mesh.size(), 2 * 2 * 2);
+        ASSERT_EQ(ds[1].mesh.size(), 1 * 1 * 1);
+        ASSERT_EQ(ds[0].mesh.size(), 0); // not used - initialized by default constructor
+
+        // check first and lass mesh
+        for (int i = 0; i < ds[3].mesh.size(); ++i) ASSERT_EQ(ds[3].mesh[i], i + 1); // original
+        ASSERT_EQ(ds[1].mesh[0], 32.5); // last = sum (1 + ... + 64) / 64
+    }
+
     TEST(MeshDataSimpleTest, GetIdx) {
         MeshData<int> m(5, 6, 3);
 
