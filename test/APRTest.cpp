@@ -7,6 +7,8 @@
 #include "src/data_structures/Mesh/MeshData.hpp"
 #include "src/algorithm/APRConverter.hpp"
 #include <utility>
+#include <cmath>
+
 struct TestData{
 
     APR<uint16_t> apr;
@@ -46,7 +48,7 @@ bool check_neighbours(APR<uint16_t>& apr,APRIterator<uint16_t>& current,APRItera
 
     bool success = true;
 
-    if(abs((float)neigh.level() - (float)current.level())>1){
+    if (std::abs((float)neigh.level() - (float)current.level()) > 1.0f) {
         success = false;
     }
 
