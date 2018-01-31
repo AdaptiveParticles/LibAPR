@@ -105,8 +105,8 @@ public:
         interp_img(apr,temp,depth_parts);
 
         down_sample(temp,img,
-                    [](U x, U y) { return std::max(x,y); },
-                    [](U x) { return x; }, true);
+                    [](const U &x, const U &y) -> U { return std::max(x,y); },
+                    [](const U &x) -> U { return x; }, true);
 
     }
 

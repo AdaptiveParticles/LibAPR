@@ -16,6 +16,8 @@
 #include <vector>
 #include <cmath>
 #include <memory>
+#include <functional>
+#include <sstream>
 
 #include "benchmarks/development/old_structures/structure_parts.h"
 #include <tiffio.h>
@@ -379,6 +381,22 @@ public :
                            aOp);
         }
     }
+    /**
+     * Returns string with (y, x, z) coordinates for given index (for debug purposes)
+     * @param aIdx
+     * @return
+     */
+    std::string getIdx(uint64_t aIdx) const {
+        if (aIdx < 0 || aIdx >= mesh.size()) return "(ErrIdx)";
+        uint64_t z = aIdx / (x_num * y_num);
+        aIdx -= z * (x_num * y_num);
+        uint64_t x = aIdx / y_num;
+        aIdx -= x * y_num;
+        uint64_t y = aIdx;
+        std::ostringstream outputStr;
+        outputStr << "(" << y << ", " << x << ", " << z << ")";
+        return outputStr.str();
+    }
 
 private:
 
@@ -602,21 +620,10 @@ void MeshData<T>::write_image_tiff_uint16(std::string& filename){
 
 }
 
-template<typename T, typename S,typename L1, typename L2>
-void down_sample(MeshData<T>& test_a, MeshData<S>& test_a_ds, L1 reduce, L2 constant_operator,
-                 bool with_allocation = false);
-
-template<typename T>
-void const_upsample_img(MeshData<T>& input_us,MeshData<T>& input,std::vector<unsigned int>& max_dims);
-
 template<typename T>
 void MeshData<T>::write_image_tiff(std::string& filename) {
     MeshData::write_image_tiff(this->mesh,filename);
 };
-
-template<typename T, typename S,typename L1, typename L2>
-void down_sample_overflow_proct(MeshData<T>& test_a, MeshData<S>& test_a_ds, L1 reduce, L2 constant_operator,
-                                bool with_allocation = false );
 
 template<typename T>
 void downsample_pyrmaid(MeshData<T> &original_image,std::vector<MeshData<T>>& downsampled,unsigned int l_max, unsigned int l_min)
@@ -628,7 +635,7 @@ void downsample_pyrmaid(MeshData<T> &original_image,std::vector<MeshData<T>>& do
     auto divide_by_8 = [](float x) { return x * (1.0/8.0); };
 
     for (int level = l_max+1; level > l_min; level--) {
-        down_sample_overflow_proct(downsampled[level], downsampled[level - 1], sum, divide_by_8, true);
+        down_sample(downsampled[level], downsampled[level - 1], sum, divide_by_8, true);
     }
 }
 
@@ -775,7 +782,7 @@ void const_upsample_img(MeshData<T>& input_us,MeshData<T>& input,std::vector<uns
 }
 template<typename T, typename S,typename L1, typename L2>
 void down_sample_overflow_proct(MeshData<T>& test_a, MeshData<S>& test_a_ds, L1 reduce, L2 constant_operator,
-                 bool with_allocation ){
+                 bool with_allocation = false ){
     //
     //
     //  Bevan Cheeseman 2016
@@ -897,10 +904,63 @@ void down_sample_overflow_proct(MeshData<T>& test_a, MeshData<S>& test_a_ds, L1 
 }
 
 
+template<typename T, typename S, typename R, typename C>
+void down_sample(const MeshData<T>& aInput, MeshData<S>& aOutput, R reduce, C constant_operator, bool aInitializeOutput = false) {
+    const int64_t z_num = aInput.z_num;
+    const int64_t x_num = aInput.x_num;
+    const int64_t y_num = aInput.y_num;
+
+    // downsampled dimensions twice smaller (rounded up)
+    const int64_t z_num_ds = (int64_t) ceil(z_num/2.0);
+    const int64_t x_num_ds = (int64_t) ceil(x_num/2.0);
+    const int64_t y_num_ds = (int64_t) ceil(y_num/2.0);
+
+    Part_timer timer;
+    timer.verbose_flag = false;
+
+    if (aInitializeOutput) {
+        timer.start_timer("downsample_initalize");
+        aOutput.initialize(y_num_ds, x_num_ds, z_num_ds, 0);
+        timer.stop_timer();
+    }
+
+    timer.start_timer("downsample_loop");
+    #ifdef HAVE_OPENMP
+	#pragma omp parallel for default(shared)
+    #endif
+    for (int64_t z = 0; z < z_num_ds; ++z) {
+        for (int64_t x = 0; x < x_num_ds; ++x) {
+
+            // shifted +1 in original inMesh space
+            const int64_t shx = std::min(2*x + 1, x_num - 1);
+            const int64_t shz = std::min(2*z + 1, z_num - 1);
+
+            const ArrayWrapper<T> &inMesh = aInput.mesh;
+            ArrayWrapper<S> &outMesh = aOutput.mesh;
+
+            for (int64_t y = 0; y < y_num_ds; ++y) {
+                const int64_t shy = std::min(2*y + 1, y_num - 1);
+                const int64_t idx = z * x_num_ds * y_num_ds + x * y_num_ds + y;
+                outMesh[idx] =  constant_operator(
+                        reduce(reduce(reduce(reduce(reduce(reduce(reduce(         // inMesh coordinates
+                                inMesh[2*z * x_num * y_num + 2*x * y_num + 2*y],  // z,   x,   y
+                                inMesh[2*z * x_num * y_num + 2*x * y_num + shy]), // z,   x,   y+1
+                                inMesh[2*z * x_num * y_num + shx * y_num + 2*y]), // z,   x+1, y
+                                inMesh[2*z * x_num * y_num + shx * y_num + shy]), // z,   x+1, y+1
+                                inMesh[shz * x_num * y_num + 2*x * y_num + 2*y]), // z+1, x,   y
+                                inMesh[shz * x_num * y_num + 2*x * y_num + shy]), // z+1, x,   y+1
+                                inMesh[shz * x_num * y_num + shx * y_num + 2*y]), // z+1, x+1, y
+                                inMesh[shz * x_num * y_num + shx * y_num + shy])  // z+1, x+1, y+1
+                );
+            }
+        }
+    }
+    timer.stop_timer();
+}
 
 template<typename T, typename S,typename L1, typename L2>
-void down_sample(MeshData<T>& test_a, MeshData<S>& test_a_ds, L1 reduce, L2 constant_operator,
-                 bool with_allocation ){
+void down_sample2(MeshData<T>& test_a, MeshData<S>& test_a_ds, L1 reduce, L2 constant_operator,
+                 bool with_allocation = false){
     //
     //
     //  Bevan Cheeseman 2016
@@ -918,7 +978,7 @@ void down_sample(MeshData<T>& test_a, MeshData<S>& test_a_ds, L1 reduce, L2 cons
     const int64_t y_num_ds = (int64_t) ceil(1.0*y_num/2.0);
 
     Part_timer timer;
-    //timer.verbose_flag = true;
+    timer.verbose_flag = true;
 
     if(with_allocation) {
         timer.start_timer("downsample_initalize");
@@ -936,11 +996,9 @@ void down_sample(MeshData<T>& test_a, MeshData<S>& test_a_ds, L1 reduce, L2 cons
     int64_t i, k, si_, sj_, sk_;
 
 #ifdef HAVE_OPENMP
-	#pragma omp parallel for default(shared) private(i,k,si_,sj_,sk_) firstprivate(temp_vec)
+#pragma omp parallel for default(shared) private(i,k,si_,sj_,sk_) firstprivate(temp_vec)
 #endif
     for(int64_t j = 0;j < z_num_ds; j++) {
-
-
         for (i = 0; i < x_num_ds; i++) {
 
             si_ = std::min(2 * i + 1, x_num - 1);
@@ -1004,5 +1062,6 @@ void down_sample(MeshData<T>& test_a, MeshData<S>& test_a_ds, L1 reduce, L2 cons
     timer.stop_timer();
 
 }
+
 
 #endif //PARTPLAY_MESHCLASS_H
