@@ -12,6 +12,16 @@ Library for processing the Adaptive Particle Representation (APR).
 
 ## Building
 
+The repository requires sub-modules. These can be included by either cloneing the repository using:
+```
+git clone ***
+```
+or after cloning the repository typing:
+```
+git submodule init
+git submodule update
+```
+
 ### OSX preliminaries
 
 OSX currently ships with an older version of clang that does not support OpenMP. A more current version (3.8+) has to be installed, e.g. via homebrew:
@@ -51,42 +61,8 @@ cmake -G "Visual Studio 14 2015 Win64" -DTIFF_INCLUDE_DIR="C:/Program Files/tiff
 This will set the appropriate hints for Visual Studio to find both LibTIFF and HDF5.
 
 ### Development
-An additional requirements for development and testing is the Google test library. To install it, 
 
-* for debian/ubuntu users:
-
-```
-    sudo apt-get install libgtest-dev
-    cd /usr/src/gtest
-    sudo cmake .
-    sudo make
-    sudo mv libg* /usr/lib/
-```
-
-* for OSX users, clone the repository at https://github.com/google googletest, then within the repo:
-  
-```
-mkdir build
-cd build
-cmake ..
-make
-make install
-```
-
-Tests are stored in a submodule. Run these commands in order to run tests: (REMOVE????, not sure if this is still valid, we will do a different approach host the files somewhere))
-
-```
-    git submodule init
-    git submodule update
-    cd APR_tests
-    git lfs pull
-    cd ..
-    ./install_tests.sh
-```
-
-If the script does not work, open it and check what is wrong. There are only few lines there!
-
-Remember to pass TESTS flag to CMAKE!
+To include tests pass TESTS flag to CMAKE!
 
 ```
    cmake -H. -DTESTS=1 -Bbuild ..
