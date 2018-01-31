@@ -33,7 +33,6 @@ Advanced (Direct) Settings:
 
 #include "Example_get_apr.h"
 
-#include "test/utils.h"
 #include "src/io/TiffUtils.hpp"
 
 int main(int argc, char **argv) {
