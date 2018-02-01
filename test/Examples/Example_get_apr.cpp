@@ -17,8 +17,6 @@ Additional settings (High Level):
 
 -I_th intensity_threshold  (will ignore areas of image below this threshold, useful for removing camera artifacts or auto-flouresence)
 -SNR_min minimal_snr (minimal ratio of the signal to the standard deviation of the background, set by default to 6)
--u8bit_img (required flag for using uint8_t tif image as input)
--float_img (required flag for using float tif image as input)
 
 Advanced (Direct) Settings:
 
