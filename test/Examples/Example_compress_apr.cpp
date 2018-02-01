@@ -23,7 +23,6 @@ Note: fine grained parameters can be tuned within the file, to play with lossles
 )";
 
 
-
 #include <algorithm>
 #include <iostream>
 
