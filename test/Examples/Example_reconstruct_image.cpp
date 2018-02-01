@@ -1,6 +1,32 @@
 //
 // Created by cheesema on 14/03/17.
 //
+////////////////////////////////////////
+///
+/// Bevan Cheeseman 2018
+///
+
+const char* usage = R"(
+APR pixel image reconstruction example:
+
+Outputs various reconstructed images from the APR.
+
+Usage:
+
+Example_reconstruct_image -i inputfile [-d directory] -o output_name
+
+e.g. Example_reconstruct_image -i nuc_apr.h5 -d /Test/Input_examples/ -o nuclei
+
+Default: Piece-wise constant reconstruction
+
+Options:
+
+-pc_recon (outputs piece-wise reconstruction (Default))
+-smooth_recon (Outputs a smooth reconstruction)
+-apr_properties (Outputs all Particle Cell information (x,y,z,l) and type to pc images
+
+)";
+
 
 #include <algorithm>
 #include <iostream>
@@ -12,10 +38,12 @@
 
 struct cmdLineOptions{
     std::string output = "output";
-    std::string stats = "";
     std::string directory = "";
     std::string input = "";
-    bool stats_file = false;
+    bool output_spatial_properties = false;
+    bool output_pc_recon = false;
+    bool output_smooth_recon = false;
+
 };
 
 static bool command_option_exists(char **begin, char **end, const std::string &option) {
@@ -35,7 +63,7 @@ static cmdLineOptions read_command_line_options(int argc, char **argv) {
     cmdLineOptions result;
 
     if (argc == 1) {
-        std::cerr << "Usage: \"" << argv[0] << " -i input_apr_file -d directory [-o outputfile]\"" << std::endl;
+        std::cerr << usage << std::endl;
         exit(1);
     }
 
@@ -53,6 +81,23 @@ static cmdLineOptions read_command_line_options(int argc, char **argv) {
 
     if (command_option_exists(argv, argv + argc, "-o")) {
         result.output = std::string(get_command_option(argv, argv + argc, "-o"));
+    }
+
+    if (command_option_exists(argv, argv + argc, "-pc_recon")) {
+        result.output_pc_recon = true;
+    }
+
+    if (command_option_exists(argv, argv + argc, "-smooth_recon")) {
+        result.output_smooth_recon = true;
+    }
+
+    if (command_option_exists(argv, argv + argc, "-apr_properties")) {
+        result.output_spatial_properties = true;
+    }
+
+    if(!(result.output_pc_recon || result.output_smooth_recon || result.output_spatial_properties)){
+        //default is pc recon
+        result.output_pc_recon = true;
     }
 
     return result;
@@ -76,88 +121,100 @@ int main(int argc, char **argv) {
 
     // Intentionaly block-scoped since local recon_pc will be destructed when block ends and release memory.
     {
-        //create mesh data structure for reconstruction
-        MeshData<uint16_t> recon_pc;
 
-        timer.start_timer("pc interp");
-        //perform piece-wise constant interpolation
-        apr.interp_img(recon_pc, apr.particles_intensities);
-        timer.stop_timer();
+        if(options.output_pc_recon) {
+            //create mesh data structure for reconstruction
+            MeshData<uint16_t> recon_pc;
 
-        float elapsed_seconds = timer.t2 - timer.t1;
-        std::cout << "PC recon " << (recon_pc.x_num * recon_pc.y_num * recon_pc.z_num) / (elapsed_seconds * 1000000.0)
-                  << " million pixels per second" << std::endl;
+            timer.start_timer("pc interp");
+            //perform piece-wise constant interpolation
+            apr.interp_img(recon_pc, apr.particles_intensities);
+            timer.stop_timer();
 
-        //write output as tiff
-        TiffUtils::saveMeshAsTiff(options.directory + apr.name + "_pc.tif", recon_pc);
+            float elapsed_seconds = timer.t2 - timer.t1;
+            std::cout << "PC recon "
+                      << (recon_pc.x_num * recon_pc.y_num * recon_pc.z_num * 2) / (elapsed_seconds * 1000000.0f)
+                      << " MB per second" << std::endl;
+
+            //write output as tiff
+            TiffUtils::saveMeshAsTiff(options.directory + apr.name + "_pc.tif", recon_pc);
+        }
     }
 
     //////////////////////////
     /// Create a particle dataset with the particle type and pc construct it
     ////////////////////////////
 
-    //initialization of the iteration structures
-    APRIterator<uint16_t> apr_iterator(apr); //this is required for parallel access
+    if(options.output_spatial_properties) {
 
-    //create particle dataset
-    ExtraParticleData<uint16_t> type(apr);
-    ExtraParticleData<uint16_t> level(apr);
+        //initialization of the iteration structures
+        APRIterator<uint16_t> apr_iterator(apr); //this is required for parallel access
 
-    ExtraParticleData<uint16_t> x(apr);
-    ExtraParticleData<uint16_t> y(apr);
-    ExtraParticleData<uint16_t> z(apr);
+        //create particle dataset
+        ExtraParticleData<uint16_t> type(apr);
+        ExtraParticleData<uint16_t> level(apr);
 
-    timer.start_timer("APR parallel iterator loop");
-    #ifdef HAVE_OPENMP
-    #pragma omp parallel for schedule(static) firstprivate(apr_iterator)
-    #endif
-    for (uint64_t particle_number = 0; particle_number < apr_iterator.total_number_particles(); ++particle_number) {
-        //needed step for any parallel loop (update to the next part)
-        apr_iterator.set_iterator_to_particle_by_number(particle_number);
-        type[apr_iterator] = apr_iterator.type();
-        level[apr_iterator] = apr_iterator.level();
+        ExtraParticleData<uint16_t> x(apr);
+        ExtraParticleData<uint16_t> y(apr);
+        ExtraParticleData<uint16_t> z(apr);
 
-        x[apr_iterator] = apr_iterator.x();
-        y[apr_iterator] = apr_iterator.y();
-        z[apr_iterator] = apr_iterator.z();
+        timer.start_timer("APR parallel iterator loop");
+#ifdef HAVE_OPENMP
+#pragma omp parallel for schedule(static) firstprivate(apr_iterator)
+#endif
+        for (uint64_t particle_number = 0; particle_number < apr_iterator.total_number_particles(); ++particle_number) {
+            //needed step for any parallel loop (update to the next part)
+            apr_iterator.set_iterator_to_particle_by_number(particle_number);
+            type[apr_iterator] = apr_iterator.type();
+            level[apr_iterator] = apr_iterator.level();
+
+            x[apr_iterator] = apr_iterator.x();
+            y[apr_iterator] = apr_iterator.y();
+            z[apr_iterator] = apr_iterator.z();
+        }
+        timer.stop_timer();
+
+        // Intentionaly block-scoped since local type_recon will be destructed when block ends and release memory.
+        {
+            MeshData<uint16_t> type_recon;
+
+            apr.interp_img(type_recon, type);
+            TiffUtils::saveMeshAsTiff(options.directory + apr.name + "_type.tif", type_recon);
+
+            //pc interp
+            apr.interp_img(type_recon, level);
+            TiffUtils::saveMeshAsTiff(options.directory + apr.name + "_level.tif", type_recon);
+
+            //pc interp
+            apr.interp_img(type_recon, x);
+            TiffUtils::saveMeshAsTiff(options.directory + apr.name + "_x.tif", type_recon);
+
+            //pc interp
+            apr.interp_img(type_recon, y);
+            TiffUtils::saveMeshAsTiff(options.directory + apr.name + "_y.tif", type_recon);
+
+            //pc interp
+            apr.interp_img(type_recon, z);
+            TiffUtils::saveMeshAsTiff(options.directory + apr.name + "_z.tif", type_recon);
+        }
     }
-    timer.stop_timer();
 
-    // Intentionaly block-scoped since local type_recon will be destructed when block ends and release memory.
-    {
-        MeshData<uint16_t> type_recon;
+    if(options.output_smooth_recon) {
 
-        apr.interp_img(type_recon, type);
-        TiffUtils::saveMeshAsTiff(options.directory + apr.name + "_type.tif", type_recon);
+        //smooth reconstruction - requires float
+        MeshData<float> recon_smooth;
+        std::vector<float> scale_d = {2, 2, 2};
 
-        //pc interp
-        apr.interp_img(type_recon, level);
-        TiffUtils::saveMeshAsTiff(options.directory + apr.name + "_level.tif", type_recon);
+        timer.start_timer("smooth reconstrution");
+        apr.interp_parts_smooth(recon_smooth, apr.particles_intensities, scale_d);
+        timer.stop_timer();
 
-        //pc interp
-        apr.interp_img(type_recon,x);
-        TiffUtils::saveMeshAsTiff(options.directory + apr.name + "_x.tif", type_recon);
+        float elapsed_seconds = timer.t2 - timer.t1;
+        std::cout << "Smooth recon "
+                  << (recon_smooth.x_num * recon_smooth.y_num * recon_smooth.z_num * 2) / (elapsed_seconds * 1000000.0f)
+                  << " MB per second" << std::endl;
 
-        //pc interp
-        apr.interp_img(type_recon,y);
-        TiffUtils::saveMeshAsTiff(options.directory + apr.name + "_y.tif", type_recon);
-
-        //pc interp
-        apr.interp_img(type_recon,z);
-        TiffUtils::saveMeshAsTiff(options.directory + apr.name + "_z.tif", type_recon);
+        //write to tiff casting to unsigned 16 bit integer
+        TiffUtils::saveMeshAsTiffUint16(options.directory + apr.name + "_smooth.tif", recon_smooth);
     }
-
-    //smooth reconstruction - requires float
-    MeshData<float> recon_smooth;
-    std::vector<float> scale_d = {2,2,2};
-
-    timer.start_timer("smooth reconstrution");
-    apr.interp_parts_smooth(recon_smooth, apr.particles_intensities, scale_d);
-    timer.stop_timer();
-
-    float elapsed_seconds = timer.t2 - timer.t1;
-    std::cout << "Smooth recon " << (recon_smooth.x_num*recon_smooth.y_num*recon_smooth.z_num)/(elapsed_seconds*1000000.0) << " million pixels per second"  <<  std::endl;
-
-    //write to tiff casting to unsigned 16 bit integer
-    TiffUtils::saveMeshAsTiffUint16(options.directory + apr.name + "_smooth.tif", recon_smooth);
 }

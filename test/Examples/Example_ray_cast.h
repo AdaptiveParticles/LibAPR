@@ -13,9 +13,10 @@ struct cmdLineOptions{
     float jitter = 0;
     float aniso = 1.0;
     unsigned int num_views= 60;
+    std::string original_image = "";
 };
 
-cmdLineOptions read_command_line_options(int argc, char **argv, Part_rep& part_rep);
+cmdLineOptions read_command_line_options(int argc, char **argv);
 
 bool command_option_exists(char **begin, char **end, const std::string &option);
 
