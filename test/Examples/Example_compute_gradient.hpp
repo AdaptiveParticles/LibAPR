@@ -18,6 +18,7 @@ struct cmdLineOptions{
     std::string directory = "";
     std::string input = "";
     bool stats_file = false;
+    std::string original_image = "";
 };
 
 cmdLineOptions read_command_line_options(int argc, char **argv);

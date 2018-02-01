@@ -125,7 +125,7 @@ cmdLineOptions read_command_line_options(int argc, char **argv){
 
     if(argc == 1) {
         std::cerr << argv[0] << std::endl;
-        std::cerr << "Short usage: \"" << argv[0] << " -i inputfile [-t] [-s statsfile -d directory] [-o outputfile]\"" << std::endl;
+        std::cerr << "Short usage: \"" << argv[0] << " -i inputfile [-d directory] [-o outputfile]\"" << std::endl;
 
         std::cerr << usage << std::endl;
         exit(1);

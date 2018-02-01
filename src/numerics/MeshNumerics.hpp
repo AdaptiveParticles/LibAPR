@@ -13,7 +13,7 @@ class MeshNumerics {
 public:
 
     template<typename U,typename V>
-    float compute_gradient(const MeshData<U>& input_data,std::vector<MeshData<V>>& output_data,std::vector<float> delta = {1.0f,1.0f,1.0f}){
+    static float compute_gradient(const MeshData<U>& input_data,std::vector<MeshData<V>>& output_data,std::vector<float> delta = {1.0f,1.0f,1.0f}){
         //
         //  Computes gradient magnitude using finite differences
         //
@@ -37,8 +37,8 @@ public:
         uint64_t z_num = input_data.z_num;
 
         APRTimer timer;
-        timer.verbose_flag = false;
-        timer.start_timer("compute gradient");
+        timer.verbose_flag = true;
+        timer.start_timer("compute gradient mesh");
 
         int j = 0;
         int k = 0;
