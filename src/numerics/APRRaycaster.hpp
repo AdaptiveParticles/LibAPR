@@ -24,8 +24,6 @@
 #include "../../src/vis/RaytracedObject.h"
 
 class APRRaycaster {
-    template<typename S,typename U>
-    float perpsective_mesh_raycast(MeshData<S>& image);
 
 public:
 
@@ -52,6 +50,9 @@ public:
 
     template<typename U,typename S,typename V,class BinaryOperation>
     void perform_raycast(APR<U>& apr,ExtraParticleData<S>& particle_data,MeshData<V>& cast_views,BinaryOperation op);
+
+    template<typename S,typename U>
+    float perpsective_mesh_raycast(MeshData<S>& image,MeshData<U>& cast_views);
 };
 
 
@@ -308,11 +309,11 @@ void APRRaycaster::perform_raycast(APR<U>& apr,ExtraParticleData<S>& particle_da
 };
 
 template<typename S,typename U>
-float APRRaycaster::perpsective_mesh_raycast(MeshData<S>& image) {
+float APRRaycaster::perpsective_mesh_raycast(MeshData<S>& image,MeshData<U>& cast_views) {
     //
     //  Bevan Cheeseman 2017
     //
-    //  Max Ray Cast Proposective Projection
+    //  Max Ray Cast Proposective Projection on mesh
     //
     //
 
@@ -330,26 +331,25 @@ float APRRaycaster::perpsective_mesh_raycast(MeshData<S>& image) {
     ////////////////////////////////////////////
 
     float x0 = height * image.x_num * this->scale_x;
-    float y0 = image.y_num * .5 * this->scale_y;
-    float z0 = image.z_num * .5 * this->scale_z;
+    float y0 = image.y_num * .5f * this->scale_y;
+    float z0 = image.z_num * .5f * this->scale_z;
 
     float x0f = height * image.x_num * this->scale_x;
-    float y0f = image.y_num * .5 * this->scale_y;
-    float z0f = image.z_num * .5 * this->scale_z;
+    float y0f = image.y_num * .5f * this->scale_y;
+    float z0f = image.z_num * .5f * this->scale_z;
 
     float theta_0 = this->theta_0;
     float theta_f = this->theta_final;
     float theta_delta = this->theta_delta;
 
-    int num_views = floor((theta_f - theta_0)/theta_delta) + 1;
+    int num_views = (int) floor((theta_f - theta_0)/theta_delta);
 
-    MeshData<S> cast_views;
 
     cast_views.initialize(imageHeight,imageWidth,num_views,0);
 
     Part_timer timer;
 
-    timer.verbose_flag = false;
+    timer.verbose_flag = true;
 
     uint64_t view_count = 0;
 
@@ -415,8 +415,8 @@ float APRRaycaster::perpsective_mesh_raycast(MeshData<S>& image) {
 
                     const S temp_int = image.mesh[j_ + x_ * image.y_num + z_ * image.x_num * image.y_num];
 
-                    const int dim1 = round(-pos.y);
-                    const int dim2 = round(-pos.x);
+                    const int dim1 = (int) round(-pos.y);
+                    const int dim2 = (int) round(-pos.x);
 
                     if (dim1 > 0 & dim2 > 0 & (dim1 < proj_img.y_num) & (dim2 < proj_img.x_num)) {
 
@@ -435,10 +435,7 @@ float APRRaycaster::perpsective_mesh_raycast(MeshData<S>& image) {
     }
 
     timer.stop_timer();
-    float elapsed_seconds = timer.t2 - timer.t1;
-
-
-    debug_write(cast_views, this->name + "perspective_mesh_projection");
+    float elapsed_seconds = (float)(timer.t2 - timer.t1);
 
     return elapsed_seconds;
 }
