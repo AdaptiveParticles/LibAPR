@@ -59,15 +59,17 @@ public:
                 for(k = 0;k < y_num;k++){
 
                     float current_intensity = input_data.mesh[j*x_num*y_num + i*y_num + k];
-                    float gradient_estimate= 0;
 
-                    float counter_dir = 0;
+
                     for (int dimension = 0; dimension < 3; ++dimension) {
-                        for (int i = 0; i < 2; ++i) {
+                        float counter_dir = 0;
+                        float gradient_estimate= 0;
+                        for (int n = 0; n < 2; ++n) {
+
                             float intensity_sum = 0;
                             float count_neighbours = 0;
 
-                            const uint8_t direction = group_directions[dimension][i];
+                            const uint8_t direction = group_directions[dimension][n];
 
                             i_n = i + dir_x[direction];
                             k_n = k + dir_y[direction];
@@ -84,7 +86,7 @@ public:
                             }
 
                             if(count_neighbours > 0) {
-                                gradient_estimate += sign[i] * (current_intensity - intensity_sum / count_neighbours) /
+                                gradient_estimate += sign[n] * (current_intensity - intensity_sum / count_neighbours) /
                                                      delta[dimension]; //calculates the one sided finite difference in each direction using the average of particles
                                 counter_dir++;
                             }
