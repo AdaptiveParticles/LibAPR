@@ -54,10 +54,10 @@ int main(int argc, char **argv) {
 
     APRRaycaster apr_raycaster;
 
-    apr_raycaster.theta_0 = -3.14; //start
-    apr_raycaster.theta_final = 3.14; //stop radians
+    apr_raycaster.theta_0 = -3.14f; //start
+    apr_raycaster.theta_final = 3.14f; //stop radians
     apr_raycaster.radius_factor = .98f; //radius scaling
-    apr_raycaster.theta_delta = (apr_raycaster.theta_final - apr_raycaster.theta_0)/(options.num_views*1.0); //steps
+    apr_raycaster.theta_delta = (apr_raycaster.theta_final - apr_raycaster.theta_0)/(options.num_views*1.0f); //steps
     apr_raycaster.scale_z = options.aniso; //z scaling
 
     apr_raycaster.jitter = (options.jitter > 0);

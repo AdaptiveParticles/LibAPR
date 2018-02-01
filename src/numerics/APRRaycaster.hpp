@@ -67,8 +67,8 @@ void APRRaycaster::perform_raycast(APR<U>& apr,ExtraParticleData<S>& particle_da
     //
 
 
-    unsigned int imageWidth = apr.orginal_dimensions(1);
-    unsigned int imageHeight = apr.orginal_dimensions(0);
+    uint64_t imageWidth = apr.orginal_dimensions(1);
+    uint64_t imageHeight = apr.orginal_dimensions(0);
 
     ////////////////////////////////
     //  Set up the projection stuff
@@ -96,11 +96,11 @@ void APRRaycaster::perform_raycast(APR<U>& apr,ExtraParticleData<S>& particle_da
     float theta_f = this->theta_final;
     float theta_delta = this->theta_delta;
 
-    int num_views = floor((theta_f - theta_0)/theta_delta) ;
+    uint64_t num_views = floor((theta_f - theta_0)/theta_delta) ;
 
     cast_views.initialize(imageHeight,imageWidth,num_views,0);
 
-    unsigned int view_count = 0;
+    uint64_t view_count = 0;
     float init_val=0;
 
 
@@ -298,6 +298,11 @@ void APRRaycaster::perform_raycast(APR<U>& apr,ExtraParticleData<S>& particle_da
         std::copy(depth_slice[apr.level_max()].mesh.begin(),depth_slice[apr.level_max()].mesh.end(),cast_views.mesh.begin() + view_count*imageHeight*imageWidth);
 
         view_count++;
+
+
+        if(view_count >= num_views){
+            break;
+        }
     }
 
     timer.stop_timer();
@@ -317,8 +322,8 @@ float APRRaycaster::perpsective_mesh_raycast(MeshData<S>& image,MeshData<U>& cas
     //
     //
 
-    unsigned int imageWidth = image.x_num;
-    unsigned int imageHeight = image.y_num;
+    uint64_t imageWidth = image.x_num;
+    uint64_t imageHeight = image.y_num;
 
     float height = this->height;
 
@@ -430,6 +435,10 @@ float APRRaycaster::perpsective_mesh_raycast(MeshData<S>& image,MeshData<U>& cas
         std::copy(proj_img.mesh.begin(),proj_img.mesh.end(),cast_views.mesh.begin() + view_count*imageHeight*imageWidth);
 
         view_count++;
+
+        if(view_count == num_views){
+            break;
+        }
 
 
     }
