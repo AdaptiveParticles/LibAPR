@@ -10,6 +10,7 @@
 /// (using output of Example_compress_apr)
 ///
 /// Example_compress_apr -i input_image_tiff -d input_directory
+/// #TODO add compression type options and make it all output on entry
 ///
 /////////////////////////////////////////////////////
 
@@ -95,7 +96,7 @@ int main(int argc, char **argv) {
     ExtraParticleData<uint16_t> symbols;
 
     comp.set_quantization_factor(1);
-    comp.set_compression_type(1);
+    comp.set_compression_type(2);
 
     timer.start_timer("compress");
     apr.write_apr(options.directory ,name + "_compress",comp,BLOSC_ZSTD,1,2);
