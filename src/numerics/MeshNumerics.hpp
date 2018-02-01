@@ -13,7 +13,7 @@ class MeshNumerics {
 public:
 
     template<typename U,typename V>
-    float compute_gradient_magnitude(const MeshData<U>& input_data,MeshData<V>& output){
+    float compute_gradient(const MeshData<U>& input_data,std::vector<MeshData<V>>& output_data,std::vector<float> delta = {1.0f,1.0f,1.0f}){
         //
         //  Computes gradient magnitude using finite differences
         //
@@ -27,9 +27,10 @@ public:
         const int8_t dir_x[6] = { 0, 0, 1, -1, 0, 0};
         const int8_t dir_z[6] = { 0, 0, 0, 0, 1, -1};
 
-        MeshData<V> output_data;
-
-        output_data.initialize(input_data);
+        output_data.resize(3);
+        output_data[0].initialize(input_data);
+        output_data[1].initialize(input_data);
+        output_data[2].initialize(input_data);
 
         uint64_t x_num = input_data.x_num;
         uint64_t y_num = input_data.y_num;
@@ -44,7 +45,7 @@ public:
         int i = 0;
 
         const std::vector<std::vector<uint8_t>> group_directions = {{0,1},{2,3},{4,5}}; // Neighbour Particle Cell Face definitions [+y,-y,+x,-x,+z,-z] =  [0,1,2,3,4,5]
-        const std::vector<float> sign = {1.0,-1.0};
+        const std::vector<float> sign = {1.0f,-1.0f};
 
         int j_n = 0;
         int k_n = 0;
@@ -88,7 +89,8 @@ public:
                                 counter_dir++;
                             }
                         }
-                        output_data.mesh[j*x_num*y_num + i*y_num + k][dimension] = gradient_estimate/counter_dir;
+
+                        output_data[dimension].mesh[j*x_num*y_num + i*y_num + k] = gradient_estimate/counter_dir;
 
                     }
 
@@ -101,7 +103,7 @@ public:
 
 
         timer.stop_timer();
-        float elapsed_seconds = timer.t2 - timer.t1;
+        float elapsed_seconds = (float)(timer.t2 - timer.t1);
 
         return (elapsed_seconds);
 
