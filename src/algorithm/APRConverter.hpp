@@ -622,7 +622,7 @@ void APRConverter<ImageType>::auto_parameters(const MeshData<T>& input_img){
     patches.resize(std::min(local_max,(uint64_t)10000));
 
     for (int l = 0; l < patches.size(); ++l) {
-        patches[l].resize(27,0);
+        patches[l].resize(27, 0);
     }
 
 
@@ -630,51 +630,42 @@ void APRConverter<ImageType>::auto_parameters(const MeshData<T>& input_img){
     int64_t x_num = input_img.x_num;
     int64_t y_num = input_img.y_num;
 
-    int64_t j = 0;
-    int64_t k = 0;
-    int64_t i = 0;
-
-    int j_n = 0;
-    int k_n = 0;
-    int i_n = 0;
-
     par_timer.start_timer("get_patches");
 
     uint64_t counter_p = 0;
-
-    for (size_t s = 0; s < selectedSlicesOffsets.size(); ++s) {
-        j = std::min((int)z_num - 2, std::max((int)selectedSlicesOffsets[s],(int)1));
-        for(i = 1; i < (x_num-1);i++){
-            for(k = 1;k < (y_num-1);k++){
-                float val = input_img.mesh[j*x_num*y_num + i*y_num + k];
-                if (val == estimated_first_mode) {
-                    uint64_t counter_n = 0;
-                    for (int64_t l = -1; l < 2; ++l) {
-                        for (int64_t m = -1; m < 2; ++m) {
-                            for (int64_t n = -1; n < 2; ++n) {
-                                size_t idx = (size_t)(j+l)*x_num*y_num + (i+m)*y_num + (k+n);
-                                const auto &val = input_img.mesh[idx];
-                                patches[counter_p][counter_n] = val;
-                                counter_n++;
+    if (patches.size() > 0) {
+        for (size_t s = 0; s < selectedSlicesOffsets.size(); ++s) {
+            // limit slice to range [1, z_num-2]
+            int64_t z = std::min((int) z_num - 2, std::max((int) selectedSlicesOffsets[s], (int) 1));
+            for (int64_t x = 1; x < (x_num - 1); ++x) {
+                for (int64_t y = 1; y < (y_num - 1); ++y) {
+                    float val = input_img.mesh[z * x_num * y_num + x * y_num + y];
+                    if (val == estimated_first_mode) {
+                        uint64_t counter_n = 0;
+                        for (int64_t sz = -1; sz <= 1; ++sz) {
+                            for (int64_t sx = -1; sx <= 1; ++sx) {
+                                for (int64_t sy = -1; sy <= 1; ++sy) {
+                                    size_t idx = (z + sz) * x_num * y_num + (x + sx) * y_num + (y + sy);
+                                    const auto &val = input_img.mesh[idx];
+                                    patches[counter_p][counter_n] = val;
+                                    counter_n++;
+                                }
                             }
                         }
+                        counter_p++;
+                        if (counter_p >= patches.size()) {
+                            goto finish;
+                        }
                     }
-                    counter_p++;
                 }
-                if (counter_p > (patches.size()-1)){
-                    goto finish;
-                }
-
             }
         }
     }
 
     finish:
-
     par_timer.stop_timer();
 
     //first compute the mean over all the patches.
-
     double total_p=0;
     counter = 0;
 

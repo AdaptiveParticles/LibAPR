@@ -15,7 +15,7 @@ public:
  */
 
     template<typename T>
-    void calc_abs_diff(MeshData<T> &input_image, MeshData<T> &var);
+    void calc_abs_diff(const MeshData<T> &input_image, MeshData<T> &var);
 
     template<typename T>
     void calc_sat_mean_z(MeshData<T> &input, const int offset);
@@ -77,33 +77,26 @@ void LocalIntensityScale::rescale_var_and_threshold(MeshData<T>& var,const float
 }
 
 template<typename T>
-void LocalIntensityScale::calc_abs_diff(MeshData<T>& input_image,MeshData<T>& var){
+void LocalIntensityScale::calc_abs_diff(const MeshData<T> &input_image, MeshData<T> &var) {
     //
     //  Bevan Cheeseman 2016
     //
-    //
 
-    const int z_num = input_image.z_num;
-    const int x_num = input_image.x_num;
-    const int y_num = input_image.y_num;
+    const size_t z_num = input_image.z_num;
+    const size_t x_num = input_image.x_num;
+    const size_t y_num = input_image.y_num;
 
-    int i,k,j;
-
-#ifdef HAVE_OPENMP
-	#pragma omp parallel for default(shared) private(j,i,k)
-#endif
-    for(j = 0;j < z_num;j++){
-
-        for(i = 0;i < x_num;i++){
-
-            for (k = 0; k < (y_num);k++){
-                var.mesh[j*x_num*y_num + i*y_num + k] = std::abs(var.mesh[j*x_num*y_num + i*y_num + k] - input_image.mesh[j*x_num*y_num + i*y_num + k]);
+    #ifdef HAVE_OPENMP
+	#pragma omp parallel for default(shared)
+    #endif
+    for(size_t z = 0; z < z_num; ++z) {
+        for(size_t x = 0; x < x_num; ++x) {
+            for (size_t y = 0; y < (y_num); ++y) {
+                size_t idx = z * x_num * y_num + x * y_num + y;
+                var.mesh[idx] = std::abs(var.mesh[idx] - input_image.mesh[idx]);
             }
-
         }
     }
-
-
 }
 
 
