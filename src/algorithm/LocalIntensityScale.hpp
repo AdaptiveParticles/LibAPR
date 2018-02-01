@@ -42,25 +42,18 @@ void LocalIntensityScale::rescale_var_and_threshold(MeshData<T>& var,const float
     //
     //
 
-    const int z_num = var.z_num;
-    const int x_num = var.x_num;
-    const int y_num = var.y_num;
+    const size_t z_num = var.z_num;
+    const size_t x_num = var.x_num;
+    const size_t y_num = var.y_num;
     const float max_th = 60000.0;
 
-    int i,k,j;
-    float rescaled;
-
-#ifdef HAVE_OPENMP
-	#pragma omp parallel for default(shared) private(j,i,k,rescaled)
-#endif
-    for(j = 0;j < z_num;j++){
-
-        for(i = 0;i < x_num;i++){
-
-            for (k = 0; k < (y_num);k++){
-
+    #ifdef HAVE_OPENMP
+	#pragma omp parallel for default(shared)
+    #endif
+    for(size_t j= 0; j < z_num; ++j) {
+        for(size_t i = 0; i < x_num; ++i) {
+            for (size_t k = 0; k < (y_num);k++) {
                 float rescaled = var.mesh[j*x_num*y_num + i*y_num + k] * var_rescale;
-
                 if(rescaled < par.sigma_th){
                     if(rescaled < par.sigma_th_max){
                         rescaled = max_th;
@@ -70,10 +63,8 @@ void LocalIntensityScale::rescale_var_and_threshold(MeshData<T>& var,const float
                 }
                 var.mesh[j*x_num*y_num + i*y_num + k] = rescaled;
             }
-
         }
     }
-
 }
 
 template<typename T>
@@ -151,54 +142,53 @@ void LocalIntensityScale::calc_sat_mean_y(MeshData<T>& input,const int offset){
     //
 
 
-    const int z_num = input.z_num;
-    const int x_num = input.x_num;
-    const int y_num = input.y_num;
+    const size_t z_num = input.z_num;
+    const size_t x_num = input.x_num;
+    const size_t y_num = input.y_num;
 
     std::vector<T> temp_vec;
     temp_vec.resize(y_num,0);
 
 
-    const int offset_n = offset;
-    int i, k, index;
-    float counter, temp, divisor = 2*offset_n + 1;
+    const size_t offset_n = offset;
+    float divisor = 2*offset_n + 1;
 
 #ifdef HAVE_OPENMP
-	#pragma omp parallel for default(shared) private(i,k,counter,temp,index) firstprivate(temp_vec)
+	#pragma omp parallel for default(shared) firstprivate(temp_vec)
 #endif
-    for(int j = 0;j < z_num;j++){
-        for(i = 0;i < x_num;i++){
+    for(size_t j = 0;j < z_num;j++){
+        for(size_t i = 0;i < x_num;i++){
 
-            index = j*x_num*y_num + i*y_num;
+            size_t index = j*x_num*y_num + i*y_num;
 
             //first pass over and calculate cumsum
-            temp = 0;
-            for (k = 0; k < y_num;k++){
+            float temp = 0;
+            for (size_t k = 0; k < y_num;k++){
                 temp += input.mesh[index + k];
                 temp_vec[k] = temp;
             }
 
             input.mesh[index] = 0;
             //handling boundary conditions (LHS)
-            for (k = 1; k <= (offset+1);k++){
+            for (size_t k = 1; k <= (offset+1);k++){
                 input.mesh[index + k] = -temp_vec[0]/divisor;
             }
 
             //second pass calculate mean
-            for (k = offset + 1; k < y_num;k++){
+            for (size_t k = offset + 1; k < y_num;k++){
                 input.mesh[index + k] = -temp_vec[k - offset - 1]/divisor;
             }
 
 
             //second pass calculate mean
-            for (k = 0; k < (y_num-offset);k++){
+            for (size_t k = 0; k < (y_num-offset);k++){
                 input.mesh[index + k] += temp_vec[k + offset]/divisor;
             }
 
 
-            counter = 0;
+            float counter = 0;
             //handling boundary conditions (RHS)
-            for (k = ( y_num - offset); k < (y_num);k++){
+            for (size_t k = ( y_num - offset); k < (y_num);k++){
                 counter++;
                 input.mesh[index + k]*= divisor;
                 input.mesh[index + k]+= temp_vec[y_num-1];
@@ -206,73 +196,65 @@ void LocalIntensityScale::calc_sat_mean_y(MeshData<T>& input,const int offset){
             }
 
             //handling boundary conditions (LHS), need to rehandle the boundary
-            for (k = 1; k < (offset + 1);k++){
+            for (size_t k = 1; k < (offset + 1);k++){
                 input.mesh[index + k] *= divisor/(1.0*k + offset_n);
             }
             //end point boundary condition
             input.mesh[index] *= divisor/(offset_n+1);
         }
     }
-
-
-
 }
 
 template<typename T>
 void LocalIntensityScale::calc_sat_mean_x(MeshData<T>& input,const int offset){
     // The same, but in place
 
-    const int z_num = input.z_num;
-    const int x_num = input.x_num;
-    const int y_num = input.y_num;
+    const size_t z_num = input.z_num;
+    const size_t x_num = input.x_num;
+    const size_t y_num = input.y_num;
 
     std::vector<T> temp_vec;
     temp_vec.resize(y_num*(2*offset + 1),0);
 
-    int i,k;
-    float temp;
-    int index_modulo, previous_modulo, current_index, jxnumynum;
+    #ifdef HAVE_OPENMP
+	#pragma omp parallel for default(shared) firstprivate(temp_vec)
+    #endif
+    for(size_t j = 0; j < z_num; j++) {
 
-#ifdef HAVE_OPENMP
-	#pragma omp parallel for default(shared) private(i,k,temp,index_modulo, previous_modulo, current_index, jxnumynum) \
-        firstprivate(temp_vec)
-#endif
-    for(int j = 0; j < z_num; j++) {
-
-        jxnumynum = j * x_num * y_num;
+        size_t jxnumynum = j * x_num * y_num;
 
         //prefetching
 
-        for(k = 0; k < y_num ; k++){
+        for(size_t k = 0; k < y_num ; k++){
             // std::copy ?
             temp_vec[k] = input.mesh[jxnumynum + k];
         }
 
-        for(i = 1; i < 2 * offset + 1; i++) {
-            for(k = 0; k < y_num; k++) {
+        for(size_t i = 1; i < 2 * offset + 1; i++) {
+            for(size_t k = 0; k < y_num; k++) {
                 temp_vec[i*y_num + k] = input.mesh[jxnumynum + i*y_num + k] + temp_vec[(i-1)*y_num + k];
             }
         }
 
         // LHS boundary
 
-        for(i = 0; i < offset + 1; i++){
-            for(k = 0; k < y_num; k++) {
+        for(size_t i = 0; i < offset + 1; i++){
+            for(size_t k = 0; k < y_num; k++) {
                 input.mesh[jxnumynum + i * y_num + k] = (temp_vec[(i + offset) * y_num + k]) / (i + offset + 1);
             }
         }
 
         // middle
 
-        current_index = offset + 1;
-
-        for(i = offset + 1; i < x_num - offset; i++){
+        size_t current_index = offset + 1;
+        size_t index_modulo;
+        for(size_t i = offset + 1; i < x_num - offset; i++){
             // the current cumsum
             index_modulo = (current_index + offset) % (2*offset + 1); // current_index - offset - 1
-            previous_modulo = (current_index + offset - 1) % (2*offset + 1); // the index of previous cumsum
+            size_t previous_modulo = (current_index + offset - 1) % (2*offset + 1); // the index of previous cumsum
 
-            for(k = 0; k < y_num; k++) {
-                temp = input.mesh[jxnumynum + (i + offset)*y_num + k] + temp_vec[previous_modulo*y_num + k];
+            for(size_t k = 0; k < y_num; k++) {
+                float temp = input.mesh[jxnumynum + (i + offset)*y_num + k] + temp_vec[previous_modulo*y_num + k];
                 input.mesh[jxnumynum + i*y_num + k] = (temp - temp_vec[index_modulo*y_num + k]) /
                                                       (2*offset + 1);
                 temp_vec[index_modulo*y_num + k] = temp;
@@ -284,8 +266,8 @@ void LocalIntensityScale::calc_sat_mean_x(MeshData<T>& input,const int offset){
         // RHS boundary
         current_index = (current_index + offset) % (2*offset + 1);
 
-        for(i = x_num - offset; i < x_num; i++){
-            for(k = 0; k < y_num; k++){
+        for(size_t i = x_num - offset; i < x_num; i++){
+            for(size_t k = 0; k < y_num; k++){
                 input.mesh[jxnumynum + i*y_num + k] = (temp_vec[index_modulo*y_num + k] -
                                                        temp_vec[current_index*y_num + k]) / (x_num - i + offset);
             }
@@ -293,8 +275,6 @@ void LocalIntensityScale::calc_sat_mean_x(MeshData<T>& input,const int offset){
             current_index = (current_index + 1) % (2*offset + 1);
         }
     }
-
-
 }
 
 
@@ -303,23 +283,23 @@ void LocalIntensityScale::calc_sat_mean_z(MeshData<T>& input,const int offset) {
 
     // The same, but in place
 
-    const int z_num = input.z_num;
-    const int x_num = input.x_num;
-    const int y_num = input.y_num;
+    const size_t z_num = input.z_num;
+    const size_t x_num = input.x_num;
+    const size_t y_num = input.y_num;
 
     std::vector<T> temp_vec;
     temp_vec.resize(y_num*(2*offset + 1),0);
 
-    int j,k;
+    size_t j,k;
     float temp;
-    int index_modulo, previous_modulo, current_index, iynum;
-    int xnumynum = x_num * y_num;
+    size_t index_modulo, previous_modulo, current_index, iynum;
+    size_t xnumynum = x_num * y_num;
 
 #ifdef HAVE_OPENMP
 	#pragma omp parallel for default(shared) private(j,k,temp,index_modulo, previous_modulo, current_index, iynum) \
         firstprivate(temp_vec)
 #endif
-    for(int i = 0; i < x_num; i++) {
+    for(size_t i = 0; i < x_num; i++) {
 
         iynum = i * y_num;
 

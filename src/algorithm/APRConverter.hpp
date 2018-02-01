@@ -224,7 +224,7 @@ bool APRConverter<ImageType>::get_apr_method(APR<ImageType>& apr, MeshData<T>& i
     }
 
     fine_grained_timer.stop_timer();
-
+    method_timer.verbose_flag = true;
     method_timer.start_timer("compute_gradient_magnitude_using_bsplines");
     MeshData<T> gradient;
     this->get_gradient(input_image,gradient); //note in the current pipeline don't actually use these variables, but here for interface (Use shared member allocated above variables)
@@ -282,23 +282,19 @@ void APRConverter<ImageType>::get_local_particle_cell_set(MeshData<T>& grad_imag
 
     fine_grained_timer.start_timer("compute_level_first");
 
-    int i = 0;
     //divide gradient magnitude by Local Intensity Scale (first step in calculating the Local Resolution Estimate L(y), minus constants)
-#ifdef HAVE_OPENMP
-	#pragma omp parallel for private(i) default(shared)
-#endif
-    for(i = 0; i < grad_temp.mesh.size(); i++)
-    {
+    #ifdef HAVE_OPENMP
+	#pragma omp parallel for default(shared)
+    #endif
+    for(size_t i = 0; i < grad_temp.mesh.size(); ++i) {
         local_scale_temp.mesh[i] = (1.0*grad_temp.mesh[i])/(local_scale_temp.mesh[i]*1.0);
     }
 
     fine_grained_timer.stop_timer();
 
-    float level_factor;
 
     float min_dim = std::min(this->par.dy,std::min(this->par.dx,this->par.dz));
-
-    level_factor = pow(2,(*apr_).level_max())*min_dim;
+    float level_factor = pow(2,(*apr_).level_max())*min_dim;
 
     unsigned int l_max = (*apr_).level_max() - 1;
     unsigned int l_min = (*apr_).level_min();

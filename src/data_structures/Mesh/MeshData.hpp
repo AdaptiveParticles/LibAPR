@@ -358,14 +358,14 @@ public :
      * @param aNumberOfBlocks - in how many chunks copy will be done
      */
     template<typename U>
-    void initWithUnaryOp(const MeshData<U> &aInputMesh, std::function<T(const T&)> aOp, unsigned int aNumberOfBlocks = 10) {
-        aNumberOfBlocks = std::min((unsigned int)aInputMesh.z_num, aNumberOfBlocks);
-        unsigned int numOfElementsPerBlock = aInputMesh.z_num/aNumberOfBlocks;
+    void initWithUnaryOp(const MeshData<U> &aInputMesh, std::function<T(const T&)> aOp, size_t aNumberOfBlocks = 10) {
+        aNumberOfBlocks = std::min(aInputMesh.z_num, (size_t)aNumberOfBlocks);
+        size_t numOfElementsPerBlock = aInputMesh.z_num/aNumberOfBlocks;
 
         #ifdef HAVE_OPENMP
         #pragma omp parallel for schedule(static)
         #endif
-        for (unsigned int blockNum = 0; blockNum < aNumberOfBlocks; ++blockNum) {
+        for (size_t blockNum = 0; blockNum < aNumberOfBlocks; ++blockNum) {
             const size_t elementSize = (size_t)aInputMesh.x_num * aInputMesh.y_num;
             const size_t blockSize = numOfElementsPerBlock * elementSize;
             size_t offsetBegin = blockNum * blockSize;
