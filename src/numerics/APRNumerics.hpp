@@ -12,7 +12,7 @@ class APRNumerics {
 
 public:
     template<typename T>
-    void compute_gradient_vector(APR<T> apr,ExtraParticleData<std::vector<float>>& gradient){
+    static void compute_gradient_vector(APR<T> apr,ExtraParticleData<std::vector<float>>& gradient,const bool normalize = true,const std::vector<float> delta = {1.0f,1.0f,1.0f}){
 
 
         APRTimer timer;
@@ -60,7 +60,7 @@ public:
 
                     apr_iterator.find_neighbours_in_direction(direction);
 
-                    const float distance_between_particles = 0.5*pow(2,apr_iterator.level_max() - apr_iterator.level())+0.5*pow(2,apr_iterator.level_max()-neighbour_iterator.level()); //in pixels
+                    const float distance_between_particles = 0.5f*pow(2.0f,(float)(apr_iterator.level_max() - apr_iterator.level()))+0.5f*pow(2.0f,(float)(apr_iterator.level_max()-neighbour_iterator.level()))*delta[dimension]; //in pixels
 
                     // Neighbour Particle Cell Face definitions [+y,-y,+x,-x,+z,-z] =  [0,1,2,3,4,5]
                     for (int index = 0; index < apr_iterator.number_neighbours_in_direction(direction); ++index) {
@@ -79,10 +79,15 @@ public:
                 gradient[apr_iterator][dimension] = gradient_estimate/counter_dir;
             }
 
-            float gradient_mag = sqrt(gradient[apr_iterator][0]*gradient[apr_iterator][0] + gradient[apr_iterator][1]*gradient[apr_iterator][1] + gradient[apr_iterator][2]*gradient[apr_iterator][2]);
-            gradient[apr_iterator][0] /= gradient_mag;
-            gradient[apr_iterator][1] /= gradient_mag;
-            gradient[apr_iterator][2] /= gradient_mag;
+            if(normalize) {
+
+                float gradient_mag = sqrt(gradient[apr_iterator][0] * gradient[apr_iterator][0] +
+                                          gradient[apr_iterator][1] * gradient[apr_iterator][1] +
+                                          gradient[apr_iterator][2] * gradient[apr_iterator][2]);
+                gradient[apr_iterator][0] /= gradient_mag;
+                gradient[apr_iterator][1] /= gradient_mag;
+                gradient[apr_iterator][2] /= gradient_mag;
+            }
 
         }
 

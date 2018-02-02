@@ -17,8 +17,6 @@ Additional settings (High Level):
 
 -I_th intensity_threshold  (will ignore areas of image below this threshold, useful for removing camera artifacts or auto-flouresence)
 -SNR_min minimal_snr (minimal ratio of the signal to the standard deviation of the background, set by default to 6)
--u8bit_img (required flag for using uint8_t tif image as input)
--float_img (required flag for using float tif image as input)
 
 Advanced (Direct) Settings:
 
@@ -125,7 +123,7 @@ cmdLineOptions read_command_line_options(int argc, char **argv){
 
     if(argc == 1) {
         std::cerr << argv[0] << std::endl;
-        std::cerr << "Short usage: \"" << argv[0] << " -i inputfile [-t] [-s statsfile -d directory] [-o outputfile]\"" << std::endl;
+        std::cerr << "Short usage: \"" << argv[0] << " -i inputfile [-d directory] [-o outputfile]\"" << std::endl;
 
         std::cerr << usage << std::endl;
         exit(1);
