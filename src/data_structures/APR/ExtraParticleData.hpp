@@ -73,7 +73,7 @@ public:
     }
 
     template<typename S,typename T>
-    void copy_parts(APR<T>& apr,ExtraParticleData<S>& parts_to_copy,const uint64_t level = 0,unsigned int aNumberOfBlocks = 10){
+    void copy_parts(APR<T>& apr,const ExtraParticleData<S>& parts_to_copy,const uint64_t level = 0,unsigned int aNumberOfBlocks = 10){
         //
         //  Copy's the data from one particle dataset to another
         //

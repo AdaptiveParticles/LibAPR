@@ -203,7 +203,7 @@ int main(int argc, char **argv) {
 
         //smooth reconstruction - requires float
         MeshData<float> recon_smooth;
-        std::vector<float> scale_d = {2, 2, 2};
+        std::vector<float> scale_d = {1, 1, 2};
 
         timer.start_timer("smooth reconstrution");
         apr.interp_parts_smooth(recon_smooth, apr.particles_intensities, scale_d);

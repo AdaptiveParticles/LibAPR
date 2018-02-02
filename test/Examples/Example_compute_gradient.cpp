@@ -21,6 +21,8 @@ const char* usage = R"(
  Options:
 
  -original_file (original image file given with respect to input_directory) (Produces the finite difference gradient magnitude on the original image)
+ -smooth *number (integer) (perform a seperable smoothing in each direction *number of times before taking the gradient) (Feel free to change the weights)
+ -aniso_z anisotropy scaling for gradient calculation (default = 1, scaling factor 3 = 3dx)
 
 )";
 #include <algorithm>
@@ -54,29 +56,42 @@ int main(int argc, char **argv) {
     //remove the file extension
     name.erase(name.end()-3,name.end());
 
+    if(options.smooth_number>0) {
+        //smooth the image with a simply sepeable filter *smooth_number times
+
+        APRNumerics aprNumerics;
+        ExtraParticleData<uint16_t> smooth(apr);
+        std::vector<float> filter = {0.1f, 0.8f, 0.1f}; // << Feel free to play with these
+        aprNumerics.seperable_smooth_filter(apr, apr.particles_intensities, smooth, filter, options.smooth_number);
+
+        std::swap(apr.particles_intensities.data, smooth.data);
+    }
+
     //Calculate the gradient of the APR
     ExtraParticleData<std::vector<float>> gradient; //vector for holding the derivative in the three directions, initialized to have the same number of elements as particles.
 
-    APRNumerics::compute_gradient_vector(apr,gradient,false);
+    std::vector<float> delta = {1,1,options.anisotropy_z};
+
+    APRNumerics::compute_gradient_vector(apr,gradient,false,delta);
 
     ExtraParticleData<float> gradient_magnitude(apr);
     //compute the magnitude of the gradient, scale it by 5 for visualization when writing as uint16 int
-    gradient.map(apr,gradient_magnitude,[](const std::vector<float> &a) { return 5.0f*sqrt(pow(a[0], 2.0f) + pow(a[1], 2.0f) + pow(a[2], 2.0f)); });
+    gradient.map(apr,gradient_magnitude,[](const std::vector<float> &a) { return 20.0f*sqrt(pow(a[0], 2.0f) + pow(a[1], 2.0f) + pow(a[2], 2.0f)); });
 
     // write result to image
     MeshData<float> gradient_magnitude_image;
     apr.interp_img(gradient_magnitude_image,gradient_magnitude);
-    std::string image_file_name = options.directory + name + "_gradient_magnitude.tif";
-    TiffUtils::saveMeshAsTiffUint16(image_file_name, gradient_magnitude_image);
+    //apr.interp_img(gradient_magnitude_image,apr.particles_intensities);
 
-    // also write to a paraview viewable file
-    apr.write_apr_paraview(options.directory,name + "_gradient_magnitude",gradient_magnitude);
+    std::string image_file_name = options.directory + name + "_gradient_magnitude.tif";
+    TiffUtils::saveMeshAsTiff(image_file_name, gradient_magnitude_image);
 
     //////////////////////
     //
     //  Perform same operation on original image
     //
     //////////////////////
+
 
     if(options.original_image.size() > 0) {
 
@@ -145,6 +160,16 @@ cmdLineOptions read_command_line_options(int argc, char **argv){
     if(command_option_exists(argv, argv + argc, "-original_image"))
     {
         result.original_image = std::string(get_command_option(argv, argv + argc, "-original_image"));
+    }
+
+    if(command_option_exists(argv, argv + argc, "-smooth"))
+    {
+        result.smooth_number = (unsigned int) std::stoi(get_command_option(argv, argv + argc, "-smooth"));
+    }
+
+    if(command_option_exists(argv, argv + argc, "-aniso_z"))
+    {
+        result.anisotropy_z =  std::stof(get_command_option(argv, argv + argc, "-aniso_z"));
     }
 
 

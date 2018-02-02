@@ -19,6 +19,8 @@
 #include "src/numerics/APRRaycaster.hpp"
 #include "src/data_structures/APR/APR.hpp"
 
+#include "benchmarks/development/final_benchmarks/OldAPRConverter.hpp"
+
 bool command_option_exists(char **begin, char **end, const std::string &option)
 {
     return std::find(begin, end, option) != end;
@@ -146,6 +148,27 @@ int main(int argc, char **argv) {
 
     debug_write(seg_mesh,pc_struct.name + "_gc_seg");
 
+    APR<uint16_t> apr;
+
+    OldAPRConverter old_apr;
+
+    old_apr.create_apr_from_pc_struct(apr,pc_struct);
+
+    old_apr.transfer_intensities(apr,pc_struct,seg_parts);
+
+
+    MeshData<uint16_t> recon_pc;
+
+    timer.start_timer("pc interp");
+    //perform piece-wise constant interpolation
+    apr.interp_img(recon_pc, apr.particles_intensities);
+    timer.stop_timer();
+
+    //write output as tiff
+    TiffUtils::saveMeshAsTiff(options.directory + apr.name + "_pc.tif", recon_pc);
+
+    apr.write_apr(options.directory , apr.name +"_seg");
+
 
 //    proj_par proj_pars;
 //
@@ -203,5 +226,7 @@ int main(int argc, char **argv) {
     
 
 }
+
+
 
 
