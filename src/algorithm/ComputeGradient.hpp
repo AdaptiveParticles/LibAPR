@@ -145,9 +145,6 @@ void ComputeGradient::threshold_gradient(MeshData<T>& grad,MeshData<S>& img,cons
 
 }
 
-
-
-
 template<typename T>
 void ComputeGradient::bspline_filt_rec_y(MeshData<T>& image,float lambda,float tol){
     //
@@ -245,8 +242,8 @@ void ComputeGradient::bspline_filt_rec_y(MeshData<T>& image,float lambda,float t
                 temp1 = temp;
             }
 
-            image.mesh[jxnumynum + iynum + y_num - 1] = temp4;
             image.mesh[jxnumynum + iynum + y_num - 2] = temp3;
+            image.mesh[jxnumynum + iynum + y_num - 1] = temp4;
         }
     }
     btime.stop_timer();
@@ -285,24 +282,12 @@ void ComputeGradient::bspline_filt_rec_z(MeshData<T>& image,float lambda,float t
     //  Bevan Cheeseman 2016
     //
     //  Recursive Filter Implimentation for Smoothing BSplines
-    //
-    //
 
-
-    float rho;
-    float xi;
-    float omg;
-    float c0;
-    float gamma;
-
-
-    xi = 1 - 96*lambda + 24*lambda*sqrt(3 + 144*lambda);
-    rho = (24*lambda - 1 - sqrt(xi))/(24*lambda)*sqrt((1/xi)*(48*lambda + 24*lambda*sqrt(3 + 144*lambda)));
-    omg = atan(sqrt((1/xi)*(144*lambda - 1)));
-
-    c0 = (1+ pow(rho,2))/(1-pow(rho,2)) * (1 - 2*rho*cos(omg) + pow(rho,2))/(1 + 2*rho*cos(omg) + pow(rho,2));
-
-    gamma = (1-pow(rho,2))/(1+pow(rho,2)) * (1/tan(omg));
+    float xi = 1 - 96*lambda + 24*lambda*sqrt(3 + 144*lambda);
+    float rho = (24*lambda - 1 - sqrt(xi))/(24*lambda)*sqrt((1/xi)*(48*lambda + 24*lambda*sqrt(3 + 144*lambda)));
+    float omg = atan(sqrt((1/xi)*(144*lambda - 1)));
+    float c0 = (1+ pow(rho,2))/(1-pow(rho,2)) * (1 - 2*rho*cos(omg) + pow(rho,2))/(1 + 2*rho*cos(omg) + pow(rho,2));
+    float gamma = (1-pow(rho,2))/(1+pow(rho,2)) * (1/tan(omg));
 
     const float b1 = 2*rho*cos(omg);
     const float b2 = -pow(rho,2.0);
@@ -312,7 +297,6 @@ void ComputeGradient::bspline_filt_rec_z(MeshData<T>& image,float lambda,float t
     const size_t y_num = image.y_num;
 
     const size_t k0 = std::min((size_t)(ceil(std::abs(log(tol)/log(rho)))),z_num);
-
     const float norm_factor = pow((1 - 2.0*rho*cos(omg) + pow(rho,2)),2);
 
     //////////////////////////////////////////////////////////////
@@ -321,200 +305,130 @@ void ComputeGradient::bspline_filt_rec_z(MeshData<T>& image,float lambda,float t
     //
     //////////////////////////////////////////////////////////////
 
-    std::vector<float> impulse_resp_vec_f;  //forward
-    std::vector<float> impulse_resp_vec_b;  //backward
-
+    std::vector<float> impulse_resp_vec_f(k0+3);  //forward
     for (int64_t k = 0; k < (k0+3);k++){
-        impulse_resp_vec_f.push_back(impulse_resp(k,rho,omg));
+        impulse_resp_vec_f[k] = impulse_resp(k,rho,omg);
     }
 
-
+    std::vector<float> impulse_resp_vec_b(k0+3);  //backward
     for (int64_t k = 0; k < (k0+3);k++){
-        impulse_resp_vec_b.push_back(impulse_resp_back(k,rho,omg,gamma,c0));
+        impulse_resp_vec_b[k] = impulse_resp_back(k,rho,omg,gamma,c0);
     }
 
-    std::vector<float> bc1_vec;  //forward
-    std::vector<float> bc2_vec;  //backward
-    std::vector<float> bc3_vec;  //forward
-    std::vector<float> bc4_vec;  //backward
-
-    bc1_vec.resize(k0,0);
-    bc2_vec.resize(k0,0);
-    bc3_vec.resize(k0,0);
-    bc4_vec.resize(k0,0);
-
+    std::vector<float> bc1_vec(k0, 0);  //forward
     //y(1) init
-
     bc1_vec[1] = impulse_resp_vec_f[0];
-
     for( int64_t k = 0; k < k0; k++){
         bc1_vec[k] += impulse_resp_vec_f[k+1];
     }
 
+    std::vector<float> bc2_vec(k0, 0);  //backward
     //y(0) init
-
     for( int64_t k = 0; k < k0; k++){
         bc2_vec[k] = impulse_resp_vec_f[k];
     }
 
-
+    std::vector<float> bc3_vec(k0, 0);  //forward
     //y(N-1) init
     bc3_vec[0] = impulse_resp_vec_b[1];
-
     for( int64_t k = 0; k < (k0-1); k++){
         bc3_vec[k+1] += impulse_resp_vec_b[k] + impulse_resp_vec_b[k+2];
     }
 
+    std::vector<float> bc4_vec(k0, 0);  //backward
     //y(N) init
-
     bc4_vec[0] = impulse_resp_vec_b[0];
-
     for( int64_t k = 1; k < k0; k++){
         bc4_vec[k] += 2*impulse_resp_vec_b[k];
     }
 
     //forwards direction
-
-    std::vector<float> temp_vec1;
-    temp_vec1.resize(y_num,0);
-
-    std::vector<float> temp_vec2;
-    temp_vec2.resize(y_num,0);
-
-    std::vector<float> temp_vec3;
-    temp_vec3.resize(y_num,0);
-
-    std::vector<float> temp_vec4;
-    temp_vec4.resize(y_num,0);
+    std::vector<float> temp_vec1(y_num,0);
+    std::vector<float> temp_vec2(y_num,0);
+    std::vector<float> temp_vec3(y_num,0);
+    std::vector<float> temp_vec4(y_num,0);
 
     //Initialization and boundary conditions
-
-    int64_t index, iynum, j, k;
-
-    size_t i=0;
-
-#ifdef HAVE_OPENMP
-	#pragma omp parallel for default(shared) private(i,j, k, iynum, index) \
-        firstprivate(temp_vec1, temp_vec2, temp_vec3, temp_vec4)
-#endif
-    for(i = 0; i < x_num; i++){
+    #ifdef HAVE_OPENMP
+	#pragma omp parallel for default(shared) firstprivate(temp_vec1, temp_vec2, temp_vec3, temp_vec4)
+    #endif
+    for (size_t i = 0; i < x_num; ++i) {
 
         std::fill(temp_vec1.begin(), temp_vec1.end(), 0);
         std::fill(temp_vec2.begin(), temp_vec2.end(), 0);
         std::fill(temp_vec3.begin(), temp_vec3.end(), 0);
         std::fill(temp_vec4.begin(), temp_vec4.end(), 0);
 
-        iynum = i * y_num;
+        size_t iynum = i * y_num;
 
-        for(j = 0; j < k0; j++){
-
-            index = j * x_num * y_num + iynum;
-
-#ifdef HAVE_OPENMP
-	#pragma omp simd
-#endif
-            //forwards boundary condition loop
-            for (k = y_num - 1; k >= 0; k--){
-
+        for (size_t j = 0; j < k0; ++j) {
+            size_t index = j * x_num * y_num + iynum;
+            #ifdef HAVE_OPENMP
+	        #pragma omp simd
+            #endif
+            for (int64_t k = y_num - 1; k >= 0; k--) {
+                //forwards boundary condition
                 temp_vec1[k] += bc1_vec[j] * image.mesh[index + k];
-
                 temp_vec2[k] += bc2_vec[j] * image.mesh[index + k];
-
-            }
-
-#ifdef HAVE_OPENMP
-	#pragma omp simd
-#endif
-            //backwards boundary condition loop
-            for (k = y_num - 1; k >= 0; k--){
-
+                //backwards boundary condition
                 temp_vec3[k] += bc3_vec[j] * image.mesh[(z_num - 1 - j)*x_num*y_num + iynum + k];
-
                 temp_vec4[k] += bc4_vec[j] * image.mesh[(z_num - 1 - j)*x_num*y_num + iynum + k];
-
             }
-
-
         }
 
-
-        //Causal Filter Loop
-
-
+        // ------  Causal Filter Loop
         //initialization
-        for (k = 0; k < y_num; k++){
+        for (size_t k = 0; k < y_num; ++k) {
             //z(0)
             image.mesh[iynum + k] = temp_vec2[k];
         }
 
-
-        for (k = 0; k < y_num; k++){
+        for (size_t k = 0; k < y_num; ++k) {
             //y(1)
             image.mesh[x_num*y_num  + iynum + k] = temp_vec1[k];
         }
 
-        for(j = 2; j < z_num; j++){
+        for (size_t j = 2; j < z_num; ++j) {
+            size_t index = j * x_num * y_num + iynum;
 
-            index = j * x_num * y_num + iynum;
-
-#ifdef HAVE_OPENMP
-	#pragma omp simd
-#endif
-            for (k = 0; k < y_num; k++){
+            #ifdef HAVE_OPENMP
+	        #pragma omp simd
+            #endif
+            for (size_t k = 0; k < y_num; ++k) {
                 temp_vec2[k] = 1.0*image.mesh[index + k] + b1*temp_vec1[k]+  b2*temp_vec2[k];
             }
 
             std::swap(temp_vec1, temp_vec2);
             std::copy(temp_vec1.begin(), temp_vec1.begin()+ y_num, image.mesh.begin() + index);
-
-
-//            for (k = 0; k < y_num; k++){
-//                image.mesh[index + k] = image.mesh[index + k] + b1*temp_vec1[k]+  b2*temp_vec2[k];
-//            }
-//
-//            std::swap(temp_vec1, temp_vec2);
-//            std::copy(image.mesh.begin() + index, image.mesh.begin() + index + y_num, temp_vec1.begin());
-
-
         }
 
-        //Anti-Causal Filter Loop
-
-
+        // ------ Anti-Causal Filter Loop
         //initialization
-        for (k = y_num - 1; k >= 0; k--){
+        for (int64_t k = y_num - 1; k >= 0; --k) {
             //y(N)
             image.mesh[(z_num - 1)*x_num*y_num  + iynum + k] = temp_vec4[k]*norm_factor;
         }
 
-
-        for (k = y_num - 1; k >= 0; k--){
+        for (int64_t k = y_num - 1; k >= 0; --k) {
             //y(N-1)
             image.mesh[(z_num - 2)*x_num*y_num  + iynum + k] = temp_vec3[k]*norm_factor;
         }
 
-        float temp;
-
         //main loop
-        for(j = z_num - 3; j >= 0; j--){
+        for (int64_t j = z_num - 3; j >= 0; --j) {
+            size_t index = j * x_num * y_num + i * y_num;
 
-            index = j * x_num * y_num + i * y_num;
-
-#ifdef HAVE_OPENMP
-	#pragma omp simd
-#endif
-            for (k = y_num - 1; k >= 0; k--){
-                temp = (image.mesh[index + k] +  b1*temp_vec3[k]+  b2*temp_vec4[k]);
+            #ifdef HAVE_OPENMP
+	        #pragma omp simd
+            #endif
+            for (int64_t k = y_num - 1; k >= 0; --k) {
+                float temp = (image.mesh[index + k] +  b1*temp_vec3[k]+  b2*temp_vec4[k]);
                 image.mesh[index + k] = temp*norm_factor;
                 temp_vec4[k] = temp_vec3[k];
                 temp_vec3[k] = temp;
-                //image.mesh[index + k] *= norm_factor;
             }
-
         }
     }
-
-
 }
 
 template<typename T>
@@ -523,34 +437,21 @@ void ComputeGradient::bspline_filt_rec_x(MeshData<T>& image,float lambda,float t
     //  Bevan Cheeseman 2016
     //
     //  Recursive Filter Implimentation for Smoothing BSplines
-    //
-    //
 
-
-    float rho;
-    float xi;
-    float omg;
-    float c0;
-    float gamma;
-
-
-    xi = 1 - 96*lambda + 24*lambda*sqrt(3 + 144*lambda);
-    rho = (24*lambda - 1 - sqrt(xi))/(24*lambda)*sqrt((1/xi)*(48*lambda + 24*lambda*sqrt(3 + 144*lambda)));
-    omg = atan(sqrt((1/xi)*(144*lambda - 1)));
-
-    c0 = (1+ pow(rho,2))/(1-pow(rho,2)) * (1 - 2*rho*cos(omg) + pow(rho,2))/(1 + 2*rho*cos(omg) + pow(rho,2));
-
-    gamma = (1-pow(rho,2))/(1+pow(rho,2)) * (1/tan(omg));
+    float xi = 1 - 96*lambda + 24*lambda*sqrt(3 + 144*lambda);
+    float rho = (24*lambda - 1 - sqrt(xi))/(24*lambda)*sqrt((1/xi)*(48*lambda + 24*lambda*sqrt(3 + 144*lambda)));
+    float omg = atan(sqrt((1/xi)*(144*lambda - 1)));
+    float c0 = (1+ pow(rho,2))/(1-pow(rho,2)) * (1 - 2*rho*cos(omg) + pow(rho,2))/(1 + 2*rho*cos(omg) + pow(rho,2));
+    float gamma = (1-pow(rho,2))/(1+pow(rho,2)) * (1/tan(omg));
 
     const float b1 = 2*rho*cos(omg);
     const float b2 = -pow(rho,2.0);
 
-    const int64_t z_num = image.z_num;
-    const int64_t x_num = image.x_num;
-    const int64_t y_num = image.y_num;
+    const size_t z_num = image.z_num;
+    const size_t x_num = image.x_num;
+    const size_t y_num = image.y_num;
 
-    const int64_t k0 = std::min((int64_t)(ceil(std::abs(log(tol)/log(rho)))),z_num);
-
+    const size_t k0 = std::min((size_t)(ceil(std::abs(log(tol)/log(rho)))),z_num);
     const float norm_factor = pow((1 - 2.0*rho*cos(omg) + pow(rho,2)),2);
 
     //////////////////////////////////////////////////////////////
@@ -559,197 +460,132 @@ void ComputeGradient::bspline_filt_rec_x(MeshData<T>& image,float lambda,float t
     //
     //////////////////////////////////////////////////////////////
 
-    std::vector<float> impulse_resp_vec_f;  //forward
-    std::vector<float> impulse_resp_vec_b;  //backward
-
+    std::vector<float> impulse_resp_vec_f(k0+3);  //forward
     for (int64_t k = 0; k < (k0+3);k++){
-        impulse_resp_vec_f.push_back(impulse_resp(k,rho,omg));
+        impulse_resp_vec_f[k] = impulse_resp(k,rho,omg);
     }
 
-
+    std::vector<float> impulse_resp_vec_b(k0+3);  //backward
     for (int64_t k = 0; k < (k0+3);k++){
-        impulse_resp_vec_b.push_back(impulse_resp_back(k,rho,omg,gamma,c0));
+        impulse_resp_vec_b[k] = impulse_resp_back(k,rho,omg,gamma,c0);
     }
 
-    std::vector<float> bc1_vec;  //forward
-    std::vector<float> bc2_vec;  //backward
-    std::vector<float> bc3_vec;  //forward
-    std::vector<float> bc4_vec;  //backward
-
-    bc1_vec.resize(k0,0);
-    bc2_vec.resize(k0,0);
-    bc3_vec.resize(k0,0);
-    bc4_vec.resize(k0,0);
-
+    std::vector<float> bc1_vec(k0, 0);  //forward
     //y(1) init
-
     bc1_vec[1] = impulse_resp_vec_f[0];
-
     for( int64_t k = 0; k < k0;k++){
         bc1_vec[k] += impulse_resp_vec_f[k+1];
     }
 
+    std::vector<float> bc2_vec(k0, 0);  //backward
     //y(0) init
-
     for( int64_t k = 0; k < k0;k++){
         bc2_vec[k] = impulse_resp_vec_f[k];
     }
 
-
+    std::vector<float> bc3_vec(k0, 0);  //forward
     //y(N-1) init
     bc3_vec[0] = impulse_resp_vec_b[1];
-
     for( int64_t k = 0; k < (k0-1);k++){
         bc3_vec[k+1] += impulse_resp_vec_b[k] + impulse_resp_vec_b[k+2];
     }
 
+    std::vector<float> bc4_vec(k0, 0);  //backward
     //y(N) init
-
     bc4_vec[0] = impulse_resp_vec_b[0];
-
     for( int64_t k = 1; k < k0;k++){
         bc4_vec[k] += 2*impulse_resp_vec_b[k];
     }
 
     //forwards direction
 
-    std::vector<float> temp_vec1;
-    temp_vec1.resize(y_num,0);
+    std::vector<float> temp_vec1(y_num,0);
+    std::vector<float> temp_vec2(y_num,0);
+    std::vector<float> temp_vec3(y_num,0);
+    std::vector<float> temp_vec4(y_num,0);
 
-    std::vector<float> temp_vec2;
-    temp_vec2.resize(y_num,0);
-
-    std::vector<float> temp_vec3;
-    temp_vec3.resize(y_num,0);
-
-    std::vector<float> temp_vec4;
-    temp_vec4.resize(y_num,0);
-
-    //Initialization and boundary conditions
-
-    int64_t k, i, jxnumynum, index;
-
-    int64_t j;
-
-#ifdef HAVE_OPENMP
-	#pragma omp parallel for default(shared) private(j,i, k, jxnumynum, index) \
-        firstprivate(temp_vec1, temp_vec2, temp_vec3, temp_vec4)
-#endif
-    for( j = 0;j < z_num; j++){
-
+    #ifdef HAVE_OPENMP
+	#pragma omp parallel for default(shared) firstprivate(temp_vec1, temp_vec2, temp_vec3, temp_vec4)
+    #endif
+    for (size_t j = 0;j < z_num; ++j) {
         std::fill(temp_vec1.begin(), temp_vec1.end(), 0);
         std::fill(temp_vec2.begin(), temp_vec2.end(), 0);
         std::fill(temp_vec3.begin(), temp_vec3.end(), 0);
         std::fill(temp_vec4.begin(), temp_vec4.end(), 0);
 
-        jxnumynum = j * y_num * x_num;
+        size_t jxnumynum = j * y_num * x_num;
 
-        for(i = 0; i < k0; i++){
+        for (size_t i = 0; i < k0; ++i) {
 
             //forwards boundary condition loop
-            for (k = 0; k < y_num; k++){
-
-
+            for (size_t k = 0; k < y_num; ++k) {
                 temp_vec1[k] += bc1_vec[i]*image.mesh[jxnumynum + i*y_num + k];
-
                 temp_vec2[k] += bc2_vec[i]*image.mesh[jxnumynum + i*y_num + k];
-
             }
 
             //backwards boundary condition loop
-            for (k = 0; k < y_num;k++){
-
+            for (size_t k = 0; k < y_num; ++k) {
                 temp_vec3[k] += bc3_vec[i]*image.mesh[jxnumynum + (x_num - 1 - i)*y_num + k];
-
                 temp_vec4[k] += bc4_vec[i]*image.mesh[jxnumynum + (x_num - 1 - i)*y_num + k];
-
             }
-
-
         }
-
-
-
 
         jxnumynum = j * x_num * y_num;
 
         //initialization
-        for (k = y_num - 1; k >= 0; k--) {
+        for (int64_t k = y_num - 1; k >= 0; --k) {
             //y(0)
             image.mesh[jxnumynum  + k] = temp_vec2[k];
         }
 
-
-        for (k = y_num - 1; k >= 0; k--) {
+        for (int64_t k = y_num - 1; k >= 0; --k) {
             //y(1)
             image.mesh[jxnumynum  + y_num + k] = temp_vec1[k];
         }
 
-        for(i = 2;i < x_num;i++){
+        for (size_t i = 2;i < x_num; ++i) {
+            size_t index = i * y_num + jxnumynum;
 
-            index = i * y_num + jxnumynum;
-
-#ifdef HAVE_OPENMP
-	#pragma omp simd
-#endif
-            for (k = y_num - 1; k >= 0; k--) {
+            #ifdef HAVE_OPENMP
+            #pragma omp simd
+            #endif
+            for (int64_t k = y_num - 1; k >= 0; k--) {
                 temp_vec2[k] = image.mesh[index + k] + b1*temp_vec1[k]+  b2*temp_vec2[k];
             }
 
-
             std::swap(temp_vec1, temp_vec2);
-
             std::copy(temp_vec2.begin(), temp_vec2.begin() + y_num, image.mesh.begin() + index);
-
-
-//            for (k = y_num - 1; k >= 0; k--) {
-//                image.mesh[index + k] = image.mesh[index + k] + b1*temp_vec1[k]+  b2*temp_vec2[k];
-//            }
-//
-//
-//            std::swap(temp_vec1, temp_vec2);
-//            std::copy(image.mesh.begin() + index, image.mesh.begin() + index + y_num, temp_vec1.begin());
-
         }
 
 
         //Anti-Causal Filter Loop
 
-
         //initialization
-        for (k = y_num - 1; k >= 0; k--){
+        for (int64_t k = y_num - 1; k >= 0; --k) {
             //y(N)
             image.mesh[jxnumynum  + (x_num - 1)*y_num + k] = temp_vec4[k]*norm_factor;
         }
 
-
-        for (k = y_num - 1; k >= 0; k--){
+        for (int64_t k = y_num - 1; k >= 0; --k) {
             //y(N-1)
             image.mesh[jxnumynum  + (x_num - 2)*y_num + k] = temp_vec3[k]*norm_factor;
         }
 
         //main loop
-        for(i = x_num - 3; i >= 0; i--){
+        for (int64_t i = x_num - 3; i >= 0; --i){
+            size_t index = jxnumynum + i*y_num;
 
-            index = jxnumynum + i*y_num;
-
-            float temp;
-
-#ifdef HAVE_OPENMP
-	#pragma omp simd
-#endif
-            for (k = y_num - 1; k >= 0; k--){
-                temp = (image.mesh[index + k] + b1*temp_vec3[ k]+  b2*temp_vec4[ k]);
+            #ifdef HAVE_OPENMP
+            #pragma omp simd
+            #endif
+            for (int64_t k = y_num - 1; k >= 0; k--){
+                float temp = (image.mesh[index + k] + b1*temp_vec3[ k]+  b2*temp_vec4[ k]);
                 image.mesh[index + k] = temp*norm_factor;
                 temp_vec4[k] = temp_vec3[k];
                 temp_vec3[k] = temp;
-                //image.mesh[index + k] *= norm_factor;
             }
-
         }
     }
-
-
 }
 
 template<typename T>
