@@ -158,7 +158,6 @@ namespace {
             ASSERT_EQ(md.y_num, yLen);
             ASSERT_EQ(md.z_num, zLen);
             ASSERT_EQ(md.mesh.size(), sizeOfMesh);
-            for (int i = 0; i < sizeOfMesh; ++i) ASSERT_EQ(md.mesh[i], 0);
         }
         {   // Size and default value for type used
             MeshData<int> md;
@@ -174,23 +173,21 @@ namespace {
     TEST_F(MeshDataTest, PreallocateTest) {
         {
             MeshData<int> md;
-            md.preallocate(3, 5, 7, 123);
+            md.preallocate(3, 5, 7);
             ASSERT_EQ(md.y_num, 2);
             ASSERT_EQ(md.x_num, 3);
             ASSERT_EQ(md.z_num, 4);
             int size = 2 * 3 * 4;
             ASSERT_EQ(md.mesh.size(), size);
-            for (int i = 0; i < size; ++i) ASSERT_EQ(md.mesh[i], 123);
         }
         {
             MeshData<int> md;
-            md.preallocate(4, 6, 8, 13);
+            md.preallocate(4, 6, 8);
             ASSERT_EQ(md.y_num, 2);
             ASSERT_EQ(md.x_num, 3);
             ASSERT_EQ(md.z_num, 4);
             int size = 2 * 3 * 4;
             ASSERT_EQ(md.mesh.size(), size);
-            for (int i = 0; i < size; ++i) ASSERT_EQ(md.mesh[i], 13);
         }
     }
 
