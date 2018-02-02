@@ -334,6 +334,21 @@ public :
     }
 
     /**
+     * Initializes mesh with size of half of provided dimensions (rounding up if not divisible by 2) and initialize values
+     * @param aSizeOfY
+     * @param aSizeOfX
+     * @param aSizeOfZ
+     * @param aInitVal
+     */
+    void preallocate(int aSizeOfY, int aSizeOfX, int aSizeOfZ, T aInitVal) {
+        const int z_num_ds = ceil(1.0*aSizeOfZ/2.0);
+        const int x_num_ds = ceil(1.0*aSizeOfX/2.0);
+        const int y_num_ds = ceil(1.0*aSizeOfY/2.0);
+
+        initialize(y_num_ds, x_num_ds, z_num_ds, aInitVal);
+    }
+
+    /**
      * Swaps data of meshes this <-> aObj
      * @param aObj
      */

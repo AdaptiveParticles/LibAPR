@@ -178,7 +178,7 @@ bool APRConverter<ImageType>::get_apr_method(APR<ImageType>& apr, MeshData<T>& i
 
     allocation_timer.start_timer("init and copy image");
     image_temp.initialize(input_image);
-    grad_temp.preallocate(input_image.y_num,input_image.x_num,input_image.z_num);
+    grad_temp.preallocate(input_image.y_num,input_image.x_num,input_image.z_num, 0);
     local_scale_temp.preallocate(input_image.y_num,input_image.x_num,input_image.z_num);
     local_scale_temp2.preallocate(input_image.y_num,input_image.x_num,input_image.z_num);
     allocation_timer.stop_timer();

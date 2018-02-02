@@ -862,13 +862,8 @@ void ComputeGradient::calc_bspline_fd_x(MeshData<T>& input){
         for (k = 0; k < (y_num);k++){
             input.mesh[j*x_num*y_num + (x_num - 1)*y_num + k] = (a1+a3)*temp_vec_1[k];
         }
-
     }
-
-
-
 }
-
 
 template<typename T,typename S>
 void ComputeGradient::calc_bspline_fd_ds_mag(MeshData<T> &input, MeshData<S> &grad, const float hx, const float hy,const float hz){
@@ -928,8 +923,8 @@ void ComputeGradient::calc_bspline_fd_ds_mag(MeshData<T> &input, MeshData<S> &gr
             #endif
             for (size_t k = 0; k < (y_num_ds); ++k) {
                 size_t k_s = std::min(2*k+1, y_num-1);
-                grad.mesh[j_2*x_num_ds*y_num_ds + i_2*y_num_ds + k] = std::max(temp[2*k],grad.mesh[j_2*x_num_ds*y_num_ds + i_2*y_num_ds + k]);
-                grad.mesh[j_2*x_num_ds*y_num_ds + i_2*y_num_ds + k]= std::max(temp[k_s],grad.mesh[j_2*x_num_ds*y_num_ds + i_2*y_num_ds + k]);
+                const size_t idx = j_2 * x_num_ds * y_num_ds + i_2 * y_num_ds + k;
+                grad.mesh[idx] = std::max(temp[2 * k], std::max(temp[k_s], grad.mesh[idx]));
             }
 
             std::swap(temp_vec_1, temp_vec_2);
