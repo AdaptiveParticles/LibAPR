@@ -158,7 +158,6 @@ namespace {
             ASSERT_EQ(md.y_num, yLen);
             ASSERT_EQ(md.z_num, zLen);
             ASSERT_EQ(md.mesh.size(), sizeOfMesh);
-            for (int i = 0; i < sizeOfMesh; ++i) ASSERT_EQ(md.mesh[i], 0);
         }
         {   // Size and default value for type used
             MeshData<int> md;
