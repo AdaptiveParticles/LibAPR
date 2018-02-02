@@ -131,7 +131,7 @@ void ComputeGradient::threshold_gradient(MeshData<T>& grad,MeshData<S>& img,cons
 #ifdef HAVE_OPENMP
 	#pragma omp parallel for default(shared) private(i,k,rescaled)
 #endif
-    for(int j = 0;j < z_num;j++){
+    for(int64_t j = 0;j < z_num;j++){
 
         for(i = 0;i < x_num;i++){
 
@@ -175,11 +175,11 @@ void ComputeGradient::bspline_filt_rec_y(MeshData<T>& image,float lambda,float t
     const float b1 = 2*rho*cos(omg);
     const float b2 = -pow(rho,2.0);
 
-    const int z_num = image.z_num;
-    const int x_num = image.x_num;
-    const int y_num = image.y_num;
+    const size_t z_num = image.z_num;
+    const size_t x_num = image.x_num;
+    const size_t y_num = image.y_num;
 
-    const int k0 = std::max(std::min((int)(ceil(std::abs(log(tol)/log(rho)))),z_num),2);
+    const size_t k0 = std::max(std::min((size_t)(ceil(std::abs(log(tol)/log(rho)))),z_num),(size_t)2);
 
     float temp = 0;
     float temp1 = 0;
@@ -197,12 +197,12 @@ void ComputeGradient::bspline_filt_rec_y(MeshData<T>& image,float lambda,float t
 
     // for boundaries
 
-    for (int k = 0; k < (k0+3);k++){
+    for (size_t k = 0; k < (k0+3);k++){
         impulse_resp_vec_f.push_back(impulse_resp(k,rho,omg));
     }
 
 
-    for (int k = 0; k < (k0+3);k++){
+    for (size_t k = 0; k < (k0+3);k++){
         impulse_resp_vec_b.push_back(impulse_resp_back(k,rho,omg,gamma,c0));
     }
 
@@ -222,13 +222,13 @@ void ComputeGradient::bspline_filt_rec_y(MeshData<T>& image,float lambda,float t
 
     bc1_vec[1] = impulse_resp_vec_f[0];
 
-    for( int k = 0; k < k0;k++){
+    for( int64_t k = 0; k < k0;k++){
         bc1_vec[k] += impulse_resp_vec_f[k+1];
     }
 
     //y(0) init
 
-    for( int k = 0; k < k0;k++){
+    for( int64_t k = 0; k < k0;k++){
         bc2_vec[k] = impulse_resp_vec_f[k];
     }
 
@@ -236,7 +236,7 @@ void ComputeGradient::bspline_filt_rec_y(MeshData<T>& image,float lambda,float t
     //y(N-1) init
     bc3_vec[0] = impulse_resp_vec_b[1];
 
-    for( int k = 0; k < (k0-1);k++){
+    for( int64_t k = 0; k < (k0-1);k++){
         bc3_vec[k+1] += impulse_resp_vec_b[k] + impulse_resp_vec_b[k+2];
     }
 
@@ -244,7 +244,7 @@ void ComputeGradient::bspline_filt_rec_y(MeshData<T>& image,float lambda,float t
 
     bc4_vec[0] = impulse_resp_vec_b[0];
 
-    for( int k = 1; k < k0;k++){
+    for( int64_t k = 1; k < k0;k++){
         bc4_vec[k] += 2*impulse_resp_vec_b[k];
     }
 
@@ -389,11 +389,11 @@ void ComputeGradient::bspline_filt_rec_z(MeshData<T>& image,float lambda,float t
     const float b1 = 2*rho*cos(omg);
     const float b2 = -pow(rho,2.0);
 
-    const int z_num = image.z_num;
-    const int x_num = image.x_num;
-    const int y_num = image.y_num;
+    const size_t z_num = image.z_num;
+    const size_t x_num = image.x_num;
+    const size_t y_num = image.y_num;
 
-    const int k0 = std::min((int)(ceil(std::abs(log(tol)/log(rho)))),z_num);
+    const size_t k0 = std::min((size_t)(ceil(std::abs(log(tol)/log(rho)))),z_num);
 
     const float norm_factor = pow((1 - 2.0*rho*cos(omg) + pow(rho,2)),2);
 
@@ -406,12 +406,12 @@ void ComputeGradient::bspline_filt_rec_z(MeshData<T>& image,float lambda,float t
     std::vector<float> impulse_resp_vec_f;  //forward
     std::vector<float> impulse_resp_vec_b;  //backward
 
-    for (int k = 0; k < (k0+3);k++){
+    for (int64_t k = 0; k < (k0+3);k++){
         impulse_resp_vec_f.push_back(impulse_resp(k,rho,omg));
     }
 
 
-    for (int k = 0; k < (k0+3);k++){
+    for (int64_t k = 0; k < (k0+3);k++){
         impulse_resp_vec_b.push_back(impulse_resp_back(k,rho,omg,gamma,c0));
     }
 
@@ -429,13 +429,13 @@ void ComputeGradient::bspline_filt_rec_z(MeshData<T>& image,float lambda,float t
 
     bc1_vec[1] = impulse_resp_vec_f[0];
 
-    for( int k = 0; k < k0; k++){
+    for( int64_t k = 0; k < k0; k++){
         bc1_vec[k] += impulse_resp_vec_f[k+1];
     }
 
     //y(0) init
 
-    for( int k = 0; k < k0; k++){
+    for( int64_t k = 0; k < k0; k++){
         bc2_vec[k] = impulse_resp_vec_f[k];
     }
 
@@ -443,7 +443,7 @@ void ComputeGradient::bspline_filt_rec_z(MeshData<T>& image,float lambda,float t
     //y(N-1) init
     bc3_vec[0] = impulse_resp_vec_b[1];
 
-    for( int k = 0; k < (k0-1); k++){
+    for( int64_t k = 0; k < (k0-1); k++){
         bc3_vec[k+1] += impulse_resp_vec_b[k] + impulse_resp_vec_b[k+2];
     }
 
@@ -451,7 +451,7 @@ void ComputeGradient::bspline_filt_rec_z(MeshData<T>& image,float lambda,float t
 
     bc4_vec[0] = impulse_resp_vec_b[0];
 
-    for( int k = 1; k < k0; k++){
+    for( int64_t k = 1; k < k0; k++){
         bc4_vec[k] += 2*impulse_resp_vec_b[k];
     }
 
@@ -473,7 +473,7 @@ void ComputeGradient::bspline_filt_rec_z(MeshData<T>& image,float lambda,float t
 
     int64_t index, iynum, j, k;
 
-    int i=0;
+    size_t i=0;
 
 #ifdef HAVE_OPENMP
 	#pragma omp parallel for default(shared) private(i,j, k, iynum, index) \
@@ -631,7 +631,7 @@ void ComputeGradient::bspline_filt_rec_x(MeshData<T>& image,float lambda,float t
     const int64_t x_num = image.x_num;
     const int64_t y_num = image.y_num;
 
-    const int k0 = std::min((int64_t)(ceil(std::abs(log(tol)/log(rho)))),z_num);
+    const int64_t k0 = std::min((int64_t)(ceil(std::abs(log(tol)/log(rho)))),z_num);
 
     const float norm_factor = pow((1 - 2.0*rho*cos(omg) + pow(rho,2)),2);
 
@@ -644,12 +644,12 @@ void ComputeGradient::bspline_filt_rec_x(MeshData<T>& image,float lambda,float t
     std::vector<float> impulse_resp_vec_f;  //forward
     std::vector<float> impulse_resp_vec_b;  //backward
 
-    for (int k = 0; k < (k0+3);k++){
+    for (int64_t k = 0; k < (k0+3);k++){
         impulse_resp_vec_f.push_back(impulse_resp(k,rho,omg));
     }
 
 
-    for (int k = 0; k < (k0+3);k++){
+    for (int64_t k = 0; k < (k0+3);k++){
         impulse_resp_vec_b.push_back(impulse_resp_back(k,rho,omg,gamma,c0));
     }
 
@@ -667,13 +667,13 @@ void ComputeGradient::bspline_filt_rec_x(MeshData<T>& image,float lambda,float t
 
     bc1_vec[1] = impulse_resp_vec_f[0];
 
-    for( int k = 0; k < k0;k++){
+    for( int64_t k = 0; k < k0;k++){
         bc1_vec[k] += impulse_resp_vec_f[k+1];
     }
 
     //y(0) init
 
-    for( int k = 0; k < k0;k++){
+    for( int64_t k = 0; k < k0;k++){
         bc2_vec[k] = impulse_resp_vec_f[k];
     }
 
@@ -681,7 +681,7 @@ void ComputeGradient::bspline_filt_rec_x(MeshData<T>& image,float lambda,float t
     //y(N-1) init
     bc3_vec[0] = impulse_resp_vec_b[1];
 
-    for( int k = 0; k < (k0-1);k++){
+    for( int64_t k = 0; k < (k0-1);k++){
         bc3_vec[k+1] += impulse_resp_vec_b[k] + impulse_resp_vec_b[k+2];
     }
 
@@ -689,7 +689,7 @@ void ComputeGradient::bspline_filt_rec_x(MeshData<T>& image,float lambda,float t
 
     bc4_vec[0] = impulse_resp_vec_b[0];
 
-    for( int k = 1; k < k0;k++){
+    for( int64_t k = 1; k < k0;k++){
         bc4_vec[k] += 2*impulse_resp_vec_b[k];
     }
 
@@ -711,7 +711,7 @@ void ComputeGradient::bspline_filt_rec_x(MeshData<T>& image,float lambda,float t
 
     int64_t k, i, jxnumynum, index;
 
-    int j;
+    int64_t j;
 
 #ifdef HAVE_OPENMP
 	#pragma omp parallel for default(shared) private(j,i, k, jxnumynum, index) \
@@ -863,7 +863,7 @@ void ComputeGradient::calc_inv_bspline_z(MeshData<T>& input){
 	#pragma omp parallel for default(shared) private(j, k, iynum, jxnumynum) \
                          firstprivate(temp_vec)
 #endif
-    for (int i = 0; i < x_num; i++) {
+    for (int64_t i = 0; i < x_num; i++) {
 
         iynum = i * y_num;
 
@@ -942,7 +942,7 @@ void ComputeGradient::calc_inv_bspline_x(MeshData<T>& input){
 	#pragma omp parallel for default(shared) private(i, k, iynum, jxnumynum) \
                          firstprivate(temp_vec)
 #endif
-    for(int j = 0; j < z_num; j++){
+    for(int64_t j = 0; j < z_num; j++){
 
         jxnumynum = j * x_num * y_num;
 
@@ -1055,7 +1055,7 @@ void ComputeGradient::calc_bspline_fd_y(MeshData<T>& input){
 #ifdef HAVE_OPENMP
 	#pragma omp parallel for default(shared) private(i, k) firstprivate(temp_vec)
 #endif
-    for(int j = 0;j < z_num;j++){
+    for(int64_t j = 0;j < z_num;j++){
 
         for(i = 0;i < x_num;i++){
 
@@ -1111,7 +1111,7 @@ void ComputeGradient::calc_bspline_fd_x(MeshData<T>& input){
 #ifdef HAVE_OPENMP
 	#pragma omp parallel for default(shared) private(i, k) firstprivate(temp_vec_1, temp_vec_2, temp_vec_3)
 #endif
-    for(int j = 0;j < z_num;j++){
+    for(int64_t j = 0;j < z_num;j++){
 
         //initialize the loop
         for (k = 0; k < (y_num);k++){
@@ -1258,10 +1258,10 @@ void ComputeGradient::calc_bspline_fd_ds_mag(MeshData<T> &input, MeshData<S> &gr
 
             temp_vec_6[y_num - 1] = sqrt(pow((a1*temp_vec_1[(y_num-1)] + a3*temp_vec_3[(y_num-1)])/hx,2.0)  + pow((a1*temp_vec_4[(y_num-1)] + a3*temp_vec_5[(y_num-1)])/hz,2.0));
 
-            int j_2 = j/2;
-            int i_2 = i/2;
+            int64_t j_2 = j/2;
+            int64_t i_2 = i/2;
 
-            int k_s;
+            int64_t k_s;
 
 #ifdef HAVE_OPENMP
 	#pragma omp simd
@@ -1480,7 +1480,7 @@ void ComputeGradient::calc_bspline_fd_z(MeshData<T>& input){
 #ifdef HAVE_OPENMP
 	#pragma omp parallel for default(shared) private(j, k) firstprivate(temp_vec_1, temp_vec_2, temp_vec_3)
 #endif
-    for(int i = 0;i < x_num;i++){
+    for(int64_t i = 0;i < x_num;i++){
 
         //initialize the loop
         for (k = 0; k < (y_num);k++){
