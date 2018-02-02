@@ -14,6 +14,7 @@ struct cmdLineOptions{
     float aniso = 1.0;
     unsigned int num_views= 60;
     std::string original_image = "";
+    float view_radius = 0.98f;
 };
 
 cmdLineOptions read_command_line_options(int argc, char **argv);
