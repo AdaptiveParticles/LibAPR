@@ -18,6 +18,7 @@ Optional:
 -jitter jitter_factor (0-1) (perturbs the particles randomly in the ray case, in an effort to remove artifacts from alignement of view in the ray-cast)
 -numviews The number of views that are calculated and output to the tiff file.
 -original_file give the file name of the original image, then also does a pixel image based raycast on the original image.
+-view_radius distance of viewer (default 0.98)
 
 e.g. Example_ray_cast -i nuc_apr.h5 -d /Test/Input_examples/ -aniso 2.0 -jitter 0.1 -numviews 60
 
@@ -56,7 +57,7 @@ int main(int argc, char **argv) {
 
     apr_raycaster.theta_0 = -3.14f; //start
     apr_raycaster.theta_final = 3.14f; //stop radians
-    apr_raycaster.radius_factor = .98f; //radius scaling
+    apr_raycaster.radius_factor = options.view_radius; //radius scaling
     apr_raycaster.theta_delta = (apr_raycaster.theta_final - apr_raycaster.theta_0)/(options.num_views*1.0f); //steps
     apr_raycaster.scale_z = options.aniso; //z scaling
 
@@ -148,6 +149,12 @@ cmdLineOptions read_command_line_options(int argc, char **argv){
     if(command_option_exists(argv, argv + argc, "-aniso"))
     {
         result.aniso = std::stof(std::string(get_command_option(argv, argv + argc, "-aniso")));
+    }
+
+
+    if(command_option_exists(argv, argv + argc, "-view_radius"))
+    {
+        result.view_radius = std::stof(std::string(get_command_option(argv, argv + argc, "-view_radius")));
     }
 
     if(command_option_exists(argv, argv + argc, "-jitter"))
