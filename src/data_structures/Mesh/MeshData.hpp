@@ -16,7 +16,6 @@
 #include <vector>
 #include <cmath>
 #include <memory>
-#include <functional>
 #include <sstream>
 
 #include "benchmarks/development/old_structures/structure_parts.h"
@@ -280,7 +279,7 @@ public :
         // Fill values of new buffer in parallel
         // TODO: set dynamically number of threads
         #ifdef HAVE_OPENMP
-        #pragma omp parallel num_threads(4)
+        #pragma omp parallel
         {
             auto threadNum = omp_get_thread_num();
             auto numOfThreads = omp_get_num_threads();
@@ -295,14 +294,13 @@ public :
     }
 
     /**
-     * Initialize mesh with dimensions taken from provided mesh and initializes
-     * its values to 0
+     * Initialize mesh with dimensions taken from provided mesh
      * @tparam S
      * @param aInputMesh
      */
     template<typename S>
     void initialize(const MeshData<S>& aInputMesh) {
-        initialize(aInputMesh.y_num, aInputMesh.x_num, aInputMesh.z_num, 0);
+        initialize(aInputMesh.y_num, aInputMesh.x_num, aInputMesh.z_num);
     }
 
     /**
@@ -323,18 +321,16 @@ public :
 
     /**
      * Initializes mesh with size of half of provided dimensions (rounding up if not divisible by 2)
-     * sets provided val for all elements
      * @param aSizeOfY
      * @param aSizeOfX
      * @param aSizeOfZ
-     * @param aInitVal
      */
-    void preallocate(int aSizeOfY, int aSizeOfX, int aSizeOfZ, T aInitVal) {
+    void preallocate(int aSizeOfY, int aSizeOfX, int aSizeOfZ) {
         const int z_num_ds = ceil(1.0*aSizeOfZ/2.0);
         const int x_num_ds = ceil(1.0*aSizeOfX/2.0);
         const int y_num_ds = ceil(1.0*aSizeOfY/2.0);
 
-        initialize(y_num_ds, x_num_ds, z_num_ds, aInitVal);
+        initialize(y_num_ds, x_num_ds, z_num_ds);
     }
 
     /**
@@ -357,8 +353,8 @@ public :
      * @param aOp - function/lambda modifing each element of aInputMesh: [](const int &a) { return a + 5; }
      * @param aNumberOfBlocks - in how many chunks copy will be done
      */
-    template<typename U>
-    void initWithUnaryOp(const MeshData<U> &aInputMesh, std::function<T(const T&)> aOp, size_t aNumberOfBlocks = 10) {
+    template<typename U, typename R>
+    void initWithUnaryOp(const MeshData<U> &aInputMesh, R aOp, size_t aNumberOfBlocks = 10) {
         aNumberOfBlocks = std::min(aInputMesh.z_num, (size_t)aNumberOfBlocks);
         size_t numOfElementsPerBlock = aInputMesh.z_num/aNumberOfBlocks;
 
@@ -443,7 +439,7 @@ void down_sample(const MeshData<T>& aInput, MeshData<S>& aOutput, R reduce, C co
 
     if (aInitializeOutput) {
         timer.start_timer("downsample_initalize");
-        aOutput.initialize(y_num_ds, x_num_ds, z_num_ds, 0);
+        aOutput.initialize(y_num_ds, x_num_ds, z_num_ds);
         timer.stop_timer();
     }
 

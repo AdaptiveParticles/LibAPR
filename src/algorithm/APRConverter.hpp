@@ -31,11 +31,8 @@ public:
 
     APRTimer total_timer;
     APRTimer allocation_timer;
-
     APRTimer computation_timer;
-
     APRTimer method_timer;
-
     APRTimer fine_grained_timer;
 
     std::string image_type; //default uint16
@@ -179,23 +176,11 @@ bool APRConverter<ImageType>::get_apr_method(APR<ImageType>& apr, MeshData<T>& i
     ///
     ////////////////////////////////////////
 
-
     allocation_timer.start_timer("init and copy image");
-
-    //initialize the storage of the B-spline co-efficients
     image_temp.initialize(input_image);
-
-
-
-    //allocate require memory for the down-sampled structures
-
-    //compute the gradient
-    grad_temp.preallocate(input_image.y_num,input_image.x_num,input_image.z_num,0);
-
-    local_scale_temp.preallocate(input_image.y_num,input_image.x_num,input_image.z_num,0);
-
-    local_scale_temp2.preallocate(input_image.y_num,input_image.x_num,input_image.z_num,0);
-
+    grad_temp.preallocate(input_image.y_num,input_image.x_num,input_image.z_num);
+    local_scale_temp.preallocate(input_image.y_num,input_image.x_num,input_image.z_num);
+    local_scale_temp2.preallocate(input_image.y_num,input_image.x_num,input_image.z_num);
     allocation_timer.stop_timer();
 
     /////////////////////////////////
@@ -340,7 +325,7 @@ void APRConverter<ImageType>::get_gradient(MeshData<T>& input_img,MeshData<S>& g
     //
 
 
-
+    fine_grained_timer.verbose_flag = true;
     fine_grained_timer.start_timer("smooth_bspline");
 
     if(par.lambda > 0) {
@@ -383,12 +368,10 @@ void APRConverter<ImageType>::get_gradient(MeshData<T>& input_img,MeshData<S>& g
     }
     fine_grained_timer.stop_timer();
 
-//    std::vector<ImageType>().swap(image_temp.mesh);
-
     fine_grained_timer.start_timer("threshold");
     threshold_gradient(grad_temp,local_scale_temp,par.Ip_th + bspline_offset);
     fine_grained_timer.stop_timer();
-
+    fine_grained_timer.verbose_flag = false;
 }
 
 template<typename ImageType> template<typename T,typename S>
@@ -402,7 +385,7 @@ void APRConverter<ImageType>::get_local_intensity_scale(MeshData<T>& input_img,M
     //
     fine_grained_timer.start_timer("copy_intensities_from_bsplines");
     //copy across the intensities
-    std::copy(local_scale_temp.mesh.begin(),local_scale_temp.mesh.end(),local_scale_temp2.mesh.begin());
+    local_scale_temp2.block_copy_data(local_scale_temp);
     fine_grained_timer.stop_timer();
 
     float var_rescale;
@@ -573,10 +556,8 @@ void APRConverter<ImageType>::auto_parameters(const MeshData<T>& input_img){
 
     }
 
-
     MeshData<T> histogram;
     histogram.initialize(num_bins,1,1);
-
     std::copy(freq.begin(),freq.end(),histogram.mesh.begin());
 
     float tol = 0.0001;
