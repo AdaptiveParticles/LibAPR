@@ -266,7 +266,6 @@ void APRConverter<ImageType>::get_local_particle_cell_set(MeshData<T>& grad_imag
     //
 
     fine_grained_timer.start_timer("compute_level_first");
-
     //divide gradient magnitude by Local Intensity Scale (first step in calculating the Local Resolution Estimate L(y), minus constants)
     #ifdef HAVE_OPENMP
 	#pragma omp parallel for default(shared)
@@ -274,9 +273,7 @@ void APRConverter<ImageType>::get_local_particle_cell_set(MeshData<T>& grad_imag
     for(size_t i = 0; i < grad_temp.mesh.size(); ++i) {
         local_scale_temp.mesh[i] = (1.0*grad_temp.mesh[i])/(local_scale_temp.mesh[i]*1.0);
     }
-
     fine_grained_timer.stop_timer();
-
 
     float min_dim = std::min(this->par.dy,std::min(this->par.dx,this->par.dz));
     float level_factor = pow(2,(*apr_).level_max())*min_dim;
@@ -285,16 +282,12 @@ void APRConverter<ImageType>::get_local_particle_cell_set(MeshData<T>& grad_imag
     unsigned int l_min = (*apr_).level_min();
 
     fine_grained_timer.start_timer("compute_level_second");
-
     //incorporate other factors and compute the level of the Particle Cell, effectively construct LPC L_n
     compute_level_for_array(local_scale_temp,level_factor,this->par.rel_error);
-
     fill(l_max,local_scale_temp);
-
     fine_grained_timer.stop_timer();
 
     fine_grained_timer.start_timer("level_loop_initialize_tree");
-
     for(int l_ = l_max - 1; l_ >= l_min; l_--){
 
         //down sample the resolution level k, using a max reduction
@@ -306,9 +299,7 @@ void APRConverter<ImageType>::get_local_particle_cell_set(MeshData<T>& grad_imag
         //assign the previous mesh to now be resampled.
         local_scale_temp.swap(local_scale_temp2);
     }
-
     fine_grained_timer.stop_timer();
-
 }
 
 
@@ -376,8 +367,6 @@ void APRConverter<ImageType>::get_local_intensity_scale(MeshData<T>& input_img,M
     //  Output: down-sampled Local Intensity Scale (h) (Due to the Equivalence Optimization we only need down-sampled values)
     //
 
-    fine_grained_timer.verbose_flag = true;
-    std::cout << "==================\n";
     fine_grained_timer.start_timer("copy_intensities_from_bsplines");
     //copy across the intensities
     local_scale_temp2.block_copy_data(local_scale_temp);
@@ -415,9 +404,6 @@ void APRConverter<ImageType>::get_local_intensity_scale(MeshData<T>& input_img,M
     calc_sat_mean_z(local_scale_temp,win_z2);
     rescale_var_and_threshold( local_scale_temp, var_rescale,this->par);
     fine_grained_timer.stop_timer();
-
-    std::cout << "===================\n";
-    fine_grained_timer.verbose_flag = true;
 }
 
 

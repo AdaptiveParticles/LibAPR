@@ -124,68 +124,37 @@ void PullingScheme::pulling_scheme_main() {
 
 template<typename T>
 void PullingScheme::fill(const float k, const MeshData<T> &input) {
-    //
     //  Bevan Cheeseman 2016
     //
     //  Updates the hash table from the down sampled images
 
-    const size_t z_num = input.z_num;
-    const size_t x_num = input.x_num;
-    const size_t y_num = input.y_num;
-
-    auto &topvec = particle_cell_tree[l_max].mesh;
+    auto &mesh = particle_cell_tree[k].mesh;
 
     if (k == l_max){
         // k_max loop, has to include
         #ifdef HAVE_OPENMP
 	    #pragma omp parallel for default(shared)
         #endif
-        for(size_t z = 0; z < z_num; ++z) {
-            for(size_t x = 0; x < x_num; ++x) {
-                for (size_t y = 0; y < y_num; ++y) {
-                    size_t idx = z * x_num * y_num + x * y_num + y;
-                    if (input.mesh[idx] >= k) {
-                        topvec[idx] = SEED_TYPE;
-                    }
-                }
-            }
+        for (size_t i = 0; i < input.mesh.size(); ++i) {
+            if (input.mesh[i] >= k) mesh[i] = SEED_TYPE;
         }
     }
-    else if (k == l_min){
-        // k_max loop, has to include
+    else if (k == l_min) {
+        // k_min loop, has to include
         #ifdef HAVE_OPENMP
-	    #pragma omp parallel for default(shared) if (z_num*x_num*y_num > 100000)
+	    #pragma omp parallel for default(shared)
         #endif
-        for(size_t z = 0;z < z_num; ++z) {
-            for(size_t x = 0;x < x_num; ++x) {
-                for (size_t y = 0; y < y_num; ++y) {
-                    size_t idx = z * x_num * y_num + x * y_num + y;
-                    if (input.mesh[idx] <= k) {
-                        particle_cell_tree[l_min].mesh[idx] = SEED_TYPE;
-                    }
-                }
-            }
+        for (size_t i = 0; i < input.mesh.size(); ++i) {
+            if (input.mesh[i] <= k) mesh[i] = SEED_TYPE;
         }
     }
-    else{
+    else {
         // other k's
         #ifdef HAVE_OPENMP
-	    #pragma omp parallel for default(shared) if (z_num*x_num*y_num > 100000)
+	    #pragma omp parallel for default(shared)
         #endif
-        for(size_t z = 0; z < z_num; ++z) {
-            for(size_t x = 0; x < x_num; ++x){
-                #ifndef _MSC_VER
-                #ifdef HAVE_OPENMP
-	            #pragma omp simd
-                #endif
-                #endif
-                for (size_t y = 0; y < y_num; ++y) {
-                    size_t idx = z * x_num * y_num + x * y_num + y;
-                    if (input.mesh[idx] == k) {
-                        particle_cell_tree[k].mesh[idx] = SEED_TYPE;
-                    }
-                }
-            }
+        for (size_t i = 0; i < input.mesh.size(); ++i) {
+            if (input.mesh[i] == k) mesh[i] = SEED_TYPE;
         }
     }
 }
