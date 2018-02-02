@@ -237,7 +237,7 @@ public :
      * @param aNumberOfBlocks in how many chunks copy will be done
      */
     template<typename U>
-    void block_copy_data(const MeshData<U> &aInputMesh, unsigned int aNumberOfBlocks = 10) {
+    void block_copy_data(const MeshData<U> &aInputMesh, unsigned int aNumberOfBlocks = 8) {
         aNumberOfBlocks = std::min((unsigned int)z_num, aNumberOfBlocks);
         unsigned int numOfElementsPerBlock = z_num/aNumberOfBlocks;
 

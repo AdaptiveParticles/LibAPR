@@ -324,29 +324,23 @@ void APRConverter<ImageType>::get_gradient(MeshData<T>& input_img,MeshData<S>& g
     //  Output: down-sampled by 2 gradient magnitude (Note, the gradient is calculated at pixel level then maximum down sampled within the loops below)
     //
 
+    fine_grained_timer.verbose_flag = false;
 
-    fine_grained_timer.verbose_flag = true;
     fine_grained_timer.start_timer("smooth_bspline");
-
     if(par.lambda > 0) {
-
         get_smooth_bspline_3D(image_temp, this->par);
-
     }
     fine_grained_timer.stop_timer();
-
 
     fine_grained_timer.start_timer("calc_bspline_fd_mag_ds");
     calc_bspline_fd_ds_mag(image_temp,grad_temp,par.dx,par.dy,par.dz);
     fine_grained_timer.stop_timer();
-
 
     fine_grained_timer.start_timer("down-sample_b-spline");
     down_sample(image_temp,local_scale_temp,
                 [](const float &x, const float &y) -> float { return x + y;},
                 [](const float &x) -> float { return x/8.0 ; });
     fine_grained_timer.stop_timer();
-
 
     if(par.lambda > 0){
         fine_grained_timer.start_timer("calc_inv_bspline_y");
@@ -360,7 +354,6 @@ void APRConverter<ImageType>::get_gradient(MeshData<T>& input_img,MeshData<S>& g
         fine_grained_timer.stop_timer();
     }
 
-
     fine_grained_timer.start_timer("load_and_apply_mask");
     // Apply mask if given
     if(this->par.mask_file != ""){
@@ -371,7 +364,6 @@ void APRConverter<ImageType>::get_gradient(MeshData<T>& input_img,MeshData<S>& g
     fine_grained_timer.start_timer("threshold");
     threshold_gradient(grad_temp,local_scale_temp,par.Ip_th + bspline_offset);
     fine_grained_timer.stop_timer();
-    fine_grained_timer.verbose_flag = false;
 }
 
 template<typename ImageType> template<typename T,typename S>
@@ -383,6 +375,9 @@ void APRConverter<ImageType>::get_local_intensity_scale(MeshData<T>& input_img,M
     //
     //  Output: down-sampled Local Intensity Scale (h) (Due to the Equivalence Optimization we only need down-sampled values)
     //
+
+    fine_grained_timer.verbose_flag = true;
+    std::cout << "==================\n";
     fine_grained_timer.start_timer("copy_intensities_from_bsplines");
     //copy across the intensities
     local_scale_temp2.block_copy_data(local_scale_temp);
@@ -390,55 +385,39 @@ void APRConverter<ImageType>::get_local_intensity_scale(MeshData<T>& input_img,M
 
     float var_rescale;
     std::vector<int> var_win;
-
     get_window(var_rescale,var_win,this->par);
 
-    int win_x,win_y,win_z,win_y2,win_x2,win_z2;
-
-    win_y = var_win[0];
-    win_x = var_win[1];
-    win_z = var_win[2];
-
-    win_y2 = var_win[3];
-    win_x2 = var_win[4];
-    win_z2 = var_win[5];
+    int win_y = var_win[0];
+    int win_x = var_win[1];
+    int win_z = var_win[2];
+    int win_y2 = var_win[3];
+    int win_x2 = var_win[4];
+    int win_z2 = var_win[5];
 
     fine_grained_timer.start_timer("calc_sat_mean_y");
-
     calc_sat_mean_y(local_scale_temp,win_y);
-
     fine_grained_timer.stop_timer();
 
     fine_grained_timer.start_timer("calc_sat_mean_x");
-
     calc_sat_mean_x(local_scale_temp,win_x);
-
     fine_grained_timer.stop_timer();
 
     fine_grained_timer.start_timer("calc_sat_mean_z");
-
     calc_sat_mean_z(local_scale_temp,win_z);
-
     fine_grained_timer.stop_timer();
 
     fine_grained_timer.start_timer("second_pass_and_rescale");
-
     //calculate abs and subtract from original
     calc_abs_diff(local_scale_temp2,local_scale_temp);
-
-
-    //free up the memory not needed anymore
-//    std::vector<float>().swap(local_scale_temp2.mesh);
-
     //Second spatial average
     calc_sat_mean_y(local_scale_temp,win_y2);
     calc_sat_mean_x(local_scale_temp,win_x2);
     calc_sat_mean_z(local_scale_temp,win_z2);
-
-    rescale_var_and_threshold( local_scale_temp,var_rescale,this->par);
-
+    rescale_var_and_threshold( local_scale_temp, var_rescale,this->par);
     fine_grained_timer.stop_timer();
 
+    std::cout << "===================\n";
+    fine_grained_timer.verbose_flag = true;
 }
 
 

@@ -75,7 +75,7 @@ public:
     void mask_gradient(MeshData<T>& grad_ds,MeshData<S>& temp_ds,MeshData<T>& temp_full,APRParameters& par);
 
     template<typename T,typename S>
-    void threshold_gradient(MeshData<T>& grad,MeshData<S>& img,const float Ip_th);
+    void threshold_gradient(MeshData<T> &grad, const MeshData<S> &img, const float Ip_th);
 };
 /*
  * Implimentations
@@ -99,50 +99,28 @@ void ComputeGradient::mask_gradient(MeshData<T>& grad_ds,MeshData<S>& temp_ds,Me
                 [](const T &x, const T &y) -> T { return std::max(x,y); },
                 [](const T &x) -> T { return x; });
 
-    int64_t i = 0;
-
-#ifdef HAVE_OPENMP
-	#pragma omp parallel for default(shared) private(i)
-#endif
-    for ( i = 0; i < grad_ds.mesh.size(); ++i) {
-
-        if(temp_ds.mesh[i]==0){
+    #ifdef HAVE_OPENMP
+	#pragma omp parallel for default(shared)
+    #endif
+    for (size_t i = 0; i < grad_ds.mesh.size(); ++i) {
+        if (temp_ds.mesh[i]==0) {
             grad_ds.mesh[i] = 0;
         }
     }
-
 }
 
 template<typename T,typename S>
-void ComputeGradient::threshold_gradient(MeshData<T>& grad,MeshData<S>& img,const float Ip_th){
+void ComputeGradient::threshold_gradient(MeshData<T> &grad, const MeshData<S> &img, const float Ip_th){
     //
     //  Bevan Cheeseman 2016
     //
-    //
 
-    const int64_t z_num = img.z_num;
-    const int64_t x_num = img.x_num;
-    const int64_t y_num = img.y_num;
-
-
-    int64_t i,k;
-    float rescaled;
-
-#ifdef HAVE_OPENMP
-	#pragma omp parallel for default(shared) private(i,k,rescaled)
-#endif
-    for(int64_t j = 0;j < z_num;j++){
-
-        for(i = 0;i < x_num;i++){
-
-            for (k = 0; k < (y_num);k++){
-                if(img.mesh[j*x_num*y_num + i*y_num + k] <= Ip_th){
-                    grad.mesh[j*x_num*y_num + i*y_num + k] = 0;
-                }
-            }
-        }
+    #ifdef HAVE_OPENMP
+	#pragma omp parallel for
+    #endif
+    for (size_t i = 0; i < img.mesh.size(); ++i) {
+        if (img.mesh[i] <= Ip_th) { grad.mesh[i] = 0; }
     }
-
 }
 
 template<typename T>
@@ -601,11 +579,9 @@ void ComputeGradient::calc_inv_bspline_z(MeshData<T>& input){
     const float a2 = 4.0 / 6.0;
     const float a3 = 1.0 / 6.0;
 
-    std::vector<three_temps> temp_vec;
-    temp_vec.resize(y_num);
+    std::vector<three_temps> temp_vec(y_num);
 
     int64_t xnumynum = x_num * y_num;
-
     int64_t j, k, iynum, jxnumynum;
 
 #ifdef HAVE_OPENMP
@@ -656,9 +632,7 @@ void ComputeGradient::calc_inv_bspline_z(MeshData<T>& input){
             input.mesh[(z_num - 1) * xnumynum + iynum + k] = (a1 + a3) * temp_vec[k].temp_1;
             input.mesh[(z_num - 1) * xnumynum + iynum + k] += a2 * temp_vec[k].temp_2;
         }
-
     }
-
 }
 
 
@@ -747,32 +721,25 @@ void ComputeGradient::get_smooth_bspline_3D(MeshData<T>& input,APRParameters& pa
     //
 
     APRTimer spline_timer;
-
     spline_timer.verbose_flag = true;
 
     float tol = 0.0001;
     float lambda = pars.lambda;
 
-    spline_timer.start_timer("bspline_filt_rec_y");
     //Y direction bspline
+    spline_timer.start_timer("bspline_filt_rec_y");
     bspline_filt_rec_y(input,lambda,tol);
-
     spline_timer.stop_timer();
-
-    spline_timer.start_timer("bspline_filt_rec_x");
 
     //X direction bspline
+    spline_timer.start_timer("bspline_filt_rec_x");
     bspline_filt_rec_x(input,lambda,tol);
-
     spline_timer.stop_timer();
-
-    spline_timer.start_timer("bspline_filt_rec_z");
 
     //Z direction bspline
+    spline_timer.start_timer("bspline_filt_rec_z");
     bspline_filt_rec_z(input,lambda,tol);
-
     spline_timer.stop_timer();
-
 }
 
 /*
