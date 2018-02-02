@@ -33,6 +33,7 @@
 
 
 class APRParameters;
+class OldAPRConverter;
 
 template<typename ImageType>
 class APR {
@@ -60,6 +61,8 @@ class APR {
     friend class APRReconstruction;
 
     friend class APRBenchmark;
+
+    friend class OldAPRConverter;
 
 private:
 
