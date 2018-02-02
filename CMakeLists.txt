@@ -34,7 +34,6 @@ find_package(HDF5 REQUIRED)
 #ENDIF()
 
 find_package(Threads)
-set(SWIG_EXECUTABLE "/home/gonciarz/APR/swig/bin/swig")
 find_package(SWIG 3.0 REQUIRED)
 find_package(JNI REQUIRED)
 INCLUDE(${SWIG_USE_FILE})
