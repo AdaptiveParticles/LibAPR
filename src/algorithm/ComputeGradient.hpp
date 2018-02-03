@@ -894,7 +894,7 @@ void ComputeGradient::calc_bspline_fd_ds_mag(MeshData<T> &input, MeshData<S> &gr
         S *temp_vec_2 = input.mesh.begin() + j*x_num*y_num;
 
         //LHS boundary condition is accounted for wiht this initialization
-        const size_t j_m = std::max((size_t)0,j-1);
+        const size_t j_m = j > 0 ? j - 1 : 0;
         const size_t j_p = std::min(z_num-1, j+1);
 
         for (size_t i = 0; i < x_num-1; ++i) {
