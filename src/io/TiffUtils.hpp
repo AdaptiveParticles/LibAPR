@@ -226,6 +226,7 @@ namespace TiffUtils {
 
         if (tif == nullptr) {
             std::cerr << "Could not open file=[" << aFileName << "] for writing!" << std::endl;
+            return;
         }
 
         // Set fileds needed to calculate TIFFDefaultStripSize and set proper TIFFTAG_ROWSPERSTRIP
