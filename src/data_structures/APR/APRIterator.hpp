@@ -531,11 +531,6 @@ private:
 
         } else {
             //not in the same gap
-            if(current_gap.iterator->first >=120){
-                int stop =1 ;
-            }
-
-
             current_gap.iterator++;//move the iterator forward.
 
             if(current_gap.iterator!=(apr_access->gap_map.data[current_particle_cell.level][current_particle_cell.pc_offset][0].map.end())){
