@@ -210,6 +210,7 @@ namespace TiffUtils {
      */
     template<typename T>
     void saveMeshAsTiff(const std::string &aFileName, const MeshData<T> &aData) {
+        std::cout << __func__ << ": " << "FileName: [" << aFileName << "] " << aData << std::endl;
 
         // Set proper dimensions (x and y are exchanged giving transpose)
         const uint32_t width = aData.y_num;
@@ -223,6 +224,10 @@ namespace TiffUtils {
         bool isBigTiff = imgSize > maxSize;
         TIFF *tif = TIFFOpen(aFileName.c_str(), isBigTiff ? "w8" : "w");
 
+        if (tif == nullptr) {
+            std::cerr << "Could not open file=[" << aFileName << "] for writing!" << std::endl;
+        }
+
         // Set fileds needed to calculate TIFFDefaultStripSize and set proper TIFFTAG_ROWSPERSTRIP
         TIFFSetField(tif, TIFFTAG_IMAGEWIDTH, width);
         TIFFSetField(tif, TIFFTAG_IMAGELENGTH, height);
@@ -234,7 +239,6 @@ namespace TiffUtils {
 
         size_t StripSize =  (size_t)TIFFStripSize(tif);
         size_t ScanlineSize = (size_t)TIFFScanlineSize(tif);
-        std::cout << __func__ << ": " << "FileName: [" << aFileName << "] " << aData << std::endl;
         std::cout << __func__ << ": ScanlineSize=" << ScanlineSize << " StripSize: " << StripSize << " NoOfStrips: " << TIFFNumberOfStrips(tif) << " BigTIFF:" << isBigTiff << " ImgSize(data):" << imgSize << std::endl;
 
         size_t currentOffset = 0;
