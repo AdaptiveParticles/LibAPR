@@ -328,7 +328,7 @@ public:
                 return true;
             } else {
                 //first try next element
-                if(map_iterator.iterator != current_pc_map.map.end()){
+                //if(map_iterator.iterator != current_pc_map.map.end()){
                     map_iterator.iterator++;
                     //check if there
                     if(map_iterator.iterator != current_pc_map.map.end()) {
@@ -342,7 +342,7 @@ public:
                         }
                     }
 
-                }
+                //}
 
                 //otherwise search for it (points to first key that is greater than the y value)
                 map_iterator.iterator = current_pc_map.map.upper_bound(part_cell.y);
