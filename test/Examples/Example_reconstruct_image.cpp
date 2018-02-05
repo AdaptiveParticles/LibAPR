@@ -13,6 +13,8 @@ Outputs various reconstructed images from the APR.
 
 Usage:
 
+(using *_apr.h5 output of Example_get_apr)
+
 Example_reconstruct_image -i inputfile [-d directory] -o output_name
 
 e.g. Example_reconstruct_image -i nuc_apr.h5 -d /Test/Input_examples/ -o nuclei

@@ -325,6 +325,7 @@ cmdLineOptions read_command_line_options(int argc, char **argv){
 
     if(argc == 1) {
         std::cerr << "Usage: \"Example_apr_iterate -i input_apr_file -d directory\"" << std::endl;
+        std::cerr << usage << std::endl;
         exit(1);
     }
 

@@ -10,6 +10,8 @@ Creates a maximum projection ray cast from an APR and outputs to a tiff image.
 
 Usage:
 
+(using *_apr.h5 output of Example_get_apr)
+
 Example_ray_cast -i inputfile [-d directory]
 
 Optional:

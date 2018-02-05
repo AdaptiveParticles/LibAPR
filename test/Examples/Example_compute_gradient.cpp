@@ -22,7 +22,7 @@ const char* usage = R"(
 
  -original_file (original image file given with respect to input_directory) (Produces the finite difference gradient magnitude on the original image)
  -smooth *number (integer) (perform a seperable smoothing in each direction *number of times before taking the gradient) (Feel free to change the weights)
- -aniso_z anisotropy scaling for gradient calculation (default = 1, scaling factor 3 = 3dx)
+ -aniso_z anisotropy scaling for gradient calculation (default = 1, scaling factor 3 = 3*dx)
 
 )";
 #include <algorithm>
