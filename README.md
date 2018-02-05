@@ -30,7 +30,7 @@ OSX currently ships with an older version of clang that does not support OpenMP.
 brew install llvm
 ```
 
-Be aware that Apple's clang does not support OpenMP out of the box, so you might need to install another clang version via homebrew. For CMake to then pick this one up, run
+You must then direct the cmake file to the updated clang and llvm, as below (assuming you used homebrew)
 
 ```
 mkdir build
