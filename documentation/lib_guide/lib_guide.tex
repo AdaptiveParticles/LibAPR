@@ -40,9 +40,28 @@
 see Readme.md
 
 \section{Calculating the APR}
+For any dataset, the first step is transforming the original image into an Adaptive Particle Representation. This is achieved using the APRConverter class, and can be achieved using the Example\_get\_apr example, found in test/Examples/.
 
-\section{The APR Data structure}
+The example takes a unsigned 16 bit, unsigned 8 bit, or float precision tiff image, and produces the APR, output to  *\_apr.h5 file (readable by all other examples and HDFView, and matlab reader (see Matlab\_scripts)) and a down sampled image of the Particle Cell level of the computed APR. This is useful for assessing what content was captured the APR, and can be used for optimizing parameters.
+\subsection{Example\_get\_apr usage}
+For basic using and description run the executable with no options.
+\subsection{Parameter Selection}
+By default the required parameters will be automatically estimated from the input image. This is done by estimating the background noise level, and assuming the dataset has a minimum SNR of six. 
 
+The required parameters can be grouped into two. Those that can be used to focus the APR and remove un-wanted background content (flouresence), namely the intensity threshold (-I\_th), and minimum signal level (-min\_signal), and those that impact the local adaptation of the APR, namely the requried relative error $E$ (-rel\_error) and smoothing parameter $\lambda$ (-lambda). We recommend that the user focuses on adaptation of the first two parameters, before optimizing the second group. Lastly, the APR can be additionally guided by the use of a binary input mask (-mask\_file).
+
+Below we give examples of the behaviour of the automatic parameters and guidance on how to interpret and set parameters for your given dataset.
+\subsection{Examples}
+Auto parameters.
+\subsection{Using I\_th and and min\_signal to guide the APR}
+
+\subsection{Low noise, or processed datasets}
+
+\subsection{Guiding the APR with a mask file}
+
+\section{Processing with the APR}
+
+\subsection{Data structure}
 
 \subsection{Input-Output}
 
