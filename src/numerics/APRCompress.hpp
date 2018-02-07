@@ -10,6 +10,7 @@
 #ifndef PARTPLAY_COMPRESSAPR_HPP
 #define PARTPLAY_COMPRESSAPR_HPP
 
+#include <cmath>
 #include "src/data_structures/APR/APR.hpp"
 #include "src/data_structures/APR/ExtraParticleData.hpp"
 

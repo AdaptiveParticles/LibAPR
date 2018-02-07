@@ -5,27 +5,13 @@
 #ifndef PARTPLAY_APR_HPP
 #define PARTPLAY_APR_HPP
 
-#include "benchmarks/development/Tree/PartCellData.hpp"
-
-
-#include "benchmarks/development/Tree/CurrLevel.hpp"
-
 #include "src/io/hdf5functions_blosc.h"
-
-#include "benchmarks/development/Tree/APRIteratorOld.hpp"
-
 #include "src/misc/APRTimer.hpp"
-
 #include "src/algorithm/APRParameters.hpp"
-
 #include "src/numerics/APRCompress.hpp"
-
-#include "src/io/APRWriter.hpp"
-
 #include "src/data_structures/APR/APRAccess.hpp"
-
+#include "src/io/APRWriter.hpp"
 #include "src/numerics/APRReconstruction.hpp"
-
 #include "src/data_structures/APR/ExtraParticleData.hpp"
 
 #include <map>
@@ -40,8 +26,6 @@ class APR {
 
     template<typename S>
     friend class APRConverter;
-
-    friend class old::APRWriter;
 
     friend class APRWriter;
 
@@ -71,7 +55,6 @@ private:
     APRAccess apr_access;
 
     //deprecated - old access paradigm
-    PartCellData<uint64_t> pc_data;
     std::vector<uint64_t> num_parts;
     std::vector<uint64_t> num_elements;
     ExtraPartCellData<uint64_t> num_parts_xy;
@@ -88,7 +71,6 @@ public:
     APRParameters parameters;
 
     //old parameters (depreciated)
-    Proc_par pars;
 
     APR(){
     }
@@ -281,172 +263,7 @@ public:
 
 
     }
-
-private:
-
-    void get_part_numbers() {
-        //
-        //  Computes totals of total number of particles, and the total number of elements (PC and gap nodes)
-        //
-
-        this->num_parts.resize(pc_data.depth_max + 1);
-        this->num_elements.resize(pc_data.depth_max + 1);
-
-        int z_, x_, j_, y_;
-
-        uint64_t counter_parts = 0;
-        uint64_t counter_elements = 0;
-
-        for (uint64_t depth = (pc_data.depth_min); depth <= pc_data.depth_max; depth++) {
-            //loop over the resolutions of the structure
-            const unsigned int x_num_ = pc_data.x_num[depth];
-            const unsigned int z_num_ = pc_data.z_num[depth];
-
-            const unsigned int x_num_min_ = 0;
-            const unsigned int z_num_min_ = 0;
-
-            CurrentLevel<ImageType, uint64_t> curr_level_l(pc_data);
-            curr_level_l.set_new_depth(depth, pc_data);
-
-            const float step_size = pow(2, curr_level_l.depth_max - curr_level_l.depth);
-
-#ifdef HAVE_OPENMP
-	#pragma omp parallel for default(shared) private(z_,x_,j_) firstprivate(curr_level_l) reduction(+:counter_parts) reduction(+:counter_elements)  if(z_num_*x_num_ > 100)
-#endif
-            for (z_ = z_num_min_; z_ < z_num_; z_++) {
-                //both z and x are explicitly accessed in the structure
-
-                for (x_ = x_num_min_; x_ < x_num_; x_++) {
-
-                    curr_level_l.set_new_xz(x_, z_, pc_data);
-
-                    for (j_ = 0; j_ < curr_level_l.j_num; j_++) {
-
-                        bool iscell = curr_level_l.new_j(j_, pc_data);
-
-                        if (iscell) {
-                            //Indicates this is a particle cell node
-                            curr_level_l.update_cell(pc_data);
-
-                            counter_parts++;
-
-                        } else {
-
-                            curr_level_l.update_gap(pc_data);
-
-                        }
-
-                        counter_elements++;
-                    }
-                }
-            }
-
-            this->num_parts[depth] = counter_parts;
-            this->num_elements[depth] = counter_elements;
-
-        }
-
-        this->num_parts_total = 0;
-        num_elements_total = 0;
-
-        for (int i = 0; i <= pc_data.depth_max; ++i) {
-
-            num_elements_total += num_elements[i];
-        }
-
-        this->num_parts_total += num_parts[pc_data.depth_max];
-
-    }
-
-    void set_part_numbers_xz() {
-        //
-        //  Computes totals of total number of particles in each xz
-        //
-
-        num_parts_xy.initialize_structure_parts_empty(particles_int_old);
-
-        int z_, x_, j_, y_;
-
-        uint64_t counter_parts = 0;
-
-        for (uint64_t depth = (pc_data.depth_min); depth <= pc_data.depth_max; depth++) {
-            //loop over the resolutions of the structure
-            const unsigned int x_num_ = pc_data.x_num[depth];
-            const unsigned int z_num_ = pc_data.z_num[depth];
-
-            const unsigned int x_num_min_ = 0;
-            const unsigned int z_num_min_ = 0;
-
-            CurrentLevel<ImageType, uint64_t> curr_level_l(pc_data);
-            curr_level_l.set_new_depth(depth, pc_data);
-
-            const float step_size = pow(2, curr_level_l.depth_max - curr_level_l.depth);
-#ifdef HAVE_OPENMP
-	#pragma omp parallel for default(shared) private(z_,x_,j_,counter_parts) firstprivate(curr_level_l)  if(z_num_*x_num_ > 100)
-#endif
-            for (z_ = z_num_min_; z_ < z_num_; z_++) {
-                //both z and x are explicitly accessed in the structure
-
-                for (x_ = x_num_min_; x_ < x_num_; x_++) {
-
-                    counter_parts=0;
-
-                    curr_level_l.set_new_xz(x_, z_, pc_data);
-
-                    for (j_ = 0; j_ < curr_level_l.j_num; j_++) {
-
-                        bool iscell = curr_level_l.new_j(j_, pc_data);
-
-                        if (iscell) {
-                            //Indicates this is a particle cell node
-                            curr_level_l.update_cell(pc_data);
-
-                            counter_parts++;
-
-                        } else {
-
-                            curr_level_l.update_gap(pc_data);
-
-                        }
-                    }
-                    num_parts_xy.data[curr_level_l.depth][curr_level_l.pc_offset].push_back(counter_parts);
-                }
-            }
-
-        }
-
-        counter_parts = 0;
-
-        //it needs to be a cumulative sum
-
-        for (uint64_t depth = (pc_data.depth_min); depth <= pc_data.depth_max; depth++) {
-            //loop over the resolutions of the structure
-            const unsigned int x_num_ = pc_data.x_num[depth];
-            const unsigned int z_num_ = pc_data.z_num[depth];
-
-            const unsigned int x_num_min_ = 0;
-            const unsigned int z_num_min_ = 0;
-
-            for (z_ = z_num_min_; z_ < z_num_; z_++) {
-                //both z and x are explicitly accessed in the structure
-
-                for (x_ = x_num_min_; x_ < x_num_; x_++) {
-                    size_t pc_offset = x_num_*z_ + x_;
-                    counter_parts += num_parts_xy.data[depth][pc_offset][0];
-                    num_parts_xy.data[depth][pc_offset][0] = counter_parts;
-                }
-            }
-
-        }
-
-
-    }
-
-
-
 };
-
-
 
 
 #endif //PARTPLAY_APR_HPP

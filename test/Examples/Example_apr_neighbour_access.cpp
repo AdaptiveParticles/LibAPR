@@ -34,7 +34,7 @@ int main(int argc, char **argv) {
     std::string file_name = options.directory + options.input;
 
     // Read the apr file into the part cell structure
-    Part_timer timer;
+    APRTimer timer;
 
     timer.verbose_flag = true;
 

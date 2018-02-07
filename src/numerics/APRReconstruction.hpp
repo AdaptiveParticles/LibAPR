@@ -531,7 +531,7 @@ public:
         //  Performs a smooth interpolation, based on the depth (level l) in each direction.
         //
 
-        Part_timer timer;
+        APRTimer timer;
         timer.verbose_flag = false;
 
         MeshData<U> pc_image;

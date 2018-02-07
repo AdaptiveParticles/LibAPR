@@ -352,7 +352,7 @@ float APRRaycaster::perpsective_mesh_raycast(MeshData<S>& image,MeshData<U>& cas
 
     cast_views.initialize(imageHeight,imageWidth,num_views,0);
 
-    Part_timer timer;
+    APRTimer timer;
 
     timer.verbose_flag = true;
 

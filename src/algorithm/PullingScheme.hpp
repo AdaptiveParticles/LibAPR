@@ -12,8 +12,7 @@
 #define PARTPLAY_PULLING_SCHEME_HPP
 
 #include <cassert>
-#include <src/data_structures/APR/APRIterator.hpp>
-
+#include "src/data_structures/APR/APRIterator.hpp"
 #include "src/data_structures/Mesh/MeshData.hpp"
 #include "src/data_structures/APR/APR.hpp"
 

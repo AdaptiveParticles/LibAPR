@@ -110,7 +110,7 @@ int main(int argc, char **argv) {
     cmdLineOptions options = read_command_line_options(argc, argv);
 
     // Read the apr file into the part cell structure
-    Part_timer timer;
+    APRTimer timer;
     timer.verbose_flag = true;
 
     // APR datastructure

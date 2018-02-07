@@ -73,7 +73,7 @@ int main(int argc, char **argv) {
         std::string save_loc = options.output_dir;
         std::string file_name = options.output;
 
-        Part_timer timer;
+        APRTimer timer;
 
         timer.verbose_flag = true;
 

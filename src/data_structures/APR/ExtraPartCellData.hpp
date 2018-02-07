@@ -8,12 +8,6 @@
 
 #ifndef PARTPLAY_EXTRAPARTCELLDATA_HPP
 #define PARTPLAY_EXTRAPARTCELLDATA_HPP
-// type T data structure base type
-
-#include "benchmarks/development/Tree/PartCellData.hpp"
-#include "benchmarks/development/Tree/ParticleData.hpp"
-
-//#include "src/data_structures/APR/APR.hpp"
 
 #include <functional>
 
@@ -30,11 +24,6 @@ public:
     //the neighbours arranged by face
 
     ExtraPartCellData(){
-    };
-    
-    template<typename S>
-    ExtraPartCellData(PartCellData<S>& pc_data){
-        initialize_structure_cells(pc_data);
     };
     
     template<typename S>
@@ -132,41 +121,6 @@ public:
 
     }
 
-
-    template<typename S>
-    void initialize_structure_cells(PartCellData<S>& pc_data){
-        //
-        //  Initialize the structure to the same size as the given structure
-        //
-
-        org_dims = pc_data.org_dims;
-
-        //first add the layers
-        depth_max = pc_data.depth_max;
-        depth_min = pc_data.depth_min;
-        
-        z_num.resize(depth_max+1);
-        x_num.resize(depth_max+1);
-        
-        data.resize(depth_max+1);
-        
-        for(uint64_t i = depth_min;i <= depth_max;i++){
-            z_num[i] = pc_data.z_num[i];
-            x_num[i] = pc_data.x_num[i];
-            data[i].resize(z_num[i]*x_num[i]);
-
-            int j = 0;
-#ifdef HAVE_OPENMP
-	#pragma omp parallel for private(j)
-#endif
-            for(j = 0;j < pc_data.data[i].size();j++){
-                data[i][j].resize(pc_data.data[i][j].size(),0);
-            }
-            
-        }
-        
-    }
-    
     template<typename S>
     void initialize_data(std::vector<std::vector<S>>& input_data){
         //
@@ -289,46 +243,6 @@ public:
             data[i].resize(z_num[i]*x_num[i]);
 
         }
-
-    }
-
-
-
-
-
-
-    
-    T&  get_val(const uint64_t& pc_key){
-        // data access
-        
-        const uint64_t depth = (pc_key & PC_KEY_DEPTH_MASK) >> PC_KEY_DEPTH_SHIFT;
-        const uint64_t x_ = (pc_key & PC_KEY_X_MASK) >> PC_KEY_X_SHIFT;
-        const uint64_t z_ = (pc_key & PC_KEY_Z_MASK) >> PC_KEY_Z_SHIFT;
-        const uint64_t j_ = (pc_key & PC_KEY_J_MASK) >> PC_KEY_J_SHIFT;
-        
-        
-        return data[depth][x_num[depth]*z_ + x_][j_];
-    }
-    T&  get_part(const uint64_t part_key){
-        // data access
-        
-        const uint64_t depth = (part_key & PC_KEY_DEPTH_MASK) >> PC_KEY_DEPTH_SHIFT;
-        const uint64_t x_ = (part_key & PC_KEY_X_MASK) >> PC_KEY_X_SHIFT;
-        const uint64_t z_ = (part_key & PC_KEY_Z_MASK) >> PC_KEY_Z_SHIFT;
-        const uint64_t index = (part_key & PC_KEY_INDEX_MASK) >> PC_KEY_INDEX_SHIFT;
-        
-        return data[depth][x_num[depth]*z_ + x_][index];
-        
-    }
-
-    uint64_t get_global_index(const uint64_t part_key){
-
-        const uint64_t depth = (part_key & PC_KEY_DEPTH_MASK) >> PC_KEY_DEPTH_SHIFT;
-        const uint64_t x_ = (part_key & PC_KEY_X_MASK) >> PC_KEY_X_SHIFT;
-        const uint64_t z_ = (part_key & PC_KEY_Z_MASK) >> PC_KEY_Z_SHIFT;
-        const uint64_t index = (part_key & PC_KEY_INDEX_MASK) >> PC_KEY_INDEX_SHIFT;
-
-        return global_index_offset[depth][x_num[depth]*z_ + x_] + index;
 
     }
 
@@ -651,87 +565,7 @@ public:
 
 
     }
-
-
-
-
-    /// some helpers functions for the transform_parts above
-    template<typename V>
-    V square(V input){
-        return pow(input,2);
-    }
-    template<typename V>
-    V square_root(V input){
-        return sqrt(input);
-    }
-
-
-    template<typename U>
-    void shift_particles_from_cells(ExtraPartCellData<U>& pdata_old,PartCellData<uint64_t>& pc_data){
-        //
-        //  Bevan Cheesean 2017
-        //
-        //  Transfers them to align with the part data, to align with particle data no gaps
-        //
-        //
-
-        ExtraPartCellData<U> pdata_new;
-
-        pdata_new.initialize_structure_parts(pdata_old);
-
-        uint64_t z_,x_,j_,node_val;
-        uint64_t part_offset;
-
-        for(uint64_t i = pdata_old.depth_min;i <= pdata_old.depth_max;i++){
-
-            const unsigned int x_num_ = pdata_old.x_num[i];
-            const unsigned int z_num_ = pdata_old.z_num[i];
-
-#ifdef HAVE_OPENMP
-	#pragma omp parallel for default(shared) private(z_,x_,j_,node_val)  if(z_num_*x_num_ > 100)
-#endif
-            for(z_ = 0;z_ < z_num_;z_++){
-
-                for(x_ = 0;x_ < x_num_;x_++){
-                    const size_t offset_pc_data = x_num_*z_ + x_;
-                    const size_t j_num = pdata_old.data[i][offset_pc_data].size();
-
-                    int counter = 0;
-
-                    for(j_ = 0; j_ < j_num;j_++){
-                        //raster over both structures, generate the index for the particles, set the status and offset_y_coord diff
-
-                        node_val = pc_data.data[i][offset_pc_data][j_];
-
-                        if(!(node_val&1)){
-
-                            pdata_new.data[i][offset_pc_data][counter] = pdata_old.data[i][offset_pc_data][j_];
-
-                            counter++;
-
-                        } else {
-
-                        }
-
-                    }
-
-                    pdata_new.data[i][offset_pc_data].resize(counter); //reduce to new size
-                }
-            }
-        }
-
-        std::swap(pdata_new,pdata_old);
-
-    }
-
-
-
-private:
-    
 };
-
-
-
 
 
 #endif //PARTPLAY_PARTNEIGH_HPP
