@@ -108,8 +108,7 @@ int main(int argc, char **argv) {
 	#pragma omp parallel for schedule(static) private(particle_number) firstprivate(apr_iterator,neighbour_iterator)
 #endif
     for (particle_number = 0; particle_number < apr_iterator.total_number_particles(); ++particle_number) {
-        //needed step for any parallel loop (update to the next part)
-
+        //needed step for any  loop (update to the next part)
         apr_iterator.set_iterator_to_particle_by_number(particle_number);
 
         //loop over all the neighbours and set the neighbour iterator to it
@@ -142,8 +141,7 @@ int main(int argc, char **argv) {
 	#pragma omp parallel for schedule(static) private(particle_number) firstprivate(apr_iterator,neighbour_iterator)
 #endif
     for (particle_number = 0; particle_number < apr_iterator.total_number_particles(); ++particle_number) {
-        //needed step for any parallel loop (update to the next part)
-
+        //needed step for any loop (update to the next part)
         apr_iterator.set_iterator_to_particle_by_number(particle_number);
 
         const unsigned int direction = 3;
