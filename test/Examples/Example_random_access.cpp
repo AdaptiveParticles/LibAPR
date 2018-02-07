@@ -80,7 +80,7 @@ int main(int argc, char **argv) {
     std::cout << "--------------------" << std::endl;
 
     //now lets find a Particle Cell we know exits by setting the Iterator to the 1000th particle
-    apr_iterator.set_iterator_to_particle_by_number(1000);
+    apr_iterator.set_iterator_to_particle_by_number((uint32_t)1000);
 
     random_particle_cell.x = apr_iterator.x();
     random_particle_cell.y = apr_iterator.y();

@@ -81,6 +81,12 @@ namespace std {
 %template(FloatVecVec) std::vector< std::vector<float> >;
 %template(FloatVecVecVec) std::vector< std::vector< std::vector<float> > >;
 
+%naturalvar FloatVec;
+%naturalvar FloatVecVec;
+%naturalvar FloatVecVec;
+
+%template(read_parts_only_std) APR::read_parts_only<uint16_t>;
+
 %template(compute_gradient_vector_std) APRNumerics::compute_gradient_vector<uint16_t>;
 %template(compute_gradient_vector_float) APRNumerics::compute_gradient_vector<float>;
 
@@ -100,4 +106,5 @@ namespace std {
 %template(APRFloat) APR<float>;
 %template(APRIteratorStd) APRIterator<uint16_t>;
 %template(APRStd) APR<uint16_t>;
+
 
