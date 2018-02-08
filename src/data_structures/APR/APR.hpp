@@ -229,7 +229,7 @@ public:
             //needed step for any parallel loop (update to the next part)
             apr_iterator.set_iterator_to_particle_by_number(particle_number);
 
-            apr_iterator(parts) = img.access_no_protection(apr_iterator.y_nearest_pixel(),apr_iterator.x_nearest_pixel(),apr_iterator.z_nearest_pixel());
+            parts[apr_iterator] = img.access_no_protection(apr_iterator.y_nearest_pixel(),apr_iterator.x_nearest_pixel(),apr_iterator.z_nearest_pixel());
 
         }
 

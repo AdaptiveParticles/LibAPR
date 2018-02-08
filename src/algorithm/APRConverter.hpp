@@ -494,17 +494,6 @@ void APRConverter<ImageType>::auto_parameters(const MeshData<T>& input_img){
     }
     par_timer.stop_timer();
 
-//    for (q = 0; q < input_img.mesh.size(); ++q) {
-//
-//        if(input_img.mesh[q] < (min_val + num_bins-1)){
-//            freq[input_img.mesh[q]-min_val]++;
-//            if(input_img.mesh[q] > 0) {
-//                counter++;
-//                total += input_img.mesh[q];
-//            }
-//        }
-//    }
-
     float img_mean = counter > 0 ? total/(counter*1.0) : 1;
     float prop_total_th = 0.05; //assume there is atleast 5% background in the image
     float prop_total = 0;
@@ -520,6 +509,9 @@ void APRConverter<ImageType>::auto_parameters(const MeshData<T>& input_img){
         }
 
     }
+
+    float proportion_flat = freq[0]/(counter*1.0f);
+    float proportion_next = freq[1]/(counter*1.0f);
 
     MeshData<T> histogram;
     histogram.initialize(num_bins,1,1);
@@ -556,8 +548,6 @@ void APRConverter<ImageType>::auto_parameters(const MeshData<T>& input_img){
 
 
     T estimated_first_mode = local_max_j + min_val;
-
-    int stop = 1;
 
     std::vector<std::vector<T>> patches;
 
@@ -648,6 +638,26 @@ void APRConverter<ImageType>::auto_parameters(const MeshData<T>& input_img){
         }
     }
 
+
+    //
+    //  Detecting background subtracted images, or no-noise, in these cases the above estimates do not work
+    //
+    if((proportion_flat > 1.0f) && (proportion_next > 0.00001f)){
+
+        std::cout << "AUTOPARAMTERS:**Warning** Detected that there is likely noisy background, instead assuming background subtracted and minimum signal of 5 (absolute), if this is not the case please set parameters manually" << std::endl;
+        this->par.Ip_th = 1;
+        this->par.sigma_th = 5;
+        this->par.lambda = 0.5;
+        this->par.sigma_th_max = 2;
+        this->par.rel_error = 0.125;
+        this->par.min_signal = 5;
+        this->par.SNR_min = 1;
+
+    } else {
+        std::cout << "AUTOPARAMTERS: **Assuming image has atleast 5% dark background" << std::endl;
+    }
+
+
     float min_snr = 6;
 
     if(this->par.SNR_min > 0){
@@ -656,12 +666,10 @@ void APRConverter<ImageType>::auto_parameters(const MeshData<T>& input_img){
         std::cout << "**Assuming a minimum SNR of 6" << std::endl;
     }
 
-    std::cout << "**Assuming image has atleast 5% dark background" << std::endl;
-
     float Ip_th = mean + sd;
     float var_th = (img_mean/mean)*sd*min_snr;
 
-    float var_th_max = sd*min_snr*.5;
+    float var_th_max = sd*min_snr*.5f;
 
     if(this->par.Ip_th < 0 ){
         this->par.Ip_th = Ip_th;
@@ -679,9 +687,21 @@ void APRConverter<ImageType>::auto_parameters(const MeshData<T>& input_img){
     } else if (this->par.sigma_th > 0){
         //keep the defaults
     } else{
-        this->par.sigma_th_max = this->par.min_signal*0.5;
+        this->par.sigma_th_max = this->par.min_signal*0.5f;
         this->par.sigma_th = this->par.min_signal;
     }
+
+//    float k_diff = -3.0f;
+//    float lambda_auto = expf((-1.0f/0.6161f) * logf((abs(img_mean-mean)/sd) *
+//                                               powf(2.0f,k_diff + log2f(.1))/0.12531f));
+//
+//    this->par.lambda = lambda_auto;
+
+    if(this->par.lambda < 0.05){
+        this->par.lambda = 0;
+        std::cout << "setting lambda to zero" << std::endl;
+    }
+
 
     std::cout << "I_th: " << this->par.Ip_th << std::endl;
     std::cout << "sigma_th: " << this->par.sigma_th << std::endl;

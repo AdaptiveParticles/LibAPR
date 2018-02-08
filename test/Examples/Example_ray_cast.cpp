@@ -19,7 +19,7 @@ Optional:
 -aniso z_stretch (stretches the ray cast in the z axis)
 -jitter jitter_factor (0-1) (perturbs the particles randomly in the ray case, in an effort to remove artifacts from alignement of view in the ray-cast)
 -numviews The number of views that are calculated and output to the tiff file.
--original_file give the file name of the original image, then also does a pixel image based raycast on the original image.
+-original_image give the file name of the original image, then also does a pixel image based raycast on the original image.
 -view_radius distance of viewer (default 0.98)
 
 e.g. Example_ray_cast -i nuc_apr.h5 -d /Test/Input_examples/ -aniso 2.0 -jitter 0.1 -numviews 60

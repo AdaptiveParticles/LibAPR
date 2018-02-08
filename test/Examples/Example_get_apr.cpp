@@ -77,7 +77,6 @@ int main(int argc, char **argv) {
 
         timer.verbose_flag = true;
 
-
         MeshData<uint16_t> level;
 
         apr.interp_depth_ds(level);
