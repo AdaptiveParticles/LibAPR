@@ -2,6 +2,10 @@
 
 Library for processing the Adaptive Particle Representation (APR).
 
+<img src="./docs/apr_lowfps_lossy.gif?raw=true">
+
+Zebrafish epiboly dataset: [Schmid et al., _Nature Communications_ 2017](https://www.nature.com/articles/ncomms3207)
+
 ## Dependencies
 
 * HDF5 1.8.20 or higher
