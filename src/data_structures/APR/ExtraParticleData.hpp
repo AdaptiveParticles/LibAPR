@@ -11,7 +11,6 @@ class APR;
 template<typename V>
 class APRIterator;
 
-#include <functional>
 #include "src/data_structures/APR/APR.hpp"
 
 

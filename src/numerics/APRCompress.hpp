@@ -19,25 +19,16 @@ class APRCompress {
 
 public:
 
-    APRCompress(){
-
-    };
-
     void set_compression_type(int type){
-
         compress_type = type;
     }
 
     int get_compression_type(){
-
         return compress_type;
     }
 
-
     template<typename U>
     void compress(APR<U>& apr,ExtraParticleData<ImageType>& symbols) {
-
-
         APRTimer timer;
         timer.verbose_flag = false;
 
@@ -383,19 +374,14 @@ void APRCompress<ImageType>::predict_particles_by_level(APR<U>& apr,const unsign
 
                             predict_output[apr_iterator] = predict_input[apr_iterator];
                         }
-
                     }
                 }
-
-
             }
         }
     }
 
     timer.stop_timer();
-
 }
-
 
 
 #endif //PARTPLAY_COMPRESSAPR_HPP

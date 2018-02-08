@@ -42,7 +42,6 @@ public:
 
     void start_timer(std::string timing_name){
         timing_names.push_back(timing_name);
-
         t1 = omp_get_wtime();
     }
 
@@ -60,12 +59,7 @@ public:
         }
         timer_count++;
     }
-
-
-
-
 };
-
 
 #else
 
