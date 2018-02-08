@@ -1,10 +1,10 @@
 # LibAPR - The Adaptive Particle Representation Library
 
-Library for processing the Adaptive Particle Representation (APR).
+Library for producing and processing on the Adaptive Particle Representation (APR).
 
 <img src="./docs/apr_lowfps_lossy.gif?raw=true">
 
-Zebrafish epiboly dataset: [Schmid et al., _Nature Communications_ 2017](https://www.nature.com/articles/ncomms3207)
+Labeled Zebrafish nuclei: Gopi Shah, Huisken Lab ([MPI-CBG](https://www.mpi-cbg.de), Dresden and [Morgridge Institute for Research](https://morgridge.org/research/medical-engineering/huisken-lab/), Madison); see also [Schmid et al., _Nature Communications_ 2017](https://www.nature.com/articles/ncomms3207)
 
 ## Dependencies
 
@@ -112,3 +112,7 @@ For tutorial on how to use the examples, and explanation of data-structures see 
 * support for loading the APR in [Fiji](https://fiji.sc), including [scenery-based](https://github.com/scenerygraphics/scenery) 3D rendering
 
 ## Citing this work
+
+If you use this library in an academic context, please cite the following paper:
+
+* Cheeseman, Günther, Susik, Gonciarz, Sbalzarini: _Forget Pixels: Adaptive Particle Representation of Fluorescence Microscopy Images_ (in preparation)
