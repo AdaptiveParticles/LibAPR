@@ -158,56 +158,56 @@ if(TESTS)
 endif(TESTS)
 
 add_executable(Example_get_apr
-        test/Examples/Example_get_apr.cpp
+        examples/Example_get_apr.cpp
 
         ${SOURCE_FILES_COMPILED}
 
         )
 
 add_executable(Example_apr_iterate
-        test/Examples/Example_apr_iterate.cpp
+        examples/Example_apr_iterate.cpp
 
         ${SOURCE_FILES_COMPILED}
         )
 
 add_executable(Example_reconstruct_image
-        test/Examples/Example_reconstruct_image.cpp
+        examples/Example_reconstruct_image.cpp
 
         ${SOURCE_FILES_COMPILED}
         )
 
 add_executable(Example_ray_cast
-        test/Examples/Example_ray_cast.cpp
+        examples/Example_ray_cast.cpp
         #test/utils.cpp
         ${SOURCE_FILES_COMPILED}
         src/vis/Camera.cpp src/vis/Camera.h src/vis/Object.cpp src/vis/Object.h src/vis/RaytracedObject.cpp src/vis/RaytracedObject.h)
 
 add_executable(Example_compress
-        test/Examples/Example_compress_apr.cpp
+        examples/Example_compress_apr.cpp
 
         ${SOURCE_FILES_COMPILED}
         )
 
 add_executable(Example_produce_paraview_file
-        test/Examples/Example_produce_paraview_file.cpp
+        examples/Example_produce_paraview_file.cpp
 
         ${SOURCE_FILES_COMPILED}
         )
 
 add_executable(Example_apr_neighbour_access
-        test/Examples/Example_apr_neighbour_access.cpp
+        examples/Example_apr_neighbour_access.cpp
 
         ${SOURCE_FILES_COMPILED}
         )
 
 add_executable(Example_compute_gradient
-        test/Examples/Example_compute_gradient.cpp
+        examples/Example_compute_gradient.cpp
 
         ${SOURCE_FILES_COMPILED}
         )
 
 add_executable(Example_random_access
-        test/Examples/Example_random_access.cpp
+        examples/Example_random_access.cpp
 
         ${SOURCE_FILES_COMPILED}
         )
