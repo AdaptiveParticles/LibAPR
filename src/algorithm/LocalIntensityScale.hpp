@@ -332,7 +332,6 @@ void LocalIntensityScale::calc_sat_mean_z(MeshData<T>& input,const int offset) {
             current_index = (current_index + 1) % (2*offset + 1);
         }
     }
-
 }
 
 

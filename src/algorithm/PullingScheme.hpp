@@ -25,12 +25,8 @@
 #define BOUNDARY_TYPE 2
 #define FILLER_TYPE 3
 #define ASCENDANT 8
-#define SEEDASCENDANT 9
 #define PROPOGATE 15
 #define ASCENDANTNEIGHBOUR 16
-
-#define MOORE 1
-#define VONNEUMANN 0
 
 #define NEIGHBOURLOOP(jn,in,kn, boundaries) \
 for(jn = boundaries[0][0]; jn < boundaries[0][1]; jn++) \
@@ -73,7 +69,6 @@ public:
 
 private:
 
-    void check_boundaries(short axis, int var, int limit, short (&boundaries)[3][2]);
     void set_ascendant_neighbours(int level);
     void set_filler(int level);
     void fill_neighbours(int level);
@@ -155,18 +150,6 @@ void PullingScheme::fill(const float k, const MeshData<T> &input) {
         for (size_t i = 0; i < input.mesh.size(); ++i) {
             if (input.mesh[i] == k) mesh[i] = SEED_TYPE;
         }
-    }
-}
-
-void PullingScheme::check_boundaries(short axis, int var, int limit, short (&boundaries)[3][2]) {
-    if (var == 0) {
-        boundaries[axis][0] = 0;
-        boundaries[axis][1] = 2;
-    } else if (var == 1) {
-        boundaries[axis][0] = -1;
-    }
-    if (var == limit) {
-        boundaries[axis][1] = 1;
     }
 }
 

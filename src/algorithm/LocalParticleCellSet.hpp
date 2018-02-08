@@ -5,8 +5,6 @@
 #ifndef PARTPLAY_LOCAL_PARTICLE_SET_HPP
 #define PARTPLAY_LOCAL_PARTICLE_SET_HPP
 
-#define EMPTY 0
-
 class LocalParticleCellSet {
 
 public:

@@ -14,9 +14,6 @@
 #include "src/numerics/APRReconstruction.hpp"
 #include "src/data_structures/APR/ExtraParticleData.hpp"
 
-#include <map>
-#include <unordered_map>
-
 
 class APRParameters;
 class OldAPRConverter;
@@ -24,31 +21,10 @@ class OldAPRConverter;
 template<typename ImageType>
 class APR {
 
-    template<typename S>
-    friend class APRConverter;
-
+    template<typename S> friend class APRConverter;
     friend class APRWriter;
-
     friend class PullingScheme;
-
-    template<typename S>
-    friend class APRIterator;
-
-    template<typename S>
-    friend class APRIteratorOld;
-
-    template<typename S>
-    friend class ExtraPartCellData;
-
-    friend class APRAccess;
-
-    friend class APRReconstruction;
-
-    friend class APRBenchmark;
-
-    friend class OldAPRConverter;
-
-private:
+    template<typename S> friend class APRIterator;
 
     APRWriter apr_writer;
     APRReconstruction apr_recon;
@@ -62,8 +38,6 @@ public:
     //Main internal datastructures
     std::string name;
     APRParameters parameters;
-
-    APR() {}
 
     unsigned int orginal_dimensions(int dim){
         return apr_access.org_dims[dim];
@@ -146,7 +120,6 @@ public:
         //
 
         apr_recon.interp_img((*this),img, parts);
-
     }
 
     template<typename U>
@@ -155,9 +128,7 @@ public:
         //  Returns an image of the depth, this is down-sampled by one, as the Particle Cell solution reflects this
         //
 
-
         apr_recon.interp_depth_ds((*this),img);
-
     }
 
     template<typename U>
@@ -167,7 +138,6 @@ public:
         //
 
         apr_recon.interp_level((*this), img);
-
     }
 
     template<typename U>
@@ -177,7 +147,6 @@ public:
         //
 
         apr_recon.interp_type((*this),img);
-
     }
 
     template<typename U,typename V>
@@ -187,7 +156,6 @@ public:
         //
 
         apr_recon.interp_parts_smooth((*this),out_image,interp_data,scale_d);
-
     }
 
     template<typename U,typename V>
@@ -198,9 +166,7 @@ public:
         //  Samples particles from an image using the nearest pixel (rounded up, i.e. next pixel after particles that sit on off pixel locations)
         //
 
-        //re-write this.
-
-
+        // TODO: re-write this.
 
         //initialization of the iteration structures
         APRIterator<ImageType> apr_iterator(*this); //this is required for parallel access
@@ -216,9 +182,7 @@ public:
             apr_iterator.set_iterator_to_particle_by_number(particle_number);
 
             parts[apr_iterator] = img.access_no_protection(apr_iterator.y_nearest_pixel(),apr_iterator.x_nearest_pixel(),apr_iterator.z_nearest_pixel());
-
         }
-
     }
 
     template<typename U,typename V>
@@ -244,10 +208,7 @@ public:
             apr_iterator.set_iterator_to_particle_by_number(particle_number);
 
             parts[apr_iterator] = img_by_level[apr_iterator.level()].access_no_protection(apr_iterator.y(),apr_iterator.x(),apr_iterator.z());
-
         }
-
-
     }
 };
 

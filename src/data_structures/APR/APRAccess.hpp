@@ -37,9 +37,6 @@
 #define ZM_LEVEL_MASK ((((uint16_t)1) << 2) - 1) << 11
 #define ZM_LEVEL_SHIFT 11
 
-#define PC_TYPE_MASK ((((uint16_t)1) << 2) - 1) << 13
-#define PC_TYPE_SHIFT 13
-
 template<typename T>
 class ExtraParticleData;
 
@@ -135,10 +132,6 @@ public:
     std::vector<std::vector<uint64_t>> global_index_by_level_and_z_begin;
     std::vector<std::vector<uint64_t>> global_index_by_level_and_z_end;
 
-    APRAccess(){
-
-    };
-
     MapIterator& get_local_iterator(LocalMapIterators& local_iterators,const uint16_t& level_delta,const uint16_t& face,const uint16_t& index){
         //
         //  Chooses the local iterator required
@@ -146,15 +139,12 @@ public:
 
         switch (level_delta){
             case _LEVEL_SAME:
-
                 return local_iterators.same_level[face];
 
             case _LEVEL_DECREASE:
-
                 return local_iterators.parent_level[face];
 
             case _LEVEL_INCREASE:
-
                 return local_iterators.child_level[face][index];
         }
 
@@ -162,12 +152,7 @@ public:
     }
 
 
-
-
-
     inline bool get_neighbour_coordinate(const ParticleCell& input,ParticleCell& neigh,const unsigned int& face,const uint16_t& level_delta,const uint16_t& index){
-        //
-        //
 
         static constexpr int8_t dir_y[6] = { 1, -1, 0, 0, 0, 0};
         static constexpr int8_t dir_x[6] = { 0, 0, 1, -1, 0, 0};
@@ -348,7 +333,6 @@ public:
         }
 
         return false;
-
     }
 
     template<typename T>
@@ -377,8 +361,6 @@ public:
         }
 
         initialize_structure_from_particle_cell_tree(apr, p_map);
-
-
     }
 
 
@@ -436,10 +418,7 @@ public:
 
         apr_timer.stop_timer();
 
-
         apr_timer.start_timer("second_step");
-
-
 
         ExtraPartCellData<std::pair<uint16_t,YGap_map>> y_begin;
         y_begin.initialize_structure_parts_empty(apr);
@@ -560,13 +539,9 @@ public:
                 }
                 //last gap
                 if(previous == 1){
-
                     y_begin.data[i+1][offset_pc_data1][counter].second.y_end = (y_num_us-1);
-
                 }
-
             }
-
         }
 
 #ifdef HAVE_OPENMP
@@ -682,40 +657,7 @@ public:
 
         total_number_non_empty_rows=0;
 
-//        apr_timer.start_timer("initialize map");
-//
-//        gap_map.initialize_structure_parts_empty(apr);
-//
-//        uint64_t counter_rows=0;
-//
-//        for(uint64_t i = (apr.level_min());i <= apr.level_max();i++) {
-//
-//            const unsigned int x_num_ = x_num[i];
-//            const unsigned int z_num_ = z_num[i];
-//            const unsigned int y_num_ = y_num[i];
-//#ifdef HAVE_OPENMP
-//	#pragma omp parallel for default(shared) private(z_, x_) reduction(+:counter_rows)if(z_num_*x_num_ > 100)
-//#endif
-//            for (z_ = 0; z_ < z_num_; z_++) {
-//                for (x_ = 0; x_ < x_num_; x_++) {
-//                    const size_t offset_pc_data = x_num_ * z_ + x_;
-//                    if(y_begin.data[i][offset_pc_data].size() > 0) {
-//                        gap_map.data[i][offset_pc_data].resize(1);
-//
-//
-//                        gap_map.data[i][offset_pc_data][0].map.insert(y_begin.data[i][offset_pc_data].begin(),y_begin.data[i][offset_pc_data].end());
-//
-//                        counter_rows++;
-//                    }
-//                }
-//            }
-//        }
-//        total_number_non_empty_rows = counter_rows;
-//        apr_timer.stop_timer();
-
         allocate_map_insert(apr,y_begin);
-
-
         APRIterator<T> apr_iterator(*this);
 
         particle_cell_type.data.resize(global_index_by_level_end[level_max-1]+1,0);
@@ -735,11 +677,8 @@ public:
                 const uint64_t offset_part_map = apr_iterator.x() * apr_iterator.spatial_index_y_max(apr_iterator.level()) + apr_iterator.z() * apr_iterator.spatial_index_y_max(apr_iterator.level()) * apr_iterator.spatial_index_x_max(apr_iterator.level());
 
                 particle_cell_type[apr_iterator] = p_map[apr_iterator.level()][offset_part_map + apr_iterator.y()];
-
             }
         }
-
-
     }
 
     template<typename T>
@@ -749,17 +688,13 @@ public:
         //
 
         APRTimer apr_timer;
-
         apr_timer.start_timer("initialize map");
 
         gap_map.initialize_structure_parts_empty(apr);
-
         uint64_t counter_rows = 0;
-
         uint64_t z_,x_;
 
         for (uint64_t i = (apr.level_min()); i <= apr.level_max(); i++) {
-
             const unsigned int x_num_ = x_num[i];
             const unsigned int z_num_ = z_num[i];
             const unsigned int y_num_ = y_num[i];
@@ -839,11 +774,7 @@ public:
                 auto hint = gap_map.data[level][offset_pc_data][0].map.end();
                 gap_map.data[level][offset_pc_data][0].map.insert(hint,{map_data.y_begin[i],gap});
             }
-
         }
-
-
-
     }
 
     template<typename T>

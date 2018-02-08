@@ -24,7 +24,7 @@ class APRConverter: public LocalIntensityScale, public ComputeGradient, public L
 
 public:
 
-    APRConverter():image_type("uint16") {}
+    APRConverter() {}
 
     APRParameters par;
     APRTimer total_timer;
@@ -33,11 +33,7 @@ public:
     APRTimer method_timer;
     APRTimer fine_grained_timer;
 
-    std::string image_type; //default uint16
-
-    /*
-     * Declerations
-     */
+    std::string image_type = "uint16";
 
     bool get_apr(APR<ImageType>& apr){
         //
@@ -63,7 +59,6 @@ public:
             std::cerr << "Wrong file type" << std::endl;
             return false;
         }
-
     };
 
     //get apr without setting parameters, and with an already loaded image.
@@ -88,15 +83,10 @@ private:
     MeshData<float> local_scale_temp2;  //   Used as down-sampled images for some averaging steps where it is useful to not lose precision, or get over-flow errors
 
     //assuming uint16, the total memory cost shoudl be approximately (1 + 1 + 1/8 + 2/8 + 2/8) = 2 5/8 original image size in u16bit
-
     //storage of the particle cell tree for computing the pulling scheme
 
 
     float bspline_offset=0;
-
-    /*
-     * Private member functions
-     */
 
     template<typename T>
     void init_apr(APR<ImageType>& apr,MeshData<T>& input_image);
@@ -115,9 +105,6 @@ private:
 
     template<typename T,typename S>
     void get_local_particle_cell_set(MeshData<T>& grad_image_ds,MeshData<S>& local_intensity_scale_ds);
-
-
-
 };
 
 /*
@@ -433,10 +420,7 @@ void APRConverter<ImageType>::init_apr(APR<ImageType>& apr,MeshData<T>& input_im
 
     apr.apr_access.level_min = k_min_;
     apr.apr_access.level_max = k_max_ + 1;
-
 }
-
-
 
 
 template<typename ImageType> template<typename T>
@@ -688,12 +672,6 @@ void APRConverter<ImageType>::auto_parameters(const MeshData<T>& input_img){
         this->par.sigma_th_max = this->par.min_signal*0.5f;
         this->par.sigma_th = this->par.min_signal;
     }
-
-//    float k_diff = -3.0f;
-//    float lambda_auto = expf((-1.0f/0.6161f) * logf((abs(img_mean-mean)/sd) *
-//                                               powf(2.0f,k_diff + log2f(.1))/0.12531f));
-//
-//    this->par.lambda = lambda_auto;
 
     if(this->par.lambda < 0.05){
         this->par.lambda = 0;
