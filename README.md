@@ -102,7 +102,7 @@ There are nine basic examples, that show how to generate and compute with the AP
 | [Example_ray_cast](./test/Examples/Example_ray_cast.cpp) | perform a maximum intensity projection ray cast directly on the APR data structures read from an APR file. |
 | [Example_reconstruct_image](./test/Examples/Example_reconstruct_image.cpp) | reconstruct an pixel image from an APR file. |
 
-For tutorial on how to use the examples, and explanation of data-structures see [the library guide](./docs/lib_guide).
+For tutorial on how to use the examples, and explanation of data-structures see [the library guide](./docs/lib_guide.pdf).
 
 ## Coming soon
 
