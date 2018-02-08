@@ -59,9 +59,9 @@ int main(int argc, char **argv) {
     apr_converter.par.output_dir = options.output_dir;
 
     apr_converter.fine_grained_timer.verbose_flag = false;
-    apr_converter.method_timer.verbose_flag = true;
-    apr_converter.computation_timer.verbose_flag = true;
-    apr_converter.allocation_timer.verbose_flag = true;
+    apr_converter.method_timer.verbose_flag = false;
+    apr_converter.computation_timer.verbose_flag = false;
+    apr_converter.allocation_timer.verbose_flag = false;
     apr_converter.total_timer.verbose_flag = true;
 
     //Gets the APR
@@ -79,17 +79,30 @@ int main(int argc, char **argv) {
 
         apr.interp_depth_ds(level);
 
+        std::cout << std::endl;
+
+        std::cout << "Saving down-sampled Particle Cell level as tiff image" << std::endl;
+
         std::string output_path = save_loc + file_name + "_level.tif";
         //write output as tiff
         TiffUtils::saveMeshAsTiff(output_path, level);
 
+        std::cout << std::endl;
+
+        std::cout << "Original image size: " << (2.0f*apr.orginal_dimensions(0)*apr.orginal_dimensions(1)*apr.orginal_dimensions(2))/(1000000.0) << " MB" << std::endl;
 
         timer.start_timer("writing output");
 
+        std::cout << "Writing the APR to hdf5..." << std::endl;
         //write the APR to hdf5 file
         apr.write_apr(save_loc,file_name);
 
         timer.stop_timer();
+
+        float computational_ratio = (1.0f*apr.orginal_dimensions(0)*apr.orginal_dimensions(1)*apr.orginal_dimensions(2))/(1.0f*apr.total_number_particles());
+
+        std::cout << std::endl;
+        std::cout << "Computational Ratio (Pixels/Particles): " << computational_ratio << std::endl;
 
 
         } else {
