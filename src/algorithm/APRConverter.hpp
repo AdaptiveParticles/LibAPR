@@ -209,7 +209,7 @@ bool APRConverter<ImageType>::get_apr_method(APR<ImageType>& apr, MeshData<T>& i
     }
 
     fine_grained_timer.stop_timer();
-    method_timer.verbose_flag = true;
+
     method_timer.start_timer("compute_gradient_magnitude_using_bsplines");
     MeshData<T> gradient;
     this->get_gradient(input_image,gradient); //note in the current pipeline don't actually use these variables, but here for interface (Use shared member allocated above variables)

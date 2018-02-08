@@ -721,7 +721,7 @@ void ComputeGradient::get_smooth_bspline_3D(MeshData<T>& input,APRParameters& pa
     //
 
     APRTimer spline_timer;
-    spline_timer.verbose_flag = true;
+    spline_timer.verbose_flag = false;
 
     float tol = 0.0001;
     float lambda = pars.lambda;
