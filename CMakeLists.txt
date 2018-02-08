@@ -1,10 +1,9 @@
 cmake_minimum_required(VERSION 3.2)
-project(libAPR)
+project(LibAPR)
 
 set(CMAKE_CXX_STANDARD 14)
 
 if(TESTS)
-    #find_package(GTest REQUIRED)
     add_subdirectory("external/gtest")
     set(GTEST_LIBRARIES gtest)
 endif(TESTS)
@@ -15,11 +14,10 @@ if(NOT OPENMP_FOUND OR DISABLE_OPENMP)
     message("OpenMP support not found with current compiler. While APR can compile like this, performance might not be optimal. Please see README.md for instructions.")
 else()
     set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -DHAVE_OPENMP ${OpenMP_C_FLAGS}")
-    set(CMAKE_CXX_FLAGS "${CMAKE_C_FLAGS} -DHAVE_OPENMP ${OpenMP_CXX_FLAGS}")
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DHAVE_OPENMP ${OpenMP_CXX_FLAGS}")
 endif()
 
 find_package(HDF5 REQUIRED)
-#find_package(Threads)
 find_package(SWIG 3.0 REQUIRED)
 find_package(JNI REQUIRED)
 INCLUDE(${SWIG_USE_FILE})
@@ -41,17 +39,6 @@ add_subdirectory("external/c-blosc")
 include_directories("external/c-blosc/blosc")
 
 include_directories(${PROJECT_SOURCE_DIR}/external/glm)
-
-set(SOURCE_FILES
-        benchmarks/development/old_io/readimage.h
-        benchmarks/development/old_io/writeimage.h
-        benchmarks/development/old_io/parameters.cpp
-        src/data_structures/Mesh/MeshData.hpp
-        src/data_structures/APR/APR.hpp
-        src/data_structures/APR/APRIterator.hpp
-        src/data_structures/APR/APRAcess.hpp
-	src/numerics/APRNumerics.hpp
-        )
 
 set(SOURCE_FILES_COMPILED
         src/io/blosc_filter.c
@@ -87,75 +74,26 @@ endif()
 
 
 if(TESTS)
-    add_executable(testMeshData
-            test/MeshDataTest.cpp
-            )
-
-    add_executable(testTiff
-            test/TiffTest.cpp
-            )
-
-    add_executable(testAPR
-            test/APRTest.cpp
-            ${SOURCE_FILES_COMPILED}
-            src/io/hdf5functions_blosc.cpp
-            )
-
+    add_executable(testMeshData test/MeshDataTest.cpp)
+    add_executable(testTiff test/TiffTest.cpp)
+    add_executable(testAPR test/APRTest.cpp ${SOURCE_FILES_COMPILED})
     target_link_libraries(testMeshData ${GTEST_LIBRARIES} ${TIFF_LIBRARIES})
     target_link_libraries(testTiff ${GTEST_LIBRARIES} ${TIFF_LIBRARIES})
     target_link_libraries(testAPR ${HDF5_LIBRARIES} ${GTEST_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT} ${TIFF_LIBRARIES} blosc_shared)
-
 endif(TESTS)
 
-add_executable(Example_get_apr
-        examples/Example_get_apr.cpp
-        ${SOURCE_FILES_COMPILED}
-        )
-
-add_executable(Example_apr_iterate
-        examples/Example_apr_iterate.cpp
-        ${SOURCE_FILES_COMPILED}
-        )
-
-add_executable(Example_reconstruct_image
-        examples/Example_reconstruct_image.cpp
-        ${SOURCE_FILES_COMPILED}
-        )
-
-add_executable(Example_ray_cast
-        examples/Example_ray_cast.cpp
-        ${SOURCE_FILES_COMPILED}
-        src/vis/Camera.cpp src/vis/Camera.h src/vis/Object.cpp src/vis/Object.h src/vis/RaytracedObject.cpp src/vis/RaytracedObject.h)
-
-add_executable(Example_compress
-        examples/Example_compress_apr.cpp
-        ${SOURCE_FILES_COMPILED}
-        )
-
-add_executable(Example_produce_paraview_file
-        examples/Example_produce_paraview_file.cpp
-        ${SOURCE_FILES_COMPILED}
-        )
-
-add_executable(Example_apr_neighbour_access
-        examples/Example_apr_neighbour_access.cpp
-
-        ${SOURCE_FILES_COMPILED}
-        )
-
-add_executable(Example_compute_gradient
-        examples/Example_compute_gradient.cpp
-        ${SOURCE_FILES_COMPILED}
-        )
-
-add_executable(Example_random_access
-        examples/Example_random_access.cpp
-        ${SOURCE_FILES_COMPILED}
-        )
+add_executable(Example_get_apr examples/Example_get_apr.cpp ${SOURCE_FILES_COMPILED})
+add_executable(Example_apr_iterate examples/Example_apr_iterate.cpp ${SOURCE_FILES_COMPILED})
+add_executable(Example_reconstruct_image examples/Example_reconstruct_image.cpp ${SOURCE_FILES_COMPILED})
+add_executable(Example_ray_cast examples/Example_ray_cast.cpp ${SOURCE_FILES_COMPILED} src/vis/Camera.cpp src/vis/Camera.h src/vis/Object.cpp src/vis/Object.h src/vis/RaytracedObject.cpp src/vis/RaytracedObject.h)
+add_executable(Example_compress examples/Example_compress_apr.cpp ${SOURCE_FILES_COMPILED})
+add_executable(Example_produce_paraview_file examples/Example_produce_paraview_file.cpp ${SOURCE_FILES_COMPILED})
+add_executable(Example_apr_neighbour_access examples/Example_apr_neighbour_access.cpp ${SOURCE_FILES_COMPILED})
+add_executable(Example_compute_gradient examples/Example_compute_gradient.cpp ${SOURCE_FILES_COMPILED})
+add_executable(Example_random_access examples/Example_random_access.cpp ${SOURCE_FILES_COMPILED})
 
 if(BUILD_WRAPPERS)
   SWIG_ADD_MODULE(apr java libapr.i
-
         ${SOURCE_FILES_COMPILED}
         )
   SWIG_LINK_LIBRARIES(apr ${HDF5_LIBRARIES} blosc_static ${TIFF_LIBRARIES})
