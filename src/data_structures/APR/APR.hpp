@@ -75,7 +75,6 @@ public:
 
     //basic IO
     void read_apr(std::string file_name){
-        //
         apr_writer.read_apr(*this,file_name);
     }
 
@@ -180,7 +179,6 @@ public:
         for (particle_number = 0; particle_number < apr_iterator.total_number_particles(); ++particle_number) {
             //needed step for any parallel loop (update to the next part)
             apr_iterator.set_iterator_to_particle_by_number(particle_number);
-
             parts[apr_iterator] = img.access_no_protection(apr_iterator.y_nearest_pixel(),apr_iterator.x_nearest_pixel(),apr_iterator.z_nearest_pixel());
         }
     }
@@ -191,8 +189,6 @@ public:
         //  Bevan Cheeseman 2016
         //
         //  Samples particles from an image using an image tree (img_by_level is a vector of images)
-        //
-
 
         //initialization of the iteration structures
         APRIterator<ImageType> apr_iterator(*this); //this is required for parallel access

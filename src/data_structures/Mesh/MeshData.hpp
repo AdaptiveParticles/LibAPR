@@ -145,9 +145,6 @@ public :
      */
     template <typename U>
     MeshData<U> to_type() const {
-        // TODO: currently it creates local object and returns it via copy...
-        //       for small objects it's acceptable but when sizes are big it is not so cool.
-        //       Should return (smart)pointer or sth.
         MeshData<U> new_value(y_num, x_num, z_num);
         std::copy(mesh.begin(), mesh.end(), new_value.mesh.begin());
         return new_value;
@@ -159,7 +156,7 @@ public :
      * @param x
      * @param z
      * @return element @(y, x, z)
-     */ //#FIXME changed it to size_t
+     */
     T& operator()(size_t y, size_t x, size_t z) {
         y = std::min(y, y_num-1);
         x = std::min(x, x_num-1);
@@ -175,8 +172,8 @@ public :
      * @param z
      * @return element @(y, x, z)
      */
-    T& access_no_protection(int y, int x, int z) {
-        size_t idx = (size_t)z * x_num * y_num + x * y_num + y;
+    T& access_no_protection(size_t y, size_t x, size_t z) {
+        size_t idx = z * x_num * y_num + x * y_num + y;
         return mesh[idx];
     }
 
@@ -343,6 +340,7 @@ public :
                            aOp);
         }
     }
+
     /**
      * Returns string with (y, x, z) coordinates for given index (for debug purposes)
      * @param aIdx
@@ -360,8 +358,7 @@ public :
         return outputStr.str();
     }
 
-    friend std::ostream & operator<<(std::ostream &os, const MeshData<T> &obj)
-    {
+    friend std::ostream & operator<<(std::ostream &os, const MeshData<T> &obj) {
         os << "MeshData: size(Y/X/Z)=" << obj.y_num << "/" << obj.x_num << "/" << obj.z_num << " vSize:" << obj.mesh.size() << " vCapacity:" << obj.mesh.capacity() << " elementSize:" << sizeof(T);
         return os;
     }

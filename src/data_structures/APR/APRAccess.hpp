@@ -37,11 +37,6 @@
 #define ZM_LEVEL_MASK ((((uint16_t)1) << 2) - 1) << 11
 #define ZM_LEVEL_SHIFT 11
 
-template<typename T>
-class ExtraParticleData;
-
-template<typename ImageType>
-class APRIterator;
 
 #include "APR.hpp"
 #include "ExtraParticleData.hpp"
@@ -90,7 +85,6 @@ struct LocalMapIterators{
 
 
 struct MapStorageData{
-
     std::vector<uint16_t> y_begin;
     std::vector<uint16_t> y_end;
     std::vector<uint64_t> global_index;
@@ -98,7 +92,6 @@ struct MapStorageData{
     std::vector<uint16_t> x;
     std::vector<uint8_t> level;
     std::vector<uint16_t> number_gaps;
-
 };
 
 
@@ -223,11 +216,9 @@ public:
         }
 
         return false;
-
     }
 
     inline uint64_t get_parts_start(const uint16_t& x,const uint16_t& z,const uint16_t& level){
-
         const uint64_t offset = x_num[level] * z + x;
         if(gap_map.data[level][offset].size() > 0){
             auto it = (gap_map.data[level][offset][0].map.begin());
@@ -235,7 +226,6 @@ public:
         } else {
             return (-1);
         }
-
     }
 
     inline uint64_t get_parts_end(const uint16_t& x,const uint16_t& z,const uint16_t& level){
@@ -246,7 +236,6 @@ public:
         } else {
             return (0);
         }
-
     }
 
     inline uint64_t global_index_end(MapIterator& it){
@@ -272,7 +261,6 @@ public:
     }
 
     bool find_particle_cell(ParticleCell& part_cell,MapIterator& map_iterator){
-
         if(gap_map.data[part_cell.level][part_cell.pc_offset].size() > 0) {
 
             ParticleCellGapMap& current_pc_map = gap_map.data[part_cell.level][part_cell.pc_offset][0];
@@ -574,12 +562,7 @@ public:
 
                 y_begin.data[i+1][offset_pc_data4].resize(size_v);
                 std::copy(y_begin.data[i+1][offset_pc_data1].begin(),y_begin.data[i+1][offset_pc_data1].end(),y_begin.data[i+1][offset_pc_data4].begin());
-
-                //end data copy
-
-
             }
-
         }
 
         //then need to loop over and then do a copy.
@@ -718,9 +701,7 @@ public:
         }
         total_number_non_empty_rows = counter_rows;
         apr_timer.stop_timer();
-
     }
-
 
     template<typename T>
     void allocate_map(APR<T>& apr,MapStorageData& map_data,std::vector<uint64_t>& cumsum){
@@ -746,7 +727,6 @@ public:
             gap_map.y_num[i] = y_num[i];
 
             gap_map.data[i].resize(z_num[i]*x_num[i]);
-
         }
 
         uint64_t j;
@@ -756,11 +736,8 @@ public:
         for (j = 0; j < total_number_non_empty_rows; ++j) {
 
             const uint64_t level = map_data.level[j];
-
             const uint64_t offset_pc_data =  x_num[level]* map_data.z[j] + map_data.x[j];
-
             const uint64_t global_begin = cumsum[j];
-
             const uint64_t number_gaps = map_data.number_gaps[j];
 
             YGap_map gap;
@@ -798,7 +775,6 @@ public:
             cumsum.push_back(counter);
             counter+=(map_data.number_gaps[j]);
         }
-
 
         allocate_map(apr,map_data,cumsum);
 
@@ -858,10 +834,7 @@ public:
                 global_index_by_level_end[i] = cumsum_parts-1;
             }
         }
-
         apr_timer.stop_timer();
-
-
     }
 
 
