@@ -371,21 +371,6 @@ private:
     MeshData(const MeshData&) = delete; // make it noncopyable
     MeshData& operator=(const MeshData&) = delete; // make it not assignable
 
-    //REMOVE_FLAG
-    void write_image_tiff(std::string& filename);
-    //REMOVE_FLAG
-    void write_image_tiff_uint16(std::string& filename);
-    //REMOVE_FLAG
-    void load_image_tiff(std::string file_name,int z_start = 0, int z_end = -1);
-    //REMOVE_FLAG
-    void set_size(int y_num_,int x_num_,int z_num_) {
-        y_num = y_num_;
-        x_num = x_num_;
-        z_num = z_num_;
-    }
-    //REMOVE_FLAG
-    template<typename V>
-    void write_image_tiff(std::vector<V> &data, std::string &filename);
 };
 
 

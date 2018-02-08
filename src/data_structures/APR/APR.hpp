@@ -54,13 +54,6 @@ private:
     APRReconstruction apr_recon;
     APRAccess apr_access;
 
-    //deprecated - old access paradigm
-    std::vector<uint64_t> num_parts;
-    std::vector<uint64_t> num_elements;
-    ExtraPartCellData<uint64_t> num_parts_xy;
-    uint64_t num_elements_total;
-    uint64_t num_parts_total;
-
 public:
 
     //APR Particle Intensities
@@ -70,13 +63,7 @@ public:
     std::string name;
     APRParameters parameters;
 
-    //old parameters (depreciated)
-
-    APR(){
-    }
-
-    //deprecitated
-    ExtraPartCellData<ImageType> particles_int_old; // holds the particles intenisty information
+    APR() {}
 
     unsigned int orginal_dimensions(int dim){
         return apr_access.org_dims[dim];
@@ -161,7 +148,6 @@ public:
         apr_recon.interp_img((*this),img, parts);
 
     }
-
 
     template<typename U>
     void interp_depth_ds(MeshData<U>& img){

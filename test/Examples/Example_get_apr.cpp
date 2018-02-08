@@ -28,10 +28,8 @@ Advanced (Direct) Settings:
 
 #include <algorithm>
 #include <iostream>
-
 #include "Example_get_apr.h"
 
-#include "src/io/TiffUtils.hpp"
 
 int main(int argc, char **argv) {
 

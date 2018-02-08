@@ -6,7 +6,7 @@
 #define PARTPLAY_APRWRITER_HPP
 
 #include "src/data_structures/APR/APR.hpp"
-//#include <src/data_structures/APR/APRAccess.hpp>
+#include <src/data_structures/APR/APRAccess.hpp>
 #include <numeric>
 
 template<typename U>
@@ -589,6 +589,7 @@ public:
         return file_size*1.0/1000000.0; //filesize in MB
 
     }
+
     template<typename ImageType,typename T>
     void write_apr_paraview(APR<ImageType>& apr,std::string save_loc,std::string file_name,ExtraParticleData<T>& parts){
         //
@@ -947,11 +948,7 @@ public:
         H5Fclose(fid);
 
     };
-
-
-
 };
-
 
 template<>
 hid_t APRWriter::get_type_data_hdf5<uint8_t>(uint8_t o){
@@ -997,8 +994,6 @@ template<>
 hid_t APRWriter::get_type_data_hdf5<uint64_t>(uint64_t o){
     return H5T_NATIVE_UINT64;
 };
-
-
 
 
 #endif //PARTPLAY_APRWRITER_HPP

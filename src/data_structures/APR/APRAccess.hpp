@@ -9,7 +9,6 @@
 
 #include <map>
 #include <utility>
-//#include <src/algorithm/PullingScheme.hpp>
 #include "src/data_structures/Mesh/MeshData.hpp"
 
 //TODO: IT SHOULD NOT BE DEFINDED HERE SINCE IT DUPLICATES FROM PullingScheme
@@ -57,12 +56,6 @@ struct ParticleCell {
     uint64_t pc_offset,global_index;
 };
 
-struct YGap {
-    uint64_t y_begin;
-    uint64_t y_end;
-    uint64_t global_index_begin;
-};
-
 struct YGap_map {
     uint16_t y_end;
     uint64_t global_index_begin;
@@ -71,11 +64,6 @@ struct YGap_map {
 struct ParticleCellGapMap{
     std::map<uint16_t,YGap_map> map;
 };
-
-struct YIterators{
-    ExtraPartCellData<std::map<uint16_t,YGap_map>::iterator> gap_map_it;
-};
-
 
 struct MapIterator{
     std::map<uint16_t,YGap_map>::iterator iterator;

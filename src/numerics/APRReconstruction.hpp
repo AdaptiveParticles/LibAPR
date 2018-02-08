@@ -62,9 +62,6 @@ public:
                 for (int64_t q = dim3; q < offset_max_dim3; ++q) {
 
                     for (int64_t k = dim2; k < offset_max_dim2; ++k) {
-    #ifdef HAVE_OPENMP
-	#pragma omp simd
-#endif
                         for (int64_t i = dim1; i < offset_max_dim1; ++i) {
                             img.mesh[i + (k) * img.y_num + q * img.y_num * img.x_num] = temp_int;
                         }
@@ -74,7 +71,6 @@ public:
         }
 
     }
-
 
 
     template<typename U,typename S>

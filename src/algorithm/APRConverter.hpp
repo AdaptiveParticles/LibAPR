@@ -24,11 +24,9 @@ class APRConverter: public LocalIntensityScale, public ComputeGradient, public L
 
 public:
 
-    APRConverter():image_type("uint16"){
-    }
+    APRConverter():image_type("uint16") {}
 
     APRParameters par;
-
     APRTimer total_timer;
     APRTimer allocation_timer;
     APRTimer computation_timer;

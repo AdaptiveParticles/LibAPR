@@ -32,7 +32,6 @@ Options:
 
 #include <algorithm>
 #include <iostream>
-#include <string>
 
 #include "../../src/data_structures/APR/APR.hpp"
 #include "src/io/TiffUtils.hpp"

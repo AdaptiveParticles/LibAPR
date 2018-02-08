@@ -13,7 +13,6 @@ class APRIterator;
 
 #include <functional>
 #include "src/data_structures/APR/APR.hpp"
-//#include "src/data_structures/APR/APRIterator.hpp"
 
 
 template<typename DataType>
@@ -36,9 +35,6 @@ public:
         // intialize from apr
         data.resize(apr.total_number_particles());
     }
-
-
-
 
     std::vector<DataType> data;
 
@@ -125,8 +121,6 @@ public:
 
     }
 
-
-
     template<typename V,class BinaryOperation,typename T>
     void zip_inplace(APR<T>& apr,ExtraParticleData<V> &parts2, BinaryOperation op,const uint64_t level = 0,unsigned int aNumberOfBlocks = 10){
         //
@@ -177,9 +171,6 @@ public:
             //Operation to be performed on the chunk
             std::transform(data.begin() + offsetBegin,data.begin() + offsetEnd, parts2.data.begin() + offsetBegin, data.begin() + offsetBegin, op);
         }
-
-
-
     }
 
     template<typename V,class BinaryOperation,typename T>
@@ -344,9 +335,7 @@ public:
             //Operation to be performed on the chunk
             std::transform(data.begin() + offsetBegin,data.begin() + offsetEnd, data.begin() + offsetBegin, op);
         }
-
     }
-
 };
 
 

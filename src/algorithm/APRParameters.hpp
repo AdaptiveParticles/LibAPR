@@ -11,10 +11,6 @@ class APRParameters {
 
 public:
 
-    APRParameters(){
-
-    };
-
     // pixel spacing
     float dx = 1;
     float dy = 1;
@@ -42,13 +38,6 @@ public:
     std::string input_image_name;
     std::string input_dir;
     std::string mask_file;
-
-
-
-    unsigned int interp_type = 2;
-
-
-
 };
 
 
