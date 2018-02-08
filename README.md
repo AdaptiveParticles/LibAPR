@@ -92,15 +92,15 @@ There are nine basic examples, that show how to generate and compute with the AP
 
 | Example | How to ... |
 |:--|:--|
-| [Example_get_apr](./test/Examples/Example_get_apr.cpp) | create an APR file from a TIFF. |
-| [Example_apr_iterate](./test/Examples/Example_apr_iterate.cpp) | iterate through a given APR file. |
-| [Example_neighbour_access](./test/Examples/Example_neighbour_access.cpp) | access particle and face neighbours. |
-| [Example_compress_apr](./test/Examples/Example_compress_apr.cpp) |  additionally compress the intensities stored in an APR file. |
-| [Example_compute_gradient](./test/Examples/Example_compute_gradient.cpp) | compute a gradient based on the stored particles in an APR file. |
-| [Example_produce_paraview_file](./test/Examples/Example_produce_paraview_file.cpp) | produce a file for visualisation in ParaView. |
-| [Example_random_access](./test/Examples/Example_random_access.cpp) | perform random access operations on particles. |
-| [Example_ray_cast](./test/Examples/Example_ray_cast.cpp) | perform a maximum intensity projection ray cast directly on the APR data structures read from an APR file. |
-| [Example_reconstruct_image](./test/Examples/Example_reconstruct_image.cpp) | reconstruct an pixel image from an APR file. |
+| [Example_get_apr](./examples/Example_get_apr.cpp) | create an APR file from a TIFF. |
+| [Example_apr_iterate](./examples/Example_apr_iterate.cpp) | iterate through a given APR file. |
+| [Example_neighbour_access](./examples/Example_neighbour_access.cpp) | access particle and face neighbours. |
+| [Example_compress_apr](./examples/Example_compress_apr.cpp) |  additionally compress the intensities stored in an APR file. |
+| [Example_compute_gradient](./examples/Example_compute_gradient.cpp) | compute a gradient based on the stored particles in an APR file. |
+| [Example_produce_paraview_file](./examples/Example_produce_paraview_file.cpp) | produce a file for visualisation in ParaView. |
+| [Example_random_access](./examples/Example_random_access.cpp) | perform random access operations on particles. |
+| [Example_ray_cast](./examples/Example_ray_cast.cpp) | perform a maximum intensity projection ray cast directly on the APR data structures read from an APR file. |
+| [Example_reconstruct_image](./examples/Example_reconstruct_image.cpp) | reconstruct an pixel image from an APR file. |
 
 For tutorial on how to use the examples, and explanation of data-structures see [the library guide](./docs/lib_guide.pdf).
 
