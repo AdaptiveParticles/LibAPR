@@ -149,7 +149,6 @@ bool test_apr_input_output(TestData& test_data){
     for (particle_number = 0; particle_number < apr_iterator_read.total_number_particles(); ++particle_number) {
 
         apr_iterator_read2.set_iterator_to_particle_by_number(particle_number);
-        //counter++;
 
         float temp = 0;
 
@@ -593,9 +592,6 @@ bool test_apr_pipeline(TestData& test_data){
 
     //Gets the APR
     if(apr_converter.get_apr(apr)){
-
-        std::cout << "NUM1: " << test_data.apr.total_number_particles() << std::endl;
-        std::cout << "NUM2: " << apr.total_number_particles() << std::endl;
         APRIterator<uint16_t> apr_iterator(apr);
         uint64_t particle_number = 0;
 
