@@ -32,15 +32,10 @@ std::string exec_blosc(const char* cmd) {
 }
 
 void register_bosc(){
-    
-    char *version, *date;
-    int r;
-    
     /* Register the filter with the library */
-    r = register_blosc(&version, &date);
-   //printf("Blosc version info: %s (%s)\n", version, date);
-    
-    
+    char *version, *date;
+    register_blosc(&version, &date);
+    //printf("Blosc version info: %s (%s)\n", version, date);
 }
 
 void hdf5_load_data_blosc(hid_t obj_id,hid_t data_type,void* buff, const char* data_name){
@@ -175,7 +170,7 @@ void hdf5_write_attribute_blosc(hid_t obj_id,hid_t type_id,const char* attr_name
     //writes data to the hdf5 file or group identified by obj_id of hdf5 datatype data_type
     
     //Declare the required hdf5 shiz
-    hid_t space_id,dset_id,attr_id;
+    hid_t space_id, attr_id;
     //hsize_t *cdims = new hsize_t[rank]; //chunking dims
     
     space_id = H5Screate_simple(rank, dims, NULL);
@@ -218,7 +213,7 @@ void hdf5_write_string_blosc(hid_t obj_id,const char* attr_name,std::string outp
 void hdf5_create_file_blosc(std::string file_name){
     //creates the hdf5 file before you can then write to it
     
-    hid_t fid,pr_groupid; //file id
+    hid_t fid; //file id
     
     //fid = H5F.create(name,'H5F_ACC_EXCL', 'H5P_DEFAULT', 'H5P_DEFAULT'); %create the file (throws error if it already exists)
     fid = H5Fcreate(file_name.c_str(),H5F_ACC_TRUNC, H5P_DEFAULT, H5P_DEFAULT); //this writes over the current file

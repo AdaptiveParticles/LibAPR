@@ -378,7 +378,6 @@ public:
             const unsigned int y_num_ = y_num[i];
 
             const unsigned int x_num_ds = x_num[i - 1];
-            const unsigned int z_num_ds = z_num[i - 1];
             const unsigned int y_num_ds = y_num[i - 1];
 
 #ifdef HAVE_OPENMP
@@ -487,8 +486,6 @@ public:
 
             for (x_ = 0; x_ < x_num_; x_++) {
                 const uint64_t offset_part_map = x_ * y_num_ + z_ * y_num_ * x_num_;
-                const uint64_t offset_pc_data = x_num_*z_ + x_;
-
                 const uint64_t offset_pc_data1 = std::min((uint64_t)x_num_us*(2*z_) + (2*x_),(uint64_t) x_num_us*z_num_us - 1);
 
 
@@ -538,16 +535,10 @@ public:
         for (z_ = 0; z_ < z_num_; z_++) {
 
             for (x_ = 0; x_ < x_num_; x_++) {
-                const uint64_t offset_part_map = x_ * y_num_ + z_ * y_num_ * x_num_;
-                const uint64_t offset_pc_data = x_num_*z_ + x_;
-
                 const uint64_t offset_pc_data1 = std::min((uint64_t)x_num_us*(2*z_) + (2*x_),(uint64_t) x_num_us*z_num_us - 1);
                 const uint64_t offset_pc_data2 = std::min((uint64_t)x_num_us*(2*z_) + (2*x_+1),(uint64_t) x_num_us*z_num_us - 1);
                 const uint64_t offset_pc_data3 = std::min((uint64_t)x_num_us*(2*z_+1) + (2*x_),(uint64_t) x_num_us*z_num_us - 1);
                 const uint64_t offset_pc_data4 = std::min((uint64_t)x_num_us*(2*z_+1) + (2*x_+1),(uint64_t) x_num_us*z_num_us - 1);
-
-                uint16_t current = 0;
-                uint16_t previous = 0;
 
                 YGap_map gap;
                 gap.global_index_begin = 0;
@@ -590,9 +581,8 @@ public:
 
             const unsigned int x_num_ = x_num[i];
             const unsigned int z_num_ = z_num[i];
-            const unsigned int y_num_ = y_num[i];
-            //set up the levels here.
 
+            //set up the levels here.
             uint64_t cumsum_begin = cumsum;
 
             global_index_by_level_and_z_begin[i].resize(z_num_,(-1));
@@ -680,7 +670,6 @@ public:
         for (uint64_t i = (apr.level_min()); i <= apr.level_max(); i++) {
             const unsigned int x_num_ = x_num[i];
             const unsigned int z_num_ = z_num[i];
-            const unsigned int y_num_ = y_num[i];
 #ifdef HAVE_OPENMP
 #pragma omp parallel for default(shared) private(z_, x_) reduction(+:counter_rows)if(z_num_*x_num_ > 100)
 #endif
@@ -799,9 +788,8 @@ public:
 
             const unsigned int x_num_ = x_num[i];
             const unsigned int z_num_ = z_num[i];
-            const unsigned int y_num_ = y_num[i];
-            //set up the levels here.
 
+            //set up the levels here.
             uint64_t cumsum_begin = cumsum_parts;
 
             global_index_by_level_and_z_begin[i].resize(z_num_,(-1));
@@ -861,7 +849,6 @@ public:
 
             const unsigned int x_num_ = x_num[i];
             const unsigned int z_num_ = z_num[i];
-            const unsigned int y_num_ = y_num[i];
 
             for (z_ = 0; z_ < z_num_; z_++) {
                 for (x_ = 0; x_ < x_num_; x_++) {
