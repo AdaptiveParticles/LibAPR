@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.2)
-project(LibAPR)
+project(APR)
 
 set(CMAKE_CXX_STANDARD 14)
 
@@ -18,19 +18,9 @@ else()
 endif()
 
 find_package(HDF5 REQUIRED)
-find_package(SWIG 3.0 REQUIRED)
-find_package(JNI REQUIRED)
-INCLUDE(${SWIG_USE_FILE})
-
-set(CMAKE_SWIG_OUTDIR "${CMAKE_CURRENT_SOURCE_DIR}/src/main/java/de/mpicbg/mosaic/apr")
-set(CMAKE_SWIG_FLAGS -package de.mpicbg.mosaic.apr -Wall)
-set(CMAKE_LIBRARY_OUTPUT_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/src/natives")
-
-SET_SOURCE_FILES_PROPERTIES(libapr.i PROPERTIES CPLUSPLUS ON)
-
 find_package(TIFF REQUIRED)
 
-include_directories(${HDF5_INCLUDE_DIRS} ${HDF5_INCLUDE_DIR} ${TIFF_INCLUDE_DIR} ${GTEST_INCLUDE_DIRS} sources tests ${JNI_INCLUDE_DIRS} ${CMAKE_CURRENT_SOURCE_DIR})
+include_directories(${HDF5_INCLUDE_DIRS} ${HDF5_INCLUDE_DIR} ${TIFF_INCLUDE_DIR} ${GTEST_INCLUDE_DIRS} sources tests ${CMAKE_CURRENT_SOURCE_DIR})
 
 SET(BUILD_TESTS OFF CACHE BOOL "")
 SET(BUILD_BENCHMARKS OFF CACHE BOOL "")
@@ -93,10 +83,16 @@ add_executable(Example_compute_gradient examples/Example_compute_gradient.cpp ${
 add_executable(Example_random_access examples/Example_random_access.cpp ${SOURCE_FILES_COMPILED})
 
 if(BUILD_WRAPPERS)
-  SWIG_ADD_MODULE(apr java libapr.i
-        ${SOURCE_FILES_COMPILED}
-        )
-  SWIG_LINK_LIBRARIES(apr ${HDF5_LIBRARIES} blosc_static ${TIFF_LIBRARIES})
+    find_package(SWIG 3.0 REQUIRED)
+    find_package(JNI REQUIRED)
+    set(CMAKE_LIBRARY_OUTPUT_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/src/natives")
+    include_directories(${JNI_INCLUDE_DIRS})
+    INCLUDE(${SWIG_USE_FILE})
+    set(CMAKE_SWIG_OUTDIR "${CMAKE_CURRENT_SOURCE_DIR}/src/main/java/de/mpicbg/mosaic/apr")
+    set(CMAKE_SWIG_FLAGS -package de.mpicbg.mosaic.apr -Wall)
+    SET_SOURCE_FILES_PROPERTIES(libapr.i PROPERTIES CPLUSPLUS ON)
+    SWIG_ADD_MODULE(apr java libapr.i ${SOURCE_FILES_COMPILED})
+    SWIG_LINK_LIBRARIES(apr ${HDF5_LIBRARIES} blosc_static ${TIFF_LIBRARIES})
 endif()
 
 target_link_libraries(Example_get_apr ${HDF5_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT} ${TIFF_LIBRARIES} blosc_shared)
@@ -117,4 +113,3 @@ set_target_properties(blosc_shared PROPERTIES
 list( APPEND ExternalSharedLibraries "${TIFF_LIBRARIES}" )
 message( STATUS "\tCopying shared libraries..." )
 file( COPY ${ExternalSharedLibraries} DESTINATION "${PROJECT_BINARY_DIR}")
-

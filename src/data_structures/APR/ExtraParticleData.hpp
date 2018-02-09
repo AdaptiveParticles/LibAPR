@@ -57,6 +57,16 @@ public:
         return data[apr_iterator.global_index()];
     }
 
+    template<typename S>
+    DataType get_particle(APRIterator<S>& apr_iterator){
+        return data[apr_iterator.global_index()];
+    }
+
+    template<typename S>
+    void set_particle(APRIterator<S>& apr_iterator,DataType set_val){
+        data[apr_iterator.global_index()] = set_val;
+    }
+
     template<typename S,typename T>
     void copy_parts(APR<T>& apr,const ExtraParticleData<S>& parts_to_copy,const uint64_t level = 0,unsigned int aNumberOfBlocks = 10){
         //
