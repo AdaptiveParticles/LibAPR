@@ -2,7 +2,7 @@
 # APR - Adaptive Particle Representation
 ###############################################################################
 cmake_minimum_required(VERSION 3.2)
-project(APR)
+project(LibAPR)
 set(CMAKE_CXX_STANDARD 14)
 
 ###############################################################################
@@ -23,9 +23,6 @@ set_target_properties(blosc_shared PROPERTIES RUNTIME_OUTPUT_DIRECTORY_DEBUG ${P
 set_target_properties(blosc_shared PROPERTIES RUNTIME_OUTPUT_DIRECTORY_RELEASE ${PROJECT_BINARY_DIR})
 include_directories("external/glm")
 include_directories("external/c-blosc/blosc")
-
-#Turns off warning in c-blosc/tests/test_shuffle_roundtrip_avx2.c
-SET(BUILD_TESTS OFF CACHE BOOL "")
 
 ###############################################################################
 # Configure compiler options
