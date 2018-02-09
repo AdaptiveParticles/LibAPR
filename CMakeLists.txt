@@ -1,8 +1,13 @@
+###############################################################################
+# APR - Adaptive Particle Representation
+###############################################################################
 cmake_minimum_required(VERSION 3.2)
 project(APR)
-
 set(CMAKE_CXX_STANDARD 14)
 
+###############################################################################
+# Find all required libraries
+###############################################################################
 find_package(HDF5 REQUIRED)
 find_package(TIFF REQUIRED)
 find_package(OpenMP)
@@ -13,16 +18,18 @@ else()
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DHAVE_OPENMP ${OpenMP_CXX_FLAGS}")
 endif()
 include_directories(${HDF5_INCLUDE_DIR} ${TIFF_INCLUDE_DIR} ${CMAKE_CURRENT_SOURCE_DIR})
-
-#Turns off warning in c-blosc/tests/test_shuffle_roundtrip_avx2.c
-SET(BUILD_TESTS OFF CACHE BOOL "")
-
 add_subdirectory("external/c-blosc")
 set_target_properties(blosc_shared PROPERTIES RUNTIME_OUTPUT_DIRECTORY_DEBUG ${PROJECT_BINARY_DIR})
 set_target_properties(blosc_shared PROPERTIES RUNTIME_OUTPUT_DIRECTORY_RELEASE ${PROJECT_BINARY_DIR})
 include_directories("external/glm")
 include_directories("external/c-blosc/blosc")
 
+#Turns off warning in c-blosc/tests/test_shuffle_roundtrip_avx2.c
+SET(BUILD_TESTS OFF CACHE BOOL "")
+
+###############################################################################
+# Configure compiler options
+###############################################################################
 # If you ever want to compile with icc it should look more or less like this:
 #set(CMAKE_CXX_COMPILER /opt/intel/compilers_and_libraries_2016/linux/bin/intel64/icc)
 #set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -qopenmp -ip -ansi-alias -xCORE-AVX2 ")
@@ -39,6 +46,9 @@ if (CMAKE_CXX_COMPILER_ID MATCHES "Clang")
     set(CMAKE_CXX_FLAGS_DEBUG  "-O0 -g")
 endif()
 
+###############################################################################
+# Generate APR library
+###############################################################################
 set(SOURCE_FILES src/io/blosc_filter.c src/io/hdf5functions_blosc.cpp)
 set(SOURCE_FILES_RAYCAST src/vis/Camera.cpp src/vis/Object.cpp src/vis/RaytracedObject.cpp)
 
@@ -47,6 +57,18 @@ set_target_properties(libapr PROPERTIES PREFIX "")
 target_include_directories(libapr PUBLIC external/glm)
 target_link_libraries(libapr PUBLIC ${HDF5_LIBRARIES} ${TIFF_LIBRARIES} blosc_shared)
 
+###############################################################################
+# Examples
+###############################################################################
+option (APR_BUILD_EXAMPLES "Build APR examples" ON)
+if(APR_BUILD_EXAMPLES)
+    message(STATUS "APR: Building examples")
+    add_subdirectory(examples)
+endif(APR_BUILD_EXAMPLES)
+
+###############################################################################
+# Tests
+###############################################################################
 option (APR_TESTS "Build tests wrappers" OFF)
 if (TESTS) # Temporarly added to keep backward compatibility
     set(APR_TESTS ON)
@@ -55,14 +77,12 @@ if(APR_TESTS)
     message(STATUS "APR: Building tests")
     add_subdirectory("external/gtest")
     set(GTEST_LIBRARIES gtest)
-    add_executable(testMeshData test/MeshDataTest.cpp)
-    add_executable(testTiff test/TiffTest.cpp)
-    add_executable(testAPR test/APRTest.cpp)
-    target_link_libraries(testMeshData ${GTEST_LIBRARIES} libapr)
-    target_link_libraries(testTiff ${GTEST_LIBRARIES} libapr)
-    target_link_libraries(testAPR ${GTEST_LIBRARIES} libapr)
+    add_subdirectory(test)
 endif(APR_TESTS)
 
+###############################################################################
+# JAVA wrappers
+###############################################################################
 option (APR_BUILD_JAVA_WRAPPERS "Build JAVA wrappers" OFF)
 if (BUILD_WRAPPERS) # Temporarly added to keep backward compatibility
     SET(APR_BUILD_JAVA_WRAPPERS ON)
@@ -80,9 +100,3 @@ if(APR_BUILD_JAVA_WRAPPERS)
     SWIG_ADD_LIBRARY(apr LANGUAGE java SOURCES libapr.i ${SOURCE_FILES})
     SWIG_LINK_LIBRARIES(apr ${HDF5_LIBRARIES} blosc_static ${TIFF_LIBRARIES})
 endif(APR_BUILD_JAVA_WRAPPERS)
-
-option (APR_BUILD_EXAMPLES "Build APR examples" ON)
-if(APR_BUILD_EXAMPLES)
-    message(STATUS "APR: Building examples")
-    add_subdirectory(examples)
-endif(APR_BUILD_EXAMPLES)
