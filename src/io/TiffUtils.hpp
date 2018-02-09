@@ -191,7 +191,7 @@ namespace TiffUtils {
 
             // read current directory
             for (tstrip_t strip = 0; strip < TIFFNumberOfStrips(aTiff.iFile); ++strip) {
-                tmsize_t readLen = TIFFReadEncodedStrip(aTiff.iFile, strip, (&aInputMesh.mesh[0] + currentOffset), (tsize_t) -1 /* read as much as possible */);
+                int64_t readLen = TIFFReadEncodedStrip(aTiff.iFile, strip, (&aInputMesh.mesh[0] + currentOffset), (tsize_t) -1 /* read as much as possible */);
                 currentOffset += readLen/sizeof(T);
             }
         }
@@ -256,7 +256,7 @@ namespace TiffUtils {
 
             size_t dataLen = ScanlineSize * height; // length of single image
             for (tstrip_t strip = 0; strip < TIFFNumberOfStrips(tif); ++strip) {
-                tmsize_t writeLen = TIFFWriteEncodedStrip(tif, strip, (void *) (&aData.mesh[0] + currentOffset), dataLen >= StripSize ? StripSize : dataLen);
+                int64_t writeLen = TIFFWriteEncodedStrip(tif, strip, (void *) (&aData.mesh[0] + currentOffset), dataLen >= StripSize ? StripSize : dataLen);
                 dataLen -= writeLen;
                 currentOffset += writeLen/sizeof(T);
             }
