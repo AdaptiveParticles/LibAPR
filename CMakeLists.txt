@@ -51,7 +51,7 @@ set(SOURCE_FILES_RAYCAST src/vis/Camera.cpp src/vis/Object.cpp src/vis/Raytraced
 
 add_library(libapr ${SOURCE_FILES} ${SOURCE_FILES_RAYCAST})
 set_target_properties(libapr PROPERTIES PREFIX "")
-target_include_directories(libapr PUBLIC external/glm)
+target_include_directories(libapr PUBLIC . src external/glm)
 target_link_libraries(libapr PUBLIC ${HDF5_LIBRARIES} ${TIFF_LIBRARIES} blosc_shared)
 
 ###############################################################################
