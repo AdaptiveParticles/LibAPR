@@ -1,6 +1,6 @@
 # LibAPR - The Adaptive Particle Representation Library
 
-Library for producing and processing on the Adaptive Particle Representation (APR).
+Library for producing and processing on the Adaptive Particle Representation (APR) (For article see: https://www.biorxiv.org/content/early/2018/02/09/263061).
 
 <img src="./docs/apr_lowfps_lossy.gif?raw=true">
 
@@ -115,4 +115,4 @@ For tutorial on how to use the examples, and explanation of data-structures see 
 
 If you use this library in an academic context, please cite the following paper:
 
-* Cheeseman, Günther, Susik, Gonciarz, Sbalzarini: _Forget Pixels: Adaptive Particle Representation of Fluorescence Microscopy Images_ (in preparation)
+* Cheeseman, Günther, Susik, Gonciarz, Sbalzarini: _Forget Pixels: Adaptive Particle Representation of Fluorescence Microscopy Images_ (bioRxiv 2018) https://www.biorxiv.org/content/early/2018/02/09/263061
