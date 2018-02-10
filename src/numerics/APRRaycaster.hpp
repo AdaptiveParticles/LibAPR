@@ -188,14 +188,7 @@ void APRRaycaster::perform_raycast(APR<U>& apr,ExtraParticleData<S>& particle_da
         // ray traced object, sitting on the origin, with no rotation applied
         RaytracedObject o = RaytracedObject(glm::vec3(0.0f, 0.0f, 0.0f), glm::fquat(1.0f, 0.0f, 0.0f, 0.0f));
 
-        glm::mat4 inverse_projection = glm::inverse(*cam.getProjection());
-        glm::mat4 inverse_modelview = glm::inverse((*cam.getView()) * (*o.getModel()));
-
         const glm::mat4 mvp = (*cam.getProjection()) * (*cam.getView());
-
-        const float x_camera = x0;
-        const float y_camera = y0 + radius * sin(theta);
-        const float z_camera = z0 + radius * cos(theta);
 
         ///////////////////////////////////////////
         ///
@@ -373,33 +366,17 @@ float APRRaycaster::perpsective_mesh_raycast(MeshData<S>& image,MeshData<U>& cas
         // ray traced object, sitting on the origin, with no rotation applied
         RaytracedObject o = RaytracedObject(glm::vec3(0.0f, 0.0f, 0.0f), glm::fquat(1.0f, 0.0f, 0.0f, 0.0f));
 
-        glm::mat4 inverse_projection = glm::inverse(*cam.getProjection());
-        glm::mat4 inverse_modelview = glm::inverse((*cam.getView()) * (*o.getModel()));
-
         const glm::mat4 mvp = (*cam.getProjection()) * (*cam.getView());
 
 
         MeshData<S> proj_img;
         proj_img.initialize(imageHeight, imageWidth, 1, 0);
 
-        //Need to add here a parameters here
-
-
-        bool end_domain = false;
-
-        //choose random direction to propogate along
-
-        int counter = 0;
-
-
-        const int dir = this->direction;
-
-        int z_, x_, j_, y_, i, k;
+        int z_, x_, j_, i, k;
 
         //loop over the resolutions of the structure
         const unsigned int x_num_ = image.x_num;
         const unsigned int z_num_ = image.z_num;
-        const float step_size = 1;
         const unsigned int y_num_ = image.y_num;
 
 #ifdef HAVE_OPENMP
@@ -409,8 +386,6 @@ float APRRaycaster::perpsective_mesh_raycast(MeshData<S>& image,MeshData<U>& cas
             //both z and x are explicitly accessed in the structure
 
             for (x_ = 0; x_ < x_num_; x_++) {
-
-                const unsigned int pc_offset = x_num_ * z_ + x_;
 
                 for (j_ = 0; j_ < y_num_; j_++) {
 

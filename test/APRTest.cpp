@@ -147,10 +147,7 @@ bool test_apr_input_output(TestData& test_data){
     APRIterator<uint16_t> apr_iterator_read2(apr_read);
 
     for (particle_number = 0; particle_number < apr_iterator_read.total_number_particles(); ++particle_number) {
-
         apr_iterator_read2.set_iterator_to_particle_by_number(particle_number);
-
-        float temp = 0;
 
         //loop over all the neighbours and set the neighbour iterator to it
         for (int direction = 0; direction < 6; ++direction) {
@@ -174,11 +171,8 @@ bool test_apr_input_output(TestData& test_data){
                     if(!check_neighbours(apr_read,apr_iterator_read2,neighbour_iterator)){
                         success = false;
                     }
-
                 }
-
             }
-
         }
     }
 

@@ -33,8 +33,6 @@ public:
         //need to register the filters so they work properly
         register_bosc();
 
-        int num_parts,num_cells;
-
         fid = H5Fopen(file_name.c_str(),H5F_ACC_RDONLY,H5P_DEFAULT);
 
         //Get the group you want to open
@@ -53,9 +51,9 @@ public:
         //
         //////////////////////////////////////////////
 
-        hid_t       aid, atype, attr;
+        hid_t aid, atype;
 
-        aid = H5Screate(H5S_SCALAR);
+        H5Screate(H5S_SCALAR);
 
         apr.name.reserve(100);
 
@@ -346,22 +344,7 @@ public:
 
         write_timer.verbose_flag = false;
 
-        //initialize
-        uint64_t node_val_part;
-        uint64_t y_coord;
-        int x_;
-        int z_;
-
-        uint64_t j_;
-        uint64_t status;
-        uint64_t curr_key=0;
-        uint64_t part_offset=0;
-
-
         //Neighbour Routine Checking
-
-        uint64_t p;
-
         register_bosc();
 
         std::string hdf5_file_name = save_loc + file_name + "_apr.h5";
@@ -473,16 +456,11 @@ public:
 
         write_timer.start_timer("intensities");
 
-        uint64_t depth_min = apr.level_min();
-
         if(compress_type_num > 0){
-
             apr_compressor.compress(apr,apr.particles_intensities);
-
         }
 
         dims = apr.particles_intensities.data.size();
-
 
         //just an identifier in here for the reading of the parts
         ImageType val = 0;
@@ -569,7 +547,6 @@ public:
             hdf5_write_attribute_blosc(pr_groupid,H5T_NATIVE_INT,name.c_str(),1,&dim_a, &attr);
         }
 
-        hsize_t attr =apr.apr_access.level_min;
         hdf5_write_attribute_blosc(pr_groupid,H5T_NATIVE_UINT64,"level_max",1,&dim_a, &apr.apr_access.level_max );
         hdf5_write_attribute_blosc(pr_groupid,H5T_NATIVE_UINT64,"level_min",1,&dim_a, &apr.apr_access.level_min );
 
@@ -608,22 +585,7 @@ public:
 
         write_timer.verbose_flag = false;
 
-        //initialize
-        uint64_t node_val_part;
-        uint64_t y_coord;
-        int x_;
-        int z_;
-
-        uint64_t j_;
-        uint64_t status;
-        uint64_t curr_key=0;
-        uint64_t part_offset=0;
-
-
         //Neighbour Routine Checking
-
-        uint64_t p;
-
         register_bosc();
 
         std::string hdf5_file_name = save_loc + file_name + "_paraview.h5";
@@ -749,7 +711,6 @@ public:
         name = "type";
         hdf5_write_data_blosc(obj_id, H5T_NATIVE_UINT8, name.c_str(), rank, &dims, typev.data(),blosc_comp_type,blosc_comp_level,blosc_shuffle);
 
-        hsize_t attr =apr.apr_access.level_min;
         hdf5_write_attribute_blosc(pr_groupid,H5T_NATIVE_INT,"level_max",1,&dim_a, &apr.apr_access.level_max );
         hdf5_write_attribute_blosc(pr_groupid,H5T_NATIVE_INT,"level_min",1,&dim_a, &apr.apr_access.level_min );
 
@@ -783,21 +744,7 @@ public:
         //
         //
 
-        //initialize
-        uint64_t node_val_part;
-        uint64_t y_coord;
-        int x_;
-        int z_;
-
-        uint64_t j_;
-        uint64_t status;
-        uint64_t curr_key=0;
-        uint64_t part_offset=0;
-
-
         //Neighbour Routine Checking
-
-        uint64_t p;
 
         register_bosc();
 
@@ -816,7 +763,6 @@ public:
         hsize_t rank = 1;
 
         hsize_t dims;
-        hsize_t dim_a=1;
 
         fid = H5Fopen(hdf5_file_name.c_str(),H5F_ACC_RDWR,H5P_DEFAULT);
 
@@ -902,8 +848,6 @@ public:
         //need to register the filters so they work properly
         register_bosc();
 
-        int num_parts,num_cells;
-
         fid = H5Fopen(file_name.c_str(),H5F_ACC_RDONLY,H5P_DEFAULT);
 
         //Get the group you want to open
@@ -926,7 +870,7 @@ public:
         H5Aread(attr_id,H5T_NATIVE_UINT64,&total_number_parts) ;
         H5Aclose(attr_id);
 
-        hid_t       aid, atype, attr;
+        hid_t       aid;
 
         aid = H5Screate(H5S_SCALAR);
 
@@ -935,8 +879,6 @@ public:
         attr_id = 	H5Aopen(pr_groupid,"data_type",H5P_DEFAULT);
         H5Aread(attr_id,H5T_NATIVE_INT,&data_type ) ;
         H5Aclose(attr_id);
-
-        hid_t hdf5_data_type = 0;
 
         extra_parts.data.resize(total_number_parts);
         std::string dataset_name = "extra_particle_data";

@@ -25,15 +25,7 @@ public:
 
         img.initialize( apr.orginal_dimensions(0), apr.orginal_dimensions(1), apr.orginal_dimensions(2),0);
 
-        int z_,x_,j_,y_;
-
         for (uint64_t level = apr_iterator.level_min(); level <= apr_iterator.level_max(); ++level) {
-            //loop over the resolutions of the structure
-            const int64_t x_num_ =  apr.spatial_index_x_max(level);
-            const int64_t z_num_ = apr.spatial_index_z_max(level);
-
-            const int64_t x_num_min_ = 0;
-            const int64_t z_num_min_ = 0;
 
             const float step_size = pow(2,apr_iterator.level_max() - level);
 

@@ -63,13 +63,6 @@ int main(int argc, char **argv) {
         //This step is required for all loops to set the iterator by the particle number
         apr_iterator.set_iterator_to_particle_by_number(particle_number);
 
-        //once set you can access all informaiton on the particle cell
-        uint64_t current_particle_cell_spatial_index_x = apr_iterator.x();
-        uint64_t current_particle_cell_spatial_index_y = apr_iterator.y();
-        uint64_t current_particle_cell_spatial_index_z = apr_iterator.z();
-        uint64_t current_particle_cell_level = apr_iterator.level();
-        uint64_t current_particle_cell_type = apr_iterator.type();
-
         //you can then also use it to access any particle properties stored as ExtraParticleData
         calc_ex[apr_iterator]= 10.0f*apr.particles_intensities[apr_iterator];
 
@@ -87,16 +80,6 @@ int main(int argc, char **argv) {
         for (particle_number = apr_iterator.particles_level_begin(level); particle_number < apr_iterator.particles_level_end(level); ++particle_number) {
 
             apr_iterator.set_iterator_to_particle_by_number(particle_number); // (Required step), sets the iterator to the particle
-
-            //you can also retrieve global co-ordinates of the particles
-            float x_global = apr_iterator.x_global();
-            float y_global = apr_iterator.y_global();
-            float z_global = apr_iterator.z_global();
-
-            //or the closest pixel in the original image
-            unsigned int x_nearest_pixel = apr_iterator.x_nearest_pixel();
-            unsigned int y_nearest_pixel = apr_iterator.y_nearest_pixel();
-            unsigned int z_nearest_pixel = apr_iterator.z_nearest_pixel();
 
             if(apr.particles_intensities[apr_iterator] > 100){
                 //set all particles in calc_ex with an particle intensity greater then 100 to 0.
@@ -128,12 +111,6 @@ int main(int argc, char **argv) {
         if(apr_iterator.level() < apr_iterator.level_max()) {
             //get global y co-ordinate of the particle and put result in calc_example_2 at the current Particle Cell (PC) location
             calc_example_2[apr_iterator] = apr_iterator.y_global();
-
-            int x = apr_iterator.x(); // gets the Particle cell spatial index x.
-
-            int z_pixel = apr_iterator.z_nearest_pixel(); //gets the rounded up nearest pixel to the co-ordinate from original image (Larger then PC pixels don't align with pixels)
-             // gets the level of the Particle Cell (higher the level (depth), the smaller the Particle Cell --> higher resolution locally) PC at pixel resolution depth = depth_max();
-            unsigned int level = apr_iterator.level(); //same as above
         }
     }
 
@@ -236,9 +213,6 @@ int main(int argc, char **argv) {
     for (int level = apr_iterator.level_min(); level <= apr_iterator.level_max(); ++level) {
         for(unsigned int z = 0; z < apr_iterator.spatial_index_z_max(level); ++z) {
 
-            uint64_t  begin = apr_iterator.particles_z_begin(level,z);
-            uint64_t  end = apr_iterator.particles_z_end(level,z);
-
 #ifdef HAVE_OPENMP
 	#pragma omp parallel for schedule(static) private(particle_number) firstprivate(apr_iterator)
 #endif
@@ -277,9 +251,6 @@ int main(int argc, char **argv) {
 	#pragma omp parallel for schedule(static) private(particle_number,z) firstprivate(apr_iterator) reduction(+:counter)
 #endif
         for(z = 0; z < apr.spatial_index_z_max(level); ++z) {
-
-            uint64_t  begin = apr_iterator.particles_z_begin(level,z);
-            uint64_t  end = apr_iterator.particles_z_end(level,z);
 
             for (particle_number = apr_iterator.particles_z_begin(level,z);
                  particle_number < apr_iterator.particles_z_end(level,z); ++particle_number) {

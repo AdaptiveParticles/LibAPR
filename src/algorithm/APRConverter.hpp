@@ -458,7 +458,6 @@ void APRConverter<ImageType>::auto_parameters(const MeshData<T>& input_img){
     std::vector<uint64_t> freq(num_bins);
     uint64_t counter = 0;
     double total=0;
-    uint64_t q =0;
 
     size_t xnumynum = input_img.x_num*input_img.y_num;
     par_timer.start_timer("get_histogram");

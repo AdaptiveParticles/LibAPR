@@ -129,7 +129,7 @@ public:
 
             //predict_input.copy_parts(predict_output,apr.level_max()-1);
 
-            predict_output.map_inplace(apr,[this](const float a) { return round(a); }, apr.level_max() - 1);
+            predict_output.map_inplace(apr,[](const float a) { return round(a); }, apr.level_max() - 1);
             predict_output.map_inplace(apr,[this](const float a) { return variance_stabilitzation<float>(a); },
                                        apr.level_max() - 1);
 
