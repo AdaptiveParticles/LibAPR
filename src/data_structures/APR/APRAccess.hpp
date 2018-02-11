@@ -407,8 +407,7 @@ public:
 
         apr_timer.start_timer("second_step");
 
-        ExtraPartCellData<std::pair<uint16_t,YGap_map>> y_begin;
-        y_begin.initialize_structure_parts_empty(apr);
+        ExtraPartCellData<std::pair<uint16_t,YGap_map>> y_begin(apr);
 
         for(uint64_t i = (apr.level_min());i < apr.level_max();i++) {
 
@@ -701,20 +700,11 @@ public:
 
         gap_map.z_num.resize(gap_map.depth_max+1);
         gap_map.x_num.resize(gap_map.depth_max+1);
-        gap_map.y_num.resize(gap_map.depth_max+1);
-
         gap_map.data.resize(gap_map.depth_max+1);
-
-        gap_map.org_dims.resize(3);
-        gap_map.org_dims[0] = org_dims[0];
-        gap_map.org_dims[1] = org_dims[1];
-        gap_map.org_dims[2] = org_dims[2];
 
         for(uint64_t i = gap_map.depth_min;i <= gap_map.depth_max;i++){
             gap_map.z_num[i] = z_num[i];
             gap_map.x_num[i] = x_num[i];
-            gap_map.y_num[i] = y_num[i];
-
             gap_map.data[i].resize(z_num[i]*x_num[i]);
         }
 
