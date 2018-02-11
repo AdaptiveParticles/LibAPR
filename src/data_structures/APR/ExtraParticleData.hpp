@@ -5,13 +5,9 @@
 #ifndef PARTPLAY_EXTRAPARTICLEDATA_HPP
 #define PARTPLAY_EXTRAPARTICLEDATA_HPP
 
-template<typename V>
-class APR;
 
-template<typename V>
-class APRIterator;
-
-#include "src/data_structures/APR/APR.hpp"
+template<typename V> class APR;
+template<typename V> class APRIterator;
 
 
 template<typename DataType>
@@ -19,73 +15,61 @@ class ExtraParticleData {
 
 private:
 
-    uint64_t parallel_particle_number_threshold;
+    static const uint64_t parallel_particle_number_threshold = 5000000l;
 
 public:
 
-    //the neighbours arranged by face
-
-    ExtraParticleData():parallel_particle_number_threshold(5000000l){
-    };
-
-
-    template<typename S>
-    ExtraParticleData(APR<S>& apr):parallel_particle_number_threshold(5000000l){
-        // intialize from apr
-        data.resize(apr.total_number_particles());
-    }
-
     std::vector<DataType> data;
 
+    ExtraParticleData() {};
     template<typename S>
-    void init(APR<S>& apr){
+    ExtraParticleData(const APR<S> &apr) { init(apr); }
+
+    template<typename S>
+    void init(const APR<S> &apr){
         data.resize(apr.total_number_particles());
     }
 
-    uint64_t total_number_particles(){
+    uint64_t total_number_particles() const {
         return data.size();
     }
 
-    /////////////////
-    /// ////
-    /// \tparam S
-    /// \param apr_iterator
-    /// \return access to particle data
-
+    /**
+     * Access particle via iterator
+     * @param apr_iterator
+     * @return reference to stored particle
+     */
     template<typename S>
-    DataType& operator[](APRIterator<S>& apr_iterator){
+    DataType& operator[](const APRIterator<S>& apr_iterator) {
         return data[apr_iterator.global_index()];
     }
 
     template<typename S>
-    DataType get_particle(APRIterator<S>& apr_iterator){
+    DataType get_particle(const APRIterator<S>& apr_iterator) const {
         return data[apr_iterator.global_index()];
     }
 
     template<typename S>
-    void set_particle(APRIterator<S>& apr_iterator,DataType set_val){
+    void set_particle(const APRIterator<S>& apr_iterator, DataType set_val) {
         data[apr_iterator.global_index()] = set_val;
     }
 
+    /**
+     * Copy's the data from one particle dataset to another
+     */
     template<typename S,typename T>
-    void copy_parts(APR<T>& apr,const ExtraParticleData<S>& parts_to_copy,const uint64_t level = 0,unsigned int aNumberOfBlocks = 10){
-        //
-        //  Copy's the data from one particle dataset to another
-        //
-
-        const uint64_t total_number_of_particles = parts_to_copy.data.size();
+    void copy_parts(APR<T> &apr, const ExtraParticleData<S> &particlesToCopy, uint64_t level = 0, unsigned int aNumberOfBlocks = 10) {
+        const uint64_t total_number_of_particles = particlesToCopy.data.size();
 
         //checking if its the right size, if it is, this should do nothing.
-        this->data.resize(total_number_of_particles);
+        data.resize(total_number_of_particles);
 
         APRIterator<T> apr_iterator(apr);
 
         size_t particle_number_start;
         size_t particle_number_stop;
-        size_t total_particles_to_iterate;
-
-        if(level==0){
-            particle_number_start=0;
+        if (level==0){
+            particle_number_start = 0;
             particle_number_stop = total_number_of_particles;
 
         } else {
@@ -93,20 +77,18 @@ public:
             particle_number_stop = apr_iterator.particles_level_end(level);
         }
 
-        total_particles_to_iterate = particle_number_stop - particle_number_start;
-
         //determine if openMP should be used.
-        if(total_particles_to_iterate < parallel_particle_number_threshold){
+        size_t total_particles_to_iterate = particle_number_stop - particle_number_start;
+        if (total_particles_to_iterate < parallel_particle_number_threshold) {
             aNumberOfBlocks = 1;
         }
 
         const size_t numOfElementsPerBlock = total_particles_to_iterate/aNumberOfBlocks;
 
-        unsigned int blockNum;
-#ifdef HAVE_OPENMP
-	#pragma omp parallel for private(blockNum) schedule(static)
-#endif
-        for (blockNum = 0; blockNum < aNumberOfBlocks; ++blockNum) {
+        #ifdef HAVE_OPENMP
+	    #pragma omp parallel for schedule(static)
+        #endif
+        for (unsigned int blockNum = 0; blockNum < aNumberOfBlocks; ++blockNum) {
             size_t offsetBegin = particle_number_start + blockNum * numOfElementsPerBlock;
             size_t offsetEnd =  offsetBegin + numOfElementsPerBlock;
             if (blockNum == aNumberOfBlocks - 1) {
@@ -115,51 +97,40 @@ public:
             }
 
             //Operation to be performed on the chunk
-            std::copy(parts_to_copy.data.begin() + offsetBegin, parts_to_copy.data.begin() + offsetEnd, this->data.begin() + offsetBegin);
+            std::copy(particlesToCopy.data.begin() + offsetBegin, particlesToCopy.data.begin() + offsetEnd, data.begin() + offsetBegin);
         }
-
     }
 
+    /**
+     * Takes two particle data sets and adds them, and puts it in the first one
+     * Bevan Cheeseman 2017
+     */
     template<typename V,class BinaryOperation,typename T>
-    void zip_inplace(APR<T>& apr,ExtraParticleData<V> &parts2, BinaryOperation op,const uint64_t level = 0,unsigned int aNumberOfBlocks = 10){
-        //
-        //  Bevan Cheeseman 2017
-        //
-        //  Takes two particle data sets and adds them, and puts it in the first one
-        //
-        //  See std::transform for examples of Unary Operators
-        //
-        //
-
+    void zip_inplace(APR<T> &apr, const ExtraParticleData<V> &parts2, BinaryOperation op, uint64_t level = 0, unsigned int aNumberOfBlocks = 10) {
         APRIterator<T> apr_iterator(apr);
 
         size_t particle_number_start;
         size_t particle_number_stop;
-        size_t total_particles_to_iterate;
-
-        if(level==0){
-            particle_number_start=0;
+        if (level==0) {
+            particle_number_start = 0;
             particle_number_stop = total_number_particles();
-
         } else {
             particle_number_start = apr_iterator.particles_level_begin(level);
             particle_number_stop = apr_iterator.particles_level_end(level);
         }
 
-        total_particles_to_iterate = particle_number_stop - particle_number_start;
-
         //determine if openMP should be used.
-        if(total_particles_to_iterate < parallel_particle_number_threshold){
+        size_t total_particles_to_iterate = particle_number_stop - particle_number_start;
+        if (total_particles_to_iterate < parallel_particle_number_threshold) {
             aNumberOfBlocks = 1;
         }
 
         const size_t numOfElementsPerBlock = total_particles_to_iterate/aNumberOfBlocks;
 
-        unsigned int blockNum;
-#ifdef HAVE_OPENMP
-	#pragma omp parallel for private(blockNum) schedule(static)
-#endif
-        for (blockNum = 0; blockNum < aNumberOfBlocks; ++blockNum) {
+        #ifdef HAVE_OPENMP
+	    #pragma omp parallel for schedule(static)
+        #endif
+        for (unsigned int blockNum = 0; blockNum < aNumberOfBlocks; ++blockNum) {
             size_t offsetBegin = particle_number_start + blockNum * numOfElementsPerBlock;
             size_t offsetEnd =  offsetBegin + numOfElementsPerBlock;
             if (blockNum == aNumberOfBlocks - 1) {
@@ -168,53 +139,42 @@ public:
             }
 
             //Operation to be performed on the chunk
-            std::transform(data.begin() + offsetBegin,data.begin() + offsetEnd, parts2.data.begin() + offsetBegin, data.begin() + offsetBegin, op);
+            std::transform(data.begin() + offsetBegin, data.begin() + offsetEnd, parts2.data.begin() + offsetBegin, data.begin() + offsetBegin, op);
         }
     }
 
+    /**
+     * Takes two particle data sets and adds them, and puts it in the output
+     * Bevan Cheeseman 2017
+     */
     template<typename V,class BinaryOperation,typename T>
-    void zip(APR<T>& apr,ExtraParticleData<V> &parts2,ExtraParticleData<V>& output, BinaryOperation op,const uint64_t level = 0,unsigned int aNumberOfBlocks = 10){
-        //
-        //  Bevan Cheeseman 2017
-        //
-        //  Takes two particle data sets and adds them, and puts it in the first one
-        //
-        //  See std::transform for examples of BinaryOperation
-        //
-        //  Returns the result to another particle dataset
-        //
-
+    void zip(APR<T>& apr, const ExtraParticleData<V> &parts2, ExtraParticleData<V>& output, BinaryOperation op, uint64_t level = 0, unsigned int aNumberOfBlocks = 10) {
         output.data.resize(data.size());
 
         APRIterator<T> apr_iterator(apr);
 
         size_t particle_number_start;
         size_t particle_number_stop;
-        size_t total_particles_to_iterate;
-
-        if(level==0){
-            particle_number_start=0;
+        if (level==0) {
+            particle_number_start = 0;
             particle_number_stop = total_number_particles();
-
         } else {
             particle_number_start = apr_iterator.particles_level_begin(level);
             particle_number_stop = apr_iterator.particles_level_end(level);
         }
 
-        total_particles_to_iterate = particle_number_stop - particle_number_start;
-
         //determine if openMP should be used.
-        if(total_particles_to_iterate < parallel_particle_number_threshold){
+        size_t total_particles_to_iterate = particle_number_stop - particle_number_start;
+        if (total_particles_to_iterate < parallel_particle_number_threshold) {
             aNumberOfBlocks = 1;
         }
 
         const size_t numOfElementsPerBlock = total_particles_to_iterate/aNumberOfBlocks;
 
-        unsigned int blockNum;
-#ifdef HAVE_OPENMP
-	#pragma omp parallel for private(blockNum) schedule(static)
-#endif
-        for (blockNum = 0; blockNum < aNumberOfBlocks; ++blockNum) {
+        #ifdef HAVE_OPENMP
+	    #pragma omp parallel for schedule(static)
+        #endif
+        for (unsigned int blockNum = 0; blockNum < aNumberOfBlocks; ++blockNum) {
             size_t offsetBegin = particle_number_start + blockNum * numOfElementsPerBlock;
             size_t offsetEnd =  offsetBegin + numOfElementsPerBlock;
             if (blockNum == aNumberOfBlocks - 1) {
@@ -223,53 +183,42 @@ public:
             }
 
             //Operation to be performed on the chunk
-            std::transform(data.begin() + offsetBegin,data.begin() + offsetEnd, parts2.data.begin() + offsetBegin, output.data.begin() + offsetBegin, op);
+            std::transform(data.begin() + offsetBegin, data.begin() + offsetEnd, parts2.data.begin() + offsetBegin, output.data.begin() + offsetBegin, op);
         }
     }
 
-
+    /**
+     * Performs a unary operator on a particle dataset in parrallel and returns it in output
+     * Bevan Cheeseman 2018
+     */
     template<typename T,typename U,class UnaryOperator>
     void map(APR<T>& apr,ExtraParticleData<U>& output,UnaryOperator op,const uint64_t level = 0,unsigned int aNumberOfBlocks = 10){
-        //
-        //  Bevan Cheeseman 2018
-        //
-        //  Performs a unary operator on a particle dataset in parrallel and returns a new dataset with the result
-        //
-        //  See std::transform for examples of different operators to use
-        //
-        //
-
         output.data.resize(data.size());
 
         APRIterator<T> apr_iterator(apr);
 
         size_t particle_number_start;
         size_t particle_number_stop;
-        size_t total_particles_to_iterate;
-
-        if(level==0){
+        if (level==0) {
             particle_number_start=0;
             particle_number_stop = total_number_particles();
-
         } else {
             particle_number_start = apr_iterator.particles_level_begin(level);
             particle_number_stop = apr_iterator.particles_level_end(level);
         }
 
-        total_particles_to_iterate = particle_number_stop - particle_number_start;
-
         //determine if openMP should be used.
-        if(total_particles_to_iterate < parallel_particle_number_threshold){
+        size_t total_particles_to_iterate = particle_number_stop - particle_number_start;
+        if (total_particles_to_iterate < parallel_particle_number_threshold) {
             aNumberOfBlocks = 1;
         }
 
         const size_t numOfElementsPerBlock = total_particles_to_iterate/aNumberOfBlocks;
 
-        unsigned int blockNum;
-#ifdef HAVE_OPENMP
-	#pragma omp parallel for schedule(static) private(blockNum)
-#endif
-        for (blockNum = 0; blockNum < aNumberOfBlocks; ++blockNum) {
+        #ifdef HAVE_OPENMP
+	    #pragma omp parallel for schedule(static)
+        #endif
+        for (unsigned int blockNum = 0; blockNum < aNumberOfBlocks; ++blockNum) {
             size_t offsetBegin = particle_number_start + blockNum * numOfElementsPerBlock;
             size_t offsetEnd =  offsetBegin + numOfElementsPerBlock;
             if (blockNum == aNumberOfBlocks - 1) {
@@ -280,48 +229,38 @@ public:
             //Operation to be performed on the chunk
             std::transform(data.begin() + offsetBegin,data.begin() + offsetEnd, output.data.begin() + offsetBegin, op);
         }
-
     }
 
+    /**
+     * Performs a unary operator on a particle dataset inplace in parrallel
+     * Bevan Cheeseman 2018
+     */
     template<class UnaryOperator,typename T>
     void map_inplace(APR<T>& apr,UnaryOperator op,const uint64_t level = 0,unsigned int aNumberOfBlocks = 10){
-        //
-        //  Bevan Cheeseman 2018
-        //
-        //  Performs a unary operator on a particle dataset in parrallel and returns a new dataset with the result
-        //
-        //  See std::transform for examples of different operators to use
-        //
-
         APRIterator<T> apr_iterator(apr);
 
         size_t particle_number_start;
         size_t particle_number_stop;
-        size_t total_particles_to_iterate;
-
-        if(level==0){
+        if (level==0) {
             particle_number_start=0;
             particle_number_stop = total_number_particles();
-
         } else {
             particle_number_start = apr_iterator.particles_level_begin(level);
             particle_number_stop = apr_iterator.particles_level_end(level);
         }
 
-        total_particles_to_iterate = particle_number_stop - particle_number_start;
-
         //determine if openMP should be used.
-        if(total_particles_to_iterate < parallel_particle_number_threshold){
+        size_t total_particles_to_iterate = particle_number_stop - particle_number_start;
+        if (total_particles_to_iterate < parallel_particle_number_threshold){
             aNumberOfBlocks = 1;
         }
 
         const size_t numOfElementsPerBlock = total_particles_to_iterate/aNumberOfBlocks;
 
-        unsigned int blockNum;
-#ifdef HAVE_OPENMP
-	#pragma omp parallel for private(blockNum) schedule(static)
-#endif
-        for (blockNum = 0; blockNum < aNumberOfBlocks; ++blockNum) {
+        #ifdef HAVE_OPENMP
+	    #pragma omp parallel for schedule(static)
+        #endif
+        for (unsigned int blockNum = 0; blockNum < aNumberOfBlocks; ++blockNum) {
             size_t offsetBegin = particle_number_start + blockNum * numOfElementsPerBlock;
             size_t offsetEnd =  offsetBegin + numOfElementsPerBlock;
             if (blockNum == aNumberOfBlocks - 1) {
@@ -330,7 +269,7 @@ public:
             }
 
             //Operation to be performed on the chunk
-            std::transform(data.begin() + offsetBegin,data.begin() + offsetEnd, data.begin() + offsetBegin, op);
+            std::transform(data.begin() + offsetBegin, data.begin() + offsetEnd, data.begin() + offsetBegin, op);
         }
     }
 };

@@ -222,7 +222,7 @@ public:
         return current_particle_cell.level;
     }
 
-    inline uint64_t global_index(){
+    inline uint64_t global_index() const {
         //get x
         return current_particle_cell.global_index;
     }

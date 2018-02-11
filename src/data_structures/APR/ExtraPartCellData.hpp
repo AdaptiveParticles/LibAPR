@@ -9,6 +9,7 @@
 #ifndef PARTPLAY_EXTRAPARTCELLDATA_HPP
 #define PARTPLAY_EXTRAPARTCELLDATA_HPP
 
+
 template<typename V> class APR;
 
 template<typename T>
@@ -30,6 +31,25 @@ public:
 
 
     template<typename S>
+    void initialize_structure_parts_empty(const APR<S>& apr) {
+        // Initialize the structure to the same size as the given structure
+        depth_max = apr.level_max();
+        depth_min = apr.level_min();
+
+        z_num.resize(depth_max+1);
+        x_num.resize(depth_max+1);
+        data.resize(depth_max+1);
+
+        for (uint64_t i = depth_min; i <= depth_max; ++i) {
+            z_num[i] = apr.spatial_index_z_max(i);
+            x_num[i] = apr.spatial_index_x_max(i);
+            data[i].resize(z_num[i]*x_num[i]);
+        }
+    }
+
+private:
+
+    template<typename S>
     void initialize_structure_parts(const ExtraPartCellData<S>& part_data) {
         // Initialize the structure to the same size as the given structure
 
@@ -40,30 +60,13 @@ public:
         x_num.resize(depth_max+1);
         data.resize(depth_max+1);
 
-        for(uint64_t i = depth_min; i <= depth_max; ++i) {
+        for (uint64_t i = depth_min; i <= depth_max; ++i) {
             z_num[i] = part_data.z_num[i];
             x_num[i] = part_data.x_num[i];
             data[i].resize(z_num[i]*x_num[i]);
-            for(uint64_t j = 0; j < part_data.data[i].size(); ++j) {
+            for (uint64_t j = 0; j < part_data.data[i].size(); ++j) {
                 data[i][j].resize(part_data.data[i][j].size(),0);
             }
-        }
-    }
-
-    template<typename S>
-    void initialize_structure_parts_empty(const APR<S>& apr) {
-        // Initialize the structure to the same size as the given structure
-        depth_max = apr.level_max();
-        depth_min = apr.level_min();
-
-        z_num.resize(depth_max+1);
-        x_num.resize(depth_max+1);
-        data.resize(depth_max+1);
-
-        for(uint64_t i = depth_min; i <= depth_max; ++i) {
-            z_num[i] = apr.spatial_index_z_max(i);
-            x_num[i] = apr.spatial_index_x_max(i);
-            data[i].resize(z_num[i]*x_num[i]);
         }
     }
 };
