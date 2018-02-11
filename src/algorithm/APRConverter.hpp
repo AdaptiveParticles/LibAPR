@@ -13,10 +13,10 @@
 #include "src/io/TiffUtils.hpp"
 #include "src/data_structures/APR/APR.hpp"
 
-#include "src/algorithm/ComputeGradient.hpp"
-#include "src/algorithm/LocalIntensityScale.hpp"
-#include "src/algorithm/LocalParticleCellSet.hpp"
-#include "src/algorithm/PullingScheme.hpp"
+#include "ComputeGradient.hpp"
+#include "LocalIntensityScale.hpp"
+#include "LocalParticleCellSet.hpp"
+#include "PullingScheme.hpp"
 
 
 template<typename ImageType>
@@ -67,10 +67,6 @@ public:
 
 private:
 
-    /*
-     * Private member variables
-     */
-
     //pointer to the APR structure so member functions can have access if they need
     APR<ImageType>* apr_;
 
@@ -107,9 +103,6 @@ private:
     void get_local_particle_cell_set(MeshData<T>& grad_image_ds,MeshData<S>& local_intensity_scale_ds);
 };
 
-/*
- * Implimentations
- */
 
 template<typename ImageType> template<typename T>
 bool APRConverter<ImageType>::get_apr_method_from_file(APR<ImageType>& apr, const TiffUtils::TiffInfo &tiffFile) {

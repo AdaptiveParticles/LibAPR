@@ -5,7 +5,7 @@
 #ifndef PARTPLAY_LOCAL_INTENSITY_SCALE_HPP
 #define PARTPLAY_LOCAL_INTENSITY_SCALE_HPP
 
-#include "src/algorithm/APRParameters.hpp"
+#include "APRParameters.hpp"
 
 class LocalIntensityScale {
 

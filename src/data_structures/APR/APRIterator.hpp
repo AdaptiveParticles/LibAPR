@@ -6,7 +6,7 @@
 #define PARTPLAY_APR_ITERATOR_NEW_HPP
 
 #include "APR.hpp"
-#include "src/data_structures/APR/APRAccess.hpp"
+#include "APRAccess.hpp"
 
 template<typename ImageType>
 class APRIterator {
@@ -342,13 +342,6 @@ public:
         return 1;
 
     }
-
-//    template<typename S>
-//    S& operator()(ExtraParticleData<S>& parts){
-//        //accesses the value of particle data when iterating
-//        return parts.data[current_particle_cell.global_index];
-//    }
-
 
     inline unsigned int x_nearest_pixel(){
         //get x

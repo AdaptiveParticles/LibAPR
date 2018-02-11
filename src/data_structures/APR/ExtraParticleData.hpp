@@ -104,6 +104,7 @@ public:
     /**
      * Takes two particle data sets and adds them, and puts it in the first one
      * Bevan Cheeseman 2017
+     * TODO: zip and zip_inplace are doing technicaly same thing - merge them
      */
     template<typename V,class BinaryOperation,typename T>
     void zip_inplace(APR<T> &apr, const ExtraParticleData<V> &parts2, BinaryOperation op, uint64_t level = 0, unsigned int aNumberOfBlocks = 10) {
@@ -190,6 +191,7 @@ public:
     /**
      * Performs a unary operator on a particle dataset in parrallel and returns it in output
      * Bevan Cheeseman 2018
+     * TODO: map and map_inplace are doing technicaly same thing - merge them
      */
     template<typename T,typename U,class UnaryOperator>
     void map(APR<T>& apr,ExtraParticleData<U>& output,UnaryOperator op,const uint64_t level = 0,unsigned int aNumberOfBlocks = 10){

@@ -5,18 +5,15 @@
 #ifndef PARTPLAY_APR_HPP
 #define PARTPLAY_APR_HPP
 
-#include "src/io/hdf5functions_blosc.h"
+
 #include "src/misc/APRTimer.hpp"
 #include "src/algorithm/APRParameters.hpp"
 #include "src/numerics/APRCompress.hpp"
-#include "src/data_structures/APR/APRAccess.hpp"
-#include "src/io/APRWriter.hpp"
 #include "src/numerics/APRReconstruction.hpp"
-#include "src/data_structures/APR/ExtraParticleData.hpp"
+#include "src/io/APRWriter.hpp"
+#include "APRAccess.hpp"
+#include "ExtraParticleData.hpp"
 
-
-class APRParameters;
-class OldAPRConverter;
 
 template<typename ImageType>
 class APR {
@@ -31,42 +28,21 @@ class APR {
     APRAccess apr_access;
 
 public:
-    APR() {}
 
-    //APR Particle Intensities
     ExtraParticleData<ImageType> particles_intensities;
-
-    //Main internal datastructures
     std::string name;
     APRParameters parameters;
 
-    unsigned int orginal_dimensions(int dim){
-        return apr_access.org_dims[dim];
-    }
+    unsigned int orginal_dimensions(int dim) const { return apr_access.org_dims[dim]; }
 
-    uint64_t level_max() const {
-        return apr_access.level_max;
-    }
+    uint64_t level_max() const { return apr_access.level_max; }
+    uint64_t level_min() const { return apr_access.level_min; }
 
-    uint64_t level_min() const {
-        return apr_access.level_min;
-    }
+    inline uint64_t spatial_index_x_max(const unsigned int level) const { return apr_access.x_num[level]; }
+    inline uint64_t spatial_index_y_max(const unsigned int level) const { return apr_access.y_num[level]; }
+    inline uint64_t spatial_index_z_max(const unsigned int level) const { return apr_access.z_num[level]; }
 
-    inline uint64_t spatial_index_x_max(const unsigned int level) const {
-        return (apr_access).x_num[level];
-    }
-
-    inline uint64_t spatial_index_y_max(const unsigned int level) const {
-        return (apr_access).y_num[level];
-    }
-
-    inline uint64_t spatial_index_z_max(const unsigned int level) const {
-        return (apr_access).z_num[level];
-    }
-
-    inline uint64_t total_number_particles() const {
-        return (apr_access).total_number_particles;
-    }
+    inline uint64_t total_number_particles() const { return (apr_access).total_number_particles; }
 
     ///////////////////////////////////
     ///
@@ -159,32 +135,6 @@ public:
     }
 
     template<typename U,typename V>
-    void get_parts_from_img(MeshData<U>& img,ExtraParticleData<V>& parts){
-        //
-        //  Bevan Cheeseman 2016
-        //
-        //  Samples particles from an image using the nearest pixel (rounded up, i.e. next pixel after particles that sit on off pixel locations)
-        //
-
-        // TODO: re-write this.
-
-        //initialization of the iteration structures
-        APRIterator<ImageType> apr_iterator(*this); //this is required for parallel access
-        uint64_t particle_number;
-        parts.data.resize(apr_iterator.total_number_particles());
-
-
-#ifdef HAVE_OPENMP
-	#pragma omp parallel for schedule(static) private(particle_number) firstprivate(apr_iterator)
-#endif
-        for (particle_number = 0; particle_number < apr_iterator.total_number_particles(); ++particle_number) {
-            //needed step for any parallel loop (update to the next part)
-            apr_iterator.set_iterator_to_particle_by_number(particle_number);
-            parts[apr_iterator] = img.access_no_protection(apr_iterator.y_nearest_pixel(),apr_iterator.x_nearest_pixel(),apr_iterator.z_nearest_pixel());
-        }
-    }
-
-    template<typename U,typename V>
     void get_parts_from_img(std::vector<MeshData<U>>& img_by_level,ExtraParticleData<V>& parts){
         //
         //  Bevan Cheeseman 2016
@@ -193,17 +143,14 @@ public:
 
         //initialization of the iteration structures
         APRIterator<ImageType> apr_iterator(*this); //this is required for parallel access
-        uint64_t particle_number;
-
         parts.data.resize(apr_iterator.total_number_particles());
 
-#ifdef HAVE_OPENMP
-	#pragma omp parallel for schedule(static) private(particle_number) firstprivate(apr_iterator)
-#endif
-        for (particle_number = 0; particle_number < apr_iterator.total_number_particles(); ++particle_number) {
+        #ifdef HAVE_OPENMP
+	    #pragma omp parallel for schedule(static) firstprivate(apr_iterator)
+        #endif
+        for (uint64_t particle_number = 0; particle_number < apr_iterator.total_number_particles(); ++particle_number) {
             //needed step for any parallel loop (update to the next part)
             apr_iterator.set_iterator_to_particle_by_number(particle_number);
-
             parts[apr_iterator] = img_by_level[apr_iterator.level()].access_no_protection(apr_iterator.y(),apr_iterator.x(),apr_iterator.z());
         }
     }

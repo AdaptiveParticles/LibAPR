@@ -18,7 +18,6 @@
 #include <memory>
 #include <sstream>
 
-#include <tiffio.h>
 #include "src/misc/APRTimer.hpp"
 
 
