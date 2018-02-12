@@ -67,9 +67,6 @@ endif(APR_BUILD_EXAMPLES)
 # Tests
 ###############################################################################
 option (APR_TESTS "Build tests wrappers" OFF)
-if (TESTS) # Temporarly added to keep backward compatibility
-    set(APR_TESTS ON)
-endif(TESTS)
 if(APR_TESTS)
     message(STATUS "APR: Building tests")
     add_subdirectory("external/gtest")
@@ -81,9 +78,6 @@ endif(APR_TESTS)
 # JAVA wrappers
 ###############################################################################
 option (APR_BUILD_JAVA_WRAPPERS "Build JAVA wrappers" OFF)
-if (BUILD_WRAPPERS) # Temporarly added to keep backward compatibility
-    SET(APR_BUILD_JAVA_WRAPPERS ON)
-endif(BUILD_WRAPPERS)
 if(APR_BUILD_JAVA_WRAPPERS)
     message(STATUS "APR: Building JAVA wrappers")
     find_package(SWIG 3.0 REQUIRED)
