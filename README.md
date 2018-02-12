@@ -14,6 +14,10 @@ Labeled Zebrafish nuclei: Gopi Shah, Huisken Lab ([MPI-CBG](https://www.mpi-cbg.
 * LibTIFF 5.0 or higher
 * SWIG 3.0.12 (optional, for generating Java wrappers)
 
+Opening hdf5 files in ParaView or HDFView requires additional installation of two libraries:
+* c-blosc 1.11.2 or higher
+* hdf5-blosc 1.1.0 or higher
+
 ## Building
 
 The repository requires sub-modules, so the repository needs to be cloned recursively:
