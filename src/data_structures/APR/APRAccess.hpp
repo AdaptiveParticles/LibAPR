@@ -563,7 +563,7 @@ public:
         apr_timer.start_timer("forth loop");
 
         //iteration helpers for by level
-        global_index_by_level_begin.resize(apr.level_max()+1,0);
+        global_index_by_level_begin.resize(apr.level_max()+1,1);
         global_index_by_level_end.resize(apr.level_max()+1,0);
 
         cumsum= 0;
@@ -571,6 +571,7 @@ public:
         total_number_gaps=0;
 
         uint64_t min_level_find = apr.level_max();
+        uint64_t max_level_find = apr.level_min();
 
         //set up the iteration helpers for by zslice
         global_index_by_level_and_z_begin.resize(apr.level_max()+1);
@@ -596,6 +597,7 @@ public:
                     for (int j = 0; j < y_begin.data[i][offset_pc_data].size(); ++j) {
 
                         min_level_find = std::min(i,min_level_find);
+                        max_level_find = std::max(i,max_level_find);
 
                         y_begin.data[i][offset_pc_data][j].second.global_index_begin = cumsum;
 
@@ -626,6 +628,7 @@ public:
 
         //set minimum level now to the first non-empty level.
         level_min = min_level_find;
+        level_max = max_level_find;
 
         total_number_non_empty_rows=0;
 
