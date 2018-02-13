@@ -7,6 +7,8 @@ add_executable(Example_apr_neighbour_access Example_apr_neighbour_access.cpp)
 add_executable(Example_compute_gradient Example_compute_gradient.cpp)
 add_executable(Example_random_access Example_random_access.cpp)
 add_executable(Example_ray_cast Example_ray_cast.cpp)
+add_executable(Example_apr_tree Example_apr_tree.cpp)
+
 
 target_link_libraries(Example_get_apr libapr)
 target_link_libraries(Example_apr_iterate libapr)
@@ -17,3 +19,4 @@ target_link_libraries(Example_compress libapr)
 target_link_libraries(Example_compute_gradient libapr)
 target_link_libraries(Example_random_access libapr)
 target_link_libraries(Example_ray_cast libapr)
+target_link_libraries(Example_apr_tree libapr)
