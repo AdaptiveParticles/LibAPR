@@ -50,7 +50,6 @@ int main(int argc, char **argv) {
     apr_converter.par.mask_file = options.mask_file;
     apr_converter.par.min_signal = options.min_signal;
     apr_converter.par.SNR_min = options.SNR_min;
-    apr_converter.image_type = options.img_type;
 
     //where things are
     apr_converter.par.input_image_name = options.input;
@@ -201,14 +200,5 @@ cmdLineOptions read_command_line_options(int argc, char **argv){
         result.mask_file = std::string(get_command_option(argv, argv + argc, "-mask_file"));
     }
 
-    if(command_option_exists(argv, argv + argc, "-u8bit_img"))
-    {
-        result.img_type = "uint8";
-    } else if(command_option_exists(argv, argv + argc, "-float_img")){
-        result.img_type = "float";
-    }
-
-
     return result;
-
 }

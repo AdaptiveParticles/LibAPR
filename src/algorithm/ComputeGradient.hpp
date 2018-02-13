@@ -75,9 +75,9 @@ void ComputeGradient::mask_gradient(MeshData<T>& grad_ds,MeshData<S>& temp_ds,Me
 
     TiffUtils::getMesh(file_name, temp_full);
 
-    down_sample(temp_ds,temp_full,
-                [](const T &x, const T &y) -> T { return std::max(x,y); },
-                [](const T &x) -> T { return x; });
+    downsample(temp_ds, temp_full,
+               [](const T &x, const T &y) -> T { return std::max(x, y); },
+               [](const T &x) -> T { return x; });
 
     #ifdef HAVE_OPENMP
 	#pragma omp parallel for default(shared)

@@ -83,7 +83,7 @@ public :
     /**
      * Constructor - initialize mesh with size of 0,0,0
      */
-    MeshData() { initialize(0, 0, 0); }
+    MeshData() { init(0, 0, 0); }
 
     /**
      * Constructor - initialize initial size of mesh to provided values
@@ -91,7 +91,7 @@ public :
      * @param aSizeOfX
      * @param aSizeOfZ
      */
-    MeshData(int aSizeOfY, int aSizeOfX, int aSizeOfZ) { initialize(aSizeOfY, aSizeOfX, aSizeOfZ); }
+    MeshData(int aSizeOfY, int aSizeOfX, int aSizeOfZ) { init(aSizeOfY, aSizeOfX, aSizeOfZ); }
 
     /**
      * Constructor - creates mesh with provided dimentions initialized to aInitVal
@@ -100,7 +100,7 @@ public :
      * @param aSizeOfZ
      * @param aInitVal - initial value of all elements
      */
-    MeshData(int aSizeOfY, int aSizeOfX, int aSizeOfZ, T aInitVal) { initialize(aSizeOfY, aSizeOfX, aSizeOfZ, aInitVal); }
+    MeshData(int aSizeOfY, int aSizeOfX, int aSizeOfZ, T aInitVal) { init(aSizeOfY, aSizeOfX, aSizeOfZ, aInitVal); }
 
     /**
      * Move constructor
@@ -133,7 +133,7 @@ public :
      */
     template<typename U>
     MeshData(const MeshData<U> &aMesh, bool aShouldCopyData) {
-        initialize(aMesh.y_num, aMesh.x_num, aMesh.z_num);
+        init(aMesh.y_num, aMesh.x_num, aMesh.z_num);
         if (aShouldCopyData) std::copy(aMesh.mesh.begin(), aMesh.mesh.end(), mesh.begin());
     }
 
@@ -143,7 +143,7 @@ public :
      * @return created object by value
      */
     template <typename U>
-    MeshData<U> to_type() const {
+    MeshData<U> toType() const {
         MeshData<U> new_value(y_num, x_num, z_num);
         std::copy(mesh.begin(), mesh.end(), new_value.mesh.begin());
         return new_value;
@@ -171,7 +171,7 @@ public :
      * @param z
      * @return element @(y, x, z)
      */
-    T& access_no_protection(size_t y, size_t x, size_t z) {
+    T& at(size_t y, size_t x, size_t z) {
         size_t idx = z * x_num * y_num + x * y_num + y;
         return mesh[idx];
     }
@@ -184,7 +184,7 @@ public :
      * @param aNumberOfBlocks in how many chunks copy will be done
      */
     template<typename U>
-    void block_copy_data(const MeshData<U> &aInputMesh, unsigned int aNumberOfBlocks = 8) {
+    void copyFromMesh(const MeshData<U> &aInputMesh, unsigned int aNumberOfBlocks = 8) {
         aNumberOfBlocks = std::min((unsigned int)z_num, aNumberOfBlocks);
         unsigned int numOfElementsPerBlock = z_num/aNumberOfBlocks;
 
@@ -213,7 +213,7 @@ public :
      * @param aInitVal
      * NOTE: If mesh was already created only added elements (new size > old size) will be initialize with aInitVal
      */
-    void initialize(int aSizeOfY, int aSizeOfX, int aSizeOfZ, T aInitVal) {
+    void init(int aSizeOfY, int aSizeOfX, int aSizeOfZ, T aInitVal) {
         y_num = aSizeOfY;
         x_num = aSizeOfX;
         z_num = aSizeOfZ;
@@ -246,8 +246,8 @@ public :
      * @param aInputMesh
      */
     template<typename S>
-    void initialize(const MeshData<S>& aInputMesh) {
-        initialize(aInputMesh.y_num, aInputMesh.x_num, aInputMesh.z_num);
+    void init(const MeshData<S> &aInputMesh) {
+        init(aInputMesh.y_num, aInputMesh.x_num, aInputMesh.z_num);
     }
 
     /**
@@ -256,7 +256,7 @@ public :
      * @param aSizeOfX
      * @param aSizeOfZ
      */
-    void initialize(int aSizeOfY, int aSizeOfX, int aSizeOfZ) {
+    void init(int aSizeOfY, int aSizeOfX, int aSizeOfZ) {
         y_num = aSizeOfY;
         x_num = aSizeOfX;
         z_num = aSizeOfZ;
@@ -272,12 +272,12 @@ public :
      * @param aSizeOfX
      * @param aSizeOfZ
      */
-    void preallocate(int aSizeOfY, int aSizeOfX, int aSizeOfZ) {
+    void initDownsampled(int aSizeOfY, int aSizeOfX, int aSizeOfZ) {
         const int z_num_ds = ceil(1.0*aSizeOfZ/2.0);
         const int x_num_ds = ceil(1.0*aSizeOfX/2.0);
         const int y_num_ds = ceil(1.0*aSizeOfY/2.0);
 
-        initialize(y_num_ds, x_num_ds, z_num_ds);
+        init(y_num_ds, x_num_ds, z_num_ds);
     }
 
     /**
@@ -287,12 +287,12 @@ public :
      * @param aSizeOfZ
      * @param aInitVal
      */
-    void preallocate(int aSizeOfY, int aSizeOfX, int aSizeOfZ, T aInitVal) {
+    void initDownsampled(int aSizeOfY, int aSizeOfX, int aSizeOfZ, T aInitVal) {
         const int z_num_ds = ceil(1.0*aSizeOfZ/2.0);
         const int x_num_ds = ceil(1.0*aSizeOfX/2.0);
         const int y_num_ds = ceil(1.0*aSizeOfY/2.0);
 
-        initialize(y_num_ds, x_num_ds, z_num_ds, aInitVal);
+        init(y_num_ds, x_num_ds, z_num_ds, aInitVal);
     }
 
     /**
@@ -316,7 +316,7 @@ public :
      * @param aNumberOfBlocks - in how many chunks copy will be done
      */
     template<typename U, typename R>
-    void initWithUnaryOp(const MeshData<U> &aInputMesh, R aOp, size_t aNumberOfBlocks = 10) {
+    void copyFromMeshWithUnaryOp(const MeshData<U> &aInputMesh, R aOp, size_t aNumberOfBlocks = 10) {
         aNumberOfBlocks = std::min(aInputMesh.z_num, (size_t)aNumberOfBlocks);
         size_t numOfElementsPerBlock = aInputMesh.z_num/aNumberOfBlocks;
 
@@ -345,13 +345,13 @@ public :
      * @param aIdx
      * @return
      */
-    std::string getIdx(uint64_t aIdx) const {
+    std::string getStrIndex(size_t aIdx) const {
         if (aIdx < 0 || aIdx >= mesh.size()) return "(ErrIdx)";
-        uint64_t z = aIdx / (x_num * y_num);
+        size_t z = aIdx / (x_num * y_num);
         aIdx -= z * (x_num * y_num);
-        uint64_t x = aIdx / y_num;
+        size_t x = aIdx / y_num;
         aIdx -= x * y_num;
-        uint64_t y = aIdx;
+        size_t y = aIdx;
         std::ostringstream outputStr;
         outputStr << "(" << y << ", " << x << ", " << z << ")";
         return outputStr.str();
@@ -371,22 +371,22 @@ private:
 
 
 template<typename T, typename S, typename R, typename C>
-void down_sample(const MeshData<T>& aInput, MeshData<S>& aOutput, R reduce, C constant_operator, bool aInitializeOutput = false) {
-    const int64_t z_num = aInput.z_num;
-    const int64_t x_num = aInput.x_num;
-    const int64_t y_num = aInput.y_num;
+void downsample(const MeshData<T> &aInput, MeshData<S> &aOutput, R reduce, C constant_operator, bool aInitializeOutput = false) {
+    const size_t z_num = aInput.z_num;
+    const size_t x_num = aInput.x_num;
+    const size_t y_num = aInput.y_num;
 
     // downsampled dimensions twice smaller (rounded up)
-    const int64_t z_num_ds = (int64_t) ceil(z_num/2.0);
-    const int64_t x_num_ds = (int64_t) ceil(x_num/2.0);
-    const int64_t y_num_ds = (int64_t) ceil(y_num/2.0);
+    const size_t z_num_ds = ceil(z_num/2.0);
+    const size_t x_num_ds = ceil(x_num/2.0);
+    const size_t y_num_ds = ceil(y_num/2.0);
 
     APRTimer timer;
     timer.verbose_flag = false;
 
     if (aInitializeOutput) {
         timer.start_timer("downsample_initalize");
-        aOutput.initialize(y_num_ds, x_num_ds, z_num_ds);
+        aOutput.init(y_num_ds, x_num_ds, z_num_ds);
         timer.stop_timer();
     }
 
@@ -394,8 +394,8 @@ void down_sample(const MeshData<T>& aInput, MeshData<S>& aOutput, R reduce, C co
     #ifdef HAVE_OPENMP
     #pragma omp parallel for default(shared)
     #endif
-    for (int64_t z = 0; z < z_num_ds; ++z) {
-        for (int64_t x = 0; x < x_num_ds; ++x) {
+    for (size_t z = 0; z < z_num_ds; ++z) {
+        for (size_t x = 0; x < x_num_ds; ++x) {
 
             // shifted +1 in original inMesh space
             const int64_t shx = std::min(2*x + 1, x_num - 1);
@@ -404,7 +404,7 @@ void down_sample(const MeshData<T>& aInput, MeshData<S>& aOutput, R reduce, C co
             const ArrayWrapper<T> &inMesh = aInput.mesh;
             ArrayWrapper<S> &outMesh = aOutput.mesh;
 
-            for (int64_t y = 0; y < y_num_ds; ++y) {
+            for (size_t y = 0; y < y_num_ds; ++y) {
                 const int64_t shy = std::min(2*y + 1, y_num - 1);
                 const int64_t idx = z * x_num_ds * y_num_ds + x * y_num_ds + y;
                 outMesh[idx] =  constant_operator(
@@ -425,7 +425,7 @@ void down_sample(const MeshData<T>& aInput, MeshData<S>& aOutput, R reduce, C co
 }
 
 template<typename T>
-void downsample_pyrmaid(MeshData<T> &original_image, std::vector<MeshData<T>> &downsampled, size_t l_max, size_t l_min) {
+void downsamplePyrmaid(MeshData<T> &original_image, std::vector<MeshData<T>> &downsampled, size_t l_max, size_t l_min) {
     downsampled.resize(l_max + 1); // each level is kept at same index
     downsampled.back().swap(original_image); // put original image at l_max index
 
@@ -433,7 +433,7 @@ void downsample_pyrmaid(MeshData<T> &original_image, std::vector<MeshData<T>> &d
     auto sum = [](const float x, const float y) -> float { return x + y; };
     auto divide_by_8 = [](const float x) -> float { return x/8.0; };
     for (int level = l_max; level > l_min; --level) {
-        down_sample(downsampled[level], downsampled[level - 1], sum, divide_by_8, true);
+        downsample(downsampled[level], downsampled[level - 1], sum, divide_by_8, true);
     }
 }
 

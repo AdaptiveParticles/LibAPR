@@ -98,7 +98,7 @@ void APRRaycaster::perform_raycast(APR<U>& apr,ExtraParticleData<S>& particle_da
 
     uint64_t num_views = floor((theta_f - theta_0)/theta_delta) ;
 
-    cast_views.initialize(imageHeight,imageWidth,num_views,0);
+    cast_views.init(imageHeight, imageWidth, num_views, 0);
 
     uint64_t view_count = 0;
     float init_val=0;
@@ -121,12 +121,12 @@ void APRRaycaster::perform_raycast(APR<U>& apr,ExtraParticleData<S>& particle_da
 
     std::vector<float> depth_vec;
     depth_vec.resize(apr.level_max() + 1);
-    depth_slice[apr.level_max()].initialize(imageHeight,imageWidth,1,init_val);
+    depth_slice[apr.level_max()].init(imageHeight,imageWidth,1,init_val);
 
 
     for(int i = apr.level_min();i < apr.level_max();i++){
         float d = pow(2,apr.level_max() - i);
-        depth_slice[i].initialize(ceil(depth_slice[apr.level_max()].y_num/d),ceil(depth_slice[apr.level_max()].x_num/d),1,init_val);
+        depth_slice[i].init(ceil(depth_slice[apr.level_max()].y_num/d),ceil(depth_slice[apr.level_max()].x_num/d),1,init_val);
         depth_vec[i] = d;
     }
 
@@ -343,7 +343,7 @@ float APRRaycaster::perpsective_mesh_raycast(MeshData<S>& image,MeshData<U>& cas
     int num_views = (int) floor((theta_f - theta_0)/theta_delta);
 
 
-    cast_views.initialize(imageHeight,imageWidth,num_views,0);
+    cast_views.init(imageHeight, imageWidth, num_views, 0);
 
     APRTimer timer;
 
@@ -370,7 +370,7 @@ float APRRaycaster::perpsective_mesh_raycast(MeshData<S>& image,MeshData<U>& cas
 
 
         MeshData<S> proj_img;
-        proj_img.initialize(imageHeight, imageWidth, 1, 0);
+        proj_img.init(imageHeight, imageWidth, 1, 0);
 
         int z_, x_, j_, i, k;
 

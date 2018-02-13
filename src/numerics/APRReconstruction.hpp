@@ -23,7 +23,7 @@ public:
         APRIterator<S> apr_iterator(apr);
         uint64_t particle_number;
 
-        img.initialize( apr.orginal_dimensions(0), apr.orginal_dimensions(1), apr.orginal_dimensions(2),0);
+        img.init(apr.orginal_dimensions(0), apr.orginal_dimensions(1), apr.orginal_dimensions(2), 0);
 
         for (uint64_t level = apr_iterator.level_min(); level <= apr_iterator.level_max(); ++level) {
 
@@ -92,9 +92,9 @@ public:
 
         interp_img(apr,temp,depth_parts);
 
-        down_sample(temp,img,
-                    [](const U &x, const U &y) -> U { return std::max(x,y); },
-                    [](const U &x) -> U { return x; }, true);
+        downsample(temp, img,
+                   [](const U &x, const U &y) -> U { return std::max(x, y); },
+                   [](const U &x) -> U { return x; }, true);
 
     }
 

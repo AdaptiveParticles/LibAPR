@@ -576,7 +576,6 @@ bool test_apr_pipeline(TestData& test_data){
     apr_converter.par.sigma_th = test_data.apr.parameters.sigma_th;
 
     apr_converter.par.SNR_min = test_data.apr.parameters.SNR_min;
-    apr_converter.image_type = "uint16";
 
     //where things are
     apr_converter.par.input_image_name =test_data.filename;

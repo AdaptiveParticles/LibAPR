@@ -28,9 +28,9 @@ public:
         const int8_t dir_z[6] = { 0, 0, 0, 0, 1, -1};
 
         output_data.resize(3);
-        output_data[0].initialize(input_data);
-        output_data[1].initialize(input_data);
-        output_data[2].initialize(input_data);
+        output_data[0].init(input_data);
+        output_data[1].init(input_data);
+        output_data[2].init(input_data);
 
         uint64_t x_num = input_data.x_num;
         uint64_t y_num = input_data.y_num;

@@ -25,9 +25,6 @@ struct cmdLineOptions{
     float lambda = -1;
     float min_signal = -1;
     float rel_error = 0.1;
-
-    std::string img_type = "uint16";
-
 };
 
 bool command_option_exists(char **begin, char **end, const std::string &option);

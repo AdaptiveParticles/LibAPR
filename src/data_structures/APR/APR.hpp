@@ -18,16 +18,16 @@
 template<typename ImageType>
 class APR {
 
-    template<typename S> friend class APRConverter;
+    template<typename> friend class APRConverter;
+    template<typename> friend class APRIterator;
     friend class APRWriter;
     friend class PullingScheme;
-    template<typename S> friend class APRIterator;
 
     APRWriter apr_writer;
     APRReconstruction apr_recon;
-    APRAccess apr_access;
 
 public:
+    APRAccess apr_access;
 
     ExtraParticleData<ImageType> particles_intensities;
     std::string name;
@@ -151,7 +151,7 @@ public:
         for (uint64_t particle_number = 0; particle_number < apr_iterator.total_number_particles(); ++particle_number) {
             //needed step for any parallel loop (update to the next part)
             apr_iterator.set_iterator_to_particle_by_number(particle_number);
-            parts[apr_iterator] = img_by_level[apr_iterator.level()].access_no_protection(apr_iterator.y(),apr_iterator.x(),apr_iterator.z());
+            parts[apr_iterator] = img_by_level[apr_iterator.level()].at(apr_iterator.y(),apr_iterator.x(),apr_iterator.z());
         }
     }
 };

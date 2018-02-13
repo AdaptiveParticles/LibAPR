@@ -22,175 +22,132 @@
 template<typename ImageType>
 class APRConverter: public LocalIntensityScale, public ComputeGradient, public LocalParticleCellSet, public PullingScheme {
 
+
 public:
-
-    APRConverter() {}
-
     APRParameters par;
+    APRTimer fine_grained_timer;
+    APRTimer method_timer;
     APRTimer total_timer;
     APRTimer allocation_timer;
     APRTimer computation_timer;
-    APRTimer method_timer;
-    APRTimer fine_grained_timer;
 
-    std::string image_type = "uint16";
-
-    bool get_apr(APR<ImageType>& apr){
-        //
-        //  Different input image types
-        //
-
-        //set the pointer ot the data-structure
-        apr_ = &apr;
+    bool get_apr(APR<ImageType> &aAPR) {
+        apr = &aAPR;
 
         TiffUtils::TiffInfo inputTiff(par.input_dir + par.input_image_name);
         if (!inputTiff.isFileOpened()) return false;
 
         if (inputTiff.iType == TiffUtils::TiffInfo::TiffType::TIFF_UINT8) {
-            image_type = "uint8";
-            return get_apr_method_from_file<uint8_t>(apr, inputTiff);
+            return get_apr_method_from_file<uint8_t>(aAPR, inputTiff);
         } else if (inputTiff.iType == TiffUtils::TiffInfo::TiffType::TIFF_FLOAT) {
-            image_type = "float";
-            return get_apr_method_from_file<float>(apr, inputTiff);
+            return get_apr_method_from_file<float>(aAPR, inputTiff);
         } else if (inputTiff.iType == TiffUtils::TiffInfo::TiffType::TIFF_UINT16) {
-            image_type = "uint16";
-            return get_apr_method_from_file<uint16_t>(apr, inputTiff);
+            return get_apr_method_from_file<uint16_t>(aAPR, inputTiff);
         } else {
             std::cerr << "Wrong file type" << std::endl;
             return false;
         }
     };
 
+private:
     //get apr without setting parameters, and with an already loaded image.
     template<typename T>
-    bool get_apr_method(APR<ImageType>& apr, MeshData<T>& input_image);
-
-private:
+    bool get_apr_method(APR<ImageType> &aAPR, MeshData<T> &input_image);
 
     //pointer to the APR structure so member functions can have access if they need
-    APR<ImageType>* apr_;
+    const APR<ImageType> *apr;
 
     MeshData<ImageType> image_temp; // global image variable useful for passing between methods, or re-using memory (should be the only full sized copy of the image)
-
     MeshData<ImageType> grad_temp; // should be a down-sampled image
-
     MeshData<float> local_scale_temp; //   Used as down-sampled images for some averaging steps where it is useful to not lose precision, or get over-flow errors
-
     MeshData<float> local_scale_temp2;  //   Used as down-sampled images for some averaging steps where it is useful to not lose precision, or get over-flow errors
 
     //assuming uint16, the total memory cost shoudl be approximately (1 + 1 + 1/8 + 2/8 + 2/8) = 2 5/8 original image size in u16bit
     //storage of the particle cell tree for computing the pulling scheme
 
-
-    float bspline_offset=0;
-
     template<typename T>
-    void init_apr(APR<ImageType>& apr,MeshData<T>& input_image);
+    void init_apr(APR<ImageType>& aAPR,MeshData<T>& input_image);
 
     template<typename T>
     void auto_parameters(const MeshData<T>& input_img);
 
     template<typename T>
-    bool get_apr_method_from_file(APR<ImageType>& apr, const TiffUtils::TiffInfo &tiffFile);
+    bool get_apr_method_from_file(APR<ImageType> &aAPR, const TiffUtils::TiffInfo &aTiffFile);
 
     template<typename T,typename S>
-    void get_gradient(MeshData<T>& input_img,MeshData<S>& gradient);
+    void get_gradient(const MeshData<T>& input_img,MeshData<S>& gradient, float bspline_offset);
 
     template<typename T,typename S>
-    void get_local_intensity_scale(MeshData<T>& input_img,MeshData<S>& local_intensity_scale);
+    void get_local_intensity_scale(const MeshData<T>& input_img,MeshData<S>& local_intensity_scale);
 
     template<typename T,typename S>
     void get_local_particle_cell_set(MeshData<T>& grad_image_ds,MeshData<S>& local_intensity_scale_ds);
 };
 
 
+/**
+ * Main method for constructing the APR from an input image
+ */
 template<typename ImageType> template<typename T>
-bool APRConverter<ImageType>::get_apr_method_from_file(APR<ImageType>& apr, const TiffUtils::TiffInfo &tiffFile) {
-    //
-    //  Main method for constructing the APR from an input image
-    //
-
+bool APRConverter<ImageType>::get_apr_method_from_file(APR<ImageType> &aAPR, const TiffUtils::TiffInfo &aTiffFile) {
     allocation_timer.start_timer("read tif input image");
-
-    std::cout << image_type << std::endl;
-
-    //input type
-    MeshData<T> input_image = TiffUtils::getMesh<T>(tiffFile);
-
+    MeshData<T> inputImage = TiffUtils::getMesh<T>(aTiffFile);
     allocation_timer.stop_timer();
 
-    //    was there an image found
-    if (input_image.mesh.size() == 0) {
-        std::cout << "Image Not Found" << std::endl;
-        return false;
-    }
-
     method_timer.start_timer("calculate automatic parameters");
-    auto_parameters(input_image);
+    auto_parameters(inputImage);
     method_timer.stop_timer();
 
-    return get_apr_method(apr,input_image);
-
+    return get_apr_method(aAPR, inputImage);
 }
 
-
+/**
+ * Main method for constructing the APR from an input image
+ */
 template<typename ImageType> template<typename T>
-bool APRConverter<ImageType>::get_apr_method(APR<ImageType>& apr, MeshData<T>& input_image) {
-    //
-    //  Main method for constructing the APR from an input image
-    //
-
-    apr_ = &apr; // in case it was called directly
-
+bool APRConverter<ImageType>::get_apr_method(APR<ImageType> &aAPR, MeshData<T>& input_image) {
+    apr = &aAPR; // in case it was called directly
 
     total_timer.start_timer("Total_pipeline_excluding_IO");
 
-    //Initialize the apr size parameters from the image
-    init_apr(apr,input_image);
+    init_apr(aAPR, input_image);
 
     ////////////////////////////////////////
-    ///
     /// Memory allocation of variables
-    ///
     ////////////////////////////////////////
 
     allocation_timer.start_timer("init and copy image");
-    image_temp.initialize(input_image);
-    grad_temp.preallocate(input_image.y_num,input_image.x_num,input_image.z_num, 0);
-    local_scale_temp.preallocate(input_image.y_num,input_image.x_num,input_image.z_num);
-    local_scale_temp2.preallocate(input_image.y_num,input_image.x_num,input_image.z_num);
+    image_temp.init(input_image);
+    grad_temp.initDownsampled(input_image.y_num, input_image.x_num, input_image.z_num, 0);
+    local_scale_temp.initDownsampled(input_image.y_num, input_image.x_num, input_image.z_num);
+    local_scale_temp2.initDownsampled(input_image.y_num, input_image.x_num, input_image.z_num);
     allocation_timer.stop_timer();
 
     /////////////////////////////////
-    ///
     /// Pipeline
-    ///
     ////////////////////////
 
     computation_timer.start_timer("Calculations");
 
     fine_grained_timer.start_timer("offset image");
-
     //offset image by factor (this is required if there are zero areas in the background with uint16_t and uint8_t images, as the Bspline co-efficients otherwise may be negative!)
     // Warning both of these could result in over-flow (if your image is non zero, with a 'buffer' and has intensities up to uint16_t maximum value then set this->image_type = "", i.e. uncomment the following line)
-
-    //this->image_type = "";
-
-    if(this->image_type == "uint16"){
+    float bspline_offset = 0;
+    if(std::is_same<uint16_t, ImageType>::value){
         bspline_offset = 100;
-        image_temp.initWithUnaryOp(input_image, [=](const auto &a){return (a + bspline_offset);});
-    } else if (this->image_type == "uint8"){
+        image_temp.copyFromMeshWithUnaryOp(input_image, [=](const auto &a) { return (a + bspline_offset); });
+    } else if (std::is_same<uint8_t, ImageType>::value){
         bspline_offset = 5;
-        image_temp.initWithUnaryOp(input_image, [=](const auto &a){return (a + bspline_offset);});
+        image_temp.copyFromMeshWithUnaryOp(input_image, [=](const auto &a) { return (a + bspline_offset); });
     } else {
-        image_temp.block_copy_data(input_image);
+        image_temp.copyFromMesh(input_image);
     }
 
     fine_grained_timer.stop_timer();
 
     method_timer.start_timer("compute_gradient_magnitude_using_bsplines");
     MeshData<T> gradient;
-    this->get_gradient(input_image,gradient); //note in the current pipeline don't actually use these variables, but here for interface (Use shared member allocated above variables)
+    this->get_gradient(input_image,gradient,bspline_offset); //note in the current pipeline don't actually use these variables, but here for interface (Use shared member allocated above variables)
     method_timer.stop_timer();
 
     MeshData<T> local_scale;
@@ -199,7 +156,7 @@ bool APRConverter<ImageType>::get_apr_method(APR<ImageType>& apr, MeshData<T>& i
     method_timer.stop_timer();
 
     method_timer.start_timer("initialize_particle_cell_tree");
-    initialize_particle_cell_tree(apr);
+    initialize_particle_cell_tree(aAPR);
     method_timer.stop_timer();
 
     method_timer.start_timer("compute_local_particle_set");
@@ -213,27 +170,25 @@ bool APRConverter<ImageType>::get_apr_method(APR<ImageType>& apr, MeshData<T>& i
     method_timer.start_timer("downsample_pyramid");
     std::vector<MeshData<T>> downsampled_img;
     //Down-sample the image for particle intensity estimation
-    downsample_pyrmaid(input_image,downsampled_img,apr.level_max(),apr.level_min());
+    downsamplePyrmaid(input_image, downsampled_img, aAPR.level_max(), aAPR.level_min());
     method_timer.stop_timer();
 
     method_timer.start_timer("compute_apr_datastructure");
-    apr.apr_access.initialize_structure_from_particle_cell_tree(apr,particle_cell_tree);
+    aAPR.apr_access.initialize_structure_from_particle_cell_tree(aAPR,particle_cell_tree);
     method_timer.stop_timer();
 
     method_timer.start_timer("sample_particles");
-    apr.get_parts_from_img(downsampled_img,apr.particles_intensities);
+    aAPR.get_parts_from_img(downsampled_img,aAPR.particles_intensities);
     method_timer.stop_timer();
 
     computation_timer.stop_timer();
 
-    apr.parameters = par;
+    aAPR.parameters = par;
 
     total_timer.stop_timer();
 
     return true;
 }
-
-
 
 template<typename ImageType> template<typename T,typename S>
 void APRConverter<ImageType>::get_local_particle_cell_set(MeshData<T>& grad_image_ds,MeshData<S>& local_intensity_scale_ds) {
@@ -254,10 +209,10 @@ void APRConverter<ImageType>::get_local_particle_cell_set(MeshData<T>& grad_imag
     fine_grained_timer.stop_timer();
 
     float min_dim = std::min(this->par.dy,std::min(this->par.dx,this->par.dz));
-    float level_factor = pow(2,(*apr_).level_max())*min_dim;
+    float level_factor = pow(2,(*apr).level_max())*min_dim;
 
-    unsigned int l_max = (*apr_).level_max() - 1;
-    unsigned int l_min = (*apr_).level_min();
+    unsigned int l_max = (*apr).level_max() - 1;
+    unsigned int l_min = (*apr).level_min();
 
     fine_grained_timer.start_timer("compute_level_second");
     //incorporate other factors and compute the level of the Particle Cell, effectively construct LPC L_n
@@ -269,9 +224,9 @@ void APRConverter<ImageType>::get_local_particle_cell_set(MeshData<T>& grad_imag
     for(int l_ = l_max - 1; l_ >= l_min; l_--){
 
         //down sample the resolution level k, using a max reduction
-        down_sample(local_scale_temp,local_scale_temp2,
-                    [](const float &x, const float &y) -> float { return std::max(x,y); },
-                    [](const float &x) -> float { return x; }, true);
+        downsample(local_scale_temp, local_scale_temp2,
+                   [](const float &x, const float &y) -> float { return std::max(x, y); },
+                   [](const float &x) -> float { return x; }, true);
         //for those value of level k, add to the hash table
         fill(l_,local_scale_temp2);
         //assign the previous mesh to now be resampled.
@@ -280,9 +235,8 @@ void APRConverter<ImageType>::get_local_particle_cell_set(MeshData<T>& grad_imag
     fine_grained_timer.stop_timer();
 }
 
-
 template<typename ImageType> template<typename T,typename S>
-void APRConverter<ImageType>::get_gradient(MeshData<T>& input_img,MeshData<S>& gradient){
+void APRConverter<ImageType>::get_gradient(const MeshData<T>& input_img,MeshData<S>& gradient, float bspline_offset){
     //
     //  Bevan Cheeseman 2018
     //
@@ -306,9 +260,9 @@ void APRConverter<ImageType>::get_gradient(MeshData<T>& input_img,MeshData<S>& g
     fine_grained_timer.stop_timer();
 
     fine_grained_timer.start_timer("down-sample_b-spline");
-    down_sample(image_temp,local_scale_temp,
-                [](const float &x, const float &y) -> float { return x + y;},
-                [](const float &x) -> float { return x/8.0 ; });
+    downsample(image_temp, local_scale_temp,
+               [](const float &x, const float &y) -> float { return x + y; },
+               [](const float &x) -> float { return x / 8.0; });
     fine_grained_timer.stop_timer();
 
     if(par.lambda > 0){
@@ -336,7 +290,7 @@ void APRConverter<ImageType>::get_gradient(MeshData<T>& input_img,MeshData<S>& g
 }
 
 template<typename ImageType> template<typename T,typename S>
-void APRConverter<ImageType>::get_local_intensity_scale(MeshData<T>& input_img,MeshData<S>& local_intensity_scale){
+void APRConverter<ImageType>::get_local_intensity_scale(const MeshData<T>& input_img,MeshData<S>& local_intensity_scale){
     //
     //  Calculate the Local Intensity Scale (You could replace this method with your own)
     //
@@ -347,7 +301,7 @@ void APRConverter<ImageType>::get_local_intensity_scale(MeshData<T>& input_img,M
 
     fine_grained_timer.start_timer("copy_intensities_from_bsplines");
     //copy across the intensities
-    local_scale_temp2.block_copy_data(local_scale_temp);
+    local_scale_temp2.copyFromMesh(local_scale_temp);
     fine_grained_timer.stop_timer();
 
     float var_rescale;
@@ -386,33 +340,23 @@ void APRConverter<ImageType>::get_local_intensity_scale(MeshData<T>& input_img,M
 
 
 template<typename ImageType> template<typename T>
-void APRConverter<ImageType>::init_apr(APR<ImageType>& apr,MeshData<T>& input_image){
+void APRConverter<ImageType>::init_apr(APR<ImageType>& aAPR,MeshData<T>& input_image){
     //
     //  Initializing the size of the APR, min and maximum level (in the data structures it is called depth)
     //
-    //
 
-    apr.apr_access.org_dims[0] = input_image.y_num;
-    apr.apr_access.org_dims[1] = input_image.x_num;
-    apr.apr_access.org_dims[2] = input_image.z_num;
+    aAPR.apr_access.org_dims[0] = input_image.y_num;
+    aAPR.apr_access.org_dims[1] = input_image.x_num;
+    aAPR.apr_access.org_dims[2] = input_image.z_num;
 
-    int max_dim;
-    int min_dim;
+    int max_dim = std::max(std::max(aAPR.apr_access.org_dims[1], aAPR.apr_access.org_dims[0]), aAPR.apr_access.org_dims[2]);
+    int min_dim = std::min(std::min(aAPR.apr_access.org_dims[1], aAPR.apr_access.org_dims[0]), aAPR.apr_access.org_dims[2]);
 
-    if(input_image.z_num == 1) {
-        max_dim = (std::max(apr.apr_access.org_dims[1], apr.apr_access.org_dims[0]));
-        min_dim = (std::min(apr.apr_access.org_dims[1], apr.apr_access.org_dims[0]));
-    }
-    else{
-        max_dim = std::max(std::max(apr.apr_access.org_dims[1], apr.apr_access.org_dims[0]), apr.apr_access.org_dims[2]);
-        min_dim = std::min(std::min(apr.apr_access.org_dims[1], apr.apr_access.org_dims[0]), apr.apr_access.org_dims[2]);
-    }
+    int levelMax = ceil(std::log2(max_dim));
+    int levelMin = std::max( (int)(levelMax - floor(std::log2(min_dim))), 2);
 
-    int k_max_ = ceil(M_LOG2E*log(max_dim)) - 1;
-    int k_min_ = std::max( (int)(k_max_ - floor(M_LOG2E*log(min_dim)) + 1),2);
-
-    apr.apr_access.level_min = k_min_;
-    apr.apr_access.level_max = k_max_ + 1;
+    aAPR.apr_access.level_min = levelMin;
+    aAPR.apr_access.level_max = levelMax;
 }
 
 
@@ -488,7 +432,7 @@ void APRConverter<ImageType>::auto_parameters(const MeshData<T>& input_img){
     float proportion_next = freq[1]/(counter*1.0f);
 
     MeshData<T> histogram;
-    histogram.initialize(num_bins,1,1);
+    histogram.init(num_bins, 1, 1);
     std::copy(freq.begin(),freq.end(),histogram.mesh.begin());
 
     float tol = 0.0001;

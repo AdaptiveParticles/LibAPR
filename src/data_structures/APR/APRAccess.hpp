@@ -418,7 +418,6 @@ public:
                         else {
                             current = 0;
                             if (previous == 1) {
-                                if (y == 0) {std::cout << "y==0 but we want to use (y-1) as unsigned value!" << std::endl;}
                                 (y_begin.data[i][offset_pc_data][counter]).second.y_end = (y-1);
                                 counter++;
                             }
@@ -462,7 +461,7 @@ public:
 
                 for (size_t y_ = 0; y_ < y_num_; ++y_) {
                     uint8_t status = p_map[i][offset_part_map + y_];
-                    if (status ==SEED_TYPE) {
+                    if (status == SEED_TYPE) {
                         current = 1;
                         if (previous == 0) {
                             y_begin.data[i+1][offset_pc_data1].push_back({2*y_,gap});
@@ -471,7 +470,6 @@ public:
                     else {
                         current = 0;
                         if (previous == 1) {
-                            if (y_ == 0) {std::cout << "y==0 but we want to use (y-1) as unsigned value! (2)" << std::endl;}
                             y_begin.data[i+1][offset_pc_data1][counter].second.y_end = std::min((uint16_t)(2*(y_-1)+1),(uint16_t)(y_num_us-1));
                             counter++;
                         }
@@ -569,11 +567,9 @@ public:
         total_number_particles = cumsum;
         apr_timer.stop_timer();
 
-
         //set minimum level now to the first non-empty level.
         level_min = min_level_find;
         level_max = max_level_find;
-
         total_number_non_empty_rows=0;
 
         allocate_map_insert(apr,y_begin);
@@ -582,13 +578,11 @@ public:
         particle_cell_type.data.resize(global_index_by_level_end[level_max-1]+1,0);
 
         for (size_t level = apr_iterator.level_min(); level < apr_iterator.level_max(); ++level) {
-            std::cout << "level: " << level << " PART NUM: " << apr_iterator.particles_level_begin(level) << " " << apr_iterator.particles_level_end(level) << std::endl;
             #ifdef HAVE_OPENMP
             #pragma omp parallel for schedule(static) firstprivate(apr_iterator)
             #endif
             for (size_t particle_number = apr_iterator.particles_level_begin(level); particle_number <  apr_iterator.particles_level_end(level); ++particle_number) {
-                std::cout << "PN:" << particle_number << std::endl;
-                std::cout << apr_iterator.set_iterator_to_particle_by_number(particle_number) << std::endl;
+                apr_iterator.set_iterator_to_particle_by_number(particle_number);
                 const size_t offset_part_map = apr_iterator.x() * apr_iterator.spatial_index_y_max(apr_iterator.level()) + apr_iterator.z() * apr_iterator.spatial_index_y_max(apr_iterator.level()) * apr_iterator.spatial_index_x_max(apr_iterator.level());
                 particle_cell_type[apr_iterator] = p_map[apr_iterator.level()][offset_part_map + apr_iterator.y()];
             }
