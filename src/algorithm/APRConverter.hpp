@@ -585,7 +585,7 @@ void APRConverter<ImageType>::auto_parameters(const MeshData<T>& input_img){
         }
     }
 
-    T mean = counter > 0 ? total_p/(counter*1.0) : 1;
+    float mean = counter > 0 ? total_p/(counter*1.0) : 1;
 
     //now compute the standard deviation (sd) of the patches
 
@@ -641,7 +641,7 @@ void APRConverter<ImageType>::auto_parameters(const MeshData<T>& input_img){
     }
 
     float Ip_th = mean + sd;
-    float var_th = (img_mean/mean)*sd*min_snr;
+    float var_th = (img_mean/(mean*1.0f))*sd*min_snr;
 
     float var_th_max = sd*min_snr*.5f;
 
