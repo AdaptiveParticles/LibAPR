@@ -301,14 +301,14 @@ public:
 
         int64_t i,k;
         float temp;
-        int64_t index_modulo, previous_modulo, current_index, jxnumynum, offset,forward_modulo,backward_modulo;
+        int64_t index_modulo, previous_modulo, jxnumynum, offset,forward_modulo,backward_modulo;
 
         const float scale = scale_in;
         //const unsigned int d_max = this->depth_max();
 
 
 #ifdef HAVE_OPENMP
-	#pragma omp parallel for default(shared) private(i,k,temp,index_modulo, previous_modulo, forward_modulo,backward_modulo,current_index, jxnumynum,offset) \
+	#pragma omp parallel for default(shared) private(i,k,temp,index_modulo, previous_modulo, forward_modulo,backward_modulo, jxnumynum,offset) \
         firstprivate(temp_vec)
 #endif
         for(int j = 0; j < z_num; j++) {
@@ -412,7 +412,7 @@ public:
 
         int64_t j,k;
         float temp;
-        int64_t index_modulo, previous_modulo, current_index, iynum,forward_modulo,backward_modulo,offset;
+        int64_t index_modulo, previous_modulo, iynum,forward_modulo,backward_modulo,offset;
         int64_t xnumynum = x_num * y_num;
 
         const int offset_max = offset_max_in;
@@ -423,7 +423,7 @@ public:
         temp_vec.resize(y_num*(2*offset_max + 2),0);
 
 #ifdef HAVE_OPENMP
-	#pragma omp parallel for default(shared) private(j,k,temp,index_modulo, previous_modulo, current_index,backward_modulo,forward_modulo, iynum,offset) \
+	#pragma omp parallel for default(shared) private(j,k,temp,index_modulo, previous_modulo,backward_modulo,forward_modulo, iynum,offset) \
         firstprivate(temp_vec)
 #endif
         for(int i = 0; i < x_num; i++) {

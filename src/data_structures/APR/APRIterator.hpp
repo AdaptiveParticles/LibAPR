@@ -126,11 +126,6 @@ public:
 
     }
 
-
-    bool set_iterator_to_particle_by_number(const uint32_t particle_number) {
-        return set_iterator_to_particle_by_number((const uint64_t)particle_number);
-    }
-
     inline uint64_t particles_level_begin(const uint16_t& level_){
         //
         //  Used for finding the starting particle on a given level

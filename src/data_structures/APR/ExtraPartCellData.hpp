@@ -25,9 +25,9 @@ public:
 
     ExtraPartCellData() {}
     template<typename S>
-    ExtraPartCellData(ExtraPartCellData<S>& part_data) { initialize_structure_parts(part_data); };
+    ExtraPartCellData(const ExtraPartCellData<S> &part_data) { initialize_structure_parts(part_data); };
     template<typename S>
-    ExtraPartCellData(APR<S>& apr) { initialize_structure_parts_empty(apr); };
+    ExtraPartCellData(const APR<S> &apr) { initialize_structure_parts_empty(apr); };
 
 
     template<typename S>
