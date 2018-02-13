@@ -49,7 +49,7 @@ void hdf5_load_data_blosc(hid_t obj_id,hid_t data_type,void* buff, const char* d
     
     H5Dread( data_id, datatype, H5S_ALL, H5S_ALL,H5P_DEFAULT, buff );
     H5Dclose(data_id);
-};
+}
 
 void hdf5_write_data_blosc(hid_t obj_id,hid_t type_id,const char* ds_name,hsize_t rank,hsize_t* dims, void* data ){
     //writes data to the hdf5 file or group identified by obj_id of hdf5 datatype data_type
@@ -73,7 +73,7 @@ void hdf5_write_data_blosc(hid_t obj_id,hid_t type_id,const char* ds_name,hsize_
     //cdims[0] = 20; //Could try playing with these for compression performance
     //cdims[1] = 20;
     
-    int max_size = 100000;
+    uint64_t max_size = 100000;
     
     if (rank == 1) {
         if (dims[0] < max_size){
@@ -108,7 +108,8 @@ void hdf5_write_data_blosc(hid_t obj_id,hid_t type_id,const char* ds_name,hsize_
     H5Dclose(dset_id);
     
     
-};
+}
+
 void hdf5_write_data_blosc(hid_t obj_id,hid_t type_id,const char* ds_name,hsize_t rank,hsize_t* dims, void* data ,unsigned int comp_type,unsigned int comp_level,unsigned int shuffle){
     //writes data to the hdf5 file or group identified by obj_id of hdf5 datatype data_type
     
@@ -132,17 +133,14 @@ void hdf5_write_data_blosc(hid_t obj_id,hid_t type_id,const char* ds_name,hsize_
     //cdims[0] = 20; //Could try playing with these for compression performance
     //cdims[1] = 20;
     
-    int max_size = 100000;
+    uint64_t max_size = 100000;
     
-
     if (dims[0] < max_size){
         cdims[0] = dims[0];
     }else {
         cdims[0] = max_size;
     }
 
-
-    
     H5Pset_chunk(plist_id, rank, cdims);
     
     /////SET COMPRESSION TYPE /////
@@ -162,9 +160,7 @@ void hdf5_write_data_blosc(hid_t obj_id,hid_t type_id,const char* ds_name,hsize_
     H5Dwrite(dset_id,type_id,H5S_ALL,H5S_ALL,H5P_DEFAULT,data);
     
     H5Dclose(dset_id);
-    
-    
-};
+}
 
 void hdf5_write_attribute_blosc(hid_t obj_id,hid_t type_id,const char* attr_name,hsize_t rank,hsize_t* dims, void* data ){
     //writes data to the hdf5 file or group identified by obj_id of hdf5 datatype data_type
@@ -181,34 +177,23 @@ void hdf5_write_attribute_blosc(hid_t obj_id,hid_t type_id,const char* attr_name
     H5Awrite(attr_id, type_id, data );
     H5Aclose(attr_id);
     
-};
+}
+
 void hdf5_write_string_blosc(hid_t obj_id,const char* attr_name,std::string output_str){
     //
     //  Writes string information as an attribute
     //
     //
     
-    hid_t       aid, atype, attr;
-    herr_t      status;
-    
-    aid = H5Screate(H5S_SCALAR);
-    
-    atype = H5Tcopy (H5T_C_S1);
+    hid_t aid = H5Screate(H5S_SCALAR);
+    hid_t atype = H5Tcopy (H5T_C_S1);
     
     if (output_str.size() > 0){
-        
-        status = H5Tset_size (atype, output_str.size());
-        
-        attr = H5Acreate2(obj_id, attr_name, atype, aid, H5P_DEFAULT,H5P_DEFAULT);
-        
-        status = H5Awrite (attr, atype,output_str.c_str());
+        H5Tset_size (atype, output_str.size());
+        hid_t attr = H5Acreate2(obj_id, attr_name, atype, aid, H5P_DEFAULT,H5P_DEFAULT);
+        H5Awrite (attr, atype,output_str.c_str());
     }
-    
 }
-
-
-
-
 
 void hdf5_create_file_blosc(std::string file_name){
     //creates the hdf5 file before you can then write to it
@@ -221,16 +206,11 @@ void hdf5_create_file_blosc(std::string file_name){
     //close shiz
     H5Fclose(fid);
     
-};
-void write_main_paraview_xdmf_xml(std::string save_loc,std::string file_name,uint64_t num_parts){
-    //
-    //
-    //
-    //
+}
 
+void write_main_paraview_xdmf_xml(std::string save_loc,std::string file_name,uint64_t num_parts){
     std::string hdf5_file_name = file_name + ".h5";
     std::string xdmf_file_name = save_loc + file_name + ".xmf";
-
 
     std::ofstream myfile;
     myfile.open (xdmf_file_name);
@@ -272,100 +252,4 @@ void write_main_paraview_xdmf_xml(std::string save_loc,std::string file_name,uin
     myfile <<  "</Xdmf>\n";
 
     myfile.close();
-
-}
-void write_paraview_xdmf_xml_extra(std::string save_loc,std::string file_name,int num_parts,std::vector<std::string> extra_data_names,std::vector<std::string> extra_data_types){
-    //
-    //
-    //  Also writes out extra datafields
-    //
-
-
-    std::string hdf5_file_name = file_name + ".h5";
-    std::string xdmf_file_name = save_loc + file_name + ".xmf";
-
-
-    std::ofstream myfile;
-    myfile.open (xdmf_file_name);
-
-    myfile << "<?xml version=\"1.0\" ?>\n";
-    myfile << "<!DOCTYPE Xdmf SYSTEM \"Xdmf.dtd\" []>\n";
-    myfile << "<Xdmf Version=\"2.0\" xmlns:xi=\"[http://www.w3.org/2001/XInclude]\">\n";
-    myfile <<  " <Domain>\n";
-    myfile <<  "   <Grid Name=\"parts\" GridType=\"Uniform\">\n";
-    myfile <<  "     <Topology TopologyType=\"Polyvertex\" Dimensions=\"" << num_parts << "\"/>\n";
-    myfile <<  "     <Geometry GeometryType=\"X_Y_Z\">\n";
-    myfile <<  "       <DataItem Dimensions=\""<< num_parts <<"\" NumberType=\"UInt\" Precision=\"2\" Format=\"HDF\">\n";
-    myfile <<  "        " << hdf5_file_name << ":/ParticleRepr/t/x\n";
-    myfile <<  "       </DataItem>\n";
-    myfile <<  "       <DataItem Dimensions=\""<< num_parts <<"\" NumberType=\"UInt\" Precision=\"2\" Format=\"HDF\">\n";
-    myfile <<  "        " << hdf5_file_name << ":/ParticleRepr/t/y\n";
-    myfile <<  "       </DataItem>\n";
-    myfile <<  "       <DataItem Dimensions=\""<< num_parts <<"\" NumberType=\"UInt\" Precision=\"2\" Format=\"HDF\">\n";
-    myfile <<  "        " << hdf5_file_name << ":/ParticleRepr/t/z\n";
-    myfile <<  "       </DataItem>\n";
-    myfile <<  "     </Geometry>\n";
-    myfile <<  "     <Attribute Name=\"Ip\" AttributeType=\"Scalar\" Center=\"Node\">\n";
-    myfile <<  "       <DataItem Dimensions=\""<< num_parts <<"\" NumberType=\"UInt\" Precision=\"2\" Format=\"HDF\">\n";
-    myfile <<  "        " << hdf5_file_name << ":/ParticleRepr/t/Ip\n";
-    myfile <<  "       </DataItem>\n";
-    myfile <<  "    </Attribute>\n";
-    myfile <<  "     <Attribute Name=\"level\" AttributeType=\"Scalar\" Center=\"Node\">\n";
-    myfile <<  "       <DataItem Dimensions=\""<< num_parts <<"\" NumberType=\"UInt\" Precision=\"1\" Format=\"HDF\">\n";
-    myfile <<  "        " << hdf5_file_name << ":/ParticleRepr/t/level\n";
-    myfile <<  "       </DataItem>\n";
-    myfile <<  "    </Attribute>\n";
-    myfile <<  "     <Attribute Name=\"type\" AttributeType=\"Scalar\" Center=\"Node\">\n";
-    myfile <<  "       <DataItem Dimensions=\""<< num_parts <<"\" NumberType=\"UInt\" Precision=\"1\" Format=\"HDF\">\n";
-    myfile <<  "        " << hdf5_file_name << ":/ParticleRepr/t/type\n";
-    myfile <<  "       </DataItem>\n";
-    myfile <<  "    </Attribute>\n";
-
-    for (int i = 0; i < extra_data_names.size(); i++) {
-        //adds the additional datasets
-
-        std::string num_type;
-        std::string prec;
-
-
-        if (extra_data_types[i]=="uint8_t") {
-            num_type = "UInt";
-            prec = "1";
-        } else if (extra_data_types[i]=="bool"){
-            std::cout << "Bool type can't be stored with xdmf change datatype" << std::endl;
-        } else if (extra_data_types[i]=="uint16_t"){
-            num_type = "UInt";
-            prec = "2";
-        } else if (extra_data_types[i]=="int16_t"){
-            num_type = "Int";
-            prec = "2";
-
-        } else if (extra_data_types[i]=="int"){
-            num_type = "Int";
-            prec = "4";
-        }  else if (extra_data_types[i]=="int8_t"){
-            num_type = "Int";
-            prec = "1";
-        }else if (extra_data_types[i]=="float"){
-            num_type = "Float";
-            prec = "4";
-        } else {
-            std::cout << "Unknown Type in extra printout encournterd" << std::endl;
-
-        }
-
-        myfile <<  "     <Attribute Name=\""<< extra_data_names[i] <<"\" AttributeType=\"Scalar\" Center=\"Node\">\n";
-        myfile <<  "       <DataItem Dimensions=\""<< num_parts <<"\" NumberType=\"" << num_type << "\" Precision=\"" << prec <<"\" Format=\"HDF\">\n";
-        myfile <<  "        " << hdf5_file_name << ":/ParticleRepr/t/" <<  extra_data_names[i] << "\n";
-        myfile <<  "       </DataItem>\n";
-        myfile <<  "    </Attribute>\n";
-
-    }
-
-    myfile <<  "   </Grid>\n";
-    myfile <<  " </Domain>\n";
-    myfile <<  "</Xdmf>\n";
-
-    myfile.close();
-
 }

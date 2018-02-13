@@ -40,16 +40,16 @@ public:
         timer.verbose_flag = true;
         timer.start_timer("compute gradient mesh");
 
-        int j = 0;
-        int k = 0;
-        int i = 0;
+        size_t j = 0;
+        size_t k = 0;
+        size_t i = 0;
 
         const std::vector<std::vector<uint8_t>> group_directions = {{0,1},{2,3},{4,5}}; // Neighbour Particle Cell Face definitions [+y,-y,+x,-x,+z,-z] =  [0,1,2,3,4,5]
         const std::vector<float> sign = {1.0f,-1.0f};
 
-        int j_n = 0;
-        int k_n = 0;
-        int i_n = 0;
+        int64_t j_n = 0;
+        int64_t k_n = 0;
+        int64_t i_n = 0;
 
 #ifdef HAVE_OPENMP
 #pragma omp parallel for default(shared) private(j,i,k,i_n,k_n,j_n)
@@ -76,9 +76,9 @@ public:
                             j_n = j + dir_z[direction];
 
                             //check boundary conditions
-                            if ((i_n >= 0) & (i_n < x_num)) {
-                                if ((j_n >= 0) & (j_n < z_num)) {
-                                    if ((k_n >= 0) & (k_n < y_num)) {
+                            if ((i_n >= 0) & (i_n < (int64_t)x_num)) {
+                                if ((j_n >= 0) & (j_n < (int64_t)z_num)) {
+                                    if ((k_n >= 0) & (k_n < (int64_t)y_num)) {
                                         intensity_sum += input_data.mesh[j_n * x_num * y_num + i_n * y_num + k_n];
                                         count_neighbours++;
                                     }
@@ -93,13 +93,8 @@ public:
                         }
 
                         output_data[dimension].mesh[j*x_num*y_num + i*y_num + k] = gradient_estimate/counter_dir;
-
                     }
-
-
                 }
-                //store the estimate of the gradient
-
             }
         }
 
@@ -108,11 +103,7 @@ public:
         float elapsed_seconds = (float)(timer.t2 - timer.t1);
 
         return (elapsed_seconds);
-
     }
-
-
-
 };
 
 

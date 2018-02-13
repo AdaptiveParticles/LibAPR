@@ -186,7 +186,7 @@ namespace TiffUtils {
 
         // Read TIF to MeshData
         size_t currentOffset = 0;
-        for (int i = 0; i < aTiff.iNumberOfDirectories; ++i) {
+        for (uint32_t i = 0; i < aTiff.iNumberOfDirectories; ++i) {
             TIFFSetDirectory(aTiff.iFile, i);
 
             // read current directory

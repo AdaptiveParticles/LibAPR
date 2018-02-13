@@ -124,7 +124,7 @@ void APRRaycaster::perform_raycast(APR<U>& apr,ExtraParticleData<S>& particle_da
     depth_slice[apr.level_max()].init(imageHeight,imageWidth,1,init_val);
 
 
-    for(int i = apr.level_min();i < apr.level_max();i++){
+    for(size_t i = apr.level_min();i < apr.level_max();i++){
         float d = pow(2,apr.level_max() - i);
         depth_slice[i].init(ceil(depth_slice[apr.level_max()].y_num/d),ceil(depth_slice[apr.level_max()].x_num/d),1,init_val);
         depth_vec[i] = d;
@@ -167,7 +167,7 @@ void APRRaycaster::perform_raycast(APR<U>& apr,ExtraParticleData<S>& particle_da
         ///
         //////////////////////////////
 
-        for(int i = apr.level_min();i <= apr.level_max();i++){
+        for(size_t i = apr.level_min();i <= apr.level_max();i++){
             std::fill(depth_slice[i].mesh.begin(),depth_slice[i].mesh.end(),init_val);
         }
 
@@ -226,8 +226,7 @@ void APRRaycaster::perform_raycast(APR<U>& apr,ExtraParticleData<S>& particle_da
             const int dim1 = round(-pos.y);
             const int dim2 = round(-pos.x);
 
-            if (dim1 > 0 & dim2 > 0 & (dim1 < depth_slice[level].y_num) &
-                (dim2 < depth_slice[level].x_num)) {
+            if ((dim1 > 0) & (dim2 > 0) & (dim1 < (int64_t)depth_slice[level].y_num) & (dim2 < (int64_t)depth_slice[level].x_num)) {
                 //get the particle value
                 S temp_int = particle_data[apr_iterator];
 
@@ -245,13 +244,13 @@ void APRRaycaster::perform_raycast(APR<U>& apr,ExtraParticleData<S>& particle_da
 
         uint64_t level_min = apr.level_min();
 
-        unsigned int y_,z_,x_,j_,i,k;
+        unsigned int y_,x_,i,k;
 
         for (level = (level_min); level < apr.level_max(); level++) {
 
-            const int step_size = pow(2, apr.level_max() - level);
+            const unsigned int step_size = pow(2, apr.level_max() - level);
 #ifdef HAVE_OPENMP
-	#pragma omp parallel for default(shared) private(z_,x_,j_,i,k) schedule(guided) if (level > 8)
+	#pragma omp parallel for default(shared) private(x_,i,k) schedule(guided) if (level > 8)
 #endif
             for (x_ = 0; x_ < depth_slice[level].x_num; x_++) {
                 //both z and x are explicitly accessed in the structure
@@ -260,13 +259,13 @@ void APRRaycaster::perform_raycast(APR<U>& apr,ExtraParticleData<S>& particle_da
 
                     const float curr_int = depth_slice[level].mesh[y_ + (x_) * depth_slice[level].y_num];
 
-                    const int dim1 = y_ * step_size;
-                    const int dim2 = x_ * step_size;
+                    const unsigned int dim1 = y_ * step_size;
+                    const unsigned int dim2 = x_ * step_size;
 
                     //add to all the required rays
-                    const int offset_max_dim1 = std::min((int) depth_slice[apr.level_max()].y_num,
+                    const unsigned int offset_max_dim1 = std::min((int) depth_slice[apr.level_max()].y_num,
                                                          (int) (dim1 + step_size));
-                    const int offset_max_dim2 = std::min((int) depth_slice[apr.level_max()].x_num,
+                    const unsigned int offset_max_dim2 = std::min((int) depth_slice[apr.level_max()].x_num,
                                                          (int) (dim2 + step_size));
 
                     if (curr_int > 0) {
@@ -304,7 +303,7 @@ void APRRaycaster::perform_raycast(APR<U>& apr,ExtraParticleData<S>& particle_da
     std::cout << elapsed_seconds/(view_count*1.0) <<  " seconds per view" << std::endl;
 
 
-};
+}
 
 template<typename S,typename U>
 float APRRaycaster::perpsective_mesh_raycast(MeshData<S>& image,MeshData<U>& cast_views) {
@@ -349,7 +348,7 @@ float APRRaycaster::perpsective_mesh_raycast(MeshData<S>& image,MeshData<U>& cas
 
     timer.verbose_flag = true;
 
-    uint64_t view_count = 0;
+    int64_t view_count = 0;
 
     timer.start_timer("ray cast mesh prospective");
 
@@ -372,7 +371,7 @@ float APRRaycaster::perpsective_mesh_raycast(MeshData<S>& image,MeshData<U>& cas
         MeshData<S> proj_img;
         proj_img.init(imageHeight, imageWidth, 1, 0);
 
-        int z_, x_, j_, i, k;
+        unsigned int z_, x_, j_;
 
         //loop over the resolutions of the structure
         const unsigned int x_num_ = image.x_num;
@@ -380,7 +379,7 @@ float APRRaycaster::perpsective_mesh_raycast(MeshData<S>& image,MeshData<U>& cas
         const unsigned int y_num_ = image.y_num;
 
 #ifdef HAVE_OPENMP
-	#pragma omp parallel for default(shared) private(z_,x_,j_,i,k) firstprivate(mvp)
+	#pragma omp parallel for default(shared) private(z_,x_,j_) firstprivate(mvp)
 #endif
         for (z_ = 0; z_ < z_num_; z_++) {
             //both z and x are explicitly accessed in the structure
@@ -398,7 +397,7 @@ float APRRaycaster::perpsective_mesh_raycast(MeshData<S>& image,MeshData<U>& cas
                     const int dim1 = (int) round(-pos.y);
                     const int dim2 = (int) round(-pos.x);
 
-                    if (dim1 > 0 & dim2 > 0 & (dim1 < proj_img.y_num) & (dim2 < proj_img.x_num)) {
+                    if ((dim1 > 0) & (dim2 > 0) & (dim1 < (int64_t)proj_img.y_num) & (dim2 < (int64_t)proj_img.x_num)) {
 
                         proj_img.mesh[dim1 + (dim2) * proj_img.y_num] = std::max(temp_int, proj_img.mesh[dim1 + (dim2) *
                                                                                                                 proj_img.y_num]);

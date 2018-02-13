@@ -108,7 +108,7 @@ public:
             current_particle_cell.z = (current_particle_cell.pc_offset)/spatial_index_x_max(current_particle_cell.level);
             current_particle_cell.x = (current_particle_cell.pc_offset) - current_particle_cell.z*(spatial_index_x_max(current_particle_cell.level));
 
-            current_gap.iterator = current_gap.iterator= apr_access->gap_map.data[current_particle_cell.level][current_particle_cell.pc_offset][0].map.begin();
+            current_gap.iterator = apr_access->gap_map.data[current_particle_cell.level][current_particle_cell.pc_offset][0].map.begin();
             //then find the gap.
             while((particle_number > apr_access->global_index_end(current_gap))){
                 current_gap.iterator++;
@@ -152,7 +152,6 @@ public:
         //  Used for finding the starting particle on a given level
         //
         return apr_access->global_index_by_level_and_z_end[level_][z_]+1l;
-
     }
 
     inline uint64_t particles_zx_begin(const uint16_t& level_,const uint64_t& z_,const uint64_t& x_){

@@ -14,18 +14,17 @@ public:
     void calc_abs_diff(const MeshData<T> &input_image, MeshData<T> &var);
 
     template<typename T>
-    void calc_sat_mean_z(MeshData<T> &input, const int offset);
+    void calc_sat_mean_z(MeshData<T> &input, const size_t offset);
 
     template<typename T>
-    void calc_sat_mean_x(MeshData<T> &input, const int offset);
+    void calc_sat_mean_x(MeshData<T> &input, const size_t offset);
 
     template<typename T>
-    void calc_sat_mean_y(MeshData<T> &input, const int offset);
+    void calc_sat_mean_y(MeshData<T> &input, const size_t offset);
 
     void get_window(float &var_rescale, std::vector<int> &var_win, const APRParameters &par);
     template<typename T>
     void rescale_var_and_threshold(MeshData<T>& var,const float var_rescale, const APRParameters& par);
-
 };
 
 template<typename T>
@@ -104,7 +103,7 @@ void LocalIntensityScale::get_window(float& var_rescale, std::vector<int>& var_w
  * @param offset
  */
 template<typename T>
-void LocalIntensityScale::calc_sat_mean_y(MeshData<T>& input, const int offset){
+void LocalIntensityScale::calc_sat_mean_y(MeshData<T>& input, const size_t offset){
     const size_t z_num = input.z_num;
     const size_t x_num = input.x_num;
     const size_t y_num = input.y_num;
@@ -163,7 +162,7 @@ void LocalIntensityScale::calc_sat_mean_y(MeshData<T>& input, const int offset){
 }
 
 template<typename T>
-void LocalIntensityScale::calc_sat_mean_x(MeshData<T>& input, const int offset) {
+void LocalIntensityScale::calc_sat_mean_x(MeshData<T>& input, const size_t offset) {
     const size_t z_num = input.z_num;
     const size_t x_num = input.x_num;
     const size_t y_num = input.y_num;
@@ -195,7 +194,7 @@ void LocalIntensityScale::calc_sat_mean_x(MeshData<T>& input, const int offset) 
 
         // middle
         size_t current_index = offset + 1;
-        size_t index_modulo;
+        size_t index_modulo = 0;
         for(size_t i = offset + 1; i < x_num - offset; i++){
             // the current cumsum
             index_modulo = (current_index + offset) % (2*offset + 1); // current_index - offset - 1
@@ -224,7 +223,7 @@ void LocalIntensityScale::calc_sat_mean_x(MeshData<T>& input, const int offset) 
 }
 
 template<typename T>
-void LocalIntensityScale::calc_sat_mean_z(MeshData<T>& input,const int offset) {
+void LocalIntensityScale::calc_sat_mean_z(MeshData<T>& input,const size_t offset) {
     const size_t z_num = input.z_num;
     const size_t x_num = input.x_num;
     const size_t y_num = input.y_num;
@@ -259,7 +258,7 @@ void LocalIntensityScale::calc_sat_mean_z(MeshData<T>& input,const int offset) {
 
         // middle
         size_t current_index = offset + 1;
-        size_t index_modulo;
+        size_t index_modulo = 0;
         for(size_t j = offset + 1; j < z_num - offset; j++){
 
             index_modulo = (current_index + offset) % (2*offset + 1); // current_index - offset - 1

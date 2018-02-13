@@ -73,13 +73,13 @@ public:
     template< typename S>
     void write_particles_only( std::string save_loc,std::string file_name,ExtraParticleData<S>& parts_extra){
         apr_writer.write_particles_only(save_loc, file_name, parts_extra);
-    };
+    }
 
     //read in ExtraPartCellData
     template<typename T>
     void read_parts_only(std::string file_name,ExtraParticleData<T>& extra_parts){
         apr_writer.read_parts_only(file_name,extra_parts);
-    };
+    }
 
     ////////////////////////
     ///

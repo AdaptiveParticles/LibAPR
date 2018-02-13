@@ -211,8 +211,8 @@ void APRConverter<ImageType>::get_local_particle_cell_set(MeshData<T>& grad_imag
     float min_dim = std::min(this->par.dy,std::min(this->par.dx,this->par.dz));
     float level_factor = pow(2,(*apr).level_max())*min_dim;
 
-    unsigned int l_max = (*apr).level_max() - 1;
-    unsigned int l_min = (*apr).level_min();
+    int l_max = (*apr).level_max() - 1;
+    int l_min = (*apr).level_min();
 
     fine_grained_timer.start_timer("compute_level_second");
     //incorporate other factors and compute the level of the Particle Cell, effectively construct LPC L_n
@@ -308,12 +308,12 @@ void APRConverter<ImageType>::get_local_intensity_scale(const MeshData<T>& input
     std::vector<int> var_win;
     get_window(var_rescale,var_win,this->par);
 
-    int win_y = var_win[0];
-    int win_x = var_win[1];
-    int win_z = var_win[2];
-    int win_y2 = var_win[3];
-    int win_x2 = var_win[4];
-    int win_z2 = var_win[5];
+    size_t win_y = var_win[0];
+    size_t win_x = var_win[1];
+    size_t win_z = var_win[2];
+    size_t win_y2 = var_win[3];
+    size_t win_x2 = var_win[4];
+    size_t win_z2 = var_win[5];
 
     fine_grained_timer.start_timer("calc_sat_mean_y");
     calc_sat_mean_y(local_scale_temp,win_y);
@@ -418,7 +418,7 @@ void APRConverter<ImageType>::auto_parameters(const MeshData<T>& input_img){
     uint64_t min_j = 0;
 
     // set to start at one to ignore potential constant regions thresholded out. (Common in some images)
-    for (int j = 1; j < num_bins; ++j) {
+    for (unsigned int j = 1; j < num_bins; ++j) {
         prop_total += freq[j]/(counter*1.0);
 
         if(prop_total > prop_total_th){
@@ -471,7 +471,7 @@ void APRConverter<ImageType>::auto_parameters(const MeshData<T>& input_img){
 
     patches.resize(std::min(local_max,(uint64_t)10000));
 
-    for (int l = 0; l < patches.size(); ++l) {
+    for (unsigned int l = 0; l < patches.size(); ++l) {
         patches[l].resize(27, 0);
     }
 

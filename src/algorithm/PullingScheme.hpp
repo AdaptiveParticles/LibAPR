@@ -87,7 +87,7 @@ void PullingScheme::initialize_particle_cell_tree(APR<T>& apr) {
     //make so you can reference the array as l
     particle_cell_tree.resize(l_max + 1);
 
-    for (int l = l_min; l < (l_max + 1) ;l ++){
+    for (unsigned int l = l_min; l < (l_max + 1) ;l ++){
         particle_cell_tree[l].init(ceil((1.0 * apr.apr_access.org_dims[0]) / pow(2.0, 1.0 * l_max - l + 1)),
                                    ceil((1.0 * apr.apr_access.org_dims[1]) / pow(2.0, 1.0 * l_max - l + 1)),
                                    ceil((1.0 * apr.apr_access.org_dims[2]) / pow(2.0, 1.0 * l_max - l + 1)), EMPTY);
@@ -107,8 +107,8 @@ void PullingScheme::pulling_scheme_main() {
 
 
     //loop over all levels from l_max to l_min
-    for (int level = l_max; level >= l_min; --level) {
-        if (level != l_max) {
+    for (int level = l_max; level >= (int)l_min; --level) {
+        if (level != (int)l_max) {
             set_ascendant_neighbours(level); //step 1 and step 2.
             set_filler(level); // step 3.
         }
@@ -197,23 +197,23 @@ void PullingScheme::set_ascendant_neighbours(int level) {
 
 void PullingScheme::set_filler(int level) {
     short children_boundaries[3] = {2,2,2};
-    const size_t x_num = particle_cell_tree[level].x_num;
-    const size_t y_num = particle_cell_tree[level].y_num;
-    const size_t z_num = particle_cell_tree[level].z_num;
+    const int64_t x_num = particle_cell_tree[level].x_num;
+    const int64_t y_num = particle_cell_tree[level].y_num;
+    const int64_t z_num = particle_cell_tree[level].z_num;
 
-    size_t prev_x_num = particle_cell_tree[level + 1].x_num;
-    size_t prev_y_num = particle_cell_tree[level + 1].y_num;
-    size_t prev_z_num = particle_cell_tree[level + 1].z_num;
+    int64_t prev_x_num = particle_cell_tree[level + 1].x_num;
+    int64_t prev_y_num = particle_cell_tree[level + 1].y_num;
+    int64_t prev_z_num = particle_cell_tree[level + 1].z_num;
 
     #ifdef HAVE_OPENMP
 	#pragma omp parallel for default(shared) if (z_num * x_num * y_num > 10000) firstprivate(level, children_boundaries)
     #endif
-    for (size_t j = 0; j < z_num; ++j) {
+    for (int64_t j = 0; j < z_num; ++j) {
         if ( j == z_num - 1 && prev_z_num % 2 ) {
             children_boundaries[0] = 1;
         }
 
-        for (size_t i = 0; i < x_num; ++i) {
+        for (int64_t i = 0; i < x_num; ++i) {
 
             if ( i == x_num - 1 && prev_x_num % 2 ) {
                 children_boundaries[1] = 1;
@@ -224,7 +224,7 @@ void PullingScheme::set_filler(int level) {
 
             size_t index = j*x_num*y_num + i*y_num;
 
-            for (size_t k = 0; k < y_num; ++k) {
+            for (int64_t k = 0; k < y_num; ++k) {
                 if ( k == y_num - 1 && prev_y_num % 2 ) {
                     children_boundaries[2] = 1;
                 }

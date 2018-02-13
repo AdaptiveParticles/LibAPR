@@ -17,7 +17,7 @@ class APR;
 class APRWriter {
 public:
 
-    template<typename T> hid_t get_type_data_hdf5(T o){ return 0; };
+    template<typename T> hid_t get_type_data_hdf5(T o){ return 0; }
 
 
     template<typename ImageType>
@@ -52,28 +52,19 @@ public:
         //
         //////////////////////////////////////////////
 
-        hid_t aid, atype;
 
         H5Screate(H5S_SCALAR);
 
         apr.name.reserve(100);
 
-        //std::string string_out;
-
-        //std::vector<char> string_out;
-        //string_out.resize(80);
-
-        //atype = H5Tcopy (H5T_C_S1);
-
         char string_out[100];
-
         for (int j = 0; j < 100; ++j) {
             string_out[j] = 0;
         }
 
         attr_id = 	H5Aopen(pr_groupid,"name",H5P_DEFAULT);
 
-        atype = H5Aget_type(attr_id);
+        hid_t atype = H5Aget_type(attr_id);
 
         hid_t atype_mem = H5Tget_native_type(atype, H5T_DIR_ASCEND);
 
@@ -193,7 +184,7 @@ public:
         apr.apr_access.y_num.resize(apr.apr_access.level_max+1);
         apr.apr_access.z_num.resize(apr.apr_access.level_max+1);
 
-        for(int i = apr.apr_access.level_min;i < apr.apr_access.level_max; i++){
+        for(unsigned int i = apr.apr_access.level_min;i < apr.apr_access.level_max; i++){
 
             //get the info
 
@@ -225,8 +216,7 @@ public:
 
         }
 
-
-        aid = H5Screate(H5S_SCALAR);
+        H5Screate(H5S_SCALAR);
 
         int data_type;
 
@@ -534,7 +524,7 @@ public:
 
         write_timer.stop_timer();
 
-        for (int i = apr.level_min(); i <apr.level_max() ; ++i) {
+        for (unsigned int i = apr.level_min(); i <apr.level_max() ; ++i) {
             std::string name = "x_num_"+std::to_string(i);
             hsize_t attr = apr.apr_access.x_num[i];
             hdf5_write_attribute_blosc(pr_groupid,H5T_NATIVE_INT,name.c_str(),1,&dim_a, &attr);
@@ -871,12 +861,9 @@ public:
         H5Aread(attr_id,H5T_NATIVE_UINT64,&total_number_parts) ;
         H5Aclose(attr_id);
 
-        hid_t       aid;
-
-        aid = H5Screate(H5S_SCALAR);
+        H5Screate(H5S_SCALAR);
 
         int data_type;
-
         attr_id = 	H5Aopen(pr_groupid,"data_type",H5P_DEFAULT);
         H5Aread(attr_id,H5T_NATIVE_INT,&data_type ) ;
         H5Aclose(attr_id);
@@ -889,54 +876,53 @@ public:
         H5Gclose(obj_id);
         H5Gclose(pr_groupid);
         H5Fclose(fid);
-
-    };
+    }
 };
 
 template<>
 hid_t APRWriter::get_type_data_hdf5<uint8_t>(uint8_t o){
     return H5T_NATIVE_UINT8;
-};
+}
 
 template<>
 hid_t APRWriter::get_type_data_hdf5<uint16_t>(uint16_t o){
     return H5T_NATIVE_UINT16;
-};
+}
 
 template<>
 hid_t APRWriter::get_type_data_hdf5<int16_t>(int16_t o){
     return H5T_NATIVE_INT16;
-};
+}
 
 template<>
 hid_t APRWriter::get_type_data_hdf5<float>(float o){
     return H5T_NATIVE_FLOAT;
-};
+}
 
 template<>
 hid_t APRWriter::get_type_data_hdf5<int>(int o){
     return H5T_NATIVE_INT;
-};
+}
 
 template<>
 hid_t APRWriter::get_type_data_hdf5<unsigned int>(unsigned int o){
     return H5T_NATIVE_UINT;
-};
+}
 
 template<>
 hid_t APRWriter::get_type_data_hdf5<double>(double o){
     return H5T_NATIVE_DOUBLE;
-};
+}
 
 template<>
 hid_t APRWriter::get_type_data_hdf5<int8_t>(int8_t o){
     return H5T_NATIVE_INT8;
-};
+}
 
 template<>
 hid_t APRWriter::get_type_data_hdf5<uint64_t>(uint64_t o){
     return H5T_NATIVE_UINT64;
-};
+}
 
 
 #endif //PARTPLAY_APRWRITER_HPP

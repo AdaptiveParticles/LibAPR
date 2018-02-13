@@ -432,7 +432,7 @@ void downsamplePyrmaid(MeshData<T> &original_image, std::vector<MeshData<T>> &do
     // calculate downsampled in range (l_max, l_min]
     auto sum = [](const float x, const float y) -> float { return x + y; };
     auto divide_by_8 = [](const float x) -> float { return x/8.0; };
-    for (int level = l_max; level > l_min; --level) {
+    for (size_t level = l_max; level > l_min; --level) {
         downsample(downsampled[level], downsampled[level - 1], sum, divide_by_8, true);
     }
 }

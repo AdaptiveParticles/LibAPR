@@ -103,7 +103,7 @@ public:
         ExtraParticleData<U> output_data_2(apr);
         output_data_2.copy_parts(apr,input_data);
 
-        for (int i = 0; i < repeats; ++i) {
+        for (unsigned int i = 0; i < repeats; ++i) {
             face_neighbour_filter(apr,output_data_2,output_data,filter,0);
             face_neighbour_filter(apr,output_data,output_data_2,filter,1);
             face_neighbour_filter(apr,output_data_2,output_data,filter,2);
@@ -165,14 +165,8 @@ public:
                     output_data[apr_iterator] += filter_t[i]*current_intensity;
                 }
             }
-
-
         }
-
-    };
-
-
-
+    }
 };
 
 

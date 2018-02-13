@@ -86,14 +86,14 @@ public:
             timer.stop_timer();
 
             timer.start_timer("predict other levels");
-            for (int level = apr.level_min(); level < apr.level_max(); ++level) {
+            for (unsigned int level = apr.level_min(); level < apr.level_max(); ++level) {
                 predict_particles_by_level(apr, level, predict_input, predict_output, predict_directions, num_blocks,
                                            0);
             }
             timer.stop_timer();
         } else if (compress_type == 2) {
             timer.start_timer("predict levels");
-            for (int level = apr.level_min(); level <= apr.level_max(); ++level) {
+            for (unsigned int level = apr.level_min(); level <= apr.level_max(); ++level) {
                 predict_particles_by_level(apr, level, predict_input, predict_output, predict_directions, num_blocks,
                                            0);
             }
@@ -122,7 +122,7 @@ public:
         this->background = apr.parameters.background_intensity_estimate - 2*apr.parameters.noise_sd_estimate;
         if(compress_type == 1) {
             //decode predict
-            for (int level = apr.level_min(); level < apr.level_max(); ++level) {
+            for (unsigned int level = apr.level_min(); level < apr.level_max(); ++level) {
                 predict_particles_by_level(apr, level, predict_input, predict_output, predict_directions, num_blocks,
                                            1,true);
             }
@@ -145,7 +145,7 @@ public:
                                        apr.level_max() - 1);
         } else if (compress_type == 2) {
 
-            for (int level = apr.level_min(); level <= apr.level_max(); ++level) {
+            for (unsigned int level = apr.level_min(); level <= apr.level_max(); ++level) {
                 predict_particles_by_level(apr, level, predict_input, predict_output, predict_directions, num_blocks,
                                            1,true);
             }
@@ -198,7 +198,7 @@ S APRCompress<ImageType>::variance_stabilitzation(const S input){
 
     return (2*sqrt(std::max((S) (input-background),(S)0)/cnv + pow(e,2)) - 2*e)/q;
 
-};
+}
 
 template<typename ImageType> template<typename S>
 S APRCompress<ImageType>::inverse_variance_stabilitzation(const S input){
@@ -212,14 +212,14 @@ S APRCompress<ImageType>::inverse_variance_stabilitzation(const S input){
         return ((S) background);
     }
 
-};
+}
 
 template<typename ImageType> template<typename T,typename S>
 T APRCompress<ImageType>::calculate_symbols(S input){
 
     int16_t val = round(input);
     return 2*(abs(val)) + (val >> 15);
-};
+}
 
 
 template<typename ImageType> template<typename T,typename S>
@@ -228,7 +228,7 @@ T APRCompress<ImageType>::inverse_calculate_symbols(S input){
     int16_t negative = ((uint16_t) input) % 2;
 
     return  (1 - 2 * negative) * ((input + negative) / 2);
-};
+}
 
 template<typename ImageType> template<typename T,typename S,typename U>
 void APRCompress<ImageType>::predict_particles_by_level(APR<U>& apr,const unsigned int level,ExtraParticleData<T>& predict_input,ExtraParticleData<S>& predict_output,std::vector<unsigned int>& predict_directions,unsigned int num_z_blocks,const int decode_encode_flag,const bool rounding){
@@ -267,7 +267,7 @@ void APRCompress<ImageType>::predict_particles_by_level(APR<U>& apr,const unsign
 
         unsigned int csum = 0; //cumulative sum
 
-        for (int i = 0; i < num_z_blocks; ++i) {
+        for (unsigned int i = 0; i < num_z_blocks; ++i) {
             z_block_begin[i] = csum;
             z_block_end[i] = csum + size_of_block;
 
@@ -309,7 +309,7 @@ void APRCompress<ImageType>::predict_particles_by_level(APR<U>& apr,const unsign
                 if(z != z_block_begin[z_block]) {
 
                     //loop over all the neighbours and set the neighbour iterator to it
-                    for (int f = 0; f < predict_directions.size(); ++f) {
+                    for (unsigned int f = 0; f < predict_directions.size(); ++f) {
                         // Neighbour Particle Cell Face definitions [+y,-y,+x,-x,+z,-z] =  [0,1,2,3,4,5]
 
                         unsigned int face = predict_directions[f];

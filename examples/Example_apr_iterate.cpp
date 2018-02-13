@@ -246,7 +246,7 @@ int main(int argc, char **argv) {
 
     for (int level = apr_iterator.level_min(); level <= apr_iterator.level_max(); ++level) {
 
-        int z = 0;
+        unsigned int z = 0;
 #ifdef HAVE_OPENMP
 	#pragma omp parallel for schedule(static) private(particle_number,z) firstprivate(apr_iterator) reduction(+:counter)
 #endif

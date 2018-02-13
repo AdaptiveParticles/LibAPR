@@ -494,9 +494,6 @@ public:
                 const size_t offset_pc_data3 = std::min(x_num_us*(2*z_+1) + (2*x_), x_num_us*z_num_us - 1);
                 const size_t offset_pc_data4 = std::min(x_num_us*(2*z_+1) + (2*x_+1), x_num_us*z_num_us - 1);
 
-                YGap_map gap;
-                gap.global_index_begin = 0;
-
                 size_t size_v = y_begin.data[i+1][offset_pc_data1].size();
 
                 y_begin.data[i+1][offset_pc_data2].resize(size_v);

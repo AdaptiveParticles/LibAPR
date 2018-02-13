@@ -264,39 +264,39 @@ void ComputeGradient::bspline_filt_rec_z(MeshData<T>& image,float lambda,float t
     //////////////////////////////////////////////////////////////
 
     std::vector<float> impulse_resp_vec_f(k0+3);  //forward
-    for (int64_t k = 0; k < (k0+3);k++){
+    for (size_t k = 0; k < (k0+3);k++){
         impulse_resp_vec_f[k] = impulse_resp(k,rho,omg);
     }
 
     std::vector<float> impulse_resp_vec_b(k0+3);  //backward
-    for (int64_t k = 0; k < (k0+3);k++){
+    for (size_t k = 0; k < (k0+3);k++){
         impulse_resp_vec_b[k] = impulse_resp_back(k,rho,omg,gamma,c0);
     }
 
     std::vector<float> bc1_vec(k0, 0);  //forward
     //y(1) init
     bc1_vec[1] = impulse_resp_vec_f[0];
-    for( int64_t k = 0; k < k0; k++){
+    for(size_t k = 0; k < k0; k++){
         bc1_vec[k] += impulse_resp_vec_f[k+1];
     }
 
     std::vector<float> bc2_vec(k0, 0);  //backward
     //y(0) init
-    for( int64_t k = 0; k < k0; k++){
+    for(size_t k = 0; k < k0; k++){
         bc2_vec[k] = impulse_resp_vec_f[k];
     }
 
     std::vector<float> bc3_vec(k0, 0);  //forward
     //y(N-1) init
     bc3_vec[0] = impulse_resp_vec_b[1];
-    for( int64_t k = 0; k < (k0-1); k++){
+    for(size_t k = 0; k < (k0-1); k++){
         bc3_vec[k+1] += impulse_resp_vec_b[k] + impulse_resp_vec_b[k+2];
     }
 
     std::vector<float> bc4_vec(k0, 0);  //backward
     //y(N) init
     bc4_vec[0] = impulse_resp_vec_b[0];
-    for( int64_t k = 1; k < k0; k++){
+    for(size_t k = 1; k < k0; k++){
         bc4_vec[k] += 2*impulse_resp_vec_b[k];
     }
 
@@ -419,39 +419,39 @@ void ComputeGradient::bspline_filt_rec_x(MeshData<T>& image,float lambda,float t
     //////////////////////////////////////////////////////////////
 
     std::vector<float> impulse_resp_vec_f(k0+3);  //forward
-    for (int64_t k = 0; k < (k0+3);k++){
+    for (size_t k = 0; k < (k0+3);k++){
         impulse_resp_vec_f[k] = impulse_resp(k,rho,omg);
     }
 
     std::vector<float> impulse_resp_vec_b(k0+3);  //backward
-    for (int64_t k = 0; k < (k0+3);k++){
+    for (size_t k = 0; k < (k0+3);k++){
         impulse_resp_vec_b[k] = impulse_resp_back(k,rho,omg,gamma,c0);
     }
 
     std::vector<float> bc1_vec(k0, 0);  //forward
     //y(1) init
     bc1_vec[1] = impulse_resp_vec_f[0];
-    for( int64_t k = 0; k < k0;k++){
+    for(size_t k = 0; k < k0;k++){
         bc1_vec[k] += impulse_resp_vec_f[k+1];
     }
 
     std::vector<float> bc2_vec(k0, 0);  //backward
     //y(0) init
-    for( int64_t k = 0; k < k0;k++){
+    for(size_t k = 0; k < k0;k++){
         bc2_vec[k] = impulse_resp_vec_f[k];
     }
 
     std::vector<float> bc3_vec(k0, 0);  //forward
     //y(N-1) init
     bc3_vec[0] = impulse_resp_vec_b[1];
-    for( int64_t k = 0; k < (k0-1);k++){
+    for(size_t k = 0; k < (k0-1);k++){
         bc3_vec[k+1] += impulse_resp_vec_b[k] + impulse_resp_vec_b[k+2];
     }
 
     std::vector<float> bc4_vec(k0, 0);  //backward
     //y(N) init
     bc4_vec[0] = impulse_resp_vec_b[0];
-    for( int64_t k = 1; k < k0;k++){
+    for(size_t k = 1; k < k0;k++){
         bc4_vec[k] += 2*impulse_resp_vec_b[k];
     }
 
