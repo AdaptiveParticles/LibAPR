@@ -702,21 +702,21 @@ public:
         apr_timer.start_timer("forth loop");
 
         //iteration helpers for by level
-        global_index_by_level_begin.resize(apr.level_max()+1,1);
-        global_index_by_level_end.resize(apr.level_max()+1,0);
+        global_index_by_level_begin.resize(level_max+1,1);
+        global_index_by_level_end.resize(level_max+1,0);
 
         cumsum= 0;
 
         total_number_gaps=0;
 
-        uint64_t min_level_find = apr.level_max();
-        uint64_t max_level_find = apr.level_min();
+        uint64_t min_level_find = level_max;
+        uint64_t max_level_find = level_min;
 
         //set up the iteration helpers for by zslice
-        global_index_by_level_and_z_begin.resize(apr.level_max()+1);
-        global_index_by_level_and_z_end.resize(apr.level_max()+1);
+        global_index_by_level_and_z_begin.resize(level_max+1);
+        global_index_by_level_and_z_end.resize(level_max+1);
 
-        for(uint64_t i = (apr.level_min());i <= apr.level_max();i++) {
+        for(uint64_t i = (level_min);i <= level_max;i++) {
 
             const unsigned int x_num_ = x_num[i];
             const unsigned int z_num_ = z_num[i];
@@ -771,7 +771,50 @@ public:
 
         total_number_non_empty_rows=0;
 
-        allocate_map_insert(apr,y_begin);
+        //allocate_map_insert(apr,y_begin);
+
+        //gap_map.initialize_structure_parts_empty(apr);
+
+        gap_map.depth_min = level_min;
+        gap_map.depth_max = level_max;
+
+        gap_map.z_num.resize(y_begin.depth_max+1);
+        gap_map.x_num.resize(y_begin.depth_max+1);
+        gap_map.data.resize(y_begin.depth_max+1);
+
+        for (uint64_t i = gap_map.depth_min; i <= gap_map.depth_max; ++i) {
+            gap_map.z_num[i] = z_num[i];
+            gap_map.x_num[i] = x_num[i];
+            gap_map.data[i].resize(z_num[i]*x_num[i]);
+        }
+
+        uint64_t counter_rows = 0;
+
+
+        for (uint64_t i = (level_min); i <= level_max; i++) {
+            const unsigned int x_num_ = x_num[i];
+            const unsigned int z_num_ = z_num[i];
+#ifdef HAVE_OPENMP
+#pragma omp parallel for default(shared) private(z_, x_) reduction(+:counter_rows)if(z_num_*x_num_ > 100)
+#endif
+            for (z_ = 0; z_ < z_num_; z_++) {
+                for (x_ = 0; x_ < x_num_; x_++) {
+                    const size_t offset_pc_data = x_num_ * z_ + x_;
+                    if (y_begin.data[i][offset_pc_data].size() > 0) {
+                        gap_map.data[i][offset_pc_data].resize(1);
+
+
+                        gap_map.data[i][offset_pc_data][0].map.insert(y_begin.data[i][offset_pc_data].begin(),
+                                                                      y_begin.data[i][offset_pc_data].end());
+
+                        counter_rows++;
+                    }
+                }
+            }
+        }
+
+        total_number_non_empty_rows = counter_rows;
+
         APRIterator<T> apr_iterator(*this);
 
         particle_cell_type.data.resize(global_index_by_level_end[level_max-1]+1,0);
