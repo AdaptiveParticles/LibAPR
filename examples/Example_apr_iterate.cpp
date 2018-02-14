@@ -18,7 +18,7 @@ iteration strategies on the APR.
 
 #include <algorithm>
 #include <iostream>
-
+#include <cmath>
 #include "Example_apr_iterate.h"
 
 
@@ -153,7 +153,7 @@ int main(int argc, char **argv) {
     timer.start_timer("Take the absolute value and output");
     ExtraParticleData<float> output_1;
     //return the absolute value of the part dataset (includes initialization of the output result)
-    calc_ex.map(apr,output_1,[](const float &a) { return abs(a); });
+    calc_ex.map(apr,output_1,[](const float &a) { return std::abs(a); });
     timer.stop_timer();
 
     /// Two datasets, binary operation, return result to the particle dataset form which it is performed.
