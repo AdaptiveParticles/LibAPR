@@ -5,11 +5,6 @@ cmake_minimum_required(VERSION 3.2)
 project(LibAPR)
 set(CMAKE_CXX_STANDARD 14)
 
-get_cmake_property(_variableNames VARIABLES)
-foreach (_variableName ${_variableNames})
-    message(STATUS "${_variableName}=${${_variableName}}")
-endforeach()
-
 ###############################################################################
 # Generate configuration file
 ###############################################################################
@@ -48,10 +43,9 @@ include_directories("external/c-blosc/blosc")
 ###############################################################################
 # Configure compiler options
 ###############################################################################
-# If you ever want to compile with icc it should look more or less like this:
-#set(CMAKE_CXX_COMPILER /opt/intel/compilers_and_libraries_2016/linux/bin/intel64/icc)
-#set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -qopenmp -ip -ansi-alias -xCORE-AVX2 ")
-#set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -qopenmp")
+# If you ever want to compile with Intel's icc (or any other compiler) provide
+# compiler names/paths in cmake command like this:
+# CC="icc" CXX="icc" CXXFLAGS="-O3" cmake -DAPR_TESTS=1
 SET(CMAKE_POSITION_INDEPENDENT_CODE ON)
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++14 -Wall -pedantic ")
 if(CMAKE_COMPILER_IS_GNUCC)
