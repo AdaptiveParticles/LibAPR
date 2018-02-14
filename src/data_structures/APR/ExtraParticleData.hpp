@@ -6,6 +6,9 @@
 #define PARTPLAY_EXTRAPARTICLEDATA_HPP
 
 
+#include <algorithm>
+
+
 template<typename V> class APR;
 template<typename V> class APRIterator;
 

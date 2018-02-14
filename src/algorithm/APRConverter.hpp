@@ -353,6 +353,7 @@ void APRConverter<ImageType>::init_apr(APR<ImageType>& aAPR,MeshData<T>& input_i
     int min_dim = std::min(std::min(aAPR.apr_access.org_dims[1], aAPR.apr_access.org_dims[0]), aAPR.apr_access.org_dims[2]);
 
     int levelMax = ceil(std::log2(max_dim));
+    // TODO: why minimum level is forced here to be 2?
     int levelMin = std::max( (int)(levelMax - floor(std::log2(min_dim))), 2);
 
     aAPR.apr_access.level_min = levelMin;
@@ -561,7 +562,6 @@ void APRConverter<ImageType>::auto_parameters(const MeshData<T>& input_img){
     //  Detecting background subtracted images, or no-noise, in these cases the above estimates do not work
     //
     if((proportion_flat > 1.0f) && (proportion_next > 0.00001f)){
-
         std::cout << "AUTOPARAMTERS:**Warning** Detected that there is likely noisy background, instead assuming background subtracted and minimum signal of 5 (absolute), if this is not the case please set parameters manually" << std::endl;
         this->par.Ip_th = 1;
         this->par.sigma_th = 5;
@@ -570,7 +570,6 @@ void APRConverter<ImageType>::auto_parameters(const MeshData<T>& input_img){
         this->par.rel_error = 0.125;
         this->par.min_signal = 5;
         this->par.SNR_min = 1;
-
     } else {
         std::cout << "AUTOPARAMTERS: **Assuming image has atleast 5% dark background" << std::endl;
     }
