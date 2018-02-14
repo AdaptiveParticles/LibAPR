@@ -728,7 +728,7 @@ public:
                     for (y_ = 0; y_ < y_num_; y_++) {
 
                         status = p_map[i].mesh[offset_part_map + y_];
-                        if((status > 1) & (status < 5)) {
+                        if((status >= 5) & (status <= 6)) {
                             current = 1;
 
                             if(previous == 0){

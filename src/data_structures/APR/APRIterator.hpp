@@ -7,6 +7,7 @@
 
 #include "APR.hpp"
 #include "APRAccess.hpp"
+#include "APRTree.hpp"
 
 template<typename ImageType>
 class APRIterator {
@@ -32,6 +33,8 @@ private:
 
     MapIterator current_gap;
 
+    uint8_t highest_resolution_type;
+
     bool check_neigh_flag = false;
 
     const uint16_t shift[6] = {YP_LEVEL_SHIFT,YM_LEVEL_SHIFT,XP_LEVEL_SHIFT,XM_LEVEL_SHIFT,ZP_LEVEL_SHIFT,ZM_LEVEL_SHIFT};
@@ -46,17 +49,26 @@ public:
         aprOwn = &apr;
         apr_access = &apr.apr_access;
         current_particle_cell.global_index = UINT64_MAX;
+        highest_resolution_type = 1;
     }
 
     explicit APRIterator(APRAccess& apr_access_){
        apr_access = &apr_access_;
         current_particle_cell.global_index = UINT64_MAX;
+        highest_resolution_type = 1;
+    }
+
+    explicit APRIterator(APRTree<ImageType>& apr_tree){
+        apr_access = &apr_tree.tree_access;
+        current_particle_cell.global_index = UINT64_MAX;
+        highest_resolution_type = 5;
     }
 
     void initialize_from_apr(APR<ImageType>& apr){
         aprOwn = &apr;
         apr_access = &apr.apr_access;
         current_particle_cell.global_index = UINT64_MAX;
+        highest_resolution_type = 1;
     }
 
     uint64_t total_number_particles(){
@@ -210,7 +222,7 @@ public:
         //get type of the particle cell
 
         if(current_particle_cell.level==level_max()){
-            return 1; //all highest resolution pcs are seed, when using the nieghborhood optimization/
+            return highest_resolution_type; //all highest resolution pcs are seed, when using the nieghborhood optimization/
         } else {
             return apr_access->particle_cell_type.data[current_particle_cell.global_index];
         }

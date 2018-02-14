@@ -7,17 +7,29 @@
 
 #include "src/data_structures/APR/APR.hpp"
 
+#define DIRECT_PARENT 5
+#define INTERIOR_PARENT 6
+
 template<typename imageType>
 class APRTree {
+
+    template<typename S> friend class APRIterator;
+
 public:
     APRTree(APR<imageType>& apr){
         initialize_apr_tree(apr);
     }
 
+    inline uint64_t total_number_parent_cells() const { return (tree_access).total_number_particles; }
+
+    void get_child();
+
+    void get_partent();
+
 private:
     APRAccess tree_access;
 
-    void initialize_apr_tree(APR<imageType>& apr){
+    void initialize_apr_tree(APR<imageType>& apr,bool type_full = false){
 
         APRIterator<imageType> apr_iterator(apr);
 
@@ -54,10 +66,35 @@ private:
             size_t x_p = apr_iterator.x()/2;
             size_t z_p = apr_iterator.z()/2;
 
-            particle_cell_parent_tree[apr_iterator.level()-1].access_no_protection(y_p,x_p,z_p)=2;
+            if(particle_cell_parent_tree[apr_iterator.level()-1].access_no_protection(y_p,x_p,z_p)!=DIRECT_PARENT){
+
+                int current_level = apr_iterator.level()-1;
+
+                particle_cell_parent_tree[current_level].access_no_protection(y_p,x_p,z_p)=DIRECT_PARENT;
+
+                while(current_level > l_min){
+                    current_level--;
+                    y_p = y_p/2;
+                    x_p = x_p/2;
+                    z_p = z_p/2;
+
+                    if(particle_cell_parent_tree[current_level].access_no_protection(y_p,x_p,z_p)==0){
+                        particle_cell_parent_tree[current_level].access_no_protection(y_p,x_p,z_p)=INTERIOR_PARENT;
+                    } else {
+                        //already covered
+                        break;
+                    }
+
+                }
+
+            }
 
             counter++;
 
+        }
+
+        if(type_full){
+            // loop over the levels, then loop over the non empty and popogate upwards.
         }
 
         this->tree_access.initialize_tree_access(apr,particle_cell_parent_tree);

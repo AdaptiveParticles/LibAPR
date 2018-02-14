@@ -50,13 +50,33 @@ int main(int argc, char **argv) {
     //remove the file extension
     name.erase(name.end() - 3, name.end());
 
-
     APRTree<uint16_t> apr_tree(apr);
 
+    APRIterator<uint16_t> apr_tree_iterator(apr_tree);
 
+    ExtraParticleData<float> tree_data(apr_tree);
 
+    uint64_t counter = 0;
+    uint64_t counter_interior = 0;
+    uint64_t particle_number;
+    //Basic serial iteration over all particles
+    for (particle_number = 0; particle_number < apr_tree.total_number_parent_cells(); ++particle_number) {
+        //This step is required for all loops to set the iterator by the particle number
+        apr_tree_iterator.set_iterator_to_particle_by_number(particle_number);
+        counter++;
+        std::cout << apr_tree_iterator.x() << " " << apr_tree_iterator.y() << " " << (int)apr_tree_iterator.type() << " " << apr_tree_iterator.global_index() << std::endl;
 
+        if(apr_tree_iterator.type() == 6){
+            //count those nodes that do not have children that are in the APR
+            counter_interior++;
+        }
 
+        tree_data[apr_tree_iterator] = apr_tree_iterator.type();
+    }
+
+    std::cout << counter << std::endl;
+    std::cout << counter_interior << std::endl;
+    std::cout << counter/(apr.total_number_particles()*1.0f) << std::endl;
 
 }
 bool command_option_exists(char **begin, char **end, const std::string &option)
