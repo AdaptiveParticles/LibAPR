@@ -620,7 +620,7 @@ public:
         //just an identifier in here for the reading of the parts
 
 
-        int num_parts = apr.apr_access.total_number_particles;
+        uint64_t num_parts = apr.apr_access.total_number_particles;
 
         hdf5_write_attribute_blosc(pr_groupid,H5T_NATIVE_UINT64,"total_number_particles",1,dims_out, &num_parts );
 
