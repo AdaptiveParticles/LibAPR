@@ -52,7 +52,7 @@ int main(int argc, char **argv) {
 
     APRTree<uint16_t> apr_tree(apr);
 
-    APRIterator<uint16_t> apr_tree_iterator(apr_tree);
+    APRTreeIterator<uint16_t> apr_tree_iterator(apr_tree);
 
     ExtraParticleData<float> tree_data(apr_tree);
 

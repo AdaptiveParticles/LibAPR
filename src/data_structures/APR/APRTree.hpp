@@ -14,6 +14,7 @@ template<typename imageType>
 class APRTree {
 
     template<typename S> friend class APRIterator;
+    template<typename S> friend class APRTreeIterator;
 
 public:
     APRTree(APR<imageType>& apr){
@@ -21,10 +22,6 @@ public:
     }
 
     inline uint64_t total_number_parent_cells() const { return (tree_access).total_number_particles; }
-
-    void get_child();
-
-    void get_partent();
 
 private:
     APRAccess tree_access;

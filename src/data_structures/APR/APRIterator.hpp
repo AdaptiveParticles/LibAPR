@@ -12,7 +12,7 @@
 template<typename ImageType>
 class APRIterator {
 
-private:
+protected:
 
     LocalMapIterators local_iterators;
 
@@ -44,6 +44,9 @@ private:
 
 public:
 
+    APRIterator(){
+        //default constructor, for use by inherited classes
+    }
 
     explicit APRIterator(APR<ImageType>& apr){
         aprOwn = &apr;
@@ -80,7 +83,6 @@ public:
         //  Moves the iterator to point to the particle number (global index of the particle)
         //
 
-//        std::cerr << particle_number << std::endl;
         if(particle_number==0){
             current_particle_cell.level = level_min();
             current_particle_cell.pc_offset=0;
