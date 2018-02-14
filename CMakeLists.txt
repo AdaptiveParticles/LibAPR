@@ -5,13 +5,20 @@ cmake_minimum_required(VERSION 3.2)
 project(LibAPR)
 set(CMAKE_CXX_STANDARD 14)
 
+get_cmake_property(_variableNames VARIABLES)
+foreach (_variableName ${_variableNames})
+    message(STATUS "${_variableName}=${${_variableName}}")
+endforeach()
+
 ###############################################################################
 # Generate configuration file
 ###############################################################################
 set (APR_VERSION_MAJOR 1)
 set (APR_VERSION_MINOR 0)
 set (APR_VERSION_PATCH 0)
-execute_process(COMMAND git rev-parse HEAD OUTPUT_VARIABLE APR_GIT_HASH)
+execute_process(COMMAND git rev-parse HEAD WORKING_DIRECTORY ${PROJECT_SOURCE_DIR} OUTPUT_VARIABLE APR_GIT_HASH)
+message(STATUS "============== ${APR_GIT_HASH}")
+message(STATUS "============== ${PROJECT_SOURCE_DIR}")
 string(REGEX REPLACE "\n$" "" APR_GIT_HASH "${APR_GIT_HASH}")
 configure_file (
         "${PROJECT_SOURCE_DIR}/src/ConfigAPR.h.in"
@@ -65,7 +72,7 @@ set(SOURCE_FILES_RAYCAST src/vis/Camera.cpp src/vis/Object.cpp src/vis/Raytraced
 
 add_library(libapr ${SOURCE_FILES} ${SOURCE_FILES_RAYCAST})
 set_target_properties(libapr PROPERTIES PREFIX "")
-target_include_directories(libapr PUBLIC . src external/glm)
+target_include_directories(libapr PUBLIC . src external/glm ${PROJECT_BINARY_DIR})
 target_link_libraries(libapr PUBLIC ${HDF5_LIBRARIES} ${TIFF_LIBRARIES} blosc_shared)
 
 ###############################################################################
