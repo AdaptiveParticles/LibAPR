@@ -29,6 +29,9 @@ namespace TiffUtils {
 
         ~TiffInfo() { close(); }
 
+        /**
+         * Return string information about opened TIFF file
+         **/
         std::string toString() const {
             if (iFile == nullptr) {
                 return "<File not opened>";
@@ -58,6 +61,9 @@ namespace TiffUtils {
             return outputStr.str();
         }
 
+        /**
+         * return true if file is opened
+         **/
         bool isFileOpened() const { return iFile != nullptr; }
 
         TiffType iType = TiffType::TIFF_INVALID;
@@ -75,6 +81,9 @@ namespace TiffUtils {
         TiffInfo(const TiffInfo&) = delete; // make it noncopyable
         TiffInfo& operator=(const TiffInfo&) = delete; // make it not assignable
 
+        /**
+         * opens TIFF
+         **/
         bool open(const std::string &aFileName) {
 
             std::cout << "Opening file: [" << (aFileName == "" ? "null" : aFileName) << "]" << std::endl;
@@ -177,7 +186,6 @@ namespace TiffUtils {
     void getMesh(const TiffInfo &aTiff, MeshData<T> &aInputMesh) {
         if (!aTiff.isFileOpened()) return;
 
-        // Prepeare preallocated MeshData object for TIF
         std::cout << "getMesh: " << aInputMesh << std::endl;
 
         // Get some more data from TIFF needed during reading
