@@ -28,7 +28,9 @@ Advanced (Direct) Settings:
 
 #include <algorithm>
 #include <iostream>
+#include "ConfigAPR.h"
 #include "Example_get_apr.h"
+
 
 
 int main(int argc, char **argv) {
@@ -132,6 +134,7 @@ cmdLineOptions read_command_line_options(int argc, char **argv){
 
     if(argc == 1) {
         std::cerr << argv[0] << std::endl;
+        std::cerr << "APR version " << ConfigAPR::getVersionString() << std::endl;
         std::cerr << "Short usage: \"" << argv[0] << " -i inputfile [-d directory] [-o outputfile]\"" << std::endl;
 
         std::cerr << usage << std::endl;

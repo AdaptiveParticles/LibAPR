@@ -1,0 +1,23 @@
+/**
+ * Template configuration file for APR.
+ *
+ * Krzysztof Gonciarz 2018
+ */
+#ifndef CONFIG_APR_H
+#define CONFIG_APR_H
+
+
+#include <string>
+
+namespace ConfigAPR {
+    const unsigned int APR_VERSION_MAJOR = @APR_VERSION_MAJOR@;
+    const unsigned int APR_VERSION_MINOR = @APR_VERSION_MINOR@;
+    const unsigned int APR_VERSION_PATCH = @APR_VERSION_PATCH@;
+    const std::string APR_GIT_HASH = "@APR_GIT_HASH@";
+
+    static constexpr auto getVersionString() {
+        return "@APR_VERSION_MAJOR@.@APR_VERSION_MINOR@.@APR_VERSION_PATCH@";
+    }
+}
+
+#endif

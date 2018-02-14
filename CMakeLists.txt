@@ -6,6 +6,20 @@ project(LibAPR)
 set(CMAKE_CXX_STANDARD 14)
 
 ###############################################################################
+# Generate configuration file
+###############################################################################
+set (APR_VERSION_MAJOR 1)
+set (APR_VERSION_MINOR 0)
+set (APR_VERSION_PATCH 0)
+execute_process(COMMAND git rev-parse HEAD OUTPUT_VARIABLE APR_GIT_HASH)
+string(REGEX REPLACE "\n$" "" APR_GIT_HASH "${APR_GIT_HASH}")
+configure_file (
+        "${PROJECT_SOURCE_DIR}/src/ConfigAPR.h.in"
+        "${PROJECT_BINARY_DIR}/ConfigAPR.h"
+)
+include_directories("${PROJECT_BINARY_DIR}")
+
+###############################################################################
 # Find all required libraries
 ###############################################################################
 find_package(HDF5 REQUIRED)

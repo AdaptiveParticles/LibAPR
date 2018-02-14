@@ -9,6 +9,7 @@
 #include "src/data_structures/APR/APR.hpp"
 #include <src/data_structures/APR/APRAccess.hpp>
 #include <numeric>
+#include "ConfigAPR.h"
 
 template<typename U>
 class APR;
@@ -177,8 +178,6 @@ public:
         attr_id = 	H5Aopen(pr_groupid,"noise_sd_estimate",H5P_DEFAULT);
         H5Aread(attr_id,H5T_NATIVE_FLOAT,&apr.parameters.noise_sd_estimate ) ;
         H5Aclose(attr_id);
-
-        //std::cout << "Number particles: " << num_parts << " Number Cells: " << num_cells << std::endl;
 
         apr.apr_access.x_num.resize(apr.apr_access.level_max+1);
         apr.apr_access.y_num.resize(apr.apr_access.level_max+1);
@@ -403,9 +402,7 @@ public:
 
         hdf5_write_string_blosc(pr_groupid,"name",apr.name);
 
-        std::string git_hash = exec_blosc("git rev-parse HEAD");
-
-        hdf5_write_string_blosc(pr_groupid,"githash",git_hash);
+        hdf5_write_string_blosc(pr_groupid,"githash", ConfigAPR::APR_GIT_HASH);
 
         hdf5_write_attribute_blosc(pr_groupid,H5T_NATIVE_INT,"compress_type",1,dims_out, &compress_type_num);
 
@@ -632,9 +629,7 @@ public:
 
         hdf5_write_string_blosc(pr_groupid,"name",apr.name);
 
-        std::string git_hash = exec_blosc("git rev-parse HEAD");
-
-        hdf5_write_string_blosc(pr_groupid,"githash",git_hash);
+        hdf5_write_string_blosc(pr_groupid,"githash", ConfigAPR::APR_GIT_HASH);
 
         //////////////////////////////////////////////////////////////////
         //
@@ -779,7 +774,7 @@ public:
 
         //just an identifier in here for the reading of the parts
         S val = 0;
-        hid_t type_id = get_type_blosc(val);
+        hid_t type_id = get_type_data_hdf5(val);
         hid_t type = get_type_data_hdf5(val);
 
         hdf5_write_attribute_blosc(pr_groupid,H5T_NATIVE_INT,"data_type",1,dims_out, &type_id);
@@ -806,10 +801,7 @@ public:
 
 
         // New parameter and background data
-
-        std::string git_hash = exec_blosc("git rev-parse HEAD");
-
-        hdf5_write_string_blosc(pr_groupid,"githash",git_hash);
+        hdf5_write_string_blosc(pr_groupid,"githash", ConfigAPR::APR_GIT_HASH);
 
         // output the file size
         hsize_t file_size;

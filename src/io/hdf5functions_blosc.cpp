@@ -10,26 +10,7 @@
 
 #include "hdf5functions_blosc.h"
 #include <array>
-#include <string>
-#include <memory>
 
-// TODO: This is not supported for UWP, find a replacement
-#ifdef _WINDOWS
-#define popen _popen
-#define pclose _pclose
-#endif
-
-std::string exec_blosc(const char* cmd) {
-    std::array<char, 128> buffer;
-    std::string result;
-    std::shared_ptr<FILE> pipe(popen(cmd, "r"), pclose);
-    if (!pipe) throw std::runtime_error("popen() failed!");
-    while (!feof(pipe.get())) {
-        if (fgets(buffer.data(), 128, pipe.get()) != NULL)
-            result += buffer.data();
-    }
-    return result;
-}
 
 void register_bosc(){
     /* Register the filter with the library */
@@ -49,65 +30,6 @@ void hdf5_load_data_blosc(hid_t obj_id,hid_t data_type,void* buff, const char* d
     
     H5Dread( data_id, datatype, H5S_ALL, H5S_ALL,H5P_DEFAULT, buff );
     H5Dclose(data_id);
-}
-
-void hdf5_write_data_blosc(hid_t obj_id,hid_t type_id,const char* ds_name,hsize_t rank,hsize_t* dims, void* data ){
-    //writes data to the hdf5 file or group identified by obj_id of hdf5 datatype data_type
-    
-    unsigned int cd_values[7];
-    //Declare the required hdf5 shiz
-    hid_t space_id,dset_id,plist_id;
-    hsize_t *cdims = new hsize_t[rank]; //chunking dims
-    
-    //compression parameters
-
-    
-    //int szip_options_mask = H5_SZIP_NN_OPTION_MASK;
-    //int szip_pixels_per_block = 8;
-    
-    //dataspace id
-    space_id = H5Screate_simple(rank, dims, NULL);
-    plist_id  = H5Pcreate(H5P_DATASET_CREATE);
-    
-    /* Dataset must be chunked for compression */
-    //cdims[0] = 20; //Could try playing with these for compression performance
-    //cdims[1] = 20;
-    
-    uint64_t max_size = 100000;
-    
-    if (rank == 1) {
-        if (dims[0] < max_size){
-            cdims[0] = dims[0];
-        }else {
-            cdims[0] = max_size;
-        }
-    }
-    else {
-        cdims[0] = 100;
-        cdims[1] = 100;
-    }
-    
-    H5Pset_chunk(plist_id, rank, cdims);
-    
-    /////SET COMPRESSION TYPE /////
-    
-    /* But you can also taylor Blosc parameters to your needs */
-    /* 0 to 3 (inclusive) param slots are reserved. */
-    cd_values[4] = 6;       /* compression level */
-    cd_values[5] = 2;       /* 0: shuffle not active, 1: shuffle active */
-    cd_values[6] = BLOSC_ZSTD; /* the actual compressor to use */
-
-    /* Set the filter with 7 params */
-    H5Pset_filter(plist_id, FILTER_BLOSC, H5Z_FLAG_OPTIONAL, 7, cd_values);
-    
-    //create write and close
-    dset_id = H5Dcreate2(obj_id,ds_name,type_id,space_id,H5P_DEFAULT,plist_id,H5P_DEFAULT);
-    
-    H5Dwrite(dset_id,type_id,H5S_ALL,H5S_ALL,H5P_DEFAULT,data);
-    
-    H5Dclose(dset_id);
-    
-    
 }
 
 void hdf5_write_data_blosc(hid_t obj_id,hid_t type_id,const char* ds_name,hsize_t rank,hsize_t* dims, void* data ,unsigned int comp_type,unsigned int comp_level,unsigned int shuffle){
