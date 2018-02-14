@@ -16,9 +16,9 @@ endforeach()
 set (APR_VERSION_MAJOR 1)
 set (APR_VERSION_MINOR 0)
 set (APR_VERSION_PATCH 0)
-execute_process(COMMAND git rev-parse HEAD WORKING_DIRECTORY ${PROJECT_SOURCE_DIR} OUTPUT_VARIABLE APR_GIT_HASH)
-message(STATUS "============== ${APR_GIT_HASH}")
-message(STATUS "============== ${PROJECT_SOURCE_DIR}")
+execute_process(COMMAND git rev-parse HEAD 
+		WORKING_DIRECTORY ${PROJECT_SOURCE_DIR} 
+		OUTPUT_VARIABLE APR_GIT_HASH)
 string(REGEX REPLACE "\n$" "" APR_GIT_HASH "${APR_GIT_HASH}")
 configure_file (
         "${PROJECT_SOURCE_DIR}/src/ConfigAPR.h.in"
