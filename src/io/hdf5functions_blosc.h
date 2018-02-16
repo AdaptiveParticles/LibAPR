@@ -22,7 +22,7 @@ extern "C" {
 #include <fstream>
 
 
-void register_bosc();
+void register_blosc();
 void hdf5_create_file_blosc(std::string file_name);
 void hdf5_load_data_blosc(hid_t obj_id,hid_t data_type,void* buff, const char* data_name);
 void hdf5_write_attribute_blosc(hid_t obj_id,hid_t type_id,const char* attr_name,hsize_t rank,hsize_t* dims, void* data );

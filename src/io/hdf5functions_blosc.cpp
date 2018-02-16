@@ -12,23 +12,17 @@
 #include <array>
 
 
-void register_bosc(){
-    /* Register the filter with the library */
-    char *version, *date;
-    register_blosc(&version, &date);
-    //printf("Blosc version info: %s (%s)\n", version, date);
+/**
+ * Register the 'blosc' filter with the HDF5 library
+ */
+void register_blosc(){
+    register_blosc(nullptr, nullptr);
 }
 
-void hdf5_load_data_blosc(hid_t obj_id,hid_t data_type,void* buff, const char* data_name){
-    
-    //declare var
-    hid_t data_id;
-    
+void hdf5_load_data_blosc(hid_t obj_id, hid_t data_type, void* buff, const char* data_name) {
     //stuff required to pull the data in
-    data_id =  H5Dopen2(obj_id , data_name ,H5P_DEFAULT);
-    hid_t datatype  = H5Dget_type(data_id);
-    
-    H5Dread( data_id, datatype, H5S_ALL, H5S_ALL,H5P_DEFAULT, buff );
+    hid_t data_id =  H5Dopen2(obj_id , data_name ,H5P_DEFAULT);
+    H5Dread(data_id, data_type, H5S_ALL, H5S_ALL,H5P_DEFAULT, buff);
     H5Dclose(data_id);
 }
 
