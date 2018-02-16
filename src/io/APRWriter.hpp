@@ -45,7 +45,7 @@ namespace AprTypes  {
     const AprType NumberOfLevelXType = {H5T_NATIVE_INT, "x_num_"};
     const AprType NumberOfLevelYType = {H5T_NATIVE_INT, "y_num_"};
     const AprType NumberOfLevelZType = {H5T_NATIVE_INT, "z_num_"};
-    const AprType DataTypeType = {H5T_NATIVE_INT64, "data_type"};
+    const AprType ParticleIntensitiesDataType = {H5T_NATIVE_INT64, "data_type"};
     const AprType MapGlobalIndexType = {H5T_NATIVE_INT16, "map_global_index"};
     const AprType MapYendType = {H5T_NATIVE_INT16, "map_y_end"};
     const AprType MapYbeginType = {H5T_NATIVE_INT16, "map_y_begin"};
@@ -55,7 +55,7 @@ namespace AprTypes  {
     const AprType MapZType = {H5T_NATIVE_INT16, "map_z"};
     const AprType ParticleCellType = {H5T_NATIVE_UINT8, "particle_cell_type"};
 
-    const char * const DataIntensities = "particle_intensities"; // type read from file
+    const char * const ParticleIntensitiesType = "particle_intensities"; // type read from file
 }
 
 
@@ -157,11 +157,11 @@ public:
         }
 
         // ------------- read data ------------------------------
-        hid_t data_type;
-        readAttr(AprTypes::DataTypeType, groupId, &data_type);
+        hid_t dataType;
+        readAttr(AprTypes::ParticleIntensitiesDataType, groupId, &dataType);
         apr.particles_intensities.data.resize(apr.apr_access.total_number_particles);
         if (apr.particles_intensities.data.size() > 0) {
-            readData({data_type, AprTypes::DataIntensities}, objectId, apr.particles_intensities.data.data());
+            readData({dataType, AprTypes::ParticleIntensitiesType}, objectId, apr.particles_intensities.data.data());
         }
         apr.apr_access.y_num[apr.apr_access.level_max] = apr.apr_access.org_dims[0];
         apr.apr_access.x_num[apr.apr_access.level_max] = apr.apr_access.org_dims[1];
@@ -335,8 +335,8 @@ public:
             apr_compressor.compress(apr,apr.particles_intensities);
         }
         hid_t type = Hdf5Type<ImageType>::type();
-        writeAttr(AprTypes::DataTypeType, pr_groupid, &type);
-        writeData({type, AprTypes::DataIntensities}, obj_id, apr.particles_intensities.data, blosc_comp_type, blosc_comp_level, blosc_shuffle);
+        writeAttr(AprTypes::ParticleIntensitiesDataType, pr_groupid, &type);
+        writeData({type, AprTypes::ParticleIntensitiesType}, obj_id, apr.particles_intensities.data, blosc_comp_type, blosc_comp_level, blosc_shuffle);
         write_timer.stop_timer();
 
         write_timer.start_timer("access_data");
