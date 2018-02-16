@@ -25,12 +25,12 @@ public:
 
     bool set_iterator_to_parent(APRIterator<ImageType>& current_iterator){
         //takes an input iterator and sets it THIS iterator to the parent of the particle cell that the current_iterator is pointing to.
-        this->current_particle_cell.y = (uint16_t)(current_iterator.y());
+        this->current_particle_cell.y = (uint16_t)(current_iterator.y()/2);
         this->current_particle_cell.x = (uint16_t)(current_iterator.x()/2);
         this->current_particle_cell.z = (uint16_t)(current_iterator.z()/2);
         this->current_particle_cell.level = (uint16_t)(current_iterator.level() - 1);
 
-        if(this->current_particle_cell.level <= this->level_min()) {
+        if(this->current_particle_cell.level >= this->level_min()) {
             return this->set_iterator_by_particle_cell(this->current_particle_cell);
         } else {
             //is at a level lower then the set minimum level.
