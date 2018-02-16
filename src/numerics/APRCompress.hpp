@@ -28,7 +28,7 @@ public:
     }
 
     template<typename U>
-    void compress(APR<U>& apr,ExtraParticleData<ImageType>& symbols) {
+    void  compress(APR<U> &apr, ExtraParticleData<ImageType> &symbols) {
         APRTimer timer;
         timer.verbose_flag = false;
 

@@ -751,7 +751,7 @@ public:
 
 
     template<typename T>
-    void flatten_structure(APR<T>& apr,MapStorageData& map_data){
+    void flatten_structure(const APR<T> &apr, MapStorageData &map_data)  {
         //
         //  Flatten the map access structure for writing the output
         //
