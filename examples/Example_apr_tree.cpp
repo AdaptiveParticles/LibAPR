@@ -64,9 +64,9 @@ int main(int argc, char **argv) {
         //This step is required for all loops to set the iterator by the particle number
         apr_tree_iterator.set_iterator_to_particle_by_number(particle_number);
         counter++;
-        std::cout << apr_tree_iterator.x() << " " << apr_tree_iterator.y() << " " << (int)apr_tree_iterator.type() << " " << apr_tree_iterator.global_index() << std::endl;
+        //std::cout << apr_tree_iterator.x() << " " << apr_tree_iterator.y() << " " << (int)apr_tree_iterator.type() << " " << apr_tree_iterator.global_index() << std::endl;
 
-        if(apr_tree_iterator.type() == 6){
+        if(apr_tree_iterator.type() < 8){
             //count those nodes that do not have children that are in the APR
             counter_interior++;
         }
@@ -77,6 +77,13 @@ int main(int argc, char **argv) {
     std::cout << counter << std::endl;
     std::cout << counter_interior << std::endl;
     std::cout << counter/(apr.total_number_particles()*1.0f) << std::endl;
+
+    APRTreeNumerics::fill_tree_from_particles(apr,apr_tree,apr.particles_intensities,tree_data);
+
+    uint8_t level_offset = 3;
+    APRTreeNumerics::pull_down_tree_to_particles(apr,apr_tree,apr.particles_intensities,tree_data,level_offset);
+
+
 
 }
 bool command_option_exists(char **begin, char **end, const std::string &option)
