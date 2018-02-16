@@ -61,7 +61,7 @@ void hdf5_write_data_blosc(hid_t obj_id, hid_t type_id, const char *ds_name, hsi
 /**
  * writes data to the hdf5 file or group identified by obj_id of hdf5 datatype data_type
  */
-void hdf5_write_attribute_blosc(hid_t obj_id,hid_t type_id,const char* attr_name,hsize_t rank,hsize_t* dims, void* data ){
+void hdf5_write_attribute_blosc(hid_t obj_id,hid_t type_id,const char* attr_name,hsize_t rank,hsize_t* dims, const void * const data ){
     hid_t space_id = H5Screate_simple(rank, dims, NULL);
     hid_t attr_id = H5Acreate2( obj_id, attr_name, type_id, space_id, H5P_DEFAULT, H5P_DEFAULT);
     H5Awrite(attr_id, type_id, data);

@@ -109,6 +109,7 @@ public:
 
     uint64_t org_dims[3]={0,0,0};
 
+    // TODO: SHould they be also saved as uint64 in HDF5? (currently int is used)
     std::vector<uint64_t> x_num;
     std::vector<uint64_t> y_num;
     std::vector<uint64_t> z_num;
