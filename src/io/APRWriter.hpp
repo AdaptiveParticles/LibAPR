@@ -339,20 +339,16 @@ public:
 
         file_name = file_name + "_apr";
 
-        hdf5_create_file_blosc(hdf5_file_name);
+        hid_t fid = hdf5_create_file_blosc(hdf5_file_name);
+//        fid = H5Fopen(hdf5_file_name.c_str(),H5F_ACC_RDWR,H5P_DEFAULT);
 
         //hdf5 inits
-        hid_t fid, pr_groupid, obj_id;
+        hid_t pr_groupid, obj_id;
         H5G_info_t info;
-
         hsize_t     dims_out[2];
-
         hsize_t rank = 1;
-
         hsize_t dims;
         hsize_t dim_a=1;
-
-        fid = H5Fopen(hdf5_file_name.c_str(),H5F_ACC_RDWR,H5P_DEFAULT);
 
         //Get the group you want to open
 
@@ -575,10 +571,11 @@ public:
 
         file_name = file_name + "_paraview";
 
-        hdf5_create_file_blosc(hdf5_file_name);
+        hid_t fid = hdf5_create_file_blosc(hdf5_file_name);
+//        hid_t fid = H5Fopen(hdf5_file_name.c_str(),H5F_ACC_RDWR,H5P_DEFAULT);
 
         //hdf5 inits
-        hid_t fid, pr_groupid, obj_id;
+        hid_t pr_groupid, obj_id;
         H5G_info_t info;
 
         hsize_t     dims_out[2];
@@ -588,7 +585,6 @@ public:
         hsize_t dims;
         hsize_t dim_a=1;
 
-        fid = H5Fopen(hdf5_file_name.c_str(),H5F_ACC_RDWR,H5P_DEFAULT);
 
         //Get the group you want to open
 
@@ -732,19 +728,15 @@ public:
 
         file_name = file_name + "_apr_extra_parts";
 
-        hdf5_create_file_blosc(hdf5_file_name);
+        hid_t fid = hdf5_create_file_blosc(hdf5_file_name);
+//        fid = H5Fopen(hdf5_file_name.c_str(),H5F_ACC_RDWR,H5P_DEFAULT);
 
         //hdf5 inits
-        hid_t fid, pr_groupid, obj_id;
+        hid_t pr_groupid, obj_id;
         H5G_info_t info;
-
         hsize_t     dims_out[2];
-
         hsize_t rank = 1;
-
         hsize_t dims;
-
-        fid = H5Fopen(hdf5_file_name.c_str(),H5F_ACC_RDWR,H5P_DEFAULT);
 
         //Get the group you want to open
 
@@ -864,7 +856,7 @@ public:
     }
 };
 
-template<> struct APRWriter::Hdf5Type<int8_t> {static hid_t type() {return H5T_NATIVE_INT8_g;}};
+template<> struct APRWriter::Hdf5Type<int8_t> {static hid_t type() {return H5T_NATIVE_INT8;}};
 template<> struct APRWriter::Hdf5Type<uint8_t> {static hid_t type() {return H5T_NATIVE_UINT8;}};
 template<> struct APRWriter::Hdf5Type<int16_t> {static hid_t type() {return H5T_NATIVE_INT16;}};
 template<> struct APRWriter::Hdf5Type<uint16_t> {static hid_t type() {return H5T_NATIVE_UINT16;}};

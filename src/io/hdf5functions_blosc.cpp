@@ -9,7 +9,6 @@
 //////////////////////////////////////////
 
 #include "hdf5functions_blosc.h"
-#include <array>
 
 
 /**
@@ -19,118 +18,83 @@ void register_blosc(){
     register_blosc(nullptr, nullptr);
 }
 
+/**
+ * reads data from hdf5
+ */
 void hdf5_load_data_blosc(hid_t obj_id, hid_t data_type, void* buff, const char* data_name) {
-    //stuff required to pull the data in
-    hid_t data_id =  H5Dopen2(obj_id , data_name ,H5P_DEFAULT);
-    H5Dread(data_id, data_type, H5S_ALL, H5S_ALL,H5P_DEFAULT, buff);
+    hid_t data_id =  H5Dopen2(obj_id, data_name ,H5P_DEFAULT);
+    H5Dread(data_id, data_type, H5S_ALL, H5S_ALL, H5P_DEFAULT, buff);
     H5Dclose(data_id);
 }
 
-void hdf5_write_data_blosc(hid_t obj_id,hid_t type_id,const char* ds_name,hsize_t rank,hsize_t* dims, void* data ,unsigned int comp_type,unsigned int comp_level,unsigned int shuffle){
-    //writes data to the hdf5 file or group identified by obj_id of hdf5 datatype data_type
-    
-    unsigned int cd_values[7];
-    //Declare the required hdf5 shiz
-    hid_t space_id,dset_id,plist_id;
-    //hsize_t *cdims = new hsize_t[rank]; //chunking dims
-    hsize_t cdims[1]; //chunking dims
-    
-    //compression parameters
-    
-    
-    //int szip_options_mask = H5_SZIP_NN_OPTION_MASK;
-    //int szip_pixels_per_block = 8;
+/**
+ * writes data to the hdf5 file or group identified by obj_id of hdf5 datatype data_type
+ */
+void hdf5_write_data_blosc(hid_t obj_id, hid_t type_id, const char *ds_name, hsize_t rank, hsize_t *dims, void *data ,unsigned int comp_type,unsigned int comp_level,unsigned int shuffle) {
+    hid_t plist_id  = H5Pcreate(H5P_DATASET_CREATE);
+
+    // Dataset must be chunked for compression
+    const uint64_t max_size = 100000;
+    hsize_t cdims = (dims[0] < max_size) ? dims[0] : max_size;
     rank = 1;
-    //dataspace id
-    space_id = H5Screate_simple(rank, dims, NULL);
-    plist_id  = H5Pcreate(H5P_DATASET_CREATE);
-    
-    /* Dataset must be chunked for compression */
-    //cdims[0] = 20; //Could try playing with these for compression performance
-    //cdims[1] = 20;
-    
-    uint64_t max_size = 100000;
-    
-    if (dims[0] < max_size){
-        cdims[0] = dims[0];
-    }else {
-        cdims[0] = max_size;
-    }
+    H5Pset_chunk(plist_id, rank, &cdims);
 
-    H5Pset_chunk(plist_id, rank, cdims);
-    
     /////SET COMPRESSION TYPE /////
-    
-    /* But you can also taylor Blosc parameters to your needs */
-    /* 0 to 3 (inclusive) param slots are reserved. */
-    cd_values[4] = comp_level;       /* compression level */
-    cd_values[5] = shuffle;       /* 0: shuffle not active, 1: shuffle active */
-    cd_values[6] = comp_type; /* the actual compressor to use */
-    
-    /* Set the filter with 7 params */
-    H5Pset_filter(plist_id, FILTER_BLOSC, H5Z_FLAG_OPTIONAL, 7, cd_values);
-    
+    // But you can also taylor Blosc parameters to your needs
+    // 0 to 3 (inclusive) param slots are reserved.
+    const int numOfParams = 7;
+    unsigned int cd_values[numOfParams];
+    cd_values[4] = comp_level; // compression level
+    cd_values[5] = shuffle;    // 0: shuffle not active, 1: shuffle active
+    cd_values[6] = comp_type;  // the actual compressor to use
+    H5Pset_filter(plist_id, FILTER_BLOSC, H5Z_FLAG_OPTIONAL, numOfParams, cd_values);
+
     //create write and close
-    dset_id = H5Dcreate2(obj_id,ds_name,type_id,space_id,H5P_DEFAULT,plist_id,H5P_DEFAULT);
-    
+    hid_t space_id = H5Screate_simple(rank, dims, NULL);
+    hid_t dset_id = H5Dcreate2(obj_id, ds_name, type_id, space_id, H5P_DEFAULT, plist_id, H5P_DEFAULT);
     H5Dwrite(dset_id,type_id,H5S_ALL,H5S_ALL,H5P_DEFAULT,data);
-    
     H5Dclose(dset_id);
+
+    H5Pclose(plist_id);
 }
 
+/**
+ * writes data to the hdf5 file or group identified by obj_id of hdf5 datatype data_type
+ */
 void hdf5_write_attribute_blosc(hid_t obj_id,hid_t type_id,const char* attr_name,hsize_t rank,hsize_t* dims, void* data ){
-    //writes data to the hdf5 file or group identified by obj_id of hdf5 datatype data_type
-    
-    //Declare the required hdf5 shiz
-    hid_t space_id, attr_id;
-    //hsize_t *cdims = new hsize_t[rank]; //chunking dims
-    
-    space_id = H5Screate_simple(rank, dims, NULL);
-    //plist_id  = H5Pcreate(H5P_ATTRIBUTE_CREATE);
-    
-    attr_id = H5Acreate2( obj_id, attr_name, type_id, space_id, H5P_DEFAULT, H5P_DEFAULT);
-    
-    H5Awrite(attr_id, type_id, data );
+    hid_t space_id = H5Screate_simple(rank, dims, NULL);
+    hid_t attr_id = H5Acreate2( obj_id, attr_name, type_id, space_id, H5P_DEFAULT, H5P_DEFAULT);
+    H5Awrite(attr_id, type_id, data);
     H5Aclose(attr_id);
-    
+    H5Sclose(space_id);
 }
 
-void hdf5_write_string_blosc(hid_t obj_id,const char* attr_name,std::string output_str){
-    //
-    //  Writes string information as an attribute
-    //
-    //
-    
-    hid_t aid = H5Screate(H5S_SCALAR);
-    hid_t atype = H5Tcopy (H5T_C_S1);
-    
+/**
+ * Writes string information as an attribute
+ */
+void hdf5_write_string_blosc(hid_t obj_id, const char *attr_name, const std::string &output_str) {
     if (output_str.size() > 0){
-        H5Tset_size (atype, output_str.size());
+        hid_t aid = H5Screate(H5S_SCALAR);
+        hid_t atype = H5Tcopy (H5T_C_S1);
+        H5Tset_size(atype, output_str.size());
         hid_t attr = H5Acreate2(obj_id, attr_name, atype, aid, H5P_DEFAULT,H5P_DEFAULT);
         H5Awrite (attr, atype,output_str.c_str());
+        H5Tclose(atype);
+        H5Aclose(attr);
+        H5Sclose(aid);
     }
 }
 
-void hdf5_create_file_blosc(std::string file_name){
-    //creates the hdf5 file before you can then write to it
-    
-    hid_t fid; //file id
-    
-    //fid = H5F.create(name,'H5F_ACC_EXCL', 'H5P_DEFAULT', 'H5P_DEFAULT'); %create the file (throws error if it already exists)
-    fid = H5Fcreate(file_name.c_str(),H5F_ACC_TRUNC, H5P_DEFAULT, H5P_DEFAULT); //this writes over the current file
-    
-    //close shiz
-    H5Fclose(fid);
-    
+/**
+ * creates the hdf5 file before you can then write to it
+ */
+hid_t hdf5_create_file_blosc(std::string file_name){
+    return H5Fcreate(file_name.c_str(),H5F_ACC_TRUNC, H5P_DEFAULT, H5P_DEFAULT); //this writes over the current file
 }
 
 void write_main_paraview_xdmf_xml(std::string save_loc,std::string file_name,uint64_t num_parts){
-    std::string hdf5_file_name = file_name + ".h5";
-    std::string xdmf_file_name = save_loc + file_name + ".xmf";
-
-    std::ofstream myfile;
-    myfile.open (xdmf_file_name);
-
+    const std::string hdf5_file_name = file_name + ".h5";
+    std::ofstream myfile(save_loc + file_name + ".xmf");
     myfile << "<?xml version=\"1.0\" ?>\n";
     myfile << "<!DOCTYPE Xdmf SYSTEM \"Xdmf.dtd\" []>\n";
     myfile << "<Xdmf Version=\"2.0\" xmlns:xi=\"[http://www.w3.org/2001/XInclude]\">\n";
@@ -166,6 +130,5 @@ void write_main_paraview_xdmf_xml(std::string save_loc,std::string file_name,uin
     myfile <<  "   </Grid>\n";
     myfile <<  " </Domain>\n";
     myfile <<  "</Xdmf>\n";
-
     myfile.close();
 }
