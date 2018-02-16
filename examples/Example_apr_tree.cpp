@@ -21,6 +21,7 @@ random access strategies on the APR.
 
 #include <algorithm>
 #include <iostream>
+#include <src/io/TiffUtils.hpp>
 
 #include "Example_apr_tree.hpp"
 
@@ -80,9 +81,19 @@ int main(int argc, char **argv) {
 
     APRTreeNumerics::fill_tree_from_particles(apr,apr_tree,apr.particles_intensities,tree_data);
 
-    uint8_t level_offset = 3;
-    APRTreeNumerics::pull_down_tree_to_particles(apr,apr_tree,apr.particles_intensities,tree_data,level_offset);
+    apr.write_particles_only(options.directory,"tree_max_parts",tree_data);
 
+    ExtraParticleData<uint16_t> local_max_parts;
+
+    uint8_t level_offset = 2;
+    APRTreeNumerics::pull_down_tree_to_particles(apr,apr_tree,local_max_parts,tree_data,level_offset);
+
+    // write result to image
+    MeshData<uint16_t> local_max_image;
+    apr.interp_img(local_max_image,local_max_parts);
+
+    std::string image_file_name = options.directory + name + "_tree_max.tif";
+    TiffUtils::saveMeshAsTiffUint16(image_file_name, local_max_image);
 
 
 }
