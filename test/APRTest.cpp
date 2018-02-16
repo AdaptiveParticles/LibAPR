@@ -6,6 +6,8 @@
 #include "src/data_structures/APR/APR.hpp"
 #include "src/data_structures/Mesh/MeshData.hpp"
 #include "src/algorithm/APRConverter.hpp"
+#include "src/data_structures/APR/APRTree.hpp"
+#include "src/data_structures/APR/APRTreeIterator.hpp"
 #include <utility>
 #include <cmath>
 
@@ -644,6 +646,77 @@ bool test_apr_pipeline(TestData& test_data){
     return success;
 }
 
+bool test_apr_tree(TestData& test_data) {
+    ///
+    /// Tests the pipeline, comparing the results with existing results
+    ///
+
+    bool success = true;
+
+    //the apr datastructure
+    APRTree<uint16_t> apr_tree(test_data.apr);
+
+    APRTreeIterator<uint16_t> treeIterator(apr_tree);
+
+    ExtraParticleData<uint16_t> x_tree(apr_tree);
+    ExtraParticleData<uint16_t> y_tree(apr_tree);
+    ExtraParticleData<uint16_t> z_tree(apr_tree);
+    ExtraParticleData<uint16_t> level_tree(apr_tree);
+
+    uint64_t particle_number;
+    //Basic serial iteration over all particles
+    for (particle_number = 0; particle_number < apr_tree.total_number_parent_cells(); ++particle_number) {
+        //This step is required for all loops to set the iterator by the particle number
+        treeIterator.set_iterator_to_particle_by_number(particle_number);
+
+        x_tree[treeIterator] = treeIterator.x();
+        y_tree[treeIterator] = treeIterator.y();
+        z_tree[treeIterator] = treeIterator.z();
+        level_tree[treeIterator] = treeIterator.level();
+
+    }
+
+    APRIterator<uint16_t> aprIterator;
+
+    //check
+    for (particle_number = 0; particle_number < aprIterator.total_number_particles(); ++particle_number) {
+
+        aprIterator.set_iterator_to_particle_by_number(particle_number);
+
+        treeIterator.set_iterator_to_parent(aprIterator);
+
+        while(treeIterator.level() > treeIterator.level_min()){
+            if(!treeIterator.set_iterator_to_parent(treeIterator)){
+                success = false;
+            }
+
+            if(treeIterator.x() != x_tree[treeIterator]){
+                success = false;
+            }
+
+            if(treeIterator.y() != y_tree[treeIterator]){
+                success = false;
+            }
+
+            if(treeIterator.z() != z_tree[treeIterator]){
+                success = false;
+            }
+
+            if(treeIterator.level() != level_tree[treeIterator]){
+                success = false;
+            }
+
+        }
+
+
+    }
+
+    return success;
+
+}
+
+
+
 std::string get_source_directory_apr(){
     // returns path to the directory where utils.cpp is stored
 
@@ -688,22 +761,29 @@ ASSERT_TRUE(test_apr_iterate(test_data));
 
 TEST_F(CreateSmallSphereTest, APR_NEIGHBOUR_ACCESS) {
 
-//test iteration
+//test neighbour access
 ASSERT_TRUE(test_apr_neighbour_access(test_data));
 
 }
 
 TEST_F(CreateSmallSphereTest, APR_INPUT_OUTPUT) {
 
-//test iteration
+//test io
     ASSERT_TRUE(test_apr_input_output(test_data));
 
 }
 
 TEST_F(CreateSmallSphereTest, APR_PIPELINE) {
 
-//test iteration
+//test pipeline
     ASSERT_TRUE(test_apr_pipeline(test_data));
+
+}
+
+TEST_F(CreateSmallSphereTest, APR_TREE) {
+
+//test tree structure
+    ASSERT_TRUE(test_apr_tree(test_data));
 
 }
 
