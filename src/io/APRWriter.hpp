@@ -95,7 +95,7 @@ public:
 
     template<typename ImageType>
     void read_apr(APR<ImageType>& apr, const std::string &file_name) {
-        std::cout << __func__ << ": Input file [" << file_name << "]" << std::endl;
+//        std::cout << __func__ << ": Input file [" << file_name << "]" << std::endl;
 
         // need to register the filters so they work properly
         register_blosc();
@@ -147,6 +147,7 @@ public:
 
         for (int i = apr.apr_access.level_min;i < apr.apr_access.level_max; i++) {
             int x_num, y_num, z_num;
+            //TODO: x_num and other should have HDF5 type uint64?
             readAttr(AprTypes::NumberOfLevelXType, i, groupId, &x_num);
             readAttr(AprTypes::NumberOfLevelYType, i, groupId, &y_num);
             readAttr(AprTypes::NumberOfLevelZType, i, groupId, &z_num);
@@ -209,6 +210,7 @@ public:
 
     template<typename ImageType>
     void write_apr(APR<ImageType>& apr,std::string save_loc,std::string file_name){
+//        std::cout << __func__ << ": Input file [" << file_name << "]" << std::endl;
         //compress
         APRCompress<ImageType> apr_compressor;
         apr_compressor.set_compression_type(0);
@@ -217,6 +219,7 @@ public:
 
     template<typename ImageType>
     float write_apr(APR<ImageType>& apr,std::string save_loc,std::string file_name,APRCompress<ImageType>& apr_compressor,unsigned int blosc_comp_type = BLOSC_ZSTD,unsigned int blosc_comp_level = 2,unsigned int blosc_shuffle=1){
+//        std::cout << __func__ << ": Input file [" << file_name << "]" << std::endl;
         //
         //
         //  Bevan Cheeseman 2018
@@ -421,6 +424,7 @@ public:
 
     template<typename ImageType,typename T>
     void write_apr_paraview(APR<ImageType>& apr,std::string save_loc,std::string file_name,ExtraParticleData<T>& parts){
+//        std::cout << __func__ << ": Input file [" << file_name << "]" << std::endl;
         //
         //
         //  Bevan Cheeseman 2018
@@ -560,6 +564,7 @@ public:
 
     template<typename S>
     float write_particles_only(std::string save_loc,std::string file_name,ExtraParticleData<S>& parts_extra){
+//        std::cout << __func__ << ": Input file [" << file_name << "]" << std::endl;
         //
         //
         //  Bevan Cheeseman 2018
@@ -642,6 +647,7 @@ public:
     template<typename T>
     void read_parts_only(std::string file_name,ExtraParticleData<T>& extra_parts)
     {
+//        std::cout << __func__ << ": Input file [" << file_name << "]" << std::endl;
         std::cout << "READING [" << file_name << "]\n";
 
         //hdf5 inits
