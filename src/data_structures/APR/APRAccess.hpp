@@ -728,7 +728,7 @@ public:
                     for (y_ = 0; y_ < y_num_; y_++) {
 
                         status = p_map[i].mesh[offset_part_map + y_];
-                        if((status >= 5) & (status <= 6)) {
+                        if(status > 0) {
                             current = 1;
 
                             if(previous == 0){
@@ -760,11 +760,6 @@ public:
 
         apr_timer.stop_timer();
 
-        apr_timer.start_timer("third loop");
-
-
-        //then need to loop over and then do a copy.
-        apr_timer.stop_timer();
 
         uint64_t cumsum = 0;
 

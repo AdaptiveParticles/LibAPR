@@ -11,6 +11,7 @@
 #include "src/data_structures/APR/APR.hpp"
 #include "src/data_structures/APR/APRTree.hpp"
 #include "src/data_structures/APR/APRTreeIterator.hpp"
+#include "src/numerics/APRTreeNumerics.hpp"
 
 struct cmdLineOptions{
     std::string output = "output";

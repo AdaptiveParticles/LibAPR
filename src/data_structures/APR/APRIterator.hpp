@@ -61,12 +61,6 @@ public:
         highest_resolution_type = 1;
     }
 
-    explicit APRIterator(APRTree<ImageType>& apr_tree){
-        apr_access = &apr_tree.tree_access;
-        current_particle_cell.global_index = UINT64_MAX;
-        highest_resolution_type = 5;
-    }
-
     void initialize_from_apr(APR<ImageType>& apr){
         aprOwn = &apr;
         apr_access = &apr.apr_access;
