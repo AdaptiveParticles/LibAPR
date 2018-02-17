@@ -13,7 +13,7 @@ class APRTreeNumerics {
 
 public:
     template<typename T,typename S,typename U,typename BinaryOperation>
-    static void fill_tree_from_particles(APR<T>& apr,APRTree<T>& apr_tree,ExtraParticleData<S>& particle_data,ExtraParticleData<U>& tree_data,BinaryOperation op) {
+    static void fill_tree_from_particles(APR<T>& apr,APRTree<T>& apr_tree,ExtraParticleData<S>& particle_data,ExtraParticleData<U>& tree_data,BinaryOperation op,const bool normalize = false) {
 
         tree_data.init_tree(apr_tree);
 
@@ -23,6 +23,12 @@ public:
         APRTreeIterator<T> parentIterator(apr_tree);
 
         APRIterator<T> apr_iterator(apr);
+
+        ExtraParticleData<uint8_t> child_counter;
+
+        if(normalize){
+            child_counter.init_tree(apr_tree);
+        }
 
         uint64_t particle_number = 0;
         uint64_t parent_number = 0;
@@ -35,6 +41,10 @@ public:
 
             tree_data[parentIterator] = std::max((U) particle_data[apr_iterator], (U) tree_data[parentIterator]);
 
+            if(normalize){
+                child_counter[parentIterator]++;
+            }
+
         }
 
 
@@ -43,16 +53,33 @@ public:
             for (parent_number = treeIterator.particles_level_begin(level);
                  parent_number < treeIterator.particles_level_end(level); ++parent_number) {
 
-                treeIterator.set_iterator_to_particle_by_number(parent_number);
-
-                if(parentIterator.set_iterator_to_parent(treeIterator)) {
+                if(treeIterator.set_iterator_to_parent(treeIterator)) {
 
                     tree_data[parentIterator] = std::max((U) tree_data[treeIterator], (U) tree_data[parentIterator]);
+                    if(normalize){
+                        child_counter[parentIterator]++;
+                    }
                 }
 
             }
-
         }
+
+        if(normalize){
+            for (unsigned int level = treeIterator.level_max(); level >= treeIterator.level_min(); --level) {
+                for (parent_number = treeIterator.particles_level_begin(level);
+                     parent_number < treeIterator.particles_level_end(level); ++parent_number) {
+
+                    treeIterator.set_iterator_to_particle_by_number(parent_number);
+
+                    tree_data[treeIterator]/=(1.0*child_counter[treeIterator]);
+
+                }
+            }
+        }
+
+
+
+
     }
 
     template<typename T,typename S,typename U>

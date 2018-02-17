@@ -39,7 +39,7 @@ public:
     template<typename S>
     void init_tree(const APRTree<S> &apr_tree){
         //initialization when using with APRTree class
-        data.resize(apr_tree.total_number_parent_cells());
+        data.resize(apr_tree.total_number_parent_cells(),0);
     }
 
     uint64_t total_number_particles() const {
