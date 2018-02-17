@@ -12,8 +12,8 @@ class APRTreeNumerics {
 
 
 public:
-    template<typename T,typename S,typename U>
-    static void fill_tree_from_particles(APR<T>& apr,APRTree<T>& apr_tree,ExtraParticleData<S>& particle_data,ExtraParticleData<U>& tree_data) {
+    template<typename T,typename S,typename U,typename BinaryOperation>
+    static void fill_tree_from_particles(APR<T>& apr,APRTree<T>& apr_tree,ExtraParticleData<S>& particle_data,ExtraParticleData<U>& tree_data,BinaryOperation op) {
 
         tree_data.init_tree(apr_tree);
 
