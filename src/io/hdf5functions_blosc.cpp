@@ -70,22 +70,6 @@ void hdf5_write_attribute_blosc(hid_t obj_id,hid_t type_id,const char* attr_name
 }
 
 /**
- * Writes string information as an attribute
- */
-void hdf5_write_string_blosc(hid_t obj_id, const char *attr_name, const std::string &output_str) {
-    if (output_str.size() > 0){
-        hid_t aid = H5Screate(H5S_SCALAR);
-        hid_t atype = H5Tcopy (H5T_C_S1);
-        H5Tset_size(atype, output_str.size());
-        hid_t attr = H5Acreate2(obj_id, attr_name, atype, aid, H5P_DEFAULT,H5P_DEFAULT);
-        H5Awrite (attr, atype,output_str.c_str());
-        H5Tclose(atype);
-        H5Aclose(attr);
-        H5Sclose(aid);
-    }
-}
-
-/**
  * creates the hdf5 file before you can then write to it
  */
 hid_t hdf5_create_file_blosc(std::string file_name){
