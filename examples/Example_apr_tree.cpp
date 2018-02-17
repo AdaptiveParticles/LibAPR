@@ -79,13 +79,42 @@ int main(int argc, char **argv) {
     std::cout << counter_interior << std::endl;
     std::cout << counter/(apr.total_number_particles()*1.0f) << std::endl;
 
-    APRTreeNumerics::fill_tree_from_particles(apr,apr_tree,apr.particles_intensities,tree_data);
+    APRTreeNumerics::fill_tree_from_particles(apr,apr_tree,apr.particles_intensities,tree_data,[] (const uint16_t& a,const uint16_t& b) {return std::max(a,b);});
 
     apr.write_particles_only(options.directory,"tree_max_parts",tree_data);
 
+    ExtraParticleData<float> smooth_tree_data(apr_tree);
+    APRTreeIterator<uint16_t> apr_tree_neighbour_iterator(apr_tree);
+
+    //Neighbour interaciton on apr_tree.
+    for (particle_number = 0; particle_number < apr_tree.total_number_parent_cells(); ++particle_number) {
+        //This step is required for all loops to set the iterator by the particle number
+        apr_tree_iterator.set_iterator_to_particle_by_number(particle_number);
+        counter++;
+        //std::cout << apr_tree_iterator.x() << " " << apr_tree_iterator.y() << " " << (int)apr_tree_iterator.type() << " " << apr_tree_iterator.global_index() << std::endl;
+
+        for (int direction = 0; direction < 6; ++direction) {
+            apr_tree_iterator.find_neighbours_in_direction(direction);
+            // Neighbour Particle Cell Face definitions [+y,-y,+x,-x,+z,-z] =  [0,1,2,3,4,5]
+            float counter = 0;
+            for (int index = 0; index < apr_tree_iterator.number_neighbours_in_direction(direction); ++index) {
+
+                if(apr_tree_neighbour_iterator.set_neighbour_iterator(apr_tree_iterator, direction, index)){
+                    //neighbour_iterator works just like apr, and apr_parallel_iterator (you could also call neighbours)
+                    smooth_tree_data[apr_tree_iterator] += tree_data[apr_tree_neighbour_iterator];
+                    counter++;
+                }
+            }
+            if(counter > 0) {
+                smooth_tree_data[apr_tree_iterator] /= counter;
+            }
+        }
+    }
+
+
     ExtraParticleData<uint16_t> local_max_parts;
 
-    uint8_t level_offset = 2;
+    uint8_t level_offset = 3;
     APRTreeNumerics::pull_down_tree_to_particles(apr,apr_tree,local_max_parts,tree_data,level_offset);
 
     // write result to image
