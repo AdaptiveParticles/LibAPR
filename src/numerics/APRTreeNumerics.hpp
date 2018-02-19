@@ -200,12 +200,10 @@ public:
 
                 if (apr_tree_iterator.set_iterator_to_parent(apr_iterator)) {
 
-                    float temp = apr.particles_intensities[apr_iterator];
-
                     tree_min[apr_tree_iterator] += apr.particles_intensities[apr_iterator];
                     child_counter[apr_tree_iterator]++;
-                    child_counter_temp[apr_tree_iterator]=child_counter[apr_tree_iterator];
-                    tree_min_temp[apr_tree_iterator] = tree_min[apr_tree_iterator];
+                    //child_counter_temp[apr_tree_iterator]=child_counter[apr_tree_iterator];
+                    //tree_min_temp[apr_tree_iterator] = tree_min[apr_tree_iterator];
 
                 }
             }
@@ -232,8 +230,8 @@ public:
 
                             if (neighbour_tree_iterator.set_neighbour_iterator(apr_tree_iterator, direction, 0)) {
 
-                                tree_min_temp[neighbour_tree_iterator]+=tree_min[apr_tree_iterator];
-                                child_counter_temp[neighbour_tree_iterator]+=child_counter[apr_tree_iterator];
+                                //tree_min_temp[neighbour_tree_iterator]+=tree_min[apr_tree_iterator];
+                                //child_counter_temp[neighbour_tree_iterator]+=child_counter[apr_tree_iterator];
                             }
                         }
                     }
@@ -247,10 +245,12 @@ public:
 
                 apr_tree_iterator.set_iterator_to_particle_by_number(parent_number);
 
+
                 //maybe spread first, then normalize, then push upwards..
 
                 if(child_counter[apr_tree_iterator]>1){
-                    tree_min[apr_tree_iterator] = tree_min_temp[apr_tree_iterator]/(child_counter_temp[apr_tree_iterator]*1.0f);
+                    //tree_min[apr_tree_iterator] = tree_min_temp[apr_tree_iterator]/(child_counter_temp[apr_tree_iterator]*1.0f);
+                    tree_min[apr_tree_iterator] = tree_min[apr_tree_iterator]/(child_counter[apr_tree_iterator]*1.0f);
                     child_counter[apr_tree_iterator]=1;
                 } else {
                     tree_min[apr_tree_iterator] = 0;
@@ -258,11 +258,18 @@ public:
 
                 parent_it.set_iterator_to_parent(apr_tree_iterator);
 
+
+                if(apr_tree_iterator.level() != level){
+                    int stop = 1;
+                }
+
+
                 if(tree_min[apr_tree_iterator] > 0){
                     tree_min[parent_it]+=tree_min[apr_tree_iterator];
                     child_counter[parent_it]++;
-                    child_counter_temp[parent_it]=child_counter[parent_it];
-                    tree_min_temp[parent_it] = tree_min[parent_it];
+
+                    //child_counter_temp[parent_it]=child_counter[parent_it];
+                    //tree_min_temp[parent_it] = tree_min[parent_it];
                 }
 
             }
