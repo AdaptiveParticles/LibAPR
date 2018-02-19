@@ -162,11 +162,11 @@ public:
 
                             float type = neighbour_tree_iterator.type();
 
-                            if (neighbour_tree_iterator.type() == 8) {
+                            //if (neighbour_tree_iterator.type() == 8) {
                                 // temp = std::max((float) mean_tree[neighbour_tree_iterator], temp);
                                 temp += mean_tree[neighbour_tree_iterator];
                                 counter++;
-                            }
+                            //}
 
                         }
                     }
@@ -185,6 +185,11 @@ public:
             }
         }
 
+        MeshData<uint16_t> boundary;
+        apr.interp_img(boundary,boundary_type);
+        std::string image_file_name = apr.parameters.input_dir +  "boundary_type.tif";
+        TiffUtils::saveMeshAsTiffUint16(image_file_name, boundary);
+
         ExtraParticleData<uint64_t> child_counter(apr_tree);
         ExtraParticleData<uint64_t> child_counter_temp(apr_tree);
         ExtraParticleData<double> tree_min(apr_tree);
@@ -202,12 +207,21 @@ public:
 
                     tree_min[apr_tree_iterator] += apr.particles_intensities[apr_iterator];
                     child_counter[apr_tree_iterator]++;
-                    //child_counter_temp[apr_tree_iterator]=child_counter[apr_tree_iterator];
-                    //tree_min_temp[apr_tree_iterator] = tree_min[apr_tree_iterator];
+                    child_counter_temp[apr_tree_iterator]=child_counter[apr_tree_iterator];
+                    tree_min_temp[apr_tree_iterator] = tree_min[apr_tree_iterator];
 
                 }
+
+                boundary_type[apr_iterator] += apr.particles_intensities[apr_iterator];
             }
+
+
+
         }
+
+        apr.interp_img(boundary,boundary_type);
+        image_file_name = apr.parameters.input_dir +  "boundary_int.tif";
+        TiffUtils::saveMeshAsTiffUint16(image_file_name, boundary);
 
         APRTreeIterator<uint16_t> parent_it(apr_tree);
 
@@ -230,8 +244,8 @@ public:
 
                             if (neighbour_tree_iterator.set_neighbour_iterator(apr_tree_iterator, direction, 0)) {
 
-                                //tree_min_temp[neighbour_tree_iterator]+=tree_min[apr_tree_iterator];
-                                //child_counter_temp[neighbour_tree_iterator]+=child_counter[apr_tree_iterator];
+                                tree_min_temp[neighbour_tree_iterator]+=tree_min[apr_tree_iterator];
+                                child_counter_temp[neighbour_tree_iterator]+=child_counter[apr_tree_iterator];
                             }
                         }
                     }
@@ -249,8 +263,8 @@ public:
                 //maybe spread first, then normalize, then push upwards..
 
                 if(child_counter[apr_tree_iterator]>1){
-                    //tree_min[apr_tree_iterator] = tree_min_temp[apr_tree_iterator]/(child_counter_temp[apr_tree_iterator]*1.0f);
-                    tree_min[apr_tree_iterator] = tree_min[apr_tree_iterator]/(child_counter[apr_tree_iterator]*1.0f);
+                    tree_min[apr_tree_iterator] = tree_min_temp[apr_tree_iterator]/(child_counter_temp[apr_tree_iterator]*1.0f);
+                    //tree_min[apr_tree_iterator] = tree_min[apr_tree_iterator]/(child_counter[apr_tree_iterator]*1.0f);
                     child_counter[apr_tree_iterator]=1;
                 } else {
                     tree_min[apr_tree_iterator] = 0;
@@ -258,18 +272,12 @@ public:
 
                 parent_it.set_iterator_to_parent(apr_tree_iterator);
 
-
-                if(apr_tree_iterator.level() != level){
-                    int stop = 1;
-                }
-
-
                 if(tree_min[apr_tree_iterator] > 0){
                     tree_min[parent_it]+=tree_min[apr_tree_iterator];
                     child_counter[parent_it]++;
 
-                    //child_counter_temp[parent_it]=child_counter[parent_it];
-                    //tree_min_temp[parent_it] = tree_min[parent_it];
+                    child_counter_temp[parent_it]=child_counter[parent_it];
+                    tree_min_temp[parent_it] = tree_min[parent_it];
                 }
 
             }
