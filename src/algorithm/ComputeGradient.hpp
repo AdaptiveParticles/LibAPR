@@ -507,7 +507,7 @@ void ComputeGradient::bspline_filt_rec_x(MeshData<T>& image,float lambda,float t
             }
 
             std::swap(temp_vec1, temp_vec2);
-            std::copy(temp_vec2.begin(), temp_vec2.begin() + y_num, image.mesh.begin() + index);
+            std::copy(temp_vec1.begin(), temp_vec1.begin() + y_num, image.mesh.begin() + index);
         }
 
 
