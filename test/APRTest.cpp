@@ -676,7 +676,7 @@ bool test_apr_tree(TestData& test_data) {
 
     }
 
-    APRIterator<uint16_t> aprIterator;
+    APRIterator<uint16_t> aprIterator(test_data.apr);
 
     //check
     for (particle_number = 0; particle_number < aprIterator.total_number_particles(); ++particle_number) {
@@ -710,6 +710,48 @@ bool test_apr_tree(TestData& test_data) {
 
 
     }
+
+    uint64_t parent_number = 0;
+    APRTreeIterator<uint16_t> parentIterator(apr_tree);
+
+    for (unsigned int level = (treeIterator.level_max()); level > treeIterator.level_min(); --level) {
+
+        //two loops first spread
+        for (parent_number = treeIterator.particles_level_begin(level);
+             parent_number < treeIterator.particles_level_end(level); ++parent_number) {
+
+            treeIterator.set_iterator_to_particle_by_number(parent_number);
+
+            if(parentIterator.set_iterator_to_parent(treeIterator)) {
+
+                if (parentIterator.x() != x_tree[parentIterator]) {
+                    success = false;
+                }
+
+                if (parentIterator.y() != y_tree[parentIterator]) {
+                    success = false;
+                }
+
+                if (parentIterator.z() != z_tree[parentIterator]) {
+                    success = false;
+                }
+
+                if (parentIterator.level() != level_tree[parentIterator]) {
+                    success = false;
+                }
+                if(parentIterator.level() != (level-1)){
+                    success = false;
+                }
+
+            } else {
+                success = false;
+            }
+
+        }
+
+    }
+
+
 
     return success;
 
