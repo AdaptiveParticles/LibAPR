@@ -39,7 +39,7 @@ public:
             //set parent
             parentIterator.set_iterator_to_parent(apr_iterator);
 
-            tree_data[parentIterator] = std::max((U) particle_data[apr_iterator], (U) tree_data[parentIterator]);
+            tree_data[parentIterator] = op((U) particle_data[apr_iterator], (U) tree_data[parentIterator]);
 
             if(normalize){
                 child_counter[parentIterator]++;
@@ -53,9 +53,11 @@ public:
             for (parent_number = treeIterator.particles_level_begin(level);
                  parent_number < treeIterator.particles_level_end(level); ++parent_number) {
 
-                if(treeIterator.set_iterator_to_parent(treeIterator)) {
+                treeIterator.set_iterator_to_particle_by_number(parent_number);
 
-                    tree_data[parentIterator] = std::max((U) tree_data[treeIterator], (U) tree_data[parentIterator]);
+                if(parentIterator.set_iterator_to_parent(treeIterator)) {
+
+                    tree_data[parentIterator] = op((U) tree_data[treeIterator], (U) tree_data[parentIterator]);
                     if(normalize){
                         child_counter[parentIterator]++;
                     }
@@ -118,6 +120,173 @@ public:
         }
 
     };
+
+    template<typename T,typename S>
+    static void calculate_adaptive_min(APR<T>& apr,APRTree<T>& apr_tree,ExtraParticleData<S>& adaptive_min){
+
+
+        ExtraParticleData<float> mean_tree;
+        APRTreeNumerics::fill_tree_from_particles(apr,apr_tree,apr.particles_intensities,mean_tree,[] (const float& a,const float& b) {return a+b;},true);
+
+        APRTreeIterator<uint16_t> apr_tree_iterator(apr_tree);
+
+        APRTreeIterator<uint16_t> neighbour_tree_iterator(apr_tree);
+        APRIterator<uint16_t> apr_iterator(apr);
+
+        ExtraParticleData<uint16_t> boundary_type(apr);
+
+        //Basic serial iteration over all particles
+        uint64_t particle_number;
+        //Basic serial iteration over all particles
+        for (particle_number = 0; particle_number < apr_iterator.total_number_particles(); ++particle_number) {
+            //This step is required for all loops to set the iterator by the particle number
+            apr_iterator.set_iterator_to_particle_by_number(particle_number);
+
+            //now we only update the neighbours, and directly access them through a neighbour iterator
+
+            float counter = 0;
+            float temp = 0;
+
+            if((apr_iterator.type() == 2) & (apr_iterator.level() == (apr_iterator.level_max() -1 ))) {
+
+                apr_tree_iterator.set_particle_cell_no_search(apr_iterator);
+
+                //loop over all the neighbours and set the neighbour iterator to it
+                for (int direction = 0; direction < 6; ++direction) {
+                    // Neighbour Particle Cell Face definitions [+y,-y,+x,-x,+z,-z] =  [0,1,2,3,4,5]
+                    if(apr_tree_iterator.find_neighbours_same_level(direction)) {
+
+                        if (neighbour_tree_iterator.set_neighbour_iterator(apr_tree_iterator, direction, 0)) {
+
+                            float type = neighbour_tree_iterator.type();
+
+                            if (neighbour_tree_iterator.type() == 8) {
+                                // temp = std::max((float) mean_tree[neighbour_tree_iterator], temp);
+                                temp += mean_tree[neighbour_tree_iterator];
+                                counter++;
+                            }
+
+                        }
+                    }
+                }
+
+                if(counter > 0) {
+                    //counter = 1.0;
+                    temp = temp / (counter * 1.0f);
+
+                    if (apr.particles_intensities[apr_iterator] < temp) {
+                        boundary_type[apr_iterator] = 1;
+                    } else {
+                        boundary_type[apr_iterator] = 2;
+                    }
+                }
+            }
+        }
+
+        ExtraParticleData<uint8_t> child_counter(apr_tree);
+        ExtraParticleData<float> tree_min(apr_tree);
+
+        //Basic serial iteration over all particles
+// #todo: needs some smoothing to break the tree structure, local average, at a low level?, next up, or each layer?, need a smooth output
+
+        for (particle_number = apr_iterator.particles_level_begin(apr_iterator.level_max()-1);
+             particle_number <
+             apr_iterator.particles_level_end(apr_iterator.level_max()-1); ++particle_number) {
+            //This step is required for all loops to set the iterator by the particle number
+            apr_iterator.set_iterator_to_particle_by_number(particle_number);
+
+            if (boundary_type[apr_iterator] == 1) {
+
+                if (apr_tree_iterator.set_iterator_to_parent(apr_iterator)) {
+
+                    float temp = apr.particles_intensities[apr_iterator];
+
+                    tree_min[apr_tree_iterator] += apr.particles_intensities[apr_iterator];
+
+                    child_counter[apr_tree_iterator]++;
+
+                }
+            }
+        }
+
+        APRTreeIterator<uint16_t> parent_it(apr_tree);
+
+        uint64_t parent_number;
+        //then do the rest of the tree where order matters
+        for (unsigned int level = (apr_tree_iterator.level_max()-1); level > apr_tree_iterator.level_min(); --level) {
+            for (parent_number = apr_tree_iterator.particles_level_begin(level);
+                 parent_number < apr_tree_iterator.particles_level_end(level); ++parent_number) {
+
+                apr_tree_iterator.set_iterator_to_particle_by_number(parent_number);
+
+                parent_it.set_iterator_to_parent(apr_tree_iterator);
+
+                if(tree_min[apr_tree_iterator] > 0){
+                    tree_min[parent_it]+=tree_min[apr_tree_iterator];
+                    child_counter[parent_it]+=child_counter[apr_tree_iterator];
+                }
+
+            }
+        }
+
+
+        //then do the rest of the tree where order matters
+        for (unsigned int level = apr_tree_iterator.level_max(); level >= apr_tree_iterator.level_min(); --level) {
+            for (parent_number = apr_tree_iterator.particles_level_begin(level);
+                 parent_number < apr_tree_iterator.particles_level_end(level); ++parent_number) {
+
+                apr_tree_iterator.set_iterator_to_particle_by_number(parent_number);
+
+                if(child_counter[apr_tree_iterator]>1){
+                    tree_min[apr_tree_iterator] = tree_min[apr_tree_iterator]/(child_counter[apr_tree_iterator]*1.0f);
+                } else {
+                    tree_min[apr_tree_iterator] = 0;
+                }
+            }
+        }
+
+
+        for (parent_number = apr_tree_iterator.particles_level_begin(apr_tree_iterator.level_max());
+             parent_number < apr_tree_iterator.particles_level_end(apr_tree_iterator.level_max()); ++parent_number) {
+
+            apr_tree_iterator.set_iterator_to_particle_by_number(parent_number);
+
+            parent_it.set_iterator_to_parent(apr_tree_iterator);
+
+            while((parent_it.level() > parent_it.level_min()) && (tree_min[parent_it] == 0)){
+                parent_it.set_iterator_to_parent(parent_it);
+            }
+
+            tree_min[apr_tree_iterator] = tree_min[parent_it];
+
+        }
+
+        adaptive_min.init(apr);
+
+        //Now set the highest level particle cells.
+        for (particle_number = apr_iterator.particles_level_begin(apr_iterator.level_max());
+                 particle_number <
+                 apr_iterator.particles_level_end(apr_iterator.level_max()); ++particle_number) {
+            //This step is required for all loops to set the iterator by the particle number
+            apr_iterator.set_iterator_to_particle_by_number(particle_number);
+            parent_it.set_iterator_to_parent(apr_iterator);
+            adaptive_min[apr_iterator] = tree_min[parent_it];
+
+        }
+
+
+    }
+
+    void calculate_adaptive_max(){
+
+
+
+
+
+    }
+
+
+
 
 
 };

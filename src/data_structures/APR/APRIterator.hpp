@@ -312,18 +312,15 @@ public:
         if(original_iterator.level_delta!=_LEVEL_INCREASE){
             //copy the information from the original iterator
             std::swap(current_particle_cell,original_iterator.neighbour_particle_cell);
-            //current_gap = apr_access->get_local_iterator(original_iterator.local_iterators,
-                                                               //   level_delta, direction,0);
+
         } else {
             if(index==0){
                 std::swap(current_particle_cell,original_iterator.neighbour_particle_cell);
-                //current_gap = apr_access->get_local_iterator(original_iterator.local_iterators,
-                                                            // level_delta, direction,0);
+
             } else {
                 bool success = original_iterator.find_next_child(direction,index);
                 std::swap(current_particle_cell,original_iterator.neighbour_particle_cell);
-                //current_gap = apr_access->get_local_iterator(original_iterator.local_iterators,
-                                                            // level_delta, direction,index);
+
                 return success;
             }
         }
@@ -452,7 +449,7 @@ public:
     }
 
 
-private:
+protected:
     //private methods
 
     bool find_next_child(const uint8_t& direction,const uint8_t& index){
