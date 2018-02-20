@@ -15,6 +15,7 @@
 
 struct AprType {hid_t hdf5type; const char * const typeName;};
 namespace AprTypes  {
+
     const AprType TotalNumberOfParticlesType = {H5T_NATIVE_UINT64, "total_number_particles"};
     const AprType TotalNumberOfGapsType = {H5T_NATIVE_UINT64, "total_number_gaps"};
     const AprType TotalNumberOfNonEmptyRowsType = {H5T_NATIVE_UINT64, "total_number_non_empty_rows"};
@@ -42,7 +43,6 @@ namespace AprTypes  {
     const AprType NumberOfLevelXType = {H5T_NATIVE_INT, "x_num_"};
     const AprType NumberOfLevelYType = {H5T_NATIVE_INT, "y_num_"};
     const AprType NumberOfLevelZType = {H5T_NATIVE_INT, "z_num_"};
-    const AprType ParticleIntensitiesDataType = {H5T_NATIVE_INT64, "data_type"};
     const AprType MapGlobalIndexType = {H5T_NATIVE_INT16, "map_global_index"};
     const AprType MapYendType = {H5T_NATIVE_INT16, "map_y_end"};
     const AprType MapYbeginType = {H5T_NATIVE_INT16, "map_y_begin"};
@@ -128,11 +128,9 @@ public:
         }
 
         // ------------- read data ------------------------------
-        hid_t dataType;
-        readAttr(AprTypes::ParticleIntensitiesDataType, f.groupId, &dataType);
         apr.particles_intensities.data.resize(apr.apr_access.total_number_particles);
         if (apr.particles_intensities.data.size() > 0) {
-            readData({dataType, AprTypes::ParticleIntensitiesType}, f.objectId, apr.particles_intensities.data.data());
+            readData(AprTypes::ParticleIntensitiesType, f.objectId, apr.particles_intensities.data.data());
         }
         apr.apr_access.y_num[apr.apr_access.level_max] = apr.apr_access.org_dims[0];
         apr.apr_access.x_num[apr.apr_access.level_max] = apr.apr_access.org_dims[1];
@@ -233,7 +231,6 @@ public:
             apr_compressor.compress(apr,apr.particles_intensities);
         }
         hid_t type = Hdf5Type<ImageType>::type();
-        writeAttr(AprTypes::ParticleIntensitiesDataType, f.groupId, &type);
         writeData({type, AprTypes::ParticleIntensitiesType}, f.objectId, apr.particles_intensities.data, blosc_comp_type, blosc_comp_level, blosc_shuffle);
         write_timer.stop_timer();
 
@@ -341,8 +338,6 @@ public:
         if (!f.isOpened()) return 0;
 
         // ------------- write metadata -------------------------
-        hid_t type = Hdf5Type<S>::type();
-        writeAttr(AprTypes::ParticleIntensitiesDataType, f.groupId, &type);
         uint64_t total_number_parts = parts_extra.data.size();
         writeAttr(AprTypes::TotalNumberOfParticlesType, f.groupId, &total_number_parts);
         writeString(AprTypes::GitType, f.groupId, ConfigAPR::APR_GIT_HASH);
@@ -351,6 +346,7 @@ public:
         unsigned int blosc_comp_type = BLOSC_ZSTD;
         unsigned int blosc_comp_level = 3;
         unsigned int blosc_shuffle = 2;
+        hid_t type = Hdf5Type<S>::type();
         writeData({type, AprTypes::ExtraParticleDataType}, f.objectId, parts_extra.data, blosc_comp_type, blosc_comp_level, blosc_shuffle);
 
         // ------------- output the file size -------------------
@@ -369,12 +365,10 @@ public:
         // ------------- read metadata --------------------------
         uint64_t numberOfParticles;
         readAttr(AprTypes::TotalNumberOfParticlesType, f.groupId, &numberOfParticles);
-        hid_t data_type;
-        readAttr(AprTypes::ParticleIntensitiesDataType, f.groupId, &data_type);
 
         // ------------- read data -----------------------------
         extra_parts.data.resize(numberOfParticles);
-        readData({data_type, AprTypes::ExtraParticleDataType}, f.objectId, extra_parts.data.data());
+        readData(AprTypes::ExtraParticleDataType, f.objectId, extra_parts.data.data());
     }
 
 private:
@@ -455,6 +449,10 @@ private:
         hdf5_load_data_blosc(aObjectId, aType.hdf5type, aDest, aType.typeName);
     }
 
+    void readData(const char * const aAprTypeName, hid_t aObjectId, void *aDest) {
+        hdf5_load_data_blosc(aObjectId, aDest, aAprTypeName);
+    }
+
     template<typename T>
     void writeData(const AprType &aType, hid_t aObjectId, T aContainer, unsigned int blosc_comp_type, unsigned int blosc_comp_level,unsigned int blosc_shuffle) {
         hsize_t dims[] = {aContainer.size()};
@@ -478,6 +476,7 @@ private:
     template<typename T> struct Hdf5Type {static hid_t type() {return  T::CANNOT_DETECT_TYPE_AND_WILL_NOT_COMPILE;}};
 };
 
+
 template<> struct APRWriter::Hdf5Type<int8_t> {static hid_t type() {return H5T_NATIVE_INT8;}};
 template<> struct APRWriter::Hdf5Type<uint8_t> {static hid_t type() {return H5T_NATIVE_UINT8;}};
 template<> struct APRWriter::Hdf5Type<int16_t> {static hid_t type() {return H5T_NATIVE_INT16;}};
@@ -488,5 +487,6 @@ template<> struct APRWriter::Hdf5Type<int64_t> {static hid_t type() {return H5T_
 template<> struct APRWriter::Hdf5Type<uint64_t> {static hid_t type() {return H5T_NATIVE_UINT64;}};
 template<> struct APRWriter::Hdf5Type<float> {static hid_t type() {return H5T_NATIVE_FLOAT;}};
 template<> struct APRWriter::Hdf5Type<double> {static hid_t type() {return H5T_NATIVE_DOUBLE;}};
+
 
 #endif //APRWRITER_HPP
