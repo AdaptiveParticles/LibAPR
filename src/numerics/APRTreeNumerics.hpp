@@ -258,7 +258,7 @@ public:
 
                 //maybe spread first, then normalize, then push upwards..
 
-                if(child_counter[apr_tree_iterator]>1){
+                if(child_counter_temp[apr_tree_iterator]>1){
                     tree_min[apr_tree_iterator] = tree_min_temp[apr_tree_iterator]/(child_counter_temp[apr_tree_iterator]*1.0f);
                     //tree_min[apr_tree_iterator] = tree_min[apr_tree_iterator]/(child_counter[apr_tree_iterator]*1.0f);
                     child_counter[apr_tree_iterator]=1;
@@ -431,8 +431,8 @@ public:
                     max_spread[parent_iterator] += val;
                     max_counter[parent_iterator]++;
 
-                    max_spread_temp[parent_iterator] += max_spread[apr_tree_iterator];
-                    max_counter_temp[parent_iterator] += max_counter[apr_tree_iterator];
+                    max_spread_temp[parent_iterator] = max_spread[parent_iterator];
+                    max_counter_temp[parent_iterator] = max_counter[parent_iterator];
                 }
             }
 
@@ -476,7 +476,7 @@ public:
 
                 //maybe spread first, then normalize, then push upwards..
 
-                if(max_counter[apr_tree_iterator]>0){
+                if(max_counter_temp[apr_tree_iterator]>0){
                     max_spread[apr_tree_iterator] = max_spread_temp[apr_tree_iterator]/(max_counter_temp[apr_tree_iterator]*1.0f);
                     //tree_min[apr_tree_iterator] = tree_min[apr_tree_iterator]/(child_counter[apr_tree_iterator]*1.0f);
                     max_counter[apr_tree_iterator]=1;
@@ -498,46 +498,42 @@ public:
 
 
 
+        //Now set the highest level particle cells.
+        for (particle_number = apr_iterator.particles_level_begin(apr_iterator.level_max());
+             particle_number <
+             apr_iterator.particles_level_end(apr_iterator.level_max()); ++particle_number) {
+            //This step is required for all loops to set the iterator by the particle number
+            apr_iterator.set_iterator_to_particle_by_number(particle_number);
+            parent_iterator.set_iterator_to_parent(apr_iterator);
+            boundary_type[apr_iterator] = max_spread[parent_iterator];
+
+        }
+
+        apr.interp_img(boundary,boundary_type);
+        image_file_name = apr.parameters.input_dir +  "boundary_int_max.tif";
+        TiffUtils::saveMeshAsTiffUint16(image_file_name, boundary);
+
+
         adaptive_max.init(apr);
 
 
-//        for (parent_number = apr_tree_iterator.particles_level_begin(apr_tree_iterator.level_max());
-//             parent_number < apr_tree_iterator.particles_level_end(apr_tree_iterator.level_max()); ++parent_number) {
-//
-//            apr_tree_iterator.set_iterator_to_particle_by_number(parent_number);
-//
-//            parent_iterator.set_iterator_to_parent(apr_tree_iterator);
-//
-//            while((parent_iterator.level() > parent_iterator.level_min()) && (max_spread[parent_iterator] == 0)){
-//                parent_iterator.set_iterator_to_parent(parent_iterator);
-//            }
-//
-//            float t = max_spread[parent_iterator];
-//
-//            max_spread[apr_tree_iterator] = max_spread[parent_iterator];
-//
-//        }
+        for (parent_number = apr_tree_iterator.particles_level_begin(apr_tree_iterator.level_max());
+             parent_number < apr_tree_iterator.particles_level_end(apr_tree_iterator.level_max()); ++parent_number) {
 
-//        //Now set the highest level particle cells.
-//        for (particle_number = apr_iterator.particles_level_begin(apr_iterator.level_max());
-//             particle_number <
-//             apr_iterator.particles_level_end(apr_iterator.level_max()); ++particle_number) {
-//            //This step is required for all loops to set the iterator by the particle number
-//            apr_iterator.set_iterator_to_particle_by_number(particle_number);
-//            parent_iterator.set_iterator_to_parent(apr_iterator);
-//            adaptive_max[apr_iterator] = adaptive_max[parent_iterator];
-//
-//        }
+            apr_tree_iterator.set_iterator_to_particle_by_number(parent_number);
 
+            parent_iterator.set_iterator_to_parent(apr_tree_iterator);
 
+            while((parent_iterator.level() > parent_iterator.level_min()) && (max_spread[parent_iterator] == 0)){
+                parent_iterator.set_iterator_to_parent(parent_iterator);
+            }
 
-        //Now set the highest level particle cells.
-        for (particle_number = apr_iterator.particles_level_begin(apr_iterator.level_max()-1);
-             particle_number <
-             apr_iterator.particles_level_end(apr_iterator.level_max()-1); ++particle_number) {
-            //This step is required for all loops to set the iterator by the particle number
-            apr_iterator.set_iterator_to_particle_by_number(particle_number);
-            adaptive_max[apr_iterator]=boundary_type[apr_iterator];
+            float t = max_spread[parent_iterator];
+
+            std::cout << t << " " << parent_iterator.level() << std::endl;
+
+            max_spread[apr_tree_iterator] = max_spread[parent_iterator];
+
         }
 
         //Now set the highest level particle cells.
@@ -552,8 +548,11 @@ public:
         }
 
         apr.interp_img(boundary,adaptive_max);
-        image_file_name = apr.parameters.input_dir +  "boundary_int_max.tif";
+        image_file_name = apr.parameters.input_dir +  "adaptive_max.tif";
         TiffUtils::saveMeshAsTiffUint16(image_file_name, boundary);
+
+
+
 
 
     }
