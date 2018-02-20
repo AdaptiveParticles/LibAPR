@@ -177,6 +177,18 @@ public :
     }
 
     /**
+     * access element at provided indices without boundary checking
+     * @param y
+     * @param x
+     * @param z
+     * @return element @(y, x, z)
+     */
+    const T& at(size_t y, size_t x, size_t z) const {
+        size_t idx = z * x_num * y_num + x * y_num + y;
+        return mesh[idx];
+    }
+
+    /**
      * Copies data from aInputMesh utilizing parallel copy, requires prior initialization
      * of 'this' object (size and number of elements)
      * @tparam U type of data
@@ -224,7 +236,6 @@ public :
         mesh.set(array, size);
 
         // Fill values of new buffer in parallel
-        // TODO: set dynamically number of threads
         #ifdef HAVE_OPENMP
         #pragma omp parallel
         {
@@ -355,6 +366,22 @@ public :
         std::ostringstream outputStr;
         outputStr << "(" << y << ", " << x << ", " << z << ")";
         return outputStr.str();
+    }
+
+    /**
+     * Prints X-Y planes of mesh (for debug/test purposses - use only on small meshes)
+     */
+    void printMesh() const {
+        for (size_t z = 0; z < z_num; ++z) {
+            std::cout << "z=" << z << "\n";
+            for (size_t y = 0; y < y_num; ++y) {
+                for (size_t x = 0; x < x_num; ++x) {
+                    std::cout << at(y, x, z) << " ";
+                }
+                std::cout << "\n";
+            }
+            std::cout << std::endl;
+        }
     }
 
     friend std::ostream & operator<<(std::ostream &os, const MeshData<T> &obj) {
