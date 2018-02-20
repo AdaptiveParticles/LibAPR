@@ -536,6 +536,33 @@ public:
 
         }
 
+        //smooth step
+
+        for (parent_number = apr_tree_iterator.particles_level_begin(apr_tree_iterator.level_max());
+             parent_number < apr_tree_iterator.particles_level_end(apr_tree_iterator.level_max()); ++parent_number) {
+
+            apr_tree_iterator.set_iterator_to_particle_by_number(parent_number);
+
+            float temp = max_spread[apr_tree_iterator];
+            float counter = 1;
+
+            for (int direction = 0; direction < 6; ++direction) {
+                // Neighbour Particle Cell Face definitions [+y,-y,+x,-x,+z,-z] =  [0,1,2,3,4,5]
+                if(apr_tree_iterator.find_neighbours_same_level(direction)) {
+
+                    if (neighbour_tree_iterator.set_neighbour_iterator(apr_tree_iterator, direction, 0)) {
+                        temp += max_spread[neighbour_tree_iterator];
+                        counter++;
+
+                    }
+                }
+            }
+
+            max_spread[apr_tree_iterator] = temp/counter;
+
+        }
+
+
         //Now set the highest level particle cells.
         for (particle_number = apr_iterator.particles_level_begin(apr_iterator.level_max());
              particle_number <
@@ -550,8 +577,6 @@ public:
         apr.interp_img(boundary,adaptive_max);
         image_file_name = apr.parameters.input_dir +  "adaptive_max.tif";
         TiffUtils::saveMeshAsTiffUint16(image_file_name, boundary);
-
-
 
 
 
