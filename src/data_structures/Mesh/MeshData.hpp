@@ -17,6 +17,8 @@
 #include <cmath>
 #include <memory>
 #include <sstream>
+#include <iostream>
+#include <iomanip>
 
 #include "src/misc/APRTimer.hpp"
 
@@ -396,18 +398,32 @@ public :
     }
 
     /**
-     * Prints X-Y planes of mesh (for debug/test purposses - use only on small meshes)
+     * Prints X-Y or X-Z planes of mesh (for debug/test purposses - use only on small meshes)
      */
-    void printMesh() const {
-        for (size_t z = 0; z < z_num; ++z) {
-            std::cout << "z=" << z << "\n";
-            for (size_t y = 0; y < y_num; ++y) {
-                for (size_t x = 0; x < x_num; ++x) {
-                    std::cout << at(y, x, z) << " ";
+    void printMesh(int aColumnWidth, bool aXYplanes = true) const {
+        if (aXYplanes) {
+            for (size_t z = 0; z < z_num; ++z) {
+                std::cout << "z=" << z << "\n";
+                for (size_t y = 0; y < y_num; ++y) {
+                    for (size_t x = 0; x < x_num; ++x) {
+                        std::cout << std::setw(aColumnWidth) << at(y, x, z) << " ";
+                    }
+                    std::cout << "\n";
                 }
-                std::cout << "\n";
+                std::cout << std::endl;
             }
-            std::cout << std::endl;
+        }
+        else { // X-Z planes
+            for (size_t y = 0; y < y_num; ++y) {
+                std::cout << "y=" << y << "\n";
+                for (size_t z = 0; z < z_num; ++z) {
+                    for (size_t x = 0; x < x_num; ++x) {
+                        std::cout << std::setw(aColumnWidth) << at(y, x, z) << " ";
+                    }
+                    std::cout << "\n";
+                }
+                std::cout << std::endl;
+            }
         }
     }
 

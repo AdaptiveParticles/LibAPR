@@ -51,9 +51,9 @@ public:
 
 // Gradient computation
 
-    template<typename T, typename S>
+    template<typename S>
     void
-    calc_bspline_fd_ds_mag(MeshData<T> &input, MeshData<S> &grad, const float hx, const float hy, const float hz);
+    calc_bspline_fd_ds_mag(const MeshData<S> &input, MeshData<S> &grad, const float hx, const float hy, const float hz);
 
     template<typename T,typename S>
     void mask_gradient(MeshData<T>& grad_ds,MeshData<S>& temp_ds,MeshData<T>& temp_full,APRParameters& par);
@@ -721,13 +721,16 @@ void ComputeGradient::get_smooth_bspline_3D(MeshData<T>& input,APRParameters& pa
     spline_timer.stop_timer();
 }
 
-template<typename T,typename S>
-void ComputeGradient::calc_bspline_fd_ds_mag(MeshData<T> &input, MeshData<S> &grad, const float hx, const float hy,const float hz) {
-    //
-    //  Bevan Cheeseman 2016
-    //
-    //  Calculate fd filt, for xgrad with bsplines
-
+/**
+ * Calculates downsampled gradient (maximum magnitude) with 'replicate' boundary approach (nearest border value)
+ * @param input - input mesh
+ * @param grad - output gradient (must be initialized)
+ * @param hx - step in x dir
+ * @param hy - step in y dir
+ * @param hz - step in z dir
+ */
+template<typename S>
+void ComputeGradient::calc_bspline_fd_ds_mag(const MeshData<S> &input, MeshData<S> &grad, const float hx, const float hy,const float hz) {
     const size_t z_num = input.z_num;
     const size_t x_num = input.x_num;
     const size_t y_num = input.y_num;
@@ -738,47 +741,52 @@ void ComputeGradient::calc_bspline_fd_ds_mag(MeshData<T> &input, MeshData<S> &gr
     std::vector<S> temp(y_num, 0);
     const size_t xnumynum = x_num * y_num;
 
-    // 4                 4
-    // 2  1,3   ...   1  2  3 ...
-    // 5                 5
     #ifdef HAVE_OPENMP
-	#pragma omp parallel for default(shared) firstprivate(temp)
+    #pragma omp parallel for default(shared) firstprivate(temp)
     #endif
-    for (size_t j = 0; j < z_num; ++j) {
-        S *left = input.mesh.begin() + j * xnumynum + 1 * y_num;
-        S *center = input.mesh.begin() + j * xnumynum;
+    for (size_t z = 0; z < z_num; ++z) {
+        // Belows pointers up, down... are forming stencil in X (left <-> right) and Z ( up <-> down) direction and
+        // are pointing to whole Y column. If out of bounds then 'replicate' (nearest array border value) approach is used.
+        //
+        //                 up
+        //   ...   left  center  right ...
+        //                down
+        const S *left = input.mesh.begin() + z * xnumynum + 0 * y_num; // boundary value is chosen
+        const S *center = input.mesh.begin() + z * xnumynum + 0 * y_num;
 
         //LHS boundary condition is accounted for wiht this initialization
-        const size_t j_m = j > 0 ? j - 1 : 0;
-        const size_t j_p = std::min(z_num - 1, j + 1);
-        float g[x_num][y_num];
-        for (size_t i = 0; i < x_num - 1; ++i) {
-            S *up = input.mesh.begin() + j_m * xnumynum + i * y_num;
-            S *down = input.mesh.begin() + j_p * xnumynum + i * y_num;
-            S *right = input.mesh.begin() + j * xnumynum + (i + 1) * y_num;
+        const size_t zMinus = z > 0 ? z - 1 : 0 /* boundary */;
+        const size_t zPlus = std::min(z + 1, z_num - 1 /* boundary */);
+
+        for (size_t x = 0; x < x_num; ++x) {
+            const S *up = input.mesh.begin() + zMinus * xnumynum + x * y_num;
+            const S *down = input.mesh.begin() + zPlus * xnumynum + x * y_num;
+            const size_t xPlus = std::min(x + 1, x_num - 1 /* boundary */);
+            const S *right = input.mesh.begin() + z * xnumynum + xPlus * y_num;
 
             //compute the boundary values
-            temp[0] = sqrt(pow((right[0] - left[0]) / (2 * hx), 2.0) + pow((down[0] - up[0]) / (2 * hz), 2.0));
-            g[0][i] = temp[0];
-            //do the y gradient
-#ifdef HAVE_OPENMP
-#pragma omp simd
-#endif
-            for (size_t k = 1; k < y_num - 1; ++k) {
-                temp[k] = sqrt(pow((right[k] - left[k]) / (2 * hx), 2.0) + pow((down[k] - up[k]) / (2 * hz), 2.0) +
-                               pow((center[k + 1] - center[k - 1]) / (2 * hy), 2.0));
-                g[k][i] = temp[k];
+            if (y_num >= 2) {
+                temp[0] = sqrt(pow((right[0] - left[0]) / (2 * hx), 2.0) + pow((down[0] - up[0]) / (2 * hz), 2.0) + pow((center[1] - center[0 /* boundary */]) / (2 * hy), 2.0));
+                temp[y_num - 1] = sqrt(pow((right[y_num - 1] - left[y_num - 1]) / (2 * hx), 2.0) + pow((down[y_num - 1] - up[y_num - 1]) / (2 * hz), 2.0) + pow((center[y_num - 1 /* boundary */] - center[y_num - 2]) / (2 * hy), 2.0));
+            }
+            else {
+                temp[0] = 0; // same values minus same values in x/y/z
             }
 
-            temp[y_num - 1] = sqrt(pow((right[y_num - 1] - left[y_num - 1]) / (2 * hx), 2.0) +
-                                   pow((down[y_num - 1] - up[y_num - 1]) / (2 * hz), 2.0));
-            g[y_num - 1][i] = temp[y_num - 1];
+            //do the y gradient in range 1..y_num-2
+            #ifdef HAVE_OPENMP
+            #pragma omp simd
+            #endif
+            for (size_t y = 1; y < y_num - 1; ++y) {
+                temp[y] = sqrt(pow((right[y] - left[y]) / (2 * hx), 2.0) + pow((down[y] - up[y]) / (2 * hz), 2.0) + pow((center[y + 1] - center[y - 1]) / (2 * hy), 2.0));
+            }
 
-            int64_t j_2 = j / 2;
-            int64_t i_2 = i / 2;
+            // Set as a downsampled gradient maximum from 2x2x2 gradient cubes
+            int64_t z_2 = z / 2;
+            int64_t x_2 = x / 2;
             for (size_t k = 0; k < y_num_ds; ++k) {
                 size_t k_s = std::min(2 * k + 1, y_num - 1);
-                const size_t idx = j_2 * x_num_ds * y_num_ds + i_2 * y_num_ds + k;
+                const size_t idx = z_2 * x_num_ds * y_num_ds + x_2 * y_num_ds + k;
                 grad.mesh[idx] = std::max(temp[2 * k], std::max(temp[k_s], grad.mesh[idx]));
             }
 
@@ -786,19 +794,12 @@ void ComputeGradient::calc_bspline_fd_ds_mag(MeshData<T> &input, MeshData<S> &gr
             std::swap(left, center);
             std::swap(center, right);
         }
-        for (int y = 0; y < y_num; ++y) {
-            for (int x = 0; x < x_num; ++x) {
-                std::cout << g[y][x] << " ";
-            }
-            std::cout << "\n";
-        }
     }
 }
 
-/*
+/**
  * Caclulation of signal value from B-Spline co-efficients
  */
-
 template<typename T>
 void ComputeGradient::calc_inv_bspline_y(MeshData<T>& input){
     //
