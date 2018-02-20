@@ -21,9 +21,20 @@ void register_blosc(){
 /**
  * reads data from hdf5
  */
-void hdf5_load_data_blosc(hid_t obj_id, hid_t data_type, void* buff, const char* data_name) {
+void hdf5_load_data_blosc(hid_t obj_id, hid_t dataType, void* buff, const char* data_name) {
     hid_t data_id =  H5Dopen2(obj_id, data_name ,H5P_DEFAULT);
-    H5Dread(data_id, data_type, H5S_ALL, H5S_ALL, H5P_DEFAULT, buff);
+    H5Dread(data_id, dataType, H5S_ALL, H5S_ALL, H5P_DEFAULT, buff);
+    H5Dclose(data_id);
+}
+
+/**
+ * reads data from hdf5 (data type auto-detection)
+ */
+void hdf5_load_data_blosc(hid_t obj_id, void* buff, const char* data_name) {
+    hid_t data_id =  H5Dopen2(obj_id, data_name ,H5P_DEFAULT);
+    hid_t dataType = H5Dget_type(data_id);
+    H5Dread(data_id, dataType, H5S_ALL, H5S_ALL, H5P_DEFAULT, buff);
+    H5Tclose(dataType);
     H5Dclose(data_id);
 }
 
