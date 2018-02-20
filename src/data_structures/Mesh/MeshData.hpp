@@ -307,6 +307,33 @@ public :
     }
 
     /**
+     * Initializes mesh with size of half of provided mesh dimensions (rounding up if not divisible by 2)
+     * @param aMesh - mesh used to get dimensions
+     */
+    template <typename U>
+    void initDownsampled(const MeshData<U> &aMesh) {
+        const int z_num_ds = ceil(1.0*aMesh.z_num/2.0);
+        const int x_num_ds = ceil(1.0*aMesh.x_num/2.0);
+        const int y_num_ds = ceil(1.0*aMesh.y_num/2.0);
+
+        init(y_num_ds, x_num_ds, z_num_ds);
+    }
+
+    /**
+     * Initializes mesh with size of half of provided mesh dimensions (rounding up if not divisible by 2) and initialize values
+     * @param aMesh - mesh used to get dimensions
+     * @param aInitVal
+     */
+    template <typename U>
+    void initDownsampled(const MeshData<U> &aMesh, T aInitVal) {
+        const int z_num_ds = ceil(1.0*aMesh.z_num/2.0);
+        const int x_num_ds = ceil(1.0*aMesh.x_num/2.0);
+        const int y_num_ds = ceil(1.0*aMesh.y_num/2.0);
+
+        init(y_num_ds, x_num_ds, z_num_ds, aInitVal);
+    }
+
+    /**
      * Swaps data of meshes this <-> aObj
      * @param aObj
      */
