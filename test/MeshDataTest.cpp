@@ -170,7 +170,7 @@ namespace {
         }
     }
 
-    TEST_F(MeshDataTest, PreallocateTest) {
+    TEST_F(MeshDataTest, InitDownsampledTest) {
         {
             MeshData<int> md;
             md.initDownsampled(3, 5, 7);
@@ -188,6 +188,25 @@ namespace {
             ASSERT_EQ(md.z_num, 4);
             int size = 2 * 3 * 4;
             ASSERT_EQ(md.mesh.size(), size);
+        }
+        {
+            MeshData<int> md;
+            md.initDownsampled(MeshData<char>(4, 6, 8));
+            ASSERT_EQ(md.y_num, 2);
+            ASSERT_EQ(md.x_num, 3);
+            ASSERT_EQ(md.z_num, 4);
+            int size = 2 * 3 * 4;
+            ASSERT_EQ(md.mesh.size(), size);
+        }
+        {
+            MeshData<int> md;
+            md.initDownsampled(MeshData<float>(3, 5, 7), 2);
+            ASSERT_EQ(md.y_num, 2);
+            ASSERT_EQ(md.x_num, 3);
+            ASSERT_EQ(md.z_num, 4);
+            int size = 2 * 3 * 4;
+            ASSERT_EQ(md.mesh.size(), size);
+            for (size_t i = 0; i < md.mesh.size(); ++i) ASSERT_EQ(md.mesh[i], 2);
         }
     }
 
