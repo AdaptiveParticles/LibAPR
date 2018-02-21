@@ -350,6 +350,88 @@ public:
 
         }
 
+        //spread solution
+
+        for (particle_number = apr_iterator.particles_level_begin(apr_iterator.level_max() - 1);
+             particle_number <
+             apr_iterator.particles_level_end(apr_iterator.level_max() - 1); ++particle_number) {
+            //This step is required for all loops to set the iterator by the particle number
+            apr_iterator.set_iterator_to_particle_by_number(particle_number);
+
+            //now we only update the neighbours, and directly access them through a neighbour iterator
+
+            if (apr_iterator.type() == 2) {
+
+                float temp = 0;
+                float counter = 0;
+
+                float counter_neigh = 0;
+
+                apr_tree_iterator.set_particle_cell_no_search(apr_iterator);
+
+                //loop over all the neighbours and set the neighbour iterator to it
+                for (int direction = 0; direction < 6; ++direction) {
+                    // Neighbour Particle Cell Face definitions [+y,-y,+x,-x,+z,-z] =  [0,1,2,3,4,5]
+                    if (apr_tree_iterator.find_neighbours_same_level(direction)) {
+
+                        if (neighbour_tree_iterator.set_neighbour_iterator(apr_tree_iterator, direction, 0)) {
+                            temp += tree_min[neighbour_tree_iterator];
+                            counter++;
+
+                        }
+                    }
+                }
+                if(counter>0) {
+                    adaptive_min[apr_iterator] = temp/counter;
+                    boundary_type[apr_iterator] = 1;
+                }
+
+            }
+        }
+
+        for (int level = (apr_iterator.level_max()-1); level >= apr_iterator.level_min() ; --level) {
+
+            bool still_empty = true;
+            while(still_empty) {
+                still_empty = false;
+                for (particle_number = apr_iterator.particles_level_begin(level);
+                     particle_number <
+                     apr_iterator.particles_level_end(level); ++particle_number) {
+                    //This step is required for all loops to set the iterator by the particle number
+                    apr_iterator.set_iterator_to_particle_by_number(particle_number);
+
+                    if (adaptive_min[apr_iterator] == 0) {
+
+                        float counter = 0;
+                        float temp = 0;
+
+                        //loop over all the neighbours and set the neighbour iterator to it
+                        for (int direction = 0; direction < 6; ++direction) {
+                            // Neighbour Particle Cell Face definitions [+y,-y,+x,-x,+z,-z] =  [0,1,2,3,4,5]
+                            if (apr_iterator.find_neighbours_in_direction(direction)) {
+
+                                if (neigh_iterator.set_neighbour_iterator(apr_iterator, direction, 0)) {
+
+                                    if(adaptive_min[neigh_iterator]>0) {
+                                        counter++;
+                                        temp += adaptive_min[neigh_iterator];
+                                    }
+                                }
+                            }
+                        }
+
+                        if (counter > 0) {
+                            adaptive_min[apr_iterator] = temp / counter;
+                        } else {
+                            still_empty = true;
+                        }
+                    }
+                }
+            }
+        }
+
+
+
 
     }
 
