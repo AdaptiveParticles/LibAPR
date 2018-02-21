@@ -834,7 +834,6 @@ public:
     }
 
 
-
     template<typename T>
     void allocate_map_insert(const APR<T> &apr, ExtraPartCellData<std::pair<uint16_t,YGap_map>>& y_begin) {
         //

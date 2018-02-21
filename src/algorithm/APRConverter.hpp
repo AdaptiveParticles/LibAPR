@@ -77,6 +77,7 @@ private:
 
     void get_local_particle_cell_set(MeshData<ImageType> &grad_temp, MeshData<float> &local_scale_temp, MeshData<float> &local_scale_temp2);
 
+
 };
 
 

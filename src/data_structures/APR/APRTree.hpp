@@ -44,7 +44,9 @@ private:
         particle_cell_parent_tree.resize(l_max + 1);
 
         for (uint64_t l = l_min; l < (l_max + 1) ;l ++){
+
             particle_cell_parent_tree[l].init((int)ceil((1.0*apr.orginal_dimensions(0))/pow(2.0,1.0*l_max - l + 1)),
+
                                                     (int)ceil((1.0*apr.orginal_dimensions(1))/pow(2.0,1.0*l_max - l + 1)),
                                                     (int)ceil((1.0*apr.orginal_dimensions(2))/pow(2.0,1.0*l_max - l + 1)), (uint8_t)0);
         }
@@ -64,10 +66,12 @@ private:
 
             int current_level = apr_iterator.level()-1;
 
+
             if(particle_cell_parent_tree[current_level](y_p,x_p,z_p)==INTERIOR_PARENT){
                 particle_cell_parent_tree[current_level](y_p,x_p,z_p) = 1;
             } else {
                 particle_cell_parent_tree[current_level](y_p,x_p,z_p)++;
+
             }
 
             while(current_level > l_min){
@@ -76,8 +80,10 @@ private:
                 x_p = x_p/2;
                 z_p = z_p/2;
 
+
                 if(particle_cell_parent_tree[current_level](y_p,x_p,z_p)==0){
                     particle_cell_parent_tree[current_level](y_p,x_p,z_p)=INTERIOR_PARENT;
+
                 } else {
                     //already covered
                     break;
