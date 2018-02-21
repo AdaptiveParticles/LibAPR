@@ -136,6 +136,11 @@ public:
 
         ExtraParticleData<uint16_t> boundary_type(apr);
 
+        ExtraParticleData<uint64_t> child_counter(apr_tree);
+        ExtraParticleData<uint64_t> child_counter_temp(apr_tree);
+        ExtraParticleData<double> tree_min(apr_tree);
+        ExtraParticleData<double> tree_min_temp(apr_tree);
+
         //Basic serial iteration over all particles
         uint64_t particle_number;
         //Basic serial iteration over all particles
@@ -193,6 +198,16 @@ public:
 
                     if (counter/counter_total ==1) {
                         boundary_type[apr_iterator] = 1;
+
+                        if (apr_tree_iterator.set_iterator_to_parent(apr_iterator)) {
+
+                            tree_min[apr_tree_iterator] += temp;
+                            child_counter[apr_tree_iterator]++;
+                            child_counter_temp[apr_tree_iterator]=child_counter[apr_tree_iterator];
+                            tree_min_temp[apr_tree_iterator] = tree_min[apr_tree_iterator];
+
+                        }
+
                     } else {
                         boundary_type[apr_iterator] = 0;
                     }
@@ -205,34 +220,31 @@ public:
         std::string image_file_name = apr.parameters.input_dir +  "boundary_type.tif";
         TiffUtils::saveMeshAsTiffUint16(image_file_name, boundary);
 
-        ExtraParticleData<uint64_t> child_counter(apr_tree);
-        ExtraParticleData<uint64_t> child_counter_temp(apr_tree);
-        ExtraParticleData<double> tree_min(apr_tree);
-        ExtraParticleData<double> tree_min_temp(apr_tree);
-
-        for (particle_number = apr_iterator.particles_level_begin(apr_iterator.level_max()-1);
-             particle_number <
-             apr_iterator.particles_level_end(apr_iterator.level_max()-1); ++particle_number) {
-            //This step is required for all loops to set the iterator by the particle number
-            apr_iterator.set_iterator_to_particle_by_number(particle_number);
-
-            if (boundary_type[apr_iterator] == 1) {
-
-                if (apr_tree_iterator.set_iterator_to_parent(apr_iterator)) {
-
-                    tree_min[apr_tree_iterator] += apr.particles_intensities[apr_iterator];
-                    child_counter[apr_tree_iterator]++;
-                    child_counter_temp[apr_tree_iterator]=child_counter[apr_tree_iterator];
-                    tree_min_temp[apr_tree_iterator] = tree_min[apr_tree_iterator];
-
-                }
-
-                boundary_type[apr_iterator] += apr.particles_intensities[apr_iterator];
-            }
 
 
-
-        }
+//        for (particle_number = apr_iterator.particles_level_begin(apr_iterator.level_max()-1);
+//             particle_number <
+//             apr_iterator.particles_level_end(apr_iterator.level_max()-1); ++particle_number) {
+//            //This step is required for all loops to set the iterator by the particle number
+//            apr_iterator.set_iterator_to_particle_by_number(particle_number);
+//
+//            if (boundary_type[apr_iterator] == 1) {
+//
+//                if (apr_tree_iterator.set_iterator_to_parent(apr_iterator)) {
+//
+//                    tree_min[apr_tree_iterator] += apr.particles_intensities[apr_iterator];
+//                    child_counter[apr_tree_iterator]++;
+//                    child_counter_temp[apr_tree_iterator]=child_counter[apr_tree_iterator];
+//                    tree_min_temp[apr_tree_iterator] = tree_min[apr_tree_iterator];
+//
+//                }
+//
+//                boundary_type[apr_iterator] += apr.particles_intensities[apr_iterator];
+//            }
+//
+//
+//
+//        }
 
         apr.interp_img(boundary,boundary_type);
         image_file_name = apr.parameters.input_dir +  "boundary_int.tif";
@@ -311,30 +323,32 @@ public:
 
         }
 
+        for (int i = 0; i < 3; ++i) {
+            //smoothing step
+            for (parent_number = apr_tree_iterator.particles_level_begin(apr_tree_iterator.level_max());
+                 parent_number <
+                 apr_tree_iterator.particles_level_end(apr_tree_iterator.level_max()); ++parent_number) {
 
-        //smoothing step
-        for (parent_number = apr_tree_iterator.particles_level_begin(apr_tree_iterator.level_max());
-             parent_number < apr_tree_iterator.particles_level_end(apr_tree_iterator.level_max()); ++parent_number) {
+                apr_tree_iterator.set_iterator_to_particle_by_number(parent_number);
 
-            apr_tree_iterator.set_iterator_to_particle_by_number(parent_number);
+                float temp = tree_min[apr_tree_iterator];
+                float counter = 1;
 
-            float temp = tree_min[apr_tree_iterator];
-            float counter = 1;
+                for (int direction = 0; direction < 6; ++direction) {
+                    // Neighbour Particle Cell Face definitions [+y,-y,+x,-x,+z,-z] =  [0,1,2,3,4,5]
+                    if (apr_tree_iterator.find_neighbours_same_level(direction)) {
 
-            for (int direction = 0; direction < 6; ++direction) {
-                // Neighbour Particle Cell Face definitions [+y,-y,+x,-x,+z,-z] =  [0,1,2,3,4,5]
-                if(apr_tree_iterator.find_neighbours_same_level(direction)) {
+                        if (neighbour_tree_iterator.set_neighbour_iterator(apr_tree_iterator, direction, 0)) {
+                            temp += tree_min[neighbour_tree_iterator];
+                            counter++;
 
-                    if (neighbour_tree_iterator.set_neighbour_iterator(apr_tree_iterator, direction, 0)) {
-                        temp += tree_min[neighbour_tree_iterator];
-                        counter++;
-
+                        }
                     }
                 }
+
+                tree_min[apr_tree_iterator] = temp / counter;
+
             }
-
-            tree_min[apr_tree_iterator] = temp/counter;
-
         }
 
         adaptive_min.init(apr);
@@ -349,6 +363,10 @@ public:
             adaptive_min[apr_iterator] = tree_min[parent_it];
 
         }
+
+        apr.interp_img(boundary,adaptive_min);
+        image_file_name = apr.parameters.input_dir +  "min_seed.tif";
+        TiffUtils::saveMeshAsTiffUint16(image_file_name, boundary);
 
         //spread solution
 
@@ -515,11 +533,11 @@ public:
                     if (counter / counter_neigh == 1) {
                         boundary_type[apr_iterator] = 1;
                         parent_iterator.set_iterator_to_parent(apr_iterator);
-                        max_spread[parent_iterator] += apr.particles_intensities[apr_iterator];
-                        max_counter[parent_iterator]++;
-
-                        max_spread_temp[parent_iterator] = max_spread[parent_iterator];
-                        max_counter_temp[parent_iterator] = max_counter[parent_iterator];
+//                        max_spread[parent_iterator] += val;
+//                        max_counter[parent_iterator]++;
+//
+//                        max_spread_temp[parent_iterator] = max_spread[parent_iterator];
+//                        max_counter_temp[parent_iterator] = max_counter[parent_iterator];
 
                     }
                 }
@@ -683,34 +701,36 @@ public:
             }
         }
 
+        for (int i = 0; i < 3; ++i) {
+            //smooth step
+            for (unsigned int level = (apr_tree_iterator.level_max());
+                 level >= apr_tree_iterator.level_min(); --level) {
+                for (parent_number = apr_tree_iterator.particles_level_begin(level);
+                     parent_number < apr_tree_iterator.particles_level_end(level); ++parent_number) {
 
-        //smooth step
-        for (unsigned int level = (apr_tree_iterator.level_max()); level >= apr_tree_iterator.level_min(); --level) {
-            for (parent_number = apr_tree_iterator.particles_level_begin(level);
-                 parent_number < apr_tree_iterator.particles_level_end(level); ++parent_number) {
+                    apr_tree_iterator.set_iterator_to_particle_by_number(parent_number);
 
-                apr_tree_iterator.set_iterator_to_particle_by_number(parent_number);
+                    float temp = max_spread[apr_tree_iterator];
+                    float counter = 1;
 
-                float temp = max_spread[apr_tree_iterator];
-                float counter = 1;
+                    for (int direction = 0; direction < 6; ++direction) {
+                        // Neighbour Particle Cell Face definitions [+y,-y,+x,-x,+z,-z] =  [0,1,2,3,4,5]
+                        if (apr_tree_iterator.find_neighbours_same_level(direction)) {
 
-                for (int direction = 0; direction < 6; ++direction) {
-                    // Neighbour Particle Cell Face definitions [+y,-y,+x,-x,+z,-z] =  [0,1,2,3,4,5]
-                    if (apr_tree_iterator.find_neighbours_same_level(direction)) {
+                            if (neighbour_tree_iterator.set_neighbour_iterator(apr_tree_iterator, direction, 0)) {
 
-                        if (neighbour_tree_iterator.set_neighbour_iterator(apr_tree_iterator, direction, 0)) {
+                                if (max_spread[neighbour_tree_iterator] > 0) {
+                                    temp += max_spread[neighbour_tree_iterator];
+                                    counter++;
+                                }
 
-                            if (max_spread[neighbour_tree_iterator] > 0) {
-                                temp += max_spread[neighbour_tree_iterator];
-                                counter++;
                             }
-
                         }
                     }
+
+                    max_spread[apr_tree_iterator] = temp / counter;
+
                 }
-
-                max_spread[apr_tree_iterator] = temp / counter;
-
             }
         }
 
