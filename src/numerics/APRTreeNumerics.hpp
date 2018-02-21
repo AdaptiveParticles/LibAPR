@@ -401,11 +401,13 @@ public:
                 }
                 if(counter>0) {
                     adaptive_min[apr_iterator] = temp/counter;
-                    boundary_type[apr_iterator] = 1;
+                    boundary_type[apr_iterator] = apr_iterator.level_max();
                 }
 
             }
         }
+
+        uint64_t loop_counter = 1;
 
         for (int level = (apr_iterator.level_max()-1); level >= apr_iterator.level_min() ; --level) {
 
@@ -430,7 +432,7 @@ public:
 
                                 if (neigh_iterator.set_neighbour_iterator(apr_iterator, direction, 0)) {
 
-                                    if(adaptive_min[neigh_iterator]>0) {
+                                    if(boundary_type[neigh_iterator]>=(level+1)) {
                                         counter++;
                                         temp += adaptive_min[neigh_iterator];
                                     }
@@ -440,14 +442,17 @@ public:
 
                         if (counter > 0) {
                             adaptive_min[apr_iterator] = temp / counter;
+                            boundary_type[apr_iterator] = level;
                         } else {
                             still_empty = true;
                         }
+                    } else {
+                        boundary_type[apr_iterator]=level+1;
                     }
                 }
+
             }
         }
-
 
 
 
@@ -478,71 +483,71 @@ public:
         //Basic serial iteration over all particles
         uint64_t particle_number;
         //Basic serial iteration over all particles
-        for (particle_number = apr_iterator.particles_level_begin(apr_iterator.level_max() - 1);
-             particle_number <
-             apr_iterator.particles_level_end(apr_iterator.level_max() - 1); ++particle_number) {
-            //This step is required for all loops to set the iterator by the particle number
-            apr_iterator.set_iterator_to_particle_by_number(particle_number);
-
-            //now we only update the neighbours, and directly access them through a neighbour iterator
-
-            if (apr_iterator.type() == 2) {
-
-                float counter = 1;
-                float temp = apr.particles_intensities[apr_iterator];
-
-                //loop over all the neighbours and set the neighbour iterator to it
-                for (int direction = 0; direction < 6; ++direction) {
-                    // Neighbour Particle Cell Face definitions [+y,-y,+x,-x,+z,-z] =  [0,1,2,3,4,5]
-                    if (apr_iterator.find_neighbours_same_level(direction)) {
-
-                        if (neigh_iterator.set_neighbour_iterator(apr_iterator, direction, 0)) {
-                            counter++;
-                            temp += apr.particles_intensities[neigh_iterator];
-
-                        }
-                    }
-                }
-
-
-                float val = temp / counter;
-                counter = 0;
-
-                float counter_neigh = 0;
-
-                apr_tree_iterator.set_particle_cell_no_search(apr_iterator);
-
-                //loop over all the neighbours and set the neighbour iterator to it
-                for (int direction = 0; direction < 6; ++direction) {
-                    // Neighbour Particle Cell Face definitions [+y,-y,+x,-x,+z,-z] =  [0,1,2,3,4,5]
-                    if (apr_tree_iterator.find_neighbours_same_level(direction)) {
-
-                        if (neighbour_tree_iterator.set_neighbour_iterator(apr_tree_iterator, direction, 0)) {
-
-                            if (mean_tree[neighbour_tree_iterator] < val) {
-                                counter++;
-                            }
-                            counter_neigh++;
-
-                        }
-                    }
-                }
-
-                if (counter > 0) {
-                    //counter = 1.0;
-                    if (counter / counter_neigh == 1) {
-                        boundary_type[apr_iterator] = 1;
-                        parent_iterator.set_iterator_to_parent(apr_iterator);
-//                        max_spread[parent_iterator] += val;
-//                        max_counter[parent_iterator]++;
+//        for (particle_number = apr_iterator.particles_level_begin(apr_iterator.level_max() - 1);
+//             particle_number <
+//             apr_iterator.particles_level_end(apr_iterator.level_max() - 1); ++particle_number) {
+//            //This step is required for all loops to set the iterator by the particle number
+//            apr_iterator.set_iterator_to_particle_by_number(particle_number);
 //
-//                        max_spread_temp[parent_iterator] = max_spread[parent_iterator];
-//                        max_counter_temp[parent_iterator] = max_counter[parent_iterator];
-
-                    }
-                }
-            }
-        }
+//            //now we only update the neighbours, and directly access them through a neighbour iterator
+//
+//            if (apr_iterator.type() == 2) {
+//
+//                float counter = 1;
+//                float temp = apr.particles_intensities[apr_iterator];
+//
+//                //loop over all the neighbours and set the neighbour iterator to it
+//                for (int direction = 0; direction < 6; ++direction) {
+//                    // Neighbour Particle Cell Face definitions [+y,-y,+x,-x,+z,-z] =  [0,1,2,3,4,5]
+//                    if (apr_iterator.find_neighbours_same_level(direction)) {
+//
+//                        if (neigh_iterator.set_neighbour_iterator(apr_iterator, direction, 0)) {
+//                            counter++;
+//                            temp += apr.particles_intensities[neigh_iterator];
+//
+//                        }
+//                    }
+//                }
+//
+//
+//                float val = temp / counter;
+//                counter = 0;
+//
+//                float counter_neigh = 0;
+//
+//                apr_tree_iterator.set_particle_cell_no_search(apr_iterator);
+//
+//                //loop over all the neighbours and set the neighbour iterator to it
+//                for (int direction = 0; direction < 6; ++direction) {
+//                    // Neighbour Particle Cell Face definitions [+y,-y,+x,-x,+z,-z] =  [0,1,2,3,4,5]
+//                    if (apr_tree_iterator.find_neighbours_same_level(direction)) {
+//
+//                        if (neighbour_tree_iterator.set_neighbour_iterator(apr_tree_iterator, direction, 0)) {
+//
+//                            if (mean_tree[neighbour_tree_iterator] < val) {
+//                                counter++;
+//                            }
+//                            counter_neigh++;
+//
+//                        }
+//                    }
+//                }
+//
+//                if (counter > 0) {
+//                    //counter = 1.0;
+//                    if (counter / counter_neigh == 1) {
+//                        boundary_type[apr_iterator] = 1;
+//                        parent_iterator.set_iterator_to_parent(apr_iterator);
+////                        max_spread[parent_iterator] += val;
+////                        max_counter[parent_iterator]++;
+////
+////                        max_spread_temp[parent_iterator] = max_spread[parent_iterator];
+////                        max_counter_temp[parent_iterator] = max_counter[parent_iterator];
+//
+//                    }
+//                }
+//            }
+//        }
 
 
         MeshData<uint16_t> boundary;
@@ -785,11 +790,13 @@ public:
                 }
                 if(counter>0) {
                     adaptive_max[apr_iterator] = temp/counter;
-                    boundary_type[apr_iterator] = 1;
+                    boundary_type[apr_iterator] = apr_iterator.level_max();
                 }
 
             }
         }
+
+        uint64_t loop_counter = 1;
 
         for (int level = (apr_iterator.level_max()-1); level >= apr_iterator.level_min() ; --level) {
 
@@ -814,7 +821,7 @@ public:
 
                                 if (neigh_iterator.set_neighbour_iterator(apr_iterator, direction, 0)) {
 
-                                    if(adaptive_max[neigh_iterator]>0) {
+                                    if(boundary_type[neigh_iterator]>=(level+1)) {
                                         counter++;
                                         temp += adaptive_max[neigh_iterator];
                                     }
@@ -824,9 +831,12 @@ public:
 
                         if (counter > 0) {
                             adaptive_max[apr_iterator] = temp / counter;
+                            boundary_type[apr_iterator] = level;
                         } else {
                             still_empty = true;
                         }
+                    } else {
+                        boundary_type[apr_iterator]=level+1;
                     }
                 }
             }
