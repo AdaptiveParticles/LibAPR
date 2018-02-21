@@ -110,13 +110,15 @@ void ComputeGradient::bspline_filt_rec_y(MeshData<T>& image,float lambda,float t
     //
     //  Bevan Cheeseman 2016
     //
-    //  Recursive Filter Implimentation for Smoothing BSplines (Unser 199*?)
+    // Recursive Filter Implimentation for Smoothing BSplines
+    // B-Spline Signal Processing: Part 11-Efficient Design and Applications, Unser 1993
 
-    float xi = 1 - 96*lambda + 24*lambda*sqrt(3 + 144*lambda);
-    float rho = (24*lambda - 1 - sqrt(xi))/(24*lambda)*sqrt((1/xi)*(48*lambda + 24*lambda*sqrt(3 + 144*lambda)));
-    float omg = atan(sqrt((1/xi)*(144*lambda - 1)));
-    float c0 = (1+ pow(rho,2))/(1-pow(rho,2)) * (1 - 2*rho*cos(omg) + pow(rho,2))/(1 + 2*rho*cos(omg) + pow(rho,2));
-    float gamma = (1-pow(rho,2))/(1+pow(rho,2)) * (1/tan(omg));
+    float xi = 1 - 96*lambda + 24*lambda*sqrt(3 + 144*lambda); // eq 4.6
+    float rho = (24*lambda - 1 - sqrt(xi))/(24*lambda)*sqrt((1/xi)*(48*lambda + 24*lambda*sqrt(3 + 144*lambda))); // eq 4.5
+    float omg = atan(sqrt((1/xi)*(144*lambda - 1))); // eq 4.6
+
+    float c0 = (1+ pow(rho,2))/(1-pow(rho,2)) * (1 - 2*rho*cos(omg) + pow(rho,2))/(1 + 2*rho*cos(omg) + pow(rho,2)); // eq 4.8
+    float gamma = (1-pow(rho,2))/(1+pow(rho,2)) * (1/tan(omg)); // eq 4.8
 
     const float b1 = 2*rho*cos(omg);
     const float b2 = -pow(rho,2.0);
@@ -802,13 +804,9 @@ void ComputeGradient::calc_bspline_fd_ds_mag(const MeshData<S> &input, MeshData<
  */
 template<typename T>
 void ComputeGradient::calc_inv_bspline_y(MeshData<T>& input){
-    //
-    //
     //  Bevan Cheeseman 2016
     //
     //  Inverse cubic bspline inverse filter in y direciton (Memory direction)
-    //
-    //
 
     const int64_t z_num = input.z_num;
     const int64_t x_num = input.x_num;
@@ -818,35 +816,29 @@ void ComputeGradient::calc_inv_bspline_y(MeshData<T>& input){
     const float a2 = 4.0/6.0;
     const float a3 = 1.0/6.0;
 
-    std::vector<float> temp_vec;
-    temp_vec.resize(y_num,0);
+    std::vector<float> temp_vec(y_num, 0);
 
-    //loop unrolling
+    #ifdef HAVE_OPENMP
+	#pragma omp parallel for default(shared) firstprivate(temp_vec)
+    #endif
+    for (int64_t j = 0; j < z_num; ++j) {
+        for (int64_t i = 0;i < x_num; ++i) {
 
-    int64_t i, k, j;
-
-#ifdef HAVE_OPENMP
-	#pragma omp parallel for default(shared) private(i, k, j) firstprivate(temp_vec)
-#endif
-    for(j = 0;j < z_num;j++){
-
-        for(i = 0;i < x_num;i++){
-
-#ifdef HAVE_OPENMP
-	#pragma omp simd
-#endif
-            for (k = 0; k < (y_num);k++){
-                temp_vec[k] = input.mesh[j*x_num*y_num + i*y_num + k];
+            #ifdef HAVE_OPENMP
+            #pragma omp simd
+            #endif
+            for (int64_t k = 0; k < (y_num); ++k) {
+                int64_t idx = j * x_num * y_num + i * y_num + k;
+                temp_vec[k] = input.mesh[idx];
             }
 
             //LHS boundary condition
             input.mesh[j*x_num*y_num + i*y_num] = a2*temp_vec[0];
             input.mesh[j*x_num*y_num + i*y_num] += (a1+a3)*temp_vec[1];
 
-            for (k = 1; k < (y_num-1);k++){
-                input.mesh[j*x_num*y_num + i*y_num + k] = a1*temp_vec[k-1];
-                input.mesh[j*x_num*y_num + i*y_num + k] += a2*temp_vec[k];
-                input.mesh[j*x_num*y_num + i*y_num + k] += a3*temp_vec[k+1];
+            for (int64_t k = 1; k < (y_num-1);k++){
+                const int64_t idx = j * x_num * y_num + i * y_num + k;
+                input.mesh[idx] = a1*temp_vec[k-1] + a2*temp_vec[k] + a3*temp_vec[k+1];
             }
 
             //RHS boundary condition
@@ -862,13 +854,13 @@ inline float ComputeGradient::impulse_resp(float k,float rho,float omg){
     //
     //
 
-    return (pow(rho,(std::abs(k)))*sin((std::abs(k) + 1)*omg))/(sin(omg));
+    return (pow(rho,(std::abs(k)))*sin((std::abs(k) + 1)*omg)) / sin(omg);
 
 }
 
 inline float ComputeGradient::impulse_resp_back(float k,float rho,float omg,float gamma,float c0){
     //
-    //  Impulse Response Function
+    //  Impulse Response Function (nominator eq. 4.8, denominator from eq. 4.7)
     //
     //
 
