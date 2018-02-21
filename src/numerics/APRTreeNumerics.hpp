@@ -796,7 +796,6 @@ public:
             }
         }
 
-        uint64_t loop_counter = 1;
 
         for (int level = (apr_iterator.level_max()-1); level >= apr_iterator.level_min() ; --level) {
 

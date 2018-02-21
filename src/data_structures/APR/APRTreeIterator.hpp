@@ -44,6 +44,7 @@ public:
         this->current_particle_cell.x = (uint16_t)(current_iterator.x());
         this->current_particle_cell.z = (uint16_t)(current_iterator.z());
         this->current_particle_cell.level = (uint16_t)(current_iterator.level());
+        this->set_neighbour_flag();
 
     }
 
