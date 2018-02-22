@@ -39,8 +39,7 @@ include_directories(${HDF5_INCLUDE_DIRS} ${TIFF_INCLUDE_DIR})
 
 # Configure and add submodule BLOSC
 if(APR_INSTALL)
-#    set(BLOSC_INSTALL ON CACHE BOOL "" FORCE)
-#    set(BUILD_SHARED ON CACHE BOOL "" FORCE)
+    set(BLOSC_INSTALL ON CACHE BOOL "" FORCE)
 endif()
 set(BLOSC_IS_SUBPROJECT ON)
 set(BUILD_TESTS OFF CACHE BOOL "" FORCE)
@@ -51,6 +50,9 @@ add_subdirectory("external/c-blosc")
 
 # Add submodule GLM
 include_directories("external/glm")
+if(APR_INSTALL)
+add_subdirectory("external/glm")
+endif()
 
 ###############################################################################
 # Configure compiler options
@@ -79,8 +81,8 @@ set(SOURCE_FILES src/io/blosc_filter.h src/io/blosc_filter.c src/io/hdf5function
 set(SOURCE_FILES_RAYCAST src/vis/Camera.cpp src/vis/Object.cpp src/vis/RaytracedObject.cpp)
 
 add_library(libapr_static STATIC ${SOURCE_FILES} ${SOURCE_FILES_RAYCAST})
-set_target_properties(libapr_static PROPERTIES OUTPUT_NAME apr)
-target_link_libraries(libapr_static PRIVATE ${HDF5_LIBRARIES} ${TIFF_LIBRARIES} blosc_static)
+set_target_properties(libapr_static PROPERTIES OUTPUT_NAME "apr")
+target_link_libraries(libapr_static PRIVATE ${HDF5_LIBRARIES} ${TIFF_LIBRARIES} PRIVATE blosc_static)
 
 add_library(libapr_dynamic SHARED ${SOURCE_FILES} ${SOURCE_FILES_RAYCAST})
 set_target_properties(libapr_dynamic PROPERTIES OUTPUT_NAME apr)
@@ -93,13 +95,14 @@ target_link_libraries(libapr_dynamic PRIVATE ${HDF5_LIBRARIES} ${TIFF_LIBRARIES}
 option (APR_INSTALL "Install APR library" OFF)
 if(APR_INSTALL)
     message(STATUS "APR: Install library in [${CMAKE_INSTALL_PREFIX}]")
-    install(TARGETS libapr_static DESTINATION lib COMPONENT LIB)
-#    install(TARGETS libapr_dynamic DESTINATION lib COMPONENT LIB)
+#    install(TARGETS libapr_static DESTINATION lib COMPONENT LIB)
+    install(TARGETS libapr_dynamic DESTINATION lib COMPONENT LIB)
     install(DIRECTORY src/algorithm DESTINATION include FILES_MATCHING PATTERN "*.hpp")
     install(DIRECTORY src/data_structures DESTINATION include FILES_MATCHING PATTERN "*.hpp")
     install(DIRECTORY src/io DESTINATION include FILES_MATCHING PATTERN "*.hpp" PATTERN "*.h")
     install(DIRECTORY src/misc DESTINATION include FILES_MATCHING PATTERN "*.hpp")
     install(DIRECTORY src/numerics DESTINATION include FILES_MATCHING PATTERN "*.hpp")
+    install(DIRECTORY src/vis DESTINATION include FILES_MATCHING PATTERN "*.h")
     install(FILES ${PROJECT_BINARY_DIR}/ConfigAPR.h DESTINATION include)
 endif(APR_INSTALL)
 

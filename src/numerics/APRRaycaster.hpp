@@ -18,8 +18,7 @@
 
 #include "../data_structures/APR/ExtraPartCellData.hpp"
 #include "../data_structures/APR/APR.hpp"
-#include "../../src/vis/Camera.h"
-#include "../../src/vis/RaytracedObject.h"
+#include "../vis/RaytracedObject.h"
 
 class APRRaycaster {
 
@@ -42,9 +41,6 @@ public:
     bool jitter = false;
 
     std::string name = "raycast";
-
-    APRRaycaster(){
-    }
 
     template<typename U,typename S,typename V,class BinaryOperation>
     void perform_raycast(APR<U>& apr,ExtraParticleData<S>& particle_data,MeshData<V>& cast_views,BinaryOperation op);
