@@ -48,7 +48,6 @@ public:
     template<typename T,typename S>
     void threshold_gradient(MeshData<T> &grad, const MeshData<S> &img, const float Ip_th);
 
-private:
     template<typename T>
     void bspline_filt_rec_y(MeshData<T> &image, float lambda, float tol);
 

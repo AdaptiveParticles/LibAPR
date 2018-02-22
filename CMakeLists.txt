@@ -44,7 +44,7 @@ endif()
 set(BLOSC_IS_SUBPROJECT ON)
 set(BUILD_TESTS OFF CACHE BOOL "" FORCE)
 set(BUILD_BENCHMARKS OFF CACHE BOOL "" FORCE)
-set(BUILD_SHARED OFF CACHE BOOL "" FORCE)
+set(BUILD_SHARED ON CACHE BOOL "" FORCE)
 set(BUILD_STATIC ON CACHE BOOL "" FORCE)
 add_subdirectory("external/c-blosc")
 
@@ -82,11 +82,11 @@ set(SOURCE_FILES_RAYCAST src/vis/Camera.cpp src/vis/Object.cpp src/vis/Raytraced
 
 add_library(libapr_static STATIC ${SOURCE_FILES} ${SOURCE_FILES_RAYCAST})
 set_target_properties(libapr_static PROPERTIES OUTPUT_NAME "apr")
-target_link_libraries(libapr_static PRIVATE ${HDF5_LIBRARIES} ${TIFF_LIBRARIES} PRIVATE blosc_static)
+target_link_libraries(libapr_static PRIVATE ${HDF5_LIBRARIES} ${TIFF_LIBRARIES} blosc_static)
 
 add_library(libapr_dynamic SHARED ${SOURCE_FILES} ${SOURCE_FILES_RAYCAST})
 set_target_properties(libapr_dynamic PROPERTIES OUTPUT_NAME apr)
-target_link_libraries(libapr_dynamic PRIVATE ${HDF5_LIBRARIES} ${TIFF_LIBRARIES} blosc_static)
+target_link_libraries(libapr_dynamic PRIVATE ${HDF5_LIBRARIES} ${TIFF_LIBRARIES} blosc_shared)
 
 
 ###############################################################################
