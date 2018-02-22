@@ -26,6 +26,8 @@ include_directories("${PROJECT_BINARY_DIR}")
 ###############################################################################
 find_package(HDF5 REQUIRED)
 find_package(TIFF REQUIRED)
+
+# Handle OpenMP
 find_package(OpenMP)
 if(NOT OPENMP_FOUND OR DISABLE_OPENMP)
     message("OpenMP support not found with current compiler. While APR can compile like this, performance might not be optimal. Please see README.md for instructions.")
@@ -33,9 +35,13 @@ else()
     set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -DHAVE_OPENMP ${OpenMP_C_FLAGS}")
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DHAVE_OPENMP ${OpenMP_CXX_FLAGS}")
 endif()
-include_directories(${HDF5_INCLUDE_DIRS} ${TIFF_INCLUDE_DIR} )
+include_directories(${HDF5_INCLUDE_DIRS} ${TIFF_INCLUDE_DIR})
 
 # Configure and add submodule BLOSC
+if(APR_INSTALL)
+#    set(BLOSC_INSTALL ON CACHE BOOL "" FORCE)
+#    set(BUILD_SHARED ON CACHE BOOL "" FORCE)
+endif()
 set(BLOSC_IS_SUBPROJECT ON)
 set(BUILD_TESTS OFF CACHE BOOL "" FORCE)
 set(BUILD_BENCHMARKS OFF CACHE BOOL "" FORCE)
@@ -67,14 +73,35 @@ endif()
 ###############################################################################
 # Generate APR library
 ###############################################################################
-set(SOURCE_FILES src/io/blosc_filter.c src/io/hdf5functions_blosc.cpp)
+include_directories(src)
+
+set(SOURCE_FILES src/io/blosc_filter.h src/io/blosc_filter.c src/io/hdf5functions_blosc.cpp)
 set(SOURCE_FILES_RAYCAST src/vis/Camera.cpp src/vis/Object.cpp src/vis/RaytracedObject.cpp)
 
-add_library(libapr ${SOURCE_FILES} ${SOURCE_FILES_RAYCAST})
-set_target_properties(libapr PROPERTIES PREFIX "")
-#target_include_directories(libapr PUBLIC)
-#target_include_directories(libapr PUBLIC . ${PROJECT_BINARY_DIR})
-target_link_libraries(libapr PUBLIC ${HDF5_LIBRARIES} ${TIFF_LIBRARIES} blosc_static)
+add_library(libapr_static STATIC ${SOURCE_FILES} ${SOURCE_FILES_RAYCAST})
+set_target_properties(libapr_static PROPERTIES OUTPUT_NAME apr)
+target_link_libraries(libapr_static PRIVATE ${HDF5_LIBRARIES} ${TIFF_LIBRARIES} blosc_static)
+
+add_library(libapr_dynamic SHARED ${SOURCE_FILES} ${SOURCE_FILES_RAYCAST})
+set_target_properties(libapr_dynamic PROPERTIES OUTPUT_NAME apr)
+target_link_libraries(libapr_dynamic PRIVATE ${HDF5_LIBRARIES} ${TIFF_LIBRARIES} blosc_static)
+
+
+###############################################################################
+# Install APR library
+###############################################################################
+option (APR_INSTALL "Install APR library" OFF)
+if(APR_INSTALL)
+    message(STATUS "APR: Install library in [${CMAKE_INSTALL_PREFIX}]")
+    install(TARGETS libapr_static DESTINATION lib COMPONENT LIB)
+#    install(TARGETS libapr_dynamic DESTINATION lib COMPONENT LIB)
+    install(DIRECTORY src/algorithm DESTINATION include FILES_MATCHING PATTERN "*.hpp")
+    install(DIRECTORY src/data_structures DESTINATION include FILES_MATCHING PATTERN "*.hpp")
+    install(DIRECTORY src/io DESTINATION include FILES_MATCHING PATTERN "*.hpp" PATTERN "*.h")
+    install(DIRECTORY src/misc DESTINATION include FILES_MATCHING PATTERN "*.hpp")
+    install(DIRECTORY src/numerics DESTINATION include FILES_MATCHING PATTERN "*.hpp")
+    install(FILES ${PROJECT_BINARY_DIR}/ConfigAPR.h DESTINATION include)
+endif(APR_INSTALL)
 
 ###############################################################################
 # Examples
@@ -82,7 +109,6 @@ target_link_libraries(libapr PUBLIC ${HDF5_LIBRARIES} ${TIFF_LIBRARIES} blosc_st
 option (APR_BUILD_EXAMPLES "Build APR examples" ON)
 if(APR_BUILD_EXAMPLES)
     message(STATUS "APR: Building examples")
-    target_include_directories(libapr PUBLIC .)
     add_subdirectory(examples)
 endif(APR_BUILD_EXAMPLES)
 
@@ -92,9 +118,10 @@ endif(APR_BUILD_EXAMPLES)
 option (APR_TESTS "Build tests wrappers" OFF)
 if(APR_TESTS)
     message(STATUS "APR: Building tests")
-    find_package(GTest 1.8.0)
     set(BUILD_GMOCK OFF CACHE BOOL "" FORCE)
     set(BUILD_GTEST ON CACHE BOOL "" FORCE)
+    set(INSTALL_GTEST OFF CACHE BOOL "" FORCE)
+    find_package(GTest 1.8.0)
     if(GTEST_FOUND)
         include_directories(${GTEST_INCLUDE_DIRS})
     else(GTEST_FOUND)

@@ -5,14 +5,14 @@
 #ifndef PARTPLAY_GRADIENT_HPP
 #define PARTPLAY_GRADIENT_HPP
 
-#include "src/data_structures/Mesh/MeshData.hpp"
-#include "src/io/TiffUtils.hpp"
+#include "../data_structures/Mesh/MeshData.hpp"
+#include "../io/TiffUtils.hpp"
 
 #ifdef HAVE_OPENMP
 	#include "omp.h"
 #endif
-#include "src/algorithm/APRParameters.hpp"
-#include "src/misc/APRTimer.hpp"
+#include "../algorithm/APRParameters.hpp"
+#include "../misc/APRTimer.hpp"
 
 class ComputeGradient {
 

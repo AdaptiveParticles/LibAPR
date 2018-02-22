@@ -9,7 +9,7 @@
 
 #include <map>
 #include <utility>
-#include "src/data_structures/Mesh/MeshData.hpp"
+#include "../../data_structures/Mesh/MeshData.hpp"
 
 //TODO: IT SHOULD NOT BE DEFINDED HERE SINCE IT DUPLICATES FROM PullingScheme
 #define SEED_TYPE 1

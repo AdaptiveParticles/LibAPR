@@ -16,10 +16,8 @@
 #include <fstream>
 #include <ctime>
 
-#include "src/data_structures/APR/ExtraPartCellData.hpp"
-
+#include "../data_structures/APR/ExtraPartCellData.hpp"
 #include "../data_structures/APR/APR.hpp"
-
 #include "../../src/vis/Camera.h"
 #include "../../src/vis/RaytracedObject.h"
 

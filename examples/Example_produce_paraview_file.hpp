@@ -8,7 +8,7 @@
 #include <functional>
 #include <string>
 
-#include "src/data_structures/APR/APR.hpp"
+#include "data_structures/APR/APR.hpp"
 
 struct cmdLineOptions{
     std::string output = "output";

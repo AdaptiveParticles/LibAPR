@@ -29,7 +29,7 @@ const char* usage = R"(
 #include <iostream>
 
 #include "Example_compute_gradient.hpp"
-#include "src/io/TiffUtils.hpp"
+#include "io/TiffUtils.hpp"
 
 
 int main(int argc, char **argv) {

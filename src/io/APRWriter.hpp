@@ -6,8 +6,8 @@
 #define APRWRITER_HPP
 
 #include "hdf5functions_blosc.h"
-#include "src/data_structures/APR/APR.hpp"
-#include "src/data_structures/APR/APRAccess.hpp"
+#include "../data_structures/APR/APR.hpp"
+#include "../data_structures/APR/APRAccess.hpp"
 #include "ConfigAPR.h"
 #include <numeric>
 #include <memory>
