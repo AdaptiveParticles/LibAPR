@@ -34,11 +34,17 @@ else()
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DHAVE_OPENMP ${OpenMP_CXX_FLAGS}")
 endif()
 include_directories(${HDF5_INCLUDE_DIRS} ${TIFF_INCLUDE_DIR} )
+
+# Configure and add submodule BLOSC
+set(BLOSC_IS_SUBPROJECT ON)
+set(BUILD_TESTS OFF CACHE BOOL "" FORCE)
+set(BUILD_BENCHMARKS OFF CACHE BOOL "" FORCE)
+set(BUILD_SHARED OFF CACHE BOOL "" FORCE)
+set(BUILD_STATIC ON CACHE BOOL "" FORCE)
 add_subdirectory("external/c-blosc")
-set_target_properties(blosc_shared PROPERTIES RUNTIME_OUTPUT_DIRECTORY_DEBUG ${PROJECT_BINARY_DIR})
-set_target_properties(blosc_shared PROPERTIES RUNTIME_OUTPUT_DIRECTORY_RELEASE ${PROJECT_BINARY_DIR})
+
+# Add submodule GLM
 include_directories("external/glm")
-include_directories("external/c-blosc/blosc")
 
 ###############################################################################
 # Configure compiler options
@@ -66,8 +72,9 @@ set(SOURCE_FILES_RAYCAST src/vis/Camera.cpp src/vis/Object.cpp src/vis/Raytraced
 
 add_library(libapr ${SOURCE_FILES} ${SOURCE_FILES_RAYCAST})
 set_target_properties(libapr PROPERTIES PREFIX "")
-target_include_directories(libapr PUBLIC . src external/glm ${PROJECT_BINARY_DIR})
-target_link_libraries(libapr PUBLIC ${HDF5_LIBRARIES} ${TIFF_LIBRARIES} blosc_shared)
+#target_include_directories(libapr PUBLIC)
+#target_include_directories(libapr PUBLIC . ${PROJECT_BINARY_DIR})
+target_link_libraries(libapr PUBLIC ${HDF5_LIBRARIES} ${TIFF_LIBRARIES} blosc_static)
 
 ###############################################################################
 # Examples
@@ -75,6 +82,7 @@ target_link_libraries(libapr PUBLIC ${HDF5_LIBRARIES} ${TIFF_LIBRARIES} blosc_sh
 option (APR_BUILD_EXAMPLES "Build APR examples" ON)
 if(APR_BUILD_EXAMPLES)
     message(STATUS "APR: Building examples")
+    target_include_directories(libapr PUBLIC .)
     add_subdirectory(examples)
 endif(APR_BUILD_EXAMPLES)
 
@@ -85,6 +93,8 @@ option (APR_TESTS "Build tests wrappers" OFF)
 if(APR_TESTS)
     message(STATUS "APR: Building tests")
     find_package(GTest 1.8.0)
+    set(BUILD_GMOCK OFF CACHE BOOL "" FORCE)
+    set(BUILD_GTEST ON CACHE BOOL "" FORCE)
     if(GTEST_FOUND)
         include_directories(${GTEST_INCLUDE_DIRS})
     else(GTEST_FOUND)
