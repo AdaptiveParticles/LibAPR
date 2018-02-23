@@ -82,11 +82,11 @@ set(SOURCE_FILES_RAYCAST src/vis/Camera.cpp src/vis/Object.cpp src/vis/Raytraced
 
 add_library(libapr_static STATIC ${SOURCE_FILES} ${SOURCE_FILES_RAYCAST})
 set_target_properties(libapr_static PROPERTIES OUTPUT_NAME "apr")
-target_link_libraries(libapr_static PRIVATE ${HDF5_LIBRARIES} ${TIFF_LIBRARIES} blosc_static)
+target_link_libraries(libapr_static PUBLIC ${HDF5_LIBRARIES} ${TIFF_LIBRARIES} blosc_static)
 
 add_library(libapr_dynamic SHARED ${SOURCE_FILES} ${SOURCE_FILES_RAYCAST})
 set_target_properties(libapr_dynamic PROPERTIES OUTPUT_NAME apr)
-target_link_libraries(libapr_dynamic PRIVATE ${HDF5_LIBRARIES} ${TIFF_LIBRARIES} blosc_shared)
+target_link_libraries(libapr_dynamic PUBLIC ${HDF5_LIBRARIES} ${TIFF_LIBRARIES} blosc_shared)
 
 
 ###############################################################################
@@ -95,7 +95,7 @@ target_link_libraries(libapr_dynamic PRIVATE ${HDF5_LIBRARIES} ${TIFF_LIBRARIES}
 option (APR_INSTALL "Install APR library" OFF)
 if(APR_INSTALL)
     message(STATUS "APR: Install library in [${CMAKE_INSTALL_PREFIX}]")
-#    install(TARGETS libapr_static DESTINATION lib COMPONENT LIB)
+    install(TARGETS libapr_static DESTINATION lib COMPONENT LIB)
     install(TARGETS libapr_dynamic DESTINATION lib COMPONENT LIB)
     install(DIRECTORY src/algorithm DESTINATION include FILES_MATCHING PATTERN "*.hpp")
     install(DIRECTORY src/data_structures DESTINATION include FILES_MATCHING PATTERN "*.hpp")
@@ -104,6 +104,12 @@ if(APR_INSTALL)
     install(DIRECTORY src/numerics DESTINATION include FILES_MATCHING PATTERN "*.hpp")
     install(DIRECTORY src/vis DESTINATION include FILES_MATCHING PATTERN "*.h")
     install(FILES ${PROJECT_BINARY_DIR}/ConfigAPR.h DESTINATION include)
+    if(APR_BUILD_EXAMPLES)
+        install(DIRECTORY ${PROJECT_BINARY_DIR}/examples/ DESTINATION bin
+                FILES_MATCHING  PATTERN "CMake*" EXCLUDE PATTERN "*make*" EXCLUDE PATTERN "Example_*"
+                PERMISSIONS OWNER_EXECUTE OWNER_WRITE OWNER_READ GROUP_EXECUTE GROUP_READ WORLD_EXECUTE WORLD_READ
+                )
+    endif(APR_BUILD_EXAMPLES)
 endif(APR_INSTALL)
 
 ###############################################################################
@@ -120,14 +126,17 @@ endif(APR_BUILD_EXAMPLES)
 ###############################################################################
 option (APR_TESTS "Build tests wrappers" OFF)
 if(APR_TESTS)
+    option(APR_PREFER_EXTERNAL_GTEST "Find and use external GTEST library instead of included sources." OFF)
     message(STATUS "APR: Building tests")
-    set(BUILD_GMOCK OFF CACHE BOOL "" FORCE)
-    set(BUILD_GTEST ON CACHE BOOL "" FORCE)
-    set(INSTALL_GTEST OFF CACHE BOOL "" FORCE)
-    find_package(GTest 1.8.0)
+    if(APR_PREFER_EXTERNAL_GTEST)
+        find_package(GTest 1.8.0)
+    endif()
     if(GTEST_FOUND)
         include_directories(${GTEST_INCLUDE_DIRS})
     else(GTEST_FOUND)
+        set(BUILD_GMOCK OFF CACHE BOOL "" FORCE)
+        set(BUILD_GTEST ON CACHE BOOL "" FORCE)
+        set(INSTALL_GTEST OFF CACHE BOOL "" FORCE)
         message(STATUS "APR: GTest not found, using internal gtest")
         add_subdirectory("external/gtest")
         set(GTEST_LIBRARIES gtest)
