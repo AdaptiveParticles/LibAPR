@@ -9,6 +9,7 @@
 #ifndef PARTPLAY_EXTRAPARTCELLDATA_HPP
 #define PARTPLAY_EXTRAPARTCELLDATA_HPP
 
+#include <vector>
 
 template<typename V> class APR;
 

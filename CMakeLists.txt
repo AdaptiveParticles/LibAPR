@@ -48,11 +48,8 @@ set(BUILD_SHARED ON CACHE BOOL "" FORCE)
 set(BUILD_STATIC ON CACHE BOOL "" FORCE)
 add_subdirectory("external/c-blosc")
 
-# Add submodule GLM
+# Add submodule GLM (include files only)
 include_directories("external/glm")
-if(APR_INSTALL)
-add_subdirectory("external/glm")
-endif()
 
 ###############################################################################
 # Configure compiler options
@@ -78,7 +75,7 @@ endif()
 include_directories(src)
 
 set(SOURCE_FILES src/io/blosc_filter.h src/io/blosc_filter.c src/io/hdf5functions_blosc.cpp)
-set(SOURCE_FILES_RAYCAST src/vis/Camera.cpp src/vis/Object.cpp src/vis/RaytracedObject.cpp)
+set(SOURCE_FILES_RAYCAST src/numerics/APRRaycaster.cpp src/vis/Camera.cpp src/vis/Object.cpp src/vis/RaytracedObject.cpp)
 
 add_library(libapr_static STATIC ${SOURCE_FILES} ${SOURCE_FILES_RAYCAST})
 set_target_properties(libapr_static PROPERTIES OUTPUT_NAME "apr")
