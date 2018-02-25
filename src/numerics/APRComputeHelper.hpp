@@ -38,7 +38,7 @@ public:
 
         timer.stop_timer();
 
-        unsigned int smoothing_steps_local = 7;
+        unsigned int smoothing_steps_local = 3;
 
         timer.start_timer("adaptive min");
 

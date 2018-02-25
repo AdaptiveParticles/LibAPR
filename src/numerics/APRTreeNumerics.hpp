@@ -127,11 +127,13 @@ public:
 
         APRTimer timer;
         timer.verbose_flag = true;
-        timer.start_timer("init");
+        timer.start_timer("fill");
 
         ExtraParticleData<float> mean_tree;
         APRTreeNumerics::fill_tree_from_particles(apr,apr_tree,intensities,mean_tree,[] (const float& a,const float& b) {return a+b;},true);
+        timer.stop_timer();
 
+        timer.start_timer("init");
         APRTreeIterator<uint16_t> apr_tree_iterator(apr_tree);
 
         APRTreeIterator<uint16_t> neighbour_tree_iterator(apr_tree);
@@ -147,9 +149,12 @@ public:
 
         timer.stop_timer();
 
+        timer.start_timer("first loop");
+
         //Basic serial iteration over all particles
         uint64_t particle_number;
         //Basic serial iteration over all particles
+#pragma omp parallel for schedule(static) private(particle_number) firstprivate(apr_iterator,neigh_iterator,apr_tree_iterator,neighbour_tree_iterator)
         for (particle_number = apr_iterator.particles_level_begin(apr_iterator.level_max()-1);
              particle_number <
              apr_iterator.particles_level_end(apr_iterator.level_max()-1); ++particle_number) {
@@ -221,7 +226,9 @@ public:
             }
         }
 
-        MeshData<uint16_t> boundary;
+        timer.stop_timer();
+
+        //MeshData<uint16_t> boundary;
 //        apr.interp_img(boundary,boundary_type);
 //        std::string image_file_name = apr.parameters.input_dir +  "boundary_type.tif";
 //        TiffUtils::saveMeshAsTiffUint16(image_file_name, boundary);
@@ -230,12 +237,16 @@ public:
 //        image_file_name = apr.parameters.input_dir +  "boundary_int.tif";
 //        TiffUtils::saveMeshAsTiffUint16(image_file_name, boundary);
 
+        timer.start_timer("loop 2");
+
         APRTreeIterator<uint16_t> parent_it(apr_tree);
 
         uint64_t parent_number;
         //then do the rest of the tree where order matters
+
         for (unsigned int level = (apr_tree_iterator.level_max()-1); level > apr_tree_iterator.level_min(); --level) {
 
+#pragma omp parallel for schedule(static) private(parent_number) firstprivate(apr_tree_iterator,neighbour_tree_iterator)
             //two loops first spread
             for (parent_number = apr_tree_iterator.particles_level_begin(level);
                  parent_number < apr_tree_iterator.particles_level_end(level); ++parent_number) {
@@ -259,7 +270,7 @@ public:
                 }
             }
 
-
+#pragma omp parallel for schedule(static) private(parent_number) firstprivate(apr_tree_iterator,parent_it)
             //then average and push up
             for (parent_number = apr_tree_iterator.particles_level_begin(level);
                  parent_number < apr_tree_iterator.particles_level_end(level); ++parent_number) {
@@ -287,7 +298,11 @@ public:
             }
         }
 
+        timer.stop_timer();
 
+        timer.start_timer("loop 3");
+
+#pragma omp parallel for schedule(static) private(parent_number) firstprivate(apr_tree_iterator,parent_it)
         for (parent_number = apr_tree_iterator.particles_level_begin(apr_tree_iterator.level_max());
              parent_number < apr_tree_iterator.particles_level_end(apr_tree_iterator.level_max()); ++parent_number) {
 
@@ -303,8 +318,15 @@ public:
 
         }
 
+        timer.stop_timer();
+
+        timer.start_timer("loop 3b");
+
+
         for (int i = 0; i < smooth_factor; ++i) {
             //smoothing step
+
+#pragma omp parallel for schedule(static) private(parent_number) firstprivate(apr_tree_iterator,neighbour_tree_iterator)
             for (parent_number = apr_tree_iterator.particles_level_begin(apr_tree_iterator.level_max());
                  parent_number <
                  apr_tree_iterator.particles_level_end(apr_tree_iterator.level_max()); ++parent_number) {
@@ -326,13 +348,20 @@ public:
                     }
                 }
 
-                tree_min[apr_tree_iterator] = temp / counter;
+                tree_min_temp[apr_tree_iterator] = temp / counter;
 
             }
+            std::swap(tree_min.data,tree_min_temp.data);
         }
+
+
+        timer.stop_timer();
+
+        timer.start_timer("loop 4");
 
         adaptive_min.init(apr);
 
+#pragma omp parallel for schedule(static) private(particle_number) firstprivate(apr_iterator,parent_it)
         //Now set the highest level particle cells.
         for (particle_number = apr_iterator.particles_level_begin(apr_iterator.level_max());
                  particle_number <
@@ -344,12 +373,16 @@ public:
 
         }
 
+        timer.stop_timer();
+
 //        apr.interp_img(boundary,adaptive_min);
 //        image_file_name = apr.parameters.input_dir +  "min_seed.tif";
 //        TiffUtils::saveMeshAsTiffUint16(image_file_name, boundary);
 
         //spread solution
 
+        timer.start_timer("loop 5");
+#pragma omp parallel for schedule(static) private(particle_number) firstprivate(apr_iterator,apr_tree_iterator,neighbour_tree_iterator)
         for (particle_number = apr_iterator.particles_level_begin(apr_iterator.level_max() - 1);
              particle_number <
              apr_iterator.particles_level_end(apr_iterator.level_max() - 1); ++particle_number) {
@@ -388,12 +421,17 @@ public:
         }
 
         uint64_t loop_counter = 1;
+        timer.stop_timer();
+
+        timer.start_timer("loop final");
+
 
         for (int level = (apr_iterator.level_max()-1); level >= apr_iterator.level_min() ; --level) {
 
             bool still_empty = true;
             while(still_empty) {
                 still_empty = false;
+#pragma omp parallel for schedule(static) private(particle_number) firstprivate(apr_iterator,neigh_iterator) reduction(||:still_empty)
                 for (particle_number = apr_iterator.particles_level_begin(level);
                      particle_number <
                      apr_iterator.particles_level_end(level); ++particle_number) {
@@ -433,6 +471,8 @@ public:
 
             }
         }
+
+        timer.stop_timer();
 
 
 
