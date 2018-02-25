@@ -244,7 +244,7 @@ public:
     }
 
     inline bool check_neighbours_flag(const uint16_t& x,const uint16_t& z,const uint16_t& level){
-        return ((uint16_t)(x-1)>(x_num[level]-3)) | ((uint16_t)(z-1)>(z_num[level]-3));
+        return ((uint16_t)(x-1)>=(x_num[level]-2)) | ((uint16_t)(z-1)>=(z_num[level]-2)); // #FIX ME
     }
 
     inline uint8_t number_neighbours_in_direction(const uint8_t& level_delta){

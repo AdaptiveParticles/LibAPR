@@ -63,21 +63,19 @@ public:
     template<typename T>
     bool get_apr_method_custom_gradient_and_scale(APR<ImageType> &aAPR, MeshData<T>& input_image,MeshData<T>& custom_grad,MeshData<T>& custom_local_scale);
 
-private:
-
-    //pointer to the APR structure so member functions can have access if they need
-    const APR<ImageType> *apr;
-
-
     template<typename T>
     bool get_apr_method_from_file(APR<ImageType>& apr, const TiffUtils::TiffInfo &tiffFile);
 
     void get_gradient(MeshData<ImageType> &image_temp, MeshData<ImageType> &grad_temp, MeshData<float> &local_scale_temp, MeshData<float> &local_scale_temp2, float bspline_offset);
 
-
     void get_local_intensity_scale(MeshData<float> &local_scale_temp, MeshData<float> &local_scale_temp2);
 
     void get_local_particle_cell_set(MeshData<ImageType> &grad_temp, MeshData<float> &local_scale_temp, MeshData<float> &local_scale_temp2);
+
+private:
+
+    //pointer to the APR structure so member functions can have access if they need
+    const APR<ImageType> *apr;
 
 
 };

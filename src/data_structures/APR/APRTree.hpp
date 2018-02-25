@@ -16,7 +16,14 @@ class APRTree {
     template<typename S> friend class APRTreeIterator;
 
 public:
+
+    APRTree(){};
+
     APRTree(APR<imageType>& apr){
+        initialize_apr_tree(apr);
+    }
+
+    void init(APR<imageType>& apr){
         initialize_apr_tree(apr);
     }
 
