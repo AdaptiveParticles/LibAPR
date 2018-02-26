@@ -104,11 +104,6 @@ private:
 
         this->tree_access.initialize_tree_access(apr,particle_cell_parent_tree);
 
-        std::cout << apr.total_number_particles() << std::endl;
-        std::cout << tree_access.total_number_particles << std::endl;
-        std::cout << counter << std::endl;
-
-
     }
 
 

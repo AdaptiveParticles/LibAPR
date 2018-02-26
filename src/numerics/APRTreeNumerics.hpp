@@ -129,7 +129,7 @@ public:
 
 
         APRTimer timer;
-        timer.verbose_flag = true;
+        timer.verbose_flag = false;
         timer.start_timer("fill");
 
         ExtraParticleData<float> mean_tree;

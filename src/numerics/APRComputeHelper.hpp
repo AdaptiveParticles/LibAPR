@@ -14,29 +14,43 @@ template<typename ImageType>
 class APRComputeHelper {
 public:
 
-
     APRComputeHelper(APR<ImageType>& apr){
         apr_tree.init(apr);
+    }
+
+    APRComputeHelper(){
     }
 
     APRTree<ImageType> apr_tree;
     ExtraParticleData<ImageType> adaptive_max;
     ExtraParticleData<ImageType> adaptive_min;
 
+    void init_tree(APR<ImageType>& apr){
+        apr_tree.init(apr);
+    }
+
     template<typename T>
     void compute_local_scale(APR<ImageType>& apr,ExtraParticleData<T>& local_intensity_scale,unsigned int smooth_iterations = 3){
 
+        if(apr_tree.total_number_parent_cells()==0) {
+            apr_tree.init(apr);
+        }
+
         APRTimer timer;
-        timer.verbose_flag = true;
+        timer.verbose_flag = false;
 
         timer.start_timer("smooth");
 
         APRNumerics aprNumerics;
         ExtraParticleData<uint16_t> smooth(apr);
         std::vector<float> filter = {0.1f, 0.8f, 0.1f}; // << Feel free to play with these
-        aprNumerics.seperable_smooth_filter(apr, apr.particles_intensities, smooth, filter, smooth_iterations);
+        //aprNumerics.seperable_smooth_filter(apr, apr.particles_intensities, smooth, filter, smooth_iterations);
+        for (int i = 0; i < smooth_iterations; ++i) {
+            weight_neighbours(apr,apr.particles_intensities,smooth,0.8);
+            std::swap(smooth.data,apr.particles_intensities.data);
+        }
 
-        //weight_neighbours(apr,apr.particles_intensities,smooth,0.8);
+        std::swap(smooth.data,apr.particles_intensities.data);
 
         timer.stop_timer();
 
@@ -245,8 +259,33 @@ public:
 
     }
 
+    void compute_local_min_max_apr(APRConverter<ImageType>& apr_converter,APR<ImageType>& apr,APR<ImageType>& apr_new){
 
+        TiffUtils::TiffInfo inputTiff(apr_converter.par.input_dir + apr_converter.par.input_image_name);
+        MeshData<uint16_t> input_img= TiffUtils::getMesh<uint16_t>(inputTiff);
 
+        ExtraParticleData<uint16_t> local_intensity_scale;
+
+        this->apr_tree.init(apr);
+
+        this->compute_local_scale(apr,local_intensity_scale,1);
+
+        /*
+        *  Compute APR using custom local intensity scale
+        *
+         *  Using the below approach you can use your own methods for calculating the gradient and local intensity scale, and then
+         *  use them to compute the APR.
+         *
+        * */
+
+        MeshData<uint16_t> custom_local_scale;
+        MeshData<uint16_t> custom_grad; //if it is not initialized, the classic approach to using the gradient will be used.
+        apr.interp_img(custom_local_scale,local_intensity_scale);
+
+        //compute apr with alternative local intensity scale
+        apr_converter.get_apr_method_custom_gradient_and_scale(apr_new,input_img,custom_grad,custom_local_scale);
+
+    }
 
 
 };
