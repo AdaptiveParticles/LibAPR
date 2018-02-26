@@ -1,6 +1,6 @@
 macro(buildTarget TARGET)
     add_executable(${TARGET} ${TARGET}.cpp)
-    target_link_libraries(${TARGET} libapr_dynamic)
+    target_link_libraries(${TARGET} libapr_static)
 endmacro(buildTarget)
 
 buildTarget(Example_get_apr)
