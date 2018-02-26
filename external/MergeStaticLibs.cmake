@@ -19,12 +19,12 @@ function(merge_static_libs output_library)
 	string(REGEX REPLACE "-" "_" output_library ${output_library})
 	set(libs ${ARGV})
 	list(REMOVE_AT libs 0)
-	
 	# Create a dummy file that the target will depend on
-	set(dummyfile ${CMAKE_CURRENT_BINARY_DIR}/${output_library}_dummy.c)
+	set(dummyfile ${CMAKE_CURRENT_BINARY_DIR}/${output_library}_dummy.cpp)
 	file(WRITE ${dummyfile} "const char * dummy = \"${dummyfile}\";")
-	
+
 	add_library(${output_target} STATIC ${dummyfile})
+	add_dependencies(${output_target} ${libs})
 
 	if("${CMAKE_CFG_INTDIR}" STREQUAL ".")
 		set(multiconfig FALSE)

@@ -38,15 +38,13 @@ endif()
 include_directories(${HDF5_INCLUDE_DIRS} ${TIFF_INCLUDE_DIR})
 
 # Configure and add submodule BLOSC
-if(APR_INSTALL)
-#    set(BLOSC_INSTALL ON CACHE BOOL "" FORCE)
-endif()
 set(BLOSC_IS_SUBPROJECT ON)
 set(BUILD_TESTS OFF CACHE BOOL "" FORCE)
 set(BUILD_BENCHMARKS OFF CACHE BOOL "" FORCE)
 set(BUILD_SHARED ON CACHE BOOL "" FORCE)
 set(BUILD_STATIC ON CACHE BOOL "" FORCE)
 add_subdirectory("external/c-blosc")
+include_directories(external/c-blosc/blosc)
 
 # Add submodule GLM (include files only)
 include_directories("external/glm")
@@ -72,51 +70,26 @@ endif()
 ###############################################################################
 # Generate APR library
 ###############################################################################
-include_directories(src)
 
-set(SOURCE_FILES src/io/blosc_filter.h src/io/blosc_filter.c src/io/hdf5functions_blosc.h src/io/hdf5functions_blosc.cpp)
+include_directories(src)
+set(SOURCE_FILES src/io/blosc_filter.c src/io/hdf5functions_blosc.cpp)
 set(SOURCE_FILES_RAYCAST src/numerics/APRRaycaster.cpp src/vis/Camera.cpp src/vis/Object.cpp src/vis/RaytracedObject.cpp)
 
+# generate static library used as a intermediate step in generating fat lib
 add_library(libapr_static STATIC ${SOURCE_FILES} ${SOURCE_FILES_RAYCAST})
-set_target_properties(libapr_static PROPERTIES OUTPUT_NAME "apr")
-target_link_libraries(libapr_static PUBLIC ${HDF5_LIBRARIES} ${TIFF_LIBRARIES} blosc_static)
+set_target_properties(libapr_static PROPERTIES OUTPUT_NAME "apr_static")
+target_link_libraries(libapr_static INTERFACE blosc_static ${HDF5_LIBRARIES} ${TIFF_LIBRARIES})
 
-add_library(libapr_dynamic SHARED ${SOURCE_FILES} ${SOURCE_FILES_RAYCAST})
-set_target_properties(libapr_dynamic PROPERTIES OUTPUT_NAME apr)
-target_link_libraries(libapr_dynamic PUBLIC ${HDF5_LIBRARIES} ${TIFF_LIBRARIES} blosc_shared)
-message(STATUS "==========: ${CMAKE_AR} ")
-message(STATUS "======== :  ${SOURCES}")
-
-message(STATUS "---------------------- VARS BEG ---------------------")
-get_cmake_property(_variableNames VARIABLES)
-foreach (_variableName ${_variableNames})
-    message(STATUS "${_variableName}=${${_variableName}}")
-endforeach()
-message(STATUS "---------------------- VARS END ---------------------")
-message(STATUS "======= " $<TARGET_FILE:libapr_static>)
-get_target_property(libtype blosc_static TYPE)
-message(STATUS "LIBTYPE: " ${libtype})
-get_target_property(libtype libapr_static TYPE)
-message(STATUS "LIBTYPE: " ${libtype})
-#get_target_property(libfile blosc_static LOCATION)
-#get_property(libfile TARGET $<TARGET_FILE:blosc_static> PROPERTY LOCATION)
-#set(libfile $<TARGET_FILE:blosc_static>)
-#message(STATUS "LIBTYPE: " ${libfile})
-message(STATUS "============")
+# generate fat static library
 include(external/MergeStaticLibs.cmake)
-merge_static_libs(aprf libapr_static blosc_static)
+merge_static_libs(libapr_static_full libapr_static blosc_static)
+set_target_properties(libapr_static_full PROPERTIES OUTPUT_NAME apr)
 
-add_library(libapr_dynamic2 SHARED ${SOURCE_FILES} ${SOURCE_FILES_RAYCAST})
-set_target_properties(libapr_dynamic2 PROPERTIES OUTPUT_NAME aprf)
-target_link_libraries(libapr_dynamic2 PUBLIC ${HDF5_LIBRARIES} ${TIFF_LIBRARIES} aprf blosc_shared)
-
-#add_custom_target(print
-#        ${CMAKE_COMMAND} -E echo " ..................... " $<TARGET_FILE:blosc_static>
-#        )
-#add_custom_target(libapr_static_full ALL
-#        COMMAND  ${CMAKE_AR} -rc
-#        libaprf.a
-#        $<TARGET_FILE:libapr_static> $<TARGET_FILE:blosc_static>)
+# generate fat shared library
+add_library(libapr_dynamic SHARED ${SOURCE_FILES} ${SOURCE_FILES_RAYCAST})
+add_dependencies(libapr_dynamic blosc_static)
+set_target_properties(libapr_dynamic PROPERTIES OUTPUT_NAME apr)
+target_link_libraries(libapr_dynamic PUBLIC ${HDF5_LIBRARIES} ${TIFF_LIBRARIES} -Wl,-force_load,$<TARGET_FILE:blosc_static>)
 
 ###############################################################################
 # Install APR library
@@ -124,19 +97,18 @@ target_link_libraries(libapr_dynamic2 PUBLIC ${HDF5_LIBRARIES} ${TIFF_LIBRARIES}
 option (APR_INSTALL "Install APR library" OFF)
 if(APR_INSTALL)
     message(STATUS "APR: Install library in [${CMAKE_INSTALL_PREFIX}]")
-#    install(TARGETS libapr_static DESTINATION lib COMPONENT LIB)
-    install(FILES ${PROJECT_BINARY_DIR}/libaprf.a DESTINATION lib COMPONENT LIB)
-#    install(TARGETS libapr_dynamic DESTINATION lib COMPONENT LIB)
-    install(DIRECTORY src/algorithm DESTINATION include FILES_MATCHING PATTERN "*.hpp")
-    install(DIRECTORY src/data_structures DESTINATION include FILES_MATCHING PATTERN "*.hpp")
-    install(DIRECTORY src/io DESTINATION include FILES_MATCHING PATTERN "*.hpp" PATTERN "*.h")
-    install(DIRECTORY src/misc DESTINATION include FILES_MATCHING PATTERN "*.hpp")
-    install(DIRECTORY src/numerics DESTINATION include FILES_MATCHING PATTERN "*.hpp")
-    install(DIRECTORY src/vis DESTINATION include FILES_MATCHING PATTERN "*.h")
-    install(FILES ${PROJECT_BINARY_DIR}/ConfigAPR.h DESTINATION include)
+    install(FILES ${PROJECT_BINARY_DIR}/libapr.a DESTINATION lib COMPONENT LIB)
+    install(TARGETS libapr_dynamic DESTINATION lib COMPONENT LIB)
+    install(DIRECTORY src/algorithm DESTINATION include/apr FILES_MATCHING PATTERN "*.hpp")
+    install(DIRECTORY src/data_structures DESTINATION include/apr FILES_MATCHING PATTERN "*.hpp")
+    install(DIRECTORY src/io DESTINATION include/apr FILES_MATCHING PATTERN "*.hpp" PATTERN "*.h")
+    install(DIRECTORY src/misc DESTINATION include/apr FILES_MATCHING PATTERN "*.hpp")
+    install(DIRECTORY src/numerics DESTINATION include/apr FILES_MATCHING PATTERN "*.hpp")
+    install(DIRECTORY src/vis DESTINATION include/apr FILES_MATCHING PATTERN "*.h")
+    install(FILES ${PROJECT_BINARY_DIR}/ConfigAPR.h DESTINATION include/apr/io)
     if(APR_BUILD_EXAMPLES)
         install(DIRECTORY ${PROJECT_BINARY_DIR}/examples/ DESTINATION bin
-                FILES_MATCHING  PATTERN "CMake*" EXCLUDE PATTERN "*make*" EXCLUDE PATTERN "Example_*"
+                FILES_MATCHING  PATTERN "CMake*" EXCLUDE PATTERN "*make*" EXCLUDE PATTERN "*dSYM*" EXCLUDE PATTERN "Example_*"
                 PERMISSIONS OWNER_EXECUTE OWNER_WRITE OWNER_READ GROUP_EXECUTE GROUP_READ WORLD_EXECUTE WORLD_READ
                 )
     endif(APR_BUILD_EXAMPLES)
