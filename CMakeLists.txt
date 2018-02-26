@@ -37,6 +37,9 @@ else()
 endif()
 include_directories(${HDF5_INCLUDE_DIRS} ${TIFF_INCLUDE_DIR})
 
+# needed here for blosc library
+SET(CMAKE_POSITION_INDEPENDENT_CODE ON)
+
 # Configure and add submodule BLOSC
 set(BLOSC_IS_SUBPROJECT ON)
 set(BUILD_TESTS OFF CACHE BOOL "" FORCE)
@@ -55,7 +58,6 @@ include_directories("external/glm")
 # If you ever want to compile with Intel's icc (or any other compiler) provide
 # compiler names/paths in cmake command like this:
 # CC="icc" CXX="icc" CXXFLAGS="-O3" cmake -DAPR_TESTS=1
-SET(CMAKE_POSITION_INDEPENDENT_CODE ON)
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++14 -Wall -pedantic ")
 if(CMAKE_COMPILER_IS_GNUCC)
     set(CMAKE_CXX_FLAGS_RELEASE "-O4 -ffast-math")
@@ -82,8 +84,11 @@ target_link_libraries(libapr_static INTERFACE blosc_static ${HDF5_LIBRARIES} ${T
 
 # generate fat static library
 include(external/MergeStaticLibs.cmake)
-merge_static_libs(libapr_static_full libapr_static blosc_static)
+file(WRITE ${CMAKE_CURRENT_BINARY_DIR}/dummy.cpp "")
+add_library(libapr_static_full STATIC ${CMAKE_CURRENT_BINARY_DIR}/dummy.cpp)
 set_target_properties(libapr_static_full PROPERTIES OUTPUT_NAME apr)
+merge_static_libs(libapr_static_full blosc_static libapr_static)
+target_link_libraries(libapr_static_full PUBLIC ${HDF5_LIBRARIES} ${TIFF_LIBRARIES})
 
 # generate fat shared library
 add_library(libapr_dynamic SHARED ${SOURCE_FILES} ${SOURCE_FILES_RAYCAST})
