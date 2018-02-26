@@ -84,7 +84,7 @@ target_link_libraries(libapr_static INTERFACE blosc_static ${HDF5_LIBRARIES} ${T
 
 # generate fat static library
 include(external/MergeStaticLibs.cmake)
-file(WRITE ${CMAKE_CURRENT_BINARY_DIR}/dummy.cpp "")
+file(WRITE ${CMAKE_CURRENT_BINARY_DIR}/dummy.cpp "namespace { }")
 add_library(libapr_static_full STATIC ${CMAKE_CURRENT_BINARY_DIR}/dummy.cpp)
 set_target_properties(libapr_static_full PROPERTIES OUTPUT_NAME apr)
 merge_static_libs(libapr_static_full blosc_static libapr_static)

@@ -35,7 +35,7 @@ function(merge_static_libs outlib )
 	if(MSVC) # lib.exe does the merging of given a list
 		set_target_properties(${outlib} PROPERTIES STATIC_LIBRARY_FLAGS "${libfiles}")
 
-	elseif(APPLE) # Use OSX's libtool to merge archives
+	elseif(MSVC) #TODO: CHANGE TO APPLE # Use OSX's libtool to merge archives
 		add_custom_command(TARGET ${outlib} POST_BUILD
 				COMMAND rm "$<TARGET_FILE:${outlib}>"
 				COMMAND echo "===========: $<TARGET_FILE:${outlib}>"
@@ -44,13 +44,19 @@ function(merge_static_libs outlib )
 
 	else() # general UNIX: use "ar" to extract objects and re-add to a common lib
 		foreach(lib ${libs})
+			message (STATUS "------------------ >>     ${lib} ")
+
 			set(objlistfile ${lib}.objlist) # list of objects in the input library
 			set(objdir ${lib}.objdir)
 
 			add_custom_command(OUTPUT ${objdir}
-					COMMAND ${CMAKE_COMMAND} -E make_directory ${objdir})
+					COMMAND echo "1"
+					COMMAND ${CMAKE_COMMAND} -E make_directory ${objdir}
+					)
 
 			add_custom_command(OUTPUT ${objlistfile}
+					COMMAND echo "2"
+					COMMAND ${CMAKE_COMMAND} -E make_directory ${objdir}
 					COMMAND ${CMAKE_AR} -x "$<TARGET_FILE:${lib}>"
 					COMMAND ${CMAKE_AR} -t "$<TARGET_FILE:${lib}>" > ../${objlistfile}
 					DEPENDS ${lib} ${objdir}
@@ -59,6 +65,7 @@ function(merge_static_libs outlib )
 			# Empty dummy source file that goes into merged library
 			set(mergebase ${lib}.mergebase.c)
 			add_custom_command(OUTPUT ${mergebase}
+					COMMAND echo "3"
 					COMMAND ${CMAKE_COMMAND} -E touch ${mergebase}
 					DEPENDS ${objlistfile})
 
@@ -66,12 +73,13 @@ function(merge_static_libs outlib )
 		endforeach()
 
 		# We need a target for the output merged library
-		add_library(${outlib} STATIC ${mergebases})
+		add_library(hello STATIC ${mergebases})
 		set(outlibfile "$<TARGET_FILE:${outlib}>")
-
+		add_dependencies(${outlib} hello)
 		foreach(lib ${libs})
+			set(objdir ${lib}.objdir)
 			add_custom_command(TARGET ${outlib} POST_BUILD
-					COMMAND ${CMAKE_AR} ru ${outlibfile} @"../${objlistfile}"
+					COMMAND ${CMAKE_AR} rus ${outlibfile} *.o
 					WORKING_DIRECTORY ${objdir})
 		endforeach()
 
