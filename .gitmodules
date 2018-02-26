@@ -4,3 +4,6 @@
 [submodule "external/gtest"]
 	path = external/gtest
 	url = https://github.com/google/googletest
+[submodule "external/c-blosc"]
+	path = external/c-blosc
+	url = https://github.com/Blosc/c-blosc
