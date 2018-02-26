@@ -287,6 +287,7 @@ public:
                     child_counter[apr_tree_iterator]=1;
                 } else {
                     tree_min[apr_tree_iterator] = 0;
+                    child_counter[apr_tree_iterator] = 0;
                 }
 
                 parent_it.set_iterator_to_parent(apr_tree_iterator);
@@ -313,7 +314,7 @@ public:
 
             parent_it.set_iterator_to_parent(apr_tree_iterator);
 
-            while((parent_it.level() > parent_it.level_min()) && (tree_min[parent_it] == 0)){
+            while((parent_it.level() > parent_it.level_min()) && (child_counter[parent_it] == 0)){
                 parent_it.set_iterator_to_parent(parent_it);
             }
 
@@ -384,6 +385,8 @@ public:
 
         //spread solution
 
+        std::fill(boundary_type.data.begin(),boundary_type.data.end(),0);
+
         timer.start_timer("loop 5");
 #pragma omp parallel for schedule(static) private(particle_number) firstprivate(apr_iterator,apr_tree_iterator,neighbour_tree_iterator)
         for (particle_number = apr_iterator.particles_level_begin(apr_iterator.level_max() - 1);
@@ -427,13 +430,17 @@ public:
         timer.stop_timer();
 
         timer.start_timer("loop final");
-
+        int maximum_iteration = 20;
 
         for (int level = (apr_iterator.level_max()-1); level >= apr_iterator.level_min() ; --level) {
 
+
+            uint64_t empty_counter = 0;
             bool still_empty = true;
-            while(still_empty) {
+            while(still_empty & empty_counter < maximum_iteration) {
                 still_empty = false;
+                empty_counter++;
+
 #pragma omp parallel for schedule(static) private(particle_number) firstprivate(apr_iterator,neigh_iterator) reduction(||:still_empty)
                 for (particle_number = apr_iterator.particles_level_begin(level);
                      particle_number <
@@ -441,7 +448,7 @@ public:
                     //This step is required for all loops to set the iterator by the particle number
                     apr_iterator.set_iterator_to_particle_by_number(particle_number);
 
-                    if (adaptive_min[apr_iterator] == 0) {
+                    if (boundary_type[apr_iterator] == 0) {
 
                         float counter = 0;
                         float temp = 0;
@@ -453,9 +460,13 @@ public:
 
                                 if (neigh_iterator.set_neighbour_iterator(apr_iterator, direction, 0)) {
 
+                                    float n_l = neigh_iterator.level();
+                                    float n_t = boundary_type[neigh_iterator];
+
                                     if(boundary_type[neigh_iterator]>=(level+1)) {
                                         counter++;
                                         temp += adaptive_min[neigh_iterator];
+
                                     }
                                 }
                             }
@@ -463,13 +474,35 @@ public:
 
                         if (counter > 0) {
                             adaptive_min[apr_iterator] = temp / counter;
-                            boundary_type[apr_iterator] = level;
+                            boundary_type[apr_iterator] = (uint16_t)level;
                         } else {
+
                             still_empty = true;
+
                         }
                     } else {
-                        boundary_type[apr_iterator]=level+1;
+                        boundary_type[apr_iterator]=(uint16_t)(level+1);
                     }
+                }
+            }
+
+#pragma omp parallel for schedule(static) private(particle_number) firstprivate(apr_iterator,parent_it)
+            for (particle_number = apr_iterator.particles_level_begin(level);
+                 particle_number <
+                 apr_iterator.particles_level_end(level); ++particle_number) {
+                //This step is required for all loops to set the iterator by the particle number
+                apr_iterator.set_iterator_to_particle_by_number(particle_number);
+
+                if(boundary_type[apr_iterator] == 0){
+
+                    parent_it.set_iterator_to_parent(apr_iterator);
+
+                    while((parent_it.level() > parent_it.level_min()) && (child_counter[parent_it] == 0)){
+                        parent_it.set_iterator_to_parent(parent_it);
+                    }
+
+                    adaptive_min[apr_iterator] = tree_min[parent_it];
+                    boundary_type[apr_iterator] = (uint16_t)(level + 1);
                 }
 
             }
@@ -708,6 +741,8 @@ public:
 
         }
 
+        std::fill(boundary_type.data.begin(),boundary_type.data.end(),0);
+
         //spread solution
 #pragma omp parallel for schedule(static) private(particle_number) firstprivate(apr_iterator,apr_tree_iterator,neighbour_tree_iterator)
         for (particle_number = apr_iterator.particles_level_begin(apr_iterator.level_max() - 1);
@@ -747,11 +782,14 @@ public:
             }
         }
 
+        int maximum_iteration = 20;
+
 
         for (int level = (apr_iterator.level_max()-1); level >= apr_iterator.level_min() ; --level) {
-
+            uint64_t empty_counter = 0;
             bool still_empty = true;
-            while(still_empty) {
+            while(still_empty & empty_counter < maximum_iteration) {
+                empty_counter++;
                 still_empty = false;
 #pragma omp parallel for schedule(static) private(particle_number) firstprivate(apr_iterator,neigh_iterator) reduction(||:still_empty)
                 for (particle_number = apr_iterator.particles_level_begin(level);
@@ -760,7 +798,7 @@ public:
                     //This step is required for all loops to set the iterator by the particle number
                     apr_iterator.set_iterator_to_particle_by_number(particle_number);
 
-                    if (adaptive_max[apr_iterator] == 0) {
+                    if (boundary_type[apr_iterator] == 0) {
 
                         float counter = 0;
                         float temp = 0;
@@ -790,6 +828,27 @@ public:
                         boundary_type[apr_iterator]=level+1;
                     }
                 }
+            }
+
+#pragma omp parallel for schedule(static) private(particle_number) firstprivate(apr_iterator,parent_iterator)
+            for (particle_number = apr_iterator.particles_level_begin(level);
+                 particle_number <
+                 apr_iterator.particles_level_end(level); ++particle_number) {
+                //This step is required for all loops to set the iterator by the particle number
+                apr_iterator.set_iterator_to_particle_by_number(particle_number);
+
+                if(boundary_type[apr_iterator] == 0){
+
+                    parent_iterator.set_iterator_to_parent(apr_iterator);
+
+                    while ((parent_iterator.level() > parent_iterator.level_min()) && (max_spread[parent_iterator] == 0)) {
+                        parent_iterator.set_iterator_to_parent(parent_iterator);
+                    }
+
+                    adaptive_max[apr_iterator] = max_spread[parent_iterator];
+                    boundary_type[apr_iterator] = (uint16_t)(level + 1);
+                }
+
             }
         }
 

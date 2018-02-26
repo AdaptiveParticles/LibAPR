@@ -36,6 +36,8 @@ public:
         std::vector<float> filter = {0.1f, 0.8f, 0.1f}; // << Feel free to play with these
         aprNumerics.seperable_smooth_filter(apr, apr.particles_intensities, smooth, filter, smooth_iterations);
 
+        //weight_neighbours(apr,apr.particles_intensities,smooth,0.8);
+
         timer.stop_timer();
 
         unsigned int smoothing_steps_local = 3;
