@@ -14,7 +14,7 @@
 /**
  * Register the 'blosc' filter with the HDF5 library
  */
-void register_blosc(){
+void hdf5_register_blosc(){
     register_blosc(nullptr, nullptr);
 }
 

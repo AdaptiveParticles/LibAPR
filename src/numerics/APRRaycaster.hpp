@@ -190,7 +190,7 @@ void APRRaycaster::perform_raycast(APR<U>& apr,ExtraParticleData<S>& particle_da
         float y_actual,x_actual,z_actual;
 
 #ifdef HAVE_OPENMP
-	#pragma omp parallel for schedule(static) private(particle_number,y_actual,x_actual,z_actual) firstprivate(apr_iterator,mvp)
+	#pragma omp parallel for schedule(static) private(particle_number,y_actual,x_actual,z_actual) firstprivate(apr_iterator)
 #endif
         for (particle_number = 0; particle_number < apr_iterator.total_number_particles(); ++particle_number) {
             apr_iterator.set_iterator_to_particle_by_number(particle_number);
@@ -354,7 +354,7 @@ float APRRaycaster::perpsective_mesh_raycast(MeshData<S>& image,MeshData<U>& cas
         const unsigned int y_num_ = image.y_num;
 
 #ifdef HAVE_OPENMP
-	#pragma omp parallel for default(shared) private(z_,x_,j_) firstprivate(mvp)
+	#pragma omp parallel for default(shared) private(z_,x_,j_)
 #endif
         for (z_ = 0; z_ < z_num_; z_++) {
             //both z and x are explicitly accessed in the structure

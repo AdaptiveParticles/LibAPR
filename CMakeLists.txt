@@ -39,7 +39,7 @@ include_directories(${HDF5_INCLUDE_DIRS} ${TIFF_INCLUDE_DIR})
 
 # Configure and add submodule BLOSC
 if(APR_INSTALL)
-    set(BLOSC_INSTALL ON CACHE BOOL "" FORCE)
+#    set(BLOSC_INSTALL ON CACHE BOOL "" FORCE)
 endif()
 set(BLOSC_IS_SUBPROJECT ON)
 set(BUILD_TESTS OFF CACHE BOOL "" FORCE)
@@ -74,7 +74,7 @@ endif()
 ###############################################################################
 include_directories(src)
 
-set(SOURCE_FILES src/io/blosc_filter.h src/io/blosc_filter.c src/io/hdf5functions_blosc.cpp)
+set(SOURCE_FILES src/io/blosc_filter.h src/io/blosc_filter.c src/io/hdf5functions_blosc.h src/io/hdf5functions_blosc.cpp)
 set(SOURCE_FILES_RAYCAST src/numerics/APRRaycaster.cpp src/vis/Camera.cpp src/vis/Object.cpp src/vis/RaytracedObject.cpp)
 
 add_library(libapr_static STATIC ${SOURCE_FILES} ${SOURCE_FILES_RAYCAST})
@@ -84,7 +84,39 @@ target_link_libraries(libapr_static PUBLIC ${HDF5_LIBRARIES} ${TIFF_LIBRARIES} b
 add_library(libapr_dynamic SHARED ${SOURCE_FILES} ${SOURCE_FILES_RAYCAST})
 set_target_properties(libapr_dynamic PROPERTIES OUTPUT_NAME apr)
 target_link_libraries(libapr_dynamic PUBLIC ${HDF5_LIBRARIES} ${TIFF_LIBRARIES} blosc_shared)
+message(STATUS "==========: ${CMAKE_AR} ")
+message(STATUS "======== :  ${SOURCES}")
 
+message(STATUS "---------------------- VARS BEG ---------------------")
+get_cmake_property(_variableNames VARIABLES)
+foreach (_variableName ${_variableNames})
+    message(STATUS "${_variableName}=${${_variableName}}")
+endforeach()
+message(STATUS "---------------------- VARS END ---------------------")
+message(STATUS "======= " $<TARGET_FILE:libapr_static>)
+get_target_property(libtype blosc_static TYPE)
+message(STATUS "LIBTYPE: " ${libtype})
+get_target_property(libtype libapr_static TYPE)
+message(STATUS "LIBTYPE: " ${libtype})
+#get_target_property(libfile blosc_static LOCATION)
+#get_property(libfile TARGET $<TARGET_FILE:blosc_static> PROPERTY LOCATION)
+#set(libfile $<TARGET_FILE:blosc_static>)
+#message(STATUS "LIBTYPE: " ${libfile})
+message(STATUS "============")
+include(external/MergeStaticLibs.cmake)
+merge_static_libs(aprf libapr_static blosc_static)
+
+add_library(libapr_dynamic2 SHARED ${SOURCE_FILES} ${SOURCE_FILES_RAYCAST})
+set_target_properties(libapr_dynamic2 PROPERTIES OUTPUT_NAME aprf)
+target_link_libraries(libapr_dynamic2 PUBLIC ${HDF5_LIBRARIES} ${TIFF_LIBRARIES} aprf blosc_shared)
+
+#add_custom_target(print
+#        ${CMAKE_COMMAND} -E echo " ..................... " $<TARGET_FILE:blosc_static>
+#        )
+#add_custom_target(libapr_static_full ALL
+#        COMMAND  ${CMAKE_AR} -rc
+#        libaprf.a
+#        $<TARGET_FILE:libapr_static> $<TARGET_FILE:blosc_static>)
 
 ###############################################################################
 # Install APR library
@@ -92,8 +124,9 @@ target_link_libraries(libapr_dynamic PUBLIC ${HDF5_LIBRARIES} ${TIFF_LIBRARIES} 
 option (APR_INSTALL "Install APR library" OFF)
 if(APR_INSTALL)
     message(STATUS "APR: Install library in [${CMAKE_INSTALL_PREFIX}]")
-    install(TARGETS libapr_static DESTINATION lib COMPONENT LIB)
-    install(TARGETS libapr_dynamic DESTINATION lib COMPONENT LIB)
+#    install(TARGETS libapr_static DESTINATION lib COMPONENT LIB)
+    install(FILES ${PROJECT_BINARY_DIR}/libaprf.a DESTINATION lib COMPONENT LIB)
+#    install(TARGETS libapr_dynamic DESTINATION lib COMPONENT LIB)
     install(DIRECTORY src/algorithm DESTINATION include FILES_MATCHING PATTERN "*.hpp")
     install(DIRECTORY src/data_structures DESTINATION include FILES_MATCHING PATTERN "*.hpp")
     install(DIRECTORY src/io DESTINATION include FILES_MATCHING PATTERN "*.hpp" PATTERN "*.h")
