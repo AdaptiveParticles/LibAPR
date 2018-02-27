@@ -380,10 +380,10 @@ public:
 
         timer.stop_timer();
 
-        MeshData<uint16_t> boundary;
-        apr.interp_img(boundary,adaptive_min);
-        std::string image_file_name = apr.parameters.input_dir +  "min_seed.tif";
-        TiffUtils::saveMeshAsTiffUint16(image_file_name, boundary);
+//        MeshData<uint16_t> boundary;
+//        apr.interp_img(boundary,adaptive_min);
+//        std::string image_file_name = apr.parameters.input_dir +  "min_seed.tif";
+//        TiffUtils::saveMeshAsTiffUint16(image_file_name, boundary);
 
         //spread solution
 
@@ -428,10 +428,10 @@ public:
             }
         }
 
-
-        apr.interp_img(boundary,adaptive_min);
-        image_file_name = apr.parameters.input_dir +  "min_seed2.tif";
-        TiffUtils::saveMeshAsTiffUint16(image_file_name, boundary);
+//
+//        apr.interp_img(boundary,adaptive_min);
+//        image_file_name = apr.parameters.input_dir +  "min_seed2.tif";
+//        TiffUtils::saveMeshAsTiffUint16(image_file_name, boundary);
 
         uint64_t loop_counter = 1;
         timer.stop_timer();
@@ -551,9 +551,9 @@ public:
 
         timer.stop_timer();
 
-        apr.interp_img(boundary,adaptive_min);
-        image_file_name = apr.parameters.input_dir +  "min_seed3.tif";
-        TiffUtils::saveMeshAsTiffUint16(image_file_name, boundary);
+//        apr.interp_img(boundary,adaptive_min);
+//        image_file_name = apr.parameters.input_dir +  "min_seed3.tif";
+//        TiffUtils::saveMeshAsTiffUint16(image_file_name, boundary);
 
     }
 
@@ -714,10 +714,10 @@ public:
 
         }
 
-        MeshData<uint16_t> boundary;
-        apr.interp_img(boundary,boundary_type);
-        std::string image_file_name = apr.parameters.input_dir +  "max_type.tif";
-        TiffUtils::saveMeshAsTiffUint16(image_file_name, boundary);
+//        MeshData<uint16_t> boundary;
+//        apr.interp_img(boundary,boundary_type);
+//        std::string image_file_name = apr.parameters.input_dir +  "max_type.tif";
+//        TiffUtils::saveMeshAsTiffUint16(image_file_name, boundary);
 
         adaptive_max.init(apr);
 
@@ -797,9 +797,9 @@ public:
 
 
 
-        apr.interp_img(boundary,adaptive_max);
-        image_file_name = apr.parameters.input_dir +  "max_seed.tif";
-        TiffUtils::saveMeshAsTiffUint16(image_file_name, boundary);
+//        apr.interp_img(boundary,adaptive_max);
+//        image_file_name = apr.parameters.input_dir +  "max_seed.tif";
+//        TiffUtils::saveMeshAsTiffUint16(image_file_name, boundary);
 
         std::fill(boundary_type.data.begin(),boundary_type.data.end(),0);
 
