@@ -78,6 +78,50 @@ public:
         TiffUtils::saveMeshAsTiffUint16(image_file_name, boundary);
 
     }
+    template<typename T>
+    void compute_local_scale_alternative(APR<ImageType>& apr,ExtraParticleData<T>& local_intensity_scale,unsigned int smooth_iterations = 3){
+
+        if(apr_tree.total_number_parent_cells()==0) {
+            apr_tree.init(apr);
+        }
+
+        APRTimer timer;
+        timer.verbose_flag = false;
+
+        timer.start_timer("smooth");
+
+        APRNumerics aprNumerics;
+        ExtraParticleData<uint16_t> smooth(apr);
+        std::vector<float> filter = {0.1f, 0.8f, 0.1f}; // << Feel free to play with these
+        //aprNumerics.seperable_smooth_filter(apr, apr.particles_intensities, smooth, filter, smooth_iterations);
+        for (int i = 0; i < smooth_iterations; ++i) {
+            aprNumerics.weight_neighbours(apr,apr.particles_intensities,smooth,0.5);
+            std::swap(smooth.data,apr.particles_intensities.data);
+        }
+
+        std::swap(smooth.data,apr.particles_intensities.data);
+
+        timer.stop_timer();
+
+        unsigned int smoothing_steps_local = 3;
+
+        timer.start_timer("adaptive min");
+
+        APRTreeNumerics::calculate_adaptive_min(apr,apr_tree,smooth,adaptive_min,smoothing_steps_local);
+
+        timer.stop_timer();
+
+        timer.start_timer("adaptive max");
+        APRTreeNumerics::calculate_adaptive_max_2(apr,apr_tree,smooth,adaptive_max,smoothing_steps_local);
+
+        timer.stop_timer();
+
+        local_intensity_scale.init(apr);
+        adaptive_max.zip(apr,adaptive_min,local_intensity_scale, [](const uint16_t &a, const uint16_t &b) { return abs(a-b); });
+
+
+
+    }
 
     template<typename T,typename U,typename V>
     void compute_apr_edge_energy(APR<ImageType>& apr,ExtraParticleData<T>& edge_energy,ExtraParticleData<V>& input_particles,ExtraParticleData<U>& local_intensity_scale,float scale_factor,float min_var = 1,std::vector<float> delta = {1,1,1}){
@@ -312,7 +356,7 @@ public:
 
         this->apr_tree.init(apr);
 
-        this->compute_local_scale(apr,local_intensity_scale,3);
+        this->compute_local_scale(apr,local_intensity_scale,3,3);
 
         /*
         *  Compute APR using custom local intensity scale
