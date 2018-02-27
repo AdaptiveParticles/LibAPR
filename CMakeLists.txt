@@ -44,7 +44,7 @@ SET(CMAKE_POSITION_INDEPENDENT_CODE ON)
 set(BLOSC_IS_SUBPROJECT ON)
 set(BUILD_TESTS OFF CACHE BOOL "" FORCE)
 set(BUILD_BENCHMARKS OFF CACHE BOOL "" FORCE)
-set(BUILD_SHARED ON CACHE BOOL "" FORCE)
+set(BUILD_SHARED OFF CACHE BOOL "" FORCE)
 set(BUILD_STATIC ON CACHE BOOL "" FORCE)
 add_subdirectory("external/c-blosc")
 include_directories(external/c-blosc/blosc)
@@ -79,16 +79,12 @@ set(SOURCE_FILES_RAYCAST src/numerics/APRRaycaster.cpp src/vis/Camera.cpp src/vi
 
 # generate static library used as a intermediate step in generating fat lib
 add_library(libapr_static STATIC ${SOURCE_FILES} ${SOURCE_FILES_RAYCAST})
-set_target_properties(libapr_static PROPERTIES OUTPUT_NAME "apr_static")
+set_target_properties(libapr_static PROPERTIES OUTPUT_NAME apr)
 target_link_libraries(libapr_static INTERFACE blosc_static ${HDF5_LIBRARIES} ${TIFF_LIBRARIES})
 
-# generate fat static library
-include(external/MergeStaticLibs.cmake)
-file(WRITE ${CMAKE_CURRENT_BINARY_DIR}/dummy.cpp "namespace { }")
-add_library(libapr_static_full STATIC ${CMAKE_CURRENT_BINARY_DIR}/dummy.cpp)
-set_target_properties(libapr_static_full PROPERTIES OUTPUT_NAME apr)
-merge_static_libs(libapr_static_full blosc_static libapr_static)
-target_link_libraries(libapr_static_full PUBLIC ${HDF5_LIBRARIES} ${TIFF_LIBRARIES})
+# generate fat static library by adding dependencies
+include(external/AddStaticLibs.cmake)
+addStaticLibs(libapr_static blosc_static)
 
 # generate fat shared library
 add_library(libapr_dynamic SHARED ${SOURCE_FILES} ${SOURCE_FILES_RAYCAST})
@@ -103,7 +99,7 @@ option (APR_INSTALL "Install APR library" OFF)
 if(APR_INSTALL)
     message(STATUS "APR: Install library in [${CMAKE_INSTALL_PREFIX}]")
     install(FILES ${PROJECT_BINARY_DIR}/libapr.a DESTINATION lib COMPONENT LIB)
-    install(TARGETS libapr_dynamic DESTINATION lib COMPONENT LIB)
+#    install(TARGETS libapr_dynamic DESTINATION lib COMPONENT LIB)
     install(DIRECTORY src/algorithm DESTINATION include/apr FILES_MATCHING PATTERN "*.hpp")
     install(DIRECTORY src/data_structures DESTINATION include/apr FILES_MATCHING PATTERN "*.hpp")
     install(DIRECTORY src/io DESTINATION include/apr FILES_MATCHING PATTERN "*.hpp" PATTERN "*.h")
@@ -111,6 +107,7 @@ if(APR_INSTALL)
     install(DIRECTORY src/numerics DESTINATION include/apr FILES_MATCHING PATTERN "*.hpp")
     install(DIRECTORY src/vis DESTINATION include/apr FILES_MATCHING PATTERN "*.h")
     install(FILES ${PROJECT_BINARY_DIR}/ConfigAPR.h DESTINATION include/apr/io)
+    install(FILES ${PROJECT_BINARY_DIR}/ConfigAPR.h DESTINATION include/apr)
     if(APR_BUILD_EXAMPLES)
         install(DIRECTORY ${PROJECT_BINARY_DIR}/examples/ DESTINATION bin
                 FILES_MATCHING  PATTERN "CMake*" EXCLUDE PATTERN "*make*" EXCLUDE PATTERN "*dSYM*" EXCLUDE PATTERN "Example_*"
