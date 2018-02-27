@@ -30,7 +30,7 @@ public:
     }
 
     template<typename T>
-    void compute_local_scale(APR<ImageType>& apr,ExtraParticleData<T>& local_intensity_scale,unsigned int smooth_iterations = 3){
+    void compute_local_scale(APR<ImageType>& apr,ExtraParticleData<T>& local_intensity_scale,unsigned int smooth_iterations = 3,unsigned int smooth_seed = 7){
 
         if(apr_tree.total_number_parent_cells()==0) {
             apr_tree.init(apr);
@@ -44,17 +44,17 @@ public:
         APRNumerics aprNumerics;
         ExtraParticleData<uint16_t> smooth(apr);
         std::vector<float> filter = {0.1f, 0.8f, 0.1f}; // << Feel free to play with these
-        //aprNumerics.seperable_smooth_filter(apr, apr.particles_intensities, smooth, filter, smooth_iterations);
-        for (int i = 0; i < smooth_iterations; ++i) {
-            weight_neighbours(apr,apr.particles_intensities,smooth,0.8);
-            std::swap(smooth.data,apr.particles_intensities.data);
-        }
+        aprNumerics.seperable_smooth_filter(apr, apr.particles_intensities, smooth, filter, smooth_iterations);
+        //for (int i = 0; i < smooth_iterations; ++i) {
+        //    weight_neighbours(apr,apr.particles_intensities,smooth,0.8);
+          //  std::swap(smooth.data,apr.particles_intensities.data);
+        //}
 
-        std::swap(smooth.data,apr.particles_intensities.data);
+        //std::swap(smooth.data,apr.particles_intensities.data);
 
         timer.stop_timer();
 
-        unsigned int smoothing_steps_local = 3;
+        unsigned int smoothing_steps_local = smooth_seed;
 
         timer.start_timer("adaptive min");
 
@@ -72,14 +72,51 @@ public:
 
     }
 
+    template<typename T,typename U,typename V>
+    void compute_apr_edge_energy(APR<ImageType>& apr,ExtraParticleData<T>& edge_energy,ExtraParticleData<V>& input_particles,ExtraParticleData<U>& local_intensity_scale,float scale_factor,float min_var = 1,std::vector<float> delta = {1,1,1}){
 
-    void compute_apr_edge_energy(){
+        ExtraParticleData<T> gradient; //vector for holding the derivative in the three directions, initialized to have the same number of elements as particles.
+
+        APRNumerics::compute_gradient_magnitude(apr,input_particles,gradient,delta);
+
+        edge_energy.init(apr);
+
+        APRIterator<uint16_t> apr_iterator(apr);
+
+        uint64_t particle_number = 0;
+
+#ifdef HAVE_OPENMP
+#pragma omp parallel for schedule(static) private(particle_number) firstprivate(apr_iterator)
+#endif
+        for (particle_number = 0; particle_number < apr_iterator.total_number_particles(); ++particle_number) {
+            apr_iterator.set_iterator_to_particle_by_number(particle_number);
+
+            edge_energy[apr_iterator] = scale_factor*gradient[apr_iterator]/(std::max(local_intensity_scale[apr_iterator]*1.0f,min_var));
+            //edge_energy[apr_iterator] = scale_factor*gradient[apr_iterator];
+        }
+
 
     }
 
+    template<typename T,typename U,typename V>
+    void compute_apr_interior_energy(APR<ImageType>& apr,ExtraParticleData<T>& interior_energy,ExtraParticleData<V>& input_particles,ExtraParticleData<U>& local_intensity_scale,float scale_factor){
+        //assumes you have computed apr_min with this function
 
-    void compute_apr_interior_energy(){
+        interior_energy.init(apr);
 
+        APRIterator<uint16_t> apr_iterator(apr);
+
+        uint64_t particle_number = 0;
+
+#ifdef HAVE_OPENMP
+#pragma omp parallel for schedule(static) private(particle_number) firstprivate(apr_iterator)
+#endif
+        for (particle_number = 0; particle_number < apr_iterator.total_number_particles(); ++particle_number) {
+            apr_iterator.set_iterator_to_particle_by_number(particle_number);
+
+            interior_energy[apr_iterator] = scale_factor*(input_particles[apr_iterator]-adaptive_min[apr_iterator])/(local_intensity_scale[apr_iterator]*1.0f);
+
+        }
     }
 
     void compute_local_scale_smooth_propogate(APR<ImageType>& apr,MeshData<ImageType>& input_image,ExtraParticleData<ImageType>& local_intensity_scale){

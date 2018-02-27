@@ -669,8 +669,11 @@ public:
 //        TiffUtils::saveMeshAsTiffUint16(image_file_name, boundary);
 
         adaptive_max.init(apr);
-        for (unsigned int level = (apr_tree_iterator.level_max()); level >= apr_tree_iterator.level_min(); --level) {
-#pragma omp parallel for schedule(static) private(parent_number) firstprivate(apr_tree_iterator,parent_iterator)
+
+
+        for (unsigned int level = (apr_tree_iterator.level_max());
+             level >= apr_tree_iterator.level_min(); --level) {
+//#pragma omp parallel for schedule(static) private(parent_number) firstprivate(apr_tree_iterator, parent_iterator)
             for (parent_number = apr_tree_iterator.particles_level_begin(level);
                  parent_number <
                  apr_tree_iterator.particles_level_end(level); ++parent_number) {
@@ -683,12 +686,13 @@ public:
                     parent_iterator.set_iterator_to_parent(parent_iterator);
                 }
 
-                float t = max_spread[parent_iterator];
+                //float t = max_spread[parent_iterator];
 
                 max_spread[apr_tree_iterator] = max_spread[parent_iterator];
 
             }
         }
+
 
 
 
@@ -788,7 +792,7 @@ public:
         for (int level = (apr_iterator.level_max()-1); level >= apr_iterator.level_min() ; --level) {
             uint64_t empty_counter = 0;
             bool still_empty = true;
-            while(still_empty & empty_counter < maximum_iteration) {
+            while(still_empty && (empty_counter < maximum_iteration)) {
                 empty_counter++;
                 still_empty = false;
 #pragma omp parallel for schedule(static) private(particle_number) firstprivate(apr_iterator,neigh_iterator) reduction(||:still_empty)
