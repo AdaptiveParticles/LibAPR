@@ -5,21 +5,32 @@ cmake_minimum_required(VERSION 3.2)
 project(LibAPR)
 set(CMAKE_CXX_STANDARD 14)
 
+# APR build options:
+option(APR_INSTALL "Install APR library" OFF)
+option(APR_BUILD_EXAMPLES "Build APR examples" OFF)
+option(APR_TESTS "Build APR tests" OFF)
+option(APR_PREFER_EXTERNAL_GTEST "When found, use the installed GTEST libs instead of included sources" OFF)
+option(APR_BUILD_JAVA_WRAPPERS "Build APR JAVA wrappers" OFF)
+
+
 ###############################################################################
 # Generate configuration file
 ###############################################################################
 set (APR_VERSION_MAJOR 1)
 set (APR_VERSION_MINOR 0)
 set (APR_VERSION_PATCH 0)
-execute_process(COMMAND git rev-parse HEAD 
-		WORKING_DIRECTORY ${PROJECT_SOURCE_DIR} 
-		OUTPUT_VARIABLE APR_GIT_HASH)
+execute_process(COMMAND git rev-parse HEAD
+        WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}
+        OUTPUT_VARIABLE APR_GIT_HASH)
 string(REGEX REPLACE "\n$" "" APR_GIT_HASH "${APR_GIT_HASH}")
 configure_file (
         "${PROJECT_SOURCE_DIR}/src/ConfigAPR.h.in"
         "${PROJECT_BINARY_DIR}/ConfigAPR.h"
 )
 include_directories("${PROJECT_BINARY_DIR}")
+file(READ "${PROJECT_BINARY_DIR}/ConfigAPR.h" ConfigAPRcontent)
+string(REGEX REPLACE ".*APR_VERSION[ \t]+=[ \t]+\"([-0-9A-Za-z.]+)\".*" "\\1" APR_VERSION_STRING ${ConfigAPRcontent})
+message("Configuring for APR version: " ${APR_VERSION_STRING})
 
 ###############################################################################
 # Find all required libraries
@@ -52,6 +63,7 @@ include_directories(external/c-blosc/blosc)
 # Add submodule GLM (include files only)
 include_directories("external/glm")
 
+
 ###############################################################################
 # Configure compiler options
 ###############################################################################
@@ -69,37 +81,40 @@ if (CMAKE_CXX_COMPILER_ID MATCHES "Clang")
     set(CMAKE_CXX_FLAGS_DEBUG  "-O0 -g")
 endif()
 
+
 ###############################################################################
 # Generate APR library
 ###############################################################################
 
-include_directories(src)
 set(SOURCE_FILES src/io/blosc_filter.c src/io/hdf5functions_blosc.cpp)
 set(SOURCE_FILES_RAYCAST src/numerics/APRRaycaster.cpp src/vis/Camera.cpp src/vis/Object.cpp src/vis/RaytracedObject.cpp)
 
 # generate static library used as a intermediate step in generating fat lib
 add_library(libapr_static STATIC ${SOURCE_FILES} ${SOURCE_FILES_RAYCAST})
 set_target_properties(libapr_static PROPERTIES OUTPUT_NAME apr)
-target_link_libraries(libapr_static INTERFACE blosc_static ${HDF5_LIBRARIES} ${TIFF_LIBRARIES})
+target_include_directories(libapr_static INTERFACE src)
 
 # generate fat static library by adding dependencies
-include(external/AddStaticLibs.cmake)
+include(cmake/AddStaticLibs.cmake)
 addStaticLibs(libapr_static blosc_static)
 
 # generate fat shared library
 add_library(libapr_dynamic SHARED ${SOURCE_FILES} ${SOURCE_FILES_RAYCAST})
 add_dependencies(libapr_dynamic blosc_static)
 set_target_properties(libapr_dynamic PROPERTIES OUTPUT_NAME apr)
+set_property(TARGET libapr_dynamic PROPERTY VERSION ${APR_VERSION_STRING})
+set_property(TARGET libapr_dynamic PROPERTY SOVERSION ${APR_VERSION_MAJOR})
+target_include_directories(libapr_dynamic INTERFACE src)
 target_link_libraries(libapr_dynamic PUBLIC ${HDF5_LIBRARIES} ${TIFF_LIBRARIES} -Wl,-force_load,$<TARGET_FILE:blosc_static>)
+
 
 ###############################################################################
 # Install APR library
 ###############################################################################
-option (APR_INSTALL "Install APR library" OFF)
 if(APR_INSTALL)
     message(STATUS "APR: Install library in [${CMAKE_INSTALL_PREFIX}]")
-    install(FILES ${PROJECT_BINARY_DIR}/libapr.a DESTINATION lib COMPONENT LIB)
-#    install(TARGETS libapr_dynamic DESTINATION lib COMPONENT LIB)
+    install(TARGETS libapr_static DESTINATION lib COMPONENT LIB)
+    #    install(TARGETS libapr_dynamic DESTINATION lib COMPONENT LIB)
     install(DIRECTORY src/algorithm DESTINATION include/apr FILES_MATCHING PATTERN "*.hpp")
     install(DIRECTORY src/data_structures DESTINATION include/apr FILES_MATCHING PATTERN "*.hpp")
     install(DIRECTORY src/io DESTINATION include/apr FILES_MATCHING PATTERN "*.hpp" PATTERN "*.h")
@@ -108,29 +123,22 @@ if(APR_INSTALL)
     install(DIRECTORY src/vis DESTINATION include/apr FILES_MATCHING PATTERN "*.h")
     install(FILES ${PROJECT_BINARY_DIR}/ConfigAPR.h DESTINATION include/apr/io)
     install(FILES ${PROJECT_BINARY_DIR}/ConfigAPR.h DESTINATION include/apr)
-    if(APR_BUILD_EXAMPLES)
-        install(DIRECTORY ${PROJECT_BINARY_DIR}/examples/ DESTINATION bin
-                FILES_MATCHING  PATTERN "CMake*" EXCLUDE PATTERN "*make*" EXCLUDE PATTERN "*dSYM*" EXCLUDE PATTERN "Example_*"
-                PERMISSIONS OWNER_EXECUTE OWNER_WRITE OWNER_READ GROUP_EXECUTE GROUP_READ WORLD_EXECUTE WORLD_READ
-                )
-    endif(APR_BUILD_EXAMPLES)
 endif(APR_INSTALL)
+
 
 ###############################################################################
 # Examples
 ###############################################################################
-option (APR_BUILD_EXAMPLES "Build APR examples" ON)
 if(APR_BUILD_EXAMPLES)
     message(STATUS "APR: Building examples")
     add_subdirectory(examples)
 endif(APR_BUILD_EXAMPLES)
 
+
 ###############################################################################
 # Tests
 ###############################################################################
-option (APR_TESTS "Build tests wrappers" OFF)
 if(APR_TESTS)
-    option(APR_PREFER_EXTERNAL_GTEST "Find and use external GTEST library instead of included sources." OFF)
     message(STATUS "APR: Building tests")
     if(APR_PREFER_EXTERNAL_GTEST)
         find_package(GTest 1.8.0)
@@ -148,10 +156,10 @@ if(APR_TESTS)
     add_subdirectory(test)
 endif(APR_TESTS)
 
+
 ###############################################################################
 # JAVA wrappers
 ###############################################################################
-option (APR_BUILD_JAVA_WRAPPERS "Build JAVA wrappers" OFF)
 if(APR_BUILD_JAVA_WRAPPERS)
     message(STATUS "APR: Building JAVA wrappers")
     find_package(SWIG 3.0 REQUIRED)
