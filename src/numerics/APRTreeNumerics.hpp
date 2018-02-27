@@ -799,12 +799,12 @@ public:
         }
 
 
-        MeshData<uint16_t> boundary;
-        apr.interp_img(boundary,adaptive_max);
-        std::string image_file_name = apr.parameters.input_dir +  "max_seed.tif";
-        TiffUtils::saveMeshAsTiffUint16(image_file_name, boundary);
-
-        std::fill(boundary_type.data.begin(),boundary_type.data.end(),0);
+//        MeshData<uint16_t> boundary;
+//        apr.interp_img(boundary,adaptive_max);
+//        std::string image_file_name = apr.parameters.input_dir +  "max_seed.tif";
+//        TiffUtils::saveMeshAsTiffUint16(image_file_name, boundary);
+//
+//        std::fill(boundary_type.data.begin(),boundary_type.data.end(),0);
 
         //spread solution
 #pragma omp parallel for schedule(static) private(particle_number) firstprivate(apr_iterator,apr_tree_iterator,neighbour_tree_iterator)
@@ -974,10 +974,8 @@ public:
         ExtraParticleData<uint16_t> boundary_type(apr);
 
         ExtraParticleData<float> max_spread(apr_tree);
-        ExtraParticleData<uint64_t> max_counter(apr_tree);
 
         ExtraParticleData<float> max_spread_temp(apr_tree);
-        ExtraParticleData<uint64_t> max_counter_temp(apr_tree);
 
         //Basic serial iteration over all particles
         uint64_t particle_number;
@@ -1155,10 +1153,10 @@ public:
 
         }
 
-        MeshData<uint16_t> boundary;
-        apr.interp_img(boundary,adaptive_max);
-        std::string image_file_name = apr.parameters.input_dir +  "max_seed.tif";
-        TiffUtils::saveMeshAsTiffUint16(image_file_name, boundary);
+//        MeshData<uint16_t> boundary;
+//        apr.interp_img(boundary,adaptive_max);
+//        std::string image_file_name = apr.parameters.input_dir +  "max_seed.tif";
+//        TiffUtils::saveMeshAsTiffUint16(image_file_name, boundary);
 
         std::fill(boundary_type.data.begin(),boundary_type.data.end(),0);
 
@@ -1331,10 +1329,8 @@ public:
         ExtraParticleData<uint16_t> boundary_type(apr);
 
         ExtraParticleData<float> max_spread(apr_tree);
-        ExtraParticleData<uint64_t> max_counter(apr_tree);
 
         ExtraParticleData<float> max_spread_temp(apr_tree);
-        ExtraParticleData<uint64_t> max_counter_temp(apr_tree);
 
         //Basic serial iteration over all particles
         uint64_t particle_number;
@@ -1520,11 +1516,11 @@ public:
             adaptive_min[apr_iterator] = max_spread[parent_iterator];
 
         }
-
-        MeshData<uint16_t> boundary;
-        apr.interp_img(boundary,adaptive_min);
-        std::string image_file_name = apr.parameters.input_dir +  "min_seed.tif";
-        TiffUtils::saveMeshAsTiffUint16(image_file_name, boundary);
+//
+//        MeshData<uint16_t> boundary;
+//        apr.interp_img(boundary,adaptive_min);
+//        std::string image_file_name = apr.parameters.input_dir +  "min_seed.tif";
+//        TiffUtils::saveMeshAsTiffUint16(image_file_name, boundary);
 
         std::fill(boundary_type.data.begin(),boundary_type.data.end(),0);
 
@@ -1670,9 +1666,6 @@ public:
 
             }
         }
-
-
-
     }
 
 
