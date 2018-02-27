@@ -14,11 +14,11 @@ class APRTreeNumerics {
 
 public:
     template<typename T,typename S,typename U,typename BinaryOperation>
-    static void fill_tree_from_particles(APR<T>& apr,APRTree<T>& apr_tree,ExtraParticleData<S>& particle_data,ExtraParticleData<U>& tree_data,BinaryOperation op,const bool normalize = false) {
+    static void fill_tree_from_particles(APR<T>& apr,APRTree<T>& apr_tree,ExtraParticleData<S>& particle_data,ExtraParticleData<U>& tree_data,BinaryOperation op,const bool normalize = false,U empty_val = 0) {
 
         tree_data.init_tree(apr_tree);
 
-        std::fill(tree_data.data.begin(),tree_data.data.end(),0);
+        std::fill(tree_data.data.begin(),tree_data.data.end(),empty_val);
 
         APRTreeIterator<T> treeIterator(apr_tree);
         APRTreeIterator<T> parentIterator(apr_tree);
@@ -955,11 +955,11 @@ public:
 
 
     template<typename T,typename S>
-    static void calculate_adaptive_max_2(APR<T>& apr,APRTree<T>& apr_tree,ExtraParticleData<S>& intensities,ExtraParticleData<S>& adaptive_max,unsigned int smooth_factor = 7) {
+    static void calculate_adaptive_max_2(APR<T>& apr,APRTree<T>& apr_tree,ExtraParticleData<S>& intensities,ExtraParticleData<S>& adaptive_max,unsigned int level_offset) {
 
         ExtraParticleData<float> mean_tree;
         //APRTreeNumerics::fill_tree_from_particles(apr, apr_tree, intensities, mean_tree,
-                                          //        [](const float &a, const float &b) { return a + b; }, true);
+                                      //            [](const float &a, const float &b) { return a + b; }, true);
 
         APRTreeNumerics::fill_tree_from_particles(apr, apr_tree, intensities, mean_tree,
           [](const float &a, const float &b) { return std::max(a,b); }, false);
@@ -988,6 +988,7 @@ public:
 
         unsigned int level = apr_tree_iterator.level_max();
 
+
 #pragma omp parallel for schedule(static) private(parent_number) firstprivate(apr_tree_iterator, neighbour_tree_iterator, parent_iterator)
         for (parent_number = apr_tree_iterator.particles_level_begin(level);
              parent_number <
@@ -995,192 +996,148 @@ public:
 
             apr_tree_iterator.set_iterator_to_particle_by_number(parent_number);
 
-            float temp = 0;
-            float counter = 0;
-            float counter_neigh = 0;
-
-            float val = mean_tree[apr_tree_iterator];
-
-            //loop over all the neighbours and set the neighbour iterator to it
-            for (int direction = 0; direction < 6; ++direction) {
-                // Neighbour Particle Cell Face definitions [+y,-y,+x,-x,+z,-z] =  [0,1,2,3,4,5]
-                if (apr_tree_iterator.find_neighbours_same_level(direction)) {
-
-                    if (neighbour_tree_iterator.set_neighbour_iterator(apr_tree_iterator, direction, 0)) {
-
-                        if (mean_tree[neighbour_tree_iterator] < val) {
-                            counter++;
-                        }
-                        counter_neigh++;
-                    }
-                }
-            }
-
-            if (counter > 0) {
-                //counter = 1.0;
-
-                if (counter / counter_neigh == 1) {
-
-                    parent_iterator.set_iterator_to_parent(apr_tree_iterator);
-                    max_spread[apr_tree_iterator] = 2;
-
-                    max_spread[parent_iterator] += mean_tree[apr_tree_iterator];
-                    max_counter[parent_iterator]++;
-
-                    max_spread_temp[parent_iterator] = max_spread[parent_iterator];
-                    max_counter_temp[parent_iterator] = max_counter[parent_iterator];
-                }
-            }
+            max_spread[apr_tree_iterator] = mean_tree[apr_tree_iterator];
 
         }
 
-
-
-        //then do the rest of the tree where order matters
-        for (unsigned int level = (apr_tree_iterator.level_max() - 1);
-             level >= apr_tree_iterator.level_min(); --level) {
-
-#pragma omp parallel for schedule(static) private(parent_number) firstprivate(apr_tree_iterator,neighbour_tree_iterator,parent_iterator)
-            //two loops first spread
-            for (parent_number = apr_tree_iterator.particles_level_begin(level);
-                 parent_number < apr_tree_iterator.particles_level_end(level); ++parent_number) {
-
-                apr_tree_iterator.set_iterator_to_particle_by_number(parent_number);
-
-                //maybe spread first, then normalize, then push upwards..
-
-
-                if (max_counter[apr_tree_iterator] > 0) {
-                    for (int direction = 0; direction < 6; ++direction) {
-                        // Neighbour Particle Cell Face definitions [+y,-y,+x,-x,+z,-z] =  [0,1,2,3,4,5]
-                        if (apr_tree_iterator.find_neighbours_same_level(direction)) {
-
-                            if (neighbour_tree_iterator.set_neighbour_iterator(apr_tree_iterator, direction, 0)) {
-
-                                max_spread_temp[neighbour_tree_iterator] += max_spread[apr_tree_iterator];
-                                max_counter_temp[neighbour_tree_iterator] += max_counter[apr_tree_iterator];
-                            }
-                        }
-                    }
-                }
-            }
-
-#pragma omp parallel for schedule(static) private(parent_number) firstprivate(apr_tree_iterator,neighbour_tree_iterator,parent_iterator)
-            //then average and push up
-            for (parent_number = apr_tree_iterator.particles_level_begin(level);
-                 parent_number < apr_tree_iterator.particles_level_end(level); ++parent_number) {
-
-                apr_tree_iterator.set_iterator_to_particle_by_number(parent_number);
-
-
-                //maybe spread first, then normalize, then push upwards..
-
-                if (max_counter_temp[apr_tree_iterator] > 0) {
-                    max_spread[apr_tree_iterator] =
-                            max_spread_temp[apr_tree_iterator] / (max_counter_temp[apr_tree_iterator] * 1.0f);
-                    //tree_min[apr_tree_iterator] = tree_min[apr_tree_iterator]/(child_counter[apr_tree_iterator]*1.0f);
-                    max_counter[apr_tree_iterator] = 1;
-                } else {
-                    max_spread[apr_tree_iterator] = 0;
-                }
-
-                if (level > apr_tree_iterator.level_min()) {
-                    parent_iterator.set_iterator_to_parent(apr_tree_iterator);
-
-                    if (max_spread[apr_tree_iterator] > 0) {
-                        max_spread[parent_iterator] += max_spread[apr_tree_iterator];
-                        max_counter[parent_iterator]++;
-
-                        max_counter_temp[parent_iterator] = max_counter[parent_iterator];
-                        max_spread_temp[parent_iterator] = max_spread[parent_iterator];
-                    }
-                }
-            }
-        }
-
-
-#pragma omp parallel for schedule(static) private(particle_number) firstprivate(apr_iterator,parent_iterator)
-        //Now set the highest level particle cells.
-        for (particle_number = apr_iterator.particles_level_begin(apr_iterator.level_max());
-             particle_number <
-             apr_iterator.particles_level_end(apr_iterator.level_max()); ++particle_number) {
-            //This step is required for all loops to set the iterator by the particle number
-            apr_iterator.set_iterator_to_particle_by_number(particle_number);
-            parent_iterator.set_iterator_to_parent(apr_iterator);
-            boundary_type[apr_iterator] = max_spread[parent_iterator];
-
-        }
-
-//        MeshData<uint16_t> boundary;
-//        apr.interp_img(boundary,boundary_type);
-//        std::string image_file_name = apr.parameters.input_dir +  "max_type.tif";
-//        TiffUtils::saveMeshAsTiffUint16(image_file_name, boundary);
-
-        adaptive_max.init(apr);
-
-        for (unsigned int level = (apr_tree_iterator.level_max());
-             level >= apr_tree_iterator.level_max(); --level) {
-//#pragma omp parallel for schedule(static) private(parent_number) firstprivate(apr_tree_iterator, parent_iterator)
+        for (int level = (apr_iterator.level_max()-1); level > apr_iterator.level_min() ; --level) {
+#pragma omp parallel for schedule(static) private(parent_number) firstprivate(apr_tree_iterator, neighbour_tree_iterator, parent_iterator)
             for (parent_number = apr_tree_iterator.particles_level_begin(level);
                  parent_number <
                  apr_tree_iterator.particles_level_end(level); ++parent_number) {
 
                 apr_tree_iterator.set_iterator_to_particle_by_number(parent_number);
 
-                parent_iterator.set_iterator_to_parent(apr_tree_iterator);
+                float temp = 0;
+                float counter = 0;
+                float counter_neigh = 1;
 
-                while ((parent_iterator.level() > parent_iterator.level_min()) && (max_spread[parent_iterator] == 0)) {
-                    parent_iterator.set_iterator_to_parent(parent_iterator);
-                }
+                float val = max_spread[apr_tree_iterator];
 
-                //float t = max_spread[parent_iterator];
+                if(val > 0) {
 
-                max_spread[apr_tree_iterator] = max_spread[parent_iterator];
-
-            }
-        }
-
-
-
-
-        for (int i = 0; i < smooth_factor; ++i) {
-            //smooth step
-            for (unsigned int level = (apr_tree_iterator.level_max());
-                 level >= apr_tree_iterator.level_min(); --level) {
-#pragma omp parallel for schedule(static) private(parent_number) firstprivate(apr_tree_iterator,neighbour_tree_iterator)
-                for (parent_number = apr_tree_iterator.particles_level_begin(level);
-                     parent_number < apr_tree_iterator.particles_level_end(level); ++parent_number) {
-
-                    apr_tree_iterator.set_iterator_to_particle_by_number(parent_number);
-
-                    float temp = max_spread[apr_tree_iterator];
-                    float counter = 1;
-
+                    //loop over all the neighbours and set the neighbour iterator to it
                     for (int direction = 0; direction < 6; ++direction) {
                         // Neighbour Particle Cell Face definitions [+y,-y,+x,-x,+z,-z] =  [0,1,2,3,4,5]
                         if (apr_tree_iterator.find_neighbours_same_level(direction)) {
 
                             if (neighbour_tree_iterator.set_neighbour_iterator(apr_tree_iterator, direction, 0)) {
-
                                 if (max_spread[neighbour_tree_iterator] > 0) {
-                                    temp += max_spread[neighbour_tree_iterator];
-                                    counter++;
-
-                                    //temp = std::min(temp,max_spread[neighbour_tree_iterator]);
+                                    //val = std::max(max_spread[neighbour_tree_iterator], val);
+                                    counter_neigh++;
+                                    val+=max_spread[neighbour_tree_iterator];
                                 }
                             }
                         }
                     }
 
-                    max_spread_temp[apr_tree_iterator] = (temp / counter);
-                    //max_spread_temp[apr_tree_iterator] = temp;
+
+                    parent_iterator.set_iterator_to_parent(apr_tree_iterator);
+
+                    max_spread[parent_iterator] = std::max(max_spread[parent_iterator], val / counter_neigh);
+                    //max_spread[parent_iterator] = std::max(max_spread[parent_iterator], val);
+                }
+
+            }
+        }
+
+
+
+
+        for (int level = (apr_tree_iterator.level_max()-level_offset); level <= apr_tree_iterator.level_max() ; ++level) {
+
+            //Now set the highest level particle cells.
+
+            if(level>(apr_tree_iterator.level_max()-level_offset)) {
+#pragma omp parallel for schedule(static) private(parent_number) firstprivate(apr_tree_iterator, parent_iterator)
+                for (parent_number = apr_tree_iterator.particles_level_begin(level);
+                     parent_number <
+                     apr_tree_iterator.particles_level_end(level); ++parent_number) {
+                    //This step is required for all loops to set the iterator by the particle number
+                    apr_tree_iterator.set_iterator_to_particle_by_number(parent_number);
+                    parent_iterator.set_iterator_to_parent(apr_tree_iterator);
+                    max_spread[apr_tree_iterator] = max_spread[parent_iterator];
 
                 }
             }
+            if(level>(apr_tree_iterator.level_max()-level_offset)) {
+#pragma omp parallel for schedule(static) private(parent_number) firstprivate(apr_tree_iterator, parent_iterator)
+                for (parent_number = apr_tree_iterator.particles_level_begin(level);
+                     parent_number <
+                     apr_tree_iterator.particles_level_end(level); ++parent_number) {
+                    //This step is required for all loops to set the iterator by the particle number
+                    apr_tree_iterator.set_iterator_to_particle_by_number(parent_number);
 
-            std::swap(max_spread_temp.data,max_spread.data);
+                    float counter = 0;
+                    float counter_neigh = 1;
+                    float temp = max_spread[apr_tree_iterator];
+
+                    float val = max_spread[apr_tree_iterator];
+                    if(val > 0) {
+                        //loop over all the neighbours and set the neighbour iterator to it
+                        for (int direction = 0; direction < 6; ++direction) {
+                            // Neighbour Particle Cell Face definitions [+y,-y,+x,-x,+z,-z] =  [0,1,2,3,4,5]
+                            if (apr_tree_iterator.find_neighbours_same_level(direction)) {
+
+                                if (neighbour_tree_iterator.set_neighbour_iterator(apr_tree_iterator, direction, 0)) {
+                                    if (max_spread[neighbour_tree_iterator] > 0) {
+                                        temp += max_spread[neighbour_tree_iterator];
+                                        counter_neigh++;
+                                    }
+                                }
+                            }
+                        }
+
+                        max_spread_temp[apr_tree_iterator] = temp / counter_neigh;
+                    }
+
+                }
+
+                std::swap(max_spread_temp.data,max_spread.data);
+            }
+
+
         }
 
+        level = apr_tree_iterator.level_max();
+
+#pragma omp parallel for schedule(static) private(parent_number) firstprivate(apr_tree_iterator, parent_iterator)
+        for (parent_number = apr_tree_iterator.particles_level_begin(level);
+             parent_number <
+             apr_tree_iterator.particles_level_end(level); ++parent_number) {
+            //This step is required for all loops to set the iterator by the particle number
+            apr_tree_iterator.set_iterator_to_particle_by_number(parent_number);
+
+            float counter = 0;
+            float counter_neigh = 1;
+            float temp = max_spread[apr_tree_iterator];
+
+            float val = max_spread[apr_tree_iterator];
+            if(val > 0) {
+                //loop over all the neighbours and set the neighbour iterator to it
+                for (int direction = 0; direction < 6; ++direction) {
+                    // Neighbour Particle Cell Face definitions [+y,-y,+x,-x,+z,-z] =  [0,1,2,3,4,5]
+                    if (apr_tree_iterator.find_neighbours_same_level(direction)) {
+
+                        if (neighbour_tree_iterator.set_neighbour_iterator(apr_tree_iterator, direction, 0)) {
+                            if (max_spread[neighbour_tree_iterator] > 0) {
+                                temp += max_spread[neighbour_tree_iterator];
+                                counter_neigh++;
+                            }
+                        }
+                    }
+                }
+
+                max_spread_temp[apr_tree_iterator] = temp / counter_neigh;
+            }
+
+        }
+
+        std::swap(max_spread_temp.data,max_spread.data);
+
+
+
+        adaptive_max.init(apr);
 
 #pragma omp parallel for schedule(static) private(particle_number) firstprivate(apr_iterator,parent_iterator)
         //Now set the highest level particle cells.
@@ -1194,7 +1151,6 @@ public:
             adaptive_max[apr_iterator] = max_spread[parent_iterator];
 
         }
-
 
         MeshData<uint16_t> boundary;
         apr.interp_img(boundary,adaptive_max);
@@ -1350,6 +1306,374 @@ public:
 
     }
 
+    template<typename T,typename S>
+    static void calculate_adaptive_min_2(APR<T>& apr,APRTree<T>& apr_tree,ExtraParticleData<S>& intensities,ExtraParticleData<S>& adaptive_min,unsigned int level_offset) {
+
+        ExtraParticleData<float> mean_tree;
+        //APRTreeNumerics::fill_tree_from_particles(apr, apr_tree, intensities, mean_tree,
+        //        [](const float &a, const float &b) { return a + b; }, true);
+
+        float empty_val = 64000;
+
+        APRTreeNumerics::fill_tree_from_particles(apr, apr_tree, intensities, mean_tree,
+                                                  [](const float &a, const float &b) { return std::min(a,b); }, false,empty_val);
+
+        APRTreeIterator<uint16_t> apr_tree_iterator(apr_tree);
+        APRTreeIterator<uint16_t> parent_iterator(apr_tree);
+
+        APRTreeIterator<uint16_t> neighbour_tree_iterator(apr_tree);
+        APRIterator<uint16_t> apr_iterator(apr);
+        APRIterator<uint16_t> neigh_iterator(apr);
+
+        ExtraParticleData<uint16_t> boundary_type(apr);
+
+        ExtraParticleData<float> max_spread(apr_tree);
+        ExtraParticleData<uint64_t> max_counter(apr_tree);
+
+        ExtraParticleData<float> max_spread_temp(apr_tree);
+        ExtraParticleData<uint64_t> max_counter_temp(apr_tree);
+
+        //Basic serial iteration over all particles
+        uint64_t particle_number;
+        //Basic serial iteration over all particles
+
+
+        uint64_t parent_number;
+
+        unsigned int level = apr_tree_iterator.level_max();
+
+
+#pragma omp parallel for schedule(static) private(parent_number) firstprivate(apr_tree_iterator, neighbour_tree_iterator, parent_iterator)
+        for (parent_number = apr_tree_iterator.particles_level_begin(level);
+             parent_number <
+             apr_tree_iterator.particles_level_end(level); ++parent_number) {
+
+            apr_tree_iterator.set_iterator_to_particle_by_number(parent_number);
+
+            max_spread[apr_tree_iterator] = mean_tree[apr_tree_iterator];
+
+
+        }
+
+        for (int level = (apr_iterator.level_max()-1); level > apr_iterator.level_min() ; --level) {
+#pragma omp parallel for schedule(static) private(parent_number) firstprivate(apr_tree_iterator, neighbour_tree_iterator, parent_iterator)
+            for (parent_number = apr_tree_iterator.particles_level_begin(level);
+                 parent_number <
+                 apr_tree_iterator.particles_level_end(level); ++parent_number) {
+
+                apr_tree_iterator.set_iterator_to_particle_by_number(parent_number);
+
+                float temp = 0;
+                float counter = 0;
+                float counter_neigh = 1;
+
+                float val = max_spread[apr_tree_iterator];
+
+                if (val > 0) {
+
+                    //loop over all the neighbours and set the neighbour iterator to it
+                    for (int direction = 0; direction < 6; ++direction) {
+                        // Neighbour Particle Cell Face definitions [+y,-y,+x,-x,+z,-z] =  [0,1,2,3,4,5]
+                        if (apr_tree_iterator.find_neighbours_same_level(direction)) {
+
+                            if (neighbour_tree_iterator.set_neighbour_iterator(apr_tree_iterator, direction, 0)) {
+                                if (max_spread[neighbour_tree_iterator] > 0) {
+                                    //val = std::min(max_spread[neighbour_tree_iterator], val);
+                                    val += max_spread[neighbour_tree_iterator];
+                                    counter_neigh++;
+                                }
+                            }
+                        }
+                    }
+
+                    parent_iterator.set_iterator_to_parent(apr_tree_iterator);
+
+                    //max_spread[parent_iterator] = std::max(max_spread[parent_iterator], val / counter_neigh);
+                    if (max_spread[parent_iterator] != 0) {
+                        max_spread[parent_iterator] = std::min(max_spread[parent_iterator], val / counter_neigh);
+                    } else {
+                        max_spread[parent_iterator] = val / counter_neigh;
+                    }
+
+
+                }
+
+            }
+        }
+
+
+
+
+        for (int level = (apr_tree_iterator.level_max()-level_offset); level <= apr_tree_iterator.level_max() ; ++level) {
+
+            //Now set the highest level particle cells.
+
+            if(level>(apr_tree_iterator.level_max()-level_offset)) {
+#pragma omp parallel for schedule(static) private(parent_number) firstprivate(apr_tree_iterator, parent_iterator)
+                for (parent_number = apr_tree_iterator.particles_level_begin(level);
+                     parent_number <
+                     apr_tree_iterator.particles_level_end(level); ++parent_number) {
+                    //This step is required for all loops to set the iterator by the particle number
+                    apr_tree_iterator.set_iterator_to_particle_by_number(parent_number);
+                    parent_iterator.set_iterator_to_parent(apr_tree_iterator);
+                    max_spread[apr_tree_iterator] = max_spread[parent_iterator];
+
+
+
+                }
+            }
+            if(level>(apr_tree_iterator.level_max()-level_offset)) {
+#pragma omp parallel for schedule(static) private(parent_number) firstprivate(apr_tree_iterator, parent_iterator)
+                for (parent_number = apr_tree_iterator.particles_level_begin(level);
+                     parent_number <
+                     apr_tree_iterator.particles_level_end(level); ++parent_number) {
+                    //This step is required for all loops to set the iterator by the particle number
+                    apr_tree_iterator.set_iterator_to_particle_by_number(parent_number);
+
+                    float counter = 0;
+                    float counter_neigh = 1;
+                    float temp = max_spread[apr_tree_iterator];
+
+                    if(temp > 0){
+                        counter_neigh = 1;
+                    } else {
+                        counter_neigh = 0;
+                    }
+
+                    float val = max_spread[apr_tree_iterator];
+
+                    if(val > 0) {
+                        //loop over all the neighbours and set the neighbour iterator to it
+                        for (int direction = 0; direction < 6; ++direction) {
+                            // Neighbour Particle Cell Face definitions [+y,-y,+x,-x,+z,-z] =  [0,1,2,3,4,5]
+                            if (apr_tree_iterator.find_neighbours_same_level(direction)) {
+
+                                if (neighbour_tree_iterator.set_neighbour_iterator(apr_tree_iterator, direction, 0)) {
+                                    if (max_spread[neighbour_tree_iterator] > 0) {
+                                        temp += max_spread[neighbour_tree_iterator];
+                                        counter_neigh++;
+                                    }
+                                }
+                            }
+                        }
+
+                        max_spread_temp[apr_tree_iterator] = temp / counter_neigh;
+                    }
+
+                    //std::cout << temp / counter_neigh << std::endl;
+
+                }
+
+                std::swap(max_spread_temp.data,max_spread.data);
+            }
+
+
+        }
+
+        level = apr_tree_iterator.level_max();
+
+#pragma omp parallel for schedule(static) private(parent_number) firstprivate(apr_tree_iterator, parent_iterator)
+        for (parent_number = apr_tree_iterator.particles_level_begin(level);
+             parent_number <
+             apr_tree_iterator.particles_level_end(level); ++parent_number) {
+            //This step is required for all loops to set the iterator by the particle number
+            apr_tree_iterator.set_iterator_to_particle_by_number(parent_number);
+
+            float counter = 0;
+            float counter_neigh = 1;
+            float temp = max_spread[apr_tree_iterator];
+
+            float val = max_spread[apr_tree_iterator];
+
+            //loop over all the neighbours and set the neighbour iterator to it
+            for (int direction = 0; direction < 6; ++direction) {
+                // Neighbour Particle Cell Face definitions [+y,-y,+x,-x,+z,-z] =  [0,1,2,3,4,5]
+                if (apr_tree_iterator.find_neighbours_same_level(direction)) {
+
+                    if (neighbour_tree_iterator.set_neighbour_iterator(apr_tree_iterator, direction, 0)) {
+                        if (max_spread[neighbour_tree_iterator] > 0) {
+                            temp += max_spread[neighbour_tree_iterator];
+                            counter_neigh++;
+                        }
+                    }
+                }
+            }
+
+            max_spread_temp[apr_tree_iterator] = temp / counter_neigh;
+
+        }
+
+        std::swap(max_spread_temp.data,max_spread.data);
+
+
+        adaptive_min.init(apr);
+
+#pragma omp parallel for schedule(static) private(particle_number) firstprivate(apr_iterator,parent_iterator)
+        //Now set the highest level particle cells.
+        for (particle_number = apr_iterator.particles_level_begin(apr_iterator.level_max());
+             particle_number <
+             apr_iterator.particles_level_end(apr_iterator.level_max()); ++particle_number) {
+            //This step is required for all loops to set the iterator by the particle number
+            apr_iterator.set_iterator_to_particle_by_number(particle_number);
+
+            parent_iterator.set_iterator_to_parent(apr_iterator);
+            adaptive_min[apr_iterator] = max_spread[parent_iterator];
+
+        }
+
+        MeshData<uint16_t> boundary;
+        apr.interp_img(boundary,adaptive_min);
+        std::string image_file_name = apr.parameters.input_dir +  "min_seed.tif";
+        TiffUtils::saveMeshAsTiffUint16(image_file_name, boundary);
+
+        std::fill(boundary_type.data.begin(),boundary_type.data.end(),0);
+
+        //spread solution
+#pragma omp parallel for schedule(static) private(particle_number) firstprivate(apr_iterator,apr_tree_iterator,neighbour_tree_iterator)
+        for (particle_number = apr_iterator.particles_level_begin(apr_iterator.level_max() - 1);
+             particle_number <
+             apr_iterator.particles_level_end(apr_iterator.level_max() - 1); ++particle_number) {
+            //This step is required for all loops to set the iterator by the particle number
+            apr_iterator.set_iterator_to_particle_by_number(particle_number);
+
+            //now we only update the neighbours, and directly access them through a neighbour iterator
+
+            if (apr_iterator.type() == 2) {
+
+                float temp = 0;
+                float counter = 0;
+
+                float counter_neigh = 0;
+
+                apr_tree_iterator.set_particle_cell_no_search(apr_iterator);
+
+                //loop over all the neighbours and set the neighbour iterator to it
+                for (int direction = 0; direction < 6; ++direction) {
+                    // Neighbour Particle Cell Face definitions [+y,-y,+x,-x,+z,-z] =  [0,1,2,3,4,5]
+                    if (apr_tree_iterator.find_neighbours_same_level(direction)) {
+
+                        if (neighbour_tree_iterator.set_neighbour_iterator(apr_tree_iterator, direction, 0)) {
+                            temp += max_spread[neighbour_tree_iterator];
+                            counter++;
+
+                        }
+                    }
+                }
+                if(counter>0) {
+                    adaptive_min[apr_iterator] = temp/counter;
+                    boundary_type[apr_iterator] = apr_iterator.level_max();
+                }
+
+            }
+        }
+
+        int maximum_iteration = 20;
+
+
+        for (int level = (apr_iterator.level_max()-1); level >= apr_iterator.level_min() ; --level) {
+            uint64_t empty_counter = 0;
+            bool still_empty = true;
+            while(still_empty && (empty_counter < maximum_iteration)) {
+                empty_counter++;
+                still_empty = false;
+#pragma omp parallel for schedule(static) private(particle_number) firstprivate(apr_iterator, neigh_iterator) reduction(||:still_empty)
+                for (particle_number = apr_iterator.particles_level_begin(level);
+                     particle_number <
+                     apr_iterator.particles_level_end(level); ++particle_number) {
+                    //This step is required for all loops to set the iterator by the particle number
+                    apr_iterator.set_iterator_to_particle_by_number(particle_number);
+
+                    if ((boundary_type[apr_iterator] == 0)) {
+
+                        float counter = 0;
+                        float temp = 0;
+
+                        //loop over all the neighbours and set the neighbour iterator to it
+                        for (int direction = 0; direction < 6; ++direction) {
+                            // Neighbour Particle Cell Face definitions [+y,-y,+x,-x,+z,-z] =  [0,1,2,3,4,5]
+                            if (apr_iterator.find_neighbours_in_direction(direction)) {
+
+                                if (neigh_iterator.set_neighbour_iterator(apr_iterator, direction, 0)) {
+
+                                    if (boundary_type[neigh_iterator] >= (level + 1)) {
+                                        counter++;
+                                        temp += adaptive_min[neigh_iterator];
+                                    }
+                                }
+                            }
+                        }
+
+                        if (counter > 0) {
+                            adaptive_min[apr_iterator] = temp / counter;
+                            boundary_type[apr_iterator] = level;
+                        } else {
+                            still_empty = true;
+                        }
+                    } else {
+                        boundary_type[apr_iterator] = level + 1;
+                    }
+                }
+
+
+#pragma omp parallel for schedule(static) private(particle_number) firstprivate(apr_iterator, neigh_iterator)
+                for (particle_number = apr_iterator.particles_level_begin(level);
+                     particle_number <
+                     apr_iterator.particles_level_end(level); ++particle_number) {
+                    //This step is required for all loops to set the iterator by the particle number
+                    apr_iterator.set_iterator_to_particle_by_number(particle_number);
+
+                    if (boundary_type[apr_iterator] == level) {
+
+                        float counter = 1;
+                        float temp = adaptive_min[apr_iterator];
+
+                        //loop over all the neighbours and set the neighbour iterator to it
+                        for (int direction = 0; direction < 6; ++direction) {
+                            // Neighbour Particle Cell Face definitions [+y,-y,+x,-x,+z,-z] =  [0,1,2,3,4,5]
+                            if (apr_iterator.find_neighbours_in_direction(direction)) {
+
+                                if (neigh_iterator.set_neighbour_iterator(apr_iterator, direction, 0)) {
+
+                                    if (boundary_type[neigh_iterator] > 0) {
+                                        counter++;
+                                        temp += adaptive_min[neigh_iterator];
+                                    }
+                                }
+                            }
+                        }
+
+                        if (counter > 0) {
+                            adaptive_min[apr_iterator] = temp / counter;
+                        }
+                    }
+                }
+            }
+
+#pragma omp parallel for schedule(static) private(particle_number) firstprivate(apr_iterator,parent_iterator)
+            for (particle_number = apr_iterator.particles_level_begin(level);
+                 particle_number <
+                 apr_iterator.particles_level_end(level); ++particle_number) {
+                //This step is required for all loops to set the iterator by the particle number
+                apr_iterator.set_iterator_to_particle_by_number(particle_number);
+
+                if(boundary_type[apr_iterator] == 0){
+
+                    parent_iterator.set_iterator_to_parent(apr_iterator);
+
+                    while ((parent_iterator.level() > parent_iterator.level_min()) && (max_spread[parent_iterator] == 0)) {
+                        parent_iterator.set_iterator_to_parent(parent_iterator);
+                    }
+
+                    adaptive_min[apr_iterator] = max_spread[parent_iterator];
+                    boundary_type[apr_iterator] = (uint16_t)(level + 1);
+                }
+
+            }
+        }
+
+
+
+    }
 
 
 

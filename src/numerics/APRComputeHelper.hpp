@@ -94,32 +94,31 @@ public:
         ExtraParticleData<uint16_t> smooth(apr);
         std::vector<float> filter = {0.1f, 0.8f, 0.1f}; // << Feel free to play with these
         //aprNumerics.seperable_smooth_filter(apr, apr.particles_intensities, smooth, filter, smooth_iterations);
-        for (int i = 0; i < smooth_iterations; ++i) {
-            aprNumerics.weight_neighbours(apr,apr.particles_intensities,smooth,0.5);
-            std::swap(smooth.data,apr.particles_intensities.data);
-        }
+//        for (int i = 0; i < smooth_iterations; ++i) {
+//            aprNumerics.weight_neighbours(apr,apr.particles_intensities,smooth,0.5);
+//            std::swap(smooth.data,apr.particles_intensities.data);
+//        }
 
         std::swap(smooth.data,apr.particles_intensities.data);
 
         timer.stop_timer();
 
-        unsigned int smoothing_steps_local = 3;
 
         timer.start_timer("adaptive min");
 
-        APRTreeNumerics::calculate_adaptive_min(apr,apr_tree,smooth,adaptive_min,smoothing_steps_local);
+        APRTreeNumerics::calculate_adaptive_min_2(apr,apr_tree,smooth,adaptive_min,smooth_iterations);
 
         timer.stop_timer();
 
         timer.start_timer("adaptive max");
-        APRTreeNumerics::calculate_adaptive_max_2(apr,apr_tree,smooth,adaptive_max,smoothing_steps_local);
+        APRTreeNumerics::calculate_adaptive_max_2(apr,apr_tree,smooth,adaptive_max,smooth_iterations);
 
         timer.stop_timer();
 
         local_intensity_scale.init(apr);
         adaptive_max.zip(apr,adaptive_min,local_intensity_scale, [](const uint16_t &a, const uint16_t &b) { return abs(a-b); });
 
-
+        std::swap(smooth.data,apr.particles_intensities.data);
 
     }
 
