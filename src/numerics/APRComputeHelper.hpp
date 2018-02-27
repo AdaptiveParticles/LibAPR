@@ -62,6 +62,8 @@ public:
 
         timer.stop_timer();
 
+
+
         timer.start_timer("adaptive max");
         APRTreeNumerics::calculate_adaptive_max(apr,apr_tree,smooth,adaptive_max,smoothing_steps_local);
 
@@ -69,6 +71,11 @@ public:
 
         local_intensity_scale.init(apr);
         adaptive_max.zip(apr,adaptive_min,local_intensity_scale, [](const uint16_t &a, const uint16_t &b) { return abs(a-b); });
+
+        MeshData<uint16_t> boundary;
+        apr.interp_img(boundary,adaptive_min);
+        std::string image_file_name = apr.parameters.input_dir +  "min_seed4.tif";
+        TiffUtils::saveMeshAsTiffUint16(image_file_name, boundary);
 
     }
 

@@ -379,9 +379,10 @@ public:
 
         timer.stop_timer();
 
-//        apr.interp_img(boundary,adaptive_min);
-//        image_file_name = apr.parameters.input_dir +  "min_seed.tif";
-//        TiffUtils::saveMeshAsTiffUint16(image_file_name, boundary);
+        MeshData<uint16_t> boundary;
+        apr.interp_img(boundary,adaptive_min);
+        std::string image_file_name = apr.parameters.input_dir +  "min_seed.tif";
+        TiffUtils::saveMeshAsTiffUint16(image_file_name, boundary);
 
         //spread solution
 
@@ -425,6 +426,11 @@ public:
 
             }
         }
+
+
+        apr.interp_img(boundary,adaptive_min);
+        image_file_name = apr.parameters.input_dir +  "min_seed2.tif";
+        TiffUtils::saveMeshAsTiffUint16(image_file_name, boundary);
 
         uint64_t loop_counter = 1;
         timer.stop_timer();
@@ -510,7 +516,9 @@ public:
 
         timer.stop_timer();
 
-
+        apr.interp_img(boundary,adaptive_min);
+        image_file_name = apr.parameters.input_dir +  "min_seed3.tif";
+        TiffUtils::saveMeshAsTiffUint16(image_file_name, boundary);
 
     }
 
@@ -518,8 +526,11 @@ public:
     static void calculate_adaptive_max(APR<T>& apr,APRTree<T>& apr_tree,ExtraParticleData<S>& intensities,ExtraParticleData<S>& adaptive_max,unsigned int smooth_factor = 7) {
 
         ExtraParticleData<float> mean_tree;
+        //APRTreeNumerics::fill_tree_from_particles(apr, apr_tree, intensities, mean_tree,
+                                           //       [](const float &a, const float &b) { return a + b; }, true);
+
         APRTreeNumerics::fill_tree_from_particles(apr, apr_tree, intensities, mean_tree,
-                                                  [](const float &a, const float &b) { return a + b; }, true);
+                                                  [](const float &a, const float &b) { return std::max(a,b); }, false);
 
         APRTreeIterator<uint16_t> apr_tree_iterator(apr_tree);
         APRTreeIterator<uint16_t> parent_iterator(apr_tree);
@@ -542,6 +553,36 @@ public:
 
 
         uint64_t parent_number;
+
+//#pragma omp parallel for schedule(static) private(parent_number) firstprivate(apr_tree_iterator,neighbour_tree_iterator,parent_iterator)
+//        for (parent_number = apr_tree_iterator.particles_level_begin(apr_tree_iterator.level_max());
+//             parent_number < apr_tree_iterator.particles_level_end(apr_tree_iterator.level_max()); ++parent_number) {
+//
+//            apr_tree_iterator.set_iterator_to_particle_by_number(parent_number);
+//
+//            float temp = 0;
+//            float counter = 1;
+//            float counter_neigh = 0;
+//
+//            float val = mean_tree[apr_tree_iterator];
+//
+//            //loop over all the neighbours and set the neighbour iterator to it
+//            for (int direction = 0; direction < 6; ++direction) {
+//                // Neighbour Particle Cell Face definitions [+y,-y,+x,-x,+z,-z] =  [0,1,2,3,4,5]
+//                if (apr_tree_iterator.find_neighbours_same_level(direction)) {
+//
+//                    if (neighbour_tree_iterator.set_neighbour_iterator(apr_tree_iterator, direction, 0)) {
+//
+//                        val += mean_tree[neighbour_tree_iterator];
+//                        counter++;
+//
+//                    }
+//                }
+//            }
+//
+//            mean_tree[apr_tree_iterator] = val/counter;
+//
+//        }
 
 #pragma omp parallel for schedule(static) private(parent_number) firstprivate(apr_tree_iterator,neighbour_tree_iterator,parent_iterator)
         for (parent_number = apr_tree_iterator.particles_level_begin(apr_tree_iterator.level_max());
@@ -587,6 +628,9 @@ public:
             }
 
         }
+
+
+
 
 
         //then do the rest of the tree where order matters
@@ -664,9 +708,10 @@ public:
 
         }
 
-//        apr.interp_img(boundary, boundary_type);
-//        image_file_name = apr.parameters.input_dir + "boundary_int_max.tif";
-//        TiffUtils::saveMeshAsTiffUint16(image_file_name, boundary);
+        MeshData<uint16_t> boundary;
+        apr.interp_img(boundary,boundary_type);
+        std::string image_file_name = apr.parameters.input_dir +  "max_type.tif";
+        TiffUtils::saveMeshAsTiffUint16(image_file_name, boundary);
 
         adaptive_max.init(apr);
 
@@ -744,6 +789,12 @@ public:
             adaptive_max[apr_iterator] = max_spread[parent_iterator];
 
         }
+
+
+
+        apr.interp_img(boundary,adaptive_max);
+        image_file_name = apr.parameters.input_dir +  "max_seed.tif";
+        TiffUtils::saveMeshAsTiffUint16(image_file_name, boundary);
 
         std::fill(boundary_type.data.begin(),boundary_type.data.end(),0);
 
