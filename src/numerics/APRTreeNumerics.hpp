@@ -936,14 +936,8 @@ public:
 
                 if(boundary_type[apr_iterator] == 0){
 
-                    parent_iterator.set_iterator_to_parent(apr_iterator);
+                    adaptive_max[apr_iterator] = intensities[apr_iterator];
 
-                    while ((parent_iterator.level() > parent_iterator.level_min()) && (max_spread[parent_iterator] == 0)) {
-                        parent_iterator.set_iterator_to_parent(parent_iterator);
-                    }
-
-                    adaptive_max[apr_iterator] = max_spread[parent_iterator];
-                    boundary_type[apr_iterator] = (uint16_t)(level + 1);
                 }
 
             }
@@ -1296,7 +1290,7 @@ public:
                         parent_iterator.set_iterator_to_parent(parent_iterator);
                     }
 
-                    adaptive_max[apr_iterator] = max_spread[parent_iterator];
+                    adaptive_max[apr_iterator] = mean_tree[parent_iterator];
                     boundary_type[apr_iterator] = (uint16_t)(level + 1);
                 }
 
@@ -1654,13 +1648,7 @@ public:
 
                 if(boundary_type[apr_iterator] == 0){
 
-                    parent_iterator.set_iterator_to_parent(apr_iterator);
-
-                    while ((parent_iterator.level() > parent_iterator.level_min()) && (max_spread[parent_iterator] == 0)) {
-                        parent_iterator.set_iterator_to_parent(parent_iterator);
-                    }
-
-                    adaptive_min[apr_iterator] = max_spread[parent_iterator];
+                    adaptive_min[apr_iterator] = intensities[apr_iterator];
                     boundary_type[apr_iterator] = (uint16_t)(level + 1);
                 }
 

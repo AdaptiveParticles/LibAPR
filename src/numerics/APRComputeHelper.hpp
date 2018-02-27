@@ -337,7 +337,7 @@ public:
 
         this->apr_tree.init(apr);
 
-        this->compute_local_scale(apr,local_intensity_scale,3,3);
+        this->compute_local_scale_alternative(apr,local_intensity_scale,2);
 
         /*
         *  Compute APR using custom local intensity scale
