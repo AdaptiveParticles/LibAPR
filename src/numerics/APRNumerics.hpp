@@ -243,45 +243,48 @@ public:
             }
         }
     }
-};
 
+    template<typename T,typename S,typename U>
+    void weight_neighbours(APR<T> apr,ExtraParticleData<S>& input_data,ExtraParticleData<U>& output_data,const float weight){
 
-template<typename T,typename S,typename U>
-void weight_neighbours(APR<T> apr,ExtraParticleData<S>& input_data,ExtraParticleData<U>& output_data,const float weight){
+        APRIterator<T> apr_iterator(apr);
+        APRIterator<T> neighbour_iterator(apr);
 
-    APRIterator<T> apr_iterator(apr);
-    APRIterator<T> neighbour_iterator(apr);
+        uint64_t particle_number;
 
-    uint64_t particle_number;
+        output_data.init(apr);
 
 #ifdef HAVE_OPENMP
 #pragma omp parallel for schedule(static) private(particle_number) firstprivate(apr_iterator,neighbour_iterator)
 #endif
-    for (particle_number = 0; particle_number < apr_iterator.total_number_particles(); ++particle_number) {
-        //needed step for any parallel loop (update to the next part)
+        for (particle_number = 0; particle_number < apr_iterator.total_number_particles(); ++particle_number) {
+            //needed step for any parallel loop (update to the next part)
 
-        apr_iterator.set_iterator_to_particle_by_number(particle_number);
-
-        for (int i = 0; i < 6; ++i) {
+            apr_iterator.set_iterator_to_particle_by_number(particle_number);
             float intensity_sum = 0;
             float count_neighbours = 0;
 
-            apr_iterator.find_neighbours_in_direction(i);
+            for (int i = 0; i < 6; ++i) {
 
-            // Neighbour Particle Cell Face definitions [+y,-y,+x,-x,+z,-z] =  [0,1,2,3,4,5]
-            for (int index = 0; index < apr_iterator.number_neighbours_in_direction(i); ++index) {
-                if (neighbour_iterator.set_neighbour_iterator(apr_iterator, i, index)) {
-                    intensity_sum += input_data[neighbour_iterator];
-                    count_neighbours++;
+                apr_iterator.find_neighbours_in_direction(i);
+
+                // Neighbour Particle Cell Face definitions [+y,-y,+x,-x,+z,-z] =  [0,1,2,3,4,5]
+                for (int index = 0; index < apr_iterator.number_neighbours_in_direction(i); ++index) {
+                    if (neighbour_iterator.set_neighbour_iterator(apr_iterator, i, index)) {
+                        intensity_sum += input_data[neighbour_iterator];
+                        count_neighbours++;
+                    }
                 }
+
             }
-
             output_data[apr_iterator] = (1-weight)*intensity_sum/count_neighbours + (weight)*input_data[apr_iterator];
-
         }
-    }
 
+    };
 };
+
+
+
 
 
 

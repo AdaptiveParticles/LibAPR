@@ -44,13 +44,13 @@ public:
         APRNumerics aprNumerics;
         ExtraParticleData<uint16_t> smooth(apr);
         std::vector<float> filter = {0.1f, 0.8f, 0.1f}; // << Feel free to play with these
-        aprNumerics.seperable_smooth_filter(apr, apr.particles_intensities, smooth, filter, smooth_iterations);
-        //for (int i = 0; i < smooth_iterations; ++i) {
-        //    weight_neighbours(apr,apr.particles_intensities,smooth,0.8);
-          //  std::swap(smooth.data,apr.particles_intensities.data);
-        //}
+        //aprNumerics.seperable_smooth_filter(apr, apr.particles_intensities, smooth, filter, smooth_iterations);
+        for (int i = 0; i < smooth_iterations; ++i) {
+            aprNumerics.weight_neighbours(apr,apr.particles_intensities,smooth,0.5);
+            std::swap(smooth.data,apr.particles_intensities.data);
+        }
 
-        //std::swap(smooth.data,apr.particles_intensities.data);
+        std::swap(smooth.data,apr.particles_intensities.data);
 
         timer.stop_timer();
 
