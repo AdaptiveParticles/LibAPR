@@ -131,7 +131,7 @@ public:
     }
 
     template<typename T,typename U,typename V>
-    void compute_apr_interior_energy(APR<ImageType>& apr,ExtraParticleData<T>& interior_energy,ExtraParticleData<V>& input_particles,ExtraParticleData<U>& local_intensity_scale,float scale_factor){
+    void compute_apr_interior_energy(APR<ImageType>& apr,ExtraParticleData<T>& interior_energy,ExtraParticleData<V>& input_particles,ExtraParticleData<U>& local_intensity_scale,float scale_factor,float min_var){
         //assumes you have computed apr_min with this function
 
         interior_energy.init(apr);
@@ -146,7 +146,7 @@ public:
         for (particle_number = 0; particle_number < apr_iterator.total_number_particles(); ++particle_number) {
             apr_iterator.set_iterator_to_particle_by_number(particle_number);
 
-            interior_energy[apr_iterator] = scale_factor*(input_particles[apr_iterator]-adaptive_min[apr_iterator])/(local_intensity_scale[apr_iterator]*1.0f);
+            interior_energy[apr_iterator] = scale_factor*(input_particles[apr_iterator]-adaptive_min[apr_iterator])/(std::max(local_intensity_scale[apr_iterator]*1.0f,min_var));
 
         }
     }

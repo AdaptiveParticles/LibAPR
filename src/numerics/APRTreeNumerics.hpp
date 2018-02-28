@@ -1290,7 +1290,7 @@ public:
                         parent_iterator.set_iterator_to_parent(parent_iterator);
                     }
 
-                    adaptive_max[apr_iterator] = mean_tree[parent_iterator];
+                    adaptive_max[apr_iterator] = 1000;
                     boundary_type[apr_iterator] = (uint16_t)(level + 1);
                 }
 
