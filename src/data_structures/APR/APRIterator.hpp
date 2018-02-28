@@ -241,63 +241,90 @@ public:
 
     bool find_neighbours_in_direction(const uint8_t& direction){
 
-        bool found = false;
-
         //the three cases
         if(current_particle_cell.level == apr_access->level_max){
-            for (int l = 0; l < 2; ++l) {
-                level_delta = level_check_max[l];
-                apr_access->get_neighbour_coordinate(current_particle_cell,neighbour_particle_cell,direction,level_delta,0);
+            //for (int l = 0; l < 2; ++l) {
+                //level_delta = level_check_max[l];
+            apr_access->get_neighbour_coordinate(current_particle_cell,neighbour_particle_cell,direction,_LEVEL_SAME,0);
 
-                if(check_neighbours_particle_cell_in_bounds()){
-                    if(apr_access->find_particle_cell(neighbour_particle_cell,apr_access->get_local_iterator(local_iterators,
-                                                                                               level_delta, direction,0))){
-                        //found the neighbour! :D
-                        found=true;
-                        break;
-                    }
-                };
+            if(check_neighbours_particle_cell_in_bounds()){
+                if(apr_access->find_particle_cell(neighbour_particle_cell,local_iterators.same_level[direction])){
+                    //found the neighbour! :D
+                    level_delta = _LEVEL_SAME;
+                    return true;
+                }
+            };
 
-            }
+            apr_access->get_neighbour_coordinate(current_particle_cell,neighbour_particle_cell,direction,_LEVEL_DECREASE,0);
+
+            if(check_neighbours_particle_cell_in_bounds()){
+                if(apr_access->find_particle_cell(neighbour_particle_cell,local_iterators.parent_level[direction])){
+                    level_delta = _LEVEL_DECREASE;
+                   return true;
+                }
+            };
+
+            //}
 
         } else if(current_particle_cell.level == apr_access->level_min){
-            for (int l = 0; l < 2; ++l) {
-                level_delta = level_check_min[l];
-                apr_access->get_neighbour_coordinate(current_particle_cell,neighbour_particle_cell,direction,level_delta,0);
+            //for (int l = 0; l < 2; ++l) {
+                //level_delta = level_check_min[l];
+            apr_access->get_neighbour_coordinate(current_particle_cell,neighbour_particle_cell,direction,_LEVEL_SAME,0);
 
-                if(check_neighbours_particle_cell_in_bounds()){
-                    if(apr_access->find_particle_cell(neighbour_particle_cell,apr_access->get_local_iterator(local_iterators,
-                                                                                                             level_delta, direction,0))){
-                        //found the neighbour! :D
-                        found=true;
-                        break;
-                    }
-                };
+            if(check_neighbours_particle_cell_in_bounds()){
+                if(apr_access->find_particle_cell(neighbour_particle_cell,local_iterators.same_level[direction])){
+                    //found the neighbour! :D
+                    level_delta = _LEVEL_SAME;
+                    return true;
+                }
+            };
 
-            }
+            apr_access->get_neighbour_coordinate(current_particle_cell,neighbour_particle_cell,direction,_LEVEL_INCREASE,0);
+
+            if(check_neighbours_particle_cell_in_bounds()){
+                if(apr_access->find_particle_cell(neighbour_particle_cell,local_iterators.child_level[direction][0])){
+                    level_delta = _LEVEL_INCREASE;
+                    return true;
+                }
+            };
+
+            //}
         } else {
-            for (int l = 0; l < 3; ++l) {
-                level_delta = level_check_middle[l];
-                apr_access->get_neighbour_coordinate(current_particle_cell,neighbour_particle_cell,direction,level_delta,0);
+            //for (int l = 0; l < 3; ++l) {
+            apr_access->get_neighbour_coordinate(current_particle_cell,neighbour_particle_cell,direction,_LEVEL_SAME,0);
 
-                if(check_neighbours_particle_cell_in_bounds()){
-                    if(apr_access->find_particle_cell(neighbour_particle_cell,apr_access->get_local_iterator(local_iterators,
-                                                                                                             level_delta, direction,0))){
-                        //found the neighbour! :D
-                        found=true;
-                        break;
-                    }
-                };
+            if(check_neighbours_particle_cell_in_bounds()){
+                if(apr_access->find_particle_cell(neighbour_particle_cell,local_iterators.same_level[direction])){
+                    //found the neighbour! :D
+                    level_delta = _LEVEL_SAME;
+                    return true;
+                }
+            };
 
-            }
+            apr_access->get_neighbour_coordinate(current_particle_cell,neighbour_particle_cell,direction,_LEVEL_DECREASE,0);
+
+            if(check_neighbours_particle_cell_in_bounds()){
+                if(apr_access->find_particle_cell(neighbour_particle_cell,local_iterators.parent_level[direction])){
+                    level_delta = _LEVEL_DECREASE;
+                    return true;
+                }
+            };
+            apr_access->get_neighbour_coordinate(current_particle_cell,neighbour_particle_cell,direction,_LEVEL_INCREASE,0);
+
+            if(check_neighbours_particle_cell_in_bounds()){
+                if(apr_access->find_particle_cell(neighbour_particle_cell,local_iterators.child_level[direction][0])){
+                    level_delta = _LEVEL_INCREASE;
+                    return true;
+                }
+            };
+
+
 
         }
 
-        if(!found){
-            level_delta=_NO_NEIGHBOUR;
-        }
+        level_delta=_NO_NEIGHBOUR;
 
-        return found;
+        return false;
 
     }
 
@@ -452,13 +479,14 @@ public:
 
         bool found = false;
 
-        this->level_delta = _LEVEL_SAME;
-        this->apr_access->get_neighbour_coordinate(this->current_particle_cell,this->neighbour_particle_cell,direction,this->level_delta,0);
+        this->apr_access->get_neighbour_coordinate(this->current_particle_cell,this->neighbour_particle_cell,direction,_LEVEL_SAME,0);
 
         if(this->check_neighbours_particle_cell_in_bounds()){
-            if(this->apr_access->find_particle_cell(this->neighbour_particle_cell,this->apr_access->get_local_iterator(this->local_iterators, this->level_delta, direction,0))){
+            if(this->apr_access->find_particle_cell(this->neighbour_particle_cell,local_iterators.same_level[direction])){
                 //found the neighbour! :D
-                found=true;
+
+                this->level_delta = _LEVEL_SAME;
+                return true;
             }
         };
 

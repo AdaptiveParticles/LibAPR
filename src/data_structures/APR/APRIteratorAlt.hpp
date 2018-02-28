@@ -33,6 +33,8 @@ protected:
 
     APRAccessAlt::MapIterator current_gap;
 
+    APRAccessAlt::MapIterator same_it[6];
+
     uint8_t highest_resolution_type;
 
     bool check_neigh_flag = false;
@@ -442,13 +444,18 @@ public:
 
         bool found = false;
 
-        this->level_delta = _LEVEL_SAME;
-        this->apr_access->get_neighbour_coordinate_new(this->current_particle_cell,this->neighbour_particle_cell,direction,this->level_delta,0);
+        //APRAccessAlt::MapIterator it;
+
+        //this->level_delta = _LEVEL_SAME;
+        this->apr_access->get_neighbour_coordinate(this->current_particle_cell,this->neighbour_particle_cell,direction,_LEVEL_SAME,0);
 
         if(this->check_neighbours_particle_cell_in_bounds()){
-            if(this->apr_access->find_particle_cell(this->neighbour_particle_cell,this->apr_access->get_local_iterator(this->local_iterators, this->level_delta, direction,0))){
+            //if(this->apr_access->find_particle_cell(this->neighbour_particle_cell,this->apr_access->get_local_iterator(this->local_iterators, this->level_delta, direction,0))){
+            if(this->apr_access->find_particle_cell(this->neighbour_particle_cell,local_iterators.same_level[direction])){
                 //found the neighbour! :D
-                found=true;
+                this->level_delta = _LEVEL_SAME;
+                return true;
+
             }
         };
 

@@ -347,8 +347,11 @@ public:
 //                map_iterator.level = part_cell.level;
 //            }
 
-            if((map_iterator.pc_offset != part_cell.pc_offset) || (map_iterator.level != part_cell.level) ){
-                set_gap_by_particle_cell(map_iterator,part_cell);
+
+
+            if ((map_iterator.pc_offset != part_cell.pc_offset) || (map_iterator.level != part_cell.level)) {
+                set_gap_by_particle_cell(map_iterator, part_cell);
+                //map_iterator.index = 0;
             }
 
 //
@@ -358,7 +361,46 @@ public:
 //            }
 
 
-            return false;
+
+            if ((part_cell.y >= map_iterator.ptr->y_begin[map_iterator.index]) && (part_cell.y <= map_iterator.ptr->y_end[map_iterator.index])) {
+                // already pointing to the correct place
+                part_cell.global_index = map_iterator.ptr->global_index[map_iterator.index] +
+                                         (part_cell.y - map_iterator.ptr->y_begin[map_iterator.index]);
+
+                return true;
+            }
+
+            if(map_iterator.index < (map_iterator.ptr->y_begin.size()-1)){
+                map_iterator.index++;
+                if ((part_cell.y >= map_iterator.ptr->y_begin[map_iterator.index]) && (part_cell.y <= map_iterator.ptr->y_end[map_iterator.index])) {
+                    // already pointing to the correct place
+                    part_cell.global_index = map_iterator.ptr->global_index[map_iterator.index] +
+                                             (part_cell.y - map_iterator.ptr->y_begin[map_iterator.index]);
+
+                    return true;
+                } else {
+                    if(part_cell.y < map_iterator.ptr->y_begin[map_iterator.index]){
+                        return false;
+                    }
+                }
+            } else {
+                map_iterator.index = 0;
+            }
+
+            if((part_cell.y > map_iterator.ptr->y_f) || (part_cell.y < map_iterator.ptr->y_0)){
+                //out of bounds
+                return false;
+            } else {
+                // WHAT DO I DO HERE?
+
+//                if(find_particle_cell(part_cell,map_iterator)){
+//                    return true;
+//                } else {
+//                    return false;
+//                }
+            }
+
+
 
 
 //
