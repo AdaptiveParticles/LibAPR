@@ -105,7 +105,7 @@ public:
     }
 
     template<typename T,typename U,typename V>
-    void compute_apr_edge_energy(APR<ImageType>& apr,ExtraParticleData<T>& edge_energy,ExtraParticleData<V>& input_particles,ExtraParticleData<U>& local_intensity_scale,float scale_factor,float min_var = 1,std::vector<float> delta = {1,1,1}){
+    void compute_apr_edge_energy(APR<ImageType>& apr,ExtraParticleData<T>& edge_energy,ExtraParticleData<V>& input_particles,ExtraParticleData<U>& local_intensity_scale,float scale_factor,float min_var = 1,float Ip_th = 0,std::vector<float> delta = {1,1,1}){
 
         ExtraParticleData<T> gradient; //vector for holding the derivative in the three directions, initialized to have the same number of elements as particles.
 
@@ -122,8 +122,12 @@ public:
 #endif
         for (particle_number = 0; particle_number < apr_iterator.total_number_particles(); ++particle_number) {
             apr_iterator.set_iterator_to_particle_by_number(particle_number);
-
-            edge_energy[apr_iterator] = scale_factor*gradient[apr_iterator]/(std::max(local_intensity_scale[apr_iterator]*1.0f,min_var));
+            if(input_particles[apr_iterator] > Ip_th) {
+                edge_energy[apr_iterator] = scale_factor * gradient[apr_iterator] /
+                                            (std::max(local_intensity_scale[apr_iterator] * 1.0f, min_var));
+            } else {
+                edge_energy[apr_iterator] = 0;
+            }
             //edge_energy[apr_iterator] = scale_factor*gradient[apr_iterator];
         }
 
@@ -131,7 +135,7 @@ public:
     }
 
     template<typename T,typename U,typename V>
-    void compute_apr_interior_energy(APR<ImageType>& apr,ExtraParticleData<T>& interior_energy,ExtraParticleData<V>& input_particles,ExtraParticleData<U>& local_intensity_scale,float scale_factor,float min_var){
+    void compute_apr_interior_energy(APR<ImageType>& apr,ExtraParticleData<T>& interior_energy,ExtraParticleData<V>& input_particles,ExtraParticleData<U>& local_intensity_scale,float scale_factor,float min_var,float Ip_th){
         //assumes you have computed apr_min with this function
 
         interior_energy.init(apr);
@@ -145,8 +149,13 @@ public:
 #endif
         for (particle_number = 0; particle_number < apr_iterator.total_number_particles(); ++particle_number) {
             apr_iterator.set_iterator_to_particle_by_number(particle_number);
-
-            interior_energy[apr_iterator] = scale_factor*(input_particles[apr_iterator]-adaptive_min[apr_iterator])/(std::max(local_intensity_scale[apr_iterator]*1.0f,min_var));
+            if(input_particles[apr_iterator] > Ip_th) {
+                interior_energy[apr_iterator] =
+                        scale_factor * (input_particles[apr_iterator] - adaptive_min[apr_iterator]) /
+                        (std::max(local_intensity_scale[apr_iterator] * 1.0f, min_var));
+            } else {
+                interior_energy[apr_iterator] = 0;
+            }
 
         }
     }
