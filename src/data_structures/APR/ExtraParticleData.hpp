@@ -8,10 +8,10 @@
 
 #include <algorithm>
 
-
 template<typename V> class APR;
 template<typename V> class APRTree;
 template<typename V> class APRIterator;
+template<typename V> class APRIteratorAlt;
 
 template<typename DataType>
 class ExtraParticleData {
@@ -53,6 +53,11 @@ public:
      */
     template<typename S>
     DataType& operator[](const APRIterator<S>& apr_iterator) {
+        return data[apr_iterator.global_index()];
+    }
+
+    template<typename S>
+    DataType& operator[](const APRIteratorAlt<S>& apr_iterator) {
         return data[apr_iterator.global_index()];
     }
 

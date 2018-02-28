@@ -48,12 +48,6 @@ class APRAccessAlt {
 
 public:
 
-
-    struct ParticleCell {
-        uint16_t x,y,z,level,type;
-        uint64_t pc_offset,global_index;
-    };
-
     struct YGap_map {
         uint16_t y_end;
         uint64_t global_index_begin;
@@ -67,6 +61,7 @@ public:
         uint64_t index;
         uint64_t pc_offset;
         uint16_t level;
+        APRSparseRow* ptr;
     };
 
     struct LocalMapIterators{
@@ -128,24 +123,24 @@ public:
     std::vector<std::vector<uint64_t>> global_index_by_level_and_z_begin;
     std::vector<std::vector<uint64_t>> global_index_by_level_and_z_end;
 
-//    MapIterator& get_local_iterator(LocalMapIterators& local_iterators,const uint16_t& level_delta,const uint16_t& face,const uint16_t& index){
-//        //
-//        //  Chooses the local iterator required
-//        //
-//
-//        switch (level_delta){
-//            case _LEVEL_SAME:
-//                return local_iterators.same_level[face];
-//
-//            case _LEVEL_DECREASE:
-//                return local_iterators.parent_level[face];
-//
-//            case _LEVEL_INCREASE:
-//                return local_iterators.child_level[face][index];
-//        }
-//
-//        return local_iterators.same_level[0];
-//    }
+    MapIterator& get_local_iterator(LocalMapIterators& local_iterators,const uint16_t& level_delta,const uint16_t& face,const uint16_t& index){
+        //
+        //  Chooses the local iterator required
+        //
+
+        switch (level_delta){
+            case _LEVEL_SAME:
+                return local_iterators.same_level[face];
+
+            case _LEVEL_DECREASE:
+                return local_iterators.parent_level[face];
+
+            case _LEVEL_INCREASE:
+                return local_iterators.child_level[face][index];
+        }
+
+        return local_iterators.same_level[0];
+    }
 
 
     inline bool get_neighbour_coordinate(const ParticleCell& input,ParticleCell& neigh,const unsigned int& face,const uint16_t& level_delta,const uint16_t& index){
@@ -221,29 +216,29 @@ public:
         return false;
     }
 
-//    inline uint64_t get_parts_start(const uint16_t& x,const uint16_t& z,const uint16_t& level){
-//        const uint64_t offset = x_num[level] * z + x;
-//        if(gap_map.data[level][offset].size() > 0){
-//            auto it = (gap_map.data[level][offset][0].map.begin());
-//            return it->second.global_index_begin;
-//        } else {
-//            return (-1);
-//        }
-//    }
-//
-//    inline uint64_t get_parts_end(const uint16_t& x,const uint16_t& z,const uint16_t& level){
-//        const uint64_t offset = x_num[level] * z + x;
-//        if(gap_map.data[level][offset].size() > 0){
-//            auto it = (gap_map.data[level][offset][0].map.rbegin());
-//            return (it->second.global_index_begin + (it->second.y_end-it->first));
-//        } else {
-//            return (0);
-//        }
-//    }
-//
-//    inline uint64_t global_index_end(MapIterator& it){
-//        return (it.iterator->second.global_index_begin + (it.iterator->second.y_end-it.iterator->first));
-//    }
+    inline uint64_t get_parts_start(const uint16_t& x,const uint16_t& z,const uint16_t& level){
+        const uint64_t offset = x_num[level] * z + x;
+        if(gap_map.data[level][offset].size() > 0){
+
+            return gap_map.data[level][offset][0].global_index[0];
+
+        } else {
+            return (-1);
+        }
+    }
+
+    inline uint64_t get_parts_end(const uint16_t& x,const uint16_t& z,const uint16_t& level){
+        const uint64_t offset = x_num[level] * z + x;
+        if(gap_map.data[level][offset].size() > 0){
+            return (gap_map.data[level][offset][0].global_index.back() + (gap_map.data[level][offset][0].y_end.back()-gap_map.data[level][offset][0].y_begin.back()));
+        } else {
+            return (0);
+        }
+    }
+
+    inline uint64_t global_index_end(MapIterator& it){
+        return (gap_map.data[it.level][it.pc_offset][0].global_index[it.index] + (gap_map.data[it.level][it.pc_offset][0].y_end[it.index]-gap_map.data[it.level][it.pc_offset][0].y_begin[it.index]));
+    }
 
     inline bool check_neighbours_flag(const uint16_t& x,const uint16_t& z,const uint16_t& level){
         return ((uint16_t)(x-1)>=(x_num[level]-2)) | ((uint16_t)(z-1)>=(z_num[level]-2)); // #FIX ME
@@ -263,21 +258,40 @@ public:
         return 1;
     }
 
-//    bool find_particle_cell(ParticleCell& part_cell,MapIterator& map_iterator){
-//        if(gap_map.data[part_cell.level][part_cell.pc_offset].size() > 0) {
-//
+    void set_gap_by_particle_cell(MapIterator& it,ParticleCell& particleCell){
+        it.index = 0;
+        it.level = particleCell.level;
+        it.pc_offset = particleCell.pc_offset;
+        it.ptr = &gap_map.data[particleCell.level][ particleCell.pc_offset][0];
+
+    }
+
+    bool find_particle_cell(ParticleCell& part_cell,MapIterator& map_iterator){
+        if(gap_map.data[part_cell.level][part_cell.pc_offset].size() > 0) {
+
 //            ParticleCellGapMap& current_pc_map = gap_map.data[part_cell.level][part_cell.pc_offset][0];
-//
+
+
 //            if((map_iterator.pc_offset != part_cell.pc_offset) || (map_iterator.level != part_cell.level) ){
 //                map_iterator.iterator = gap_map.data[part_cell.level][part_cell.pc_offset][0].map.begin();
 //                map_iterator.pc_offset = part_cell.pc_offset;
 //                map_iterator.level = part_cell.level;
 //            }
+
+            if((map_iterator.pc_offset != part_cell.pc_offset) || (map_iterator.level != part_cell.level) ){
+                set_gap_by_particle_cell(map_iterator,part_cell);
+            }
+
 //
 //            if(map_iterator.iterator == current_pc_map.map.end()){
 //                //check if pointing to a valid key
 //                map_iterator.iterator = current_pc_map.map.begin();
 //            }
+
+
+            return false;
+
+
 //
 //            if ((part_cell.y >= map_iterator.iterator->first) && (part_cell.y <= map_iterator.iterator->second.y_end)) {
 //                // already pointing to the correct place
@@ -321,10 +335,10 @@ public:
 //                    return true;
 //                }
 //            }
-//        }
-//
-//        return false;
-//    }
+        }
+
+        return false;
+    }
 
     template<typename T>
     void initialize_structure_from_particle_cell_tree(APR<T>& apr,std::vector<MeshData<uint8_t>>& layers){
@@ -1030,6 +1044,23 @@ public:
             gap_map.x_num[i] = apr.spatial_index_x_max(i);
             gap_map.data[i].resize(z_num[i]*x_num[i]);
         }
+
+
+        org_dims[0] = apr.apr_access.org_dims[0];
+        org_dims[1] = apr.apr_access.org_dims[1];
+        org_dims[2] = apr.apr_access.org_dims[2];
+
+        total_number_particles = apr.apr_access.total_number_particles;
+
+        total_number_gaps= apr.apr_access.total_number_gaps;
+
+        total_number_non_empty_rows = apr.apr_access.total_number_non_empty_rows;
+
+        global_index_by_level_begin =  apr.apr_access.global_index_by_level_begin;
+        global_index_by_level_end =  apr.apr_access.global_index_by_level_end;
+
+        global_index_by_level_and_z_begin =  apr.apr_access.global_index_by_level_and_z_begin;
+        global_index_by_level_and_z_end =  apr.apr_access.global_index_by_level_and_z_end;
 
 
         uint64_t z_;
