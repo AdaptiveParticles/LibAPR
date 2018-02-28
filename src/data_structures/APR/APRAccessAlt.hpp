@@ -143,7 +143,7 @@ public:
     }
 
 
-    inline bool get_neighbour_coordinate(const ParticleCell& input,ParticleCell& neigh,const unsigned int& face,const uint16_t& level_delta,const uint16_t& index){
+    bool get_neighbour_coordinate(const ParticleCell& input,ParticleCell& neigh,const unsigned int& face,const uint16_t& level_delta,const uint16_t& index){
 
         static constexpr int8_t dir_y[6] = { 1, -1, 0, 0, 0, 0};
         static constexpr int8_t dir_x[6] = { 0, 0, 1, -1, 0, 0};
@@ -215,6 +215,75 @@ public:
 
         return false;
     }
+
+    bool get_neighbour_coordinate_new(const ParticleCell& input,ParticleCell& neigh,const unsigned int& face,const uint16_t& level_delta,const uint16_t& index){
+
+        //static constexpr int8_t dir_y[6] = { 1, -1, 0, 0, 0, 0};
+        //static constexpr int8_t dir_x[6] = { 0, 0, 1, -1, 0, 0};
+        //static constexpr int8_t dir_z[6] = { 0, 0, 0, 0, 1, -1};
+
+        static constexpr uint8_t children_index_offsets[4][2] = {{0,0},{0,1},{1,0},{1,1}};
+
+        unsigned int dir;
+
+        if(level_delta == _LEVEL_SAME){
+
+            neigh.x = input.x + (face == 2) - (face==3);
+            neigh.y = input.y + (face == 0) - (face==1);
+            neigh.z = input.z + (face == 4) - (face==5);
+            neigh.level = input.level;
+
+            neigh.pc_offset =  x_num[neigh.level] * neigh.z + neigh.x;
+
+            return true;
+
+        } else if(level_delta == _LEVEL_DECREASE){
+            neigh.level = input.level - 1;
+            neigh.x = (input.x + (face == 2) - (face==3))/2;
+            neigh.y = (input.y + (face == 0) - (face==1))/2;
+            neigh.z = (input.z + (face == 4) - (face==5))/2;
+
+            neigh.pc_offset =  x_num[neigh.level] * neigh.z + neigh.x;
+
+            return true;
+        } else if(level_delta == _LEVEL_INCREASE) {
+            neigh.level = input.level + 1;
+            neigh.x = (input.x + (face == 2) - (face==3))*2 + (face == 3);
+            neigh.y = (input.y + (face == 0) - (face==1))*2 + (face == 1);
+            neigh.z = (input.z + (face == 4) - (face==5))*2 + (face == 5);
+
+            dir = (face/2);
+
+            switch (dir){
+                case 0:
+                    //y+ and y-
+                    neigh.x = neigh.x + children_index_offsets[index][0];
+                    neigh.z = neigh.z + children_index_offsets[index][1];
+
+                    break;
+
+                case 1:
+                    //x+ and x-
+                    neigh.y = neigh.y + children_index_offsets[index][0];
+                    neigh.z = neigh.z + children_index_offsets[index][1];
+
+                    break;
+                case 2:
+                    //z+ and z-
+                    neigh.y = neigh.y + children_index_offsets[index][0];
+                    neigh.x = neigh.x + children_index_offsets[index][1];
+
+                    break;
+            }
+
+            neigh.pc_offset =  x_num[neigh.level] * neigh.z + neigh.x;
+
+            return true;
+        }
+
+        return false;
+    }
+
 
     inline uint64_t get_parts_start(const uint16_t& x,const uint16_t& z,const uint16_t& level){
         const uint64_t offset = x_num[level] * z + x;
