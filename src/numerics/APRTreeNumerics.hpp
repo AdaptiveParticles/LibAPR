@@ -33,8 +33,9 @@ public:
 
         uint64_t particle_number = 0;
         uint64_t parent_number = 0;
-
+#ifdef HAVE_OPENMP
 #pragma omp parallel for schedule(static) private(particle_number) firstprivate(apr_iterator,parentIterator)
+#endif
         for (particle_number = 0; particle_number < apr.total_number_particles(); ++particle_number) {
             //This step is required for all loops to set the iterator by the particle number
             apr_iterator.set_iterator_to_particle_by_number(particle_number);
@@ -52,7 +53,9 @@ public:
 
         //then do the rest of the tree where order matters
         for (unsigned int level = treeIterator.level_max(); level >= treeIterator.level_min(); --level) {
+#ifdef HAVE_OPENMP
 #pragma omp parallel for schedule(static) private(parent_number) firstprivate(treeIterator,parentIterator)
+#endif
             for (parent_number = treeIterator.particles_level_begin(level);
                  parent_number < treeIterator.particles_level_end(level); ++parent_number) {
 
@@ -71,7 +74,9 @@ public:
 
         if(normalize){
             for (unsigned int level = treeIterator.level_max(); level >= treeIterator.level_min(); --level) {
+#ifdef HAVE_OPENMP
 #pragma omp parallel for schedule(static) private(parent_number) firstprivate(treeIterator)
+#endif
                 for (parent_number = treeIterator.particles_level_begin(level);
                      parent_number < treeIterator.particles_level_end(level); ++parent_number) {
 
@@ -158,7 +163,9 @@ public:
         //Basic serial iteration over all particles
         uint64_t particle_number;
         //Basic serial iteration over all particles
+#ifdef HAVE_OPENMP
 #pragma omp parallel for schedule(static) private(particle_number) firstprivate(apr_iterator,neigh_iterator,apr_tree_iterator,neighbour_tree_iterator)
+#endif
         for (particle_number = apr_iterator.particles_level_begin(apr_iterator.level_max()-1);
              particle_number <
              apr_iterator.particles_level_end(apr_iterator.level_max()-1); ++particle_number) {
@@ -249,8 +256,9 @@ public:
         //then do the rest of the tree where order matters
 
         for (unsigned int level = (apr_tree_iterator.level_max()-1); level > apr_tree_iterator.level_min(); --level) {
-
+#ifdef HAVE_OPENMP
 #pragma omp parallel for schedule(static) private(parent_number) firstprivate(apr_tree_iterator,neighbour_tree_iterator)
+#endif
             //two loops first spread
             for (parent_number = apr_tree_iterator.particles_level_begin(level);
                  parent_number < apr_tree_iterator.particles_level_end(level); ++parent_number) {
@@ -273,8 +281,9 @@ public:
                     }
                 }
             }
-
+#ifdef HAVE_OPENMP
 #pragma omp parallel for schedule(static) private(parent_number) firstprivate(apr_tree_iterator,parent_it)
+#endif
             //then average and push up
             for (parent_number = apr_tree_iterator.particles_level_begin(level);
                  parent_number < apr_tree_iterator.particles_level_end(level); ++parent_number) {
@@ -306,8 +315,9 @@ public:
         timer.stop_timer();
 
         timer.start_timer("loop 3");
-
+#ifdef HAVE_OPENMP
 #pragma omp parallel for schedule(static) private(parent_number) firstprivate(apr_tree_iterator,parent_it)
+#endif
         for (parent_number = apr_tree_iterator.particles_level_begin(apr_tree_iterator.level_max());
              parent_number < apr_tree_iterator.particles_level_end(apr_tree_iterator.level_max()); ++parent_number) {
 
@@ -330,8 +340,9 @@ public:
 
         for (int i = 0; i < smooth_factor; ++i) {
             //smoothing step
-
+#ifdef HAVE_OPENMP
 #pragma omp parallel for schedule(static) private(parent_number) firstprivate(apr_tree_iterator,neighbour_tree_iterator)
+#endif
             for (parent_number = apr_tree_iterator.particles_level_begin(apr_tree_iterator.level_max());
                  parent_number <
                  apr_tree_iterator.particles_level_end(apr_tree_iterator.level_max()); ++parent_number) {
@@ -365,8 +376,9 @@ public:
         timer.start_timer("loop 4");
 
         adaptive_min.init(apr);
-
+#ifdef HAVE_OPENMP
 #pragma omp parallel for schedule(static) private(particle_number) firstprivate(apr_iterator,parent_it)
+#endif
         //Now set the highest level particle cells.
         for (particle_number = apr_iterator.particles_level_begin(apr_iterator.level_max());
                  particle_number <
@@ -390,7 +402,9 @@ public:
         std::fill(boundary_type.data.begin(),boundary_type.data.end(),0);
 
         timer.start_timer("loop 5");
+#ifdef HAVE_OPENMP
 #pragma omp parallel for schedule(static) private(particle_number) firstprivate(apr_iterator,apr_tree_iterator,neighbour_tree_iterator)
+#endif
         for (particle_number = apr_iterator.particles_level_begin(apr_iterator.level_max() - 1);
              particle_number <
              apr_iterator.particles_level_end(apr_iterator.level_max() - 1); ++particle_number) {
@@ -447,8 +461,9 @@ public:
             while(still_empty & empty_counter < maximum_iteration) {
                 still_empty = false;
                 empty_counter++;
-
+#ifdef HAVE_OPENMP
 #pragma omp parallel for schedule(static) private(particle_number) firstprivate(apr_iterator,neigh_iterator) reduction(||:still_empty)
+#endif
                 for (particle_number = apr_iterator.particles_level_begin(level);
                      particle_number <
                      apr_iterator.particles_level_end(level); ++particle_number) {
@@ -492,8 +507,9 @@ public:
                     }
                 }
 
-
+#ifdef HAVE_OPENMP
 #pragma omp parallel for schedule(static) private(particle_number) firstprivate(apr_iterator, neigh_iterator)
+#endif
                 for (particle_number = apr_iterator.particles_level_begin(level);
                      particle_number <
                      apr_iterator.particles_level_end(level); ++particle_number) {
@@ -526,8 +542,9 @@ public:
                     }
                 }
             }
-
+#ifdef HAVE_OPENMP
 #pragma omp parallel for schedule(static) private(particle_number) firstprivate(apr_iterator,parent_it)
+#endif
             for (particle_number = apr_iterator.particles_level_begin(level);
                  particle_number <
                  apr_iterator.particles_level_end(level); ++particle_number) {
@@ -590,8 +607,9 @@ public:
         uint64_t parent_number;
 
        unsigned int level = apr_tree_iterator.level_max();
-
+#ifdef HAVE_OPENMP
 #pragma omp parallel for schedule(static) private(parent_number) firstprivate(apr_tree_iterator, neighbour_tree_iterator, parent_iterator)
+#endif
         for (parent_number = apr_tree_iterator.particles_level_begin(level);
              parent_number <
              apr_tree_iterator.particles_level_end(level); ++parent_number) {
@@ -642,8 +660,9 @@ public:
         //then do the rest of the tree where order matters
         for (unsigned int level = (apr_tree_iterator.level_max() - 1);
              level >= apr_tree_iterator.level_min(); --level) {
-
+#ifdef HAVE_OPENMP
 #pragma omp parallel for schedule(static) private(parent_number) firstprivate(apr_tree_iterator,neighbour_tree_iterator,parent_iterator)
+#endif
             //two loops first spread
             for (parent_number = apr_tree_iterator.particles_level_begin(level);
                  parent_number < apr_tree_iterator.particles_level_end(level); ++parent_number) {
@@ -667,8 +686,9 @@ public:
                     }
                 }
             }
-
+#ifdef HAVE_OPENMP
 #pragma omp parallel for schedule(static) private(parent_number) firstprivate(apr_tree_iterator,neighbour_tree_iterator,parent_iterator)
+#endif
             //then average and push up
             for (parent_number = apr_tree_iterator.particles_level_begin(level);
                  parent_number < apr_tree_iterator.particles_level_end(level); ++parent_number) {
@@ -701,8 +721,9 @@ public:
             }
         }
 
-
+#ifdef HAVE_OPENMP
 #pragma omp parallel for schedule(static) private(particle_number) firstprivate(apr_iterator,parent_iterator)
+#endif
         //Now set the highest level particle cells.
         for (particle_number = apr_iterator.particles_level_begin(apr_iterator.level_max());
              particle_number <
@@ -750,7 +771,9 @@ public:
             //smooth step
             for (unsigned int level = (apr_tree_iterator.level_max());
                  level >= apr_tree_iterator.level_min(); --level) {
+#ifdef HAVE_OPENMP
 #pragma omp parallel for schedule(static) private(parent_number) firstprivate(apr_tree_iterator,neighbour_tree_iterator)
+#endif
                 for (parent_number = apr_tree_iterator.particles_level_begin(level);
                      parent_number < apr_tree_iterator.particles_level_end(level); ++parent_number) {
 
@@ -784,8 +807,9 @@ public:
             std::swap(max_spread_temp.data,max_spread.data);
         }
 
-
+#ifdef HAVE_OPENMP
 #pragma omp parallel for schedule(static) private(particle_number) firstprivate(apr_iterator,parent_iterator)
+#endif
         //Now set the highest level particle cells.
         for (particle_number = apr_iterator.particles_level_begin(apr_iterator.level_max());
              particle_number <
@@ -807,7 +831,9 @@ public:
 //        std::fill(boundary_type.data.begin(),boundary_type.data.end(),0);
 
         //spread solution
+#ifdef HAVE_OPENMP
 #pragma omp parallel for schedule(static) private(particle_number) firstprivate(apr_iterator,apr_tree_iterator,neighbour_tree_iterator)
+#endif
         for (particle_number = apr_iterator.particles_level_begin(apr_iterator.level_max() - 1);
              particle_number <
              apr_iterator.particles_level_end(apr_iterator.level_max() - 1); ++particle_number) {
@@ -854,7 +880,9 @@ public:
             while(still_empty && (empty_counter < maximum_iteration)) {
                 empty_counter++;
                 still_empty = false;
+#ifdef HAVE_OPENMP
 #pragma omp parallel for schedule(static) private(particle_number) firstprivate(apr_iterator, neigh_iterator) reduction(||:still_empty)
+#endif
                 for (particle_number = apr_iterator.particles_level_begin(level);
                      particle_number <
                      apr_iterator.particles_level_end(level); ++particle_number) {
@@ -892,8 +920,9 @@ public:
                     }
                 }
 
-
+#ifdef HAVE_OPENMP
 #pragma omp parallel for schedule(static) private(particle_number) firstprivate(apr_iterator, neigh_iterator)
+#endif
                 for (particle_number = apr_iterator.particles_level_begin(level);
                      particle_number <
                      apr_iterator.particles_level_end(level); ++particle_number) {
@@ -926,8 +955,9 @@ public:
                     }
                 }
             }
-
+#ifdef HAVE_OPENMP
 #pragma omp parallel for schedule(static) private(particle_number) firstprivate(apr_iterator,parent_iterator)
+#endif
             for (particle_number = apr_iterator.particles_level_begin(level);
                  particle_number <
                  apr_iterator.particles_level_end(level); ++particle_number) {
@@ -980,8 +1010,9 @@ public:
 
         unsigned int level = apr_tree_iterator.level_max();
 
-
+#ifdef HAVE_OPENMP
 #pragma omp parallel for schedule(static) private(parent_number) firstprivate(apr_tree_iterator, neighbour_tree_iterator, parent_iterator)
+#endif
         for (parent_number = apr_tree_iterator.particles_level_begin(level);
              parent_number <
              apr_tree_iterator.particles_level_end(level); ++parent_number) {
@@ -993,7 +1024,9 @@ public:
         }
 
         for (int level = (apr_iterator.level_max()-1); level > apr_iterator.level_min() ; --level) {
+#ifdef HAVE_OPENMP
 #pragma omp parallel for schedule(static) private(parent_number) firstprivate(apr_tree_iterator, neighbour_tree_iterator, parent_iterator)
+#endif
             for (parent_number = apr_tree_iterator.particles_level_begin(level);
                  parent_number <
                  apr_tree_iterator.particles_level_end(level); ++parent_number) {
@@ -1041,7 +1074,9 @@ public:
             //Now set the highest level particle cells.
 
             if(level>(apr_tree_iterator.level_max()-level_offset)) {
+#ifdef HAVE_OPENMP
 #pragma omp parallel for schedule(static) private(parent_number) firstprivate(apr_tree_iterator, parent_iterator)
+#endif
                 for (parent_number = apr_tree_iterator.particles_level_begin(level);
                      parent_number <
                      apr_tree_iterator.particles_level_end(level); ++parent_number) {
@@ -1055,7 +1090,9 @@ public:
                 }
             }
             if(level>(apr_tree_iterator.level_max()-level_offset)) {
+#ifdef HAVE_OPENMP
 #pragma omp parallel for schedule(static) private(parent_number) firstprivate(apr_tree_iterator, neighbour_tree_iterator)
+#endif
                 for (parent_number = apr_tree_iterator.particles_level_begin(level);
                      parent_number <
                      apr_tree_iterator.particles_level_end(level); ++parent_number) {
@@ -1095,8 +1132,9 @@ public:
 
         level = apr_tree_iterator.level_max();
         for (int i = 0; i < 3; ++i) {
-
+#ifdef HAVE_OPENMP
 #pragma omp parallel for schedule(static) private(parent_number) firstprivate(apr_tree_iterator, neighbour_tree_iterator)
+#endif
             for (parent_number = apr_tree_iterator.particles_level_begin(level);
                  parent_number <
                  apr_tree_iterator.particles_level_end(level); ++parent_number) {
@@ -1133,8 +1171,9 @@ public:
         }
 
         adaptive_max.init(apr);
-
+#ifdef HAVE_OPENMP
 #pragma omp parallel for schedule(static) private(particle_number) firstprivate(apr_iterator,parent_iterator)
+#endif
         //Now set the highest level particle cells.
         for (particle_number = apr_iterator.particles_level_begin(apr_iterator.level_max());
              particle_number <
@@ -1155,7 +1194,9 @@ public:
         std::fill(boundary_type.data.begin(),boundary_type.data.end(),0);
 
         //spread solution
+#ifdef HAVE_OPENMP
 #pragma omp parallel for schedule(static) private(particle_number) firstprivate(apr_iterator,apr_tree_iterator,neighbour_tree_iterator)
+#endif
         for (particle_number = apr_iterator.particles_level_begin(apr_iterator.level_max() - 1);
              particle_number <
              apr_iterator.particles_level_end(apr_iterator.level_max() - 1); ++particle_number) {
@@ -1202,7 +1243,9 @@ public:
             while(still_empty && (empty_counter < maximum_iteration)) {
                 empty_counter++;
                 still_empty = false;
+#ifdef HAVE_OPENMP
 #pragma omp parallel for schedule(static) private(particle_number) firstprivate(apr_iterator, neigh_iterator) reduction(||:still_empty)
+#endif
                 for (particle_number = apr_iterator.particles_level_begin(level);
                      particle_number <
                      apr_iterator.particles_level_end(level); ++particle_number) {
@@ -1240,8 +1283,9 @@ public:
                     }
                 }
 
-
+#ifdef HAVE_OPENMP
 #pragma omp parallel for schedule(static) private(particle_number) firstprivate(apr_iterator, neigh_iterator)
+#endif
                 for (particle_number = apr_iterator.particles_level_begin(level);
                      particle_number <
                      apr_iterator.particles_level_end(level); ++particle_number) {
@@ -1274,8 +1318,9 @@ public:
                     }
                 }
             }
-
+#ifdef HAVE_OPENMP
 #pragma omp parallel for schedule(static) private(particle_number) firstprivate(apr_iterator,parent_iterator)
+#endif
             for (particle_number = apr_iterator.particles_level_begin(level);
                  particle_number <
                  apr_iterator.particles_level_end(level); ++particle_number) {
@@ -1335,8 +1380,9 @@ public:
 
         unsigned int level = apr_tree_iterator.level_max();
 
-
+#ifdef HAVE_OPENMP
 #pragma omp parallel for schedule(static) private(parent_number) firstprivate(apr_tree_iterator, neighbour_tree_iterator, parent_iterator)
+#endif
         for (parent_number = apr_tree_iterator.particles_level_begin(level);
              parent_number <
              apr_tree_iterator.particles_level_end(level); ++parent_number) {
@@ -1349,7 +1395,9 @@ public:
         }
 
         for (int level = (apr_iterator.level_max()-1); level > apr_iterator.level_min() ; --level) {
+#ifdef HAVE_OPENMP
 #pragma omp parallel for schedule(static) private(parent_number) firstprivate(apr_tree_iterator, neighbour_tree_iterator, parent_iterator)
+#endif
             for (parent_number = apr_tree_iterator.particles_level_begin(level);
                  parent_number <
                  apr_tree_iterator.particles_level_end(level); ++parent_number) {
@@ -1402,7 +1450,9 @@ public:
             //Now set the highest level particle cells.
 
             if(level>(apr_tree_iterator.level_max()-level_offset)) {
+#ifdef HAVE_OPENMP
 #pragma omp parallel for schedule(static) private(parent_number) firstprivate(apr_tree_iterator, parent_iterator)
+#endif
                 for (parent_number = apr_tree_iterator.particles_level_begin(level);
                      parent_number <
                      apr_tree_iterator.particles_level_end(level); ++parent_number) {
@@ -1415,7 +1465,9 @@ public:
                 }
             }
             if(level>(apr_tree_iterator.level_max()-level_offset)) {
+#ifdef HAVE_OPENMP
 #pragma omp parallel for schedule(static) private(parent_number) firstprivate(apr_tree_iterator, neighbour_tree_iterator)
+#endif
                 for (parent_number = apr_tree_iterator.particles_level_begin(level);
                      parent_number <
                      apr_tree_iterator.particles_level_end(level); ++parent_number) {
@@ -1463,7 +1515,9 @@ public:
         level = apr_tree_iterator.level_max();
 
         for (int i = 0; i < 3; ++i) {
+#ifdef HAVE_OPENMP
 #pragma omp parallel for schedule(static) private(parent_number) firstprivate(apr_tree_iterator, neighbour_tree_iterator)
+#endif
             for (parent_number = apr_tree_iterator.particles_level_begin(level);
                  parent_number <
                  apr_tree_iterator.particles_level_end(level); ++parent_number) {
@@ -1497,8 +1551,9 @@ public:
 
 
         adaptive_min.init(apr);
-
+#ifdef HAVE_OPENMP
 #pragma omp parallel for schedule(static) private(particle_number) firstprivate(apr_iterator,parent_iterator)
+#endif
         //Now set the highest level particle cells.
         for (particle_number = apr_iterator.particles_level_begin(apr_iterator.level_max());
              particle_number <
@@ -1519,7 +1574,9 @@ public:
         std::fill(boundary_type.data.begin(),boundary_type.data.end(),0);
 
         //spread solution
+#ifdef HAVE_OPENMP
 #pragma omp parallel for schedule(static) private(particle_number) firstprivate(apr_iterator,apr_tree_iterator,neighbour_tree_iterator)
+#endif
         for (particle_number = apr_iterator.particles_level_begin(apr_iterator.level_max() - 1);
              particle_number <
              apr_iterator.particles_level_end(apr_iterator.level_max() - 1); ++particle_number) {
@@ -1566,7 +1623,9 @@ public:
             while(still_empty && (empty_counter < maximum_iteration)) {
                 empty_counter++;
                 still_empty = false;
+#ifdef HAVE_OPENMP
 #pragma omp parallel for schedule(static) private(particle_number) firstprivate(apr_iterator, neigh_iterator) reduction(||:still_empty)
+#endif
                 for (particle_number = apr_iterator.particles_level_begin(level);
                      particle_number <
                      apr_iterator.particles_level_end(level); ++particle_number) {
@@ -1604,8 +1663,9 @@ public:
                     }
                 }
 
-
+#ifdef HAVE_OPENMP
 #pragma omp parallel for schedule(static) private(particle_number) firstprivate(apr_iterator, neigh_iterator)
+#endif
                 for (particle_number = apr_iterator.particles_level_begin(level);
                      particle_number <
                      apr_iterator.particles_level_end(level); ++particle_number) {
@@ -1638,8 +1698,9 @@ public:
                     }
                 }
             }
-
+#ifdef HAVE_OPENMP
 #pragma omp parallel for schedule(static) private(particle_number) firstprivate(apr_iterator,parent_iterator)
+#endif
             for (particle_number = apr_iterator.particles_level_begin(level);
                  particle_number <
                  apr_iterator.particles_level_end(level); ++particle_number) {
