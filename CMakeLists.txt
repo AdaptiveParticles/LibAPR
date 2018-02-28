@@ -6,12 +6,18 @@ project(LibAPR)
 set(CMAKE_CXX_STANDARD 14)
 
 # APR build options:
-option(APR_INSTALL "Install APR library" OFF)
+option(APR_INSTALL "Install APR library" ON)
+option(APR_BUILD_SHARED_LIB "Builds shared library" ON)
+option(APR_BUILD_STATIC_LIB "Builds shared library" ON)
 option(APR_BUILD_EXAMPLES "Build APR examples" OFF)
 option(APR_TESTS "Build APR tests" OFF)
 option(APR_PREFER_EXTERNAL_GTEST "When found, use the installed GTEST libs instead of included sources" OFF)
 option(APR_BUILD_JAVA_WRAPPERS "Build APR JAVA wrappers" OFF)
 
+# Validation of options
+if (NOT APR_BUILD_SHARED_LIB AND NOT APR_BUILD_STATIC_LIB)
+    message(FATAL_ERROR "At least one target: APR_BUILD_SHARED_LIB or APR_BUILD_STATIC_LIB must be build!")
+endif()
 
 ###############################################################################
 # Generate configuration file
@@ -19,6 +25,7 @@ option(APR_BUILD_JAVA_WRAPPERS "Build APR JAVA wrappers" OFF)
 set (APR_VERSION_MAJOR 1)
 set (APR_VERSION_MINOR 0)
 set (APR_VERSION_PATCH 0)
+set (APR_VERSION_STRING ${APR_VERSION_MAJOR}.${APR_VERSION_MINOR}.${APR_VERSION_PATCH})
 execute_process(COMMAND git rev-parse HEAD
         WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}
         OUTPUT_VARIABLE APR_GIT_HASH)
@@ -28,8 +35,6 @@ configure_file (
         "${PROJECT_BINARY_DIR}/ConfigAPR.h"
 )
 include_directories("${PROJECT_BINARY_DIR}")
-file(READ "${PROJECT_BINARY_DIR}/ConfigAPR.h" ConfigAPRcontent)
-string(REGEX REPLACE ".*APR_VERSION[ \t]+=[ \t]+\"([-0-9A-Za-z.]+)\".*" "\\1" APR_VERSION_STRING ${ConfigAPRcontent})
 message("Configuring for APR version: " ${APR_VERSION_STRING})
 
 ###############################################################################
@@ -86,52 +91,87 @@ endif()
 # Generate APR library
 ###############################################################################
 
+set(LIBRARY_NAME apr)
+
 set(SOURCE_FILES src/io/blosc_filter.c src/io/hdf5functions_blosc.cpp)
 set(SOURCE_FILES_RAYCAST src/numerics/APRRaycaster.cpp src/vis/Camera.cpp src/vis/Object.cpp src/vis/RaytracedObject.cpp)
 
-# generate static library used as a intermediate step in generating fat lib
-add_library(libapr_static STATIC ${SOURCE_FILES} ${SOURCE_FILES_RAYCAST})
-set_target_properties(libapr_static PROPERTIES OUTPUT_NAME apr)
-target_include_directories(libapr_static INTERFACE src)
+if(APR_BUILD_STATIC_LIB)
+    # generate static library used as a intermediate step in generating fat lib
+    set(STATIC_TARGET_NAME staticLib)
+    add_library(${STATIC_TARGET_NAME} STATIC ${SOURCE_FILES} ${SOURCE_FILES_RAYCAST})
+    set_target_properties(${STATIC_TARGET_NAME} PROPERTIES OUTPUT_NAME ${LIBRARY_NAME})
 
-# generate fat static library by adding dependencies
-include(cmake/AddStaticLibs.cmake)
-addStaticLibs(libapr_static blosc_static)
+    # generate fat static library by adding dependencies
+    include(cmake/AddStaticLibs.cmake)
+    addStaticLibs(${STATIC_TARGET_NAME} blosc_static)
+endif()
 
+if(APR_BUILD_SHARED_LIB)
 # generate fat shared library
-add_library(libapr_dynamic SHARED ${SOURCE_FILES} ${SOURCE_FILES_RAYCAST})
-add_dependencies(libapr_dynamic blosc_static)
-set_target_properties(libapr_dynamic PROPERTIES OUTPUT_NAME apr)
-set_property(TARGET libapr_dynamic PROPERTY VERSION ${APR_VERSION_STRING})
-set_property(TARGET libapr_dynamic PROPERTY SOVERSION ${APR_VERSION_MAJOR})
-target_include_directories(libapr_dynamic INTERFACE src)
-target_link_libraries(libapr_dynamic PUBLIC ${HDF5_LIBRARIES} ${TIFF_LIBRARIES} -Wl,-force_load,$<TARGET_FILE:blosc_static>)
+    set(SHARED_TARGET_NAME sharedLib)
+    add_library(${SHARED_TARGET_NAME} SHARED ${SOURCE_FILES} ${SOURCE_FILES_RAYCAST})
+    set_target_properties(${SHARED_TARGET_NAME} PROPERTIES OUTPUT_NAME ${LIBRARY_NAME})
+    set_target_properties(${SHARED_TARGET_NAME} PROPERTIES LIBRARY_OUTPUT_NAME ${LIBRARY_NAME})
+    set_target_properties(${SHARED_TARGET_NAME} PROPERTIES ARCHIVE_OUTPUT_NAME ${LIBRARY_NAME})
+    add_dependencies(${SHARED_TARGET_NAME} blosc_static)
+    set_property(TARGET ${SHARED_TARGET_NAME} PROPERTY VERSION ${APR_VERSION_STRING})
+    set_property(TARGET ${SHARED_TARGET_NAME} PROPERTY SOVERSION ${APR_VERSION_MAJOR})
+    target_link_libraries(${SHARED_TARGET_NAME} PRIVATE ${HDF5_LIBRARIES} ${TIFF_LIBRARIES} -Wl,-force_load,$<TARGET_FILE:blosc_static>)
+endif()
+
+# choose one of the build libraries to be used later for tests and/or examples
+if (APR_BUILD_SHARED_LIB)
+    set(APR_BUILD_LIBRARY ${SHARED_TARGET_NAME})
+else()
+    set(APR_BUILD_LIBRARY ${STATIC_TARGET_NAME})
+endif()
 
 
 ###############################################################################
 # Install APR library
 ###############################################################################
 if(APR_INSTALL)
+    set(INSTALL_LIB_DIR lib CACHE PATH "Installation directory for libraries")
+    set(INSTALL_INCLUDE_DIR include CACHE PATH "Installation directory for header files")
+    set(INSTALL_INCLUDE_PROJECT_DIR ${INSTALL_INCLUDE_DIR}/${LIBRARY_NAME} CACHE PATH "Installation directory for header files")
+    set(INSTALL_CMAKE_DIR ${INSTALL_LIB_DIR}/cmake/${LIBRARY_NAME} CACHE PATH "Installation directory for cmake files")
+
     message(STATUS "APR: Install library in [${CMAKE_INSTALL_PREFIX}]")
-    install(TARGETS libapr_static DESTINATION lib COMPONENT LIB)
-    install(TARGETS libapr_dynamic DESTINATION lib COMPONENT LIB)
-    install(DIRECTORY src/algorithm DESTINATION include/apr COMPONENT DEV FILES_MATCHING PATTERN "*.hpp")
-    install(DIRECTORY src/data_structures DESTINATION include/apr COMPONENT DEV FILES_MATCHING PATTERN "*.hpp")
-    install(DIRECTORY src/io DESTINATION include/apr COMPONENT DEV FILES_MATCHING PATTERN "*.hpp" PATTERN "*.h")
-    install(DIRECTORY src/misc DESTINATION include/apr COMPONENT DEV FILES_MATCHING PATTERN "*.hpp")
-    install(DIRECTORY src/numerics DESTINATION include/apr COMPONENT DEV FILES_MATCHING PATTERN "*.hpp")
-    install(DIRECTORY src/vis DESTINATION include/apr COMPONENT DEV FILES_MATCHING PATTERN "*.h")
-    install(FILES ${PROJECT_BINARY_DIR}/ConfigAPR.h COMPONENT DEV DESTINATION include/apr/io)
-    install(FILES ${PROJECT_BINARY_DIR}/ConfigAPR.h COMPONENT DEV DESTINATION include/apr)
+    set(INC_DIRS src/algorithm src/data_structures src/io src/misc src/numerics src/vis)
+    install(DIRECTORY ${INC_DIRS} DESTINATION ${INSTALL_INCLUDE_PROJECT_DIR} COMPONENT DEV FILES_MATCHING PATTERN "*.hpp" PATTERN "*.h")
+    # TODO: It is installed twice since it is used by different compoonents - it must be fixed
+    install(FILES ${PROJECT_BINARY_DIR}/ConfigAPR.h COMPONENT DEV DESTINATION ${INSTALL_INCLUDE_PROJECT_DIR}/io)
+    install(FILES ${PROJECT_BINARY_DIR}/ConfigAPR.h COMPONENT DEV DESTINATION ${INSTALL_INCLUDE_PROJECT_DIR})
+
+    set(APR_TARGETS LibAprTargets)
+    install(TARGETS ${SHARED_TARGET_NAME} ${STATIC_TARGET_NAME}
+            EXPORT ${APR_TARGETS}
+            LIBRARY DESTINATION ${INSTALL_LIB_DIR}
+            ARCHIVE DESTINATION ${INSTALL_LIB_DIR}
+            INCLUDES DESTINATION ${INSTALL_INCLUDE_DIR})
 
     # pkg-config
     configure_file("${CMAKE_CURRENT_SOURCE_DIR}/cmake/apr.pc.in" "${CMAKE_CURRENT_BINARY_DIR}/apr.pc" @ONLY)
     install(FILES "${CMAKE_CURRENT_BINARY_DIR}/apr.pc" DESTINATION lib/pkgconfig COMPONENT DEV)
 
+    # AprTargets
+    set(APR_NAMESPACE ${LIBRARY_NAME}::)
+    export( EXPORT ${APR_TARGETS} FILE "${CMAKE_CURRENT_BINARY_DIR}/AprTargets.cmake" NAMESPACE ${APR_NAMESPACE})
+    install(EXPORT ${APR_TARGETS} FILE AprTargets.cmake NAMESPACE ${APR_NAMESPACE} DESTINATION ${INSTALL_CMAKE_DIR})
+
+    # AprConfig
+    configure_file(cmake/AprConfig.cmake "${CMAKE_CURRENT_BINARY_DIR}/AprConfig.cmake" @ONLY)
+    install(FILES ${CMAKE_CURRENT_BINARY_DIR}/AprConfig.cmake ${CMAKE_CURRENT_BINARY_DIR}/AprConfigVersion.cmake DESTINATION ${INSTALL_CMAKE_DIR} COMPONENT DEV)
+
+    # AprConfigVersion
+    include(CMakePackageConfigHelpers)
+    write_basic_package_version_file("${CMAKE_CURRENT_BINARY_DIR}/AprConfigVersion.cmake" VERSION ${APR_VERSION_STRING} COMPATIBILITY AnyNewerVersion)
+
     # uninstall
     configure_file("${CMAKE_CURRENT_SOURCE_DIR}/cmake/cmake-uninstall.cmake.in"
-            "${CMAKE_CURRENT_BINARY_DIR}/cmake-uninstall.cmake"
-            IMMEDIATE @ONLY)
+                   "${CMAKE_CURRENT_BINARY_DIR}/cmake-uninstall.cmake"
+                   IMMEDIATE @ONLY)
     add_custom_target(uninstall COMMAND ${CMAKE_COMMAND} -P ${CMAKE_CURRENT_BINARY_DIR}/cmake-uninstall.cmake)
 endif(APR_INSTALL)
 
@@ -140,6 +180,7 @@ endif(APR_INSTALL)
 # Examples
 ###############################################################################
 if(APR_BUILD_EXAMPLES)
+    include_directories(src)
     message(STATUS "APR: Building examples")
     add_subdirectory(examples)
 endif(APR_BUILD_EXAMPLES)
@@ -149,6 +190,7 @@ endif(APR_BUILD_EXAMPLES)
 # Tests
 ###############################################################################
 if(APR_TESTS)
+    include_directories(src)
     message(STATUS "APR: Building tests")
     if(APR_PREFER_EXTERNAL_GTEST)
         find_package(GTest 1.8.0)

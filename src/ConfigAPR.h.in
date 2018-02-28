@@ -12,8 +12,7 @@ namespace ConfigAPR {
     const unsigned int APR_VERSION_MINOR = @APR_VERSION_MINOR@;
     const unsigned int APR_VERSION_PATCH = @APR_VERSION_PATCH@;
     const char * const APR_GIT_HASH = "@APR_GIT_HASH@";
-    // do not change name of this variable unless you do same in CmakeLists.txt
-    const char * const APR_VERSION = "@APR_VERSION_MAJOR@.@APR_VERSION_MINOR@.@APR_VERSION_PATCH@";
+    const char * const APR_VERSION = "@APR_VERSION_STRING@";
 }
 
 #endif
