@@ -5,14 +5,14 @@
 #ifndef PARTPLAY_GRADIENT_HPP
 #define PARTPLAY_GRADIENT_HPP
 
-#include "src/data_structures/Mesh/MeshData.hpp"
-#include "src/io/TiffUtils.hpp"
+#include "../data_structures/Mesh/MeshData.hpp"
+#include "../io/TiffUtils.hpp"
 
 #ifdef HAVE_OPENMP
 	#include "omp.h"
 #endif
-#include "src/algorithm/APRParameters.hpp"
-#include "src/misc/APRTimer.hpp"
+#include "../algorithm/APRParameters.hpp"
+#include "../misc/APRTimer.hpp"
 
 class ComputeGradient {
 
@@ -48,7 +48,6 @@ public:
     template<typename T,typename S>
     void threshold_gradient(MeshData<T> &grad, const MeshData<S> &img, const float Ip_th);
 
-private:
     template<typename T>
     void bspline_filt_rec_y(MeshData<T> &image, float lambda, float tol);
 

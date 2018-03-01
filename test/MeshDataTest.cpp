@@ -2,7 +2,7 @@
  * Created by Krzysztof Gonciarz 2018
  */
 #include <gtest/gtest.h>
-#include "src/data_structures/Mesh/MeshData.hpp"
+#include "data_structures/Mesh/MeshData.hpp"
 
 namespace {
     class MeshDataTest : public ::testing::Test {

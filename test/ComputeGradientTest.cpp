@@ -3,8 +3,8 @@
  */
 
 #include <gtest/gtest.h>
-#include "src/data_structures/Mesh/MeshData.hpp"
-#include "src/algorithm/ComputeGradient.hpp"
+#include "data_structures/Mesh/MeshData.hpp"
+#include "algorithm/ComputeGradient.hpp"
 
 namespace {
     /**

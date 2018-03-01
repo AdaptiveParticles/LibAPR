@@ -20,21 +20,21 @@
 #include <iostream>
 #include <iomanip>
 
-#include "src/misc/APRTimer.hpp"
+#include "../../misc/APRTimer.hpp"
 
 
 template <typename T>
 class ArrayWrapper
 {
 public:
-    ArrayWrapper() : iArray(nullptr), iNumOfElements(-1) {}
+    ArrayWrapper() : iArray(nullptr), iNumOfElements(0) {}
     ArrayWrapper(ArrayWrapper &&aObj) {
         iArray = aObj.iArray; aObj.iArray = nullptr;
-        iNumOfElements = aObj.iNumOfElements; aObj.iNumOfElements = -1;
+        iNumOfElements = aObj.iNumOfElements; aObj.iNumOfElements = 0;
     }
     ArrayWrapper& operator=(ArrayWrapper&& aObj) {
         iArray = aObj.iArray; aObj.iArray = nullptr;
-        iNumOfElements = aObj.iNumOfElements; aObj.iNumOfElements = -1;
+        iNumOfElements = aObj.iNumOfElements; aObj.iNumOfElements = 0;
         return *this;
     }
 

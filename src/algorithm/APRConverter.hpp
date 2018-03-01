@@ -9,9 +9,9 @@
 #ifndef PARTPLAY_APR_CONVERTER_HPP
 #define PARTPLAY_APR_CONVERTER_HPP
 
-#include "src/data_structures/Mesh/MeshData.hpp"
-#include "src/io/TiffUtils.hpp"
-#include "src/data_structures/APR/APR.hpp"
+#include "../data_structures/Mesh/MeshData.hpp"
+#include "../io/TiffUtils.hpp"
+#include "../data_structures/APR/APR.hpp"
 
 #include "ComputeGradient.hpp"
 #include "LocalIntensityScale.hpp"

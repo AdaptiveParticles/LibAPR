@@ -5,8 +5,8 @@
 #ifndef PARTPLAY_APRRECONSTRUCTION_HPP
 #define PARTPLAY_APRRECONSTRUCTION_HPP
 
-#include "src/data_structures/APR/APR.hpp"
-#include "src/data_structures/APR/APRIterator.hpp"
+#include "../data_structures/APR/APR.hpp"
+#include "../data_structures/APR/APRIterator.hpp"
 
 class APRReconstruction {
 public:
