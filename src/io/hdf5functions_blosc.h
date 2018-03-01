@@ -12,9 +12,9 @@
 #define PARTPLAY_HDF5FUNCTIONS_BLOSC_H
 
 extern "C" {
-	#include "hdf5.h"
 	#include "blosc_filter.h"
 }
+#include "hdf5.h"
 #include <string>
 #include <algorithm>
 #include <iostream>
