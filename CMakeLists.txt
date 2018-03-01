@@ -106,6 +106,7 @@ if(APR_BUILD_STATIC_LIB)
     set(STATIC_TARGET_NAME staticLib)
     add_library(${STATIC_TARGET_NAME} STATIC $<TARGET_OBJECTS:aprObjLib>)
     set_target_properties(${STATIC_TARGET_NAME} PROPERTIES OUTPUT_NAME ${LIBRARY_NAME})
+    target_include_directories(${STATIC_TARGET_NAME} PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/src> $<BUILD_INTERFACE:${PROJECT_BINARY_DIR}>)
 
     # generate fat static library by adding dependencies
     include(cmake/AddStaticLibs.cmake)
@@ -116,6 +117,7 @@ if(APR_BUILD_SHARED_LIB)
 # generate fat shared library
     set(SHARED_TARGET_NAME sharedLib)
     add_library(${SHARED_TARGET_NAME} SHARED $<TARGET_OBJECTS:aprObjLib>)
+    target_include_directories(${SHARED_TARGET_NAME} PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/src> $<BUILD_INTERFACE:${PROJECT_BINARY_DIR}>)
     set_target_properties(${SHARED_TARGET_NAME} PROPERTIES OUTPUT_NAME ${LIBRARY_NAME})
     set_target_properties(${SHARED_TARGET_NAME} PROPERTIES LIBRARY_OUTPUT_NAME ${LIBRARY_NAME})
     set_target_properties(${SHARED_TARGET_NAME} PROPERTIES ARCHIVE_OUTPUT_NAME ${LIBRARY_NAME})
@@ -154,7 +156,7 @@ if(APR_INSTALL)
             EXPORT ${APR_TARGETS}
             LIBRARY DESTINATION ${INSTALL_LIB_DIR}
             ARCHIVE DESTINATION ${INSTALL_LIB_DIR}
-            INCLUDES DESTINATION ${INSTALL_INCLUDE_DIR})
+            INCLUDES DESTINATION ${INSTALL_INCLUDE_DIR} ${INSTALL_INCLUDE_DIR}/${LIBRARY_NAME})
 
     # pkg-config
     configure_file("${CMAKE_CURRENT_SOURCE_DIR}/cmake/apr.pc.in" "${CMAKE_CURRENT_BINARY_DIR}/apr.pc" @ONLY)
