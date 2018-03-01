@@ -134,6 +134,119 @@ public:
 
     }
 
+    bool set_iterator_to_particle_by_number(const uint64_t particle_number,const uint16_t level){
+        //
+        //  Moves the iterator to point to the particle number (global index of the particle)
+        //
+
+        if(particle_number==0){
+            current_particle_cell.level = level;
+            current_particle_cell.pc_offset=0;
+
+            if(move_iterator_to_next_non_empty_row(level_max())){
+                //found and set
+                set_neighbour_flag();
+                return true;
+            } else{
+                return false; //no particle cells, something is wrong
+            }
+        } else if (particle_number < apr_access->total_number_particles) {
+
+            //iterating just move to next
+            if(particle_number == (current_particle_cell.global_index+1)){
+                bool success = move_to_next_particle_cell();
+                set_neighbour_flag();
+                return success;
+            }
+
+            current_particle_cell.level = level;
+            //otherwise now we have to figure out where to look for the next particle cell;
+
+            //then find the offset (zx row)
+            current_particle_cell.pc_offset=0;
+
+            while(particle_number > particles_offset_end(current_particle_cell.level,current_particle_cell.pc_offset)){
+                current_particle_cell.pc_offset++;
+            }
+
+            //back out your xz from the offset
+            current_particle_cell.z = (current_particle_cell.pc_offset)/spatial_index_x_max(current_particle_cell.level);
+            current_particle_cell.x = (current_particle_cell.pc_offset) - current_particle_cell.z*(spatial_index_x_max(current_particle_cell.level));
+
+            current_gap.iterator = apr_access->gap_map.data[current_particle_cell.level][current_particle_cell.pc_offset][0].map.begin();
+            //then find the gap.
+            while((particle_number > apr_access->global_index_end(current_gap))){
+                current_gap.iterator++;
+            }
+
+            current_particle_cell.y = (current_gap.iterator->first) + (particle_number - current_gap.iterator->second.global_index_begin);
+            current_particle_cell.global_index = particle_number;
+            set_neighbour_flag();
+            return true;
+
+        } else {
+            current_particle_cell.global_index = -1;
+            return false; // requested particle number exceeds the number of particles
+        }
+
+    }
+
+
+
+    uint64_t set_new_lzx(const uint16_t level,const uint16_t z,const uint16_t x){
+        current_particle_cell.level = level;
+        //otherwise now we have to figure out where to look for the next particle cell;
+
+        //back out your xz from the offset
+        current_particle_cell.z = z;
+        current_particle_cell.x = x;
+
+        current_particle_cell.pc_offset = apr_access->x_num[level]*z + x;
+
+        if(apr_access->gap_map.data[current_particle_cell.level][current_particle_cell.pc_offset].size() > 0) {
+
+            current_gap.iterator = apr_access->gap_map.data[current_particle_cell.level][current_particle_cell.pc_offset][0].map.begin();
+            current_particle_cell.y = current_gap.iterator->first;
+            current_particle_cell.global_index = current_gap.iterator->second.global_index_begin;
+
+            set_neighbour_flag();
+
+            // IN HERE PUT THE STARTING INDEX!
+            return current_particle_cell.global_index;
+        } else {
+            return UINT64_MAX;
+        }
+
+    }
+
+    bool set_iterator_to_particle_next_particle(){
+        //
+        //  Moves the iterator to point to the particle number (global index of the particle)
+        //
+
+        if( (current_particle_cell.y+1) <= current_gap.iterator->second.y_end){
+            //  Still in same y gap
+
+            current_particle_cell.global_index++;
+            current_particle_cell.y++;
+            return true;
+
+        } else {
+
+            //not in the same gap
+            current_gap.iterator++;//move the iterator forward.
+
+
+            //I am in the next gap
+            current_particle_cell.global_index++;
+            current_particle_cell.y = current_gap.iterator->first; // the key is the first y value for the gap
+            return true;
+        }
+
+    }
+
+
+
     inline uint64_t particles_level_begin(const uint16_t& level_){
         //
         //  Used for finding the starting particle on a given level
@@ -161,6 +274,11 @@ public:
         //
         return apr_access->global_index_by_level_and_z_end[level_][z_]+1l;
     }
+
+    inline uint64_t current_offset(){
+        return current_particle_cell.pc_offset;
+    }
+
 
     inline uint64_t particles_zx_begin(const uint16_t& level_,const uint64_t& z_,const uint64_t& x_){
         //
@@ -574,6 +692,7 @@ protected:
             return true;
 
         } else {
+
             //not in the same gap
             current_gap.iterator++;//move the iterator forward.
 
