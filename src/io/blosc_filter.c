@@ -18,6 +18,16 @@
 #include "hdf5.h"
 #include "blosc_filter.h"
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+#undef BLOSC_ZSTD
+#include <blosc.h>
+#ifdef __cplusplus
+}
+#endif
+
+
 #if defined(__GNUC__)
 #define PUSH_ERR(func, minor, str, ...) H5Epush(H5E_DEFAULT, __FILE__, func, __LINE__, H5E_ERR_CLS, H5E_PLINE, minor, str, ##__VA_ARGS__)
 #elif defined(_MSC_VER)

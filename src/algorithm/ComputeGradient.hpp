@@ -5,32 +5,21 @@
 #ifndef PARTPLAY_GRADIENT_HPP
 #define PARTPLAY_GRADIENT_HPP
 
-#include "src/data_structures/Mesh/MeshData.hpp"
+#include "../data_structures/Mesh/MeshData.hpp"
+#include "../io/TiffUtils.hpp"
+
 #ifdef HAVE_OPENMP
 	#include "omp.h"
 #endif
-#include "src/algorithm/APRParameters.hpp"
-#include "src/misc/APRTimer.hpp"
+#include "../algorithm/APRParameters.hpp"
+#include "../misc/APRTimer.hpp"
 
 class ComputeGradient {
 
 public:
 
     template<typename T>
-    void bspline_filt_rec_y(MeshData<T> &image, float lambda, float tol);
-
-    template<typename T>
-    void bspline_filt_rec_x(MeshData<T> &image, float lambda, float tol);
-
-    template<typename T>
-    void bspline_filt_rec_z(MeshData<T> &image, float lambda, float tol);
-
-    inline float impulse_resp(float k, float rho, float omg);
-
-    inline float impulse_resp_back(float k, float rho, float omg, float gamma, float c0);
-
-    template<typename T>
-    void get_smooth_bspline_3D(MeshData<T> &input, APRParameters &pars);
+    void get_smooth_bspline_3D(MeshData<T> &input, float lambda);
 
 // Calculate inverse B-Spline Transform
 
@@ -49,15 +38,29 @@ public:
 
 // Gradient computation
 
-    template<typename T, typename S>
+    template<typename S>
     void
-    calc_bspline_fd_ds_mag(MeshData<T> &input, MeshData<S> &grad, const float hx, const float hy, const float hz);
+    calc_bspline_fd_ds_mag(const MeshData<S> &input, MeshData<S> &grad, const float hx, const float hy, const float hz);
 
     template<typename T,typename S>
     void mask_gradient(MeshData<T>& grad_ds,MeshData<S>& temp_ds,MeshData<T>& temp_full,APRParameters& par);
 
     template<typename T,typename S>
     void threshold_gradient(MeshData<T> &grad, const MeshData<S> &img, const float Ip_th);
+
+    template<typename T>
+    void bspline_filt_rec_y(MeshData<T> &image, float lambda, float tol);
+
+    template<typename T>
+    void bspline_filt_rec_x(MeshData<T> &image, float lambda, float tol);
+
+    template<typename T>
+    void bspline_filt_rec_z(MeshData<T> &image, float lambda, float tol);
+
+    inline float impulse_resp(float k, float rho, float omg);
+
+    inline float impulse_resp_back(float k, float rho, float omg, float gamma, float c0);
+
 };
 
 
@@ -70,7 +73,9 @@ void ComputeGradient::mask_gradient(MeshData<T>& grad_ds,MeshData<S>& temp_ds,Me
     //
     //
 
-    //location
+    // TODO: code below makes no sense
+    //       first it reads img to temp_full then overwrites it by downsompling temp_ds to temp_full (which is later not used)
+    //       Not removing it for now since intentions are not known to me.
     std::string file_name = par.input_dir + par.mask_file;
 
     TiffUtils::getMesh(file_name, temp_full);
@@ -104,17 +109,61 @@ void ComputeGradient::threshold_gradient(MeshData<T> &grad, const MeshData<S> &i
 }
 
 template<typename T>
+void ComputeGradient::get_smooth_bspline_3D(MeshData<T>& input, float lambda) {
+    //
+    //  Gets smoothing bspline co-efficients for 3D
+    //
+    //
+
+    APRTimer spline_timer;
+    spline_timer.verbose_flag = false;
+
+    float tol = 0.0001;
+
+    //Y direction bspline
+    spline_timer.start_timer("bspline_filt_rec_y");
+    bspline_filt_rec_y(input,lambda,tol);
+    spline_timer.stop_timer();
+
+    //X direction bspline
+    spline_timer.start_timer("bspline_filt_rec_x");
+    bspline_filt_rec_x(input,lambda,tol);
+    spline_timer.stop_timer();
+
+    //Z direction bspline
+    spline_timer.start_timer("bspline_filt_rec_z");
+    bspline_filt_rec_z(input,lambda,tol);
+    spline_timer.stop_timer();
+}
+
+
+inline float ComputeGradient::impulse_resp(float k,float rho,float omg){
+    //  Impulse Response Function
+
+    return (pow(rho,(std::abs(k)))*sin((std::abs(k) + 1)*omg)) / sin(omg);
+
+}
+
+inline float ComputeGradient::impulse_resp_back(float k,float rho,float omg,float gamma,float c0){
+    //  Impulse Response Function (nominator eq. 4.8, denominator from eq. 4.7)
+
+    return c0*pow(rho,std::abs(k))*(cos(omg*std::abs(k)) + gamma*sin(omg*std::abs(k)))*(1.0/(pow((1 - 2.0*rho*cos(omg) + pow(rho,2)),2)));
+}
+
+template<typename T>
 void ComputeGradient::bspline_filt_rec_y(MeshData<T>& image,float lambda,float tol){
     //
     //  Bevan Cheeseman 2016
     //
-    //  Recursive Filter Implimentation for Smoothing BSplines (Unser 199*?)
+    // Recursive Filter Implimentation for Smoothing BSplines
+    // B-Spline Signal Processing: Part 11-Efficient Design and Applications, Unser 1993
 
-    float xi = 1 - 96*lambda + 24*lambda*sqrt(3 + 144*lambda);
-    float rho = (24*lambda - 1 - sqrt(xi))/(24*lambda)*sqrt((1/xi)*(48*lambda + 24*lambda*sqrt(3 + 144*lambda)));
-    float omg = atan(sqrt((1/xi)*(144*lambda - 1)));
-    float c0 = (1+ pow(rho,2))/(1-pow(rho,2)) * (1 - 2*rho*cos(omg) + pow(rho,2))/(1 + 2*rho*cos(omg) + pow(rho,2));
-    float gamma = (1-pow(rho,2))/(1+pow(rho,2)) * (1/tan(omg));
+    float xi = 1 - 96*lambda + 24*lambda*sqrt(3 + 144*lambda); // eq 4.6
+    float rho = (24*lambda - 1 - sqrt(xi))/(24*lambda)*sqrt((1/xi)*(48*lambda + 24*lambda*sqrt(3 + 144*lambda))); // eq 4.5
+    float omg = atan(sqrt((1/xi)*(144*lambda - 1))); // eq 4.6
+
+    float c0 = (1+ pow(rho,2))/(1-pow(rho,2)) * (1 - 2*rho*cos(omg) + pow(rho,2))/(1 + 2*rho*cos(omg) + pow(rho,2)); // eq 4.8
+    float gamma = (1-pow(rho,2))/(1+pow(rho,2)) * (1/tan(omg)); // eq 4.8
 
     const float b1 = 2*rho*cos(omg);
     const float b2 = -pow(rho,2.0);
@@ -541,261 +590,14 @@ void ComputeGradient::bspline_filt_rec_x(MeshData<T>& image,float lambda,float t
     }
 }
 
-template<typename T>
-void ComputeGradient::calc_inv_bspline_z(MeshData<T>& input){
-    //
-    //
-    //  Bevan Cheeseman 2016
-    //
-    //  Inverse cubic bspline inverse filter in x direciton (Off-stride direction)
-    //
-    //
-
-    int64_t z_num = input.z_num;
-    int64_t x_num = input.x_num;
-    int64_t y_num = input.y_num;
-
-    const float a1 = 1.0 / 6.0;
-    const float a2 = 4.0 / 6.0;
-    const float a3 = 1.0 / 6.0;
-
-    std::vector<three_temps> temp_vec(y_num);
-
-    int64_t xnumynum = x_num * y_num;
-    int64_t j, k, iynum, jxnumynum;
-
-#ifdef HAVE_OPENMP
-	#pragma omp parallel for default(shared) private(j, k, iynum, jxnumynum) \
-                         firstprivate(temp_vec)
-#endif
-    for (int64_t i = 0; i < x_num; i++) {
-
-        iynum = i * y_num;
-
-        //initialize the loop
-        for (k = y_num - 1; k >= 0; k--) {
-            temp_vec[k].temp_1 = input.mesh[xnumynum + iynum + k];
-            temp_vec[k].temp_2 = input.mesh[iynum + k];
-        }
-
-        for (j = 0; j < z_num - 1; j++) {
-
-            jxnumynum = j * xnumynum;
-
-            //initialize the loop
-#ifdef HAVE_OPENMP
-	#pragma omp simd
-#endif
-            for (k = 0; k < (y_num);k++){
-                temp_vec[k].temp_3 = input.mesh[jxnumynum + xnumynum + iynum + k];
-            }
-
-#ifdef HAVE_OPENMP
-	#pragma omp simd
-#endif
-            for (k = 0; k < (y_num);k++){
-                input.mesh[jxnumynum + iynum + k] = a1 * temp_vec[k].temp_1 + a2 * temp_vec[k].temp_2 + a3 * temp_vec[k].temp_3;
-            }
-
-#ifdef HAVE_OPENMP
-	#pragma omp simd
-#endif
-            for (k = 0; k < (y_num);k++){
-                temp_vec[k].temp_1 = temp_vec[k].temp_2;
-                temp_vec[k].temp_2 = temp_vec[k].temp_3;
-            }
-
-        }
-
-        //then do the last boundary point (RHS)
-        for (k = 0; k < (y_num);k++){
-            input.mesh[(z_num - 1) * xnumynum + iynum + k] = (a1 + a3) * temp_vec[k].temp_1;
-            input.mesh[(z_num - 1) * xnumynum + iynum + k] += a2 * temp_vec[k].temp_2;
-        }
-    }
-}
-
-
-template<typename T>
-void ComputeGradient::calc_inv_bspline_x(MeshData<T>& input){
-    //
-    //
-    //  Bevan Cheeseman 2016
-    //
-    //  Inverse cubic bspline inverse filter in x direciton (Off-stride direction)
-    //
-    //
-
-    int64_t z_num = input.z_num;
-    int64_t x_num = input.x_num;
-    int64_t y_num = input.y_num;
-
-    const float a1 = 1.0/6.0;
-    const float a2 = 4.0/6.0;
-    const float a3 = 1.0/6.0;
-
-    std::vector<three_temps> temp_vec;
-    temp_vec.resize(y_num);
-
-    int64_t xnumynum = x_num * y_num;
-
-    int64_t i, k, jxnumynum, iynum;
-
-#ifdef HAVE_OPENMP
-	#pragma omp parallel for default(shared) private(i, k, iynum, jxnumynum) \
-                         firstprivate(temp_vec)
-#endif
-    for(int64_t j = 0; j < z_num; j++){
-
-        jxnumynum = j * x_num * y_num;
-
-        //initialize the loop
-        for (k = y_num - 1; k >= 0; k--) {
-            temp_vec[k].temp_1 = input.mesh[jxnumynum + y_num + k];
-            temp_vec[k].temp_2 = input.mesh[jxnumynum + k];
-        }
-
-        //LHS boundary condition is accounted for with this initialization
-
-        for(i = 0; i < x_num-1; i++){
-
-            iynum = i * y_num;
-
-            //initialize the loop
-#ifdef HAVE_OPENMP
-	#pragma omp simd
-#endif
-            for (k = 0; k < (y_num); k++) {
-                temp_vec[k].temp_3 = input.mesh[jxnumynum + iynum + y_num+ k];
-            }
-
-#ifdef HAVE_OPENMP
-	#pragma omp simd
-#endif
-            for (k = 0; k < (y_num); k++) {
-                input.mesh[jxnumynum + iynum + k] = a1 * temp_vec[k].temp_1 + a2 * temp_vec[k].temp_2 + a3 * temp_vec[k].temp_3;
-            }
-
-            for (k = 0; k < (y_num); k++) {
-                temp_vec[k].temp_1 = temp_vec[k].temp_2;
-                temp_vec[k].temp_2 = temp_vec[k].temp_3;
-            }
-
-        }
-
-        //then do the last boundary point (RHS)
-        for (k = y_num - 1; k >= 0; k--) {
-            input.mesh[jxnumynum + xnumynum - y_num + k] = (a1+a3) * temp_vec[k].temp_1 + a2 * temp_vec[k].temp_2;
-        }
-    }
-}
-
-template<typename T>
-void ComputeGradient::get_smooth_bspline_3D(MeshData<T>& input,APRParameters& pars){
-    //
-    //  Gets smoothing bspline co-efficients for 3D
-    //
-    //
-
-    APRTimer spline_timer;
-    spline_timer.verbose_flag = false;
-
-    float tol = 0.0001;
-    float lambda = pars.lambda;
-
-    //Y direction bspline
-    spline_timer.start_timer("bspline_filt_rec_y");
-    bspline_filt_rec_y(input,lambda,tol);
-    spline_timer.stop_timer();
-
-    //X direction bspline
-    spline_timer.start_timer("bspline_filt_rec_x");
-    bspline_filt_rec_x(input,lambda,tol);
-    spline_timer.stop_timer();
-
-    //Z direction bspline
-    spline_timer.start_timer("bspline_filt_rec_z");
-    bspline_filt_rec_z(input,lambda,tol);
-    spline_timer.stop_timer();
-}
-
-template<typename T,typename S>
-void ComputeGradient::calc_bspline_fd_ds_mag(MeshData<T> &input, MeshData<S> &grad, const float hx, const float hy,const float hz){
-    //
-    //  Bevan Cheeseman 2016
-    //
-    //  Calculate fd filt, for xgrad with bsplines
-
-    const size_t z_num = input.z_num;
-    const size_t x_num = input.x_num;
-    const size_t y_num = input.y_num;
-
-    const size_t x_num_ds = grad.x_num;
-    const size_t y_num_ds = grad.y_num;
-
-    const float a1 = -1.0/2.0;
-    const float a3 = 1.0/2.0;
-
-    std::vector<S> temp(y_num,0);
-    const size_t xnumynum = x_num * y_num;
-
-    #ifdef HAVE_OPENMP
-	#pragma omp parallel for default(shared)firstprivate(temp)
-    #endif
-    for (size_t j = 0;j < z_num; ++j) {
-        S *temp_vec_1 = input.mesh.begin() + j*x_num*y_num + 1*y_num;
-        S *temp_vec_2 = input.mesh.begin() + j*x_num*y_num;
-
-        //LHS boundary condition is accounted for wiht this initialization
-        const size_t j_m = j > 0 ? j - 1 : 0;
-        const size_t j_p = std::min(z_num-1, j+1);
-
-        for (size_t i = 0; i < x_num-1; ++i) {
-            S *temp_vec_4 = input.mesh.begin() + j_m*xnumynum + i * y_num;
-            S *temp_vec_5 = input.mesh.begin() + j_p*xnumynum + i * y_num;
-            S *temp_vec_3 = input.mesh.begin() + j*x_num*y_num + (i+1)*y_num;
-
-            //compute the boundary values
-            temp[0] = sqrt(pow((a1*temp_vec_1[0] + a3*temp_vec_3[0])/hx,2.0)  + pow((a1*temp_vec_4[0] + a3*temp_vec_5[0])/hz,2.0));
-
-            //do the y gradient
-            #ifdef HAVE_OPENMP
-	        #pragma omp simd
-            #endif
-            for (size_t k = 1; k < (y_num-1); ++k) {
-                temp[k] =  sqrt(pow((a1*temp_vec_4[k] + a3*temp_vec_5[k])/hz,2.0) +  pow((a1*temp_vec_2[k-1] + a3*temp_vec_2[k+1])/hy,2.0) + pow((a1*temp_vec_1[k] + a3*temp_vec_3[k])/hx,2.0));
-            }
-
-            temp[y_num - 1] = sqrt(pow((a1*temp_vec_1[(y_num-1)] + a3*temp_vec_3[(y_num-1)])/hx,2.0)  + pow((a1*temp_vec_4[(y_num-1)] + a3*temp_vec_5[(y_num-1)])/hz,2.0));
-
-            int64_t j_2 = j/2;
-            int64_t i_2 = i/2;
-
-            for (size_t k = 0; k < (y_num_ds); ++k) {
-                size_t k_s = std::min(2*k+1, y_num-1);
-                const size_t idx = j_2 * x_num_ds * y_num_ds + i_2 * y_num_ds + k;
-                grad.mesh[idx] = std::max(temp[2 * k], std::max(temp[k_s], grad.mesh[idx]));
-            }
-
-            std::swap(temp_vec_1, temp_vec_2);
-            std::swap(temp_vec_2, temp_vec_3);
-        }
-    }
-}
-
-/*
+/**
  * Caclulation of signal value from B-Spline co-efficients
  */
-
 template<typename T>
 void ComputeGradient::calc_inv_bspline_y(MeshData<T>& input){
-    //
-    //
     //  Bevan Cheeseman 2016
     //
     //  Inverse cubic bspline inverse filter in y direciton (Memory direction)
-    //
-    //
 
     const int64_t z_num = input.z_num;
     const int64_t x_num = input.x_num;
@@ -805,35 +607,29 @@ void ComputeGradient::calc_inv_bspline_y(MeshData<T>& input){
     const float a2 = 4.0/6.0;
     const float a3 = 1.0/6.0;
 
-    std::vector<float> temp_vec;
-    temp_vec.resize(y_num,0);
-
-    //loop unrolling
-
-    int64_t i, k, j;
+    std::vector<float> temp_vec(y_num, 0);
 
 #ifdef HAVE_OPENMP
-	#pragma omp parallel for default(shared) private(i, k, j) firstprivate(temp_vec)
+#pragma omp parallel for default(shared) firstprivate(temp_vec)
 #endif
-    for(j = 0;j < z_num;j++){
-
-        for(i = 0;i < x_num;i++){
+    for (int64_t j = 0; j < z_num; ++j) {
+        for (int64_t i = 0;i < x_num; ++i) {
 
 #ifdef HAVE_OPENMP
-	#pragma omp simd
+#pragma omp simd
 #endif
-            for (k = 0; k < (y_num);k++){
-                temp_vec[k] = input.mesh[j*x_num*y_num + i*y_num + k];
+            for (int64_t k = 0; k < (y_num); ++k) {
+                int64_t idx = j * x_num * y_num + i * y_num + k;
+                temp_vec[k] = input.mesh[idx];
             }
 
             //LHS boundary condition
             input.mesh[j*x_num*y_num + i*y_num] = a2*temp_vec[0];
             input.mesh[j*x_num*y_num + i*y_num] += (a1+a3)*temp_vec[1];
 
-            for (k = 1; k < (y_num-1);k++){
-                input.mesh[j*x_num*y_num + i*y_num + k] = a1*temp_vec[k-1];
-                input.mesh[j*x_num*y_num + i*y_num + k] += a2*temp_vec[k];
-                input.mesh[j*x_num*y_num + i*y_num + k] += a3*temp_vec[k+1];
+            for (int64_t k = 1; k < (y_num-1);k++){
+                const int64_t idx = j * x_num * y_num + i * y_num + k;
+                input.mesh[idx] = a1*temp_vec[k-1] + a2*temp_vec[k] + a3*temp_vec[k+1];
             }
 
             //RHS boundary condition
@@ -843,23 +639,211 @@ void ComputeGradient::calc_inv_bspline_y(MeshData<T>& input){
     }
 }
 
-inline float ComputeGradient::impulse_resp(float k,float rho,float omg){
+template<typename T>
+void ComputeGradient::calc_inv_bspline_z(MeshData<T>& input){
+    //  Bevan Cheeseman 2016
     //
-    //  Impulse Response Function
-    //
-    //
+    //  Inverse cubic bspline inverse filter in x direciton (Off-stride direction)
 
-    return (pow(rho,(std::abs(k)))*sin((std::abs(k) + 1)*omg))/(sin(omg));
+    int64_t z_num = input.z_num;
+    int64_t x_num = input.x_num;
+    int64_t y_num = input.y_num;
 
+    const float a1 = 1.0 / 6.0; // gaussian for sigma 0.60056
+    const float a2 = 4.0 / 6.0;
+    const float a3 = 1.0 / 6.0;
+
+    std::vector<three_temps> temp_vec(y_num);
+
+    int64_t xnumynum = x_num * y_num;
+
+    #ifdef HAVE_OPENMP
+	#pragma omp parallel for default(shared) firstprivate(temp_vec)
+    #endif
+    for (int64_t i = 0; i < x_num; ++i) {
+        int64_t iynum = i * y_num;
+
+        //initialize the loop
+        for (int64_t k = y_num - 1; k >= 0; k--) {
+            temp_vec[k].temp_1 = input.mesh[xnumynum + iynum + k]; //second column in z_dir
+            temp_vec[k].temp_2 = input.mesh[iynum + k]; // first column in z-dir
+        }
+
+        for (int64_t j = 0; j < z_num - 1; ++j) {
+            int64_t jxnumynum = j * xnumynum;
+
+            //initialize the loop
+            #ifdef HAVE_OPENMP
+	        #pragma omp simd
+            #endif
+            for (int64_t k = 0; k < (y_num); ++k) {
+                temp_vec[k].temp_3 = input.mesh[jxnumynum + xnumynum + iynum + k]; // (j+1)th column in z dir
+            }
+
+            #ifdef HAVE_OPENMP
+	        #pragma omp simd
+            #endif
+            for (int64_t k = 0; k < (y_num); ++k) {
+                input.mesh[jxnumynum + iynum + k] = a1 * temp_vec[k].temp_1 + a2 * temp_vec[k].temp_2 + a3 * temp_vec[k].temp_3;
+            }
+
+            #ifdef HAVE_OPENMP
+            #pragma omp simd
+            #endif
+            // TODO: use three separete vectors and swap them instead of one vector of triple floats
+            for (int64_t k = 0; k < (y_num);k++){
+                temp_vec[k].temp_1 = temp_vec[k].temp_2;
+                temp_vec[k].temp_2 = temp_vec[k].temp_3;
+            }
+        }
+
+        //then do the last boundary point (RHS)
+        for (int64_t k = 0; k < (y_num);k++){
+            input.mesh[(z_num - 1) * xnumynum + iynum + k] = (a1 + a3) * temp_vec[k].temp_1;
+            input.mesh[(z_num - 1) * xnumynum + iynum + k] += a2 * temp_vec[k].temp_2;
+        }
+    }
 }
 
-inline float ComputeGradient::impulse_resp_back(float k,float rho,float omg,float gamma,float c0){
-    //
-    //  Impulse Response Function
-    //
-    //
 
-    return c0*pow(rho,std::abs(k))*(cos(omg*std::abs(k)) + gamma*sin(omg*std::abs(k)))*(1.0/(pow((1 - 2.0*rho*cos(omg) + pow(rho,2)),2)));
+template<typename T>
+void ComputeGradient::calc_inv_bspline_x(MeshData<T>& input) {
+    //  Bevan Cheeseman 2016
+    //
+    //  Inverse cubic bspline inverse filter in x direciton (Off-stride direction)
+
+    int64_t z_num = input.z_num;
+    int64_t x_num = input.x_num;
+    int64_t y_num = input.y_num;
+
+    const float a1 = 1.0/6.0;
+    const float a2 = 4.0/6.0;
+    const float a3 = 1.0/6.0;
+
+    std::vector<three_temps> temp_vec(y_num);
+    int64_t xnumynum = x_num * y_num;
+
+    #ifdef HAVE_OPENMP
+	#pragma omp parallel for default(shared) firstprivate(temp_vec)
+    #endif
+    for(int64_t j = 0; j < z_num; ++j) {
+        int64_t jxnumynum = j * xnumynum;
+
+        //initialize the loop
+        for (int64_t k = y_num - 1; k >= 0; --k) {
+            temp_vec[k].temp_1 = input.mesh[jxnumynum + y_num + k]; // second column in the XY plane
+            temp_vec[k].temp_2 = input.mesh[jxnumynum + k];   // first column in the XY plane
+        }
+
+        //LHS boundary condition is accounted for with this initialization
+        for (int64_t i = 0; i < x_num-1; ++i) {
+            int64_t iynum = i * y_num;
+
+            //initialize the loop
+            #ifdef HAVE_OPENMP
+	        #pragma omp simd
+            #endif
+            for (int64_t k = 0; k < y_num; ++k) {
+                temp_vec[k].temp_3 = input.mesh[jxnumynum + iynum + y_num + k]; // get (i+1)th column
+            }
+
+            #ifdef HAVE_OPENMP
+	        #pragma omp simd
+            #endif
+            for (int64_t k = 0; k < (y_num); k++) {
+                input.mesh[jxnumynum + iynum + k] = a1 * temp_vec[k].temp_1 + a2 * temp_vec[k].temp_2 + a3 * temp_vec[k].temp_3;
+            }
+
+            // move two first y-columns to the right
+            // TODO: instead of temp_vec of triple-floats we could use 3 separate vectors and switch them instead of copying data
+            for (int64_t k = 0; k < (y_num); k++) {
+                temp_vec[k].temp_1 = temp_vec[k].temp_2;
+                temp_vec[k].temp_2 = temp_vec[k].temp_3;
+            }
+        }
+
+        //then do the last boundary point (RHS)
+        for (int64_t k = y_num - 1; k >= 0; k--) {
+            input.mesh[jxnumynum + xnumynum - y_num + k] = (a1+a3) * temp_vec[k].temp_1 + a2 * temp_vec[k].temp_2;
+        }
+    }
+}
+
+
+/**
+ * Calculates downsampled gradient (maximum magnitude) with 'replicate' boundary approach (nearest border value)
+ * @param input - input mesh
+ * @param grad - output gradient (must be initialized)
+ * @param hx - step in x dir
+ * @param hy - step in y dir
+ * @param hz - step in z dir
+ */
+template<typename S>
+void ComputeGradient::calc_bspline_fd_ds_mag(const MeshData<S> &input, MeshData<S> &grad, const float hx, const float hy,const float hz) {
+    const size_t z_num = input.z_num;
+    const size_t x_num = input.x_num;
+    const size_t y_num = input.y_num;
+
+    const size_t x_num_ds = grad.x_num;
+    const size_t y_num_ds = grad.y_num;
+
+    std::vector<S> temp(y_num, 0);
+    const size_t xnumynum = x_num * y_num;
+
+    #ifdef HAVE_OPENMP
+    #pragma omp parallel for default(shared) firstprivate(temp)
+    #endif
+    for (size_t z = 0; z < z_num; ++z) {
+        // Belows pointers up, down... are forming stencil in X (left <-> right) and Z ( up <-> down) direction and
+        // are pointing to whole Y column. If out of bounds then 'replicate' (nearest array border value) approach is used.
+        //
+        //                 up
+        //   ...   left  center  right ...
+        //                down
+        const S *left = input.mesh.begin() + z * xnumynum + 0 * y_num; // boundary value is chosen
+        const S *center = input.mesh.begin() + z * xnumynum + 0 * y_num;
+
+        //LHS boundary condition is accounted for wiht this initialization
+        const size_t zMinus = z > 0 ? z - 1 : 0 /* boundary */;
+        const size_t zPlus = std::min(z + 1, z_num - 1 /* boundary */);
+
+        for (size_t x = 0; x < x_num; ++x) {
+            const S *up = input.mesh.begin() + zMinus * xnumynum + x * y_num;
+            const S *down = input.mesh.begin() + zPlus * xnumynum + x * y_num;
+            const size_t xPlus = std::min(x + 1, x_num - 1 /* boundary */);
+            const S *right = input.mesh.begin() + z * xnumynum + xPlus * y_num;
+
+            //compute the boundary values
+            if (y_num >= 2) {
+                temp[0] = sqrt(pow((right[0] - left[0]) / (2 * hx), 2.0) + pow((down[0] - up[0]) / (2 * hz), 2.0) + pow((center[1] - center[0 /* boundary */]) / (2 * hy), 2.0));
+                temp[y_num - 1] = sqrt(pow((right[y_num - 1] - left[y_num - 1]) / (2 * hx), 2.0) + pow((down[y_num - 1] - up[y_num - 1]) / (2 * hz), 2.0) + pow((center[y_num - 1 /* boundary */] - center[y_num - 2]) / (2 * hy), 2.0));
+            }
+            else {
+                temp[0] = 0; // same values minus same values in x/y/z
+            }
+
+            //do the y gradient in range 1..y_num-2
+            #ifdef HAVE_OPENMP
+            #pragma omp simd
+            #endif
+            for (size_t y = 1; y < y_num - 1; ++y) {
+                temp[y] = sqrt(pow((right[y] - left[y]) / (2 * hx), 2.0) + pow((down[y] - up[y]) / (2 * hz), 2.0) + pow((center[y + 1] - center[y - 1]) / (2 * hy), 2.0));
+            }
+
+            // Set as a downsampled gradient maximum from 2x2x2 gradient cubes
+            int64_t z_2 = z / 2;
+            int64_t x_2 = x / 2;
+            for (size_t k = 0; k < y_num_ds; ++k) {
+                size_t k_s = std::min(2 * k + 1, y_num - 1);
+                const size_t idx = z_2 * x_num_ds * y_num_ds + x_2 * y_num_ds + k;
+                grad.mesh[idx] = std::max(temp[2 * k], std::max(temp[k_s], grad.mesh[idx]));
+            }
+
+            // move left, center to current center, right (both +1 to right)
+            std::swap(left, center);
+            std::swap(center, right);
+        }
+    }
 }
 
 

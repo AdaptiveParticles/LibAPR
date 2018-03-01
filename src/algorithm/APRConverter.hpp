@@ -9,9 +9,9 @@
 #ifndef PARTPLAY_APR_CONVERTER_HPP
 #define PARTPLAY_APR_CONVERTER_HPP
 
-#include "src/data_structures/Mesh/MeshData.hpp"
-#include "src/io/TiffUtils.hpp"
-#include "src/data_structures/APR/APR.hpp"
+#include "../data_structures/Mesh/MeshData.hpp"
+#include "../io/TiffUtils.hpp"
+#include "../data_structures/APR/APR.hpp"
 
 #include "ComputeGradient.hpp"
 #include "LocalIntensityScale.hpp"
@@ -104,15 +104,13 @@ bool APRConverter<ImageType>::get_apr_method(APR<ImageType> &aAPR, MeshData<T>& 
 
     //assuming uint16, the total memory cost shoudl be approximately (1 + 1 + 1/8 + 2/8 + 2/8) = 2 5/8 original image size in u16bit
     //storage of the particle cell tree for computing the pulling scheme
-    MeshData<ImageType> image_temp; // global image variable useful for passing between methods, or re-using memory (should be the only full sized copy of the image)
-    MeshData<ImageType> grad_temp; // should be a down-sampled image
-    MeshData<float> local_scale_temp; //   Used as down-sampled images for some averaging steps where it is useful to not lose precision, or get over-flow errors
-    MeshData<float> local_scale_temp2;
-
     allocation_timer.start_timer("init and copy image");
-    image_temp.init(input_image);
+    MeshData<ImageType> image_temp(input_image, false /* don't copy */); // global image variable useful for passing between methods, or re-using memory (should be the only full sized copy of the image)
+    MeshData<ImageType> grad_temp; // should be a down-sampled image
     grad_temp.initDownsampled(input_image.y_num, input_image.x_num, input_image.z_num, 0);
+    MeshData<float> local_scale_temp; // Used as down-sampled images for some averaging steps where it is useful to not lose precision, or get over-flow errors
     local_scale_temp.initDownsampled(input_image.y_num, input_image.x_num, input_image.z_num);
+    MeshData<float> local_scale_temp2;
     local_scale_temp2.initDownsampled(input_image.y_num, input_image.x_num, input_image.z_num);
     allocation_timer.stop_timer();
 
@@ -126,7 +124,7 @@ bool APRConverter<ImageType>::get_apr_method(APR<ImageType> &aAPR, MeshData<T>& 
     //offset image by factor (this is required if there are zero areas in the background with uint16_t and uint8_t images, as the Bspline co-efficients otherwise may be negative!)
     // Warning both of these could result in over-flow (if your image is non zero, with a 'buffer' and has intensities up to uint16_t maximum value then set image_type = "", i.e. uncomment the following line)
     float bspline_offset = 0;
-    if(std::is_same<uint16_t, ImageType>::value){
+    if (std::is_same<uint16_t, ImageType>::value) {
         bspline_offset = 100;
         image_temp.copyFromMeshWithUnaryOp(input_image, [=](const auto &a) { return (a + bspline_offset); });
     } else if (std::is_same<uint8_t, ImageType>::value){
@@ -227,21 +225,16 @@ void APRConverter<ImageType>::get_local_particle_cell_set(MeshData<ImageType> &g
 
 template<typename ImageType>
 void APRConverter<ImageType>::get_gradient(MeshData<ImageType> &image_temp, MeshData<ImageType> &grad_temp, MeshData<float> &local_scale_temp, MeshData<float> &local_scale_temp2, float bspline_offset) {
-    //
     //  Bevan Cheeseman 2018
-    //
     //  Calculate the gradient from the input image. (You could replace this method with your own)
-    //
     //  Input: full sized image.
-    //
     //  Output: down-sampled by 2 gradient magnitude (Note, the gradient is calculated at pixel level then maximum down sampled within the loops below)
-    //
 
     fine_grained_timer.verbose_flag = false;
 
     fine_grained_timer.start_timer("smooth_bspline");
     if(par.lambda > 0) {
-        get_smooth_bspline_3D(image_temp, par);
+        get_smooth_bspline_3D(image_temp, par.lambda);
     }
     fine_grained_timer.stop_timer();
 

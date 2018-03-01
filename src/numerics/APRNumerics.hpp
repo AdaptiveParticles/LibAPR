@@ -5,7 +5,7 @@
 #ifndef PARTPLAY_APRNUMERICS_HPP
 #define PARTPLAY_APRNUMERICS_HPP
 
-#include "src/data_structures/APR/APR.hpp"
+#include "../data_structures/APR/APR.hpp"
 
 
 class APRNumerics {

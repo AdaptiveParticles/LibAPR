@@ -6,11 +6,11 @@
 #define PARTPLAY_APR_HPP
 
 
-#include "src/misc/APRTimer.hpp"
-#include "src/algorithm/APRParameters.hpp"
-#include "src/numerics/APRCompress.hpp"
-#include "src/numerics/APRReconstruction.hpp"
-#include "src/io/APRWriter.hpp"
+#include "../../misc/APRTimer.hpp"
+#include "../../algorithm/APRParameters.hpp"
+#include "../../numerics/APRCompress.hpp"
+#include "../../numerics/APRReconstruction.hpp"
+#include "../../io/APRWriter.hpp"
 #include "APRAccess.hpp"
 #include "ExtraParticleData.hpp"
 

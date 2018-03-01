@@ -5,8 +5,8 @@
 #ifndef PARTPLAY_MESHNUMERICS_HPP
 #define PARTPLAY_MESHNUMERICS_HPP
 
-#include "src/data_structures/Mesh/MeshData.hpp"
-#include "src/misc/APRTimer.hpp"
+#include "../data_structures/Mesh/MeshData.hpp"
+#include "../misc/APRTimer.hpp"
 
 class MeshNumerics {
 

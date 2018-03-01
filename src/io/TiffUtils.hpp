@@ -10,7 +10,7 @@
 #include <string>
 #include <tiffio.h>
 #include <sstream>
-#include <src/data_structures/Mesh/MeshData.hpp>
+#include "../data_structures/Mesh/MeshData.hpp"
 
 
 namespace TiffUtils {

@@ -27,7 +27,7 @@ Note: fine grained parameters can be tuned within the file, to play with lossles
 #include <iostream>
 
 #include "Example_compress_apr.h"
-#include "src/io/TiffUtils.hpp"
+#include "io/TiffUtils.hpp"
 
 int main(int argc, char **argv) {
 

@@ -6,8 +6,8 @@
 #define APRWRITER_HPP
 
 #include "hdf5functions_blosc.h"
-#include "src/data_structures/APR/APR.hpp"
-#include "src/data_structures/APR/APRAccess.hpp"
+#include "../data_structures/APR/APR.hpp"
+#include "../data_structures/APR/APRAccess.hpp"
 #include "ConfigAPR.h"
 #include <numeric>
 #include <memory>
@@ -381,7 +381,7 @@ private:
         const char * const subGroup  = "ParticleRepr/t";
 
         AprFile(const std::string &aFileName, const Operation aOp) {
-            register_blosc();
+            hdf5_register_blosc();
             switch(aOp) {
                 case Operation::READ:
                     fileId = H5Fopen(aFileName.c_str(), H5F_ACC_RDONLY, H5P_DEFAULT);
