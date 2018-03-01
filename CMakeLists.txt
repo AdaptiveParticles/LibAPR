@@ -2,7 +2,8 @@
 # APR - Adaptive Particle Representation
 ###############################################################################
 cmake_minimum_required(VERSION 3.2)
-project(LibAPR)
+project(LibAPR DESCRIPTION "Adaptive Particle Representation library")
+
 set(CMAKE_CXX_STANDARD 14)
 
 # APR build options:
@@ -18,6 +19,7 @@ option(APR_BUILD_JAVA_WRAPPERS "Build APR JAVA wrappers" OFF)
 if (NOT APR_BUILD_SHARED_LIB AND NOT APR_BUILD_STATIC_LIB)
     message(FATAL_ERROR "At least one target: APR_BUILD_SHARED_LIB or APR_BUILD_STATIC_LIB must be build!")
 endif()
+
 
 ###############################################################################
 # Generate configuration file
@@ -36,6 +38,7 @@ configure_file (
 )
 include_directories("${PROJECT_BINARY_DIR}")
 message("Configuring for APR version: " ${APR_VERSION_STRING})
+
 
 ###############################################################################
 # Find all required libraries
@@ -96,10 +99,12 @@ set(LIBRARY_NAME apr)
 set(SOURCE_FILES src/io/blosc_filter.c src/io/hdf5functions_blosc.cpp)
 set(SOURCE_FILES_RAYCAST src/numerics/APRRaycaster.cpp src/vis/Camera.cpp src/vis/Object.cpp src/vis/RaytracedObject.cpp)
 
+add_library(aprObjLib OBJECT ${SOURCE_FILES} ${SOURCE_FILES_RAYCAST})
+
 if(APR_BUILD_STATIC_LIB)
     # generate static library used as a intermediate step in generating fat lib
     set(STATIC_TARGET_NAME staticLib)
-    add_library(${STATIC_TARGET_NAME} STATIC ${SOURCE_FILES} ${SOURCE_FILES_RAYCAST})
+    add_library(${STATIC_TARGET_NAME} STATIC $<TARGET_OBJECTS:aprObjLib>)
     set_target_properties(${STATIC_TARGET_NAME} PROPERTIES OUTPUT_NAME ${LIBRARY_NAME})
 
     # generate fat static library by adding dependencies
@@ -110,7 +115,7 @@ endif()
 if(APR_BUILD_SHARED_LIB)
 # generate fat shared library
     set(SHARED_TARGET_NAME sharedLib)
-    add_library(${SHARED_TARGET_NAME} SHARED ${SOURCE_FILES} ${SOURCE_FILES_RAYCAST})
+    add_library(${SHARED_TARGET_NAME} SHARED $<TARGET_OBJECTS:aprObjLib>)
     set_target_properties(${SHARED_TARGET_NAME} PROPERTIES OUTPUT_NAME ${LIBRARY_NAME})
     set_target_properties(${SHARED_TARGET_NAME} PROPERTIES LIBRARY_OUTPUT_NAME ${LIBRARY_NAME})
     set_target_properties(${SHARED_TARGET_NAME} PROPERTIES ARCHIVE_OUTPUT_NAME ${LIBRARY_NAME})
