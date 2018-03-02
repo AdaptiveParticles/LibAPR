@@ -18,6 +18,8 @@
 #include "LocalParticleCellSet.hpp"
 #include "PullingScheme.hpp"
 
+#include "number.h"
+
 
 template<typename ImageType>
 class APRConverter: public LocalIntensityScale, public ComputeGradient, public LocalParticleCellSet, public PullingScheme {
@@ -31,6 +33,9 @@ public:
     APRTimer computation_timer;
 
     bool get_apr(APR<ImageType> &aAPR) {
+        long cudaNum = 0;
+        getNumber(&cudaNum);
+        std::cout << "Number from CUDA: " << cudaNum << std::endl;
         apr = &aAPR;
 
         TiffUtils::TiffInfo inputTiff(par.input_dir + par.input_image_name);

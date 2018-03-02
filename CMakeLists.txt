@@ -5,6 +5,7 @@ cmake_minimum_required(VERSION 3.2)
 project(LibAPR DESCRIPTION "Adaptive Particle Representation library")
 
 set(CMAKE_CXX_STANDARD 14)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 # APR build options:
 option(APR_INSTALL "Install APR library" ON)
@@ -14,6 +15,7 @@ option(APR_BUILD_EXAMPLES "Build APR examples" OFF)
 option(APR_TESTS "Build APR tests" OFF)
 option(APR_PREFER_EXTERNAL_GTEST "When found, use the installed GTEST libs instead of included sources" OFF)
 option(APR_BUILD_JAVA_WRAPPERS "Build APR JAVA wrappers" OFF)
+option(APR_USE_CUDA "should APR use CUDA?" ON)
 
 # Validation of options
 if (NOT APR_BUILD_SHARED_LIB AND NOT APR_BUILD_STATIC_LIB)
@@ -71,6 +73,9 @@ include_directories(external/c-blosc/blosc)
 # Add submodule GLM (include files only)
 include_directories("external/glm")
 
+if(APR_USE_CUDA)
+
+endif()
 
 ###############################################################################
 # Configure compiler options
@@ -101,6 +106,15 @@ set(SOURCE_FILES_RAYCAST src/numerics/APRRaycaster.cpp src/vis/Camera.cpp src/vi
 
 add_library(aprObjLib OBJECT ${SOURCE_FILES} ${SOURCE_FILES_RAYCAST})
 
+if(APR_USE_CUDA)
+    message(STATUS "APR: Building CUDA for APR")
+    set(CUDA_PROPAGATE_HOST_FLAGS OFF)
+    find_package(CUDA REQUIRED)
+    list(APPEND CUDA_NVCC_FLAGS "-std=c++14;-O0;") #-DVERBOSE
+    cuda_add_library(cudaAprLib src/algorithm/number.cu)
+    target_link_libraries(cudaAprLib ${CUDA_LIBRARIES})
+endif()
+
 if(APR_BUILD_STATIC_LIB)
     # generate static library used as a intermediate step in generating fat lib
     set(STATIC_TARGET_NAME staticLib)
@@ -110,7 +124,10 @@ if(APR_BUILD_STATIC_LIB)
 
     # generate fat static library by adding dependencies
     include(cmake/AddStaticLibs.cmake)
-    addStaticLibs(${STATIC_TARGET_NAME} blosc_static)
+    message (STATUS "CUDA LIBS: ${CUDA_LIBRARIES}")
+    add_library(cudaLib STATIC IMPORTED)
+    set_property(TARGET cudaLib PROPERTY IMPORTED_LOCATION /Developer/NVIDIA/CUDA-9.1/lib/libcudart_static.a)
+    addStaticLibs(${STATIC_TARGET_NAME} blosc_static cudaAprLib cudaLib)
 endif()
 
 if(APR_BUILD_SHARED_LIB)
