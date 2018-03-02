@@ -1,0 +1,14 @@
+prefix=@CMAKE_INSTALL_PREFIX@
+exec_prefix=${prefix}
+libdir=${exec_prefix}/lib
+sharedlibdir=${libdir}
+includedir=${prefix}/include
+
+Name: apr
+Description: LibAPR - Adaptive Particle Representation library
+URL: https://github.com/cheesema/LibAPR
+Version: @APR_VERSION_STRING@
+
+Requires:
+Libs: -L${libdir} -L${sharedlibdir} -lblosc
+Cflags: -I${includedir}

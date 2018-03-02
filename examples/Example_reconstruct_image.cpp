@@ -33,8 +33,8 @@ Options:
 #include <algorithm>
 #include <iostream>
 
-#include "src/data_structures/APR/APR.hpp"
-#include "src/io/TiffUtils.hpp"
+#include "data_structures/APR/APR.hpp"
+#include "io/TiffUtils.hpp"
 
 
 struct cmdLineOptions{

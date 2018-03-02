@@ -9,9 +9,9 @@
 #ifndef PARTPLAY_APR_CONVERTER_HPP
 #define PARTPLAY_APR_CONVERTER_HPP
 
-#include "src/data_structures/Mesh/MeshData.hpp"
-#include "src/io/TiffUtils.hpp"
-#include "src/data_structures/APR/APR.hpp"
+#include "../data_structures/Mesh/MeshData.hpp"
+#include "../io/TiffUtils.hpp"
+#include "../data_structures/APR/APR.hpp"
 
 #include "ComputeGradient.hpp"
 #include "LocalIntensityScale.hpp"
@@ -21,7 +21,6 @@
 
 template<typename ImageType>
 class APRConverter: public LocalIntensityScale, public ComputeGradient, public LocalParticleCellSet, public PullingScheme {
-
 
 public:
     APRParameters par;
@@ -57,31 +56,18 @@ private:
     //pointer to the APR structure so member functions can have access if they need
     const APR<ImageType> *apr;
 
-    MeshData<ImageType> image_temp; // global image variable useful for passing between methods, or re-using memory (should be the only full sized copy of the image)
-    MeshData<ImageType> grad_temp; // should be a down-sampled image
-    MeshData<float> local_scale_temp; //   Used as down-sampled images for some averaging steps where it is useful to not lose precision, or get over-flow errors
-    MeshData<float> local_scale_temp2;  //   Used as down-sampled images for some averaging steps where it is useful to not lose precision, or get over-flow errors
-
-    //assuming uint16, the total memory cost shoudl be approximately (1 + 1 + 1/8 + 2/8 + 2/8) = 2 5/8 original image size in u16bit
-    //storage of the particle cell tree for computing the pulling scheme
+    template<typename T>
+    void init_apr(APR<ImageType>& aAPR, MeshData<T>& input_image);
 
     template<typename T>
-    void init_apr(APR<ImageType>& aAPR,MeshData<T>& input_image);
-
-    template<typename T>
-    void auto_parameters(const MeshData<T>& input_img);
+    void auto_parameters(const MeshData<T> &input_img);
 
     template<typename T>
     bool get_apr_method_from_file(APR<ImageType> &aAPR, const TiffUtils::TiffInfo &aTiffFile);
 
-    template<typename T,typename S>
-    void get_gradient(const MeshData<T>& input_img,MeshData<S>& gradient, float bspline_offset);
-
-    template<typename T,typename S>
-    void get_local_intensity_scale(const MeshData<T>& input_img,MeshData<S>& local_intensity_scale);
-
-    template<typename T,typename S>
-    void get_local_particle_cell_set(MeshData<T>& grad_image_ds,MeshData<S>& local_intensity_scale_ds);
+    void get_gradient(MeshData<ImageType> &image_temp, MeshData<ImageType> &grad_temp, MeshData<float> &local_scale_temp, MeshData<float> &local_scale_temp2, float bspline_offset);
+    void get_local_intensity_scale(MeshData<float> &local_scale_temp, MeshData<float> &local_scale_temp2);
+    void get_local_particle_cell_set(MeshData<ImageType> &grad_temp, MeshData<float> &local_scale_temp, MeshData<float> &local_scale_temp2);
 };
 
 
@@ -116,10 +102,15 @@ bool APRConverter<ImageType>::get_apr_method(APR<ImageType> &aAPR, MeshData<T>& 
     /// Memory allocation of variables
     ////////////////////////////////////////
 
+    //assuming uint16, the total memory cost shoudl be approximately (1 + 1 + 1/8 + 2/8 + 2/8) = 2 5/8 original image size in u16bit
+    //storage of the particle cell tree for computing the pulling scheme
     allocation_timer.start_timer("init and copy image");
-    image_temp.init(input_image);
+    MeshData<ImageType> image_temp(input_image, false /* don't copy */); // global image variable useful for passing between methods, or re-using memory (should be the only full sized copy of the image)
+    MeshData<ImageType> grad_temp; // should be a down-sampled image
     grad_temp.initDownsampled(input_image.y_num, input_image.x_num, input_image.z_num, 0);
+    MeshData<float> local_scale_temp; // Used as down-sampled images for some averaging steps where it is useful to not lose precision, or get over-flow errors
     local_scale_temp.initDownsampled(input_image.y_num, input_image.x_num, input_image.z_num);
+    MeshData<float> local_scale_temp2;
     local_scale_temp2.initDownsampled(input_image.y_num, input_image.x_num, input_image.z_num);
     allocation_timer.stop_timer();
 
@@ -131,9 +122,9 @@ bool APRConverter<ImageType>::get_apr_method(APR<ImageType> &aAPR, MeshData<T>& 
 
     fine_grained_timer.start_timer("offset image");
     //offset image by factor (this is required if there are zero areas in the background with uint16_t and uint8_t images, as the Bspline co-efficients otherwise may be negative!)
-    // Warning both of these could result in over-flow (if your image is non zero, with a 'buffer' and has intensities up to uint16_t maximum value then set this->image_type = "", i.e. uncomment the following line)
+    // Warning both of these could result in over-flow (if your image is non zero, with a 'buffer' and has intensities up to uint16_t maximum value then set image_type = "", i.e. uncomment the following line)
     float bspline_offset = 0;
-    if(std::is_same<uint16_t, ImageType>::value){
+    if (std::is_same<uint16_t, ImageType>::value) {
         bspline_offset = 100;
         image_temp.copyFromMeshWithUnaryOp(input_image, [=](const auto &a) { return (a + bspline_offset); });
     } else if (std::is_same<uint8_t, ImageType>::value){
@@ -142,17 +133,14 @@ bool APRConverter<ImageType>::get_apr_method(APR<ImageType> &aAPR, MeshData<T>& 
     } else {
         image_temp.copyFromMesh(input_image);
     }
-
     fine_grained_timer.stop_timer();
 
     method_timer.start_timer("compute_gradient_magnitude_using_bsplines");
-    MeshData<T> gradient;
-    this->get_gradient(input_image,gradient,bspline_offset); //note in the current pipeline don't actually use these variables, but here for interface (Use shared member allocated above variables)
+    get_gradient(image_temp, grad_temp, local_scale_temp, local_scale_temp2, bspline_offset);
     method_timer.stop_timer();
 
-    MeshData<T> local_scale;
     method_timer.start_timer("compute_local_intensity_scale");
-    this->get_local_intensity_scale(input_image,local_scale);  //note in the current pipeline don't actually use these variables, but here for interface (Use shared member allocated above variables)
+    get_local_intensity_scale(local_scale_temp, local_scale_temp2);
     method_timer.stop_timer();
 
     method_timer.start_timer("initialize_particle_cell_tree");
@@ -160,7 +148,7 @@ bool APRConverter<ImageType>::get_apr_method(APR<ImageType> &aAPR, MeshData<T>& 
     method_timer.stop_timer();
 
     method_timer.start_timer("compute_local_particle_set");
-    this->get_local_particle_cell_set(local_scale,gradient); //note in the current pipeline don't actually use these variables, but here for interface (Use shared member allocated above variables)
+    get_local_particle_cell_set(grad_temp, local_scale_temp, local_scale_temp2);
     method_timer.stop_timer();
 
     method_timer.start_timer("compute_pulling_scheme");
@@ -190,8 +178,8 @@ bool APRConverter<ImageType>::get_apr_method(APR<ImageType> &aAPR, MeshData<T>& 
     return true;
 }
 
-template<typename ImageType> template<typename T,typename S>
-void APRConverter<ImageType>::get_local_particle_cell_set(MeshData<T>& grad_image_ds,MeshData<S>& local_intensity_scale_ds) {
+template<typename ImageType>
+void APRConverter<ImageType>::get_local_particle_cell_set(MeshData<ImageType> &grad_temp, MeshData<float> &local_scale_temp, MeshData<float> &local_scale_temp2) {
     //
     //  Computes the Local Particle Cell Set from a down-sampled local intensity scale (\sigma) and gradient magnitude
     //
@@ -208,7 +196,7 @@ void APRConverter<ImageType>::get_local_particle_cell_set(MeshData<T>& grad_imag
     }
     fine_grained_timer.stop_timer();
 
-    float min_dim = std::min(this->par.dy,std::min(this->par.dx,this->par.dz));
+    float min_dim = std::min(par.dy,std::min(par.dx,par.dz));
     float level_factor = pow(2,(*apr).level_max())*min_dim;
 
     int l_max = (*apr).level_max() - 1;
@@ -216,7 +204,7 @@ void APRConverter<ImageType>::get_local_particle_cell_set(MeshData<T>& grad_imag
 
     fine_grained_timer.start_timer("compute_level_second");
     //incorporate other factors and compute the level of the Particle Cell, effectively construct LPC L_n
-    compute_level_for_array(local_scale_temp,level_factor,this->par.rel_error);
+    compute_level_for_array(local_scale_temp,level_factor,par.rel_error);
     fill(l_max,local_scale_temp);
     fine_grained_timer.stop_timer();
 
@@ -235,23 +223,18 @@ void APRConverter<ImageType>::get_local_particle_cell_set(MeshData<T>& grad_imag
     fine_grained_timer.stop_timer();
 }
 
-template<typename ImageType> template<typename T,typename S>
-void APRConverter<ImageType>::get_gradient(const MeshData<T>& input_img,MeshData<S>& gradient, float bspline_offset){
-    //
+template<typename ImageType>
+void APRConverter<ImageType>::get_gradient(MeshData<ImageType> &image_temp, MeshData<ImageType> &grad_temp, MeshData<float> &local_scale_temp, MeshData<float> &local_scale_temp2, float bspline_offset) {
     //  Bevan Cheeseman 2018
-    //
     //  Calculate the gradient from the input image. (You could replace this method with your own)
-    //
     //  Input: full sized image.
-    //
     //  Output: down-sampled by 2 gradient magnitude (Note, the gradient is calculated at pixel level then maximum down sampled within the loops below)
-    //
 
     fine_grained_timer.verbose_flag = false;
 
     fine_grained_timer.start_timer("smooth_bspline");
     if(par.lambda > 0) {
-        get_smooth_bspline_3D(image_temp, this->par);
+        get_smooth_bspline_3D(image_temp, par.lambda);
     }
     fine_grained_timer.stop_timer();
 
@@ -279,8 +262,8 @@ void APRConverter<ImageType>::get_gradient(const MeshData<T>& input_img,MeshData
 
     fine_grained_timer.start_timer("load_and_apply_mask");
     // Apply mask if given
-    if(this->par.mask_file != ""){
-        mask_gradient(grad_temp,local_scale_temp2,image_temp, this->par);
+    if(par.mask_file != ""){
+        mask_gradient(grad_temp,local_scale_temp2,image_temp, par);
     }
     fine_grained_timer.stop_timer();
 
@@ -289,8 +272,8 @@ void APRConverter<ImageType>::get_gradient(const MeshData<T>& input_img,MeshData
     fine_grained_timer.stop_timer();
 }
 
-template<typename ImageType> template<typename T,typename S>
-void APRConverter<ImageType>::get_local_intensity_scale(const MeshData<T>& input_img,MeshData<S>& local_intensity_scale){
+template<typename ImageType>
+void APRConverter<ImageType>::get_local_intensity_scale(MeshData<float> &local_scale_temp, MeshData<float> &local_scale_temp2) {
     //
     //  Calculate the Local Intensity Scale (You could replace this method with your own)
     //
@@ -306,7 +289,7 @@ void APRConverter<ImageType>::get_local_intensity_scale(const MeshData<T>& input
 
     float var_rescale;
     std::vector<int> var_win;
-    get_window(var_rescale,var_win,this->par);
+    get_window(var_rescale,var_win,par);
 
     size_t win_y = var_win[0];
     size_t win_x = var_win[1];
@@ -334,7 +317,7 @@ void APRConverter<ImageType>::get_local_intensity_scale(const MeshData<T>& input
     calc_sat_mean_y(local_scale_temp,win_y2);
     calc_sat_mean_x(local_scale_temp,win_x2);
     calc_sat_mean_z(local_scale_temp,win_z2);
-    rescale_var_and_threshold( local_scale_temp, var_rescale,this->par);
+    rescale_var_and_threshold( local_scale_temp, var_rescale,par);
     fine_grained_timer.stop_timer();
 }
 
@@ -359,7 +342,6 @@ void APRConverter<ImageType>::init_apr(APR<ImageType>& aAPR,MeshData<T>& input_i
     aAPR.apr_access.level_min = levelMin;
     aAPR.apr_access.level_max = levelMax;
 }
-
 
 template<typename ImageType> template<typename T>
 void APRConverter<ImageType>::auto_parameters(const MeshData<T>& input_img){
@@ -563,13 +545,13 @@ void APRConverter<ImageType>::auto_parameters(const MeshData<T>& input_img){
     //
     if((proportion_flat > 1.0f) && (proportion_next > 0.00001f)){
         std::cout << "AUTOPARAMTERS:**Warning** Detected that there is likely noisy background, instead assuming background subtracted and minimum signal of 5 (absolute), if this is not the case please set parameters manually" << std::endl;
-        this->par.Ip_th = 1;
-        this->par.sigma_th = 5;
-        this->par.lambda = 0.5;
-        this->par.sigma_th_max = 2;
-        this->par.rel_error = 0.125;
-        this->par.min_signal = 5;
-        this->par.SNR_min = 1;
+        par.Ip_th = 1;
+        par.sigma_th = 5;
+        par.lambda = 0.5;
+        par.sigma_th_max = 2;
+        par.rel_error = 0.125;
+        par.min_signal = 5;
+        par.SNR_min = 1;
     } else {
         std::cout << "AUTOPARAMTERS: **Assuming image has atleast 5% dark background" << std::endl;
     }
@@ -577,8 +559,8 @@ void APRConverter<ImageType>::auto_parameters(const MeshData<T>& input_img){
 
     float min_snr = 6;
 
-    if(this->par.SNR_min > 0){
-        min_snr = this->par.SNR_min;
+    if(par.SNR_min > 0){
+        min_snr = par.SNR_min;
     } else {
         std::cout << "**Assuming a minimum SNR of 6" << std::endl;
     }
@@ -588,37 +570,37 @@ void APRConverter<ImageType>::auto_parameters(const MeshData<T>& input_img){
 
     float var_th_max = sd*min_snr*.5f;
 
-    if(this->par.Ip_th < 0 ){
-        this->par.Ip_th = Ip_th;
+    if(par.Ip_th < 0 ){
+        par.Ip_th = Ip_th;
     }
 
-    if(this->par.lambda < 0){
-        this->par.lambda = 3.0;
+    if(par.lambda < 0){
+        par.lambda = 3.0;
     }
 
-    this->par.background_intensity_estimate = estimated_first_mode;
+    par.background_intensity_estimate = estimated_first_mode;
 
-    if(this->par.min_signal < 0) {
-        this->par.sigma_th = var_th;
-        this->par.sigma_th_max = var_th_max;
-    } else if (this->par.sigma_th > 0){
+    if(par.min_signal < 0) {
+        par.sigma_th = var_th;
+        par.sigma_th_max = var_th_max;
+    } else if (par.sigma_th > 0){
         //keep the defaults
     } else{
-        this->par.sigma_th_max = this->par.min_signal*0.5f;
-        this->par.sigma_th = this->par.min_signal;
+        par.sigma_th_max = par.min_signal*0.5f;
+        par.sigma_th = par.min_signal;
     }
 
-    if(this->par.lambda < 0.05){
-        this->par.lambda = 0;
+    if(par.lambda < 0.05){
+        par.lambda = 0;
         std::cout << "setting lambda to zero" << std::endl;
     }
 
 
-    std::cout << "I_th: " << this->par.Ip_th << std::endl;
-    std::cout << "sigma_th: " << this->par.sigma_th << std::endl;
-    std::cout << "sigma_th_max: " << this->par.sigma_th_max << std::endl;
-    std::cout << "relative error (E): " << this->par.rel_error << std::endl;
-    std::cout << "lambda: " << this->par.lambda << std::endl;
+    std::cout << "I_th: " << par.Ip_th << std::endl;
+    std::cout << "sigma_th: " << par.sigma_th << std::endl;
+    std::cout << "sigma_th_max: " << par.sigma_th_max << std::endl;
+    std::cout << "relative error (E): " << par.rel_error << std::endl;
+    std::cout << "lambda: " << par.lambda << std::endl;
 }
 
 

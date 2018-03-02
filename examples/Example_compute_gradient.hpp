@@ -8,9 +8,9 @@
 #include <functional>
 #include <string>
 
-#include "src/data_structures/APR/APR.hpp"
-#include "src/numerics/APRNumerics.hpp"
-#include "src/numerics/MeshNumerics.hpp"
+#include "data_structures/APR/APR.hpp"
+#include "numerics/APRNumerics.hpp"
+#include "numerics/MeshNumerics.hpp"
 
 struct cmdLineOptions{
     std::string output = "output";

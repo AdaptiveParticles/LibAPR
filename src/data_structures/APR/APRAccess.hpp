@@ -9,7 +9,7 @@
 
 #include <map>
 #include <utility>
-#include "src/data_structures/Mesh/MeshData.hpp"
+#include "../../data_structures/Mesh/MeshData.hpp"
 
 //TODO: IT SHOULD NOT BE DEFINDED HERE SINCE IT DUPLICATES FROM PullingScheme
 #define SEED_TYPE 1
@@ -751,7 +751,7 @@ public:
 
 
     template<typename T>
-    void flatten_structure(APR<T>& apr,MapStorageData& map_data){
+    void flatten_structure(const APR<T> &apr, MapStorageData &map_data)  {
         //
         //  Flatten the map access structure for writing the output
         //

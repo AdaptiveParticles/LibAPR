@@ -17,22 +17,24 @@
 #include <cmath>
 #include <memory>
 #include <sstream>
+#include <iostream>
+#include <iomanip>
 
-#include "src/misc/APRTimer.hpp"
+#include "../../misc/APRTimer.hpp"
 
 
 template <typename T>
 class ArrayWrapper
 {
 public:
-    ArrayWrapper() : iArray(nullptr), iNumOfElements(-1) {}
+    ArrayWrapper() : iArray(nullptr), iNumOfElements(0) {}
     ArrayWrapper(ArrayWrapper &&aObj) {
         iArray = aObj.iArray; aObj.iArray = nullptr;
-        iNumOfElements = aObj.iNumOfElements; aObj.iNumOfElements = -1;
+        iNumOfElements = aObj.iNumOfElements; aObj.iNumOfElements = 0;
     }
     ArrayWrapper& operator=(ArrayWrapper&& aObj) {
         iArray = aObj.iArray; aObj.iArray = nullptr;
-        iNumOfElements = aObj.iNumOfElements; aObj.iNumOfElements = -1;
+        iNumOfElements = aObj.iNumOfElements; aObj.iNumOfElements = 0;
         return *this;
     }
 
@@ -177,6 +179,18 @@ public :
     }
 
     /**
+     * access element at provided indices without boundary checking
+     * @param y
+     * @param x
+     * @param z
+     * @return element @(y, x, z)
+     */
+    const T& at(size_t y, size_t x, size_t z) const {
+        size_t idx = z * x_num * y_num + x * y_num + y;
+        return mesh[idx];
+    }
+
+    /**
      * Copies data from aInputMesh utilizing parallel copy, requires prior initialization
      * of 'this' object (size and number of elements)
      * @tparam U type of data
@@ -224,7 +238,6 @@ public :
         mesh.set(array, size);
 
         // Fill values of new buffer in parallel
-        // TODO: set dynamically number of threads
         #ifdef HAVE_OPENMP
         #pragma omp parallel
         {
@@ -296,6 +309,33 @@ public :
     }
 
     /**
+     * Initializes mesh with size of half of provided mesh dimensions (rounding up if not divisible by 2)
+     * @param aMesh - mesh used to get dimensions
+     */
+    template <typename U>
+    void initDownsampled(const MeshData<U> &aMesh) {
+        const int z_num_ds = ceil(1.0*aMesh.z_num/2.0);
+        const int x_num_ds = ceil(1.0*aMesh.x_num/2.0);
+        const int y_num_ds = ceil(1.0*aMesh.y_num/2.0);
+
+        init(y_num_ds, x_num_ds, z_num_ds);
+    }
+
+    /**
+     * Initializes mesh with size of half of provided mesh dimensions (rounding up if not divisible by 2) and initialize values
+     * @param aMesh - mesh used to get dimensions
+     * @param aInitVal
+     */
+    template <typename U>
+    void initDownsampled(const MeshData<U> &aMesh, T aInitVal) {
+        const int z_num_ds = ceil(1.0*aMesh.z_num/2.0);
+        const int x_num_ds = ceil(1.0*aMesh.x_num/2.0);
+        const int y_num_ds = ceil(1.0*aMesh.y_num/2.0);
+
+        init(y_num_ds, x_num_ds, z_num_ds, aInitVal);
+    }
+
+    /**
      * Swaps data of meshes this <-> aObj
      * @param aObj
      */
@@ -355,6 +395,36 @@ public :
         std::ostringstream outputStr;
         outputStr << "(" << y << ", " << x << ", " << z << ")";
         return outputStr.str();
+    }
+
+    /**
+     * Prints X-Y or X-Z planes of mesh (for debug/test purposses - use only on small meshes)
+     */
+    void printMesh(int aColumnWidth, bool aXYplanes = true) const {
+        if (aXYplanes) {
+            for (size_t z = 0; z < z_num; ++z) {
+                std::cout << "z=" << z << "\n";
+                for (size_t y = 0; y < y_num; ++y) {
+                    for (size_t x = 0; x < x_num; ++x) {
+                        std::cout << std::setw(aColumnWidth) << at(y, x, z) << " ";
+                    }
+                    std::cout << "\n";
+                }
+                std::cout << std::endl;
+            }
+        }
+        else { // X-Z planes
+            for (size_t y = 0; y < y_num; ++y) {
+                std::cout << "y=" << y << "\n";
+                for (size_t z = 0; z < z_num; ++z) {
+                    for (size_t x = 0; x < x_num; ++x) {
+                        std::cout << std::setw(aColumnWidth) << at(y, x, z) << " ";
+                    }
+                    std::cout << "\n";
+                }
+                std::cout << std::endl;
+            }
+        }
     }
 
     friend std::ostream & operator<<(std::ostream &os, const MeshData<T> &obj) {

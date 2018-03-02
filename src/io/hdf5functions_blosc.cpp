@@ -14,16 +14,27 @@
 /**
  * Register the 'blosc' filter with the HDF5 library
  */
-void register_blosc(){
+void hdf5_register_blosc(){
     register_blosc(nullptr, nullptr);
 }
 
 /**
  * reads data from hdf5
  */
-void hdf5_load_data_blosc(hid_t obj_id, hid_t data_type, void* buff, const char* data_name) {
+void hdf5_load_data_blosc(hid_t obj_id, hid_t dataType, void* buff, const char* data_name) {
     hid_t data_id =  H5Dopen2(obj_id, data_name ,H5P_DEFAULT);
-    H5Dread(data_id, data_type, H5S_ALL, H5S_ALL, H5P_DEFAULT, buff);
+    H5Dread(data_id, dataType, H5S_ALL, H5S_ALL, H5P_DEFAULT, buff);
+    H5Dclose(data_id);
+}
+
+/**
+ * reads data from hdf5 (data type auto-detection)
+ */
+void hdf5_load_data_blosc(hid_t obj_id, void* buff, const char* data_name) {
+    hid_t data_id =  H5Dopen2(obj_id, data_name ,H5P_DEFAULT);
+    hid_t dataType = H5Dget_type(data_id);
+    H5Dread(data_id, dataType, H5S_ALL, H5S_ALL, H5P_DEFAULT, buff);
+    H5Tclose(dataType);
     H5Dclose(data_id);
 }
 
@@ -67,22 +78,6 @@ void hdf5_write_attribute_blosc(hid_t obj_id,hid_t type_id,const char* attr_name
     H5Awrite(attr_id, type_id, data);
     H5Aclose(attr_id);
     H5Sclose(space_id);
-}
-
-/**
- * Writes string information as an attribute
- */
-void hdf5_write_string_blosc(hid_t obj_id, const char *attr_name, const std::string &output_str) {
-    if (output_str.size() > 0){
-        hid_t aid = H5Screate(H5S_SCALAR);
-        hid_t atype = H5Tcopy (H5T_C_S1);
-        H5Tset_size(atype, output_str.size());
-        hid_t attr = H5Acreate2(obj_id, attr_name, atype, aid, H5P_DEFAULT,H5P_DEFAULT);
-        H5Awrite (attr, atype,output_str.c_str());
-        H5Tclose(atype);
-        H5Aclose(attr);
-        H5Sclose(aid);
-    }
 }
 
 /**

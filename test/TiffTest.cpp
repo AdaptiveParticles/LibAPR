@@ -2,7 +2,7 @@
  * Created by Krzysztof Gonciarz 2018
  */
 #include <gtest/gtest.h>
-#include "src/io/TiffUtils.hpp"
+#include "io/TiffUtils.hpp"
 
 namespace {
     std::string testFilesDirectory(){

@@ -16,12 +16,8 @@
 #include <fstream>
 #include <ctime>
 
-#include "src/data_structures/APR/ExtraPartCellData.hpp"
-
+#include "../data_structures/APR/ExtraPartCellData.hpp"
 #include "../data_structures/APR/APR.hpp"
-
-#include "../../src/vis/Camera.h"
-#include "../../src/vis/RaytracedObject.h"
 
 class APRRaycaster {
 
@@ -45,14 +41,19 @@ public:
 
     std::string name = "raycast";
 
-    APRRaycaster(){
-    }
-
     template<typename U,typename S,typename V,class BinaryOperation>
     void perform_raycast(APR<U>& apr,ExtraParticleData<S>& particle_data,MeshData<V>& cast_views,BinaryOperation op);
 
     template<typename S,typename U>
     float perpsective_mesh_raycast(MeshData<S>& image,MeshData<U>& cast_views);
+
+    // Stuff below is hiding implementation so eventually glm header files do not
+    // have to be delivered with libAPR
+    struct GlmObjectsContainer;
+    GlmObjectsContainer *glmObjects;
+    void initObjects(uint64_t imageWidth, uint64_t imageHeight, float radius, float theta, float x0, float y0, float z0, float x0f, float y0f, float z0f);
+    void killObjects();
+    void getPos(int &dim1, int &dim2, float x_actual, float y_actual, float z_actual, size_t x_num, size_t y_num);
 };
 
 
@@ -176,19 +177,7 @@ void APRRaycaster::perform_raycast(APR<U>& apr,ExtraParticleData<S>& particle_da
         /// Set up the new camera views
         ///
         //////////////////////////////
-
-
-        Camera cam = Camera(glm::vec3(x0, y0 + radius * sin(theta), z0 + radius * cos(theta)),
-                            glm::fquat(1.0f, 0.0f, 0.0f, 0.0f));
-        cam.setTargeted(glm::vec3(x0f, y0f, z0f));
-
-        cam.setPerspectiveCamera((float) imageWidth / (float) imageHeight, (float) (60.0f / 180.0f * M_PI), 0.5f,
-                                 70.0f);
-
-        // ray traced object, sitting on the origin, with no rotation applied
-        RaytracedObject o = RaytracedObject(glm::vec3(0.0f, 0.0f, 0.0f), glm::fquat(1.0f, 0.0f, 0.0f, 0.0f));
-
-        const glm::mat4 mvp = (*cam.getProjection()) * (*cam.getView());
+        initObjects(imageWidth, imageHeight, radius, theta, x0, y0, z0, x0f, y0f, z0f);
 
         ///////////////////////////////////////////
         ///
@@ -201,7 +190,7 @@ void APRRaycaster::perform_raycast(APR<U>& apr,ExtraParticleData<S>& particle_da
         float y_actual,x_actual,z_actual;
 
 #ifdef HAVE_OPENMP
-	#pragma omp parallel for schedule(static) private(particle_number,y_actual,x_actual,z_actual) firstprivate(apr_iterator,mvp)
+	#pragma omp parallel for schedule(static) private(particle_number,y_actual,x_actual,z_actual) firstprivate(apr_iterator)
 #endif
         for (particle_number = 0; particle_number < apr_iterator.total_number_particles(); ++particle_number) {
             apr_iterator.set_iterator_to_particle_by_number(particle_number);
@@ -220,11 +209,9 @@ void APRRaycaster::perform_raycast(APR<U>& apr,ExtraParticleData<S>& particle_da
 
             const int level = apr_iterator.level();
 
-            //set up the ray position
-            glm::vec2 pos = o.worldToScreen(mvp, glm::vec3(x_actual ,y_actual, z_actual), depth_slice[level].x_num, depth_slice[level].y_num);
-
-            const int dim1 = round(-pos.y);
-            const int dim2 = round(-pos.x);
+            int dim1 = 0;
+            int dim2 = 0;
+            getPos(dim1, dim2, x_actual, y_actual, z_actual, depth_slice[level].x_num, depth_slice[level].y_num);
 
             if ((dim1 > 0) & (dim2 > 0) & (dim1 < (int64_t)depth_slice[level].y_num) & (dim2 < (int64_t)depth_slice[level].x_num)) {
                 //get the particle value
@@ -233,6 +220,7 @@ void APRRaycaster::perform_raycast(APR<U>& apr,ExtraParticleData<S>& particle_da
                 depth_slice[level].mesh[dim1 + (dim2) * depth_slice[level].y_num] = op(temp_int, depth_slice[level].mesh[dim1 + (dim2) * depth_slice[level].y_num]);
             }
         }
+        killObjects();
 
         //////////////////////////////////////////////
         ///
@@ -353,20 +341,7 @@ float APRRaycaster::perpsective_mesh_raycast(MeshData<S>& image,MeshData<U>& cas
     timer.start_timer("ray cast mesh prospective");
 
     for (float theta = theta_0; theta <= theta_f; theta += theta_delta) {
-
-        Camera cam = Camera(glm::vec3(x0, y0 + radius * sin(theta), z0 + radius * cos(theta)),
-                            glm::fquat(1.0f, 0.0f, 0.0f, 0.0f));
-        cam.setTargeted(glm::vec3(x0f, y0f, z0f));
-
-        cam.setPerspectiveCamera((float) imageWidth / (float) imageHeight, (float) (60.0f / 180.0f * M_PI), 0.5f,
-                                 70.0f);
-
-//    cam.setOrthographicCamera(imageWidth, imageHeight, 1.0f, 200.0f);
-        // ray traced object, sitting on the origin, with no rotation applied
-        RaytracedObject o = RaytracedObject(glm::vec3(0.0f, 0.0f, 0.0f), glm::fquat(1.0f, 0.0f, 0.0f, 0.0f));
-
-        const glm::mat4 mvp = (*cam.getProjection()) * (*cam.getView());
-
+        initObjects(imageWidth, imageHeight, radius, theta, x0, y0, z0, x0f, y0f, z0f);
 
         MeshData<S> proj_img;
         proj_img.init(imageHeight, imageWidth, 1, 0);
@@ -379,7 +354,7 @@ float APRRaycaster::perpsective_mesh_raycast(MeshData<S>& image,MeshData<U>& cas
         const unsigned int y_num_ = image.y_num;
 
 #ifdef HAVE_OPENMP
-	#pragma omp parallel for default(shared) private(z_,x_,j_) firstprivate(mvp)
+	#pragma omp parallel for default(shared) private(z_,x_,j_)
 #endif
         for (z_ = 0; z_ < z_num_; z_++) {
             //both z and x are explicitly accessed in the structure
@@ -387,15 +362,10 @@ float APRRaycaster::perpsective_mesh_raycast(MeshData<S>& image,MeshData<U>& cas
             for (x_ = 0; x_ < x_num_; x_++) {
 
                 for (j_ = 0; j_ < y_num_; j_++) {
-
-
-                    glm::vec2 pos = o.worldToScreen(mvp, glm::vec3((float) x_*this->scale_x, (float) j_*this->scale_y, (float) z_*this->scale_z), imageWidth,
-                                                    imageHeight);
-
                     const S temp_int = image.mesh[j_ + x_ * image.y_num + z_ * image.x_num * image.y_num];
-
-                    const int dim1 = (int) round(-pos.y);
-                    const int dim2 = (int) round(-pos.x);
+                    int dim1 = 0;
+                    int dim2 = 0;
+                    getPos(dim1, dim2, (float) x_*this->scale_x, (float) j_*this->scale_y, (float) z_*this->scale_z, imageWidth, imageHeight);
 
                     if ((dim1 > 0) & (dim2 > 0) & (dim1 < (int64_t)proj_img.y_num) & (dim2 < (int64_t)proj_img.x_num)) {
 
@@ -405,7 +375,7 @@ float APRRaycaster::perpsective_mesh_raycast(MeshData<S>& image,MeshData<U>& cas
                 }
             }
         }
-
+        killObjects();
         std::copy(proj_img.mesh.begin(),proj_img.mesh.end(),cast_views.mesh.begin() + view_count*imageHeight*imageWidth);
 
         view_count++;
@@ -413,8 +383,6 @@ float APRRaycaster::perpsective_mesh_raycast(MeshData<S>& image,MeshData<U>& cas
         if(view_count == num_views){
             break;
         }
-
-
     }
 
     timer.stop_timer();
@@ -422,9 +390,5 @@ float APRRaycaster::perpsective_mesh_raycast(MeshData<S>& image,MeshData<U>& cas
 
     return elapsed_seconds;
 }
-
-
-
-
 
 #endif

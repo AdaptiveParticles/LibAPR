@@ -5,7 +5,9 @@
 extern "C" {
 #endif
 
-#include <blosc.h>
+//#include <blosc.h>
+
+#define BLOSC_ZSTD      5
 
 /* Filter revision number, starting at 1 */
 /* #define FILTER_BLOSC_VERSION 1 */

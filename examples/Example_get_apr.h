@@ -4,10 +4,10 @@
 #include <functional>
 #include <string>
 
-#include "src/algorithm/APRParameters.hpp"
-#include "src/data_structures/Mesh/MeshData.hpp"
-#include "src/algorithm/APRConverter.hpp"
-#include "src/data_structures/APR/APR.hpp"
+#include "algorithm/APRParameters.hpp"
+#include "data_structures/Mesh/MeshData.hpp"
+#include "algorithm/APRConverter.hpp"
+#include "data_structures/APR/APR.hpp"
 
 
 struct cmdLineOptions{

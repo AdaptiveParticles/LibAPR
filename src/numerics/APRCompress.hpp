@@ -11,8 +11,8 @@
 #define PARTPLAY_COMPRESSAPR_HPP
 
 #include <cmath>
-#include "src/data_structures/APR/APR.hpp"
-#include "src/data_structures/APR/ExtraParticleData.hpp"
+#include "../data_structures/APR/APR.hpp"
+#include "../data_structures/APR/ExtraParticleData.hpp"
 
 template<typename ImageType>
 class APRCompress {
@@ -28,7 +28,7 @@ public:
     }
 
     template<typename U>
-    void compress(APR<U>& apr,ExtraParticleData<ImageType>& symbols) {
+    void  compress(APR<U> &apr, ExtraParticleData<ImageType> &symbols) {
         APRTimer timer;
         timer.verbose_flag = false;
 

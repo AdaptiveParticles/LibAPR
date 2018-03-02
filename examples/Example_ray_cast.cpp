@@ -29,7 +29,7 @@ e.g. Example_ray_cast -i nuc_apr.h5 -d /Test/Input_examples/ -aniso 2.0 -jitter 
 #include <iostream>
 
 #include "Example_ray_cast.h"
-#include "src/io/TiffUtils.hpp"
+#include "io/TiffUtils.hpp"
 
 
 int main(int argc, char **argv) {
