@@ -106,13 +106,6 @@ set(SOURCE_FILES_RAYCAST src/numerics/APRRaycaster.cpp src/vis/Camera.cpp src/vi
 
 add_library(aprObjLib OBJECT ${SOURCE_FILES} ${SOURCE_FILES_RAYCAST})
 
-message(STATUS "---------------------- VARS BEG ---------------------")
-get_cmake_property(_variableNames VARIABLES)
-foreach (_variableName ${_variableNames})
-    #message(STATUS "${_variableName}=${${_variableName}}")
-endforeach()
-message(STATUS "---------------------- VARS END ---------------------")
-
 set(CUDA_TARGET "")
 set(CUDA_APR_TARGET "")
 if(APR_USE_CUDA)
@@ -127,8 +120,10 @@ if(APR_USE_CUDA)
     list(APPEND CUDA_NVCC_FLAGS "-std=c++14;-O0; -Xcompiler -fPIC") #-DVERBOSE
     cuda_add_library(${CUDA_APR_TARGET} src/algorithm/number.cu)
     target_link_libraries(${CUDA_APR_TARGET} ${CUDA_LIBRARIES})
+    set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -DAPR_USE_CUDA")
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DAPR_USE_CUDA")
 endif()
-message (STATUS "CUDA STUFF: [${CUDA_TARGET}] [${CUDA_APR_TARGET}]")
+
 if(APR_BUILD_STATIC_LIB)
     # generate static library used as a intermediate step in generating fat lib
     set(STATIC_TARGET_NAME staticLib)
@@ -153,9 +148,15 @@ if(APR_BUILD_SHARED_LIB)
     set_property(TARGET ${SHARED_TARGET_NAME} PROPERTY VERSION ${APR_VERSION_STRING})
     set_property(TARGET ${SHARED_TARGET_NAME} PROPERTY SOVERSION ${APR_VERSION_MAJOR})
     if (CMAKE_CXX_COMPILER_ID MATCHES "Clang")
-	    target_link_libraries(${SHARED_TARGET_NAME} PRIVATE ${HDF5_LIBRARIES} ${TIFF_LIBRARIES} -Wl,-force_load,$<TARGET_FILE:blosc_static> -Wl,-force_load,$<TARGET_FILE:${CUDA_TARGET}> -Wl,-force_load,$<TARGET_FILE:${CUDA_APR_TARGET}>)
+	    if(APR_USE_CUDA) 
+		    set(EXTRA_APR_CUDA_LIBS "-Wl,-force_load,$<TARGET_FILE:${CUDA_TARGET}> -Wl,-force_load,$<TARGET_FILE:${CUDA_APR_TARGET}>")
+	    endif()
+	    target_link_libraries(${SHARED_TARGET_NAME} PRIVATE ${HDF5_LIBRARIES} ${TIFF_LIBRARIES} -Wl,-force_load,$<TARGET_FILE:blosc_static> ${EXTRA_APR_CUDA_LIBS})
     elseif()
-        target_link_libraries(${SHARED_TARGET_NAME} PRIVATE ${HDF5_LIBRARIES} ${TIFF_LIBRARIES} -Wl,--whole-archive,$<TARGET_FILE:blosc_static>,$<TARGET_FILE:${CUDA_TARGET}>,$<TARGET_FILE:${CUDA_APR_TARGET}>,--no-whole-archive)
+	    if(APR_USE_CUDA)
+		    set(EXTRA_APR_CUDA_LIBS "$<TARGET_FILE:${CUDA_TARGET}>,$<TARGET_FILE:${CUDA_APR_TARGET}>")
+	    endif()
+	    target_link_libraries(${SHARED_TARGET_NAME} PRIVATE ${HDF5_LIBRARIES} ${TIFF_LIBRARIES} -Wl,--whole-archive,$<TARGET_FILE:blosc_static>,${EXTRA_APR_CUDA_LIBS},--no-whole-archive)
     endif()
 endif()
 

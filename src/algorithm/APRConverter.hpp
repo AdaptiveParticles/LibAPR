@@ -33,9 +33,11 @@ public:
     APRTimer computation_timer;
 
     bool get_apr(APR<ImageType> &aAPR) {
+#ifdef APR_USE_CUDA
         long cudaNum = 0;
         getNumber(&cudaNum);
         std::cout << "Number from CUDA: " << cudaNum << std::endl;
+#endif
         apr = &aAPR;
 
         TiffUtils::TiffInfo inputTiff(par.input_dir + par.input_image_name);
