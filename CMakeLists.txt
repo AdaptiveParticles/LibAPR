@@ -85,8 +85,8 @@ endif()
 # CC="icc" CXX="icc" CXXFLAGS="-O3" cmake -DAPR_TESTS=1
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++14 -Wall -pedantic ")
 if(CMAKE_COMPILER_IS_GNUCC)
-    set(CMAKE_CXX_FLAGS_RELEASE "-O4 -ffast-math")
-    set(CMAKE_CXX_FLAGS_DEBUG "-O0 -g")
+    set(CMAKE_CXX_FLAGS_RELEASE "-O4 -ffast-math -lrt")
+    set(CMAKE_CXX_FLAGS_DEBUG "-O0 -g -lrt")
     set(CMAKE_EXE_LINKER_FLAGS  "${CMAKE_EXE_LINKER_FLAGS} -Bdynamic -ldl ")
 endif(CMAKE_COMPILER_IS_GNUCC)
 if (CMAKE_CXX_COMPILER_ID MATCHES "Clang")
@@ -106,15 +106,29 @@ set(SOURCE_FILES_RAYCAST src/numerics/APRRaycaster.cpp src/vis/Camera.cpp src/vi
 
 add_library(aprObjLib OBJECT ${SOURCE_FILES} ${SOURCE_FILES_RAYCAST})
 
+message(STATUS "---------------------- VARS BEG ---------------------")
+get_cmake_property(_variableNames VARIABLES)
+foreach (_variableName ${_variableNames})
+    #message(STATUS "${_variableName}=${${_variableName}}")
+endforeach()
+message(STATUS "---------------------- VARS END ---------------------")
+
+set(CUDA_TARGET "")
+set(CUDA_APR_TARGET "")
 if(APR_USE_CUDA)
     message(STATUS "APR: Building CUDA for APR")
     set(CUDA_PROPAGATE_HOST_FLAGS OFF)
     find_package(CUDA REQUIRED)
-    list(APPEND CUDA_NVCC_FLAGS "-std=c++14;-O0;") #-DVERBOSE
-    cuda_add_library(cudaAprLib src/algorithm/number.cu)
-    target_link_libraries(cudaAprLib ${CUDA_LIBRARIES})
+    message (STATUS "CUDA LIBS: ${CUDA_LIBRARIES}")
+    add_library(cudaLib STATIC IMPORTED)
+    set_property(TARGET cudaLib PROPERTY IMPORTED_LOCATION ${CUDA_cudart_static_LIBRARY})
+    set(CUDA_TARGET cudaLib)
+    set(CUDA_APR_TARGET cudaAprLib)
+    list(APPEND CUDA_NVCC_FLAGS "-std=c++14;-O0; -Xcompiler -fPIC") #-DVERBOSE
+    cuda_add_library(${CUDA_APR_TARGET} src/algorithm/number.cu)
+    target_link_libraries(${CUDA_APR_TARGET} ${CUDA_LIBRARIES})
 endif()
-
+message (STATUS "CUDA STUFF: [${CUDA_TARGET}] [${CUDA_APR_TARGET}]")
 if(APR_BUILD_STATIC_LIB)
     # generate static library used as a intermediate step in generating fat lib
     set(STATIC_TARGET_NAME staticLib)
@@ -124,10 +138,7 @@ if(APR_BUILD_STATIC_LIB)
 
     # generate fat static library by adding dependencies
     include(cmake/AddStaticLibs.cmake)
-    message (STATUS "CUDA LIBS: ${CUDA_LIBRARIES}")
-    add_library(cudaLib STATIC IMPORTED)
-    set_property(TARGET cudaLib PROPERTY IMPORTED_LOCATION /Developer/NVIDIA/CUDA-9.1/lib/libcudart_static.a)
-    addStaticLibs(${STATIC_TARGET_NAME} blosc_static cudaAprLib cudaLib)
+    addStaticLibs(${STATIC_TARGET_NAME} blosc_static ${CUDA_TARGET} ${CUDA_APR_TARGET})
 endif()
 
 if(APR_BUILD_SHARED_LIB)
@@ -141,7 +152,7 @@ if(APR_BUILD_SHARED_LIB)
     add_dependencies(${SHARED_TARGET_NAME} blosc_static)
     set_property(TARGET ${SHARED_TARGET_NAME} PROPERTY VERSION ${APR_VERSION_STRING})
     set_property(TARGET ${SHARED_TARGET_NAME} PROPERTY SOVERSION ${APR_VERSION_MAJOR})
-    target_link_libraries(${SHARED_TARGET_NAME} PRIVATE ${HDF5_LIBRARIES} ${TIFF_LIBRARIES} -Wl,-force_load,$<TARGET_FILE:blosc_static>)
+    target_link_libraries(${SHARED_TARGET_NAME} PRIVATE ${HDF5_LIBRARIES} ${TIFF_LIBRARIES} -Wl,--whole-archive,$<TARGET_FILE:blosc_static>,$<TARGET_FILE:${CUDA_TARGET}>,$<TARGET_FILE:${CUDA_APR_TARGET}>,--no-whole-archive)
 endif()
 
 # choose one of the build libraries to be used later for tests and/or examples
