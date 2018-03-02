@@ -152,7 +152,11 @@ if(APR_BUILD_SHARED_LIB)
     add_dependencies(${SHARED_TARGET_NAME} blosc_static)
     set_property(TARGET ${SHARED_TARGET_NAME} PROPERTY VERSION ${APR_VERSION_STRING})
     set_property(TARGET ${SHARED_TARGET_NAME} PROPERTY SOVERSION ${APR_VERSION_MAJOR})
-    target_link_libraries(${SHARED_TARGET_NAME} PRIVATE ${HDF5_LIBRARIES} ${TIFF_LIBRARIES} -Wl,--whole-archive,$<TARGET_FILE:blosc_static>,$<TARGET_FILE:${CUDA_TARGET}>,$<TARGET_FILE:${CUDA_APR_TARGET}>,--no-whole-archive)
+    if (CMAKE_CXX_COMPILER_ID MATCHES "Clang")
+	    target_link_libraries(${SHARED_TARGET_NAME} PRIVATE ${HDF5_LIBRARIES} ${TIFF_LIBRARIES} -Wl,-force_load,$<TARGET_FILE:blosc_static> -Wl,-force_load,$<TARGET_FILE:${CUDA_TARGET}> -Wl,-force_load,$<TARGET_FILE:${CUDA_APR_TARGET}>)
+    elseif()
+        target_link_libraries(${SHARED_TARGET_NAME} PRIVATE ${HDF5_LIBRARIES} ${TIFF_LIBRARIES} -Wl,--whole-archive,$<TARGET_FILE:blosc_static>,$<TARGET_FILE:${CUDA_TARGET}>,$<TARGET_FILE:${CUDA_APR_TARGET}>,--no-whole-archive)
+    endif()
 endif()
 
 # choose one of the build libraries to be used later for tests and/or examples
