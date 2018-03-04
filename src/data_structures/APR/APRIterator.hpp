@@ -44,6 +44,32 @@ protected:
 
 public:
 
+    void move_gap(unsigned long& gap){
+        current_gap.iterator++;
+        gap++;
+    }
+
+    unsigned long number_gaps(){
+        if(apr_access->gap_map.data[current_particle_cell.level][current_particle_cell.pc_offset].size() > 0) {
+            return apr_access->gap_map.data[current_particle_cell.level][current_particle_cell.pc_offset][0].map.size();
+        } else {
+            return 0;
+        }
+    }
+
+    uint64_t current_gap_y_begin(){
+        return current_gap.iterator->first;
+    }
+
+    uint64_t current_gap_y_end(){
+        return current_gap.iterator->second.y_end;
+    }
+
+    uint64_t current_gap_index(){
+        return current_gap.iterator->second.global_index_begin;
+    }
+
+
     APRIterator(){
         //default constructor, for use by inherited classes
     }
