@@ -132,7 +132,7 @@ if(APR_BUILD_STATIC_LIB)
     target_include_directories(${STATIC_TARGET_NAME} PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/src> $<BUILD_INTERFACE:${PROJECT_BINARY_DIR}>)
     target_link_libraries(${STATIC_TARGET_NAME} PRIVATE ${CUDA_CUDART_LIBRARY})
     if(APR_USE_CUDA)
-        add_dependencies(${SHARED_TARGET_NAME} ${CUDA_APR_TARGET})
+        add_dependencies(${STATIC_TARGET_NAME} ${CUDA_APR_TARGET})
     endif()
     # generate fat static library by adding dependencies
     include(cmake/AddStaticLibs.cmake)
