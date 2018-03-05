@@ -43,8 +43,8 @@ bool command_option_exists(char **begin, char **end, const std::string &option);
 char* get_command_option(char **begin, char **end, const std::string &option);
 
 
-template<typename T>
-void update_dense_array(const uint64_t level,const uint64_t z,APR<uint16_t>& apr,APRIterator<uint16_t>& apr_iterator,MeshData<T>& temp_vec){
+template<typename T,typename ParticleDataType>
+void update_dense_array(const uint64_t level,const uint64_t z,APR<uint16_t>& apr,APRIterator<uint16_t>& apr_iterator,MeshData<T>& temp_vec,ExtraParticleData<ParticleDataType>& particleData){
 
     uint64_t x;
 
@@ -71,7 +71,7 @@ void update_dense_array(const uint64_t level,const uint64_t z,APR<uint16_t>& apr
             uint64_t y_end =apr_iterator.current_gap_y_end()+1;
             uint64_t index =apr_iterator.current_gap_index();
 
-            std::copy(apr.particles_intensities.data.begin() + index,apr.particles_intensities.data.begin() + index + (y_end - y_begin) + 1,temp_vec.mesh.begin() + mesh_offset + y_begin );
+            std::copy(particleData.data.begin() + index,particleData.data.begin() + index + (y_end - y_begin) + 1,temp_vec.mesh.begin() + mesh_offset + y_begin );
 
 
         }
@@ -97,9 +97,9 @@ void update_dense_array(const uint64_t level,const uint64_t z,APR<uint16_t>& apr
 
                 int y_m = std::min(2 * apr_iterator.y() + 2,y_num);
 
-                temp_vec.at(2 * apr_iterator.y()+1, x + 1, z % 3) = apr.particles_intensities[apr_iterator];
+                temp_vec.at(2 * apr_iterator.y()+1, x + 1, z % 3) = particleData[apr_iterator];
 
-                temp_vec.at(y_m, x + 1, z % 3) = apr.particles_intensities[apr_iterator];
+                temp_vec.at(y_m, x + 1, z % 3) = particleData[apr_iterator];
 
 
             }
@@ -142,7 +142,7 @@ void update_dense_array(const uint64_t level,const uint64_t z,APR<uint16_t>& apr
                         temp_vec.at(apr_iterator.y() / 2 + 1, x / 2 + 1, z % 3) =
                                 (1.0f * curr_counter[apr_iterator.y() / 2] *
                                  temp_vec.at(apr_iterator.y() / 2 + 1, x / 2 + 1, z % 3) +
-                                 apr.particles_intensities[apr_iterator]) /
+                                        particleData[apr_iterator]) /
                                 (1.0f * (curr_counter[apr_iterator.y() / 2]) + 1.0f);
 
                         curr_counter[apr_iterator.y() / 2]++;
@@ -155,7 +155,7 @@ void update_dense_array(const uint64_t level,const uint64_t z,APR<uint16_t>& apr
                             temp_vec.at(apr_iterator.y() / 2 + 1, x / 2 + 1, z % 3) =
                                     (1.0f * curr_counter[apr_iterator.y() / 2] *
                                      temp_vec.at(apr_iterator.y() / 2 + 1, x / 2 + 1, z % 3) +
-                                     apr.particles_intensities[apr_iterator]) /
+                                            particleData[apr_iterator]) /
                                     (1.0f * curr_counter[apr_iterator.y() / 2] +
                                      1.0f);
                             curr_counter[apr_iterator.y() / 2]++;
@@ -414,14 +414,14 @@ int main(int argc, char **argv) {
             z = 0;
 
             //initial condition
-            update_dense_array(level, z, apr, apr_iterator, temp_vec);
+            update_dense_array(level, z, apr, apr_iterator, temp_vec,apr.particles_intensities);
 
 
             for (z = 0; z < apr.spatial_index_z_max(level); ++z) {
 
                 if (z < (z_num - 1)) {
                     //update the next z plane for the access
-                    update_dense_array(level, z + 1, apr, apr_iterator, temp_vec);
+                    update_dense_array(level, z + 1, apr, apr_iterator, temp_vec,apr.particles_intensities);
                 } else {
                     // need to set (z+1)%3 to zero, zero boundary condition
 
@@ -542,13 +542,13 @@ int main(int argc, char **argv) {
             z = 0;
 
             //initial condition
-            update_dense_array(level, z, apr, apr_iterator, temp_vec);
+            update_dense_array(level, z, apr, apr_iterator, temp_vec,apr.particles_intensities);
 
             for (z = 0; z < apr.spatial_index_z_max(level); ++z) {
 
                 if (z < (z_num - 1)) {
                     //update the next z plane for the access
-                    update_dense_array(level, z + 1, apr, apr_iterator, temp_vec);
+                    update_dense_array(level, z + 1, apr, apr_iterator, temp_vec,apr.particles_intensities);
                 } else {
                     // need to set (z+1)%3 to zero, zero boundary condition
 
