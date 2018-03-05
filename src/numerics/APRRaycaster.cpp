@@ -1,5 +1,9 @@
 #include "../vis/RaytracedObject.h"
 #include "APRRaycaster.hpp"
+#include <cmath>
+#ifndef M_PI
+#define M_PI 3.14159265358979323846
+#endif
 
 // Implementation of glm related stuff. Main reason is to avoid necessity to have glm header files installed
 // to use libAPR.
