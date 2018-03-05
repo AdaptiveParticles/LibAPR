@@ -5,8 +5,8 @@
 #ifndef LIBAPR_APRTREENUMERICS_HPP
 #define LIBAPR_APRTREENUMERICS_HPP
 
-#include "src/data_structures/APR/APRTree.hpp"
-#include "src/data_structures/APR/APRTreeIterator.hpp"
+#include "data_structures/APR/APRTree.hpp"
+#include "data_structures/APR/APRTreeIterator.hpp"
 #include "APRNumerics.hpp"
 
 class APRTreeNumerics {

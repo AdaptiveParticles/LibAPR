@@ -19,17 +19,15 @@ const char* usage = R"(
 #include <algorithm>
 #include <iostream>
 
-#include "src/data_structures/APR/APR.hpp"
-#include "src/data_structures/APR/APRAccessAlt.hpp"
-#include "src/data_structures/APR/APRIteratorAlt.hpp"
+#include "data_structures/APR/APR.hpp"
 
-#include "src/algorithm/APRConverter.hpp"
-#include "src/data_structures/APR/APRTree.hpp"
-#include "src/data_structures/APR/APRTreeIterator.hpp"
-#include "src/data_structures/APR/APRIterator.hpp"
-#include "src/numerics/APRTreeNumerics.hpp"
-#include <src/numerics/APRNumerics.hpp>
-#include <src/numerics/APRComputeHelper.hpp>
+#include "algorithm/APRConverter.hpp"
+#include "data_structures/APR/APRTree.hpp"
+#include "data_structures/APR/APRTreeIterator.hpp"
+#include "data_structures/APR/APRIterator.hpp"
+#include "numerics/APRTreeNumerics.hpp"
+#include <numerics/APRNumerics.hpp>
+#include <numerics/APRComputeHelper.hpp>
 
 struct cmdLineOptions{
     std::string output = "output";

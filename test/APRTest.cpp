@@ -4,11 +4,11 @@
 
 #include <gtest/gtest.h>
 
-#include "src/data_structures/APR/APR.hpp"
-#include "src/data_structures/Mesh/MeshData.hpp"
-#include "src/algorithm/APRConverter.hpp"
-#include "src/data_structures/APR/APRTree.hpp"
-#include "src/data_structures/APR/APRTreeIterator.hpp"
+#include "data_structures/APR/APR.hpp"
+#include "data_structures/Mesh/MeshData.hpp"
+#include "algorithm/APRConverter.hpp"
+#include "data_structures/APR/APRTree.hpp"
+#include "data_structures/APR/APRTreeIterator.hpp"
 
 #include <utility>
 #include <cmath>

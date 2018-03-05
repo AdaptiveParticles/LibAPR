@@ -5,10 +5,10 @@
 #ifndef APR_TIME_APRCOMPUTEHELPER_HPP
 #define APR_TIME_APRCOMPUTEHELPER_HPP
 
-#include <src/data_structures/APR/APRTree.hpp>
-#include <src/numerics/APRTreeNumerics.hpp>
+#include <data_structures/APR/APRTree.hpp>
+#include <numerics/APRTreeNumerics.hpp>
 #include "APRNumerics.hpp"
-#include <src/algorithm/APRConverter.hpp>
+#include <algorithm/APRConverter.hpp>
 
 template<typename ImageType>
 class APRComputeHelper {

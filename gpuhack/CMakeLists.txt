@@ -1,0 +1,8 @@
+macro(buildTarget TARGET)
+    add_executable(${TARGET} ${TARGET}.cpp)
+    target_link_libraries(${TARGET} ${HDF5_LIBRARIES} ${TIFF_LIBRARIES} ${APR_BUILD_LIBRARY})
+endmacro(buildTarget)
+
+buildTarget(Cpu_example)
+
+

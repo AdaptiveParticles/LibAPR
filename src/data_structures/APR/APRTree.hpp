@@ -5,7 +5,7 @@
 #ifndef LIBAPR_APRTREE_HPP
 #define LIBAPR_APRTREE_HPP
 
-#include "src/data_structures/APR/APR.hpp"
+#include "data_structures/APR/APR.hpp"
 
 #define INTERIOR_PARENT 9
 
