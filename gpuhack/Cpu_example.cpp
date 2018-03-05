@@ -57,6 +57,10 @@ void update_dense_array(const uint64_t level,const uint64_t z,APR<uint16_t>& apr
 #endif
     for (x = 0; x < apr_iterator.spatial_index_x_max(level); ++x) {
 
+        //
+        //  This loop recreates particles at the current level, using a simple copy
+        //
+
         uint64_t mesh_offset = (x+1)*y_num_m + x_num_m*y_num_m*(z % 3);
 
         apr_iterator.set_new_lzx(level, z, x);
@@ -76,6 +80,10 @@ void update_dense_array(const uint64_t level,const uint64_t z,APR<uint16_t>& apr
 
     if(level > apr_iterator.level_min()) {
         const int y_num = apr_iterator.spatial_index_y_max(level);
+
+        //
+        //  This loop interpolates particles at a lower level (Larger Particle Cell or resolution), by simple uploading
+        //
 
 #ifdef HAVE_OPENMP
 #pragma omp parallel for schedule(dynamic) private(x) firstprivate(apr_iterator)
@@ -100,6 +108,13 @@ void update_dense_array(const uint64_t level,const uint64_t z,APR<uint16_t>& apr
     }
 
     if(level < apr_iterator.level_max()) {
+
+        //
+        //  This is an interpolating from higher resolution particles to lower, if it was full this would be the simply average
+        //  of the 8 children particle cells.
+        //
+        //  However, there are not always 8 children nodes, therefore we need to keep track of the number of children.
+        //
 
         const uint64_t z_num_us =  apr_iterator.spatial_index_z_max(level+1);
         const uint64_t x_num_us =  apr_iterator.spatial_index_x_max(level+1);
