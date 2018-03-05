@@ -2,6 +2,9 @@
 // Created by cheesema on 05.03.18.
 //
 //
+// Created by cheesema on 05.03.18.
+//
+//
 // Created by cheesema on 28.02.18.
 //
 
@@ -248,9 +251,6 @@ int main(int argc, char **argv) {
     uint64_t particle_number;
     //Basic serial iteration over all particles
 
-
-
-
     //check the result
 
     ExtraParticleData<float> part_sum_dense2(apr);
@@ -319,9 +319,8 @@ int main(int argc, char **argv) {
                             }
                         }
 
-
-                        part_sum_dense2[apr_iterator] = neigh_sum/27.0f;
-                        //part_sum_dense[apr_iterator] = temp_vec.at(k, i, z%3);
+                        //part_sum_dense2[apr_iterator] = neigh_sum/27.0f;
+                        part_sum_dense2[apr_iterator] = temp_vec.at(k, i, z%3);
                     }
                 }
 
@@ -334,8 +333,28 @@ int main(int argc, char **argv) {
     timer.stop_timer();
 
 
+    bool success = true;
+    uint64_t f_c=0;
 
 
+    //Basic serial iteration over all particles
+    for (particle_number = 0; particle_number < apr.total_number_particles(); ++particle_number) {
+        //This step is required for all loops to set the iterator by the particle number
+        apr_iterator.set_iterator_to_particle_by_number(particle_number);
+
+        if(part_sum_dense2.data[particle_number]!=apr.particles_intensities.data[particle_number]){
+
+            success = false;
+            f_c++;
+        }
+
+    }
+
+    if(success){
+        std::cout << "PASS" << std::endl;
+    } else {
+        std::cout << "FAIL" << " " << f_c <<  std::endl;
+    }
 
 
 }
@@ -387,5 +406,6 @@ cmdLineOptions read_command_line_options(int argc, char **argv){
     return result;
 
 }
+
 
 

@@ -5,5 +5,6 @@ endmacro(buildTarget)
 
 buildTarget(Cpu_example)
 buildTarget(Cpu_dense_neighbour)
+buildTarget(Cpu_dense_identity_check)
 
 
