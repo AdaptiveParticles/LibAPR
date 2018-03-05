@@ -4,5 +4,6 @@ macro(buildTarget TARGET)
 endmacro(buildTarget)
 
 buildTarget(Cpu_example)
+buildTarget(Cpu_dense_neighbour)
 
 
