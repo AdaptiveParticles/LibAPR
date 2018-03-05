@@ -231,7 +231,7 @@ if(APR_BUILD_EXAMPLES)
 endif(APR_BUILD_EXAMPLES)
 
 include_directories(src)
-message(STATUS "APR: Benchmark Examples")
+message(STATUS "APR: GPUHACK Examples")
 add_subdirectory(gpuhack)
 
 ###############################################################################

@@ -1,6 +1,10 @@
 //
 // Created by cheesema on 05.03.18.
 //
+
+//
+// Created by cheesema on 05.03.18.
+//
 //
 // Created by cheesema on 28.02.18.
 //
@@ -209,14 +213,63 @@ int main(int argc, char **argv) {
 
     int num_rep = 1;
 
-    timer.start_timer("APR serial iterator neighbours loop");
 
     //Basic serial iteration over all particles
     uint64_t particle_number;
     //Basic serial iteration over all particles
 
 
-    //check the result
+    ExtraPartCellData<uint16_t> y_row;
+    ExtraPartCellData<uint64_t> global_index_row_begin;
+
+    y_row.data.resize(apr_iterator.level_max() + 1);
+    global_index_row_begin.data.resize(apr_iterator.level_max() + 1);
+
+    for (int level = apr_iterator.level_min(); level <= apr_iterator.level_max(); ++level) {
+
+        unsigned int z = 0;
+        unsigned int x = 0;
+
+        const int y_num = apr_iterator.spatial_index_y_max(level);
+        const int x_num = apr_iterator.spatial_index_x_max(level);
+        const int z_num = apr_iterator.spatial_index_z_max(level);
+
+        y_row.data[level].resize(x_num*z_num);
+        global_index_row_begin.data[level].resize(x_num*z_num);
+
+        for (z = 0; z < apr.spatial_index_z_max(level); ++z) {
+
+
+            for (x = 0; x < apr.spatial_index_x_max(level); ++x) {
+
+                if(apr_iterator.set_new_lzx(level, z, x)<UINT64_MAX){
+                    global_index_row_begin.data[level][apr_iterator.z()*x_num + apr_iterator.x()].push_back(apr_iterator.global_index());
+                }
+
+
+                for (apr_iterator.set_new_lzx(level, z, x);
+                     apr_iterator.global_index() < apr_iterator.particles_zx_end(level, z,
+                                                                                 x); apr_iterator.set_iterator_to_particle_next_particle()) {
+
+                    y_row.data[level][apr_iterator.z()*x_num + apr_iterator.x()].push_back(apr_iterator.y());
+
+
+                }
+            }
+        }
+    }
+
+
+
+
+
+
+
+
+
+
+
+                    //check the result
 
     ExtraParticleData<float> part_sum_dense2(apr);
 
@@ -267,13 +320,17 @@ int main(int argc, char **argv) {
 #pragma omp parallel for schedule(dynamic) private(x) firstprivate(apr_iterator)
 #endif
                 for (x = 0; x < apr.spatial_index_x_max(level); ++x) {
-                    for (apr_iterator.set_new_lzx(level, z, x);
-                         apr_iterator.global_index() < apr_iterator.particles_zx_end(level, z,
-                                                                                     x); apr_iterator.set_iterator_to_particle_next_particle()) {
+                    uint64_t global_index;
+                    if(global_index_row_begin.data[level][x_num * z + x].size() > 0) {
+                        global_index = global_index_row_begin.data[level][x_num * z + x][0];
+                    }
+                    for (int m = 0; m < y_row.data[level][x_num*z + x].size(); ++m) {
+
+
                         float neigh_sum = 0;
                         float counter = 0;
 
-                        const int k = apr_iterator.y() + 1; // offset to allow for boundary padding
+                        const int k = y_row.data[level][x_num*z + x][m] + 1; // offset to allow for boundary padding
                         const int i = x + 1;
 
                         for (int l = -1; l < 2; ++l) {
@@ -285,8 +342,10 @@ int main(int argc, char **argv) {
                         }
 
 
-                        part_sum_dense2[apr_iterator] = neigh_sum/27.0f;
-                        //part_sum_dense[apr_iterator] = temp_vec.at(k, i, z%3);
+                        part_sum_dense2.data[global_index] = temp_vec.at(k, i, z%3);
+
+                        global_index++;
+
                     }
                 }
 
@@ -300,7 +359,28 @@ int main(int argc, char **argv) {
 
 
 
+    bool success = true;
+    uint64_t f_c=0;
 
+
+    //Basic serial iteration over all particles
+    for (particle_number = 0; particle_number < apr.total_number_particles(); ++particle_number) {
+        //This step is required for all loops to set the iterator by the particle number
+        apr_iterator.set_iterator_to_particle_by_number(particle_number);
+
+        if(part_sum_dense2.data[particle_number]!=apr.particles_intensities.data[particle_number]){
+
+            success = false;
+            f_c++;
+        }
+
+    }
+
+    if(success){
+        std::cout << "PASS" << std::endl;
+    } else {
+        std::cout << "FAIL" << " " << f_c <<  std::endl;
+    }
 
 
 }
