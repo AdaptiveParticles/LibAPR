@@ -49,7 +49,7 @@ find_package(TIFF REQUIRED)
 # Handle OpenMP
 find_package(OpenMP)
 if(NOT OPENMP_FOUND OR DISABLE_OPENMP)
-    message("OpenMP support not found with current compiler. While APR can compile like this, performance might not be optimal. Please see README.md for instructions.")
+    message(WARNING "OpenMP support not found with current compiler. While APR can compile like this, performance might not be optimal. Please see README.md for instructions.")
 else()
     set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -DHAVE_OPENMP ${OpenMP_C_FLAGS}")
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DHAVE_OPENMP ${OpenMP_CXX_FLAGS}")
