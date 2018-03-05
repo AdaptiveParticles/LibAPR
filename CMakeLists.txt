@@ -44,6 +44,7 @@ message("Configuring for APR version: " ${APR_VERSION_STRING})
 # Find all required libraries
 ###############################################################################
 find_package(HDF5 REQUIRED)
+find_package(ZLIB REQUIRED)
 find_package(TIFF REQUIRED)
 
 # Handle OpenMP
@@ -54,7 +55,7 @@ else()
     set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -DHAVE_OPENMP ${OpenMP_C_FLAGS}")
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DHAVE_OPENMP ${OpenMP_CXX_FLAGS}")
 endif()
-include_directories(${HDF5_INCLUDE_DIRS} ${TIFF_INCLUDE_DIR})
+include_directories(${HDF5_INCLUDE_DIRS} ${ZLIB_INCLUDE_DIRS} ${TIFF_INCLUDE_DIR})
 
 # needed here for blosc library
 SET(CMAKE_POSITION_INDEPENDENT_CODE ON)
@@ -124,7 +125,7 @@ if(APR_BUILD_SHARED_LIB)
     add_dependencies(${SHARED_TARGET_NAME} blosc_static)
     set_property(TARGET ${SHARED_TARGET_NAME} PROPERTY VERSION ${APR_VERSION_STRING})
     set_property(TARGET ${SHARED_TARGET_NAME} PROPERTY SOVERSION ${APR_VERSION_MAJOR})
-    target_link_libraries(${SHARED_TARGET_NAME} PRIVATE ${HDF5_LIBRARIES} ${TIFF_LIBRARIES} -Wl,-force_load,$<TARGET_FILE:blosc_static>)
+    target_link_libraries(${SHARED_TARGET_NAME} PRIVATE ${HDF5_LIBRARIES} ${TIFF_LIBRARIES} -Wl,-force_load,$<TARGET_FILE:blosc_static> ${ZLIB_LIBRARIES})
 endif()
 
 # choose one of the build libraries to be used later for tests and/or examples
@@ -230,5 +231,5 @@ if(APR_BUILD_JAVA_WRAPPERS)
     set(CMAKE_SWIG_FLAGS -package de.mpicbg.mosaic.apr -Wall)
     set_source_files_properties(libapr.i PROPERTIES CPLUSPLUS ON)
     swig_add_library(apr LANGUAGE java SOURCES libapr.i ${SOURCE_FILES})
-    swig_link_libraries(apr ${HDF5_LIBRARIES} blosc_static ${TIFF_LIBRARIES})
+    swig_link_libraries(apr ${HDF5_LIBRARIES} blosc_static ${TIFF_LIBRARIES} ${ZLIB_LIBRARIES})
 endif(APR_BUILD_JAVA_WRAPPERS)
