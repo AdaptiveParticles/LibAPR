@@ -21,14 +21,14 @@ public:
     float psfy = 2;
     float psfz = 2;
 
-    float Ip_th = 0;
-    float SNR_min = 0;
+    float Ip_th = -1;
+    float SNR_min = -1;
     float lambda = 3.0;
-    float min_signal = 0;
+    float min_signal = -1;
     float rel_error = 0.1;
 
-    float sigma_th = 0;
-    float sigma_th_max = 0;
+    float sigma_th = -1;
+    float sigma_th_max = -1;
 
     float noise_sd_estimate = 0;
     float background_intensity_estimate = 0;

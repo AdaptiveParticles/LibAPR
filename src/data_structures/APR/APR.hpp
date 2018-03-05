@@ -154,6 +154,27 @@ public:
             parts[apr_iterator] = img_by_level[apr_iterator.level()].at(apr_iterator.y(),apr_iterator.x(),apr_iterator.z());
         }
     }
+
+    template<typename U,typename V>
+    void get_parts_from_img(MeshData<U>& img,ExtraParticleData<V>& parts){
+        //
+        //  Bevan Cheeseman 2016
+        //
+        //  Samples particles from an image using an image tree (img_by_level is a vector of images)
+
+        //initialization of the iteration structures
+        APRIterator<ImageType> apr_iterator(*this); //this is required for parallel access
+        parts.data.resize(apr_iterator.total_number_particles());
+
+#ifdef HAVE_OPENMP
+#pragma omp parallel for schedule(static) firstprivate(apr_iterator)
+#endif
+        for (uint64_t particle_number = 0; particle_number < apr_iterator.total_number_particles(); ++particle_number) {
+            //needed step for any parallel loop (update to the next part)
+            apr_iterator.set_iterator_to_particle_by_number(particle_number);
+            parts[apr_iterator] = img.at(apr_iterator.y_nearest_pixel(),apr_iterator.x_nearest_pixel(),apr_iterator.z_nearest_pixel());
+        }
+    }
 };
 
 

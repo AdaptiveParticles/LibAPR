@@ -148,7 +148,7 @@ public:
             //
 
             //access and info
-            apr_iterator(type_parts) = apr_iterator.type();
+            type_parts[apr_iterator] = apr_iterator.type();
 
         }
 

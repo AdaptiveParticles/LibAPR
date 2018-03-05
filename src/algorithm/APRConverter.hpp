@@ -55,26 +55,41 @@ public:
         }
     };
 
-private:
+
     //get apr without setting parameters, and with an already loaded image.
     template<typename T>
-    bool get_apr_method(APR<ImageType> &aAPR, MeshData<T> &input_image);
+
+    bool get_apr_method(APR<ImageType>& apr, MeshData<T>& input_image);
+
+    template<typename T>
+    void init_apr(APR<ImageType>& apr,MeshData<T>& input_image);
+
+    template<typename T>
+    void auto_parameters(const MeshData<T>& input_img);
+
+    template<typename T>
+    bool get_apr_method_custom_gradient_and_scale(APR<ImageType> &aAPR, MeshData<T>& input_image,MeshData<T>& custom_grad,MeshData<T>& custom_local_scale);
+
+    template<typename T>
+    bool get_apr_method_from_file(APR<ImageType>& apr, const TiffUtils::TiffInfo &tiffFile);
+
+    void get_gradient(MeshData<ImageType> &image_temp, MeshData<ImageType> &grad_temp, MeshData<float> &local_scale_temp, MeshData<float> &local_scale_temp2, float bspline_offset);
+
+    void get_local_intensity_scale(MeshData<float> &local_scale_temp, MeshData<float> &local_scale_temp2);
+
+    void get_local_particle_cell_set(MeshData<ImageType> &grad_temp, MeshData<float> &local_scale_temp, MeshData<float> &local_scale_temp2);
+
+    template<typename T>
+    bool get_apr_method_custom_from_parts(APR<ImageType> &aAPR, APR<ImageType>& old_apr,ExtraParticleData<float>& normalized_grad,MeshData<T>& input_image);
+
+    void get_local_particle_cell_set_from_parts(APR<ImageType>& old_apr,ExtraParticleData<float>& normalized_gradient);
+
+private:
 
     //pointer to the APR structure so member functions can have access if they need
     const APR<ImageType> *apr;
 
-    template<typename T>
-    void init_apr(APR<ImageType>& aAPR, MeshData<T>& input_image);
 
-    template<typename T>
-    void auto_parameters(const MeshData<T> &input_img);
-
-    template<typename T>
-    bool get_apr_method_from_file(APR<ImageType> &aAPR, const TiffUtils::TiffInfo &aTiffFile);
-
-    void get_gradient(MeshData<ImageType> &image_temp, MeshData<ImageType> &grad_temp, MeshData<float> &local_scale_temp, MeshData<float> &local_scale_temp2, float bspline_offset);
-    void get_local_intensity_scale(MeshData<float> &local_scale_temp, MeshData<float> &local_scale_temp2);
-    void get_local_particle_cell_set(MeshData<ImageType> &grad_temp, MeshData<float> &local_scale_temp, MeshData<float> &local_scale_temp2);
 };
 
 
@@ -185,6 +200,9 @@ bool APRConverter<ImageType>::get_apr_method(APR<ImageType> &aAPR, MeshData<T>& 
     return true;
 }
 
+
+
+
 template<typename ImageType>
 void APRConverter<ImageType>::get_local_particle_cell_set(MeshData<ImageType> &grad_temp, MeshData<float> &local_scale_temp, MeshData<float> &local_scale_temp2) {
     //
@@ -229,6 +247,94 @@ void APRConverter<ImageType>::get_local_particle_cell_set(MeshData<ImageType> &g
     }
     fine_grained_timer.stop_timer();
 }
+template<typename ImageType>
+void APRConverter<ImageType>::get_local_particle_cell_set_from_parts(APR<ImageType>& old_apr,ExtraParticleData<float>& normalized_gradient) {
+    //
+    //  Computes the Local Particle Cell Set from a down-sampled local intensity scale (\sigma) and gradient magnitude
+    //
+    //  Down-sampled due to the Equivalence Optimization
+    //
+
+
+    float min_dim = std::min(par.dy,std::min(par.dx,par.dz));
+    float level_factor = pow(2,(*apr).level_max())*min_dim;
+
+    int l_max = (*apr).level_max() - 1;
+    int l_min = (*apr).level_min();
+
+    fine_grained_timer.start_timer("compute_level_second");
+    //incorporate other factors and compute the level of the Particle Cell, effectively construct LPC L_n
+//    compute_level_for_array(local_scale_temp,level_factor,par.rel_error);
+//    fill(l_max,local_scale_temp);
+    fine_grained_timer.stop_timer();
+
+    const float mult_const = level_factor/par.rel_error;
+
+    APRIterator<ImageType> aprIterator(old_apr);
+    uint64_t particle_number;
+
+#ifdef HAVE_OPENMP
+#pragma omp parallel for schedule(static) private(particle_number) firstprivate(aprIterator)
+#endif
+    for (particle_number = 0; particle_number < aprIterator.total_number_particles(); ++particle_number) {
+        //needed step for any parallel loop (update to the next part)
+        aprIterator.set_iterator_to_particle_by_number(particle_number);
+
+        normalized_gradient[aprIterator] = asmlog_2(normalized_gradient[aprIterator]* mult_const);
+
+        normalized_gradient[aprIterator] = std::min((int)normalized_gradient[aprIterator],l_max);
+        normalized_gradient[aprIterator] = std::max((int)normalized_gradient[aprIterator],l_min);
+
+    }
+
+#ifdef HAVE_OPENMP
+#pragma omp parallel for schedule(static) private(particle_number) firstprivate(aprIterator)
+#endif
+    for (particle_number = 0; particle_number < aprIterator.total_number_particles(); ++particle_number) {
+        //needed step for any parallel loop (update to the next part)
+        aprIterator.set_iterator_to_particle_by_number(particle_number);
+
+        const int level = (int)normalized_gradient[aprIterator];
+
+        float step_size = (float) pow(2, level - aprIterator.level());
+
+        int dim1 = (int)floor(aprIterator.y() * step_size);
+        int dim2 = (int)floor(aprIterator.x() * step_size);
+        int dim3 = (int)floor(aprIterator.z() * step_size);
+
+        //add to all the required rays
+        step_size = std::max(1.0f,step_size);
+
+        const int offset_max_dim1 = std::min((int) particle_cell_tree[level].y_num, (int) (dim1 + step_size));
+        const int offset_max_dim2 = std::min((int) particle_cell_tree[level].x_num, (int) (dim2 + step_size));
+        const int offset_max_dim3 = std::min((int) particle_cell_tree[level].z_num, (int) (dim3 + step_size));
+
+        for (int64_t q = dim3; q < offset_max_dim3; ++q) {
+
+            for (int64_t k = dim2; k < offset_max_dim2; ++k) {
+                for (int64_t i = dim1; i < offset_max_dim1; ++i) {
+                    particle_cell_tree[level].mesh[i + (k) * particle_cell_tree[level].y_num + q * particle_cell_tree[level].y_num * particle_cell_tree[level].x_num] = SEED_TYPE;
+                }
+            }
+        }
+    }
+
+//
+//    fine_grained_timer.start_timer("level_loop_initialize_tree");
+//    for(int l_ = l_max - 1; l_ >= l_min; l_--){
+//
+//
+//        //down sample the resolution level k, using a max reduction
+//        downsample(local_scale_temp, local_scale_temp2,
+//                   [](const float &x, const float &y) -> float { return std::max(x, y); },
+//                   [](const float &x) -> float { return x; }, true);
+//        //for those value of level k, add to the hash table
+//        fill(l_,local_scale_temp2);
+//        //assign the previous mesh to now be resampled.
+//        local_scale_temp.swap(local_scale_temp2);
+//    }
+//    fine_grained_timer.stop_timer();
+}
 
 template<typename ImageType>
 void APRConverter<ImageType>::get_gradient(MeshData<ImageType> &image_temp, MeshData<ImageType> &grad_temp, MeshData<float> &local_scale_temp, MeshData<float> &local_scale_temp2, float bspline_offset) {
@@ -238,6 +344,7 @@ void APRConverter<ImageType>::get_gradient(MeshData<ImageType> &image_temp, Mesh
     //  Output: down-sampled by 2 gradient magnitude (Note, the gradient is calculated at pixel level then maximum down sampled within the loops below)
 
     fine_grained_timer.verbose_flag = false;
+
 
     fine_grained_timer.start_timer("smooth_bspline");
     if(par.lambda > 0) {
@@ -608,6 +715,177 @@ void APRConverter<ImageType>::auto_parameters(const MeshData<T>& input_img){
     std::cout << "sigma_th_max: " << par.sigma_th_max << std::endl;
     std::cout << "relative error (E): " << par.rel_error << std::endl;
     std::cout << "lambda: " << par.lambda << std::endl;
+}
+template<typename ImageType> template<typename T>
+bool APRConverter<ImageType>::get_apr_method_custom_gradient_and_scale(APR<ImageType> &aAPR, MeshData<T>& input_image,MeshData<T>& custom_grad,MeshData<T>& custom_local_scale) {
+    //
+    //  Method of computing the APR using extenrnally computed gradient or local intensity scale
+    //
+    //
+
+    bool custom_grad_flag = (custom_grad.mesh.size() > 0);
+    bool custom_scale_flag = (custom_local_scale.mesh.size() > 0);
+
+    apr = &aAPR; // in case it was called directly
+
+    total_timer.start_timer("Total_pipeline_excluding_IO");
+
+    init_apr(aAPR, input_image);
+
+    ////////////////////////////////////////
+    /// Memory allocation of variables
+    ////////////////////////////////////////
+
+    //assuming uint16, the total memory cost shoudl be approximately (1 + 1 + 1/8 + 2/8 + 2/8) = 2 5/8 original image size in u16bit
+    //storage of the particle cell tree for computing the pulling scheme
+    MeshData<ImageType> image_temp; // global image variable useful for passing between methods, or re-using memory (should be the only full sized copy of the image)
+    MeshData<ImageType> grad_temp; // should be a down-sampled image
+    MeshData<float> local_scale_temp; //   Used as down-sampled images for some averaging steps where it is useful to not lose precision, or get over-flow errors
+    MeshData<float> local_scale_temp2;
+
+    allocation_timer.start_timer("init and copy image");
+    image_temp.init(input_image);
+    grad_temp.initDownsampled(input_image.y_num, input_image.x_num, input_image.z_num, 0);
+    local_scale_temp.initDownsampled(input_image.y_num, input_image.x_num, input_image.z_num);
+    local_scale_temp2.initDownsampled(input_image.y_num, input_image.x_num, input_image.z_num);
+    allocation_timer.stop_timer();
+
+    /////////////////////////////////
+    /// Pipeline
+    ////////////////////////
+
+    computation_timer.start_timer("Calculations");
+
+    if(!custom_grad_flag) {
+
+        fine_grained_timer.start_timer("offset image");
+        //offset image by factor (this is required if there are zero areas in the background with uint16_t and uint8_t images, as the Bspline co-efficients otherwise may be negative!)
+        // Warning both of these could result in over-flow (if your image is non zero, with a 'buffer' and has intensities up to uint16_t maximum value then set image_type = "", i.e. uncomment the following line)
+        float bspline_offset = 0;
+        if (std::is_same<uint16_t, ImageType>::value) {
+            bspline_offset = 100;
+            image_temp.copyFromMeshWithUnaryOp(input_image, [=](const auto &a) { return (a + bspline_offset); });
+        } else if (std::is_same<uint8_t, ImageType>::value) {
+            bspline_offset = 5;
+            image_temp.copyFromMeshWithUnaryOp(input_image, [=](const auto &a) { return (a + bspline_offset); });
+        } else {
+            image_temp.copyFromMesh(input_image);
+        }
+        fine_grained_timer.stop_timer();
+
+        method_timer.start_timer("compute_gradient_magnitude_using_bsplines");
+        get_gradient(image_temp, grad_temp, local_scale_temp, local_scale_temp2, bspline_offset);
+        method_timer.stop_timer();
+    } else {
+        threshold_gradient(custom_grad,input_image,par.Ip_th);
+        downsample(custom_grad, grad_temp,
+                   [](const float &x, const float &y) -> float { return x + y; },
+                   [](const float &x) -> float { return x / 8.0; });
+
+    }
+
+    if(!custom_scale_flag) {
+        method_timer.start_timer("compute_local_intensity_scale");
+        get_local_intensity_scale(local_scale_temp, local_scale_temp2);
+        method_timer.stop_timer();
+    } else{
+        downsample(custom_local_scale, local_scale_temp,
+                   [](const float &x, const float &y) -> float { return x + y; },
+                   [](const float &x) -> float { return x / 8.0; });
+        rescale_var_and_threshold( local_scale_temp, 1.0,par);
+    }
+
+    method_timer.start_timer("initialize_particle_cell_tree");
+    initialize_particle_cell_tree(aAPR);
+    method_timer.stop_timer();
+
+    method_timer.start_timer("compute_local_particle_set");
+    get_local_particle_cell_set(grad_temp, local_scale_temp, local_scale_temp2);
+    method_timer.stop_timer();
+
+    method_timer.start_timer("compute_pulling_scheme");
+    PullingScheme::pulling_scheme_main();
+    method_timer.stop_timer();
+
+    method_timer.start_timer("downsample_pyramid");
+    std::vector<MeshData<T>> downsampled_img;
+    //Down-sample the image for particle intensity estimation
+    downsamplePyrmaid(input_image, downsampled_img, aAPR.level_max(), aAPR.level_min());
+    method_timer.stop_timer();
+
+    method_timer.start_timer("compute_apr_datastructure");
+    aAPR.apr_access.initialize_structure_from_particle_cell_tree(aAPR,particle_cell_tree);
+    method_timer.stop_timer();
+
+    method_timer.start_timer("sample_particles");
+    aAPR.get_parts_from_img(downsampled_img,aAPR.particles_intensities);
+    method_timer.stop_timer();
+
+    computation_timer.stop_timer();
+
+    aAPR.parameters = par;
+
+    total_timer.stop_timer();
+
+    return true;
+}
+template<typename ImageType> template<typename T>
+bool APRConverter<ImageType>::get_apr_method_custom_from_parts(APR<ImageType> &aAPR, APR<ImageType>& old_apr,ExtraParticleData<float>& normalized_grad,MeshData<T>& input_image) {
+    //
+    //  Method of computing the APR using extenrnally computed gradient or local intensity scale
+    //
+    //
+
+
+    apr = &aAPR; // in case it was called directly
+
+    total_timer.start_timer("Total_pipeline_excluding_IO");
+
+    init_apr(aAPR, input_image);
+
+    ////////////////////////////////////////
+    /// Memory allocation of variables
+    ////////////////////////////////////////
+
+    /////////////////////////////////
+    /// Pipeline
+    ////////////////////////
+
+    computation_timer.start_timer("Calculations");
+
+    method_timer.start_timer("initialize_particle_cell_tree");
+    initialize_particle_cell_tree(aAPR);
+    method_timer.stop_timer();
+
+    method_timer.start_timer("compute_local_particle_set");
+    get_local_particle_cell_set_from_parts(old_apr,normalized_grad);
+    method_timer.stop_timer();
+
+    method_timer.start_timer("compute_pulling_scheme");
+    PullingScheme::pulling_scheme_main();
+    method_timer.stop_timer();
+
+    method_timer.start_timer("downsample_pyramid");
+    std::vector<MeshData<T>> downsampled_img;
+    //Down-sample the image for particle intensity estimation
+    downsamplePyrmaid(input_image, downsampled_img, aAPR.level_max(), aAPR.level_min());
+    method_timer.stop_timer();
+
+    method_timer.start_timer("compute_apr_datastructure");
+    aAPR.apr_access.initialize_structure_from_particle_cell_tree(aAPR,particle_cell_tree);
+    method_timer.stop_timer();
+
+    method_timer.start_timer("sample_particles");
+    aAPR.get_parts_from_img(downsampled_img,aAPR.particles_intensities);
+    method_timer.stop_timer();
+
+    computation_timer.stop_timer();
+
+    aAPR.parameters = par;
+
+    total_timer.stop_timer();
+
+    return true;
 }
 
 

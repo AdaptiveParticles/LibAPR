@@ -95,6 +95,82 @@ public:
 
     }
 
+    template<typename T,typename U,typename V>
+    static void compute_gradient_magnitude(APR<T> apr,ExtraParticleData<U>& input_particles,ExtraParticleData<V>& gradient_magnitude,const std::vector<float> delta = {1.0f,1.0f,1.0f}){
+
+
+        APRTimer timer;
+        timer.verbose_flag = true;
+
+        gradient_magnitude.init(apr);
+
+        APRIterator<T> apr_iterator(apr);
+        APRIterator<T> neighbour_iterator(apr);
+
+        uint64_t particle_number;
+
+        const std::vector<std::vector<uint8_t>> group_directions = {{0,1},{2,3},{4,5}}; // Neighbour Particle Cell Face definitions [+y,-y,+x,-x,+z,-z] =  [0,1,2,3,4,5]
+        const std::vector<float> sign = {1.0,-1.0};
+
+        timer.start_timer("Calculate the gradient in each direction for the APR");
+
+        //
+        //  Calculates an estimate of the gradient in each direciton, using an average of two one sided FD of the gradient using the average of particles for children.
+        //
+
+#ifdef HAVE_OPENMP
+#pragma omp parallel for schedule(static) private(particle_number) firstprivate(apr_iterator,neighbour_iterator)
+#endif
+        for (particle_number = 0; particle_number < apr_iterator.total_number_particles(); ++particle_number) {
+            //needed step for any parallel loop (update to the next part)
+
+            apr_iterator.set_iterator_to_particle_by_number(particle_number);
+
+            float current_intensity = input_particles[apr_iterator];
+
+            double temp_total=0;
+
+            //loop over all the neighbours and set the neighbour iterator to it
+            for (int dimension = 0; dimension < 3; ++dimension) {
+                float gradient_estimate= 0;
+
+                float counter_dir = 0;
+
+                for (int i = 0; i < 2; ++i) {
+                    float intensity_sum = 0;
+                    float count_neighbours = 0;
+
+                    const uint8_t direction = group_directions[dimension][i];
+
+                    apr_iterator.find_neighbours_in_direction(direction);
+
+                    const float distance_between_particles = 0.5f*pow(2.0f,(float)(apr_iterator.level_max() - apr_iterator.level()))+0.5f*pow(2.0f,(float)(apr_iterator.level_max()-neighbour_iterator.level()))*delta[dimension]; //in pixels
+
+                    // Neighbour Particle Cell Face definitions [+y,-y,+x,-x,+z,-z] =  [0,1,2,3,4,5]
+                    for (int index = 0; index < apr_iterator.number_neighbours_in_direction(direction); ++index) {
+                        if (neighbour_iterator.set_neighbour_iterator(apr_iterator, direction, index)) {
+                            intensity_sum += input_particles[neighbour_iterator];
+                            count_neighbours++;
+                        }
+                    }
+                    if(count_neighbours > 0) {
+                        gradient_estimate += sign[i] * (current_intensity - intensity_sum / count_neighbours) /
+                                             distance_between_particles; //calculates the one sided finite difference in each direction using the average of particles
+                        counter_dir++;
+                    }
+                }
+                //store the estimate of the gradient
+                temp_total += pow(gradient_estimate/counter_dir,2);
+            }
+
+            gradient_magnitude[apr_iterator] = sqrt(temp_total);
+
+        }
+
+        timer.stop_timer();
+
+    }
+
     template<typename T,typename S,typename U>
     void seperable_smooth_filter(APR<T> apr,const ExtraParticleData<S>& input_data,ExtraParticleData<U>& output_data,const std::vector<float>& filter,unsigned int repeats = 1){
 
@@ -167,7 +243,49 @@ public:
             }
         }
     }
+
+    template<typename T,typename S,typename U>
+    void weight_neighbours(APR<T> apr,ExtraParticleData<S>& input_data,ExtraParticleData<U>& output_data,const float weight){
+
+        APRIterator<T> apr_iterator(apr);
+        APRIterator<T> neighbour_iterator(apr);
+
+        uint64_t particle_number;
+
+        output_data.init(apr);
+
+#ifdef HAVE_OPENMP
+#pragma omp parallel for schedule(static) private(particle_number) firstprivate(apr_iterator,neighbour_iterator)
+#endif
+        for (particle_number = 0; particle_number < apr_iterator.total_number_particles(); ++particle_number) {
+            //needed step for any parallel loop (update to the next part)
+
+            apr_iterator.set_iterator_to_particle_by_number(particle_number);
+            float intensity_sum = 0;
+            float count_neighbours = 0;
+
+            for (int i = 0; i < 6; ++i) {
+
+                apr_iterator.find_neighbours_in_direction(i);
+
+                // Neighbour Particle Cell Face definitions [+y,-y,+x,-x,+z,-z] =  [0,1,2,3,4,5]
+                for (int index = 0; index < apr_iterator.number_neighbours_in_direction(i); ++index) {
+                    if (neighbour_iterator.set_neighbour_iterator(apr_iterator, i, index)) {
+                        intensity_sum += input_data[neighbour_iterator];
+                        count_neighbours++;
+                    }
+                }
+
+            }
+            output_data[apr_iterator] = (1-weight)*intensity_sum/count_neighbours + (weight)*input_data[apr_iterator];
+        }
+
+    };
 };
+
+
+
+
 
 
 #endif //PARTPLAY_APRNUMERICS_HPP

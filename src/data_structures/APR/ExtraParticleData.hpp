@@ -8,10 +8,10 @@
 
 #include <algorithm>
 
-
 template<typename V> class APR;
+template<typename V> class APRTree;
 template<typename V> class APRIterator;
-
+template<typename V> class APRIteratorAlt;
 
 template<typename DataType>
 class ExtraParticleData {
@@ -29,8 +29,17 @@ public:
     ExtraParticleData(const APR<S> &apr) { init(apr); }
 
     template<typename S>
+    ExtraParticleData(const APRTree<S> &apr_tree) { init_tree(apr_tree); }
+
+    template<typename S>
     void init(const APR<S> &apr){
         data.resize(apr.total_number_particles());
+    }
+
+    template<typename S>
+    void init_tree(const APRTree<S> &apr_tree){
+        //initialization when using with APRTree class
+        data.resize(apr_tree.total_number_parent_cells(),0);
     }
 
     uint64_t total_number_particles() const {
@@ -44,6 +53,11 @@ public:
      */
     template<typename S>
     DataType& operator[](const APRIterator<S>& apr_iterator) {
+        return data[apr_iterator.global_index()];
+    }
+
+    template<typename S>
+    DataType& operator[](const APRIteratorAlt<S>& apr_iterator) {
         return data[apr_iterator.global_index()];
     }
 

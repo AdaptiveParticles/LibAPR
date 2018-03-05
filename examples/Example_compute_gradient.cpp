@@ -65,6 +65,12 @@ int main(int argc, char **argv) {
         aprNumerics.seperable_smooth_filter(apr, apr.particles_intensities, smooth, filter, options.smooth_number);
 
         std::swap(apr.particles_intensities.data, smooth.data);
+
+        MeshData<uint16_t> smooth_image;
+        apr.interp_img(smooth_image,apr.particles_intensities);
+
+        std::string image_file_name = options.directory + name + "_smooth_image_pc.tif";
+        TiffUtils::saveMeshAsTiff(image_file_name, smooth_image);
     }
 
     //Calculate the gradient of the APR
@@ -84,7 +90,7 @@ int main(int argc, char **argv) {
     //apr.interp_img(gradient_magnitude_image,apr.particles_intensities);
 
     std::string image_file_name = options.directory + name + "_gradient_magnitude.tif";
-    TiffUtils::saveMeshAsTiff(image_file_name, gradient_magnitude_image);
+    TiffUtils::saveMeshAsTiffUint16(image_file_name, gradient_magnitude_image);
 
     //////////////////////
     //
