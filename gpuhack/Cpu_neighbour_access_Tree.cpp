@@ -120,7 +120,7 @@ void update_dense_array(const uint64_t level,const uint64_t z,APR<uint16_t>& apr
     }
 		
     /******** end of using the tree iterator for downsampling *************/
-    if(level < apr_iterator.level_max()) {	
+ /*   if(level < apr_iterator.level_max()) {	
 
         //
         //  This is an interpolating from higher resolution particles to lower, if it was full this would be the simply average
@@ -179,7 +179,7 @@ void update_dense_array(const uint64_t level,const uint64_t z,APR<uint16_t>& apr
             }
 
         }
-
+*/
 
 //#ifdef HAVE_OPENMP
 //#pragma omp parallel for schedule(guided) private(x) firstprivate(apr_iterator)
