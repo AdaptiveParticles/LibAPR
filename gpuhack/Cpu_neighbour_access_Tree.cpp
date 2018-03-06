@@ -44,13 +44,15 @@ char* get_command_option(char **begin, char **end, const std::string &option);
 
 
 template<typename T,typename ParticleDataType>
-void update_dense_array(const uint64_t level,const uint64_t z,APR<uint16_t>& apr,APRIterator<uint16_t>& apr_iterator, APRIterator<uint16_t>& tree_iterator, ExtraParticleData<uint8_t> &tree_data,MeshData<T>& temp_vec,ExtraParticleData<ParticleDataType>& particleData){
+void update_dense_array(const uint64_t level,const uint64_t z,APR<uint16_t>& apr,APRIterator<uint16_t>& apr_iterator, APRIterator<uint16_t>& treeIterator, ExtraParticleData<uint8_t> &tree_data,MeshData<T>& temp_vec,ExtraParticleData<ParticleDataType>& particleData){
 
     uint64_t x;
 
     const uint64_t x_num_m = temp_vec.x_num;
     const uint64_t y_num_m =  temp_vec.y_num;
 
+
+    uint64_t parent_number;
 
 #ifdef HAVE_OPENMP
 #pragma omp parallel for schedule(dynamic) private(x) firstprivate(apr_iterator)
@@ -112,7 +114,7 @@ void update_dense_array(const uint64_t level,const uint64_t z,APR<uint16_t>& apr
 	for(x = 0; x < apr.spatial_index_x_max(level); ++x){
 		 for(parent_number = treeIterator.particles_level_begin(level); parent_number < treeIterator.particles_level_end(level); ++parent_number) {
                     		treeIterator.set_iterator_to_particle_by_number(parent_number);
-		    		temp_vec.at(tree_iterator.y() / 2 + 1, x / 2 + 1, z % 3)  = tree_data[treeIterator];
+		    		temp_vec.at(treeIterator.y() / 2 + 1, x / 2 + 1, z % 3)  = tree_data[treeIterator];
                  }	
 	}
     }
@@ -293,7 +295,7 @@ int main(int argc, char **argv) {
             //set parent
             parentIterator.set_iterator_to_parent(apr_iterator);
 
-            tree_data[parentIterator] = particle_data[apr_iterator] +  tree_data[parentIterator];
+            tree_data[parentIterator] = apr.particles_intensities[apr_iterator] +  tree_data[parentIterator];
             child_counter[parentIterator]++;
         }
 
