@@ -9,5 +9,6 @@ buildTarget(Cpu_dense_identity_check)
 buildTarget(Cpu_dense_mesh)
 buildTarget(Cpu_dense_simplified_access)
 buildTarget(Cpu_dense_tree)
+buildTarget(CPU_full_storage)
 
 
