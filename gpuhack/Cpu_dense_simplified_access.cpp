@@ -250,8 +250,8 @@ int main(int argc, char **argv) {
 
                 //Storing the non-zero y values in each row (level,x,z row)
                 for (apr_iterator.set_new_lzx(level, z, x);
-                     apr_iterator.global_index() < apr_iterator.particles_zx_end(level, z,
-                                                                                 x); apr_iterator.set_iterator_to_particle_next_particle()) {
+                     apr_iterator.global_index() < apr_iterator.particles_zx_end(level, z, x);
+                     apr_iterator.set_iterator_to_particle_next_particle()) {
 
                     y_row.data[level][apr_iterator.z()*x_num + apr_iterator.x()].push_back(apr_iterator.y());
 
