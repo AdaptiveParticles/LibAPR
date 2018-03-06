@@ -202,11 +202,6 @@ int main(int argc, char **argv) {
     //read file
     apr.read_apr(file_name);
 
-    ///////////////////////////
-    ///
-    /// Serial Neighbour Iteration (Only Von Neumann (Face) neighbours)
-    ///
-    /////////////////////////////////
 
     APRIterator<uint16_t> neighbour_iterator(apr);
     APRIterator<uint16_t> apr_iterator(apr);
@@ -219,8 +214,15 @@ int main(int argc, char **argv) {
     //Basic serial iteration over all particles
 
 
-    ExtraPartCellData<uint16_t> y_row;
-    ExtraPartCellData<uint64_t> global_index_row_begin;
+    /////////////////
+    ///
+    /// Generation of Explicit Data Access
+    ///
+    ///////////////////////
+
+
+    ExtraPartCellData<uint16_t> y_row; //contains non zero sparse co-ordinate (y)
+    ExtraPartCellData<uint64_t> global_index_row_begin; //contains the global index of hte first particle in the row
 
     y_row.data.resize(apr_iterator.level_max() + 1);
     global_index_row_begin.data.resize(apr_iterator.level_max() + 1);
@@ -243,7 +245,7 @@ int main(int argc, char **argv) {
             for (x = 0; x < apr.spatial_index_x_max(level); ++x) {
 
 
-                //Storing the first index in each row (level,x,z row)
+                //Storing the first index in each row (level,x,z row) ---> access goes level, (xz),row
                 if(apr_iterator.set_new_lzx(level, z, x)<UINT64_MAX){
                     global_index_row_begin.data[level][apr_iterator.z()*x_num + apr_iterator.x()].push_back(apr_iterator.global_index());
                 }
@@ -295,13 +297,13 @@ int main(int argc, char **argv) {
             z = 0;
 
             //initial condition
-            update_dense_array(level, z, apr, apr_iterator, temp_vec,apr.particles_intensities);
+            update_dense_array(level, z, apr, apr_iterator, temp_vec,apr.particles_intensities); //this guy is still using the old access
 
             for (z = 0; z < apr.spatial_index_z_max(level); ++z) {
 
                 if (z < (z_num - 1)) {
                     //update the next z plane for the access
-                    update_dense_array(level, z + 1, apr, apr_iterator, temp_vec,apr.particles_intensities);
+                    update_dense_array(level, z + 1, apr, apr_iterator, temp_vec,apr.particles_intensities); //this guy is still using the old access
                 } else {
                     // need to set (z+1)%3 to zero, zero boundary condition
 
@@ -316,6 +318,13 @@ int main(int argc, char **argv) {
                                   temp_vec.mesh.begin() + index + (x + 2) * temp_vec.y_num , 0);
                     }
                 }
+
+
+                ////////////////
+                ///
+                /// Example of using the simplified access below
+                ///
+                /////////////////
 
 
 #ifdef HAVE_OPENMP
