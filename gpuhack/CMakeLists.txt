@@ -10,5 +10,7 @@ buildTarget(Cpu_dense_mesh)
 buildTarget(Cpu_dense_simplified_access)
 buildTarget(Cpu_dense_tree)
 buildTarget(CPU_full_storage)
+buildTarget(Cpu_neighbour_access_Tree)
+
 
 
