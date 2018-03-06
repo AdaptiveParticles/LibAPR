@@ -2,6 +2,7 @@
 #include <iostream>
 
 #include "data_structures/APR/APR.hpp"
+#include "data_structures/APR/APRIterator.hpp"
 #include "data_structures/APR/APRTreeIterator.hpp"
 #include "data_structures/APR/ExtraParticleData.hpp"
 
@@ -74,7 +75,7 @@ DenseRepresentation getDenseRepresentation(APRIterator<T> &aprIt) {
     yRow.data.resize(aprIt.level_max() + 1);
     ExtraPartCellData<uint64_t> globalIdxOfYrow;
     globalIdxOfYrow.data.resize(aprIt.level_max() + 1);
-
+    int num = 0; int maxNum = 20;
     for (int level = aprIt.level_min(); level <= aprIt.level_max(); ++level) {
         const size_t x_num = aprIt.spatial_index_x_max(level);
         const size_t z_num = aprIt.spatial_index_z_max(level);
@@ -92,7 +93,6 @@ DenseRepresentation getDenseRepresentation(APRIterator<T> &aprIt) {
                     //Storing the non-zero y values in each row (level,x,z row)
                     const auto maxGlobalIdxInRow = aprIt.particles_zx_end(level, z, x);
                     const auto numOfElementsInRow = maxGlobalIdxInRow - aprIt.global_index();
-
                     yRow.data[level][z * x_num + x].reserve(numOfElementsInRow);
                     while (aprIt.global_index() < maxGlobalIdxInRow) {
                         yRow.data[level][z * x_num + x].push_back(aprIt.y());
@@ -112,7 +112,9 @@ ExtraParticleData<float> doWork(APR<T> &aInputApr, const DenseRepresentation &dr
     const auto &intensities = aInputApr.particles_intensities;
     ExtraParticleData<float> partData(aprTree);
 
+    int num = 0; int maxNum = 30;
     for (int level = dr.levelMax; level >= dr.levelMin; --level) {
+        std::cout << "Apr  LEVEL:" << level << std::endl;
         const size_t x_num = aprIt.spatial_index_x_max(level);
         const size_t x_num_ds = aprIt.spatial_index_x_max(level - 1);
         const size_t y_num_ds = aprIt.spatial_index_y_max(level - 1);
@@ -130,6 +132,7 @@ ExtraParticleData<float> doWork(APR<T> &aInputApr, const DenseRepresentation &dr
                             auto &currentRow = dr.yRow.data[level][z * x_num + x];
                             for (auto y : currentRow) {
                                 auto val = intensities.data[currentGlobalIdx];
+                                if (level == dr.levelMax && num < maxNum) {num++; std::cout << val << " ";}
                                 if (val > dsData[y/2]) dsData[y/2] = val;  // compute maximum
                                 ++currentGlobalIdx;
                             }
@@ -148,9 +151,11 @@ ExtraParticleData<float> doWork(APR<T> &aInputApr, const DenseRepresentation &dr
                 }
             }
         }
+        if (level == dr.levelMax) std::cout << std::endl;
     }
 
     for (int level = drTree.levelMax; level > drTree.levelMin; --level) {
+        std::cout << "Tree LEVEL:" << level << std::endl;
         const size_t x_num = aprIt.spatial_index_x_max(level);
         const size_t x_num_ds = aprIt.spatial_index_x_max(level - 1);
         const size_t y_num_ds = aprIt.spatial_index_y_max(level - 1);
@@ -194,21 +199,55 @@ template<typename T>
 ExtraParticleData<float> doWorkOld(APR<T> &aInputApr, APRTree<uint16_t> &aprTree) {
     APRIterator<uint16_t> apr_iterator(aInputApr);
     APRTreeIterator<uint16_t> treeIterator(aprTree);
+    APRTreeIterator<uint16_t> parentTreeIterator(aprTree);
     ExtraParticleData<float> tree_intensity(aprTree);
-    ExtraParticleData<uint8_t> tree_counter(aprTree);
+    auto &intensities = aInputApr.particles_intensities;
 
-    for (unsigned int level = apr_iterator.level_min(); level <= apr_iterator.level_max(); ++level) {
+    int num = 0; int maxNum = 30;
+    for (unsigned int level = apr_iterator.level_max(); level >= apr_iterator.level_min(); --level) {
+        std::cout << "Apr  LEVEL:" << level << std::endl;
         for (size_t particle_number = apr_iterator.particles_level_begin(level);
              particle_number < apr_iterator.particles_level_end(level);
              ++particle_number)
         {
             apr_iterator.set_iterator_to_particle_by_number(particle_number);
             treeIterator.set_iterator_to_parent(apr_iterator);
-            tree_intensity[treeIterator]= (tree_intensity[treeIterator]*tree_counter[treeIterator]*1.0f + aInputApr.particles_intensities[apr_iterator])/(1.0f*(tree_counter[treeIterator]+1.0f));
-            tree_counter[treeIterator]++;
+
+            auto val = intensities.data[apr_iterator.global_index()];
+            if (level == apr_iterator.level_max() && num < maxNum) {num++; std::cout << val << " ";}
+            if (val > tree_intensity[treeIterator]) tree_intensity[treeIterator] = val;  // compute maximum
         }
+        if (level == apr_iterator.level_max()) std::cout << std::endl;
     }
 
+    for (unsigned int level = treeIterator.level_max(); level > treeIterator.level_min(); --level) {
+        std::cout << "Tree LEVEL:" << level << std::endl;
+        for (size_t particle_number = treeIterator.particles_level_begin(level);
+             particle_number < treeIterator.particles_level_end(level);
+             ++particle_number)
+        {
+            treeIterator.set_iterator_to_particle_by_number(particle_number);
+            parentTreeIterator.set_iterator_to_parent(treeIterator);
+
+            auto val = tree_intensity.data[treeIterator.global_index()];
+            if (val > tree_intensity[parentTreeIterator]) tree_intensity[parentTreeIterator] = val;  // compute maximum
+        }
+    }
+    return tree_intensity;
+}
+
+template<typename T>
+void compareTreeIntensities(ExtraParticleData<T> aTestedData, ExtraParticleData<T> aExpectedData) {
+    const int maxNumOfErrors = 10;
+    int errCnt = 0;
+    for (size_t i = 0; i < aTestedData.data.size(); ++i) {
+
+        if (aTestedData.data[i] != aExpectedData.data[i]) {
+            std::cout << "DIFFERENCE: " << " idx: " << i << " " << aTestedData.data[i] << " vs " << aExpectedData.data[i] << std::endl;
+            if (++errCnt > maxNumOfErrors) exit(1);
+        }
+
+    }
 }
 
 int main(int argc, char **argv) {
@@ -230,8 +269,15 @@ int main(int argc, char **argv) {
     std::cout << "APR tree: " << drTree << std::endl;
 
     // Do some op on DenseRepresentation
-    doWork(apr, dr, drTree, aprTree);
+    std::cout << "---- calc new repr ---\n";
+    ExtraParticleData<float> newTree = doWork(apr, dr, drTree, aprTree);
     // Do some op on old representation
-    doWorkOld(apr, aprTree);
+    std::cout << "---- calc old repr ---\n";
+    APR<uint16_t> apr2;
+    apr2.read_apr(fileName);
+    APRTree<uint16_t> aprTree2(apr2);
+    ExtraParticleData<float> oldTree = doWorkOld(apr2, aprTree2);
 
+    // Check if old and new way give same result
+    compareTreeIntensities(oldTree, newTree);
 }
