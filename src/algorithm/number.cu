@@ -13,7 +13,7 @@ void getNumber(long *aValue) {
     g_singleAnswer<<<1,1>>>(d_answer);
     cudaError_t err = cudaGetLastError();
     if (err != cudaSuccess)
-        printf("Error: %s\n", cudaGetErrorString(err));
+        std::cerr << "Error: " << cudaGetErrorString(err) << "\n";
     cudaMemcpy(&h_answer, d_answer, sizeof(long), cudaMemcpyDeviceToHost);
     cudaFree(d_answer);
 
