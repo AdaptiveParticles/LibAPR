@@ -62,6 +62,16 @@ public:
     }
 
     template<typename S>
+    const DataType& operator[](const APRIterator<S>& apr_iterator) const {
+        return data[apr_iterator.global_index()];
+    }
+
+    template<typename S>
+    const DataType& operator[](const APRIteratorAlt<S>& apr_iterator) const {
+        return data[apr_iterator.global_index()];
+    }
+
+    template<typename S>
     DataType get_particle(const APRIterator<S>& apr_iterator) const {
         return data[apr_iterator.global_index()];
     }

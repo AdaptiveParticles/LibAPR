@@ -255,22 +255,29 @@ int main(int argc, char **argv) {
 
     APRTreeIterator<uint16_t> treeIterator(apr_tree);
 
-    for (unsigned int level = apr_iterator.level_min(); level <= apr_iterator.level_max(); ++level) {
-        for (particle_number = apr_iterator.particles_level_begin(level);
-             particle_number < apr_iterator.particles_level_end(level); ++particle_number) {
+    const auto ldiff = apr_iterator.level_max() - apr_iterator.level_min();
 
+    for( int t = 0; t<ldiff;++t ){
+        for (unsigned int level = apr_iterator.level_min(); level <= (apr_iterator.level_max() - t); ++level) {
 
-            apr_iterator.set_iterator_to_particle_by_number(particle_number);
+            for (particle_number = apr_iterator.particles_level_begin(level);
+                 particle_number < apr_iterator.particles_level_end(level); ++particle_number) {
 
-            treeIterator.set_iterator_to_parent(apr_iterator);
+                apr_iterator.set_iterator_to_particle_by_number(particle_number);
 
-            tree_intensity[treeIterator]= (tree_intensity[treeIterator]*tree_counter[treeIterator]*1.0f + apr.particles_intensities[apr_iterator])/(1.0f*(tree_counter[treeIterator]+1.0f));
+                treeIterator.set_iterator_to_parent(apr_iterator);
 
-            tree_counter[treeIterator]++;
+                // //recursive mean
+                if(t!=0)
+                    tree_intensity[treeIterator]  = (tree_intensity[treeIterator]*tree_counter[treeIterator]*1.0f + tree_intensity[treeIterator]);
+                else{
+                    tree_intensity[treeIterator]  = (tree_intensity[treeIterator]*tree_counter[treeIterator]*1.0f + apr.particles_intensities[apr_iterator]);
+                    tree_intensity[treeIterator] /= (1.0f*(tree_counter[treeIterator]+1.0f));
+                }
+                tree_counter[treeIterator]++;
+            }
         }
     }
-
-
 
 
     ExtraParticleData<float> part_sum(apr);
@@ -335,7 +342,7 @@ int main(int argc, char **argv) {
 
 
 
-
+    // --------------------------------------- USE DENSE ITERATION FOR XCHECKS ---------------------------------------
     timer.start_timer("APR parallel iterator neighbour loop by level");
 
     for (int i = 0; i < num_rep; ++i) {
