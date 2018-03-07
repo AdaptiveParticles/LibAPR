@@ -42,7 +42,7 @@ bool command_option_exists(char **begin, char **end, const std::string &option);
 
 char* get_command_option(char **begin, char **end, const std::string &option);
 
-void create_test_particles(APR<uint16_t>& apr,APRIterator<uint16_t>& apr_iterator,APRTreeIterator<uint16_t>& apr_tree_iterator,ExtraParticleData<float> &test_particles,ExtraParticleData<uint16_t>& particles,ExtraParticleData<float>& part_tree);
+void create_test_particles(APR<uint16_t>& apr,APRIterator<uint16_t>& apr_iterator,APRTreeIterator<uint16_t>& apr_tree_iterator,ExtraParticleData<float> &test_particles,ExtraParticleData<uint16_t>& particles,ExtraParticleData<float>& part_tree,std::vector<float>& stencil);
 
 template<typename T,typename ParticleDataType>
 void update_dense_array(const uint64_t level,const uint64_t z,APR<uint16_t>& apr,APRIterator<uint16_t>& apr_iterator, APRIterator<uint16_t>& treeIterator, ExtraParticleData<float> &tree_data,MeshData<T>& temp_vec,ExtraParticleData<ParticleDataType>& particleData) {
@@ -231,66 +231,11 @@ int main(int argc, char **argv) {
     int offset_size = 1;
 
     std::vector<float>  stencil;
-    float stencil_value = 1.0f;
+    float stencil_value = 1.0f/(1.0f*pow(offset_size*2 + 1,3));
 
     stencil.resize(pow(offset_size*2 + 1,3),stencil_value);
 
 
-    timer.start_timer("APR parallel iterator neighbour loop by level");
-
-    for (int i = 0; i < num_rep; ++i) {
-        for (unsigned int level = apr_iterator.level_min(); level <= apr_iterator.level_max(); ++level) {
-#ifdef HAVE_OPENMP
-#pragma omp parallel for schedule(static) private(particle_number) firstprivate(apr_iterator, neighbour_iterator,treeIterator)
-#endif
-            for (particle_number = apr_iterator.particles_level_begin(level);
-                 particle_number < apr_iterator.particles_level_end(level); ++particle_number) {
-
-                //needed step for any  loop (update to the next part)
-                apr_iterator.set_iterator_to_particle_by_number(particle_number);
-
-                float temp2 = 0;
-
-                //loop over all the neighbours and set the neighbour iterator to it
-                for (int direction = 0; direction < 6; ++direction) {
-                    apr_iterator.find_neighbours_in_direction(direction);
-                    // Neighbour Particle Cell Face definitions [+y,-y,+x,-x,+z,-z] =  [0,1,2,3,4,5]
-
-                    float temp = 0;
-                    float counter = 0;
-
-                    for (int index = 0; index < apr_iterator.number_neighbours_in_direction(direction); ++index) {
-                        if(apr_iterator.number_neighbours_in_direction(direction) ==1) {
-                            if (neighbour_iterator.set_neighbour_iterator(apr_iterator, direction, index)) {
-                                //neighbour_iterator works just like apr, and apr_parallel_iterator (you could also call neighbours)
-                                temp2 += apr.particles_intensities[neighbour_iterator];
-                                //counter++;
-
-                            }
-                        } else{
-                            if (neighbour_iterator.set_neighbour_iterator(apr_iterator, direction, index)) {
-                                treeIterator.set_iterator_to_parent(neighbour_iterator);
-
-                                temp2 += tree_data[treeIterator];
-                                break;
-                            }
-
-                        }
-
-
-                    }
-
-                }
-
-                part_sum_standard[apr_iterator] = temp2/6.0f;
-
-                //part_sum_standard[apr_iterator] = apr.particles_intensities[apr_iterator];
-
-            }
-        }
-    }
-
-    timer.stop_timer();
 
     ExtraParticleData<float> part_sum_dense(apr);
 
@@ -350,18 +295,27 @@ int main(int argc, char **argv) {
                         const int k = apr_iterator.y() + 1; // offset to allow for boundary padding
                         const int i = x + 1;
 
-                        for (int d = 0; d < 6; d++) {
+//                        for (int d = 0; d < 6; d++) {
+//
+//                            int i_n = i + dir_x[d];
+//                            int k_n = k + dir_y[d];
+//                            int j_n = (3 + z + dir_z[d]) % 3; //rotating buffer
+//
+//                            neigh_sum += temp_vec.at(k_n, i_n, j_n);
+//                            //counter++;
+//
+//                        }
 
-                            int i_n = i + dir_x[d];
-                            int k_n = k + dir_y[d];
-                            int j_n = (3 + z + dir_z[d]) % 3; //rotating buffer
-
-                            neigh_sum += temp_vec.at(k_n, i_n, j_n);
-                            //counter++;
-
+                        for (int l = -1; l < 2; ++l) {
+                            for (int q = -1; q < 2; ++q) {
+                                for (int w = -1; w < 2; ++w) {
+                                    neigh_sum += stencil[counter]*temp_vec.at(k+w, i+q, (z+3+l)%3);
+                                    counter++;
+                                }
+                            }
                         }
 
-                        part_sum_dense[apr_iterator] = neigh_sum/6.0f;
+                        part_sum_dense[apr_iterator] = neigh_sum;
                         //part_sum_dense[apr_iterator] = temp_vec.at(k, i, z%3);
                         //part_sum_dense[apr_iterator] = apr.particles_intensities[apr_iterator];
                     }
@@ -378,6 +332,17 @@ int main(int argc, char **argv) {
 
     //check the result
 
+
+
+    bool success = true;
+    uint64_t f_c=0;
+
+    ExtraParticleData<float> utest_particles(apr);
+
+    apr.parameters.input_dir = options.directory;
+
+    create_test_particles(apr,apr_iterator,treeIterator,utest_particles,apr.particles_intensities,tree_data,stencil);
+
     MeshData<uint16_t> check_mesh;
 
     apr.interp_img(check_mesh,part_sum_dense);
@@ -385,27 +350,23 @@ int main(int argc, char **argv) {
     std::string image_file_name = options.directory +  "check.tif";
     TiffUtils::saveMeshAsTiff(image_file_name, check_mesh);
 
-    apr.interp_img(check_mesh,part_sum_standard);
+    apr.interp_img(check_mesh,utest_particles);
 
     image_file_name = options.directory +  "check_standard.tif";
     TiffUtils::saveMeshAsTiff(image_file_name, check_mesh);
-
-    bool success = true;
-    uint64_t f_c=0;
-
 
     //Basic serial iteration over all particles
     for (particle_number = 0; particle_number < apr.total_number_particles(); ++particle_number) {
         //This step is required for all loops to set the iterator by the particle number
         apr_iterator.set_iterator_to_particle_by_number(particle_number);
 
-        if(round(part_sum_dense.data[particle_number]) != round(part_sum_standard.data[particle_number])){
+        if(round(part_sum_dense.data[particle_number]) != round(utest_particles.data[particle_number])){
 
-            float dense = part_sum_dense.data[particle_number];
+            float dense = utest_particles.data[particle_number];
 
             float standard = part_sum_standard.data[particle_number];
 
-            std::cout << apr_iterator.x()<< " "  << apr_iterator.y()<< " "  << apr_iterator.z() << " " << apr_iterator.level() << " " << dense << " " << standard << " " << (int)(apr_iterator.type()) << std::endl;
+            //std::cout << apr_iterator.x()<< " "  << apr_iterator.y()<< " "  << apr_iterator.z() << " " << apr_iterator.level() << " " << dense << " " << standard << " " << (int)(apr_iterator.type()) << std::endl;
 
             success = false;
             f_c++;
@@ -419,17 +380,13 @@ int main(int argc, char **argv) {
         std::cout << "FAIL" << " " << f_c <<  std::endl;
     }
 
-    ExtraParticleData<float> utest_particles(apr);
 
-    apr.parameters.input_dir = options.directory;
-
-    create_test_particles(apr,apr_iterator,treeIterator,utest_particles,apr.particles_intensities,tree_data);
 
 
 }
 
 
-void create_test_particles(APR<uint16_t>& apr,APRIterator<uint16_t>& apr_iterator,APRTreeIterator<uint16_t>& apr_tree_iterator,ExtraParticleData<float> &test_particles,ExtraParticleData<uint16_t>& particles,ExtraParticleData<float>& part_tree){
+void create_test_particles(APR<uint16_t>& apr,APRIterator<uint16_t>& apr_iterator,APRTreeIterator<uint16_t>& apr_tree_iterator,ExtraParticleData<float> &test_particles,ExtraParticleData<uint16_t>& particles,ExtraParticleData<float>& part_tree,std::vector<float>& stencil){
 
     for (uint64_t level_local = apr_iterator.level_max(); level_local >= apr_iterator.level_min(); --level_local) {
 
@@ -520,6 +477,50 @@ void create_test_particles(APR<uint16_t>& apr,APRIterator<uint16_t>& apr_iterato
             }
 
         }
+
+
+        int x = 0;
+        int z = 0;
+        uint64_t level = level_local;
+
+        for (z = 0; z < apr.spatial_index_z_max(level); ++z) {
+            //lastly loop over particle locations and compute filter.
+            for (x = 0; x < apr.spatial_index_x_max(level); ++x) {
+                for (apr_iterator.set_new_lzx(level, z, x);
+                     apr_iterator.global_index() < apr_iterator.particles_zx_end(level, z,
+                                                                                 x); apr_iterator.set_iterator_to_particle_next_particle()) {
+                    float neigh_sum = 0;
+                    float counter = 0;
+
+                    const int k = apr_iterator.y(); // offset to allow for boundary padding
+                    const int i = x;
+
+                    for (int l = -1; l < 2; ++l) {
+                        for (int q = -1; q < 2; ++q) {
+                            for (int w = -1; w < 2; ++w) {
+
+                                if((k+w)>=0 & (k+w) < (apr.spatial_index_y_max(level))){
+                                    if((i+q)>=0 & (i+q) < (apr.spatial_index_x_max(level))){
+                                        if((z+l)>=0 & (z+l) < (apr.spatial_index_z_max(level))){
+                                            neigh_sum += stencil[counter] * by_level_recon.at(k + w, i + q, z+l);
+                                        }
+                                    }
+                                }
+
+
+                                counter++;
+                            }
+                        }
+                    }
+
+                    test_particles[apr_iterator] = neigh_sum;
+
+                }
+            }
+        }
+
+
+
 
         std::string image_file_name = apr.parameters.input_dir + std::to_string(level_local) + "_by_level.tif";
         TiffUtils::saveMeshAsTiff(image_file_name, by_level_recon);
