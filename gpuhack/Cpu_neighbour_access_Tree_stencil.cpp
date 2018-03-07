@@ -320,7 +320,7 @@ int main(int argc, char **argv) {
 
     timer.start_timer("Dense neighbour access");
 
-    const int stencil_size = 3;
+    const int stencil_size = 5;
     const int stencil_half_size = stencil_size/2;
 
     for (int j = 0; j < num_rep; ++j) {
