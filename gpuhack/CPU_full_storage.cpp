@@ -110,7 +110,7 @@ int main(int argc, char **argv) {
     for (int level = aprIt.level_min(); level <= aprIt.level_max(); ++level) {
         level_offset[level] = zx_counter;
 
-        for (z = 0; z < aprIt.spatial_index_x_max(level); ++z) {
+        for (z = 0; z < aprIt.spatial_index_z_max(level); ++z) {
             for (x = 0; x < aprIt.spatial_index_x_max(level); ++x) {
 
                 zx_counter++;
@@ -148,7 +148,7 @@ int main(int argc, char **argv) {
         const int x_num = aprIt.spatial_index_x_max(level);
         //const int z_num = aprIt.spatial_index_z_max(level);
 
-        for (z = 0; z < aprIt.spatial_index_x_max(level); ++z) {
+        for (z = 0; z < aprIt.spatial_index_z_max(level); ++z) {
             for (x = 0; x < aprIt.spatial_index_x_max(level); ++x) {
                 if(level_offset[level]<UINT64_MAX) {
                     uint64_t level_xz_offset = level_offset[level] + x_num * z + x;

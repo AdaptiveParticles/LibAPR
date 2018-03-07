@@ -51,7 +51,18 @@ cmdLineOptions read_command_line_options(int argc, char **argv) {
     return result;
 }
 
+__host__ __device__ void copy_out(
+    const std::array<std::size_t,2>*_levels,
+    const std::uint16_t*            _y_ex,
+    const std::uint16_t*            _pdata,
+    const std::uint16_t*            _offsets,
+    std::uint16_t* _results
+    ){
 
+    unsigned int index = blockDim.x * blockIdx.x + threadIdx.x;
+    _results[index] = 1;
+
+}
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 int main(int argc, char **argv) {
@@ -97,16 +108,12 @@ int main(int argc, char **argv) {
     std::vector<std::array<std::size_t,2>> level_zx_index_start;//size = number of rows on all levels
     std::vector<std::uint16_t> y_explicit;y_explicit.reserve(aprIt.total_number_particles());//size = number of particles
     std::vector<std::uint16_t> particle_values;particle_values.reserve(aprIt.total_number_particles());//size = number of particles
-    std::vector<std::size_t> level_offset;//size = number of levels
+    std::vector<std::size_t> level_offset(aprIt.level_max()+1,UINT64_MAX);//size = number of levels
 
     std::size_t x = 0;
     std::size_t z = 0;
 
     std::size_t zx_counter = 0;
-    
-
-    level_offset.resize(aprIt.level_max()+1,UINT64_MAX);
-
 
     for (int level = aprIt.level_min(); level <= aprIt.level_max(); ++level) {
         level_offset[level] = zx_counter;
@@ -141,12 +148,24 @@ int main(int argc, char **argv) {
     ///
     /////////////////////
 
-    thrust::device_vector<std::uint16_t> d_test_access_data(apr.particles_intensities.data.size());
+    thrust::device_vector<std::uint16_t> d_test_access_data(apr.particles_intensities.data.size(),0);
 
     thrust::device_vector<std::array<std::size_t,2>> d_level_zx_index_start(level_zx_index_start.begin(), level_zx_index_start.end());
     thrust::device_vector<std::uint16_t> d_y_explicit(y_explicit.begin(), y_explicit.end());
     thrust::device_vector<std::uint16_t> d_particle_values(particle_values.begin(), particle_values.end());
     thrust::device_vector<std::size_t> d_level_offset(level_offset.begin(),level_offset.end());
+
+    const std::array<std::size_t,2>* levels =  thrust::raw_pointer_cast(d_level_zx_index_start.data());
+    const std::uint16_t*             y_ex   =  thrust::raw_pointer_cast(d_y_explicit.data());
+    const std::uint16_t*             pdata  =  thrust::raw_pointer_cast(d_particle_values.data());
+    const std::uint16_t*             offsets= thrust::raw_pointer_cast(d_level_offset.data());
+    std::uint16_t*                   result = thrust::raw_pointer_cast(d_test_access_data.data());
+
+    dim3 threads(32,1,1);
+    dimr blocks((d_particle_values.size() + threads.x- 1)/threads.x);
+
+    copy_out<<<blocks,threads>>>(levels,y_ex,pdata,offsets,result);
+
 
     thrust::host_vector<std::uint16_t> test_access_data = d_test_access_data;
 
