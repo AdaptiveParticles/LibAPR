@@ -224,19 +224,13 @@ int main(int argc, char **argv) {
     ExtraParticleData<float> part_sum(apr);
 
 
-    const int8_t dir_y[6] = { 1, -1, 0, 0, 0, 0};
-    const int8_t dir_x[6] = { 0, 0, 1, -1, 0, 0};
-    const int8_t dir_z[6] = { 0, 0, 0, 0, 1, -1};
-
-    const int stencil_size = 3; 
-    const int stencil_half = stencil_size/2;
-
-    int offset_size = stencil_half;
+    const int stencil_half = 2;
+    const int stencil_size = 2*stencil_half + 1;
 
     std::vector<double>  stencil;
-    float stencil_value = 1.0f/(1.0f*pow(offset_size*2 + 1,stencil_size));
+    float stencil_value = 1.0f/(1.0f*pow(stencil_half*2 + 1,stencil_size));
 
-    stencil.resize(pow(offset_size*2 + 1,stencil_size),stencil_value);
+    stencil.resize(pow(stencil_half*2 + 1,stencil_size),stencil_value);
 
     ExtraParticleData<float> part_sum_dense(apr);
 
@@ -260,13 +254,15 @@ int main(int argc, char **argv) {
             z = 0;
 
             //initial condition
-           update_dense_array(level, z, apr, apr_iterator, treeIterator, tree_data, temp_vec,apr.particles_intensities, stencil_size, stencil_half);
+            for (int padd = 0; padd < stencil_half; ++padd) {
+                update_dense_array(level, padd, apr, apr_iterator, treeIterator, tree_data, temp_vec,apr.particles_intensities, stencil_size, stencil_half);
+            }
 
             for (z = 0; z < apr.spatial_index_z_max(level); ++z) {
 
                 if (z < (z_num - (stencil_half))) {
                     //update the next z plane for the access
-                    update_dense_array(level, z + 1, apr, apr_iterator, treeIterator, tree_data, temp_vec,apr.particles_intensities, stencil_size, stencil_half);
+                    update_dense_array(level, z + stencil_half, apr, apr_iterator, treeIterator, tree_data, temp_vec,apr.particles_intensities, stencil_size, stencil_half);
                 } else {
                     // need to set (z+1)%3 to zero, zero boundary condition
 
@@ -278,7 +274,7 @@ int main(int argc, char **argv) {
                                   temp_vec.mesh.begin() + index + (x + stencil_half+1) * temp_vec.y_num , 0);
                     }
                 }
-	      }
+
 
 
 #ifdef HAVE_OPENMP
@@ -288,22 +284,12 @@ int main(int argc, char **argv) {
                     for (apr_iterator.set_new_lzx(level, z, x);
                          apr_iterator.global_index() < apr_iterator.particles_zx_end(level, z,
                                                                                      x); apr_iterator.set_iterator_to_particle_next_particle()) {
-                        float neigh_sum = 0;
+                        double neigh_sum = 0;
                         float counter = 0;
 
-                        const int k = apr_iterator.y() + 1; // offset to allow for boundary padding
-                        const int i = x + 1;
+                        const int k = apr_iterator.y() + stencil_half; // offset to allow for boundary padding
+                        const int i = x + stencil_half;
 
-//                        for (int d = 0; d < 6; d++) {
-//
-//                            int i_n = i + dir_x[d];
-//                            int k_n = k + dir_y[d];
-//                            int j_n = (3 + z + dir_z[d]) % 3; //rotating buffer
-//
-//                            neigh_sum += temp_vec.at(k_n, i_n, j_n);
-//                            //counter++;
-//
-//                        }
 
                         for (int l = -stencil_half; l < stencil_half+1; ++l) {
                             for (int q = -stencil_half; q < stencil_half+1; ++q) {
@@ -315,8 +301,7 @@ int main(int argc, char **argv) {
                         }
 
                         part_sum_dense[apr_iterator] = neigh_sum;
-                        //part_sum_dense[apr_iterator] = temp_vec.at(k, i, z%3);
-                        //part_sum_dense[apr_iterator] = apr.particles_intensities[apr_iterator];
+
                     }
                 }
 
@@ -361,11 +346,11 @@ int main(int argc, char **argv) {
 
         if(round(part_sum_dense.data[particle_number]) != round(utest_particles.data[particle_number])){
 
-            float dense = utest_particles.data[particle_number];
+            float dense = part_sum_dense.data[particle_number];
 
-            float standard = part_sum_standard.data[particle_number];
+            float standard = utest_particles.data[particle_number];
 
-            //std::cout << apr_iterator.x()<< " "  << apr_iterator.y()<< " "  << apr_iterator.z() << " " << apr_iterator.level() << " " << dense << " " << standard << " " << (int)(apr_iterator.type()) << std::endl;
+            std::cout << apr_iterator.x()<< " "  << apr_iterator.y()<< " "  << apr_iterator.z() << " " << apr_iterator.level() << " " << dense << " " << standard << " " << (int)(apr_iterator.type()) << std::endl;
 
             success = false;
             f_c++;
@@ -488,7 +473,7 @@ void create_test_particles(APR<uint16_t>& apr,APRIterator<uint16_t>& apr_iterato
                 for (apr_iterator.set_new_lzx(level, z, x);
                      apr_iterator.global_index() < apr_iterator.particles_zx_end(level, z,
                                                                                  x); apr_iterator.set_iterator_to_particle_next_particle()) {
-                    float neigh_sum = 0;
+                    double neigh_sum = 0;
                     float counter = 0;
 
                     const int k = apr_iterator.y(); // offset to allow for boundary padding
