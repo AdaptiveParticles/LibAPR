@@ -70,12 +70,12 @@ void update_dense_array(const uint64_t level,const uint64_t z,APR<uint16_t>& apr
         for (unsigned long gap = 0;
              gap < apr_iterator.number_gaps(); apr_iterator.move_gap(gap)) {
 
-            uint64_t y_begin = apr_iterator.current_gap_y_begin() + stencil_half;
-            uint64_t y_end = apr_iterator.current_gap_y_end() + stencil_half;
+            uint64_t y_begin = apr_iterator.current_gap_y_begin() ;
+            uint64_t y_end = apr_iterator.current_gap_y_end() ;
             uint64_t index = apr_iterator.current_gap_index();
 
-            std::copy(particleData.data.begin() + index, particleData.data.begin() + index + (y_end - y_begin) + 1,
-                      temp_vec.mesh.begin() + mesh_offset + y_begin);
+            std::copy(particleData.data.begin() + index, particleData.data.begin() + index + (y_end - y_begin) +1,
+                      temp_vec.mesh.begin() + mesh_offset + y_begin + stencil_half);
 
 
         }
@@ -99,10 +99,10 @@ void update_dense_array(const uint64_t level,const uint64_t z,APR<uint16_t>& apr
                                                                              x /
                                                                              2); apr_iterator.set_iterator_to_particle_next_particle()) {
 
-                int y_m = std::min(2 * apr_iterator.y() + 1+stencil_half, y_num);	// 2y+1+offset
+                int y_m = std::min(2 * apr_iterator.y() + 1, y_num-1);	// 2y+1+offset
 
                 temp_vec.at(2 * apr_iterator.y() + stencil_half, x + stencil_half, z % stencil_size) = particleData[apr_iterator];
-                temp_vec.at(y_m, x + stencil_half, z % stencil_size) = particleData[apr_iterator];
+                temp_vec.at(y_m + stencil_half, x + stencil_half, z % stencil_size) = particleData[apr_iterator];
 
 
             }
@@ -266,12 +266,12 @@ int main(int argc, char **argv) {
                 } else {
                     // need to set (z+1)%3 to zero, zero boundary condition
 
-                    uint64_t index = temp_vec.x_num * temp_vec.y_num * (z+stencil_half)%stencil_size;
+                    uint64_t index = temp_vec.x_num * temp_vec.y_num * ((z+stencil_half)%stencil_size);
                 //    uint64_t index_end = temp_vec.x_num * temp_vec.y_num * (z+stencil_half+1)%stencil_size;	
 
-                   for (x = 0; x < apr.spatial_index_x_max(level); ++x) {
-                        std::fill(temp_vec.mesh.begin() + index + (x + stencil_half) * temp_vec.y_num ,
-                                  temp_vec.mesh.begin() + index + (x + stencil_half+1) * temp_vec.y_num , 0);
+                   for (x = 0; x < temp_vec.x_num; ++x) {
+                        std::fill(temp_vec.mesh.begin() + index + (x + 0) * temp_vec.y_num ,
+                                  temp_vec.mesh.begin() + index + (x + 1) * temp_vec.y_num , 0);
                     }
                 }
 
@@ -285,7 +285,7 @@ int main(int argc, char **argv) {
                          apr_iterator.global_index() < apr_iterator.particles_zx_end(level, z,
                                                                                      x); apr_iterator.set_iterator_to_particle_next_particle()) {
                         double neigh_sum = 0;
-                        float counter = 0;
+                        int counter = 0;
 
                         const int k = apr_iterator.y() + stencil_half; // offset to allow for boundary padding
                         const int i = x + stencil_half;
@@ -327,17 +327,17 @@ int main(int argc, char **argv) {
 
     create_test_particles(apr,apr_iterator,treeIterator,utest_particles,apr.particles_intensities,tree_data,stencil,stencil_size, stencil_half);
 
-    MeshData<uint16_t> check_mesh;
-
-    apr.interp_img(check_mesh,part_sum_dense);
-
-    std::string image_file_name = options.directory +  "check.tif";
-    TiffUtils::saveMeshAsTiff(image_file_name, check_mesh);
-
-    apr.interp_img(check_mesh,utest_particles);
-
-    image_file_name = options.directory +  "check_standard.tif";
-    TiffUtils::saveMeshAsTiff(image_file_name, check_mesh);
+//    MeshData<uint16_t> check_mesh;
+//
+//    apr.interp_img(check_mesh,part_sum_dense);
+//
+//    std::string image_file_name = options.directory +  "check.tif";
+//    TiffUtils::saveMeshAsTiff(image_file_name, check_mesh);
+//
+//    apr.interp_img(check_mesh,utest_particles);
+//
+//    image_file_name = options.directory +  "check_standard.tif";
+//    TiffUtils::saveMeshAsTiff(image_file_name, check_mesh);
 
     //Basic serial iteration over all particles
     for (particle_number = 0; particle_number < apr.total_number_particles(); ++particle_number) {
@@ -350,7 +350,7 @@ int main(int argc, char **argv) {
 
             float standard = utest_particles.data[particle_number];
 
-            std::cout << apr_iterator.x()<< " "  << apr_iterator.y()<< " "  << apr_iterator.z() << " " << apr_iterator.level() << " " << dense << " " << standard << " " << (int)(apr_iterator.type()) << std::endl;
+            //std::cout << apr_iterator.x()<< " "  << apr_iterator.y()<< " "  << apr_iterator.z() << " " << apr_iterator.level() << " " << dense << " " << standard << " " << (int)(apr_iterator.type()) << std::endl;
 
             success = false;
             f_c++;
@@ -378,7 +378,7 @@ void create_test_particles(APR<uint16_t>& apr,APRIterator<uint16_t>& apr_iterato
         MeshData<float> by_level_recon;
         by_level_recon.init(apr_iterator.spatial_index_y_max(level_local),apr_iterator.spatial_index_x_max(level_local),apr_iterator.spatial_index_z_max(level_local),0);
 
-        for (uint64_t level = apr_iterator.level_min(); level <= level_local; ++level) {
+        for (uint64_t level = std::max((uint64_t)(level_local-1),(uint64_t)apr_iterator.level_min()); level <= level_local; ++level) {
 
 
             const float step_size = pow(2, level_local - level);
@@ -441,10 +441,6 @@ void create_test_particles(APR<uint16_t>& apr,APRIterator<uint16_t>& apr_iterato
 
                 temp_int = part_tree[apr_tree_iterator];
 
-                if(temp_int == 0){
-                    int stop = 1;
-                }
-
 
                 const int offset_max_dim1 = std::min((int) by_level_recon.y_num, (int) (dim1 + step_size));
                 const int offset_max_dim2 = std::min((int) by_level_recon.x_num, (int) (dim2 + step_size));
@@ -506,8 +502,8 @@ void create_test_particles(APR<uint16_t>& apr,APRIterator<uint16_t>& apr_iterato
 
 
 
-        std::string image_file_name = apr.parameters.input_dir + std::to_string(level_local) + "_by_level.tif";
-        TiffUtils::saveMeshAsTiff(image_file_name, by_level_recon);
+       // std::string image_file_name = apr.parameters.input_dir + std::to_string(level_local) + "_by_level.tif";
+        //TiffUtils::saveMeshAsTiff(image_file_name, by_level_recon);
 
     }
 
