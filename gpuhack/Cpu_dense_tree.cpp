@@ -75,7 +75,6 @@ DenseRepresentation getDenseRepresentation(APRIterator<T> &aprIt) {
     yRow.data.resize(aprIt.level_max() + 1);
     ExtraPartCellData<uint64_t> globalIdxOfYrow;
     globalIdxOfYrow.data.resize(aprIt.level_max() + 1);
-    int num = 0; int maxNum = 20;
     for (int level = aprIt.level_min(); level <= aprIt.level_max(); ++level) {
         const size_t x_num = aprIt.spatial_index_x_max(level);
         const size_t z_num = aprIt.spatial_index_z_max(level);
@@ -114,7 +113,6 @@ ExtraParticleData<float> doWork(APR<T> &aInputApr, const DenseRepresentation &dr
 
     APRTreeIterator<uint16_t> treeIterator(aprTree);
 
-    int num = 0; int maxNum = 30;
     for (int level = dr.levelMax; level >= dr.levelMin; --level) {
         std::cout << "Apr  LEVEL:" << level << std::endl;
         const size_t x_num = aprIt.spatial_index_x_max(level);
@@ -135,8 +133,6 @@ ExtraParticleData<float> doWork(APR<T> &aInputApr, const DenseRepresentation &dr
                             auto &currentRow = dr.yRow.data[level][z * x_num + x];
                             for (auto y : currentRow) {
                                 auto val = intensities.data[currentGlobalIdx];
-                                if (level == dr.levelMax && num < maxNum) {num++; std::cout << val << " ";}
-
                                 if (val > dsData[y/2]) dsData[y/2] = val;  // compute maximum
                                 ++currentGlobalIdx;
                             }
@@ -213,7 +209,6 @@ ExtraParticleData<float> doWorkOld(APR<T> &aInputApr, APRTree<uint16_t> &aprTree
     ExtraParticleData<float> tree_intensity(aprTree);
     auto &intensities = aInputApr.particles_intensities;
 
-    int num = 0; int maxNum = 30;
     for (unsigned int level = apr_iterator.level_max(); level >= apr_iterator.level_min(); --level) {
         std::cout << "Apr  LEVEL:" << level << std::endl;
         for (size_t particle_number = apr_iterator.particles_level_begin(level);
@@ -224,10 +219,8 @@ ExtraParticleData<float> doWorkOld(APR<T> &aInputApr, APRTree<uint16_t> &aprTree
             treeIterator.set_iterator_to_parent(apr_iterator);
 
             auto val = intensities.data[apr_iterator.global_index()];
-
             if (val > tree_intensity[treeIterator]) tree_intensity[treeIterator] = val;  // compute maximum
         }
-
     }
 
     for (unsigned int level = treeIterator.level_max(); level > treeIterator.level_min(); --level) {
@@ -247,11 +240,10 @@ ExtraParticleData<float> doWorkOld(APR<T> &aInputApr, APRTree<uint16_t> &aprTree
 }
 
 template<typename T>
-void compareTreeIntensities(APRTreeIterator<uint16_t>& treeIterator,ExtraParticleData<T> newData, ExtraParticleData<T> oldData) {
-    const int maxNumOfErrors = 10;
+void compareTreeIntensities(APRTreeIterator<uint16_t>& treeIterator, ExtraParticleData<T> newData, ExtraParticleData<T> oldData) {
     int errCnt = 0;
 
-    for (unsigned int level = treeIterator.level_max(); level > treeIterator.level_min(); --level) {
+    for (unsigned int level = treeIterator.level_max(); level >= treeIterator.level_min(); --level) {
         std::cout << "Tree LEVEL:" << level << std::endl;
         for (size_t particle_number = treeIterator.particles_level_begin(level);
              particle_number < treeIterator.particles_level_end(level);
@@ -259,19 +251,13 @@ void compareTreeIntensities(APRTreeIterator<uint16_t>& treeIterator,ExtraParticl
             treeIterator.set_iterator_to_particle_by_number(particle_number);
 
             if (newData.data[particle_number] != oldData.data[particle_number]) {
-                std::cout << "DIFFERENCE: " << " idx: " << particle_number << " " << newData.data[particle_number] << " vs old: " << oldData.data[particle_number] << std::endl;
-                // if (++errCnt > maxNumOfErrors) exit(1);
+                std::cout << "DIFFERENCE: " << " idx: " << particle_number << " " << newData.data[particle_number] << " vs old: " << oldData.data[particle_number] << " on level: " << level << std::endl;
                 errCnt++;
-                std::cout << level << std::endl;
-
             }
-
-
         }
     }
 
-
-    std::cout << errCnt << std::endl;
+    std::cout << "number of errors: " << errCnt << std::endl;
     std::cout << newData.data.size() << std::endl;
 }
 
