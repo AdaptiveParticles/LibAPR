@@ -1,4 +1,6 @@
 #include <algorithm>
+#include <vector>
+#include <array>
 #include <iostream>
 
 #include "data_structures/APR/APR.hpp"
@@ -91,15 +93,16 @@ int main(int argc, char **argv) {
     ///
     ///////////////////////////
 
-    std::vector<std::vector<uint64_t>> level_zx_index_start;
-    std::vector<uint16_t> y_explicit;
-    std::vector<uint16_t> particle_values;
+    std::vector<std::array<std::size_t,2>> level_zx_index_start;//size = number of rows on all levels
+    std::vector<std::uint16_t> y_explicit;y_explicit.reserve(aprIt.total_number_particles());//size = number of particles
+    std::vector<std::uint16_t> particle_values;particle_values.reserve(aprIt.total_number_particles());//size = number of particles
+    std::vector<std::size_t> level_offset;//size = number of levels
 
-    int x = 0;
-    int z = 0;
+    std::size_t x = 0;
+    std::size_t z = 0;
 
-    uint64_t zx_counter = 0;
-    std::vector<uint64_t> level_offset;
+    std::size_t zx_counter = 0;
+    
 
     level_offset.resize(aprIt.level_max()+1,UINT64_MAX);
 
@@ -112,17 +115,17 @@ int main(int argc, char **argv) {
 
                 zx_counter++;
                 if (aprIt.set_new_lzx(level, z, x) < UINT64_MAX) {
-                    level_zx_index_start.push_back({aprIt.global_index(), aprIt.particles_zx_end(level, z,
-                                                                                                 x)-1}); //This stores the begining and end global index for each level_xz_row
+                    level_zx_index_start.emplace_back(std::array<uint64_t,2>{aprIt.global_index(),
+                                aprIt.particles_zx_end(level,z,x)-1}); //This stores the begining and end global index for each level_xz_row
                 } else {
-                    level_zx_index_start.push_back({UINT64_MAX, 0}); //This stores the begining and end global index for each level_
+                    level_zx_index_start.emplace_back(std::array<uint64_t,2>{UINT64_MAX, 0}); //This stores the begining and end global index for each level_
                 }
 
                 for (aprIt.set_new_lzx(level, z, x);
                      aprIt.global_index() < aprIt.particles_zx_end(level, z,
                                                                    x); aprIt.set_iterator_to_particle_next_particle()) {
-                    y_explicit.push_back(aprIt.y());
-                    particle_values.push_back(apr.particles_intensities[aprIt]);
+                    y_explicit.emplace_back(aprIt.y());
+                    particle_values.emplace_back(apr.particles_intensities[aprIt]);
 
                 }
             }
@@ -143,7 +146,7 @@ int main(int argc, char **argv) {
     for (int level = aprIt.level_min(); level <= aprIt.level_max(); ++level) {
 
         const int x_num = aprIt.spatial_index_x_max(level);
-        const int z_num = aprIt.spatial_index_z_max(level);
+        //const int z_num = aprIt.spatial_index_z_max(level);
 
         for (z = 0; z < aprIt.spatial_index_x_max(level); ++z) {
             for (x = 0; x < aprIt.spatial_index_x_max(level); ++x) {
@@ -155,7 +158,7 @@ int main(int argc, char **argv) {
 
                         for (uint64_t global_index = particle_index_begin;
                              global_index <= particle_index_end; ++global_index) {
-                            uint16_t current_y_value = y_explicit[global_index];
+
                             uint16_t current_particle_value = particle_values[global_index];
 
                             test_access_data.push_back(current_particle_value);
@@ -177,7 +180,7 @@ int main(int argc, char **argv) {
 
     bool success = true;
 
-    for (int i = 0; i < test_access_data.size(); ++i) {
+    for (std::size_t i = 0; i < test_access_data.size(); ++i) {
         if(apr.particles_intensities.data[i]!=test_access_data[i]){
             success = false;
         }
