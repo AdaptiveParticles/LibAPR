@@ -42,6 +42,7 @@ bool command_option_exists(char **begin, char **end, const std::string &option);
 
 char* get_command_option(char **begin, char **end, const std::string &option);
 
+void create_test_particles(APR<uint16_t>& apr,APRIterator<uint16_t>& apr_iterator,APRTreeIterator<uint16_t>& apr_tree_iterator,ExtraParticleData<float> &test_particles,ExtraParticleData<uint16_t>& particles,ExtraParticleData<float>& part_tree);
 
 template<typename T,typename ParticleDataType>
 void update_dense_array(const uint64_t level,const uint64_t z,APR<uint16_t>& apr,APRIterator<uint16_t>& apr_iterator, APRIterator<uint16_t>& treeIterator, ExtraParticleData<float> &tree_data,MeshData<T>& temp_vec,ExtraParticleData<ParticleDataType>& particleData) {
@@ -256,10 +257,6 @@ int main(int argc, char **argv) {
 
 
 
-
-
-
-
     timer.start_timer("APR parallel iterator neighbour loop by level");
 
     for (int i = 0; i < num_rep; ++i) {
@@ -443,10 +440,115 @@ int main(int argc, char **argv) {
         std::cout << "FAIL" << " " << f_c <<  std::endl;
     }
 
+    ExtraParticleData<float> utest_particles(apr);
 
+    apr.parameters.input_dir = options.directory;
+
+    create_test_particles(apr,apr_iterator,treeIterator,utest_particles,apr.particles_intensities,tree_intensity);
 
 
 }
+
+
+void create_test_particles(APR<uint16_t>& apr,APRIterator<uint16_t>& apr_iterator,APRTreeIterator<uint16_t>& apr_tree_iterator,ExtraParticleData<float> &test_particles,ExtraParticleData<uint16_t>& particles,ExtraParticleData<float>& part_tree){
+
+    for (uint64_t level_local = apr_iterator.level_max(); level_local >= apr_iterator.level_min(); --level_local) {
+
+
+        MeshData<float> by_level_recon;
+        by_level_recon.init(apr_iterator.spatial_index_y_max(level_local),apr_iterator.spatial_index_x_max(level_local),apr_iterator.spatial_index_z_max(level_local),0);
+
+        for (uint64_t level = apr_iterator.level_min(); level <= level_local; ++level) {
+
+
+            const float step_size = pow(2, level_local - level);
+
+            uint64_t particle_number;
+
+            for (particle_number = apr_iterator.particles_level_begin(level);
+                 particle_number < apr_iterator.particles_level_end(level); ++particle_number) {
+                //
+                //  Parallel loop over level
+                //
+                apr_iterator.set_iterator_to_particle_by_number(particle_number);
+
+                int dim1 = apr_iterator.y() * step_size;
+                int dim2 = apr_iterator.x() * step_size;
+                int dim3 = apr_iterator.z() * step_size;
+
+                float temp_int;
+                //add to all the required rays
+
+                temp_int = particles[apr_iterator];
+
+                const int offset_max_dim1 = std::min((int) by_level_recon.y_num, (int) (dim1 + step_size));
+                const int offset_max_dim2 = std::min((int) by_level_recon.x_num, (int) (dim2 + step_size));
+                const int offset_max_dim3 = std::min((int) by_level_recon.z_num, (int) (dim3 + step_size));
+
+                for (int64_t q = dim3; q < offset_max_dim3; ++q) {
+
+                    for (int64_t k = dim2; k < offset_max_dim2; ++k) {
+                        for (int64_t i = dim1; i < offset_max_dim1; ++i) {
+                            by_level_recon.mesh[i + (k) * by_level_recon.y_num + q * by_level_recon.y_num * by_level_recon.x_num] = temp_int;
+                        }
+                    }
+                }
+            }
+        }
+
+
+        if(level_local < apr_iterator.level_max()){
+
+            uint64_t level = level_local;
+
+            const float step_size = 1;
+
+            uint64_t particle_number;
+
+            for (particle_number = apr_tree_iterator.particles_level_begin(level);
+                 particle_number < apr_tree_iterator.particles_level_end(level); ++particle_number) {
+                //
+                //  Parallel loop over level
+                //
+                apr_tree_iterator.set_iterator_to_particle_by_number(particle_number);
+
+                int dim1 = apr_tree_iterator.y() * step_size;
+                int dim2 = apr_tree_iterator.x() * step_size;
+                int dim3 = apr_tree_iterator.z() * step_size;
+
+                float temp_int;
+                //add to all the required rays
+
+                temp_int = part_tree[apr_tree_iterator];
+
+                if(temp_int == 0){
+                    int stop = 1;
+                }
+
+
+                const int offset_max_dim1 = std::min((int) by_level_recon.y_num, (int) (dim1 + step_size));
+                const int offset_max_dim2 = std::min((int) by_level_recon.x_num, (int) (dim2 + step_size));
+                const int offset_max_dim3 = std::min((int) by_level_recon.z_num, (int) (dim3 + step_size));
+
+                for (int64_t q = dim3; q < offset_max_dim3; ++q) {
+
+                    for (int64_t k = dim2; k < offset_max_dim2; ++k) {
+                        for (int64_t i = dim1; i < offset_max_dim1; ++i) {
+                            by_level_recon.mesh[i + (k) * by_level_recon.y_num + q * by_level_recon.y_num * by_level_recon.x_num] = temp_int;
+                        }
+                    }
+                }
+            }
+
+        }
+
+        std::string image_file_name = apr.parameters.input_dir + std::to_string(level_local) + "_by_level.tif";
+        TiffUtils::saveMeshAsTiff(image_file_name, by_level_recon);
+
+    }
+
+}
+
 
 
 bool command_option_exists(char **begin, char **end, const std::string &option)
