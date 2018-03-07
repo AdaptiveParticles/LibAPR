@@ -177,37 +177,6 @@ int main(int argc, char **argv) {
 
     APRTreeIterator<uint16_t> parentIterator(apr_tree);
 
-    for (unsigned int level = apr_iterator.level_min(); level <= apr_iterator.level_max(); ++level) {
-        for (particle_number = apr_iterator.particles_level_begin(level);
-             particle_number < apr_iterator.particles_level_end(level); ++particle_number) {
-
-
-            apr_iterator.set_iterator_to_particle_by_number(particle_number);
-
-            treeIterator.set_iterator_to_parent(apr_iterator);
-
-            tree_intensity[treeIterator]= (tree_intensity[treeIterator]*tree_counter[treeIterator]*1.0f + apr.particles_intensities[apr_iterator])/(1.0f*(tree_counter[treeIterator]+1.0f));
-
-            tree_counter[treeIterator]++;
-        }
-    }
-
-    for (unsigned int level = treeIterator.level_max(); level < treeIterator.level_min(); --level) {
-        for (particle_number = treeIterator.particles_level_begin(level);
-             particle_number < treeIterator.particles_level_end(level); ++particle_number) {
-
-
-            treeIterator.set_iterator_to_particle_by_number(particle_number);
-
-            parentIterator.set_iterator_to_parent(treeIterator);
-
-            tree_intensity[parentIterator]= (tree_intensity[parentIterator]*tree_counter[parentIterator]*1.0f + tree_intensity[treeIterator])/(1.0f*(tree_counter[parentIterator]+1.0f));
-
-            tree_counter[parentIterator]++;
-        }
-    }
-
-
   	/**** Filling the inside ********/
 	uint64_t parent_number;
 
@@ -226,7 +195,12 @@ int main(int argc, char **argv) {
 
         //then do the rest of the tree where order matters
         for (unsigned int level = treeIterator.level_max(); level >= treeIterator.level_min(); --level) {
-          for (parent_number = treeIterator.particles_level_begin(level);
+            for(parent_number = treeIterator.particles_level_begin(level); parent_number < treeIterator.particles_level_end(level); ++parent_number) {
+                treeIterator.set_iterator_to_particle_by_number(parent_number);
+                tree_data[treeIterator]/=(1.0*child_counter[treeIterator]);
+            }
+
+            for (parent_number = treeIterator.particles_level_begin(level);
                  parent_number < treeIterator.particles_level_end(level); ++parent_number) {
 
                 treeIterator.set_iterator_to_particle_by_number(parent_number);
@@ -237,12 +211,12 @@ int main(int argc, char **argv) {
             }
         }
 
-        for (unsigned int level = treeIterator.level_max(); level >= treeIterator.level_min(); --level) {
-               for(parent_number = treeIterator.particles_level_begin(level); parent_number < treeIterator.particles_level_end(level); ++parent_number) {
-                    treeIterator.set_iterator_to_particle_by_number(parent_number);
-                    tree_data[treeIterator]/=(1.0*child_counter[treeIterator]);
-                }
-        }
+//        for (unsigned int level = treeIterator.level_max(); level >= treeIterator.level_min(); --level) {
+//               for(parent_number = treeIterator.particles_level_begin(level); parent_number < treeIterator.particles_level_end(level); ++parent_number) {
+//                    treeIterator.set_iterator_to_particle_by_number(parent_number);
+//                    tree_data[treeIterator]/=(1.0*child_counter[treeIterator]);
+//                }
+//        }
 
 	// treeIterator only stores the Inside of the tree
    /****** End of filling **********/
@@ -254,7 +228,12 @@ int main(int argc, char **argv) {
     const int8_t dir_x[6] = { 0, 0, 1, -1, 0, 0};
     const int8_t dir_z[6] = { 0, 0, 0, 0, 1, -1};
 
+    int offset_size = 1;
 
+    std::vector<float>  stencil;
+    float stencil_value = 1.0f;
+
+    stencil.resize(pow(offset_size*2 + 1,3),stencil_value);
 
 
     timer.start_timer("APR parallel iterator neighbour loop by level");
@@ -292,7 +271,7 @@ int main(int argc, char **argv) {
                             if (neighbour_iterator.set_neighbour_iterator(apr_iterator, direction, index)) {
                                 treeIterator.set_iterator_to_parent(neighbour_iterator);
 
-                                temp2 += tree_intensity[treeIterator];
+                                temp2 += tree_data[treeIterator];
                                 break;
                             }
 
@@ -335,13 +314,13 @@ int main(int argc, char **argv) {
             z = 0;
 
             //initial condition
-           update_dense_array(level, z, apr, apr_iterator, treeIterator, tree_intensity, temp_vec,apr.particles_intensities);
+           update_dense_array(level, z, apr, apr_iterator, treeIterator, tree_data, temp_vec,apr.particles_intensities);
 
             for (z = 0; z < apr.spatial_index_z_max(level); ++z) {
 
                 if (z < (z_num - 1)) {
                     //update the next z plane for the access
-                    update_dense_array(level, z + 1, apr, apr_iterator, treeIterator, tree_intensity, temp_vec,apr.particles_intensities);
+                    update_dense_array(level, z + 1, apr, apr_iterator, treeIterator, tree_data, temp_vec,apr.particles_intensities);
                 } else {
                     // need to set (z+1)%3 to zero, zero boundary condition
 
@@ -444,7 +423,7 @@ int main(int argc, char **argv) {
 
     apr.parameters.input_dir = options.directory;
 
-    create_test_particles(apr,apr_iterator,treeIterator,utest_particles,apr.particles_intensities,tree_intensity);
+    create_test_particles(apr,apr_iterator,treeIterator,utest_particles,apr.particles_intensities,tree_data);
 
 
 }
