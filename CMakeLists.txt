@@ -50,7 +50,7 @@ find_package(TIFF REQUIRED)
 # Handle OpenMP
 find_package(OpenMP)
 if(NOT OPENMP_FOUND OR DISABLE_OPENMP)
-    message(WARNING "OpenMP support not found with current compiler. While APR can compile like this, performance might not be optimal. Please see README.md for instructions.")
+    message(WARNING "OpenMP support not found or disabled with current compiler. While APR can compile like this, performance might not be optimal. Please see README.md for instructions.")
 else()
     set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -DHAVE_OPENMP ${OpenMP_C_FLAGS}")
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DHAVE_OPENMP ${OpenMP_CXX_FLAGS}")
@@ -79,15 +79,17 @@ include_directories("external/glm")
 # If you ever want to compile with Intel's icc (or any other compiler) provide
 # compiler names/paths in cmake command like this:
 # CC="icc" CXX="icc" CXXFLAGS="-O3" cmake -DAPR_TESTS=1
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++14 -Wall -pedantic ")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++14 -Wall -pedantic")
 if(CMAKE_COMPILER_IS_GNUCC)
     set(CMAKE_CXX_FLAGS_RELEASE "-O4 -ffast-math")
     set(CMAKE_CXX_FLAGS_DEBUG "-O0 -g")
-    set(CMAKE_EXE_LINKER_FLAGS  "${CMAKE_EXE_LINKER_FLAGS} -Bdynamic -ldl ")
-endif(CMAKE_COMPILER_IS_GNUCC)
-if (CMAKE_CXX_COMPILER_ID MATCHES "Clang")
+    set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -Bdynamic")
+    if(NOT WIN32)
+        set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -ldl")
+    endif()
+elseif (CMAKE_CXX_COMPILER_ID MATCHES "Clang")
     set(CMAKE_CXX_FLAGS_RELEASE "-O3 -ffast-math")
-    set(CMAKE_CXX_FLAGS_DEBUG  "-O0 -g")
+    set(CMAKE_CXX_FLAGS_DEBUG "-O0 -g")
 endif()
 
 
