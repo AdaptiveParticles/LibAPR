@@ -7,6 +7,7 @@
 #include "data_structures/APR/APRTreeIterator.hpp"
 #include "data_structures/APR/ExtraParticleData.hpp"
 
+#include "thrust/device_vector.h"
 
 struct cmdLineOptions{
     std::string output = "output";
@@ -140,36 +141,42 @@ int main(int argc, char **argv) {
     ///
     /////////////////////
 
-    std::vector<uint16_t> test_access_data;
+    thrust::device_vector<std::uint16_t> d_test_access_data(apr.particles_intensities.data.size());
 
+    thrust::device_vector<std::array<std::size_t,2>> d_level_zx_index_start(level_zx_index_start.begin(), level_zx_index_start.end());
+    thrust::device_vector<std::uint16_t> d_y_explicit(y_explicit.begin(), y_explicit.end());
+    thrust::device_vector<std::uint16_t> d_particle_values(particle_values.begin(), particle_values.end());
+    thrust::device_vector<std::size_t> d_level_offset(level_offset.begin(),level_offset.end());
 
-    for (int level = aprIt.level_min(); level <= aprIt.level_max(); ++level) {
+    thrust::host_vector<std::uint16_t> test_access_data = d_test_access_data;
 
-        const int x_num = aprIt.spatial_index_x_max(level);
-        //const int z_num = aprIt.spatial_index_z_max(level);
+    // for (int level = aprIt.level_min(); level <= aprIt.level_max(); ++level) {
 
-        for (z = 0; z < aprIt.spatial_index_z_max(level); ++z) {
-            for (x = 0; x < aprIt.spatial_index_x_max(level); ++x) {
-                if(level_offset[level]<UINT64_MAX) {
-                    uint64_t level_xz_offset = level_offset[level] + x_num * z + x;
-                    if (level_zx_index_start[level_xz_offset].size() > 0) {
-                        uint64_t particle_index_begin = level_zx_index_start[level_xz_offset][0];
-                        uint64_t particle_index_end = level_zx_index_start[level_xz_offset][1];
+    //     const int x_num = aprIt.spatial_index_x_max(level);
+    //     //const int z_num = aprIt.spatial_index_z_max(level);
 
-                        for (uint64_t global_index = particle_index_begin;
-                             global_index <= particle_index_end; ++global_index) {
+    //     for (z = 0; z < aprIt.spatial_index_z_max(level); ++z) {
+    //         for (x = 0; x < aprIt.spatial_index_x_max(level); ++x) {
+    //             if(level_offset[level]<UINT64_MAX) {
+    //                 uint64_t level_xz_offset = level_offset[level] + x_num * z + x;
+    //                 if (level_zx_index_start[level_xz_offset].size() > 0) {
+    //                     uint64_t particle_index_begin = level_zx_index_start[level_xz_offset][0];
+    //                     uint64_t particle_index_end = level_zx_index_start[level_xz_offset][1];
 
-                            uint16_t current_particle_value = particle_values[global_index];
+    //                     for (uint64_t global_index = particle_index_begin;
+    //                          global_index <= particle_index_end; ++global_index) {
 
-                            test_access_data.push_back(current_particle_value);
+    //                         uint16_t current_particle_value = particle_values[global_index];
 
-                        }
-                    }
-                }
+    //                         test_access_data.push_back(current_particle_value);
 
-            }
-        }
-    }
+    //                     }
+    //                 }
+    //             }
+
+    //         }
+    //     }
+    // }
 
 
     //////////////////////////

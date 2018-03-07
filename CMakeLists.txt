@@ -118,11 +118,19 @@ if(APR_USE_CUDA)
     set_property(TARGET cudaLib PROPERTY IMPORTED_LOCATION ${CUDA_cudart_static_LIBRARY})
     set(CUDA_TARGET cudaLib)
     set(CUDA_APR_TARGET cudaAprLib)
-    list(APPEND CUDA_NVCC_FLAGS "-std=c++14;-O0; -Xcompiler -fPIC") 
+    CUDA_SELECT_NVCC_ARCH_FLAGS(ARCH_FLAGS Auto)
+    #list(APPEND CUDA_NVCC_FLAGS "-O0; -Xcompiler -fPIC")#"-std=c++14;-O0; -Xcompiler -fPIC")
+    list(APPEND CUDA_NVCC_FLAGS ${ARCH_FLAGS})
+
     cuda_add_library(${CUDA_APR_TARGET} STATIC src/algorithm/number.cu)
     target_link_libraries(${CUDA_APR_TARGET} ${CUDA_LIBRARIES})
-    set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -DAPR_USE_CUDA")
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DAPR_USE_CUDA")
+    set_target_properties(${CUDA_APR_TARGET} PROPERTIES
+      CUDA_STANDARD 14
+      POSITION_INDEPENDENT_CODE True
+      COMPILE_FLAGS "-DAPR_USE_CUDA"
+      )
+    # set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -DAPR_USE_CUDA")
+#     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DAPR_USE_CUDA")
 endif()
 
 if(APR_BUILD_STATIC_LIB)

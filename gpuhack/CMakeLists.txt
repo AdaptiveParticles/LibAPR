@@ -5,8 +5,18 @@ endmacro(buildTarget)
 
 macro(buildGPUTarget TARGET)
   if(APR_USE_CUDA)
+
+    CUDA_SELECT_NVCC_ARCH_FLAGS(ARCH_FLAGS Auto)
+    list(APPEND CUDA_NVCC_FLAGS ${ARCH_FLAGS})
+
     add_executable(${TARGET} ${TARGET}.cu)
     target_link_libraries(${TARGET} ${HDF5_LIBRARIES} ${TIFF_LIBRARIES} ${APR_BUILD_LIBRARY})
+    set_target_properties(${TARGET} PROPERTIES
+      CUDA_STANDARD 14
+      POSITION_INDEPENDENT_CODE True
+      COMPILE_FLAGS "-DAPR_USE_CUDA"
+      )
+
   else()
     message(WARNING "skipping building ${TARGET} as libAPR was not configured for CUDA support")
   endif()
