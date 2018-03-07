@@ -13,8 +13,9 @@ macro(buildGPUTarget TARGET)
     target_link_libraries(${TARGET} ${HDF5_LIBRARIES} ${TIFF_LIBRARIES} ${APR_BUILD_LIBRARY})
     set_target_properties(${TARGET} PROPERTIES
       CUDA_STANDARD 14
+
       POSITION_INDEPENDENT_CODE True
-      COMPILE_FLAGS "-DAPR_USE_CUDA"
+      COMPILE_FLAGS "-DAPR_USE_CUDA --expt-extended-lambda"
       )
 
   else()
