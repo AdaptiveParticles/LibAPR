@@ -31,5 +31,7 @@ buildTarget(Cpu_dense_simplified_access)
 buildTarget(Cpu_dense_tree)
 buildTarget(CPU_full_storage)
 buildTarget(Cpu_neighbour_access_Tree)
+buildTarget(Cpu_neighbour_access_Tree_stencil)
+
 
 buildGPUTarget(GPU_full_storage)
