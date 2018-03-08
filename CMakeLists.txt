@@ -13,6 +13,7 @@ option(APR_BUILD_STATIC_LIB "Builds shared library" ON)
 option(APR_BUILD_EXAMPLES "Build APR examples" OFF)
 option(APR_TESTS "Build APR tests" OFF)
 option(APR_PREFER_EXTERNAL_GTEST "When found, use the installed GTEST libs instead of included sources" OFF)
+option(APR_PREFER_EXTERNAL_BLOSC "When found, use the installed BLOSC libs instead of included sources" OFF)
 option(APR_BUILD_JAVA_WRAPPERS "Build APR JAVA wrappers" OFF)
 
 # Validation of options
@@ -20,6 +21,9 @@ if (NOT APR_BUILD_SHARED_LIB AND NOT APR_BUILD_STATIC_LIB)
     message(FATAL_ERROR "At least one target: APR_BUILD_SHARED_LIB or APR_BUILD_STATIC_LIB must be build!")
 endif()
 
+list(APPEND CMAKE_MODULE_PATH
+  ${CMAKE_CURRENT_SOURCE_DIR}/cmake/
+  ${CMAKE_CURRENT_SOURCE_DIR}/cmake/Modules/)
 
 ###############################################################################
 # Generate configuration file
@@ -57,17 +61,26 @@ else()
 endif()
 include_directories(${HDF5_INCLUDE_DIRS} ${ZLIB_INCLUDE_DIRS} ${TIFF_INCLUDE_DIR})
 
-# needed here for blosc library
-SET(CMAKE_POSITION_INDEPENDENT_CODE ON)
-
-# Configure and add submodule BLOSC
-set(BLOSC_IS_SUBPROJECT ON)
-set(BUILD_TESTS OFF CACHE BOOL "" FORCE)
-set(BUILD_BENCHMARKS OFF CACHE BOOL "" FORCE)
-set(BUILD_SHARED OFF CACHE BOOL "" FORCE)
-set(BUILD_STATIC ON CACHE BOOL "" FORCE)
-add_subdirectory("external/c-blosc")
-include_directories(external/c-blosc/blosc)
+if(APR_PREFER_EXTERNAL_BLOSC)
+    find_package(BLOSC)
+endif()
+if(BLOSC_FOUND)
+    message(STATUS "APR: blosc found, using external blosc")
+    include_directories(${BLOSC_INCLUDE_DIR})
+else()
+    message(STATUS "APR: blosc not found, using internal blosc")
+    # needed here for blosc library
+    SET(CMAKE_POSITION_INDEPENDENT_CODE ON)
+    # Configure and add submodule BLOSC
+    set(BLOSC_IS_SUBPROJECT ON)
+    set(BUILD_TESTS OFF CACHE BOOL "" FORCE)
+    set(BUILD_BENCHMARKS OFF CACHE BOOL "" FORCE)
+    set(BUILD_SHARED OFF CACHE BOOL "" FORCE)
+    set(BUILD_STATIC ON CACHE BOOL "" FORCE)
+    add_subdirectory("external/c-blosc")
+    include_directories(external/c-blosc/blosc)
+    set(BLOSC_LIBRARIES blosc_static)
+endif()
 
 # Add submodule GLM (include files only)
 include_directories("external/glm")
@@ -113,7 +126,9 @@ if(APR_BUILD_STATIC_LIB)
 
     # generate fat static library by adding dependencies
     include(cmake/AddStaticLibs.cmake)
-    addStaticLibs(${STATIC_TARGET_NAME} blosc_static)
+    if(NOT BLOSC_FOUND)
+        addStaticLibs(${STATIC_TARGET_NAME} blosc_static)
+    endif()
 endif()
 
 if(APR_BUILD_SHARED_LIB)
@@ -124,10 +139,15 @@ if(APR_BUILD_SHARED_LIB)
     set_target_properties(${SHARED_TARGET_NAME} PROPERTIES OUTPUT_NAME ${LIBRARY_NAME})
     set_target_properties(${SHARED_TARGET_NAME} PROPERTIES LIBRARY_OUTPUT_NAME ${LIBRARY_NAME})
     set_target_properties(${SHARED_TARGET_NAME} PROPERTIES ARCHIVE_OUTPUT_NAME ${LIBRARY_NAME})
-    add_dependencies(${SHARED_TARGET_NAME} blosc_static)
     set_property(TARGET ${SHARED_TARGET_NAME} PROPERTY VERSION ${APR_VERSION_STRING})
     set_property(TARGET ${SHARED_TARGET_NAME} PROPERTY SOVERSION ${APR_VERSION_MAJOR})
-    target_link_libraries(${SHARED_TARGET_NAME} PRIVATE ${HDF5_LIBRARIES} ${TIFF_LIBRARIES} -Wl,-force_load,$<TARGET_FILE:blosc_static> ${ZLIB_LIBRARIES})
+    target_link_libraries(${SHARED_TARGET_NAME} PRIVATE ${HDF5_LIBRARIES} ${TIFF_LIBRARIES})
+    if(BLOSC_FOUND)
+        target_link_libraries(${SHARED_TARGET_NAME} PRIVATE ${BLOSC_LIBRARIES} ${ZLIB_LIBRARIES})
+    else()
+        add_dependencies(${SHARED_TARGET_NAME} blosc_static)
+        target_link_libraries(${SHARED_TARGET_NAME} PRIVATE -Wl,-force_load,$<TARGET_FILE:blosc_static> ${ZLIB_LIBRARIES})
+    endif()
 endif()
 
 # choose one of the build libraries to be used later for tests and/or examples
@@ -233,5 +253,5 @@ if(APR_BUILD_JAVA_WRAPPERS)
     set(CMAKE_SWIG_FLAGS -package de.mpicbg.mosaic.apr -Wall)
     set_source_files_properties(libapr.i PROPERTIES CPLUSPLUS ON)
     swig_add_library(apr LANGUAGE java SOURCES libapr.i ${SOURCE_FILES})
-    swig_link_libraries(apr ${HDF5_LIBRARIES} blosc_static ${TIFF_LIBRARIES} ${ZLIB_LIBRARIES})
+    swig_link_libraries(apr ${HDF5_LIBRARIES} ${TIFF_LIBRARIES} ${BLOSC_LIBRARIES} ${ZLIB_LIBRARIES})
 endif(APR_BUILD_JAVA_WRAPPERS)
