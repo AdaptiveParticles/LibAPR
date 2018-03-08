@@ -57,31 +57,32 @@ cmdLineOptions read_command_line_options(int argc, char **argv) {
     return result;
 }
 
-__global__ void copy_out(
+__global__ void insert(
     std::size_t _level,
+    std::size_t _z_index,
     const thrust::tuple<std::size_t,std::size_t>* _line_offsets,
-    const std::uint16_t*            _y_ex,
-    const std::uint16_t*            _pdata,
-    const std::size_t*            _offsets,
-    std::uint16_t* _results,
-    std::size_t max_x,
-    std::size_t max_z,
-    std::size_t nparticles
+    const std::uint16_t*           _y_ex,
+    const std::uint16_t*           _pdata,
+    const std::size_t*             _offsets,
+    std::size_t                    _max_y,
+    std::size_t                    _max_x,
+    std::size_t                    _nparticles,
+    std::uint16_t*                 _temp_vec,
+    std::size_t                    _stencil_size
     ){
 
-    unsigned int x_index = blockDim.x * blockIdx.x + threadIdx.x;
-    unsigned int z_index = blockDim.y * blockIdx.y + threadIdx.y;
+    unsigned int y_index = blockDim.x * blockIdx.x + threadIdx.x;
+    unsigned int x_index = blockDim.y * blockIdx.y + threadIdx.y;
 
-
-    if(x_index >= max_x){
+    if(x_index >= _max_x){
         return; // out of bounds
     }
 
-    if(z_index >= max_z){
+    if(y_index >= _max_y){
         return; // out of bounds
     }
 
-    auto level_zx_offset = _offsets[_level] + max_x * z_index + x_index;
+    auto level_zx_offset = _offsets[_level] + _max_x * _z_index + x_index;
     auto row_start = _line_offsets[level_zx_offset];
 
     if(thrust::get<1>(row_start) == 0)
@@ -90,17 +91,68 @@ __global__ void copy_out(
     auto particle_index_begin = thrust::get<0>(row_start);
     auto particle_index_end   = thrust::get<1>(row_start);
 
+    auto t_index = x_index*_max_y + ((_z_index % _stencil_size)*_max_y*_max_x) ;
+
     for (std::size_t global_index = particle_index_begin;
          global_index <= particle_index_end; ++global_index) {
 
         uint16_t current_particle_value = _pdata[global_index];
-
-        _results[global_index] = current_particle_value;
+        auto y = _y_ex[global_index];
+        _temp_vec[t_index+y] = current_particle_value;
 
     }
 
 
 }
+
+__global__ void push_back(
+    std::size_t _level,
+    std::size_t _z_index,
+    const thrust::tuple<std::size_t,std::size_t>* _line_offsets,
+    const std::uint16_t*           _y_ex,
+    const std::uint16_t*           _temp_vec,
+    const std::size_t*             _offsets,
+    std::size_t                    _max_y,
+    std::size_t                    _max_x,
+    std::size_t                    _nparticles,
+    std::uint16_t*                 _pdata,
+    std::size_t                    _stencil_size
+    ){
+
+    unsigned int y_index = blockDim.x * blockIdx.x + threadIdx.x;
+    unsigned int x_index = blockDim.y * blockIdx.y + threadIdx.y;
+
+    if(x_index >= _max_x){
+        return; // out of bounds
+    }
+
+    if(y_index >= _max_y){
+        return; // out of bounds
+    }
+
+    auto level_zx_offset = _offsets[_level] + _max_x * _z_index + x_index;
+    auto row_start = _line_offsets[level_zx_offset];
+
+    if(thrust::get<1>(row_start) == 0)
+        return;
+
+    auto particle_index_begin = thrust::get<0>(row_start);
+    auto particle_index_end   = thrust::get<1>(row_start);
+
+    auto t_index = x_index*_max_y + ((_z_index % _stencil_size)*_max_y*_max_x) ;
+
+    for (std::size_t global_index = particle_index_begin;
+         global_index <= particle_index_end; ++global_index) {
+
+        auto y = _y_ex[global_index];
+        _pdata[global_index] = _temp_vec[t_index+y];
+
+
+    }
+
+
+}
+
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 int main(int argc, char **argv) {
@@ -158,46 +210,46 @@ int main(int argc, char **argv) {
         }
     }
 
-    std::vector<uint16_t> cpu_access_data(apr.particles_intensities.data.size(),std::numeric_limits<std::uint16_t>::max());
+    // std::vector<uint16_t> cpu_access_data(apr.particles_intensities.data.size(),std::numeric_limits<std::uint16_t>::max());
 
-    for ( int r = 0;r<reps;++r){
-        auto start_cpu = std::chrono::high_resolution_clock::now();
+    // for ( int r = 0;r<reps;++r){
+    //     auto start_cpu = std::chrono::high_resolution_clock::now();
 
 
-        for (int level = aprIt.level_min(); level <= aprIt.level_max(); ++level) {
+    //     for (int level = aprIt.level_min(); level <= aprIt.level_max(); ++level) {
 
-            const int x_num = aprIt.spatial_index_x_max(level);
-            //const int z_num = aprIt.spatial_index_z_max(level);
+    //         const int x_num = aprIt.spatial_index_x_max(level);
+    //         //const int z_num = aprIt.spatial_index_z_max(level);
 
-            for (z = 0; z < aprIt.spatial_index_z_max(level); ++z) {
-                for (x = 0; x < aprIt.spatial_index_x_max(level); ++x) {
-                    if(level_offset[level]<UINT64_MAX) {
-                        uint64_t level_xz_offset = level_offset[level] + x_num * z + x;
-                        if (std::get<1>(level_zx_index_start[level_xz_offset])) {
-                            uint64_t particle_index_begin = std::get<0>(level_zx_index_start[level_xz_offset]);
-                            uint64_t particle_index_end = std::get<1>(level_zx_index_start[level_xz_offset]);
+    //         for (z = 0; z < aprIt.spatial_index_z_max(level); ++z) {
+    //             for (x = 0; x < aprIt.spatial_index_x_max(level); ++x) {
+    //                 if(level_offset[level]<UINT64_MAX) {
+    //                     uint64_t level_xz_offset = level_offset[level] + x_num * z + x;
+    //                     if (std::get<1>(level_zx_index_start[level_xz_offset])) {
+    //                         uint64_t particle_index_begin = std::get<0>(level_zx_index_start[level_xz_offset]);
+    //                         uint64_t particle_index_end = std::get<1>(level_zx_index_start[level_xz_offset]);
 
-                            for (uint64_t global_index = particle_index_begin;
-                                 global_index <= particle_index_end; ++global_index) {
+    //                         for (uint64_t global_index = particle_index_begin;
+    //                              global_index <= particle_index_end; ++global_index) {
 
-                                uint16_t current_particle_value = particle_values[global_index];
+    //                             uint16_t current_particle_value = particle_values[global_index];
 
-                                cpu_access_data[global_index] = (current_particle_value);
+    //                             cpu_access_data[global_index] = (current_particle_value);
 
-                            }
-                        }
-                    }
+    //                         }
+    //                     }
+    //                 }
 
-                }
-            }
-        }
+    //             }
+    //         }
+    //     }
 
-        auto end_cpu = std::chrono::high_resolution_clock::now();
+    //     auto end_cpu = std::chrono::high_resolution_clock::now();
 
-        std::chrono::duration<double, std::milli> diff_cpu = end_cpu-start_cpu;
-        std::cout << std::setw(3) << r << " CPU:      " << diff_cpu   .count() << " ms\n";
+    //     std::chrono::duration<double, std::milli> diff_cpu = end_cpu-start_cpu;
+    //     std::cout << std::setw(3) << r << " CPU:      " << diff_cpu   .count() << " ms\n";
 
-    }
+    // }
 
     ////////////////////
     ///
@@ -206,7 +258,6 @@ int main(int argc, char **argv) {
     /////////////////////
     auto start = std::chrono::high_resolution_clock::now();
 
-    thrust::device_vector<std::uint16_t> d_test_access_data(apr.particles_intensities.data.size(),std::numeric_limits<std::uint16_t>::max());
 
     thrust::host_vector<thrust::tuple<std::size_t,std::size_t> > h_level_zx_index_start(level_zx_index_start.size());
     thrust::transform(level_zx_index_start.begin(), level_zx_index_start.end(),
@@ -219,12 +270,15 @@ int main(int argc, char **argv) {
 
     thrust::device_vector<std::uint16_t> d_y_explicit(y_explicit.begin(), y_explicit.end());
     thrust::device_vector<std::uint16_t> d_particle_values(particle_values.begin(), particle_values.end());
+    thrust::device_vector<std::uint16_t> d_test_access_data(d_particle_values.size(),std::numeric_limits<std::uint16_t>::max());
+
     thrust::device_vector<std::size_t> d_level_offset(level_offset.begin(),level_offset.end());
 
     std::size_t max_elements = 0;
-    for (int level = apr_iterator.level_min(); level <= apr_iterator.level_max(); ++level) {
-        auto xtimesy = apr_iterator.spatial_index_y_max(level) + (stencil_size - 1);
-        xtimesy *= apr_iterator.spatial_index_x_max(level) + (stencil_size - 1);
+    const int stencil_size =5;
+    for (int level = aprIt.level_min(); level <= aprIt.level_max(); ++level) {
+        auto xtimesy = aprIt.spatial_index_y_max(level) + (stencil_size - 1);
+        xtimesy *= aprIt.spatial_index_x_max(level) + (stencil_size - 1);
         if(max_elements < xtimesy)
             max_elements = xtimesy;
     }
@@ -234,7 +288,8 @@ int main(int argc, char **argv) {
     const std::uint16_t*             y_ex   =  thrust::raw_pointer_cast(d_y_explicit.data());
     const std::uint16_t*             pdata  =  thrust::raw_pointer_cast(d_particle_values.data());
     const std::size_t*             offsets= thrust::raw_pointer_cast(d_level_offset.data());
-    std::uint16_t*                   result = thrust::raw_pointer_cast(d_test_access_data.data());
+    std::uint16_t*                   tvec = thrust::raw_pointer_cast(d_temp_vec.data());
+    std::uint16_t*                   expected = thrust::raw_pointer_cast(d_test_access_data.data());
 
     if(cudaGetLastError()!=cudaSuccess){
         std::cerr << "memory transfers failed!\n";
@@ -248,28 +303,44 @@ int main(int argc, char **argv) {
 
         for (int lvl = aprIt.level_min(); lvl <= aprIt.level_max(); ++lvl) {
 
+            const int y_num = aprIt.spatial_index_y_max(lvl);
             const int x_num = aprIt.spatial_index_x_max(lvl);
             const int z_num = aprIt.spatial_index_z_max(lvl);
 
-            dim3 threads(32,32,1);
-            dim3 blocks((x_num + threads.x- 1)/threads.x,
-                        (z_num + threads.y- 1)/threads.y ,
-                        1);
+            dim3 threads(32,32);
+            dim3 blocks((y_num + threads.x- 1)/threads.x,
+                        (x_num + threads.y- 1)/threads.y
+                );
 
-            insert_temp_vec<<<blocks,threads>>>(lvl);
+            for(int z = 0;z<z_num;++z){
 
-            // copy_out<<<blocks,threads>>>(lvl,
-            //                              levels,
-            //                              y_ex,
-            //                              pdata,
-            //                              offsets,
-            //                              result,
-            //                              x_num,z_num,
-            //                              particle_values.size());
+                insert<<<blocks,threads>>>(lvl,
+                                           z,
+                                           levels,
+                                           y_ex,
+                                           pdata,
+                                           offsets,
+                                           y_num,x_num,
+                                           particle_values.size(),
+                                           tvec,
+                                           stencil_size);
 
-            if(cudaGetLastError()!=cudaSuccess){
-                std::cerr << "on " << lvl << " the cuda kernel does not run!\n";
-                break;
+                if(cudaGetLastError()!=cudaSuccess){
+                    std::cerr << "on " << lvl << " the cuda kernel does not run!\n";
+                    break;
+                }
+
+                push_back<<<blocks,threads>>>(lvl,
+                                              z,
+                                              levels,
+                                              y_ex,
+                                              tvec,
+                                              offsets,
+                                              y_num,x_num,
+                                              particle_values.size(),
+                                              expected,
+                                              stencil_size);
+
             }
         }
         cudaDeviceSynchronize();
@@ -281,7 +352,7 @@ int main(int argc, char **argv) {
 
     auto end_gpu_kernels = std::chrono::high_resolution_clock::now();
 
-    std::vector<std::uint16_t> test_access_data(d_test_access_data.size());
+    std::vector<std::uint16_t> test_access_data(d_test_access_data.size(),std::numeric_limits<std::uint16_t>::max());
     thrust::copy(d_test_access_data.begin(), d_test_access_data.end(), test_access_data.begin());
 
     auto end_gpu = std::chrono::high_resolution_clock::now();
@@ -292,11 +363,7 @@ int main(int argc, char **argv) {
     std::cout << "   GPU: up   " << gpu_tx_up  .count() << " ms\n";
     std::cout << "   GPU: down " << gpu_tx_down.count() << " ms\n";
 
-    assert(test_access_data.front() != std::numeric_limits<std::uint16_t>::max());
-    assert(test_access_data[0] != std::numeric_limits<std::uint16_t>::max());
     assert(test_access_data.back() != std::numeric_limits<std::uint16_t>::max());
-
-
 
     //////////////////////////
     ///
