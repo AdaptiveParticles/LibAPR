@@ -248,14 +248,25 @@ int main(int argc, char **argv) {
             const int z_num = apr_iterator.spatial_index_z_max(level);
 
             MeshData<float> temp_vec;
-            temp_vec.init(apr_iterator.spatial_index_y_max(level) + (stencil_size-1), apr_iterator.spatial_index_x_max(level) + (stencil_size-1), stencil_size,
+            temp_vec.init(apr_iterator.spatial_index_y_max(level) + (stencil_size-1),
+                          apr_iterator.spatial_index_x_max(level) + (stencil_size-1),
+                          stencil_size,
                           0); //padded boundaries
 
             z = 0;
 
             //initial condition
             for (int padd = 0; padd < stencil_half; ++padd) {
-                update_dense_array(level, padd, apr, apr_iterator, treeIterator, tree_data, temp_vec,apr.particles_intensities, stencil_size, stencil_half);
+                update_dense_array(level,
+                                   padd,
+                                   apr,
+                                   apr_iterator,
+                                   treeIterator,
+                                   tree_data,
+                                   temp_vec,
+                                   apr.particles_intensities,
+                                   stencil_size,
+                                   stencil_half);
             }
 
             for (z = 0; z < apr.spatial_index_z_max(level); ++z) {
@@ -264,12 +275,10 @@ int main(int argc, char **argv) {
                     //update the next z plane for the access
                     update_dense_array(level, z + stencil_half, apr, apr_iterator, treeIterator, tree_data, temp_vec,apr.particles_intensities, stencil_size, stencil_half);
                 } else {
-                    // need to set (z+1)%3 to zero, zero boundary condition
-
+                    //padding
                     uint64_t index = temp_vec.x_num * temp_vec.y_num * ((z+stencil_half)%stencil_size);
-                //    uint64_t index_end = temp_vec.x_num * temp_vec.y_num * (z+stencil_half+1)%stencil_size;	
 
-                   for (x = 0; x < temp_vec.x_num; ++x) {
+                    for (x = 0; x < temp_vec.x_num; ++x) {
                         std::fill(temp_vec.mesh.begin() + index + (x + 0) * temp_vec.y_num ,
                                   temp_vec.mesh.begin() + index + (x + 1) * temp_vec.y_num , 0);
                     }
@@ -290,7 +299,7 @@ int main(int argc, char **argv) {
                         const int k = apr_iterator.y() + stencil_half; // offset to allow for boundary padding
                         const int i = x + stencil_half;
 
-
+                        //compute the stencil
                         for (int l = -stencil_half; l < stencil_half+1; ++l) {
                             for (int q = -stencil_half; q < stencil_half+1; ++q) {
                                 for (int w = -stencil_half; w < stencil_half+1; ++w) {
@@ -302,13 +311,13 @@ int main(int argc, char **argv) {
 
                         part_sum_dense[apr_iterator] = neigh_sum;
 
-                    }
-                }
+                    }//y, pixels/columns
+                }//x , rows
 
 
-            }
-        }
-    }
+            }//z
+        }//levels
+    }//reps
 
 
     timer.stop_timer();
