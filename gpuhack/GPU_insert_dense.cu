@@ -221,6 +221,15 @@ int main(int argc, char **argv) {
     thrust::device_vector<std::uint16_t> d_particle_values(particle_values.begin(), particle_values.end());
     thrust::device_vector<std::size_t> d_level_offset(level_offset.begin(),level_offset.end());
 
+    std::size_t max_elements = 0;
+    for (int level = apr_iterator.level_min(); level <= apr_iterator.level_max(); ++level) {
+        auto xtimesy = apr_iterator.spatial_index_y_max(level) + (stencil_size - 1);
+        xtimesy *= apr_iterator.spatial_index_x_max(level) + (stencil_size - 1);
+        if(max_elements < xtimesy)
+            max_elements = xtimesy;
+    }
+    thrust::device_vector<std::uint16_t> d_temp_vec(max_elements*stencil_size,0);
+
     const thrust::tuple<std::size_t,std::size_t>* levels =  thrust::raw_pointer_cast(d_level_zx_index_start.data());
     const std::uint16_t*             y_ex   =  thrust::raw_pointer_cast(d_y_explicit.data());
     const std::uint16_t*             pdata  =  thrust::raw_pointer_cast(d_particle_values.data());
@@ -247,14 +256,16 @@ int main(int argc, char **argv) {
                         (z_num + threads.y- 1)/threads.y ,
                         1);
 
-            copy_out<<<blocks,threads>>>(lvl,
-                                         levels,
-                                         y_ex,
-                                         pdata,
-                                         offsets,
-                                         result,
-                                         x_num,z_num,
-                                         particle_values.size());
+            insert_temp_vec<<<blocks,threads>>>(lvl);
+
+            // copy_out<<<blocks,threads>>>(lvl,
+            //                              levels,
+            //                              y_ex,
+            //                              pdata,
+            //                              offsets,
+            //                              result,
+            //                              x_num,z_num,
+            //                              particle_values.size());
 
             if(cudaGetLastError()!=cudaSuccess){
                 std::cerr << "on " << lvl << " the cuda kernel does not run!\n";
