@@ -35,3 +35,4 @@ buildTarget(Cpu_neighbour_access_Tree_stencil)
 
 
 buildGPUTarget(GPU_full_storage)
+buildGPUTarget(GPU_insert_dense)
