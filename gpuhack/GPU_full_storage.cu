@@ -70,12 +70,13 @@ __global__ void copy_out(
     unsigned int x_index = blockDim.x * blockIdx.x + threadIdx.x;
     unsigned int z_index = blockDim.y * blockIdx.y + threadIdx.y;
 
-    if(x_index < max_x){
-        return;
+
+    if(x_index >= max_x){
+        return; // out of bounds
     }
 
-    if(z_index < max_z){
-        return;
+    if(z_index >= max_z){
+        return; // out of bounds
     }
 
     auto level_zx_offset = _offsets[_level] + max_x * z_index + x_index;
@@ -109,30 +110,6 @@ int main(int argc, char **argv) {
 
     // Get dense representation of APR
     APRIterator<uint16_t> aprIt(apr);
-
-    ExtraParticleData<uint16_t> yRow;
-    ExtraParticleData<uint16_t> xRow;
-    ExtraParticleData<uint16_t> zRow;
-    ExtraParticleData<uint16_t> levelRow;
-    ExtraParticleData<uint64_t> globalIndexRow;
-
-
-    uint64_t particle_number;
-    //Basic serial iteration over all particles
-    for (particle_number = 0; particle_number < aprIt.total_number_particles(); ++particle_number) {
-        //This step is required for all loops to set the iterator by the particle number
-        aprIt.set_iterator_to_particle_by_number(particle_number);
-
-        //you can then also use it to access any particle properties stored as ExtraParticleData
-
-        yRow.data.push_back(aprIt.y());
-        xRow.data.push_back(aprIt.x());
-        zRow.data.push_back(aprIt.z());
-        levelRow.data.push_back(aprIt.level());
-        globalIndexRow.data.push_back(aprIt.global_index());
-
-    }
-
 
     ///////////////////////////
     ///
@@ -177,7 +154,6 @@ int main(int argc, char **argv) {
         }
     }
 
-
     ////////////////////
     ///
     /// Example of doing our level,z,x access using the GPU data structure
@@ -211,7 +187,7 @@ int main(int argc, char **argv) {
         const int x_num = aprIt.spatial_index_x_max(lvl);
         const int z_num = aprIt.spatial_index_z_max(lvl);
 
-        dim3 threads(32,4,1);
+        dim3 threads(32,32,1);
         dim3 blocks((x_num + threads.x- 1)/threads.x,
                     (z_num + threads.y- 1)/threads.y ,
                     1);
