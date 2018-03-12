@@ -8,8 +8,9 @@
 #include <vector>
 #include <chrono>
 #include <iostream>
+#include <string>
 #ifdef HAVE_OPENMP
-	#include "omp.h"
+#include "omp.h"
 
 class APRTimer{
 //
@@ -53,7 +54,7 @@ public:
 
         if (verbose_flag){
             //output to terminal the result
-            std::cout <<  timing_names.back() << " took "
+            std::cout << timing_names.back() << " took "
                       << t2-t1
                       << " seconds\n";
         }
