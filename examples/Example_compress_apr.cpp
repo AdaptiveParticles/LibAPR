@@ -15,6 +15,7 @@ Example_compress_apr -i input_image_tiff -d input_directory
 Optional:
 
 -compress_type number (1 or 2) (1 - WNL compression (Default), 2 - prediction step with lossless, potential rounding error)
+-quantization_level (Default 1: higher increasing the loss nature of the WNL compression aproach)
 
 e.g. Example_compress_apr -i nuc_apr.h5 -d /Test/Input_examples/ -compress_type 2
 
@@ -58,8 +59,8 @@ int main(int argc, char **argv) {
     APRCompress<uint16_t> comp;
     ExtraParticleData<uint16_t> symbols;
 
-    comp.set_quantization_factor(1);
-    comp.set_compression_type(2);
+    comp.set_quantization_factor(options.quantization_level); //set this to adjust the compression factor for WNL
+    comp.set_compression_type(options.compress_type);
 
     timer.start_timer("compress");
     apr.write_apr(options.directory ,name + "_compress",comp,BLOSC_ZSTD,1,2);
@@ -124,6 +125,14 @@ char* get_command_option(char **begin, char **end, const std::string &option)
             std::cerr << "Invalid Compression setting (1 or 2)" << std::endl;
             exit(1);
         }
+
+
+        if(command_option_exists(argv, argv + argc, "-quantization_level"))
+        {
+            result.quantization_level =std::stof(std::string(get_command_option(argv, argv + argc, "-quantization_level")));
+        }
+
+
 
         return result;
 
