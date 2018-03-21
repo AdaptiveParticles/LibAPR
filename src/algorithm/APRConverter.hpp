@@ -232,11 +232,26 @@ void APRConverter<ImageType>::get_gradient(MeshData<ImageType> &image_temp, Mesh
 
     fine_grained_timer.verbose_flag = false;
 
+    fine_grained_timer.start_timer("threshold");
+
+#ifdef HAVE_OPENMP
+#pragma omp parallel for
+#endif
+    for (size_t i = 0; i < image_temp.mesh.size(); ++i) {
+        if (image_temp.mesh[i] <= (par.Ip_th + bspline_offset)) { image_temp.mesh[i] = par.Ip_th + bspline_offset; }
+    }
+    fine_grained_timer.stop_timer();
+
+
+
     fine_grained_timer.start_timer("smooth_bspline");
     if(par.lambda > 0) {
         get_smooth_bspline_3D(image_temp, par.lambda);
     }
     fine_grained_timer.stop_timer();
+
+
+
 
     fine_grained_timer.start_timer("calc_bspline_fd_mag_ds");
     calc_bspline_fd_ds_mag(image_temp,grad_temp,par.dx,par.dy,par.dz);
