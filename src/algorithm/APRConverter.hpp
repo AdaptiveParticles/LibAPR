@@ -354,7 +354,6 @@ void APRConverter<ImageType>::auto_parameters(const MeshData<T>& input_img){
     float rel_error_input = par.rel_error;
     float ip_th_input = par.Ip_th;
     float min_signal_input = par.min_signal;
-    float snr_min_input =  par.SNR_min;
 
 
 
