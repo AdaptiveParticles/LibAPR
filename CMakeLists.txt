@@ -2,7 +2,7 @@
 # APR - Adaptive Particle Representation
 ###############################################################################
 cmake_minimum_required(VERSION 3.2)
-project(LibAPR DESCRIPTION "Adaptive Particle Representation library")
+project(LibAPR)
 
 set(CMAKE_CXX_STANDARD 14)
 
@@ -141,12 +141,17 @@ if(APR_BUILD_SHARED_LIB)
     set_target_properties(${SHARED_TARGET_NAME} PROPERTIES ARCHIVE_OUTPUT_NAME ${LIBRARY_NAME})
     set_property(TARGET ${SHARED_TARGET_NAME} PROPERTY VERSION ${APR_VERSION_STRING})
     set_property(TARGET ${SHARED_TARGET_NAME} PROPERTY SOVERSION ${APR_VERSION_MAJOR})
+
     target_link_libraries(${SHARED_TARGET_NAME} PRIVATE ${HDF5_LIBRARIES} ${TIFF_LIBRARIES})
     if(BLOSC_FOUND)
         target_link_libraries(${SHARED_TARGET_NAME} PRIVATE ${BLOSC_LIBRARIES} ${ZLIB_LIBRARIES})
     else()
         add_dependencies(${SHARED_TARGET_NAME} blosc_static)
-        target_link_libraries(${SHARED_TARGET_NAME} PRIVATE -Wl,-force_load,$<TARGET_FILE:blosc_static> ${ZLIB_LIBRARIES})
+        if (APPLE)
+            target_link_libraries(${SHARED_TARGET_NAME} PRIVATE -Wl,-force_load,$<TARGET_FILE:blosc_static>)
+        else()
+            target_link_libraries(${SHARED_TARGET_NAME} PRIVATE -Wl,--whole-archive $<TARGET_FILE:blosc_static> -Wl,--no-whole-archive)
+        endif()
     endif()
 endif()
 
