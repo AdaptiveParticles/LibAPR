@@ -24,6 +24,7 @@ Advanced (Direct) Settings:
 -min_signal min_signal_val (directly sets a minimum absolute signal size relative to the local background, also useful for removing background, otherwise set using estimated background noise estimate and minimal SNR of 6)
 -mask_file mask_file_tiff (takes an input image uint16_t, assumes all zero regions should be ignored by the APR, useful for pre-processing of isolating desired content, or using another channel as a mask)
 -rel_error rel_error_value (Reasonable ranges are from .08-.15), Default: 0.1
+-normalize_input (flag that will rescale the input from the input data range to 80% of the output data type range, useful for float scaled datasets)
 )";
 
 #include <algorithm>
@@ -52,6 +53,7 @@ int main(int argc, char **argv) {
     apr_converter.par.mask_file = options.mask_file;
     apr_converter.par.min_signal = options.min_signal;
     apr_converter.par.SNR_min = options.SNR_min;
+    apr_converter.par.normalized_input = options.normalize_input;
 
     //where things are
     apr_converter.par.input_image_name = options.input;
@@ -201,6 +203,11 @@ cmdLineOptions read_command_line_options(int argc, char **argv){
     if(command_option_exists(argv, argv + argc, "-mask_file"))
     {
         result.mask_file = std::string(get_command_option(argv, argv + argc, "-mask_file"));
+    }
+
+    if(command_option_exists(argv, argv + argc, "-normalize_input"))
+    {
+        result.normalize_input = true;
     }
 
     return result;

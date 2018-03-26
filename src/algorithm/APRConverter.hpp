@@ -78,9 +78,9 @@ MinMax<T> getMinMax(const MeshData<T>& input_image) {
     T minVal = std::numeric_limits<T>::max();
     T maxVal = std::numeric_limits<T>::min();
 
-//#ifdef HAVE_OPENMP
-//#pragma omp parallel for default(shared) reduction(:sum)
-//#endif
+#ifdef HAVE_OPENMP
+#pragma omp parallel for default(shared) reduction(max:maxVal) reduction(min:minVal)
+#endif
     for (size_t i = 0; i < input_image.mesh.size(); ++i) {
         T val = input_image.mesh[i];
         if (val > maxVal) maxVal = val;
@@ -101,14 +101,23 @@ bool APRConverter<ImageType>::get_apr_method_from_file(APR<ImageType> &aAPR, con
 
     method_timer.start_timer("calculate automatic parameters");
 
-    if ((std::is_same<uint16_t, ImageType>::value) || (std::is_same<uint8_t, ImageType>::value)) {
-        MinMax<T> mm = getMinMax(inputImage);
-        T maxValue =  static_cast<T>((float)std::numeric_limits<ImageType>::max() * 0.8);
-        std::cout << "MM: " << mm.min << " " << mm.max << " " << maxValue << std::endl;
-        for (size_t i = 0; i < inputImage.mesh.size(); ++i) {
-            inputImage.mesh[i] = (inputImage.mesh[i] - mm.min)*maxValue/(mm.max - mm.min);
+    if(par.normalized_input) {
+
+        if ((std::is_same<uint16_t, ImageType>::value) || (std::is_same<uint8_t, ImageType>::value)) {
+            MinMax<T> mm = getMinMax(inputImage);
+            T maxValue = static_cast<T>((float) std::numeric_limits<ImageType>::max() * 0.8);
+            std::cout << "MM: " << mm.min << " " << mm.max << " " << maxValue << std::endl;
+
+#ifdef HAVE_OPENMP
+#pragma omp parallel for default(shared)
+#endif
+            for (size_t i = 0; i < inputImage.mesh.size(); ++i) {
+                inputImage.mesh[i] = (inputImage.mesh[i] - mm.min) * maxValue / (mm.max - mm.min);
+            }
         }
     }
+
+
 
     auto_parameters(inputImage);
     method_timer.stop_timer();
@@ -499,6 +508,13 @@ void APRConverter<ImageType>::auto_parameters(const MeshData<T>& input_img){
         }
     }
 
+    //possible due to quantization your histogrtam is actually quite sparse, this corrects for the case where the smoothed intensity doesn't exist in the original image.
+    if(freq[local_max_j]==0){
+        while(freq[local_max_j]==0){
+            local_max_j++;
+            local_max=freq[local_max_j];
+        }
+    }
 
     T estimated_first_mode = local_max_j + min_val;
 
