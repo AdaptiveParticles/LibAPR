@@ -19,6 +19,7 @@ struct cmdLineOptions{
     std::string input = "";
     std::string mask_file = "";
     bool stats_file = false;
+    bool normalize_input = false;
 
     float Ip_th = -1;
     float SNR_min = -1;
