@@ -1,20 +1,22 @@
 ###############################################################################
 # APR - Adaptive Particle Representation
 ###############################################################################
-cmake_minimum_required(VERSION 3.2)
-project(LibAPR)
+cmake_minimum_required(VERSION 3.9)
+project(LibAPR DESCRIPTION "Adaptive Particle Representation library")
 
 set(CMAKE_CXX_STANDARD 14)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 # APR build options:
-option(APR_INSTALL "Install APR library" ON)
+option(APR_INSTALL "Install APR library" OFF)
 option(APR_BUILD_SHARED_LIB "Builds shared library" ON)
-option(APR_BUILD_STATIC_LIB "Builds shared library" ON)
+option(APR_BUILD_STATIC_LIB "Builds static library" OFF)
 option(APR_BUILD_EXAMPLES "Build APR examples" OFF)
 option(APR_TESTS "Build APR tests" OFF)
 option(APR_PREFER_EXTERNAL_GTEST "When found, use the installed GTEST libs instead of included sources" OFF)
 option(APR_PREFER_EXTERNAL_BLOSC "When found, use the installed BLOSC libs instead of included sources" OFF)
 option(APR_BUILD_JAVA_WRAPPERS "Build APR JAVA wrappers" OFF)
+option(APR_USE_CUDA "should APR use CUDA?" ON)
 
 # Validation of options
 if (NOT APR_BUILD_SHARED_LIB AND NOT APR_BUILD_STATIC_LIB)
@@ -117,16 +119,30 @@ set(SOURCE_FILES_RAYCAST src/numerics/APRRaycaster.cpp src/vis/Camera.cpp src/vi
 
 add_library(aprObjLib OBJECT ${SOURCE_FILES} ${SOURCE_FILES_RAYCAST})
 
+if(APR_USE_CUDA)
+    message(STATUS "APR: Building CUDA for APR")
+    set(CMAKE_CUDA_STANDARD 14)
+    set(CMAKE_CUDA_FLAGS "--cudart shared -g -lineinfo -Xptxas -O3,-v -use_fast_math")
+    enable_language(CUDA)
+    set(APR_CUDA_SROUCE_FILES 
+	    src/algorithm/ComputeGradientCuda.cu)
+    set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -DAPR_USE_CUDA")
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DAPR_USE_CUDA")
+    include_directories(${CMAKE_CUDA_TOOLKIT_INCLUDE_DIRECTORIES})
+endif()
+
 if(APR_BUILD_STATIC_LIB)
     # generate static library used as a intermediate step in generating fat lib
     set(STATIC_TARGET_NAME staticLib)
-    add_library(${STATIC_TARGET_NAME} STATIC $<TARGET_OBJECTS:aprObjLib>)
+    add_library(${STATIC_TARGET_NAME} STATIC $<TARGET_OBJECTS:aprObjLib> ${APR_CUDA_SROUCE_FILES})
+    target_compile_features(${STATIC_TARGET_NAME} PUBLIC cxx_std_14)
     set_target_properties(${STATIC_TARGET_NAME} PROPERTIES OUTPUT_NAME ${LIBRARY_NAME})
+    set_target_properties(${STATIC_TARGET_NAME} PROPERTIES CUDA_SEPARABLE_COMPILATION OFF)
     target_include_directories(${STATIC_TARGET_NAME} PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/src> $<BUILD_INTERFACE:${PROJECT_BINARY_DIR}>)
 
     # generate fat static library by adding dependencies
-    include(cmake/AddStaticLibs.cmake)
     if(NOT BLOSC_FOUND)
+        include(cmake/AddStaticLibs.cmake)
         addStaticLibs(${STATIC_TARGET_NAME} blosc_static)
     endif()
 endif()
@@ -134,7 +150,8 @@ endif()
 if(APR_BUILD_SHARED_LIB)
 # generate fat shared library
     set(SHARED_TARGET_NAME sharedLib)
-    add_library(${SHARED_TARGET_NAME} SHARED $<TARGET_OBJECTS:aprObjLib>)
+    add_library(${SHARED_TARGET_NAME} SHARED $<TARGET_OBJECTS:aprObjLib> ${APR_CUDA_SROUCE_FILES})
+
     target_include_directories(${SHARED_TARGET_NAME} PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/src> $<BUILD_INTERFACE:${PROJECT_BINARY_DIR}>)
     set_target_properties(${SHARED_TARGET_NAME} PROPERTIES OUTPUT_NAME ${LIBRARY_NAME})
     set_target_properties(${SHARED_TARGET_NAME} PROPERTIES LIBRARY_OUTPUT_NAME ${LIBRARY_NAME})
@@ -142,7 +159,7 @@ if(APR_BUILD_SHARED_LIB)
     set_property(TARGET ${SHARED_TARGET_NAME} PROPERTY VERSION ${APR_VERSION_STRING})
     set_property(TARGET ${SHARED_TARGET_NAME} PROPERTY SOVERSION ${APR_VERSION_MAJOR})
 
-    target_link_libraries(${SHARED_TARGET_NAME} PRIVATE ${HDF5_LIBRARIES} ${TIFF_LIBRARIES})
+    target_link_libraries(${SHARED_TARGET_NAME} PRIVATE ${HDF5_LIBRARIES} ${TIFF_LIBRARIES}  ${CUDA_CUDART_LIBRARY})
     if(BLOSC_FOUND)
         target_link_libraries(${SHARED_TARGET_NAME} PRIVATE ${BLOSC_LIBRARIES} ${ZLIB_LIBRARIES})
     else()
@@ -161,7 +178,6 @@ if (APR_BUILD_SHARED_LIB)
 else()
     set(APR_BUILD_LIBRARY ${STATIC_TARGET_NAME})
 endif()
-
 
 ###############################################################################
 # Install APR library
@@ -219,7 +235,6 @@ if(APR_BUILD_EXAMPLES)
     message(STATUS "APR: Building examples")
     add_subdirectory(examples)
 endif(APR_BUILD_EXAMPLES)
-
 
 ###############################################################################
 # Tests
