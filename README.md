@@ -6,6 +6,8 @@ Library for producing and processing on the Adaptive Particle Representation (AP
 
 Labeled Zebrafish nuclei: Gopi Shah, Huisken Lab ([MPI-CBG](https://www.mpi-cbg.de), Dresden and [Morgridge Institute for Research](https://morgridge.org/research/medical-engineering/huisken-lab/), Madison); see also [Schmid et al., _Nature Communications_ 2017](https://www.nature.com/articles/ncomms3207)
 
+[![Build Status](https://travis-ci.org/cheesema/LibAPR.svg?branch=master)](https://travis-ci.org/cheesema/LibAPR)
+
 ## Dependencies
 
 * HDF5 1.8.20 or higher
