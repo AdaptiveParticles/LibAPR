@@ -17,13 +17,15 @@ matrix:
         - cmake-data
         - clang-3.6
         - gnupg2
+        - libhdf5-dev
+        - libtiff5
   - os: osx
     osx_image: xcode7.3
 
 install:
 - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then brew update; fi
 - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then brew unlink gnupg; fi
-- if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then brew install swig gnupg2; fi
+- if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then brew install swig gnupg2 hdf5 libtiff; fi
 - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then /usr/libexec/java_home -V; fi
 - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then echo "UPDATESTARTUPTTY" | gpg-connect-agent > /dev/null 2>&1; fi
 - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then alias swig="swig3.0"; fi
