@@ -281,14 +281,11 @@ void APRConverter<ImageType>::get_gradient(MeshData<ImageType> &image_temp, Mesh
     fine_grained_timer.stop_timer();
 
 
-
     fine_grained_timer.start_timer("smooth_bspline");
     if(par.lambda > 0) {
         get_smooth_bspline_3D(image_temp, par.lambda);
     }
     fine_grained_timer.stop_timer();
-
-
 
 
     fine_grained_timer.start_timer("calc_bspline_fd_mag_ds");

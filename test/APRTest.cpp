@@ -570,12 +570,12 @@ bool test_apr_pipeline(TestData& test_data){
     apr_converter.par.rel_error = test_data.apr.parameters.rel_error;
     apr_converter.par.lambda = test_data.apr.parameters.lambda;
     apr_converter.par.mask_file = "";
-    apr_converter.par.min_signal = test_data.apr.parameters.min_signal;
+    apr_converter.par.min_signal = -1;
 
     apr_converter.par.sigma_th_max = test_data.apr.parameters.sigma_th_max;
     apr_converter.par.sigma_th = test_data.apr.parameters.sigma_th;
 
-    apr_converter.par.SNR_min = test_data.apr.parameters.SNR_min;
+    apr_converter.par.SNR_min = -1;
 
     //where things are
     apr_converter.par.input_image_name =test_data.filename;
