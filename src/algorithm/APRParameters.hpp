@@ -33,6 +33,8 @@ public:
     float noise_sd_estimate = 0;
     float background_intensity_estimate = 0;
 
+    bool normalized_input = false;
+
     std::string name;
     std::string output_dir;
     std::string input_image_name;
