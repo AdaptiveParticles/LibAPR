@@ -13,6 +13,7 @@ struct cmdLineOptions{
     std::string directory = "";
     std::string input = "";
     unsigned int compress_type=1;
+    float quantization_level=1;
     bool stats_file = false;
 };
 

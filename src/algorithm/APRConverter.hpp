@@ -261,11 +261,26 @@ void APRConverter<ImageType>::get_gradient(MeshData<ImageType> &image_temp, Mesh
 
     fine_grained_timer.verbose_flag = false;
 
+    fine_grained_timer.start_timer("threshold");
+
+#ifdef HAVE_OPENMP
+#pragma omp parallel for
+#endif
+    for (size_t i = 0; i < image_temp.mesh.size(); ++i) {
+        if (image_temp.mesh[i] <= (par.Ip_th + bspline_offset)) { image_temp.mesh[i] = par.Ip_th + bspline_offset; }
+    }
+    fine_grained_timer.stop_timer();
+
+
+
     fine_grained_timer.start_timer("smooth_bspline");
     if(par.lambda > 0) {
         get_smooth_bspline_3D(image_temp, par.lambda);
     }
     fine_grained_timer.stop_timer();
+
+
+
 
     fine_grained_timer.start_timer("calc_bspline_fd_mag_ds");
     calc_bspline_fd_ds_mag(image_temp,grad_temp,par.dx,par.dy,par.dz);
@@ -377,6 +392,14 @@ void APRConverter<ImageType>::auto_parameters(const MeshData<T>& input_img){
     //
     //  Simple automatic parameter selection for 3D APR Flouresence Images
     //
+
+    //take the current input parameters
+    float lambda_input = par.lambda;
+    float rel_error_input = par.rel_error;
+    float ip_th_input = par.Ip_th;
+    float min_signal_input = par.min_signal;
+
+
 
     APRTimer par_timer;
     par_timer.verbose_flag = false;
@@ -569,21 +592,7 @@ void APRConverter<ImageType>::auto_parameters(const MeshData<T>& input_img){
     }
 
 
-    //
-    //  Detecting background subtracted images, or no-noise, in these cases the above estimates do not work
-    //
-    if((proportion_flat > 1.0f) && (proportion_next > 0.00001f)){
-        std::cout << "AUTOPARAMTERS:**Warning** Detected that there is likely noisy background, instead assuming background subtracted and minimum signal of 5 (absolute), if this is not the case please set parameters manually" << std::endl;
-        par.Ip_th = 1;
-        par.sigma_th = 5;
-        par.lambda = 0.5;
-        par.sigma_th_max = 2;
-        par.rel_error = 0.125;
-        par.min_signal = 5;
-        par.SNR_min = 1;
-    } else {
-        std::cout << "AUTOPARAMTERS: **Assuming image has atleast 5% dark background" << std::endl;
-    }
+
 
 
     float min_snr = 6;
@@ -599,37 +608,66 @@ void APRConverter<ImageType>::auto_parameters(const MeshData<T>& input_img){
 
     float var_th_max = sd*min_snr*.5f;
 
-    if(par.Ip_th < 0 ){
-        par.Ip_th = Ip_th;
-    }
-
-    if(par.lambda < 0){
-        par.lambda = 3.0;
-    }
-
     par.background_intensity_estimate = estimated_first_mode;
 
-    if(par.min_signal < 0) {
+
+    //
+    //  Detecting background subtracted images, or no-noise, in these cases the above estimates do not work
+    //
+    if((proportion_flat > 1.0f) && (proportion_next > 0.00001f)){
+        std::cout << "AUTOPARAMTERS:**Warning** Detected that there is likely noisy background, instead assuming background subtracted and minimum signal of 5 (absolute), if this is not the case please set parameters manually" << std::endl;
+        Ip_th = 1;
+        var_th = 5;
+        lambda = 0.5;
+        var_th_max = 2;
+    } else {
+        std::cout << "AUTOPARAMTERS: **Assuming image has atleast 5% dark background" << std::endl;
+    }
+
+
+    /*
+     *  Input parameter over-ride.
+     *
+     */
+
+    if(min_signal_input < 0) {
         par.sigma_th = var_th;
         par.sigma_th_max = var_th_max;
-    } else if (par.sigma_th > 0){
-        //keep the defaults
-    } else{
+    } else {
         par.sigma_th_max = par.min_signal*0.5f;
         par.sigma_th = par.min_signal;
     }
 
-    if(par.lambda < 0.05){
-        par.lambda = 0;
-        std::cout << "setting lambda to zero" << std::endl;
+
+    if(lambda_input != -1) {
+        par.lambda = lambda_input;
+    }else{
+        par.lambda = lambda;
     }
 
+    if(par.lambda < 0.05){
+        par.lambda = 0;
+        std::cout << "setting lambda to zero, bsplines algorithm cannot work with such small lambda" << std::endl;
+    }
 
+    if(ip_th_input != -1){
+        par.Ip_th = ip_th_input;
+    } else {
+        par.Ip_th = Ip_th;
+    }
+
+    if(rel_error_input != 0.1){
+        par.rel_error = rel_error_input;
+    }
+
+    std::cout << "Used parameters: " << std::endl;
     std::cout << "I_th: " << par.Ip_th << std::endl;
     std::cout << "sigma_th: " << par.sigma_th << std::endl;
     std::cout << "sigma_th_max: " << par.sigma_th_max << std::endl;
     std::cout << "relative error (E): " << par.rel_error << std::endl;
     std::cout << "lambda: " << par.lambda << std::endl;
+
+
 }
 
 
