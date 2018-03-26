@@ -217,7 +217,7 @@ namespace {
 
     TEST(ComputeGradientTest, RandomInputCompareToCpuVersion_CUDA) {
         // Generate random mesh
-        MeshData<float> m(127, 128, 129, 0);
+        MeshData<float> m(33, 31, 3, 0);
         std::random_device rd;
         std::mt19937 mt(rd());
         std::uniform_real_distribution<double> dist(0.0, 1.0);
@@ -302,7 +302,7 @@ namespace {
             timer.verbose_flag = false;
 
             // Generate random mesh
-            MeshData<float> m(128, 512, 512);
+            MeshData<float> m(33, 31, 3, 0);
             std::cout << m << std::endl;
             std::random_device rd;
             std::mt19937 mt(rd());
@@ -350,7 +350,7 @@ namespace {
 
             // Generate random mesh
             using ImgType = float ;
-            MeshData<ImgType> m(129, 129, 512);
+            MeshData<ImgType> m(33, 31, 3, 0);
             std::cout << m << std::endl;
             std::random_device rd;
             std::mt19937 mt(rd());
@@ -399,7 +399,7 @@ namespace {
             // Generate random mesh
             bool show = false;
             using ImgType = float ;
-            MeshData<ImgType> m(129, 127, 1024);
+            MeshData<ImgType> m(129, 127, 4);
             std::cout << m << std::endl;
             std::random_device rd;
             std::mt19937 mt(rd());
@@ -453,7 +453,7 @@ namespace {
             // Generate random mesh
             bool show = false;
             using ImgType = float ;
-            MeshData<ImgType> m(129, 127, 1024);
+            MeshData<ImgType> m(129, 127, 5);
             std::cout << m << std::endl;
             std::random_device rd;
             std::mt19937 mt(rd());

@@ -477,13 +477,16 @@ void cudaFilterBsplineYdirection(MeshData<ImgType> &input, float lambda, float t
 
 
 constexpr int numOfWorkersX = 64;
+
 template<typename T>
 __global__ void bsplineXdirProcess(T *image, const size_t x_num, const size_t y_num, const size_t z_num,
                                    const float *bc1_vec, const float *bc2_vec, const float *bc3_vec, const float *bc4_vec,
                                    size_t k0, float b1, float b2, float norm_factor, float *boundary) {
     const int localId = threadIdx.x;
     const int yOffset = blockIdx.x * blockDim.x;
-    const int64_t zOffset = blockIdx.z * blockDim.z * x_num * y_num;
+    const int64_t nextPlaneOffset = blockIdx.z * blockDim.z * x_num * y_num;
+    const int64_t dirOffset = y_num;
+    size_t dirLen = x_num;
 
     if (yOffset + localId < y_num) {
         float temp1 = 0;
@@ -492,21 +495,21 @@ __global__ void bsplineXdirProcess(T *image, const size_t x_num, const size_t y_
         float temp4 = 0;
         // calculate boundary values
         for (int k = 0; k < k0; ++k) {
-            T val = image[zOffset + k * y_num + yOffset + localId];
+            T val = image[nextPlaneOffset + k * dirOffset + yOffset + localId];
             temp1 += bc1_vec[k] * val;
             temp2 += bc2_vec[k] * val;
-            val = image[zOffset + (x_num - 1 - k) * y_num + yOffset + localId];
+            val = image[nextPlaneOffset + (dirLen - 1 - k) * dirOffset + yOffset + localId];
             temp3 += bc3_vec[k] * val;
             temp4 += bc4_vec[k] * val;
         }
         // s
-        image[zOffset + 0 * y_num + yOffset + localId] = temp2;
-        image[zOffset + 1 * y_num + yOffset + localId] = temp1;
-        image[zOffset + (x_num - 2) * y_num + yOffset + localId] = temp3 * norm_factor;
-        image[zOffset + (x_num - 1) * y_num + yOffset + localId] = temp4 * norm_factor;
+        image[nextPlaneOffset + 0 * dirOffset + yOffset + localId] = temp2;
+        image[nextPlaneOffset + 1 * dirOffset + yOffset + localId] = temp1;
+        image[nextPlaneOffset + (dirLen - 2) * dirOffset + yOffset + localId] = temp3 * norm_factor;
+        image[nextPlaneOffset + (dirLen - 1) * dirOffset + yOffset + localId] = temp4 * norm_factor;
 
-        int64_t offset = zOffset + 2 * y_num + yOffset + localId;
-        int64_t offsetLimit = zOffset + (x_num - 2) * y_num;
+        int64_t offset = nextPlaneOffset + 2 * dirOffset + yOffset + localId;
+        int64_t offsetLimit = nextPlaneOffset + (dirLen - 2) * dirOffset;
         do {
             // do calculations and store
             const float temp = temp1 * b1 + temp2 * b2 + image[offset];
@@ -514,11 +517,11 @@ __global__ void bsplineXdirProcess(T *image, const size_t x_num, const size_t y_
             temp2 = temp1;
             temp1 = temp;
 
-            offset += y_num;
+            offset += dirOffset;
         } while (offset < offsetLimit);
 
-        offset = zOffset + (x_num - 3) * y_num + yOffset + localId;
-        offsetLimit = zOffset;
+        offset = nextPlaneOffset + (dirLen - 3) * dirOffset + yOffset + localId;
+        offsetLimit = nextPlaneOffset;
         do {
             // do calculations and store
             const float temp = temp3 * b1 + temp4 * b2 + image[offset];
@@ -526,7 +529,7 @@ __global__ void bsplineXdirProcess(T *image, const size_t x_num, const size_t y_
             temp4 = temp3;
             temp3 = temp;
 
-            offset -= y_num;
+            offset -= dirOffset;
         } while (offset >= offsetLimit);
     }
 }
@@ -591,8 +594,9 @@ __global__ void bsplineZdirProcess(T *image, const size_t x_num, const size_t y_
                                    size_t k0, float b1, float b2, float norm_factor, float *boundary) {
     const int localId = threadIdx.x;
     const int yOffset = blockIdx.x * blockDim.x;
-    const int64_t xOffset = blockIdx.z * blockDim.z * y_num;
-    const int64_t zDirOffset = x_num * y_num;
+    const int64_t nextPlaneOffset = blockIdx.z * blockDim.z * y_num;
+    const int64_t dirOffset = x_num * y_num;
+    size_t dirLen = z_num;
 
     if (yOffset + localId < y_num) {
         float temp1 = 0;
@@ -601,21 +605,21 @@ __global__ void bsplineZdirProcess(T *image, const size_t x_num, const size_t y_
         float temp4 = 0;
         // calculate boundary values
         for (int k = 0; k < k0; ++k) {
-            T val = image[xOffset + k * zDirOffset + yOffset + localId];
+            T val = image[nextPlaneOffset + k * dirOffset + yOffset + localId];
             temp1 += bc1_vec[k] * val;
             temp2 += bc2_vec[k] * val;
-            val = image[xOffset + (z_num - 1 - k) * zDirOffset + yOffset + localId];
+            val = image[nextPlaneOffset + (dirLen - 1 - k) * dirOffset + yOffset + localId];
             temp3 += bc3_vec[k] * val;
             temp4 += bc4_vec[k] * val;
         }
         // s
-        image[xOffset + 0 * zDirOffset + yOffset + localId] = temp2;
-        image[xOffset + 1 * zDirOffset  + yOffset + localId] = temp1;
-        image[xOffset + (z_num - 2) * zDirOffset + yOffset + localId] = temp3 * norm_factor;
-        image[xOffset + (z_num - 1) * zDirOffset + yOffset + localId] = temp4 * norm_factor;
+        image[nextPlaneOffset + 0 * dirOffset + yOffset + localId] = temp2;
+        image[nextPlaneOffset + 1 * dirOffset + yOffset + localId] = temp1;
+        image[nextPlaneOffset + (dirLen - 2) * dirOffset + yOffset + localId] = temp3 * norm_factor;
+        image[nextPlaneOffset + (dirLen - 1) * dirOffset + yOffset + localId] = temp4 * norm_factor;
 
-        int64_t offset = xOffset + 2 * zDirOffset + yOffset + localId;
-        int64_t offsetLimit = xOffset + (z_num - 2) * zDirOffset;
+        int64_t offset = nextPlaneOffset + 2 * dirOffset + yOffset + localId;
+        int64_t offsetLimit = nextPlaneOffset + (dirLen - 2) * dirOffset;
         do {
             // do calculations and store
             const float temp = temp1 * b1 + temp2 * b2 + image[offset];
@@ -623,11 +627,11 @@ __global__ void bsplineZdirProcess(T *image, const size_t x_num, const size_t y_
             temp2 = temp1;
             temp1 = temp;
 
-            offset += zDirOffset;
+            offset += dirOffset;
         } while (offset < offsetLimit);
 
-        offset = xOffset + (z_num - 3) * zDirOffset + yOffset + localId;
-        offsetLimit = xOffset;
+        offset = nextPlaneOffset + (dirLen - 3) * dirOffset + yOffset + localId;
+        offsetLimit = nextPlaneOffset;
         do {
             // do calculations and store
             const float temp = temp3 * b1 + temp4 * b2 + image[offset];
@@ -635,7 +639,7 @@ __global__ void bsplineZdirProcess(T *image, const size_t x_num, const size_t y_
             temp4 = temp3;
             temp3 = temp;
 
-            offset -= zDirOffset;
+            offset -= dirOffset;
         } while (offset >= offsetLimit);
     }
 }
