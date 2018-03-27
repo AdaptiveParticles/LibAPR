@@ -125,7 +125,8 @@ if(APR_USE_CUDA)
     set(CMAKE_CUDA_FLAGS "--cudart shared -g -lineinfo -Xptxas -O3,-v -use_fast_math")
     enable_language(CUDA)
     set(APR_CUDA_SROUCE_FILES 
-	    src/algorithm/ComputeGradientCuda.cu)
+	        src/algorithm/ComputeGradientCuda.cu
+            src/algorithm/ComputeBsplineRecursiveFilter.cu)
     set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -DAPR_USE_CUDA")
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DAPR_USE_CUDA")
     include_directories(${CMAKE_CUDA_TOOLKIT_INCLUDE_DIRECTORIES})

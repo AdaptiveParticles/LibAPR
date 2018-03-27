@@ -6,7 +6,7 @@
 #include "data_structures/Mesh/MeshData.hpp"
 #include "algorithm/ComputeGradient.hpp"
 #include "algorithm/ComputeGradientCuda.hpp"
-//#include "algorithm/ComputeGradientCudaRegs.h"
+#include "algorithm/ComputeBsplineRecursiveFilterCuda.h"
 #include <random>
 
 namespace {

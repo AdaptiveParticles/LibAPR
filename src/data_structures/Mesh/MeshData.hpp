@@ -386,7 +386,7 @@ public :
      * @return
      */
     std::string getStrIndex(size_t aIdx) const {
-        if (aIdx < 0 || aIdx >= mesh.size()) return "(ErrIdx)";
+        if (aIdx >= mesh.size()) return "(ErrIdx)";
         size_t z = aIdx / (x_num * y_num);
         aIdx -= z * (x_num * y_num);
         size_t x = aIdx / y_num;
