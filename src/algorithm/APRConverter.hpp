@@ -102,11 +102,12 @@ bool APRConverter<ImageType>::get_apr_method_from_file(APR<ImageType> &aAPR, con
     method_timer.start_timer("calculate automatic parameters");
 
     if(par.normalized_input) {
-
+        MinMax<T> mm;
+        T maxValue;
         if ((std::is_same<uint16_t, ImageType>::value) || (std::is_same<uint8_t, ImageType>::value)) {
-            MinMax<T> mm = getMinMax(inputImage);
-            T maxValue = static_cast<T>((float) std::numeric_limits<ImageType>::max() * 0.8);
-            std::cout << "MM: " << mm.min << " " << mm.max << " " << maxValue << std::endl;
+            mm = getMinMax(inputImage);
+            maxValue = static_cast<T>((float) std::numeric_limits<ImageType>::max() * 0.8);
+            std::cout << "Normalizing image with min: " << mm.min << " max: " << mm.max << " to a dynamic range of: " << maxValue << std::endl;
 
 #ifdef HAVE_OPENMP
 #pragma omp parallel for default(shared)
@@ -115,8 +116,19 @@ bool APRConverter<ImageType>::get_apr_method_from_file(APR<ImageType> &aAPR, con
                 inputImage.mesh[i] = (inputImage.mesh[i] - mm.min) * maxValue / (mm.max - mm.min);
             }
         }
-    }
 
+        //normalize the input parameters if required
+        if(par.Ip_th!=-1){
+            std::cout << "Scaled input intensity threshold" << std::endl;
+            par.Ip_th = (par.Ip_th - mm.min)* maxValue / (mm.max - mm.min);
+        }
+
+        if(par.min_signal!=-1){
+            std::cout << "Scaled input min signal threshold" << std::endl;
+            par.min_signal = (par.min_signal)* maxValue / (mm.max - mm.min);
+        }
+
+    }
 
 
     auto_parameters(inputImage);
