@@ -70,6 +70,25 @@ private:
     void get_local_particle_cell_set(MeshData<ImageType> &grad_temp, MeshData<float> &local_scale_temp, MeshData<float> &local_scale_temp2);
 };
 
+template <typename T>
+struct MinMax{T min; T max; };
+
+template <typename T>
+MinMax<T> getMinMax(const MeshData<T>& input_image) {
+    T minVal = std::numeric_limits<T>::max();
+    T maxVal = std::numeric_limits<T>::min();
+
+#ifdef HAVE_OPENMP
+#pragma omp parallel for default(shared) reduction(max:maxVal) reduction(min:minVal)
+#endif
+    for (size_t i = 0; i < input_image.mesh.size(); ++i) {
+        T val = input_image.mesh[i];
+        if (val > maxVal) maxVal = val;
+        if (val < minVal) minVal = val;
+    }
+
+    return MinMax<T>{minVal, maxVal};
+}
 
 /**
  * Main method for constructing the APR from an input image
@@ -81,6 +100,25 @@ bool APRConverter<ImageType>::get_apr_method_from_file(APR<ImageType> &aAPR, con
     allocation_timer.stop_timer();
 
     method_timer.start_timer("calculate automatic parameters");
+
+    if(par.normalized_input) {
+
+        if ((std::is_same<uint16_t, ImageType>::value) || (std::is_same<uint8_t, ImageType>::value)) {
+            MinMax<T> mm = getMinMax(inputImage);
+            T maxValue = static_cast<T>((float) std::numeric_limits<ImageType>::max() * 0.8);
+            std::cout << "MM: " << mm.min << " " << mm.max << " " << maxValue << std::endl;
+
+#ifdef HAVE_OPENMP
+#pragma omp parallel for default(shared)
+#endif
+            for (size_t i = 0; i < inputImage.mesh.size(); ++i) {
+                inputImage.mesh[i] = (inputImage.mesh[i] - mm.min) * maxValue / (mm.max - mm.min);
+            }
+        }
+    }
+
+
+
     auto_parameters(inputImage);
     method_timer.stop_timer();
 
@@ -243,14 +281,11 @@ void APRConverter<ImageType>::get_gradient(MeshData<ImageType> &image_temp, Mesh
     fine_grained_timer.stop_timer();
 
 
-
     fine_grained_timer.start_timer("smooth_bspline");
     if(par.lambda > 0) {
         get_smooth_bspline_3D(image_temp, par.lambda);
     }
     fine_grained_timer.stop_timer();
-
-
 
 
     fine_grained_timer.start_timer("calc_bspline_fd_mag_ds");
@@ -470,6 +505,13 @@ void APRConverter<ImageType>::auto_parameters(const MeshData<T>& input_img){
         }
     }
 
+    //possible due to quantization your histogrtam is actually quite sparse, this corrects for the case where the smoothed intensity doesn't exist in the original image.
+    if(freq[local_max_j]==0){
+        while(freq[local_max_j]==0){
+            local_max_j++;
+            local_max=freq[local_max_j];
+        }
+    }
 
     T estimated_first_mode = local_max_j + min_val;
 
