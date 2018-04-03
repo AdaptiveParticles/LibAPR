@@ -124,8 +124,8 @@ void getDataFromKernel(MeshData<ImgType> &input, size_t inputSize, ImgType *cuda
 }
 
 void printCudaDims(const dim3 &threadsPerBlock, const dim3 &numBlocks) {
-    std::__1::cout << "Number of blocks  (x/y/z):  " << numBlocks.x << "/" << numBlocks.y << "/" << numBlocks.z << std::__1::endl;
-    std::__1::cout << "Number of threads (x/y/z): " << threadsPerBlock.x << "/" << threadsPerBlock.y << "/" << threadsPerBlock.z << std::__1::endl;
+    std::cout << "Number of blocks  (x/y/z):  " << numBlocks.x << "/" << numBlocks.y << "/" << numBlocks.z << std::endl;
+    std::cout << "Number of threads (x/y/z): " << threadsPerBlock.x << "/" << threadsPerBlock.y << "/" << threadsPerBlock.z << std::endl;
 }
 
 template <typename ImgType>
