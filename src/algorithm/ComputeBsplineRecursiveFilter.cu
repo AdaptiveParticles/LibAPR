@@ -97,20 +97,6 @@ BsplineParams prepareBsplineStuff(MeshData<T> & image, float lambda, float tol) 
     };
 }
 
-template<typename ImgType>
-void setupKernelData(const MeshData<ImgType> &input, size_t inputSize, const BsplineParams &p, ImgType *&cudaInput, float *&bc1, float *&bc2, float *&bc3, float *&bc4) {
-    thrust::device_vector<float> d_bc1(p.bc1);
-    thrust::device_vector<float> d_bc2(p.bc2);
-    thrust::device_vector<float> d_bc3(p.bc3);
-    thrust::device_vector<float> d_bc4(p.bc4);
-    bc1= thrust::raw_pointer_cast(d_bc1.data());
-    bc2= thrust::raw_pointer_cast(d_bc2.data());
-    bc3= thrust::raw_pointer_cast(d_bc3.data());
-    bc4= thrust::raw_pointer_cast(d_bc4.data());
-    cudaMalloc(&cudaInput, inputSize);
-    cudaMemcpy(cudaInput, input.mesh.get(), inputSize, cudaMemcpyHostToDevice);
-}
-
 void waitForCuda() {
     cudaDeviceSynchronize();
     cudaError_t err = cudaGetLastError();
@@ -136,9 +122,17 @@ void cudaFilterBsplineXdirection(MeshData<ImgType> &input, float lambda, float t
     BsplineParams p = prepareBsplineStuff(input, lambda, tolerance);
 
     timer.start_timer("cuda: memory alloc + data transfer to device");
+    thrust::device_vector<float> d_bc1(p.bc1);
+    thrust::device_vector<float> d_bc2(p.bc2);
+    thrust::device_vector<float> d_bc3(p.bc3);
+    thrust::device_vector<float> d_bc4(p.bc4);
+    float *bc1= raw_pointer_cast(d_bc1.data());
+    float *bc2= raw_pointer_cast(d_bc2.data());
+    float *bc3= raw_pointer_cast(d_bc3.data());
+    float *bc4= raw_pointer_cast(d_bc4.data());
     ImgType *cudaInput;
-    float *bc1, *bc2, *bc3, *bc4;
-    setupKernelData(input, inputSize, p, cudaInput, bc1, bc2, bc3, bc4);
+    cudaMalloc(&cudaInput, inputSize);
+    cudaMemcpy(cudaInput, input.mesh.get(), inputSize, cudaMemcpyHostToDevice);
     timer.stop_timer();
 
     constexpr int numOfWorkersYdir = 64;
@@ -165,9 +159,17 @@ void cudaFilterBsplineZdirection(MeshData<ImgType> &input, float lambda, float t
     BsplineParams p = prepareBsplineStuff(input, lambda, tolerance);
 
     timer.start_timer("cuda: memory alloc + data transfer to device");
+    thrust::device_vector<float> d_bc1(p.bc1);
+    thrust::device_vector<float> d_bc2(p.bc2);
+    thrust::device_vector<float> d_bc3(p.bc3);
+    thrust::device_vector<float> d_bc4(p.bc4);
+    float *bc1= raw_pointer_cast(d_bc1.data());
+    float *bc2= raw_pointer_cast(d_bc2.data());
+    float *bc3= raw_pointer_cast(d_bc3.data());
+    float *bc4= raw_pointer_cast(d_bc4.data());
     ImgType *cudaInput;
-    float *bc1, *bc2, *bc3, *bc4;
-    setupKernelData(input, inputSize, p, cudaInput, bc1, bc2, bc3, bc4);
+    cudaMalloc(&cudaInput, inputSize);
+    cudaMemcpy(cudaInput, input.mesh.get(), inputSize, cudaMemcpyHostToDevice);
     timer.stop_timer();
 
     constexpr int numOfWorkersYdir = 64;
@@ -194,9 +196,17 @@ void cudaFilterBsplineYdirection(MeshData<ImgType> &input, float lambda, float t
     BsplineParams p = prepareBsplineStuff(input, lambda, tolerance);
 
     timer.start_timer("cuda: memory alloc + data transfer to device");
+    thrust::device_vector<float> d_bc1(p.bc1);
+    thrust::device_vector<float> d_bc2(p.bc2);
+    thrust::device_vector<float> d_bc3(p.bc3);
+    thrust::device_vector<float> d_bc4(p.bc4);
+    float *bc1= raw_pointer_cast(d_bc1.data());
+    float *bc2= raw_pointer_cast(d_bc2.data());
+    float *bc3= raw_pointer_cast(d_bc3.data());
+    float *bc4= raw_pointer_cast(d_bc4.data());
     ImgType *cudaInput;
-    float *bc1, *bc2, *bc3, *bc4;
-    setupKernelData(input, inputSize, p, cudaInput, bc1, bc2, bc3, bc4);
+    cudaMalloc(&cudaInput, inputSize);
+    cudaMemcpy(cudaInput, input.mesh.get(), inputSize, cudaMemcpyHostToDevice);
     float *boundary;
     int boundaryLen = sizeof(float) * (2 /*two first elements*/ + 2 /* two last elements */) * input.x_num * input.z_num;
     cudaMalloc(&boundary, boundaryLen);
@@ -231,7 +241,21 @@ void cudaFilterBsplineFull(MeshData<ImgType> &input, float lambda, float toleran
     timer.start_timer("cuda: memory alloc + data transfer to device");
     ImgType *cudaInput;
     float *bc1, *bc2, *bc3, *bc4;
-    setupKernelData(input, inputSize, p, cudaInput, bc1, bc2, bc3, bc4);
+    ImgType *&cudaInput1 = cudaInput;
+    float *&bc11;
+    float *&bc21;
+    float *&bc31;
+    float *&bc41;
+    thrust::device_vector<float> d_bc1(p.bc1);
+    thrust::device_vector<float> d_bc2(p.bc2);
+    thrust::device_vector<float> d_bc3(p.bc3);
+    thrust::device_vector<float> d_bc4(p.bc4);
+    bc11= raw_pointer_cast(d_bc1.data());
+    bc21= raw_pointer_cast(d_bc2.data());
+    bc31= raw_pointer_cast(d_bc3.data());
+    bc41= raw_pointer_cast(d_bc4.data());
+    cudaMalloc(&cudaInput1, inputSize);
+    cudaMemcpy(cudaInput1, input.mesh.get(), inputSize, cudaMemcpyHostToDevice);
     float *boundary;
     int boundaryLen = sizeof(float) * (2 /*two first elements*/ + 2 /* two last elements */) * input.x_num * input.z_num;
     cudaMalloc(&boundary, boundaryLen);
