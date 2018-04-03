@@ -444,7 +444,7 @@ namespace {
         }
     }
 
-    TEST(ComputeGradientTest, REGISTERS_USEZ) {
+    TEST(ComputeGradientTest, REGISTERS_USEZ)
         {
             std::cout << "\n---------------------------------\n\n";
             APRTimer timer;
@@ -496,11 +496,62 @@ namespace {
             std::cout << "Number of errors / Number of gradient points: " << cnt << " / " << mCpu.mesh.size() << std::endl;
             EXPECT_EQ(cnt, 0);
         }
-    }
+
+        TEST(ComputeGradientTest, REGISTERS_FULL) {
+            std::cout << "\n---------------------------------\n\n";
+            APRTimer timer;
+            timer.verbose_flag = true;
+
+            // Generate random mesh
+            bool show = false;
+            using ImgType = float ;
+            MeshData<ImgType> m(512, 512, 127);
+            std::cout << m << std::endl;
+            std::random_device rd;
+            std::mt19937 mt(rd());
+            std::uniform_real_distribution<double> dist(0.0, 1.0);
+            for (size_t i = 0; i < m.mesh.size(); ++i) {
+                m.mesh[i] = dist(mt) * 2;
+            }
+
+            const float lambda = 3;
+            const float tolerance = 0.0001;
+
+            // Calculate bspline on CPU
+            MeshData<ImgType> mCpu(m, true);
+            ComputeGradient cg;
+            timer.start_timer("CPU y-dir spline ======================================================================================== ");
+            cg.get_smooth_bspline_3D(mCpu, tolerance);
+            timer.stop_timer();
+
+            // Calculate bspline on GPU
+            MeshData<ImgType> mGpu(m, true);
+            timer.start_timer("GPU y-dir spline");
+            cudaFilterBsplineFull(mGpu, lambda, tolerance);
+            timer.stop_timer();
+
+            if (show) {
+                m.printMesh(5, 1);
+                mCpu.printMesh(5, 1);
+                mGpu.printMesh(5, 1);
+            }
+            // Compare GPU vs CPU
+            int cnt = 0;
+            for (size_t i = 0; i < mCpu.mesh.size(); ++i) {
+                if (std::abs(mCpu.mesh[i] - mGpu.mesh[i]) > 0.0001) {
+                    if (cnt < 3) {
+                        std::cout << "ERR " << mCpu.mesh[i] << " vs " << mGpu.mesh[i] << " IDX:" << mGpu.getStrIndex(i) << std::endl;
+                    }
+                    cnt++;
+                }
+            }
+            std::cout << "Number of errors / Number of gradient points: " << cnt << " / " << mCpu.mesh.size() << std::endl;
+            EXPECT_EQ(cnt, 0);
+        }
 
 #endif // APR_USE_CUDA
 
-}
+    }
 
 int main(int argc, char **argv) {
     testing::InitGoogleTest(&argc, argv);

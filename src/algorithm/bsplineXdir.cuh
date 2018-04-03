@@ -84,8 +84,8 @@ __global__ void bsplineXdir(T *image, size_t x_num, size_t y_num,
         }
 
         // set boundary values in two first and two last points processed direction
-        image[zDirOffset + 0 * nextElementXdirOffset + yDirOffset] = temp2;
-        image[zDirOffset + 1 * nextElementXdirOffset + yDirOffset] = temp1;
+        image[zDirOffset + 0 * nextElementXdirOffset + yDirOffset] = temp1;
+        image[zDirOffset + 1 * nextElementXdirOffset + yDirOffset] = temp2;
         image[zDirOffset + (dirLen - 2) * nextElementXdirOffset + yDirOffset] = temp3 * norm_factor;
         image[zDirOffset + (dirLen - 1) * nextElementXdirOffset + yDirOffset] = temp4 * norm_factor;
 
@@ -93,10 +93,10 @@ __global__ void bsplineXdir(T *image, size_t x_num, size_t y_num,
         int64_t offset = zDirOffset + 2 * nextElementXdirOffset + yDirOffset;
         int64_t offsetLimit = zDirOffset + (dirLen - 2) * nextElementXdirOffset;
         do {
-            const float temp = temp1 * b1 + temp2 * b2 + image[offset];
+            const float temp = temp1 * b2 + temp2 * b1 + image[offset];
             image[offset] = temp;
-            temp2 = temp1;
-            temp1 = temp;
+            temp1 = temp2;
+            temp2 = temp;
 
             offset += nextElementXdirOffset;
         } while (offset < offsetLimit);

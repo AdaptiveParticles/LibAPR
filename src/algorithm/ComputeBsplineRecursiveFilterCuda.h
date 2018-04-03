@@ -14,6 +14,7 @@ template <typename T>
 void cudaFilterBsplineXdirection(MeshData<T> &input, float lambda, float tolerance);
 template <typename T>
 void cudaFilterBsplineZdirection(MeshData<T> &input, float lambda, float tolerance);
-
+template <typename T>
+void cudaFilterBsplineFull(MeshData<T> &input, float lambda, float tolerance);
 
 #endif //LIBAPR_COMPUTEBSPLINERECURSIVEFILTERCUDA_H

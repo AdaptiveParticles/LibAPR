@@ -60,7 +60,6 @@
  */
 
 
-extern __shared__ float sharedMem[];
 template<typename T>
 __global__ void bsplineYdirBoundary(T *image, size_t x_num, size_t y_num, size_t z_num,
                                     const float *bc1_vec, const float *bc2_vec, const float *bc3_vec, const float *bc4_vec,
@@ -74,6 +73,7 @@ __global__ void bsplineYdirBoundary(T *image, size_t x_num, size_t y_num, size_t
 
     const int64_t maxXZoffset = x_num * z_num;
 
+    extern __shared__ float sharedMem[];
     float *bc1_vec2 = &sharedMem[0];
     float *bc2_vec2 = &bc1_vec2[k0];
     T *cache = (T*)&bc2_vec2[k0];
@@ -100,8 +100,8 @@ __global__ void bsplineYdirBoundary(T *image, size_t x_num, size_t y_num, size_t
             temp1 += bc1_vec2[k] * cache[currentWorkerId * k0 + k];
             temp2 += bc2_vec2[k] * cache[currentWorkerId * k0 + k];
         }
-        boundary[xzIndexOfWorker*4 + 0] = temp2;
-        boundary[xzIndexOfWorker*4 + 1] = temp1;
+        boundary[xzIndexOfWorker*4 + 0] = temp1;
+        boundary[xzIndexOfWorker*4 + 1] = temp2;
     }
 
     // ----------------- second end
@@ -165,16 +165,16 @@ __global__ void bsplineYdirProcess(T *image, const size_t x_num, const size_t y_
         // Do operations
         if (xzOffset + currentWorkerId < maxXZoffset) {
             if (yBlockBegin == 0) {
-                temp2 = boundary[(xzOffset + currentWorkerId) * 4 + 0];
-                temp1 = boundary[(xzOffset + currentWorkerId) * 4 + 1];
-                cache[currentWorkerId][(0 + currentWorkerId)%blockWidth] = temp2;
-                cache[currentWorkerId][(1 + currentWorkerId)%blockWidth] = temp1;
+                temp1 = boundary[(xzOffset + currentWorkerId) * 4 + 0];
+                temp2 = boundary[(xzOffset + currentWorkerId) * 4 + 1];
+                cache[currentWorkerId][(0 + currentWorkerId)%blockWidth] = temp1;
+                cache[currentWorkerId][(1 + currentWorkerId)%blockWidth] = temp2;
             }
             for (size_t k = yBlockBegin == 0 ? 2 : 0; k < blockWidth && k + yBlockBegin < y_num - 2; ++k) {
-                float  temp = temp1*b1 + temp2*b2 + cache[currentWorkerId][(k + currentWorkerId)%blockWidth];
+                float  temp = temp1*b2 + temp2*b1 + cache[currentWorkerId][(k + currentWorkerId)%blockWidth];
                 cache[currentWorkerId][(k + currentWorkerId)%blockWidth] = temp;
-                temp2 = temp1;
-                temp1 = temp;
+                temp1 = temp2;
+                temp2 = temp;
             }
         }
         __syncthreads();
@@ -206,16 +206,16 @@ __global__ void bsplineYdirProcess(T *image, const size_t x_num, const size_t y_
         // Do operations
         if (xzOffset + currentWorkerId < maxXZoffset) {
             if (yBlockBegin == y_num - 1) {
-                temp2 = boundary[(xzOffset + currentWorkerId) * 4 + 3];
-                temp1 = boundary[(xzOffset + currentWorkerId) * 4 + 2];
-                cache[currentWorkerId][(0 + currentWorkerId)%blockWidth] = norm_factor * temp2;
-                cache[currentWorkerId][(1 + currentWorkerId)%blockWidth] = norm_factor * temp1;
+                temp1 = boundary[(xzOffset + currentWorkerId) * 4 + 3];
+                temp2 = boundary[(xzOffset + currentWorkerId) * 4 + 2];
+                cache[currentWorkerId][(0 + currentWorkerId)%blockWidth] = norm_factor * temp1;
+                cache[currentWorkerId][(1 + currentWorkerId)%blockWidth] = norm_factor * temp2;
             }
             for (int64_t k = yBlockBegin == y_num - 1 ? 2 : 0; k < blockWidth && yBlockBegin - k >= 0; ++k) {
-                float  temp = temp1*b1 + temp2*b2 + cache[currentWorkerId][(k + currentWorkerId)%blockWidth];
+                float  temp = temp2*b1 + temp1*b2 + cache[currentWorkerId][(k + currentWorkerId)%blockWidth];
                 cache[currentWorkerId][(k + currentWorkerId)%blockWidth] = temp * norm_factor;
-                temp2 = temp1;
-                temp1 = temp;
+                temp1 = temp2;
+                temp2 = temp;
             }
         }
         __syncthreads();
