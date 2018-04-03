@@ -259,7 +259,7 @@ void cudaFilterBsplineFull(MeshData<ImgType> &input, float lambda, float toleran
 //    cudaDeviceSetSharedMemConfig(cudaSharedMemBankSizeFourByte);
 
     timer.start_timer("cuda: calculations on device FULL <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<< ");
-//    timer.start_timer("cuda: calculations on device Y ============================================================================ ");
+    timer.start_timer("cuda: calculations on device Y ============================================================================ ");
     dim3 threadsPerBlock(numOfThreads);
     dim3 numBlocks((input.x_num * input.z_num + threadsPerBlock.x - 1)/threadsPerBlock.x);
     printCudaDims(threadsPerBlock, numBlocks);
@@ -268,26 +268,26 @@ void cudaFilterBsplineFull(MeshData<ImgType> &input, float lambda, float toleran
     sharedMemSize = numOfThreads * blockWidth * sizeof(ImgType);
     bsplineYdirProcess<ImgType> <<<numBlocks, threadsPerBlock, sharedMemSize>>> (cudaInput, input.x_num, input.y_num, input.z_num, p.k0, p.b1, p.b2, p.norm_factor, boundary);
     waitForCuda();
-//    timer.stop_timer();
+    timer.stop_timer();
     constexpr int numOfWorkersYdir = 64;
     dim3 threadsPerBlockX(1, numOfWorkersYdir, 1);
     dim3 numBlocksX(1,
                     (input.y_num + threadsPerBlock.y - 1)/threadsPerBlock.y,
                     (input.z_num + threadsPerBlock.z - 1)/threadsPerBlock.z);
     printCudaDims(threadsPerBlockX, numBlocksX);
-//    timer.start_timer("cuda: calculations on device X ============================================================================ ");
+    timer.start_timer("cuda: calculations on device X ============================================================================ ");
     bsplineXdir<ImgType> <<<numBlocksX, threadsPerBlockX>>> (cudaInput, input.x_num, input.y_num, bc1, bc2, bc3, bc4, p.k0, p.b1, p.b2, p.norm_factor);
     waitForCuda();
-//    timer.stop_timer();
+    timer.stop_timer();
     dim3 threadsPerBlockZ(1, numOfWorkersYdir, 1);
     dim3 numBlocksZ((input.x_num + threadsPerBlock.x - 1)/threadsPerBlock.x,
                     (input.y_num + threadsPerBlock.y - 1)/threadsPerBlock.y,
                     1);
     printCudaDims(threadsPerBlockZ, numBlocksZ);
-//    timer.start_timer("cuda: calculations on device Z ============================================================================ ");
+    timer.start_timer("cuda: calculations on device Z ============================================================================ ");
     bsplineZdir<ImgType> <<<numBlocksZ, threadsPerBlockZ>>> (cudaInput, input.x_num, input.y_num, input.z_num, bc1, bc2, bc3, bc4, p.k0, p.b1, p.b2, p.norm_factor);
     waitForCuda();
-//    timer.stop_timer();
+    timer.stop_timer();
     timer.stop_timer();
 
     timer.start_timer("cuda: transfer data from device and freeing memory");
