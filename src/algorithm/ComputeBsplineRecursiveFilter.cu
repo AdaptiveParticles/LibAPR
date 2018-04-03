@@ -12,16 +12,6 @@
 #include "bsplineYdir.cuh"
 #include "bsplineZdir.cuh"
 
-float impulse_resp(float k,float rho,float omg){
-    //  Impulse Response Function
-    return (pow(rho,(std::abs(k)))*sin((std::abs(k) + 1)*omg)) / sin(omg);
-}
-
-float impulse_resp_back(float k,float rho,float omg,float gamma,float c0){
-    //  Impulse Response Function (nominator eq. 4.8, denominator from eq. 4.7)
-    return c0*pow(rho,std::abs(k))*(cos(omg*std::abs(k)) + gamma*sin(omg*std::abs(k)))*(1.0/(pow((1 - 2.0*rho*cos(omg) + pow(rho,2)),2)));
-}
-
 
 typedef struct {
     std::vector<float> bc1_vec;
@@ -34,8 +24,21 @@ typedef struct {
     float norm_factor;
 } BsplineParams;
 
+float impulse_resp(float k,float rho,float omg){
+    //  Impulse Response Function
+    return (pow(rho,(std::abs(k)))*sin((std::abs(k) + 1)*omg)) / sin(omg);
+}
+
+float impulse_resp_back(float k,float rho,float omg,float gamma,float c0){
+    //  Impulse Response Function (nominator eq. 4.8, denominator from eq. 4.7)
+    return c0*pow(rho,std::abs(k))*(cos(omg*std::abs(k)) + gamma*sin(omg*std::abs(k)))*(1.0/(pow((1 - 2.0*rho*cos(omg) + pow(rho,2)),2)));
+}
+
 template <typename T>
 BsplineParams prepareBsplineStuff(MeshData<T> & image, float lambda, float tol) {
+    // Recursive Filter Implimentation for Smoothing BSplines
+    // B-Spline Signal Processing: Part 11-Efficient Design and Applications, Unser 1993
+
     float xi = 1 - 96*lambda + 24*lambda*sqrt(3 + 144*lambda); // eq 4.6
     float rho = (24*lambda - 1 - sqrt(xi))/(24*lambda)*sqrt((1/xi)*(48*lambda + 24*lambda*sqrt(3 + 144*lambda))); // eq 4.5
     float omg = atan(sqrt((1/xi)*(144*lambda - 1))); // eq 4.6
@@ -46,9 +49,9 @@ BsplineParams prepareBsplineStuff(MeshData<T> & image, float lambda, float tol) 
     const float b1 = 2*rho*cos(omg);
     const float b2 = -pow(rho,2.0);
 
-    const size_t minDimension = std::min(image.z_num, std::min(image.x_num, image.y_num));
-
     const size_t xxx = ceil(std::abs(log(tol)/log(rho)));
+
+    const size_t minDimension = std::min(image.z_num, std::min(image.x_num, image.y_num));
     const size_t k0 = std::min(xxx, minDimension);
 
     const float norm_factor = pow((1 - 2.0*rho*cos(omg) + pow(rho,2)),2);
@@ -172,10 +175,11 @@ void cudaFilterBsplineYdirection(MeshData<ImgType> &input, float lambda, float t
     BsplineParams p = prepareBsplineStuff(input, lambda, tolerance);
 
     timer.start_timer("cuda: memory alloc + data transfer to device");
-    size_t inputSize = input.mesh.size() * sizeof(ImgType);
     ImgType *cudaInput;
+    size_t inputSize = input.mesh.size() * sizeof(ImgType);
     cudaMalloc(&cudaInput, inputSize);
     cudaMemcpy(cudaInput, input.mesh.get(), inputSize, cudaMemcpyHostToDevice);
+
     float *boundary;
     int boundaryLen = sizeof(float) * 4 * input.x_num * input.z_num;
     cudaMalloc(&boundary, boundaryLen);
@@ -184,31 +188,26 @@ void cudaFilterBsplineYdirection(MeshData<ImgType> &input, float lambda, float t
     thrust::device_vector<float> d_bc2_vec(p.bc2_vec);
     thrust::device_vector<float> d_bc3_vec(p.bc3_vec);
     thrust::device_vector<float> d_bc4_vec(p.bc4_vec);
-    timer.stop_timer();
-
-    cudaDeviceSetCacheConfig(cudaFuncCachePreferShared);
-    cudaDeviceSetSharedMemConfig(cudaSharedMemBankSizeFourByte);
-
-    dim3 threadsPerBlock(numOfThreads, 1, 1);
-    dim3 numBlocks((input.x_num * input.z_num + threadsPerBlock.x - 1)/threadsPerBlock.x,
-                   1,
-                   1);
-    std::cout << "Number of blocks  (x/y/z):  " << numBlocks.x << "/" << numBlocks.y << "/" << numBlocks.z << std::endl;
-    std::cout << "Number of threads (x/y/z): " << threadsPerBlock.x << "/" << threadsPerBlock.y << "/" << threadsPerBlock.z << std::endl;
-
     float *bc1 = thrust::raw_pointer_cast(d_bc1_vec.data());
     float *bc2 = thrust::raw_pointer_cast(d_bc2_vec.data());
     float *bc3 = thrust::raw_pointer_cast(d_bc3_vec.data());
     float *bc4 = thrust::raw_pointer_cast(d_bc4_vec.data());
+    timer.stop_timer();
+
+//    cudaDeviceSetCacheConfig(cudaFuncCachePreferShared);
+//    cudaDeviceSetSharedMemConfig(cudaSharedMemBankSizeFourByte);
 
     timer.start_timer("cuda: calculations on device ============================================================================ ");
     if (true) {
+        dim3 threadsPerBlock(numOfThreads);
+        dim3 numBlocks((input.x_num * input.z_num + threadsPerBlock.x - 1)/threadsPerBlock.x);
+        std::cout << "Number of blocks  (x/y/z):  " << numBlocks.x << "/" << numBlocks.y << "/" << numBlocks.z << std::endl;
+        std::cout << "Number of threads (x/y/z): " << threadsPerBlock.x << "/" << threadsPerBlock.y << "/" << threadsPerBlock.z << std::endl;
+
         size_t sharedMemSize = (2 /*bc vectors*/) * (p.k0) * sizeof(float) + numOfThreads * (p.k0) * sizeof(ImgType);
-        bsplineYdirBoundary<ImgType> <<< numBlocks, threadsPerBlock, sharedMemSize >>>
-                                                                     (cudaInput, input.x_num, input.y_num, input.z_num, bc1, bc2, bc3, bc4, p.k0, boundary);
+        bsplineYdirBoundary<ImgType> <<<numBlocks, threadsPerBlock, sharedMemSize>>> (cudaInput, input.x_num, input.y_num, input.z_num, bc1, bc2, bc3, bc4, p.k0, boundary);
         sharedMemSize = numOfThreads * blockWidth * sizeof(ImgType);
-        bsplineYdirProcess<ImgType> <<< numBlocks, threadsPerBlock, sharedMemSize >>>
-                                                                    (cudaInput, input.x_num, input.y_num, input.z_num, p.k0, p.b1, p.b2, p.norm_factor, boundary);
+        bsplineYdirProcess<ImgType> <<<numBlocks, threadsPerBlock, sharedMemSize>>> (cudaInput, input.x_num, input.y_num, input.z_num, p.k0, p.b1, p.b2, p.norm_factor, boundary);
     } else {
         // old naive approach
         dim3 threadsPerBlock(8, 1, 8);
@@ -217,15 +216,12 @@ void cudaFilterBsplineYdirection(MeshData<ImgType> &input, float lambda, float t
                        (input.z_num + threadsPerBlock.z - 1)/threadsPerBlock.z);
         bsplineY<ImgType> <<<numBlocks, threadsPerBlock>>>(cudaInput, input.x_num, input.y_num, input.z_num, bc1, bc2, bc3, bc4, p.k0, p.b1, p.b2, p.norm_factor);
     }
-
     cudaDeviceSynchronize();
-
+    cudaError_t err = cudaGetLastError();
+    if (err != cudaSuccess)printf("Error: %s\n", cudaGetErrorString(err));
     timer.stop_timer();
 
     timer.start_timer("cuda: transfer data from device and freeing memory");
-    cudaError_t err = cudaGetLastError();
-    if (err != cudaSuccess)printf("Error: %s\n", cudaGetErrorString(err));
-
     cudaMemcpy((void*)input.mesh.get(), cudaInput, inputSize, cudaMemcpyDeviceToHost);
     cudaFree(cudaInput);
     timer.stop_timer();
