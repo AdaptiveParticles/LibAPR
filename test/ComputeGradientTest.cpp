@@ -51,7 +51,7 @@ namespace {
             grad.initDownsampled(m, 0);
             ComputeGradient cg;
             cg.calc_bspline_fd_ds_mag(m, grad, 1, 1, 1);
-            ASSERT_TRUE(compare(grad, expect, 0.01));
+            ASSERT_TRUE(compare(grad, expect, 0.05));
         }
         {   // In the middle
             MeshData<float> m(6, 6, 1, 0);
@@ -106,7 +106,7 @@ namespace {
         grad.initDownsampled(m, 0);
         ComputeGradient cg;
         cg.calc_bspline_fd_ds_mag(m, grad, 1, 1, 1);
-        ASSERT_TRUE(compare(grad, expect, 0.01));
+        ASSERT_TRUE(compare(grad, expect, 0.05));
     }
 
     TEST(ComputeGradientTest, 2D_XY_BSPLINE_Y_DIR) {
@@ -155,8 +155,8 @@ namespace {
         {   // two pixel image 1x2x1
             MeshData<float> m(2, 1, 1, 0);
             // expect gradient is 3x3 X/Y plane
-            float expect[] = {0.41,
-                              0.44 };
+            float expect[] = {0,
+                              0};
             // put values in corners
             m(0, 0, 0) = 1;
 
@@ -286,7 +286,7 @@ namespace {
             bool once = true;
             int cnt = 0;
             for (size_t i = 0; i < mCpu.mesh.size(); ++i) {
-                if (std::abs(mCpu.mesh[i] - mGpu.mesh[i]) > 0.0001) {
+                if (std::abs(mCpu.mesh[i] - mGpu.mesh[i]) > 0.0001 || isnan(mCpu.mesh[i]) || isnan(mGpu.mesh[i])) {
                     if (once) {
                         std::cout << "ERR " << mCpu.mesh[i] << " vs " << mGpu.mesh[i] << std::endl;
                         once = false;
@@ -328,7 +328,7 @@ namespace {
             bool once = true;
             int cnt = 0;
             for (size_t i = 0; i < mCpu.mesh.size(); ++i) {
-                if (std::abs(mCpu.mesh[i] - mGpu.mesh[i]) > 0.0001) {
+                if (std::abs(mCpu.mesh[i] - mGpu.mesh[i]) > 0.0001 || isnan(mCpu.mesh[i]) || isnan(mGpu.mesh[i])) {
                     if (once) {
                         std::cout << "ERR " << mCpu.mesh[i] << " vs " << mGpu.mesh[i] << std::endl;
                         once = false;
@@ -378,7 +378,7 @@ namespace {
             // Compare GPU vs CPU
             int cnt = 0;
             for (size_t i = 0; i < mCpu.mesh.size(); ++i) {
-                if (std::abs(mCpu.mesh[i] - mGpu.mesh[i]) > 0.0001) {
+                if (std::abs(mCpu.mesh[i] - mGpu.mesh[i]) > 0.0001 || isnan(mCpu.mesh[i]) || isnan(mGpu.mesh[i])) {
                     if (cnt < 3) {
                         std::cout << "ERR " << mCpu.mesh[i] << " vs " << mGpu.mesh[i] << " IDX:" << mGpu.getStrIndex(i) << std::endl;
                     }
@@ -409,7 +409,7 @@ namespace {
             }
 
             const float lambda = 3;
-            const float tolerance = 0.001;
+            const float tolerance = 0.0001;
 
             // Calculate bspline on CPU
             MeshData<ImgType> mCpu(m, true);
@@ -432,7 +432,7 @@ namespace {
             // Compare GPU vs CPU
             int cnt = 0;
             for (size_t i = 0; i < mCpu.mesh.size(); ++i) {
-                if (std::abs(mCpu.mesh[i] - mGpu.mesh[i]) > 0.0001) {
+                if (std::abs(mCpu.mesh[i] - mGpu.mesh[i]) > 0.0001 || isnan(mCpu.mesh[i]) || isnan(mGpu.mesh[i])) {
                     if (cnt < 3) {
                         std::cout << "ERR " << mCpu.mesh[i] << " vs " << mGpu.mesh[i] << " IDX:" << mGpu.getStrIndex(i) << std::endl;
                     }
@@ -453,7 +453,7 @@ namespace {
             // Generate random mesh
             bool show = false;
             using ImgType = float ;
-            MeshData<ImgType> m(129, 127, 5);
+            MeshData<ImgType> m(3, 3, 3);
             std::cout << m << std::endl;
             std::random_device rd;
             std::mt19937 mt(rd());
@@ -486,7 +486,7 @@ namespace {
             // Compare GPU vs CPU
             int cnt = 0;
             for (size_t i = 0; i < mCpu.mesh.size(); ++i) {
-                if (std::abs(mCpu.mesh[i] - mGpu.mesh[i]) > 0.0001) {
+                if (std::abs(mCpu.mesh[i] - mGpu.mesh[i]) > 0.0001 || isnan(mCpu.mesh[i]) || isnan(mGpu.mesh[i])) {
                     if (cnt < 3) {
                         std::cout << "ERR " << mCpu.mesh[i] << " vs " << mGpu.mesh[i] << " IDX:" << mGpu.getStrIndex(i) << std::endl;
                     }
@@ -505,7 +505,7 @@ namespace {
             // Generate random mesh
             bool show = false;
             using ImgType = float ;
-            MeshData<ImgType> m(512, 1024, 512);
+            MeshData<ImgType> m(127, 128, 129);
             std::cout << m << std::endl;
             std::random_device rd;
             std::mt19937 mt(rd());
@@ -521,13 +521,14 @@ namespace {
             MeshData<ImgType> mCpu(m, true);
             ComputeGradient cg;
             timer.start_timer("CPU y-dir spline ======================================================================================== ");
-            cg.get_smooth_bspline_3D(mCpu, tolerance);
+            cg.get_smooth_bspline_3D(mCpu, lambda);
+//            cg.bspline_filt_rec_z(mCpu, lambda, tolerance);
             timer.stop_timer();
 
             // Calculate bspline on GPU
             MeshData<ImgType> mGpu(m, true);
             timer.start_timer("GPU y-dir spline");
-            cudaFilterBsplineFull(mGpu, lambda, tolerance);
+            cudaFilterBsplineFull(mGpu, lambda, tolerance, BSPLINE_ALL_DIR);
             timer.stop_timer();
 
             if (show) {
@@ -538,7 +539,7 @@ namespace {
             // Compare GPU vs CPU
             int cnt = 0;
             for (size_t i = 0; i < mCpu.mesh.size(); ++i) {
-                if (std::abs(mCpu.mesh[i] - mGpu.mesh[i]) > 0.0001) {
+                if (std::abs(mCpu.mesh[i] - mGpu.mesh[i]) > 0.0001 || isnan(mCpu.mesh[i]) || isnan(mGpu.mesh[i])) {
                     if (cnt < 3) {
                         std::cout << "ERR " << mCpu.mesh[i] << " vs " << mGpu.mesh[i] << " IDX:" << mGpu.getStrIndex(i) << std::endl;
                     }

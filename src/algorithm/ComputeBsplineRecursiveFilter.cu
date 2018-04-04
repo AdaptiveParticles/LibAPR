@@ -54,8 +54,7 @@ BsplineParams prepareBsplineStuff(MeshData<T> & image, float lambda, float tol) 
     const size_t k0 = std::min(idealK0Len, minDimension);
 
     const float norm_factor = pow((1 - 2.0*rho*cos(omg) + pow(rho,2)),2);
-    std::cout << "GPU: " << xi << " " << rho << " " << omg << " " << gamma << " " << b1 << " " << b2 << " " << k0 << " " << norm_factor << std::endl;
-    std::cout << "k0=" << k0 << std::endl;
+    std::cout << "GPU: xi=" << xi << " rho=" << rho << " omg=" << omg << " gamma=" << gamma << " b1=" << b1 << " b2=" << b2 << " k0=" << k0 << " norm_factor=" << norm_factor << std::endl;
 
     // ------- Calculating boundary conditions
 
@@ -194,6 +193,6 @@ void emptyCallForTemplateInstantiation() {
 
 
     cudaFilterBsplineFull(f, 3.0f, 0.1f, BSPLINE_ALL_DIR);
-    cudaFilterBsplineFull(u16, 3.0f, 0.1f, BSPLINE_ALL_DIR);
-    cudaFilterBsplineFull(u8, 3.0f, 0.1f, BSPLINE_ALL_DIR);
+//    cudaFilterBsplineFull(u16, 3.0f, 0.1f, BSPLINE_ALL_DIR);
+//    cudaFilterBsplineFull(u8, 3.0f, 0.1f, BSPLINE_ALL_DIR);
 }

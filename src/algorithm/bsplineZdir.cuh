@@ -93,19 +93,19 @@ __global__ void bsplineZdir(T *image, size_t x_num, size_t y_num, size_t z_num,
         // Causal Filter loop
         int64_t offset = xDirOffset + 2 * nextElementZdirOffset + yDirOffset;
         int64_t offsetLimit = xDirOffset + (dirLen - 2) * nextElementZdirOffset;
-        do {
+        while (offset < offsetLimit) {
             const float temp = temp1 * b2 + temp2 * b1 + image[offset];
             image[offset] = temp;
             temp1 = temp2;
             temp2 = temp;
 
             offset += nextElementZdirOffset;
-        } while (offset < offsetLimit);
+        }
 
         // Anti-Causal Filter loop
         offset = xDirOffset + (dirLen - 3) * nextElementZdirOffset + yDirOffset;
         offsetLimit = xDirOffset;
-        do {
+        while (offset >= offsetLimit) {
             // do calculations and store
             const float temp = temp3 * b1 + temp4 * b2 + image[offset];
             image[offset] = temp * norm_factor;
@@ -113,7 +113,7 @@ __global__ void bsplineZdir(T *image, size_t x_num, size_t y_num, size_t z_num,
             temp3 = temp;
 
             offset -= nextElementZdirOffset;
-        } while (offset >= offsetLimit);
+        }
     }
 }
 
