@@ -279,7 +279,7 @@ namespace {
             // Calculate bspline on GPU
             MeshData<float> mGpu(m, true);
             timer.start_timer("GPU y-dir spline");
-            cudaFilterBsplineYdirection(mGpu, 3.0, 0.0001);
+            cudaFilterBsplineFull(mGpu, 3.0, 0.0001, BSPLINE_Y_DIR);
             timer.stop_timer();
 
             // Compare GPU vs CPU
@@ -321,7 +321,7 @@ namespace {
             // Calculate bspline on GPU
             MeshData<float> mGpu(m, true);
             timer.start_timer("GPU y-dir spline");
-            cudaFilterBsplineYdirection(mGpu, 3.0, 0.0001);
+            cudaFilterBsplineFull(mGpu, 3.0, 0.0001, BSPLINE_Y_DIR);
             timer.stop_timer();
 
             // Compare GPU vs CPU
@@ -372,7 +372,7 @@ namespace {
             // Calculate bspline on GPU
             MeshData<ImgType> mGpu(m, true);
             timer.start_timer("GPU y-dir spline");
-            cudaFilterBsplineYdirection(mGpu, lambda, tolerance);
+            cudaFilterBsplineFull(mGpu, lambda, tolerance, BSPLINE_Y_DIR);
             timer.stop_timer();
 
             // Compare GPU vs CPU
@@ -421,7 +421,7 @@ namespace {
             // Calculate bspline on GPU
             MeshData<ImgType> mGpu(m, true);
             timer.start_timer("GPU y-dir spline");
-            cudaFilterBsplineXdirection(mGpu, lambda, tolerance);
+            cudaFilterBsplineFull(mGpu, lambda, tolerance, BSPLINE_X_DIR);
             timer.stop_timer();
 
             if (show) {
@@ -475,7 +475,7 @@ namespace {
             // Calculate bspline on GPU
             MeshData<ImgType> mGpu(m, true);
             timer.start_timer("GPU y-dir spline");
-            cudaFilterBsplineZdirection(mGpu, lambda, tolerance);
+            cudaFilterBsplineFull(mGpu, lambda, tolerance, BSPLINE_Z_DIR);
             timer.stop_timer();
 
             if (show) {
@@ -505,7 +505,7 @@ namespace {
             // Generate random mesh
             bool show = false;
             using ImgType = float ;
-            MeshData<ImgType> m(512, 512, 127);
+            MeshData<ImgType> m(512, 1024, 512);
             std::cout << m << std::endl;
             std::random_device rd;
             std::mt19937 mt(rd());
