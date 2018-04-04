@@ -2,6 +2,7 @@
  * Created by Krzysztof Gonciarz 2018
  */
 #include <array>
+#include <cmath>
 #include <gtest/gtest.h>
 #include "data_structures/Mesh/MeshData.hpp"
 #include "algorithm/ComputeGradient.hpp"
@@ -286,7 +287,7 @@ namespace {
             bool once = true;
             int cnt = 0;
             for (size_t i = 0; i < mCpu.mesh.size(); ++i) {
-                if (std::abs(mCpu.mesh[i] - mGpu.mesh[i]) > 0.0001 || isnan(mCpu.mesh[i]) || isnan(mGpu.mesh[i])) {
+                if (std::abs(mCpu.mesh[i] - mGpu.mesh[i]) > 0.0001 || std::isnan(mCpu.mesh[i]) || std::isnan(mGpu.mesh[i])) {
                     if (once) {
                         std::cout << "ERR " << mCpu.mesh[i] << " vs " << mGpu.mesh[i] << std::endl;
                         once = false;
@@ -328,7 +329,7 @@ namespace {
             bool once = true;
             int cnt = 0;
             for (size_t i = 0; i < mCpu.mesh.size(); ++i) {
-                if (std::abs(mCpu.mesh[i] - mGpu.mesh[i]) > 0.0001 || isnan(mCpu.mesh[i]) || isnan(mGpu.mesh[i])) {
+                if (std::abs(mCpu.mesh[i] - mGpu.mesh[i]) > 0.0001 || std::isnan(mCpu.mesh[i]) || std::isnan(mGpu.mesh[i])) {
                     if (once) {
                         std::cout << "ERR " << mCpu.mesh[i] << " vs " << mGpu.mesh[i] << std::endl;
                         once = false;
@@ -350,7 +351,7 @@ namespace {
 
             // Generate random mesh
             using ImgType = float ;
-            MeshData<ImgType> m(33, 31, 3, 0);
+            MeshData<ImgType> m(3,3,3);
             std::cout << m << std::endl;
             std::random_device rd;
             std::mt19937 mt(rd());
@@ -378,7 +379,7 @@ namespace {
             // Compare GPU vs CPU
             int cnt = 0;
             for (size_t i = 0; i < mCpu.mesh.size(); ++i) {
-                if (std::abs(mCpu.mesh[i] - mGpu.mesh[i]) > 0.0001 || isnan(mCpu.mesh[i]) || isnan(mGpu.mesh[i])) {
+                if (std::abs(mCpu.mesh[i] - mGpu.mesh[i]) > 0.0001 || std::isnan(mCpu.mesh[i]) || std::isnan(mGpu.mesh[i])) {
                     if (cnt < 3) {
                         std::cout << "ERR " << mCpu.mesh[i] << " vs " << mGpu.mesh[i] << " IDX:" << mGpu.getStrIndex(i) << std::endl;
                     }
@@ -399,7 +400,7 @@ namespace {
             // Generate random mesh
             bool show = false;
             using ImgType = float ;
-            MeshData<ImgType> m(129, 127, 4);
+            MeshData<ImgType> m(129,128,127);
             std::cout << m << std::endl;
             std::random_device rd;
             std::mt19937 mt(rd());
@@ -432,7 +433,7 @@ namespace {
             // Compare GPU vs CPU
             int cnt = 0;
             for (size_t i = 0; i < mCpu.mesh.size(); ++i) {
-                if (std::abs(mCpu.mesh[i] - mGpu.mesh[i]) > 0.0001 || isnan(mCpu.mesh[i]) || isnan(mGpu.mesh[i])) {
+                if (std::abs(mCpu.mesh[i] - mGpu.mesh[i]) > 0.0001 || std::isnan(mCpu.mesh[i]) || std::isnan(mGpu.mesh[i])) {
                     if (cnt < 3) {
                         std::cout << "ERR " << mCpu.mesh[i] << " vs " << mGpu.mesh[i] << " IDX:" << mGpu.getStrIndex(i) << std::endl;
                     }
@@ -453,7 +454,7 @@ namespace {
             // Generate random mesh
             bool show = false;
             using ImgType = float ;
-            MeshData<ImgType> m(3, 3, 3);
+            MeshData<ImgType> m(129,127,128);
             std::cout << m << std::endl;
             std::random_device rd;
             std::mt19937 mt(rd());
@@ -486,7 +487,7 @@ namespace {
             // Compare GPU vs CPU
             int cnt = 0;
             for (size_t i = 0; i < mCpu.mesh.size(); ++i) {
-                if (std::abs(mCpu.mesh[i] - mGpu.mesh[i]) > 0.0001 || isnan(mCpu.mesh[i]) || isnan(mGpu.mesh[i])) {
+                if (std::abs(mCpu.mesh[i] - mGpu.mesh[i]) > 0.0001 || std::isnan(mCpu.mesh[i]) || std::isnan(mGpu.mesh[i])) {
                     if (cnt < 3) {
                         std::cout << "ERR " << mCpu.mesh[i] << " vs " << mGpu.mesh[i] << " IDX:" << mGpu.getStrIndex(i) << std::endl;
                     }
@@ -505,7 +506,7 @@ namespace {
             // Generate random mesh
             bool show = false;
             using ImgType = float ;
-            MeshData<ImgType> m(127, 128, 129);
+            MeshData<ImgType> m(127,99,113);
             std::cout << m << std::endl;
             std::random_device rd;
             std::mt19937 mt(rd());
@@ -539,7 +540,7 @@ namespace {
             // Compare GPU vs CPU
             int cnt = 0;
             for (size_t i = 0; i < mCpu.mesh.size(); ++i) {
-                if (std::abs(mCpu.mesh[i] - mGpu.mesh[i]) > 0.0001 || isnan(mCpu.mesh[i]) || isnan(mGpu.mesh[i])) {
+                if (std::abs(mCpu.mesh[i] - mGpu.mesh[i]) > 0.0001 || std::isnan(mCpu.mesh[i]) || std::isnan(mGpu.mesh[i])) {
                     if (cnt < 3) {
                         std::cout << "ERR " << mCpu.mesh[i] << " vs " << mGpu.mesh[i] << " IDX:" << mGpu.getStrIndex(i) << std::endl;
                     }
