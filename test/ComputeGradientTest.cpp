@@ -461,7 +461,7 @@ namespace {
 
         // Generate random mesh
         using ImgType = float;
-        MeshData<ImgType> m = getRandInitializedMesh<ImgType>(1024, 512, 512);
+        MeshData<ImgType> m = getRandInitializedMesh<ImgType>(127, 33, 31);
 
         // Calculate bspline on CPU
         MeshData<ImgType> mCpu(m, true);

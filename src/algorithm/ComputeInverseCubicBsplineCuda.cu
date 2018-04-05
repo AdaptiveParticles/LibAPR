@@ -53,6 +53,7 @@ __global__ void invBsplineYdir(T *image, size_t x_num, size_t y_num, size_t z_nu
         p = notLastInRow ? temp : p;
         T n = __shfl_sync(active, v, workerIdx + 1, blockDim.y);
 
+        // handle boundary (reflective mode)
         if (workerOffset == 0) p = n;
         if (workerOffset == y_num - 1) n = p;
 
