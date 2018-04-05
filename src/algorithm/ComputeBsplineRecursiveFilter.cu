@@ -114,10 +114,8 @@ void printCudaDims(const dim3 &threadsPerBlock, const dim3 &numBlocks) {
 }
 
 template <typename ImgType>
-void cudaFilterBsplineFull(MeshData<ImgType> &input, float lambda, float tolerance, uint16_t flags) {
-    APRTimer timer, timerFullPipelilne;
-    timer.verbose_flag=true;
-    timerFullPipelilne.verbose_flag = true;
+void cudaFilterBsplineFull(MeshData<ImgType> &input, float lambda, float tolerance, TypeOfFlags flags) {
+    APRTimer timer(true), timerFullPipelilne(true);
     size_t inputSize = input.mesh.size() * sizeof(ImgType);
     BsplineParams p = prepareBsplineStuff(input, lambda, tolerance);
 
@@ -193,6 +191,6 @@ void emptyCallForTemplateInstantiation() {
 
 
     cudaFilterBsplineFull(f, 3.0f, 0.1f, BSPLINE_ALL_DIR);
-//    cudaFilterBsplineFull(u16, 3.0f, 0.1f, BSPLINE_ALL_DIR);
-//    cudaFilterBsplineFull(u8, 3.0f, 0.1f, BSPLINE_ALL_DIR);
+    cudaFilterBsplineFull(u16, 3.0f, 0.1f, BSPLINE_ALL_DIR);
+    cudaFilterBsplineFull(u8, 3.0f, 0.1f, BSPLINE_ALL_DIR);
 }
