@@ -7,17 +7,13 @@
 #include <cinttypes>
 
 /**
- * Runs bspline recursive filter in Y direction. Each processed 2D patch consist of number of workes (distributed in Y direction)
- * and each of them is handling the whole row in X-dir.
- * Next patches are build on a top of first (like patch1 in example below) and they cover
- * whole y-dimension. Such a setup should be run for every plane in z-direction.
+ * Runs bspline recursive filter in Y direction - divided into two phases:
+ * 1. calculate boundary conditions
+ * 2. run recursive filter as a set of 2D patches:
+ * Each processed 2D patch consist of number of workes
+ * (distributed in Y direction) and each of them is handling the whole row in Y-dir.
+ * Next patches are build on next to it in the x-dir to cover whole x * z domain.
  *
- * Example block/threadblock calculation:
- *     constexpr int numOfWorkersY = 64;
- *     dim3 threadsPerBlock(1, numOfWorkersY, 1);
- *     dim3 numBlocks(1,
- *                    (input.y_num + threadsPerBlock.y - 1)/threadsPerBlock.y,
- *                    (input.z_num + threadsPerBlock.z - 1)/threadsPerBlock.z);
  *
  * Image memory setup is [z][x][y]
  *
@@ -30,18 +26,18 @@
  *    i      X    X                            X
  *    r ^    X     XXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
  *    e |    X     X                            X
- *    c |    X     X  ...                       X
- *    t      X     +----------------------------+                   X
- *    i      X     |                            |
- *    o      X     | ----->                     |
- *    n      X     | patch 1                    |
- *           X     |                            |
- *      z_num X    +----------------------------+
- *         ^   X   |                            |
- *          \   X  | ----->                     |
- *   z       \   X | patch 0                    |
- *   direction    X|                            |
- *                 +----------------------------+
+ *    c |    X     X                            X
+ *    t      X     X                            X
+ *    i      X     X                            X
+ *    o      X     X                            X
+ *    n      X     X                            X
+ *           X     X                            X
+ *      z_num X    +------------+               X
+ *         ^   X   |            |               X
+ *          \   X  | ^          |               X
+ *   z       \   X | | patch 0  |               X
+ *   direction    X| |          |               X
+ *                 +------------+XXXXXXXXXXXXXXXX
  *                 0                              x_num
  *                          X direction ->
  *

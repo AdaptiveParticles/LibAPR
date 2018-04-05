@@ -7,10 +7,10 @@
 #include <cinttypes>
 
 /**
- * Runs bspline recursive filter in Z direction. Each processed 2D patch consist of number of workes (distributed in Y direction)
- * and each of them is handling the whole row in Z-dir.
+ * Runs bspline recursive filter in Z direction. Each processed 2D patch consist of number of workes
+ * (distributed in Y direction) and each of them is handling the whole row in Z-dir.
  * Next patches are build on a top of first (first marked with letter P) until they process
- * whole y-dimension. Such a setup should be run for every plane in z-direction.
+ * whole y-dimension. Such a setup should be run for every plane in x-direction.
  *
  * Example block/threadblock calculation:
  *     constexpr int numOfWorkersY = 64;

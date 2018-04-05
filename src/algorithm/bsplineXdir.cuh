@@ -7,8 +7,8 @@
 #include <cinttypes>
 
 /**
- * Runs bspline recursive filter in X direction. Each processed 2D patch consist of number of workes (distributed in Y direction)
- * and each of them is handling the whole row in X-dir.
+ * Runs bspline recursive filter in X direction. Each processed 2D patch consist of number of workes
+ * (distributed in Y direction) and each of them is handling the whole row in X-dir.
  * Next patches are build on a top of first (like patch1 in example below) and they cover
  * whole y-dimension. Such a setup should be run for every plane in z-direction.
  *
