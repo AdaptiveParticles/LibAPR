@@ -40,6 +40,9 @@ public:
         verbose_flag = false;
     }
 
+    APRTimer(bool aVerboseMode) : APRTimer() {
+        verbose_flag = aVerboseMode;
+    }
 
     void start_timer(std::string timing_name){
         timing_names.push_back(timing_name);
