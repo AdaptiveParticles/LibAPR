@@ -126,7 +126,8 @@ if(APR_USE_CUDA)
     enable_language(CUDA)
     set(APR_CUDA_SROUCE_FILES 
 	        src/algorithm/ComputeGradientCuda.cu
-            src/algorithm/ComputeBsplineRecursiveFilter.cu)
+            src/algorithm/ComputeBsplineRecursiveFilter.cu
+            src/algorithm/ComputeInverseCubicBsplineCuda.cu)
     set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -DAPR_USE_CUDA")
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DAPR_USE_CUDA")
     include_directories(${CMAKE_CUDA_TOOLKIT_INCLUDE_DIRECTORIES})

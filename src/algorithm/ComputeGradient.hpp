@@ -622,7 +622,7 @@ void ComputeGradient::calc_inv_bspline_y(MeshData<T>& input){
 #ifdef HAVE_OPENMP
 #pragma omp simd
 #endif
-            for (int64_t k = 0; k < (y_num); ++k) {
+            for (int64_t k = 0; k < y_num; ++k) {
                 int64_t idx = j * x_num * y_num + i * y_num + k;
                 temp_vec[k] = input.mesh[idx];
             }

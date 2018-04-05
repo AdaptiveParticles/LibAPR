@@ -8,6 +8,7 @@
 #include "algorithm/ComputeGradient.hpp"
 #include "algorithm/ComputeGradientCuda.hpp"
 #include "algorithm/ComputeBsplineRecursiveFilterCuda.h"
+#include "algorithm/ComputeInverseCubicBsplineCuda.h"
 #include <random>
 
 namespace {
@@ -68,16 +69,30 @@ namespace {
      * @return
      */
     template <typename T>
-    MeshData<T> getRandInitializedMesh(int y, int x, int z, float multiplier = 2.0f) {
+    MeshData<T> getRandInitializedMesh(int y, int x, int z, float multiplier = 2.0f, bool useIdxNumbers = false) {
         MeshData<T> m(y, x, z);
         std::cout << "Mesh info: " << m << std::endl;
         std::random_device rd;
         std::mt19937 mt(rd());
         std::uniform_real_distribution<double> dist(0.0, 1.0);
         for (size_t i = 0; i < m.mesh.size(); ++i) {
-            m.mesh[i] = dist(mt) * multiplier;
+            m.mesh[i] = useIdxNumbers ? i : dist(mt) * multiplier;
         }
         return m;
+    }
+
+    template<typename T>
+    bool initFromZYXarray(MeshData<T> &mesh, const float *data) {
+        size_t dataIdx = 0;
+        for (size_t z = 0; z < mesh.z_num; ++z) {
+            for (size_t y = 0; y < mesh.y_num; ++y) {
+                for (size_t x = 0; x < mesh.x_num; ++x) {
+                    mesh(y, x, z) = data[dataIdx];
+                    ++dataIdx;
+                }
+            }
+        }
+        return true;
     }
 
     TEST(ComputeGradientTest, 2D_XY) {
@@ -211,6 +226,27 @@ namespace {
             cg.bspline_filt_rec_y(mCpu, 3.0, 0.0001);
             ASSERT_TRUE(compare(mCpu, expect, 0.01));
         }
+    }
+
+    TEST(ComputeInverseBspline, CALC_INV_BSPLINE_Y) {
+        using ImgType = float;
+
+        ImgType init[] =   {1.00, 0.00, 0.00,
+                            1.00, 0.00, 6.00,
+                            0.00, 6.00, 0.00,
+                            6.00, 0.00, 0.00};
+
+        ImgType expect[] = {1.00, 0.00, 2.00,
+                            0.83, 1.00, 4.00,
+                            1.17, 4.00, 1.00,
+                            4.00, 2.00, 0.00};
+
+        MeshData<ImgType> m(4, 3, 1);
+        initFromZYXarray(m, init);
+
+        // Calculate and compare
+        ComputeGradient().calc_inv_bspline_y(m);
+        ASSERT_TRUE(compare(m, expect, 0.01));
     }
 
     // ======================= CUDA =======================================
@@ -397,6 +433,51 @@ namespace {
         EXPECT_EQ(compareMeshes(mCpu, mGpu), 0);
     }
 
+    TEST(ComputeInverseBspline, CALC_INV_BSPLINE_Y_CUDA) {
+        using ImgType = float;
+
+        ImgType init[] =   {1.00, 0.00, 0.00,
+                            1.00, 0.00, 6.00,
+                            0.00, 6.00, 0.00,
+                            6.00, 0.00, 0.00};
+
+        ImgType expect[] = {1.00, 0.00, 2.00,
+                            0.83, 1.00, 4.00,
+                            1.17, 4.00, 1.00,
+                            4.00, 2.00, 0.00};
+
+        MeshData<ImgType> m(4, 3, 1);
+        initFromZYXarray(m, init);
+
+        // Calculate and compare
+        m.printMesh(4,2);
+        cudaInverseBsplineYdir(m);
+        m.printMesh(4,2);
+        ASSERT_TRUE(compare(m, expect, 0.01));
+    }
+
+    TEST(ComputeInverseBspline, CALC_INV_BSPLINE_Y_RND_CUDA) {
+        APRTimer timer(true);
+
+        // Generate random mesh
+        using ImgType = float;
+        MeshData<ImgType> m = getRandInitializedMesh<ImgType>(1024, 512, 512);
+
+        // Calculate bspline on CPU
+        MeshData<ImgType> mCpu(m, true);
+        timer.start_timer("CPU inv bspline");
+        ComputeGradient().calc_inv_bspline_y(mCpu);
+        timer.stop_timer();
+
+        // Calculate bspline on GPU
+        MeshData<ImgType> mGpu(m, true);
+        timer.start_timer("GPU inv bspline");
+        cudaInverseBsplineYdir(mGpu);
+        timer.stop_timer();
+
+        // Compare GPU vs CPU
+        EXPECT_EQ(compareMeshes(mCpu, mGpu), 0);
+    }
 #endif // APR_USE_CUDA
 
 }
