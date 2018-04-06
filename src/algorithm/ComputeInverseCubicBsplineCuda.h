@@ -15,6 +15,6 @@ constexpr TypeOfFlags INV_BSPLINE_ALL_DIR = INV_BSPLINE_Y_DIR | INV_BSPLINE_X_DI
 
 
 template <typename ImgType>
-void cudaInverseBsplineYdir(MeshData<ImgType> &input, TypeOfFlags flags = INV_BSPLINE_ALL_DIR);
+void cudaInverseBspline(MeshData<ImgType> &input, TypeOfFlags flags = INV_BSPLINE_ALL_DIR);
 
 #endif //LIBAPR_COMPUTEINVERSECUBICBSPLINECUDA_H
