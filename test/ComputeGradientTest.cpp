@@ -590,6 +590,32 @@ namespace {
         EXPECT_EQ(compareMeshes(mCpu, mGpu), 0);
     }
 
+    TEST(ComputeThreshold, CALC_THRESHOLD_RND_CUDA) {
+        APRTimer timer(true);
+
+        // Generate random mesh
+        using ImgType = float;
+        MeshData<ImgType> m = getRandInitializedMesh<ImgType>(31, 33, 13);
+        MeshData<ImgType> g = getRandInitializedMesh<ImgType>(31, 33, 13);
+        float thresholdLevel = 1;
+
+        // Calculate bspline on CPU
+        MeshData<ImgType> mCpu(g, true);
+        timer.start_timer("CPU threshold");
+        ComputeGradient().threshold_gradient(mCpu, m, thresholdLevel);
+
+        timer.stop_timer();
+
+        // Calculate bspline on GPU
+        MeshData<ImgType> mGpu(g, true);
+        timer.start_timer("GPU threshold");
+        thresholdGradient(mGpu, m, thresholdLevel);
+        timer.stop_timer();
+
+        // Compare GPU vs CPU
+        EXPECT_EQ(compareMeshes(mCpu, mGpu), 0);
+    }
+
 #endif // APR_USE_CUDA
 
 }

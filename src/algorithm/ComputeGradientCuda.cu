@@ -75,3 +75,67 @@ void cudaDownsampledGradient(const MeshData<float> &input, MeshData<float> &grad
     cudaFree(cudaGrad);
     timer.stop_timer();
 }
+
+namespace {
+    void waitForCuda() {
+        cudaDeviceSynchronize();
+        cudaError_t err = cudaGetLastError();
+        if (err != cudaSuccess) printf("Error: %s\n", cudaGetErrorString(err));
+    }
+
+    void emptyCallForTemplateInstantiation() {
+        MeshData<float> f = MeshData<float>(0, 0, 0);
+        MeshData<uint16_t> u16 = MeshData<uint16_t>(0, 0, 0);
+        MeshData<uint8_t> u8 = MeshData<uint8_t>(0, 0, 0);
+
+        thresholdGradient(f, f, 0);
+        thresholdGradient(f, u16, 0);
+        thresholdGradient(f, u8, 0);
+    }
+
+    void printCudaDims(const dim3 &threadsPerBlock, const dim3 &numBlocks) {
+        std::cout << "Number of blocks  (x/y/z):  " << numBlocks.x << "/" << numBlocks.y << "/" << numBlocks.z << std::endl;
+        std::cout << "Number of threads (x/y/z): " << threadsPerBlock.x << "/" << threadsPerBlock.y << "/" << threadsPerBlock.z << std::endl;
+    }
+}
+
+template <typename T>
+__global__ void threshold(const T *input, float *output, size_t length, float thresholdLevel) {
+    size_t idx = (size_t)blockDim.x * blockIdx.x + threadIdx.x;
+    if (idx < length) {
+        if (input[idx] <= thresholdLevel) { output[idx] = 0; }
+    }
+}
+
+template <typename T>
+void thresholdGradient(MeshData<float> &output, const MeshData<T> &input, const float Ip_th) {
+    APRTimer timer(true);
+
+    timer.start_timer("cuda: memory alloc + data transfer to device");
+
+    size_t inputSize = input.mesh.size() * sizeof(T);
+    T *cudaInput;
+    cudaMalloc(&cudaInput, inputSize);
+    cudaMemcpy(cudaInput, input.mesh.get(), inputSize, cudaMemcpyHostToDevice);
+
+    size_t outputSize = output.mesh.size() * sizeof(float);
+    float *cudaOutput;
+    cudaMalloc(&cudaOutput, outputSize);
+    cudaMemcpy(cudaOutput, output.mesh.get(), outputSize, cudaMemcpyHostToDevice);
+    timer.stop_timer();
+
+    timer.start_timer("cuda: calculations on device");
+    dim3 threadsPerBlock(64);
+    dim3 numBlocks((input.x_num * input.y_num * input.z_num + threadsPerBlock.x - 1)/threadsPerBlock.x);
+    printCudaDims(threadsPerBlock, numBlocks);
+
+    threshold<<<numBlocks,threadsPerBlock>>>(cudaInput, cudaOutput, output.mesh.size(), Ip_th);
+    waitForCuda();
+    timer.stop_timer();
+
+    timer.start_timer("cuda: transfer data from device and freeing memory");
+    cudaFree(cudaInput);
+    cudaMemcpy((void*)output.mesh.get(), cudaOutput, outputSize, cudaMemcpyDeviceToHost);
+    cudaFree(cudaOutput);
+    timer.stop_timer();
+}

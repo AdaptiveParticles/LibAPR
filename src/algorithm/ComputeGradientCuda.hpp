@@ -10,5 +10,7 @@
 
 void cudaDownsampledGradient(const MeshData<float> &input, MeshData<float> &grad, const float hx, const float hy, const float hz);
 
+template <typename T>
+void thresholdGradient(MeshData<float> &output, const MeshData<T> &input, const float Ip_th);
 
 #endif //LIBAPR_COMPUTEGRADIENTCUDA_HPP
