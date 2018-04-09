@@ -65,9 +65,11 @@ private:
     template<typename T>
     bool get_apr_method_from_file(APR<ImageType> &aAPR, const TiffUtils::TiffInfo &aTiffFile);
 
-    void get_gradient(MeshData<ImageType> &image_temp, MeshData<ImageType> &grad_temp, MeshData<float> &local_scale_temp, MeshData<float> &local_scale_temp2, float bspline_offset);
     void get_local_intensity_scale(MeshData<float> &local_scale_temp, MeshData<float> &local_scale_temp2);
     void get_local_particle_cell_set(MeshData<ImageType> &grad_temp, MeshData<float> &local_scale_temp, MeshData<float> &local_scale_temp2);
+
+    public:
+    void get_gradient(MeshData<ImageType> &image_temp, MeshData<ImageType> &grad_temp, MeshData<float> &local_scale_temp, MeshData<float> &local_scale_temp2, float bspline_offset, const APRParameters &par);
 };
 
 template <typename T>
@@ -174,7 +176,7 @@ bool APRConverter<ImageType>::get_apr_method(APR<ImageType> &aAPR, MeshData<T>& 
     fine_grained_timer.stop_timer();
 
     method_timer.start_timer("compute_gradient_magnitude_using_bsplines");
-    get_gradient(image_temp, grad_temp, local_scale_temp, local_scale_temp2, bspline_offset);
+    get_gradient(image_temp, grad_temp, local_scale_temp, local_scale_temp2, bspline_offset, par);
     method_timer.stop_timer();
 
     method_timer.start_timer("compute_local_intensity_scale");
@@ -262,13 +264,13 @@ void APRConverter<ImageType>::get_local_particle_cell_set(MeshData<ImageType> &g
 }
 
 template<typename ImageType>
-void APRConverter<ImageType>::get_gradient(MeshData<ImageType> &image_temp, MeshData<ImageType> &grad_temp, MeshData<float> &local_scale_temp, MeshData<float> &local_scale_temp2, float bspline_offset) {
+void APRConverter<ImageType>::get_gradient(MeshData<ImageType> &image_temp, MeshData<ImageType> &grad_temp, MeshData<float> &local_scale_temp, MeshData<float> &local_scale_temp2, float bspline_offset, const APRParameters &par) {
     //  Bevan Cheeseman 2018
     //  Calculate the gradient from the input image. (You could replace this method with your own)
     //  Input: full sized image.
     //  Output: down-sampled by 2 gradient magnitude (Note, the gradient is calculated at pixel level then maximum down sampled within the loops below)
 
-    fine_grained_timer.verbose_flag = false;
+    fine_grained_timer.verbose_flag = true;
 
     fine_grained_timer.start_timer("threshold");
 

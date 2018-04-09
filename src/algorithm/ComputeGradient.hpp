@@ -43,7 +43,7 @@ public:
     calc_bspline_fd_ds_mag(const MeshData<S> &input, MeshData<S> &grad, const float hx, const float hy, const float hz);
 
     template<typename T,typename S>
-    void mask_gradient(MeshData<T>& grad_ds,MeshData<S>& temp_ds,MeshData<T>& temp_full,APRParameters& par);
+    void mask_gradient(MeshData<T>& grad_ds,MeshData<S>& temp_ds,MeshData<T>& temp_full, const APRParameters& par);
 
     template<typename T,typename S>
     void threshold_gradient(MeshData<T> &grad, const MeshData<S> &img, const float Ip_th);
@@ -65,7 +65,7 @@ public:
 
 
 template<typename T,typename S>
-void ComputeGradient::mask_gradient(MeshData<T>& grad_ds,MeshData<S>& temp_ds,MeshData<T>& temp_full,APRParameters& par){
+void ComputeGradient::mask_gradient(MeshData<T>& grad_ds,MeshData<S>& temp_ds,MeshData<T>& temp_full, const APRParameters& par){
     //
     //  Bevan Cheeseman 2018
     //

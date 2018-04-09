@@ -10,6 +10,7 @@
 #include "algorithm/ComputeBsplineRecursiveFilterCuda.h"
 #include "algorithm/ComputeInverseCubicBsplineCuda.h"
 #include <random>
+#include "algorithm/APRConverter.hpp"
 
 namespace {
     /**
@@ -615,6 +616,83 @@ namespace {
         // Compare GPU vs CPU
         EXPECT_EQ(compareMeshes(mCpu, mGpu), 0);
     }
+
+    TEST(ComputeThreshold, CALC_THRESHOLD_IMG_RND_CUDA) {
+        APRTimer timer(true);
+
+        // Generate random mesh
+        using ImgType = float;
+        MeshData<ImgType> g = getRandInitializedMesh<ImgType>(31, 33, 13, 1, true);
+
+        float thresholdLevel = 10;
+
+        // Calculate bspline on CPU
+        MeshData<ImgType> mCpu(g, true);
+        timer.start_timer("CPU threshold");
+        for (size_t i = 0; i < mCpu.mesh.size(); ++i) {
+            if (mCpu.mesh[i] <= (thresholdLevel)) { mCpu.mesh[i] = thresholdLevel; }
+        }
+        timer.stop_timer();
+
+        // Calculate bspline on GPU
+        MeshData<ImgType> mGpu(g, true);
+        timer.start_timer("GPU threshold");
+        thresholdImg(mGpu, thresholdLevel);
+        timer.stop_timer();
+
+        // Compare GPU vs CPU
+        EXPECT_EQ(compareMeshes(mCpu, mGpu), 0);
+    }
+
+    TEST(ComputeThreshold, FULL_GRADIENT_TEST) {
+        APRTimer timer(true);
+
+        // Generate random mesh
+        using ImageType = float;
+        MeshData<ImageType> input_image = getRandInitializedMesh<ImageType>(310, 330, 13, 255);
+        MeshData<ImageType> &image_temp = input_image;
+
+        MeshData<ImageType> grad_temp; // should be a down-sampled image
+        grad_temp.initDownsampled(input_image.y_num, input_image.x_num, input_image.z_num, 0);
+        MeshData<float> local_scale_temp; // Used as down-sampled images for some averaging steps where it is useful to not lose precision, or get over-flow errors
+        local_scale_temp.initDownsampled(input_image.y_num, input_image.x_num, input_image.z_num);
+        MeshData<float> local_scale_temp2;
+        local_scale_temp2.initDownsampled(input_image.y_num, input_image.x_num, input_image.z_num);
+
+        MeshData<ImageType> grad_temp_GPU; // should be a down-sampled image
+        grad_temp_GPU.initDownsampled(input_image.y_num, input_image.x_num, input_image.z_num, 0);
+        MeshData<float> local_scale_temp_GPU; // Used as down-sampled images for some averaging steps where it is useful to not lose precision, or get over-flow errors
+        local_scale_temp_GPU.initDownsampled(input_image.y_num, input_image.x_num, input_image.z_num);
+        MeshData<float> local_scale_temp2_GPU;
+        local_scale_temp2_GPU.initDownsampled(input_image.y_num, input_image.x_num, input_image.z_num);
+
+
+        APRParameters par;
+        par.lambda = 3;
+        par.Ip_th = 10;
+        par.dx = 1;
+        par.dy = 1;
+        par.dz = 1;
+
+        // Calculate bspline on CPU
+        MeshData<ImageType> mCpuImage(image_temp, true);
+        timer.start_timer(">>>>>>>>>>>>>>>>> CPU gradient");
+        APRConverter<float>().get_gradient(mCpuImage, grad_temp, local_scale_temp, local_scale_temp2, 0, par);
+        timer.stop_timer();
+
+        // Calculate bspline on GPU
+        MeshData<ImageType> mGpuImage(image_temp, true);
+        timer.start_timer(">>>>>>>>>>>>>>>>> GPU gradient");
+        getGradient(mGpuImage, grad_temp_GPU, local_scale_temp_GPU, local_scale_temp2_GPU, 0, par);
+        timer.stop_timer();
+
+        // Compare GPU vs CPU
+        EXPECT_EQ(compareMeshes(mCpuImage, mGpuImage), 0);
+        EXPECT_EQ(compareMeshes(grad_temp, grad_temp_GPU), 0);
+        EXPECT_EQ(compareMeshes(local_scale_temp, local_scale_temp_GPU), 0);
+    }
+
+
 
 #endif // APR_USE_CUDA
 

@@ -6,99 +6,7 @@
 #include <device_launch_parameters.h>
 #include <device_functions.h>
 
-template <typename T, typename S>
-__global__ void downsampleMeanKernel(const T *input, S *output, size_t x_num, size_t y_num, size_t z_num) {
-    const size_t xi = ((blockIdx.x * blockDim.x) + threadIdx.x) * 2;
-    const size_t zi = ((blockIdx.z * blockDim.z) + threadIdx.z) * 2;
-    if (xi >= x_num || zi >= z_num) return;
-
-    size_t yi = ((blockIdx.y * blockDim.y) + threadIdx.y);
-    if (yi == y_num && yi % 2 == 1) {
-        // In case when y is odd we need last element to pair with last even y (boundary in y-dir)
-        yi = y_num - 1;
-    }
-    else if (yi >= y_num) {
-        return;
-    }
-
-    // Handle boundary in x/y direction
-    int xs =  xi + 1 > x_num - 1 ? 0 : 1;
-    int zs =  zi + 1 > z_num - 1 ? 0 : 1;
-
-    // Index of first element
-    size_t idx = (zi * x_num + xi) * y_num + yi;
-
-    // Go through all elements in 2x2
-    T v = input[idx];
-    v +=  input[idx + xs * y_num];
-    v +=  input[idx +              zs * x_num * y_num];
-    v +=  input[idx + xs * y_num + zs * x_num * y_num];
-
-    // Get data from odd thread to even one
-    const int workerIdx = threadIdx.y;
-    T a = __shfl_sync(__activemask(), v, workerIdx + 1, blockDim.y);
-
-    // downsampled dimensions twice smaller (rounded up)
-
-    if (workerIdx % 2 == 0) {
-        // Finish calculations in even thread completing whole 2x2x2 cube.
-        v += a;
-
-        v /= 8.0; // calculate mean by dividing sum by 8
-
-        // store result in downsampled mesh
-        const size_t x_num_ds = ceilf(x_num/2.0);
-        const size_t y_num_ds = ceilf(y_num/2.0);
-        const size_t dsIdx = (zi/2 * x_num_ds + xi/2) * y_num_ds + yi/2;
-        output[dsIdx] = v;
-    }
-}
-
-template <typename T, typename S>
-__global__ void downsampleMaxKernel(const T *input, S *output, size_t x_num, size_t y_num, size_t z_num) {
-    const size_t xi = ((blockIdx.x * blockDim.x) + threadIdx.x) * 2;
-    const size_t zi = ((blockIdx.z * blockDim.z) + threadIdx.z) * 2;
-    if (xi >= x_num || zi >= z_num) return;
-
-    size_t yi = ((blockIdx.y * blockDim.y) + threadIdx.y);
-    if (yi == y_num && yi % 2 == 1) {
-        // In case when y is odd we need last element to pair with last even y (boundary in y-dir)
-        yi = y_num - 1;
-    }
-    else if (yi >= y_num) {
-        return;
-    }
-
-    // Handle boundary in x/y direction
-    int xs =  xi + 1 > x_num - 1 ? 0 : 1;
-    int zs =  zi + 1 > z_num - 1 ? 0 : 1;
-
-    // Index of first element
-    size_t idx = (zi * x_num + xi) * y_num + yi;
-
-    // Go through all elements in 2x2
-    T v = input[idx];
-    v =  max(input[idx + xs * y_num], v);
-    v =  max(input[idx +              zs * x_num * y_num], v);
-    v =  max(input[idx + xs * y_num + zs * x_num * y_num], v);
-
-    // Get data from odd thread to even one
-    const int workerIdx = threadIdx.y;
-    T a = __shfl_sync(__activemask(), v, workerIdx + 1, blockDim.y);
-
-    // downsampled dimensions twice smaller (rounded up)
-
-    if (workerIdx % 2 == 0) {
-        // Finish calculations in even thread completing whole 2x2x2 cube.
-        v = max(a, v);
-
-        // store result in downsampled mesh
-        const size_t x_num_ds = ceilf(x_num/2.0);
-        const size_t y_num_ds = ceilf(y_num/2.0);
-        const size_t dsIdx = (zi/2 * x_num_ds + xi/2) * y_num_ds + yi/2;
-        output[dsIdx] = v;
-    }
-}
+#include "downsample.cuh"
 
 namespace {
     void waitForCuda() {
@@ -112,13 +20,13 @@ namespace {
         MeshData<uint16_t> u16 = MeshData<uint16_t>(0, 0, 0);
         MeshData<uint8_t> u8 = MeshData<uint8_t>(0, 0, 0);
 
-        downsampleMeanCuda(f, f);
-        downsampleMeanCuda(f, u16);
-        downsampleMeanCuda(f, u8);
+        downsampleMeanCuda(f,  f);
+        downsampleMeanCuda(u16,f);
+        downsampleMeanCuda(u8, f);
 
-        downsampleMaxCuda(f, f);
-        downsampleMaxCuda(f, u16);
-        downsampleMaxCuda(f, u8);
+        downsampleMaxCuda(f,  f);
+        downsampleMaxCuda(u16,f);
+        downsampleMaxCuda(u8, f);
     }
 
     void printCudaDims(const dim3 &threadsPerBlock, const dim3 &numBlocks) {
@@ -145,7 +53,7 @@ void downsampleMeanCuda(const MeshData<T> &input, MeshData<S> &output) {
     timer.stop_timer();
 
     timer.start_timer("cuda: calculations on device");
-    dim3 threadsPerBlock(1, 32, 1);
+    dim3 threadsPerBlock(1, 64, 1);
     dim3 numBlocks(((input.x_num + threadsPerBlock.x - 1)/threadsPerBlock.x + 1) / 2,
                    (input.y_num + threadsPerBlock.y - 1)/threadsPerBlock.y,
                    ((input.z_num + threadsPerBlock.z - 1)/threadsPerBlock.z + 1) / 2);
@@ -180,7 +88,7 @@ void downsampleMaxCuda(const MeshData<T> &input, MeshData<S> &output) {
     timer.stop_timer();
 
     timer.start_timer("cuda: calculations on device");
-    dim3 threadsPerBlock(1, 32, 1);
+    dim3 threadsPerBlock(1, 64, 1);
     dim3 numBlocks(((input.x_num + threadsPerBlock.x - 1)/threadsPerBlock.x + 1) / 2,
                    (input.y_num + threadsPerBlock.y - 1)/threadsPerBlock.y,
                    ((input.z_num + threadsPerBlock.z - 1)/threadsPerBlock.z + 1) / 2);

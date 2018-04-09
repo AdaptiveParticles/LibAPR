@@ -405,7 +405,7 @@ TEST(MeshDataSimpleTest, DownSampleCuda) {
         APRTimer timer(true);
 
         // reduce/constant_operator calculate average value of pixels when downsampling
-        MeshData<float> m =  getRandInitializedMesh<float>(511, 512, 513);
+        MeshData<float> m =  getRandInitializedMesh<float>(33, 22, 21);
         for (size_t i = 0; i < m.mesh.size(); ++i) m.mesh[i] = 27 - i;
 
         MeshData<float> mCpu; mCpu.initDownsampled(m);

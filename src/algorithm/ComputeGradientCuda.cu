@@ -1,43 +1,22 @@
 #include "ComputeGradientCuda.hpp"
+#include "APRParameters.hpp"
 #include <iostream>
 #include <memory>
 
 #include <cuda_runtime.h>
 #include <device_launch_parameters.h>
 
+#include "dsGradient.cuh"
 
-__global__ void gradient(float *input, size_t x_num, size_t y_num, size_t z_num, float *grad, size_t x_num_ds, size_t y_num_ds, float hx, float hy, float hz) {
-    const int xi = ((blockIdx.x * blockDim.x) + threadIdx.x) * 2;
-    const int yi = ((blockIdx.y * blockDim.y) + threadIdx.y) * 2;
-    const int zi = ((blockIdx.z * blockDim.z) + threadIdx.z) * 2;
-    if (xi >= x_num || yi >= y_num || zi >= z_num) return;
-
-    const size_t xnumynum = x_num * y_num;
-
-    float temp[4][4][4];
-
-    for (int z = 0; z < 4; ++z)
-        for (int x = 0; x < 4; ++x)
-            for(int y = 0; y < 4; ++y) {
-                int xc = xi + x - 1; if (xc < 0) xc = 0; else if (xc >= x_num) xc = x_num - 1;
-                int yc = yi + y - 1; if (yc < 0) yc = 0; else if (yc >= y_num) yc = y_num - 1;
-                int zc = zi + z - 1; if (zc < 0) zc = 0; else if (zc >= z_num) zc = z_num - 1;
-                temp[z][x][y] = *(input + zc * xnumynum + xc * y_num + yc);
-            }
-    float maxGrad = 0;
-    for (int z = 1; z <= 2; ++z)
-        for (int x = 1; x <= 2; ++x)
-            for(int y = 1; y <= 2; ++y) {
-                float xd = (temp[z][x-1][y] - temp[z][x+1][y]) / (2 * hx); xd = xd * xd;
-                float yd = (temp[z-1][x][y] - temp[z+1][x][y]) / (2 * hy); yd = yd * yd;
-                float zd = (temp[z][x][y-1] - temp[z][x][y+1]) / (2 * hz); zd = zd * zd;
-                float gm = __fsqrt_rn(xd + yd + zd);
-                if (gm > maxGrad)  maxGrad = gm;
-            }
-
-    const size_t idx = zi/2 * x_num_ds * y_num_ds + xi/2 * y_num_ds + yi/2;
-    grad[idx] = maxGrad;
-}
+#include "algorithm/ComputeInverseCubicBsplineCuda.h"
+#include "algorithm/ComputeBsplineRecursiveFilterCuda.h"
+#include "invBspline.cuh"
+#include <thrust/device_vector.h>
+#include <thrust/device_ptr.h>
+#include "bsplineXdir.cuh"
+#include "bsplineYdir.cuh"
+#include "bsplineZdir.cuh"
+#include "data_structures/Mesh/downsample.cuh"
 
 void cudaDownsampledGradient(const MeshData<float> &input, MeshData<float> &grad, const float hx, const float hy,const float hz) {
     APRTimer timer;
@@ -91,11 +70,105 @@ namespace {
         thresholdGradient(f, f, 0);
         thresholdGradient(f, u16, 0);
         thresholdGradient(f, u8, 0);
+
+        thresholdImg(f, 0);
+        thresholdImg(u16, 0);
+        thresholdImg(u8, 0);
+
+        getGradient(f, f, f, f, 0, APRParameters());
     }
 
     void printCudaDims(const dim3 &threadsPerBlock, const dim3 &numBlocks) {
         std::cout << "Number of blocks  (x/y/z):  " << numBlocks.x << "/" << numBlocks.y << "/" << numBlocks.z << std::endl;
         std::cout << "Number of threads (x/y/z): " << threadsPerBlock.x << "/" << threadsPerBlock.y << "/" << threadsPerBlock.z << std::endl;
+    }
+
+    typedef struct {
+        std::vector<float> bc1;
+        std::vector<float> bc2;
+        std::vector<float> bc3;
+        std::vector<float> bc4;
+        size_t k0;
+        float b1;
+        float b2;
+        float norm_factor;
+    } BsplineParams;
+
+    float impulse_resp(float k, float rho, float omg) {
+        //  Impulse Response Function
+        return (pow(rho, (std::abs(k))) * sin((std::abs(k) + 1) * omg)) / sin(omg);
+    }
+
+    float impulse_resp_back(float k, float rho, float omg, float gamma, float c0) {
+        //  Impulse Response Function (nominator eq. 4.8, denominator from eq. 4.7)
+        return c0 * pow(rho, std::abs(k)) * (cos(omg * std::abs(k)) + gamma * sin(omg * std::abs(k))) *
+               (1.0 / (pow((1 - 2.0 * rho * cos(omg) + pow(rho, 2)), 2)));
+    }
+
+    template<typename T>
+    BsplineParams prepareBsplineStuff(MeshData<T> &image, float lambda, float tol) {
+        // Recursive Filter Implimentation for Smoothing BSplines
+        // B-Spline Signal Processing: Part II - Efficient Design and Applications, Unser 1993
+
+        float xi = 1 - 96 * lambda + 24 * lambda * sqrt(3 + 144 * lambda); // eq 4.6
+        float rho = (24 * lambda - 1 - sqrt(xi)) / (24 * lambda) *
+                    sqrt((1 / xi) * (48 * lambda + 24 * lambda * sqrt(3 + 144 * lambda))); // eq 4.5
+        float omg = atan(sqrt((1 / xi) * (144 * lambda - 1))); // eq 4.6
+
+        float c0 = (1 + pow(rho, 2)) / (1 - pow(rho, 2)) * (1 - 2 * rho * cos(omg) + pow(rho, 2)) /
+                   (1 + 2 * rho * cos(omg) + pow(rho, 2)); // eq 4.8
+        float gamma = (1 - pow(rho, 2)) / (1 + pow(rho, 2)) * (1 / tan(omg)); // eq 4.8
+
+        const float b1 = 2 * rho * cos(omg);
+        const float b2 = -pow(rho, 2.0);
+
+        const size_t idealK0Len = ceil(std::abs(log(tol) / log(rho)));
+        const size_t minDimension = std::min(image.z_num, std::min(image.x_num, image.y_num));
+        const size_t k0 = std::min(idealK0Len, minDimension);
+
+        const float norm_factor = pow((1 - 2.0 * rho * cos(omg) + pow(rho, 2)), 2);
+        std::cout << "GPU: xi=" << xi << " rho=" << rho << " omg=" << omg << " gamma=" << gamma << " b1=" << b1
+                  << " b2=" << b2 << " k0=" << k0 << " norm_factor=" << norm_factor << std::endl;
+
+        // ------- Calculating boundary conditions
+
+        // forward boundaries
+        std::vector<float> impulse_resp_vec_f(k0 + 1);
+        for (size_t k = 0; k < impulse_resp_vec_f.size(); ++k) impulse_resp_vec_f[k] = impulse_resp(k, rho, omg);
+
+        //y(0) init
+        std::vector<float> bc1(k0, 0);
+        for (size_t k = 0; k < k0; ++k) bc1[k] = impulse_resp_vec_f[k];
+        //y(1) init
+        std::vector<float> bc2(k0, 0);
+        bc2[1] = impulse_resp_vec_f[0];
+        for (size_t k = 0; k < k0; ++k) bc2[k] += impulse_resp_vec_f[k + 1];
+
+        // backward boundaries
+        std::vector<float> impulse_resp_vec_b(k0 + 1);
+        for (size_t k = 0; k < impulse_resp_vec_b.size(); ++k)
+            impulse_resp_vec_b[k] = impulse_resp_back(k, rho, omg, gamma, c0);
+
+        //y(N-1) init
+        std::vector<float> bc3(k0, 0);
+        bc3[0] = impulse_resp_vec_b[1];
+        for (size_t k = 0; k < (k0 - 1); ++k) bc3[k + 1] += impulse_resp_vec_b[k] + impulse_resp_vec_b[k + 2];
+        //y(N) init
+        std::vector<float> bc4(k0, 0);
+        bc4[0] = impulse_resp_vec_b[0];
+        for (size_t k = 1; k < k0; ++k) bc4[k] += 2 * impulse_resp_vec_b[k];
+
+
+        return BsplineParams{
+                bc1,
+                bc2,
+                bc3,
+                bc4,
+                k0,
+                b1,
+                b2,
+                norm_factor
+        };
     }
 }
 
@@ -147,3 +220,201 @@ void thresholdGradient(MeshData<float> &output, const MeshData<T> &input, const 
     cudaFree(cudaOutput);
     timer.stop_timer();
 }
+
+/**
+ * Thresholds input array to have minimum thresholdLevel.
+ * @param input
+ * @param length - len of input/output arrays
+ * @param thresholdLevel
+ */
+template <typename T>
+__global__ void thresholdImg(T *input, size_t length, float thresholdLevel) {
+    size_t idx = (size_t)blockDim.x * blockIdx.x + threadIdx.x;
+    if (idx < length) {
+        if (input[idx] < thresholdLevel) { input[idx] = thresholdLevel; }
+    }
+}
+
+template <typename T>
+void thresholdImg(MeshData<T> &image, const float threshold) {
+    APRTimer timer(true);
+
+    timer.start_timer("cuda: memory alloc + data transfer to device");
+    size_t imageSize = image.mesh.size() * sizeof(T);
+    T *cudaImage;
+    cudaMalloc(&cudaImage, imageSize);
+    cudaMemcpy(cudaImage, image.mesh.get(), imageSize, cudaMemcpyHostToDevice);
+    timer.stop_timer();
+
+    timer.start_timer("cuda: calculations on device");
+    dim3 threadsPerBlock(64);
+    dim3 numBlocks((image.x_num * image.y_num * image.z_num + threadsPerBlock.x - 1)/threadsPerBlock.x);
+    printCudaDims(threadsPerBlock, numBlocks);
+    thresholdImg<<<numBlocks,threadsPerBlock>>>(cudaImage, image.mesh.size(), threshold);
+    waitForCuda();
+    timer.stop_timer();
+
+    timer.start_timer("cuda: transfer data from device and freeing memory");
+    cudaMemcpy((void*)image.mesh.get(), cudaImage, imageSize, cudaMemcpyDeviceToHost);
+    cudaFree(cudaImage);
+    timer.stop_timer();
+}
+
+template <typename ImgType>
+void getGradient(MeshData<ImgType> &image, MeshData<ImgType> &grad_temp, MeshData<float> &local_scale_temp, MeshData<float> &local_scale_temp2, float bspline_offset, const APRParameters &par) {
+    APRTimer timer(true);
+
+    timer.start_timer("cuda: memory alloc + data transfer to device");
+    size_t imageSize = image.mesh.size() * sizeof(ImgType);
+    ImgType *cudaImage;
+    cudaMalloc(&cudaImage, imageSize);
+    cudaMemcpy(cudaImage, image.mesh.get(), imageSize, cudaMemcpyHostToDevice);
+    size_t gradSize = grad_temp.mesh.size() * sizeof(ImgType);
+    ImgType *cudaGrad;
+    cudaMalloc(&cudaGrad, gradSize);
+    size_t local_scale_tempSize = local_scale_temp.mesh.size() * sizeof(float);
+    float *cudalocal_scale_temp;
+    cudaMalloc(&cudalocal_scale_temp, local_scale_tempSize);
+    timer.stop_timer();
+
+
+    timer.start_timer("cuda: calculations on device");
+    {
+        dim3 threadsPerBlock(64);
+        dim3 numBlocks((image.x_num * image.y_num * image.z_num + threadsPerBlock.x - 1) / threadsPerBlock.x);
+        printCudaDims(threadsPerBlock, numBlocks);
+        thresholdImg << < numBlocks, threadsPerBlock >> > (cudaImage, image.mesh.size(), par.Ip_th + bspline_offset);
+        waitForCuda();
+    }
+    {
+        MeshData<ImgType> &input = image;
+        float lambda = par.lambda;
+        float tolerance = 0.0001;
+        BsplineParams p = prepareBsplineStuff(input, lambda, tolerance);
+
+        thrust::device_vector<float> d_bc1(p.bc1);
+        thrust::device_vector<float> d_bc2(p.bc2);
+        thrust::device_vector<float> d_bc3(p.bc3);
+        thrust::device_vector<float> d_bc4(p.bc4);
+        float *bc1= raw_pointer_cast(d_bc1.data());
+        float *bc2= raw_pointer_cast(d_bc2.data());
+        float *bc3= raw_pointer_cast(d_bc3.data());
+        float *bc4= raw_pointer_cast(d_bc4.data());
+        float *boundary;
+        uint16_t flags = 0xff;
+        if (flags & BSPLINE_Y_DIR) {
+            int boundaryLen = sizeof(float) * (2 /*two first elements*/ + 2 /* two last elements */) * input.x_num * input.z_num;
+            cudaMalloc(&boundary, boundaryLen);
+        }
+        timer.stop_timer();
+
+        if (flags & BSPLINE_Y_DIR) {
+            dim3 threadsPerBlock(numOfThreads);
+            dim3 numBlocks((image.x_num * input.z_num + threadsPerBlock.x - 1) / threadsPerBlock.x);
+            printCudaDims(threadsPerBlock, numBlocks);
+            size_t sharedMemSize = (2 /*bc vectors*/) * (p.k0) * sizeof(float) + numOfThreads * (p.k0) * sizeof(ImgType);
+            bsplineYdirBoundary<ImgType> <<< numBlocks, threadsPerBlock, sharedMemSize >>> (cudaImage, input.x_num, input.y_num, input.z_num, bc1, bc2, bc3, bc4, p.k0, boundary);
+            sharedMemSize = numOfThreads * blockWidth * sizeof(ImgType);
+            bsplineYdirProcess<ImgType> <<< numBlocks, threadsPerBlock, sharedMemSize >>> (cudaImage, input.x_num, input.y_num, input.z_num, p.k0, p.b1, p.b2, p.norm_factor, boundary);
+            waitForCuda();
+            cudaFree(boundary);
+        }
+        constexpr int numOfWorkersYdir = 64;
+        if (flags & BSPLINE_X_DIR) {
+            dim3 threadsPerBlockX(1, numOfWorkersYdir, 1);
+            dim3 numBlocksX(1,
+                            (input.y_num + threadsPerBlockX.y - 1) / threadsPerBlockX.y,
+                            (input.z_num + threadsPerBlockX.z - 1) / threadsPerBlockX.z);
+            printCudaDims(threadsPerBlockX, numBlocksX);
+            bsplineXdir<ImgType> <<< numBlocksX, threadsPerBlockX >>> (cudaImage, input.x_num, input.y_num, bc1, bc2, bc3, bc4, p.k0, p.b1, p.b2, p.norm_factor);
+            waitForCuda();
+        }
+        if (flags & BSPLINE_Z_DIR) {
+            dim3 threadsPerBlockZ(1, numOfWorkersYdir, 1);
+            dim3 numBlocksZ((input.x_num + threadsPerBlockZ.x - 1) / threadsPerBlockZ.x,
+                            (input.y_num + threadsPerBlockZ.y - 1) / threadsPerBlockZ.y,
+                            1);
+            printCudaDims(threadsPerBlockZ, numBlocksZ);
+            bsplineZdir<ImgType> <<< numBlocksZ, threadsPerBlockZ >>> (cudaImage, input.x_num, input.y_num, input.z_num, bc1, bc2, bc3, bc4, p.k0, p.b1, p.b2, p.norm_factor);
+            waitForCuda();
+        }
+    }
+    {
+        MeshData<ImgType> &input = image;
+        dim3 threadsPerBlock(1, 32, 1);
+        dim3 numBlocks((input.x_num + threadsPerBlock.x - 1)/threadsPerBlock.x,
+                       (input.y_num + threadsPerBlock.y - 1)/threadsPerBlock.y,
+                       (input.z_num + threadsPerBlock.z - 1)/threadsPerBlock.z);
+        std::cout << "Number of blocks  (x/y/z):  " << numBlocks.x << "/" << numBlocks.y << "/" << numBlocks.z << std::endl;
+        std::cout << "Number of threads (x/y/z): " << threadsPerBlock.x << "/" << threadsPerBlock.y << "/" << threadsPerBlock.z << std::endl;
+
+        gradient<<<numBlocks,threadsPerBlock>>>(cudaImage, input.x_num, input.y_num, input.z_num, cudaGrad, grad_temp.x_num, grad_temp.y_num, par.dx, par.dy, par.dz);
+        cudaDeviceSynchronize();
+    }
+    {
+        MeshData<ImgType> &input = image;
+        dim3 threadsPerBlock(1, 64, 1);
+        dim3 numBlocks(((input.x_num + threadsPerBlock.x - 1)/threadsPerBlock.x + 1) / 2,
+                       (input.y_num + threadsPerBlock.y - 1)/threadsPerBlock.y,
+                       ((input.z_num + threadsPerBlock.z - 1)/threadsPerBlock.z + 1) / 2);
+        printCudaDims(threadsPerBlock, numBlocks);
+
+        downsampleMeanKernel<<<numBlocks,threadsPerBlock>>>(cudaImage, cudalocal_scale_temp, input.x_num, input.y_num, input.z_num);
+        waitForCuda();
+    }
+    {
+        TypeOfFlags flags = INV_BSPLINE_ALL_DIR;
+        MeshData<ImgType> &input = local_scale_temp;
+        constexpr int numOfWorkers = 32;
+        if (flags & INV_BSPLINE_Y_DIR) {
+            dim3 threadsPerBlock(1, numOfWorkers, 1);
+            dim3 numBlocks((input.x_num + threadsPerBlock.x - 1) / threadsPerBlock.x,
+                           1,
+                           (input.z_num + threadsPerBlock.z - 1) / threadsPerBlock.z);
+            printCudaDims(threadsPerBlock, numBlocks);
+            invBsplineYdir<ImgType> <<< numBlocks, threadsPerBlock>>> (cudalocal_scale_temp, input.x_num, input.y_num, input.z_num);
+            waitForCuda();
+        }
+        if (flags & INV_BSPLINE_X_DIR) {
+            dim3 threadsPerBlock(1, numOfWorkers, 1);
+            dim3 numBlocks(1,
+                           (input.y_num + threadsPerBlock.y - 1) / threadsPerBlock.y,
+                           (input.z_num + threadsPerBlock.z - 1) / threadsPerBlock.z);
+            printCudaDims(threadsPerBlock, numBlocks);
+            invBsplineXdir<ImgType> <<< numBlocks, threadsPerBlock>>> (cudalocal_scale_temp, input.x_num, input.y_num, input.z_num);
+            waitForCuda();
+        }
+        if (flags & INV_BSPLINE_Z_DIR) {
+            dim3 threadsPerBlock(1, numOfWorkers, 1);
+            dim3 numBlocks((input.x_num + threadsPerBlock.x - 1) / threadsPerBlock.x,
+                           (input.y_num + threadsPerBlock.y - 1) / threadsPerBlock.y,
+                           1);
+            printCudaDims(threadsPerBlock, numBlocks);
+            invBsplineZdir<ImgType> <<< numBlocks, threadsPerBlock>>> (cudalocal_scale_temp, input.x_num, input.y_num, input.z_num);
+            waitForCuda();
+        }
+    }
+    {
+        MeshData<ImgType> &input = local_scale_temp;
+        MeshData<ImgType> &output = grad_temp;
+        dim3 threadsPerBlock(64);
+        dim3 numBlocks((input.x_num * input.y_num * input.z_num + threadsPerBlock.x - 1)/threadsPerBlock.x);
+        printCudaDims(threadsPerBlock, numBlocks);
+
+        threshold<<<numBlocks,threadsPerBlock>>>(cudalocal_scale_temp, cudaGrad, output.mesh.size(), par.Ip_th);
+        waitForCuda();
+    }
+    timer.stop_timer();
+
+
+
+    timer.start_timer("cuda: transfer data from device and freeing memory");
+    cudaMemcpy((void*)image.mesh.get(), cudaImage, imageSize, cudaMemcpyDeviceToHost);
+    cudaFree(cudaImage);
+    cudaMemcpy((void*)grad_temp.mesh.get(), cudaGrad, gradSize, cudaMemcpyDeviceToHost);
+    cudaFree(cudaGrad);
+    cudaMemcpy((void*)local_scale_temp.mesh.get(), cudalocal_scale_temp, local_scale_tempSize, cudaMemcpyDeviceToHost);
+    cudaFree(cudalocal_scale_temp);
+    timer.stop_timer();
+}
+
