@@ -99,6 +99,14 @@ namespace {
     }
 }
 
+
+/**
+ * Thresholds output basing on input values. When input is <= thresholdLevel then output is set to 0 and is not changed otherwise.
+ * @param input
+ * @param output
+ * @param length - len of input/output arrays
+ * @param thresholdLevel
+ */
 template <typename T>
 __global__ void threshold(const T *input, float *output, size_t length, float thresholdLevel) {
     size_t idx = (size_t)blockDim.x * blockIdx.x + threadIdx.x;
