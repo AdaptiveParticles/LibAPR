@@ -8,6 +8,17 @@
 #include "../data_structures/APR/APR.hpp"
 #include "../data_structures/APR/APRIterator.hpp"
 
+
+struct recon_patch{
+    int x_begin=0;
+    int x_end=-1;
+    int y_begin=0;
+    int y_end=-1;
+    int z_begin=0;
+    int z_end=-1;
+    int level_delta=0;
+};
+
 class APRReconstruction {
 public:
 
@@ -63,6 +74,61 @@ public:
         }
 
     }
+
+    template<typename U,typename V,typename S>
+    void interp_image_patch(APR<S>& apr, MeshData<U>& img,ExtraParticleData<V>& parts){
+        //
+        //  Bevan Cheeseman 2016
+        //
+        //  Takes in a APR and creates piece-wise constant image
+        //
+
+        APRIterator<S> apr_iterator(apr);
+        uint64_t particle_number;
+
+        img.init(apr.orginal_dimensions(0), apr.orginal_dimensions(1), apr.orginal_dimensions(2), 0);
+
+        for (uint64_t level = apr_iterator.level_min(); level <= apr_iterator.level_max(); ++level) {
+
+            const float step_size = pow(2,apr_iterator.level_max() - level);
+
+#ifdef HAVE_OPENMP
+#pragma omp parallel for schedule(static) private(particle_number) firstprivate(apr_iterator)
+#endif
+            for (particle_number = apr_iterator.particles_level_begin(level); particle_number <  apr_iterator.particles_level_end(level); ++particle_number) {
+                //
+                //  Parallel loop over level
+                //
+                apr_iterator.set_iterator_to_particle_by_number(particle_number);
+
+                int dim1 = apr_iterator.y() * step_size;
+                int dim2 = apr_iterator.x() * step_size;
+                int dim3 = apr_iterator.z() * step_size;
+
+                float temp_int;
+                //add to all the required rays
+
+                temp_int = parts[apr_iterator];
+
+                const int offset_max_dim1 = std::min((int) img.y_num, (int) (dim1 + step_size));
+                const int offset_max_dim2 = std::min((int) img.x_num, (int) (dim2 + step_size));
+                const int offset_max_dim3 = std::min((int) img.z_num, (int) (dim3 + step_size));
+
+                for (int64_t q = dim3; q < offset_max_dim3; ++q) {
+
+                    for (int64_t k = dim2; k < offset_max_dim2; ++k) {
+                        for (int64_t i = dim1; i < offset_max_dim1; ++i) {
+                            img.mesh[i + (k) * img.y_num + q * img.y_num * img.x_num] = temp_int;
+                        }
+                    }
+                }
+            }
+        }
+
+    }
+
+
+
 
 
     template<typename U,typename S>
