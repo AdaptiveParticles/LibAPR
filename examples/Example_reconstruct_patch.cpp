@@ -45,6 +45,7 @@ struct cmdLineOptions{
     bool output_spatial_properties = false;
     bool output_pc_recon = false;
     bool output_smooth_recon = false;
+    bool output_level = false;
     int x_begin = 0;
     int x_end = -1;
     int y_begin = 0;
@@ -104,7 +105,11 @@ static cmdLineOptions read_command_line_options(int argc, char **argv) {
         result.output_spatial_properties = true;
     }
 
-    if(!(result.output_pc_recon || result.output_smooth_recon || result.output_spatial_properties)){
+    if (command_option_exists(argv, argv + argc, "-level")) {
+        result.output_level = true;
+    }
+
+    if(!(result.output_pc_recon || result.output_smooth_recon || result.output_spatial_properties || result.output_level)){
         //default is pc recon
         result.output_pc_recon = true;
     }
@@ -165,6 +170,17 @@ int main(int argc, char **argv) {
 
     APRReconstruction aprReconstruction;
 
+    ReconPatch reconPatch;
+
+    reconPatch.x_begin = options.x_begin;
+    reconPatch.x_end = options.x_end;
+
+    reconPatch.y_begin = options.y_begin;
+    reconPatch.y_end = options.y_end;
+
+    reconPatch.z_begin = options.z_begin;
+    reconPatch.z_end = options.z_end;
+
     // Intentionaly block-scoped since local recon_pc will be destructed when block ends and release memory.
     {
 
@@ -172,16 +188,7 @@ int main(int argc, char **argv) {
             //create mesh data structure for reconstruction
             MeshData<uint16_t> recon_pc;
 
-            ReconPatch reconPatch;
 
-            reconPatch.x_begin = options.x_begin;
-            reconPatch.x_end = options.x_end;
-
-            reconPatch.y_begin = options.y_begin;
-            reconPatch.y_end = options.y_end;
-
-            reconPatch.z_begin = options.z_begin;
-            reconPatch.z_end = options.z_end;
 
             timer.start_timer("pc interp");
             //perform piece-wise constant interpolation
@@ -198,6 +205,95 @@ int main(int argc, char **argv) {
         }
     }
 
+    //////////////////////////
+    /// Create a particle dataset with the particle type and pc construct it
+    ////////////////////////////
+
+    if(options.output_spatial_properties) {
+
+        //initialization of the iteration structures
+        APRIterator<uint16_t> apr_iterator(apr); //this is required for parallel access
+
+        //create particle dataset
+        ExtraParticleData<uint16_t> type(apr);
+        ExtraParticleData<uint16_t> level(apr);
+
+        ExtraParticleData<uint16_t> x(apr);
+        ExtraParticleData<uint16_t> y(apr);
+        ExtraParticleData<uint16_t> z(apr);
+
+        timer.start_timer("APR parallel iterator loop");
+#ifdef HAVE_OPENMP
+#pragma omp parallel for schedule(static) firstprivate(apr_iterator)
+#endif
+        for (uint64_t particle_number = 0; particle_number < apr_iterator.total_number_particles(); ++particle_number) {
+            //needed step for any parallel loop (update to the next part)
+            apr_iterator.set_iterator_to_particle_by_number(particle_number);
+            type[apr_iterator] = apr_iterator.type();
+            level[apr_iterator] = apr_iterator.level();
+
+            x[apr_iterator] = apr_iterator.x();
+            y[apr_iterator] = apr_iterator.y();
+            z[apr_iterator] = apr_iterator.z();
+        }
+        timer.stop_timer();
+
+        // Intentionaly block-scoped since local type_recon will be destructed when block ends and release memory.
+        {
+            MeshData<uint16_t> type_recon;
+
+            aprReconstruction.interp_image_patch(apr,type_recon, type,reconPatch);
+            TiffUtils::saveMeshAsTiff(options.directory + apr.name + "_type.tif", type_recon);
+
+            //level
+            aprReconstruction.interp_image_patch(apr,type_recon, level,reconPatch);
+            TiffUtils::saveMeshAsTiff(options.directory + apr.name + "_level.tif", type_recon);
+
+            //x
+            aprReconstruction.interp_image_patch(apr,type_recon, x,reconPatch);
+            TiffUtils::saveMeshAsTiff(options.directory + apr.name + "_x.tif", type_recon);
+
+            //y
+            aprReconstruction.interp_image_patch(apr,type_recon, y,reconPatch);
+            TiffUtils::saveMeshAsTiff(options.directory + apr.name + "_y.tif", type_recon);
+
+            //z
+            aprReconstruction.interp_image_patch(apr,type_recon, z,reconPatch);
+            TiffUtils::saveMeshAsTiff(options.directory + apr.name + "_z.tif", type_recon);
+        }
+    }
+
+    if(options.output_level) {
+
+        //initialization of the iteration structures
+        APRIterator<uint16_t> apr_iterator(apr); //this is required for parallel access
+
+        //create particle dataset
+
+        ExtraParticleData<uint16_t> level(apr);
+
+        timer.start_timer("APR parallel iterator loop");
+#ifdef HAVE_OPENMP
+#pragma omp parallel for schedule(static) firstprivate(apr_iterator)
+#endif
+        for (uint64_t particle_number = 0; particle_number < apr_iterator.total_number_particles(); ++particle_number) {
+            //needed step for any parallel loop (update to the next part)
+            apr_iterator.set_iterator_to_particle_by_number(particle_number);
+
+            level[apr_iterator] = apr_iterator.level();
+        }
+        timer.stop_timer();
+
+        // Intentionaly block-scoped since local type_recon will be destructed when block ends and release memory.
+        {
+            MeshData<uint8_t> type_recon;
+
+            //level
+            aprReconstruction.interp_image_patch(apr,type_recon, level,reconPatch);
+            TiffUtils::saveMeshAsTiff(options.directory + apr.name + "_level.tif", type_recon);
+
+        }
+    }
 
 
 }
