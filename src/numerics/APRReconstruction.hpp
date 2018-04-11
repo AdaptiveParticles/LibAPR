@@ -9,7 +9,7 @@
 #include "../data_structures/APR/APRIterator.hpp"
 
 
-struct recon_patch{
+struct ReconPatch{
     int x_begin=0;
     int x_end=-1;
     int y_begin=0;
@@ -76,7 +76,7 @@ public:
     }
 
     template<typename U,typename V,typename S>
-    void interp_image_patch(APR<S>& apr, MeshData<U>& img,ExtraParticleData<V>& parts){
+    void interp_image_patch(APR<S>& apr, MeshData<U>& img,ExtraParticleData<V>& parts,ReconPatch& reconPatch){
         //
         //  Bevan Cheeseman 2016
         //
@@ -88,42 +88,84 @@ public:
 
         img.init(apr.orginal_dimensions(0), apr.orginal_dimensions(1), apr.orginal_dimensions(2), 0);
 
-        for (uint64_t level = apr_iterator.level_min(); level <= apr_iterator.level_max(); ++level) {
+        if(reconPatch.y_end == -1){
+            reconPatch.y_begin = 0;
+            reconPatch.y_end = apr.orginal_dimensions(0);
+        }
+
+        if(reconPatch.x_end == -1){
+            reconPatch.x_begin = 0;
+            reconPatch.x_end = apr.orginal_dimensions(1);
+        }
+
+        if(reconPatch.z_end == -1){
+            reconPatch.z_begin = 0;
+            reconPatch.z_end = apr.orginal_dimensions(2);
+        }
+
+
+        const int x_begin = reconPatch.x_begin;
+        const int x_end = reconPatch.x_end;
+
+        const int z_begin = reconPatch.z_begin;
+        const int z_end = reconPatch.z_end;
+
+        const int y_begin = reconPatch.y_begin;
+        const int y_end = reconPatch.y_end;
+
+        int x = 0;
+
+        //note the use of the dynamic OpenMP schedule.
+        for (unsigned int level = apr_iterator.level_max(); level >= apr_iterator.level_min(); --level) {
 
             const float step_size = pow(2,apr_iterator.level_max() - level);
 
+            int x_begin_l = (int) floor(x_begin/step_size);
+            int x_end_l = (int)ceil(x_end/step_size);
+
+            int z_begin_l= (int)floor(z_begin/step_size);
+            int z_end_l= (int)ceil(z_end/step_size);
+
+            int y_begin_l =  (int)floor(y_begin/step_size);
+            int y_end_l = (int)ceil(y_end/step_size);
+
+
+            for (int z = 0; z < apr.spatial_index_z_max(level); z++) {
+
 #ifdef HAVE_OPENMP
-#pragma omp parallel for schedule(static) private(particle_number) firstprivate(apr_iterator)
+#pragma omp parallel for schedule(dynamic) private(x) firstprivate(apr_iterator)
 #endif
-            for (particle_number = apr_iterator.particles_level_begin(level); particle_number <  apr_iterator.particles_level_end(level); ++particle_number) {
-                //
-                //  Parallel loop over level
-                //
-                apr_iterator.set_iterator_to_particle_by_number(particle_number);
+                for (x = 0; x < apr.spatial_index_x_max(level); ++x) {
+                    for (apr_iterator.set_new_lzx(level, z, x);
+                         apr_iterator.global_index() < apr_iterator.particles_zx_end(level, z,
+                                                                                     x); apr_iterator.set_iterator_to_particle_next_particle()) {
 
-                int dim1 = apr_iterator.y() * step_size;
-                int dim2 = apr_iterator.x() * step_size;
-                int dim3 = apr_iterator.z() * step_size;
+                        int dim1 = apr_iterator.y() * step_size;
+                        int dim2 = apr_iterator.x() * step_size;
+                        int dim3 = apr_iterator.z() * step_size;
 
-                float temp_int;
-                //add to all the required rays
+                        float temp_int;
+                        //add to all the required rays
 
-                temp_int = parts[apr_iterator];
+                        temp_int = parts[apr_iterator];
 
-                const int offset_max_dim1 = std::min((int) img.y_num, (int) (dim1 + step_size));
-                const int offset_max_dim2 = std::min((int) img.x_num, (int) (dim2 + step_size));
-                const int offset_max_dim3 = std::min((int) img.z_num, (int) (dim3 + step_size));
+                        const int offset_max_dim1 = std::min((int) img.y_num, (int) (dim1 + step_size));
+                        const int offset_max_dim2 = std::min((int) img.x_num, (int) (dim2 + step_size));
+                        const int offset_max_dim3 = std::min((int) img.z_num, (int) (dim3 + step_size));
 
-                for (int64_t q = dim3; q < offset_max_dim3; ++q) {
+                        for (int64_t q = dim3; q < offset_max_dim3; ++q) {
 
-                    for (int64_t k = dim2; k < offset_max_dim2; ++k) {
-                        for (int64_t i = dim1; i < offset_max_dim1; ++i) {
-                            img.mesh[i + (k) * img.y_num + q * img.y_num * img.x_num] = temp_int;
+                            for (int64_t k = dim2; k < offset_max_dim2; ++k) {
+                                for (int64_t i = dim1; i < offset_max_dim1; ++i) {
+                                    img.mesh[i + (k) * img.y_num + q * img.y_num * img.x_num] = temp_int;
+                                }
+                            }
                         }
                     }
                 }
             }
         }
+
 
     }
 

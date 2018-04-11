@@ -172,9 +172,11 @@ int main(int argc, char **argv) {
             //create mesh data structure for reconstruction
             MeshData<uint16_t> recon_pc;
 
+            ReconPatch reconPatch;
+
             timer.start_timer("pc interp");
             //perform piece-wise constant interpolation
-            aprReconstruction.interp_image_patch(apr,recon_pc, apr.particles_intensities);
+            aprReconstruction.interp_image_patch(apr,recon_pc, apr.particles_intensities,reconPatch);
             timer.stop_timer();
 
             float elapsed_seconds = timer.t2 - timer.t1;
