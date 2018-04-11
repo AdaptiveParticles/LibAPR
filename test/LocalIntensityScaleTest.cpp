@@ -239,7 +239,7 @@ namespace {
         timer.stop_timer();
 
         // Compare GPU vs CPU
-        EXPECT_EQ(compareMeshes(mCpu, mGpu), 0);
+        EXPECT_EQ(compareMeshes(mCpu, mGpu, 0.01), 0);
     }
 
 #endif // APR_USE_CUDA

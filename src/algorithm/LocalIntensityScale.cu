@@ -35,32 +35,36 @@ __global__ void meanYdir(T *image, int offset, size_t x_num, size_t y_num, size_
     const size_t workersOffset = (blockIdx.z * x_num + blockIdx.x) * y_num;
     const int numOfWorkers = blockDim.y;
     const unsigned int active = __activemask();
-    int workerIdx = threadIdx.y;
+    const int workerIdx = threadIdx.y;
     int workerOffset = workerIdx;
 
-    int loopNum = 0;
+    int offsetInTheLoop = 0;
     T sum = 0;
     T v = 0;
-    bool lastInRow = false;
-    float count = 1;
+    bool waitForNextLoop = false;
+    int countNumOfSumElements = 1;
     while(workerOffset < y_num) {
-        if (!lastInRow) v = image[workersOffset + workerOffset];
-        bool forwardRead = (workerIdx + loopNum) % numOfWorkers >= (numOfWorkers - offset);
+        if (!waitForNextLoop) v = image[workersOffset + workerOffset];
+        bool waitForNextValues = (workerIdx + offsetInTheLoop) % numOfWorkers >= (numOfWorkers - offset);
         for (int off = 1; off <= offset; ++off) {
-            T p = __shfl_sync(active, v, workerIdx + blockDim.y - off, blockDim.y);
-            T n = __shfl_sync(active, v, workerIdx + off, blockDim.y);
-            if (workerOffset >= off && !lastInRow) {sum += p; ++count;}
-            if (!forwardRead && workerOffset + off < y_num) {sum += n; ++count;}
+            T prevElement = __shfl_sync(active, v, workerIdx + blockDim.y - off, blockDim.y);
+            T nextElement = __shfl_sync(active, v, workerIdx + off, blockDim.y);
+            // LHS boundary check + don't add previous values if they were added in a previous loop execution
+            if (workerOffset >= off && !waitForNextLoop) {sum += prevElement; ++countNumOfSumElements;}
+            // RHS boundary check + don't read next values since they are not read yet
+            if (!waitForNextValues && workerOffset + off < y_num) {sum += nextElement; ++countNumOfSumElements;}
         }
-        lastInRow = forwardRead;
-        if (!lastInRow) {
+        waitForNextLoop = waitForNextValues;
+        if (!waitForNextLoop) {
             sum += v;
-            image[workersOffset + workerOffset] = sum / count;
+            image[workersOffset + workerOffset] = sum / countNumOfSumElements;
+
+            // workere is done with current element - move to next one
             sum = 0;
-            count = 1;
+            countNumOfSumElements = 1;
             workerOffset += numOfWorkers;
         }
-        loopNum += offset;
+        offsetInTheLoop += offset;
     }
 }
 
