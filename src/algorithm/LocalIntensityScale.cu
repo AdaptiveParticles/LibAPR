@@ -19,8 +19,8 @@ namespace {
         MeshData<uint8_t> u8 = MeshData<uint8_t>(0, 0, 0);
 
         calcMeanYdir(f, 0);
-        calcMeanYdir(u16, 0);
-        calcMeanYdir(u8, 0);
+//        calcMeanYdir(u16, 0);
+//        calcMeanYdir(u8, 0);
     }
 
     void printCudaDims(const dim3 &threadsPerBlock, const dim3 &numBlocks) {
@@ -42,26 +42,26 @@ __global__ void meanYdir(T *image, int offset, size_t x_num, size_t y_num, size_
     T sum = 0;
     T v = 0;
     bool lastInRow = false;
+    float count = 1;
     while(workerOffset < y_num) {
         if (!lastInRow) v = image[workersOffset + workerOffset];
+        bool forwardRead = (workerIdx + loopNum) % numOfWorkers >= (numOfWorkers - offset);
         for (int off = 1; off <= offset; ++off) {
             T p = __shfl_sync(active, v, workerIdx + blockDim.y - off, blockDim.y);
             T n = __shfl_sync(active, v, workerIdx + off, blockDim.y);
-            if (workerOffset >= off) sum += p;
-            if (workerIdx < numOfWorkers - offset) sum += n;
+            if (workerOffset >= off && !lastInRow) {sum += p; ++count;}
+            if (!forwardRead && workerOffset + off < y_num) {sum += n; ++count;}
         }
-        bool lastInRow = (workerIdx + loopNum) % numOfWorkers >= (numOfWorkers - offset);
-        printf("%d %f %f %d\n", workerIdx, v, sum, lastInRow);
+        lastInRow = forwardRead;
         if (!lastInRow) {
             sum += v;
-            image[workersOffset + workerOffset] = sum;
-            printf("    %d %f\n", workerIdx, sum);
+            image[workersOffset + workerOffset] = sum / count;
             sum = 0;
+            count = 1;
             workerOffset += numOfWorkers;
         }
         loopNum += offset;
     }
-
 }
 
 template <typename T>
@@ -76,7 +76,7 @@ void calcMeanYdir(MeshData<T> &image, int offset) {
     timer.stop_timer();
 
     timer.start_timer("cuda: calculations on device");
-    dim3 threadsPerBlock(1, 4, 1);
+    dim3 threadsPerBlock(1, 32, 1);
     dim3 numBlocks((image.x_num + threadsPerBlock.x - 1)/threadsPerBlock.x,
                    1,
                    (image.z_num + threadsPerBlock.z - 1)/threadsPerBlock.z);

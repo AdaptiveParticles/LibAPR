@@ -170,53 +170,76 @@ namespace {
 #ifdef APR_USE_CUDA
 
     TEST(LocalIntensityScaleCudaTest, 1D_Y_DIR) {
-//        {   // OFFSET=0
-//
-//            MeshData<float> m(8, 1, 1, 0);
-//            float dataIn[] = {3,6,9,12,15,18,21,24};
-//            float expect[] = {3,6,9,12,15,18,21,24};
-//
-//            initFromZYXarray(m, dataIn);
-//
-//            calcMeanYdir(m, 0);
-//
-//            ASSERT_TRUE(compare(m, expect, 0.05));
-//        }
+        {   // OFFSET=0
+
+            MeshData<float> m(8, 1, 1, 0);
+            float dataIn[] = {3,6,9,12,15,18,21,24};
+            float expect[] = {3,6,9,12,15,18,21,24};
+
+            initFromZYXarray(m, dataIn);
+
+            calcMeanYdir(m, 0);
+
+            ASSERT_TRUE(compare(m, expect, 0.05));
+        }
         {   // OFFSET=1
 
             MeshData<float> m(8, 1, 1, 0);
             float dataIn[] = {1, 2, 3, 4, 5, 6, 7, 8};
-            float expect[] = {3, 6, 9, 12, 15, 18, 21, 15};
+            float expect[] = {1.5, 2, 3, 4, 5, 6, 7, 7.5};
 
             initFromZYXarray(m, dataIn);
 
             calcMeanYdir(m, 1);
-            m.printMesh(4, 1);
+
             ASSERT_TRUE(compare(m, expect, 0.05));
         }
-//        {   // OFFSET=2 (+symmetricity check)
-//
-//            MeshData<float> m(8, 1, 1, 0);
-//            float dataIn[] = {3,6,9,12,15,18,21,24};
-//            float expect[] = {6, 7.5, 9, 12, 15, 18, 19.5, 21};
-//
-//            initFromZYXarray(m, dataIn);
-//
-//            LocalIntensityScale lis;
-//            lis.calc_sat_mean_y(m, 2);
-//
-//            ASSERT_TRUE(compare(m, expect, 0.05));
-//
-//            // check if data in opposite order gives same result
-//            float dataIn2[] = {24,21,18,15,12,9,6,3};
-//            float expect2[] = {21, 19.5, 18, 15,12, 9, 7.5, 6};
-//
-//            initFromZYXarray(m, dataIn2);
-//
-//            lis.calc_sat_mean_y(m, 2);
-//
-//            ASSERT_TRUE(compare(m, expect2, 0.05));
-//        }
+        {   // OFFSET=2 (+symmetricity check)
+
+            MeshData<float> m(8, 1, 1, 0);
+            float dataIn[] = {3,6,9,12,15,18,21,24};
+            float expect[] = {6, 7.5, 9, 12, 15, 18, 19.5, 21};
+
+            initFromZYXarray(m, dataIn);
+
+            calcMeanYdir(m, 2);
+
+            ASSERT_TRUE(compare(m, expect, 0.05));
+
+            // check if data in opposite order gives same result
+            float dataIn2[] = {24,21,18,15,12,9,6,3};
+            float expect2[] = {21, 19.5, 18, 15,12, 9, 7.5, 6};
+
+            initFromZYXarray(m, dataIn2);
+
+            calcMeanYdir(m, 2);
+
+            ASSERT_TRUE(compare(m, expect2, 0.05));
+        }
+    }
+
+    TEST(LocalIntensityScaleCudaTest, GPU_VS_CPU_ON_RANDOM_VALUES_Y_DIR) {
+        // Generate random mesh
+        using ImgType = float;
+        MeshData<ImgType> m = getRandInitializedMesh<ImgType>(512, 512, 512);
+        const int offset = 1;
+
+        APRTimer timer(true);
+
+        // Calculate gradient on CPU
+        MeshData<ImgType> mCpu(m, true);
+        timer.start_timer("CPU mean Y-DIR");
+        LocalIntensityScale().calc_sat_mean_y(mCpu, offset);
+        timer.stop_timer();
+
+        // Calculate gradient on GPU
+        MeshData<ImgType> mGpu(m, true);
+        timer.start_timer("GPU mean Y-DIR");
+        calcMeanYdir(mGpu, offset);
+        timer.stop_timer();
+
+        // Compare GPU vs CPU
+        EXPECT_EQ(compareMeshes(mCpu, mGpu), 0);
     }
 
 #endif // APR_USE_CUDA

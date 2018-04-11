@@ -7,7 +7,7 @@
 
 
 #include "data_structures/Mesh/MeshData.hpp"
-
+#include <random>
 
 /**
  * Compares mesh with provided data
@@ -49,4 +49,47 @@ inline bool initFromZYXarray(MeshData<T> &mesh, const float *data) {
     return true;
 }
 
+/**
+ * Compares two meshes
+ * @param expected
+ * @param tested
+ * @param maxNumOfErrPrinted - how many error values should be printed (-1 for all)
+ * @return number of errors detected
+ */
+template <typename T>
+inline int compareMeshes(const MeshData<T> &expected, const MeshData<T> &tested, double maxError = 0.0001, int maxNumOfErrPrinted = 3) {
+    int cnt = 0;
+    for (size_t i = 0; i < expected.mesh.size(); ++i) {
+        if (std::abs(expected.mesh[i] - tested.mesh[i]) > maxError || std::isnan(expected.mesh[i]) ||
+            std::isnan(tested.mesh[i])) {
+            if (cnt < maxNumOfErrPrinted || maxNumOfErrPrinted == -1) {
+                std::cout << "ERROR expected vs tested mesh: " << expected.mesh[i] << " vs " << tested.mesh[i] << " IDX:" << tested.getStrIndex(i) << std::endl;
+            }
+            cnt++;
+        }
+    }
+    std::cout << "Number of errors / all points: " << cnt << " / " << expected.mesh.size() << std::endl;
+    return cnt;
+}
+
+/**
+ * Generates mesh with provided dims with random values in range [0, 1] * multiplier
+ * @param y
+ * @param x
+ * @param z
+ * @param multiplier
+ * @return
+ */
+template <typename T>
+inline MeshData<T> getRandInitializedMesh(int y, int x, int z, float multiplier = 2.0f, bool useIdxNumbers = false) {
+    MeshData<T> m(y, x, z);
+    std::cout << "Mesh info: " << m << std::endl;
+    std::random_device rd;
+    std::mt19937 mt(rd());
+    std::uniform_real_distribution<double> dist(0.0, 1.0);
+    for (size_t i = 0; i < m.mesh.size(); ++i) {
+        m.mesh[i] = useIdxNumbers ? i : dist(mt) * multiplier;
+    }
+    return m;
+}
 #endif //LIBAPR_TESTTOOLS_HPP
