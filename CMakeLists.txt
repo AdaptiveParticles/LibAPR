@@ -128,7 +128,8 @@ if(APR_USE_CUDA)
 	        src/algorithm/ComputeGradientCuda.cu
             src/algorithm/ComputeBsplineRecursiveFilter.cu
             src/algorithm/ComputeInverseCubicBsplineCuda.cu
-            src/data_structures/Mesh/MeshData.cu)
+            src/data_structures/Mesh/MeshData.cu
+            src/algorithm/LocalIntensityScale.cu)
     set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -DAPR_USE_CUDA")
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DAPR_USE_CUDA")
     include_directories(${CMAKE_CUDA_TOOLKIT_INCLUDE_DIRECTORIES})
