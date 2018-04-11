@@ -321,9 +321,7 @@ public:
 
                 //first update the fixed length scale
                 for (k = 0; k < y_num;k++){
-
                     offset_vec[k] = std::min((T)floor(pow(2,d_max- offset_img.mesh[index + k])/scale),(T)offset_max);
-
                 }
 
 
