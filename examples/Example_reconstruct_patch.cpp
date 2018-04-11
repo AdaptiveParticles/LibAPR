@@ -164,9 +164,11 @@ int main(int argc, char **argv) {
     APR<uint16_t> apr;
 
     //read file
+    timer.start_timer("read input");
     std::string file_name = options.directory + options.input;
     apr.read_apr(file_name);
     apr.name = options.output;
+    timer.stop_timer();
 
     APRReconstruction aprReconstruction;
 
