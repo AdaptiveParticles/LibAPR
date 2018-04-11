@@ -91,16 +91,25 @@ public:
         if(reconPatch.y_end == -1){
             reconPatch.y_begin = 0;
             reconPatch.y_end = apr.orginal_dimensions(0);
+        } else {
+            reconPatch.y_begin = std::max(0,reconPatch.y_begin);
+            reconPatch.y_end = std::min((int)apr.orginal_dimensions(0),reconPatch.y_end);
         }
 
         if(reconPatch.x_end == -1){
             reconPatch.x_begin = 0;
             reconPatch.x_end = apr.orginal_dimensions(1);
+        }  else {
+            reconPatch.x_begin = std::max(0,reconPatch.x_begin);
+            reconPatch.x_end = std::min((int)apr.orginal_dimensions(0),reconPatch.x_end);
         }
 
         if(reconPatch.z_end == -1){
             reconPatch.z_begin = 0;
             reconPatch.z_end = apr.orginal_dimensions(2);
+        }  else {
+            reconPatch.z_begin = std::max(0,reconPatch.y_begin);
+            reconPatch.z_end = std::min((int)apr.orginal_dimensions(0),reconPatch.y_end);
         }
 
 
@@ -112,6 +121,8 @@ public:
 
         const int y_begin = reconPatch.y_begin;
         const int y_end = reconPatch.y_end;
+
+        img.init(y_end - y_begin, x_end - x_begin, z_end - z_begin, 0);
 
         int x = 0;
 
@@ -139,19 +150,18 @@ public:
                     for (apr_iterator.set_new_lzx(level, z, x);
                          apr_iterator.global_index() < apr_iterator.particles_zx_end(level, z,
                                                                                      x); apr_iterator.set_iterator_to_particle_next_particle()) {
+                        //lower bound
+                        const int dim1 = std::max((int) (apr_iterator.y() * step_size),y_begin)-y_begin;
+                        const int dim2 = std::max((int) (apr_iterator.x() * step_size),x_begin)-x_begin;
+                        const int dim3 = std::max((int) (apr_iterator.z() * step_size),z_begin)-z_begin;
 
-                        int dim1 = apr_iterator.y() * step_size;
-                        int dim2 = apr_iterator.x() * step_size;
-                        int dim3 = apr_iterator.z() * step_size;
+                        //particle property
+                        const S temp_int = parts[apr_iterator];
 
-                        float temp_int;
-                        //add to all the required rays
-
-                        temp_int = parts[apr_iterator];
-
-                        const int offset_max_dim1 = std::min((int) img.y_num, (int) (dim1 + step_size));
-                        const int offset_max_dim2 = std::min((int) img.x_num, (int) (dim2 + step_size));
-                        const int offset_max_dim3 = std::min((int) img.z_num, (int) (dim3 + step_size));
+                        //upper bound
+                        const int offset_max_dim1 = std::min( y_end, (int) (dim1 + step_size))-y_begin;
+                        const int offset_max_dim2 = std::min( x_end, (int) (dim2 + step_size))-x_begin;
+                        const int offset_max_dim3 = std::min( z_end, (int) (dim3 + step_size))-z_begin;
 
                         for (int64_t q = dim3; q < offset_max_dim3; ++q) {
 
@@ -168,9 +178,6 @@ public:
 
 
     }
-
-
-
 
 
     template<typename U,typename S>
