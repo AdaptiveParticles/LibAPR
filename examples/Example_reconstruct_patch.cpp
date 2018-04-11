@@ -45,11 +45,11 @@ struct cmdLineOptions{
     bool output_spatial_properties = false;
     bool output_pc_recon = false;
     bool output_smooth_recon = false;
-    int x_start = 0;
+    int x_begin = 0;
     int x_end = -1;
-    int y_start = 0;
+    int y_begin = 0;
     int y_end = -1;
-    int z_start = 0;
+    int z_begin = 0;
     int z_end = -1;
     int level_delta = 0;
 
@@ -109,9 +109,9 @@ static cmdLineOptions read_command_line_options(int argc, char **argv) {
         result.output_pc_recon = true;
     }
 
-    if(command_option_exists(argv, argv + argc, "-x_start"))
+    if(command_option_exists(argv, argv + argc, "-x_begin"))
     {
-        result.x_start = std::stoi(std::string(get_command_option(argv, argv + argc, "-x_start")));
+        result.x_begin = std::stoi(std::string(get_command_option(argv, argv + argc, "-x_begin")));
     }
 
     if(command_option_exists(argv, argv + argc, "-x_end"))
@@ -119,9 +119,9 @@ static cmdLineOptions read_command_line_options(int argc, char **argv) {
         result.x_end = std::stoi(std::string(get_command_option(argv, argv + argc, "-x_end")));
     }
 
-    if(command_option_exists(argv, argv + argc, "-y_start"))
+    if(command_option_exists(argv, argv + argc, "-y_begin"))
     {
-        result.y_start = std::stoi(std::string(get_command_option(argv, argv + argc, "-y_start")));
+        result.y_begin = std::stoi(std::string(get_command_option(argv, argv + argc, "-y_begin")));
     }
 
     if(command_option_exists(argv, argv + argc, "-y_end"))
@@ -129,9 +129,9 @@ static cmdLineOptions read_command_line_options(int argc, char **argv) {
         result.y_end = std::stoi(std::string(get_command_option(argv, argv + argc, "-y_end")));
     }
 
-    if(command_option_exists(argv, argv + argc, "-z_start"))
+    if(command_option_exists(argv, argv + argc, "-z_begin"))
     {
-        result.z_start = std::stoi(std::string(get_command_option(argv, argv + argc, "-z_start")));
+        result.z_begin = std::stoi(std::string(get_command_option(argv, argv + argc, "-z_begin")));
     }
 
     if(command_option_exists(argv, argv + argc, "-z_end"))
@@ -173,6 +173,15 @@ int main(int argc, char **argv) {
             MeshData<uint16_t> recon_pc;
 
             ReconPatch reconPatch;
+
+            reconPatch.x_begin = options.x_begin;
+            reconPatch.x_end = options.x_end;
+
+            reconPatch.y_begin = options.y_begin;
+            reconPatch.y_end = options.y_end;
+
+            reconPatch.z_begin = options.z_begin;
+            reconPatch.z_end = options.z_end;
 
             timer.start_timer("pc interp");
             //perform piece-wise constant interpolation

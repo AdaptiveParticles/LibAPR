@@ -122,6 +122,11 @@ public:
         const int y_begin = reconPatch.y_begin;
         const int y_end = reconPatch.y_end;
 
+        if(y_begin > y_end || x_begin > x_end || z_begin > z_end){
+            std::cout << "Invalid Patch Size: Exiting" << std::endl;
+            return;
+        }
+
         img.init(y_end - y_begin, x_end - x_begin, z_end - z_begin, 0);
 
         int x = 0;
@@ -140,11 +145,10 @@ public:
             int y_begin_l =  (int)floor(y_begin/step_size);
             int y_end_l = std::min((int)ceil(y_end/step_size),(int) apr.spatial_index_y_max(level));
 
-
             for (int z = z_begin_l; z < z_end_l; z++) {
 
 #ifdef HAVE_OPENMP
-//#pragma omp parallel for schedule(dynamic) private(x) firstprivate(apr_iterator)
+#pragma omp parallel for schedule(dynamic) private(x) firstprivate(apr_iterator)
 #endif
                 for (x = x_begin_l; x < x_end_l; ++x) {
                     for (apr_iterator.set_new_lzx(level, z, x);
