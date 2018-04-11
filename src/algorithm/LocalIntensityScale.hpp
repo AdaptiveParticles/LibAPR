@@ -108,7 +108,7 @@ void LocalIntensityScale::calc_sat_mean_y(MeshData<T>& input, const size_t offse
     const size_t x_num = input.x_num;
     const size_t y_num = input.y_num;
 
-    std::vector<T> temp_vec(y_num, 0);
+    std::vector<T> temp_vec(y_num);
     float divisor = 2 * offset + 1;
 
     #ifdef HAVE_OPENMP
@@ -125,10 +125,9 @@ void LocalIntensityScale::calc_sat_mean_y(MeshData<T>& input, const size_t offse
                 temp_vec[k] = temp;
             }
 
-            input.mesh[index] = 0;
             //handling boundary conditions (LHS)
-            for (size_t k = 1; k <= (offset+1); ++k) {
-                input.mesh[index + k] = -temp_vec[0]/divisor;
+            for (size_t k = 0; k <= offset; ++k) {
+                input.mesh[index + k] = 0;
             }
 
             //second pass calculate mean
@@ -151,12 +150,12 @@ void LocalIntensityScale::calc_sat_mean_y(MeshData<T>& input, const size_t offse
             }
 
             //handling boundary conditions (LHS), need to rehandle the boundary
-            for (size_t k = 1; k < (offset + 1); ++k) {
-                input.mesh[index + k] *= divisor/(1.0*k + offset);
+            for (size_t k = 1; k <= offset; ++k) {
+                input.mesh[index + k] *= divisor/(k + offset + 1.0);
             }
 
             //end point boundary condition
-            input.mesh[index] *= divisor/(offset + 1);
+            input.mesh[index] *= divisor/(offset + 1.0);
         }
     }
 }
