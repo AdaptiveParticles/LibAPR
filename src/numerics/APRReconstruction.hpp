@@ -8,7 +8,6 @@
 #include "../data_structures/APR/APR.hpp"
 #include "../data_structures/APR/APRIterator.hpp"
 
-
 struct ReconPatch{
     int x_begin=0;
     int x_end=-1;

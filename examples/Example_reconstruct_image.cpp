@@ -115,10 +115,12 @@ int main(int argc, char **argv) {
     // APR datastructure
     APR<uint16_t> apr;
 
+    timer.start_timer("read input");
     //read file
     std::string file_name = options.directory + options.input;
     apr.read_apr(file_name);
     apr.name = options.output;
+    timer.stop_timer();
 
     // Intentionaly block-scoped since local recon_pc will be destructed when block ends and release memory.
     {
