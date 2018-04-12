@@ -149,6 +149,41 @@ int main(int argc, char **argv) {
 
     timer.stop_timer();
 
+
+
+
+    /*
+    *
+    * Alternative iteration strategy
+    *
+    */
+
+    int x = 0;
+
+    timer.start_timer("Iterating over level, z and x");
+
+    //note the use of the dynamic OpenMP schedule.
+    for (unsigned int level = apr_iterator.level_max(); level >= apr_iterator.level_min(); --level) {
+
+        for (int z = 0; z < apr.spatial_index_z_max(level); z++) {
+
+#ifdef HAVE_OPENMP
+#pragma omp parallel for schedule(dynamic) private(x) firstprivate(apr_iterator)
+#endif
+            for (x = 0; x < apr.spatial_index_x_max(level); ++x) {
+                for (apr_iterator.set_new_lzx(level, z, x);
+                     apr_iterator.global_index() < apr_iterator.particles_zx_end(level, z,
+                                                                                 x); apr_iterator.set_iterator_to_particle_next_particle()) {
+                    calc_ex[apr_iterator] = pow(calc_ex[apr_iterator], 2.0f);
+
+                }
+            }
+        }
+    }
+
+    timer.stop_timer();
+
+
     /// Single dataset, unary operation, return new dataset for result
     timer.start_timer("Take the absolute value and output");
     ExtraParticleData<float> output_1;

@@ -43,6 +43,12 @@ public:
 };
 
 
+class Create210SphereTest : public CreateAPRTest
+{
+public:
+    void SetUp() override;
+};
+
 bool check_neighbours(APR<uint16_t>& apr,APRIterator<uint16_t>& current,APRIterator<uint16_t>& neigh){
 
 
@@ -679,6 +685,31 @@ void CreateSmallSphereTest::SetUp(){
     test_data.output_name = "sphere_small";
 }
 
+void Create210SphereTest::SetUp(){
+
+
+    std::string file_name = get_source_directory_apr() + "files/Apr/sphere_210/sphere_apr.h5";
+    test_data.apr.read_apr(file_name);
+
+    file_name = get_source_directory_apr() + "files/Apr/sphere_210/sphere_level.tif";
+    test_data.img_level = TiffUtils::getMesh<uint16_t>(file_name);
+    file_name = get_source_directory_apr() + "files/Apr/sphere_210/sphere_type.tif";
+    test_data.img_type = TiffUtils::getMesh<uint16_t>(file_name);
+    file_name = get_source_directory_apr() + "files/Apr/sphere_210/sphere_original.tif";
+    test_data.img_original = TiffUtils::getMesh<uint16_t>(file_name);
+    file_name = get_source_directory_apr() + "files/Apr/sphere_210/sphere_pc.tif";
+    test_data.img_pc = TiffUtils::getMesh<uint16_t>(file_name);
+    file_name = get_source_directory_apr() + "files/Apr/sphere_210/sphere_x.tif";
+    test_data.img_x = TiffUtils::getMesh<uint16_t>(file_name);
+    file_name =  get_source_directory_apr() + "files/Apr/sphere_210/sphere_y.tif";
+    test_data.img_y = TiffUtils::getMesh<uint16_t>(file_name);
+    file_name =  get_source_directory_apr() + "files/Apr/sphere_210/sphere_z.tif";
+    test_data.img_z = TiffUtils::getMesh<uint16_t>(file_name);
+
+    test_data.filename = get_source_directory_apr() + "files/Apr/sphere_210/sphere_original.tif";
+    test_data.output_name = "sphere_210";
+}
+
 TEST_F(CreateSmallSphereTest, APR_ITERATION) {
 
 //test iteration
@@ -701,6 +732,34 @@ TEST_F(CreateSmallSphereTest, APR_INPUT_OUTPUT) {
 }
 
 TEST_F(CreateSmallSphereTest, APR_PIPELINE) {
+
+//test iteration
+    ASSERT_TRUE(test_apr_pipeline(test_data));
+
+}
+
+TEST_F(Create210SphereTest, APR_ITERATION) {
+
+//test iteration
+    ASSERT_TRUE(test_apr_iterate(test_data));
+
+}
+
+TEST_F(Create210SphereTest, APR_NEIGHBOUR_ACCESS) {
+
+//test iteration
+    ASSERT_TRUE(test_apr_neighbour_access(test_data));
+
+}
+
+TEST_F(Create210SphereTest, APR_INPUT_OUTPUT) {
+
+//test iteration
+    ASSERT_TRUE(test_apr_input_output(test_data));
+
+}
+
+TEST_F(Create210SphereTest, APR_PIPELINE) {
 
 //test iteration
     ASSERT_TRUE(test_apr_pipeline(test_data));
