@@ -219,46 +219,71 @@ namespace {
     }
 
     TEST(LocalIntensityScaleCudaTest, GPU_VS_CPU_ON_RANDOM_VALUES_Y_DIR) {
-        // Generate random mesh
-        using ImgType = float;
-        MeshData<ImgType> m = getRandInitializedMesh<ImgType>(33, 31, 13);
-        const int offset = 5;
-
         APRTimer timer(true);
+        MeshData<float> m = getRandInitializedMesh<float>(33, 31, 13);
 
-        // Calculate gradient on CPU
-        MeshData<ImgType> mCpu(m, true);
-        timer.start_timer("CPU mean Y-DIR");
-        LocalIntensityScale().calc_sat_mean_y(mCpu, offset);
-        timer.stop_timer();
+        LocalIntensityScale lis;
+        for (int offset = 0; offset < 6; ++offset) {
+            // Run on CPU
+            MeshData<float> mCpu(m, true);
+            timer.start_timer("CPU mean Y-DIR");
+            lis.calc_sat_mean_y(mCpu, offset);
+            timer.stop_timer();
 
-        // Calculate gradient on GPU
-        MeshData<ImgType> mGpu(m, true);
-        timer.start_timer("GPU mean Y-DIR");
-        calcMeanYdir(mGpu, offset);
-        timer.stop_timer();
+            // Run on GPU
+            MeshData<float> mGpu(m, true);
+            timer.start_timer("GPU mean Y-DIR");
+            calcMeanYdir(mGpu, offset);
+            timer.stop_timer();
 
-        // Compare GPU vs CPU
-        EXPECT_EQ(compareMeshes(mCpu, mGpu, 0.01), 0);
+            // Compare results
+            EXPECT_EQ(compareMeshes(mCpu, mGpu, 0.01), 0);
+        }
     }
 
     TEST(LocalIntensityScaleCudaTest, 1D_X_DIR) {
-        {
-            MeshData<float> m = getRandInitializedMesh<float>(33, 31, 13);
+        APRTimer timer(true);
+        MeshData<float> m = getRandInitializedMesh<float>(33, 31, 13);
 
-            LocalIntensityScale lis;
-            for (int offset = 0; offset < 6; ++offset) {
-                // Run on CPU
-                MeshData<float> mCpu(m, true);
-                lis.calc_sat_mean_x(mCpu, offset);
+        LocalIntensityScale lis;
+        for (int offset = 0; offset < 6; ++offset) {
+            // Run on CPU
+            MeshData<float> mCpu(m, true);
+            timer.start_timer("CPU mean X-DIR");
+            lis.calc_sat_mean_x(mCpu, offset);
+            timer.stop_timer();
 
-                // Run on GPU
-                MeshData<float> mGpu(m, true);
-                calcMeanXdir(mGpu, offset);
+            // Run on GPU
+            MeshData<float> mGpu(m, true);
+            timer.start_timer("GPU mean X-DIR");
+            calcMeanXdir(mGpu, offset);
+            timer.stop_timer();
 
-                // Compare results
-                EXPECT_EQ(compareMeshes(mCpu, mGpu, 0.01), 0);
-            }
+            // Compare results
+            EXPECT_EQ(compareMeshes(mCpu, mGpu, 0.01), 0);
+        }
+    }
+
+    TEST(LocalIntensityScaleCudaTest, 1D_Z_DIR) {
+        APRTimer timer(true);
+        MeshData<float> m = getRandInitializedMesh<float>(33, 31, 13);
+
+        LocalIntensityScale lis;
+        for (int offset = 0; offset < 6; ++offset) {
+            // Run on CPU
+            MeshData<float> mCpu(m, true);
+            timer.start_timer("CPU mean X-DIR");
+            lis.calc_sat_mean_z(mCpu, offset);
+            timer.stop_timer();
+
+            // Run on GPU
+            MeshData<float> mGpu(m, true);
+            timer.start_timer("GPU mean X-DIR");
+            calcMeanZdir(mGpu, offset);
+            timer.stop_timer();
+
+            // Compare results
+            EXPECT_EQ(compareMeshes(mCpu, mGpu, 0.01), 0);
         }
     }
 

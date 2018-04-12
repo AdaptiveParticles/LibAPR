@@ -23,6 +23,7 @@ namespace {
 //        calcMeanYdir(u16, 0);
 //        calcMeanYdir(u8, 0);
         calcMeanXdir(f, 0);
+        calcMeanZdir(f, 0);
     }
 
     void printCudaDims(const dim3 &threadsPerBlock, const dim3 &numBlocks) {
@@ -137,7 +138,7 @@ __global__ void meanXdir(T *image, int offset, size_t x_num, size_t y_num, size_
         // clear shared mem
         for (int i = offset; i < divisor; ++i) data[i][workerIdx] = 0;
 
-        // saturate cache
+        // saturate cache with #offset elements since it will allow to calculate first element value on LHS
         float sum = 0;
         int count = 0;
         for (int i = 0; i < offset; ++i) {
@@ -147,31 +148,106 @@ __global__ void meanXdir(T *image, int offset, size_t x_num, size_t y_num, size_
             currElementOffset += nextElementOffset;
             ++count;
         }
-        int bp = offset;
 
-        // main loop
-        for (int x = offset; x < x_num; ++x) {
+        // Pointer in circular buffer
+        int beginPtr = offset;
+
+        // main loop going through all elements in range [0, x_num-offset)
+        for (int x = 0; x < x_num - offset; ++x) {
+            // Read new element
             T v = image[workerOffset + currElementOffset];
-            float sumT = sum;
+
+            // Update sum to cover [-offset, offset] of currently processed element
             sum += v;
-            sum -= data[bp][workerIdx];
-            data[bp][workerIdx] = v;
+            sum -= data[beginPtr][workerIdx];
+
+            // Save and move pointer
+            data[beginPtr][workerIdx] = v;
+            beginPtr = (beginPtr + 1) % divisor;
+
+            // Update count and save currently processed element
             count = min(count + 1, divisor);
             image[workerOffset + saveElementOffset] = sum / count;
-            bp = (bp + 1) % divisor;
+
+            // Move to next elements
             currElementOffset += nextElementOffset;
             saveElementOffset += nextElementOffset;
         }
 
+        // Handle last #offset elements on RHS
         while (saveElementOffset < currElementOffset) {
             count = count - 1;
-            sum -= data[bp][workerIdx];
+            sum -= data[beginPtr][workerIdx];
             image[workerOffset + saveElementOffset] = sum / count;
-            bp = (bp + 1) % divisor;
+            beginPtr = (beginPtr + 1) % divisor;
             saveElementOffset += nextElementOffset;
         }
     }
+}
 
+template <typename T>
+__global__ void meanZdir(T *image, int offset, size_t x_num, size_t y_num, size_t z_num) {
+    const size_t workerOffset = blockIdx.y * blockDim.y + threadIdx.y + (blockIdx.x * blockDim.x + threadIdx.x) * y_num;
+    const int workerYoffset = blockIdx.y * blockDim.y + threadIdx.y ;
+    const int workerIdx = threadIdx.y;
+    const int nextElementOffset = x_num * y_num;
+
+    extern __shared__ float sharedMem[];
+    float (*data)[32] = (float (*)[32])sharedMem;
+
+    const int divisor = 2 * offset  + 1;
+    int currElementOffset = 0;
+    int saveElementOffset = 0;
+
+    if (workerYoffset < y_num) {
+        // clear shared mem
+        for (int i = offset; i < divisor; ++i) data[i][workerIdx] = 0;
+
+        // saturate cache with #offset elements since it will allow to calculate first element value on LHS
+        float sum = 0;
+        int count = 0;
+        for (int i = 0; i < offset; ++i) {
+            T v = image[workerOffset + currElementOffset];
+            sum += v;
+            data[i][workerIdx] = v;
+            currElementOffset += nextElementOffset;
+            ++count;
+        }
+
+        // Pointer in circular buffer
+        int beginPtr = offset;
+
+        // main loop going through all elements in range [0, x_num-offset)
+        for (int z = 0; z < z_num - offset; ++z) {
+            // Read new element
+            T v = image[workerOffset + currElementOffset];
+
+            // Update sum to cover [-offset, offset] of currently processed element
+            sum += v;
+            sum -= data[beginPtr][workerIdx];
+
+            // Save and move pointer
+            data[beginPtr][workerIdx] = v;
+            beginPtr = (beginPtr + 1) % divisor;
+
+            // Update count and save currently processed element
+            count = min(count + 1, divisor);
+            image[workerOffset + saveElementOffset] = sum / count;
+
+            // Move to next elements
+            currElementOffset += nextElementOffset;
+            saveElementOffset += nextElementOffset;
+        }
+
+        // Handle last #offset elements on RHS
+        while (saveElementOffset < currElementOffset) {
+            count = count - 1;
+            sum -= data[beginPtr][workerIdx];
+            image[workerOffset + saveElementOffset] = sum / count;
+            beginPtr = (beginPtr + 1) % divisor;
+            saveElementOffset += nextElementOffset;
+        }
+    }
 }
 
 template <typename T>
@@ -192,6 +268,33 @@ void calcMeanXdir(MeshData<T> &image, int offset) {
                    (image.z_num + threadsPerBlock.z - 1)/threadsPerBlock.z);
     printCudaDims(threadsPerBlock, numBlocks);
     meanXdir<<<numBlocks,threadsPerBlock, (offset * 2 + 1) * sizeof(float) * 32>>>(cudaImage, offset, image.x_num, image.y_num, image.z_num);
+    waitForCuda();
+    timer.stop_timer();
+
+    timer.start_timer("cuda: transfer data from device and freeing memory");
+    cudaMemcpy((void*)image.mesh.get(), cudaImage, imageSize, cudaMemcpyDeviceToHost);
+    cudaFree(cudaImage);
+    timer.stop_timer();
+}
+
+template <typename T>
+void calcMeanZdir(MeshData<T> &image, int offset) {
+    APRTimer timer(true);
+
+    timer.start_timer("cuda: memory alloc + data transfer to device");
+    size_t imageSize = image.mesh.size() * sizeof(T);
+    T *cudaImage;
+    cudaMalloc(&cudaImage, imageSize);
+    cudaMemcpy(cudaImage, image.mesh.get(), imageSize, cudaMemcpyHostToDevice);
+    timer.stop_timer();
+
+    timer.start_timer("cuda: calculations on device");
+    dim3 threadsPerBlock(1, 32, 1);
+    dim3 numBlocks((image.x_num + threadsPerBlock.x - 1)/threadsPerBlock.x,
+                   (image.y_num + threadsPerBlock.y - 1)/threadsPerBlock.y,
+                   1);
+    printCudaDims(threadsPerBlock, numBlocks);
+    meanZdir<<<numBlocks,threadsPerBlock, (offset * 2 + 1) * sizeof(float) * 32>>>(cudaImage, offset, image.x_num, image.y_num, image.z_num);
     waitForCuda();
     timer.stop_timer();
 
