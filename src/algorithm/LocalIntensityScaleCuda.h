@@ -11,6 +11,7 @@
 
 template <typename T>
 void calcMeanYdir(MeshData<T> &image, int offset);
-
+template <typename T>
+void calcMeanXdir(MeshData<T> &image, int offset);
 
 #endif //LIBAPR_LOCALINTENSITYSCALECUDA_H

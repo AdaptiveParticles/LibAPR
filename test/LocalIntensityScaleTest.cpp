@@ -221,8 +221,8 @@ namespace {
     TEST(LocalIntensityScaleCudaTest, GPU_VS_CPU_ON_RANDOM_VALUES_Y_DIR) {
         // Generate random mesh
         using ImgType = float;
-        MeshData<ImgType> m = getRandInitializedMesh<ImgType>(512, 512, 512);
-        const int offset = 1;
+        MeshData<ImgType> m = getRandInitializedMesh<ImgType>(33, 31, 13);
+        const int offset = 5;
 
         APRTimer timer(true);
 
@@ -240,6 +240,26 @@ namespace {
 
         // Compare GPU vs CPU
         EXPECT_EQ(compareMeshes(mCpu, mGpu, 0.01), 0);
+    }
+
+    TEST(LocalIntensityScaleCudaTest, 1D_X_DIR) {
+        {
+            MeshData<float> m = getRandInitializedMesh<float>(33, 31, 13);
+
+            LocalIntensityScale lis;
+            for (int offset = 0; offset < 6; ++offset) {
+                // Run on CPU
+                MeshData<float> mCpu(m, true);
+                lis.calc_sat_mean_x(mCpu, offset);
+
+                // Run on GPU
+                MeshData<float> mGpu(m, true);
+                calcMeanXdir(mGpu, offset);
+
+                // Compare results
+                EXPECT_EQ(compareMeshes(mCpu, mGpu, 0.01), 0);
+            }
+        }
     }
 
 #endif // APR_USE_CUDA
