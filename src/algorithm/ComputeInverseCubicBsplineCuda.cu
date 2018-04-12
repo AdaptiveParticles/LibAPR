@@ -34,7 +34,7 @@ namespace {
 }
 
 template <typename ImgType>
-void cudaInverseBspline(MeshData<ImgType> &input, TypeOfFlags flags) {
+void cudaInverseBspline(MeshData<ImgType> &input, TypeOfInvBsplineFlags flags) {
     APRTimer timer(true), timerFullPipelilne(true);
     size_t inputSize = input.mesh.size() * sizeof(ImgType);
 

@@ -7,30 +7,9 @@
 #include <device_launch_parameters.h>
 #include <math_functions.h>
 
-namespace {
-    void waitForCuda() {
-        cudaDeviceSynchronize();
-        cudaError_t err = cudaGetLastError();
-        if (err != cudaSuccess) printf("Error: %s\n", cudaGetErrorString(err));
-    }
+#include "misc/CudaTools.hpp"
 
-    void emptyCallForTemplateInstantiation() {
-        MeshData<float> f = MeshData<float>(0, 0, 0);
-        MeshData<uint16_t> u16 = MeshData<uint16_t>(0, 0, 0);
-        MeshData<uint8_t> u8 = MeshData<uint8_t>(0, 0, 0);
 
-        calcMeanYdir(f, 0);
-//        calcMeanYdir(u16, 0);
-//        calcMeanYdir(u8, 0);
-        calcMeanXdir(f, 0);
-        calcMeanZdir(f, 0);
-    }
-
-    void printCudaDims(const dim3 &threadsPerBlock, const dim3 &numBlocks) {
-        std::cout << "Number of blocks  (x/y/z):  " << numBlocks.x << "/" << numBlocks.y << "/" << numBlocks.z << std::endl;
-        std::cout << "Number of threads (x/y/z): " << threadsPerBlock.x << "/" << threadsPerBlock.y << "/" << threadsPerBlock.z << std::endl;
-    }
-}
 /**
  *
  * How it works along y-dir (let's suppose offset = 2 and number of workers = 8 for simplicity):
@@ -93,33 +72,23 @@ __global__ void meanYdir(T *image, int offset, size_t x_num, size_t y_num, size_
     }
 }
 
-template <typename T>
-void calcMeanYdir(MeshData<T> &image, int offset) {
-    APRTimer timer(true);
+constexpr int NumberOfWorkers = 32; // Cannot be greater than 32 since there is no inter-warp communication implemented.
 
-    timer.start_timer("cuda: memory alloc + data transfer to device");
-    size_t imageSize = image.mesh.size() * sizeof(T);
-    T *cudaImage;
-    cudaMalloc(&cudaImage, imageSize);
-    cudaMemcpy(cudaImage, image.mesh.get(), imageSize, cudaMemcpyHostToDevice);
-    timer.stop_timer();
-
-    timer.start_timer("cuda: calculations on device");
-    dim3 threadsPerBlock(1, 32, 1);
-    dim3 numBlocks((image.x_num + threadsPerBlock.x - 1)/threadsPerBlock.x,
-                   1,
-                   (image.z_num + threadsPerBlock.z - 1)/threadsPerBlock.z);
-    printCudaDims(threadsPerBlock, numBlocks);
-    meanYdir<<<numBlocks,threadsPerBlock>>>(cudaImage, offset, image.x_num, image.y_num, image.z_num);
-    waitForCuda();
-    timer.stop_timer();
-
-    timer.start_timer("cuda: transfer data from device and freeing memory");
-    cudaMemcpy((void*)image.mesh.get(), cudaImage, imageSize, cudaMemcpyDeviceToHost);
-    cudaFree(cudaImage);
-    timer.stop_timer();
-}
-
+/**
+ * Filter in X-dir moves circular buffer along direction adding to sum of elements newly read element and removing last one.
+ * For instance (filter len = 5)
+ *
+ * idx:               0 1 2 3 4 5 6 7 8 9
+ * image elements:    1 2 2 4 5 3 2 1 3 4
+ *
+ * buffer:                2 3 4 5 2                        current sum = 16  element @idx=4 will be updated to 16/5
+ *
+ * next step
+ * buffer:                  3 4 5 2 1                      sum = sum - 2 + 1 = 15  element @idx=5 = 15 / 5
+ *
+ * In general circular buffer is kept to speedup operations and to not reach to global memory more than once for
+ * read/write operations for given element.
+ */
 template <typename T>
 __global__ void meanXdir(T *image, int offset, size_t x_num, size_t y_num, size_t z_num) {
     const size_t workerOffset = blockIdx.y * blockDim.y + threadIdx.y + (blockIdx.z * blockDim.z + threadIdx.z) * y_num * x_num;
@@ -128,7 +97,7 @@ __global__ void meanXdir(T *image, int offset, size_t x_num, size_t y_num, size_
     const int nextElementOffset = y_num;
 
     extern __shared__ float sharedMem[];
-    float (*data)[32] = (float (*)[32])sharedMem;
+    float (*data)[NumberOfWorkers] = (float (*)[NumberOfWorkers])sharedMem;
 
     const int divisor = 2 * offset  + 1;
     int currElementOffset = 0;
@@ -185,6 +154,21 @@ __global__ void meanXdir(T *image, int offset, size_t x_num, size_t y_num, size_
     }
 }
 
+/**
+ * Filter in Z-dir moves circular buffer along direction adding to sum of elements newly read element and removing last one.
+ * For instance (filter len = 5)
+ *
+ * idx:               0 1 2 3 4 5 6 7 8 9
+ * image elements:    1 2 2 4 5 3 2 1 3 4
+ *
+ * buffer:                2 3 4 5 2                        current sum = 16  element @idx=4 will be updated to 16/5
+ *
+ * next step
+ * buffer:                  3 4 5 2 1                      sum = sum - 2 + 1 = 15  element @idx=5 = 15 / 5
+ *
+ * In general circular buffer is kept to speedup operations and to not reach to global memory more than once for
+ * read/write operations for given element.
+ */
 template <typename T>
 __global__ void meanZdir(T *image, int offset, size_t x_num, size_t y_num, size_t z_num) {
     const size_t workerOffset = blockIdx.y * blockDim.y + threadIdx.y + (blockIdx.x * blockDim.x + threadIdx.x) * y_num;
@@ -193,7 +177,7 @@ __global__ void meanZdir(T *image, int offset, size_t x_num, size_t y_num, size_
     const int nextElementOffset = x_num * y_num;
 
     extern __shared__ float sharedMem[];
-    float (*data)[32] = (float (*)[32])sharedMem;
+    float (*data)[NumberOfWorkers] = (float (*)[NumberOfWorkers])sharedMem;
 
     const int divisor = 2 * offset  + 1;
     int currElementOffset = 0;
@@ -251,7 +235,7 @@ __global__ void meanZdir(T *image, int offset, size_t x_num, size_t y_num, size_
 }
 
 template <typename T>
-void calcMeanXdir(MeshData<T> &image, int offset) {
+void calcMean(MeshData<T> &image, int offset, TypeOfMeanFlags flags) {
     APRTimer timer(true);
 
     timer.start_timer("cuda: memory alloc + data transfer to device");
@@ -261,15 +245,43 @@ void calcMeanXdir(MeshData<T> &image, int offset) {
     cudaMemcpy(cudaImage, image.mesh.get(), imageSize, cudaMemcpyHostToDevice);
     timer.stop_timer();
 
-    timer.start_timer("cuda: calculations on device");
-    dim3 threadsPerBlock(1, 32, 1);
-    dim3 numBlocks(1,
-                   (image.y_num + threadsPerBlock.y - 1)/threadsPerBlock.y,
-                   (image.z_num + threadsPerBlock.z - 1)/threadsPerBlock.z);
-    printCudaDims(threadsPerBlock, numBlocks);
-    meanXdir<<<numBlocks,threadsPerBlock, (offset * 2 + 1) * sizeof(float) * 32>>>(cudaImage, offset, image.x_num, image.y_num, image.z_num);
-    waitForCuda();
-    timer.stop_timer();
+    if (flags & MEAN_Y_DIR) {
+        timer.start_timer("cuda: calculations on device");
+        dim3 threadsPerBlock(1, NumberOfWorkers, 1);
+        dim3 numBlocks((image.x_num + threadsPerBlock.x - 1)/threadsPerBlock.x,
+                       1,
+                       (image.z_num + threadsPerBlock.z - 1)/threadsPerBlock.z);
+        printCudaDims(threadsPerBlock, numBlocks);
+        meanYdir<<<numBlocks,threadsPerBlock>>>(cudaImage, offset, image.x_num, image.y_num, image.z_num);
+        waitForCuda();
+        timer.stop_timer();
+    }
+
+    // Shared memory size  - it is able to keep filter len elements for each worker.
+    const int sharedMemorySize = (offset * 2 + 1) * sizeof(float) * NumberOfWorkers;
+
+    if (flags & MEAN_X_DIR) {
+        timer.start_timer("cuda: calculations on device");
+        dim3 threadsPerBlock(1, NumberOfWorkers, 1);
+        dim3 numBlocks(1,
+                       (image.y_num + threadsPerBlock.y - 1) / threadsPerBlock.y,
+                       (image.z_num + threadsPerBlock.z - 1) / threadsPerBlock.z);
+        printCudaDims(threadsPerBlock, numBlocks);
+        meanXdir <<< numBlocks, threadsPerBlock, sharedMemorySize >>> (cudaImage, offset, image.x_num, image.y_num, image.z_num);
+        waitForCuda();
+        timer.stop_timer();
+    }
+    if (flags & MEAN_Z_DIR) {
+        timer.start_timer("cuda: calculations on device");
+        dim3 threadsPerBlock(1, NumberOfWorkers, 1);
+        dim3 numBlocks((image.x_num + threadsPerBlock.x - 1) / threadsPerBlock.x,
+                       (image.y_num + threadsPerBlock.y - 1) / threadsPerBlock.y,
+                       1);
+        printCudaDims(threadsPerBlock, numBlocks);
+        meanZdir <<< numBlocks, threadsPerBlock, sharedMemorySize >>> (cudaImage, offset, image.x_num, image.y_num, image.z_num);
+        waitForCuda();
+        timer.stop_timer();
+    }
 
     timer.start_timer("cuda: transfer data from device and freeing memory");
     cudaMemcpy((void*)image.mesh.get(), cudaImage, imageSize, cudaMemcpyDeviceToHost);
@@ -277,29 +289,14 @@ void calcMeanXdir(MeshData<T> &image, int offset) {
     timer.stop_timer();
 }
 
-template <typename T>
-void calcMeanZdir(MeshData<T> &image, int offset) {
-    APRTimer timer(true);
+namespace {
+    void emptyCallForTemplateInstantiation() {
+        MeshData<float> f = MeshData<float>(0, 0, 0);
+        MeshData<uint16_t> u16 = MeshData<uint16_t>(0, 0, 0);
+        MeshData<uint8_t> u8 = MeshData<uint8_t>(0, 0, 0);
 
-    timer.start_timer("cuda: memory alloc + data transfer to device");
-    size_t imageSize = image.mesh.size() * sizeof(T);
-    T *cudaImage;
-    cudaMalloc(&cudaImage, imageSize);
-    cudaMemcpy(cudaImage, image.mesh.get(), imageSize, cudaMemcpyHostToDevice);
-    timer.stop_timer();
-
-    timer.start_timer("cuda: calculations on device");
-    dim3 threadsPerBlock(1, 32, 1);
-    dim3 numBlocks((image.x_num + threadsPerBlock.x - 1)/threadsPerBlock.x,
-                   (image.y_num + threadsPerBlock.y - 1)/threadsPerBlock.y,
-                   1);
-    printCudaDims(threadsPerBlock, numBlocks);
-    meanZdir<<<numBlocks,threadsPerBlock, (offset * 2 + 1) * sizeof(float) * 32>>>(cudaImage, offset, image.x_num, image.y_num, image.z_num);
-    waitForCuda();
-    timer.stop_timer();
-
-    timer.start_timer("cuda: transfer data from device and freeing memory");
-    cudaMemcpy((void*)image.mesh.get(), cudaImage, imageSize, cudaMemcpyDeviceToHost);
-    cudaFree(cudaImage);
-    timer.stop_timer();
+        calcMean(f, 0, 0);
+        calcMean(u8, 0, 0);
+        calcMean(u16, 0, 0);
+    }
 }

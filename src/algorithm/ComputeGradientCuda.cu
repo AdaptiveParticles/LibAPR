@@ -363,7 +363,7 @@ void getGradient(MeshData<ImgType> &image, MeshData<ImgType> &grad_temp, MeshDat
         waitForCuda();
     }
     {
-        TypeOfFlags flags = INV_BSPLINE_ALL_DIR;
+        TypeOfInvBsplineFlags flags = INV_BSPLINE_ALL_DIR;
         MeshData<ImgType> &input = local_scale_temp;
         constexpr int numOfWorkers = 32;
         if (flags & INV_BSPLINE_Y_DIR) {

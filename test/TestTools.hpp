@@ -34,7 +34,6 @@ inline bool compare(MeshData<T> &mesh, const float *data, const float epsilon) {
     return true;
 }
 
-
 template<typename T>
 inline bool initFromZYXarray(MeshData<T> &mesh, const float *data) {
     size_t dataIdx = 0;
@@ -92,4 +91,6 @@ inline MeshData<T> getRandInitializedMesh(int y, int x, int z, float multiplier 
     }
     return m;
 }
+
+
 #endif //LIBAPR_TESTTOOLS_HPP

@@ -167,6 +167,11 @@ namespace {
         }
     }
 
+
+// ============================================================================
+// ====================       CUDA IMPL TESTS     =============================
+// ============================================================================
+
 #ifdef APR_USE_CUDA
 
     TEST(LocalIntensityScaleCudaTest, 1D_Y_DIR) {
@@ -178,7 +183,7 @@ namespace {
 
             initFromZYXarray(m, dataIn);
 
-            calcMeanYdir(m, 0);
+            calcMean(m, 0, MEAN_Y_DIR);
 
             ASSERT_TRUE(compare(m, expect, 0.05));
         }
@@ -190,7 +195,7 @@ namespace {
 
             initFromZYXarray(m, dataIn);
 
-            calcMeanYdir(m, 1);
+            calcMean(m, 1, MEAN_Y_DIR);
 
             ASSERT_TRUE(compare(m, expect, 0.05));
         }
@@ -202,7 +207,7 @@ namespace {
 
             initFromZYXarray(m, dataIn);
 
-            calcMeanYdir(m, 2);
+            calcMean(m, 2, MEAN_Y_DIR);
 
             ASSERT_TRUE(compare(m, expect, 0.05));
 
@@ -212,13 +217,13 @@ namespace {
 
             initFromZYXarray(m, dataIn2);
 
-            calcMeanYdir(m, 2);
+            calcMean(m, 2, MEAN_Y_DIR);
 
             ASSERT_TRUE(compare(m, expect2, 0.05));
         }
     }
 
-    TEST(LocalIntensityScaleCudaTest, GPU_VS_CPU_ON_RANDOM_VALUES_Y_DIR) {
+    TEST(LocalIntensityScaleCudaTest, GPU_VS_CPU_Y_DIR) {
         APRTimer timer(true);
         MeshData<float> m = getRandInitializedMesh<float>(33, 31, 13);
 
@@ -233,7 +238,7 @@ namespace {
             // Run on GPU
             MeshData<float> mGpu(m, true);
             timer.start_timer("GPU mean Y-DIR");
-            calcMeanYdir(mGpu, offset);
+            calcMean(mGpu, offset, MEAN_Y_DIR);
             timer.stop_timer();
 
             // Compare results
@@ -241,7 +246,7 @@ namespace {
         }
     }
 
-    TEST(LocalIntensityScaleCudaTest, 1D_X_DIR) {
+    TEST(LocalIntensityScaleCudaTest, 1GPU_VS_CPU_X_DIR) {
         APRTimer timer(true);
         MeshData<float> m = getRandInitializedMesh<float>(33, 31, 13);
 
@@ -256,7 +261,7 @@ namespace {
             // Run on GPU
             MeshData<float> mGpu(m, true);
             timer.start_timer("GPU mean X-DIR");
-            calcMeanXdir(mGpu, offset);
+            calcMean(mGpu, offset, MEAN_X_DIR);
             timer.stop_timer();
 
             // Compare results
@@ -264,7 +269,7 @@ namespace {
         }
     }
 
-    TEST(LocalIntensityScaleCudaTest, 1D_Z_DIR) {
+    TEST(LocalIntensityScaleCudaTest, GPU_VS_CPU_Z_DIR) {
         APRTimer timer(true);
         MeshData<float> m = getRandInitializedMesh<float>(33, 31, 13);
 
@@ -272,14 +277,39 @@ namespace {
         for (int offset = 0; offset < 6; ++offset) {
             // Run on CPU
             MeshData<float> mCpu(m, true);
-            timer.start_timer("CPU mean X-DIR");
+            timer.start_timer("CPU mean Z-DIR");
             lis.calc_sat_mean_z(mCpu, offset);
             timer.stop_timer();
 
             // Run on GPU
             MeshData<float> mGpu(m, true);
-            timer.start_timer("GPU mean X-DIR");
-            calcMeanZdir(mGpu, offset);
+            timer.start_timer("GPU mean Z-DIR");
+            calcMean(mGpu, offset, MEAN_Z_DIR);
+            timer.stop_timer();
+
+            // Compare results
+            EXPECT_EQ(compareMeshes(mCpu, mGpu, 0.01), 0);
+        }
+    }
+
+    TEST(LocalIntensityScaleCudaTest, GPU_VS_CPU_ALL_DIRS) {
+        APRTimer timer(true);
+        MeshData<float> m = getRandInitializedMesh<float>(33, 31, 13);
+
+        LocalIntensityScale lis;
+        for (int offset = 0; offset < 6; ++offset) {
+            // Run on CPU
+            MeshData<float> mCpu(m, true);
+            timer.start_timer("CPU mean Z-DIR");
+            lis.calc_sat_mean_y(mCpu, offset);
+            lis.calc_sat_mean_x(mCpu, offset);
+            lis.calc_sat_mean_z(mCpu, offset);
+            timer.stop_timer();
+
+            // Run on GPU
+            MeshData<float> mGpu(m, true);
+            timer.start_timer("GPU mean Z-DIR");
+            calcMean(mGpu, offset);
             timer.stop_timer();
 
             // Compare results

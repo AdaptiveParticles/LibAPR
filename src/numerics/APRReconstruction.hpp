@@ -84,7 +84,6 @@ public:
         //
 
         APRIterator<S> apr_iterator(apr);
-        uint64_t particle_number;
 
         img.init(apr.orginal_dimensions(0), apr.orginal_dimensions(1), apr.orginal_dimensions(2), 0);
 

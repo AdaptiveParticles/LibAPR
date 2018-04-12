@@ -122,16 +122,16 @@ add_library(aprObjLib OBJECT ${SOURCE_FILES} ${SOURCE_FILES_RAYCAST})
 if(APR_USE_CUDA)
     message(STATUS "APR: Building CUDA for APR")
     set(CMAKE_CUDA_STANDARD 14)
-    set(CMAKE_CUDA_FLAGS "--cudart shared -g -lineinfo -Xptxas -O3,-v -use_fast_math")
+    set(CMAKE_CUDA_FLAGS "--cudart shared -g -lineinfo -Xptxas -O3,-v -use_fast_math -DAPR_USE_CUDA")
     enable_language(CUDA)
-    set(APR_CUDA_SROUCE_FILES 
+    set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -DAPR_USE_CUDA")
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DAPR_USE_CUDA")
+    set(APR_CUDA_SROUCE_FILES
 	        src/algorithm/ComputeGradientCuda.cu
             src/algorithm/ComputeBsplineRecursiveFilter.cu
             src/algorithm/ComputeInverseCubicBsplineCuda.cu
             src/data_structures/Mesh/MeshData.cu
             src/algorithm/LocalIntensityScale.cu)
-    set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -DAPR_USE_CUDA")
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DAPR_USE_CUDA")
     include_directories(${CMAKE_CUDA_TOOLKIT_INCLUDE_DIRECTORIES})
 endif()
 

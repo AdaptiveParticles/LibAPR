@@ -133,7 +133,7 @@ namespace {
 }
 
 template <typename ImgType>
-void cudaFilterBsplineFull(MeshData<ImgType> &input, float lambda, float tolerance, TypeOfFlags flags) {
+void cudaFilterBsplineFull(MeshData<ImgType> &input, float lambda, float tolerance, TypeOfRecBsplineFlags flags) {
     APRTimer timer(true), timerFullPipelilne(true);
     size_t inputSize = input.mesh.size() * sizeof(ImgType);
     BsplineParams p = prepareBsplineStuff(input, lambda, tolerance);
