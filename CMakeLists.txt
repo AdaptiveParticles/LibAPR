@@ -240,6 +240,8 @@ if(APR_TESTS)
         add_subdirectory("external/gtest")
         set(GTEST_LIBRARIES gtest)
     endif(GTEST_FOUND)
+
+    enable_testing()
     add_subdirectory(test)
 endif(APR_TESTS)
 
