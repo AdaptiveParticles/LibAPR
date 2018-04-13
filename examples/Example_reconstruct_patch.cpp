@@ -25,8 +25,11 @@ Default: Piece-wise constant reconstruction
 Options:
 
 -pc_recon (outputs piece-wise reconstruction (Default))
--smooth_recon (Outputs a smooth reconstruction)
 -apr_properties (Outputs all Particle Cell information (x,y,z,l) and type to pc images
+-level (outputs the particle cell level as an image (the resolution function everywhere))
+-x_begin / x_end (starting/end index of local patch reconstruction)
+-y_begin / y_end (starting/end index of local patch reconstruction)
+-z_begin / z_end (starting/end index of local patch reconstruction) *if any are left blank the full range will be reconstructed
 
 )";
 
@@ -164,9 +167,11 @@ int main(int argc, char **argv) {
     APR<uint16_t> apr;
 
     //read file
+    timer.start_timer("read input");
     std::string file_name = options.directory + options.input;
     apr.read_apr(file_name);
     apr.name = options.output;
+    timer.stop_timer();
 
     APRReconstruction aprReconstruction;
 
