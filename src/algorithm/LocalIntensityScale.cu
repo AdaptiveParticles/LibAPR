@@ -110,10 +110,10 @@ __global__ void meanXdir(T *image, int offset, size_t x_num, size_t y_num, size_
         // saturate cache with #offset elements since it will allow to calculate first element value on LHS
         float sum = 0;
         int count = 0;
-        for (int i = 0; i < offset; ++i) {
+        while (count < offset) {
             T v = image[workerOffset + currElementOffset];
             sum += v;
-            data[i][workerIdx] = v;
+            data[count][workerIdx] = v;
             currElementOffset += nextElementOffset;
             ++count;
         }
@@ -190,10 +190,10 @@ __global__ void meanZdir(T *image, int offset, size_t x_num, size_t y_num, size_
         // saturate cache with #offset elements since it will allow to calculate first element value on LHS
         float sum = 0;
         int count = 0;
-        for (int i = 0; i < offset; ++i) {
+        while (count < offset) {
             T v = image[workerOffset + currElementOffset];
             sum += v;
-            data[i][workerIdx] = v;
+            data[count][workerIdx] = v;
             currElementOffset += nextElementOffset;
             ++count;
         }
