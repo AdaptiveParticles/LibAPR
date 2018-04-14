@@ -21,7 +21,6 @@ struct ReconPatch{
 class APRReconstruction {
 public:
 
-
     template<typename U,typename V,typename S>
     void interp_img(APR<S>& apr, MeshData<U>& img,ExtraParticleData<V>& parts){
         //
@@ -671,7 +670,6 @@ public:
 
         pc_image.swap(out_image);
     }
-
 
 
 };
