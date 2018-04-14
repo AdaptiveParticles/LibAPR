@@ -104,7 +104,7 @@ int main(int argc, char **argv) {
 
         //feel free to change
         unsigned int blosc_comp_type = BLOSC_ZSTD;
-        unsigned int blosc_comp_level = 1;
+        unsigned int blosc_comp_level = options.compress_level;
         unsigned int blosc_shuffle = 1;
 
         //write the APR to hdf5 file
@@ -122,7 +122,7 @@ int main(int argc, char **argv) {
         if(options.store_delta){
             //feel free to change
             unsigned int blosc_comp_type = BLOSC_ZSTD;
-            unsigned int blosc_comp_level = 1;
+            unsigned int blosc_comp_level = options.compress_level;
             unsigned int blosc_shuffle = 1;
 
             MeshData<uint16_t> recon_image;
