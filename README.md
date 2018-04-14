@@ -50,6 +50,10 @@ make
 
 This will create the `libapr.so` library in the `build` directory, as well as all of the examples.
 
+### Docker build
+
+We provide working Dockerfile that install the library within the image on a separate [repo](https://github.com/MSusik/libaprdocker).
+
 ### Building on OSX
 
 On OSX, install the `cmake`, `hdf5` and `libtiff`  [homebrew](https://brew.sh) packages and have the [Xcode command line tools](http://osxdaily.com/2014/02/12/install-command-line-tools-mac-os-x/) installed.
