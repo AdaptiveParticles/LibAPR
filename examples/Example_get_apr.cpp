@@ -148,7 +148,11 @@ int main(int argc, char **argv) {
             std::cout << std::endl;
 
             float file_size_org = aprWriter.write_mesh_to_hdf5(inputImage,save_loc,file_name,blosc_comp_type,blosc_comp_level,blosc_shuffle);
-            std::cout << "Size of the image diff: " << file_size << " MB" << std::endl;
+            std::cout << "Size of the pixel image compressed: " << file_size_org << " MB" << std::endl;
+
+            std::cout << std::endl;
+            std::cout << "Lossless Compression Ratio (Pixel Image): " << original_pixel_image_size/(file_size_org) << std::endl;
+            std::cout << std::endl;
 
         }
 
