@@ -134,6 +134,9 @@ int main(int argc, char **argv) {
 
             MeshData<int16_t> diff_image(inputImage.y_num,inputImage.x_num,inputImage.z_num);
 
+#ifdef HAVE_OPENMP
+#pragma omp parallel for schedule(static)
+#endif
             for (int i = 0; i < inputImage.mesh.size(); ++i) {
                 diff_image.mesh[i] = recon_image.mesh[i] - inputImage.mesh[i];
             }
