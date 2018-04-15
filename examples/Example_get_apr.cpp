@@ -132,18 +132,20 @@ int main(int argc, char **argv) {
             TiffUtils::TiffInfo inputTiff(options.directory + options.input);
             MeshData<uint16_t> inputImage = TiffUtils::getMesh<uint16_t>(inputTiff);
 
-            MeshData<int16_t> diff_image(inputImage.y_num,inputImage.x_num,inputImage.z_num);
+            MeshData<int16_t> diff_image(inputImage.y_num,inputImage.x_num,inputImage.z_num,0);
 
 #ifdef HAVE_OPENMP
 #pragma omp parallel for schedule(static)
 #endif
             for (int i = 0; i < inputImage.mesh.size(); ++i) {
-                diff_image.mesh[i] = recon_image.mesh[i] - inputImage.mesh[i];
+
+                diff_image.mesh[i] = 2 * abs(recon_image.mesh[i] - inputImage.mesh[i]) +
+                                         ((recon_image.mesh[i] - inputImage.mesh[i]) > 0);
             }
 
             std::cout << "Storing diff image for lossless reconstruction" << std::endl;
             APRWriter aprWriter;
-            float file_size = aprWriter.write_mesh_to_hdf5(recon_image,save_loc,file_name,blosc_comp_type,blosc_comp_level,blosc_shuffle);
+            float file_size = aprWriter.write_mesh_to_hdf5(diff_image,save_loc,file_name,blosc_comp_type,blosc_comp_level,blosc_shuffle);
             std::cout << "Size of the image diff: " << file_size << " MB" << std::endl;
 
             std::cout << std::endl;
