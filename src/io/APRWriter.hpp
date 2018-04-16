@@ -398,8 +398,7 @@ public:
     }
 
 
-private:
-    struct AprFile {
+    static struct AprFile {
         enum class Operation {READ, WRITE};
         hid_t fileId = -1;
         hid_t groupId = -1;
@@ -449,6 +448,7 @@ private:
         }
     };
 
+private:
     void readAttr(const AprType &aType, hid_t aGroupId, void *aDest) {
         hid_t attr_id = H5Aopen(aGroupId, aType.typeName, H5P_DEFAULT);
         H5Aread(attr_id, aType.hdf5type, aDest);
