@@ -138,7 +138,7 @@ void cudaFilterBsplineFull(MeshData<ImgType> &input, float lambda, float toleran
     size_t inputSize = input.mesh.size() * sizeof(ImgType);
     BsplineParams p = prepareBsplineStuff(input, lambda, tolerance);
 
-    timer.start_timer("cuda: memory alloc + data transfer to device");
+    timer.start_timer("GpuMemTransferHostToDevice");
     thrust::device_vector<float> d_bc1(p.bc1);
     thrust::device_vector<float> d_bc2(p.bc2);
     thrust::device_vector<float> d_bc3(p.bc3);
@@ -160,9 +160,9 @@ void cudaFilterBsplineFull(MeshData<ImgType> &input, float lambda, float toleran
 //    cudaDeviceSetCacheConfig(cudaFuncCachePreferShared);
 //    cudaDeviceSetSharedMemConfig(cudaSharedMemBankSizeFourByte);
 
-    timerFullPipelilne.start_timer("cuda: calculations on device FULL <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<< ");
+    timerFullPipelilne.start_timer("GpuDeviceTimeFull");
     if (flags & BSPLINE_Y_DIR) {
-        timer.start_timer("cuda: calculations on device Y ============================================================================ ");
+        timer.start_timer("GpuDeviceTimeYdir");
         dim3 threadsPerBlock(numOfThreads);
         dim3 numBlocks((input.x_num * input.z_num + threadsPerBlock.x - 1) / threadsPerBlock.x);
         printCudaDims(threadsPerBlock, numBlocks);
@@ -181,7 +181,7 @@ void cudaFilterBsplineFull(MeshData<ImgType> &input, float lambda, float toleran
                         (input.y_num + threadsPerBlockX.y - 1) / threadsPerBlockX.y,
                         (input.z_num + threadsPerBlockX.z - 1) / threadsPerBlockX.z);
         printCudaDims(threadsPerBlockX, numBlocksX);
-        timer.start_timer("cuda: calculations on device X ============================================================================ ");
+        timer.start_timer("GpuDeviceTimeXdir");
         bsplineXdir<ImgType> <<< numBlocksX, threadsPerBlockX >>> (cudaInput, input.x_num, input.y_num, bc1, bc2, bc3, bc4, p.k0, p.b1, p.b2, p.norm_factor);
         waitForCuda();
         timer.stop_timer();
@@ -190,16 +190,16 @@ void cudaFilterBsplineFull(MeshData<ImgType> &input, float lambda, float toleran
         dim3 threadsPerBlockZ(1, numOfWorkersYdir, 1);
         dim3 numBlocksZ(1,
                         (input.y_num + threadsPerBlockZ.y - 1) / threadsPerBlockZ.y,
-                        (input.x_num + threadsPerBlockZ.x - 1) / threadsPerBlockZ.x)); // Intentionally x-dim is here (after y) to get good memory coalescing
+                        (input.x_num + threadsPerBlockZ.x - 1) / threadsPerBlockZ.x); // Intentionally x-dim is here (after y) to get good memory coalescing
         printCudaDims(threadsPerBlockZ, numBlocksZ);
-        timer.start_timer("cuda: calculations on device Z ============================================================================ ");
+        timer.start_timer("GpuDeviceTimeZdir");
         bsplineZdir<ImgType> <<< numBlocksZ, threadsPerBlockZ >>> (cudaInput, input.x_num, input.y_num, input.z_num, bc1, bc2, bc3, bc4, p.k0, p.b1, p.b2, p.norm_factor);
         waitForCuda();
         timer.stop_timer();
     }
     timerFullPipelilne.stop_timer();
 
-    timer.start_timer("cuda: transfer data from device and freeing memory");
+    timer.start_timer("GpuMemTransferDeviceToHost");
     getDataFromKernel(input, inputSize, cudaInput);
     timer.stop_timer();
 }
