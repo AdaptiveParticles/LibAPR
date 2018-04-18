@@ -11,6 +11,8 @@
 #include <string>
 #ifdef HAVE_OPENMP
 #include "omp.h"
+#include "../../../APRBench/AnalysisData.hpp"
+extern AnalysisData ad;
 
 class APRTimer{
 //
@@ -43,7 +45,11 @@ public:
     APRTimer(bool aVerboseMode) : APRTimer() {
         verbose_flag = aVerboseMode;
     }
-
+    ~APRTimer() {
+   for (int i = 0; i < timings.size(); i++) {
+     ad.add_float_data(timing_names[i],timings[i]);
+}
+    }
     void start_timer(std::string timing_name){
         timing_names.push_back(timing_name);
         t1 = omp_get_wtime();
@@ -67,6 +73,9 @@ public:
 
 #else
 
+
+#include "../../../APRBench/AnalysisData.hpp"
+extern AnalysisData ad;
 class APRTimer {
 //
 //
@@ -101,6 +110,12 @@ public:
 
     APRTimer(bool aVerboseMode) : APRTimer() {
         verbose_flag = aVerboseMode;
+    }
+
+    ~APRTimer() {
+   for (int i = 0; i < timings.size(); i++) {
+     ad.add_float_data(timing_names[i],timings[i]);
+}
     }
 
     void start_timer(std::string timing_name){
