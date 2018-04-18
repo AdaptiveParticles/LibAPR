@@ -65,7 +65,7 @@ __global__ void bsplineZdir(T *image, size_t x_num, size_t y_num, size_t z_num,
                             float b1, float b2, float norm_factor) {
 
     const int yDirOffset = blockIdx.y * blockDim.y + threadIdx.y;
-    const size_t xDirOffset = (blockIdx.x * blockDim.x + threadIdx.x) * y_num;
+    const size_t xDirOffset = (blockIdx.z * blockDim.z + threadIdx.z) * y_num; // x is in 'z' to have good memory coalescing
     const size_t nextElementZdirOffset = x_num * y_num;
     const size_t dirLen = z_num;
 
