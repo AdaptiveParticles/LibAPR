@@ -17,6 +17,7 @@ option(APR_PREFER_EXTERNAL_GTEST "When found, use the installed GTEST libs inste
 option(APR_PREFER_EXTERNAL_BLOSC "When found, use the installed BLOSC libs instead of included sources" OFF)
 option(APR_BUILD_JAVA_WRAPPERS "Build APR JAVA wrappers" OFF)
 option(APR_USE_CUDA "should APR use CUDA?" ON)
+option(APR_BENCHMARK "add benchmarking code" OFF)
 
 # Validation of options
 if (NOT APR_BUILD_SHARED_LIB AND NOT APR_BUILD_STATIC_LIB)
@@ -107,6 +108,11 @@ elseif (CMAKE_CXX_COMPILER_ID MATCHES "Clang")
     set(CMAKE_CXX_FLAGS_DEBUG "-O0 -g")
 endif()
 
+if (APR_BENCHMARK)
+    set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -DAPR_BENCHMARK")
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DAPR_BENCHMARK")
+endif()
+
 
 ###############################################################################
 # Generate APR library
@@ -123,6 +129,9 @@ if(APR_USE_CUDA)
     message(STATUS "APR: Building CUDA for APR")
     set(CMAKE_CUDA_STANDARD 14)
     set(CMAKE_CUDA_FLAGS "--cudart shared -g -lineinfo -Xptxas -O3,-v -use_fast_math -DAPR_USE_CUDA")
+    if(APR_BENCHMARK)
+        set(CMAKE_CUDA_FLAGS "${CMAKE_CUDA_FLAGS} -DAPR_BENCHMARK")
+    endif()
     enable_language(CUDA)
     set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -DAPR_USE_CUDA")
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DAPR_USE_CUDA")
