@@ -236,17 +236,18 @@ __global__ void meanZdir(T *image, int offset, size_t x_num, size_t y_num, size_
 
 template <typename T>
 void calcMean(MeshData<T> &image, int offset, TypeOfMeanFlags flags) {
-    APRTimer timer(true);
+    APRTimer timer(true), timerFullPipelilne(true);
 
-    timer.start_timer("cuda: memory alloc + data transfer to device");
+    timer.start_timer("GpuMemTransferHostToDevice");
     size_t imageSize = image.mesh.size() * sizeof(T);
     T *cudaImage;
     cudaMalloc(&cudaImage, imageSize);
     cudaMemcpy(cudaImage, image.mesh.get(), imageSize, cudaMemcpyHostToDevice);
     timer.stop_timer();
 
+    timerFullPipelilne.start_timer("GpuDeviceTimeFull");
     if (flags & MEAN_Y_DIR) {
-        timer.start_timer("cuda: calculations on device");
+        timer.start_timer("GpuDeviceTimeYdir");
         dim3 threadsPerBlock(1, NumberOfWorkers, 1);
         dim3 numBlocks((image.x_num + threadsPerBlock.x - 1)/threadsPerBlock.x,
                        1,
@@ -261,7 +262,7 @@ void calcMean(MeshData<T> &image, int offset, TypeOfMeanFlags flags) {
     const int sharedMemorySize = (offset * 2 + 1) * sizeof(float) * NumberOfWorkers;
 
     if (flags & MEAN_X_DIR) {
-        timer.start_timer("cuda: calculations on device");
+        timer.start_timer("GpuDeviceTimeXdir");
         dim3 threadsPerBlock(1, NumberOfWorkers, 1);
         dim3 numBlocks(1,
                        (image.y_num + threadsPerBlock.y - 1) / threadsPerBlock.y,
@@ -272,7 +273,7 @@ void calcMean(MeshData<T> &image, int offset, TypeOfMeanFlags flags) {
         timer.stop_timer();
     }
     if (flags & MEAN_Z_DIR) {
-        timer.start_timer("cuda: calculations on device");
+        timer.start_timer("GpuDeviceTimeZdir");
         dim3 threadsPerBlock(1, NumberOfWorkers, 1);
         dim3 numBlocks((image.x_num + threadsPerBlock.x - 1) / threadsPerBlock.x,
                        (image.y_num + threadsPerBlock.y - 1) / threadsPerBlock.y,
@@ -282,6 +283,7 @@ void calcMean(MeshData<T> &image, int offset, TypeOfMeanFlags flags) {
         waitForCuda();
         timer.stop_timer();
     }
+    timerFullPipelilne.stop_timer();
 
     timer.start_timer("cuda: transfer data from device and freeing memory");
     cudaMemcpy((void*)image.mesh.get(), cudaImage, imageSize, cudaMemcpyDeviceToHost);
@@ -300,3 +302,4 @@ namespace {
         calcMean(u16, 0, 0);
     }
 }
+

@@ -300,7 +300,7 @@ namespace {
         for (int offset = 0; offset < 6; ++offset) {
             // Run on CPU
             MeshData<float> mCpu(m, true);
-            timer.start_timer("CPU mean Z-DIR");
+            timer.start_timer("CPU mean ALL-DIR");
             lis.calc_sat_mean_y(mCpu, offset);
             lis.calc_sat_mean_x(mCpu, offset);
             lis.calc_sat_mean_z(mCpu, offset);
@@ -308,7 +308,7 @@ namespace {
 
             // Run on GPU
             MeshData<float> mGpu(m, true);
-            timer.start_timer("GPU mean Z-DIR");
+            timer.start_timer("GPU mean ALL-DIR");
             calcMean(mGpu, offset);
             timer.stop_timer();
 
