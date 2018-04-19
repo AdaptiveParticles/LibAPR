@@ -171,7 +171,7 @@ __global__ void meanXdir(T *image, int offset, size_t x_num, size_t y_num, size_
  */
 template <typename T>
 __global__ void meanZdir(T *image, int offset, size_t x_num, size_t y_num, size_t z_num) {
-    const size_t workerOffset = blockIdx.y * blockDim.y + threadIdx.y + (blockIdx.x * blockDim.x + threadIdx.x) * y_num;
+    const size_t workerOffset = blockIdx.y * blockDim.y + threadIdx.y + (blockIdx.z * blockDim.z + threadIdx.z) * y_num; // *.z is 'x'
     const int workerYoffset = blockIdx.y * blockDim.y + threadIdx.y ;
     const int workerIdx = threadIdx.y;
     const int nextElementOffset = x_num * y_num;
@@ -275,9 +275,9 @@ void calcMean(MeshData<T> &image, int offset, TypeOfMeanFlags flags) {
     if (flags & MEAN_Z_DIR) {
         timer.start_timer("GpuDeviceTimeZdir");
         dim3 threadsPerBlock(1, NumberOfWorkers, 1);
-        dim3 numBlocks((image.x_num + threadsPerBlock.x - 1) / threadsPerBlock.x,
+        dim3 numBlocks(1,
                        (image.y_num + threadsPerBlock.y - 1) / threadsPerBlock.y,
-                       1);
+                       (image.x_num + threadsPerBlock.x - 1) / threadsPerBlock.x); // intentionally here for better memory readings
         printCudaDims(threadsPerBlock, numBlocks);
         meanZdir <<< numBlocks, threadsPerBlock, sharedMemorySize >>> (cudaImage, offset, image.x_num, image.y_num, image.z_num);
         waitForCuda();
