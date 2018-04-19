@@ -11,8 +11,11 @@
 #include <string>
 #ifdef HAVE_OPENMP
 #include "omp.h"
+
+#ifdef APR_BENCHMARK
 #include "../../../APRBench/AnalysisData.hpp"
 extern AnalysisData ad;
+#endif 
 
 class APRTimer{
 //
@@ -46,9 +49,11 @@ public:
         verbose_flag = aVerboseMode;
     }
     ~APRTimer() {
+	     #ifdef APR_BENCHMARK
    for (unsigned int i = 0; i < timings.size(); i++) {
      ad.add_float_data(timing_names[i],timings[i]);
 }
+ #endif
     }
     void start_timer(std::string timing_name){
         timing_names.push_back(timing_name);
@@ -73,9 +78,11 @@ public:
 
 #else
 
-
+#ifdef APR_BENCHMARK
 #include "../../../APRBench/AnalysisData.hpp"
 extern AnalysisData ad;
+#endif
+
 class APRTimer {
 //
 //
@@ -113,9 +120,11 @@ public:
     }
 
     ~APRTimer() {
+	     #ifdef APR_BENCHMARK
    for (unsigned int i = 0; i < timings.size(); i++) {
      ad.add_float_data(timing_names[i],timings[i]);
 }
+#endif
     }
 
     void start_timer(std::string timing_name){
