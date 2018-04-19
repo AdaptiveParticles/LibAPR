@@ -46,7 +46,7 @@ public:
         verbose_flag = aVerboseMode;
     }
     ~APRTimer() {
-   for (int i = 0; i < timings.size(); i++) {
+   for (unsigned int i = 0; i < timings.size(); i++) {
      ad.add_float_data(timing_names[i],timings[i]);
 }
     }
@@ -113,7 +113,7 @@ public:
     }
 
     ~APRTimer() {
-   for (int i = 0; i < timings.size(); i++) {
+   for (unsigned int i = 0; i < timings.size(); i++) {
      ad.add_float_data(timing_names[i],timings[i]);
 }
     }
