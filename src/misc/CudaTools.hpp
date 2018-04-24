@@ -6,10 +6,13 @@
 #define LIBAPR_CUDATOOLS_HPP
 
 
-#ifdef APR_USE_CUDA
-
 #include <cuda_runtime.h>
+#include <device_launch_parameters.h>
+#include <math_functions.h>
+
 #include <iostream>
+#include "data_structures/Mesh/MeshData.hpp"
+
 
 inline void waitForCuda() {
     cudaDeviceSynchronize();
@@ -22,6 +25,11 @@ inline void printCudaDims(const dim3 &threadsPerBlock, const dim3 &numBlocks) {
     std::cout << "Number of threads (x/y/z): " << threadsPerBlock.x << "/" << threadsPerBlock.y << "/" << threadsPerBlock.z << std::endl;
 }
 
-#endif
+template<typename ImgType>
+inline void getDataFromKernel(MeshData<ImgType> &input, size_t inputSize, ImgType *cudaInput) {
+    cudaMemcpy(input.mesh.get(), cudaInput, inputSize, cudaMemcpyDeviceToHost);
+    cudaFree(cudaInput);
+}
+
 
 #endif //LIBAPR_CUDATOOLS_HPP
