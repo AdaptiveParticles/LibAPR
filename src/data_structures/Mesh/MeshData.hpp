@@ -434,6 +434,42 @@ public :
         std::cout.flags(flagsBefore);
     }
 
+    /**
+ * Prints X-Y or X-Z planes of mesh (for debug/test purposses - use only on small meshes)
+ */
+    void printMeshT(int aColumnWidth, int aFloatPrecision = 10, bool aXYplanes = true) const {
+        std::ios::fmtflags flagsBefore(std::cout.flags());
+        std::cout << std::setw(aColumnWidth) << std::setprecision(aFloatPrecision) << std::fixed;
+
+        if (aXYplanes) {
+            for (size_t z = 0; z < z_num; ++z) {
+                std::cout << "z=" << z << "\n";
+                for (size_t x = 0; x < x_num; ++x) {
+                    for (size_t y = 0; y < y_num; ++y) {
+                        std::cout << std::setw(aColumnWidth) << std::setprecision(aFloatPrecision) << std::fixed << at(y, x, z) << " ";
+                    }
+                    std::cout << "\n";
+                }
+                std::cout << std::endl;
+            }
+        }
+        else { // X-Z planes
+            for (size_t y = 0; y < y_num; ++y) {
+                std::cout << "y=" << y << "\n";
+                for (size_t x = 0; x < x_num; ++x) {
+                    for (size_t z = 0; z < z_num; ++z) {
+                        std::cout << std::setw(aColumnWidth) << std::setprecision(aFloatPrecision) << std::fixed << at(y, x, z) << " ";
+                    }
+                    std::cout << "\n";
+                }
+                std::cout << std::endl;
+            }
+        }
+
+        // Revert settings
+        std::cout.flags(flagsBefore);
+    }
+
     friend std::ostream & operator<<(std::ostream &os, const MeshData<T> &obj) {
         os << "MeshData: size(Y/X/Z)=" << obj.y_num << "/" << obj.x_num << "/" << obj.z_num << " vSize:" << obj.mesh.size() << " vCapacity:" << obj.mesh.capacity() << " elementSize:" << sizeof(T);
         return os;
