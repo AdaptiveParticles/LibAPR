@@ -331,9 +331,9 @@ void getGradient(MeshData<ImgType> &image, MeshData<ImgType> &grad_temp, MeshDat
         }
         if (flags & BSPLINE_Z_DIR) {
             dim3 threadsPerBlockZ(1, numOfWorkersYdir, 1);
-            dim3 numBlocksZ((input.x_num + threadsPerBlockZ.x - 1) / threadsPerBlockZ.x,
+            dim3 numBlocksZ(1,
                             (input.y_num + threadsPerBlockZ.y - 1) / threadsPerBlockZ.y,
-                            1);
+                            (input.x_num + threadsPerBlockZ.x - 1) / threadsPerBlockZ.x);
             printCudaDims(threadsPerBlockZ, numBlocksZ);
             bsplineZdir<ImgType> <<< numBlocksZ, threadsPerBlockZ >>> (cudaImage, input.x_num, input.y_num, input.z_num, bc1, bc2, bc3, bc4, p.k0, p.b1, p.b2, p.norm_factor);
             waitForCuda();
