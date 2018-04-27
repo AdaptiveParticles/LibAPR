@@ -65,11 +65,11 @@ private:
     template<typename T>
     bool get_apr_method_from_file(APR<ImageType> &aAPR, const TiffUtils::TiffInfo &aTiffFile);
 
-    void get_local_intensity_scale(MeshData<float> &local_scale_temp, MeshData<float> &local_scale_temp2);
     void get_local_particle_cell_set(MeshData<ImageType> &grad_temp, MeshData<float> &local_scale_temp, MeshData<float> &local_scale_temp2);
 
     public:
     void get_gradient(MeshData<ImageType> &image_temp, MeshData<ImageType> &grad_temp, MeshData<float> &local_scale_temp, MeshData<float> &local_scale_temp2, float bspline_offset, const APRParameters &par);
+    void get_local_intensity_scale(MeshData<float> &local_scale_temp, MeshData<float> &local_scale_temp2, const APRParameters &par);
 };
 
 template <typename T>
@@ -192,7 +192,7 @@ bool APRConverter<ImageType>::get_apr_method(APR<ImageType> &aAPR, MeshData<T>& 
     method_timer.stop_timer();
 
     method_timer.start_timer("compute_local_intensity_scale");
-    get_local_intensity_scale(local_scale_temp, local_scale_temp2);
+    get_local_intensity_scale(local_scale_temp, local_scale_temp2, par);
     method_timer.stop_timer();
 
     method_timer.start_timer("initialize_particle_cell_tree");
@@ -337,7 +337,7 @@ void APRConverter<ImageType>::get_gradient(MeshData<ImageType> &image_temp, Mesh
 }
 
 template<typename ImageType>
-void APRConverter<ImageType>::get_local_intensity_scale(MeshData<float> &local_scale_temp, MeshData<float> &local_scale_temp2) {
+void APRConverter<ImageType>::get_local_intensity_scale(MeshData<float> &local_scale_temp, MeshData<float> &local_scale_temp2, const APRParameters &par) {
     //
     //  Calculate the Local Intensity Scale (You could replace this method with your own)
     //
@@ -354,7 +354,6 @@ void APRConverter<ImageType>::get_local_intensity_scale(MeshData<float> &local_s
     float var_rescale;
     std::vector<int> var_win;
     get_window(var_rescale,var_win,par);
-
     size_t win_y = var_win[0];
     size_t win_x = var_win[1];
     size_t win_z = var_win[2];

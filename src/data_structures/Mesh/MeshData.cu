@@ -6,15 +6,11 @@
 #include <device_launch_parameters.h>
 #include <device_functions.h>
 
+#include "misc/CudaTools.hpp"
+
 #include "downsample.cuh"
 
 namespace {
-    void waitForCuda() {
-        cudaDeviceSynchronize();
-        cudaError_t err = cudaGetLastError();
-        if (err != cudaSuccess) printf("Error: %s\n", cudaGetErrorString(err));
-    }
-
     void emptyCallForTemplateInstantiation() {
         MeshData<float> f = MeshData<float>(0, 0, 0);
         MeshData<uint16_t> u16 = MeshData<uint16_t>(0, 0, 0);
@@ -27,11 +23,6 @@ namespace {
         downsampleMaxCuda(f,  f);
         downsampleMaxCuda(u16,f);
         downsampleMaxCuda(u8, f);
-    }
-
-    void printCudaDims(const dim3 &threadsPerBlock, const dim3 &numBlocks) {
-        std::cout << "Number of blocks  (x/y/z):  " << numBlocks.x << "/" << numBlocks.y << "/" << numBlocks.z << std::endl;
-        std::cout << "Number of threads (x/y/z): " << threadsPerBlock.x << "/" << threadsPerBlock.y << "/" << threadsPerBlock.z << std::endl;
     }
 }
 

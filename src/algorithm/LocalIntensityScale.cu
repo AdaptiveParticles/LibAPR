@@ -1,5 +1,7 @@
 #include "LocalIntensityScaleCuda.h"
 
+#include "LocalIntensityScale.hpp"
+
 #include <iostream>
 #include <memory>
 
@@ -235,6 +237,49 @@ __global__ void meanZdir(T *image, int offset, size_t x_num, size_t y_num, size_
 }
 
 template <typename T>
+void localIntensityScaleCUDA(T *cudaImage, const MeshData<T> &image, int offsetX, int offsetY, int offsetZ, TypeOfMeanFlags flags) {
+    APRTimer timer(true);
+    if (flags & MEAN_Y_DIR) {
+        timer.start_timer("GpuDeviceTimeYdir");
+        dim3 threadsPerBlock(1, NumberOfWorkers, 1);
+        dim3 numBlocks((image.x_num + threadsPerBlock.x - 1)/threadsPerBlock.x,
+                       1,
+                       (image.z_num + threadsPerBlock.z - 1)/threadsPerBlock.z);
+        printCudaDims(threadsPerBlock, numBlocks);
+        meanYdir<<<numBlocks,threadsPerBlock>>>(cudaImage, offsetY, image.x_num, image.y_num, image.z_num);
+        waitForCuda();
+        timer.stop_timer();
+    }
+
+    if (flags & MEAN_X_DIR) {
+        // Shared memory size  - it is able to keep filter len elements for each worker.
+        const int sharedMemorySize = (offsetX * 2 + 1) * sizeof(float) * NumberOfWorkers;
+        timer.start_timer("GpuDeviceTimeXdir");
+        dim3 threadsPerBlock(1, NumberOfWorkers, 1);
+        dim3 numBlocks(1,
+                       (image.y_num + threadsPerBlock.y - 1) / threadsPerBlock.y,
+                       (image.z_num + threadsPerBlock.z - 1) / threadsPerBlock.z);
+        printCudaDims(threadsPerBlock, numBlocks);
+        meanXdir <<< numBlocks, threadsPerBlock, sharedMemorySize >>> (cudaImage, offsetX, image.x_num, image.y_num, image.z_num);
+        waitForCuda();
+        timer.stop_timer();
+    }
+    if (flags & MEAN_Z_DIR) {
+        // Shared memory size  - it is able to keep filter len elements for each worker.
+        const int sharedMemorySize = (offsetZ * 2 + 1) * sizeof(float) * NumberOfWorkers;
+        timer.start_timer("GpuDeviceTimeZdir");
+        dim3 threadsPerBlock(1, NumberOfWorkers, 1);
+        dim3 numBlocks(1,
+                       (image.y_num + threadsPerBlock.y - 1) / threadsPerBlock.y,
+                       (image.x_num + threadsPerBlock.x - 1) / threadsPerBlock.x); // intentionally here for better memory readings
+        printCudaDims(threadsPerBlock, numBlocks);
+        meanZdir <<< numBlocks, threadsPerBlock, sharedMemorySize >>> (cudaImage, offsetZ, image.x_num, image.y_num, image.z_num);
+        waitForCuda();
+        timer.stop_timer();
+    }
+}
+
+template <typename T>
 void calcMean(MeshData<T> &image, int offset, TypeOfMeanFlags flags) {
     APRTimer timer(true), timerFullPipelilne(true);
 
@@ -245,48 +290,103 @@ void calcMean(MeshData<T> &image, int offset, TypeOfMeanFlags flags) {
     cudaMemcpy(cudaImage, image.mesh.get(), imageSize, cudaMemcpyHostToDevice);
     timer.stop_timer();
 
+    // --------- CUDA ----------------
     timerFullPipelilne.start_timer("GpuDeviceTimeFull");
-    if (flags & MEAN_Y_DIR) {
-        timer.start_timer("GpuDeviceTimeYdir");
-        dim3 threadsPerBlock(1, NumberOfWorkers, 1);
-        dim3 numBlocks((image.x_num + threadsPerBlock.x - 1)/threadsPerBlock.x,
-                       1,
-                       (image.z_num + threadsPerBlock.z - 1)/threadsPerBlock.z);
-        printCudaDims(threadsPerBlock, numBlocks);
-        meanYdir<<<numBlocks,threadsPerBlock>>>(cudaImage, offset, image.x_num, image.y_num, image.z_num);
-        waitForCuda();
-        timer.stop_timer();
-    }
-
-    // Shared memory size  - it is able to keep filter len elements for each worker.
-    const int sharedMemorySize = (offset * 2 + 1) * sizeof(float) * NumberOfWorkers;
-
-    if (flags & MEAN_X_DIR) {
-        timer.start_timer("GpuDeviceTimeXdir");
-        dim3 threadsPerBlock(1, NumberOfWorkers, 1);
-        dim3 numBlocks(1,
-                       (image.y_num + threadsPerBlock.y - 1) / threadsPerBlock.y,
-                       (image.z_num + threadsPerBlock.z - 1) / threadsPerBlock.z);
-        printCudaDims(threadsPerBlock, numBlocks);
-        meanXdir <<< numBlocks, threadsPerBlock, sharedMemorySize >>> (cudaImage, offset, image.x_num, image.y_num, image.z_num);
-        waitForCuda();
-        timer.stop_timer();
-    }
-    if (flags & MEAN_Z_DIR) {
-        timer.start_timer("GpuDeviceTimeZdir");
-        dim3 threadsPerBlock(1, NumberOfWorkers, 1);
-        dim3 numBlocks(1,
-                       (image.y_num + threadsPerBlock.y - 1) / threadsPerBlock.y,
-                       (image.x_num + threadsPerBlock.x - 1) / threadsPerBlock.x); // intentionally here for better memory readings
-        printCudaDims(threadsPerBlock, numBlocks);
-        meanZdir <<< numBlocks, threadsPerBlock, sharedMemorySize >>> (cudaImage, offset, image.x_num, image.y_num, image.z_num);
-        waitForCuda();
-        timer.stop_timer();
-    }
+    localIntensityScaleCUDA(cudaImage, image, offset, offset, offset, flags);
     timerFullPipelilne.stop_timer();
 
     timer.start_timer("cuda: transfer data from device and freeing memory");
     cudaMemcpy((void*)image.mesh.get(), cudaImage, imageSize, cudaMemcpyDeviceToHost);
+    cudaFree(cudaImage);
+    timer.stop_timer();
+}
+
+template <typename T>
+__global__ void copy1dKernel(const T *input, T *output, size_t len) {
+    size_t idx = (size_t)blockIdx.x * blockDim.x + threadIdx.x;
+    if (idx < len) {
+        output[idx] = input[idx];
+    }
+}
+
+template <typename T>
+void copy1d(const T *input, T *output, size_t len) {
+    dim3 threadsPerBlock(64);
+    dim3 numBlocks((len + threadsPerBlock.x - 1) / threadsPerBlock.x);
+    copy1dKernel <<< numBlocks, threadsPerBlock >>> (input, output, len);
+}
+
+template<typename T>
+__global__ void absDiff1dKernel(T *data, const T *reference, size_t len) {
+    size_t idx = (size_t)blockIdx.x * blockDim.x + threadIdx.x;
+    if (idx < len) {
+        data[idx] = abs(data[idx] - reference[idx]);
+    }
+}
+
+template <typename T>
+void absDiff1d(T *data, const T *reference, size_t len) {
+    dim3 threadsPerBlock(64);
+    dim3 numBlocks((len + threadsPerBlock.x - 1) / threadsPerBlock.x);
+    absDiff1dKernel <<< numBlocks, threadsPerBlock >>> (data, reference, len);
+}
+
+template<typename T>
+__global__ void rescaleKernel(T *data, size_t len, float varRescale, float sigmaThreshold, float sigmaThresholdMax) {
+    const float max_th = 60000.0;
+    size_t idx = (size_t)blockIdx.x * blockDim.x + threadIdx.x;
+    if (idx < len) {
+        float rescaled = data[idx] * varRescale;
+        if (rescaled < sigmaThreshold) {
+            rescaled = (rescaled < sigmaThresholdMax) ? max_th : sigmaThreshold;
+        }
+        data[idx] = rescaled;
+    }
+}
+
+template <typename T>
+void rescale(T *data, size_t len, float varRescale, float sigma, float sigmaMax) {
+    dim3 threadsPerBlock(64);
+    dim3 numBlocks((len + threadsPerBlock.x - 1) / threadsPerBlock.x);
+    rescaleKernel <<< numBlocks, threadsPerBlock >>> (data, len, varRescale, sigma, sigmaMax);
+}
+
+template <typename T>
+void getLocalIntensityScale(MeshData<T> &image, MeshData<T> &temp, const APRParameters &par) {
+    APRTimer timer(true), timerFullPipelilne(true);
+
+    timer.start_timer("GpuMemTransferHostToDevice");
+    size_t imageSize = image.mesh.size() * sizeof(T);
+    T *cudaImage;
+    cudaMalloc(&cudaImage, imageSize);
+    cudaMemcpy(cudaImage, image.mesh.get(), imageSize, cudaMemcpyHostToDevice);
+    T *cudaTemp;
+    cudaMalloc(&cudaTemp, imageSize);
+    timer.stop_timer();
+
+    float var_rescale;
+    std::vector<int> var_win;
+    LocalIntensityScale().get_window(var_rescale,var_win,par);
+    size_t win_y = var_win[0];
+    size_t win_x = var_win[1];
+    size_t win_z = var_win[2];
+    size_t win_y2 = var_win[3];
+    size_t win_x2 = var_win[4];
+    size_t win_z2 = var_win[5];
+
+    // --------- CUDA ----------------
+    timerFullPipelilne.start_timer("GpuDeviceTimeFull");
+    copy1d(cudaImage, cudaTemp, image.mesh.size());
+    localIntensityScaleCUDA(cudaImage, image, win_x, win_y, win_z, MEAN_ALL_DIR);
+    absDiff1d(cudaImage, cudaTemp, image.mesh.size());
+    localIntensityScaleCUDA(cudaImage, image, win_x2, win_y2, win_z2, MEAN_ALL_DIR);
+    rescale(cudaImage, image.mesh.size(), var_rescale, par.sigma_th, par.sigma_th_max);
+    timerFullPipelilne.stop_timer();
+
+    timer.start_timer("GpuMemTransferDeviceToHost");
+    cudaMemcpy((void*)image.mesh.get(), cudaImage, imageSize, cudaMemcpyDeviceToHost);
+    cudaFree(cudaImage);
+    cudaMemcpy((void*)temp.mesh.get(), cudaTemp, imageSize, cudaMemcpyDeviceToHost);
     cudaFree(cudaImage);
     timer.stop_timer();
 }
@@ -300,6 +400,8 @@ namespace {
         calcMean(f, 0, 0);
         calcMean(u8, 0, 0);
         calcMean(u16, 0, 0);
-    }
-}
 
+        getLocalIntensityScale(f,f, APRParameters{});
+
+        }
+}

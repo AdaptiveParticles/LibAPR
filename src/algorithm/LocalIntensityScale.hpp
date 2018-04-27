@@ -28,7 +28,7 @@ public:
 };
 
 template<typename T>
-void LocalIntensityScale::rescale_var_and_threshold(MeshData<T> &var, const float var_rescale, const APRParameters &par) {
+inline void LocalIntensityScale::rescale_var_and_threshold(MeshData<T> &var, const float var_rescale, const APRParameters &par) {
     const float max_th = 60000.0;
 
     #ifdef HAVE_OPENMP
@@ -44,7 +44,7 @@ void LocalIntensityScale::rescale_var_and_threshold(MeshData<T> &var, const floa
 }
 
 template<typename T>
-void LocalIntensityScale::calc_abs_diff(const MeshData<T> &input_image, MeshData<T> &var) {
+inline void LocalIntensityScale::calc_abs_diff(const MeshData<T> &input_image, MeshData<T> &var) {
     #ifdef HAVE_OPENMP
 	#pragma omp parallel for default(shared)
     #endif
@@ -59,7 +59,7 @@ void LocalIntensityScale::calc_abs_diff(const MeshData<T> &input_image, MeshData
  * @param var_win
  * @param par
  */
-void LocalIntensityScale::get_window(float& var_rescale, std::vector<int>& var_win, const APRParameters& par){
+inline void LocalIntensityScale::get_window(float& var_rescale, std::vector<int>& var_win, const APRParameters& par){
     const double rescale_store[6][8][3] = {{{22.2589,11.1016,8.3869},{25.1582,11.8891,9.03},   {30.6167,14.1926,9.7998}, {37.9925,16.9623,11.0813}, {41.9572,19.7608,12.4187}, {49.4073,21.5938,14.3182}, {56.1431,25.5847,14.931},  {60.8832,26.7749,21.1417}},
                                            {{33.8526,13.7341,8.6388},{35.9641,14.3717,9.0377}, {37.7067,15.5675,9.4528}, {41.051,16.9566,10.4615},  {44.7464,18.5599,11.8842}, {52.9174,21.2077,12.5411}, {57.0255,25.5539,14.365},  {66.6008,25.9241,15.3422}},
                                            {{54.7417,20.8889,12.075},{56.2098,21.7017,12.4667},{60.7089,21.9547,13.3998},{60.8244,24.465,13.6899},  {66.4504,25.6705,14.6285}, {80.5723,27.8058,16.2839}, {81.11,30.8859,17.3954},   {99.2642,36.412,20.9048}},
@@ -103,7 +103,7 @@ void LocalIntensityScale::get_window(float& var_rescale, std::vector<int>& var_w
  * @param offset
  */
 template<typename T>
-void LocalIntensityScale::calc_sat_mean_y(MeshData<T>& input, const size_t offset){
+inline void LocalIntensityScale::calc_sat_mean_y(MeshData<T>& input, const size_t offset){
     const size_t z_num = input.z_num;
     const size_t x_num = input.x_num;
     const size_t y_num = input.y_num;
@@ -161,7 +161,7 @@ void LocalIntensityScale::calc_sat_mean_y(MeshData<T>& input, const size_t offse
 }
 
 template<typename T>
-void LocalIntensityScale::calc_sat_mean_x(MeshData<T>& input, const size_t offset) {
+inline void LocalIntensityScale::calc_sat_mean_x(MeshData<T>& input, const size_t offset) {
     const size_t z_num = input.z_num;
     const size_t x_num = input.x_num;
     const size_t y_num = input.y_num;
@@ -222,7 +222,7 @@ void LocalIntensityScale::calc_sat_mean_x(MeshData<T>& input, const size_t offse
 }
 
 template<typename T>
-void LocalIntensityScale::calc_sat_mean_z(MeshData<T>& input,const size_t offset) {
+inline void LocalIntensityScale::calc_sat_mean_z(MeshData<T>& input,const size_t offset) {
     const size_t z_num = input.z_num;
     const size_t x_num = input.x_num;
     const size_t y_num = input.y_num;

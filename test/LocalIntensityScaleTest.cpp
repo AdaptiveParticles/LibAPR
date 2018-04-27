@@ -6,7 +6,7 @@
 #include "data_structures/Mesh/MeshData.hpp"
 #include "algorithm/LocalIntensityScale.hpp"
 #include "algorithm/LocalIntensityScaleCuda.h"
-
+#include "algorithm/APRConverter.hpp"
 #include "TestTools.hpp"
 
 
@@ -315,6 +315,33 @@ namespace {
             // Compare results
             EXPECT_EQ(compareMeshes(mCpu, mGpu, 0.01), 0);
         }
+    }
+
+    TEST(LocalIntensityScaleCudaTest, GPU_VS_CPU_FULL_PIPELINE) {
+        APRTimer timer(true);
+        MeshData<float> m = getRandInitializedMesh<float>(512, 512, 512, 10);
+
+        APRParameters params;
+        params.sigma_th = 1;
+        params.sigma_th_max = 2;
+
+        // Run on CPU
+        MeshData<float> mCpu(m, true);
+        MeshData<float> mCpuTemp(m, false);
+        timer.start_timer("CPU mean FULL");
+        APRConverter<float>().get_local_intensity_scale(mCpu, mCpuTemp, params);
+        timer.stop_timer();
+
+        // Run on GPU
+        MeshData<float> mGpu(m, true);
+        MeshData<float> mGpuTemp(m, false);
+        timer.start_timer("GPU mean ALL-DIR");
+        getLocalIntensityScale(mGpu, mGpuTemp, params);
+        timer.stop_timer();
+
+        // Compare results
+        EXPECT_EQ(compareMeshes(mCpuTemp, mGpuTemp, 0.01), 0);
+        EXPECT_EQ(compareMeshes(mCpu, mGpu, 0.01), 0);
     }
 
 #endif // APR_USE_CUDA
