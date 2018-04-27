@@ -192,6 +192,7 @@ bool APRConverter<ImageType>::get_apr_method(APR<ImageType> &aAPR, MeshData<T>& 
     fine_grained_timer.stop_timer();
 
 #ifndef APR_USE_CUDA
+    method_timer.verbose_flag = true;
     method_timer.start_timer("compute_gradient_magnitude_using_bsplines");
     get_gradient(image_temp, grad_temp, local_scale_temp, local_scale_temp2, bspline_offset, par);
     method_timer.stop_timer();
@@ -199,6 +200,7 @@ bool APRConverter<ImageType>::get_apr_method(APR<ImageType> &aAPR, MeshData<T>& 
     method_timer.start_timer("compute_local_intensity_scale");
     get_local_intensity_scale(local_scale_temp, local_scale_temp2, par);
     method_timer.stop_timer();
+    method_timer.verbose_flag = false;
 #else
     method_timer.start_timer("compute_gradient_magnitude_using_bsplines and local instensity scale CUDA");
     getFullPipeline(image_temp, grad_temp, local_scale_temp, local_scale_temp2,bspline_offset, par);
