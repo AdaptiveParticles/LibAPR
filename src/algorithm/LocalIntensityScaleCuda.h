@@ -21,4 +21,8 @@ void calcMean(MeshData<T> &image, int offset, TypeOfMeanFlags flags = MEAN_ALL_D
 template <typename T>
 void getLocalIntensityScale(MeshData<T> &image, MeshData<T> &temp, const APRParameters &par);
 
+// Device method
+template <typename T, typename S>
+void localIntensityScaleCuda(const MeshData<T> &image, const APRParameters &par, S *cudaImage, S *cudaTemp);
+
 #endif //LIBAPR_LOCALINTENSITYSCALECUDA_H

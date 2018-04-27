@@ -271,18 +271,19 @@ namespace {
 
     TEST(LocalIntensityScaleCudaTest, GPU_VS_CPU_Z_DIR) {
         APRTimer timer(true);
-        MeshData<float> m = getRandInitializedMesh<float>(33, 31, 13);
+        using ImgType = float;
+        MeshData<ImgType> m = getRandInitializedMesh<ImgType>(310, 330, 13, 255);
 
         LocalIntensityScale lis;
         for (int offset = 0; offset < 6; ++offset) {
             // Run on CPU
-            MeshData<float> mCpu(m, true);
+            MeshData<ImgType> mCpu(m, true);
             timer.start_timer("CPU mean Z-DIR");
             lis.calc_sat_mean_z(mCpu, offset);
             timer.stop_timer();
 
             // Run on GPU
-            MeshData<float> mGpu(m, true);
+            MeshData<ImgType> mGpu(m, true);
             timer.start_timer("GPU mean Z-DIR");
             calcMean(mGpu, offset, MEAN_Z_DIR);
             timer.stop_timer();
@@ -317,9 +318,34 @@ namespace {
         }
     }
 
+    TEST(LocalIntensityScaleCudaTest, GPU_VS_CPU_ALL_DIRS_UINT16) {
+        APRTimer timer(true);
+        MeshData<uint16_t> m = getRandInitializedMesh<uint16_t>(33, 31, 13);
+
+        LocalIntensityScale lis;
+        for (int offset = 0; offset < 6; ++offset) {
+            // Run on CPU
+            MeshData<uint16_t> mCpu(m, true);
+            timer.start_timer("CPU mean ALL-DIR");
+            lis.calc_sat_mean_y(mCpu, offset);
+            lis.calc_sat_mean_x(mCpu, offset);
+            lis.calc_sat_mean_z(mCpu, offset);
+            timer.stop_timer();
+
+            // Run on GPU
+            MeshData<uint16_t> mGpu(m, true);
+            timer.start_timer("GPU mean ALL-DIR");
+            calcMean(mGpu, offset);
+            timer.stop_timer();
+
+            // Compare results
+            EXPECT_EQ(compareMeshes(mCpu, mGpu, 1), 0);
+        }
+    }
+
     TEST(LocalIntensityScaleCudaTest, GPU_VS_CPU_FULL_PIPELINE) {
         APRTimer timer(true);
-        MeshData<float> m = getRandInitializedMesh<float>(119, 33, 31, 10);
+        MeshData<float> m = getRandInitializedMesh<float>(310, 330, 13, 25);
 
         APRParameters params;
         params.sigma_th = 1;

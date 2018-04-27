@@ -649,7 +649,7 @@ namespace {
 
         // Generate random mesh
         using ImageType = float;
-        MeshData<ImageType> input_image = getRandInitializedMesh<ImageType>(310, 330, 13, 255);
+        MeshData<ImageType> input_image = getRandInitializedMesh<ImageType>(310, 330, 13, 25);
         MeshData<ImageType> &image_temp = input_image;
 
         MeshData<ImageType> grad_temp; // should be a down-sampled image
@@ -692,6 +692,57 @@ namespace {
         EXPECT_EQ(compareMeshes(local_scale_temp, local_scale_temp_GPU), 0);
     }
 
+    TEST(ComputeThreshold, FULL_PIPELINE_TEST) {
+        APRTimer timer(true);
+
+        // Generate random mesh
+        using ImageType = float;
+        MeshData<ImageType> input_image = getRandInitializedMesh<ImageType>(310, 330, 32, 25);
+        MeshData<ImageType> &image_temp = input_image;
+
+        MeshData<ImageType> grad_temp; // should be a down-sampled image
+        grad_temp.initDownsampled(input_image.y_num, input_image.x_num, input_image.z_num, 0);
+        MeshData<float> local_scale_temp; // Used as down-sampled images for some averaging steps where it is useful to not lose precision, or get over-flow errors
+        local_scale_temp.initDownsampled(input_image.y_num, input_image.x_num, input_image.z_num);
+        MeshData<float> local_scale_temp2;
+        local_scale_temp2.initDownsampled(input_image.y_num, input_image.x_num, input_image.z_num);
+
+        MeshData<ImageType> grad_temp_GPU; // should be a down-sampled image
+        grad_temp_GPU.initDownsampled(input_image.y_num, input_image.x_num, input_image.z_num, 0);
+        MeshData<float> local_scale_temp_GPU; // Used as down-sampled images for some averaging steps where it is useful to not lose precision, or get over-flow errors
+        local_scale_temp_GPU.initDownsampled(input_image.y_num, input_image.x_num, input_image.z_num);
+        MeshData<float> local_scale_temp2_GPU;
+        local_scale_temp2_GPU.initDownsampled(input_image.y_num, input_image.x_num, input_image.z_num);
+
+
+        APRParameters par;
+        par.lambda = 3;
+        par.Ip_th = 10;
+        par.sigma_th = 0;
+        par.sigma_th_max = 0;
+        par.dx = 1;
+        par.dy = 1;
+        par.dz = 1;
+
+        // Calculate bspline on CPU
+        MeshData<ImageType> mCpuImage(image_temp, true);
+        timer.start_timer(">>>>>>>>>>>>>>>>> CPU PIPELINE");
+        APRConverter<float>().get_gradient(mCpuImage, grad_temp, local_scale_temp, local_scale_temp2, 0, par);
+        APRConverter<float>().get_local_intensity_scale(local_scale_temp, local_scale_temp2, par);
+        timer.stop_timer();
+
+        // Calculate bspline on GPU
+        MeshData<ImageType> mGpuImage(image_temp, true);
+        timer.start_timer(">>>>>>>>>>>>>>>>> GPU PIPELINE");
+        getFullPipeline(mGpuImage, grad_temp_GPU, local_scale_temp_GPU, local_scale_temp2_GPU, 0, par);
+        timer.stop_timer();
+
+        // Compare GPU vs CPU
+        EXPECT_EQ(compareMeshes(mCpuImage, mGpuImage), 0);
+        EXPECT_EQ(compareMeshes(grad_temp, grad_temp_GPU), 0);
+        EXPECT_EQ(compareMeshes(local_scale_temp2, local_scale_temp2_GPU, 0.01), 0);
+        EXPECT_EQ(compareMeshes(local_scale_temp, local_scale_temp_GPU, 0.01), 0);
+    }
 
 
 #endif // APR_USE_CUDA

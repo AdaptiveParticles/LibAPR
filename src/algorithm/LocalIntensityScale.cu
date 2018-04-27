@@ -236,11 +236,13 @@ __global__ void meanZdir(T *image, int offset, size_t x_num, size_t y_num, size_
     }
 }
 
-template <typename T>
-void localIntensityScaleCUDA(T *cudaImage, const MeshData<T> &image, int offsetX, int offsetY, int offsetZ, TypeOfMeanFlags flags) {
+template <typename T, typename S>
+void localIntensityScaleCUDA(T *cudaImage, const MeshData<S> &image, int offsetX, int offsetY, int offsetZ, TypeOfMeanFlags flags) {
     APRTimer timer(true);
+
+
     if (flags & MEAN_Y_DIR) {
-        timer.start_timer("GpuDeviceTimeYdir");
+        timer.start_timer("GpuDeviceTimeYdirLIS");
         dim3 threadsPerBlock(1, NumberOfWorkers, 1);
         dim3 numBlocks((image.x_num + threadsPerBlock.x - 1)/threadsPerBlock.x,
                        1,
@@ -254,7 +256,7 @@ void localIntensityScaleCUDA(T *cudaImage, const MeshData<T> &image, int offsetX
     if (flags & MEAN_X_DIR) {
         // Shared memory size  - it is able to keep filter len elements for each worker.
         const int sharedMemorySize = (offsetX * 2 + 1) * sizeof(float) * NumberOfWorkers;
-        timer.start_timer("GpuDeviceTimeXdir");
+        timer.start_timer("GpuDeviceTimeXdirLIS");
         dim3 threadsPerBlock(1, NumberOfWorkers, 1);
         dim3 numBlocks(1,
                        (image.y_num + threadsPerBlock.y - 1) / threadsPerBlock.y,
@@ -267,7 +269,7 @@ void localIntensityScaleCUDA(T *cudaImage, const MeshData<T> &image, int offsetX
     if (flags & MEAN_Z_DIR) {
         // Shared memory size  - it is able to keep filter len elements for each worker.
         const int sharedMemorySize = (offsetZ * 2 + 1) * sizeof(float) * NumberOfWorkers;
-        timer.start_timer("GpuDeviceTimeZdir");
+        timer.start_timer("GpuDeviceTimeZdirLIS");
         dim3 threadsPerBlock(1, NumberOfWorkers, 1);
         dim3 numBlocks(1,
                        (image.y_num + threadsPerBlock.y - 1) / threadsPerBlock.y,
@@ -336,7 +338,7 @@ __global__ void rescaleKernel(T *data, size_t len, float varRescale, float sigma
     const float max_th = 60000.0;
     size_t idx = (size_t)blockIdx.x * blockDim.x + threadIdx.x;
     if (idx < len) {
-        float rescaled = data[idx] * varRescale;
+        float rescaled = varRescale * data[idx];
         if (rescaled < sigmaThreshold) {
             rescaled = (rescaled < sigmaThresholdMax) ? max_th : sigmaThreshold;
         }
@@ -351,10 +353,10 @@ void rescale(T *data, size_t len, float varRescale, float sigma, float sigmaMax)
     rescaleKernel <<< numBlocks, threadsPerBlock >>> (data, len, varRescale, sigma, sigmaMax);
 }
 
-template <typename T>
-void localIntensityScaleCuda(const MeshData<T> &image, const APRParameters &par, T *cudaImage, T *cudaTemp) {
+template <typename T, typename S>
+void localIntensityScaleCuda(const MeshData<T> &image, const APRParameters &par, S *cudaImage, S *cudaTemp) {
     float var_rescale;
-    std::__1::vector<int> var_win;
+    std::vector<int> var_win;
     LocalIntensityScale().get_window(var_rescale,var_win,par);
     size_t win_y = var_win[0];
     size_t win_x = var_win[1];
@@ -362,7 +364,7 @@ void localIntensityScaleCuda(const MeshData<T> &image, const APRParameters &par,
     size_t win_y2 = var_win[3];
     size_t win_x2 = var_win[4];
     size_t win_z2 = var_win[5];
-
+    std::cout << "GPU WINDOWS: " << win_y << " " << win_x << " " << win_z << " " << win_y2 << " " << win_x2 << " " << win_z2 << std::endl;
     // --------- CUDA ----------------
     copy1d(cudaImage, cudaTemp, image.mesh.size());
     localIntensityScaleCUDA(cudaImage, image, win_x, win_y, win_z, MEAN_ALL_DIR);
@@ -384,19 +386,15 @@ void getLocalIntensityScale(MeshData<T> &image, MeshData<T> &temp, const APRPara
     cudaMalloc(&cudaTemp, imageSize);
     timer.stop_timer();
 
-    localIntensityScaleCuda(image, par, cudaImage, cudaTemp);
-
     timerFullPipelilne.start_timer("GpuDeviceTimeFull");
+    localIntensityScaleCuda(image, par, cudaImage, cudaTemp);
     timerFullPipelilne.stop_timer();
 
     timer.start_timer("GpuMemTransferDeviceToHost");
-    cudaMemcpy((void*)image.mesh.get(), cudaImage, imageSize, cudaMemcpyDeviceToHost);
-    cudaFree(cudaImage);
-    cudaMemcpy((void*)temp.mesh.get(), cudaTemp, imageSize, cudaMemcpyDeviceToHost);
-    cudaFree(cudaImage);
+    getDataFromKernel(image, imageSize, cudaImage);
+    getDataFromKernel(temp, imageSize, cudaTemp);
     timer.stop_timer();
 }
-
 
 namespace {
     void emptyCallForTemplateInstantiation() {
@@ -409,6 +407,7 @@ namespace {
         calcMean(u16, 0, 0);
 
         getLocalIntensityScale(f,f, APRParameters{});
-
-        }
+        float fData = 1;
+        localIntensityScaleCuda(u16, APRParameters(), &fData, &fData);
+    }
 }

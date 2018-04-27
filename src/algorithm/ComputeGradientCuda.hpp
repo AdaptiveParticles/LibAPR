@@ -19,4 +19,8 @@ void thresholdImg(MeshData<T> &image, const float threshold);
 template <typename ImgType>
 void getGradient(MeshData<ImgType> &image, MeshData<ImgType> &grad_temp, MeshData<float> &local_scale_temp, MeshData<float> &local_scale_temp2, float bspline_offset, const APRParameters &par);
 
+template <typename ImgType>
+void getFullPipeline(MeshData<ImgType> &image, MeshData<ImgType> &grad_temp, MeshData<float> &local_scale_temp, MeshData<float> &local_scale_temp2, float bspline_offset, const APRParameters &par);
+
+
 #endif //LIBAPR_COMPUTEGRADIENTCUDA_HPP

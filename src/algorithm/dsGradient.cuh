@@ -1,7 +1,8 @@
 #ifndef DS_GRADIENT_CUH
 #define DS_GRADIENT_CUH
 
-__global__ void gradient(float *input, size_t x_num, size_t y_num, size_t z_num, float *grad, size_t x_num_ds, size_t y_num_ds, float hx, float hy, float hz) {
+template <typename T>
+__global__ void gradient(T *input, size_t x_num, size_t y_num, size_t z_num, T *grad, size_t x_num_ds, size_t y_num_ds, float hx, float hy, float hz) {
     const int xi = ((blockIdx.x * blockDim.x) + threadIdx.x) * 2;
     const int yi = ((blockIdx.y * blockDim.y) + threadIdx.y) * 2;
     const int zi = ((blockIdx.z * blockDim.z) + threadIdx.z) * 2;
