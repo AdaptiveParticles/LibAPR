@@ -4,25 +4,10 @@
 #include <device_launch_parameters.h>
 
 #include "invBspline.cuh"
+#include "misc/CudaTools.hpp"
+
 
 namespace {
-    void waitForCuda() {
-        cudaDeviceSynchronize();
-        cudaError_t err = cudaGetLastError();
-        if (err != cudaSuccess) printf("Error: %s\n", cudaGetErrorString(err));
-    }
-
-    template<typename ImgType>
-    void getDataFromKernel(MeshData<ImgType> &input, size_t inputSize, ImgType *cudaInput) {
-        cudaMemcpy(input.mesh.get(), cudaInput, inputSize, cudaMemcpyDeviceToHost);
-        cudaFree(cudaInput);
-    }
-
-    void printCudaDims(const dim3 &threadsPerBlock, const dim3 &numBlocks) {
-        std::cout << "Number of blocks  (x/y/z):  " << numBlocks.x << "/" << numBlocks.y << "/" << numBlocks.z << std::endl;
-        std::cout << "Number of threads (x/y/z): " << threadsPerBlock.x << "/" << threadsPerBlock.y << "/" << threadsPerBlock.z << std::endl;
-    }
-
     void emptyCallForTemplateInstantiation() {
         MeshData<float> f = MeshData<float>(0, 0, 0);
         MeshData<uint16_t> u16 = MeshData<uint16_t>(0, 0, 0);

@@ -352,6 +352,26 @@ void rescale(T *data, size_t len, float varRescale, float sigma, float sigmaMax)
 }
 
 template <typename T>
+void localIntensityScaleCuda(const MeshData<T> &image, const APRParameters &par, T *cudaImage, T *cudaTemp) {
+    float var_rescale;
+    std::__1::vector<int> var_win;
+    LocalIntensityScale().get_window(var_rescale,var_win,par);
+    size_t win_y = var_win[0];
+    size_t win_x = var_win[1];
+    size_t win_z = var_win[2];
+    size_t win_y2 = var_win[3];
+    size_t win_x2 = var_win[4];
+    size_t win_z2 = var_win[5];
+
+    // --------- CUDA ----------------
+    copy1d(cudaImage, cudaTemp, image.mesh.size());
+    localIntensityScaleCUDA(cudaImage, image, win_x, win_y, win_z, MEAN_ALL_DIR);
+    absDiff1d(cudaImage, cudaTemp, image.mesh.size());
+    localIntensityScaleCUDA(cudaImage, image, win_x2, win_y2, win_z2, MEAN_ALL_DIR);
+    rescale(cudaImage, image.mesh.size(), var_rescale, par.sigma_th, par.sigma_th_max);
+}
+
+template <typename T>
 void getLocalIntensityScale(MeshData<T> &image, MeshData<T> &temp, const APRParameters &par) {
     APRTimer timer(true), timerFullPipelilne(true);
 
@@ -364,23 +384,9 @@ void getLocalIntensityScale(MeshData<T> &image, MeshData<T> &temp, const APRPara
     cudaMalloc(&cudaTemp, imageSize);
     timer.stop_timer();
 
-    float var_rescale;
-    std::vector<int> var_win;
-    LocalIntensityScale().get_window(var_rescale,var_win,par);
-    size_t win_y = var_win[0];
-    size_t win_x = var_win[1];
-    size_t win_z = var_win[2];
-    size_t win_y2 = var_win[3];
-    size_t win_x2 = var_win[4];
-    size_t win_z2 = var_win[5];
+    localIntensityScaleCuda(image, par, cudaImage, cudaTemp);
 
-    // --------- CUDA ----------------
     timerFullPipelilne.start_timer("GpuDeviceTimeFull");
-    copy1d(cudaImage, cudaTemp, image.mesh.size());
-    localIntensityScaleCUDA(cudaImage, image, win_x, win_y, win_z, MEAN_ALL_DIR);
-    absDiff1d(cudaImage, cudaTemp, image.mesh.size());
-    localIntensityScaleCUDA(cudaImage, image, win_x2, win_y2, win_z2, MEAN_ALL_DIR);
-    rescale(cudaImage, image.mesh.size(), var_rescale, par.sigma_th, par.sigma_th_max);
     timerFullPipelilne.stop_timer();
 
     timer.start_timer("GpuMemTransferDeviceToHost");
@@ -390,6 +396,7 @@ void getLocalIntensityScale(MeshData<T> &image, MeshData<T> &temp, const APRPara
     cudaFree(cudaImage);
     timer.stop_timer();
 }
+
 
 namespace {
     void emptyCallForTemplateInstantiation() {

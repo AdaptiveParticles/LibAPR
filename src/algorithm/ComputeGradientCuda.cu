@@ -16,6 +16,7 @@
 #include "bsplineXdir.cuh"
 #include "bsplineYdir.cuh"
 #include "bsplineZdir.cuh"
+#include "misc/CudaTools.hpp"
 #include "data_structures/Mesh/downsample.cuh"
 
 void cudaDownsampledGradient(const MeshData<float> &input, MeshData<float> &grad, const float hx, const float hy,const float hz) {
@@ -56,12 +57,6 @@ void cudaDownsampledGradient(const MeshData<float> &input, MeshData<float> &grad
 }
 
 namespace {
-    void waitForCuda() {
-        cudaDeviceSynchronize();
-        cudaError_t err = cudaGetLastError();
-        if (err != cudaSuccess) printf("Error: %s\n", cudaGetErrorString(err));
-    }
-
     void emptyCallForTemplateInstantiation() {
         MeshData<float> f = MeshData<float>(0, 0, 0);
         MeshData<uint16_t> u16 = MeshData<uint16_t>(0, 0, 0);
@@ -76,11 +71,6 @@ namespace {
         thresholdImg(u8, 0);
 
         getGradient(f, f, f, f, 0, APRParameters());
-    }
-
-    void printCudaDims(const dim3 &threadsPerBlock, const dim3 &numBlocks) {
-        std::cout << "Number of blocks  (x/y/z):  " << numBlocks.x << "/" << numBlocks.y << "/" << numBlocks.z << std::endl;
-        std::cout << "Number of threads (x/y/z): " << threadsPerBlock.x << "/" << threadsPerBlock.y << "/" << threadsPerBlock.z << std::endl;
     }
 
     typedef struct {

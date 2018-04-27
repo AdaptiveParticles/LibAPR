@@ -11,6 +11,7 @@
 #include "bsplineXdir.cuh"
 #include "bsplineYdir.cuh"
 #include "bsplineZdir.cuh"
+#include "misc/CudaTools.hpp"
 
 
 namespace {
@@ -100,25 +101,6 @@ namespace {
                 b2,
                 norm_factor
         };
-    }
-
-    void waitForCuda() {
-        cudaDeviceSynchronize();
-        cudaError_t err = cudaGetLastError();
-        if (err != cudaSuccess) printf("Error: %s\n", cudaGetErrorString(err));
-    }
-
-    template<typename ImgType>
-    void getDataFromKernel(MeshData<ImgType> &input, size_t inputSize, ImgType *cudaInput) {
-        cudaMemcpy(input.mesh.get(), cudaInput, inputSize, cudaMemcpyDeviceToHost);
-        cudaFree(cudaInput);
-    }
-
-    void printCudaDims(const dim3 &threadsPerBlock, const dim3 &numBlocks) {
-        std::cout << "Number of blocks  (x/y/z):  " << numBlocks.x << "/" << numBlocks.y << "/" << numBlocks.z
-                  << std::endl;
-        std::cout << "Number of threads (x/y/z): " << threadsPerBlock.x << "/" << threadsPerBlock.y << "/"
-                  << threadsPerBlock.z << std::endl;
     }
 
     void emptyCallForTemplateInstantiation() {
