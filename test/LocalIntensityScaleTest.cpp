@@ -319,7 +319,7 @@ namespace {
 
     TEST(LocalIntensityScaleCudaTest, GPU_VS_CPU_FULL_PIPELINE) {
         APRTimer timer(true);
-        MeshData<float> m = getRandInitializedMesh<float>(512, 512, 512, 10);
+        MeshData<float> m = getRandInitializedMesh<float>(119, 33, 31, 10);
 
         APRParameters params;
         params.sigma_th = 1;
@@ -328,14 +328,14 @@ namespace {
         // Run on CPU
         MeshData<float> mCpu(m, true);
         MeshData<float> mCpuTemp(m, false);
-        timer.start_timer("CPU mean FULL");
+        timer.start_timer("CPU LIS FULL");
         APRConverter<float>().get_local_intensity_scale(mCpu, mCpuTemp, params);
         timer.stop_timer();
 
         // Run on GPU
         MeshData<float> mGpu(m, true);
         MeshData<float> mGpuTemp(m, false);
-        timer.start_timer("GPU mean ALL-DIR");
+        timer.start_timer("GPU LIS ALL-DIR");
         getLocalIntensityScale(mGpu, mGpuTemp, params);
         timer.stop_timer();
 
