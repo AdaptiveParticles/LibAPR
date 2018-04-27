@@ -325,8 +325,8 @@ void getGradientCuda(MeshData<ImgType> &image, MeshData<float> &local_scale_temp
         dim3 numBlocks((input.x_num + threadsPerBlock.x - 1)/threadsPerBlock.x,
                        (input.y_num + threadsPerBlock.y - 1)/threadsPerBlock.y,
                        (input.z_num + threadsPerBlock.z - 1)/threadsPerBlock.z);
-        std::__1::cout << "Number of blocks  (x/y/z):  " << numBlocks.x << "/" << numBlocks.y << "/" << numBlocks.z << std::__1::endl;
-        std::__1::cout << "Number of threads (x/y/z): " << threadsPerBlock.x << "/" << threadsPerBlock.y << "/" << threadsPerBlock.z << std::__1::endl;
+        std::cout << "Number of blocks  (x/y/z):  " << numBlocks.x << "/" << numBlocks.y << "/" << numBlocks.z << std::endl;
+        std::cout << "Number of threads (x/y/z): " << threadsPerBlock.x << "/" << threadsPerBlock.y << "/" << threadsPerBlock.z << std::endl;
 
         gradient<<<numBlocks,threadsPerBlock>>>(cudaImage, input.x_num, input.y_num, input.z_num, cudaGrad, grad_temp.x_num, grad_temp.y_num, par.dx, par.dy, par.dz);
         cudaDeviceSynchronize();
