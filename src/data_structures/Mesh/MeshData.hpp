@@ -23,6 +23,9 @@
 
 #include "../../misc/APRTimer.hpp"
 
+#ifdef HAVE_OPENMP
+#include <omp.h>
+#endif
 
 template <typename T>
 class ArrayWrapper
