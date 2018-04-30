@@ -249,7 +249,7 @@ void localIntensityScaleCUDA(T *cudaImage, const MeshData<S> &image, int offsetX
                        (image.z_num + threadsPerBlock.z - 1)/threadsPerBlock.z);
         printCudaDims(threadsPerBlock, numBlocks);
         meanYdir<<<numBlocks,threadsPerBlock>>>(cudaImage, offsetY, image.x_num, image.y_num, image.z_num);
-        waitForCuda();
+//        waitForCuda();
         timer.stop_timer();
     }
 
@@ -263,7 +263,7 @@ void localIntensityScaleCUDA(T *cudaImage, const MeshData<S> &image, int offsetX
                        (image.z_num + threadsPerBlock.z - 1) / threadsPerBlock.z);
         printCudaDims(threadsPerBlock, numBlocks);
         meanXdir <<< numBlocks, threadsPerBlock, sharedMemorySize >>> (cudaImage, offsetX, image.x_num, image.y_num, image.z_num);
-        waitForCuda();
+//        waitForCuda();
         timer.stop_timer();
     }
     if (flags & MEAN_Z_DIR) {
@@ -276,14 +276,14 @@ void localIntensityScaleCUDA(T *cudaImage, const MeshData<S> &image, int offsetX
                        (image.x_num + threadsPerBlock.x - 1) / threadsPerBlock.x); // intentionally here for better memory readings
         printCudaDims(threadsPerBlock, numBlocks);
         meanZdir <<< numBlocks, threadsPerBlock, sharedMemorySize >>> (cudaImage, offsetZ, image.x_num, image.y_num, image.z_num);
-        waitForCuda();
+//        waitForCuda();
         timer.stop_timer();
     }
 }
 
 template <typename T>
 void calcMean(MeshData<T> &image, int offset, TypeOfMeanFlags flags) {
-    APRTimer timer(true), timerFullPipelilne(true);
+    APRTimer timer(true);
 
     timer.start_timer("GpuMemTransferHostToDevice");
     size_t imageSize = image.mesh.size() * sizeof(T);
@@ -293,9 +293,9 @@ void calcMean(MeshData<T> &image, int offset, TypeOfMeanFlags flags) {
     timer.stop_timer();
 
     // --------- CUDA ----------------
-    timerFullPipelilne.start_timer("GpuDeviceTimeFull");
+    timer.start_timer("GpuDeviceTimeFull");
     localIntensityScaleCUDA(cudaImage, image, offset, offset, offset, flags);
-    timerFullPipelilne.stop_timer();
+    timer.stop_timer();
 
     timer.start_timer("cuda: transfer data from device and freeing memory");
     cudaMemcpy((void*)image.mesh.get(), cudaImage, imageSize, cudaMemcpyDeviceToHost);
@@ -355,7 +355,7 @@ void rescale(T *data, size_t len, float varRescale, float sigma, float sigmaMax)
 
 template <typename T, typename S>
 void localIntensityScaleCuda(const MeshData<T> &image, const APRParameters &par, S *cudaImage, S *cudaTemp) {
-    APRTimer timer(true);
+    CudaTimer timer(true, "localIntensityScaleCuda");
 
     float var_rescale;
     std::vector<int> var_win;

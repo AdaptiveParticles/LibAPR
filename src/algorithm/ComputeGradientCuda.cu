@@ -259,14 +259,14 @@ template <typename ImgType>
 void getGradientCuda(MeshData<ImgType> &image, MeshData<float> &local_scale_temp, MeshData<ImgType> &grad_temp,
                      ImgType *cudaImage, ImgType *cudaGrad, float *cudalocal_scale_temp,
                      float bspline_offset, const APRParameters &par) {
-    APRTimer timer(true);
+    CudaTimer timer(true, "getGradientCuda");
     {
         timer.start_timer("threshold");
         dim3 threadsPerBlock(64);
         dim3 numBlocks((image.x_num * image.y_num * image.z_num + threadsPerBlock.x - 1) / threadsPerBlock.x);
         printCudaDims(threadsPerBlock, numBlocks);
         thresholdImg << < numBlocks, threadsPerBlock >> > (cudaImage, image.mesh.size(), par.Ip_th + bspline_offset);
-        waitForCuda();
+//        waitForCuda();
         timer.stop_timer();
     }
     {
@@ -299,7 +299,7 @@ void getGradientCuda(MeshData<ImgType> &image, MeshData<float> &local_scale_temp
             bsplineYdirBoundary<ImgType> <<< numBlocks, threadsPerBlock, sharedMemSize >>> (cudaImage, input.x_num, input.y_num, input.z_num, bc1, bc2, bc3, bc4, p.k0, boundary);
             sharedMemSize = numOfThreads * blockWidth * sizeof(ImgType);
             bsplineYdirProcess<ImgType> <<< numBlocks, threadsPerBlock, sharedMemSize >>> (cudaImage, input.x_num, input.y_num, input.z_num, p.k0, p.b1, p.b2, p.norm_factor, boundary);
-            waitForCuda();
+//            waitForCuda();
             cudaFree(boundary);
         }
         constexpr int numOfWorkersYdir = 64;
@@ -310,7 +310,7 @@ void getGradientCuda(MeshData<ImgType> &image, MeshData<float> &local_scale_temp
                             (input.z_num + threadsPerBlockX.z - 1) / threadsPerBlockX.z);
             printCudaDims(threadsPerBlockX, numBlocksX);
             bsplineXdir<ImgType> <<< numBlocksX, threadsPerBlockX >>> (cudaImage, input.x_num, input.y_num, bc1, bc2, bc3, bc4, p.k0, p.b1, p.b2, p.norm_factor);
-            waitForCuda();
+//            waitForCuda();
         }
         if (flags & BSPLINE_Z_DIR) {
             dim3 threadsPerBlockZ(1, numOfWorkersYdir, 1);
@@ -319,7 +319,7 @@ void getGradientCuda(MeshData<ImgType> &image, MeshData<float> &local_scale_temp
                             (input.x_num + threadsPerBlockZ.x - 1) / threadsPerBlockZ.x);
             printCudaDims(threadsPerBlockZ, numBlocksZ);
             bsplineZdir<ImgType> <<< numBlocksZ, threadsPerBlockZ >>> (cudaImage, input.x_num, input.y_num, input.z_num, bc1, bc2, bc3, bc4, p.k0, p.b1, p.b2, p.norm_factor);
-            waitForCuda();
+//            waitForCuda();
         }
         timer.stop_timer();
     }
@@ -334,7 +334,7 @@ void getGradientCuda(MeshData<ImgType> &image, MeshData<float> &local_scale_temp
         std::cout << "Number of threads (x/y/z): " << threadsPerBlock.x << "/" << threadsPerBlock.y << "/" << threadsPerBlock.z << std::endl;
 
         gradient<<<numBlocks,threadsPerBlock>>>(cudaImage, input.x_num, input.y_num, input.z_num, cudaGrad, grad_temp.x_num, grad_temp.y_num, par.dx, par.dy, par.dz);
-        cudaDeviceSynchronize();
+//        waitForCuda();
         timer.stop_timer();
     }
     {
@@ -347,7 +347,7 @@ void getGradientCuda(MeshData<ImgType> &image, MeshData<float> &local_scale_temp
         printCudaDims(threadsPerBlock, numBlocks);
 
         downsampleMeanKernel<<<numBlocks,threadsPerBlock>>>(cudaImage, cudalocal_scale_temp, input.x_num, input.y_num, input.z_num);
-        waitForCuda();
+//        waitForCuda();
         timer.stop_timer();
     }
     {
@@ -362,7 +362,7 @@ void getGradientCuda(MeshData<ImgType> &image, MeshData<float> &local_scale_temp
                            (input.z_num + threadsPerBlock.z - 1) / threadsPerBlock.z);
             printCudaDims(threadsPerBlock, numBlocks);
             invBsplineYdir <<< numBlocks, threadsPerBlock>>> (cudalocal_scale_temp, input.x_num, input.y_num, input.z_num);
-            waitForCuda();
+//            waitForCuda();
             timer.stop_timer();
         }
         if (flags & INV_BSPLINE_X_DIR) {
@@ -373,7 +373,7 @@ void getGradientCuda(MeshData<ImgType> &image, MeshData<float> &local_scale_temp
                            (input.z_num + threadsPerBlock.z - 1) / threadsPerBlock.z);
             printCudaDims(threadsPerBlock, numBlocks);
             invBsplineXdir <<< numBlocks, threadsPerBlock>>> (cudalocal_scale_temp, input.x_num, input.y_num, input.z_num);
-            waitForCuda();
+//            waitForCuda();
             timer.stop_timer();
         }
         if (flags & INV_BSPLINE_Z_DIR) {
@@ -384,7 +384,7 @@ void getGradientCuda(MeshData<ImgType> &image, MeshData<float> &local_scale_temp
                            1);
             printCudaDims(threadsPerBlock, numBlocks);
             invBsplineZdir <<< numBlocks, threadsPerBlock>>> (cudalocal_scale_temp, input.x_num, input.y_num, input.z_num);
-            waitForCuda();
+//            waitForCuda();
             timer.stop_timer();
         }
     }
@@ -397,7 +397,7 @@ void getGradientCuda(MeshData<ImgType> &image, MeshData<float> &local_scale_temp
         printCudaDims(threadsPerBlock, numBlocks);
 
         threshold<<<numBlocks,threadsPerBlock>>>(cudalocal_scale_temp, cudaGrad, output.mesh.size(), par.Ip_th);
-        waitForCuda();
+//        waitForCuda();
         timer.stop_timer();
     }
 }
@@ -440,8 +440,11 @@ void getGradient(MeshData<ImgType> &image, MeshData<ImgType> &grad_temp, MeshDat
 
 template <typename ImgType>
 void getFullPipeline(MeshData<ImgType> &image, MeshData<ImgType> &grad_temp, MeshData<float> &local_scale_temp, MeshData<float> &local_scale_temp2, float bspline_offset, const APRParameters &par) {
-    APRTimer timer(true);
+    CudaTimer timer(true, "getFullPipeline");
 
+    timer.start_timer("Whole processing with transfers");
+
+    // Host -> Device transfers
     timer.start_timer("cuda: memory alloc + data transfer to device");
     size_t imageSize = image.mesh.size() * sizeof(ImgType);
     ImgType *cudaImage = nullptr;
@@ -457,12 +460,13 @@ void getFullPipeline(MeshData<ImgType> &image, MeshData<ImgType> &grad_temp, Mes
     cudaMalloc(&cudalocal_scale_temp2, local_scale_tempSize);
     timer.stop_timer();
 
-
+    // Processing on GPU
     timer.start_timer("cuda: calculations on device PIPELLINE");
     getGradientCuda(image, local_scale_temp, grad_temp, cudaImage, cudaGrad, cudalocal_scale_temp, bspline_offset, par);
     localIntensityScaleCuda(local_scale_temp, par, cudalocal_scale_temp, cudalocal_scale_temp2);
     timer.stop_timer();
 
+    // Device -> Host transfers
     timer.start_timer("cuda: transfer data from device and freeing memory");
     cudaMemcpy((void*)image.mesh.get(), cudaImage, imageSize, cudaMemcpyDeviceToHost);
     cudaFree(cudaImage);
@@ -472,5 +476,7 @@ void getFullPipeline(MeshData<ImgType> &image, MeshData<ImgType> &grad_temp, Mes
     cudaFree(cudalocal_scale_temp);
     cudaMemcpy((void*)local_scale_temp2.mesh.get(), cudalocal_scale_temp2, local_scale_tempSize, cudaMemcpyDeviceToHost);
     cudaFree(cudalocal_scale_temp2);
+    timer.stop_timer();
+
     timer.stop_timer();
 }

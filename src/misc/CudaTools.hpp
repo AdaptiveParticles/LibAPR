@@ -11,6 +11,7 @@
 #include <math_functions.h>
 
 #include <iostream>
+#include <chrono>
 #include "data_structures/Mesh/MeshData.hpp"
 
 
@@ -31,5 +32,46 @@ inline void getDataFromKernel(MeshData<ImgType> &input, size_t inputSize, ImgTyp
     cudaFree(cudaInput);
 }
 
+
+class CudaTimer {
+    std::vector<std::chrono::system_clock::time_point> iStartTimes;
+    std::vector<std::string> names;
+    bool iUseTimer;
+    std::string iTimerName;
+
+public:
+    CudaTimer(bool aUseTimer, const std::string &aTimerName = "NO_NAME") : iUseTimer(aUseTimer), iTimerName(aTimerName) {
+        if (iUseTimer) {
+            std::cout << "--TIME-- " << iTimerName << " started!" << "\n";
+        }
+    }
+
+
+    void start_timer(const std::string &timing_name) {
+        if (iUseTimer) {
+            names.push_back(timing_name);
+            std::chrono::system_clock::time_point startTime = std::chrono::system_clock::now();
+            iStartTimes.push_back(startTime);
+        }
+    }
+
+    void stop_timer() {
+        if (iUseTimer) {
+            waitForCuda();
+            std::chrono::system_clock::time_point endTime = std::chrono::system_clock::now();
+            if (iStartTimes.size() == 0) {
+                std::cout << "ERROR: you have stopeed timer too many times..." << std::endl;
+                return;
+            }
+            std::chrono::system_clock::time_point startTime = iStartTimes.back();
+            iStartTimes.pop_back();
+            std::chrono::duration<double> elapsedSeconds = endTime - startTime;
+            auto name = names.back();
+            names.pop_back();
+            for (int i = 0; i < iStartTimes.size(); ++i) std::cout << "    ";
+            std::cout << "--TIME-- " << iTimerName << " [" << name << "] = " << elapsedSeconds.count() << "\n";
+        }
+    }
+};
 
 #endif //LIBAPR_CUDATOOLS_HPP
