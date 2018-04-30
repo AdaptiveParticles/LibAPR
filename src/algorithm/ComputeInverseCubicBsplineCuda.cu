@@ -16,7 +16,7 @@ namespace {
         cudaInverseBspline(u16);
         cudaInverseBspline(u8);
     }
-}
+} 
 
 template <typename ImgType>
 void cudaInverseBspline(MeshData<ImgType> &input, TypeOfInvBsplineFlags flags) {

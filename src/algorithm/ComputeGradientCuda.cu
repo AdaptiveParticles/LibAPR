@@ -259,15 +259,18 @@ template <typename ImgType>
 void getGradientCuda(MeshData<ImgType> &image, MeshData<float> &local_scale_temp, MeshData<ImgType> &grad_temp,
                      ImgType *cudaImage, ImgType *cudaGrad, float *cudalocal_scale_temp,
                      float bspline_offset, const APRParameters &par) {
+    APRTimer timer(true);
     {
+        timer.start_timer("threshold");
         dim3 threadsPerBlock(64);
         dim3 numBlocks((image.x_num * image.y_num * image.z_num + threadsPerBlock.x - 1) / threadsPerBlock.x);
         printCudaDims(threadsPerBlock, numBlocks);
         thresholdImg << < numBlocks, threadsPerBlock >> > (cudaImage, image.mesh.size(), par.Ip_th + bspline_offset);
         waitForCuda();
+        timer.stop_timer();
     }
     {
-        std::cout << "Computing bspline..." <<std::endl;
+        timer.start_timer("smooth bspline");
         MeshData<ImgType> &input = image;
         float lambda = par.lambda;
         float tolerance = 0.0001;
@@ -318,8 +321,10 @@ void getGradientCuda(MeshData<ImgType> &image, MeshData<float> &local_scale_temp
             bsplineZdir<ImgType> <<< numBlocksZ, threadsPerBlockZ >>> (cudaImage, input.x_num, input.y_num, input.z_num, bc1, bc2, bc3, bc4, p.k0, p.b1, p.b2, p.norm_factor);
             waitForCuda();
         }
+        timer.stop_timer();
     }
     {
+        timer.start_timer("gradient_magnitude");
         MeshData<ImgType> &input = image;
         dim3 threadsPerBlock(1, 32, 1);
         dim3 numBlocks((input.x_num + threadsPerBlock.x - 1)/threadsPerBlock.x,
@@ -330,8 +335,10 @@ void getGradientCuda(MeshData<ImgType> &image, MeshData<float> &local_scale_temp
 
         gradient<<<numBlocks,threadsPerBlock>>>(cudaImage, input.x_num, input.y_num, input.z_num, cudaGrad, grad_temp.x_num, grad_temp.y_num, par.dx, par.dy, par.dz);
         cudaDeviceSynchronize();
+        timer.stop_timer();
     }
     {
+        timer.start_timer("down-sample_b-spline");
         MeshData<ImgType> &input = image;
         dim3 threadsPerBlock(1, 64, 1);
         dim3 numBlocks(((input.x_num + threadsPerBlock.x - 1)/threadsPerBlock.x + 1) / 2,
@@ -341,12 +348,14 @@ void getGradientCuda(MeshData<ImgType> &image, MeshData<float> &local_scale_temp
 
         downsampleMeanKernel<<<numBlocks,threadsPerBlock>>>(cudaImage, cudalocal_scale_temp, input.x_num, input.y_num, input.z_num);
         waitForCuda();
+        timer.stop_timer();
     }
     {
         TypeOfInvBsplineFlags flags = INV_BSPLINE_ALL_DIR;
         auto &input = local_scale_temp;
         constexpr int numOfWorkers = 32;
         if (flags & INV_BSPLINE_Y_DIR) {
+            timer.start_timer("inv y-dir");
             dim3 threadsPerBlock(1, numOfWorkers, 1);
             dim3 numBlocks((input.x_num + threadsPerBlock.x - 1) / threadsPerBlock.x,
                            1,
@@ -354,8 +363,10 @@ void getGradientCuda(MeshData<ImgType> &image, MeshData<float> &local_scale_temp
             printCudaDims(threadsPerBlock, numBlocks);
             invBsplineYdir <<< numBlocks, threadsPerBlock>>> (cudalocal_scale_temp, input.x_num, input.y_num, input.z_num);
             waitForCuda();
+            timer.stop_timer();
         }
         if (flags & INV_BSPLINE_X_DIR) {
+            timer.start_timer("inv x-dir");
             dim3 threadsPerBlock(1, numOfWorkers, 1);
             dim3 numBlocks(1,
                            (input.y_num + threadsPerBlock.y - 1) / threadsPerBlock.y,
@@ -363,8 +374,10 @@ void getGradientCuda(MeshData<ImgType> &image, MeshData<float> &local_scale_temp
             printCudaDims(threadsPerBlock, numBlocks);
             invBsplineXdir <<< numBlocks, threadsPerBlock>>> (cudalocal_scale_temp, input.x_num, input.y_num, input.z_num);
             waitForCuda();
+            timer.stop_timer();
         }
         if (flags & INV_BSPLINE_Z_DIR) {
+            timer.start_timer("inv z-dir");
             dim3 threadsPerBlock(1, numOfWorkers, 1);
             dim3 numBlocks((input.x_num + threadsPerBlock.x - 1) / threadsPerBlock.x,
                            (input.y_num + threadsPerBlock.y - 1) / threadsPerBlock.y,
@@ -372,9 +385,11 @@ void getGradientCuda(MeshData<ImgType> &image, MeshData<float> &local_scale_temp
             printCudaDims(threadsPerBlock, numBlocks);
             invBsplineZdir <<< numBlocks, threadsPerBlock>>> (cudalocal_scale_temp, input.x_num, input.y_num, input.z_num);
             waitForCuda();
+            timer.stop_timer();
         }
     }
     {
+        timer.start_timer("threshold");
         auto &input = local_scale_temp;
         MeshData<ImgType> &output = grad_temp;
         dim3 threadsPerBlock(64);
@@ -383,6 +398,7 @@ void getGradientCuda(MeshData<ImgType> &image, MeshData<float> &local_scale_temp
 
         threshold<<<numBlocks,threadsPerBlock>>>(cudalocal_scale_temp, cudaGrad, output.mesh.size(), par.Ip_th);
         waitForCuda();
+        timer.stop_timer();
     }
 }
 

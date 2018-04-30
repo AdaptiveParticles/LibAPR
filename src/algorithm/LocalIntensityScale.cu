@@ -355,6 +355,8 @@ void rescale(T *data, size_t len, float varRescale, float sigma, float sigmaMax)
 
 template <typename T, typename S>
 void localIntensityScaleCuda(const MeshData<T> &image, const APRParameters &par, S *cudaImage, S *cudaTemp) {
+    APRTimer timer(true);
+
     float var_rescale;
     std::vector<int> var_win;
     LocalIntensityScale().get_window(var_rescale,var_win,par);
@@ -366,11 +368,18 @@ void localIntensityScaleCuda(const MeshData<T> &image, const APRParameters &par,
     size_t win_z2 = var_win[5];
     std::cout << "GPU WINDOWS: " << win_y << " " << win_x << " " << win_z << " " << win_y2 << " " << win_x2 << " " << win_z2 << std::endl;
     // --------- CUDA ----------------
+    timer.start_timer("copy_intensities_from_bsplines");
     copy1d(cudaImage, cudaTemp, image.mesh.size());
+    timer.stop_timer();
+
+
     localIntensityScaleCUDA(cudaImage, image, win_x, win_y, win_z, MEAN_ALL_DIR);
+
+    timer.start_timer("second_pass_and_rescale");
     absDiff1d(cudaImage, cudaTemp, image.mesh.size());
     localIntensityScaleCUDA(cudaImage, image, win_x2, win_y2, win_z2, MEAN_ALL_DIR);
     rescale(cudaImage, image.mesh.size(), var_rescale, par.sigma_th, par.sigma_th_max);
+    timer.stop_timer();
 }
 
 template <typename T>
