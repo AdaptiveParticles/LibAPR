@@ -6,17 +6,8 @@
 #include "invBspline.cuh"
 #include "misc/CudaTools.hpp"
 
-
-namespace {
-    void emptyCallForTemplateInstantiation() {
-        MeshData<float> f = MeshData<float>(0, 0, 0);
-        MeshData<uint16_t> u16 = MeshData<uint16_t>(0, 0, 0);
-        MeshData<uint8_t> u8 = MeshData<uint8_t>(0, 0, 0);
-        cudaInverseBspline(f);
-        cudaInverseBspline(u16);
-        cudaInverseBspline(u8);
-    }
-} 
+// explicit instantiation of handled types
+template void cudaInverseBspline(MeshData<float> &, TypeOfInvBsplineFlags);
 
 template <typename ImgType>
 void cudaInverseBspline(MeshData<ImgType> &input, TypeOfInvBsplineFlags flags) {

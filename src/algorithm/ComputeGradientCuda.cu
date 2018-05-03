@@ -58,26 +58,14 @@ void cudaDownsampledGradient(const MeshData<float> &input, MeshData<float> &grad
     timer.stop_timer();
 }
 
+// explicit instantiation of handled types
+template void getGradient(MeshData<float> &, MeshData<float> &, MeshData<float> &, MeshData<float> &, float, const APRParameters &);
+template void thresholdImg(MeshData<float> &, const float);
+template void getFullPipeline(MeshData<float> &, MeshData<float> &, MeshData<float> &, MeshData<float> &, float, const APRParameters &);
+template void getFullPipeline(MeshData<uint16_t> &, MeshData<uint16_t> &, MeshData<float> &, MeshData<float> &, float, const APRParameters &);
+template void thresholdGradient(MeshData<float> &, const MeshData<float> &, const float);
+
 namespace {
-    void emptyCallForTemplateInstantiation() {
-        MeshData<float> f = MeshData<float>(0, 0, 0);
-        MeshData<uint16_t> u16 = MeshData<uint16_t>(0, 0, 0);
-        MeshData<uint8_t> u8 = MeshData<uint8_t>(0, 0, 0);
-
-        thresholdGradient(f, f, 0);
-        thresholdGradient(f, u16, 0);
-        thresholdGradient(f, u8, 0);
-
-        thresholdImg(f, 0);
-        thresholdImg(u16, 0);
-        thresholdImg(u8, 0);
-
-        getGradient(f, f, f, f, 0, APRParameters());
-//        getGradient(u16, f, u16, f, 0, APRParameters());
-        getFullPipeline(u16, u16, f, f, 0, APRParameters());
-        getFullPipeline(f,f,f,f,0,APRParameters());
-    }
-
     typedef struct {
         std::vector<float> bc1;
         std::vector<float> bc2;

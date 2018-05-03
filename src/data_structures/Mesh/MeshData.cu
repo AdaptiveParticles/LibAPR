@@ -10,21 +10,14 @@
 
 #include "downsample.cuh"
 
-namespace {
-    void emptyCallForTemplateInstantiation() {
-        MeshData<float> f = MeshData<float>(0, 0, 0);
-        MeshData<uint16_t> u16 = MeshData<uint16_t>(0, 0, 0);
-        MeshData<uint8_t> u8 = MeshData<uint8_t>(0, 0, 0);
+// explicit instantiation of handled types
+template void downsampleMeanCuda(const MeshData<float>&, MeshData<float>&);
+template void downsampleMeanCuda(const MeshData<uint16_t>&, MeshData<float>&);
+template void downsampleMeanCuda(const MeshData<uint8_t>&, MeshData<float>&);
 
-        downsampleMeanCuda(f,  f);
-        downsampleMeanCuda(u16,f);
-        downsampleMeanCuda(u8, f);
-
-        downsampleMaxCuda(f,  f);
-        downsampleMaxCuda(u16,f);
-        downsampleMaxCuda(u8, f);
-    }
-}
+template void downsampleMaxCuda(const MeshData<float>&, MeshData<float>&);
+template void downsampleMaxCuda(const MeshData<uint16_t>&, MeshData<float>&);
+template void downsampleMaxCuda(const MeshData<uint8_t>&, MeshData<float>&);
 
 template <typename T, typename S>
 void downsampleMeanCuda(const MeshData<T> &input, MeshData<S> &output) {

@@ -405,18 +405,9 @@ void getLocalIntensityScale(MeshData<T> &image, MeshData<T> &temp, const APRPara
     timer.stop_timer();
 }
 
-namespace {
-    void emptyCallForTemplateInstantiation() {
-        MeshData<float> f = MeshData<float>(0, 0, 0);
-        MeshData<uint16_t> u16 = MeshData<uint16_t>(0, 0, 0);
-        MeshData<uint8_t> u8 = MeshData<uint8_t>(0, 0, 0);
+// explicit instantiation of handled types
+template void calcMean(MeshData<float>&, int, TypeOfMeanFlags);
+template void calcMean(MeshData<uint16_t>&, int, TypeOfMeanFlags);
+template void calcMean(MeshData<uint8_t>&, int, TypeOfMeanFlags);
 
-        calcMean(f, 0, 0);
-        calcMean(u8, 0, 0);
-        calcMean(u16, 0, 0);
-
-        getLocalIntensityScale(f,f, APRParameters{});
-        float fData = 1;
-        localIntensityScaleCuda(u16, APRParameters(), &fData, &fData);
-    }
-}
+template void getLocalIntensityScale(MeshData<float>&, MeshData<float>&, const APRParameters&);

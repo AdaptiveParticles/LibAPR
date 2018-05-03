@@ -102,17 +102,11 @@ namespace {
                 norm_factor
         };
     }
-
-    void emptyCallForTemplateInstantiation() {
-        MeshData<float> f = MeshData<float>(0, 0, 0);
-        MeshData<uint16_t> u16 = MeshData<uint16_t>(0, 0, 0);
-        MeshData<uint8_t> u8 = MeshData<uint8_t>(0, 0, 0);
-
-        cudaFilterBsplineFull(f, 3.0f, 0.1f, BSPLINE_ALL_DIR);
-        cudaFilterBsplineFull(u16, 3.0f, 0.1f, BSPLINE_ALL_DIR);
-        cudaFilterBsplineFull(u8, 3.0f, 0.1f, BSPLINE_ALL_DIR);
-    }
 }
+
+// explicit instantiation of handled types
+template void cudaFilterBsplineFull(MeshData<float> &, float, float, TypeOfRecBsplineFlags);
+
 
 template <typename ImgType>
 void cudaFilterBsplineFull(MeshData<ImgType> &input, float lambda, float tolerance, TypeOfRecBsplineFlags flags) {
