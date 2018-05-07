@@ -49,13 +49,13 @@ public:
     void threshold_gradient(MeshData<T> &grad, const MeshData<S> &img, const float Ip_th);
 
     template<typename T>
-    void bspline_filt_rec_y(MeshData<T> &image, float lambda, float tol);
+    void bspline_filt_rec_y(MeshData<T> &image, float lambda, float tol, int k0Len = -1);
 
     template<typename T>
-    void bspline_filt_rec_x(MeshData<T> &image, float lambda, float tol);
+    void bspline_filt_rec_x(MeshData<T> &image, float lambda, float tol, int k0Len = -1);
 
     template<typename T>
-    void bspline_filt_rec_z(MeshData<T> &image, float lambda, float tol);
+    void bspline_filt_rec_z(MeshData<T> &image, float lambda, float tol, int k0Len = -1);
 
     inline float impulse_resp(float k, float rho, float omg);
 
@@ -151,7 +151,7 @@ inline float ComputeGradient::impulse_resp_back(float k,float rho,float omg,floa
 }
 
 template<typename T>
-void ComputeGradient::bspline_filt_rec_y(MeshData<T>& image,float lambda,float tol){
+void ComputeGradient::bspline_filt_rec_y(MeshData<T>& image,float lambda,float tol, int k0Len) {
     //
     //  Bevan Cheeseman 2016
     //
@@ -172,7 +172,9 @@ void ComputeGradient::bspline_filt_rec_y(MeshData<T>& image,float lambda,float t
     const size_t x_num = image.x_num;
     const size_t y_num = image.y_num;
     const size_t minLen = std::min(z_num, std::min(x_num, y_num));
-    const size_t k0 = std::min((size_t)(ceil(std::abs(log(tol)/log(rho)))),minLen);
+    const size_t k0 = k0Len > 0 ? k0Len : std::min((size_t)(ceil(std::abs(log(tol)/log(rho)))),minLen);
+
+
     const float norm_factor = pow((1 - 2.0*rho*cos(omg) + pow(rho,2)),2);
 //    std::cout << "CPUy xi=" << xi << " rho=" << rho << " omg=" << omg << " gamma=" << gamma << " b1=" << b1 << " b2=" << b2 << " k0=" << k0 << " norm_factor=" << norm_factor << std::endl;
     // for boundaries
@@ -284,7 +286,7 @@ void ComputeGradient::bspline_filt_rec_y(MeshData<T>& image,float lambda,float t
 }
 
 template<typename T>
-void ComputeGradient::bspline_filt_rec_z(MeshData<T>& image,float lambda,float tol){
+void ComputeGradient::bspline_filt_rec_z(MeshData<T>& image,float lambda,float tol, int k0Len){
     //
     //  Bevan Cheeseman 2016
     //
@@ -303,7 +305,7 @@ void ComputeGradient::bspline_filt_rec_z(MeshData<T>& image,float lambda,float t
     const size_t x_num = image.x_num;
     const size_t y_num = image.y_num;
     const size_t minLen = std::min(z_num, std::min(x_num, y_num));
-    const size_t k0 = std::min((size_t)(ceil(std::abs(log(tol)/log(rho)))), minLen);
+    const size_t k0 = k0Len > 0 ? k0Len : std::min((size_t)(ceil(std::abs(log(tol)/log(rho)))), minLen);
     const float norm_factor = pow((1 - 2.0*rho*cos(omg) + pow(rho,2)),2);
 //    std::cout << "CPUz xi=" << xi << " rho=" << rho << " omg=" << omg << " gamma=" << gamma << " b1=" << b1 << " b2=" << b2 << " k0=" << k0 << " norm_factor=" << norm_factor << std::endl;
 
@@ -440,7 +442,7 @@ void ComputeGradient::bspline_filt_rec_z(MeshData<T>& image,float lambda,float t
 }
 
 template<typename T>
-void ComputeGradient::bspline_filt_rec_x(MeshData<T>& image,float lambda,float tol){
+void ComputeGradient::bspline_filt_rec_x(MeshData<T>& image,float lambda,float tol, int k0Len) {
     //
     //  Bevan Cheeseman 2016
     //
@@ -460,7 +462,7 @@ void ComputeGradient::bspline_filt_rec_x(MeshData<T>& image,float lambda,float t
     const size_t y_num = image.y_num;
 
     const size_t minLen = std::min(z_num, std::min(x_num, y_num));
-    const size_t k0 = std::min((size_t)(ceil(std::abs(log(tol)/log(rho)))), minLen);
+    const size_t k0 = k0Len > 0 ? k0Len : std::min((size_t)(ceil(std::abs(log(tol)/log(rho)))), minLen);
     const float norm_factor = pow((1 - 2.0*rho*cos(omg) + pow(rho,2)),2);
 
 //    std::cout << "CPUx xi=" << xi << " rho=" << rho << " omg=" << omg << " gamma=" << gamma << " b1=" << b1 << " b2=" << b2 << " k0=" << k0 << " norm_factor=" << norm_factor << std::endl;
