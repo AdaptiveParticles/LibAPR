@@ -12,12 +12,7 @@
 
 // explicit instantiation of handled types
 template void downsampleMeanCuda(const MeshData<float>&, MeshData<float>&);
-template void downsampleMeanCuda(const MeshData<uint16_t>&, MeshData<float>&);
-template void downsampleMeanCuda(const MeshData<uint8_t>&, MeshData<float>&);
-
 template void downsampleMaxCuda(const MeshData<float>&, MeshData<float>&);
-template void downsampleMaxCuda(const MeshData<uint16_t>&, MeshData<float>&);
-template void downsampleMaxCuda(const MeshData<uint8_t>&, MeshData<float>&);
 
 template <typename T, typename S>
 void downsampleMeanCuda(const MeshData<T> &input, MeshData<S> &output) {
