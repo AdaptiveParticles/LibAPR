@@ -174,10 +174,10 @@ public:
     }
 
     template<typename ImageType>
-    void write_apr(APR<ImageType>& apr, const std::string &save_loc, const std::string &file_name) {
+    float write_apr(APR<ImageType>& apr, const std::string &save_loc, const std::string &file_name) {
         APRCompress<ImageType> apr_compressor;
         apr_compressor.set_compression_type(0);
-        write_apr(apr, save_loc, file_name, apr_compressor);
+        return write_apr(apr, save_loc, file_name, apr_compressor);
     }
 
     /**
@@ -238,10 +238,6 @@ public:
         MapStorageData map_data;
         apr.apr_access.flatten_structure(apr, map_data);
 
-        // TODO: why those values are overwrite?
-        blosc_comp_level = 3;
-        blosc_shuffle = 1;
-        blosc_comp_type = BLOSC_ZSTD;
 
         std::vector<uint16_t> index_delta;
         index_delta.resize(map_data.global_index.size());
@@ -371,8 +367,38 @@ public:
         readData(AprTypes::ExtraParticleDataType, f.objectId, extra_parts.data.data());
     }
 
-private:
-    struct AprFile {
+    template<typename ImageType>
+    float write_mesh_to_hdf5(MeshData<ImageType>& input_mesh,const std::string &save_loc, const std::string &file_name,unsigned int blosc_comp_type = BLOSC_ZSTD, unsigned int blosc_comp_level = 2, unsigned int blosc_shuffle=1){
+        std::string hdf5_file_name = save_loc + file_name + "_pixels.h5";
+
+        AprFile f{hdf5_file_name, AprFile::Operation::WRITE};
+        if (!f.isOpened()) return 0;
+
+        // ------------- write metadata -------------------------
+        writeAttr(AprTypes::NumberOfXType, f.groupId, &input_mesh.x_num);
+        writeAttr(AprTypes::NumberOfYType, f.groupId, &input_mesh.y_num);
+        writeAttr(AprTypes::NumberOfZType, f.groupId, &input_mesh.z_num);
+
+        hid_t type = Hdf5Type<ImageType>::type();
+
+        AprType aType = {type, AprTypes::ParticleIntensitiesType};
+
+        hsize_t dims[] = {input_mesh.mesh.size()};
+
+        const hsize_t rank = 1;
+        hdf5_write_data_blosc(f.objectId,aType.hdf5type, aType.typeName, rank, dims, input_mesh.mesh.begin(), blosc_comp_type, blosc_comp_level, blosc_shuffle);
+
+        // ------------- output the file size -------------------
+        hsize_t file_size = f.getFileSize();
+        std::cout << "HDF5 Filesize: " << file_size/1e6 << " MB" << std::endl;
+        std::cout << "Writing ExtraPartCellData Complete" << std::endl;
+
+        return file_size/1e6; //returns file size in MB
+
+    }
+
+
+    static struct AprFile {
         enum class Operation {READ, WRITE};
         hid_t fileId = -1;
         hid_t groupId = -1;
@@ -422,6 +448,7 @@ private:
         }
     };
 
+private:
     void readAttr(const AprType &aType, hid_t aGroupId, void *aDest) {
         hid_t attr_id = H5Aopen(aGroupId, aType.typeName, H5P_DEFAULT);
         H5Aread(attr_id, aType.hdf5type, aDest);
