@@ -25,6 +25,8 @@ Advanced (Direct) Settings:
 -mask_file mask_file_tiff (takes an input image uint16_t, assumes all zero regions should be ignored by the APR, useful for pre-processing of isolating desired content, or using another channel as a mask)
 -rel_error rel_error_value (Reasonable ranges are from .08-.15), Default: 0.1
 -normalize_input (flag that will rescale the input from the input data range to 80% of the output data type range, useful for float scaled datasets)
+-store_delta (stores the delta between an APR reconstruction and the original image as an additional hdf5 file)
+-compress_level (the IO uses BLOSC for lossless compression of the APR, this can be set from 1-9, where higher increases the compression level. Note, this can come at a significant time increase.)
 )";
 
 #include <algorithm>
@@ -70,6 +72,8 @@ int main(int argc, char **argv) {
     //Gets the APR
     if(apr_converter.get_apr(apr)){
 
+        //Below is IO and outputting of the Implied Resolution Function through the Particle Cell level.
+
         //output
         std::string save_loc = options.output_dir;
         std::string file_name = options.output;
@@ -91,14 +95,20 @@ int main(int argc, char **argv) {
         TiffUtils::saveMeshAsTiff(output_path, level);
 
         std::cout << std::endl;
-
-        std::cout << "Original image size: " << (2.0f*apr.orginal_dimensions(0)*apr.orginal_dimensions(1)*apr.orginal_dimensions(2))/(1000000.0) << " MB" << std::endl;
+        float original_pixel_image_size = (2.0f*apr.orginal_dimensions(0)*apr.orginal_dimensions(1)*apr.orginal_dimensions(2))/(1000000.0);
+        std::cout << "Original image size: " << original_pixel_image_size << " MB" << std::endl;
 
         timer.start_timer("writing output");
 
         std::cout << "Writing the APR to hdf5..." << std::endl;
+
+        //feel free to change
+        unsigned int blosc_comp_type = BLOSC_ZSTD;
+        unsigned int blosc_comp_level = options.compress_level;
+        unsigned int blosc_shuffle = 1;
+
         //write the APR to hdf5 file
-        apr.write_apr(save_loc,file_name);
+        float apr_file_size = apr.write_apr(save_loc,file_name,blosc_comp_type,blosc_comp_level,blosc_shuffle);
 
         timer.stop_timer();
 
@@ -106,6 +116,50 @@ int main(int argc, char **argv) {
 
         std::cout << std::endl;
         std::cout << "Computational Ratio (Pixels/Particles): " << computational_ratio << std::endl;
+        std::cout << "Lossy Compression Ratio: " << original_pixel_image_size/apr_file_size << std::endl;
+        std::cout << std::endl;
+
+        if(options.store_delta){
+            //feel free to change
+            unsigned int blosc_comp_type = BLOSC_ZSTD;
+            unsigned int blosc_comp_level = options.compress_level;
+            unsigned int blosc_shuffle = 1;
+
+            MeshData<uint16_t> recon_image;
+
+            apr.interp_img(recon_image, apr.particles_intensities);
+
+            TiffUtils::TiffInfo inputTiff(options.directory + options.input);
+            MeshData<uint16_t> inputImage = TiffUtils::getMesh<uint16_t>(inputTiff);
+
+            MeshData<int16_t> diff_image(inputImage.y_num,inputImage.x_num,inputImage.z_num,0);
+
+#ifdef HAVE_OPENMP
+#pragma omp parallel for schedule(static)
+#endif
+            for (int i = 0; i < inputImage.mesh.size(); ++i) {
+
+                diff_image.mesh[i] = 2 * abs(recon_image.mesh[i] - inputImage.mesh[i]) +
+                                         ((recon_image.mesh[i] - inputImage.mesh[i]) > 0);
+            }
+
+            std::cout << "Storing diff image for lossless reconstruction" << std::endl;
+            APRWriter aprWriter;
+            float file_size = aprWriter.write_mesh_to_hdf5(diff_image,save_loc,file_name,blosc_comp_type,blosc_comp_level,blosc_shuffle);
+            std::cout << "Size of the image diff: " << file_size << " MB" << std::endl;
+
+            std::cout << std::endl;
+            std::cout << "Lossless Compression Ratio (APR + diff): " << original_pixel_image_size/(file_size + apr_file_size) << std::endl;
+            std::cout << std::endl;
+
+            float file_size_org = aprWriter.write_mesh_to_hdf5(inputImage,save_loc,file_name,blosc_comp_type,blosc_comp_level,blosc_shuffle);
+            std::cout << "Size of the pixel image compressed: " << file_size_org << " MB" << std::endl;
+
+            std::cout << std::endl;
+            std::cout << "Lossless Compression Ratio (Pixel Image): " << original_pixel_image_size/(file_size_org) << std::endl;
+            std::cout << std::endl;
+
+        }
 
 
         } else {
@@ -205,9 +259,19 @@ cmdLineOptions read_command_line_options(int argc, char **argv){
         result.mask_file = std::string(get_command_option(argv, argv + argc, "-mask_file"));
     }
 
+    if(command_option_exists(argv, argv + argc, "-compress_level"))
+    {
+        result.compress_level = (unsigned int)std::stoi(std::string(get_command_option(argv, argv + argc, "-compress_level")));
+    }
+
     if(command_option_exists(argv, argv + argc, "-normalize_input"))
     {
         result.normalize_input = true;
+    }
+
+    if(command_option_exists(argv, argv + argc, "-store_delta"))
+    {
+        result.store_delta = true;
     }
 
     return result;
