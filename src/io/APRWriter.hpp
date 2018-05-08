@@ -398,7 +398,7 @@ public:
     }
 
 
-    static struct AprFile {
+    struct AprFile {
         enum class Operation {READ, WRITE};
         hid_t fileId = -1;
         hid_t groupId = -1;
