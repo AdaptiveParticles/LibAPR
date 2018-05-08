@@ -34,7 +34,8 @@ install:
 - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then export CC=clang-3.6; fi
 - git submodule init
 - git submodule update
-- pip install numpy
+- pip install --user -U pip
+- pip install --user numpy
 
 script:
 - sh ./cmake-build.sh
