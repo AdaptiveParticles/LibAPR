@@ -14,6 +14,8 @@ namespace py = pybind11;
 #error "Name of APR module (python binding) is not defined!"
 #endif
 
+// TODO: If more classes added wrappers should be moved to seperate files, only
+//       module definition shold be kept here
 // -------- Utility classes to be wrapped in python ----------------------------
 template <typename T>
 class AprToImg {
@@ -21,17 +23,17 @@ class AprToImg {
 
 public:
     AprToImg () {}
-    void read(const std::string &file_name) {
+    void read(const std::string &aAprFileName) {
         APR <T> apr;
-        apr.read_apr(file_name);
+        apr.read_apr(aAprFileName);
         ReconPatch r;
         APRReconstruction().interp_image_patch(apr, reconstructedImage, apr.particles_intensities, r);
     }
 
     T *data() {return reconstructedImage.mesh.get();}
-    int height() {return reconstructedImage.x_num;}
-    int width() {return reconstructedImage.y_num;}
-    int depth() {return reconstructedImage.z_num;}
+    int height() const {return reconstructedImage.x_num;}
+    int width() const {return reconstructedImage.y_num;}
+    int depth() const {return reconstructedImage.z_num;}
 };
 
 // -------- Templated wrapper -------------------------------------------------
