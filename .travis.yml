@@ -34,8 +34,6 @@ install:
 - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then export CC=clang-3.6; fi
 - git submodule init
 - git submodule update
-
-before_script:
 - pip install numpy
 
 script:
