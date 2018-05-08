@@ -265,21 +265,23 @@ if(APR_BUILD_JAVA_WRAPPERS)
     swig_link_libraries(apr ${HDF5_LIBRARIES} ${TIFF_LIBRARIES} ${BLOSC_LIBRARIES} ${ZLIB_LIBRARIES})
 endif(APR_BUILD_JAVA_WRAPPERS)
 
+
 ###############################################################################
 # PYTHON wrappers
 ###############################################################################
 if(APR_BUILD_PYTHON_WRAPPERS)
     message(STATUS "APR: Building PYTHON wrappers")
     set(PYBIND11_PYTHON_VERSION 2.7)
-    #find_package(pybind11 REQUIRED)
+
     add_subdirectory("external/pybind11")
-    set(APR_MODULE_NAME pyApr)
-    add_definitions(-DAPR_MODULE_NAME=${APR_MODULE_NAME})
-    add_library(${APR_MODULE_NAME} MODULE src/wrapper/pythonBind.cpp $<TARGET_OBJECTS:aprObjLib>)
-    target_include_directories(${APR_MODULE_NAME} PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/src)
-    target_link_libraries(${APR_MODULE_NAME} PRIVATE pybind11::module ${HDF5_LIBRARIES} ${TIFF_LIBRARIES} ${BLOSC_LIBRARIES} ${ZLIB_LIBRARIES})
-    set_target_properties(${APR_MODULE_NAME} PROPERTIES OUTPUT_NAME ${APR_MODULE_NAME})
-    set_target_properties(${APR_MODULE_NAME} PROPERTIES PREFIX "${PYTHON_MODULE_PREFIX}"
-                                                        SUFFIX "${PYTHON_MODULE_EXTENSION}")
+
+    set(APR_PYTHON_MODULE_NAME pyApr)
+    add_definitions(-DAPR_PYTHON_MODULE_NAME=${APR_PYTHON_MODULE_NAME})
+    add_library(${APR_PYTHON_MODULE_NAME} MODULE src/wrapper/pythonBind.cpp $<TARGET_OBJECTS:aprObjLib>)
+    target_include_directories(${APR_PYTHON_MODULE_NAME} PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/src)
+    target_link_libraries(${APR_PYTHON_MODULE_NAME} PRIVATE pybind11::module ${HDF5_LIBRARIES} ${TIFF_LIBRARIES} ${BLOSC_LIBRARIES} ${ZLIB_LIBRARIES})
+    set_target_properties(${APR_PYTHON_MODULE_NAME} PROPERTIES OUTPUT_NAME ${APR_PYTHON_MODULE_NAME})
+    set_target_properties(${APR_PYTHON_MODULE_NAME} PROPERTIES PREFIX "${PYTHON_MODULE_PREFIX}"
+                                                               SUFFIX "${PYTHON_MODULE_EXTENSION}")
 
 endif(APR_BUILD_PYTHON_WRAPPERS)

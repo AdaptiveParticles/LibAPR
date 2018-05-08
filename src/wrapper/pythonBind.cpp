@@ -10,7 +10,7 @@
 namespace py = pybind11;
 
 // -------- Check if properly configured in CMAKE -----------------------------
-#ifndef APR_MODULE_NAME
+#ifndef APR_PYTHON_MODULE_NAME
 #error "Name of APR module (python binding) is not defined!"
 #endif
 
@@ -61,7 +61,7 @@ void AddAprToImg(pybind11::module &m, const std::string &aTypeString) {
 
 
 // -------- Definition of python module ---------------------------------------
-PYBIND11_MODULE(APR_MODULE_NAME, m) {
+PYBIND11_MODULE(APR_PYTHON_MODULE_NAME, m) {
     m.doc() = "python binding for LibAPR library";
     m.attr("__version__") = pybind11::str(ConfigAPR::APR_VERSION);
 
