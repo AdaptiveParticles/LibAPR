@@ -1,12 +1,10 @@
 # Find path to script - all test files are kept there
 import os
 myPath = os.path.dirname(os.path.abspath(__file__))
-print("Python script directory [" + myPath + "]")
 
-print("DIR: [" + os.getcwd() + "]")
-files = [f for f in os.listdir('.') if os.path.isfile(f)]
-for f in files:
-    print("F: [" + f + "]");
+# Add path to build APR pythond module
+import sys
+sys.path.insert(0, os.getcwd())
 
 # Check if APR can be read and if gives correct dimensions
 import pyApr
