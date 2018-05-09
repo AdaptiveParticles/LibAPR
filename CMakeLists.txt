@@ -16,7 +16,7 @@ option(APR_TESTS "Build APR tests" OFF)
 option(APR_PREFER_EXTERNAL_GTEST "When found, use the installed GTEST libs instead of included sources" OFF)
 option(APR_PREFER_EXTERNAL_BLOSC "When found, use the installed BLOSC libs instead of included sources" OFF)
 option(APR_BUILD_JAVA_WRAPPERS "Build APR JAVA wrappers" OFF)
-option(APR_USE_CUDA "should APR use CUDA?" ON)
+option(APR_USE_CUDA "should APR use CUDA? (experimental - under development)" OFF)
 option(APR_BENCHMARK "add benchmarking code" OFF)
 
 # Validation of options
