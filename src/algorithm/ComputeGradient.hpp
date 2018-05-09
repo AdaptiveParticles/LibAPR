@@ -5,7 +5,7 @@
 #ifndef PARTPLAY_GRADIENT_HPP
 #define PARTPLAY_GRADIENT_HPP
 
-#include "../data_structures/Mesh/MeshData.hpp"
+#include "data_structures/Mesh/PixelData.hpp"
 #include "../io/TiffUtils.hpp"
 
 #ifdef HAVE_OPENMP
@@ -19,18 +19,18 @@ class ComputeGradient {
 public:
 
     template<typename T>
-    void get_smooth_bspline_3D(MeshData<T> &input, float lambda);
+    void get_smooth_bspline_3D(PixelData<T> &input, float lambda);
 
 // Calculate inverse B-Spline Transform
 
     template<typename T>
-    void calc_inv_bspline_y(MeshData<T> &input);
+    void calc_inv_bspline_y(PixelData<T> &input);
 
     template<typename T>
-    void calc_inv_bspline_x(MeshData<T> &input);
+    void calc_inv_bspline_x(PixelData<T> &input);
 
     template<typename T>
-    void calc_inv_bspline_z(MeshData<T> &input);
+    void calc_inv_bspline_z(PixelData<T> &input);
 
     struct three_temps {
         float temp_1, temp_2, temp_3;
@@ -40,22 +40,20 @@ public:
 
     template<typename S>
     void
-    calc_bspline_fd_ds_mag(const MeshData<S> &input, MeshData<S> &grad, const float hx, const float hy, const float hz);
+    calc_bspline_fd_ds_mag(const PixelData<S> &input, PixelData<S> &grad, const float hx, const float hy, const float hz);
 
     template<typename T,typename S>
-    void mask_gradient(MeshData<T>& grad_ds,MeshData<S>& temp_ds,MeshData<T>& temp_full,APRParameters& par);
+    void mask_gradient(PixelData<T>& grad_ds,PixelData<S>& temp_ds,PixelData<T>& temp_full, const APRParameters& par);
 
     template<typename T,typename S>
-    void threshold_gradient(MeshData<T> &grad, const MeshData<S> &img, const float Ip_th);
+    void threshold_gradient(PixelData<T> &grad, const PixelData<S> &img, const float Ip_th);
 
     template<typename T>
-    void bspline_filt_rec_y(MeshData<T> &image, float lambda, float tol);
-
+    void bspline_filt_rec_y(PixelData<T> &image, float lambda, float tol, int k0Len = -1);
     template<typename T>
-    void bspline_filt_rec_x(MeshData<T> &image, float lambda, float tol);
-
+    void bspline_filt_rec_x(PixelData<T> &image, float lambda, float tol, int k0Len = -1);
     template<typename T>
-    void bspline_filt_rec_z(MeshData<T> &image, float lambda, float tol);
+    void bspline_filt_rec_z(PixelData<T> &image, float lambda, float tol, int k0Len = -1);
 
     inline float impulse_resp(float k, float rho, float omg);
 
@@ -65,7 +63,7 @@ public:
 
 
 template<typename T,typename S>
-void ComputeGradient::mask_gradient(MeshData<T>& grad_ds,MeshData<S>& temp_ds,MeshData<T>& temp_full,APRParameters& par){
+void ComputeGradient::mask_gradient(PixelData<T>& grad_ds,PixelData<S>& temp_ds,PixelData<T>& temp_full, const APRParameters& par){
     //
     //  Bevan Cheeseman 2018
     //
@@ -95,7 +93,7 @@ void ComputeGradient::mask_gradient(MeshData<T>& grad_ds,MeshData<S>& temp_ds,Me
 }
 
 template<typename T,typename S>
-void ComputeGradient::threshold_gradient(MeshData<T> &grad, const MeshData<S> &img, const float Ip_th){
+void ComputeGradient::threshold_gradient(PixelData<T> &grad, const PixelData<S> &img, const float Ip_th){
     //
     //  Bevan Cheeseman 2016
     //
@@ -109,7 +107,7 @@ void ComputeGradient::threshold_gradient(MeshData<T> &grad, const MeshData<S> &i
 }
 
 template<typename T>
-void ComputeGradient::get_smooth_bspline_3D(MeshData<T>& input, float lambda) {
+void ComputeGradient::get_smooth_bspline_3D(PixelData<T>& input, float lambda) {
     //
     //  Gets smoothing bspline co-efficients for 3D
     //
@@ -130,7 +128,7 @@ void ComputeGradient::get_smooth_bspline_3D(MeshData<T>& input, float lambda) {
     bspline_filt_rec_x(input,lambda,tol);
     spline_timer.stop_timer();
 
-    //Z direction bspline
+//    //Z direction bspline
     spline_timer.start_timer("bspline_filt_rec_z");
     bspline_filt_rec_z(input,lambda,tol);
     spline_timer.stop_timer();
@@ -151,7 +149,7 @@ inline float ComputeGradient::impulse_resp_back(float k,float rho,float omg,floa
 }
 
 template<typename T>
-void ComputeGradient::bspline_filt_rec_y(MeshData<T>& image,float lambda,float tol){
+void ComputeGradient::bspline_filt_rec_y(PixelData<T>& image,float lambda,float tol, int k0Len) {
     //
     //  Bevan Cheeseman 2016
     //
@@ -171,10 +169,12 @@ void ComputeGradient::bspline_filt_rec_y(MeshData<T>& image,float lambda,float t
     const size_t z_num = image.z_num;
     const size_t x_num = image.x_num;
     const size_t y_num = image.y_num;
+    const size_t minLen = std::min(z_num, std::min(x_num, y_num));
+    const size_t k0 = k0Len > 0 ? k0Len : std::min((size_t)(ceil(std::abs(log(tol)/log(rho)))),minLen);
 
-    const size_t k0 = std::max(std::min((size_t)(ceil(std::abs(log(tol)/log(rho)))),z_num),(size_t)2);
+
     const float norm_factor = pow((1 - 2.0*rho*cos(omg) + pow(rho,2)),2);
-
+//    std::cout << "CPUy xi=" << xi << " rho=" << rho << " omg=" << omg << " gamma=" << gamma << " b1=" << b1 << " b2=" << b2 << " k0=" << k0 << " norm_factor=" << norm_factor << std::endl;
     // for boundaries
     std::vector<float> impulse_resp_vec_f(k0+3);  //forward
     for (size_t k = 0; k < (k0+3); ++k) {
@@ -284,7 +284,7 @@ void ComputeGradient::bspline_filt_rec_y(MeshData<T>& image,float lambda,float t
 }
 
 template<typename T>
-void ComputeGradient::bspline_filt_rec_z(MeshData<T>& image,float lambda,float tol){
+void ComputeGradient::bspline_filt_rec_z(PixelData<T>& image,float lambda,float tol, int k0Len){
     //
     //  Bevan Cheeseman 2016
     //
@@ -302,9 +302,10 @@ void ComputeGradient::bspline_filt_rec_z(MeshData<T>& image,float lambda,float t
     const size_t z_num = image.z_num;
     const size_t x_num = image.x_num;
     const size_t y_num = image.y_num;
-
-    const size_t k0 = std::min((size_t)(ceil(std::abs(log(tol)/log(rho)))),z_num);
+    const size_t minLen = std::min(z_num, std::min(x_num, y_num));
+    const size_t k0 = k0Len > 0 ? k0Len : std::min((size_t)(ceil(std::abs(log(tol)/log(rho)))), minLen);
     const float norm_factor = pow((1 - 2.0*rho*cos(omg) + pow(rho,2)),2);
+//    std::cout << "CPUz xi=" << xi << " rho=" << rho << " omg=" << omg << " gamma=" << gamma << " b1=" << b1 << " b2=" << b2 << " k0=" << k0 << " norm_factor=" << norm_factor << std::endl;
 
     //////////////////////////////////////////////////////////////
     //
@@ -439,7 +440,7 @@ void ComputeGradient::bspline_filt_rec_z(MeshData<T>& image,float lambda,float t
 }
 
 template<typename T>
-void ComputeGradient::bspline_filt_rec_x(MeshData<T>& image,float lambda,float tol){
+void ComputeGradient::bspline_filt_rec_x(PixelData<T>& image,float lambda,float tol, int k0Len) {
     //
     //  Bevan Cheeseman 2016
     //
@@ -458,8 +459,11 @@ void ComputeGradient::bspline_filt_rec_x(MeshData<T>& image,float lambda,float t
     const size_t x_num = image.x_num;
     const size_t y_num = image.y_num;
 
-    const size_t k0 = std::min((size_t)(ceil(std::abs(log(tol)/log(rho)))),z_num);
+    const size_t minLen = std::min(z_num, std::min(x_num, y_num));
+    const size_t k0 = k0Len > 0 ? k0Len : std::min((size_t)(ceil(std::abs(log(tol)/log(rho)))), minLen);
     const float norm_factor = pow((1 - 2.0*rho*cos(omg) + pow(rho,2)),2);
+
+//    std::cout << "CPUx xi=" << xi << " rho=" << rho << " omg=" << omg << " gamma=" << gamma << " b1=" << b1 << " b2=" << b2 << " k0=" << k0 << " norm_factor=" << norm_factor << std::endl;
 
     //////////////////////////////////////////////////////////////
     //
@@ -594,7 +598,7 @@ void ComputeGradient::bspline_filt_rec_x(MeshData<T>& image,float lambda,float t
  * Caclulation of signal value from B-Spline co-efficients
  */
 template<typename T>
-void ComputeGradient::calc_inv_bspline_y(MeshData<T>& input){
+void ComputeGradient::calc_inv_bspline_y(PixelData<T>& input){
     //  Bevan Cheeseman 2016
     //
     //  Inverse cubic bspline inverse filter in y direciton (Memory direction)
@@ -618,7 +622,7 @@ void ComputeGradient::calc_inv_bspline_y(MeshData<T>& input){
 #ifdef HAVE_OPENMP
 #pragma omp simd
 #endif
-            for (int64_t k = 0; k < (y_num); ++k) {
+            for (int64_t k = 0; k < y_num; ++k) {
                 int64_t idx = j * x_num * y_num + i * y_num + k;
                 temp_vec[k] = input.mesh[idx];
             }
@@ -640,7 +644,7 @@ void ComputeGradient::calc_inv_bspline_y(MeshData<T>& input){
 }
 
 template<typename T>
-void ComputeGradient::calc_inv_bspline_z(MeshData<T>& input){
+void ComputeGradient::calc_inv_bspline_z(PixelData<T>& input){
     //  Bevan Cheeseman 2016
     //
     //  Inverse cubic bspline inverse filter in x direciton (Off-stride direction)
@@ -707,7 +711,7 @@ void ComputeGradient::calc_inv_bspline_z(MeshData<T>& input){
 
 
 template<typename T>
-void ComputeGradient::calc_inv_bspline_x(MeshData<T>& input) {
+void ComputeGradient::calc_inv_bspline_x(PixelData<T>& input) {
     //  Bevan Cheeseman 2016
     //
     //  Inverse cubic bspline inverse filter in x direciton (Off-stride direction)
@@ -779,7 +783,7 @@ void ComputeGradient::calc_inv_bspline_x(MeshData<T>& input) {
  * @param hz - step in z dir
  */
 template<typename S>
-void ComputeGradient::calc_bspline_fd_ds_mag(const MeshData<S> &input, MeshData<S> &grad, const float hx, const float hy,const float hz) {
+void ComputeGradient::calc_bspline_fd_ds_mag(const PixelData<S> &input, PixelData<S> &grad, const float hx, const float hy,const float hz) {
     const size_t z_num = input.z_num;
     const size_t x_num = input.x_num;
     const size_t y_num = input.y_num;

@@ -68,7 +68,7 @@ namespace std {
 #include "src/numerics/APRNumerics.hpp"
 %}
 
-%include "src/data_structures/Mesh/MeshData.hpp"
+%include "src/data_structures/Mesh/PixelData.hpp"
 %include "src/data_structures/APR/APR.hpp"
 %include "src/data_structures/APR/APRIterator.hpp"
 %include "src/numerics/APRNumerics.hpp"

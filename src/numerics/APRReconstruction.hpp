@@ -22,7 +22,7 @@ class APRReconstruction {
 public:
 
     template<typename U,typename V,typename S>
-    void interp_img(APR<S>& apr, MeshData<U>& img,ExtraParticleData<V>& parts){
+    void interp_img(APR<S>& apr, PixelData<U>& img,ExtraParticleData<V>& parts){
         //
         //  Bevan Cheeseman 2016
         //
@@ -74,7 +74,7 @@ public:
     }
 
     template<typename U,typename V,typename S>
-    void interp_image_patch(APR<S>& apr, MeshData<U>& img,ExtraParticleData<V>& parts,ReconPatch& reconPatch){
+    void interp_image_patch(APR<S>& apr, PixelData<U>& img,ExtraParticleData<V>& parts,ReconPatch& reconPatch){
         //
         //  Bevan Cheeseman 2016
         //
@@ -187,7 +187,7 @@ public:
 
 
     template<typename U,typename S>
-    void interp_depth_ds(APR<S>& apr,MeshData<U>& img){
+    void interp_depth_ds(APR<S>& apr,PixelData<U>& img){
         //
         //  Returns an image of the depth, this is down-sampled by one, as the Particle Cell solution reflects this
         //
@@ -209,7 +209,7 @@ public:
 
         }
 
-        MeshData<U> temp;
+        PixelData<U> temp;
 
         interp_img(apr,temp,depth_parts);
 
@@ -220,7 +220,7 @@ public:
     }
 
     template<typename U,typename S>
-    void interp_level(APR<S> &apr, MeshData<U> &img){
+    void interp_level(APR<S> &apr, PixelData<U> &img){
         //
         //  Returns an image of the depth, this is down-sampled by one, as the Particle Cell solution reflects this
         //
@@ -250,7 +250,7 @@ public:
     }
 
     template<typename U,typename S>
-    void interp_type(APR<S>& apr,MeshData<U>& img){
+    void interp_type(APR<S>& apr,PixelData<U>& img){
 
         //get depth
         ExtraParticleData<U> type_parts(apr);
@@ -279,7 +279,7 @@ public:
     }
 
     template<typename T>
-    void calc_sat_adaptive_y(MeshData<T>& input,MeshData<uint8_t>& offset_img,float scale_in,unsigned int offset_max_in,const unsigned int d_max){
+    void calc_sat_adaptive_y(PixelData<T>& input,PixelData<uint8_t>& offset_img,float scale_in,unsigned int offset_max_in,const unsigned int d_max){
         //
         //  Bevan Cheeseman 2016
         //
@@ -403,7 +403,7 @@ public:
 
 
     template<typename T>
-    void calc_sat_adaptive_x(MeshData<T>& input,MeshData<uint8_t>& offset_img,float scale_in,unsigned int offset_max_in,const unsigned int d_max){
+    void calc_sat_adaptive_x(PixelData<T>& input,PixelData<uint8_t>& offset_img,float scale_in,unsigned int offset_max_in,const unsigned int d_max){
         //
         //  Adaptive form of Matteusz' SAT code.
         //
@@ -521,7 +521,7 @@ public:
 
 
     template<typename T>
-    void calc_sat_adaptive_z(MeshData<T>& input,MeshData<uint8_t>& offset_img,float scale_in,unsigned int offset_max_in,const unsigned int d_max ){
+    void calc_sat_adaptive_z(PixelData<T>& input,PixelData<uint8_t>& offset_img,float scale_in,unsigned int offset_max_in,const unsigned int d_max ){
 
         // The same, but in place
 
@@ -633,7 +633,7 @@ public:
 
 
     template<typename U,typename V,typename S>
-    void interp_parts_smooth(APR<S>& apr,MeshData<U>& out_image,ExtraParticleData<V>& interp_data,std::vector<float> scale_d = {2,2,2}){
+    void interp_parts_smooth(APR<S>& apr,PixelData<U>& out_image,ExtraParticleData<V>& interp_data,std::vector<float> scale_d = {2,2,2}){
         //
         //  Performs a smooth interpolation, based on the depth (level l) in each direction.
         //
@@ -641,8 +641,8 @@ public:
         APRTimer timer;
         timer.verbose_flag = false;
 
-        MeshData<U> pc_image;
-        MeshData<uint8_t> k_img;
+        PixelData<U> pc_image;
+        PixelData<uint8_t> k_img;
 
         unsigned int offset_max = 20;
 

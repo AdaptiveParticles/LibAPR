@@ -5,7 +5,7 @@
 #ifndef PARTPLAY_MESHNUMERICS_HPP
 #define PARTPLAY_MESHNUMERICS_HPP
 
-#include "../data_structures/Mesh/MeshData.hpp"
+#include "data_structures/Mesh/PixelData.hpp"
 #include "../misc/APRTimer.hpp"
 
 class MeshNumerics {
@@ -13,7 +13,7 @@ class MeshNumerics {
 public:
 
     template<typename U,typename V>
-    static float compute_gradient(const MeshData<U>& input_data,std::vector<MeshData<V>>& output_data,std::vector<float> delta = {1.0f,1.0f,1.0f}){
+    static float compute_gradient(const PixelData<U>& input_data,std::vector<PixelData<V>>& output_data,std::vector<float> delta = {1.0f,1.0f,1.0f}){
         //
         //  Computes gradient magnitude using finite differences
         //

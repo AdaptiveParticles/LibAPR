@@ -314,7 +314,7 @@ public:
         writeData(AprTypes::ParaviewTypeType, f.objectId, typev, blosc_comp_type, blosc_comp_level, blosc_shuffle);
 
         // TODO: This needs to be able extended to handle more general type, currently it is assuming uint16
-        write_main_paraview_xdmf_xml(save_loc,file_name,apr_iterator.total_number_particles());
+        write_main_paraview_xdmf_xml(save_loc,hdf5_file_name, file_name,apr_iterator.total_number_particles());
 
         // ------------- output the file size -------------------
         hsize_t file_size;
@@ -368,7 +368,7 @@ public:
     }
 
     template<typename ImageType>
-    float write_mesh_to_hdf5(MeshData<ImageType>& input_mesh,const std::string &save_loc, const std::string &file_name,unsigned int blosc_comp_type = BLOSC_ZSTD, unsigned int blosc_comp_level = 2, unsigned int blosc_shuffle=1){
+    float write_mesh_to_hdf5(PixelData<ImageType>& input_mesh,const std::string &save_loc, const std::string &file_name,unsigned int blosc_comp_type = BLOSC_ZSTD, unsigned int blosc_comp_level = 2, unsigned int blosc_shuffle=1){
         std::string hdf5_file_name = save_loc + file_name + "_pixels.h5";
 
         AprFile f{hdf5_file_name, AprFile::Operation::WRITE};

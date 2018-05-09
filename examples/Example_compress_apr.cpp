@@ -70,7 +70,7 @@ int main(int argc, char **argv) {
     apr.read_apr(options.directory + name + "_compress_apr.h5");
     timer.stop_timer();
 
-    MeshData<uint16_t> img;
+    PixelData<uint16_t> img;
     apr.interp_img(img,apr.particles_intensities);
     std::string output = options.directory + name + "_compress.tif";
     TiffUtils::saveMeshAsTiff(output, img);

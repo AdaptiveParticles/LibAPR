@@ -13,7 +13,7 @@
 
 #include <cassert>
 #include "../data_structures/APR/APRIterator.hpp"
-#include "../data_structures/Mesh/MeshData.hpp"
+#include "data_structures/Mesh/PixelData.hpp"
 #include "../data_structures/APR/APR.hpp"
 
 #ifdef HAVE_OPENMP
@@ -57,12 +57,12 @@ class PullingScheme {
 
 public:
 
-    std::vector<MeshData<uint8_t>> particle_cell_tree;
+    std::vector<PixelData<uint8_t>> particle_cell_tree;
     unsigned int l_min;
     unsigned int l_max;
 
     template<typename T>
-    void fill(float k, const MeshData<T> &input);
+    void fill(float k, const PixelData<T> &input);
     void pulling_scheme_main();
     template<typename T>
     void initialize_particle_cell_tree(APR<T>& apr);
@@ -117,7 +117,7 @@ void PullingScheme::pulling_scheme_main() {
 }
 
 template<typename T>
-void PullingScheme::fill(const float k, const MeshData<T> &input) {
+void PullingScheme::fill(const float k, const PixelData<T> &input) {
     //  Bevan Cheeseman 2016
     //
     //  Updates the hash table from the down sampled images

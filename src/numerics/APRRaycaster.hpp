@@ -42,10 +42,10 @@ public:
     std::string name = "raycast";
 
     template<typename U,typename S,typename V,class BinaryOperation>
-    void perform_raycast(APR<U>& apr,ExtraParticleData<S>& particle_data,MeshData<V>& cast_views,BinaryOperation op);
+    void perform_raycast(APR<U>& apr,ExtraParticleData<S>& particle_data,PixelData<V>& cast_views,BinaryOperation op);
 
     template<typename S,typename U>
-    float perpsective_mesh_raycast(MeshData<S>& image,MeshData<U>& cast_views);
+    float perpsective_mesh_raycast(PixelData<S>& image,PixelData<U>& cast_views);
 
     // Stuff below is hiding implementation so eventually glm header files do not
     // have to be delivered with libAPR
@@ -58,7 +58,7 @@ public:
 
 
 template<typename U,typename S,typename V,class BinaryOperation>
-void APRRaycaster::perform_raycast(APR<U>& apr,ExtraParticleData<S>& particle_data,MeshData<V>& cast_views,BinaryOperation op) {
+void APRRaycaster::perform_raycast(APR<U>& apr,ExtraParticleData<S>& particle_data,PixelData<V>& cast_views,BinaryOperation op) {
 
     //
     //  Bevan Cheeseman 2018
@@ -117,7 +117,7 @@ void APRRaycaster::perform_raycast(APR<U>& apr,ExtraParticleData<S>& particle_da
     ///
     /////////////////////////////////////
 
-    std::vector<MeshData<S>> depth_slice;
+    std::vector<PixelData<S>> depth_slice;
     depth_slice.resize(apr.level_max() + 1);
 
     std::vector<float> depth_vec;
@@ -294,7 +294,7 @@ void APRRaycaster::perform_raycast(APR<U>& apr,ExtraParticleData<S>& particle_da
 }
 
 template<typename S,typename U>
-float APRRaycaster::perpsective_mesh_raycast(MeshData<S>& image,MeshData<U>& cast_views) {
+float APRRaycaster::perpsective_mesh_raycast(PixelData<S>& image,PixelData<U>& cast_views) {
     //
     //  Bevan Cheeseman 2017
     //
@@ -343,7 +343,7 @@ float APRRaycaster::perpsective_mesh_raycast(MeshData<S>& image,MeshData<U>& cas
     for (float theta = theta_0; theta <= theta_f; theta += theta_delta) {
         initObjects(imageWidth, imageHeight, radius, theta, x0, y0, z0, x0f, y0f, z0f);
 
-        MeshData<S> proj_img;
+        PixelData<S> proj_img;
         proj_img.init(imageHeight, imageWidth, 1, 0);
 
         unsigned int z_, x_, j_;

@@ -3,15 +3,13 @@
 //
 //  ImageGen 2016 Bevan Cheeseman
 //                Krzysztof Gonciarz
-//  Meshdata class for storing the image/mesh data
-//
-//
+//  Meshdata class for storing the image/pixel/mesh data
 //
 //
 ///////////////////////////////////////////////////////////////
 
-#ifndef PARTPLAY_MESHCLASS_H
-#define PARTPLAY_MESHCLASS_H
+#ifndef PIXEL_DATA_HPP
+#define PIXEL_DATA_HPP
 
 #include <vector>
 #include <cmath>
@@ -19,9 +17,13 @@
 #include <sstream>
 #include <iostream>
 #include <iomanip>
+#include <algorithm>
 
 #include "../../misc/APRTimer.hpp"
 
+#ifdef HAVE_OPENMP
+#include <omp.h>
+#endif
 
 template <typename T>
 class ArrayWrapper
@@ -73,7 +75,7 @@ private:
  * @tparam T type of mesh elements
  */
 template <typename T>
-class MeshData {
+class PixelData {
 public :
     // size of mesh and container for data
     size_t y_num;
@@ -85,7 +87,7 @@ public :
     /**
      * Constructor - initialize mesh with size of 0,0,0
      */
-    MeshData() { init(0, 0, 0); }
+    PixelData() { init(0, 0, 0); }
 
     /**
      * Constructor - initialize initial size of mesh to provided values
@@ -93,7 +95,7 @@ public :
      * @param aSizeOfX
      * @param aSizeOfZ
      */
-    MeshData(int aSizeOfY, int aSizeOfX, int aSizeOfZ) { init(aSizeOfY, aSizeOfX, aSizeOfZ); }
+    PixelData(int aSizeOfY, int aSizeOfX, int aSizeOfZ) { init(aSizeOfY, aSizeOfX, aSizeOfZ); }
 
     /**
      * Constructor - creates mesh with provided dimentions initialized to aInitVal
@@ -102,13 +104,13 @@ public :
      * @param aSizeOfZ
      * @param aInitVal - initial value of all elements
      */
-    MeshData(int aSizeOfY, int aSizeOfX, int aSizeOfZ, T aInitVal) { init(aSizeOfY, aSizeOfX, aSizeOfZ, aInitVal); }
+    PixelData(int aSizeOfY, int aSizeOfX, int aSizeOfZ, T aInitVal) { init(aSizeOfY, aSizeOfX, aSizeOfZ, aInitVal); }
 
     /**
      * Move constructor
      * @param aObj mesh to be moved
      */
-    MeshData(MeshData &&aObj) {
+    PixelData(PixelData &&aObj) {
         x_num = aObj.x_num;
         y_num = aObj.y_num;
         z_num = aObj.z_num;
@@ -120,7 +122,7 @@ public :
      * Move assignment operator
     * @param aObj
     */
-    MeshData& operator=(MeshData &&aObj) {
+    PixelData& operator=(PixelData &&aObj) {
         x_num = aObj.x_num;
         y_num = aObj.y_num;
         z_num = aObj.z_num;
@@ -134,7 +136,7 @@ public :
      * @param aMesh input mesh
      */
     template<typename U>
-    MeshData(const MeshData<U> &aMesh, bool aShouldCopyData) {
+    PixelData(const PixelData<U> &aMesh, bool aShouldCopyData) {
         init(aMesh.y_num, aMesh.x_num, aMesh.z_num);
         if (aShouldCopyData) std::copy(aMesh.mesh.begin(), aMesh.mesh.end(), mesh.begin());
     }
@@ -145,8 +147,8 @@ public :
      * @return created object by value
      */
     template <typename U>
-    MeshData<U> toType() const {
-        MeshData<U> new_value(y_num, x_num, z_num);
+    PixelData<U> toType() const {
+        PixelData<U> new_value(y_num, x_num, z_num);
         std::copy(mesh.begin(), mesh.end(), new_value.mesh.begin());
         return new_value;
     }
@@ -198,7 +200,7 @@ public :
      * @param aNumberOfBlocks in how many chunks copy will be done
      */
     template<typename U>
-    void copyFromMesh(const MeshData<U> &aInputMesh, unsigned int aNumberOfBlocks = 8) {
+    void copyFromMesh(const PixelData<U> &aInputMesh, unsigned int aNumberOfBlocks = 8) {
         aNumberOfBlocks = std::min((unsigned int)z_num, aNumberOfBlocks);
         unsigned int numOfElementsPerBlock = z_num/aNumberOfBlocks;
 
@@ -259,7 +261,7 @@ public :
      * @param aInputMesh
      */
     template<typename S>
-    void init(const MeshData<S> &aInputMesh) {
+    void init(const PixelData<S> &aInputMesh) {
         init(aInputMesh.y_num, aInputMesh.x_num, aInputMesh.z_num);
     }
 
@@ -313,7 +315,7 @@ public :
      * @param aMesh - mesh used to get dimensions
      */
     template <typename U>
-    void initDownsampled(const MeshData<U> &aMesh) {
+    void initDownsampled(const PixelData<U> &aMesh) {
         const int z_num_ds = ceil(1.0*aMesh.z_num/2.0);
         const int x_num_ds = ceil(1.0*aMesh.x_num/2.0);
         const int y_num_ds = ceil(1.0*aMesh.y_num/2.0);
@@ -327,7 +329,7 @@ public :
      * @param aInitVal
      */
     template <typename U>
-    void initDownsampled(const MeshData<U> &aMesh, T aInitVal) {
+    void initDownsampled(const PixelData<U> &aMesh, T aInitVal) {
         const int z_num_ds = ceil(1.0*aMesh.z_num/2.0);
         const int x_num_ds = ceil(1.0*aMesh.x_num/2.0);
         const int y_num_ds = ceil(1.0*aMesh.y_num/2.0);
@@ -339,7 +341,7 @@ public :
      * Swaps data of meshes this <-> aObj
      * @param aObj
      */
-    void swap(MeshData &aObj) {
+    void swap(PixelData &aObj) {
         std::swap(x_num, aObj.x_num);
         std::swap(y_num, aObj.y_num);
         std::swap(z_num, aObj.z_num);
@@ -356,7 +358,7 @@ public :
      * @param aNumberOfBlocks - in how many chunks copy will be done
      */
     template<typename U, typename R>
-    void copyFromMeshWithUnaryOp(const MeshData<U> &aInputMesh, R aOp, size_t aNumberOfBlocks = 10) {
+    void copyFromMeshWithUnaryOp(const PixelData<U> &aInputMesh, R aOp, size_t aNumberOfBlocks = 10) {
         aNumberOfBlocks = std::min(aInputMesh.z_num, (size_t)aNumberOfBlocks);
         size_t numOfElementsPerBlock = aInputMesh.z_num/aNumberOfBlocks;
 
@@ -386,7 +388,7 @@ public :
      * @return
      */
     std::string getStrIndex(size_t aIdx) const {
-        if (aIdx < 0 || aIdx >= mesh.size()) return "(ErrIdx)";
+        if (aIdx >= mesh.size()) return "(ErrIdx)";
         size_t z = aIdx / (x_num * y_num);
         aIdx -= z * (x_num * y_num);
         size_t x = aIdx / y_num;
@@ -400,13 +402,16 @@ public :
     /**
      * Prints X-Y or X-Z planes of mesh (for debug/test purposses - use only on small meshes)
      */
-    void printMesh(int aColumnWidth, bool aXYplanes = true) const {
+    void printMesh(int aColumnWidth, int aFloatPrecision = 10, bool aXYplanes = true) const {
+        std::ios::fmtflags flagsBefore(std::cout.flags());
+        std::cout << std::setw(aColumnWidth) << std::setprecision(aFloatPrecision) << std::fixed;
+
         if (aXYplanes) {
             for (size_t z = 0; z < z_num; ++z) {
                 std::cout << "z=" << z << "\n";
                 for (size_t y = 0; y < y_num; ++y) {
                     for (size_t x = 0; x < x_num; ++x) {
-                        std::cout << std::setw(aColumnWidth) << at(y, x, z) << " ";
+                        std::cout << std::setw(aColumnWidth) << std::setprecision(aFloatPrecision) << std::fixed << at(y, x, z) << " ";
                     }
                     std::cout << "\n";
                 }
@@ -418,30 +423,69 @@ public :
                 std::cout << "y=" << y << "\n";
                 for (size_t z = 0; z < z_num; ++z) {
                     for (size_t x = 0; x < x_num; ++x) {
-                        std::cout << std::setw(aColumnWidth) << at(y, x, z) << " ";
+                        std::cout << std::setw(aColumnWidth) << std::setprecision(aFloatPrecision) << std::fixed << at(y, x, z) << " ";
                     }
                     std::cout << "\n";
                 }
                 std::cout << std::endl;
             }
         }
+
+        // Revert settings
+        std::cout.flags(flagsBefore);
     }
 
-    friend std::ostream & operator<<(std::ostream &os, const MeshData<T> &obj) {
-        os << "MeshData: size(Y/X/Z)=" << obj.y_num << "/" << obj.x_num << "/" << obj.z_num << " vSize:" << obj.mesh.size() << " vCapacity:" << obj.mesh.capacity() << " elementSize:" << sizeof(T);
+    /**
+ * Prints X-Y or X-Z planes of mesh (for debug/test purposses - use only on small meshes)
+ */
+    void printMeshT(int aColumnWidth, int aFloatPrecision = 10, bool aXYplanes = true) const {
+        std::ios::fmtflags flagsBefore(std::cout.flags());
+        std::cout << std::setw(aColumnWidth) << std::setprecision(aFloatPrecision) << std::fixed;
+
+        if (aXYplanes) {
+            for (size_t z = 0; z < z_num; ++z) {
+                std::cout << "z=" << z << "\n";
+                for (size_t x = 0; x < x_num; ++x) {
+                    for (size_t y = 0; y < y_num; ++y) {
+                        std::cout << std::setw(aColumnWidth) << std::setprecision(aFloatPrecision) << std::fixed << at(y, x, z) << " ";
+                    }
+                    std::cout << "\n";
+                }
+                std::cout << std::endl;
+            }
+        }
+        else { // X-Z planes
+            for (size_t y = 0; y < y_num; ++y) {
+                std::cout << "y=" << y << "\n";
+                for (size_t x = 0; x < x_num; ++x) {
+                    for (size_t z = 0; z < z_num; ++z) {
+                        std::cout << std::setw(aColumnWidth) << std::setprecision(aFloatPrecision) << std::fixed << at(y, x, z) << " ";
+                    }
+                    std::cout << "\n";
+                }
+                std::cout << std::endl;
+            }
+        }
+
+        // Revert settings
+        std::cout.flags(flagsBefore);
+    }
+
+    friend std::ostream & operator<<(std::ostream &os, const PixelData<T> &obj) {
+        os << "PixelData: size(Y/X/Z)=" << obj.y_num << "/" << obj.x_num << "/" << obj.z_num << " vSize:" << obj.mesh.size() << " vCapacity:" << obj.mesh.capacity() << " elementSize:" << sizeof(T);
         return os;
     }
 
 private:
 
-    MeshData(const MeshData&) = delete; // make it noncopyable
-    MeshData& operator=(const MeshData&) = delete; // make it not assignable
+    PixelData(const PixelData&) = delete; // make it noncopyable
+    PixelData& operator=(const PixelData&) = delete; // make it not assignable
 
 };
 
 
 template<typename T, typename S, typename R, typename C>
-void downsample(const MeshData<T> &aInput, MeshData<S> &aOutput, R reduce, C constant_operator, bool aInitializeOutput = false) {
+void downsample(const PixelData<T> &aInput, PixelData<S> &aOutput, R reduce, C constant_operator, bool aInitializeOutput = false) {
     const size_t z_num = aInput.z_num;
     const size_t x_num = aInput.x_num;
     const size_t y_num = aInput.y_num;
@@ -495,7 +539,7 @@ void downsample(const MeshData<T> &aInput, MeshData<S> &aOutput, R reduce, C con
 }
 
 template<typename T>
-void downsamplePyrmaid(MeshData<T> &original_image, std::vector<MeshData<T>> &downsampled, size_t l_max, size_t l_min) {
+void downsamplePyrmaid(PixelData<T> &original_image, std::vector<PixelData<T>> &downsampled, size_t l_max, size_t l_min) {
     downsampled.resize(l_max + 1); // each level is kept at same index
     downsampled.back().swap(original_image); // put original image at l_max index
 
@@ -507,4 +551,4 @@ void downsamplePyrmaid(MeshData<T> &original_image, std::vector<MeshData<T>> &do
     }
 }
 
-#endif //PARTPLAY_MESHCLASS_H
+#endif //PIXEL_DATA_HPP

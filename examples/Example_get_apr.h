@@ -5,7 +5,7 @@
 #include <string>
 
 #include "algorithm/APRParameters.hpp"
-#include "data_structures/Mesh/MeshData.hpp"
+#include "data_structures/Mesh/PixelData.hpp"
 #include "algorithm/APRConverter.hpp"
 #include "data_structures/APR/APR.hpp"
 
