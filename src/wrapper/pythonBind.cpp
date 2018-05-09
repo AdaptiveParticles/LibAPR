@@ -19,7 +19,7 @@ namespace py = pybind11;
 // -------- Utility classes to be wrapped in python ----------------------------
 template <typename T>
 class AprToImg {
-    MeshData <T> reconstructedImage;
+    PixelData <T> reconstructedImage;
 
 public:
     AprToImg () {}
