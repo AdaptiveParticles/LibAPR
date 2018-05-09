@@ -191,7 +191,7 @@ int main(int argc, char **argv) {
 
         if(options.output_pc_recon) {
             //create mesh data structure for reconstruction
-            MeshData<uint16_t> recon_pc;
+            PixelData<uint16_t> recon_pc;
 
 
 
@@ -245,7 +245,7 @@ int main(int argc, char **argv) {
 
         // Intentionaly block-scoped since local type_recon will be destructed when block ends and release memory.
         {
-            MeshData<uint16_t> type_recon;
+            PixelData<uint16_t> type_recon;
 
             aprReconstruction.interp_image_patch(apr,type_recon, type,reconPatch);
             TiffUtils::saveMeshAsTiff(options.directory + apr.name + "_type.tif", type_recon);
@@ -291,7 +291,7 @@ int main(int argc, char **argv) {
 
         // Intentionaly block-scoped since local type_recon will be destructed when block ends and release memory.
         {
-            MeshData<uint8_t> type_recon;
+            PixelData<uint8_t> type_recon;
 
             //level
             aprReconstruction.interp_image_patch(apr,type_recon, level,reconPatch);

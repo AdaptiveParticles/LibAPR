@@ -2,7 +2,7 @@
  * Created by Krzysztof Gonciarz 2018
  */
 #include <gtest/gtest.h>
-#include "data_structures/Mesh/MeshData.hpp"
+#include "data_structures/Mesh/PixelData.hpp"
 
 namespace {
     class MeshDataTest : public ::testing::Test {
@@ -25,7 +25,7 @@ namespace {
         const int xLen = 254;
         const int zLen = 123;
         const size_t sizeOfMesh = (size_t)yLen * xLen * zLen;
-        MeshData<MESH_TYPE> m{yLen, xLen, zLen};
+        PixelData<MESH_TYPE> m{yLen, xLen, zLen};
     };
 
     class MeshDataParameterTest : public ::testing::TestWithParam<int> {
@@ -48,13 +48,13 @@ namespace {
         const int xLen = 20;
         const int zLen = 30;
         const size_t sizeOfMesh = (size_t)yLen * xLen * zLen;
-        MeshData<MESH_TYPE> m{yLen, xLen, zLen};
+        PixelData<MESH_TYPE> m{yLen, xLen, zLen};
     };
 
     TEST(MeshDataSimpleTest, ConstructorTest) {
         // default
         {
-            MeshData<int> md;
+            PixelData<int> md;
             ASSERT_EQ(md.x_num, 0);
             ASSERT_EQ(md.y_num, 0);
             ASSERT_EQ(md.z_num, 0);
@@ -63,7 +63,7 @@ namespace {
 
         // size provided
         {
-            MeshData<int> md(100, 200, 300);
+            PixelData<int> md(100, 200, 300);
             ASSERT_EQ(md.x_num, 200);
             ASSERT_EQ(md.y_num, 100);
             ASSERT_EQ(md.z_num, 300);
@@ -73,11 +73,11 @@ namespace {
         // mesh provided
         {
             // generate some data
-            MeshData<int> md(3,4,5);
+            PixelData<int> md(3,4,5);
             for (size_t i = 0; i < md.mesh.size(); ++i) md.mesh[i] = i + 1;
 
             // test constructor
-            MeshData<char> testedMesh(md, true);
+            PixelData<char> testedMesh(md, true);
             ASSERT_EQ(md.mesh.size(), testedMesh.mesh.size());
             ASSERT_EQ(md.x_num, testedMesh.x_num);
             ASSERT_EQ(md.y_num, testedMesh.y_num);
@@ -91,7 +91,7 @@ namespace {
     TEST_F(MeshDataTest, ToTypeTest) {
         // Change type and compare if still OK
         typedef short NEW_TYPE;
-        MeshData<NEW_TYPE> mf = m.toType<NEW_TYPE>();
+        PixelData<NEW_TYPE> mf = m.toType<NEW_TYPE>();
         ASSERT_EQ(mf.x_num, xLen);
         ASSERT_EQ(mf.y_num, yLen);
         ASSERT_EQ(mf.z_num, zLen);
@@ -121,7 +121,7 @@ namespace {
     }
 
     TEST_P(MeshDataParameterTest, BlockCopyDataTest) {
-        MeshData<unsigned short> mNew(yLen, xLen, zLen);
+        PixelData<unsigned short> mNew(yLen, xLen, zLen);
 
         int numOfBlocks = GetParam();
         mNew.copyFromMesh(m, numOfBlocks);
@@ -142,7 +142,7 @@ namespace {
 
     TEST_F(MeshDataTest, InitializeTest) {
         {   // Size and initial value known
-            MeshData<int> md;
+            PixelData<int> md;
             md.init(3, 4, 5, 123);
             ASSERT_EQ(md.y_num, 3);
             ASSERT_EQ(md.x_num, 4);
@@ -152,7 +152,7 @@ namespace {
             for (int i = 0; i < size; ++i) ASSERT_EQ(md.mesh[i], 123);
         }
         {   // Use data from other mesh
-            MeshData<int> md;
+            PixelData<int> md;
             md.init(m);
             ASSERT_EQ(md.x_num, xLen);
             ASSERT_EQ(md.y_num, yLen);
@@ -160,7 +160,7 @@ namespace {
             ASSERT_EQ(md.mesh.size(), sizeOfMesh);
         }
         {   // Size and default value for type used
-            MeshData<int> md;
+            PixelData<int> md;
             md.init(3, 4, 5);
             ASSERT_EQ(md.y_num, 3);
             ASSERT_EQ(md.x_num, 4);
@@ -172,7 +172,7 @@ namespace {
 
     TEST_F(MeshDataTest, InitDownsampledTest) {
         {
-            MeshData<int> md;
+            PixelData<int> md;
             md.initDownsampled(3, 5, 7);
             ASSERT_EQ(md.y_num, 2);
             ASSERT_EQ(md.x_num, 3);
@@ -181,7 +181,7 @@ namespace {
             ASSERT_EQ(md.mesh.size(), size);
         }
         {
-            MeshData<int> md;
+            PixelData<int> md;
             md.initDownsampled(4, 6, 8);
             ASSERT_EQ(md.y_num, 2);
             ASSERT_EQ(md.x_num, 3);
@@ -190,8 +190,8 @@ namespace {
             ASSERT_EQ(md.mesh.size(), size);
         }
         {
-            MeshData<int> md;
-            md.initDownsampled(MeshData<char>(4, 6, 8));
+            PixelData<int> md;
+            md.initDownsampled(PixelData<char>(4, 6, 8));
             ASSERT_EQ(md.y_num, 2);
             ASSERT_EQ(md.x_num, 3);
             ASSERT_EQ(md.z_num, 4);
@@ -199,8 +199,8 @@ namespace {
             ASSERT_EQ(md.mesh.size(), size);
         }
         {
-            MeshData<int> md;
-            md.initDownsampled(MeshData<float>(3, 5, 7), 2);
+            PixelData<int> md;
+            md.initDownsampled(PixelData<float>(3, 5, 7), 2);
             ASSERT_EQ(md.y_num, 2);
             ASSERT_EQ(md.x_num, 3);
             ASSERT_EQ(md.z_num, 4);
@@ -211,10 +211,10 @@ namespace {
     }
 
     TEST(MeshDataSimpleTest, UnaryOpTest) {
-        MeshData<int> m(1, 5, 1, 1);
+        PixelData<int> m(1, 5, 1, 1);
         for (size_t i = 0; i < m.mesh.size(); ++i) m.mesh[i] = i + 1;
 
-        MeshData<int> m2(1, 5, 1);
+        PixelData<int> m2(1, 5, 1);
         m2.copyFromMeshWithUnaryOp(m, [](const int &a) { return a + 5; });
 
         for (size_t i = 0; i < m.mesh.size(); ++i) {
@@ -224,10 +224,10 @@ namespace {
 
     TEST(MeshDataSimpleTest, DownSample) {
         {   // reduce/constant_operator calculate maximum value when downsampling
-            MeshData<int> m(5, 6, 4);
+            PixelData<int> m(5, 6, 4);
             for (size_t i = 0; i < m.mesh.size(); ++i) m.mesh[i] = i + 1;
 
-            MeshData<int> m2;
+            PixelData<int> m2;
             downsample(m, m2,
                        [](float x, float y) { return std::max(x, y); },
                        [](float x) { return x; },
@@ -238,10 +238,10 @@ namespace {
             }
         }
         {   // reduce/constant_operator calculate maximum value when downsampling
-            MeshData<int> m(5, 6, 3);
+            PixelData<int> m(5, 6, 3);
             for (size_t i = 0; i < m.mesh.size(); ++i) m.mesh[i] = 5 * 6 * 3 - i;
 
-            MeshData<int> m2;
+            PixelData<int> m2;
             downsample(m, m2,
                        [](float x, float y) { return std::max(x, y); },
                        [](float x) { return x; },
@@ -254,10 +254,10 @@ namespace {
         }
         {
             // reduce/constant_operator calculate average value of pixels when downsampling
-            MeshData<uint16_t> m(2, 2, 2);
+            PixelData<uint16_t> m(2, 2, 2);
             for (size_t i = 0; i < m.mesh.size(); ++i) m.mesh[i] = 8 - i;
 
-            MeshData<float> m2;
+            PixelData<float> m2;
             downsample(m, m2,
                        [](const float &x, const float &y) -> float { return x + y; },
                        [](const float &x) -> float { return x / 8.0; },
@@ -270,10 +270,10 @@ namespace {
     }
 
     TEST(MeshDataSimpleTest, DownSamplePyramid) {
-        MeshData<float> m(4, 4, 4);
+        PixelData<float> m(4, 4, 4);
         for (size_t i = 0; i < m.mesh.size(); ++i) m.mesh[i] = i + 1;
 
-        std::vector<MeshData<float>> ds;
+        std::vector<PixelData<float>> ds;
         downsamplePyrmaid(m, ds, 3, 1);
 
         ASSERT_EQ(ds.size(), 4);
@@ -288,7 +288,7 @@ namespace {
     }
 
     TEST(MeshDataSimpleTest, GetIdx) {
-        MeshData<int> m(5, 6, 3);
+        PixelData<int> m(5, 6, 3);
 
         ASSERT_STREQ(m.getStrIndex(0).c_str(), "(0, 0, 0)");
         ASSERT_STREQ(m.getStrIndex(60).c_str(), "(0, 0, 2)");

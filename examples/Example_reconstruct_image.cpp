@@ -127,7 +127,7 @@ int main(int argc, char **argv) {
 
         if(options.output_pc_recon) {
             //create mesh data structure for reconstruction
-            MeshData<uint16_t> recon_pc;
+            PixelData<uint16_t> recon_pc;
 
             timer.start_timer("pc interp");
             //perform piece-wise constant interpolation
@@ -179,7 +179,7 @@ int main(int argc, char **argv) {
 
         // Intentionaly block-scoped since local type_recon will be destructed when block ends and release memory.
         {
-            MeshData<uint16_t> type_recon;
+            PixelData<uint16_t> type_recon;
 
             apr.interp_img(type_recon, type);
             TiffUtils::saveMeshAsTiff(options.directory + apr.name + "_type.tif", type_recon);
@@ -205,7 +205,7 @@ int main(int argc, char **argv) {
     if(options.output_smooth_recon) {
 
         //smooth reconstruction - requires float
-        MeshData<float> recon_smooth;
+        PixelData<float> recon_smooth;
         std::vector<float> scale_d = {2, 2, 2};
 
         timer.start_timer("smooth reconstrution");

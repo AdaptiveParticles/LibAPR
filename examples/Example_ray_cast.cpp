@@ -68,7 +68,7 @@ int main(int argc, char **argv) {
 
     apr_raycaster.name = apr.name;
 
-    MeshData<uint16_t> views;
+    PixelData<uint16_t> views;
 
     /////////////
     ///
@@ -92,9 +92,9 @@ int main(int argc, char **argv) {
     if(options.original_image.size() > 0){
 
         TiffUtils::TiffInfo inputTiff(options.directory + options.original_image);
-        MeshData<uint16_t> original_image = TiffUtils::getMesh<uint16_t>(inputTiff);
+        PixelData<uint16_t> original_image = TiffUtils::getMesh<uint16_t>(inputTiff);
 
-        MeshData<uint16_t> mesh_views;
+        PixelData<uint16_t> mesh_views;
 
         apr_raycaster.perpsective_mesh_raycast(original_image,mesh_views);
 

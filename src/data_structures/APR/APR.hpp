@@ -94,7 +94,7 @@ public:
     //////////////////////////
 
     template<typename U,typename V>
-    void interp_img(MeshData<U>& img,ExtraParticleData<V>& parts){
+    void interp_img(PixelData<U>& img,ExtraParticleData<V>& parts){
         //
         //  Bevan Cheeseman 2016
         //
@@ -105,7 +105,7 @@ public:
     }
 
     template<typename U>
-    void interp_depth_ds(MeshData<U>& img){
+    void interp_depth_ds(PixelData<U>& img){
         //
         //  Returns an image of the depth, this is down-sampled by one, as the Particle Cell solution reflects this
         //
@@ -114,7 +114,7 @@ public:
     }
 
     template<typename U>
-    void interp_depth(MeshData<U>& img){
+    void interp_depth(PixelData<U>& img){
         //
         //  Returns an image of the depth, this is down-sampled by one, as the Particle Cell solution reflects this
         //
@@ -123,7 +123,7 @@ public:
     }
 
     template<typename U>
-    void interp_type(MeshData<U>& img){
+    void interp_type(PixelData<U>& img){
         //
         //  Interpolates the APR
         //
@@ -132,7 +132,7 @@ public:
     }
 
     template<typename U,typename V>
-    void interp_parts_smooth(MeshData<U>& out_image,ExtraParticleData<V>& interp_data,std::vector<float> scale_d = {2,2,2}){
+    void interp_parts_smooth(PixelData<U>& out_image,ExtraParticleData<V>& interp_data,std::vector<float> scale_d = {2,2,2}){
         //
         //  Performs a smooth interpolation, based on the depth (level l) in each direction.
         //
@@ -141,7 +141,7 @@ public:
     }
 
     template<typename U,typename V>
-    void get_parts_from_img(std::vector<MeshData<U>>& img_by_level,ExtraParticleData<V>& parts){
+    void get_parts_from_img(std::vector<PixelData<U>>& img_by_level,ExtraParticleData<V>& parts){
         //
         //  Bevan Cheeseman 2016
         //

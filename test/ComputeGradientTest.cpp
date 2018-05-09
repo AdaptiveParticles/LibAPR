@@ -3,7 +3,7 @@
  */
 
 #include <gtest/gtest.h>
-#include "data_structures/Mesh/MeshData.hpp"
+#include "data_structures/Mesh/PixelData.hpp"
 #include "algorithm/ComputeGradient.hpp"
 
 namespace {
@@ -14,7 +14,7 @@ namespace {
      * @return true if same
      */
     template <typename T>
-    bool compare(MeshData<T> &mesh, const float *data, const float epsilon) {
+    bool compare(PixelData<T> &mesh, const float *data, const float epsilon) {
         size_t dataIdx = 0;
         for (size_t z = 0; z < mesh.z_num; ++z) {
             for (size_t y = 0; y < mesh.y_num; ++y) {
@@ -33,7 +33,7 @@ namespace {
 
     TEST(ComputeGradientTest, 2D_XY) {
         {   // Corner points
-            MeshData<float> m(6, 6, 1, 0);
+            PixelData<float> m(6, 6, 1, 0);
             // expect gradient is 3x3 X/Y plane
             float expect[] = {1.41, 0, 4.24,
                               0, 0, 0,
@@ -43,33 +43,33 @@ namespace {
             m(5, 0, 0) = 4;
             m(0, 5, 0) = 6;
             m(5, 5, 0) = 8;
-            MeshData<float> grad;
+            PixelData<float> grad;
             grad.initDownsampled(m, 0);
             ComputeGradient cg;
             cg.calc_bspline_fd_ds_mag(m, grad, 1, 1, 1);
             ASSERT_TRUE(compare(grad, expect, 0.01));
         }
         {   // In the middle
-            MeshData<float> m(6, 6, 1, 0);
+            PixelData<float> m(6, 6, 1, 0);
             // expect gradient is 3x3 X/Y plane
             float expect[] = {1, 1, 0,
                               1, 0, 0,
                               0, 0, 0};
             // put values in corners
             m(1, 1, 0) = 2;
-            MeshData<float> grad;
+            PixelData<float> grad;
             grad.initDownsampled(m, 0);
             ComputeGradient cg;
             cg.calc_bspline_fd_ds_mag(m, grad, 1, 1, 1);
             ASSERT_TRUE(compare(grad, expect, 0.01));
         }
         {   // One pixel image 1x1x1
-            MeshData<float> m(1, 1, 1, 0);
+            PixelData<float> m(1, 1, 1, 0);
             // expect gradient is 3x3 X/Y plane
             float expect[] = {0};
             // put values in corners
             m(0, 0, 0) = 2;
-            MeshData<float> grad;
+            PixelData<float> grad;
             grad.initDownsampled(m, 0);
             ComputeGradient cg;
             cg.calc_bspline_fd_ds_mag(m, grad, 1, 1, 1);
@@ -79,7 +79,7 @@ namespace {
     }
 
     TEST(ComputeGradientTest, Corners3D) {
-        MeshData<float> m(6, 6, 4, 0);
+        PixelData<float> m(6, 6, 4, 0);
         // expect gradient is 3x3x2 X/Y/Z plane
         float expect[] = { 1.73, 0, 5.19,
                            0,    0,    0,
@@ -98,7 +98,7 @@ namespace {
         m(0, 5, 3) = 14;
         m(5, 5, 3) = 16;
 
-        MeshData<float> grad;
+        PixelData<float> grad;
         grad.initDownsampled(m, 0);
         ComputeGradient cg;
         cg.calc_bspline_fd_ds_mag(m, grad, 1, 1, 1);

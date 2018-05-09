@@ -10,7 +10,7 @@
 #include <string>
 #include <tiffio.h>
 #include <sstream>
-#include "../data_structures/Mesh/MeshData.hpp"
+#include "data_structures/Mesh/PixelData.hpp"
 
 
 namespace TiffUtils {
@@ -156,7 +156,7 @@ namespace TiffUtils {
      * @return mesh with tiff or empty mesh if reading file failed
      */
     template<typename T>
-    MeshData<T> getMesh(const std::string &aFileName) {
+    PixelData<T> getMesh(const std::string &aFileName) {
         TiffInfo tiffInfo(aFileName);
         return getMesh<T>(tiffInfo);
     }
@@ -168,9 +168,9 @@ namespace TiffUtils {
      * @return mesh with tiff or empty mesh if reading file failed
      */
     template<typename T>
-    MeshData<T> getMesh(const TiffInfo &aTiff) {
-        if (!aTiff.isFileOpened()) return MeshData<T>();
-        MeshData<T> mesh(aTiff.iImgHeight, aTiff.iImgWidth, aTiff.iNumberOfDirectories);
+    PixelData<T> getMesh(const TiffInfo &aTiff) {
+        if (!aTiff.isFileOpened()) return PixelData<T>();
+        PixelData<T> mesh(aTiff.iImgHeight, aTiff.iImgWidth, aTiff.iNumberOfDirectories);
         getMesh(aTiff, mesh);
         return mesh;
     }
@@ -183,7 +183,7 @@ namespace TiffUtils {
     * @return mesh with tiff or empty mesh if reading file failed
     */
     template<typename T>
-    void getMesh(const TiffInfo &aTiff, MeshData<T> &aInputMesh) {
+    void getMesh(const TiffInfo &aTiff, PixelData<T> &aInputMesh) {
         if (!aTiff.isFileOpened()) return;
 
         std::cout << "getMesh: " << aInputMesh << std::endl;
@@ -192,7 +192,7 @@ namespace TiffUtils {
         const long stripSize = TIFFStripSize(aTiff.iFile);
         std::cout << __func__ << ": ScanlineSize=" << TIFFScanlineSize(aTiff.iFile) << " StripSize=" << stripSize << " NumberOfStrips=" << TIFFNumberOfStrips(aTiff.iFile) << std::endl;
 
-        // Read TIF to MeshData
+        // Read TIF to PixelData
         size_t currentOffset = 0;
         for (uint32_t i = 0; i < aTiff.iNumberOfDirectories; ++i) {
             TIFFSetDirectory(aTiff.iFile, i);
@@ -217,7 +217,7 @@ namespace TiffUtils {
      * @param aData mesh with data
      */
     template<typename T>
-    void saveMeshAsTiff(const std::string &aFileName, const MeshData<T> &aData) {
+    void saveMeshAsTiff(const std::string &aFileName, const PixelData<T> &aData) {
         std::cout << __func__ << ": " << "FileName: [" << aFileName << "] " << aData << std::endl;
 
         // Set proper dimensions (x and y are exchanged giving transpose)
@@ -282,9 +282,9 @@ namespace TiffUtils {
      * @param aData mesh with data
      */
     template<typename T>
-    void saveMeshAsTiffUint16(const std::string &filename, const MeshData<T> &aData) {
+    void saveMeshAsTiffUint16(const std::string &filename, const PixelData<T> &aData) {
         //  Converts the data to uint16t then writes it (requires creation of a complete copy of the data)
-        MeshData<uint16_t> mesh16{aData, true /*copy data*/};
+        PixelData<uint16_t> mesh16{aData, true /*copy data*/};
         saveMeshAsTiff(filename, mesh16);
     }
 }
