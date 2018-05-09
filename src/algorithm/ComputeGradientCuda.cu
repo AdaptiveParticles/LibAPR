@@ -6,6 +6,7 @@
 #include <cuda_runtime.h>
 #include <device_launch_parameters.h>
 
+#include "data_structures/Mesh/PixelData.hpp"
 #include "dsGradient.cuh"
 
 #include "algorithm/ComputeInverseCubicBsplineCuda.h"
@@ -21,14 +22,14 @@
 #include "algorithm/LocalIntensityScaleCuda.h"
 
 // explicit instantiation of handled types
-template void getGradient(MeshData<float> &, MeshData<float> &, MeshData<float> &, MeshData<float> &, float, const APRParameters &);
-template void thresholdImg(MeshData<float> &, const float);
-template void getFullPipeline(MeshData<float> &, MeshData<float> &, MeshData<float> &, MeshData<float> &, float, const APRParameters &);
-template void getFullPipeline(MeshData<uint16_t> &, MeshData<uint16_t> &, MeshData<float> &, MeshData<float> &, float, const APRParameters &);
-template void thresholdGradient(MeshData<float> &, const MeshData<float> &, const float);
+template void getGradient(PixelData<float> &, PixelData<float> &, PixelData<float> &, PixelData<float> &, float, const APRParameters &);
+template void thresholdImg(PixelData<float> &, const float);
+template void getFullPipeline(PixelData<float> &, PixelData<float> &, PixelData<float> &, PixelData<float> &, float, const APRParameters &);
+template void getFullPipeline(PixelData<uint16_t> &, PixelData<uint16_t> &, PixelData<float> &, PixelData<float> &, float, const APRParameters &);
+template void thresholdGradient(PixelData<float> &, const PixelData<float> &, const float);
 
 
-void cudaDownsampledGradient(const MeshData<float> &input, MeshData<float> &grad, const float hx, const float hy, const float hz) {
+void cudaDownsampledGradient(const PixelData<float> &input, PixelData<float> &grad, const float hx, const float hy, const float hz) {
     APRTimer timer;
     timer.verbose_flag=true;
 
@@ -82,7 +83,7 @@ namespace {
     }
 
     template<typename T>
-    BsplineParams prepareBsplineStuff(MeshData<T> &image, float lambda, float tol) {
+    BsplineParams prepareBsplineStuff(PixelData<T> &image, float lambda, float tol) {
         // Recursive Filter Implimentation for Smoothing BSplines
         // B-Spline Signal Processing: Part II - Efficient Design and Applications, Unser 1993
 
@@ -165,7 +166,7 @@ __global__ void threshold(const T *input, S *output, size_t length, float thresh
 }
 
 template <typename T>
-void thresholdGradient(MeshData<float> &output, const MeshData<T> &input, const float Ip_th) {
+void thresholdGradient(PixelData<float> &output, const PixelData<T> &input, const float Ip_th) {
     APRTimer timer(true);
 
     timer.start_timer("cuda: memory alloc + data transfer to device");
@@ -212,7 +213,7 @@ __global__ void thresholdImg(T *input, size_t length, float thresholdLevel) {
 }
 
 template <typename T>
-void thresholdImg(MeshData<T> &image, const float threshold) {
+void thresholdImg(PixelData<T> &image, const float threshold) {
     APRTimer timer(true);
 
     timer.start_timer("cuda: memory alloc + data transfer to device");
@@ -237,7 +238,7 @@ void thresholdImg(MeshData<T> &image, const float threshold) {
 }
 
 template <typename ImgType>
-void getGradientCuda(MeshData<ImgType> &image, MeshData<float> &local_scale_temp, MeshData<ImgType> &grad_temp,
+void getGradientCuda(PixelData<ImgType> &image, PixelData<float> &local_scale_temp, PixelData<ImgType> &grad_temp,
                      ImgType *cudaImage, ImgType *cudaGrad, float *cudalocal_scale_temp,
                      float bspline_offset, const APRParameters &par) {
     CudaTimer timer(true, "getGradientCuda");
@@ -251,7 +252,7 @@ void getGradientCuda(MeshData<ImgType> &image, MeshData<float> &local_scale_temp
     }
     {
         timer.start_timer("smooth bspline");
-        MeshData<ImgType> &input = image;
+        PixelData<ImgType> &input = image;
         float lambda = par.lambda;
         float tolerance = 0.0001;
         BsplineParams p = prepareBsplineStuff(input, lambda, tolerance);
@@ -302,13 +303,13 @@ void getGradientCuda(MeshData<ImgType> &image, MeshData<float> &local_scale_temp
     }
     {
         timer.start_timer("downsampled_gradient_magnitude");
-        MeshData<ImgType> &input = image;
+        PixelData<ImgType> &input = image;
         runKernelGradient(cudaImage, cudaGrad, input.x_num, input.y_num, input.z_num, grad_temp.x_num, grad_temp.y_num, par.dx, par.dy, par.dz);
         timer.stop_timer();
     }
     {
         timer.start_timer("down-sample_b-spline");
-        MeshData<ImgType> &input = image;
+        PixelData<ImgType> &input = image;
         dim3 threadsPerBlock(1, 64, 1);
         dim3 numBlocks(((input.x_num + threadsPerBlock.x - 1)/threadsPerBlock.x + 1) / 2,
                        (input.y_num + threadsPerBlock.y - 1)/threadsPerBlock.y,
@@ -356,7 +357,7 @@ void getGradientCuda(MeshData<ImgType> &image, MeshData<float> &local_scale_temp
     {
         timer.start_timer("threshold");
         auto &input = local_scale_temp;
-        MeshData<ImgType> &output = grad_temp;
+        PixelData<ImgType> &output = grad_temp;
         dim3 threadsPerBlock(64);
         dim3 numBlocks((input.x_num * input.y_num * input.z_num + threadsPerBlock.x - 1)/threadsPerBlock.x);
         printCudaDims(threadsPerBlock, numBlocks);
@@ -367,7 +368,7 @@ void getGradientCuda(MeshData<ImgType> &image, MeshData<float> &local_scale_temp
 }
 
 template <typename ImgType>
-void getGradient(MeshData<ImgType> &image, MeshData<ImgType> &grad_temp, MeshData<float> &local_scale_temp, MeshData<float> &local_scale_temp2, float bspline_offset, const APRParameters &par) {
+void getGradient(PixelData<ImgType> &image, PixelData<ImgType> &grad_temp, PixelData<float> &local_scale_temp, PixelData<float> &local_scale_temp2, float bspline_offset, const APRParameters &par) {
     APRTimer timer(true);
 
     timer.start_timer("cuda: memory alloc + data transfer to device");
@@ -403,7 +404,7 @@ void getGradient(MeshData<ImgType> &image, MeshData<ImgType> &grad_temp, MeshDat
 }
 
 template <typename ImgType>
-void getFullPipeline(MeshData<ImgType> &image, MeshData<ImgType> &grad_temp, MeshData<float> &local_scale_temp, MeshData<float> &local_scale_temp2, float bspline_offset, const APRParameters &par) {
+void getFullPipeline(PixelData<ImgType> &image, PixelData<ImgType> &grad_temp, PixelData<float> &local_scale_temp, PixelData<float> &local_scale_temp2, float bspline_offset, const APRParameters &par) {
     CudaTimer timer(true, "getFullPipeline");
 
     timer.start_timer("Whole processing with transfers");

@@ -38,7 +38,7 @@ namespace {
     }
 
     template<typename T>
-    BsplineParams prepareBsplineStuff(MeshData<T> &image, float lambda, float tol, int k0Len = -1) {
+    BsplineParams prepareBsplineStuff(PixelData<T> &image, float lambda, float tol, int k0Len = -1) {
         // Recursive Filter Implimentation for Smoothing BSplines
         // B-Spline Signal Processing: Part II - Efficient Design and Applications, Unser 1993
 
@@ -105,11 +105,11 @@ namespace {
 }
 
 // explicit instantiation of handled types
-template void cudaFilterBsplineFull(MeshData<float> &, float, float, TypeOfRecBsplineFlags, int);
+template void cudaFilterBsplineFull(PixelData<float> &, float, float, TypeOfRecBsplineFlags, int);
 
 
 template <typename ImgType>
-void cudaFilterBsplineFull(MeshData<ImgType> &input, float lambda, float tolerance, TypeOfRecBsplineFlags flags, int k0Len) {
+void cudaFilterBsplineFull(PixelData<ImgType> &input, float lambda, float tolerance, TypeOfRecBsplineFlags flags, int k0Len) {
     APRTimer timer(true), timerFullPipelilne(true);
     size_t inputSize = input.mesh.size() * sizeof(ImgType);
     BsplineParams p = prepareBsplineStuff(input, lambda, tolerance, k0Len);

@@ -1,4 +1,4 @@
-#include "MeshDataCuda.h"
+#include "PixelDataCuda.h"
 #include <iostream>
 #include <memory>
 
@@ -11,11 +11,11 @@
 #include "downsample.cuh"
 
 // explicit instantiation of handled types
-template void downsampleMeanCuda(const MeshData<float>&, MeshData<float>&);
-template void downsampleMaxCuda(const MeshData<float>&, MeshData<float>&);
+template void downsampleMeanCuda(const PixelData<float>&, PixelData<float>&);
+template void downsampleMaxCuda(const PixelData<float>&, PixelData<float>&);
 
 template <typename T, typename S>
-void downsampleMeanCuda(const MeshData<T> &input, MeshData<S> &output) {
+void downsampleMeanCuda(const PixelData<T> &input, PixelData<S> &output) {
     APRTimer timer(true);
 
     timer.start_timer("cuda: memory alloc + data transfer to device");
@@ -50,7 +50,7 @@ void downsampleMeanCuda(const MeshData<T> &input, MeshData<S> &output) {
 };
 
 template <typename T, typename S>
-void downsampleMaxCuda(const MeshData<T> &input, MeshData<S> &output) {
+void downsampleMaxCuda(const PixelData<T> &input, PixelData<S> &output) {
     APRTimer timer(true);
 
     timer.start_timer("cuda: memory alloc + data transfer to device");

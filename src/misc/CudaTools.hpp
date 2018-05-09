@@ -12,7 +12,7 @@
 
 #include <iostream>
 #include <chrono>
-#include "data_structures/Mesh/MeshData.hpp"
+#include "data_structures/Mesh/PixelData.hpp"
 
 
 inline void waitForCuda() {
@@ -27,7 +27,7 @@ inline void printCudaDims(const dim3 &threadsPerBlock, const dim3 &numBlocks) {
 }
 
 template<typename ImgType>
-inline void getDataFromKernel(MeshData<ImgType> &input, size_t inputSize, ImgType *cudaInput) {
+inline void getDataFromKernel(PixelData<ImgType> &input, size_t inputSize, ImgType *cudaInput) {
     cudaMemcpy(input.mesh.get(), cudaInput, inputSize, cudaMemcpyDeviceToHost);
     cudaFree(cudaInput);
 }

@@ -5,7 +5,7 @@
 #ifndef LIBAPR_COMPUTEINVERSECUBICBSPLINECUDA_H
 #define LIBAPR_COMPUTEINVERSECUBICBSPLINECUDA_H
 
-#include "data_structures/Mesh/MeshData.hpp"
+#include "data_structures/Mesh/PixelData.hpp"
 
 using TypeOfInvBsplineFlags = uint16_t;
 constexpr TypeOfInvBsplineFlags INV_BSPLINE_Y_DIR = 0x01;
@@ -15,6 +15,6 @@ constexpr TypeOfInvBsplineFlags INV_BSPLINE_ALL_DIR = INV_BSPLINE_Y_DIR | INV_BS
 
 
 template <typename ImgType>
-void cudaInverseBspline(MeshData<ImgType> &input, TypeOfInvBsplineFlags flags = INV_BSPLINE_ALL_DIR);
+void cudaInverseBspline(PixelData<ImgType> &input, TypeOfInvBsplineFlags flags = INV_BSPLINE_ALL_DIR);
 
 #endif //LIBAPR_COMPUTEINVERSECUBICBSPLINECUDA_H

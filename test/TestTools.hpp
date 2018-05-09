@@ -6,7 +6,7 @@
 #define LIBAPR_TESTTOOLS_HPP
 
 
-#include "data_structures/Mesh/MeshData.hpp"
+#include "data_structures/Mesh/PixelData.hpp"
 #include <random>
 
 /**
@@ -16,7 +16,7 @@
  * @return true if same
  */
 template<typename T>
-inline bool compare(MeshData<T> &mesh, const float *data, const float epsilon) {
+inline bool compare(PixelData<T> &mesh, const float *data, const float epsilon) {
     size_t dataIdx = 0;
     for (size_t z = 0; z < mesh.z_num; ++z) {
         for (size_t y = 0; y < mesh.y_num; ++y) {
@@ -35,7 +35,7 @@ inline bool compare(MeshData<T> &mesh, const float *data, const float epsilon) {
 }
 
 template<typename T>
-inline bool initFromZYXarray(MeshData<T> &mesh, const float *data) {
+inline bool initFromZYXarray(PixelData<T> &mesh, const float *data) {
     size_t dataIdx = 0;
     for (size_t z = 0; z < mesh.z_num; ++z) {
         for (size_t y = 0; y < mesh.y_num; ++y) {
@@ -56,7 +56,7 @@ inline bool initFromZYXarray(MeshData<T> &mesh, const float *data) {
  * @return number of errors detected
  */
 template <typename T>
-inline int compareMeshes(const MeshData<T> &expected, const MeshData<T> &tested, double maxError = 0.0001, int maxNumOfErrPrinted = 3) {
+inline int compareMeshes(const PixelData<T> &expected, const PixelData<T> &tested, double maxError = 0.0001, int maxNumOfErrPrinted = 3) {
     int cnt = 0;
     for (size_t i = 0; i < expected.mesh.size(); ++i) {
         if (std::abs(expected.mesh[i] - tested.mesh[i]) > maxError || std::isnan(expected.mesh[i]) ||
@@ -80,8 +80,8 @@ inline int compareMeshes(const MeshData<T> &expected, const MeshData<T> &tested,
  * @return
  */
 template <typename T>
-inline MeshData<T> getRandInitializedMesh(int y, int x, int z, float multiplier = 2.0f, bool useIdxNumbers = false) {
-    MeshData<T> m(y, x, z);
+inline PixelData<T> getRandInitializedMesh(int y, int x, int z, float multiplier = 2.0f, bool useIdxNumbers = false) {
+    PixelData<T> m(y, x, z);
     std::cout << "Mesh info: " << m << std::endl;
     std::random_device rd;
     std::mt19937 mt(rd());

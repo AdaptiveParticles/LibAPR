@@ -4,7 +4,7 @@
 #include <array>
 #include <cmath>
 #include <gtest/gtest.h>
-#include "data_structures/Mesh/MeshData.hpp"
+#include "data_structures/Mesh/PixelData.hpp"
 #include "algorithm/ComputeGradient.hpp"
 #include "algorithm/ComputeGradientCuda.hpp"
 #include "algorithm/ComputeBsplineRecursiveFilterCuda.h"
@@ -20,7 +20,7 @@ namespace {
      * @return true if same
      */
     template<typename T>
-    bool compare(MeshData<T> &mesh, const float *data, const float epsilon) {
+    bool compare(PixelData<T> &mesh, const float *data, const float epsilon) {
         size_t dataIdx = 0;
         for (size_t z = 0; z < mesh.z_num; ++z) {
             for (size_t y = 0; y < mesh.y_num; ++y) {
@@ -46,7 +46,7 @@ namespace {
      * @return number of errors detected
      */
     template <typename T>
-    int compareMeshes(const MeshData<T> &expected, const MeshData<T> &tested, double maxError = 0.0001, int maxNumOfErrPrinted = 3) {
+    int compareMeshes(const PixelData<T> &expected, const PixelData<T> &tested, double maxError = 0.0001, int maxNumOfErrPrinted = 3) {
         int cnt = 0;
         for (size_t i = 0; i < expected.mesh.size(); ++i) {
             if (std::abs(expected.mesh[i] - tested.mesh[i]) > maxError || std::isnan(expected.mesh[i]) ||
@@ -70,8 +70,8 @@ namespace {
      * @return
      */
     template <typename T>
-    MeshData<T> getRandInitializedMesh(int y, int x, int z, float multiplier = 2.0f, bool useIdxNumbers = false) {
-        MeshData<T> m(y, x, z);
+    PixelData<T> getRandInitializedMesh(int y, int x, int z, float multiplier = 2.0f, bool useIdxNumbers = false) {
+        PixelData<T> m(y, x, z);
         std::cout << "Mesh info: " << m << std::endl;
         std::random_device rd;
         std::mt19937 mt(rd());
@@ -83,7 +83,7 @@ namespace {
     }
 
     template<typename T>
-    bool initFromZYXarray(MeshData<T> &mesh, const float *data) {
+    bool initFromZYXarray(PixelData<T> &mesh, const float *data) {
         size_t dataIdx = 0;
         for (size_t z = 0; z < mesh.z_num; ++z) {
             for (size_t y = 0; y < mesh.y_num; ++y) {
@@ -98,7 +98,7 @@ namespace {
 
     TEST(ComputeGradientTest, 2D_XY) {
         {   // Corner points
-            MeshData<float> m(6, 6, 1, 0);
+            PixelData<float> m(6, 6, 1, 0);
             // expect gradient is 3x3 X/Y plane
             float expect[] = {1.41, 0, 4.24,
                               0, 0, 0,
@@ -108,33 +108,33 @@ namespace {
             m(5, 0, 0) = 4;
             m(0, 5, 0) = 6;
             m(5, 5, 0) = 8;
-            MeshData<float> grad;
+            PixelData<float> grad;
             grad.initDownsampled(m, 0);
             ComputeGradient cg;
             cg.calc_bspline_fd_ds_mag(m, grad, 1, 1, 1);
             ASSERT_TRUE(compare(grad, expect, 0.05));
         }
         {   // In the middle
-            MeshData<float> m(6, 6, 1, 0);
+            PixelData<float> m(6, 6, 1, 0);
             // expect gradient is 3x3 X/Y plane
             float expect[] = {1, 1, 0,
                               1, 0, 0,
                               0, 0, 0};
             // put values in corners
             m(1, 1, 0) = 2;
-            MeshData<float> grad;
+            PixelData<float> grad;
             grad.initDownsampled(m, 0);
             ComputeGradient cg;
             cg.calc_bspline_fd_ds_mag(m, grad, 1, 1, 1);
             ASSERT_TRUE(compare(grad, expect, 0.01));
         }
         {   // One pixel image 1x1x1
-            MeshData<float> m(1, 1, 1, 0);
+            PixelData<float> m(1, 1, 1, 0);
             // expect gradient is 3x3 X/Y plane
             float expect[] = {0};
             // put values in corners
             m(0, 0, 0) = 2;
-            MeshData<float> grad;
+            PixelData<float> grad;
             grad.initDownsampled(m, 0);
             ComputeGradient cg;
             cg.calc_bspline_fd_ds_mag(m, grad, 1, 1, 1);
@@ -144,7 +144,7 @@ namespace {
     }
 
     TEST(ComputeGradientTest, Corners3D) {
-        MeshData<float> m(6, 6, 4, 0);
+        PixelData<float> m(6, 6, 4, 0);
         // expect gradient is 3x3x2 X/Y/Z plane
         float expect[] = {1.73, 0, 5.19,
                           0, 0, 0,
@@ -163,7 +163,7 @@ namespace {
         m(0, 5, 3) = 14;
         m(5, 5, 3) = 16;
 
-        MeshData<float> grad;
+        PixelData<float> grad;
         grad.initDownsampled(m, 0);
         ComputeGradient cg;
         cg.calc_bspline_fd_ds_mag(m, grad, 1, 1, 1);
@@ -172,7 +172,7 @@ namespace {
 
     TEST(ComputeGradientTest, 2D_XY_BSPLINE_Y_DIR) {
         {   // values in corners and in middle
-            MeshData<float> m(5, 7, 1, 0);
+            PixelData<float> m(5, 7, 1, 0);
             // expect gradient is 3x3 X/Y plane
             float expect[] = {0.58, 0.00, 0.00, 0.08, 0.00, 0.00, 1.71,
                               0.56, 0.00, 0.00, 0.11, 0.00, 0.00, 1.51,
@@ -187,13 +187,13 @@ namespace {
             m(4, 6, 0) = 8;
 
             // Calculate bspline on CPU
-            MeshData<float> mCpu(m, true);
+            PixelData<float> mCpu(m, true);
             ComputeGradient cg;
             cg.bspline_filt_rec_y(mCpu, 3.0, 0.0001);
             ASSERT_TRUE(compare(mCpu, expect, 0.01));
         }
         {   // single point set in the middle
-            MeshData<float> m(9, 3, 1, 0);
+            PixelData<float> m(9, 3, 1, 0);
             // expect gradient is 3x3 X/Y plane
             float expect[] = {0.00, 0.01, 0.00,
                               0.00, 0.05, 0.00,
@@ -208,13 +208,13 @@ namespace {
             m(4, 1, 0) = 1;
 
             // Calculate bspline on CPU
-            MeshData<float> mCpu(m, true);
+            PixelData<float> mCpu(m, true);
             ComputeGradient cg;
             cg.bspline_filt_rec_y(mCpu, 3.0, 0.0001);
             ASSERT_TRUE(compare(mCpu, expect, 0.01));
         }
         {   // two pixel image 1x2x1
-            MeshData<float> m(2, 1, 1, 0);
+            PixelData<float> m(2, 1, 1, 0);
             // expect gradient is 3x3 X/Y plane
             float expect[] = {0,
                               0};
@@ -222,7 +222,7 @@ namespace {
             m(0, 0, 0) = 1;
 
             // Calculate bspline on CPU
-            MeshData<float> mCpu(m, true);
+            PixelData<float> mCpu(m, true);
             ComputeGradient cg;
             cg.bspline_filt_rec_y(mCpu, 3.0, 0.0001);
             ASSERT_TRUE(compare(mCpu, expect, 0.01));
@@ -242,7 +242,7 @@ namespace {
                             1.17, 4.00, 1.00,
                             4.00, 2.00, 0.00};
 
-        MeshData<ImgType> m(4, 3, 1);
+        PixelData<ImgType> m(4, 3, 1);
         initFromZYXarray(m, init);
 
         // Calculate and compare
@@ -261,7 +261,7 @@ namespace {
                             0.67, 0.16, 0.00,
                             0.00, 0.16, 0.67};
 
-        MeshData<ImgType> m(3, 3, 1);
+        PixelData<ImgType> m(3, 3, 1);
         initFromZYXarray(m, init);
 
         // Calculate and compare
@@ -277,7 +277,7 @@ namespace {
 
     TEST(ComputeGradientTest, 2D_XY_CUDA) {
         // Corner points
-        MeshData<float> m(6, 6, 1, 0);
+        PixelData<float> m(6, 6, 1, 0);
         // expect gradient is 3x3 X/Y plane
         float expect[] = {1.41, 0, 4.24,
                           0, 0, 0,
@@ -287,14 +287,14 @@ namespace {
         m(5, 0, 0) = 4;
         m(0, 5, 0) = 6;
         m(5, 5, 0) = 8;
-        MeshData<float> grad;
+        PixelData<float> grad;
         grad.initDownsampled(m, 0);
         cudaDownsampledGradient(m, grad, 1, 1, 1);
         ASSERT_TRUE(compare(grad, expect, 0.01));
     }
 
     TEST(ComputeGradientTest, Corners3D_CUDA) {
-        MeshData<float> m(6, 6, 4, 0);
+        PixelData<float> m(6, 6, 4, 0);
         // expect gradient is 3x3x2 X/Y/Z plane
         float expect[] = {1.73, 0, 5.19,
                           0, 0, 0,
@@ -313,7 +313,7 @@ namespace {
         m(0, 5, 3) = 14;
         m(5, 5, 3) = 16;
 
-        MeshData<float> grad;
+        PixelData<float> grad;
         grad.initDownsampled(m, 0);
         cudaDownsampledGradient(m, grad, 1, 1, 1);
         ASSERT_TRUE(compare(grad, expect, 0.01));
@@ -323,19 +323,19 @@ namespace {
         // Generate random mesh
         // Generate random mesh
         using ImgType = float;
-        MeshData<ImgType> m = getRandInitializedMesh<ImgType>(33, 31, 3);
+        PixelData<ImgType> m = getRandInitializedMesh<ImgType>(33, 31, 3);
 
         APRTimer timer(true);
 
         // Calculate gradient on CPU
-        MeshData<ImgType> grad;
+        PixelData<ImgType> grad;
         grad.initDownsampled(m, 0);
         timer.start_timer("CPU gradient");
         ComputeGradient().calc_bspline_fd_ds_mag(m, grad, 1, 1, 1);
         timer.stop_timer();
 
         // Calculate gradient on GPU
-        MeshData<ImgType> gradCuda;
+        PixelData<ImgType> gradCuda;
         gradCuda.initDownsampled(m, 0);
         timer.start_timer("GPU gradient");
         cudaDownsampledGradient(m, gradCuda, 1, 1, 1);
@@ -350,20 +350,20 @@ namespace {
 
         // Generate random mesh
         using ImgType = float;
-        MeshData<ImgType> m = getRandInitializedMesh<ImgType>(129,127,128);
+        PixelData<ImgType> m = getRandInitializedMesh<ImgType>(129,127,128);
 
         // Filter parameters
         const float lambda = 3;
         const float tolerance = 0.0001;
 
         // Calculate bspline on CPU
-        MeshData<ImgType> mCpu(m, true);
+        PixelData<ImgType> mCpu(m, true);
         timer.start_timer("CPU bspline");
         ComputeGradient().bspline_filt_rec_y(mCpu, lambda, tolerance);
         timer.stop_timer();
 
         // Calculate bspline on GPU
-        MeshData<ImgType> mGpu(m, true);
+        PixelData<ImgType> mGpu(m, true);
         timer.start_timer("GPU bspline");
         cudaFilterBsplineFull(mGpu, lambda, tolerance, BSPLINE_Y_DIR);
         timer.stop_timer();
@@ -377,20 +377,20 @@ namespace {
 
         // Generate random mesh
         using ImgType = float;
-        MeshData<ImgType> m = getRandInitializedMesh<ImgType>(129,127,128);
+        PixelData<ImgType> m = getRandInitializedMesh<ImgType>(129,127,128);
 
         // Filter parameters
         const float lambda = 3;
         const float tolerance = 0.0001;
 
         // Calculate bspline on CPU
-        MeshData<ImgType> mCpu(m, true);
+        PixelData<ImgType> mCpu(m, true);
         timer.start_timer("CPU bspline");
         ComputeGradient().bspline_filt_rec_x(mCpu, lambda, tolerance);
         timer.stop_timer();
 
         // Calculate bspline on GPU
-        MeshData<ImgType> mGpu(m, true);
+        PixelData<ImgType> mGpu(m, true);
         timer.start_timer("GPU bspline");
         cudaFilterBsplineFull(mGpu, lambda, tolerance, BSPLINE_X_DIR);
         timer.stop_timer();
@@ -404,20 +404,20 @@ namespace {
 
         // Generate random mesh
         using ImgType = float;
-        MeshData<ImgType> m = getRandInitializedMesh<ImgType>(129,127,128);
+        PixelData<ImgType> m = getRandInitializedMesh<ImgType>(129,127,128);
 
         // Filter parameters
         const float lambda = 3;
         const float tolerance = 0.0001;
 
         // Calculate bspline on CPU
-        MeshData<ImgType> mCpu(m, true);
+        PixelData<ImgType> mCpu(m, true);
         timer.start_timer("CPU bspline");
         ComputeGradient().bspline_filt_rec_z(mCpu, lambda, tolerance);
         timer.stop_timer();
 
         // Calculate bspline on GPU
-        MeshData<ImgType> mGpu(m, true);
+        PixelData<ImgType> mGpu(m, true);
         timer.start_timer("GPU bspline");
         cudaFilterBsplineFull(mGpu, lambda, tolerance, BSPLINE_Z_DIR);
         timer.stop_timer();
@@ -431,20 +431,20 @@ namespace {
 
         // Generate random mesh
         using ImgType = float;
-        MeshData<ImgType> m = getRandInitializedMesh<ImgType>(127, 128, 129);
+        PixelData<ImgType> m = getRandInitializedMesh<ImgType>(127, 128, 129);
 
         // Filter parameters
         const float lambda = 3;
         const float tolerance = 0.0001; // as defined in get_smooth_bspline_3D
 
         // Calculate bspline on CPU
-        MeshData<ImgType> mCpu(m, true);
+        PixelData<ImgType> mCpu(m, true);
         timer.start_timer("CPU bspline");
         ComputeGradient().get_smooth_bspline_3D(mCpu, lambda);
         timer.stop_timer();
 
         // Calculate bspline on GPU
-        MeshData<ImgType> mGpu(m, true);
+        PixelData<ImgType> mGpu(m, true);
         timer.start_timer("GPU bspline");
         cudaFilterBsplineFull(mGpu, lambda, tolerance, BSPLINE_ALL_DIR);
         timer.stop_timer();
@@ -466,7 +466,7 @@ namespace {
                             1.17, 4.00, 1.00,
                             4.00, 2.00, 0.00};
 
-        MeshData<ImgType> m(4, 3, 1);
+        PixelData<ImgType> m(4, 3, 1);
         initFromZYXarray(m, init);
 
         // Calculate and compare
@@ -481,16 +481,16 @@ namespace {
 
         // Generate random mesh
         using ImgType = float;
-        MeshData<ImgType> m = getRandInitializedMesh<ImgType>(127, 33, 31);
+        PixelData<ImgType> m = getRandInitializedMesh<ImgType>(127, 33, 31);
 
         // Calculate bspline on CPU
-        MeshData<ImgType> mCpu(m, true);
+        PixelData<ImgType> mCpu(m, true);
         timer.start_timer("CPU inv bspline");
         ComputeGradient().calc_inv_bspline_y(mCpu);
         timer.stop_timer();
 
         // Calculate bspline on GPU
-        MeshData<ImgType> mGpu(m, true);
+        PixelData<ImgType> mGpu(m, true);
         timer.start_timer("GPU inv bspline");
         cudaInverseBspline(mGpu,  INV_BSPLINE_Y_DIR);
         timer.stop_timer();
@@ -510,7 +510,7 @@ namespace {
                             0.67, 0.16, 0.00,
                             0.00, 0.16, 0.67};
 
-        MeshData<ImgType> m(3, 3, 1);
+        PixelData<ImgType> m(3, 3, 1);
         initFromZYXarray(m, init);
 
         // Calculate and compare
@@ -525,16 +525,16 @@ namespace {
 
         // Generate random mesh
         using ImgType = float;
-        MeshData<ImgType> m = getRandInitializedMesh<ImgType>(127, 61, 66);
+        PixelData<ImgType> m = getRandInitializedMesh<ImgType>(127, 61, 66);
 
         // Calculate bspline on CPU
-        MeshData<ImgType> mCpu(m, true);
+        PixelData<ImgType> mCpu(m, true);
         timer.start_timer("CPU inv bspline");
         ComputeGradient().calc_inv_bspline_x(mCpu);
         timer.stop_timer();
 
         // Calculate bspline on GPU
-        MeshData<ImgType> mGpu(m, true);
+        PixelData<ImgType> mGpu(m, true);
         timer.start_timer("GPU inv bspline");
         cudaInverseBspline(mGpu,  INV_BSPLINE_X_DIR);
         timer.stop_timer();
@@ -548,16 +548,16 @@ namespace {
 
         // Generate random mesh
         using ImgType = float;
-        MeshData<ImgType> m = getRandInitializedMesh<ImgType>(127, 61, 66);
+        PixelData<ImgType> m = getRandInitializedMesh<ImgType>(127, 61, 66);
 
         // Calculate bspline on CPU
-        MeshData<ImgType> mCpu(m, true);
+        PixelData<ImgType> mCpu(m, true);
         timer.start_timer("CPU inv bspline");
         ComputeGradient().calc_inv_bspline_z(mCpu);
         timer.stop_timer();
 
         // Calculate bspline on GPU
-        MeshData<ImgType> mGpu(m, true);
+        PixelData<ImgType> mGpu(m, true);
         timer.start_timer("GPU inv bspline");
         cudaInverseBspline(mGpu,  INV_BSPLINE_Z_DIR);
         timer.stop_timer();
@@ -571,10 +571,10 @@ namespace {
 
         // Generate random mesh
         using ImgType = float;
-        MeshData<ImgType> m = getRandInitializedMesh<ImgType>(3,3,3,100);
+        PixelData<ImgType> m = getRandInitializedMesh<ImgType>(3,3,3,100);
 
         // Calculate bspline on CPU
-        MeshData<ImgType> mCpu(m, true);
+        PixelData<ImgType> mCpu(m, true);
         timer.start_timer("CPU inv bspline");
         ComputeGradient().calc_inv_bspline_y(mCpu);
         ComputeGradient().calc_inv_bspline_x(mCpu);
@@ -582,7 +582,7 @@ namespace {
         timer.stop_timer();
 
         // Calculate bspline on GPU
-        MeshData<ImgType> mGpu(m, true);
+        PixelData<ImgType> mGpu(m, true);
         timer.start_timer("GPU inv bspline");
         cudaInverseBspline(mGpu,  INV_BSPLINE_ALL_DIR);
         timer.stop_timer();
@@ -596,19 +596,19 @@ namespace {
 
         // Generate random mesh
         using ImgType = float;
-        MeshData<ImgType> m = getRandInitializedMesh<ImgType>(31, 33, 13);
-        MeshData<ImgType> g = getRandInitializedMesh<ImgType>(31, 33, 13);
+        PixelData<ImgType> m = getRandInitializedMesh<ImgType>(31, 33, 13);
+        PixelData<ImgType> g = getRandInitializedMesh<ImgType>(31, 33, 13);
         float thresholdLevel = 1;
 
         // Calculate bspline on CPU
-        MeshData<ImgType> mCpu(g, true);
+        PixelData<ImgType> mCpu(g, true);
         timer.start_timer("CPU threshold");
         ComputeGradient().threshold_gradient(mCpu, m, thresholdLevel);
 
         timer.stop_timer();
 
         // Calculate bspline on GPU
-        MeshData<ImgType> mGpu(g, true);
+        PixelData<ImgType> mGpu(g, true);
         timer.start_timer("GPU threshold");
         thresholdGradient(mGpu, m, thresholdLevel);
         timer.stop_timer();
@@ -622,12 +622,12 @@ namespace {
 
         // Generate random mesh
         using ImgType = float;
-        MeshData<ImgType> g = getRandInitializedMesh<ImgType>(31, 33, 13, 1, true);
+        PixelData<ImgType> g = getRandInitializedMesh<ImgType>(31, 33, 13, 1, true);
 
         float thresholdLevel = 10;
 
         // Calculate bspline on CPU
-        MeshData<ImgType> mCpu(g, true);
+        PixelData<ImgType> mCpu(g, true);
         timer.start_timer("CPU threshold");
         for (size_t i = 0; i < mCpu.mesh.size(); ++i) {
             if (mCpu.mesh[i] <= (thresholdLevel)) { mCpu.mesh[i] = thresholdLevel; }
@@ -635,7 +635,7 @@ namespace {
         timer.stop_timer();
 
         // Calculate bspline on GPU
-        MeshData<ImgType> mGpu(g, true);
+        PixelData<ImgType> mGpu(g, true);
         timer.start_timer("GPU threshold");
         thresholdImg(mGpu, thresholdLevel);
         timer.stop_timer();
@@ -649,21 +649,21 @@ namespace {
 
         // Generate random mesh
         using ImageType = float;
-        MeshData<ImageType> input_image = getRandInitializedMesh<ImageType>(310, 330, 13, 25);
-        MeshData<ImageType> &image_temp = input_image;
+        PixelData<ImageType> input_image = getRandInitializedMesh<ImageType>(310, 330, 13, 25);
+        PixelData<ImageType> &image_temp = input_image;
 
-        MeshData<ImageType> grad_temp; // should be a down-sampled image
+        PixelData<ImageType> grad_temp; // should be a down-sampled image
         grad_temp.initDownsampled(input_image.y_num, input_image.x_num, input_image.z_num, 0);
-        MeshData<float> local_scale_temp; // Used as down-sampled images for some averaging steps where it is useful to not lose precision, or get over-flow errors
+        PixelData<float> local_scale_temp; // Used as down-sampled images for some averaging steps where it is useful to not lose precision, or get over-flow errors
         local_scale_temp.initDownsampled(input_image.y_num, input_image.x_num, input_image.z_num);
-        MeshData<float> local_scale_temp2;
+        PixelData<float> local_scale_temp2;
         local_scale_temp2.initDownsampled(input_image.y_num, input_image.x_num, input_image.z_num);
 
-        MeshData<ImageType> grad_temp_GPU; // should be a down-sampled image
+        PixelData<ImageType> grad_temp_GPU; // should be a down-sampled image
         grad_temp_GPU.initDownsampled(input_image.y_num, input_image.x_num, input_image.z_num, 0);
-        MeshData<float> local_scale_temp_GPU; // Used as down-sampled images for some averaging steps where it is useful to not lose precision, or get over-flow errors
+        PixelData<float> local_scale_temp_GPU; // Used as down-sampled images for some averaging steps where it is useful to not lose precision, or get over-flow errors
         local_scale_temp_GPU.initDownsampled(input_image.y_num, input_image.x_num, input_image.z_num);
-        MeshData<float> local_scale_temp2_GPU;
+        PixelData<float> local_scale_temp2_GPU;
         local_scale_temp2_GPU.initDownsampled(input_image.y_num, input_image.x_num, input_image.z_num);
 
 
@@ -675,13 +675,13 @@ namespace {
         par.dz = 1;
 
         // Calculate bspline on CPU
-        MeshData<ImageType> mCpuImage(image_temp, true);
+        PixelData<ImageType> mCpuImage(image_temp, true);
         timer.start_timer(">>>>>>>>>>>>>>>>> CPU gradient");
         APRConverter<float>().get_gradient(mCpuImage, grad_temp, local_scale_temp, local_scale_temp2, 0, par);
         timer.stop_timer();
 
         // Calculate bspline on GPU
-        MeshData<ImageType> mGpuImage(image_temp, true);
+        PixelData<ImageType> mGpuImage(image_temp, true);
         timer.start_timer(">>>>>>>>>>>>>>>>> GPU gradient");
         getGradient(mGpuImage, grad_temp_GPU, local_scale_temp_GPU, local_scale_temp2_GPU, 0, par);
         timer.stop_timer();
@@ -697,21 +697,21 @@ namespace {
 
         // Generate random mesh
         using ImageType = float;
-        MeshData<ImageType> input_image = getRandInitializedMesh<ImageType>(310, 330, 32, 25);
-        MeshData<ImageType> &image_temp = input_image;
+        PixelData<ImageType> input_image = getRandInitializedMesh<ImageType>(310, 330, 32, 25);
+        PixelData<ImageType> &image_temp = input_image;
 
-        MeshData<ImageType> grad_temp; // should be a down-sampled image
+        PixelData<ImageType> grad_temp; // should be a down-sampled image
         grad_temp.initDownsampled(input_image.y_num, input_image.x_num, input_image.z_num, 0);
-        MeshData<float> local_scale_temp; // Used as down-sampled images for some averaging steps where it is useful to not lose precision, or get over-flow errors
+        PixelData<float> local_scale_temp; // Used as down-sampled images for some averaging steps where it is useful to not lose precision, or get over-flow errors
         local_scale_temp.initDownsampled(input_image.y_num, input_image.x_num, input_image.z_num);
-        MeshData<float> local_scale_temp2;
+        PixelData<float> local_scale_temp2;
         local_scale_temp2.initDownsampled(input_image.y_num, input_image.x_num, input_image.z_num);
 
-        MeshData<ImageType> grad_temp_GPU; // should be a down-sampled image
+        PixelData<ImageType> grad_temp_GPU; // should be a down-sampled image
         grad_temp_GPU.initDownsampled(input_image.y_num, input_image.x_num, input_image.z_num, 0);
-        MeshData<float> local_scale_temp_GPU; // Used as down-sampled images for some averaging steps where it is useful to not lose precision, or get over-flow errors
+        PixelData<float> local_scale_temp_GPU; // Used as down-sampled images for some averaging steps where it is useful to not lose precision, or get over-flow errors
         local_scale_temp_GPU.initDownsampled(input_image.y_num, input_image.x_num, input_image.z_num);
-        MeshData<float> local_scale_temp2_GPU;
+        PixelData<float> local_scale_temp2_GPU;
         local_scale_temp2_GPU.initDownsampled(input_image.y_num, input_image.x_num, input_image.z_num);
 
 
@@ -725,14 +725,14 @@ namespace {
         par.dz = 1;
 
         // Calculate bspline on CPU
-        MeshData<ImageType> mCpuImage(image_temp, true);
+        PixelData<ImageType> mCpuImage(image_temp, true);
         timer.start_timer(">>>>>>>>>>>>>>>>> CPU PIPELINE");
         APRConverter<float>().get_gradient(mCpuImage, grad_temp, local_scale_temp, local_scale_temp2, 0, par);
         APRConverter<float>().get_local_intensity_scale(local_scale_temp, local_scale_temp2, par);
         timer.stop_timer();
 
         // Calculate bspline on GPU
-        MeshData<ImageType> mGpuImage(image_temp, true);
+        PixelData<ImageType> mGpuImage(image_temp, true);
         timer.start_timer(">>>>>>>>>>>>>>>>> GPU PIPELINE");
         getFullPipeline(mGpuImage, grad_temp_GPU, local_scale_temp_GPU, local_scale_temp2_GPU, 0, par);
         timer.stop_timer();

@@ -7,10 +7,10 @@
 #include "misc/CudaTools.hpp"
 
 // explicit instantiation of handled types
-template void cudaInverseBspline(MeshData<float> &, TypeOfInvBsplineFlags);
+template void cudaInverseBspline(PixelData<float> &, TypeOfInvBsplineFlags);
 
 template <typename ImgType>
-void cudaInverseBspline(MeshData<ImgType> &input, TypeOfInvBsplineFlags flags) {
+void cudaInverseBspline(PixelData<ImgType> &input, TypeOfInvBsplineFlags flags) {
     APRTimer timer(true), timerFullPipelilne(true);
     size_t inputSize = input.mesh.size() * sizeof(ImgType);
 

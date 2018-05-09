@@ -11,7 +11,7 @@ namespace {
     }
 
     TEST(TiffTest, LoadUint8) {
-        const MeshData<uint8_t> mesh = TiffUtils::getMesh<uint8_t>(testFilesDirectory() + "files/tiffTest/4x3x2x8bit.tif");
+        const PixelData<uint8_t> mesh = TiffUtils::getMesh<uint8_t>(testFilesDirectory() + "files/tiffTest/4x3x2x8bit.tif");
         for (int i = 0; i < 24; ++i) {
             ASSERT_EQ(mesh.mesh[i], i + 1);
         }
@@ -21,7 +21,7 @@ namespace {
         TiffUtils::TiffInfo t1(testFilesDirectory() + "files/tiffTest/4x3x2x8bit.tif");
         std::cout << t1 << std::endl;
 
-        MeshData<uint8_t> meshIn(t1.iImgHeight, t1.iImgWidth, t1.iNumberOfDirectories);
+        PixelData<uint8_t> meshIn(t1.iImgHeight, t1.iImgWidth, t1.iNumberOfDirectories);
         TiffUtils::getMesh<uint8_t>(t1, meshIn);
         for (int i = 0; i < 24; ++i) {
             ASSERT_EQ(meshIn.mesh[i], i + 1);
@@ -35,7 +35,7 @@ namespace {
         ASSERT_STREQ(t1.toString().c_str(), ("FileName: [" + fileName + "], Width/Height/Depth: 3/2/4, SamplesPerPixel: 1, Bits per sample: 16, ImageType: uint16, Photometric: 1, StripSize: 12").c_str());
         ASSERT_EQ(t1.isFileOpened(), true);
 
-        const MeshData<uint16_t> &mesh = TiffUtils::getMesh<uint16_t>(t1);
+        const PixelData<uint16_t> &mesh = TiffUtils::getMesh<uint16_t>(t1);
         ASSERT_EQ(mesh.x_num, 2);
         ASSERT_EQ(mesh.y_num, 3);
         ASSERT_EQ(mesh.z_num, 4);
@@ -49,7 +49,7 @@ namespace {
         TiffUtils::TiffInfo t1(testFilesDirectory() + "files/tiffTest/2x4x3xfloat.tif");
         std::cout << t1 << std::endl;
 
-        const MeshData<float> &mesh = TiffUtils::getMesh<float>(t1);
+        const PixelData<float> &mesh = TiffUtils::getMesh<float>(t1);
         ASSERT_EQ(mesh.x_num, 4);
         ASSERT_EQ(mesh.y_num, 2);
         ASSERT_EQ(mesh.z_num, 3);
@@ -70,7 +70,7 @@ namespace {
         // Then reads it again and compares input file and save file if same
         typedef uint16_t ImgType;
         TiffUtils::TiffInfo t(testFilesDirectory() + "files/tiffTest/3x2x4x16bit.tif");
-        MeshData<ImgType> mesh = TiffUtils::getMesh<ImgType>(t);
+        PixelData<ImgType> mesh = TiffUtils::getMesh<ImgType>(t);
         ASSERT_EQ(t.isFileOpened(), true);
 
         std::string fileName = "/tmp/testAprTiffSave" + std::to_string(time(nullptr)) + ".tif";
@@ -78,7 +78,7 @@ namespace {
 
         TiffUtils::TiffInfo t2(fileName);
         ASSERT_EQ(t2.isFileOpened(), true);
-        const MeshData<ImgType> &mesh2 = TiffUtils::getMesh<ImgType>(t2);
+        const PixelData<ImgType> &mesh2 = TiffUtils::getMesh<ImgType>(t2);
 
         ASSERT_EQ(mesh.mesh.size(), mesh2.mesh.size());
         for (size_t i = 0; i < mesh.mesh.size(); ++i)
@@ -94,14 +94,14 @@ namespace {
         // Then reads it again and compares input file and save file if same
         TiffUtils::TiffInfo t(testFilesDirectory() + "files/tiffTest/2x4x3xfloat.tif");
         ASSERT_EQ(t.isFileOpened(), true);
-        MeshData<float> mesh = TiffUtils::getMesh<float>(t);
+        PixelData<float> mesh = TiffUtils::getMesh<float>(t);
 
         std::string fileName = "/tmp/testAprTiffSave" + std::to_string(time(nullptr)) + ".tif";
         TiffUtils::saveMeshAsTiffUint16(fileName, mesh);
 
         TiffUtils::TiffInfo t2(fileName);
         ASSERT_EQ(t2.isFileOpened(), true);
-        const MeshData<uint16_t> &mesh2 = TiffUtils::getMesh<uint16_t>(t2);
+        const PixelData<uint16_t> &mesh2 = TiffUtils::getMesh<uint16_t>(t2);
 
         ASSERT_EQ(mesh.mesh.size(), mesh2.mesh.size());
         for (size_t i = 0; i < mesh.mesh.size(); ++i)

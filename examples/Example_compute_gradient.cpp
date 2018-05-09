@@ -79,7 +79,7 @@ int main(int argc, char **argv) {
     gradient.map(apr,gradient_magnitude,[](const std::vector<float> &a) { return 20.0f*sqrt(pow(a[0], 2.0f) + pow(a[1], 2.0f) + pow(a[2], 2.0f)); });
 
     // write result to image
-    MeshData<float> gradient_magnitude_image;
+    PixelData<float> gradient_magnitude_image;
     apr.interp_img(gradient_magnitude_image,gradient_magnitude);
     //apr.interp_img(gradient_magnitude_image,apr.particles_intensities);
 
@@ -96,9 +96,9 @@ int main(int argc, char **argv) {
     if(options.original_image.size() > 0) {
 
         TiffUtils::TiffInfo inputTiff(options.directory + options.original_image);
-        MeshData<uint16_t> original_image = TiffUtils::getMesh<uint16_t>(inputTiff);
+        PixelData<uint16_t> original_image = TiffUtils::getMesh<uint16_t>(inputTiff);
 
-        std::vector<MeshData<float>> gradient_mesh;
+        std::vector<PixelData<float>> gradient_mesh;
 
         MeshNumerics::compute_gradient(original_image, gradient_mesh);
 

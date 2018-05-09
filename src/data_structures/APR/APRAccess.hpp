@@ -9,7 +9,7 @@
 
 #include <map>
 #include <utility>
-#include "../../data_structures/Mesh/MeshData.hpp"
+#include "data_structures/Mesh/PixelData.hpp"
 
 //TODO: IT SHOULD NOT BE DEFINDED HERE SINCE IT DUPLICATES FROM PullingScheme
 #define SEED_TYPE 1
@@ -325,7 +325,7 @@ public:
     }
 
     template<typename T>
-    void initialize_structure_from_particle_cell_tree(APR<T>& apr,std::vector<MeshData<uint8_t>>& layers){
+    void initialize_structure_from_particle_cell_tree(APR<T>& apr,std::vector<PixelData<uint8_t>>& layers){
        x_num.resize(level_max+1);
        y_num.resize(level_max+1);
        z_num.resize(level_max+1);

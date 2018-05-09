@@ -183,7 +183,7 @@ ExtraParticleData<uint16_t> absolute_value_of_intensities;
 apr.particle_intensities.map(apr,absolute_value_of_intensities,[](const uint16_t &a) { return abs(a); });
 \end{lstlisting}
 \section{Pixel Images and Reconstruction}
-Pixel images are handled using the MeshData class and tiff library is used for input-output.
+Pixel images are handled using the PixelData class and tiff library is used for input-output.
 \subsection{Reconstruction}
 Any particle property, stored using ExtraParticleData class, can be interpolated to reconstruct an image, allowing both a piecewise constant and smooth reconstruction. For examples see Example\_reconstruct\_image.
 \subsection{Sampling particles from an image}

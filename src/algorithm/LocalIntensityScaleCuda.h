@@ -6,7 +6,7 @@
 #define LIBAPR_LOCALINTENSITYSCALECUDA_H
 
 
-#include "data_structures/Mesh/MeshData.hpp"
+#include "data_structures/Mesh/PixelData.hpp"
 #include "algorithm/APRParameters.hpp"
 
 using TypeOfMeanFlags = uint16_t;
@@ -16,13 +16,13 @@ constexpr TypeOfMeanFlags MEAN_Z_DIR = 0x04;
 constexpr TypeOfMeanFlags MEAN_ALL_DIR = MEAN_Y_DIR | MEAN_X_DIR | MEAN_Z_DIR;
 
 template <typename T>
-void calcMean(MeshData<T> &image, int offset, TypeOfMeanFlags flags = MEAN_ALL_DIR);
+void calcMean(PixelData<T> &image, int offset, TypeOfMeanFlags flags = MEAN_ALL_DIR);
 
 template <typename T>
-void getLocalIntensityScale(MeshData<T> &image, MeshData<T> &temp, const APRParameters &par);
+void getLocalIntensityScale(PixelData<T> &image, PixelData<T> &temp, const APRParameters &par);
 
 // Device method
 template <typename T, typename S>
-void localIntensityScaleCuda(const MeshData<T> &image, const APRParameters &par, S *cudaImage, S *cudaTemp);
+void localIntensityScaleCuda(const PixelData<T> &image, const APRParameters &par, S *cudaImage, S *cudaTemp);
 
 #endif //LIBAPR_LOCALINTENSITYSCALECUDA_H

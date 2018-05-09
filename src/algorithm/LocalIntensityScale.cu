@@ -237,7 +237,7 @@ __global__ void meanZdir(T *image, int offset, size_t x_num, size_t y_num, size_
 }
 
 template <typename T, typename S>
-void localIntensityScaleCUDA(T *cudaImage, const MeshData<S> &image, int offsetX, int offsetY, int offsetZ, TypeOfMeanFlags flags) {
+void localIntensityScaleCUDA(T *cudaImage, const PixelData<S> &image, int offsetX, int offsetY, int offsetZ, TypeOfMeanFlags flags) {
     APRTimer timer(true);
 
 
@@ -282,7 +282,7 @@ void localIntensityScaleCUDA(T *cudaImage, const MeshData<S> &image, int offsetX
 }
 
 template <typename T>
-void calcMean(MeshData<T> &image, int offset, TypeOfMeanFlags flags) {
+void calcMean(PixelData<T> &image, int offset, TypeOfMeanFlags flags) {
     APRTimer timer(true);
 
     timer.start_timer("GpuMemTransferHostToDevice");
@@ -354,7 +354,7 @@ void rescale(T *data, size_t len, float varRescale, float sigma, float sigmaMax)
 }
 
 template <typename T, typename S>
-void localIntensityScaleCuda(const MeshData<T> &image, const APRParameters &par, S *cudaImage, S *cudaTemp) {
+void localIntensityScaleCuda(const PixelData<T> &image, const APRParameters &par, S *cudaImage, S *cudaTemp) {
     CudaTimer timer(true, "localIntensityScaleCuda");
 
     float var_rescale;
@@ -383,7 +383,7 @@ void localIntensityScaleCuda(const MeshData<T> &image, const APRParameters &par,
 }
 
 template <typename T>
-void getLocalIntensityScale(MeshData<T> &image, MeshData<T> &temp, const APRParameters &par) {
+void getLocalIntensityScale(PixelData<T> &image, PixelData<T> &temp, const APRParameters &par) {
     APRTimer timer(true), timerFullPipelilne(true);
 
     timer.start_timer("GpuMemTransferHostToDevice");
@@ -406,8 +406,8 @@ void getLocalIntensityScale(MeshData<T> &image, MeshData<T> &temp, const APRPara
 }
 
 // explicit instantiation of handled types
-template void calcMean(MeshData<float>&, int, TypeOfMeanFlags);
-template void calcMean(MeshData<uint16_t>&, int, TypeOfMeanFlags);
-template void calcMean(MeshData<uint8_t>&, int, TypeOfMeanFlags);
+template void calcMean(PixelData<float>&, int, TypeOfMeanFlags);
+template void calcMean(PixelData<uint16_t>&, int, TypeOfMeanFlags);
+template void calcMean(PixelData<uint8_t>&, int, TypeOfMeanFlags);
 
-template void getLocalIntensityScale(MeshData<float>&, MeshData<float>&, const APRParameters&);
+template void getLocalIntensityScale(PixelData<float>&, PixelData<float>&, const APRParameters&);

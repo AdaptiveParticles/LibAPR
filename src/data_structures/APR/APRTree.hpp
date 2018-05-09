@@ -41,7 +41,7 @@ private:
         /// Set the iterator using random access by particle cell spatial index (x,y,z) and particle cell level
         ///
         ////////////////////////
-        std::vector<MeshData<uint8_t>> particle_cell_parent_tree;
+        std::vector<PixelData<uint8_t>> particle_cell_parent_tree;
         uint64_t l_max = apr.level_max()-1;
         uint64_t l_min = apr.level_min()-1; // extend one extra level
 

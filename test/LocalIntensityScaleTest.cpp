@@ -3,7 +3,7 @@
 //
 
 #include <gtest/gtest.h>
-#include "data_structures/Mesh/MeshData.hpp"
+#include "data_structures/Mesh/PixelData.hpp"
 #include "algorithm/LocalIntensityScale.hpp"
 #include "algorithm/LocalIntensityScaleCuda.h"
 #include "algorithm/APRConverter.hpp"
@@ -14,7 +14,7 @@ namespace {
     TEST(LocalIntensityScaleTest, 1D_Y_DIR) {
         {   // OFFSET=0
 
-            MeshData<float> m(8, 1, 1, 0);
+            PixelData<float> m(8, 1, 1, 0);
             float dataIn[] = {3,6,9,12,15,18,21,24};
             float expect[] = {3,6,9,12,15,18,21,24};
 
@@ -27,7 +27,7 @@ namespace {
         }
         {   // OFFSET=1
 
-            MeshData<float> m(8, 1, 1, 0);
+            PixelData<float> m(8, 1, 1, 0);
             float dataIn[] = {1, 2, 3, 4, 5, 6, 7, 8};
             float expect[] = {1.5, 2, 3, 4, 5, 6, 7, 7.5};
 
@@ -40,7 +40,7 @@ namespace {
         }
         {   // OFFSET=2 (+symmetricity check)
 
-            MeshData<float> m(8, 1, 1, 0);
+            PixelData<float> m(8, 1, 1, 0);
             float dataIn[] = {3,6,9,12,15,18,21,24};
             float expect[] = {6, 7.5, 9, 12, 15, 18, 19.5, 21};
 
@@ -66,7 +66,7 @@ namespace {
     TEST(LocalIntensityScaleTest, 1D_X_DIR) {
         {   // OFFSET=0
 
-            MeshData<float> m(1, 8, 1, 0);
+            PixelData<float> m(1, 8, 1, 0);
             float dataIn[] = {3,6,9,12,15,18,21,24};
             float expect[] = {3,6,9,12,15,18,21,24};
 
@@ -79,7 +79,7 @@ namespace {
         }
         {   // OFFSET=1
 
-            MeshData<float> m(1, 8, 1, 0);
+            PixelData<float> m(1, 8, 1, 0);
             float dataIn[] = {1, 2, 3, 4, 5, 6, 7, 8};
             float expect[] = {1.5, 2, 3, 4, 5, 6, 7, 7.5};
 
@@ -92,7 +92,7 @@ namespace {
         }
         {   // OFFSET=2 (+symmetricity check)
 
-            MeshData<float> m(1, 8, 1, 0);
+            PixelData<float> m(1, 8, 1, 0);
             float dataIn[] = {3,6,9,12,15,18,21,24};
             float expect[] = {6, 7.5, 9, 12, 15, 18, 19.5, 21};
 
@@ -118,7 +118,7 @@ namespace {
     TEST(LocalIntensityScaleTest, 1D_Z_DIR) {
         {   // OFFSET=0
 
-            MeshData<float> m(1, 1, 8, 0);
+            PixelData<float> m(1, 1, 8, 0);
             float dataIn[] = {3,6,9,12,15,18,21,24};
             float expect[] = {3,6,9,12,15,18,21,24};
 
@@ -131,7 +131,7 @@ namespace {
         }
         {   // OFFSET=1
 
-            MeshData<float> m(1, 1, 8, 0);
+            PixelData<float> m(1, 1, 8, 0);
             float dataIn[] = {1, 2, 3, 4, 5, 6, 7, 8};
             float expect[] = {1.5, 2, 3, 4, 5, 6, 7, 7.5};
 
@@ -144,7 +144,7 @@ namespace {
         }
         {   // OFFSET=2 (+symmetricity check)
 
-            MeshData<float> m(1, 1, 8, 0);
+            PixelData<float> m(1, 1, 8, 0);
             float dataIn[] = {3,6,9,12,15,18,21,24};
             float expect[] = {6, 7.5, 9, 12, 15, 18, 19.5, 21};
 
@@ -177,7 +177,7 @@ namespace {
     TEST(LocalIntensityScaleCudaTest, 1D_Y_DIR) {
         {   // OFFSET=0
 
-            MeshData<float> m(8, 1, 1, 0);
+            PixelData<float> m(8, 1, 1, 0);
             float dataIn[] = {3,6,9,12,15,18,21,24};
             float expect[] = {3,6,9,12,15,18,21,24};
 
@@ -189,7 +189,7 @@ namespace {
         }
         {   // OFFSET=1
 
-            MeshData<float> m(8, 1, 1, 0);
+            PixelData<float> m(8, 1, 1, 0);
             float dataIn[] = {1, 2, 3, 4, 5, 6, 7, 8};
             float expect[] = {1.5, 2, 3, 4, 5, 6, 7, 7.5};
 
@@ -201,7 +201,7 @@ namespace {
         }
         {   // OFFSET=2 (+symmetricity check)
 
-            MeshData<float> m(8, 1, 1, 0);
+            PixelData<float> m(8, 1, 1, 0);
             float dataIn[] = {3,6,9,12,15,18,21,24};
             float expect[] = {6, 7.5, 9, 12, 15, 18, 19.5, 21};
 
@@ -225,18 +225,18 @@ namespace {
 
     TEST(LocalIntensityScaleCudaTest, GPU_VS_CPU_Y_DIR) {
         APRTimer timer(true);
-        MeshData<float> m = getRandInitializedMesh<float>(33, 31, 13);
+        PixelData<float> m = getRandInitializedMesh<float>(33, 31, 13);
 
         LocalIntensityScale lis;
         for (int offset = 0; offset < 6; ++offset) {
             // Run on CPU
-            MeshData<float> mCpu(m, true);
+            PixelData<float> mCpu(m, true);
             timer.start_timer("CPU mean Y-DIR");
             lis.calc_sat_mean_y(mCpu, offset);
             timer.stop_timer();
 
             // Run on GPU
-            MeshData<float> mGpu(m, true);
+            PixelData<float> mGpu(m, true);
             timer.start_timer("GPU mean Y-DIR");
             calcMean(mGpu, offset, MEAN_Y_DIR);
             timer.stop_timer();
@@ -248,18 +248,18 @@ namespace {
 
     TEST(LocalIntensityScaleCudaTest, 1GPU_VS_CPU_X_DIR) {
         APRTimer timer(true);
-        MeshData<float> m = getRandInitializedMesh<float>(33, 31, 13);
+        PixelData<float> m = getRandInitializedMesh<float>(33, 31, 13);
 
         LocalIntensityScale lis;
         for (int offset = 0; offset < 6; ++offset) {
             // Run on CPU
-            MeshData<float> mCpu(m, true);
+            PixelData<float> mCpu(m, true);
             timer.start_timer("CPU mean X-DIR");
             lis.calc_sat_mean_x(mCpu, offset);
             timer.stop_timer();
 
             // Run on GPU
-            MeshData<float> mGpu(m, true);
+            PixelData<float> mGpu(m, true);
             timer.start_timer("GPU mean X-DIR");
             calcMean(mGpu, offset, MEAN_X_DIR);
             timer.stop_timer();
@@ -272,18 +272,18 @@ namespace {
     TEST(LocalIntensityScaleCudaTest, GPU_VS_CPU_Z_DIR) {
         APRTimer timer(true);
         using ImgType = float;
-        MeshData<ImgType> m = getRandInitializedMesh<ImgType>(310, 330, 13, 255);
+        PixelData<ImgType> m = getRandInitializedMesh<ImgType>(310, 330, 13, 255);
 
         LocalIntensityScale lis;
         for (int offset = 0; offset < 6; ++offset) {
             // Run on CPU
-            MeshData<ImgType> mCpu(m, true);
+            PixelData<ImgType> mCpu(m, true);
             timer.start_timer("CPU mean Z-DIR");
             lis.calc_sat_mean_z(mCpu, offset);
             timer.stop_timer();
 
             // Run on GPU
-            MeshData<ImgType> mGpu(m, true);
+            PixelData<ImgType> mGpu(m, true);
             timer.start_timer("GPU mean Z-DIR");
             calcMean(mGpu, offset, MEAN_Z_DIR);
             timer.stop_timer();
@@ -295,12 +295,12 @@ namespace {
 
     TEST(LocalIntensityScaleCudaTest, GPU_VS_CPU_ALL_DIRS) {
         APRTimer timer(true);
-        MeshData<float> m = getRandInitializedMesh<float>(33, 31, 13);
+        PixelData<float> m = getRandInitializedMesh<float>(33, 31, 13);
 
         LocalIntensityScale lis;
         for (int offset = 0; offset < 6; ++offset) {
             // Run on CPU
-            MeshData<float> mCpu(m, true);
+            PixelData<float> mCpu(m, true);
             timer.start_timer("CPU mean ALL-DIR");
             lis.calc_sat_mean_y(mCpu, offset);
             lis.calc_sat_mean_x(mCpu, offset);
@@ -308,7 +308,7 @@ namespace {
             timer.stop_timer();
 
             // Run on GPU
-            MeshData<float> mGpu(m, true);
+            PixelData<float> mGpu(m, true);
             timer.start_timer("GPU mean ALL-DIR");
             calcMean(mGpu, offset);
             timer.stop_timer();
@@ -320,12 +320,12 @@ namespace {
 
     TEST(LocalIntensityScaleCudaTest, GPU_VS_CPU_ALL_DIRS_UINT16) {
         APRTimer timer(true);
-        MeshData<uint16_t> m = getRandInitializedMesh<uint16_t>(33, 31, 13);
+        PixelData<uint16_t> m = getRandInitializedMesh<uint16_t>(33, 31, 13);
 
         LocalIntensityScale lis;
         for (int offset = 0; offset < 6; ++offset) {
             // Run on CPU
-            MeshData<uint16_t> mCpu(m, true);
+            PixelData<uint16_t> mCpu(m, true);
             timer.start_timer("CPU mean ALL-DIR");
             lis.calc_sat_mean_y(mCpu, offset);
             lis.calc_sat_mean_x(mCpu, offset);
@@ -333,7 +333,7 @@ namespace {
             timer.stop_timer();
 
             // Run on GPU
-            MeshData<uint16_t> mGpu(m, true);
+            PixelData<uint16_t> mGpu(m, true);
             timer.start_timer("GPU mean ALL-DIR");
             calcMean(mGpu, offset);
             timer.stop_timer();
@@ -345,22 +345,22 @@ namespace {
 
     TEST(LocalIntensityScaleCudaTest, GPU_VS_CPU_FULL_PIPELINE) {
         APRTimer timer(true);
-        MeshData<float> m = getRandInitializedMesh<float>(310, 330, 13, 25);
+        PixelData<float> m = getRandInitializedMesh<float>(310, 330, 13, 25);
 
         APRParameters params;
         params.sigma_th = 1;
         params.sigma_th_max = 2;
 
         // Run on CPU
-        MeshData<float> mCpu(m, true);
-        MeshData<float> mCpuTemp(m, false);
+        PixelData<float> mCpu(m, true);
+        PixelData<float> mCpuTemp(m, false);
         timer.start_timer("CPU LIS FULL");
         APRConverter<float>().get_local_intensity_scale(mCpu, mCpuTemp, params);
         timer.stop_timer();
 
         // Run on GPU
-        MeshData<float> mGpu(m, true);
-        MeshData<float> mGpuTemp(m, false);
+        PixelData<float> mGpu(m, true);
+        PixelData<float> mGpuTemp(m, false);
         timer.start_timer("GPU LIS ALL-DIR");
         getLocalIntensityScale(mGpu, mGpuTemp, params);
         timer.stop_timer();

@@ -82,7 +82,7 @@ int main(int argc, char **argv) {
 
         timer.verbose_flag = true;
 
-        MeshData<uint16_t> level;
+        PixelData<uint16_t> level;
 
         apr.interp_depth_ds(level);
 
@@ -125,14 +125,14 @@ int main(int argc, char **argv) {
             unsigned int blosc_comp_level = options.compress_level;
             unsigned int blosc_shuffle = 1;
 
-            MeshData<uint16_t> recon_image;
+            PixelData<uint16_t> recon_image;
 
             apr.interp_img(recon_image, apr.particles_intensities);
 
             TiffUtils::TiffInfo inputTiff(options.directory + options.input);
-            MeshData<uint16_t> inputImage = TiffUtils::getMesh<uint16_t>(inputTiff);
+            PixelData<uint16_t> inputImage = TiffUtils::getMesh<uint16_t>(inputTiff);
 
-            MeshData<int16_t> diff_image(inputImage.y_num,inputImage.x_num,inputImage.z_num,0);
+            PixelData<int16_t> diff_image(inputImage.y_num,inputImage.x_num,inputImage.z_num,0);
 
 #ifdef HAVE_OPENMP
 #pragma omp parallel for schedule(static)
