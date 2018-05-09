@@ -30,7 +30,7 @@ list(APPEND CMAKE_MODULE_PATH
 ###############################################################################
 set (APR_VERSION_MAJOR 1)
 set (APR_VERSION_MINOR 0)
-set (APR_VERSION_PATCH 0)
+set (APR_VERSION_PATCH 1)
 set (APR_VERSION_STRING ${APR_VERSION_MAJOR}.${APR_VERSION_MINOR}.${APR_VERSION_PATCH})
 execute_process(COMMAND git rev-parse HEAD
         WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}
