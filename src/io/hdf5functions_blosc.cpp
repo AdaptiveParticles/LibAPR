@@ -87,39 +87,38 @@ hid_t hdf5_create_file_blosc(std::string file_name){
     return H5Fcreate(file_name.c_str(),H5F_ACC_TRUNC, H5P_DEFAULT, H5P_DEFAULT); //this writes over the current file
 }
 
-void write_main_paraview_xdmf_xml(std::string save_loc,std::string file_name,uint64_t num_parts){
-    const std::string hdf5_file_name = file_name + ".h5";
-    std::ofstream myfile(save_loc + file_name + ".xmf");
+void write_main_paraview_xdmf_xml(const std::string &aDestinationDir,const std::string &aHdf5FileName, const std::string &aParaviewFileName, uint64_t aNumOfParticles){
+    std::ofstream myfile(aDestinationDir + aParaviewFileName + "_paraview.xmf");
     myfile << "<?xml version=\"1.0\" ?>\n";
     myfile << "<!DOCTYPE Xdmf SYSTEM \"Xdmf.dtd\" []>\n";
     myfile << "<Xdmf Version=\"2.0\" xmlns:xi=\"[http://www.w3.org/2001/XInclude]\">\n";
     myfile <<  " <Domain>\n";
     myfile <<  "   <Grid Name=\"parts\" GridType=\"Uniform\">\n";
-    myfile <<  "     <Topology TopologyType=\"Polyvertex\" Dimensions=\"" << num_parts << "\"/>\n";
+    myfile <<  "     <Topology TopologyType=\"Polyvertex\" Dimensions=\"" << aNumOfParticles << "\"/>\n";
     myfile <<  "     <Geometry GeometryType=\"X_Y_Z\">\n";
-    myfile <<  "       <DataItem Dimensions=\""<< num_parts <<"\" NumberType=\"UInt\" Precision=\"2\" Format=\"HDF\">\n";
-    myfile <<  "        " << hdf5_file_name << ":/ParticleRepr/t/x\n";
+    myfile <<  "       <DataItem Dimensions=\""<< aNumOfParticles <<"\" NumberType=\"UInt\" Precision=\"2\" Format=\"HDF\">\n";
+    myfile <<  "        " << aHdf5FileName << ":/ParticleRepr/t/x\n";
     myfile <<  "       </DataItem>\n";
-    myfile <<  "       <DataItem Dimensions=\""<< num_parts <<"\" NumberType=\"UInt\" Precision=\"2\" Format=\"HDF\">\n";
-    myfile <<  "        " << hdf5_file_name << ":/ParticleRepr/t/y\n";
+    myfile <<  "       <DataItem Dimensions=\""<< aNumOfParticles <<"\" NumberType=\"UInt\" Precision=\"2\" Format=\"HDF\">\n";
+    myfile <<  "        " << aHdf5FileName << ":/ParticleRepr/t/y\n";
     myfile <<  "       </DataItem>\n";
-    myfile <<  "       <DataItem Dimensions=\""<< num_parts <<"\" NumberType=\"UInt\" Precision=\"2\" Format=\"HDF\">\n";
-    myfile <<  "        " << hdf5_file_name << ":/ParticleRepr/t/z\n";
+    myfile <<  "       <DataItem Dimensions=\""<< aNumOfParticles <<"\" NumberType=\"UInt\" Precision=\"2\" Format=\"HDF\">\n";
+    myfile <<  "        " << aHdf5FileName << ":/ParticleRepr/t/z\n";
     myfile <<  "       </DataItem>\n";
     myfile <<  "     </Geometry>\n";
     myfile <<  "     <Attribute Name=\"particle property\" AttributeType=\"Scalar\" Center=\"Node\">\n";
-    myfile <<  "       <DataItem Dimensions=\""<< num_parts <<"\" NumberType=\"UInt\" Precision=\"2\" Format=\"HDF\">\n";
-    myfile <<  "        " << hdf5_file_name << ":/ParticleRepr/t/particle property\n";
+    myfile <<  "       <DataItem Dimensions=\""<< aNumOfParticles <<"\" NumberType=\"UInt\" Precision=\"2\" Format=\"HDF\">\n";
+    myfile <<  "        " << aHdf5FileName << ":/ParticleRepr/t/particle property\n";
     myfile <<  "       </DataItem>\n";
     myfile <<  "    </Attribute>\n";
     myfile <<  "     <Attribute Name=\"level\" AttributeType=\"Scalar\" Center=\"Node\">\n";
-    myfile <<  "       <DataItem Dimensions=\""<< num_parts <<"\" NumberType=\"UInt\" Precision=\"1\" Format=\"HDF\">\n";
-    myfile <<  "        " << hdf5_file_name << ":/ParticleRepr/t/level\n";
+    myfile <<  "       <DataItem Dimensions=\""<< aNumOfParticles <<"\" NumberType=\"UInt\" Precision=\"1\" Format=\"HDF\">\n";
+    myfile <<  "        " << aHdf5FileName << ":/ParticleRepr/t/level\n";
     myfile <<  "       </DataItem>\n";
     myfile <<  "    </Attribute>\n";
     myfile <<  "     <Attribute Name=\"type\" AttributeType=\"Scalar\" Center=\"Node\">\n";
-    myfile <<  "       <DataItem Dimensions=\""<< num_parts <<"\" NumberType=\"UInt\" Precision=\"1\" Format=\"HDF\">\n";
-    myfile <<  "        " << hdf5_file_name << ":/ParticleRepr/t/type\n";
+    myfile <<  "       <DataItem Dimensions=\""<< aNumOfParticles <<"\" NumberType=\"UInt\" Precision=\"1\" Format=\"HDF\">\n";
+    myfile <<  "        " << aHdf5FileName << ":/ParticleRepr/t/type\n";
     myfile <<  "       </DataItem>\n";
     myfile <<  "    </Attribute>\n";
     myfile <<  "   </Grid>\n";

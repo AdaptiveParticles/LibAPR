@@ -314,7 +314,7 @@ public:
         writeData(AprTypes::ParaviewTypeType, f.objectId, typev, blosc_comp_type, blosc_comp_level, blosc_shuffle);
 
         // TODO: This needs to be able extended to handle more general type, currently it is assuming uint16
-        write_main_paraview_xdmf_xml(save_loc,file_name,apr_iterator.total_number_particles());
+        write_main_paraview_xdmf_xml(save_loc,hdf5_file_name, file_name,apr_iterator.total_number_particles());
 
         // ------------- output the file size -------------------
         hsize_t file_size;
