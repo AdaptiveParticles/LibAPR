@@ -160,6 +160,34 @@ public:
             parts[apr_iterator] = img_by_level[apr_iterator.level()].at(apr_iterator.y(),apr_iterator.x(),apr_iterator.z());
         }
     }
+
+    template<typename U,typename V>
+    void get_parts_from_img(PixelData<U>& img,ExtraParticleData<V>& parts){
+        //
+        //  Bevan Cheeseman 2016
+        //
+        //  Samples particles from an image using the nearest pixel (rounded up, i.e. next pixel after particles that sit on off pixel locations)
+        //
+
+        //initialization of the iteration structures
+        APRIterator<ImageType> apr_iterator(*this); //this is required for parallel access
+        uint64_t particle_number;
+        parts.data.resize(apr_iterator.total_number_particles());
+
+
+#ifdef HAVE_OPENMP
+#pragma omp parallel for schedule(static) private(particle_number) firstprivate(apr_iterator)
+#endif
+        for (particle_number = 0; particle_number < apr_iterator.total_number_particles(); ++particle_number) {
+            //needed step for any parallel loop (update to the next part)
+            apr_iterator.set_iterator_to_particle_by_number(particle_number);
+
+            parts[apr_iterator] = img.at(apr_iterator.y_nearest_pixel(),apr_iterator.x_nearest_pixel(),apr_iterator.z_nearest_pixel());
+
+        }
+
+    }
+
 };
 
 
