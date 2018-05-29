@@ -55,15 +55,15 @@ public:
         apr_writer.read_apr(*this,file_name);
     }
 
-    float write_apr(std::string save_loc,std::string file_name){
+    FileSizeInfo write_apr(std::string save_loc,std::string file_name){
         return apr_writer.write_apr(*this, save_loc,file_name);
     }
 
-    float write_apr(std::string save_loc,std::string file_name,APRCompress<ImageType>& apr_compressor,unsigned int blosc_comp_type,unsigned int blosc_comp_level,unsigned int blosc_shuffle){
+    FileSizeInfo write_apr(std::string save_loc,std::string file_name,APRCompress<ImageType>& apr_compressor,unsigned int blosc_comp_type,unsigned int blosc_comp_level,unsigned int blosc_shuffle){
         return apr_writer.write_apr((*this),save_loc, file_name, apr_compressor,blosc_comp_type ,blosc_comp_level,blosc_shuffle);
     }
 
-    float write_apr(std::string save_loc,std::string file_name,unsigned int blosc_comp_type,unsigned int blosc_comp_level,unsigned int blosc_shuffle){
+    FileSizeInfo write_apr(std::string save_loc,std::string file_name,unsigned int blosc_comp_type,unsigned int blosc_comp_level,unsigned int blosc_shuffle){
         APRCompress<ImageType> apr_compressor;
         apr_compressor.set_compression_type(0);
         return apr_writer.write_apr((*this),save_loc, file_name, apr_compressor,blosc_comp_type ,blosc_comp_level,blosc_shuffle);
@@ -151,9 +151,9 @@ public:
         APRIterator<ImageType> apr_iterator(*this); //this is required for parallel access
         parts.data.resize(apr_iterator.total_number_particles());
 
-        #ifdef HAVE_OPENMP
-	    #pragma omp parallel for schedule(static) firstprivate(apr_iterator)
-        #endif
+#ifdef HAVE_OPENMP
+#pragma omp parallel for schedule(static) firstprivate(apr_iterator)
+#endif
         for (uint64_t particle_number = 0; particle_number < apr_iterator.total_number_particles(); ++particle_number) {
             //needed step for any parallel loop (update to the next part)
             apr_iterator.set_iterator_to_particle_by_number(particle_number);

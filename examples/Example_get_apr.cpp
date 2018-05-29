@@ -33,8 +33,6 @@ Advanced (Direct) Settings:
 #include "ConfigAPR.h"
 #include "Example_get_apr.h"
 
-
-
 int main(int argc, char **argv) {
 
     //input parsing
