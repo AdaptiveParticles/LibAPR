@@ -14,11 +14,11 @@ Example_compress_apr -i input_image_tiff -d input_directory
 
 Optional:
 
--compress_type number (1 or 2) (1 - WNL compression (Default), 2 - prediction step with lossless, potential rounding error)
+-compress_type number (1 or 2) (1 - WNL compression, only variance stabalization step (Default), 2 - variance stabalization and x,y,z prediction (note slower for ~30% compression gain)
 -quantization_level (Default 1: higher increasing the loss nature of the WNL compression aproach)
 -compress_level (the IO uses BLOSC for lossless compression of the APR, this can be set from 1-9, where higher increases the compression level. Note, this can come at a significant time increase.)
 
-e.g. Example_compress_apr -i nuc_apr.h5 -d /Test/Input_examples/ -compress_type 2
+e.g. Example_compress_apr -i nuc_apr.h5 -d /Test/Input_examples/ -compress_type 1
 
 Note: fine grained parameters can be tuned within the file, to play with lossless compression level, method used, and other parameters.
 
