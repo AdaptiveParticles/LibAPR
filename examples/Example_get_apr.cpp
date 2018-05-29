@@ -105,7 +105,8 @@ int main(int argc, char **argv) {
         unsigned int blosc_shuffle = 1;
 
         //write the APR to hdf5 file
-        float apr_file_size = apr.write_apr(save_loc,file_name,blosc_comp_type,blosc_comp_level,blosc_shuffle);
+        FileSizeInfo fileSizeInfo = apr.write_apr(save_loc,file_name,blosc_comp_type,blosc_comp_level,blosc_shuffle);
+        float apr_file_size = fileSizeInfo.total_file_size;
 
         timer.stop_timer();
 
