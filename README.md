@@ -125,8 +125,7 @@ For tutorial on how to use the examples, and explanation of data-structures see 
 
 If anything is not working as you think it should, or would like it to, please get in touch with us!! Further, if you have a project, or algorithm, you would like to try using the APR for also please get in contact we would be glad to help!
 
-[![Gitter chat](https://badges.gitter.im/gitterHQ/gitter.png)]
-(https://gitter.im/gitterHQ/gitter)
+[![Join the chat at https://gitter.im/cheesema/LibAPR](https://badges.gitter.im/Join%20Chat.svg)](https://gitter.im/cheesema/LibAPR?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
 
 ## Citing this work
 
