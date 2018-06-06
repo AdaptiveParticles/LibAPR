@@ -1,6 +1,6 @@
 # LibAPR - The Adaptive Particle Representation Library
 
-Library for producing and processing on the Adaptive Particle Representation (APR) (For article see: https://www.biorxiv.org/content/early/2018/02/09/263061).
+Library for producing and processing on the Adaptive Particle Representation (APR) (For article see: https://www.biorxiv.org/content/early/2018/03/02/263061).
 
 <img src="./docs/apr_lowfps_lossy.gif?raw=true">
 
@@ -15,10 +15,6 @@ Labeled Zebrafish nuclei: Gopi Shah, Huisken Lab ([MPI-CBG](https://www.mpi-cbg.
 * CMake 3.6 or higher
 * LibTIFF 5.0 or higher
 * SWIG 3.0.12 (optional, for generating Java wrappers)
-
-Opening hdf5 files in ParaView or HDFView requires additional installation of two libraries:
-* c-blosc 1.11.2 or higher
-* hdf5-blosc 1.1.0 or higher
 
 ## Building
 
@@ -58,7 +54,7 @@ We provide working Dockerfile that install the library within the image on a sep
 
 On OSX, install the `cmake`, `hdf5` and `libtiff`  [homebrew](https://brew.sh) packages and have the [Xcode command line tools](http://osxdaily.com/2014/02/12/install-command-line-tools-mac-os-x/) installed.
 
-If you want to compile with OpenMP support, also install the `llvm` package, as the clang version shipped by Apple currently does not support OpenMP.
+If you want to compile with OpenMP support, also install the `llvm` package (this can also be done using homebrew), as the clang version shipped by Apple currently does not support OpenMP.
 
 In the directory of the cloned repository, run
 
@@ -71,7 +67,7 @@ make
 
 This will create the `libapr.so` library in the `build` directory, as well as all of the examples.
 
-In case you want to use the homebrew-installed clang, modify the call to `cmake` above to
+In case you want to use the homebrew-installed clang (OpenMP support), modify the call to `cmake` above to
 
 ```
 CC="/usr/local/opt/llvm/bin/clang" CXX="/usr/local/opt/llvm/bin/clang++" LDFLAGS="-L/usr/local/opt/llvm/lib -Wl,-rpath,/usr/local/opt/llvm/lib" CPPFLAGS="-I/usr/local/opt/llvm/include" cmake ..
@@ -102,24 +98,34 @@ There are nine basic examples, that show how to generate and compute with the AP
 
 | Example | How to ... |
 |:--|:--|
-| [Example_get_apr](./examples/Example_get_apr.cpp) | create an APR file from a TIFF. |
-| [Example_apr_iterate](./examples/Example_apr_iterate.cpp) | iterate through a given APR file. |
+| [Example_get_apr](./examples/Example_get_apr.cpp) | create an APR from a TIFF and store as hdf5. |
+| [Example_apr_iterate](./examples/Example_apr_iterate.cpp) | iterate through a given APR. |
 | [Example_neighbour_access](./examples/Example_neighbour_access.cpp) | access particle and face neighbours. |
-| [Example_compress_apr](./examples/Example_compress_apr.cpp) |  additionally compress the intensities stored in an APR file. |
-| [Example_compute_gradient](./examples/Example_compute_gradient.cpp) | compute a gradient based on the stored particles in an APR file. |
-| [Example_produce_paraview_file](./examples/Example_produce_paraview_file.cpp) | produce a file for visualisation in ParaView. |
+| [Example_compress_apr](./examples/Example_compress_apr.cpp) |  additionally compress the intensities stored in an APR. |
+| [Example_compute_gradient](./examples/Example_compute_gradient.cpp) | compute a gradient based on the stored particles in an APR. |
+| [Example_produce_paraview_file](./examples/Example_produce_paraview_file.cpp) | produce a file for visualisation in ParaView or reading in Matlab. |
 | [Example_random_access](./examples/Example_random_access.cpp) | perform random access operations on particles. |
-| [Example_ray_cast](./examples/Example_ray_cast.cpp) | perform a maximum intensity projection ray cast directly on the APR data structures read from an APR file. |
-| [Example_reconstruct_image](./examples/Example_reconstruct_image.cpp) | reconstruct an pixel image from an APR file. |
+| [Example_ray_cast](./examples/Example_ray_cast.cpp) | perform a maximum intensity projection ray cast directly on the APR data structures read from an APR. |
+| [Example_reconstruct_image](./examples/Example_reconstruct_image.cpp) | reconstruct a pixel image from an APR. |
+
+All examples except Example_get_apr require an already produced APR, such as those created by Example_get_apr.
 
 For tutorial on how to use the examples, and explanation of data-structures see [the library guide](./docs/lib_guide.pdf).
 
 ## Coming soon
 
 * more examples for APR-based filtering and segmentation
-* more convenient use from CMake projects
 * deployment of the Java wrappers to Maven Central so they can be used in your project directly
 * support for loading the APR in [Fiji](https://fiji.sc), including [scenery-based](https://github.com/scenerygraphics/scenery) 3D rendering
+* basic python wrapper support
+* improved java wrapper support
+* CUDA GPU-accelerated APR generation and processing
+
+## Contact us
+
+If anything is not working as you think it should, or would like it to, please get in touch with us!! Further, if you have a project, or algorithm, you would like to try using the APR for also please get in contact we would be glad to help!
+
+[![Gitter chat](https://badges.gitter.im/gitterHQ/gitter.png)]
 
 ## Citing this work
 
