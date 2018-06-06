@@ -28,6 +28,7 @@ install:
 - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then brew install swig gnupg2 hdf5; fi
 - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then /usr/libexec/java_home -V; fi
 - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then echo "UPDATESTARTUPTTY" | gpg-connect-agent > /dev/null 2>&1; fi
+- if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then brew install cmake || brew upgrade cmake ; fi
 - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then alias swig="swig3.0"; fi
 - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then export COMPILER=clang++-3.6; fi
 - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then export CXX=clang++-3.6; fi

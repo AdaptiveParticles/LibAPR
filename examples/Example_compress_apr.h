@@ -15,6 +15,7 @@ struct cmdLineOptions{
     unsigned int compress_type=1;
     float quantization_level=1;
     bool stats_file = false;
+    unsigned int compress_level = 2;
 };
 
 cmdLineOptions read_command_line_options(int argc, char **argv);

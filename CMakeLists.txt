@@ -122,6 +122,8 @@ endif()
 
 set(LIBRARY_NAME apr)
 
+include_directories(src)
+
 set(SOURCE_FILES src/io/blosc_filter.c src/io/hdf5functions_blosc.cpp)
 set(SOURCE_FILES_RAYCAST src/numerics/APRRaycaster.cpp src/vis/Camera.cpp src/vis/Object.cpp src/vis/RaytracedObject.cpp)
 
@@ -246,7 +248,6 @@ endif(APR_INSTALL)
 # Examples
 ###############################################################################
 if(APR_BUILD_EXAMPLES)
-    include_directories(src)
     message(STATUS "APR: Building examples")
     add_subdirectory(examples)
 endif(APR_BUILD_EXAMPLES)
@@ -255,7 +256,6 @@ endif(APR_BUILD_EXAMPLES)
 # Tests
 ###############################################################################
 if(APR_TESTS)
-    include_directories(src)
     message(STATUS "APR: Building tests")
     if(APR_PREFER_EXTERNAL_GTEST)
         find_package(GTest 1.8.0)

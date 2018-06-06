@@ -5,7 +5,7 @@
 ///
 /// Bevan Cheeseman 2018
 const char* usage = R"(
-Example of producing a hdf5 file of the APR that can be read and visualized by Paraview using Xdmf.
+Example of producing a hdf5 file of the APR that can be read and visualized by Paraview using Xdmf and also read by Matlab.
 
 Produces *_paraview.h5 file and *_paraview.xmf
 

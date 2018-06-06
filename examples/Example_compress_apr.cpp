@@ -14,10 +14,11 @@ Example_compress_apr -i input_image_tiff -d input_directory
 
 Optional:
 
--compress_type number (1 or 2) (1 - WNL compression (Default), 2 - prediction step with lossless, potential rounding error)
+-compress_type number (1 or 2) (1 - WNL compression, only variance stabalization step (Default), 2 - variance stabalization and x,y,z prediction (note slower for ~30% compression gain)
 -quantization_level (Default 1: higher increasing the loss nature of the WNL compression aproach)
+-compress_level (the IO uses BLOSC for lossless compression of the APR, this can be set from 1-9, where higher increases the compression level. Note, this can come at a significant time increase.)
 
-e.g. Example_compress_apr -i nuc_apr.h5 -d /Test/Input_examples/ -compress_type 2
+e.g. Example_compress_apr -i nuc_apr.h5 -d /Test/Input_examples/ -compress_type 1
 
 Note: fine grained parameters can be tuned within the file, to play with lossless compression level, method used, and other parameters.
 
@@ -59,17 +60,47 @@ int main(int argc, char **argv) {
     APRCompress<uint16_t> comp;
     ExtraParticleData<uint16_t> symbols;
 
+    //feel free to change
+    unsigned int blosc_comp_type = BLOSC_ZSTD;
+    unsigned int blosc_comp_level = options.compress_level;
+    unsigned int blosc_shuffle = 1;
+
     comp.set_quantization_factor(options.quantization_level); //set this to adjust the compression factor for WNL
     comp.set_compression_type(options.compress_type);
 
-    timer.start_timer("compress");
-    apr.write_apr(options.directory ,name + "_compress",comp,BLOSC_ZSTD,1,2);
+    //compress the APR and write to disk
+    timer.start_timer("compress and write");
+    FileSizeInfo fileSizeInfo = apr.write_apr(options.directory ,name + "_compress",comp,blosc_comp_type,blosc_comp_level,blosc_shuffle);
     timer.stop_timer();
 
-    timer.start_timer("decompress");
+    float time_write = (float) timer.timings.back();
+
+    //read the APR and decompress
+    timer.start_timer("read and decompress");
     apr.read_apr(options.directory + name + "_compress_apr.h5");
     timer.stop_timer();
 
+    float time_read = (float) timer.timings.back();
+
+    float original_pixel_image_size = (2.0f*apr.orginal_dimensions(0)*apr.orginal_dimensions(1)*apr.orginal_dimensions(2))/(1000000.0);
+    std::cout << std::endl;
+    std::cout << std::endl;
+    std::cout << "Original image size: " << original_pixel_image_size << " MB" << std::endl;
+
+    float apr_compressed_file_size = fileSizeInfo.total_file_size;
+
+    std::cout << "Compressed (Lossy - WNL) APR: " << apr_compressed_file_size << " MB" << std::endl;
+    std::cout << "Compression Ratio: " << original_pixel_image_size/apr_compressed_file_size << std::endl;
+    std::cout << std::endl;
+    std::cout << std::endl;
+
+    std::cout << "Effective Datarate Write (by original image size): " << original_pixel_image_size/time_write << " MB*/s" << std::endl;
+    std::cout << "Effective Datarate Read (by original image size): " << original_pixel_image_size/time_read << " MB*/s" << std::endl;
+
+    std::cout << std::endl;
+    std::cout << std::endl;
+
+    //writes the piece-wise constant reconstruction of the APR to file for comparison
     PixelData<uint16_t> img;
     apr.interp_img(img,apr.particles_intensities);
     std::string output = options.directory + name + "_compress.tif";
@@ -93,49 +124,53 @@ char* get_command_option(char **begin, char **end, const std::string &option)
 }
 
 
-    cmdLineOptions read_command_line_options(int argc, char **argv){
+cmdLineOptions read_command_line_options(int argc, char **argv){
 
-        cmdLineOptions result;
+    cmdLineOptions result;
 
-        if(argc == 1) {
-            std::cerr << usage << std::endl;
-            exit(1);
-        }
-
-        if(command_option_exists(argv, argv + argc, "-i"))
-        {
-            result.input = std::string(get_command_option(argv, argv + argc, "-i"));
-        } else {
-            std::cout << "Input file required" << std::endl;
-            exit(2);
-        }
-
-        if(command_option_exists(argv, argv + argc, "-d"))
-        {
-            result.directory = std::string(get_command_option(argv, argv + argc, "-d"));
-        }
-
-        if(command_option_exists(argv, argv + argc, "-compress_type"))
-        {
-            result.compress_type = (unsigned int)std::stoi(std::string(get_command_option(argv, argv + argc, "-compress_type")));
-        }
-
-        if(result.compress_type > 2 || result.compress_type == 0){
-
-            std::cerr << "Invalid Compression setting (1 or 2)" << std::endl;
-            exit(1);
-        }
-
-
-        if(command_option_exists(argv, argv + argc, "-quantization_level"))
-        {
-            result.quantization_level =std::stof(std::string(get_command_option(argv, argv + argc, "-quantization_level")));
-        }
-
-
-
-        return result;
-
+    if(argc == 1) {
+        std::cerr << usage << std::endl;
+        exit(1);
     }
+
+    if(command_option_exists(argv, argv + argc, "-i"))
+    {
+        result.input = std::string(get_command_option(argv, argv + argc, "-i"));
+    } else {
+        std::cout << "Input file required" << std::endl;
+        exit(2);
+    }
+
+    if(command_option_exists(argv, argv + argc, "-d"))
+    {
+        result.directory = std::string(get_command_option(argv, argv + argc, "-d"));
+    }
+
+    if(command_option_exists(argv, argv + argc, "-compress_type"))
+    {
+        result.compress_type = (unsigned int)std::stoi(std::string(get_command_option(argv, argv + argc, "-compress_type")));
+    }
+
+    if(result.compress_type > 2 || result.compress_type == 0){
+
+        std::cerr << "Invalid Compression setting (1 or 2)" << std::endl;
+        exit(1);
+    }
+
+
+    if(command_option_exists(argv, argv + argc, "-quantization_level"))
+    {
+        result.quantization_level =std::stof(std::string(get_command_option(argv, argv + argc, "-quantization_level")));
+    }
+
+    if(command_option_exists(argv, argv + argc, "-compress_level"))
+    {
+        result.compress_level = (unsigned int)std::stoi(std::string(get_command_option(argv, argv + argc, "-compress_level")));
+    }
+
+
+    return result;
+
+}
 
 
