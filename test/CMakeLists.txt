@@ -8,4 +8,4 @@ buildTarget(testMeshData MeshDataTest.cpp)
 buildTarget(testTiff TiffTest.cpp)
 buildTarget(testAPR APRTest.cpp)
 buildTarget(testComputeGradient ComputeGradientTest.cpp)
-
+buildTarget(testLocalIntensityScale LocalIntensityScaleTest.cpp)

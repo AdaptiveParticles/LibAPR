@@ -3,6 +3,8 @@
  */
 #include <gtest/gtest.h>
 #include "data_structures/Mesh/PixelData.hpp"
+#include "data_structures/Mesh/PixelDataCuda.h"
+#include <random>
 
 namespace {
     class MeshDataTest : public ::testing::Test {
@@ -301,6 +303,128 @@ namespace {
     }
 }
 
+#ifdef APR_USE_CUDA
+namespace {
+    /**
+     * Compares two meshes
+     * @param expected
+     * @param tested
+     * @param maxNumOfErrPrinted - how many error values should be printed (-1 for all)
+     * @return number of errors detected
+     */
+    template <typename T>
+    int compareMeshes(const PixelData<T> &expected, const PixelData<T> &tested, double maxError = 0.0001, int maxNumOfErrPrinted = 3) {
+        int cnt = 0;
+        for (size_t i = 0; i < expected.mesh.size(); ++i) {
+            if (std::abs(expected.mesh[i] - tested.mesh[i]) > maxError || std::isnan(expected.mesh[i]) ||
+                std::isnan(tested.mesh[i])) {
+                if (cnt < maxNumOfErrPrinted || maxNumOfErrPrinted == -1) {
+                    std::cout << "ERROR expected vs tested mesh: " << expected.mesh[i] << " vs " << tested.mesh[i] << " IDX:" << tested.getStrIndex(i) << std::endl;
+                }
+                cnt++;
+            }
+        }
+        std::cout << "Number of errors / all points: " << cnt << " / " << expected.mesh.size() << std::endl;
+        return cnt;
+    }
+
+    /**
+ * Generates mesh with provided dims with random values in range [0, 1] * multiplier
+ * @param y
+ * @param x
+ * @param z
+ * @param multiplier
+ * @return
+ */
+    template <typename T>
+    PixelData<T> getRandInitializedMesh(int y, int x, int z, float multiplier = 2.0f, bool useIdxNumbers = false) {
+        PixelData<T> m(y, x, z);
+        std::cout << "Mesh info: " << m << std::endl;
+        std::random_device rd;
+        std::mt19937 mt(rd());
+        std::uniform_real_distribution<double> dist(0.0, 1.0);
+        for (size_t i = 0; i < m.mesh.size(); ++i) {
+            m.mesh[i] = useIdxNumbers ? i : dist(mt) * multiplier;
+        }
+        return m;
+    }
+}
+TEST(MeshDataSimpleTest, DownSampleCuda) {
+    {   // reduce/constant_operator calculate maximum value when downsampling
+        PixelData<float> m(5, 6, 4);
+        for (size_t i = 0; i < m.mesh.size(); ++i) m.mesh[i] = i + 1;
+
+        PixelData<float> m2; m2.initDownsampled(m);
+        downsampleMaxCuda(m, m2);
+        int expected[] = {37, 39, 40, 47, 49, 50, 57, 59, 60, 97, 99, 100, 107, 109, 110, 117, 119, 120};
+        for (size_t i = 0; i < m2.mesh.size(); ++i) {
+            ASSERT_EQ(m2.mesh[i], expected[i]);
+        }
+    }
+    {   // reduce/constant_operator calculate maximum value when downsampling
+        PixelData<float> m(5, 6, 3);
+        for (size_t i = 0; i < m.mesh.size(); ++i) m.mesh[i] = 5 * 6 * 3 - i;
+
+        PixelData<float> m2; m2.initDownsampled(m);
+        downsampleMaxCuda(m, m2);
+
+        int expected[] = {90, 88, 86, 80, 78, 76, 70, 68, 66, 30, 28, 26, 20, 18, 16, 10, 8, 6};
+        for (size_t i = 0; i < m2.mesh.size(); ++i) {
+            ASSERT_EQ(m2.mesh[i], expected[i]);
+        }
+    }
+    {
+        // reduce/constant_operator calculate average value of pixels when downsampling
+        PixelData<float> m(2, 2, 2);
+        for (size_t i = 0; i < m.mesh.size(); ++i) m.mesh[i] = 8 - i;
+
+        PixelData<float> m2; m2.initDownsampled(m);
+        downsampleMeanCuda(m, m2);
+        float expected[] = {4.5}; // (1+2+3+4+5+6+7+8)/8
+        for (size_t i = 0; i < m2.mesh.size(); ++i) {
+            ASSERT_EQ(m2.mesh[i], expected[i]);
+        }
+    }
+    {
+        // reduce/constant_operator calculate average value of pixels when downsampling
+        PixelData<float> m(3, 3, 3);
+        for (size_t i = 0; i < m.mesh.size(); ++i) m.mesh[i] = 27 - i;
+
+        PixelData<float> mCpu;
+        downsample(m, mCpu,
+                   [](const float &x, const float &y) -> float { return x + y; },
+                   [](const float &x) -> float { return x / 8.0; },
+                   true);
+
+        PixelData<float> mGpu; mGpu.initDownsampled(m);
+        downsampleMeanCuda(m, mGpu);
+
+        EXPECT_EQ(compareMeshes(mCpu, mGpu), 0);
+    }
+    {
+        APRTimer timer(true);
+
+        // reduce/constant_operator calculate average value of pixels when downsampling
+        PixelData<float> m =  getRandInitializedMesh<float>(33, 22, 21);
+        for (size_t i = 0; i < m.mesh.size(); ++i) m.mesh[i] = 27 - i;
+
+        PixelData<float> mCpu; mCpu.initDownsampled(m);
+        timer.start_timer("CPU downsample");
+        downsample(m, mCpu,
+                   [](const float &x, const float &y) -> float { return x + y; },
+                   [](const float &x) -> float { return x / 8.0; },
+                   false);
+        timer.stop_timer();
+
+        PixelData<float> mGpu; mGpu.initDownsampled(m);
+        timer.start_timer("GPU downsample");
+        downsampleMeanCuda(m, mGpu);
+        timer.stop_timer();
+
+        EXPECT_EQ(compareMeshes(mCpu, mGpu), 0);
+    }
+}
+#endif
 
 int main(int argc, char **argv) {
     testing::InitGoogleTest(&argc, argv);

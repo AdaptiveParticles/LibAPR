@@ -70,6 +70,37 @@ void hdf5_write_data_blosc(hid_t obj_id, hid_t type_id, const char *ds_name, hsi
 }
 
 /**
+ * writes data to the hdf5 file or group identified by obj_id of hdf5 datatype data_type without using blosc
+ */
+void hdf5_write_data_standard(hid_t obj_id, hid_t type_id, const char *ds_name, hsize_t rank, hsize_t *dims, void *data) {
+    hid_t plist_id  = H5Pcreate(H5P_DATASET_CREATE);
+
+    // Dataset must be chunked for compression
+    const uint64_t max_size = 100000;
+    hsize_t cdims = (dims[0] < max_size) ? dims[0] : max_size;
+    rank = 1;
+    H5Pset_chunk(plist_id, rank, &cdims);
+
+    //compression parameters
+    int deflate_level = 9;
+
+    /////SET COMPRESSION TYPE /////
+
+    //DEFLATE ENCODING (GZIP)
+    H5Pset_deflate (plist_id, deflate_level);
+
+    //create write and close
+    hid_t space_id = H5Screate_simple(rank, dims, NULL);
+    hid_t dset_id = H5Dcreate2(obj_id, ds_name, type_id, space_id, H5P_DEFAULT, plist_id, H5P_DEFAULT);
+    H5Dwrite(dset_id,type_id,H5S_ALL,H5S_ALL,H5P_DEFAULT,data);
+    H5Dclose(dset_id);
+
+    H5Pclose(plist_id);
+
+}
+
+
+/**
  * writes data to the hdf5 file or group identified by obj_id of hdf5 datatype data_type
  */
 void hdf5_write_attribute_blosc(hid_t obj_id,hid_t type_id,const char* attr_name,hsize_t rank,hsize_t* dims, const void * const data ){

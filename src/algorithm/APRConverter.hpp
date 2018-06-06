@@ -18,6 +18,10 @@
 #include "LocalParticleCellSet.hpp"
 #include "PullingScheme.hpp"
 
+#ifdef APR_USE_CUDA
+#include "algorithm/ComputeGradientCuda.hpp"
+#endif
+
 
 template<typename ImageType>
 class APRConverter: public LocalIntensityScale, public ComputeGradient, public LocalParticleCellSet, public PullingScheme {
@@ -65,8 +69,9 @@ private:
     template<typename T>
     bool get_apr_method_from_file(APR<ImageType> &aAPR, const TiffUtils::TiffInfo &aTiffFile);
 
-    void get_gradient(PixelData<ImageType> &image_temp, PixelData<ImageType> &grad_temp, PixelData<float> &local_scale_temp, PixelData<float> &local_scale_temp2, float bspline_offset);
-    void get_local_intensity_scale(PixelData<float> &local_scale_temp, PixelData<float> &local_scale_temp2);
+    public:
+    void get_gradient(PixelData<ImageType> &image_temp, PixelData<ImageType> &grad_temp, PixelData<float> &local_scale_temp, PixelData<float> &local_scale_temp2, float bspline_offset, const APRParameters &par);
+    void get_local_intensity_scale(PixelData<float> &local_scale_temp, PixelData<float> &local_scale_temp2, const APRParameters &par);
     void get_local_particle_cell_set(PixelData<ImageType> &grad_temp, PixelData<float> &local_scale_temp, PixelData<float> &local_scale_temp2);
 };
 
@@ -185,13 +190,21 @@ bool APRConverter<ImageType>::get_apr_method(APR<ImageType> &aAPR, PixelData<T>&
     }
     fine_grained_timer.stop_timer();
 
+#ifndef APR_USE_CUDA
+    method_timer.verbose_flag = true;
     method_timer.start_timer("compute_gradient_magnitude_using_bsplines");
-    get_gradient(image_temp, grad_temp, local_scale_temp, local_scale_temp2, bspline_offset);
+    get_gradient(image_temp, grad_temp, local_scale_temp, local_scale_temp2, bspline_offset, par);
     method_timer.stop_timer();
 
     method_timer.start_timer("compute_local_intensity_scale");
-    get_local_intensity_scale(local_scale_temp, local_scale_temp2);
+    get_local_intensity_scale(local_scale_temp, local_scale_temp2, par);
     method_timer.stop_timer();
+    method_timer.verbose_flag = false;
+#else
+    method_timer.start_timer("compute_gradient_magnitude_using_bsplines and local instensity scale CUDA");
+    getFullPipeline(image_temp, grad_temp, local_scale_temp, local_scale_temp2,bspline_offset, par);
+    method_timer.stop_timer();
+#endif
 
     method_timer.start_timer("initialize_particle_cell_tree");
     initialize_particle_cell_tree(aAPR);
@@ -274,13 +287,13 @@ void APRConverter<ImageType>::get_local_particle_cell_set(PixelData<ImageType> &
 }
 
 template<typename ImageType>
-void APRConverter<ImageType>::get_gradient(PixelData<ImageType> &image_temp, PixelData<ImageType> &grad_temp, PixelData<float> &local_scale_temp, PixelData<float> &local_scale_temp2, float bspline_offset) {
+void APRConverter<ImageType>::get_gradient(PixelData<ImageType> &image_temp, PixelData<ImageType> &grad_temp, PixelData<float> &local_scale_temp, PixelData<float> &local_scale_temp2, float bspline_offset, const APRParameters &par) {
     //  Bevan Cheeseman 2018
     //  Calculate the gradient from the input image. (You could replace this method with your own)
     //  Input: full sized image.
     //  Output: down-sampled by 2 gradient magnitude (Note, the gradient is calculated at pixel level then maximum down sampled within the loops below)
 
-    fine_grained_timer.verbose_flag = false;
+    fine_grained_timer.verbose_flag = true;
 
     fine_grained_timer.start_timer("threshold");
 
@@ -335,7 +348,7 @@ void APRConverter<ImageType>::get_gradient(PixelData<ImageType> &image_temp, Pix
 }
 
 template<typename ImageType>
-void APRConverter<ImageType>::get_local_intensity_scale(PixelData<float> &local_scale_temp, PixelData<float> &local_scale_temp2) {
+void APRConverter<ImageType>::get_local_intensity_scale(PixelData<float> &local_scale_temp, PixelData<float> &local_scale_temp2, const APRParameters &par) {
     //
     //  Calculate the Local Intensity Scale (You could replace this method with your own)
     //
@@ -352,7 +365,6 @@ void APRConverter<ImageType>::get_local_intensity_scale(PixelData<float> &local_
     float var_rescale;
     std::vector<int> var_win;
     get_window(var_rescale,var_win,par);
-
     size_t win_y = var_win[0];
     size_t win_x = var_win[1];
     size_t win_z = var_win[2];
@@ -360,6 +372,7 @@ void APRConverter<ImageType>::get_local_intensity_scale(PixelData<float> &local_
     size_t win_x2 = var_win[4];
     size_t win_z2 = var_win[5];
 
+    std::cout << "CPU WINDOWS: " << win_y << " " << win_x << " " << win_z << " " << win_y2 << " " << win_x2 << " " << win_z2 << std::endl;
     fine_grained_timer.start_timer("calc_sat_mean_y");
     calc_sat_mean_y(local_scale_temp,win_y);
     fine_grained_timer.stop_timer();

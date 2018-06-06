@@ -25,7 +25,6 @@ Advanced (Direct) Settings:
 -mask_file mask_file_tiff (takes an input image uint16_t, assumes all zero regions should be ignored by the APR, useful for pre-processing of isolating desired content, or using another channel as a mask)
 -rel_error rel_error_value (Reasonable ranges are from .08-.15), Default: 0.1
 -normalize_input (flag that will rescale the input from the input data range to 80% of the output data type range, useful for float scaled datasets)
--store_delta (stores the delta between an APR reconstruction and the original image as an additional hdf5 file)
 -compress_level (the IO uses BLOSC for lossless compression of the APR, this can be set from 1-9, where higher increases the compression level. Note, this can come at a significant time increase.)
 )";
 
@@ -33,8 +32,6 @@ Advanced (Direct) Settings:
 #include <iostream>
 #include "ConfigAPR.h"
 #include "Example_get_apr.h"
-
-
 
 int main(int argc, char **argv) {
 
@@ -108,7 +105,8 @@ int main(int argc, char **argv) {
         unsigned int blosc_shuffle = 1;
 
         //write the APR to hdf5 file
-        float apr_file_size = apr.write_apr(save_loc,file_name,blosc_comp_type,blosc_comp_level,blosc_shuffle);
+        FileSizeInfo fileSizeInfo = apr.write_apr(save_loc,file_name,blosc_comp_type,blosc_comp_level,blosc_shuffle);
+        float apr_file_size = fileSizeInfo.total_file_size;
 
         timer.stop_timer();
 
@@ -118,48 +116,6 @@ int main(int argc, char **argv) {
         std::cout << "Computational Ratio (Pixels/Particles): " << computational_ratio << std::endl;
         std::cout << "Lossy Compression Ratio: " << original_pixel_image_size/apr_file_size << std::endl;
         std::cout << std::endl;
-
-        if(options.store_delta){
-            //feel free to change
-            unsigned int blosc_comp_type = BLOSC_ZSTD;
-            unsigned int blosc_comp_level = options.compress_level;
-            unsigned int blosc_shuffle = 1;
-
-            PixelData<uint16_t> recon_image;
-
-            apr.interp_img(recon_image, apr.particles_intensities);
-
-            TiffUtils::TiffInfo inputTiff(options.directory + options.input);
-            PixelData<uint16_t> inputImage = TiffUtils::getMesh<uint16_t>(inputTiff);
-
-            PixelData<int16_t> diff_image(inputImage.y_num,inputImage.x_num,inputImage.z_num,0);
-
-#ifdef HAVE_OPENMP
-#pragma omp parallel for schedule(static)
-#endif
-            for (int i = 0; i < inputImage.mesh.size(); ++i) {
-
-                diff_image.mesh[i] = 2 * abs(recon_image.mesh[i] - inputImage.mesh[i]) +
-                                         ((recon_image.mesh[i] - inputImage.mesh[i]) > 0);
-            }
-
-            std::cout << "Storing diff image for lossless reconstruction" << std::endl;
-            APRWriter aprWriter;
-            float file_size = aprWriter.write_mesh_to_hdf5(diff_image,save_loc,file_name,blosc_comp_type,blosc_comp_level,blosc_shuffle);
-            std::cout << "Size of the image diff: " << file_size << " MB" << std::endl;
-
-            std::cout << std::endl;
-            std::cout << "Lossless Compression Ratio (APR + diff): " << original_pixel_image_size/(file_size + apr_file_size) << std::endl;
-            std::cout << std::endl;
-
-            float file_size_org = aprWriter.write_mesh_to_hdf5(inputImage,save_loc,file_name,blosc_comp_type,blosc_comp_level,blosc_shuffle);
-            std::cout << "Size of the pixel image compressed: " << file_size_org << " MB" << std::endl;
-
-            std::cout << std::endl;
-            std::cout << "Lossless Compression Ratio (Pixel Image): " << original_pixel_image_size/(file_size_org) << std::endl;
-            std::cout << std::endl;
-
-        }
 
 
         } else {

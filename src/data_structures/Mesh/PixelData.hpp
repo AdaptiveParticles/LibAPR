@@ -17,9 +17,13 @@
 #include <sstream>
 #include <iostream>
 #include <iomanip>
+#include <algorithm>
 
 #include "../../misc/APRTimer.hpp"
 
+#ifdef HAVE_OPENMP
+#include <omp.h>
+#endif
 
 template <typename T>
 class ArrayWrapper
@@ -384,7 +388,7 @@ public :
      * @return
      */
     std::string getStrIndex(size_t aIdx) const {
-        if (aIdx < 0 || aIdx >= mesh.size()) return "(ErrIdx)";
+        if (aIdx >= mesh.size()) return "(ErrIdx)";
         size_t z = aIdx / (x_num * y_num);
         aIdx -= z * (x_num * y_num);
         size_t x = aIdx / y_num;
@@ -398,13 +402,16 @@ public :
     /**
      * Prints X-Y or X-Z planes of mesh (for debug/test purposses - use only on small meshes)
      */
-    void printMesh(int aColumnWidth, bool aXYplanes = true) const {
+    void printMesh(int aColumnWidth, int aFloatPrecision = 10, bool aXYplanes = true) const {
+        std::ios::fmtflags flagsBefore(std::cout.flags());
+        std::cout << std::setw(aColumnWidth) << std::setprecision(aFloatPrecision) << std::fixed;
+
         if (aXYplanes) {
             for (size_t z = 0; z < z_num; ++z) {
                 std::cout << "z=" << z << "\n";
                 for (size_t y = 0; y < y_num; ++y) {
                     for (size_t x = 0; x < x_num; ++x) {
-                        std::cout << std::setw(aColumnWidth) << at(y, x, z) << " ";
+                        std::cout << std::setw(aColumnWidth) << std::setprecision(aFloatPrecision) << std::fixed << at(y, x, z) << " ";
                     }
                     std::cout << "\n";
                 }
@@ -416,13 +423,52 @@ public :
                 std::cout << "y=" << y << "\n";
                 for (size_t z = 0; z < z_num; ++z) {
                     for (size_t x = 0; x < x_num; ++x) {
-                        std::cout << std::setw(aColumnWidth) << at(y, x, z) << " ";
+                        std::cout << std::setw(aColumnWidth) << std::setprecision(aFloatPrecision) << std::fixed << at(y, x, z) << " ";
                     }
                     std::cout << "\n";
                 }
                 std::cout << std::endl;
             }
         }
+
+        // Revert settings
+        std::cout.flags(flagsBefore);
+    }
+
+    /**
+ * Prints X-Y or X-Z planes of mesh (for debug/test purposses - use only on small meshes)
+ */
+    void printMeshT(int aColumnWidth, int aFloatPrecision = 10, bool aXYplanes = true) const {
+        std::ios::fmtflags flagsBefore(std::cout.flags());
+        std::cout << std::setw(aColumnWidth) << std::setprecision(aFloatPrecision) << std::fixed;
+
+        if (aXYplanes) {
+            for (size_t z = 0; z < z_num; ++z) {
+                std::cout << "z=" << z << "\n";
+                for (size_t x = 0; x < x_num; ++x) {
+                    for (size_t y = 0; y < y_num; ++y) {
+                        std::cout << std::setw(aColumnWidth) << std::setprecision(aFloatPrecision) << std::fixed << at(y, x, z) << " ";
+                    }
+                    std::cout << "\n";
+                }
+                std::cout << std::endl;
+            }
+        }
+        else { // X-Z planes
+            for (size_t y = 0; y < y_num; ++y) {
+                std::cout << "y=" << y << "\n";
+                for (size_t x = 0; x < x_num; ++x) {
+                    for (size_t z = 0; z < z_num; ++z) {
+                        std::cout << std::setw(aColumnWidth) << std::setprecision(aFloatPrecision) << std::fixed << at(y, x, z) << " ";
+                    }
+                    std::cout << "\n";
+                }
+                std::cout << std::endl;
+            }
+        }
+
+        // Revert settings
+        std::cout.flags(flagsBefore);
     }
 
     friend std::ostream & operator<<(std::ostream &os, const PixelData<T> &obj) {
