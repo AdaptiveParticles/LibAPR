@@ -6,7 +6,7 @@
 %   memory efficient. (Please use the C++ code for more data intensive tasks)
 %
 
-%add your path to APR dataset produced by Example_produce_paraview_file
-filename = '/Users/cheesema/PhD/ImageGenData/Exemplar_aprs/spheres/120/sphere_apr_paraview.h5';
+%find the path to APR dataset produced by Example_produce_paraview_file
+[name,analysis_root] = uigetfile('*.h5');
 
-apr_sphere = load_apr_full(filename);
+apr = load_apr_full([analysis_root,name]);
