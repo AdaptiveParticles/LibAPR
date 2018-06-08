@@ -34,9 +34,13 @@ public:
 
         img.init(apr.orginal_dimensions(0), apr.orginal_dimensions(1), apr.orginal_dimensions(2), 0);
 
+        int max_dim = std::max(std::max(aAPR.apr_access.org_dims[1], aAPR.apr_access.org_dims[0]), aAPR.apr_access.org_dims[2]);
+
+        int max_level = ceil(std::log2(max_dim));
+        
         for (uint64_t level = apr_iterator.level_min(); level <= apr_iterator.level_max(); ++level) {
 
-            const float step_size = pow(2,apr_iterator.level_max() - level);
+            const float step_size = pow(2, max_level - level);
 
 #ifdef HAVE_OPENMP
 	#pragma omp parallel for schedule(static) private(particle_number) firstprivate(apr_iterator)
