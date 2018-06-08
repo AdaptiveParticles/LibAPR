@@ -234,8 +234,6 @@ bool APRConverter<ImageType>::get_apr_method(APR<ImageType> &aAPR, PixelData<T>&
 
     computation_timer.stop_timer();
 
-    aAPR.parameters = par;
-
     total_timer.stop_timer();
 
     return true;
@@ -416,6 +414,8 @@ void APRConverter<ImageType>::init_apr(APR<ImageType>& aAPR,PixelData<T>& input_
 
     aAPR.apr_access.level_min = levelMin;
     aAPR.apr_access.level_max = levelMax;
+
+    aAPR.parameters = par;
 }
 
 template<typename ImageType> template<typename T>

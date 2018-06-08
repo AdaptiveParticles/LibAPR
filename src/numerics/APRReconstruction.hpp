@@ -295,7 +295,7 @@ public:
         const int64_t x_num = input.x_num;
         const int64_t y_num = input.y_num;
 
-        std::vector<T> temp_vec;
+        std::vector<float> temp_vec;
         temp_vec.resize(y_num,0);
 
         std::vector<T> offset_vec;
@@ -419,7 +419,7 @@ public:
 
         unsigned int offset_max = offset_max_in;
 
-        std::vector<T> temp_vec;
+        std::vector<float> temp_vec;
         temp_vec.resize(y_num*(2*offset_max + 2),0);
 
         int64_t i,k;
@@ -542,7 +542,7 @@ public:
         const float scale = scale_in;
         //const unsigned int d_max = this->depth_max();
 
-        std::vector<T> temp_vec;
+        std::vector<float> temp_vec;
         temp_vec.resize(y_num*(2*offset_max + 2),0);
 
 #ifdef HAVE_OPENMP

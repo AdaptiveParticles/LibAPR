@@ -54,6 +54,8 @@ int main(int argc, char **argv) {
     apr_converter.par.SNR_min = options.SNR_min;
     apr_converter.par.normalized_input = options.normalize_input;
 
+    apr_converter.par.neighborhood_optimization = options.neighborhood_optimization;
+
     //where things are
     apr_converter.par.input_image_name = options.input;
     apr_converter.par.input_dir = options.directory;
@@ -225,9 +227,10 @@ cmdLineOptions read_command_line_options(int argc, char **argv){
         result.normalize_input = true;
     }
 
-    if(command_option_exists(argv, argv + argc, "-store_delta"))
+    if(command_option_exists(argv, argv + argc, "-neighborhood_optimization_off"))
     {
-        result.store_delta = true;
+        result.neighborhood_optimization = false;
+
     }
 
     return result;

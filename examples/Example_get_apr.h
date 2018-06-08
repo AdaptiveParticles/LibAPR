@@ -20,7 +20,7 @@ struct cmdLineOptions{
     std::string mask_file = "";
     bool stats_file = false;
     bool normalize_input = false;
-    bool store_delta = false;
+    bool neighborhood_optimization = true;
     unsigned int compress_level = 2;
 
     float Ip_th = -1;
