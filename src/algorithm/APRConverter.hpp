@@ -196,10 +196,18 @@ bool APRConverter<ImageType>::get_apr_method(APR<ImageType> &aAPR, PixelData<T>&
     get_gradient(image_temp, grad_temp, local_scale_temp, local_scale_temp2, bspline_offset, par);
     method_timer.stop_timer();
 
+    if(par.output_steps){
+        TiffUtils::saveMeshAsTiff(par.output_dir + "gradient_step.tif", grad_temp);
+    }
+
     method_timer.start_timer("compute_local_intensity_scale");
     get_local_intensity_scale(local_scale_temp, local_scale_temp2, par);
     method_timer.stop_timer();
     method_timer.verbose_flag = false;
+
+    if(par.output_steps){
+        TiffUtils::saveMeshAsTiff(par.output_dir + "local_intensity_scale_step.tif", local_scale_temp);
+    }
 #else
     method_timer.start_timer("compute_gradient_magnitude_using_bsplines and local instensity scale CUDA");
     getFullPipeline(image_temp, grad_temp, local_scale_temp, local_scale_temp2,bspline_offset, par);
@@ -218,11 +226,17 @@ bool APRConverter<ImageType>::get_apr_method(APR<ImageType> &aAPR, PixelData<T>&
     PullingScheme::pulling_scheme_main();
     method_timer.stop_timer();
 
+    if(par.output_steps){
+        TiffUtils::saveMeshAsTiff(par.output_dir + "max_level.tif", particle_cell_tree.back());
+    }
+
     method_timer.start_timer("downsample_pyramid");
     std::vector<PixelData<T>> downsampled_img;
     //Down-sample the image for particle intensity estimation
     downsamplePyrmaid(input_image, downsampled_img, aAPR.level_max(), aAPR.level_min());
     method_timer.stop_timer();
+
+
 
     method_timer.start_timer("compute_apr_datastructure");
     aAPR.apr_access.initialize_structure_from_particle_cell_tree(aAPR,particle_cell_tree);
@@ -266,6 +280,12 @@ void APRConverter<ImageType>::get_local_particle_cell_set(PixelData<ImageType> &
     fine_grained_timer.start_timer("compute_level_second");
     //incorporate other factors and compute the level of the Particle Cell, effectively construct LPC L_n
     compute_level_for_array(local_scale_temp,level_factor,par.rel_error);
+
+    if(par.output_steps){
+        TiffUtils::saveMeshAsTiff(par.output_dir + "local_particle_set_level_step.tif", local_scale_temp);
+    }
+
+
     fill(l_max,local_scale_temp);
     fine_grained_timer.stop_timer();
 
