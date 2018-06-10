@@ -45,33 +45,31 @@ int main(int argc, char **argv) {
     //the apr datastructure
     APR<uint16_t> apr;
 
-    APRConverter<uint16_t> apr_converter;
-
     //read in the command line options into the parameters file
-    apr_converter.par.Ip_th = options.Ip_th;
-    apr_converter.par.rel_error = options.rel_error;
-    apr_converter.par.lambda = options.lambda;
-    apr_converter.par.mask_file = options.mask_file;
-    apr_converter.par.min_signal = options.min_signal;
-    apr_converter.par.SNR_min = options.SNR_min;
-    apr_converter.par.normalized_input = options.normalize_input;
-    apr_converter.par.neighborhood_optimization = options.neighborhood_optimization;
-    apr_converter.par.output_steps = options.output_steps;
+    apr.parameters.Ip_th = options.Ip_th;
+    apr.parameters.rel_error = options.rel_error;
+    apr.parameters.lambda = options.lambda;
+    apr.parameters.mask_file = options.mask_file;
+    apr.parameters.min_signal = options.min_signal;
+    apr.parameters.SNR_min = options.SNR_min;
+    apr.parameters.normalized_input = options.normalize_input;
+    apr.parameters.neighborhood_optimization = options.neighborhood_optimization;
+    apr.parameters.output_steps = options.output_steps;
 
     //where things are
-    apr_converter.par.input_image_name = options.input;
-    apr_converter.par.input_dir = options.directory;
-    apr_converter.par.name = options.output;
-    apr_converter.par.output_dir = options.output_dir;
+    apr.parameters.input_image_name = options.input;
+    apr.parameters.input_dir = options.directory;
+    apr.parameters.name = options.output;
+    apr.parameters.output_dir = options.output_dir;
 
-    apr_converter.fine_grained_timer.verbose_flag = false;
-    apr_converter.method_timer.verbose_flag = false;
-    apr_converter.computation_timer.verbose_flag = false;
-    apr_converter.allocation_timer.verbose_flag = false;
-    apr_converter.total_timer.verbose_flag = true;
+    apr.apr_converter.fine_grained_timer.verbose_flag = false;
+    apr.apr_converter.method_timer.verbose_flag = false;
+    apr.apr_converter.computation_timer.verbose_flag = false;
+    apr.apr_converter.allocation_timer.verbose_flag = false;
+    apr.apr_converter.total_timer.verbose_flag = true;
 
     //Gets the APR
-    if(apr_converter.get_apr(apr)){
+    if(apr.get_apr()){
 
         //Below is IO and outputting of the Implied Resolution Function through the Particle Cell level.
 

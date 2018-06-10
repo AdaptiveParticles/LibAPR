@@ -6,7 +6,6 @@
 
 #include "algorithm/APRParameters.hpp"
 #include "data_structures/Mesh/PixelData.hpp"
-#include "algorithm/APRConverter.hpp"
 #include "data_structures/APR/APR.hpp"
 
 
