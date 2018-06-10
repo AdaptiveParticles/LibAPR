@@ -26,6 +26,8 @@ Advanced (Direct) Settings:
 -rel_error rel_error_value (Reasonable ranges are from .08-.15), Default: 0.1
 -normalize_input (flag that will rescale the input from the input data range to 80% of the output data type range, useful for float scaled datasets)
 -compress_level (the IO uses BLOSC for lossless compression of the APR, this can be set from 1-9, where higher increases the compression level. Note, this can come at a significant time increase.)
+-neighborhood_optimization_off turns off the neighborhood opetimization (This results in boundary Particle Cells also being increased in resolution after the Pulling Scheme step)
+-output_steps Writes tiff images of the individual steps (gradient magnitude, local intensity scale, and final level of the APR calculation).
 )";
 
 #include <algorithm>
@@ -53,8 +55,8 @@ int main(int argc, char **argv) {
     apr_converter.par.min_signal = options.min_signal;
     apr_converter.par.SNR_min = options.SNR_min;
     apr_converter.par.normalized_input = options.normalize_input;
-
     apr_converter.par.neighborhood_optimization = options.neighborhood_optimization;
+    apr_converter.par.output_steps = options.output_steps;
 
     //where things are
     apr_converter.par.input_image_name = options.input;
@@ -81,18 +83,6 @@ int main(int argc, char **argv) {
 
         timer.verbose_flag = true;
 
-        PixelData<uint16_t> level;
-
-        apr.interp_depth_ds(level);
-
-        std::cout << std::endl;
-
-        std::cout << "Saving down-sampled Particle Cell level as tiff image" << std::endl;
-
-        std::string output_path = save_loc + file_name + "_level.tif";
-        //write output as tiff
-        TiffUtils::saveMeshAsTiff(output_path, level);
-
         std::cout << std::endl;
         float original_pixel_image_size = (2.0f*apr.orginal_dimensions(0)*apr.orginal_dimensions(1)*apr.orginal_dimensions(2))/(1000000.0);
         std::cout << "Original image size: " << original_pixel_image_size << " MB" << std::endl;
@@ -118,6 +108,21 @@ int main(int argc, char **argv) {
         std::cout << "Computational Ratio (Pixels/Particles): " << computational_ratio << std::endl;
         std::cout << "Lossy Compression Ratio: " << original_pixel_image_size/apr_file_size << std::endl;
         std::cout << std::endl;
+
+        if(options.output_steps) {
+
+            PixelData<uint16_t> level;
+
+            apr.interp_depth_ds(level);
+
+            std::cout << std::endl;
+
+            std::cout << "Saving down-sampled Particle Cell level as tiff image" << std::endl;
+
+            std::string output_path = save_loc + file_name + "_level.tif";
+            //write output as tiff
+            TiffUtils::saveMeshAsTiff(output_path, level);
+        }
 
 
         } else {
@@ -231,6 +236,11 @@ cmdLineOptions read_command_line_options(int argc, char **argv){
     {
         result.neighborhood_optimization = false;
 
+    }
+
+    if(command_option_exists(argv, argv + argc, "-output_steps"))
+    {
+        result.output_steps = true;
     }
 
     return result;

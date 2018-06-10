@@ -21,6 +21,7 @@ struct cmdLineOptions{
     bool stats_file = false;
     bool normalize_input = false;
     bool neighborhood_optimization = true;
+    bool output_steps = false;
     unsigned int compress_level = 2;
 
     float Ip_th = -1;

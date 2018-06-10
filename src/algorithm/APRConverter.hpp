@@ -226,17 +226,11 @@ bool APRConverter<ImageType>::get_apr_method(APR<ImageType> &aAPR, PixelData<T>&
     PullingScheme::pulling_scheme_main();
     method_timer.stop_timer();
 
-    if(par.output_steps){
-        TiffUtils::saveMeshAsTiff(par.output_dir + "max_level.tif", particle_cell_tree.back());
-    }
-
     method_timer.start_timer("downsample_pyramid");
     std::vector<PixelData<T>> downsampled_img;
     //Down-sample the image for particle intensity estimation
     downsamplePyrmaid(input_image, downsampled_img, aAPR.level_max(), aAPR.level_min());
     method_timer.stop_timer();
-
-
 
     method_timer.start_timer("compute_apr_datastructure");
     aAPR.apr_access.initialize_structure_from_particle_cell_tree(aAPR,particle_cell_tree);
