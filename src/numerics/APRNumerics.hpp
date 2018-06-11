@@ -12,7 +12,7 @@ class APRNumerics {
 
 public:
     template<typename T>
-    static void compute_gradient_vector(APR<T> apr,ExtraParticleData<std::vector<float>>& gradient,const bool normalize = true,const std::vector<float> delta = {1.0f,1.0f,1.0f}){
+    static void compute_gradient_vector(APR<T> &apr,ExtraParticleData<std::vector<float>>& gradient,const bool normalize = true,const std::vector<float> delta = {1.0f,1.0f,1.0f}){
 
 
         APRTimer timer;
@@ -96,7 +96,7 @@ public:
     }
 
     template<typename T,typename S,typename U>
-    void seperable_smooth_filter(APR<T> apr,const ExtraParticleData<S>& input_data,ExtraParticleData<U>& output_data,const std::vector<float>& filter,unsigned int repeats = 1){
+    void seperable_smooth_filter(APR<T> &apr,const ExtraParticleData<S>& input_data,ExtraParticleData<U>& output_data,const std::vector<float>& filter,unsigned int repeats = 1){
 
         output_data.init(apr);
 
@@ -115,7 +115,7 @@ public:
 
 
     template<typename T,typename S,typename U>
-    void face_neighbour_filter(APR<T> apr,ExtraParticleData<S>& input_data,ExtraParticleData<U>& output_data,const std::vector<float>& filter,const int direction){
+    void face_neighbour_filter(APR<T> &apr,ExtraParticleData<S>& input_data,ExtraParticleData<U>& output_data,const std::vector<float>& filter,const int direction){
 
         std::vector<uint8_t> faces;
         if(direction == 0){
