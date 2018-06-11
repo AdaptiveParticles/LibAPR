@@ -22,6 +22,7 @@ struct cmdLineOptions{
     bool neighborhood_optimization = true;
     bool output_steps = false;
     unsigned int compress_level = 2;
+    unsigned int compress_type = 0;
 
     float Ip_th = -1;
     float SNR_min = -1;

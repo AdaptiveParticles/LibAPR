@@ -27,11 +27,11 @@ class APR {
     APRWriter apr_writer;
     APRReconstruction apr_recon;
 
-
 public:
 
     APRAccess apr_access;
     APRConverter<ImageType> apr_converter;
+    APRCompress<ImageType> apr_compress;
 
     ExtraParticleData<ImageType> particles_intensities;
     std::string name;
@@ -86,9 +86,8 @@ public:
     }
 
     FileSizeInfo write_apr(std::string save_loc,std::string file_name,unsigned int blosc_comp_type,unsigned int blosc_comp_level,unsigned int blosc_shuffle){
-        APRCompress<ImageType> apr_compressor;
-        apr_compressor.set_compression_type(0);
-        return apr_writer.write_apr((*this),save_loc, file_name, apr_compressor,blosc_comp_type ,blosc_comp_level,blosc_shuffle);
+
+        return apr_writer.write_apr((*this),save_loc, file_name, this->apr_compress,blosc_comp_type ,blosc_comp_level,blosc_shuffle);
     }
 
     //generate APR that can be read by paraview

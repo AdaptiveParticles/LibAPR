@@ -26,8 +26,11 @@ Advanced (Direct) Settings:
 -rel_error rel_error_value (Reasonable ranges are from .08-.15), Default: 0.1
 -normalize_input (flag that will rescale the input from the input data range to 80% of the output data type range, useful for float scaled datasets)
 -compress_level (the IO uses BLOSC for lossless compression of the APR, this can be set from 1-9, where higher increases the compression level. Note, this can come at a significant time increase.)
+-compress_type (Default: 0, loss-less compression of partilce intensities, (1,2) WNL (Balázs et al. 2017) - approach compression applied to particles (1 = without prediction, 2 = with)
+
 -neighborhood_optimization_off turns off the neighborhood opetimization (This results in boundary Particle Cells also being increased in resolution after the Pulling Scheme step)
 -output_steps Writes tiff images of the individual steps (gradient magnitude, local intensity scale, and final level of the APR calculation).
+
 )";
 
 #include <algorithm>
@@ -94,6 +97,8 @@ int main(int argc, char **argv) {
         unsigned int blosc_comp_level = options.compress_level;
         unsigned int blosc_shuffle = 1;
 
+        apr.apr_compress.set_compression_type(options.compress_type);
+
         //write the APR to hdf5 file
         FileSizeInfo fileSizeInfo = apr.write_apr(save_loc,file_name,blosc_comp_type,blosc_comp_level,blosc_shuffle);
         float apr_file_size = fileSizeInfo.total_file_size;
@@ -121,7 +126,6 @@ int main(int argc, char **argv) {
             //write output as tiff
             TiffUtils::saveMeshAsTiff(output_path, level);
         }
-
 
         } else {
         std::cout << "Oops, something went wrong. APR not computed :(." << std::endl;
@@ -223,6 +227,11 @@ cmdLineOptions read_command_line_options(int argc, char **argv){
     if(command_option_exists(argv, argv + argc, "-compress_level"))
     {
         result.compress_level = (unsigned int)std::stoi(std::string(get_command_option(argv, argv + argc, "-compress_level")));
+    }
+
+    if(command_option_exists(argv, argv + argc, "-compress_type"))
+    {
+        result.compress_type = (unsigned int)std::stoi(std::string(get_command_option(argv, argv + argc, "-compress_type")));
     }
 
     if(command_option_exists(argv, argv + argc, "-normalize_input"))
