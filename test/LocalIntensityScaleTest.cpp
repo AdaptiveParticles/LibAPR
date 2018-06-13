@@ -6,6 +6,7 @@
 #include "data_structures/Mesh/PixelData.hpp"
 #include "algorithm/LocalIntensityScale.hpp"
 #include "algorithm/LocalIntensityScaleCuda.h"
+#include "data_structures/APR/APR.hpp"
 #include "algorithm/APRConverter.hpp"
 #include "TestTools.hpp"
 

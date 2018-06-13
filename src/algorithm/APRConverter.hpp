@@ -27,6 +27,8 @@ template<typename ImageType>
 class APRConverter: public LocalIntensityScale, public ComputeGradient, public LocalParticleCellSet, public PullingScheme {
 
 public:
+
+
     APRParameters par;
     APRTimer fine_grained_timer;
     APRTimer method_timer;
@@ -52,19 +54,20 @@ public:
         }
     };
 
-private:
     //get apr without setting parameters, and with an already loaded image.
     template<typename T>
     bool get_apr_method(APR<ImageType> &aAPR, PixelData<T> &input_image);
+
+    template<typename T>
+    void auto_parameters(const PixelData<T> &input_img);
+
+private:
 
     //pointer to the APR structure so member functions can have access if they need
     const APR<ImageType> *apr;
 
     template<typename T>
     void init_apr(APR<ImageType>& aAPR, PixelData<T>& input_image);
-
-    template<typename T>
-    void auto_parameters(const PixelData<T> &input_img);
 
     template<typename T>
     bool get_apr_method_from_file(APR<ImageType> &aAPR, const TiffUtils::TiffInfo &aTiffFile);
@@ -191,15 +194,23 @@ bool APRConverter<ImageType>::get_apr_method(APR<ImageType> &aAPR, PixelData<T>&
     fine_grained_timer.stop_timer();
 
 #ifndef APR_USE_CUDA
-    method_timer.verbose_flag = true;
+    //method_timer.verbose_flag = true;
     method_timer.start_timer("compute_gradient_magnitude_using_bsplines");
     get_gradient(image_temp, grad_temp, local_scale_temp, local_scale_temp2, bspline_offset, par);
     method_timer.stop_timer();
 
+    if(par.output_steps){
+        TiffUtils::saveMeshAsTiff(par.output_dir + "gradient_step.tif", grad_temp);
+    }
+
     method_timer.start_timer("compute_local_intensity_scale");
     get_local_intensity_scale(local_scale_temp, local_scale_temp2, par);
     method_timer.stop_timer();
-    method_timer.verbose_flag = false;
+    //method_timer.verbose_flag = false;
+
+    if(par.output_steps){
+        TiffUtils::saveMeshAsTiff(par.output_dir + "local_intensity_scale_step.tif", local_scale_temp);
+    }
 #else
     method_timer.start_timer("compute_gradient_magnitude_using_bsplines and local instensity scale CUDA");
     getFullPipeline(image_temp, grad_temp, local_scale_temp, local_scale_temp2,bspline_offset, par);
@@ -234,8 +245,6 @@ bool APRConverter<ImageType>::get_apr_method(APR<ImageType> &aAPR, PixelData<T>&
 
     computation_timer.stop_timer();
 
-    aAPR.parameters = par;
-
     total_timer.stop_timer();
 
     return true;
@@ -268,6 +277,12 @@ void APRConverter<ImageType>::get_local_particle_cell_set(PixelData<ImageType> &
     fine_grained_timer.start_timer("compute_level_second");
     //incorporate other factors and compute the level of the Particle Cell, effectively construct LPC L_n
     compute_level_for_array(local_scale_temp,level_factor,par.rel_error);
+
+    if(par.output_steps){
+        TiffUtils::saveMeshAsTiff(par.output_dir + "local_particle_set_level_step.tif", local_scale_temp);
+    }
+
+
     fill(l_max,local_scale_temp);
     fine_grained_timer.stop_timer();
 
@@ -293,7 +308,7 @@ void APRConverter<ImageType>::get_gradient(PixelData<ImageType> &image_temp, Pix
     //  Input: full sized image.
     //  Output: down-sampled by 2 gradient magnitude (Note, the gradient is calculated at pixel level then maximum down sampled within the loops below)
 
-    fine_grained_timer.verbose_flag = true;
+    //fine_grained_timer.verbose_flag = true;
 
     fine_grained_timer.start_timer("threshold");
 
@@ -416,6 +431,8 @@ void APRConverter<ImageType>::init_apr(APR<ImageType>& aAPR,PixelData<T>& input_
 
     aAPR.apr_access.level_min = levelMin;
     aAPR.apr_access.level_max = levelMax;
+
+    aAPR.parameters = par;
 }
 
 template<typename ImageType> template<typename T>
