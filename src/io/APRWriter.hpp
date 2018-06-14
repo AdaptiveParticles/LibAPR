@@ -79,6 +79,10 @@ public:
 
     template<typename ImageType>
     void read_apr(APR<ImageType>& apr, const std::string &file_name) {
+
+        APRTimer timer;
+        timer.verbose_flag = true;
+
         AprFile f(file_name, AprFile::Operation::READ);
         if (!f.isOpened()) return;
 
@@ -134,6 +138,8 @@ public:
             apr.apr_access.z_num[i] = z_num;
         }
 
+
+        timer.start_timer("Read data");
         // ------------- read data ------------------------------
         apr.particles_intensities.data.resize(apr.apr_access.total_number_particles);
         if (apr.particles_intensities.data.size() > 0) {
@@ -143,7 +149,12 @@ public:
         apr.apr_access.x_num[apr.apr_access.level_max] = apr.apr_access.org_dims[1];
         apr.apr_access.z_num[apr.apr_access.level_max] = apr.apr_access.org_dims[2];
 
+        timer.stop_timer();
+
         // ------------- map handling ----------------------------
+
+        timer.start_timer("map loading");
+
         auto map_data = std::make_shared<MapStorageData>();
 
         map_data->global_index.resize(apr.apr_access.total_number_gaps);
@@ -171,6 +182,10 @@ public:
 
         apr.apr_access.rebuild_map(apr, *map_data);
 
+        timer.stop_timer();
+
+
+        timer.start_timer("decompress");
         // ------------ decompress if needed ---------------------
         if (compress_type > 0) {
             APRCompress<ImageType> apr_compress;
@@ -178,6 +193,7 @@ public:
             apr_compress.set_quantization_factor(quantization_factor);
             apr_compress.decompress(apr, apr.particles_intensities);
         }
+        timer.stop_timer();
     }
 
     template<typename ImageType>

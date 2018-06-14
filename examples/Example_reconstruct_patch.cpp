@@ -205,7 +205,10 @@ int main(int argc, char **argv) {
 
             timer.start_timer("pc interp");
             //perform piece-wise constant interpolation
-            aprReconstruction.interp_image_patch(apr,aprTree,recon_pc, apr.particles_intensities,partsTree,reconPatch);
+            for (int i = 0; i < 1000; ++i) {
+                aprReconstruction.interp_image_patch(apr, aprTree, recon_pc, apr.particles_intensities, partsTree,
+                                                     reconPatch);
+            }
             timer.stop_timer();
 
             float elapsed_seconds = timer.t2 - timer.t1;

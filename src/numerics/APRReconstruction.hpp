@@ -157,11 +157,12 @@ public:
             int y_begin_l =  (int)floor(y_begin/step_size);
             int y_end_l = std::min((int)ceil(y_end/step_size),(int) apr.spatial_index_y_max(level));
 
-            for (int z = z_begin_l; z < z_end_l; z++) {
-
+            int z = 0;
 #ifdef HAVE_OPENMP
-#pragma omp parallel for schedule(dynamic) private(x) firstprivate(apr_iterator)
+#pragma omp parallel for schedule(dynamic) private(z) firstprivate(apr_iterator)
 #endif
+            for (z = z_begin_l; z < z_end_l; z++) {
+
                 for (x = x_begin_l; x < x_end_l; ++x) {
                     for (apr_iterator.set_new_lzx(level, z, x);
                          apr_iterator.global_index() < apr_iterator.particles_zx_end(level, z,
