@@ -1,6 +1,8 @@
 # Adds staticLib to provided (existing) static target. Useful for merging all dependencies to
 # one fat static lib.
 # Use: addStaticLibs(libStatic someStaticLibToMerge [evenMoreStaticLibsIfNeeded])
+cmake_policy(SET CMP0026 OLD)
+
 function(addStaticLibs outLibTarget)
     get_target_property(libtype ${outLibTarget} TYPE)
     if(NOT libtype STREQUAL "STATIC_LIBRARY")
@@ -17,7 +19,8 @@ function(addStaticLibs outLibTarget)
 		if(NOT libtype STREQUAL "STATIC_LIBRARY")
 			message(FATAL_ERROR "[${lib}] is not a static lib!")
 		endif()
-		list(APPEND filesToMerge $<TARGET_FILE:${lib}>)
+		get_target_property(myLib ${lib} LOCATION)
+		set(filesToMerge ${filesTomerge} ${myLib})
 	endforeach()
 
     set(outLibFile $<TARGET_FILE:${outLibTarget}>)
