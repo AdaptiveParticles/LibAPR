@@ -5,12 +5,20 @@
 #ifndef PARTPLAY_LOCAL_PARTICLE_SET_HPP
 #define PARTPLAY_LOCAL_PARTICLE_SET_HPP
 
+#ifdef _MSC_VER
+#include <intrin.h>
+#endif
+
 class LocalParticleCellSet {
 
 public:
     static inline uint32_t asmlog_2(const uint32_t x) {
         if (x == 0) return 0;
+#ifdef _MSC_VER
+        return (uint32_t)_BitScanReverse(x);
+#else
         return (31 - __builtin_clz (x));
+#endif
     }
 
     template< typename T>
