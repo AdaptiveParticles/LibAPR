@@ -79,7 +79,7 @@ public:
     }
 
     template<typename U,typename V,typename S>
-    void interp_image_patch(APR<S>& apr, APRTree<S> aprTree,PixelData<U>& img,ExtraParticleData<V>& parts,ExtraParticleData<V>& parts_tree,ReconPatch& reconPatch){
+    void interp_image_patch(APR<S>& apr, APRTree<S>& aprTree,PixelData<U>& img,ExtraParticleData<V>& parts,ExtraParticleData<V>& parts_tree,ReconPatch& reconPatch){
         //
         //  Bevan Cheeseman 2016
         //
