@@ -36,6 +36,9 @@ private:
 
         APRIterator<imageType> apr_iterator(apr);
 
+        APRTimer timer;
+        timer.verbose_flag = true;
+
         ///////////////////////
         ///
         /// Set the iterator using random access by particle cell spatial index (x,y,z) and particle cell level
@@ -48,6 +51,9 @@ private:
         tree_access.level_min = l_min;
         tree_access.level_max = l_max;
 
+
+        timer.start_timer("tree - init structure");
+
         particle_cell_parent_tree.resize(l_max + 1);
 
         for (uint64_t l = l_min; l < (l_max + 1) ;l ++){
@@ -58,10 +64,15 @@ private:
                                                     (int)ceil((1.0*apr.orginal_dimensions(2))/pow(2.0,1.0*l_max - l + 1)), (uint8_t)0);
         }
 
+        timer.stop_timer();
+
 
         uint64_t counter = 0;
 
         uint64_t particle_number;
+
+        timer.start_timer("tree - insert vals");
+
         //Basic serial iteration over all particles
         for (particle_number = 0; particle_number < apr.total_number_particles(); ++particle_number) {
             //This step is required for all loops to set the iterator by the particle number
@@ -101,8 +112,12 @@ private:
 
         }
 
+        timer.stop_timer();
 
+
+        timer.start_timer("tree - init tree");
         this->tree_access.initialize_tree_access(apr,particle_cell_parent_tree);
+        timer.stop_timer();
 
     }
 
