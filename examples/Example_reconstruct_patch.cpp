@@ -201,7 +201,12 @@ int main(int argc, char **argv) {
 
             ExtraParticleData<uint16_t> partsTree;
 
-            APRTreeNumerics::fill_tree_from_particles(apr,aprTree,apr.particles_intensities,partsTree,[] (const uint16_t& a,const uint16_t& b) {return std::max(a,b);});
+            //APRTreeNumerics::fill_tree_from_particles(apr,aprTree,apr.particles_intensities,partsTree,[] (const uint16_t& a,const uint16_t& b) {return std::max(a,b);});
+
+            timer.start_timer("fill tree");
+            APRTreeNumerics::fill_tree_from_particles(apr, aprTree, apr.particles_intensities, partsTree,
+                    [](const uint16_t &a, const uint16_t &b) { return a + b; }, true);
+            timer.stop_timer();
 
             timer.start_timer("pc interp");
             //perform piece-wise constant interpolation
