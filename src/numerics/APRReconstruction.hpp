@@ -134,7 +134,6 @@ public:
 
         img.init(y_end - y_begin, x_end - x_begin, z_end - z_begin, 0);
 
-        int x = 0;
 
         int max_dim = std::max(std::max(apr.apr_access.org_dims[1], apr.apr_access.org_dims[0]), apr.apr_access.org_dims[2]);
 
@@ -159,16 +158,16 @@ public:
 
             int z = 0;
 #ifdef HAVE_OPENMP
-#pragma omp parallel for schedule(dynamic) private(z) firstprivate(apr_iterator)
+//#pragma omp parallel for schedule(static) private(z) firstprivate(apr_iterator)
 #endif
             for (z = z_begin_l; z < z_end_l; z++) {
 
-                for (x = x_begin_l; x < x_end_l; ++x) {
-                    for (apr_iterator.set_new_lzx(level, z, x);
+                for (int x = x_begin_l; x < x_end_l; ++x) {
+                    for (apr_iterator.set_new_lzxy(level, z, x,y_begin_l);
                          apr_iterator.global_index() < apr_iterator.particles_zx_end(level, z,
                                                                                      x); apr_iterator.set_iterator_to_particle_next_particle()) {
 
-                        if((apr_iterator.y() >= y_begin_l) && (apr_iterator.y() < y_end_l)) {
+                        if( (apr_iterator.y() < y_end_l)) {
 
                             //lower bound
                             const int dim1 = std::max((int) (apr_iterator.y() * step_size), y_begin) - y_begin;
@@ -192,6 +191,8 @@ public:
                                 }
                             }
 
+                        } else {
+                            break;
                         }
                     }
                 }
@@ -217,16 +218,16 @@ public:
                 int y_end_l = std::min((int) ceil(y_end / step_size), (int) apr.spatial_index_y_max(level));
 
                 for (int z = z_begin_l; z < z_end_l; z++) {
-
+                    int x = 0;
 #ifdef HAVE_OPENMP
 #pragma omp parallel for schedule(dynamic) private(x) firstprivate(aprTreeIterator)
 #endif
                     for (x = x_begin_l; x < x_end_l; ++x) {
-                        for (aprTreeIterator.set_new_lzx(level, z, x);
+                        for (aprTreeIterator.set_new_lzxy(level, z, x,y_begin_l);
                              aprTreeIterator.global_index() < aprTreeIterator.particles_zx_end(level, z,
                                                                                          x); aprTreeIterator.set_iterator_to_particle_next_particle()) {
 
-                            if ((aprTreeIterator.y() >= y_begin_l) && (aprTreeIterator.y() < y_end_l)) {
+                            if ((aprTreeIterator.y() < y_end_l)) {
 
                                 //lower bound
                                 const int dim1 = std::max((int) (aprTreeIterator.y() * step_size), y_begin) - y_begin;
@@ -250,6 +251,8 @@ public:
                                     }
                                 }
 
+                            } else {
+                                break;
                             }
                         }
                     }

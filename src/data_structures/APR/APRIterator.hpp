@@ -245,6 +245,76 @@ public:
 
     }
 
+    uint64_t set_new_lzxy(const uint16_t level,const uint16_t z,const uint16_t x,const uint16_t y){
+        current_particle_cell.level = level;
+        //otherwise now we have to figure out where to look for the next particle cell;
+
+        //back out your xz from the offset
+        current_particle_cell.z = z;
+        current_particle_cell.x = x;
+        current_particle_cell.y = y;
+
+        current_particle_cell.pc_offset = apr_access->x_num[level]*z + x;
+
+        if(apr_access->gap_map.data[current_particle_cell.level][current_particle_cell.pc_offset].size() > 0) {
+
+
+            ParticleCellGapMap& current_pc_map = apr_access->gap_map.data[current_particle_cell.level][current_particle_cell.pc_offset][0];
+
+//            current_gap.iterator = current_pc_map.map.begin();
+//            current_particle_cell.y = current_gap.iterator->first;
+//            current_particle_cell.global_index = current_gap.iterator->second.global_index_begin;
+//            return current_particle_cell.global_index;
+
+            //otherwise search for it (points to first key that is greater than the y value)
+            current_gap.iterator = current_pc_map.map.upper_bound(current_particle_cell.y);
+
+            bool end = false;
+
+            if(current_gap.iterator == current_pc_map.map.begin()){
+                //less then the first value
+
+                current_particle_cell.y = current_gap.iterator->first;
+                current_particle_cell.global_index = current_gap.iterator->second.global_index_begin;
+
+                set_neighbour_flag();
+
+                return current_particle_cell.global_index;
+            } else{
+
+                if(current_gap.iterator == current_pc_map.map.end()){
+                    end = true;
+                }
+                current_gap.iterator--;
+            }
+
+            if ((current_particle_cell.y >= current_gap.iterator->first) & (current_particle_cell.y <= current_gap.iterator->second.y_end)) {
+                // exists
+                current_particle_cell.global_index = current_gap.iterator->second.global_index_begin +
+                                         (current_particle_cell.y - current_gap.iterator->first);
+                set_neighbour_flag();
+                return current_particle_cell.global_index;
+            }
+
+            if(end){
+                //no more particles
+                current_particle_cell.global_index = UINT64_MAX;
+                return current_particle_cell.global_index;
+            } else {
+                //still within range
+                current_particle_cell.global_index = current_gap.iterator->second.global_index_begin;
+                current_particle_cell.y = current_gap.iterator->first;
+                set_neighbour_flag();
+                return current_particle_cell.global_index;
+            }
+
+
+        } else {
+            return UINT64_MAX;
+        }
+
+    }
+
     bool set_iterator_to_particle_next_particle(){
         //
         //  Moves the iterator to point to the particle number (global index of the particle)
