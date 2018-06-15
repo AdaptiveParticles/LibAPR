@@ -88,9 +88,56 @@ public:
             }
         }
 
+    }
 
+    template<typename T>
+    static ExtraParticleData<T> meanDownsampling(APR<T> &aInputApr, APRTree<T> &aprTree) {
+        APRIterator<T> aprIt(aInputApr);
+        APRTreeIterator<T> treeIt(aprTree);
+        APRTreeIterator<T> parentTreeIt(aprTree);
+        ExtraParticleData<T> outputTree(aprTree);
+        ExtraParticleData<uint8_t> childCnt(aprTree);
+        auto &intensities = aInputApr.particles_intensities;
 
+        for (unsigned int level = aprIt.level_max(); level >= aprIt.level_min(); --level) {
+            for (size_t particle_number = aprIt.particles_level_begin(level);
+                 particle_number < aprIt.particles_level_end(level);
+                 ++particle_number)
+            {
+                aprIt.set_iterator_to_particle_by_number(particle_number);
+                parentTreeIt.set_iterator_to_parent(aprIt);
 
+                auto val = intensities[aprIt];
+                outputTree[parentTreeIt] += val;
+                childCnt[parentTreeIt]++;
+            }
+        }
+
+        //then do the rest of the tree where order matters (it goes to level_min since we need to eventually average data there).
+        for (unsigned int level = treeIt.level_max(); level >= treeIt.level_min(); --level) {
+            // average intensities first
+            for (size_t particleNumber = treeIt.particles_level_begin(level);
+                 particleNumber < treeIt.particles_level_end(level);
+                 ++particleNumber)
+            {
+                treeIt.set_iterator_to_particle_by_number(particleNumber);
+                outputTree[treeIt] /= (1.0*childCnt[treeIt]);
+            }
+
+            // push changes
+            if (level > treeIt.level_min())
+                for (uint64_t parentNumber = treeIt.particles_level_begin(level);
+                     parentNumber < treeIt.particles_level_end(level);
+                     ++parentNumber)
+                {
+                    treeIt.set_iterator_to_particle_by_number(parentNumber);
+                    if (parentTreeIt.set_iterator_to_parent(treeIt)) {
+                        outputTree[parentTreeIt] += outputTree[treeIt];
+                        childCnt[parentTreeIt]++;
+                    }
+                }
+        }
+        return outputTree;
     }
 
     template<typename T,typename S,typename U>
