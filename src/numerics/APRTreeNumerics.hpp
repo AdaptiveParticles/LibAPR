@@ -90,6 +90,77 @@ public:
 
     }
 
+    template<typename T,typename S,typename U>
+    static void fill_tree_mean(APR<T>& apr,APRTree<T>& apr_tree,ExtraParticleData<S>& particle_data,ExtraParticleData<U>& tree_data) {
+
+        tree_data.init_tree(apr_tree);
+
+        std::fill(tree_data.data.begin(), tree_data.data.end(), 0);
+
+        APRTreeIterator<T> treeIterator(apr_tree);
+        APRTreeIterator<T> parentIterator(apr_tree);
+
+        APRIterator<T> apr_iterator(apr);
+
+        ExtraParticleData<uint8_t> child_counter;
+
+        int x = 0;
+
+        child_counter.init_tree(apr_tree);
+
+
+        uint64_t particle_number = 0;
+        uint64_t parent_number = 0;
+
+#ifdef HAVE_OPENMP
+#pragma omp parallel for schedule(static) private(particle_number) firstprivate(apr_iterator, parentIterator)
+#endif
+        for (particle_number = 0; particle_number < apr.total_number_particles(); ++particle_number) {
+            //This step is required for all loops to set the iterator by the particle number
+            apr_iterator.set_iterator_to_particle_by_number(particle_number);
+            //set parent
+            parentIterator.set_iterator_to_parent(apr_iterator);
+
+            tree_data[parentIterator] = apr.particles_intensities[apr_iterator] + tree_data[parentIterator];
+            child_counter[parentIterator]++;
+        }
+
+        //then do the rest of the tree where order matters
+        for (unsigned int level = treeIterator.level_max(); level >= treeIterator.level_min(); --level) {
+
+            for (int z = 0; z < apr.spatial_index_z_max(level); z++) {
+#ifdef HAVE_OPENMP
+#pragma omp parallel for schedule(dynamic) private(x) firstprivate(treeIterator)
+#endif
+                for (x = 0; x < apr.spatial_index_x_max(level); ++x) {
+                    for (treeIterator.set_new_lzx(level, z, x);
+                         treeIterator.global_index() < treeIterator.particles_zx_end(level, z,
+                                                                                     x); treeIterator.set_iterator_to_particle_next_particle()) {
+                        tree_data[treeIterator] /= (1.0 * child_counter[treeIterator]);
+
+                    }
+                }
+            }
+
+            for (int z = 0; z < apr.spatial_index_z_max(level); z++) {
+#ifdef HAVE_OPENMP
+#pragma omp parallel for schedule(dynamic) private(x) firstprivate(treeIterator, parentIterator)
+#endif
+                for (x = 0; x < apr.spatial_index_x_max(level); ++x) {
+                    for (treeIterator.set_new_lzx(level, z, x);
+                         treeIterator.global_index() < treeIterator.particles_zx_end(level, z,
+                                                                                     x); treeIterator.set_iterator_to_particle_next_particle()) {
+                        if (parentIterator.set_iterator_to_parent(treeIterator)) {
+                            tree_data[parentIterator] = tree_data[treeIterator] + tree_data[parentIterator];
+                            child_counter[parentIterator]++;
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+
     template<typename T>
     static ExtraParticleData<T> meanDownsampling(APR<T> &aInputApr, APRTree<T> &aprTree) {
         APRIterator<T> aprIt(aInputApr);

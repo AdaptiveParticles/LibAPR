@@ -199,7 +199,9 @@ int main(int argc, char **argv) {
             //create mesh data structure for reconstruction
             PixelData<uint16_t> recon_pc;
 
-            ExtraParticleData<uint16_t> partsTree;
+            ExtraParticleData<float> partsTree;
+
+            APRTreeNumerics::fill_tree_mean(apr,aprTree,apr.particles_intensities,partsTree);
 
            // APRTreeNumerics::fill_tree_from_particles(apr,aprTree,apr.particles_intensities,partsTree,[] (const uint16_t& a,const uint16_t& b) {return std::max(a,b);});
 
@@ -207,7 +209,7 @@ int main(int argc, char **argv) {
 //            APRTreeNumerics::fill_tree_from_particles(apr, aprTree, apr.particles_intensities, partsTree,
 //                    [](const uint16_t &a, const uint16_t &b) { return a + b; }, true);
 
-            partsTree = APRTreeNumerics::meanDownsampling(apr,aprTree);
+            //partsTree = APRTreeNumerics::meanDownsampling(apr,aprTree);
 
             timer.stop_timer();
 
