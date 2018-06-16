@@ -10,6 +10,7 @@
 #include "algorithm/ComputeBsplineRecursiveFilterCuda.h"
 #include "algorithm/ComputeInverseCubicBsplineCuda.h"
 #include <random>
+#include "data_structures/APR/APR.hpp"
 #include "algorithm/APRConverter.hpp"
 
 namespace {

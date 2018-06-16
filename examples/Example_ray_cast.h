@@ -1,7 +1,6 @@
 #ifndef PARTPLAY_RAYCAST_H
 #define PARTPLAY_RAYCAST_H
 
-
 #include "numerics/APRRaycaster.hpp"
 #include "data_structures/APR/APR.hpp"
 

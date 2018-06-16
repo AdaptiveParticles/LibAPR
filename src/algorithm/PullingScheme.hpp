@@ -76,7 +76,7 @@ private:
 };
 
 template<typename T>
-void PullingScheme::initialize_particle_cell_tree(APR<T>& apr) {
+inline void PullingScheme::initialize_particle_cell_tree(APR<T>& apr) {
     //  Initializes the particle cell tree structure
     //
     //  Contains pc up to l_max - 1,
@@ -94,7 +94,7 @@ void PullingScheme::initialize_particle_cell_tree(APR<T>& apr) {
     }
 }
 
-void PullingScheme::pulling_scheme_main() {
+inline void PullingScheme::pulling_scheme_main() {
     //
     //  Bevan Cheeseman 2016
     //
@@ -117,7 +117,7 @@ void PullingScheme::pulling_scheme_main() {
 }
 
 template<typename T>
-void PullingScheme::fill(const float k, const PixelData<T> &input) {
+inline void PullingScheme::fill(const float k, const PixelData<T> &input) {
     //  Bevan Cheeseman 2016
     //
     //  Updates the hash table from the down sampled images
@@ -153,7 +153,7 @@ void PullingScheme::fill(const float k, const PixelData<T> &input) {
     }
 }
 
-void PullingScheme::set_ascendant_neighbours(int level) {
+inline void PullingScheme::set_ascendant_neighbours(int level) {
     const size_t x_num = particle_cell_tree[level].x_num;
     const size_t y_num = particle_cell_tree[level].y_num;
     const size_t z_num = particle_cell_tree[level].z_num;
@@ -195,7 +195,7 @@ void PullingScheme::set_ascendant_neighbours(int level) {
     }
 }
 
-void PullingScheme::set_filler(int level) {
+inline void PullingScheme::set_filler(int level) {
     short children_boundaries[3] = {2,2,2};
     const int64_t x_num = particle_cell_tree[level].x_num;
     const int64_t y_num = particle_cell_tree[level].y_num;
@@ -249,7 +249,7 @@ void PullingScheme::set_filler(int level) {
     }
 }
 
-void PullingScheme::fill_neighbours(int level) {
+inline void PullingScheme::fill_neighbours(int level) {
     const size_t x_num = particle_cell_tree[level].x_num;
     const size_t y_num = particle_cell_tree[level].y_num;
     const size_t z_num = particle_cell_tree[level].z_num;
@@ -287,7 +287,7 @@ void PullingScheme::fill_neighbours(int level) {
     }
 }
 
-void PullingScheme::fill_parent(size_t j, size_t i, size_t k, size_t x_num, size_t y_num, size_t new_level) {
+inline void PullingScheme::fill_parent(size_t j, size_t i, size_t k, size_t x_num, size_t y_num, size_t new_level) {
     if(new_level >= l_min) {
         size_t new_x_num = ((x_num + 1) / 2);
         size_t new_y_num = ((y_num + 1) / 2);

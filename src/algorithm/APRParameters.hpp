@@ -35,6 +35,10 @@ public:
 
     bool normalized_input = false;
 
+    bool neighborhood_optimization = true;
+
+    bool output_steps = false;
+
     std::string name;
     std::string output_dir;
     std::string input_image_name;
