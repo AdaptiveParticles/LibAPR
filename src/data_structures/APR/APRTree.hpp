@@ -67,14 +67,14 @@ private:
         timer.stop_timer();
 
 
-        uint64_t counter = 0;
 
         uint64_t particle_number;
 
         timer.start_timer("tree - insert vals");
 
         //Basic serial iteration over all particles
-        for (particle_number = 0; particle_number < apr.total_number_particles(); ++particle_number) {
+       #pragma omp parallel for firstprivate(apr_iterator) 
+       for (particle_number = 0; particle_number < apr.total_number_particles(); ++particle_number) {
             //This step is required for all loops to set the iterator by the particle number
             apr_iterator.set_iterator_to_particle_by_number(particle_number);
 
@@ -107,8 +107,6 @@ private:
                     break;
                 }
             }
-
-            counter++;
 
         }
 
