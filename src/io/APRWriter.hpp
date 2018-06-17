@@ -83,6 +83,9 @@ public:
         APRTimer timer;
         timer.verbose_flag = true;
 
+        APRTimer timer_f;
+        timer_f.verbose_flag = true;
+
         AprFile f(file_name, AprFile::Operation::READ);
         if (!f.isOpened()) return;
 
@@ -139,7 +142,7 @@ public:
         }
 
 
-        timer.start_timer("Read data");
+        timer.start_timer("Read intensities");
         // ------------- read data ------------------------------
         apr.particles_intensities.data.resize(apr.apr_access.total_number_particles);
         if (apr.particles_intensities.data.size() > 0) {
@@ -151,24 +154,37 @@ public:
 
         timer.stop_timer();
 
+        std::cout << "Data rate intensities: " << (apr.apr_access.total_number_particles*2)/(timer.timings.back()*1000000.0f) << " MB/s" << std::endl;
+
         // ------------- map handling ----------------------------
 
-        timer.start_timer("map loading");
+        timer.start_timer("map loading data");
 
         auto map_data = std::make_shared<MapStorageData>();
 
         map_data->global_index.resize(apr.apr_access.total_number_gaps);
 
+
+        timer_f.start_timer("index");
         std::vector<int16_t> index_delta(apr.apr_access.total_number_gaps);
         readData(AprTypes::MapGlobalIndexType, f.objectId, index_delta.data());
         std::vector<uint64_t> index_delta_big(apr.apr_access.total_number_gaps);
         std::copy(index_delta.begin(),index_delta.end(),index_delta_big.begin());
         std::partial_sum(index_delta_big.begin(), index_delta_big.end(), map_data->global_index.begin());
 
+        timer_f.stop_timer();
+
+
+        timer_f.start_timer("y_b_e");
         map_data->y_end.resize(apr.apr_access.total_number_gaps);
         readData(AprTypes::MapYendType, f.objectId, map_data->y_end.data());
         map_data->y_begin.resize(apr.apr_access.total_number_gaps);
         readData(AprTypes::MapYbeginType, f.objectId, map_data->y_begin.data());
+
+        timer_f.stop_timer();
+
+
+        timer_f.start_timer("zxl");
         map_data->number_gaps.resize(apr.apr_access.total_number_non_empty_rows);
         readData(AprTypes::MapNumberGapsType, f.objectId, map_data->number_gaps.data());
         map_data->level.resize(apr.apr_access.total_number_non_empty_rows);
@@ -177,8 +193,16 @@ public:
         readData(AprTypes::MapXType, f.objectId, map_data->x.data());
         map_data->z.resize(apr.apr_access.total_number_non_empty_rows);
         readData(AprTypes::MapZType, f.objectId, map_data->z.data());
+        timer_f.stop_timer();
+
+        timer_f.start_timer("type");
         apr.apr_access.particle_cell_type.data.resize(type_size);
         readData(AprTypes::ParticleCellType, f.objectId, apr.apr_access.particle_cell_type.data.data());
+        timer_f.stop_timer();
+
+        timer.stop_timer();
+
+        timer.start_timer("map building");
 
         apr.apr_access.rebuild_map(apr, *map_data);
 
