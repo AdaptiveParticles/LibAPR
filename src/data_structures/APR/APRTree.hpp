@@ -67,7 +67,9 @@ private:
         timer.stop_timer();
 
 
+
         timer.start_timer("tree - insert vals");
+
 
         //note the use of the dynamic OpenMP schedule.
         for (unsigned int level = apr.level_max(); level >= apr_iterator.level_min(); --level) {
@@ -114,7 +116,6 @@ private:
                                     break;
                                 }
                             }
-
 
                         }
                     }
