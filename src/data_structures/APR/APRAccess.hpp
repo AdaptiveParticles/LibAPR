@@ -834,16 +834,12 @@ public:
         apr_timer.verbose_flag = false;
 
 
-        apr_timer.start_timer("first_step");
-
         //initialize loop variables
         uint64_t x_;
         uint64_t z_;
         uint64_t y_,status;
 
-        apr_timer.stop_timer();
-
-        apr_timer.start_timer("second_step");
+        apr_timer.start_timer("init structure");
 
         ExtraPartCellData<std::pair<uint16_t,YGap_map>> y_begin;
 
@@ -860,6 +856,11 @@ public:
             y_begin.data[i].resize(z_num[i]*x_num[i]);
         }
 
+
+        apr_timer.stop_timer();
+
+        apr_timer.start_timer("create gaps");
+
         for(uint64_t i = (level_min);i <= level_max;i++) {
 
             const uint64_t x_num_ = x_num[i];
@@ -867,7 +868,7 @@ public:
             const uint64_t y_num_ = y_num[i];
 
 #ifdef HAVE_OPENMP
-#pragma omp parallel for default(shared) private(z_, x_, y_, status) if(z_num_*x_num_ > 100)
+#pragma omp parallel for schedule(dynamic) default(shared) private(z_, x_, y_, status) if(z_num_*x_num_ > 100)
 #endif
             for (z_ = 0; z_ < z_num_; z_++) {
 
@@ -996,6 +997,8 @@ public:
 
         //gap_map.initialize_structure_parts_empty(apr);
 
+        apr_timer.start_timer("set up gapmap");
+
         gap_map.depth_min = level_min;
         gap_map.depth_max = level_max;
 
@@ -1034,6 +1037,10 @@ public:
             }
         }
 
+        apr_timer.stop_timer();
+
+        apr_timer.start_timer("type set up");
+
         total_number_non_empty_rows = counter_rows;
 
         APRIterator<T> apr_iterator(*this);
@@ -1057,7 +1064,11 @@ public:
                 particle_cell_type[apr_iterator] = p_map[apr_iterator.level()].mesh[offset_part_map + apr_iterator.y()];
             }
         }
+
+        apr_timer.stop_timer();
     }
+
+
 
 
 };

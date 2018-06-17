@@ -67,49 +67,103 @@ private:
         timer.stop_timer();
 
 
-        uint64_t counter = 0;
-
-        uint64_t particle_number;
-
         timer.start_timer("tree - insert vals");
 
-        //Basic serial iteration over all particles
-        for (particle_number = 0; particle_number < apr.total_number_particles(); ++particle_number) {
-            //This step is required for all loops to set the iterator by the particle number
-            apr_iterator.set_iterator_to_particle_by_number(particle_number);
+        //note the use of the dynamic OpenMP schedule.
+        for (unsigned int level = apr.level_max(); level >= apr_iterator.level_min(); --level) {
 
-            size_t y_p = apr_iterator.y()/2;
-            size_t x_p = apr_iterator.x()/2;
-            size_t z_p = apr_iterator.z()/2;
+            int z = 0;
+            int x = 0;
 
-            int current_level = apr_iterator.level()-1;
+            if(level < apr.level_max()) {
+
+#ifdef HAVE_OPENMP
+#pragma omp parallel for schedule(dynamic) private(z, x) firstprivate(apr_iterator)
+#endif
+                for (z = 0; z < apr_iterator.spatial_index_z_max(level); z++) {
+                    for (x = 0; x < apr_iterator.spatial_index_x_max(level); ++x) {
+                        for (apr_iterator.set_new_lzx(level, z, x);
+                             apr_iterator.global_index() < apr_iterator.particles_zx_end(level, z,
+                                                                                         x); apr_iterator.set_iterator_to_particle_next_particle()) {
+
+                            size_t y_p = apr_iterator.y() / 2;
+                            size_t x_p = apr_iterator.x() / 2;
+                            size_t z_p = apr_iterator.z() / 2;
+
+                            int current_level = apr_iterator.level() - 1;
 
 
-            if(particle_cell_parent_tree[current_level](y_p,x_p,z_p)==INTERIOR_PARENT){
-                particle_cell_parent_tree[current_level](y_p,x_p,z_p) = 1;
+                            if (particle_cell_parent_tree[current_level](y_p, x_p, z_p) == INTERIOR_PARENT) {
+                                particle_cell_parent_tree[current_level](y_p, x_p, z_p) = 1;
+                            } else {
+                                particle_cell_parent_tree[current_level](y_p, x_p, z_p)++;
+                            }
+
+                            while (current_level > l_min) {
+                                current_level--;
+                                y_p = y_p / 2;
+                                x_p = x_p / 2;
+                                z_p = z_p / 2;
+
+
+                                if (particle_cell_parent_tree[current_level](y_p, x_p, z_p) == 0) {
+                                    particle_cell_parent_tree[current_level](y_p, x_p, z_p) = INTERIOR_PARENT;
+
+                                } else {
+                                    //already covered
+                                    break;
+                                }
+                            }
+
+
+                        }
+                    }
+                }
             } else {
-                particle_cell_parent_tree[current_level](y_p,x_p,z_p)++;
+#ifdef HAVE_OPENMP
+#pragma omp parallel for schedule(dynamic) private(z, x) firstprivate(apr_iterator)
+#endif
+                for (z = 0; z < apr_iterator.spatial_index_z_max(level-1); z++) {
+                    for (x = 0; x < apr_iterator.spatial_index_x_max(level-1); ++x) {
+                        for (apr_iterator.set_new_lzx(level, 2*z, 2*x);
+                             apr_iterator.global_index() < apr_iterator.particles_zx_end(level, 2*z,
+                                                                                         2*x); apr_iterator.set_iterator_to_particle_next_particle()) {
 
-            }
+                            if(apr_iterator.y()%2 == 0) {
+                                size_t y_p = apr_iterator.y() / 2;
+                                size_t x_p = apr_iterator.x() / 2;
+                                size_t z_p = apr_iterator.z() / 2;
 
-            while(current_level > l_min){
-                current_level--;
-                y_p = y_p/2;
-                x_p = x_p/2;
-                z_p = z_p/2;
+                                int current_level = apr_iterator.level() - 1;
 
 
-                if(particle_cell_parent_tree[current_level](y_p,x_p,z_p)==0){
-                    particle_cell_parent_tree[current_level](y_p,x_p,z_p)=INTERIOR_PARENT;
+                                if (particle_cell_parent_tree[current_level](y_p, x_p, z_p) == INTERIOR_PARENT) {
+                                    particle_cell_parent_tree[current_level](y_p, x_p, z_p) = 1;
+                                } else {
+                                    particle_cell_parent_tree[current_level](y_p, x_p, z_p)++;
 
-                } else {
-                    //already covered
-                    break;
+                                }
+
+                                while (current_level > l_min) {
+                                    current_level--;
+                                    y_p = y_p / 2;
+                                    x_p = x_p / 2;
+                                    z_p = z_p / 2;
+
+
+                                    if (particle_cell_parent_tree[current_level](y_p, x_p, z_p) == 0) {
+                                        particle_cell_parent_tree[current_level](y_p, x_p, z_p) = INTERIOR_PARENT;
+
+                                    } else {
+                                        //already covered
+                                        break;
+                                    }
+                                }
+                            }
+                        }
+                    }
                 }
             }
-
-            counter++;
-
         }
 
         timer.stop_timer();

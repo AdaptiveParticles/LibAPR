@@ -110,7 +110,6 @@ public:
 
 
         uint64_t particle_number = 0;
-        uint64_t parent_number = 0;
 
 #ifdef HAVE_OPENMP
 #pragma omp parallel for schedule(static) private(particle_number) firstprivate(apr_iterator, parentIterator)
@@ -224,7 +223,6 @@ public:
         APRIterator<T> apr_iterator(apr);
 
         uint64_t particle_number = 0;
-        uint64_t parent_number = 0;
 
         for (particle_number = 0; particle_number < apr.total_number_particles(); ++particle_number) {
             //This step is required for all loops to set the iterator by the particle number
@@ -536,8 +534,6 @@ public:
                 float temp = 0;
                 float counter = 0;
 
-                float counter_neigh = 0;
-
                 apr_tree_iterator.set_particle_cell_no_search(apr_iterator);
 
                 //loop over all the neighbours and set the neighbour iterator to it
@@ -565,7 +561,6 @@ public:
 //        image_file_name = apr.parameters.input_dir +  "min_seed2.tif";
 //        TiffUtils::saveMeshAsTiffUint16(image_file_name, boundary);
 
-        uint64_t loop_counter = 1;
         timer.stop_timer();
 
         timer.start_timer("loop final");
@@ -576,7 +571,7 @@ public:
 
             uint64_t empty_counter = 0;
             bool still_empty = true;
-            while(still_empty & empty_counter < maximum_iteration) {
+            while((still_empty) && (empty_counter < maximum_iteration)) {
                 still_empty = false;
                 empty_counter++;
 #ifdef HAVE_OPENMP
@@ -600,8 +595,6 @@ public:
 
                                 if (neigh_iterator.set_neighbour_iterator(apr_iterator, direction, 0)) {
 
-                                    float n_l = neigh_iterator.level();
-                                    float n_t = boundary_type[neigh_iterator];
 
                                     if(boundary_type[neigh_iterator]>=(level+1)) {
                                         counter++;
@@ -734,7 +727,6 @@ public:
 
             apr_tree_iterator.set_iterator_to_particle_by_number(parent_number);
 
-            float temp = 0;
             float counter = 0;
             float counter_neigh = 0;
 
@@ -965,7 +957,6 @@ public:
                 float temp = 0;
                 float counter = 0;
 
-                float counter_neigh = 0;
 
                 apr_tree_iterator.set_particle_cell_no_search(apr_iterator);
 
@@ -1007,7 +998,7 @@ public:
                     //This step is required for all loops to set the iterator by the particle number
                     apr_iterator.set_iterator_to_particle_by_number(particle_number);
 
-                    if ((boundary_type[apr_iterator] == 0)) {
+                    if (boundary_type[apr_iterator] == 0) {
 
                         float counter = 0;
                         float temp = 0;
@@ -1151,8 +1142,8 @@ public:
 
                 apr_tree_iterator.set_iterator_to_particle_by_number(parent_number);
 
-                float temp = 0;
-                float counter = 0;
+
+
                 float counter_neigh = 1;
 
                 float val = max_spread[apr_tree_iterator];
@@ -1217,7 +1208,7 @@ public:
                     //This step is required for all loops to set the iterator by the particle number
                     apr_tree_iterator.set_iterator_to_particle_by_number(parent_number);
 
-                    float counter = 0;
+
                     float counter_neigh = 1;
                     float temp = max_spread[apr_tree_iterator];
 
@@ -1259,7 +1250,7 @@ public:
                 //This step is required for all loops to set the iterator by the particle number
                 apr_tree_iterator.set_iterator_to_particle_by_number(parent_number);
 
-                float counter = 0;
+
                 float counter_neigh = 1;
                 float temp = max_spread[apr_tree_iterator];
 
@@ -1328,7 +1319,6 @@ public:
                 float temp = 0;
                 float counter = 0;
 
-                float counter_neigh = 0;
 
                 apr_tree_iterator.set_particle_cell_no_search(apr_iterator);
 
@@ -1370,7 +1360,7 @@ public:
                     //This step is required for all loops to set the iterator by the particle number
                     apr_iterator.set_iterator_to_particle_by_number(particle_number);
 
-                    if ((boundary_type[apr_iterator] == 0)) {
+                    if (boundary_type[apr_iterator] == 0) {
 
                         float counter = 0;
                         float temp = 0;
@@ -1522,8 +1512,7 @@ public:
 
                 apr_tree_iterator.set_iterator_to_particle_by_number(parent_number);
 
-                float temp = 0;
-                float counter = 0;
+
                 float counter_neigh = 1;
 
                 float val = max_spread[apr_tree_iterator];
@@ -1592,7 +1581,7 @@ public:
                     //This step is required for all loops to set the iterator by the particle number
                     apr_tree_iterator.set_iterator_to_particle_by_number(parent_number);
 
-                    float counter = 0;
+
                     float counter_neigh = 1;
                     float temp = max_spread[apr_tree_iterator];
 
@@ -1642,7 +1631,7 @@ public:
                 //This step is required for all loops to set the iterator by the particle number
                 apr_tree_iterator.set_iterator_to_particle_by_number(parent_number);
 
-                float counter = 0;
+
                 float counter_neigh = 1;
                 float temp = max_spread[apr_tree_iterator];
 
@@ -1708,7 +1697,7 @@ public:
                 float temp = 0;
                 float counter = 0;
 
-                float counter_neigh = 0;
+
 
                 apr_tree_iterator.set_particle_cell_no_search(apr_iterator);
 
@@ -1750,7 +1739,7 @@ public:
                     //This step is required for all loops to set the iterator by the particle number
                     apr_iterator.set_iterator_to_particle_by_number(particle_number);
 
-                    if ((boundary_type[apr_iterator] == 0)) {
+                    if (boundary_type[apr_iterator] == 0) {
 
                         float counter = 0;
                         float temp = 0;
