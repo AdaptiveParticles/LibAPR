@@ -164,8 +164,7 @@ public:
             for (z = z_begin_l; z < z_end_l; z++) {
                 for (x = x_begin_l; x < x_end_l; ++x) {
                     for (apr_iterator.set_new_lzxy(level, z, x,y_begin_l);
-                         apr_iterator.global_index() < apr_iterator.particles_zx_end(level, z,
-                                                                                     x); apr_iterator.set_iterator_to_particle_next_particle()) {
+                         apr_iterator.global_index() < apr_iterator.end_index; apr_iterator.set_iterator_to_particle_next_particle()) {
 
                         if( (apr_iterator.y() >= y_begin_l) && (apr_iterator.y() < y_end_l)) {
 
@@ -247,8 +246,7 @@ public:
 
                     for (x = x_begin_l; x < x_end_l; ++x) {
                         for (aprTreeIterator.set_new_lzxy(level, z, x,y_begin_l);
-                             aprTreeIterator.global_index() < aprTreeIterator.particles_zx_end(level, z,
-                                                                                         x); aprTreeIterator.set_iterator_to_particle_next_particle()) {
+                             aprTreeIterator.global_index() < aprTreeIterator.end_index; aprTreeIterator.set_iterator_to_particle_next_particle()) {
 
                             if( (aprTreeIterator.y() >= y_begin_l) && (aprTreeIterator.y() < y_end_l)) {
 

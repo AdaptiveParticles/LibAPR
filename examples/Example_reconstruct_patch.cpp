@@ -199,19 +199,28 @@ int main(int argc, char **argv) {
             //create mesh data structure for reconstruction
             PixelData<uint16_t> recon_pc;
 
-            ExtraParticleData<float> partsTree;
-
-            APRTreeNumerics::fill_tree_mean(apr,aprTree,apr.particles_intensities,partsTree);
-
-           // APRTreeNumerics::fill_tree_from_particles(apr,aprTree,apr.particles_intensities,partsTree,[] (const uint16_t& a,const uint16_t& b) {return std::max(a,b);});
+            ExtraParticleData<uint16_t> partsTree;
 
             timer.start_timer("fill tree");
+
+            APRTreeNumerics::fill_tree_mean(apr,aprTree,apr.particles_intensities,partsTree);
+            timer.stop_timer();
+
+            std::cout << partsTree.data.size()/(1.0f*apr.total_number_particles()) << std::endl;
+
+            //APRWriter aprWriter;
+            //float file_s = aprWriter.write_particles_only(options.directory,"tree_parts",partsTree);
+
+            //std::cout << "File Size: " << file_s << std::endl;
+
+            //APRTreeNumerics::fill_tree_from_particles(apr,aprTree,apr.particles_intensities,partsTree,[] (const uint16_t& a,const uint16_t& b) {return std::max(a,b);});
+
 //            APRTreeNumerics::fill_tree_from_particles(apr, aprTree, apr.particles_intensities, partsTree,
 //                    [](const uint16_t &a, const uint16_t &b) { return a + b; }, true);
 
-            //partsTree = APRTreeNumerics::meanDownsampling(apr,aprTree);
+            //partsTree = APRTreeNumerics::meanDownsampling<uint16_t,float>(apr,aprTree);
 
-            timer.stop_timer();
+
 
             timer.start_timer("pc interp");
             //perform piece-wise constant interpolation

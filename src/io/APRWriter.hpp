@@ -399,9 +399,9 @@ public:
         writeString(AprTypes::GitType, f.groupId, ConfigAPR::APR_GIT_HASH);
 
         // ------------- write data ----------------------------
-        unsigned int blosc_comp_type = BLOSC_ZSTD;
-        unsigned int blosc_comp_level = 3;
-        unsigned int blosc_shuffle = 2;
+        unsigned int blosc_comp_type = 6;
+        unsigned int blosc_comp_level = 9;
+        unsigned int blosc_shuffle = 1;
         hid_t type = Hdf5Type<S>::type();
         writeData({type, AprTypes::ExtraParticleDataType}, f.objectId, parts_extra.data, blosc_comp_type, blosc_comp_level, blosc_shuffle);
 

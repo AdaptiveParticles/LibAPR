@@ -662,7 +662,7 @@ public:
 
         uint64_t j;
 #ifdef HAVE_OPENMP
-        #pragma omp parallel for default(shared) schedule(static) private(j)
+        #pragma omp parallel for default(shared) schedule(dynamic) private(j)
 #endif
         for (j = 0; j < total_number_non_empty_rows; ++j) {
 
@@ -691,7 +691,7 @@ public:
         uint64_t z_;
         uint64_t x_;
         APRTimer apr_timer;
-        apr_timer.verbose_flag = false;
+        apr_timer.verbose_flag = true;
         apr_timer.start_timer("rebuild map");
 
 
@@ -708,6 +708,8 @@ public:
         }
 
         allocate_map(apr,map_data,cumsum);
+
+        apr_timer.stop_timer();
 
         apr_timer.start_timer("forth loop");
         //////////////////
@@ -1019,7 +1021,7 @@ public:
             const unsigned int x_num_ = x_num[i];
             const unsigned int z_num_ = z_num[i];
 #ifdef HAVE_OPENMP
-#pragma omp parallel for default(shared) private(z_, x_) reduction(+:counter_rows)if(z_num_*x_num_ > 100)
+#pragma omp parallel for default(shared) schedule(dynamic) private(z_, x_) reduction(+:counter_rows)
 #endif
             for (z_ = 0; z_ < z_num_; z_++) {
                 for (x_ = 0; x_ < x_num_; x_++) {
@@ -1039,33 +1041,33 @@ public:
 
         apr_timer.stop_timer();
 
-        apr_timer.start_timer("type set up");
+        //apr_timer.start_timer("type set up");
 
         total_number_non_empty_rows = counter_rows;
 
-        APRIterator<T> apr_iterator(*this);
-
-        particle_cell_type.data.resize(global_index_by_level_end[level_max-1]+1,0);
-
-        uint64_t particle_number;
-
-        for (uint64_t level = apr_iterator.level_min(); level < apr_iterator.level_max(); ++level) {
-
-#ifdef HAVE_OPENMP
-#pragma omp parallel for schedule(static) private(particle_number) firstprivate(apr_iterator)
-#endif
-            for (particle_number = apr_iterator.particles_level_begin(level); particle_number <  apr_iterator.particles_level_end(level); ++particle_number) {
-                //
-                //  Parallel loop over level
-                //
-                apr_iterator.set_iterator_to_particle_by_number(particle_number);
-                const uint64_t offset_part_map = apr_iterator.x() * apr_iterator.spatial_index_y_max(apr_iterator.level()) + apr_iterator.z() * apr_iterator.spatial_index_y_max(apr_iterator.level()) * apr_iterator.spatial_index_x_max(apr_iterator.level());
-
-                particle_cell_type[apr_iterator] = p_map[apr_iterator.level()].mesh[offset_part_map + apr_iterator.y()];
-            }
-        }
-
-        apr_timer.stop_timer();
+//        APRIterator<T> apr_iterator(*this);
+//
+//        particle_cell_type.data.resize(global_index_by_level_end[level_max-1]+1,0);
+//
+//        uint64_t particle_number;
+//
+//        for (uint64_t level = apr_iterator.level_min(); level < apr_iterator.level_max(); ++level) {
+//
+//#ifdef HAVE_OPENMP
+//#pragma omp parallel for schedule(static) private(particle_number) firstprivate(apr_iterator)
+//#endif
+//            for (particle_number = apr_iterator.particles_level_begin(level); particle_number <  apr_iterator.particles_level_end(level); ++particle_number) {
+//                //
+//                //  Parallel loop over level
+//                //
+//                apr_iterator.set_iterator_to_particle_by_number(particle_number);
+//                const uint64_t offset_part_map = apr_iterator.x() * apr_iterator.spatial_index_y_max(apr_iterator.level()) + apr_iterator.z() * apr_iterator.spatial_index_y_max(apr_iterator.level()) * apr_iterator.spatial_index_x_max(apr_iterator.level());
+//
+//                particle_cell_type[apr_iterator] = p_map[apr_iterator.level()].mesh[offset_part_map + apr_iterator.y()];
+//            }
+//        }
+//
+//        apr_timer.stop_timer();
     }
 
 

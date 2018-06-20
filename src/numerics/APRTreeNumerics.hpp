@@ -93,79 +93,134 @@ public:
     template<typename T,typename S,typename U>
     static void fill_tree_mean(APR<T>& apr,APRTree<T>& apr_tree,ExtraParticleData<S>& particle_data,ExtraParticleData<U>& tree_data) {
 
+        APRTimer timer;
+        timer.verbose_flag = true;
+
+
+        timer.start_timer("ds-init");
         tree_data.init_tree(apr_tree);
 
-        std::fill(tree_data.data.begin(), tree_data.data.end(), 0);
+        //std::fill(tree_data.data.begin(), tree_data.data.end(), 0);
 
         APRTreeIterator<T> treeIterator(apr_tree);
         APRTreeIterator<T> parentIterator(apr_tree);
 
         APRIterator<T> apr_iterator(apr);
 
-        ExtraParticleData<uint8_t> child_counter;
-
         int x = 0;
 
-        child_counter.init_tree(apr_tree);
+        int z = 0;
+//
+//        float scale_factor_xz = (((2*level_x_num[level-1] != level_x_num[level]) && blockIdx.x==(level_x_num[level-1]-1) ) + ((2*level_z_num[level-1] != level_z_num[level]) && blockIdx.z==(level_z_num[level-1]-1) ))*2;
 
 
-        uint64_t particle_number = 0;
 
+        timer.stop_timer();
+        timer.start_timer("ds-1l");
+
+        for (unsigned int level = apr_iterator.level_max(); level >= apr_iterator.level_min(); --level) {
 #ifdef HAVE_OPENMP
-#pragma omp parallel for schedule(static) private(particle_number) firstprivate(apr_iterator, parentIterator)
+#pragma omp parallel for schedule(dynamic) private(x, z) firstprivate(apr_iterator, parentIterator)
 #endif
-        for (particle_number = 0; particle_number < apr.total_number_particles(); ++particle_number) {
-            //This step is required for all loops to set the iterator by the particle number
-            apr_iterator.set_iterator_to_particle_by_number(particle_number);
-            //set parent
-            parentIterator.set_iterator_to_parent(apr_iterator);
+            for (z = 0; z < apr.spatial_index_z_max(level); z++) {
+                for (x = 0; x < apr.spatial_index_x_max(level); ++x) {
 
-            tree_data[parentIterator] = apr.particles_intensities[apr_iterator] + tree_data[parentIterator];
-            child_counter[parentIterator]++;
+                    parentIterator.set_new_lzx(level-1, z/2, x/2);
+
+                    //dealing with boundary conditions
+                    float scale_factor_xz = (((2*apr.spatial_index_x_max(level-1) != apr.spatial_index_x_max(level)) && ((x/2)==(apr.spatial_index_x_max(level-1)-1)) ) + ((2*apr.spatial_index_z_max(level-1) != apr.spatial_index_z_max(level)) && (z/2)==(apr.spatial_index_z_max(level-1)-1) ))*2;
+
+                    if(scale_factor_xz == 0){
+                         scale_factor_xz = 1;
+                    }
+
+                    float scale_factor_yxz = scale_factor_xz;
+
+                    if((2*apr.spatial_index_y_max(level-1) != apr.spatial_index_y_max(level))){
+                        scale_factor_yxz = scale_factor_xz*2;
+                    }
+
+//                    scale_factor_yxz = 1;
+//                    scale_factor_xz = 1;
+
+
+                    for (apr_iterator.set_new_lzx(level, z, x);
+                         apr_iterator.global_index() < apr_iterator.end_index; apr_iterator.set_iterator_to_particle_next_particle()) {
+                        //set parent
+                        //parentIterator.set_iterator_to_parent(apr_iterator);
+
+                        while(parentIterator.y()!=apr_iterator.y()/2){
+                            parentIterator.set_iterator_to_particle_next_particle();
+                        }
+
+                        if(parentIterator.y() == (apr.spatial_index_y_max(level-1)-1)) {
+                            tree_data[parentIterator] =
+                                    scale_factor_yxz*apr.particles_intensities[apr_iterator] / 8.0f + tree_data[parentIterator];
+                        } else {
+                            tree_data[parentIterator] =
+                                    scale_factor_xz*apr.particles_intensities[apr_iterator] / 8.0f + tree_data[parentIterator];
+                        }
+
+                    }
+                }
+            }
         }
+
+        timer.stop_timer();
+        timer.start_timer("ds-2l");
 
         //then do the rest of the tree where order matters
-        for (unsigned int level = treeIterator.level_max(); level >= treeIterator.level_min(); --level) {
-
-            for (int z = 0; z < apr.spatial_index_z_max(level); z++) {
+        for (unsigned int level = treeIterator.level_max(); level > treeIterator.level_min(); --level) {
 #ifdef HAVE_OPENMP
-#pragma omp parallel for schedule(dynamic) private(x) firstprivate(treeIterator)
+#pragma omp parallel for schedule(dynamic) private(x,z) firstprivate(treeIterator, parentIterator)
 #endif
+            for (z = 0; z < apr.spatial_index_z_max(level); z++) {
                 for (x = 0; x < apr.spatial_index_x_max(level); ++x) {
-                    for (treeIterator.set_new_lzx(level, z, x);
-                         treeIterator.global_index() < treeIterator.particles_zx_end(level, z,
-                                                                                     x); treeIterator.set_iterator_to_particle_next_particle()) {
-                        tree_data[treeIterator] /= (1.0 * child_counter[treeIterator]);
 
+                    parentIterator.set_new_lzx(level-1, z/2, x/2);
+
+                    float scale_factor_xz = (((2*apr.spatial_index_x_max(level-1) != apr.spatial_index_x_max(level)) && ((x/2)==(apr.spatial_index_x_max(level-1)-1)) ) + ((2*apr.spatial_index_z_max(level-1) != apr.spatial_index_z_max(level)) && ((z/2)==(apr.spatial_index_z_max(level-1)-1)) ))*2;
+
+                    if(scale_factor_xz == 0){
+                        scale_factor_xz = 1;
                     }
-                }
-            }
 
-            for (int z = 0; z < apr.spatial_index_z_max(level); z++) {
-#ifdef HAVE_OPENMP
-#pragma omp parallel for schedule(dynamic) private(x) firstprivate(treeIterator, parentIterator)
-#endif
-                for (x = 0; x < apr.spatial_index_x_max(level); ++x) {
+                    float scale_factor_yxz = scale_factor_xz;
+
+                    if((2*apr.spatial_index_y_max(level-1) != apr.spatial_index_y_max(level))){
+                        scale_factor_yxz = scale_factor_xz*2;
+                    }
+
+//                    scale_factor_xz = 1;
+//                    scale_factor_yxz = 1;
+
                     for (treeIterator.set_new_lzx(level, z, x);
-                         treeIterator.global_index() < treeIterator.particles_zx_end(level, z,
-                                                                                     x); treeIterator.set_iterator_to_particle_next_particle()) {
-                        if (parentIterator.set_iterator_to_parent(treeIterator)) {
-                            tree_data[parentIterator] = tree_data[treeIterator] + tree_data[parentIterator];
-                            child_counter[parentIterator]++;
+                         treeIterator.global_index() < treeIterator.end_index; treeIterator.set_iterator_to_particle_next_particle()) {
+
+                        while(parentIterator.y()!=treeIterator.y()/2){
+                            parentIterator.set_iterator_to_particle_next_particle();
                         }
+
+                        if(parentIterator.y() == (apr.spatial_index_y_max(level-1)-1)) {
+                            tree_data[parentIterator] = scale_factor_yxz*tree_data[treeIterator] / 8.0f + tree_data[parentIterator];
+                        } else {
+                            tree_data[parentIterator] = scale_factor_xz*tree_data[treeIterator] / 8.0f + tree_data[parentIterator];
+                        }
+
                     }
                 }
             }
         }
+        timer.stop_timer();
     }
 
 
-    template<typename T>
-    static ExtraParticleData<T> meanDownsampling(APR<T> &aInputApr, APRTree<T> &aprTree) {
+    template<typename T,typename S>
+    static ExtraParticleData<S> meanDownsampling(APR<T> &aInputApr, APRTree<T> &aprTree) {
         APRIterator<T> aprIt(aInputApr);
         APRTreeIterator<T> treeIt(aprTree);
         APRTreeIterator<T> parentTreeIt(aprTree);
-        ExtraParticleData<T> outputTree(aprTree);
+        ExtraParticleData<S> outputTree(aprTree);
         ExtraParticleData<uint8_t> childCnt(aprTree);
         auto &intensities = aInputApr.particles_intensities;
 

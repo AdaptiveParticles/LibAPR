@@ -41,8 +41,9 @@ protected:
     const uint16_t mask[6] = {YP_LEVEL_MASK,YM_LEVEL_MASK,XP_LEVEL_MASK,XM_LEVEL_MASK,ZP_LEVEL_MASK,ZM_LEVEL_MASK};
 
 
-
 public:
+
+    uint64_t end_index = 0;
 
     void move_gap(unsigned long& gap){
         current_gap.iterator++;
@@ -238,6 +239,9 @@ public:
             set_neighbour_flag();
 
             // IN HERE PUT THE STARTING INDEX!
+            end_index = particles_zx_end(level, z,
+                                         x);
+
             return current_particle_cell.global_index;
         } else {
             return UINT64_MAX;
@@ -258,6 +262,9 @@ public:
 
         if(apr_access->gap_map.data[current_particle_cell.level][current_particle_cell.pc_offset].size() > 0) {
 
+
+            end_index = particles_zx_end(level, z,
+                                         x);
 
             ParticleCellGapMap& current_pc_map = apr_access->gap_map.data[current_particle_cell.level][current_particle_cell.pc_offset][0];
 
