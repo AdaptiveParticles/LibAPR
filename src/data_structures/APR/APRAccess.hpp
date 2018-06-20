@@ -817,7 +817,7 @@ public:
     }
 
     template<typename T>
-    void initialize_tree_access(APR<T>& apr,std::vector<PixelData<uint8_t>>& p_map) {
+    void initialize_tree_access(const APR<T> &apr, const std::vector<PixelData<uint8_t>> &p_map) {
         //
         //  Initialize the new structure;
         //
