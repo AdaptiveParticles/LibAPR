@@ -260,11 +260,10 @@ public:
 
         current_particle_cell.pc_offset = apr_access->x_num[level]*z + x;
 
+        end_index = particles_zx_end(level, z,
+                                     x);
+
         if(apr_access->gap_map.data[current_particle_cell.level][current_particle_cell.pc_offset].size() > 0) {
-
-
-            end_index = particles_zx_end(level, z,
-                                         x);
 
             ParticleCellGapMap& current_pc_map = apr_access->gap_map.data[current_particle_cell.level][current_particle_cell.pc_offset][0];
 
