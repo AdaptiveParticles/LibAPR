@@ -176,29 +176,10 @@ public:
                             //particle property
                             const S temp_int = parts[apr_iterator];
 
-                            int delta_y = 0;
-
-                            if(y_begin > (apr_iterator.y() * step_size)){
-                                delta_y = y_begin - (apr_iterator.y() * step_size);
-                            }
-
-                            int delta_x = 0;
-
-                            if(x_begin > (apr_iterator.x() * step_size)){
-                                delta_x = x_begin - (apr_iterator.x() * step_size);
-                            }
-
-                            int delta_z = 0;
-
-                            if(z_begin > (apr_iterator.z() * step_size)){
-                                    delta_z = z_begin - (apr_iterator.z() * step_size);
-                            }
-
-
                             //upper bound
-                            const int offset_max_dim1 = std::min(y_end - y_begin, (int) (dim1 + step_size - delta_y)) ;
-                            const int offset_max_dim2 = std::min(x_end - x_begin, (int) (dim2 + step_size - delta_x)) ;
-                            const int offset_max_dim3 = std::min(z_end - z_begin, (int) (dim3 + step_size - delta_z)) ;
+                            const int offset_max_dim1 = std::min((int) (apr_iterator.y() * step_size + step_size), y_end) - y_begin;
+                            const int offset_max_dim2 = std::min((int) (apr_iterator.x() * step_size + step_size), x_end) - x_begin;
+                            const int offset_max_dim3 = std::min((int) (apr_iterator.z() * step_size + step_size), z_end) - z_begin;
 
                             for (int64_t q = dim3; q < offset_max_dim3; ++q) {
 
@@ -258,29 +239,11 @@ public:
                                 //particle property
                                 const S temp_int = parts_tree[aprTreeIterator];
 
-                                int delta_y = 0;
-
-                                if(y_begin > (aprTreeIterator.y() * step_size)){
-                                    delta_y = y_begin - (aprTreeIterator.y() * step_size);
-                                }
-
-                                int delta_x = 0;
-
-                                if(x_begin > (aprTreeIterator.x() * step_size)){
-                                    delta_x = x_begin - (aprTreeIterator.x() * step_size);
-                                }
-
-                                int delta_z = 0;
-
-                                if(z_begin > (aprTreeIterator.z() * step_size)){
-                                    delta_z = z_begin - (aprTreeIterator.z() * step_size);
-                                }
-
-
                                 //upper bound
-                                const int offset_max_dim1 = std::min(y_end - y_begin, (int) (dim1 + step_size - delta_y)) ;
-                                const int offset_max_dim2 = std::min(x_end - x_begin, (int) (dim2 + step_size - delta_x)) ;
-                                const int offset_max_dim3 = std::min(z_end - z_begin, (int) (dim3 + step_size - delta_z)) ;
+
+                                const int offset_max_dim1 = std::min((int) (aprTreeIterator.y() * step_size + step_size), y_end) - y_begin;
+                                const int offset_max_dim2 = std::min((int) (aprTreeIterator.x() * step_size + step_size), x_end) - x_begin;
+                                const int offset_max_dim3 = std::min((int) (aprTreeIterator.z() * step_size + step_size), z_end) - z_begin;
 
                                 for (int64_t q = dim3; q < offset_max_dim3; ++q) {
 
