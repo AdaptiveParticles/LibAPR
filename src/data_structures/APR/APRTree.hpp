@@ -66,15 +66,16 @@ private:
         //note the use of the dynamic OpenMP schedule.
 
         for (unsigned int level = apr.level_max(); level >= apr_iterator.level_min(); --level) {
-
+            int z = 0;
+            int x = 0;
             if (level < apr.level_max()) {
                 #ifdef HAVE_OPENMP
                 #pragma omp parallel for schedule(dynamic) private(z, x) firstprivate(apr_iterator)
                 #endif
-                for (int z = 0; z < apr_iterator.spatial_index_z_max(level); z++) {
-                    for (int x = 0; x < apr_iterator.spatial_index_x_max(level); ++x) {
+                for ( z = 0; z < apr_iterator.spatial_index_z_max(level); z++) {
+                    for ( x = 0; x < apr_iterator.spatial_index_x_max(level); ++x) {
                         for (apr_iterator.set_new_lzx(level, z, x);
-                             apr_iterator.global_index() < apr_iterator.particles_zx_end(level, z, x);
+                             apr_iterator.global_index() < apr_iterator.end_index;
                              apr_iterator.set_iterator_to_particle_next_particle()) {
 
                             size_t y_p = apr_iterator.y() / 2;
@@ -109,10 +110,10 @@ private:
                 #ifdef HAVE_OPENMP
                 #pragma omp parallel for schedule(dynamic) private(z, x) firstprivate(apr_iterator)
                 #endif
-                for (int z = 0; z < apr_iterator.spatial_index_z_max(level-1); z++) {
-                    for (int x = 0; x < apr_iterator.spatial_index_x_max(level-1); ++x) {
+                for ( z = 0; z < apr_iterator.spatial_index_z_max(level-1); z++) {
+                    for ( x = 0; x < apr_iterator.spatial_index_x_max(level-1); ++x) {
                         for (apr_iterator.set_new_lzx(level, 2*z, 2*x);
-                             apr_iterator.global_index() < apr_iterator.particles_zx_end(level, 2*z, 2*x);
+                             apr_iterator.global_index() < apr_iterator.end_index;
                              apr_iterator.set_iterator_to_particle_next_particle()) {
 
                             if (apr_iterator.y()%2 == 0) {
