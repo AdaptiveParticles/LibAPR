@@ -18,11 +18,17 @@ option(APR_PREFER_EXTERNAL_GTEST "When found, use the installed GTEST libs inste
 option(APR_PREFER_EXTERNAL_BLOSC "When found, use the installed BLOSC libs instead of included sources" OFF)
 option(APR_BUILD_JAVA_WRAPPERS "Build APR JAVA wrappers" OFF)
 option(APR_USE_CUDA "should APR use CUDA? (experimental - under development)" OFF)
+option(APR_USE_OPENMP "should APR use OpenMP?" ON)
 option(APR_BENCHMARK "add benchmarking code" OFF)
 
 # Validation of options
 if (NOT APR_BUILD_SHARED_LIB AND NOT APR_BUILD_STATIC_LIB)
     message(FATAL_ERROR "At least one target: APR_BUILD_SHARED_LIB or APR_BUILD_STATIC_LIB must be build!")
+endif()
+if (NOT APR_USE_LIBTIFF)
+    if (APR_TESTS OR APR_BUILD_EXAMPLES)
+        message(FATAL_ERROR "Building tests or examples not possible when APR_USE_LIBTIFF=OFF!")
+    endif()
 endif()
 
 list(APPEND CMAKE_MODULE_PATH
@@ -63,7 +69,7 @@ endif()
 
 # Handle OpenMP
 find_package(OpenMP)
-if(NOT OPENMP_FOUND OR DISABLE_OPENMP)
+if(NOT OPENMP_FOUND OR NOT APR_USE_OPENMP)
     message(WARNING "OpenMP support not found or disabled with current compiler. While APR can compile like this, performance might not be optimal. Please see README.md for instructions.")
 else()
     set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -DHAVE_OPENMP ${OpenMP_C_FLAGS}")
