@@ -200,7 +200,7 @@ public:
 
         if(max_level < apr_iterator.level_max()) {
 
-            APRTreeIterator<uint16_t> aprTreeIterator(aprTree);
+            APRTreeIterator<S> aprTreeIterator(aprTree);
 
             unsigned int level = max_level;
 

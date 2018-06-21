@@ -6,6 +6,7 @@
 
 #include "ConfigAPR.h"
 #include "data_structures/APR/APR.hpp"
+#include "numerics/APRTreeNumerics.hpp"
 
 namespace py = pybind11;
 
@@ -26,9 +27,16 @@ public:
     void read(const std::string &aAprFileName) {
         APR <T> apr;
         apr.read_apr(aAprFileName);
+
+        APRTree<T> aprTree;
+        aprTree.init(apr);
+        
+        ExtraParticleData<T> partsTree;
+        APRTreeNumerics::fill_tree_from_particles(apr,aprTree,apr.particles_intensities,partsTree,[] (const T& a,const T& b) {return std::max(a,b);});
+
         ReconPatch r;
-        APRReconstruction().interp_image_patch(apr, reconstructedImage, apr.particles_intensities, r);
-    }
+        APRReconstruction().interp_image_patch(apr, aprTree, reconstructedImage, apr.particles_intensities, partsTree, r);
+   }
 
     T *data() {return reconstructedImage.mesh.get();}
     int height() const {return reconstructedImage.x_num;}
@@ -69,3 +77,4 @@ PYBIND11_MODULE(APR_PYTHON_MODULE_NAME, m) {
     AddAprToImg<uint16_t>(m, "Short");
     AddAprToImg<float>(m, "Float");
 }
+
