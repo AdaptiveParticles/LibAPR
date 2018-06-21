@@ -36,23 +36,7 @@ public:
     APRTimer allocation_timer;
     APRTimer computation_timer;
 
-    bool get_apr(APR<ImageType> &aAPR) {
-        apr = &aAPR;
-
-        TiffUtils::TiffInfo inputTiff(par.input_dir + par.input_image_name);
-        if (!inputTiff.isFileOpened()) return false;
-
-        if (inputTiff.iType == TiffUtils::TiffInfo::TiffType::TIFF_UINT8) {
-            return get_apr_method_from_file<uint8_t>(aAPR, inputTiff);
-        } else if (inputTiff.iType == TiffUtils::TiffInfo::TiffType::TIFF_FLOAT) {
-            return get_apr_method_from_file<float>(aAPR, inputTiff);
-        } else if (inputTiff.iType == TiffUtils::TiffInfo::TiffType::TIFF_UINT16) {
-            return get_apr_method_from_file<uint16_t>(aAPR, inputTiff);
-        } else {
-            std::cerr << "Wrong file type" << std::endl;
-            return false;
-        }
-    };
+    bool get_apr(APR<ImageType> &aAPR);
 
     //get apr without setting parameters, and with an already loaded image.
     template<typename T>
@@ -70,12 +54,32 @@ private:
     void init_apr(APR<ImageType>& aAPR, PixelData<T>& input_image);
 
     template<typename T>
-    bool get_apr_method_from_file(APR<ImageType> &aAPR, const TiffUtils::TiffInfo &aTiffFile);
+    bool get_apr_method_from_file(APR<ImageType> &aAPR, PixelData<T> input_image);
 
     public:
     void get_gradient(PixelData<ImageType> &image_temp, PixelData<ImageType> &grad_temp, PixelData<float> &local_scale_temp, PixelData<float> &local_scale_temp2, float bspline_offset, const APRParameters &par);
     void get_local_intensity_scale(PixelData<float> &local_scale_temp, PixelData<float> &local_scale_temp2, const APRParameters &par);
     void get_local_particle_cell_set(PixelData<ImageType> &grad_temp, PixelData<float> &local_scale_temp, PixelData<float> &local_scale_temp2);
+};
+
+template<typename ImageType>
+inline bool APRConverter<ImageType>::get_apr(APR<ImageType> &aAPR) {
+    apr = &aAPR;
+
+    TiffUtils::TiffInfo inputTiff(par.input_dir + par.input_image_name);
+    if (!inputTiff.isFileOpened()) return false;
+
+
+    if (inputTiff.iType == TiffUtils::TiffInfo::TiffType::TIFF_UINT8) {
+        return get_apr_method_from_file<uint8_t>(aAPR, TiffUtils::getMesh<uint8_t>(inputTiff));
+    } else if (inputTiff.iType == TiffUtils::TiffInfo::TiffType::TIFF_FLOAT) {
+        return get_apr_method_from_file<float>(aAPR, TiffUtils::getMesh<float>(inputTiff));
+    } else if (inputTiff.iType == TiffUtils::TiffInfo::TiffType::TIFF_UINT16) {
+        return get_apr_method_from_file<uint16_t>(aAPR, TiffUtils::getMesh<uint16_t>(inputTiff));
+    } else {
+        std::cerr << "Wrong file type" << std::endl;
+        return false;
+    }
 };
 
 template <typename T>
@@ -102,10 +106,10 @@ MinMax<T> getMinMax(const PixelData<T>& input_image) {
  * Main method for constructing the APR from an input image
  */
 template<typename ImageType> template<typename T>
-bool APRConverter<ImageType>::get_apr_method_from_file(APR<ImageType> &aAPR, const TiffUtils::TiffInfo &aTiffFile) {
-    allocation_timer.start_timer("read tif input image");
-    PixelData<T> inputImage = TiffUtils::getMesh<T>(aTiffFile);
-    allocation_timer.stop_timer();
+bool APRConverter<ImageType>::get_apr_method_from_file(APR<ImageType> &aAPR, PixelData<T> inputImage) {
+//    allocation_timer.start_timer("read tif input image");
+//    PixelData<T> inputImage = TiffUtils::getMesh<T>(aTiffFile);
+//    allocation_timer.stop_timer();
 
     method_timer.start_timer("calculate automatic parameters");
 

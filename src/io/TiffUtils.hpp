@@ -6,11 +6,10 @@
 #ifndef TIFF_UTILS_HPP
 #define TIFF_UTILS_HPP
 
+#ifdef HAVE_LIBTIFF
 
 #include <string>
-#ifdef HAVE_LIBTIFF
-    #include <tiffio.h>
-#endif
+#include <tiffio.h>
 #include <sstream>
 #include "data_structures/Mesh/PixelData.hpp"
 
@@ -58,9 +57,7 @@ namespace TiffUtils {
                     outputStr << "NOT SUPPORTED";
             }
             outputStr << ", Photometric: " << iPhotometric;
-#ifdef HAVE_LIBTIFF
             outputStr << ", StripSize: " << TIFFStripSize(iFile);
-#endif /* HAVE_LIBTIFF */
 
             return outputStr.str();
         }
@@ -71,12 +68,7 @@ namespace TiffUtils {
         bool isFileOpened() const { return iFile != nullptr; }
 
         TiffType iType = TiffType::TIFF_INVALID;
-#ifdef HAVE_LIBTIFF
         TIFF *iFile = nullptr;
-#else
-        void* iFile = nullptr;
-        typedef unsigned int uint32;
-#endif /* HAVE_LIBTIFF */
         std::string iFileName = "";
         uint32 iImgWidth = 0;
         uint32 iImgHeight = 0;
@@ -90,12 +82,6 @@ namespace TiffUtils {
         TiffInfo(const TiffInfo&) = delete; // make it noncopyable
         TiffInfo& operator=(const TiffInfo&) = delete; // make it not assignable
 
-        friend std::ostream& operator<<(std::ostream &os, const TiffInfo &obj) {
-            os << obj.toString();
-            return os;
-        }
-
-#ifdef HAVE_LIBTIFF
         /**
          * opens TIFF
          **/
@@ -157,21 +143,12 @@ namespace TiffUtils {
             }
         }
 
-#else
-        bool open(const std::string &aFileName) {
-            std::cerr << "libapr compiled without LibTIFF support, simulating TIFF reader functionality" << std::endl;
-            std::cerr << "Trying to open file " << aFileName << ", returning false." << std::endl;
-            return false;
+        friend std::ostream& operator<<(std::ostream &os, const TiffInfo &obj) {
+            os << obj.toString();
+            return os;
         }
-
-        void close() {
-            std::cerr << "libapr compiled without LibTIFF support, simulating TIFF reader functionality" << std::endl;
-            std::cerr << "Shim-closing TIFF file" << std::endl;
-        }
-#endif /* HAVE_LIBTIFF */
     };
 
-#ifdef HAVE_LIBTIFF
 
     /**
      * Reads TIFF file to mesh
@@ -311,46 +288,8 @@ namespace TiffUtils {
         PixelData<uint16_t> mesh16{aData, true /*copy data*/};
         saveMeshAsTiff(filename, mesh16);
     }
-#else
-    template<typename T>
-    PixelData<T> getMesh(const std::string &aFileName) {
-        std::cerr << "libapr compiled without LibTIFF support, simulating TIFF reader functionality" << std::endl;
-        std::cerr << "getMesh() called for " << &aFileName << ", returning empty mesh." << std::endl;
-
-        PixelData<T> mesh(1, 1, 1);
-        return mesh;
-    }
-
-    template<typename T>
-    PixelData<T> getMesh(const TiffInfo &aTiff) {
-        std::cerr << "libapr compiled without LibTIFF support, simulating TIFF reader functionality" << std::endl;
-        std::cerr << "getMesh() called for TiffInfo, returning empty mesh." << std::endl;
-
-        PixelData<T> mesh(1, 1, 1);
-        return mesh;
-    }
-
-    template<typename T>
-    void getMesh(const TiffInfo &aTiff, PixelData<T> &aInputMesh) {
-        std::cerr << "libapr compiled without LibTIFF support, simulating TIFF reader functionality" << std::endl;
-        std::cerr << "getMesh() called for inputMesh, returning empty inputMesh." << std::endl;
-
-        PixelData<T> mesh(1, 1, 1);
-        aInputMesh.swap(mesh);
-    }
-
-    template<typename T>
-    void saveMeshAsTiff(const std::string &aFileName, const PixelData<T> &aData) {
-        std::cerr << "libapr compiled without LibTIFF support, simulating TIFF reader functionality" << std::endl;
-        std::cerr << "saveMeshAsTiff() called for " << aFileName << ", not doing anything." << std::endl;
-    }
-
-    template<typename T>
-    void saveMeshAsTiffUint16(const std::string &filename, const PixelData<T> &aData) {
-        std::cerr << "libapr compiled without LibTIFF support, simulating TIFF reader functionality" << std::endl;
-        std::cerr << "saveMeshAsTiff() called for " << filename << ", not doing anything." << std::endl;
-    }
-#endif
 }
+
+#endif // HAVE_LIBTIFF
 
 #endif

@@ -16,8 +16,9 @@
 #include <fstream>
 #include <ctime>
 
+#include "../data_structures/APR/ExtraParticleData.hpp"
+#include "../data_structures/Mesh/PixelData.hpp"
 #include "../data_structures/APR/ExtraPartCellData.hpp"
-#include "../data_structures/APR/APR.hpp"
 
 class APRRaycaster {
 
