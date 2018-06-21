@@ -39,6 +39,7 @@ Options:
 
 #include "data_structures/APR/APR.hpp"
 #include "io/TiffUtils.hpp"
+#include "numerics/APRTreeNumerics.hpp"
 
 
 struct cmdLineOptions{
@@ -186,6 +187,11 @@ int main(int argc, char **argv) {
     reconPatch.z_begin = options.z_begin;
     reconPatch.z_end = options.z_end;
 
+    reconPatch.level_delta = options.level_delta;
+
+    APRTree<uint16_t> aprTree;
+    aprTree.init(apr);
+
     // Intentionaly block-scoped since local recon_pc will be destructed when block ends and release memory.
     {
 
@@ -193,11 +199,13 @@ int main(int argc, char **argv) {
             //create mesh data structure for reconstruction
             PixelData<uint16_t> recon_pc;
 
+            ExtraParticleData<uint16_t> partsTree;
 
+            APRTreeNumerics::fill_tree_from_particles(apr,aprTree,apr.particles_intensities,partsTree,[] (const uint16_t& a,const uint16_t& b) {return std::max(a,b);});
 
             timer.start_timer("pc interp");
             //perform piece-wise constant interpolation
-            aprReconstruction.interp_image_patch(apr,recon_pc, apr.particles_intensities,reconPatch);
+            aprReconstruction.interp_image_patch(apr,aprTree,recon_pc, apr.particles_intensities,partsTree,reconPatch);
             timer.stop_timer();
 
             float elapsed_seconds = timer.t2 - timer.t1;
@@ -210,63 +218,38 @@ int main(int argc, char **argv) {
         }
     }
 
+
+    {
+
+        if(options.output_smooth_recon) {
+            //create mesh data structure for reconstruction
+            PixelData<uint16_t> recon_pc;
+
+            ExtraParticleData<uint16_t> partsTree;
+
+            std::vector<float> scale = {1,1,1};
+
+            APRTreeNumerics::fill_tree_from_particles(apr,aprTree,apr.particles_intensities,partsTree,[] (const uint16_t& a,const uint16_t& b) {return std::max(a,b);});
+
+            timer.start_timer("smooth interp");
+            //perform smooth interpolation
+            aprReconstruction.interp_parts_smooth_patch(apr,aprTree,recon_pc, apr.particles_intensities,partsTree,reconPatch,scale);
+            timer.stop_timer();
+
+            float elapsed_seconds = timer.t2 - timer.t1;
+            std::cout << "Smooth recon "
+                      << (recon_pc.x_num * recon_pc.y_num * recon_pc.z_num * 2) / (elapsed_seconds * 1000000.0f)
+                      << " MB per second" << std::endl;
+
+            //write output as tiff
+            TiffUtils::saveMeshAsTiff(options.directory + apr.name + "_smooth.tif", recon_pc);
+        }
+    }
+
     //////////////////////////
     /// Create a particle dataset with the particle type and pc construct it
     ////////////////////////////
 
-    if(options.output_spatial_properties) {
-
-        //initialization of the iteration structures
-        APRIterator<uint16_t> apr_iterator(apr); //this is required for parallel access
-
-        //create particle dataset
-        ExtraParticleData<uint16_t> type(apr);
-        ExtraParticleData<uint16_t> level(apr);
-
-        ExtraParticleData<uint16_t> x(apr);
-        ExtraParticleData<uint16_t> y(apr);
-        ExtraParticleData<uint16_t> z(apr);
-
-        timer.start_timer("APR parallel iterator loop");
-#ifdef HAVE_OPENMP
-#pragma omp parallel for schedule(static) firstprivate(apr_iterator)
-#endif
-        for (uint64_t particle_number = 0; particle_number < apr_iterator.total_number_particles(); ++particle_number) {
-            //needed step for any parallel loop (update to the next part)
-            apr_iterator.set_iterator_to_particle_by_number(particle_number);
-            type[apr_iterator] = apr_iterator.type();
-            level[apr_iterator] = apr_iterator.level();
-
-            x[apr_iterator] = apr_iterator.x();
-            y[apr_iterator] = apr_iterator.y();
-            z[apr_iterator] = apr_iterator.z();
-        }
-        timer.stop_timer();
-
-        // Intentionaly block-scoped since local type_recon will be destructed when block ends and release memory.
-        {
-            PixelData<uint16_t> type_recon;
-
-            aprReconstruction.interp_image_patch(apr,type_recon, type,reconPatch);
-            TiffUtils::saveMeshAsTiff(options.directory + apr.name + "_type.tif", type_recon);
-
-            //level
-            aprReconstruction.interp_image_patch(apr,type_recon, level,reconPatch);
-            TiffUtils::saveMeshAsTiff(options.directory + apr.name + "_level.tif", type_recon);
-
-            //x
-            aprReconstruction.interp_image_patch(apr,type_recon, x,reconPatch);
-            TiffUtils::saveMeshAsTiff(options.directory + apr.name + "_x.tif", type_recon);
-
-            //y
-            aprReconstruction.interp_image_patch(apr,type_recon, y,reconPatch);
-            TiffUtils::saveMeshAsTiff(options.directory + apr.name + "_y.tif", type_recon);
-
-            //z
-            aprReconstruction.interp_image_patch(apr,type_recon, z,reconPatch);
-            TiffUtils::saveMeshAsTiff(options.directory + apr.name + "_z.tif", type_recon);
-        }
-    }
 
     if(options.output_level) {
 
@@ -294,7 +277,7 @@ int main(int argc, char **argv) {
             PixelData<uint8_t> type_recon;
 
             //level
-            aprReconstruction.interp_image_patch(apr,type_recon, level,reconPatch);
+            //aprReconstruction.interp_image_patch(apr,aprTree,type_recon, level,reconPatch);
             TiffUtils::saveMeshAsTiff(options.directory + apr.name + "_level.tif", type_recon);
 
         }

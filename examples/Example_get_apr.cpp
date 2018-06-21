@@ -26,6 +26,11 @@ Advanced (Direct) Settings:
 -rel_error rel_error_value (Reasonable ranges are from .08-.15), Default: 0.1
 -normalize_input (flag that will rescale the input from the input data range to 80% of the output data type range, useful for float scaled datasets)
 -compress_level (the IO uses BLOSC for lossless compression of the APR, this can be set from 1-9, where higher increases the compression level. Note, this can come at a significant time increase.)
+-compress_type (Default: 0, loss-less compression of partilce intensities, (1,2) WNL (Balázs et al. 2017) - approach compression applied to particles (1 = without prediction, 2 = with)
+
+-neighborhood_optimization_off turns off the neighborhood opetimization (This results in boundary Particle Cells also being increased in resolution after the Pulling Scheme step)
+-output_steps Writes tiff images of the individual steps (gradient magnitude, local intensity scale, and final level of the APR calculation).
+
 )";
 
 #include <algorithm>
@@ -43,31 +48,31 @@ int main(int argc, char **argv) {
     //the apr datastructure
     APR<uint16_t> apr;
 
-    APRConverter<uint16_t> apr_converter;
-
     //read in the command line options into the parameters file
-    apr_converter.par.Ip_th = options.Ip_th;
-    apr_converter.par.rel_error = options.rel_error;
-    apr_converter.par.lambda = options.lambda;
-    apr_converter.par.mask_file = options.mask_file;
-    apr_converter.par.min_signal = options.min_signal;
-    apr_converter.par.SNR_min = options.SNR_min;
-    apr_converter.par.normalized_input = options.normalize_input;
+    apr.parameters.Ip_th = options.Ip_th;
+    apr.parameters.rel_error = options.rel_error;
+    apr.parameters.lambda = options.lambda;
+    apr.parameters.mask_file = options.mask_file;
+    apr.parameters.min_signal = options.min_signal;
+    apr.parameters.SNR_min = options.SNR_min;
+    apr.parameters.normalized_input = options.normalize_input;
+    apr.parameters.neighborhood_optimization = options.neighborhood_optimization;
+    apr.parameters.output_steps = options.output_steps;
 
     //where things are
-    apr_converter.par.input_image_name = options.input;
-    apr_converter.par.input_dir = options.directory;
-    apr_converter.par.name = options.output;
-    apr_converter.par.output_dir = options.output_dir;
+    apr.parameters.input_image_name = options.input;
+    apr.parameters.input_dir = options.directory;
+    apr.parameters.name = options.output;
+    apr.parameters.output_dir = options.output_dir;
 
-    apr_converter.fine_grained_timer.verbose_flag = false;
-    apr_converter.method_timer.verbose_flag = false;
-    apr_converter.computation_timer.verbose_flag = false;
-    apr_converter.allocation_timer.verbose_flag = false;
-    apr_converter.total_timer.verbose_flag = true;
+    apr.apr_converter.fine_grained_timer.verbose_flag = false;
+    apr.apr_converter.method_timer.verbose_flag = false;
+    apr.apr_converter.computation_timer.verbose_flag = false;
+    apr.apr_converter.allocation_timer.verbose_flag = false;
+    apr.apr_converter.total_timer.verbose_flag = true;
 
     //Gets the APR
-    if(apr_converter.get_apr(apr)){
+    if(apr.get_apr()){
 
         //Below is IO and outputting of the Implied Resolution Function through the Particle Cell level.
 
@@ -78,18 +83,6 @@ int main(int argc, char **argv) {
         APRTimer timer;
 
         timer.verbose_flag = true;
-
-        PixelData<uint16_t> level;
-
-        apr.interp_depth_ds(level);
-
-        std::cout << std::endl;
-
-        std::cout << "Saving down-sampled Particle Cell level as tiff image" << std::endl;
-
-        std::string output_path = save_loc + file_name + "_level.tif";
-        //write output as tiff
-        TiffUtils::saveMeshAsTiff(output_path, level);
 
         std::cout << std::endl;
         float original_pixel_image_size = (2.0f*apr.orginal_dimensions(0)*apr.orginal_dimensions(1)*apr.orginal_dimensions(2))/(1000000.0);
@@ -104,6 +97,8 @@ int main(int argc, char **argv) {
         unsigned int blosc_comp_level = options.compress_level;
         unsigned int blosc_shuffle = 1;
 
+        apr.apr_compress.set_compression_type(options.compress_type);
+
         //write the APR to hdf5 file
         FileSizeInfo fileSizeInfo = apr.write_apr(save_loc,file_name,blosc_comp_type,blosc_comp_level,blosc_shuffle);
         float apr_file_size = fileSizeInfo.total_file_size;
@@ -117,6 +112,20 @@ int main(int argc, char **argv) {
         std::cout << "Lossy Compression Ratio: " << original_pixel_image_size/apr_file_size << std::endl;
         std::cout << std::endl;
 
+        if(options.output_steps) {
+
+            PixelData<uint16_t> level;
+
+            apr.interp_depth_ds(level);
+
+            std::cout << std::endl;
+
+            std::cout << "Saving down-sampled Particle Cell level as tiff image" << std::endl;
+
+            std::string output_path = save_loc + file_name + "_level.tif";
+            //write output as tiff
+            TiffUtils::saveMeshAsTiff(output_path, level);
+        }
 
         } else {
         std::cout << "Oops, something went wrong. APR not computed :(." << std::endl;
@@ -220,14 +229,25 @@ cmdLineOptions read_command_line_options(int argc, char **argv){
         result.compress_level = (unsigned int)std::stoi(std::string(get_command_option(argv, argv + argc, "-compress_level")));
     }
 
+    if(command_option_exists(argv, argv + argc, "-compress_type"))
+    {
+        result.compress_type = (unsigned int)std::stoi(std::string(get_command_option(argv, argv + argc, "-compress_type")));
+    }
+
     if(command_option_exists(argv, argv + argc, "-normalize_input"))
     {
         result.normalize_input = true;
     }
 
-    if(command_option_exists(argv, argv + argc, "-store_delta"))
+    if(command_option_exists(argv, argv + argc, "-neighborhood_optimization_off"))
     {
-        result.store_delta = true;
+        result.neighborhood_optimization = false;
+
+    }
+
+    if(command_option_exists(argv, argv + argc, "-output_steps"))
+    {
+        result.output_steps = true;
     }
 
     return result;
