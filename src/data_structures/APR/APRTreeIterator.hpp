@@ -13,11 +13,7 @@
 template<typename ImageType>
 class APRTreeIterator : public APRIterator<ImageType> {
 public:
-    APRTreeIterator(APRTree<ImageType>& apr_tree){
-        this->apr_access = &apr_tree.tree_access;
-        this->current_particle_cell.global_index = UINT64_MAX;
-        this->highest_resolution_type = 8;
-    }
+    APRTreeIterator(APRTree<ImageType>& apr_tree) : APRIterator<ImageType>(apr_tree.tree_access, /*highest_resolution_type*/ 8) {}
 
     void set_iterator_to_child(APRIterator<ImageType>& current_iterator,uint8_t child_index){
         //empty
