@@ -148,9 +148,9 @@ void APRRaycaster::perform_raycast(APR<U>& apr,ExtraParticleData<S>& particle_da
 
     if(jitter){
 
-        jitter_x.init(apr);
-        jitter_y.init(apr);
-        jitter_z.init(apr);
+        jitter_x.init(apr.total_number_particles());
+        jitter_y.init(apr.total_number_particles());
+        jitter_z.init(apr.total_number_particles());
 
         for (particle_number = 0; particle_number < apr_iterator.total_number_particles(); ++particle_number) {
             apr_iterator.set_iterator_to_particle_by_number(particle_number);

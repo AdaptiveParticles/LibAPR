@@ -60,7 +60,7 @@ int main(int argc, char **argv) {
         //smooth the image with a simply sepeable filter *smooth_number times
 
         APRNumerics aprNumerics;
-        ExtraParticleData<uint16_t> smooth(apr);
+        ExtraParticleData<uint16_t> smooth(apr.total_number_particles());
         std::vector<float> filter = {0.1f, 0.8f, 0.1f}; // << Feel free to play with these
         aprNumerics.seperable_smooth_filter(apr, apr.particles_intensities, smooth, filter, options.smooth_number);
 
@@ -74,7 +74,7 @@ int main(int argc, char **argv) {
 
     APRNumerics::compute_gradient_vector(apr,gradient,false,delta);
 
-    ExtraParticleData<float> gradient_magnitude(apr);
+    ExtraParticleData<float> gradient_magnitude(apr.total_number_particles());
     //compute the magnitude of the gradient, scale it by 5 for visualization when writing as uint16 int
     gradient.map(apr,gradient_magnitude,[](const std::vector<float> &a) { return 20.0f*sqrt(pow(a[0], 2.0f) + pow(a[1], 2.0f) + pow(a[2], 2.0f)); });
 

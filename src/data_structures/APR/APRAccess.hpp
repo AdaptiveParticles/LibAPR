@@ -38,10 +38,9 @@
 #define ZM_LEVEL_SHIFT 11
 
 
-#include "APR.hpp"
+#include "data_structures/APR/APRIterator.hpp"
 #include "ExtraParticleData.hpp"
 #include "ExtraPartCellData.hpp"
-
 
 struct ParticleCell {
     uint16_t x,y,z,level,type;

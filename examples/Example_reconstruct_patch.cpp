@@ -258,7 +258,7 @@ int main(int argc, char **argv) {
 
         //create particle dataset
 
-        ExtraParticleData<uint16_t> level(apr);
+        ExtraParticleData<uint16_t> level(apr.total_number_particles());
 
         timer.start_timer("APR parallel iterator loop");
 #ifdef HAVE_OPENMP

@@ -98,9 +98,9 @@ public:
     template<typename T,typename S,typename U>
     void seperable_smooth_filter(APR<T> &apr,const ExtraParticleData<S>& input_data,ExtraParticleData<U>& output_data,const std::vector<float>& filter,unsigned int repeats = 1){
 
-        output_data.init(apr);
+        output_data.init(apr.total_number_particles());
 
-        ExtraParticleData<U> output_data_2(apr);
+        ExtraParticleData<U> output_data_2(apr.total_number_particles());
         output_data_2.copy_parts(apr,input_data);
 
         for (unsigned int i = 0; i < repeats; ++i) {

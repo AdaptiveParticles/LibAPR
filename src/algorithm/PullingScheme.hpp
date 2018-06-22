@@ -10,6 +10,8 @@
 
 #include "data_structures/Mesh/PixelData.hpp"
 #include "data_structures/APR/APRAccess.hpp"
+#include "data_structures/Mesh/PixelData.hpp"
+#include <vector>
 
 #define EMPTY 0
 #define SEED_TYPE 1

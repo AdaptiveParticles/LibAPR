@@ -26,7 +26,6 @@ protected:
 
     ParticleCell current_particle_cell{0, 0, 0, 0, 0, UINT64_MAX, UINT64_MAX };
 
-    APR<ImageType>* aprOwn;
     APRAccess* apr_access;
 
     uint16_t level_delta{};
@@ -75,7 +74,6 @@ public:
     }
 
     explicit APRIterator(APR<ImageType>& apr){
-        aprOwn = &apr;
         apr_access = &apr.apr_access;
         current_particle_cell.global_index = UINT64_MAX;
         highest_resolution_type = 1;
@@ -88,7 +86,6 @@ public:
     }
 
     void initialize_from_apr(APR<ImageType>& apr){
-        aprOwn = &apr;
         apr_access = &apr.apr_access;
         current_particle_cell.global_index = UINT64_MAX;
         highest_resolution_type = 1;

@@ -7,11 +7,10 @@
 
 
 #include <algorithm>
+//#include "data_structures/APR/APRIterator.hpp"
 
-
-template<typename V> class APR;
 template<typename V> class APRIterator;
-template<typename V> class APRTree;
+template <typename V> class APR;
 
 template<typename DataType>
 class ExtraParticleData {
@@ -25,21 +24,16 @@ public:
     std::vector<DataType> data;
 
     ExtraParticleData() {};
-    template<typename S>
-    ExtraParticleData(const APR<S> &apr) { init(apr); }
 
-    template<typename S>
-    ExtraParticleData(const APRTree<S> &apr_tree) { init_tree(apr_tree); }
+    ExtraParticleData(uint64_t aTotalNumberOfParticles) { init(aTotalNumberOfParticles); }
 
-    template<typename S>
-    void init(const APR<S> &apr){
-        data.resize(apr.total_number_particles());
+    void init(uint64_t aTotalNumberOfParticles){
+        data.resize(aTotalNumberOfParticles);
     }
 
-    template<typename S>
-    void init_tree(const APRTree<S> &apr_tree){
+    void init_tree(uint64_t aNumberOfParentCells){
         //initialization when using with APRTree class
-        data.resize(apr_tree.total_number_parent_cells());
+        data.resize(aNumberOfParentCells);
     }
 
     uint64_t total_number_particles() const {

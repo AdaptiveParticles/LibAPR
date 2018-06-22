@@ -154,12 +154,12 @@ int main(int argc, char **argv) {
         APRIterator<uint16_t> apr_iterator(apr); //this is required for parallel access
 
         //create particle dataset
-        ExtraParticleData<uint16_t> type(apr);
-        ExtraParticleData<uint16_t> level(apr);
+        ExtraParticleData<uint16_t> type(apr.total_number_particles());
+        ExtraParticleData<uint16_t> level(apr.total_number_particles());
 
-        ExtraParticleData<uint16_t> x(apr);
-        ExtraParticleData<uint16_t> y(apr);
-        ExtraParticleData<uint16_t> z(apr);
+        ExtraParticleData<uint16_t> x(apr.total_number_particles());
+        ExtraParticleData<uint16_t> y(apr.total_number_particles());
+        ExtraParticleData<uint16_t> z(apr.total_number_particles());
 
         timer.start_timer("APR parallel iterator loop");
 #ifdef HAVE_OPENMP

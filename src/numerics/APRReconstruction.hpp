@@ -5,9 +5,9 @@
 #ifndef PARTPLAY_APRRECONSTRUCTION_HPP
 #define PARTPLAY_APRRECONSTRUCTION_HPP
 
-#include "../data_structures/APR/APR.hpp"
-#include "../data_structures/APR/APRIterator.hpp"
-#include "../data_structures/APR/APRTreeIterator.hpp"
+#include "data_structures/APR/APR.hpp"
+#include "data_structures/APR/APRIterator.hpp"
+#include "data_structures/APR/APRTreeIterator.hpp"
 
 struct ReconPatch{
     int x_begin=0;
@@ -268,7 +268,7 @@ public:
         //
 
         //get depth
-        ExtraParticleData<U> depth_parts(apr);
+        ExtraParticleData<U> depth_parts(apr.total_number_particles());
 
         APRIterator<S> apr_iterator(apr);
         uint64_t particle_number;
@@ -301,7 +301,7 @@ public:
         //
 
         //get depth
-        ExtraParticleData<U> level_parts(apr);
+        ExtraParticleData<U> level_parts(apr.total_number_particles());
 
         APRIterator<S> apr_iterator(apr);
         uint64_t particle_number;
@@ -328,7 +328,7 @@ public:
     void interp_type(APR<S>& apr,PixelData<U>& img){
 
         //get depth
-        ExtraParticleData<U> type_parts(apr);
+        ExtraParticleData<U> type_parts(apr.total_number_particles());
 
 
         APRIterator<S> apr_iterator(apr);
@@ -766,7 +766,7 @@ public:
         unsigned int offset_max = 10;
 
         //get depth
-        ExtraParticleData<U> level_parts(apr);
+        ExtraParticleData<U> level_parts(apr.total_number_particles());
 
         APRIterator<S> apr_iterator(apr);
         uint64_t particle_number;
@@ -785,7 +785,7 @@ public:
 
         }
 
-        ExtraParticleData<U> level_partsTree(apr);
+        ExtraParticleData<U> level_partsTree(apr.total_number_particles());
 
         APRTreeIterator<S> apr_iteratorTree(aprTree);
 

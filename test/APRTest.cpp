@@ -183,7 +183,7 @@ bool test_apr_input_output(TestData& test_data){
     }
 
 
-    ExtraParticleData<float> extra_data(test_data.apr);
+    ExtraParticleData<float> extra_data(test_data.apr.total_number_particles());
 
     for (particle_number = 0; particle_number < apr_iterator_read.total_number_particles(); ++particle_number) {
         apr_iterator_read.set_iterator_to_particle_by_number(particle_number);
@@ -212,7 +212,7 @@ bool test_apr_input_output(TestData& test_data){
     }
 
     //Repeat with different data-type
-    ExtraParticleData<uint16_t> extra_data16(test_data.apr);
+    ExtraParticleData<uint16_t> extra_data16(test_data.apr.total_number_particles());
 
     for (particle_number = 0; particle_number < apr_iterator_read.total_number_particles(); ++particle_number) {
         apr_iterator_read.set_iterator_to_particle_by_number(particle_number);

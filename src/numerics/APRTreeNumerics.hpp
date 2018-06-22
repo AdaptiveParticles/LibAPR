@@ -16,7 +16,7 @@ public:
     template<typename T,typename S,typename U,typename BinaryOperation>
     static void fill_tree_from_particles(APR<T>& apr,APRTree<T>& apr_tree,ExtraParticleData<S>& particle_data,ExtraParticleData<U>& tree_data,BinaryOperation op,const bool normalize = false,U empty_val = 0) {
 
-        tree_data.init_tree(apr_tree);
+        tree_data.init_tree(apr_tree.total_number_parent_cells());
 
         std::fill(tree_data.data.begin(),tree_data.data.end(),empty_val);
 
@@ -28,7 +28,7 @@ public:
         ExtraParticleData<uint8_t> child_counter;
 
         if(normalize){
-            child_counter.init_tree(apr_tree);
+            child_counter.init_tree(apr_tree.total_number_parent_cells());
         }
 
         uint64_t particle_number = 0;

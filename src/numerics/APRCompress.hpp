@@ -10,9 +10,11 @@
 #ifndef PARTPLAY_COMPRESSAPR_HPP
 #define PARTPLAY_COMPRESSAPR_HPP
 
+#include "data_structures/APR/APR.hpp"
+#include "data_structures/APR/ExtraParticleData.hpp"
+#include "misc/APRTimer.hpp"
 #include <cmath>
-#include "../data_structures/APR/APR.hpp"
-#include "../data_structures/APR/ExtraParticleData.hpp"
+#include <vector>
 
 template<typename ImageType>
 class APRCompress {
@@ -46,8 +48,8 @@ public:
         timer_total.start_timer("total compress");
 
         timer.start_timer("allocation");
-        ExtraParticleData<float> predict_input(apr);
-        ExtraParticleData<float> predict_output(apr);
+        ExtraParticleData<float> predict_input(apr.total_number_particles());
+        ExtraParticleData<float> predict_output(apr.total_number_particles());
 
         timer.stop_timer();
 
@@ -108,8 +110,8 @@ public:
         timer.verbose_flag = true;
         timer.start_timer("total decompress");
 
-        ExtraParticleData<float> predict_input(apr);
-        ExtraParticleData<float> predict_output(apr);
+        ExtraParticleData<float> predict_input(apr.total_number_particles());
+        ExtraParticleData<float> predict_output(apr.total_number_particles());
         //turn symbols back to floats.
         symbols.map(apr,predict_input,[this](const ImageType a){return inverse_calculate_symbols<float,ImageType>(a);});
 

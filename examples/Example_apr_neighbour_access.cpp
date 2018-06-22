@@ -50,7 +50,7 @@ int main(int argc, char **argv) {
     ///
     /////////////////////////////////
 
-    ExtraParticleData<uint16_t> neigh_avg(apr);
+    ExtraParticleData<uint16_t> neigh_avg(apr.total_number_particles());
 
     APRIterator<uint16_t> neighbour_iterator(apr);
     APRIterator<uint16_t> apr_iterator(apr);
@@ -104,7 +104,7 @@ int main(int argc, char **argv) {
 
     //initialization of the iteration structures
 
-    ExtraParticleData<float> neigh_xm(apr);
+    ExtraParticleData<float> neigh_xm(apr.total_number_particles());
 
     timer.start_timer("APR parallel iterator neighbour loop");
 
@@ -140,7 +140,7 @@ int main(int argc, char **argv) {
      *  Access only one directions neighbour
      */
 
-    ExtraParticleData<float> type_sum(apr);
+    ExtraParticleData<float> type_sum(apr.total_number_particles());
 
     //need to initialize the neighbour iterator with the APR you are iterating over.
 
