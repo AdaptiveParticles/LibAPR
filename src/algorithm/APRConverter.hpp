@@ -6,18 +6,17 @@
 ///
 ////////////////////////////////
 
-#ifndef PARTPLAY_APR_CONVERTER_HPP
-#define PARTPLAY_APR_CONVERTER_HPP
+#ifndef __APR_CONVERTER_HPP__
+#define __APR_CONVERTER_HPP__
 
-#include <data_structures/APR/APR.hpp>
+#include "data_structures/APR/APR.hpp"
 #include "data_structures/Mesh/PixelData.hpp"
-#include "../io/TiffUtils.hpp"
-#include "../data_structures/APR/APR.hpp"
+#include "io/TiffUtils.hpp"
 
-#include "ComputeGradient.hpp"
-#include "LocalIntensityScale.hpp"
-#include "LocalParticleCellSet.hpp"
 #include "PullingScheme.hpp"
+#include "LocalParticleCellSet.hpp"
+#include "LocalIntensityScale.hpp"
+#include "ComputeGradient.hpp"
 
 #ifdef APR_USE_CUDA
 #include "algorithm/ComputeGradientCuda.hpp"
@@ -25,17 +24,22 @@
 
 
 template<typename ImageType>
-class APRConverter: public LocalIntensityScale, public ComputeGradient, public LocalParticleCellSet, public PullingScheme {
+class APRConverter {
+
+    PullingScheme iPullingScheme;
+    LocalParticleCellSet iLocalParticleSet;
+    LocalIntensityScale iLocalIntensityScale;
+    ComputeGradient iComputeGradient;
+
 
 public:
 
-
-    APRParameters par;
     APRTimer fine_grained_timer;
     APRTimer method_timer;
     APRTimer total_timer;
     APRTimer allocation_timer;
     APRTimer computation_timer;
+    APRParameters par;
 
     bool get_apr(APR<ImageType> &aAPR);
 
@@ -57,7 +61,7 @@ private:
     template<typename T>
     bool get_apr_method_from_file(APR<ImageType> &aAPR, PixelData<T> input_image);
 
-    public:
+public:
     void get_gradient(PixelData<ImageType> &image_temp, PixelData<ImageType> &grad_temp, PixelData<float> &local_scale_temp, PixelData<float> &local_scale_temp2, float bspline_offset, const APRParameters &par);
     void get_local_intensity_scale(PixelData<float> &local_scale_temp, PixelData<float> &local_scale_temp2, const APRParameters &par);
     void get_local_particle_cell_set(PixelData<ImageType> &grad_temp, PixelData<float> &local_scale_temp, PixelData<float> &local_scale_temp2);
@@ -87,7 +91,7 @@ template <typename T>
 struct MinMax{T min; T max; };
 
 template <typename T>
-MinMax<T> getMinMax(const PixelData<T>& input_image) {
+static MinMax<T> getMinMax(const PixelData<T>& input_image) {
     T minVal = std::numeric_limits<T>::max();
     T maxVal = std::numeric_limits<T>::min();
 
@@ -107,7 +111,7 @@ MinMax<T> getMinMax(const PixelData<T>& input_image) {
  * Main method for constructing the APR from an input image
  */
 template<typename ImageType> template<typename T>
-bool APRConverter<ImageType>::get_apr_method_from_file(APR<ImageType> &aAPR, PixelData<T> inputImage) {
+inline bool APRConverter<ImageType>::get_apr_method_from_file(APR<ImageType> &aAPR, PixelData<T> inputImage) {
 //    allocation_timer.start_timer("read tif input image");
 //    PixelData<T> inputImage = TiffUtils::getMesh<T>(aTiffFile);
 //    allocation_timer.stop_timer();
@@ -154,7 +158,7 @@ bool APRConverter<ImageType>::get_apr_method_from_file(APR<ImageType> &aAPR, Pix
  * Main method for constructing the APR from an input image
  */
 template<typename ImageType> template<typename T>
-bool APRConverter<ImageType>::get_apr_method(APR<ImageType> &aAPR, PixelData<T>& input_image) {
+inline bool APRConverter<ImageType>::get_apr_method(APR<ImageType> &aAPR, PixelData<T>& input_image) {
     apr = &aAPR; // in case it was called directly
 
     total_timer.start_timer("Total_pipeline_excluding_IO");
@@ -223,7 +227,7 @@ bool APRConverter<ImageType>::get_apr_method(APR<ImageType> &aAPR, PixelData<T>&
 #endif
 
     method_timer.start_timer("initialize_particle_cell_tree");
-    initialize_particle_cell_tree(aAPR.apr_access);
+    iPullingScheme.initialize_particle_cell_tree(aAPR.apr_access);
     method_timer.stop_timer();
 
     method_timer.start_timer("compute_local_particle_set");
@@ -231,7 +235,7 @@ bool APRConverter<ImageType>::get_apr_method(APR<ImageType> &aAPR, PixelData<T>&
     method_timer.stop_timer();
 
     method_timer.start_timer("compute_pulling_scheme");
-    PullingScheme::pulling_scheme_main();
+    iPullingScheme.pulling_scheme_main();
     method_timer.stop_timer();
 
     method_timer.start_timer("downsample_pyramid");
@@ -241,7 +245,7 @@ bool APRConverter<ImageType>::get_apr_method(APR<ImageType> &aAPR, PixelData<T>&
     method_timer.stop_timer();
 
     method_timer.start_timer("compute_apr_datastructure");
-    aAPR.apr_access.initialize_structure_from_particle_cell_tree(aAPR, getParticleCellTree());
+    aAPR.apr_access.initialize_structure_from_particle_cell_tree(aAPR, iPullingScheme.getParticleCellTree());
     method_timer.stop_timer();
 
     method_timer.start_timer("sample_particles");
@@ -256,7 +260,7 @@ bool APRConverter<ImageType>::get_apr_method(APR<ImageType> &aAPR, PixelData<T>&
 }
 
 template<typename ImageType>
-void APRConverter<ImageType>::get_local_particle_cell_set(PixelData<ImageType> &grad_temp, PixelData<float> &local_scale_temp, PixelData<float> &local_scale_temp2) {
+inline void APRConverter<ImageType>::get_local_particle_cell_set(PixelData<ImageType> &grad_temp, PixelData<float> &local_scale_temp, PixelData<float> &local_scale_temp2) {
     //
     //  Computes the Local Particle Cell Set from a down-sampled local intensity scale (\sigma) and gradient magnitude
     //
@@ -281,14 +285,14 @@ void APRConverter<ImageType>::get_local_particle_cell_set(PixelData<ImageType> &
 
     fine_grained_timer.start_timer("compute_level_second");
     //incorporate other factors and compute the level of the Particle Cell, effectively construct LPC L_n
-    compute_level_for_array(local_scale_temp,level_factor,par.rel_error);
+    iLocalParticleSet.compute_level_for_array(local_scale_temp,level_factor,par.rel_error);
 
     if(par.output_steps){
         TiffUtils::saveMeshAsTiff(par.output_dir + "local_particle_set_level_step.tif", local_scale_temp);
     }
 
 
-    fill(l_max,local_scale_temp);
+    iPullingScheme.fill(l_max,local_scale_temp);
     fine_grained_timer.stop_timer();
 
     fine_grained_timer.start_timer("level_loop_initialize_tree");
@@ -299,7 +303,7 @@ void APRConverter<ImageType>::get_local_particle_cell_set(PixelData<ImageType> &
                    [](const float &x, const float &y) -> float { return std::max(x, y); },
                    [](const float &x) -> float { return x; }, true);
         //for those value of level k, add to the hash table
-        fill(l_,local_scale_temp2);
+        iPullingScheme.fill(l_,local_scale_temp2);
         //assign the previous mesh to now be resampled.
         local_scale_temp.swap(local_scale_temp2);
     }
@@ -307,7 +311,7 @@ void APRConverter<ImageType>::get_local_particle_cell_set(PixelData<ImageType> &
 }
 
 template<typename ImageType>
-void APRConverter<ImageType>::get_gradient(PixelData<ImageType> &image_temp, PixelData<ImageType> &grad_temp, PixelData<float> &local_scale_temp, PixelData<float> &local_scale_temp2, float bspline_offset, const APRParameters &par) {
+inline void APRConverter<ImageType>::get_gradient(PixelData<ImageType> &image_temp, PixelData<ImageType> &grad_temp, PixelData<float> &local_scale_temp, PixelData<float> &local_scale_temp2, float bspline_offset, const APRParameters &par) {
     //  Bevan Cheeseman 2018
     //  Calculate the gradient from the input image. (You could replace this method with your own)
     //  Input: full sized image.
@@ -328,13 +332,13 @@ void APRConverter<ImageType>::get_gradient(PixelData<ImageType> &image_temp, Pix
 
     fine_grained_timer.start_timer("smooth_bspline");
     if(par.lambda > 0) {
-        get_smooth_bspline_3D(image_temp, par.lambda);
+        iComputeGradient.get_smooth_bspline_3D(image_temp, par.lambda);
     }
     fine_grained_timer.stop_timer();
 
 
     fine_grained_timer.start_timer("calc_bspline_fd_mag_ds");
-    calc_bspline_fd_ds_mag(image_temp,grad_temp,par.dx,par.dy,par.dz);
+    iComputeGradient.calc_bspline_fd_ds_mag(image_temp,grad_temp,par.dx,par.dy,par.dz);
     fine_grained_timer.stop_timer();
 
     fine_grained_timer.start_timer("down-sample_b-spline");
@@ -345,25 +349,25 @@ void APRConverter<ImageType>::get_gradient(PixelData<ImageType> &image_temp, Pix
 
     if(par.lambda > 0){
         fine_grained_timer.start_timer("calc_inv_bspline_y");
-        calc_inv_bspline_y(local_scale_temp);
+        iComputeGradient.calc_inv_bspline_y(local_scale_temp);
         fine_grained_timer.stop_timer();
         fine_grained_timer.start_timer("calc_inv_bspline_x");
-        calc_inv_bspline_x(local_scale_temp);
+        iComputeGradient.calc_inv_bspline_x(local_scale_temp);
         fine_grained_timer.stop_timer();
         fine_grained_timer.start_timer("calc_inv_bspline_z");
-        calc_inv_bspline_z(local_scale_temp);
+        iComputeGradient.calc_inv_bspline_z(local_scale_temp);
         fine_grained_timer.stop_timer();
     }
 
     fine_grained_timer.start_timer("load_and_apply_mask");
     // Apply mask if given
     if(par.mask_file != ""){
-        mask_gradient(grad_temp,local_scale_temp2,image_temp, par);
+        iComputeGradient.mask_gradient(grad_temp,local_scale_temp2,image_temp, par);
     }
     fine_grained_timer.stop_timer();
 
     fine_grained_timer.start_timer("threshold");
-    threshold_gradient(grad_temp,local_scale_temp,par.Ip_th + bspline_offset);
+    iComputeGradient.threshold_gradient(grad_temp,local_scale_temp,par.Ip_th + bspline_offset);
     fine_grained_timer.stop_timer();
 }
 
@@ -384,7 +388,7 @@ void APRConverter<ImageType>::get_local_intensity_scale(PixelData<float> &local_
 
     float var_rescale;
     std::vector<int> var_win;
-    get_window(var_rescale,var_win,par);
+    iLocalIntensityScale.get_window(var_rescale,var_win,par);
     size_t win_y = var_win[0];
     size_t win_x = var_win[1];
     size_t win_z = var_win[2];
@@ -394,31 +398,31 @@ void APRConverter<ImageType>::get_local_intensity_scale(PixelData<float> &local_
 
     std::cout << "CPU WINDOWS: " << win_y << " " << win_x << " " << win_z << " " << win_y2 << " " << win_x2 << " " << win_z2 << std::endl;
     fine_grained_timer.start_timer("calc_sat_mean_y");
-    calc_sat_mean_y(local_scale_temp,win_y);
+    iLocalIntensityScale.calc_sat_mean_y(local_scale_temp,win_y);
     fine_grained_timer.stop_timer();
 
     fine_grained_timer.start_timer("calc_sat_mean_x");
-    calc_sat_mean_x(local_scale_temp,win_x);
+    iLocalIntensityScale.calc_sat_mean_x(local_scale_temp,win_x);
     fine_grained_timer.stop_timer();
 
     fine_grained_timer.start_timer("calc_sat_mean_z");
-    calc_sat_mean_z(local_scale_temp,win_z);
+    iLocalIntensityScale.calc_sat_mean_z(local_scale_temp,win_z);
     fine_grained_timer.stop_timer();
 
     fine_grained_timer.start_timer("second_pass_and_rescale");
     //calculate abs and subtract from original
-    calc_abs_diff(local_scale_temp2,local_scale_temp);
+    iLocalIntensityScale.calc_abs_diff(local_scale_temp2,local_scale_temp);
     //Second spatial average
-    calc_sat_mean_y(local_scale_temp,win_y2);
-    calc_sat_mean_x(local_scale_temp,win_x2);
-    calc_sat_mean_z(local_scale_temp,win_z2);
-    rescale_var_and_threshold( local_scale_temp, var_rescale,par);
+    iLocalIntensityScale.calc_sat_mean_y(local_scale_temp,win_y2);
+    iLocalIntensityScale.calc_sat_mean_x(local_scale_temp,win_x2);
+    iLocalIntensityScale.calc_sat_mean_z(local_scale_temp,win_z2);
+    iLocalIntensityScale.rescale_var_and_threshold( local_scale_temp, var_rescale,par);
     fine_grained_timer.stop_timer();
 }
 
 
 template<typename ImageType> template<typename T>
-void APRConverter<ImageType>::init_apr(APR<ImageType>& aAPR,PixelData<T>& input_image){
+inline void APRConverter<ImageType>::init_apr(APR<ImageType>& aAPR,PixelData<T>& input_image){
     //
     //  Initializing the size of the APR, min and maximum level (in the data structures it is called depth)
     //
@@ -441,7 +445,7 @@ void APRConverter<ImageType>::init_apr(APR<ImageType>& aAPR,PixelData<T>& input_
 }
 
 template<typename ImageType> template<typename T>
-void APRConverter<ImageType>::auto_parameters(const PixelData<T>& input_img){
+inline void APRConverter<ImageType>::auto_parameters(const PixelData<T>& input_img){
     //
     //  Simple automatic parameter selection for 3D APR Flouresence Images
     //
@@ -531,9 +535,9 @@ void APRConverter<ImageType>::auto_parameters(const PixelData<T>& input_img){
     ///
     /// Smooth the histogram results using Bsplines
     ///
-    bspline_filt_rec_y(histogram,lambda,tol);
+    iComputeGradient.bspline_filt_rec_y(histogram,lambda,tol);
 
-    calc_inv_bspline_y(histogram);
+    iComputeGradient.calc_inv_bspline_y(histogram);
 
     ///
     /// Calculate the local maximum after 5%  of the background on the smoothed histogram
@@ -726,9 +730,7 @@ void APRConverter<ImageType>::auto_parameters(const PixelData<T>& input_img){
     std::cout << "sigma_th_max: " << par.sigma_th_max << std::endl;
     std::cout << "relative error (E): " << par.rel_error << std::endl;
     std::cout << "lambda: " << par.lambda << std::endl;
-
-
 }
 
 
-#endif //PARTPLAY_APR_CONVERTER_HPP
+#endif // __APR_CONVERTER_HPP__

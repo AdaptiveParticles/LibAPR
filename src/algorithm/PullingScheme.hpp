@@ -9,7 +9,7 @@
 #define PARTPLAY_PULLING_SCHEME_HPP
 
 #include "data_structures/Mesh/PixelData.hpp"
-#include "../data_structures/APR/APRAccess.hpp"
+#include "data_structures/APR/APRAccess.hpp"
 
 #define EMPTY 0
 #define SEED_TYPE 1
@@ -57,7 +57,6 @@ private:
     void set_ascendant_neighbours(int level);
     void set_filler(int level);
     void fill_neighbours(int level);
-
     void fill_parent(size_t j, size_t i, size_t k, size_t x_num, size_t y_num, size_t new_level);
 
     std::vector<PixelData<uint8_t>> particle_cell_tree;

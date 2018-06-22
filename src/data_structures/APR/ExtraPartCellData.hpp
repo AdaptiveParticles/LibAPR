@@ -11,7 +11,8 @@
 
 #include <vector>
 
-template<typename V> class APR;
+template<typename V>
+class APR;
 
 template<typename T>
 class ExtraPartCellData {

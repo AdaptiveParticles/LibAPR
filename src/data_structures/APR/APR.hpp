@@ -19,11 +19,6 @@
 template<typename ImageType>
 class APR {
 
-    template<typename> friend class APRConverter;
-    template<typename> friend class APRIterator;
-    friend class APRWriter;
-    friend class PullingScheme;
-
     APRWriter apr_writer;
     APRReconstruction apr_recon;
 
