@@ -7,7 +7,7 @@
 
 
 #include <algorithm>
-//#include "data_structures/APR/APRIterator.hpp"
+#include <vector>
 
 template<typename V> class APRIterator;
 template <typename V> class APR;

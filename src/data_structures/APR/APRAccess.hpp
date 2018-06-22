@@ -6,11 +6,6 @@
 #define PARTPLAY_APRACCESS_HPP
 
 
-
-#include <map>
-#include <utility>
-#include "data_structures/Mesh/PixelData.hpp"
-
 //TODO: IT SHOULD NOT BE DEFINDED HERE SINCE IT DUPLICATES FROM PullingScheme
 #define SEED_TYPE 1
 
@@ -38,9 +33,13 @@
 #define ZM_LEVEL_SHIFT 11
 
 
+#include <map>
+#include <utility>
+#include "data_structures/Mesh/PixelData.hpp"
 #include "data_structures/APR/APRIterator.hpp"
 #include "ExtraParticleData.hpp"
 #include "ExtraPartCellData.hpp"
+
 
 struct ParticleCell {
     uint16_t x,y,z,level,type;
