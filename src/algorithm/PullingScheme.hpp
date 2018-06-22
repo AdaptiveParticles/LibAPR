@@ -11,14 +11,8 @@
 #ifndef PARTPLAY_PULLING_SCHEME_HPP
 #define PARTPLAY_PULLING_SCHEME_HPP
 
-#include <cassert>
-#include "../data_structures/APR/APRIterator.hpp"
 #include "data_structures/Mesh/PixelData.hpp"
-#include "../data_structures/APR/APR.hpp"
-
-#ifdef HAVE_OPENMP
-	#include "omp.h"
-#endif
+#include "../data_structures/APR/APRAccess.hpp"
 
 #define EMPTY 0
 #define SEED_TYPE 1
@@ -56,41 +50,38 @@ for(jn = j * 2; jn < j * 2 + children_boundaries[0]; jn++) \
 class PullingScheme {
 
 public:
-
-    std::vector<PixelData<uint8_t>> particle_cell_tree;
-    unsigned int l_min;
-    unsigned int l_max;
-
     template<typename T>
     void fill(float k, const PixelData<T> &input);
     void pulling_scheme_main();
-    template<typename T>
-    void initialize_particle_cell_tree(APR<T>& apr);
+    void initialize_particle_cell_tree(const APRAccess &apr_access);
+    std::vector<PixelData<uint8_t>>& getParticleCellTree() { return particle_cell_tree; }
 
 private:
-
     void set_ascendant_neighbours(int level);
     void set_filler(int level);
     void fill_neighbours(int level);
     void fill_parent(size_t j, size_t i, size_t k, size_t x_num, size_t y_num, size_t new_level);
+
+    std::vector<PixelData<uint8_t>> particle_cell_tree;
+    unsigned int l_min;
+    unsigned int l_max;
 };
 
-template<typename T>
-inline void PullingScheme::initialize_particle_cell_tree(APR<T>& apr) {
+inline void PullingScheme::initialize_particle_cell_tree(const APRAccess &apr_access) {
     //  Initializes the particle cell tree structure
     //
     //  Contains pc up to l_max - 1,
     //
 
-    l_max = apr.level_max() - 1;
-    l_min = apr.level_min();
+    l_max = apr_access.level_max - 1;
+    l_min = apr_access.level_min;
     //make so you can reference the array as l
     particle_cell_tree.resize(l_max + 1);
 
     for (unsigned int l = l_min; l < (l_max + 1) ;l ++){
-        particle_cell_tree[l].init(ceil((1.0 * apr.apr_access.org_dims[0]) / pow(2.0, 1.0 * l_max - l + 1)),
-                                   ceil((1.0 * apr.apr_access.org_dims[1]) / pow(2.0, 1.0 * l_max - l + 1)),
-                                   ceil((1.0 * apr.apr_access.org_dims[2]) / pow(2.0, 1.0 * l_max - l + 1)), EMPTY);
+        particle_cell_tree[l].init(ceil((1.0 * apr_access.org_dims[0]) / pow(2.0, 1.0 * l_max - l + 1)),
+                                   ceil((1.0 * apr_access.org_dims[1]) / pow(2.0, 1.0 * l_max - l + 1)),
+                                   ceil((1.0 * apr_access.org_dims[2]) / pow(2.0, 1.0 * l_max - l + 1)), EMPTY);
     }
 }
 

@@ -9,6 +9,7 @@
 #ifndef PARTPLAY_APR_CONVERTER_HPP
 #define PARTPLAY_APR_CONVERTER_HPP
 
+#include <data_structures/APR/APR.hpp>
 #include "data_structures/Mesh/PixelData.hpp"
 #include "../io/TiffUtils.hpp"
 #include "../data_structures/APR/APR.hpp"
@@ -222,7 +223,7 @@ bool APRConverter<ImageType>::get_apr_method(APR<ImageType> &aAPR, PixelData<T>&
 #endif
 
     method_timer.start_timer("initialize_particle_cell_tree");
-    initialize_particle_cell_tree(aAPR);
+    initialize_particle_cell_tree(aAPR.apr_access);
     method_timer.stop_timer();
 
     method_timer.start_timer("compute_local_particle_set");
@@ -240,7 +241,7 @@ bool APRConverter<ImageType>::get_apr_method(APR<ImageType> &aAPR, PixelData<T>&
     method_timer.stop_timer();
 
     method_timer.start_timer("compute_apr_datastructure");
-    aAPR.apr_access.initialize_structure_from_particle_cell_tree(aAPR,particle_cell_tree);
+    aAPR.apr_access.initialize_structure_from_particle_cell_tree(aAPR, getParticleCellTree());
     method_timer.stop_timer();
 
     method_timer.start_timer("sample_particles");
