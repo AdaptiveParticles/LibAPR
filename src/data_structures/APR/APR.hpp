@@ -172,6 +172,9 @@ public:
         APRIterator<ImageType> apr_iterator(*this); //this is required for parallel access
         parts.data.resize(apr_iterator.total_number_particles());
 
+        std::cout << "Total number of particles: " << apr_iterator.total_number_particles() << std::endl;
+
+
 //#ifdef HAVE_OPENMP
 //#pragma omp parallel for schedule(static) firstprivate(apr_iterator)
 //#endif
