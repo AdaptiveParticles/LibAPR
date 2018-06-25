@@ -9,6 +9,7 @@ buildTarget(testTiff TiffTest.cpp)
 buildTarget(testAPR APRTest.cpp)
 buildTarget(testComputeGradient ComputeGradientTest.cpp)
 buildTarget(testLocalIntensityScale LocalIntensityScaleTest.cpp)
+buildTarget(testPullingScheme PullingSchemeTest.cpp)
 
 # Naive python test
 # Working directory is changed to build since python module is availabe there

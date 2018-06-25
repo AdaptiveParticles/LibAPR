@@ -8,7 +8,6 @@
 #ifndef PARTPLAY_PULLING_SCHEME_HPP
 #define PARTPLAY_PULLING_SCHEME_HPP
 
-#include "data_structures/Mesh/PixelData.hpp"
 #include "data_structures/APR/APRAccess.hpp"
 #include "data_structures/Mesh/PixelData.hpp"
 #include <vector>

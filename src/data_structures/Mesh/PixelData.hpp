@@ -411,7 +411,7 @@ public :
                 std::cout << "z=" << z << "\n";
                 for (size_t y = 0; y < y_num; ++y) {
                     for (size_t x = 0; x < x_num; ++x) {
-                        std::cout << std::setw(aColumnWidth) << std::setprecision(aFloatPrecision) << std::fixed << at(y, x, z) << " ";
+                        std::cout << std::setw(aColumnWidth) << std::setprecision(aFloatPrecision) << std::fixed << (sizeof(T) == 1 ? (int)at(y, x, z) : at(y, x, z)) << " ";
                     }
                     std::cout << "\n";
                 }
@@ -423,7 +423,7 @@ public :
                 std::cout << "y=" << y << "\n";
                 for (size_t z = 0; z < z_num; ++z) {
                     for (size_t x = 0; x < x_num; ++x) {
-                        std::cout << std::setw(aColumnWidth) << std::setprecision(aFloatPrecision) << std::fixed << at(y, x, z) << " ";
+                        std::cout << std::setw(aColumnWidth) << std::setprecision(aFloatPrecision) << std::fixed << (sizeof(T) == 1 ? (int)at(y, x, z) : at(y, x, z)) << " ";
                     }
                     std::cout << "\n";
                 }
@@ -447,7 +447,7 @@ public :
                 std::cout << "z=" << z << "\n";
                 for (size_t x = 0; x < x_num; ++x) {
                     for (size_t y = 0; y < y_num; ++y) {
-                        std::cout << std::setw(aColumnWidth) << std::setprecision(aFloatPrecision) << std::fixed << at(y, x, z) << " ";
+                        std::cout << std::setw(aColumnWidth) << std::setprecision(aFloatPrecision) << std::fixed << (sizeof(T) == 1 ? (int)at(y, x, z) : at(y, x, z)) << " ";
                     }
                     std::cout << "\n";
                 }
@@ -459,7 +459,7 @@ public :
                 std::cout << "y=" << y << "\n";
                 for (size_t x = 0; x < x_num; ++x) {
                     for (size_t z = 0; z < z_num; ++z) {
-                        std::cout << std::setw(aColumnWidth) << std::setprecision(aFloatPrecision) << std::fixed << at(y, x, z) << " ";
+                        std::cout << std::setw(aColumnWidth) << std::setprecision(aFloatPrecision) << std::fixed << (sizeof(T) == 1 ? (int)at(y, x, z) : at(y, x, z)) << " ";
                     }
                     std::cout << "\n";
                 }
