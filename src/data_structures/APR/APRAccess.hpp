@@ -598,7 +598,7 @@ public:
                     }
 
 
-                    if(i < apr.level_max()) {
+                    if(i == apr.level_max()) {
                         //need to deal with the boundary conditions.
                         xz_sum = cumsum - xz_sum;
 
