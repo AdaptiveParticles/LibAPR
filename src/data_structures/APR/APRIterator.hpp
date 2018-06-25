@@ -228,24 +228,50 @@ public:
         current_particle_cell.z = z;
         current_particle_cell.x = x;
 
-        current_particle_cell.pc_offset = apr_access->x_num[level]*z + x;
+        if(level == level_max()){
+            current_particle_cell.pc_offset = apr_access->x_num[level-1]*(z/2) + (x/2);
 
-        if(apr_access->gap_map.data[current_particle_cell.level][current_particle_cell.pc_offset].size() > 0) {
+            if(apr_access->gap_map.data[current_particle_cell.level][current_particle_cell.pc_offset].size() > 0) {
 
-            current_gap.iterator = apr_access->gap_map.data[current_particle_cell.level][current_particle_cell.pc_offset][0].map.begin();
-            current_particle_cell.y = current_gap.iterator->first;
-            current_particle_cell.global_index = current_gap.iterator->second.global_index_begin;
+                current_gap.iterator = apr_access->gap_map.data[current_particle_cell.level][current_particle_cell.pc_offset][0].map.begin();
+                current_particle_cell.y = current_gap.iterator->first;
 
-            set_neighbour_flag();
+                //requries now an offset depending on
+                current_particle_cell.global_index = current_gap.iterator->second.global_index_begin;
 
-            // IN HERE PUT THE STARTING INDEX!
-            end_index = particles_zx_end(level, z,
-                                         x);
+                set_neighbour_flag();
 
-            return current_particle_cell.global_index;
+                // IN HERE PUT THE STARTING INDEX!
+                end_index = particles_zx_end(level, z/2,
+                                             x/2);
+
+                return current_particle_cell.global_index;
+            } else {
+                return UINT64_MAX;
+            }
+
         } else {
-            return UINT64_MAX;
+            current_particle_cell.pc_offset = apr_access->x_num[level]*z + x;
+
+            if(apr_access->gap_map.data[current_particle_cell.level][current_particle_cell.pc_offset].size() > 0) {
+
+                current_gap.iterator = apr_access->gap_map.data[current_particle_cell.level][current_particle_cell.pc_offset][0].map.begin();
+                current_particle_cell.y = current_gap.iterator->first;
+                current_particle_cell.global_index = current_gap.iterator->second.global_index_begin;
+
+                set_neighbour_flag();
+
+                // IN HERE PUT THE STARTING INDEX!
+                end_index = particles_zx_end(level, z,
+                                             x);
+
+                return current_particle_cell.global_index;
+            } else {
+                return UINT64_MAX;
+            }
+
         }
+
 
     }
 

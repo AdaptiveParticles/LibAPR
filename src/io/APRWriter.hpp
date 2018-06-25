@@ -11,6 +11,7 @@
 #include "ConfigAPR.h"
 #include <numeric>
 #include <memory>
+#include <data_structures/APR/APR.hpp>
 
 
 struct FileSizeInfo {
@@ -291,7 +292,13 @@ public:
         writeData(AprTypes::MapLevelType, f.objectId, map_data.level, blosc_comp_type, blosc_comp_level, blosc_shuffle);
         writeData(AprTypes::MapXType, f.objectId, map_data.x, blosc_comp_type, blosc_comp_level, blosc_shuffle);
         writeData(AprTypes::MapZType, f.objectId, map_data.z, blosc_comp_type, blosc_comp_level, blosc_shuffle);
-        writeData(AprTypes::ParticleCellType, f.objectId, apr.apr_access.particle_cell_type.data, blosc_comp_type, blosc_comp_level, blosc_shuffle);
+
+        //optional storage of type
+        if(apr.apr_access.particle_cell_type.data.size()> 0) {
+            writeData(AprTypes::ParticleCellType, f.objectId, apr.apr_access.particle_cell_type.data, blosc_comp_type,
+                      blosc_comp_level, blosc_shuffle);
+        }
+
         write_timer.stop_timer();
 
         for (size_t i = apr.level_min(); i <apr.level_max() ; ++i) {
