@@ -232,7 +232,7 @@ public:
     template<typename ImageType>
     FileSizeInfo write_apr(APR<ImageType> &apr, const std::string &save_loc, const std::string &file_name, APRCompress<ImageType> &apr_compressor, unsigned int blosc_comp_type = BLOSC_ZSTD, unsigned int blosc_comp_level = 2, unsigned int blosc_shuffle=1) {
         APRTimer write_timer;
-        write_timer.verbose_flag = false;
+        write_timer.verbose_flag = true;
 
         std::string hdf5_file_name = save_loc + file_name + "_apr.h5";
         AprFile f{hdf5_file_name, AprFile::Operation::WRITE};
@@ -271,8 +271,6 @@ public:
         writeAttr(AprTypes::RelativeErrorType, f.groupId, &apr.parameters.rel_error);
         writeAttr(AprTypes::NoiseSdEstimateType, f.groupId, &apr.parameters.noise_sd_estimate);
         writeAttr(AprTypes::BackgroundIntensityEstimateType, f.groupId, &apr.parameters.background_intensity_estimate);
-
-
 
         write_timer.start_timer("access_data");
         MapStorageData map_data;
