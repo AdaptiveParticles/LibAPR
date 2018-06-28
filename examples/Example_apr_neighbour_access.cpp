@@ -55,8 +55,6 @@ int main(int argc, char **argv) {
     APRIterator<uint16_t> neighbour_iterator(apr);
     APRIterator<uint16_t> apr_iterator(apr);
 
-    uint64_t neigh_counter = 0;
-    double int_counter = 0;
 
     timer.start_timer("APR serial iterator neighbours loop");
 
@@ -87,7 +85,6 @@ int main(int argc, char **argv) {
                                 temp += apr.particles_intensities[neighbour_iterator];
                                 counter++;
 
-                                neigh_counter++;
 
 
                             }
@@ -95,7 +92,7 @@ int main(int argc, char **argv) {
                     }
 
                     neigh_avg[apr_iterator] = temp / counter;
-                    int_counter += temp / counter;
+
 
                 }
             }
@@ -104,20 +101,6 @@ int main(int argc, char **argv) {
 
     timer.stop_timer();
 
-    std::cout << neigh_counter << std::endl;
-    std::cout << int_counter << std::endl;
-
-    PixelData<uint16_t> pc_img;
-
-    apr.interp_img(pc_img,neigh_avg);
-
-    std::cout << std::endl;
-
-    std::cout << "Saving piece-wise constant image recon as tiff image" << std::endl;
-
-    std::string output_path = options.directory + "neigh_pc.tif";
-    //write output as tiff
-    TiffUtils::saveMeshAsTiff(output_path, pc_img);
 
     ////////////////////////////
     ///
