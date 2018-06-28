@@ -107,6 +107,18 @@ int main(int argc, char **argv) {
     std::cout << neigh_counter << std::endl;
     std::cout << int_counter << std::endl;
 
+    PixelData<uint16_t> pc_img;
+
+    apr.interp_img(pc_img,neigh_avg);
+
+    std::cout << std::endl;
+
+    std::cout << "Saving piece-wise constant image recon as tiff image" << std::endl;
+
+    std::string output_path = options.directory + "neigh_pc.tif";
+    //write output as tiff
+    TiffUtils::saveMeshAsTiff(output_path, pc_img);
+
     ////////////////////////////
     ///
     /// OpenMP Parallel loop iteration
@@ -158,6 +170,8 @@ int main(int argc, char **argv) {
 
     ExtraParticleData<float> type_sum(apr);
 
+    timer.start_timer("APR parallel iterator neighbour loop x direction");
+
     //need to initialize the neighbour iterator with the APR you are iterating over.
 
     for (unsigned int level = apr_iterator.level_min(); level <= apr_iterator.level_max(); ++level) {
@@ -185,7 +199,7 @@ int main(int argc, char **argv) {
                             if ((neighbour_iterator.type() == 1) &
                                 (neighbour_iterator.level() <= neighbour_iterator.level_max())) {
                                 type_sum[apr_iterator] +=
-                                        apr.particles_intensities[neighbour_iterator] * apr_iterator.type();
+                                        apr.particles_intensities[neighbour_iterator];
                             }
                         }
                     }

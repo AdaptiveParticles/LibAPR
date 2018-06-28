@@ -61,6 +61,7 @@ struct MapIterator{
     std::map<uint16_t,YGap_map>::iterator iterator;
     uint64_t pc_offset;
     uint16_t level;
+    uint64_t max_offset;
 };
 
 struct LocalMapIterators{
@@ -278,10 +279,24 @@ public:
 
             ParticleCellGapMap& current_pc_map = gap_map.data[part_cell.level][part_cell.pc_offset][0];
 
+            //this is required due to utilization of the equivalence optimization
+
+
             if((map_iterator.pc_offset != part_cell.pc_offset) || (map_iterator.level != part_cell.level) ){
                 map_iterator.iterator = gap_map.data[part_cell.level][part_cell.pc_offset][0].map.begin();
                 map_iterator.pc_offset = part_cell.pc_offset;
                 map_iterator.level = part_cell.level;
+
+                if(part_cell.level == level_max) {
+
+                    auto it = (gap_map.data[part_cell.level][part_cell.pc_offset][0].map.rbegin());
+
+                    map_iterator.max_offset = ((part_cell.x % 2) + (part_cell.z % 2) * 2) *
+                                   ((it->second.global_index_begin + (it->second.y_end - it->first)) + 1 -
+                                           map_iterator.iterator->second.global_index_begin);
+                } else {
+                    map_iterator.max_offset = 0;
+                }
             }
 
             if(map_iterator.iterator == current_pc_map.map.end()){
@@ -292,7 +307,7 @@ public:
             if ((part_cell.y >= map_iterator.iterator->first) && (part_cell.y <= map_iterator.iterator->second.y_end)) {
                 // already pointing to the correct place
                 part_cell.global_index = map_iterator.iterator->second.global_index_begin +
-                                         (part_cell.y - map_iterator.iterator->first);
+                                         (part_cell.y - map_iterator.iterator->first) + map_iterator.max_offset;
 
                 return true;
             } else {
@@ -305,7 +320,7 @@ public:
                             (part_cell.y <= map_iterator.iterator->second.y_end)) {
                             // already pointing to the correct place
                             part_cell.global_index = map_iterator.iterator->second.global_index_begin +
-                                                     (part_cell.y - map_iterator.iterator->first);
+                                                     (part_cell.y - map_iterator.iterator->first) + map_iterator.max_offset;
 
                             return true;
                         }
@@ -326,7 +341,7 @@ public:
                 if ((part_cell.y >= map_iterator.iterator->first) & (part_cell.y <= map_iterator.iterator->second.y_end)) {
                     // already pointing to the correct place
                     part_cell.global_index = map_iterator.iterator->second.global_index_begin +
-                                             (part_cell.y - map_iterator.iterator->first);
+                                             (part_cell.y - map_iterator.iterator->first) + map_iterator.max_offset;
 
                     return true;
                 }
