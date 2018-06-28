@@ -126,7 +126,7 @@ public:
     }
 
     template<typename U>
-    void interp_depth_ds(PixelData<U>& img){
+    void interp_level_ds(PixelData<U>& img){
         //
         //  Returns an image of the depth, this is down-sampled by one, as the Particle Cell solution reflects this
         //
@@ -135,7 +135,7 @@ public:
     }
 
     template<typename U>
-    void interp_depth(PixelData<U>& img){
+    void interp_level(PixelData<U>& img){
         //
         //  Returns an image of the depth, this is down-sampled by one, as the Particle Cell solution reflects this
         //
@@ -174,24 +174,12 @@ public:
 
         std::cout << "Total number of particles: " << apr_iterator.total_number_particles() << std::endl;
 
-
-//#ifdef HAVE_OPENMP
-//#pragma omp parallel for schedule(static) firstprivate(apr_iterator)
-//#endif
-//        for (uint64_t particle_number = 0; particle_number < apr_iterator.total_number_particles(); ++particle_number) {
-//            //needed step for any parallel loop (update to the next part)
-//            apr_iterator.set_iterator_to_particle_by_number(particle_number);
-//            parts[apr_iterator] = img_by_level[apr_iterator.level()].at(apr_iterator.y(),apr_iterator.x(),apr_iterator.z());
-//        }
-
-
-
-        for (unsigned int level = apr_iterator.level_max(); level >= apr_iterator.level_min(); --level) {
+        for (unsigned int level = apr_iterator.level_min(); level <= apr_iterator.level_max(); ++level) {
             int z = 0;
             int x = 0;
 
 #ifdef HAVE_OPENMP
-//#pragma omp parallel for schedule(dynamic) private(z, x) firstprivate(apr_iterator)
+#pragma omp parallel for schedule(dynamic) private(z, x) firstprivate(apr_iterator)
 #endif
             for (z = 0; z < apr_iterator.spatial_index_z_max(level); z++) {
                 for (x = 0; x < apr_iterator.spatial_index_x_max(level); ++x) {
@@ -205,7 +193,6 @@ public:
                 }
             }
         }
-
 
     }
 

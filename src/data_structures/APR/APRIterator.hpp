@@ -236,16 +236,15 @@ public:
                 current_gap.iterator = apr_access->gap_map.data[current_particle_cell.level][current_particle_cell.pc_offset][0].map.begin();
                 current_particle_cell.y = current_gap.iterator->first;
 
-
                 current_particle_cell.global_index = current_gap.iterator->second.global_index_begin;
 
                 set_neighbour_flag();
 
                 //requries now an offset depending on the child position odd/even
                 auto it = (apr_access->gap_map.data[level][current_particle_cell.pc_offset][0].map.rbegin());
-                end_index =  (it->second.global_index_begin + (it->second.y_end-it->first)) + 1;
+                end_index =  (it->second.global_index_begin + (it->second.y_end-it->first))+1;
 
-                uint64_t index_offset = ((x%2) + (z%2) + 2*(x%2)*(z%2))*(end_index - 1 - current_particle_cell.global_index);
+                uint64_t index_offset = ((x%2) + (z%2)*2)*(end_index - current_particle_cell.global_index);
 
                 end_index += index_offset;
                 current_particle_cell.global_index += index_offset;
@@ -268,7 +267,7 @@ public:
 
                 // IN HERE PUT THE STARTING INDEX!
                 auto it = (apr_access->gap_map.data[level][current_particle_cell.pc_offset][0].map.rbegin());
-                end_index =  (it->second.global_index_begin + (it->second.y_end-it->first));
+                end_index =  (it->second.global_index_begin + (it->second.y_end-it->first)) + 1;
 
                 return current_particle_cell.global_index;
             } else {
