@@ -360,8 +360,6 @@ public:
         uint8_t min_type = apr.parameters.neighborhood_optimization ? 1 : 2;
 
 
-
-
         APRTimer apr_timer;
         apr_timer.verbose_flag = true;
 
@@ -602,7 +600,7 @@ public:
                         //need to deal with the boundary conditions.
                         xz_sum = cumsum - xz_sum;
 
-                        unsigned int number_rows = ( unsigned int) 1*((2*x_+1) < x_num[i]) + 1*((2*z_+1) < z_num[i]) +  2*((2*z_+1) < z_num[i])*((2*x_+1) < x_num[i]);
+                        unsigned int number_rows = ( unsigned int) 1*((2*x_+1) < x_num[i]) + 1*((2*z_+1) < z_num[i]) +  1*((2*z_+1) < z_num[i])*((2*x_+1) < x_num[i]);
 
                         cumsum += xz_sum * number_rows;
 
