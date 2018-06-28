@@ -461,6 +461,8 @@ public:
     inline uint8_t type(){
         //get type of the particle cell
 
+        return highest_resolution_type;
+
         if(current_particle_cell.level==level_max()){
             return highest_resolution_type; //all highest resolution pcs are seed, when using the nieghborhood optimization/
         } else {

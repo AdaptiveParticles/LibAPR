@@ -163,18 +163,16 @@ public:
 
         auto map_data = std::make_shared<MapStorageData>();
 
-        map_data->global_index.resize(apr.apr_access.total_number_gaps);
-
+        map_data->global_index.resize(apr.apr_access.total_number_non_empty_rows);
 
         timer_f.start_timer("index");
-        std::vector<int16_t> index_delta(apr.apr_access.total_number_gaps);
+        std::vector<int16_t> index_delta(apr.apr_access.total_number_non_empty_rows);
         readData(AprTypes::MapGlobalIndexType, f.objectId, index_delta.data());
-        std::vector<uint64_t> index_delta_big(apr.apr_access.total_number_gaps);
+        std::vector<uint64_t> index_delta_big(apr.apr_access.total_number_non_empty_rows);
         std::copy(index_delta.begin(),index_delta.end(),index_delta_big.begin());
         std::partial_sum(index_delta_big.begin(), index_delta_big.end(), map_data->global_index.begin());
 
         timer_f.stop_timer();
-
 
         timer_f.start_timer("y_b_e");
         map_data->y_end.resize(apr.apr_access.total_number_gaps);
@@ -197,8 +195,8 @@ public:
         timer_f.stop_timer();
 
         timer_f.start_timer("type");
-        apr.apr_access.particle_cell_type.data.resize(type_size);
-        readData(AprTypes::ParticleCellType, f.objectId, apr.apr_access.particle_cell_type.data.data());
+        //apr.apr_access.particle_cell_type.data.resize(type_size);
+        //readData(AprTypes::ParticleCellType, f.objectId, apr.apr_access.particle_cell_type.data.data());
         timer_f.stop_timer();
 
         timer.stop_timer();

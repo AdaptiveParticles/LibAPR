@@ -155,25 +155,33 @@ int main(int argc, char **argv) {
 
         //create particle dataset
         ExtraParticleData<uint16_t> type(apr);
-        ExtraParticleData<uint16_t> level(apr);
+        ExtraParticleData<uint16_t> levelp(apr);
 
-        ExtraParticleData<uint16_t> x(apr);
-        ExtraParticleData<uint16_t> y(apr);
-        ExtraParticleData<uint16_t> z(apr);
+        ExtraParticleData<uint16_t> xp(apr);
+        ExtraParticleData<uint16_t> yp(apr);
+        ExtraParticleData<uint16_t> zp(apr);
 
         timer.start_timer("APR parallel iterator loop");
-#ifdef HAVE_OPENMP
-#pragma omp parallel for schedule(static) firstprivate(apr_iterator)
-#endif
-        for (uint64_t particle_number = 0; particle_number < apr_iterator.total_number_particles(); ++particle_number) {
-            //needed step for any parallel loop (update to the next part)
-            apr_iterator.set_iterator_to_particle_by_number(particle_number);
-            type[apr_iterator] = apr_iterator.type();
-            level[apr_iterator] = apr_iterator.level();
+        for (unsigned int level = apr_iterator.level_min(); level <= apr_iterator.level_max(); ++level) {
+            int z = 0;
+            int x = 0;
 
-            x[apr_iterator] = apr_iterator.x();
-            y[apr_iterator] = apr_iterator.y();
-            z[apr_iterator] = apr_iterator.z();
+#ifdef HAVE_OPENMP
+#pragma omp parallel for schedule(dynamic) private(z, x) firstprivate(apr_iterator)
+#endif
+            for (z = 0; z < apr_iterator.spatial_index_z_max(level); z++) {
+                for (x = 0; x < apr_iterator.spatial_index_x_max(level); ++x) {
+                    for (apr_iterator.set_new_lzx(level, z, x); apr_iterator.global_index() < apr_iterator.end_index;
+                         apr_iterator.set_iterator_to_particle_next_particle()) {
+
+                        levelp[apr_iterator] = apr_iterator.level();
+
+                        xp[apr_iterator] = apr_iterator.x();
+                        yp[apr_iterator] = apr_iterator.y();
+                        zp[apr_iterator] = apr_iterator.z();
+                    }
+                }
+            }
         }
         timer.stop_timer();
 
@@ -181,23 +189,20 @@ int main(int argc, char **argv) {
         {
             PixelData<uint16_t> type_recon;
 
-            apr.interp_img(type_recon, type);
-            TiffUtils::saveMeshAsTiff(options.directory + apr.name + "_type.tif", type_recon);
-
             //pc interp
-            apr.interp_img(type_recon, level);
+            apr.interp_img(type_recon, levelp);
             TiffUtils::saveMeshAsTiff(options.directory + apr.name + "_level.tif", type_recon);
 
             //pc interp
-            apr.interp_img(type_recon, x);
+            apr.interp_img(type_recon, xp);
             TiffUtils::saveMeshAsTiff(options.directory + apr.name + "_x.tif", type_recon);
 
             //pc interp
-            apr.interp_img(type_recon, y);
+            apr.interp_img(type_recon, yp);
             TiffUtils::saveMeshAsTiff(options.directory + apr.name + "_y.tif", type_recon);
 
             //pc interp
-            apr.interp_img(type_recon, z);
+            apr.interp_img(type_recon, zp);
             TiffUtils::saveMeshAsTiff(options.directory + apr.name + "_z.tif", type_recon);
         }
     }
