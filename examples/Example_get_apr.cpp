@@ -116,15 +116,27 @@ int main(int argc, char **argv) {
 
             PixelData<uint16_t> level;
 
-            apr.interp_depth_ds(level);
+            apr.interp_level(level);
 
             std::cout << std::endl;
 
-            std::cout << "Saving down-sampled Particle Cell level as tiff image" << std::endl;
+            std::cout << "Saving Particle Cell level as tiff image" << std::endl;
 
             std::string output_path = save_loc + file_name + "_level.tif";
             //write output as tiff
             TiffUtils::saveMeshAsTiff(output_path, level);
+
+            PixelData<uint16_t> pc_img;
+
+            apr.interp_img(pc_img,apr.particles_intensities);
+
+            std::cout << std::endl;
+
+            std::cout << "Saving piece-wise constant image recon as tiff image" << std::endl;
+
+            output_path = save_loc + file_name + "_pc.tif";
+            //write output as tiff
+            TiffUtils::saveMeshAsTiff(output_path, pc_img);
         }
 
         } else {
