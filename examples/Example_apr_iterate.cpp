@@ -83,7 +83,7 @@ int main(int argc, char **argv) {
     //  You can also iterate over by level, this is in the datastrucrure called depth, Particle Cells range from depth_min() to depth_max(), coinciding with level = l_min and level = l_max
     //
 
-    timer.start_timer("APR serial iterator loop by level");
+    timer.start_timer("APR parrellel iterator loop by level");
 
     for (unsigned int level = apr_iterator.level_min(); level <= apr_iterator.level_max(); ++level) {
         int z = 0;
@@ -99,7 +99,8 @@ int main(int argc, char **argv) {
 
                     if (apr.particles_intensities[apr_iterator] > 100) {
                         //set all particles in calc_ex with an particle intensity greater then 100 to 0.
-                        calc_ex[apr_iterator] = 0;
+                        calc_ex[apr_iterator] = apr_iterator.x() - apr_iterator.y(); //these are location parameters, i.e. co-odinates on the given level (apr_iterator.level())
+                        calc_ex[apr_iterator] += apr_iterator.z_global(); // you can also access the global co-ordinates, or apr_iterator.z_nearest_pixel(), for th nearest pixel co-ordinate
                     }
                 }
             }

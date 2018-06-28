@@ -166,7 +166,12 @@ public:
                 neigh.z = input.z + dir_z[face];
                 neigh.level = input.level;
 
-                neigh.pc_offset =  x_num[neigh.level] * neigh.z + neigh.x;
+                if(neigh.level < level_max) {
+                    neigh.pc_offset = gap_map.x_num[neigh.level] * neigh.z + neigh.x;
+                }
+                else {
+                    neigh.pc_offset = gap_map.x_num[neigh.level] * (neigh.z/2) + (neigh.x/2);
+                }
 
                 return true;
             case _LEVEL_DECREASE:
@@ -176,7 +181,7 @@ public:
                 neigh.y = (input.y+ dir_y[face])/2;
                 neigh.z = (input.z+ dir_z[face])/2;
 
-                neigh.pc_offset =  x_num[neigh.level] * neigh.z + neigh.x;
+                neigh.pc_offset =  gap_map.x_num[neigh.level] * neigh.z + neigh.x;
 
                 return true;
             case _LEVEL_INCREASE:
@@ -210,7 +215,12 @@ public:
                         break;
                 }
 
-                neigh.pc_offset =  x_num[neigh.level] * neigh.z + neigh.x;
+                if(neigh.level < level_max) {
+                    neigh.pc_offset = gap_map.x_num[neigh.level] * neigh.z + neigh.x;
+                }
+                else {
+                    neigh.pc_offset = gap_map.x_num[neigh.level] * (neigh.z/2) + (neigh.x/2);
+                }
 
                 return true;
             case _NO_NEIGHBOUR:
