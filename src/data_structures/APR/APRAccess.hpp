@@ -1057,53 +1057,29 @@ public:
         //////////////////////
 
         //iteration helpers for by level
-        //global_index_by_level_begin.resize(level_max+1,0);
-        //global_index_by_level_end.resize(level_max+1,0);
+        global_index_by_level_begin.resize(level_max+1,1);
+        global_index_by_level_end.resize(level_max+1,0);
 
-        uint64_t cumsum_parts= 0;
+        unsigned int curr_level = map_data.level[0];
 
-        //set up the iteration helpers for by zslice
-        //global_index_by_level_and_z_begin.resize(level_max+1);
-        //global_index_by_level_and_z_end.resize(level_max+1);
+        for (j = 0; j < total_number_non_empty_rows; ++j) {
+            if(curr_level!=map_data.level[j]) {
+                global_index_by_level_end[curr_level] = map_data.global_index[j]-1;
+            }
+            curr_level = map_data.level[j];
+        }
 
-//        for(uint64_t i = level_min;i <= level_max;i++) {
-//
-//            const unsigned int x_num_ = gap_map.x_num[i];
-//            const unsigned int z_num_ = gap_map.z_num[i];
-//
-//            //set up the levels here.
-//            uint64_t cumsum_begin = cumsum_parts;
-//
-//            global_index_by_level_and_z_begin[i].resize(z_num_,(-1));
-//            global_index_by_level_and_z_end[i].resize(z_num_,0);
-//
-//            for (z_ = 0; z_ < z_num_; z_++) {
-//                uint64_t cumsum_begin_z = cumsum_parts;
-//
-//                for (x_ = 0; x_ < x_num_; x_++) {
-//                    const size_t offset_pc_data = x_num_ * z_ + x_;
-//                    if(gap_map.data[i][offset_pc_data].size() > 0) {
-//                        for (auto const &element : gap_map.data[i][offset_pc_data][0].map) {
-//                            //count the number of particles in each gap
-//                            cumsum_parts += (element.second.y_end - element.first) + 1;
-//                        }
-//                    }
-//                }
-//                if(cumsum_parts!=cumsum_begin_z) {
-//                    global_index_by_level_and_z_end[i][z_] = cumsum_parts - 1;
-//                    global_index_by_level_and_z_begin[i][z_] = cumsum_begin_z;
-//                }
-//            }
-//
-//            if(cumsum_parts!=cumsum_begin){
-//                //cumsum_begin++;
-//                global_index_by_level_begin[i] = cumsum_begin;
-//            }
-//
-//            if(cumsum_parts!=cumsum_begin){
-//                global_index_by_level_end[i] = cumsum_parts-1;
-//            }
-//        }
+        global_index_by_level_end[level_max] = total_number_particles-1;
+
+        for (int i = 0; i <= level_max; ++i) {
+            if(global_index_by_level_end[i]>0) {
+                global_index_by_level_begin[i] = global_index_by_level_end[i-1]+1;
+            }
+        }
+
+        global_index_by_level_begin[map_data.level[0]] = map_data.global_index[0];
+
+
         apr_timer.stop_timer();
     }
 
