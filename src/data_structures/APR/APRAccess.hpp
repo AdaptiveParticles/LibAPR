@@ -988,15 +988,19 @@ public:
         gap_map.x_num.resize(gap_map.depth_max+1);
         gap_map.data.resize(gap_map.depth_max+1);
 
+        global_index_by_level_and_zx_end.resize(gap_map.depth_max+1);
+
         for(uint64_t i = gap_map.depth_min;i < gap_map.depth_max;i++){
             gap_map.z_num[i] = z_num[i];
             gap_map.x_num[i] = x_num[i];
             gap_map.data[i].resize(z_num[i]*x_num[i]);
+            global_index_by_level_and_zx_end[i].resize(z_num[i]*x_num[i],0);
         }
 
         gap_map.z_num[level_max] = z_num[level_max - 1];
         gap_map.x_num[level_max] = x_num[level_max-1];
         gap_map.data[level_max].resize(z_num[level_max-1]*x_num[level_max-1]);
+        global_index_by_level_and_zx_end[level_max].resize(z_num[level_max-1]*x_num[level_max-1]);
 
         uint64_t j;
 #ifdef HAVE_OPENMP
@@ -1013,17 +1017,23 @@ public:
 
             gap_map.data[level][offset_pc_data].resize(1);
 
-            uint64_t global_index = map_data.global_index[j];
+            uint64_t global_index = 0;
+            global_index_by_level_and_zx_end[level][offset_pc_data] = map_data.global_index[j];
 
             for (uint64_t i = global_begin; i < (global_begin + number_gaps) ; ++i) {
                 gap.y_end = map_data.y_end[i];
-                gap.global_index_begin_offset = global_index;//#fixme
+                gap.global_index_begin_offset = global_index;
 
                 auto hint = gap_map.data[level][offset_pc_data][0].map.end();
                 gap_map.data[level][offset_pc_data][0].map.insert(hint,{map_data.y_begin[i],gap});
                 global_index += map_data.y_end[i] - map_data.y_begin[i] + 1;
             }
         }
+
+
+
+
+
     }
 
     template<typename T>
@@ -1076,10 +1086,21 @@ public:
             if(global_index_by_level_end[i]>0) {
                 global_index_by_level_begin[i] = global_index_by_level_end[i-1]+1;
             }
+            if(global_index_by_level_begin[i]>0) {
+                global_index_by_level_and_zx_end[i][0] = global_index_by_level_begin[i];
+            }
         }
 
         global_index_by_level_begin[map_data.level[0]] = map_data.global_index[0];
 
+        //now xz iteration helpers (need to fill in the gaps)
+        for (int i = 0; i <= level_max; ++i) {
+            for (int k = 1; k < global_index_by_level_and_zx_end[level_max].size(); ++k) {
+                if(global_index_by_level_and_zx_end[level_max][k]==0){
+                    global_index_by_level_and_zx_end[level_max][k] = global_index_by_level_and_zx_end[level_max][k-1];
+                }
+            }
+        }
 
         apr_timer.stop_timer();
     }
@@ -1125,7 +1146,7 @@ public:
                         map_data.number_gaps.push_back(gap_map.data[i][offset_pc_data][0].map.size());
 
                         auto it = gap_map.data[i][offset_pc_data][0].map.begin();
-                        map_data.global_index.push_back(it->second.global_index_begin_offset); //#fixme
+                        map_data.global_index.push_back(global_index_by_level_and_zx_end[i][offset_pc_data]);
 
                         for (auto const &element : gap_map.data[i][offset_pc_data][0].map) {
                             map_data.y_begin.push_back(element.first);
