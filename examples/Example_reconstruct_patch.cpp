@@ -192,6 +192,8 @@ int main(int argc, char **argv) {
     APRTree<uint16_t> aprTree;
     aprTree.init(apr);
 
+    options.output_pc_recon = false;
+
     // Intentionaly block-scoped since local recon_pc will be destructed when block ends and release memory.
     {
 

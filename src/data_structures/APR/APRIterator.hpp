@@ -67,7 +67,7 @@ public:
     }
 
     uint64_t current_gap_index(){
-        return current_gap.iterator->second.global_index_begin;
+        return current_gap.iterator->second.global_index_begin_offset; //#fixme
     }
 
 
@@ -149,7 +149,7 @@ public:
                 current_gap.iterator++;
             }
 
-            current_particle_cell.y = (current_gap.iterator->first) + (particle_number - current_gap.iterator->second.global_index_begin);
+            current_particle_cell.y = (current_gap.iterator->first) + (particle_number - current_gap.iterator->second.global_index_begin_offset); //#fixme
             current_particle_cell.global_index = particle_number;
             set_neighbour_flag();
             return true;
@@ -206,7 +206,7 @@ public:
                 current_gap.iterator++;
             }
 
-            current_particle_cell.y = (current_gap.iterator->first) + (particle_number - current_gap.iterator->second.global_index_begin);
+            current_particle_cell.y = (current_gap.iterator->first) + (particle_number - current_gap.iterator->second.global_index_begin_offset); //#fixme
             current_particle_cell.global_index = particle_number;
             set_neighbour_flag();
             return true;
@@ -236,15 +236,29 @@ public:
                 current_gap.iterator = apr_access->gap_map.data[current_particle_cell.level][current_particle_cell.pc_offset][0].map.begin();
                 current_particle_cell.y = current_gap.iterator->first;
 
-                current_particle_cell.global_index = current_gap.iterator->second.global_index_begin;
+                uint64_t begin = 0;
+
+                if(current_particle_cell.pc_offset == 0){
+                    if(level == level_min()){
+                        begin = 0;
+                    } else {
+                        begin = apr_access->global_index_by_level_and_zx_end[current_particle_cell.level-1].back();
+                    }
+                } else {
+                    begin = apr_access->global_index_by_level_and_zx_end[current_particle_cell.level][current_particle_cell.pc_offset-1];
+                }
+
+                current_particle_cell.global_index = begin;
 
                 set_neighbour_flag();
 
                 //requries now an offset depending on the child position odd/even
                 auto it = (apr_access->gap_map.data[level][current_particle_cell.pc_offset][0].map.rbegin());
-                end_index =  (it->second.global_index_begin + (it->second.y_end-it->first))+1;
 
-                uint64_t index_offset = ((x%2) + (z%2)*2)*(end_index - current_particle_cell.global_index);
+                uint16_t num_parts = ((it->second.global_index_begin_offset + (it->second.y_end-it->first))+1);
+                end_index =  begin + num_parts;
+
+                uint64_t index_offset = ((x%2) + (z%2)*2)*((uint64_t)num_parts) ;//calculates the number of particles in the row
 
                 end_index += index_offset;
                 current_particle_cell.global_index += index_offset;
@@ -261,13 +275,26 @@ public:
 
                 current_gap.iterator = apr_access->gap_map.data[current_particle_cell.level][current_particle_cell.pc_offset][0].map.begin();
                 current_particle_cell.y = current_gap.iterator->first;
-                current_particle_cell.global_index = current_gap.iterator->second.global_index_begin;
+
+                uint64_t begin = 0;
+
+                if(current_particle_cell.pc_offset == 0){
+                    if(level == level_min()){
+                        begin = 0;
+                    } else {
+                        begin = apr_access->global_index_by_level_and_zx_end[current_particle_cell.level-1].back();
+                    }
+                } else {
+                    begin = apr_access->global_index_by_level_and_zx_end[current_particle_cell.level][current_particle_cell.pc_offset-1];
+                }
+
+                current_particle_cell.global_index = current_gap.iterator->second.global_index_begin_offset + begin;
 
                 set_neighbour_flag();
 
                 // IN HERE PUT THE STARTING INDEX!
                 auto it = (apr_access->gap_map.data[level][current_particle_cell.pc_offset][0].map.rbegin());
-                end_index =  (it->second.global_index_begin + (it->second.y_end-it->first)) + 1;
+                end_index =  apr_access->global_index_by_level_and_zx_end[current_particle_cell.level][current_particle_cell.pc_offset];
 
                 return current_particle_cell.global_index;
             } else {
@@ -311,7 +338,7 @@ public:
                 //less then the first value
 
                 current_particle_cell.y = current_gap.iterator->first;
-                current_particle_cell.global_index = current_gap.iterator->second.global_index_begin;
+                current_particle_cell.global_index = current_gap.iterator->second.global_index_begin_offset; //#fixme
 
                 set_neighbour_flag();
 
@@ -326,8 +353,8 @@ public:
 
             if ((current_particle_cell.y >= current_gap.iterator->first) & (current_particle_cell.y <= current_gap.iterator->second.y_end)) {
                 // exists
-                current_particle_cell.global_index = current_gap.iterator->second.global_index_begin +
-                                         (current_particle_cell.y - current_gap.iterator->first);
+                current_particle_cell.global_index = current_gap.iterator->second.global_index_begin_offset +
+                                         (current_particle_cell.y - current_gap.iterator->first); //#fixme
                 set_neighbour_flag();
                 return current_particle_cell.global_index;
             }
@@ -338,7 +365,7 @@ public:
                 return current_particle_cell.global_index;
             } else {
                 //still within range
-                current_particle_cell.global_index = current_gap.iterator->second.global_index_begin;
+                current_particle_cell.global_index = current_gap.iterator->second.global_index_begin_offset; //#fixme
                 current_particle_cell.y = current_gap.iterator->first;
                 set_neighbour_flag();
                 return current_particle_cell.global_index;
@@ -435,7 +462,7 @@ public:
 
         if(apr_access->gap_map.data[level][offset].size() > 0){
             auto it = apr_access->gap_map.data[level][offset][0].map.rbegin();
-            return (it->second.global_index_begin + (it->second.y_end-it->first));
+            return (it->second.global_index_begin_offset + (it->second.y_end-it->first)); //#fixme
         } else {
             return 0;
         }
@@ -802,7 +829,7 @@ protected:
             }
         } else {
             current_gap.iterator = apr_access->gap_map.data[current_particle_cell.level][current_particle_cell.pc_offset][0].map.begin();
-            current_particle_cell.global_index=current_gap.iterator->second.global_index_begin;
+            current_particle_cell.global_index=current_gap.iterator->second.global_index_begin_offset; //#fixme
             current_particle_cell.y = current_gap.iterator->first;
 
             //compute x and z
