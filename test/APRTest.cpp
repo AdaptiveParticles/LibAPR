@@ -109,37 +109,50 @@ bool test_apr_input_output(TestData& test_data){
     apr_read.read_apr(save_loc + file_name + "_apr.h5");
     APRIterator<uint16_t> apr_iterator_read(apr_read);
 
-    uint64_t particle_number;
+    for (unsigned int level = apr_iterator.level_min(); level <= apr_iterator.level_max(); ++level) {
+        int z = 0;
+        int x = 0;
 
-    for (particle_number = 0; particle_number < apr_iterator.total_number_particles(); ++particle_number) {
+        for (z = 0; z < apr_iterator.spatial_index_z_max(level); z++) {
+            for (x = 0; x < apr_iterator.spatial_index_x_max(level); ++x) {
+                apr_iterator_read.set_new_lzx(level, z, x);
+                for (apr_iterator.set_new_lzx(level, z, x); apr_iterator.global_index() < apr_iterator.end_index;
+                     apr_iterator.set_iterator_to_particle_next_particle()) {
 
-        apr_iterator.set_iterator_to_particle_by_number(particle_number);
-        apr_iterator_read.set_iterator_to_particle_by_number(particle_number);
-        //counter++;
+                    //counter++;
 
-        //check the functionality
-        if(test_data.apr.particles_intensities[apr_iterator]!=apr_read.particles_intensities[apr_iterator_read]){
-            success = false;
-        }
 
-        if(apr_iterator.level()!=apr_iterator_read.level()){
-            success = false;
-        }
+                    //check the functionality
+                    if (test_data.apr.particles_intensities[apr_iterator] !=
+                        apr_read.particles_intensities[apr_iterator_read]) {
+                        success = false;
+                    }
 
-        if(apr_iterator.x()!=apr_iterator_read.x()){
-            success = false;
-        }
+                    if (apr_iterator.level() != apr_iterator_read.level()) {
+                        success = false;
+                    }
 
-        if(apr_iterator.y()!=apr_iterator_read.y()){
-            success = false;
-        }
+                    if (apr_iterator.x() != apr_iterator_read.x()) {
+                        success = false;
+                    }
 
-        if(apr_iterator.z()!=apr_iterator_read.z()){
-            success = false;
-        }
+                    if (apr_iterator.y() != apr_iterator_read.y()) {
+                        success = false;
+                    }
 
-        if(apr_iterator.type()!=apr_iterator_read.type()){
-            success = false;
+                    if (apr_iterator.z() != apr_iterator_read.z()) {
+                        success = false;
+                    }
+
+                    if (apr_iterator.type() != apr_iterator_read.type()) {
+                        success = false;
+                    }
+                    if(apr_iterator_read.global_index() < apr_iterator_read.end_index) {
+                        apr_iterator_read.set_iterator_to_particle_next_particle();
+                    }
+
+                }
+            }
         }
 
     }
@@ -152,30 +165,51 @@ bool test_apr_input_output(TestData& test_data){
     APRIterator<uint16_t> neighbour_iterator(apr_read);
     APRIterator<uint16_t> apr_iterator_read2(apr_read);
 
-    for (particle_number = 0; particle_number < apr_iterator_read.total_number_particles(); ++particle_number) {
-        apr_iterator_read2.set_iterator_to_particle_by_number(particle_number);
+    for (unsigned int level = apr_iterator.level_min(); level <= apr_iterator.level_max(); ++level) {
+        int z = 0;
+        int x = 0;
 
-        //loop over all the neighbours and set the neighbour iterator to it
-        for (int direction = 0; direction < 6; ++direction) {
-            // Neighbour Particle Cell Face definitions [+y,-y,+x,-x,+z,-z] =  [0,1,2,3,4,5]
-            apr_iterator_read2.find_neighbours_in_direction(direction);
+        for (z = 0; z < apr_iterator.spatial_index_z_max(level); z++) {
+            for (x = 0; x < apr_iterator.spatial_index_x_max(level); ++x) {
+                apr_iterator_read2.set_new_lzx(level, z, x);
+                for (apr_iterator.set_new_lzx(level, z, x); apr_iterator.global_index() < apr_iterator.end_index;
+                     apr_iterator.set_iterator_to_particle_next_particle()) {
 
-            success = check_neighbour_out_of_bounds(apr_iterator_read2,direction);
+                    //counter++;
+                    //apr_iterator_read2.set_iterator_to_particle_next_particle();
 
-            for (int index = 0; index < apr_iterator_read2.number_neighbours_in_direction(direction); ++index) {
 
-                // on each face, there can be 0-4 neighbours accessed by index
-                if(neighbour_iterator.set_neighbour_iterator(apr_iterator_read2, direction, index)){
-                    //will return true if there is a neighbour defined
-                    uint16_t apr_intensity = test_data.apr.particles_intensities[neighbour_iterator];
-                    uint16_t check_intensity = test_data.img_pc(neighbour_iterator.y_nearest_pixel(),neighbour_iterator.x_nearest_pixel(),neighbour_iterator.z_nearest_pixel());
+                    //loop over all the neighbours and set the neighbour iterator to it
+                    for (int direction = 0; direction < 6; ++direction) {
+                        // Neighbour Particle Cell Face definitions [+y,-y,+x,-x,+z,-z] =  [0,1,2,3,4,5]
+                        apr_iterator_read2.find_neighbours_in_direction(direction);
 
-                    if(check_intensity!=apr_intensity){
-                        success = false;
+                        success = check_neighbour_out_of_bounds(apr_iterator_read2, direction);
+
+                        for (int index = 0;
+                             index < apr_iterator_read2.number_neighbours_in_direction(direction); ++index) {
+
+                            // on each face, there can be 0-4 neighbours accessed by index
+                            if (neighbour_iterator.set_neighbour_iterator(apr_iterator_read2, direction, index)) {
+                                //will return true if there is a neighbour defined
+                                uint16_t apr_intensity = test_data.apr.particles_intensities[neighbour_iterator];
+                                uint16_t check_intensity = test_data.img_pc(neighbour_iterator.y_nearest_pixel(),
+                                                                            neighbour_iterator.x_nearest_pixel(),
+                                                                            neighbour_iterator.z_nearest_pixel());
+
+                                if (check_intensity != apr_intensity) {
+                                    success = false;
+                                }
+
+                                if (!check_neighbours(apr_read, apr_iterator_read2, neighbour_iterator)) {
+                                    success = false;
+                                }
+                            }
+                        }
                     }
 
-                    if(!check_neighbours(apr_read,apr_iterator_read2,neighbour_iterator)){
-                        success = false;
+                    if(apr_iterator_read2.global_index() < apr_iterator_read2.end_index) {
+                        apr_iterator_read2.set_iterator_to_particle_next_particle();
                     }
                 }
             }
@@ -185,9 +219,21 @@ bool test_apr_input_output(TestData& test_data){
 
     ExtraParticleData<float> extra_data(test_data.apr);
 
-    for (particle_number = 0; particle_number < apr_iterator_read.total_number_particles(); ++particle_number) {
-        apr_iterator_read.set_iterator_to_particle_by_number(particle_number);
-        extra_data[apr_iterator_read] = apr_iterator_read.type();
+    for (unsigned int level = apr_iterator.level_min(); level <= apr_iterator.level_max(); ++level) {
+        int z = 0;
+        int x = 0;
+
+        for (z = 0; z < apr_iterator.spatial_index_z_max(level); z++) {
+            for (x = 0; x < apr_iterator.spatial_index_x_max(level); ++x) {
+
+                for (apr_iterator_read.set_new_lzx(level, z, x);
+                     apr_iterator_read.global_index() < apr_iterator_read.end_index;
+                     apr_iterator_read.set_iterator_to_particle_next_particle()) {
+
+                    extra_data[apr_iterator_read] = apr_iterator_read.level();
+                }
+            }
+        }
 
     }
 
@@ -201,43 +247,27 @@ bool test_apr_input_output(TestData& test_data){
     //you need the same apr used to write it to load it (doesn't save location data)
     test_data.apr.read_parts_only(extra_file_name,extra_data_read);
 
-    for (particle_number = 0; particle_number < apr_iterator_read.total_number_particles(); ++particle_number) {
-        apr_iterator_read.set_iterator_to_particle_by_number(particle_number);
+    for (unsigned int level = apr_iterator.level_min(); level <= apr_iterator.level_max(); ++level) {
+        int z = 0;
+        int x = 0;
 
-        extra_data[apr_iterator_read] = apr_iterator_read.type();
-        if((extra_data[apr_iterator_read]) != (extra_data_read[apr_iterator_read])){
+        for (z = 0; z < apr_iterator.spatial_index_z_max(level); z++) {
+            for (x = 0; x < apr_iterator.spatial_index_x_max(level); ++x) {
 
-            success = false;
+                for (apr_iterator_read.set_new_lzx(level, z, x);
+                     apr_iterator_read.global_index() < apr_iterator_read.end_index;
+                     apr_iterator_read.set_iterator_to_particle_next_particle()) {
+
+                    extra_data[apr_iterator_read] = apr_iterator_read.level();
+                    if ((extra_data[apr_iterator_read]) != (extra_data_read[apr_iterator_read])) {
+
+                        success = false;
+                    }
+                }
+            }
         }
     }
 
-    //Repeat with different data-type
-    ExtraParticleData<uint16_t> extra_data16(test_data.apr);
-
-    for (particle_number = 0; particle_number < apr_iterator_read.total_number_particles(); ++particle_number) {
-        apr_iterator_read.set_iterator_to_particle_by_number(particle_number);
-
-        extra_data16[apr_iterator_read] = apr_iterator_read.level();
-
-    }
-
-    //write one of the above results to file
-    test_data.apr.write_particles_only(save_loc,"example_output16",extra_data16);
-
-    std::string extra_file_name16 = save_loc + "example_output16" + "_apr_extra_parts.h5";
-
-    ExtraParticleData<uint16_t> extra_data_read16;
-
-    //you need the same apr used to write it to load it (doesn't save location data)
-    test_data.apr.read_parts_only(extra_file_name16,extra_data_read16);
-
-    for (particle_number = 0; particle_number < apr_iterator_read.total_number_particles(); ++particle_number) {
-        apr_iterator_read.set_iterator_to_particle_by_number(particle_number);
-
-        if(extra_data16[apr_iterator_read] != (extra_data_read16[apr_iterator_read])){
-            success = false;
-        }
-    }
 
     return success;
 }
@@ -251,142 +281,195 @@ bool test_apr_neighbour_access(TestData& test_data){
     APRIterator<uint16_t> neighbour_iterator(test_data.apr);
     APRIterator<uint16_t> apr_iterator(test_data.apr);
 
-    uint64_t particle_number;
+    ExtraParticleData<uint16_t> x_p(test_data.apr);
+    ExtraParticleData<uint16_t> y_p(test_data.apr);
+    ExtraParticleData<uint16_t> z_p(test_data.apr);
 
-    for (particle_number = 0; particle_number < apr_iterator.total_number_particles(); ++particle_number) {
+    for (unsigned int level = apr_iterator.level_min(); level <= apr_iterator.level_max(); ++level) {
+        int z = 0;
+        int x = 0;
 
-        apr_iterator.set_iterator_to_particle_by_number(particle_number);
 
-        //loop over all the neighbours and set the neighbour iterator to it
-        for (int direction = 0; direction < 6; ++direction) {
-            // Neighbour Particle Cell Face definitions [+y,-y,+x,-x,+z,-z] =  [0,1,2,3,4,5]
-            apr_iterator.find_neighbours_in_direction(direction);
+        for (z = 0; z < apr_iterator.spatial_index_z_max(level); z++) {
+            for (x = 0; x < apr_iterator.spatial_index_x_max(level); ++x) {
+                for (apr_iterator.set_new_lzx(level, z, x); apr_iterator.global_index() < apr_iterator.end_index;
+                     apr_iterator.set_iterator_to_particle_next_particle()) {
 
-            success = check_neighbour_out_of_bounds(apr_iterator,direction);
-
-            for (int index = 0; index < apr_iterator.number_neighbours_in_direction(direction); ++index) {
-
-                // on each face, there can be 0-4 neighbours accessed by index
-                if(neighbour_iterator.set_neighbour_iterator(apr_iterator, direction, index)){
-                    //will return true if there is a neighbour defined
-                    uint16_t apr_intensity = test_data.apr.particles_intensities[neighbour_iterator];
-                    uint16_t check_intensity = test_data.img_pc(neighbour_iterator.y_nearest_pixel(),neighbour_iterator.x_nearest_pixel(),neighbour_iterator.z_nearest_pixel());
-
-                    if(check_intensity!=apr_intensity){
-                        success = false;
-                    }
-
-                    uint16_t apr_level = neighbour_iterator.level();
-                    uint16_t check_level = test_data.img_level(neighbour_iterator.y_nearest_pixel(),neighbour_iterator.x_nearest_pixel(),neighbour_iterator.z_nearest_pixel());
-
-                    if(check_level!=apr_level){
-                        success = false;
-                    }
-
-                    uint16_t apr_type = neighbour_iterator.type();
-                    uint16_t check_type = test_data.img_type(neighbour_iterator.y_nearest_pixel(),neighbour_iterator.x_nearest_pixel(),neighbour_iterator.z_nearest_pixel());
-
-                    if(check_type!=apr_type){
-                        success = false;
-                    }
-
-                    uint16_t apr_x = neighbour_iterator.x();
-                    uint16_t check_x = test_data.img_x(neighbour_iterator.y_nearest_pixel(),neighbour_iterator.x_nearest_pixel(),neighbour_iterator.z_nearest_pixel());
-
-                    if(check_x!=apr_x){
-                        success = false;
-                    }
-
-                    uint16_t apr_y = neighbour_iterator.y();
-                    uint16_t check_y = test_data.img_y(neighbour_iterator.y_nearest_pixel(),neighbour_iterator.x_nearest_pixel(),neighbour_iterator.z_nearest_pixel());
-
-                    if(check_y!=apr_y){
-                        success = false;
-                    }
-
-                    uint16_t apr_z = neighbour_iterator.z();
-                    uint16_t check_z = test_data.img_z(neighbour_iterator.y_nearest_pixel(),neighbour_iterator.x_nearest_pixel(),neighbour_iterator.z_nearest_pixel());
-
-                    if(check_z!=apr_z){
-                        success = false;
-                    }
-
-                    if(!check_neighbours(test_data.apr,apr_iterator,neighbour_iterator)){
-                        success = false;
-                    }
+                    x_p[apr_iterator] = apr_iterator.x();
+                    y_p[apr_iterator] = apr_iterator.y();
+                    z_p[apr_iterator] = apr_iterator.z();
 
                 }
-
             }
-
         }
     }
 
-#ifdef HAVE_OPENMP
-	#pragma omp parallel for schedule(static) private(particle_number) firstprivate(apr_iterator,neighbour_iterator)
-#endif
-    for (particle_number = 0; particle_number < apr_iterator.total_number_particles(); ++particle_number) {
 
-        apr_iterator.set_iterator_to_particle_by_number(particle_number);
 
-        //loop over all the neighbours and set the neighbour iterator to it
-        for (int direction = 0; direction < 6; ++direction) {
-            // Neighbour Particle Cell Face definitions [+y,-y,+x,-x,+z,-z] =  [0,1,2,3,4,5]
-            apr_iterator.find_neighbours_in_direction(direction);
 
-            success = check_neighbour_out_of_bounds(apr_iterator,direction);
 
-            for (int index = 0; index < apr_iterator.number_neighbours_in_direction(direction); ++index) {
+    for (unsigned int level = apr_iterator.level_min(); level <= apr_iterator.level_max(); ++level) {
+        int z = 0;
+        int x = 0;
 
-                // on each face, there can be 0-4 neighbours accessed by index
-                if(neighbour_iterator.set_neighbour_iterator(apr_iterator, direction, index)){
-                    //will return true if there is a neighbour defined
-                    uint16_t apr_intensity = (test_data.apr.particles_intensities[neighbour_iterator]);
-                    uint16_t check_intensity = test_data.img_pc(neighbour_iterator.y_nearest_pixel(),neighbour_iterator.x_nearest_pixel(),neighbour_iterator.z_nearest_pixel());
 
-                    if(check_intensity!=apr_intensity){
-                        success = false;
+        for (z = 0; z < apr_iterator.spatial_index_z_max(level); z++) {
+            for (x = 0; x < apr_iterator.spatial_index_x_max(level); ++x) {
+                for (apr_iterator.set_new_lzx(level, z, x); apr_iterator.global_index() < apr_iterator.end_index;
+                     apr_iterator.set_iterator_to_particle_next_particle()) {
+
+                    //loop over all the neighbours and set the neighbour iterator to it
+                    for (int direction = 0; direction < 6; ++direction) {
+                        // Neighbour Particle Cell Face definitions [+y,-y,+x,-x,+z,-z] =  [0,1,2,3,4,5]
+                        apr_iterator.find_neighbours_in_direction(direction);
+
+                        success = check_neighbour_out_of_bounds(apr_iterator, direction);
+
+                        for (int index = 0; index < apr_iterator.number_neighbours_in_direction(direction); ++index) {
+
+                            // on each face, there can be 0-4 neighbours accessed by index
+                            if (neighbour_iterator.set_neighbour_iterator(apr_iterator, direction, index)) {
+                                //will return true if there is a neighbour defined
+                                uint16_t apr_intensity = test_data.apr.particles_intensities[neighbour_iterator];
+                                uint16_t check_intensity = test_data.img_pc(neighbour_iterator.y_nearest_pixel(),
+                                                                            neighbour_iterator.x_nearest_pixel(),
+                                                                            neighbour_iterator.z_nearest_pixel());
+
+                                uint16_t x_n = x_p[neighbour_iterator];
+                                uint16_t y_n = y_p[neighbour_iterator];
+                                uint16_t z_n = z_p[neighbour_iterator];
+
+                                if (check_intensity != apr_intensity) {
+                                    success = false;
+                                }
+
+
+                                uint16_t apr_level = neighbour_iterator.level();
+                                uint16_t check_level = test_data.img_level(neighbour_iterator.y_nearest_pixel(),
+                                                                           neighbour_iterator.x_nearest_pixel(),
+                                                                           neighbour_iterator.z_nearest_pixel());
+
+                                if (check_level != apr_level) {
+                                    success = false;
+                                }
+
+
+                                uint16_t apr_x = neighbour_iterator.x();
+                                uint16_t check_x = test_data.img_x(neighbour_iterator.y_nearest_pixel(),
+                                                                   neighbour_iterator.x_nearest_pixel(),
+                                                                   neighbour_iterator.z_nearest_pixel());
+
+                                if (check_x != apr_x) {
+                                    success = false;
+                                }
+
+                                uint16_t apr_y = neighbour_iterator.y();
+                                uint16_t check_y = test_data.img_y(neighbour_iterator.y_nearest_pixel(),
+                                                                   neighbour_iterator.x_nearest_pixel(),
+                                                                   neighbour_iterator.z_nearest_pixel());
+
+                                if (check_y != apr_y) {
+                                    success = false;
+                                }
+
+                                uint16_t apr_z = neighbour_iterator.z();
+                                uint16_t check_z = test_data.img_z(neighbour_iterator.y_nearest_pixel(),
+                                                                   neighbour_iterator.x_nearest_pixel(),
+                                                                   neighbour_iterator.z_nearest_pixel());
+
+                                if (check_z != apr_z) {
+                                    success = false;
+                                }
+
+                                if (!check_neighbours(test_data.apr, apr_iterator, neighbour_iterator)) {
+                                    success = false;
+                                }
+
+                            }
+
+                        }
+
                     }
-
-                    uint16_t apr_level = neighbour_iterator.level();
-                    uint16_t check_level = test_data.img_level(neighbour_iterator.y_nearest_pixel(),neighbour_iterator.x_nearest_pixel(),neighbour_iterator.z_nearest_pixel());
-
-                    if(check_level!=apr_level){
-                        success = false;
-                    }
-
-                    uint16_t apr_type = neighbour_iterator.type();
-                    uint16_t check_type = test_data.img_type(neighbour_iterator.y_nearest_pixel(),neighbour_iterator.x_nearest_pixel(),neighbour_iterator.z_nearest_pixel());
-
-                    if(check_type!=apr_type){
-                        success = false;
-                    }
-
-                    uint16_t apr_x = neighbour_iterator.x();
-                    uint16_t check_x = test_data.img_x(neighbour_iterator.y_nearest_pixel(),neighbour_iterator.x_nearest_pixel(),neighbour_iterator.z_nearest_pixel());
-
-                    if(check_x!=apr_x){
-                        success = false;
-                    }
-
-                    uint16_t apr_y = neighbour_iterator.y();
-                    uint16_t check_y = test_data.img_y(neighbour_iterator.y_nearest_pixel(),neighbour_iterator.x_nearest_pixel(),neighbour_iterator.z_nearest_pixel());
-
-                    if(check_y!=apr_y){
-                        success = false;
-                    }
-
-                    uint16_t apr_z = neighbour_iterator.z();
-                    uint16_t check_z = test_data.img_z(neighbour_iterator.y_nearest_pixel(),neighbour_iterator.x_nearest_pixel(),neighbour_iterator.z_nearest_pixel());
-
-                    if(check_z!=apr_z){
-                        success = false;
-                    }
-
                 }
-
             }
+        }
+    }
 
+    for (unsigned int level = apr_iterator.level_min(); level <= apr_iterator.level_max(); ++level) {
+        int z = 0;
+        int x = 0;
+
+#ifdef HAVE_OPENMP
+#pragma omp parallel for schedule(dynamic) private(z, x) firstprivate(apr_iterator,neighbour_iterator)
+#endif
+        for (z = 0; z < apr_iterator.spatial_index_z_max(level); z++) {
+            for (x = 0; x < apr_iterator.spatial_index_x_max(level); ++x) {
+                for (apr_iterator.set_new_lzx(level, z, x); apr_iterator.global_index() < apr_iterator.end_index;
+                     apr_iterator.set_iterator_to_particle_next_particle()) {
+
+                    //loop over all the neighbours and set the neighbour iterator to it
+                    for (int direction = 0; direction < 6; ++direction) {
+                        // Neighbour Particle Cell Face definitions [+y,-y,+x,-x,+z,-z] =  [0,1,2,3,4,5]
+                        apr_iterator.find_neighbours_in_direction(direction);
+
+                        success = check_neighbour_out_of_bounds(apr_iterator, direction);
+
+                        for (int index = 0; index < apr_iterator.number_neighbours_in_direction(direction); ++index) {
+
+                            // on each face, there can be 0-4 neighbours accessed by index
+                            if (neighbour_iterator.set_neighbour_iterator(apr_iterator, direction, index)) {
+                                //will return true if there is a neighbour defined
+                                uint16_t apr_intensity = (test_data.apr.particles_intensities[neighbour_iterator]);
+                                uint16_t check_intensity = test_data.img_pc(neighbour_iterator.y_nearest_pixel(),
+                                                                            neighbour_iterator.x_nearest_pixel(),
+                                                                            neighbour_iterator.z_nearest_pixel());
+
+                                if (check_intensity != apr_intensity) {
+                                    success = false;
+                                }
+
+                                uint16_t apr_level = neighbour_iterator.level();
+                                uint16_t check_level = test_data.img_level(neighbour_iterator.y_nearest_pixel(),
+                                                                           neighbour_iterator.x_nearest_pixel(),
+                                                                           neighbour_iterator.z_nearest_pixel());
+
+                                if (check_level != apr_level) {
+                                    success = false;
+                                }
+
+
+                                uint16_t apr_x = neighbour_iterator.x();
+                                uint16_t check_x = test_data.img_x(neighbour_iterator.y_nearest_pixel(),
+                                                                   neighbour_iterator.x_nearest_pixel(),
+                                                                   neighbour_iterator.z_nearest_pixel());
+
+                                if (check_x != apr_x) {
+                                    success = false;
+                                }
+
+                                uint16_t apr_y = neighbour_iterator.y();
+                                uint16_t check_y = test_data.img_y(neighbour_iterator.y_nearest_pixel(),
+                                                                   neighbour_iterator.x_nearest_pixel(),
+                                                                   neighbour_iterator.z_nearest_pixel());
+
+                                if (check_y != apr_y) {
+                                    success = false;
+                                }
+
+                                uint16_t apr_z = neighbour_iterator.z();
+                                uint16_t check_z = test_data.img_z(neighbour_iterator.y_nearest_pixel(),
+                                                                   neighbour_iterator.x_nearest_pixel(),
+                                                                   neighbour_iterator.z_nearest_pixel());
+
+                                if (check_z != apr_z) {
+                                    success = false;
+                                }
+
+                            }
+                        }
+                    }
+                }
+            }
         }
     }
 
@@ -412,140 +495,147 @@ bool test_apr_iterate(TestData& test_data){
     APRIterator<uint16_t> apr_iterator(test_data.apr);
     uint64_t particle_number = 0;
 
-    for (particle_number = 0; particle_number < apr_iterator.total_number_particles(); ++particle_number) {
-        apr_iterator.set_iterator_to_particle_by_number(particle_number);
+    for (unsigned int level = apr_iterator.level_min(); level <= apr_iterator.level_max(); ++level) {
+        int z = 0;
+        int x = 0;
 
-        uint16_t apr_intensity = (test_data.apr.particles_intensities[apr_iterator]);
-        uint16_t check_intensity = test_data.img_pc(apr_iterator.y_nearest_pixel(),apr_iterator.x_nearest_pixel(),apr_iterator.z_nearest_pixel());
+        for (z = 0; z < apr_iterator.spatial_index_z_max(level); z++) {
+            for (x = 0; x < apr_iterator.spatial_index_x_max(level); ++x) {
+                for (apr_iterator.set_new_lzx(level, z, x); apr_iterator.global_index() < apr_iterator.end_index;
+                     apr_iterator.set_iterator_to_particle_next_particle()) {
 
-        if(check_intensity!=apr_intensity){
-            success = false;
-        }
+                    uint16_t apr_intensity = (test_data.apr.particles_intensities[apr_iterator]);
+                    uint16_t check_intensity = test_data.img_pc(apr_iterator.y_nearest_pixel(),
+                                                                apr_iterator.x_nearest_pixel(),
+                                                                apr_iterator.z_nearest_pixel());
 
-        uint16_t apr_level = apr_iterator.level();
-        uint16_t check_level = test_data.img_level(apr_iterator.y_nearest_pixel(),apr_iterator.x_nearest_pixel(),apr_iterator.z_nearest_pixel());
+                    if (check_intensity != apr_intensity) {
+                        success = false;
+                    }
 
-        if(check_level!=apr_level){
-            success = false;
-        }
+                    uint16_t apr_level = apr_iterator.level();
+                    uint16_t check_level = test_data.img_level(apr_iterator.y_nearest_pixel(),
+                                                               apr_iterator.x_nearest_pixel(),
+                                                               apr_iterator.z_nearest_pixel());
 
-        uint16_t apr_type = apr_iterator.type();
-        uint16_t check_type = test_data.img_type(apr_iterator.y_nearest_pixel(),apr_iterator.x_nearest_pixel(),apr_iterator.z_nearest_pixel());
+                    if (check_level != apr_level) {
+                        success = false;
+                    }
 
-        if(check_type!=apr_type){
-            success = false;
-        }
+                    uint16_t apr_type = apr_iterator.type();
+                    uint16_t check_type = test_data.img_type(apr_iterator.y_nearest_pixel(),
+                                                             apr_iterator.x_nearest_pixel(),
+                                                             apr_iterator.z_nearest_pixel());
 
-        uint16_t apr_x = apr_iterator.x();
-        uint16_t check_x = test_data.img_x(apr_iterator.y_nearest_pixel(),apr_iterator.x_nearest_pixel(),apr_iterator.z_nearest_pixel());
 
-        if(check_x!=apr_x){
-            success = false;
-        }
+                    uint16_t apr_x = apr_iterator.x();
+                    uint16_t check_x = test_data.img_x(apr_iterator.y_nearest_pixel(), apr_iterator.x_nearest_pixel(),
+                                                       apr_iterator.z_nearest_pixel());
 
-        uint16_t apr_y = apr_iterator.y();
-        uint16_t check_y = test_data.img_y(apr_iterator.y_nearest_pixel(),apr_iterator.x_nearest_pixel(),apr_iterator.z_nearest_pixel());
+                    if (check_x != apr_x) {
+                        success = false;
+                    }
 
-        if(check_y!=apr_y){
-            success = false;
-        }
+                    uint16_t apr_y = apr_iterator.y();
+                    uint16_t check_y = test_data.img_y(apr_iterator.y_nearest_pixel(), apr_iterator.x_nearest_pixel(),
+                                                       apr_iterator.z_nearest_pixel());
 
-        uint16_t apr_z = apr_iterator.z();
-        uint16_t check_z = test_data.img_z(apr_iterator.y_nearest_pixel(),apr_iterator.x_nearest_pixel(),apr_iterator.z_nearest_pixel());
+                    if (check_y != apr_y) {
+                        success = false;
+                    }
 
-        if(check_z!=apr_z){
-            success = false;
+                    uint16_t apr_z = apr_iterator.z();
+                    uint16_t check_z = test_data.img_z(apr_iterator.y_nearest_pixel(), apr_iterator.x_nearest_pixel(),
+                                                       apr_iterator.z_nearest_pixel());
+
+                    if (check_z != apr_z) {
+                        success = false;
+                    }
+                }
+            }
         }
 
     }
 
     //Test parallel loop
 
+    for (unsigned int level = apr_iterator.level_min(); level <= apr_iterator.level_max(); ++level) {
+        int z = 0;
+        int x = 0;
+
 #ifdef HAVE_OPENMP
-	#pragma omp parallel for schedule(static) private(particle_number) firstprivate(apr_iterator)
+#pragma omp parallel for schedule(dynamic) private(z, x) firstprivate(apr_iterator)
 #endif
-    for (particle_number = 0; particle_number < apr_iterator.total_number_particles(); ++particle_number) {
-        apr_iterator.set_iterator_to_particle_by_number(particle_number);
+        for (z = 0; z < apr_iterator.spatial_index_z_max(level); z++) {
+            for (x = 0; x < apr_iterator.spatial_index_x_max(level); ++x) {
+                for (apr_iterator.set_new_lzx(level, z, x); apr_iterator.global_index() < apr_iterator.end_index;
+                     apr_iterator.set_iterator_to_particle_next_particle()) {
 
-        uint16_t apr_intensity = (test_data.apr.particles_intensities[apr_iterator]);
-        uint16_t check_intensity = test_data.img_pc(apr_iterator.y_nearest_pixel(),apr_iterator.x_nearest_pixel(),apr_iterator.z_nearest_pixel());
+                    uint16_t apr_intensity = (test_data.apr.particles_intensities[apr_iterator]);
+                    uint16_t check_intensity = test_data.img_pc(apr_iterator.y_nearest_pixel(),
+                                                                apr_iterator.x_nearest_pixel(),
+                                                                apr_iterator.z_nearest_pixel());
 
-        if(check_intensity!=apr_intensity){
-            success = false;
-        }
+                    if (check_intensity != apr_intensity) {
+                        success = false;
+                    }
 
-        uint16_t apr_level = apr_iterator.level();
-        uint16_t check_level = test_data.img_level(apr_iterator.y_nearest_pixel(),apr_iterator.x_nearest_pixel(),apr_iterator.z_nearest_pixel());
+                    uint16_t apr_level = apr_iterator.level();
+                    uint16_t check_level = test_data.img_level(apr_iterator.y_nearest_pixel(),
+                                                               apr_iterator.x_nearest_pixel(),
+                                                               apr_iterator.z_nearest_pixel());
 
-        if(check_level!=apr_level){
-            success = false;
-        }
+                    if (check_level != apr_level) {
+                        success = false;
+                    }
 
-        uint16_t apr_type = apr_iterator.type();
-        uint16_t check_type = test_data.img_type(apr_iterator.y_nearest_pixel(),apr_iterator.x_nearest_pixel(),apr_iterator.z_nearest_pixel());
 
-        if(check_type!=apr_type){
-            success = false;
-        }
 
-        uint16_t apr_x = apr_iterator.x();
-        uint16_t check_x = test_data.img_x(apr_iterator.y_nearest_pixel(),apr_iterator.x_nearest_pixel(),apr_iterator.z_nearest_pixel());
+                    uint16_t apr_x = apr_iterator.x();
+                    uint16_t check_x = test_data.img_x(apr_iterator.y_nearest_pixel(), apr_iterator.x_nearest_pixel(),
+                                                       apr_iterator.z_nearest_pixel());
 
-        if(check_x!=apr_x){
-            success = false;
-        }
+                    if (check_x != apr_x) {
+                        success = false;
+                    }
 
-        uint16_t apr_y = apr_iterator.y();
-        uint16_t check_y = test_data.img_y(apr_iterator.y_nearest_pixel(),apr_iterator.x_nearest_pixel(),apr_iterator.z_nearest_pixel());
+                    uint16_t apr_y = apr_iterator.y();
+                    uint16_t check_y = test_data.img_y(apr_iterator.y_nearest_pixel(), apr_iterator.x_nearest_pixel(),
+                                                       apr_iterator.z_nearest_pixel());
 
-        if(check_y!=apr_y){
-            success = false;
-        }
+                    if (check_y != apr_y) {
+                        success = false;
+                    }
 
-        uint16_t apr_z = apr_iterator.z();
-        uint16_t check_z = test_data.img_z(apr_iterator.y_nearest_pixel(),apr_iterator.x_nearest_pixel(),apr_iterator.z_nearest_pixel());
+                    uint16_t apr_z = apr_iterator.z();
+                    uint16_t check_z = test_data.img_z(apr_iterator.y_nearest_pixel(), apr_iterator.x_nearest_pixel(),
+                                                       apr_iterator.z_nearest_pixel());
 
-        if(check_z!=apr_z){
-            success = false;
+                    if (check_z != apr_z) {
+                        success = false;
+                    }
+                }
+            }
         }
 
     }
 
     uint64_t counter = 0;
     for (unsigned int level = apr_iterator.level_min(); level <= apr_iterator.level_max(); ++level) {
-        for (particle_number = apr_iterator.particles_level_begin(level); particle_number < apr_iterator.particles_level_end(level); ++particle_number) {
+        int z = 0;
+        int x = 0;
 
-            apr_iterator.set_iterator_to_particle_by_number(particle_number); // (Required step), sets the iterator to the particle
+        for (z = 0; z < apr_iterator.spatial_index_z_max(level); z++) {
+            for (x = 0; x < apr_iterator.spatial_index_x_max(level); ++x) {
+                for (apr_iterator.set_new_lzx(level, z, x); apr_iterator.global_index() < apr_iterator.end_index;
+                     apr_iterator.set_iterator_to_particle_next_particle()) {
 
-            counter++;
+                    counter++;
 
-            if(apr_iterator.level() != level){
-                //set all particles in calc_ex with an particle intensity greater then 100 to 0.
-               success = false;
-            }
-        }
-    }
-
-    if(counter != apr_iterator.total_number_particles()){
-        success = false;
-    }
-
-    counter = 0;
-
-    for (int level = apr_iterator.level_min(); level <= apr_iterator.level_max(); ++level) {
-        for(unsigned int z = 0; z < apr_iterator.spatial_index_z_max(level); ++z) {
-
-            for (particle_number = apr_iterator.particles_z_begin(level,z);
-                 particle_number < apr_iterator.particles_z_end(level,z); ++particle_number) {
-                //
-                //  Parallel loop over level
-                //
-                apr_iterator.set_iterator_to_particle_by_number(particle_number);
-
-                counter++;
-
-                if (apr_iterator.z() != z) {
-                    success = false;
+                    if (apr_iterator.level() != level) {
+                        //set all particles in calc_ex with an particle intensity greater then 100 to 0.
+                        success = false;
+                    }
                 }
             }
         }
@@ -554,6 +644,8 @@ bool test_apr_iterate(TestData& test_data){
     if(counter != apr_iterator.total_number_particles()){
         success = false;
     }
+
+
 
     return success;
 }
