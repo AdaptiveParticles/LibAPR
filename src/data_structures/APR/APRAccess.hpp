@@ -1204,7 +1204,7 @@ public:
         y_begin.x_num.resize(y_begin.depth_max+1);
         y_begin.data.resize(y_begin.depth_max+1);
 
-        for (uint64_t i = y_begin.depth_min; i <= y_begin.depth_max; ++i) {
+        for (uint64_t i = y_begin.depth_min; i < y_begin.depth_max; ++i) {
             y_begin.z_num[i] = z_num[i];
             y_begin.x_num[i] = x_num[i];
             y_begin.data[i].resize(z_num[i]*x_num[i]);
@@ -1215,7 +1215,7 @@ public:
 
         apr_timer.start_timer("create gaps");
 
-        for(uint64_t i = (level_min);i <= level_max;i++) {
+        for(uint64_t i = (level_min);i < level_max;i++) {
 
             const uint64_t x_num_ = x_num[i];
             const uint64_t z_num_ = z_num[i];
@@ -1292,7 +1292,7 @@ public:
         global_index_by_level_and_z_begin.resize(level_max+1);
         global_index_by_level_and_z_end.resize(level_max+1);
 
-        for(uint64_t i = (level_min);i <= level_max;i++) {
+        for(uint64_t i = (level_min);i < level_max;i++) {
 
             const unsigned int x_num_ = x_num[i];
             const unsigned int z_num_ = z_num[i];
@@ -1341,6 +1341,8 @@ public:
         apr_timer.stop_timer();
 
 
+        std::cout << "Lower level, interior tree PC: " << total_number_particles << std::endl;
+
         //set minimum level now to the first non-empty level.
         level_min = min_level_find;
         level_max = max_level_find;
@@ -1360,7 +1362,7 @@ public:
         gap_map.x_num.resize(y_begin.depth_max+1);
         gap_map.data.resize(y_begin.depth_max+1);
 
-        for (uint64_t i = gap_map.depth_min; i <= gap_map.depth_max; ++i) {
+        for (uint64_t i = gap_map.depth_min; i < gap_map.depth_max; ++i) {
             gap_map.z_num[i] = z_num[i];
             gap_map.x_num[i] = x_num[i];
             gap_map.data[i].resize(z_num[i]*x_num[i]);
@@ -1369,7 +1371,7 @@ public:
         uint64_t counter_rows = 0;
 
 
-        for (uint64_t i = (level_min); i <= level_max; i++) {
+        for (uint64_t i = (level_min); i < level_max; i++) {
             const unsigned int x_num_ = x_num[i];
             const unsigned int z_num_ = z_num[i];
 #ifdef HAVE_OPENMP

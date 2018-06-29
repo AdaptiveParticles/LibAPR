@@ -119,9 +119,6 @@ bool test_apr_input_output(TestData& test_data){
                 for (apr_iterator.set_new_lzx(level, z, x); apr_iterator.global_index() < apr_iterator.end_index;
                      apr_iterator.set_iterator_to_particle_next_particle()) {
 
-                    //counter++;
-
-
                     //check the functionality
                     if (test_data.apr.particles_intensities[apr_iterator] !=
                         apr_read.particles_intensities[apr_iterator_read]) {
