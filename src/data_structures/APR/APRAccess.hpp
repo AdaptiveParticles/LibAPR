@@ -1196,7 +1196,6 @@ public:
         APRTimer apr_timer;
         apr_timer.verbose_flag = false;
 
-
         //initialize loop variables
         uint64_t x_;
         uint64_t z_;
@@ -1301,6 +1300,8 @@ public:
         global_index_by_level_and_z_begin.resize(level_max+1);
         global_index_by_level_and_z_end.resize(level_max+1);
 
+        global_index_by_level_and_zx_end.resize(level_max+1);
+
         for(uint64_t i = (level_min);i < level_max;i++) {
 
             const unsigned int x_num_ = x_num[i];
@@ -1312,27 +1313,39 @@ public:
             global_index_by_level_and_z_begin[i].resize(z_num_,(-1));
             global_index_by_level_and_z_end[i].resize(z_num_,0);
 
+            global_index_by_level_and_zx_end[i].resize(z_num_ * x_num_, 0);
+
             for (z_ = 0; z_ < z_num_; z_++) {
                 uint64_t cumsum_begin_z = cumsum;
 
 
                 for (x_ = 0; x_ < x_num_; x_++) {
                     const size_t offset_pc_data = x_num_ * z_ + x_;
-                    for (int j = 0; j < y_begin.data[i][offset_pc_data].size(); ++j) {
+
+                    uint64_t xz_sum=cumsum;
+                    uint16_t local_sum = 0;
+
+                    for (size_t j = 0; j < y_begin.data[i][offset_pc_data].size(); ++j) {
 
                         min_level_find = std::min(i,min_level_find);
                         max_level_find = std::max(i,max_level_find);
 
-                        y_begin.data[i][offset_pc_data][j].second.global_index_begin_offset = cumsum; //#fixme
-
-                        cumsum+=(y_begin.data[i][offset_pc_data][j].second.y_end-y_begin.data[i][offset_pc_data][j].first)+1;
+                        y_begin.data[i][offset_pc_data][j].second.global_index_begin_offset = local_sum;
+                        local_sum+=(y_begin.data[i][offset_pc_data][j].second.y_end-y_begin.data[i][offset_pc_data][j].first)+1;
                         total_number_gaps++;
                     }
+
+                    cumsum += local_sum;
+
+                    global_index_by_level_and_zx_end[i][offset_pc_data] = cumsum;
+
+
                 }
                 if(cumsum!=cumsum_begin_z) {
                     global_index_by_level_and_z_end[i][z_] = cumsum - 1;
                     global_index_by_level_and_z_begin[i][z_] = cumsum_begin_z;
                 }
+
             }
 
             if(cumsum!=cumsum_begin){
@@ -1353,8 +1366,8 @@ public:
         std::cout << "Lower level, interior tree PC: " << total_number_particles << std::endl;
 
         //set minimum level now to the first non-empty level.
-        level_min = min_level_find;
-        level_max = max_level_find;
+        //level_min = min_level_find;
+        //level_max = max_level_find;
 
         total_number_non_empty_rows=0;
 
