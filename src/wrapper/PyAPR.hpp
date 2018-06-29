@@ -95,7 +95,6 @@ public:
         } else {
             throw std::invalid_argument("Input has to be a pyApr.APRParameters object.");
         }
-
     }
 
     /**
@@ -121,7 +120,7 @@ public:
             throw std::invalid_argument("Conflicting types. Make sure the input array is of the same type as the AprType instance.");
         }
 
-        auto *ptr = (T *) buf.ptr;
+        auto *ptr = static_cast<T*>(buf.ptr);
 
         PixelData<T> input_img;
 
