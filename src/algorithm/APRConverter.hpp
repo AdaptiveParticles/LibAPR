@@ -61,6 +61,7 @@ public:
     template<typename T>
     void auto_parameters(const PixelData<T> &input_img);
 
+
 private:
 
     //pointer to the APR structure so member functions can have access if they need
@@ -139,7 +140,7 @@ bool APRConverter<ImageType>::get_apr_method_from_file(APR<ImageType> &aAPR, con
     }
 
 
-    auto_parameters(inputImage);
+    //auto_parameters(inputImage);
     method_timer.stop_timer();
 
     return get_apr_method(aAPR, inputImage);
@@ -150,6 +151,10 @@ bool APRConverter<ImageType>::get_apr_method_from_file(APR<ImageType> &aAPR, con
  */
 template<typename ImageType> template<typename T>
 bool APRConverter<ImageType>::get_apr_method(APR<ImageType> &aAPR, PixelData<T>& input_image) {
+
+    if( par.auto_parameters ) {
+        auto_parameters(input_image);
+    }
     apr = &aAPR; // in case it was called directly
 
     total_timer.start_timer("Total_pipeline_excluding_IO");

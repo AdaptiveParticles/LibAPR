@@ -256,6 +256,25 @@ public :
     }
 
     /**
+     * Initialize with provided mesh without copying.
+     * @param aSizeOfY
+     * @param aSizeOfX
+     * @param aSizeOfZ
+     * @param aArray pointer to data
+     */
+    void init_from_mesh(int aSizeOfY, int aSizeOfX, int aSizeOfZ, T* aArray) {
+        y_num = aSizeOfY;
+        x_num = aSizeOfX;
+        z_num = aSizeOfZ;
+        size_t size = (size_t)y_num * x_num * z_num;
+
+        //TODO: fix this for python wrappers?
+        //meshMemory.reset(aArray);
+
+        mesh.set(aArray, size);
+    }
+
+    /**
      * Initialize mesh with dimensions taken from provided mesh
      * @tparam S
      * @param aInputMesh
