@@ -61,7 +61,8 @@ struct MapIterator{
     std::map<uint16_t,YGap_map>::iterator iterator;
     uint64_t pc_offset;
     uint16_t level;
-    uint64_t max_offset;
+    uint16_t max_offset;
+    uint64_t global_offset;
 };
 
 struct LocalMapIterators{
@@ -287,12 +288,26 @@ public:
                 map_iterator.pc_offset = part_cell.pc_offset;
                 map_iterator.level = part_cell.level;
 
+                if(part_cell.pc_offset == 0){
+                    if(part_cell.level == level_min){
+                        map_iterator.global_offset = 0;
+                    } else {
+                        map_iterator.global_offset = global_index_by_level_and_zx_end[part_cell.level-1].back();
+                    }
+                } else {
+                    map_iterator.global_offset = global_index_by_level_and_zx_end[part_cell.level][part_cell.pc_offset-1];
+                }
+
+
                 if(part_cell.level == level_max) {
 
                     auto it = (gap_map.data[part_cell.level][part_cell.pc_offset][0].map.rbegin());
 
                     map_iterator.max_offset = ((it->second.global_index_begin_offset + (it->second.y_end - it->first)) + 1 -
-                                           map_iterator.iterator->second.global_index_begin_offset); //#fixme
+                                           map_iterator.iterator->second.global_index_begin_offset);
+
+                    map_iterator.max_offset = ((it->second.global_index_begin_offset + (it->second.y_end-it->first))+1);
+
                 } else {
                     map_iterator.max_offset = 0;
                 }
@@ -301,7 +316,10 @@ public:
             uint64_t offset = 0;
             //deals with the different xz in the same access tree at highest resolution
             if(part_cell.level == level_max) {
-                offset = ((part_cell.x % 2) + (part_cell.z % 2) * 2)*map_iterator.max_offset;
+                offset = ((part_cell.x % 2) + (part_cell.z % 2) * 2)*map_iterator.max_offset +
+                        map_iterator.global_offset;
+            } else {
+                offset = map_iterator.global_offset;
             }
 
             if(map_iterator.iterator == current_pc_map.map.end()){
@@ -1000,7 +1018,7 @@ public:
         gap_map.z_num[level_max] = z_num[level_max - 1];
         gap_map.x_num[level_max] = x_num[level_max-1];
         gap_map.data[level_max].resize(z_num[level_max-1]*x_num[level_max-1]);
-        global_index_by_level_and_zx_end[level_max].resize(z_num[level_max-1]*x_num[level_max-1]);
+        global_index_by_level_and_zx_end[level_max].resize(z_num[level_max-1]*x_num[level_max-1],0);
 
         uint64_t j;
 #ifdef HAVE_OPENMP
@@ -1042,7 +1060,7 @@ public:
         uint64_t z_;
         uint64_t x_;
         APRTimer apr_timer;
-        apr_timer.verbose_flag = false;
+        apr_timer.verbose_flag = true;
         apr_timer.start_timer("rebuild map");
 
         std::vector<uint64_t> cumsum;
@@ -1086,18 +1104,18 @@ public:
             if(global_index_by_level_end[i]>0) {
                 global_index_by_level_begin[i] = global_index_by_level_end[i-1]+1;
             }
-            if(global_index_by_level_begin[i]>0) {
-                global_index_by_level_and_zx_end[i][0] = global_index_by_level_begin[i];
-            }
         }
 
         global_index_by_level_begin[map_data.level[0]] = map_data.global_index[0];
 
+        counter=(-1); //set to max, to loop round to 0 on first ++
         //now xz iteration helpers (need to fill in the gaps)
         for (int i = 0; i <= level_max; ++i) {
-            for (int k = 1; k < global_index_by_level_and_zx_end[level_max].size(); ++k) {
-                if(global_index_by_level_and_zx_end[level_max][k]==0){
-                    global_index_by_level_and_zx_end[level_max][k] = global_index_by_level_and_zx_end[level_max][k-1];
+            for (int k = 0; k < global_index_by_level_and_zx_end[i].size(); ++k) {
+                if(global_index_by_level_and_zx_end[i][k]==0){
+                    global_index_by_level_and_zx_end[i][k] =  map_data.global_index[counter];
+                } else {
+                    counter++;
                 }
             }
         }
@@ -1145,7 +1163,6 @@ public:
                         map_data.level.push_back(i);
                         map_data.number_gaps.push_back(gap_map.data[i][offset_pc_data][0].map.size());
 
-                        auto it = gap_map.data[i][offset_pc_data][0].map.begin();
                         map_data.global_index.push_back(global_index_by_level_and_zx_end[i][offset_pc_data]);
 
                         for (auto const &element : gap_map.data[i][offset_pc_data][0].map) {

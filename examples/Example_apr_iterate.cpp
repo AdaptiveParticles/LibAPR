@@ -39,8 +39,10 @@ int main(int argc, char **argv) {
     // APR datastructure
     APR<uint16_t> apr;
 
+    timer.start_timer("read apr");
     //read file
     apr.read_apr(file_name);
+    timer.stop_timer();
 
     ///////////////////////////
     ///
