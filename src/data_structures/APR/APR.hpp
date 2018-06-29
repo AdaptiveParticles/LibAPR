@@ -32,6 +32,7 @@ public:
     APRAccess apr_access;
     APRConverter<ImageType> apr_converter;
     APRCompress<ImageType> apr_compress;
+    APRTree<ImageType> apr_tree;
 
     ExtraParticleData<ImageType> particles_intensities;
     std::string name;

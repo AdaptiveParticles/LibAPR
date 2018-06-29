@@ -13,6 +13,14 @@
 template<typename ImageType>
 class APRTreeIterator : public APRIterator<ImageType> {
 public:
+    APR<ImageType>* aprOwn;
+
+    APRTreeIterator(APR<ImageType>& apr){
+        this->apr_access = &apr.apr_tree.tree_access;
+        this->current_particle_cell.global_index = UINT64_MAX;
+        this->highest_resolution_type = 8;
+    }
+
     APRTreeIterator(APRTree<ImageType>& apr_tree){
         this->apr_access = &apr_tree.tree_access;
         this->current_particle_cell.global_index = UINT64_MAX;

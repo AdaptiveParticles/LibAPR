@@ -102,8 +102,8 @@ public:
 
         //std::fill(tree_data.data.begin(), tree_data.data.end(), 0);
 
-        APRTreeIterator<T> treeIterator(apr_tree);
-        APRTreeIterator<T> parentIterator(apr_tree);
+        APRTreeIterator<T> treeIterator(apr);
+        APRTreeIterator<T> parentIterator(apr);
 
         APRIterator<T> apr_iterator(apr);
 

@@ -334,6 +334,111 @@ public:
         return fileSizeInfo;
     }
 
+    template<typename ImageType>
+    FileSizeInfo write_apr_tree(APRTree<ImageType> &apr, const std::string &save_loc, const std::string &file_name, APRCompress<ImageType> &apr_compressor, unsigned int blosc_comp_type = BLOSC_ZSTD, unsigned int blosc_comp_level = 2, unsigned int blosc_shuffle=1) {
+        APRTimer write_timer;
+        write_timer.verbose_flag = true;
+
+        std::string hdf5_file_name = save_loc + file_name + "_apr_tree.h5";
+        AprFile f{hdf5_file_name, AprFile::Operation::WRITE};
+        FileSizeInfo fileSizeInfo1;
+        if (!f.isOpened()) return fileSizeInfo1;
+
+        // ------------- write metadata -------------------------
+//        writeAttr(AprTypes::NumberOfXType, f.groupId, &apr.apr_access.org_dims[1]);
+//        writeAttr(AprTypes::NumberOfYType, f.groupId, &apr.apr_access.org_dims[0]);
+//        writeAttr(AprTypes::NumberOfZType, f.groupId, &apr.apr_access.org_dims[2]);
+//        writeAttr(AprTypes::TotalNumberOfGapsType, f.groupId, &apr.apr_access.total_number_gaps);
+//        writeAttr(AprTypes::TotalNumberOfNonEmptyRowsType, f.groupId, &apr.apr_access.total_number_non_empty_rows);
+//        uint64_t type_vector_size = apr.apr_access.particle_cell_type.data.size();
+//        writeAttr(AprTypes::VectorSizeType, f.groupId, &type_vector_size);
+
+//        writeString(AprTypes::NameType, f.groupId, (apr.name.size() == 0) ? "no_name" : apr.name);
+//        writeString(AprTypes::GitType, f.groupId, ConfigAPR::APR_GIT_HASH);
+//        writeAttr(AprTypes::TotalNumberOfParticlesType, f.groupId, &apr.apr_access.total_number_particles);
+//        writeAttr(AprTypes::MaxLevelType, f.groupId, &apr.apr_access.level_max);
+//        writeAttr(AprTypes::MinLevelType, f.groupId, &apr.apr_access.level_min);
+
+        int compress_type_num = apr_compressor.get_compression_type();
+        writeAttr(AprTypes::CompressionType, f.groupId, &compress_type_num);
+        float quantization_factor = apr_compressor.get_quantization_factor();
+        writeAttr(AprTypes::QuantizationFactorType, f.groupId, &quantization_factor);
+//        writeAttr(AprTypes::LambdaType, f.groupId, &apr.parameters.lambda);
+//        writeAttr(AprTypes::SigmaThType, f.groupId, &apr.parameters.sigma_th);
+//        writeAttr(AprTypes::SigmaThMaxType, f.groupId, &apr.parameters.sigma_th_max);
+//        writeAttr(AprTypes::IthType, f.groupId, &apr.parameters.Ip_th);
+//        writeAttr(AprTypes::DxType, f.groupId, &apr.parameters.dx);
+//        writeAttr(AprTypes::DyType, f.groupId, &apr.parameters.dy);
+//        writeAttr(AprTypes::DzType, f.groupId, &apr.parameters.dz);
+//        writeAttr(AprTypes::PsfXType, f.groupId, &apr.parameters.psfx);
+//        writeAttr(AprTypes::PsfYType, f.groupId, &apr.parameters.psfy);
+//        writeAttr(AprTypes::PsfZType, f.groupId, &apr.parameters.psfz);
+//        writeAttr(AprTypes::RelativeErrorType, f.groupId, &apr.parameters.rel_error);
+//        writeAttr(AprTypes::NoiseSdEstimateType, f.groupId, &apr.parameters.noise_sd_estimate);
+//        writeAttr(AprTypes::BackgroundIntensityEstimateType, f.groupId, &apr.parameters.background_intensity_estimate);
+
+        write_timer.start_timer("access_data");
+        MapStorageData map_data;
+        apr.apr_access.flatten_structure(apr, map_data);
+
+
+        std::vector<uint16_t> index_delta;
+        index_delta.resize(map_data.global_index.size());
+        std::adjacent_difference(map_data.global_index.begin(),map_data.global_index.end(),index_delta.begin());
+        writeData(AprTypes::MapGlobalIndexType, f.objectId, index_delta, blosc_comp_type, blosc_comp_level, blosc_shuffle);
+
+        writeData(AprTypes::MapYendType, f.objectId, map_data.y_end, blosc_comp_type, blosc_comp_level, blosc_shuffle);
+        writeData(AprTypes::MapYbeginType, f.objectId, map_data.y_begin, blosc_comp_type, blosc_comp_level, blosc_shuffle);
+        writeData(AprTypes::MapNumberGapsType, f.objectId, map_data.number_gaps, blosc_comp_type, blosc_comp_level, blosc_shuffle);
+        writeData(AprTypes::MapLevelType, f.objectId, map_data.level, blosc_comp_type, blosc_comp_level, blosc_shuffle);
+        writeData(AprTypes::MapXType, f.objectId, map_data.x, blosc_comp_type, blosc_comp_level, blosc_shuffle);
+        writeData(AprTypes::MapZType, f.objectId, map_data.z, blosc_comp_type, blosc_comp_level, blosc_shuffle);
+
+        //optional storage of type
+        if(apr.apr_access.particle_cell_type.data.size()> 0) {
+            writeData(AprTypes::ParticleCellType, f.objectId, apr.apr_access.particle_cell_type.data, blosc_comp_type,
+                      blosc_comp_level, blosc_shuffle);
+        }
+
+        write_timer.stop_timer();
+
+        for (size_t i = apr.level_min(); i <apr.level_max() ; ++i) {
+            int x_num = apr.apr_access.x_num[i];
+            writeAttr(AprTypes::NumberOfLevelXType, i, f.groupId, &x_num);
+            int y_num = apr.apr_access.y_num[i];
+            writeAttr(AprTypes::NumberOfLevelYType, i, f.groupId, &y_num);
+            int z_num = apr.apr_access.z_num[i];
+            writeAttr(AprTypes::NumberOfLevelZType, i, f.groupId, &z_num);
+        }
+
+
+        // ------------- output the file size -------------------
+        hsize_t file_size = f.getFileSize();
+        double sizeMB_access = file_size / 1e6;
+
+        FileSizeInfo fileSizeInfo;
+        fileSizeInfo.access_data = sizeMB_access;
+
+        // ------------- write data ----------------------------
+        write_timer.start_timer("intensities");
+        if (compress_type_num > 0){
+            apr_compressor.compress(apr,apr.particles_intensities);
+        }
+        hid_t type = Hdf5Type<ImageType>::type();
+        writeData({type, AprTypes::ParticleIntensitiesType}, f.objectId, apr.particles_intensities.data, blosc_comp_type, blosc_comp_level, blosc_shuffle);
+        write_timer.stop_timer();
+
+        // ------------- output the file size -------------------
+        file_size = f.getFileSize();
+        double sizeMB = file_size / 1e6;
+
+        fileSizeInfo.total_file_size = sizeMB;
+        fileSizeInfo.intensity_data = fileSizeInfo.total_file_size - fileSizeInfo.access_data;
+
+        std::cout << "HDF5 Total Filesize: " << sizeMB << " MB\n" << "Writing Complete" << std::endl;
+        return fileSizeInfo;
+    }
+
 
     template<typename ImageType,typename T>
     void write_apr_paraview(APR<ImageType> &apr, const std::string &save_loc, const std::string &file_name, const ExtraParticleData<T> &parts) {
@@ -385,6 +490,11 @@ public:
         std::cout << "HDF5 Filesize: " << file_size*1.0/1000000.0 << " MB" << std::endl;
         std::cout << "Writing Complete" << std::endl;
     }
+
+
+
+
+
 
     /**
      * Writes only the particle data, requires the same APR to be read in correctly.
