@@ -120,12 +120,12 @@ use the CMake option
 `-DAPR_BUILD_PYTHON_WRAPPERS=ON`
 
 Example usage of the available functionality:
+
 | Example | How to ... |
 |:--|:--|
 | [Example_get_apr_from_array](./examples/python_examples/Example_get_apr_from_array.py) | create an APR from an ndarray and store as hdf5. |
 | [Example_get_apr_from_file](./examples/python_examples/Example_get_apr_from_file.py) | create an APR from a TIFF and store as hdf5. |
 | [Example_reconstruct_image](./examples/python_examples/Example_reconstruct_image.py) | read in an APR and reconstruct a pixel image |
-
 
 ## Coming soon
 
