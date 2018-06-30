@@ -189,8 +189,10 @@ int main(int argc, char **argv) {
 
     reconPatch.level_delta = options.level_delta;
 
+    timer.start_timer("init tree full");
     APRTree<uint16_t> aprTree;
     aprTree.init(apr);
+    timer.stop_timer();
 
     options.output_pc_recon = false;
 

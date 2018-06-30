@@ -819,8 +819,8 @@ public:
 #ifdef HAVE_OPENMP
 #pragma omp parallel for schedule(static) private(particle_number) firstprivate(apr_iteratorTree)
 #endif
-        for (particle_number = 0; particle_number < apr_iteratorTree.total_number_particles(); ++particle_number) {
-            apr_iteratorTree.set_iterator_to_particle_by_number(particle_number);
+        for (particle_number = 0; particle_number < apr_iteratorTree.total_number_tree_particle_cells(); ++particle_number) {
+            //apr_iteratorTree.set_iterator_to_particle_by_number(particle_number); #FIXME
             //
             //  Demo APR iterator
             //

@@ -10,6 +10,7 @@
 
 
 template<typename V> class APR;
+template<typename V> class GenIterator;
 template<typename V> class APRIterator;
 template<typename V> class APRTree;
 
@@ -52,17 +53,17 @@ public:
      * @return reference to stored particle
      */
     template<typename S>
-    DataType& operator[](const APRIterator<S>& apr_iterator) {
+    DataType& operator[](const GenIterator<S>& apr_iterator) {
         return data[apr_iterator.global_index()];
     }
 
     template<typename S>
-    DataType get_particle(const APRIterator<S>& apr_iterator) const {
+    DataType get_particle(const GenIterator<S>& apr_iterator) const {
         return data[apr_iterator.global_index()];
     }
 
     template<typename S>
-    void set_particle(const APRIterator<S>& apr_iterator, DataType set_val) {
+    void set_particle(const GenIterator<S>& apr_iterator, DataType set_val) {
         data[apr_iterator.global_index()] = set_val;
     }
 
