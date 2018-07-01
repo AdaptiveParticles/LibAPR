@@ -116,11 +116,15 @@ public:
 #ifdef HAVE_OPENMP
 #pragma omp parallel for schedule(dynamic) private(x_d, z_d) firstprivate(apr_iterator, parentIterator)
 #endif
+
+            int stop = 1;
             for (z_d = 0; z_d < apr.spatial_index_z_max(level)/2; z_d++) {
                 for (int z = 2*z_d; z <= std::min(2*z_d+1,(int)apr.spatial_index_z_max(level)); ++z) {
                     //the loop is bundled into blocks of 2, this prevents race conditions with OpenMP parents
                     for (x_d = 0; x_d < apr.spatial_index_x_max(level) / 2; ++x_d) {
                         for (int x = 2 * x_d; x <= std::min(2 * x_d + 1, (int) apr.spatial_index_x_max(level)); ++x) {
+
+
 
                             parentIterator.set_new_lzx(level - 1, z / 2, x / 2);
 
@@ -157,6 +161,11 @@ public:
                                             scale_factor_yxz * apr.particles_intensities[apr_iterator] / 8.0f +
                                             tree_data[parentIterator];
                                 } else {
+
+                                    if(parentIterator.global_index() > tree_data.data.size()){
+                                        int stop = 1;
+                                    }
+
                                     tree_data[parentIterator] =
                                             scale_factor_xz * apr.particles_intensities[apr_iterator] / 8.0f +
                                             tree_data[parentIterator];
@@ -200,9 +209,6 @@ public:
                             if ((2 * apr.spatial_index_y_max(level - 1) != apr.spatial_index_y_max(level))) {
                                 scale_factor_yxz = scale_factor_xz * 2;
                             }
-
-//                    scale_factor_xz = 1;
-//                    scale_factor_yxz = 1;
 
                             for (treeIterator.set_new_lzx(level, z, x);
                                  treeIterator.global_index() <

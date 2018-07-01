@@ -1187,11 +1187,15 @@ public:
         y_num.resize(level_max+1);
         z_num.resize(level_max+1);
 
-        for(int i = level_min;i <= level_max;i++){
+        for(int i = level_min;i < level_max;i++){
             x_num[i] = p_map[i].x_num;
             y_num[i] = p_map[i].y_num;
             z_num[i] = p_map[i].z_num;
         }
+
+        x_num[level_max] = apr.apr_access.x_num[level_max];
+        y_num[level_max] = apr.apr_access.y_num[level_max];
+        z_num[level_max] = apr.apr_access.z_num[level_max];
 
         APRTimer apr_timer;
         apr_timer.verbose_flag = false;
@@ -1358,10 +1362,49 @@ public:
             }
         }
 
+
+        uint64_t explicit_store_tree = cumsum;
+
         total_number_particles = cumsum;
+
+
+
+        const unsigned int x_num_ = x_num[level_max];
+        const unsigned int z_num_ = z_num[level_max];
+
+        //set up the levels here.
+        uint64_t cumsum_begin = cumsum;
+
+        global_index_by_level_and_zx_end[level_max].resize(z_num_ * x_num_, 0);
+
+        for (z_ = 0; z_ < z_num_; z_++) {
+            uint64_t cumsum_begin_z = cumsum;
+
+            for (x_ = 0; x_ < x_num_; x_++) {
+                const size_t offset_pc_data = x_num_ * z_ + x_;
+
+                uint64_t xz_sum = cumsum;
+                uint16_t local_sum = 0;
+
+                if(offset_pc_data == 10){
+                    int stop = 1;
+                }
+
+                if (apr.apr_access.gap_map.data[level_max][offset_pc_data].size() > 0){
+                    auto it = (apr.apr_access.gap_map.data[level_max][offset_pc_data][0].map.rbegin());
+                    cumsum += ((it->second.global_index_begin_offset + (it->second.y_end - it->first)) + 1);
+                }
+
+                global_index_by_level_and_zx_end[level_max][offset_pc_data] = cumsum;
+
+            }
+        }
+
 
         apr_timer.stop_timer();
 
+
+        total_number_particles = cumsum;
 
         std::cout << "Lower level, interior tree PC: " << total_number_particles << std::endl;
 
@@ -1420,6 +1463,27 @@ public:
         //apr_timer.start_timer("type set up");
 
         total_number_non_empty_rows = counter_rows;
+
+        for(uint64_t i = (level_min);i <= level_max;i++) {
+
+            const unsigned int x_num_ = x_num[i];
+            const unsigned int z_num_ = z_num[i];
+
+            for (z_ = 0; z_ < z_num_; z_++) {
+
+                for (x_ = 0; x_ < x_num_; x_++) {
+                    const size_t offset_pc_data = x_num_ * z_ + x_;
+
+                    if(global_index_by_level_and_zx_end[i][offset_pc_data] > 100000){
+                        int stop = 1;
+                    }
+
+
+                }
+            }
+        }
+
+
 
 //        APRIterator<T> apr_iterator(*this);
 //

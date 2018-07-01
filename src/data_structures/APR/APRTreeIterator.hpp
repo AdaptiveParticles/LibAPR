@@ -131,27 +131,48 @@ public:
     }
 
     bool set_iterator_to_particle_next_particle(){
-        //  //#FIXME
+        //
         //  Moves the iterator to point to the particle number (global index of the particle)
         //
 
-        if( (this->current_particle_cell.y+1) <= this->current_gap.iterator->second.y_end){
-            //  Still in same y gap
+        if(this->current_particle_cell.level == this->level_max()) {
+            if ((this->current_particle_cell.y + 1) <= (this->current_gap.iterator->second.y_end) / 2) {
+                //  Still in same y gap
 
-            this->current_particle_cell.global_index++;
-            this->current_particle_cell.y++;
-            return true;
+                this->current_particle_cell.global_index++;
+                this->current_particle_cell.y++;
+                return true;
 
+            } else {
+
+                //not in the same gap
+                this->current_gap.iterator++;//move the iterator forward.
+
+
+                //I am in the next gap
+                this->current_particle_cell.global_index++;
+                this->current_particle_cell.y = (uint16_t) (this->current_gap.iterator->first /
+                                                            2); // the key is the first y value for the gap
+                return true;
+            }
         } else {
+            if ((this->current_particle_cell.y + 1) <= (this->current_gap.iterator->second.y_end) ) {
+                //  Still in same y gap
 
-            //not in the same gap
-            this->current_gap.iterator++;//move the iterator forward.
+                this->current_particle_cell.global_index++;
+                this->current_particle_cell.y++;
+                return true;
 
+            } else {
 
-            //I am in the next gap
-            this->current_particle_cell.global_index++;
-            this->current_particle_cell.y = this->current_gap.iterator->first; // the key is the first y value for the gap
-            return true;
+                //not in the same gap
+                this->current_gap.iterator++;//move the iterator forward.
+
+                //I am in the next gap
+                this->current_particle_cell.global_index++;
+                this->current_particle_cell.y = (uint16_t) (this->current_gap.iterator->first); // the key is the first y value for the gap
+                return true;
+            }
         }
 
     }
@@ -194,10 +215,10 @@ public:
         if(level == this->level_max()){
             this->current_particle_cell.pc_offset = aprOwn->apr_access.x_num[level]*(z) + (x);
 
-            if(aprOwn->apr_access.gap_map.data[this->current_particle_cell.level][this->current_particle_cell.pc_offset].size() > 0) {
+            if(aprOwn->apr_access.gap_map.data[this->current_particle_cell.level+1][this->current_particle_cell.pc_offset].size() > 0) {
 
-                this->current_gap.iterator =aprOwn->apr_access.gap_map.data[this->current_particle_cell.level][this->current_particle_cell.pc_offset][0].map.begin();
-                this->current_particle_cell.y = this->current_gap.iterator->first;
+                this->current_gap.iterator =aprOwn->apr_access.gap_map.data[level+1][this->current_particle_cell.pc_offset][0].map.begin();
+                this->current_particle_cell.y = (uint16_t)((this->current_gap.iterator->first)/2);
 
                 uint64_t begin = 0;
 
@@ -216,7 +237,7 @@ public:
                 this->set_neighbour_flag();
 
                 // IN HERE PUT THE STARTING INDEX!
-                auto it =(aprOwn->apr_access.gap_map.data[level][this->current_particle_cell.pc_offset][0].map.rbegin());
+                //auto it =(aprOwn->apr_access.gap_map.data[level+1][this->current_particle_cell.pc_offset][0].map.rbegin());
                 this->end_index = this->apr_access->global_index_by_level_and_zx_end[this->current_particle_cell.level][this->current_particle_cell.pc_offset];
 
                 return this->current_particle_cell.global_index;
@@ -249,8 +270,14 @@ public:
                 this->set_neighbour_flag();
 
                 // IN HERE PUT THE STARTING INDEX!
-                auto it =(this->apr_access->gap_map.data[level][this->current_particle_cell.pc_offset][0].map.rbegin());
+                //auto it =(this->apr_access->gap_map.data[level][this->current_particle_cell.pc_offset][0].map.rbegin());
                 this->end_index = this->apr_access->global_index_by_level_and_zx_end[this->current_particle_cell.level][this->current_particle_cell.pc_offset];
+
+                if(this->apr_access->global_index_by_level_and_zx_end[5][0]>2388){
+                    int stop = 1;
+                }
+
+
 
                 return this->current_particle_cell.global_index;
             } else {
