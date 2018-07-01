@@ -1383,20 +1383,12 @@ public:
             for (x_ = 0; x_ < x_num_; x_++) {
                 const size_t offset_pc_data = x_num_ * z_ + x_;
 
-                uint64_t xz_sum = cumsum;
-                uint16_t local_sum = 0;
-
-                if(offset_pc_data == 10){
-                    int stop = 1;
-                }
-
-                if (apr.apr_access.gap_map.data[level_max][offset_pc_data].size() > 0){
-                    auto it = (apr.apr_access.gap_map.data[level_max][offset_pc_data][0].map.rbegin());
-                    cumsum += ((it->second.global_index_begin_offset + (it->second.y_end - it->first)) + 1);
+                if (apr.apr_access.gap_map.data[level_max+1][offset_pc_data].size() > 0){
+                    auto it = (apr.apr_access.gap_map.data[level_max+1][offset_pc_data][0].map.rbegin());
+                    cumsum += it->second.global_index_begin_offset/2 + (it->second.y_end - it->first)/2;
                 }
 
                 global_index_by_level_and_zx_end[level_max][offset_pc_data] = cumsum;
-
             }
         }
 
@@ -1463,26 +1455,6 @@ public:
         //apr_timer.start_timer("type set up");
 
         total_number_non_empty_rows = counter_rows;
-
-        for(uint64_t i = (level_min);i <= level_max;i++) {
-
-            const unsigned int x_num_ = x_num[i];
-            const unsigned int z_num_ = z_num[i];
-
-            for (z_ = 0; z_ < z_num_; z_++) {
-
-                for (x_ = 0; x_ < x_num_; x_++) {
-                    const size_t offset_pc_data = x_num_ * z_ + x_;
-
-                    if(global_index_by_level_and_zx_end[i][offset_pc_data] > 100000){
-                        int stop = 1;
-                    }
-
-
-                }
-            }
-        }
-
 
 
 //        APRIterator<T> apr_iterator(*this);

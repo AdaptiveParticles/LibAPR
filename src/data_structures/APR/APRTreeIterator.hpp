@@ -136,7 +136,7 @@ public:
         //
 
         if(this->current_particle_cell.level == this->level_max()) {
-            if ((this->current_particle_cell.y + 1) <= (this->current_gap.iterator->second.y_end) / 2) {
+            if ((this->current_particle_cell.y + 1) <= (this->current_gap.iterator->second.y_end/2)) {
                 //  Still in same y gap
 
                 this->current_particle_cell.global_index++;
@@ -237,7 +237,6 @@ public:
                 this->set_neighbour_flag();
 
                 // IN HERE PUT THE STARTING INDEX!
-                //auto it =(aprOwn->apr_access.gap_map.data[level+1][this->current_particle_cell.pc_offset][0].map.rbegin());
                 this->end_index = this->apr_access->global_index_by_level_and_zx_end[this->current_particle_cell.level][this->current_particle_cell.pc_offset];
 
                 return this->current_particle_cell.global_index;
@@ -270,14 +269,7 @@ public:
                 this->set_neighbour_flag();
 
                 // IN HERE PUT THE STARTING INDEX!
-                //auto it =(this->apr_access->gap_map.data[level][this->current_particle_cell.pc_offset][0].map.rbegin());
                 this->end_index = this->apr_access->global_index_by_level_and_zx_end[this->current_particle_cell.level][this->current_particle_cell.pc_offset];
-
-                if(this->apr_access->global_index_by_level_and_zx_end[5][0]>2388){
-                    int stop = 1;
-                }
-
-
 
                 return this->current_particle_cell.global_index;
             } else {

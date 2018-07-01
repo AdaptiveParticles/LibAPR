@@ -116,15 +116,11 @@ public:
 #ifdef HAVE_OPENMP
 #pragma omp parallel for schedule(dynamic) private(x_d, z_d) firstprivate(apr_iterator, parentIterator)
 #endif
-
-            int stop = 1;
             for (z_d = 0; z_d < apr.spatial_index_z_max(level)/2; z_d++) {
                 for (int z = 2*z_d; z <= std::min(2*z_d+1,(int)apr.spatial_index_z_max(level)); ++z) {
                     //the loop is bundled into blocks of 2, this prevents race conditions with OpenMP parents
                     for (x_d = 0; x_d < apr.spatial_index_x_max(level) / 2; ++x_d) {
                         for (int x = 2 * x_d; x <= std::min(2 * x_d + 1, (int) apr.spatial_index_x_max(level)); ++x) {
-
-
 
                             parentIterator.set_new_lzx(level - 1, z / 2, x / 2);
 
@@ -145,14 +141,13 @@ public:
                                 scale_factor_yxz = scale_factor_xz * 2;
                             }
 
+                            int counter = 0;
 
                             for (apr_iterator.set_new_lzx(level, z, x);
                                  apr_iterator.global_index() <
                                  apr_iterator.end_index; apr_iterator.set_iterator_to_particle_next_particle()) {
-                                //set parent
-                                //parentIterator.set_iterator_to_parent(apr_iterator);
 
-                                while (parentIterator.y() != apr_iterator.y() / 2) {
+                                while (parentIterator.y() != (apr_iterator.y() / 2)) {
                                     parentIterator.set_iterator_to_particle_next_particle();
                                 }
 
@@ -161,10 +156,6 @@ public:
                                             scale_factor_yxz * apr.particles_intensities[apr_iterator] / 8.0f +
                                             tree_data[parentIterator];
                                 } else {
-
-                                    if(parentIterator.global_index() > tree_data.data.size()){
-                                        int stop = 1;
-                                    }
 
                                     tree_data[parentIterator] =
                                             scale_factor_xz * apr.particles_intensities[apr_iterator] / 8.0f +
