@@ -141,7 +141,6 @@ public:
                                 scale_factor_yxz = scale_factor_xz * 2;
                             }
 
-                            int counter = 0;
 
                             for (apr_iterator.set_new_lzx(level, z, x);
                                  apr_iterator.global_index() <

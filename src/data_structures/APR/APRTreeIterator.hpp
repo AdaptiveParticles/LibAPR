@@ -64,70 +64,114 @@ public:
 
     uint64_t set_new_lzxy(const uint16_t level,const uint16_t z,const uint16_t x,const uint16_t y){
         //#FIXME
-//        this->current_particle_cell.level = level;
-//        //otherwise now we have to figure out where to look for the next particle cell;
-//
-//        //back out your xz from the offset
-//        this->current_particle_cell.z = z;
-//        this->current_particle_cell.x = x;
-//        this->current_particle_cell.y = y;
-//
-//        this->current_particle_cell.pc_offset =this->apr_access->x_num[level]*z + x;
-//
-//        this->end_index = this->particles_zx_end(level, z,
-//                                                 x);
-//
-//        if(this->apr_access->gap_map.data[this->current_particle_cell.level][this->current_particle_cell.pc_offset].size() > 0) {
-//
-//            ParticleCellGapMap& current_pc_map =this->apr_access->gap_map.data[this->current_particle_cell.level][this->current_particle_cell.pc_offset][0];
-//
-//            //otherwise search for it (points to first key that is greater than the y value)
-//            this->current_gap.iterator = current_pc_map.map.upper_bound(this->current_particle_cell.y);
-//
-//            bool end = false;
-//
-//            if(this->current_gap.iterator == current_pc_map.map.begin()){
-//                //less then the first value
-//
-//                this->current_particle_cell.y = this->current_gap.iterator->first;
-//                this->current_particle_cell.global_index = this->current_gap.iterator->second.global_index_begin_offset; //#fixme
-//
-//                this->set_neighbour_flag();
-//
-//                return this->current_particle_cell.global_index;
-//            } else{
-//
-//                if(this->current_gap.iterator == current_pc_map.map.end()){
-//                    end = true;
-//                }
-//                this->current_gap.iterator--;
-//            }
-//
-//            if ((this->current_particle_cell.y >= this->current_gap.iterator->first) & (this->current_particle_cell.y <= this->current_gap.iterator->second.y_end)) {
-//                // exists
-//                this->current_particle_cell.global_index = this->current_gap.iterator->second.global_index_begin_offset +
-//                                                           (this->current_particle_cell.y - this->current_gap.iterator->first); //#fixme
-//                this->set_neighbour_flag();
-//                return this->current_particle_cell.global_index;
-//            }
-//
-//            if(end){
-//                //no more particles
-//                this->current_particle_cell.global_index = UINT64_MAX;
-//                return this->current_particle_cell.global_index;
-//            } else {
-//                //still within range
-//                this->current_particle_cell.global_index = this->current_gap.iterator->second.global_index_begin_offset; //#fixme
-//                this->current_particle_cell.y = this->current_gap.iterator->first;
-//                this->set_neighbour_flag();
-//                return this->current_particle_cell.global_index;
-//            }
-//
-//
-//        } else {
-//            return UINT64_MAX;
-//        }
+        //otherwise now we have to figure out where to look for the next particle cell;
+        //set to the correct row
+        uint64_t begin_index = set_new_lzx(level,z,x);
 
+        this->current_particle_cell.y = y;
+
+        //row is non-emtpy
+        if(begin_index!=UINT64_MAX){
+            ParticleCellGapMap& current_pc_map =this->apr_access->gap_map.data[this->current_particle_cell.level][this->current_particle_cell.pc_offset][0];
+            if(level == this->level_max()) {
+                //Using the APR access data-structure, therefore requires y re-scaling
+
+                //otherwise search for it (points to first key that is greater than the y value)
+                this->current_gap.iterator = current_pc_map.map.upper_bound((uint16_t)2*this->current_particle_cell.y);
+
+                bool end = false;
+
+                if (this->current_gap.iterator == current_pc_map.map.begin()) {
+                    //less then the first value
+
+                    this->current_particle_cell.y = (uint16_t) (this->current_gap.iterator->first/2);
+                    this->current_particle_cell.global_index =
+                            this->current_gap.iterator->second.global_index_begin_offset + begin_index;
+
+                    this->set_neighbour_flag();
+
+                    return this->current_particle_cell.global_index;
+                } else {
+
+                    if (this->current_gap.iterator == current_pc_map.map.end()) {
+                        end = true;
+                    }
+                    this->current_gap.iterator--;
+                }
+
+                if (((2*this->current_particle_cell.y) >= this->current_gap.iterator->first) &
+                    ((2*this->current_particle_cell.y) <= this->current_gap.iterator->second.y_end)) {
+                    // exists
+                    this->current_particle_cell.global_index =
+                            this->current_gap.iterator->second.global_index_begin_offset +
+                            (this->current_particle_cell.y - this->current_gap.iterator->first)/2 + begin_index;
+                    this->set_neighbour_flag();
+                    return this->current_particle_cell.global_index;
+                }
+
+                if (end) {
+                    //no more particles
+                    this->current_particle_cell.global_index = UINT64_MAX;
+                    return this->current_particle_cell.global_index;
+                } else {
+                    //still within range
+                    this->current_particle_cell.global_index =
+                            this->current_gap.iterator->second.global_index_begin_offset + begin_index;
+                    this->current_particle_cell.y = (uint16_t) (this->current_gap.iterator->first/2);
+                    this->set_neighbour_flag();
+                    return this->current_particle_cell.global_index;
+                }
+            } else {
+                //otherwise search for it (points to first key that is greater than the y value)
+                this->current_gap.iterator = current_pc_map.map.upper_bound(this->current_particle_cell.y);
+
+                bool end = false;
+
+                if (this->current_gap.iterator == current_pc_map.map.begin()) {
+                    //less then the first value
+
+                    this->current_particle_cell.y = this->current_gap.iterator->first;
+                    this->current_particle_cell.global_index =
+                            this->current_gap.iterator->second.global_index_begin_offset + begin_index;
+
+                    this->set_neighbour_flag();
+
+                    return this->current_particle_cell.global_index;
+                } else {
+
+                    if (this->current_gap.iterator == current_pc_map.map.end()) {
+                        end = true;
+                    }
+                    this->current_gap.iterator--;
+                }
+
+                if ((this->current_particle_cell.y >= this->current_gap.iterator->first) &
+                    (this->current_particle_cell.y <= this->current_gap.iterator->second.y_end)) {
+                    // exists
+                    this->current_particle_cell.global_index =
+                            this->current_gap.iterator->second.global_index_begin_offset +
+                            (this->current_particle_cell.y - this->current_gap.iterator->first) + begin_index;
+                    this->set_neighbour_flag();
+                    return this->current_particle_cell.global_index;
+                }
+
+                if (end) {
+                    //no more particles
+                    this->current_particle_cell.global_index = UINT64_MAX;
+                    return this->current_particle_cell.global_index;
+                } else {
+                    //still within range
+                    this->current_particle_cell.global_index =
+                            this->current_gap.iterator->second.global_index_begin_offset + begin_index;
+                    this->current_particle_cell.y = this->current_gap.iterator->first;
+                    this->set_neighbour_flag();
+                    return this->current_particle_cell.global_index;
+                }
+            }
+
+        } else {
+            return UINT64_MAX;
+        }
     }
 
     bool set_iterator_to_particle_next_particle(){
@@ -200,6 +244,21 @@ public:
 
     }
 
+    uint64_t start_index(const uint16_t level, const uint64_t offset){
+
+        if(this->current_particle_cell.pc_offset == 0){
+            if(level == this->level_min()){
+                return  0;
+            } else {
+                return this->apr_access->global_index_by_level_and_zx_end[this->current_particle_cell.level-1].back();
+            }
+        } else {
+            return this->apr_access->global_index_by_level_and_zx_end[this->current_particle_cell.level][this->current_particle_cell.pc_offset-1];
+        }
+
+
+    }
+
     uint64_t set_new_lzx(const uint16_t level,const uint16_t z,const uint16_t x){
         //
         //  The tree iterator uses the APR high resolution information for its highest level, as they are the same.
@@ -215,22 +274,13 @@ public:
         if(level == this->level_max()){
             this->current_particle_cell.pc_offset = aprOwn->apr_access.x_num[level]*(z) + (x);
 
+            //note this is different, using the APR's access datastructure
             if(aprOwn->apr_access.gap_map.data[this->current_particle_cell.level+1][this->current_particle_cell.pc_offset].size() > 0) {
 
                 this->current_gap.iterator =aprOwn->apr_access.gap_map.data[level+1][this->current_particle_cell.pc_offset][0].map.begin();
                 this->current_particle_cell.y = (uint16_t)((this->current_gap.iterator->first)/2);
 
-                uint64_t begin = 0;
-
-                if(this->current_particle_cell.pc_offset == 0){
-                    if(level == this->level_min()){
-                        begin = 0;
-                    } else {
-                        begin =this->apr_access->global_index_by_level_and_zx_end[this->current_particle_cell.level-1].back();
-                    }
-                } else {
-                    begin = this->apr_access->global_index_by_level_and_zx_end[this->current_particle_cell.level][this->current_particle_cell.pc_offset-1];
-                }
+                uint64_t begin = start_index(level,this->current_particle_cell.pc_offset);
 
                 this->current_particle_cell.global_index = this->current_gap.iterator->second.global_index_begin_offset + begin;
 
@@ -252,18 +302,7 @@ public:
                 this->current_gap.iterator =this->apr_access->gap_map.data[this->current_particle_cell.level][this->current_particle_cell.pc_offset][0].map.begin();
                 this->current_particle_cell.y = this->current_gap.iterator->first;
 
-                uint64_t begin = 0;
-
-                if(this->current_particle_cell.pc_offset == 0){
-                    if(level == this->level_min()){
-                        begin = 0;
-                    } else {
-                        begin =this->apr_access->global_index_by_level_and_zx_end[this->current_particle_cell.level-1].back();
-                    }
-                } else {
-                    begin =this->apr_access->global_index_by_level_and_zx_end[this->current_particle_cell.level][this->current_particle_cell.pc_offset-1];
-                }
-
+                uint64_t begin = start_index(level,this->current_particle_cell.pc_offset);
                 this->current_particle_cell.global_index = this->current_gap.iterator->second.global_index_begin_offset + begin;
 
                 this->set_neighbour_flag();

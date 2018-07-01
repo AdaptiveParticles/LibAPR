@@ -176,7 +176,24 @@ public:
 
     }
 
+    uint64_t start_index(const uint16_t level, const uint64_t offset){
 
+        if(this->current_particle_cell.pc_offset == 0){
+            if(level == this->level_min()){
+                return  0;
+            } else {
+                return this->apr_access->global_index_by_level_and_zx_end[this->current_particle_cell.level-1].back();
+            }
+        } else {
+            return this->apr_access->global_index_by_level_and_zx_end[this->current_particle_cell.level][this->current_particle_cell.pc_offset-1];
+        }
+
+
+    }
+
+    uint64_t max_row_level_offset(const uint16_t x,const uint16_t z,const uint16_t num_parts){
+        return ((x%2) + (z%2)*2)*((uint64_t)num_parts) ;//calculates the number of particles in the row
+    }
 
     uint64_t set_new_lzx(const uint16_t level,const uint16_t z,const uint16_t x){
         this->current_particle_cell.level = level;
@@ -194,17 +211,7 @@ public:
                 this->current_gap.iterator =this->apr_access->gap_map.data[this->current_particle_cell.level][this->current_particle_cell.pc_offset][0].map.begin();
                 this->current_particle_cell.y = this->current_gap.iterator->first;
 
-                uint64_t begin = 0;
-
-                if(this->current_particle_cell.pc_offset == 0){
-                    if(level == this->level_min()){
-                        begin = 0;
-                    } else {
-                        begin =this->apr_access->global_index_by_level_and_zx_end[this->current_particle_cell.level-1].back();
-                    }
-                } else {
-                    begin =this->apr_access->global_index_by_level_and_zx_end[this->current_particle_cell.level][this->current_particle_cell.pc_offset-1];
-                }
+                uint64_t begin = start_index(level,this->current_particle_cell.pc_offset);
 
                 this->current_particle_cell.global_index = begin;
 
@@ -212,11 +219,12 @@ public:
 
                 //requries now an offset depending on the child position odd/even
                 auto it =(this->apr_access->gap_map.data[level][this->current_particle_cell.pc_offset][0].map.rbegin());
-
                 uint16_t num_parts = ((it->second.global_index_begin_offset + (it->second.y_end-it->first))+1);
+
                 this->end_index =  begin + num_parts;
 
-                uint64_t index_offset = ((x%2) + (z%2)*2)*((uint64_t)num_parts) ;//calculates the number of particles in the row
+                //calculates the offset for the xz position
+                uint64_t index_offset = max_row_level_offset(x, z, num_parts);
 
                 this->end_index += index_offset;
                 this->current_particle_cell.global_index += index_offset;
@@ -234,17 +242,7 @@ public:
                 this->current_gap.iterator =this->apr_access->gap_map.data[this->current_particle_cell.level][this->current_particle_cell.pc_offset][0].map.begin();
                 this->current_particle_cell.y = this->current_gap.iterator->first;
 
-                uint64_t begin = 0;
-
-                if(this->current_particle_cell.pc_offset == 0){
-                    if(level == this->level_min()){
-                        begin = 0;
-                    } else {
-                        begin =this->apr_access->global_index_by_level_and_zx_end[this->current_particle_cell.level-1].back();
-                    }
-                } else {
-                    begin =this->apr_access->global_index_by_level_and_zx_end[this->current_particle_cell.level][this->current_particle_cell.pc_offset-1];
-                }
+                uint64_t begin = start_index(level,this->current_particle_cell.pc_offset);
 
                 this->current_particle_cell.global_index = this->current_gap.iterator->second.global_index_begin_offset + begin;
 
@@ -265,27 +263,15 @@ public:
     }
 
     uint64_t set_new_lzxy(const uint16_t level,const uint16_t z,const uint16_t x,const uint16_t y){
-        this->current_particle_cell.level = level;
-        //otherwise now we have to figure out where to look for the next particle cell;
 
-        //back out your xz from the offset
-        this->current_particle_cell.z = z;
-        this->current_particle_cell.x = x;
+        //otherwise now we have to figure out where to look for the next particle cell;
+        //set to the correct row
+        uint64_t begin_index = set_new_lzx(level,z,x);
+
         this->current_particle_cell.y = y;
 
-        this->current_particle_cell.pc_offset =this->apr_access->x_num[level]*z + x;
-
-        this->end_index = this->particles_zx_end(level, z,
-                                     x);
-
-        if(this->apr_access->gap_map.data[this->current_particle_cell.level][this->current_particle_cell.pc_offset].size() > 0) {
-
+        if(begin_index!=UINT64_MAX){
             ParticleCellGapMap& current_pc_map =this->apr_access->gap_map.data[this->current_particle_cell.level][this->current_particle_cell.pc_offset][0];
-
-//            this->current_gap.iterator = current_pc_map.map.begin();
-//            this->current_particle_cell.y = this->current_gap.iterator->first;
-//            this->current_particle_cell.global_index = this->current_gap.iterator->second.global_index_begin;
-//            return this->current_particle_cell.global_index;
 
             //otherwise search for it (points to first key that is greater than the y value)
             this->current_gap.iterator = current_pc_map.map.upper_bound(this->current_particle_cell.y);
@@ -296,7 +282,7 @@ public:
                 //less then the first value
 
                 this->current_particle_cell.y = this->current_gap.iterator->first;
-                this->current_particle_cell.global_index = this->current_gap.iterator->second.global_index_begin_offset; //#fixme
+                this->current_particle_cell.global_index = this->current_gap.iterator->second.global_index_begin_offset + begin_index;
 
                 this->set_neighbour_flag();
 
@@ -312,7 +298,7 @@ public:
             if ((this->current_particle_cell.y >= this->current_gap.iterator->first) & (this->current_particle_cell.y <= this->current_gap.iterator->second.y_end)) {
                 // exists
                 this->current_particle_cell.global_index = this->current_gap.iterator->second.global_index_begin_offset +
-                                         (this->current_particle_cell.y - this->current_gap.iterator->first); //#fixme
+                                                           (this->current_particle_cell.y - this->current_gap.iterator->first) + begin_index;
                 this->set_neighbour_flag();
                 return this->current_particle_cell.global_index;
             }
@@ -323,17 +309,15 @@ public:
                 return this->current_particle_cell.global_index;
             } else {
                 //still within range
-                this->current_particle_cell.global_index = this->current_gap.iterator->second.global_index_begin_offset; //#fixme
+                this->current_particle_cell.global_index = this->current_gap.iterator->second.global_index_begin_offset + begin_index;
                 this->current_particle_cell.y = this->current_gap.iterator->first;
                 this->set_neighbour_flag();
                 return this->current_particle_cell.global_index;
             }
 
-
         } else {
             return UINT64_MAX;
         }
-
     }
 
     bool set_iterator_to_particle_next_particle(){

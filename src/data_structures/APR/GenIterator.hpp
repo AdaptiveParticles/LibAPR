@@ -26,7 +26,6 @@ protected:
 
     ParticleCell current_particle_cell{0, 0, 0, 0, 0, UINT64_MAX, UINT64_MAX };
 
-    APR<ImageType>* aprOwn;
     APRAccess* apr_access;
 
     uint16_t level_delta{};
