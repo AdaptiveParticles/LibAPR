@@ -30,9 +30,9 @@ Options:
 -x_begin / x_end (starting/end index of local patch reconstruction)
 -y_begin / y_end (starting/end index of local patch reconstruction)
 -z_begin / z_end (starting/end index of local patch reconstruction) *if any are left blank the full range will be reconstructed
+-level_delta (negative down-samples, positive upsamples)
 
 )";
-
 
 #include <algorithm>
 #include <iostream>
@@ -40,7 +40,6 @@ Options:
 #include "data_structures/APR/APR.hpp"
 #include "io/TiffUtils.hpp"
 #include "numerics/APRTreeNumerics.hpp"
-
 
 struct cmdLineOptions{
     std::string output = "output";
@@ -190,11 +189,17 @@ int main(int argc, char **argv) {
     reconPatch.level_delta = options.level_delta;
 
     timer.start_timer("init tree full");
-    APRTree<uint16_t> aprTree;
-    aprTree.init(apr);
+    apr.apr_tree.init(apr);
     timer.stop_timer();
 
-    options.output_pc_recon = false;
+    //options.output_pc_recon = false;
+
+    ExtraParticleData<uint16_t> partsTree;
+
+    timer.start_timer("fill tree");
+
+    APRTreeNumerics::fill_tree_mean(apr,apr.apr_tree,apr.particles_intensities,partsTree);
+    timer.stop_timer();
 
     // Intentionaly block-scoped since local recon_pc will be destructed when block ends and release memory.
     {
@@ -203,12 +208,7 @@ int main(int argc, char **argv) {
             //create mesh data structure for reconstruction
             PixelData<uint16_t> recon_pc;
 
-            ExtraParticleData<uint16_t> partsTree;
 
-            timer.start_timer("fill tree");
-
-            APRTreeNumerics::fill_tree_mean(apr,aprTree,apr.particles_intensities,partsTree);
-            timer.stop_timer();
 
             std::cout << partsTree.data.size()/(1.0f*apr.total_number_particles()) << std::endl;
 
@@ -229,7 +229,7 @@ int main(int argc, char **argv) {
             timer.start_timer("pc interp");
             //perform piece-wise constant interpolation
 
-            aprReconstruction.interp_image_patch(apr, aprTree, recon_pc, apr.particles_intensities, partsTree,
+            aprReconstruction.interp_image_patch(apr, apr.apr_tree, recon_pc, apr.particles_intensities, partsTree,
                                                      reconPatch);
 
             timer.stop_timer();
@@ -255,11 +255,11 @@ int main(int argc, char **argv) {
 
             std::vector<float> scale = {1,1,1};
 
-            APRTreeNumerics::fill_tree_from_particles(apr,aprTree,apr.particles_intensities,partsTree,[] (const uint16_t& a,const uint16_t& b) {return std::max(a,b);});
+            APRTreeNumerics::fill_tree_from_particles(apr,apr.apr_tree,apr.particles_intensities,partsTree,[] (const uint16_t& a,const uint16_t& b) {return std::max(a,b);});
 
             timer.start_timer("smooth interp");
             //perform smooth interpolation
-            aprReconstruction.interp_parts_smooth_patch(apr,aprTree,recon_pc, apr.particles_intensities,partsTree,reconPatch,scale);
+            aprReconstruction.interp_parts_smooth_patch(apr,apr.apr_tree,recon_pc, apr.particles_intensities,partsTree,reconPatch,scale);
             timer.stop_timer();
 
             float elapsed_seconds = timer.t2 - timer.t1;
