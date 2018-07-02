@@ -1385,7 +1385,8 @@ public:
 
                 if (apr.apr_access.gap_map.data[level_max+1][offset_pc_data].size() > 0){
                     auto it = (apr.apr_access.gap_map.data[level_max+1][offset_pc_data][0].map.rbegin());
-                    cumsum += it->second.global_index_begin_offset/2 + (it->second.y_end - it->first+1)/2;
+                    cumsum += it->second.global_index_begin_offset/2 + (it->second.y_end - it->first+1)/2 + (it->second.y_end+1)%2;
+                    //need to deal with odd domains where the last particle cell is required, hence the modulo
                 }
 
                 global_index_by_level_and_zx_end[level_max][offset_pc_data] = cumsum;
