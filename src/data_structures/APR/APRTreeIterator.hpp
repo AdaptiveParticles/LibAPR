@@ -72,8 +72,9 @@ public:
 
         //row is non-emtpy
         if(begin_index!=UINT64_MAX){
-            ParticleCellGapMap& current_pc_map =this->apr_access->gap_map.data[this->current_particle_cell.level][this->current_particle_cell.pc_offset][0];
+
             if(level == this->level_max()) {
+                ParticleCellGapMap& current_pc_map =aprOwn->apr_access.gap_map.data[this->current_particle_cell.level+1][this->current_particle_cell.pc_offset][0];
                 //Using the APR access data-structure, therefore requires y re-scaling
 
                 //otherwise search for it (points to first key that is greater than the y value)
@@ -122,6 +123,7 @@ public:
                     return this->current_particle_cell.global_index;
                 }
             } else {
+                ParticleCellGapMap& current_pc_map =this->apr_access->gap_map.data[this->current_particle_cell.level][this->current_particle_cell.pc_offset][0];
                 //otherwise search for it (points to first key that is greater than the y value)
                 this->current_gap.iterator = current_pc_map.map.upper_bound(this->current_particle_cell.y);
 

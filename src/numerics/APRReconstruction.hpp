@@ -210,7 +210,7 @@ public:
 
         if(max_level < apr_iterator.level_max()) {
 
-            APRTreeIterator<uint16_t> aprTreeIterator(aprTree);
+            APRTreeIterator<uint16_t> aprTreeIterator(apr);
 
             unsigned int level = max_level;
 
@@ -233,6 +233,7 @@ public:
                 for ( z = z_begin_l; z < z_end_l; z++) {
 
                     for (x = x_begin_l; x < x_end_l; ++x) {
+
                         for (aprTreeIterator.set_new_lzxy(level, z, x,y_begin_l);
                              aprTreeIterator.global_index() < aprTreeIterator.end_index; aprTreeIterator.set_iterator_to_particle_next_particle()) {
 
