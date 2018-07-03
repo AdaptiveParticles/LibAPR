@@ -340,7 +340,6 @@ bool test_apr_neighbour_access(TestData& test_data){
                                     success = false;
                                 }
 
-
                                 uint16_t apr_level = neighbour_iterator.level();
                                 uint16_t check_level = test_data.img_level(neighbour_iterator.y_nearest_pixel(),
                                                                            neighbour_iterator.x_nearest_pixel(),
@@ -349,7 +348,6 @@ bool test_apr_neighbour_access(TestData& test_data){
                                 if (check_level != apr_level) {
                                     success = false;
                                 }
-
 
                                 uint16_t apr_x = neighbour_iterator.x();
                                 uint16_t check_x = test_data.img_x(neighbour_iterator.y_nearest_pixel(),
@@ -383,9 +381,7 @@ bool test_apr_neighbour_access(TestData& test_data){
                                 }
 
                             }
-
                         }
-
                     }
                 }
             }
@@ -661,76 +657,97 @@ bool test_apr_pipeline(TestData& test_data){
     //the apr datastructure
     APR<uint16_t> apr;
 
-    APRConverter<uint16_t> apr_converter;
-
     //read in the command line options into the parameters file
-    apr_converter.par.Ip_th = test_data.apr.parameters.Ip_th;
-    apr_converter.par.rel_error = test_data.apr.parameters.rel_error;
-    apr_converter.par.lambda = test_data.apr.parameters.lambda;
-    apr_converter.par.mask_file = "";
-    apr_converter.par.min_signal = -1;
+    apr.parameters.Ip_th = test_data.apr.parameters.Ip_th;
+    apr.parameters.rel_error = test_data.apr.parameters.rel_error;
+    apr.parameters.lambda = test_data.apr.parameters.lambda;
+    apr.parameters.mask_file = "";
+    apr.parameters.min_signal = -1;
 
-    apr_converter.par.sigma_th_max = test_data.apr.parameters.sigma_th_max;
-    apr_converter.par.sigma_th = test_data.apr.parameters.sigma_th;
+    apr.parameters.sigma_th_max = test_data.apr.parameters.sigma_th_max;
+    apr.parameters.sigma_th = test_data.apr.parameters.sigma_th;
 
-    apr_converter.par.SNR_min = -1;
+    apr.parameters.SNR_min = -1;
 
     //where things are
-    apr_converter.par.input_image_name =test_data.filename;
-    apr_converter.par.input_dir = "";
-    apr_converter.par.name = test_data.output_name;
-    apr_converter.par.output_dir = "";
+    apr.parameters.input_image_name = test_data.filename;
+    apr.parameters.input_dir = "";
+    apr.parameters.name = test_data.output_name;
+    apr.parameters.output_dir = "";
 
     //Gets the APR
-    if(apr_converter.get_apr(apr)){
+    if(apr.get_apr()){
         APRIterator<uint16_t> apr_iterator(apr);
         uint64_t particle_number = 0;
         std::cout << "NUM OF PARTICLES: " << apr_iterator.total_number_particles() << " vs " << test_data.apr.total_number_particles() << std::endl;
-        for (particle_number = 0; particle_number < apr_iterator.total_number_particles(); ++particle_number) {
-            apr_iterator.set_iterator_to_particle_by_number(particle_number);
 
-            uint16_t apr_intensity = (apr.particles_intensities[apr_iterator]);
-            uint16_t check_intensity = test_data.img_pc(apr_iterator.y_nearest_pixel(),apr_iterator.x_nearest_pixel(),apr_iterator.z_nearest_pixel());
+        for (unsigned int level = apr_iterator.level_min(); level <= apr_iterator.level_max(); ++level) {
+            int z = 0;
+            int x = 0;
 
-            if(check_intensity!=apr_intensity){
-                success = false;
+            for (z = 0; z < apr_iterator.spatial_index_z_max(level); z++) {
+                for (x = 0; x < apr_iterator.spatial_index_x_max(level); ++x) {
+                    for (apr_iterator.set_new_lzx(level, z, x); apr_iterator.global_index() < apr_iterator.end_index;
+                         apr_iterator.set_iterator_to_particle_next_particle()) {
+
+                        uint16_t apr_intensity = (apr.particles_intensities[apr_iterator]);
+                        uint16_t check_intensity = test_data.img_pc(apr_iterator.y_nearest_pixel(),
+                                                                    apr_iterator.x_nearest_pixel(),
+                                                                    apr_iterator.z_nearest_pixel());
+
+                        if (check_intensity != apr_intensity) {
+                            success = false;
+                        }
+
+                        uint16_t apr_level = apr_iterator.level();
+                        uint16_t check_level = test_data.img_level(apr_iterator.y_nearest_pixel(),
+                                                                   apr_iterator.x_nearest_pixel(),
+                                                                   apr_iterator.z_nearest_pixel());
+
+                        if (check_level != apr_level) {
+                            success = false;
+                        }
+
+                        //removed the storage of type.. not worth the "baggage"
+//                        uint16_t apr_type = apr_iterator.type();
+//                        uint16_t check_type = test_data.img_type(apr_iterator.y_nearest_pixel(),
+//                                                                 apr_iterator.x_nearest_pixel(),
+//                                                                 apr_iterator.z_nearest_pixel());
+//
+//                        if (check_type != apr_type) {
+//                            success = false;
+//                        }
+
+                        uint16_t apr_x = apr_iterator.x();
+                        uint16_t check_x = test_data.img_x(apr_iterator.y_nearest_pixel(),
+                                                           apr_iterator.x_nearest_pixel(),
+                                                           apr_iterator.z_nearest_pixel());
+
+                        if (check_x != apr_x) {
+                            success = false;
+                        }
+
+                        uint16_t apr_y = apr_iterator.y();
+                        uint16_t check_y = test_data.img_y(apr_iterator.y_nearest_pixel(),
+                                                           apr_iterator.x_nearest_pixel(),
+                                                           apr_iterator.z_nearest_pixel());
+
+                        if (check_y != apr_y) {
+                            success = false;
+                        }
+
+                        uint16_t apr_z = apr_iterator.z();
+                        uint16_t check_z = test_data.img_z(apr_iterator.y_nearest_pixel(),
+                                                           apr_iterator.x_nearest_pixel(),
+                                                           apr_iterator.z_nearest_pixel());
+
+                        if (check_z != apr_z) {
+                            success = false;
+                        }
+
+                    }
+                }
             }
-
-            uint16_t apr_level = apr_iterator.level();
-            uint16_t check_level = test_data.img_level(apr_iterator.y_nearest_pixel(),apr_iterator.x_nearest_pixel(),apr_iterator.z_nearest_pixel());
-
-            if(check_level!=apr_level){
-                success = false;
-            }
-
-            uint16_t apr_type = apr_iterator.type();
-            uint16_t check_type = test_data.img_type(apr_iterator.y_nearest_pixel(),apr_iterator.x_nearest_pixel(),apr_iterator.z_nearest_pixel());
-
-            if(check_type!=apr_type){
-                success = false;
-            }
-
-            uint16_t apr_x = apr_iterator.x();
-            uint16_t check_x = test_data.img_x(apr_iterator.y_nearest_pixel(),apr_iterator.x_nearest_pixel(),apr_iterator.z_nearest_pixel());
-
-            if(check_x!=apr_x){
-                success = false;
-            }
-
-            uint16_t apr_y = apr_iterator.y();
-            uint16_t check_y = test_data.img_y(apr_iterator.y_nearest_pixel(),apr_iterator.x_nearest_pixel(),apr_iterator.z_nearest_pixel());
-
-            if(check_y!=apr_y){
-                success = false;
-            }
-
-            uint16_t apr_z = apr_iterator.z();
-            uint16_t check_z = test_data.img_z(apr_iterator.y_nearest_pixel(),apr_iterator.x_nearest_pixel(),apr_iterator.z_nearest_pixel());
-
-            if(check_z!=apr_z){
-                success = false;
-            }
-
         }
 
     } else {
@@ -826,7 +843,7 @@ TEST_F(CreateSmallSphereTest, APR_INPUT_OUTPUT) {
 TEST_F(CreateSmallSphereTest, APR_PIPELINE) {
 
 //test iteration
-    //ASSERT_TRUE(test_apr_pipeline(test_data)); #FIXME CHANGE TO NEW PIPELINE
+    ASSERT_TRUE(test_apr_pipeline(test_data));
 
 }
 
@@ -847,15 +864,15 @@ TEST_F(Create210SphereTest, APR_NEIGHBOUR_ACCESS) {
 TEST_F(Create210SphereTest, APR_INPUT_OUTPUT) {
 
 //test iteration
-  //  ASSERT_TRUE(test_apr_input_output(test_data));
+    ASSERT_TRUE(test_apr_input_output(test_data));
 
 }
 
 TEST_F(Create210SphereTest, APR_PIPELINE) {
 
 //test iteration
-// TODO: FIXME please!
-//    ASSERT_TRUE(test_apr_pipeline(test_data));
+// TODO: FIXME please! is there linux passing issues?
+    ASSERT_TRUE(test_apr_pipeline(test_data));
 
 }
 
