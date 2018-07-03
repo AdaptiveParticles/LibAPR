@@ -6,33 +6,6 @@
 #define PARTPLAY_APRACCESS_HPP
 
 
-//TODO: IT SHOULD NOT BE DEFINDED HERE SINCE IT DUPLICATES FROM PullingScheme
-#define SEED_TYPE 1
-
-#define _NO_NEIGHBOUR ((uint16_t)3)
-#define _LEVEL_SAME ((uint16_t)1)
-#define _LEVEL_DECREASE ((uint16_t)0)
-#define _LEVEL_INCREASE ((uint16_t)2)
-
-#define YP_LEVEL_MASK ((((uint16_t)1) << 2) - 1) << 1
-#define YP_LEVEL_SHIFT (uint16_t)  1
-
-#define YM_LEVEL_MASK ((((uint16_t)1) << 2) - 1) << 3
-#define YM_LEVEL_SHIFT (uint16_t) 3
-
-#define XP_LEVEL_MASK ((((uint16_t)1) << 2) - 1) << 5
-#define XP_LEVEL_SHIFT 5
-
-#define XM_LEVEL_MASK ((((uint16_t)1) << 2) - 1) << 7
-#define XM_LEVEL_SHIFT 7
-
-#define ZP_LEVEL_MASK ((((uint16_t)1) << 2) - 1) << 9
-#define ZP_LEVEL_SHIFT 9
-
-#define ZM_LEVEL_MASK ((((uint16_t)1) << 2) - 1) << 11
-#define ZM_LEVEL_SHIFT 11
-
-
 #include <map>
 #include <utility>
 #include "data_structures/Mesh/PixelData.hpp"
@@ -40,6 +13,11 @@
 #include "ExtraParticleData.hpp"
 #include "ExtraPartCellData.hpp"
 
+
+#define _NO_NEIGHBOUR ((uint16_t)3)
+#define _LEVEL_SAME ((uint16_t)1)
+#define _LEVEL_DECREASE ((uint16_t)0)
+#define _LEVEL_INCREASE ((uint16_t)2)
 
 struct ParticleCell {
     uint16_t x,y,z,level,type;
@@ -80,7 +58,6 @@ struct LocalMapIterators{
         }
     }
 };
-
 
 struct MapStorageData{
     std::vector<uint16_t> y_begin;
