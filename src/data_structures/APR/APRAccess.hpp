@@ -354,7 +354,7 @@ public:
                 //otherwise search for it (points to first key that is greater than the y value)
                 map_iterator.iterator = current_pc_map.map.upper_bound(part_cell.y);
 
-                if(map_iterator.iterator == current_pc_map.map.begin()){
+                if((map_iterator.iterator == current_pc_map.map.begin()) || (map_iterator.iterator == current_pc_map.map.end())){
                     //less then the first value
                     return false;
                 } else{

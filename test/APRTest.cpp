@@ -309,7 +309,6 @@ bool test_apr_neighbour_access(TestData& test_data){
         int z = 0;
         int x = 0;
 
-
         for (z = 0; z < apr_iterator.spatial_index_z_max(level); z++) {
             for (x = 0; x < apr_iterator.spatial_index_x_max(level); ++x) {
                 for (apr_iterator.set_new_lzx(level, z, x); apr_iterator.global_index() < apr_iterator.end_index;
@@ -318,6 +317,7 @@ bool test_apr_neighbour_access(TestData& test_data){
                     //loop over all the neighbours and set the neighbour iterator to it
                     for (int direction = 0; direction < 6; ++direction) {
                         // Neighbour Particle Cell Face definitions [+y,-y,+x,-x,+z,-z] =  [0,1,2,3,4,5]
+
                         apr_iterator.find_neighbours_in_direction(direction);
 
                         success = check_neighbour_out_of_bounds(apr_iterator, direction);
@@ -508,6 +508,7 @@ bool test_apr_iterate(TestData& test_data){
 
                     if (check_intensity != apr_intensity) {
                         success = false;
+                        particle_number++;
                     }
 
                     uint16_t apr_level = apr_iterator.level();
@@ -553,6 +554,8 @@ bool test_apr_iterate(TestData& test_data){
         }
 
     }
+
+    std::cout << particle_number << std::endl;
 
     //Test parallel loop
 
@@ -837,7 +840,7 @@ TEST_F(Create210SphereTest, APR_ITERATION) {
 TEST_F(Create210SphereTest, APR_NEIGHBOUR_ACCESS) {
 
 //test iteration
-    //ASSERT_TRUE(test_apr_neighbour_access(test_data));
+    ASSERT_TRUE(test_apr_neighbour_access(test_data));
 
 }
 
