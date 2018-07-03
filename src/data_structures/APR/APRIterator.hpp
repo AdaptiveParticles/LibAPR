@@ -18,7 +18,6 @@ protected:
 
     APR<ImageType>* aprOwn;
 
-    uint16_t level_delta{};
 
 public:
 
@@ -358,7 +357,7 @@ public:
             if(this->check_neighbours_particle_cell_in_bounds()){
                 if(this->apr_access->find_particle_cell(this->neighbour_particle_cell,this->local_iterators.same_level[direction])){
                     //found the neighbour! :D
-                    level_delta = _LEVEL_SAME;
+                    this->level_delta = _LEVEL_SAME;
                     return true;
                 }
             };
@@ -367,7 +366,7 @@ public:
 
             if(this->check_neighbours_particle_cell_in_bounds()){
                 if(this->apr_access->find_particle_cell(this->neighbour_particle_cell,this->local_iterators.parent_level[direction])){
-                    level_delta = _LEVEL_DECREASE;
+                    this->level_delta = _LEVEL_DECREASE;
 
                     return true;
 
@@ -384,7 +383,7 @@ public:
             if(this->check_neighbours_particle_cell_in_bounds()){
                 if(this->apr_access->find_particle_cell(this->neighbour_particle_cell,this->local_iterators.same_level[direction])){
                     //found the neighbour! :D
-                    level_delta = _LEVEL_SAME;
+                    this->level_delta = _LEVEL_SAME;
                     return true;
                 }
             };
@@ -393,7 +392,7 @@ public:
 
             if(this->check_neighbours_particle_cell_in_bounds()){
                 if(this->apr_access->find_particle_cell(this->neighbour_particle_cell,this->local_iterators.child_level[direction][0])){
-                    level_delta = _LEVEL_INCREASE;
+                    this->level_delta = _LEVEL_INCREASE;
                     return true;
                 }
             };
@@ -406,7 +405,7 @@ public:
             if(this->check_neighbours_particle_cell_in_bounds()){
                 if(this->apr_access->find_particle_cell(this->neighbour_particle_cell,this->local_iterators.same_level[direction])){
                     //found the neighbour! :D
-                    level_delta = _LEVEL_SAME;
+                    this->level_delta = _LEVEL_SAME;
                     return true;
                 }
             };
@@ -415,7 +414,7 @@ public:
 
             if(this->check_neighbours_particle_cell_in_bounds()){
                 if(this->apr_access->find_particle_cell(this->neighbour_particle_cell,this->local_iterators.parent_level[direction])){
-                    level_delta = _LEVEL_DECREASE;
+                    this->level_delta = _LEVEL_DECREASE;
                     return true;
                 }
             };
@@ -423,7 +422,7 @@ public:
 
             if(this->check_neighbours_particle_cell_in_bounds()){
                 if(this->apr_access->find_particle_cell(this->neighbour_particle_cell,this->local_iterators.child_level[direction][0])){
-                    level_delta = _LEVEL_INCREASE;
+                    this->level_delta = _LEVEL_INCREASE;
                     return true;
                 }
             };
@@ -432,7 +431,7 @@ public:
 
         }
 
-        level_delta=_NO_NEIGHBOUR;
+        this->level_delta=_NO_NEIGHBOUR;
 
         return false;
 
@@ -556,11 +555,11 @@ protected:
 
     bool find_next_child(const uint8_t& direction,const uint8_t& index){
 
-        level_delta = _LEVEL_INCREASE;
-       this->apr_access->get_neighbour_coordinate(this->current_particle_cell,this->neighbour_particle_cell,direction,level_delta,index);
+        this->level_delta = _LEVEL_INCREASE;
+       this->apr_access->get_neighbour_coordinate(this->current_particle_cell,this->neighbour_particle_cell,direction,this->level_delta,index);
 
         if(this->check_neighbours_particle_cell_in_bounds()){
-            if(this->apr_access->find_particle_cell(this->neighbour_particle_cell,this->apr_access->get_local_iterator(this->local_iterators, level_delta, direction,index))){
+            if(this->apr_access->find_particle_cell(this->neighbour_particle_cell,this->apr_access->get_local_iterator(this->local_iterators, this->level_delta, direction,index))){
                 //found the neighbour! :D
                 return true;
             }
