@@ -1124,8 +1124,8 @@ public:
     }
 
 
-    template<typename T>
-    void flatten_structure(const APR<T> &apr, MapStorageData &map_data)  {
+
+    void flatten_structure(MapStorageData &map_data)  {
         //
         //  Flatten the map access structure for writing the output
         //
@@ -1143,39 +1143,43 @@ public:
         uint64_t z_;
         uint64_t x_;
 
-        for(uint64_t i = (apr.level_min());i <= apr.level_max();i++) {
-
+        for(uint64_t i = (level_min);i <= level_max;i++) {
 
             unsigned int x_num_ = (unsigned int )x_num[i];
             unsigned int z_num_ = (unsigned int )z_num[i];
 
-            if(i == apr.level_max()){
-                x_num_ = (unsigned int )x_num[i-1];
-                z_num_ = (unsigned int )z_num[i-1];
-            }
+            if(gap_map.data[i].size()>0) {
+                //account for tree where the last level doesn't exist
+                if (i == level_max) {
+                    //account for the APR, where the maximum level is down-sampled one
+                    x_num_ = (unsigned int) x_num[i - 1];
+                    z_num_ = (unsigned int) z_num[i - 1];
+                }
 
-            for (z_ = 0; z_ < z_num_; z_++) {
-                for (x_ = 0; x_ < x_num_; x_++) {
-                    const uint64_t offset_pc_data = x_num_ * z_ + x_;
-                    if(gap_map.data[i][offset_pc_data].size()>0) {
-                        map_data.x.push_back(x_);
-                        map_data.z.push_back(z_);
-                        map_data.level.push_back(i);
-                        map_data.number_gaps.push_back(gap_map.data[i][offset_pc_data][0].map.size());
+                for (z_ = 0; z_ < z_num_; z_++) {
+                    for (x_ = 0; x_ < x_num_; x_++) {
+                        const uint64_t offset_pc_data = x_num_ * z_ + x_;
+                        if (gap_map.data[i][offset_pc_data].size() > 0) {
+                            map_data.x.push_back(x_);
+                            map_data.z.push_back(z_);
+                            map_data.level.push_back(i);
+                            map_data.number_gaps.push_back(gap_map.data[i][offset_pc_data][0].map.size());
 
-                        map_data.global_index.push_back(global_index_by_level_and_zx_end[i][offset_pc_data]);
+                            map_data.global_index.push_back(global_index_by_level_and_zx_end[i][offset_pc_data]);
 
-                        for (auto const &element : gap_map.data[i][offset_pc_data][0].map) {
-                            map_data.y_begin.push_back(element.first);
-                            map_data.y_end.push_back(element.second.y_end);
+                            for (auto const &element : gap_map.data[i][offset_pc_data][0].map) {
+                                map_data.y_begin.push_back(element.first);
+                                map_data.y_end.push_back(element.second.y_end);
+                            }
                         }
-                    }
 
+                    }
                 }
             }
         }
 
     }
+
 
     template<typename T>
     void initialize_tree_access(const APR<T> &apr, const std::vector<PixelData<uint8_t>> &p_map) {
