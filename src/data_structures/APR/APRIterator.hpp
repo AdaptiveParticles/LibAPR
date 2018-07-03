@@ -5,9 +5,9 @@
 #ifndef PARTPLAY_APR_ITERATOR_NEW_HPP
 #define PARTPLAY_APR_ITERATOR_NEW_HPP
 
-#include "APR.hpp"
+//#include "APR.hpp"
 #include "APRAccess.hpp"
-#include "APRTree.hpp"
+//#include "APRTree.hpp"
 
 template<typename ImageType>
 class APRIterator {
@@ -68,11 +68,11 @@ public:
         return current_gap.iterator->second.global_index_begin;
     }
 
-    explicit APRIterator(APR<ImageType>& apr){
-        apr_access = &apr.apr_access;
-        current_particle_cell.global_index = UINT64_MAX;
-        highest_resolution_type = 1;
-    }
+//    explicit APRIterator(APR<ImageType>& apr){
+//        apr_access = &apr.apr_access;
+//        current_particle_cell.global_index = UINT64_MAX;
+//        highest_resolution_type = 1;
+//    }
 
     explicit APRIterator(APRAccess& apr_access_, uint8_t aHighestResolutionType = 1){
         apr_access = &apr_access_;

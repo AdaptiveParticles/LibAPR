@@ -151,7 +151,7 @@ int main(int argc, char **argv) {
     if(options.output_spatial_properties) {
 
         //initialization of the iteration structures
-        APRIterator<uint16_t> apr_iterator(apr); //this is required for parallel access
+        APRIterator<uint16_t> apr_iterator(apr.apr_access); //this is required for parallel access
 
         //create particle dataset
         ExtraParticleData<uint16_t> type(apr.total_number_particles());

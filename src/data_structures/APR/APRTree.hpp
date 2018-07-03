@@ -34,7 +34,7 @@ private:
 
     void initialize_apr_tree(APR<imageType>& apr,bool type_full = false){
 
-        APRIterator<imageType> apr_iterator(apr);
+        APRIterator<imageType> apr_iterator(apr.apr_access);
 
         ///////////////////////
         ///

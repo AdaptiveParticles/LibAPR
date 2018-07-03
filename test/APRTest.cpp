@@ -96,7 +96,7 @@ bool test_apr_input_output(TestData& test_data){
 
 
 
-    APRIterator<uint16_t> apr_iterator(test_data.apr);
+    APRIterator<uint16_t> apr_iterator(test_data.apr.apr_access);
 
     std::string save_loc = "";
     std::string file_name = "read_write_test";
@@ -107,7 +107,7 @@ bool test_apr_input_output(TestData& test_data){
     APR<uint16_t> apr_read;
 
     apr_read.read_apr(save_loc + file_name + "_apr.h5");
-    APRIterator<uint16_t> apr_iterator_read(apr_read);
+    APRIterator<uint16_t> apr_iterator_read(apr_read.apr_access);
 
     uint64_t particle_number;
 
@@ -149,8 +149,8 @@ bool test_apr_input_output(TestData& test_data){
     // Now check the Extra Part Cell Data
     //
 
-    APRIterator<uint16_t> neighbour_iterator(apr_read);
-    APRIterator<uint16_t> apr_iterator_read2(apr_read);
+    APRIterator<uint16_t> neighbour_iterator(apr_read.apr_access);
+    APRIterator<uint16_t> apr_iterator_read2(apr_read.apr_access);
 
     for (particle_number = 0; particle_number < apr_iterator_read.total_number_particles(); ++particle_number) {
         apr_iterator_read2.set_iterator_to_particle_by_number(particle_number);
@@ -248,8 +248,8 @@ bool test_apr_neighbour_access(TestData& test_data){
 
     bool success = true;
 
-    APRIterator<uint16_t> neighbour_iterator(test_data.apr);
-    APRIterator<uint16_t> apr_iterator(test_data.apr);
+    APRIterator<uint16_t> neighbour_iterator(test_data.apr.apr_access);
+    APRIterator<uint16_t> apr_iterator(test_data.apr.apr_access);
 
     uint64_t particle_number;
 
@@ -409,7 +409,7 @@ bool test_apr_iterate(TestData& test_data){
 
     bool success = true;
 
-    APRIterator<uint16_t> apr_iterator(test_data.apr);
+    APRIterator<uint16_t> apr_iterator(test_data.apr.apr_access);
     uint64_t particle_number = 0;
 
     for (particle_number = 0; particle_number < apr_iterator.total_number_particles(); ++particle_number) {
@@ -591,7 +591,7 @@ bool test_apr_pipeline(TestData& test_data){
 
     //Gets the APR
     if(apr_converter.get_apr(apr)){
-        APRIterator<uint16_t> apr_iterator(apr);
+        APRIterator<uint16_t> apr_iterator(apr.apr_access);
         uint64_t particle_number = 0;
         std::cout << "NUM OF PARTICLES: " << apr_iterator.total_number_particles() << " vs " << test_data.apr.total_number_particles() << std::endl;
         for (particle_number = 0; particle_number < apr_iterator.total_number_particles(); ++particle_number) {

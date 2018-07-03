@@ -164,7 +164,7 @@ public:
         //  Samples particles from an image using an image tree (img_by_level is a vector of images)
 
         //initialization of the iteration structures
-        APRIterator<ImageType> apr_iterator(*this); //this is required for parallel access
+        APRIterator<ImageType> apr_iterator(apr_access); //this is required for parallel access
         parts.data.resize(apr_iterator.total_number_particles());
 
 #ifdef HAVE_OPENMP
@@ -186,7 +186,7 @@ public:
         //
 
         //initialization of the iteration structures
-        APRIterator<ImageType> apr_iterator(*this); //this is required for parallel access
+        APRIterator<ImageType> apr_iterator(apr_access); //this is required for parallel access
         uint64_t particle_number;
         parts.data.resize(apr_iterator.total_number_particles());
 

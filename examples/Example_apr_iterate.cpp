@@ -53,7 +53,7 @@ int main(int argc, char **argv) {
     //Create particle datasets, once intiailized this has the same layout as the Particle Cells
     ExtraParticleData<float> calc_ex(apr.total_number_particles());
 
-    APRIterator<uint16_t> apr_iterator(apr); // not STL type iteration
+    APRIterator<uint16_t> apr_iterator(apr.apr_access); // not STL type iteration
 
     timer.start_timer("APR serial iterator loop");
 

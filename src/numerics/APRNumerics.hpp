@@ -22,8 +22,8 @@ public:
 
         gradient.data.resize(apr.total_number_particles(),init_val);
 
-        APRIterator<T> apr_iterator(apr);
-        APRIterator<T> neighbour_iterator(apr);
+        APRIterator<T> apr_iterator(apr.apr_access);
+        APRIterator<T> neighbour_iterator(apr.apr_access);
 
         uint64_t particle_number;
 
@@ -126,8 +126,8 @@ public:
             faces = {4,5};
         }
 
-        APRIterator<T> apr_iterator(apr);
-        APRIterator<T> neighbour_iterator(apr);
+        APRIterator<T> apr_iterator(apr.apr_access);
+        APRIterator<T> neighbour_iterator(apr.apr_access);
 
         uint64_t particle_number;
 

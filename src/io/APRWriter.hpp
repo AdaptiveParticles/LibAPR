@@ -309,7 +309,7 @@ public:
         // ------------- write data ----------------------------
         writeDataStandard({(Hdf5Type<T>::type()), AprTypes::ParticlePropertyType}, f.objectId, parts.data);
 
-        APRIterator<ImageType> apr_iterator(apr);
+        APRIterator<ImageType> apr_iterator(apr.apr_access);
         std::vector<uint16_t> xv(apr_iterator.total_number_particles());
         std::vector<uint16_t> yv(apr_iterator.total_number_particles());
         std::vector<uint16_t> zv(apr_iterator.total_number_particles());

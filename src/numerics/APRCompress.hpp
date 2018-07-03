@@ -15,6 +15,7 @@
 #include "misc/APRTimer.hpp"
 #include <cmath>
 #include <vector>
+#include <data_structures/APR/APR.hpp>
 
 template<typename ImageType>
 class APRCompress {
@@ -241,8 +242,8 @@ void APRCompress<ImageType>::predict_particles_by_level(APR<U>& apr,const unsign
 
     timer.start_timer("iterator initialization");
 
-    APRIterator<ImageType> apr_iterator(apr);
-    APRIterator<ImageType> neighbour_iterator(apr);
+    APRIterator<ImageType> apr_iterator(apr.apr_access);
+    APRIterator<ImageType> neighbour_iterator(apr.apr_access);
 
     timer.stop_timer();
 

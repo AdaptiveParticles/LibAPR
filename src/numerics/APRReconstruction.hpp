@@ -5,6 +5,7 @@
 #ifndef PARTPLAY_APRRECONSTRUCTION_HPP
 #define PARTPLAY_APRRECONSTRUCTION_HPP
 
+#include <data_structures/APR/APR.hpp>
 #include "data_structures/APR/APR.hpp"
 #include "data_structures/APR/APRIterator.hpp"
 #include "data_structures/APR/APRTreeIterator.hpp"
@@ -30,7 +31,7 @@ public:
         //  Takes in a APR and creates piece-wise constant image
         //
 
-        APRIterator<S> apr_iterator(apr);
+        APRIterator<S> apr_iterator(apr.apr_access);
         uint64_t particle_number;
 
         img.init(apr.orginal_dimensions(0), apr.orginal_dimensions(1), apr.orginal_dimensions(2), 0);
@@ -86,7 +87,7 @@ public:
         //  Takes in a APR and creates piece-wise constant image
         //
 
-        APRIterator<S> apr_iterator(apr);
+        APRIterator<S> apr_iterator(apr.apr_access);
 
         int max_img_y = ceil(apr.orginal_dimensions(0)*pow(2.0,reconPatch.level_delta));
         int max_img_x = ceil(apr.orginal_dimensions(1)*pow(2.0,reconPatch.level_delta));
@@ -270,7 +271,7 @@ public:
         //get depth
         ExtraParticleData<U> depth_parts(apr.total_number_particles());
 
-        APRIterator<S> apr_iterator(apr);
+        APRIterator<S> apr_iterator(apr.apr_access);
         uint64_t particle_number;
 
 #ifdef HAVE_OPENMP
@@ -303,7 +304,7 @@ public:
         //get depth
         ExtraParticleData<U> level_parts(apr.total_number_particles());
 
-        APRIterator<S> apr_iterator(apr);
+        APRIterator<S> apr_iterator(apr.apr_access);
         uint64_t particle_number;
 
 #ifdef HAVE_OPENMP
@@ -331,7 +332,7 @@ public:
         ExtraParticleData<U> type_parts(apr.total_number_particles());
 
 
-        APRIterator<S> apr_iterator(apr);
+        APRIterator<S> apr_iterator(apr.apr_access);
         uint64_t particle_number;
 
 #ifdef HAVE_OPENMP
@@ -768,7 +769,7 @@ public:
         //get depth
         ExtraParticleData<U> level_parts(apr.total_number_particles());
 
-        APRIterator<S> apr_iterator(apr);
+        APRIterator<S> apr_iterator(apr.apr_access);
         uint64_t particle_number;
 
 #ifdef HAVE_OPENMP
