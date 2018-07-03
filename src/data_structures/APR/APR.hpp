@@ -49,6 +49,10 @@ public:
     ///
     //////////////////////////////////
 
+    APRIterator<ImageType> iterator() {
+        return APRIterator<ImageType>(apr_access);
+    }
+
     bool get_apr(){
         //copy across parameters
         this->apr_converter.par = parameters;
