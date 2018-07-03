@@ -8,8 +8,6 @@
 
 #include <algorithm>
 #include <vector>
-//#include "APR.hpp"
-//#include "APRIterator.hpp"
 
 template<typename V> class APRIterator;
 template <typename V> class APR;
@@ -61,7 +59,6 @@ public:
 };
 
 #include "APRIterator.hpp"
-#include "APR.hpp"
 
 /**
  * Access particle via iterator

@@ -5,68 +5,25 @@
 #ifndef PARTPLAY_APR_ITERATOR_NEW_HPP
 #define PARTPLAY_APR_ITERATOR_NEW_HPP
 
-//#include "APR.hpp"
 #include "APRAccess.hpp"
-//#include "APRTree.hpp"
 
 template<typename ImageType>
 class APRIterator {
 
-protected:
-
-    LocalMapIterators local_iterators;
-
-    const uint8_t level_check_max[2] = {_LEVEL_SAME,_LEVEL_DECREASE};
-
-    const uint8_t level_check_min[2] = {_LEVEL_SAME,_LEVEL_INCREASE};
-
-    const uint8_t level_check_middle[3] = {_LEVEL_SAME,_LEVEL_DECREASE,_LEVEL_INCREASE};
-
-    ParticleCell neighbour_particle_cell{ 0, 0, 0, 0, 0, UINT64_MAX, UINT64_MAX };
-
-    ParticleCell current_particle_cell{0, 0, 0, 0, 0, UINT64_MAX, UINT64_MAX };
-
     APRAccess* apr_access;
 
-    uint16_t level_delta{};
-
+    LocalMapIterators local_iterators;
+    ParticleCell neighbour_particle_cell{ 0, 0, 0, 0, 0, UINT64_MAX, UINT64_MAX };
     MapIterator current_gap;
 
+    uint16_t level_delta;
     uint8_t highest_resolution_type;
-
     bool check_neigh_flag = false;
 
-    const uint16_t shift[6] = {YP_LEVEL_SHIFT,YM_LEVEL_SHIFT,XP_LEVEL_SHIFT,XM_LEVEL_SHIFT,ZP_LEVEL_SHIFT,ZM_LEVEL_SHIFT};
-    const uint16_t mask[6] = {YP_LEVEL_MASK,YM_LEVEL_MASK,XP_LEVEL_MASK,XM_LEVEL_MASK,ZP_LEVEL_MASK,ZM_LEVEL_MASK};
-
-
+protected:
+    ParticleCell current_particle_cell{0, 0, 0, 0, 0, UINT64_MAX, UINT64_MAX };
 
 public:
-
-    void move_gap(unsigned long& gap){
-        current_gap.iterator++;
-        gap++;
-    }
-
-    unsigned long number_gaps(){
-        if(apr_access->gap_map.data[current_particle_cell.level][current_particle_cell.pc_offset].size() > 0) {
-            return apr_access->gap_map.data[current_particle_cell.level][current_particle_cell.pc_offset][0].map.size();
-        } else {
-            return 0;
-        }
-    }
-
-    uint64_t current_gap_y_begin(){
-        return current_gap.iterator->first;
-    }
-
-    uint64_t current_gap_y_end(){
-        return current_gap.iterator->second.y_end;
-    }
-
-    uint64_t current_gap_index(){
-        return current_gap.iterator->second.global_index_begin;
-    }
 
 //    explicit APRIterator(APR<ImageType>& apr){
 //        apr_access = &apr.apr_access;
@@ -74,14 +31,14 @@ public:
 //        highest_resolution_type = 1;
 //    }
 
-    explicit APRIterator(APRAccess& apr_access_, uint8_t aHighestResolutionType = 1){
+    explicit APRIterator(APRAccess& apr_access_, uint8_t aHighestResolutionType = 1) {
         apr_access = &apr_access_;
         current_particle_cell.global_index = UINT64_MAX;
         highest_resolution_type = aHighestResolutionType;
     }
 
-    uint64_t total_number_particles(){
-        return (apr_access)->total_number_particles;
+    uint64_t total_number_particles() {
+        return apr_access->total_number_particles;
     }
 
     bool set_iterator_to_particle_by_number(const uint64_t particle_number){
@@ -89,7 +46,7 @@ public:
         //  Moves the iterator to point to the particle number (global index of the particle)
         //
 
-        if(particle_number==0){
+        if (particle_number==0){
             current_particle_cell.level = level_min();
             current_particle_cell.pc_offset=0;
 
@@ -200,10 +157,7 @@ public:
             current_particle_cell.global_index = -1;
             return false; // requested particle number exceeds the number of particles
         }
-
     }
-
-
 
     uint64_t set_new_lzx(const uint16_t level,const uint16_t z,const uint16_t x){
         current_particle_cell.level = level;
@@ -228,7 +182,6 @@ public:
         } else {
             return UINT64_MAX;
         }
-
     }
 
     bool set_iterator_to_particle_next_particle(){
@@ -254,10 +207,7 @@ public:
             current_particle_cell.y = current_gap.iterator->first; // the key is the first y value for the gap
             return true;
         }
-
     }
-
-
 
     inline uint64_t particles_level_begin(const uint16_t& level_){
         //
@@ -287,11 +237,6 @@ public:
         return apr_access->global_index_by_level_and_z_end[level_][z_]+1l;
     }
 
-    inline uint64_t current_offset(){
-        return current_particle_cell.pc_offset;
-    }
-
-
     inline uint64_t particles_zx_begin(const uint16_t& level_,const uint64_t& z_,const uint64_t& x_){
         //
         //  Used for finding the starting particle on a given level
@@ -319,24 +264,13 @@ public:
         } else {
             return 0;
         }
-
     }
 
-
-    inline uint16_t x(){
-        //get x
-       return current_particle_cell.x;
-    }
-
-    inline uint16_t y(){
-        //get x
-        return current_particle_cell.y;
-    }
-
-    inline uint16_t z(){
-        //get x
-        return current_particle_cell.z;
-    }
+    inline uint16_t x() const { return current_particle_cell.x; }
+    inline uint16_t y() const { return current_particle_cell.y; }
+    inline uint16_t z() const { return current_particle_cell.z; }
+    inline uint16_t level() const { return current_particle_cell.level; }
+    inline uint64_t global_index() const { return current_particle_cell.global_index; }
 
     inline uint8_t type(){
         //get type of the particle cell
@@ -346,28 +280,11 @@ public:
         } else {
             return apr_access->particle_cell_type.data[current_particle_cell.global_index];
         }
-
-    }
-
-    inline uint16_t level(){
-        //get x
-        return current_particle_cell.level;
-    }
-
-    inline uint64_t global_index() const {
-        //get x
-        return current_particle_cell.global_index;
-    }
-
-    inline ParticleCell get_current_particle_cell(){
-        return current_particle_cell;
     }
 
     inline ParticleCell get_neigh_particle_cell(){
         return neighbour_particle_cell;
     }
-
-
 
     bool find_neighbours_in_direction(const uint8_t& direction){
 
@@ -457,22 +374,16 @@ public:
         level_delta=_NO_NEIGHBOUR;
 
         return false;
-
     }
-
-
-
-
 
     bool set_neighbour_iterator(APRIterator<ImageType> &original_iterator, const uint8_t& direction, const uint8_t& index){
         //
         //  This is sets the this iterator, to the neighbour of the particle cell that original_iterator is pointing to
         //
 
-        if(original_iterator.level_delta!=_LEVEL_INCREASE){
+        if (original_iterator.level_delta!=_LEVEL_INCREASE){
             //copy the information from the original iterator
             std::swap(current_particle_cell,original_iterator.neighbour_particle_cell);
-
         } else {
             if(index==0){
                 std::swap(current_particle_cell,original_iterator.neighbour_particle_cell);
@@ -487,11 +398,9 @@ public:
 
         //this needs the if clause that finds the neighbour
         return true;
-
     }
 
     inline uint8_t number_neighbours_in_direction(const uint8_t& face){
-
         switch (level_delta){
             case _LEVEL_INCREASE:
                 return 4;
@@ -499,36 +408,29 @@ public:
                 return 0;
         }
         return 1;
-
     }
 
     inline unsigned int x_nearest_pixel(){
-        //get x
         return floor((current_particle_cell.x+0.5)*pow(2, apr_access->l_max - current_particle_cell.level));
     }
 
     inline float x_global(){
-        //get x
         return (current_particle_cell.x+0.5)*pow(2, apr_access->l_max - current_particle_cell.level);
     }
 
     inline unsigned int y_nearest_pixel(){
-        //get x
         return floor((current_particle_cell.y+0.5)*pow(2, apr_access->l_max - current_particle_cell.level));
     }
 
     inline float y_global(){
-        //get x
         return (current_particle_cell.y+0.5)*pow(2, apr_access->l_max - current_particle_cell.level);
     }
 
     inline unsigned int z_nearest_pixel(){
-        //get z nearest pixel
         return floor((current_particle_cell.z+0.5)*pow(2, apr_access->l_max - current_particle_cell.level));
     }
 
     inline float z_global(){
-        //get z global coordinate
         return (current_particle_cell.z+0.5)*pow(2, apr_access->l_max - current_particle_cell.level);
     }
 
@@ -551,6 +453,7 @@ public:
     inline uint64_t spatial_index_z_max(const unsigned int level){
         return apr_access->z_num[level];
     }
+
     /////////////////////////
     /// Random access
     ///
@@ -633,7 +536,6 @@ public:
 
 
 protected:
-    //private methods
 
     bool find_next_child(const uint8_t& direction,const uint8_t& index){
 
@@ -689,9 +591,7 @@ protected:
 
             return true;
         }
-
     }
-
 
     bool move_to_next_particle_cell(){
         //  Assumes all state variabels are valid for the current particle cell

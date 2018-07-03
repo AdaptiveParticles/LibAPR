@@ -15,10 +15,6 @@ class APRTreeIterator : public APRIterator<ImageType> {
 public:
     APRTreeIterator(APRTree<ImageType>& apr_tree) : APRIterator<ImageType>(apr_tree.tree_access, /*highest_resolution_type*/ 8) {}
 
-    void set_iterator_to_child(APRIterator<ImageType>& current_iterator,uint8_t child_index){
-        //empty
-    };
-
     bool set_iterator_to_parent(APRIterator<ImageType>& current_iterator){
         //takes an input iterator and sets it THIS iterator to the parent of the particle cell that the current_iterator is pointing to.
         this->current_particle_cell.y = (uint16_t)floor(current_iterator.y()/2.0);
