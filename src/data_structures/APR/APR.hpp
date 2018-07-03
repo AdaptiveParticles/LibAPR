@@ -34,8 +34,8 @@ public:
 
     unsigned int orginal_dimensions(int dim) const { return apr_access.org_dims[dim]; }
 
-    uint64_t level_max() const { return apr_access.level_max; }
-    uint64_t level_min() const { return apr_access.level_min; }
+    uint64_t level_max() const { return apr_access.l_max; }
+    uint64_t level_min() const { return apr_access.l_min; }
 
     inline uint64_t spatial_index_x_max(const unsigned int level) const { return apr_access.x_num[level]; }
     inline uint64_t spatial_index_y_max(const unsigned int level) const { return apr_access.y_num[level]; }

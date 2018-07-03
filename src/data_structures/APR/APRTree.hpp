@@ -45,8 +45,8 @@ private:
         uint64_t l_max = apr.level_max()-1;
         uint64_t l_min = apr.level_min()-1; // extend one extra level
 
-        tree_access.level_min = l_min;
-        tree_access.level_max = l_max;
+        tree_access.l_min = l_min;
+        tree_access.l_max = l_max;
 
         particle_cell_parent_tree.resize(l_max + 1);
 

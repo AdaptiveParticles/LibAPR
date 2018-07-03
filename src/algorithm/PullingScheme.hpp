@@ -69,8 +69,8 @@ private:
  * Initializes particle_cell_tree up to level (max - 1)
  */
 inline void PullingScheme::initialize_particle_cell_tree(const APRAccess &apr_access) {
-    l_max = apr_access.level_max - 1;
-    l_min = apr_access.level_min;
+    l_max = apr_access.l_max - 1;
+    l_min = apr_access.l_min;
 
     particle_cell_tree.resize(l_max + 1);
 

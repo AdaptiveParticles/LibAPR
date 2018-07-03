@@ -102,8 +102,8 @@ public:
 
     ExtraParticleData<uint8_t> particle_cell_type;
 
-    uint64_t level_max;
-    uint64_t level_min;
+    uint64_t l_max;
+    uint64_t l_min;
 
     uint64_t org_dims[3]={0,0,0};
 
@@ -123,6 +123,15 @@ public:
 
     std::vector<std::vector<uint64_t>> global_index_by_level_and_z_begin;
     std::vector<std::vector<uint64_t>> global_index_by_level_and_z_end;
+
+    unsigned int orginal_dimensions(int dim) const { return org_dims[dim]; }
+    uint64_t level_max() const { return l_max; }
+    uint64_t level_min() const { return l_min; }
+    uint64_t spatial_index_x_max(const unsigned int level) const { return x_num[level]; }
+    uint64_t spatial_index_y_max(const unsigned int level) const { return y_num[level]; }
+    uint64_t spatial_index_z_max(const unsigned int level) const { return z_num[level]; }
+    uint64_t get_total_number_particles() const { return total_number_particles; }
+
 
     MapIterator& get_local_iterator(LocalMapIterators& local_iterators,const uint16_t& level_delta,const uint16_t& face,const uint16_t& index){
         //
@@ -324,22 +333,22 @@ public:
 
     template<typename T>
     void initialize_structure_from_particle_cell_tree(APR<T>& apr,std::vector<PixelData<uint8_t>>& layers){
-       x_num.resize(level_max+1);
-       y_num.resize(level_max+1);
-       z_num.resize(level_max+1);
+       x_num.resize(l_max+1);
+       y_num.resize(l_max+1);
+       z_num.resize(l_max+1);
 
-        for(size_t i = level_min;i < level_max; ++i) {
+        for(size_t i = l_min;i < l_max; ++i) {
             x_num[i] = layers[i].x_num;
             y_num[i] = layers[i].y_num;
             z_num[i] = layers[i].z_num;
         }
-        y_num[level_max] = org_dims[0];
-        x_num[level_max] = org_dims[1];
-        z_num[level_max] = org_dims[2];
+        y_num[l_max] = org_dims[0];
+        x_num[l_max] = org_dims[1];
+        z_num[l_max] = org_dims[2];
 
         //transfer over data-structure to make the same (re-use of function for read-write)
-        std::vector<ArrayWrapper<uint8_t>> p_map(level_max);
-        for (size_t k = 0; k < level_max; ++k) {
+        std::vector<ArrayWrapper<uint8_t>> p_map(l_max);
+        for (size_t k = 0; k < l_max; ++k) {
             p_map[k].swap(layers[k].mesh);
         }
 
@@ -582,14 +591,14 @@ public:
         apr_timer.stop_timer();
 
         //set minimum level now to the first non-empty level.
-        level_min = min_level_find;
-        level_max = max_level_find;
+        l_min = min_level_find;
+        l_max = max_level_find;
         total_number_non_empty_rows=0;
 
         allocate_map_insert(apr,y_begin);
         APRIterator<T> apr_iterator(*this);
 
-        particle_cell_type.data.resize(global_index_by_level_end[level_max-1]+1,0);
+        particle_cell_type.data.resize(global_index_by_level_end[l_max-1]+1,0);
 
         for (size_t level = apr_iterator.level_min(); level < apr_iterator.level_max(); ++level) {
             #ifdef HAVE_OPENMP
@@ -645,8 +654,8 @@ public:
     void allocate_map(APR<T>& apr,MapStorageData& map_data,std::vector<uint64_t>& cumsum){
 
         //first add the layers
-        gap_map.depth_max = level_max;
-        gap_map.depth_min = level_min;
+        gap_map.depth_max = l_max;
+        gap_map.depth_min = l_min;
 
         gap_map.z_num.resize(gap_map.depth_max+1);
         gap_map.x_num.resize(gap_map.depth_max+1);
@@ -715,16 +724,16 @@ public:
         //////////////////////
 
         //iteration helpers for by level
-        global_index_by_level_begin.resize(level_max+1,0);
-        global_index_by_level_end.resize(level_max+1,0);
+        global_index_by_level_begin.resize(l_max+1,0);
+        global_index_by_level_end.resize(l_max+1,0);
 
         uint64_t cumsum_parts= 0;
 
         //set up the iteration helpers for by zslice
-        global_index_by_level_and_z_begin.resize(level_max+1);
-        global_index_by_level_and_z_end.resize(level_max+1);
+        global_index_by_level_and_z_begin.resize(l_max+1);
+        global_index_by_level_and_z_end.resize(l_max+1);
 
-        for(uint64_t i = level_min;i <= level_max;i++) {
+        for(uint64_t i = l_min;i <= l_max;i++) {
 
             const unsigned int x_num_ = x_num[i];
             const unsigned int z_num_ = z_num[i];
@@ -818,11 +827,11 @@ public:
         //  Initialize the new structure;
         //
 
-        x_num.resize(level_max+1);
-        y_num.resize(level_max+1);
-        z_num.resize(level_max+1);
+        x_num.resize(l_max+1);
+        y_num.resize(l_max+1);
+        z_num.resize(l_max+1);
 
-        for(int i = level_min;i <= level_max;i++){
+        for(int i = l_min;i <= l_max;i++){
             x_num[i] = p_map[i].x_num;
             y_num[i] = p_map[i].y_num;
             z_num[i] = p_map[i].z_num;
@@ -845,8 +854,8 @@ public:
 
         ExtraPartCellData<std::pair<uint16_t,YGap_map>> y_begin;
 
-        y_begin.depth_min = level_min;
-        y_begin.depth_max = level_max;
+        y_begin.depth_min = l_min;
+        y_begin.depth_max = l_max;
 
         y_begin.z_num.resize(y_begin.depth_max+1);
         y_begin.x_num.resize(y_begin.depth_max+1);
@@ -858,7 +867,7 @@ public:
             y_begin.data[i].resize(z_num[i]*x_num[i]);
         }
 
-        for(uint64_t i = (level_min);i <= level_max;i++) {
+        for(uint64_t i = (l_min);i <= l_max;i++) {
 
             const uint64_t x_num_ = x_num[i];
             const uint64_t z_num_ = z_num[i];
@@ -921,21 +930,21 @@ public:
         apr_timer.start_timer("forth loop");
 
         //iteration helpers for by level
-        global_index_by_level_begin.resize(level_max+1,1);
-        global_index_by_level_end.resize(level_max+1,0);
+        global_index_by_level_begin.resize(l_max+1,1);
+        global_index_by_level_end.resize(l_max+1,0);
 
         cumsum= 0;
 
         total_number_gaps=0;
 
-        uint64_t min_level_find = level_max;
-        uint64_t max_level_find = level_min;
+        uint64_t min_level_find = l_max;
+        uint64_t max_level_find = l_min;
 
         //set up the iteration helpers for by zslice
-        global_index_by_level_and_z_begin.resize(level_max+1);
-        global_index_by_level_and_z_end.resize(level_max+1);
+        global_index_by_level_and_z_begin.resize(l_max+1);
+        global_index_by_level_and_z_end.resize(l_max+1);
 
-        for(uint64_t i = (level_min);i <= level_max;i++) {
+        for(uint64_t i = (l_min);i <= l_max;i++) {
 
             const unsigned int x_num_ = x_num[i];
             const unsigned int z_num_ = z_num[i];
@@ -985,8 +994,8 @@ public:
 
 
         //set minimum level now to the first non-empty level.
-        level_min = min_level_find;
-        level_max = max_level_find;
+        l_min = min_level_find;
+        l_max = max_level_find;
 
         total_number_non_empty_rows=0;
 
@@ -994,8 +1003,8 @@ public:
 
         //gap_map.initialize_structure_parts_empty(apr);
 
-        gap_map.depth_min = level_min;
-        gap_map.depth_max = level_max;
+        gap_map.depth_min = l_min;
+        gap_map.depth_max = l_max;
 
         gap_map.z_num.resize(y_begin.depth_max+1);
         gap_map.x_num.resize(y_begin.depth_max+1);
@@ -1010,7 +1019,7 @@ public:
         uint64_t counter_rows = 0;
 
 
-        for (uint64_t i = (level_min); i <= level_max; i++) {
+        for (uint64_t i = (l_min); i <= l_max; i++) {
             const unsigned int x_num_ = x_num[i];
             const unsigned int z_num_ = z_num[i];
 #ifdef HAVE_OPENMP
@@ -1036,7 +1045,7 @@ public:
 
         APRIterator<T> apr_iterator(*this);
 
-        particle_cell_type.data.resize(global_index_by_level_end[level_max-1]+1,0);
+        particle_cell_type.data.resize(global_index_by_level_end[l_max-1]+1,0);
 
         uint64_t particle_number;
 
