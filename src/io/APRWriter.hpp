@@ -198,7 +198,8 @@ public:
 
         bool build_tree = true;
 
-        uint64_t max_read_level = apr.apr_access.level_max-3;
+        uint64_t max_read_level = apr.apr_access.level_max;
+        uint64_t max_read_level_tree = apr.apr_access.level_max-1;
 
         if(build_tree){
 
@@ -261,7 +262,7 @@ public:
 
 
             uint64_t parts_start = 0;
-            uint64_t parts_end = apr.apr_tree.tree_access.global_index_by_level_end[max_read_level] + 1;
+            uint64_t parts_end = apr.apr_tree.tree_access.global_index_by_level_end[max_read_level_tree] + 1;
 
             if ( apr.apr_tree.particles_ds_tree.data.size() > 0) {
                 readData(AprTypes::ParticleIntensitiesType, f.objectIdTree, apr.apr_tree.particles_ds_tree.data.data(),parts_start,parts_end);
