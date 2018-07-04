@@ -4,7 +4,7 @@
 
 #include <gtest/gtest.h>
 #include "data_structures/Mesh/PixelData.hpp"
-//TODO: APRAccess.hpp should be included here but currently because of dependencies it does not work :(
+//TODO: only APRAccess.hpp should be included here but currently because of dependencies it does not work :(
 #include "data_structures/APR/APRIterator.hpp"
 #include "data_structures/APR/APRAccess.hpp"
 #include "algorithm/PullingScheme.hpp"

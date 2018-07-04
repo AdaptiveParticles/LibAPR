@@ -74,14 +74,8 @@ class APRAccess {
 
 public:
 
-    ExtraPartCellData<ParticleCellGapMap> gap_map;
-    //ExtraPartCellData<std::map<uint16_t,YGap_map>::iterator> gap_map_it;
-
-    ExtraParticleData<uint8_t> particle_cell_type;
-
-    uint64_t l_max;
     uint64_t l_min;
-
+    uint64_t l_max;
     uint64_t org_dims[3]={0,0,0};
 
     // TODO: SHould they be also saved as uint64 in HDF5? (currently int is used)
@@ -90,16 +84,16 @@ public:
     std::vector<uint64_t> z_num;
 
     uint64_t total_number_particles;
-
     uint64_t total_number_gaps;
-
-    uint64_t total_number_non_empty_rows;
-
     std::vector<uint64_t> global_index_by_level_begin;
     std::vector<uint64_t> global_index_by_level_end;
-
     std::vector<std::vector<uint64_t>> global_index_by_level_and_z_begin;
     std::vector<std::vector<uint64_t>> global_index_by_level_and_z_end;
+
+    uint64_t total_number_non_empty_rows;
+    ExtraPartCellData<ParticleCellGapMap> gap_map;
+    ExtraParticleData<uint8_t> particle_cell_type;
+
 
     unsigned int orginal_dimensions(int dim) const { return org_dims[dim]; }
     uint64_t level_max() const { return l_max; }
@@ -109,6 +103,9 @@ public:
     uint64_t spatial_index_z_max(const unsigned int level) const { return z_num[level]; }
     uint64_t get_total_number_particles() const { return total_number_particles; }
 
+//    APRIterator iterator() {
+//        return APRIterator(*this);
+//    }
 
     MapIterator& get_local_iterator(LocalMapIterators& local_iterators,const uint16_t& level_delta,const uint16_t& face,const uint16_t& index){
         //
@@ -231,20 +228,6 @@ public:
         return ((uint16_t)(x-1)>(x_num[level]-3)) | ((uint16_t)(z-1)>(z_num[level]-3));
     }
 
-    inline uint8_t number_neighbours_in_direction(const uint8_t& level_delta){
-        //
-        //  Gives the maximum number of neighbours in a direction given the level_delta.
-        //
-
-        switch (level_delta){
-            case _LEVEL_INCREASE:
-                return 4;
-            case _NO_NEIGHBOUR:
-                return 0;
-        }
-        return 1;
-    }
-
     bool find_particle_cell(ParticleCell& part_cell,MapIterator& map_iterator){
         if(gap_map.data[part_cell.level][part_cell.pc_offset].size() > 0) {
 
@@ -331,7 +314,6 @@ public:
 
         initialize_structure_from_particle_cell_tree(apr, p_map);
     }
-
 
     template<typename T>
     void initialize_structure_from_particle_cell_tree(const APR<T> &apr, std::vector<ArrayWrapper<uint8_t>> &p_map) {
@@ -583,7 +565,8 @@ public:
             #endif
             for (size_t particle_number = apr_iterator.particles_level_begin(level); particle_number <  apr_iterator.particles_level_end(level); ++particle_number) {
                 apr_iterator.set_iterator_to_particle_by_number(particle_number);
-                const size_t offset_part_map = apr_iterator.x() * apr_iterator.spatial_index_y_max(apr_iterator.level()) + apr_iterator.z() * apr_iterator.spatial_index_y_max(apr_iterator.level()) * apr_iterator.spatial_index_x_max(apr_iterator.level());
+                const size_t offset_part_map = apr_iterator.x() * apr_iterator.spatial_index_y_max(apr_iterator.level()) +
+                                               apr_iterator.z() * apr_iterator.spatial_index_y_max(apr_iterator.level()) * apr_iterator.spatial_index_x_max(apr_iterator.level());
                 particle_cell_type[apr_iterator] = p_map[apr_iterator.level()][offset_part_map + apr_iterator.y()];
             }
         }
@@ -799,250 +782,202 @@ public:
     }
 
     template<typename T>
-    void initialize_tree_access(APR<T>& apr,std::vector<PixelData<uint8_t>>& p_map) {
-        //
-        //  Initialize the new structure;
-        //
+    void initialize_tree_access(const APR<T> &apr, std::vector<PixelData<uint8_t>> &p_map) {
+        APRTimer apr_timer(false);
 
+        // ---------- initialize dimensions on each level
         x_num.resize(l_max+1);
         y_num.resize(l_max+1);
         z_num.resize(l_max+1);
 
-        for(int i = l_min;i <= l_max;i++){
+        for(int i = l_min;i <= l_max; ++i) {
             x_num[i] = p_map[i].x_num;
             y_num[i] = p_map[i].y_num;
             z_num[i] = p_map[i].z_num;
         }
 
-        APRTimer apr_timer;
-        apr_timer.verbose_flag = false;
+        // ---------- initialize ExtraPartCellData with ranges/gaps of y
+        apr_timer.start_timer("initialize_ExtraPartCellData");
 
+        ExtraPartCellData<std::pair<uint16_t, YGap_map>> gapInfo;
+        gapInfo.depth_min = l_min;
+        gapInfo.depth_max = l_max;
 
-        apr_timer.start_timer("first_step");
-
-        //initialize loop variables
-        uint64_t x_;
-        uint64_t z_;
-        uint64_t y_,status;
-
-        apr_timer.stop_timer();
-
-        apr_timer.start_timer("second_step");
-
-        ExtraPartCellData<std::pair<uint16_t,YGap_map>> y_begin;
-
-        y_begin.depth_min = l_min;
-        y_begin.depth_max = l_max;
-
-        y_begin.z_num.resize(y_begin.depth_max+1);
-        y_begin.x_num.resize(y_begin.depth_max+1);
-        y_begin.data.resize(y_begin.depth_max+1);
-
-        for (uint64_t i = y_begin.depth_min; i <= y_begin.depth_max; ++i) {
-            y_begin.z_num[i] = z_num[i];
-            y_begin.x_num[i] = x_num[i];
-            y_begin.data[i].resize(z_num[i]*x_num[i]);
+        gapInfo.z_num.resize(gapInfo.depth_max + 1);
+        gapInfo.x_num.resize(gapInfo.depth_max + 1);
+        gapInfo.data.resize(gapInfo.depth_max + 1);
+        for (uint64_t level = gapInfo.depth_min; level <= gapInfo.depth_max; ++level) {
+            gapInfo.z_num[level] = z_num[level];
+            gapInfo.x_num[level] = x_num[level];
+            gapInfo.data[level].resize(z_num[level] * x_num[level]);
         }
 
-        for(uint64_t i = (l_min);i <= l_max;i++) {
+        for (uint64_t level = l_min; level <= l_max; ++level) {
+            const uint64_t xNum = x_num[level];
+            const uint64_t zNum = z_num[level];
+            const uint64_t yNum = y_num[level];
 
-            const uint64_t x_num_ = x_num[i];
-            const uint64_t z_num_ = z_num[i];
-            const uint64_t y_num_ = y_num[i];
-
-#ifdef HAVE_OPENMP
-#pragma omp parallel for default(shared) private(z_, x_, y_, status) if(z_num_*x_num_ > 100)
-#endif
-            for (z_ = 0; z_ < z_num_; z_++) {
-
-                for (x_ = 0; x_ < x_num_; x_++) {
-                    const size_t offset_part_map = x_ * y_num_ + z_ * y_num_ * x_num_;
-                    const size_t offset_pc_data = x_num_*z_ + x_;
+            #ifdef HAVE_OPENMP
+            #pragma omp parallel for default(shared) if(zNum * xNum > 100)
+            #endif
+            for (uint64_t z = 0; z < zNum; ++z) {
+                for (uint64_t x = 0; x < xNum; ++x) {
+                    const size_t offset_part_map = (x + z * xNum) * yNum ;
+                    const size_t offset_pc_data = xNum * z + x;
 
                     uint16_t current = 0;
                     uint16_t previous = 0;
+                    uint64_t counter = 0;
 
                     YGap_map gap;
                     gap.global_index_begin = 0;
-                    uint64_t counter = 0;
 
-                    for (y_ = 0; y_ < y_num_; y_++) {
-
-                        status = p_map[i].mesh[offset_part_map + y_];
-                        if(status > 0) {
+                    // discover all ranges/gaps along y-direction for givex x/z coordinates
+                    for (uint64_t y = 0; y < yNum; ++y) {
+                        uint64_t status = p_map[level].mesh[offset_part_map + y];
+                        if (status > 0) {
                             current = 1;
 
-                            if(previous == 0){
-                                y_begin.data[i][offset_pc_data].push_back({y_,gap});
-
+                            if (previous == 0) {
+                                gapInfo.data[level][offset_pc_data].push_back({y, gap});
                             }
-                        } else {
+                        }
+                        else {
                             current = 0;
-
-                            if(previous == 1){
-
-                                (y_begin.data[i][offset_pc_data][counter]).second.y_end = (y_-1);
+                            if (previous == 1) {
+                                gapInfo.data[level][offset_pc_data][counter].second.y_end = (y - 1);
                                 counter++;
                             }
                         }
 
                         previous = current;
-
                     }
                     //end node
-                    if(previous==1) {
-
-                        (y_begin.data[i][offset_pc_data][counter]).second.y_end = (y_num_-1);
+                    if (previous == 1) {
+                        gapInfo.data[level][offset_pc_data][counter].second.y_end = (yNum - 1);
                     }
                 }
-
             }
         }
-
         apr_timer.stop_timer();
 
+        // ---------- initialize gap info per level and per level/zSlice + total number of gaps and particles + non-empty levels
+        apr_timer.start_timer("finitialize_gap_info");
 
-        uint64_t cumsum = 0;
-
-        apr_timer.start_timer("forth loop");
+        uint64_t cumSum = 0;
 
         //iteration helpers for by level
-        global_index_by_level_begin.resize(l_max+1,1);
-        global_index_by_level_end.resize(l_max+1,0);
-
-        cumsum= 0;
-
-        total_number_gaps=0;
+        global_index_by_level_begin.resize(l_max + 1, 1);
+        global_index_by_level_end.resize(l_max + 1, 0);
+        global_index_by_level_and_z_begin.resize(l_max + 1);
+        global_index_by_level_and_z_end.resize(l_max + 1);
+        total_number_gaps = 0;
 
         uint64_t min_level_find = l_max;
         uint64_t max_level_find = l_min;
 
-        //set up the iteration helpers for by zslice
-        global_index_by_level_and_z_begin.resize(l_max+1);
-        global_index_by_level_and_z_end.resize(l_max+1);
-
-        for(uint64_t i = (l_min);i <= l_max;i++) {
-
-            const unsigned int x_num_ = x_num[i];
-            const unsigned int z_num_ = z_num[i];
+        for (uint64_t level = l_min; level <= l_max; ++level) {
+            const unsigned int xNum = x_num[level];
+            const unsigned int zNum = z_num[level];
 
             //set up the levels here.
-            uint64_t cumsum_begin = cumsum;
+            uint64_t cumSumBegin = cumSum;
 
-            global_index_by_level_and_z_begin[i].resize(z_num_,(-1));
-            global_index_by_level_and_z_end[i].resize(z_num_,0);
+            global_index_by_level_and_z_begin[level].resize(zNum, -1);
+            global_index_by_level_and_z_end[level].resize(zNum, 0);
 
-            for (z_ = 0; z_ < z_num_; z_++) {
-                uint64_t cumsum_begin_z = cumsum;
+            for (uint64_t z = 0; z < zNum; ++z) {
+                uint64_t cumSumOnZslice = cumSum;
 
+                for (uint64_t x = 0; x < xNum; ++x) {
+                    const size_t offset_pc_data = xNum * z + x;
 
-                for (x_ = 0; x_ < x_num_; x_++) {
-                    const size_t offset_pc_data = x_num_ * z_ + x_;
-                    for (int j = 0; j < y_begin.data[i][offset_pc_data].size(); ++j) {
+                    // update each gap along y for given xz
+                    for (int xzGapIdx = 0; xzGapIdx < gapInfo.data[level][offset_pc_data].size(); ++xzGapIdx) {
+                        min_level_find = std::min(level, min_level_find);
+                        max_level_find = std::max(level, max_level_find);
 
-                        min_level_find = std::min(i,min_level_find);
-                        max_level_find = std::max(i,max_level_find);
+                        auto &currentGapInfo = gapInfo.data[level][offset_pc_data][xzGapIdx];
+                        currentGapInfo.second.global_index_begin = cumSum;
+                        cumSum += currentGapInfo.second.y_end - currentGapInfo.first + 1;
 
-                        y_begin.data[i][offset_pc_data][j].second.global_index_begin = cumsum;
-
-                        cumsum+=(y_begin.data[i][offset_pc_data][j].second.y_end-y_begin.data[i][offset_pc_data][j].first)+1;
                         total_number_gaps++;
                     }
                 }
-                if(cumsum!=cumsum_begin_z) {
-                    global_index_by_level_and_z_end[i][z_] = cumsum - 1;
-                    global_index_by_level_and_z_begin[i][z_] = cumsum_begin_z;
+
+                if (cumSum != cumSumOnZslice) {
+                    global_index_by_level_and_z_begin[level][z] = cumSumOnZslice;
+                    global_index_by_level_and_z_end[level][z] = cumSum - 1;
                 }
             }
 
-            if(cumsum!=cumsum_begin){
-                //cumsum_begin++;
-                global_index_by_level_begin[i] = cumsum_begin;
-            }
-
-            if(cumsum!=cumsum_begin){
-                global_index_by_level_end[i] = cumsum-1;
+            if (cumSum != cumSumBegin){
+                global_index_by_level_begin[level] = cumSumBegin;
+                global_index_by_level_end[level] = cumSum - 1;
             }
         }
-
-        total_number_particles = cumsum;
-
-        apr_timer.stop_timer();
-
-
-        //set minimum level now to the first non-empty level.
+        total_number_particles = cumSum;
         l_min = min_level_find;
         l_max = max_level_find;
+        apr_timer.stop_timer();
 
-        total_number_non_empty_rows=0;
-
-        //allocate_map_insert(apr,y_begin);
-
-        //gap_map.initialize_structure_parts_empty(apr);
-
+        // ---------- initialize gap_map + total_number_non_empty_rows
         gap_map.depth_min = l_min;
         gap_map.depth_max = l_max;
+        gap_map.z_num.resize(gapInfo.depth_max + 1);
+        gap_map.x_num.resize(gapInfo.depth_max + 1);
+        gap_map.data.resize(gapInfo.depth_max + 1);
 
-        gap_map.z_num.resize(y_begin.depth_max+1);
-        gap_map.x_num.resize(y_begin.depth_max+1);
-        gap_map.data.resize(y_begin.depth_max+1);
-
-        for (uint64_t i = gap_map.depth_min; i <= gap_map.depth_max; ++i) {
-            gap_map.z_num[i] = z_num[i];
-            gap_map.x_num[i] = x_num[i];
-            gap_map.data[i].resize(z_num[i]*x_num[i]);
+        for (uint64_t level = gap_map.depth_min; level <= gap_map.depth_max; ++level) {
+            gap_map.z_num[level] = z_num[level];
+            gap_map.x_num[level] = x_num[level];
+            gap_map.data[level].resize(z_num[level] * x_num[level]);
         }
 
-        uint64_t counter_rows = 0;
+        uint64_t nonEmptyRowsCounter = 0;
 
 
-        for (uint64_t i = (l_min); i <= l_max; i++) {
-            const unsigned int x_num_ = x_num[i];
-            const unsigned int z_num_ = z_num[i];
-#ifdef HAVE_OPENMP
-#pragma omp parallel for default(shared) private(z_, x_) reduction(+:counter_rows)if(z_num_*x_num_ > 100)
-#endif
-            for (z_ = 0; z_ < z_num_; z_++) {
-                for (x_ = 0; x_ < x_num_; x_++) {
-                    const size_t offset_pc_data = x_num_ * z_ + x_;
-                    if (y_begin.data[i][offset_pc_data].size() > 0) {
-                        gap_map.data[i][offset_pc_data].resize(1);
+        for (uint64_t level = l_min; level <= l_max; ++level) {
+            const unsigned int xNum = x_num[level];
+            const unsigned int zNum = z_num[level];
+            #ifdef HAVE_OPENMP
+            #pragma omp parallel for default(shared) reduction(+:nonEmptyRowsCounter)if(zNum * xNum > 100)
+            #endif
+            for (uint64_t z = 0; z < zNum; z++) {
+                for (uint64_t x = 0; x < xNum; x++) {
+                    const size_t offset_pc_data = xNum * z + x;
+                    if (gapInfo.data[level][offset_pc_data].size() > 0) {
+                        gap_map.data[level][offset_pc_data].resize(1);
 
 
-                        gap_map.data[i][offset_pc_data][0].map.insert(y_begin.data[i][offset_pc_data].begin(),
-                                                                      y_begin.data[i][offset_pc_data].end());
-
-                        counter_rows++;
+                        gap_map.data[level][offset_pc_data][0].map.insert(gapInfo.data[level][offset_pc_data].begin(),
+                                                                          gapInfo.data[level][offset_pc_data].end());
+                        nonEmptyRowsCounter++;
                     }
                 }
             }
         }
+        total_number_non_empty_rows = nonEmptyRowsCounter;
 
-        total_number_non_empty_rows = counter_rows;
-
+        // ---------- initialize particle_cell_type
         APRIterator<T> apr_iterator(*this);
 
-        particle_cell_type.data.resize(global_index_by_level_end[l_max-1]+1,0);
-
-        uint64_t particle_number;
+        particle_cell_type.data.resize(global_index_by_level_end[l_max - 1] + 1, 0);
 
         for (uint64_t level = apr_iterator.level_min(); level < apr_iterator.level_max(); ++level) {
-
-#ifdef HAVE_OPENMP
-#pragma omp parallel for schedule(static) private(particle_number) firstprivate(apr_iterator)
-#endif
-            for (particle_number = apr_iterator.particles_level_begin(level); particle_number <  apr_iterator.particles_level_end(level); ++particle_number) {
-                //
-                //  Parallel loop over level
-                //
+            #ifdef HAVE_OPENMP
+            #pragma omp parallel for schedule(static) firstprivate(apr_iterator)
+            #endif
+            for (uint64_t particle_number = apr_iterator.particles_level_begin(level); particle_number <  apr_iterator.particles_level_end(level); ++particle_number) {
                 apr_iterator.set_iterator_to_particle_by_number(particle_number);
-                const uint64_t offset_part_map = apr_iterator.x() * apr_iterator.spatial_index_y_max(apr_iterator.level()) + apr_iterator.z() * apr_iterator.spatial_index_y_max(apr_iterator.level()) * apr_iterator.spatial_index_x_max(apr_iterator.level());
+                uint64_t currLevel = apr_iterator.level();
+                const uint64_t offset_part_map = apr_iterator.x() * apr_iterator.spatial_index_y_max(currLevel) + 
+                                                 apr_iterator.z() * apr_iterator.spatial_index_y_max(currLevel) * apr_iterator.spatial_index_x_max(currLevel);
 
-                particle_cell_type[apr_iterator] = p_map[apr_iterator.level()].mesh[offset_part_map + apr_iterator.y()];
+                particle_cell_type[apr_iterator] = p_map[currLevel].mesh[offset_part_map + apr_iterator.y()];
             }
         }
     }
-
 
 };
 
