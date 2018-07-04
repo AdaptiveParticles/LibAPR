@@ -996,7 +996,7 @@ public:
     }
 
     template<typename T>
-    void allocate_map(APR<T>& apr,MapStorageData& map_data,std::vector<uint64_t>& cumsum){
+    void allocate_map(APR<T>& apr,MapStorageData& map_data,std::vector<uint64_t>& cumsum,bool tree = false){
 
         //first add the layers
         gap_map.depth_max = level_max;
@@ -1008,18 +1008,28 @@ public:
 
         global_index_by_level_and_zx_end.resize(gap_map.depth_max+1);
 
-        for(uint64_t i = gap_map.depth_min;i < gap_map.depth_max;i++){
-            gap_map.z_num[i] = z_num[i];
-            gap_map.x_num[i] = x_num[i];
-            gap_map.data[i].resize(z_num[i]*x_num[i]);
-            global_index_by_level_and_zx_end[i].resize(z_num[i]*x_num[i],0);
+
+        if(tree) {
+            for (uint64_t i = gap_map.depth_min; i < gap_map.depth_max; i++) {
+                gap_map.z_num[i] = z_num[i];
+                gap_map.x_num[i] = x_num[i];
+                gap_map.data[i].resize(z_num[i] * x_num[i]);
+                global_index_by_level_and_zx_end[i].resize(z_num[i] * x_num[i], 0);
+            }
+
+        } else {
+            for (uint64_t i = gap_map.depth_min; i < gap_map.depth_max; i++) {
+                gap_map.z_num[i] = z_num[i];
+                gap_map.x_num[i] = x_num[i];
+                gap_map.data[i].resize(z_num[i] * x_num[i]);
+                global_index_by_level_and_zx_end[i].resize(z_num[i] * x_num[i], 0);
+            }
+
+            gap_map.z_num[level_max] = z_num[level_max - 1];
+            gap_map.x_num[level_max] = x_num[level_max - 1];
+            gap_map.data[level_max].resize(z_num[level_max - 1] * x_num[level_max - 1]);
+            global_index_by_level_and_zx_end[level_max].resize(z_num[level_max - 1] * x_num[level_max - 1], 0);
         }
-
-        gap_map.z_num[level_max] = z_num[level_max - 1];
-        gap_map.x_num[level_max] = x_num[level_max-1];
-        gap_map.data[level_max].resize(z_num[level_max-1]*x_num[level_max-1]);
-        global_index_by_level_and_zx_end[level_max].resize(z_num[level_max-1]*x_num[level_max-1],0);
-
         uint64_t j;
 #ifdef HAVE_OPENMP
         #pragma omp parallel for default(shared) schedule(dynamic) private(j)
@@ -1055,7 +1065,105 @@ public:
     }
 
     template<typename T>
-    void rebuild_map(APR<T>& apr,MapStorageData& map_data){
+    void rebuild_map(APR<T>& apr,MapStorageData& map_data,bool tree = false){
+
+        uint64_t z_;
+        uint64_t x_;
+        APRTimer apr_timer;
+        apr_timer.verbose_flag = true;
+        apr_timer.start_timer("rebuild map");
+
+        std::vector<uint64_t> cumsum;
+        cumsum.reserve(total_number_non_empty_rows);
+        uint64_t counter=0;
+
+        uint64_t j;
+
+        for (j = 0; j < total_number_non_empty_rows; ++j) {
+            cumsum.push_back(counter);
+            counter+=(map_data.number_gaps[j]);
+        }
+
+        allocate_map(apr,map_data,cumsum,tree);
+
+        apr_timer.stop_timer();
+
+        apr_timer.start_timer("forth loop");
+        //////////////////
+        ///
+        /// Recalculate the iteration helpers
+        ///
+        //////////////////////
+
+        //iteration helpers for by level
+        global_index_by_level_begin.resize(level_max+1,1);
+        global_index_by_level_end.resize(level_max+1,0);
+
+        unsigned int curr_level = map_data.level[0];
+
+        for (j = 0; j < total_number_non_empty_rows; ++j) {
+            if(curr_level!=map_data.level[j]) {
+                global_index_by_level_end[curr_level] = map_data.global_index[j]-1;
+            }
+            curr_level = map_data.level[j];
+        }
+
+        global_index_by_level_end[level_max] = total_number_particles-1;
+
+        for (int i = 0; i <= level_max; ++i) {
+            if(global_index_by_level_end[i]>0) {
+                global_index_by_level_begin[i] = global_index_by_level_end[i-1]+1;
+            }
+        }
+
+        global_index_by_level_begin[map_data.level[0]] = map_data.global_index[0];
+
+        counter=(-1); //set to max, to loop round to 0 on first ++
+        //now xz iteration helpers (need to fill in the gaps)
+        for (int i = 0; i <= level_max; ++i) {
+            for (int k = 0; k < global_index_by_level_and_zx_end[i].size(); ++k) {
+                if(global_index_by_level_and_zx_end[i][k]==0){
+                    global_index_by_level_and_zx_end[i][k] =  map_data.global_index[counter];
+                } else {
+                    counter++;
+                }
+            }
+        }
+
+        if(tree){
+            //this is required for reading across the information from the APR
+            const unsigned int x_num_ = x_num[level_max];
+            const unsigned int z_num_ = z_num[level_max];
+
+            uint64_t cumsum = map_data.global_index.back();
+
+            global_index_by_level_and_zx_end[level_max].resize(z_num_ * x_num_, 0);
+
+            for (z_ = 0; z_ < z_num_; z_++) {
+
+                for (x_ = 0; x_ < x_num_; x_++) {
+                    const size_t offset_pc_data = x_num_ * z_ + x_;
+
+                    if (apr.apr_access.gap_map.data[level_max+1][offset_pc_data].size() > 0){
+                        auto it = (apr.apr_access.gap_map.data[level_max+1][offset_pc_data][0].map.rbegin());
+                        cumsum += it->second.global_index_begin_offset/2 + (it->second.y_end - it->first+1)/2 + (it->second.y_end+1)%2;
+                        //need to deal with odd domains where the last particle cell is required, hence the modulo
+                    }
+
+                    global_index_by_level_and_zx_end[level_max][offset_pc_data] = cumsum;
+                }
+            }
+
+
+        }
+
+
+
+        apr_timer.stop_timer();
+    }
+
+    template<typename T>
+    void rebuild_map_tree(APR<T>& apr,MapStorageData& map_data){
 
         uint64_t z_;
         uint64_t x_;

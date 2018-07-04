@@ -189,7 +189,7 @@ int main(int argc, char **argv) {
     reconPatch.level_delta = options.level_delta;
 
     timer.start_timer("init tree full");
-    apr.apr_tree.init(apr);
+    //apr.apr_tree.init(apr);
     timer.stop_timer();
 
     //options.output_pc_recon = false;
@@ -198,7 +198,7 @@ int main(int argc, char **argv) {
 
     timer.start_timer("fill tree");
 
-    APRTreeNumerics::fill_tree_mean(apr,apr.apr_tree,apr.particles_intensities,partsTree);
+    //APRTreeNumerics::fill_tree_mean(apr,apr.apr_tree,apr.particles_intensities,partsTree);
     timer.stop_timer();
 
     // Intentionaly block-scoped since local recon_pc will be destructed when block ends and release memory.
@@ -229,7 +229,7 @@ int main(int argc, char **argv) {
             timer.start_timer("pc interp");
             //perform piece-wise constant interpolation
 
-            aprReconstruction.interp_image_patch(apr, apr.apr_tree, recon_pc, apr.particles_intensities, partsTree,
+            aprReconstruction.interp_image_patch(apr, apr.apr_tree, recon_pc, apr.particles_intensities, apr.apr_tree.particles_ds_tree,
                                                      reconPatch);
 
             timer.stop_timer();

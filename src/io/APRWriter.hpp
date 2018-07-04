@@ -85,7 +85,7 @@ public:
         timer.verbose_flag = true;
 
         APRTimer timer_f;
-        timer_f.verbose_flag = true;
+        timer_f.verbose_flag = false;
 
         AprFile f(file_name, AprFile::Operation::READ);
         if (!f.isOpened()) return;
@@ -142,20 +142,9 @@ public:
             apr.apr_access.z_num[i] = z_num;
         }
 
-
-        timer.start_timer("Read intensities");
-        // ------------- read data ------------------------------
-        apr.particles_intensities.data.resize(apr.apr_access.total_number_particles);
-        if (apr.particles_intensities.data.size() > 0) {
-            readData(AprTypes::ParticleIntensitiesType, f.objectId, apr.particles_intensities.data.data());
-        }
         apr.apr_access.y_num[apr.apr_access.level_max] = apr.apr_access.org_dims[0];
         apr.apr_access.x_num[apr.apr_access.level_max] = apr.apr_access.org_dims[1];
         apr.apr_access.z_num[apr.apr_access.level_max] = apr.apr_access.org_dims[2];
-
-        timer.stop_timer();
-
-        std::cout << "Data rate intensities: " << (apr.apr_access.total_number_particles*2)/(timer.timings.back()*1000000.0f) << " MB/s" << std::endl;
 
         // ------------- map handling ----------------------------
 
@@ -206,6 +195,95 @@ public:
         apr.apr_access.rebuild_map(apr, *map_data);
 
         timer.stop_timer();
+
+        bool build_tree = true;
+
+        if(build_tree){
+
+            timer.start_timer("build tree - map");
+
+            apr.apr_tree.tree_access.level_max = apr.level_max()-1;
+            apr.apr_tree.tree_access.level_min= apr.level_min()-1;
+
+            apr.apr_tree.tree_access.x_num.resize(apr.apr_tree.tree_access.level_max+1);
+            apr.apr_tree.tree_access.z_num.resize(apr.apr_tree.tree_access.level_max+1);
+            apr.apr_tree.tree_access.y_num.resize(apr.apr_tree.tree_access.level_max+1);
+
+            for (int i = apr.apr_tree.tree_access.level_min; i <= apr.apr_tree.tree_access.level_max; ++i) {
+                apr.apr_tree.tree_access.x_num[i] = apr.spatial_index_x_max(i);
+                apr.apr_tree.tree_access.y_num[i] = apr.spatial_index_y_max(i);
+                apr.apr_tree.tree_access.z_num[i] = apr.spatial_index_z_max(i);
+            }
+
+            apr.apr_tree.tree_access.x_num[apr.level_min()-1] = apr.spatial_index_x_max(apr.level_min())/2;
+            apr.apr_tree.tree_access.y_num[apr.level_min()-1] = apr.spatial_index_y_max(apr.level_min())/2;
+            apr.apr_tree.tree_access.z_num[apr.level_min()-1] = apr.spatial_index_z_max(apr.level_min())/2;
+
+
+            readAttr(AprTypes::TotalNumberOfParticlesType, f.objectIdTree, &apr.apr_tree.tree_access.total_number_particles);
+            readAttr(AprTypes::TotalNumberOfGapsType, f.objectIdTree, &apr.apr_tree.tree_access.total_number_gaps);
+            readAttr(AprTypes::TotalNumberOfNonEmptyRowsType, f.objectIdTree, &apr.apr_tree.tree_access.total_number_non_empty_rows);
+
+            auto map_data_tree = std::make_shared<MapStorageData>();
+
+            map_data_tree->global_index.resize(apr.apr_tree.tree_access.total_number_non_empty_rows);
+
+
+            std::vector<int16_t> index_delta(apr.apr_tree.tree_access.total_number_non_empty_rows);
+            readData(AprTypes::MapGlobalIndexType, f.objectIdTree, index_delta.data());
+            std::vector<uint64_t> index_delta_big(apr.apr_tree.tree_access.total_number_non_empty_rows);
+            std::copy(index_delta.begin(),index_delta.end(),index_delta_big.begin());
+            std::partial_sum(index_delta_big.begin(), index_delta_big.end(), map_data_tree->global_index.begin());
+
+
+            map_data_tree->y_end.resize(apr.apr_tree.tree_access.total_number_gaps);
+            readData(AprTypes::MapYendType, f.objectIdTree, map_data_tree->y_end.data());
+            map_data_tree->y_begin.resize(apr.apr_tree.tree_access.total_number_gaps);
+            readData(AprTypes::MapYbeginType, f.objectIdTree, map_data_tree->y_begin.data());
+
+            map_data_tree->number_gaps.resize(apr.apr_tree.tree_access.total_number_non_empty_rows);
+            readData(AprTypes::MapNumberGapsType, f.objectIdTree, map_data_tree->number_gaps.data());
+            map_data_tree->level.resize(apr.apr_tree.tree_access.total_number_non_empty_rows);
+            readData(AprTypes::MapLevelType, f.objectIdTree, map_data_tree->level.data());
+            map_data_tree->x.resize(apr.apr_tree.tree_access.total_number_non_empty_rows);
+            readData(AprTypes::MapXType, f.objectIdTree, map_data_tree->x.data());
+            map_data_tree->z.resize(apr.apr_tree.tree_access.total_number_non_empty_rows);
+            readData(AprTypes::MapZType, f.objectIdTree, map_data_tree->z.data());
+
+            apr.apr_tree.tree_access.rebuild_map(apr, *map_data_tree,true);
+
+            apr.apr_tree.particles_ds_tree.data.resize(apr.apr_tree.tree_access.total_number_particles);
+
+            timer.stop_timer();
+
+            timer.start_timer("tree intensities");
+
+            if ( apr.apr_tree.particles_ds_tree.data.size() > 0) {
+                readData(AprTypes::ParticleIntensitiesType, f.objectIdTree, apr.apr_tree.particles_ds_tree.data.data());
+            }
+
+            APRCompress<ImageType> apr_compress;
+            apr_compress.set_compression_type(1);
+            apr_compress.set_quantization_factor(2);
+            apr_compress.decompress(apr, apr.apr_tree.particles_ds_tree);
+
+            timer.stop_timer();
+
+        }
+
+
+
+        timer.start_timer("Read intensities");
+        // ------------- read data ------------------------------
+        apr.particles_intensities.data.resize(apr.apr_access.total_number_particles);
+        if (apr.particles_intensities.data.size() > 0) {
+            readData(AprTypes::ParticleIntensitiesType, f.objectId, apr.particles_intensities.data.data());
+        }
+
+
+        timer.stop_timer();
+
+        std::cout << "Data rate intensities: " << (apr.apr_access.total_number_particles*2)/(timer.timings.back()*1000000.0f) << " MB/s" << std::endl;
 
 
         timer.start_timer("decompress");
@@ -304,6 +382,10 @@ public:
             }
 
 
+            writeAttr(AprTypes::TotalNumberOfGapsType, f.objectIdTree, &apr.apr_tree.tree_access.total_number_gaps);
+            writeAttr(AprTypes::TotalNumberOfNonEmptyRowsType, f.objectIdTree, &apr.apr_tree.tree_access.total_number_non_empty_rows);
+            writeAttr(AprTypes::TotalNumberOfParticlesType, f.objectIdTree, &apr.apr_tree.tree_access.total_number_particles);
+
             MapStorageData map_data_tree;
             apr.apr_tree.tree_access.flatten_structure( map_data_tree);
 
@@ -325,8 +407,10 @@ public:
 
             tree_compress.compress(apr, apr.apr_tree.particles_ds_tree);
 
+            unsigned int tree_blosc_comp_type = 6;
+
             hid_t type = Hdf5Type<ImageType>::type();
-            writeData({type, AprTypes::ParticleIntensitiesType}, f.objectIdTree, apr.apr_tree.particles_ds_tree.data, blosc_comp_type, blosc_comp_level, blosc_shuffle);
+            writeData({type, AprTypes::ParticleIntensitiesType}, f.objectIdTree, apr.apr_tree.particles_ds_tree.data, tree_blosc_comp_type, blosc_comp_level, blosc_shuffle);
 
         }
 
