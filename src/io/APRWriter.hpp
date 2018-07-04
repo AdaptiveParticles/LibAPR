@@ -198,6 +198,8 @@ public:
 
         bool build_tree = true;
 
+        uint64_t max_read_level = apr.apr_access.level_max-3;
+
         if(build_tree){
 
             timer.start_timer("build tree - map");
@@ -255,11 +257,14 @@ public:
             apr.apr_tree.particles_ds_tree.data.resize(apr.apr_tree.tree_access.total_number_particles);
 
             timer.stop_timer();
-
             timer.start_timer("tree intensities");
 
+
+            uint64_t parts_start = 0;
+            uint64_t parts_end = apr.apr_tree.tree_access.global_index_by_level_end[max_read_level] + 1;
+
             if ( apr.apr_tree.particles_ds_tree.data.size() > 0) {
-                readData(AprTypes::ParticleIntensitiesType, f.objectIdTree, apr.apr_tree.particles_ds_tree.data.data());
+                readData(AprTypes::ParticleIntensitiesType, f.objectIdTree, apr.apr_tree.particles_ds_tree.data.data(),parts_start,parts_end);
             }
 
             APRCompress<ImageType> apr_compress;
@@ -273,11 +278,14 @@ public:
 
 
 
+        uint64_t parts_start = 0;
+        uint64_t parts_end = apr.apr_access.global_index_by_level_end[max_read_level] + 1;
+
         timer.start_timer("Read intensities");
         // ------------- read data ------------------------------
         apr.particles_intensities.data.resize(apr.apr_access.total_number_particles);
         if (apr.particles_intensities.data.size() > 0) {
-            readData(AprTypes::ParticleIntensitiesType, f.objectId, apr.particles_intensities.data.data());
+            readData(AprTypes::ParticleIntensitiesType, f.objectId, apr.particles_intensities.data.data(),parts_start,parts_end);
         }
 
 
@@ -673,6 +681,14 @@ private:
     void readData(const char * const aAprTypeName, hid_t aObjectId, void *aDest) {
         hdf5_load_data_blosc(aObjectId, aDest, aAprTypeName);
     }
+
+    void readData(const char * const aAprTypeName, hid_t aObjectId, void *aDest,uint64_t elements_start,uint64_t elements_end) {
+        //reads partial dataset
+        hdf5_load_data_blosc_partial(aObjectId, aDest, aAprTypeName,elements_start,elements_end);
+    }
+
+    //hdf5_load_data_blosc_partial(hid_t obj_id, void* buff, const char* data_name,uint64_t number_of_elements_read,uint64_t number_of_elements_total)
+
 
     template<typename T>
     void writeData(const AprType &aType, hid_t aObjectId, T aContainer, unsigned int blosc_comp_type, unsigned int blosc_comp_level,unsigned int blosc_shuffle) {

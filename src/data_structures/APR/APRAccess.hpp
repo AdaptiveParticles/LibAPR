@@ -1108,6 +1108,10 @@ public:
             curr_level = map_data.level[j];
         }
 
+        if(tree) {
+            global_index_by_level_end[level_max - 1] = map_data.global_index.back() - 1;
+        }
+
         global_index_by_level_end[level_max] = total_number_particles-1;
 
         for (int i = 0; i <= level_max; ++i) {
