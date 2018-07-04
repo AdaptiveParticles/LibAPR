@@ -49,7 +49,7 @@ public:
     void SetUp() override;
 };
 
-bool check_neighbours(APR<uint16_t>& apr,APRIterator<uint16_t>& current,APRIterator<uint16_t>& neigh){
+bool check_neighbours(APR<uint16_t>& apr,APRIterator &current, APRIterator &neigh){
 
 
     bool success = true;
@@ -72,7 +72,7 @@ bool check_neighbours(APR<uint16_t>& apr,APRIterator<uint16_t>& current,APRItera
 
     return success;
 }
-bool check_neighbour_out_of_bounds(APRIterator<uint16_t>& current,uint8_t face){
+bool check_neighbour_out_of_bounds(APRIterator &current,uint8_t face){
 
 
     uint64_t num_neigh = current.number_neighbours_in_direction(face);

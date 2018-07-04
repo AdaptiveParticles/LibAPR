@@ -16,9 +16,9 @@
 #include <fstream>
 #include <ctime>
 
-#include "data_structures/APR/ExtraParticleData.hpp"
 #include "data_structures/Mesh/PixelData.hpp"
 #include "data_structures/APR/ExtraPartCellData.hpp"
+#include "data_structures/APR/ExtraParticleData.hpp"
 
 class APRRaycaster {
 
@@ -143,7 +143,7 @@ void APRRaycaster::perform_raycast(APR<U>& apr,ExtraParticleData<S>& particle_da
     ExtraParticleData<float> jitter_z;
 
     //initialize the iterator
-    APRIterator<U> apr_iterator(apr.apr_access);
+    APRIterator apr_iterator(apr.apr_access);
     uint64_t particle_number;
 
     if(jitter){

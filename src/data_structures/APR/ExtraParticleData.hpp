@@ -9,7 +9,7 @@
 #include <algorithm>
 #include <vector>
 
-template<typename V> class APRIterator;
+class APRIterator;
 template <typename V> class APR;
 
 template<typename DataType>
@@ -40,12 +40,13 @@ public:
         return data.size();
     }
 
-    template<typename S>
-    DataType& operator[](const APRIterator<S>& apr_iterator);
-    template<typename S>
-    DataType get_particle(const APRIterator<S>& apr_iterator) const;
-    template<typename S>
-    void set_particle(const APRIterator<S>& apr_iterator, DataType set_val);
+//    template<typename S>
+//    DataType& operator[](const APRIterator<S>& apr_iterator);
+    DataType& operator[](uint64_t aGlobalIndex);
+//    template<typename S>
+//    DataType get_particle(const APRIterator<S>& apr_iterator) const;
+//    template<typename S>
+//    void set_particle(const APRIterator<S>& apr_iterator, DataType set_val);
     template<typename S,typename T>
     void copy_parts(APR<T> &apr, const ExtraParticleData<S> &particlesToCopy, uint64_t level = 0, unsigned int aNumberOfBlocks = 10);
     template<typename V,class BinaryOperation,typename T>
@@ -65,20 +66,23 @@ public:
  * @param apr_iterator
  * @return reference to stored particle
  */
-template<typename DataType> template<typename S>
-inline DataType& ExtraParticleData<DataType>::operator[](const APRIterator<S>& apr_iterator) {
-    return data[apr_iterator.global_index()];
-}
+//template<typename DataType> template<typename S>
+//inline DataType& ExtraParticleData<DataType>::operator[](const APRIterator<S>& apr_iterator) {
+//    return data[apr_iterator.global_index()];
+//}
 
-template<typename DataType> template<typename S>
-inline DataType ExtraParticleData<DataType>::get_particle(const APRIterator<S>& apr_iterator) const {
-    return data[apr_iterator.global_index()];
-}
+template<typename DataType>
+inline DataType& ExtraParticleData<DataType>::operator[](uint64_t aGlobalIndex) { return data[aGlobalIndex]; }
 
-template<typename DataType> template <typename S>
-inline void ExtraParticleData<DataType>::set_particle(const APRIterator<S>& apr_iterator, DataType set_val) {
-    data[apr_iterator.global_index()] = set_val;
-}
+//template<typename DataType> template<typename S>
+//inline DataType ExtraParticleData<DataType>::get_particle(const APRIterator<S>& apr_iterator) const {
+//    return data[apr_iterator.global_index()];
+//}
+//
+//template<typename DataType> template <typename S>
+//inline void ExtraParticleData<DataType>::set_particle(const APRIterator<S>& apr_iterator, DataType set_val) {
+//    data[apr_iterator.global_index()] = set_val;
+//}
 
 /**
  * Copy's the data from one particle dataset to another
@@ -90,7 +94,7 @@ inline void ExtraParticleData<DataType>::copy_parts(APR<T> &apr, const ExtraPart
     //checking if its the right size, if it is, this should do nothing.
     data.resize(total_number_of_particles);
 
-    APRIterator<T> apr_iterator(apr.apr_access);
+    APRIterator apr_iterator(apr.apr_access);
 
     size_t particle_number_start;
     size_t particle_number_stop;
@@ -134,7 +138,7 @@ inline void ExtraParticleData<DataType>::copy_parts(APR<T> &apr, const ExtraPart
  */
 template<typename DataType> template<typename V,class BinaryOperation,typename T>
 inline void ExtraParticleData<DataType>::zip_inplace(APR<T> &apr, const ExtraParticleData<V> &parts2, BinaryOperation op, uint64_t level, unsigned int aNumberOfBlocks) {
-    APRIterator<T> apr_iterator(apr.apr_access);
+    APRIterator apr_iterator(apr.apr_access);
 
     size_t particle_number_start;
     size_t particle_number_stop;
@@ -178,7 +182,7 @@ template<typename DataType> template<typename V,class BinaryOperation,typename T
 inline void ExtraParticleData<DataType>::zip(APR<T>& apr, const ExtraParticleData<V> &parts2, ExtraParticleData<V>& output, BinaryOperation op, uint64_t level, unsigned int aNumberOfBlocks) {
     output.data.resize(data.size());
 
-    APRIterator<T> apr_iterator(apr.apr_access);
+    APRIterator apr_iterator(apr.apr_access);
 
     size_t particle_number_start;
     size_t particle_number_stop;
@@ -220,7 +224,7 @@ inline void ExtraParticleData<DataType>::zip(APR<T>& apr, const ExtraParticleDat
  */
 template<typename DataType> template<class UnaryOperator,typename T>
 inline void ExtraParticleData<DataType>::map_inplace(APR<T>& apr,UnaryOperator op,const uint64_t level, unsigned int aNumberOfBlocks){
-    APRIterator<T> apr_iterator(apr.apr_access);
+    APRIterator apr_iterator(apr.apr_access);
 
     size_t particle_number_start;
     size_t particle_number_stop;
@@ -265,7 +269,7 @@ template<typename DataType> template <typename T,typename U,class UnaryOperator>
 inline void ExtraParticleData<DataType>::map(APR<T>& apr,ExtraParticleData<U>& output,UnaryOperator op,const uint64_t level,unsigned int aNumberOfBlocks) {
     output.data.resize(data.size());
 
-    APRIterator<T> apr_iterator(apr.apr_access);
+    APRIterator apr_iterator(apr.apr_access);
 
     size_t particle_number_start;
     size_t particle_number_stop;

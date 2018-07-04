@@ -242,8 +242,8 @@ void APRCompress<ImageType>::predict_particles_by_level(APR<U>& apr,const unsign
 
     timer.start_timer("iterator initialization");
 
-    APRIterator<ImageType> apr_iterator(apr.apr_access);
-    APRIterator<ImageType> neighbour_iterator(apr.apr_access);
+    auto apr_iterator = apr.iterator();
+    auto neighbour_iterator = apr.iterator();
 
     timer.stop_timer();
 

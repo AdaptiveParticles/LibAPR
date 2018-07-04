@@ -49,8 +49,8 @@ public:
     ///
     //////////////////////////////////
 
-    APRIterator<ImageType> iterator() {
-        return APRIterator<ImageType>(apr_access);
+    APRIterator iterator() {
+        return APRIterator(apr_access);
     }
 
     bool get_apr(){
@@ -168,7 +168,8 @@ public:
         //  Samples particles from an image using an image tree (img_by_level is a vector of images)
 
         //initialization of the iteration structures
-        APRIterator<ImageType> apr_iterator(apr_access); //this is required for parallel access
+         //this is required for parallel access
+        auto apr_iterator = iterator();
         parts.data.resize(apr_iterator.total_number_particles());
 
 #ifdef HAVE_OPENMP
@@ -190,7 +191,8 @@ public:
         //
 
         //initialization of the iteration structures
-        APRIterator<ImageType> apr_iterator(apr_access); //this is required for parallel access
+        //this is required for parallel access
+        auto apr_iterator = iterator();
         uint64_t particle_number;
         parts.data.resize(apr_iterator.total_number_particles());
 

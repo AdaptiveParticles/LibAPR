@@ -12,7 +12,7 @@
 template<typename imageType>
 class APRTree {
 
-    template<typename S> friend class APRIterator;
+    class APRIterator;
     template<typename S> friend class APRTreeIterator;
 
 public:
@@ -34,7 +34,7 @@ private:
 
     void initialize_apr_tree(APR<imageType>& apr,bool type_full = false){
 
-        APRIterator<imageType> apr_iterator(apr.apr_access);
+        auto apr_iterator = apr.iterator();
 
         ///////////////////////
         ///

@@ -11,11 +11,11 @@
 // APRIteration class, with extra methods designed for the use with APRTree
 
 template<typename ImageType>
-class APRTreeIterator : public APRIterator<ImageType> {
+class APRTreeIterator : public APRIterator {
 public:
-    APRTreeIterator(APRTree<ImageType>& apr_tree) : APRIterator<ImageType>(apr_tree.tree_access, /*highest_resolution_type*/ 8) {}
+    APRTreeIterator(APRTree<ImageType>& apr_tree) : APRIterator(apr_tree.tree_access, /*highest_resolution_type*/ 8) {}
 
-    bool set_iterator_to_parent(APRIterator<ImageType>& current_iterator){
+    bool set_iterator_to_parent(APRIterator &current_iterator){
         //takes an input iterator and sets it THIS iterator to the parent of the particle cell that the current_iterator is pointing to.
         this->current_particle_cell.y = (uint16_t)floor(current_iterator.y()/2.0);
         this->current_particle_cell.x = (uint16_t)floor(current_iterator.x()/2.0);
@@ -31,7 +31,7 @@ public:
 
     }
 
-    void set_particle_cell_no_search(APRIterator<ImageType>& current_iterator){
+    void set_particle_cell_no_search(APRIterator &current_iterator){
         this->current_particle_cell.y = (uint16_t)(current_iterator.y());
         this->current_particle_cell.x = (uint16_t)(current_iterator.x());
         this->current_particle_cell.z = (uint16_t)(current_iterator.z());

@@ -254,7 +254,8 @@ int main(int argc, char **argv) {
     if(options.output_level) {
 
         //initialization of the iteration structures
-        APRIterator<uint16_t> apr_iterator(apr.apr_access); //this is required for parallel access
+        //this is required for parallel access
+        auto apr_iterator = apr.iterator();
 
         //create particle dataset
 

@@ -50,7 +50,7 @@ int main(int argc, char **argv) {
     //remove the file extension
     name.erase(name.end() - 3, name.end());
 
-    APRIterator<uint16_t> apr_iterator(apr.apr_access);
+    auto apr_iterator = apr.iterator();
 
     ///////////////////////
     ///
