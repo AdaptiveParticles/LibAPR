@@ -197,7 +197,7 @@ public:
         timer.stop_timer();
 
         uint64_t max_read_level = apr.apr_access.level_max-max_level_delta;
-        uint64_t max_read_level_tree = apr.apr_access.level_max-1-max_level_delta;
+        uint64_t max_read_level_tree = std::min(apr.apr_access.level_max-1,max_read_level);
 
         if(build_tree){
 
@@ -219,7 +219,6 @@ public:
             apr.apr_tree.tree_access.x_num[apr.level_min()-1] = apr.spatial_index_x_max(apr.level_min())/2;
             apr.apr_tree.tree_access.y_num[apr.level_min()-1] = apr.spatial_index_y_max(apr.level_min())/2;
             apr.apr_tree.tree_access.z_num[apr.level_min()-1] = apr.spatial_index_z_max(apr.level_min())/2;
-
 
             readAttr(AprTypes::TotalNumberOfParticlesType, f.objectIdTree, &apr.apr_tree.tree_access.total_number_particles);
             readAttr(AprTypes::TotalNumberOfGapsType, f.objectIdTree, &apr.apr_tree.tree_access.total_number_gaps);
@@ -253,7 +252,7 @@ public:
 
             apr.apr_tree.tree_access.rebuild_map(apr, *map_data_tree,true);
 
-            apr.apr_tree.particles_ds_tree.data.resize(apr.apr_tree.tree_access.total_number_particles);
+
 
             timer.stop_timer();
             timer.start_timer("tree intensities");
@@ -261,6 +260,8 @@ public:
 
             uint64_t parts_start = 0;
             uint64_t parts_end = apr.apr_tree.tree_access.global_index_by_level_end[max_read_level_tree] + 1;
+
+            apr.apr_tree.particles_ds_tree.data.resize(parts_end);
 
             if ( apr.apr_tree.particles_ds_tree.data.size() > 0) {
                 readData(AprTypes::ParticleIntensitiesType, f.objectIdTree, apr.apr_tree.particles_ds_tree.data.data(),parts_start,parts_end);
@@ -282,7 +283,7 @@ public:
 
         timer.start_timer("Read intensities");
         // ------------- read data ------------------------------
-        apr.particles_intensities.data.resize(apr.apr_access.total_number_particles);
+        apr.particles_intensities.data.resize(parts_end);
         if (apr.particles_intensities.data.size() > 0) {
             readData(AprTypes::ParticleIntensitiesType, f.objectId, apr.particles_intensities.data.data(),parts_start,parts_end);
         }
