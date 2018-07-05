@@ -172,8 +172,13 @@ int main(int argc, char **argv) {
 
     unsigned int read_delta = (unsigned int) std::max(0,-options.level_delta);
 
-    apr.read_apr(file_name,true,read_delta);
+    //test of the two level read
+    apr.read_apr(file_name,true,read_delta+1);
     apr.name = options.output;
+    timer.stop_timer();
+
+    timer.start_timer("read input 2");
+    apr.read_apr(file_name,true,read_delta);
     timer.stop_timer();
 
     APRReconstruction aprReconstruction;

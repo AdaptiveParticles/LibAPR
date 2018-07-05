@@ -99,195 +99,247 @@ public:
         H5Aclose(attr_id);
         apr.name= string_out;
 
+        // check if the APR structure has already been read in, the case when a partial load has been done, now only the particles need to be read
+        uint64_t old_particles = apr.apr_access.total_number_particles;
+        uint64_t old_gaps = apr.apr_access.total_number_gaps;
+
         readAttr(AprTypes::TotalNumberOfParticlesType, f.groupId, &apr.apr_access.total_number_particles);
         readAttr(AprTypes::TotalNumberOfGapsType, f.groupId, &apr.apr_access.total_number_gaps);
-        readAttr(AprTypes::TotalNumberOfNonEmptyRowsType, f.groupId, &apr.apr_access.total_number_non_empty_rows);
-        uint64_t type_size;
-        readAttr(AprTypes::VectorSizeType, f.groupId, &type_size);
-        readAttr(AprTypes::NumberOfYType, f.groupId, &apr.apr_access.org_dims[0]);
-        readAttr(AprTypes::NumberOfXType, f.groupId, &apr.apr_access.org_dims[1]);
-        readAttr(AprTypes::NumberOfZType, f.groupId, &apr.apr_access.org_dims[2]);
-        readAttr(AprTypes::MaxLevelType, f.groupId, &apr.apr_access.level_max);
-        readAttr(AprTypes::MinLevelType, f.groupId, &apr.apr_access.level_min);
-        readAttr(AprTypes::LambdaType, f.groupId, &apr.parameters.lambda);
+
         int compress_type;
         readAttr(AprTypes::CompressionType, f.groupId, &compress_type);
         float quantization_factor;
         readAttr(AprTypes::QuantizationFactorType, f.groupId, &quantization_factor);
-        readAttr(AprTypes::SigmaThType, f.groupId, &apr.parameters.sigma_th);
-        readAttr(AprTypes::SigmaThMaxType, f.groupId, &apr.parameters.sigma_th_max);
-        readAttr(AprTypes::IthType, f.groupId, &apr.parameters.Ip_th);
-        readAttr(AprTypes::DxType, f.groupId, &apr.parameters.dx);
-        readAttr(AprTypes::DyType, f.groupId, &apr.parameters.dy);
-        readAttr(AprTypes::DzType, f.groupId, &apr.parameters.dz);
-        readAttr(AprTypes::PsfXType, f.groupId, &apr.parameters.psfx);
-        readAttr(AprTypes::PsfYType, f.groupId, &apr.parameters.psfy);
-        readAttr(AprTypes::PsfZType, f.groupId, &apr.parameters.psfz);
-        readAttr(AprTypes::RelativeErrorType, f.groupId, &apr.parameters.rel_error);
-        readAttr(AprTypes::BackgroundIntensityEstimateType, f.groupId, &apr.parameters.background_intensity_estimate);
-        readAttr(AprTypes::NoiseSdEstimateType, f.groupId, &apr.parameters.noise_sd_estimate);
 
-        apr.apr_access.x_num.resize(apr.apr_access.level_max+1);
-        apr.apr_access.y_num.resize(apr.apr_access.level_max+1);
-        apr.apr_access.z_num.resize(apr.apr_access.level_max+1);
+        bool read_structure = true;
 
-        for (size_t i = apr.apr_access.level_min;i < apr.apr_access.level_max; i++) {
-            int x_num, y_num, z_num;
-            //TODO: x_num and other should have HDF5 type uint64?
-            readAttr(AprTypes::NumberOfLevelXType, i, f.groupId, &x_num);
-            readAttr(AprTypes::NumberOfLevelYType, i, f.groupId, &y_num);
-            readAttr(AprTypes::NumberOfLevelZType, i, f.groupId, &z_num);
-            apr.apr_access.x_num[i] = x_num;
-            apr.apr_access.y_num[i] = y_num;
-            apr.apr_access.z_num[i] = z_num;
+        if((old_particles == apr.apr_access.total_number_particles) && (old_gaps == apr.apr_access.total_number_gaps) && (build_tree)){
+            read_structure = false;
         }
 
-        apr.apr_access.y_num[apr.apr_access.level_max] = apr.apr_access.org_dims[0];
-        apr.apr_access.x_num[apr.apr_access.level_max] = apr.apr_access.org_dims[1];
-        apr.apr_access.z_num[apr.apr_access.level_max] = apr.apr_access.org_dims[2];
+        if(read_structure) {
+            readAttr(AprTypes::TotalNumberOfNonEmptyRowsType, f.groupId, &apr.apr_access.total_number_non_empty_rows);
+            uint64_t type_size;
+            readAttr(AprTypes::VectorSizeType, f.groupId, &type_size);
+            readAttr(AprTypes::NumberOfYType, f.groupId, &apr.apr_access.org_dims[0]);
+            readAttr(AprTypes::NumberOfXType, f.groupId, &apr.apr_access.org_dims[1]);
+            readAttr(AprTypes::NumberOfZType, f.groupId, &apr.apr_access.org_dims[2]);
+            readAttr(AprTypes::MaxLevelType, f.groupId, &apr.apr_access.level_max);
+            readAttr(AprTypes::MinLevelType, f.groupId, &apr.apr_access.level_min);
+            readAttr(AprTypes::LambdaType, f.groupId, &apr.parameters.lambda);
 
-        // ------------- map handling ----------------------------
+            readAttr(AprTypes::SigmaThType, f.groupId, &apr.parameters.sigma_th);
+            readAttr(AprTypes::SigmaThMaxType, f.groupId, &apr.parameters.sigma_th_max);
+            readAttr(AprTypes::IthType, f.groupId, &apr.parameters.Ip_th);
+            readAttr(AprTypes::DxType, f.groupId, &apr.parameters.dx);
+            readAttr(AprTypes::DyType, f.groupId, &apr.parameters.dy);
+            readAttr(AprTypes::DzType, f.groupId, &apr.parameters.dz);
+            readAttr(AprTypes::PsfXType, f.groupId, &apr.parameters.psfx);
+            readAttr(AprTypes::PsfYType, f.groupId, &apr.parameters.psfy);
+            readAttr(AprTypes::PsfZType, f.groupId, &apr.parameters.psfz);
+            readAttr(AprTypes::RelativeErrorType, f.groupId, &apr.parameters.rel_error);
+            readAttr(AprTypes::BackgroundIntensityEstimateType, f.groupId,
+                     &apr.parameters.background_intensity_estimate);
+            readAttr(AprTypes::NoiseSdEstimateType, f.groupId, &apr.parameters.noise_sd_estimate);
 
-        timer.start_timer("map loading data");
+            apr.apr_access.x_num.resize(apr.apr_access.level_max + 1);
+            apr.apr_access.y_num.resize(apr.apr_access.level_max + 1);
+            apr.apr_access.z_num.resize(apr.apr_access.level_max + 1);
 
-        auto map_data = std::make_shared<MapStorageData>();
+            for (size_t i = apr.apr_access.level_min; i < apr.apr_access.level_max; i++) {
+                int x_num, y_num, z_num;
+                //TODO: x_num and other should have HDF5 type uint64?
+                readAttr(AprTypes::NumberOfLevelXType, i, f.groupId, &x_num);
+                readAttr(AprTypes::NumberOfLevelYType, i, f.groupId, &y_num);
+                readAttr(AprTypes::NumberOfLevelZType, i, f.groupId, &z_num);
+                apr.apr_access.x_num[i] = x_num;
+                apr.apr_access.y_num[i] = y_num;
+                apr.apr_access.z_num[i] = z_num;
+            }
 
-        map_data->global_index.resize(apr.apr_access.total_number_non_empty_rows);
+            apr.apr_access.y_num[apr.apr_access.level_max] = apr.apr_access.org_dims[0];
+            apr.apr_access.x_num[apr.apr_access.level_max] = apr.apr_access.org_dims[1];
+            apr.apr_access.z_num[apr.apr_access.level_max] = apr.apr_access.org_dims[2];
 
-        timer_f.start_timer("index");
-        std::vector<int16_t> index_delta(apr.apr_access.total_number_non_empty_rows);
-        readData(AprTypes::MapGlobalIndexType, f.objectId, index_delta.data());
-        std::vector<uint64_t> index_delta_big(apr.apr_access.total_number_non_empty_rows);
-        std::copy(index_delta.begin(),index_delta.end(),index_delta_big.begin());
-        std::partial_sum(index_delta_big.begin(), index_delta_big.end(), map_data->global_index.begin());
+            // ------------- map handling ----------------------------
 
-        timer_f.stop_timer();
+            timer.start_timer("map loading data");
 
-        timer_f.start_timer("y_b_e");
-        map_data->y_end.resize(apr.apr_access.total_number_gaps);
-        readData(AprTypes::MapYendType, f.objectId, map_data->y_end.data());
-        map_data->y_begin.resize(apr.apr_access.total_number_gaps);
-        readData(AprTypes::MapYbeginType, f.objectId, map_data->y_begin.data());
+            auto map_data = std::make_shared<MapStorageData>();
 
-        timer_f.stop_timer();
+            map_data->global_index.resize(apr.apr_access.total_number_non_empty_rows);
+
+            timer_f.start_timer("index");
+            std::vector<int16_t> index_delta(apr.apr_access.total_number_non_empty_rows);
+            readData(AprTypes::MapGlobalIndexType, f.objectId, index_delta.data());
+            std::vector<uint64_t> index_delta_big(apr.apr_access.total_number_non_empty_rows);
+            std::copy(index_delta.begin(), index_delta.end(), index_delta_big.begin());
+            std::partial_sum(index_delta_big.begin(), index_delta_big.end(), map_data->global_index.begin());
+
+            timer_f.stop_timer();
+
+            timer_f.start_timer("y_b_e");
+            map_data->y_end.resize(apr.apr_access.total_number_gaps);
+            readData(AprTypes::MapYendType, f.objectId, map_data->y_end.data());
+            map_data->y_begin.resize(apr.apr_access.total_number_gaps);
+            readData(AprTypes::MapYbeginType, f.objectId, map_data->y_begin.data());
+
+            timer_f.stop_timer();
 
 
-        timer_f.start_timer("zxl");
-        map_data->number_gaps.resize(apr.apr_access.total_number_non_empty_rows);
-        readData(AprTypes::MapNumberGapsType, f.objectId, map_data->number_gaps.data());
-        map_data->level.resize(apr.apr_access.total_number_non_empty_rows);
-        readData(AprTypes::MapLevelType, f.objectId, map_data->level.data());
-        map_data->x.resize(apr.apr_access.total_number_non_empty_rows);
-        readData(AprTypes::MapXType, f.objectId, map_data->x.data());
-        map_data->z.resize(apr.apr_access.total_number_non_empty_rows);
-        readData(AprTypes::MapZType, f.objectId, map_data->z.data());
-        timer_f.stop_timer();
+            timer_f.start_timer("zxl");
+            map_data->number_gaps.resize(apr.apr_access.total_number_non_empty_rows);
+            readData(AprTypes::MapNumberGapsType, f.objectId, map_data->number_gaps.data());
+            map_data->level.resize(apr.apr_access.total_number_non_empty_rows);
+            readData(AprTypes::MapLevelType, f.objectId, map_data->level.data());
+            map_data->x.resize(apr.apr_access.total_number_non_empty_rows);
+            readData(AprTypes::MapXType, f.objectId, map_data->x.data());
+            map_data->z.resize(apr.apr_access.total_number_non_empty_rows);
+            readData(AprTypes::MapZType, f.objectId, map_data->z.data());
+            timer_f.stop_timer();
 
-        timer_f.start_timer("type");
-        //apr.apr_access.particle_cell_type.data.resize(type_size);
-        //readData(AprTypes::ParticleCellType, f.objectId, apr.apr_access.particle_cell_type.data.data());
-        timer_f.stop_timer();
+            timer_f.start_timer("type");
+            //apr.apr_access.particle_cell_type.data.resize(type_size);
+            //readData(AprTypes::ParticleCellType, f.objectId, apr.apr_access.particle_cell_type.data.data());
+            timer_f.stop_timer();
 
-        timer.stop_timer();
+            timer.stop_timer();
 
-        timer.start_timer("map building");
+            timer.start_timer("map building");
 
-        apr.apr_access.rebuild_map(apr, *map_data);
+            apr.apr_access.rebuild_map(apr, *map_data);
 
-        timer.stop_timer();
+            timer.stop_timer();
+        }
 
         uint64_t max_read_level = apr.apr_access.level_max-max_level_delta;
         uint64_t max_read_level_tree = std::min(apr.apr_access.level_max-1,max_read_level);
+        uint64_t prev_read_level = 0;
 
         if(build_tree){
 
-            timer.start_timer("build tree - map");
 
-            apr.apr_tree.tree_access.level_max = apr.level_max()-1;
-            apr.apr_tree.tree_access.level_min= apr.level_min()-1;
+            if(read_structure) {
 
-            apr.apr_tree.tree_access.x_num.resize(apr.apr_tree.tree_access.level_max+1);
-            apr.apr_tree.tree_access.z_num.resize(apr.apr_tree.tree_access.level_max+1);
-            apr.apr_tree.tree_access.y_num.resize(apr.apr_tree.tree_access.level_max+1);
 
-            for (int i = apr.apr_tree.tree_access.level_min; i <= apr.apr_tree.tree_access.level_max; ++i) {
-                apr.apr_tree.tree_access.x_num[i] = apr.spatial_index_x_max(i);
-                apr.apr_tree.tree_access.y_num[i] = apr.spatial_index_y_max(i);
-                apr.apr_tree.tree_access.z_num[i] = apr.spatial_index_z_max(i);
+                timer.start_timer("build tree - map");
+
+                apr.apr_tree.tree_access.level_max = apr.level_max() - 1;
+                apr.apr_tree.tree_access.level_min = apr.level_min() - 1;
+
+                apr.apr_tree.tree_access.x_num.resize(apr.apr_tree.tree_access.level_max + 1);
+                apr.apr_tree.tree_access.z_num.resize(apr.apr_tree.tree_access.level_max + 1);
+                apr.apr_tree.tree_access.y_num.resize(apr.apr_tree.tree_access.level_max + 1);
+
+                for (int i = apr.apr_tree.tree_access.level_min; i <= apr.apr_tree.tree_access.level_max; ++i) {
+                    apr.apr_tree.tree_access.x_num[i] = apr.spatial_index_x_max(i);
+                    apr.apr_tree.tree_access.y_num[i] = apr.spatial_index_y_max(i);
+                    apr.apr_tree.tree_access.z_num[i] = apr.spatial_index_z_max(i);
+                }
+
+                apr.apr_tree.tree_access.x_num[apr.level_min() - 1] = apr.spatial_index_x_max(apr.level_min()) / 2;
+                apr.apr_tree.tree_access.y_num[apr.level_min() - 1] = apr.spatial_index_y_max(apr.level_min()) / 2;
+                apr.apr_tree.tree_access.z_num[apr.level_min() - 1] = apr.spatial_index_z_max(apr.level_min()) / 2;
+
+                readAttr(AprTypes::TotalNumberOfParticlesType, f.objectIdTree,
+                         &apr.apr_tree.tree_access.total_number_particles);
+                readAttr(AprTypes::TotalNumberOfGapsType, f.objectIdTree, &apr.apr_tree.tree_access.total_number_gaps);
+                readAttr(AprTypes::TotalNumberOfNonEmptyRowsType, f.objectIdTree,
+                         &apr.apr_tree.tree_access.total_number_non_empty_rows);
+
+                auto map_data_tree = std::make_shared<MapStorageData>();
+
+                map_data_tree->global_index.resize(apr.apr_tree.tree_access.total_number_non_empty_rows);
+
+
+                std::vector<int16_t> index_delta(apr.apr_tree.tree_access.total_number_non_empty_rows);
+                readData(AprTypes::MapGlobalIndexType, f.objectIdTree, index_delta.data());
+                std::vector<uint64_t> index_delta_big(apr.apr_tree.tree_access.total_number_non_empty_rows);
+                std::copy(index_delta.begin(), index_delta.end(), index_delta_big.begin());
+                std::partial_sum(index_delta_big.begin(), index_delta_big.end(), map_data_tree->global_index.begin());
+
+
+                map_data_tree->y_end.resize(apr.apr_tree.tree_access.total_number_gaps);
+                readData(AprTypes::MapYendType, f.objectIdTree, map_data_tree->y_end.data());
+                map_data_tree->y_begin.resize(apr.apr_tree.tree_access.total_number_gaps);
+                readData(AprTypes::MapYbeginType, f.objectIdTree, map_data_tree->y_begin.data());
+
+                map_data_tree->number_gaps.resize(apr.apr_tree.tree_access.total_number_non_empty_rows);
+                readData(AprTypes::MapNumberGapsType, f.objectIdTree, map_data_tree->number_gaps.data());
+                map_data_tree->level.resize(apr.apr_tree.tree_access.total_number_non_empty_rows);
+                readData(AprTypes::MapLevelType, f.objectIdTree, map_data_tree->level.data());
+                map_data_tree->x.resize(apr.apr_tree.tree_access.total_number_non_empty_rows);
+                readData(AprTypes::MapXType, f.objectIdTree, map_data_tree->x.data());
+                map_data_tree->z.resize(apr.apr_tree.tree_access.total_number_non_empty_rows);
+                readData(AprTypes::MapZType, f.objectIdTree, map_data_tree->z.data());
+
+                apr.apr_tree.tree_access.rebuild_map(apr, *map_data_tree, true);
+
+
             }
 
-            apr.apr_tree.tree_access.x_num[apr.level_min()-1] = apr.spatial_index_x_max(apr.level_min())/2;
-            apr.apr_tree.tree_access.y_num[apr.level_min()-1] = apr.spatial_index_y_max(apr.level_min())/2;
-            apr.apr_tree.tree_access.z_num[apr.level_min()-1] = apr.spatial_index_z_max(apr.level_min())/2;
-
-            readAttr(AprTypes::TotalNumberOfParticlesType, f.objectIdTree, &apr.apr_tree.tree_access.total_number_particles);
-            readAttr(AprTypes::TotalNumberOfGapsType, f.objectIdTree, &apr.apr_tree.tree_access.total_number_gaps);
-            readAttr(AprTypes::TotalNumberOfNonEmptyRowsType, f.objectIdTree, &apr.apr_tree.tree_access.total_number_non_empty_rows);
-
-            auto map_data_tree = std::make_shared<MapStorageData>();
-
-            map_data_tree->global_index.resize(apr.apr_tree.tree_access.total_number_non_empty_rows);
 
 
-            std::vector<int16_t> index_delta(apr.apr_tree.tree_access.total_number_non_empty_rows);
-            readData(AprTypes::MapGlobalIndexType, f.objectIdTree, index_delta.data());
-            std::vector<uint64_t> index_delta_big(apr.apr_tree.tree_access.total_number_non_empty_rows);
-            std::copy(index_delta.begin(),index_delta.end(),index_delta_big.begin());
-            std::partial_sum(index_delta_big.begin(), index_delta_big.end(), map_data_tree->global_index.begin());
+            if(!read_structure) {
+                uint64_t current_parts_size = apr.apr_tree.particles_ds_tree.data.size();
 
-
-            map_data_tree->y_end.resize(apr.apr_tree.tree_access.total_number_gaps);
-            readData(AprTypes::MapYendType, f.objectIdTree, map_data_tree->y_end.data());
-            map_data_tree->y_begin.resize(apr.apr_tree.tree_access.total_number_gaps);
-            readData(AprTypes::MapYbeginType, f.objectIdTree, map_data_tree->y_begin.data());
-
-            map_data_tree->number_gaps.resize(apr.apr_tree.tree_access.total_number_non_empty_rows);
-            readData(AprTypes::MapNumberGapsType, f.objectIdTree, map_data_tree->number_gaps.data());
-            map_data_tree->level.resize(apr.apr_tree.tree_access.total_number_non_empty_rows);
-            readData(AprTypes::MapLevelType, f.objectIdTree, map_data_tree->level.data());
-            map_data_tree->x.resize(apr.apr_tree.tree_access.total_number_non_empty_rows);
-            readData(AprTypes::MapXType, f.objectIdTree, map_data_tree->x.data());
-            map_data_tree->z.resize(apr.apr_tree.tree_access.total_number_non_empty_rows);
-            readData(AprTypes::MapZType, f.objectIdTree, map_data_tree->z.data());
-
-            apr.apr_tree.tree_access.rebuild_map(apr, *map_data_tree,true);
-
-
+                for (int j = apr.level_min(); j <apr.level_max(); ++j) {
+                    if((apr.apr_tree.tree_access.global_index_by_level_end[j] + 1)==current_parts_size){
+                        prev_read_level = j;
+                    }
+                }
+            }
 
             timer.stop_timer();
             timer.start_timer("tree intensities");
 
-
             uint64_t parts_start = 0;
+            if(prev_read_level > 0){
+                parts_start = apr.apr_tree.tree_access.global_index_by_level_end[prev_read_level] + 1;
+            }
             uint64_t parts_end = apr.apr_tree.tree_access.global_index_by_level_end[max_read_level_tree] + 1;
 
             apr.apr_tree.particles_ds_tree.data.resize(parts_end);
 
             if ( apr.apr_tree.particles_ds_tree.data.size() > 0) {
-                readData(AprTypes::ParticleIntensitiesType, f.objectIdTree, apr.apr_tree.particles_ds_tree.data.data(),parts_start,parts_end);
+                readData(AprTypes::ParticleIntensitiesType, f.objectIdTree, apr.apr_tree.particles_ds_tree.data.data() + parts_start,parts_start,parts_end);
             }
 
             APRCompress<ImageType> apr_compress;
             apr_compress.set_compression_type(1);
             apr_compress.set_quantization_factor(2);
-            apr_compress.decompress(apr, apr.apr_tree.particles_ds_tree);
+            apr_compress.decompress(apr, apr.apr_tree.particles_ds_tree,parts_start);
 
             timer.stop_timer();
 
         }
 
-
-
         uint64_t parts_start = 0;
         uint64_t parts_end = apr.apr_access.global_index_by_level_end[max_read_level] + 1;
+
+        prev_read_level = 0;
+        if(!read_structure) {
+            uint64_t current_parts_size = apr.particles_intensities.data.size();
+
+            for (int j = apr.level_min(); j <apr.level_max(); ++j) {
+                if((apr.apr_access.global_index_by_level_end[j] + 1)==current_parts_size){
+                    prev_read_level = j;
+                }
+            }
+        }
+
+        if(prev_read_level > 0){
+            parts_start = apr.apr_access.global_index_by_level_end[prev_read_level] + 1;
+        }
+
+        //apr.apr_access.level_max = max_read_level;
 
         timer.start_timer("Read intensities");
         // ------------- read data ------------------------------
         apr.particles_intensities.data.resize(parts_end);
         if (apr.particles_intensities.data.size() > 0) {
-            readData(AprTypes::ParticleIntensitiesType, f.objectId, apr.particles_intensities.data.data(),parts_start,parts_end);
+            readData(AprTypes::ParticleIntensitiesType, f.objectId, apr.particles_intensities.data.data() + parts_start,parts_start,parts_end);
         }
-
 
         timer.stop_timer();
 
@@ -300,7 +352,7 @@ public:
             APRCompress<ImageType> apr_compress;
             apr_compress.set_compression_type(compress_type);
             apr_compress.set_quantization_factor(quantization_factor);
-            apr_compress.decompress(apr, apr.particles_intensities);
+            apr_compress.decompress(apr, apr.particles_intensities,parts_start);
         }
         timer.stop_timer();
     }

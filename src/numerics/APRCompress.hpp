@@ -109,7 +109,7 @@ public:
 
 
     template<typename U>
-    void decompress(APR<U>& apr,ExtraParticleData<ImageType>& symbols){
+    void decompress(APR<U>& apr,ExtraParticleData<ImageType>& symbols,uint64_t start=0){
 
         APRTimer timer;
         timer.verbose_flag = true;
@@ -126,10 +126,9 @@ public:
 #ifdef HAVE_OPENMP
 #pragma omp parallel for schedule(static) private(i)
 #endif
-           for (i = 0; i < symbols.data.size(); ++i) {
+           for (i = start; i < symbols.data.size(); ++i) {
                symbols.data[i] = (ImageType) inverse_variance_stabilitzation<float>(inverse_calculate_symbols<float,ImageType>(symbols.data[i]));
            }
-
 
             //invert the stabilization
             //predict_output.map_inplace(apr,[this](const float a) { return inverse_variance_stabilitzation<float>(a); });
