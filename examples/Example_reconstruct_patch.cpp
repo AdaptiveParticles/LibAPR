@@ -169,7 +169,10 @@ int main(int argc, char **argv) {
     //read file
     timer.start_timer("read input");
     std::string file_name = options.directory + options.input;
-    apr.read_apr(file_name);
+
+    unsigned int read_delta = (unsigned int) std::max(0,-options.level_delta);
+
+    apr.read_apr(file_name,true,read_delta);
     apr.name = options.output;
     timer.stop_timer();
 
@@ -194,12 +197,12 @@ int main(int argc, char **argv) {
 
     //options.output_pc_recon = false;
 
-    ExtraParticleData<uint16_t> partsTree;
+    //ExtraParticleData<uint16_t> partsTree;
 
-    timer.start_timer("fill tree");
+    //timer.start_timer("fill tree");
 
     //APRTreeNumerics::fill_tree_mean(apr,apr.apr_tree,apr.particles_intensities,partsTree);
-    timer.stop_timer();
+    //timer.stop_timer();
 
     // Intentionaly block-scoped since local recon_pc will be destructed when block ends and release memory.
     {
@@ -210,7 +213,7 @@ int main(int argc, char **argv) {
 
 
 
-            std::cout << partsTree.data.size()/(1.0f*apr.total_number_particles()) << std::endl;
+            //std::cout << partsTree.data.size()/(1.0f*apr.total_number_particles()) << std::endl;
 
             //APRWriter aprWriter;
             //float file_s = aprWriter.write_particles_only(options.directory,"tree_parts",partsTree);

@@ -79,7 +79,7 @@ class APRWriter {
 public:
 
     template<typename ImageType>
-    void read_apr(APR<ImageType>& apr, const std::string &file_name) {
+    void read_apr(APR<ImageType>& apr, const std::string &file_name,bool build_tree = false,unsigned int max_level_delta = 0) {
 
         APRTimer timer;
         timer.verbose_flag = true;
@@ -196,10 +196,8 @@ public:
 
         timer.stop_timer();
 
-        bool build_tree = true;
-
-        uint64_t max_read_level = apr.apr_access.level_max;
-        uint64_t max_read_level_tree = apr.apr_access.level_max-1;
+        uint64_t max_read_level = apr.apr_access.level_max-max_level_delta;
+        uint64_t max_read_level_tree = apr.apr_access.level_max-1-max_level_delta;
 
         if(build_tree){
 

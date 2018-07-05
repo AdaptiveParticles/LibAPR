@@ -93,8 +93,8 @@ int main(int argc, char **argv) {
         std::cout << "Writing the APR to hdf5..." << std::endl;
 
         //feel free to change
-        unsigned int blosc_comp_type = BLOSC_ZSTD;
-        unsigned int blosc_comp_level = options.compress_level;
+        unsigned int blosc_comp_type = 6;
+        unsigned int blosc_comp_level = 9;
         unsigned int blosc_shuffle = 1;
 
         apr.apr_compress.set_compression_type(options.compress_type);

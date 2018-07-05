@@ -78,6 +78,10 @@ public:
         apr_writer.read_apr(*this,file_name);
     }
 
+    void read_apr(std::string file_name,bool read_tree,unsigned int max_level_delta){
+        apr_writer.read_apr(*this,file_name,read_tree,max_level_delta);
+    }
+
     FileSizeInfo write_apr(std::string save_loc,std::string file_name){
         return apr_writer.write_apr(*this, save_loc,file_name);
     }
