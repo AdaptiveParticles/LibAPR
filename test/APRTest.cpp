@@ -124,11 +124,11 @@ bool test_apr_tree(TestData& test_data) {
                 for (apr_tree_iterator.set_new_lzx(level, z, x); apr_tree_iterator.global_index() < apr_tree_iterator.end_index;
                      apr_tree_iterator.set_iterator_to_particle_next_particle()) {
 
-                    uint16_t current_int = std::round(downsampled_img[apr_tree_iterator.level()].at(apr_tree_iterator.y(),apr_tree_iterator.x(),apr_tree_iterator.z()));
+                    uint16_t current_int = (uint16_t)std::round(downsampled_img[apr_tree_iterator.level()].at(apr_tree_iterator.y(),apr_tree_iterator.x(),apr_tree_iterator.z()));
                     //uint16_t parts_int = test_data.apr.apr_tree.particles_ds_tree[apr_tree_iterator];
-                    uint16_t parts2 = std::round(tree_data[apr_tree_iterator]);
+                    uint16_t parts2 = (uint16_t)std::round(tree_data[apr_tree_iterator]);
 
-                    uint16_t y = apr_tree_iterator.y();
+                   // uint16_t y = apr_tree_iterator.y();
 
                     if(abs(parts2 - current_int) > 1){
                         success = false;
@@ -138,6 +138,49 @@ bool test_apr_tree(TestData& test_data) {
             }
         }
     }
+
+
+    APRTreeIterator<uint16_t> neigh_tree_iterator(test_data.apr);
+
+
+    for (unsigned int level = apr_tree_iterator.level_min(); level <= apr_tree_iterator.level_max(); ++level) {
+        int z = 0;
+        int x = 0;
+
+        for (z = 0; z < apr_tree_iterator.spatial_index_z_max(level); z++) {
+            for (x = 0; x < apr_tree_iterator.spatial_index_x_max(level); ++x) {
+                for (apr_tree_iterator.set_new_lzx(level, z, x); apr_tree_iterator.global_index() < apr_tree_iterator.end_index;
+                     apr_tree_iterator.set_iterator_to_particle_next_particle()) {
+
+                    //loop over all the neighbours and set the neighbour iterator to it
+                    for (int direction = 0; direction < 6; ++direction) {
+                        apr_tree_iterator.find_neighbours_same_level(direction);
+                        // Neighbour Particle Cell Face definitions [+y,-y,+x,-x,+z,-z] =  [0,1,2,3,4,5]
+                        for (int index = 0; index < apr_tree_iterator.number_neighbours_in_direction(direction); ++index) {
+
+                            if (neigh_tree_iterator.set_neighbour_iterator(apr_tree_iterator, direction, index)) {
+                                //neighbour_iterator works just like apr, and apr_parallel_iterator (you could also call neighbours)
+
+                                uint16_t current_int = (uint16_t)std::round(downsampled_img[neigh_tree_iterator.level()].at(neigh_tree_iterator.y(),neigh_tree_iterator.x(),neigh_tree_iterator.z()));
+                                //uint16_t parts_int = test_data.apr.apr_tree.particles_ds_tree[apr_tree_iterator];
+                                uint16_t parts2 = (uint16_t)std::round(tree_data[neigh_tree_iterator]);
+
+                                uint16_t y = apr_tree_iterator.y();
+
+                                if(abs(parts2 - current_int) > 1){
+                                    success = false;
+                                }
+
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+
+
     return success;
 }
 
