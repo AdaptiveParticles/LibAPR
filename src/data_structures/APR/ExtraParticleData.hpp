@@ -15,38 +15,19 @@ template <typename V> class APR;
 template<typename DataType>
 class ExtraParticleData {
 
-private:
-
     static const uint64_t parallel_particle_number_threshold = 5000000l;
 
 public:
-
     std::vector<DataType> data;
 
     ExtraParticleData() {};
-
     ExtraParticleData(uint64_t aTotalNumberOfParticles) { init(aTotalNumberOfParticles); }
 
-    void init(uint64_t aTotalNumberOfParticles){
-        data.resize(aTotalNumberOfParticles);
-    }
+    void init(uint64_t aTotalNumberOfParticles){ data.resize(aTotalNumberOfParticles); }
 
-    void init_tree(uint64_t aNumberOfParentCells){
-        //initialization when using with APRTree class
-        data.resize(aNumberOfParentCells);
-    }
+    uint64_t total_number_particles() const { return data.size(); }
+    DataType& operator[](uint64_t aGlobalIndex) { return data[aGlobalIndex]; }
 
-    uint64_t total_number_particles() const {
-        return data.size();
-    }
-
-//    template<typename S>
-//    DataType& operator[](const APRIterator<S>& apr_iterator);
-    DataType& operator[](uint64_t aGlobalIndex);
-//    template<typename S>
-//    DataType get_particle(const APRIterator<S>& apr_iterator) const;
-//    template<typename S>
-//    void set_particle(const APRIterator<S>& apr_iterator, DataType set_val);
     template<typename S,typename T>
     void copy_parts(APR<T> &apr, const ExtraParticleData<S> &particlesToCopy, uint64_t level = 0, unsigned int aNumberOfBlocks = 10);
     template<typename V,class BinaryOperation,typename T>
@@ -59,30 +40,8 @@ public:
     inline void map(APR<T>& apr,ExtraParticleData<U>& output,UnaryOperator op,const uint64_t level = 0,unsigned int aNumberOfBlocks = 10);
 };
 
+
 #include "APRIterator.hpp"
-
-/**
- * Access particle via iterator
- * @param apr_iterator
- * @return reference to stored particle
- */
-//template<typename DataType> template<typename S>
-//inline DataType& ExtraParticleData<DataType>::operator[](const APRIterator<S>& apr_iterator) {
-//    return data[apr_iterator.global_index()];
-//}
-
-template<typename DataType>
-inline DataType& ExtraParticleData<DataType>::operator[](uint64_t aGlobalIndex) { return data[aGlobalIndex]; }
-
-//template<typename DataType> template<typename S>
-//inline DataType ExtraParticleData<DataType>::get_particle(const APRIterator<S>& apr_iterator) const {
-//    return data[apr_iterator.global_index()];
-//}
-//
-//template<typename DataType> template <typename S>
-//inline void ExtraParticleData<DataType>::set_particle(const APRIterator<S>& apr_iterator, DataType set_val) {
-//    data[apr_iterator.global_index()] = set_val;
-//}
 
 /**
  * Copy's the data from one particle dataset to another
