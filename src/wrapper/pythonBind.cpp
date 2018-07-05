@@ -28,7 +28,7 @@ public:
         APR <T> apr;
         apr.read_apr(aAprFileName);
 
-        APRTree<T> aprTree;
+        APRTree aprTree;
         aprTree.init(apr);
         
         ExtraParticleData<T> partsTree;
