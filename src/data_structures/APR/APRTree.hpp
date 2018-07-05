@@ -199,10 +199,10 @@ public:
 
                             //dealing with boundary conditions
                             float scale_factor_xz =
-                                    (((2 * apr.spatial_index_x_max(level - 1) != apr.spatial_index_x_max(level)) &&
-                                      ((x / 2) == (apr.spatial_index_x_max(level - 1) - 1))) +
-                                     ((2 * apr.spatial_index_z_max(level - 1) != apr.spatial_index_z_max(level)) &&
-                                      (z / 2) == (apr.spatial_index_z_max(level - 1) - 1))) * 2;
+                                    (((2 * parentIterator.spatial_index_x_max(level - 1) != apr.spatial_index_x_max(level)) &&
+                                      ((x / 2) == (parentIterator.spatial_index_x_max(level - 1) - 1))) +
+                                     ((2 * parentIterator.spatial_index_z_max(level - 1) != apr.spatial_index_z_max(level)) &&
+                                      (z / 2) == (parentIterator.spatial_index_z_max(level - 1) - 1))) * 2;
 
                             if (scale_factor_xz == 0) {
                                 scale_factor_xz = 1;
@@ -210,7 +210,7 @@ public:
 
                             float scale_factor_yxz = scale_factor_xz;
 
-                            if ((2 * apr.spatial_index_y_max(level - 1) != apr.spatial_index_y_max(level))) {
+                            if ((2 * parentIterator.spatial_index_y_max(level - 1) != apr.spatial_index_y_max(level))) {
                                 scale_factor_yxz = scale_factor_xz * 2;
                             }
 
@@ -223,7 +223,7 @@ public:
                                     parentIterator.set_iterator_to_particle_next_particle();
                                 }
 
-                                if (parentIterator.y() == (apr.spatial_index_y_max(level - 1) - 1)) {
+                                if (parentIterator.y() == (parentIterator.spatial_index_y_max(level - 1) - 1)) {
                                     tree_data[parentIterator] =
                                             scale_factor_yxz * apr.particles_intensities[apr_iterator] / 8.0f +
                                             tree_data[parentIterator];
@@ -258,10 +258,10 @@ public:
                             parentIterator.set_new_lzx(level - 1, z/2, x/2);
 
                             float scale_factor_xz =
-                                    (((2 * apr.spatial_index_x_max(level - 1) != apr.spatial_index_x_max(level)) &&
-                                      ((x / 2) == (apr.spatial_index_x_max(level - 1) - 1))) +
-                                     ((2 * apr.spatial_index_z_max(level - 1) != apr.spatial_index_z_max(level)) &&
-                                      ((z / 2) == (apr.spatial_index_z_max(level - 1) - 1)))) * 2;
+                                    (((2 * parentIterator.spatial_index_x_max(level - 1) != parentIterator.spatial_index_x_max(level)) &&
+                                      ((x / 2) == (parentIterator.spatial_index_x_max(level - 1) - 1))) +
+                                     ((2 * parentIterator.spatial_index_z_max(level - 1) != parentIterator.spatial_index_z_max(level)) &&
+                                      ((z / 2) == (parentIterator.spatial_index_z_max(level - 1) - 1)))) * 2;
 
                             if (scale_factor_xz == 0) {
                                 scale_factor_xz = 1;
@@ -269,7 +269,7 @@ public:
 
                             float scale_factor_yxz = scale_factor_xz;
 
-                            if ((2 * apr.spatial_index_y_max(level - 1) != apr.spatial_index_y_max(level))) {
+                            if ((2 * parentIterator.spatial_index_y_max(level - 1) != parentIterator.spatial_index_y_max(level))) {
                                 scale_factor_yxz = scale_factor_xz * 2;
                             }
 
@@ -281,7 +281,7 @@ public:
                                     parentIterator.set_iterator_to_particle_next_particle();
                                 }
 
-                                if (parentIterator.y() == (apr.spatial_index_y_max(level - 1) - 1)) {
+                                if (parentIterator.y() == (parentIterator.spatial_index_y_max(level - 1) - 1)) {
                                     tree_data[parentIterator] = scale_factor_yxz * tree_data[treeIterator] / 8.0f +
                                                                 tree_data[parentIterator];
                                 } else {

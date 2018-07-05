@@ -124,9 +124,11 @@ bool test_apr_tree(TestData& test_data) {
                 for (apr_tree_iterator.set_new_lzx(level, z, x); apr_tree_iterator.global_index() < apr_tree_iterator.end_index;
                      apr_tree_iterator.set_iterator_to_particle_next_particle()) {
 
-                    uint16_t current_int = downsampled_img[apr_tree_iterator.level()].at(apr_tree_iterator.y(),apr_tree_iterator.x(),apr_tree_iterator.z());
+                    uint16_t current_int = std::round(downsampled_img[apr_tree_iterator.level()].at(apr_tree_iterator.y(),apr_tree_iterator.x(),apr_tree_iterator.z()));
                     //uint16_t parts_int = test_data.apr.apr_tree.particles_ds_tree[apr_tree_iterator];
-                    uint16_t parts2 = tree_data[apr_tree_iterator];
+                    uint16_t parts2 = std::round(tree_data[apr_tree_iterator]);
+
+                    uint16_t y = apr_tree_iterator.y();
 
                     if(abs(parts2 - current_int) > 1){
                         success = false;
