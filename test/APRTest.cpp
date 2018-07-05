@@ -90,6 +90,55 @@ bool check_neighbour_out_of_bounds(APRIterator<uint16_t>& current,uint8_t face){
     return true;
 }
 
+bool test_apr_tree(TestData& test_data) {
+
+    bool success = true;
+
+    std::string save_loc = "";
+    std::string file_name = "read_write_test";
+
+    APRTreeIterator<uint16_t> apr_tree_iterator(test_data.apr);
+
+    test_data.apr.apr_tree.init(test_data.apr);
+
+    ExtraParticleData<float> tree_data;
+
+    test_data.apr.apr_tree.fill_tree_mean(test_data.apr,test_data.apr.apr_tree,test_data.apr.particles_intensities,tree_data);
+
+    test_data.apr.apr_tree.fill_tree_mean_downsample(test_data.apr.particles_intensities);
+
+    //generate tree test data
+    PixelData<float> pc_image;
+    test_data.apr.interp_img(pc_image,test_data.apr.particles_intensities);
+
+    std::vector<PixelData<float>> downsampled_img;
+    //Down-sample the image for particle intensity estimation
+    downsamplePyrmaid(pc_image, downsampled_img, test_data.apr.level_max(), test_data.apr.level_min()-1);
+
+    for (unsigned int level = (apr_tree_iterator.level_max()); level >= apr_tree_iterator.level_min(); --level) {
+        int z = 0;
+        int x = 0;
+
+        for (z = 0; z < apr_tree_iterator.spatial_index_z_max(level); z++) {
+            for (x = 0; x < apr_tree_iterator.spatial_index_x_max(level); ++x) {
+                for (apr_tree_iterator.set_new_lzx(level, z, x); apr_tree_iterator.global_index() < apr_tree_iterator.end_index;
+                     apr_tree_iterator.set_iterator_to_particle_next_particle()) {
+
+                    uint16_t current_int = downsampled_img[apr_tree_iterator.level()].at(apr_tree_iterator.y(),apr_tree_iterator.x(),apr_tree_iterator.z());
+                    //uint16_t parts_int = test_data.apr.apr_tree.particles_ds_tree[apr_tree_iterator];
+                    uint16_t parts2 = tree_data[apr_tree_iterator];
+
+                    if(abs(parts2 - current_int) > 1){
+                        success = false;
+                    }
+
+                }
+            }
+        }
+    }
+    return success;
+}
+
 bool test_apr_input_output(TestData& test_data){
 
     bool success = true;
@@ -826,6 +875,13 @@ ASSERT_TRUE(test_apr_iterate(test_data));
 
 }
 
+TEST_F(CreateSmallSphereTest, APR_TREE) {
+
+//test iteration
+ASSERT_TRUE(test_apr_tree(test_data));
+
+}
+
 TEST_F(CreateSmallSphereTest, APR_NEIGHBOUR_ACCESS) {
 
 //test iteration
@@ -851,6 +907,13 @@ TEST_F(Create210SphereTest, APR_ITERATION) {
 
 //test iteration
     ASSERT_TRUE(test_apr_iterate(test_data));
+
+}
+
+TEST_F(Create210SphereTest, APR_TREE) {
+
+//test iteration
+    ASSERT_TRUE(test_apr_tree(test_data));
 
 }
 
