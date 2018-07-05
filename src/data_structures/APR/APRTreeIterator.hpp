@@ -10,10 +10,9 @@
 
 // APRIteration class, with extra methods designed for the use with APRTree
 
-template<typename ImageType>
 class APRTreeIterator : public APRIterator {
 public:
-    APRTreeIterator(APRTree<ImageType>& apr_tree) : APRIterator(apr_tree.tree_access, /*highest_resolution_type*/ 8) {}
+    APRTreeIterator(APRTree &apr_tree) : APRIterator(apr_tree.tree_access, /*highest_resolution_type*/ 8) {}
 
     bool set_iterator_to_parent(APRIterator &current_iterator){
         //takes an input iterator and sets it THIS iterator to the parent of the particle cell that the current_iterator is pointing to.
@@ -28,7 +27,6 @@ public:
             //is at a level lower then the set minimum level.
             return false;
         }
-
     }
 
     void set_particle_cell_no_search(APRIterator &current_iterator){
@@ -39,9 +37,6 @@ public:
         this->set_neighbour_flag();
 
     }
-
-
-
 };
 
 

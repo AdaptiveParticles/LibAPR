@@ -189,7 +189,7 @@ int main(int argc, char **argv) {
 
     reconPatch.level_delta = options.level_delta;
 
-    APRTree<uint16_t> aprTree;
+    APRTree aprTree;
     aprTree.init(apr);
 
     // Intentionaly block-scoped since local recon_pc will be destructed when block ends and release memory.
