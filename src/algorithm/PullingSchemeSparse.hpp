@@ -144,13 +144,15 @@ inline void PullingSchemeSparse::fill(const float k, const PixelData<T> &input) 
 #pragma omp parallel for default(shared)
 #endif
         for (size_t z = 0; z < input.z_num; ++z) {
-            for (size_t x = 0; k < input.x_num; ++x) {
+            for (size_t x = 0; x < input.x_num; ++x) {
                 const size_t offset_part_map = x * input.y_num + z * input.y_num * input.x_num;
                 const size_t offset_pc =  input.x_num * z + x;
-                auto mesh = particle_cell_tree.data[k][offset_pc][0].mesh;
+                auto& mesh = particle_cell_tree.data[k][offset_pc][0].mesh;
                 for (size_t y = 0; y < input.y_num; ++y) {
 
-                    if (input.mesh[offset_part_map + y] >= k) mesh[y] = SEED_TYPE;
+                    if (input.mesh[offset_part_map + y] >= k) {
+                        mesh[y] = SEED_TYPE;
+                    }
                 }
             }
 
@@ -167,10 +169,10 @@ inline void PullingSchemeSparse::fill(const float k, const PixelData<T> &input) 
 #pragma omp parallel for default(shared)
 #endif
         for (size_t z = 0; z < input.z_num; ++z) {
-            for (size_t x = 0; k < input.x_num; ++x) {
+            for (size_t x = 0; x < input.x_num; ++x) {
                 const size_t offset_part_map = x * input.y_num + z * input.y_num * input.x_num;
                 const size_t offset_pc =  input.x_num * z + x;
-                auto mesh = particle_cell_tree.data[k][offset_pc][0].mesh;
+                auto& mesh = particle_cell_tree.data[k][offset_pc][0].mesh;
                 for (size_t y = 0; y < input.y_num; ++y) {
 
                     if (input.mesh[offset_part_map + y] <= k) mesh[y] = SEED_TYPE;
@@ -185,10 +187,10 @@ inline void PullingSchemeSparse::fill(const float k, const PixelData<T> &input) 
 #pragma omp parallel for default(shared)
 #endif
         for (size_t z = 0; z < input.z_num; ++z) {
-            for (size_t x = 0; k < input.x_num; ++x) {
+            for (size_t x = 0; x < input.x_num; ++x) {
                 const size_t offset_part_map = x * input.y_num + z * input.y_num * input.x_num;
                 const size_t offset_pc =  input.x_num * z + x;
-                auto mesh = particle_cell_tree.data[k][offset_pc][0].mesh;
+                auto& mesh = particle_cell_tree.data[k][offset_pc][0].mesh;
                 for (size_t y = 0; y < input.y_num; ++y) {
 
                     if (input.mesh[offset_part_map + y] == k) mesh[y] = SEED_TYPE;
@@ -219,7 +221,7 @@ inline void PullingSchemeSparse::set_ascendant_neighbours(int level) {
                 //size_t index = j * x_num * y_num + i * y_num;
 
                 const size_t offset_pc =  x_num * j + i;
-                auto mesh = particle_cell_tree.data[level][offset_pc][0].mesh;
+                auto& mesh = particle_cell_tree.data[level][offset_pc][0].mesh;
 
                 //SPARSE iteration
                 for (auto it=mesh.begin(); it!=mesh.end(); ++it){
@@ -232,7 +234,7 @@ inline void PullingSchemeSparse::set_ascendant_neighbours(int level) {
                                     size_t neighbour_index = kn + k;
 
                                     const size_t offset_pc_n = offset_pc + x_num * jn + in;
-                                    auto mesh_n = particle_cell_tree.data[level][offset_pc_n][0].mesh;
+                                    auto& mesh_n = particle_cell_tree.data[level][offset_pc_n][0].mesh;
 
                                     if (mesh_n[neighbour_index] == EMPTY) {
                                         // type is EMPTY
@@ -280,7 +282,7 @@ inline void PullingSchemeSparse::set_filler(int level) {
             }
 
             const size_t offset_pc = (size_t) x_num * j + i;
-            auto mesh = particle_cell_tree.data[level][offset_pc][0].mesh;
+            auto& mesh = particle_cell_tree.data[level][offset_pc][0].mesh;
 
             //SPARSE iteration
             for (auto it=mesh.begin(); it!=mesh.end(); ++it){
@@ -303,7 +305,7 @@ inline void PullingSchemeSparse::set_filler(int level) {
                                 size_t children_index = kn;
 
                                 const size_t offset_pc_c =  prev_x_num * jn + in;
-                                auto mesh_c = particle_cell_tree.data[level+1][offset_pc_c][0].mesh;
+                                auto& mesh_c = particle_cell_tree.data[level+1][offset_pc_c][0].mesh;
 
                                 if (mesh_c[children_index] == EMPTY) {
                                     mesh_c[children_index] = FILLER_TYPE;
@@ -330,10 +332,9 @@ inline void PullingSchemeSparse::fill_neighbours(int level) {
             CHECKBOUNDARIES(0, j, z_num - 1, boundaries);
             for (size_t i = 0; i < x_num; ++i) {
                 CHECKBOUNDARIES(1, i, x_num - 1, boundaries);
-                size_t index = j*x_num*y_num + i*y_num;
 
                 const size_t offset_pc = (size_t) x_num * j + i;
-                auto mesh = particle_cell_tree.data[level][offset_pc][0].mesh;
+                auto& mesh = particle_cell_tree.data[level][offset_pc][0].mesh;
 
                 //SPARSE iteration
                 for (auto it=mesh.begin(); it!=mesh.end(); ++it){
@@ -347,7 +348,7 @@ inline void PullingSchemeSparse::fill_neighbours(int level) {
                                     size_t neighbour_index = kn + k;
 
                                     const size_t offset_pc_n = offset_pc + x_num * jn + in;
-                                    auto mesh_n = particle_cell_tree.data[level][offset_pc_n][0].mesh;
+                                    auto& mesh_n = particle_cell_tree.data[level][offset_pc_n][0].mesh;
 
                                     if (mesh_n[neighbour_index] == EMPTY) {
                                         mesh_n[neighbour_index] = BOUNDARY_TYPE;
@@ -370,8 +371,8 @@ inline void PullingSchemeSparse::fill_parent(size_t j, size_t i, size_t k, size_
         //size_t new_y_num = ((y_num + 1) / 2);
         //size_t new_index = (j / 2) * new_x_num * new_y_num + (i / 2) * new_y_num + (k / 2);
 
-        const size_t offset_pc = (size_t) new_x_num * j + i;
-        auto mesh = particle_cell_tree.data[new_level][offset_pc][0].mesh;
+        const size_t offset_pc = (size_t) new_x_num * (j/2) + (i/2);
+        auto& mesh = particle_cell_tree.data[new_level][offset_pc][0].mesh;
         size_t new_index = (k/2);
 
         if (mesh[new_index] != SEED_TYPE) {

@@ -14,4 +14,4 @@ buildTarget(Example_random_access)
 buildTarget(Example_ray_cast)
 buildTarget(Example_reconstruct_patch)
 buildTarget(Example_apr_tree)
-
+buildTarget(Example_get_apr_by_block)

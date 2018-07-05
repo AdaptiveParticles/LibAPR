@@ -64,13 +64,6 @@ int main(int argc, char **argv) {
 
     ExtraParticleData<uint16_t> partsTreelevel(apr.apr_tree);
 
-    PixelData<uint16_t> pc_image;
-    apr.interp_img(pc_image,apr.particles_intensities);
-
-    std::vector<PixelData<uint16_t>> downsampled_img;
-    //Down-sample the image for particle intensity estimation
-    downsamplePyrmaid(pc_image, downsampled_img, apr.level_max(), apr.level_min());
-
 
     //iteration over the interior tree is identical to that over the standard APR, simply using the APRTreeIterator.
 
