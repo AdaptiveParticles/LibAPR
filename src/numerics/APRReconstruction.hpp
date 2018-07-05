@@ -92,6 +92,13 @@ public:
         //  Takes in a APR and creates piece-wise constant image
         //
 
+        int max_dim = std::max(std::max(apr.apr_access.org_dims[1], apr.apr_access.org_dims[0]), apr.apr_access.org_dims[2]);
+
+        int max_level = ceil(std::log2(max_dim));
+
+        max_level = max_level + reconPatch.level_delta;
+
+
         APRIterator<S> apr_iterator(apr);
 
         int max_img_y = ceil(apr.orginal_dimensions(0)*pow(2.0,reconPatch.level_delta));
@@ -140,13 +147,10 @@ public:
 
         img.init(y_end - y_begin, x_end - x_begin, z_end - z_begin, 0);
 
-
-        int max_dim = std::max(std::max(apr.apr_access.org_dims[1], apr.apr_access.org_dims[0]), apr.apr_access.org_dims[2]);
-
-        int max_level = ceil(std::log2(max_dim));
-
-        max_level = max_level + reconPatch.level_delta;
-
+        if(max_level < 0){
+            std::cout << "Negative level requested, exiting with empty image" << std::endl;
+            return;
+        }
 
         //note the use of the dynamic OpenMP schedule.
         for (unsigned int level = std::min(max_level,(int)apr.level_max()); level >= apr_iterator.level_min(); --level) {

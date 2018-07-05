@@ -79,10 +79,10 @@ class APRWriter {
 public:
 
     template<typename ImageType>
-    void read_apr(APR<ImageType>& apr, const std::string &file_name,bool build_tree = false,unsigned int max_level_delta = 0) {
+    void read_apr(APR<ImageType>& apr, const std::string &file_name,bool build_tree = false, int max_level_delta = 0) {
 
         APRTimer timer;
-        timer.verbose_flag = true;
+        timer.verbose_flag = false;
 
         APRTimer timer_f;
         timer_f.verbose_flag = false;
@@ -105,6 +105,8 @@ public:
 
         readAttr(AprTypes::TotalNumberOfParticlesType, f.groupId, &apr.apr_access.total_number_particles);
         readAttr(AprTypes::TotalNumberOfGapsType, f.groupId, &apr.apr_access.total_number_gaps);
+        readAttr(AprTypes::MaxLevelType, f.groupId, &apr.apr_access.level_max);
+        readAttr(AprTypes::MinLevelType, f.groupId, &apr.apr_access.level_min);
 
         int compress_type;
         readAttr(AprTypes::CompressionType, f.groupId, &compress_type);
@@ -117,6 +119,10 @@ public:
             read_structure = false;
         }
 
+        //incase you ask for to high a level delta
+        max_level_delta = std::max(max_level_delta,0);
+        max_level_delta = std::min(max_level_delta,(int)apr.apr_access.level_max);
+
         if(read_structure) {
             readAttr(AprTypes::TotalNumberOfNonEmptyRowsType, f.groupId, &apr.apr_access.total_number_non_empty_rows);
             uint64_t type_size;
@@ -124,8 +130,7 @@ public:
             readAttr(AprTypes::NumberOfYType, f.groupId, &apr.apr_access.org_dims[0]);
             readAttr(AprTypes::NumberOfXType, f.groupId, &apr.apr_access.org_dims[1]);
             readAttr(AprTypes::NumberOfZType, f.groupId, &apr.apr_access.org_dims[2]);
-            readAttr(AprTypes::MaxLevelType, f.groupId, &apr.apr_access.level_max);
-            readAttr(AprTypes::MinLevelType, f.groupId, &apr.apr_access.level_min);
+
             readAttr(AprTypes::LambdaType, f.groupId, &apr.parameters.lambda);
 
             readAttr(AprTypes::SigmaThType, f.groupId, &apr.parameters.sigma_th);
@@ -276,6 +281,7 @@ public:
                 apr.apr_tree.tree_access.rebuild_map(apr, *map_data_tree, true);
 
 
+                timer.stop_timer();
             }
 
 
@@ -290,7 +296,6 @@ public:
                 }
             }
 
-            timer.stop_timer();
             timer.start_timer("tree intensities");
 
             uint64_t parts_start = 0;
@@ -343,7 +348,7 @@ public:
 
         timer.stop_timer();
 
-        std::cout << "Data rate intensities: " << (apr.apr_access.total_number_particles*2)/(timer.timings.back()*1000000.0f) << " MB/s" << std::endl;
+        std::cout << "Data rate intensities: " << (apr.particles_intensities.data.size()*2)/(timer.timings.back()*1000000.0f) << " MB/s" << std::endl;
 
 
         timer.start_timer("decompress");

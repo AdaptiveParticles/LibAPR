@@ -112,7 +112,7 @@ public:
     void decompress(APR<U>& apr,ExtraParticleData<ImageType>& symbols,uint64_t start=0){
 
         APRTimer timer;
-        timer.verbose_flag = true;
+        timer.verbose_flag = false;
         timer.start_timer("total decompress");
 
 

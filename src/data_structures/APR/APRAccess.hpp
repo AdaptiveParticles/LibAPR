@@ -1070,7 +1070,7 @@ public:
         uint64_t z_;
         uint64_t x_;
         APRTimer apr_timer;
-        apr_timer.verbose_flag = true;
+        apr_timer.verbose_flag = false;
         apr_timer.start_timer("rebuild map");
 
         std::vector<uint64_t> cumsum;
