@@ -100,7 +100,7 @@ inline void PullingScheme::pulling_scheme_main() {
     //
     //  The Pulling Scheme for forming the Optimal Valid Particle Cell set from the Local Particle Cell set L
     //
-    //  Implimented as discussed in Cheeseman et al. 2017 for full description.
+    //  Implimented as discussed in Cheeseman et al. 2018 for full description.
     //
     //  Generates the implied resolution function that is used to sample the image in the APR.
     //
