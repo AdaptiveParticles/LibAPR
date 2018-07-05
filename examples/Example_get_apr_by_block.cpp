@@ -97,7 +97,9 @@ int main(int argc, char **argv) {
                                    ceil((1.0 * apr.apr_access.org_dims[2]) / pow(2.0, 1.0 * l_max - l + 1)), EMPTY);
     }
 
-    unsigned int number_pcs = 10000;
+    unsigned int number_pcs = input[l_max].mesh.size()*.001;
+
+    std::cout << "full " <<  input[l_max].mesh.size() << std::endl;
 
     for (int j = 0; j < number_pcs; ++j) {
         unsigned int index = std::rand()%input[level_max-1].mesh.size();
@@ -123,7 +125,7 @@ int main(int argc, char **argv) {
 
     timer.stop_timer();
 
-    timer.start_timer("Sparse");
+    timer.start_timer("Sparse init");
 
     PullingSchemeSparse pullingSchemeSparse;
     pullingSchemeSparse.initialize_particle_cell_tree(apr);
@@ -131,6 +133,9 @@ int main(int argc, char **argv) {
     for (int i = level_min; i < level_max; ++i) {
         pullingSchemeSparse.fill(i,input[i]);
     }
+    timer.stop_timer();
+
+    timer.start_timer("Pulling Scheme");
 
     pullingSchemeSparse.pulling_scheme_main();
 
@@ -144,7 +149,7 @@ int main(int argc, char **argv) {
         for (int z = 0; z < input[i].z_num; ++z) {
             for (int x = 0; x < input[i].x_num; ++x) {
                 const size_t offset_pc = input[i].x_num * z + x;
-                auto mesh = pullingSchemeSparse.particle_cell_tree.data[i][offset_pc][0].mesh;
+                auto& mesh = pullingSchemeSparse.particle_cell_tree.data[i][offset_pc][0].mesh;
                 for (int y = 0; y < input[i].y_num; ++y) {
                     const size_t offset_part_map = x * input[i].y_num + z * input[i].y_num * input[i].x_num;
 
