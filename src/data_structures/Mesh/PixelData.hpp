@@ -19,7 +19,7 @@
 #include <iomanip>
 #include <algorithm>
 
-#include "../../misc/APRTimer.hpp"
+#include "misc/APRTimer.hpp"
 
 #ifdef HAVE_OPENMP
 #include <omp.h>

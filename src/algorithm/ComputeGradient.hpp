@@ -6,13 +6,13 @@
 #define PARTPLAY_GRADIENT_HPP
 
 #include "data_structures/Mesh/PixelData.hpp"
-#include "../io/TiffUtils.hpp"
+#include "io/TiffUtils.hpp"
 
 #ifdef HAVE_OPENMP
 	#include "omp.h"
 #endif
-#include "../algorithm/APRParameters.hpp"
-#include "../misc/APRTimer.hpp"
+#include "algorithm/APRParameters.hpp"
+#include "misc/APRTimer.hpp"
 
 class ComputeGradient {
 

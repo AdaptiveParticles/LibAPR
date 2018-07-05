@@ -6,7 +6,7 @@
 #define PARTPLAY_MESHNUMERICS_HPP
 
 #include "data_structures/Mesh/PixelData.hpp"
-#include "../misc/APRTimer.hpp"
+#include "misc/APRTimer.hpp"
 
 class MeshNumerics {
 
