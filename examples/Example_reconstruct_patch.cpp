@@ -176,7 +176,7 @@ int main(int argc, char **argv) {
 
     unsigned int read_delta=0;
 
-    if(options.level_delta < 0) {
+    if(options.level_delta <= 0) {
         read_delta = (unsigned int) std::max(0, -options.level_delta);
     } else {
         std::cout << "Although the patch reconstruction supports upsampling, this demos logic with partial reading does not" << std::endl;

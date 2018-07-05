@@ -87,7 +87,17 @@ public:
         APRTimer timer_f;
         timer_f.verbose_flag = false;
 
-        AprFile f(file_name, AprFile::Operation::READ);
+        AprFile::Operation op;
+
+        if(build_tree){
+            op = AprFile::Operation::READ_WITH_TREE;
+        } else {
+            op = AprFile::Operation::READ;
+        }
+
+        AprFile f(file_name, op);
+
+
         if (!f.isOpened()) return;
 
         // ------------- read metadata --------------------------
@@ -373,12 +383,23 @@ public:
      * Writes the APR to the particle cell structure sparse format, using the p_map for reconstruction
      */
     template<typename ImageType>
-    FileSizeInfo write_apr(APR<ImageType> &apr, const std::string &save_loc, const std::string &file_name, APRCompress<ImageType> &apr_compressor, unsigned int blosc_comp_type = BLOSC_ZSTD, unsigned int blosc_comp_level = 2, unsigned int blosc_shuffle=1) {
+    FileSizeInfo write_apr(APR<ImageType> &apr, const std::string &save_loc, const std::string &file_name, APRCompress<ImageType> &apr_compressor, unsigned int blosc_comp_type = BLOSC_ZSTD, unsigned int blosc_comp_level = 2, unsigned int blosc_shuffle=1,bool write_tree = false) {
         APRTimer write_timer;
         write_timer.verbose_flag = true;
 
         std::string hdf5_file_name = save_loc + file_name + "_apr.h5";
-        AprFile f{hdf5_file_name, AprFile::Operation::WRITE};
+
+
+        AprFile::Operation op;
+
+        if(write_tree){
+            op = AprFile::Operation::WRITE_WITH_TREE;
+        } else {
+            op = AprFile::Operation::WRITE;
+        }
+
+        AprFile f(hdf5_file_name, op);
+
         FileSizeInfo fileSizeInfo1;
         if (!f.isOpened()) return fileSizeInfo1;
 
@@ -437,7 +458,7 @@ public:
                       blosc_comp_level, blosc_shuffle);
         }
 
-        bool store_tree = true;
+        bool store_tree = write_tree;
 
         if(store_tree){
 
@@ -653,7 +674,7 @@ public:
 
 
     struct AprFile {
-        enum class Operation {READ, WRITE};
+        enum class Operation {READ, WRITE,READ_WITH_TREE,WRITE_WITH_TREE};
         hid_t fileId = -1;
         hid_t groupId = -1;
         hid_t objectId = -1;
@@ -673,6 +694,16 @@ public:
                     }
                     groupId = H5Gopen2(fileId, mainGroup, H5P_DEFAULT);
                     objectId = H5Gopen2(fileId, subGroup, H5P_DEFAULT);
+
+                    break;
+                case Operation::READ_WITH_TREE:
+                    fileId = H5Fopen(aFileName.c_str(), H5F_ACC_RDONLY, H5P_DEFAULT);
+                    if (fileId == -1) {
+                        std::cerr << "Could not open file [" << aFileName << "]" << std::endl;
+                        return;
+                    }
+                    groupId = H5Gopen2(fileId, mainGroup, H5P_DEFAULT);
+                    objectId = H5Gopen2(fileId, subGroup, H5P_DEFAULT);
                     objectIdTree = H5Gopen2(fileId, subGroupTree, H5P_DEFAULT);
                     break;
                 case Operation::WRITE:
@@ -683,13 +714,22 @@ public:
                     }
                     groupId = H5Gcreate2(fileId, mainGroup, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
                     objectId = H5Gcreate2(fileId, subGroup, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
+                    break;
+                case Operation::WRITE_WITH_TREE:
+                    fileId = hdf5_create_file_blosc(aFileName);
+                    if (fileId == -1) {
+                        std::cerr << "Could not create file [" << aFileName << "]" << std::endl;
+                        return;
+                    }
+                    groupId = H5Gcreate2(fileId, mainGroup, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
+                    objectId = H5Gcreate2(fileId, subGroup, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
                     objectIdTree = H5Gcreate2(fileId, subGroupTree, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
                     break;
             }
-            if (groupId == -1 || objectId == -1 || objectIdTree == -1) { H5Fclose(fileId); fileId = -1; }
+            if (groupId == -1 || objectId == -1) { H5Fclose(fileId); fileId = -1; }
         }
         ~AprFile() {
-            if (objectId != -1) H5Gclose(objectIdTree);
+            if (objectIdTree != -1) H5Gclose(objectIdTree);
             if (objectId != -1) H5Gclose(objectId);
             if (groupId != -1) H5Gclose(groupId);
             if (fileId != -1) H5Fclose(fileId);
@@ -698,7 +738,7 @@ public:
         /**
          * Is File opened?
          */
-        bool isOpened() const { return fileId != -1 && groupId != -1 && objectId != -1; }
+        bool isOpened() const { return fileId != -1 && groupId != -1 ; }
 
         hsize_t getFileSize() const {
             hsize_t size;

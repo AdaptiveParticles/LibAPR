@@ -177,31 +177,7 @@ public:
     }
 
 
-    bool set_neighbour_iterator(GenIterator<ImageType> &original_iterator, const uint8_t& direction, const uint8_t& index){
-        //
-        //  This is sets the this iterator, to the neighbour of the particle cell that original_iterator is pointing to
-        //
 
-        if(original_iterator.level_delta!=_LEVEL_INCREASE){
-            //copy the information from the original iterator
-            std::swap(current_particle_cell,original_iterator.neighbour_particle_cell);
-
-        } else {
-            if(index==0){
-                std::swap(current_particle_cell,original_iterator.neighbour_particle_cell);
-
-            } else {
-                bool success = original_iterator.find_next_child(direction,index);
-                std::swap(current_particle_cell,original_iterator.neighbour_particle_cell);
-
-                return success;
-            }
-        }
-
-        //this needs the if clause that finds the neighbour
-        return true;
-
-    }
 
     inline uint8_t number_neighbours_in_direction(const uint8_t& face){
 

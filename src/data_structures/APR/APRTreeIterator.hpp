@@ -87,7 +87,7 @@ public:
 
                     this->current_particle_cell.y = (uint16_t) (this->current_gap.iterator->first/2);
                     this->current_particle_cell.global_index =
-                            this->current_gap.iterator->second.global_index_begin_offset + begin_index;
+                            this->current_gap.iterator->second.global_index_begin_offset/2 + begin_index;
 
                     this->set_neighbour_flag();
 
@@ -104,7 +104,7 @@ public:
                     ((2*this->current_particle_cell.y) <= this->current_gap.iterator->second.y_end)) {
                     // exists
                     this->current_particle_cell.global_index =
-                            this->current_gap.iterator->second.global_index_begin_offset +
+                            this->current_gap.iterator->second.global_index_begin_offset/2 +
                             (this->current_particle_cell.y - this->current_gap.iterator->first)/2 + begin_index;
                     this->set_neighbour_flag();
                     return this->current_particle_cell.global_index;
@@ -117,7 +117,7 @@ public:
                 } else {
                     //still within range
                     this->current_particle_cell.global_index =
-                            this->current_gap.iterator->second.global_index_begin_offset + begin_index;
+                            this->current_gap.iterator->second.global_index_begin_offset/2 + begin_index;
                     this->current_particle_cell.y = (uint16_t) (this->current_gap.iterator->first/2);
                     this->set_neighbour_flag();
                     return this->current_particle_cell.global_index;
@@ -224,13 +224,13 @@ public:
     }
 
     bool find_neighbours_same_level(const uint8_t& direction){
-        //#FIXME
+
         bool found = false;
 
         this->apr_access->get_neighbour_coordinate(this->current_particle_cell,this->neighbour_particle_cell,direction,_LEVEL_SAME,0);
 
         if(this->check_neighbours_particle_cell_in_bounds()){
-            if(this->apr_access->find_particle_cell(this->neighbour_particle_cell,this->local_iterators.same_level[direction])){
+            if(this->apr_access->find_particle_cell_tree(*aprOwn,this->neighbour_particle_cell,this->local_iterators.same_level[direction])){
                 //found the neighbour! :D
 
                 this->level_delta = _LEVEL_SAME;
@@ -244,6 +244,46 @@ public:
 
         return found;
 
+    }
+
+    bool set_neighbour_iterator(APRTreeIterator<ImageType> &original_iterator, const uint8_t& direction, const uint8_t& index){
+        //
+        //  This is sets the this iterator, to the neighbour of the particle cell that original_iterator is pointing to
+        //
+
+        if(original_iterator.level_delta!=_LEVEL_INCREASE){
+            //copy the information from the original iterator
+            std::swap(this->current_particle_cell,original_iterator.neighbour_particle_cell);
+
+        } else {
+            if(index==0){
+                std::swap(this->current_particle_cell,original_iterator.neighbour_particle_cell);
+
+            } else {
+                bool success = original_iterator.find_next_child(direction,index);
+                std::swap(this->current_particle_cell,original_iterator.neighbour_particle_cell);
+
+                return success;
+            }
+        }
+
+        //this needs the if clause that finds the neighbour
+        return true;
+
+    }
+
+    bool find_next_child(const uint8_t& direction,const uint8_t& index){
+
+        this->level_delta = _LEVEL_INCREASE;
+        this->apr_access->get_neighbour_coordinate(this->current_particle_cell,this->neighbour_particle_cell,direction,this->level_delta,index);
+
+        if(this->check_neighbours_particle_cell_in_bounds()){
+            if(this->apr_access->find_particle_cell(this->neighbour_particle_cell,this->apr_access->get_local_iterator(this->local_iterators, this->level_delta, direction,index))){
+                //found the neighbour! :D
+                return true;
+            }
+        };
+        return false;
     }
 
     uint64_t start_index(const uint16_t level, const uint64_t offset){

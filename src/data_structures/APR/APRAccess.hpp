@@ -374,6 +374,186 @@ public:
         return false;
     }
 
+    template<typename ImageType>
+    bool find_particle_cell_tree(APR<ImageType> &apr,ParticleCell& part_cell,MapIterator& map_iterator){
+
+
+        if(part_cell.level == level_max){
+
+            if (apr.apr_access.gap_map.data[part_cell.level+1][part_cell.pc_offset].size() > 0) {
+                //shared access data
+                ParticleCellGapMap &current_pc_map = apr.apr_access.gap_map.data[part_cell.level+1][part_cell.pc_offset][0];
+
+                //this is required due to utilization of the equivalence optimization
+
+                if ((map_iterator.pc_offset != part_cell.pc_offset) || (map_iterator.level != part_cell.level)) {
+                    map_iterator.iterator = apr.apr_access.gap_map.data[part_cell.level+1][part_cell.pc_offset][0].map.begin();
+                    map_iterator.pc_offset = part_cell.pc_offset;
+                    map_iterator.level = part_cell.level;
+
+                    if (part_cell.pc_offset == 0) {
+                        if (part_cell.level == level_min) {
+                            map_iterator.global_offset = 0;
+                        } else {
+                            map_iterator.global_offset = global_index_by_level_and_zx_end[part_cell.level - 1].back();
+                        }
+                    } else {
+                        map_iterator.global_offset = global_index_by_level_and_zx_end[part_cell.level][
+                                part_cell.pc_offset - 1];
+                    }
+
+                    map_iterator.max_offset = 0;
+
+                }
+
+                uint64_t offset = 0;
+                //deals with the different xz in the same access tree at highest resolution
+                offset = map_iterator.global_offset;
+
+
+                if (map_iterator.iterator == current_pc_map.map.end()) {
+                    //check if pointing to a valid key
+                    map_iterator.iterator = current_pc_map.map.begin();
+                }
+
+                if ((2*part_cell.y >= map_iterator.iterator->first) &&
+                    (2*part_cell.y <= map_iterator.iterator->second.y_end)) {
+                    // already pointing to the correct place
+                    part_cell.global_index = map_iterator.iterator->second.global_index_begin_offset/2 +
+                                             (part_cell.y - map_iterator.iterator->first)/2 + offset;
+
+
+
+                    return true;
+                } else {
+                    //first try next element
+                    //if(map_iterator.iterator != current_pc_map.map.end()){
+                    map_iterator.iterator++;
+                    //check if there
+                    if (map_iterator.iterator != current_pc_map.map.end()) {
+                        if ((2*part_cell.y >= map_iterator.iterator->first) &
+                            (2*part_cell.y <= map_iterator.iterator->second.y_end)) {
+                            // already pointing to the correct place
+                            part_cell.global_index = map_iterator.iterator->second.global_index_begin_offset/2 +
+                                                     (part_cell.y - map_iterator.iterator->first)/2 + offset;
+
+                            return true;
+                        }
+                    }
+
+                    //}
+
+                    //otherwise search for it (points to first key that is greater than the y value)
+                    map_iterator.iterator = current_pc_map.map.upper_bound(2*part_cell.y);
+
+                    if ((map_iterator.iterator == current_pc_map.map.begin()) ||
+                        (map_iterator.iterator == current_pc_map.map.end())) {
+                        //less then the first value
+                        return false;
+                    } else {
+                        map_iterator.iterator--;
+                    }
+
+                    if ((2*part_cell.y >= map_iterator.iterator->first) &
+                        (2*part_cell.y <= map_iterator.iterator->second.y_end)) {
+                        // already pointing to the correct place
+                        part_cell.global_index = map_iterator.iterator->second.global_index_begin_offset/2 +
+                                                 (part_cell.y - map_iterator.iterator->first)/2 + offset;
+
+                        return true;
+                    }
+                }
+            }
+        } else {
+
+            if (gap_map.data[part_cell.level][part_cell.pc_offset].size() > 0) {
+
+                ParticleCellGapMap &current_pc_map = gap_map.data[part_cell.level][part_cell.pc_offset][0];
+
+                //this is required due to utilization of the equivalence optimization
+
+                if ((map_iterator.pc_offset != part_cell.pc_offset) || (map_iterator.level != part_cell.level)) {
+                    map_iterator.iterator = gap_map.data[part_cell.level][part_cell.pc_offset][0].map.begin();
+                    map_iterator.pc_offset = part_cell.pc_offset;
+                    map_iterator.level = part_cell.level;
+
+                    if (part_cell.pc_offset == 0) {
+                        if (part_cell.level == level_min) {
+                            map_iterator.global_offset = 0;
+                        } else {
+                            map_iterator.global_offset = global_index_by_level_and_zx_end[part_cell.level - 1].back();
+                        }
+                    } else {
+                        map_iterator.global_offset = global_index_by_level_and_zx_end[part_cell.level][
+                                part_cell.pc_offset - 1];
+                    }
+
+                    map_iterator.max_offset = 0;
+
+                }
+
+                uint64_t offset = 0;
+                //deals with the different xz in the same access tree at highest resolution
+                offset = map_iterator.global_offset;
+
+
+                if (map_iterator.iterator == current_pc_map.map.end()) {
+                    //check if pointing to a valid key
+                    map_iterator.iterator = current_pc_map.map.begin();
+                }
+
+                if ((part_cell.y >= map_iterator.iterator->first) &&
+                    (part_cell.y <= map_iterator.iterator->second.y_end)) {
+                    // already pointing to the correct place
+                    part_cell.global_index = map_iterator.iterator->second.global_index_begin_offset +
+                                             (part_cell.y - map_iterator.iterator->first) + offset;
+
+                    return true;
+                } else {
+                    //first try next element
+                    //if(map_iterator.iterator != current_pc_map.map.end()){
+                    map_iterator.iterator++;
+                    //check if there
+                    if (map_iterator.iterator != current_pc_map.map.end()) {
+                        if ((part_cell.y >= map_iterator.iterator->first) &
+                            (part_cell.y <= map_iterator.iterator->second.y_end)) {
+                            // already pointing to the correct place
+                            part_cell.global_index = map_iterator.iterator->second.global_index_begin_offset +
+                                                     (part_cell.y - map_iterator.iterator->first) + offset;
+
+                            return true;
+                        }
+                    }
+
+                    //}
+
+                    //otherwise search for it (points to first key that is greater than the y value)
+                    map_iterator.iterator = current_pc_map.map.upper_bound(part_cell.y);
+
+                    if ((map_iterator.iterator == current_pc_map.map.begin()) ||
+                        (map_iterator.iterator == current_pc_map.map.end())) {
+                        //less then the first value
+                        return false;
+                    } else {
+                        map_iterator.iterator--;
+                    }
+
+                    if ((part_cell.y >= map_iterator.iterator->first) &
+                        (part_cell.y <= map_iterator.iterator->second.y_end)) {
+                        // already pointing to the correct place
+                        part_cell.global_index = map_iterator.iterator->second.global_index_begin_offset +
+                                                 (part_cell.y - map_iterator.iterator->first) + offset;
+
+                        return true;
+                    }
+                }
+            }
+        }
+
+        return false;
+    }
+
+
     template<typename T>
     void initialize_structure_from_particle_cell_tree(APR<T>& apr,std::vector<PixelData<uint8_t>>& layers){
        x_num.resize(level_max+1);

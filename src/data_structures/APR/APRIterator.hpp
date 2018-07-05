@@ -248,7 +248,7 @@ public:
                 this->set_neighbour_flag();
 
                 // IN HERE PUT THE STARTING INDEX!
-                auto it =(this->apr_access->gap_map.data[level][this->current_particle_cell.pc_offset][0].map.rbegin());
+                //auto it =(this->apr_access->gap_map.data[level][this->current_particle_cell.pc_offset][0].map.rbegin());
                 this->end_index = this->apr_access->global_index_by_level_and_zx_end[this->current_particle_cell.level][this->current_particle_cell.pc_offset];
 
                 return this->current_particle_cell.global_index;
