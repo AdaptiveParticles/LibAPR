@@ -14,6 +14,7 @@
 #include "../data_structures/APR/APR.hpp"
 #include "../data_structures/APR/ExtraParticleData.hpp"
 
+
 template<typename ImageType>
 class APRCompress {
 
@@ -73,7 +74,8 @@ public:
 #pragma omp parallel for schedule(static) private(i)
 #endif
             for (i = 0; i < symbols.data.size(); ++i) {
-                symbols.data[i] = calculate_symbols<ImageType,float>(variance_stabilitzation<float>(symbols.data[i]));
+                //symbols.data[i] = calculate_symbols<ImageType,float>(variance_stabilitzation<float>(symbols.data[i]));
+                symbols.data[i] = (ImageType) variance_stabilitzation<float>(symbols.data[i]);
             }
 
 
@@ -127,7 +129,8 @@ public:
 #pragma omp parallel for schedule(static) private(i)
 #endif
            for (i = start; i < symbols.data.size(); ++i) {
-               symbols.data[i] = (ImageType) inverse_variance_stabilitzation<float>(inverse_calculate_symbols<float,ImageType>(symbols.data[i]));
+               //symbols.data[i] = (ImageType) inverse_variance_stabilitzation<float>(inverse_calculate_symbols<float,ImageType>(symbols.data[i]));
+               symbols.data[i] = (ImageType) inverse_variance_stabilitzation<float>(symbols.data[i]);
            }
 
             //invert the stabilization

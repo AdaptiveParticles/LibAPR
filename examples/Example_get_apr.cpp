@@ -93,14 +93,15 @@ int main(int argc, char **argv) {
         std::cout << "Writing the APR to hdf5..." << std::endl;
 
         //feel free to change
-        unsigned int blosc_comp_type = 6;
+        unsigned int blosc_comp_type = 6; //Lizard Codec
         unsigned int blosc_comp_level = 9;
         unsigned int blosc_shuffle = 1;
 
         apr.apr_compress.set_compression_type(options.compress_type);
+        apr.apr_compress.set_quantization_factor(options.quantization_factor);
 
         //write the APR to hdf5 file
-        FileSizeInfo fileSizeInfo = apr.write_apr(save_loc,file_name,blosc_comp_type,blosc_comp_level,blosc_shuffle);
+        FileSizeInfo fileSizeInfo = apr.write_apr(save_loc,file_name,blosc_comp_type,blosc_comp_level,blosc_shuffle,options.store_tree);
         float apr_file_size = fileSizeInfo.total_file_size;
 
         timer.stop_timer();
@@ -246,6 +247,11 @@ cmdLineOptions read_command_line_options(int argc, char **argv){
         result.compress_type = (unsigned int)std::stoi(std::string(get_command_option(argv, argv + argc, "-compress_type")));
     }
 
+    if(command_option_exists(argv, argv + argc, "-quantization_factor"))
+    {
+        result.quantization_factor = (float)std::stof(std::string(get_command_option(argv, argv + argc, "-quantization_factor")));
+    }
+
     if(command_option_exists(argv, argv + argc, "-normalize_input"))
     {
         result.normalize_input = true;
@@ -260,6 +266,11 @@ cmdLineOptions read_command_line_options(int argc, char **argv){
     if(command_option_exists(argv, argv + argc, "-output_steps"))
     {
         result.output_steps = true;
+    }
+
+    if(command_option_exists(argv, argv + argc, "-store_tree"))
+    {
+        result.store_tree = true;
     }
 
     return result;

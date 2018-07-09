@@ -86,13 +86,13 @@ public:
         return apr_writer.write_apr(*this, save_loc,file_name);
     }
 
-    FileSizeInfo write_apr(std::string save_loc,std::string file_name,APRCompress<ImageType>& apr_compressor,unsigned int blosc_comp_type,unsigned int blosc_comp_level,unsigned int blosc_shuffle){
-        return apr_writer.write_apr((*this),save_loc, file_name, apr_compressor,blosc_comp_type ,blosc_comp_level,blosc_shuffle);
+    FileSizeInfo write_apr(std::string save_loc,std::string file_name,APRCompress<ImageType>& apr_compressor,unsigned int blosc_comp_type,unsigned int blosc_comp_level,unsigned int blosc_shuffle,bool write_tree = false){
+        return apr_writer.write_apr((*this),save_loc, file_name, apr_compressor,blosc_comp_type ,blosc_comp_level,blosc_shuffle,write_tree);
     }
 
-    FileSizeInfo write_apr(std::string save_loc,std::string file_name,unsigned int blosc_comp_type,unsigned int blosc_comp_level,unsigned int blosc_shuffle){
+    FileSizeInfo write_apr(std::string save_loc,std::string file_name,unsigned int blosc_comp_type,unsigned int blosc_comp_level,unsigned int blosc_shuffle,bool write_tree = false){
 
-        return apr_writer.write_apr((*this),save_loc, file_name, this->apr_compress,blosc_comp_type ,blosc_comp_level,blosc_shuffle);
+        return apr_writer.write_apr((*this),save_loc, file_name, this->apr_compress,blosc_comp_type ,blosc_comp_level,blosc_shuffle,write_tree);
     }
 
     //generate APR that can be read by paraview
