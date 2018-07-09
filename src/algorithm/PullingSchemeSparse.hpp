@@ -138,7 +138,7 @@ inline void PullingSchemeSparse::pulling_scheme_main() {
     //
 
     APRTimer timer;
-    timer.verbose_flag = true;
+    timer.verbose_flag = false;
 
 
     //loop over all levels from l_max to l_min

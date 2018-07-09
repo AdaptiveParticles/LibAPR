@@ -155,14 +155,14 @@ bool APRConverterBatch<ImageType>::get_apr_batch_method_from_file(APR<ImageType>
     //Down-sample the image for particle intensity estimation
     downsamplePyrmaid(inputImage, downsampled_img, aAPR.level_max(), aAPR.level_min());
     method_timer.stop_timer();
-//
-//    method_timer.start_timer("compute_apr_datastructure");
+
+    method_timer.start_timer("compute_apr_datastructure");
     aAPR.apr_access.initialize_structure_from_particle_cell_tree_sparse(aAPR,particle_cell_tree);
-//    method_timer.stop_timer();
-//
-//    method_timer.start_timer("sample_particles");
-//    aAPR.get_parts_from_img(downsampled_img,aAPR.particles_intensities);
-//    method_timer.stop_timer();
+    method_timer.stop_timer();
+
+    method_timer.start_timer("sample_particles");
+    //aAPR.get_parts_from_img(downsampled_img,aAPR.particles_intensities);
+    method_timer.stop_timer();
 
 
     //finish with the normal steps..

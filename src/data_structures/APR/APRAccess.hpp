@@ -613,8 +613,9 @@ public:
                         uint8_t status = p_map[i - 1][offset_part_map_ds + y];
 
                         if (status > 0 && status <= min_type) {
+                            size_t y2p = std::min(2*y+1,y_num_-1);
                             p_map[i][offset_part_map + 2 * y] = seed_us;
-                            p_map[i][offset_part_map + 2 * y + 1] = seed_us;
+                            p_map[i][offset_part_map + y2p] = seed_us;
                         }
                     }
                 }
@@ -877,7 +878,7 @@ public:
 
         for(size_t i = level_min;i < level_max; ++i) {
             x_num[i] = p_map.x_num[i];
-            y_num[i] = (uint64_t) ceil((1.0 * apr.apr_access.org_dims[0]) / pow(2.0, 1.0 * level_max - i + 1));
+            y_num[i] = (uint64_t) ceil((1.0 * apr.apr_access.org_dims[0]) / pow(2.0, 1.0 * level_max - i ));
             z_num[i] = p_map.z_num[i];
         }
         y_num[level_max] = org_dims[0];
@@ -909,7 +910,7 @@ public:
                     const size_t offset_part_map =  z *  x_num_ + x;
 
                     auto& mesh_ds = p_map.data[i-1][offset_part_map_ds][0].mesh;
-                    auto& mesh = p_map.data[i][offset_part_map][0].mesh;
+
 
                     //SPARSE iteration
                     for (auto it=mesh_ds.begin(); it!=mesh_ds.end(); ++it){
@@ -918,12 +919,14 @@ public:
 
 //                    for (size_t y = 0; y < y_num_ds; ++y) {
 //                        uint8_t status = p_map[i - 1][offset_part_map_ds + y];
+
                         if (status > 0 && status <= min_type) {
+                            uint16_t y2p = std::min(2*y+1,y_num_-1);
 //                            p_map[i][offset_part_map + 2 * y] = seed_us;
 //                            p_map[i][offset_part_map + 2 * y + 1] = seed_us;
 
-                            mesh[ 2 * y] = seed_us;
-                            mesh[ 2 * y + 1] = seed_us;
+                            p_map.data[i][offset_part_map][0].mesh[ 2 * y] = seed_us;
+                            p_map.data[i][offset_part_map][0].mesh[ y2p] = seed_us;
                         }
                     }
                 }
@@ -972,35 +975,38 @@ public:
                     uint64_t counter = 0;
 
 
+                    uint16_t prev_y = -1; //init
+
                     auto& mesh = p_map.data[i][offset_pc_data][0].mesh;
 
                     //SPARSE iteration
-                    for (auto it=mesh.begin(); it!=mesh.end(); ++it){
+                    for (auto it=mesh.begin(); it!=mesh.end(); ++it) {
                         size_t y = it->first;
                         uint8_t status = it->second;
 
-                    //for (size_t y = 0; y < y_num_; ++y) {
-                       // uint8_t status = p_map[i][offset_part_map + y];
                         if ((status > min_type) && (status < 5)) {
-                            current = 1;
-                            if (previous == 0) {
-                                y_begin.data[i][offset_pc_data].push_back({y,gap});
-                            }
-                        }
-                        else {
-                            current = 0;
-                            if (previous == 1) {
-                                (y_begin.data[i][offset_pc_data][counter]).second.y_end = (y-1);
-                                counter++;
-                            }
-                        }
 
-                        previous = current;
+                            if ((y - 1) != prev_y) {
+
+                                y_begin.data[i][offset_pc_data].push_back({y, gap});
+
+                                if (current == 1) {
+                                    (y_begin.data[i][offset_pc_data][counter]).second.y_end = (prev_y);
+                                    counter++;
+                                }
+
+                                current = 1;
+                            }
+
+                            prev_y = y;
+                        }
                     }
-                    //end node
-                    if (previous == 1) {
-                        (y_begin.data[i][offset_pc_data][counter]).second.y_end = (y_num_-1);
+
+                    //last entry
+                    if (current == 1) {
+                        (y_begin.data[i][offset_pc_data][counter]).second.y_end = (prev_y);
                     }
+
                 }
             }
         }
@@ -1033,31 +1039,61 @@ public:
 
                 auto& mesh = p_map.data[i][offset_pc_data1][0].mesh;
 
-                //SPARSE iteration
-                for (auto it=mesh.begin(); it!=mesh.end(); ++it){
-                    size_t y_ = it->first;
-                    uint8_t status = it->second;
-                    if (status > 0 && status <= min_type) {
-                        current = 1;
-                        if (previous == 0) {
-                            y_begin.data[i+1][offset_pc_data1].push_back({2*y_,gap});
-                        }
-                    }
-                    else {
-                        current = 0;
-                        if (previous == 1) {
-                            y_begin.data[i+1][offset_pc_data1][counter].second.y_end = std::min((uint16_t)(2*(y_-1)+1),(uint16_t)(y_num_us-1));
-                            counter++;
-                        }
-                    }
+//                //SPARSE iteration
+//                for (auto it=mesh.begin(); it!=mesh.end(); ++it){
+//                    size_t y_ = it->first;
+//                    uint8_t status = it->second;
+//                    if (status > 0 && status <= min_type) {
+//                        current = 1;
+//                        if (previous == 0) {
+//                            y_begin.data[i+1][offset_pc_data1].push_back({2*y_,gap});
+//                        }
+//                    }
+//                    else {
+//                        current = 0;
+//                        if (previous == 1) {
+//                            y_begin.data[i+1][offset_pc_data1][counter].second.y_end = std::min((uint16_t)(2*(y_-1)+1),(uint16_t)(y_num_us-1));
+//                            counter++;
+//                        }
+//                    }
+//
+//                    previous = current;
+//                }
+//
+                uint16_t prev_y = -1; //init
 
-                    previous = current;
+
+
+                //SPARSE iteration
+                for (auto it=mesh.begin(); it!=mesh.end(); ++it) {
+                    size_t y = it->first;
+                    uint8_t status = it->second;
+
+                    if (status > 0 && status <= min_type) {
+
+                        if ((y - 1) != prev_y) {
+
+                            y_begin.data[i+1][offset_pc_data1].push_back({2*y,gap});
+
+                            if (current == 1) {
+
+                                y_begin.data[i+1][offset_pc_data1][counter].second.y_end = std::min((uint16_t)(2*(prev_y)+1),(uint16_t)(y_num_us-1));
+                                counter++;
+                            }
+
+                            current = 1;
+                        }
+
+                        prev_y = y;
+                    }
                 }
-                //last gap
-                if (previous == 1) {
-                    y_begin.data[i+1][offset_pc_data1][counter].second.y_end = (y_num_us-1);
+
+                //last entry
+                if (current == 1) {
+                    y_begin.data[i+1][offset_pc_data1][counter].second.y_end = std::min((uint16_t)(2*(prev_y)+1),(uint16_t)(y_num_us-1));
                 }
             }
+
         }
 
         apr_timer.stop_timer();
