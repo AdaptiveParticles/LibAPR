@@ -76,8 +76,15 @@ int main(int argc, char **argv) {
     apr.apr_converter.total_timer.verbose_flag = true;
 
 
+    APRConverterBatch<uint16_t> aprConverterBatch;
+
+    aprConverterBatch.par = apr.parameters;
+
+    aprConverterBatch.get_apr(apr);
+
+
     uint64_t level_min = 2;
-    uint64_t level_max = 10;
+    uint64_t level_max = 9;
 
     apr.apr_access.level_max = level_max;
     apr.apr_access.level_min = level_min;
@@ -147,29 +154,29 @@ int main(int argc, char **argv) {
     uint64_t counter_wrong = 0;
 
 
-    for (int i = level_min; i < level_max; ++i) {
-        for (int z = 0; z < input[i].z_num; ++z) {
-            for (int x = 0; x < input[i].x_num; ++x) {
-                const size_t offset_pc = input[i].x_num * z + x;
-                auto& mesh = pullingSchemeSparse.particle_cell_tree.data[i][offset_pc][0].mesh;
-                for (int y = 0; y < input[i].y_num; ++y) {
-                    const size_t offset_part_map = x * input[i].y_num + z * input[i].y_num * input[i].x_num;
-
-                    uint64_t s_old = pullingScheme.particle_cell_tree[i].mesh[offset_part_map + y];
-                    uint64_t s_sparse =mesh[y];
-
-                    if(s_old==s_sparse){
-                        if(s_old > 0) {
-                            counter++;
-                        }
-                    } else {
-                        counter_wrong++;
-                    }
-
-                }
-            }
-        }
-    }
+//    for (int i = level_min; i < level_max; ++i) {
+//        for (int z = 0; z < input[i].z_num; ++z) {
+//            for (int x = 0; x < input[i].x_num; ++x) {
+//                const size_t offset_pc = input[i].x_num * z + x;
+//                auto& mesh = pullingSchemeSparse.particle_cell_tree.data[i][offset_pc][0].mesh;
+//                for (int y = 0; y < input[i].y_num; ++y) {
+//                    const size_t offset_part_map = x * input[i].y_num + z * input[i].y_num * input[i].x_num;
+//
+//                    uint64_t s_old = pullingScheme.particle_cell_tree[i].mesh[offset_part_map + y];
+//                    uint64_t s_sparse =mesh[y];
+//
+//                    if(s_old==s_sparse){
+//                        if(s_old > 0) {
+//                            counter++;
+//                        }
+//                    } else {
+//                        counter_wrong++;
+//                    }
+//
+//                }
+//            }
+//        }
+//    }
 
     //check solution
     std::cout << " wrong " <<  counter_wrong << " correct " << counter <<  std::endl;
@@ -185,6 +192,8 @@ int main(int argc, char **argv) {
 //    } else {
 //        std::cout << "Oops, something went wrong. APR not computed :(." << std::endl;
 //    }
+
+    return 1;
 
 }
 

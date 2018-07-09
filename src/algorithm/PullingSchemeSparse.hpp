@@ -147,6 +147,10 @@ inline void PullingSchemeSparse::fill(const float k, const PixelData<T> &input) 
 
     //auto &mesh = particle_cell_tree[k].mesh;
 
+    //
+    // Need offset and original x,y,z nums
+    //
+
     if (k == l_max){
         // k_max loop, has to include
 #ifdef HAVE_OPENMP
