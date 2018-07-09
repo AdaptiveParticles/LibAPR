@@ -38,6 +38,8 @@ Advanced (Direct) Settings:
 #include "ConfigAPR.h"
 #include "Example_get_apr.h"
 
+#include "algorithm/APRConverterBatch.hpp"
+
 #include "algorithm/PullingSchemeSparse.hpp"
 
 int main(int argc, char **argv) {
