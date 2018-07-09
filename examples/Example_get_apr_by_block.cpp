@@ -75,7 +75,7 @@ int main(int argc, char **argv) {
 
 
     uint64_t level_min = 2;
-    uint64_t level_max = 10;
+    uint64_t level_max = 9;
 
     apr.apr_access.level_max = level_max;
     apr.apr_access.level_min = level_min;

@@ -119,14 +119,23 @@ inline void PullingSchemeSparse::pulling_scheme_main() {
     //  Generates the implied resolution function that is used to sample the image in the APR.
     //
 
+    APRTimer timer;
+    timer.verbose_flag = true;
+
 
     //loop over all levels from l_max to l_min
     for (int level = l_max; level >= (int)l_min; --level) {
+
+        timer.start_timer("set");
         if (level != (int)l_max) {
             set_ascendant_neighbours(level); //step 1 and step 2.
             set_filler(level); // step 3.
         }
+        timer.stop_timer();
+
+        timer.start_timer("fill");
         fill_neighbours(level); // step 4.
+        timer.stop_timer();
     }
 }
 
@@ -212,7 +221,7 @@ inline void PullingSchemeSparse::set_ascendant_neighbours(int level) {
     // loop unrolling in order to avoid concurrent write
     for (size_t out = 0; out < std::min((size_t)3, z_num); ++out) {
 #ifdef HAVE_OPENMP
-#pragma omp parallel for default(shared) firstprivate(boundaries) if(z_num * x_num * y_num > 100000) schedule(static)
+#pragma omp parallel for default(shared) schedule(dynamic) firstprivate(boundaries) if(z_num * x_num * y_num > 100000)
 #endif
         for (size_t j = out; j < z_num; j += 3) {
             CHECKBOUNDARIES(0, j, z_num - 1, boundaries);
@@ -265,7 +274,7 @@ inline void PullingSchemeSparse::set_filler(int level) {
     int64_t prev_z_num = particle_cell_tree.z_num[level+1];
 
 #ifdef HAVE_OPENMP
-#pragma omp parallel for default(shared) if (z_num * x_num * y_num > 10000) firstprivate(level, children_boundaries)
+#pragma omp parallel for default(shared) schedule(dynamic) if (z_num * x_num * y_num > 10000) firstprivate(level, children_boundaries)
 #endif
     for (int64_t j = 0; j < z_num; ++j) {
         if ( j == z_num - 1 && prev_z_num % 2 ) {
@@ -326,7 +335,7 @@ inline void PullingSchemeSparse::fill_neighbours(int level) {
     // loop unrolling in order to avoid concurrent write
     for (size_t out = 0; out < std::min((size_t)3,z_num); ++out) {
 #ifdef HAVE_OPENMP
-#pragma omp parallel for default(shared) firstprivate(boundaries) if (z_num * x_num * y_num > 100000)
+#pragma omp parallel for default(shared) firstprivate(boundaries) schedule(dynamic) if (z_num * x_num * y_num > 100000)
 #endif
         for (size_t j = out; j < z_num; j += 3) {
             CHECKBOUNDARIES(0, j, z_num - 1, boundaries);
