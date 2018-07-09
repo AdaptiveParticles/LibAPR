@@ -295,7 +295,7 @@ inline void PullingSchemeSparse::set_filler(int level) {
 
             //SPARSE iteration
             for (auto it=mesh.begin(); it!=mesh.end(); ++it){
-                size_t k = it->first;
+                const size_t k = it->first;
                 if ( k == y_num - 1 && prev_y_num % 2 ) {
                     children_boundaries[2] = 1;
                 }
@@ -303,7 +303,7 @@ inline void PullingSchemeSparse::set_filler(int level) {
                     children_boundaries[2] = 2;
                 }
 
-                uint8_t status = it->second;
+                const uint8_t status = it->second;
                 if (status == ASCENDANTNEIGHBOUR || status == PROPOGATE) {
                     // go down, and set empty children to FILLER
                     int64_t jn, in, kn;
@@ -313,7 +313,7 @@ inline void PullingSchemeSparse::set_filler(int level) {
 //
                                 size_t children_index = kn;
 
-                                const size_t offset_pc_c =  prev_x_num * jn + in;
+                                size_t offset_pc_c =  prev_x_num * jn + in;
                                 auto& mesh_c = particle_cell_tree.data[level+1][offset_pc_c][0].mesh;
 
                                 if (mesh_c[children_index] == EMPTY) {
