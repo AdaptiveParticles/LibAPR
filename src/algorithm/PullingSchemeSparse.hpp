@@ -9,6 +9,7 @@
 #include "../data_structures/APR/APRIterator.hpp"
 #include "data_structures/Mesh/PixelData.hpp"
 #include "../data_structures/APR/APR.hpp"
+#include "../data_structures/APR/ExtraPartCellData.hpp"
 
 #ifdef HAVE_OPENMP
 #include "omp.h"
@@ -47,6 +48,23 @@ for(jn = j * 2; jn < j * 2 + children_boundaries[0]; jn++) \
     }
 
 
+struct imagePatch {
+
+    uint64_t x_begin;
+    uint64_t x_end;
+    uint64_t x_offset;
+
+    uint64_t y_begin;
+    uint64_t y_end;
+    uint64_t y_offset;
+
+    uint64_t z_begin;
+    uint64_t z_end;
+    uint64_t z_offset;
+
+};
+
+
 struct SparseParticleCellMap{
     std::map<uint16_t,uint8_t> mesh;
 };
@@ -62,7 +80,7 @@ public:
     std::vector<size_t> y_num_l;
 
     template<typename T>
-    void fill(float k, const PixelData<T> &input);
+    void fill(float level, const PixelData<T> &input,imagePatch& patch);
     void pulling_scheme_main();
     template<typename T>
     void initialize_particle_cell_tree(APR<T>& apr);
@@ -140,18 +158,26 @@ inline void PullingSchemeSparse::pulling_scheme_main() {
 }
 
 template<typename T>
-inline void PullingSchemeSparse::fill(const float k, const PixelData<T> &input) {
+inline void PullingSchemeSparse::fill(const float level, const PixelData<T> &input,imagePatch& patch) {
     //  Bevan Cheeseman 2016
     //
     //  Updates the hash table from the down sampled images
 
     //auto &mesh = particle_cell_tree[k].mesh;
 
+    const size_t x_num = particle_cell_tree.x_num[level];
+    const size_t y_num = y_num_l[level];
+    const size_t z_num = particle_cell_tree.z_num[level];
+
+    const size_t offset_x = patch.x_offset/((int)pow(2,(int)level));
+    const size_t offset_y = patch.y_offset/((int)pow(2,(int)level));
+    const size_t offset_z = patch.z_offset/((int)pow(2,(int)level));
+
     //
     // Need offset and original x,y,z nums
     //
 
-    if (k == l_max){
+    if (level == l_max){
         // k_max loop, has to include
 #ifdef HAVE_OPENMP
 #pragma omp parallel for default(shared)
@@ -159,12 +185,12 @@ inline void PullingSchemeSparse::fill(const float k, const PixelData<T> &input) 
         for (size_t z = 0; z < input.z_num; ++z) {
             for (size_t x = 0; x < input.x_num; ++x) {
                 const size_t offset_part_map = x * input.y_num + z * input.y_num * input.x_num;
-                const size_t offset_pc =  input.x_num * z + x;
-                auto& mesh = particle_cell_tree.data[k][offset_pc][0].mesh;
+                const size_t offset_pc =  x_num * (z+offset_z) + (x+offset_x);
+                auto& mesh = particle_cell_tree.data[level][offset_pc][0].mesh;
                 for (size_t y = 0; y < input.y_num; ++y) {
 
-                    if (input.mesh[offset_part_map + y] >= k) {
-                        mesh[y] = SEED_TYPE;
+                    if (input.mesh[offset_part_map + y ] >= level) {
+                        mesh[y + offset_y] = SEED_TYPE;
                     }
                 }
             }
@@ -176,7 +202,7 @@ inline void PullingSchemeSparse::fill(const float k, const PixelData<T> &input) 
 
         }
     }
-    else if (k == l_min) {
+    else if (level == l_min) {
         // k_min loop, has to include
 #ifdef HAVE_OPENMP
 #pragma omp parallel for default(shared)
@@ -184,11 +210,11 @@ inline void PullingSchemeSparse::fill(const float k, const PixelData<T> &input) 
         for (size_t z = 0; z < input.z_num; ++z) {
             for (size_t x = 0; x < input.x_num; ++x) {
                 const size_t offset_part_map = x * input.y_num + z * input.y_num * input.x_num;
-                const size_t offset_pc =  input.x_num * z + x;
-                auto& mesh = particle_cell_tree.data[k][offset_pc][0].mesh;
+                const size_t offset_pc =  x_num * (z+offset_z) + (x+offset_x);
+                auto& mesh = particle_cell_tree.data[level][offset_pc][0].mesh;
                 for (size_t y = 0; y < input.y_num; ++y) {
 
-                    if (input.mesh[offset_part_map + y] <= k) mesh[y] = SEED_TYPE;
+                    if (input.mesh[offset_part_map + y] <= level) mesh[y + offset_y] = SEED_TYPE;
                 }
             }
 
@@ -202,11 +228,11 @@ inline void PullingSchemeSparse::fill(const float k, const PixelData<T> &input) 
         for (size_t z = 0; z < input.z_num; ++z) {
             for (size_t x = 0; x < input.x_num; ++x) {
                 const size_t offset_part_map = x * input.y_num + z * input.y_num * input.x_num;
-                const size_t offset_pc =  input.x_num * z + x;
-                auto& mesh = particle_cell_tree.data[k][offset_pc][0].mesh;
+                const size_t offset_pc =  x_num * (z+offset_z) + (x+offset_x);
+                auto& mesh = particle_cell_tree.data[level][offset_pc][0].mesh;
                 for (size_t y = 0; y < input.y_num; ++y) {
 
-                    if (input.mesh[offset_part_map + y] == k) mesh[y] = SEED_TYPE;
+                    if (input.mesh[offset_part_map + y] == level) mesh[y + offset_y] = SEED_TYPE;
                 }
             }
 

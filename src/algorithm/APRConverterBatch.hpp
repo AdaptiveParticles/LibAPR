@@ -28,21 +28,6 @@
 #include "algorithm/ComputeGradientCuda.hpp"
 #endif
 
-struct imagePatch {
-
-    uint64_t x_begin;
-    uint64_t x_end;
-    uint64_t x_offset;
-
-    uint64_t y_begin;
-    uint64_t y_end;
-    uint64_t y_offset;
-
-    uint64_t z_begin;
-    uint64_t z_end;
-    uint64_t z_offset;
-
-};
 
 
 template<typename ImageType>
@@ -115,29 +100,72 @@ bool APRConverterBatch<ImageType>::get_apr_batch_method_from_file(APR<ImageType>
 
     //auto_parameters(inputImage);
 
-    imagePatch patch;
+    std::vector<imagePatch> patches;
 
-    patch.x_begin = 0;
-    patch.x_end = inputImage.x_num;
-    patch.x_offset = 0;
+    unsigned int num_patches = 4;
 
-    patch.y_begin = 0;
-    patch.y_end = inputImage.y_num;
-    patch.y_offset = 0;
+    patches.resize(num_patches);
 
-    patch.z_begin = 0;
-    patch.z_end = inputImage.z_num;
-    patch.z_offset = 0;
+    size_t z_slices =  inputImage.z_num/num_patches;
+    size_t end_slice_extra = inputImage.z_num - z_slices*num_patches;
 
-    //PixelData<T> inputImage;
+    for (int i = 0; i < num_patches; ++i) {
 
-    init_apr(aAPR, aTiffFile);
+        patches[i].x_begin = 0;
+        patches[i].x_end = inputImage.x_num-1;
+        patches[i].x_offset = 0;
 
-    method_timer.start_timer("initialize_particle_cell_tree");
-    initialize_particle_cell_tree(aAPR);
+        patches[i].y_begin = 0;
+        patches[i].y_end = inputImage.y_num-1;
+        patches[i].y_offset = 0;
+
+        patches[i].z_begin = 0;
+        patches[i].z_end = z_slices*(i+1)-1; //inclusive
+        patches[i].z_offset = z_slices*(i);
+
+        if(i == (num_patches -1)){
+            patches[i].z_end = inputImage.z_num-1;
+        }
+
+        size_t number_slices = patches[i].z_end  + 1 - z_slices*(i);
+
+        PixelData<T> patchImage(inputImage.y_num, inputImage.x_num, number_slices);
+
+        size_t offset_xy_begin = inputImage.y_num*inputImage.x_num*z_slices*(i);
+        size_t offset_xy_end = inputImage.y_num*inputImage.x_num*(patches[i].z_end+1);
+
+        std::copy(inputImage.mesh.begin() + offset_xy_begin,inputImage.mesh.begin() + offset_xy_end,patchImage.mesh.begin());
+
+        init_apr(aAPR, aTiffFile);
+
+        method_timer.start_timer("initialize_particle_cell_tree");
+        initialize_particle_cell_tree(aAPR);
+        method_timer.stop_timer();
+
+        get_apr_method_patch(aAPR, patchImage, patches[i]);
+
+    }
+
+    method_timer.start_timer("compute_pulling_scheme");
+    PullingSchemeSparse::pulling_scheme_main();
     method_timer.stop_timer();
 
-    get_apr_method_patch(aAPR, inputImage,patch);
+    method_timer.start_timer("downsample_pyramid");
+    std::vector<PixelData<T>> downsampled_img;
+    //Down-sample the image for particle intensity estimation
+    downsamplePyrmaid(inputImage, downsampled_img, aAPR.level_max(), aAPR.level_min());
+    method_timer.stop_timer();
+//
+//    method_timer.start_timer("compute_apr_datastructure");
+    aAPR.apr_access.initialize_structure_from_particle_cell_tree_sparse(aAPR,particle_cell_tree);
+//    method_timer.stop_timer();
+//
+//    method_timer.start_timer("sample_particles");
+//    aAPR.get_parts_from_img(downsampled_img,aAPR.particles_intensities);
+//    method_timer.stop_timer();
+
+
+    //finish with the normal steps..
 
     return true;
 }
@@ -240,9 +268,20 @@ void APRConverterBatch<ImageType>::get_local_particle_cell_set(PixelData<ImageTy
 #ifdef HAVE_OPENMP
 #pragma omp parallel for default(shared)
 #endif
-    for(size_t i = 0; i < grad_temp.mesh.size(); ++i) {
-        local_scale_temp.mesh[i] = (1.0*grad_temp.mesh[i])/(local_scale_temp.mesh[i]*1.0);
+    for (size_t z = 0; z < grad_temp.z_num; ++z) {
+        for (size_t x = 0; x < grad_temp.x_num; ++x) {
+            const size_t offset_part_map = x * grad_temp.y_num + z * grad_temp.y_num * grad_temp.x_num;
+            for (size_t y = 0; y < grad_temp.y_num; ++y) {
+                if(((z >= patch.z_begin/2) && (z <= ceil(patch.z_end/2.0f) )) && ((x >= patch.x_begin/2) & (x <= ceil(patch.x_end/2.0f) )) && ((y >= patch.y_begin/2) & (y <= ceil(patch.y_end/2.0f) ))) {
+                    local_scale_temp.mesh[offset_part_map + y] = (1.0 * grad_temp.mesh[offset_part_map + y]) /
+                                                                 (local_scale_temp.mesh[offset_part_map + y] * 1.0);
+                } else {
+                    local_scale_temp.mesh[offset_part_map + y] = 0;
+                }
+            }
+        }
     }
+
     fine_grained_timer.stop_timer();
 
     float min_dim = std::min(par.dy,std::min(par.dx,par.dz));
@@ -260,7 +299,7 @@ void APRConverterBatch<ImageType>::get_local_particle_cell_set(PixelData<ImageTy
     }
 
 
-    fill(l_max,local_scale_temp);
+    fill(l_max,local_scale_temp,patch);
     fine_grained_timer.stop_timer();
 
     fine_grained_timer.start_timer("level_loop_initialize_tree");
@@ -271,7 +310,7 @@ void APRConverterBatch<ImageType>::get_local_particle_cell_set(PixelData<ImageTy
                    [](const float &x, const float &y) -> float { return std::max(x, y); },
                    [](const float &x) -> float { return x; }, true);
         //for those value of level k, add to the hash table
-        fill(l_,local_scale_temp2);
+        fill(l_,local_scale_temp2,patch);
         //assign the previous mesh to now be resampled.
         local_scale_temp.swap(local_scale_temp2);
     }
