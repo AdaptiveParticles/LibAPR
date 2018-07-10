@@ -169,9 +169,9 @@ inline void PullingSchemeSparse::fill(const float level, const PixelData<T> &inp
     const size_t y_num = y_num_l[level];
     const size_t z_num = particle_cell_tree.z_num[level];
 
-    const size_t offset_x = patch.x_offset/((int)pow(2,(int)level));
-    const size_t offset_y = patch.y_offset/((int)pow(2,(int)level));
-    const size_t offset_z = patch.z_offset/((int)pow(2,(int)level));
+    const size_t offset_x = patch.x_offset/((int)pow(2,(int)l_max + 1 - level));
+    const size_t offset_y = patch.y_offset/((int)pow(2,(int)l_max + 1 - level));
+    const size_t offset_z = patch.z_offset/((int)pow(2,(int)l_max + 1 - level));
 
     //
     // Need offset and original x,y,z nums
@@ -303,6 +303,7 @@ inline void PullingSchemeSparse::set_filler(int level) {
     int64_t prev_y_num = y_num_l[level+1];
     int64_t prev_z_num = particle_cell_tree.z_num[level+1];
 
+
 #ifdef HAVE_OPENMP
 #pragma omp parallel for default(shared) schedule(dynamic) if (z_num * x_num * y_num > 10000) firstprivate(level, children_boundaries)
 #endif
@@ -320,12 +321,14 @@ inline void PullingSchemeSparse::set_filler(int level) {
                 children_boundaries[1] = 2;
             }
 
+            children_boundaries[2] = 2;
+
             const size_t offset_pc = (size_t) x_num * j + i;
             auto& mesh = particle_cell_tree.data[level][offset_pc][0].mesh;
 
             //SPARSE iteration
             for (auto it=mesh.begin(); it!=mesh.end(); ++it){
-                const size_t k = it->first;
+                size_t k = it->first;
                 if ( k == y_num - 1 && prev_y_num % 2 ) {
                     children_boundaries[2] = 1;
                 }
@@ -344,10 +347,12 @@ inline void PullingSchemeSparse::set_filler(int level) {
                                 size_t children_index = kn;
 
                                 size_t offset_pc_c =  prev_x_num * jn + in;
-                                auto& mesh_c = particle_cell_tree.data[level+1][offset_pc_c][0].mesh;
 
-                                if (mesh_c[children_index] == EMPTY) {
-                                    mesh_c[children_index] = FILLER_TYPE;
+
+                                uint8_t status_c = particle_cell_tree.data[level+1][offset_pc_c][0].mesh[children_index];
+
+                                if (status_c == EMPTY) {
+                                    particle_cell_tree.data[level+1][offset_pc_c][0].mesh[children_index] = FILLER_TYPE;
                                 }
                             }
                 }

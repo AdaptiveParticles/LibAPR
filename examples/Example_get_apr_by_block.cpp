@@ -63,6 +63,11 @@ int main(int argc, char **argv) {
     apr.parameters.neighborhood_optimization = options.neighborhood_optimization;
     apr.parameters.output_steps = options.output_steps;
 
+    apr.parameters.Ip_th = 1100;
+    apr.parameters.min_signal = 200;
+    apr.parameters.lambda = 3;
+    apr.parameters.rel_error = 0.1;
+
     //where things are
     apr.parameters.input_image_name = options.input;
     apr.parameters.input_dir = options.directory;
@@ -70,116 +75,251 @@ int main(int argc, char **argv) {
     apr.parameters.output_dir = options.output_dir;
 
     apr.apr_converter.fine_grained_timer.verbose_flag = false;
-    apr.apr_converter.method_timer.verbose_flag = false;
+    apr.apr_converter.method_timer.verbose_flag = true;
     apr.apr_converter.computation_timer.verbose_flag = false;
     apr.apr_converter.allocation_timer.verbose_flag = false;
     apr.apr_converter.total_timer.verbose_flag = true;
 
+    //output
+    std::string save_loc = options.output_dir;
+    std::string file_name = options.output;
+
+    APR<uint16_t> aprB;
 
     APRConverterBatch<uint16_t> aprConverterBatch;
 
+    aprConverterBatch.method_timer.verbose_flag = true;
+
     aprConverterBatch.par = apr.parameters;
-
-    aprConverterBatch.get_apr(apr);
-
-
-    uint64_t level_min = 2;
-    uint64_t level_max = 9;
-
-    apr.apr_access.level_max = level_max;
-    apr.apr_access.level_min = level_min;
-
-    apr.apr_access.org_dims[0] = pow(2,level_max);
-    apr.apr_access.org_dims[1] = pow(2,level_max);
-    apr.apr_access.org_dims[2] = pow(2,level_max);
-
-    std::vector<PixelData<uint8_t>> input;
-
-    uint64_t l_max = apr.level_max() - 1;
-    uint64_t l_min = apr.level_min();
-    //make so you can reference the array as l
-    input.resize(l_max + 1);
-
-    for (unsigned int l = l_min; l < (l_max + 1) ;l ++){
-        input[l].init(ceil((1.0 * apr.apr_access.org_dims[0]) / pow(2.0, 1.0 * l_max - l + 1)),
-                                   ceil((1.0 * apr.apr_access.org_dims[1]) / pow(2.0, 1.0 * l_max - l + 1)),
-                                   ceil((1.0 * apr.apr_access.org_dims[2]) / pow(2.0, 1.0 * l_max - l + 1)), EMPTY);
-    }
-
-    unsigned int number_pcs = input[l_max].mesh.size()*.001;
-
-    std::cout << "full " <<  input[l_max].mesh.size() << std::endl;
-
-    for (int j = 0; j < number_pcs; ++j) {
-        unsigned int index = std::rand()%input[level_max-1].mesh.size();
-        input[level_max-1].mesh[index]=level_max;
-    }
-
-
 
     APRTimer timer;
     timer.verbose_flag = true;
 
+    timer.start_timer("get APR patch");
 
-    timer.start_timer("Original");
-
-    PullingScheme pullingScheme;
-    pullingScheme.initialize_particle_cell_tree(apr);
-
-    for (int i = level_min; i < level_max; ++i) {
-        pullingScheme.fill(i,input[i]);
-    }
-
-    pullingScheme.pulling_scheme_main();
+    aprConverterBatch.get_apr(aprB);
 
     timer.stop_timer();
 
-    timer.start_timer("Sparse init");
+    timer.start_timer("get APR classic");
 
-    PullingSchemeSparse pullingSchemeSparse;
-    pullingSchemeSparse.initialize_particle_cell_tree(apr);
-
-    for (int i = level_min; i < level_max; ++i) {
-        pullingSchemeSparse.fill(i,input[i]);
-    }
-    timer.stop_timer();
-
-    timer.start_timer("Pulling Scheme");
-
-    pullingSchemeSparse.pulling_scheme_main();
+    apr.get_apr();
 
     timer.stop_timer();
 
-    uint64_t counter = 0;
-    uint64_t counter_wrong = 0;
+
+    PixelData<uint16_t> pc_img;
+
+    aprB.interp_img(pc_img,aprB.particles_intensities);
 
 
+    std::cout << std::endl;
+
+    std::cout << "Saving piece-wise constant image recon as tiff image" << std::endl;
+
+    std::string output_path = save_loc + file_name + "_pc.tif";
+    //write output as tiff
+    TiffUtils::saveMeshAsTiff(output_path, pc_img);
+
+    FileSizeInfo fileSizeInfo = aprB.write_apr(save_loc,file_name,6,9,2,false);
+
+    FileSizeInfo fileSizeInfo2 = apr.write_apr(save_loc,file_name,6,9,2,false);
+
+//    APR<uint16_t> apr1;
+//
+//    uint64_t level_min = 2;
+//    uint64_t level_max = 7;
+//
+//    apr.apr_access.level_max = level_max;
+//    apr.apr_access.level_min = level_min;
+//
+//    apr.apr_access.org_dims[0] = pow(2,level_max);
+//    apr.apr_access.org_dims[1] = pow(2,level_max);
+//    apr.apr_access.org_dims[2] = pow(2,level_max);
+//
+//    apr1.apr_access.level_max = level_max;
+//    apr1.apr_access.level_min = level_min;
+//
+//    apr1.apr_access.org_dims[0] = pow(2,level_max);
+//    apr1.apr_access.org_dims[1] = pow(2,level_max);
+//    apr1.apr_access.org_dims[2] = pow(2,level_max);
+//
+//    std::vector<PixelData<uint8_t>> input;
+//
+//    uint64_t l_max = apr.level_max() - 1;
+//    uint64_t l_min = apr.level_min();
+//    //make so you can reference the array as l
+//    input.resize(l_max + 1);
+//
+//    for (unsigned int l = l_min; l < (l_max + 1) ;l ++){
+//        input[l].init(ceil((1.0 * apr.apr_access.org_dims[0]) / pow(2.0, 1.0 * l_max - l + 1)),
+//                                   ceil((1.0 * apr.apr_access.org_dims[1]) / pow(2.0, 1.0 * l_max - l + 1)),
+//                                   ceil((1.0 * apr.apr_access.org_dims[2]) / pow(2.0, 1.0 * l_max - l + 1)), EMPTY);
+//    }
+//
+//    unsigned int number_pcs = input[l_max].mesh.size()*.0001;
+//
+//    std::cout << "full " <<  input[l_max].mesh.size() << std::endl;
+//
+//    for (int j = 0; j < number_pcs; ++j) {
+//        unsigned int index = std::rand()%input[level_max-1].mesh.size();
+//        input[level_max-1].mesh[index]=level_max;
+//    }
+//
+//
+//    APRTimer timer;
+//    timer.verbose_flag = true;
+//
+//
+//    timer.start_timer("Original");
+//
+//    PullingScheme pullingScheme;
+//    pullingScheme.initialize_particle_cell_tree(apr);
+//
+//    for (int i = level_min; i < level_max; ++i) {
+//        pullingScheme.fill(i,input[i]);
+//    }
+//
+//    pullingScheme.pulling_scheme_main();
+//
+//    timer.stop_timer();
+//
+//    timer.start_timer("Sparse init");
+//
+//    PullingSchemeSparse pullingSchemeSparse;
+//    pullingSchemeSparse.initialize_particle_cell_tree(apr);
+//
+//    imagePatch patch;
+//
+//    patch.x_begin = 0;
+//    patch.x_end = apr.apr_access.org_dims[1];
+//    patch.x_offset = 0;
+//
+//    patch.y_begin = 0;
+//    patch.y_end = apr.apr_access.org_dims[0];
+//    patch.y_offset = 0;
+//
+//    patch.z_begin = 0;
+//    patch.z_end = apr.apr_access.org_dims[2];
+//    patch.z_offset = 0;
+//
+//    for (int i = level_min; i < level_max; ++i) {
+//        pullingSchemeSparse.fill(i,input[i],patch);
+//    }
+//    timer.stop_timer();
+//
+//    timer.start_timer("Pulling Scheme");
+//
+//    pullingSchemeSparse.pulling_scheme_main();
+//
+//    timer.stop_timer();
+//
+//    uint64_t counter = 0;
+//    uint64_t counter_wrong = 0;
+//
+//
+//    apr1.apr_access.initialize_structure_from_particle_cell_tree(apr1,pullingScheme.particle_cell_tree);
+//
+//    apr.apr_access.initialize_structure_from_particle_cell_tree_sparse(apr,pullingSchemeSparse.particle_cell_tree);
+//
+//    std::cout << apr1.total_number_particles() <<  " " << apr.total_number_particles() << std::endl;
+//
+//    std::cout << apr1.apr_access.total_number_gaps <<  " " << apr.apr_access.total_number_gaps << std::endl;
+//
+//    std::cout << apr1.apr_access.total_number_non_empty_rows <<  " " << apr.apr_access.total_number_non_empty_rows << std::endl;
+//
+//
 //    for (int i = level_min; i < level_max; ++i) {
 //        for (int z = 0; z < input[i].z_num; ++z) {
 //            for (int x = 0; x < input[i].x_num; ++x) {
 //                const size_t offset_pc = input[i].x_num * z + x;
-//                auto& mesh = pullingSchemeSparse.particle_cell_tree.data[i][offset_pc][0].mesh;
-//                for (int y = 0; y < input[i].y_num; ++y) {
-//                    const size_t offset_part_map = x * input[i].y_num + z * input[i].y_num * input[i].x_num;
 //
-//                    uint64_t s_old = pullingScheme.particle_cell_tree[i].mesh[offset_part_map + y];
-//                    uint64_t s_sparse =mesh[y];
+//                if(apr1.apr_access.gap_map.data[i][offset_pc].size() > 0) {
 //
-//                    if(s_old==s_sparse){
-//                        if(s_old > 0) {
-//                            counter++;
+//                    auto org = apr1.apr_access.gap_map.data[i][offset_pc][0].map;
+//                    auto sp = apr.apr_access.gap_map.data[i][offset_pc][0].map;
+//
+//                    auto it_sp = sp.begin();
+//
+//                    for (auto it=org.begin(); it!=org.end(); ++it) {
+//                        size_t y = it->first;
+//                        size_t ysp = it_sp->first;
+//
+//                        YGap_map ygorg = it->second;
+//                        YGap_map ygsp = it_sp->second;
+//
+//                        if(y!=ysp){
+//
+//                            counter_wrong++;
 //                        }
+//
+//                        if(ygorg.global_index_begin_offset!=ygsp.global_index_begin_offset){
+//
+//                            counter_wrong++;
+//                        }
+//
+//                        if(ygorg.y_end!=ygsp.y_end){
+//
+//                            counter_wrong++;
+//                        }
+//
+//
+//                        it_sp++;
+//
+//                    }
+//
+//                    if (org.size() == sp.size()) {
+//
 //                    } else {
 //                        counter_wrong++;
 //                    }
-//
 //                }
+//
+//
 //            }
 //        }
 //    }
-
-    //check solution
-    std::cout << " wrong " <<  counter_wrong << " correct " << counter <<  std::endl;
+//
+//    PixelData<uint16_t> level;
+//
+//    apr.interp_level(level);
+//
+//    std::cout << std::endl;
+//
+//    std::cout << "Saving Particle Cell level as tiff image" << std::endl;
+//
+//    output_path = save_loc + file_name + "test_level.tif";
+//    //write output as tiff
+//    TiffUtils::saveMeshAsTiff(output_path, level);
+//
+//
+//
+////    for (int i = level_min; i < level_max; ++i) {
+////        for (int z = 0; z < input[i].z_num; ++z) {
+////            for (int x = 0; x < input[i].x_num; ++x) {
+////                const size_t offset_pc = input[i].x_num * z + x;
+////                auto& mesh = pullingSchemeSparse.particle_cell_tree.data[i][offset_pc][0].mesh;
+////                for (int y = 0; y < input[i].y_num; ++y) {
+////                    const size_t offset_part_map = x * input[i].y_num + z * input[i].y_num * input[i].x_num;
+////
+////                    uint64_t s_old = pullingScheme.particle_cell_tree[i].mesh[offset_part_map + y];
+////                    uint64_t s_sparse =mesh[y];
+////
+////                    if(s_old==s_sparse){
+////                        if(s_old > 0) {
+////                            counter++;
+////                        }
+////                    } else {
+////                        counter_wrong++;
+////                    }
+////
+////                }
+////            }
+////        }
+////    }
+//
+//    //check solution
+//    std::cout << " wrong " <<  counter_wrong << " correct " << counter <<  std::endl;
 
 
 

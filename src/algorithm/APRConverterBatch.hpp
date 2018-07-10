@@ -89,7 +89,7 @@ template<typename ImageType> template<typename T>
 bool APRConverterBatch<ImageType>::get_apr_batch_method_from_file(APR<ImageType> &aAPR, const TiffUtils::TiffInfo &aTiffFile) {
 
     allocation_timer.start_timer("read tif input image");
-    PixelData<T> inputImage = TiffUtils::getMesh<T>(aTiffFile);
+    //PixelData<T> inputImage = TiffUtils::getMesh<T>(aTiffFile);
     allocation_timer.stop_timer();
 
     //method_timer.start_timer("calculate automatic parameters");
@@ -106,17 +106,27 @@ bool APRConverterBatch<ImageType>::get_apr_batch_method_from_file(APR<ImageType>
 
     patches.resize(num_patches);
 
-    size_t z_slices =  inputImage.z_num/num_patches;
-    size_t end_slice_extra = inputImage.z_num - z_slices*num_patches;
+    init_apr(aAPR, aTiffFile);
+
+    uint64_t x_num = aAPR.orginal_dimensions(1);
+    uint64_t y_num = aAPR.orginal_dimensions(0);
+    uint64_t z_num = aAPR.orginal_dimensions(2);
+
+    size_t z_slices =  z_num/num_patches;
+    size_t end_slice_extra = z_num - z_slices*num_patches;
+
+    method_timer.start_timer("initialize_particle_cell_tree");
+    initialize_particle_cell_tree(aAPR);
+    method_timer.stop_timer();
 
     for (int i = 0; i < num_patches; ++i) {
 
         patches[i].x_begin = 0;
-        patches[i].x_end = inputImage.x_num-1;
+        patches[i].x_end = x_num-1;
         patches[i].x_offset = 0;
 
         patches[i].y_begin = 0;
-        patches[i].y_end = inputImage.y_num-1;
+        patches[i].y_end = y_num-1;
         patches[i].y_offset = 0;
 
         patches[i].z_begin = 0;
@@ -124,24 +134,18 @@ bool APRConverterBatch<ImageType>::get_apr_batch_method_from_file(APR<ImageType>
         patches[i].z_offset = z_slices*(i);
 
         if(i == (num_patches -1)){
-            patches[i].z_end = inputImage.z_num-1;
+            patches[i].z_end = z_num-1;
         }
 
         size_t number_slices = patches[i].z_end  + 1 - z_slices*(i);
 
-        PixelData<T> patchImage(inputImage.y_num, inputImage.x_num, number_slices);
+        //PixelData<T> patchImage(inputImage.y_num, inputImage.x_num, number_slices);
 
-        size_t offset_xy_begin = inputImage.y_num*inputImage.x_num*z_slices*(i);
-        size_t offset_xy_end = inputImage.y_num*inputImage.x_num*(patches[i].z_end+1);
+        PixelData<T> patchImage = TiffUtils::getMesh<T>(aTiffFile,z_slices*(i),patches[i].z_end+1);
 
-        std::copy(inputImage.mesh.begin() + offset_xy_begin,inputImage.mesh.begin() + offset_xy_end,patchImage.mesh.begin());
-
-        init_apr(aAPR, aTiffFile);
-
-        method_timer.start_timer("initialize_particle_cell_tree");
-        initialize_particle_cell_tree(aAPR);
-        method_timer.stop_timer();
-
+//        size_t offset_xy_begin = y_num*x_num*z_slices*(i);
+//        size_t offset_xy_end = y_num*x_num*(patches[i].z_end+1);
+//
         get_apr_method_patch(aAPR, patchImage, patches[i]);
 
     }
@@ -150,19 +154,106 @@ bool APRConverterBatch<ImageType>::get_apr_batch_method_from_file(APR<ImageType>
     PullingSchemeSparse::pulling_scheme_main();
     method_timer.stop_timer();
 
-    method_timer.start_timer("downsample_pyramid");
-    std::vector<PixelData<T>> downsampled_img;
-    //Down-sample the image for particle intensity estimation
-    downsamplePyrmaid(inputImage, downsampled_img, aAPR.level_max(), aAPR.level_min());
-    method_timer.stop_timer();
 
     method_timer.start_timer("compute_apr_datastructure");
     aAPR.apr_access.initialize_structure_from_particle_cell_tree_sparse(aAPR,particle_cell_tree);
     method_timer.stop_timer();
 
-    method_timer.start_timer("sample_particles");
-    //aAPR.get_parts_from_img(downsampled_img,aAPR.particles_intensities);
-    method_timer.stop_timer();
+
+    aAPR.particles_intensities.data.resize(aAPR.total_number_particles());
+
+    for (int i = 0; i < num_patches; ++i) {
+        size_t number_slices = patches[i].z_end  + 1 - z_slices*(i);
+
+       // PixelData<T> patchImage(inputImage.y_num, inputImage.x_num, number_slices);
+
+        PixelData<T> patchImage = TiffUtils::getMesh<T>(aTiffFile,z_slices*(i),patches[i].z_end+1);
+
+//        size_t offset_xy_begin = inputImage.y_num*inputImage.x_num*z_slices*(i);
+//        size_t offset_xy_end = inputImage.y_num*inputImage.x_num*(patches[i].z_end+1);
+
+       // std::copy(inputImage.mesh.begin() + offset_xy_begin,inputImage.mesh.begin() + offset_xy_end,patchImage.mesh.begin());
+
+        APRIterator<uint16_t> apr_iterator(aAPR);
+
+        int x_begin = patches[i].x_offset;
+        int x_end = x_begin + (patches[i].x_end-patches[i].x_begin) + 1;
+
+        int y_begin = patches[i].y_offset;
+        int y_end = y_begin + (patches[i].y_end-patches[i].y_begin) + 1;
+
+        int z_begin = patches[i].z_offset;
+        int z_end =  patches[i].z_end+1;
+
+
+        //note the use of the dynamic OpenMP schedule.
+        for (unsigned int level = apr_iterator.level_max(); level >= apr_iterator.level_min(); --level) {
+
+            const float step_size = pow(2,apr_iterator.level_max() - level);
+
+            int x_begin_l = (int) floor(x_begin/step_size);
+            int x_end_l = std::min((int)ceil(x_end/step_size),(int) apr_iterator.spatial_index_x_max(level));
+
+            int z_begin_l= (int)floor(z_begin/step_size);
+            int z_end_l= std::min((int)ceil(z_end/step_size),(int) apr_iterator.spatial_index_z_max(level));
+
+            int y_begin_l =  (int)floor(y_begin/step_size);
+            int y_end_l = std::min((int)ceil(y_end/step_size),(int) apr_iterator.spatial_index_y_max(level));
+
+            int z = 0;
+            int x = 0;
+#ifdef HAVE_OPENMP
+#pragma omp parallel for schedule(dynamic) private(z,x) firstprivate(apr_iterator)
+#endif
+            for (z = z_begin_l; z < z_end_l; z++) {
+                for (x = x_begin_l; x < x_end_l; ++x) {
+                    for (apr_iterator.set_new_lzxy(level, z, x,y_begin_l);
+                         apr_iterator.global_index() < apr_iterator.end_index; apr_iterator.set_iterator_to_particle_next_particle()) {
+
+                        if( (apr_iterator.y() >= y_begin_l) && (apr_iterator.y() < y_end_l)) {
+
+                            //lower bound
+                            const int dim1 = std::max((int) (apr_iterator.y() * step_size), y_begin) - y_begin;
+                            const int dim2 = std::max((int) (apr_iterator.x() * step_size), x_begin) - x_begin;
+                            const int dim3 = std::max((int) (apr_iterator.z() * step_size), z_begin) - z_begin;
+
+                            //particle property
+                            auto& temp_int = aAPR.particles_intensities[apr_iterator];
+
+                            double temp_val=0;
+                            uint64_t counter = 0;
+
+                            //upper bound
+                            const int offset_max_dim1 = std::min((int) (apr_iterator.y() * step_size + step_size), y_end) - y_begin;
+                            const int offset_max_dim2 = std::min((int) (apr_iterator.x() * step_size + step_size), x_end) - x_begin;
+                            const int offset_max_dim3 = std::min((int) (apr_iterator.z() * step_size + step_size), z_end) - z_begin;
+
+                            for (int64_t q = dim3; q < offset_max_dim3; ++q) {
+
+                                for (int64_t k = dim2; k < offset_max_dim2; ++k) {
+                                    for (int64_t i = dim1; i < offset_max_dim1; ++i) {
+                                        temp_val += patchImage.mesh[i + (k) * patchImage.y_num + q * patchImage.y_num * patchImage.x_num];
+                                        counter++;
+                                    }
+                                }
+                            }
+
+                            if(temp_int > 0){
+                                temp_int = temp_int*0.5 + 0.5*temp_val/(counter*1.0);
+                            } else {
+                                temp_int = temp_val/(counter*1.0);
+                            }
+
+                        } else {
+                            if((apr_iterator.y() >= y_end_l)) {
+                                break;
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
 
 
     //finish with the normal steps..

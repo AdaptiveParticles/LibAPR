@@ -590,7 +590,7 @@ public:
 
 
         APRTimer apr_timer;
-        apr_timer.verbose_flag = true;
+        apr_timer.verbose_flag = false;
 
         apr_timer.start_timer("first_step");
         const uint8_t seed_us = 4; //deal with the equivalence optimization
@@ -887,7 +887,7 @@ public:
 
 
         APRTimer apr_timer;
-        apr_timer.verbose_flag = true;
+        apr_timer.verbose_flag = false;
 
         apr_timer.start_timer("first_step");
         const uint8_t seed_us = 4; //deal with the equivalence optimization
@@ -927,6 +927,7 @@ public:
 
                             p_map.data[i][offset_part_map][0].mesh[ 2 * y] = seed_us;
                             p_map.data[i][offset_part_map][0].mesh[ y2p] = seed_us;
+
                         }
                     }
                 }
@@ -974,8 +975,7 @@ public:
                     gap.global_index_begin_offset = 0;
                     uint64_t counter = 0;
 
-
-                    uint16_t prev_y = -1; //init
+                    uint16_t prev_y = -2; //init
 
                     auto& mesh = p_map.data[i][offset_pc_data][0].mesh;
 
@@ -989,10 +989,12 @@ public:
                             if ((y - 1) != prev_y) {
 
                                 y_begin.data[i][offset_pc_data].push_back({y, gap});
+                                previous = 1;
 
                                 if (current == 1) {
                                     (y_begin.data[i][offset_pc_data][counter]).second.y_end = (prev_y);
                                     counter++;
+                                    previous = 0;
                                 }
 
                                 current = 1;
@@ -1060,7 +1062,7 @@ public:
 //                    previous = current;
 //                }
 //
-                uint16_t prev_y = -1; //init
+                uint16_t prev_y = -2; //init
 
 
 

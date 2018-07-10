@@ -176,6 +176,20 @@ namespace TiffUtils {
     }
 
     /**
+     * Reads TIFF file to mesh
+     * @tparam T type of mesh/image (uint8_t, uint16_t, float)
+     * @param aTiff TiffInfo class with opened image
+     * @return mesh with tiff or empty mesh if reading file failed
+     */
+    template<typename T>
+    PixelData<T> getMesh(const TiffInfo &aTiff,size_t slice_begin,size_t slice_end) {
+        if (!aTiff.isFileOpened()) return PixelData<T>();
+        PixelData<T> mesh(aTiff.iImgHeight, aTiff.iImgWidth, slice_end-slice_begin);
+        getMesh(aTiff, mesh,slice_begin,slice_end);
+        return mesh;
+    }
+
+    /**
     * Reads TIFF file to provided mesh
     * @tparam T type of mesh/image (uint8_t, uint16_t, float)
     * @param aTiff TiffInfo class with opened image
@@ -209,6 +223,46 @@ namespace TiffUtils {
         aInputMesh.y_num = aTiff.iImgWidth;
         aInputMesh.x_num = aTiff.iImgHeight;
     }
+
+    /**
+    * Reads TIFF file to provided mesh
+    * @tparam T type of mesh/image (uint8_t, uint16_t, float)
+    * @param aTiff TiffInfo class with opened image
+    * @param aInputMesh pre-created mesh with dimensions of image from aTiff class
+    * @param slice_start first z slice of the image to be read
+    * @param slice_end index + 1 of last z slice of the image to be read
+    * @return mesh with tiff or empty mesh if reading file failed
+    */
+    template<typename T>
+    void getMesh(const TiffInfo &aTiff, PixelData<T> &aInputMesh,size_t slice_start,size_t slice_end) {
+        if (!aTiff.isFileOpened()) return;
+
+        // Get some more data from TIFF needed during reading
+        const long stripSize = TIFFStripSize(aTiff.iFile);
+
+        // Read TIF to PixelData
+        size_t currentOffset = 0;
+
+        slice_start = std::min(slice_start,(size_t) aTiff.iNumberOfDirectories-1);
+        slice_end = std::min(slice_end,(size_t) aTiff.iNumberOfDirectories);
+
+        for (uint32_t i = slice_start; i < slice_end; ++i) {
+            TIFFSetDirectory(aTiff.iFile, i);
+
+            // read current directory
+            for (tstrip_t strip = 0; strip < TIFFNumberOfStrips(aTiff.iFile); ++strip) {
+                int64_t readLen = TIFFReadEncodedStrip(aTiff.iFile, strip, (&aInputMesh.mesh[0] + currentOffset), (tsize_t) -1 /* read as much as possible */);
+                currentOffset += readLen/sizeof(T);
+            }
+        }
+
+        // Set proper dimensions (x and y are exchanged giving transpose w.r.t. original file)
+        aInputMesh.z_num = slice_end - slice_start;
+        aInputMesh.y_num = aTiff.iImgWidth;
+        aInputMesh.x_num = aTiff.iImgHeight;
+    }
+
+
 
     /**
      * Saves provided mesh as a TIFF file
