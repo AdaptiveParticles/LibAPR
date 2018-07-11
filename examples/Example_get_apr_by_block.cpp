@@ -103,10 +103,14 @@ int main(int argc, char **argv) {
 
     timer.start_timer("get APR classic");
 
+    apr.parameters.output_steps = false;
+
     apr.get_apr();
 
     timer.stop_timer();
 
+
+    std::cout << "Total number of particles patch: " << aprB.total_number_particles() << " original: " << apr.total_number_particles() << std::endl;
 
     PixelData<uint16_t> pc_img;
 
@@ -333,7 +337,7 @@ int main(int argc, char **argv) {
 //        std::cout << "Oops, something went wrong. APR not computed :(." << std::endl;
 //    }
 
-    return 1;
+
 
 }
 

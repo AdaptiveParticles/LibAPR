@@ -143,7 +143,7 @@ int main(int argc, char **argv) {
         } else {
         std::cout << "Oops, something went wrong. APR not computed :(." << std::endl;
     }
-    return 1;
+    return 0;
 
 }
 

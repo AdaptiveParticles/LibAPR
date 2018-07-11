@@ -28,13 +28,10 @@
 #include "algorithm/ComputeGradientCuda.hpp"
 #endif
 
-
-
 template<typename ImageType>
 class APRConverterBatch: public LocalIntensityScale, public ComputeGradient, public LocalParticleCellSet, public PullingSchemeSparse {
 
 public:
-
 
     APRParameters par;
     APRTimer fine_grained_timer;
@@ -121,7 +118,7 @@ bool APRConverterBatch<ImageType>::get_apr_batch_method_from_file(APR<ImageType>
 
     uint64_t ghost_x = 0;
     uint64_t ghost_y = 0;
-    uint64_t ghost_z = 20;
+    uint64_t ghost_z = 10;
 
     for (int i = 0; i < num_patches; ++i) {
 
