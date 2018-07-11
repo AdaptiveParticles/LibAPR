@@ -119,6 +119,10 @@ bool APRConverterBatch<ImageType>::get_apr_batch_method_from_file(APR<ImageType>
     initialize_particle_cell_tree(aAPR);
     method_timer.stop_timer();
 
+    uint64_t ghost_x = 0;
+    uint64_t ghost_y = 0;
+    uint64_t ghost_z = 20;
+
     for (int i = 0; i < num_patches; ++i) {
 
         patches[i].x_begin = 0;
@@ -129,19 +133,51 @@ bool APRConverterBatch<ImageType>::get_apr_batch_method_from_file(APR<ImageType>
         patches[i].y_end = y_num-1;
         patches[i].y_offset = 0;
 
-        patches[i].z_begin = 0;
-        patches[i].z_end = z_slices*(i+1)-1; //inclusive
-        patches[i].z_offset = z_slices*(i);
+
+        uint64_t z_0 = z_slices*(i);
+        uint64_t z_f = z_slices*(i+1);
 
         if(i == (num_patches -1)){
-            patches[i].z_end = z_num-1;
+            z_f = z_num-1;
         }
 
-        size_t number_slices = patches[i].z_end  + 1 - z_slices*(i);
+        patches[i].z_begin_global = z_0;
+        patches[i].z_end_global = z_f;
+
+        patches[i].x_begin_global = 0;
+        patches[i].x_end_global = x_num;
+
+        patches[i].y_begin_global = 0;
+        patches[i].y_end_global = y_num;
+
+
+        uint64_t ghost_z_l = std::min((uint64_t)z_0,ghost_z);
+        uint64_t ghost_z_r = std::min((int)z_num - z_f,ghost_z);
+
+
+        patches[i].z_begin = ghost_z_l;
+        patches[i].z_end = ghost_z_l + (z_f - z_0) -1; //inclusive
+        patches[i].z_offset = z_slices*(i) - ghost_z_l;
+
+
+        //padded image size
+        patches[i].x_begin_ghost = 0;
+        patches[i].x_end_ghost = x_num;
+
+        patches[i].y_begin_ghost = 0;
+        patches[i].y_end_ghost = y_num;
+
+        patches[i].z_begin_ghost = z_0 - ghost_z_l;
+        patches[i].z_end_ghost =  z_f + ghost_z_r;
+
+
+
+
+        //size_t number_slices = patches[i].z_end  + 1 - z_slices*(i);
 
         //PixelData<T> patchImage(inputImage.y_num, inputImage.x_num, number_slices);
 
-        PixelData<T> patchImage = TiffUtils::getMesh<T>(aTiffFile,z_slices*(i),patches[i].z_end+1);
+        PixelData<T> patchImage = TiffUtils::getMesh<T>(aTiffFile,patches[i].z_begin_ghost,patches[i].z_end_ghost);
 
 //        size_t offset_xy_begin = y_num*x_num*z_slices*(i);
 //        size_t offset_xy_end = y_num*x_num*(patches[i].z_end+1);
@@ -167,7 +203,7 @@ bool APRConverterBatch<ImageType>::get_apr_batch_method_from_file(APR<ImageType>
 
        // PixelData<T> patchImage(inputImage.y_num, inputImage.x_num, number_slices);
 
-        PixelData<T> patchImage = TiffUtils::getMesh<T>(aTiffFile,z_slices*(i),patches[i].z_end+1);
+        PixelData<T> patchImage = TiffUtils::getMesh<T>(aTiffFile,patches[i].z_begin_global,patches[i].z_end_global);
 
 //        size_t offset_xy_begin = inputImage.y_num*inputImage.x_num*z_slices*(i);
 //        size_t offset_xy_end = inputImage.y_num*inputImage.x_num*(patches[i].z_end+1);
@@ -176,15 +212,14 @@ bool APRConverterBatch<ImageType>::get_apr_batch_method_from_file(APR<ImageType>
 
         APRIterator<uint16_t> apr_iterator(aAPR);
 
-        int x_begin = patches[i].x_offset;
-        int x_end = x_begin + (patches[i].x_end-patches[i].x_begin) + 1;
+        int x_begin = (int)patches[i].x_begin_global;
+        int x_end =(int) patches[i].x_end_global;
 
-        int y_begin = patches[i].y_offset;
-        int y_end = y_begin + (patches[i].y_end-patches[i].y_begin) + 1;
+        int y_begin = (int)patches[i].y_begin_global;
+        int y_end =(int) patches[i].y_end_global;
 
-        int z_begin = patches[i].z_offset;
-        int z_end =  patches[i].z_end+1;
-
+        int z_begin =(int) patches[i].z_begin_global;
+        int z_end = (int) patches[i].z_end_global;
 
         //note the use of the dynamic OpenMP schedule.
         for (unsigned int level = apr_iterator.level_max(); level >= apr_iterator.level_min(); --level) {

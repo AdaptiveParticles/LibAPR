@@ -62,6 +62,24 @@ struct imagePatch {
     uint64_t z_end;
     uint64_t z_offset;
 
+    uint64_t z_begin_ghost;
+    uint64_t z_end_ghost;
+
+    uint64_t x_begin_ghost;
+    uint64_t x_end_ghost;
+
+    uint64_t y_begin_ghost;
+    uint64_t y_end_ghost;
+
+    uint64_t z_begin_global;
+    uint64_t z_end_global;
+
+    uint64_t x_begin_global;
+    uint64_t x_end_global;
+
+    uint64_t y_begin_global;
+    uint64_t y_end_global;
+
 };
 
 
