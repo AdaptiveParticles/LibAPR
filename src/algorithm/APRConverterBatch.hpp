@@ -99,7 +99,7 @@ bool APRConverterBatch<ImageType>::get_apr_batch_method_from_file(APR<ImageType>
 
     std::vector<imagePatch> patches;
 
-    unsigned int num_patches = 4;
+    unsigned int num_patches = 80;
 
     patches.resize(num_patches);
 
@@ -118,7 +118,7 @@ bool APRConverterBatch<ImageType>::get_apr_batch_method_from_file(APR<ImageType>
 
     uint64_t ghost_x = 0;
     uint64_t ghost_y = 0;
-    uint64_t ghost_z = 10;
+    uint64_t ghost_z = 5;
 
     for (int i = 0; i < num_patches; ++i) {
 
@@ -135,7 +135,7 @@ bool APRConverterBatch<ImageType>::get_apr_batch_method_from_file(APR<ImageType>
         uint64_t z_f = z_slices*(i+1);
 
         if(i == (num_patches -1)){
-            z_f = z_num-1;
+            z_f = z_num;
         }
 
         patches[i].z_begin_global = z_0;
@@ -168,13 +168,12 @@ bool APRConverterBatch<ImageType>::get_apr_batch_method_from_file(APR<ImageType>
         patches[i].z_end_ghost =  z_f + ghost_z_r;
 
 
-
-
         //size_t number_slices = patches[i].z_end  + 1 - z_slices*(i);
 
         //PixelData<T> patchImage(inputImage.y_num, inputImage.x_num, number_slices);
-
+        method_timer.start_timer("load data");
         PixelData<T> patchImage = TiffUtils::getMesh<T>(aTiffFile,patches[i].z_begin_ghost,patches[i].z_end_ghost);
+        method_timer.stop_timer();
 
 //        size_t offset_xy_begin = y_num*x_num*z_slices*(i);
 //        size_t offset_xy_end = y_num*x_num*(patches[i].z_end+1);
@@ -191,7 +190,6 @@ bool APRConverterBatch<ImageType>::get_apr_batch_method_from_file(APR<ImageType>
     method_timer.start_timer("compute_apr_datastructure");
     aAPR.apr_access.initialize_structure_from_particle_cell_tree_sparse(aAPR,particle_cell_tree);
     method_timer.stop_timer();
-
 
     aAPR.particles_intensities.data.resize(aAPR.total_number_particles());
 
@@ -395,10 +393,12 @@ void APRConverterBatch<ImageType>::get_local_particle_cell_set(PixelData<ImageTy
         for (size_t x = 0; x < grad_temp.x_num; ++x) {
             const size_t offset_part_map = x * grad_temp.y_num + z * grad_temp.y_num * grad_temp.x_num;
             for (size_t y = 0; y < grad_temp.y_num; ++y) {
-                if(((z >= patch.z_begin/2) && (z <= ceil(patch.z_end/2.0f) )) && ((x >= patch.x_begin/2) & (x <= ceil(patch.x_end/2.0f) )) && ((y >= patch.y_begin/2) & (y <= ceil(patch.y_end/2.0f) ))) {
+
+                if((z >= 0) && (z <= ceil((patch.z_end+1)/2) )) {
                     local_scale_temp.mesh[offset_part_map + y] = (1.0 * grad_temp.mesh[offset_part_map + y]) /
                                                                  (local_scale_temp.mesh[offset_part_map + y] * 1.0);
                 } else {
+
                     local_scale_temp.mesh[offset_part_map + y] = 0;
                 }
             }
@@ -416,6 +416,8 @@ void APRConverterBatch<ImageType>::get_local_particle_cell_set(PixelData<ImageTy
     fine_grained_timer.start_timer("compute_level_second");
     //incorporate other factors and compute the level of the Particle Cell, effectively construct LPC L_n
     compute_level_for_array(local_scale_temp,level_factor,par.rel_error);
+
+
 
     if(par.output_steps){
         TiffUtils::saveMeshAsTiff(par.output_dir + "local_particle_set_level_step.tif", local_scale_temp);

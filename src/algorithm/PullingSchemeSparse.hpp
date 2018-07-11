@@ -436,8 +436,9 @@ inline void PullingSchemeSparse::fill_parent(size_t j, size_t i, size_t k, size_
         const size_t offset_pc = (size_t) new_x_num * (j/2) + (i/2);
         auto& mesh = particle_cell_tree.data[new_level][offset_pc][0].mesh;
         size_t new_index = (k/2);
+        uint8_t status = mesh[new_index];
 
-        if (mesh[new_index] != SEED_TYPE) {
+        if (status != SEED_TYPE) {
             mesh[new_index] = ASCENDANT;
         }
     }

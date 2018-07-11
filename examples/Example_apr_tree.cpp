@@ -64,7 +64,6 @@ int main(int argc, char **argv) {
 
     ExtraParticleData<uint16_t> partsTreelevel(apr.apr_tree);
 
-
     //iteration over the interior tree is identical to that over the standard APR, simply using the APRTreeIterator.
 
     for (unsigned int level = apr_tree_iterator.level_min(); level <= apr_tree_iterator.level_max(); ++level) {

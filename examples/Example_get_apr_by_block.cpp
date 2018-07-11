@@ -63,10 +63,12 @@ int main(int argc, char **argv) {
     apr.parameters.neighborhood_optimization = options.neighborhood_optimization;
     apr.parameters.output_steps = options.output_steps;
 
-    apr.parameters.Ip_th = 1100;
-    apr.parameters.min_signal = 200;
-    apr.parameters.lambda = 3;
-    apr.parameters.rel_error = 0.1;
+    apr.parameters.Ip_th = 900;
+    apr.parameters.min_signal = 400;
+    apr.parameters.sigma_th = 400;
+    apr.parameters.sigma_th_max = 100;
+    apr.parameters.lambda = 1;
+    apr.parameters.rel_error = 0.15;
 
     //where things are
     apr.parameters.input_image_name = options.input;
@@ -105,29 +107,31 @@ int main(int argc, char **argv) {
 
     apr.parameters.output_steps = false;
 
-    apr.get_apr();
+    //apr.get_apr();
 
     timer.stop_timer();
 
 
     std::cout << "Total number of particles patch: " << aprB.total_number_particles() << " original: " << apr.total_number_particles() << std::endl;
 
-    PixelData<uint16_t> pc_img;
-
-    aprB.interp_img(pc_img,aprB.particles_intensities);
-
-
-    std::cout << std::endl;
-
-    std::cout << "Saving piece-wise constant image recon as tiff image" << std::endl;
-
-    std::string output_path = save_loc + file_name + "_pc.tif";
-    //write output as tiff
-    TiffUtils::saveMeshAsTiff(output_path, pc_img);
+//    PixelData<uint16_t> pc_img;
+//
+//    aprB.interp_level(pc_img);
+//
+//
+//    std::string output_path = save_loc + file_name + "_pc.tif";
+//    //write output as tiff
+//    TiffUtils::saveMeshAsTiff(output_path, pc_img);
+//
+//    apr.interp_level(pc_img);
+//
+//    output_path = save_loc + file_name + "_org_pc.tif";
+//    //write output as tiff
+//    TiffUtils::saveMeshAsTiff(output_path, pc_img);
 
     FileSizeInfo fileSizeInfo = aprB.write_apr(save_loc,file_name,6,9,2,false);
 
-    FileSizeInfo fileSizeInfo2 = apr.write_apr(save_loc,file_name,6,9,2,false);
+    //FileSizeInfo fileSizeInfo2 = apr.write_apr(save_loc,file_name,6,9,2,false);
 
 //    APR<uint16_t> apr1;
 //
