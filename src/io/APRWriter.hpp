@@ -252,9 +252,9 @@ public:
                     apr.apr_tree.tree_access.z_num[i] = apr.spatial_index_z_max(i);
                 }
 
-                apr.apr_tree.tree_access.x_num[apr.level_min() - 1] = apr.spatial_index_x_max(apr.level_min()) / 2;
-                apr.apr_tree.tree_access.y_num[apr.level_min() - 1] = apr.spatial_index_y_max(apr.level_min()) / 2;
-                apr.apr_tree.tree_access.z_num[apr.level_min() - 1] = apr.spatial_index_z_max(apr.level_min()) / 2;
+                apr.apr_tree.tree_access.x_num[apr.level_min() - 1] = ceil(apr.spatial_index_x_max(apr.level_min()) / 2.0f);
+                apr.apr_tree.tree_access.y_num[apr.level_min() - 1] = ceil(apr.spatial_index_y_max(apr.level_min()) / 2.0f);
+                apr.apr_tree.tree_access.z_num[apr.level_min() - 1] = ceil(apr.spatial_index_z_max(apr.level_min()) / 2.0f);
 
                 readAttr(AprTypes::TotalNumberOfParticlesType, f.objectIdTree,
                          &apr.apr_tree.tree_access.total_number_particles);
