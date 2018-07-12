@@ -105,7 +105,7 @@ public:
                     // exists
                     this->current_particle_cell.global_index =
                             this->current_gap.iterator->second.global_index_begin_offset/2 +
-                            (this->current_particle_cell.y - this->current_gap.iterator->first)/2 + begin_index;
+                            (2*this->current_particle_cell.y - this->current_gap.iterator->first)/2 + begin_index;
                     this->set_neighbour_flag();
                     return this->current_particle_cell.global_index;
                 }
@@ -172,6 +172,7 @@ public:
             }
 
         } else {
+            this->current_particle_cell.global_index = UINT64_MAX;
             return UINT64_MAX;
         }
     }
