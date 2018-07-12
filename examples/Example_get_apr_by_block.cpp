@@ -92,6 +92,9 @@ int main(int argc, char **argv) {
 
     aprConverterBatch.method_timer.verbose_flag = true;
 
+    apr.apr_compress.set_quantization_factor(2);
+    apr.apr_compress.set_compression_type(1);
+
     aprConverterBatch.par = apr.parameters;
 
     APRTimer timer;
@@ -112,8 +115,8 @@ int main(int argc, char **argv) {
     timer.stop_timer();
 
 
-    std::cout << "Total number of particles patch: " << aprB.total_number_particles() << " original: " << apr.total_number_particles() << std::endl;
-
+//    std::cout << "Total number of particles patch: " << aprB.total_number_particles() << " original: " << apr.total_number_particles() << std::endl;
+//
 //    PixelData<uint16_t> pc_img;
 //
 //    aprB.interp_level(pc_img);
@@ -129,7 +132,7 @@ int main(int argc, char **argv) {
 //    //write output as tiff
 //    TiffUtils::saveMeshAsTiff(output_path, pc_img);
 
-    FileSizeInfo fileSizeInfo = aprB.write_apr(save_loc,file_name,6,9,2,false);
+    FileSizeInfo fileSizeInfo = aprB.write_apr(save_loc,file_name,6,9,2,true);
 
     //FileSizeInfo fileSizeInfo2 = apr.write_apr(save_loc,file_name,6,9,2,false);
 
