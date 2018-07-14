@@ -479,11 +479,25 @@ public:
         //  Have to have set the particle cells x,y,z,level, and it will move the iterator to this location if it exists
         //
 
-        random_particle_cell.pc_offset = this->apr_access->x_num[random_particle_cell.level] * random_particle_cell.z + random_particle_cell.x;
+        random_particle_cell.pc_offset = this->apr_access->gap_map.x_num[random_particle_cell.level] * random_particle_cell.z + random_particle_cell.x;
 
         if(this->apr_access->find_particle_cell(random_particle_cell,this->current_gap)){
             this->current_particle_cell = random_particle_cell;
             this->set_neighbour_flag();
+            //exists
+            return true;
+        } else {
+            //particle cell doesn't exist
+            return false;
+        }
+    }
+
+    bool set_iterator_by_particle_cell_test(ParticleCell& random_particle_cell){
+        //
+        //  Have to have set the particle cells x,y,z,level, and it will move the iterator to this location if it exists
+        //
+
+        if(this->apr_access->find_particle_cell(random_particle_cell,this->current_gap)){
             //exists
             return true;
         } else {
@@ -510,7 +524,7 @@ public:
         particle_cell.z = round(z);
         particle_cell.level = this->level_max();
 
-        particle_cell.pc_offset = this->apr_access->x_num[particle_cell.level] * particle_cell.z + particle_cell.x;
+        particle_cell.pc_offset = this->apr_access->gap_map.x_num[particle_cell.level] * (particle_cell.z/2) + (particle_cell.x/2);
 
         while( (particle_cell.level >= this->level_min()) && !(this->apr_access->find_particle_cell(particle_cell,this->current_gap)) ){
             particle_cell.y = particle_cell.y/2;
@@ -518,7 +532,7 @@ public:
             particle_cell.z = particle_cell.z/2;
             particle_cell.level--;
 
-            particle_cell.pc_offset = this->apr_access->x_num[particle_cell.level] * particle_cell.z + particle_cell.x;
+            particle_cell.pc_offset = this->apr_access->gap_map.x_num[particle_cell.level] * particle_cell.z + particle_cell.x;
         }
 
         this->current_particle_cell = particle_cell; //if its in bounds it will always have a particle cell responsible

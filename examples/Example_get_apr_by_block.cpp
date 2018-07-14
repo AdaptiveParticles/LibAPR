@@ -115,7 +115,7 @@ int main(int argc, char **argv) {
     timer.stop_timer();
 
 
-//    std::cout << "Total number of particles patch: " << aprB.total_number_particles() << " original: " << apr.total_number_particles() << std::endl;
+    std::cout << "Total number of particles patch: " << aprB.total_number_particles() << " original: " << apr.total_number_particles() << std::endl;
 //
 //    PixelData<uint16_t> pc_img;
 //

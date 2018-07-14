@@ -106,7 +106,7 @@ bool APRConverterBatch<ImageType>::get_apr_batch_method_from_file(APR<ImageType>
 
     std::vector<imagePatch> patches;
 
-    unsigned int num_patches = 200;
+    unsigned int num_patches = 100;
 
     patches.resize(num_patches);
 
@@ -183,6 +183,9 @@ bool APRConverterBatch<ImageType>::get_apr_batch_method_from_file(APR<ImageType>
         method_timer.start_timer("load data");
         PixelData<T> patchImage = TiffUtils::getMesh<T>(aTiffFile,patches[i].z_begin_ghost,patches[i].z_end_ghost);
         method_timer.stop_timer();
+
+        std::cout << "SIZE: = " << patchImage.mesh.size() << std::endl;
+
 
 //        size_t offset_xy_begin = y_num*x_num*z_slices*(i);
 //        size_t offset_xy_end = y_num*x_num*(patches[i].z_end+1);
