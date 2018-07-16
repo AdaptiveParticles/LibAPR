@@ -144,7 +144,6 @@ void APRRaycaster::perform_raycast(APR<U>& apr,ExtraParticleData<S>& particle_da
 
     //initialize the iterator
     APRIterator apr_iterator(apr.apr_access);
-    uint64_t particle_number;
 
     if(jitter){
 
@@ -152,11 +151,23 @@ void APRRaycaster::perform_raycast(APR<U>& apr,ExtraParticleData<S>& particle_da
         jitter_y.init(apr.total_number_particles());
         jitter_z.init(apr.total_number_particles());
 
-        for (particle_number = 0; particle_number < apr_iterator.total_number_particles(); ++particle_number) {
-            apr_iterator.set_iterator_to_particle_by_number(particle_number);
-            jitter_x[apr_iterator] = jitter_factor*((std::rand()-500)%1000)/1000.0f;
-            jitter_y[apr_iterator] = jitter_factor*((std::rand()-500)%1000)/1000.0f;
-            jitter_z[apr_iterator] = jitter_factor*((std::rand()-500)%1000)/1000.0f;
+        for (unsigned int level = apr_iterator.level_min(); level <= apr_iterator.level_max(); ++level) {
+            int z = 0;
+            int x = 0;
+
+#ifdef HAVE_OPENMP
+#pragma omp parallel for schedule(dynamic) private(z, x) firstprivate(apr_iterator)
+#endif
+            for (z = 0; z < apr_iterator.spatial_index_z_max(level); z++) {
+                for (x = 0; x < apr_iterator.spatial_index_x_max(level); ++x) {
+                    for (apr_iterator.set_new_lzx(level, z, x); apr_iterator.global_index() < apr_iterator.end_index;
+                         apr_iterator.set_iterator_to_particle_next_particle()) {
+                        jitter_x[apr_iterator] = jitter_factor * ((std::rand() - 500) % 1000) / 1000.0f;
+                        jitter_y[apr_iterator] = jitter_factor * ((std::rand() - 500) % 1000) / 1000.0f;
+                        jitter_z[apr_iterator] = jitter_factor * ((std::rand() - 500) % 1000) / 1000.0f;
+                    }
+                }
+            }
         }
     }
 
@@ -190,35 +201,53 @@ void APRRaycaster::perform_raycast(APR<U>& apr,ExtraParticleData<S>& particle_da
 
         float y_actual,x_actual,z_actual;
 
+        for (unsigned int level = apr_iterator.level_min(); level <= apr_iterator.level_max(); ++level) {
+            int z = 0;
+            int x = 0;
+
 #ifdef HAVE_OPENMP
-	#pragma omp parallel for schedule(static) private(particle_number,y_actual,x_actual,z_actual) firstprivate(apr_iterator)
+#pragma omp parallel for schedule(dynamic) private(z, x, y_actual, x_actual, z_actual) firstprivate(apr_iterator)
 #endif
-        for (particle_number = 0; particle_number < apr_iterator.total_number_particles(); ++particle_number) {
-            apr_iterator.set_iterator_to_particle_by_number(particle_number);
+            for (z = 0; z < apr_iterator.spatial_index_z_max(level); z++) {
+                for (x = 0; x < apr_iterator.spatial_index_x_max(level); ++x) {
+                    for (apr_iterator.set_new_lzx(level, z, x); apr_iterator.global_index() < apr_iterator.end_index;
+                         apr_iterator.set_iterator_to_particle_next_particle()) {
 
-            //get apr info
+                        //get apr info
 
-            if(jitter){
-                 y_actual = (apr_iterator.y() + 0.5f + jitter_y[apr_iterator])*this->scale_y*depth_vec[apr_iterator.level()];
-                 x_actual = (apr_iterator.x() + 0.5f + jitter_x[apr_iterator])*this->scale_x*depth_vec[apr_iterator.level()];
-                 z_actual = (apr_iterator.z() + 0.5f + jitter_z[apr_iterator])*this->scale_z*depth_vec[apr_iterator.level()];
-            } else{
-                 y_actual = apr_iterator.y_global()*this->scale_y;
-                 x_actual = apr_iterator.x_global()*this->scale_x;
-                 z_actual = apr_iterator.z_global()*this->scale_z;
-            }
+                        if (jitter) {
+                            y_actual = (apr_iterator.y() + 0.5f + jitter_y[apr_iterator]) * this->scale_y *
+                                       depth_vec[apr_iterator.level()];
+                            x_actual = (apr_iterator.x() + 0.5f + jitter_x[apr_iterator]) * this->scale_x *
+                                       depth_vec[apr_iterator.level()];
+                            z_actual = (apr_iterator.z() + 0.5f + jitter_z[apr_iterator]) * this->scale_z *
+                                       depth_vec[apr_iterator.level()];
+                        } else {
+                            y_actual = apr_iterator.y_global() * this->scale_y;
+                            x_actual = apr_iterator.x_global() * this->scale_x;
+                            z_actual = apr_iterator.z_global() * this->scale_z;
+                        }
 
-            const int level = apr_iterator.level();
+                        const int level = apr_iterator.level();
 
-            int dim1 = 0;
-            int dim2 = 0;
-            getPos(dim1, dim2, x_actual, y_actual, z_actual, depth_slice[level].x_num, depth_slice[level].y_num);
+                        int dim1 = 0;
+                        int dim2 = 0;
+                        getPos(dim1, dim2, x_actual, y_actual, z_actual, depth_slice[level].x_num,
+                               depth_slice[level].y_num);
 
-            if ((dim1 > 0) & (dim2 > 0) & (dim1 < (int64_t)depth_slice[level].y_num) & (dim2 < (int64_t)depth_slice[level].x_num)) {
-                //get the particle value
-                S temp_int = particle_data[apr_iterator];
+                        if ((dim1 > 0) & (dim2 > 0) & (dim1 < (int64_t) depth_slice[level].y_num) &
+                            (dim2 < (int64_t) depth_slice[level].x_num)) {
+                            //get the particle value
+                            S temp_int = particle_data[apr_iterator];
 
-                depth_slice[level].mesh[dim1 + (dim2) * depth_slice[level].y_num] = op(temp_int, depth_slice[level].mesh[dim1 + (dim2) * depth_slice[level].y_num]);
+                            depth_slice[level].mesh[dim1 + (dim2) * depth_slice[level].y_num] = op(temp_int,
+                                                                                                   depth_slice[level].mesh[
+                                                                                                           dim1 +
+                                                                                                           (dim2) *
+                                                                                                           depth_slice[level].y_num]);
+                        }
+                    }
+                }
             }
         }
         killObjects();

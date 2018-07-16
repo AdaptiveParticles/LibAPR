@@ -61,7 +61,7 @@ int main(int argc, char **argv) {
     ExtraParticleData<uint16_t> symbols;
 
     //feel free to change
-    unsigned int blosc_comp_type = BLOSC_ZSTD;
+    unsigned int blosc_comp_type = 6;
     unsigned int blosc_comp_level = options.compress_level;
     unsigned int blosc_shuffle = 1;
 
@@ -101,10 +101,12 @@ int main(int argc, char **argv) {
     std::cout << std::endl;
 
     //writes the piece-wise constant reconstruction of the APR to file for comparison
-    PixelData<uint16_t> img;
-    apr.interp_img(img,apr.particles_intensities);
-    std::string output = options.directory + name + "_compress.tif";
-    TiffUtils::saveMeshAsTiff(output, img);
+    if(options.output_tiff) {
+        PixelData<uint16_t> img;
+        apr.interp_img(img, apr.particles_intensities);
+        std::string output = options.directory + name + "_compress.tif";
+        TiffUtils::saveMeshAsTiff(output, img);
+    }
 }
 
 
@@ -151,9 +153,9 @@ cmdLineOptions read_command_line_options(int argc, char **argv){
         result.compress_type = (unsigned int)std::stoi(std::string(get_command_option(argv, argv + argc, "-compress_type")));
     }
 
-    if(result.compress_type > 2 || result.compress_type == 0){
+    if(result.compress_type > 2){
 
-        std::cerr << "Invalid Compression setting (1 or 2)" << std::endl;
+        std::cerr << "Invalid Compression setting (0,1 or 2)" << std::endl;
         exit(1);
     }
 
@@ -166,6 +168,11 @@ cmdLineOptions read_command_line_options(int argc, char **argv){
     if(command_option_exists(argv, argv + argc, "-compress_level"))
     {
         result.compress_level = (unsigned int)std::stoi(std::string(get_command_option(argv, argv + argc, "-compress_level")));
+    }
+
+    if(command_option_exists(argv, argv + argc, "-output_tiff"))
+    {
+        result.output_tiff = true;
     }
 
 

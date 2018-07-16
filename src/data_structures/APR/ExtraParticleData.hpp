@@ -9,8 +9,9 @@
 #include <algorithm>
 #include <vector>
 
+template<typename V> class APR;
 class APRIterator;
-template <typename V> class APR;
+
 
 template<typename DataType>
 class ExtraParticleData {
@@ -39,6 +40,7 @@ public:
     template<typename T,typename U,class UnaryOperator>
     inline void map(APR<T>& apr,ExtraParticleData<U>& output,UnaryOperator op,const uint64_t level = 0,unsigned int aNumberOfBlocks = 10);
 };
+
 
 
 #include "APRIterator.hpp"

@@ -17,6 +17,7 @@
 #include <vector>
 #include <data_structures/APR/APR.hpp>
 
+
 template<typename ImageType>
 class APRCompress {
 
@@ -49,8 +50,6 @@ public:
         timer_total.start_timer("total compress");
 
         timer.start_timer("allocation");
-        ExtraParticleData<float> predict_input(apr.total_number_particles());
-        ExtraParticleData<float> predict_output(apr.total_number_particles());
 
         timer.stop_timer();
 
@@ -61,8 +60,6 @@ public:
         std::cout << background << std::endl;
 
         timer.start_timer("copy");
-        predict_input.copy_parts(apr,apr.particles_intensities);
-        timer.stop_timer();
 
         ///////////////////////////
         ///
@@ -75,16 +72,25 @@ public:
             std::cout << "Variance Stabalization Only" << std::endl;
             //variance stabilization only, no subsequent prediction step. (all particles)
 
-            predict_input.map_inplace(apr,[this](const float a) { return variance_stabilitzation<float>(a); });
-
-
-            for (unsigned int level = apr.level_min(); level <= apr.level_max(); ++level) {
-                predict_output.copy_parts(apr,predict_input,level);
+            int i = 0;
+#ifdef HAVE_OPENMP
+#pragma omp parallel for schedule(static) private(i)
+#endif
+            for (i = 0; i < symbols.data.size(); ++i) {
+                //symbols.data[i] = calculate_symbols<ImageType,float>(variance_stabilitzation<float>(symbols.data[i]));
+                symbols.data[i] = (ImageType) variance_stabilitzation<float>(symbols.data[i]);
             }
+
 
         } else if (compress_type == 2){
             //variance stabilization and prediction step.
             std::cout << "Variance Stabalization followed by (x,y,z) prediction" << std::endl;
+
+            ExtraParticleData<float> predict_input(apr.total_number_particles());
+            ExtraParticleData<float> predict_output(apr.total_number_particles());
+
+            predict_input.copy_parts(apr,apr.particles_intensities);
+            timer.stop_timer();
 
             predict_input.map_inplace(apr,[this](const float a) { return variance_stabilitzation<float>(a); });
 
@@ -94,45 +100,51 @@ public:
                                            num_blocks, 0,false);
             }
 
+            timer.start_timer("predict symbols");
+            //compute the symbols
+            predict_output.map(apr,symbols,[this](const float a){return calculate_symbols<ImageType,float>(a);});
+            timer.stop_timer();
+
         }
 
-        timer.start_timer("predict symbols");
-        //compute the symbols
-        predict_output.map(apr,symbols,[this](const float a){return calculate_symbols<ImageType,float>(a);});
-        timer.stop_timer();
 
         timer_total.stop_timer();
     }
 
+
+
     template<typename U>
-    void decompress(APR<U>& apr,ExtraParticleData<ImageType>& symbols){
+    void decompress(APR<U>& apr,ExtraParticleData<ImageType>& symbols,uint64_t start=0){
 
         APRTimer timer;
-        timer.verbose_flag = true;
+        timer.verbose_flag = false;
         timer.start_timer("total decompress");
 
-        ExtraParticleData<float> predict_input(apr.total_number_particles());
-        ExtraParticleData<float> predict_output(apr.total_number_particles());
-        //turn symbols back to floats.
-        symbols.map(apr,predict_input,[this](const ImageType a){return inverse_calculate_symbols<float,ImageType>(a);});
 
         if(this->background==1) {
             this->background = apr.parameters.background_intensity_estimate - 2 * apr.parameters.noise_sd_estimate;
         }
 
        if (compress_type == 1){
-
-
-            for (unsigned int level = apr.level_min(); level <= apr.level_max(); ++level) {
-                predict_output.copy_parts(apr,predict_input,level);
-            }
-
+            int i = 0;
+#ifdef HAVE_OPENMP
+#pragma omp parallel for schedule(static) private(i)
+#endif
+           for (i = start; i < symbols.data.size(); ++i) {
+               //symbols.data[i] = (ImageType) inverse_variance_stabilitzation<float>(inverse_calculate_symbols<float,ImageType>(symbols.data[i]));
+               symbols.data[i] = (ImageType) inverse_variance_stabilitzation<float>(symbols.data[i]);
+           }
 
             //invert the stabilization
-            predict_output.map_inplace(apr,[this](const float a) { return inverse_variance_stabilitzation<float>(a); });
+            //predict_output.map_inplace(apr,[this](const float a) { return inverse_variance_stabilitzation<float>(a); });
 
 
         } else if (compress_type ==2){
+
+           ExtraParticleData<float> predict_input(apr.total_number_particles());
+           ExtraParticleData<float> predict_output(apr.total_number_particles());
+           //turn symbols back to floats.
+           symbols.map(apr,predict_input,[this](const ImageType a){return inverse_calculate_symbols<float,ImageType>(a);});
 
             for (unsigned int level = apr.level_min(); level <= apr.level_max(); ++level) {
                 //predict_output.copy_parts(apr,predict_input,level);
@@ -141,14 +153,13 @@ public:
             }
 
             //decode predict
-
-
             //invert the stabilization
             predict_output.map_inplace(apr,[this](const float a) { return inverse_variance_stabilitzation<float>(a); });
 
+           //now truncate and copy to uint16t
+           symbols.copy_parts(apr,predict_output);
+
         }
-        //now truncate and copy to uint16t
-        symbols.copy_parts(apr,predict_output);
 
         timer.stop_timer();
 
@@ -285,6 +296,8 @@ void APRCompress<ImageType>::predict_particles_by_level(APR<U>& apr,const unsign
 
     unsigned int z_block;
 
+    int x = 0;
+
     timer.start_timer("loop");
 
 #ifdef HAVE_OPENMP
@@ -293,83 +306,86 @@ void APRCompress<ImageType>::predict_particles_by_level(APR<U>& apr,const unsign
     for (z_block = 0; z_block < num_z_blocks; ++z_block) {
 
         for (unsigned int z = z_block_begin[z_block]; z < z_block_end[z_block]; ++z) {
+            for (x = 0; x < apr_iterator.spatial_index_x_max(level); ++x) {
+                for (apr_iterator.set_new_lzx(level, z, x); apr_iterator.global_index() < apr_iterator.end_index;
+                     apr_iterator.set_iterator_to_particle_next_particle()) {
 
-            for (uint64_t particle_number = apr_iterator.particles_z_begin(level, z);
-                 particle_number < apr_iterator.particles_z_end(level, z); ++particle_number) {
+                    float count_neighbours = 0;
+                    float temp = 0;
 
-                apr_iterator.set_iterator_to_particle_by_number(particle_number);
+                    //Handle the z_blocking, neighbours shoudl not be used on the zblock begin
+                    if (z != z_block_begin[z_block]) {
 
-                float count_neighbours = 0;
-                float temp = 0;
+                        //loop over all the neighbours and set the neighbour iterator to it
+                        for (unsigned int f = 0; f < predict_directions.size(); ++f) {
+                            // Neighbour Particle Cell Face definitions [+y,-y,+x,-x,+z,-z] =  [0,1,2,3,4,5]
 
-                //Handle the z_blocking, neighbours shoudl not be used on the zblock begin
-                if(z != z_block_begin[z_block]) {
+                            unsigned int face = predict_directions[f];
+                            apr_iterator.find_neighbours_in_direction(face);
 
-                    //loop over all the neighbours and set the neighbour iterator to it
-                    for (unsigned int f = 0; f < predict_directions.size(); ++f) {
-                        // Neighbour Particle Cell Face definitions [+y,-y,+x,-x,+z,-z] =  [0,1,2,3,4,5]
+                            for (int index = 0; index < apr_iterator.number_neighbours_in_direction(face); ++index) {
+                                // on each face, there can be 0-4 neighbours accessed by index
+                                if (neighbour_iterator.set_neighbour_iterator(apr_iterator, face, index)) {
+                                    //will return true if there is a neighbour defined
 
-                        unsigned int face = predict_directions[f];
-                        apr_iterator.find_neighbours_in_direction(face);
-
-                        for (int index = 0; index < apr_iterator.number_neighbours_in_direction(face); ++index) {
-                            // on each face, there can be 0-4 neighbours accessed by index
-                            if (neighbour_iterator.set_neighbour_iterator(apr_iterator, face, index)) {
-                                //will return true if there is a neighbour defined
-
-                                if (neighbour_iterator.level() <= apr_iterator.level()) {
-                                    if(decode_encode_flag == 0) {
-                                        //Encode
-                                        temp += floor(predict_input[neighbour_iterator]);
-                                    } else if (decode_encode_flag == 1) {
-                                        //Decode
-                                        temp += predict_output[neighbour_iterator];
+                                    if (neighbour_iterator.level() <= apr_iterator.level()) {
+                                        if (decode_encode_flag == 0) {
+                                            //Encode
+                                            temp += floor(predict_input[neighbour_iterator]);
+                                        } else if (decode_encode_flag == 1) {
+                                            //Decode
+                                            temp += predict_output[neighbour_iterator];
+                                        }
+                                        count_neighbours++;
                                     }
-                                    count_neighbours++;
                                 }
                             }
                         }
                     }
-                }
 
-                if(rounding) {
+                    if (rounding) {
 
-                    if (decode_encode_flag == 0) {
-                        //Encode
-                        if (count_neighbours > 0) {
-                            predict_output[apr_iterator] = round(predict_input[apr_iterator] - temp / count_neighbours);
-                        } else {
-                            predict_output[apr_iterator] = round(predict_input[apr_iterator]);
+                        if (decode_encode_flag == 0) {
+                            //Encode
+                            if (count_neighbours > 0) {
+                                predict_output[apr_iterator] = round(
+                                        predict_input[apr_iterator] - temp / count_neighbours);
+                            } else {
+                                predict_output[apr_iterator] = round(predict_input[apr_iterator]);
+                            }
+                        } else if (decode_encode_flag == 1) {
+                            //Decode
+                            if (count_neighbours > 0) {
+
+                                predict_output[apr_iterator] = round(
+                                        predict_input[apr_iterator] + temp / count_neighbours);
+
+                            } else {
+
+                                predict_output[apr_iterator] = round(predict_input[apr_iterator]);
+                            }
+
                         }
-                    } else if (decode_encode_flag == 1) {
-                        //Decode
-                        if (count_neighbours > 0) {
+                    } else {
+                        if (decode_encode_flag == 0) {
+                            //Encode
+                            if (count_neighbours > 0) {
+                                predict_output[apr_iterator] =
+                                        floor(predict_input[apr_iterator]) - floor(temp / count_neighbours);
+                            } else {
+                                predict_output[apr_iterator] = floor(predict_input[apr_iterator]);
+                            }
+                        } else if (decode_encode_flag == 1) {
+                            //Decode
+                            if (count_neighbours > 0) {
 
-                            predict_output[apr_iterator] = round(predict_input[apr_iterator] + temp / count_neighbours);
+                                predict_output[apr_iterator] =
+                                        predict_input[apr_iterator] + floor(temp / count_neighbours);
 
-                        } else {
+                            } else {
 
-                            predict_output[apr_iterator] = round(predict_input[apr_iterator]);
-                        }
-
-                    }
-                } else {
-                    if (decode_encode_flag == 0) {
-                        //Encode
-                        if (count_neighbours > 0) {
-                            predict_output[apr_iterator] = floor(predict_input[apr_iterator]) - floor(temp / count_neighbours);
-                        } else {
-                            predict_output[apr_iterator] = floor(predict_input[apr_iterator]);
-                        }
-                    } else if (decode_encode_flag == 1) {
-                        //Decode
-                        if (count_neighbours > 0) {
-
-                            predict_output[apr_iterator] = predict_input[apr_iterator] + floor(temp / count_neighbours);
-
-                        } else {
-
-                            predict_output[apr_iterator] = predict_input[apr_iterator];
+                                predict_output[apr_iterator] = predict_input[apr_iterator];
+                            }
                         }
                     }
                 }

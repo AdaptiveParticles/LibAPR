@@ -59,8 +59,8 @@ private:
     void set_filler(int level);
     void fill_neighbours(int level);
     void fill_parent(size_t j, size_t i, size_t k, size_t x_num, size_t y_num, size_t new_level);
-
     std::vector<PixelData<uint8_t>> particle_cell_tree;
+
     int l_min;
     int l_max;
 };
@@ -88,7 +88,20 @@ inline void PullingScheme::initialize_particle_cell_tree(const APRAccess &apr_ac
  * Generates the implied resolution function that is used to sample the image in the APR.
  */
 inline void PullingScheme::pulling_scheme_main() {
-    for (int level = l_max; level >= l_min; --level) {
+
+    //
+    //  Bevan Cheeseman 2016
+    //
+    //  The Pulling Scheme for forming the Optimal Valid Particle Cell set from the Local Particle Cell set L
+    //
+    //  Implimented as discussed in Cheeseman et al. 2018 for full description.
+    //
+    //  Generates the implied resolution function that is used to sample the image in the APR.
+    //
+
+
+    //loop over all levels from l_max to l_min
+    for (int level = l_max; level >= (int)l_min; --level) {
         if (level != l_max) {
             set_ascendant_neighbours(level); //step 1 and step 2.
             set_filler(level); // step 3.

@@ -6,6 +6,7 @@
 #define PARTPLAY_APRRECONSTRUCTION_HPP
 
 #include "data_structures/APR/APR.hpp"
+#include "data_structures/APR/APRTree.hpp"
 #include "data_structures/APR/APRIterator.hpp"
 #include "data_structures/APR/APRTreeIterator.hpp"
 
@@ -31,45 +32,50 @@ public:
         //
 
         auto apr_iterator = apr.iterator();
-        uint64_t particle_number;
 
         img.init(apr.orginal_dimensions(0), apr.orginal_dimensions(1), apr.orginal_dimensions(2), 0);
 
         int max_dim = std::max(std::max(apr.apr_access.org_dims[1], apr.apr_access.org_dims[0]), apr.apr_access.org_dims[2]);
 
         int max_level = ceil(std::log2(max_dim));
-        
-        for (uint64_t level = apr_iterator.level_min(); level <= apr_iterator.level_max(); ++level) {
+
+        for (unsigned int level = apr_iterator.level_min(); level <= apr_iterator.level_max(); ++level) {
+            int z = 0;
+            int x = 0;
 
             const float step_size = pow(2, max_level - level);
 
 #ifdef HAVE_OPENMP
-	#pragma omp parallel for schedule(static) private(particle_number) firstprivate(apr_iterator)
+#pragma omp parallel for schedule(dynamic) private(z, x) firstprivate(apr_iterator)
 #endif
-            for (particle_number = apr_iterator.particles_level_begin(level); particle_number <  apr_iterator.particles_level_end(level); ++particle_number) {
-                //
-                //  Parallel loop over level
-                //
-                apr_iterator.set_iterator_to_particle_by_number(particle_number);
+            for (z = 0; z < apr_iterator.spatial_index_z_max(level); z++) {
+                for (x = 0; x < apr_iterator.spatial_index_x_max(level); ++x) {
+                    for (apr_iterator.set_new_lzx(level, z, x); apr_iterator.global_index() < apr_iterator.end_index;
+                         apr_iterator.set_iterator_to_particle_next_particle()) {
+                        //
+                        //  Parallel loop over level
+                        //
 
-                int dim1 = apr_iterator.y() * step_size;
-                int dim2 = apr_iterator.x() * step_size;
-                int dim3 = apr_iterator.z() * step_size;
+                        int dim1 = apr_iterator.y() * step_size;
+                        int dim2 = apr_iterator.x() * step_size;
+                        int dim3 = apr_iterator.z() * step_size;
 
-                float temp_int;
-                //add to all the required rays
+                        float temp_int;
+                        //add to all the required rays
 
-                temp_int = parts[apr_iterator];
+                        temp_int = parts[apr_iterator];
 
-                const int offset_max_dim1 = std::min((int) img.y_num, (int) (dim1 + step_size));
-                const int offset_max_dim2 = std::min((int) img.x_num, (int) (dim2 + step_size));
-                const int offset_max_dim3 = std::min((int) img.z_num, (int) (dim3 + step_size));
+                        const int offset_max_dim1 = std::min((int) img.y_num, (int) (dim1 + step_size));
+                        const int offset_max_dim2 = std::min((int) img.x_num, (int) (dim2 + step_size));
+                        const int offset_max_dim3 = std::min((int) img.z_num, (int) (dim3 + step_size));
 
-                for (int64_t q = dim3; q < offset_max_dim3; ++q) {
+                        for (int64_t q = dim3; q < offset_max_dim3; ++q) {
 
-                    for (int64_t k = dim2; k < offset_max_dim2; ++k) {
-                        for (int64_t i = dim1; i < offset_max_dim1; ++i) {
-                            img.mesh[i + (k) * img.y_num + q * img.y_num * img.x_num] = temp_int;
+                            for (int64_t k = dim2; k < offset_max_dim2; ++k) {
+                                for (int64_t i = dim1; i < offset_max_dim1; ++i) {
+                                    img.mesh[i + (k) * img.y_num + q * img.y_num * img.x_num] = temp_int;
+                                }
+                            }
                         }
                     }
                 }
@@ -78,13 +84,17 @@ public:
 
     }
 
-    template<typename U,typename V,typename S>
-    void interp_image_patch(APR<S>& apr, APRTree &aprTree,PixelData<U>& img,ExtraParticleData<V>& parts,ExtraParticleData<V>& parts_tree,ReconPatch& reconPatch){
+    template<typename U,typename V,typename S,typename T>
+    void interp_image_patch(APR<S>& apr, APRTree<S>& aprTree,PixelData<U>& img,ExtraParticleData<V>& parts,ExtraParticleData<T>& parts_tree,ReconPatch& reconPatch){
+
         //
         //  Bevan Cheeseman 2016
         //
         //  Takes in a APR and creates piece-wise constant image
         //
+
+
+        int max_level = apr.level_max() + reconPatch.level_delta;
 
         auto apr_iterator = apr.iterator();
 
@@ -134,17 +144,13 @@ public:
 
         img.init(y_end - y_begin, x_end - x_begin, z_end - z_begin, 0);
 
-        int x = 0;
-
-        int max_dim = std::max(std::max(apr.apr_access.org_dims[1], apr.apr_access.org_dims[0]), apr.apr_access.org_dims[2]);
-
-        int max_level = ceil(std::log2(max_dim));
-
-        max_level = max_level + reconPatch.level_delta;
-
+        if(max_level < 0){
+            std::cout << "Negative level requested, exiting with empty image" << std::endl;
+            return;
+        }
 
         //note the use of the dynamic OpenMP schedule.
-        for (unsigned int level = std::min(max_level,(int)apr.level_max()); level >= apr_iterator.level_min(); --level) {
+        for (unsigned int level = std::min((int)max_level,(int)apr.level_max()); level >= apr_iterator.level_min(); --level) {
 
             const float step_size = pow(2,max_level - level);
 
@@ -157,17 +163,17 @@ public:
             int y_begin_l =  (int)floor(y_begin/step_size);
             int y_end_l = std::min((int)ceil(y_end/step_size),(int) apr.spatial_index_y_max(level));
 
-            for (int z = z_begin_l; z < z_end_l; z++) {
-
+            int z = 0;
+            int x = 0;
 #ifdef HAVE_OPENMP
-#pragma omp parallel for schedule(dynamic) private(x) firstprivate(apr_iterator)
+#pragma omp parallel for schedule(dynamic) private(z,x) firstprivate(apr_iterator)
 #endif
+            for (z = z_begin_l; z < z_end_l; z++) {
                 for (x = x_begin_l; x < x_end_l; ++x) {
-                    for (apr_iterator.set_new_lzx(level, z, x);
-                         apr_iterator.global_index() < apr_iterator.particles_zx_end(level, z,
-                                                                                     x); apr_iterator.set_iterator_to_particle_next_particle()) {
+                    for (apr_iterator.set_new_lzxy(level, z, x,y_begin_l);
+                         apr_iterator.global_index() < apr_iterator.end_index; apr_iterator.set_iterator_to_particle_next_particle()) {
 
-                        if((apr_iterator.y() >= y_begin_l) && (apr_iterator.y() < y_end_l)) {
+                        if( (apr_iterator.y() >= y_begin_l) && (apr_iterator.y() < y_end_l)) {
 
                             //lower bound
                             const int dim1 = std::max((int) (apr_iterator.y() * step_size), y_begin) - y_begin;
@@ -178,19 +184,24 @@ public:
                             const S temp_int = parts[apr_iterator];
 
                             //upper bound
-                            const int offset_max_dim1 = std::min(y_end - y_begin, (int) (dim1 + step_size));
-                            const int offset_max_dim2 = std::min(x_end - x_begin, (int) (dim2 + step_size));
-                            const int offset_max_dim3 = std::min(z_end - z_begin, (int) (dim3 + step_size));
+                            const int offset_max_dim1 = std::min((int) (apr_iterator.y() * step_size + step_size), y_end) - y_begin;
+                            const int offset_max_dim2 = std::min((int) (apr_iterator.x() * step_size + step_size), x_end) - x_begin;
+                            const int offset_max_dim3 = std::min((int) (apr_iterator.z() * step_size + step_size), z_end) - z_begin;
 
                             for (int64_t q = dim3; q < offset_max_dim3; ++q) {
 
                                 for (int64_t k = dim2; k < offset_max_dim2; ++k) {
                                     for (int64_t i = dim1; i < offset_max_dim1; ++i) {
                                         img.mesh[i + (k) * img.y_num + q * img.y_num * img.x_num] = temp_int;
+                                        //img.mesh[i + (k) * img.y_num + q * img.y_num * img.x_num] += 1;
                                     }
                                 }
                             }
 
+                        } else {
+                            if((apr_iterator.y() >= y_end_l)) {
+                                break;
+                            }
                         }
                     }
                 }
@@ -200,7 +211,9 @@ public:
 
         if(max_level < apr_iterator.level_max()) {
 
-            APRTreeIterator aprTreeIterator(aprTree);
+
+            APRTreeIterator aprTreeIterator = aprTree.tree_iterator();
+
 
             unsigned int level = max_level;
 
@@ -215,17 +228,19 @@ public:
                 int y_begin_l = (int) floor(y_begin / step_size);
                 int y_end_l = std::min((int) ceil(y_end / step_size), (int) apr.spatial_index_y_max(level));
 
-                for (int z = z_begin_l; z < z_end_l; z++) {
-
+                int z = 0;
+                int x = 0;
 #ifdef HAVE_OPENMP
-#pragma omp parallel for schedule(dynamic) private(x) firstprivate(aprTreeIterator)
+#pragma omp parallel for schedule(dynamic) private(x,z) firstprivate(aprTreeIterator)
 #endif
-                    for (x = x_begin_l; x < x_end_l; ++x) {
-                        for (aprTreeIterator.set_new_lzx(level, z, x);
-                             aprTreeIterator.global_index() < aprTreeIterator.particles_zx_end(level, z,
-                                                                                         x); aprTreeIterator.set_iterator_to_particle_next_particle()) {
+                for ( z = z_begin_l; z < z_end_l; z++) {
 
-                            if ((aprTreeIterator.y() >= y_begin_l) && (aprTreeIterator.y() < y_end_l)) {
+                    for (x = x_begin_l; x < x_end_l; ++x) {
+
+                        for (aprTreeIterator.set_new_lzxy(level, z, x,y_begin_l);
+                             aprTreeIterator.global_index() < aprTreeIterator.end_index; aprTreeIterator.set_iterator_to_particle_next_particle()) {
+
+                            if( (aprTreeIterator.y() >= y_begin_l) && (aprTreeIterator.y() < y_end_l)) {
 
                                 //lower bound
                                 const int dim1 = std::max((int) (aprTreeIterator.y() * step_size), y_begin) - y_begin;
@@ -236,19 +251,26 @@ public:
                                 const S temp_int = parts_tree[aprTreeIterator];
 
                                 //upper bound
-                                const int offset_max_dim1 = std::min(y_end - y_begin, (int) (dim1 + step_size));
-                                const int offset_max_dim2 = std::min(x_end - x_begin, (int) (dim2 + step_size));
-                                const int offset_max_dim3 = std::min(z_end - z_begin, (int) (dim3 + step_size));
+
+                                const int offset_max_dim1 = std::min((int) (aprTreeIterator.y() * step_size + step_size), y_end) - y_begin;
+                                const int offset_max_dim2 = std::min((int) (aprTreeIterator.x() * step_size + step_size), x_end) - x_begin;
+                                const int offset_max_dim3 = std::min((int) (aprTreeIterator.z() * step_size + step_size), z_end) - z_begin;
 
                                 for (int64_t q = dim3; q < offset_max_dim3; ++q) {
 
                                     for (int64_t k = dim2; k < offset_max_dim2; ++k) {
                                         for (int64_t i = dim1; i < offset_max_dim1; ++i) {
                                             img.mesh[i + (k) * img.y_num + q * img.y_num * img.x_num] = temp_int;
+                                            //img.mesh[i + (k) * img.y_num + q * img.y_num * img.x_num] += 1;
+
                                         }
                                     }
                                 }
 
+                            } else {
+                                if((aprTreeIterator.y() >= y_end_l)) {
+                                    break;
+                                }
                             }
                         }
                     }
@@ -276,11 +298,23 @@ public:
 #ifdef HAVE_OPENMP
 	#pragma omp parallel for schedule(static) private(particle_number) firstprivate(apr_iterator)
 #endif
-        for (particle_number = 0; particle_number < apr_iterator.total_number_particles(); ++particle_number) {
-            apr_iterator.set_iterator_to_particle_by_number(particle_number);
+        for (unsigned int level = apr_iterator.level_min(); level <= apr_iterator.level_max(); ++level) {
+            int z = 0;
+            int x = 0;
 
-            //access and info
-            depth_parts[apr_iterator] =apr_iterator.level();
+#ifdef HAVE_OPENMP
+#pragma omp parallel for schedule(dynamic) private(z, x) firstprivate(apr_iterator)
+#endif
+            for (z = 0; z < apr_iterator.spatial_index_z_max(level); z++) {
+                for (x = 0; x < apr_iterator.spatial_index_x_max(level); ++x) {
+                    for (apr_iterator.set_new_lzx(level, z, x); apr_iterator.global_index() < apr_iterator.end_index;
+                         apr_iterator.set_iterator_to_particle_next_particle()) {
+
+                        //access and info
+                        depth_parts[apr_iterator] = apr_iterator.level();
+                    }
+                }
+            }
 
         }
 
@@ -303,54 +337,33 @@ public:
         //get depth
         ExtraParticleData<U> level_parts(apr.total_number_particles());
         auto apr_iterator = apr.iterator();
-        uint64_t particle_number;
+
+        for (unsigned int level = apr_iterator.level_min(); level <= apr_iterator.level_max(); ++level) {
+            int z = 0;
+            int x = 0;
 
 #ifdef HAVE_OPENMP
-	#pragma omp parallel for schedule(static) private(particle_number) firstprivate(apr_iterator)
+#pragma omp parallel for schedule(dynamic) private(z, x) firstprivate(apr_iterator)
 #endif
-        for (particle_number = 0; particle_number < apr_iterator.total_number_particles(); ++particle_number) {
-            apr_iterator.set_iterator_to_particle_by_number(particle_number);
-            //
-            //  Demo APR iterator
-            //
+            for (z = 0; z < apr_iterator.spatial_index_z_max(level); z++) {
+                for (x = 0; x < apr_iterator.spatial_index_x_max(level); ++x) {
+                    for (apr_iterator.set_new_lzx(level, z, x); apr_iterator.global_index() < apr_iterator.end_index;
+                         apr_iterator.set_iterator_to_particle_next_particle()) {
+                        //
+                        //  Demo APR iterator
+                        //
 
-            //access and info
-            level_parts[apr_iterator] = apr_iterator.level();
-
+                        //access and info
+                        level_parts[apr_iterator] = apr_iterator.level();
+                    }
+                }
+            }
         }
 
         interp_img(apr,img,level_parts);
 
     }
 
-    template<typename U,typename S>
-    void interp_type(APR<S>& apr,PixelData<U>& img){
-
-        //get depth
-        ExtraParticleData<U> type_parts(apr.total_number_particles());
-
-        auto apr_iterator = apr.iterator();
-
-        uint64_t particle_number;
-
-#ifdef HAVE_OPENMP
-	#pragma omp parallel for schedule(static) private(particle_number) firstprivate(apr_iterator)
-#endif
-        for (particle_number = 0; particle_number < apr_iterator.total_number_particles(); ++particle_number) {
-            apr_iterator.set_iterator_to_particle_by_number(particle_number);
-            //
-            //  Demo APR iterator
-            //
-
-            //access and info
-            apr_iterator(type_parts) = apr_iterator.type();
-
-        }
-
-        interp_img(apr,img,type_parts);
-
-
-    }
 
     template<typename T>
     void calc_sat_adaptive_y(PixelData<T>& input,PixelData<uint8_t>& offset_img,float scale_in,unsigned int offset_max_in,const unsigned int d_max){
@@ -751,7 +764,7 @@ public:
     }
 
     template<typename U,typename V,typename S>
-    void interp_parts_smooth_patch(APR<S>& apr,APRTree &aprTree,PixelData<U>& out_image,ExtraParticleData<V>& interp_data,ExtraParticleData<V>& tree_interp_data,ReconPatch& reconPatch,std::vector<float> scale_d = {2,2,2}){
+    void interp_parts_smooth_patch(APR<S>& apr,APRTree<S> &aprTree,PixelData<U>& out_image,ExtraParticleData<V>& interp_data,ExtraParticleData<V>& tree_interp_data,ReconPatch& reconPatch,std::vector<float> scale_d = {2,2,2}){
         //
         //  Performs a smooth interpolation, based on the depth (level l) in each direction.
         //
@@ -769,39 +782,53 @@ public:
 
         auto apr_iterator = apr.iterator();
 
-        uint64_t particle_number;
+        for (unsigned int level = apr_iterator.level_min(); level <= apr_iterator.level_max(); ++level) {
+            int z = 0;
+            int x = 0;
 
 #ifdef HAVE_OPENMP
-#pragma omp parallel for schedule(static) private(particle_number) firstprivate(apr_iterator)
+#pragma omp parallel for schedule(dynamic) private(z, x) firstprivate(apr_iterator)
 #endif
-        for (particle_number = 0; particle_number < apr_iterator.total_number_particles(); ++particle_number) {
-            apr_iterator.set_iterator_to_particle_by_number(particle_number);
-            //
-            //  Demo APR iterator
-            //
+            for (z = 0; z < apr_iterator.spatial_index_z_max(level); z++) {
+                for (x = 0; x < apr_iterator.spatial_index_x_max(level); ++x) {
+                    for (apr_iterator.set_new_lzx(level, z, x); apr_iterator.global_index() < apr_iterator.end_index;
+                         apr_iterator.set_iterator_to_particle_next_particle()) {
+                        //
+                        //  Demo APR iterator
+                        //
 
-            //access and info
-            level_parts[apr_iterator] = apr_iterator.level();
+                        //access and info
+                        level_parts[apr_iterator] = apr_iterator.level();
 
+                    }
+                }
+            }
         }
 
         ExtraParticleData<U> level_partsTree(apr.total_number_particles());
 
-        APRTreeIterator apr_iteratorTree(aprTree);
+        APRTreeIterator apr_iteratorTree = aprTree.tree_iterator();
 
+
+        for (unsigned int level = apr_iterator.level_min(); level <= apr_iterator.level_max(); ++level) {
+            int z = 0;
+            int x = 0;
 
 #ifdef HAVE_OPENMP
-#pragma omp parallel for schedule(static) private(particle_number) firstprivate(apr_iteratorTree)
+#pragma omp parallel for schedule(dynamic) private(z, x) firstprivate(apr_iterator)
 #endif
-        for (particle_number = 0; particle_number < apr_iteratorTree.total_number_particles(); ++particle_number) {
-            apr_iteratorTree.set_iterator_to_particle_by_number(particle_number);
-            //
-            //  Demo APR iterator
-            //
+            for (z = 0; z < apr_iterator.spatial_index_z_max(level); z++) {
+                for (x = 0; x < apr_iterator.spatial_index_x_max(level); ++x) {
+                    for (apr_iterator.set_new_lzx(level, z, x); apr_iterator.global_index() < apr_iterator.end_index;
+                         apr_iterator.set_iterator_to_particle_next_particle()) {
 
-            //access and info
-            level_partsTree[apr_iteratorTree] = apr_iteratorTree.level();
 
+                        //access and info
+                        level_partsTree[apr_iteratorTree] = apr_iteratorTree.level();
+
+                    }
+                }
+            }
         }
 
 
