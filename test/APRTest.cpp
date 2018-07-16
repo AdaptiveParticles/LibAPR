@@ -166,7 +166,7 @@ bool test_apr_tree(TestData& test_data) {
                                 //uint16_t parts_int = test_data.apr.apr_tree.particles_ds_tree[apr_tree_iterator];
                                 uint16_t parts2 = (uint16_t)std::round(tree_data[neigh_tree_iterator]);
 
-                                uint16_t y = apr_tree_iterator.y();
+                                //uint16_t y = apr_tree_iterator.y();
 
                                 if(abs(parts2 - current_int) > 1){
                                     success = false;
@@ -424,9 +424,9 @@ bool test_apr_neighbour_access(TestData& test_data){
                                                                             neighbour_iterator.x_nearest_pixel(),
                                                                             neighbour_iterator.z_nearest_pixel());
 
-                                uint16_t x_n = x_p[neighbour_iterator];
-                                uint16_t y_n = y_p[neighbour_iterator];
-                                uint16_t z_n = z_p[neighbour_iterator];
+//                                uint16_t x_n = x_p[neighbour_iterator];
+//                                uint16_t y_n = y_p[neighbour_iterator];
+//                                uint16_t z_n = z_p[neighbour_iterator];
 
                                 if (check_intensity != apr_intensity) {
                                     success = false;
@@ -769,7 +769,6 @@ bool test_apr_pipeline(TestData& test_data){
     if(apr.get_apr()){
         auto apr_iterator = apr.iterator();
 
-        uint64_t particle_number = 0;
         std::cout << "NUM OF PARTICLES: " << apr_iterator.total_number_particles() << " vs " << test_data.apr.total_number_particles() << std::endl;
 
         for (unsigned int level = apr_iterator.level_min(); level <= apr_iterator.level_max(); ++level) {

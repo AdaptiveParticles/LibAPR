@@ -184,8 +184,7 @@ inline void PullingSchemeSparse::fill(const float level, const PixelData<T> &inp
     //auto &mesh = particle_cell_tree[k].mesh;
 
     const size_t x_num = particle_cell_tree.x_num[level];
-    const size_t y_num = y_num_l[level];
-    const size_t z_num = particle_cell_tree.z_num[level];
+   // const size_t y_num = y_num_l[level];
 
     const size_t offset_x = patch.x_offset/((int)pow(2,(int)l_max + 1 - level));
     const size_t offset_y = patch.y_offset/((int)pow(2,(int)l_max + 1 - level));

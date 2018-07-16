@@ -32,7 +32,6 @@ public:
         //
 
         auto apr_iterator = apr.iterator();
-        uint64_t particle_number;
 
         img.init(apr.orginal_dimensions(0), apr.orginal_dimensions(1), apr.orginal_dimensions(2), 0);
 
@@ -95,7 +94,7 @@ public:
         //
 
 
-        uint64_t max_level = apr.level_max() + reconPatch.level_delta;
+        int max_level = apr.level_max() + reconPatch.level_delta;
 
         auto apr_iterator = apr.iterator();
 
@@ -338,7 +337,6 @@ public:
         //get depth
         ExtraParticleData<U> level_parts(apr.total_number_particles());
         auto apr_iterator = apr.iterator();
-        uint64_t particle_number;
 
         for (unsigned int level = apr_iterator.level_min(); level <= apr_iterator.level_max(); ++level) {
             int z = 0;

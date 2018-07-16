@@ -117,7 +117,7 @@ bool APRConverterBatch<ImageType>::get_apr_batch_method_from_file(APR<ImageType>
     uint64_t z_num = aAPR.orginal_dimensions(2);
 
     size_t z_slices =  z_num/num_patches;
-    size_t end_slice_extra = z_num - z_slices*num_patches;
+    //size_t end_slice_extra = z_num - z_slices*num_patches;
 
     method_timer.start_timer("initialize_particle_cell_tree");
     //initialize_particle_cell_tree(aAPR);
@@ -125,8 +125,8 @@ bool APRConverterBatch<ImageType>::get_apr_batch_method_from_file(APR<ImageType>
 
     ps.initialize_particle_cell_tree(aAPR.apr_access);
 
-    uint64_t ghost_x = 0;
-    uint64_t ghost_y = 0;
+//    uint64_t ghost_x = 0;
+//    uint64_t ghost_y = 0;
     uint64_t ghost_z = 5;
 
     for (int i = 0; i < num_patches; ++i) {
@@ -202,22 +202,14 @@ bool APRConverterBatch<ImageType>::get_apr_batch_method_from_file(APR<ImageType>
 
     method_timer.start_timer("compute_apr_datastructure");
     //aAPR.apr_access.initialize_structure_from_particle_cell_tree_sparse(aAPR,particle_cell_tree);
-    aAPR.apr_access.initialize_structure_from_particle_cell_tree(aAPR,ps.getParticleCellTree());
+    aAPR.apr_access.initialize_structure_from_particle_cell_tree(aAPR.parameters,ps.getParticleCellTree());
     method_timer.stop_timer();
 
     aAPR.particles_intensities.data.resize(aAPR.total_number_particles());
 
     for (int i = 0; i < num_patches; ++i) {
-        size_t number_slices = patches[i].z_end  + 1 - z_slices*(i);
-
-       // PixelData<T> patchImage(inputImage.y_num, inputImage.x_num, number_slices);
 
         PixelData<T> patchImage = TiffUtils::getMesh<T>(aTiffFile,patches[i].z_begin_global,patches[i].z_end_global);
-
-//        size_t offset_xy_begin = inputImage.y_num*inputImage.x_num*z_slices*(i);
-//        size_t offset_xy_end = inputImage.y_num*inputImage.x_num*(patches[i].z_end+1);
-
-       // std::copy(inputImage.mesh.begin() + offset_xy_begin,inputImage.mesh.begin() + offset_xy_end,patchImage.mesh.begin());
 
         APRIterator apr_iterator = aAPR.iterator();
 
@@ -317,7 +309,7 @@ inline void APRConverterBatch<ImageType>::fill_ps(const float level, const Pixel
 
     const size_t x_num = pct[level].x_num;
     const size_t y_num = pct[level].y_num;
-    const size_t z_num = pct[level].z_num;
+    //const size_t z_num = pct[level].z_num;
 
     const size_t offset_x = patch.x_offset / ((int) pow(2, (int) l_max + 1  - level));
     const size_t offset_y = patch.y_offset / ((int) pow(2, (int) l_max + 1 - level));

@@ -11,6 +11,7 @@
 #include "data_structures/Mesh/PixelData.hpp"
 #include "ExtraParticleData.hpp"
 #include "ExtraPartCellData.hpp"
+#include "algorithm/APRParameters.hpp"
 
 
 #define _NO_NEIGHBOUR ((uint16_t)3)
@@ -469,8 +470,8 @@ public:
 
 
 
-    template<typename T>
-    void initialize_structure_from_particle_cell_tree(APR<T>& apr,std::vector<PixelData<uint8_t>>& layers){
+
+    void initialize_structure_from_particle_cell_tree(APRParameters& apr_parameters,std::vector<PixelData<uint8_t>>& layers){
        x_num.resize(l_max+1);
        y_num.resize(l_max+1);
        z_num.resize(l_max+1);
@@ -490,14 +491,14 @@ public:
             p_map[k].swap(layers[k].mesh);
         }
 
-        initialize_structure_from_particle_cell_tree(apr, p_map);
+        initialize_structure_from_particle_cell_tree( apr_parameters,p_map);
     }
 
-    template<typename T>
-    void initialize_structure_from_particle_cell_tree(const APR<T> &apr, std::vector<ArrayWrapper<uint8_t>> &p_map);
 
-    template<typename T>
-    void allocate_map_insert(const APR<T> &apr, ExtraPartCellData<std::pair<uint16_t,YGap_map>>& y_begin) {
+    void initialize_structure_from_particle_cell_tree(APRParameters& apr_parameters,std::vector<ArrayWrapper<uint8_t>> &p_map);
+
+
+    void allocate_map_insert( ExtraPartCellData<std::pair<uint16_t,YGap_map>>& y_begin) {
         //
         //  Seperated for checking memory allocation
         //
@@ -506,28 +507,28 @@ public:
         apr_timer.start_timer("initialize map");
 
 
-        gap_map.depth_max = apr.level_max();
-        gap_map.depth_min = apr.level_min();
+        gap_map.depth_max = level_max();
+        gap_map.depth_min = level_min();
 
         gap_map.z_num.resize(y_begin.depth_max+1);
         gap_map.x_num.resize(y_begin.depth_max+1);
         gap_map.data.resize(y_begin.depth_max+1);
 
         for (uint64_t i = y_begin.depth_min; i < y_begin.depth_max; ++i) {
-            gap_map.x_num[i] = apr.spatial_index_x_max(i);
-            gap_map.z_num[i] = apr.spatial_index_z_max(i);
+            gap_map.x_num[i] = x_num[i];
+            gap_map.z_num[i] = z_num[i];
             gap_map.data[i].resize(z_num[i]*x_num[i]);
         }
 
-        gap_map.x_num[y_begin.depth_max] = apr.spatial_index_x_max(y_begin.depth_max-1);
-        gap_map.z_num[y_begin.depth_max] = apr.spatial_index_z_max(y_begin.depth_max-1);
+        gap_map.x_num[y_begin.depth_max] = x_num[y_begin.depth_max-1];
+        gap_map.z_num[y_begin.depth_max] = z_num[y_begin.depth_max-1];
         gap_map.data[y_begin.depth_max].resize(z_num[y_begin.depth_max-1]*x_num[y_begin.depth_max-1]);
 
 
         uint64_t counter_rows = 0;
         uint64_t z_,x_;
 
-        for (uint64_t i = (apr.level_min()); i <= apr.level_max(); i++) {
+        for (uint64_t i = (level_min()); i <= level_max(); i++) {
             const unsigned int x_num_ = y_begin.x_num[i];
             const unsigned int z_num_ = y_begin.z_num[i];
 #ifdef HAVE_OPENMP
@@ -552,8 +553,8 @@ public:
         apr_timer.stop_timer();
     }
 
-    template<typename T>
-    void allocate_map(APR<T>& apr,MapStorageData& map_data,std::vector<uint64_t>& cumsum,bool tree = false){
+
+    void allocate_map(MapStorageData& map_data,std::vector<uint64_t>& cumsum,bool tree = false){
 
         //first add the layers
         gap_map.depth_max = level_max();
@@ -616,8 +617,7 @@ public:
         }
     }
 
-    template<typename T>
-    void rebuild_map(APR<T>& apr,MapStorageData& map_data,bool tree = false){
+    void rebuild_map_tree(MapStorageData& map_data,APRAccess& ARPOwn_access){
 
         uint64_t z_;
         uint64_t x_;
@@ -636,7 +636,7 @@ public:
             counter+=(map_data.number_gaps[j]);
         }
 
-        allocate_map(apr,map_data,cumsum,tree);
+        allocate_map(map_data,cumsum,true);
 
         apr_timer.stop_timer();
 
@@ -660,9 +660,9 @@ public:
             curr_level = map_data.level[j];
         }
 
-        if(tree) {
-            global_index_by_level_end[level_max() - 1] = map_data.global_index.back() - 1;
-        }
+
+        global_index_by_level_end[level_max() - 1] = map_data.global_index.back() - 1;
+
 
         global_index_by_level_end[level_max()] = total_number_particles-1;
 
@@ -686,37 +686,33 @@ public:
             }
         }
 
-        if(tree){
-            //this is required for reading across the information from the APR
-            const unsigned int x_num_ = x_num[level_max()];
-            const unsigned int z_num_ = z_num[level_max()];
 
-            uint64_t cumsum = map_data.global_index.back();
+        //this is required for reading across the information from the APR
+        const unsigned int x_num_ = x_num[level_max()];
+        const unsigned int z_num_ = z_num[level_max()];
 
-            global_index_by_level_and_zx_end[level_max()].resize(z_num_ * x_num_, 0);
+        uint64_t cumsum_l = map_data.global_index.back();
 
-            for (z_ = 0; z_ < z_num_; z_++) {
+        global_index_by_level_and_zx_end[level_max()].resize(z_num_ * x_num_, 0);
 
-                for (x_ = 0; x_ < x_num_; x_++) {
-                    const size_t offset_pc_data = x_num_ * z_ + x_;
+        for (z_ = 0; z_ < z_num_; z_++) {
 
-                    if (apr.apr_access.gap_map.data[level_max()+1][offset_pc_data].size() > 0){
-                        auto it = (apr.apr_access.gap_map.data[level_max()+1][offset_pc_data][0].map.rbegin());
-                        cumsum += it->second.global_index_begin_offset/2 + (it->second.y_end - it->first+1)/2 + (it->second.y_end+1)%2;
-                        //need to deal with odd domains where the last particle cell is required, hence the modulo
-                    }
+            for (x_ = 0; x_ < x_num_; x_++) {
+                const size_t offset_pc_data = x_num_ * z_ + x_;
 
-                    global_index_by_level_and_zx_end[level_max()][offset_pc_data] = cumsum;
+                if (ARPOwn_access.gap_map.data[level_max()+1][offset_pc_data].size() > 0){
+                    auto it = (ARPOwn_access.gap_map.data[level_max()+1][offset_pc_data][0].map.rbegin());
+                    cumsum_l += it->second.global_index_begin_offset/2 + (it->second.y_end - it->first+1)/2 + (it->second.y_end+1)%2;
+                    //need to deal with odd domains where the last particle cell is required, hence the modulo
                 }
+
+                global_index_by_level_and_zx_end[level_max()][offset_pc_data] = cumsum_l;
             }
-
-
         }
-
-
 
         apr_timer.stop_timer();
     }
+
 
     void flatten_structure(MapStorageData &map_data)  {
         //
@@ -774,11 +770,9 @@ public:
     }
 
 
-    template<typename T>
-    void rebuild_map_tree(APR<T>& apr,MapStorageData& map_data){
 
-        uint64_t z_;
-        uint64_t x_;
+    void rebuild_map(MapStorageData& map_data){
+
         APRTimer apr_timer;
         apr_timer.verbose_flag = true;
         apr_timer.start_timer("rebuild map");
@@ -794,7 +788,7 @@ public:
             counter+=(map_data.number_gaps[j]);
         }
 
-        allocate_map(apr,map_data,cumsum);
+        allocate_map(map_data,cumsum);
 
         apr_timer.stop_timer();
 
@@ -843,29 +837,27 @@ public:
         apr_timer.stop_timer();
     }
 
-    template<typename T>
-    void initialize_tree_access(const APR<T> &apr, std::vector<PixelData<uint8_t>> &p_map);
+    void initialize_tree_access(APRAccess& APROwn_access, std::vector<PixelData<uint8_t>> &p_map);
 
 
 };
 
 #include "data_structures/APR/APRIterator.hpp"
 
-template<typename T>
-inline void APRAccess::initialize_structure_from_particle_cell_tree(const APR<T> &apr, std::vector<ArrayWrapper<uint8_t>> &p_map) {
+
+inline void APRAccess::initialize_structure_from_particle_cell_tree(APRParameters& apr_parameters,std::vector<ArrayWrapper<uint8_t>> &p_map) {
     //
     //  Initialize the new structure;
     //
 
-    uint8_t min_type = apr.parameters.neighborhood_optimization ? 1 : 2;
-
+    uint8_t min_type = apr_parameters.neighborhood_optimization ? 1 : 2;
 
     APRTimer apr_timer;
     apr_timer.verbose_flag = false;
 
     apr_timer.start_timer("first_step");
     const uint8_t seed_us = 4; //deal with the equivalence optimization
-    for (size_t i = apr.level_min()+1; i < apr.level_max(); ++i) {
+    for (size_t i = level_min()+1; i < level_max(); ++i) {
         const size_t x_num_ = x_num[i];
         const size_t z_num_ = z_num[i];
         const size_t y_num_ = y_num[i];
@@ -897,25 +889,25 @@ inline void APRAccess::initialize_structure_from_particle_cell_tree(const APR<T>
     apr_timer.start_timer("second_step");
     ExtraPartCellData<std::pair<uint16_t, YGap_map>> y_begin;
 
-    y_begin.depth_max = apr.level_max();
-    y_begin.depth_min = apr.level_min();
+    y_begin.depth_max = level_max();
+    y_begin.depth_min = level_min();
 
     y_begin.z_num.resize(y_begin.depth_max+1);
     y_begin.x_num.resize(y_begin.depth_max+1);
     y_begin.data.resize(y_begin.depth_max+1);
 
     for (uint64_t i = y_begin.depth_min; i < y_begin.depth_max; ++i) {
-        y_begin.x_num[i] = apr.spatial_index_x_max(i);
-        y_begin.z_num[i] = apr.spatial_index_z_max(i);
+        y_begin.x_num[i] = x_num[i];
+        y_begin.z_num[i] = z_num[i];
         y_begin.data[i].resize(z_num[i]*x_num[i]);
     }
 
-    y_begin.x_num[y_begin.depth_max] = apr.spatial_index_x_max(y_begin.depth_max-1);
-    y_begin.z_num[y_begin.depth_max] = apr.spatial_index_z_max(y_begin.depth_max-1);
+    y_begin.x_num[y_begin.depth_max] = x_num[y_begin.depth_max-1];
+    y_begin.z_num[y_begin.depth_max] = z_num[y_begin.depth_max-1];
     y_begin.data[y_begin.depth_max].resize(z_num[y_begin.depth_max-1]*x_num[y_begin.depth_max-1]);
 
 
-    for(size_t i = (apr.level_min());i < apr.level_max();i++) {
+    for(size_t i = (level_min());i < level_max();i++) {
         const size_t x_num_ = x_num[i];
         const size_t z_num_ = z_num[i];
         const size_t y_num_ = y_num[i];
@@ -963,13 +955,12 @@ inline void APRAccess::initialize_structure_from_particle_cell_tree(const APR<T>
 
     apr_timer.start_timer("third loop");
 
-    size_t i = apr.level_max()-1;
+    size_t i = level_max()-1;
 
     const size_t x_num_ = x_num[i];
     const size_t z_num_ = z_num[i];
     const size_t y_num_ = y_num[i];
-    const size_t x_num_us = x_num[i + 1];
-    const size_t z_num_us = z_num[i + 1];
+
     const size_t y_num_us = y_num[i + 1];
 
 #ifdef HAVE_OPENMP
@@ -1016,23 +1007,23 @@ inline void APRAccess::initialize_structure_from_particle_cell_tree(const APR<T>
 
     apr_timer.start_timer("forth loop");
     //iteration helpers for by level
-    global_index_by_level_begin.resize(apr.level_max()+1,1);
-    global_index_by_level_end.resize(apr.level_max()+1,0);
+    global_index_by_level_begin.resize(level_max()+1,1);
+    global_index_by_level_end.resize(level_max()+1,0);
 
     size_t cumsum= 0;
     total_number_gaps=0;
 
-    size_t min_level_find = apr.level_max();
-    size_t max_level_find = apr.level_min();
+    size_t min_level_find = level_max();
+    size_t max_level_find = level_min();
 
     //set up the iteration helpers for by zslice
-    global_index_by_level_and_z_begin.resize(apr.level_max()+1);
-    global_index_by_level_and_z_end.resize(apr.level_max()+1);
+    global_index_by_level_and_z_begin.resize(level_max()+1);
+    global_index_by_level_and_z_end.resize(level_max()+1);
 
     //zx end for each row
-    global_index_by_level_and_zx_end.resize(apr.level_max()+1);
+    global_index_by_level_and_zx_end.resize(level_max()+1);
 
-    for (size_t i = apr.level_min(); i <= apr.level_max(); ++i) {
+    for (size_t i = level_min(); i <= level_max(); ++i) {
 
         const size_t x_num_ = y_begin.x_num[i];
         const size_t z_num_ = y_begin.z_num[i];
@@ -1066,7 +1057,7 @@ inline void APRAccess::initialize_structure_from_particle_cell_tree(const APR<T>
 
                 cumsum += local_sum;
 
-                if(i == apr.level_max()) {
+                if(i == level_max()) {
                     //need to deal with the boundary conditions.
                     xz_sum = cumsum - xz_sum;
 
@@ -1104,13 +1095,12 @@ inline void APRAccess::initialize_structure_from_particle_cell_tree(const APR<T>
 
     apr_timer.start_timer("insert");
 
-    allocate_map_insert(apr,y_begin);
+    allocate_map_insert(y_begin);
 
     apr_timer.stop_timer();
 }
 
-template<typename T>
-inline void APRAccess::initialize_tree_access(const APR<T> &apr, std::vector<PixelData<uint8_t>> &p_map) {
+inline void APRAccess::initialize_tree_access(APRAccess& APROwn_access, std::vector<PixelData<uint8_t>> &p_map) {
     APRTimer apr_timer(false);
 
 
@@ -1124,9 +1114,9 @@ inline void APRAccess::initialize_tree_access(const APR<T> &apr, std::vector<Pix
         z_num[i] = p_map[i].z_num;
     }
 
-    x_num[level_max()] = apr.apr_access.x_num[level_max()];
-    y_num[level_max()] = apr.apr_access.y_num[level_max()];
-    z_num[level_max()] = apr.apr_access.z_num[level_max()];
+    x_num[level_max()] = APROwn_access.x_num[level_max()];
+    y_num[level_max()] = APROwn_access.y_num[level_max()];
+    z_num[level_max()] = APROwn_access.z_num[level_max()];
 
     //initialize loop variables
     uint64_t x_;
@@ -1254,7 +1244,6 @@ inline void APRAccess::initialize_tree_access(const APR<T> &apr, std::vector<Pix
             for (x_ = 0; x_ < x_num_; x_++) {
                 const size_t offset_pc_data = x_num_ * z_ + x_;
 
-                uint64_t xz_sum=cumsum;
                 uint16_t local_sum = 0;
 
                 for (size_t j = 0; j < y_begin.data[i][offset_pc_data].size(); ++j) {
@@ -1291,28 +1280,23 @@ inline void APRAccess::initialize_tree_access(const APR<T> &apr, std::vector<Pix
     }
 
 
-    uint64_t explicit_store_tree = cumsum;
-
     total_number_particles = cumsum;
-
-
 
     const unsigned int x_num_ = x_num[level_max()];
     const unsigned int z_num_ = z_num[level_max()];
 
-    //set up the levels here.
-    uint64_t cumsum_begin = cumsum;
+    //set up the levels here
 
     global_index_by_level_and_zx_end[level_max()].resize(z_num_ * x_num_, 0);
 
     for (z_ = 0; z_ < z_num_; z_++) {
-        uint64_t cumsum_begin_z = cumsum;
+
 
         for (x_ = 0; x_ < x_num_; x_++) {
             const size_t offset_pc_data = x_num_ * z_ + x_;
 
-            if (apr.apr_access.gap_map.data[level_max()+1][offset_pc_data].size() > 0){
-                auto it = (apr.apr_access.gap_map.data[level_max()+1][offset_pc_data][0].map.rbegin());
+            if (APROwn_access.gap_map.data[level_max()+1][offset_pc_data].size() > 0){
+                auto it = (APROwn_access.gap_map.data[level_max()+1][offset_pc_data][0].map.rbegin());
                 cumsum += it->second.global_index_begin_offset/2 + (it->second.y_end - it->first+1)/2 + (it->second.y_end+1)%2;
                 //need to deal with odd domains where the last particle cell is required, hence the modulo
             }
@@ -1378,8 +1362,6 @@ inline void APRAccess::initialize_tree_access(const APR<T> &apr, std::vector<Pix
     }
 
     apr_timer.stop_timer();
-
-    //apr_timer.start_timer("type set up");
 
     total_number_non_empty_rows = counter_rows;
 

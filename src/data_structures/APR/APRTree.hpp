@@ -170,7 +170,7 @@ private:
         timer.stop_timer();
 
         timer.start_timer("tree - init tree");
-        tree_access.initialize_tree_access(apr,particle_cell_parent_tree);
+        tree_access.initialize_tree_access(apr.apr_access,particle_cell_parent_tree);
         timer.stop_timer();
     }
 public:
@@ -180,13 +180,9 @@ public:
         APRTimer timer;
         timer.verbose_flag = true;
 
-        uint64_t counter = 0;
-
-
         timer.start_timer("ds-init");
         tree_data.init(apr_tree.total_number_parent_cells());
 
-        //std::fill(tree_data.data.begin(), tree_data.data.end(), 0);
 
         APRTreeIterator treeIterator = apr_tree.tree_iterator();
         APRTreeIterator parentIterator = apr_tree.tree_iterator();

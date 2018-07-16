@@ -239,7 +239,7 @@ namespace TiffUtils {
         if (!aTiff.isFileOpened()) return;
 
         // Get some more data from TIFF needed during reading
-        const long stripSize = TIFFStripSize(aTiff.iFile);
+        //const long stripSize = TIFFStripSize(aTiff.iFile);
 
         // Read TIF to PixelData
         size_t currentOffset = 0;

@@ -207,7 +207,7 @@ public:
         //initialization of the iteration structures
         //this is required for parallel access
         auto apr_iterator = iterator();
-        uint64_t particle_number;
+
         parts.data.resize(apr_iterator.total_number_particles());
 
 

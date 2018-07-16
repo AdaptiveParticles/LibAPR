@@ -132,7 +132,7 @@ int main(int argc, char **argv) {
 //    //write output as tiff
 //    TiffUtils::saveMeshAsTiff(output_path, pc_img);
 
-    FileSizeInfo fileSizeInfo = aprB.write_apr(save_loc,file_name,6,9,2,true);
+    aprB.write_apr(save_loc,file_name,6,9,2,true);
 
     //FileSizeInfo fileSizeInfo2 = apr.write_apr(save_loc,file_name,6,9,2,false);
 

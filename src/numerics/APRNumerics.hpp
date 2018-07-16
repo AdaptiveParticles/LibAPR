@@ -25,7 +25,6 @@ public:
         auto apr_iterator = apr.iterator();
         auto neighbour_iterator = apr.iterator();
 
-        uint64_t particle_number;
 
         const std::vector<std::vector<uint8_t>> group_directions = {{0,1},{2,3},{4,5}}; // Neighbour Particle Cell Face definitions [+y,-y,+x,-x,+z,-z] =  [0,1,2,3,4,5]
         const std::vector<float> sign = {1.0,-1.0};

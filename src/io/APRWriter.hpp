@@ -225,7 +225,7 @@ public:
 
             timer.start_timer("map building");
 
-            apr.apr_access.rebuild_map(apr, *map_data);
+            apr.apr_access.rebuild_map(*map_data);
 
             timer.stop_timer();
         }
@@ -291,7 +291,7 @@ public:
                 map_data_tree->z.resize(apr.apr_tree.tree_access.total_number_non_empty_rows);
                 readData(AprTypes::MapZType, f.objectIdTree, map_data_tree->z.data());
 
-                apr.apr_tree.tree_access.rebuild_map(apr, *map_data_tree, true);
+                apr.apr_tree.tree_access.rebuild_map_tree(*map_data_tree,apr.apr_access);
 
                 //Important needs linking to the APR
                 apr.apr_tree.APROwn = &apr;

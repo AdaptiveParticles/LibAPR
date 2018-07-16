@@ -144,7 +144,6 @@ void APRRaycaster::perform_raycast(APR<U>& apr,ExtraParticleData<S>& particle_da
 
     //initialize the iterator
     APRIterator apr_iterator(apr.apr_access);
-    uint64_t particle_number;
 
     if(jitter){
 
