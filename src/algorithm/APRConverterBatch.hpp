@@ -125,8 +125,6 @@ bool APRConverterBatch<ImageType>::get_apr_batch_method_from_file(APR<ImageType>
 
     ps.initialize_particle_cell_tree(aAPR.apr_access);
 
-//    uint64_t ghost_x = 0;
-//    uint64_t ghost_y = 0;
     uint64_t ghost_z = 5;
 
     for (int i = 0; i < num_patches; ++i) {
@@ -156,15 +154,12 @@ bool APRConverterBatch<ImageType>::get_apr_batch_method_from_file(APR<ImageType>
         patches[i].y_begin_global = 0;
         patches[i].y_end_global = y_num;
 
-
         uint64_t ghost_z_l = std::min((uint64_t)z_0,ghost_z);
         uint64_t ghost_z_r = std::min((int)z_num - z_f,ghost_z);
-
 
         patches[i].z_begin = ghost_z_l;
         patches[i].z_end = ghost_z_l + (z_f - z_0) -1; //inclusive
         patches[i].z_offset = z_slices*(i) - ghost_z_l;
-
 
         //padded image size
         patches[i].x_begin_ghost = 0;
@@ -175,7 +170,6 @@ bool APRConverterBatch<ImageType>::get_apr_batch_method_from_file(APR<ImageType>
 
         patches[i].z_begin_ghost = z_0 - ghost_z_l;
         patches[i].z_end_ghost =  z_f + ghost_z_r;
-
 
         //size_t number_slices = patches[i].z_end  + 1 - z_slices*(i);
 
