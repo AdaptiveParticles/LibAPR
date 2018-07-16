@@ -23,6 +23,8 @@ struct cmdLineOptions{
     bool output_steps = false;
     unsigned int compress_level = 2;
     unsigned int compress_type = 0;
+    bool store_tree = false;
+    float quantization_factor = 0.5;
 
     float Ip_th = -1;
     float SNR_min = -1;

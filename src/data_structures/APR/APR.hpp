@@ -10,11 +10,14 @@
 #include "numerics/APRCompress.hpp"
 #include "numerics/APRReconstruction.hpp"
 #include "algorithm/APRConverter.hpp"
-#include "APRIterator.hpp"
+
 
 #include "io/APRWriter.hpp"
 #include "APRAccess.hpp"
 #include "ExtraParticleData.hpp"
+#include "APRTree.hpp"
+
+#include "APRIterator.hpp"
 
 template<typename ImageType>
 class APR {
@@ -27,6 +30,7 @@ public:
     APRAccess apr_access;
     APRConverter<ImageType> apr_converter;
     APRCompress<ImageType> apr_compress;
+    APRTree<ImageType> apr_tree;
 
     ExtraParticleData<ImageType> particles_intensities;
     std::string name;
@@ -76,17 +80,21 @@ public:
         apr_writer.read_apr(*this,file_name);
     }
 
+    void read_apr(std::string file_name,bool read_tree,unsigned int max_level_delta){
+        apr_writer.read_apr(*this,file_name,read_tree,max_level_delta);
+    }
+
     FileSizeInfo write_apr(std::string save_loc,std::string file_name){
         return apr_writer.write_apr(*this, save_loc,file_name);
     }
 
-    FileSizeInfo write_apr(std::string save_loc,std::string file_name,APRCompress<ImageType>& apr_compressor,unsigned int blosc_comp_type,unsigned int blosc_comp_level,unsigned int blosc_shuffle){
-        return apr_writer.write_apr((*this),save_loc, file_name, apr_compressor,blosc_comp_type ,blosc_comp_level,blosc_shuffle);
+    FileSizeInfo write_apr(std::string save_loc,std::string file_name,APRCompress<ImageType>& apr_compressor,unsigned int blosc_comp_type,unsigned int blosc_comp_level,unsigned int blosc_shuffle,bool write_tree = false){
+        return apr_writer.write_apr((*this),save_loc, file_name, apr_compressor,blosc_comp_type ,blosc_comp_level,blosc_shuffle,write_tree);
     }
 
-    FileSizeInfo write_apr(std::string save_loc,std::string file_name,unsigned int blosc_comp_type,unsigned int blosc_comp_level,unsigned int blosc_shuffle){
+    FileSizeInfo write_apr(std::string save_loc,std::string file_name,unsigned int blosc_comp_type,unsigned int blosc_comp_level,unsigned int blosc_shuffle,bool write_tree = false){
 
-        return apr_writer.write_apr((*this),save_loc, file_name, this->apr_compress,blosc_comp_type ,blosc_comp_level,blosc_shuffle);
+        return apr_writer.write_apr((*this),save_loc, file_name, this->apr_compress,blosc_comp_type ,blosc_comp_level,blosc_shuffle,write_tree);
     }
 
     //generate APR that can be read by paraview
@@ -125,7 +133,7 @@ public:
     }
 
     template<typename U>
-    void interp_depth_ds(PixelData<U>& img){
+    void interp_level_ds(PixelData<U>& img){
         //
         //  Returns an image of the depth, this is down-sampled by one, as the Particle Cell solution reflects this
         //
@@ -134,7 +142,7 @@ public:
     }
 
     template<typename U>
-    void interp_depth(PixelData<U>& img){
+    void interp_level(PixelData<U>& img){
         //
         //  Returns an image of the depth, this is down-sampled by one, as the Particle Cell solution reflects this
         //
@@ -142,14 +150,6 @@ public:
         apr_recon.interp_level((*this), img);
     }
 
-    template<typename U>
-    void interp_type(PixelData<U>& img){
-        //
-        //  Interpolates the APR
-        //
-
-        apr_recon.interp_type((*this),img);
-    }
 
     template<typename U,typename V>
     void interp_parts_smooth(PixelData<U>& out_image,ExtraParticleData<V>& interp_data,std::vector<float> scale_d = {2,2,2}){
@@ -172,14 +172,28 @@ public:
         auto apr_iterator = iterator();
         parts.data.resize(apr_iterator.total_number_particles());
 
+        std::cout << "Total number of particles: " << apr_iterator.total_number_particles() << std::endl;
+
+        for (unsigned int level = apr_iterator.level_min(); level <= apr_iterator.level_max(); ++level) {
+            int z = 0;
+            int x = 0;
+
 #ifdef HAVE_OPENMP
-#pragma omp parallel for schedule(static) firstprivate(apr_iterator)
+#pragma omp parallel for schedule(dynamic) private(z, x) firstprivate(apr_iterator)
 #endif
-        for (uint64_t particle_number = 0; particle_number < apr_iterator.total_number_particles(); ++particle_number) {
-            //needed step for any parallel loop (update to the next part)
-            apr_iterator.set_iterator_to_particle_by_number(particle_number);
-            parts[apr_iterator] = img_by_level[apr_iterator.level()].at(apr_iterator.y(),apr_iterator.x(),apr_iterator.z());
+            for (z = 0; z < apr_iterator.spatial_index_z_max(level); z++) {
+                for (x = 0; x < apr_iterator.spatial_index_x_max(level); ++x) {
+                    for (apr_iterator.set_new_lzx(level, z, x);
+                         apr_iterator.global_index() < apr_iterator.end_index;
+                         apr_iterator.set_iterator_to_particle_next_particle()) {
+
+                        parts[apr_iterator] = img_by_level[apr_iterator.level()].at(apr_iterator.y(),apr_iterator.x(),apr_iterator.z());
+
+                    }
+                }
+            }
         }
+
     }
 
     template<typename U,typename V>
@@ -193,19 +207,29 @@ public:
         //initialization of the iteration structures
         //this is required for parallel access
         auto apr_iterator = iterator();
-        uint64_t particle_number;
+
         parts.data.resize(apr_iterator.total_number_particles());
 
 
+        for (unsigned int level = apr_iterator.level_min(); level <= apr_iterator.level_max(); ++level) {
+            int z = 0;
+            int x = 0;
+
 #ifdef HAVE_OPENMP
-#pragma omp parallel for schedule(static) private(particle_number) firstprivate(apr_iterator)
+#pragma omp parallel for schedule(dynamic) private(z, x) firstprivate(apr_iterator)
 #endif
-        for (particle_number = 0; particle_number < apr_iterator.total_number_particles(); ++particle_number) {
-            //needed step for any parallel loop (update to the next part)
-            apr_iterator.set_iterator_to_particle_by_number(particle_number);
+            for (z = 0; z < apr_iterator.spatial_index_z_max(level); z++) {
+                for (x = 0; x < apr_iterator.spatial_index_x_max(level); ++x) {
+                    for (apr_iterator.set_new_lzx(level, z, x);
+                         apr_iterator.global_index() < apr_iterator.end_index;
+                         apr_iterator.set_iterator_to_particle_next_particle()) {
 
-            parts[apr_iterator] = img.at(apr_iterator.y_nearest_pixel(),apr_iterator.x_nearest_pixel(),apr_iterator.z_nearest_pixel());
+                        parts[apr_iterator] = img.at(apr_iterator.y_nearest_pixel(), apr_iterator.x_nearest_pixel(),
+                                                     apr_iterator.z_nearest_pixel());
 
+                    }
+                }
+            }
         }
 
     }

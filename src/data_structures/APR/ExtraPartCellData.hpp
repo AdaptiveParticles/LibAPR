@@ -14,6 +14,8 @@
 template<typename V>
 class APR;
 
+class APRAccess;
+
 template<typename T>
 class ExtraPartCellData {
     
@@ -23,6 +25,7 @@ public:
 
     std::vector<uint64_t> z_num;
     std::vector<uint64_t> x_num;
+
     std::vector<std::vector<std::vector<T>>> data; // [level][x_num(level) * z + x][y]
 
     ExtraPartCellData() {}
@@ -48,6 +51,7 @@ public:
             data[i].resize(z_num[i]*x_num[i]);
         }
     }
+
 
 private:
 
