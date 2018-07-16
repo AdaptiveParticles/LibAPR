@@ -123,7 +123,7 @@ bool APRConverterBatch<ImageType>::get_apr_batch_method_from_file(APR<ImageType>
     //initialize_particle_cell_tree(aAPR);
     method_timer.stop_timer();
 
-    ps.initialize_particle_cell_tree(aAPR);
+    ps.initialize_particle_cell_tree(aAPR.apr_access);
 
     uint64_t ghost_x = 0;
     uint64_t ghost_y = 0;
@@ -202,7 +202,7 @@ bool APRConverterBatch<ImageType>::get_apr_batch_method_from_file(APR<ImageType>
 
     method_timer.start_timer("compute_apr_datastructure");
     //aAPR.apr_access.initialize_structure_from_particle_cell_tree_sparse(aAPR,particle_cell_tree);
-    aAPR.apr_access.initialize_structure_from_particle_cell_tree(aAPR,ps.particle_cell_tree);
+    aAPR.apr_access.initialize_structure_from_particle_cell_tree(aAPR,ps.getParticleCellTree());
     method_timer.stop_timer();
 
     aAPR.particles_intensities.data.resize(aAPR.total_number_particles());
@@ -219,7 +219,7 @@ bool APRConverterBatch<ImageType>::get_apr_batch_method_from_file(APR<ImageType>
 
        // std::copy(inputImage.mesh.begin() + offset_xy_begin,inputImage.mesh.begin() + offset_xy_end,patchImage.mesh.begin());
 
-        APRIterator<uint16_t> apr_iterator(aAPR);
+        APRIterator apr_iterator = aAPR.iterator();
 
         int x_begin = (int)patches[i].x_begin_global;
         int x_end =(int) patches[i].x_end_global;
@@ -523,7 +523,7 @@ void APRConverterBatch<ImageType>::get_local_particle_cell_set(PixelData<ImageTy
 
 
     //fill(l_max,local_scale_temp,patch);
-    fill_ps(l_max,local_scale_temp,patch,ps.particle_cell_tree);
+    fill_ps(l_max,local_scale_temp,patch,ps.getParticleCellTree());
     fine_grained_timer.stop_timer();
 
     fine_grained_timer.start_timer("level_loop_initialize_tree");
@@ -535,7 +535,7 @@ void APRConverterBatch<ImageType>::get_local_particle_cell_set(PixelData<ImageTy
                    [](const float &x) -> float { return x; }, true);
         //for those value of level k, add to the hash table
         //fill(l_,local_scale_temp2,patch);
-        fill_ps(l_,local_scale_temp2,patch,ps.particle_cell_tree);
+        fill_ps(l_,local_scale_temp2,patch,ps.getParticleCellTree());
         //assign the previous mesh to now be resampled.
         local_scale_temp.swap(local_scale_temp2);
     }
@@ -560,8 +560,8 @@ void APRConverterBatch<ImageType>::init_apr(APR<ImageType>& aAPR,const TiffUtils
     // TODO: why minimum level is forced here to be 2?
     int levelMin = std::max( (int)(levelMax - floor(std::log2(min_dim))), 2);
 
-    aAPR.apr_access.level_min = levelMin;
-    aAPR.apr_access.level_max = levelMax;
+    aAPR.apr_access.l_min = levelMin;
+    aAPR.apr_access.l_max = levelMax;
 
     aAPR.parameters = par;
 }

@@ -187,6 +187,7 @@ int main(int argc, char **argv) {
 
         ReconPatch reconPatch;
 
+
         reconPatch.x_begin = options.x_begin;
         reconPatch.x_end = options.x_end;
 
@@ -260,37 +261,7 @@ int main(int argc, char **argv) {
     ////////////////////////////
 
 
-//    if(options.output_level) {
-//
-//        //initialization of the iteration structures
-//        APRIterator<uint16_t> apr_iterator(apr); //this is required for parallel access
-//
-//        //create particle dataset
-//
-//        ExtraParticleData<uint16_t> level(apr);
-//
-//        timer.start_timer("APR parallel iterator loop");
-//#ifdef HAVE_OPENMP
-//#pragma omp parallel for schedule(static) firstprivate(apr_iterator)
-//#endif
-//        for (uint64_t particle_number = 0; particle_number < apr_iterator.total_number_particles(); ++particle_number) {
-//            //needed step for any parallel loop (update to the next part)
-//            apr_iterator.set_iterator_to_particle_by_number(particle_number);
-//
-//            level[apr_iterator] = apr_iterator.level();
-//        }
-//        timer.stop_timer();
-//
-//        // Intentionaly block-scoped since local type_recon will be destructed when block ends and release memory.
-//        {
-//            PixelData<uint8_t> type_recon;
-//
-//            //level
-//            //aprReconstruction.interp_image_patch(apr,aprTree,type_recon, level,reconPatch);
-//            TiffUtils::saveMeshAsTiff(options.directory + apr.name + "_level.tif", type_recon);
-//
-//        }
-//    }
+
 
 
 }

@@ -53,7 +53,7 @@ int main(int argc, char **argv) {
     //remove the file extension
     name.erase(name.end() - 3, name.end());
 
-    APRIterator<uint16_t> apr_iterator(apr);
+    auto apr_iterator = apr.iterator();
 
     ///////////////////////
     ///
@@ -204,7 +204,7 @@ int main(int argc, char **argv) {
                     for (int i = 0; i < ceil(0.2 * max_y); ++i) {
                         pc.y = (uint16_t) (rand() % max_y);
 
-                        bool found = apr_iterator.set_iterator_by_particle_cell_test(pc);
+                        //bool found = apr_iterator.set_iterator_by_particle_cell_test(pc);
                     }
                 }
             }

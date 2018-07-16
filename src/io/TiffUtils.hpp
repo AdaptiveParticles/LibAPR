@@ -6,6 +6,7 @@
 #ifndef TIFF_UTILS_HPP
 #define TIFF_UTILS_HPP
 
+#ifdef HAVE_LIBTIFF
 
 #include <string>
 #include <tiffio.h>
@@ -342,5 +343,7 @@ namespace TiffUtils {
         saveMeshAsTiff(filename, mesh16);
     }
 }
+
+#endif // HAVE_LIBTIFF
 
 #endif

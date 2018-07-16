@@ -6,23 +6,21 @@
 #define PARTPLAY_APR_HPP
 
 
-#include "../../misc/APRTimer.hpp"
-#include "../../algorithm/APRParameters.hpp"
-#include "../../numerics/APRCompress.hpp"
-#include "../../numerics/APRReconstruction.hpp"
-#include "../../algorithm/APRConverter.hpp"
+#include "algorithm/APRParameters.hpp"
+#include "numerics/APRCompress.hpp"
+#include "numerics/APRReconstruction.hpp"
+#include "algorithm/APRConverter.hpp"
 
-#include "../../io/APRWriter.hpp"
+
+#include "io/APRWriter.hpp"
 #include "APRAccess.hpp"
 #include "ExtraParticleData.hpp"
+#include "APRTree.hpp"
+
+#include "APRIterator.hpp"
 
 template<typename ImageType>
 class APR {
-
-    template<typename> friend class APRConverter;
-    template<typename> friend class APRIterator;
-    friend class APRWriter;
-    friend class PullingScheme;
 
     APRWriter apr_writer;
     APRReconstruction apr_recon;
@@ -40,8 +38,8 @@ public:
 
     unsigned int orginal_dimensions(int dim) const { return apr_access.org_dims[dim]; }
 
-    uint64_t level_max() const { return apr_access.level_max; }
-    uint64_t level_min() const { return apr_access.level_min; }
+    uint64_t level_max() const { return apr_access.l_max; }
+    uint64_t level_min() const { return apr_access.l_min; }
 
     inline uint64_t spatial_index_x_max(const unsigned int level) const { return apr_access.x_num[level]; }
     inline uint64_t spatial_index_y_max(const unsigned int level) const { return apr_access.y_num[level]; }
@@ -54,6 +52,10 @@ public:
     /// APR Generation Methods (Calls members of the APRConverter class)
     ///
     //////////////////////////////////
+
+    APRIterator iterator() {
+        return APRIterator(apr_access);
+    }
 
     bool get_apr(){
         //copy across parameters
@@ -148,14 +150,6 @@ public:
         apr_recon.interp_level((*this), img);
     }
 
-    template<typename U>
-    void interp_type(PixelData<U>& img){
-        //
-        //  Interpolates the APR
-        //
-
-        apr_recon.interp_type((*this),img);
-    }
 
     template<typename U,typename V>
     void interp_parts_smooth(PixelData<U>& out_image,ExtraParticleData<V>& interp_data,std::vector<float> scale_d = {2,2,2}){
@@ -174,7 +168,8 @@ public:
         //  Samples particles from an image using an image tree (img_by_level is a vector of images)
 
         //initialization of the iteration structures
-        APRIterator<ImageType> apr_iterator(*this); //this is required for parallel access
+         //this is required for parallel access
+        auto apr_iterator = iterator();
         parts.data.resize(apr_iterator.total_number_particles());
 
         std::cout << "Total number of particles: " << apr_iterator.total_number_particles() << std::endl;
@@ -210,20 +205,31 @@ public:
         //
 
         //initialization of the iteration structures
-        APRIterator<ImageType> apr_iterator(*this); //this is required for parallel access
+        //this is required for parallel access
+        auto apr_iterator = iterator();
         uint64_t particle_number;
         parts.data.resize(apr_iterator.total_number_particles());
 
 
+        for (unsigned int level = apr_iterator.level_min(); level <= apr_iterator.level_max(); ++level) {
+            int z = 0;
+            int x = 0;
+
 #ifdef HAVE_OPENMP
-#pragma omp parallel for schedule(static) private(particle_number) firstprivate(apr_iterator)
+#pragma omp parallel for schedule(dynamic) private(z, x) firstprivate(apr_iterator)
 #endif
-        for (particle_number = 0; particle_number < apr_iterator.total_number_particles(); ++particle_number) {
-            //needed step for any parallel loop (update to the next part)
-            apr_iterator.set_iterator_to_particle_by_number(particle_number);
+            for (z = 0; z < apr_iterator.spatial_index_z_max(level); z++) {
+                for (x = 0; x < apr_iterator.spatial_index_x_max(level); ++x) {
+                    for (apr_iterator.set_new_lzx(level, z, x);
+                         apr_iterator.global_index() < apr_iterator.end_index;
+                         apr_iterator.set_iterator_to_particle_next_particle()) {
 
-            parts[apr_iterator] = img.at(apr_iterator.y_nearest_pixel(),apr_iterator.x_nearest_pixel(),apr_iterator.z_nearest_pixel());
+                        parts[apr_iterator] = img.at(apr_iterator.y_nearest_pixel(), apr_iterator.x_nearest_pixel(),
+                                                     apr_iterator.z_nearest_pixel());
 
+                    }
+                }
+            }
         }
 
     }

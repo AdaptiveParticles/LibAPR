@@ -50,10 +50,10 @@ int main(int argc, char **argv) {
     ///
     /////////////////////////////////
 
-    ExtraParticleData<uint16_t> neigh_avg(apr);
+    ExtraParticleData<uint16_t> neigh_avg(apr.total_number_particles());
 
-    APRIterator<uint16_t> neighbour_iterator(apr);
-    APRIterator<uint16_t> apr_iterator(apr);
+    auto neighbour_iterator = apr.iterator();
+    auto apr_iterator = apr.iterator();
 
 
     timer.start_timer("APR serial iterator neighbours loop");
@@ -110,7 +110,7 @@ int main(int argc, char **argv) {
 
     //initialization of the iteration structures
 
-    ExtraParticleData<float> neigh_xm(apr);
+    ExtraParticleData<float> neigh_xm(apr.total_number_particles());
 
     timer.start_timer("APR parallel iterator neighbour loop");
 
@@ -151,7 +151,7 @@ int main(int argc, char **argv) {
      *  Access only one directions neighbour
      */
 
-    ExtraParticleData<float> type_sum(apr);
+    ExtraParticleData<float> type_sum(apr.total_number_particles());
 
     timer.start_timer("APR parallel iterator neighbour loop x direction");
 
@@ -179,8 +179,7 @@ int main(int argc, char **argv) {
                         // from 0 to 4 neighbours
                         if (neighbour_iterator.set_neighbour_iterator(apr_iterator, direction, index)) {
                             //access data and perform a conditional sum (neighbour_iterator has all access like the normal iterator)
-                            if ((neighbour_iterator.type() == 1) &
-                                (neighbour_iterator.level() <= neighbour_iterator.level_max())) {
+                            if (neighbour_iterator.level() <= neighbour_iterator.level_max()) {
                                 type_sum[apr_iterator] +=
                                         apr.particles_intensities[neighbour_iterator];
                             }

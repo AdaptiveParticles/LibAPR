@@ -1,6 +1,7 @@
 # Adds staticLib to provided (existing) static target. Useful for merging all dependencies to
 # one fat static lib.
 # Use: addStaticLibs(libStatic someStaticLibToMerge [evenMoreStaticLibsIfNeeded])
+
 function(addStaticLibs outLibTarget)
     get_target_property(libtype ${outLibTarget} TYPE)
     if(NOT libtype STREQUAL "STATIC_LIBRARY")

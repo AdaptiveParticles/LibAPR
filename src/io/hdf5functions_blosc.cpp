@@ -183,11 +183,11 @@ void write_main_paraview_xdmf_xml(const std::string &aDestinationDir,const std::
     myfile <<  "        " << aHdf5FileName << ":/ParticleRepr/t/level\n";
     myfile <<  "       </DataItem>\n";
     myfile <<  "    </Attribute>\n";
-    myfile <<  "     <Attribute Name=\"type\" AttributeType=\"Scalar\" Center=\"Node\">\n";
-    myfile <<  "       <DataItem Dimensions=\""<< aNumOfParticles <<"\" NumberType=\"UInt\" Precision=\"1\" Format=\"HDF\">\n";
-    myfile <<  "        " << aHdf5FileName << ":/ParticleRepr/t/type\n";
-    myfile <<  "       </DataItem>\n";
-    myfile <<  "    </Attribute>\n";
+//    myfile <<  "     <Attribute Name=\"type\" AttributeType=\"Scalar\" Center=\"Node\">\n";
+//    myfile <<  "       <DataItem Dimensions=\""<< aNumOfParticles <<"\" NumberType=\"UInt\" Precision=\"1\" Format=\"HDF\">\n";
+//    myfile <<  "        " << aHdf5FileName << ":/ParticleRepr/t/type\n";
+//    myfile <<  "       </DataItem>\n";
+//    myfile <<  "    </Attribute>\n";
     myfile <<  "   </Grid>\n";
     myfile <<  " </Domain>\n";
     myfile <<  "</Xdmf>\n";

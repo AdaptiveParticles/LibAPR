@@ -6,8 +6,8 @@
 #define APRWRITER_HPP
 
 #include "hdf5functions_blosc.h"
-#include "../data_structures/APR/APR.hpp"
-#include "../data_structures/APR/APRAccess.hpp"
+#include "data_structures/APR/APR.hpp"
+#include "data_structures/APR/APRAccess.hpp"
 #include "ConfigAPR.h"
 #include <numeric>
 #include <memory>
@@ -115,23 +115,26 @@ public:
 
         readAttr(AprTypes::TotalNumberOfParticlesType, f.groupId, &apr.apr_access.total_number_particles);
         readAttr(AprTypes::TotalNumberOfGapsType, f.groupId, &apr.apr_access.total_number_gaps);
-        readAttr(AprTypes::MaxLevelType, f.groupId, &apr.apr_access.level_max);
-        readAttr(AprTypes::MinLevelType, f.groupId, &apr.apr_access.level_min);
+
+        readAttr(AprTypes::MaxLevelType, f.groupId, &apr.apr_access.l_max);
+        readAttr(AprTypes::MinLevelType, f.groupId, &apr.apr_access.l_min);
 
         int compress_type;
         readAttr(AprTypes::CompressionType, f.groupId, &compress_type);
         float quantization_factor;
         readAttr(AprTypes::QuantizationFactorType, f.groupId, &quantization_factor);
 
+
         bool read_structure = true;
 
         if((old_particles == apr.apr_access.total_number_particles) && (old_gaps == apr.apr_access.total_number_gaps) && (build_tree)){
             read_structure = false;
+
         }
 
         //incase you ask for to high a level delta
         max_level_delta = std::max(max_level_delta,0);
-        max_level_delta = std::min(max_level_delta,(int)apr.apr_access.level_max);
+        max_level_delta = std::min(max_level_delta,(int)apr.apr_access.level_max());
 
         if(read_structure) {
             readAttr(AprTypes::TotalNumberOfNonEmptyRowsType, f.groupId, &apr.apr_access.total_number_non_empty_rows);
@@ -157,11 +160,11 @@ public:
                      &apr.parameters.background_intensity_estimate);
             readAttr(AprTypes::NoiseSdEstimateType, f.groupId, &apr.parameters.noise_sd_estimate);
 
-            apr.apr_access.x_num.resize(apr.apr_access.level_max + 1);
-            apr.apr_access.y_num.resize(apr.apr_access.level_max + 1);
-            apr.apr_access.z_num.resize(apr.apr_access.level_max + 1);
+            apr.apr_access.x_num.resize(apr.apr_access.level_max() + 1);
+            apr.apr_access.y_num.resize(apr.apr_access.level_max() + 1);
+            apr.apr_access.z_num.resize(apr.apr_access.level_max() + 1);
 
-            for (size_t i = apr.apr_access.level_min; i < apr.apr_access.level_max; i++) {
+            for (size_t i = apr.apr_access.level_min(); i < apr.apr_access.level_max(); i++) {
                 int x_num, y_num, z_num;
                 //TODO: x_num and other should have HDF5 type uint64?
                 readAttr(AprTypes::NumberOfLevelXType, i, f.groupId, &x_num);
@@ -172,9 +175,9 @@ public:
                 apr.apr_access.z_num[i] = z_num;
             }
 
-            apr.apr_access.y_num[apr.apr_access.level_max] = apr.apr_access.org_dims[0];
-            apr.apr_access.x_num[apr.apr_access.level_max] = apr.apr_access.org_dims[1];
-            apr.apr_access.z_num[apr.apr_access.level_max] = apr.apr_access.org_dims[2];
+            apr.apr_access.y_num[apr.apr_access.level_max()] = apr.apr_access.org_dims[0];
+            apr.apr_access.x_num[apr.apr_access.level_max()] = apr.apr_access.org_dims[1];
+            apr.apr_access.z_num[apr.apr_access.level_max()] = apr.apr_access.org_dims[2];
 
             // ------------- map handling ----------------------------
 
@@ -227,8 +230,8 @@ public:
             timer.stop_timer();
         }
 
-        uint64_t max_read_level = apr.apr_access.level_max-max_level_delta;
-        uint64_t max_read_level_tree = std::min(apr.apr_access.level_max-1,max_read_level);
+        uint64_t max_read_level = apr.apr_access.level_max()-max_level_delta;
+        uint64_t max_read_level_tree = std::min(apr.apr_access.level_max()-1,max_read_level);
         uint64_t prev_read_level = 0;
 
         if(build_tree){
@@ -239,14 +242,14 @@ public:
 
                 timer.start_timer("build tree - map");
 
-                apr.apr_tree.tree_access.level_max = apr.level_max() - 1;
-                apr.apr_tree.tree_access.level_min = apr.level_min() - 1;
+                apr.apr_tree.tree_access.l_max = apr.level_max() - 1;
+                apr.apr_tree.tree_access.l_min = apr.level_min() - 1;
 
-                apr.apr_tree.tree_access.x_num.resize(apr.apr_tree.tree_access.level_max + 1);
-                apr.apr_tree.tree_access.z_num.resize(apr.apr_tree.tree_access.level_max + 1);
-                apr.apr_tree.tree_access.y_num.resize(apr.apr_tree.tree_access.level_max + 1);
+                apr.apr_tree.tree_access.x_num.resize(apr.apr_tree.tree_access.level_max() + 1);
+                apr.apr_tree.tree_access.z_num.resize(apr.apr_tree.tree_access.level_max() + 1);
+                apr.apr_tree.tree_access.y_num.resize(apr.apr_tree.tree_access.level_max() + 1);
 
-                for (int i = apr.apr_tree.tree_access.level_min; i <= apr.apr_tree.tree_access.level_max; ++i) {
+                for (int i = apr.apr_tree.tree_access.level_min(); i <= apr.apr_tree.tree_access.level_max(); ++i) {
                     apr.apr_tree.tree_access.x_num[i] = apr.spatial_index_x_max(i);
                     apr.apr_tree.tree_access.y_num[i] = apr.spatial_index_y_max(i);
                     apr.apr_tree.tree_access.z_num[i] = apr.spatial_index_z_max(i);
@@ -290,11 +293,11 @@ public:
 
                 apr.apr_tree.tree_access.rebuild_map(apr, *map_data_tree, true);
 
+                //Important needs linking to the APR
+                apr.apr_tree.APROwn = &apr;
 
                 timer.stop_timer();
             }
-
-
 
             if(!read_structure) {
                 uint64_t current_parts_size = apr.apr_tree.particles_ds_tree.data.size();
@@ -356,6 +359,7 @@ public:
             readData(AprTypes::ParticleIntensitiesType, f.objectId, apr.particles_intensities.data.data() + parts_start,parts_start,parts_end);
         }
 
+
         timer.stop_timer();
 
         std::cout << "Data rate intensities: " << (apr.particles_intensities.data.size()*2)/(timer.timings.back()*1000000.0f) << " MB/s" << std::endl;
@@ -415,8 +419,8 @@ public:
         writeString(AprTypes::NameType, f.groupId, (apr.name.size() == 0) ? "no_name" : apr.name);
         writeString(AprTypes::GitType, f.groupId, ConfigAPR::APR_GIT_HASH);
         writeAttr(AprTypes::TotalNumberOfParticlesType, f.groupId, &apr.apr_access.total_number_particles);
-        writeAttr(AprTypes::MaxLevelType, f.groupId, &apr.apr_access.level_max);
-        writeAttr(AprTypes::MinLevelType, f.groupId, &apr.apr_access.level_min);
+        writeAttr(AprTypes::MaxLevelType, f.groupId, &apr.apr_access.l_max);
+        writeAttr(AprTypes::MinLevelType, f.groupId, &apr.apr_access.l_min);
 
         int compress_type_num = apr_compressor.get_compression_type();
         writeAttr(AprTypes::CompressionType, f.groupId, &compress_type_num);
@@ -466,7 +470,6 @@ public:
                 apr.apr_tree.init(apr);
                 apr.apr_tree.fill_tree_mean_downsample(apr.particles_intensities);
             }
-
 
             writeAttr(AprTypes::TotalNumberOfGapsType, f.objectIdTree, &apr.apr_tree.tree_access.total_number_gaps);
             writeAttr(AprTypes::TotalNumberOfNonEmptyRowsType, f.objectIdTree, &apr.apr_tree.tree_access.total_number_non_empty_rows);
@@ -552,36 +555,45 @@ public:
 
         writeString(AprTypes::NameType, f.groupId, (apr.name.size() == 0) ? "no_name" : apr.name);
         writeString(AprTypes::GitType, f.groupId, ConfigAPR::APR_GIT_HASH);
-        writeAttr(AprTypes::MaxLevelType, f.groupId, &apr.apr_access.level_max);
-        writeAttr(AprTypes::MinLevelType, f.groupId, &apr.apr_access.level_min);
+        writeAttr(AprTypes::MaxLevelType, f.groupId, &apr.apr_access.l_max);
+        writeAttr(AprTypes::MinLevelType, f.groupId, &apr.apr_access.l_min);
         writeAttr(AprTypes::TotalNumberOfParticlesType, f.groupId, &apr.apr_access.total_number_particles);
 
         // ------------- write data ----------------------------
         writeDataStandard({(Hdf5Type<T>::type()), AprTypes::ParticlePropertyType}, f.objectId, parts.data);
 
-        APRIterator<ImageType> apr_iterator(apr);
+        auto apr_iterator = apr.iterator();
         std::vector<uint16_t> xv(apr_iterator.total_number_particles());
         std::vector<uint16_t> yv(apr_iterator.total_number_particles());
         std::vector<uint16_t> zv(apr_iterator.total_number_particles());
         std::vector<uint8_t> levelv(apr_iterator.total_number_particles());
-        std::vector<uint8_t> typev(apr_iterator.total_number_particles());
+        //std::vector<uint8_t> typev(apr_iterator.total_number_particles());
+
+        for (unsigned int level = apr_iterator.level_min(); level <= apr_iterator.level_max(); ++level) {
+            int z = 0;
+            int x = 0;
 
 #ifdef HAVE_OPENMP
-#pragma omp parallel for schedule(static) firstprivate(apr_iterator)
+#pragma omp parallel for schedule(dynamic) private(z, x) firstprivate(apr_iterator)
 #endif
-        for (uint64_t particle_number= 0; particle_number < apr_iterator.total_number_particles(); ++particle_number) {
-            apr_iterator.set_iterator_to_particle_by_number(particle_number);
-            xv[particle_number] = apr_iterator.x_global();
-            yv[particle_number] = apr_iterator.y_global();
-            zv[particle_number] = apr_iterator.z_global();
-            levelv[particle_number] = apr_iterator.level();
-            typev[particle_number] = apr_iterator.type();
+            for (z = 0; z < apr_iterator.spatial_index_z_max(level); z++) {
+                for (x = 0; x < apr_iterator.spatial_index_x_max(level); ++x) {
+                    for (apr_iterator.set_new_lzx(level, z, x); apr_iterator.global_index() < apr_iterator.end_index;
+                         apr_iterator.set_iterator_to_particle_next_particle()) {
+                        xv[apr_iterator.global_index()] = apr_iterator.x_global();
+                        yv[apr_iterator.global_index()] = apr_iterator.y_global();
+                        zv[apr_iterator.global_index()] = apr_iterator.z_global();
+                        levelv[apr_iterator.global_index()] = apr_iterator.level();
+                    }
+                }
+            }
         }
+
         writeDataStandard(AprTypes::ParaviewXType, f.objectId, xv);
         writeDataStandard(AprTypes::ParaviewYType, f.objectId, yv);
         writeDataStandard(AprTypes::ParaviewZType, f.objectId, zv);
         writeDataStandard(AprTypes::ParaviewLevelType, f.objectId, levelv);
-        writeDataStandard(AprTypes::ParaviewTypeType, f.objectId, typev);
+        //writeDataStandard(AprTypes::ParaviewTypeType, f.objectId, typev);
 
         // TODO: This needs to be able extended to handle more general type, currently it is assuming uint16
         write_main_paraview_xdmf_xml(save_loc,hdf5_file_name, file_name,apr_iterator.total_number_particles());

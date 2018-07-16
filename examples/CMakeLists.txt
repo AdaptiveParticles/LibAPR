@@ -11,7 +11,9 @@ buildTarget(Example_produce_paraview_file)
 buildTarget(Example_apr_neighbour_access)
 buildTarget(Example_compute_gradient)
 buildTarget(Example_random_access)
-buildTarget(Example_ray_cast)
+
 buildTarget(Example_reconstruct_patch)
 buildTarget(Example_apr_tree)
 buildTarget(Example_get_apr_by_block)
+
+#buildTarget(Example_ray_cast)

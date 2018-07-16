@@ -54,15 +54,16 @@ int main(int argc, char **argv) {
     //remove the file extension
     name.erase(name.end() - 3, name.end());
 
-    APRTreeIterator<uint16_t> apr_tree_iterator(apr);
-
     apr.apr_tree.init(apr);
 
     apr.apr_tree.fill_tree_mean_downsample(apr.particles_intensities);
 
+    //must come after initialized. #FIXME is there a way to avoid this?
+    APRTreeIterator apr_tree_iterator = apr.apr_tree.tree_iterator();
+
     timer.start_timer("APR interior tree loop");
 
-    ExtraParticleData<uint16_t> partsTreelevel(apr.apr_tree);
+    ExtraParticleData<uint16_t> partsTreelevel(apr.apr_tree.total_number_parent_cells());
 
     //iteration over the interior tree is identical to that over the standard APR, simply using the APRTreeIterator.
 
@@ -94,7 +95,7 @@ int main(int argc, char **argv) {
 
     //Also neighbour access can be done between neighboring particle cells on the same level
 
-    APRTreeIterator<uint16_t> neigh_tree_iterator(apr);
+    APRTreeIterator neigh_tree_iterator = apr.apr_tree.tree_iterator();
 
     timer.start_timer("APR parallel iterator neighbour loop");
 
@@ -103,7 +104,7 @@ int main(int argc, char **argv) {
         int x = 0;
 
 #ifdef HAVE_OPENMP
-#pragma omp parallel for schedule(dynamic) private(z, x) firstprivate(apr_iterator,neighbour_iterator)
+#pragma omp parallel for schedule(dynamic) private(z, x) firstprivate(apr_tree_iterator,neigh_tree_iterator)
 #endif
         for (z = 0; z < apr_tree_iterator.spatial_index_z_max(level); z++) {
             for (x = 0; x < apr_tree_iterator.spatial_index_x_max(level); ++x) {

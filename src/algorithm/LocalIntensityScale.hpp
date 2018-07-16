@@ -5,6 +5,7 @@
 #ifndef PARTPLAY_LOCAL_INTENSITY_SCALE_HPP
 #define PARTPLAY_LOCAL_INTENSITY_SCALE_HPP
 
+#include "data_structures/Mesh/PixelData.hpp"
 #include "APRParameters.hpp"
 
 class LocalIntensityScale {

@@ -11,7 +11,10 @@
 
 #include <vector>
 
-template<typename V> class APR;
+template<typename V>
+class APR;
+
+class APRAccess;
 
 template<typename T>
 class ExtraPartCellData {
@@ -48,6 +51,7 @@ public:
             data[i].resize(z_num[i]*x_num[i]);
         }
     }
+
 
 private:
 

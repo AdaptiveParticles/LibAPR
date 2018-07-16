@@ -6,24 +6,27 @@
 #define LIBAPR_APRTREE_HPP
 
 //#include "numerics/APRTreeNumerics.hpp"
+#include "APRTreeIterator.hpp"
 #include "APR.hpp"
+
 
 
 #define INTERIOR_PARENT 9
 
-template<typename S> class APRTreeIterator;
+class APRTreeIterator;
+class APRIterator;
 
 template<typename ImageType>
 class APRTree {
-    template<typename S> friend class APRIterator;
-    template<typename S> friend class APRTreeIterator;
-    template<typename S> friend class APRWriter;
-    template<typename S> friend class APR;
+    friend class APRIterator;
+    friend class APRTreeIterator;
+    friend class APRWriter;
 
 public:
 
     APRTree() {};
     APRTree(APR<ImageType> &apr) { initialize_apr_tree(apr); APROwn = &apr; }
+
 
     void init(APR<ImageType> &apr) { initialize_apr_tree(apr); APROwn = &apr;}
 
@@ -31,12 +34,18 @@ public:
 
     ExtraParticleData<ImageType> particles_ds_tree; //down-sampled tree intensities
 
+    operator uint64_t() { return total_number_parent_cells(); }
+
+
     APRAccess tree_access;
+
+    APRTreeIterator tree_iterator() {
+        return APRTreeIterator(APROwn->apr_access,tree_access);
+    }
 
     template<typename S>
     void fill_tree_mean_downsample(ExtraParticleData<S>& input_particles){
         this->fill_tree_mean(*APROwn,*this,input_particles,particles_ds_tree); //down-sampled tree intensities
-
     }
 
 private:
@@ -47,6 +56,8 @@ private:
 
         APRTimer timer(true);
 
+        auto apr_iterator = apr.iterator();
+
         // --------------------------------------------------------------------
         // Init APR tree memory
         // --------------------------------------------------------------------
@@ -54,8 +65,9 @@ private:
         // extend one extra level
         uint64_t l_max = apr.level_max() - 1;
         uint64_t l_min = apr.level_min() - 1;
-        tree_access.level_min = l_min;
-        tree_access.level_max = l_max;
+
+        tree_access.l_min = l_min;
+        tree_access.l_max = l_max;
 
         std::vector<PixelData<uint8_t>> particle_cell_parent_tree(l_max);
 
@@ -75,7 +87,6 @@ private:
         // --------------------------------------------------------------------
         timer.start_timer("tree - insert vals");
 
-        APRIterator<ImageType> apr_iterator(apr);
 
         //note the use of the dynamic OpenMP schedule.
 
@@ -169,16 +180,18 @@ public:
         APRTimer timer;
         timer.verbose_flag = true;
 
+        uint64_t counter = 0;
+
 
         timer.start_timer("ds-init");
-        tree_data.init_tree(apr_tree);
+        tree_data.init(apr_tree.total_number_parent_cells());
 
         //std::fill(tree_data.data.begin(), tree_data.data.end(), 0);
 
-        APRTreeIterator<T> treeIterator(apr);
-        APRTreeIterator<T> parentIterator(apr);
+        APRTreeIterator treeIterator = apr_tree.tree_iterator();
+        APRTreeIterator parentIterator = apr_tree.tree_iterator();
 
-        APRIterator<T> apr_iterator(apr);
+        APRIterator apr_iterator = apr.iterator();
 
         int z_d;
         int x_d;
@@ -222,6 +235,7 @@ public:
                                 while (parentIterator.y() != (apr_iterator.y() / 2)) {
                                     parentIterator.set_iterator_to_particle_next_particle();
                                 }
+
 
                                 if (parentIterator.y() == (parentIterator.spatial_index_y_max(level - 1) - 1)) {
                                     tree_data[parentIterator] =
@@ -297,6 +311,7 @@ public:
         }
         timer.stop_timer();
     }
+
 
 };
 

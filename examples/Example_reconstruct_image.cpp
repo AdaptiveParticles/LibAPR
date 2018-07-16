@@ -151,15 +151,17 @@ int main(int argc, char **argv) {
     if(options.output_spatial_properties) {
 
         //initialization of the iteration structures
-        APRIterator<uint16_t> apr_iterator(apr); //this is required for parallel access
+        //this is required for parallel access
+        auto apr_iterator = apr.iterator();
 
         //create particle dataset
-        ExtraParticleData<uint16_t> type(apr);
-        ExtraParticleData<uint16_t> levelp(apr);
 
-        ExtraParticleData<uint16_t> xp(apr);
-        ExtraParticleData<uint16_t> yp(apr);
-        ExtraParticleData<uint16_t> zp(apr);
+        ExtraParticleData<uint16_t> levelp(apr.total_number_particles());
+
+        ExtraParticleData<uint16_t> xp(apr.total_number_particles());
+        ExtraParticleData<uint16_t> yp(apr.total_number_particles());
+        ExtraParticleData<uint16_t> zp(apr.total_number_particles());
+
 
         timer.start_timer("APR parallel iterator loop");
         for (unsigned int level = apr_iterator.level_min(); level <= apr_iterator.level_max(); ++level) {

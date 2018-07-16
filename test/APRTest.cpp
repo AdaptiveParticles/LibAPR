@@ -49,7 +49,7 @@ public:
     void SetUp() override;
 };
 
-bool check_neighbours(APR<uint16_t>& apr,APRIterator<uint16_t>& current,APRIterator<uint16_t>& neigh){
+bool check_neighbours(APR<uint16_t>& apr,APRIterator &current, APRIterator &neigh){
 
 
     bool success = true;
@@ -72,7 +72,7 @@ bool check_neighbours(APR<uint16_t>& apr,APRIterator<uint16_t>& current,APRItera
 
     return success;
 }
-bool check_neighbour_out_of_bounds(APRIterator<uint16_t>& current,uint8_t face){
+bool check_neighbour_out_of_bounds(APRIterator &current,uint8_t face){
 
 
     uint64_t num_neigh = current.number_neighbours_in_direction(face);
@@ -97,11 +97,12 @@ bool test_apr_tree(TestData& test_data) {
     std::string save_loc = "";
     std::string file_name = "read_write_test";
 
-    APRTreeIterator<uint16_t> apr_tree_iterator(test_data.apr);
 
     test_data.apr.apr_tree.init(test_data.apr);
 
     ExtraParticleData<float> tree_data;
+
+    APRTreeIterator apr_tree_iterator = test_data.apr.apr_tree.tree_iterator();
 
     test_data.apr.apr_tree.fill_tree_mean(test_data.apr,test_data.apr.apr_tree,test_data.apr.particles_intensities,tree_data);
 
@@ -128,7 +129,7 @@ bool test_apr_tree(TestData& test_data) {
                     //uint16_t parts_int = test_data.apr.apr_tree.particles_ds_tree[apr_tree_iterator];
                     uint16_t parts2 = (uint16_t)std::round(tree_data[apr_tree_iterator]);
 
-                   // uint16_t y = apr_tree_iterator.y();
+                    // uint16_t y = apr_tree_iterator.y();
 
                     if(abs(parts2 - current_int) > 1){
                         success = false;
@@ -140,7 +141,7 @@ bool test_apr_tree(TestData& test_data) {
     }
 
 
-    APRTreeIterator<uint16_t> neigh_tree_iterator(test_data.apr);
+    APRTreeIterator neigh_tree_iterator = test_data.apr.apr_tree.tree_iterator();
 
 
     for (unsigned int level = apr_tree_iterator.level_min(); level <= apr_tree_iterator.level_max(); ++level) {
@@ -190,7 +191,7 @@ bool test_apr_input_output(TestData& test_data){
 
 
 
-    APRIterator<uint16_t> apr_iterator(test_data.apr);
+    APRIterator apr_iterator = test_data.apr.iterator();
 
     std::string save_loc = "";
     std::string file_name = "read_write_test";
@@ -201,7 +202,7 @@ bool test_apr_input_output(TestData& test_data){
     APR<uint16_t> apr_read;
 
     apr_read.read_apr(save_loc + file_name + "_apr.h5");
-    APRIterator<uint16_t> apr_iterator_read(apr_read);
+    APRIterator apr_iterator_read = apr_read.iterator();
 
     for (unsigned int level = apr_iterator.level_min(); level <= apr_iterator.level_max(); ++level) {
         int z = 0;
@@ -235,9 +236,7 @@ bool test_apr_input_output(TestData& test_data){
                         success = false;
                     }
 
-                    if (apr_iterator.type() != apr_iterator_read.type()) {
-                        success = false;
-                    }
+
                     if(apr_iterator_read.global_index() < apr_iterator_read.end_index) {
                         apr_iterator_read.set_iterator_to_particle_next_particle();
                     }
@@ -253,8 +252,8 @@ bool test_apr_input_output(TestData& test_data){
     // Now check the Extra Part Cell Data
     //
 
-    APRIterator<uint16_t> neighbour_iterator(apr_read);
-    APRIterator<uint16_t> apr_iterator_read2(apr_read);
+    APRIterator neighbour_iterator = apr_read.iterator();
+    APRIterator apr_iterator_read2 = apr_read.iterator();
 
     for (unsigned int level = apr_iterator.level_min(); level <= apr_iterator.level_max(); ++level) {
         int z = 0;
@@ -308,7 +307,7 @@ bool test_apr_input_output(TestData& test_data){
     }
 
 
-    ExtraParticleData<float> extra_data(test_data.apr);
+    ExtraParticleData<float> extra_data(test_data.apr.total_number_particles());
 
     for (unsigned int level = apr_iterator.level_min(); level <= apr_iterator.level_max(); ++level) {
         int z = 0;
@@ -364,17 +363,16 @@ bool test_apr_input_output(TestData& test_data){
 }
 
 
-
 bool test_apr_neighbour_access(TestData& test_data){
 
     bool success = true;
 
-    APRIterator<uint16_t> neighbour_iterator(test_data.apr);
-    APRIterator<uint16_t> apr_iterator(test_data.apr);
+    APRIterator neighbour_iterator = test_data.apr.iterator();
+    APRIterator apr_iterator = test_data.apr.iterator();
 
-    ExtraParticleData<uint16_t> x_p(test_data.apr);
-    ExtraParticleData<uint16_t> y_p(test_data.apr);
-    ExtraParticleData<uint16_t> z_p(test_data.apr);
+    ExtraParticleData<uint16_t> x_p(test_data.apr.total_number_particles());
+    ExtraParticleData<uint16_t> y_p(test_data.apr.total_number_particles());
+    ExtraParticleData<uint16_t> z_p(test_data.apr.total_number_particles());
 
     for (unsigned int level = apr_iterator.level_min(); level <= apr_iterator.level_max(); ++level) {
         int z = 0;
@@ -579,7 +577,8 @@ bool test_apr_iterate(TestData& test_data){
 
     bool success = true;
 
-    APRIterator<uint16_t> apr_iterator(test_data.apr);
+    auto apr_iterator = test_data.apr.iterator();
+
     uint64_t particle_number = 0;
 
     for (unsigned int level = apr_iterator.level_min(); level <= apr_iterator.level_max(); ++level) {
@@ -610,10 +609,6 @@ bool test_apr_iterate(TestData& test_data){
                         success = false;
                     }
 
-                    uint16_t apr_type = apr_iterator.type();
-                    uint16_t check_type = test_data.img_type(apr_iterator.y_nearest_pixel(),
-                                                             apr_iterator.x_nearest_pixel(),
-                                                             apr_iterator.z_nearest_pixel());
 
 
                     uint16_t apr_x = apr_iterator.x();
@@ -770,8 +765,10 @@ bool test_apr_pipeline(TestData& test_data){
     apr.parameters.output_dir = "";
 
     //Gets the APR
+
     if(apr.get_apr()){
-        APRIterator<uint16_t> apr_iterator(apr);
+        auto apr_iterator = apr.iterator();
+
         uint64_t particle_number = 0;
         std::cout << "NUM OF PARTICLES: " << apr_iterator.total_number_particles() << " vs " << test_data.apr.total_number_particles() << std::endl;
 
@@ -801,16 +798,6 @@ bool test_apr_pipeline(TestData& test_data){
                         if (check_level != apr_level) {
                             success = false;
                         }
-
-                        //removed the storage of type.. not worth the "baggage"
-//                        uint16_t apr_type = apr_iterator.type();
-//                        uint16_t check_type = test_data.img_type(apr_iterator.y_nearest_pixel(),
-//                                                                 apr_iterator.x_nearest_pixel(),
-//                                                                 apr_iterator.z_nearest_pixel());
-//
-//                        if (check_type != apr_type) {
-//                            success = false;
-//                        }
 
                         uint16_t apr_x = apr_iterator.x();
                         uint16_t check_x = test_data.img_x(apr_iterator.y_nearest_pixel(),
