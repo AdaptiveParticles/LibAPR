@@ -6,7 +6,6 @@
 
 #include "ConfigAPR.h"
 #include "data_structures/APR/APR.hpp"
-#include "numerics/APRTreeNumerics.hpp"
 
 namespace py = pybind11;
 
@@ -28,14 +27,12 @@ public:
         APR <T> apr;
         apr.read_apr(aAprFileName);
 
-        APRTree aprTree;
-        aprTree.init(apr);
+        apr.apr_tree.init(apr);
         
-        ExtraParticleData<T> partsTree;
-        APRTreeNumerics::fill_tree_from_particles(apr,aprTree,apr.particles_intensities,partsTree,[] (const T& a,const T& b) {return std::max(a,b);});
+        apr.apr_tree.fill_tree_mean_downsample(apr.apr_tree.particles_ds_tree);
 
         ReconPatch r;
-        APRReconstruction().interp_image_patch(apr, aprTree, reconstructedImage, apr.particles_intensities, partsTree, r);
+        APRReconstruction().interp_image_patch(apr, apr.apr_tree, reconstructedImage, apr.particles_intensities, apr.apr_tree.particles_ds_tree, r);
    }
 
     T *data() {return reconstructedImage.mesh.get();}
