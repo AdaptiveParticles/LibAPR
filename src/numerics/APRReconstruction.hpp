@@ -293,7 +293,6 @@ public:
         ExtraParticleData<U> depth_parts(apr.total_number_particles());
 
         auto apr_iterator = apr.iterator();
-        uint64_t particle_number;
 
 #ifdef HAVE_OPENMP
 	#pragma omp parallel for schedule(static) private(particle_number) firstprivate(apr_iterator)
