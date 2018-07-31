@@ -70,7 +70,7 @@ public:
 template<typename ImageType>
 inline bool APRConverter<ImageType>::get_apr(APR<ImageType> &aAPR) {
     apr = &aAPR;
-
+#ifdef HAVE_LIBTIFF
     TiffUtils::TiffInfo inputTiff(par.input_dir + par.input_image_name);
     if (!inputTiff.isFileOpened()) return false;
 
@@ -85,6 +85,9 @@ inline bool APRConverter<ImageType>::get_apr(APR<ImageType> &aAPR) {
         std::cerr << "Wrong file type" << std::endl;
         return false;
     }
+#else
+    return false;
+#endif 
 };
 
 template <typename T>
@@ -207,19 +210,21 @@ inline bool APRConverter<ImageType>::get_apr_method(APR<ImageType> &aAPR, PixelD
     method_timer.start_timer("compute_gradient_magnitude_using_bsplines");
     get_gradient(image_temp, grad_temp, local_scale_temp, local_scale_temp2, bspline_offset, par);
     method_timer.stop_timer();
-
+#ifdef HAVE_LIBTIFF
     if(par.output_steps){
         TiffUtils::saveMeshAsTiff(par.output_dir + "gradient_step.tif", grad_temp);
     }
-
+#endif
     method_timer.start_timer("compute_local_intensity_scale");
     get_local_intensity_scale(local_scale_temp, local_scale_temp2, par);
     method_timer.stop_timer();
     //method_timer.verbose_flag = false;
-
+#ifdef HAVE_LIBTIFF
     if(par.output_steps){
         TiffUtils::saveMeshAsTiff(par.output_dir + "local_intensity_scale_step.tif", local_scale_temp);
     }
+#endif
+
 #else
     method_timer.start_timer("compute_gradient_magnitude_using_bsplines and local instensity scale CUDA");
     getFullPipeline(image_temp, grad_temp, local_scale_temp, local_scale_temp2,bspline_offset, par);
@@ -286,11 +291,11 @@ inline void APRConverter<ImageType>::get_local_particle_cell_set(PixelData<Image
     fine_grained_timer.start_timer("compute_level_second");
     //incorporate other factors and compute the level of the Particle Cell, effectively construct LPC L_n
     iLocalParticleSet.compute_level_for_array(local_scale_temp,level_factor,par.rel_error);
-
+#ifdef HAVE_LIBTIFF
     if(par.output_steps){
         TiffUtils::saveMeshAsTiff(par.output_dir + "local_particle_set_level_step.tif", local_scale_temp);
     }
-
+#endif
 
     iPullingScheme.fill(l_max,local_scale_temp);
     fine_grained_timer.stop_timer();

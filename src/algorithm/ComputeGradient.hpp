@@ -75,9 +75,9 @@ void ComputeGradient::mask_gradient(PixelData<T>& grad_ds,PixelData<S>& temp_ds,
     //       first it reads img to temp_full then overwrites it by downsompling temp_ds to temp_full (which is later not used)
     //       Not removing it for now since intentions are not known to me.
     std::string file_name = par.input_dir + par.mask_file;
-
+#ifdef HAVE_LIBTIFF
     TiffUtils::getMesh(file_name, temp_full);
-
+#endif
     downsample(temp_ds, temp_full,
                [](const T &x, const T &y) -> T { return std::max(x, y); },
                [](const T &x) -> T { return x; });
