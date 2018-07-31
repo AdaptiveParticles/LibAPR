@@ -295,7 +295,7 @@ public:
         auto apr_iterator = apr.iterator();
 
 #ifdef HAVE_OPENMP
-	#pragma omp parallel for schedule(static) private(particle_number) firstprivate(apr_iterator)
+	#pragma omp parallel for schedule(static) firstprivate(apr_iterator)
 #endif
         for (unsigned int level = apr_iterator.level_min(); level <= apr_iterator.level_max(); ++level) {
             int z = 0;
