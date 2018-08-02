@@ -85,7 +85,7 @@ namespace {
 
         PixelData<ImgType> grad = getRandInitializedMesh<ImgType>(10, 20, 33);
         PixelData<float> localIntensityScaleCpu = getRandInitializedMesh<float>(10, 20, 33);
-1
+
         PixelData<float> localIntensityScaleGpu(localIntensityScaleCpu, true);
         PixelData<float> elo(localIntensityScaleCpu, true);
         APRTimer timer(true);
