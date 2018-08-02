@@ -9,7 +9,9 @@
 //#include "data_structures/APR/APRAccess.hpp"
 #include "algorithm/PullingScheme.hpp"
 #include "TestTools.hpp"
+#ifdef APR_USE_CUDA
 #include "algorithm/ComputePullingSchemeCuda.h"
+#endif
 
 namespace {
     template <typename T>
@@ -77,7 +79,7 @@ namespace {
 //        ps.pulling_scheme_main();
 //        printParticleCellTree(pctree);
     }
-
+#ifdef APR_USE_CUDA
     TEST(PullingSchemeTest, computeLevels) {
         using ImgType = float;
         const int maxLevel = 3;
@@ -100,6 +102,7 @@ namespace {
 
         EXPECT_EQ(compareMeshes(localIntensityScaleCpu, localIntensityScaleGpu), 0);
     }
+#endif
 }
 
 int main(int argc, char **argv) {
