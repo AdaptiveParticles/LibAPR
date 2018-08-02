@@ -20,12 +20,13 @@
 #include "misc/CudaTools.hpp"
 #include "data_structures/Mesh/downsample.cuh"
 #include "algorithm/LocalIntensityScaleCuda.h"
+#include "algorithm/ComputePullingSchemeCuda.h"
 
 // explicit instantiation of handled types
 template void getGradient(PixelData<float> &, PixelData<float> &, PixelData<float> &, PixelData<float> &, float, const APRParameters &);
 template void thresholdImg(PixelData<float> &, const float);
-template void getFullPipeline(PixelData<float> &, PixelData<float> &, PixelData<float> &, PixelData<float> &, float, const APRParameters &);
-template void getFullPipeline(PixelData<uint16_t> &, PixelData<uint16_t> &, PixelData<float> &, PixelData<float> &, float, const APRParameters &);
+template void getFullPipeline(PixelData<float> &, PixelData<float> &, PixelData<float> &, PixelData<float> &, float, const APRParameters &, int maxLevel);
+template void getFullPipeline(PixelData<uint16_t> &, PixelData<uint16_t> &, PixelData<float> &, PixelData<float> &, float, const APRParameters &, int maxLevel);
 template void thresholdGradient(PixelData<float> &, const PixelData<float> &, const float);
 
 
@@ -404,7 +405,7 @@ void getGradient(PixelData<ImgType> &image, PixelData<ImgType> &grad_temp, Pixel
 }
 
 template <typename ImgType>
-void getFullPipeline(PixelData<ImgType> &image, PixelData<ImgType> &grad_temp, PixelData<float> &local_scale_temp, PixelData<float> &local_scale_temp2, float bspline_offset, const APRParameters &par) {
+void getFullPipeline(PixelData<ImgType> &image, PixelData<ImgType> &grad_temp, PixelData<float> &local_scale_temp, PixelData<float> &local_scale_temp2, float bspline_offset, const APRParameters &par, int maxLevel) {
     CudaTimer timer(true, "getFullPipeline");
 
     timer.start_timer("Whole processing with transfers");
@@ -429,17 +430,21 @@ void getFullPipeline(PixelData<ImgType> &image, PixelData<ImgType> &grad_temp, P
     timer.start_timer("cuda: calculations on device PIPELLINE");
     getGradientCuda(image, local_scale_temp, grad_temp, cudaImage, cudaGrad, cudalocal_scale_temp, bspline_offset, par);
     localIntensityScaleCuda(local_scale_temp, par, cudalocal_scale_temp, cudalocal_scale_temp2);
+    float min_dim = std::min(par.dy, std::min(par.dx, par.dz));
+    float level_factor = pow(2, maxLevel) * min_dim;
+    const float mult_const = level_factor/par.rel_error;
+    gradDivLocalIntensityScale(cudaGrad, cudalocal_scale_temp, grad_temp.mesh.size(), mult_const);
     timer.stop_timer();
 
     // Device -> Host transfers
     timer.start_timer("cuda: transfer data from device and freeing memory");
-    cudaMemcpy((void*)image.mesh.get(), cudaImage, imageSize, cudaMemcpyDeviceToHost);
+//    cudaMemcpy((void*)image.mesh.get(), cudaImage, imageSize, cudaMemcpyDeviceToHost);
     cudaFree(cudaImage);
-    cudaMemcpy((void*)grad_temp.mesh.get(), cudaGrad, gradSize, cudaMemcpyDeviceToHost);
+//    cudaMemcpy((void*)grad_temp.mesh.get(), cudaGrad, gradSize, cudaMemcpyDeviceToHost);
     cudaFree(cudaGrad);
     cudaMemcpy((void*)local_scale_temp.mesh.get(), cudalocal_scale_temp, local_scale_tempSize, cudaMemcpyDeviceToHost);
     cudaFree(cudalocal_scale_temp);
-    cudaMemcpy((void*)local_scale_temp2.mesh.get(), cudalocal_scale_temp2, local_scale_tempSize, cudaMemcpyDeviceToHost);
+//    cudaMemcpy((void*)local_scale_temp2.mesh.get(), cudalocal_scale_temp2, local_scale_tempSize, cudaMemcpyDeviceToHost);
     cudaFree(cudalocal_scale_temp2);
     timer.stop_timer();
 

@@ -64,7 +64,8 @@ private:
 public:
     void get_gradient(PixelData<ImageType> &image_temp, PixelData<ImageType> &grad_temp, PixelData<float> &local_scale_temp, PixelData<float> &local_scale_temp2, float bspline_offset, const APRParameters &par);
     void get_local_intensity_scale(PixelData<float> &local_scale_temp, PixelData<float> &local_scale_temp2, const APRParameters &par);
-    void get_local_particle_cell_set(PixelData<ImageType> &grad_temp, PixelData<float> &local_scale_temp, PixelData<float> &local_scale_temp2);
+    void computeLevels(const PixelData<ImageType> &grad_temp, PixelData<float> &local_scale_temp, int maxLevel, float relError, float dx = 1, float dy = 1, float dz = 1);
+    void get_local_particle_cell_set(PixelData<float> &local_scale_temp, PixelData<float> &local_scale_temp2);
 };
 
 template<typename ImageType>
@@ -206,7 +207,7 @@ inline bool APRConverter<ImageType>::get_apr_method(APR<ImageType> &aAPR, PixelD
     fine_grained_timer.stop_timer();
 
 #ifndef APR_USE_CUDA
-    //method_timer.verbose_flag = true;
+    method_timer.verbose_flag = true;
     method_timer.start_timer("compute_gradient_magnitude_using_bsplines");
     get_gradient(image_temp, grad_temp, local_scale_temp, local_scale_temp2, bspline_offset, par);
     method_timer.stop_timer();
@@ -224,10 +225,12 @@ inline bool APRConverter<ImageType>::get_apr_method(APR<ImageType> &aAPR, PixelD
         TiffUtils::saveMeshAsTiff(par.output_dir + "local_intensity_scale_step.tif", local_scale_temp);
     }
 #endif
-
+    method_timer.start_timer("compute_levels")
+    computeLevels(grad_temp, local_scale_temp, (*apr).level_max(), par.rel_error, par.dx, par.dy, par.dz);
+    method_timer.stop_timer();
 #else
     method_timer.start_timer("compute_gradient_magnitude_using_bsplines and local instensity scale CUDA");
-    getFullPipeline(image_temp, grad_temp, local_scale_temp, local_scale_temp2,bspline_offset, par);
+    getFullPipeline(image_temp, grad_temp, local_scale_temp, local_scale_temp2, bspline_offset, par, (*apr).level_max());
     method_timer.stop_timer();
 #endif
 
@@ -236,7 +239,7 @@ inline bool APRConverter<ImageType>::get_apr_method(APR<ImageType> &aAPR, PixelD
     method_timer.stop_timer();
 
     method_timer.start_timer("compute_local_particle_set");
-    get_local_particle_cell_set(grad_temp, local_scale_temp, local_scale_temp2);
+    get_local_particle_cell_set(local_scale_temp, local_scale_temp2);
     method_timer.stop_timer();
 
     method_timer.start_timer("compute_pulling_scheme");
@@ -265,38 +268,41 @@ inline bool APRConverter<ImageType>::get_apr_method(APR<ImageType> &aAPR, PixelD
 }
 
 template<typename ImageType>
-inline void APRConverter<ImageType>::get_local_particle_cell_set(PixelData<ImageType> &grad_temp, PixelData<float> &local_scale_temp, PixelData<float> &local_scale_temp2) {
-    //
-    //  Computes the Local Particle Cell Set from a down-sampled local intensity scale (\sigma) and gradient magnitude
-    //
-    //  Down-sampled due to the Equivalence Optimization
-    //
-
-    fine_grained_timer.start_timer("compute_level_first");
+inline void APRConverter<ImageType>::computeLevels(const PixelData<ImageType> &grad_temp, PixelData<float> &local_scale_temp, int maxLevel, float relError, float dx, float dy, float dz) {
     //divide gradient magnitude by Local Intensity Scale (first step in calculating the Local Resolution Estimate L(y), minus constants)
+    fine_grained_timer.start_timer("compute_level_first");
     #ifdef HAVE_OPENMP
-	#pragma omp parallel for default(shared)
+    #pragma omp parallel for default(shared)
     #endif
-    for(size_t i = 0; i < grad_temp.mesh.size(); ++i) {
-        local_scale_temp.mesh[i] = (1.0*grad_temp.mesh[i])/(local_scale_temp.mesh[i]*1.0);
+    for (size_t i = 0; i < grad_temp.mesh.size(); ++i) {
+        local_scale_temp.mesh[i] = grad_temp.mesh[i] / local_scale_temp.mesh[i];
     }
     fine_grained_timer.stop_timer();
 
-    float min_dim = std::min(par.dy,std::min(par.dx,par.dz));
-    float level_factor = pow(2,(*apr).level_max())*min_dim;
+    float min_dim = std::min(dy, std::min(dx, dz));
+    float level_factor = pow(2, maxLevel) * min_dim;
 
-    int l_max = (*apr).level_max() - 1;
-    int l_min = (*apr).level_min();
-
-    fine_grained_timer.start_timer("compute_level_second");
     //incorporate other factors and compute the level of the Particle Cell, effectively construct LPC L_n
-    iLocalParticleSet.compute_level_for_array(local_scale_temp,level_factor,par.rel_error);
+    fine_grained_timer.start_timer("compute_level_second");
+    iLocalParticleSet.compute_level_for_array(local_scale_temp, level_factor, relError);
+    fine_grained_timer.stop_timer();
+}
+
+template<typename ImageType>
+inline void APRConverter<ImageType>::get_local_particle_cell_set(PixelData<float> &local_scale_temp, PixelData<float> &local_scale_temp2) {
+    //  Computes the Local Particle Cell Set from a down-sampled local intensity scale (\sigma) and gradient magnitude
+    //  Down-sampled due to the Equivalence Optimization
+
 #ifdef HAVE_LIBTIFF
     if(par.output_steps){
         TiffUtils::saveMeshAsTiff(par.output_dir + "local_particle_set_level_step.tif", local_scale_temp);
     }
 #endif
 
+    int l_max = (*apr).level_max() - 1;
+    int l_min = (*apr).level_min();
+
+    fine_grained_timer.start_timer("pulling_scheme_fill_max_level");
     iPullingScheme.fill(l_max,local_scale_temp);
     fine_grained_timer.stop_timer();
 

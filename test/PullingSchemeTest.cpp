@@ -8,6 +8,8 @@
 #include "data_structures/APR/APR.hpp"
 //#include "data_structures/APR/APRAccess.hpp"
 #include "algorithm/PullingScheme.hpp"
+#include "TestTools.hpp"
+#include "algorithm/ComputePullingSchemeCuda.h"
 
 namespace {
     template <typename T>
@@ -74,6 +76,29 @@ namespace {
 //        pctree[l_max].printMesh(3, 0);
 //        ps.pulling_scheme_main();
 //        printParticleCellTree(pctree);
+    }
+
+    TEST(PullingSchemeTest, computeLevels) {
+        using ImgType = float;
+        const int maxLevel = 3;
+        const float relError = 0.1;
+
+        PixelData<ImgType> grad = getRandInitializedMesh<ImgType>(10, 20, 33);
+        PixelData<float> localIntensityScaleCpu = getRandInitializedMesh<float>(10, 20, 33);
+1
+        PixelData<float> localIntensityScaleGpu(localIntensityScaleCpu, true);
+        PixelData<float> elo(localIntensityScaleCpu, true);
+        APRTimer timer(true);
+
+        timer.start_timer("CPU PS FULL");
+        APRConverter<ImgType>().computeLevels(grad, localIntensityScaleCpu, maxLevel, relError);
+        timer.stop_timer();
+
+        timer.start_timer("GPU PS FULL");
+        computeLevelsCuda(grad, localIntensityScaleGpu, maxLevel, relError);
+        timer.stop_timer();
+
+        EXPECT_EQ(compareMeshes(localIntensityScaleCpu, localIntensityScaleGpu), 0);
     }
 }
 
