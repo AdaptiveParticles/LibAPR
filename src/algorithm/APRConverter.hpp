@@ -225,7 +225,7 @@ inline bool APRConverter<ImageType>::get_apr_method(APR<ImageType> &aAPR, PixelD
         TiffUtils::saveMeshAsTiff(par.output_dir + "local_intensity_scale_step.tif", local_scale_temp);
     }
 #endif
-    method_timer.start_timer("compute_levels")
+    method_timer.start_timer("compute_levels");
     computeLevels(grad_temp, local_scale_temp, (*apr).level_max(), par.rel_error, par.dx, par.dy, par.dz);
     method_timer.stop_timer();
 #else
