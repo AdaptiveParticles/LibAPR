@@ -32,7 +32,6 @@ inline void getDataFromKernel(PixelData<ImgType> &input, size_t inputSize, ImgTy
     cudaFree(cudaInput);
 }
 
-
 class CudaTimer {
     std::vector<std::chrono::system_clock::time_point> iStartTimes;
     std::vector<std::string> names;
