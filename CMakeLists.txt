@@ -156,7 +156,8 @@ if(APR_USE_CUDA)
             src/algorithm/ComputeInverseCubicBsplineCuda.cu
             src/data_structures/Mesh/PixelData.cu
             src/algorithm/LocalIntensityScale.cu
-            src/algorithm/ComputePullingSchemeCuda.cu)
+            src/algorithm/ComputePullingSchemeCuda.cu
+            src/misc/CudaMemory.cu)
     include_directories(${CMAKE_CUDA_TOOLKIT_INCLUDE_DIRECTORIES})
 endif()
 
