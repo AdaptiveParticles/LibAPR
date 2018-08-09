@@ -689,7 +689,7 @@ namespace {
 
         // Compare GPU vs CPU
         EXPECT_EQ(compareMeshes(mCpuImage, mGpuImage), 0);
-        EXPECT_EQ(compareMeshes(grad_temp, grad_temp_GPU, 0.005), 0);
+        EXPECT_EQ(compareMeshes(grad_temp, grad_temp_GPU, 0.01), 0);
         EXPECT_EQ(compareMeshes(local_scale_temp, local_scale_temp_GPU), 0);
     }
 

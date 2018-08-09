@@ -84,10 +84,9 @@ public :
     size_t y_num;
     size_t x_num;
     size_t z_num;
-#ifndef APR_USE_CUDA
     std::unique_ptr<T[]> meshMemory;
-#else
-    std::unique_ptr<T[], decltype(&freePinnedMemory<T>)> meshMemory = {getPinnedMemory<T>((size_t)0), &freePinnedMemory<T>};
+#ifdef APR_USE_CUDA
+    std::unique_ptr<T[], decltype(&freePinnedMemory<T>)> meshMemoryPinned = {getPinnedMemory<T>((size_t)0), &freePinnedMemory<T>};
 #endif
     ArrayWrapper<T> mesh;
 
@@ -237,18 +236,27 @@ public :
      * NOTE: If mesh was already created only added elements (new size > old size) will be initialize with aInitVal
      */
     void init(int aSizeOfY, int aSizeOfX, int aSizeOfZ, T aInitVal) {
+        bool aUsePinnedMemory = false;
         y_num = aSizeOfY;
         x_num = aSizeOfX;
         z_num = aSizeOfZ;
         size_t size = (size_t)y_num * x_num * z_num;
-#ifndef APR_USE_CUDA
-        meshMemory.reset(new T[size]);
-#else
-        meshMemory.reset(getPinnedMemory<T>(size * sizeof(T)));
-//        meshMemory = {getPinnedMemory<T>(size * sizeof(T)), &freePinnedMemory<T>};
-#endif
-        T *array = meshMemory.get();
-//        if (array == nullptr) { std::cerr << "Could not allocate memory!" << size << std::endl; exit(-1); }
+
+        T *array = nullptr;
+        if (!aUsePinnedMemory) {
+            meshMemory.reset(new T[size]);
+            array = meshMemory.get();
+        }
+        else {
+        #ifndef APR_USE_CUDA
+            meshMemory.reset(new T[size]);
+            array = meshMemory.get();
+        #else
+            meshMemoryPinned.reset(getPinnedMemory<T>(size * sizeof(T)));
+            array = meshMemoryPinned.get();
+        #endif
+        }
+
         mesh.set(array, size);
 
         // Fill values of new buffer in parallel
@@ -267,15 +275,6 @@ public :
         #endif
     }
 
-    /**
-     * Initialize mesh with dimensions taken from provided mesh
-     * @tparam S
-     * @param aInputMesh
-     */
-    template<typename S>
-    void init(const PixelData<S> &aInputMesh) {
-        init(aInputMesh.y_num, aInputMesh.x_num, aInputMesh.z_num);
-    }
 
     /**
      * Initializes mesh with provided dimensions with default value of used type
@@ -284,18 +283,37 @@ public :
      * @param aSizeOfZ
      */
     void init(int aSizeOfY, int aSizeOfX, int aSizeOfZ) {
+        bool aUsePinnedMemory = false;
         y_num = aSizeOfY;
         x_num = aSizeOfX;
         z_num = aSizeOfZ;
         size_t size = (size_t)y_num * x_num * z_num;
+
+        T *array = nullptr;
+        if (!aUsePinnedMemory) {
+            meshMemory.reset(new T[size]);
+            array = meshMemory.get();
+        }
+        else {
 #ifndef APR_USE_CUDA
-        meshMemory.reset(new T[size]);
+            meshMemory.reset(new T[size]);
+            array = meshMemory.get();
 #else
-        meshMemory.reset(getPinnedMemory<T>(size * sizeof(T)));
-//        meshMemory = {getPinnedMemory<T>(size * sizeof(T)), &freePinnedMemory<T>};
+            meshMemoryPinned.reset(getPinnedMemory<T>(size * sizeof(T)));
+            array = meshMemoryPinned.get();
 #endif
-//        if (meshMemory.get() == nullptr) { std::cerr << "Could not allocate memory!" << size << std::endl; exit(-1); }
-        mesh.set(meshMemory.get(), size);
+        }
+        mesh.set(array, size);
+    }
+
+    /**
+     * Initialize mesh with dimensions taken from provided mesh
+     * @tparam S
+     * @param aInputMesh
+     */
+    template<typename S>
+    void init(const PixelData<S> &aInputMesh) {
+        init(aInputMesh.y_num, aInputMesh.x_num, aInputMesh.z_num);
     }
 
     /**
