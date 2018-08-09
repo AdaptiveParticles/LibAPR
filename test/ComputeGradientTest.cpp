@@ -656,16 +656,16 @@ namespace {
         PixelData<ImageType> grad_temp; // should be a down-sampled image
         grad_temp.initDownsampled(input_image.y_num, input_image.x_num, input_image.z_num, 0);
         PixelData<float> local_scale_temp; // Used as down-sampled images for some averaging steps where it is useful to not lose precision, or get over-flow errors
-        local_scale_temp.initDownsampled(input_image.y_num, input_image.x_num, input_image.z_num);
+        local_scale_temp.initDownsampled(input_image.y_num, input_image.x_num, input_image.z_num, false);
         PixelData<float> local_scale_temp2;
-        local_scale_temp2.initDownsampled(input_image.y_num, input_image.x_num, input_image.z_num);
+        local_scale_temp2.initDownsampled(input_image.y_num, input_image.x_num, input_image.z_num, false);
 
         PixelData<ImageType> grad_temp_GPU; // should be a down-sampled image
         grad_temp_GPU.initDownsampled(input_image.y_num, input_image.x_num, input_image.z_num, 0);
         PixelData<float> local_scale_temp_GPU; // Used as down-sampled images for some averaging steps where it is useful to not lose precision, or get over-flow errors
-        local_scale_temp_GPU.initDownsampled(input_image.y_num, input_image.x_num, input_image.z_num);
+        local_scale_temp_GPU.initDownsampled(input_image.y_num, input_image.x_num, input_image.z_num, true);
         PixelData<float> local_scale_temp2_GPU;
-        local_scale_temp2_GPU.initDownsampled(input_image.y_num, input_image.x_num, input_image.z_num);
+        local_scale_temp2_GPU.initDownsampled(input_image.y_num, input_image.x_num, input_image.z_num, false);
 
 
         APRParameters par;
@@ -704,18 +704,18 @@ namespace {
         PixelData<ImageType> &image_temp = input_image;
 
         PixelData<ImageType> grad_temp; // should be a down-sampled image
-        grad_temp.initDownsampled(input_image.y_num, input_image.x_num, input_image.z_num, 0);
+        grad_temp.initDownsampled(input_image.y_num, input_image.x_num, input_image.z_num, 0, false);
         PixelData<float> local_scale_temp; // Used as down-sampled images for some averaging steps where it is useful to not lose precision, or get over-flow errors
-        local_scale_temp.initDownsampled(input_image.y_num, input_image.x_num, input_image.z_num);
+        local_scale_temp.initDownsampled(input_image.y_num, input_image.x_num, input_image.z_num, false);
         PixelData<float> local_scale_temp2;
-        local_scale_temp2.initDownsampled(input_image.y_num, input_image.x_num, input_image.z_num);
+        local_scale_temp2.initDownsampled(input_image.y_num, input_image.x_num, input_image.z_num, false);
 
         PixelData<ImageType> grad_temp_GPU; // should be a down-sampled image
-        grad_temp_GPU.initDownsampled(input_image.y_num, input_image.x_num, input_image.z_num, 0);
+        grad_temp_GPU.initDownsampled(input_image.y_num, input_image.x_num, input_image.z_num, 0, false);
         PixelData<float> local_scale_temp_GPU; // Used as down-sampled images for some averaging steps where it is useful to not lose precision, or get over-flow errors
-        local_scale_temp_GPU.initDownsampled(input_image.y_num, input_image.x_num, input_image.z_num);
+        local_scale_temp_GPU.initDownsampled(input_image.y_num, input_image.x_num, input_image.z_num, false);
         PixelData<float> local_scale_temp2_GPU;
-        local_scale_temp2_GPU.initDownsampled(input_image.y_num, input_image.x_num, input_image.z_num);
+        local_scale_temp2_GPU.initDownsampled(input_image.y_num, input_image.x_num, input_image.z_num, false);
 
 
         APRParameters par;

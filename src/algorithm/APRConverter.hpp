@@ -176,13 +176,13 @@ inline bool APRConverter<ImageType>::get_apr_method(APR<ImageType> &aAPR, PixelD
     //assuming uint16, the total memory cost shoudl be approximately (1 + 1 + 1/8 + 2/8 + 2/8) = 2 5/8 original image size in u16bit
     //storage of the particle cell tree for computing the pulling scheme
     allocation_timer.start_timer("init and copy image");
-    PixelData<ImageType> image_temp(input_image, false /* don't copy */); // global image variable useful for passing between methods, or re-using memory (should be the only full sized copy of the image)
+    PixelData<ImageType> image_temp(input_image, false /* don't copy */, true /* pinned memory */); // global image variable useful for passing between methods, or re-using memory (should be the only full sized copy of the image)
     PixelData<ImageType> grad_temp; // should be a down-sampled image
-    grad_temp.initDownsampled(input_image.y_num, input_image.x_num, input_image.z_num, 0);
+    grad_temp.initDownsampled(input_image.y_num, input_image.x_num, input_image.z_num, 0, false);
     PixelData<float> local_scale_temp; // Used as down-sampled images for some averaging steps where it is useful to not lose precision, or get over-flow errors
-    local_scale_temp.initDownsampled(input_image.y_num, input_image.x_num, input_image.z_num);
+    local_scale_temp.initDownsampled(input_image.y_num, input_image.x_num, input_image.z_num, true);
     PixelData<float> local_scale_temp2;
-    local_scale_temp2.initDownsampled(input_image.y_num, input_image.x_num, input_image.z_num);
+    local_scale_temp2.initDownsampled(input_image.y_num, input_image.x_num, input_image.z_num, false);
     allocation_timer.stop_timer();
 
     /////////////////////////////////

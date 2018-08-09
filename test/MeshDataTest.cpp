@@ -175,7 +175,7 @@ namespace {
     TEST_F(MeshDataTest, InitDownsampledTest) {
         {
             PixelData<int> md;
-            md.initDownsampled(3, 5, 7);
+            md.initDownsampled(3, 5, 7, false);
             ASSERT_EQ(md.y_num, 2);
             ASSERT_EQ(md.x_num, 3);
             ASSERT_EQ(md.z_num, 4);
@@ -184,7 +184,7 @@ namespace {
         }
         {
             PixelData<int> md;
-            md.initDownsampled(4, 6, 8);
+            md.initDownsampled(4, 6, 8, false);
             ASSERT_EQ(md.y_num, 2);
             ASSERT_EQ(md.x_num, 3);
             ASSERT_EQ(md.z_num, 4);

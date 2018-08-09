@@ -142,8 +142,8 @@ public :
      * @param aMesh input mesh
      */
     template<typename U>
-    PixelData(const PixelData<U> &aMesh, bool aShouldCopyData) {
-        init(aMesh.y_num, aMesh.x_num, aMesh.z_num);
+    PixelData(const PixelData<U> &aMesh, bool aShouldCopyData, bool aUsedPinnedMemory = false) {
+        init(aMesh.y_num, aMesh.x_num, aMesh.z_num, aUsedPinnedMemory);
         if (aShouldCopyData) std::copy(aMesh.mesh.begin(), aMesh.mesh.end(), mesh.begin());
     }
 
@@ -235,8 +235,7 @@ public :
      * @param aInitVal
      * NOTE: If mesh was already created only added elements (new size > old size) will be initialize with aInitVal
      */
-    void initWithValue(int aSizeOfY, int aSizeOfX, int aSizeOfZ, T aInitVal) {
-        bool aUsePinnedMemory = false;
+    void initWithValue(int aSizeOfY, int aSizeOfX, int aSizeOfZ, T aInitVal, bool aUsePinnedMemory = false) {
         y_num = aSizeOfY;
         x_num = aSizeOfX;
         z_num = aSizeOfZ;
@@ -282,8 +281,7 @@ public :
      * @param aSizeOfX
      * @param aSizeOfZ
      */
-    void init(int aSizeOfY, int aSizeOfX, int aSizeOfZ) {
-        bool aUsePinnedMemory = false;
+    void init(int aSizeOfY, int aSizeOfX, int aSizeOfZ, bool aUsePinnedMemory = false) {
         y_num = aSizeOfY;
         x_num = aSizeOfX;
         z_num = aSizeOfZ;
@@ -322,12 +320,12 @@ public :
      * @param aSizeOfX
      * @param aSizeOfZ
      */
-    void initDownsampled(int aSizeOfY, int aSizeOfX, int aSizeOfZ) {
+    void initDownsampled(int aSizeOfY, int aSizeOfX, int aSizeOfZ, bool aUsePinnedMemory) {
         const int z_num_ds = ceil(1.0*aSizeOfZ/2.0);
         const int x_num_ds = ceil(1.0*aSizeOfX/2.0);
         const int y_num_ds = ceil(1.0*aSizeOfY/2.0);
 
-        init(y_num_ds, x_num_ds, z_num_ds);
+        init(y_num_ds, x_num_ds, z_num_ds, aUsePinnedMemory);
     }
 
     /**
@@ -337,12 +335,12 @@ public :
      * @param aSizeOfZ
      * @param aInitVal
      */
-    void initDownsampled(int aSizeOfY, int aSizeOfX, int aSizeOfZ, T aInitVal) {
+    void initDownsampled(int aSizeOfY, int aSizeOfX, int aSizeOfZ, T aInitVal, bool aUsePinnedMemory) {
         const int z_num_ds = ceil(1.0*aSizeOfZ/2.0);
         const int x_num_ds = ceil(1.0*aSizeOfX/2.0);
         const int y_num_ds = ceil(1.0*aSizeOfY/2.0);
 
-        initWithValue(y_num_ds, x_num_ds, z_num_ds, aInitVal);
+        initWithValue(y_num_ds, x_num_ds, z_num_ds, aInitVal, aUsePinnedMemory);
     }
 
     /**
