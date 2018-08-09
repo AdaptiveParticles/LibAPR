@@ -244,11 +244,11 @@ public :
 #ifndef APR_USE_CUDA
         meshMemory.reset(new T[size]);
 #else
-//        meshMemory.reset(getPinnedMemory<T>((size_t)size));
-        meshMemory = {getPinnedMemory<T>(size * sizeof(T)), &freePinnedMemory<T>};
+        meshMemory.reset(getPinnedMemory<T>(size * sizeof(T)));
+//        meshMemory = {getPinnedMemory<T>(size * sizeof(T)), &freePinnedMemory<T>};
 #endif
         T *array = meshMemory.get();
-        if (array == nullptr) { std::cerr << "Could not allocate memory!" << size << std::endl; exit(-1); }
+//        if (array == nullptr) { std::cerr << "Could not allocate memory!" << size << std::endl; exit(-1); }
         mesh.set(array, size);
 
         // Fill values of new buffer in parallel
@@ -291,10 +291,10 @@ public :
 #ifndef APR_USE_CUDA
         meshMemory.reset(new T[size]);
 #else
-//        meshMemory.reset(getPinnedMemory<T>((size_t)size));
-        meshMemory = {getPinnedMemory<T>(size * sizeof(T)), &freePinnedMemory<T>};
+        meshMemory.reset(getPinnedMemory<T>(size * sizeof(T)));
+//        meshMemory = {getPinnedMemory<T>(size * sizeof(T)), &freePinnedMemory<T>};
 #endif
-        if (meshMemory.get() == nullptr) { std::cerr << "Could not allocate memory!" << size << std::endl; exit(-1); }
+//        if (meshMemory.get() == nullptr) { std::cerr << "Could not allocate memory!" << size << std::endl; exit(-1); }
         mesh.set(meshMemory.get(), size);
     }
 

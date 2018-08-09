@@ -439,12 +439,13 @@ void getFullPipeline(PixelData<ImgType> &image, PixelData<ImgType> &grad_temp, P
     // Device -> Host transfers
     timer.start_timer("cuda: transfer data from device and freeing memory");
 //    cudaMemcpy((void*)image.mesh.get(), cudaImage, imageSize, cudaMemcpyDeviceToHost);
-    cudaFree(cudaImage);
 //    cudaMemcpy((void*)grad_temp.mesh.get(), cudaGrad, gradSize, cudaMemcpyDeviceToHost);
+//    cudaMemcpy((void*)local_scale_temp2.mesh.get(), cudalocal_scale_temp2, local_scale_tempSize, cudaMemcpyDeviceToHost);
+
+    cudaFree(cudaImage);
     cudaFree(cudaGrad);
     cudaMemcpy((void*)local_scale_temp.mesh.get(), cudalocal_scale_temp, local_scale_tempSize, cudaMemcpyDeviceToHost);
     cudaFree(cudalocal_scale_temp);
-//    cudaMemcpy((void*)local_scale_temp2.mesh.get(), cudalocal_scale_temp2, local_scale_tempSize, cudaMemcpyDeviceToHost);
     cudaFree(cudalocal_scale_temp2);
     timer.stop_timer();
 
