@@ -87,14 +87,14 @@ public :
 #ifndef APR_USE_CUDA
     std::unique_ptr<T[]> meshMemory;
 #else
-    std::unique_ptr<T[], decltype(&freePinnedMemory<T>)> meshMemory;
+    std::unique_ptr<T[], decltype(&freePinnedMemory<T>)> meshMemory = {getPinnedMemory<T>((size_t)0), &freePinnedMemory<T>};
 #endif
     ArrayWrapper<T> mesh;
 
     /**
      * Constructor - initialize mesh with size of 0,0,0
      */
-    PixelData() : meshMemory(getPinnedMemory<T>((size_t)64), &freePinnedMemory<T>) { init(0, 0, 0); }
+    PixelData() { init(0, 0, 0); }
 
     /**
      * Constructor - initialize initial size of mesh to provided values
@@ -102,7 +102,7 @@ public :
      * @param aSizeOfX
      * @param aSizeOfZ
      */
-    PixelData(int aSizeOfY, int aSizeOfX, int aSizeOfZ) : meshMemory(getPinnedMemory<T>((size_t)64), &freePinnedMemory<T>) { init(aSizeOfY, aSizeOfX, aSizeOfZ); }
+    PixelData(int aSizeOfY, int aSizeOfX, int aSizeOfZ) { init(aSizeOfY, aSizeOfX, aSizeOfZ); }
 
     /**
      * Constructor - creates mesh with provided dimentions initialized to aInitVal
@@ -111,13 +111,13 @@ public :
      * @param aSizeOfZ
      * @param aInitVal - initial value of all elements
      */
-    PixelData(int aSizeOfY, int aSizeOfX, int aSizeOfZ, T aInitVal) : meshMemory(getPinnedMemory<T>((size_t)64), &freePinnedMemory<T>) { init(aSizeOfY, aSizeOfX, aSizeOfZ, aInitVal); }
+    PixelData(int aSizeOfY, int aSizeOfX, int aSizeOfZ, T aInitVal) { init(aSizeOfY, aSizeOfX, aSizeOfZ, aInitVal); }
 
     /**
      * Move constructor
      * @param aObj mesh to be moved
      */
-    PixelData(PixelData &&aObj) : meshMemory(getPinnedMemory<T>((size_t)64), &freePinnedMemory<T>) {
+    PixelData(PixelData &&aObj) {
         x_num = aObj.x_num;
         y_num = aObj.y_num;
         z_num = aObj.z_num;
@@ -143,7 +143,7 @@ public :
      * @param aMesh input mesh
      */
     template<typename U>
-    PixelData(const PixelData<U> &aMesh, bool aShouldCopyData) : meshMemory(getPinnedMemory<T>((size_t)64), &freePinnedMemory<T>) {
+    PixelData(const PixelData<U> &aMesh, bool aShouldCopyData) {
         init(aMesh.y_num, aMesh.x_num, aMesh.z_num);
         if (aShouldCopyData) std::copy(aMesh.mesh.begin(), aMesh.mesh.end(), mesh.begin());
     }
