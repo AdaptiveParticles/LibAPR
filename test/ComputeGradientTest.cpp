@@ -689,7 +689,7 @@ namespace {
 
         // Compare GPU vs CPU
         EXPECT_EQ(compareMeshes(mCpuImage, mGpuImage), 0);
-        EXPECT_EQ(compareMeshes(grad_temp, grad_temp_GPU), 0);
+        EXPECT_EQ(compareMeshes(grad_temp, grad_temp_GPU, 0.005), 0);
         EXPECT_EQ(compareMeshes(local_scale_temp, local_scale_temp_GPU), 0);
     }
 
@@ -699,6 +699,8 @@ namespace {
         // Generate random mesh
         using ImageType = float;
         PixelData<ImageType> input_image = getRandInitializedMesh<ImageType>(310, 330, 32, 25);
+        int maxLevel = ceil(std::log2(330));
+
         PixelData<ImageType> &image_temp = input_image;
 
         PixelData<ImageType> grad_temp; // should be a down-sampled image
@@ -730,19 +732,22 @@ namespace {
         timer.start_timer(">>>>>>>>>>>>>>>>> CPU PIPELINE");
         APRConverter<float>().get_gradient(mCpuImage, grad_temp, local_scale_temp, local_scale_temp2, 0, par);
         APRConverter<float>().get_local_intensity_scale(local_scale_temp, local_scale_temp2, par);
+        APRConverter<float>().computeLevels(grad_temp, local_scale_temp, maxLevel, par.rel_error, par.dx, par.dy, par.dz);
         timer.stop_timer();
 
         // Calculate bspline on GPU
         PixelData<ImageType> mGpuImage(image_temp, true);
         timer.start_timer(">>>>>>>>>>>>>>>>> GPU PIPELINE");
-        getFullPipeline(mGpuImage, grad_temp_GPU, local_scale_temp_GPU, local_scale_temp2_GPU, 0, par, 4);
+        getFullPipeline(mGpuImage, grad_temp_GPU, local_scale_temp_GPU, local_scale_temp2_GPU, 0, par, maxLevel);
         timer.stop_timer();
 
         // Compare GPU vs CPU
         EXPECT_EQ(compareMeshes(mCpuImage, mGpuImage), 0);
         EXPECT_EQ(compareMeshes(grad_temp, grad_temp_GPU), 0);
         EXPECT_EQ(compareMeshes(local_scale_temp2, local_scale_temp2_GPU, 0.01), 0);
-        EXPECT_EQ(compareMeshes(local_scale_temp, local_scale_temp_GPU, 0.01), 0);
+        // allow some differences since float point diffs
+        // TODO: It would be much better to count number of diffs with delta==1 and allow some of these
+        EXPECT_TRUE(compareMeshes(local_scale_temp, local_scale_temp_GPU, 0.01) < 20);
     }
 
 
