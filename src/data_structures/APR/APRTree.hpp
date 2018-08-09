@@ -74,10 +74,10 @@ private:
         timer.start_timer("tree - init structure");
         for (uint64_t l = l_min; l < l_max; ++l) {
             double cellSize = pow(2.0, l_max - l + 1);
-            particle_cell_parent_tree[l].init(ceil(apr.orginal_dimensions(0) / cellSize),
-                                              ceil(apr.orginal_dimensions(1) / cellSize),
-                                              ceil(apr.orginal_dimensions(2) / cellSize),
-                                              0);
+            particle_cell_parent_tree[l].initWithValue(ceil(apr.orginal_dimensions(0) / cellSize),
+                                                       ceil(apr.orginal_dimensions(1) / cellSize),
+                                                       ceil(apr.orginal_dimensions(2) / cellSize),
+                                                       0);
         }
         timer.stop_timer();
 

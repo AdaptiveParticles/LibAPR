@@ -145,7 +145,7 @@ namespace {
     TEST_F(MeshDataTest, InitializeTest) {
         {   // Size and initial value known
             PixelData<int> md;
-            md.init(3, 4, 5, 123);
+            md.initWithValue(3, 4, 5, 123);
             ASSERT_EQ(md.y_num, 3);
             ASSERT_EQ(md.x_num, 4);
             ASSERT_EQ(md.z_num, 5);

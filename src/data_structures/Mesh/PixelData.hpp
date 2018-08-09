@@ -110,7 +110,7 @@ public :
      * @param aSizeOfZ
      * @param aInitVal - initial value of all elements
      */
-    PixelData(int aSizeOfY, int aSizeOfX, int aSizeOfZ, T aInitVal) { init(aSizeOfY, aSizeOfX, aSizeOfZ, aInitVal); }
+    PixelData(int aSizeOfY, int aSizeOfX, int aSizeOfZ, T aInitVal) { initWithValue(aSizeOfY, aSizeOfX, aSizeOfZ, aInitVal); }
 
     /**
      * Move constructor
@@ -235,7 +235,7 @@ public :
      * @param aInitVal
      * NOTE: If mesh was already created only added elements (new size > old size) will be initialize with aInitVal
      */
-    void init(int aSizeOfY, int aSizeOfX, int aSizeOfZ, T aInitVal) {
+    void initWithValue(int aSizeOfY, int aSizeOfX, int aSizeOfZ, T aInitVal) {
         bool aUsePinnedMemory = false;
         y_num = aSizeOfY;
         x_num = aSizeOfX;
@@ -342,7 +342,7 @@ public :
         const int x_num_ds = ceil(1.0*aSizeOfX/2.0);
         const int y_num_ds = ceil(1.0*aSizeOfY/2.0);
 
-        init(y_num_ds, x_num_ds, z_num_ds, aInitVal);
+        initWithValue(y_num_ds, x_num_ds, z_num_ds, aInitVal);
     }
 
     /**
@@ -369,7 +369,7 @@ public :
         const int x_num_ds = ceil(1.0*aMesh.x_num/2.0);
         const int y_num_ds = ceil(1.0*aMesh.y_num/2.0);
 
-        init(y_num_ds, x_num_ds, z_num_ds, aInitVal);
+        initWithValue(y_num_ds, x_num_ds, z_num_ds, aInitVal);
     }
 
     /**

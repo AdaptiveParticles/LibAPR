@@ -33,7 +33,7 @@ public:
 
         auto apr_iterator = apr.iterator();
 
-        img.init(apr.orginal_dimensions(0), apr.orginal_dimensions(1), apr.orginal_dimensions(2), 0);
+        img.initWithValue(apr.orginal_dimensions(0), apr.orginal_dimensions(1), apr.orginal_dimensions(2), 0);
 
         int max_dim = std::max(std::max(apr.apr_access.org_dims[1], apr.apr_access.org_dims[0]), apr.apr_access.org_dims[2]);
 
@@ -142,7 +142,7 @@ public:
             return;
         }
 
-        img.init(y_end - y_begin, x_end - x_begin, z_end - z_begin, 0);
+        img.initWithValue(y_end - y_begin, x_end - x_begin, z_end - z_begin, 0);
 
         if(max_level < 0){
             std::cout << "Negative level requested, exiting with empty image" << std::endl;
