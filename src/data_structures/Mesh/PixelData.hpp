@@ -241,7 +241,12 @@ public :
         x_num = aSizeOfX;
         z_num = aSizeOfZ;
         size_t size = (size_t)y_num * x_num * z_num;
+#ifndef APR_USE_CUDA
         meshMemory.reset(new T[size]);
+#else
+//        meshMemory.reset(getPinnedMemory<T>((size_t)size));
+        meshMemory = {getPinnedMemory<T>(size * sizeof(T)), &freePinnedMemory<T>};
+#endif
         T *array = meshMemory.get();
         if (array == nullptr) { std::cerr << "Could not allocate memory!" << size << std::endl; exit(-1); }
         mesh.set(array, size);
@@ -283,7 +288,12 @@ public :
         x_num = aSizeOfX;
         z_num = aSizeOfZ;
         size_t size = (size_t)y_num * x_num * z_num;
+#ifndef APR_USE_CUDA
         meshMemory.reset(new T[size]);
+#else
+//        meshMemory.reset(getPinnedMemory<T>((size_t)size));
+        meshMemory = {getPinnedMemory<T>(size * sizeof(T)), &freePinnedMemory<T>};
+#endif
         if (meshMemory.get() == nullptr) { std::cerr << "Could not allocate memory!" << size << std::endl; exit(-1); }
         mesh.set(meshMemory.get(), size);
     }

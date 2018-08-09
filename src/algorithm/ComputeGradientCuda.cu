@@ -241,7 +241,7 @@ void thresholdImg(PixelData<T> &image, const float threshold) {
 template <typename ImgType>
 void getGradientCuda(PixelData<ImgType> &image, PixelData<float> &local_scale_temp, PixelData<ImgType> &grad_temp,
                      ImgType *cudaImage, ImgType *cudaGrad, float *cudalocal_scale_temp,
-                     float bspline_offset, const APRParameters &par) {
+                     float bspline_offset, const APRParameters &par, cudaStream_t aStream) {
     CudaTimer timer(true, "getGradientCuda");
     {
         timer.start_timer("threshold");
@@ -389,7 +389,7 @@ void getGradient(PixelData<ImgType> &image, PixelData<ImgType> &grad_temp, Pixel
 
 
     timer.start_timer("cuda: calculations on device");
-    getGradientCuda(image, local_scale_temp, grad_temp, cudaImage, cudaGrad, cudalocal_scale_temp, bspline_offset, par);
+    getGradientCuda(image, local_scale_temp, grad_temp, cudaImage, cudaGrad, cudalocal_scale_temp, bspline_offset, par, 0);
     timer.stop_timer();
 
     timer.start_timer("cuda: transfer data from device and freeing memory");
@@ -428,7 +428,7 @@ void getFullPipeline(PixelData<ImgType> &image, PixelData<ImgType> &grad_temp, P
 
     // Processing on GPU
     timer.start_timer("cuda: calculations on device PIPELLINE");
-    getGradientCuda(image, local_scale_temp, grad_temp, cudaImage, cudaGrad, cudalocal_scale_temp, bspline_offset, par);
+    getGradientCuda(image, local_scale_temp, grad_temp, cudaImage, cudaGrad, cudalocal_scale_temp, bspline_offset, par, 0);
     localIntensityScaleCuda(local_scale_temp, par, cudalocal_scale_temp, cudalocal_scale_temp2);
     float min_dim = std::min(par.dy, std::min(par.dx, par.dz));
     float level_factor = pow(2, maxLevel) * min_dim;
