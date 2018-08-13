@@ -461,15 +461,27 @@ void getFullPipeline(PixelData<ImgType> &image, PixelData<ImgType> &grad_temp, P
     cudaStreamDestroy(stream1);
 }
 
+
+template <typename ImgType>
+struct XYZ {
+        ImgType *image;
+        ImgType *grad;
+        float *lis1;
+        float *lis2;
+    };
+
 template <typename ImgType>
 void getFullPipeline2(PixelData<ImgType> &image, PixelData<ImgType> &grad_temp, PixelData<float> &local_scale_temp, PixelData<float> &local_scale_temp2, float bspline_offset, const APRParameters &par, int maxLevel) {
     CudaTimer timer(true, "cuda: getFullPipeline");
 
     timer.start_timer("copy to vector");
     int num = 2;
+
     std::vector<PixelData<ImgType>> inData;
-    inData.emplace_back(PixelData<ImgType>(image, true, true));
-    for (int i = 0;i < num - 1; ++i) inData.emplace_back(PixelData<ImgType>(image, true, true));
+    std::vector<XYZ<ImgType>> inMemory;
+    for (int i = 0;i < num; ++i) {
+        inData.emplace_back(PixelData<ImgType>(image, true, true));
+    }
 
     timer.stop_timer();
 
@@ -477,6 +489,7 @@ void getFullPipeline2(PixelData<ImgType> &image, PixelData<ImgType> &grad_temp, 
     for (int i = 0; i < num; ++i) cudaStreamCreate(&streams[i]);
 
     timer.start_timer("cuda: Whole processing with transfers");
+
 
     for (int i = 0; i < num; ++i) {
         cudaStream_t stream1 = streams[i];
@@ -496,6 +509,18 @@ void getFullPipeline2(PixelData<ImgType> &image, PixelData<ImgType> &grad_temp, 
         cudaMalloc(&cudalocal_scale_temp2, local_scale_tempSize);
         timer.stop_timer();
 
+        inMemory.emplace_back( XYZ<ImgType>{cudaImage, cudaGrad, cudalocal_scale_temp, cudalocal_scale_temp2} );
+    }
+
+    for (int i = 0; i < num; ++i) {
+        cudaStream_t stream1 = streams[i];
+
+        ImgType *cudaImage = inMemory[i].image;
+        ImgType *cudaGrad = inMemory[i].grad;
+        float *cudalocal_scale_temp = inMemory[i].lis1;
+        float *cudalocal_scale_temp2 = inMemory[i].lis2;
+
+
         // Processing on GPU
         timer.start_timer("cuda: calculations on device PIPELLINE");
         cudaStream_t processingStream = stream1;
@@ -514,6 +539,17 @@ void getFullPipeline2(PixelData<ImgType> &image, PixelData<ImgType> &grad_temp, 
 //    cudaMemcpy((void*)grad_temp.mesh.get(), cudaGrad, gradSize, cudaMemcpyDeviceToHost);
 //    cudaMemcpy((void*)local_scale_temp2.mesh.get(), cudalocal_scale_temp2, local_scale_tempSize, cudaMemcpyDeviceToHost);
 
+    }
+
+    for (int i = 0; i < num; ++i) {
+        cudaStream_t stream1 = streams[i];
+
+        ImgType *cudaImage = inMemory[i].image;
+        ImgType *cudaGrad = inMemory[i].grad;
+        float *cudalocal_scale_temp = inMemory[i].lis1;
+        float *cudalocal_scale_temp2 = inMemory[i].lis2;
+
+        size_t local_scale_tempSize = local_scale_temp.mesh.size() * sizeof(float);
         cudaMemcpyAsync((void *) local_scale_temp.mesh.get(), cudalocal_scale_temp, local_scale_tempSize,
                         cudaMemcpyDeviceToHost, stream1);
         cudaFree(cudalocal_scale_temp2);
@@ -521,7 +557,9 @@ void getFullPipeline2(PixelData<ImgType> &image, PixelData<ImgType> &grad_temp, 
         cudaFree(cudaGrad);
         cudaFree(cudalocal_scale_temp);
         timer.stop_timer();
+
     }
+
 
     timer.stop_timer();
     for (int i = 0; i < num; ++i) {
