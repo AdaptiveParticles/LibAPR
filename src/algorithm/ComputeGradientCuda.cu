@@ -138,7 +138,6 @@ namespace {
         bc4[0] = impulse_resp_vec_b[0];
         for (size_t k = 1; k < k0; ++k) bc4[k] += 2 * impulse_resp_vec_b[k];
 
-
         return BsplineParams{
                 bc1,
                 bc2,
@@ -260,14 +259,24 @@ void getGradientCuda(PixelData<ImgType> &image, PixelData<float> &local_scale_te
         float tolerance = 0.0001;
         BsplineParams p = prepareBsplineStuff(input, lambda, tolerance);
 
-        thrust::device_vector<float> d_bc1(p.bc1);
-        thrust::device_vector<float> d_bc2(p.bc2);
-        thrust::device_vector<float> d_bc3(p.bc3);
-        thrust::device_vector<float> d_bc4(p.bc4);
+        thrust::device_vector<float> d_bc1(p.bc1.size());
+        thrust::device_vector<float> d_bc2(p.bc2.size());
+        thrust::device_vector<float> d_bc3(p.bc3.size());
+        thrust::device_vector<float> d_bc4(p.bc4.size());
+
         float *bc1= raw_pointer_cast(d_bc1.data());
         float *bc2= raw_pointer_cast(d_bc2.data());
         float *bc3= raw_pointer_cast(d_bc3.data());
         float *bc4= raw_pointer_cast(d_bc4.data());
+
+        std::cout << "Bef bc1 copy" << std::endl;
+        cudaMemcpyAsync(bc1, p.bc1.data(), p.bc1.size() * sizeof(float), cudaMemcpyHostToDevice, aStream);
+        std::cout << "aft bc1 copy" << std::endl;
+        cudaMemcpyAsync(bc2, p.bc2.data(), p.bc2.size() * sizeof(float), cudaMemcpyHostToDevice, aStream);
+        cudaMemcpyAsync(bc3, p.bc3.data(), p.bc3.size() * sizeof(float), cudaMemcpyHostToDevice, aStream);
+        cudaMemcpyAsync(bc4, p.bc4.data(), p.bc4.size() * sizeof(float), cudaMemcpyHostToDevice, aStream);
+
+
         float *boundary;
         uint16_t flags = 0xff;
         if (flags & BSPLINE_Y_DIR) {
