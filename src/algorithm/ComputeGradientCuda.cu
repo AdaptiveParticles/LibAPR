@@ -567,9 +567,9 @@ void getFullPipeline2(PixelData<ImgType> &image, PixelData<ImgType> &grad_temp, 
 
 
     timer.stop_timer();
-    for (int i = 0; i < num; ++i) {
-        cudaStreamSynchronize(streams[i]);
-        cudaStreamDestroy(streams[i]);
-    }
+//    for (int i = 0; i < num; ++i) {
+//        cudaStreamSynchronize(streams[i]);
+//        cudaStreamDestroy(streams[i]);
+//    }
 
 }
