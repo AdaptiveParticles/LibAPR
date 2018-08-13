@@ -21,6 +21,7 @@
 #include "data_structures/Mesh/downsample.cuh"
 #include "algorithm/LocalIntensityScaleCuda.h"
 #include "algorithm/ComputePullingSchemeCuda.h"
+#include "misc/CudaMemory.hpp"
 
 // explicit instantiation of handled types
 template void getGradient(PixelData<float> &, PixelData<float> &, PixelData<float> &, PixelData<float> &, float, const APRParameters &);
@@ -64,10 +65,14 @@ void cudaDownsampledGradient(const PixelData<float> &input, PixelData<float> &gr
 
 namespace {
     typedef struct {
-        std::vector<float> bc1;
-        std::vector<float> bc2;
-        std::vector<float> bc3;
-        std::vector<float> bc4;
+//        std::vector<float> bc1;
+//        std::vector<float> bc2;
+//        std::vector<float> bc3;
+//        std::vector<float> bc4;
+        float *bc1;
+        float *bc2;
+        float *bc3;
+        float *bc4;
         size_t k0;
         float b1;
         float b2;
@@ -116,11 +121,16 @@ namespace {
         std::vector<float> impulse_resp_vec_f(k0 + 1);
         for (size_t k = 0; k < impulse_resp_vec_f.size(); ++k) impulse_resp_vec_f[k] = impulse_resp(k, rho, omg);
 
+        float  *bc1 = getPinnedMemory<float>(sizeof(float) * k0);
+        float  *bc2 = getPinnedMemory<float>(sizeof(float) * k0);
+        float  *bc3 = getPinnedMemory<float>(sizeof(float) * k0);
+        float  *bc4 = getPinnedMemory<float>(sizeof(float) * k0);
+
         //y(0) init
-        std::vector<float> bc1(k0, 0);
+//        std::vector<float> bc1(k0, 0);
         for (size_t k = 0; k < k0; ++k) bc1[k] = impulse_resp_vec_f[k];
         //y(1) init
-        std::vector<float> bc2(k0, 0);
+//        std::vector<float> bc2(k0, 0);
         bc2[1] = impulse_resp_vec_f[0];
         for (size_t k = 0; k < k0; ++k) bc2[k] += impulse_resp_vec_f[k + 1];
 
@@ -130,11 +140,11 @@ namespace {
             impulse_resp_vec_b[k] = impulse_resp_back(k, rho, omg, gamma, c0);
 
         //y(N-1) init
-        std::vector<float> bc3(k0, 0);
+//        std::vector<float> bc3(k0, 0);
         bc3[0] = impulse_resp_vec_b[1];
         for (size_t k = 0; k < (k0 - 1); ++k) bc3[k + 1] += impulse_resp_vec_b[k] + impulse_resp_vec_b[k + 2];
         //y(N) init
-        std::vector<float> bc4(k0, 0);
+//        std::vector<float> bc4(k0, 0);
         bc4[0] = impulse_resp_vec_b[0];
         for (size_t k = 1; k < k0; ++k) bc4[k] += 2 * impulse_resp_vec_b[k];
 
@@ -259,22 +269,29 @@ void getGradientCuda(PixelData<ImgType> &image, PixelData<float> &local_scale_te
         float tolerance = 0.0001;
         BsplineParams p = prepareBsplineStuff(input, lambda, tolerance);
 
-        thrust::device_vector<float> d_bc1(p.bc1.size());
-        thrust::device_vector<float> d_bc2(p.bc2.size());
-        thrust::device_vector<float> d_bc3(p.bc3.size());
-        thrust::device_vector<float> d_bc4(p.bc4.size());
 
-        float *bc1= raw_pointer_cast(d_bc1.data());
-        float *bc2= raw_pointer_cast(d_bc2.data());
-        float *bc3= raw_pointer_cast(d_bc3.data());
-        float *bc4= raw_pointer_cast(d_bc4.data());
+//        thrust::device_vector<float> d_bc1(p.k0 * sizeof(float));
+//        thrust::device_vector<float> d_bc2(p.k0 * sizeof(float));
+//        thrust::device_vector<float> d_bc3(p.k0 * sizeof(float));
+//        thrust::device_vector<float> d_bc4(p.k0 * sizeof(float));
+//
+//        float *bc1= raw_pointer_cast(d_bc1.data());
+//        float *bc2= raw_pointer_cast(d_bc2.data());
+//        float *bc3= raw_pointer_cast(d_bc3.data());
+//        float *bc4= raw_pointer_cast(d_bc4.data());
+
+        float *bc1, *bc2, *bc3, *bc4;
+        cudaMalloc(&bc1, p.k0 * sizeof(float));
+        cudaMalloc(&bc2, p.k0 * sizeof(float));
+        cudaMalloc(&bc3, p.k0 * sizeof(float));
+        cudaMalloc(&bc4, p.k0 * sizeof(float));
 
         std::cout << "Bef bc1 copy" << std::endl;
-        cudaMemcpyAsync(bc1, p.bc1.data(), p.bc1.size() * sizeof(float), cudaMemcpyHostToDevice, aStream);
+        cudaMemcpyAsync(bc1, p.bc1, p.k0 * sizeof(float), cudaMemcpyHostToDevice, aStream);
         std::cout << "aft bc1 copy" << std::endl;
-        cudaMemcpyAsync(bc2, p.bc2.data(), p.bc2.size() * sizeof(float), cudaMemcpyHostToDevice, aStream);
-        cudaMemcpyAsync(bc3, p.bc3.data(), p.bc3.size() * sizeof(float), cudaMemcpyHostToDevice, aStream);
-        cudaMemcpyAsync(bc4, p.bc4.data(), p.bc4.size() * sizeof(float), cudaMemcpyHostToDevice, aStream);
+        cudaMemcpyAsync(bc2, p.bc2, p.k0 * sizeof(float), cudaMemcpyHostToDevice, aStream);
+        cudaMemcpyAsync(bc3, p.bc3, p.k0 * sizeof(float), cudaMemcpyHostToDevice, aStream);
+        cudaMemcpyAsync(bc4, p.bc4, p.k0 * sizeof(float), cudaMemcpyHostToDevice, aStream);
 
 
         float *boundary;
