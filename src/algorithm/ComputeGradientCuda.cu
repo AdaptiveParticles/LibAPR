@@ -280,7 +280,7 @@ void getGradientCuda(PixelData<ImgType> &image, PixelData<float> &local_scale_te
             dim3 numBlocks((image.x_num * input.z_num + threadsPerBlock.x - 1) / threadsPerBlock.x);
             printCudaDims(threadsPerBlock, numBlocks);
             size_t sharedMemSize = (2 /*bc vectors*/) * (p.k0) * sizeof(float) + numOfThreads * (p.k0) * sizeof(ImgType);
-            bsplineYdirBoundary<ImgType> <<< numBlocks, threadsPerBlock, sharedMemSize >>> (cudaImage, input.x_num, input.y_num, input.z_num, bc1, bc2, bc3, bc4, p.k0, boundary);
+            bsplineYdirBoundary<ImgType> <<< numBlocks, threadsPerBlock, sharedMemSize, aStream >>> (cudaImage, input.x_num, input.y_num, input.z_num, bc1, bc2, bc3, bc4, p.k0, boundary);
             sharedMemSize = numOfThreads * blockWidth * sizeof(ImgType);
             bsplineYdirProcess<ImgType> <<< numBlocks, threadsPerBlock, sharedMemSize, aStream >>> (cudaImage, input.x_num, input.y_num, input.z_num, p.k0, p.b1, p.b2, p.norm_factor, boundary);
             cudaFree(boundary);
@@ -475,7 +475,7 @@ void getFullPipeline2(PixelData<ImgType> &image, PixelData<ImgType> &grad_temp, 
     CudaTimer timer(true, "cuda: getFullPipeline");
 
     timer.start_timer("copy to vector");
-    int num = 2;
+    const int num = 3;
 
     std::vector<PixelData<ImgType>> inData;
     std::vector<XYZ<ImgType>> inMemory;
@@ -492,13 +492,11 @@ void getFullPipeline2(PixelData<ImgType> &image, PixelData<ImgType> &grad_temp, 
 
 
     for (int i = 0; i < num; ++i) {
-        cudaStream_t stream1 = streams[i];
         // Host -> Device transfers
         timer.start_timer("cuda: memory alloc + data transfer to device");
         size_t imageSize = image.mesh.size() * sizeof(ImgType);
         ImgType *cudaImage = nullptr;
         cudaMalloc(&cudaImage, imageSize);
-        cudaMemcpyAsync(cudaImage, image.mesh.get(), imageSize, cudaMemcpyHostToDevice, stream1);
         size_t gradSize = grad_temp.mesh.size() * sizeof(ImgType);
         ImgType *cudaGrad = nullptr;
         cudaMalloc(&cudaGrad, gradSize);
@@ -510,6 +508,15 @@ void getFullPipeline2(PixelData<ImgType> &image, PixelData<ImgType> &grad_temp, 
         timer.stop_timer();
 
         inMemory.emplace_back( XYZ<ImgType>{cudaImage, cudaGrad, cudalocal_scale_temp, cudalocal_scale_temp2} );
+    }
+    for (int i = 0; i < num; ++i) {
+        cudaStream_t stream1 = streams[i];
+        // Host -> Device transfers
+        timer.start_timer("cuda: memory alloc + data transfer to device");
+        size_t imageSize = image.mesh.size() * sizeof(ImgType);
+        ImgType *cudaImage = inMemory[i].image;
+        cudaMemcpyAsync(cudaImage, image.mesh.get(), imageSize, cudaMemcpyHostToDevice, stream1);
+        timer.stop_timer();
     }
 
     for (int i = 0; i < num; ++i) {
