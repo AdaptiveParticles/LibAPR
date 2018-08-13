@@ -8,9 +8,9 @@
 #include "data_structures/Mesh/PixelData.hpp"
 
 template <typename ImageType>
-void computeLevelsCuda(const PixelData<ImageType> &grad_temp, PixelData<float> &local_scale_temp, int maxLevel, float relError, float dx = 1, float dy = 1, float dz = 1);
+void computeLevelsCuda(const PixelData<ImageType> &grad_temp, PixelData<float> &local_scale_temp, int maxLevel, float relError, float dx = 1, float dy = 1, float dz = 1, cudaStream_t aStream = 0);
 
 template <typename ImageType>
-void gradDivLocalIntensityScale(const ImageType *grad, float *lis, size_t len, float mult_const);
+void gradDivLocalIntensityScale(const ImageType *grad, float *lis, size_t len, float mult_const, cudaStream_t aStream = 0);
 
 #endif //LIBAPR_COMPUTEPULLINGSCHEMECUDA_HPP

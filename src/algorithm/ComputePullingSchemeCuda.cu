@@ -7,11 +7,11 @@
 
 
 // explicit instantiation of handled types
-template void computeLevelsCuda(const PixelData<float> &, PixelData<float> &, int, float, float, float, float);
+template void computeLevelsCuda(const PixelData<float> &, PixelData<float> &, int, float, float, float, float, cudaStream_t);
 
-template void gradDivLocalIntensityScale(const float *grad, float *lis, size_t len, float mult_const);
-template void gradDivLocalIntensityScale(const uint16_t *grad, float *lis, size_t len, float mult_const);
-template void gradDivLocalIntensityScale(const uint8_t *grad, float *lis, size_t len, float mult_const);
+template void gradDivLocalIntensityScale(const float *grad, float *lis, size_t len, float mult_const, cudaStream_t);
+template void gradDivLocalIntensityScale(const uint16_t *grad, float *lis, size_t len, float mult_const, cudaStream_t);
+template void gradDivLocalIntensityScale(const uint8_t *grad, float *lis, size_t len, float mult_const, cudaStream_t);
 
 template <typename T>
 __global__ void gradDivLocalIntensityScaleKernel(const T *grad, float *lis, size_t len, float mult_const) {
@@ -25,17 +25,17 @@ __global__ void gradDivLocalIntensityScaleKernel(const T *grad, float *lis, size
 }
 
 template <typename T>
-void gradDivLocalIntensityScale(const T *grad, float *lis, size_t len, float mult_const) {
+void gradDivLocalIntensityScale(const T *grad, float *lis, size_t len, float mult_const, cudaStream_t aStream) {
     CudaTimer timer(true, "levelsCompute");
     timer.start_timer("levels start");
     dim3 threadsPerBlock(64);
     dim3 numBlocks((len + threadsPerBlock.x - 1) / threadsPerBlock.x);
-    gradDivLocalIntensityScaleKernel <<< numBlocks, threadsPerBlock >>> (grad, lis, len, mult_const);
+    gradDivLocalIntensityScaleKernel <<< numBlocks, threadsPerBlock, 0, aStream >>> (grad, lis, len, mult_const);
     timer.stop_timer();
 }
 
 template <typename ImageType>
-void computeLevelsCuda(const PixelData<ImageType> &grad_temp, PixelData<float> &local_scale_temp, int maxLevel, float relError,  float dx, float dy, float dz) {
+void computeLevelsCuda(const PixelData<ImageType> &grad_temp, PixelData<float> &local_scale_temp, int maxLevel, float relError,  float dx, float dy, float dz, cudaStream_t aStream) {
     CudaTimer timer(true, "computeLevelsCuda");
     // Host -> Device transfers
     timer.start_timer("cuda: memory alloc + data transfer to device");
@@ -54,7 +54,7 @@ void computeLevelsCuda(const PixelData<ImageType> &grad_temp, PixelData<float> &
     float min_dim = std::min(dy, std::min(dx, dz));
     float level_factor = pow(2, maxLevel) * min_dim;
     const float mult_const = level_factor/relError;
-    gradDivLocalIntensityScale(cudaGrad, cudaLis, grad_temp.mesh.size(), mult_const);
+    gradDivLocalIntensityScale(cudaGrad, cudaLis, grad_temp.mesh.size(), mult_const, aStream);
     timer.stop_timer();
 
     // Device -> Host transfers
