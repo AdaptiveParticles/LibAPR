@@ -327,10 +327,10 @@ __global__ void absDiff1dKernel(T *data, const T *reference, size_t len) {
 }
 
 template <typename T>
-void absDiff1d(T *data, const T *reference, size_t len) {
+void absDiff1d(T *data, const T *reference, size_t len, cudaStream_t aStream) {
     dim3 threadsPerBlock(64);
     dim3 numBlocks((len + threadsPerBlock.x - 1) / threadsPerBlock.x);
-    absDiff1dKernel <<< numBlocks, threadsPerBlock >>> (data, reference, len);
+    absDiff1dKernel <<< numBlocks, threadsPerBlock, 0, aStream >>> (data, reference, len);
 }
 
 template<typename T>
@@ -376,7 +376,7 @@ void localIntensityScaleCuda(const PixelData<T> &image, const APRParameters &par
     localIntensityScaleCUDA(cudaImage, image, win_x, win_y, win_z, MEAN_ALL_DIR, aStream);
 
     timer.start_timer("second_pass_and_rescale");
-    absDiff1d(cudaImage, cudaTemp, image.mesh.size());
+    absDiff1d(cudaImage, cudaTemp, image.mesh.size(), aStream);
     localIntensityScaleCUDA(cudaImage, image, win_x2, win_y2, win_z2, MEAN_ALL_DIR, aStream);
     rescale(cudaImage, image.mesh.size(), var_rescale, par.sigma_th, par.sigma_th_max, aStream);
     timer.stop_timer();

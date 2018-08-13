@@ -486,7 +486,7 @@ void getFullPipeline2(PixelData<ImgType> &image, PixelData<ImgType> &grad_temp, 
     timer.stop_timer();
 
     cudaStream_t streams[num];
-    for (int i = 0; i < num; ++i) cudaStreamCreate(&streams[i]);
+    for (int i = 0; i < num; ++i) cudaStreamCreateWithFlags(&streams[i], cudaStreamNonBlocking);
 
     timer.start_timer("cuda: Whole processing with transfers");
 
@@ -532,16 +532,14 @@ void getFullPipeline2(PixelData<ImgType> &image, PixelData<ImgType> &grad_temp, 
         const float mult_const = level_factor / par.rel_error;
         gradDivLocalIntensityScale(cudaGrad, cudalocal_scale_temp, grad_temp.mesh.size(), mult_const, processingStream);
         timer.stop_timer();
+    }
 
+    for (int i = 0; i < num; ++i) {
         // Device -> Host transfers
         timer.start_timer("cuda: transfer data from device and freeing memory");
 //    cudaMemcpy((void*)image.mesh.get(), cudaImage, imageSize, cudaMemcpyDeviceToHost);
 //    cudaMemcpy((void*)grad_temp.mesh.get(), cudaGrad, gradSize, cudaMemcpyDeviceToHost);
 //    cudaMemcpy((void*)local_scale_temp2.mesh.get(), cudalocal_scale_temp2, local_scale_tempSize, cudaMemcpyDeviceToHost);
-
-    }
-
-    for (int i = 0; i < num; ++i) {
         cudaStream_t stream1 = streams[i];
 
         ImgType *cudaImage = inMemory[i].image;
