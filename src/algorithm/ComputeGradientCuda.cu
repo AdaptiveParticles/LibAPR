@@ -250,9 +250,19 @@ void thresholdImg(PixelData<T> &image, const float threshold) {
 }
 
 template <typename ImgType>
+struct XYZ {
+    ImgType *image;
+    ImgType *grad;
+    float *lis1;
+    float *lis2;
+    float *bc1, *bc2, *bc3, *bc4;
+    BsplineParams p;
+};
+
+template <typename ImgType>
 void getGradientCuda(PixelData<ImgType> &image, PixelData<float> &local_scale_temp, PixelData<ImgType> &grad_temp,
                      ImgType *cudaImage, ImgType *cudaGrad, float *cudalocal_scale_temp,
-                     float bspline_offset, const APRParameters &par, cudaStream_t aStream) {
+                     float bspline_offset, const APRParameters &par, cudaStream_t aStream, XYZ<ImgType> *p) {
     CudaTimer timer(true, "getGradientCuda");
     {
         timer.start_timer("threshold");
@@ -265,34 +275,34 @@ void getGradientCuda(PixelData<ImgType> &image, PixelData<float> &local_scale_te
     {
         timer.start_timer("smooth bspline");
         PixelData<ImgType> &input = image;
-        float lambda = par.lambda;
-        float tolerance = 0.0001;
-        BsplineParams p = prepareBsplineStuff(input, lambda, tolerance);
-
-
-//        thrust::device_vector<float> d_bc1(p.k0 * sizeof(float));
-//        thrust::device_vector<float> d_bc2(p.k0 * sizeof(float));
-//        thrust::device_vector<float> d_bc3(p.k0 * sizeof(float));
-//        thrust::device_vector<float> d_bc4(p.k0 * sizeof(float));
+//        float lambda = par.lambda;
+//        float tolerance = 0.0001;
+//        BsplineParams p = prepareBsplineStuff(input, lambda, tolerance);
 //
-//        float *bc1= raw_pointer_cast(d_bc1.data());
-//        float *bc2= raw_pointer_cast(d_bc2.data());
-//        float *bc3= raw_pointer_cast(d_bc3.data());
-//        float *bc4= raw_pointer_cast(d_bc4.data());
-
-        float *bc1, *bc2, *bc3, *bc4;
-        cudaMalloc(&bc1, p.k0 * sizeof(float));
-        cudaMalloc(&bc2, p.k0 * sizeof(float));
-        cudaMalloc(&bc3, p.k0 * sizeof(float));
-        cudaMalloc(&bc4, p.k0 * sizeof(float));
-
-        std::cout << "Bef bc1 copy" << std::endl;
-        cudaMemcpyAsync(bc1, p.bc1, p.k0 * sizeof(float), cudaMemcpyHostToDevice, aStream);
-        std::cout << "aft bc1 copy" << std::endl;
-        cudaMemcpyAsync(bc2, p.bc2, p.k0 * sizeof(float), cudaMemcpyHostToDevice, aStream);
-        cudaMemcpyAsync(bc3, p.bc3, p.k0 * sizeof(float), cudaMemcpyHostToDevice, aStream);
-        cudaMemcpyAsync(bc4, p.bc4, p.k0 * sizeof(float), cudaMemcpyHostToDevice, aStream);
-
+//
+////        thrust::device_vector<float> d_bc1(p.k0 * sizeof(float));
+////        thrust::device_vector<float> d_bc2(p.k0 * sizeof(float));
+////        thrust::device_vector<float> d_bc3(p.k0 * sizeof(float));
+////        thrust::device_vector<float> d_bc4(p.k0 * sizeof(float));
+////
+////        float *bc1= raw_pointer_cast(d_bc1.data());
+////        float *bc2= raw_pointer_cast(d_bc2.data());
+////        float *bc3= raw_pointer_cast(d_bc3.data());
+////        float *bc4= raw_pointer_cast(d_bc4.data());
+//
+//        float *bc1, *bc2, *bc3, *bc4;
+//        cudaMalloc(&bc1, p.k0 * sizeof(float));
+//        cudaMalloc(&bc2, p.k0 * sizeof(float));
+//        cudaMalloc(&bc3, p.k0 * sizeof(float));
+//        cudaMalloc(&bc4, p.k0 * sizeof(float));
+//
+//        std::cout << "Bef bc1 copy" << std::endl;
+//        cudaMemcpyAsync(bc1, p.bc1, p.k0 * sizeof(float), cudaMemcpyHostToDevice, aStream);
+//        std::cout << "aft bc1 copy" << std::endl;
+//        cudaMemcpyAsync(bc2, p.bc2, p.k0 * sizeof(float), cudaMemcpyHostToDevice, aStream);
+//        cudaMemcpyAsync(bc3, p.bc3, p.k0 * sizeof(float), cudaMemcpyHostToDevice, aStream);
+//        cudaMemcpyAsync(bc4, p.bc4, p.k0 * sizeof(float), cudaMemcpyHostToDevice, aStream);
+//
 
         float *boundary;
         uint16_t flags = 0xff;
@@ -305,10 +315,10 @@ void getGradientCuda(PixelData<ImgType> &image, PixelData<float> &local_scale_te
             dim3 threadsPerBlock(numOfThreads);
             dim3 numBlocks((image.x_num * input.z_num + threadsPerBlock.x - 1) / threadsPerBlock.x);
             printCudaDims(threadsPerBlock, numBlocks);
-            size_t sharedMemSize = (2 /*bc vectors*/) * (p.k0) * sizeof(float) + numOfThreads * (p.k0) * sizeof(ImgType);
-            bsplineYdirBoundary<ImgType> <<< numBlocks, threadsPerBlock, sharedMemSize, aStream >>> (cudaImage, input.x_num, input.y_num, input.z_num, bc1, bc2, bc3, bc4, p.k0, boundary);
+            size_t sharedMemSize = (2 /*bc vectors*/) * (p->p.k0) * sizeof(float) + numOfThreads * (p->p.k0) * sizeof(ImgType);
+            bsplineYdirBoundary<ImgType> <<< numBlocks, threadsPerBlock, sharedMemSize, aStream >>> (cudaImage, input.x_num, input.y_num, input.z_num, p->bc1, p->bc2, p->bc3, p->bc4, p->p.k0, boundary);
             sharedMemSize = numOfThreads * blockWidth * sizeof(ImgType);
-            bsplineYdirProcess<ImgType> <<< numBlocks, threadsPerBlock, sharedMemSize, aStream >>> (cudaImage, input.x_num, input.y_num, input.z_num, p.k0, p.b1, p.b2, p.norm_factor, boundary);
+            bsplineYdirProcess<ImgType> <<< numBlocks, threadsPerBlock, sharedMemSize, aStream >>> (cudaImage, input.x_num, input.y_num, input.z_num, p->p.k0, p->p.b1, p->p.b2, p->p.norm_factor, boundary);
             cudaFree(boundary);
         }
         constexpr int numOfWorkersYdir = 64;
@@ -318,7 +328,7 @@ void getGradientCuda(PixelData<ImgType> &image, PixelData<float> &local_scale_te
                             (input.y_num + threadsPerBlockX.y - 1) / threadsPerBlockX.y,
                             (input.z_num + threadsPerBlockX.z - 1) / threadsPerBlockX.z);
             printCudaDims(threadsPerBlockX, numBlocksX);
-            bsplineXdir<ImgType> <<< numBlocksX, threadsPerBlockX, 0, aStream >>> (cudaImage, input.x_num, input.y_num, bc1, bc2, bc3, bc4, p.k0, p.b1, p.b2, p.norm_factor);
+            bsplineXdir<ImgType> <<< numBlocksX, threadsPerBlockX, 0, aStream >>> (cudaImage, input.x_num, input.y_num, p->bc1, p->bc2, p->bc3, p->bc4, p->p.k0, p->p.b1, p->p.b2, p->p.norm_factor);
         }
         if (flags & BSPLINE_Z_DIR) {
             dim3 threadsPerBlockZ(1, numOfWorkersYdir, 1);
@@ -326,7 +336,7 @@ void getGradientCuda(PixelData<ImgType> &image, PixelData<float> &local_scale_te
                             (input.y_num + threadsPerBlockZ.y - 1) / threadsPerBlockZ.y,
                             (input.x_num + threadsPerBlockZ.x - 1) / threadsPerBlockZ.x);
             printCudaDims(threadsPerBlockZ, numBlocksZ);
-            bsplineZdir<ImgType> <<< numBlocksZ, threadsPerBlockZ, 0, aStream >>> (cudaImage, input.x_num, input.y_num, input.z_num, bc1, bc2, bc3, bc4, p.k0, p.b1, p.b2, p.norm_factor);
+            bsplineZdir<ImgType> <<< numBlocksZ, threadsPerBlockZ, 0, aStream >>> (cudaImage, input.x_num, input.y_num, input.z_num, p->bc1, p->bc2, p->bc3, p->bc4, p->p.k0, p->p.b1, p->p.b2, p->p.norm_factor);
         }
         timer.stop_timer();
     }
@@ -417,7 +427,7 @@ void getGradient(PixelData<ImgType> &image, PixelData<ImgType> &grad_temp, Pixel
 
 
     timer.start_timer("cuda: calculations on device");
-    getGradientCuda(image, local_scale_temp, grad_temp, cudaImage, cudaGrad, cudalocal_scale_temp, bspline_offset, par, 0);
+//    getGradientCuda(image, local_scale_temp, grad_temp, cudaImage, cudaGrad, cudalocal_scale_temp, bspline_offset, par, 0);
     timer.stop_timer();
 
     timer.start_timer("cuda: transfer data from device and freeing memory");
@@ -460,7 +470,7 @@ void getFullPipeline(PixelData<ImgType> &image, PixelData<ImgType> &grad_temp, P
     // Processing on GPU
     timer.start_timer("cuda: calculations on device PIPELLINE");
     cudaStream_t processingStream = stream1;
-    getGradientCuda(image, local_scale_temp, grad_temp, cudaImage, cudaGrad, cudalocal_scale_temp, bspline_offset, par, processingStream);
+//    getGradientCuda(image, local_scale_temp, grad_temp, cudaImage, cudaGrad, cudalocal_scale_temp, bspline_offset, par, processingStream);
     localIntensityScaleCuda(local_scale_temp, par, cudalocal_scale_temp, cudalocal_scale_temp2, processingStream);
     float min_dim = std::min(par.dy, std::min(par.dx, par.dz));
     float level_factor = pow(2, maxLevel) * min_dim;
@@ -488,13 +498,7 @@ void getFullPipeline(PixelData<ImgType> &image, PixelData<ImgType> &grad_temp, P
 }
 
 
-template <typename ImgType>
-struct XYZ {
-        ImgType *image;
-        ImgType *grad;
-        float *lis1;
-        float *lis2;
-    };
+
 
 template <typename ImgType>
 void getFullPipeline2(PixelData<ImgType> &image, PixelData<ImgType> &grad_temp, PixelData<float> &local_scale_temp, PixelData<float> &local_scale_temp2, float bspline_offset, const APRParameters &par, int maxLevel) {
@@ -542,6 +546,39 @@ void getFullPipeline2(PixelData<ImgType> &image, PixelData<ImgType> &grad_temp, 
         size_t imageSize = image.mesh.size() * sizeof(ImgType);
         ImgType *cudaImage = inMemory[i].image;
         cudaMemcpyAsync(cudaImage, image.mesh.get(), imageSize, cudaMemcpyHostToDevice, stream1);
+
+        PixelData<ImgType> &input = image;
+        float lambda = par.lambda;
+        float tolerance = 0.0001;
+        BsplineParams p = prepareBsplineStuff(input, lambda, tolerance);
+
+
+//        thrust::device_vector<float> d_bc1(p.k0 * sizeof(float));
+//        thrust::device_vector<float> d_bc2(p.k0 * sizeof(float));
+//        thrust::device_vector<float> d_bc3(p.k0 * sizeof(float));
+//        thrust::device_vector<float> d_bc4(p.k0 * sizeof(float));
+//
+//        float *bc1= raw_pointer_cast(d_bc1.data());
+//        float *bc2= raw_pointer_cast(d_bc2.data());
+//        float *bc3= raw_pointer_cast(d_bc3.data());
+//        float *bc4= raw_pointer_cast(d_bc4.data());
+
+        float *bc1, *bc2, *bc3, *bc4;
+        cudaMalloc(&bc1, p.k0 * sizeof(float));
+        cudaMalloc(&bc2, p.k0 * sizeof(float));
+        cudaMalloc(&bc3, p.k0 * sizeof(float));
+        cudaMalloc(&bc4, p.k0 * sizeof(float));
+
+        cudaMemcpyAsync(bc1, p.bc1, p.k0 * sizeof(float), cudaMemcpyHostToDevice, stream1);
+        cudaMemcpyAsync(bc2, p.bc2, p.k0 * sizeof(float), cudaMemcpyHostToDevice, stream1);
+        cudaMemcpyAsync(bc3, p.bc3, p.k0 * sizeof(float), cudaMemcpyHostToDevice, stream1);
+        cudaMemcpyAsync(bc4, p.bc4, p.k0 * sizeof(float), cudaMemcpyHostToDevice, stream1);
+        inMemory[i].bc1 = bc1;
+        inMemory[i].bc2 = bc2;
+        inMemory[i].bc3 = bc3;
+        inMemory[i].bc4 = bc4;
+        inMemory[i].p = p;
+
         timer.stop_timer();
     }
 
@@ -558,7 +595,7 @@ void getFullPipeline2(PixelData<ImgType> &image, PixelData<ImgType> &grad_temp, 
         timer.start_timer("cuda: calculations on device PIPELLINE");
         cudaStream_t processingStream = stream1;
         getGradientCuda(image, local_scale_temp, grad_temp, cudaImage, cudaGrad, cudalocal_scale_temp, bspline_offset,
-                        par, processingStream);
+                        par, processingStream, &inMemory[i]);
         localIntensityScaleCuda(local_scale_temp, par, cudalocal_scale_temp, cudalocal_scale_temp2, processingStream);
         float min_dim = std::min(par.dy, std::min(par.dx, par.dz));
         float level_factor = pow(2, maxLevel) * min_dim;
