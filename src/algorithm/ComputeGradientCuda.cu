@@ -257,6 +257,7 @@ struct XYZ {
     float *lis2;
     float *bc1, *bc2, *bc3, *bc4;
     BsplineParams p;
+    float *boundary;
 };
 
 template <typename ImgType>
@@ -304,12 +305,12 @@ void getGradientCuda(PixelData<ImgType> &image, PixelData<float> &local_scale_te
 //        cudaMemcpyAsync(bc4, p.bc4, p.k0 * sizeof(float), cudaMemcpyHostToDevice, aStream);
 //
 
-        float *boundary;
+        float *boundary = p->boundary;
         uint16_t flags = 0xff;
-        if (flags & BSPLINE_Y_DIR) {
-            int boundaryLen = sizeof(float) * (2 /*two first elements*/ + 2 /* two last elements */) * input.x_num * input.z_num;
-            cudaMalloc(&boundary, boundaryLen);
-        }
+//        if (flags & BSPLINE_Y_DIR) {
+//            int boundaryLen = sizeof(float) * (2 /*two first elements*/ + 2 /* two last elements */) * input.x_num * input.z_num;
+//            cudaMalloc(&boundary, boundaryLen);
+//        }
 
         if (flags & BSPLINE_Y_DIR) {
             dim3 threadsPerBlock(numOfThreads);
@@ -319,7 +320,7 @@ void getGradientCuda(PixelData<ImgType> &image, PixelData<float> &local_scale_te
             bsplineYdirBoundary<ImgType> <<< numBlocks, threadsPerBlock, sharedMemSize, aStream >>> (cudaImage, input.x_num, input.y_num, input.z_num, p->bc1, p->bc2, p->bc3, p->bc4, p->p.k0, boundary);
             sharedMemSize = numOfThreads * blockWidth * sizeof(ImgType);
             bsplineYdirProcess<ImgType> <<< numBlocks, threadsPerBlock, sharedMemSize, aStream >>> (cudaImage, input.x_num, input.y_num, input.z_num, p->p.k0, p->p.b1, p->p.b2, p->p.norm_factor, boundary);
-            cudaFree(boundary);
+//            cudaFree(boundary);
         }
         constexpr int numOfWorkersYdir = 64;
         if (flags & BSPLINE_X_DIR) {
@@ -579,6 +580,10 @@ void getFullPipeline2(PixelData<ImgType> &image, PixelData<ImgType> &grad_temp, 
         inMemory[i].bc4 = bc4;
         inMemory[i].p = p;
 
+        float *boundary;
+            int boundaryLen = sizeof(float) * (2 /*two first elements*/ + 2 /* two last elements */) * image.x_num * image.z_num;
+            cudaMalloc(&boundary, boundaryLen);
+        inMemory[i].boundary = boundary;
         timer.stop_timer();
     }
 
