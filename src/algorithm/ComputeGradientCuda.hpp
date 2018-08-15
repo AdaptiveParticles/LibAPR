@@ -25,4 +25,15 @@ void getFullPipeline(PixelData<ImgType> &image, PixelData<ImgType> &grad_temp, P
 template <typename ImgType>
 void getFullPipeline2(PixelData<ImgType> &image, PixelData<ImgType> &grad_temp, PixelData<float> &local_scale_temp, PixelData<float> &local_scale_temp2, float bspline_offset, const APRParameters &par, int maxLevel);
 
+
+using TypeOfRecBsplineFlags = uint16_t;
+constexpr TypeOfRecBsplineFlags BSPLINE_Y_DIR = 0x01;
+constexpr TypeOfRecBsplineFlags BSPLINE_X_DIR = 0x02;
+constexpr TypeOfRecBsplineFlags BSPLINE_Z_DIR = 0x04;
+constexpr TypeOfRecBsplineFlags BSPLINE_ALL_DIR = BSPLINE_Y_DIR | BSPLINE_X_DIR | BSPLINE_Z_DIR;
+
+template <typename T>
+void cudaFilterBsplineFull(PixelData<T> &input, float lambda, float tolerance, TypeOfRecBsplineFlags flags = BSPLINE_ALL_DIR, int k0 = -1);
+
+
 #endif //LIBAPR_COMPUTEGRADIENTCUDA_HPP

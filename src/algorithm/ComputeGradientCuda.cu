@@ -10,19 +10,18 @@
 #include "dsGradient.cuh"
 
 #include "algorithm/ComputeInverseCubicBsplineCuda.h"
-#include "algorithm/ComputeBsplineRecursiveFilterCuda.h"
 #include "invBspline.cuh"
 #include <thrust/device_vector.h>
 #include <thrust/device_ptr.h>
 #include "bsplineXdir.cuh"
 #include "bsplineYdir.cuh"
 #include "bsplineZdir.cuh"
-#include "misc/CudaTools.hpp"
 #include "data_structures/Mesh/downsample.cuh"
 #include "algorithm/LocalIntensityScaleCuda.h"
 #include "algorithm/ComputePullingSchemeCuda.h"
-#include "misc/CudaMemory.hpp"
 #include "algorithm/LocalIntensityScale.cuh"
+#include "misc/CudaTools.hpp"
+#include "misc/CudaMemory.hpp"
 
 // explicit instantiation of handled types
 template void getGradient(PixelData<float> &, PixelData<float> &, PixelData<float> &, PixelData<float> &, float, const APRParameters &);
@@ -122,10 +121,10 @@ namespace {
         std::vector<float> impulse_resp_vec_f(k0 + 1);
         for (size_t k = 0; k < impulse_resp_vec_f.size(); ++k) impulse_resp_vec_f[k] = impulse_resp(k, rho, omg);
 
-        float  *bc1 = getPinnedMemory<float>(sizeof(float) * k0);
-        float  *bc2 = getPinnedMemory<float>(sizeof(float) * k0);
-        float  *bc3 = getPinnedMemory<float>(sizeof(float) * k0);
-        float  *bc4 = getPinnedMemory<float>(sizeof(float) * k0);
+        float  *bc1 = (float*)getPinnedMemory(sizeof(float) * k0);
+        float  *bc2 = (float*)getPinnedMemory(sizeof(float) * k0);
+        float  *bc3 = (float*)getPinnedMemory(sizeof(float) * k0);
+        float  *bc4 = (float*)getPinnedMemory(sizeof(float) * k0);
 
         //y(0) init
 //        std::vector<float> bc1(k0, 0);
@@ -595,3 +594,83 @@ void getFullPipeline2(PixelData<ImgType> &image, PixelData<ImgType> &grad_temp, 
     }
 
 }
+
+// explicit instantiation of handled types
+template void cudaFilterBsplineFull(PixelData<float> &, float, float, TypeOfRecBsplineFlags, int);
+
+template <typename ImgType>
+void cudaFilterBsplineFull(PixelData<ImgType> &input, float lambda, float tolerance, TypeOfRecBsplineFlags flags, int k0Len) {
+    cudaStream_t  stream1 = 0;
+    APRTimer timer(true), timerFullPipelilne(true);
+    size_t inputSize = input.mesh.size() * sizeof(ImgType);
+    BsplineParams p = prepareBsplineStuff(input, lambda, tolerance); //, k0Len);
+
+    timer.start_timer("GpuMemTransferHostToDevice");
+    float *bc1, *bc2, *bc3, *bc4;
+    cudaMalloc(&bc1, p.k0 * sizeof(float));
+    cudaMalloc(&bc2, p.k0 * sizeof(float));
+    cudaMalloc(&bc3, p.k0 * sizeof(float));
+    cudaMalloc(&bc4, p.k0 * sizeof(float));
+
+    cudaMemcpyAsync(bc1, p.bc1, p.k0 * sizeof(float), cudaMemcpyHostToDevice, stream1);
+    cudaMemcpyAsync(bc2, p.bc2, p.k0 * sizeof(float), cudaMemcpyHostToDevice, stream1);
+    cudaMemcpyAsync(bc3, p.bc3, p.k0 * sizeof(float), cudaMemcpyHostToDevice, stream1);
+    cudaMemcpyAsync(bc4, p.bc4, p.k0 * sizeof(float), cudaMemcpyHostToDevice, stream1);
+
+    ImgType *cudaInput;
+    cudaMalloc(&cudaInput, inputSize);
+    cudaMemcpy(cudaInput, input.mesh.get(), inputSize, cudaMemcpyHostToDevice);
+    float *boundary;
+    if (flags & BSPLINE_Y_DIR) {
+        int boundaryLen = sizeof(float) * (2 /*two first elements*/ + 2 /* two last elements */) * input.x_num * input.z_num;
+        cudaMalloc(&boundary, boundaryLen);
+    }
+    timer.stop_timer();
+
+//    cudaDeviceSetCacheConfig(cudaFuncCachePreferShared);
+//    cudaDeviceSetSharedMemConfig(cudaSharedMemBankSizeFourByte);
+
+    timerFullPipelilne.start_timer("GpuDeviceTimeFull");
+    if (flags & BSPLINE_Y_DIR) {
+        timer.start_timer("GpuDeviceTimeYdir");
+        dim3 threadsPerBlock(numOfThreads);
+        dim3 numBlocks((input.x_num * input.z_num + threadsPerBlock.x - 1) / threadsPerBlock.x);
+        printCudaDims(threadsPerBlock, numBlocks);
+        size_t sharedMemSize = (2 /*bc vectors*/) * (p.k0) * sizeof(float) + numOfThreads * (p.k0) * sizeof(ImgType);
+        bsplineYdirBoundary<ImgType> <<< numBlocks, threadsPerBlock, sharedMemSize >>> (cudaInput, input.x_num, input.y_num, input.z_num, bc1, bc2, bc3, bc4, p.k0, boundary);
+        sharedMemSize = numOfThreads * blockWidth * sizeof(ImgType);
+        bsplineYdirProcess<ImgType> <<< numBlocks, threadsPerBlock, sharedMemSize >>> (cudaInput, input.x_num, input.y_num, input.z_num, p.k0, p.b1, p.b2, p.norm_factor, boundary);
+        waitForCuda();
+        cudaFree(boundary);
+        timer.stop_timer();
+    }
+    constexpr int numOfWorkersYdir = 64;
+    if (flags & BSPLINE_X_DIR) {
+        dim3 threadsPerBlockX(1, numOfWorkersYdir, 1);
+        dim3 numBlocksX(1,
+                        (input.y_num + threadsPerBlockX.y - 1) / threadsPerBlockX.y,
+                        (input.z_num + threadsPerBlockX.z - 1) / threadsPerBlockX.z);
+        printCudaDims(threadsPerBlockX, numBlocksX);
+        timer.start_timer("GpuDeviceTimeXdir");
+        bsplineXdir<ImgType> <<< numBlocksX, threadsPerBlockX >>> (cudaInput, input.x_num, input.y_num, bc1, bc2, bc3, bc4, p.k0, p.b1, p.b2, p.norm_factor);
+        waitForCuda();
+        timer.stop_timer();
+    }
+    if (flags & BSPLINE_Z_DIR) {
+        dim3 threadsPerBlockZ(1, numOfWorkersYdir, 1);
+        dim3 numBlocksZ(1,
+                        (input.y_num + threadsPerBlockZ.y - 1) / threadsPerBlockZ.y,
+                        (input.x_num + threadsPerBlockZ.x - 1) / threadsPerBlockZ.x); // Intentionally x-dim is here (after y) to get good memory coalescing
+        printCudaDims(threadsPerBlockZ, numBlocksZ);
+        timer.start_timer("GpuDeviceTimeZdir");
+        bsplineZdir<ImgType> <<< numBlocksZ, threadsPerBlockZ >>> (cudaInput, input.x_num, input.y_num, input.z_num, bc1, bc2, bc3, bc4, p.k0, p.b1, p.b2, p.norm_factor);
+        waitForCuda();
+        timer.stop_timer();
+    }
+    timerFullPipelilne.stop_timer();
+
+    timer.start_timer("GpuMemTransferDeviceToHost");
+    getDataFromKernel(input, inputSize, cudaInput);
+    timer.stop_timer();
+}
+
