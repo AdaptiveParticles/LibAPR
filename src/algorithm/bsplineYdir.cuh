@@ -228,4 +228,18 @@ __global__ void bsplineYdirProcess(T *image, const size_t x_num, const size_t y_
     }
 }
 
+/**
+ * Function for launching a kernel
+ */
+template <typename T>
+void runBsplineYdir(T *cudaImage, size_t x_num, size_t y_num, size_t z_num,
+                    const float *bc1, const float *bc2, const float *bc3, const float *bc4,
+                    size_t k0, float b1, float b2, float norm_factor, float *boundary, cudaStream_t aStream) {
+    dim3 threadsPerBlock(numOfThreads);
+    dim3 numBlocks((x_num * z_num + threadsPerBlock.x - 1) / threadsPerBlock.x);
+    size_t sharedMemSize = (2 /*bc vectors*/) * (k0) * sizeof(float) + numOfThreads * (k0) * sizeof(T);
+    bsplineYdirBoundary<T> <<< numBlocks, threadsPerBlock, sharedMemSize, aStream >>> (cudaImage, x_num, y_num, z_num, bc1, bc2, bc3, bc4, k0, boundary);
+    sharedMemSize = numOfThreads * blockWidth * sizeof(T);
+    bsplineYdirProcess<T> <<< numBlocks, threadsPerBlock, sharedMemSize, aStream >>> (cudaImage, x_num, y_num, z_num, k0, b1, b2, norm_factor, boundary);
+}
 #endif

@@ -307,68 +307,17 @@ void getGradientCuda(PixelData<ImgType> &image, PixelData<float> &local_scale_te
     {
         timer.start_timer("smooth bspline");
         PixelData<ImgType> &input = image;
-//        float lambda = par.lambda;
-//        float tolerance = 0.0001;
-//        BsplineParams p = prepareBsplineStuff(input, lambda, tolerance);
-//
-//
-////        thrust::device_vector<float> d_bc1(p.k0 * sizeof(float));
-////        thrust::device_vector<float> d_bc2(p.k0 * sizeof(float));
-////        thrust::device_vector<float> d_bc3(p.k0 * sizeof(float));
-////        thrust::device_vector<float> d_bc4(p.k0 * sizeof(float));
-////
-////        float *bc1= raw_pointer_cast(d_bc1.data());
-////        float *bc2= raw_pointer_cast(d_bc2.data());
-////        float *bc3= raw_pointer_cast(d_bc3.data());
-////        float *bc4= raw_pointer_cast(d_bc4.data());
-//
-//        float *bc1, *bc2, *bc3, *bc4;
-//        cudaMalloc(&bc1, p.k0 * sizeof(float));
-//        cudaMalloc(&bc2, p.k0 * sizeof(float));
-//        cudaMalloc(&bc3, p.k0 * sizeof(float));
-//        cudaMalloc(&bc4, p.k0 * sizeof(float));
-//
-//        std::cout << "Bef bc1 copy" << std::endl;
-//        cudaMemcpyAsync(bc1, p.bc1, p.k0 * sizeof(float), cudaMemcpyHostToDevice, aStream);
-//        std::cout << "aft bc1 copy" << std::endl;
-//        cudaMemcpyAsync(bc2, p.bc2, p.k0 * sizeof(float), cudaMemcpyHostToDevice, aStream);
-//        cudaMemcpyAsync(bc3, p.bc3, p.k0 * sizeof(float), cudaMemcpyHostToDevice, aStream);
-//        cudaMemcpyAsync(bc4, p.bc4, p.k0 * sizeof(float), cudaMemcpyHostToDevice, aStream);
-//
 
         float *boundary = p->boundary;
         uint16_t flags = 0xff;
-//        if (flags & BSPLINE_Y_DIR) {
-//            int boundaryLen = sizeof(float) * (2 /*two first elements*/ + 2 /* two last elements */) * input.x_num * input.z_num;
-//            cudaMalloc(&boundary, boundaryLen);
-//        }
-
         if (flags & BSPLINE_Y_DIR) {
-            dim3 threadsPerBlock(numOfThreads);
-            dim3 numBlocks((image.x_num * input.z_num + threadsPerBlock.x - 1) / threadsPerBlock.x);
-            printCudaDims(threadsPerBlock, numBlocks);
-            size_t sharedMemSize = (2 /*bc vectors*/) * (p->p.k0) * sizeof(float) + numOfThreads * (p->p.k0) * sizeof(ImgType);
-            bsplineYdirBoundary<ImgType> <<< numBlocks, threadsPerBlock, sharedMemSize, aStream >>> (cudaImage, input.x_num, input.y_num, input.z_num, p->bc1, p->bc2, p->bc3, p->bc4, p->p.k0, boundary);
-            sharedMemSize = numOfThreads * blockWidth * sizeof(ImgType);
-            bsplineYdirProcess<ImgType> <<< numBlocks, threadsPerBlock, sharedMemSize, aStream >>> (cudaImage, input.x_num, input.y_num, input.z_num, p->p.k0, p->p.b1, p->p.b2, p->p.norm_factor, boundary);
-//            cudaFree(boundary);
+            runBsplineYdir<ImgType> (cudaImage, input.x_num, input.y_num, input.z_num, p->bc1, p->bc2, p->bc3, p->bc4, p->p.k0, p->p.b1, p->p.b2, p->p.norm_factor, boundary, aStream);
         }
-        constexpr int numOfWorkersYdir = 64;
         if (flags & BSPLINE_X_DIR) {
-            dim3 threadsPerBlockX(1, numOfWorkersYdir, 1);
-            dim3 numBlocksX(1,
-                            (input.y_num + threadsPerBlockX.y - 1) / threadsPerBlockX.y,
-                            (input.z_num + threadsPerBlockX.z - 1) / threadsPerBlockX.z);
-            printCudaDims(threadsPerBlockX, numBlocksX);
-            bsplineXdir<ImgType> <<< numBlocksX, threadsPerBlockX, 0, aStream >>> (cudaImage, input.x_num, input.y_num, p->bc1, p->bc2, p->bc3, p->bc4, p->p.k0, p->p.b1, p->p.b2, p->p.norm_factor);
+            runBsplineXdir<ImgType> (cudaImage, input.x_num, input.y_num, input.z_num, p->bc1, p->bc2, p->bc3, p->bc4, p->p.k0, p->p.b1, p->p.b2, p->p.norm_factor, aStream);
         }
         if (flags & BSPLINE_Z_DIR) {
-            dim3 threadsPerBlockZ(1, numOfWorkersYdir, 1);
-            dim3 numBlocksZ(1,
-                            (input.y_num + threadsPerBlockZ.y - 1) / threadsPerBlockZ.y,
-                            (input.x_num + threadsPerBlockZ.x - 1) / threadsPerBlockZ.x);
-            printCudaDims(threadsPerBlockZ, numBlocksZ);
-            bsplineZdir<ImgType> <<< numBlocksZ, threadsPerBlockZ, 0, aStream >>> (cudaImage, input.x_num, input.y_num, input.z_num, p->bc1, p->bc2, p->bc3, p->bc4, p->p.k0, p->p.b1, p->p.b2, p->p.norm_factor);
+            runBsplineZdir<ImgType> (cudaImage, input.x_num, input.y_num, input.z_num, p->bc1, p->bc2, p->bc3, p->bc4, p->p.k0, p->p.b1, p->p.b2, p->p.norm_factor, aStream);
         }
         timer.stop_timer();
     }
@@ -640,9 +589,9 @@ void getFullPipeline2(PixelData<ImgType> &image, PixelData<ImgType> &grad_temp, 
 
 
     timer.stop_timer();
-//    for (int i = 0; i < num; ++i) {
-//        cudaStreamSynchronize(streams[i]);
-//        cudaStreamDestroy(streams[i]);
-//    }
+    for (int i = 0; i < num; ++i) {
+        cudaStreamSynchronize(streams[i]);
+        cudaStreamDestroy(streams[i]);
+    }
 
 }
