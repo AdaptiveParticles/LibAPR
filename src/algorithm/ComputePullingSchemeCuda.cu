@@ -3,7 +3,7 @@
 //
 
 #include "ComputePullingSchemeCuda.h"
-#include "misc/CudaTools.hpp"
+#include "misc/CudaTools.cuh"
 
 
 // explicit instantiation of handled types

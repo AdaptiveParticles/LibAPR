@@ -9,7 +9,7 @@
 #include <device_launch_parameters.h>
 #include <math_functions.h>
 
-#include "misc/CudaTools.hpp"
+#include "misc/CudaTools.cuh"
 
 
 /**

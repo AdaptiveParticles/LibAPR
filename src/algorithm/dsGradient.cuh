@@ -1,7 +1,7 @@
 #ifndef DS_GRADIENT_CUH
 #define DS_GRADIENT_CUH
 
-#include "misc/CudaTools.hpp"
+#include "misc/CudaTools.cuh"
 
 template<typename T>
 __global__ void

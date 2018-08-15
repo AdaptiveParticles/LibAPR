@@ -20,8 +20,8 @@
 #include "algorithm/LocalIntensityScaleCuda.h"
 #include "algorithm/ComputePullingSchemeCuda.h"
 #include "algorithm/LocalIntensityScale.cuh"
-#include "misc/CudaTools.hpp"
-#include "misc/CudaMemory.hpp"
+#include "misc/CudaTools.cuh"
+#include "misc/CudaMemory.cuh"
 
 // explicit instantiation of handled types
 template void getGradient(PixelData<float> &, PixelData<float> &, PixelData<float> &, PixelData<float> &, float, const APRParameters &);

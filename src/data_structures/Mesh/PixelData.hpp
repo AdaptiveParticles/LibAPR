@@ -25,7 +25,7 @@
 #include <omp.h>
 #endif
 #ifdef APR_USE_CUDA
-#include "misc/CudaMemory.hpp"
+#include "misc/CudaMemory.cuh"
 #endif
 
 template <typename T>

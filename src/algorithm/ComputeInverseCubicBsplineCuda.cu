@@ -4,7 +4,7 @@
 #include <device_launch_parameters.h>
 
 #include "invBspline.cuh"
-#include "misc/CudaTools.hpp"
+#include "misc/CudaTools.cuh"
 
 // explicit instantiation of handled types
 template void cudaInverseBspline(PixelData<float> &, TypeOfInvBsplineFlags);

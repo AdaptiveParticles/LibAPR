@@ -6,7 +6,7 @@
 #include <device_launch_parameters.h>
 #include <device_functions.h>
 
-#include "misc/CudaTools.hpp"
+#include "misc/CudaTools.cuh"
 
 #include "downsample.cuh"
 
