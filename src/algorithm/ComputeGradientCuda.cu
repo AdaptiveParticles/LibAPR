@@ -22,6 +22,7 @@
 #include "algorithm/LocalIntensityScaleCuda.h"
 #include "algorithm/ComputePullingSchemeCuda.h"
 #include "misc/CudaMemory.hpp"
+#include "algorithm/LocalIntensityScale.cuh"
 
 // explicit instantiation of handled types
 template void getGradient(PixelData<float> &, PixelData<float> &, PixelData<float> &, PixelData<float> &, float, const APRParameters &);
@@ -614,7 +615,7 @@ void getFullPipeline2(PixelData<ImgType> &image, PixelData<ImgType> &grad_temp, 
 //    cudaMemcpy((void*)local_scale_temp2.mesh.get(), cudalocal_scale_temp2, local_scale_tempSize, cudaMemcpyDeviceToHost);
         cudaStream_t stream1 = streams[i];
 
-        
+
         ImgType *cudaImage = inMemory[i].image;
         ImgType *cudaGrad = inMemory[i].grad;
         float *cudalocal_scale_temp = inMemory[i].lis1;

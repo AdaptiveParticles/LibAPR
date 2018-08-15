@@ -282,9 +282,9 @@ void localIntensityScaleCUDA(T *cudaImage, const PixelData<S> &image, int offset
 }
 
 template <typename T>
-void calcMean(PixelData<T> &image, int offset, TypeOfMeanFlags flags, cudaStream_t aStream) {
+void calcMean(PixelData<T> &image, int offset, TypeOfMeanFlags flags) {
     APRTimer timer(true);
-
+    cudaStream_t aStream = 0;
     timer.start_timer("GpuMemTransferHostToDevice");
     size_t imageSize = image.mesh.size() * sizeof(T);
     T *cudaImage;
@@ -383,7 +383,8 @@ void localIntensityScaleCuda(const PixelData<T> &image, const APRParameters &par
 }
 
 template <typename T>
-void getLocalIntensityScale(PixelData<T> &image, PixelData<T> &temp, const APRParameters &par, cudaStream_t aStream) {
+void getLocalIntensityScale(PixelData<T> &image, PixelData<T> &temp, const APRParameters &par) {
+    cudaStream_t aStream = 0;
     APRTimer timer(true), timerFullPipelilne(true);
 
     timer.start_timer("GpuMemTransferHostToDevice");
@@ -406,8 +407,8 @@ void getLocalIntensityScale(PixelData<T> &image, PixelData<T> &temp, const APRPa
 }
 
 // explicit instantiation of handled types
-template void calcMean(PixelData<float>&, int, TypeOfMeanFlags, cudaStream_t);
-template void calcMean(PixelData<uint16_t>&, int, TypeOfMeanFlags, cudaStream_t);
-template void calcMean(PixelData<uint8_t>&, int, TypeOfMeanFlags, cudaStream_t);
+template void calcMean(PixelData<float>&, int, TypeOfMeanFlags);
+template void calcMean(PixelData<uint16_t>&, int, TypeOfMeanFlags);
+template void calcMean(PixelData<uint8_t>&, int, TypeOfMeanFlags);
 
-template void getLocalIntensityScale(PixelData<float>&, PixelData<float>&, const APRParameters&, cudaStream_t);
+template void getLocalIntensityScale(PixelData<float>&, PixelData<float>&, const APRParameters&);
