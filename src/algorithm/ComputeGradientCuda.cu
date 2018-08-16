@@ -16,8 +16,8 @@
 #include "bsplineYdir.cuh"
 #include "bsplineZdir.cuh"
 #include "data_structures/Mesh/downsample.cuh"
-#include "algorithm/LocalIntensityScaleCuda.h"
 #include "algorithm/ComputePullingScheme.cuh"
+#include "algorithm/LocalIntensityScaleCuda.h"
 #include "algorithm/LocalIntensityScale.cuh"
 #include "misc/CudaTools.cuh"
 #include "misc/CudaMemory.cuh"
@@ -431,7 +431,7 @@ void getFullPipeline(PixelData<ImgType> &image, PixelData<ImgType> &grad_temp, P
     XYZ<ImgType> memoryPack = XYZ<ImgType>{cudaImage, cudaGrad, cudalocal_scale_temp, cudalocal_scale_temp2};
     generateBsplineParams(memoryPack, image, par.lambda, processingStream);
     getGradientCuda(image, local_scale_temp, grad_temp, cudaImage, cudaGrad, cudalocal_scale_temp, bspline_offset, par, processingStream, &memoryPack);
-    localIntensityScaleCuda(local_scale_temp, par, cudalocal_scale_temp, cudalocal_scale_temp2, processingStream);
+    runLocalIntensityScalePipeline(local_scale_temp, par, cudalocal_scale_temp, cudalocal_scale_temp2, processingStream);
     float min_dim = std::min(par.dy, std::min(par.dx, par.dz));
     float level_factor = pow(2, maxLevel) * min_dim;
     const float mult_const = level_factor/par.rel_error;
@@ -524,7 +524,8 @@ void getFullPipeline2(PixelData<ImgType> &image, PixelData<ImgType> &grad_temp, 
         cudaStream_t processingStream = stream1;
         getGradientCuda(image, local_scale_temp, grad_temp, cudaImage, cudaGrad, cudalocal_scale_temp, bspline_offset,
                         par, processingStream, &inMemory[i]);
-        localIntensityScaleCuda(local_scale_temp, par, cudalocal_scale_temp, cudalocal_scale_temp2, processingStream);
+        runLocalIntensityScalePipeline(local_scale_temp, par, cudalocal_scale_temp, cudalocal_scale_temp2,
+                                       processingStream);
         float min_dim = std::min(par.dy, std::min(par.dx, par.dz));
         float level_factor = pow(2, maxLevel) * min_dim;
         const float mult_const = level_factor / par.rel_error;

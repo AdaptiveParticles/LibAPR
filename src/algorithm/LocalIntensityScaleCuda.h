@@ -21,8 +21,4 @@ void calcMean(PixelData<T> &image, int offset, TypeOfMeanFlags flags = MEAN_ALL_
 template <typename T>
 void getLocalIntensityScale(PixelData<T> &image, PixelData<T> &temp, const APRParameters &par);
 
-// Device method
-//template <typename T, typename S>
-//void localIntensityScaleCuda(const PixelData<T> &image, const APRParameters &par, S *cudaImage, S *cudaTemp, cudaStream_t aStream = 0);
-
 #endif //LIBAPR_LOCALINTENSITYSCALECUDA_H
