@@ -683,7 +683,8 @@ void cudaInverseBspline(PixelData<ImgType> &input, TypeOfInvBsplineFlags flags) 
 }
 
 template <typename ImageType>
-void computeLevelsCuda(const PixelData<ImageType> &grad_temp, PixelData<float> &local_scale_temp, int maxLevel, float relError,  float dx, float dy, float dz, cudaStream_t aStream) {
+void computeLevelsCuda(const PixelData<ImageType> &grad_temp, PixelData<float> &local_scale_temp, int maxLevel, float relError,  float dx, float dy, float dz) {
+    cudaStream_t aStream = 0;
     CudaTimer timer(true, "computeLevelsCuda");
     // Host -> Device transfers
     timer.start_timer("cuda: memory alloc + data transfer to device");
@@ -714,4 +715,4 @@ void computeLevelsCuda(const PixelData<ImageType> &grad_temp, PixelData<float> &
 }
 
 // explicit instantiation of handled types
-template void computeLevelsCuda(const PixelData<float> &, PixelData<float> &, int, float, float, float, float, cudaStream_t);
+template void computeLevelsCuda(const PixelData<float> &, PixelData<float> &, int, float, float, float, float);

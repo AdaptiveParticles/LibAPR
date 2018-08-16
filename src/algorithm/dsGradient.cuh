@@ -55,8 +55,7 @@ void runKernelGradient(const T *cudaInput, T *cudaGrad,
                    (yLenInput + threadsPerBlock.y - 1) / threadsPerBlock.y,
                    (zLenInput + threadsPerBlock.z - 1) / threadsPerBlock.z);
     printCudaDims(threadsPerBlock, numBlocks);
-    gradient << < numBlocks, threadsPerBlock, 0, aStream >> >
-                             (cudaInput, xLenInput, yLenInput, zLenInput, cudaGrad, xLenGradient, yLenGradient, hx, hy, hz);
+    gradient <<< numBlocks, threadsPerBlock, 0, aStream >>> (cudaInput, xLenInput, yLenInput, zLenInput, cudaGrad, xLenGradient, yLenGradient, hx, hy, hz);
 }
 
 
