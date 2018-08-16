@@ -17,7 +17,7 @@
 #include "bsplineZdir.cuh"
 #include "data_structures/Mesh/downsample.cuh"
 #include "algorithm/LocalIntensityScaleCuda.h"
-#include "algorithm/ComputePullingSchemeCuda.h"
+#include "algorithm/ComputePullingScheme.cuh"
 #include "algorithm/LocalIntensityScale.cuh"
 #include "misc/CudaTools.cuh"
 #include "misc/CudaMemory.cuh"
@@ -435,7 +435,7 @@ void getFullPipeline(PixelData<ImgType> &image, PixelData<ImgType> &grad_temp, P
     float min_dim = std::min(par.dy, std::min(par.dx, par.dz));
     float level_factor = pow(2, maxLevel) * min_dim;
     const float mult_const = level_factor/par.rel_error;
-    gradDivLocalIntensityScale(cudaGrad, cudalocal_scale_temp, grad_temp.mesh.size(), mult_const, processingStream);
+    runComputeLevels(cudaGrad, cudalocal_scale_temp, grad_temp.mesh.size(), mult_const, processingStream);
     timer.stop_timer();
 
     // Device -> Host transfers
@@ -528,7 +528,7 @@ void getFullPipeline2(PixelData<ImgType> &image, PixelData<ImgType> &grad_temp, 
         float min_dim = std::min(par.dy, std::min(par.dx, par.dz));
         float level_factor = pow(2, maxLevel) * min_dim;
         const float mult_const = level_factor / par.rel_error;
-        gradDivLocalIntensityScale(cudaGrad, cudalocal_scale_temp, grad_temp.mesh.size(), mult_const, processingStream);
+        runComputeLevels(cudaGrad, cudalocal_scale_temp, grad_temp.mesh.size(), mult_const, processingStream);
         timer.stop_timer();
     }
 
@@ -664,7 +664,7 @@ void cudaInverseBspline(PixelData<ImgType> &input, TypeOfInvBsplineFlags flags) 
     cudaMalloc(&cudaInput, inputSize);
     cudaMemcpy(cudaInput, input.mesh.get(), inputSize, cudaMemcpyHostToDevice);
     timer.stop_timer();
-    
+
     timerFullPipelilne.start_timer("cuda: calculations on device FULL <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<< ");
     if (flags & INV_BSPLINE_Y_DIR) {
         runInvBsplineYdir(cudaInput, input.x_num, input.y_num, input.z_num, 0);
@@ -681,3 +681,37 @@ void cudaInverseBspline(PixelData<ImgType> &input, TypeOfInvBsplineFlags flags) 
     getDataFromKernel(input, inputSize, cudaInput);
     timer.stop_timer();
 }
+
+template <typename ImageType>
+void computeLevelsCuda(const PixelData<ImageType> &grad_temp, PixelData<float> &local_scale_temp, int maxLevel, float relError,  float dx, float dy, float dz, cudaStream_t aStream) {
+    CudaTimer timer(true, "computeLevelsCuda");
+    // Host -> Device transfers
+    timer.start_timer("cuda: memory alloc + data transfer to device");
+    size_t gradSize = grad_temp.mesh.size() * sizeof(ImageType);
+    ImageType *cudaGrad = nullptr;
+    cudaMalloc(&cudaGrad, gradSize);
+    cudaMemcpy(cudaGrad, grad_temp.mesh.get(), gradSize, cudaMemcpyHostToDevice);
+    size_t lisSize = local_scale_temp.mesh.size() * sizeof(float);
+    float *cudaLis = nullptr;
+    cudaMalloc(&cudaLis, lisSize);
+    cudaMemcpy(cudaLis, local_scale_temp.mesh.get(), lisSize, cudaMemcpyHostToDevice);
+    timer.stop_timer();
+
+    // Processing on GPU
+    timer.start_timer("cuda: processing on GPU");
+    float min_dim = std::min(dy, std::min(dx, dz));
+    float level_factor = pow(2, maxLevel) * min_dim;
+    const float mult_const = level_factor/relError;
+    runComputeLevels(cudaGrad, cudaLis, grad_temp.mesh.size(), mult_const, aStream);
+    timer.stop_timer();
+
+    // Device -> Host transfers
+    timer.start_timer("cuda: transfer data from device and freeing memory");
+    cudaMemcpy((void*)local_scale_temp.mesh.get(), cudaLis, lisSize, cudaMemcpyDeviceToHost);
+    cudaFree(cudaLis);
+    cudaFree(cudaGrad);
+    timer.stop_timer();
+}
+
+// explicit instantiation of handled types
+template void computeLevelsCuda(const PixelData<float> &, PixelData<float> &, int, float, float, float, float, cudaStream_t);

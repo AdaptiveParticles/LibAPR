@@ -10,7 +10,7 @@
 #include "algorithm/PullingScheme.hpp"
 #include "TestTools.hpp"
 #ifdef APR_USE_CUDA
-#include "algorithm/ComputePullingSchemeCuda.h"
+#include "algorithm/ComputeGradientCuda.hpp"
 #endif
 
 namespace {

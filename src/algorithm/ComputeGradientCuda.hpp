@@ -46,4 +46,7 @@ constexpr TypeOfInvBsplineFlags INV_BSPLINE_ALL_DIR = INV_BSPLINE_Y_DIR | INV_BS
 template <typename ImgType>
 void cudaInverseBspline(PixelData<ImgType> &input, TypeOfInvBsplineFlags flags = INV_BSPLINE_ALL_DIR);
 
+template <typename ImageType>
+void computeLevelsCuda(const PixelData<ImageType> &grad_temp, PixelData<float> &local_scale_temp, int maxLevel, float relError,  float dx = 1, float dy = 1, float dz = 1, cudaStream_t aStream = 0);
+
 #endif //LIBAPR_COMPUTEGRADIENTCUDA_HPP
