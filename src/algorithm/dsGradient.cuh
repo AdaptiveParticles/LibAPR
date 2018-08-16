@@ -49,7 +49,7 @@ template<typename T>
 void runKernelGradient(const T *cudaInput, T *cudaGrad,
                        size_t xLenInput, size_t yLenInput, size_t zLenInput, size_t xLenGradient,
                        size_t yLenGradient,
-                       float hx, float hy, float hz, cudaStream_t aStream = 0) {
+                       float hx, float hy, float hz, cudaStream_t aStream) {
     dim3 threadsPerBlock(1, 32, 1);
     dim3 numBlocks((xLenInput + threadsPerBlock.x - 1) / threadsPerBlock.x,
                    (yLenInput + threadsPerBlock.y - 1) / threadsPerBlock.y,

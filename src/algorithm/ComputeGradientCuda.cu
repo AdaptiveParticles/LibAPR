@@ -48,7 +48,7 @@ void cudaDownsampledGradient(const PixelData<float> &input, PixelData<float> &gr
     timer.stop_timer();
 
     timer.start_timer("cuda: calculations on device");
-    runKernelGradient(cudaInput, cudaGrad, input.x_num, input.y_num, input.z_num, grad.x_num, grad.y_num, hx, hy, hz);
+    runKernelGradient(cudaInput, cudaGrad, input.x_num, input.y_num, input.z_num, grad.x_num, grad.y_num, hx, hy, hz, 0);
     cudaDeviceSynchronize();
     timer.stop_timer();
 
@@ -340,7 +340,6 @@ void getGradientCuda(PixelData<ImgType> &image, PixelData<float> &local_scale_te
     {
         TypeOfInvBsplineFlags flags = INV_BSPLINE_ALL_DIR;
         auto &input = local_scale_temp;
-        constexpr int numOfWorkers = 32;
         if (flags & INV_BSPLINE_Y_DIR) {
             runInvBsplineYdir(cudalocal_scale_temp, input.x_num, input.y_num, input.z_num, aStream);
         }
@@ -665,8 +664,7 @@ void cudaInverseBspline(PixelData<ImgType> &input, TypeOfInvBsplineFlags flags) 
     cudaMalloc(&cudaInput, inputSize);
     cudaMemcpy(cudaInput, input.mesh.get(), inputSize, cudaMemcpyHostToDevice);
     timer.stop_timer();
-
-    constexpr int numOfWorkers = 32;
+    
     timerFullPipelilne.start_timer("cuda: calculations on device FULL <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<< ");
     if (flags & INV_BSPLINE_Y_DIR) {
         runInvBsplineYdir(cudaInput, input.x_num, input.y_num, input.z_num, 0);
