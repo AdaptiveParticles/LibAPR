@@ -33,6 +33,16 @@ __global__ void invBsplineYdir(T *image, size_t x_num, size_t y_num, size_t z_nu
     }
 }
 
+template <typename T>
+void runInvBsplineYdir(T* cudaInput, size_t x_num, size_t y_num, size_t z_num, cudaStream_t aStream) {
+    constexpr int numOfWorkers = 32;
+    dim3 threadsPerBlock(1, numOfWorkers, 1);
+    dim3 numBlocks((x_num + threadsPerBlock.x - 1) / threadsPerBlock.x,
+                   1,
+                   (z_num + threadsPerBlock.z - 1) / threadsPerBlock.z);
+    invBsplineYdir<T> <<<numBlocks, threadsPerBlock, 0, aStream>>> (cudaInput, x_num, y_num, z_num);
+}
+
 template<typename T>
 __global__ void invBsplineXdir(T *image, size_t x_num, size_t y_num, size_t z_num) {
     const size_t workerOffset = blockIdx.y * blockDim.y + threadIdx.y + (blockIdx.z * blockDim.z + threadIdx.z) * y_num * x_num;
@@ -57,6 +67,16 @@ __global__ void invBsplineXdir(T *image, size_t x_num, size_t y_num, size_t z_nu
     }
 }
 
+template <typename T>
+void runInvBsplineXdir(T* cudaInput, size_t x_num, size_t y_num, size_t z_num, cudaStream_t aStream) {
+    constexpr int numOfWorkers = 32;
+    dim3 threadsPerBlock(1, numOfWorkers, 1);
+    dim3 numBlocks(1,
+                   (y_num + threadsPerBlock.y - 1) / threadsPerBlock.y,
+                   (z_num + threadsPerBlock.z - 1) / threadsPerBlock.z);
+    invBsplineXdir<T> <<<numBlocks, threadsPerBlock, 0, aStream>>> (cudaInput, x_num, y_num, z_num);
+}
+
 template<typename T>
 __global__ void invBsplineZdir(T *image, size_t x_num, size_t y_num, size_t z_num) {
     const size_t workerOffset = blockIdx.y * blockDim.y + threadIdx.y + (blockIdx.x * blockDim.x + threadIdx.x) * y_num;
@@ -79,6 +99,16 @@ __global__ void invBsplineZdir(T *image, size_t x_num, size_t y_num, size_t z_nu
         }
         image[workerOffset + currElementOffset + nextElementOffset] = (2 * v1 + 4 * v2) / 6.0;
     }
+}
+
+template <typename T>
+void runInvBsplineZdir(T* cudaInput, size_t x_num, size_t y_num, size_t z_num, cudaStream_t aStream) {
+    constexpr int numOfWorkers = 32;
+    dim3 threadsPerBlock(1, numOfWorkers, 1);
+    dim3 numBlocks((x_num + threadsPerBlock.x - 1) / threadsPerBlock.x,
+                   (y_num + threadsPerBlock.y - 1) / threadsPerBlock.y,
+                   1);
+    invBsplineZdir<T> <<<numBlocks, threadsPerBlock, 0, aStream>>> (cudaInput, x_num, y_num, z_num);
 }
 
 #endif

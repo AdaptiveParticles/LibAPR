@@ -9,7 +9,6 @@
 #include "data_structures/Mesh/PixelData.hpp"
 #include "dsGradient.cuh"
 
-#include "algorithm/ComputeInverseCubicBsplineCuda.h"
 #include "invBspline.cuh"
 #include <thrust/device_vector.h>
 #include <thrust/device_ptr.h>
@@ -343,34 +342,13 @@ void getGradientCuda(PixelData<ImgType> &image, PixelData<float> &local_scale_te
         auto &input = local_scale_temp;
         constexpr int numOfWorkers = 32;
         if (flags & INV_BSPLINE_Y_DIR) {
-            timer.start_timer("inv y-dir");
-            dim3 threadsPerBlock(1, numOfWorkers, 1);
-            dim3 numBlocks((input.x_num + threadsPerBlock.x - 1) / threadsPerBlock.x,
-                           1,
-                           (input.z_num + threadsPerBlock.z - 1) / threadsPerBlock.z);
-            printCudaDims(threadsPerBlock, numBlocks);
-            invBsplineYdir <<< numBlocks, threadsPerBlock, 0, aStream >>> (cudalocal_scale_temp, input.x_num, input.y_num, input.z_num);
-            timer.stop_timer();
+            runInvBsplineYdir(cudalocal_scale_temp, input.x_num, input.y_num, input.z_num, aStream);
         }
         if (flags & INV_BSPLINE_X_DIR) {
-            timer.start_timer("inv x-dir");
-            dim3 threadsPerBlock(1, numOfWorkers, 1);
-            dim3 numBlocks(1,
-                           (input.y_num + threadsPerBlock.y - 1) / threadsPerBlock.y,
-                           (input.z_num + threadsPerBlock.z - 1) / threadsPerBlock.z);
-            printCudaDims(threadsPerBlock, numBlocks);
-            invBsplineXdir <<< numBlocks, threadsPerBlock, 0, aStream >>> (cudalocal_scale_temp, input.x_num, input.y_num, input.z_num);
-            timer.stop_timer();
+            runInvBsplineXdir(cudalocal_scale_temp, input.x_num, input.y_num, input.z_num, aStream);
         }
         if (flags & INV_BSPLINE_Z_DIR) {
-            timer.start_timer("inv z-dir");
-            dim3 threadsPerBlock(1, numOfWorkers, 1);
-            dim3 numBlocks((input.x_num + threadsPerBlock.x - 1) / threadsPerBlock.x,
-                           (input.y_num + threadsPerBlock.y - 1) / threadsPerBlock.y,
-                           1);
-            printCudaDims(threadsPerBlock, numBlocks);
-            invBsplineZdir <<< numBlocks, threadsPerBlock, 0, aStream >>> (cudalocal_scale_temp, input.x_num, input.y_num, input.z_num);
-            timer.stop_timer();
+            runInvBsplineZdir(cudalocal_scale_temp, input.x_num, input.y_num, input.z_num, aStream);
         }
     }
     {
@@ -674,3 +652,34 @@ void cudaFilterBsplineFull(PixelData<ImgType> &input, float lambda, float tolera
     timer.stop_timer();
 }
 
+// explicit instantiation of handled types
+template void cudaInverseBspline(PixelData<float> &, TypeOfInvBsplineFlags);
+
+template <typename ImgType>
+void cudaInverseBspline(PixelData<ImgType> &input, TypeOfInvBsplineFlags flags) {
+    APRTimer timer(true), timerFullPipelilne(true);
+    size_t inputSize = input.mesh.size() * sizeof(ImgType);
+
+    timer.start_timer("cuda: memory alloc + data transfer to device");
+    ImgType *cudaInput;
+    cudaMalloc(&cudaInput, inputSize);
+    cudaMemcpy(cudaInput, input.mesh.get(), inputSize, cudaMemcpyHostToDevice);
+    timer.stop_timer();
+
+    constexpr int numOfWorkers = 32;
+    timerFullPipelilne.start_timer("cuda: calculations on device FULL <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<< ");
+    if (flags & INV_BSPLINE_Y_DIR) {
+        runInvBsplineYdir(cudaInput, input.x_num, input.y_num, input.z_num, 0);
+    }
+    if (flags & INV_BSPLINE_X_DIR) {
+        runInvBsplineXdir(cudaInput, input.x_num, input.y_num, input.z_num, 0);
+    }
+    if (flags & INV_BSPLINE_Z_DIR) {
+        runInvBsplineZdir(cudaInput, input.x_num, input.y_num, input.z_num, 0);
+    }
+    timerFullPipelilne.stop_timer();
+
+    timer.start_timer("cuda: transfer data from device and freeing memory");
+    getDataFromKernel(input, inputSize, cudaInput);
+    timer.stop_timer();
+}

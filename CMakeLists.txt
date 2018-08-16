@@ -152,7 +152,6 @@ if(APR_USE_CUDA)
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DAPR_USE_CUDA")
     set(APR_CUDA_SROUCE_FILES
 	        src/algorithm/ComputeGradientCuda.cu
-            src/algorithm/ComputeInverseCubicBsplineCuda.cu
             src/data_structures/Mesh/PixelData.cu
             src/algorithm/LocalIntensityScale.cu
             src/algorithm/ComputePullingSchemeCuda.cu

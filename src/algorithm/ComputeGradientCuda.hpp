@@ -36,4 +36,14 @@ template <typename T>
 void cudaFilterBsplineFull(PixelData<T> &input, float lambda, float tolerance, TypeOfRecBsplineFlags flags = BSPLINE_ALL_DIR, int k0 = -1);
 
 
+using TypeOfInvBsplineFlags = uint16_t;
+constexpr TypeOfInvBsplineFlags INV_BSPLINE_Y_DIR = 0x01;
+constexpr TypeOfInvBsplineFlags INV_BSPLINE_X_DIR = 0x02;
+constexpr TypeOfInvBsplineFlags INV_BSPLINE_Z_DIR = 0x04;
+constexpr TypeOfInvBsplineFlags INV_BSPLINE_ALL_DIR = INV_BSPLINE_Y_DIR | INV_BSPLINE_X_DIR | INV_BSPLINE_Z_DIR;
+
+
+template <typename ImgType>
+void cudaInverseBspline(PixelData<ImgType> &input, TypeOfInvBsplineFlags flags = INV_BSPLINE_ALL_DIR);
+
 #endif //LIBAPR_COMPUTEGRADIENTCUDA_HPP

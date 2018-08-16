@@ -7,7 +7,6 @@
 #include "data_structures/Mesh/PixelData.hpp"
 #include "algorithm/ComputeGradient.hpp"
 #include "algorithm/ComputeGradientCuda.hpp"
-#include "algorithm/ComputeInverseCubicBsplineCuda.h"
 #include <random>
 #include "data_structures/APR/APR.hpp"
 #include "algorithm/APRConverter.hpp"
