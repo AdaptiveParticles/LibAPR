@@ -47,15 +47,15 @@ gradient(const T *input, size_t x_num, size_t y_num, size_t z_num, T *grad, size
 
 template<typename T>
 void runKernelGradient(const T *cudaInput, T *cudaGrad,
-                       size_t xLenInput, size_t yLenInput, size_t zLenInput, size_t xLenGradient,
-                       size_t yLenGradient,
+                       size_t xLenInput, size_t yLenInput, size_t zLenInput,
+                       size_t xLenGradient, size_t yLenGradient,
                        float hx, float hy, float hz, cudaStream_t aStream) {
     dim3 threadsPerBlock(1, 32, 1);
     dim3 numBlocks((xLenInput + threadsPerBlock.x - 1) / threadsPerBlock.x,
                    (yLenInput + threadsPerBlock.y - 1) / threadsPerBlock.y,
                    (zLenInput + threadsPerBlock.z - 1) / threadsPerBlock.z);
     printCudaDims(threadsPerBlock, numBlocks);
-    gradient <<< numBlocks, threadsPerBlock, 0, aStream >>> (cudaInput, xLenInput, yLenInput, zLenInput, cudaGrad, xLenGradient, yLenGradient, hx, hy, hz);
+    gradient <<<numBlocks, threadsPerBlock, 0, aStream>>> (cudaInput, xLenInput, yLenInput, zLenInput, cudaGrad, xLenGradient, yLenGradient, hx, hy, hz);
 }
 
 

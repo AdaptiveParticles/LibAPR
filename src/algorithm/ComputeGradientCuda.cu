@@ -26,7 +26,6 @@
 template void getGradient(PixelData<float> &, PixelData<float> &, PixelData<float> &, PixelData<float> &, float, const APRParameters &);
 template void thresholdImg(PixelData<float> &, const float);
 template void getFullPipeline(PixelData<float> &, PixelData<float> &, PixelData<float> &, PixelData<float> &, float, const APRParameters &, int maxLevel);
-template void getFullPipeline(PixelData<uint16_t> &, PixelData<uint16_t> &, PixelData<float> &, PixelData<float> &, float, const APRParameters &, int maxLevel);
 template void getFullPipeline2(PixelData<float> &, PixelData<float> &, PixelData<float> &, PixelData<float> &, float, const APRParameters &, int maxLevel);
 template void getFullPipeline2(PixelData<uint16_t> &, PixelData<uint16_t> &, PixelData<float> &, PixelData<float> &, float, const APRParameters &, int maxLevel);
 template void thresholdGradient(PixelData<float> &, const PixelData<float> &, const float);
@@ -224,6 +223,14 @@ __global__ void thresholdImg(T *input, size_t length, float thresholdLevel) {
 }
 
 template <typename T>
+void runThresholdImg(T *cudaImage, size_t x_num, size_t y_num, size_t z_num, float Ip_th_offset, cudaStream_t aStream) {
+    dim3 threadsPerBlock(64);
+    dim3 numBlocks((x_num * y_num * z_num + threadsPerBlock.x - 1) / threadsPerBlock.x);
+    printCudaDims(threadsPerBlock, numBlocks);
+    thresholdImg<<< numBlocks, threadsPerBlock, 0, aStream >>> (cudaImage, x_num * y_num * z_num, Ip_th_offset);
+};
+
+template <typename T>
 void thresholdImg(PixelData<T> &image, const float threshold) {
     APRTimer timer(true);
 
@@ -234,13 +241,7 @@ void thresholdImg(PixelData<T> &image, const float threshold) {
     cudaMemcpy(cudaImage, image.mesh.get(), imageSize, cudaMemcpyHostToDevice);
     timer.stop_timer();
 
-    timer.start_timer("cuda: calculations on device");
-    dim3 threadsPerBlock(64);
-    dim3 numBlocks((image.x_num * image.y_num * image.z_num + threadsPerBlock.x - 1)/threadsPerBlock.x);
-    printCudaDims(threadsPerBlock, numBlocks);
-    thresholdImg<<<numBlocks,threadsPerBlock>>>(cudaImage, image.mesh.size(), threshold);
-    waitForCuda();
-    timer.stop_timer();
+    runThresholdImg(cudaImage, image.x_num, image.y_num, image.z_num, threshold, 0);
 
     timer.start_timer("cuda: transfer data from device and freeing memory");
     cudaMemcpy((void*)image.mesh.get(), cudaImage, imageSize, cudaMemcpyDeviceToHost);
@@ -295,47 +296,18 @@ void getGradientCuda(PixelData<ImgType> &image, PixelData<float> &local_scale_te
                      float bspline_offset, const APRParameters &par, cudaStream_t aStream, XYZ<ImgType> *p) {
     CudaTimer timer(true, "getGradientCuda");
     {
-        timer.start_timer("threshold");
-        dim3 threadsPerBlock(64);
-        dim3 numBlocks((image.x_num * image.y_num * image.z_num + threadsPerBlock.x - 1) / threadsPerBlock.x);
-        printCudaDims(threadsPerBlock, numBlocks);
-        thresholdImg<<< numBlocks, threadsPerBlock, 0, aStream >>> (cudaImage, image.mesh.size(), par.Ip_th + bspline_offset);
-        timer.stop_timer();
+        runThresholdImg(cudaImage, image.x_num, image.y_num, image.z_num, par.Ip_th + bspline_offset, aStream);
     }
     {
-        timer.start_timer("smooth bspline");
-        PixelData<ImgType> &input = image;
-
-        float *boundary = p->boundary;
-        uint16_t flags = 0xff;
-        if (flags & BSPLINE_Y_DIR) {
-            runBsplineYdir<ImgType> (cudaImage, input.x_num, input.y_num, input.z_num, p->bc1, p->bc2, p->bc3, p->bc4, p->p.k0, p->p.b1, p->p.b2, p->p.norm_factor, boundary, aStream);
-        }
-        if (flags & BSPLINE_X_DIR) {
-            runBsplineXdir<ImgType> (cudaImage, input.x_num, input.y_num, input.z_num, p->bc1, p->bc2, p->bc3, p->bc4, p->p.k0, p->p.b1, p->p.b2, p->p.norm_factor, aStream);
-        }
-        if (flags & BSPLINE_Z_DIR) {
-            runBsplineZdir<ImgType> (cudaImage, input.x_num, input.y_num, input.z_num, p->bc1, p->bc2, p->bc3, p->bc4, p->p.k0, p->p.b1, p->p.b2, p->p.norm_factor, aStream);
-        }
-        timer.stop_timer();
+        runBsplineYdir(cudaImage, image.x_num, image.y_num, image.z_num, p->bc1, p->bc2, p->bc3, p->bc4, p->p.k0, p->p.b1, p->p.b2, p->p.norm_factor, p->boundary, aStream);
+        runBsplineXdir(cudaImage, image.x_num, image.y_num, image.z_num, p->bc1, p->bc2, p->bc3, p->bc4, p->p.k0, p->p.b1, p->p.b2, p->p.norm_factor, aStream);
+        runBsplineZdir(cudaImage, image.x_num, image.y_num, image.z_num, p->bc1, p->bc2, p->bc3, p->bc4, p->p.k0, p->p.b1, p->p.b2, p->p.norm_factor, aStream);
     }
     {
-        timer.start_timer("downsampled_gradient_magnitude");
-        PixelData<ImgType> &input = image;
-        runKernelGradient(cudaImage, cudaGrad, input.x_num, input.y_num, input.z_num, grad_temp.x_num, grad_temp.y_num, par.dx, par.dy, par.dz, aStream);
-        timer.stop_timer();
+        runKernelGradient(cudaImage, cudaGrad, image.x_num, image.y_num, image.z_num, grad_temp.x_num, grad_temp.y_num, par.dx, par.dy, par.dz, aStream);
     }
     {
-        timer.start_timer("down-sample_b-spline");
-        PixelData<ImgType> &input = image;
-        dim3 threadsPerBlock(1, 64, 1);
-        dim3 numBlocks(((input.x_num + threadsPerBlock.x - 1)/threadsPerBlock.x + 1) / 2,
-                       (input.y_num + threadsPerBlock.y - 1)/threadsPerBlock.y,
-                       ((input.z_num + threadsPerBlock.z - 1)/threadsPerBlock.z + 1) / 2);
-        printCudaDims(threadsPerBlock, numBlocks);
-
-        downsampleMeanKernel<<<numBlocks,threadsPerBlock, 0, aStream >>>(cudaImage, cudalocal_scale_temp, input.x_num, input.y_num, input.z_num);
-        timer.stop_timer();
+        runDownsampleMean(cudaImage, cudalocal_scale_temp, image.x_num, image.y_num, image.z_num, aStream);
     }
     {
         TypeOfInvBsplineFlags flags = INV_BSPLINE_ALL_DIR;

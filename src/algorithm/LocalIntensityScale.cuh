@@ -5,6 +5,6 @@
 #include "algorithm/APRParameters.hpp"
 
 template <typename T, typename S>
-void runLocalIntensityScalePipeline(const PixelData<T> &image, const APRParameters &par, S *cudaImage, S *cudaTemp, cudaStream_t aStream = 0);
+void runLocalIntensityScalePipeline(const PixelData<T> &image, const APRParameters &par, S *cudaImage, S *cudaTemp, cudaStream_t aStream);
 
 #endif

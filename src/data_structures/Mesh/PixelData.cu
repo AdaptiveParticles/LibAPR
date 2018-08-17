@@ -31,16 +31,7 @@ void downsampleMeanCuda(const PixelData<T> &input, PixelData<S> &output) {
     cudaMemcpy(cudaOutput, output.mesh.get(), outputSize, cudaMemcpyHostToDevice);
     timer.stop_timer();
 
-    timer.start_timer("cuda: calculations on device");
-    dim3 threadsPerBlock(1, 64, 1);
-    dim3 numBlocks(((input.x_num + threadsPerBlock.x - 1)/threadsPerBlock.x + 1) / 2,
-                   (input.y_num + threadsPerBlock.y - 1)/threadsPerBlock.y,
-                   ((input.z_num + threadsPerBlock.z - 1)/threadsPerBlock.z + 1) / 2);
-    printCudaDims(threadsPerBlock, numBlocks);
-
-    downsampleMeanKernel<<<numBlocks,threadsPerBlock>>>(cudaInput, cudaOutput, input.x_num, input.y_num, input.z_num);
-    waitForCuda();
-    timer.stop_timer();
+    runDownsampleMean(cudaInput, cudaOutput, input.x_num, input.y_num, input.z_num, 0);
 
     timer.start_timer("cuda: transfer data from device and freeing memory");
     cudaFree(cudaInput);
@@ -66,16 +57,7 @@ void downsampleMaxCuda(const PixelData<T> &input, PixelData<S> &output) {
     cudaMemcpy(cudaOutput, output.mesh.get(), outputSize, cudaMemcpyHostToDevice);
     timer.stop_timer();
 
-    timer.start_timer("cuda: calculations on device");
-    dim3 threadsPerBlock(1, 64, 1);
-    dim3 numBlocks(((input.x_num + threadsPerBlock.x - 1)/threadsPerBlock.x + 1) / 2,
-                   (input.y_num + threadsPerBlock.y - 1)/threadsPerBlock.y,
-                   ((input.z_num + threadsPerBlock.z - 1)/threadsPerBlock.z + 1) / 2);
-    printCudaDims(threadsPerBlock, numBlocks);
-
-    downsampleMaxKernel<<<numBlocks,threadsPerBlock>>>(cudaInput, cudaOutput, input.x_num, input.y_num, input.z_num);
-    waitForCuda();
-    timer.stop_timer();
+    runDownsampleMax(cudaInput, cudaOutput, input.x_num, input.y_num, input.z_num, 0);
 
     timer.start_timer("cuda: transfer data from device and freeing memory");
     cudaFree(cudaInput);
