@@ -80,6 +80,8 @@ private:
 template <typename T>
 class PixelData {
 public :
+    using value_type = T;
+
     // size of mesh and container for data
     size_t y_num;
     size_t x_num;
