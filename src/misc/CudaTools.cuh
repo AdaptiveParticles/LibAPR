@@ -75,4 +75,55 @@ public:
     }
 };
 
+// --------------- ScopedMemHandler ------------------------------------------------------------------------------------
+// Helper to send data to/from GPU
+// Creates CUDA memory and sends data (if requested) from PixelData container on creation and
+// copies back data (if requested) and frees CUDA memory when destroyed
+
+using CopyDir = int;
+constexpr CopyDir H2D = 1;
+constexpr CopyDir D2H = 2;
+
+template <typename T>
+using is_pixel_data = std::is_same<typename std::remove_cv<T>::type, PixelData<typename T::value_type>>;
+
+template <typename PIXEL_DATA_T, bool CHECK_TYPE = is_pixel_data<PIXEL_DATA_T>::value>
+class ScopedMemHandler {
+    static_assert(is_pixel_data<PIXEL_DATA_T>::value == true, "Wrong data type provided, only PixelData is valid.");
+
+    using data_type = typename PIXEL_DATA_T::value_type;
+    using is_pixel_data_const = std::is_const<PIXEL_DATA_T>;
+
+    PIXEL_DATA_T &data;
+    const CopyDir direction;
+    data_type *cudaMem = nullptr;
+    size_t size = 0;
+
+public:
+    ScopedMemHandler(PIXEL_DATA_T &aData, const CopyDir aDirection) : data(aData), direction(aDirection) {
+        size = data.mesh.size() * sizeof(typename PIXEL_DATA_T::value_type);
+        cudaMalloc(&cudaMem, size);
+        if (direction & H2D) {
+            cudaMemcpy(cudaMem, data.mesh.get(), size, cudaMemcpyHostToDevice);
+        }
+    }
+
+    ~ScopedMemHandler() {
+        if (is_pixel_data_const::value) {
+            const bool isCopyToHostRequested = direction & D2H;
+            assert(!isCopyToHostRequested); // abort if wrong direction (works in debug mode)
+            if (isCopyToHostRequested) throw std::invalid_argument("Device to host not possible for const PixelData!");
+        }
+        else if (direction & D2H) {
+            cudaMemcpy((void*)data.mesh.get(), cudaMem, size, cudaMemcpyDeviceToHost);
+        }
+        cudaFree(cudaMem);
+    }
+
+    data_type* get() {return cudaMem;}
+};
+
+// Incomplete specialization to prevent using ScopedMemHandler with types different than PixelData
+template <typename PIXEL_DATA_T> class ScopedMemHandler<PIXEL_DATA_T, false>;
+
 #endif //LIBAPR_CUDATOOLS_HPP
