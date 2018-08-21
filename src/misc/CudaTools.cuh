@@ -81,6 +81,7 @@ public:
 // copies back data (if requested) and frees CUDA memory when destroyed
 
 using CopyDir = int;
+constexpr CopyDir JUST_ALLOC = 0;
 constexpr CopyDir H2D = 1;
 constexpr CopyDir D2H = 2;
 
@@ -89,38 +90,41 @@ using is_pixel_data = std::is_same<typename std::remove_cv<T>::type, PixelData<t
 
 template <typename PIXEL_DATA_T, bool CHECK_TYPE = is_pixel_data<PIXEL_DATA_T>::value>
 class ScopedMemHandler {
-    static_assert(is_pixel_data<PIXEL_DATA_T>::value == true, "Wrong data type provided, only PixelData is valid.");
-
-    using data_type = typename PIXEL_DATA_T::value_type;
-    using is_pixel_data_const = std::is_const<PIXEL_DATA_T>;
+    using DataType = typename PIXEL_DATA_T::value_type;
+    static constexpr bool IsPixelDataConst = std::is_const<PIXEL_DATA_T>::value;
 
     PIXEL_DATA_T &data;
     const CopyDir direction;
-    data_type *cudaMem = nullptr;
+    std::unique_ptr<DataType, decltype(&cudaFree)> cudaMem = {nullptr, &cudaFree};
     size_t size = 0;
 
 public:
-    ScopedMemHandler(PIXEL_DATA_T &aData, const CopyDir aDirection) : data(aData), direction(aDirection) {
+    explicit ScopedMemHandler(PIXEL_DATA_T &aData, const CopyDir aDirection = JUST_ALLOC) : data(aData), direction(aDirection) {
         size = data.mesh.size() * sizeof(typename PIXEL_DATA_T::value_type);
-        cudaMalloc(&cudaMem, size);
+        DataType *mem = nullptr;
+        cudaMalloc(&mem, size);
+        cudaMem.reset(mem);
         if (direction & H2D) {
-            cudaMemcpy(cudaMem, data.mesh.get(), size, cudaMemcpyHostToDevice);
+            cudaMemcpy(cudaMem.get(), data.mesh.get(), size, cudaMemcpyHostToDevice);
         }
     }
 
     ~ScopedMemHandler() {
-        if (is_pixel_data_const::value) {
+        if (IsPixelDataConst) {
             const bool isCopyToHostRequested = direction & D2H;
-            assert(!isCopyToHostRequested); // abort if wrong direction (works in debug mode)
             if (isCopyToHostRequested) throw std::invalid_argument("Device to host not possible for const PixelData!");
         }
         else if (direction & D2H) {
-            cudaMemcpy((void*)data.mesh.get(), cudaMem, size, cudaMemcpyDeviceToHost);
+            cudaMemcpy((void*)data.mesh.get(), cudaMem.get(), size, cudaMemcpyDeviceToHost);
         }
-        cudaFree(cudaMem);
     }
 
-    data_type* get() {return cudaMem;}
+    DataType* get() {return cudaMem.get();}
+
+private:
+    ScopedMemHandler(const ScopedMemHandler&) = delete; // make it noncopyable
+    ScopedMemHandler& operator=(const ScopedMemHandler&) = delete; // make it not assignable
+
 };
 
 // Incomplete specialization to prevent using ScopedMemHandler with types different than PixelData
