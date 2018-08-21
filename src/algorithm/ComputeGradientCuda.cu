@@ -23,12 +23,9 @@
 #include "misc/CudaMemory.cuh"
 
 // explicit instantiation of handled types
-template void getGradient(PixelData<float> &, PixelData<float> &, PixelData<float> &, PixelData<float> &, float, const APRParameters &);
-template void thresholdImg(PixelData<float> &, const float);
 template void getFullPipeline(PixelData<float> &, PixelData<float> &, PixelData<float> &, PixelData<float> &, float, const APRParameters &, int maxLevel);
 template void getFullPipeline2(PixelData<float> &, PixelData<float> &, PixelData<float> &, PixelData<float> &, float, const APRParameters &, int maxLevel);
 template void getFullPipeline2(PixelData<uint16_t> &, PixelData<uint16_t> &, PixelData<float> &, PixelData<float> &, float, const APRParameters &, int maxLevel);
-template void thresholdGradient(PixelData<float> &, const PixelData<float> &, const float);
 
 
 void cudaDownsampledGradient(const PixelData<float> &input, PixelData<float> &grad, const float hx, const float hy, const float hz) {
@@ -175,39 +172,6 @@ __global__ void threshold(const T *input, S *output, size_t length, float thresh
     }
 }
 
-template <typename T>
-void thresholdGradient(PixelData<float> &output, const PixelData<T> &input, const float Ip_th) {
-    APRTimer timer(true);
-
-    timer.start_timer("cuda: memory alloc + data transfer to device");
-
-    size_t inputSize = input.mesh.size() * sizeof(T);
-    T *cudaInput;
-    cudaMalloc(&cudaInput, inputSize);
-    cudaMemcpy(cudaInput, input.mesh.get(), inputSize, cudaMemcpyHostToDevice);
-
-    size_t outputSize = output.mesh.size() * sizeof(float);
-    float *cudaOutput;
-    cudaMalloc(&cudaOutput, outputSize);
-    cudaMemcpy(cudaOutput, output.mesh.get(), outputSize, cudaMemcpyHostToDevice);
-    timer.stop_timer();
-
-    timer.start_timer("cuda: calculations on device");
-    dim3 threadsPerBlock(64);
-    dim3 numBlocks((input.x_num * input.y_num * input.z_num + threadsPerBlock.x - 1)/threadsPerBlock.x);
-    printCudaDims(threadsPerBlock, numBlocks);
-
-    threshold<<<numBlocks,threadsPerBlock>>>(cudaInput, cudaOutput, output.mesh.size(), Ip_th);
-    waitForCuda();
-    timer.stop_timer();
-
-    timer.start_timer("cuda: transfer data from device and freeing memory");
-    cudaFree(cudaInput);
-    cudaMemcpy((void*)output.mesh.get(), cudaOutput, outputSize, cudaMemcpyDeviceToHost);
-    cudaFree(cudaOutput);
-    timer.stop_timer();
-}
-
 /**
  * Thresholds input array to have minimum thresholdLevel.
  * @param input
@@ -229,25 +193,6 @@ void runThresholdImg(T *cudaImage, size_t x_num, size_t y_num, size_t z_num, flo
     printCudaDims(threadsPerBlock, numBlocks);
     thresholdImg<<< numBlocks, threadsPerBlock, 0, aStream >>> (cudaImage, x_num * y_num * z_num, Ip_th_offset);
 };
-
-template <typename T>
-void thresholdImg(PixelData<T> &image, const float threshold) {
-    APRTimer timer(true);
-
-    timer.start_timer("cuda: memory alloc + data transfer to device");
-    size_t imageSize = image.mesh.size() * sizeof(T);
-    T *cudaImage;
-    cudaMalloc(&cudaImage, imageSize);
-    cudaMemcpy(cudaImage, image.mesh.get(), imageSize, cudaMemcpyHostToDevice);
-    timer.stop_timer();
-
-    runThresholdImg(cudaImage, image.x_num, image.y_num, image.z_num, threshold, 0);
-
-    timer.start_timer("cuda: transfer data from device and freeing memory");
-    cudaMemcpy((void*)image.mesh.get(), cudaImage, imageSize, cudaMemcpyDeviceToHost);
-    cudaFree(cudaImage);
-    timer.stop_timer();
-}
 
 template <typename ImgType>
 struct XYZ {
@@ -333,43 +278,6 @@ void getGradientCuda(PixelData<ImgType> &image, PixelData<float> &local_scale_te
         threshold<<<numBlocks,threadsPerBlock, 0, aStream >>>(cudalocal_scale_temp, cudaGrad, output.mesh.size(), par.Ip_th);
         timer.stop_timer();
     }
-}
-
-template <typename ImgType>
-void getGradient(PixelData<ImgType> &image, PixelData<ImgType> &grad_temp, PixelData<float> &local_scale_temp, PixelData<float> &local_scale_temp2, float bspline_offset, const APRParameters &par) {
-    APRTimer timer(true);
-
-    timer.start_timer("cuda: memory alloc + data transfer to device");
-    size_t imageSize = image.mesh.size() * sizeof(ImgType);
-    ImgType *cudaImage;
-    cudaMalloc(&cudaImage, imageSize);
-    cudaMemcpy(cudaImage, image.mesh.get(), imageSize, cudaMemcpyHostToDevice);
-    size_t gradSize = grad_temp.mesh.size() * sizeof(ImgType);
-    ImgType *cudaGrad;
-    cudaMalloc(&cudaGrad, gradSize);
-    size_t local_scale_tempSize = local_scale_temp.mesh.size() * sizeof(float);
-    float *cudalocal_scale_temp;
-    cudaMalloc(&cudalocal_scale_temp, local_scale_tempSize);
-    float *cudalocal_scale_temp2;
-    cudaMalloc(&cudalocal_scale_temp2, local_scale_tempSize);
-    timer.stop_timer();
-
-    XYZ<ImgType> memoryPack = XYZ<ImgType>{cudaImage, cudaGrad, cudalocal_scale_temp, cudalocal_scale_temp2};
-    generateBsplineParams(memoryPack, image, par.lambda, 0);
-    timer.start_timer("cuda: calculations on device");
-    getGradientCuda(image, local_scale_temp, grad_temp, cudaImage, cudaGrad, cudalocal_scale_temp, bspline_offset, par, 0, &memoryPack);
-    timer.stop_timer();
-
-    timer.start_timer("cuda: transfer data from device and freeing memory");
-    cudaMemcpy((void*)image.mesh.get(), cudaImage, imageSize, cudaMemcpyDeviceToHost);
-    cudaFree(cudaImage);
-    cudaMemcpy((void*)grad_temp.mesh.get(), cudaGrad, gradSize, cudaMemcpyDeviceToHost);
-    cudaFree(cudaGrad);
-    cudaMemcpy((void*)local_scale_temp.mesh.get(), cudalocal_scale_temp, local_scale_tempSize, cudaMemcpyDeviceToHost);
-    cudaFree(cudalocal_scale_temp);
-    cudaMemcpy((void*)local_scale_temp2.mesh.get(), cudalocal_scale_temp, local_scale_tempSize, cudaMemcpyDeviceToHost);
-    cudaFree(cudalocal_scale_temp);
-    timer.stop_timer();
 }
 
 template <typename ImgType>
@@ -532,104 +440,59 @@ void getFullPipeline2(PixelData<ImgType> &image, PixelData<ImgType> &grad_temp, 
         cudaFree(inMemory[i].bc3);
         cudaFree(inMemory[i].bc4);
 
-
         timer.stop_timer();
     }
-
 
     timer.stop_timer();
     for (int i = 0; i < num; ++i) {
         cudaStreamSynchronize(streams[i]);
         cudaStreamDestroy(streams[i]);
     }
-
 }
+
+
+// =================================================== TEST helpers
+// TODO: should be moved somewhere
 
 // explicit instantiation of handled types
 template void cudaFilterBsplineFull(PixelData<float> &, float, float, TypeOfRecBsplineFlags, int);
-
 template <typename ImgType>
 void cudaFilterBsplineFull(PixelData<ImgType> &input, float lambda, float tolerance, TypeOfRecBsplineFlags flags, int k0Len) {
-    cudaStream_t  stream1 = 0;
-    APRTimer timer(true), timerFullPipelilne(true);
-    size_t inputSize = input.mesh.size() * sizeof(ImgType);
+    cudaStream_t  aStream = 0;
+
     BsplineParams p = prepareBsplineStuff(input, lambda, tolerance); //, k0Len);
 
-    timer.start_timer("GpuMemTransferHostToDevice");
     float *bc1, *bc2, *bc3, *bc4;
     cudaMalloc(&bc1, p.k0 * sizeof(float));
+    cudaMemcpyAsync(bc1, p.bc1, p.k0 * sizeof(float), cudaMemcpyHostToDevice, aStream);
     cudaMalloc(&bc2, p.k0 * sizeof(float));
+    cudaMemcpyAsync(bc2, p.bc2, p.k0 * sizeof(float), cudaMemcpyHostToDevice, aStream);
     cudaMalloc(&bc3, p.k0 * sizeof(float));
+    cudaMemcpyAsync(bc3, p.bc3, p.k0 * sizeof(float), cudaMemcpyHostToDevice, aStream);
     cudaMalloc(&bc4, p.k0 * sizeof(float));
+    cudaMemcpyAsync(bc4, p.bc4, p.k0 * sizeof(float), cudaMemcpyHostToDevice, aStream);
+    ScopedMemHandler<PixelData<float>> cudaInput(input, D2H + H2D);
 
-    cudaMemcpyAsync(bc1, p.bc1, p.k0 * sizeof(float), cudaMemcpyHostToDevice, stream1);
-    cudaMemcpyAsync(bc2, p.bc2, p.k0 * sizeof(float), cudaMemcpyHostToDevice, stream1);
-    cudaMemcpyAsync(bc3, p.bc3, p.k0 * sizeof(float), cudaMemcpyHostToDevice, stream1);
-    cudaMemcpyAsync(bc4, p.bc4, p.k0 * sizeof(float), cudaMemcpyHostToDevice, stream1);
-
-    ImgType *cudaInput;
-    cudaMalloc(&cudaInput, inputSize);
-    cudaMemcpy(cudaInput, input.mesh.get(), inputSize, cudaMemcpyHostToDevice);
-    float *boundary;
     if (flags & BSPLINE_Y_DIR) {
         int boundaryLen = sizeof(float) * (2 /*two first elements*/ + 2 /* two last elements */) * input.x_num * input.z_num;
+        float *boundary;
         cudaMalloc(&boundary, boundaryLen);
-    }
-    timer.stop_timer();
-
-//    cudaDeviceSetCacheConfig(cudaFuncCachePreferShared);
-//    cudaDeviceSetSharedMemConfig(cudaSharedMemBankSizeFourByte);
-
-    timerFullPipelilne.start_timer("GpuDeviceTimeFull");
-    if (flags & BSPLINE_Y_DIR) {
-        timer.start_timer("GpuDeviceTimeYdir");
-        dim3 threadsPerBlock(numOfThreads);
-        dim3 numBlocks((input.x_num * input.z_num + threadsPerBlock.x - 1) / threadsPerBlock.x);
-        printCudaDims(threadsPerBlock, numBlocks);
-        size_t sharedMemSize = (2 /*bc vectors*/) * (p.k0) * sizeof(float) + numOfThreads * (p.k0) * sizeof(ImgType);
-        bsplineYdirBoundary<ImgType> <<< numBlocks, threadsPerBlock, sharedMemSize >>> (cudaInput, input.x_num, input.y_num, input.z_num, bc1, bc2, bc3, bc4, p.k0, boundary);
-        sharedMemSize = numOfThreads * blockWidth * sizeof(ImgType);
-        bsplineYdirProcess<ImgType> <<< numBlocks, threadsPerBlock, sharedMemSize >>> (cudaInput, input.x_num, input.y_num, input.z_num, p.k0, p.b1, p.b2, p.norm_factor, boundary);
-        waitForCuda();
+        runBsplineYdir(cudaInput.get(), input.x_num, input.y_num, input.z_num, bc1, bc2, bc3, bc4, p.k0, p.b1, p.b2, p.norm_factor, boundary, aStream);
         cudaFree(boundary);
-        timer.stop_timer();
     }
-    constexpr int numOfWorkersYdir = 64;
     if (flags & BSPLINE_X_DIR) {
-        dim3 threadsPerBlockX(1, numOfWorkersYdir, 1);
-        dim3 numBlocksX(1,
-                        (input.y_num + threadsPerBlockX.y - 1) / threadsPerBlockX.y,
-                        (input.z_num + threadsPerBlockX.z - 1) / threadsPerBlockX.z);
-        printCudaDims(threadsPerBlockX, numBlocksX);
-        timer.start_timer("GpuDeviceTimeXdir");
-        bsplineXdir<ImgType> <<< numBlocksX, threadsPerBlockX >>> (cudaInput, input.x_num, input.y_num, bc1, bc2, bc3, bc4, p.k0, p.b1, p.b2, p.norm_factor);
-        waitForCuda();
-        timer.stop_timer();
+        runBsplineXdir(cudaInput.get(), input.x_num, input.y_num, input.z_num, bc1, bc2, bc3, bc4, p.k0, p.b1, p.b2, p.norm_factor, aStream);
     }
     if (flags & BSPLINE_Z_DIR) {
-        dim3 threadsPerBlockZ(1, numOfWorkersYdir, 1);
-        dim3 numBlocksZ(1,
-                        (input.y_num + threadsPerBlockZ.y - 1) / threadsPerBlockZ.y,
-                        (input.x_num + threadsPerBlockZ.x - 1) / threadsPerBlockZ.x); // Intentionally x-dim is here (after y) to get good memory coalescing
-        printCudaDims(threadsPerBlockZ, numBlocksZ);
-        timer.start_timer("GpuDeviceTimeZdir");
-        bsplineZdir<ImgType> <<< numBlocksZ, threadsPerBlockZ >>> (cudaInput, input.x_num, input.y_num, input.z_num, bc1, bc2, bc3, bc4, p.k0, p.b1, p.b2, p.norm_factor);
-        waitForCuda();
-        timer.stop_timer();
+        runBsplineZdir(cudaInput.get(), input.x_num, input.y_num, input.z_num, bc1, bc2, bc3, bc4, p.k0, p.b1, p.b2, p.norm_factor, aStream);
     }
-    timerFullPipelilne.stop_timer();
-
-    timer.start_timer("GpuMemTransferDeviceToHost");
-    getDataFromKernel(input, inputSize, cudaInput);
-    timer.stop_timer();
 }
 
 // explicit instantiation of handled types
 template void cudaInverseBspline(PixelData<float> &, TypeOfInvBsplineFlags);
-
 template <typename ImgType>
 void cudaInverseBspline(PixelData<ImgType> &input, TypeOfInvBsplineFlags flags) {
-    ScopedMemHandler<const PixelData<ImgType>> cudaInput(input, H2D + D2H);
+    ScopedMemHandler<PixelData<ImgType>> cudaInput(input, H2D + D2H);
 
     if (flags & INV_BSPLINE_Y_DIR) {
         runInvBsplineYdir(cudaInput.get(), input.x_num, input.y_num, input.z_num, 0);
@@ -642,6 +505,8 @@ void cudaInverseBspline(PixelData<ImgType> &input, TypeOfInvBsplineFlags flags) 
     }
 }
 
+// explicit instantiation of handled types
+template void computeLevelsCuda(const PixelData<float> &, PixelData<float> &, int, float, float, float, float);
 template <typename ImageType>
 void computeLevelsCuda(const PixelData<ImageType> &grad_temp, PixelData<float> &local_scale_temp, int maxLevel, float relError,  float dx, float dy, float dz) {
     ScopedMemHandler<const PixelData<ImageType>> cudaGrad(grad_temp, H2D);
@@ -656,4 +521,36 @@ void computeLevelsCuda(const PixelData<ImageType> &grad_temp, PixelData<float> &
 }
 
 // explicit instantiation of handled types
-template void computeLevelsCuda(const PixelData<float> &, PixelData<float> &, int, float, float, float, float);
+template void getGradient(PixelData<float> &, PixelData<float> &, PixelData<float> &, PixelData<float> &, float, const APRParameters &);
+template <typename ImgType>
+void getGradient(PixelData<ImgType> &image, PixelData<ImgType> &grad_temp, PixelData<float> &local_scale_temp, PixelData<float> &local_scale_temp2, float bspline_offset, const APRParameters &par) {
+    ScopedMemHandler<PixelData<ImgType>> cudaImage(image, D2H + H2D);
+    ScopedMemHandler<PixelData<ImgType>> cudaGrad(grad_temp, D2H);
+    ScopedMemHandler<PixelData<float>> cudalocal_scale_temp(local_scale_temp, D2H);
+    ScopedMemHandler<PixelData<float>> cudalocal_scale_temp2(local_scale_temp2, D2H);
+
+    XYZ<ImgType> memoryPack = XYZ<ImgType>{cudaImage.get(), cudaGrad.get(), cudalocal_scale_temp.get(), cudalocal_scale_temp2.get()};
+    generateBsplineParams(memoryPack, image, par.lambda, 0);
+    getGradientCuda(image, local_scale_temp, grad_temp, cudaImage.get(), cudaGrad.get(), cudalocal_scale_temp.get(), bspline_offset, par, 0, &memoryPack);
+}
+
+// explicit instantiation of handled types
+template void thresholdImg(PixelData<float> &, const float);
+template <typename T>
+void thresholdImg(PixelData<T> &image, const float threshold) {
+    ScopedMemHandler<PixelData<T>> cudaImage(image, D2H + H2D);
+
+    runThresholdImg(cudaImage.get(), image.x_num, image.y_num, image.z_num, threshold, 0);
+}
+
+// explicit instantiation of handled types
+template void thresholdGradient(PixelData<float> &, const PixelData<float> &, const float);
+template <typename T>
+void thresholdGradient(PixelData<float> &output, const PixelData<T> &input, const float Ip_th) {
+    ScopedMemHandler<const PixelData<T>> cudaInput(input, H2D);
+    ScopedMemHandler<PixelData<T>> cudaOutput(output, H2D + D2H);
+
+    dim3 threadsPerBlock(64);
+    dim3 numBlocks((input.x_num * input.y_num * input.z_num + threadsPerBlock.x - 1)/threadsPerBlock.x);
+    threshold<<<numBlocks,threadsPerBlock>>>(cudaInput.get(), cudaOutput.get(), output.mesh.size(), Ip_th);
+}
