@@ -108,7 +108,7 @@ include_directories("external/glm")
 # If you ever want to compile with Intel's icc (or any other compiler) provide
 # compiler names/paths in cmake command like this:
 # CC="icc" CXX="icc" CXXFLAGS="-O3" cmake -DAPR_TESTS=1
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++14 -Wall -pedantic")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++14 -Wall -pedantic -lz")
 if(CMAKE_COMPILER_IS_GNUCC)
     set(CMAKE_CXX_FLAGS_RELEASE "-O4 -ffast-math")
     set(CMAKE_CXX_FLAGS_DEBUG "-O0 -g")
