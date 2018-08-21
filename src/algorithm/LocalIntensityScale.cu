@@ -360,16 +360,9 @@ template void runLocalIntensityScalePipeline<float,float>(const PixelData<float>
 // TODO: should be moved somewhere
 template <typename T>
 void calcMean(PixelData<T> &image, int offset, TypeOfMeanFlags flags) {
-    size_t imageSize = image.mesh.size() * sizeof(T);
-    T *cudaImage;
-    cudaMalloc(&cudaImage, imageSize);
-    cudaMemcpy(cudaImage, image.mesh.get(), imageSize, cudaMemcpyHostToDevice);
+    ScopedMemHandler<PixelData<T>> cudaImage(image, D2H + H2D);
 
-    // --------- CUDA ----------------
-    runMean(cudaImage, image, offset, offset, offset, flags, 0);
-
-    cudaMemcpy((void*)image.mesh.get(), cudaImage, imageSize, cudaMemcpyDeviceToHost);
-    cudaFree(cudaImage);
+    runMean(cudaImage.get(), image, offset, offset, offset, flags, 0);
 }
 
 // explicit instantiation of handled types
@@ -379,16 +372,9 @@ template void calcMean(PixelData<uint16_t>&, int, TypeOfMeanFlags);
 
 template <typename T>
 void getLocalIntensityScale(PixelData<T> &image, PixelData<T> &temp, const APRParameters &par) {
-    T *cudaImage;
-    size_t imageSize = image.mesh.size() * sizeof(T);
-    cudaMalloc(&cudaImage, imageSize);
-    cudaMemcpy(cudaImage, image.mesh.get(), imageSize, cudaMemcpyHostToDevice);
-    T *cudaTemp;
-    cudaMalloc(&cudaTemp, imageSize);
+    ScopedMemHandler<PixelData<T>> cudaImage(image, D2H + H2D);
+    ScopedMemHandler<PixelData<T>> cudaTemp(temp, D2H);
 
-    runLocalIntensityScalePipeline(image, par, cudaImage, cudaTemp, 0);
-
-    getDataFromKernel(image, imageSize, cudaImage);
-    getDataFromKernel(temp, imageSize, cudaTemp);
+    runLocalIntensityScalePipeline(image, par, cudaImage.get(), cudaTemp.get(), 0);
 }
 template void getLocalIntensityScale(PixelData<float>&, PixelData<float>&, const APRParameters&);
