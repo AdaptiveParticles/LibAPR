@@ -27,37 +27,6 @@ template void getFullPipeline(PixelData<float> &, PixelData<float> &, PixelData<
 template void getFullPipeline2(PixelData<float> &, PixelData<float> &, PixelData<float> &, PixelData<float> &, float, const APRParameters &, int maxLevel);
 template void getFullPipeline2(PixelData<uint16_t> &, PixelData<uint16_t> &, PixelData<float> &, PixelData<float> &, float, const APRParameters &, int maxLevel);
 
-
-void cudaDownsampledGradient(const PixelData<float> &input, PixelData<float> &grad, const float hx, const float hy, const float hz) {
-    APRTimer timer;
-    timer.verbose_flag=true;
-
-    timer.start_timer("cuda: memory alloc + data transfer to device");
-    size_t inputSize = input.mesh.size() * sizeof(float);
-    float *cudaInput;
-    cudaMalloc(&cudaInput, inputSize);
-    cudaMemcpy(cudaInput, input.mesh.get(), inputSize, cudaMemcpyHostToDevice);
-
-    size_t gradSize = grad.mesh.size() * sizeof(float);
-    float *cudaGrad;
-    cudaMalloc(&cudaGrad, gradSize);
-    timer.stop_timer();
-
-    timer.start_timer("cuda: calculations on device");
-    runKernelGradient(cudaInput, cudaGrad, input.x_num, input.y_num, input.z_num, grad.x_num, grad.y_num, hx, hy, hz, 0);
-    cudaDeviceSynchronize();
-    timer.stop_timer();
-
-    timer.start_timer("cuda: transfer data from device and freeing memory");
-    cudaError_t err = cudaGetLastError();
-    if (err != cudaSuccess)printf("Error: %s\n", cudaGetErrorString(err));
-    cudaMemcpy((void*)input.mesh.get(), cudaInput, inputSize, cudaMemcpyDeviceToHost);
-    cudaFree(cudaInput);
-    cudaMemcpy((void*)grad.mesh.get(), cudaGrad, gradSize, cudaMemcpyDeviceToHost);
-    cudaFree(cudaGrad);
-    timer.stop_timer();
-}
-
 namespace {
     typedef struct {
 //        std::vector<float> bc1;
@@ -527,4 +496,11 @@ void thresholdGradient(PixelData<float> &output, const PixelData<T> &input, cons
     ScopedMemHandler<PixelData<T>> cudaOutput(output, H2D + D2H);
 
     runThreshold(cudaInput.get(), cudaOutput.get(), input.x_num, input.y_num, input.z_num, Ip_th, 0);
+}
+
+void cudaDownsampledGradient(PixelData<float> &input, PixelData<float> &grad, const float hx, const float hy, const float hz) {
+    ScopedMemHandler<PixelData<float>> cudaInput(input, H2D + D2H);
+    ScopedMemHandler<PixelData<float>> cudaGrad(grad, D2H);
+
+    runKernelGradient(cudaInput.get(), cudaGrad.get(), input.x_num, input.y_num, input.z_num, grad.x_num, grad.y_num, hx, hy, hz, 0);
 }
