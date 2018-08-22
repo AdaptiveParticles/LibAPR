@@ -462,29 +462,22 @@ void cudaFilterBsplineFull(PixelData<ImgType> &input, float lambda, float tolera
 
     BsplineParams p = prepareBsplineStuff(input, lambda, tolerance); //, k0Len);
 
-    float *bc1, *bc2, *bc3, *bc4;
-    cudaMalloc(&bc1, p.k0 * sizeof(float));
-    cudaMemcpyAsync(bc1, p.bc1, p.k0 * sizeof(float), cudaMemcpyHostToDevice, aStream);
-    cudaMalloc(&bc2, p.k0 * sizeof(float));
-    cudaMemcpyAsync(bc2, p.bc2, p.k0 * sizeof(float), cudaMemcpyHostToDevice, aStream);
-    cudaMalloc(&bc3, p.k0 * sizeof(float));
-    cudaMemcpyAsync(bc3, p.bc3, p.k0 * sizeof(float), cudaMemcpyHostToDevice, aStream);
-    cudaMalloc(&bc4, p.k0 * sizeof(float));
-    cudaMemcpyAsync(bc4, p.bc4, p.k0 * sizeof(float), cudaMemcpyHostToDevice, aStream);
+    ScopedMemHandler<float> bc1(p.bc1, p.k0, H2D);
+    ScopedMemHandler<float> bc2(p.bc2, p.k0, H2D);
+    ScopedMemHandler<float> bc3(p.bc3, p.k0, H2D);
+    ScopedMemHandler<float> bc4(p.bc4, p.k0, H2D);
     ScopedMemHandler<PixelData<float>> cudaInput(input, D2H + H2D);
 
     if (flags & BSPLINE_Y_DIR) {
-        int boundaryLen = sizeof(float) * (2 /*two first elements*/ + 2 /* two last elements */) * input.x_num * input.z_num;
-        float *boundary;
-        cudaMalloc(&boundary, boundaryLen);
-        runBsplineYdir(cudaInput.get(), input.x_num, input.y_num, input.z_num, bc1, bc2, bc3, bc4, p.k0, p.b1, p.b2, p.norm_factor, boundary, aStream);
-        cudaFree(boundary);
+        int boundaryLen = (2 /*two first elements*/ + 2 /* two last elements */) * input.x_num * input.z_num;
+        ScopedMemHandler<float> boundary(nullptr, boundaryLen);
+        runBsplineYdir(cudaInput.get(), input.x_num, input.y_num, input.z_num, bc1.get(), bc2.get(), bc3.get(), bc4.get(), p.k0, p.b1, p.b2, p.norm_factor, boundary.get(), aStream);
     }
     if (flags & BSPLINE_X_DIR) {
-        runBsplineXdir(cudaInput.get(), input.x_num, input.y_num, input.z_num, bc1, bc2, bc3, bc4, p.k0, p.b1, p.b2, p.norm_factor, aStream);
+        runBsplineXdir(cudaInput.get(), input.x_num, input.y_num, input.z_num, bc1.get(), bc2.get(), bc3.get(), bc4.get(), p.k0, p.b1, p.b2, p.norm_factor, aStream);
     }
     if (flags & BSPLINE_Z_DIR) {
-        runBsplineZdir(cudaInput.get(), input.x_num, input.y_num, input.z_num, bc1, bc2, bc3, bc4, p.k0, p.b1, p.b2, p.norm_factor, aStream);
+        runBsplineZdir(cudaInput.get(), input.x_num, input.y_num, input.z_num, bc1.get(), bc2.get(), bc3.get(), bc4.get(), p.k0, p.b1, p.b2, p.norm_factor, aStream);
     }
 }
 

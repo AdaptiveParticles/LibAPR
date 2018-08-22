@@ -86,7 +86,14 @@ constexpr CopyDir H2D = 1;
 constexpr CopyDir D2H = 2;
 
 template <typename T>
-using is_pixel_data = std::is_same<typename std::remove_cv<T>::type, PixelData<typename T::value_type>>;
+struct is_pixel_data {
+    static constexpr bool value = std::is_same<typename std::remove_cv<T>::type, PixelData<typename T::value_type>>::value;
+};
+template <>
+struct is_pixel_data<float> {
+    static constexpr bool value = false;
+};
+
 
 template <typename PIXEL_DATA_T, bool CHECK_TYPE = is_pixel_data<PIXEL_DATA_T>::value>
 class ScopedMemHandler {
@@ -129,6 +136,49 @@ private:
 };
 
 // Incomplete specialization to prevent using ScopedMemHandler with types different than PixelData
-template <typename PIXEL_DATA_T> class ScopedMemHandler<PIXEL_DATA_T, false>;
+//template <typename PIXEL_DATA_T> class ScopedMemHandler<PIXEL_DATA_T, false>;
+
+// =----------------------------
+
+template <typename DATA_TYPE>
+class ScopedMemHandler<DATA_TYPE, false> {
+    using DataType = DATA_TYPE;
+    static constexpr bool IsDataConst = std::is_const<DATA_TYPE>::value;
+
+    DataType *iData;
+    const CopyDir iDirection;
+    std::unique_ptr<DataType, decltype(&cudaFree)> iCudaMemory = {nullptr, &cudaFree};
+    size_t iSize = 0;
+    cudaStream_t iStream;
+
+public:
+    explicit ScopedMemHandler(DataType *aData, size_t aSize, const CopyDir aDirection = JUST_ALLOC, const cudaStream_t aStream = nullptr) : iData(aData), iDirection(aDirection), iStream(aStream) {
+        iSize = aSize * sizeof(DataType);
+        DataType *mem = nullptr;
+        cudaMalloc(&mem, iSize);
+        iCudaMemory.reset(mem);
+        if (iDirection & H2D) {
+            cudaMemcpyAsync(iCudaMemory.get(), iData, iSize, cudaMemcpyHostToDevice, iStream);
+        }
+    }
+
+    ~ScopedMemHandler() {
+        if (IsDataConst) {
+            const bool isCopyToHostRequested = iDirection & D2H;
+            if (isCopyToHostRequested) throw std::invalid_argument("Device to host not possible for const PixelData!");
+        }
+        else if (iDirection & D2H) {
+            cudaMemcpyAsync((void*)iData, iCudaMemory.get(), iSize, cudaMemcpyDeviceToHost, iStream);
+        }
+    }
+
+    DataType* get() {return iCudaMemory.get();}
+
+private:
+    ScopedMemHandler(const ScopedMemHandler&) = delete; // make it noncopyable
+    ScopedMemHandler& operator=(const ScopedMemHandler&) = delete; // make it not assignable
+
+};
+
 
 #endif //LIBAPR_CUDATOOLS_HPP
