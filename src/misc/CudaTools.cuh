@@ -86,21 +86,22 @@ constexpr CopyDir H2D = 1;
 constexpr CopyDir D2H = 2;
 
 template <typename T>
-struct is_pixel_data {
-    static constexpr bool value = std::is_same<typename std::remove_cv<T>::type, PixelData<typename T::value_type>>::value;
-};
-template <>
-struct is_pixel_data<float> {
-    static constexpr bool value = false;
-};
+constexpr typename std::enable_if<std::is_pod<T>::value, bool>::type
+is_pixel_data() {return false;}
+
+template <typename T>
+constexpr typename std::enable_if<std::is_same<typename std::remove_cv<T>::type, PixelData<typename T::value_type>>::value, bool>::type
+is_pixel_data() {return true;}
 
 
-template <typename PIXEL_DATA_T, bool CHECK_TYPE = is_pixel_data<PIXEL_DATA_T>::value>
+
+template <typename PIXEL_DATA_T, bool CHECK_TYPE = is_pixel_data<PIXEL_DATA_T>()>
 class ScopedMemHandler {
     using DataType = typename PIXEL_DATA_T::value_type;
     static constexpr bool IsPixelDataConst = std::is_const<PIXEL_DATA_T>::value;
 
     PIXEL_DATA_T &iData;
+
     const CopyDir iDirection;
     std::unique_ptr<DataType, decltype(&cudaFree)> iCudaMemory = {nullptr, &cudaFree};
     size_t iSize = 0;

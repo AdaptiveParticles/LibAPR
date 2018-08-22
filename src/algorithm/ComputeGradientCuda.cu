@@ -172,6 +172,13 @@ __global__ void threshold(const T *input, S *output, size_t length, float thresh
     }
 }
 
+template <typename ImgType, typename T>
+void runThreshold(ImgType *cudaImage, T *cudaGrad, size_t x_num, size_t y_num, size_t z_num, float Ip_th, cudaStream_t aStream) {
+    dim3 threadsPerBlock(64);
+    dim3 numBlocks((x_num * y_num * z_num + threadsPerBlock.x - 1)/threadsPerBlock.x);
+    threshold<<<numBlocks,threadsPerBlock, 0, aStream>>>(cudaImage, cudaGrad, x_num * y_num * z_num, Ip_th);
+};
+
 /**
  * Thresholds input array to have minimum thresholdLevel.
  * @param input
@@ -239,45 +246,21 @@ template <typename ImgType>
 void getGradientCuda(PixelData<ImgType> &image, PixelData<float> &local_scale_temp, PixelData<ImgType> &grad_temp,
                      ImgType *cudaImage, ImgType *cudaGrad, float *cudalocal_scale_temp,
                      float bspline_offset, const APRParameters &par, cudaStream_t aStream, XYZ<ImgType> *p) {
-    CudaTimer timer(true, "getGradientCuda");
-    {
-        runThresholdImg(cudaImage, image.x_num, image.y_num, image.z_num, par.Ip_th + bspline_offset, aStream);
-    }
-    {
-        runBsplineYdir(cudaImage, image.x_num, image.y_num, image.z_num, p->bc1, p->bc2, p->bc3, p->bc4, p->p.k0, p->p.b1, p->p.b2, p->p.norm_factor, p->boundary, aStream);
-        runBsplineXdir(cudaImage, image.x_num, image.y_num, image.z_num, p->bc1, p->bc2, p->bc3, p->bc4, p->p.k0, p->p.b1, p->p.b2, p->p.norm_factor, aStream);
-        runBsplineZdir(cudaImage, image.x_num, image.y_num, image.z_num, p->bc1, p->bc2, p->bc3, p->bc4, p->p.k0, p->p.b1, p->p.b2, p->p.norm_factor, aStream);
-    }
-    {
-        runKernelGradient(cudaImage, cudaGrad, image.x_num, image.y_num, image.z_num, grad_temp.x_num, grad_temp.y_num, par.dx, par.dy, par.dz, aStream);
-    }
-    {
-        runDownsampleMean(cudaImage, cudalocal_scale_temp, image.x_num, image.y_num, image.z_num, aStream);
-    }
-    {
-        TypeOfInvBsplineFlags flags = INV_BSPLINE_ALL_DIR;
-        auto &input = local_scale_temp;
-        if (flags & INV_BSPLINE_Y_DIR) {
-            runInvBsplineYdir(cudalocal_scale_temp, input.x_num, input.y_num, input.z_num, aStream);
-        }
-        if (flags & INV_BSPLINE_X_DIR) {
-            runInvBsplineXdir(cudalocal_scale_temp, input.x_num, input.y_num, input.z_num, aStream);
-        }
-        if (flags & INV_BSPLINE_Z_DIR) {
-            runInvBsplineZdir(cudalocal_scale_temp, input.x_num, input.y_num, input.z_num, aStream);
-        }
-    }
-    {
-        timer.start_timer("threshold");
-        auto &input = local_scale_temp;
-        PixelData<ImgType> &output = grad_temp;
-        dim3 threadsPerBlock(64);
-        dim3 numBlocks((input.x_num * input.y_num * input.z_num + threadsPerBlock.x - 1)/threadsPerBlock.x);
-        printCudaDims(threadsPerBlock, numBlocks);
+    runThresholdImg(cudaImage, image.x_num, image.y_num, image.z_num, par.Ip_th + bspline_offset, aStream);
 
-        threshold<<<numBlocks,threadsPerBlock, 0, aStream >>>(cudalocal_scale_temp, cudaGrad, output.mesh.size(), par.Ip_th);
-        timer.stop_timer();
-    }
+    runBsplineYdir(cudaImage, image.x_num, image.y_num, image.z_num, p->bc1, p->bc2, p->bc3, p->bc4, p->p.k0, p->p.b1, p->p.b2, p->p.norm_factor, p->boundary, aStream);
+    runBsplineXdir(cudaImage, image.x_num, image.y_num, image.z_num, p->bc1, p->bc2, p->bc3, p->bc4, p->p.k0, p->p.b1, p->p.b2, p->p.norm_factor, aStream);
+    runBsplineZdir(cudaImage, image.x_num, image.y_num, image.z_num, p->bc1, p->bc2, p->bc3, p->bc4, p->p.k0, p->p.b1, p->p.b2, p->p.norm_factor, aStream);
+
+    runKernelGradient(cudaImage, cudaGrad, image.x_num, image.y_num, image.z_num, grad_temp.x_num, grad_temp.y_num, par.dx, par.dy, par.dz, aStream);
+
+    runDownsampleMean(cudaImage, cudalocal_scale_temp, image.x_num, image.y_num, image.z_num, aStream);
+
+    runInvBsplineYdir(cudalocal_scale_temp, local_scale_temp.x_num, local_scale_temp.y_num, local_scale_temp.z_num, aStream);
+    runInvBsplineXdir(cudalocal_scale_temp, local_scale_temp.x_num, local_scale_temp.y_num, local_scale_temp.z_num, aStream);
+    runInvBsplineZdir(cudalocal_scale_temp, local_scale_temp.x_num, local_scale_temp.y_num, local_scale_temp.z_num, aStream);
+
+    runThreshold(cudalocal_scale_temp, cudaGrad, local_scale_temp.x_num, local_scale_temp.y_num, local_scale_temp.z_num, par.Ip_th, aStream);
 }
 
 template <typename ImgType>
@@ -460,7 +443,7 @@ template <typename ImgType>
 void cudaFilterBsplineFull(PixelData<ImgType> &input, float lambda, float tolerance, TypeOfRecBsplineFlags flags, int k0Len) {
     cudaStream_t  aStream = 0;
 
-    BsplineParams p = prepareBsplineStuff(input, lambda, tolerance); //, k0Len);
+    BsplineParams p = prepareBsplineStuff(input, lambda, tolerance);
 
     ScopedMemHandler<float> bc1(p.bc1, p.k0, H2D);
     ScopedMemHandler<float> bc2(p.bc2, p.k0, H2D);
@@ -543,7 +526,5 @@ void thresholdGradient(PixelData<float> &output, const PixelData<T> &input, cons
     ScopedMemHandler<const PixelData<T>> cudaInput(input, H2D);
     ScopedMemHandler<PixelData<T>> cudaOutput(output, H2D + D2H);
 
-    dim3 threadsPerBlock(64);
-    dim3 numBlocks((input.x_num * input.y_num * input.z_num + threadsPerBlock.x - 1)/threadsPerBlock.x);
-    threshold<<<numBlocks,threadsPerBlock>>>(cudaInput.get(), cudaOutput.get(), output.mesh.size(), Ip_th);
+    runThreshold(cudaInput.get(), cudaOutput.get(), input.x_num, input.y_num, input.z_num, Ip_th, 0);
 }
