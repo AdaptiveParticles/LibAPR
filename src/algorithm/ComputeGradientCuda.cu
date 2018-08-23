@@ -181,6 +181,7 @@ template <typename ImgType>
 void getGradientCuda(PixelData<ImgType> &image, PixelData<float> &local_scale_temp, PixelData<ImgType> &grad_temp,
                      ImgType *cudaImage, ImgType *cudaGrad, float *cudalocal_scale_temp,
                      float bspline_offset, const APRParameters &par, cudaStream_t aStream, BsplineParams *p) {
+
     runThresholdImg(cudaImage, image.x_num, image.y_num, image.z_num, par.Ip_th + bspline_offset, aStream);
 
     int boundaryLen = (2 /*two first elements*/ + 2 /* two last elements */) * image.x_num * image.z_num;
@@ -202,60 +203,26 @@ void getGradientCuda(PixelData<ImgType> &image, PixelData<float> &local_scale_te
 
 template <typename ImgType>
 void getFullPipeline(PixelData<ImgType> &image, PixelData<ImgType> &grad_temp, PixelData<float> &local_scale_temp, PixelData<float> &local_scale_temp2, float bspline_offset, const APRParameters &par, int maxLevel) {
-    CudaTimer timer(true, "cuda: getFullPipeline");
+    cudaStream_t stream;
+    cudaStreamCreate(&stream);
 
-    cudaStream_t stream1;
-    cudaStreamCreate(&stream1);
-
-    timer.start_timer("cuda: Whole processing with transfers");
-
-    // Host -> Device transfers
-    timer.start_timer("cuda: memory alloc + data transfer to device");
-    size_t imageSize = image.mesh.size() * sizeof(ImgType);
-    ImgType *cudaImage = nullptr;
-    cudaMalloc(&cudaImage, imageSize);
-    cudaMemcpyAsync(cudaImage, image.mesh.get(), imageSize, cudaMemcpyHostToDevice, stream1);
-    size_t gradSize = grad_temp.mesh.size() * sizeof(ImgType);
-    ImgType *cudaGrad = nullptr;
-    cudaMalloc(&cudaGrad, gradSize);
-    size_t local_scale_tempSize = local_scale_temp.mesh.size() * sizeof(float);
-    float *cudalocal_scale_temp = nullptr;
-    cudaMalloc(&cudalocal_scale_temp, local_scale_tempSize);
-    float *cudalocal_scale_temp2 = nullptr;
-    cudaMalloc(&cudalocal_scale_temp2, local_scale_tempSize);
-    timer.stop_timer();
+    ScopedMemHandler<const PixelData<ImgType>> cudaImage(image, H2D);
+    ScopedMemHandler<const PixelData<ImgType>> cudaGrad(grad_temp);
+    ScopedMemHandler<PixelData<float>> cudalocal_scale_temp(local_scale_temp, D2H);
+    ScopedMemHandler<const PixelData<float>> cudalocal_scale_temp2(local_scale_temp2);
 
     // Processing on GPU
-    timer.start_timer("cuda: calculations on device PIPELLINE");
-    cudaStream_t processingStream = stream1;
     float tolerance = 0.0001;
     BsplineParams p = prepareBsplineStuff(image, par.lambda, tolerance);
-
-    getGradientCuda(image, local_scale_temp, grad_temp, cudaImage, cudaGrad, cudalocal_scale_temp, bspline_offset, par, processingStream, &p);
-    runLocalIntensityScalePipeline(local_scale_temp, par, cudalocal_scale_temp, cudalocal_scale_temp2, processingStream);
+    getGradientCuda(image, local_scale_temp, grad_temp, cudaImage.get(), cudaGrad.get(), cudalocal_scale_temp.get(), bspline_offset, par, stream, &p);
+    runLocalIntensityScalePipeline(local_scale_temp, par, cudalocal_scale_temp.get(), cudalocal_scale_temp2.get(), stream);
     float min_dim = std::min(par.dy, std::min(par.dx, par.dz));
     float level_factor = pow(2, maxLevel) * min_dim;
     const float mult_const = level_factor/par.rel_error;
-    runComputeLevels(cudaGrad, cudalocal_scale_temp, grad_temp.mesh.size(), mult_const, processingStream);
-    timer.stop_timer();
+    runComputeLevels(cudaGrad.get(), cudalocal_scale_temp.get(), grad_temp.mesh.size(), mult_const, stream);
 
-    // Device -> Host transfers
-    timer.start_timer("cuda: transfer data from device and freeing memory");
-    cudaMemcpyAsync((void*)image.mesh.get(), cudaImage, imageSize, cudaMemcpyDeviceToHost, stream1);
-    cudaMemcpyAsync((void*)grad_temp.mesh.get(), cudaGrad, gradSize, cudaMemcpyDeviceToHost, stream1);
-    cudaMemcpyAsync((void*)local_scale_temp2.mesh.get(), cudalocal_scale_temp2, local_scale_tempSize, cudaMemcpyDeviceToHost, stream1);
-
-    cudaMemcpyAsync((void*)local_scale_temp.mesh.get(), cudalocal_scale_temp, local_scale_tempSize, cudaMemcpyDeviceToHost, stream1);
-    cudaFree(cudalocal_scale_temp2);
-    cudaFree(cudaImage);
-    cudaFree(cudaGrad);
-    cudaFree(cudalocal_scale_temp);
-    timer.stop_timer();
-
-    timer.stop_timer();
-
-    cudaStreamSynchronize(stream1);
-    cudaStreamDestroy(stream1);
+    cudaStreamSynchronize(stream);
+    cudaStreamDestroy(stream);
 }
 
 // =================================================== TEST helpers
