@@ -88,7 +88,7 @@ public :
     size_t z_num;
     std::unique_ptr<T[]> meshMemory;
 #ifdef APR_USE_CUDA
-    std::unique_ptr<T[], decltype(&freePinnedMemory)> meshMemoryPinned = {(T*)getPinnedMemory((size_t)0), &freePinnedMemory};
+    std::unique_ptr<T[], decltype(&freePinnedMemory)> meshMemoryPinned = {nullptr, &freePinnedMemory};
 #endif
     ArrayWrapper<T> mesh;
 
