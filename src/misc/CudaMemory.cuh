@@ -32,4 +32,12 @@ inline void freePinnedMemory(void *aMemory) {
     cudaFreeHost(aMemory);
 }
 
+// useful extension of unique_ptr - with custom deleter there is no nice constructor taking just one parameter with memory
+// here it is fixed with freePinnedMemory always passed nicely
+template <typename T, typename D=decltype(&freePinnedMemory)>
+struct PinnedMemoryUniquePtr : public std::unique_ptr<T[], D> {
+    using std::unique_ptr<T[],D>::unique_ptr; // inheriting other constructors
+    explicit PinnedMemoryUniquePtr(T *aMemory) : std::unique_ptr<T[], D>(aMemory, &freePinnedMemory) {}
+};
+
 #endif //LIBAPR_CUDAMEMORY_HPP

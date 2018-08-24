@@ -26,23 +26,9 @@
 template void getFullPipeline(PixelData<float> &, PixelData<float> &, PixelData<float> &, PixelData<float> &, float, const APRParameters &, int maxLevel);
 template void getFullPipeline(PixelData<uint16_t> &, PixelData<uint16_t> &, PixelData<float> &, PixelData<float> &, float, const APRParameters &, int maxLevel);
 
-template <typename T>
-class PinnedMemoryUniquePtr{
-    std::unique_ptr<T[], decltype(&freePinnedMemory)> iMemory = {nullptr, &freePinnedMemory};
-public:
-    explicit PinnedMemoryUniquePtr(T *aMemory) {
-        iMemory.reset(aMemory);
-    }
-    ~PinnedMemoryUniquePtr() { std::cout << "~PINNED\n";}
-    T* get() {return iMemory.get();}
-    const T* get() const {return iMemory.get();}
-    T& operator[](size_t idx) { return iMemory[idx]; }
-    const T& operator[](size_t idx) const { return iMemory[idx]; }
-};
-
 namespace {
     typedef struct {
-        float *bc1;
+        PinnedMemoryUniquePtr<float> bc1;
         float *bc2;
         float *bc3;
         float *bc4;
@@ -94,8 +80,8 @@ namespace {
         std::vector<float> impulse_resp_vec_f(k0 + 1);
         for (size_t k = 0; k < impulse_resp_vec_f.size(); ++k) impulse_resp_vec_f[k] = impulse_resp(k, rho, omg);
 
-        float  *bc1 = (float*)getPinnedMemory(sizeof(float) * k0);
-//        PinnedMemoryUniquePtr<float> bc1{(float*)getPinnedMemory(sizeof(float) * k0)};
+//        float  *bc1 = (float*)getPinnedMemory(sizeof(float) * k0);
+        PinnedMemoryUniquePtr<float> bc1{(float*)getPinnedMemory(sizeof(float) * k0)};
 
         float  *bc2 = (float*)getPinnedMemory(sizeof(float) * k0);
         float  *bc3 = (float*)getPinnedMemory(sizeof(float) * k0);
@@ -120,7 +106,7 @@ namespace {
         for (size_t k = 1; k < k0; ++k) bc4[k] += 2 * impulse_resp_vec_b[k];
 
         return BsplineParams{
-                bc1,
+                std::move(bc1),
                 bc2,
                 bc3,
                 bc4,
@@ -186,9 +172,9 @@ void getGradientCuda(PixelData<ImgType> &image, PixelData<float> &local_scale_te
 
     int boundaryLen = (2 /*two first elements*/ + 2 /* two last elements */) * image.x_num * image.z_num;
     ScopedMemHandler<float> boundary(nullptr, boundaryLen);
-    runBsplineYdir(cudaImage, image.x_num, image.y_num, image.z_num, p->bc1, p->bc2, p->bc3, p->bc4, p->k0, p->b1, p->b2, p->norm_factor, boundary.get(), aStream);
-    runBsplineXdir(cudaImage, image.x_num, image.y_num, image.z_num, p->bc1, p->bc2, p->bc3, p->bc4, p->k0, p->b1, p->b2, p->norm_factor, aStream);
-    runBsplineZdir(cudaImage, image.x_num, image.y_num, image.z_num, p->bc1, p->bc2, p->bc3, p->bc4, p->k0, p->b1, p->b2, p->norm_factor, aStream);
+    runBsplineYdir(cudaImage, image.x_num, image.y_num, image.z_num, p->bc1.get(), p->bc2, p->bc3, p->bc4, p->k0, p->b1, p->b2, p->norm_factor, boundary.get(), aStream);
+    runBsplineXdir(cudaImage, image.x_num, image.y_num, image.z_num, p->bc1.get(), p->bc2, p->bc3, p->bc4, p->k0, p->b1, p->b2, p->norm_factor, aStream);
+    runBsplineZdir(cudaImage, image.x_num, image.y_num, image.z_num, p->bc1.get(), p->bc2, p->bc3, p->bc4, p->k0, p->b1, p->b2, p->norm_factor, aStream);
 
     runKernelGradient(cudaImage, cudaGrad, image.x_num, image.y_num, image.z_num, grad_temp.x_num, grad_temp.y_num, par.dx, par.dy, par.dz, aStream);
 
@@ -236,7 +222,7 @@ void cudaFilterBsplineFull(PixelData<ImgType> &input, float lambda, float tolera
 
     BsplineParams p = prepareBsplineStuff(input, lambda, tolerance);
 
-    ScopedMemHandler<float> bc1(p.bc1, p.k0, H2D);
+    ScopedMemHandler<float> bc1(p.bc1.get(), p.k0, H2D);
     ScopedMemHandler<float> bc2(p.bc2, p.k0, H2D);
     ScopedMemHandler<float> bc3(p.bc3, p.k0, H2D);
     ScopedMemHandler<float> bc4(p.bc4, p.k0, H2D);

@@ -41,4 +41,5 @@ template <typename T>
 void thresholdGradient(PixelData<float> &output, const PixelData<T> &input, const float Ip_th);
 void cudaDownsampledGradient(PixelData<float> &input, PixelData<float> &grad, const float hx, const float hy, const float hz);
 
+
 #endif //LIBAPR_COMPUTEGRADIENTCUDA_HPP
