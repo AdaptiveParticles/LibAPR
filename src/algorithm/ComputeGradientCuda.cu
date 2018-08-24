@@ -80,10 +80,11 @@ namespace {
         std::vector<float> impulse_resp_vec_f(k0 + 1);
         for (size_t k = 0; k < impulse_resp_vec_f.size(); ++k) impulse_resp_vec_f[k] = impulse_resp(k, rho, omg);
 
-        PinnedMemoryUniquePtr<float> bc1{(float*)getPinnedMemory(sizeof(float) * k0)};
-        PinnedMemoryUniquePtr<float> bc2{(float*)getPinnedMemory(sizeof(float) * k0)};
-        PinnedMemoryUniquePtr<float> bc3{(float*)getPinnedMemory(sizeof(float) * k0)};
-        PinnedMemoryUniquePtr<float> bc4{(float*)getPinnedMemory(sizeof(float) * k0)};
+        size_t boundaryLen = sizeof(float) * k0;
+        PinnedMemoryUniquePtr<float> bc1{(float*)getPinnedMemory(boundaryLen)};
+        PinnedMemoryUniquePtr<float> bc2{(float*)getPinnedMemory(boundaryLen)};
+        PinnedMemoryUniquePtr<float> bc3{(float*)getPinnedMemory(boundaryLen)};
+        PinnedMemoryUniquePtr<float> bc4{(float*)getPinnedMemory(boundaryLen)};
 
         //y(0) init
         for (size_t k = 0; k < k0; ++k) bc1[k] = impulse_resp_vec_f[k];
@@ -115,7 +116,6 @@ namespace {
         };
     }
 }
-
 
 /**
  * Thresholds output basing on input values. When input is <= thresholdLevel then output is set to 0 and is not changed otherwise.
@@ -195,7 +195,6 @@ void getFullPipeline(PixelData<ImgType> &image, PixelData<ImgType> &grad_temp, P
     ScopedMemHandler<PixelData<float>> cudalocal_scale_temp(local_scale_temp, D2H);
     ScopedMemHandler<const PixelData<float>> cudalocal_scale_temp2(local_scale_temp2);
 
-    // Processing on GPU
     float tolerance = 0.0001;
     BsplineParams p = prepareBsplineStuff(image, par.lambda, tolerance);
     getGradientCuda(image, local_scale_temp, grad_temp, cudaImage.get(), cudaGrad.get(), cudalocal_scale_temp.get(), bspline_offset, par, stream, &p);
@@ -219,7 +218,6 @@ void cudaFilterBsplineFull(PixelData<ImgType> &input, float lambda, float tolera
     cudaStream_t  aStream = 0;
 
     BsplineParams p = prepareBsplineStuff(input, lambda, tolerance);
-
     ScopedMemHandler<float> bc1(p.bc1.get(), p.k0, H2D);
     ScopedMemHandler<float> bc2(p.bc2.get(), p.k0, H2D);
     ScopedMemHandler<float> bc3(p.bc3.get(), p.k0, H2D);
@@ -228,7 +226,7 @@ void cudaFilterBsplineFull(PixelData<ImgType> &input, float lambda, float tolera
 
     if (flags & BSPLINE_Y_DIR) {
         int boundaryLen = (2 /*two first elements*/ + 2 /* two last elements */) * input.x_num * input.z_num;
-        ScopedMemHandler<float> boundary(nullptr, boundaryLen);
+        ScopedMemHandler<float> boundary(nullptr, boundaryLen); // allocate memory on device
         runBsplineYdir(cudaInput.get(), input.x_num, input.y_num, input.z_num, bc1.get(), bc2.get(), bc3.get(), bc4.get(), p.k0, p.b1, p.b2, p.norm_factor, boundary.get(), aStream);
     }
     if (flags & BSPLINE_X_DIR) {
@@ -263,7 +261,6 @@ void computeLevelsCuda(const PixelData<ImageType> &grad_temp, PixelData<float> &
     ScopedMemHandler<const PixelData<ImageType>> cudaGrad(grad_temp, H2D);
     ScopedMemHandler<PixelData<float>> cudaLis(local_scale_temp, D2H + H2D);
 
-    // Processing on GPU
     float min_dim = std::min(dy, std::min(dx, dz));
     float level_factor = pow(2, maxLevel) * min_dim;
     const float mult_const = level_factor/relError;
