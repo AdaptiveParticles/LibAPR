@@ -80,12 +80,10 @@ namespace {
         std::vector<float> impulse_resp_vec_f(k0 + 1);
         for (size_t k = 0; k < impulse_resp_vec_f.size(); ++k) impulse_resp_vec_f[k] = impulse_resp(k, rho, omg);
 
-//        float  *bc1 = (float*)getPinnedMemory(sizeof(float) * k0);
         PinnedMemoryUniquePtr<float> bc1{(float*)getPinnedMemory(sizeof(float) * k0)};
         PinnedMemoryUniquePtr<float> bc2{(float*)getPinnedMemory(sizeof(float) * k0)};
         PinnedMemoryUniquePtr<float> bc3{(float*)getPinnedMemory(sizeof(float) * k0)};
         PinnedMemoryUniquePtr<float> bc4{(float*)getPinnedMemory(sizeof(float) * k0)};
-
 
         //y(0) init
         for (size_t k = 0; k < k0; ++k) bc1[k] = impulse_resp_vec_f[k];

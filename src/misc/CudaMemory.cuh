@@ -22,13 +22,13 @@ inline cudaError_t checkCuda(cudaError_t result) {
 
 inline void* getPinnedMemory(size_t aNumOfBytes) {
     void *memory = nullptr;
-    cudaError_t result = checkCuda(cudaMallocHost((void**)&memory, aNumOfBytes) );
-    std::cout << "Allocating pinned memory " << aNumOfBytes << " at " << (void*)memory << " result " << result << std::endl;
+    cudaError_t result = checkCuda(cudaMallocHost(&memory, aNumOfBytes) );
+    std::cout << "Allocating pinned memory " << aNumOfBytes << " at " << memory << " result " << result << std::endl;
     return memory;
 };
 
 inline void freePinnedMemory(void *aMemory) {
-    std::cout << "Freeing pinned memory " << (void*)aMemory << std::endl;
+    std::cout << "Freeing pinned memory " << aMemory << std::endl;
     cudaFreeHost(aMemory);
 }
 
@@ -37,7 +37,7 @@ inline void freePinnedMemory(void *aMemory) {
 template <typename T, typename D=decltype(&freePinnedMemory)>
 struct PinnedMemoryUniquePtr : public std::unique_ptr<T[], D> {
     using std::unique_ptr<T[],D>::unique_ptr; // inheriting other constructors
-    explicit PinnedMemoryUniquePtr(T *aMemory) : std::unique_ptr<T[], D>(aMemory, &freePinnedMemory) {}
+    explicit PinnedMemoryUniquePtr(T *aMemory = nullptr) : std::unique_ptr<T[], D>(aMemory, &freePinnedMemory) {}
 };
 
 #endif //LIBAPR_CUDAMEMORY_HPP
