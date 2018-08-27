@@ -190,10 +190,10 @@ void getFullPipeline(PixelData<ImgType> &image, PixelData<ImgType> &grad_temp, P
     cudaStream_t stream;
     cudaStreamCreate(&stream);
 
-    ScopedMemHandler<const PixelData<ImgType>> cudaImage(image, H2D);
-    ScopedMemHandler<const PixelData<ImgType>> cudaGrad(grad_temp);
-    ScopedMemHandler<PixelData<float>> cudalocal_scale_temp(local_scale_temp, D2H);
-    ScopedMemHandler<const PixelData<float>> cudalocal_scale_temp2(local_scale_temp2);
+    ScopedMemHandler<const PixelData<ImgType>> cudaImage(image, H2D, stream);
+    ScopedMemHandler<const PixelData<ImgType>> cudaGrad(grad_temp, JUST_ALLOC, stream);
+    ScopedMemHandler<PixelData<float>> cudalocal_scale_temp(local_scale_temp, D2H, stream);
+    ScopedMemHandler<const PixelData<float>> cudalocal_scale_temp2(local_scale_temp2, JUST_ALLOC, stream);
 
     float tolerance = 0.0001;
     BsplineParams p = prepareBsplineStuff(image, par.lambda, tolerance);
@@ -273,7 +273,7 @@ template void getGradient(PixelData<float> &, PixelData<float> &, PixelData<floa
 template <typename ImgType>
 void getGradient(PixelData<ImgType> &image, PixelData<ImgType> &grad_temp, PixelData<float> &local_scale_temp, PixelData<float> &local_scale_temp2, float bspline_offset, const APRParameters &par) {
     ScopedMemHandler<PixelData<ImgType>> cudaImage(image, D2H + H2D);
-    ScopedMemHandler<PixelData<ImgType>> cudaGrad(grad_temp, D2H);
+    ScopedMemHandler<PixelData<ImgType>> cudaGrad(grad_temp, H2D + D2H);
     ScopedMemHandler<PixelData<float>> cudalocal_scale_temp(local_scale_temp, D2H);
     ScopedMemHandler<PixelData<float>> cudalocal_scale_temp2(local_scale_temp2, D2H);
 
