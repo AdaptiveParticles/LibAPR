@@ -157,7 +157,6 @@ template <typename T>
 void runThresholdImg(T *cudaImage, size_t x_num, size_t y_num, size_t z_num, float Ip_th_offset, cudaStream_t aStream) {
     dim3 threadsPerBlock(64);
     dim3 numBlocks((x_num * y_num * z_num + threadsPerBlock.x - 1) / threadsPerBlock.x);
-    printCudaDims(threadsPerBlock, numBlocks);
     thresholdImg<<< numBlocks, threadsPerBlock, 0, aStream >>> (cudaImage, x_num * y_num * z_num, Ip_th_offset);
 };
 
