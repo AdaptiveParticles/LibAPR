@@ -194,7 +194,7 @@ template <typename ImgType>
 void getFullPipeline(PixelData<ImgType> &image, PixelData<ImgType> &grad_temp, PixelData<float> &local_scale_temp, PixelData<float> &local_scale_temp2, float bspline_offset, const APRParameters &par, int maxLevel) {
     cudaStream_t stream;
     cudaStreamCreate(&stream);
-
+{
     ScopedMemHandler<const PixelData<ImgType>> cudaImage(image, H2D, stream);
     ScopedMemHandler<const PixelData<ImgType>> cudaGrad(grad_temp, JUST_ALLOC, stream);
     ScopedMemHandler<PixelData<float>> cudalocal_scale_temp(local_scale_temp, D2H, stream);
@@ -208,7 +208,7 @@ void getFullPipeline(PixelData<ImgType> &image, PixelData<ImgType> &grad_temp, P
     float level_factor = pow(2, maxLevel) * min_dim;
     const float mult_const = level_factor/par.rel_error;
     runComputeLevels(cudaGrad.get(), cudalocal_scale_temp.get(), grad_temp.mesh.size(), mult_const, stream);
-
+}
     cudaStreamSynchronize(stream);
     cudaStreamDestroy(stream);
 }
