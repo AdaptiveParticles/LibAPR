@@ -360,7 +360,7 @@ template void runLocalIntensityScalePipeline<float,float>(const PixelData<float>
 // TODO: should be moved somewhere
 template <typename T>
 void calcMean(PixelData<T> &image, int offset, TypeOfMeanFlags flags) {
-    ScopedMemHandler<PixelData<T>> cudaImage(image, D2H + H2D);
+    ScopedCudaMemHandler<PixelData<T>> cudaImage(image, D2H + H2D);
 
     runMean(cudaImage.get(), image, offset, offset, offset, flags, 0);
 }
@@ -372,8 +372,8 @@ template void calcMean(PixelData<uint16_t>&, int, TypeOfMeanFlags);
 
 template <typename T>
 void getLocalIntensityScale(PixelData<T> &image, PixelData<T> &temp, const APRParameters &par) {
-    ScopedMemHandler<PixelData<T>> cudaImage(image, D2H + H2D);
-    ScopedMemHandler<PixelData<T>> cudaTemp(temp, D2H);
+    ScopedCudaMemHandler<PixelData<T>> cudaImage(image, D2H + H2D);
+    ScopedCudaMemHandler<PixelData<T>> cudaTemp(temp, D2H);
 
     runLocalIntensityScalePipeline(image, par, cudaImage.get(), cudaTemp.get(), 0);
 }

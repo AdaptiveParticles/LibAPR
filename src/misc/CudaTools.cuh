@@ -75,7 +75,7 @@ public:
     }
 };
 
-// --------------- ScopedMemHandler ------------------------------------------------------------------------------------
+// --------------- ScopedCudaMemHandler ------------------------------------------------------------------------------------
 // Helper to send data to/from GPU
 // Creates CUDA memory and sends data (if requested) from PixelData container on creation and
 // copies back data (if requested) and frees CUDA memory when destroyed
@@ -96,7 +96,7 @@ is_pixel_data() {return true;}
 
 
 template <typename PIXEL_DATA_T, bool CHECK_TYPE = is_pixel_data<PIXEL_DATA_T>()>
-class ScopedMemHandler {
+class ScopedCudaMemHandler {
     using DataType = typename PIXEL_DATA_T::value_type;
     static constexpr bool IsPixelDataConst = std::is_const<PIXEL_DATA_T>::value;
 
@@ -108,7 +108,7 @@ class ScopedMemHandler {
     cudaStream_t iStream;
 
 public:
-    explicit ScopedMemHandler(PIXEL_DATA_T &aData, const CopyDir aDirection = JUST_ALLOC, const cudaStream_t aStream = nullptr) : iData(aData), iDirection(aDirection), iStream(aStream) {
+    explicit ScopedCudaMemHandler(PIXEL_DATA_T &aData, const CopyDir aDirection = JUST_ALLOC, const cudaStream_t aStream = nullptr) : iData(aData), iDirection(aDirection), iStream(aStream) {
         iSize = iData.mesh.size() * sizeof(typename PIXEL_DATA_T::value_type);
         DataType *mem = nullptr;
         cudaMalloc(&mem, iSize);
@@ -118,7 +118,7 @@ public:
         }
     }
 
-    ~ScopedMemHandler() {
+    ~ScopedCudaMemHandler() {
         if (IsPixelDataConst) {
             const bool isCopyToHostRequested = iDirection & D2H;
             if (isCopyToHostRequested) throw std::invalid_argument("Device to host not possible for const PixelData!");
@@ -131,18 +131,18 @@ public:
     DataType* get() {return iCudaMemory.get();}
 
 private:
-    ScopedMemHandler(const ScopedMemHandler&) = delete; // make it noncopyable
-    ScopedMemHandler& operator=(const ScopedMemHandler&) = delete; // make it not assignable
+    ScopedCudaMemHandler(const ScopedCudaMemHandler&) = delete; // make it noncopyable
+    ScopedCudaMemHandler& operator=(const ScopedCudaMemHandler&) = delete; // make it not assignable
 
 };
 
-// Incomplete specialization to prevent using ScopedMemHandler with types different than PixelData
-//template <typename PIXEL_DATA_T> class ScopedMemHandler<PIXEL_DATA_T, false>;
+// Incomplete specialization to prevent using ScopedCudaMemHandler with types different than PixelData
+//template <typename PIXEL_DATA_T> class ScopedCudaMemHandler<PIXEL_DATA_T, false>;
 
 // =----------------------------
 
 template <typename DATA_TYPE>
-class ScopedMemHandler<DATA_TYPE, false> {
+class ScopedCudaMemHandler<DATA_TYPE, false> {
     using DataType = DATA_TYPE;
     static constexpr bool IsDataConst = std::is_const<DATA_TYPE>::value;
 
@@ -153,7 +153,7 @@ class ScopedMemHandler<DATA_TYPE, false> {
     cudaStream_t iStream;
 
 public:
-    explicit ScopedMemHandler(DataType *aData, size_t aSize, const CopyDir aDirection = JUST_ALLOC, const cudaStream_t aStream = nullptr) : iData(aData), iDirection(aDirection), iStream(aStream) {
+    explicit ScopedCudaMemHandler(DataType *aData, size_t aSize, const CopyDir aDirection = JUST_ALLOC, const cudaStream_t aStream = nullptr) : iData(aData), iDirection(aDirection), iStream(aStream) {
         iSize = aSize * sizeof(DataType);
         DataType *mem = nullptr;
         cudaMalloc(&mem, iSize);
@@ -163,7 +163,7 @@ public:
         }
     }
 
-    ~ScopedMemHandler() {
+    ~ScopedCudaMemHandler() {
         if (IsDataConst) {
             const bool isCopyToHostRequested = iDirection & D2H;
             if (isCopyToHostRequested) throw std::invalid_argument("Device to host not possible for const PixelData!");
@@ -176,8 +176,8 @@ public:
     DataType* get() {return iCudaMemory.get();}
 
 private:
-    ScopedMemHandler(const ScopedMemHandler&) = delete; // make it noncopyable
-    ScopedMemHandler& operator=(const ScopedMemHandler&) = delete; // make it not assignable
+    ScopedCudaMemHandler(const ScopedCudaMemHandler&) = delete; // make it noncopyable
+    ScopedCudaMemHandler& operator=(const ScopedCudaMemHandler&) = delete; // make it not assignable
 
 };
 

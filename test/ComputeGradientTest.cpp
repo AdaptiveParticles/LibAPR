@@ -740,9 +740,6 @@ namespace {
         timer.stop_timer();
 
         // Compare GPU vs CPU
-//        EXPECT_EQ(compareMeshes(mCpuImage, mGpuImage), 0);
-//        EXPECT_EQ(compareMeshes(grad_temp, grad_temp_GPU), 0);
-//        EXPECT_EQ(compareMeshes(local_scale_temp2, local_scale_temp2_GPU, 0.01), 0);
         // allow some differences since float point diffs
         // TODO: It would be much better to count number of diffs with delta==1 and allow some of these
         EXPECT_TRUE(compareMeshes(local_scale_temp, local_scale_temp_GPU, 0.01) < 29);
