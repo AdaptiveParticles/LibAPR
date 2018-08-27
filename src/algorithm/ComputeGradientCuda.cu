@@ -165,14 +165,19 @@ template <typename ImgType>
 void getGradientCuda(PixelData<ImgType> &image, PixelData<float> &local_scale_temp, PixelData<ImgType> &grad_temp,
                      ImgType *cudaImage, ImgType *cudaGrad, float *cudalocal_scale_temp,
                      float bspline_offset, const APRParameters &par, cudaStream_t aStream, BsplineParams *p) {
+    ScopedMemHandler<float> bc1 (p->bc1.get(), p->k0, H2D, aStream);
+    ScopedMemHandler<float> bc2 (p->bc2.get(), p->k0, H2D, aStream);
+    ScopedMemHandler<float> bc3 (p->bc3.get(), p->k0, H2D, aStream);
+    ScopedMemHandler<float> bc4 (p->bc4.get(), p->k0, H2D, aStream);
 
     runThresholdImg(cudaImage, image.x_num, image.y_num, image.z_num, par.Ip_th + bspline_offset, aStream);
 
     int boundaryLen = (2 /*two first elements*/ + 2 /* two last elements */) * image.x_num * image.z_num;
     ScopedMemHandler<float> boundary(nullptr, boundaryLen);
-    runBsplineYdir(cudaImage, image.x_num, image.y_num, image.z_num, p->bc1.get(), p->bc2.get(), p->bc3.get(), p->bc4.get(), p->k0, p->b1, p->b2, p->norm_factor, boundary.get(), aStream);
-    runBsplineXdir(cudaImage, image.x_num, image.y_num, image.z_num, p->bc1.get(), p->bc2.get(), p->bc3.get(), p->bc4.get(), p->k0, p->b1, p->b2, p->norm_factor, aStream);
-    runBsplineZdir(cudaImage, image.x_num, image.y_num, image.z_num, p->bc1.get(), p->bc2.get(), p->bc3.get(), p->bc4.get(), p->k0, p->b1, p->b2, p->norm_factor, aStream);
+ 
+    runBsplineYdir(cudaImage, image.x_num, image.y_num, image.z_num, bc1.get(), bc2.get(), bc3.get(), bc4.get(), p->k0, p->b1, p->b2, p->norm_factor, boundary.get(), aStream);
+    runBsplineXdir(cudaImage, image.x_num, image.y_num, image.z_num, bc1.get(), bc2.get(), bc3.get(), bc4.get(), p->k0, p->b1, p->b2, p->norm_factor, aStream);
+    runBsplineZdir(cudaImage, image.x_num, image.y_num, image.z_num, bc1.get(), bc2.get(), bc3.get(), bc4.get(), p->k0, p->b1, p->b2, p->norm_factor, aStream);
 
     runKernelGradient(cudaImage, cudaGrad, image.x_num, image.y_num, image.z_num, grad_temp.x_num, grad_temp.y_num, par.dx, par.dy, par.dz, aStream);
 
