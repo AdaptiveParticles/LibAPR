@@ -80,6 +80,13 @@ public:
 // Creates CUDA memory and sends data (if requested) from PixelData container on creation and
 // copies back data (if requested) and frees CUDA memory when destroyed
 
+
+template <typename T, typename D=decltype(&cudaFree)>
+struct CudaMemoryUniquePtr : public std::unique_ptr<T[], D> {
+    using std::unique_ptr<T[],D>::unique_ptr; // inheriting other constructors
+    explicit CudaMemoryUniquePtr(T *aMemory = nullptr) : std::unique_ptr<T[], D>(aMemory, &cudaFree) {}
+};
+
 using CopyDir = int;
 constexpr CopyDir JUST_ALLOC = 0;
 constexpr CopyDir H2D = 1;
@@ -103,7 +110,7 @@ class ScopedCudaMemHandler {
     PIXEL_DATA_T &iData;
 
     const CopyDir iDirection;
-    std::unique_ptr<DataType, decltype(&cudaFree)> iCudaMemory = {nullptr, &cudaFree};
+    CudaMemoryUniquePtr<DataType> iCudaMemory;
     size_t iSize = 0;
     cudaStream_t iStream;
 
