@@ -184,7 +184,9 @@ public:
     }
 
     ~ScopedCudaMemHandler() {
-        copyD2H();
+        if (DIRECTION & D2H) {
+            copyD2H();
+        }
     }
 
     ElementType* get() {return iCudaMemory.get();}
@@ -207,9 +209,7 @@ private:
     }
 
     void copyD2H() {
-        if (DIRECTION & D2H) {
-            cudaMemcpyAsync((void*)iData, iCudaMemory.get(), iBytes, cudaMemcpyDeviceToHost, iStream);
-        }
+        cudaMemcpyAsync((void*)iData, iCudaMemory.get(), iBytes, cudaMemcpyDeviceToHost, iStream);
     }
 };
 
