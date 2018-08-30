@@ -171,12 +171,12 @@ void getGradientCuda(PixelData<ImgType> &image, PixelData<float> &local_scale_te
     BsplineParams params = prepareBsplineStuff(image, par.lambda, tolerance);
     BsplineParams *p = &params; // TODO: just temporary during refactoring till know what/where create bspline params
 
-    ScopedCudaMemHandler<float> bc1 (p->bc1.get(), p->k0, H2D, aStream);
-    ScopedCudaMemHandler<float> bc2 (p->bc2.get(), p->k0, H2D, aStream);
-    ScopedCudaMemHandler<float> bc3 (p->bc3.get(), p->k0, H2D, aStream);
-    ScopedCudaMemHandler<float> bc4 (p->bc4.get(), p->k0, H2D, aStream);
+    ScopedCudaMemHandler<float*, H2D> bc1 (p->bc1.get(), p->k0, aStream);
+    ScopedCudaMemHandler<float*, H2D> bc2 (p->bc2.get(), p->k0, aStream);
+    ScopedCudaMemHandler<float*, H2D> bc3 (p->bc3.get(), p->k0, aStream);
+    ScopedCudaMemHandler<float*, H2D> bc4 (p->bc4.get(), p->k0, aStream);
     int boundaryLen = (2 /*two first elements*/ + 2 /* two last elements */) * image.x_num * image.z_num;
-    ScopedCudaMemHandler<float> boundary(nullptr, boundaryLen);
+    ScopedCudaMemHandler<float*, JUST_ALLOC> boundary(nullptr, boundaryLen);
  
     runBsplineYdir(cudaImage, image.x_num, image.y_num, image.z_num, bc1.get(), bc2.get(), bc3.get(), bc4.get(), p->k0, p->b1, p->b2, p->norm_factor, boundary.get(), aStream);
     runBsplineXdir(cudaImage, image.x_num, image.y_num, image.z_num, bc1.get(), bc2.get(), bc3.get(), bc4.get(), p->k0, p->b1, p->b2, p->norm_factor, aStream);
@@ -197,24 +197,41 @@ template <typename ImgType>
 void getFullPipeline(PixelData<ImgType> &image, PixelData<ImgType> &grad_temp, PixelData<float> &local_scale_temp, PixelData<float> &local_scale_temp2, float bspline_offset, const APRParameters &par, int maxLevel) {
     cudaStream_t stream;
     cudaStreamCreate(&stream);
-{
-    ScopedCudaMemHandler<const PixelData<ImgType>> cudaImage(image, H2D, stream);
-    ScopedCudaMemHandler<const PixelData<ImgType>> cudaGrad(grad_temp, JUST_ALLOC, stream);
-    ScopedCudaMemHandler<PixelData<float>> cudalocal_scale_temp(local_scale_temp, D2H, stream);
-    ScopedCudaMemHandler<const PixelData<float>> cudalocal_scale_temp2(local_scale_temp2, JUST_ALLOC, stream);
+    { // release memory before stream is destroyed
+        ScopedCudaMemHandler<const PixelData<ImgType>, H2D> cudaImage(image, stream);
+        ScopedCudaMemHandler<const PixelData<ImgType>, JUST_ALLOC> cudaGrad(grad_temp, stream);
+        ScopedCudaMemHandler<PixelData<float>, D2H> cudalocal_scale_temp(local_scale_temp, stream);
+        ScopedCudaMemHandler<const PixelData<float>, JUST_ALLOC> cudalocal_scale_temp2(local_scale_temp2, stream);
 
-    getGradientCuda(image, local_scale_temp, grad_temp, cudaImage.get(), cudaGrad.get(), cudalocal_scale_temp.get(), bspline_offset, par, stream);
-    runLocalIntensityScalePipeline(local_scale_temp, par, cudalocal_scale_temp.get(), cudalocal_scale_temp2.get(), stream);
-    float min_dim = std::min(par.dy, std::min(par.dx, par.dz));
-    float level_factor = pow(2, maxLevel) * min_dim;
-    const float mult_const = level_factor/par.rel_error;
-    runComputeLevels(cudaGrad.get(), cudalocal_scale_temp.get(), grad_temp.mesh.size(), mult_const, stream);
-}
+        getGradientCuda(image, local_scale_temp, grad_temp, cudaImage.get(), cudaGrad.get(), cudalocal_scale_temp.get(), bspline_offset, par, stream);
+        runLocalIntensityScalePipeline(local_scale_temp, par, cudalocal_scale_temp.get(), cudalocal_scale_temp2.get(), stream);
+        float min_dim = std::min(par.dy, std::min(par.dx, par.dz));
+        float level_factor = pow(2, maxLevel) * min_dim;
+        const float mult_const = level_factor/par.rel_error;
+        runComputeLevels(cudaGrad.get(), cudalocal_scale_temp.get(), grad_temp.mesh.size(), mult_const, stream);
+    }
     cudaStreamSynchronize(stream);
     cudaStreamDestroy(stream);
 }
 
-// =================================================== TEST helpers
+// ======================= NEW IMPL =============================
+
+//class GpuProcessingTask {
+//    // allocated cuda memory handlers
+//
+//    // used stream
+//
+//    public:
+//    GpuProcessingTask() { /* create memory with provided sizes */}
+//
+//    void sendDataToGpu() {}
+//    void getDataFromGpu() {}
+//    void processOnGpu() {}
+//
+//    ~GpuProcessingTask() {/* kill the stream, memory hadler witll take care for it */}
+//};
+
+// ================================== TEST helpers ==============
 // TODO: should be moved somewhere
 
 // explicit instantiation of handled types
@@ -224,15 +241,15 @@ void cudaFilterBsplineFull(PixelData<ImgType> &input, float lambda, float tolera
     cudaStream_t  aStream = 0;
 
     BsplineParams p = prepareBsplineStuff(input, lambda, tolerance);
-    ScopedCudaMemHandler<float> bc1(p.bc1.get(), p.k0, H2D);
-    ScopedCudaMemHandler<float> bc2(p.bc2.get(), p.k0, H2D);
-    ScopedCudaMemHandler<float> bc3(p.bc3.get(), p.k0, H2D);
-    ScopedCudaMemHandler<float> bc4(p.bc4.get(), p.k0, H2D);
-    ScopedCudaMemHandler<PixelData<float>> cudaInput(input, D2H + H2D);
+    ScopedCudaMemHandler<float*, H2D> bc1(p.bc1.get(), p.k0);
+    ScopedCudaMemHandler<float*, H2D> bc2(p.bc2.get(), p.k0);
+    ScopedCudaMemHandler<float*, H2D> bc3(p.bc3.get(), p.k0);
+    ScopedCudaMemHandler<float*, H2D> bc4(p.bc4.get(), p.k0);
+    ScopedCudaMemHandler<PixelData<float>, D2H | H2D> cudaInput(input);
 
     if (flags & BSPLINE_Y_DIR) {
         int boundaryLen = (2 /*two first elements*/ + 2 /* two last elements */) * input.x_num * input.z_num;
-        ScopedCudaMemHandler<float> boundary(nullptr, boundaryLen); // allocate memory on device
+        ScopedCudaMemHandler<float*, JUST_ALLOC> boundary(nullptr, boundaryLen); // allocate memory on device
         runBsplineYdir(cudaInput.get(), input.x_num, input.y_num, input.z_num, bc1.get(), bc2.get(), bc3.get(), bc4.get(), p.k0, p.b1, p.b2, p.norm_factor, boundary.get(), aStream);
     }
     if (flags & BSPLINE_X_DIR) {
@@ -247,7 +264,7 @@ void cudaFilterBsplineFull(PixelData<ImgType> &input, float lambda, float tolera
 template void cudaInverseBspline(PixelData<float> &, TypeOfInvBsplineFlags);
 template <typename ImgType>
 void cudaInverseBspline(PixelData<ImgType> &input, TypeOfInvBsplineFlags flags) {
-    ScopedCudaMemHandler<PixelData<ImgType>> cudaInput(input, H2D + D2H);
+    ScopedCudaMemHandler<PixelData<ImgType>, H2D | D2H> cudaInput(input);
 
     if (flags & INV_BSPLINE_Y_DIR) {
         runInvBsplineYdir(cudaInput.get(), input.x_num, input.y_num, input.z_num, 0);
@@ -264,8 +281,8 @@ void cudaInverseBspline(PixelData<ImgType> &input, TypeOfInvBsplineFlags flags) 
 template void computeLevelsCuda(const PixelData<float> &, PixelData<float> &, int, float, float, float, float);
 template <typename ImageType>
 void computeLevelsCuda(const PixelData<ImageType> &grad_temp, PixelData<float> &local_scale_temp, int maxLevel, float relError,  float dx, float dy, float dz) {
-    ScopedCudaMemHandler<const PixelData<ImageType>> cudaGrad(grad_temp, H2D);
-    ScopedCudaMemHandler<PixelData<float>> cudaLis(local_scale_temp, D2H + H2D);
+    ScopedCudaMemHandler<const PixelData<ImageType>, H2D> cudaGrad(grad_temp);
+    ScopedCudaMemHandler<PixelData<float>, D2H | H2D> cudaLis(local_scale_temp);
 
     float min_dim = std::min(dy, std::min(dx, dz));
     float level_factor = pow(2, maxLevel) * min_dim;
@@ -278,10 +295,10 @@ void computeLevelsCuda(const PixelData<ImageType> &grad_temp, PixelData<float> &
 template void getGradient(PixelData<float> &, PixelData<float> &, PixelData<float> &, PixelData<float> &, float, const APRParameters &);
 template <typename ImgType>
 void getGradient(PixelData<ImgType> &image, PixelData<ImgType> &grad_temp, PixelData<float> &local_scale_temp, PixelData<float> &local_scale_temp2, float bspline_offset, const APRParameters &par) {
-    ScopedCudaMemHandler<PixelData<ImgType>> cudaImage(image, D2H + H2D);
-    ScopedCudaMemHandler<PixelData<ImgType>> cudaGrad(grad_temp, H2D + D2H);
-    ScopedCudaMemHandler<PixelData<float>> cudalocal_scale_temp(local_scale_temp, D2H);
-    ScopedCudaMemHandler<PixelData<float>> cudalocal_scale_temp2(local_scale_temp2, D2H);
+    ScopedCudaMemHandler<PixelData<ImgType>, D2H | H2D> cudaImage(image);
+    ScopedCudaMemHandler<PixelData<ImgType>, D2H | H2D> cudaGrad(grad_temp);
+    ScopedCudaMemHandler<PixelData<float>, D2H> cudalocal_scale_temp(local_scale_temp);
+    ScopedCudaMemHandler<PixelData<float>, D2H> cudalocal_scale_temp2(local_scale_temp2);
 
     getGradientCuda(image, local_scale_temp, grad_temp, cudaImage.get(), cudaGrad.get(), cudalocal_scale_temp.get(), bspline_offset, par, 0);
 }
@@ -290,7 +307,7 @@ void getGradient(PixelData<ImgType> &image, PixelData<ImgType> &grad_temp, Pixel
 template void thresholdImg(PixelData<float> &, const float);
 template <typename T>
 void thresholdImg(PixelData<T> &image, const float threshold) {
-    ScopedCudaMemHandler<PixelData<T>> cudaImage(image, D2H + H2D);
+    ScopedCudaMemHandler<PixelData<T>, H2D | D2H> cudaImage(image);
 
     runThresholdImg(cudaImage.get(), image.x_num, image.y_num, image.z_num, threshold, 0);
 }
@@ -299,15 +316,15 @@ void thresholdImg(PixelData<T> &image, const float threshold) {
 template void thresholdGradient(PixelData<float> &, const PixelData<float> &, const float);
 template <typename T>
 void thresholdGradient(PixelData<float> &output, const PixelData<T> &input, const float Ip_th) {
-    ScopedCudaMemHandler<const PixelData<T>> cudaInput(input, H2D);
-    ScopedCudaMemHandler<PixelData<T>> cudaOutput(output, H2D + D2H);
+    ScopedCudaMemHandler<const PixelData<T>, H2D> cudaInput(input);
+    ScopedCudaMemHandler<PixelData<float>, H2D | D2H> cudaOutput(output);
 
     runThreshold(cudaInput.get(), cudaOutput.get(), input.x_num, input.y_num, input.z_num, Ip_th, 0);
 }
 
 void cudaDownsampledGradient(PixelData<float> &input, PixelData<float> &grad, const float hx, const float hy, const float hz) {
-    ScopedCudaMemHandler<PixelData<float>> cudaInput(input, H2D + D2H);
-    ScopedCudaMemHandler<PixelData<float>> cudaGrad(grad, D2H);
+    ScopedCudaMemHandler<PixelData<float>, H2D | D2H> cudaInput(input);
+    ScopedCudaMemHandler<PixelData<float>, D2H> cudaGrad(grad);
 
     runKernelGradient(cudaInput.get(), cudaGrad.get(), input.x_num, input.y_num, input.z_num, grad.x_num, grad.y_num, hx, hy, hz, 0);
 }

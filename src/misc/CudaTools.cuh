@@ -81,112 +81,136 @@ public:
 // copies back data (if requested) and frees CUDA memory when destroyed
 
 
+// Useful type for keeping CUDA allocated memory (which is released with cudaFree)
 template <typename T, typename D=decltype(&cudaFree)>
 struct CudaMemoryUniquePtr : public std::unique_ptr<T[], D> {
     using std::unique_ptr<T[],D>::unique_ptr; // inheriting other constructors
     explicit CudaMemoryUniquePtr(T *aMemory = nullptr) : std::unique_ptr<T[], D>(aMemory, &cudaFree) {}
 };
 
-using CopyDir = int;
-constexpr CopyDir JUST_ALLOC = 0;
-constexpr CopyDir H2D = 1;
-constexpr CopyDir D2H = 2;
+/**
+ * Directions for sending data between Host and Device
+ */
+using CopyDirType = unsigned int;
+enum CopyDir : CopyDirType {
+    JUST_ALLOC = 0, // Just allocate memory on GPU(Device)
+    H2D = 1,        // Send from Host to Device
+    D2H = 2,        // Send from Device to Host
+    INVALID = 4     // Just wrong/last value keeper for validating settings
+};
 
+
+/**
+ * Checks if provided type is a PixelData container
+ * @tparam T - type to check
+ * @return true if PixelData and false otherwise
+ */
 template <typename T>
 constexpr typename std::enable_if<std::is_pod<T>::value, bool>::type
 is_pixel_data() {return false;}
-
 template <typename T>
 constexpr typename std::enable_if<std::is_same<typename std::remove_cv<T>::type, PixelData<typename T::value_type>>::value, bool>::type
 is_pixel_data() {return true;}
 
+/**
+ * Gets data type from  PixelData so:
+ * - in case if provided wiht PixelData<T> it gives T
+ * - in case if provided with const PixelData<T> it gives 'const T'
+ * - in case of any other type T it gives back T
+ */
+template <typename T, bool B = is_pixel_data<T>()>
+struct get_type {
+    static constexpr bool IsDataConst = std::is_const<T>::value;
+    using type = typename std::conditional<IsDataConst, typename std::add_const<typename T::value_type>::type, typename T::value_type>::type;
+};
+template <typename T>
+struct get_type<T, false> {
+    using type = T;
+};
 
+template <typename T>
+using QualifiedBaseElementType = typename std::remove_pointer<typename get_type<T>::type>::type;
+template <typename T>
+using BaseElementType = typename std::remove_cv<QualifiedBaseElementType<T>>::type;
 
-template <typename PIXEL_DATA_T, bool CHECK_TYPE = is_pixel_data<PIXEL_DATA_T>()>
+/**
+ * ScopedCudaMemHandler is responsible allows allocating, copying to device for both - PixelData and pure memory pointed data.
+ * After going out of scope it first copies back data to host from GPU and deallocating cuda memory.
+ * Some examples:
+ *
+ * - on a host we have 'const float* mem;' data of lenght 10, to be copied to GPU:
+ *     ScopedCudaMemHandler<const float*, H2D> m(mem, 10);
+ * - on a host we have 'int* mem;' data of lenght 5, send to and from device:
+ *     ScopedCudaMemHandler<int*, H2D | D2H> m(mem, 5);
+ * - same situatino as above but with PixelData<int>:
+ *     ScopedCudaMemHandler<PixelData<int>, H2D | D2H> m(mem);
+ *
+ * @tparam DATA_TYPE
+ * @tparam DIRECTION - of type CopyDirType
+ */
+template <typename DATA_TYPE, CopyDirType DIRECTION>
 class ScopedCudaMemHandler {
-    using DataType = typename PIXEL_DATA_T::value_type;
-    static constexpr bool IsPixelDataConst = std::is_const<PIXEL_DATA_T>::value;
+    using QualifiedElementType = QualifiedBaseElementType<DATA_TYPE>; // it preserves 'const' if in DATA_TYPE
+    using ElementType = BaseElementType<DATA_TYPE>; // pure element type for GPU side
 
-    PIXEL_DATA_T &iData;
+    static constexpr bool IsDataConst = std::is_const<typename std::remove_pointer<DATA_TYPE>::type>::value;
+    static constexpr size_t DataSize = sizeof(ElementType);
 
-    const CopyDir iDirection;
-    CudaMemoryUniquePtr<DataType> iCudaMemory;
-    size_t iSize = 0;
-    cudaStream_t iStream;
+    // Do some compile time checks
+    static_assert(!(IsDataConst && (DIRECTION & D2H)), "Input is const, copying data from device back to host not possible!");
+    static_assert(DIRECTION < INVALID, "Wrong value provided for DIRECTION template parameter");
+
+    QualifiedElementType *iData;
+    const size_t iSize;
+    const size_t iBytes;
+    CudaMemoryUniquePtr<ElementType> iCudaMemory;
+    const cudaStream_t iStream;
 
 public:
-    explicit ScopedCudaMemHandler(PIXEL_DATA_T &aData, const CopyDir aDirection = JUST_ALLOC, const cudaStream_t aStream = nullptr) : iData(aData), iDirection(aDirection), iStream(aStream) {
-        iSize = iData.mesh.size() * sizeof(typename PIXEL_DATA_T::value_type);
-        DataType *mem = nullptr;
-        cudaMalloc(&mem, iSize);
-        iCudaMemory.reset(mem);
-        if (iDirection & H2D) {
-            cudaMemcpyAsync(iCudaMemory.get(), iData.mesh.get(), iSize, cudaMemcpyHostToDevice, iStream);
-        }
+    /**
+     * Constructor for pointer POD types
+     */
+    template <typename T = DATA_TYPE, typename std::enable_if<std::is_pointer<T>::value, int>::type = 0>
+    explicit ScopedCudaMemHandler(DATA_TYPE aData, size_t aSize, const cudaStream_t aStream = nullptr) : iData(aData), iSize(aSize), iBytes(iSize * DataSize), iStream(aStream) {
+        initialize();
+    }
+
+    /**
+     * Constructor for PixelData<T> types
+     */
+    template<typename X = DATA_TYPE, typename std::enable_if<is_pixel_data<X>(), int>::type = 0>
+    explicit ScopedCudaMemHandler(DATA_TYPE &aData, const cudaStream_t aStream = nullptr) : iData(aData.mesh.get()), iSize(aData.mesh.size()), iBytes(iSize * DataSize), iStream(aStream) {
+        initialize();
     }
 
     ~ScopedCudaMemHandler() {
-        if (IsPixelDataConst) {
-            const bool isCopyToHostRequested = iDirection & D2H;
-            if (isCopyToHostRequested) throw std::invalid_argument("Device to host not possible for const PixelData!");
-        }
-        else if (iDirection & D2H) {
-            cudaMemcpyAsync((void*)iData.mesh.get(), iCudaMemory.get(), iSize, cudaMemcpyDeviceToHost, iStream);
-        }
+        copyD2H();
     }
 
-    DataType* get() {return iCudaMemory.get();}
+    ElementType* get() {return iCudaMemory.get();}
 
 private:
     ScopedCudaMemHandler(const ScopedCudaMemHandler&) = delete; // make it noncopyable
     ScopedCudaMemHandler& operator=(const ScopedCudaMemHandler&) = delete; // make it not assignable
 
-};
-
-// Incomplete specialization to prevent using ScopedCudaMemHandler with types different than PixelData
-//template <typename PIXEL_DATA_T> class ScopedCudaMemHandler<PIXEL_DATA_T, false>;
-
-// =----------------------------
-
-template <typename DATA_TYPE>
-class ScopedCudaMemHandler<DATA_TYPE, false> {
-    using DataType = DATA_TYPE;
-    static constexpr bool IsDataConst = std::is_const<DATA_TYPE>::value;
-
-    DataType *iData;
-    const CopyDir iDirection;
-    std::unique_ptr<DataType, decltype(&cudaFree)> iCudaMemory = {nullptr, &cudaFree};
-    size_t iSize = 0;
-    cudaStream_t iStream;
-
-public:
-    explicit ScopedCudaMemHandler(DataType *aData, size_t aSize, const CopyDir aDirection = JUST_ALLOC, const cudaStream_t aStream = nullptr) : iData(aData), iDirection(aDirection), iStream(aStream) {
-        iSize = aSize * sizeof(DataType);
-        DataType *mem = nullptr;
-        cudaMalloc(&mem, iSize);
+    void initialize() {
+        ElementType *mem = nullptr;
+        cudaMalloc(&mem, iBytes);
         iCudaMemory.reset(mem);
-        if (iDirection & H2D) {
-            cudaMemcpyAsync(iCudaMemory.get(), iData, iSize, cudaMemcpyHostToDevice, iStream);
+        if (DIRECTION & H2D) {
+            copyH2D();
         }
     }
 
-    ~ScopedCudaMemHandler() {
-        if (IsDataConst) {
-            const bool isCopyToHostRequested = iDirection & D2H;
-            if (isCopyToHostRequested) throw std::invalid_argument("Device to host not possible for const PixelData!");
-        }
-        else if (iDirection & D2H) {
-            cudaMemcpyAsync((void*)iData, iCudaMemory.get(), iSize, cudaMemcpyDeviceToHost, iStream);
-        }
+    void copyH2D() {
+        cudaMemcpyAsync(iCudaMemory.get(), iData, iBytes, cudaMemcpyHostToDevice, iStream);
     }
 
-    DataType* get() {return iCudaMemory.get();}
-
-private:
-    ScopedCudaMemHandler(const ScopedCudaMemHandler&) = delete; // make it noncopyable
-    ScopedCudaMemHandler& operator=(const ScopedCudaMemHandler&) = delete; // make it not assignable
-
+    void copyD2H() {
+        if (DIRECTION & D2H) {
+            cudaMemcpyAsync((void*)iData, iCudaMemory.get(), iBytes, cudaMemcpyDeviceToHost, iStream);
+        }
+    }
 };
-
 
 #endif //LIBAPR_CUDATOOLS_HPP
