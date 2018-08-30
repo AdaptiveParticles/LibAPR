@@ -16,9 +16,9 @@
 
 
 inline void waitForCuda() {
-//    cudaDeviceSynchronize();
-//    cudaError_t err = cudaGetLastError();
-//    if (err != cudaSuccess) printf("Error: %s\n", cudaGetErrorString(err));
+    cudaDeviceSynchronize();
+    cudaError_t err = cudaGetLastError();
+    if (err != cudaSuccess) printf("Error: %s\n", cudaGetErrorString(err));
 }
 
 inline void printCudaDims(const dim3 &threadsPerBlock, const dim3 &numBlocks) {
