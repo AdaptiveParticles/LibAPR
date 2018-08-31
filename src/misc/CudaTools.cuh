@@ -178,10 +178,20 @@ public:
     /**
      * Constructor for PixelData<T> types
      */
-    template<typename X = DATA_TYPE, typename std::enable_if<is_pixel_data<X>(), int>::type = 0>
-    explicit ScopedCudaMemHandler(DATA_TYPE &aData, const cudaStream_t aStream = nullptr) : iData(aData.mesh.get()), iSize(aData.mesh.size()), iBytes(iSize * DataSize), iStream(aStream) {
+    template<typename X, typename std::enable_if<is_pixel_data<X>() && std::is_same<typename std::remove_const<X>::type, typename std::remove_const<DATA_TYPE>::type>::value, int>::type = 0>
+    explicit ScopedCudaMemHandler(X &aData, const cudaStream_t aStream = nullptr) : iData(aData.mesh.get()), iSize(aData.mesh.size()), iBytes(iSize * DataSize), iStream(aStream) {
         initialize();
     }
+
+    /**
+     * Constructor for PixelData<T> types which is different than DATA_TYPE - taking only dimension of provided PixelData
+    */
+    template<typename X, typename std::enable_if<is_pixel_data<X>() && !std::is_same<typename std::remove_const<X>::type, typename std::remove_const<DATA_TYPE>::type>::value, int>::type = 0>
+    explicit ScopedCudaMemHandler(X &aData, const cudaStream_t aStream = nullptr) : iData(nullptr), iSize(aData.mesh.size()), iBytes(iSize * DataSize), iStream(aStream) {
+        static_assert(DIRECTION == JUST_ALLOC, "Dimension only constructor, no possibility to copy data to/from GPU!");
+        initialize();
+    }
+
 
     ~ScopedCudaMemHandler() {
         if (DIRECTION & D2H) {
@@ -190,6 +200,14 @@ public:
     }
 
     ElementType* get() {return iCudaMemory.get();}
+
+    void copyH2D() {
+        cudaMemcpyAsync(iCudaMemory.get(), iData, iBytes, cudaMemcpyHostToDevice, iStream);
+    }
+
+    void copyD2H() {
+        cudaMemcpyAsync((void*)iData, iCudaMemory.get(), iBytes, cudaMemcpyDeviceToHost, iStream);
+    }
 
 private:
     ScopedCudaMemHandler(const ScopedCudaMemHandler&) = delete; // make it noncopyable
@@ -202,14 +220,6 @@ private:
         if (DIRECTION & H2D) {
             copyH2D();
         }
-    }
-
-    void copyH2D() {
-        cudaMemcpyAsync(iCudaMemory.get(), iData, iBytes, cudaMemcpyHostToDevice, iStream);
-    }
-
-    void copyD2H() {
-        cudaMemcpyAsync((void*)iData, iCudaMemory.get(), iBytes, cudaMemcpyDeviceToHost, iStream);
     }
 };
 
