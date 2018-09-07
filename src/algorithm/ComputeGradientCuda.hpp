@@ -41,5 +41,22 @@ template <typename T>
 void thresholdGradient(PixelData<float> &output, const PixelData<T> &input, const float Ip_th);
 void cudaDownsampledGradient(PixelData<float> &input, PixelData<float> &grad, const float hx, const float hy, const float hz);
 
+// -------------------------------------------------
+
+template <typename ImgType>
+class GpuProcessingTask {
+    // Using PIMPL to seperate GPU code from CPU (this file is to be included in regular code not compiled with nvcc)
+    template <typename T> class GpuProcessingTaskImpl;
+    std::unique_ptr<GpuProcessingTaskImpl<ImgType>> impl;
+
+public:
+
+    GpuProcessingTask(PixelData<ImgType> &image, PixelData<float> &levels, const APRParameters &parameters, float bspline_offset, int maxLevel);
+    ~GpuProcessingTask();
+
+    void sendDataToGpu();
+    void getDataFromGpu();
+    void processOnGpu();
+};
 
 #endif //LIBAPR_COMPUTEGRADIENTCUDA_HPP

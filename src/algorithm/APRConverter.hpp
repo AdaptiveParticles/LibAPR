@@ -230,7 +230,17 @@ inline bool APRConverter<ImageType>::get_apr_method(APR<ImageType> &aAPR, PixelD
     method_timer.stop_timer();
 #else
     method_timer.start_timer("compute_gradient_magnitude_using_bsplines and local instensity scale CUDA");
-    getFullPipeline(image_temp, grad_temp, local_scale_temp, local_scale_temp2, bspline_offset, par, (*apr).level_max());
+//    getFullPipeline(image_temp, grad_temp, local_scale_temp, local_scale_temp2, bspline_offset, par, (*apr).level_max());
+    {
+        GpuProcessingTask<ImageType> gpt(image_temp, local_scale_temp, par, bspline_offset, (*apr).level_max());
+        GpuProcessingTask<ImageType> gpt2(image_temp, local_scale_temp, par, bspline_offset, (*apr).level_max());
+        gpt.sendDataToGpu();
+        gpt2.sendDataToGpu();
+        gpt.processOnGpu();
+        gpt2.processOnGpu();
+        gpt.getDataFromGpu();
+        gpt2.getDataFromGpu();
+    }
     method_timer.stop_timer();
 #endif
 
