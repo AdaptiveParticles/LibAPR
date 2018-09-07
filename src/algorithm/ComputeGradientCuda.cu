@@ -21,6 +21,8 @@
 #include "algorithm/LocalIntensityScale.cuh"
 #include "misc/CudaTools.cuh"
 #include "misc/CudaMemory.cuh"
+#include <chrono>
+#include <cstdint>
 
 // explicit instantiation of handled types
 template void getFullPipeline(PixelData<float> &, PixelData<float> &, PixelData<float> &, PixelData<float> &, float, const APRParameters &, int maxLevel);
@@ -222,6 +224,34 @@ void getFullPipeline(PixelData<ImgType> &image, PixelData<ImgType> &grad_temp, P
 
 // ======================= NEW IMPL =============================
 
+
+class CurrentTime {
+    std::chrono::high_resolution_clock m_clock;
+
+public:
+    uint64_t milliseconds();
+    uint64_t microseconds();
+    uint64_t nanoseconds();
+};
+
+uint64_t CurrentTime::milliseconds()
+{
+    return std::chrono::duration_cast<std::chrono::milliseconds>
+            (m_clock.now().time_since_epoch()).count();
+}
+
+uint64_t CurrentTime::microseconds()
+{
+    return std::chrono::duration_cast<std::chrono::microseconds>
+            (m_clock.now().time_since_epoch()).count();
+}
+
+uint64_t CurrentTime::nanoseconds()
+{
+    return std::chrono::duration_cast<std::chrono::nanoseconds>
+            (m_clock.now().time_since_epoch()).count();
+}
+
 template <typename U>
 template <typename ImgType>
 class GpuProcessingTask<U>::GpuProcessingTaskImpl {
@@ -277,12 +307,17 @@ public:
     }
 
     void processOnGpu() {
+        CurrentTime ct;
+        uint64_t start = ct.microseconds();
         getGradientCuda(iCpuImage, iCpuLevels, image.get(), gradient.get(), local_scale_temp.get(), iBsplineOffset, iParameters, iStream);
+        std::cout << "1: " << ct.microseconds() - start << std::endl;
         runLocalIntensityScalePipeline(iCpuLevels, iParameters, local_scale_temp.get(), local_scale_temp2.get(), iStream);
+        std::cout << "2: " << ct.microseconds() - start << std::endl;
         float min_dim = std::min(iParameters.dy, std::min(iParameters.dx, iParameters.dz));
         float level_factor = pow(2, iMaxLevel) * min_dim;
         const float mult_const = level_factor/iParameters.rel_error;
         runComputeLevels(gradient.get(), local_scale_temp.get(), iCpuLevels.mesh.size(), mult_const, iStream);
+        std::cout << "3: " << ct.microseconds() - start << std::endl;
     }
 
     ~GpuProcessingTaskImpl() {
