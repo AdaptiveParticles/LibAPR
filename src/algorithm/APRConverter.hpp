@@ -231,33 +231,24 @@ inline bool APRConverter<ImageType>::get_apr_method(APR<ImageType> &aAPR, PixelD
 #else
     method_timer.start_timer("compute_gradient_magnitude_using_bsplines and local instensity scale CUDA");
 //    getFullPipeline(image_temp, grad_temp, local_scale_temp, local_scale_temp2, bspline_offset, par, (*apr).level_max());
+    APRTimer t(true);
+    t.start_timer(" =========== ALL");
     {
-        APRTimer t(true);
-        t.start_timer("Creating tasks");
         GpuProcessingTask<ImageType> gpt1(image_temp, local_scale_temp, par, bspline_offset, (*apr).level_max());
         GpuProcessingTask<ImageType> gpt2(image_temp, local_scale_temp, par, bspline_offset, (*apr).level_max());
         GpuProcessingTask<ImageType> gpt3(image_temp, local_scale_temp, par, bspline_offset, (*apr).level_max());
-        t.stop_timer();
-        t.start_timer("gpt1");
-        gpt1.sendDataToGpu();
-        t.stop_timer();
-        t.start_timer("gpt1_1");
-        gpt1.processOnGpu();
-        t.stop_timer();
-        t.start_timer("gpt2");
-        gpt2.sendDataToGpu();
-        gpt2.processOnGpu();
-        t.stop_timer();
-        t.start_timer("gpt3");
-        gpt3.sendDataToGpu();
-        gpt3.processOnGpu();
-        t.stop_timer();
-        t.start_timer("getdata");
-        gpt1.getDataFromGpu();
-        t.stop_timer();
-        gpt2.getDataFromGpu();
-        gpt3.getDataFromGpu();
+        GpuProcessingTask<ImageType> gpt4(image_temp, local_scale_temp, par, bspline_offset, (*apr).level_max());
+        for (int i = 0; i < 2; ++i) {
+            gpt1.doAll();
+            gpt2.doAll();
+            gpt3.doAll();
+            gpt4.doAll();
+//        gpt3.sendDataToGpu();
+//        gpt3.processOnGpu();
+//        gpt3.getDataFromGpu();
+        }
     }
+    t.stop_timer();
     method_timer.stop_timer();
 #endif
 

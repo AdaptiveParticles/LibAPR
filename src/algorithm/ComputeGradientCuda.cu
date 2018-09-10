@@ -318,17 +318,22 @@ public:
     }
 
     void sendDataToGpu() {
+        CurrentTime ct;
+        uint64_t start = ct.microseconds();
         image.copyH2D();
+        std::cout << "SEND time: " << ct.microseconds() - start << std::endl;
     }
 
     void getDataFromGpu() {
+        CurrentTime ct;
+        uint64_t start = ct.microseconds();
         local_scale_temp.copyD2H();
+        std::cout << "RCV time: " << ct.microseconds() - start << std::endl;
     }
 
     void processOnGpu() {
         CurrentTime ct;
         uint64_t start = ct.microseconds();
-        std::cout << "0: " << start << std::endl;
         getGradientCuda(iCpuImage, iCpuLevels, image.get(), gradient.get(), local_scale_temp.get(),
                         params,
                         bc1.get(),
@@ -344,6 +349,15 @@ public:
         const float mult_const = level_factor/iParameters.rel_error;
         runComputeLevels(gradient.get(), local_scale_temp.get(), iCpuLevels.mesh.size(), mult_const, iStream);
         std::cout << "3: " << ct.microseconds() - start << std::endl;
+    }
+
+    void doAll() {
+        CurrentTime ct;
+        uint64_t start = ct.microseconds();
+        sendDataToGpu();
+        processOnGpu();
+        getDataFromGpu();
+        std::cout << (void*) iStream << " ALL time: " << ct.microseconds() - start << std::endl;
     }
 
     ~GpuProcessingTaskImpl() {
@@ -369,6 +383,9 @@ void GpuProcessingTask<ImgType>::getDataFromGpu() {impl->getDataFromGpu();}
 
 template <typename ImgType>
 void GpuProcessingTask<ImgType>::processOnGpu() {impl->processOnGpu();}
+
+template <typename ImgType>
+void GpuProcessingTask<ImgType>::doAll() {impl->doAll();}
 
 template class GpuProcessingTask<uint16_t>;
 
