@@ -736,7 +736,8 @@ namespace {
         // Calculate bspline on GPU
         PixelData<ImageType> mGpuImage(image_temp, true);
         timer.start_timer(">>>>>>>>>>>>>>>>> GPU PIPELINE");
-        getFullPipeline(mGpuImage, grad_temp_GPU, local_scale_temp_GPU, local_scale_temp2_GPU, 0, par, maxLevel);
+        GpuProcessingTask<ImageType> gpt(mGpuImage, local_scale_temp_GPU, par, 0, maxLevel);
+        gpt.doAll();
         timer.stop_timer();
 
         // Compare GPU vs CPU
