@@ -9,8 +9,8 @@
 #include "algorithm/APRParameters.hpp"
 
 
-//template <typename ImgType>
-//void getFullPipeline(PixelData<ImgType> &image, PixelData<ImgType> &grad_temp, PixelData<float> &local_scale_temp, PixelData<float> &local_scale_temp2, float bspline_offset, const APRParameters &par, int maxLevel);
+template <typename ImgType>
+void getFullPipeline(PixelData<ImgType> &image, PixelData<ImgType> &grad_temp, PixelData<float> &local_scale_temp, PixelData<float> &local_scale_temp2, float bspline_offset, const APRParameters &par, int maxLevel);
 
 // Test helpers and definitions
 using TypeOfRecBsplineFlags = uint16_t;
