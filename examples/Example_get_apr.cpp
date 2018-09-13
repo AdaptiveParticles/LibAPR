@@ -148,24 +148,25 @@ int runAPR(cmdLineOptions options) {
 int main(int argc, char **argv) {
 
     //input parsing
-    cmdLineOptions options;
+    cmdLineOptions options = read_command_line_options(argc, argv);
 
-    options = read_command_line_options(argc, argv);
-    std::vector<std::future<int>> fv;
-    fv.emplace_back(std::async(std::launch::async, [=]{ return runAPR(options); }));
-    fv.emplace_back(std::async(std::launch::async, [=]{ return runAPR(options); }));
-    fv.emplace_back(std::async(std::launch::async, [=]{ return runAPR(options); }));
-    int n = 3;
-    std::cout << "Waintig..." <<std::endl;
-    for (int i = 0; i < fv.size()*3; ++i) {
-        fv[i % n].wait();
-        fv[i % n] = std::async(std::launch::async, [=]{ return runAPR(options); });
-    }
+//    std::vector<std::future<int>> fv;
+//    fv.emplace_back(std::async(std::launch::async, [=]{ return runAPR(options); }));
+//    fv.emplace_back(std::async(std::launch::async, [=]{ return runAPR(options); }));
+//    fv.emplace_back(std::async(std::launch::async, [=]{ return runAPR(options); }));
+//    int n = 2;
+//    fv[0].
+//    std::cout << "Waintig..." <<std::endl;
+//    for (int i = 0; i < fv.size()*3; ++i) {
+//        fv[i % n].wait();
+//        fv[i % n] = std::async(std::launch::async, [=]{ return runAPR(options); });
+//    }
+//
+//    for (int i = 0; i < fv.size(); ++i) fv[i].wait();
+//
+//    std::cout << "DONE!" <<std::endl;
 
-    for (int i = 0; i < fv.size(); ++i) fv[i].wait();
-    
-    std::cout << "DONE!" <<std::endl;
-    return fv[0].get();
+    return runAPR(options);
 }
 
 

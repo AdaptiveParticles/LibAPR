@@ -9,6 +9,8 @@
 #ifndef __APR_CONVERTER_HPP__
 #define __APR_CONVERTER_HPP__
 
+#include <list>
+
 #include "data_structures/APR/APR.hpp"
 #include "data_structures/Mesh/PixelData.hpp"
 #include "io/TiffUtils.hpp"
@@ -234,38 +236,68 @@ inline bool APRConverter<ImageType>::get_apr_method(APR<ImageType> &aAPR, PixelD
     APRTimer t(true);
     t.start_timer(" =========== ALL");
     {
-        GpuProcessingTask<ImageType> gpt1(image_temp, local_scale_temp, par, bspline_offset, (*apr).level_max());
-        gpt1.doAll();
+
+
+        std::vector<GpuProcessingTask<ImageType>> gpts;
+
+        int n = 3;
+        for (int i = 0; i < n; ++i) {
+            gpts.emplace_back(GpuProcessingTask<ImageType>(image_temp, local_scale_temp, par, bspline_offset, (*apr).level_max()));
+            gpts.back().sendDataToGpu();
+            gpts.back().processOnGpu();
+        }
+
+        for (int i = 0; i < n * 2; ++i) {
+            int c = i % n;
+            gpts[c].getDataFromGpu();
+
+            // in theory we get new data and send them to task
+            gpts[c].sendDataToGpu();
+            gpts[c].processOnGpu();
+
+            init_apr(aAPR, input_image);
+            iPullingScheme.initialize_particle_cell_tree(aAPR.apr_access);
+            PixelData<float> lst(local_scale_temp, true);
+            get_local_particle_cell_set(lst, local_scale_temp2);
+            iPullingScheme.pulling_scheme_main();
+            PixelData<T> inImg(input_image, true);
+            std::vector<PixelData<T>> downsampled_img;
+            downsamplePyrmaid(inImg, downsampled_img, aAPR.level_max(), aAPR.level_min());
+            aAPR.apr_access.initialize_structure_from_particle_cell_tree(aAPR.parameters, iPullingScheme.getParticleCellTree());
+            aAPR.get_parts_from_img(downsampled_img, aAPR.particles_intensities);
+        }
+        std::cout << "Total n ENDED" << std::endl;
+
     }
     t.stop_timer();
     method_timer.stop_timer();
 #endif
 
-    method_timer.start_timer("initialize_particle_cell_tree");
-    iPullingScheme.initialize_particle_cell_tree(aAPR.apr_access);
-    method_timer.stop_timer();
-
-    method_timer.start_timer("compute_local_particle_set");
-    get_local_particle_cell_set(local_scale_temp, local_scale_temp2);
-    method_timer.stop_timer();
-
-    method_timer.start_timer("compute_pulling_scheme");
-    iPullingScheme.pulling_scheme_main();
-    method_timer.stop_timer();
-
-    method_timer.start_timer("downsample_pyramid");
-    std::vector<PixelData<T>> downsampled_img;
-    //Down-sample the image for particle intensity estimation
-    downsamplePyrmaid(input_image, downsampled_img, aAPR.level_max(), aAPR.level_min());
-    method_timer.stop_timer();
-
-    method_timer.start_timer("compute_apr_datastructure");
-    aAPR.apr_access.initialize_structure_from_particle_cell_tree(aAPR.parameters, iPullingScheme.getParticleCellTree());
-    method_timer.stop_timer();
-
-    method_timer.start_timer("sample_particles");
-    aAPR.get_parts_from_img(downsampled_img,aAPR.particles_intensities);
-    method_timer.stop_timer();
+//    method_timer.start_timer("initialize_particle_cell_tree");
+//    iPullingScheme.initialize_particle_cell_tree(aAPR.apr_access);
+//    method_timer.stop_timer();
+//
+//    method_timer.start_timer("compute_local_particle_set");
+//    get_local_particle_cell_set(local_scale_temp, local_scale_temp2);
+//    method_timer.stop_timer();
+//
+//    method_timer.start_timer("compute_pulling_scheme");
+//    iPullingScheme.pulling_scheme_main();
+//    method_timer.stop_timer();
+//
+//    method_timer.start_timer("downsample_pyramid");
+//    std::vector<PixelData<T>> downsampled_img;
+//    //Down-sample the image for particle intensity estimation
+//    downsamplePyrmaid(input_image, downsampled_img, aAPR.level_max(), aAPR.level_min());
+//    method_timer.stop_timer();
+//
+//    method_timer.start_timer("compute_apr_datastructure");
+//    aAPR.apr_access.initialize_structure_from_particle_cell_tree(aAPR.parameters, iPullingScheme.getParticleCellTree());
+//    method_timer.stop_timer();
+//
+//    method_timer.start_timer("sample_particles");
+//    aAPR.get_parts_from_img(downsampled_img,aAPR.particles_intensities);
+//    method_timer.stop_timer();
 
     computation_timer.stop_timer();
 

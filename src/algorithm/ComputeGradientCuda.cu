@@ -257,7 +257,7 @@ public:
         boundaryLen{(2 /*two first elements*/ + 2 /* two last elements */) * image.x_num * image.z_num},
         boundary{nullptr, boundaryLen, iStream}
     {
-        std::cout << "\n=============== GpuProcessingTaskImpl ===================\n\n";
+//        std::cout << "\n=============== GpuProcessingTaskImpl ===================\n\n";
         std::cout << iCpuImage << std::endl;
         std::cout << iCpuLevels << std::endl;
         std::cout << "\n\n\n";
@@ -297,7 +297,7 @@ public:
 
     ~GpuProcessingTaskImpl() {
         cudaStreamDestroy(iStream);
-        std::cout << "\n============== ~GpuProcessingTaskImpl ===================\n\n";
+//        std::cout << "\n============== ~GpuProcessingTaskImpl ===================\n\n";
     }
 };
 
