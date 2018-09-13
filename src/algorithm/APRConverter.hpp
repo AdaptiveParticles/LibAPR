@@ -235,18 +235,7 @@ inline bool APRConverter<ImageType>::get_apr_method(APR<ImageType> &aAPR, PixelD
     t.start_timer(" =========== ALL");
     {
         GpuProcessingTask<ImageType> gpt1(image_temp, local_scale_temp, par, bspline_offset, (*apr).level_max());
-        GpuProcessingTask<ImageType> gpt2(image_temp, local_scale_temp, par, bspline_offset, (*apr).level_max());
-        GpuProcessingTask<ImageType> gpt3(image_temp, local_scale_temp, par, bspline_offset, (*apr).level_max());
-        GpuProcessingTask<ImageType> gpt4(image_temp, local_scale_temp, par, bspline_offset, (*apr).level_max());
-        for (int i = 0; i < 2; ++i) {
-            gpt1.doAll();
-            gpt2.doAll();
-            gpt3.doAll();
-            gpt4.doAll();
-//        gpt3.sendDataToGpu();
-//        gpt3.processOnGpu();
-//        gpt3.getDataFromGpu();
-        }
+        gpt1.doAll();
     }
     t.stop_timer();
     method_timer.stop_timer();

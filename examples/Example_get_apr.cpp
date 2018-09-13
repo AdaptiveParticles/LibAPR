@@ -38,13 +38,11 @@ Advanced (Direct) Settings:
 #include "ConfigAPR.h"
 #include "Example_get_apr.h"
 
-int main(int argc, char **argv) {
+#include <future>
+#include <thread>
 
-    //input parsing
-    cmdLineOptions options;
 
-    options = read_command_line_options(argc,argv);
-
+int runAPR(cmdLineOptions options) {
     //the apr datastructure
     APR<uint16_t> apr;
 
@@ -144,8 +142,32 @@ int main(int argc, char **argv) {
         std::cout << "Oops, something went wrong. APR not computed :(." << std::endl;
     }
     return 0;
-
 }
+
+
+int main(int argc, char **argv) {
+
+    //input parsing
+    cmdLineOptions options;
+
+    options = read_command_line_options(argc, argv);
+    std::vector<std::future<int>> fv;
+    fv.emplace_back(std::async(std::launch::async, [=]{ return runAPR(options); }));
+    fv.emplace_back(std::async(std::launch::async, [=]{ return runAPR(options); }));
+    fv.emplace_back(std::async(std::launch::async, [=]{ return runAPR(options); }));
+    int n = 3;
+    std::cout << "Waintig..." <<std::endl;
+    for (int i = 0; i < fv.size()*3; ++i) {
+        fv[i % n].wait();
+        fv[i % n] = std::async(std::launch::async, [=]{ return runAPR(options); });
+    }
+
+    for (int i = 0; i < fv.size(); ++i) fv[i].wait();
+    
+    std::cout << "DONE!" <<std::endl;
+    return fv[0].get();
+}
+
 
 
 bool command_option_exists(char **begin, char **end, const std::string &option)
