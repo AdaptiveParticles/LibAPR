@@ -309,6 +309,9 @@ template <typename ImgType>
 GpuProcessingTask<ImgType>::~GpuProcessingTask() {std::cout << "~GpuProcessingTask\n";}
 
 template <typename ImgType>
+GpuProcessingTask<ImgType>::GpuProcessingTask(GpuProcessingTask&&) = default;
+
+template <typename ImgType>
 void GpuProcessingTask<ImgType>::sendDataToGpu() {impl->sendDataToGpu();}
 
 template <typename ImgType>
