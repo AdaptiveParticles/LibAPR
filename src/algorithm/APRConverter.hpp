@@ -234,6 +234,7 @@ inline bool APRConverter<ImageType>::get_apr_method(APR<ImageType> &aAPR, PixelD
     method_timer.start_timer("compute_gradient_magnitude_using_bsplines and local instensity scale CUDA");
 //    getFullPipeline(image_temp, grad_temp, local_scale_temp, local_scale_temp2, bspline_offset, par, (*apr).level_max());
     APRTimer t(true);
+    APRTimer d(true);
     t.start_timer(" =========== ALL");
     {
 
@@ -241,20 +242,23 @@ inline bool APRConverter<ImageType>::get_apr_method(APR<ImageType> &aAPR, PixelD
         std::vector<GpuProcessingTask<ImageType>> gpts;
 
         int n = 3;
+        int rep = 5;
         for (int i = 0; i < n; ++i) {
             gpts.emplace_back(GpuProcessingTask<ImageType>(image_temp, local_scale_temp, par, bspline_offset, (*apr).level_max()));
             gpts.back().sendDataToGpu();
             gpts.back().processOnGpu();
         }
 
-        for (int i = 0; i < n * 2; ++i) {
+        for (int i = 0; i < n * rep; ++i) {
             int c = i % n;
             gpts[c].getDataFromGpu();
 
             // in theory we get new data and send them to task
-            gpts[c].sendDataToGpu();
+        if (i  < n * (rep - 1)) {    gpts[c].sendDataToGpu();
             gpts[c].processOnGpu();
-
+	}
+           std::cout << "--------- start CPU processing ---------- " << i << std::endl;
+		d.start_timer("CPU processing");
             init_apr(aAPR, input_image);
             iPullingScheme.initialize_particle_cell_tree(aAPR.apr_access);
             PixelData<float> lst(local_scale_temp, true);
@@ -265,6 +269,7 @@ inline bool APRConverter<ImageType>::get_apr_method(APR<ImageType> &aAPR, PixelD
             downsamplePyrmaid(inImg, downsampled_img, aAPR.level_max(), aAPR.level_min());
             aAPR.apr_access.initialize_structure_from_particle_cell_tree(aAPR.parameters, iPullingScheme.getParticleCellTree());
             aAPR.get_parts_from_img(downsampled_img, aAPR.particles_intensities);
+            d.stop_timer();
         }
         std::cout << "Total n ENDED" << std::endl;
 
