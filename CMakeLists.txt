@@ -101,12 +101,12 @@ endif()
 # Add submodule GLM (include files only)
 include_directories("external/glm")
 
-message(STATUS "---------------------- VARS BEG ---------------------")
-get_cmake_property(_variableNames VARIABLES)
-foreach (_variableName ${_variableNames})
-    message(STATUS "${_variableName}=${${_variableName}}")
-endforeach()
-message(STATUS "---------------------- VARS END ---------------------")
+#message(STATUS "---------------------- VARS BEG ---------------------")
+#get_cmake_property(_variableNames VARIABLES)
+#foreach (_variableName ${_variableNames})
+#    message(STATUS "${_variableName}=${${_variableName}}")
+#endforeach()
+#message(STATUS "---------------------- VARS END ---------------------")
 
 ###############################################################################
 # Configure compiler options
