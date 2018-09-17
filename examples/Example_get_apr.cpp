@@ -38,13 +38,11 @@ Advanced (Direct) Settings:
 #include "ConfigAPR.h"
 #include "Example_get_apr.h"
 
-int main(int argc, char **argv) {
+#include <future>
+#include <thread>
 
-    //input parsing
-    cmdLineOptions options;
 
-    options = read_command_line_options(argc,argv);
-
+int runAPR(cmdLineOptions options) {
     //the apr datastructure
     APR<uint16_t> apr;
 
@@ -93,14 +91,15 @@ int main(int argc, char **argv) {
         std::cout << "Writing the APR to hdf5..." << std::endl;
 
         //feel free to change
-        unsigned int blosc_comp_type = BLOSC_ZSTD;
-        unsigned int blosc_comp_level = options.compress_level;
+        unsigned int blosc_comp_type = 6; //Lizard Codec
+        unsigned int blosc_comp_level = 9;
         unsigned int blosc_shuffle = 1;
 
         apr.apr_compress.set_compression_type(options.compress_type);
+        apr.apr_compress.set_quantization_factor(options.quantization_factor);
 
         //write the APR to hdf5 file
-        FileSizeInfo fileSizeInfo = apr.write_apr(save_loc,file_name,blosc_comp_type,blosc_comp_level,blosc_shuffle);
+        FileSizeInfo fileSizeInfo = apr.write_apr(save_loc,file_name,blosc_comp_type,blosc_comp_level,blosc_shuffle,options.store_tree);
         float apr_file_size = fileSizeInfo.total_file_size;
 
         timer.stop_timer();
@@ -116,22 +115,60 @@ int main(int argc, char **argv) {
 
             PixelData<uint16_t> level;
 
-            apr.interp_depth_ds(level);
+            apr.interp_level(level);
 
             std::cout << std::endl;
 
-            std::cout << "Saving down-sampled Particle Cell level as tiff image" << std::endl;
+            std::cout << "Saving Particle Cell level as tiff image" << std::endl;
 
             std::string output_path = save_loc + file_name + "_level.tif";
             //write output as tiff
             TiffUtils::saveMeshAsTiff(output_path, level);
+
+            PixelData<uint16_t> pc_img;
+
+            apr.interp_img(pc_img,apr.particles_intensities);
+
+            std::cout << std::endl;
+
+            std::cout << "Saving piece-wise constant image recon as tiff image" << std::endl;
+
+            output_path = save_loc + file_name + "_pc.tif";
+            //write output as tiff
+            TiffUtils::saveMeshAsTiff(output_path, pc_img);
         }
 
         } else {
         std::cout << "Oops, something went wrong. APR not computed :(." << std::endl;
     }
-
+    return 0;
 }
+
+
+int main(int argc, char **argv) {
+
+    //input parsing
+    cmdLineOptions options = read_command_line_options(argc, argv);
+
+//    std::vector<std::future<int>> fv;
+//    fv.emplace_back(std::async(std::launch::async, [=]{ return runAPR(options); }));
+//    fv.emplace_back(std::async(std::launch::async, [=]{ return runAPR(options); }));
+//    fv.emplace_back(std::async(std::launch::async, [=]{ return runAPR(options); }));
+//    int n = 2;
+//    fv[0].
+//    std::cout << "Waintig..." <<std::endl;
+//    for (int i = 0; i < fv.size()*3; ++i) {
+//        fv[i % n].wait();
+//        fv[i % n] = std::async(std::launch::async, [=]{ return runAPR(options); });
+//    }
+//
+//    for (int i = 0; i < fv.size(); ++i) fv[i].wait();
+//
+//    std::cout << "DONE!" <<std::endl;
+
+    return runAPR(options);
+}
+
 
 
 bool command_option_exists(char **begin, char **end, const std::string &option)
@@ -234,6 +271,11 @@ cmdLineOptions read_command_line_options(int argc, char **argv){
         result.compress_type = (unsigned int)std::stoi(std::string(get_command_option(argv, argv + argc, "-compress_type")));
     }
 
+    if(command_option_exists(argv, argv + argc, "-quantization_factor"))
+    {
+        result.quantization_factor = (float)std::stof(std::string(get_command_option(argv, argv + argc, "-quantization_factor")));
+    }
+
     if(command_option_exists(argv, argv + argc, "-normalize_input"))
     {
         result.normalize_input = true;
@@ -248,6 +290,11 @@ cmdLineOptions read_command_line_options(int argc, char **argv){
     if(command_option_exists(argv, argv + argc, "-output_steps"))
     {
         result.output_steps = true;
+    }
+
+    if(command_option_exists(argv, argv + argc, "-store_tree"))
+    {
+        result.store_tree = true;
     }
 
     return result;

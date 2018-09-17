@@ -38,6 +38,42 @@ void hdf5_load_data_blosc(hid_t obj_id, void* buff, const char* data_name) {
     H5Dclose(data_id);
 }
 
+
+/**
+ * reads only a set number of elements
+ */
+void hdf5_load_data_blosc_partial(hid_t obj_id, void* buff, const char* data_name,uint64_t elements_start,uint64_t elements_end) {
+    hid_t data_id =  H5Dopen2(obj_id, data_name ,H5P_DEFAULT);
+
+    hid_t memspace_id=0;
+    hid_t dataspace_id=0;
+
+    hid_t dataType = H5Dget_type(data_id);
+
+    hsize_t dims = elements_end - elements_start;
+
+    memspace_id = H5Screate_simple (1, &dims, NULL);
+
+    hsize_t offset = elements_start;
+    hsize_t count = dims;
+    hsize_t stride = 1;
+    hsize_t block = 1;
+
+    dataspace_id = H5Dget_space (data_id);
+    H5Sselect_hyperslab (dataspace_id, H5S_SELECT_SET, &offset,
+                                  &stride, &count, &block);
+
+    H5Dread(data_id, dataType, memspace_id, dataspace_id, H5P_DEFAULT, buff);
+
+    H5Sclose (memspace_id);
+    H5Sclose (dataspace_id);
+
+    H5Tclose(dataType);
+    H5Dclose(data_id);
+}
+
+
+
 /**
  * writes data to the hdf5 file or group identified by obj_id of hdf5 datatype data_type
  */
@@ -147,11 +183,11 @@ void write_main_paraview_xdmf_xml(const std::string &aDestinationDir,const std::
     myfile <<  "        " << aHdf5FileName << ":/ParticleRepr/t/level\n";
     myfile <<  "       </DataItem>\n";
     myfile <<  "    </Attribute>\n";
-    myfile <<  "     <Attribute Name=\"type\" AttributeType=\"Scalar\" Center=\"Node\">\n";
-    myfile <<  "       <DataItem Dimensions=\""<< aNumOfParticles <<"\" NumberType=\"UInt\" Precision=\"1\" Format=\"HDF\">\n";
-    myfile <<  "        " << aHdf5FileName << ":/ParticleRepr/t/type\n";
-    myfile <<  "       </DataItem>\n";
-    myfile <<  "    </Attribute>\n";
+//    myfile <<  "     <Attribute Name=\"type\" AttributeType=\"Scalar\" Center=\"Node\">\n";
+//    myfile <<  "       <DataItem Dimensions=\""<< aNumOfParticles <<"\" NumberType=\"UInt\" Precision=\"1\" Format=\"HDF\">\n";
+//    myfile <<  "        " << aHdf5FileName << ":/ParticleRepr/t/type\n";
+//    myfile <<  "       </DataItem>\n";
+//    myfile <<  "    </Attribute>\n";
     myfile <<  "   </Grid>\n";
     myfile <<  " </Domain>\n";
     myfile <<  "</Xdmf>\n";

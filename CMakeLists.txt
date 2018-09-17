@@ -17,6 +17,7 @@ option(APR_TESTS "Build APR tests" OFF)
 option(APR_PREFER_EXTERNAL_GTEST "When found, use the installed GTEST libs instead of included sources" OFF)
 option(APR_PREFER_EXTERNAL_BLOSC "When found, use the installed BLOSC libs instead of included sources" OFF)
 option(APR_BUILD_JAVA_WRAPPERS "Build APR JAVA wrappers" OFF)
+option(APR_BUILD_PYTHON_WRAPPERS "Build APR PYTHON wrappers (experimental - under development)" OFF)
 option(APR_USE_CUDA "should APR use CUDA? (experimental - under development)" OFF)
 option(APR_USE_OPENMP "should APR use OpenMP?" ON)
 option(APR_BENCHMARK "add benchmarking code" OFF)
@@ -100,6 +101,12 @@ endif()
 # Add submodule GLM (include files only)
 include_directories("external/glm")
 
+#message(STATUS "---------------------- VARS BEG ---------------------")
+#get_cmake_property(_variableNames VARIABLES)
+#foreach (_variableName ${_variableNames})
+#    message(STATUS "${_variableName}=${${_variableName}}")
+#endforeach()
+#message(STATUS "---------------------- VARS END ---------------------")
 
 ###############################################################################
 # Configure compiler options
@@ -107,17 +114,18 @@ include_directories("external/glm")
 # If you ever want to compile with Intel's icc (or any other compiler) provide
 # compiler names/paths in cmake command like this:
 # CC="icc" CXX="icc" CXXFLAGS="-O3" cmake -DAPR_TESTS=1
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++14 -Wall -pedantic")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++14 -Wall -pedantic ")
 if(CMAKE_COMPILER_IS_GNUCC)
     set(CMAKE_CXX_FLAGS_RELEASE "-O4 -ffast-math")
     set(CMAKE_CXX_FLAGS_DEBUG "-O0 -g")
     set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -Bdynamic")
     if(NOT WIN32)
-        set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -ldl")
+        set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -ldl -lz")
     endif()
 elseif (CMAKE_CXX_COMPILER_ID MATCHES "Clang")
     set(CMAKE_CXX_FLAGS_RELEASE "-O3 -ffast-math")
     set(CMAKE_CXX_FLAGS_DEBUG "-O0 -g")
+    # set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -lz")
 endif()
 
 if (APR_BENCHMARK)
@@ -135,14 +143,14 @@ set(LIBRARY_NAME apr)
 include_directories(src)
 
 set(SOURCE_FILES src/io/blosc_filter.c src/io/hdf5functions_blosc.cpp)
-set(SOURCE_FILES_RAYCAST src/numerics/APRRaycaster.cpp src/vis/Camera.cpp src/vis/Object.cpp src/vis/RaytracedObject.cpp)
+#set(SOURCE_FILES_RAYCAST src/numerics/APRRaycaster.cpp src/vis/Camera.cpp src/vis/Object.cpp src/vis/RaytracedObject.cpp)
 
 add_library(aprObjLib OBJECT ${SOURCE_FILES} ${SOURCE_FILES_RAYCAST})
 
 if(APR_USE_CUDA)
     message(STATUS "APR: Building CUDA for APR")
     set(CMAKE_CUDA_STANDARD 14)
-    set(CMAKE_CUDA_FLAGS "--cudart shared -g -lineinfo -Xptxas -O3,-v -use_fast_math -DAPR_USE_CUDA")
+    set(CMAKE_CUDA_FLAGS "--default-stream per-thread --cudart shared -g -lineinfo -Xptxas -O3,-v -use_fast_math -DAPR_USE_CUDA")
     if(APR_BENCHMARK)
         set(CMAKE_CUDA_FLAGS "${CMAKE_CUDA_FLAGS} -DAPR_BENCHMARK")
     endif()
@@ -151,10 +159,9 @@ if(APR_USE_CUDA)
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DAPR_USE_CUDA")
     set(APR_CUDA_SROUCE_FILES
 	        src/algorithm/ComputeGradientCuda.cu
-            src/algorithm/ComputeBsplineRecursiveFilter.cu
-            src/algorithm/ComputeInverseCubicBsplineCuda.cu
             src/data_structures/Mesh/PixelData.cu
-            src/algorithm/LocalIntensityScale.cu)
+            src/algorithm/LocalIntensityScale.cu
+            )
     include_directories(${CMAKE_CUDA_TOOLKIT_INCLUDE_DIRECTORIES})
 endif()
 
@@ -306,3 +313,24 @@ if(APR_BUILD_JAVA_WRAPPERS)
     swig_add_library(apr LANGUAGE java SOURCES libapr.i ${SOURCE_FILES})
     swig_link_libraries(apr ${HDF5_LIBRARIES} ${TIFF_LIBRARIES} ${BLOSC_LIBRARIES} ${ZLIB_LIBRARIES})
 endif(APR_BUILD_JAVA_WRAPPERS)
+
+
+###############################################################################
+# PYTHON wrappers
+###############################################################################
+if(APR_BUILD_PYTHON_WRAPPERS)
+    message(STATUS "APR: Building PYTHON wrappers")
+    set(PYBIND11_PYTHON_VERSION 2.7)
+
+    add_subdirectory("external/pybind11")
+
+    set(APR_PYTHON_MODULE_NAME pyApr)
+    add_definitions(-DAPR_PYTHON_MODULE_NAME=${APR_PYTHON_MODULE_NAME})
+    add_library(${APR_PYTHON_MODULE_NAME} MODULE src/wrapper/pythonBind.cpp $<TARGET_OBJECTS:aprObjLib>)
+    target_include_directories(${APR_PYTHON_MODULE_NAME} PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/src)
+    target_link_libraries(${APR_PYTHON_MODULE_NAME} PRIVATE pybind11::module ${HDF5_LIBRARIES} ${TIFF_LIBRARIES} ${BLOSC_LIBRARIES} ${ZLIB_LIBRARIES})
+    set_target_properties(${APR_PYTHON_MODULE_NAME} PROPERTIES OUTPUT_NAME ${APR_PYTHON_MODULE_NAME})
+    set_target_properties(${APR_PYTHON_MODULE_NAME} PROPERTIES PREFIX "${PYTHON_MODULE_PREFIX}"
+                                                               SUFFIX "${PYTHON_MODULE_EXTENSION}")
+
+endif(APR_BUILD_PYTHON_WRAPPERS)

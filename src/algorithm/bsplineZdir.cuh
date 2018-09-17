@@ -117,5 +117,19 @@ __global__ void bsplineZdir(T *image, size_t x_num, size_t y_num, size_t z_num,
     }
 }
 
+/**
+ * Function for launching a kernel
+ */
+template<typename T>
+void runBsplineZdir(T *cudaImage, size_t x_num, size_t y_num, size_t z_num,
+                    const float *bc1, const float *bc2, const float *bc3, const float *bc4,
+                    size_t k0, float b1, float b2, float norm_factor, cudaStream_t aStream) {
+    constexpr int numOfWorkersYdir = 64;
+    dim3 threadsPerBlockZ(1, numOfWorkersYdir, 1);
+    dim3 numBlocksZ(1,
+                    (y_num + threadsPerBlockZ.y - 1) / threadsPerBlockZ.y,
+                    (x_num + threadsPerBlockZ.x - 1) / threadsPerBlockZ.x);
+    bsplineZdir<T> <<<numBlocksZ, threadsPerBlockZ, 0, aStream>>> (cudaImage, x_num, y_num, z_num, bc1, bc2, bc3, bc4, k0, b1, b2, norm_factor);
+}
 
 #endif

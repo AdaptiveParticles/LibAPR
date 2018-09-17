@@ -19,10 +19,13 @@
 #include <iomanip>
 #include <algorithm>
 
-#include "../../misc/APRTimer.hpp"
+#include "misc/APRTimer.hpp"
 
 #ifdef HAVE_OPENMP
 #include <omp.h>
+#endif
+#ifdef APR_USE_CUDA
+#include "misc/CudaMemory.cuh"
 #endif
 
 template <typename T>
@@ -77,11 +80,16 @@ private:
 template <typename T>
 class PixelData {
 public :
+    using value_type = T;
+
     // size of mesh and container for data
     size_t y_num;
     size_t x_num;
     size_t z_num;
     std::unique_ptr<T[]> meshMemory;
+#ifdef APR_USE_CUDA
+    PinnedMemoryUniquePtr<T> meshMemoryPinned;
+#endif
     ArrayWrapper<T> mesh;
 
     /**
@@ -104,7 +112,7 @@ public :
      * @param aSizeOfZ
      * @param aInitVal - initial value of all elements
      */
-    PixelData(int aSizeOfY, int aSizeOfX, int aSizeOfZ, T aInitVal) { init(aSizeOfY, aSizeOfX, aSizeOfZ, aInitVal); }
+    PixelData(int aSizeOfY, int aSizeOfX, int aSizeOfZ, T aInitVal) { initWithValue(aSizeOfY, aSizeOfX, aSizeOfZ, aInitVal); }
 
     /**
      * Move constructor
@@ -136,8 +144,8 @@ public :
      * @param aMesh input mesh
      */
     template<typename U>
-    PixelData(const PixelData<U> &aMesh, bool aShouldCopyData) {
-        init(aMesh.y_num, aMesh.x_num, aMesh.z_num);
+    PixelData(const PixelData<U> &aMesh, bool aShouldCopyData, bool aUsedPinnedMemory = false) {
+        init(aMesh.y_num, aMesh.x_num, aMesh.z_num, aUsedPinnedMemory);
         if (aShouldCopyData) std::copy(aMesh.mesh.begin(), aMesh.mesh.end(), mesh.begin());
     }
 
@@ -229,14 +237,27 @@ public :
      * @param aInitVal
      * NOTE: If mesh was already created only added elements (new size > old size) will be initialize with aInitVal
      */
-    void init(int aSizeOfY, int aSizeOfX, int aSizeOfZ, T aInitVal) {
+    void initWithValue(int aSizeOfY, int aSizeOfX, int aSizeOfZ, T aInitVal, bool aUsePinnedMemory = false) {
         y_num = aSizeOfY;
         x_num = aSizeOfX;
         z_num = aSizeOfZ;
         size_t size = (size_t)y_num * x_num * z_num;
-        meshMemory.reset(new T[size]);
-        T *array = meshMemory.get();
-        if (array == nullptr) { std::cerr << "Could not allocate memory!" << size << std::endl; exit(-1); }
+
+        T *array = nullptr;
+        if (!aUsePinnedMemory) {
+            meshMemory.reset(new T[size]);
+            array = meshMemory.get();
+        }
+        else {
+        #ifndef APR_USE_CUDA
+            meshMemory.reset(new T[size]);
+            array = meshMemory.get();
+        #else
+            meshMemoryPinned.reset((T*)getPinnedMemory(size * sizeof(T)));
+            array = meshMemoryPinned.get();
+        #endif
+        }
+
         mesh.set(array, size);
 
         // Fill values of new buffer in parallel
@@ -255,6 +276,36 @@ public :
         #endif
     }
 
+
+    /**
+     * Initializes mesh with provided dimensions with default value of used type
+     * @param aSizeOfY
+     * @param aSizeOfX
+     * @param aSizeOfZ
+     */
+    void init(int aSizeOfY, int aSizeOfX, int aSizeOfZ, bool aUsePinnedMemory = false) {
+        y_num = aSizeOfY;
+        x_num = aSizeOfX;
+        z_num = aSizeOfZ;
+        size_t size = (size_t)y_num * x_num * z_num;
+
+        T *array = nullptr;
+        if (!aUsePinnedMemory) {
+            meshMemory.reset(new T[size]);
+            array = meshMemory.get();
+        }
+        else {
+#ifndef APR_USE_CUDA
+            meshMemory.reset(new T[size]);
+            array = meshMemory.get();
+#else
+            meshMemoryPinned.reset((T*)getPinnedMemory(size * sizeof(T)));
+            array = meshMemoryPinned.get();
+#endif
+        }
+        mesh.set(array, size);
+    }
+
     /**
      * Initialize mesh with dimensions taken from provided mesh
      * @tparam S
@@ -266,33 +317,17 @@ public :
     }
 
     /**
-     * Initializes mesh with provided dimensions with default value of used type
-     * @param aSizeOfY
-     * @param aSizeOfX
-     * @param aSizeOfZ
-     */
-    void init(int aSizeOfY, int aSizeOfX, int aSizeOfZ) {
-        y_num = aSizeOfY;
-        x_num = aSizeOfX;
-        z_num = aSizeOfZ;
-        size_t size = (size_t)y_num * x_num * z_num;
-        meshMemory.reset(new T[size]);
-        if (meshMemory.get() == nullptr) { std::cerr << "Could not allocate memory!" << size << std::endl; exit(-1); }
-        mesh.set(meshMemory.get(), size);
-    }
-
-    /**
      * Initializes mesh with size of half of provided dimensions (rounding up if not divisible by 2)
      * @param aSizeOfY
      * @param aSizeOfX
      * @param aSizeOfZ
      */
-    void initDownsampled(int aSizeOfY, int aSizeOfX, int aSizeOfZ) {
+    void initDownsampled(int aSizeOfY, int aSizeOfX, int aSizeOfZ, bool aUsePinnedMemory) {
         const int z_num_ds = ceil(1.0*aSizeOfZ/2.0);
         const int x_num_ds = ceil(1.0*aSizeOfX/2.0);
         const int y_num_ds = ceil(1.0*aSizeOfY/2.0);
 
-        init(y_num_ds, x_num_ds, z_num_ds);
+        init(y_num_ds, x_num_ds, z_num_ds, aUsePinnedMemory);
     }
 
     /**
@@ -302,12 +337,12 @@ public :
      * @param aSizeOfZ
      * @param aInitVal
      */
-    void initDownsampled(int aSizeOfY, int aSizeOfX, int aSizeOfZ, T aInitVal) {
+    void initDownsampled(int aSizeOfY, int aSizeOfX, int aSizeOfZ, T aInitVal, bool aUsePinnedMemory) {
         const int z_num_ds = ceil(1.0*aSizeOfZ/2.0);
         const int x_num_ds = ceil(1.0*aSizeOfX/2.0);
         const int y_num_ds = ceil(1.0*aSizeOfY/2.0);
 
-        init(y_num_ds, x_num_ds, z_num_ds, aInitVal);
+        initWithValue(y_num_ds, x_num_ds, z_num_ds, aInitVal, aUsePinnedMemory);
     }
 
     /**
@@ -334,7 +369,7 @@ public :
         const int x_num_ds = ceil(1.0*aMesh.x_num/2.0);
         const int y_num_ds = ceil(1.0*aMesh.y_num/2.0);
 
-        init(y_num_ds, x_num_ds, z_num_ds, aInitVal);
+        initWithValue(y_num_ds, x_num_ds, z_num_ds, aInitVal);
     }
 
     /**
@@ -411,7 +446,7 @@ public :
                 std::cout << "z=" << z << "\n";
                 for (size_t y = 0; y < y_num; ++y) {
                     for (size_t x = 0; x < x_num; ++x) {
-                        std::cout << std::setw(aColumnWidth) << std::setprecision(aFloatPrecision) << std::fixed << at(y, x, z) << " ";
+                        std::cout << std::setw(aColumnWidth) << std::setprecision(aFloatPrecision) << std::fixed << (sizeof(T) == 1 ? (int)at(y, x, z) : at(y, x, z)) << " ";
                     }
                     std::cout << "\n";
                 }
@@ -423,7 +458,7 @@ public :
                 std::cout << "y=" << y << "\n";
                 for (size_t z = 0; z < z_num; ++z) {
                     for (size_t x = 0; x < x_num; ++x) {
-                        std::cout << std::setw(aColumnWidth) << std::setprecision(aFloatPrecision) << std::fixed << at(y, x, z) << " ";
+                        std::cout << std::setw(aColumnWidth) << std::setprecision(aFloatPrecision) << std::fixed << (sizeof(T) == 1 ? (int)at(y, x, z) : at(y, x, z)) << " ";
                     }
                     std::cout << "\n";
                 }
@@ -447,7 +482,7 @@ public :
                 std::cout << "z=" << z << "\n";
                 for (size_t x = 0; x < x_num; ++x) {
                     for (size_t y = 0; y < y_num; ++y) {
-                        std::cout << std::setw(aColumnWidth) << std::setprecision(aFloatPrecision) << std::fixed << at(y, x, z) << " ";
+                        std::cout << std::setw(aColumnWidth) << std::setprecision(aFloatPrecision) << std::fixed << (sizeof(T) == 1 ? (int)at(y, x, z) : at(y, x, z)) << " ";
                     }
                     std::cout << "\n";
                 }
@@ -459,7 +494,7 @@ public :
                 std::cout << "y=" << y << "\n";
                 for (size_t x = 0; x < x_num; ++x) {
                     for (size_t z = 0; z < z_num; ++z) {
-                        std::cout << std::setw(aColumnWidth) << std::setprecision(aFloatPrecision) << std::fixed << at(y, x, z) << " ";
+                        std::cout << std::setw(aColumnWidth) << std::setprecision(aFloatPrecision) << std::fixed << (sizeof(T) == 1 ? (int)at(y, x, z) : at(y, x, z)) << " ";
                     }
                     std::cout << "\n";
                 }
