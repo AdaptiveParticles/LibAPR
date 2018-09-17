@@ -230,9 +230,34 @@ inline bool APRConverter<ImageType>::get_apr_method(APR<ImageType> &aAPR, PixelD
     method_timer.start_timer("compute_levels");
     computeLevels(grad_temp, local_scale_temp, (*apr).level_max(), par.rel_error, par.dx, par.dy, par.dz);
     method_timer.stop_timer();
+
+    method_timer.start_timer("initialize_particle_cell_tree");
+    iPullingScheme.initialize_particle_cell_tree(aAPR.apr_access);
+    method_timer.stop_timer();
+
+    method_timer.start_timer("compute_local_particle_set");
+    get_local_particle_cell_set(local_scale_temp, local_scale_temp2);
+    method_timer.stop_timer();
+
+    method_timer.start_timer("compute_pulling_scheme");
+    iPullingScheme.pulling_scheme_main();
+    method_timer.stop_timer();
+
+    method_timer.start_timer("downsample_pyramid");
+    std::vector<PixelData<T>> downsampled_img;
+    //Down-sample the image for particle intensity estimation
+    downsamplePyrmaid(input_image, downsampled_img, aAPR.level_max(), aAPR.level_min());
+    method_timer.stop_timer();
+
+    method_timer.start_timer("compute_apr_datastructure");
+    aAPR.apr_access.initialize_structure_from_particle_cell_tree(aAPR.parameters, iPullingScheme.getParticleCellTree());
+    method_timer.stop_timer();
+
+    method_timer.start_timer("sample_particles");
+    aAPR.get_parts_from_img(downsampled_img,aAPR.particles_intensities);
+    method_timer.stop_timer();
 #else
     method_timer.start_timer("compute_gradient_magnitude_using_bsplines and local instensity scale CUDA");
-//    getFullPipeline(image_temp, grad_temp, local_scale_temp, local_scale_temp2, bspline_offset, par, (*apr).level_max());
     APRTimer t(true);
     APRTimer d(true);
     t.start_timer(" =========== ALL");
@@ -241,35 +266,57 @@ inline bool APRConverter<ImageType>::get_apr_method(APR<ImageType> &aAPR, PixelD
 
         std::vector<GpuProcessingTask<ImageType>> gpts;
 
-        int n = 3;
-        int rep = 5;
-        for (int i = 0; i < n; ++i) {
+        int numOfStreams = 1;
+        int repetitionsPerStream = 1;
+
+        // Create streams and send initial task to do
+        for (int i = 0; i < numOfStreams; ++i) {
             gpts.emplace_back(GpuProcessingTask<ImageType>(image_temp, local_scale_temp, par, bspline_offset, (*apr).level_max()));
             gpts.back().sendDataToGpu();
             gpts.back().processOnGpu();
         }
 
-        for (int i = 0; i < n * rep; ++i) {
-            int c = i % n;
+        for (int i = 0; i < numOfStreams * repetitionsPerStream; ++i) {
+            int c = i % numOfStreams;
+
+            // get data from previous task
             gpts[c].getDataFromGpu();
 
             // in theory we get new data and send them to task
-        if (i  < n * (rep - 1)) {    gpts[c].sendDataToGpu();
-            gpts[c].processOnGpu();
-	}
-           std::cout << "--------- start CPU processing ---------- " << i << std::endl;
-		d.start_timer("CPU processing");
+            if (i  < numOfStreams * (repetitionsPerStream - 1)) {
+                gpts[c].sendDataToGpu();
+                gpts[c].processOnGpu();
+            }
+
+            // Postprocess on CPU
+            std::cout << "--------- start CPU processing ---------- " << i << std::endl;
             init_apr(aAPR, input_image);
+            d.start_timer("1");
             iPullingScheme.initialize_particle_cell_tree(aAPR.apr_access);
+            d.stop_timer();
+            d.start_timer("2");
             PixelData<float> lst(local_scale_temp, true);
+            d.stop_timer();
+            d.start_timer("3");
             get_local_particle_cell_set(lst, local_scale_temp2);
+            d.stop_timer();
+            d.start_timer("4");
             iPullingScheme.pulling_scheme_main();
+            d.stop_timer();
+            d.start_timer("5");
             PixelData<T> inImg(input_image, true);
+            d.stop_timer();
+            d.start_timer("6");
             std::vector<PixelData<T>> downsampled_img;
             downsamplePyrmaid(inImg, downsampled_img, aAPR.level_max(), aAPR.level_min());
+            d.stop_timer();
+            d.start_timer("7");
             aAPR.apr_access.initialize_structure_from_particle_cell_tree(aAPR.parameters, iPullingScheme.getParticleCellTree());
+            d.stop_timer();
+            d.start_timer("8");
             aAPR.get_parts_from_img(downsampled_img, aAPR.particles_intensities);
             d.stop_timer();
+
         }
         std::cout << "Total n ENDED" << std::endl;
 
@@ -277,32 +324,6 @@ inline bool APRConverter<ImageType>::get_apr_method(APR<ImageType> &aAPR, PixelD
     t.stop_timer();
     method_timer.stop_timer();
 #endif
-
-//    method_timer.start_timer("initialize_particle_cell_tree");
-//    iPullingScheme.initialize_particle_cell_tree(aAPR.apr_access);
-//    method_timer.stop_timer();
-//
-//    method_timer.start_timer("compute_local_particle_set");
-//    get_local_particle_cell_set(local_scale_temp, local_scale_temp2);
-//    method_timer.stop_timer();
-//
-//    method_timer.start_timer("compute_pulling_scheme");
-//    iPullingScheme.pulling_scheme_main();
-//    method_timer.stop_timer();
-//
-//    method_timer.start_timer("downsample_pyramid");
-//    std::vector<PixelData<T>> downsampled_img;
-//    //Down-sample the image for particle intensity estimation
-//    downsamplePyrmaid(input_image, downsampled_img, aAPR.level_max(), aAPR.level_min());
-//    method_timer.stop_timer();
-//
-//    method_timer.start_timer("compute_apr_datastructure");
-//    aAPR.apr_access.initialize_structure_from_particle_cell_tree(aAPR.parameters, iPullingScheme.getParticleCellTree());
-//    method_timer.stop_timer();
-//
-//    method_timer.start_timer("sample_particles");
-//    aAPR.get_parts_from_img(downsampled_img,aAPR.particles_intensities);
-//    method_timer.stop_timer();
 
     computation_timer.stop_timer();
 

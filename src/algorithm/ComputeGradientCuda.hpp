@@ -9,9 +9,6 @@
 #include "algorithm/APRParameters.hpp"
 
 
-template <typename ImgType>
-void getFullPipeline(PixelData<ImgType> &image, PixelData<ImgType> &grad_temp, PixelData<float> &local_scale_temp, PixelData<float> &local_scale_temp2, float bspline_offset, const APRParameters &par, int maxLevel);
-
 // Test helpers and definitions
 using TypeOfRecBsplineFlags = uint16_t;
 constexpr TypeOfRecBsplineFlags BSPLINE_Y_DIR = 0x01;
@@ -40,8 +37,6 @@ void thresholdImg(PixelData<T> &image, const float threshold);
 template <typename T>
 void thresholdGradient(PixelData<float> &output, const PixelData<T> &input, const float Ip_th);
 void cudaDownsampledGradient(PixelData<float> &input, PixelData<float> &grad, const float hx, const float hy, const float hz);
-
-// -------------------------------------------------
 
 template <typename ImgType>
 class GpuProcessingTask {

@@ -175,7 +175,6 @@ inline void PullingScheme::set_ascendant_neighbours(int level) {
                                 // type is EMPTY
                                 particle_cell_tree[level].mesh[neighbour_index] = ASCENDANTNEIGHBOUR;
                             }
-
                             if (particle_cell_tree[level].mesh[neighbour_index] == SEED_TYPE) {
                                 // type is SEED
                                 particle_cell_tree[level].mesh[neighbour_index] = PROPOGATE;
