@@ -266,8 +266,8 @@ inline bool APRConverter<ImageType>::get_apr_method(APR<ImageType> &aAPR, PixelD
 
         std::vector<GpuProcessingTask<ImageType>> gpts;
 
-        int numOfStreams = 4;
-        int repetitionsPerStream = 10;
+        int numOfStreams = 2;
+        int repetitionsPerStream = 2;
 
         // Create streams and send initial task to do
         for (int i = 0; i < numOfStreams; ++i) {
@@ -291,31 +291,42 @@ inline bool APRConverter<ImageType>::get_apr_method(APR<ImageType> &aAPR, PixelD
             // Postprocess on CPU
             std::cout << "--------- start CPU processing ---------- " << i << std::endl;
             init_apr(aAPR, input_image);
-            d.start_timer("1");
+
+            d.start_timer("1 - initialize particle cell tree");
             iPullingScheme.initialize_particle_cell_tree(aAPR.apr_access);
             d.stop_timer();
-            d.start_timer("2");
+
+            d.start_timer("2 - copy LST");
             PixelData<float> lst(local_scale_temp, true);
             d.stop_timer();
-            d.start_timer("3");
+
+            d.start_timer("3 - get local particle cell set");
             get_local_particle_cell_set(lst, local_scale_temp2);
             d.stop_timer();
-            d.start_timer("4");
+
+            ////////////////////////////////
+            d.start_timer("4 - pulling main");
             iPullingScheme.pulling_scheme_main();
             d.stop_timer();
-            d.start_timer("5");
-            PixelData<T> &inImg = input_image; //(input_image, true);
+
+            PixelData<T> &inImg = input_image; // user redy data and later...
+
+            d.start_timer("5 - init struct from particle cell tree");
+            aAPR.apr_access.initialize_structure_from_particle_cell_tree(aAPR.parameters, iPullingScheme.getParticleCellTree());
             d.stop_timer();
-            d.start_timer("6");
+
+            d.start_timer("6 - downsample pyramid");
+            // - downsample (mean) pyramid from input image
             std::vector<PixelData<T>> downsampled_img;
             downsamplePyrmaid(inImg, downsampled_img, aAPR.level_max(), aAPR.level_min());
             d.stop_timer();
-            d.start_timer("7");
-            aAPR.apr_access.initialize_structure_from_particle_cell_tree(aAPR.parameters, iPullingScheme.getParticleCellTree());
-            d.stop_timer();
-            d.start_timer("8");
+            ////////////////////////////////
+
+
+            d.start_timer("7 - sample particles");
+            // - sample particle values on all levels
             aAPR.get_parts_from_img(downsampled_img, aAPR.particles_intensities);
-            input_image.swap(downsampled_img.back());
+            input_image.swap(downsampled_img.back()); // ... revert
             d.stop_timer();
 
         }
