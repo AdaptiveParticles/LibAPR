@@ -266,8 +266,8 @@ inline bool APRConverter<ImageType>::get_apr_method(APR<ImageType> &aAPR, PixelD
 
         std::vector<GpuProcessingTask<ImageType>> gpts;
 
-        int numOfStreams = 1;
-        int repetitionsPerStream = 1;
+        int numOfStreams = 4;
+        int repetitionsPerStream = 10;
 
         // Create streams and send initial task to do
         for (int i = 0; i < numOfStreams; ++i) {
@@ -304,7 +304,7 @@ inline bool APRConverter<ImageType>::get_apr_method(APR<ImageType> &aAPR, PixelD
             iPullingScheme.pulling_scheme_main();
             d.stop_timer();
             d.start_timer("5");
-            PixelData<T> inImg(input_image, true);
+            PixelData<T> &inImg = input_image; //(input_image, true);
             d.stop_timer();
             d.start_timer("6");
             std::vector<PixelData<T>> downsampled_img;
@@ -315,6 +315,7 @@ inline bool APRConverter<ImageType>::get_apr_method(APR<ImageType> &aAPR, PixelD
             d.stop_timer();
             d.start_timer("8");
             aAPR.get_parts_from_img(downsampled_img, aAPR.particles_intensities);
+            input_image.swap(downsampled_img.back());
             d.stop_timer();
 
         }
