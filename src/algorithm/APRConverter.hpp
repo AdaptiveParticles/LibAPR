@@ -250,7 +250,7 @@ inline bool APRConverter<ImageType>::get_apr_method(APR<ImageType> &aAPR, PixelD
     method_timer.stop_timer();
 
     method_timer.start_timer("compute_apr_datastructure");
-    aAPR.apr_access.initialize_structure_from_particle_cell_tree(aAPR.parameters, iPullingScheme.getParticleCellTree());
+    aAPR.apr_access.initialize_structure_from_particle_cell_tree(aAPR.parameters.neighborhood_optimization, iPullingScheme.getParticleCellTree());
     method_timer.stop_timer();
 
     method_timer.start_timer("sample_particles");
@@ -312,7 +312,7 @@ inline bool APRConverter<ImageType>::get_apr_method(APR<ImageType> &aAPR, PixelD
             PixelData<T> &inImg = input_image; // user redy data and later...
 
             d.start_timer("5 - init struct from particle cell tree");
-            aAPR.apr_access.initialize_structure_from_particle_cell_tree(aAPR.parameters, iPullingScheme.getParticleCellTree());
+            aAPR.apr_access.initialize_structure_from_particle_cell_tree(aAPR.parameters.neighborhood_optimization, iPullingScheme.getParticleCellTree());
             d.stop_timer();
 
             d.start_timer("6 - downsample pyramid");

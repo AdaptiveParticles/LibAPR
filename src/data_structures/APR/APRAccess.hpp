@@ -471,7 +471,7 @@ public:
 
 
 
-    void initialize_structure_from_particle_cell_tree(APRParameters& apr_parameters,std::vector<PixelData<uint8_t>>& layers){
+    void initialize_structure_from_particle_cell_tree(bool neighborhood_optimization,std::vector<PixelData<uint8_t>>& layers){
        x_num.resize(l_max+1);
        y_num.resize(l_max+1);
        z_num.resize(l_max+1);
@@ -491,11 +491,11 @@ public:
             p_map[k].swap(layers[k].mesh);
         }
 
-        initialize_structure_from_particle_cell_tree( apr_parameters,p_map);
+        initialize_structure_from_particle_cell_tree(neighborhood_optimization, p_map);
     }
 
 
-    void initialize_structure_from_particle_cell_tree(APRParameters& apr_parameters,std::vector<ArrayWrapper<uint8_t>> &p_map);
+    void initialize_structure_from_particle_cell_tree(bool neighborhood_optimization, std::vector<ArrayWrapper<uint8_t>> &p_map);
 
 
     void allocate_map_insert( ExtraPartCellData<std::pair<uint16_t,YGap_map>>& y_begin) {
@@ -845,12 +845,12 @@ public:
 #include "data_structures/APR/APRIterator.hpp"
 
 
-inline void APRAccess::initialize_structure_from_particle_cell_tree(APRParameters& apr_parameters,std::vector<ArrayWrapper<uint8_t>> &p_map) {
+inline void APRAccess::initialize_structure_from_particle_cell_tree(bool neighborhood_optimization, std::vector<ArrayWrapper<uint8_t>> &p_map) {
     //
     //  Initialize the new structure;
     //
 
-    uint8_t min_type = apr_parameters.neighborhood_optimization ? 1 : 2;
+    uint8_t min_type = neighborhood_optimization ? 1 : 2;
 
     APRTimer apr_timer;
     apr_timer.verbose_flag = false;

@@ -25,26 +25,29 @@ namespace {
         return levels;
     }
 
-//    void printParticleCellTree(const std::vector<PixelData<uint8_t>> &particleCellTree) {
-//        for (int l = 0; l < particleCellTree.size(); ++l) {
-//            auto &tree = particleCellTree[l];
-//            std::cout << "------ 1level=" << l << " " << tree << std::endl;
-//            tree.printMesh(3,0);
-//        }
-//    }
+    void printParticleCellTree(const std::vector<PixelData<uint8_t>> &particleCellTree) {
+        for (int l = 0; l < particleCellTree.size(); ++l) {
+            auto &tree = particleCellTree[l];
+            std::cout << "-- level = " << l << ",  " << tree << std::endl;
+            tree.printMesh(3,0);
+        }
+    }
 
     TEST(PullingSchemeTest, Init) {
 
         APRAccess access;
         access.l_max = 4;
-        access.l_min = 2;
-        access.org_dims[0] = 8;
-        access.org_dims[1] = 16;
+        access.l_min = 1;
+        access.org_dims[0] = 1;
+        access.org_dims[1] = 32;
         access.org_dims[2] = 1;
 
         PullingScheme ps;
         ps.initialize_particle_cell_tree(access);
         std::vector<PixelData<uint8_t>> &pctree = ps.getParticleCellTree();
+        std::cout << ">>>>>>>>>>>>>>>>>>>>>>>> Initialized tree:\n";
+        printParticleCellTree(pctree);
+        std::cout << "<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<\n";
 
         // TEST: check if zeroed and correct number of levels
         ASSERT_EQ(access.l_max, pctree.size()); // all levels [0, access.level_max - 1]
@@ -56,12 +59,16 @@ namespace {
         }
 
         // Generate mesh with test levels
-        PixelData<float> levels = generateLevels(pctree[access.l_max - 1], access.l_max);
+        PixelData<float> levels(pctree.back(), false);// = generateLevels(pctree[access.l_max - 1], access.l_max);
+        float values[] = {3,2,3,3, 1,3,2,2, 1,2,3,4, 1,1,1,1};
+        initFromZYXarray(levels, values);
 
         // Fill particle cell tree with levels
         int l_max = access.l_max - 1;
         int l_min = access.l_min;
         ps.fill(l_max, levels);
+
+        levels.printMesh(3,0);
 
         PixelData<float> levelsDS;
         for(int l_ = l_max - 1; l_ >= l_min; l_--){
@@ -70,14 +77,24 @@ namespace {
                        [](const float &x, const float &y) -> float { return std::max(x, y); },
                        [](const float &x) -> float { return x; }, true);
             ps.fill(l_,levelsDS);
+            levelsDS.printMesh(3,0);
             levels.swap(levelsDS);
         }
-//
-//        printParticleCellTree(pctree);
+
+        std::cout << ">>>>>>>>>>>>>>>>>>>>>>>>      Filled tree:\n";
+        printParticleCellTree(pctree);
+        std::cout << "<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<\n";
+
 //        ps.fill_neighbours(l_max);
 //        pctree[l_max].printMesh(3, 0);
-//        ps.pulling_scheme_main();
-//        printParticleCellTree(pctree);
+
+
+        ps.pulling_scheme_main();
+        std::cout << ">>>>>>>>>>>>>>>>>>>>>>>>      MAIN   tree:\n";
+        printParticleCellTree(pctree);
+        std::cout << "<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<\n";
+
+        //        printParticleCellTree(pctree);
     }
 #ifdef APR_USE_CUDA
     TEST(PullingSchemeTest, computeLevels) {
