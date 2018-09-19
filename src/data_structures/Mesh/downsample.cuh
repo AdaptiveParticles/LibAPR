@@ -2,7 +2,7 @@
 #define DOWNSAMPLE_CUH
 
 template <typename T, typename S>
-__global__ void downsampleMeanKernel(const T *input, S *output, size_t x_num, size_t y_num, size_t z_num) {
+__global__ void downsampleMean(const T *input, S *output, size_t x_num, size_t y_num, size_t z_num) {
     const size_t xi = ((blockIdx.x * blockDim.x) + threadIdx.x) * 2;
     const size_t zi = ((blockIdx.z * blockDim.z) + threadIdx.z) * 2;
     if (xi >= x_num || zi >= z_num) return;
@@ -50,7 +50,16 @@ __global__ void downsampleMeanKernel(const T *input, S *output, size_t x_num, si
 }
 
 template <typename T, typename S>
-__global__ void downsampleMaxKernel(const T *input, S *output, size_t x_num, size_t y_num, size_t z_num) {
+void runDownsampleMean(const T *cudaImage, S *cudalocal_scale_temp, size_t x_num, size_t y_num, size_t z_num, cudaStream_t aStream) {
+    dim3 threadsPerBlock(1, 64, 1);
+    dim3 numBlocks(((x_num + threadsPerBlock.x - 1)/threadsPerBlock.x + 1) / 2,
+                    (y_num + threadsPerBlock.y - 1)/threadsPerBlock.y,
+                   ((z_num + threadsPerBlock.z - 1)/threadsPerBlock.z + 1) / 2);
+    downsampleMean<<<numBlocks,threadsPerBlock, 0, aStream>>>(cudaImage, cudalocal_scale_temp, x_num, y_num, z_num);
+}
+
+template <typename T, typename S>
+__global__ void downsampleMax(const T *input, S *output, size_t x_num, size_t y_num, size_t z_num) {
     const size_t xi = ((blockIdx.x * blockDim.x) + threadIdx.x) * 2;
     const size_t zi = ((blockIdx.z * blockDim.z) + threadIdx.z) * 2;
     if (xi >= x_num || zi >= z_num) return;
@@ -93,6 +102,15 @@ __global__ void downsampleMaxKernel(const T *input, S *output, size_t x_num, siz
         const size_t dsIdx = (zi/2 * x_num_ds + xi/2) * y_num_ds + yi/2;
         output[dsIdx] = v;
     }
+}
+
+template <typename T, typename S>
+void runDownsampleMax(const T *cudaImage, S *cudalocal_scale_temp, size_t x_num, size_t y_num, size_t z_num, cudaStream_t aStream) {
+    dim3 threadsPerBlock(1, 64, 1);
+    dim3 numBlocks(((x_num + threadsPerBlock.x - 1)/threadsPerBlock.x + 1) / 2,
+                   (y_num + threadsPerBlock.y - 1)/threadsPerBlock.y,
+                   ((z_num + threadsPerBlock.z - 1)/threadsPerBlock.z + 1) / 2);
+    downsampleMax<<<numBlocks,threadsPerBlock, 0, aStream>>>(cudaImage, cudalocal_scale_temp, x_num, y_num, z_num);
 }
 
 #endif

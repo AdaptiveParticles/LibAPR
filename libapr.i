@@ -90,8 +90,8 @@ namespace std {
 %template(compute_gradient_vector_std) APRNumerics::compute_gradient_vector<uint16_t>;
 %template(compute_gradient_vector_float) APRNumerics::compute_gradient_vector<float>;
 
-%template(get_particle) ExtraParticleData::get_particle<uint16_t>;
-%template(set_particle) ExtraParticleData::set_particle<uint16_t>;
+//%template(get_particle) ExtraParticleData::get_particle<uint16_t>;
+//%template(set_particle) ExtraParticleData::set_particle<uint16_t>;
 
 %template(ExtraParticleData) ExtraParticleData::ExtraParticleData<uint16_t>;
 %template(ExtraParticleData) ExtraParticleData::ExtraParticleData<float>;
@@ -104,7 +104,7 @@ namespace std {
 %template(ExtraPartCellDataFloat) ExtraPartCellData<float>;
 
 %template(APRFloat) APR<float>;
-%template(APRIteratorStd) APRIterator<uint16_t>;
+%template(APRIteratorStd) APRIterator;
 %template(APRStd) APR<uint16_t>;
 
 

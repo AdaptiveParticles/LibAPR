@@ -1,4 +1,4 @@
-#include "../vis/RaytracedObject.h"
+#include "vis/RaytracedObject.h"
 #include "APRRaycaster.hpp"
 #include <cmath>
 #ifndef M_PI

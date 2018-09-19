@@ -17,13 +17,19 @@ option(APR_TESTS "Build APR tests" OFF)
 option(APR_PREFER_EXTERNAL_GTEST "When found, use the installed GTEST libs instead of included sources" OFF)
 option(APR_PREFER_EXTERNAL_BLOSC "When found, use the installed BLOSC libs instead of included sources" OFF)
 option(APR_BUILD_JAVA_WRAPPERS "Build APR JAVA wrappers" OFF)
-option(APR_BUILD_PYTHON_WRAPPERS "Build APR PYTHON wrappers" ON)
+option(APR_BUILD_PYTHON_WRAPPERS "Build APR PYTHON wrappers (experimental - under development)" OFF)
 option(APR_USE_CUDA "should APR use CUDA? (experimental - under development)" OFF)
+option(APR_USE_OPENMP "should APR use OpenMP?" ON)
 option(APR_BENCHMARK "add benchmarking code" OFF)
 
 # Validation of options
 if (NOT APR_BUILD_SHARED_LIB AND NOT APR_BUILD_STATIC_LIB)
     message(FATAL_ERROR "At least one target: APR_BUILD_SHARED_LIB or APR_BUILD_STATIC_LIB must be build!")
+endif()
+if (NOT APR_USE_LIBTIFF)
+    if (APR_TESTS OR APR_BUILD_EXAMPLES OR APR_BUILD_JAVA_WRAPPERS)
+        message(FATAL_ERROR "Building tests, examples or java wrappers not possible when APR_USE_LIBTIFF=OFF!")
+    endif()
 endif()
 
 list(APPEND CMAKE_MODULE_PATH
@@ -35,7 +41,7 @@ list(APPEND CMAKE_MODULE_PATH
 ###############################################################################
 set (APR_VERSION_MAJOR 1)
 set (APR_VERSION_MINOR 0)
-set (APR_VERSION_PATCH 1)
+set (APR_VERSION_PATCH 2)
 set (APR_VERSION_STRING ${APR_VERSION_MAJOR}.${APR_VERSION_MINOR}.${APR_VERSION_PATCH})
 execute_process(COMMAND git rev-parse HEAD
         WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}
@@ -58,13 +64,11 @@ if(APR_USE_LIBTIFF)
     find_package(TIFF)
     set(CMAKE_C_FLAGS "${CMAKE_CFLAGS} -DHAVE_LIBTIFF")
     set(CMAKE_CXX_FLAGS "${CMAKE_CXXFLAGS} -DHAVE_LIBTIFF")
-else()
-    message(WARNING "LibTIFF support disable, this disables TIFF writing functionality.")
 endif()
 
 # Handle OpenMP
 find_package(OpenMP)
-if(NOT OPENMP_FOUND OR DISABLE_OPENMP)
+if(NOT OPENMP_FOUND OR NOT APR_USE_OPENMP)
     message(WARNING "OpenMP support not found or disabled with current compiler. While APR can compile like this, performance might not be optimal. Please see README.md for instructions.")
 else()
     set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -DHAVE_OPENMP ${OpenMP_C_FLAGS}")
@@ -97,6 +101,12 @@ endif()
 # Add submodule GLM (include files only)
 include_directories("external/glm")
 
+#message(STATUS "---------------------- VARS BEG ---------------------")
+#get_cmake_property(_variableNames VARIABLES)
+#foreach (_variableName ${_variableNames})
+#    message(STATUS "${_variableName}=${${_variableName}}")
+#endforeach()
+#message(STATUS "---------------------- VARS END ---------------------")
 
 ###############################################################################
 # Configure compiler options
@@ -104,17 +114,18 @@ include_directories("external/glm")
 # If you ever want to compile with Intel's icc (or any other compiler) provide
 # compiler names/paths in cmake command like this:
 # CC="icc" CXX="icc" CXXFLAGS="-O3" cmake -DAPR_TESTS=1
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++14 -Wall -pedantic")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++14 -Wall -pedantic ")
 if(CMAKE_COMPILER_IS_GNUCC)
     set(CMAKE_CXX_FLAGS_RELEASE "-O4 -ffast-math")
     set(CMAKE_CXX_FLAGS_DEBUG "-O0 -g")
     set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -Bdynamic")
     if(NOT WIN32)
-        set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -ldl")
+        set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -ldl -lz")
     endif()
 elseif (CMAKE_CXX_COMPILER_ID MATCHES "Clang")
     set(CMAKE_CXX_FLAGS_RELEASE "-O3 -ffast-math")
     set(CMAKE_CXX_FLAGS_DEBUG "-O0 -g")
+    # set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -lz")
 endif()
 
 if (APR_BENCHMARK)
@@ -132,14 +143,14 @@ set(LIBRARY_NAME apr)
 include_directories(src)
 
 set(SOURCE_FILES src/io/blosc_filter.c src/io/hdf5functions_blosc.cpp)
-set(SOURCE_FILES_RAYCAST src/numerics/APRRaycaster.cpp src/vis/Camera.cpp src/vis/Object.cpp src/vis/RaytracedObject.cpp)
+#set(SOURCE_FILES_RAYCAST src/numerics/APRRaycaster.cpp src/vis/Camera.cpp src/vis/Object.cpp src/vis/RaytracedObject.cpp)
 
 add_library(aprObjLib OBJECT ${SOURCE_FILES} ${SOURCE_FILES_RAYCAST})
 
 if(APR_USE_CUDA)
     message(STATUS "APR: Building CUDA for APR")
     set(CMAKE_CUDA_STANDARD 14)
-    set(CMAKE_CUDA_FLAGS "--cudart shared -g -lineinfo -Xptxas -O3,-v -use_fast_math -DAPR_USE_CUDA")
+    set(CMAKE_CUDA_FLAGS "--default-stream per-thread --cudart shared -g -lineinfo -Xptxas -O3,-v -use_fast_math -DAPR_USE_CUDA")
     if(APR_BENCHMARK)
         set(CMAKE_CUDA_FLAGS "${CMAKE_CUDA_FLAGS} -DAPR_BENCHMARK")
     endif()
@@ -148,10 +159,9 @@ if(APR_USE_CUDA)
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DAPR_USE_CUDA")
     set(APR_CUDA_SROUCE_FILES
 	        src/algorithm/ComputeGradientCuda.cu
-            src/algorithm/ComputeBsplineRecursiveFilter.cu
-            src/algorithm/ComputeInverseCubicBsplineCuda.cu
             src/data_structures/Mesh/PixelData.cu
-            src/algorithm/LocalIntensityScale.cu)
+            src/algorithm/LocalIntensityScale.cu
+            )
     include_directories(${CMAKE_CUDA_TOOLKIT_INCLUDE_DIRECTORIES})
 endif()
 
@@ -183,7 +193,7 @@ if(APR_BUILD_SHARED_LIB)
     set_property(TARGET ${SHARED_TARGET_NAME} PROPERTY VERSION ${APR_VERSION_STRING})
     set_property(TARGET ${SHARED_TARGET_NAME} PROPERTY SOVERSION ${APR_VERSION_MAJOR})
 
-    target_link_libraries(${SHARED_TARGET_NAME} PRIVATE ${HDF5_LIBRARIES} ${TIFF_LIBRARIES}  ${CUDA_CUDART_LIBRARY})
+    target_link_libraries(${SHARED_TARGET_NAME} PRIVATE ${HDF5_LIBRARIES} ${TIFF_LIBRARIES}  ${CUDA_CUDART_LIBRARY} ${ZLIB_LIBRARIES})
     if(BLOSC_FOUND)
         target_link_libraries(${SHARED_TARGET_NAME} PRIVATE ${BLOSC_LIBRARIES} ${ZLIB_LIBRARIES})
     else()

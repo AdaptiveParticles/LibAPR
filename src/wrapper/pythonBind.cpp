@@ -20,7 +20,6 @@ namespace py = pybind11;
 #error "Name of APR module (python binding) is not defined!"
 #endif
 
-
 // -------- Definition of python module ---------------------------------------
 PYBIND11_MODULE(APR_PYTHON_MODULE_NAME, m) {
     m.doc() = "python binding for LibAPR library";
@@ -65,3 +64,4 @@ PYBIND11_MODULE(APR_PYTHON_MODULE_NAME, m) {
             .def_readwrite("mask_file", &APRParameters::mask_file);
 
 }
+

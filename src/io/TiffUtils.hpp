@@ -6,11 +6,10 @@
 #ifndef TIFF_UTILS_HPP
 #define TIFF_UTILS_HPP
 
+#ifdef HAVE_LIBTIFF
 
 #include <string>
-#ifdef HAVE_LIBTIFF
-    #include <tiffio.h>
-#endif
+#include <tiffio.h>
 #include <sstream>
 #include "data_structures/Mesh/PixelData.hpp"
 
@@ -58,9 +57,7 @@ namespace TiffUtils {
                     outputStr << "NOT SUPPORTED";
             }
             outputStr << ", Photometric: " << iPhotometric;
-#ifdef HAVE_LIBTIFF
             outputStr << ", StripSize: " << TIFFStripSize(iFile);
-#endif /* HAVE_LIBTIFF */
 
             return outputStr.str();
         }
@@ -71,12 +68,7 @@ namespace TiffUtils {
         bool isFileOpened() const { return iFile != nullptr; }
 
         TiffType iType = TiffType::TIFF_INVALID;
-#ifdef HAVE_LIBTIFF
         TIFF *iFile = nullptr;
-#else
-        void* iFile = nullptr;
-        typedef unsigned int uint32;
-#endif /* HAVE_LIBTIFF */
         std::string iFileName = "";
         uint32 iImgWidth = 0;
         uint32 iImgHeight = 0;
@@ -90,12 +82,6 @@ namespace TiffUtils {
         TiffInfo(const TiffInfo&) = delete; // make it noncopyable
         TiffInfo& operator=(const TiffInfo&) = delete; // make it not assignable
 
-        friend std::ostream& operator<<(std::ostream &os, const TiffInfo &obj) {
-            os << obj.toString();
-            return os;
-        }
-
-#ifdef HAVE_LIBTIFF
         /**
          * opens TIFF
          **/
@@ -157,21 +143,12 @@ namespace TiffUtils {
             }
         }
 
-#else
-        bool open(const std::string &aFileName) {
-            std::cerr << "libapr compiled without LibTIFF support, simulating TIFF reader functionality" << std::endl;
-            std::cerr << "Trying to open file " << aFileName << ", returning false." << std::endl;
-            return false;
+        friend std::ostream& operator<<(std::ostream &os, const TiffInfo &obj) {
+            os << obj.toString();
+            return os;
         }
-
-        void close() {
-            std::cerr << "libapr compiled without LibTIFF support, simulating TIFF reader functionality" << std::endl;
-            std::cerr << "Shim-closing TIFF file" << std::endl;
-        }
-#endif /* HAVE_LIBTIFF */
     };
 
-#ifdef HAVE_LIBTIFF
 
     /**
      * Reads TIFF file to mesh
@@ -196,6 +173,20 @@ namespace TiffUtils {
         if (!aTiff.isFileOpened()) return PixelData<T>();
         PixelData<T> mesh(aTiff.iImgHeight, aTiff.iImgWidth, aTiff.iNumberOfDirectories);
         getMesh(aTiff, mesh);
+        return mesh;
+    }
+
+    /**
+     * Reads TIFF file to mesh
+     * @tparam T type of mesh/image (uint8_t, uint16_t, float)
+     * @param aTiff TiffInfo class with opened image
+     * @return mesh with tiff or empty mesh if reading file failed
+     */
+    template<typename T>
+    PixelData<T> getMesh(const TiffInfo &aTiff,size_t slice_begin,size_t slice_end) {
+        if (!aTiff.isFileOpened()) return PixelData<T>();
+        PixelData<T> mesh(aTiff.iImgHeight, aTiff.iImgWidth, slice_end-slice_begin);
+        getMesh(aTiff, mesh,slice_begin,slice_end);
         return mesh;
     }
 
@@ -233,6 +224,46 @@ namespace TiffUtils {
         aInputMesh.y_num = aTiff.iImgWidth;
         aInputMesh.x_num = aTiff.iImgHeight;
     }
+
+    /**
+    * Reads TIFF file to provided mesh
+    * @tparam T type of mesh/image (uint8_t, uint16_t, float)
+    * @param aTiff TiffInfo class with opened image
+    * @param aInputMesh pre-created mesh with dimensions of image from aTiff class
+    * @param slice_start first z slice of the image to be read
+    * @param slice_end index + 1 of last z slice of the image to be read
+    * @return mesh with tiff or empty mesh if reading file failed
+    */
+    template<typename T>
+    void getMesh(const TiffInfo &aTiff, PixelData<T> &aInputMesh,size_t slice_start,size_t slice_end) {
+        if (!aTiff.isFileOpened()) return;
+
+        // Get some more data from TIFF needed during reading
+        //const long stripSize = TIFFStripSize(aTiff.iFile);
+
+        // Read TIF to PixelData
+        size_t currentOffset = 0;
+
+        slice_start = std::min(slice_start,(size_t) aTiff.iNumberOfDirectories-1);
+        slice_end = std::min(slice_end,(size_t) aTiff.iNumberOfDirectories);
+
+        for (uint32_t i = slice_start; i < slice_end; ++i) {
+            TIFFSetDirectory(aTiff.iFile, i);
+
+            // read current directory
+            for (tstrip_t strip = 0; strip < TIFFNumberOfStrips(aTiff.iFile); ++strip) {
+                int64_t readLen = TIFFReadEncodedStrip(aTiff.iFile, strip, (&aInputMesh.mesh[0] + currentOffset), (tsize_t) -1 /* read as much as possible */);
+                currentOffset += readLen/sizeof(T);
+            }
+        }
+
+        // Set proper dimensions (x and y are exchanged giving transpose w.r.t. original file)
+        aInputMesh.z_num = slice_end - slice_start;
+        aInputMesh.y_num = aTiff.iImgWidth;
+        aInputMesh.x_num = aTiff.iImgHeight;
+    }
+
+
 
     /**
      * Saves provided mesh as a TIFF file
@@ -311,46 +342,8 @@ namespace TiffUtils {
         PixelData<uint16_t> mesh16{aData, true /*copy data*/};
         saveMeshAsTiff(filename, mesh16);
     }
-#else
-    template<typename T>
-    PixelData<T> getMesh(const std::string &aFileName) {
-        std::cerr << "libapr compiled without LibTIFF support, simulating TIFF reader functionality" << std::endl;
-        std::cerr << "getMesh() called for " << &aFileName << ", returning empty mesh." << std::endl;
-
-        PixelData<T> mesh(1, 1, 1);
-        return mesh;
-    }
-
-    template<typename T>
-    PixelData<T> getMesh(const TiffInfo &aTiff) {
-        std::cerr << "libapr compiled without LibTIFF support, simulating TIFF reader functionality" << std::endl;
-        std::cerr << "getMesh() called for TiffInfo, returning empty mesh." << std::endl;
-
-        PixelData<T> mesh(1, 1, 1);
-        return mesh;
-    }
-
-    template<typename T>
-    void getMesh(const TiffInfo &aTiff, PixelData<T> &aInputMesh) {
-        std::cerr << "libapr compiled without LibTIFF support, simulating TIFF reader functionality" << std::endl;
-        std::cerr << "getMesh() called for inputMesh, returning empty inputMesh." << std::endl;
-
-        PixelData<T> mesh(1, 1, 1);
-        aInputMesh.swap(mesh);
-    }
-
-    template<typename T>
-    void saveMeshAsTiff(const std::string &aFileName, const PixelData<T> &aData) {
-        std::cerr << "libapr compiled without LibTIFF support, simulating TIFF reader functionality" << std::endl;
-        std::cerr << "saveMeshAsTiff() called for " << aFileName << ", not doing anything." << std::endl;
-    }
-
-    template<typename T>
-    void saveMeshAsTiffUint16(const std::string &filename, const PixelData<T> &aData) {
-        std::cerr << "libapr compiled without LibTIFF support, simulating TIFF reader functionality" << std::endl;
-        std::cerr << "saveMeshAsTiff() called for " << filename << ", not doing anything." << std::endl;
-    }
-#endif
 }
+
+#endif // HAVE_LIBTIFF
 
 #endif
