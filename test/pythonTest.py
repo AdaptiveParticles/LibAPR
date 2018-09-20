@@ -1,8 +1,11 @@
+# Joel Jonsson, 2018
+# Basic test of python functionality
+
 # Find path to script - all test files are kept there
 import os, sys
 myPath = os.path.dirname(os.path.abspath(__file__))
 
-# The test is run from the build folder, which is where the pyApr module is located
+# The script has to be run from the build folder, which is where the pyApr module is located
 sys.path.insert(0, os.getcwd())
 import pyApr
 
@@ -142,6 +145,7 @@ def main():
         print("**** failed ****")
 
     print('PASSED {}/8 TESTS'.format(successes))
+    assert successes == 8
 
 
 if __name__ == '__main__':

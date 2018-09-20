@@ -1,3 +1,5 @@
+# Joel Jonsson, 2018
+
 import os, sys
 import argparse
 import numpy as np

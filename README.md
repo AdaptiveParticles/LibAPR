@@ -129,6 +129,8 @@ Example usage of the available functionality:
 | [Example_get_apr_from_file](./examples/python_examples/Example_get_apr_from_file.py) | create an APR from a TIFF and store as hdf5. |
 | [Example_reconstruct_image](./examples/python_examples/Example_reconstruct_image.py) | read in an APR and reconstruct a pixel image |
 
+Note that you may have to manually change the `sys.path.insert()` statements before `import pyApr` in these scripts to insert your build folder.
+
 ## Coming soon
 
 * more examples for APR-based filtering and segmentation

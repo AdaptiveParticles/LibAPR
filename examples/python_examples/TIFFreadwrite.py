@@ -28,8 +28,8 @@ def writeTiff(fileName, array, compression=None):
 
 def readTiff(fileName):
     """
-    Read a tiff file into a ndarray
-    Usage: zstack = readTiff(inFileName)
+    Read a tiff file into a numpy array
+    Usage: img = readTiff(fileName)
     """
     tiff = TIFFfile(fileName)
     samples, sample_names = tiff.get_samples()

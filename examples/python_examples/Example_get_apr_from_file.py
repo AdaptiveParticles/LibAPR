@@ -1,6 +1,7 @@
+# Joel Jonsson, 2018
+
 import os, sys
 import argparse
-
 
 sys.path.insert(0, "../../cmake-build-release")  #change this to your build folder
 import pyApr
