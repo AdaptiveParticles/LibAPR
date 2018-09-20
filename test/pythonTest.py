@@ -2,31 +2,16 @@
 import os, sys
 myPath = os.path.dirname(os.path.abspath(__file__))
 
-# Add path to location of the python APR module (your build folder)
-#sys.path.insert(0, "../cmake-build-release")
+# The test is run from the build folder, which is where the pyApr module is located
+sys.path.insert(0, os.getcwd())
+import pyApr
 
 # Check if APR can be read and if gives correct dimensions
 #import pyApr
 import numpy as np
-import fnmatch
 
 
 def main():
-    """
-    If you get ImportErrors, or if you have more than one build containing a file pyApr.so, you may want to
-    manually supply the path by changing the block below to
-                        sys.path.insert(0, '/path/to/dir/containing/module/')
-    """
-    # -------------------------------------------------- #
-    print("Searching for pyApr module...")
-    basePath = os.path.join(myPath, os.pardir)
-    for root, dirnames, filenames in os.walk(basePath):
-        if fnmatch.filter(filenames, 'pyApr.so'):
-            sys.path.insert(0, root)
-            print('pyApr module found in {}'.format(root))
-    # -------------------------------------------------- #
-
-    import pyApr
 
     successes = 0
 
