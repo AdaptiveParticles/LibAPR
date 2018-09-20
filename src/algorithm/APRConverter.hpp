@@ -139,19 +139,18 @@ inline bool APRConverter<ImageType>::get_apr_method_from_file(APR<ImageType> &aA
             for (size_t i = 0; i < inputImage.mesh.size(); ++i) {
                 inputImage.mesh[i] = (inputImage.mesh[i] - mm.min) * maxValue / (mm.max - mm.min);
             }
-        }
 
-        //normalize the input parameters if required
-        if(par.Ip_th!=-1){
-            std::cout << "Scaled input intensity threshold" << std::endl;
-            par.Ip_th = (par.Ip_th - mm.min)* maxValue / (mm.max - mm.min);
-        }
+            //normalize the input parameters if required
+            if(par.Ip_th!=-1){
+                std::cout << "Scaled input intensity threshold" << std::endl;
+                par.Ip_th = (par.Ip_th - mm.min)* maxValue / (mm.max - mm.min);
+            }
 
-        if(par.min_signal!=-1){
-            std::cout << "Scaled input min signal threshold" << std::endl;
-            par.min_signal = (par.min_signal)* maxValue / (mm.max - mm.min);
+            if(par.min_signal!=-1){
+                std::cout << "Scaled input min signal threshold" << std::endl;
+                par.min_signal = (par.min_signal)* maxValue / (mm.max - mm.min);
+            }
         }
-
     }
 
 
