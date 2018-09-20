@@ -125,7 +125,7 @@ public:
         PixelData<T> input_img;
 
         //TODO: fix memory/ownership passing or just revert to copying?
-        input_img.init_from_mesh(buf.shape[1], buf.shape[0], buf.shape[2], ptr); // may lead to memory issues
+        input_img.init_from_mesh(buf.shape[2], buf.shape[1], buf.shape[0], ptr); // may lead to memory issues
 
         apr.get_apr(input_img);
     }

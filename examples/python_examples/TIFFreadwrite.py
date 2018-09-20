@@ -1,5 +1,4 @@
-from libtiff import TIFF
-from libtiff import TIFFfile
+from libtiff import TIFF, TIFFfile
 import numpy as np
 
 def writeTiff(fileName, array, compression=None):
@@ -7,7 +6,7 @@ def writeTiff(fileName, array, compression=None):
 
     outTiff = TIFF.open(fileName, mode='w')
 
-    array = array.astype(dtype=np.uint16) # cast array to uint16
+    array = array.squeeze().astype(dtype=np.uint16) # cast array to uint16
 
     ndims = len(array.shape)
 
@@ -21,7 +20,7 @@ def writeTiff(fileName, array, compression=None):
         outTiff.write_image(array, compression=compression, write_rgb=False)
 
     else:
-        print("Error in writeTiff: input array of dimension %d is not supported. Make sure the array has 1-3 dimensions." % ndims)
+        raise ValueError('Input array must have between 1 and 3 dimensions')
 
     outTiff.close()
 

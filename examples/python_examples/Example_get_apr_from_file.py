@@ -2,23 +2,17 @@ import os, sys
 import argparse
 
 
-sys.path.insert(0, "../../cmake-build-release")
+sys.path.insert(0, "../../cmake-build-release")  #change this to your build folder
 import pyApr
 
 """
     Example script that computes an APR from a .tif image and saves the APR to a HDF5 file in directory of the input file.
     
     Usage: python Example_get_apr_from_file.py -d /Users/foo/Documents/myDir/ -i myImage.tif -o myAPR
-
 """
-def main():
-    parser = argparse.ArgumentParser(description="Set input and output names and folder")
-    parser.add_argument('--input', '-i', type=str, help="Name of the input .tif image")
-    parser.add_argument('--directory', '-d', type=str, help="Directory of the input file")
-    parser.add_argument('--output', '-o', type=str, help="Name of the output HDF5 file")
-    args = parser.parse_args()
+def main(args):
 
-    filePath = args.directory + args.input
+    filePath = os.path.join(args.directory, args.input)
 
     apr = pyApr.AprShort()         # assuming 16 bit integers
 
@@ -40,13 +34,19 @@ def main():
 
     apr.get_apr_from_file(filePath)
 
-    outPath = args.directory + args.output
+    outPath = os.path.join(args.directory, args.output)
 
     apr.write_apr(outPath)
 
 
 if __name__ == '__main__':
-    main()
+    parser = argparse.ArgumentParser(description="Example script: compute the APR from a TIFF image and write the result to a HDF5 file.")
+    parser.add_argument('--input', '-i', type=str, help="Name of the input .tif image")
+    parser.add_argument('--directory', '-d', type=str, help="Directory of the input file")
+    parser.add_argument('--output', '-o', type=str, help="Name of the output HDF5 file")
+    args = parser.parse_args()
+
+    main(args)
 
 
 

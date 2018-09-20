@@ -68,7 +68,7 @@ void AddPyPixelData(pybind11::module &m, const std::string &aTypeString) {
                         py::format_descriptor<DataType>::format(),
                         3,
                         {a.width(), a.height(), a.depth()},
-                        {sizeof(DataType) * a.height(), sizeof(DataType), sizeof(DataType) * a.width() * a.height()}
+                        {sizeof(DataType) * a.height(), sizeof(DataType), sizeof(DataType) * a.height() * a.width()}
                 );
             });
 }
