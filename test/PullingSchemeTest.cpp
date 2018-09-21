@@ -29,7 +29,7 @@ namespace {
         for (int l = 0; l < particleCellTree.size(); ++l) {
             auto &tree = particleCellTree[l];
             std::cout << "-- level = " << l << ",  " << tree << std::endl;
-            tree.printMesh(3,0);
+            tree.printMeshT(3,0);
         }
     }
 
@@ -38,8 +38,8 @@ namespace {
         APRAccess access;
         access.l_max = 4;
         access.l_min = 1;
-        access.org_dims[0] = 1;
-        access.org_dims[1] = 32;
+        access.org_dims[0] = 16;
+        access.org_dims[1] = 1;
         access.org_dims[2] = 1;
 
         PullingScheme ps;
@@ -60,7 +60,7 @@ namespace {
 
         // Generate mesh with test levels
         PixelData<float> levels(pctree.back(), false);// = generateLevels(pctree[access.l_max - 1], access.l_max);
-        float values[] = {3,2,3,3, 1,3,2,2, 1,2,3,4, 1,1,1,1};
+        float values[] = {9,0,0,0, 0,0,0,0};
         initFromZYXarray(levels, values);
 
         // Fill particle cell tree with levels
@@ -68,7 +68,7 @@ namespace {
         int l_min = access.l_min;
         ps.fill(l_max, levels);
 
-        levels.printMesh(3,0);
+        levels.printMeshT(3,0);
 
         PixelData<float> levelsDS;
         for(int l_ = l_max - 1; l_ >= l_min; l_--){
@@ -77,7 +77,7 @@ namespace {
                        [](const float &x, const float &y) -> float { return std::max(x, y); },
                        [](const float &x) -> float { return x; }, true);
             ps.fill(l_,levelsDS);
-            levelsDS.printMesh(3,0);
+            levelsDS.printMeshT(3,0);
             levels.swap(levelsDS);
         }
 
@@ -94,8 +94,36 @@ namespace {
         printParticleCellTree(pctree);
         std::cout << "<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<\n";
 
-        //        printParticleCellTree(pctree);
+        access.initialize_structure_from_particle_cell_tree(false, ps.getParticleCellTree());
+        std::cout << "NUM OF PARTICLES: " << access.get_total_number_particles() << std::endl;
+
+
+        APRIterator apr_iterator(access);
+        std::cout << "Total number of particles: " << apr_iterator.total_number_particles() << std::endl;
+
+        int prev = 0;
+        for (unsigned int level = apr_iterator.level_min(); level <= apr_iterator.level_max(); ++level) {
+            std::cout << "Level: " << level << std::endl;
+            int w = (int) (std::pow(2, 5-level) * 3);
+            for (int z = 0; z < apr_iterator.spatial_index_z_max(level); ++z) {
+                for (int x = 0; x < apr_iterator.spatial_index_x_max(level); ++x) {
+                    for (apr_iterator.set_new_lzx(level, z, x); apr_iterator.global_index() < apr_iterator.end_index; apr_iterator.set_iterator_to_particle_next_particle()) {
+                        for (int i = prev; i < apr_iterator.y(); ++i )  std::cout << std::setw(w) << ".";
+                        std::cout << std::setw(w) << apr_iterator.y();
+                        prev = apr_iterator.y() + 1;
+                    }
+                    for (int pp = prev; pp < apr_iterator.spatial_index_y_max(level); ++pp)
+                        std::cout << std::setw(w) << ".";
+
+                    prev = 0;
+                    std::cout << std::endl;
+                }
+                std::cout << std::endl;
+            }
+        }
+
     }
+
 #ifdef APR_USE_CUDA
     TEST(PullingSchemeTest, computeLevels) {
         using ImgType = float;
