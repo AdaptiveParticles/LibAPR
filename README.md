@@ -131,6 +131,10 @@ Example usage of the available functionality:
 
 Note that you may have to manually change the `sys.path.insert()` statements before `import pyApr` in these scripts to insert your build folder.
 
+## Java wrappers
+
+Basic Java wrappers can be found at [LibAPR-java-wrapper](https://github.com/krzysg/LibAPR-java-wrapper)
+
 ## Coming soon
 
 * more examples for APR-based filtering and segmentation
@@ -138,6 +142,8 @@ Note that you may have to manually change the `sys.path.insert()` statements bef
 * support for loading the APR in [Fiji](https://fiji.sc), including [scenery-based](https://github.com/scenerygraphics/scenery) 3D rendering
 * improved java wrapper support
 * CUDA GPU-accelerated APR generation and processing
+* Block based decomposition for extremely large images.
+* Time series support.
 
 ## Contact us
 
@@ -149,4 +155,4 @@ If anything is not working as you think it should, or would like it to, please g
 
 If you use this library in an academic context, please cite the following paper:
 
-* Cheeseman, Günther, Susik, Gonciarz, Sbalzarini: _Forget Pixels: Adaptive Particle Representation of Fluorescence Microscopy Images_ (bioRxiv 2018) https://www.biorxiv.org/content/early/2018/02/09/263061
+* Cheeseman, Günther, Susik, Gonciarz, Sbalzarini: _Forget Pixels: Adaptive Particle Representation of Fluorescence Microscopy Images_ (bioRxiv 2018) https://www.biorxiv.org/content/early/2018/06/28/263061
