@@ -33,6 +33,8 @@ public:
     float noise_sd_estimate = 0;
     float background_intensity_estimate = 0;
 
+    bool auto_parameters = true;
+
     bool normalized_input = false;
 
     bool neighborhood_optimization = true;
