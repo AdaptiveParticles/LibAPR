@@ -37,19 +37,13 @@ public:
 
     inline bool set_neighbour_iterator(APRIterator &original_iterator, const uint8_t& direction, const uint8_t& index);
 protected:
-
     bool find_next_child(const uint8_t& direction,const uint8_t& index);
-
 
     uint64_t start_index(const uint16_t level, const uint64_t offset);
 
-
     uint64_t max_row_level_offset(const uint16_t x,const uint16_t z,const uint16_t num_parts);
 
-
-
 };
-
 
 
 uint64_t APRIterator::start_index(const uint16_t level, const uint64_t offset){

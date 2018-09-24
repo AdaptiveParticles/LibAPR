@@ -52,6 +52,7 @@ public:
     template<typename T>
     void auto_parameters(const PixelData<T> &input_img);
 
+
 private:
 
     //pointer to the APR structure so member functions can have access if they need
@@ -138,23 +139,22 @@ inline bool APRConverter<ImageType>::get_apr_method_from_file(APR<ImageType> &aA
             for (size_t i = 0; i < inputImage.mesh.size(); ++i) {
                 inputImage.mesh[i] = (inputImage.mesh[i] - mm.min) * maxValue / (mm.max - mm.min);
             }
-        }
 
-        //normalize the input parameters if required
-        if(par.Ip_th!=-1){
-            std::cout << "Scaled input intensity threshold" << std::endl;
-            par.Ip_th = (par.Ip_th - mm.min)* maxValue / (mm.max - mm.min);
-        }
+            //normalize the input parameters if required
+            if(par.Ip_th!=-1){
+                std::cout << "Scaled input intensity threshold" << std::endl;
+                par.Ip_th = (par.Ip_th - mm.min)* maxValue / (mm.max - mm.min);
+            }
 
-        if(par.min_signal!=-1){
-            std::cout << "Scaled input min signal threshold" << std::endl;
-            par.min_signal = (par.min_signal)* maxValue / (mm.max - mm.min);
+            if(par.min_signal!=-1){
+                std::cout << "Scaled input min signal threshold" << std::endl;
+                par.min_signal = (par.min_signal)* maxValue / (mm.max - mm.min);
+            }
         }
-
     }
 
 
-    auto_parameters(inputImage);
+    //auto_parameters(inputImage);
     method_timer.stop_timer();
 
     return get_apr_method(aAPR, inputImage);
@@ -165,7 +165,12 @@ inline bool APRConverter<ImageType>::get_apr_method_from_file(APR<ImageType> &aA
  */
 template<typename ImageType> template<typename T>
 inline bool APRConverter<ImageType>::get_apr_method(APR<ImageType> &aAPR, PixelData<T>& input_image) {
+
     apr = &aAPR; // in case it was called directly
+
+    if( par.auto_parameters ) {
+        auto_parameters(input_image);
+    }
 
     total_timer.start_timer("Total_pipeline_excluding_IO");
 
