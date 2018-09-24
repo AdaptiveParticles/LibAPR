@@ -3,9 +3,15 @@
 //
 
 #include <pybind11/pybind11.h>
+#include <pybind11/stl.h>
+#include <pybind11/numpy.h>
 
 #include "ConfigAPR.h"
 #include "data_structures/APR/APR.hpp"
+
+#include "PyPixelData.hpp"
+#include "PyAPR.hpp"
+
 
 namespace py = pybind11;
 
@@ -14,64 +20,48 @@ namespace py = pybind11;
 #error "Name of APR module (python binding) is not defined!"
 #endif
 
-// TODO: If more classes added wrappers should be moved to seperate files, only
-//       module definition shold be kept here
-// -------- Utility classes to be wrapped in python ----------------------------
-template <typename T>
-class AprToImg {
-    PixelData <T> reconstructedImage;
-
-public:
-    AprToImg () {}
-    void read(const std::string &aAprFileName) {
-        APR <T> apr;
-        apr.read_apr(aAprFileName);
-
-        apr.apr_tree.init(apr);
-        
-        apr.apr_tree.fill_tree_mean_downsample(apr.apr_tree.particles_ds_tree);
-
-        ReconPatch r;
-        APRReconstruction().interp_image_patch(apr, apr.apr_tree, reconstructedImage, apr.particles_intensities, apr.apr_tree.particles_ds_tree, r);
-   }
-
-    T *data() {return reconstructedImage.mesh.get();}
-    int height() const {return reconstructedImage.x_num;}
-    int width() const {return reconstructedImage.y_num;}
-    int depth() const {return reconstructedImage.z_num;}
-};
-
-// -------- Templated wrapper -------------------------------------------------
-template <typename DataType>
-void AddAprToImg(pybind11::module &m, const std::string &aTypeString) {
-    using AprType = AprToImg<DataType>;
-    std::string typeStr = "Apr" + aTypeString;
-    py::class_<AprType>(m, typeStr.c_str(), py::buffer_protocol())
-            .def(py::init())
-            .def("read", &AprType::read, "Method to read HDF5 APR files")
-            .def("width", &AprType::width, "Returns number of columns (x)")
-            .def("height", &AprType::height, "Returns number of rows (y)")
-            .def("depth", &AprType::depth, "Returns depth (z)")
-            .def_buffer([](AprType &a) -> py::buffer_info{
-                return py::buffer_info(
-                        a.data(),
-                        sizeof(DataType),
-                        py::format_descriptor<DataType>::format(),
-                        3,
-                        {a.depth(), a.height(), a.width()},
-                        {sizeof(DataType) * a.width() * a.height(), sizeof(DataType) * a.width(), sizeof(DataType)}
-                );
-            });
-}
-
-
 // -------- Definition of python module ---------------------------------------
 PYBIND11_MODULE(APR_PYTHON_MODULE_NAME, m) {
     m.doc() = "python binding for LibAPR library";
-    m.attr("__version__") = pybind11::str(ConfigAPR::APR_VERSION);
+    m.attr("__version__") = py::str(ConfigAPR::APR_VERSION);
 
-    AddAprToImg<uint8_t>(m, "Byte");
-    AddAprToImg<uint16_t>(m, "Short");
-    AddAprToImg<float>(m, "Float");
+    //wrap the PyAPR class for different data types
+    AddPyAPR<uint8_t>(m, "Byte");
+    AddPyAPR<uint16_t>(m, "Short");
+    AddPyAPR<float>(m, "Float");
+
+    //wrap the PyPixelData class for different data types
+    AddPyPixelData<uint8_t>(m, "Byte");
+    AddPyPixelData<uint16_t>(m, "Short");
+    AddPyPixelData<float>(m, "Float");
+
+    // wrap the APRParameters class
+    py::class_<APRParameters>(m, "APRParameters")
+            .def(py::init())
+            .def_readwrite("dx", &APRParameters::dx)
+            .def_readwrite("dy", &APRParameters::dy)
+            .def_readwrite("dz", &APRParameters::dz)
+            .def_readwrite("psfx", &APRParameters::psfx)
+            .def_readwrite("psfy", &APRParameters::psfy)
+            .def_readwrite("psfz", &APRParameters::psfz)
+            .def_readwrite("Ip_th", &APRParameters::Ip_th)
+            .def_readwrite("SNR_min", &APRParameters::SNR_min)
+            .def_readwrite("lmbda", &APRParameters::lambda) // lambda is reserved in python
+            .def_readwrite("min_signal", &APRParameters::min_signal)
+            .def_readwrite("rel_error", &APRParameters::rel_error)
+            .def_readwrite("sigma_th", &APRParameters::sigma_th)
+            .def_readwrite("sigma_th_max", &APRParameters::sigma_th_max)
+            .def_readwrite("noise_sd_estimate", &APRParameters::noise_sd_estimate)
+            .def_readwrite("background_intensity_estimate", &APRParameters::background_intensity_estimate)
+            .def_readwrite("auto_parameters", &APRParameters::auto_parameters)
+            .def_readwrite("normalized_input", &APRParameters::normalized_input)
+            .def_readwrite("neighborhood_optimization", &APRParameters::neighborhood_optimization)
+            .def_readwrite("output_steps", &APRParameters::output_steps)
+            .def_readwrite("name", &APRParameters::name)
+            .def_readwrite("output_dir", &APRParameters::output_dir)
+            .def_readwrite("input_image_name", &APRParameters::input_image_name)
+            .def_readwrite("input_dir", &APRParameters::input_dir)
+            .def_readwrite("mask_file", &APRParameters::mask_file);
+
 }
 

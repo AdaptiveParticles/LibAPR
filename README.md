@@ -7,6 +7,7 @@ Library for producing and processing on the Adaptive Particle Representation (AP
 Labeled Zebrafish nuclei: Gopi Shah, Huisken Lab ([MPI-CBG](https://www.mpi-cbg.de), Dresden and [Morgridge Institute for Research](https://morgridge.org/research/medical-engineering/huisken-lab/), Madison); see also [Schmid et al., _Nature Communications_ 2017](https://www.nature.com/articles/ncomms3207)
 
 [![Build Status](https://travis-ci.org/cheesema/LibAPR.svg?branch=master)](https://travis-ci.org/cheesema/LibAPR)
+[![DOI](https://zenodo.org/badge/70479293.svg)](https://zenodo.org/badge/latestdoi/70479293)
 
 ## Dependencies
 
@@ -114,14 +115,36 @@ All examples except Example_get_apr require an already produced APR, such as tho
 
 For tutorial on how to use the examples, and explanation of data-structures see [the library guide](./docs/lib_guide.pdf).
 
+## Python support
+
+Basic functionality is supported in Python through wrappers. To build the python module,
+use the CMake option 
+
+`-DAPR_BUILD_PYTHON_WRAPPERS=ON`
+
+Example usage of the available functionality:
+
+| Example | How to ... |
+|:--|:--|
+| [Example_get_apr_from_array](./examples/python_examples/Example_get_apr_from_array.py) | create an APR from an ndarray and store as hdf5. |
+| [Example_get_apr_from_file](./examples/python_examples/Example_get_apr_from_file.py) | create an APR from a TIFF and store as hdf5. |
+| [Example_reconstruct_image](./examples/python_examples/Example_reconstruct_image.py) | read in an APR and reconstruct a pixel image |
+
+Note that you may have to manually change the `sys.path.insert()` statements before `import pyApr` in these scripts to insert your build folder.
+
+## Java wrappers
+
+Basic Java wrappers can be found at [LibAPR-java-wrapper](https://github.com/krzysg/LibAPR-java-wrapper)
+
 ## Coming soon
 
 * more examples for APR-based filtering and segmentation
 * deployment of the Java wrappers to Maven Central so they can be used in your project directly
 * support for loading the APR in [Fiji](https://fiji.sc), including [scenery-based](https://github.com/scenerygraphics/scenery) 3D rendering
-* basic python wrapper support
 * improved java wrapper support
 * CUDA GPU-accelerated APR generation and processing
+* Block based decomposition for extremely large images.
+* Time series support.
 
 ## Contact us
 
@@ -133,4 +156,4 @@ If anything is not working as you think it should, or would like it to, please g
 
 If you use this library in an academic context, please cite the following paper:
 
-* Cheeseman, Günther, Susik, Gonciarz, Sbalzarini: _Forget Pixels: Adaptive Particle Representation of Fluorescence Microscopy Images_ (bioRxiv 2018) https://www.biorxiv.org/content/early/2018/02/09/263061
+* Cheeseman, Günther, Susik, Gonciarz, Sbalzarini: _Forget Pixels: Adaptive Particle Representation of Fluorescence Microscopy Images_ (bioRxiv 2018) https://www.biorxiv.org/content/early/2018/06/28/263061
