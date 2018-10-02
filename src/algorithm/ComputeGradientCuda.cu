@@ -48,7 +48,7 @@ namespace {
     }
 
     template<typename T>
-    BsplineParams prepareBsplineStuff(const PixelData<T> &image, float lambda, float tol) {
+    BsplineParams prepareBsplineStuff(const PixelData<T> &image, float lambda, float tol, int maxFilterLen = -1) {
         // Recursive Filter Implimentation for Smoothing BSplines
         // B-Spline Signal Processing: Part II - Efficient Design and Applications, Unser 1993
 
@@ -66,7 +66,7 @@ namespace {
 
         const size_t idealK0Len = ceil(std::abs(log(tol) / log(rho)));
         const size_t minDimension = std::min(image.z_num, std::min(image.x_num, image.y_num));
-        const size_t k0 = std::min(idealK0Len, minDimension);
+        const size_t k0 = maxFilterLen > 0 ? maxFilterLen : std::min(idealK0Len, minDimension);
 
         const float norm_factor = pow((1 - 2.0 * rho * cos(omg) + pow(rho, 2)), 2);
         std::cout << "GPU: xi=" << xi << " rho=" << rho << " omg=" << omg << " gamma=" << gamma << " b1=" << b1
@@ -335,12 +335,12 @@ template class GpuProcessingTask<float>;
 // TODO: should be moved somewhere
 
 // explicit instantiation of handled types
-template void cudaFilterBsplineFull(PixelData<float> &, float, float, TypeOfRecBsplineFlags);
+template void cudaFilterBsplineFull(PixelData<float> &, float, float, TypeOfRecBsplineFlags, int);
 template <typename ImgType>
-void cudaFilterBsplineFull(PixelData<ImgType> &input, float lambda, float tolerance, TypeOfRecBsplineFlags flags) {
+void cudaFilterBsplineFull(PixelData<ImgType> &input, float lambda, float tolerance, TypeOfRecBsplineFlags flags, int maxFilterLen) {
     cudaStream_t  aStream = 0;
 
-    BsplineParams p = prepareBsplineStuff(input, lambda, tolerance);
+    BsplineParams p = prepareBsplineStuff(input, lambda, tolerance, maxFilterLen);
     ScopedCudaMemHandler<float*, H2D> bc1(p.bc1.get(), p.k0);
     ScopedCudaMemHandler<float*, H2D> bc2(p.bc2.get(), p.k0);
     ScopedCudaMemHandler<float*, H2D> bc3(p.bc3.get(), p.k0);
