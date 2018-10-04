@@ -64,6 +64,11 @@ public:
         std::swap(iArray, aObj.iArray);
     }
 
+    friend std::ostream & operator<<(std::ostream &os, const ArrayWrapper<T> &obj) {
+        os << "ArrayWrapper: size:" << obj.size() << " elementSize:" << sizeof(T) << " sizeInBytes:" << obj.size() * sizeof(T);
+        return os;
+    }
+
 private:
     ArrayWrapper(const ArrayWrapper&) = delete; // make it noncopyable
     ArrayWrapper& operator=(const ArrayWrapper&) = delete; // make it not assignable
@@ -527,7 +532,7 @@ public :
     }
 
     friend std::ostream & operator<<(std::ostream &os, const PixelData<T> &obj) {
-        os << "PixelData: size(Y/X/Z)=" << obj.y_num << "/" << obj.x_num << "/" << obj.z_num << " vSize:" << obj.mesh.size() << " vCapacity:" << obj.mesh.capacity() << " elementSize:" << sizeof(T);
+        os << "PixelData: size(Y/X/Z)=" << obj.y_num << "/" << obj.x_num << "/" << obj.z_num << " " << obj.mesh << " ";
         return os;
     }
 

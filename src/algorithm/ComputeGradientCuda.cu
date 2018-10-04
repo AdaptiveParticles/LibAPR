@@ -345,7 +345,7 @@ void cudaFilterBsplineFull(PixelData<ImgType> &input, float lambda, float tolera
     ScopedCudaMemHandler<float*, H2D> bc2(p.bc2.get(), p.k0);
     ScopedCudaMemHandler<float*, H2D> bc3(p.bc3.get(), p.k0);
     ScopedCudaMemHandler<float*, H2D> bc4(p.bc4.get(), p.k0);
-    ScopedCudaMemHandler<PixelData<float>, D2H | H2D> cudaInput(input);
+    ScopedCudaMemHandler<PixelData<ImgType>, D2H | H2D> cudaInput(input);
 
     if (flags & BSPLINE_Y_DIR) {
         int boundaryLen = (2 /*two first elements*/ + 2 /* two last elements */) * input.x_num * input.z_num;

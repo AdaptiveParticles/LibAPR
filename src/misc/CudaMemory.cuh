@@ -22,7 +22,7 @@ inline cudaError_t checkCuda(cudaError_t result) {
 
 inline void* getPinnedMemory(size_t aNumOfBytes) {
     void *memory = nullptr;
-    // cudaError_t result =
+//    cudaError_t result =
     checkCuda(cudaMallocHost(&memory, aNumOfBytes) );
 //    std::cout << "Allocating pinned memory " << aNumOfBytes << " at " << memory << " result " << result << std::endl;
     return memory;
