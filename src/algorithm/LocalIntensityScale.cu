@@ -361,8 +361,10 @@ template void runLocalIntensityScalePipeline<float,float>(const PixelData<float>
 template <typename T>
 void calcMean(PixelData<T> &image, int offset, TypeOfMeanFlags flags) {
     ScopedCudaMemHandler<PixelData<T>, H2D | D2H> cudaImage(image);
-
+    APRTimer timer(true);
+    timer.start_timer("GpuDeviceTimeFull");
     runMean(cudaImage.get(), image, offset, offset, offset, flags, 0);
+    timer.stop_timer();
 }
 
 // explicit instantiation of handled types

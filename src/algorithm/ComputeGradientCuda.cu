@@ -347,6 +347,8 @@ void cudaFilterBsplineFull(PixelData<ImgType> &input, float lambda, float tolera
     ScopedCudaMemHandler<float*, H2D> bc4(p.bc4.get(), p.k0);
     ScopedCudaMemHandler<PixelData<ImgType>, D2H | H2D> cudaInput(input);
 
+    APRTimer timer(true);
+    timer.start_timer("GpuDeviceTimeFull");
     if (flags & BSPLINE_Y_DIR) {
         int boundaryLen = (2 /*two first elements*/ + 2 /* two last elements */) * input.x_num * input.z_num;
         ScopedCudaMemHandler<float*, JUST_ALLOC> boundary(nullptr, boundaryLen); // allocate memory on device
@@ -358,6 +360,7 @@ void cudaFilterBsplineFull(PixelData<ImgType> &input, float lambda, float tolera
     if (flags & BSPLINE_Z_DIR) {
         runBsplineZdir(cudaInput.get(), input.x_num, input.y_num, input.z_num, bc1.get(), bc2.get(), bc3.get(), bc4.get(), p.k0, p.b1, p.b2, p.norm_factor, aStream);
     }
+    timer.stop_timer();
 }
 
 // explicit instantiation of handled types
