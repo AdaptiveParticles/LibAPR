@@ -203,7 +203,7 @@ __global__ void meanZdir(T *image, int offset, size_t x_num, size_t y_num, size_
         // Pointer in circular buffer
         int beginPtr = offset;
 
-        // main loop going through all elements in range [0, x_num-offset)
+        // main loop going through all elements in range [0, z_num-offset)
         for (int z = 0; z < z_num - offset; ++z) {
             // Read new element
             T v = image[workerOffset + currElementOffset];
