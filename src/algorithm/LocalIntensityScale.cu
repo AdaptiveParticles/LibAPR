@@ -102,8 +102,8 @@ __global__ void meanXdir(T *image, int offset, size_t x_num, size_t y_num, size_
     float (*data)[NumberOfWorkers] = (float (*)[NumberOfWorkers])sharedMem;
 
     const int divisor = 2 * offset  + 1;
-    int currElementOffset = 0;
-    int saveElementOffset = 0;
+    size_t currElementOffset = 0;
+    size_t saveElementOffset = 0;
 
     if (workerYoffset < y_num) {
         // clear shared mem
@@ -182,8 +182,8 @@ __global__ void meanZdir(T *image, int offset, size_t x_num, size_t y_num, size_
     float (*data)[NumberOfWorkers] = (float (*)[NumberOfWorkers])sharedMem;
 
     const int divisor = 2 * offset  + 1;
-    int currElementOffset = 0;
-    int saveElementOffset = 0;
+    size_t currElementOffset = 0;
+    size_t saveElementOffset = 0;
 
     if (workerYoffset < y_num) {
         // clear shared mem
