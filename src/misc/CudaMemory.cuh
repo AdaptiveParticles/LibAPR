@@ -26,7 +26,7 @@ inline void* getPinnedMemory(size_t aNumOfBytes) {
     checkCuda(cudaMallocHost(&memory, aNumOfBytes) );
 //    std::cout << "Allocating pinned memory " << aNumOfBytes << " at " << memory << " result " << result << std::endl;
     return memory;
-};
+}
 
 inline void freePinnedMemory(void *aMemory) {
 //    std::cout << "Freeing pinned memory " << aMemory << std::endl;
