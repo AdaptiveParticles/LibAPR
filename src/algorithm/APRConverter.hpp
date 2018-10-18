@@ -10,6 +10,7 @@
 #define __APR_CONVERTER_HPP__
 
 #include <list>
+#include <data_structures/APR/APR.hpp>
 
 #include "data_structures/APR/APR.hpp"
 #include "data_structures/Mesh/PixelData.hpp"
@@ -19,6 +20,7 @@
 #include "LocalParticleCellSet.hpp"
 #include "LocalIntensityScale.hpp"
 #include "ComputeGradient.hpp"
+#include "algorithm/OVPC.h"
 
 #ifdef APR_USE_CUDA
 #include "algorithm/ComputeGradientCuda.hpp"
@@ -303,6 +305,7 @@ inline bool APRConverter<ImageType>::get_apr_method(APR<ImageType> &aAPR, PixelD
 
             d.start_timer("2 - copy LST");
             PixelData<float> lst(local_scale_temp, true);
+            PixelData<float> lst2(local_scale_temp, true);
             d.stop_timer();
 
             d.start_timer("3 - get local particle cell set");
@@ -314,10 +317,16 @@ inline bool APRConverter<ImageType>::get_apr_method(APR<ImageType> &aAPR, PixelD
             iPullingScheme.pulling_scheme_main();
             d.stop_timer();
 
+            d.start_timer("4 - new pulling main");
+            OVPC nps(aAPR.apr_access, lst2);
+            nps.generateTree();
+            d.stop_timer();
+
+
             PixelData<T> &inImg = input_image; // user redy data and later...
 
             d.start_timer("5 - init struct from particle cell tree");
-            aAPR.apr_access.initialize_structure_from_particle_cell_tree(aAPR.parameters.neighborhood_optimization, iPullingScheme.getParticleCellTree());
+            aAPR.apr_access.initialize_structure_from_particle_cell_tree(aAPR.parameters.neighborhood_optimization, nps.getParticleCellTree());
             d.stop_timer();
 
             d.start_timer("6 - downsample pyramid");

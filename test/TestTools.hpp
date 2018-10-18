@@ -62,7 +62,7 @@ inline int compareMeshes(const PixelData<T> &expected, const PixelData<T> &teste
         if (std::abs(expected.mesh[i] - tested.mesh[i]) > maxError || std::isnan(expected.mesh[i]) ||
             std::isnan(tested.mesh[i])) {
             if (cnt < maxNumOfErrPrinted || maxNumOfErrPrinted == -1) {
-                std::cout << "ERROR expected vs tested mesh: " << expected.mesh[i] << " vs " << tested.mesh[i] << " IDX:" << tested.getStrIndex(i) << std::endl;
+                std::cout << "ERROR expected vs tested mesh: " << (float)expected.mesh[i] << " vs " << (float)tested.mesh[i] << " IDX:" << tested.getStrIndex(i) << std::endl;
             }
             cnt++;
         }

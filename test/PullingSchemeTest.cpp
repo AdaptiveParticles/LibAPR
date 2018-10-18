@@ -8,8 +8,10 @@
 #include "data_structures/APR/APR.hpp"
 //#include "data_structures/APR/APRAccess.hpp"
 #include "algorithm/PullingScheme.hpp"
+#include "algorithm/OVPC.h"
 #include "TestTools.hpp"
 #ifdef APR_USE_CUDA
+#include "algorithm/PullingSchemeCuda.hpp"
 #include "algorithm/ComputeGradientCuda.hpp"
 #endif
 
@@ -25,20 +27,93 @@ namespace {
         return levels;
     }
 
-    void printParticleCellTree(const std::vector<PixelData<uint8_t>> &particleCellTree) {
+    template <typename T>
+    void printParticleCellTree(const std::vector<PixelData<T>> &particleCellTree) {
         for (int l = 0; l < particleCellTree.size(); ++l) {
             auto &tree = particleCellTree[l];
-            std::cout << "-- level = " << l << ",  " << tree << std::endl;
+//            std::cout << "-- level = " << l << ",  " << tree << std::endl;
             tree.printMeshT(3,0);
         }
+    }
+
+    template <typename T>
+    inline int compareParticleCellTrees(const PixelData<T> &expected, const PixelData<T> &tested, double maxError = 0.0001, int maxNumOfErrPrinted = 3) {
+        int cnt = 0;
+        int numOfParticles = 0;
+        for (size_t i = 0; i < expected.mesh.size(); ++i) {
+            if (expected.mesh[i] < 8) {
+            if (std::abs(expected.mesh[i] - tested.mesh[i]) > maxError || std::isnan(expected.mesh[i]) ||
+                std::isnan(tested.mesh[i])) {
+                if (cnt < maxNumOfErrPrinted || maxNumOfErrPrinted == -1) {
+                    std::cout << "ERROR expected vs tested mesh: " << (float)expected.mesh[i] << " vs " << (float)tested.mesh[i] << " IDX:" << tested.getStrIndex(i) << std::endl;
+                }
+                cnt++;
+            }
+                if (expected.mesh[i] > 0) numOfParticles++;
+            }
+        }
+        std::cout << "Number of errors / all points: " << cnt << " / " << expected.mesh.size() << " Particles:" << numOfParticles << std::endl;
+        return cnt;
+    }
+
+    TEST(PullingSchemeTest, NEWvsOLD) {
+        APRAccess access;
+        access.l_max = 9;
+        access.l_min = 1;
+        access.org_dims[0] = std::pow(2, access.l_max);
+        access.org_dims[1] = std::pow(2, access.l_max);
+        access.org_dims[2] = std::pow(2, access.l_max);
+        int l = access.l_max - 1;
+
+        PixelData<int> levels = getRandInitializedMesh<int>(access.org_dims[0]/2,access.org_dims[1]/2,access.org_dims[2]/2, access.l_max + 1);
+        PixelData<int> levels2(levels, true);
+//        float values[] = {1, 1, 4, 1,    1, 1, 1, 1,    1, 1, 3, 3,    1, 1, 1, 1, 1, 1, 4, 1,    1, 1, 1, 1,    1, 1, 3, 3,    1, 1, 1, 1};
+//        initFromZYXarray(levels, values);
+
+//        levels.printMeshT(3, 1);
+
+        APRTimer t(true);
+
+        t.start_timer("PS1");
+        PullingScheme ps;
+        ps.initialize_particle_cell_tree(access);
+        int l_max = access.l_max - 1;
+        int l_min = access.l_min;
+        ps.fill(l_max, levels);
+        PixelData<int> levelsDS;
+        for(int l_ = l_max - 1; l_ >= l_min; l_--){
+            downsample(levels, levelsDS,
+                       [](const float &x, const float &y) -> float { return std::max(x, y); },
+                       [](const float &x) -> float { return x; }, true);
+            ps.fill(l_,levelsDS);
+            levels.swap(levelsDS);
+        }
+        t.stop_timer();
+        t.start_timer("PS2");
+        ps.pulling_scheme_main();
+        t.stop_timer();
+
+        t.start_timer("OVPC1");
+        OVPC nps(access, levels2);
+        t.stop_timer();
+        t.start_timer("OVPC2");
+        nps.generateTree();
+        t.stop_timer();
+
+//        printParticleCellTree(nps.getParticleCellTree());
+//        printParticleCellTree(ps.getParticleCellTree());
+
+        for (l = l_min; l <= l_max; ++l)
+        compareParticleCellTrees(ps.getParticleCellTree()[l], nps.getParticleCellTree()[l]);
+
     }
 
     TEST(PullingSchemeTest, Init) {
 
         APRAccess access;
-        access.l_max = 4;
+        access.l_max = 5;
         access.l_min = 1;
-        access.org_dims[0] = 16;
+        access.org_dims[0] = 32;
         access.org_dims[1] = 1;
         access.org_dims[2] = 1;
 
@@ -60,15 +135,27 @@ namespace {
 
         // Generate mesh with test levels
         PixelData<float> levels(pctree.back(), false);// = generateLevels(pctree[access.l_max - 1], access.l_max);
-        float values[] = {9,0,0,0, 0,0,0,0};
+//        float values[] = {4, 1, 1, 1,    1, 1, 1, 2};
+        float values[] = {1, 1, 4, 1,    1, 1, 1, 1,    1, 1, 3, 3,    1, 1, 1, 1};
         initFromZYXarray(levels, values);
 
+
+        OVPC nps(access, levels);
+        std::cout << ">>>>>>>>>>>>>>>>>>>>>>>>      NPS1:\n";
+        printParticleCellTree(nps.getParticleCellTree());
+        std::cout << ">>>>>>>>>>>>>>>>>>>>>>>>      NPS1:\n";
+        nps.generateTree();
+        std::cout << ">>>>>>>>>>>>>>>>>>>>>>>>      NPS2:\n";
+        printParticleCellTree(nps.getParticleCellTree());
+        std::cout << ">>>>>>>>>>>>>>>>>>>>>>>>      NPS2:\n";
         // Fill particle cell tree with levels
         int l_max = access.l_max - 1;
         int l_min = access.l_min;
         ps.fill(l_max, levels);
 
+        std::cout << ">>>>>>>>>>>>>>>>>>>>>>>>      LEVELS:\n";
         levels.printMeshT(3,0);
+        std::cout << ">>>>>>>>>>>>>>>>>>>>>>>>      LEVELS:\n";
 
         PixelData<float> levelsDS;
         for(int l_ = l_max - 1; l_ >= l_min; l_--){
@@ -76,6 +163,7 @@ namespace {
             downsample(levels, levelsDS,
                        [](const float &x, const float &y) -> float { return std::max(x, y); },
                        [](const float &x) -> float { return x; }, true);
+            levelsDS.printMeshT(3, 0);
             ps.fill(l_,levelsDS);
             levelsDS.printMeshT(3,0);
             levels.swap(levelsDS);
@@ -137,16 +225,37 @@ namespace {
         PixelData<float> elo(localIntensityScaleCpu, true);
         APRTimer timer(true);
 
-        timer.start_timer("CPU PS FULL");
+        timer.start_timer("CPU Levels");
         APRConverter<ImgType>().computeLevels(grad, localIntensityScaleCpu, maxLevel, relError);
         timer.stop_timer();
 
-        timer.start_timer("GPU PS FULL");
+        timer.start_timer("GPU Levels");
         computeLevelsCuda(grad, localIntensityScaleGpu, maxLevel, relError);
         timer.stop_timer();
 
         EXPECT_EQ(compareMeshes(localIntensityScaleCpu, localIntensityScaleGpu), 0);
     }
+
+
+
+    TEST(PullingSchemeTest, DS) {
+//        APRAccess access;
+//        access.l_max = 9;
+//        access.l_min = 1;
+//        access.org_dims[0] = std::pow(2, access.l_max);
+//        access.org_dims[1] = std::pow(2, access.l_max);
+//        access.org_dims[2] = std::pow(2, access.l_max);
+//        int l = access.l_max - 1;
+
+        PixelData<float> levels(16,1,1);
+        float values[] = {4, 1, 1, 1,   1, 1, 1, 2,   3, 1, 1, 1,   1, 1, 1, 2};
+        initFromZYXarray(levels, values);
+
+        PixelData<float> ds; ds.initDownsampled(levels);
+        computeOVPC(levels, ds, 1, 4);
+        ds.printMeshT(3,1);
+    }
+
 #endif
 }
 

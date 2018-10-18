@@ -161,6 +161,7 @@ if(APR_USE_CUDA)
 	        src/algorithm/ComputeGradientCuda.cu
             src/data_structures/Mesh/PixelData.cu
             src/algorithm/LocalIntensityScale.cu
+            src/algorithm/OVPC.cu
             )
     include_directories(${CMAKE_CUDA_TOOLKIT_INCLUDE_DIRECTORIES})
 endif()
