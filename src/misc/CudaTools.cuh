@@ -200,6 +200,8 @@ public:
     }
 
     ElementType* get() {return iCudaMemory.get();}
+    size_t getSize() const {return iSize; }
+    size_t getNumOfBytes() const {return iBytes; }
 
     void copyH2D() {
         cudaMemcpyAsync(iCudaMemory.get(), iData, iBytes, cudaMemcpyHostToDevice, iStream);

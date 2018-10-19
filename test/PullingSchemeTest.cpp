@@ -239,21 +239,37 @@ namespace {
 
 
     TEST(PullingSchemeTest, DS) {
-//        APRAccess access;
-//        access.l_max = 9;
-//        access.l_min = 1;
-//        access.org_dims[0] = std::pow(2, access.l_max);
-//        access.org_dims[1] = std::pow(2, access.l_max);
-//        access.org_dims[2] = std::pow(2, access.l_max);
-//        int l = access.l_max - 1;
+        APRAccess access;
+        access.l_max = 9;
+        access.l_min = 1;
+        access.org_dims[0] = std::pow(2, access.l_max);
+        access.org_dims[1] = std::pow(2, access.l_max);
+        access.org_dims[2] = std::pow(2, access.l_max);
 
-        PixelData<float> levels(16,1,1);
-        float values[] = {4, 1, 1, 1,   1, 1, 1, 2,   3, 1, 1, 1,   1, 1, 1, 2};
-        initFromZYXarray(levels, values);
 
-        PixelData<float> ds; ds.initDownsampled(levels);
-        computeOVPC(levels, ds, 1, 4);
-        ds.printMeshT(3,1);
+        PixelData<float> levels = getRandInitializedMesh<float>(access.org_dims[0]/2,access.org_dims[1]/2,access.org_dims[2]/2, access.l_max + 1);
+
+        //        PixelData<float> levels(16,1,1);
+//        float values[] = {4, 1, 1, 1,   1, 1, 1, 2,   3, 1, 1, 1,   1, 1, 1, 2};
+//        initFromZYXarray(levels, values);
+
+        APRTimer t(true);
+
+        t.start_timer("CUDA");
+        int levelMax = access.l_max - 1;
+        int levelMin = access.l_min;
+        PixelData<TreeElementType> ds(levels.y_num, levels.x_num, levels.z_num * (levelMax - levelMin + 1), 0);
+        std::cout << levels << std::endl;
+//        std::cout << ds << std::endl;
+        computeOVPC(levels, ds, levelMin, levelMax);
+//        ds.printMeshT(3,1);
+        t.stop_timer();
+
+        t.start_timer("OVPC1");
+        OVPC nps(access, levels);
+        nps.generateTree();
+        t.stop_timer();
+//        printParticleCellTree(nps.getParticleCellTree());
     }
 
 #endif

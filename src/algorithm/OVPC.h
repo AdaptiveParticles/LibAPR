@@ -20,9 +20,9 @@ class OVPC {
     static constexpr ElementType OVPC_BOUNDARY = BOUNDARY_TYPE;
     static constexpr ElementType OVPC_FILLER = FILLER_TYPE;
 
-    static constexpr ElementType  SEED_MASK = SEED_TYPE << BIT_SHIFT;
-    static constexpr ElementType  BOUNDARY_MASK = BOUNDARY_TYPE << BIT_SHIFT;
-    static constexpr ElementType  FILLER_MASK = FILLER_TYPE << BIT_SHIFT;
+    static constexpr ElementType  SEED_MASK = OVPC_SEED << BIT_SHIFT;
+    static constexpr ElementType  BOUNDARY_MASK = OVPC_BOUNDARY << BIT_SHIFT;
+    static constexpr ElementType  FILLER_MASK = OVPC_FILLER << BIT_SHIFT;
     static constexpr ElementType  MASK = 0x03 << BIT_SHIFT;
 
     int iLevelMax;

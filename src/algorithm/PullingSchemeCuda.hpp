@@ -8,6 +8,8 @@
 
 #include "data_structures/Mesh/PixelData.hpp"
 
+using TreeElementType = uint8_t;
+
 template <typename T, typename S>
 void computeOVPC(const PixelData<T> &input, PixelData<S> &output, int levelMin, int levelMax);
 
