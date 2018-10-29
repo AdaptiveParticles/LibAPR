@@ -417,7 +417,7 @@ public:
         writeAttr(AprTypes::VectorSizeType, f.groupId, &type_vector_size);
 
         writeString(AprTypes::NameType, f.groupId, (apr.name.size() == 0) ? "no_name" : apr.name);
-        writeString(AprTypes::GitType, f.groupId, ConfigAPR::APR_GIT_HASH);
+        //writeString(AprTypes::GitType, f.groupId, ConfigAPR::APR_GIT_HASH);
         writeAttr(AprTypes::TotalNumberOfParticlesType, f.groupId, &apr.apr_access.total_number_particles);
         writeAttr(AprTypes::MaxLevelType, f.groupId, &apr.apr_access.l_max);
         writeAttr(AprTypes::MinLevelType, f.groupId, &apr.apr_access.l_min);

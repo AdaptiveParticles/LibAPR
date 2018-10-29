@@ -21,6 +21,8 @@ namespace TiffUtils {
      */
     class TiffInfo {
     public:
+
+
         enum class TiffType {
             TIFF_UINT8, TIFF_UINT16, TIFF_FLOAT, TIFF_INVALID
         };
@@ -272,8 +274,10 @@ namespace TiffUtils {
      * @param aData mesh with data
      */
     template<typename T>
-    void saveMeshAsTiff(const std::string &aFileName, const PixelData<T> &aData) {
-        std::cout << __func__ << ": " << "FileName: [" << aFileName << "] " << aData << std::endl;
+    void saveMeshAsTiff(const std::string &aFileName, const PixelData<T> &aData,bool verbose = true) {
+        if(verbose) {
+            std::cout << __func__ << ": " << "FileName: [" << aFileName << "] " << aData << std::endl;
+        }
 
         // Set proper dimensions (x and y are exchanged giving transpose)
         const uint32_t width = aData.y_num;
@@ -303,7 +307,10 @@ namespace TiffUtils {
 
         size_t StripSize =  (size_t)TIFFStripSize(tif);
         size_t ScanlineSize = (size_t)TIFFScanlineSize(tif);
-        std::cout << __func__ << ": ScanlineSize=" << ScanlineSize << " StripSize: " << StripSize << " NoOfStrips: " << TIFFNumberOfStrips(tif) << " BigTIFF:" << isBigTiff << " ImgSize(data):" << imgSize << std::endl;
+        if(verbose)
+        {
+            std::cout << __func__ << ": ScanlineSize=" << ScanlineSize << " StripSize: " << StripSize << " NoOfStrips: " << TIFFNumberOfStrips(tif) << " BigTIFF:" << isBigTiff << " ImgSize(data):" << imgSize << std::endl;
+        }
 
         size_t currentOffset = 0;
         for(uint32_t i = 0; i < depth; ++i) {
@@ -326,7 +333,9 @@ namespace TiffUtils {
 
             if (i < depth - 1) TIFFWriteDirectory(tif); // last TIFFWriteDirectory is done by TIFFClose by default.
         }
-        std::cout << __func__ << ": Saved. Closing file." << std::endl;
+        if(verbose) {
+            std::cout << __func__ << ": Saved. Closing file." << std::endl;
+        }
         TIFFClose(tif);
     }
 
@@ -337,10 +346,10 @@ namespace TiffUtils {
      * @param aData mesh with data
      */
     template<typename T>
-    void saveMeshAsTiffUint16(const std::string &filename, const PixelData<T> &aData) {
+    void saveMeshAsTiffUint16(const std::string &filename, const PixelData<T> &aData,bool verbose = true) {
         //  Converts the data to uint16t then writes it (requires creation of a complete copy of the data)
         PixelData<uint16_t> mesh16{aData, true /*copy data*/};
-        saveMeshAsTiff(filename, mesh16);
+        saveMeshAsTiff(filename, mesh16,verbose);
     }
 }
 

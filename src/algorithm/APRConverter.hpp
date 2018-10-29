@@ -28,6 +28,7 @@
 template<typename ImageType>
 class APRConverter {
 
+protected:
     PullingScheme iPullingScheme;
     LocalParticleCellSet iLocalParticleSet;
     LocalIntensityScale iLocalIntensityScale;
@@ -52,8 +53,10 @@ public:
     template<typename T>
     void auto_parameters(const PixelData<T> &input_img);
 
+    bool verbose = true;
 
-private:
+
+protected:
 
     //pointer to the APR structure so member functions can have access if they need
     const APR<ImageType> *apr;
@@ -214,7 +217,7 @@ inline bool APRConverter<ImageType>::get_apr_method(APR<ImageType> &aAPR, PixelD
     fine_grained_timer.stop_timer();
 
 #ifndef APR_USE_CUDA
-    method_timer.verbose_flag = true;
+    //method_timer.verbose_flag = true;
     method_timer.start_timer("compute_gradient_magnitude_using_bsplines");
     get_gradient(image_temp, grad_temp, local_scale_temp, local_scale_temp2, bspline_offset, par);
     method_timer.stop_timer();
@@ -476,8 +479,10 @@ void APRConverter<ImageType>::get_local_intensity_scale(PixelData<float> &local_
     size_t win_y2 = var_win[3];
     size_t win_x2 = var_win[4];
     size_t win_z2 = var_win[5];
-
-    std::cout << "CPU WINDOWS: " << win_y << " " << win_x << " " << win_z << " " << win_y2 << " " << win_x2 << " " << win_z2 << std::endl;
+    if(verbose) {
+        std::cout << "CPU WINDOWS: " << win_y << " " << win_x << " " << win_z << " " << win_y2 << " " << win_x2 << " "
+                  << win_z2 << std::endl;
+    }
     fine_grained_timer.start_timer("calc_sat_mean_y");
     iLocalIntensityScale.calc_sat_mean_y(local_scale_temp,win_y);
     fine_grained_timer.stop_timer();
@@ -745,7 +750,9 @@ inline void APRConverter<ImageType>::auto_parameters(const PixelData<T>& input_i
     if(par.SNR_min > 0){
         min_snr = par.SNR_min;
     } else {
-        std::cout << "**Assuming a minimum SNR of 6" << std::endl;
+        if(verbose) {
+            std::cout << "**Assuming a minimum SNR of 6" << std::endl;
+        }
     }
 
     float Ip_th = mean + sd;
@@ -760,13 +767,17 @@ inline void APRConverter<ImageType>::auto_parameters(const PixelData<T>& input_i
     //  Detecting background subtracted images, or no-noise, in these cases the above estimates do not work
     //
     if((proportion_flat > 1.0f) && (proportion_next > 0.00001f)){
-        std::cout << "AUTOPARAMTERS:**Warning** Detected that there is likely noisy background, instead assuming background subtracted and minimum signal of 5 (absolute), if this is not the case please set parameters manually" << std::endl;
+        if(verbose) {
+            std::cout
+                    << "AUTOPARAMTERS:**Warning** Detected that there is likely noisy background, instead assuming background subtracted and minimum signal of 5 (absolute), if this is not the case please set parameters manually"
+                    << std::endl;
+        }
         Ip_th = 1;
         var_th = 5;
         lambda = 0.5;
         var_th_max = 2;
     } else {
-        std::cout << "AUTOPARAMTERS: **Assuming image has atleast 5% dark background" << std::endl;
+       // std::cout << "AUTOPARAMTERS: **Assuming image has atleast 5% dark background" << std::endl;
     }
 
 
@@ -805,12 +816,15 @@ inline void APRConverter<ImageType>::auto_parameters(const PixelData<T>& input_i
         par.rel_error = rel_error_input;
     }
 
-    std::cout << "Used parameters: " << std::endl;
-    std::cout << "I_th: " << par.Ip_th << std::endl;
-    std::cout << "sigma_th: " << par.sigma_th << std::endl;
-    std::cout << "sigma_th_max: " << par.sigma_th_max << std::endl;
-    std::cout << "relative error (E): " << par.rel_error << std::endl;
-    std::cout << "lambda: " << par.lambda << std::endl;
+    if(verbose) {
+        std::cout << "Used parameters: " << std::endl;
+        std::cout << "I_th: " << par.Ip_th << std::endl;
+        std::cout << "sigma_th: " << par.sigma_th << std::endl;
+        std::cout << "sigma_th_max: " << par.sigma_th_max << std::endl;
+        std::cout << "relative error (E): " << par.rel_error << std::endl;
+        std::cout << "lambda: " << par.lambda << std::endl;
+    }
+
 }
 
 
