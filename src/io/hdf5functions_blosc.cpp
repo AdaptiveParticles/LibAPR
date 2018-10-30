@@ -193,3 +193,59 @@ void write_main_paraview_xdmf_xml(const std::string &aDestinationDir,const std::
     myfile <<  "</Xdmf>\n";
     myfile.close();
 }
+void write_main_paraview_xdmf_xml_time(const std::string &aDestinationDir,const std::string &aHdf5FileName, const std::string &aParaviewFileName, std::vector<uint64_t> aNumOfParticles){
+    std::ofstream myfile(aDestinationDir + aParaviewFileName + "_paraview.xmf");
+    myfile << "<?xml version=\"1.0\" ?>\n";
+    myfile << "<!DOCTYPE Xdmf SYSTEM \"Xdmf.dtd\" []>\n";
+    myfile << "<Xdmf Version=\"2.0\" xmlns:xi=\"[http://www.w3.org/2001/XInclude]\">\n";
+    myfile <<  " <Domain>\n";
+    myfile << " <Grid Name=\"partsTime\" GridType=\"Collection\" CollectionType=\"Temporal\">\n";
+
+    for (int time_step = 0; time_step < aNumOfParticles.size(); ++time_step) {
+
+        std::string t_string;
+        if(time_step==0){
+            t_string = "t";
+        } else{
+            t_string = "t" +std::to_string(time_step);
+        }
+
+        myfile << "   <Grid Name=\"parts\" GridType=\"Uniform\">\n";
+        myfile << "     <Time Value=" << time_step << " />\n";
+        myfile << "     <Topology TopologyType=\"Polyvertex\" Dimensions=\"" << aNumOfParticles[time_step] << "\"/>\n";
+        myfile << "     <Geometry GeometryType=\"X_Y_Z\">\n";
+        myfile << "       <DataItem Dimensions=\"" << aNumOfParticles[time_step] << "\" NumberType=\"UInt\" Precision=\"2\" Format=\"HDF\">\n";
+        myfile << "        " << aHdf5FileName << ":/ParticleRepr/" << t_string <<"/x\n";
+        myfile << "       </DataItem>\n";
+        myfile << "       <DataItem Dimensions=\"" << aNumOfParticles[time_step]
+               << "\" NumberType=\"UInt\" Precision=\"2\" Format=\"HDF\">\n";
+        myfile << "        " << aHdf5FileName << ":/ParticleRepr/" << t_string <<"/y\n";
+        myfile << "       </DataItem>\n";
+        myfile << "       <DataItem Dimensions=\"" << aNumOfParticles[time_step]
+               << "\" NumberType=\"UInt\" Precision=\"2\" Format=\"HDF\">\n";
+        myfile << "        " << aHdf5FileName << ":/ParticleRepr/" << t_string <<"/z\n";
+        myfile << "       </DataItem>\n";
+        myfile << "     </Geometry>\n";
+        myfile << "     <Attribute Name=\"particle property\" AttributeType=\"Scalar\" Center=\"Node\">\n";
+        myfile << "       <DataItem Dimensions=\"" << aNumOfParticles[time_step]
+               << "\" NumberType=\"UInt\" Precision=\"2\" Format=\"HDF\">\n";
+        myfile << "        " << aHdf5FileName << ":/ParticleRepr/" << t_string <<"/particle property\n";
+        myfile << "       </DataItem>\n";
+        myfile << "    </Attribute>\n";
+        myfile << "     <Attribute Name=\"level\" AttributeType=\"Scalar\" Center=\"Node\">\n";
+        myfile << "       <DataItem Dimensions=\"" << aNumOfParticles[time_step]
+               << "\" NumberType=\"UInt\" Precision=\"1\" Format=\"HDF\">\n";
+        myfile << "        " << aHdf5FileName << ":/ParticleRepr/" << t_string <<"/level\n";
+        myfile << "       </DataItem>\n";
+        myfile << "    </Attribute>\n";
+        myfile << "   </Grid>\n";
+    }
+
+
+    myfile <<  "   </Grid>\n";
+    myfile <<  " </Domain>\n";
+    myfile <<  "</Xdmf>\n";
+    myfile.close();
+}
+
+
