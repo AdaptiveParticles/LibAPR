@@ -211,7 +211,7 @@ void write_main_paraview_xdmf_xml_time(const std::string &aDestinationDir,const 
         }
 
         myfile << "   <Grid Name=\"parts\" GridType=\"Uniform\">\n";
-        myfile << "     <Time Value=" << time_step << " />\n";
+        myfile << "     <Time Value=\"" << time_step << "\" />\n";
         myfile << "     <Topology TopologyType=\"Polyvertex\" Dimensions=\"" << aNumOfParticles[time_step] << "\"/>\n";
         myfile << "     <Geometry GeometryType=\"X_Y_Z\">\n";
         myfile << "       <DataItem Dimensions=\"" << aNumOfParticles[time_step] << "\" NumberType=\"UInt\" Precision=\"2\" Format=\"HDF\">\n";
