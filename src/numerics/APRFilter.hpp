@@ -13,18 +13,29 @@ class APRFilter {
 
 public:
     template<typename ImageType, typename S, typename T,typename R>
-    void convolve(APR<ImageType> &apr, PixelData<T>& stencil, ExtraParticleData<S> &particle_input, ExtraParticleData<R> &particle_output);
+    void convolve(APR<ImageType> &apr, std::vector<PixelData<T>>& stencils, ExtraParticleData<S> &particle_input, ExtraParticleData<R> &particle_output);
 
     bool boundary_cond = 1;
 
     template<typename T>
-    void generate_smooth_stencil(PixelData<T>& stencil){
+    void generate_smooth_stencil(std::vector<PixelData<T>>& stencils){
 
-        stencil.init(3,3,3);
+        stencils.resize(3);
 
-        for (int i = 0; i < stencil.mesh.size(); ++i) {
-            stencil.mesh[i] = 1.0f/(stencil.mesh.size()*1.0f);
+       // std::vector<float> mid_val = {0.5,0.1,1.0f/27.0f};
+        std::vector<float> mid_val = {1.0f/27.0f,1.0f/27.0f,1.0f/27.0f};
+
+        for (int j = 0; j < stencils.size(); ++j) {
+            stencils[j].init(3,3,3);
+            float mid = mid_val[j];
+
+            for (int i = 0; i < stencils[j].mesh.size(); ++i) {
+                stencils[j].mesh[i] = (1.0f-mid)/(stencils[j].mesh.size()*1.0f - 1);
+
+            }
+            stencils[j].at(1,1,1) = mid;
         }
+
 
     }
 
@@ -471,7 +482,7 @@ public:
 };
 
 template<typename ImageType, typename S, typename T,typename R>
-void APRFilter::convolve(APR<ImageType> &apr, PixelData<T>& stencil, ExtraParticleData<S> &particle_input, ExtraParticleData<R> &particle_output) {
+void APRFilter::convolve(APR<ImageType> &apr, std::vector<PixelData<T>>& stencils, ExtraParticleData<S> &particle_input, ExtraParticleData<R> &particle_output) {
 
     particle_output.init(particle_input.total_number_particles());
 
@@ -493,6 +504,12 @@ void APRFilter::convolve(APR<ImageType> &apr, PixelData<T>& stencil, ExtraPartic
     // assert stencil_shape compatible with apr org_dims?
 
     for (int level = apr.level_max(); level >= apr.level_min(); --level) {
+
+        int stencil_num = std::min((int)stencils.size()-1,(int)( apr.level_max()-level));
+
+        PixelData<T> stencil;
+        stencil.init(stencils[stencil_num]);
+        stencil.copyFromMesh(stencils[stencil_num]);
 
         const std::vector<int> stencil_shape = {(int) stencil.y_num,
                                                 (int) stencil.x_num,
@@ -516,7 +533,7 @@ void APRFilter::convolve(APR<ImageType> &apr, PixelData<T>& stencil, ExtraPartic
                       stencil_shape[2],(float) 0.0f); //zero padded boundaries
 
         if(boundary == REFLECT_PAD){
-            for (int padd = 0; padd < stencil_shape[2]; ++padd) {
+            for (int padd = 0; padd < stencil_half[2]; ++padd) {
                 update_dense_array(level,
                                    padd,
                                    apr,
@@ -527,7 +544,20 @@ void APRFilter::convolve(APR<ImageType> &apr, PixelData<T>& stencil, ExtraPartic
                                    particle_input,
                                    stencil_shape,
                                    stencil_half);
+
+                uint64_t index_in = temp_vec.x_num * temp_vec.y_num * ((padd) % stencil_shape[2]);
+                uint64_t index_out = temp_vec.x_num * temp_vec.y_num * (stencil_shape[2]-padd-1);
+#ifdef HAVE_OPENMP
+#pragma omp parallel for schedule(static) private(x)
+#endif
+                for (x = 0; x < temp_vec.x_num; ++x) {
+                    std::copy(temp_vec.mesh.begin() + index_in + (x + 0) * temp_vec.y_num,
+                              temp_vec.mesh.begin() + index_in + (x + 1) * temp_vec.y_num, temp_vec.mesh.begin() + index_out + (x + 0) * temp_vec.y_num);
+                }
+
             }
+
+
         } else {
             //initial condition
             for (int padd = 0; padd < stencil_half[2]; ++padd) {
@@ -556,10 +586,20 @@ void APRFilter::convolve(APR<ImageType> &apr, PixelData<T>& stencil, ExtraPartic
                 //padding
 
                 if(boundary == REFLECT_PAD){
-                    //do nothing
+
+                    uint64_t index_in = temp_vec.x_num * temp_vec.y_num * ((z) % stencil_shape[2]); //need to check this for larger stencils
+                    uint64_t index_out = temp_vec.x_num * temp_vec.y_num * ((z+ stencil_half[2]) % stencil_shape[2]);
+#ifdef HAVE_OPENMP
+#pragma omp parallel for schedule(static) private(x)
+#endif
+                    for (x = 0; x < temp_vec.x_num; ++x) {
+                        std::copy(temp_vec.mesh.begin() + index_in + (x + 0) * temp_vec.y_num,
+                                  temp_vec.mesh.begin() + index_in + (x + 1) * temp_vec.y_num, temp_vec.mesh.begin() + index_out + (x + 0) * temp_vec.y_num);
+                    }
+
 
                 } else {
-
+                    //zero padd
                     uint64_t index = temp_vec.x_num * temp_vec.y_num * ((z + stencil_half[2]) % stencil_shape[2]);
 #ifdef HAVE_OPENMP
 #pragma omp parallel for schedule(static) private(x)
@@ -580,7 +620,7 @@ void APRFilter::convolve(APR<ImageType> &apr, PixelData<T>& stencil, ExtraPartic
                      apr_iterator.set_iterator_to_particle_next_particle()) {
 
                     float neigh_sum = 0;
-                    int counter = 0;
+                    //int counter = 0;
 
                     const int k = apr_iterator.y() + stencil_half[0]; // offset to allow for boundary padding
                     const int i = x + stencil_half[1];
@@ -590,14 +630,15 @@ void APRFilter::convolve(APR<ImageType> &apr, PixelData<T>& stencil, ExtraPartic
                     for (int l = -stencil_half[2]; l < stencil_half[2] + 1; ++l) {
                         for (int q = -stencil_half[1]; q < stencil_half[1] + 1; ++q) {
                             for (int w = -stencil_half[0]; w < stencil_half[0] + 1; ++w) {
-                                neigh_sum += (stencil.mesh[counter] *
-                                              temp_vec.at(k + w, i + q, (z + stencil_half[2] + l) % stencil_shape[2]));
-                                counter++;
+                                neigh_sum += (stencil.at(w + stencil_half[0],q+ stencil_half[1],l+stencil_half[2]) *
+                                              temp_vec.at(k + w, i + q, (z + l) % stencil_shape[2]));
+
                             }
                         }
                     }
 
                     particle_output[apr_iterator] = neigh_sum;
+
 
                 }//y, pixels/columns
             }//x , rows
