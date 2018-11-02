@@ -17,6 +17,8 @@ public:
 
     bool boundary_cond = 1;
 
+    bool nl_mult=false;
+
     template<typename T>
     void generate_smooth_stencil(std::vector<PixelData<T>>& stencils){
 
@@ -107,7 +109,7 @@ public:
     }
 
 
-    template<typename ImageType>
+    template<typename ImageType,typename R>
     void update_dense_array(const uint64_t level,
                             const uint64_t z,
                             APR<ImageType> &apr,
@@ -115,7 +117,7 @@ public:
                             APRTreeIterator &treeIterator,
                             ExtraParticleData<float> &tree_data,
                             PixelData<float> &temp_vec,
-                            ExtraParticleData<ImageType> &inputParticles,
+                            ExtraParticleData<R> &inputParticles,
                             const std::vector<int> &stencil_shape,
                             const std::vector<int> &stencil_half) {
 
@@ -439,7 +441,7 @@ public:
                          apr_iterator.global_index() < apr_iterator.end_index;
                          apr_iterator.set_iterator_to_particle_next_particle()) {
 
-                        float neigh_sum = 0;
+                        double neigh_sum = 0;
                         int counter = 0;
 
                         const int k = apr_iterator.y(); // offset to allow for boundary padding
@@ -480,6 +482,7 @@ public:
 
 
 };
+
 
 template<typename ImageType, typename S, typename T,typename R>
 void APRFilter::convolve(APR<ImageType> &apr, std::vector<PixelData<T>>& stencils, ExtraParticleData<S> &particle_input, ExtraParticleData<R> &particle_output) {
@@ -523,14 +526,14 @@ void APRFilter::convolve(APR<ImageType> &apr, std::vector<PixelData<T>>& stencil
         const uint64_t z_num = apr_iterator.spatial_index_z_max(level);
 
         const uint64_t y_num_m = (apr.apr_access.org_dims[0] > 1) ? apr_iterator.spatial_index_y_max(level) +
-                                                               stencil_shape[0] - 1 : 1;
+                                                                    stencil_shape[0] - 1 : 1;
         const uint64_t x_num_m = (apr.apr_access.org_dims[1] > 1) ? apr_iterator.spatial_index_x_max(level) +
-                                                               stencil_shape[1] - 1 : 1;
+                                                                    stencil_shape[1] - 1 : 1;
 
         PixelData<float> temp_vec;
         temp_vec.initWithValue(y_num_m,
-                      x_num_m,
-                      stencil_shape[2],(float) 0.0f); //zero padded boundaries
+                               x_num_m,
+                               stencil_shape[2],(float) 0.0f); //zero padded boundaries
 
         if(boundary == REFLECT_PAD){
             for (int padd = 0; padd < stencil_half[2]; ++padd) {
@@ -626,13 +629,27 @@ void APRFilter::convolve(APR<ImageType> &apr, std::vector<PixelData<T>>& stencil
                     const int i = x + stencil_half[1];
 
                     //compute the stencil
+                    if(nl_mult){
+                        for (int l = -stencil_half[2]; l < stencil_half[2] + 1; ++l) {
+                            for (int q = -stencil_half[1]; q < stencil_half[1] + 1; ++q) {
+                                for (int w = -stencil_half[0]; w < stencil_half[0] + 1; ++w) {
+                                    neigh_sum += (
+                                            stencil.at(w + stencil_half[0], q + stencil_half[1], l + stencil_half[2]) *
+                                            log(temp_vec.at(k + w, i + q, (z + l) % stencil_shape[2])));
 
-                    for (int l = -stencil_half[2]; l < stencil_half[2] + 1; ++l) {
-                        for (int q = -stencil_half[1]; q < stencil_half[1] + 1; ++q) {
-                            for (int w = -stencil_half[0]; w < stencil_half[0] + 1; ++w) {
-                                neigh_sum += (stencil.at(w + stencil_half[0],q+ stencil_half[1],l+stencil_half[2]) *
-                                              temp_vec.at(k + w, i + q, (z + l) % stencil_shape[2]));
+                                }
+                            }
+                        }
 
+                    } else {
+                        for (int l = -stencil_half[2]; l < stencil_half[2] + 1; ++l) {
+                            for (int q = -stencil_half[1]; q < stencil_half[1] + 1; ++q) {
+                                for (int w = -stencil_half[0]; w < stencil_half[0] + 1; ++w) {
+                                    neigh_sum += (
+                                            stencil.at(w + stencil_half[0], q + stencil_half[1], l + stencil_half[2]) *
+                                            temp_vec.at(k + w, i + q, (z + l) % stencil_shape[2]));
+
+                                }
                             }
                         }
                     }
@@ -645,7 +662,6 @@ void APRFilter::convolve(APR<ImageType> &apr, std::vector<PixelData<T>>& stencil
         }//z
     }
 }
-
 
 
 #endif //APR_TIME_APRFILTER_HPP
