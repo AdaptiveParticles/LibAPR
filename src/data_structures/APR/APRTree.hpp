@@ -178,7 +178,7 @@ public:
     static void fill_tree_mean(APR<T>& apr,APRTree<T>& apr_tree,ExtraParticleData<S>& particle_data,ExtraParticleData<U>& tree_data) {
 
         APRTimer timer;
-        timer.verbose_flag = true;
+        timer.verbose_flag = false;
 
         timer.start_timer("ds-init");
         tree_data.init(apr_tree.total_number_parent_cells());

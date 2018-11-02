@@ -47,6 +47,22 @@ public:
 
     inline uint64_t total_number_particles() const { return (apr_access).total_number_particles; }
 
+    APR(){
+        //default
+    }
+
+    APR(APR<ImageType>& copyAPR){
+        copy_from_APR(copyAPR);
+    }
+
+    void copy_from_APR(APR<ImageType>& copyAPR){
+        apr_access = copyAPR.apr_access;
+        particles_intensities = copyAPR.particles_intensities;
+        apr_tree = copyAPR.apr_tree;
+        parameters = copyAPR.parameters;
+        name = copyAPR.name;
+    }
+
     ///////////////////////////////////
     ///
     /// APR Generation Methods (Calls members of the APRConverter class)

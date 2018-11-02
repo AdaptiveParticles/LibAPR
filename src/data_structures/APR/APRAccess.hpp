@@ -774,7 +774,7 @@ public:
     void rebuild_map(MapStorageData& map_data){
 
         APRTimer apr_timer;
-        apr_timer.verbose_flag = true;
+        apr_timer.verbose_flag = false;
         apr_timer.start_timer("rebuild map");
 
         std::vector<uint64_t> cumsum;
@@ -1309,7 +1309,7 @@ inline void APRAccess::initialize_tree_access(APRAccess& APROwn_access, std::vec
 
     total_number_particles = cumsum;
 
-    std::cout << "Lower level, interior tree PC: " << total_number_particles << std::endl;
+    //std::cout << "Lower level, interior tree PC: " << total_number_particles << std::endl;
 
     //set minimum level now to the first non-empty level.
     //level_min = min_level_find;
