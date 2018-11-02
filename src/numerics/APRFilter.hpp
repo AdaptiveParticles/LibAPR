@@ -628,6 +628,8 @@ void APRFilter::convolve(APR<ImageType> &apr, std::vector<PixelData<T>>& stencil
                     const int k = apr_iterator.y() + stencil_half[0]; // offset to allow for boundary padding
                     const int i = x + stencil_half[1];
 
+                    float factor = 1.0;
+
                     //compute the stencil
                     if(nl_mult){
                         for (int l = -stencil_half[2]; l < stencil_half[2] + 1; ++l) {
@@ -635,7 +637,7 @@ void APRFilter::convolve(APR<ImageType> &apr, std::vector<PixelData<T>>& stencil
                                 for (int w = -stencil_half[0]; w < stencil_half[0] + 1; ++w) {
                                     neigh_sum += (
                                             stencil.at(w + stencil_half[0], q + stencil_half[1], l + stencil_half[2]) *
-                                            log(temp_vec.at(k + w, i + q, (z + l) % stencil_shape[2])));
+                                            std::floor(factor*log(temp_vec.at(k + w, i + q, (z + l) % stencil_shape[2]))))/factor;
 
                                 }
                             }
