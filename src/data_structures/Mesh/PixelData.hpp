@@ -592,57 +592,105 @@ void downsample(const PixelData<T> &aInput, PixelData<S> &aOutput, R reduce, C c
     }
     timer.stop_timer();
 }
-template<typename T, typename S, typename R, typename C>
-void upsample(const PixelData<T> &aInput, PixelData<S> &aOutput, R reduce, C constant_operator, bool aInitializeOutput = false) {
-    const size_t z_num = aInput.z_num;
-    const size_t x_num = aInput.x_num;
-    const size_t y_num = aInput.y_num;
 
-    // downsampled dimensions twice smaller (rounded up)
-    const size_t z_num_ds = ceil(z_num/2.0);
-    const size_t x_num_ds = ceil(x_num/2.0);
-    const size_t y_num_ds = ceil(y_num/2.0);
+template<typename T>
+void const_upsample_img(PixelData<T>& input_us,PixelData<T>& input,std::vector<size_t>& max_dims){
+    //
+    //
+    //  Bevan Cheeseman 2016
+    //
+    //  Creates a constant upsampling of an image
+    //
+    //
 
     APRTimer timer;
+
     timer.verbose_flag = false;
 
-    if (aInitializeOutput) {
-        timer.start_timer("downsample_initalize");
-        aOutput.init(y_num_ds, x_num_ds, z_num_ds);
-        timer.stop_timer();
-    }
+    //restrict the domain to be only as big as possibly needed
 
-    timer.start_timer("downsample_loop");
+    int y_size_max = ceil(max_dims[0]/2.0)*2;
+    int x_size_max = ceil(max_dims[1]/2.0)*2;
+    int z_size_max = ceil(max_dims[2]/2.0)*2;
+
+    const int z_num = std::min((int)input.z_num*2,z_size_max);
+    const int x_num = std::min((int)input.x_num*2,x_size_max);
+    const int y_num = std::min((int)input.y_num*2,y_size_max);
+
+    //const int z_num_ds_l = z_num/2;
+    //const int x_num_ds_l = x_num/2;
+    //const int y_num_ds_l = y_num/2;
+
+    const int z_num_ds_l = input.z_num;
+    const int x_num_ds_l = input.x_num;
+    const int y_num_ds_l = input.z_num;
+
+    const int x_num_ds = input.x_num;
+    const int y_num_ds = input.y_num;
+
+    input_us.y_num = y_num;
+    input_us.x_num = x_num;
+    input_us.z_num = z_num;
+
+    timer.start_timer("resize");
+
+    timer.stop_timer();
+
+    std::vector<T> temp_vec;
+    temp_vec.resize(y_num_ds,0);
+
+    timer.start_timer("up_sample_const");
+
+    unsigned int j, i, k;
+
 #ifdef HAVE_OPENMP
-#pragma omp parallel for default(shared)
+//#pragma omp parallel for default(shared) private(j,i,k) firstprivate(temp_vec) if(z_num_ds_l*x_num_ds_l > 100)
 #endif
-    for (size_t z = 0; z < z_num_ds; ++z) {
-        for (size_t x = 0; x < x_num_ds; ++x) {
+    for(j = 0;j < z_num_ds_l;j++){
 
-            // shifted +1 in original inMesh space
-            const int64_t shx = std::min(2*x + 1, x_num - 1);
-            const int64_t shz = std::min(2*z + 1, z_num - 1);
+        for(i = 0;i < x_num_ds_l;i++){
 
-            const ArrayWrapper<T> &inMesh = aInput.mesh;
-            ArrayWrapper<S> &outMesh = aOutput.mesh;
 
-            for (size_t y = 0; y < y_num_ds; ++y) {
-                const int64_t shy = std::min(2*y + 1, y_num - 1);
-                const int64_t idx = z * x_num_ds * y_num_ds + x * y_num_ds + y;
-                outMesh[idx] =  constant_operator(
-                        reduce(reduce(reduce(reduce(reduce(reduce(reduce(        // inMesh coordinates
-                                inMesh[2*z * x_num * y_num + 2*x * y_num + 2*y],  // z,   x,   y
-                                inMesh[2*z * x_num * y_num + 2*x * y_num + shy]), // z,   x,   y+1
-                                                                  inMesh[2*z * x_num * y_num + shx * y_num + 2*y]), // z,   x+1, y
-                                                           inMesh[2*z * x_num * y_num + shx * y_num + shy]), // z,   x+1, y+1
-                                                    inMesh[shz * x_num * y_num + 2*x * y_num + 2*y]), // z+1, x,   y
-                                             inMesh[shz * x_num * y_num + 2*x * y_num + shy]), // z+1, x,   y+1
-                                      inMesh[shz * x_num * y_num + shx * y_num + 2*y]), // z+1, x+1, y
-                               inMesh[shz * x_num * y_num + shx * y_num + shy])  // z+1, x+1, y+1
-                );
+            //first take into cache
+            for (k = 0; k < y_num_ds_l;k++){
+                temp_vec[k] = input.mesh[j*x_num_ds*y_num_ds + i*y_num_ds + k];
             }
+
+            //(0,0)
+
+            //then do the operations two by two
+            for (k = 0; k < y_num_ds_l;k++){
+
+                input_us.mesh[2*j*x_num*y_num + 2*i*y_num + 2*k] = temp_vec[k];
+                input_us.mesh[2*j*x_num*y_num + 2*i*y_num + 2*k + 1] = temp_vec[k];
+            }
+
+            //(0,1)
+
+            //then do the operations two by two
+            for (k = 0; k < y_num_ds_l;k++){
+                input_us.mesh[(2*j+1)*x_num*y_num + 2*i*y_num + 2*k] = temp_vec[k];
+                input_us.mesh[(2*j+1)*x_num*y_num + 2*i*y_num + 2*k + 1] = temp_vec[k];
+            }
+
+            //(1,0)
+            //then do the operations two by two
+            for (k = 0; k < y_num_ds_l;k++){
+                input_us.mesh[2*j*x_num*y_num + (2*i+1)*y_num + 2*k] = temp_vec[k];
+                input_us.mesh[2*j*x_num*y_num + (2*i+1)*y_num + 2*k + 1] = temp_vec[k];
+            }
+
+            //(1,1)
+            //then do the operations two by two
+            for (k = 0; k < y_num_ds_l;k++){
+                input_us.mesh[(2*j+1)*x_num*y_num + (2*i+1)*y_num + 2*k] = temp_vec[k];
+                input_us.mesh[(2*j+1)*x_num*y_num + (2*i+1)*y_num + 2*k + 1] = temp_vec[k];
+            }
+
+
         }
     }
+
     timer.stop_timer();
 }
 

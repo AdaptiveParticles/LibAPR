@@ -84,6 +84,67 @@ public:
 
     }
 
+    template<typename U,typename V,typename S>
+    void interp_img_us(APR<S>& apr, PixelData<U>& img,ExtraParticleData<V>& parts){
+        //
+        //  Bevan Cheeseman 2016
+        //
+        //  Takes in a APR and creates piece-wise constant image
+        //
+
+
+        auto apr_iterator = apr.iterator();
+
+        img.initWithValue(apr.orginal_dimensions(0), apr.orginal_dimensions(1), apr.orginal_dimensions(2), 0);
+
+        int max_dim = std::max(std::max(apr.apr_access.org_dims[1], apr.apr_access.org_dims[0]), apr.apr_access.org_dims[2]);
+
+        int max_level = ceil(std::log2(max_dim));
+
+        std::vector<PixelData<U>> temp_imgs;
+        temp_imgs.resize(apr.level_max()+1);
+
+        for (int i = apr_iterator.level_min(); i < apr_iterator.level_max(); ++i) {
+
+            temp_imgs[i].init(apr_iterator.spatial_index_y_max(i),apr_iterator.spatial_index_x_max(i),apr_iterator.spatial_index_z_max(i));
+
+        }
+
+        temp_imgs[apr.level_max()].swap(img);
+
+
+        for (unsigned int level = apr_iterator.level_min(); level <= apr_iterator.level_max(); ++level) {
+            int z = 0;
+            int x = 0;
+
+#ifdef HAVE_OPENMP
+#pragma omp parallel for schedule(dynamic) private(z, x) firstprivate(apr_iterator)
+#endif
+            for (z = 0; z < apr_iterator.spatial_index_z_max(level); z++) {
+                for (x = 0; x < apr_iterator.spatial_index_x_max(level); ++x) {
+                    for (apr_iterator.set_new_lzx(level, z, x); apr_iterator.global_index() < apr_iterator.end_index;
+                         apr_iterator.set_iterator_to_particle_next_particle()) {
+                        //
+                        //  Parallel loop over level
+                        //
+
+                        temp_imgs[level].at(apr_iterator.y(),apr_iterator.x(),apr_iterator.z())=parts[apr_iterator];
+
+                    }
+                }
+            }
+            if(level<apr.level_max()) {
+                std::vector<size_t> max_dims = {apr_iterator.spatial_index_y_max(level+1),apr_iterator.spatial_index_x_max(level+1),apr_iterator.spatial_index_z_max(level+1)};
+                const_upsample_img(temp_imgs[level+1], temp_imgs[level],max_dims);
+            }
+        }
+
+        temp_imgs[apr.level_max()].swap(img);
+
+    }
+
+
+
     template<typename U,typename V,typename S,typename T>
     void interp_image_patch(APR<S>& apr, APRTree<S>& aprTree,PixelData<U>& img,ExtraParticleData<V>& parts,ExtraParticleData<T>& parts_tree,ReconPatch& reconPatch){
 
