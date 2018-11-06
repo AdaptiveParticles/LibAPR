@@ -8,9 +8,116 @@
 #include "data_structures/Mesh/PixelData.hpp"
 #include "misc/APRTimer.hpp"
 
+#include "../src/Numerics/GenerateStencils.hpp"
+
 class MeshNumerics {
 
 public:
+
+    template<typename T>
+    void generate_smooth_stencil(std::vector<PixelData<T>>& stencils){
+
+        unsigned int dim = 3;
+        unsigned int order = 1;
+        unsigned int padd = 1;
+
+        std::vector<int> derivative = {0,0,0};
+
+        PixelData<float> stencil_c;
+
+        GenerateStencils generateStencils;
+
+        generateStencils.solve_for_stencil(stencil_c,dim,order,padd,derivative);
+
+        stencils.resize(2);
+
+        stencils[0].init(stencil_c);
+        stencils[0].copyFromMesh(stencil_c);
+
+        generateStencils.solve_for_stencil(stencil_c,dim,1,padd,derivative);
+
+        stencils[1].init(stencil_c);
+        stencils[1].copyFromMesh(stencil_c);
+
+
+
+    }
+
+
+    template<typename T,typename R>
+    void apply_stencil(PixelData<T>& input,PixelData<R>& stencil){
+
+        PixelData<T> output;
+        output.init(input);
+
+        int stencil_y_half = (stencil.y_num-1)/2;
+        int stencil_x_half = (stencil.x_num-1)/2;
+        int stencil_z_half = (stencil.z_num-1)/2;
+
+        int i=0;
+#pragma omp parallel for default(shared) private(i)
+        for (i = 0; i < input.z_num; ++i) {
+            for (int j = 0; j < input.x_num; ++j) {
+                for (int k = 0; k < input.y_num; ++k) {
+                    double neigh_sum = 0;
+
+                    for (int l = -stencil_z_half; l <= stencil_z_half; ++l) {
+                        for (int q = -stencil_x_half; q <= stencil_x_half; ++q) {
+                            for (int w = -stencil_y_half; w <= stencil_y_half; ++w) {
+
+                                neigh_sum += stencil.at(l+stencil_y_half,q+stencil_x_half,w+stencil_z_half)*input(k + w, j + q, i + l);
+                            }
+                        }
+                    }
+
+                    output.at(k, j, i) = neigh_sum;
+
+                }
+            }
+        }
+
+        std::swap(output,input);
+
+    }
+
+    template<typename T>
+    void smooth_mesh(PixelData<T>& input){
+
+        PixelData<T> output;
+        output.init(input);
+
+        int i = 0;
+#ifdef HAVE_OPENMP
+#pragma omp parallel for schedule(dynamic) private(i)
+#endif
+        for (i = 0; i < input.z_num; ++i) {
+            for (int j = 0; j < input.x_num; ++j) {
+                for (int k = 0; k < input.y_num; ++k) {
+                    float neigh_sum=0;
+                    uint64_t counter=0;
+
+                    for (int l = -1; l < 1+1; ++l) {
+                        for (int q = -1; q < 1+1; ++q) {
+                            for (int w = -1; w <1+1; ++w) {
+
+
+                                neigh_sum +=  input(k + w, j + q, i+l);
+
+                                counter++;
+                            }
+                        }
+                    }
+
+                    output.at(k,j,i) = neigh_sum/(1.0f*counter);
+
+
+                }
+            }
+        }
+
+        std::swap(output,input);
+
+    }
 
     template<typename U,typename V>
     static float compute_gradient(const PixelData<U>& input_data,std::vector<PixelData<V>>& output_data,std::vector<float> delta = {1.0f,1.0f,1.0f}){

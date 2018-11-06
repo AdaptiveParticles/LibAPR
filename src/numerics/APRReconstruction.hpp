@@ -9,6 +9,7 @@
 #include "data_structures/APR/APRTree.hpp"
 #include "data_structures/APR/APRIterator.hpp"
 #include "data_structures/APR/APRTreeIterator.hpp"
+#include "numerics/MeshNumerics.hpp"
 
 struct ReconPatch{
     int x_begin=0;
@@ -83,6 +84,109 @@ public:
         }
 
     }
+
+
+
+    template<typename U,typename V,typename S>
+    void interp_img_us_smooth(APR<S>& apr, PixelData<U>& img,ExtraParticleData<V>& parts){
+        //
+        //  Bevan Cheeseman 2016
+        //
+        //  Takes in a APR and creates piece-wise constant image
+        //
+
+        int delta = 0;
+
+        //is apr tree initialized.
+        //if(apr.apr_tree.total_number_parent_cells() == 0){
+            apr.apr_tree.init(apr);
+            apr.apr_tree.fill_tree_mean_downsample(parts);
+       // }
+
+        MeshNumerics meshNumerics;
+        std::vector<PixelData<float>> stencils;
+        meshNumerics.generate_smooth_stencil(stencils);
+
+        auto apr_iterator = apr.iterator();
+
+        auto apr_tree_iterator = apr.apr_tree.tree_iterator();
+
+        img.initWithValue(apr.spatial_index_y_max(apr.level_max() + delta), apr.spatial_index_x_max(apr.level_max() + delta), apr.spatial_index_z_max(apr.level_max() + delta), 0);
+
+        int max_dim = std::max(std::max(apr.apr_access.org_dims[1], apr.apr_access.org_dims[0]), apr.apr_access.org_dims[2]);
+
+        int max_level = ceil(std::log2(max_dim));
+
+        std::vector<PixelData<U>> temp_imgs;
+        temp_imgs.resize(apr.level_max()+1);
+
+        for (int i = apr_iterator.level_min(); i < apr_iterator.level_max(); ++i) {
+
+            temp_imgs[i].init(apr_iterator.spatial_index_y_max(i),apr_iterator.spatial_index_x_max(i),apr_iterator.spatial_index_z_max(i));
+
+        }
+
+        temp_imgs[apr.level_max()].swap(img);
+
+
+        for (unsigned int level = apr_iterator.level_min(); level <= (apr_iterator.level_max()+delta); ++level) {
+            int z = 0;
+            int x = 0;
+
+#ifdef HAVE_OPENMP
+#pragma omp parallel for schedule(dynamic) private(z, x) firstprivate(apr_iterator)
+#endif
+            for (z = 0; z < apr_iterator.spatial_index_z_max(level); z++) {
+                for (x = 0; x < apr_iterator.spatial_index_x_max(level); ++x) {
+                    for (apr_iterator.set_new_lzx(level, z, x); apr_iterator.global_index() < apr_iterator.end_index;
+                         apr_iterator.set_iterator_to_particle_next_particle()) {
+                        //
+                        //  Parallel loop over level
+                        //
+
+                        temp_imgs[level].at(apr_iterator.y(),apr_iterator.x(),apr_iterator.z())=parts[apr_iterator];
+
+                    }
+                }
+            }
+
+            if(level < apr.level_max()) {
+#ifdef HAVE_OPENMP
+#pragma omp parallel for schedule(dynamic) private(z, x) firstprivate(apr_tree_iterator)
+#endif
+                for (z = 0; z < apr_tree_iterator.spatial_index_z_max(level); z++) {
+                    for (x = 0; x < apr_tree_iterator.spatial_index_x_max(level); ++x) {
+                        for (apr_tree_iterator.set_new_lzx(level, z, x);
+                             apr_tree_iterator.global_index() < apr_tree_iterator.end_index;
+                             apr_tree_iterator.set_iterator_to_particle_next_particle()) {
+                            //
+                            //  Parallel loop over level
+                            //
+
+                            temp_imgs[level].at(apr_tree_iterator.y(), apr_tree_iterator.x(),
+                                                apr_tree_iterator.z()) = apr.apr_tree.particles_ds_tree[apr_tree_iterator];
+
+                        }
+                    }
+                }
+            }
+
+            int curr_stencil = std::min((int)stencils.size()-1,(int)(apr.level_max()-level));
+
+            meshNumerics.apply_stencil(temp_imgs[level],stencils[curr_stencil]);
+
+            //meshNumerics.smooth_mesh(temp_imgs[level]);
+            if(level<(apr.level_max()+delta)) {
+                const_upsample_img(temp_imgs[level+1], temp_imgs[level]);
+            }
+            //
+        }
+
+        temp_imgs[apr.level_max()+delta].swap(img);
+
+    }
+
+
 
     template<typename U,typename V,typename S>
     void interp_img_us(APR<S>& apr, PixelData<U>& img,ExtraParticleData<V>& parts){
