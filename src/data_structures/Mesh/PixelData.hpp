@@ -594,7 +594,7 @@ void downsample(const PixelData<T> &aInput, PixelData<S> &aOutput, R reduce, C c
 }
 
 template<typename T>
-void const_upsample_img(PixelData<T>& input_us,PixelData<T>& input,std::vector<size_t>& max_dims){
+void const_upsample_img(PixelData<T>& input_us,PixelData<T>& input){
     //
     //
     //  Bevan Cheeseman 2016
@@ -609,35 +609,20 @@ void const_upsample_img(PixelData<T>& input_us,PixelData<T>& input,std::vector<s
 
     //restrict the domain to be only as big as possibly needed
 
-    int y_size_max = ceil(max_dims[0]/2.0)*2;
-    int x_size_max = ceil(max_dims[1]/2.0)*2;
-    int z_size_max = ceil(max_dims[2]/2.0)*2;
-
-    const int z_num = std::min((int)input.z_num*2,z_size_max);
-    const int x_num = std::min((int)input.x_num*2,x_size_max);
-    const int y_num = std::min((int)input.y_num*2,y_size_max);
-
-    //const int z_num_ds_l = z_num/2;
-    //const int x_num_ds_l = x_num/2;
-    //const int y_num_ds_l = y_num/2;
-
-    const int z_num_ds_l = input.z_num;
-    const int x_num_ds_l = input.x_num;
-    const int y_num_ds_l = input.z_num;
-
+    const int z_num_ds = input.z_num;
     const int x_num_ds = input.x_num;
     const int y_num_ds = input.y_num;
 
-    input_us.y_num = y_num;
-    input_us.x_num = x_num;
-    input_us.z_num = z_num;
+    const int z_num = input_us.z_num;
+    const int x_num = input_us.x_num;
+    const int y_num = input_us.y_num;
 
     timer.start_timer("resize");
 
     timer.stop_timer();
 
     std::vector<T> temp_vec;
-    temp_vec.resize(y_num_ds,0);
+    temp_vec.resize(y_num,0);
 
     timer.start_timer("up_sample_const");
 
@@ -646,20 +631,20 @@ void const_upsample_img(PixelData<T>& input_us,PixelData<T>& input,std::vector<s
 #ifdef HAVE_OPENMP
 //#pragma omp parallel for default(shared) private(j,i,k) firstprivate(temp_vec) if(z_num_ds_l*x_num_ds_l > 100)
 #endif
-    for(j = 0;j < z_num_ds_l;j++){
+    for(j = 0;j < z_num_ds;j++){
 
-        for(i = 0;i < x_num_ds_l;i++){
+        for(i = 0;i < x_num_ds;i++){
 
 
             //first take into cache
-            for (k = 0; k < y_num_ds_l;k++){
+            for (k = 0; k < y_num_ds;k++){
                 temp_vec[k] = input.mesh[j*x_num_ds*y_num_ds + i*y_num_ds + k];
             }
 
             //(0,0)
 
             //then do the operations two by two
-            for (k = 0; k < y_num_ds_l;k++){
+            for (k = 0; k < y_num_ds;k++){
 
                 input_us.mesh[2*j*x_num*y_num + 2*i*y_num + 2*k] = temp_vec[k];
                 input_us.mesh[2*j*x_num*y_num + 2*i*y_num + 2*k + 1] = temp_vec[k];
@@ -668,21 +653,21 @@ void const_upsample_img(PixelData<T>& input_us,PixelData<T>& input,std::vector<s
             //(0,1)
 
             //then do the operations two by two
-            for (k = 0; k < y_num_ds_l;k++){
+            for (k = 0; k < y_num_ds;k++){
                 input_us.mesh[(2*j+1)*x_num*y_num + 2*i*y_num + 2*k] = temp_vec[k];
                 input_us.mesh[(2*j+1)*x_num*y_num + 2*i*y_num + 2*k + 1] = temp_vec[k];
             }
 
             //(1,0)
             //then do the operations two by two
-            for (k = 0; k < y_num_ds_l;k++){
+            for (k = 0; k < y_num_ds;k++){
                 input_us.mesh[2*j*x_num*y_num + (2*i+1)*y_num + 2*k] = temp_vec[k];
                 input_us.mesh[2*j*x_num*y_num + (2*i+1)*y_num + 2*k + 1] = temp_vec[k];
             }
 
             //(1,1)
             //then do the operations two by two
-            for (k = 0; k < y_num_ds_l;k++){
+            for (k = 0; k < y_num_ds;k++){
                 input_us.mesh[(2*j+1)*x_num*y_num + (2*i+1)*y_num + 2*k] = temp_vec[k];
                 input_us.mesh[(2*j+1)*x_num*y_num + (2*i+1)*y_num + 2*k + 1] = temp_vec[k];
             }

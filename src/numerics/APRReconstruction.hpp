@@ -135,7 +135,7 @@ public:
             }
             if(level<apr.level_max()) {
                 std::vector<size_t> max_dims = {apr_iterator.spatial_index_y_max(level+1),apr_iterator.spatial_index_x_max(level+1),apr_iterator.spatial_index_z_max(level+1)};
-                const_upsample_img(temp_imgs[level+1], temp_imgs[level],max_dims);
+                const_upsample_img(temp_imgs[level+1], temp_imgs[level]);
             }
         }
 
