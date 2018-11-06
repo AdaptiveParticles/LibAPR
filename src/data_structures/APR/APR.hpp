@@ -28,7 +28,7 @@ class APR {
 public:
 
     APRAccess apr_access;
-    APRConverter<ImageType> apr_converter;
+    //APRConverter<ImageType> apr_converter;
     APRCompress<ImageType> apr_compress;
     APRTree<ImageType> apr_tree;
 
@@ -47,13 +47,13 @@ public:
 
     inline uint64_t total_number_particles() const { return (apr_access).total_number_particles; }
 
-    APR(){
-        //default
-    }
+//    APR(){
+//        //default
+//    }
 
-    APR(APR<ImageType>& copyAPR){
-        copy_from_APR(copyAPR);
-    }
+    //APR(APR<ImageType>& copyAPR){
+      //  copy_from_APR(copyAPR);
+    //}
 
     void copy_from_APR(APR<ImageType>& copyAPR){
         apr_access = copyAPR.apr_access;
