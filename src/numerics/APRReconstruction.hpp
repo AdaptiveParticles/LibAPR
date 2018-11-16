@@ -88,16 +88,16 @@ public:
 
 
     template<typename U,typename V,typename S>
-    void interp_img_us_smooth(APR<S>& apr, PixelData<U>& img,ExtraParticleData<V>& parts){
+    void interp_img_us_smooth(APR<S>& apr, PixelData<U>& img,ExtraParticleData<V>& parts,bool smooth,int delta = 0){
         //
         //  Bevan Cheeseman 2016
         //
         //  Takes in a APR and creates piece-wise constant image
         //
 
-        int delta = 0;
+        std::fill(apr.apr_tree.particles_ds_tree.data.begin(),apr.apr_tree.particles_ds_tree.data.end(),0);
 
-        //is apr tree initialized.
+        //is apr tree initialized. #FIX ME Need new check
         //if(apr.apr_tree.total_number_parent_cells() == 0){
             apr.apr_tree.init(apr);
             apr.apr_tree.fill_tree_mean_downsample(parts);
@@ -105,7 +105,9 @@ public:
 
         MeshNumerics meshNumerics;
         std::vector<PixelData<float>> stencils;
-        meshNumerics.generate_smooth_stencil(stencils);
+        if(smooth) {
+            meshNumerics.generate_smooth_stencil(stencils);
+        }
 
         auto apr_iterator = apr.iterator();
 
@@ -172,8 +174,9 @@ public:
             }
 
             int curr_stencil = std::min((int)stencils.size()-1,(int)(apr.level_max()-level));
-
-            meshNumerics.apply_stencil(temp_imgs[level],stencils[curr_stencil]);
+            if(smooth) {
+                meshNumerics.apply_stencil(temp_imgs[level], stencils[curr_stencil]);
+            }
 
             //meshNumerics.smooth_mesh(temp_imgs[level]);
             if(level<(apr.level_max()+delta)) {

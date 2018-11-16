@@ -10,6 +10,20 @@
 
 #include "../src/Numerics/GenerateStencils.hpp"
 
+#include "src/io/TiffUtils.hpp"
+
+template<typename T>
+class  APR;
+
+template<typename T>
+T min_nz(T x,T y){
+    if(x>0){
+        return std::min(x,y);
+    } else {
+        return y;
+    }
+}
+
 class MeshNumerics {
 
 public:
@@ -80,6 +94,119 @@ public:
 
     }
 
+
+    template<typename T>
+    void erode_sol(PixelData<T>& input){
+        PixelData<uint8_t> output;
+        output.init(input);
+
+        int i = 0;
+#ifdef HAVE_OPENMP
+#pragma omp parallel for schedule(dynamic) private(i)
+#endif
+        for (i = 0; i < input.z_num; ++i) {
+            for (int j = 0; j < input.x_num; ++j) {
+                for (int k = 0; k < input.y_num; ++k) {
+
+                    uint64_t counter=0;
+                    if(input.at(k , j , i)>0) {
+                        for (int l = -1; l < (1 + 1); ++l) {
+                            for (int q = -1; q < (1 + 1); ++q) {
+                                for (int w = -1; w < (1 + 1); ++w) {
+
+                                    if (input(k + w, j + q, i + l) > 0) {
+                                        counter++;
+                                    }
+                                }
+                            }
+                        }
+
+                        if(counter== 27){
+                            output.at(k, j, i) = 1;
+                        } else {
+                            output.at(k, j, i) = 0;
+                        }
+                    }
+
+                }
+            }
+        }
+
+#ifdef HAVE_OPENMP
+#pragma omp parallel for schedule(dynamic) private(i)
+#endif
+        for (i = 0; i < input.z_num; ++i) {
+            for (int j = 0; j < input.x_num; ++j) {
+                for (int k = 0; k < input.y_num; ++k) {
+
+                    uint64_t counter=0;
+                    if(input.at(k , j , i)>0) {
+                        for (int l = -1; l < (1 + 1); ++l) {
+                            for (int q = -1; q < (1 + 1); ++q) {
+                                for (int w = -1; w < (1 + 1); ++w) {
+
+                                    if (output(k + w, j + q, i + l) > 0) {
+                                        counter++;
+                                    }
+                                }
+                            }
+                        }
+
+                        if((counter > 0) && (output.at(k, j, i)==0)){
+                            input.at(k , j , i) = 0;
+                        }
+                    }
+
+                }
+            }
+        }
+
+    }
+
+
+    template<typename T>
+    void smooth_sol(PixelData<T>& input){
+
+        PixelData<T> output;
+        output.init(input);
+
+        int i = 0;
+#ifdef HAVE_OPENMP
+#pragma omp parallel for schedule(dynamic) private(i)
+#endif
+        for (i = 0; i < input.z_num; ++i) {
+            for (int j = 0; j < input.x_num; ++j) {
+                for (int k = 0; k < input.y_num; ++k) {
+                    float neigh_sum=0;
+                    uint64_t counter=0;
+
+                    for (int l = -1; l < (1+1); ++l) {
+                        for (int q = -1; q < (1+1); ++q) {
+                            for (int w = -1; w <(1+1); ++w) {
+
+                                if(input(k + w, j + q, i+l) >0) {
+                                    neigh_sum += input(k + w, j + q, i + l);
+
+                                    counter++;
+                                }
+                            }
+                        }
+                    }
+                    if(counter>0) {
+                        output.at(k, j, i) = neigh_sum / (1.0f * counter);
+                    } else {
+                        output.at(k, j, i) = 0;
+                    }
+
+
+                }
+            }
+        }
+
+        std::swap(output,input);
+
+    }
+
     template<typename T>
     void smooth_mesh(PixelData<T>& input){
 
@@ -96,9 +223,9 @@ public:
                     float neigh_sum=0;
                     uint64_t counter=0;
 
-                    for (int l = -1; l < 1+1; ++l) {
-                        for (int q = -1; q < 1+1; ++q) {
-                            for (int w = -1; w <1+1; ++w) {
+                    for (int l = -1; l < (1+1); ++l) {
+                        for (int q = -1; q < (1+1); ++q) {
+                            for (int w = -1; w <(1+1); ++w) {
 
 
                                 neigh_sum +=  input(k + w, j + q, i+l);
@@ -118,6 +245,239 @@ public:
         std::swap(output,input);
 
     }
+
+
+
+    template<typename T,typename ImageType>
+    void fill_tree_vals(PixelData<T>& input,APR<ImageType>& apr){
+
+        std::vector<PixelData<T>> temp_imgs;
+        temp_imgs.resize(apr.level_max());
+
+        auto apr_iterator = apr.iterator();
+
+        for (int i = apr_iterator.level_min(); i < (apr_iterator.level_max()-1); ++i) {
+
+            temp_imgs[i].initWithValue(apr_iterator.spatial_index_y_max(i),apr_iterator.spatial_index_x_max(i),apr_iterator.spatial_index_z_max(i),0);
+
+        }
+
+        temp_imgs.back().swap(input);
+
+        temp_imgs[apr_iterator.level_min()-1].initDownsampled(temp_imgs[apr_iterator.level_min()]);
+
+
+        //upwards pass
+        for (int i = (apr_iterator.level_max()-1); i >= apr_iterator.level_min(); --i) {
+
+            smooth_sol(temp_imgs[i]);
+
+            auto max_op = [](const float x, const float y) -> float { return std::max(x,y);};
+            auto nothing = [](const float x) -> float { return x; };
+
+            downsample(temp_imgs[i], temp_imgs[i-1], max_op, nothing, false);
+
+        }
+
+        //filling in the gaps
+        double avg = 0;
+        uint64_t counter = 0;
+        for (int j = 0; j < temp_imgs[apr_iterator.level_min()-1].mesh.size(); ++j) {
+            if(temp_imgs[apr_iterator.level_min()-1].mesh[j]>0){
+                avg+=temp_imgs[apr_iterator.level_min()-1].mesh[j];
+                counter++;
+            }
+        }
+        avg = avg/(counter*1.0);
+
+        int j = 0;
+#ifdef HAVE_OPENMP
+#pragma omp parallel for schedule(dynamic) private(j)
+#endif
+        for (j = 0; j < temp_imgs[apr_iterator.level_min()-1].mesh.size(); ++j) {
+            if(temp_imgs[apr_iterator.level_min()-1].mesh[j]==0){
+                temp_imgs[apr_iterator.level_min()-1].mesh[j]=avg;
+            }
+        }
+
+
+        //downwards pass
+        for (int i = apr_iterator.level_min(); i < apr_iterator.level_max(); ++i) {
+            PixelData<T> up_sampled;
+            up_sampled.init(temp_imgs[i]);
+
+            const_upsample_img(up_sampled,temp_imgs[i-1]);
+
+            int j = 0;
+#ifdef HAVE_OPENMP
+#pragma omp parallel for schedule(dynamic) private(j)
+#endif
+            for (j = 0; j < temp_imgs[i].mesh.size(); ++j) {
+                if(temp_imgs[i].mesh[j]==0){
+                    temp_imgs[i].mesh[j]=up_sampled.mesh[j];
+                }
+            }
+
+            smooth_sol(temp_imgs[i]);
+
+        }
+
+        temp_imgs.back().swap(input);
+
+
+    }
+
+
+    template<typename T>
+    void fill_vals(PixelData<T>& input){
+
+        PixelData<T> output;
+        output.initWithValue(input.y_num,input.x_num,input.z_num,1000);
+
+        PixelData<float> counter;
+        counter.initWithValue(input.y_num,input.x_num,input.z_num,1);
+
+
+        //yloop
+
+        int i = 0;
+#ifdef HAVE_OPENMP
+#pragma omp parallel for schedule(dynamic) private(i)
+#endif
+        for (i = 0; i < input.z_num; ++i) {
+            for (int j = 0; j < input.x_num; ++j) {
+                float prev_val = 0;
+
+                //forward
+                for (int k = 0; k < input.y_num; ++k) {
+
+                    float curr_val = input.at(k,j,i);
+
+                    if((curr_val == 0) && (prev_val >0)){
+                        output.at(k,j,i) += prev_val;
+                        counter.at(k,j,i)++;
+
+                    } else if(curr_val > 0) {
+                        prev_val = curr_val;
+                        output.at(k,j,i) = curr_val;
+                        counter.at(k,j,i)=1;
+                    }
+
+                }
+                prev_val = 0;
+                //backward
+                for (int k = (input.y_num-1); k >= 0; --k) {
+
+                    float curr_val = input.at(k,j,i);
+
+                    if((curr_val == 0) && (prev_val >0)){
+                        output.at(k,j,i) += prev_val;
+                        counter.at(k,j,i)++;
+
+                    } else if(curr_val > 0) {
+                        prev_val = curr_val;
+                    }
+                }
+            }
+        }
+
+
+        //xloop
+
+#ifdef HAVE_OPENMP
+#pragma omp parallel for schedule(dynamic) private(i)
+#endif
+        for (i = 0; i < input.z_num; ++i) {
+            for (int j = 0; j < input.y_num; ++j) {
+                float prev_val = 0;
+
+                //forward
+                for (int k = 0; k < input.x_num; ++k) {
+
+                    float curr_val = input.at(j,k,i);
+
+                    if((curr_val == 0) && (prev_val >0)){
+                        output.at(j,k,i) += prev_val;
+                        counter.at(j,k,i)++;
+
+                    } else if(curr_val > 0) {
+                        prev_val = curr_val;
+                        output.at(j,k,i) = curr_val;
+                        counter.at(j,k,i)=1;
+                    }
+
+                }
+                prev_val = 0;
+                //backward
+                for (int k = (input.x_num-1); k >= 0; --k) {
+
+                    float curr_val = input.at(j,k,i);
+
+                    if((curr_val == 0) && (prev_val >0)){
+                        output.at(j,k,i) += prev_val;
+                        counter.at(j,k,i)++;
+
+                    } else if(curr_val > 0) {
+                        prev_val = curr_val;
+                    }
+                }
+            }
+        }
+
+        //zloop
+
+#ifdef HAVE_OPENMP
+#pragma omp parallel for schedule(dynamic) private(i)
+#endif
+        for (i = 0; i < input.x_num; ++i) {
+            for (int j = 0; j < input.y_num; ++j) {
+                float prev_val = 0;
+
+                //forward
+                for (int k = 0; k < input.z_num; ++k) {
+
+                    float curr_val = input.at(j,i,k);
+
+                    if((curr_val == 0) && (prev_val >0)){
+                        output.at(j,i,k) += prev_val;
+                        counter.at(j,i,k)++;
+
+                    } else if(curr_val > 0) {
+                        prev_val = curr_val;
+                        output.at(j,i,k) = curr_val;
+                        counter.at(j,i,k)=1;
+                    }
+
+                }
+                prev_val = 0;
+                //backward
+                for (int k = (input.z_num-1); k >= 0; --k) {
+
+                    float curr_val = input.at(j,i,k);
+
+                    if((curr_val == 0) && (prev_val >0)){
+                        output.at(j,i,k) += prev_val;
+                        counter.at(j,i,k)++;
+
+                    } else if(curr_val > 0) {
+                        prev_val = curr_val;
+                    }
+                }
+            }
+        }
+
+
+
+
+        for (int l = 0; l < output.mesh.size(); ++l) {
+                output.mesh[l]=output.mesh[l]/counter.mesh[l];
+        }
+
+
+        output.swap(input);
+
+    }
+
 
     template<typename U,typename V>
     static float compute_gradient(const PixelData<U>& input_data,std::vector<PixelData<V>>& output_data,std::vector<float> delta = {1.0f,1.0f,1.0f}){

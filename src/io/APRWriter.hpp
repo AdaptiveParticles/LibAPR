@@ -403,8 +403,86 @@ public:
     FileSizeInfo write_apr_append(APR<ImageType>& apr, const std::string &save_loc, const std::string &file_name) {
         APRCompress<ImageType> apr_compressor;
         apr_compressor.set_compression_type(0);
-        return write_apr(apr, save_loc, file_name, apr_compressor,BLOSC_ZSTD,2,1,false,true);
+        return write_apr(apr, save_loc, file_name, apr_compressor,BLOSC_ZSTD,4,1,false,true);
     }
+
+    template<typename ImageType>
+    struct TimeData{
+        ExtraParticleData<ImageType>* add_fp;
+        ExtraParticleData<ImageType>* update_fp;
+
+        ExtraParticleData<uint64_t>* update_index;
+        ExtraParticleData<uint64_t>* add_index;
+        ExtraParticleData<uint64_t>* remove_index;
+
+
+        };
+
+    template<typename ImageType>
+    void write_apr_time(TimeData<ImageType>& timeData, const std::string &save_loc, const std::string &file_name, unsigned int blosc_comp_type = BLOSC_ZSTD, unsigned int blosc_comp_level = 4, unsigned int blosc_shuffle=1,bool write_tree = false,bool append_apr_time = true) {
+        APRTimer write_timer;
+        write_timer.verbose_flag = true;
+
+        std::string hdf5_file_name = save_loc + file_name + "_apr.h5";
+
+
+        AprFile::Operation op;
+
+        if (write_tree) {
+            op = AprFile::Operation::WRITE_WITH_TREE;
+        } else {
+            op = AprFile::Operation::WRITE;
+        }
+
+        unsigned int t = 0;
+
+        if (append_apr_time) {
+            t = current_t;
+            current_t++;
+        }
+
+        AprFile f(hdf5_file_name, op, t);
+
+        FileSizeInfo fileSizeInfo1;
+        if (!f.isOpened()) return;
+
+        hid_t meta_location = f.groupId;
+
+        if (append_apr_time) {
+            meta_location = f.objectId;
+        }
+
+        hid_t type = Hdf5Type<ImageType>::type();
+
+        hid_t type_index = H5T_NATIVE_UINT64;
+
+        if(timeData.update_fp->data.size() > 0) {
+            writeData({type, "update_fp"}, meta_location, timeData.update_fp->data, blosc_comp_type, blosc_comp_level,
+                      blosc_shuffle);
+
+            writeData({type_index, "update_index"}, meta_location, timeData.update_index->data, blosc_comp_type, blosc_comp_level,
+                      blosc_shuffle);
+        }
+
+        if(timeData.add_fp->data.size() > 0) {
+            writeData({type, "add_fp"}, meta_location, timeData.add_fp->data, blosc_comp_type, blosc_comp_level, blosc_shuffle);
+            writeData({type_index, "add_index"}, meta_location, timeData.add_index->data, blosc_comp_type, blosc_comp_level, blosc_shuffle);
+        }
+
+        if(timeData.remove_index->data.size() > 0) {
+            writeData({type_index, "remove_index"}, meta_location, timeData.remove_index->data, blosc_comp_type, blosc_comp_level, blosc_shuffle);
+        }
+
+        // ------------- output the file size -------------------
+        auto file_size = f.getFileSize();
+        double sizeMB = file_size / 1e6;
+
+        std::cout << "HDF5 Total Filesize: " << sizeMB << " MB\n" << "Writing Complete" << std::endl;
+
+
+    }
+
+
 
     /**
      * Writes the APR to the particle cell structure sparse format, using the p_map for reconstruction
