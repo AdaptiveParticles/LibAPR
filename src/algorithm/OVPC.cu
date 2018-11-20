@@ -30,7 +30,7 @@ __global__ void copy1D(const T *input, S *output, size_t length) {
 
 template <typename T, typename S>
 void runCopy1D(T *inputData, S *outputData, size_t lenght, cudaStream_t aStream) {
-    dim3 threadsPerBlock(64);
+    dim3 threadsPerBlock(128);
     dim3 numBlocks((lenght + threadsPerBlock.x - 1)/threadsPerBlock.x);
     copy1D<<<numBlocks,threadsPerBlock, 0, aStream>>>(inputData, outputData, lenght);
 };
@@ -73,7 +73,7 @@ __global__ void oneLevel(T *data, size_t xLen, size_t yLen, size_t zLen, int lev
 
 template <typename T>
 void runOneLevel(T *data, size_t xLen, size_t yLen, size_t zLen, int level, cudaStream_t aStream) {
-    dim3 threadsPerBlock(1, 64, 1);
+    dim3 threadsPerBlock(1, 128, 1);
     dim3 numBlocks((xLen + threadsPerBlock.x - 1) / threadsPerBlock.x,
                    (yLen + threadsPerBlock.y - 1) / threadsPerBlock.y,
                    (zLen + threadsPerBlock.z - 1) / threadsPerBlock.z);
@@ -111,7 +111,7 @@ __global__ void secondPhase(T *data, T *child, size_t xLen, size_t yLen, size_t 
 
 template <typename T>
 void runSecondPhase(T *data, T *child, size_t xLen, size_t yLen, size_t zLen, size_t xLenc, size_t yLenc, size_t zLenc, bool isLevelMax, cudaStream_t aStream) {
-    dim3 threadsPerBlock(1, 64, 1);
+    dim3 threadsPerBlock(1, 128, 1);
     dim3 numBlocks((xLen + threadsPerBlock.x - 1) / threadsPerBlock.x,
                    (yLen + threadsPerBlock.y - 1) / threadsPerBlock.y,
                    (zLen + threadsPerBlock.z - 1) / threadsPerBlock.z);

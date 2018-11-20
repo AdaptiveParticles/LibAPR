@@ -88,8 +88,6 @@ namespace {
             ps.fill(l_,levelsDS);
             levels.swap(levelsDS);
         }
-        t.stop_timer();
-        t.start_timer("PS2");
         ps.pulling_scheme_main();
         t.stop_timer();
 
@@ -248,28 +246,49 @@ namespace {
 
 
         PixelData<float> levels = getRandInitializedMesh<float>(access.org_dims[0]/2,access.org_dims[1]/2,access.org_dims[2]/2, access.l_max + 1);
+        PixelData<float> levels2(levels, true);
 
         //        PixelData<float> levels(16,1,1);
 //        float values[] = {4, 1, 1, 1,   1, 1, 1, 2,   3, 1, 1, 1,   1, 1, 1, 2};
 //        initFromZYXarray(levels, values);
 
         APRTimer t(true);
-
-        t.start_timer("CUDA");
-        int levelMax = access.l_max - 1;
-        int levelMin = access.l_min;
-        PixelData<TreeElementType> ds(levels.y_num, levels.x_num, levels.z_num * (levelMax - levelMin + 1), 0);
-        std::cout << levels << std::endl;
+        {
+            t.start_timer("PS1");
+            PullingScheme ps;
+            ps.initialize_particle_cell_tree(access);
+            int l_max = access.l_max - 1;
+            int l_min = access.l_min;
+            ps.fill(l_max, levels2);
+            PixelData<float> levelsDS;
+            for (int l_ = l_max - 1; l_ >= l_min; l_--) {
+                downsample(levels, levelsDS,
+                           [](const float &x, const float &y) -> float { return std::max(x, y); },
+                           [](const float &x) -> float { return x; }, true);
+                ps.fill(l_, levelsDS);
+                levels2.swap(levelsDS);
+            }
+            ps.pulling_scheme_main();
+            t.stop_timer();
+        }
+        {
+            t.start_timer("CUDA");
+            int levelMax = access.l_max - 1;
+            int levelMin = access.l_min;
+            PixelData<TreeElementType> ds(levels.y_num, levels.x_num, levels.z_num * (levelMax - levelMin + 1), 0);
+            std::cout << levels << std::endl;
 //        std::cout << ds << std::endl;
-        computeOVPC(levels, ds, levelMin, levelMax);
+            computeOVPC(levels, ds, levelMin, levelMax);
 //        ds.printMeshT(3,1);
-        t.stop_timer();
-
-        t.start_timer("OVPC1");
-        OVPC nps(access, levels);
-        nps.generateTree();
-        t.stop_timer();
+            t.stop_timer();
+        }
+        {
+            t.start_timer("OVPC1");
+            OVPC nps(access, levels);
+            nps.generateTree();
+            t.stop_timer();
 //        printParticleCellTree(nps.getParticleCellTree());
+        }
     }
 
 #endif
