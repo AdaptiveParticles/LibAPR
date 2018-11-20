@@ -20,6 +20,16 @@ struct FileSizeInfo {
     float access_data=0;
 };
 
+struct FileSizeInfoTime {
+    float total_file_size=0;
+    float update_fp = 0;
+    float update_index = 0;
+    float add_index = 0;
+    float add_fp = 0;
+    float remove_index = 0;
+    float remove_fp = 0;
+};
+
 
 struct AprType {hid_t hdf5type; const char * const typeName;};
 namespace AprTypes  {
@@ -81,6 +91,29 @@ class APRWriter {
 
 
 public:
+
+    size_t get_number_time_steps(const std::string &file_name){
+        AprFile::Operation op;
+
+
+        size_t number_time_steps = 0;
+
+        op = AprFile::Operation::READ;
+
+        AprFile f(file_name, op,0);
+
+        if (!f.isOpened()) return 0;
+
+        hsize_t num_obj;
+
+        H5Gget_num_objs(f.groupId,&num_obj);
+
+        number_time_steps = num_obj;
+
+        return number_time_steps;
+
+    }
+
 
     template<typename ImageType>
     void read_apr(APR<ImageType>& apr, const std::string &file_name,bool build_tree = false, int max_level_delta = 0,unsigned int time_point = UINT32_MAX) {
@@ -393,6 +426,192 @@ public:
     }
 
     template<typename ImageType>
+    void read_apr_time(APR<ImageType>& apr, const std::string &file_name,bool build_tree = false, int max_level_delta = 0,unsigned int time_point = UINT32_MAX) {
+
+        APRTimer timer;
+        timer.verbose_flag = false;
+
+        APRTimer timer_f;
+        timer_f.verbose_flag = false;
+
+        AprFile::Operation op;
+
+        if (build_tree) {
+            op = AprFile::Operation::READ_WITH_TREE;
+        } else {
+            op = AprFile::Operation::READ;
+        }
+
+        unsigned int t = 0;
+
+        if (time_point != UINT32_MAX) {
+            t = time_point;
+        }
+
+        AprFile f(file_name, op, t);
+
+        hid_t meta_data = f.groupId;
+
+        if (time_point != UINT32_MAX) {
+            meta_data = f.objectId;
+        }
+
+
+        if (!f.isOpened()) return;
+
+        if(time_point == 0){
+
+            read_apr(apr,file_name,false,0,0);
+        } else {
+
+            hid_t type = Hdf5Type<ImageType>::type();
+
+            hid_t type_index = H5T_NATIVE_UINT64;
+
+            TimeData<ImageType> timeData;
+
+            uint64_t update_num;
+            readAttr({type_index,"update_num"}, meta_data, &update_num);
+
+            uint64_t add_num;
+            readAttr({type_index,"add_num"}, meta_data, &add_num);
+
+            uint64_t remove_num;
+            readAttr({type_index,"remove_num"}, meta_data, &remove_num);
+
+            //Intensities
+
+            std::vector<ImageType> update_fp;
+            update_fp.resize(update_num);
+            readData({type, "update_fp"}, meta_data, update_fp.data());
+
+            std::vector<ImageType> add_fp;
+            add_fp.resize(add_num);
+            readData({type, "add_fp"}, meta_data, add_fp.data());
+
+            std::vector<ImageType> remove_fp;
+            remove_fp.resize(remove_num);
+            readData({type, "remove_fp"}, meta_data, remove_fp.data());
+
+            //Spatial information
+
+            std::vector<uint64_t> update_index;
+            update_index.resize(update_num);
+            readData({type, "update_index"}, meta_data, update_index.data());
+
+            MapStorageData map_data_add;
+
+            hid_t type_pc = H5T_NATIVE_UINT16;
+
+            if(add_num > 0) {
+                map_data_add.y_begin.resize(add_num);
+                map_data_add.x.resize(add_num);
+                map_data_add.z.resize(add_num);
+                map_data_add.level.resize(add_num);
+
+                readData({type_pc, "add_y"}, meta_data, map_data_add.y_begin.data());
+                readData({type_pc, "add_l"}, meta_data, map_data_add.level.data());
+                readData({type_pc, "add_x"}, meta_data, map_data_add.x.data());
+                readData({type_pc, "add_z"}, meta_data, map_data_add.z.data());
+
+            }
+
+            MapStorageData map_data_remove;
+
+            if(remove_num > 0) {
+                map_data_remove.y_begin.resize(remove_num);
+                map_data_remove.x.resize(remove_num);
+                map_data_remove.z.resize(remove_num);
+                map_data_remove.level.resize(remove_num);
+
+                readData({type_pc, "remove_y"}, meta_data, map_data_remove.y_begin.data());
+                readData({type_pc, "remove_l"}, meta_data, map_data_remove.level.data());
+                readData({type_pc, "remove_x"}, meta_data, map_data_remove.x.data());
+                readData({type_pc, "remove_z"}, meta_data, map_data_remove.z.data());
+            }
+
+            if((remove_num + add_num) > 0){
+
+                auto apr_iterator = apr.iterator();
+                std::vector<PixelData<uint8_t>> layers;
+
+                layers.resize(apr_iterator.level_max());
+
+                for (unsigned int level = apr_iterator.level_min(); level <= apr_iterator.level_max(); ++level) {
+                    int z = 0;
+                    int x = 0;
+
+                    if(level < apr.level_max()) {
+                        layers[level].initWithValue(apr_iterator.spatial_index_y_max(level),
+                                                    apr_iterator.spatial_index_x_max(level),
+                                                    apr_iterator.spatial_index_z_max(level), 0);
+                    }
+
+#ifdef HAVE_OPENMP
+#pragma omp parallel for schedule(dynamic) private(z, x) firstprivate(apr_iterator)
+#endif
+                    for (z = 0; z < apr_iterator.spatial_index_z_max(level); z++) {
+                        for (x = 0; x < apr_iterator.spatial_index_x_max(level); ++x) {
+                            for (apr_iterator.set_new_lzx(level, z, x); apr_iterator.global_index() < apr_iterator.end_index;
+                                 apr_iterator.set_iterator_to_particle_next_particle()) {
+                                if(level==apr_iterator.level_max()){
+                                    layers[level-1].at(apr_iterator.y()/2,apr_iterator.x()/2,apr_iterator.z()/2)=1;
+                                } else {
+                                    layers[level].at(apr_iterator.y(),apr_iterator.x(),apr_iterator.z())=3;
+                                }
+
+                            }
+                        }
+                    }
+
+                }
+
+                //add
+
+                for (int i = 0; i < add_num; ++i) {
+
+                    auto l = map_data_add.level[i];
+                    auto y = map_data_add.y_begin[i];
+                    auto x = map_data_add.x[i];
+                    auto z = map_data_add.z[i];
+
+                    if(l < apr.level_max()){
+                        layers[l-1].at(y,x,z) = 3;
+                    } else {
+                        layers[l].at(y,x,z) = 1;
+                    }
+
+                }
+
+                //remove
+                for (int i = 0; i < add_num; ++i) {
+
+                    auto l = map_data_remove.level[i];
+                    auto y = map_data_remove.y_begin[i];
+                    auto x = map_data_remove.x[i];
+                    auto z = map_data_remove.z[i];
+
+                    if(l < apr.level_max()){
+                        layers[l-1].at(y,x,z) = 0;
+                    } else {
+                        layers[l].at(y,x,z) = 0;
+                    }
+
+                }
+
+                apr.apr_access.initialize_structure_from_particle_cell_tree(apr.parameters,layers);
+
+                apr.particles_intensities.data.resize(apr.particles_intensities.data.size() + add_num - remove_num);
+
+
+            }
+
+
+        }
+
+    }
+
+    template<typename ImageType>
     FileSizeInfo write_apr(APR<ImageType>& apr, const std::string &save_loc, const std::string &file_name) {
         APRCompress<ImageType> apr_compressor;
         apr_compressor.set_compression_type(0);
@@ -410,16 +629,83 @@ public:
     struct TimeData{
         ExtraParticleData<ImageType>* add_fp;
         ExtraParticleData<ImageType>* update_fp;
+        ExtraParticleData<ImageType>* remove_fp;
 
         ExtraParticleData<uint64_t>* update_index;
         ExtraParticleData<uint64_t>* add_index;
         ExtraParticleData<uint64_t>* remove_index;
 
+        ExtraParticleData<ParticleCell>* update_pc;
+        ExtraParticleData<YGap_map>* update_gap;
 
-        };
+        ExtraParticleData<ParticleCell>* remove_pc;
+        ExtraParticleData<ParticleCell>* add_pc;
+
+        unsigned int l_max;
+
+
+    };
+
 
     template<typename ImageType>
-    void write_apr_time(TimeData<ImageType>& timeData, const std::string &save_loc, const std::string &file_name, unsigned int blosc_comp_type = BLOSC_ZSTD, unsigned int blosc_comp_level = 4, unsigned int blosc_shuffle=1,bool write_tree = false,bool append_apr_time = true) {
+    void write_particle_cells(TimeData<ImageType>& tdata,hid_t location,unsigned int blosc_comp_type = BLOSC_ZSTD, unsigned int blosc_comp_level = 4, unsigned int blosc_shuffle=1){
+
+        MapStorageData map_data;
+
+        for (int i = 0; i < tdata.remove_pc->data.size(); ++i) {
+            if(tdata.remove_pc->data[i].level<tdata.l_max) {
+                map_data.y_begin.push_back(tdata.remove_pc->data[i].y);
+                map_data.x.push_back(tdata.remove_pc->data[i].x);
+                map_data.z.push_back(tdata.remove_pc->data[i].z);
+                map_data.level.push_back(tdata.remove_pc->data[i].level);
+            } else {
+                map_data.y_begin.push_back(tdata.remove_pc->data[i].y/2);
+                map_data.x.push_back(tdata.remove_pc->data[i].x/2);
+                map_data.z.push_back(tdata.remove_pc->data[i].z/2);
+                map_data.level.push_back(tdata.remove_pc->data[i].level);
+            }
+        }
+
+        hid_t type_index = H5T_NATIVE_UINT16;
+
+        if(tdata.remove_fp->data.size() > 0) {
+            writeData({type_index, "remove_y"}, location, map_data.y_begin, blosc_comp_type, blosc_comp_level,
+                      blosc_shuffle);
+            writeData({type_index, "remove_l"}, location, map_data.level, blosc_comp_type, blosc_comp_level,
+                      blosc_shuffle);
+            writeData({type_index, "remove_x"}, location, map_data.x, blosc_comp_type, blosc_comp_level, blosc_shuffle);
+            writeData({type_index, "remove_z"}, location, map_data.z, blosc_comp_type, blosc_comp_level, blosc_shuffle);
+        }
+        MapStorageData map_data_add;
+
+        for (int i = 0; i < tdata.add_pc->data.size(); ++i) {
+            if(tdata.remove_pc->data[i].level<tdata.l_max) {
+                map_data_add.y_begin.push_back(tdata.add_pc->data[i].y);
+                map_data_add.x.push_back(tdata.add_pc->data[i].x);
+                map_data_add.z.push_back(tdata.add_pc->data[i].z);
+                map_data_add.level.push_back(tdata.add_pc->data[i].level);
+            } else {
+                map_data_add.y_begin.push_back(tdata.add_pc->data[i].y/2);
+                map_data_add.x.push_back(tdata.add_pc->data[i].x/2);
+                map_data_add.z.push_back(tdata.add_pc->data[i].z/2);
+                map_data_add.level.push_back(tdata.add_pc->data[i].level);
+            }
+        }
+        if(tdata.add_fp->data.size() > 0) {
+            writeData({type_index, "add_y"}, location, map_data_add.y_begin, blosc_comp_type, blosc_comp_level,
+                      blosc_shuffle);
+            writeData({type_index, "add_l"}, location, map_data_add.level, blosc_comp_type, blosc_comp_level,
+                      blosc_shuffle);
+            writeData({type_index, "add_x"}, location, map_data_add.x, blosc_comp_type, blosc_comp_level,
+                      blosc_shuffle);
+            writeData({type_index, "add_z"}, location, map_data_add.z, blosc_comp_type, blosc_comp_level,
+                      blosc_shuffle);
+        }
+
+    }
+
+    template<typename ImageType>
+    FileSizeInfoTime write_apr_time(TimeData<ImageType>& timeData, const std::string &save_loc, const std::string &file_name, unsigned int blosc_comp_type = BLOSC_ZSTD, unsigned int blosc_comp_level = 4, unsigned int blosc_shuffle=1,bool write_tree = false,bool append_apr_time = true) {
         APRTimer write_timer;
         write_timer.verbose_flag = true;
 
@@ -444,7 +730,8 @@ public:
         AprFile f(hdf5_file_name, op, t);
 
         FileSizeInfo fileSizeInfo1;
-        if (!f.isOpened()) return;
+        FileSizeInfoTime fzt;
+        if (!f.isOpened()) return fzt;
 
         hid_t meta_location = f.groupId;
 
@@ -456,30 +743,80 @@ public:
 
         hid_t type_index = H5T_NATIVE_UINT64;
 
+
+
+        auto o_size = f.getFileSize();
+
         if(timeData.update_fp->data.size() > 0) {
             writeData({type, "update_fp"}, meta_location, timeData.update_fp->data, blosc_comp_type, blosc_comp_level,
                       blosc_shuffle);
 
+            fzt.update_fp = f.getFileSize() - o_size;
+            o_size = f.getFileSize();
+
             writeData({type_index, "update_index"}, meta_location, timeData.update_index->data, blosc_comp_type, blosc_comp_level,
                       blosc_shuffle);
+
+            fzt.update_index = f.getFileSize() - o_size;
+            o_size = f.getFileSize();
+
+            uint64_t update_num = timeData.update_fp->data.size();
+            writeAttr({type_index,"update_num"}, meta_location, &update_num);
+
+
+            //write_particle_cells(timeData,meta_location);
         }
 
         if(timeData.add_fp->data.size() > 0) {
+
             writeData({type, "add_fp"}, meta_location, timeData.add_fp->data, blosc_comp_type, blosc_comp_level, blosc_shuffle);
-            writeData({type_index, "add_index"}, meta_location, timeData.add_index->data, blosc_comp_type, blosc_comp_level, blosc_shuffle);
+
+            fzt.add_fp = f.getFileSize() - o_size;
+            o_size = f.getFileSize();
+
+
+            //writeData({type_index, "add_index"}, meta_location, timeData.add_index->data, blosc_comp_type, blosc_comp_level, blosc_shuffle);
+
+
+            fzt.add_index = f.getFileSize() - o_size;
+            o_size = f.getFileSize();
+
+            uint64_t add_num = timeData.add_fp->data.size();
+            writeAttr({type_index,"add_num"}, meta_location, &add_num);
+
         }
 
         if(timeData.remove_index->data.size() > 0) {
-            writeData({type_index, "remove_index"}, meta_location, timeData.remove_index->data, blosc_comp_type, blosc_comp_level, blosc_shuffle);
+
+            //writeData({type_index, "remove_index"}, meta_location, timeData.remove_index->data, blosc_comp_type, blosc_comp_level, blosc_shuffle);
+
+
+            writeData({type, "remove_fp"}, meta_location, timeData.remove_fp->data, blosc_comp_type, blosc_comp_level, blosc_shuffle);
+
+
+            fzt.remove_fp = f.getFileSize() - o_size;
+            o_size = f.getFileSize();
+
+            uint64_t remove_num = timeData.remove_fp->data.size();
+            writeAttr({type_index,"remove_num"}, meta_location, &remove_num);
+
+
         }
+
+
+        write_particle_cells(timeData,meta_location);
+
+        fzt.remove_index = f.getFileSize() - o_size;
+        o_size = f.getFileSize();
 
         // ------------- output the file size -------------------
         auto file_size = f.getFileSize();
         double sizeMB = file_size / 1e6;
 
+
         std::cout << "HDF5 Total Filesize: " << sizeMB << " MB\n" << "Writing Complete" << std::endl;
 
-
+        return fzt;
     }
 
 

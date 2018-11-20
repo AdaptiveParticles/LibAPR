@@ -52,6 +52,8 @@ public:
     operator uint64_t() { return current_particle_cell.global_index; }
 
     ParticleCell get_neigh_particle_cell();
+    ParticleCell get_current_particle_cell();
+    MapIterator& get_current_gap();
 
     uint8_t number_neighbours_in_direction(const uint8_t& face);
 
@@ -167,6 +169,13 @@ inline ParticleCell GenIterator::get_neigh_particle_cell(){
     return neighbour_particle_cell;
 }
 
+inline ParticleCell GenIterator::get_current_particle_cell(){
+    return current_particle_cell;
+}
+
+inline MapIterator& GenIterator::get_current_gap(){
+    return current_gap;
+}
 
 inline uint8_t GenIterator::number_neighbours_in_direction(const uint8_t& face){
     switch (level_delta){
