@@ -472,7 +472,8 @@ public:
 
 
     void initialize_structure_from_particle_cell_tree(APRParameters& apr_parameters,std::vector<PixelData<uint8_t>>& layers){
-       x_num.resize(l_max+1);
+
+        x_num.resize(l_max+1);
        y_num.resize(l_max+1);
        z_num.resize(l_max+1);
 

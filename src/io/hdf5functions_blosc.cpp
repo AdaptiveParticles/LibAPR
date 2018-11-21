@@ -152,10 +152,10 @@ void hdf5_write_attribute_blosc(hid_t obj_id,hid_t type_id,const char* attr_name
  */
 hid_t hdf5_create_file_blosc(std::string file_name){
 
-    hid_t fcpl_id=H5Pcreate(H5P_FILE_CREATE);
-    H5Pset_file_space(fcpl_id,H5F_FILE_SPACE_ALL_PERSIST,(hsize_t)0);
+    //hid_t fcpl_id=H5Pcreate(H5P_FILE_CREATE);
+    //H5Pset_file_space(fcpl_id,H5F_FILE_SPACE_ALL_PERSIST,(hsize_t)0);
 
-    return H5Fcreate(file_name.c_str(),H5F_ACC_TRUNC, fcpl_id, H5P_DEFAULT); //this writes over the current file
+    return H5Fcreate(file_name.c_str(),H5F_ACC_TRUNC, H5P_DEFAULT, H5P_DEFAULT); //this writes over the current file
 }
 
 void write_main_paraview_xdmf_xml(const std::string &aDestinationDir,const std::string &aHdf5FileName, const std::string &aParaviewFileName, uint64_t aNumOfParticles){

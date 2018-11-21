@@ -429,7 +429,7 @@ public:
     void read_apr_time(APR<ImageType>& apr, const std::string &file_name,bool build_tree = false, int max_level_delta = 0,unsigned int time_point = UINT32_MAX) {
 
         APRTimer timer;
-        timer.verbose_flag = false;
+        timer.verbose_flag = true;
 
         APRTimer timer_f;
         timer_f.verbose_flag = false;
@@ -464,6 +464,8 @@ public:
             read_apr(apr,file_name,false,0,0);
         } else {
 
+            timer.start_timer("read");
+
             hid_t type = Hdf5Type<ImageType>::type();
 
             hid_t type_index = H5T_NATIVE_UINT64;
@@ -479,38 +481,47 @@ public:
             uint64_t remove_num;
             readAttr({type_index,"remove_num"}, meta_data, &remove_num);
 
+            uint64_t update_f_num;
+            readAttr({type_index,"update_f_num"}, meta_data, &update_f_num);
+
+            uint64_t add_f_num;
+            readAttr({type_index,"add_f_num"}, meta_data, &add_f_num);
+
+            uint64_t remove_f_num;
+            readAttr({type_index,"remove_f_num"}, meta_data, &remove_f_num);
+
             //Intensities
 
             std::vector<ImageType> update_fp;
-            update_fp.resize(update_num);
-            readData({type, "update_fp"}, meta_data, update_fp.data());
+
+
 
             std::vector<ImageType> add_fp;
-            add_fp.resize(add_num);
-            readData({type, "add_fp"}, meta_data, add_fp.data());
-
             std::vector<ImageType> remove_fp;
-            remove_fp.resize(remove_num);
-            readData({type, "remove_fp"}, meta_data, remove_fp.data());
+
 
             //Spatial information
 
             std::vector<uint64_t> update_index;
-            update_index.resize(update_num);
-            readData({type, "update_index"}, meta_data, update_index.data());
+
+
 
             MapStorageData map_data_add;
 
             hid_t type_pc = H5T_NATIVE_UINT16;
 
             if(add_num > 0) {
+
+                add_fp.resize(add_f_num);
+                readData({type, "add_fp"}, meta_data, add_fp.data());
+
                 map_data_add.y_begin.resize(add_num);
                 map_data_add.x.resize(add_num);
                 map_data_add.z.resize(add_num);
                 map_data_add.level.resize(add_num);
 
                 readData({type_pc, "add_y"}, meta_data, map_data_add.y_begin.data());
-                readData({type_pc, "add_l"}, meta_data, map_data_add.level.data());
+                readData({H5T_NATIVE_UINT8, "add_l"}, meta_data, map_data_add.level.data());
                 readData({type_pc, "add_x"}, meta_data, map_data_add.x.data());
                 readData({type_pc, "add_z"}, meta_data, map_data_add.z.data());
 
@@ -519,16 +530,43 @@ public:
             MapStorageData map_data_remove;
 
             if(remove_num > 0) {
+
+                remove_fp.resize(remove_f_num);
+                readData({type, "remove_fp"}, meta_data, remove_fp.data());
+
                 map_data_remove.y_begin.resize(remove_num);
                 map_data_remove.x.resize(remove_num);
                 map_data_remove.z.resize(remove_num);
                 map_data_remove.level.resize(remove_num);
 
                 readData({type_pc, "remove_y"}, meta_data, map_data_remove.y_begin.data());
-                readData({type_pc, "remove_l"}, meta_data, map_data_remove.level.data());
+                readData({H5T_NATIVE_UINT8, "remove_l"}, meta_data, map_data_remove.level.data());
                 readData({type_pc, "remove_x"}, meta_data, map_data_remove.x.data());
                 readData({type_pc, "remove_z"}, meta_data, map_data_remove.z.data());
             }
+
+            MapStorageData map_data_update;
+
+            if(update_num > 0) {
+
+                update_fp.resize(update_f_num);
+                readData({type, "update_fp"}, meta_data, update_fp.data());
+
+                map_data_update.y_begin.resize(update_num);
+                map_data_update.x.resize(update_num);
+                map_data_update.z.resize(update_num);
+                map_data_update.level.resize(update_num);
+
+                readData({type_pc, "update_y"}, meta_data, map_data_update.y_begin.data());
+                readData({H5T_NATIVE_UINT8, "update_l"}, meta_data, map_data_update.level.data());
+                readData({type_pc, "update_x"}, meta_data, map_data_update.x.data());
+                readData({type_pc, "update_z"}, meta_data, map_data_update.z.data());
+            }
+
+
+            timer.stop_timer();
+
+            timer.start_timer("insert");
 
             if((remove_num + add_num) > 0){
 
@@ -554,11 +592,13 @@ public:
                         for (x = 0; x < apr_iterator.spatial_index_x_max(level); ++x) {
                             for (apr_iterator.set_new_lzx(level, z, x); apr_iterator.global_index() < apr_iterator.end_index;
                                  apr_iterator.set_iterator_to_particle_next_particle()) {
+
                                 if(level==apr_iterator.level_max()){
                                     layers[level-1].at(apr_iterator.y()/2,apr_iterator.x()/2,apr_iterator.z()/2)=1;
                                 } else {
                                     layers[level].at(apr_iterator.y(),apr_iterator.x(),apr_iterator.z())=3;
                                 }
+
 
                             }
                         }
@@ -566,42 +606,63 @@ public:
 
                 }
 
+                //remove (this loop shoudl go first, as the shared l_max-1, otherwise will not work correclty)
+#ifdef HAVE_OPENMP
+#pragma omp parallel for schedule(static)
+#endif
+                for (int i = 0; i < remove_num; ++i) {
+
+                    uint8_t l = map_data_remove.level[i];
+                    uint16_t y = map_data_remove.y_begin[i];
+                    uint16_t x = map_data_remove.x[i];
+                    uint16_t z = map_data_remove.z[i];
+
+                    if (l < apr.level_max()) {
+                        layers[l].at(y, x, z) = 0;
+                    } else {
+                        layers[l - 1].at(y, x, z) = 0;
+                    }
+
+                }
+
                 //add
-
+#ifdef HAVE_OPENMP
+#pragma omp parallel for schedule(static)
+#endif
                 for (int i = 0; i < add_num; ++i) {
 
-                    auto l = map_data_add.level[i];
-                    auto y = map_data_add.y_begin[i];
-                    auto x = map_data_add.x[i];
-                    auto z = map_data_add.z[i];
+                    uint8_t l = map_data_add.level[i];
+                    uint16_t y = map_data_add.y_begin[i];
+                    uint16_t x = map_data_add.x[i];
+                    uint16_t z = map_data_add.z[i];
 
                     if(l < apr.level_max()){
-                        layers[l-1].at(y,x,z) = 3;
+                        layers[l].at(y,x,z) = 3;
                     } else {
-                        layers[l].at(y,x,z) = 1;
+                        layers[l-1].at(y,x,z) = 1;
                     }
 
                 }
 
-                //remove
-                for (int i = 0; i < add_num; ++i) {
 
-                    auto l = map_data_remove.level[i];
-                    auto y = map_data_remove.y_begin[i];
-                    auto x = map_data_remove.x[i];
-                    auto z = map_data_remove.z[i];
+                APR<ImageType> apr_img_temp;
+                apr_img_temp.apr_access.org_dims[0] = apr.apr_access.org_dims[0];
+                apr_img_temp.apr_access.org_dims[1] = apr.apr_access.org_dims[1];
+                apr_img_temp.apr_access.org_dims[2] = apr.apr_access.org_dims[2];
+                apr_img_temp.apr_access.l_max = apr.apr_access.l_max;
+                apr_img_temp.apr_access.l_min = apr.apr_access.l_min;
+                apr_img_temp.parameters = apr.parameters;
 
-                    if(l < apr.level_max()){
-                        layers[l-1].at(y,x,z) = 0;
-                    } else {
-                        layers[l].at(y,x,z) = 0;
-                    }
+                timer.stop_timer();
 
-                }
+                timer.start_timer("old_update");
 
-                apr.apr_access.initialize_structure_from_particle_cell_tree(apr.parameters,layers);
+                apr_img_temp.apr_access.initialize_structure_from_particle_cell_tree(apr.parameters,layers);
 
-                apr.particles_intensities.data.resize(apr.particles_intensities.data.size() + add_num - remove_num);
+                apr_img_temp.particles_intensities.data.resize(apr.particles_intensities.data.size() + add_f_num - remove_f_num);
+
+                apr.copy_from_APR(apr_img_temp);
+                timer.stop_timer();
 
 
             }
@@ -657,6 +718,7 @@ public:
                 map_data.y_begin.push_back(tdata.remove_pc->data[i].y);
                 map_data.x.push_back(tdata.remove_pc->data[i].x);
                 map_data.z.push_back(tdata.remove_pc->data[i].z);
+
                 map_data.level.push_back(tdata.remove_pc->data[i].level);
             } else {
                 map_data.y_begin.push_back(tdata.remove_pc->data[i].y/2);
@@ -671,7 +733,7 @@ public:
         if(tdata.remove_fp->data.size() > 0) {
             writeData({type_index, "remove_y"}, location, map_data.y_begin, blosc_comp_type, blosc_comp_level,
                       blosc_shuffle);
-            writeData({type_index, "remove_l"}, location, map_data.level, blosc_comp_type, blosc_comp_level,
+            writeData({H5T_NATIVE_UINT8, "remove_l"}, location, map_data.level, blosc_comp_type, blosc_comp_level,
                       blosc_shuffle);
             writeData({type_index, "remove_x"}, location, map_data.x, blosc_comp_type, blosc_comp_level, blosc_shuffle);
             writeData({type_index, "remove_z"}, location, map_data.z, blosc_comp_type, blosc_comp_level, blosc_shuffle);
@@ -679,7 +741,7 @@ public:
         MapStorageData map_data_add;
 
         for (int i = 0; i < tdata.add_pc->data.size(); ++i) {
-            if(tdata.remove_pc->data[i].level<tdata.l_max) {
+            if(tdata.add_pc->data[i].level<tdata.l_max) {
                 map_data_add.y_begin.push_back(tdata.add_pc->data[i].y);
                 map_data_add.x.push_back(tdata.add_pc->data[i].x);
                 map_data_add.z.push_back(tdata.add_pc->data[i].z);
@@ -694,11 +756,37 @@ public:
         if(tdata.add_fp->data.size() > 0) {
             writeData({type_index, "add_y"}, location, map_data_add.y_begin, blosc_comp_type, blosc_comp_level,
                       blosc_shuffle);
-            writeData({type_index, "add_l"}, location, map_data_add.level, blosc_comp_type, blosc_comp_level,
+            writeData({H5T_NATIVE_UINT8, "add_l"}, location, map_data_add.level, blosc_comp_type, blosc_comp_level,
                       blosc_shuffle);
             writeData({type_index, "add_x"}, location, map_data_add.x, blosc_comp_type, blosc_comp_level,
                       blosc_shuffle);
             writeData({type_index, "add_z"}, location, map_data_add.z, blosc_comp_type, blosc_comp_level,
+                      blosc_shuffle);
+        }
+
+        MapStorageData map_data_update;
+
+        for (int i = 0; i < tdata.update_pc->data.size(); ++i) {
+            if(tdata.update_pc->data[i].level<tdata.l_max) {
+                map_data_update.y_begin.push_back(tdata.update_pc->data[i].y);
+                map_data_update.x.push_back(tdata.update_pc->data[i].x);
+                map_data_update.z.push_back(tdata.update_pc->data[i].z);
+                map_data_update.level.push_back(tdata.update_pc->data[i].level);
+            } else {
+                map_data_update.y_begin.push_back(tdata.update_pc->data[i].y/2);
+                map_data_update.x.push_back(tdata.update_pc->data[i].x/2);
+                map_data_update.z.push_back(tdata.update_pc->data[i].z/2);
+                map_data_update.level.push_back(tdata.update_pc->data[i].level);
+            }
+        }
+        if(tdata.update_pc->data.size() > 0) {
+            writeData({type_index, "update_y"}, location, map_data_update.y_begin, blosc_comp_type, blosc_comp_level,
+                      blosc_shuffle);
+            writeData({H5T_NATIVE_UINT8, "update_l"}, location, map_data_update.level, blosc_comp_type, blosc_comp_level,
+                      blosc_shuffle);
+            writeData({type_index, "update_x"}, location, map_data_update.x, blosc_comp_type, blosc_comp_level,
+                      blosc_shuffle);
+            writeData({type_index, "update_z"}, location, map_data_update.z, blosc_comp_type, blosc_comp_level,
                       blosc_shuffle);
         }
 
@@ -754,18 +842,21 @@ public:
             fzt.update_fp = f.getFileSize() - o_size;
             o_size = f.getFileSize();
 
-            writeData({type_index, "update_index"}, meta_location, timeData.update_index->data, blosc_comp_type, blosc_comp_level,
-                      blosc_shuffle);
+//            writeData({type_index, "update_index"}, meta_location, timeData.update_index->data, blosc_comp_type, blosc_comp_level,
+//                      blosc_shuffle);
 
             fzt.update_index = f.getFileSize() - o_size;
             o_size = f.getFileSize();
 
-            uint64_t update_num = timeData.update_fp->data.size();
-            writeAttr({type_index,"update_num"}, meta_location, &update_num);
-
 
             //write_particle_cells(timeData,meta_location);
         }
+
+        uint64_t update_num = timeData.update_fp->data.size();
+        writeAttr({type_index,"update_f_num"}, meta_location, &update_num);
+
+        uint64_t update_num_index = timeData.update_index->data.size();
+        writeAttr({type_index,"update_num"}, meta_location, &update_num_index);
 
         if(timeData.add_fp->data.size() > 0) {
 
@@ -781,10 +872,15 @@ public:
             fzt.add_index = f.getFileSize() - o_size;
             o_size = f.getFileSize();
 
-            uint64_t add_num = timeData.add_fp->data.size();
-            writeAttr({type_index,"add_num"}, meta_location, &add_num);
+
 
         }
+
+        uint64_t add_num = timeData.add_fp->data.size();
+        writeAttr({type_index,"add_f_num"}, meta_location, &add_num);
+
+        add_num = timeData.add_index->data.size();
+        writeAttr({type_index,"add_num"}, meta_location, &add_num);
 
         if(timeData.remove_index->data.size() > 0) {
 
@@ -797,11 +893,15 @@ public:
             fzt.remove_fp = f.getFileSize() - o_size;
             o_size = f.getFileSize();
 
-            uint64_t remove_num = timeData.remove_fp->data.size();
-            writeAttr({type_index,"remove_num"}, meta_location, &remove_num);
 
 
         }
+
+        uint64_t remove_num = timeData.remove_fp->data.size();
+        writeAttr({type_index,"remove_f_num"}, meta_location, &remove_num);
+
+        remove_num = timeData.remove_index->data.size();
+        writeAttr({type_index,"remove_num"}, meta_location, &remove_num);
 
 
         write_particle_cells(timeData,meta_location);
