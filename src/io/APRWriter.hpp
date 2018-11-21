@@ -87,6 +87,7 @@ namespace AprTypes  {
 
 class APRWriter {
 
+protected:
     unsigned int current_t = 0;
 
 
@@ -1254,7 +1255,7 @@ public:
 
 
     struct AprFile {
-        enum class Operation {READ, WRITE,READ_WITH_TREE,WRITE_WITH_TREE};
+        enum class Operation {READ, WRITE,READ_WITH_TREE,WRITE_WITH_TREE,WRITE_APPEND};
         hid_t fileId = -1;
         hid_t groupId = -1;
         hid_t objectId = -1;
@@ -1321,6 +1322,17 @@ public:
 
                     }
                     break;
+                case Operation::WRITE_APPEND:
+
+                    fileId = H5Fopen(aFileName.c_str(), H5F_ACC_RDWR, H5P_DEFAULT);
+                    if (fileId == -1) {
+                        std::cerr << "Could not open file [" << aFileName << "]" << std::endl;
+                        return;
+                    }
+                    groupId = H5Gopen2(fileId, mainGroup, H5P_DEFAULT);
+                    objectId = H5Gopen2(fileId, subGroup, H5P_DEFAULT);
+
+                    break;
                 case Operation::WRITE_WITH_TREE:
                     fileId = hdf5_create_file_blosc(aFileName);
                     if (fileId == -1) {
@@ -1353,7 +1365,7 @@ public:
         }
     };
 
-private:
+protected:
     void readAttr(const AprType &aType, hid_t aGroupId, void *aDest) {
         hid_t attr_id = H5Aopen(aGroupId, aType.typeName, H5P_DEFAULT);
         H5Aread(attr_id, aType.hdf5type, aDest);
@@ -1399,6 +1411,35 @@ private:
         const hsize_t rank = 1;
         hdf5_write_data_blosc(aObjectId, aType.hdf5type, aType.typeName, rank, dims, aContainer.data(), blosc_comp_type, blosc_comp_level, blosc_shuffle);
     }
+
+    template<typename T>
+    void writeDataAppend(const AprType &aType, hid_t aObjectId, T aContainer, unsigned int blosc_comp_type, unsigned int blosc_comp_level,unsigned int blosc_shuffle) {
+
+
+        hsize_t dims[] = {aContainer.size()};
+        const hsize_t rank = 1;
+
+        int out = H5Lexists( aObjectId, aType.typeName, H5P_DEFAULT );
+
+        if(out==0){
+            std::cout << "dne" << std::endl;
+            hdf5_write_data_blosc_create(aObjectId, aType.hdf5type, aType.typeName, rank, dims, aContainer.data(), blosc_comp_type, blosc_comp_level, blosc_shuffle);
+        } else {
+            std::cout << "exists" << std::endl;
+            hdf5_write_data_blosc_append(aObjectId, aType.hdf5type, aType.typeName, aContainer.data(),dims);
+
+
+        }
+
+
+        //hdf5_write_data_blosc_create(aObjectId, aType.hdf5type, aType.typeName, rank, dims, aContainer.data(), blosc_comp_type, blosc_comp_level, blosc_shuffle);
+
+
+        //hdf5_write_data_blosc_append(aObjectId, aType.hdf5type, aType.typeName, void *data,size_t elements_start,size_t elements_end);
+
+        //hdf5_write_data_blosc(aObjectId, aType.hdf5type, aType.typeName, rank, dims, aContainer.data(), blosc_comp_type, blosc_comp_level, blosc_shuffle);
+    }
+
 
     template<typename T>
     void writeDataStandard(const AprType &aType, hid_t aObjectId, T aContainer) {
