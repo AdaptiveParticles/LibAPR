@@ -379,8 +379,6 @@ inline bool APRIterator::set_iterator_by_global_coordinate(float x,float y,float
     particle_cell.z = floor(z);
     particle_cell.level = this->level_max();
 
-    this->current_gap.level = 0;
-
     particle_cell.pc_offset = this->apr_access->gap_map.x_num[particle_cell.level] * (particle_cell.z/2) + (particle_cell.x/2);
 
     while( (particle_cell.level > this->level_min()) & !(this->apr_access->find_particle_cell(particle_cell,this->current_gap)) ){
