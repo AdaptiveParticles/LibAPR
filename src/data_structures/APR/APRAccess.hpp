@@ -238,10 +238,13 @@ public:
                 offset = map_iterator.global_offset;
             }
 
+
             if(map_iterator.iterator == current_pc_map.map.end()){
                 //check if pointing to a valid key
                 map_iterator.iterator = current_pc_map.map.begin();
             }
+
+
 
             if ((part_cell.y >= map_iterator.iterator->first) && (part_cell.y <= map_iterator.iterator->second.y_end)) {
                 // already pointing to the correct place
@@ -250,6 +253,9 @@ public:
 
                 return true;
             } else {
+
+
+
                 //first try next element
                 //if(map_iterator.iterator != current_pc_map.map.end()){
                 map_iterator.iterator++;
@@ -271,11 +277,13 @@ public:
                 map_iterator.iterator = current_pc_map.map.upper_bound(part_cell.y);
 
                 if((map_iterator.iterator == current_pc_map.map.begin()) || (map_iterator.iterator == current_pc_map.map.end())){
-                    //less then the first value
-                    return false;
-                } else{
-                    map_iterator.iterator--;
+                    //less then the first value //check the last element
+
+                    map_iterator.iterator = current_pc_map.map.end();
+
                 }
+
+                    map_iterator.iterator--;
 
                 if ((part_cell.y >= map_iterator.iterator->first) & (part_cell.y <= map_iterator.iterator->second.y_end)) {
                     // already pointing to the correct place
