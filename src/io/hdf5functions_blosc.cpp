@@ -145,7 +145,7 @@ hdf5_write_data_blosc_create(hid_t obj_id, hid_t type_id, const char *ds_name, h
 
 
 
-void hdf5_write_data_blosc_append(hid_t obj_id, hid_t type_id, const char *ds_name, void *data, hsize_t* num_2_add) {
+uint64_t hdf5_write_data_blosc_append(hid_t obj_id, hid_t type_id, const char *ds_name, void *data, hsize_t* num_2_add) {
     //
     //  Appends data to the end of an existing dataset
     //
@@ -189,6 +189,8 @@ void hdf5_write_data_blosc_append(hid_t obj_id, hid_t type_id, const char *ds_na
 
     H5Tclose(dataType);
     H5Dclose(dset_id);
+
+    return new_dim;
 
 //    H5Dwrite(dset_id,type_id,H5S_ALL,H5S_ALL,H5P_DEFAULT,data);
 //    H5Dclose(dset_id);

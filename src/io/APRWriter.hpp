@@ -1413,7 +1413,7 @@ protected:
     }
 
     template<typename T>
-    void writeDataAppend(const AprType &aType, hid_t aObjectId, T aContainer, unsigned int blosc_comp_type, unsigned int blosc_comp_level,unsigned int blosc_shuffle) {
+    uint64_t writeDataAppend(const AprType &aType, hid_t aObjectId, T aContainer, unsigned int blosc_comp_type, unsigned int blosc_comp_level,unsigned int blosc_shuffle) {
 
 
         hsize_t dims[] = {aContainer.size()};
@@ -1422,15 +1422,13 @@ protected:
         int out = H5Lexists( aObjectId, aType.typeName, H5P_DEFAULT );
 
         if(out==0){
-            std::cout << "dne" << std::endl;
+
             hdf5_write_data_blosc_create(aObjectId, aType.hdf5type, aType.typeName, rank, dims, aContainer.data(), blosc_comp_type, blosc_comp_level, blosc_shuffle);
+            return dims[0];
         } else {
-            std::cout << "exists" << std::endl;
-            hdf5_write_data_blosc_append(aObjectId, aType.hdf5type, aType.typeName, aContainer.data(),dims);
 
-
+            return hdf5_write_data_blosc_append(aObjectId, aType.hdf5type, aType.typeName, aContainer.data(),dims);
         }
-
 
         //hdf5_write_data_blosc_create(aObjectId, aType.hdf5type, aType.typeName, rank, dims, aContainer.data(), blosc_comp_type, blosc_comp_level, blosc_shuffle);
 
