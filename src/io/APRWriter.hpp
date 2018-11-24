@@ -1422,20 +1422,19 @@ protected:
         int out = H5Lexists( aObjectId, aType.typeName, H5P_DEFAULT );
 
         if(out==0){
-
-            hdf5_write_data_blosc_create(aObjectId, aType.hdf5type, aType.typeName, rank, dims, aContainer.data(), blosc_comp_type, blosc_comp_level, blosc_shuffle);
-            return dims[0];
+            if(dims[0] > 0) {
+                hdf5_write_data_blosc_create(aObjectId, aType.hdf5type, aType.typeName, rank, dims, aContainer.data(),
+                                             blosc_comp_type, blosc_comp_level, blosc_shuffle);
+                return dims[0];
+            }else {
+                return 0;
+            }
         } else {
 
-            return hdf5_write_data_blosc_append(aObjectId, aType.hdf5type, aType.typeName, aContainer.data(),dims);
+            return hdf5_write_data_blosc_append(aObjectId, aType.hdf5type, aType.typeName, aContainer.data(), dims);
+
         }
 
-        //hdf5_write_data_blosc_create(aObjectId, aType.hdf5type, aType.typeName, rank, dims, aContainer.data(), blosc_comp_type, blosc_comp_level, blosc_shuffle);
-
-
-        //hdf5_write_data_blosc_append(aObjectId, aType.hdf5type, aType.typeName, void *data,size_t elements_start,size_t elements_end);
-
-        //hdf5_write_data_blosc(aObjectId, aType.hdf5type, aType.typeName, rank, dims, aContainer.data(), blosc_comp_type, blosc_comp_level, blosc_shuffle);
     }
 
 

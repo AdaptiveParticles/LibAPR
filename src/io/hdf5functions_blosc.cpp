@@ -179,9 +179,12 @@ uint64_t hdf5_write_data_blosc_append(hid_t obj_id, hid_t type_id, const char *d
     dataspace_id = H5Dget_space (dset_id);
     H5Sselect_hyperslab (dataspace_id, H5S_SELECT_SET, &offset,
                          NULL, &count, NULL);
+    if(new_dim > 0) {
 
-    //H5Dwrite(dset, H5T_NATIVE_FLOAT, mem_space, file_space, H5P_DEFAULT, buffer);
-    H5Dwrite(dset_id,type_id,memspace_id,dataspace_id,H5P_DEFAULT,data);
+        //H5Dwrite(dset, H5T_NATIVE_FLOAT, mem_space, file_space, H5P_DEFAULT, buffer);
+        H5Dwrite(dset_id, type_id, memspace_id, dataspace_id, H5P_DEFAULT, data);
+
+    }
 
     H5Sclose (memspace_id);
     H5Sclose (dataspace_id);
