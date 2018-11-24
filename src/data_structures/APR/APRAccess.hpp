@@ -683,15 +683,15 @@ public:
 
         global_index_by_level_begin[map_data.level[0]] = map_data.global_index[0];
 
-        counter=(-1); //set to max, to loop round to 0 on first ++
+        uint64_t prev = 0;
+
         //now xz iteration helpers (need to fill in the gaps)
         for (int i = 0; i <= level_max(); ++i) {
             for (int k = 0; k < global_index_by_level_and_zx_end[i].size(); ++k) {
                 if(global_index_by_level_and_zx_end[i][k]==0){
-                    global_index_by_level_and_zx_end[i][k] =  map_data.global_index[counter];
-                } else {
-                    counter++;
+                    global_index_by_level_and_zx_end[i][k] =  prev;
                 }
+                prev = global_index_by_level_and_zx_end[i][k];
             }
         }
 
@@ -831,15 +831,15 @@ public:
 
         global_index_by_level_begin[map_data.level[0]] = map_data.global_index[0];
 
-        counter=(-1); //set to max, to loop round to 0 on first ++
+        uint64_t prev = 0;
+
         //now xz iteration helpers (need to fill in the gaps)
         for (int i = 0; i <= level_max(); ++i) {
             for (int k = 0; k < global_index_by_level_and_zx_end[i].size(); ++k) {
                 if(global_index_by_level_and_zx_end[i][k]==0){
-                    global_index_by_level_and_zx_end[i][k] =  map_data.global_index[counter];
-                } else {
-                    counter++;
+                    global_index_by_level_and_zx_end[i][k] =  prev;
                 }
+                prev = global_index_by_level_and_zx_end[i][k];
             }
         }
 
