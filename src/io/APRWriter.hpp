@@ -412,7 +412,7 @@ public:
 
         timer.stop_timer();
 
-        std::cout << "Data rate intensities: " << (apr.particles_intensities.data.size()*2)/(timer.timings.back()*1000000.0f) << " MB/s" << std::endl;
+        //std::cout << "Data rate intensities: " << (apr.particles_intensities.data.size()*2)/(timer.timings.back()*1000000.0f) << " MB/s" << std::endl;
 
 
         timer.start_timer("decompress");
