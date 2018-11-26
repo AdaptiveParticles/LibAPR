@@ -16,6 +16,14 @@ class APR;
 
 class APRAccess;
 
+class APRIterator;
+
+struct PCDKey{
+    uint8_t level;
+    uint64_t offset;
+    uint64_t local_ind;
+};
+
 template<typename T>
 class ExtraPartCellData {
     
@@ -34,6 +42,9 @@ public:
     template<typename S>
     ExtraPartCellData(const APR<S> &apr) { initialize_structure_parts_empty(apr); }
 
+    T& operator[](PCDKey& pcdKey){
+      return data[pcdKey.level][pcdKey.offset][pcdKey.local_ind];
+    }
 
     template<typename S>
     void initialize_structure_parts_empty(const APR<S>& apr) {

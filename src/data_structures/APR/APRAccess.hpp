@@ -298,6 +298,83 @@ public:
         return false;
     }
 
+    bool find_particle_cell_pcdKey(ParticleCell& part_cell,MapIterator& map_iterator,PCDKey& pcdKey){
+        //
+        //  Find function designed for use in APR+t updates, using an explicit partcell data structure, instead of the contiguous array
+        //
+
+        if(gap_map.data[part_cell.level][part_cell.pc_offset].size() > 0) {
+
+            ParticleCellGapMap& current_pc_map = gap_map.data[part_cell.level][part_cell.pc_offset][0];
+
+            //this is required due to utilization of the equivalence optimization
+
+
+            if((map_iterator.pc_offset != part_cell.pc_offset) || (map_iterator.level != part_cell.level) ){
+                map_iterator.iterator = gap_map.data[part_cell.level][part_cell.pc_offset][0].map.begin();
+                map_iterator.pc_offset = part_cell.pc_offset;
+                map_iterator.level = part_cell.level;
+            }
+
+
+            if(map_iterator.iterator == current_pc_map.map.end()){
+                //check if pointing to a valid key
+                map_iterator.iterator = current_pc_map.map.begin();
+            }
+
+            if ((part_cell.y >= map_iterator.iterator->first) && (part_cell.y <= map_iterator.iterator->second.y_end)) {
+                // already pointing to the correct place
+                pcdKey.local_ind = map_iterator.iterator->second.global_index_begin_offset +
+                                         (part_cell.y - map_iterator.iterator->first);
+
+                return true;
+            } else {
+
+                //first try next element
+                //if(map_iterator.iterator != current_pc_map.map.end()){
+                map_iterator.iterator++;
+                //check if there
+                if(map_iterator.iterator != current_pc_map.map.end()) {
+                    if ((part_cell.y >= map_iterator.iterator->first) &
+                        (part_cell.y <= map_iterator.iterator->second.y_end)) {
+                        // already pointing to the correct place
+                        pcdKey.local_ind = map_iterator.iterator->second.global_index_begin_offset +
+                                                 (part_cell.y - map_iterator.iterator->first);
+
+                        return true;
+                    }
+                }
+
+                //}
+
+                //otherwise search for it (points to first key that is greater than the y value)
+                map_iterator.iterator = current_pc_map.map.upper_bound(part_cell.y);
+
+                if((map_iterator.iterator == current_pc_map.map.begin()) || (map_iterator.iterator == current_pc_map.map.end())){
+                    //less then the first value //check the last element
+
+                    map_iterator.iterator = current_pc_map.map.end();
+
+                }
+
+                map_iterator.iterator--;
+
+                if ((part_cell.y >= map_iterator.iterator->first) & (part_cell.y <= map_iterator.iterator->second.y_end)) {
+                    // already pointing to the correct place
+                    pcdKey.local_ind = map_iterator.iterator->second.global_index_begin_offset +
+                                             (part_cell.y - map_iterator.iterator->first);
+
+                    return true;
+                }
+            }
+        }
+
+        return false;
+    }
+
+
+
+
     bool find_particle_cell_tree(APRAccess &apr_access,ParticleCell& part_cell,MapIterator& map_iterator){
 
 
