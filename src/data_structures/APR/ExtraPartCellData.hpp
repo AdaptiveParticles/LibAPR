@@ -63,6 +63,28 @@ public:
         }
     }
 
+    template<typename S>
+    void initialize_structure_parts_empty_zero(const APR<S>& apr) {
+        // Initialize the structure to the same size as the given structure
+        depth_max = apr.level_max();
+        depth_min = apr.level_min();
+
+        z_num.resize(depth_max+1);
+        x_num.resize(depth_max+1);
+        data.resize(depth_max+1);
+
+        for (uint64_t i = depth_min; i <= depth_max; ++i) {
+            z_num[i] = apr.spatial_index_z_max(i);
+            x_num[i] = apr.spatial_index_x_max(i);
+            data[i].resize(z_num[i]*x_num[i]);
+
+            for (int j = 0; j < data[i].size() ; ++j) {
+                data[i][j].resize(0);
+            }
+        }
+
+    }
+
 
 private:
 
