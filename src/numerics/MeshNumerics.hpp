@@ -101,7 +101,7 @@ public:
                         for (int q = stencil_x_b; q <= stencil_x_e; ++q) {
                             for (int w = stencil_y_b; w <= stencil_y_e; ++w) {
 
-                                neigh_sum +=input.at(l, q, w);
+                                neigh_sum +=input.at(w, q, l);
                                 counter++;
                             }
                         }

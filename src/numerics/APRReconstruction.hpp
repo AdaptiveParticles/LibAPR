@@ -105,7 +105,9 @@ public:
         //is apr tree initialized. #FIX ME Need new check
         //if(apr.apr_tree.total_number_parent_cells() == 0){
         local_tree.init(apr); //#FIXME
-        local_tree.fill_tree_mean_downsample(parts);
+        //local_tree.fill_tree_mean_downsample(parts)
+
+        local_tree.fill_tree_mean(apr,local_tree,parts,local_tree.particles_ds_tree);
 
 
         MeshNumerics meshNumerics;
@@ -181,14 +183,18 @@ public:
             int curr_stencil = std::min((int)stencils.size()-1,(int)(apr.level_max()-level));
 
 
-            if(level==(apr.level_max())){
-                smooth = true;
-            } else {
-                smooth = false;
-            }
+
 
             if(smooth) {
-                meshNumerics.apply_stencil(temp_imgs[level], stencils[curr_stencil]);
+                bool smooth_t = false;
+                if(level==(apr.level_max())){
+                    smooth_t = true;
+                } else {
+                    smooth_t = false;
+                }
+                if(smooth_t) {
+                    meshNumerics.apply_stencil(temp_imgs[level], stencils[curr_stencil]);
+                }
             }
 
             //meshNumerics.smooth_mesh(temp_imgs[level]);
