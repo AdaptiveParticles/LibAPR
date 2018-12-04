@@ -46,8 +46,10 @@ public:
 
             const float step_size = pow(2, max_level - level);
 
+            const bool l_max (level==apr.level_max());
+
 #ifdef HAVE_OPENMP
-#pragma omp parallel for schedule(dynamic) private(z, x) firstprivate(apr_iterator)
+//#pragma omp parallel for schedule(dynamic) private(z, x) firstprivate(apr_iterator)
 #endif
             for (z = 0; z < apr_iterator.spatial_index_z_max(level); z++) {
                 for (x = 0; x < apr_iterator.spatial_index_x_max(level); ++x) {
@@ -56,25 +58,28 @@ public:
                         //
                         //  Parallel loop over level
                         //
+                        if(l_max){
+                            img.at(apr_iterator.y(),apr_iterator.x(),apr_iterator.z())=parts[apr_iterator];
+                        } else {
+                            int dim1 = apr_iterator.y() * step_size;
+                            int dim2 = apr_iterator.x() * step_size;
+                            int dim3 = apr_iterator.z() * step_size;
 
-                        int dim1 = apr_iterator.y() * step_size;
-                        int dim2 = apr_iterator.x() * step_size;
-                        int dim3 = apr_iterator.z() * step_size;
+                            float temp_int;
+                            //add to all the required rays
 
-                        float temp_int;
-                        //add to all the required rays
+                            temp_int = parts[apr_iterator];
 
-                        temp_int = parts[apr_iterator];
+                            const int offset_max_dim1 = std::min((int) img.y_num, (int) (dim1 + step_size));
+                            const int offset_max_dim2 = std::min((int) img.x_num, (int) (dim2 + step_size));
+                            const int offset_max_dim3 = std::min((int) img.z_num, (int) (dim3 + step_size));
 
-                        const int offset_max_dim1 = std::min((int) img.y_num, (int) (dim1 + step_size));
-                        const int offset_max_dim2 = std::min((int) img.x_num, (int) (dim2 + step_size));
-                        const int offset_max_dim3 = std::min((int) img.z_num, (int) (dim3 + step_size));
+                            for (int64_t q = dim3; q < offset_max_dim3; ++q) {
 
-                        for (int64_t q = dim3; q < offset_max_dim3; ++q) {
-
-                            for (int64_t k = dim2; k < offset_max_dim2; ++k) {
-                                for (int64_t i = dim1; i < offset_max_dim1; ++i) {
-                                    img.mesh[i + (k) * img.y_num + q * img.y_num * img.x_num] = temp_int;
+                                for (int64_t k = dim2; k < offset_max_dim2; ++k) {
+                                    for (int64_t i = dim1; i < offset_max_dim1; ++i) {
+                                        img.mesh[i + (k) * img.y_num + q * img.y_num * img.x_num] = temp_int;
+                                    }
                                 }
                             }
                         }
@@ -95,13 +100,13 @@ public:
         //  Takes in a APR and creates piece-wise constant image
         //
 
-        std::fill(apr.apr_tree.particles_ds_tree.data.begin(),apr.apr_tree.particles_ds_tree.data.end(),0);
+        APRTree<S> local_tree;
 
         //is apr tree initialized. #FIX ME Need new check
         //if(apr.apr_tree.total_number_parent_cells() == 0){
-            apr.apr_tree.init(apr);
-            apr.apr_tree.fill_tree_mean_downsample(parts);
-       // }
+        local_tree.init(apr); //#FIXME
+        local_tree.fill_tree_mean_downsample(parts);
+
 
         MeshNumerics meshNumerics;
         std::vector<PixelData<float>> stencils;
@@ -111,7 +116,7 @@ public:
 
         auto apr_iterator = apr.iterator();
 
-        auto apr_tree_iterator = apr.apr_tree.tree_iterator();
+        auto apr_tree_iterator = local_tree.tree_iterator();
 
         img.initWithValue(apr.spatial_index_y_max(apr.level_max() + delta), apr.spatial_index_x_max(apr.level_max() + delta), apr.spatial_index_z_max(apr.level_max() + delta), 0);
 
@@ -136,10 +141,10 @@ public:
             int x = 0;
 
 #ifdef HAVE_OPENMP
-#pragma omp parallel for schedule(dynamic) private(z, x) firstprivate(apr_iterator)
+#pragma omp parallel for schedule(dynamic) private(z) firstprivate(apr_iterator)
 #endif
             for (z = 0; z < apr_iterator.spatial_index_z_max(level); z++) {
-                for (x = 0; x < apr_iterator.spatial_index_x_max(level); ++x) {
+                for (int x = 0; x < apr_iterator.spatial_index_x_max(level); ++x) {
                     for (apr_iterator.set_new_lzx(level, z, x); apr_iterator.global_index() < apr_iterator.end_index;
                          apr_iterator.set_iterator_to_particle_next_particle()) {
                         //
@@ -166,7 +171,7 @@ public:
                             //
 
                             temp_imgs[level].at(apr_tree_iterator.y(), apr_tree_iterator.x(),
-                                                apr_tree_iterator.z()) = apr.apr_tree.particles_ds_tree[apr_tree_iterator];
+                                                apr_tree_iterator.z()) = local_tree.particles_ds_tree[apr_tree_iterator];
 
                         }
                     }
@@ -174,6 +179,14 @@ public:
             }
 
             int curr_stencil = std::min((int)stencils.size()-1,(int)(apr.level_max()-level));
+
+
+            if(level==(apr.level_max())){
+                smooth = true;
+            } else {
+                smooth = false;
+            }
+
             if(smooth) {
                 meshNumerics.apply_stencil(temp_imgs[level], stencils[curr_stencil]);
             }
@@ -181,6 +194,10 @@ public:
             //meshNumerics.smooth_mesh(temp_imgs[level]);
             if(level<(apr.level_max()+delta)) {
                 const_upsample_img(temp_imgs[level+1], temp_imgs[level]);
+
+                //std::string image_file_name = apr.parameters.output_dir + "upsample" + ".tif";
+                //TiffUtils::saveMeshAsTiff(image_file_name, temp_imgs[level+1], false);
+
             }
             //
         }

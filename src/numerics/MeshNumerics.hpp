@@ -68,23 +68,46 @@ public:
         int stencil_x_half = (stencil.x_num-1)/2;
         int stencil_z_half = (stencil.z_num-1)/2;
 
+
+//        for (int l = stencil_z_b; l <= stencil_z_e; ++l) {
+//            for (int q = stencil_x_b; q <= stencil_x_e; ++q) {
+//                for (int w = stencil_y_b; w <= stencil_y_e; ++w) {
+//
+//                    neigh_sum += stencil.at(l+stencil_y_half,q+stencil_x_half,w+stencil_z_half)*input(l, q, w);
+//                }
+//            }
+//        }
+
+
         int i=0;
 #pragma omp parallel for default(shared) private(i)
         for (i = 0; i < input.z_num; ++i) {
             for (int j = 0; j < input.x_num; ++j) {
                 for (int k = 0; k < input.y_num; ++k) {
                     double neigh_sum = 0;
+                    double counter = 0;
 
-                    for (int l = -stencil_z_half; l <= stencil_z_half; ++l) {
-                        for (int q = -stencil_x_half; q <= stencil_x_half; ++q) {
-                            for (int w = -stencil_y_half; w <= stencil_y_half; ++w) {
+                    int stencil_z_b = std::max((int)(-stencil_z_half+i),(int)0);
+                    int stencil_z_e = std::min((int)(stencil_z_half+i),(int)(input.z_num-1));
 
-                                neigh_sum += stencil.at(l+stencil_y_half,q+stencil_x_half,w+stencil_z_half)*input(k + w, j + q, i + l);
+                    int stencil_x_b = std::max((int)(-stencil_x_half+j),0);
+                    int stencil_x_e = std::min((int)(stencil_x_half+j),(int)(input.x_num-1));
+
+                    int stencil_y_b = std::max((int)(-stencil_y_half+k),(int)0);
+                    int stencil_y_e = std::min((int)(stencil_y_half+k),(int)(input.y_num-1));
+
+
+                    for (int l = stencil_z_b; l <= stencil_z_e; ++l) {
+                        for (int q = stencil_x_b; q <= stencil_x_e; ++q) {
+                            for (int w = stencil_y_b; w <= stencil_y_e; ++w) {
+
+                                neigh_sum +=input.at(l, q, w);
+                                counter++;
                             }
                         }
                     }
 
-                    output.at(k, j, i) = neigh_sum;
+                    output.at(k, j, i) = neigh_sum/counter;
 
                 }
             }

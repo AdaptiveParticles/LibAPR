@@ -172,6 +172,11 @@ public :
         y = std::min(y, y_num-1);
         x = std::min(x, x_num-1);
         z = std::min(z, z_num-1);
+
+        y = std::max(y, (size_t)0);
+        x = std::max(x, (size_t)0);
+        z = std::max(z, (size_t)0);
+
         size_t idx = (size_t)z * x_num * y_num + x * y_num + y;
         return mesh[idx];
     }

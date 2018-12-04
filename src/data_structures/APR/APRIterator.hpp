@@ -67,6 +67,10 @@ uint64_t APRIterator::start_index(const uint16_t level, const uint64_t offset){
 }
 
 uint64_t APRIterator::max_row_level_offset(const uint16_t x,const uint16_t z,const uint16_t num_parts){
+
+
+
+
     return ((x%2) + (z%2)*2)*((uint64_t)num_parts) ;//calculates the number of particles in the row
 }
 
@@ -103,9 +107,22 @@ inline uint64_t APRIterator::set_new_lzx(const uint16_t level,const uint16_t z,c
 
                 this->end_index =  begin + num_parts;
 
-                //calculates the offset for the xz position
-                uint64_t index_offset = max_row_level_offset(x, z, num_parts);
+                uint64_t index_offset=0;
 
+                if(check_neigh_flag){
+
+                    uint64_t x_factor =2;
+
+                    if((x==(spatial_index_x_max(level)-1)) && ((x%2)==0)){
+                        x_factor = 1;
+                    }
+
+                    index_offset = ((x%2) + (z%2)*x_factor)*((uint64_t)num_parts);
+                } else {
+
+                    //calculates the offset for the xz position
+                    index_offset = max_row_level_offset(x, z, num_parts);
+                }
                 this->end_index += index_offset;
                 this->current_particle_cell.global_index += index_offset;
 

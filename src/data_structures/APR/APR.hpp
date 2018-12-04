@@ -195,15 +195,15 @@ public:
             int x = 0;
 
 #ifdef HAVE_OPENMP
-#pragma omp parallel for schedule(dynamic) private(z, x) firstprivate(apr_iterator)
+#pragma omp parallel for schedule(dynamic) private(z) firstprivate(apr_iterator)
 #endif
             for (z = 0; z < apr_iterator.spatial_index_z_max(level); z++) {
-                for (x = 0; x < apr_iterator.spatial_index_x_max(level); ++x) {
+                for (int x = 0; x < apr_iterator.spatial_index_x_max(level); ++x) {
                     for (apr_iterator.set_new_lzx(level, z, x);
                          apr_iterator.global_index() < apr_iterator.end_index;
                          apr_iterator.set_iterator_to_particle_next_particle()) {
 
-                        parts[apr_iterator] = img_by_level[apr_iterator.level()].at(apr_iterator.y(),apr_iterator.x(),apr_iterator.z());
+                        parts[apr_iterator] = img_by_level[level].at(apr_iterator.y(),x,z);
 
                     }
                 }
