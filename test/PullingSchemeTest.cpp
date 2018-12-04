@@ -253,7 +253,7 @@ namespace {
 //        initFromZYXarray(levels, values);
 
         APRTimer t(true);
-    if (false)    {
+        if (false)    {
             t.start_timer("PS1");
             PullingScheme ps;
             ps.initialize_particle_cell_tree(access);
