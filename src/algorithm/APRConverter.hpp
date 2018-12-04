@@ -273,8 +273,8 @@ inline bool APRConverter<ImageType>::get_apr_method(APR<ImageType> &aAPR, PixelD
 
         std::vector<GpuProcessingTask<ImageType>> gpts;
 
-        int numOfStreams = 2;
-        int repetitionsPerStream = 2;
+        int numOfStreams = 3;
+        int repetitionsPerStream = 3;
 
         // Create streams and send initial task to do
         for (int i = 0; i < numOfStreams; ++i) {
@@ -317,16 +317,16 @@ inline bool APRConverter<ImageType>::get_apr_method(APR<ImageType> &aAPR, PixelD
             iPullingScheme.pulling_scheme_main();
             d.stop_timer();
 
-            d.start_timer("4 - new pulling main");
-            OVPC nps(aAPR.apr_access, lst2);
-            nps.generateTree();
-            d.stop_timer();
+            //d.start_timer("4 - new pulling main");
+            //OVPC nps(aAPR.apr_access, lst2);
+            //nps.generateTree();
+            //d.stop_timer();
 
 
             PixelData<T> &inImg = input_image; // user redy data and later...
 
             d.start_timer("5 - init struct from particle cell tree");
-            aAPR.apr_access.initialize_structure_from_particle_cell_tree(aAPR.parameters.neighborhood_optimization, nps.getParticleCellTree());
+            aAPR.apr_access.initialize_structure_from_particle_cell_tree(aAPR.parameters.neighborhood_optimization, iPullingScheme.getParticleCellTree());
             d.stop_timer();
 
             d.start_timer("6 - downsample pyramid");
