@@ -268,13 +268,18 @@ inline bool APRConverter<ImageType>::get_apr_method(APR<ImageType> &aAPR, PixelD
     APRTimer t(true);
     APRTimer d(true);
     t.start_timer(" =========== ALL");
-    {
+
+        int numOfStreams = 1;
+        int repetitionsPerStream = 1;
+
+   
+ {
 
 
         std::vector<GpuProcessingTask<ImageType>> gpts;
 
-        int numOfStreams = 3;
-        int repetitionsPerStream = 3;
+//        int numOfStreams = 4;
+  //      int repetitionsPerStream = 10;
 
         // Create streams and send initial task to do
         for (int i = 0; i < numOfStreams; ++i) {
@@ -304,8 +309,9 @@ inline bool APRConverter<ImageType>::get_apr_method(APR<ImageType> &aAPR, PixelD
             d.stop_timer();
 
             d.start_timer("2 - copy LST");
-            PixelData<float> lst(local_scale_temp, true);
-            PixelData<float> lst2(local_scale_temp, true);
+        PixelData<float> &lst = local_scale_temp;   
+ //	 PixelData<float> lst(local_scale_temp, true);
+    //        PixelData<float> lst2(local_scale_temp, true);
             d.stop_timer();
 
             d.start_timer("3 - get local particle cell set");
@@ -347,14 +353,15 @@ inline bool APRConverter<ImageType>::get_apr_method(APR<ImageType> &aAPR, PixelD
         std::cout << "Total n ENDED" << std::endl;
 
     }
-    t.stop_timer();
+    double allT = t.stop_timer();
+    std::cout << "BW=" << (numOfStreams * repetitionsPerStream * input_image.size()) / allT / 1000000000.0 << "GB/s" << std::endl;
     method_timer.stop_timer();
 #endif
 
     computation_timer.stop_timer();
 
-    total_timer.stop_timer();
-
+    double totT = total_timer.stop_timer();
+std::cout << "BW=" << (numOfStreams * repetitionsPerStream * input_image.size()) / totT / 1000000000.0 << "GB/s" << std::endl;
     return true;
 }
 

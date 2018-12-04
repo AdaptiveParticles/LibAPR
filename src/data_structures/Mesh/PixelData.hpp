@@ -96,7 +96,8 @@ public :
     PinnedMemoryUniquePtr<T> meshMemoryPinned;
 #endif
     ArrayWrapper<T> mesh;
-
+    
+    uint64_t size() { return x_num * y_num * z_num * sizeof(T); }
     /**
      * Constructor - initialize mesh with size of 0,0,0
      */
