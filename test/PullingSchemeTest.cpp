@@ -238,10 +238,10 @@ namespace {
 
     TEST(PullingSchemeTest, DS) {
         APRAccess access;
-        access.l_max = 9;
+        access.l_max = 11;
         access.l_min = 1;
-        access.org_dims[0] = std::pow(2, access.l_max);
-        access.org_dims[1] = std::pow(2, access.l_max);
+        access.org_dims[0] = std::pow(2, access.l_max)/2;
+        access.org_dims[1] = std::pow(2, access.l_max)/2;
         access.org_dims[2] = std::pow(2, access.l_max);
 
 
@@ -253,7 +253,7 @@ namespace {
 //        initFromZYXarray(levels, values);
 
         APRTimer t(true);
-        {
+    if (false)    {
             t.start_timer("PS1");
             PullingScheme ps;
             ps.initialize_particle_cell_tree(access);
@@ -268,7 +268,6 @@ namespace {
                 ps.fill(l_, levelsDS);
                 levels2.swap(levelsDS);
             }
-            ps.pulling_scheme_main();
             t.stop_timer();
         }
         {
@@ -289,7 +288,7 @@ namespace {
             t.stop_timer();
 //        printParticleCellTree(nps.getParticleCellTree());
         }
-    }
+ }
 
 #endif
 }

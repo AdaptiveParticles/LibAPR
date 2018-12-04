@@ -127,7 +127,7 @@ void computeOVPC(const PixelData<T> &input, PixelData<S> &output, int levelMin, 
     ScopedCudaMemHandler<PixelData<S>, D2H> mem(output);
 
     // TODO: This is not needed later - just for having clear debug
-    cudaMemset(mem.get(), 0, mem.getNumOfBytes());
+    //cudaMemset(mem.get(), 0, mem.getNumOfBytes());
 
     // =============== Create pyramid
     std::vector<S*> levels(levelMax + 1, nullptr);
