@@ -94,7 +94,22 @@ inline uint64_t APRIterator::set_new_lzx(const uint16_t level,const uint16_t z,c
                 this->end_index =  begin + num_parts;
 
                 //calculates the offset for the xz position
-                uint64_t index_offset = max_row_level_offset(x, z, num_parts);
+                uint64_t index_offset=0;
+
+                if(check_neigh_flag){
+
+                    uint64_t x_factor =2;
+
+                    if((x==(spatial_index_x_max(level)-1)) && ((x%2)==0)){
+                        x_factor = 1;
+                    }
+
+                    index_offset = ((x%2) + (z%2)*x_factor)*((uint64_t)num_parts);
+                } else {
+
+                    //calculates the offset for the xz position
+                    index_offset = max_row_level_offset(x, z, num_parts);
+                }
 
                 this->end_index += index_offset;
                 this->current_particle_cell.global_index += index_offset;
@@ -340,8 +355,15 @@ inline bool APRIterator::set_iterator_by_particle_cell(ParticleCell& random_part
     //
     //  Have to have set the particle cells x,y,z,level, and it will move the iterator to this location if it exists
     //
-
-    random_particle_cell.pc_offset = this->apr_access->gap_map.x_num[random_particle_cell.level] * random_particle_cell.z + random_particle_cell.x;
+    if(random_particle_cell.level==this->level_max()) {
+        random_particle_cell.pc_offset =
+                this->apr_access->gap_map.x_num[random_particle_cell.level-1] * (random_particle_cell.z/2) +
+                        (random_particle_cell.x/2);
+    } else {
+        random_particle_cell.pc_offset =
+                this->apr_access->gap_map.x_num[random_particle_cell.level] * random_particle_cell.z +
+                random_particle_cell.x;
+    }
 
     if(this->apr_access->find_particle_cell(random_particle_cell,this->current_gap)){
         this->current_particle_cell = random_particle_cell;
@@ -367,14 +389,14 @@ inline bool APRIterator::set_iterator_by_global_coordinate(float x,float y,float
 
     //Then check from the highest level to lowest.
     ParticleCell particle_cell;
-    particle_cell.y = round(y);
-    particle_cell.x = round(x);
-    particle_cell.z = round(z);
+    particle_cell.y = floor(y);
+    particle_cell.x = floor(x);
+    particle_cell.z = floor(z);
     particle_cell.level = this->level_max();
 
     particle_cell.pc_offset = this->apr_access->gap_map.x_num[particle_cell.level] * (particle_cell.z/2) + (particle_cell.x/2);
 
-    while( (particle_cell.level >= this->level_min()) && !(this->apr_access->find_particle_cell(particle_cell,this->current_gap)) ){
+    while( (particle_cell.level > this->level_min()) & !(this->apr_access->find_particle_cell(particle_cell,this->current_gap)) ){
         particle_cell.y = particle_cell.y/2;
         particle_cell.x = particle_cell.x/2;
         particle_cell.z = particle_cell.z/2;
@@ -384,6 +406,7 @@ inline bool APRIterator::set_iterator_by_global_coordinate(float x,float y,float
     }
 
     this->current_particle_cell = particle_cell; //if its in bounds it will always have a particle cell responsible
+
     this->set_neighbour_flag();
     return true;
 }
