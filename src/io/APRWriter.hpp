@@ -115,6 +115,70 @@ public:
 
     }
 
+    void read_apr_parameters(hid_t dataset_id,APRParameters& parameters){
+        //
+        //  Reads in from hdf5 pipeline parameters
+        //
+
+
+        readAttr(AprTypes::LambdaType, dataset_id, &parameters.lambda);
+
+        readAttr(AprTypes::SigmaThType, dataset_id, &parameters.sigma_th);
+        readAttr(AprTypes::SigmaThMaxType, dataset_id, &parameters.sigma_th_max);
+        readAttr(AprTypes::IthType, dataset_id, &parameters.Ip_th);
+        readAttr(AprTypes::DxType, dataset_id, &parameters.dx);
+        readAttr(AprTypes::DyType, dataset_id, &parameters.dy);
+        readAttr(AprTypes::DzType, dataset_id, &parameters.dz);
+        readAttr(AprTypes::PsfXType, dataset_id, &parameters.psfx);
+        readAttr(AprTypes::PsfYType, dataset_id, &parameters.psfy);
+        readAttr(AprTypes::PsfZType, dataset_id, &parameters.psfz);
+        readAttr(AprTypes::RelativeErrorType, dataset_id, &parameters.rel_error);
+        readAttr(AprTypes::BackgroundIntensityEstimateType, dataset_id,
+                 &parameters.background_intensity_estimate);
+        readAttr(AprTypes::NoiseSdEstimateType, dataset_id, &parameters.noise_sd_estimate);
+
+    }
+
+    void read_access_info(hid_t dataset_id,APRAccess& aprAccess){
+        //
+        //  Reads in from hdf5 access information
+        //
+
+        readAttr(AprTypes::TotalNumberOfParticlesType, dataset_id, &aprAccess.total_number_particles);
+        readAttr(AprTypes::TotalNumberOfGapsType, dataset_id, &aprAccess.total_number_gaps);
+
+        readAttr(AprTypes::MaxLevelType, dataset_id, &aprAccess.l_max);
+        readAttr(AprTypes::MinLevelType, dataset_id, &aprAccess.l_min);
+
+        readAttr(AprTypes::TotalNumberOfNonEmptyRowsType, dataset_id, &aprAccess.total_number_non_empty_rows);
+        uint64_t type_size;
+        readAttr(AprTypes::VectorSizeType, dataset_id, &type_size);
+        readAttr(AprTypes::NumberOfYType, dataset_id, &aprAccess.org_dims[0]);
+        readAttr(AprTypes::NumberOfXType, dataset_id, &aprAccess.org_dims[1]);
+        readAttr(AprTypes::NumberOfZType,dataset_id, &aprAccess.org_dims[2]);
+
+        aprAccess.x_num.resize(aprAccess.level_max() + 1);
+        aprAccess.y_num.resize(aprAccess.level_max() + 1);
+        aprAccess.z_num.resize(aprAccess.level_max() + 1);
+
+        for (size_t i = aprAccess.level_min(); i < aprAccess.level_max(); i++) {
+            int x_num, y_num, z_num;
+            //TODO: x_num and other should have HDF5 type uint64?
+            readAttr(AprTypes::NumberOfLevelXType, i, dataset_id, &x_num);
+            readAttr(AprTypes::NumberOfLevelYType, i, dataset_id, &y_num);
+            readAttr(AprTypes::NumberOfLevelZType, i,dataset_id, &z_num);
+            aprAccess.x_num[i] = x_num;
+            aprAccess.y_num[i] = y_num;
+            aprAccess.z_num[i] = z_num;
+        }
+
+        aprAccess.y_num[aprAccess.level_max()] = aprAccess.org_dims[0];
+        aprAccess.x_num[aprAccess.level_max()] = aprAccess.org_dims[1];
+        aprAccess.z_num[aprAccess.level_max()] = aprAccess.org_dims[2];
+
+
+    }
+
 
     template<typename ImageType>
     void read_apr(APR<ImageType>& apr, const std::string &file_name,bool build_tree = false, int max_level_delta = 0,unsigned int time_point = UINT32_MAX) {
@@ -163,23 +227,18 @@ public:
         uint64_t old_particles = apr.apr_access.total_number_particles;
         uint64_t old_gaps = apr.apr_access.total_number_gaps;
 
-        readAttr(AprTypes::TotalNumberOfParticlesType, meta_data, &apr.apr_access.total_number_particles);
-        readAttr(AprTypes::TotalNumberOfGapsType, meta_data, &apr.apr_access.total_number_gaps);
-
-        readAttr(AprTypes::MaxLevelType, meta_data, &apr.apr_access.l_max);
-        readAttr(AprTypes::MinLevelType, meta_data, &apr.apr_access.l_min);
+        //read in access information
+        read_access_info(meta_data,apr.apr_access);
 
         int compress_type;
         readAttr(AprTypes::CompressionType, meta_data, &compress_type);
         float quantization_factor;
         readAttr(AprTypes::QuantizationFactorType, meta_data, &quantization_factor);
 
-
         bool read_structure = true;
 
         if((old_particles == apr.apr_access.total_number_particles) && (old_gaps == apr.apr_access.total_number_gaps) && (build_tree)){
             read_structure = false;
-
         }
 
         //incase you ask for to high a level delta
@@ -187,47 +246,9 @@ public:
         max_level_delta = std::min(max_level_delta,(int)apr.apr_access.level_max());
 
         if(read_structure) {
-            readAttr(AprTypes::TotalNumberOfNonEmptyRowsType, meta_data, &apr.apr_access.total_number_non_empty_rows);
-            uint64_t type_size;
-            readAttr(AprTypes::VectorSizeType, meta_data, &type_size);
-            readAttr(AprTypes::NumberOfYType, meta_data, &apr.apr_access.org_dims[0]);
-            readAttr(AprTypes::NumberOfXType, meta_data, &apr.apr_access.org_dims[1]);
-            readAttr(AprTypes::NumberOfZType,meta_data, &apr.apr_access.org_dims[2]);
 
-            readAttr(AprTypes::LambdaType, meta_data, &apr.parameters.lambda);
-
-            readAttr(AprTypes::SigmaThType, meta_data, &apr.parameters.sigma_th);
-            readAttr(AprTypes::SigmaThMaxType, meta_data, &apr.parameters.sigma_th_max);
-            readAttr(AprTypes::IthType, meta_data, &apr.parameters.Ip_th);
-            readAttr(AprTypes::DxType, meta_data, &apr.parameters.dx);
-            readAttr(AprTypes::DyType, meta_data, &apr.parameters.dy);
-            readAttr(AprTypes::DzType, meta_data, &apr.parameters.dz);
-            readAttr(AprTypes::PsfXType, meta_data, &apr.parameters.psfx);
-            readAttr(AprTypes::PsfYType, meta_data, &apr.parameters.psfy);
-            readAttr(AprTypes::PsfZType, meta_data, &apr.parameters.psfz);
-            readAttr(AprTypes::RelativeErrorType, meta_data, &apr.parameters.rel_error);
-            readAttr(AprTypes::BackgroundIntensityEstimateType, meta_data,
-                     &apr.parameters.background_intensity_estimate);
-            readAttr(AprTypes::NoiseSdEstimateType, meta_data, &apr.parameters.noise_sd_estimate);
-
-            apr.apr_access.x_num.resize(apr.apr_access.level_max() + 1);
-            apr.apr_access.y_num.resize(apr.apr_access.level_max() + 1);
-            apr.apr_access.z_num.resize(apr.apr_access.level_max() + 1);
-
-            for (size_t i = apr.apr_access.level_min(); i < apr.apr_access.level_max(); i++) {
-                int x_num, y_num, z_num;
-                //TODO: x_num and other should have HDF5 type uint64?
-                readAttr(AprTypes::NumberOfLevelXType, i, meta_data, &x_num);
-                readAttr(AprTypes::NumberOfLevelYType, i, meta_data, &y_num);
-                readAttr(AprTypes::NumberOfLevelZType, i,meta_data, &z_num);
-                apr.apr_access.x_num[i] = x_num;
-                apr.apr_access.y_num[i] = y_num;
-                apr.apr_access.z_num[i] = z_num;
-            }
-
-            apr.apr_access.y_num[apr.apr_access.level_max()] = apr.apr_access.org_dims[0];
-            apr.apr_access.x_num[apr.apr_access.level_max()] = apr.apr_access.org_dims[1];
-            apr.apr_access.z_num[apr.apr_access.level_max()] = apr.apr_access.org_dims[2];
+            //read in pipeline parameters
+            read_apr_parameters(meta_data,apr.parameters);
 
             // ------------- map handling ----------------------------
 
@@ -696,10 +717,6 @@ public:
     }
 
 
-
-
-
-
     /**
      * Writes only the particle data, requires the same APR to be read in correctly.
      */
@@ -782,15 +799,12 @@ public:
         hid_t objectId = -1;
         hid_t objectIdTree = -1;
 
-
-        AprFile(const std::string &aFileName, const Operation aOp,const unsigned int t = 0) {
-
-            std::string t_string;
+        AprFile(const std::string &aFileName, const Operation aOp,const unsigned int t = 0,std::string t_string = "t") {
 
             if(t==0){
-                t_string = "t";
+                //do nothing
             } else{
-                t_string = "t" + std::to_string(t);
+                t_string = t_string + std::to_string(t);
             }
 
             std::string subGroup1 = ("ParticleRepr/" + t_string);
@@ -824,7 +838,7 @@ public:
                     break;
                 case Operation::WRITE:
 
-                    if(t==0) {
+                    if(t_string == "t") {
                         fileId = hdf5_create_file_blosc(aFileName);
                         if (fileId == -1) {
                             std::cerr << "Could not create file [" << aFileName << "]" << std::endl;

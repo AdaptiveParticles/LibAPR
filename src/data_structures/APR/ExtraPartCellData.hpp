@@ -60,6 +60,10 @@ public:
             z_num[i] = apr.spatial_index_z_max(i);
             x_num[i] = apr.spatial_index_x_max(i);
             data[i].resize(z_num[i]*x_num[i]);
+
+            for (int j = 0; j < data[i].size(); ++j) {
+                data[i][j].resize(0);
+            }
         }
     }
 
