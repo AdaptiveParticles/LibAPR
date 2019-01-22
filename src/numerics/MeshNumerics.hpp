@@ -271,43 +271,32 @@ public:
 
 
 
-    template<typename T,typename ImageType>
-    void fill_tree_vals(PixelData<T>& input,APR<ImageType>& apr){
+    template<typename T>
+    void fill_tree_vals(PixelData<T>& input,unsigned int level_min,unsigned int level_max){
 
         std::vector<PixelData<T>> temp_imgs;
-        temp_imgs.resize(apr.level_max());
-
-        auto apr_iterator = apr.iterator();
-
-        for (int i = apr_iterator.level_min(); i < (apr_iterator.level_max()-1); ++i) {
-
-            temp_imgs[i].initWithValue(apr_iterator.spatial_index_y_max(i),apr_iterator.spatial_index_x_max(i),apr_iterator.spatial_index_z_max(i),0);
-
-        }
+        temp_imgs.resize(level_max);
 
         temp_imgs.back().swap(input);
 
-        temp_imgs[apr_iterator.level_min()-1].initDownsampled(temp_imgs[apr_iterator.level_min()]);
-
-
         //upwards pass
-        for (int i = (apr_iterator.level_max()-1); i >= apr_iterator.level_min(); --i) {
+        for (int i = (level_max-1); i >= level_min; --i) {
 
             smooth_sol(temp_imgs[i]);
 
             auto max_op = [](const float x, const float y) -> float { return std::max(x,y);};
             auto nothing = [](const float x) -> float { return x; };
 
-            downsample(temp_imgs[i], temp_imgs[i-1], max_op, nothing, false);
+            downsample(temp_imgs[i], temp_imgs[i-1], max_op, nothing, true);
 
         }
 
         //filling in the gaps
         double avg = 0;
         uint64_t counter = 0;
-        for (int j = 0; j < temp_imgs[apr_iterator.level_min()-1].mesh.size(); ++j) {
-            if(temp_imgs[apr_iterator.level_min()-1].mesh[j]>0){
-                avg+=temp_imgs[apr_iterator.level_min()-1].mesh[j];
+        for (int j = 0; j < temp_imgs[level_min-1].mesh.size(); ++j) {
+            if(temp_imgs[level_min-1].mesh[j]>0){
+                avg+=temp_imgs[level_min-1].mesh[j];
                 counter++;
             }
         }
@@ -317,15 +306,15 @@ public:
 #ifdef HAVE_OPENMP
 #pragma omp parallel for schedule(dynamic) private(j)
 #endif
-        for (j = 0; j < temp_imgs[apr_iterator.level_min()-1].mesh.size(); ++j) {
-            if(temp_imgs[apr_iterator.level_min()-1].mesh[j]==0){
-                temp_imgs[apr_iterator.level_min()-1].mesh[j]=avg;
+        for (j = 0; j < temp_imgs[level_min-1].mesh.size(); ++j) {
+            if(temp_imgs[level_min-1].mesh[j]==0){
+                temp_imgs[level_min-1].mesh[j]=avg;
             }
         }
 
 
         //downwards pass
-        for (int i = apr_iterator.level_min(); i < apr_iterator.level_max(); ++i) {
+        for (int i = level_min; i < level_max; ++i) {
             PixelData<T> up_sampled;
             up_sampled.init(temp_imgs[i]);
 
