@@ -312,6 +312,8 @@ uint64_t APRTreeIterator::set_new_lzx(const uint16_t level,const uint16_t z,cons
 
             return this->current_particle_cell.global_index;
         } else {
+            this->end_index = 0;
+            this->current_particle_cell.y = UINT16_MAX;
             return UINT64_MAX;
         }
 
@@ -333,6 +335,8 @@ uint64_t APRTreeIterator::set_new_lzx(const uint16_t level,const uint16_t z,cons
 
             return this->current_particle_cell.global_index;
         } else {
+            this->end_index = 0;
+            this->current_particle_cell.y = UINT16_MAX;
             return UINT64_MAX;
         }
 

@@ -49,7 +49,7 @@ public:
             const bool l_max (level==apr.level_max());
 
 #ifdef HAVE_OPENMP
-//#pragma omp parallel for schedule(dynamic) private(z, x) firstprivate(apr_iterator)
+#pragma omp parallel for schedule(dynamic) private(z, x) firstprivate(apr_iterator)
 #endif
             for (z = 0; z < apr_iterator.spatial_index_z_max(level); z++) {
                 for (x = 0; x < apr_iterator.spatial_index_x_max(level); ++x) {
@@ -186,15 +186,9 @@ public:
 
 
             if(smooth) {
-                bool smooth_t = false;
-                if(level==(apr.level_max())){
-                    smooth_t = true;
-                } else {
-                    smooth_t = false;
-                }
-                if(smooth_t) {
-                    meshNumerics.apply_stencil(temp_imgs[level], stencils[curr_stencil]);
-                }
+
+                meshNumerics.apply_stencil(temp_imgs[level], stencils[curr_stencil]);
+
             }
 
             //meshNumerics.smooth_mesh(temp_imgs[level]);

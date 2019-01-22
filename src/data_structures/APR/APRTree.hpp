@@ -196,7 +196,7 @@ public:
 
         for (unsigned int level = apr_iterator.level_max(); level >= apr_iterator.level_min(); --level) {
 #ifdef HAVE_OPENMP
-#pragma omp parallel for schedule(dynamic) private(x_d, z_d) firstprivate(apr_iterator, parentIterator)
+//#pragma omp parallel for schedule(dynamic) private(x_d, z_d) firstprivate(apr_iterator, parentIterator)
 #endif
             for (z_d = 0; z_d < parentIterator.spatial_index_z_max(level-1); z_d++) {
                 for (int z = 2*z_d; z <= std::min(2*z_d+1,(int)apr.spatial_index_z_max(level)-1); ++z) {
@@ -235,12 +235,12 @@ public:
 
                                 if (parentIterator.y() == (parentIterator.spatial_index_y_max(level - 1) - 1)) {
                                     tree_data[parentIterator] =
-                                            scale_factor_yxz * apr.particles_intensities[apr_iterator] / 8.0f +
+                                            scale_factor_yxz * particle_data[apr_iterator] / 8.0f +
                                             tree_data[parentIterator];
                                 } else {
 
                                     tree_data[parentIterator] =
-                                            scale_factor_xz * apr.particles_intensities[apr_iterator] / 8.0f +
+                                            scale_factor_xz * particle_data[apr_iterator] / 8.0f +
                                             tree_data[parentIterator];
                                 }
 
@@ -257,7 +257,7 @@ public:
         //then do the rest of the tree where order matters
         for (unsigned int level = treeIterator.level_max(); level > treeIterator.level_min(); --level) {
 #ifdef HAVE_OPENMP
-#pragma omp parallel for schedule(dynamic) private(x_d,z_d) firstprivate(treeIterator, parentIterator)
+//#pragma omp parallel for schedule(dynamic) private(x_d,z_d) firstprivate(treeIterator, parentIterator)
 #endif
             for (z_d = 0; z_d < treeIterator.spatial_index_z_max(level-1); z_d++) {
                 for (int z = 2*z_d; z <= std::min(2*z_d+1,(int)treeIterator.spatial_index_z_max(level)-1); ++z) {
