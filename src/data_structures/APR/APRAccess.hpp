@@ -1175,7 +1175,7 @@ inline void APRAccess::initialize_structure_from_particle_cell_tree(APRParameter
 
 
     //set minimum level now to the first non-empty level.
-    l_min = min_level_find;
+    //l_min = min_level_find;
     //level_max = max_level_find;
     total_number_non_empty_rows=0;
 
