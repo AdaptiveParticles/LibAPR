@@ -356,8 +356,7 @@ xyz.start_timer("PIPELINE");
     computation_timer.stop_timer();
 
     double totT = total_timer.stop_timer();
-std::cout << "BW=" << (numOfStreams * repetitionsPerStream * input_image.size()) / totT / 1000000000.0 << "GB/s" << std::endl;
-    return true;
+   return true;
 }
 
 template<typename ImageType>
