@@ -30,15 +30,21 @@ public:
     float sigma_th = 0;
     float sigma_th_max = 0;
 
+    int extra_smooth = 0;
+
     float noise_sd_estimate = 0;
     float background_intensity_estimate = 0;
 
-    bool auto_parameters = true;
+    bool auto_parameters = false;
+    bool full_resolution = false;
 
     bool normalized_input = false;
 
+    bool check_input = false;
+    bool swap_dimensions = false;
     bool neighborhood_optimization = true;
 
+    bool constant_intensity_scale = false;
     bool output_steps = false;
 
     std::string name;

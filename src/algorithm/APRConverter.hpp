@@ -45,15 +45,17 @@ public:
 
     bool get_apr(APR<ImageType> &aAPR);
 
+
     //get apr without setting parameters, and with an already loaded image.
     template<typename T>
     bool get_apr_method(APR<ImageType> &aAPR, PixelData<T> &input_image);
 
     template<typename T>
-    void auto_parameters(const PixelData<T> &input_img);
+    bool get_apr_method_from_file(APR<ImageType> &aAPR, PixelData<T> inputImage);
 
 
 private:
+    //get apr without setting parameters, and with an already loaded image.
 
     //pointer to the APR structure so member functions can have access if they need
     const APR<ImageType> *apr;
@@ -62,13 +64,20 @@ private:
     void init_apr(APR<ImageType>& aAPR, PixelData<T>& input_image);
 
     template<typename T>
-    bool get_apr_method_from_file(APR<ImageType> &aAPR, PixelData<T> input_image);
+    void auto_parameters(const PixelData<T> &input_img);
 
-public:
+    template<typename T>
+    bool check_input_dimensions(PixelData<T> &input_image);
+
+    public:
+
+
     void get_gradient(PixelData<ImageType> &image_temp, PixelData<ImageType> &grad_temp, PixelData<float> &local_scale_temp, PixelData<float> &local_scale_temp2, float bspline_offset, const APRParameters &par);
     void get_local_intensity_scale(PixelData<float> &local_scale_temp, PixelData<float> &local_scale_temp2, const APRParameters &par);
+
     void computeLevels(const PixelData<ImageType> &grad_temp, PixelData<float> &local_scale_temp, int maxLevel, float relError, float dx = 1, float dy = 1, float dz = 1);
     void get_local_particle_cell_set(PixelData<float> &local_scale_temp, PixelData<float> &local_scale_temp2);
+
 };
 
 template<typename ImageType>
@@ -153,7 +162,6 @@ inline bool APRConverter<ImageType>::get_apr_method_from_file(APR<ImageType> &aA
         }
     }
 
-
     //auto_parameters(inputImage);
     method_timer.stop_timer();
 
@@ -164,17 +172,27 @@ inline bool APRConverter<ImageType>::get_apr_method_from_file(APR<ImageType> &aA
  * Main method for constructing the APR from an input image
  */
 template<typename ImageType> template<typename T>
+
 inline bool APRConverter<ImageType>::get_apr_method(APR<ImageType> &aAPR, PixelData<T>& input_image) {
 
     apr = &aAPR; // in case it was called directly
+
+    if(par.check_input) {
+        if(!check_input_dimensions(input_image)) {
+            std::cout << "Input dimension check failed. Make sure the input image is filled in order x -> y -> z, or try using the option -swap_dimension" << std::endl;
+            return false;
+        }
+    }
 
     if( par.auto_parameters ) {
         auto_parameters(input_image);
     }
 
-    total_timer.start_timer("Total_pipeline_excluding_IO");
+    apr = &aAPR; // in case it was called directly
 
     init_apr(aAPR, input_image);
+
+    total_timer.start_timer("Total_pipeline_excluding_IO");
 
     ////////////////////////////////////////
     /// Memory allocation of variables
@@ -211,6 +229,7 @@ inline bool APRConverter<ImageType>::get_apr_method(APR<ImageType> &aAPR, PixelD
     } else {
         image_temp.copyFromMesh(input_image);
     }
+
     fine_grained_timer.stop_timer();
 
 #ifndef APR_USE_CUDA
@@ -231,6 +250,13 @@ inline bool APRConverter<ImageType>::get_apr_method(APR<ImageType> &aAPR, PixelD
     if(par.output_steps){
         TiffUtils::saveMeshAsTiff(par.output_dir + "local_intensity_scale_step.tif", local_scale_temp);
     }
+
+#else
+    method_timer.start_timer("compute_gradient_magnitude_using_bsplines and local instensity scale CUDA");
+    getFullPipeline(image_temp, grad_temp, local_scale_temp, local_scale_temp2,bspline_offset, par);
+    method_timer.stop_timer();
+=======
+>>>>>>> master
 #endif
     method_timer.start_timer("compute_levels");
     computeLevels(grad_temp, local_scale_temp, (*apr).level_max(), par.rel_error, par.dx, par.dy, par.dz);
@@ -259,7 +285,8 @@ inline bool APRConverter<ImageType>::get_apr_method(APR<ImageType> &aAPR, PixelD
     method_timer.stop_timer();
 
     method_timer.start_timer("sample_particles");
-    aAPR.get_parts_from_img(downsampled_img,aAPR.particles_intensities);
+    //aAPR.get_parts_from_img_alt(input_image,aAPR.particles_intensities);
+    aAPR.get_parts_from_img(downsampled_img, aAPR.particles_intensities);
     method_timer.stop_timer();
 #else
     method_timer.start_timer("compute_gradient_magnitude_using_bsplines and local instensity scale CUDA");
@@ -358,6 +385,7 @@ inline void APRConverter<ImageType>::computeLevels(const PixelData<ImageType> &g
     fine_grained_timer.stop_timer();
 }
 
+
 template<typename ImageType>
 inline void APRConverter<ImageType>::get_local_particle_cell_set(PixelData<float> &local_scale_temp, PixelData<float> &local_scale_temp2) {
     //  Computes the Local Particle Cell Set from a down-sampled local intensity scale (\sigma) and gradient magnitude
@@ -369,12 +397,16 @@ inline void APRConverter<ImageType>::get_local_particle_cell_set(PixelData<float
     }
 #endif
 
+
     int l_max = (*apr).level_max() - 1;
     int l_min = (*apr).level_min();
 
     fine_grained_timer.start_timer("pulling_scheme_fill_max_level");
+
     iPullingScheme.fill(l_max,local_scale_temp);
     fine_grained_timer.stop_timer();
+    
+
 
     fine_grained_timer.start_timer("level_loop_initialize_tree");
     for(int l_ = l_max - 1; l_ >= l_min; l_--){
@@ -389,6 +421,7 @@ inline void APRConverter<ImageType>::get_local_particle_cell_set(PixelData<float
         local_scale_temp.swap(local_scale_temp2);
     }
     fine_grained_timer.stop_timer();
+    
 }
 
 template<typename ImageType>
@@ -422,6 +455,7 @@ inline void APRConverter<ImageType>::get_gradient(PixelData<ImageType> &image_te
     iComputeGradient.calc_bspline_fd_ds_mag(image_temp,grad_temp,par.dx,par.dy,par.dz);
     fine_grained_timer.stop_timer();
 
+
     fine_grained_timer.start_timer("down-sample_b-spline");
     downsample(image_temp, local_scale_temp,
                [](const float &x, const float &y) -> float { return x + y; },
@@ -429,15 +463,21 @@ inline void APRConverter<ImageType>::get_gradient(PixelData<ImageType> &image_te
     fine_grained_timer.stop_timer();
 
     if(par.lambda > 0){
-        fine_grained_timer.start_timer("calc_inv_bspline_y");
-        iComputeGradient.calc_inv_bspline_y(local_scale_temp);
-        fine_grained_timer.stop_timer();
-        fine_grained_timer.start_timer("calc_inv_bspline_x");
-        iComputeGradient.calc_inv_bspline_x(local_scale_temp);
-        fine_grained_timer.stop_timer();
-        fine_grained_timer.start_timer("calc_inv_bspline_z");
-        iComputeGradient.calc_inv_bspline_z(local_scale_temp);
-        fine_grained_timer.stop_timer();
+        if(image_temp.y_num > 1) {
+            fine_grained_timer.start_timer("calc_inv_bspline_y");
+            iComputeGradient.calc_inv_bspline_y(local_scale_temp);
+            fine_grained_timer.stop_timer();
+        }
+        if(image_temp.x_num > 1) {
+            fine_grained_timer.start_timer("calc_inv_bspline_x");
+            iComputeGradient.calc_inv_bspline_x(local_scale_temp);
+            fine_grained_timer.stop_timer();
+        }
+        if(image_temp.z_num > 1) {
+            fine_grained_timer.start_timer("calc_inv_bspline_z");
+            iComputeGradient.calc_inv_bspline_z(local_scale_temp);
+            fine_grained_timer.stop_timer();
+        }
     }
 
     fine_grained_timer.start_timer("load_and_apply_mask");
@@ -450,6 +490,8 @@ inline void APRConverter<ImageType>::get_gradient(PixelData<ImageType> &image_te
     fine_grained_timer.start_timer("threshold");
     iComputeGradient.threshold_gradient(grad_temp,local_scale_temp,par.Ip_th + bspline_offset);
     fine_grained_timer.stop_timer();
+
+
 }
 
 template<typename ImageType>
@@ -461,44 +503,93 @@ void APRConverter<ImageType>::get_local_intensity_scale(PixelData<float> &local_
     //
     //  Output: down-sampled Local Intensity Scale (h) (Due to the Equivalence Optimization we only need down-sampled values)
     //
+    if (!par.constant_intensity_scale) {
+        fine_grained_timer.start_timer("copy_intensities_from_bsplines");
+        //copy across the intensities
+        local_scale_temp2.copyFromMesh(local_scale_temp);
+        fine_grained_timer.stop_timer();
 
-    fine_grained_timer.start_timer("copy_intensities_from_bsplines");
-    //copy across the intensities
-    local_scale_temp2.copyFromMesh(local_scale_temp);
-    fine_grained_timer.stop_timer();
+        float var_rescale;
+        std::vector<int> var_win;
+        iLocalIntensityScale.get_window_alt(var_rescale, var_win, par, apr->apr_access.number_dimensions);
+        size_t win_y = var_win[0];
+        size_t win_x = var_win[1];
+        size_t win_z = var_win[2];
+        size_t win_y2 = var_win[3];
+        size_t win_x2 = var_win[4];
+        size_t win_z2 = var_win[5];
 
-    float var_rescale;
-    std::vector<int> var_win;
-    iLocalIntensityScale.get_window(var_rescale,var_win,par);
-    size_t win_y = var_win[0];
-    size_t win_x = var_win[1];
-    size_t win_z = var_win[2];
-    size_t win_y2 = var_win[3];
-    size_t win_x2 = var_win[4];
-    size_t win_z2 = var_win[5];
+        if (local_scale_temp.y_num > 1) {
+            fine_grained_timer.start_timer("calc_sat_mean_y");
+            iLocalIntensityScale.calc_sat_mean_y(local_scale_temp, win_y);
+            fine_grained_timer.stop_timer();
+        }
+        if (local_scale_temp.x_num > 1) {
+            fine_grained_timer.start_timer("calc_sat_mean_x");
+            iLocalIntensityScale.calc_sat_mean_x(local_scale_temp, win_x);
+            fine_grained_timer.stop_timer();
+        }
+        if (local_scale_temp.z_num > 1) {
+            fine_grained_timer.start_timer("calc_sat_mean_z");
+            iLocalIntensityScale.calc_sat_mean_z(local_scale_temp, win_z);
+            fine_grained_timer.stop_timer();
+        }
 
-    std::cout << "CPU WINDOWS: " << win_y << " " << win_x << " " << win_z << " " << win_y2 << " " << win_x2 << " " << win_z2 << std::endl;
-    fine_grained_timer.start_timer("calc_sat_mean_y");
-    iLocalIntensityScale.calc_sat_mean_y(local_scale_temp,win_y);
-    fine_grained_timer.stop_timer();
+        //std::cout << "CPU WINDOWS: " << win_y << " " << win_x << " " << win_z << " " << win_y2 << " " << win_x2 << " "
+        //          << win_z2 << std::endl;
+        fine_grained_timer.start_timer("second_pass_and_rescale");
+        //calculate abs and subtract from original
+        iLocalIntensityScale.calc_abs_diff(local_scale_temp2, local_scale_temp);
+        //Second spatial average
+        if (local_scale_temp.y_num > 1) {
+            iLocalIntensityScale.calc_sat_mean_y(local_scale_temp, win_y2);
+        }
+        if (local_scale_temp.x_num > 1) {
+            iLocalIntensityScale.calc_sat_mean_x(local_scale_temp, win_x2);
+        }
+        if (local_scale_temp.z_num > 1) {
+            iLocalIntensityScale.calc_sat_mean_z(local_scale_temp, win_z2);
+        }
 
-    fine_grained_timer.start_timer("calc_sat_mean_x");
-    iLocalIntensityScale.calc_sat_mean_x(local_scale_temp,win_x);
-    fine_grained_timer.stop_timer();
 
-    fine_grained_timer.start_timer("calc_sat_mean_z");
-    iLocalIntensityScale.calc_sat_mean_z(local_scale_temp,win_z);
-    fine_grained_timer.stop_timer();
+        // second average for extra smoothing
+        if(par.extra_smooth) {
+            if (local_scale_temp.y_num > 1) {
+                iLocalIntensityScale.calc_sat_mean_y(local_scale_temp, par.extra_smooth);
+            }
+            if (local_scale_temp.x_num > 1) {
+                iLocalIntensityScale.calc_sat_mean_x(local_scale_temp, par.extra_smooth);
+            }
+            if (local_scale_temp.z_num > 1) {
+                iLocalIntensityScale.calc_sat_mean_z(local_scale_temp, par.extra_smooth);
+            }
+        }
+        iLocalIntensityScale.rescale_var_and_threshold(local_scale_temp, var_rescale, par);
+        fine_grained_timer.stop_timer();
 
-    fine_grained_timer.start_timer("second_pass_and_rescale");
-    //calculate abs and subtract from original
-    iLocalIntensityScale.calc_abs_diff(local_scale_temp2,local_scale_temp);
-    //Second spatial average
-    iLocalIntensityScale.calc_sat_mean_y(local_scale_temp,win_y2);
-    iLocalIntensityScale.calc_sat_mean_x(local_scale_temp,win_x2);
-    iLocalIntensityScale.calc_sat_mean_z(local_scale_temp,win_z2);
-    iLocalIntensityScale.rescale_var_and_threshold( local_scale_temp, var_rescale,par);
-    fine_grained_timer.stop_timer();
+    } else {
+
+        float min_val = 660000;
+        double sum = 0;
+        float tmp;
+
+        for(int i=0; i<local_scale_temp.mesh.size(); ++i) {
+            tmp = local_scale_temp.mesh[i];
+
+            sum += tmp;
+
+            if(tmp < min_val) {
+                min_val = tmp;
+            }
+        }
+
+        int numel = (local_scale_temp.y_num * local_scale_temp.x_num * local_scale_temp.z_num);
+        float scale_val = sum / numel - min_val;
+
+        for(int i = 0; i<local_scale_temp.mesh.size(); ++i) {
+            local_scale_temp.mesh[i] = scale_val;
+        }
+    }
 }
 
 
@@ -512,8 +603,15 @@ inline void APRConverter<ImageType>::init_apr(APR<ImageType>& aAPR,PixelData<T>&
     aAPR.apr_access.org_dims[1] = input_image.x_num;
     aAPR.apr_access.org_dims[2] = input_image.z_num;
 
+    aAPR.apr_access.number_dimensions = (input_image.y_num > 1) + (input_image.x_num > 1) + (input_image.z_num > 1);
+
     int max_dim = std::max(std::max(aAPR.apr_access.org_dims[1], aAPR.apr_access.org_dims[0]), aAPR.apr_access.org_dims[2]);
-    int min_dim = std::min(std::min(aAPR.apr_access.org_dims[1], aAPR.apr_access.org_dims[0]), aAPR.apr_access.org_dims[2]);
+    //int min_dim = std::min(std::min(aAPR.apr_access.org_dims[1], aAPR.apr_access.org_dims[0]), aAPR.apr_access.org_dims[2]);
+
+    int min_dim = max_dim;
+    min_dim = input_image.y_num > 1 ? std::min(min_dim, (int) input_image.y_num) : min_dim;
+    min_dim = input_image.x_num > 1 ? std::min(min_dim, (int) input_image.x_num) : min_dim;
+    min_dim = input_image.z_num > 1 ? std::min(min_dim, (int) input_image.z_num) : min_dim;
 
     int levelMax = ceil(std::log2(max_dim));
     // TODO: why minimum level is forced here to be 2?
@@ -531,287 +629,334 @@ inline void APRConverter<ImageType>::auto_parameters(const PixelData<T>& input_i
     //  Simple automatic parameter selection for 3D APR Flouresence Images
     //
 
-    //take the current input parameters
-    float lambda_input = par.lambda;
-    float rel_error_input = par.rel_error;
-    float ip_th_input = par.Ip_th;
-    float min_signal_input = par.min_signal;
+    // TODO: fix auto params for 2D
+    if(input_img.y_num > 1 && input_img.x_num > 1 && input_img.z_num > 1) {
+        //take the current input parameters
+        float lambda_input = par.lambda;
+        float rel_error_input = par.rel_error;
+        float ip_th_input = par.Ip_th;
+        float min_signal_input = par.min_signal;
 
 
 
-    APRTimer par_timer;
-    par_timer.verbose_flag = false;
+        APRTimer par_timer;
+        par_timer.verbose_flag = false;
 
-    //
-    //  Do not compute the statistics over the whole image, but only a smaller sub-set.
-    //
-    const double total_required_pixel = 10*1000*1000;
-    size_t num_slices = std::min((unsigned int)ceil(total_required_pixel/(1.0*input_img.y_num*input_img.x_num)),(unsigned int)input_img.z_num);
-    size_t delta = std::max((unsigned int)1,(unsigned int)(input_img.z_num/num_slices));
-    std::vector<size_t> selectedSlicesOffsets;
-    selectedSlicesOffsets.reserve(num_slices);
-    //evenly space the slices across the image
-    for (size_t i1 = 0; i1 < num_slices; ++i1) {
-        selectedSlicesOffsets.push_back(delta*i1);
-    }
+        //
+        //  Do not compute the statistics over the whole image, but only a smaller sub-set.
+        //
+        const double total_required_pixel = 10*1000*1000;
+        size_t num_slices = std::min((unsigned int)ceil(total_required_pixel/(1.0*input_img.y_num*input_img.x_num)),(unsigned int)input_img.z_num);
+        size_t delta = std::max((unsigned int)1,(unsigned int)(input_img.z_num/num_slices));
+        std::vector<size_t> selectedSlicesOffsets;
+        selectedSlicesOffsets.reserve(num_slices);
+        //evenly space the slices across the image
+        for (size_t i1 = 0; i1 < num_slices; ++i1) {
+            selectedSlicesOffsets.push_back(delta*i1);
+        }
 
-    // Get min value
-    par_timer.start_timer("get_min");
-    float min_val = 99999999;
-    for (size_t k1 = 0; k1 < selectedSlicesOffsets.size(); ++k1) {
-        min_val = std::min((float)*std::min_element(input_img.mesh.begin() + selectedSlicesOffsets[k1]*(input_img.y_num*input_img.x_num),input_img.mesh.begin()  + (selectedSlicesOffsets[k1]+1)*(input_img.y_num*input_img.x_num)),min_val);
-    }
-    par_timer.stop_timer();
+        // Get min value
+        par_timer.start_timer("get_min");
+        float min_val = 99999999;
+        for (size_t k1 = 0; k1 < selectedSlicesOffsets.size(); ++k1) {
+            min_val = std::min((float)*std::min_element(input_img.mesh.begin() + selectedSlicesOffsets[k1]*(input_img.y_num*input_img.x_num),input_img.mesh.begin()  + (selectedSlicesOffsets[k1]+1)*(input_img.y_num*input_img.x_num)),min_val);
+        }
+        par_timer.stop_timer();
 
-    // will need to deal with grouped constant or zero sections in the image somewhere.... but lets keep it simple for now.
-    const size_t num_bins = 10000;
-    std::vector<uint64_t> freq(num_bins);
-    uint64_t counter = 0;
-    double total=0;
+        // will need to deal with grouped constant or zero sections in the image somewhere.... but lets keep it simple for now.
+        const size_t num_bins = 10000;
+        std::vector<uint64_t> freq(num_bins);
+        uint64_t counter = 0;
+        double total=0;
 
-    size_t xnumynum = input_img.x_num*input_img.y_num;
-    par_timer.start_timer("get_histogram");
-    for (size_t s = 0; s < selectedSlicesOffsets.size(); ++s) {
-        for (size_t q= selectedSlicesOffsets[s]*xnumynum; q < (selectedSlicesOffsets[s]+1)*xnumynum; ++q) {
-            if(input_img.mesh[q] < (min_val + num_bins-1)){
-                freq[input_img.mesh[q]-min_val]++;
-                if(input_img.mesh[q] > 0) {
-                    counter++;
-                    total += input_img.mesh[q];
+        size_t xnumynum = input_img.x_num*input_img.y_num;
+        par_timer.start_timer("get_histogram");
+        for (size_t s = 0; s < selectedSlicesOffsets.size(); ++s) {
+            for (size_t q= selectedSlicesOffsets[s]*xnumynum; q < (selectedSlicesOffsets[s]+1)*xnumynum; ++q) {
+                if(input_img.mesh[q] < (min_val + num_bins-1)){
+                    freq[input_img.mesh[q]-min_val]++;
+                    if(input_img.mesh[q] > 0) {
+                        counter++;
+                        total += input_img.mesh[q];
+                    }
                 }
+            }
+
+        }
+        par_timer.stop_timer();
+
+        float img_mean = counter > 0 ? total/(counter*1.0) : 1;
+        float prop_total_th = 0.05; //assume there is atleast 5% background in the image
+        float prop_total = 0;
+        uint64_t min_j = 0;
+
+        // set to start at one to ignore potential constant regions thresholded out. (Common in some images)
+        for (unsigned int j = 1; j < num_bins; ++j) {
+            prop_total += freq[j]/(counter*1.0);
+
+            if(prop_total > prop_total_th){
+                min_j = j;
+                break;
+            }
+
+        }
+
+        float proportion_flat = freq[0]/(counter*1.0f);
+        float proportion_next = freq[1]/(counter*1.0f);
+
+
+        PixelData<T> histogram;
+        histogram.init(num_bins, 1, 1);
+        std::copy(freq.begin(),freq.end(),histogram.mesh.begin());
+
+        float tol = 0.0001;
+        float lambda = 3;
+
+        //Y direction bspline
+
+        ///
+        /// Smooth the histogram results using Bsplines
+        ///
+        iComputeGradient.bspline_filt_rec_y(histogram,lambda,tol);
+
+        iComputeGradient.calc_inv_bspline_y(histogram);
+
+        ///
+        /// Calculate the local maximum after 5%  of the background on the smoothed histogram
+        ///
+
+        unsigned int local_max_j = 0;
+        uint64_t local_max = 0;
+
+        for (size_t k = min_j; k < num_bins; ++k) {
+
+            if(histogram.mesh[k] >= ((histogram.mesh[k-1] + histogram.mesh[k-2])/2.0)){
+            } else {
+                local_max = histogram.mesh[k];
+                local_max_j = k;
+                break;
             }
         }
 
-    }
-    par_timer.stop_timer();
-
-    float img_mean = counter > 0 ? total/(counter*1.0) : 1;
-    float prop_total_th = 0.05; //assume there is atleast 5% background in the image
-    float prop_total = 0;
-    uint64_t min_j = 0;
-
-    // set to start at one to ignore potential constant regions thresholded out. (Common in some images)
-    for (unsigned int j = 1; j < num_bins; ++j) {
-        prop_total += freq[j]/(counter*1.0);
-
-        if(prop_total > prop_total_th){
-            min_j = j;
-            break;
+        //possible due to quantization your histogrtam is actually quite sparse, this corrects for the case where the smoothed intensity doesn't exist in the original image.
+        if(freq[local_max_j]==0){
+            while(freq[local_max_j]==0){
+                local_max_j++;
+                local_max=freq[local_max_j];
+            }
         }
 
-    }
+        T estimated_first_mode = local_max_j + min_val;
 
-    float proportion_flat = freq[0]/(counter*1.0f);
-    float proportion_next = freq[1]/(counter*1.0f);
+        std::vector<std::vector<T>> patches;
 
-    PixelData<T> histogram;
-    histogram.init(num_bins, 1, 1);
-    std::copy(freq.begin(),freq.end(),histogram.mesh.begin());
+        patches.resize(std::min(local_max,(uint64_t)10000));
 
-    float tol = 0.0001;
-    float lambda = 3;
-
-    //Y direction bspline
-
-    ///
-    /// Smooth the histogram results using Bsplines
-    ///
-    iComputeGradient.bspline_filt_rec_y(histogram,lambda,tol);
-
-    iComputeGradient.calc_inv_bspline_y(histogram);
-
-    ///
-    /// Calculate the local maximum after 5%  of the background on the smoothed histogram
-    ///
-
-    unsigned int local_max_j = 0;
-    uint64_t local_max = 0;
-
-    for (size_t k = min_j; k < num_bins; ++k) {
-
-        if(histogram.mesh[k] >= ((histogram.mesh[k-1] + histogram.mesh[k-2])/2.0)){
-        } else {
-            local_max = histogram.mesh[k];
-            local_max_j = k;
-            break;
+        for (unsigned int l = 0; l < patches.size(); ++l) {
+            patches[l].resize(27, 0);
         }
-    }
-
-    //possible due to quantization your histogrtam is actually quite sparse, this corrects for the case where the smoothed intensity doesn't exist in the original image.
-    if(freq[local_max_j]==0){
-        while(freq[local_max_j]==0){
-            local_max_j++;
-            local_max=freq[local_max_j];
-        }
-    }
-
-    T estimated_first_mode = local_max_j + min_val;
-
-    std::vector<std::vector<T>> patches;
-
-    patches.resize(std::min(local_max,(uint64_t)10000));
-
-    for (unsigned int l = 0; l < patches.size(); ++l) {
-        patches[l].resize(27, 0);
-    }
 
 
-    int64_t z_num = input_img.z_num;
-    int64_t x_num = input_img.x_num;
-    int64_t y_num = input_img.y_num;
+        int64_t z_num = input_img.z_num;
+        int64_t x_num = input_img.x_num;
+        int64_t y_num = input_img.y_num;
 
-    par_timer.start_timer("get_patches");
+        par_timer.start_timer("get_patches");
 
-    uint64_t counter_p = 0;
-    if (patches.size() > 0) {
-        for (size_t s = 0; s < selectedSlicesOffsets.size(); ++s) {
-            // limit slice to range [1, z_num-2]
-            int64_t z = std::min((int) z_num - 2, std::max((int) selectedSlicesOffsets[s], (int) 1));
-            for (int64_t x = 1; x < (x_num - 1); ++x) {
-                for (int64_t y = 1; y < (y_num - 1); ++y) {
-                    float val = input_img.mesh[z * x_num * y_num + x * y_num + y];
-                    if (val == estimated_first_mode) {
-                        uint64_t counter_n = 0;
-                        for (int64_t sz = -1; sz <= 1; ++sz) {
-                            for (int64_t sx = -1; sx <= 1; ++sx) {
-                                for (int64_t sy = -1; sy <= 1; ++sy) {
-                                    size_t idx = (z + sz) * x_num * y_num + (x + sx) * y_num + (y + sy);
-                                    const auto &val = input_img.mesh[idx];
-                                    patches[counter_p][counter_n] = val;
-                                    counter_n++;
+        uint64_t counter_p = 0;
+        if (patches.size() > 0) {
+            for (size_t s = 0; s < selectedSlicesOffsets.size(); ++s) {
+                // limit slice to range [1, z_num-2]
+                int64_t z = std::min((int) z_num - 2, std::max((int) selectedSlicesOffsets[s], (int) 1));
+                for (int64_t x = 1; x < (x_num - 1); ++x) {
+                    for (int64_t y = 1; y < (y_num - 1); ++y) {
+                        float val = input_img.mesh[z * x_num * y_num + x * y_num + y];
+                        if (val == estimated_first_mode) {
+                            uint64_t counter_n = 0;
+                            for (int64_t sz = -1; sz <= 1; ++sz) {
+                                for (int64_t sx = -1; sx <= 1; ++sx) {
+                                    for (int64_t sy = -1; sy <= 1; ++sy) {
+                                        size_t idx = (z + sz) * x_num * y_num + (x + sx) * y_num + (y + sy);
+                                        const auto &val = input_img.mesh[idx];
+                                        patches[counter_p][counter_n] = val;
+                                        counter_n++;
+                                    }
                                 }
                             }
-                        }
-                        counter_p++;
-                        if (counter_p >= patches.size()) {
-                            goto finish;
+                            counter_p++;
+                            if (counter_p >= patches.size()) {
+                                goto finish;
+                            }
                         }
                     }
                 }
             }
         }
-    }
 
-    finish:
-    par_timer.stop_timer();
+        finish:
+        par_timer.stop_timer();
 
-    //first compute the mean over all the patches.
-    double total_p=0;
-    counter = 0;
+        //first compute the mean over all the patches.
+        double total_p=0;
+        counter = 0;
 
-    for (size_t i = 0; i < patches.size(); ++i) {
-        for (size_t j = 0; j < patches[i].size(); ++j) {
+        for (size_t i = 0; i < patches.size(); ++i) {
+            for (size_t j = 0; j < patches[i].size(); ++j) {
 
-            if(patches[i][j] > 0){
-                total_p += patches[i][j];
-                counter++;
+                if(patches[i][j] > 0){
+                    total_p += patches[i][j];
+                    counter++;
+                }
             }
         }
-    }
 
-    float mean = counter > 0 ? total_p/(counter*1.0) : 1;
+        float mean = counter > 0 ? total_p/(counter*1.0) : 1;
 
-    //now compute the standard deviation (sd) of the patches
+        //now compute the standard deviation (sd) of the patches
 
-    double var=0;
+        double var=0;
 
-    for (size_t i = 0; i < patches.size(); ++i) {
-        for (size_t j = 0; j < patches[i].size(); ++j) {
+        for (size_t i = 0; i < patches.size(); ++i) {
+            for (size_t j = 0; j < patches[i].size(); ++j) {
 
-            if(patches[i][j] > 0){
-                var += pow(patches[i][j]-mean,2);
+                if(patches[i][j] > 0){
+                    var += pow(patches[i][j]-mean,2);
+                }
             }
         }
-    }
 
-    var = (counter > 0) ? var/(counter*1) : 1;
+        var = (counter > 0) ? var/(counter*1) : 1;
 
-    float sd = sqrt(var);
+        float sd = sqrt(var);
 
-    par.noise_sd_estimate = sd;
+        par.noise_sd_estimate = sd;
 
-    for (size_t l1 = 1; l1 < histogram.mesh.size(); ++l1) {
-        if(histogram.mesh[l1] > 0){
-            par.background_intensity_estimate = l1 + min_val;
+        for (size_t l1 = 1; l1 < histogram.mesh.size(); ++l1) {
+            if(histogram.mesh[l1] > 0){
+                par.background_intensity_estimate = l1 + min_val;
+            }
         }
-    }
 
 
 
 
 
-    float min_snr = 6;
+        float min_snr = 6;
 
-    if(par.SNR_min > 0){
-        min_snr = par.SNR_min;
+        if(par.SNR_min > 0){
+            min_snr = par.SNR_min;
+        } else {
+            std::cout << "**Assuming a minimum SNR of 6" << std::endl;
+        }
+
+        float Ip_th = mean + sd;
+        float var_th = (img_mean/(mean*1.0f))*sd*min_snr;
+
+        float var_th_max = sd*min_snr*.5f;
+
+        par.background_intensity_estimate = estimated_first_mode;
+
+
+        //
+        //  Detecting background subtracted images, or no-noise, in these cases the above estimates do not work
+        //
+        if((proportion_flat > 1.0f) && (proportion_next > 0.00001f)){
+            std::cout << "AUTOPARAMTERS:**Warning** Detected that there is likely noisy background, instead assuming background subtracted and minimum signal of 5 (absolute), if this is not the case please set parameters manually" << std::endl;
+            Ip_th = 1;
+            var_th = 5;
+            lambda = 0.5;
+            var_th_max = 2;
+        } else {
+            std::cout << "AUTOPARAMTERS: **Assuming image has atleast 5% dark background" << std::endl;
+        }
+
+
+        /*
+         *  Input parameter over-ride.
+         *
+         */
+
+        if(min_signal_input < 0) {
+            par.sigma_th = var_th;
+            par.sigma_th_max = var_th_max;
+        } else {
+            par.sigma_th_max = par.min_signal*0.5f;
+            par.sigma_th = par.min_signal;
+        }
+
+
+        if(lambda_input != -1) {
+            par.lambda = lambda_input;
+        }else{
+            par.lambda = lambda;
+        }
+
+        if(par.lambda < 0.05){
+            par.lambda = 0;
+            std::cout << "setting lambda to zero, bsplines algorithm cannot work with such small lambda" << std::endl;
+        }
+
+        if(ip_th_input != -1){
+            par.Ip_th = ip_th_input;
+        } else {
+            par.Ip_th = Ip_th;
+        }
+
+        if(rel_error_input != 0.1){
+            par.rel_error = rel_error_input;
+        }
+
+        std::cout << "Used parameters: " << std::endl;
+        std::cout << "I_th: " << par.Ip_th << std::endl;
+        std::cout << "sigma_th: " << par.sigma_th << std::endl;
+        std::cout << "sigma_th_max: " << par.sigma_th_max << std::endl;
+        std::cout << "relative error (E): " << par.rel_error << std::endl;
+        std::cout << "lambda: " << par.lambda << std::endl;
     } else {
-        std::cout << "**Assuming a minimum SNR of 6" << std::endl;
+        par.Ip_th = 1000;
+        par.sigma_th = 100;
+        par.sigma_th_max = 10;
+        par.rel_error = 0.1;
+        par.lambda = 1;
+
+        std::cout << "Used parameters: " << std::endl;
+        std::cout << "I_th: " << par.Ip_th << std::endl;
+        std::cout << "sigma_th: " << par.sigma_th << std::endl;
+        std::cout << "sigma_th_max: " << par.sigma_th_max << std::endl;
+        std::cout << "relative error (E): " << par.rel_error << std::endl;
+        std::cout << "lambda: " << par.lambda << std::endl;
     }
-
-    float Ip_th = mean + sd;
-    float var_th = (img_mean/(mean*1.0f))*sd*min_snr;
-
-    float var_th_max = sd*min_snr*.5f;
-
-    par.background_intensity_estimate = estimated_first_mode;
-
-
-    //
-    //  Detecting background subtracted images, or no-noise, in these cases the above estimates do not work
-    //
-    if((proportion_flat > 1.0f) && (proportion_next > 0.00001f)){
-        std::cout << "AUTOPARAMTERS:**Warning** Detected that there is likely noisy background, instead assuming background subtracted and minimum signal of 5 (absolute), if this is not the case please set parameters manually" << std::endl;
-        Ip_th = 1;
-        var_th = 5;
-        lambda = 0.5;
-        var_th_max = 2;
-    } else {
-        std::cout << "AUTOPARAMTERS: **Assuming image has atleast 5% dark background" << std::endl;
-    }
-
-
-    /*
-     *  Input parameter over-ride.
-     *
-     */
-
-    if(min_signal_input < 0) {
-        par.sigma_th = var_th;
-        par.sigma_th_max = var_th_max;
-    } else {
-        par.sigma_th_max = par.min_signal*0.5f;
-        par.sigma_th = par.min_signal;
-    }
-
-
-    if(lambda_input != -1) {
-        par.lambda = lambda_input;
-    }else{
-        par.lambda = lambda;
-    }
-
-    if(par.lambda < 0.05){
-        par.lambda = 0;
-        std::cout << "setting lambda to zero, bsplines algorithm cannot work with such small lambda" << std::endl;
-    }
-
-    if(ip_th_input != -1){
-        par.Ip_th = ip_th_input;
-    } else {
-        par.Ip_th = Ip_th;
-    }
-
-    if(rel_error_input != 0.1){
-        par.rel_error = rel_error_input;
-    }
-
-    std::cout << "Used parameters: " << std::endl;
-    std::cout << "I_th: " << par.Ip_th << std::endl;
-    std::cout << "sigma_th: " << par.sigma_th << std::endl;
-    std::cout << "sigma_th_max: " << par.sigma_th_max << std::endl;
-    std::cout << "relative error (E): " << par.rel_error << std::endl;
-    std::cout << "lambda: " << par.lambda << std::endl;
 }
+
+/**
+ * Checks if the memory dimension (y) is filled
+ */
+template<typename ImageType> template<typename T>
+bool APRConverter<ImageType>::check_input_dimensions(PixelData<T> &input_image) {
+    bool x_present = input_image.x_num>1;
+    bool y_present = input_image.y_num>1;
+    bool z_present = input_image.z_num>1;
+
+    uint8_t number_dims = x_present + y_present + z_present;
+
+    if(number_dims == 0) { return false; }
+    if(number_dims == 3) { return true; }
+
+    // number_dims equals 1 or 2
+    if(y_present) {
+        return true;
+    } else if(par.swap_dimensions){
+        if(x_present) {
+            std::swap(input_image.x_num, input_image.y_num);
+        } else {
+            std::swap(input_image.z_num, input_image.y_num);
+        }
+        return true;
+    }
+    //else
+    return false;
+}
+
 
 
 #endif // __APR_CONVERTER_HPP__
