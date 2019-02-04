@@ -36,11 +36,6 @@ public:
     bool find_neighbours_in_direction(const uint8_t& direction);
 
     inline bool set_neighbour_iterator(APRIterator &original_iterator, const uint8_t& direction, const uint8_t& index);
-
-    inline PCDKey& get_pcd_key(){
-        return particleCellDataKey;
-    }
-
 protected:
     bool find_next_child(const uint8_t& direction,const uint8_t& index);
 
@@ -48,7 +43,6 @@ protected:
 
     uint64_t max_row_level_offset(const uint16_t x,const uint16_t z,const uint16_t num_parts);
 
-    PCDKey particleCellDataKey;
 };
 
 
@@ -67,10 +61,6 @@ uint64_t APRIterator::start_index(const uint16_t level, const uint64_t offset){
 }
 
 uint64_t APRIterator::max_row_level_offset(const uint16_t x,const uint16_t z,const uint16_t num_parts){
-
-
-
-
     return ((x%2) + (z%2)*2)*((uint64_t)num_parts) ;//calculates the number of particles in the row
 }
 
@@ -82,10 +72,6 @@ inline uint64_t APRIterator::set_new_lzx(const uint16_t level,const uint16_t z,c
         //back out your xz from the offset
         this->current_particle_cell.z = z;
         this->current_particle_cell.x = x;
-
-        particleCellDataKey.offset = this->apr_access->x_num[level]*(z) + (x);
-        particleCellDataKey.local_ind = 0;
-        particleCellDataKey.level = level;
 
         if(level == this->level_max()){
             this->current_particle_cell.pc_offset =this->apr_access->x_num[level-1]*(z/2) + (x/2);
@@ -107,6 +93,7 @@ inline uint64_t APRIterator::set_new_lzx(const uint16_t level,const uint16_t z,c
 
                 this->end_index =  begin + num_parts;
 
+                //calculates the offset for the xz position
                 uint64_t index_offset=0;
 
                 if(check_neigh_flag){
@@ -123,13 +110,12 @@ inline uint64_t APRIterator::set_new_lzx(const uint16_t level,const uint16_t z,c
                     //calculates the offset for the xz position
                     index_offset = max_row_level_offset(x, z, num_parts);
                 }
+
                 this->end_index += index_offset;
                 this->current_particle_cell.global_index += index_offset;
 
                 return this->current_particle_cell.global_index;
             } else {
-                this->end_index = 0;
-                current_particle_cell.y = UINT16_MAX;
                 return UINT64_MAX;
             }
 
@@ -153,8 +139,6 @@ inline uint64_t APRIterator::set_new_lzx(const uint16_t level,const uint16_t z,c
 
                 return this->current_particle_cell.global_index;
             } else {
-                this->end_index = 0;
-                current_particle_cell.y = UINT16_MAX;
                 return UINT64_MAX;
             }
 
@@ -231,7 +215,6 @@ inline bool APRIterator::set_iterator_to_particle_next_particle(){
     if( (this->current_particle_cell.y+1) <= this->current_gap.iterator->second.y_end){
         //  Still in same y gap
 
-        particleCellDataKey.local_ind++;
         this->current_particle_cell.global_index++;
         this->current_particle_cell.y++;
         return true;
@@ -241,7 +224,7 @@ inline bool APRIterator::set_iterator_to_particle_next_particle(){
         //not in the same gap
         this->current_gap.iterator++;//move the iterator forward.
 
-        particleCellDataKey.local_ind++;
+
         //I am in the next gap
         this->current_particle_cell.global_index++;
         this->current_particle_cell.y = this->current_gap.iterator->first; // the key is the first y value for the gap

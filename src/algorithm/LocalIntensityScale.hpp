@@ -24,6 +24,9 @@ public:
     void calc_sat_mean_y(PixelData<T> &input, const size_t offset);
 
     void get_window(float &var_rescale, std::vector<int> &var_win, const APRParameters &par);
+
+    void get_window_alt(float& var_rescale, std::vector<int>& var_win, const APRParameters& par, uint8_t ndim);
+
     template<typename T>
     void rescale_var_and_threshold(PixelData<T>& var,const float var_rescale, const APRParameters& par);
 };
@@ -40,6 +43,7 @@ inline void LocalIntensityScale::rescale_var_and_threshold(PixelData<T> &var, co
         if (rescaled < par.sigma_th) {
             rescaled = (rescaled < par.sigma_th_max) ? max_th : par.sigma_th;
         }
+
         var.mesh[i] = rescaled;
     }
 }
@@ -95,6 +99,45 @@ inline void LocalIntensityScale::get_window(float& var_rescale, std::vector<int>
     int window_ind_2 =  win_2[psf_ind] - 1;
 
     var_rescale = (float)rescale_store[psf_ind][window_ind_2][window_ind_1]*(float)rescale_z[psf_indz][psf_ind];
+}
+
+/**
+ * Compute the window size and set the rescaling factor. Rescaling factors recomputed by Joel Jonsson.
+ * Assuming isotropy!
+ *
+ * @param var_rescale
+ * @param var_win
+ * @param par
+ * @param ndim
+ */
+inline void LocalIntensityScale::get_window_alt(float& var_rescale, std::vector<int>& var_win, const APRParameters& par, uint8_t ndim){
+
+    const double rescale_store_3D[6] = {12.8214, 26.1256, 40.2795, 23.3692, 36.2061, 27.0385};
+    const double rescale_store_2D[6] = {13.2421, 28.7069, 52.0385, 24.4272, 34.9565, 21.1891};
+    const double rescale_store_1D[6] = {13.9040, 31.2843, 57.4037, 30.3767, 45.9930, 29.0890};
+    // rescale_store_1D[3] is bimodal with a second mode at 45.4407
+
+    int psf_ind = std::max((float)(round(par.psfx/par.dx) - 1), 0.0f);
+    psf_ind = std::min(psf_ind,5);
+
+    const int win_1[] = {1,1,1,2,2,3};
+    const int win_2[] = {2,3,4,4,5,6};
+
+    var_win.resize(6);
+    var_win[0] = win_1[psf_ind];
+    var_win[1] = win_1[psf_ind];
+    var_win[2] = win_1[psf_ind];
+    var_win[3] = win_2[psf_ind];
+    var_win[4] = win_2[psf_ind];
+    var_win[5] = win_2[psf_ind];
+
+    if( ndim == 3 ) {
+        var_rescale = (float)rescale_store_3D[psf_ind];
+    } else if( ndim == 2 ) {
+        var_rescale = (float)rescale_store_2D[psf_ind];
+    } else {
+        var_rescale = (float)rescale_store_1D[psf_ind];
+    }
 }
 
 /**

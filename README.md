@@ -1,12 +1,12 @@
 # LibAPR - The Adaptive Particle Representation Library
 
-Library for producing and processing on the Adaptive Particle Representation (APR) (For article see: https://www.biorxiv.org/content/early/2018/03/02/263061).
+Library for producing and processing on the Adaptive Particle Representation (APR) (For article see: https://www.nature.com/articles/s41467-018-07390-9).
 
 <img src="./docs/apr_lowfps_lossy.gif?raw=true">
 
 Labeled Zebrafish nuclei: Gopi Shah, Huisken Lab ([MPI-CBG](https://www.mpi-cbg.de), Dresden and [Morgridge Institute for Research](https://morgridge.org/research/medical-engineering/huisken-lab/), Madison); see also [Schmid et al., _Nature Communications_ 2017](https://www.nature.com/articles/ncomms3207)
 
-[![Build Status](https://travis-ci.org/cheesema/LibAPR.svg?branch=master)](https://travis-ci.org/cheesema/LibAPR)
+[![Build Status](https://travis-ci.org/AdaptiveParticles/LibAPR.svg?branch=master)](https://travis-ci.org/AdaptiveParticles/LibAPR)
 [![DOI](https://zenodo.org/badge/70479293.svg)](https://zenodo.org/badge/latestdoi/70479293)
 
 ## Dependencies
@@ -156,4 +156,4 @@ If anything is not working as you think it should, or would like it to, please g
 
 If you use this library in an academic context, please cite the following paper:
 
-* Cheeseman, Günther, Susik, Gonciarz, Sbalzarini: _Forget Pixels: Adaptive Particle Representation of Fluorescence Microscopy Images_ (bioRxiv 2018) https://www.biorxiv.org/content/early/2018/06/28/263061
+* Cheeseman, Günther, Gonciarz, Susik, Sbalzarini: _Adaptive Particle Representation of Fluorescence Microscopy Images_ (Nature Communications, 2018) https://doi.org/10.1038/s41467-018-07390-9

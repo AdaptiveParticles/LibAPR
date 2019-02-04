@@ -75,14 +75,16 @@ public:
 
     bool get_apr(){
         //copy across parameters
-        this->apr_converter.par = parameters;
-        return this->apr_converter.get_apr(*this);
+        APRConverter<ImageType> aprConverter;
+        aprConverter.par = parameters;
+        return aprConverter.get_apr(*this);
     }
 
     template<typename T>
     bool get_apr(PixelData<T>& input_img){
-        this->apr_converter.par = parameters;
-        return this->apr_converter.get_apr_method(*this, input_img);
+        APRConverter<ImageType> aprConverter;
+        aprConverter.par = parameters;
+        return aprConverter.get_apr_method(*this, input_img);
     }
 
     ///////////////////////////////////
