@@ -270,17 +270,11 @@ xyz.start_timer("PIPELINE");
     APRTimer d(true);
     t.start_timer(" =========== ALL");
 
-        int numOfStreams = 3;
-        int repetitionsPerStream = 10;
+    int numOfStreams = 1;
+    int repetitionsPerStream = 1;
 
-   
- {
-
-
+    {
         std::vector<GpuProcessingTask<ImageType>> gpts;
-
-//        int numOfStreams = 4;
-  //      int repetitionsPerStream = 10;
 
         // Create streams and send initial task to do
         for (int i = 0; i < numOfStreams; ++i) {
@@ -310,9 +304,9 @@ xyz.start_timer("PIPELINE");
             d.stop_timer();
 
             d.start_timer("2 - copy LST");
-        PixelData<float> &lst = local_scale_temp;   
- //	 PixelData<float> lst(local_scale_temp, true);
-    //        PixelData<float> lst2(local_scale_temp, true);
+            PixelData<float> &lst = local_scale_temp;
+            // PixelData<float> lst(local_scale_temp, true);
+            // PixelData<float> lst2(local_scale_temp, true);
             d.stop_timer();
 
             d.start_timer("3 - get local particle cell set");
