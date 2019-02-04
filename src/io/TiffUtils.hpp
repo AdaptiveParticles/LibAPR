@@ -159,9 +159,9 @@ namespace TiffUtils {
      * @return mesh with tiff or empty mesh if reading file failed
      */
     template<typename T>
-    PixelData<T> getMesh(const std::string &aFileName) {
+    PixelData<T> getMesh(const std::string &aFileName,bool verbose = true) {
         TiffInfo tiffInfo(aFileName);
-        return getMesh<T>(tiffInfo);
+        return getMesh<T>(tiffInfo,verbose);
     }
 
     /**
@@ -171,10 +171,10 @@ namespace TiffUtils {
      * @return mesh with tiff or empty mesh if reading file failed
      */
     template<typename T>
-    PixelData<T> getMesh(const TiffInfo &aTiff) {
+    PixelData<T> getMesh(const TiffInfo &aTiff,bool verbose = true) {
         if (!aTiff.isFileOpened()) return PixelData<T>();
         PixelData<T> mesh(aTiff.iImgHeight, aTiff.iImgWidth, aTiff.iNumberOfDirectories);
-        getMesh(aTiff, mesh);
+        getMesh(aTiff, mesh,verbose);
         return mesh;
     }
 
@@ -200,14 +200,20 @@ namespace TiffUtils {
     * @return mesh with tiff or empty mesh if reading file failed
     */
     template<typename T>
-    void getMesh(const TiffInfo &aTiff, PixelData<T> &aInputMesh) {
+    void getMesh(const TiffInfo &aTiff, PixelData<T> &aInputMesh,bool verbose = true) {
         if (!aTiff.isFileOpened()) return;
 
-        std::cout << "getMesh: " << aInputMesh << std::endl;
+        if(verbose) {
+            std::cout << "getMesh: " << aInputMesh << std::endl;
+        }
 
         // Get some more data from TIFF needed during reading
         const long stripSize = TIFFStripSize(aTiff.iFile);
-        std::cout << __func__ << ": ScanlineSize=" << TIFFScanlineSize(aTiff.iFile) << " StripSize=" << stripSize << " NumberOfStrips=" << TIFFNumberOfStrips(aTiff.iFile) << std::endl;
+
+        if(verbose) {
+            std::cout << __func__ << ": ScanlineSize=" << TIFFScanlineSize(aTiff.iFile) << " StripSize=" << stripSize
+                      << " NumberOfStrips=" << TIFFNumberOfStrips(aTiff.iFile) << std::endl;
+        }
 
         // Read TIF to PixelData
         size_t currentOffset = 0;
