@@ -214,7 +214,8 @@ inline bool APRConverter<ImageType>::get_apr_method(APR<ImageType> &aAPR, PixelD
         image_temp.copyFromMesh(input_image);
     }
     fine_grained_timer.stop_timer();
-
+APRTimer xyz(true);
+xyz.start_timer("PIPELINE");
 #ifndef APR_USE_CUDA
     method_timer.verbose_flag = true;
     method_timer.start_timer("compute_gradient_magnitude_using_bsplines");
@@ -269,8 +270,8 @@ inline bool APRConverter<ImageType>::get_apr_method(APR<ImageType> &aAPR, PixelD
     APRTimer d(true);
     t.start_timer(" =========== ALL");
 
-        int numOfStreams = 1;
-        int repetitionsPerStream = 1;
+        int numOfStreams = 3;
+        int repetitionsPerStream = 10;
 
    
  {
@@ -357,7 +358,7 @@ inline bool APRConverter<ImageType>::get_apr_method(APR<ImageType> &aAPR, PixelD
     std::cout << "BW=" << (numOfStreams * repetitionsPerStream * input_image.size()) / allT / 1000000000.0 << "GB/s" << std::endl;
     method_timer.stop_timer();
 #endif
-
+    xyz.stop_timer();
     computation_timer.stop_timer();
 
     double totT = total_timer.stop_timer();
