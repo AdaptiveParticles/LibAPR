@@ -235,12 +235,12 @@ public:
 
                                 if (parentIterator.y() == (parentIterator.spatial_index_y_max(level - 1) - 1)) {
                                     tree_data[parentIterator] =
-                                            scale_factor_yxz * apr.particles_intensities[apr_iterator] / 8.0f +
+                                            scale_factor_yxz * particle_data[apr_iterator] / 8.0f +
                                             tree_data[parentIterator];
                                 } else {
 
                                     tree_data[parentIterator] =
-                                            scale_factor_xz * apr.particles_intensities[apr_iterator] / 8.0f +
+                                            scale_factor_xz * particle_data[apr_iterator] / 8.0f +
                                             tree_data[parentIterator];
                                 }
 
