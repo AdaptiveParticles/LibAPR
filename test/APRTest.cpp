@@ -1041,7 +1041,7 @@ TEST_F(CreateSmallSphereTest, APR_INPUT_OUTPUT) {
 
 }
 
-TEST_F(CreateGTSmallTest, APR_PIPELINE) {
+TEST_F(CreateGTSmallTest, APR_PIPELINE_3D) {
 
 //test pipeline
     ASSERT_TRUE(test_pipeline_bound(test_data,0.2));
