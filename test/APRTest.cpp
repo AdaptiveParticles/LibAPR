@@ -8,6 +8,7 @@
 #include "algorithm/APRConverter.hpp"
 #include <utility>
 #include <cmath>
+#include "TestTools.hpp"
 
 struct TestData{
 
@@ -22,6 +23,7 @@ struct TestData{
 
     std::string filename;
     std::string output_name;
+    std::string output_dir;
 
 };
 
@@ -48,6 +50,25 @@ class Create210SphereTest : public CreateAPRTest
 public:
     void SetUp() override;
 };
+
+class CreateGTSmallTest : public CreateAPRTest
+{
+public:
+    void SetUp() override;
+};
+
+class CreateGTSmall2DTest : public CreateAPRTest
+{
+public:
+    void SetUp() override;
+};
+
+class CreateGTSmall1DTest : public CreateAPRTest
+{
+public:
+    void SetUp() override;
+};
+
 
 bool check_neighbours(APR<uint16_t>& apr,APRIterator &current, APRIterator &neigh){
 
@@ -839,6 +860,64 @@ bool test_apr_pipeline(TestData& test_data){
     return success;
 }
 
+bool test_pipeline_bound(TestData& test_data,float rel_error){
+    ///
+    /// Tests the pipeline, comparing the results with existing results
+    ///
+
+    bool success = true;
+
+    //the apr datastructure
+    APR<uint16_t> apr;
+
+    //read in the command line options into the parameters file
+    apr.parameters.Ip_th = 0;
+    apr.parameters.rel_error = rel_error;
+    apr.parameters.lambda = 0;
+    apr.parameters.mask_file = "";
+    apr.parameters.min_signal = -1;
+
+    apr.parameters.sigma_th_max = 50;
+    apr.parameters.sigma_th = 100;
+
+    apr.parameters.SNR_min = -1;
+
+    apr.parameters.auto_parameters = false;
+
+    apr.parameters.output_steps = true;
+
+    //where things are
+    apr.parameters.input_image_name = test_data.filename;
+    apr.parameters.input_dir = "";
+    apr.parameters.name = test_data.output_name;
+    apr.parameters.output_dir = test_data.output_dir;
+
+    //Gets the APR
+    APRConverter<uint16_t> aprConverter;
+    aprConverter.par = apr.parameters;
+
+    aprConverter.get_apr(apr);
+
+    PixelData<uint16_t> pc_recon;
+    apr.interp_img(pc_recon,apr.particles_intensities);
+
+    //read in used scale
+
+    PixelData<float> scale = TiffUtils::getMesh<float>(test_data.output_dir + "local_intensity_scale_step.tif");
+
+    TestBenchStats benchStats;
+
+    benchStats =  compare_gt(test_data.img_original,pc_recon,scale);
+
+    std::cout << "Inf norm: " << benchStats.inf_norm << " Bound: " << rel_error << std::endl;
+
+    if(benchStats.inf_norm > rel_error){
+        success = false;
+    }
+
+    return success;
+}
+
 std::string get_source_directory_apr(){
     // returns path to the directory where utils.cpp is stored
 
@@ -847,6 +926,41 @@ std::string get_source_directory_apr(){
 
     return tests_directory;
 }
+
+void CreateGTSmallTest::SetUp(){
+
+    std::string file_name = get_source_directory_apr() + "files/Apr/sphere_small/original.tif";
+    test_data.img_original = TiffUtils::getMesh<uint16_t>(file_name);
+
+    test_data.filename = get_source_directory_apr() + "files/Apr/sphere_small/original.tif";
+    test_data.output_name = "sphere_gt";
+
+    test_data.output_dir = get_source_directory_apr() + "files/Apr/sphere_small/";
+}
+
+void CreateGTSmall2DTest::SetUp(){
+
+    std::string file_name = get_source_directory_apr() + "files/Apr/sphere_2D/original.tif";
+    test_data.img_original = TiffUtils::getMesh<uint16_t>(file_name);
+
+    test_data.filename = get_source_directory_apr() + "files/Apr/sphere_2D/original.tif";
+    test_data.output_name = "sphere_gt";
+
+    test_data.output_dir = get_source_directory_apr() + "files/Apr/sphere_2D/";
+}
+
+void CreateGTSmall1DTest::SetUp(){
+
+    std::string file_name = get_source_directory_apr() + "files/Apr/sphere_1D/original.tif";
+    test_data.img_original = TiffUtils::getMesh<uint16_t>(file_name);
+
+    test_data.filename = get_source_directory_apr() + "files/Apr/sphere_1D/original.tif";
+    test_data.output_name = "sphere_gt";
+
+    test_data.output_dir = get_source_directory_apr() + "files/Apr/sphere_1D/";
+}
+
+
 
 
 void CreateSmallSphereTest::SetUp(){
@@ -927,10 +1041,36 @@ TEST_F(CreateSmallSphereTest, APR_INPUT_OUTPUT) {
 
 }
 
-TEST_F(CreateSmallSphereTest, APR_PIPELINE) {
+TEST_F(CreateGTSmallTest, APR_PIPELINE) {
 
-//test iteration
-    //ASSERT_TRUE(test_apr_pipeline(test_data));
+//test pipeline
+    ASSERT_TRUE(test_pipeline_bound(test_data,0.2));
+    ASSERT_TRUE(test_pipeline_bound(test_data,0.1));
+    ASSERT_TRUE(test_pipeline_bound(test_data,0.01));
+    ASSERT_TRUE(test_pipeline_bound(test_data,0.05));
+    ASSERT_TRUE(test_pipeline_bound(test_data,0.001));
+
+}
+
+TEST_F(CreateGTSmall2DTest, APR_PIPELINE_2D) {
+
+//test pipeline
+    ASSERT_TRUE(test_pipeline_bound(test_data,0.2));
+    ASSERT_TRUE(test_pipeline_bound(test_data,0.1));
+    ASSERT_TRUE(test_pipeline_bound(test_data,0.01));
+    ASSERT_TRUE(test_pipeline_bound(test_data,0.05));
+    ASSERT_TRUE(test_pipeline_bound(test_data,0.001));
+
+}
+
+TEST_F(CreateGTSmall1DTest, APR_PIPELINE_1D) {
+
+//test pipeline
+    ASSERT_TRUE(test_pipeline_bound(test_data,0.2));
+    ASSERT_TRUE(test_pipeline_bound(test_data,0.1));
+    ASSERT_TRUE(test_pipeline_bound(test_data,0.01));
+    ASSERT_TRUE(test_pipeline_bound(test_data,0.05));
+    ASSERT_TRUE(test_pipeline_bound(test_data,0.001));
 
 }
 
@@ -962,13 +1102,13 @@ TEST_F(Create210SphereTest, APR_INPUT_OUTPUT) {
 
 }
 
-TEST_F(Create210SphereTest, APR_PIPELINE) {
-
-//test iteration
-// TODO: FIXME please! I'm not sure the difference arises regarding the fastmath optimization resulting in small float changes in the solution
-//    ASSERT_TRUE(test_apr_pipeline(test_data));
-
-}
+//TEST_F(Create210SphereTest, APR_PIPELINE) {
+//
+////test iteration
+//// TODO: FIXME please! I'm not sure the difference arises regarding the fastmath optimization resulting in small float changes in the solution
+////    ASSERT_TRUE(test_apr_pipeline(test_data));
+//
+//}
 
 
 int main(int argc, char **argv) {

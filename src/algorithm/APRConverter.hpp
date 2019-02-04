@@ -535,8 +535,6 @@ void APRConverter<ImageType>::get_local_intensity_scale(PixelData<float> &local_
             fine_grained_timer.stop_timer();
         }
 
-        //std::cout << "CPU WINDOWS: " << win_y << " " << win_x << " " << win_z << " " << win_y2 << " " << win_x2 << " "
-        //          << win_z2 << std::endl;
         fine_grained_timer.start_timer("second_pass_and_rescale");
         //calculate abs and subtract from original
         iLocalIntensityScale.calc_abs_diff(local_scale_temp2, local_scale_temp);
