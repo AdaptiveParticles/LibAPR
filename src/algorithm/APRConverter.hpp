@@ -24,6 +24,7 @@
 
 #ifdef APR_USE_CUDA
 #include "algorithm/ComputeGradientCuda.hpp"
+#include "algorithm/PullingSchemeCuda.hpp"
 #endif
 
 
@@ -299,30 +300,31 @@ xyz.start_timer("PIPELINE");
             std::cout << "--------- start CPU processing ---------- " << i << std::endl;
             init_apr(aAPR, input_image);
 
-            d.start_timer("1 - initialize particle cell tree");
-            iPullingScheme.initialize_particle_cell_tree(aAPR.apr_access);
-            d.stop_timer();
 
             d.start_timer("2 - copy LST");
-            PixelData<float> &lst = local_scale_temp;
-            // PixelData<float> lst(local_scale_temp, true);
-            // PixelData<float> lst2(local_scale_temp, true);
+//            PixelData<float> &lst = local_scale_temp;
+             PixelData<float> lst(local_scale_temp, true);
+             PixelData<float> lst2(local_scale_temp, true);
+            PixelData<float> lst3(local_scale_temp, true);
             d.stop_timer();
 
-            d.start_timer("3 - get local particle cell set");
-            get_local_particle_cell_set(lst, local_scale_temp2);
-            d.stop_timer();
 
             ////////////////////////////////
             d.start_timer("4 - pulling main");
+            iPullingScheme.initialize_particle_cell_tree(aAPR.apr_access);
+            get_local_particle_cell_set(lst, local_scale_temp2);
             iPullingScheme.pulling_scheme_main();
             d.stop_timer();
 
-            //d.start_timer("4 - new pulling main");
-            //OVPC nps(aAPR.apr_access, lst2);
-            //nps.generateTree();
-            //d.stop_timer();
+            d.start_timer("4 - new pulling main");
+            OVPC nps(aAPR.apr_access, lst2);
+            nps.generateTree();
+            d.stop_timer();
 
+            d.start_timer("4 - new pulling main CUDA");
+            PixelData<TreeElementType> ds(lst3.y_num, lst3.x_num, lst3.z_num * (aAPR.apr_access.l_max - aAPR.apr_access.l_min + 1), 0);
+            computeOVPC(lst3, ds, aAPR.apr_access.l_min, aAPR.apr_access.l_max);
+            d.stop_timer();
 
             PixelData<T> &inImg = input_image; // user redy data and later...
 

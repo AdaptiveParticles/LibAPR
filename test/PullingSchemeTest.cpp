@@ -10,6 +10,7 @@
 #include "algorithm/PullingScheme.hpp"
 #include "algorithm/OVPC.h"
 #include "TestTools.hpp"
+
 #ifdef APR_USE_CUDA
 #include "algorithm/PullingSchemeCuda.hpp"
 #include "algorithm/ComputeGradientCuda.hpp"
