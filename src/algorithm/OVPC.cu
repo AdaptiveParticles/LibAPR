@@ -95,14 +95,14 @@ __global__ void secondPhase(T *data, T *child, size_t xLen, size_t yLen, size_t 
     int zmin = 2 * zi;
     int zmax = 2 * zi + 1; zmax = zmax >= zLenc ? zLenc - 1 : zmax;
 
+
     uint8_t status = data[zi * xLen * yLen + xi * yLen + yi];
 
     for (int z = zmin; z <= zmax; ++z) {
         for (int x = xmin; x <= xmax; ++x) {
             for (int y = ymin; y <= ymax; ++y) {
                 size_t children_index = z * xLenc * yLenc + x * yLenc + y;
-                ElementType  v = child[children_index];
-                child[children_index] = status >= (OVPC_SEED << BIT_SHIFT) ? 0 : v >> BIT_SHIFT;
+                child[children_index] = status >= (OVPC_SEED << BIT_SHIFT) ? 0 : child[children_index] >> BIT_SHIFT;
             }
         }
     }
