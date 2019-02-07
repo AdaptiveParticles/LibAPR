@@ -91,8 +91,8 @@ int runAPR(cmdLineOptions options) {
         std::cout << "Writing the APR to hdf5..." << std::endl;
 
         //feel free to change
-        unsigned int blosc_comp_type = 6; //Lizard Codec
-        unsigned int blosc_comp_level = 9;
+        unsigned int blosc_comp_type = BLOSC_ZSTD; //Lizard Codec
+        unsigned int blosc_comp_level = 4;
         unsigned int blosc_shuffle = 1;
 
         apr.apr_compress.set_compression_type(options.compress_type);
