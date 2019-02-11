@@ -8,7 +8,7 @@
 #include "data_structures/Mesh/PixelData.hpp"
 #include "misc/APRTimer.hpp"
 
-#include "../src/Numerics/GenerateStencils.hpp"
+//#include "../src/Numerics/GenerateStencils.hpp"
 
 #include "src/io/TiffUtils.hpp"
 
@@ -28,34 +28,34 @@ class MeshNumerics {
 
 public:
 
-    template<typename T>
-    void generate_smooth_stencil(std::vector<PixelData<T>>& stencils){
-
-        unsigned int dim = 3;
-        unsigned int order = 1;
-        unsigned int padd = 1;
-
-        std::vector<int> derivative = {0,0,0};
-
-        PixelData<float> stencil_c;
-
-        GenerateStencils generateStencils;
-
-        generateStencils.solve_for_stencil(stencil_c,dim,order,padd,derivative);
-
-        stencils.resize(2);
-
-        stencils[0].init(stencil_c);
-        stencils[0].copyFromMesh(stencil_c);
-
-        generateStencils.solve_for_stencil(stencil_c,dim,1,padd,derivative);
-
-        stencils[1].init(stencil_c);
-        stencils[1].copyFromMesh(stencil_c);
-
-
-
-    }
+//    template<typename T>
+//    void generate_smooth_stencil(std::vector<PixelData<T>>& stencils){
+//
+//        unsigned int dim = 3;
+//        unsigned int order = 1;
+//        unsigned int padd = 1;
+//
+//        std::vector<int> derivative = {0,0,0};
+//
+//        PixelData<float> stencil_c;
+//
+//        GenerateStencils generateStencils;
+//
+//        generateStencils.solve_for_stencil(stencil_c,dim,order,padd,derivative);
+//
+//        stencils.resize(2);
+//
+//        stencils[0].init(stencil_c);
+//        stencils[0].copyFromMesh(stencil_c);
+//
+//        generateStencils.solve_for_stencil(stencil_c,dim,1,padd,derivative);
+//
+//        stencils[1].init(stencil_c);
+//        stencils[1].copyFromMesh(stencil_c);
+//
+//
+//
+//    }
 
 
     template<typename T,typename R>
