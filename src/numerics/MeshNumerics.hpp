@@ -10,7 +10,7 @@
 
 //#include "../src/Numerics/GenerateStencils.hpp"
 
-#include "src/io/TiffUtils.hpp"
+#include "io/TiffUtils.hpp"
 
 template<typename T>
 class  APR;
