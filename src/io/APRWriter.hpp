@@ -207,9 +207,9 @@ public:
 
         hid_t meta_data = f.groupId;
 
-        if(time_point!=UINT32_MAX){
+        //if(time_point!=UINT32_MAX){
             meta_data = f.objectId;
-        }
+        //}
 
 
         if (!f.isOpened()) return;
@@ -427,7 +427,7 @@ public:
         // ------------- read data ------------------------------
         apr.particles_intensities.data.resize(parts_end);
         if (apr.particles_intensities.data.size() > 0) {
-            readData(AprTypes::ParticleIntensitiesType, f.objectId, apr.particles_intensities.data.data() + parts_start,parts_start,parts_end);
+            readData(AprTypes::ParticleIntensitiesType, meta_data, apr.particles_intensities.data.data() + parts_start,parts_start,parts_end);
         }
 
 
@@ -468,7 +468,7 @@ public:
      * Writes the APR to the particle cell structure sparse format, using the p_map for reconstruction
      */
     template<typename ImageType>
-    FileSizeInfo write_apr(APR<ImageType> &apr, const std::string &save_loc, const std::string &file_name, APRCompress<ImageType> &apr_compressor, unsigned int blosc_comp_type = BLOSC_ZSTD, unsigned int blosc_comp_level = 2, unsigned int blosc_shuffle=1,bool write_tree = false,bool append_apr_time = false) {
+    FileSizeInfo write_apr(APR<ImageType> &apr, const std::string &save_loc, const std::string &file_name, APRCompress<ImageType> &apr_compressor, unsigned int blosc_comp_type = BLOSC_ZSTD, unsigned int blosc_comp_level = 2, unsigned int blosc_shuffle=1,bool write_tree = false,bool append_apr_time = true) {
         APRTimer write_timer;
         write_timer.verbose_flag = true;
 
@@ -482,7 +482,6 @@ public:
         } else {
             op = AprFile::Operation::WRITE;
         }
-
 
         unsigned int t = 0;
 

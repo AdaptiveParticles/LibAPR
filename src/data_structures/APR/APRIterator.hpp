@@ -116,6 +116,10 @@ inline uint64_t APRIterator::set_new_lzx(const uint16_t level,const uint16_t z,c
 
                 return this->current_particle_cell.global_index;
             } else {
+
+                this->end_index = 0;
+                this->current_particle_cell.y = UINT16_MAX;
+
                 return UINT64_MAX;
             }
 
@@ -124,7 +128,7 @@ inline uint64_t APRIterator::set_new_lzx(const uint16_t level,const uint16_t z,c
 
             if(this->apr_access->gap_map.data[this->current_particle_cell.level][this->current_particle_cell.pc_offset].size() > 0) {
 
-                this->current_gap.iterator =this->apr_access->gap_map.data[this->current_particle_cell.level][this->current_particle_cell.pc_offset][0].map.begin();
+                this->current_gap.iterator = this->apr_access->gap_map.data[this->current_particle_cell.level][this->current_particle_cell.pc_offset][0].map.begin();
                 this->current_particle_cell.y = this->current_gap.iterator->first;
 
                 uint64_t begin = start_index(level,this->current_particle_cell.pc_offset);
@@ -139,6 +143,10 @@ inline uint64_t APRIterator::set_new_lzx(const uint16_t level,const uint16_t z,c
 
                 return this->current_particle_cell.global_index;
             } else {
+
+                this->end_index = 0;
+                this->current_particle_cell.y = UINT16_MAX;
+
                 return UINT64_MAX;
             }
 

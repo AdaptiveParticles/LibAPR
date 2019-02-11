@@ -10,6 +10,7 @@
 #include "data_structures/Mesh/PixelData.hpp"
 #include "../data_structures/APR/APR.hpp"
 #include "../data_structures/APR/ExtraPartCellData.hpp"
+#include "../data_structures/APR/APRAccessStructures.hpp"
 
 #ifdef HAVE_OPENMP
 #include "omp.h"
@@ -83,9 +84,6 @@ struct imagePatch {
 };
 
 
-struct SparseParticleCellMap{
-    std::map<uint16_t,uint8_t> mesh;
-};
 
 
 class PullingSchemeSparse {
@@ -142,6 +140,10 @@ inline void PullingSchemeSparse::initialize_particle_cell_tree(APR<T>& apr) {
         }
 
     }
+
+
+
+
 }
 
 inline void PullingSchemeSparse::pulling_scheme_main() {
@@ -215,9 +217,6 @@ inline void PullingSchemeSparse::fill(const float level, const PixelData<T> &inp
         }
 
 
-        for (size_t i = 0; i < input.mesh.size(); ++i) {
-
-        }
     }
     else if (level == l_min) {
         // k_min loop, has to include
