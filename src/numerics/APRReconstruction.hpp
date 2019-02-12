@@ -434,6 +434,8 @@ public:
                                 //particle property
                                 const S temp_int = parts_tree[aprTreeIterator];
 
+                                std::cout << temp_int << std::endl;
+
                                 //upper bound
 
                                 const int offset_max_dim1 = std::min((int) (aprTreeIterator.y() * step_size + step_size), y_end) - y_begin;
