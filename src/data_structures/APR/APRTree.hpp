@@ -257,7 +257,7 @@ public:
         //then do the rest of the tree where order matters
         for (unsigned int level = treeIterator.level_max(); level > treeIterator.level_min(); --level) {
 #ifdef HAVE_OPENMP
-//#pragma omp parallel for schedule(dynamic) private(x_d,z_d) firstprivate(treeIterator, parentIterator)
+#pragma omp parallel for schedule(dynamic) private(x_d,z_d) firstprivate(treeIterator, parentIterator)
 #endif
             for (z_d = 0; z_d < treeIterator.spatial_index_z_max(level-1); z_d++) {
                 for (int z = 2*z_d; z <= std::min(2*z_d+1,(int)treeIterator.spatial_index_z_max(level)-1); ++z) {

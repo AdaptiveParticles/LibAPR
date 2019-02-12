@@ -15,10 +15,17 @@
 #include <vector>
 #include <fstream>
 #include <ctime>
+#include <cmath>
 
 #include "data_structures/Mesh/PixelData.hpp"
 #include "data_structures/APR/ExtraPartCellData.hpp"
 #include "data_structures/APR/ExtraParticleData.hpp"
+
+#include "numerics/APRRaycaster.cpp"
+#include "vis/Camera.cpp"
+#include "vis/Object.cpp"
+#include "vis/RaytracedObject.cpp"
+
 
 class APRRaycaster {
 
@@ -56,6 +63,39 @@ public:
     void killObjects();
     void getPos(int &dim1, int &dim2, float x_actual, float y_actual, float z_actual, size_t x_num, size_t y_num);
 };
+
+#ifndef M_PI
+#define M_PI 3.14159265358979323846
+#endif
+
+// Implementation of glm related stuff. Main reason is to avoid necessity to have glm header files installed
+// to use libAPR.
+
+struct APRRaycaster::GlmObjectsContainer {
+    RaytracedObject raytracedObject;
+    glm::mat4 mvp;
+};
+
+void APRRaycaster::initObjects(uint64_t imageWidth, uint64_t imageHeight, float radius, float theta, float x0, float y0, float z0, float x0f, float y0f, float z0f) {
+    Camera cam = Camera(glm::vec3(x0, y0 + radius * sin(theta), z0 + radius * cos(theta)), glm::fquat(1.0f, 0.0f, 0.0f, 0.0f));
+    cam.setTargeted(glm::vec3(x0f, y0f, z0f));
+    cam.setPerspectiveCamera((float) imageWidth / (float) imageHeight, (float) (60.0f / 180.0f * M_PI), 0.5f, 70.0f);
+    glmObjects = new GlmObjectsContainer {
+            RaytracedObject(glm::vec3(0.0f, 0.0f, 0.0f), glm::fquat(1.0f, 0.0f, 0.0f, 0.0f)),
+            glm::mat4((*cam.getProjection()) * (*cam.getView()))
+    };
+}
+
+void APRRaycaster::killObjects() {
+    delete glmObjects;
+    glmObjects = nullptr;
+}
+
+void APRRaycaster::getPos(int &dim1, int &dim2, float x_actual, float y_actual, float z_actual, size_t x_num, size_t y_num) {
+    glm::vec2 pos = glmObjects->raytracedObject.worldToScreen(glmObjects->mvp, glm::vec3(x_actual ,y_actual, z_actual), x_num, y_num);
+    dim1=round(-pos.y);
+    dim2=round(-pos.x);
+}
 
 
 template<typename U,typename S,typename V,class BinaryOperation>
@@ -100,7 +140,7 @@ void APRRaycaster::perform_raycast(APR<U>& apr,ExtraParticleData<S>& particle_da
 
     uint64_t num_views = floor((theta_f - theta_0)/theta_delta) ;
 
-    cast_views.init(imageHeight, imageWidth, num_views, 0);
+    cast_views.initWithValue(imageHeight, imageWidth, num_views, 0);
 
     uint64_t view_count = 0;
     float init_val=0;
@@ -123,12 +163,12 @@ void APRRaycaster::perform_raycast(APR<U>& apr,ExtraParticleData<S>& particle_da
 
     std::vector<float> depth_vec;
     depth_vec.resize(apr.level_max() + 1);
-    depth_slice[apr.level_max()].init(imageHeight,imageWidth,1,init_val);
+    depth_slice[apr.level_max()].initWithValue(imageHeight,imageWidth,1,init_val);
 
 
     for(size_t i = apr.level_min();i < apr.level_max();i++){
         float d = pow(2,apr.level_max() - i);
-        depth_slice[i].init(ceil(depth_slice[apr.level_max()].y_num/d),ceil(depth_slice[apr.level_max()].x_num/d),1,init_val);
+        depth_slice[i].initWithValue(ceil(depth_slice[apr.level_max()].y_num/d),ceil(depth_slice[apr.level_max()].x_num/d),1,init_val);
         depth_vec[i] = d;
     }
 
@@ -360,7 +400,7 @@ float APRRaycaster::perpsective_mesh_raycast(PixelData<S>& image,PixelData<U>& c
     int num_views = (int) floor((theta_f - theta_0)/theta_delta);
 
 
-    cast_views.init(imageHeight, imageWidth, num_views, 0);
+    cast_views.initWithValue(imageHeight, imageWidth, num_views, 0);
 
     APRTimer timer;
 
@@ -374,7 +414,7 @@ float APRRaycaster::perpsective_mesh_raycast(PixelData<S>& image,PixelData<U>& c
         initObjects(imageWidth, imageHeight, radius, theta, x0, y0, z0, x0f, y0f, z0f);
 
         PixelData<S> proj_img;
-        proj_img.init(imageHeight, imageWidth, 1, 0);
+        proj_img.initWithValue(imageHeight, imageWidth, 1, 0);
 
         unsigned int z_, x_, j_;
 
@@ -384,7 +424,7 @@ float APRRaycaster::perpsective_mesh_raycast(PixelData<S>& image,PixelData<U>& c
         const unsigned int y_num_ = image.y_num;
 
 #ifdef HAVE_OPENMP
-	#pragma omp parallel for default(shared) private(z_,x_,j_)
+	//#pragma omp parallel for default(shared) private(z_,x_,j_)
 #endif
         for (z_ = 0; z_ < z_num_; z_++) {
             //both z and x are explicitly accessed in the structure
