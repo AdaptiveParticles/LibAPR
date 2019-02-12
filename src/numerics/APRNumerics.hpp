@@ -11,6 +11,35 @@
 class APRNumerics {
 
 public:
+
+    template<typename T,typename U>
+    static void compute_part_level(APR<T> &apr,ExtraParticleData<U>& parts_level){
+        parts_level.resize(apr.total_number_particles());
+
+        auto apr_iterator = apr.iterator();
+
+        for (unsigned int level = apr_iterator.level_min(); level <= apr_iterator.level_max(); ++level) {
+            int z = 0;
+            int x = 0;
+
+#ifdef HAVE_OPENMP
+#pragma omp parallel for schedule(dynamic) private(z, x) firstprivate(apr_iterator)
+#endif
+            for (z = 0; z < apr_iterator.spatial_index_z_max(level); z++) {
+                for (x = 0; x < apr_iterator.spatial_index_x_max(level); ++x) {
+                    for (apr_iterator.set_new_lzx(level, z, x); apr_iterator.global_index() < apr_iterator.end_index;
+                         apr_iterator.set_iterator_to_particle_next_particle()) {
+
+                        parts_level[apr_iterator] = level;
+
+                    }
+                }
+            }
+        }
+
+    }
+
+
     template<typename T>
     static void compute_gradient_vector(APR<T> &apr,ExtraParticleData<std::vector<float>>& gradient,const bool normalize = true,const std::vector<float> delta = {1.0f,1.0f,1.0f}){
 
