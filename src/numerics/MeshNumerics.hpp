@@ -39,7 +39,9 @@ public:
 
         PixelData<float> stencil_c;
 
-        //GenerateStencils generateStencils;
+        stencil_c.initWithValue(dim,dim,dim,1.0f/(27.0f));
+
+       // GenerateStencils generateStencils;
 
         //generateStencils.solve_for_stencil(stencil_c,dim,order,padd,derivative);
 
@@ -49,6 +51,7 @@ public:
         stencils[0].copyFromMesh(stencil_c);
 
         //generateStencils.solve_for_stencil(stencil_c,dim,1,padd,derivative);
+
 
         stencils[1].init(stencil_c);
         stencils[1].copyFromMesh(stencil_c);
