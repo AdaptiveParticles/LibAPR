@@ -14,7 +14,7 @@ public:
 
     template<typename T,typename U>
     static void compute_part_level(APR<T> &apr,ExtraParticleData<U>& parts_level){
-        parts_level.resize(apr.total_number_particles());
+        parts_level.data.resize(apr.total_number_particles());
 
         auto apr_iterator = apr.iterator();
 

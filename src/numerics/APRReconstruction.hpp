@@ -270,13 +270,11 @@ public:
 
     template<typename U,typename V,typename S,typename T>
     void interp_image_patch(APR<S>& apr, APRTree<S>& aprTree,PixelData<U>& img,ExtraParticleData<V>& parts,ExtraParticleData<T>& parts_tree,ReconPatch& reconPatch){
-
         //
         //  Bevan Cheeseman 2016
         //
         //  Takes in a APR and creates piece-wise constant image
         //
-
 
         int max_level = apr.level_max() + reconPatch.level_delta;
 
@@ -399,6 +397,7 @@ public:
             APRTreeIterator aprTreeIterator = aprTree.tree_iterator();
 
 
+
             unsigned int level = max_level;
 
                 const float step_size = pow(2, max_level - level);
@@ -421,8 +420,10 @@ public:
 
                     for (x = x_begin_l; x < x_end_l; ++x) {
 
+
                         for (aprTreeIterator.set_new_lzxy(level, z, x,y_begin_l);
                              aprTreeIterator.global_index() < aprTreeIterator.end_index; aprTreeIterator.set_iterator_to_particle_next_particle()) {
+
 
                             if( (aprTreeIterator.y() >= y_begin_l) && (aprTreeIterator.y() < y_end_l)) {
 
@@ -433,8 +434,6 @@ public:
 
                                 //particle property
                                 const S temp_int = parts_tree[aprTreeIterator];
-
-                                std::cout << temp_int << std::endl;
 
                                 //upper bound
 
