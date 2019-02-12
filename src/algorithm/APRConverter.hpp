@@ -257,7 +257,7 @@ inline bool APRConverter<ImageType>::get_apr_method(APR<ImageType> &aAPR, PixelD
 
 #else
     method_timer.start_timer("compute_gradient_magnitude_using_bsplines and local instensity scale CUDA");
-    getFullPipeline(image_temp, grad_temp, local_scale_temp, local_scale_temp2,bspline_offset, par);
+    //getFullPipeline(image_temp, grad_temp, local_scale_temp, local_scale_temp2,bspline_offset, par);
     method_timer.stop_timer();
 
 #endif
