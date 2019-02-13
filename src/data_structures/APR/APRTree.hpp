@@ -36,6 +36,10 @@ public:
 
     operator uint64_t() { return total_number_parent_cells(); }
 
+    void copyTree(APRTree<ImageType>& copyTree){
+        tree_access = copyTree.tree_access;
+        APROwn = copyTree.APROwn;
+    }
 
     APRAccess tree_access;
 
@@ -48,7 +52,7 @@ public:
         this->fill_tree_mean(*APROwn,*this,input_particles,particles_ds_tree); //down-sampled tree intensities
     }
 
-private:
+protected:
 
     APR<ImageType>* APROwn;
 
