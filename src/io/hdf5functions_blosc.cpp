@@ -236,13 +236,13 @@ void hdf5_write_data_standard(hid_t obj_id, hid_t type_id, const char *ds_name, 
  * writes data to the hdf5 file or group identified by obj_id of hdf5 datatype data_type
  */
 
-bool attribute_exists(hid_t obj_id,const char* attr_name,hid_t attr_id){
+bool attribute_exists(hid_t obj_id,const char* attr_name){
     /* Save old error handler */
     herr_t (*old_func)(void*);
     void *old_client_data;
     H5Eget_auto1(&old_func, &old_client_data);
 
-    bool not_used = (attr_id == 11);
+    hid_t attr_id;
 
     /* Turn off error handling */
     H5Eset_auto1(NULL, NULL);
@@ -254,7 +254,7 @@ bool attribute_exists(hid_t obj_id,const char* attr_name,hid_t attr_id){
     bool exists = (bool)(attr_id > 0);
 
     //if the attribute is not being used, we need to close it.
-    if(not_used && exists){
+    if(exists){
         H5Aclose(attr_id);
     }
 
@@ -264,7 +264,16 @@ bool attribute_exists(hid_t obj_id,const char* attr_name,hid_t attr_id){
 void hdf5_write_attribute_blosc(hid_t obj_id,hid_t type_id,const char* attr_name,hsize_t rank,hsize_t* dims, const void * const data ){
     hid_t exists;
 
-    attribute_exists(obj_id,attr_name,exists);
+    herr_t (*old_func)(void*);
+    void *old_client_data;
+    H5Eget_auto1(&old_func, &old_client_data);
+
+    /* Turn off error handling */
+    H5Eset_auto1(NULL, NULL);
+    exists = H5Aopen_name(obj_id,attr_name);
+
+    /* Restore previous error handler */
+    H5Eset_auto1(old_func, old_client_data);
     //does it already exist
     //if it already exists then over-write
 
