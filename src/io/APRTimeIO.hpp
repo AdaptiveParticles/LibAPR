@@ -5,7 +5,7 @@
 #ifndef APR_TIME_APRTIMEIO_HPP
 #define APR_TIME_APRTIMEIO_HPP
 
-#include "src/data_structures/APR/APR.hpp"
+#include "data_structures/APR/APR.hpp"
 
 template<typename BuffType>
 struct Buffer{

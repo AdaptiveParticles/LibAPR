@@ -58,7 +58,7 @@ protected:
 
     void initialize_apr_tree(APR<ImageType>& apr, bool type_full = false) {
 
-        APRTimer timer(false);
+        APRTimer timer(true);
 
         auto apr_iterator = apr.iterator();
 
@@ -91,6 +91,8 @@ protected:
         // --------------------------------------------------------------------
         timer.start_timer("tree - insert vals");
 
+
+        std::cout << "Hello" << std::endl;
 
         //note the use of the dynamic OpenMP schedule.
 
