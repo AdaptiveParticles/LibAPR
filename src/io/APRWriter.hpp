@@ -221,10 +221,12 @@ public:
 
         hid_t meta_data = f.groupId;
 
-        //if(time_point!=UINT32_MAX){
-            meta_data = f.objectId;
-        //}
+        //check if old or new file, for location of the properties. (The metadata moved to the time point.)
+        bool old = attribute_exists(f.objectId,AprTypes::MaxLevelType.typeName);
 
+        if(old) {
+            meta_data = f.objectId;
+        }
 
         if (!f.isOpened()) return;
 
@@ -441,7 +443,7 @@ public:
         // ------------- read data ------------------------------
         apr.particles_intensities.data.resize(parts_end);
         if (apr.particles_intensities.data.size() > 0) {
-            readData(AprTypes::ParticleIntensitiesType, meta_data, apr.particles_intensities.data.data() + parts_start,parts_start,parts_end);
+            readData(AprTypes::ParticleIntensitiesType, f.objectId, apr.particles_intensities.data.data() + parts_start,parts_start,parts_end);
         }
 
 

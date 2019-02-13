@@ -36,4 +36,6 @@ void write_main_paraview_xdmf_xml_time(const std::string &aDestinationDir,const 
 void hdf5_write_data_blosc_create(hid_t obj_id, hid_t type_id, const char *ds_name, hsize_t rank, hsize_t *dims, void *data ,unsigned int comp_type,unsigned int comp_level,unsigned int shuffle);
 uint64_t hdf5_write_data_blosc_append(hid_t obj_id, hid_t type_id, const char *ds_name, void *data,hsize_t* num_2_add);
 
+bool attribute_exists(hid_t obj_id,const char* attr_name,hid_t attr_id = 11);
+
 #endif
