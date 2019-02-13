@@ -236,11 +236,37 @@ void hdf5_write_data_standard(hid_t obj_id, hid_t type_id, const char *ds_name, 
  * writes data to the hdf5 file or group identified by obj_id of hdf5 datatype data_type
  */
 void hdf5_write_attribute_blosc(hid_t obj_id,hid_t type_id,const char* attr_name,hsize_t rank,hsize_t* dims, const void * const data ){
-    hid_t space_id = H5Screate_simple(rank, dims, NULL);
-    hid_t attr_id = H5Acreate2( obj_id, attr_name, type_id, space_id, H5P_DEFAULT, H5P_DEFAULT);
-    H5Awrite(attr_id, type_id, data);
-    H5Aclose(attr_id);
-    H5Sclose(space_id);
+
+    /* Save old error handler */
+    herr_t (*old_func)(void*);
+    void *old_client_data;
+    H5Eget_auto1(&old_func, &old_client_data);
+
+    /* Turn off error handling */
+    H5Eset_auto1(NULL, NULL);
+    hid_t exists = H5Aopen_name(obj_id,attr_name);
+
+    /* Restore previous error handler */
+    H5Eset_auto1(old_func, old_client_data);
+
+    //does it already exist
+    //if it already exists then over-write
+
+    if(exists<0) {
+        hid_t attr_id;
+        //doesn't exist
+        hid_t space_id = H5Screate_simple(rank, dims, NULL);
+        attr_id = H5Acreate2(obj_id, attr_name, type_id, space_id, H5P_DEFAULT, H5P_DEFAULT);
+        H5Awrite(attr_id, type_id, data);
+        H5Aclose(attr_id);
+        H5Sclose(space_id);
+    } else {
+        //
+        H5Awrite(exists, type_id, data);
+        H5Aclose(exists);
+    }
+
+
 }
 
 /**

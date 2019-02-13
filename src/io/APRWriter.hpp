@@ -71,6 +71,7 @@ namespace AprTypes  {
     const AprType ParticleCellType = {H5T_NATIVE_UINT8, "particle_cell_type"};
     const AprType NameType = {H5T_C_S1, "name"};
     const AprType GitType = {H5T_C_S1, "githash"};
+    const AprType TimeStepType = {H5T_NATIVE_UINT64, "time_steps"};
 
     const char * const ParticleIntensitiesType = "particle_intensities"; // type read from file
     const char * const ExtraParticleDataType = "extra_particle_data"; // type read from file
@@ -93,9 +94,22 @@ protected:
 
 public:
 
-    size_t get_number_time_steps(const std::string &file_name){
-        AprFile::Operation op;
+    uint64_t get_num_time_steps(const std::string &file_name){
 
+        AprFile::Operation op;
+        op = AprFile::Operation::READ;
+        AprFile f(file_name, op,0);
+
+        uint64_t num_time_steps;
+
+        readAttr(AprTypes::TimeStepType, f.groupId, &num_time_steps);
+
+        return num_time_steps;
+
+    }
+
+    size_t get_number_groups(const std::string &file_name){
+        AprFile::Operation op;
 
         size_t number_time_steps = 0;
 
@@ -483,7 +497,7 @@ public:
             op = AprFile::Operation::WRITE;
         }
 
-        unsigned int t = 0;
+        uint64_t t = 0;
 
         if(append_apr_time){
             t = current_t;
@@ -501,7 +515,12 @@ public:
             meta_location = f.objectId;
         }
 
+        //global property
+        writeAttr(AprTypes::TimeStepType, f.groupId, &t);
+
         // ------------- write metadata -------------------------
+        //per time step
+
         writeAttr(AprTypes::NumberOfXType, meta_location, &apr.apr_access.org_dims[1]);
         writeAttr(AprTypes::NumberOfYType, meta_location, &apr.apr_access.org_dims[0]);
         writeAttr(AprTypes::NumberOfZType, meta_location, &apr.apr_access.org_dims[2]);
