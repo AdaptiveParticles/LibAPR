@@ -95,6 +95,9 @@ protected:
 public:
 
     uint64_t get_num_time_steps(const std::string &file_name){
+        //
+        //  Gets the number of time steps saved to the file.
+        //
 
         AprFile::Operation op;
         op = AprFile::Operation::READ;
@@ -109,6 +112,10 @@ public:
     }
 
     size_t get_number_groups(const std::string &file_name){
+        //
+        //  Returns the number of groups in the main file.
+        //
+
         AprFile::Operation op;
 
         size_t number_time_steps = 0;
@@ -128,6 +135,41 @@ public:
         return number_time_steps;
 
     }
+
+    bool time_adaptation_check(const std::string &file_name){
+        AprFile::Operation op;
+
+        size_t number_time_steps = 0;
+
+        op = AprFile::Operation::READ;
+
+        AprFile f(file_name, op,0);
+
+        if (!f.isOpened()) return 0;
+
+        H5G_info_t group_info;
+        hid_t lapl_id;
+
+        //we need to turn of the error handling so if it is not found it doesn't output to cerr.
+        herr_t (*old_func)(void*);
+        void *old_client_data;
+        H5Eget_auto1(&old_func, &old_client_data);
+
+        /* Turn off error handling */
+        H5Eset_auto1(NULL, NULL);
+
+        herr_t exists = H5Gget_info_by_name(f.objectId,"dt",&group_info,lapl_id);
+
+        /* Restore previous error handler */
+        H5Eset_auto1(old_func, old_client_data);
+
+        bool time_adaptive = (exists >= 0);
+
+        return time_adaptive;
+
+    }
+
+
 
     void read_apr_parameters(hid_t dataset_id,APRParameters& parameters){
         //
@@ -555,7 +597,6 @@ public:
         writeAttr(AprTypes::NoiseSdEstimateType, meta_location, &apr.parameters.noise_sd_estimate);
         writeAttr(AprTypes::BackgroundIntensityEstimateType, meta_location,
                   &apr.parameters.background_intensity_estimate);
-
 
         write_timer.start_timer("access_data");
         MapStorageData map_data;
