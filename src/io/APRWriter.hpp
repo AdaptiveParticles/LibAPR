@@ -148,7 +148,7 @@ public:
         if (!f.isOpened()) return 0;
 
         H5G_info_t group_info;
-        hid_t lapl_id;
+        hid_t lapl_id = 0;
 
         //we need to turn of the error handling so if it is not found it doesn't output to cerr.
         herr_t (*old_func)(void*);
@@ -158,7 +158,7 @@ public:
         /* Turn off error handling */
         H5Eset_auto1(NULL, NULL);
 
-        herr_t exists = H5Gget_info_by_name(f.objectId,"dt",&group_info,lapl_id);
+        herr_t exists = H5Gget_info_by_name(f.groupId,"dt",&group_info,lapl_id);
 
         /* Restore previous error handler */
         H5Eset_auto1(old_func, old_client_data);
