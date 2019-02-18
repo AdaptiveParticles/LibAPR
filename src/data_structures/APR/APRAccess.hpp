@@ -51,12 +51,6 @@ public:
     uint64_t spatial_index_z_max(const unsigned int level) const { return z_num[level]; }
     uint64_t get_total_number_particles() const { return total_number_particles; }
 
-    ExtraParticleData<uint8_t> particle_cell_type; // TODO: not used anywhere but writer - remove
-
-//    APRIterator iterator() {
-//        return APRIterator(*this);
-//    }
-
     MapIterator& get_local_iterator(LocalMapIterators& local_iterators,const uint16_t& level_delta,const uint16_t& face,const uint16_t& index){
         //
         //  Chooses the local iterator required
