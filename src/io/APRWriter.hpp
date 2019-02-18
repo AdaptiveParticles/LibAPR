@@ -27,7 +27,6 @@ namespace AprTypes  {
     const AprType TotalNumberOfParticlesType = {H5T_NATIVE_UINT64, "total_number_particles"};
     const AprType TotalNumberOfGapsType = {H5T_NATIVE_UINT64, "total_number_gaps"};
     const AprType TotalNumberOfNonEmptyRowsType = {H5T_NATIVE_UINT64, "total_number_non_empty_rows"};
-    const AprType VectorSizeType = {H5T_NATIVE_UINT64, "type_vector_size"};
     const AprType NumberOfXType = {H5T_NATIVE_UINT64, "x_num"};
     const AprType NumberOfYType = {H5T_NATIVE_UINT64, "y_num"};
     const AprType NumberOfZType = {H5T_NATIVE_UINT64, "z_num"};
@@ -58,7 +57,6 @@ namespace AprTypes  {
     const AprType MapLevelType = {H5T_NATIVE_UINT8, "map_level"};
     const AprType MapXType = {H5T_NATIVE_INT16, "map_x"};
     const AprType MapZType = {H5T_NATIVE_INT16, "map_z"};
-    const AprType ParticleCellType = {H5T_NATIVE_UINT8, "particle_cell_type"};
     const AprType NameType = {H5T_C_S1, "name"};
     const AprType GitType = {H5T_C_S1, "githash"};
 
@@ -138,8 +136,6 @@ public:
 
         if(read_structure) {
             readAttr(AprTypes::TotalNumberOfNonEmptyRowsType, f.groupId, &apr.apr_access.total_number_non_empty_rows);
-            uint64_t type_size;
-            readAttr(AprTypes::VectorSizeType, f.groupId, &type_size);
             readAttr(AprTypes::NumberOfYType, f.groupId, &apr.apr_access.org_dims[0]);
             readAttr(AprTypes::NumberOfXType, f.groupId, &apr.apr_access.org_dims[1]);
             readAttr(AprTypes::NumberOfZType, f.groupId, &apr.apr_access.org_dims[2]);
@@ -214,11 +210,6 @@ public:
             readData(AprTypes::MapXType, f.objectId, map_data->x.data());
             map_data->z.resize(apr.apr_access.total_number_non_empty_rows);
             readData(AprTypes::MapZType, f.objectId, map_data->z.data());
-            timer_f.stop_timer();
-
-            timer_f.start_timer("type");
-            //apr.apr_access.particle_cell_type.data.resize(type_size);
-            //readData(AprTypes::ParticleCellType, f.objectId, apr.apr_access.particle_cell_type.data.data());
             timer_f.stop_timer();
 
             timer.stop_timer();
@@ -413,8 +404,6 @@ public:
         writeAttr(AprTypes::NumberOfZType, f.groupId, &apr.apr_access.org_dims[2]);
         writeAttr(AprTypes::TotalNumberOfGapsType, f.groupId, &apr.apr_access.total_number_gaps);
         writeAttr(AprTypes::TotalNumberOfNonEmptyRowsType, f.groupId, &apr.apr_access.total_number_non_empty_rows);
-        uint64_t type_vector_size = apr.apr_access.particle_cell_type.data.size();
-        writeAttr(AprTypes::VectorSizeType, f.groupId, &type_vector_size);
 
         writeString(AprTypes::NameType, f.groupId, (apr.name.size() == 0) ? "no_name" : apr.name);
         writeString(AprTypes::GitType, f.groupId, ConfigAPR::APR_GIT_HASH);
@@ -455,12 +444,6 @@ public:
         writeData(AprTypes::MapLevelType, f.objectId, map_data.level, blosc_comp_type, blosc_comp_level, blosc_shuffle);
         writeData(AprTypes::MapXType, f.objectId, map_data.x, blosc_comp_type, blosc_comp_level, blosc_shuffle);
         writeData(AprTypes::MapZType, f.objectId, map_data.z, blosc_comp_type, blosc_comp_level, blosc_shuffle);
-
-        //optional storage of type
-        if(apr.apr_access.particle_cell_type.data.size()> 0) {
-            writeData(AprTypes::ParticleCellType, f.objectId, apr.apr_access.particle_cell_type.data, blosc_comp_type,
-                      blosc_comp_level, blosc_shuffle);
-        }
 
         bool store_tree = write_tree;
 
