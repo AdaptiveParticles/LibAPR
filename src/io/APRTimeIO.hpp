@@ -162,10 +162,38 @@ class APRTimeIO : public APRWriter{
 
     ExtraParticleData<uint16_t> updated_t_prev;
 
+
     bool current_direction = true;
     bool key_frame_loaded = true;
 
 public:
+
+    uint64_t get_num_updated(){
+        uint64_t updated = 0;
+
+        if(current_t > 0) {
+            updated = add_totals[current_t] - add_totals[current_t-1];
+        } else {
+            updated = add_totals[current_t];
+        }
+
+        if(current_t > 0) {
+            updated += update_totals[current_t] - update_totals[current_t-1];
+        } else {
+            updated += update_totals[current_t];
+        }
+
+        if(current_t > 0) {
+            updated += remove_totals[current_t] - remove_totals[current_t-1];
+        } else {
+            updated += remove_totals[current_t];
+        }
+        return updated;
+    }
+
+    uint64_t updated_num = 0;
+    uint64_t removed_num = 0;
+    uint64_t added_num = 0;
 
     bool calculate_time_updated = false;
 
@@ -543,6 +571,8 @@ public:
          *
          *
          */
+
+
 
         auto& access = apr.apr_access;
         uint64_t x_;

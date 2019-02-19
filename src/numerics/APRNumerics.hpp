@@ -122,9 +122,12 @@ public:
                             float gradient_mag = sqrt(gradient[apr_iterator][0] * gradient[apr_iterator][0] +
                                                       gradient[apr_iterator][1] * gradient[apr_iterator][1] +
                                                       gradient[apr_iterator][2] * gradient[apr_iterator][2]);
-                            gradient[apr_iterator][0] /= gradient_mag;
-                            gradient[apr_iterator][1] /= gradient_mag;
-                            gradient[apr_iterator][2] /= gradient_mag;
+
+                            if(gradient_mag > 0) {
+                                gradient[apr_iterator][0] /= gradient_mag;
+                                gradient[apr_iterator][1] /= gradient_mag;
+                                gradient[apr_iterator][2] /= gradient_mag;
+                            }
                         }
 
                     }
