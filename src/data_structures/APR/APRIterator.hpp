@@ -444,7 +444,7 @@ inline bool APRIterator::find_next_child(const uint8_t& direction,const uint8_t&
     this->apr_access->get_neighbour_coordinate(this->current_particle_cell,this->neighbour_particle_cell,direction,this->level_delta,index);
 
     if(this->check_neighbours_particle_cell_in_bounds()){
-        if(this->apr_access->find_particle_cell(this->neighbour_particle_cell,this->apr_access->get_local_iterator(this->local_iterators, this->level_delta, direction,index))){
+        if(this->apr_access->find_particle_cell(this->neighbour_particle_cell, get_local_iterator(this->local_iterators, this->level_delta, direction,index))){
             //found the neighbour! :D
             return true;
         }
