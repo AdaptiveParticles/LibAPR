@@ -754,14 +754,9 @@ public:
 
 };
 
-<<<<<<< HEAD
 #include "data_structures/APR/APRIterator.hpp"
 
-
 inline void APRAccess::initialize_structure_from_particle_cell_tree(bool neighborhood_optimization, std::vector<ArrayWrapper<uint8_t>> &p_map) {
-=======
-inline void APRAccess::initialize_structure_from_particle_cell_tree(APRParameters& apr_parameters,std::vector<ArrayWrapper<uint8_t>> &p_map) {
->>>>>>> develop
     APRTimer apr_timer(false);
 
     uint8_t min_type = neighborhood_optimization ? 1 : 2;

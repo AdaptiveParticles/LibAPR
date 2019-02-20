@@ -182,7 +182,7 @@ namespace {
         std::cout << "<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<\n";
 
         access.initialize_structure_from_particle_cell_tree(false, ps.getParticleCellTree());
-        std::cout << "NUM OF PARTICLES: " << access.get_total_number_particles() << std::endl;
+        //std::cout << "NUM OF PARTICLES: " << access.get_total_number_particles() << std::endl;
 
 
         APRIterator apr_iterator(access);
