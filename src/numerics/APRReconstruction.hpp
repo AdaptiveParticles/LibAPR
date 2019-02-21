@@ -347,6 +347,9 @@ public:
 
             int z = 0;
             int x = 0;
+
+            const bool l_max = (level == apr.level_max());
+
 #ifdef HAVE_OPENMP
 #pragma omp parallel for schedule(dynamic) private(z,x) firstprivate(apr_iterator)
 #endif
@@ -355,33 +358,39 @@ public:
                     for (apr_iterator.set_new_lzxy(level, z, x,y_begin_l);
                          apr_iterator.global_index() < apr_iterator.end_index; apr_iterator.set_iterator_to_particle_next_particle()) {
 
-                        if( (apr_iterator.y() >= y_begin_l) && (apr_iterator.y() < y_end_l)) {
+                        if ((apr_iterator.y() >= y_begin_l) && (apr_iterator.y() < y_end_l)) {
+                            if (l_max) {
+                                img.at(apr_iterator.y()-y_begin, apr_iterator.x()-x_begin, apr_iterator.z()-z_begin) = parts[apr_iterator];
+                            } else {
+                                //lower bound
+                                const int dim1 = std::max((int) (apr_iterator.y() * step_size), y_begin) - y_begin;
+                                const int dim2 = std::max((int) (apr_iterator.x() * step_size), x_begin) - x_begin;
+                                const int dim3 = std::max((int) (apr_iterator.z() * step_size), z_begin) - z_begin;
 
-                            //lower bound
-                            const int dim1 = std::max((int) (apr_iterator.y() * step_size), y_begin) - y_begin;
-                            const int dim2 = std::max((int) (apr_iterator.x() * step_size), x_begin) - x_begin;
-                            const int dim3 = std::max((int) (apr_iterator.z() * step_size), z_begin) - z_begin;
+                                //particle property
+                                const S temp_int = parts[apr_iterator];
 
-                            //particle property
-                            const S temp_int = parts[apr_iterator];
+                                //upper bound
+                                const int offset_max_dim1 =
+                                        std::min((int) (apr_iterator.y() * step_size + step_size), y_end) - y_begin;
+                                const int offset_max_dim2 =
+                                        std::min((int) (apr_iterator.x() * step_size + step_size), x_end) - x_begin;
+                                const int offset_max_dim3 =
+                                        std::min((int) (apr_iterator.z() * step_size + step_size), z_end) - z_begin;
 
-                            //upper bound
-                            const int offset_max_dim1 = std::min((int) (apr_iterator.y() * step_size + step_size), y_end) - y_begin;
-                            const int offset_max_dim2 = std::min((int) (apr_iterator.x() * step_size + step_size), x_end) - x_begin;
-                            const int offset_max_dim3 = std::min((int) (apr_iterator.z() * step_size + step_size), z_end) - z_begin;
+                                for (int64_t q = dim3; q < offset_max_dim3; ++q) {
 
-                            for (int64_t q = dim3; q < offset_max_dim3; ++q) {
-
-                                for (int64_t k = dim2; k < offset_max_dim2; ++k) {
-                                    for (int64_t i = dim1; i < offset_max_dim1; ++i) {
-                                        img.mesh[i + (k) * img.y_num + q * img.y_num * img.x_num] = temp_int;
-                                        //img.mesh[i + (k) * img.y_num + q * img.y_num * img.x_num] += 1;
+                                    for (int64_t k = dim2; k < offset_max_dim2; ++k) {
+                                        for (int64_t i = dim1; i < offset_max_dim1; ++i) {
+                                            img.mesh[i + (k) * img.y_num + q * img.y_num * img.x_num] = temp_int;
+                                            //img.mesh[i + (k) * img.y_num + q * img.y_num * img.x_num] += 1;
+                                        }
                                     }
                                 }
                             }
 
                         } else {
-                            if((apr_iterator.y() >= y_end_l)) {
+                            if ((apr_iterator.y() >= y_end_l)) {
                                 break;
                             }
                         }
