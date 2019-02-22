@@ -386,13 +386,31 @@ public:
         }
 
 
+        tree_access.l_max = l_max;
+        tree_access.l_min = l_min;
 
+        tree_access.x_num.resize(l_max+1);
+        tree_access.y_num.resize(l_max+1);
+        tree_access.z_num.resize(l_max+1);
 
+        for(int i = l_min;i <l_max;i++){
+            tree_access.x_num[i] = x_num[i];
+            tree_access.y_num[i] = y_num[i];
+            tree_access.z_num[i] = z_num[i];
+        }
 
+        tree_access.x_num[l_max] = apr.apr_access.x_num[l_max];
+        tree_access.y_num[l_max] = apr.apr_access.y_num[l_max];
+        tree_access.z_num[l_max] = apr.apr_access.z_num[l_max];
 
 
         timer.start_timer("tree - init tree");
-        tree_access.initialize_tree_access(apr.apr_access,particle_cell_parent_tree);
+        tree_access.initialize_tree_access_sparse(apr.apr_access, particle_cell_tree);
+        timer.stop_timer();
+
+
+        timer.start_timer("tree - init tree");
+       // tree_access.initialize_tree_access(apr.apr_access,particle_cell_parent_tree);
         timer.stop_timer();
     }
 
@@ -520,6 +538,8 @@ protected:
         timer.start_timer("tree - init tree");
         tree_access.initialize_tree_access(apr.apr_access,particle_cell_parent_tree);
         timer.stop_timer();
+
+
     }
 public:
     template<typename T,typename S,typename U>

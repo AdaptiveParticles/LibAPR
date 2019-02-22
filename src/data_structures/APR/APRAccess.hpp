@@ -960,6 +960,8 @@ public:
 
     void initialize_tree_access(APRAccess& APROwn_access, std::vector<PixelData<uint8_t>> &p_map);
 
+    void initialize_tree_access_sparse(APRAccess& APROwn_access, std::vector<std::vector<SparseParticleCellMap>> &p_map);
+    void init_data_structure_tree(APRAccess& APROwn_access, ExtraPartCellData<std::pair<uint16_t,YGap_map>>& y_begin);
 
 };
 
@@ -1323,12 +1325,22 @@ inline void APRAccess::initialize_tree_access(APRAccess& APROwn_access, std::vec
 
     apr_timer.stop_timer();
 
+    init_data_structure_tree(APROwn_access,  y_begin);
 
+}
+
+
+void APRAccess::init_data_structure_tree(APRAccess& APROwn_access, ExtraPartCellData<std::pair<uint16_t,YGap_map>>& y_begin){
     uint64_t cumsum = 0;
+
+    APRTimer apr_timer(false);
+
+    int z_;
+    int x_;
 
     apr_timer.start_timer("forth loop");
 
-    //iteration helpers for by level
+//iteration helpers for by level
     global_index_by_level_begin.resize(level_max()+1,1);
     global_index_by_level_end.resize(level_max()+1,0);
 
@@ -1339,7 +1351,7 @@ inline void APRAccess::initialize_tree_access(APRAccess& APROwn_access, std::vec
     uint64_t min_level_find = level_max();
     uint64_t max_level_find = level_min();
 
-    //set up the iteration helpers for by zslice
+//set up the iteration helpers for by zslice
     global_index_by_level_and_z_begin.resize(level_max()+1);
     global_index_by_level_and_z_end.resize(level_max()+1);
 
@@ -1350,7 +1362,7 @@ inline void APRAccess::initialize_tree_access(APRAccess& APROwn_access, std::vec
         const unsigned int x_num_ = x_num[i];
         const unsigned int z_num_ = z_num[i];
 
-        //set up the levels here.
+//set up the levels here.
         uint64_t cumsum_begin = cumsum;
 
         global_index_by_level_and_z_begin[i].resize(z_num_,(-1));
@@ -1391,7 +1403,6 @@ inline void APRAccess::initialize_tree_access(APRAccess& APROwn_access, std::vec
         }
 
         if(cumsum!=cumsum_begin){
-            //cumsum_begin++;
             global_index_by_level_begin[i] = cumsum_begin;
         }
 
@@ -1406,7 +1417,7 @@ inline void APRAccess::initialize_tree_access(APRAccess& APROwn_access, std::vec
     const unsigned int x_num_ = x_num[level_max()];
     const unsigned int z_num_ = z_num[level_max()];
 
-    //set up the levels here
+//set up the levels here
 
     global_index_by_level_and_zx_end[level_max()].resize(z_num_ * x_num_, 0);
 
@@ -1419,7 +1430,7 @@ inline void APRAccess::initialize_tree_access(APRAccess& APROwn_access, std::vec
             if (APROwn_access.gap_map.data[level_max()+1][offset_pc_data].size() > 0){
                 auto it = (APROwn_access.gap_map.data[level_max()+1][offset_pc_data][0].map.rbegin());
                 cumsum += it->second.global_index_begin_offset/2 + (it->second.y_end - it->first+1)/2 + (it->second.y_end+1)%2;
-                //need to deal with odd domains where the last particle cell is required, hence the modulo
+//need to deal with odd domains where the last particle cell is required, hence the modulo
             }
 
             global_index_by_level_and_zx_end[level_max()][offset_pc_data] = cumsum;
@@ -1430,17 +1441,7 @@ inline void APRAccess::initialize_tree_access(APRAccess& APROwn_access, std::vec
 
     total_number_particles = cumsum;
 
-    //std::cout << "Lower level, interior tree PC: " << total_number_particles << std::endl;
-
-    //set minimum level now to the first non-empty level.
-    //level_min = min_level_find;
-    //level_max = max_level_find;
-
     total_number_non_empty_rows=0;
-
-    //allocate_map_insert(apr,y_begin);
-
-    //gap_map.initialize_structure_parts_empty(apr);
 
     apr_timer.start_timer("set up gapmap");
 
@@ -1488,6 +1489,101 @@ inline void APRAccess::initialize_tree_access(APRAccess& APROwn_access, std::vec
 
 }
 
+inline void APRAccess::initialize_tree_access_sparse(APRAccess& APROwn_access, std::vector<std::vector<SparseParticleCellMap>> &p_map) {
+    APRTimer apr_timer(true);
+
+
+    //initialize loop variables
+    uint64_t x_;
+    uint64_t z_;
+    uint64_t y_,status;
+
+    apr_timer.start_timer("init structure");
+
+    ExtraPartCellData<std::pair<uint16_t,YGap_map>> y_begin;
+
+    y_begin.depth_min = level_min();
+    y_begin.depth_max = level_max();
+
+    y_begin.z_num.resize(y_begin.depth_max+1);
+    y_begin.x_num.resize(y_begin.depth_max+1);
+    y_begin.data.resize(y_begin.depth_max+1);
+
+    for (uint64_t i = y_begin.depth_min; i < y_begin.depth_max; ++i) {
+        y_begin.z_num[i] = z_num[i];
+        y_begin.x_num[i] = x_num[i];
+        y_begin.data[i].resize(z_num[i]*x_num[i]);
+    }
+
+    apr_timer.stop_timer();
+
+    apr_timer.start_timer("create gaps");
+
+    for(uint64_t i = (level_min());i < level_max();i++) {
+
+        const uint64_t x_num_ = x_num[i];
+        const uint64_t z_num_ = z_num[i];
+        const uint64_t y_num_ = y_num[i];
+
+#ifdef HAVE_OPENMP
+#pragma omp parallel for schedule(dynamic) default(shared) private(z_, x_, status) if(z_num_*x_num_ > 100)
+#endif
+        for (z_ = 0; z_ < z_num_; z_++) {
+
+            for (x_ = 0; x_ < x_num_; x_++) {
+                const size_t offset_part_map = x_ * y_num_ + z_ * y_num_ * x_num_;
+                const size_t offset_pc_data = x_num_*z_ + x_;
+
+                uint16_t current = 0;
+                uint16_t previous = 0;
+
+                YGap_map gap;
+                gap.global_index_begin_offset = 0;
+                uint64_t counter = 0;
+
+                auto map = p_map[i][offset_pc_data].mesh;
+
+                for (auto it = map.begin(); it != map.end() ; ++it) {
+                    y_ = it->first;
+                    status = it->second;
+
+                    if(status > 0) {
+                        current = 1;
+
+                        if(previous == 0){
+                            y_begin.data[i][offset_pc_data].push_back({y_,gap});
+
+                        }
+                    } else {
+                        current = 0;
+
+                        if(previous == 1){
+
+                            (y_begin.data[i][offset_pc_data][counter]).second.y_end = (y_-1);
+                            counter++;
+                        }
+                    }
+
+                    previous = current;
+
+                }
+                //end node
+                if(previous==1) {
+
+                    (y_begin.data[i][offset_pc_data][counter]).second.y_end = (y_num_-1);
+                }
+            }
+
+        }
+    }
+
+    apr_timer.stop_timer();
+
+    init_data_structure_tree(APROwn_access,  y_begin);
+
+}
+
+
 void APRAccess::initialize_structure_from_particle_cell_tree_sparse(APRParameters& apr_parameters, ExtraPartCellData<SparseParticleCellMap> &p_map) {
     //
     //  Initialize the new structure;
@@ -1526,13 +1622,8 @@ void APRAccess::initialize_structure_from_particle_cell_tree_sparse(APRParameter
                     size_t y = it->first;
                     uint8_t status = it->second;
 
-//                    for (size_t y = 0; y < y_num_ds; ++y) {
-//                        uint8_t status = p_map[i - 1][offset_part_map_ds + y];
-
                     if (status > 0 && status <= min_type) {
                         uint16_t y2p = std::min(2*y+1,y_num_-1);
-//                            p_map[i][offset_part_map + 2 * y] = seed_us;
-//                            p_map[i][offset_part_map + 2 * y + 1] = seed_us;
 
                         p_map.data[i][offset_part_map][0].mesh[ 2 * y] = seed_us;
                         p_map.data[i][offset_part_map][0].mesh[ y2p] = seed_us;
@@ -1650,30 +1741,7 @@ void APRAccess::initialize_structure_from_particle_cell_tree_sparse(APRParameter
 
             auto& mesh = p_map.data[i][offset_pc_data1][0].mesh;
 
-//                //SPARSE iteration
-//                for (auto it=mesh.begin(); it!=mesh.end(); ++it){
-//                    size_t y_ = it->first;
-//                    uint8_t status = it->second;
-//                    if (status > 0 && status <= min_type) {
-//                        current = 1;
-//                        if (previous == 0) {
-//                            y_begin.data[i+1][offset_pc_data1].push_back({2*y_,gap});
-//                        }
-//                    }
-//                    else {
-//                        current = 0;
-//                        if (previous == 1) {
-//                            y_begin.data[i+1][offset_pc_data1][counter].second.y_end = std::min((uint16_t)(2*(y_-1)+1),(uint16_t)(y_num_us-1));
-//                            counter++;
-//                        }
-//                    }
-//
-//                    previous = current;
-//                }
-//
             uint16_t prev_y = -2; //init
-
-
 
             //SPARSE iteration
             for (auto it=mesh.begin(); it!=mesh.end(); ++it) {
