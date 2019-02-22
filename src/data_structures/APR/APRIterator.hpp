@@ -41,6 +41,10 @@ public:
         return particleCellDataKey;
     }
 
+    bool operator ++(){
+        return set_iterator_to_particle_next_particle();
+    }
+
 protected:
     bool find_next_child(const uint8_t& direction,const uint8_t& index);
 
@@ -222,6 +226,7 @@ uint64_t APRIterator::set_new_lzxy(const uint16_t level,const uint16_t z,const u
         return UINT64_MAX;
     }
 }
+
 
 
 
