@@ -25,10 +25,10 @@ class APRTree {
 public:
 
     APRTree() {};
-    APRTree(APR<ImageType> &apr) { initialize_apr_tree(apr); APROwn = &apr; }
+    APRTree(APR<ImageType> &apr) { initialize_apr_tree_sparse(apr); APROwn = &apr; }
 
 
-    void init(APR<ImageType> &apr) { initialize_apr_tree(apr); APROwn = &apr;}
+    void init(APR<ImageType> &apr) { initialize_apr_tree_sparse(apr); APROwn = &apr;}
 
     inline uint64_t total_number_parent_cells() const { return tree_access.total_number_particles; }
 
