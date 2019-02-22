@@ -92,17 +92,12 @@ public:
         tree_access.l_min = l_min;
         tree_access.l_max = l_max;
 
-        std::vector<PixelData<uint8_t>> particle_cell_parent_tree(l_max);
-
         std::vector<std::vector<SparseParticleCellMap>> particle_cell_tree;
 
-        //make so you can reference the array as l
-        particle_cell_tree.resize(l_max + 1);
 
         std::vector<uint64_t> y_num;
         std::vector<uint64_t> x_num;
         std::vector<uint64_t> z_num;
-
 
         z_num.resize(l_max + 1);
         x_num.resize(l_max + 1);
@@ -117,25 +112,9 @@ public:
             particle_cell_tree[l].resize(z_num[l]*x_num[l]);
             y_num[l] = (uint64_t) ceil((1.0 * apr.apr_access.org_dims[0]) / pow(2.0, 1.0 * l_max - l + 1));
 
-//            for (int i = 0; i < particle_cell_tree.z_num[l] ; ++i) {
-//                for (int j = 0; j < particle_cell_tree.x_num[l]; ++j) {
-//                    particle_cell_tree.data[l][i*particle_cell_tree.x_num[l]+j];
-//                }
-//            }
-
         }
         timer.stop_timer();
 
-
-        timer.start_timer("tree - init structure");
-        for (uint64_t l = l_min; l < l_max; ++l) {
-            double cellSize = pow(2.0, l_max - l + 1);
-            particle_cell_parent_tree[l].initWithValue(ceil(apr.orginal_dimensions(0) / cellSize),
-                                                       ceil(apr.orginal_dimensions(1) / cellSize),
-                                                       ceil(apr.orginal_dimensions(2) / cellSize),
-                                                       0);
-        }
-        timer.stop_timer();
 
         // --------------------------------------------------------------------
         // Insert values to the APR tree
@@ -249,141 +228,56 @@ public:
 
         timer.stop_timer();
 
-        // --------------------------------------------------------------------
-        // Insert values to the APR tree
-        // --------------------------------------------------------------------
-        timer.start_timer("tree - insert vals");
-
-        //note the use of the dynamic OpenMP schedule.
-
-        for (unsigned int level = (apr_iterator.level_max()); level >= apr_iterator.level_min(); --level) {
-            int z = 0;
-            int x = 0;
-            if (level < (apr.level_max())) {
-#ifdef HAVE_OPENMP
-#pragma omp parallel for schedule(dynamic) private(z, x) firstprivate(apr_iterator)
-#endif
-                for ( z = 0; z < apr_iterator.spatial_index_z_max(level); z++) {
-                    for ( x = 0; x < apr_iterator.spatial_index_x_max(level); ++x) {
-                        for (apr_iterator.set_new_lzx(level, z, x);
-                             apr_iterator.global_index() < apr_iterator.end_index;
-                             apr_iterator.set_iterator_to_particle_next_particle()) {
-
-                            size_t y_p = apr_iterator.y() / 2;
-                            size_t x_p = apr_iterator.x() / 2;
-                            size_t z_p = apr_iterator.z() / 2;
-                            int current_level = apr_iterator.level() - 1;
-
-                            if (particle_cell_parent_tree[current_level](y_p, x_p, z_p) == INTERIOR_PARENT) {
-                                particle_cell_parent_tree[current_level](y_p, x_p, z_p) = 1;
-                            } else {
-                                particle_cell_parent_tree[current_level](y_p, x_p, z_p)++;
-                            }
-
-                            while (current_level > l_min) {
-                                current_level--;
-                                y_p = y_p / 2;
-                                x_p = x_p / 2;
-                                z_p = z_p / 2;
-
-                                if (particle_cell_parent_tree[current_level](y_p, x_p, z_p) == 0) {
-                                    particle_cell_parent_tree[current_level](y_p, x_p, z_p) = INTERIOR_PARENT;
-                                } else {
-                                    //already covered
-                                    break;
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-            else {
-#ifdef HAVE_OPENMP
-#pragma omp parallel for schedule(dynamic) private(z, x) firstprivate(apr_iterator)
-#endif
-                for ( z = 0; z < apr_iterator.spatial_index_z_max(level-1); z++) {
-                    for ( x = 0; x < apr_iterator.spatial_index_x_max(level-1); ++x) {
-                        for (apr_iterator.set_new_lzx(level, 2*z, 2*x);
-                             apr_iterator.global_index() < apr_iterator.end_index;
-                             apr_iterator.set_iterator_to_particle_next_particle()) {
-
-                            if (apr_iterator.y()%2 == 0) {
-                                size_t y_p = apr_iterator.y() / 2;
-                                size_t x_p = apr_iterator.x() / 2;
-                                size_t z_p = apr_iterator.z() / 2;
-                                int current_level = apr_iterator.level() - 1;
-
-                                while (current_level > l_min) {
-                                    current_level--;
-                                    y_p = y_p / 2;
-                                    x_p = x_p / 2;
-                                    z_p = z_p / 2;
-
-                                    if (particle_cell_parent_tree[current_level](y_p, x_p, z_p) == 0) {
-                                        particle_cell_parent_tree[current_level](y_p, x_p, z_p) = INTERIOR_PARENT;
-                                    } else {
-                                        //already covered
-                                        break;
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-        }
-
-        timer.stop_timer();
 
 
-        //check code
-        bool success = true;
-        auto counter = 0;
-
-        for (unsigned int l = l_min; l < (l_max) ;l ++){
-            for (int z = 0; z < z_num[l]; ++z) {
-                for (int x = 0; x < x_num[l]; ++x) {
-                    for (int y = 0; y < y_num[l]; ++y) {
-
-                        auto val = particle_cell_parent_tree[l].at(y, x, z);
-
-                        if(val > 0){
-                            auto val_s = particle_cell_tree[l][z * x_num[l] + x].mesh.find(y);
-
-                            if(val_s == particle_cell_tree[l][z * x_num[l] + x].mesh.end()){
-                                //doesn't exist
-                                success = false;
-                                std::cout << l << std::endl;
-                                counter++;
-                            }
-                        }
-
-                    }
-
-                    //reverse loop, checking for extra values
-                    auto &pct_p = particle_cell_tree[l][z * x_num[l] + x];
-
-                    for (auto it = pct_p.mesh.begin(); it != pct_p.mesh.end(); ++it) {
-                        size_t y_p = it->first;
-
-                        if(particle_cell_parent_tree[l].at(y_p, x, z)==0){
-                            success = false;
-                            std::cout << l << std::endl;
-                            counter++;
-                        }
-
-                    }
-
-                }
-            }
-        }
-
-        if(!success){
-            std::cout << "Failed" << std::endl;
-            std::cout << counter << std::endl;
-        } else {
-            std::cout << "Success" << std::endl;
-        }
+//        //check code
+//        bool success = true;
+//        auto counter = 0;
+//
+//        for (unsigned int l = l_min; l < (l_max) ;l ++){
+//            for (int z = 0; z < z_num[l]; ++z) {
+//                for (int x = 0; x < x_num[l]; ++x) {
+//                    for (int y = 0; y < y_num[l]; ++y) {
+//
+//                        auto val = particle_cell_parent_tree[l].at(y, x, z);
+//
+//                        if(val > 0){
+//                            auto val_s = particle_cell_tree[l][z * x_num[l] + x].mesh.find(y);
+//
+//                            if(val_s == particle_cell_tree[l][z * x_num[l] + x].mesh.end()){
+//                                //doesn't exist
+//                                success = false;
+//                                std::cout << l << std::endl;
+//                                counter++;
+//                            }
+//                        }
+//
+//                    }
+//
+//                    //reverse loop, checking for extra values
+//                    auto &pct_p = particle_cell_tree[l][z * x_num[l] + x];
+//
+//                    for (auto it = pct_p.mesh.begin(); it != pct_p.mesh.end(); ++it) {
+//                        size_t y_p = it->first;
+//
+//                        if(particle_cell_parent_tree[l].at(y_p, x, z)==0){
+//                            success = false;
+//                            std::cout << l << std::endl;
+//                            counter++;
+//                        }
+//
+//                    }
+//
+//                }
+//            }
+//        }
+//
+//        if(!success){
+//            std::cout << "Failed" << std::endl;
+//            std::cout << counter << std::endl;
+//        } else {
+//            std::cout << "Success" << std::endl;
+//        }
 
 
         tree_access.l_max = l_max;
@@ -408,10 +302,6 @@ public:
         tree_access.initialize_tree_access_sparse(apr.apr_access, particle_cell_tree);
         timer.stop_timer();
 
-
-        timer.start_timer("tree - init tree");
-       // tree_access.initialize_tree_access(apr.apr_access,particle_cell_parent_tree);
-        timer.stop_timer();
     }
 
 protected:
@@ -420,7 +310,7 @@ protected:
 
     void initialize_apr_tree(APR<ImageType>& apr, bool type_full = false) {
 
-        APRTimer timer(false);
+        APRTimer timer(true);
 
         auto apr_iterator = apr.iterator();
 

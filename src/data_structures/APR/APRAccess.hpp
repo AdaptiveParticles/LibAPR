@@ -1226,7 +1226,6 @@ inline void APRAccess::initialize_structure_from_particle_cell_tree(APRParameter
 inline void APRAccess::initialize_tree_access(APRAccess& APROwn_access, std::vector<PixelData<uint8_t>> &p_map) {
     APRTimer apr_timer(false);
 
-
     x_num.resize(level_max()+1);
     y_num.resize(level_max()+1);
     z_num.resize(level_max()+1);
@@ -1490,7 +1489,7 @@ void APRAccess::init_data_structure_tree(APRAccess& APROwn_access, ExtraPartCell
 }
 
 inline void APRAccess::initialize_tree_access_sparse(APRAccess& APROwn_access, std::vector<std::vector<SparseParticleCellMap>> &p_map) {
-    APRTimer apr_timer(true);
+    APRTimer apr_timer(false);
 
 
     //initialize loop variables
