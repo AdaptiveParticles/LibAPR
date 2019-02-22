@@ -1526,10 +1526,9 @@ inline void APRAccess::initialize_tree_access_sparse(APRAccess& APROwn_access, s
 
 
 #ifdef HAVE_OPENMP
-//#pragma omp parallel for schedule(dynamic) default(shared) private(z_, x_, status) if(z_num_*x_num_ > 100)
+#pragma omp parallel for schedule(dynamic) default(shared) private(z_, x_,y_) if(z_num_*x_num_ > 100)
 #endif
         for (z_ = 0; z_ < z_num_; z_++) {
-
             for (x_ = 0; x_ < x_num_; x_++) {
 
                 const size_t offset_pc_data = x_num_ * z_ + x_;
@@ -1544,37 +1543,6 @@ inline void APRAccess::initialize_tree_access_sparse(APRAccess& APROwn_access, s
                 uint64_t prev_y = -2; //required;
 
                 auto &map = p_map[i][offset_pc_data].mesh;
-
-//                //SPARSE iteration
-//                for (auto it=mesh.begin(); it!=mesh.end(); ++it) {
-//                    size_t y = it->first;
-//                    uint8_t status = it->second;
-//
-//                    if ((status > min_type) && (status < 5)) {
-//
-//                        if ((y - 1) != prev_y) {
-//
-//                            y_begin.data[i][offset_pc_data].push_back({y, gap});
-//                            previous = 1;
-//
-//                            if (current == 1) {
-//                                (y_begin.data[i][offset_pc_data][counter]).second.y_end = (prev_y);
-//                                counter++;
-//                                previous = 0;
-//                            }
-//
-//                            current = 1;
-//                        }
-//
-//                        prev_y = y;
-//                    }
-//                }
-//
-//                //last entry
-//                if (current == 1) {
-//                    (y_begin.data[i][offset_pc_data][counter]).second.y_end = (prev_y);
-//                }
-
 
                 for (auto it = map.begin(); it != map.end(); ++it) {
                     y_ = it->first;
