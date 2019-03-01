@@ -12,7 +12,7 @@
 class APRTreeNumerics {
 
     template<typename T, typename S, typename U>
-    static void fill_tree_mean_internal(APR<T> &apr, APRTree<T> &apr_tree, ExtraParticleData<S> &particle_data,ExtraParticleData<U> &tree_data,ExtraParticleData<S> &particle_data_pc,ExtraParticleData<U> &tree_data_pc,const bool pc_data) {
+    static void fill_tree_mean_internal(APR<T> &apr, APRTree<T> &apr_tree, ExtraParticleData<S> &particle_data,ExtraParticleData<U> &tree_data,ExtraPartCellData<S> &particle_data_pc,ExtraPartCellData<U> &tree_data_pc,const bool pc_data) {
 
         APRTimer timer;
         timer.verbose_flag = false;
@@ -157,14 +157,6 @@ class APRTreeNumerics {
 public:
 
     template<typename T, typename S, typename U>
-    static void fill_tree_mean(APR<T> &apr, APRTree<T> &apr_tree, ExtraParticleData<S> &particle_data,ExtraParticleData<U> &tree_data) {
-
-        ExtraPartCellData<S> particle_data_pc_empty;
-        ExtraPartCellData<U> tree_data_pc_empty;
-        fill_tree_mean_internal(apr, apr_tree, particle_data,tree_data,particle_data_pc_empty,tree_data_pc_empty,false);
-
-    }
-    template<typename T, typename S, typename U>
     static void fill_tree_mean(APR<T> &apr, APRTree<T> &apr_tree, ExtraPartCellData<S> &particle_data_pc,ExtraParticleData<U> &tree_data) {
 
         ExtraParticleData<S> particle_data_empty;
@@ -172,6 +164,16 @@ public:
         fill_tree_mean_internal(apr, apr_tree, particle_data_empty,tree_data,particle_data_pc,tree_data_pc_empty,true);
 
     }
+
+    template<typename T, typename S, typename U>
+    static void fill_tree_mean(APR<T> &apr, APRTree<T> &apr_tree, ExtraParticleData<S> &particle_data,ExtraParticleData<U> &tree_data) {
+
+        ExtraPartCellData<S> particle_data_pc_empty;
+        ExtraPartCellData<U> tree_data_pc_empty;
+        fill_tree_mean_internal(apr, apr_tree, particle_data,tree_data,particle_data_pc_empty,tree_data_pc_empty,false);
+
+    }
+
 
 
     template<typename T, typename U>
