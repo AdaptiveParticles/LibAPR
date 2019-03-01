@@ -73,9 +73,9 @@ class APRTreeNumerics {
                                 S part_val;
 
                                 if(pc_data){
-                                    part_val =  particle_data[apr_iterator];
-                                } else {
                                     part_val =  particle_data_pc[apr_iterator.get_pcd_key()];
+                                } else {
+                                    part_val =  particle_data[apr_iterator];
                                 }
 
                                 if (parentIterator.y() == (apr.spatial_index_y_max(level - 1) - 1)) {
@@ -198,9 +198,10 @@ class APRTreeNumerics {
                                 S part_val;
 
                                 if(pc_data){
-                                    part_val =  particle_data[apr_iterator];
-                                } else {
+
                                     part_val =  particle_data_pc[apr_iterator.get_pcd_key()];
+                                } else {
+                                    part_val =  particle_data[apr_iterator];
                                 }
 
                                 tree_data[parentIterator] = std::max((U)part_val,tree_data[parentIterator]);
