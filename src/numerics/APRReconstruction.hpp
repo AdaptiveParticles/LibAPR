@@ -1167,7 +1167,7 @@ private:
                         const size_t x_off = x - x_begin;
 
                         for (apr_iterator.set_new_lzxy(level, z, x, y_begin_l);
-                             apr_iterator.global_index() <
+                             apr_iterator <
                              apr_iterator.end_index; apr_iterator.set_iterator_to_particle_next_particle()) {
 
                             if ((apr_iterator.y() >= y_begin_l) && (apr_iterator.y() < y_end_l)) {
