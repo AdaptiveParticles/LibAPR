@@ -11,6 +11,7 @@
 
 class APRIterator  : public GenIterator {
 
+
 public:
 
     explicit APRIterator(APRAccess& apr_access_) {
@@ -44,6 +45,13 @@ public:
     bool operator ++(){
         return set_iterator_to_particle_next_particle();
     }
+
+    uint64_t end(){
+        return end_index;
+    }
+
+
+    // Todo make various begin functions. blank(), with level, with x,z, with level,
 
 protected:
     bool find_next_child(const uint8_t& direction,const uint8_t& index);

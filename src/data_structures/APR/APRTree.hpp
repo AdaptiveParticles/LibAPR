@@ -79,7 +79,7 @@ public:
 
         APROwn = &apr;
 
-        APRTimer timer(true);
+        APRTimer timer(false);
 
         auto apr_iterator = apr.iterator();
 

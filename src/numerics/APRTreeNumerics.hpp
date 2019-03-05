@@ -11,10 +11,8 @@
 
 class APRTreeNumerics {
 
-public:
-
     template<typename T, typename S, typename U>
-    static void fill_tree_mean(APR<T> &apr, APRTree<T> &apr_tree, ExtraParticleData<S> &particle_data,ExtraParticleData<U> &tree_data) {
+    static void fill_tree_mean_internal(APR<T> &apr, APRTree<T> &apr_tree, ExtraParticleData<S> &particle_data,ExtraParticleData<U> &tree_data,ExtraPartCellData<S> &particle_data_pc,ExtraPartCellData<U> &tree_data_pc,const bool pc_data) {
 
         APRTimer timer;
         timer.verbose_flag = false;
@@ -72,14 +70,22 @@ public:
                                     parentIterator.set_iterator_to_particle_next_particle();
                                 }
 
+                                S part_val;
+
+                                if(pc_data){
+                                    part_val =  particle_data_pc[apr_iterator.get_pcd_key()];
+                                } else {
+                                    part_val =  particle_data[apr_iterator];
+                                }
+
                                 if (parentIterator.y() == (apr.spatial_index_y_max(level - 1) - 1)) {
                                     tree_data[parentIterator] =
-                                            scale_factor_yxz * particle_data[apr_iterator] / 8.0f +
+                                            scale_factor_yxz * part_val/ 8.0f +
                                             tree_data[parentIterator];
                                 } else {
 
                                     tree_data[parentIterator] =
-                                            scale_factor_xz * particle_data[apr_iterator] / 8.0f +
+                                            scale_factor_xz * part_val / 8.0f +
                                             tree_data[parentIterator];
                                 }
 
@@ -148,7 +154,7 @@ public:
     }
 
     template<typename T, typename S, typename U>
-    static void fill_tree_max(APR<T> &apr, APRTree<T> &apr_tree, ExtraParticleData<S> &particle_data,ExtraParticleData<U> &tree_data) {
+    static void fill_tree_max(APR<T> &apr, APRTree<T> &apr_tree, ExtraParticleData<S> &particle_data,ExtraParticleData<U> &tree_data,ExtraPartCellData<S> &particle_data_pc,ExtraPartCellData<U> &tree_data_pc,const bool pc_data) {
 
         APRTimer timer;
         timer.verbose_flag = false;
@@ -189,7 +195,16 @@ public:
                                     parentIterator.set_iterator_to_particle_next_particle();
                                 }
 
-                                tree_data[parentIterator] = std::max((U)particle_data[apr_iterator],tree_data[parentIterator]);
+                                S part_val;
+
+                                if(pc_data){
+
+                                    part_val =  particle_data_pc[apr_iterator.get_pcd_key()];
+                                } else {
+                                    part_val =  particle_data[apr_iterator];
+                                }
+
+                                tree_data[parentIterator] = std::max((U)part_val,tree_data[parentIterator]);
 
                             }
                         }
@@ -232,6 +247,47 @@ public:
         }
         timer.stop_timer();
     }
+
+
+
+public:
+
+    template<typename T, typename S, typename U>
+    static void fill_tree_mean(APR<T> &apr, APRTree<T> &apr_tree, ExtraPartCellData<S> &particle_data_pc,ExtraParticleData<U> &tree_data) {
+
+        ExtraParticleData<S> particle_data_empty;
+        ExtraPartCellData<U> tree_data_pc_empty;
+        fill_tree_mean_internal(apr, apr_tree, particle_data_empty,tree_data,particle_data_pc,tree_data_pc_empty,true);
+
+    }
+
+    template<typename T, typename S, typename U>
+    static void fill_tree_mean(APR<T> &apr, APRTree<T> &apr_tree, ExtraParticleData<S> &particle_data,ExtraParticleData<U> &tree_data) {
+
+        ExtraPartCellData<S> particle_data_pc_empty;
+        ExtraPartCellData<U> tree_data_pc_empty;
+        fill_tree_mean_internal(apr, apr_tree, particle_data,tree_data,particle_data_pc_empty,tree_data_pc_empty,false);
+
+    }
+
+    template<typename T, typename S, typename U>
+    static void fill_tree_max(APR<T> &apr, APRTree<T> &apr_tree, ExtraPartCellData<S> &particle_data_pc,ExtraParticleData<U> &tree_data) {
+
+        ExtraParticleData<S> particle_data_empty;
+        ExtraPartCellData<U> tree_data_pc_empty;
+        fill_tree_max(apr, apr_tree, particle_data_empty,tree_data,particle_data_pc,tree_data_pc_empty,true);
+
+    }
+
+    template<typename T, typename S, typename U>
+    static void fill_tree_max(APR<T> &apr, APRTree<T> &apr_tree, ExtraParticleData<S> &particle_data,ExtraParticleData<U> &tree_data) {
+
+        ExtraPartCellData<S> particle_data_pc_empty;
+        ExtraPartCellData<U> tree_data_pc_empty;
+        fill_tree_max(apr, apr_tree, particle_data,tree_data,particle_data_pc_empty,tree_data_pc_empty,false);
+
+    }
+
 
 
     template<typename T, typename U>
