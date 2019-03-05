@@ -230,11 +230,6 @@ public:
 
         timer.stop_timer();
 
-
-
-
-
-
         tree_access.l_max = l_max;
         tree_access.l_min = l_min;
 
