@@ -291,6 +291,9 @@ inline bool APRConverter<ImageType>::get_apr_method(APR<ImageType> &aAPR, PixelD
     //aAPR.get_parts_from_img_alt(input_image,aAPR.particles_intensities);
     aAPR.get_parts_from_img(downsampled_img, aAPR.particles_intensities);
     method_timer.stop_timer();
+
+    std::swap(input_image,downsampled_img.back());
+
 #else
     method_timer.start_timer("compute_gradient_magnitude_using_bsplines and local instensity scale CUDA");
     APRTimer t(true);
@@ -445,6 +448,7 @@ inline void APRConverter<ImageType>::get_gradient(PixelData<ImageType> &image_te
         if (image_temp.mesh[i] <= (par.Ip_th + bspline_offset)) { image_temp.mesh[i] = par.Ip_th + bspline_offset; }
     }
     fine_grained_timer.stop_timer();
+
 
 
     fine_grained_timer.start_timer("smooth_bspline");
