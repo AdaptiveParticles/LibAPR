@@ -23,6 +23,8 @@ public:
     uint64_t l_max;
     uint64_t org_dims[3]={0,0,0};
 
+    uint8_t number_dimensions = 3;
+
     // TODO: SHould they be also saved as uint64 in HDF5? (currently int is used)
     std::vector<uint64_t> x_num;
     std::vector<uint64_t> y_num;
@@ -49,7 +51,7 @@ public:
         static constexpr int8_t dir_x[6] = { 0, 0, 1, -1, 0, 0};
         static constexpr int8_t dir_z[6] = { 0, 0, 0, 0, 1, -1};
 
-        static constexpr uint8_t children_index_offsets[4][2] = {{0,0},{0,1},{1,0},{1,1}};
+        static constexpr uint8_t children_index_offsets[4][2] = {{0,0},{1,0},{0,1},{1,1}};
 
         unsigned int dir;
 
@@ -133,7 +135,38 @@ public:
         return ((uint16_t)(x-1)>(x_num[level]-3)) | ((uint16_t)(z-1)>(z_num[level]-3));
     }
 
+    /*
+    inline uint8_t number_neighbours_in_direction(const uint8_t& level_delta){
+        //
+        //  Gives the maximum number of neighbours in a direction given the level_delta.
+        //
+
+        switch (level_delta){
+
+            case _NO_NEIGHBOUR:
+                return 0;
+
+            case _LEVEL_INCREASE:
+
+                switch (number_dimensions) {
+                    case 1:
+                        return 1;
+                    case 2:
+                        return 2;
+                    case 3:
+                        return 4;
+                }
+        }
+        return 1;
+    }
+    */
+
     bool find_particle_cell(ParticleCell& part_cell,MapIterator& map_iterator){
+
+        if(part_cell.pc_offset > gap_map.data[part_cell.level].size()) { // out of bounds
+            return false;
+        }
+
         if(gap_map.data[part_cell.level][part_cell.pc_offset].size() > 0) {
 
             ParticleCellGapMap& current_pc_map = gap_map.data[part_cell.level][part_cell.pc_offset][0];
@@ -428,6 +461,8 @@ public:
     void allocate_map_insert( ExtraPartCellData<std::pair<uint16_t,YGap_map>>& y_begin) {
         // TODO: This whole method copies just y_begin converting std::pair into std::map entries, why we do not do that
         //       from the beginning (using map instead of pair, then we can skip this whole part of code).
+        //
+
         APRTimer apr_timer;
         apr_timer.start_timer("initialize map");
 
@@ -1163,7 +1198,7 @@ inline void APRAccess::initialize_tree_access(APRAccess& APROwn_access, std::vec
 
     total_number_particles = cumsum;
 
-    std::cout << "Lower level, interior tree PC: " << total_number_particles << std::endl;
+    //std::cout << "Lower level, interior tree PC: " << total_number_particles << std::endl;
 
     total_number_non_empty_rows=0;
 
