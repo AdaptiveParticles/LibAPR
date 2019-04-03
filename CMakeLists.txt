@@ -39,7 +39,7 @@ list(APPEND CMAKE_MODULE_PATH
 # Generate configuration file
 ###############################################################################
 set (APR_VERSION_MAJOR 1)
-set (APR_VERSION_MINOR 1)
+set (APR_VERSION_MINOR 2)
 set (APR_VERSION_PATCH 0)
 set (APR_VERSION_STRING ${APR_VERSION_MAJOR}.${APR_VERSION_MINOR}.${APR_VERSION_PATCH})
 execute_process(COMMAND git rev-parse HEAD
