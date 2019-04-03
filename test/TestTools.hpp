@@ -95,5 +95,107 @@ inline PixelData<T> getRandInitializedMesh(int y, int x, int z, float multiplier
     return m;
 }
 
+struct TestBenchStats{
+
+        double inf_norm=0;
+        double PSNR=0;
+
+
+        };
+
+template<typename S,typename T,typename U>
+TestBenchStats compare_gt(PixelData<S>& org_img,PixelData<T>& rec_img,PixelData<U>& local_scale,int b = 0,const float background = 1000){
+
+    uint64_t z_num_o = org_img.z_num;
+    uint64_t x_num_o = org_img.x_num;
+    uint64_t y_num_o = org_img.y_num;
+
+    uint64_t z_num_r = rec_img.z_num;
+    uint64_t x_num_r = rec_img.x_num;
+    uint64_t y_num_r = rec_img.y_num;
+
+    uint64_t j = 0;
+    uint64_t k = 0;
+    uint64_t i = 0;
+
+    double mean = 0;
+    double inf_norm = 0;
+    uint64_t counter = 0;
+    double MSE = 0;
+    double L1 = 0;
+
+#pragma omp parallel for default(shared) private(j,i,k) reduction(+: MSE) reduction(+: counter) reduction(+: mean) reduction(max: inf_norm)
+    for(j = b; j < (z_num_o-b);j++){
+        for(i = b; i < (x_num_o-b);i++){
+
+            for(k = b;k < (y_num_o-b);k++){
+
+                double scale = local_scale(k/2,i/2,j/2);
+
+                double val = abs(org_img.mesh[j*x_num_o*y_num_o + i*y_num_o + k] - rec_img.mesh[j*x_num_r*y_num_r + i*y_num_r + k])/scale;
+                //SE.mesh[j*x_num_o*y_num_o + i*y_num_o + k] = 1000*val;
+
+                auto gt_val = org_img.mesh[j*x_num_o*y_num_o + i*y_num_o + k];
+
+
+                if(gt_val > background) {
+                    MSE += pow(org_img.mesh[j*x_num_o*y_num_o + i*y_num_o + k] - rec_img.mesh[j*x_num_r*y_num_r + i*y_num_r + k],2);
+                    L1 += abs(org_img.mesh[j*x_num_o*y_num_o + i*y_num_o + k] - rec_img.mesh[j*x_num_r*y_num_r + i*y_num_r + k]);
+
+                    mean += val;
+                    inf_norm = std::max(inf_norm, val);
+                    counter++;
+                }
+            }
+        }
+    }
+
+    mean = mean/(1.0*counter);
+    MSE = MSE/(1.0*counter);
+    L1 = L1/(1.0*counter);
+
+    double MSE_var = 0;
+    //calculate the variance
+    double var = 0;
+    counter = 0;
+
+#pragma omp parallel for default(shared) private(j,i,k) reduction(+: var) reduction(+: counter) reduction(+: MSE_var)
+    for(j = b; j < (z_num_o-b);j++){
+        for(i = b; i < (x_num_o-b);i++){
+
+            for(k = b;k < (y_num_o-b);k++){
+
+                double scale = local_scale(k/2,i/2,j/2);
+
+                auto gt_val = org_img.mesh[j*x_num_o*y_num_o + i*y_num_o + k];
+
+                if(gt_val > background) {
+                    var += pow(pow(org_img.mesh[j * x_num_o * y_num_o + i * y_num_o + k] -
+                                   rec_img.mesh[j * x_num_o * y_num_o + i * y_num_o + k], 2) - MSE, 2);
+                    MSE_var += pow(pow(org_img.mesh[j * x_num_o * y_num_o + i * y_num_o + k] -
+                                       rec_img.mesh[j * x_num_o * y_num_o + i * y_num_o + k], 2) - MSE, 2);
+
+                    counter++;
+                }
+            }
+        }
+    }
+
+    //get variance
+    var = var/(1.0*counter);
+    double se = 1.96*sqrt(var);
+    MSE_var = MSE_var/(1.0*counter);
+
+    double PSNR = 10*log10(64000.0/MSE);
+
+    TestBenchStats outputStats;
+
+    outputStats.PSNR = PSNR;
+    outputStats.inf_norm = inf_norm;
+
+    return outputStats;
+
+}
+
 
 #endif //LIBAPR_TESTTOOLS_HPP

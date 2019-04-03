@@ -6,6 +6,7 @@
 #define PARTPLAY_APR_PARAMETERS_HPP
 
 #include <string>
+#include <iostream>
 
 class APRParameters {
 
@@ -30,15 +31,21 @@ public:
     float sigma_th = 0;
     float sigma_th_max = 0;
 
+    int extra_smooth = 0;
+
     float noise_sd_estimate = 0;
     float background_intensity_estimate = 0;
 
-    bool auto_parameters = true;
+    bool auto_parameters = false;
+    bool full_resolution = false;
 
     bool normalized_input = false;
 
+    bool check_input = false;
+    bool swap_dimensions = false;
     bool neighborhood_optimization = true;
 
+    bool constant_intensity_scale = false;
     bool output_steps = false;
 
     std::string name;
@@ -46,6 +53,22 @@ public:
     std::string input_image_name;
     std::string input_dir;
     std::string mask_file;
+
+    friend std::ostream & operator<<(std::ostream &os, const APRParameters &obj) {
+        os << "Ip_th=" << obj.Ip_th << "\n";
+        os << "SNR_min=" << obj.SNR_min << "\n";
+        os << "lambda=" << obj.lambda << "\n";
+        os << "min_signal=" << obj.min_signal << "\n";
+        os << "rel_error=" << obj.rel_error << "\n";
+        os << "sigma_th=" << obj.sigma_th << "\n";
+        os << "sigma_th_max=" << obj.sigma_th_max << "\n";
+        os << "auto_parameters=" << (obj.auto_parameters ? "true" : "false") << "\n";
+        os << "normalized_input=" << (obj.normalized_input ? "true" : "false") << "\n";
+        os << "neighborhood_optimization=" << (obj.neighborhood_optimization ? "true" : "false") << "\n";
+        os << "output_steps=" << (obj.output_steps ? "true" : "false") << "\n";
+
+	return os;
+    }
 };
 
 
