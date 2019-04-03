@@ -384,7 +384,7 @@ xyz.start_timer("PIPELINE");
     xyz.stop_timer();
     computation_timer.stop_timer();
 
-    double totT = total_timer.stop_timer();
+    total_timer.stop_timer();
    return true;
 }
 
