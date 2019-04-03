@@ -110,7 +110,6 @@ TestBenchStats compare_gt(PixelData<S>& org_img,PixelData<T>& rec_img,PixelData<
     uint64_t x_num_o = org_img.x_num;
     uint64_t y_num_o = org_img.y_num;
 
-    uint64_t z_num_r = rec_img.z_num;
     uint64_t x_num_r = rec_img.x_num;
     uint64_t y_num_r = rec_img.y_num;
 
@@ -165,7 +164,6 @@ TestBenchStats compare_gt(PixelData<S>& org_img,PixelData<T>& rec_img,PixelData<
 
             for(k = b;k < (y_num_o-b);k++){
 
-                double scale = local_scale(k/2,i/2,j/2);
 
                 auto gt_val = org_img.mesh[j*x_num_o*y_num_o + i*y_num_o + k];
 
@@ -183,7 +181,6 @@ TestBenchStats compare_gt(PixelData<S>& org_img,PixelData<T>& rec_img,PixelData<
 
     //get variance
     var = var/(1.0*counter);
-    double se = 1.96*sqrt(var);
     MSE_var = MSE_var/(1.0*counter);
 
     double PSNR = 10*log10(64000.0/MSE);

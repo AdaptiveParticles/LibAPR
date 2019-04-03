@@ -16,7 +16,6 @@ option(APR_USE_LIBTIFF "Use LibTIFF" ON)
 option(APR_TESTS "Build APR tests" OFF)
 option(APR_PREFER_EXTERNAL_GTEST "When found, use the installed GTEST libs instead of included sources" OFF)
 option(APR_PREFER_EXTERNAL_BLOSC "When found, use the installed BLOSC libs instead of included sources" OFF)
-option(APR_BUILD_JAVA_WRAPPERS "Build APR JAVA wrappers" OFF)
 option(APR_BUILD_PYTHON_WRAPPERS "Build APR PYTHON wrappers (experimental - under development)" OFF)
 option(APR_USE_CUDA "should APR use CUDA? (experimental - under development)" OFF)
 option(APR_USE_OPENMP "should APR use OpenMP?" OFF)
@@ -27,8 +26,8 @@ if (NOT APR_BUILD_SHARED_LIB AND NOT APR_BUILD_STATIC_LIB)
     message(FATAL_ERROR "At least one target: APR_BUILD_SHARED_LIB or APR_BUILD_STATIC_LIB must be build!")
 endif()
 if (NOT APR_USE_LIBTIFF)
-    if (APR_TESTS OR APR_BUILD_EXAMPLES OR APR_BUILD_JAVA_WRAPPERS)
-        message(FATAL_ERROR "Building tests, examples or java wrappers not possible when APR_USE_LIBTIFF=OFF!")
+    if (APR_TESTS OR APR_BUILD_EXAMPLES)
+        message(FATAL_ERROR "Building tests orexamples not possible when APR_USE_LIBTIFF=OFF!")
     endif()
 endif()
 
@@ -295,25 +294,6 @@ if(APR_TESTS)
     enable_testing()
     add_subdirectory(test)
 endif(APR_TESTS)
-
-
-###############################################################################
-# JAVA wrappers
-###############################################################################
-if(APR_BUILD_JAVA_WRAPPERS)
-    message(STATUS "APR: Building JAVA wrappers")
-    find_package(SWIG 3.0 REQUIRED)
-    find_package(JNI REQUIRED)
-    set(CMAKE_LIBRARY_OUTPUT_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/src/natives")
-    include_directories(${JNI_INCLUDE_DIRS} ${CMAKE_CURRENT_SOURCE_DIR})
-    include(${SWIG_USE_FILE})
-    set(CMAKE_SWIG_OUTDIR "${CMAKE_CURRENT_SOURCE_DIR}/src/main/java/de/mpicbg/mosaic/apr")
-    set(CMAKE_SWIG_FLAGS -package de.mpicbg.mosaic.apr -Wall)
-    set_source_files_properties(libapr.i PROPERTIES CPLUSPLUS ON)
-    swig_add_library(apr LANGUAGE java SOURCES libapr.i ${SOURCE_FILES})
-    swig_link_libraries(apr ${HDF5_LIBRARIES} ${TIFF_LIBRARIES} ${BLOSC_LIBRARIES} ${ZLIB_LIBRARIES})
-endif(APR_BUILD_JAVA_WRAPPERS)
-
 
 ###############################################################################
 # PYTHON wrappers
