@@ -39,17 +39,12 @@ public:
 
     uint64_t total_number_particles;
     uint64_t total_number_gaps;
-    std::vector<uint64_t> global_index_by_level_begin;
-    std::vector<uint64_t> global_index_by_level_end;
-    std::vector<std::vector<uint64_t>> global_index_by_level_and_z_begin;
-    std::vector<std::vector<uint64_t>> global_index_by_level_and_z_end;
-
-    std::vector<std::vector<uint64_t>> global_index_by_level_and_zx_end;
+    std::vector<uint64_t> global_index_by_level_begin;                   // note: 0..n-1 based numbering
+    std::vector<uint64_t> global_index_by_level_end;                     // note: 0..n-1 based numbering
+    std::vector<std::vector<uint64_t>> global_index_by_level_and_zx_end; // note: 1..n based numbering
 
     uint64_t total_number_non_empty_rows;
     ExtraPartCellData<ParticleCellGapMap> gap_map;
-    ExtraParticleData<uint8_t> particle_cell_type;
-
     void initialize_structure_from_particle_cell_tree_sparse(APRParameters& apr_parameters, ExtraPartCellData<SparseParticleCellMap> &p_map);
 
     unsigned int orginal_dimensions(int dim) const { return org_dims[dim]; }
@@ -59,10 +54,6 @@ public:
     uint64_t spatial_index_y_max(const unsigned int level) const { return y_num[level]; }
     uint64_t spatial_index_z_max(const unsigned int level) const { return z_num[level]; }
     uint64_t get_total_number_particles() const { return total_number_particles; }
-
-//    APRIterator iterator() {
-//        return APRIterator(*this);
-//    }
 
     MapIterator& get_local_iterator(LocalMapIterators& local_iterators,const uint16_t& level_delta,const uint16_t& face,const uint16_t& index){
         //
@@ -619,58 +610,51 @@ public:
 
 
     void allocate_map_insert( ExtraPartCellData<std::pair<uint16_t,YGap_map>>& y_begin) {
-
-        //
-        //  Seperated for checking memory allocation
-        //
-
-        APRTimer apr_timer;
+        // TODO: This whole method copies just y_begin converting std::pair into std::map entries, why we do not do that
+        //       from the beginning (using map instead of pair, then we can skip this whole part of code).
+        
+	APRTimer apr_timer;
         apr_timer.start_timer("initialize map");
-
 
         gap_map.depth_max = level_max();
         gap_map.depth_min = level_min();
-
         gap_map.z_num.resize(y_begin.depth_max+1);
         gap_map.x_num.resize(y_begin.depth_max+1);
         gap_map.data.resize(y_begin.depth_max+1);
 
+        // Initialize sizes for each level with max level of size of level(max-1)
         for (uint64_t i = y_begin.depth_min; i < y_begin.depth_max; ++i) {
             gap_map.x_num[i] = x_num[i];
             gap_map.z_num[i] = z_num[i];
             gap_map.data[i].resize(z_num[i]*x_num[i]);
         }
-
         gap_map.x_num[y_begin.depth_max] = x_num[y_begin.depth_max-1];
         gap_map.z_num[y_begin.depth_max] = z_num[y_begin.depth_max-1];
         gap_map.data[y_begin.depth_max].resize(z_num[y_begin.depth_max-1]*x_num[y_begin.depth_max-1]);
 
-
         uint64_t counter_rows = 0;
-        uint64_t z_,x_;
 
-        for (uint64_t i = (level_min()); i <= level_max(); i++) {
-            const unsigned int x_num_ = y_begin.x_num[i];
-            const unsigned int z_num_ = y_begin.z_num[i];
-#ifdef HAVE_OPENMP
-#pragma omp parallel for default(shared) schedule(dynamic) private(z_, x_) reduction(+:counter_rows)if(z_num_*x_num_ > 100)
-#endif
-            for (z_ = 0; z_ < z_num_; z_++) {
-                for (x_ = 0; x_ < x_num_; x_++) {
-                    const size_t offset_pc_data = x_num_ * z_ + x_;
-                    if (y_begin.data[i][offset_pc_data].size() > 0) {
-                        gap_map.data[i][offset_pc_data].resize(1);
+        for (uint64_t level = (level_min()); level <= level_max(); ++level) {
+            const unsigned int xLen = y_begin.x_num[level];
+            const unsigned int zLen = y_begin.z_num[level];
 
-
-                        gap_map.data[i][offset_pc_data][0].map.insert(y_begin.data[i][offset_pc_data].begin(),
-                                                                      y_begin.data[i][offset_pc_data].end());
-
+            #ifdef HAVE_OPENMP
+            #pragma omp parallel for default(shared) schedule(dynamic) reduction(+:counter_rows) if(zLen*xLen > 100)
+            #endif
+            for (uint64_t z = 0; z < zLen; ++z) {
+                for (uint64_t x = 0; x < xLen; ++x) {
+                    const size_t offset_pc_data = xLen * z + x;
+                    if (y_begin.data[level][offset_pc_data].size() > 0) {
+                        gap_map.data[level][offset_pc_data].resize(1); // create one empty std::map
+                        gap_map.data[level][offset_pc_data][0].map.insert(y_begin.data[level][offset_pc_data].begin(),
+                                                                          y_begin.data[level][offset_pc_data].end());
                         counter_rows++;
                     }
                 }
             }
         }
         total_number_non_empty_rows = counter_rows;
+
         apr_timer.stop_timer();
     }
 
@@ -969,17 +953,14 @@ public:
 
 
 inline void APRAccess::initialize_structure_from_particle_cell_tree(APRParameters& apr_parameters,std::vector<ArrayWrapper<uint8_t>> &p_map) {
-    //
-    //  Initialize the new structure;
-    //
+    APRTimer apr_timer(false);
 
     uint8_t min_type = apr_parameters.neighborhood_optimization ? 1 : 2;
 
-    APRTimer apr_timer;
-    apr_timer.verbose_flag = false;
-
+    // ========================================================================
     apr_timer.start_timer("first_step");
-    const uint8_t seed_us = 4; //deal with the equivalence optimization
+    const uint8_t UPSAMPLING_SEED_TYPE = 4;
+    const uint8_t seed_us = UPSAMPLING_SEED_TYPE; //deal with the equivalence optimization
     for (size_t i = level_min()+1; i < level_max(); ++i) {
         const size_t x_num_ = x_num[i];
         const size_t z_num_ = z_num[i];
@@ -987,9 +968,9 @@ inline void APRAccess::initialize_structure_from_particle_cell_tree(APRParameter
         const size_t x_num_ds = x_num[i - 1];
         const size_t y_num_ds = y_num[i - 1];
 
-#ifdef HAVE_OPENMP
-#pragma omp parallel for default(shared) if(z_num_*x_num_ > 100)
-#endif
+        #ifdef HAVE_OPENMP
+        #pragma omp parallel for default(shared) if(zLen*xLen > 100)
+        #endif
         for (size_t z = 0; z < z_num_; ++z) {
             for (size_t x = 0; x < x_num_; ++x) {
                 const size_t offset_part_map_ds = (x / 2) * y_num_ds + (z / 2) * y_num_ds * x_num_ds;
@@ -1009,217 +990,188 @@ inline void APRAccess::initialize_structure_from_particle_cell_tree(APRParameter
     }
     apr_timer.stop_timer();
 
+    // ========================================================================
     apr_timer.start_timer("second_step");
+
     ExtraPartCellData<std::pair<uint16_t, YGap_map>> y_begin;
 
     y_begin.depth_max = level_max();
     y_begin.depth_min = level_min();
-
     y_begin.z_num.resize(y_begin.depth_max+1);
     y_begin.x_num.resize(y_begin.depth_max+1);
-    y_begin.data.resize(y_begin.depth_max+1);
+    y_begin.data.resize(y_begin.depth_max+1); // [level][x_num(level) * z + x][y]
 
+    // Initialize sizes for each level with max level of size of level(max-1)
     for (uint64_t i = y_begin.depth_min; i < y_begin.depth_max; ++i) {
         y_begin.x_num[i] = x_num[i];
         y_begin.z_num[i] = z_num[i];
         y_begin.data[i].resize(z_num[i]*x_num[i]);
     }
-
     y_begin.x_num[y_begin.depth_max] = x_num[y_begin.depth_max-1];
     y_begin.z_num[y_begin.depth_max] = z_num[y_begin.depth_max-1];
     y_begin.data[y_begin.depth_max].resize(z_num[y_begin.depth_max-1]*x_num[y_begin.depth_max-1]);
 
+    for (size_t i = (level_min());i < level_max(); ++i) {
+        const size_t xLen = x_num[i];
+        const size_t zLen = z_num[i];
+        const size_t yLen = y_num[i];
 
-    for(size_t i = (level_min());i < level_max();i++) {
-        const size_t x_num_ = x_num[i];
-        const size_t z_num_ = z_num[i];
-        const size_t y_num_ = y_num[i];
-
-#ifdef HAVE_OPENMP
-#pragma omp parallel for default(shared) if(z_num_*x_num_ > 100)
-#endif
-        for (size_t z = 0; z < z_num_; ++z) {
-            for (size_t x = 0; x < x_num_; ++x) {
-                const size_t offset_part_map = x * y_num_ + z * y_num_ * x_num_;
-                const size_t offset_pc_data = x_num_ * z + x;
+        #ifdef HAVE_OPENMP
+        #pragma omp parallel for default(shared) if(zLen*xLen > 100)
+        #endif
+        for (size_t z = 0; z < zLen; ++z) {
+            for (size_t x = 0; x < xLen; ++x) {
+                const size_t offset_pc_data = z * xLen + x;
+                const size_t offset_part_map = yLen * offset_pc_data;
                 uint16_t current = 0;
-                uint16_t previous = 0;
 
                 YGap_map gap;
                 gap.global_index_begin_offset = 0;
                 uint64_t counter = 0;
 
-                for (size_t y = 0; y < y_num_; ++y) {
+                for (size_t y = 0; y < yLen; ++y) {
                     uint8_t status = p_map[i][offset_part_map + y];
-                    if ((status > min_type) && (status < 5)) {
-                        current = 1;
-                        if (previous == 0) {
-                            y_begin.data[i][offset_pc_data].push_back({y,gap});
+                    if ((status > min_type) && (status <= UPSAMPLING_SEED_TYPE)) {
+                        if (current == 0) {
+                            y_begin.data[i][offset_pc_data].push_back({y, gap});
                         }
+                        current = 1;
                     }
                     else {
-                        current = 0;
-                        if (previous == 1) {
+                        if (current == 1) {
                             (y_begin.data[i][offset_pc_data][counter]).second.y_end = (y-1);
                             counter++;
                         }
+                        current = 0;
                     }
-
-                    previous = current;
                 }
                 //end node
-                if (previous == 1) {
-                    (y_begin.data[i][offset_pc_data][counter]).second.y_end = (y_num_-1);
+                if (current == 1) {
+                    (y_begin.data[i][offset_pc_data][counter]).second.y_end = (yLen-1);
                 }
             }
         }
     }
     apr_timer.stop_timer();
 
+    // ========================================================================
     apr_timer.start_timer("third loop");
 
     size_t i = level_max()-1;
 
-    const size_t x_num_ = x_num[i];
-    const size_t z_num_ = z_num[i];
-    const size_t y_num_ = y_num[i];
+    const size_t xLen = x_num[i];
+    const size_t zLen = z_num[i];
+    const size_t yLen = y_num[i];
+    const size_t yLenUpsampled = y_num[i + 1];
 
-    const size_t y_num_us = y_num[i + 1];
-
-#ifdef HAVE_OPENMP
-#pragma omp parallel for default(shared) if(z_num_*x_num_ > 100)
-#endif
-    for (size_t z_ = 0; z_ < z_num_; ++z_) {
-        for (size_t x_ = 0; x_ < x_num_; x_++) {
-            const size_t offset_part_map = x_ * y_num_ + z_ * y_num_ * x_num_;
-            const size_t offset_pc_data1 = std::min(x_num_*(z_) + (x_), x_num_*z_num_ - 1);
+    #ifdef HAVE_OPENMP
+    #pragma omp parallel for default(shared) if(zLen*xLen > 100)
+    #endif
+    for (size_t z = 0; z < zLen; ++z) {
+        for (size_t x = 0; x < xLen; ++x) {
+            const size_t offset_part_map = x * yLen + z * yLen * xLen;
+            const size_t offset_pc_data1 = std::min(xLen*(z) + (x), xLen*zLen - 1);
             uint16_t current = 0;
-            uint16_t previous = 0;
 
             YGap_map gap;
             gap.global_index_begin_offset = 0;
             uint64_t counter = 0;
 
-            for (size_t y_ = 0; y_ < y_num_; ++y_) {
-
-                uint8_t status = p_map[i][offset_part_map + y_];
+            for (size_t y = 0; y < yLen; ++y) {
+                uint8_t status = p_map[i][offset_part_map + y];
                 if (status > 0 && status <= min_type) {
-                    current = 1;
-                    if (previous == 0) {
-                        y_begin.data[i+1][offset_pc_data1].push_back({2*y_,gap});
+                    if (current == 0) {
+                        y_begin.data[i+1][offset_pc_data1].push_back({2*y,gap});
                     }
+                    current = 1;
                 }
                 else {
-                    current = 0;
-                    if (previous == 1) {
-                        y_begin.data[i+1][offset_pc_data1][counter].second.y_end = std::min((uint16_t)(2*(y_-1)+1),(uint16_t)(y_num_us-1));
+                    if (current == 1) {
+                        y_begin.data[i+1][offset_pc_data1][counter].second.y_end = std::min((uint16_t)(2*(y-1)+1),(uint16_t)(yLenUpsampled-1));
                         counter++;
                     }
+                    current = 0;
                 }
-
-                previous = current;
             }
+
             //last gap
-            if (previous == 1) {
-                y_begin.data[i+1][offset_pc_data1][counter].second.y_end = (y_num_us-1);
+            if (current == 1) {
+                y_begin.data[i+1][offset_pc_data1][counter].second.y_end = (yLenUpsampled-1);
             }
         }
     }
 
     apr_timer.stop_timer();
 
+    // ========================================================================
     apr_timer.start_timer("forth loop");
-    //iteration helpers for by level
-    global_index_by_level_begin.resize(level_max()+1,1);
-    global_index_by_level_end.resize(level_max()+1,0);
 
-    size_t cumsum= 0;
+    // Initialize global structures
     total_number_gaps=0;
 
-    size_t min_level_find = level_max();
-    size_t max_level_find = level_min();
+    global_index_by_level_begin.resize(level_max()+1, 1); // TODO: This is dirty hack since later when compute number of particles
+    global_index_by_level_end.resize(level_max()+1, 0);   // TODO: we get 0-1 which will give max num for size_t, change it!!!!
 
-    //set up the iteration helpers for by zslice
-    global_index_by_level_and_z_begin.resize(level_max()+1);
-    global_index_by_level_and_z_end.resize(level_max()+1);
-
-    //zx end for each row
     global_index_by_level_and_zx_end.resize(level_max()+1);
 
-    for (size_t i = level_min(); i <= level_max(); ++i) {
+    size_t cumsum= 0;
+    size_t min_level_find = level_max();
 
-        const size_t x_num_ = y_begin.x_num[i];
-        const size_t z_num_ = y_begin.z_num[i];
+    for (size_t level = level_min(); level <= level_max(); ++level) {
+        const size_t xLen = y_begin.x_num[level];
+        const size_t zLen = y_begin.z_num[level];
 
-        //set up the levels here.
         uint64_t cumsum_begin = cumsum;
 
-        global_index_by_level_and_z_begin[i].resize(z_num_, (-1)); // TODO: -1 sets it to max UINT64, is it correct?
-        global_index_by_level_and_z_end[i].resize(z_num_, 0);
+        global_index_by_level_and_zx_end[level].resize(zLen * xLen, 0);
 
-        //new index
-        global_index_by_level_and_zx_end[i].resize(z_num_ * x_num_, 0);
+        for (size_t z = 0; z < zLen; ++z) {
 
-        for (size_t z_ = 0; z_ < z_num_; z_++) {
-            size_t cumsum_begin_z = cumsum;
-            for (size_t x_ = 0; x_ < x_num_; x_++) {
-                const size_t offset_pc_data = x_num_ * z_ + x_;
+            for (size_t x = 0; x < xLen; ++x) {
+                const size_t offset_xz_data = xLen * z + x;
 
-                uint64_t xz_sum=cumsum;
-                uint16_t local_sum = 0;
+                uint16_t localSizeOfGaps = 0;
 
-                for (size_t j = 0; j < y_begin.data[i][offset_pc_data].size(); ++j) {
+                // process all gaps for given xz coordinates
+                for (size_t y = 0; y < y_begin.data[level][offset_xz_data].size(); ++y) {
+                    min_level_find = std::min(level, min_level_find);
 
-                    min_level_find = std::min(i,min_level_find);
-                    max_level_find = std::max(i,max_level_find);
-
-                    y_begin.data[i][offset_pc_data][j].second.global_index_begin_offset = local_sum;
-                    local_sum+=(y_begin.data[i][offset_pc_data][j].second.y_end-y_begin.data[i][offset_pc_data][j].first)+1;
+                    y_begin.data[level][offset_xz_data][y].second.global_index_begin_offset = localSizeOfGaps;
+                    const auto idxOfLastElementInGap = y_begin.data[level][offset_xz_data][y].second.y_end;
+                    const auto idxOfFirstElementInGap = y_begin.data[level][offset_xz_data][y].first;
+                    const auto sizeOfGap = idxOfLastElementInGap - idxOfFirstElementInGap + 1;
+                    localSizeOfGaps += sizeOfGap;
                     total_number_gaps++;
                 }
 
-                cumsum += local_sum;
+                cumsum += localSizeOfGaps;
 
-                if(i == level_max()) {
-                    //need to deal with the boundary conditions.
-                    xz_sum = cumsum - xz_sum;
-
-                    unsigned int number_rows = ( unsigned int) 1*((2*x_+1) < x_num[i]) + 1*((2*z_+1) < z_num[i]) +  1*((2*z_+1) < z_num[i])*((2*x_+1) < x_num[i]);
-
-                    cumsum += xz_sum * number_rows;
-
-                    global_index_by_level_and_zx_end[i][offset_pc_data] = cumsum;
-                } else {
-                    global_index_by_level_and_zx_end[i][offset_pc_data] = cumsum;
+                if (level == level_max()) {
+                    // need to deal with the boundary conditions: on upsampled level we have rows X Y
+                    //                                                                            Y Y
+                    // where X gaps are calculated above and all Y gaps (if included in domain) are handled below
+                    int number_rows = 1 * ((2*x+1) < x_num[level]) +
+                                      1 * ((2*z+1) < z_num[level]) +
+                                      1 * ((2*z+1) < z_num[level]) * ((2*x+1) < x_num[level]);
+                    cumsum += localSizeOfGaps * number_rows;
                 }
 
-            }
-            if (cumsum!=cumsum_begin_z) {
-                global_index_by_level_and_z_end[i][z_] = cumsum - 1;
-                global_index_by_level_and_z_begin[i][z_] = cumsum_begin_z;
+                global_index_by_level_and_zx_end[level][offset_xz_data] = cumsum;
             }
         }
 
         if (cumsum != cumsum_begin) {
-            global_index_by_level_begin[i] = cumsum_begin;
-        }
-        if(cumsum != cumsum_begin){
-            global_index_by_level_end[i] = cumsum-1;
+            global_index_by_level_begin[level] = cumsum_begin;
+            global_index_by_level_end[level] = cumsum-1;
         }
     }
     total_number_particles = cumsum;
     apr_timer.stop_timer();
 
-
-    //set minimum level now to the first non-empty level.
-    //l_min = min_level_find;
-    //level_max = max_level_find;
     total_number_non_empty_rows=0;
 
     apr_timer.start_timer("insert");
-
     allocate_map_insert(y_begin);
-
     apr_timer.stop_timer();
 }
 
@@ -1350,10 +1302,6 @@ void APRAccess::init_data_structure_tree(APRAccess& APROwn_access, ExtraPartCell
     uint64_t min_level_find = level_max();
     uint64_t max_level_find = level_min();
 
-//set up the iteration helpers for by zslice
-    global_index_by_level_and_z_begin.resize(level_max()+1);
-    global_index_by_level_and_z_end.resize(level_max()+1);
-
     global_index_by_level_and_zx_end.resize(level_max()+1);
 
     for(uint64_t i = (level_min());i < level_max();i++) {
@@ -1364,15 +1312,9 @@ void APRAccess::init_data_structure_tree(APRAccess& APROwn_access, ExtraPartCell
 //set up the levels here.
         uint64_t cumsum_begin = cumsum;
 
-        global_index_by_level_and_z_begin[i].resize(z_num_,(-1));
-        global_index_by_level_and_z_end[i].resize(z_num_,0);
-
         global_index_by_level_and_zx_end[i].resize(z_num_ * x_num_, 0);
 
         for (z_ = 0; z_ < z_num_; z_++) {
-            uint64_t cumsum_begin_z = cumsum;
-
-
             for (x_ = 0; x_ < x_num_; x_++) {
                 const size_t offset_pc_data = x_num_ * z_ + x_;
 
@@ -1394,11 +1336,6 @@ void APRAccess::init_data_structure_tree(APRAccess& APROwn_access, ExtraPartCell
 
 
             }
-            if(cumsum!=cumsum_begin_z) {
-                global_index_by_level_and_z_end[i][z_] = cumsum - 1;
-                global_index_by_level_and_z_begin[i][z_] = cumsum_begin_z;
-            }
-
         }
 
         if(cumsum!=cumsum_begin){
@@ -1781,10 +1718,6 @@ void APRAccess::initialize_structure_from_particle_cell_tree_sparse(APRParameter
     size_t min_level_find = level_max();
     size_t max_level_find = level_min();
 
-    //set up the iteration helpers for by zslice
-    global_index_by_level_and_z_begin.resize(level_max()+1);
-    global_index_by_level_and_z_end.resize(level_max()+1);
-
     //zx end for each row
     global_index_by_level_and_zx_end.resize(level_max()+1);
 
@@ -1795,9 +1728,6 @@ void APRAccess::initialize_structure_from_particle_cell_tree_sparse(APRParameter
 
         //set up the levels here.
         uint64_t cumsum_begin = cumsum;
-
-        global_index_by_level_and_z_begin[i].resize(z_num_, (-1)); // TODO: -1 sets it to max UINT64, is it correct?
-        global_index_by_level_and_z_end[i].resize(z_num_, 0);
 
         //new index
         global_index_by_level_and_zx_end[i].resize(z_num_ * x_num_, 0);
@@ -1835,10 +1765,6 @@ void APRAccess::initialize_structure_from_particle_cell_tree_sparse(APRParameter
                     global_index_by_level_and_zx_end[i][offset_pc_data] = cumsum;
                 }
 
-            }
-            if (cumsum!=cumsum_begin_z) {
-                global_index_by_level_and_z_end[i][z_] = cumsum - 1;
-                global_index_by_level_and_z_begin[i][z_] = cumsum_begin_z;
             }
         }
 

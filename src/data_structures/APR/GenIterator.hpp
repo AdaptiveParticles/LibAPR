@@ -71,34 +71,11 @@ public:
     uint64_t spatial_index_y_max(const unsigned int level);
     uint64_t spatial_index_z_max(const unsigned int level);
 
-//    unsigned long number_gaps(){
-//        if(apr_access->gap_map.data[current_particle_cell.level][current_particle_cell.pc_offset].size() > 0) {
-//            return apr_access->gap_map.data[current_particle_cell.level][current_particle_cell.pc_offset][0].map.size();
-//        } else {
-//            return 0;
-//        }
-//    }
-
     inline void set_neighbour_flag();
-
-//    uint64_t current_gap_y_begin(){
-//        return current_gap.iterator->first;
-//    }
-//
-//    uint64_t current_gap_y_end(){
-//        return current_gap.iterator->second.y_end;
-//    }
-//
-//    uint64_t current_gap_index(){
-//        return current_gap.iterator->second.global_index_begin_offset; //#fixme
-//    }
-
 
     GenIterator(){
         //default constructor, for use by inherited classes
     }
-
-
 };
 
 
@@ -120,20 +97,6 @@ inline uint64_t GenIterator::particles_level_end(const uint16_t& level_){
     //  Find the last particle on a given level
     //
     return (apr_access->global_index_by_level_end[level_]+1l);
-}
-
-inline uint64_t GenIterator::particles_z_begin(const uint16_t& level_,const uint64_t& z_){
-    //
-    //  Used for finding the starting particle on a given level
-    //
-    return apr_access->global_index_by_level_and_z_begin[level_][z_];
-}
-
-inline uint64_t GenIterator::particles_z_end(const uint16_t& level_,const uint64_t& z_){
-    //
-    //  Used for finding the starting particle on a given level
-    //
-    return apr_access->global_index_by_level_and_z_end[level_][z_]+1l;
 }
 
 inline uint64_t GenIterator::particles_zx_begin(const uint16_t& level_,const uint64_t& z_,const uint64_t& x_){

@@ -171,13 +171,13 @@ namespace {
 
     TEST(ComputeGradientTest, 2D_XY_BSPLINE_Y_DIR) {
         {   // values in corners and in middle
-            PixelData<float> m(5, 7, 1, 0);
+            PixelData<float> m(5, 7, 1, 0); 
             // expect gradient is 3x3 X/Y plane
-            float expect[] = {0.58, 0.00, 0.00, 0.08, 0.00, 0.00, 1.71,
-                              0.56, 0.00, 0.00, 0.11, 0.00, 0.00, 1.51,
-                              0.63, 0.00, 0.00, 0.11, 0.00, 0.00, 1.42,
-                              0.88, 0.00, 0.00, 0.00, 0.00, 0.00, 1.75,
-                              1.17, 0.00, 0.00, 0.00, 0.00, 0.00, 2.34};
+            float expect[] = {0.62, 0.00, 0.00, 0.22, 0.00, 0.00, 1.82,
+                              0.57, 0.00, 0.00, 0.25, 0.00, 0.00, 1.57,
+                              0.67, 0.00, 0.00, 0.31, 0.00, 0.00, 1.56,
+                              0.94, 0.00, 0.00, 0.26, 0.00, 0.00, 1.96,
+                              1.19, 0.00, 0.00, 0.24, 0.00, 0.00, 2.40};
             // put values in corners
             m(2, 3, 0) = 1;
             m(0, 0, 0) = 2;
@@ -187,46 +187,46 @@ namespace {
 
             // Calculate bspline on CPU
             PixelData<float> mCpu(m, true);
-            ComputeGradient cg;
+            ComputeGradient cg; 
             cg.bspline_filt_rec_y(mCpu, 3.0, 0.0001);
             ASSERT_TRUE(compare(mCpu, expect, 0.01));
-        }
+        }   
         {   // single point set in the middle
-            PixelData<float> m(9, 3, 1, 0);
+            PixelData<float> m(9, 3, 1, 0); 
             // expect gradient is 3x3 X/Y plane
             float expect[] = {0.00, 0.01, 0.00,
-                              0.00, 0.05, 0.00,
-                              0.00, 0.12, 0.00,
-                              0.00, 0.22, 0.00,
+                              0.00, 0.03, 0.00,
+                              0.00, 0.10, 0.00,
+                              0.00, 0.20, 0.00,
                               0.00, 0.28, 0.00,
-                              0.00, 0.19, 0.00,
-                              0.00, 0.08, 0.00,
-                              0.00, 0.00, 0.00,
-                              0.00, 0.00, 0.00};
+                              0.00, 0.20, 0.00,
+                              0.00, 0.10, 0.00,
+                              0.00, 0.03, 0.00,
+                              0.00, 0.01, 0.00};
             // put values in corners
             m(4, 1, 0) = 1;
 
             // Calculate bspline on CPU
             PixelData<float> mCpu(m, true);
-            ComputeGradient cg;
+            ComputeGradient cg; 
             cg.bspline_filt_rec_y(mCpu, 3.0, 0.0001);
             ASSERT_TRUE(compare(mCpu, expect, 0.01));
-        }
+        }   
         {   // two pixel image 1x2x1
-            PixelData<float> m(2, 1, 1, 0);
+            PixelData<float> m(2, 1, 1, 0); 
             // expect gradient is 3x3 X/Y plane
-            float expect[] = {0,
-                              0};
+            float expect[] = {0.41,
+                              0.43};
             // put values in corners
             m(0, 0, 0) = 1;
 
             // Calculate bspline on CPU
             PixelData<float> mCpu(m, true);
-            ComputeGradient cg;
+            ComputeGradient cg; 
             cg.bspline_filt_rec_y(mCpu, 3.0, 0.0001);
             ASSERT_TRUE(compare(mCpu, expect, 0.01));
-        }
-    }
+        }   
+    }   
 
     TEST(ComputeInverseBspline, CALC_INV_BSPLINE_Y) {
         using ImgType = float;

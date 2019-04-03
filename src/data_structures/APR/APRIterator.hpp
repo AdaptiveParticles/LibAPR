@@ -138,7 +138,6 @@ inline uint64_t APRIterator::set_new_lzx(const uint16_t level,const uint16_t z,c
 
                 return this->current_particle_cell.global_index;
             } else {
-
                 this->end_index = 0;
                 this->current_particle_cell.y = UINT16_MAX;
 
@@ -165,11 +164,10 @@ inline uint64_t APRIterator::set_new_lzx(const uint16_t level,const uint16_t z,c
 
                 return this->current_particle_cell.global_index;
             } else {
-
                 this->end_index = 0;
                 this->current_particle_cell.y = UINT16_MAX;
-
-                return UINT64_MAX;
+                
+		return UINT64_MAX;
             }
 
         }
