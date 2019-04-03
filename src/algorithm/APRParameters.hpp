@@ -30,6 +30,8 @@ public:
     float sigma_th = 0;
     float sigma_th_max = 0;
 
+    float grad_th = 0;
+
     int extra_smooth = 0;
 
     float noise_sd_estimate = 0;

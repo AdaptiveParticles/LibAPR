@@ -1655,7 +1655,7 @@ void APRAccess::initialize_structure_from_particle_cell_tree_sparse(APRParameter
         const size_t y_num_ = y_num[i];
 
 #ifdef HAVE_OPENMP
-#pragma omp parallel for default(shared) if(z_num_*x_num_ > 100)
+//#pragma omp parallel for default(shared) if(z_num_*x_num_ > 100)
 #endif
         for (size_t z = 0; z < z_num_; ++z) {
             for (size_t x = 0; x < x_num_; ++x) {

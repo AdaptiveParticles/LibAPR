@@ -682,4 +682,163 @@ void downsamplePyrmaid(PixelData<T> &original_image, std::vector<PixelData<T>> &
     }
 }
 
+
+template<typename T>
+void padd_boundary2(PixelData<T>& input,PixelData<T>& input_pad,int sz){
+
+    int sz_y,sz_x,sz_z;
+
+    if(input.y_num > 1){
+        sz_y = sz;
+    } else {
+        sz_y = 0;
+    }
+
+    if(input.x_num > 1){
+        sz_x = sz;
+    } else {
+        sz_x = 0;
+    }
+
+    if(input.z_num > 1){
+        sz_z = sz;
+    } else {
+        sz_z = 0;
+    }
+
+    input_pad.init(input.y_num + 2*sz_y,input.x_num + 2*sz_x,input.z_num + 2*sz_z);
+
+    //copy across internal
+
+    int j = 0;
+#ifdef HAVE_OPENMP
+#pragma omp parallel for schedule(dynamic) private(j)
+#endif
+    for (j = 0; j < input.z_num; ++j) {
+        for (int i = 0; i < input.x_num; ++i) {
+            for (int k = 0; k < input.y_num; ++k) {
+                input_pad.at(k+sz_y,i+sz_x,j+sz_z)=input.at(k,i,j);
+            }
+        }
+    }
+
+
+    if(input.y_num > 1) {
+
+#ifdef HAVE_OPENMP
+#pragma omp parallel for schedule(dynamic) private(j)
+#endif
+        for (j = 0; j < input_pad.z_num; ++j) {
+            for (int i = 0; i < input_pad.x_num; ++i) {
+
+                for (int k = 0; k < (sz_y); ++k) {
+                    input_pad.at(k, i, j) = input_pad.at(2 * sz_y - k, i, j);
+                }
+
+                int idx = sz_y+1;
+                for (int k = (input_pad.y_num - (sz_y)); k < input_pad.y_num; ++k) {
+
+                    input_pad.at(k, i, j) = input_pad.at(input_pad.y_num - idx, i, j);
+                    idx++;
+                }
+            }
+        }
+    }
+
+    if(input.x_num > 1) {
+
+#ifdef HAVE_OPENMP
+#pragma omp parallel for schedule(dynamic) private(j)
+#endif
+        for (j = 0; j < input_pad.z_num; ++j) {
+            for (int i = 0; i < (sz_x); ++i) {
+                for (int k = 0; k < input_pad.y_num; ++k) {
+                    input_pad.at(k, i, j) = input_pad.at(k, 2 * sz_x - i, j);
+                }
+            }
+            int idx = sz_x+1;
+            for (int i = (input_pad.x_num - (sz_x)); i < input_pad.x_num; ++i) {
+                for (int k = 0; k < input_pad.y_num; ++k) {
+                    input_pad.at(k, i, j) = input_pad.at(k, input_pad.x_num - idx, j);
+
+                }
+                idx++;
+            }
+        }
+    }
+
+    //z loops
+    if(input.z_num > 1) {
+#ifdef HAVE_OPENMP
+#pragma omp parallel for schedule(dynamic) private(j)
+#endif
+        for (j = 0; j < (sz_z); ++j) {
+            for (int i = 0; i < input_pad.x_num; ++i) {
+                for (int k = 0; k < input_pad.y_num; ++k) {
+                    input_pad.at(k, i, j) = input_pad.at(k, i, 2 * sz_z - j);
+                }
+            }
+        }
+
+#ifdef HAVE_OPENMP
+#pragma omp parallel for schedule(dynamic) private(j)
+#endif
+        for (int j = (input_pad.z_num - (sz_z)); j < input_pad.z_num; ++j) {
+            auto idx = sz_z+1 + j - (input_pad.z_num - (sz_z));
+            for (int i = 0; i < input_pad.x_num; ++i) {
+                for (int k = 0; k < input_pad.y_num; ++k) {
+                    input_pad.at(k, i, j) = input_pad.at(k, i, input_pad.z_num - idx);
+                }
+            }
+
+        }
+    }
+
+
+}
+
+template<typename T>
+void un_padd_boundary(PixelData<T>& input,PixelData<T>& input_un_pad,int sz) {
+
+    int sz_y,sz_x,sz_z;
+
+    if(input.y_num > 1){
+        sz_y = sz;
+    } else {
+        sz_y = 0;
+    }
+
+    if(input.x_num > 1){
+        sz_x = sz;
+    } else {
+        sz_x = 0;
+    }
+
+    if(input.z_num > 1){
+        sz_z = sz;
+    } else {
+        sz_z = 0;
+    }
+
+    input_un_pad.init(input.y_num - 2 * sz_y, input.x_num - 2 * sz_x, input.z_num - 2 * sz_z);
+
+    int j = 0;
+#ifdef HAVE_OPENMP
+#pragma omp parallel for schedule(dynamic) private(j)
+#endif
+    //copy across internal
+    for (j = 0; j < input_un_pad.z_num; ++j) {
+        for (int i = 0; i < input_un_pad.x_num; ++i) {
+            for (int k = 0; k < input_un_pad.y_num; ++k) {
+                input_un_pad.at(k,i,j) = input.at(k + sz_y, i + sz_x, j + sz_z);
+            }
+        }
+    }
+}
+
+
+
+
+
+
 #endif //PIXEL_DATA_HPP

@@ -122,7 +122,7 @@ public:
     template<typename T>
     void erode_sol(PixelData<T>& input){
         PixelData<uint8_t> output;
-        output.init(input);
+        output.initWithValue(input.y_num,input.x_num,input.z_num,0);
 
         int i = 0;
 #ifdef HAVE_OPENMP
