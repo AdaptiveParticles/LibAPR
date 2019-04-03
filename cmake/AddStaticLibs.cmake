@@ -29,6 +29,7 @@ function(addStaticLibs outLibTarget)
 				COMMAND libtool -static -o ${outLibFile} ${outLibFile} ${filesToMerge})
     # --------------- UNIX -------------------
 	elseif(UNIX)
+		message("Linking on UNIX, lol!")
 		foreach(lib ${libsToMerge})
 			set(libObjDir mergedLibs/${lib}.objDir)
 
@@ -46,6 +47,9 @@ function(addStaticLibs outLibTarget)
 		endforeach()
     # --------------- Windows ---------------
 	elseif(WIN32)
-		set_target_properties(${outLibTarget} PROPERTIES STATIC_LIBRARY_FLAGS "${filesToMerge}")
+		message("building on windows!")
+		#set_target_properties(${outLibTarget} PROPERTIES STATIC_LIBRARY_FLAGS "${filesToMerge}")
+		add_custom_command(TARGET ${outLibTarget} POST_BUILD
+			COMMAND lib.exe /OUT:${outLibFile} ${filesToMerge})
 	endif()
 endfunction()
