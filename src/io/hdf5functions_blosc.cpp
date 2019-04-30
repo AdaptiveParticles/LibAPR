@@ -173,8 +173,8 @@ uint64_t hdf5_write_data_blosc_append(hid_t obj_id, hid_t type_id, const char *d
 
     hsize_t offset = current_dim;
     hsize_t count = num_2_add[0];
-    hsize_t stride = 1;
-    hsize_t block = 1;
+    //hsize_t stride = 1;
+    //hsize_t block = 1;
 
     dataspace_id = H5Dget_space (dset_id);
     H5Sselect_hyperslab (dataspace_id, H5S_SELECT_SET, &offset,
@@ -299,7 +299,7 @@ void hdf5_write_attribute_blosc(hid_t obj_id,hid_t type_id,const char* attr_name
  */
 hid_t hdf5_create_file_blosc(std::string file_name){
 
-    hid_t fcpl_id=H5Pcreate(H5P_FILE_CREATE);
+    //hid_t fcpl_id=H5Pcreate(H5P_FILE_CREATE);
     //H5Pset_file_space(fcpl_id,H5F_FILE_SPACE_ALL_PERSIST,(hsize_t)0);
 
     //return H5Fcreate(file_name.c_str(),H5F_ACC_TRUNC, fcpl_id, H5P_DEFAULT); //this writes over the current file

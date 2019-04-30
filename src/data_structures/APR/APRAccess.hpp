@@ -1337,7 +1337,7 @@ inline void APRAccess::initialize_tree_access_sparse(APRAccess& APROwn_access, s
     //initialize loop variables
     uint64_t x_;
     uint64_t z_;
-    uint64_t y_,status;
+
 
     apr_timer.start_timer("init structure");
 
@@ -1364,8 +1364,8 @@ inline void APRAccess::initialize_tree_access_sparse(APRAccess& APROwn_access, s
 
         const uint64_t x_num_ = x_num[i];
         const uint64_t z_num_ = z_num[i];
-        const uint64_t y_num_ = y_num[i];
 
+        int y_=0;
 
 #ifdef HAVE_OPENMP
 #pragma omp parallel for schedule(dynamic) default(shared) private(z_, x_,y_) if(z_num_*x_num_ > 100)
@@ -1376,7 +1376,7 @@ inline void APRAccess::initialize_tree_access_sparse(APRAccess& APROwn_access, s
                 const size_t offset_pc_data = x_num_ * z_ + x_;
 
                 uint16_t current = 0;
-                uint16_t previous = 0;
+
 
                 YGap_map gap;
                 gap.global_index_begin_offset = 0;
@@ -1436,7 +1436,7 @@ void APRAccess::initialize_structure_from_particle_cell_tree_sparse(APRParameter
         const size_t z_num_ = z_num[i];
         const size_t y_num_ = y_num[i];
         const size_t x_num_ds = x_num[i - 1];
-        const size_t y_num_ds = y_num[i - 1];
+
 
 #ifdef HAVE_OPENMP
 #pragma omp parallel for default(shared) if(z_num_*x_num_ > 100)
@@ -1494,10 +1494,10 @@ void APRAccess::initialize_structure_from_particle_cell_tree_sparse(APRParameter
     for(size_t i = (level_min());i < level_max();i++) {
         const size_t x_num_ = x_num[i];
         const size_t z_num_ = z_num[i];
-        const size_t y_num_ = y_num[i];
+
 
 #ifdef HAVE_OPENMP
-//#pragma omp parallel for default(shared) if(z_num_*x_num_ > 100)
+#pragma omp parallel for default(shared) if(z_num_*x_num_ > 100)
 #endif
         for (size_t z = 0; z < z_num_; ++z) {
             for (size_t x = 0; x < x_num_; ++x) {
@@ -1555,9 +1555,7 @@ void APRAccess::initialize_structure_from_particle_cell_tree_sparse(APRParameter
 
     const size_t x_num_ = x_num[i];
     const size_t z_num_ = z_num[i];
-    const size_t y_num_ = y_num[i];
-    const size_t x_num_us = x_num[i + 1];
-    const size_t z_num_us = z_num[i + 1];
+
     const size_t y_num_us = y_num[i + 1];
 
 #ifdef HAVE_OPENMP
@@ -1568,7 +1566,7 @@ void APRAccess::initialize_structure_from_particle_cell_tree_sparse(APRParameter
 
             const size_t offset_pc_data1 = std::min(x_num_*(z_) + (x_), x_num_*z_num_ - 1);
             uint16_t current = 0;
-            uint16_t previous = 0;
+
 
             YGap_map gap;
             gap.global_index_begin_offset = 0;
@@ -1638,7 +1636,7 @@ void APRAccess::initialize_structure_from_particle_cell_tree_sparse(APRParameter
         global_index_by_level_and_zx_end[i].resize(z_num_ * x_num_, 0);
 
         for (size_t z_ = 0; z_ < z_num_; z_++) {
-            size_t cumsum_begin_z = cumsum;
+
             for (size_t x_ = 0; x_ < x_num_; x_++) {
                 const size_t offset_pc_data = x_num_ * z_ + x_;
 

@@ -32,8 +32,8 @@ public:
     void generate_smooth_stencil(std::vector<PixelData<T>>& stencils){
 
         unsigned int dim = 3;
-        unsigned int order = 1;
-        unsigned int padd = 1;
+//        unsigned int order = 1;
+//        unsigned int padd = 1;
 
         std::vector<int> derivative = {0,0,0};
 

@@ -128,8 +128,7 @@ public:
         for (unsigned int level = (apr_iterator.level_max()); level >= apr_iterator.level_min(); --level) {
             int z_d = 0;
             int x_d = 0;
-            int z =0;
-            int x =0;
+
             if (level < (apr.level_max())) {
 #ifdef HAVE_OPENMP
 #pragma omp parallel for schedule(dynamic) private(z_d, x_d) firstprivate(apr_iterator)

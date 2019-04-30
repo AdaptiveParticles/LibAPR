@@ -18,7 +18,7 @@ option(APR_PREFER_EXTERNAL_GTEST "When found, use the installed GTEST libs inste
 option(APR_PREFER_EXTERNAL_BLOSC "When found, use the installed BLOSC libs instead of included sources" OFF)
 option(APR_BUILD_PYTHON_WRAPPERS "Build APR PYTHON wrappers (experimental - under development)" OFF)
 option(APR_USE_CUDA "should APR use CUDA? (experimental - under development)" OFF)
-option(APR_USE_OPENMP "should APR use OpenMP?" OFF)
+option(APR_USE_OPENMP "should APR use OpenMP?" ON)
 option(APR_BENCHMARK "add benchmarking code" OFF)
 
 # Validation of options

@@ -21,13 +21,13 @@ struct FileSizeInfo {
 };
 
 struct FileSizeInfoTime {
-    float total_file_size=0;
-    float update_fp = 0;
-    float update_index = 0;
-    float add_index = 0;
-    float add_fp = 0;
-    float remove_index = 0;
-    float remove_fp = 0;
+//    float total_file_size=0;
+//    float update_fp = 0;
+//    float update_index = 0;
+//    float add_index = 0;
+//    float add_fp = 0;
+//    float remove_index = 0;
+//    float remove_fp = 0;
 };
 
 
@@ -80,7 +80,7 @@ namespace AprTypes  {
     const AprType ParaviewYType = {H5T_NATIVE_UINT16, "y"};
     const AprType ParaviewZType = {H5T_NATIVE_UINT16, "z"};
     const AprType ParaviewLevelType = {H5T_NATIVE_UINT8, "level"};
-    const AprType ParaviewTypeType = {H5T_NATIVE_UINT8, "type"};
+   // const AprType ParaviewTypeType = {H5T_NATIVE_UINT8, "type"};
 }
 
 
@@ -136,8 +136,6 @@ public:
 
     bool time_adaptation_check(const std::string &file_name){
         AprFile::Operation op;
-
-        size_t number_time_steps = 0;
 
         op = AprFile::Operation::READ;
 
@@ -205,7 +203,7 @@ public:
         readAttr(AprTypes::MinLevelType, dataset_id, &aprAccess.l_min);
 
         readAttr(AprTypes::TotalNumberOfNonEmptyRowsType, dataset_id, &aprAccess.total_number_non_empty_rows);
-        uint64_t type_size;
+
         readAttr(AprTypes::NumberOfYType, dataset_id, &aprAccess.org_dims[0]);
         readAttr(AprTypes::NumberOfXType, dataset_id, &aprAccess.org_dims[1]);
         readAttr(AprTypes::NumberOfZType,dataset_id, &aprAccess.org_dims[2]);
