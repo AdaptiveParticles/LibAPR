@@ -237,9 +237,14 @@ void ComputeGradient::bspline_filt_rec_y(PixelData<T>& image,float lambda,float 
             float temp4 = 0;
             const size_t iynum = x * y_num;
 
+            //boundary conditions
             for (size_t k = 0; k < k0; ++k) {
                 temp1 += bc1_vec[k]*image.mesh[jxnumynum + iynum + k];
                 temp2 += bc2_vec[k]*image.mesh[jxnumynum + iynum + k];
+            }
+
+            //boundary conditions
+            for (size_t k = 0; k < k0; ++k) {
                 temp3 += bc3_vec[k]*image.mesh[jxnumynum + iynum + y_num - 1 - k];
                 temp4 += bc4_vec[k]*image.mesh[jxnumynum + iynum + y_num - 1 - k];
             }
@@ -255,8 +260,10 @@ void ComputeGradient::bspline_filt_rec_y(PixelData<T>& image,float lambda,float 
                 temp1 = temp;
             }
 
-            image.mesh[jxnumynum + iynum + y_num - 2] = temp3;
-            image.mesh[jxnumynum + iynum + y_num - 1] = temp4;
+            image.mesh[jxnumynum + iynum + y_num - 2] = temp3*norm_factor;
+            image.mesh[jxnumynum + iynum + y_num - 1] = temp4*norm_factor;
+
+
         }
     }
     btime.stop_timer();
@@ -272,15 +279,14 @@ void ComputeGradient::bspline_filt_rec_y(PixelData<T>& image,float lambda,float 
         for (int64_t i = x_num - 1; i >= 0; --i) {
             const size_t iynum = i * y_num;
 
-            float temp2 = image.mesh[jxnumynum + iynum + y_num - 1];
-            float temp1 = image.mesh[jxnumynum + iynum + y_num - 2];
-
-            image.mesh[jxnumynum + iynum + y_num - 1]*=norm_factor;
-            image.mesh[jxnumynum + iynum + y_num - 2]*=norm_factor;
+            float temp2 = image.mesh[jxnumynum + iynum + y_num - 1]/norm_factor;
+            float temp1 = image.mesh[jxnumynum + iynum + y_num - 2]/norm_factor;
 
             for (auto it = (image.mesh.begin()+jxnumynum + iynum + y_num-3); it !=  (image.mesh.begin()+jxnumynum + iynum-1); --it) {
                 float temp = temp1*b1 + temp2*b2 + *it;
+
                 *it = temp*norm_factor;
+
                 temp2 = temp1;
                 temp1 = temp;
             }
