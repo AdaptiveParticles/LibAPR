@@ -14,7 +14,7 @@ Labeled Zebrafish nuclei: Gopi Shah, Huisken Lab ([MPI-CBG](https://www.mpi-cbg.
 * HDF5 1.8.20 or higher
 * OpenMP > 3.0 (optional, but suggested)
 * CMake 3.6 or higher
-* LibTIFF 5.0 or higher
+* LibTIFF 4.0 or higher
 * SWIG 3.0.12 (optional, for generating Java wrappers)
 
 NB: This branch introduces changes to IO and iteration that are not compatable with old versions.
