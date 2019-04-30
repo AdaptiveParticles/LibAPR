@@ -102,12 +102,14 @@ public:
 
         APRTree<S> local_tree;
 
+        ExtraParticleData<float> tree_parts;
+
         //is apr tree initialized. #FIX ME Need new check
         //if(apr.apr_tree.total_number_parent_cells() == 0){
         local_tree.init(apr); //#FIXME
         //local_tree.fill_tree_mean_downsample(parts)
 
-        local_tree.fill_tree_mean(apr,local_tree,parts,local_tree.particles_ds_tree);
+        local_tree.fill_tree_mean(apr,local_tree,parts,tree_parts);
 
 
         MeshNumerics meshNumerics;
@@ -173,7 +175,7 @@ public:
                             //
 
                             temp_imgs[level].at(apr_tree_iterator.y(), apr_tree_iterator.x(),
-                                                apr_tree_iterator.z()) = local_tree.particles_ds_tree[apr_tree_iterator];
+                                                apr_tree_iterator.z()) = tree_parts[apr_tree_iterator];
 
                         }
                     }
@@ -186,8 +188,10 @@ public:
 
 
             if(smooth) {
+                if(level!=apr.level_max()) {
 
-                meshNumerics.apply_stencil(temp_imgs[level], stencils[curr_stencil]);
+                    meshNumerics.apply_stencil(temp_imgs[level], stencils[curr_stencil]);
+                }
 
             }
 

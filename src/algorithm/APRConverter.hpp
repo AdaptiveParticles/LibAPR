@@ -620,7 +620,7 @@ inline void APRConverter<ImageType>::init_apr(APR<ImageType>& aAPR,PixelData<T>&
 
     int levelMax = ceil(std::log2(max_dim));
     // TODO: why minimum level is forced here to be 2?
-    int levelMin = std::max( (int)(levelMax - floor(std::log2(min_dim))), 2);
+    int levelMin = std::max( (int)(levelMax - floor(std::log2(min_dim))), 1);
 
     aAPR.apr_access.l_min = levelMin;
     aAPR.apr_access.l_max = levelMax;
