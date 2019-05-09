@@ -61,6 +61,19 @@ public:
     uint64_t spatial_index_y_max(const unsigned int level);
     uint64_t spatial_index_z_max(const unsigned int level);
 
+    inline uint64_t x_num(const unsigned int level){
+        return spatial_index_x_max(level);
+    }
+
+    inline uint64_t y_num(const unsigned int level){
+        return spatial_index_y_max(level);
+    }
+
+    inline uint64_t z_num(const unsigned int level){
+        return spatial_index_z_max(level);
+    }
+
+
     inline void set_neighbour_flag();
 
     MapIterator& get_local_iterator(LocalMapIterators& local_iterators,const uint16_t& level_delta,const uint16_t& face,const uint16_t& index) const {

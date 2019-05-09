@@ -167,22 +167,19 @@ public:
      */
     template<typename U,typename V>
     void get_parts_from_img(std::vector<PixelData<U>>& img_by_level,ExtraParticleData<V>& parts){
-        auto apr_iterator = iterator();
-        parts.data.resize(apr_iterator.total_number_particles());
-        std::cout << "Total number of particles: " << apr_iterator.total_number_particles() << std::endl;
+        auto it = iterator();
+        parts.data.resize(it.total_number_particles());
+        std::cout << "Total number of particles: " << it.total_number_particles() << std::endl;
 
-        for (unsigned int level = apr_iterator.level_min(); level <= apr_iterator.level_max(); ++level) {
-
+        for (unsigned int level = it.level_min(); level <= it.level_max(); ++level) {
             #ifdef HAVE_OPENMP
-            #pragma omp parallel for schedule(dynamic) firstprivate(apr_iterator)
+            #pragma omp parallel for schedule(dynamic) firstprivate(it)
             #endif
-            for (int z = 0; z < apr_iterator.spatial_index_z_max(level); ++z) {
-                for (int x = 0; x < apr_iterator.spatial_index_x_max(level); ++x) {
-                    for (apr_iterator.set_new_lzx(level, z, x);
-                         apr_iterator.global_index() < apr_iterator.end_index;
-                         apr_iterator.set_iterator_to_particle_next_particle()) {
+            for (int z = 0; z < it.z_num(level); ++z) {
+                for (int x = 0; x < it.x_num(level); ++x) {
+                    for (it.begin(level, z, x);it <it.end();it++) {
 
-                        parts[apr_iterator] = img_by_level[level].at(apr_iterator.y(),x,z);
+                        parts[it] = img_by_level[level].at(it.y(),x,z);
                     }
                 }
             }

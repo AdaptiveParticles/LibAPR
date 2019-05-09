@@ -42,13 +42,23 @@ public:
         return particleCellDataKey;
     }
 
-    bool operator ++(){
+    inline bool operator++ (int){
         return set_iterator_to_particle_next_particle();
     }
 
-    uint64_t end(){
+    inline bool operator++ (){
+        return set_iterator_to_particle_next_particle();
+    }
+
+    inline uint64_t end(){
         return end_index;
     }
+
+    inline uint64_t begin(const uint16_t level,const uint16_t z,const uint16_t x){
+        return set_new_lzx(level,z,x);
+    }
+
+
 
 
     // Todo make various begin functions. blank(), with level, with x,z, with level,
@@ -167,7 +177,7 @@ inline uint64_t APRIterator::set_new_lzx(const uint16_t level,const uint16_t z,c
                 this->end_index = 0;
                 this->current_particle_cell.y = UINT16_MAX;
                 
-		return UINT64_MAX;
+		        return UINT64_MAX;
             }
 
         }
@@ -252,13 +262,19 @@ inline bool APRIterator::set_iterator_to_particle_next_particle(){
 
     } else {
 
-        //not in the same gap
-        this->current_gap.iterator++;//move the iterator forward.
+        this->current_particle_cell.global_index++;
+
+        if(this->current_particle_cell.global_index >= this->end_index){
+            return false;
+        }
 
         particleCellDataKey.local_ind++;
 
+        //not in the same gap
+        this->current_gap.iterator++;//move the iterator forward.
+
         //I am in the next gap
-        this->current_particle_cell.global_index++;
+
         this->current_particle_cell.y = this->current_gap.iterator->first; // the key is the first y value for the gap
         return true;
     }
