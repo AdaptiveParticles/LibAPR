@@ -63,14 +63,18 @@ int runAPR(cmdLineOptions options) {
     apr.parameters.name = options.output;
     apr.parameters.output_dir = options.output_dir;
 
-    apr.apr_converter.fine_grained_timer.verbose_flag = false;
-    apr.apr_converter.method_timer.verbose_flag = false;
-    apr.apr_converter.computation_timer.verbose_flag = false;
-    apr.apr_converter.allocation_timer.verbose_flag = false;
-    apr.apr_converter.total_timer.verbose_flag = true;
+    APRConverter<uint16_t> aprConverter;
+
+    aprConverter.par = apr.parameters;
+
+    aprConverter.fine_grained_timer.verbose_flag = false;
+    aprConverter.method_timer.verbose_flag = false;
+    aprConverter.computation_timer.verbose_flag = false;
+    aprConverter.allocation_timer.verbose_flag = false;
+    aprConverter.total_timer.verbose_flag = true;
 
     //Gets the APR
-    if(apr.get_apr()){
+    if(aprConverter.get_apr(apr)){
 
         //Below is IO and outputting of the Implied Resolution Function through the Particle Cell level.
 
@@ -92,7 +96,7 @@ int runAPR(cmdLineOptions options) {
 
         //feel free to change
         unsigned int blosc_comp_type = BLOSC_ZSTD; //Lizard Codec
-        unsigned int blosc_comp_level = 4;
+        unsigned int blosc_comp_level = 3;
         unsigned int blosc_shuffle = 1;
 
         apr.apr_compress.set_compression_type(options.compress_type);

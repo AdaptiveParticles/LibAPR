@@ -28,6 +28,7 @@
 template<typename ImageType>
 class APRConverter {
 
+protected:
     PullingScheme iPullingScheme;
     LocalParticleCellSet iLocalParticleSet;
     LocalIntensityScale iLocalIntensityScale;
@@ -53,9 +54,12 @@ public:
     template<typename T>
     bool get_apr_method_from_file(APR<ImageType> &aAPR, PixelData<T> inputImage);
 
+    bool verbose = true;
 
-private:
+protected:
+
     //get apr without setting parameters, and with an already loaded image.
+
 
     //pointer to the APR structure so member functions can have access if they need
     const APR<ImageType> *apr;
@@ -233,7 +237,7 @@ inline bool APRConverter<ImageType>::get_apr_method(APR<ImageType> &aAPR, PixelD
     fine_grained_timer.stop_timer();
 
 #ifndef APR_USE_CUDA
-    method_timer.verbose_flag = true;
+    //method_timer.verbose_flag = true;
     method_timer.start_timer("compute_gradient_magnitude_using_bsplines");
     get_gradient(image_temp, grad_temp, local_scale_temp, local_scale_temp2, bspline_offset, par);
     method_timer.stop_timer();
@@ -253,10 +257,9 @@ inline bool APRConverter<ImageType>::get_apr_method(APR<ImageType> &aAPR, PixelD
 
 #else
     method_timer.start_timer("compute_gradient_magnitude_using_bsplines and local instensity scale CUDA");
-    getFullPipeline(image_temp, grad_temp, local_scale_temp, local_scale_temp2,bspline_offset, par);
+    //getFullPipeline(image_temp, grad_temp, local_scale_temp, local_scale_temp2,bspline_offset, par);
     method_timer.stop_timer();
-=======
->>>>>>> master
+
 #endif
     method_timer.start_timer("compute_levels");
     computeLevels(grad_temp, local_scale_temp, (*apr).level_max(), par.rel_error, par.dx, par.dy, par.dz);
@@ -288,6 +291,9 @@ inline bool APRConverter<ImageType>::get_apr_method(APR<ImageType> &aAPR, PixelD
     //aAPR.get_parts_from_img_alt(input_image,aAPR.particles_intensities);
     aAPR.get_parts_from_img(downsampled_img, aAPR.particles_intensities);
     method_timer.stop_timer();
+
+    std::swap(input_image,downsampled_img.back());
+
 #else
     method_timer.start_timer("compute_gradient_magnitude_using_bsplines and local instensity scale CUDA");
     APRTimer t(true);
@@ -442,6 +448,7 @@ inline void APRConverter<ImageType>::get_gradient(PixelData<ImageType> &image_te
         if (image_temp.mesh[i] <= (par.Ip_th + bspline_offset)) { image_temp.mesh[i] = par.Ip_th + bspline_offset; }
     }
     fine_grained_timer.stop_timer();
+
 
 
     fine_grained_timer.start_timer("smooth_bspline");
@@ -613,7 +620,7 @@ inline void APRConverter<ImageType>::init_apr(APR<ImageType>& aAPR,PixelData<T>&
 
     int levelMax = ceil(std::log2(max_dim));
     // TODO: why minimum level is forced here to be 2?
-    int levelMin = std::max( (int)(levelMax - floor(std::log2(min_dim))), 2);
+    int levelMin = std::max( (int)(levelMax - floor(std::log2(min_dim))), 1);
 
     aAPR.apr_access.l_min = levelMin;
     aAPR.apr_access.l_max = levelMax;
@@ -841,11 +848,15 @@ inline void APRConverter<ImageType>::auto_parameters(const PixelData<T>& input_i
 
         float min_snr = 6;
 
-        if(par.SNR_min > 0){
-            min_snr = par.SNR_min;
-        } else {
+
+    if(par.SNR_min > 0){
+        min_snr = par.SNR_min;
+    } else {
+        if(verbose) {
             std::cout << "**Assuming a minimum SNR of 6" << std::endl;
         }
+    }
+
 
         float Ip_th = mean + sd;
         float var_th = (img_mean/(mean*1.0f))*sd*min_snr;
@@ -855,18 +866,23 @@ inline void APRConverter<ImageType>::auto_parameters(const PixelData<T>& input_i
         par.background_intensity_estimate = estimated_first_mode;
 
 
-        //
-        //  Detecting background subtracted images, or no-noise, in these cases the above estimates do not work
-        //
-        if((proportion_flat > 1.0f) && (proportion_next > 0.00001f)){
-            std::cout << "AUTOPARAMTERS:**Warning** Detected that there is likely noisy background, instead assuming background subtracted and minimum signal of 5 (absolute), if this is not the case please set parameters manually" << std::endl;
-            Ip_th = 1;
-            var_th = 5;
-            lambda = 0.5;
-            var_th_max = 2;
-        } else {
-            std::cout << "AUTOPARAMTERS: **Assuming image has atleast 5% dark background" << std::endl;
+
+    //
+    //  Detecting background subtracted images, or no-noise, in these cases the above estimates do not work
+    //
+    if((proportion_flat > 1.0f) && (proportion_next > 0.00001f)){
+        if(verbose) {
+            std::cout
+                    << "AUTOPARAMTERS:**Warning** Detected that there is likely noisy background, instead assuming background subtracted and minimum signal of 5 (absolute), if this is not the case please set parameters manually"
+                    << std::endl;
         }
+        Ip_th = 1;
+        var_th = 5;
+        lambda = 0.5;
+        var_th_max = 2;
+    } else {
+       // std::cout << "AUTOPARAMTERS: **Assuming image has atleast 5% dark background" << std::endl;
+    }
 
 
         /*
@@ -940,6 +956,15 @@ bool APRConverter<ImageType>::check_input_dimensions(PixelData<T> &input_image) 
     if(number_dims == 0) { return false; }
     if(number_dims == 3) { return true; }
 
+    if(verbose) {
+        std::cout << "Used parameters: " << std::endl;
+        std::cout << "I_th: " << par.Ip_th << std::endl;
+        std::cout << "sigma_th: " << par.sigma_th << std::endl;
+        std::cout << "sigma_th_max: " << par.sigma_th_max << std::endl;
+        std::cout << "relative error (E): " << par.rel_error << std::endl;
+        std::cout << "lambda: " << par.lambda << std::endl;
+    }
+
     // number_dims equals 1 or 2
     if(y_present) {
         return true;
@@ -951,8 +976,9 @@ bool APRConverter<ImageType>::check_input_dimensions(PixelData<T> &input_image) 
         }
         return true;
     }
-    //else
+
     return false;
+
 }
 
 

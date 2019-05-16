@@ -34,6 +34,22 @@ public:
 
     uint64_t set_new_lzx(const uint16_t level,const uint16_t z,const uint16_t x);
 
+    inline bool operator++ (int){
+        return set_iterator_to_particle_next_particle();
+    }
+
+    inline bool operator++ (){
+        return set_iterator_to_particle_next_particle();
+    }
+
+    inline uint64_t end(){
+        return end_index;
+    }
+
+    inline uint64_t begin(const uint16_t level,const uint16_t z,const uint16_t x){
+        return set_new_lzx(level,z,x);
+    }
+
 };
 
 
@@ -170,12 +186,18 @@ bool APRTreeIterator::set_iterator_to_particle_next_particle(){
 
         } else {
 
+            this->current_particle_cell.global_index++;
+
+            if(this->current_particle_cell.global_index >= this->end_index){
+                return false;
+            }
+
             //not in the same gap
             this->current_gap.iterator++;//move the iterator forward.
 
 
             //I am in the next gap
-            this->current_particle_cell.global_index++;
+
             this->current_particle_cell.y = (uint16_t) (this->current_gap.iterator->first /
                                                         2); // the key is the first y value for the gap
             return true;
@@ -190,11 +212,17 @@ bool APRTreeIterator::set_iterator_to_particle_next_particle(){
 
         } else {
 
+            this->current_particle_cell.global_index++;
+
+            if(this->current_particle_cell.global_index >= this->end_index){
+                return false;
+            }
+
             //not in the same gap
             this->current_gap.iterator++;//move the iterator forward.
 
             //I am in the next gap
-            this->current_particle_cell.global_index++;
+
             this->current_particle_cell.y = (uint16_t) (this->current_gap.iterator->first); // the key is the first y value for the gap
             return true;
         }
@@ -313,8 +341,9 @@ uint64_t APRTreeIterator::set_new_lzx(const uint16_t level,const uint16_t z,cons
             return this->current_particle_cell.global_index;
         } else {
             this->end_index = 0;
-            current_particle_cell.y = UINT16_MAX;
-            return UINT64_MAX;
+            this->current_particle_cell.y = UINT16_MAX;
+            
+	    return UINT64_MAX;
         }
 
     } else {
@@ -336,8 +365,9 @@ uint64_t APRTreeIterator::set_new_lzx(const uint16_t level,const uint16_t z,cons
             return this->current_particle_cell.global_index;
         } else {
             this->end_index = 0;
-            current_particle_cell.y = UINT16_MAX;
-            return UINT64_MAX;
+            this->current_particle_cell.y = UINT16_MAX;
+            
+	    return UINT64_MAX;
         }
 
     }

@@ -172,6 +172,11 @@ public :
         y = std::min(y, y_num-1);
         x = std::min(x, x_num-1);
         z = std::min(z, z_num-1);
+
+        y = std::max(y, (size_t)0);
+        x = std::max(x, (size_t)0);
+        z = std::max(z, (size_t)0);
+
         size_t idx = (size_t)z * x_num * y_num + x * y_num + y;
         return mesh[idx];
     }
@@ -594,6 +599,77 @@ void downsample(const PixelData<T> &aInput, PixelData<S> &aOutput, R reduce, C c
 }
 
 template<typename T>
+void const_upsample_img(PixelData<T>& input_us,PixelData<T>& input){
+    //
+    //
+    //  Bevan Cheeseman 2016
+    //
+    //  Creates a constant upsampling of an image
+    //
+    //
+
+    APRTimer timer;
+
+    timer.verbose_flag = false;
+
+    //restrict the domain to be only as big as possibly needed
+
+    const int z_num_ds = input.z_num;
+    const int x_num_ds = input.x_num;
+    const int y_num_ds = input.y_num;
+
+    const int z_num = input_us.z_num;
+    const int x_num = input_us.x_num;
+    const int y_num = input_us.y_num;
+
+    timer.start_timer("resize");
+
+    timer.stop_timer();
+
+    std::vector<T> temp_vec;
+    temp_vec.resize(y_num_ds,0);
+
+    timer.start_timer("up_sample_const");
+
+    unsigned int j, i, k;
+
+#ifdef HAVE_OPENMP
+#pragma omp parallel for default(shared) private(j,i,k) firstprivate(temp_vec) if(z_num_ds*x_num_ds > 100)
+#endif
+    for(j = 0;j < z_num_ds;j++){
+
+        for(i = 0;i < x_num_ds;i++){
+
+
+            //first take into cache
+            for (k = 0; k < y_num_ds;k++){
+                temp_vec[k] = input.mesh[j*x_num_ds*y_num_ds + i*y_num_ds + k];
+            }
+
+
+            for (int z = 2*j; z <= std::min((int)(2*j+1),z_num-1); ++z) {
+                for (int x = 2*i; x <= std::min((int)(2*i+1),x_num-1); ++x) {
+                    for (int y = 0; y < y_num; ++y) {
+
+                        input_us.mesh[z*x_num*y_num + x*y_num + y] = temp_vec[y/2];
+
+                    }
+
+                }
+
+            }
+
+
+        }
+    }
+
+    timer.stop_timer();
+}
+
+
+
+
+template<typename T>
 void downsamplePyrmaid(PixelData<T> &original_image, std::vector<PixelData<T>> &downsampled, size_t l_max, size_t l_min) {
     downsampled.resize(l_max + 1); // each level is kept at same index
     downsampled.back().swap(original_image); // put original image at l_max index
@@ -605,5 +681,164 @@ void downsamplePyrmaid(PixelData<T> &original_image, std::vector<PixelData<T>> &
         downsample(downsampled[level], downsampled[level - 1], sum, divide_by_8, true);
     }
 }
+
+
+template<typename T>
+void padd_boundary2(PixelData<T>& input,PixelData<T>& input_pad,int sz){
+
+    int sz_y,sz_x,sz_z;
+
+    if(input.y_num > 1){
+        sz_y = sz;
+    } else {
+        sz_y = 0;
+    }
+
+    if(input.x_num > 1){
+        sz_x = sz;
+    } else {
+        sz_x = 0;
+    }
+
+    if(input.z_num > 1){
+        sz_z = sz;
+    } else {
+        sz_z = 0;
+    }
+
+    input_pad.init(input.y_num + 2*sz_y,input.x_num + 2*sz_x,input.z_num + 2*sz_z);
+
+    //copy across internal
+
+    int j = 0;
+#ifdef HAVE_OPENMP
+#pragma omp parallel for schedule(dynamic) private(j)
+#endif
+    for (j = 0; j < input.z_num; ++j) {
+        for (int i = 0; i < input.x_num; ++i) {
+            for (int k = 0; k < input.y_num; ++k) {
+                input_pad.at(k+sz_y,i+sz_x,j+sz_z)=input.at(k,i,j);
+            }
+        }
+    }
+
+
+    if(input.y_num > 1) {
+
+#ifdef HAVE_OPENMP
+#pragma omp parallel for schedule(dynamic) private(j)
+#endif
+        for (j = 0; j < input_pad.z_num; ++j) {
+            for (int i = 0; i < input_pad.x_num; ++i) {
+
+                for (int k = 0; k < (sz_y); ++k) {
+                    input_pad.at(k, i, j) = input_pad.at(2 * sz_y - k, i, j);
+                }
+
+                int idx = sz_y+1;
+                for (int k = (input_pad.y_num - (sz_y)); k < input_pad.y_num; ++k) {
+
+                    input_pad.at(k, i, j) = input_pad.at(input_pad.y_num - idx, i, j);
+                    idx++;
+                }
+            }
+        }
+    }
+
+    if(input.x_num > 1) {
+
+#ifdef HAVE_OPENMP
+#pragma omp parallel for schedule(dynamic) private(j)
+#endif
+        for (j = 0; j < input_pad.z_num; ++j) {
+            for (int i = 0; i < (sz_x); ++i) {
+                for (int k = 0; k < input_pad.y_num; ++k) {
+                    input_pad.at(k, i, j) = input_pad.at(k, 2 * sz_x - i, j);
+                }
+            }
+            int idx = sz_x+1;
+            for (int i = (input_pad.x_num - (sz_x)); i < input_pad.x_num; ++i) {
+                for (int k = 0; k < input_pad.y_num; ++k) {
+                    input_pad.at(k, i, j) = input_pad.at(k, input_pad.x_num - idx, j);
+
+                }
+                idx++;
+            }
+        }
+    }
+
+    //z loops
+    if(input.z_num > 1) {
+#ifdef HAVE_OPENMP
+#pragma omp parallel for schedule(dynamic) private(j)
+#endif
+        for (j = 0; j < (sz_z); ++j) {
+            for (int i = 0; i < input_pad.x_num; ++i) {
+                for (int k = 0; k < input_pad.y_num; ++k) {
+                    input_pad.at(k, i, j) = input_pad.at(k, i, 2 * sz_z - j);
+                }
+            }
+        }
+
+#ifdef HAVE_OPENMP
+#pragma omp parallel for schedule(dynamic) private(j)
+#endif
+        for (int j = (input_pad.z_num - (sz_z)); j < input_pad.z_num; ++j) {
+            auto idx = sz_z+1 + j - (input_pad.z_num - (sz_z));
+            for (int i = 0; i < input_pad.x_num; ++i) {
+                for (int k = 0; k < input_pad.y_num; ++k) {
+                    input_pad.at(k, i, j) = input_pad.at(k, i, input_pad.z_num - idx);
+                }
+            }
+
+        }
+    }
+
+
+}
+
+template<typename T>
+void un_padd_boundary(PixelData<T>& input,PixelData<T>& input_un_pad,int sz) {
+
+    int sz_y,sz_x,sz_z;
+
+    if(input.y_num > 1){
+        sz_y = sz;
+    } else {
+        sz_y = 0;
+    }
+
+    if(input.x_num > 1){
+        sz_x = sz;
+    } else {
+        sz_x = 0;
+    }
+
+    if(input.z_num > 1){
+        sz_z = sz;
+    } else {
+        sz_z = 0;
+    }
+
+    input_un_pad.init(input.y_num - 2 * sz_y, input.x_num - 2 * sz_x, input.z_num - 2 * sz_z);
+
+    int j = 0;
+#ifdef HAVE_OPENMP
+#pragma omp parallel for schedule(dynamic) private(j)
+#endif
+    //copy across internal
+    for (j = 0; j < input_un_pad.z_num; ++j) {
+        for (int i = 0; i < input_un_pad.x_num; ++i) {
+            for (int k = 0; k < input_un_pad.y_num; ++k) {
+                input_un_pad.at(k,i,j) = input.at(k + sz_y, i + sz_x, j + sz_z);
+            }
+        }
+    }
+}
+
+
+
+
+
 
 #endif //PIXEL_DATA_HPP

@@ -171,7 +171,7 @@ namespace {
 
     TEST(ComputeGradientTest, 2D_XY_BSPLINE_Y_DIR) {
         {   // values in corners and in middle
-            PixelData<float> m(5, 7, 1, 0);
+            PixelData<float> m(5, 7, 1, 0); 
             // expect gradient is 3x3 X/Y plane
             float expect[] = {0.62, 0.00, 0.00, 0.22, 0.00, 0.00, 1.82,
                               0.57, 0.00, 0.00, 0.25, 0.00, 0.00, 1.57,
@@ -187,12 +187,12 @@ namespace {
 
             // Calculate bspline on CPU
             PixelData<float> mCpu(m, true);
-            ComputeGradient cg;
+            ComputeGradient cg; 
             cg.bspline_filt_rec_y(mCpu, 3.0, 0.0001);
-	    ASSERT_TRUE(compare(mCpu, expect, 0.01));
-        }
+            ASSERT_TRUE(compare(mCpu, expect, 0.01));
+        }   
         {   // single point set in the middle
-            PixelData<float> m(9, 3, 1, 0);
+            PixelData<float> m(9, 3, 1, 0); 
             // expect gradient is 3x3 X/Y plane
             float expect[] = {0.00, 0.01, 0.00,
                               0.00, 0.03, 0.00,
@@ -208,12 +208,12 @@ namespace {
 
             // Calculate bspline on CPU
             PixelData<float> mCpu(m, true);
-            ComputeGradient cg;
+            ComputeGradient cg; 
             cg.bspline_filt_rec_y(mCpu, 3.0, 0.0001);
-	    ASSERT_TRUE(compare(mCpu, expect, 0.01));
-        }
+            ASSERT_TRUE(compare(mCpu, expect, 0.01));
+        }   
         {   // two pixel image 1x2x1
-            PixelData<float> m(2, 1, 1, 0);
+            PixelData<float> m(2, 1, 1, 0); 
             // expect gradient is 3x3 X/Y plane
             float expect[] = {0.41,
                               0.43};
@@ -222,11 +222,11 @@ namespace {
 
             // Calculate bspline on CPU
             PixelData<float> mCpu(m, true);
-            ComputeGradient cg;
+            ComputeGradient cg; 
             cg.bspline_filt_rec_y(mCpu, 3.0, 0.0001);
             ASSERT_TRUE(compare(mCpu, expect, 0.01));
-        }
-    }
+        }   
+    }   
 
     TEST(ComputeInverseBspline, CALC_INV_BSPLINE_Y) {
         using ImgType = float;

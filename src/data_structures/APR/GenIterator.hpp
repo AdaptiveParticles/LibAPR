@@ -41,7 +41,9 @@ public:
     uint64_t global_index() const { return current_particle_cell.global_index; }
     operator uint64_t() { return current_particle_cell.global_index; }
 
-    ParticleCell get_neigh_particle_cell() {return neighbour_particle_cell;}
+    ParticleCell get_neigh_particle_cell();
+    ParticleCell get_current_particle_cell();
+    MapIterator& get_current_gap();
 
     uint8_t number_neighbours_in_direction(const uint8_t& face);
 
@@ -58,6 +60,19 @@ public:
     uint64_t spatial_index_x_max(const unsigned int level);
     uint64_t spatial_index_y_max(const unsigned int level);
     uint64_t spatial_index_z_max(const unsigned int level);
+
+    inline uint64_t x_num(const unsigned int level){
+        return spatial_index_x_max(level);
+    }
+
+    inline uint64_t y_num(const unsigned int level){
+        return spatial_index_y_max(level);
+    }
+
+    inline uint64_t z_num(const unsigned int level){
+        return spatial_index_z_max(level);
+    }
+
 
     inline void set_neighbour_flag();
 
@@ -82,6 +97,17 @@ public:
 
 inline uint64_t GenIterator::total_number_particles() {return apr_access->total_number_particles;}
 
+inline ParticleCell GenIterator::get_current_particle_cell(){
+    return current_particle_cell;
+}
+
+inline ParticleCell GenIterator::get_neigh_particle_cell(){
+    return neighbour_particle_cell;
+}
+
+inline MapIterator& GenIterator::get_current_gap(){
+    return current_gap;
+}
 inline uint64_t GenIterator::particles_level_begin(const uint16_t& level_) {return apr_access->global_index_by_level_begin[level_];}
 inline uint64_t GenIterator::particles_level_end(const uint16_t& level_) {return (apr_access->global_index_by_level_end[level_]+1l);}
 

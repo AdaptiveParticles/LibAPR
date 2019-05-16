@@ -4,6 +4,11 @@
 #include <map>
 #include <vector>
 
+struct SparseParticleCellMap{
+    std::map<uint16_t,uint8_t> mesh;
+};
+
+
 struct ParticleCell {
     uint16_t x,y,z,level,type;
     uint64_t pc_offset,global_index;

@@ -15,6 +15,7 @@
 
 #include "APRAccessStructures.hpp"
 
+
 class APRAccess {
 
 public:
@@ -38,6 +39,7 @@ public:
 
     uint64_t total_number_non_empty_rows;
     ExtraPartCellData<ParticleCellGapMap> gap_map;
+    void initialize_structure_from_particle_cell_tree_sparse(APRParameters& apr_parameters, ExtraPartCellData<SparseParticleCellMap> &p_map);
 
     uint64_t level_max() const { return l_max; }
     uint64_t level_min() const { return l_min; }
@@ -268,6 +270,83 @@ public:
         return false;
     }
 
+    bool find_particle_cell_pcdKey(ParticleCell& part_cell,MapIterator& map_iterator,PCDKey& pcdKey){
+        //
+        //  Find function designed for use in APR+t updates, using an explicit partcell data structure, instead of the contiguous array
+        //
+
+        if(gap_map.data[part_cell.level][part_cell.pc_offset].size() > 0) {
+
+            ParticleCellGapMap& current_pc_map = gap_map.data[part_cell.level][part_cell.pc_offset][0];
+
+            //this is required due to utilization of the equivalence optimization
+
+
+            if((map_iterator.pc_offset != part_cell.pc_offset) || (map_iterator.level != part_cell.level) ){
+                map_iterator.iterator = gap_map.data[part_cell.level][part_cell.pc_offset][0].map.begin();
+                map_iterator.pc_offset = part_cell.pc_offset;
+                map_iterator.level = part_cell.level;
+            }
+
+
+            if(map_iterator.iterator == current_pc_map.map.end()){
+                //check if pointing to a valid key
+                map_iterator.iterator = current_pc_map.map.begin();
+            }
+
+            if ((part_cell.y >= map_iterator.iterator->first) && (part_cell.y <= map_iterator.iterator->second.y_end)) {
+                // already pointing to the correct place
+                pcdKey.local_ind = map_iterator.iterator->second.global_index_begin_offset +
+                                         (part_cell.y - map_iterator.iterator->first);
+
+                return true;
+            } else {
+
+                //first try next element
+                //if(map_iterator.iterator != current_pc_map.map.end()){
+                map_iterator.iterator++;
+                //check if there
+                if(map_iterator.iterator != current_pc_map.map.end()) {
+                    if ((part_cell.y >= map_iterator.iterator->first) &
+                        (part_cell.y <= map_iterator.iterator->second.y_end)) {
+                        // already pointing to the correct place
+                        pcdKey.local_ind = map_iterator.iterator->second.global_index_begin_offset +
+                                                 (part_cell.y - map_iterator.iterator->first);
+
+                        return true;
+                    }
+                }
+
+                //}
+
+                //otherwise search for it (points to first key that is greater than the y value)
+                map_iterator.iterator = current_pc_map.map.upper_bound(part_cell.y);
+
+                if((map_iterator.iterator == current_pc_map.map.begin()) || (map_iterator.iterator == current_pc_map.map.end())){
+                    //less then the first value //check the last element
+
+                    map_iterator.iterator = current_pc_map.map.end();
+
+                }
+
+                map_iterator.iterator--;
+
+                if ((part_cell.y >= map_iterator.iterator->first) & (part_cell.y <= map_iterator.iterator->second.y_end)) {
+                    // already pointing to the correct place
+                    pcdKey.local_ind = map_iterator.iterator->second.global_index_begin_offset +
+                                             (part_cell.y - map_iterator.iterator->first);
+
+                    return true;
+                }
+            }
+        }
+
+        return false;
+    }
+
+
+
+
     bool find_particle_cell_tree(APRAccess &apr_access,ParticleCell& part_cell,MapIterator& map_iterator){
         if(part_cell.level == level_max()){
 
@@ -434,7 +513,8 @@ public:
     }
 
     void initialize_structure_from_particle_cell_tree(APRParameters& apr_parameters,std::vector<PixelData<uint8_t>>& layers){
-       x_num.resize(l_max+1);
+
+        x_num.resize(l_max+1);
        y_num.resize(l_max+1);
        z_num.resize(l_max+1);
 
@@ -461,9 +541,7 @@ public:
     void allocate_map_insert( ExtraPartCellData<std::pair<uint16_t,YGap_map>>& y_begin) {
         // TODO: This whole method copies just y_begin converting std::pair into std::map entries, why we do not do that
         //       from the beginning (using map instead of pair, then we can skip this whole part of code).
-        //
-
-        APRTimer apr_timer;
+	    APRTimer apr_timer;
         apr_timer.start_timer("initialize map");
 
         gap_map.depth_max = level_max();
@@ -721,7 +799,7 @@ public:
     void rebuild_map(MapStorageData& map_data){
 
         APRTimer apr_timer;
-        apr_timer.verbose_flag = true;
+        apr_timer.verbose_flag = false;
         apr_timer.start_timer("rebuild map");
 
         std::vector<uint64_t> cumsum;
@@ -786,6 +864,8 @@ public:
 
     void initialize_tree_access(APRAccess& APROwn_access, std::vector<PixelData<uint8_t>> &p_map);
 
+    void initialize_tree_access_sparse(APRAccess& APROwn_access, std::vector<std::vector<SparseParticleCellMap>> &p_map);
+    void init_data_structure_tree(APRAccess& APROwn_access, ExtraPartCellData<std::pair<uint16_t,YGap_map>>& y_begin);
 
 };
 
@@ -1003,10 +1083,10 @@ inline void APRAccess::initialize_structure_from_particle_cell_tree(APRParameter
         }
     }
     total_number_particles = cumsum;
-    l_min = min_level_find; //set minimum level to the first non-empty level.
     apr_timer.stop_timer();
 
-    // ========================================================================
+    total_number_non_empty_rows=0;
+
     apr_timer.start_timer("insert");
     allocate_map_insert(y_begin);
     apr_timer.stop_timer();
@@ -1014,7 +1094,6 @@ inline void APRAccess::initialize_structure_from_particle_cell_tree(APRParameter
 
 inline void APRAccess::initialize_tree_access(APRAccess& APROwn_access, std::vector<PixelData<uint8_t>> &p_map) {
     APRTimer apr_timer(false);
-
 
     x_num.resize(level_max()+1);
     y_num.resize(level_max()+1);
@@ -1111,12 +1190,20 @@ inline void APRAccess::initialize_tree_access(APRAccess& APROwn_access, std::vec
     }
 
     apr_timer.stop_timer();
+}
 
+
+void APRAccess::init_data_structure_tree(APRAccess& APROwn_access, ExtraPartCellData<std::pair<uint16_t,YGap_map>>& y_begin){
     uint64_t cumsum = 0;
+
+    APRTimer apr_timer(false);
+
+    int z_;
+    int x_;
 
     apr_timer.start_timer("forth loop");
 
-    //iteration helpers for by level
+//iteration helpers for by level
     global_index_by_level_begin.resize(level_max()+1,1);
     global_index_by_level_end.resize(level_max()+1,0);
 
@@ -1134,7 +1221,7 @@ inline void APRAccess::initialize_tree_access(APRAccess& APROwn_access, std::vec
         const unsigned int x_num_ = x_num[i];
         const unsigned int z_num_ = z_num[i];
 
-        //set up the levels here.
+//set up the levels here.
         uint64_t cumsum_begin = cumsum;
 
         global_index_by_level_and_zx_end[i].resize(z_num_ * x_num_, 0);
@@ -1162,7 +1249,6 @@ inline void APRAccess::initialize_tree_access(APRAccess& APROwn_access, std::vec
         }
 
         if(cumsum!=cumsum_begin){
-            //cumsum_begin++;
             global_index_by_level_begin[i] = cumsum_begin;
         }
 
@@ -1176,7 +1262,7 @@ inline void APRAccess::initialize_tree_access(APRAccess& APROwn_access, std::vec
     const unsigned int x_num_ = x_num[level_max()];
     const unsigned int z_num_ = z_num[level_max()];
 
-    //set up the levels here
+//set up the levels here
 
     global_index_by_level_and_zx_end[level_max()].resize(z_num_ * x_num_, 0);
 
@@ -1187,7 +1273,7 @@ inline void APRAccess::initialize_tree_access(APRAccess& APROwn_access, std::vec
             if (APROwn_access.gap_map.data[level_max()+1][offset_pc_data].size() > 0){
                 auto it = (APROwn_access.gap_map.data[level_max()+1][offset_pc_data][0].map.rbegin());
                 cumsum += it->second.global_index_begin_offset/2 + (it->second.y_end - it->first+1)/2 + (it->second.y_end+1)%2;
-                //need to deal with odd domains where the last particle cell is required, hence the modulo
+//need to deal with odd domains where the last particle cell is required, hence the modulo
             }
 
             global_index_by_level_and_zx_end[level_max()][offset_pc_data] = cumsum;
@@ -1197,8 +1283,6 @@ inline void APRAccess::initialize_tree_access(APRAccess& APROwn_access, std::vec
     apr_timer.stop_timer();
 
     total_number_particles = cumsum;
-
-    //std::cout << "Lower level, interior tree PC: " << total_number_particles << std::endl;
 
     total_number_non_empty_rows=0;
 
@@ -1244,6 +1328,372 @@ inline void APRAccess::initialize_tree_access(APRAccess& APROwn_access, std::vec
     apr_timer.stop_timer();
 
     total_number_non_empty_rows = counter_rows;
+}
+
+inline void APRAccess::initialize_tree_access_sparse(APRAccess& APROwn_access, std::vector<std::vector<SparseParticleCellMap>> &p_map) {
+    APRTimer apr_timer(false);
+
+
+    //initialize loop variables
+    uint64_t x_;
+    uint64_t z_;
+
+
+    apr_timer.start_timer("init structure");
+
+    ExtraPartCellData<std::pair<uint16_t,YGap_map>> y_begin;
+
+    y_begin.depth_min = level_min();
+    y_begin.depth_max = level_max();
+
+    y_begin.z_num.resize(y_begin.depth_max+1);
+    y_begin.x_num.resize(y_begin.depth_max+1);
+    y_begin.data.resize(y_begin.depth_max+1);
+
+    for (uint64_t i = y_begin.depth_min; i < y_begin.depth_max; ++i) {
+        y_begin.z_num[i] = z_num[i];
+        y_begin.x_num[i] = x_num[i];
+        y_begin.data[i].resize(z_num[i]*x_num[i]);
+    }
+
+    apr_timer.stop_timer();
+
+    apr_timer.start_timer("create gaps");
+
+    for(uint64_t i = (level_min());i < level_max();i++) {
+
+        const uint64_t x_num_ = x_num[i];
+        const uint64_t z_num_ = z_num[i];
+
+        int y_=0;
+
+#ifdef HAVE_OPENMP
+#pragma omp parallel for schedule(dynamic) default(shared) private(z_, x_,y_) if(z_num_*x_num_ > 100)
+#endif
+        for (z_ = 0; z_ < z_num_; z_++) {
+            for (x_ = 0; x_ < x_num_; x_++) {
+
+                const size_t offset_pc_data = x_num_ * z_ + x_;
+
+                uint16_t current = 0;
+
+
+                YGap_map gap;
+                gap.global_index_begin_offset = 0;
+                uint64_t counter = 0;
+
+                uint64_t prev_y = -2; //required;
+
+                auto &map = p_map[i][offset_pc_data].mesh;
+
+                for (auto it = map.begin(); it != map.end(); ++it) {
+                    y_ = it->first;
+
+                    if ((y_ - 1) != prev_y) {
+
+                        y_begin.data[i][offset_pc_data].push_back({y_, gap});
+
+                        if (current == 1) {
+                            (y_begin.data[i][offset_pc_data][counter]).second.y_end = (prev_y);
+                            counter++;
+
+                        }
+
+                        current = 1;
+                    }
+                    prev_y = y_;
+
+                }
+                if (current == 1) {
+                    (y_begin.data[i][offset_pc_data][counter]).second.y_end = (prev_y);
+                }
+            }
+
+        }
+    }
+
+    apr_timer.stop_timer();
+
+    init_data_structure_tree(APROwn_access,  y_begin);
+
+}
+
+
+void APRAccess::initialize_structure_from_particle_cell_tree_sparse(APRParameters& apr_parameters, ExtraPartCellData<SparseParticleCellMap> &p_map) {
+    //
+    //  Initialize the new structure;
+    //
+
+    uint8_t min_type = apr_parameters.neighborhood_optimization ? 1 : 2;
+
+    APRTimer apr_timer;
+    apr_timer.verbose_flag = false;
+
+    apr_timer.start_timer("first_step");
+    const uint8_t seed_us = 4; //deal with the equivalence optimization
+    for (size_t i = level_min()+1; i < level_max(); ++i) {
+        const size_t x_num_ = x_num[i];
+        const size_t z_num_ = z_num[i];
+        const size_t y_num_ = y_num[i];
+        const size_t x_num_ds = x_num[i - 1];
+
+
+#ifdef HAVE_OPENMP
+#pragma omp parallel for default(shared) if(z_num_*x_num_ > 100)
+#endif
+        for (size_t z = 0; z < z_num_; ++z) {
+            for (size_t x = 0; x < x_num_; ++x) {
+                //const size_t offset_part_map_ds = (x / 2) * y_num_ds + (z / 2) * y_num_ds * x_num_ds;
+
+                const size_t offset_part_map_ds =  (z / 2) * x_num_ds + x/2;
+
+                const size_t offset_part_map =  z *  x_num_ + x;
+
+                auto& mesh_ds = p_map.data[i-1][offset_part_map_ds][0].mesh;
+
+
+                //SPARSE iteration
+                for (auto it=mesh_ds.begin(); it!=mesh_ds.end(); ++it){
+                    size_t y = it->first;
+                    uint8_t status = it->second;
+
+                    if (status > 0 && status <= min_type) {
+                        uint16_t y2p = std::min(2*y+1,y_num_-1);
+
+                        p_map.data[i][offset_part_map][0].mesh[ 2 * y] = seed_us;
+                        p_map.data[i][offset_part_map][0].mesh[ y2p] = seed_us;
+
+                    }
+                }
+            }
+        }
+    }
+    apr_timer.stop_timer();
+
+    apr_timer.start_timer("second_step");
+    ExtraPartCellData<std::pair<uint16_t, YGap_map>> y_begin;
+
+    y_begin.depth_max = level_max();
+    y_begin.depth_min = level_min();
+
+    y_begin.z_num.resize(y_begin.depth_max+1);
+    y_begin.x_num.resize(y_begin.depth_max+1);
+    y_begin.data.resize(y_begin.depth_max+1);
+
+    for (uint64_t i = y_begin.depth_min; i < y_begin.depth_max; ++i) {
+        y_begin.x_num[i] = x_num[i];
+        y_begin.z_num[i] = z_num[i];
+        y_begin.data[i].resize(z_num[i]*x_num[i]);
+    }
+
+    y_begin.x_num[y_begin.depth_max] = x_num[y_begin.depth_max-1];
+    y_begin.z_num[y_begin.depth_max] = z_num[y_begin.depth_max-1];
+    y_begin.data[y_begin.depth_max].resize(z_num[y_begin.depth_max-1]*x_num[y_begin.depth_max-1]);
+
+
+    for(size_t i = (level_min());i < level_max();i++) {
+        const size_t x_num_ = x_num[i];
+        const size_t z_num_ = z_num[i];
+
+
+#ifdef HAVE_OPENMP
+#pragma omp parallel for default(shared) if(z_num_*x_num_ > 100)
+#endif
+        for (size_t z = 0; z < z_num_; ++z) {
+            for (size_t x = 0; x < x_num_; ++x) {
+
+                const size_t offset_pc_data = x_num_ * z + x;
+                uint16_t current = 0;
+                uint16_t previous = 0;
+
+                YGap_map gap;
+                gap.global_index_begin_offset = 0;
+                uint64_t counter = 0;
+
+                uint16_t prev_y = -2; //init
+
+                auto& mesh = p_map.data[i][offset_pc_data][0].mesh;
+
+                //SPARSE iteration
+                for (auto it=mesh.begin(); it!=mesh.end(); ++it) {
+                    size_t y = it->first;
+                    uint8_t status = it->second;
+
+                    if ((status > min_type) && (status < 5)) {
+
+                        if ((y - 1) != prev_y) {
+
+                            y_begin.data[i][offset_pc_data].push_back({y, gap});
+                            previous = 1;
+
+                            if (current == 1) {
+                                (y_begin.data[i][offset_pc_data][counter]).second.y_end = (prev_y);
+                                counter++;
+                                previous = 0;
+                            }
+
+                            current = 1;
+                        }
+
+                        prev_y = y;
+                    }
+                }
+
+                //last entry
+                if (current == 1) {
+                    (y_begin.data[i][offset_pc_data][counter]).second.y_end = (prev_y);
+                }
+
+            }
+        }
+    }
+    apr_timer.stop_timer();
+
+    apr_timer.start_timer("third loop");
+
+    size_t i = level_max()-1;
+
+    const size_t x_num_ = x_num[i];
+    const size_t z_num_ = z_num[i];
+
+    const size_t y_num_us = y_num[i + 1];
+
+#ifdef HAVE_OPENMP
+#pragma omp parallel for default(shared) if(z_num_*x_num_ > 100)
+#endif
+    for (size_t z_ = 0; z_ < z_num_; ++z_) {
+        for (size_t x_ = 0; x_ < x_num_; x_++) {
+
+            const size_t offset_pc_data1 = std::min(x_num_*(z_) + (x_), x_num_*z_num_ - 1);
+            uint16_t current = 0;
+
+
+            YGap_map gap;
+            gap.global_index_begin_offset = 0;
+            uint64_t counter = 0;
+
+            auto& mesh = p_map.data[i][offset_pc_data1][0].mesh;
+
+            uint16_t prev_y = -2; //init
+
+            //SPARSE iteration
+            for (auto it=mesh.begin(); it!=mesh.end(); ++it) {
+                size_t y = it->first;
+                uint8_t status = it->second;
+
+                if (status > 0 && status <= min_type) {
+
+                    if ((y - 1) != prev_y) {
+
+                        y_begin.data[i+1][offset_pc_data1].push_back({2*y,gap});
+
+                        if (current == 1) {
+
+                            y_begin.data[i+1][offset_pc_data1][counter].second.y_end = std::min((uint16_t)(2*(prev_y)+1),(uint16_t)(y_num_us-1));
+                            counter++;
+                        }
+
+                        current = 1;
+                    }
+
+                    prev_y = y;
+                }
+            }
+
+            //last entry
+            if (current == 1) {
+                y_begin.data[i+1][offset_pc_data1][counter].second.y_end = std::min((uint16_t)(2*(prev_y)+1),(uint16_t)(y_num_us-1));
+            }
+        }
+
+    }
+
+    apr_timer.stop_timer();
+
+    apr_timer.start_timer("forth loop");
+    //iteration helpers for by level
+    global_index_by_level_begin.resize(level_max()+1,1);
+    global_index_by_level_end.resize(level_max()+1,0);
+
+    size_t cumsum= 0;
+    total_number_gaps=0;
+
+    size_t min_level_find = level_max();
+    size_t max_level_find = level_min();
+
+    //zx end for each row
+    global_index_by_level_and_zx_end.resize(level_max()+1);
+
+    for (size_t i = level_min(); i <= level_max(); ++i) {
+
+        const size_t x_num_ = y_begin.x_num[i];
+        const size_t z_num_ = y_begin.z_num[i];
+
+        //set up the levels here.
+        uint64_t cumsum_begin = cumsum;
+
+        //new index
+        global_index_by_level_and_zx_end[i].resize(z_num_ * x_num_, 0);
+
+        for (size_t z_ = 0; z_ < z_num_; z_++) {
+
+            for (size_t x_ = 0; x_ < x_num_; x_++) {
+                const size_t offset_pc_data = x_num_ * z_ + x_;
+
+                uint64_t xz_sum=cumsum;
+                uint16_t local_sum = 0;
+
+                for (size_t j = 0; j < y_begin.data[i][offset_pc_data].size(); ++j) {
+
+                    min_level_find = std::min(i,min_level_find);
+                    max_level_find = std::max(i,max_level_find);
+
+                    y_begin.data[i][offset_pc_data][j].second.global_index_begin_offset = local_sum;
+                    local_sum+=(y_begin.data[i][offset_pc_data][j].second.y_end-y_begin.data[i][offset_pc_data][j].first)+1;
+                    total_number_gaps++;
+                }
+
+                cumsum += local_sum;
+
+                if(i == level_max()) {
+                    //need to deal with the boundary conditions.
+                    xz_sum = cumsum - xz_sum;
+
+                    unsigned int number_rows = ( unsigned int) 1*((2*x_+1) < x_num[i]) + 1*((2*z_+1) < z_num[i]) +  1*((2*z_+1) < z_num[i])*((2*x_+1) < x_num[i]);
+
+                    cumsum += xz_sum * number_rows;
+
+                    global_index_by_level_and_zx_end[i][offset_pc_data] = cumsum;
+                } else {
+                    global_index_by_level_and_zx_end[i][offset_pc_data] = cumsum;
+                }
+
+            }
+        }
+
+        if (cumsum != cumsum_begin) {
+            global_index_by_level_begin[i] = cumsum_begin;
+        }
+        if(cumsum != cumsum_begin){
+            global_index_by_level_end[i] = cumsum-1;
+        }
+    }
+    total_number_particles = cumsum;
+    apr_timer.stop_timer();
+
+
+    //set minimum level now to the first non-empty level.
+    //level_min = min_level_find;
+    //level_max = max_level_find;
+    total_number_non_empty_rows=0;
+
+    apr_timer.start_timer("insert");
+
+    allocate_map_insert(y_begin);
+
+    apr_timer.stop_timer();
+
+
 }
 
 #endif //PARTPLAY_APRACCESS_HPP

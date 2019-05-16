@@ -14,6 +14,16 @@
 template<typename V>
 class APR;
 
+class APRAccess;
+
+class APRIterator;
+
+struct PCDKey{
+    uint8_t level;
+    uint64_t offset;
+    uint64_t local_ind;
+};
+
 template<typename T>
 class ExtraPartCellData {
     
@@ -32,6 +42,9 @@ public:
     template<typename S>
     ExtraPartCellData(const APR<S> &apr) { initialize_structure_parts_empty(apr); }
 
+    T& operator[](PCDKey& pcdKey){
+      return data[pcdKey.level][pcdKey.offset][pcdKey.local_ind];
+    }
 
     template<typename S>
     void initialize_structure_parts_empty(const APR<S>& apr) {
@@ -47,7 +60,33 @@ public:
             z_num[i] = apr.spatial_index_z_max(i);
             x_num[i] = apr.spatial_index_x_max(i);
             data[i].resize(z_num[i]*x_num[i]);
+
+            for (int j = 0; j < data[i].size(); ++j) {
+                data[i][j].resize(0);
+            }
         }
+    }
+
+    template<typename S>
+    void initialize_structure_parts_empty_zero(const APR<S>& apr) {
+        // Initialize the structure to the same size as the given structure
+        depth_max = apr.level_max();
+        depth_min = apr.level_min();
+
+        z_num.resize(depth_max+1);
+        x_num.resize(depth_max+1);
+        data.resize(depth_max+1);
+
+        for (uint64_t i = depth_min; i <= depth_max; ++i) {
+            z_num[i] = apr.spatial_index_z_max(i);
+            x_num[i] = apr.spatial_index_x_max(i);
+            data[i].resize(z_num[i]*x_num[i]);
+
+            for (int j = 0; j < data[i].size() ; ++j) {
+                data[i][j].resize(0);
+            }
+        }
+
     }
 
 

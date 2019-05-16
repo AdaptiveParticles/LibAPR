@@ -30,6 +30,7 @@ e.g. Example_ray_cast -i nuc_apr.h5 -d /Test/Input_examples/ -aniso 2.0 -jitter 
 
 #include "Example_ray_cast.h"
 #include "io/TiffUtils.hpp"
+#include "numerics/APRTreeNumerics.hpp"
 
 
 int main(int argc, char **argv) {
@@ -46,6 +47,12 @@ int main(int argc, char **argv) {
 
     //read file
     apr.read_apr(file_name);
+
+    APRTree<uint16_t> aprTree;
+    aprTree.init(apr);
+    ExtraParticleData<float> treeData;
+
+    APRTreeNumerics::fill_tree_max(apr,aprTree,apr.particles_intensities,treeData);
 
     APRTimer timer;
 
@@ -76,7 +83,14 @@ int main(int argc, char **argv) {
     ///
     /////////////
 
-    apr_raycaster.perform_raycast(apr,apr.particles_intensities,views,[] (const uint16_t& a,const uint16_t& b) {return std::max(a,b);});
+    //apr_raycaster.perform_raycast(apr,apr.particles_intensities,views,[] (const uint16_t& a,const uint16_t& b) {return std::max(a,b);});
+
+    ReconPatch rp;
+    rp.level_delta = -3;
+
+    apr_raycaster.scale_down = pow(2,-3);
+
+    apr_raycaster.perform_raycast_patch(apr,aprTree,apr.particles_intensities,treeData,views,rp,[] (const uint16_t& a,const uint16_t& b) {return std::max(a,b);});
 
     //////////////
     ///

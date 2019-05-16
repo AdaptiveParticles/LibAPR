@@ -28,7 +28,7 @@ class APR {
 public:
 
     APRAccess apr_access;
-    APRConverter<ImageType> apr_converter;
+    //APRConverter<ImageType> apr_converter;
     APRCompress<ImageType> apr_compress;
     APRTree<ImageType> apr_tree;
 
@@ -49,20 +49,38 @@ public:
         return APRIterator(apr_access);
     }
 
+//    APR(){
+//        //default
+//    }
+
+    //APR(APR<ImageType>& copyAPR){
+      //  copy_from_APR(copyAPR);
+    //}
+
+    void copy_from_APR(APR<ImageType>& copyAPR){
+        apr_access = copyAPR.apr_access;
+        particles_intensities = copyAPR.particles_intensities;
+        apr_tree = copyAPR.apr_tree;
+        parameters = copyAPR.parameters;
+        name = copyAPR.name;
+    }
+
     ///////////////////////////////////
     /// APR Generation Methods (Calls members of the APRConverter class)
     //////////////////////////////////
 
     bool get_apr(){
         //copy across parameters
-        apr_converter.par = parameters;
-        return apr_converter.get_apr(*this);
+        APRConverter<ImageType> aprConverter;
+        aprConverter.par = parameters;
+        return aprConverter.get_apr(*this);
     }
 
     template<typename T>
     bool get_apr(PixelData<T>& input_img){
-        apr_converter.par = parameters;
-        return apr_converter.get_apr_method(*this, input_img);
+        APRConverter<ImageType> aprConverter;
+        aprConverter.par = parameters;
+        return aprConverter.get_apr_method(*this, input_img);
     }
 
     ///////////////////////////////////
@@ -149,21 +167,19 @@ public:
      */
     template<typename U,typename V>
     void get_parts_from_img(std::vector<PixelData<U>>& img_by_level,ExtraParticleData<V>& parts){
-        auto apr_iterator = iterator();
-        parts.data.resize(apr_iterator.total_number_particles());
-        std::cout << "Total number of particles: " << apr_iterator.total_number_particles() << std::endl;
+        auto it = iterator();
+        parts.data.resize(it.total_number_particles());
+        std::cout << "Total number of particles: " << it.total_number_particles() << std::endl;
 
-        for (unsigned int level = apr_iterator.level_min(); level <= apr_iterator.level_max(); ++level) {
+        for (unsigned int level = it.level_min(); level <= it.level_max(); ++level) {
             #ifdef HAVE_OPENMP
-            #pragma omp parallel for schedule(dynamic) firstprivate(apr_iterator)
+            #pragma omp parallel for schedule(dynamic) firstprivate(it)
             #endif
-            for (int z = 0; z < apr_iterator.spatial_index_z_max(level); ++z) {
-                for (int x = 0; x < apr_iterator.spatial_index_x_max(level); ++x) {
-                    for (apr_iterator.set_new_lzx(level, z, x);
-                         apr_iterator.global_index() < apr_iterator.end_index;
-                         apr_iterator.set_iterator_to_particle_next_particle()) {
+            for (int z = 0; z < it.z_num(level); ++z) {
+                for (int x = 0; x < it.x_num(level); ++x) {
+                    for (it.begin(level, z, x);it <it.end();it++) {
 
-                        parts[apr_iterator] = img_by_level[apr_iterator.level()].at(apr_iterator.y(), apr_iterator.x(), apr_iterator.z());
+                        parts[it] = img_by_level[level].at(it.y(),x,z);
                     }
                 }
             }

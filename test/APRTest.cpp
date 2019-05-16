@@ -129,6 +129,10 @@ bool test_apr_tree(TestData& test_data) {
 
     test_data.apr.apr_tree.fill_tree_mean_downsample(test_data.apr.particles_intensities);
 
+
+
+
+
     //generate tree test data
     PixelData<float> pc_image;
     test_data.apr.interp_img(pc_image,test_data.apr.particles_intensities);
@@ -149,6 +153,41 @@ bool test_apr_tree(TestData& test_data) {
                     uint16_t current_int = (uint16_t)std::round(downsampled_img[apr_tree_iterator.level()].at(apr_tree_iterator.y(),apr_tree_iterator.x(),apr_tree_iterator.z()));
                     //uint16_t parts_int = test_data.apr.apr_tree.particles_ds_tree[apr_tree_iterator];
                     uint16_t parts2 = (uint16_t)std::round(tree_data[apr_tree_iterator]);
+
+                    // uint16_t y = apr_tree_iterator.y();
+
+                    if(abs(parts2 - current_int) > 1){
+                        success = false;
+                    }
+
+                }
+            }
+        }
+    }
+
+    //Also check the sparse data-structure generated tree
+    APRTree<uint16_t> tree2;
+    tree2.initialize_apr_tree_sparse(test_data.apr);
+    ExtraParticleData<float> treedata_2;
+
+    APRTree<uint16_t> tree3;
+    tree3.init(test_data.apr);
+
+    tree2.fill_tree_mean(test_data.apr,tree2,test_data.apr.particles_intensities,treedata_2);
+    auto apr_tree_iterator_s = tree2.tree_iterator();
+
+    for (unsigned int level = (apr_tree_iterator_s.level_max()); level >= apr_tree_iterator_s.level_min(); --level) {
+        int z = 0;
+        int x = 0;
+
+        for (z = 0; z < apr_tree_iterator_s.spatial_index_z_max(level); z++) {
+            for (x = 0; x < apr_tree_iterator_s.spatial_index_x_max(level); ++x) {
+                for (apr_tree_iterator_s.set_new_lzx(level, z, x); apr_tree_iterator_s.global_index() < apr_tree_iterator_s.end_index;
+                     apr_tree_iterator_s.set_iterator_to_particle_next_particle()) {
+
+                    uint16_t current_int = (uint16_t)std::round(downsampled_img[apr_tree_iterator_s.level()].at(apr_tree_iterator_s.y(),apr_tree_iterator_s.x(),apr_tree_iterator_s.z()));
+                    //uint16_t parts_int = test_data.apr.apr_tree.particles_ds_tree[apr_tree_iterator];
+                    uint16_t parts2 = (uint16_t)std::round(treedata_2[apr_tree_iterator_s]);
 
                     // uint16_t y = apr_tree_iterator.y();
 
