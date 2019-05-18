@@ -74,6 +74,8 @@ int runAPR(cmdLineOptions options) {
     //Gets the APR
     if(aprConverter.get_apr(apr)){
 
+        ParticleData<uint16_t> particle_intensities;
+
         //Below is IO and outputting of the Implied Resolution Function through the Particle Cell level.
 
         //output
@@ -92,18 +94,10 @@ int runAPR(cmdLineOptions options) {
 
         std::cout << "Writing the APR to hdf5..." << std::endl;
 
-        //feel free to change
-        unsigned int blosc_comp_type = BLOSC_ZSTD; //Lizard Codec
-        unsigned int blosc_comp_level = 3;
-        unsigned int blosc_shuffle = 1;
-
-        APRCompress aprCompress;
-
-        apr.apr_compress.set_compression_type(options.compress_type);
-        apr.apr_compress.set_quantization_factor(options.quantization_factor);
-
         //write the APR to hdf5 file
-        FileSizeInfo fileSizeInfo = apr.write_apr(save_loc,file_name,blosc_comp_type,blosc_comp_level,blosc_shuffle,options.store_tree);
+        APRWriter aprWriter;
+
+        FileSizeInfo fileSizeInfo = aprWriter.write_apr(apr,save_loc,file_name);
         float apr_file_size = fileSizeInfo.total_file_size;
 
         timer.stop_timer();
@@ -114,33 +108,6 @@ int runAPR(cmdLineOptions options) {
         std::cout << "Computational Ratio (Pixels/Particles): " << computational_ratio << std::endl;
         std::cout << "Lossy Compression Ratio: " << original_pixel_image_size/apr_file_size << std::endl;
         std::cout << std::endl;
-
-        if(options.output_steps) {
-
-            PixelData<uint16_t> level;
-
-            apr.interp_level(level);
-
-            std::cout << std::endl;
-
-            std::cout << "Saving Particle Cell level as tiff image" << std::endl;
-
-            std::string output_path = save_loc + file_name + "_level.tif";
-            //write output as tiff
-            TiffUtils::saveMeshAsTiff(output_path, level);
-
-            PixelData<uint16_t> pc_img;
-
-            apr.interp_img(pc_img,apr.particles_intensities);
-
-            std::cout << std::endl;
-
-            std::cout << "Saving piece-wise constant image recon as tiff image" << std::endl;
-
-            output_path = save_loc + file_name + "_pc.tif";
-            //write output as tiff
-            TiffUtils::saveMeshAsTiff(output_path, pc_img);
-        }
 
         } else {
         std::cout << "Oops, something went wrong. APR not computed :(." << std::endl;

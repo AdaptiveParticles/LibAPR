@@ -13,7 +13,7 @@ class APRNumerics {
 public:
 
     template<typename T,typename U>
-    static void compute_part_level(APR<T> &apr,ExtraParticleData<U>& parts_level){
+    static void compute_part_level(APR<T> &apr,ParticleData<U>& parts_level){
         parts_level.data.resize(apr.total_number_particles());
 
         auto apr_iterator = apr.iterator();
@@ -41,7 +41,7 @@ public:
 
 
     template<typename T>
-    static void compute_gradient_vector(APR<T> &apr,ExtraParticleData<std::vector<float>>& gradient,const bool normalize = true,const std::vector<float> delta = {1.0f,1.0f,1.0f}){
+    static void compute_gradient_vector(APR<T> &apr,ParticleData<std::vector<float>>& gradient,const bool normalize = true,const std::vector<float> delta = {1.0f,1.0f,1.0f}){
 
 
         APRTimer timer;
@@ -140,11 +140,11 @@ public:
     }
 
     template<typename T,typename S,typename U>
-    void seperable_smooth_filter(APR<T> &apr,const ExtraParticleData<S>& input_data,ExtraParticleData<U>& output_data,const std::vector<float>& filter,unsigned int repeats = 1){
+    void seperable_smooth_filter(APR<T> &apr,const ParticleData<S>& input_data,ParticleData<U>& output_data,const std::vector<float>& filter,unsigned int repeats = 1){
 
         output_data.init(apr.total_number_particles());
 
-        ExtraParticleData<U> output_data_2(apr.total_number_particles());
+        ParticleData<U> output_data_2(apr.total_number_particles());
         output_data_2.copy_parts(apr,input_data);
 
         for (unsigned int i = 0; i < repeats; ++i) {
@@ -159,7 +159,7 @@ public:
 
 
     template<typename T,typename S,typename U>
-    void face_neighbour_filter(APR<T> &apr,ExtraParticleData<S>& input_data,ExtraParticleData<U>& output_data,const std::vector<float>& filter,const int direction) {
+    void face_neighbour_filter(APR<T> &apr,ParticleData<S>& input_data,ParticleData<U>& output_data,const std::vector<float>& filter,const int direction) {
 
         std::vector<uint8_t> faces;
         if (direction == 0) {

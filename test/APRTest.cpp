@@ -121,7 +121,7 @@ bool test_apr_tree(TestData& test_data) {
 
     test_data.apr.apr_tree.init(test_data.apr);
 
-    ExtraParticleData<float> tree_data;
+    ParticleData<float> tree_data;
 
     APRTreeIterator apr_tree_iterator = test_data.apr.apr_tree.tree_iterator();
 
@@ -168,7 +168,7 @@ bool test_apr_tree(TestData& test_data) {
     //Also check the sparse data-structure generated tree
     APRTree<uint16_t> tree2;
     tree2.initialize_apr_tree_sparse(test_data.apr);
-    ExtraParticleData<float> treedata_2;
+    ParticleData<float> treedata_2;
 
     APRTree<uint16_t> tree3;
     tree3.init(test_data.apr);
@@ -367,7 +367,7 @@ bool test_apr_input_output(TestData& test_data){
     }
 
 
-    ExtraParticleData<float> extra_data(test_data.apr.total_number_particles());
+    ParticleData<float> extra_data(test_data.apr.total_number_particles());
 
     for (unsigned int level = apr_iterator.level_min(); level <= apr_iterator.level_max(); ++level) {
         int z = 0;
@@ -392,7 +392,7 @@ bool test_apr_input_output(TestData& test_data){
 
     std::string extra_file_name = save_loc + "example_output" + "_apr_extra_parts.h5";
 
-    ExtraParticleData<float> extra_data_read;
+    ParticleData<float> extra_data_read;
 
     //you need the same apr used to write it to load it (doesn't save location data)
     test_data.apr.read_parts_only(extra_file_name,extra_data_read);
@@ -430,9 +430,9 @@ bool test_apr_neighbour_access(TestData& test_data){
     APRIterator neighbour_iterator = test_data.apr.iterator();
     APRIterator apr_iterator = test_data.apr.iterator();
 
-    ExtraParticleData<uint16_t> x_p(test_data.apr.total_number_particles());
-    ExtraParticleData<uint16_t> y_p(test_data.apr.total_number_particles());
-    ExtraParticleData<uint16_t> z_p(test_data.apr.total_number_particles());
+    ParticleData<uint16_t> x_p(test_data.apr.total_number_particles());
+    ParticleData<uint16_t> y_p(test_data.apr.total_number_particles());
+    ParticleData<uint16_t> z_p(test_data.apr.total_number_particles());
 
     for (unsigned int level = apr_iterator.level_min(); level <= apr_iterator.level_max(); ++level) {
         int z = 0;

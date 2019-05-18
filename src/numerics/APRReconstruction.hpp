@@ -10,6 +10,8 @@
 #include "data_structures/APR/APRIterator.hpp"
 #include "data_structures/APR/APRTreeIterator.hpp"
 #include "numerics/MeshNumerics.hpp"
+#include "data_structures/APR/ParticleData.hpp"
+#include "data_structures/APR/PartCellData.hpp"
 
 struct ReconPatch{
     int x_begin=0;
@@ -24,7 +26,7 @@ struct ReconPatch{
 class APRReconstruction {
 public:
     template<typename U,typename V,typename T>
-    void get_parts_from_img(APR& apr,PixelData<U>& input_image,ExtraParticleData<V>& parts) {
+    void get_parts_from_img(APR& apr,PixelData<U>& input_image,ParticleData<V>& parts) {
 
         std::vector<PixelData<T>> downsampled_img;
         //Down-sample the image for particle intensity estimation
@@ -41,7 +43,7 @@ public:
     * Samples particles from an image using an image tree (img_by_level is a vector of images)
     */
     template<typename U,typename V>
-    void get_parts_from_img(APR& apr,std::vector<PixelData<U>>& img_by_level,ExtraParticleData<V>& parts){
+    void get_parts_from_img(APR& apr,std::vector<PixelData<U>>& img_by_level,ParticleData<V>& parts){
         auto it = apr.iterator();
         parts.data.resize(it.total_number_particles());
         std::cout << "Total number of particles: " << it.total_number_particles() << std::endl;
@@ -63,7 +65,7 @@ public:
 
 
     template<typename U,typename V>
-    static void interp_img(APR& apr, PixelData<U>& img,ExtraParticleData<V>& parts){
+    static void interp_img(APR& apr, PixelData<U>& img,ParticleData<V>& parts){
         //
         //  Bevan Cheeseman 2016
         //
@@ -130,17 +132,17 @@ public:
 
 
 
-    template<typename U,typename V,typename S>
-    static void interp_img_us_smooth(APR<S>& apr, PixelData<U>& img,ExtraParticleData<V>& parts,bool smooth,int delta = 0){
+    template<typename U,typename V>
+    static void interp_img_us_smooth(APR& apr, PixelData<U>& img,ParticleData<V>& parts,bool smooth,int delta = 0){
         //
         //  Bevan Cheeseman 2016
         //
         //  Takes in a APR and creates piece-wise constant image
         //
 
-        APRTree<S> local_tree;
+        APRTree local_tree;
 
-        ExtraParticleData<float> tree_parts;
+        ParticleData<float> tree_parts;
 
         //is apr tree initialized. #FIX ME Need new check
         //if(apr.apr_tree.total_number_parent_cells() == 0){
@@ -250,8 +252,8 @@ public:
 
 
 
-    template<typename U,typename V,typename S>
-    static void interp_img_us(APR<S>& apr, PixelData<U>& img,ExtraParticleData<V>& parts){
+    template<typename U,typename V>
+    static void interp_img_us(APR& apr, PixelData<U>& img,ParticleData<V>& parts){
         //
         //  Bevan Cheeseman 2016
         //
@@ -518,32 +520,32 @@ public:
 //    }
 
 
-    template<typename U,typename V,typename S,typename T>
-    static void interp_image_patch(APR<S>& apr, APRTree<S>& aprTree,PixelData<U>& img,ExtraPartCellData<V>& parts_pc,ExtraParticleData<T>& parts_tree,ReconPatch& reconPatch){
+    template<typename U,typename V,typename T>
+    static void interp_image_patch(APR& apr, APRTree& aprTree,PixelData<U>& img,PartCellData<V>& parts_pc,ParticleData<T>& parts_tree,ReconPatch& reconPatch){
         //uses non-contiguous parts stoed in local arrays as the input data.
-        ExtraParticleData<V> parts_empty;
+        ParticleData<V> parts_empty;
         interp_image_patch(apr, aprTree,img, parts_empty, parts_pc, parts_tree,reconPatch,true);
 
     }
 
-    template<typename U,typename V,typename S,typename T>
-    static void interp_image_patch(APR<S>& apr, APRTree<S>& aprTree,PixelData<U>& img,ExtraParticleData<V>& parts,ExtraParticleData<T>& parts_tree,ReconPatch& reconPatch){
+    template<typename U,typename V,typename T>
+    static void interp_image_patch(APR& apr, APRTree& aprTree,PixelData<U>& img,ParticleData<V>& parts,ParticleData<T>& parts_tree,ReconPatch& reconPatch){
         //uses contiguous parts as the input data.
-        ExtraPartCellData<V> parts_empty_pc;
+        PartCellData<V> parts_empty_pc;
         interp_image_patch(apr, aprTree,img, parts, parts_empty_pc, parts_tree,reconPatch,false);
     }
 
 
 
 
-    template<typename U,typename S>
-    static void interp_depth_ds(APR<S>& apr,PixelData<U>& img){
+    template<typename U>
+    static void interp_depth_ds(APR& apr,PixelData<U>& img){
         //
         //  Returns an image of the depth, this is down-sampled by one, as the Particle Cell solution reflects this
         //
 
         //get depth
-        ExtraParticleData<U> depth_parts(apr.total_number_particles());
+        ParticleData<U> depth_parts(apr.total_number_particles());
 
         auto apr_iterator = apr.iterator();
 
@@ -580,14 +582,14 @@ public:
 
     }
 
-    template<typename U,typename S>
-    static void interp_level(APR<S> &apr, PixelData<U> &img){
+    template<typename U>
+    static void interp_level(APR &apr, PixelData<U> &img){
         //
         //  Returns an image of the depth, this is down-sampled by one, as the Particle Cell solution reflects this
         //
 
         //get depth
-        ExtraParticleData<U> level_parts(apr.total_number_particles());
+        ParticleData<U> level_parts(apr.total_number_particles());
         auto apr_iterator = apr.iterator();
 
         for (unsigned int level = apr_iterator.level_min(); level <= apr_iterator.level_max(); ++level) {
@@ -646,7 +648,7 @@ public:
 
         float scale = scale_in;
 
-        //const unsigned int d_max = this->depth_max();
+        //const unsigned int d_max = this->level_max();
 
 #ifdef HAVE_OPENMP
 	#pragma omp parallel for default(shared) private(i,k,counter,temp,index,divisor,offset) firstprivate(temp_vec,offset_vec)
@@ -765,7 +767,7 @@ public:
         int64_t index_modulo, previous_modulo, jxnumynum, offset,forward_modulo,backward_modulo;
 
         const float scale = scale_in;
-        //const unsigned int d_max = this->depth_max();
+        //const unsigned int d_max = this->level_max();
 
 
 #ifdef HAVE_OPENMP
@@ -880,7 +882,7 @@ public:
 
         const int offset_max = offset_max_in;
         const float scale = scale_in;
-        //const unsigned int d_max = this->depth_max();
+        //const unsigned int d_max = this->level_max();
 
         std::vector<float> temp_vec;
         temp_vec.resize(y_num*(2*offset_max + 2),0);
@@ -976,8 +978,8 @@ public:
 
 
 
-    template<typename U,typename V,typename S>
-    static void interp_parts_smooth(APR<S>& apr,PixelData<U>& out_image,ExtraParticleData<V>& interp_data,std::vector<float> scale_d = {2,2,2}){
+    template<typename U,typename V>
+    static void interp_parts_smooth(APR& apr,PixelData<U>& out_image,ParticleData<V>& interp_data,std::vector<float> scale_d = {2,2,2}){
         //
         //  Performs a smooth interpolation, based on the depth (level l) in each direction.
         //
@@ -1015,8 +1017,8 @@ public:
         pc_image.swap(out_image);
     }
 
-    template<typename U,typename V,typename S>
-    void interp_parts_smooth_patch(APR<S>& apr,APRTree<S> &aprTree,PixelData<U>& out_image,ExtraParticleData<V>& interp_data,ExtraParticleData<V>& tree_interp_data,ReconPatch& reconPatch,std::vector<float> scale_d = {2,2,2}){
+    template<typename U,typename V>
+    void interp_parts_smooth_patch(APR& apr,APRTree &aprTree,PixelData<U>& out_image,ParticleData<V>& interp_data,ParticleData<V>& tree_interp_data,ReconPatch& reconPatch,std::vector<float> scale_d = {2,2,2}){
         //
         //  Performs a smooth interpolation, based on the depth (level l) in each direction.
         //
@@ -1030,7 +1032,7 @@ public:
         unsigned int offset_max = 10;
 
         //get depth
-        ExtraParticleData<U> level_parts(apr.total_number_particles());
+        ParticleData<U> level_parts(apr.total_number_particles());
 
         auto apr_iterator = apr.iterator();
 
@@ -1057,7 +1059,7 @@ public:
             }
         }
 
-        ExtraParticleData<U> level_partsTree(apr.total_number_particles());
+        ParticleData<U> level_partsTree(apr.total_number_particles());
 
         APRTreeIterator apr_iteratorTree = aprTree.tree_iterator();
 
@@ -1112,8 +1114,8 @@ public:
 
 private:
 
-    template<typename U,typename V,typename S,typename T>
-    static void interp_image_patch(APR<S>& apr, APRTree<S>& aprTree,PixelData<U>& img,ExtraParticleData<V>& parts,ExtraPartCellData<V>& parts_pc,ExtraParticleData<T>& parts_tree,ReconPatch& reconPatch,const bool parts_cell_data){
+    template<typename U,typename V,typename T>
+    static void interp_image_patch(APR& apr, APRTree& aprTree,PixelData<U>& img,ParticleData<V>& parts,PartCellData<V>& parts_pc,ParticleData<T>& parts_tree,ReconPatch& reconPatch,const bool parts_cell_data){
         //
         //  Bevan Cheeseman 2016
         //
@@ -1264,7 +1266,7 @@ private:
                                         std::min((int) (apr_iterator.y() * step_size + step_size), y_end) - y_begin;
 
                                 if (parts_cell_data) {
-                                    const S temp_int = parts_pc[apr_iterator.get_pcd_key()];
+                                    const V temp_int = parts_pc[apr_iterator.get_pcd_key()];
 
                                     for (int64_t q = dim3; q < offset_max_dim3; ++q) {
 
@@ -1275,7 +1277,7 @@ private:
                                         }
                                     }
                                 } else {
-                                    const S temp_int = parts[apr_iterator];
+                                    const V temp_int = parts[apr_iterator];
 
                                     for (int64_t q = dim3; q < offset_max_dim3; ++q) {
 
@@ -1346,7 +1348,7 @@ private:
                             const int dim1 = std::max((int) (aprTreeIterator.y() * step_size), y_begin) - y_begin;
 
                             //particle property
-                            const S temp_int = parts_tree[aprTreeIterator];
+                            const V temp_int = parts_tree[aprTreeIterator];
 
                             //upper bound
 

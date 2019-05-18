@@ -12,7 +12,7 @@
 #include <list>
 
 #include "data_structures/APR/APR.hpp"
-#include "data_structures/APR/ExtraParticleData.hpp"
+#include "data_structures/APR/ParticleData.hpp"
 #include "data_structures/Mesh/PixelData.hpp"
 #include "io/TiffUtils.hpp"
 #include "numerics/APRReconstruction.hpp"
@@ -84,7 +84,7 @@ protected:
     void get_local_particle_cell_set(PixelData<float> &local_scale_temp, PixelData<float> &local_scale_temp2);
 
     template<typename T,typename S>
-    void get_particles(APR &aAPR,PixelData<T>& input_image,ExtraParticleData<S>& particles);
+    void get_particles(APR &aAPR,PixelData<T>& input_image,ParticleData<S>& particles);
 
 };
 
@@ -177,7 +177,7 @@ inline bool APRConverter<ImageType>::get_apr_method_from_file(APR &aAPR, PixelDa
 }
 
 template<typename ImageType> template<typename T,typename S>
-void APRConverter<ImageType>::get_particles(APR &aAPR,PixelData<T>& input_image,ExtraParticleData<S>& particles) {
+void APRConverter<ImageType>::get_particles(APR &aAPR,PixelData<T>& input_image,ParticleData<S>& particles) {
 
     APRReconstruction aprReconstruction;
     method_timer.start_timer("sample_particles");

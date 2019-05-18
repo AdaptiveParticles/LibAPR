@@ -7,6 +7,8 @@
 #include "algorithm/APRParameters.hpp"
 #include "data_structures/Mesh/PixelData.hpp"
 #include "data_structures/APR/APR.hpp"
+#include "algorithm/APRConverter.hpp"
+#include "io/APRWriter.hpp"
 
 
 struct cmdLineOptions{

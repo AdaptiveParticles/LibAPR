@@ -9,7 +9,7 @@
 #include "../data_structures/APR/APRIterator.hpp"
 #include "data_structures/Mesh/PixelData.hpp"
 #include "../data_structures/APR/APR.hpp"
-#include "../data_structures/APR/ExtraPartCellData.hpp"
+#include "data_structures/APR/PartCellData.hpp"
 #include "../data_structures/APR/APRAccessStructures.hpp"
 
 #ifdef HAVE_OPENMP
@@ -90,7 +90,7 @@ class PullingSchemeSparse {
 
 public:
 
-    ExtraPartCellData<SparseParticleCellMap> particle_cell_tree;
+    PartCellData<SparseParticleCellMap> particle_cell_tree;
     unsigned int l_min;
     unsigned int l_max;
     std::vector<size_t> y_num_l;

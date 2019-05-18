@@ -18,8 +18,8 @@
 #include <cmath>
 
 #include "data_structures/Mesh/PixelData.hpp"
-#include "data_structures/APR/ExtraPartCellData.hpp"
-#include "data_structures/APR/ExtraParticleData.hpp"
+#include "data_structures/APR/PartCellData.hpp"
+#include "data_structures/APR/ParticleData.hpp"
 
 #include "data_structures/APR/APR.hpp"
 #include "data_structures/APR/APRTree.hpp"
@@ -57,11 +57,11 @@ public:
 
     template<typename U, typename S, typename V, class BinaryOperation>
     void
-    perform_raycast(APR<U> &apr, ExtraParticleData<S> &particle_data, PixelData<V> &cast_views, BinaryOperation op);
+    perform_raycast(APR<U> &apr, ParticleData<S> &particle_data, PixelData<V> &cast_views, BinaryOperation op);
 
     template<typename U, typename S, typename V, typename T, class BinaryOperation>
-    void perform_raycast_patch(APR<U> &apr, APRTree<U> &aprTree, ExtraParticleData<S> &particle_data,
-                               ExtraParticleData<T> &treeData, PixelData<V> &cast_views, ReconPatch &rp,
+    void perform_raycast_patch(APR<U> &apr, APRTree<U> &aprTree, ParticleData<S> &particle_data,
+                               ParticleData<T> &treeData, PixelData<V> &cast_views, ReconPatch &rp,
                                BinaryOperation op);
 
     template<typename S, typename U>
@@ -119,8 +119,8 @@ APRRaycaster::getPos(int &dim1, int &dim2, float x_actual, float y_actual, float
 
 
 template<typename U, typename S, typename V, typename T, class BinaryOperation>
-void APRRaycaster::perform_raycast_patch(APR<U> &apr, APRTree<U> &aprTree, ExtraParticleData<S> &particle_data,
-                                         ExtraParticleData<T> &treeData, PixelData<V> &cast_views,
+void APRRaycaster::perform_raycast_patch(APR<U> &apr, APRTree<U> &aprTree, ParticleData<S> &particle_data,
+                                         ParticleData<T> &treeData, PixelData<V> &cast_views,
                                          ReconPatch &reconPatch, BinaryOperation op) {
 
     //
@@ -254,9 +254,9 @@ void APRRaycaster::perform_raycast_patch(APR<U> &apr, APRTree<U> &aprTree, Extra
     const bool jitter = this->jitter;
     const float jitter_factor = this->jitter_factor;
 
-    ExtraParticleData<float> jitter_x;
-    ExtraParticleData<float> jitter_y;
-    ExtraParticleData<float> jitter_z;
+    ParticleData<float> jitter_x;
+    ParticleData<float> jitter_y;
+    ParticleData<float> jitter_z;
 
     //initialize the iterator
     APRIterator apr_iterator(apr.apr_access);
@@ -544,7 +544,7 @@ void APRRaycaster::perform_raycast_patch(APR<U> &apr, APRTree<U> &aprTree, Extra
 
 
 template<typename U, typename S, typename V, class BinaryOperation>
-void APRRaycaster::perform_raycast(APR<U> &apr, ExtraParticleData<S> &particle_data, PixelData<V> &cast_views,
+void APRRaycaster::perform_raycast(APR<U> &apr, ParticleData<S> &particle_data, PixelData<V> &cast_views,
                                    BinaryOperation op) {
 
     //
@@ -625,9 +625,9 @@ void APRRaycaster::perform_raycast(APR<U> &apr, ExtraParticleData<S> &particle_d
     const bool jitter = this->jitter;
     const float jitter_factor = this->jitter_factor;
 
-    ExtraParticleData<float> jitter_x;
-    ExtraParticleData<float> jitter_y;
-    ExtraParticleData<float> jitter_z;
+    ParticleData<float> jitter_x;
+    ParticleData<float> jitter_y;
+    ParticleData<float> jitter_z;
 
     //initialize the iterator
     APRIterator apr_iterator(apr.apr_access);

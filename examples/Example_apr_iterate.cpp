@@ -82,7 +82,7 @@ int main(int argc, char **argv) {
     timer.stop_timer();
 
     //
-    //  You can also iterate over by level, this is in the datastrucrure called depth, Particle Cells range from depth_min() to depth_max(), coinciding with level = l_min and level = l_max
+    //  You can also iterate over by level, this is in the datastrucrure called depth, Particle Cells range from level_min() to level_max(), coinciding with level = l_min and level = l_max
     //
 
     timer.start_timer("APR parrellel iterator loop by level");

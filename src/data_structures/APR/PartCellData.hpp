@@ -16,22 +16,22 @@
 #include "data_structures/APR/APRAccessStructures.hpp"
 
 template<typename T>
-class ExtraPartCellData {
+class PartCellData {
     
 public:
-    uint64_t depth_max;
-    uint64_t depth_min;
+    uint64_t level_max;
+    uint64_t level_min;
 
     std::vector<uint64_t> z_num;
     std::vector<uint64_t> x_num;
 
     std::vector<std::vector<std::vector<T>>> data; // [level][x_num(level) * z + x][y]
 
-    ExtraPartCellData() {}
+    PartCellData() {}
     template<typename S>
-    ExtraPartCellData(const ExtraPartCellData<S> &part_data) { initialize_structure_parts(part_data); }
+    PartCellData(const PartCellData<S> &part_data) { initialize_structure_parts(part_data); }
 
-    ExtraPartCellData(APR &apr) { initialize_structure_parts_empty(apr); }
+    PartCellData(APR &apr) { initialize_structure_parts_empty(apr); }
 
     T& operator[](PCDKey& pcdKey){
       return data[pcdKey.level][pcdKey.offset][pcdKey.local_ind];
@@ -44,17 +44,17 @@ public:
 private:
 
     template<typename S>
-    void initialize_structure_parts(const ExtraPartCellData<S>& part_data) {
+    void initialize_structure_parts(const PartCellData<S>& part_data) {
         // Initialize the structure to the same size as the given structure
 
-        depth_max = part_data.depth_max;
-        depth_min = part_data.depth_min;
+        level_max = part_data.level_max;
+        level_min = part_data.level_min;
         
-        z_num.resize(depth_max+1);
-        x_num.resize(depth_max+1);
-        data.resize(depth_max+1);
+        z_num.resize(level_max+1);
+        x_num.resize(level_max+1);
+        data.resize(level_max+1);
 
-        for (uint64_t i = depth_min; i <= depth_max; ++i) {
+        for (uint64_t i = level_min; i <= level_max; ++i) {
             z_num[i] = part_data.z_num[i];
             x_num[i] = part_data.x_num[i];
             data[i].resize(z_num[i]*x_num[i]);
@@ -66,16 +66,16 @@ private:
 };
 
 template<typename T>
-void ExtraPartCellData<T>::initialize_structure_parts_empty(APR& apr) {
+void PartCellData<T>::initialize_structure_parts_empty(APR& apr) {
     // Initialize the structure to the same size as the given structure
-    depth_max = apr.level_max();
-    depth_min = apr.level_min();
+    level_max = apr.level_max();
+    level_min = apr.level_min();
 
-    z_num.resize(depth_max+1);
-    x_num.resize(depth_max+1);
-    data.resize(depth_max+1);
+    z_num.resize(level_max+1);
+    x_num.resize(level_max+1);
+    data.resize(level_max+1);
 
-    for (uint64_t i = depth_min; i <= depth_max; ++i) {
+    for (uint64_t i = level_min; i <= level_max; ++i) {
         z_num[i] = apr.spatial_index_z_max(i);
         x_num[i] = apr.spatial_index_x_max(i);
         data[i].resize(z_num[i]*x_num[i]);

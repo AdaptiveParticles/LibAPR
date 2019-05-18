@@ -12,6 +12,7 @@
 #include <numeric>
 #include <memory>
 #include <data_structures/APR/APR.hpp>
+#include "numerics/APRCompress.hpp"
 
 
 struct FileSizeInfo {
@@ -454,7 +455,7 @@ public:
 
         prev_read_level = 0;
         if(!read_structure) {
-            uint64_t current_parts_size = apr.particles_intensities.data.size();
+            uint64_t current_parts_size = apr.total_number_particles();
 
             for (int j = apr.level_min(); j <apr.level_max(); ++j) {
                 if((apr.apr_access.global_index_by_level_end[j] + 1)==current_parts_size){
@@ -684,7 +685,7 @@ public:
 
 
     template<typename T>
-    void write_apr_paraview(APR &apr, const std::string &save_loc, const std::string &file_name, const ExtraParticleData<T> &parts,std::vector<uint64_t> previous_num = {0}) {
+    void write_apr_paraview(APR &apr, const std::string &save_loc, const std::string &file_name, const ParticleData<T> &parts,std::vector<uint64_t> previous_num = {0}) {
         std::string hdf5_file_name = save_loc + file_name + ".h5";
 
         bool write_time = false;
@@ -762,7 +763,7 @@ public:
      * Writes only the particle data, requires the same APR to be read in correctly.
      */
     template<typename S>
-    float write_particles_only(const std::string &save_loc, const std::string &file_name, const ExtraParticleData<S> &parts_extra) {
+    float write_particles_only(const std::string &save_loc, const std::string &file_name, const ParticleData<S> &parts_extra) {
         std::string hdf5_file_name = save_loc + file_name + ".h5";
 
         AprFile f{hdf5_file_name, AprFile::Operation::WRITE};
@@ -789,7 +790,7 @@ public:
     }
 
     template<typename T>
-    void read_parts_only(const std::string &aFileName, ExtraParticleData<T>& extra_parts) {
+    void read_parts_only(const std::string &aFileName, ParticleData<T>& extra_parts) {
         AprFile f{aFileName, AprFile::Operation::READ};
         if (!f.isOpened()) return;
 

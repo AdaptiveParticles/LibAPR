@@ -50,7 +50,7 @@ int main(int argc, char **argv) {
 
     APRTree<uint16_t> aprTree;
     aprTree.init(apr);
-    ExtraParticleData<float> treeData;
+    ParticleData<float> treeData;
 
     APRTreeNumerics::fill_tree_max(apr,aprTree,apr.particles_intensities,treeData);
 

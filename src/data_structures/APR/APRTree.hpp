@@ -383,7 +383,7 @@ protected:
 public:
     // #TODO: Move to Tree Numerics?
     template<typename S,typename U>
-    static void fill_tree_mean(APR& apr,APRTree& apr_tree,ExtraParticleData<S>& particle_data,ExtraParticleData<U>& tree_data) {
+    static void fill_tree_mean(APR& apr,APRTree& apr_tree,ParticleData<S>& particle_data,ParticleData<U>& tree_data) {
 
         APRTimer timer;
         timer.verbose_flag = false;

@@ -11,7 +11,7 @@
 #define PARTPLAY_COMPRESSAPR_HPP
 
 #include "data_structures/APR/APR.hpp"
-#include "data_structures/APR/ExtraParticleData.hpp"
+#include "data_structures/APR/ParticleData.hpp"
 #include "misc/APRTimer.hpp"
 #include <cmath>
 #include <vector>
@@ -39,7 +39,7 @@ public:
     }
 
     template<typename ImageType>
-    void  compress(APR &apr, ExtraParticleData<ImageType> &symbols) {
+    void  compress(APR &apr, ParticleData<ImageType> &symbols) {
         APRTimer timer;
         timer.verbose_flag = false;
 
@@ -85,10 +85,10 @@ public:
             //variance stabilization and prediction step.
             std::cout << "Variance Stabalization followed by (x,y,z) prediction" << std::endl;
 
-            ExtraParticleData<float> predict_input(apr.total_number_particles());
-            ExtraParticleData<float> predict_output(apr.total_number_particles());
+            ParticleData<float> predict_input(apr.total_number_particles());
+            ParticleData<float> predict_output(apr.total_number_particles());
 
-            predict_input.copy_parts(apr,apr.particles_intensities);
+            predict_input.copy_parts(apr,symbols);
             timer.stop_timer();
 
             predict_input.map_inplace(apr,[this](const float a) { return variance_stabilitzation<float>(a); });
@@ -113,7 +113,7 @@ public:
 
 
     template<typename U>
-    void decompress(APR& apr,ExtraParticleData<U>& symbols,uint64_t start=0){
+    void decompress(APR& apr,ParticleData<U>& symbols,uint64_t start=0){
 
         APRTimer timer;
         timer.verbose_flag = false;
@@ -140,8 +140,8 @@ public:
 
         } else if (compress_type ==2){
 
-           ExtraParticleData<float> predict_input(apr.total_number_particles());
-           ExtraParticleData<float> predict_output(apr.total_number_particles());
+           ParticleData<float> predict_input(apr.total_number_particles());
+           ParticleData<float> predict_output(apr.total_number_particles());
            //turn symbols back to floats.
            symbols.map(apr,predict_input,[this](const U a){return inverse_calculate_symbols<float,U>(a);});
 
@@ -196,8 +196,8 @@ private:
     template<typename T,typename S>
     T inverse_calculate_symbols(S input);
 
-    template<typename T,typename S,typename U>
-    void predict_particles_by_level(APR<U>& apr,const unsigned int level,ExtraParticleData<T>& predict_input,ExtraParticleData<S>& predict_output,std::vector<unsigned int>& predict_directions,unsigned int num_z_blocks,const int decode_encode_flag,const bool rounding = true);
+    template<typename T,typename S>
+    void predict_particles_by_level(APR& apr,const unsigned int level,ParticleData<T>& predict_input,ParticleData<S>& predict_output,std::vector<unsigned int>& predict_directions,unsigned int num_z_blocks,const int decode_encode_flag,const bool rounding = true);
 };
 
  template<typename S>
@@ -237,8 +237,8 @@ T APRCompress::inverse_calculate_symbols(S input){
     return  (1 - 2 * negative) * ((input + negative) / 2);
 }
 
- template<typename T,typename S,typename U>
-void APRCompress::predict_particles_by_level(APR<U>& apr,const unsigned int level,ExtraParticleData<T>& predict_input,ExtraParticleData<S>& predict_output,std::vector<unsigned int>& predict_directions,unsigned int num_z_blocks,const int decode_encode_flag,const bool rounding){
+ template<typename T,typename S>
+void APRCompress::predict_particles_by_level(APR& apr,const unsigned int level,ParticleData<T>& predict_input,ParticleData<S>& predict_output,std::vector<unsigned int>& predict_directions,unsigned int num_z_blocks,const int decode_encode_flag,const bool rounding){
     //
     //  Performs prediction step using the predict directions in chunks of the dataset, given by z_index slice.
     //
