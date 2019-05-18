@@ -44,28 +44,26 @@ Advanced (Direct) Settings:
 
 int runAPR(cmdLineOptions options) {
     //the apr datastructure
-    APR<uint16_t> apr;
-
-    //read in the command line options into the parameters file
-    apr.parameters.Ip_th = options.Ip_th;
-    apr.parameters.rel_error = options.rel_error;
-    apr.parameters.lambda = options.lambda;
-    apr.parameters.mask_file = options.mask_file;
-    apr.parameters.min_signal = options.min_signal;
-    apr.parameters.SNR_min = options.SNR_min;
-    apr.parameters.normalized_input = options.normalize_input;
-    apr.parameters.neighborhood_optimization = options.neighborhood_optimization;
-    apr.parameters.output_steps = options.output_steps;
-
-    //where things are
-    apr.parameters.input_image_name = options.input;
-    apr.parameters.input_dir = options.directory;
-    apr.parameters.name = options.output;
-    apr.parameters.output_dir = options.output_dir;
+    APR apr;
 
     APRConverter<uint16_t> aprConverter;
 
-    aprConverter.par = apr.parameters;
+    //read in the command line options into the parameters file
+    aprConverter.par.Ip_th = options.Ip_th;
+    aprConverter.par.rel_error = options.rel_error;
+    aprConverter.par.lambda = options.lambda;
+    aprConverter.par.mask_file = options.mask_file;
+    aprConverter.par.min_signal = options.min_signal;
+    aprConverter.par.SNR_min = options.SNR_min;
+    aprConverter.par.normalized_input = options.normalize_input;
+    aprConverter.par.neighborhood_optimization = options.neighborhood_optimization;
+    aprConverter.par.output_steps = options.output_steps;
+
+    //where things are
+    aprConverter.par.input_image_name = options.input;
+    aprConverter.par.input_dir = options.directory;
+    aprConverter.par.name = options.output;
+    aprConverter.par.output_dir = options.output_dir;
 
     aprConverter.fine_grained_timer.verbose_flag = false;
     aprConverter.method_timer.verbose_flag = false;
@@ -98,6 +96,8 @@ int runAPR(cmdLineOptions options) {
         unsigned int blosc_comp_type = BLOSC_ZSTD; //Lizard Codec
         unsigned int blosc_comp_level = 3;
         unsigned int blosc_shuffle = 1;
+
+        APRCompress aprCompress;
 
         apr.apr_compress.set_compression_type(options.compress_type);
         apr.apr_compress.set_quantization_factor(options.quantization_factor);

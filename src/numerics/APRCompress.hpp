@@ -17,8 +17,7 @@
 #include <vector>
 #include <data_structures/APR/APR.hpp>
 
-
-template<typename ImageType>
+//template<typename ImageType>
 class APRCompress {
 
 public:
@@ -39,8 +38,8 @@ public:
         e = e_;
     }
 
-    template<typename U>
-    void  compress(APR<U> &apr, ExtraParticleData<ImageType> &symbols) {
+    template<typename ImageType>
+    void  compress(APR &apr, ExtraParticleData<ImageType> &symbols) {
         APRTimer timer;
         timer.verbose_flag = false;
 
@@ -114,7 +113,7 @@ public:
 
 
     template<typename U>
-    void decompress(APR<U>& apr,ExtraParticleData<ImageType>& symbols,uint64_t start=0){
+    void decompress(APR& apr,ExtraParticleData<U>& symbols,uint64_t start=0){
 
         APRTimer timer;
         timer.verbose_flag = false;
@@ -132,7 +131,7 @@ public:
 #endif
            for (i = start; i < symbols.data.size(); ++i) {
                //symbols.data[i] = (ImageType) inverse_variance_stabilitzation<float>(inverse_calculate_symbols<float,ImageType>(symbols.data[i]));
-               symbols.data[i] = (ImageType) inverse_variance_stabilitzation<float>(symbols.data[i]);
+               symbols.data[i] = (U) inverse_variance_stabilitzation<float>(symbols.data[i]);
            }
 
             //invert the stabilization
@@ -144,7 +143,7 @@ public:
            ExtraParticleData<float> predict_input(apr.total_number_particles());
            ExtraParticleData<float> predict_output(apr.total_number_particles());
            //turn symbols back to floats.
-           symbols.map(apr,predict_input,[this](const ImageType a){return inverse_calculate_symbols<float,ImageType>(a);});
+           symbols.map(apr,predict_input,[this](const U a){return inverse_calculate_symbols<float,U>(a);});
 
             for (unsigned int level = apr.level_min(); level <= apr.level_max(); ++level) {
                 //predict_output.copy_parts(apr,predict_input,level);
@@ -201,15 +200,15 @@ private:
     void predict_particles_by_level(APR<U>& apr,const unsigned int level,ExtraParticleData<T>& predict_input,ExtraParticleData<S>& predict_output,std::vector<unsigned int>& predict_directions,unsigned int num_z_blocks,const int decode_encode_flag,const bool rounding = true);
 };
 
-template<typename ImageType> template<typename S>
-S APRCompress<ImageType>::variance_stabilitzation(const S input){
+ template<typename S>
+S APRCompress::variance_stabilitzation(const S input){
 
     return (2.0f*sqrt(std::max((S) (input-background),(S)0)/cnv + pow(e,2)) - 2.0f*e)/q;
 
 }
 
-template<typename ImageType> template<typename S>
-S APRCompress<ImageType>::inverse_variance_stabilitzation(const S input){
+ template<typename S>
+S APRCompress::inverse_variance_stabilitzation(const S input){
 
     float D = q*input + 2*e;
 
@@ -222,24 +221,24 @@ S APRCompress<ImageType>::inverse_variance_stabilitzation(const S input){
 
 }
 
-template<typename ImageType> template<typename T,typename S>
-T APRCompress<ImageType>::calculate_symbols(S input){
+ template<typename T,typename S>
+T APRCompress::calculate_symbols(S input){
 
     int16_t val = round(input);
     return 2*(abs(val)) + (val >> 15);
 }
 
 
-template<typename ImageType> template<typename T,typename S>
-T APRCompress<ImageType>::inverse_calculate_symbols(S input){
+ template<typename T,typename S>
+T APRCompress::inverse_calculate_symbols(S input){
 
     int16_t negative = ((uint16_t) input) % 2;
 
     return  (1 - 2 * negative) * ((input + negative) / 2);
 }
 
-template<typename ImageType> template<typename T,typename S,typename U>
-void APRCompress<ImageType>::predict_particles_by_level(APR<U>& apr,const unsigned int level,ExtraParticleData<T>& predict_input,ExtraParticleData<S>& predict_output,std::vector<unsigned int>& predict_directions,unsigned int num_z_blocks,const int decode_encode_flag,const bool rounding){
+ template<typename T,typename S,typename U>
+void APRCompress::predict_particles_by_level(APR<U>& apr,const unsigned int level,ExtraParticleData<T>& predict_input,ExtraParticleData<S>& predict_output,std::vector<unsigned int>& predict_directions,unsigned int num_z_blocks,const int decode_encode_flag,const bool rounding){
     //
     //  Performs prediction step using the predict directions in chunks of the dataset, given by z_index slice.
     //

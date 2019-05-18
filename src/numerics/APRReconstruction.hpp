@@ -24,6 +24,31 @@ struct ReconPatch{
 class APRReconstruction {
 public:
 
+    /**
+    * Samples particles from an image using an image tree (img_by_level is a vector of images)
+    */
+    template<typename U,typename V,typename T>
+    void get_parts_from_img(APR<T>& apr,std::vector<PixelData<U>>& img_by_level,ExtraParticleData<V>& parts){
+        auto it = apr.iterator();
+        parts.data.resize(it.total_number_particles());
+        std::cout << "Total number of particles: " << it.total_number_particles() << std::endl;
+
+        for (unsigned int level = it.level_min(); level <= it.level_max(); ++level) {
+#ifdef HAVE_OPENMP
+#pragma omp parallel for schedule(dynamic) firstprivate(it)
+#endif
+            for (int z = 0; z < it.z_num(level); ++z) {
+                for (int x = 0; x < it.x_num(level); ++x) {
+                    for (it.begin(level, z, x);it <it.end();it++) {
+
+                        parts[it] = img_by_level[level].at(it.y(),x,z);
+                    }
+                }
+            }
+        }
+    }
+
+
     template<typename U,typename V,typename S>
     static void interp_img(APR<S>& apr, PixelData<U>& img,ExtraParticleData<V>& parts){
         //
