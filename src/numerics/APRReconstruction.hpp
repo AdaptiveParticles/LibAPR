@@ -23,12 +23,25 @@ struct ReconPatch{
 
 class APRReconstruction {
 public:
+    template<typename U,typename V,typename T>
+    void get_parts_from_img(APR& apr,PixelData<U>& input_image,ExtraParticleData<V>& parts) {
+
+        std::vector<PixelData<T>> downsampled_img;
+        //Down-sample the image for particle intensity estimation
+        downsamplePyrmaid(input_image, downsampled_img, apr.level_max(), apr.level_min());
+
+        APRReconstruction aprReconstruction;
+        //aAPR.get_parts_from_img_alt(input_image,aAPR.particles_intensities);
+        aprReconstruction.get_parts_from_img(downsampled_img,parts);
+
+        std::swap(input_image, downsampled_img.back());
+    }
 
     /**
     * Samples particles from an image using an image tree (img_by_level is a vector of images)
     */
-    template<typename U,typename V,typename T>
-    void get_parts_from_img(APR<T>& apr,std::vector<PixelData<U>>& img_by_level,ExtraParticleData<V>& parts){
+    template<typename U,typename V>
+    void get_parts_from_img(APR& apr,std::vector<PixelData<U>>& img_by_level,ExtraParticleData<V>& parts){
         auto it = apr.iterator();
         parts.data.resize(it.total_number_particles());
         std::cout << "Total number of particles: " << it.total_number_particles() << std::endl;
@@ -49,8 +62,8 @@ public:
     }
 
 
-    template<typename U,typename V,typename S>
-    static void interp_img(APR<S>& apr, PixelData<U>& img,ExtraParticleData<V>& parts){
+    template<typename U,typename V>
+    static void interp_img(APR& apr, PixelData<U>& img,ExtraParticleData<V>& parts){
         //
         //  Bevan Cheeseman 2016
         //

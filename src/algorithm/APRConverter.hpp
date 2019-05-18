@@ -12,8 +12,10 @@
 #include <list>
 
 #include "data_structures/APR/APR.hpp"
+#include "data_structures/APR/ExtraParticleData.hpp"
 #include "data_structures/Mesh/PixelData.hpp"
 #include "io/TiffUtils.hpp"
+#include "numerics/APRReconstruction.hpp"
 
 #include "PullingScheme.hpp"
 #include "LocalParticleCellSet.hpp"
@@ -23,7 +25,6 @@
 #ifdef APR_USE_CUDA
 #include "algorithm/ComputeGradientCuda.hpp"
 #endif
-
 
 template<typename ImageType>
 class APRConverter {
@@ -44,15 +45,15 @@ public:
     APRTimer computation_timer;
     APRParameters par;
 
-    bool get_apr(APR<ImageType> &aAPR);
+    bool get_apr(APR &aAPR);
 
 
     //get apr without setting parameters, and with an already loaded image.
     template<typename T>
-    bool get_apr_method(APR<ImageType> &aAPR, PixelData<T> &input_image);
+    bool get_apr_method(APR &aAPR, PixelData<T> &input_image);
 
     template<typename T>
-    bool get_apr_method_from_file(APR<ImageType> &aAPR, PixelData<T> inputImage);
+    bool get_apr_method_from_file(APR &aAPR, PixelData<T> inputImage);
 
     bool verbose = true;
 
@@ -62,10 +63,10 @@ protected:
 
 
     //pointer to the APR structure so member functions can have access if they need
-    const APR<ImageType> *apr;
+    const APR *apr;
 
     template<typename T>
-    void init_apr(APR<ImageType>& aAPR, PixelData<T>& input_image);
+    void init_apr(APR& aAPR, PixelData<T>& input_image);
 
     template<typename T>
     void auto_parameters(const PixelData<T> &input_img);
@@ -82,10 +83,13 @@ protected:
     void computeLevels(const PixelData<ImageType> &grad_temp, PixelData<float> &local_scale_temp, int maxLevel, float relError, float dx = 1, float dy = 1, float dz = 1);
     void get_local_particle_cell_set(PixelData<float> &local_scale_temp, PixelData<float> &local_scale_temp2);
 
+    template<typename T,typename S>
+    void get_particles(APR &aAPR,PixelData<T>& input_image,ExtraParticleData<S>& particles);
+
 };
 
 template<typename ImageType>
-inline bool APRConverter<ImageType>::get_apr(APR<ImageType> &aAPR) {
+inline bool APRConverter<ImageType>::get_apr(APR &aAPR) {
     apr = &aAPR;
 #ifdef HAVE_LIBTIFF
     TiffUtils::TiffInfo inputTiff(par.input_dir + par.input_image_name);
@@ -131,7 +135,7 @@ static MinMax<T> getMinMax(const PixelData<T>& input_image) {
  * Main method for constructing the APR from an input image
  */
 template<typename ImageType> template<typename T>
-inline bool APRConverter<ImageType>::get_apr_method_from_file(APR<ImageType> &aAPR, PixelData<T> inputImage) {
+inline bool APRConverter<ImageType>::get_apr_method_from_file(APR &aAPR, PixelData<T> inputImage) {
 //    allocation_timer.start_timer("read tif input image");
 //    PixelData<T> inputImage = TiffUtils::getMesh<T>(aTiffFile);
 //    allocation_timer.stop_timer();
@@ -172,12 +176,21 @@ inline bool APRConverter<ImageType>::get_apr_method_from_file(APR<ImageType> &aA
     return get_apr_method(aAPR, inputImage);
 }
 
+template<typename ImageType> template<typename T,typename S>
+void APRConverter<ImageType>::get_particles(APR &aAPR,PixelData<T>& input_image,ExtraParticleData<S>& particles) {
+
+    APRReconstruction aprReconstruction;
+    method_timer.start_timer("sample_particles");
+    aprReconstruction.get_parts_from_img(aAPR,input_image,particles);
+    method_timer.stop_timer();
+
+}
+
 /**
  * Main method for constructing the APR from an input image
  */
 template<typename ImageType> template<typename T>
-
-inline bool APRConverter<ImageType>::get_apr_method(APR<ImageType> &aAPR, PixelData<T>& input_image) {
+inline bool APRConverter<ImageType>::get_apr_method(APR &aAPR, PixelData<T>& input_image) {
 
     apr = &aAPR; // in case it was called directly
 
@@ -277,22 +290,23 @@ inline bool APRConverter<ImageType>::get_apr_method(APR<ImageType> &aAPR, PixelD
     iPullingScheme.pulling_scheme_main();
     method_timer.stop_timer();
 
-    method_timer.start_timer("downsample_pyramid");
-    std::vector<PixelData<T>> downsampled_img;
-    //Down-sample the image for particle intensity estimation
-    downsamplePyrmaid(input_image, downsampled_img, aAPR.level_max(), aAPR.level_min());
-    method_timer.stop_timer();
-
     method_timer.start_timer("compute_apr_datastructure");
     aAPR.apr_access.initialize_structure_from_particle_cell_tree(aAPR.parameters, iPullingScheme.getParticleCellTree());
     method_timer.stop_timer();
 
-    method_timer.start_timer("sample_particles");
-    //aAPR.get_parts_from_img_alt(input_image,aAPR.particles_intensities);
-    aAPR.get_parts_from_img(downsampled_img, aAPR.particles_intensities);
-    method_timer.stop_timer();
-
-    std::swap(input_image,downsampled_img.back());
+//    method_timer.start_timer("downsample_pyramid");
+//    std::vector<PixelData<T>> downsampled_img;
+//    //Down-sample the image for particle intensity estimation
+//    downsamplePyrmaid(input_image, downsampled_img, aAPR.level_max(), aAPR.level_min());
+//    method_timer.stop_timer();
+//
+//    method_timer.start_timer("sample_particles");
+//    APRReconstruction aprReconstruction;
+//    //aAPR.get_parts_from_img_alt(input_image,aAPR.particles_intensities);
+//    aprReconstruction.get_parts_from_img(downsampled_img, aAPR.particles_intensities);
+//    method_timer.stop_timer();
+//
+//    std::swap(input_image,downsampled_img.back());
 
 #else
     method_timer.start_timer("compute_gradient_magnitude_using_bsplines and local instensity scale CUDA");
@@ -369,6 +383,7 @@ inline bool APRConverter<ImageType>::get_apr_method(APR<ImageType> &aAPR, PixelD
 
     return true;
 }
+
 
 template<typename ImageType>
 inline void APRConverter<ImageType>::computeLevels(const PixelData<ImageType> &grad_temp, PixelData<float> &local_scale_temp, int maxLevel, float relError, float dx, float dy, float dz) {
@@ -599,7 +614,7 @@ void APRConverter<ImageType>::get_local_intensity_scale(PixelData<float> &local_
 
 
 template<typename ImageType> template<typename T>
-inline void APRConverter<ImageType>::init_apr(APR<ImageType>& aAPR,PixelData<T>& input_image){
+inline void APRConverter<ImageType>::init_apr(APR& aAPR,PixelData<T>& input_image){
     //
     //  Initializing the size of the APR, min and maximum level (in the data structures it is called depth)
     //

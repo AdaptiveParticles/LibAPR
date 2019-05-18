@@ -5,12 +5,7 @@
 #ifndef LIBAPR_GENITERATOR_HPP
 #define LIBAPR_GENITERATOR_HPP
 
-class APRAccess;
-
-constexpr uint16_t _LEVEL_DECREASE = 0;
-constexpr uint16_t _LEVEL_SAME = 1;
-constexpr uint16_t _LEVEL_INCREASE = 2;
-constexpr uint16_t _NO_NEIGHBOUR = 3;
+#include "APRAccess.hpp"
 
 class GenIterator {
 

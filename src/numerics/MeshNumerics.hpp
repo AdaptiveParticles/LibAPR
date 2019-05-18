@@ -12,8 +12,6 @@
 
 #include "io/TiffUtils.hpp"
 
-template<typename T>
-class  APR;
 
 template<typename T>
 T min_nz(T x,T y){

@@ -16,7 +16,7 @@
 class APRTreeIterator;
 class APRIterator;
 
-template<typename ImageType>
+
 class APRTree {
     friend class APRIterator;
     friend class APRTreeIterator;
@@ -25,18 +25,18 @@ class APRTree {
 public:
 
     APRTree() {};
-    APRTree(APR<ImageType> &apr) { initialize_apr_tree_sparse(apr); APROwn = &apr; }
+    APRTree(APR &apr) { initialize_apr_tree_sparse(apr); APROwn = &apr; }
 
 
-    void init(APR<ImageType> &apr) { initialize_apr_tree_sparse(apr); APROwn = &apr;}
+    void init(APR &apr) { initialize_apr_tree_sparse(apr); APROwn = &apr;}
 
     inline uint64_t total_number_parent_cells() const { return tree_access.total_number_particles; }
 
-    ExtraParticleData<ImageType> particles_ds_tree; //down-sampled tree intensities
+//    ExtraParticleData<ImageType> particles_ds_tree; //down-sampled tree intensities
 
     operator uint64_t() { return total_number_parent_cells(); }
 
-    void copyTree(APRTree<ImageType>& copyTree){
+    void copyTree(APRTree& copyTree){
         tree_access = copyTree.tree_access;
         APROwn = copyTree.APROwn;
     }
@@ -47,10 +47,10 @@ public:
         return APRTreeIterator(APROwn->apr_access,tree_access);
     }
 
-    template<typename S>
-    void fill_tree_mean_downsample(ExtraParticleData<S>& input_particles){
-        this->fill_tree_mean(*APROwn,*this,input_particles,particles_ds_tree); //down-sampled tree intensities
-    }
+//    template<typename S>
+//    void fill_tree_mean_downsample(ExtraParticleData<S>& input_particles){
+//        this->fill_tree_mean(*APROwn,*this,input_particles,particles_ds_tree); //down-sampled tree intensities
+//    }
 
 
 
@@ -75,7 +75,7 @@ public:
     }
 
 
-    void initialize_apr_tree_sparse(APR<ImageType>& apr) {
+    void initialize_apr_tree_sparse(APR& apr) {
 
         APROwn = &apr;
 
@@ -255,9 +255,9 @@ public:
 
 protected:
 
-    APR<ImageType>* APROwn;
+    APR* APROwn;
 
-    void initialize_apr_tree(APR<ImageType>& apr, bool type_full = false) {
+    void initialize_apr_tree(APR& apr, bool type_full = false) {
 
         APRTimer timer(true);
 
@@ -381,8 +381,9 @@ protected:
 
     }
 public:
-    template<typename T,typename S,typename U>
-    static void fill_tree_mean(APR<T>& apr,APRTree<T>& apr_tree,ExtraParticleData<S>& particle_data,ExtraParticleData<U>& tree_data) {
+    // #TODO: Move to Tree Numerics?
+    template<typename S,typename U>
+    static void fill_tree_mean(APR& apr,APRTree& apr_tree,ExtraParticleData<S>& particle_data,ExtraParticleData<U>& tree_data) {
 
         APRTimer timer;
         timer.verbose_flag = false;

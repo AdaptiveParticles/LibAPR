@@ -4,6 +4,27 @@
 #include <map>
 #include <vector>
 
+struct PCDKey{
+    uint8_t level;
+    uint64_t offset;
+    uint64_t local_ind;
+};
+
+template<typename T>
+class SparseGaps {
+
+public:
+    uint64_t level_max;
+    uint64_t level_min;
+
+    std::vector<uint64_t> z_num;
+    std::vector<uint64_t> x_num;
+
+    std::vector<std::vector<std::vector<T>>> data; // [level][x_num(level) * z + x][y]
+
+    SparseGaps() {}
+};
+
 struct SparseParticleCellMap{
     std::map<uint16_t,uint8_t> mesh;
 };

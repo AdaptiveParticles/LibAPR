@@ -5,18 +5,7 @@
 #ifndef PARTPLAY_APR_HPP
 #define PARTPLAY_APR_HPP
 
-
-#include "algorithm/APRParameters.hpp"
-#include "numerics/APRCompress.hpp"
-#include "numerics/APRReconstruction.hpp"
-#include "algorithm/APRConverter.hpp"
-
-
-#include "io/APRWriter.hpp"
 #include "APRAccess.hpp"
-#include "ExtraParticleData.hpp"
-#include "APRTree.hpp"
-
 #include "APRIterator.hpp"
 
 //template<typename ImageType>
@@ -24,9 +13,9 @@ class APR {
 
 //    APRWriter apr_writer;
 //    APRReconstruction apr_recon;
-    APRParameters parameters;
-public:
 
+public:
+    APRParameters parameters;
     APRAccess apr_access;
     //APRConverter<ImageType> apr_converter;
 //    APRCompress<ImageType> apr_compress;
@@ -57,7 +46,7 @@ public:
       //  copy_from_APR(copyAPR);
     //}
 
-    void copy_from_APR(APR<ImageType>& copyAPR){
+    void copy_from_APR(APR& copyAPR){
         apr_access = copyAPR.apr_access;
         //particles_intensities = copyAPR.particles_intensities;
         //apr_tree = copyAPR.apr_tree;

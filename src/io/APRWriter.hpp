@@ -231,8 +231,7 @@ public:
     }
 
 
-    template<typename ImageType>
-    void read_apr(APR<ImageType>& apr, const std::string &file_name,bool build_tree = false, int max_level_delta = 0,unsigned int time_point = UINT32_MAX) {
+    void read_apr(APR& apr, const std::string &file_name,bool build_tree = false, int max_level_delta = 0,unsigned int time_point = UINT32_MAX) {
 
         APRTimer timer;
         timer.verbose_flag = false;
@@ -352,103 +351,103 @@ public:
         uint64_t max_read_level_tree = std::min(apr.apr_access.level_max()-1,max_read_level);
         uint64_t prev_read_level = 0;
 
-        if(build_tree){
-
-
-            if(read_structure) {
-
-
-                timer.start_timer("build tree - map");
-
-                apr.apr_tree.tree_access.l_max = apr.level_max() - 1;
-                apr.apr_tree.tree_access.l_min = apr.level_min() - 1;
-
-                apr.apr_tree.tree_access.x_num.resize(apr.apr_tree.tree_access.level_max() + 1);
-                apr.apr_tree.tree_access.z_num.resize(apr.apr_tree.tree_access.level_max() + 1);
-                apr.apr_tree.tree_access.y_num.resize(apr.apr_tree.tree_access.level_max() + 1);
-
-                for (int i = apr.apr_tree.tree_access.level_min(); i <= apr.apr_tree.tree_access.level_max(); ++i) {
-                    apr.apr_tree.tree_access.x_num[i] = apr.spatial_index_x_max(i);
-                    apr.apr_tree.tree_access.y_num[i] = apr.spatial_index_y_max(i);
-                    apr.apr_tree.tree_access.z_num[i] = apr.spatial_index_z_max(i);
-                }
-
-                apr.apr_tree.tree_access.x_num[apr.level_min() - 1] = ceil(apr.spatial_index_x_max(apr.level_min()) / 2.0f);
-                apr.apr_tree.tree_access.y_num[apr.level_min() - 1] = ceil(apr.spatial_index_y_max(apr.level_min()) / 2.0f);
-                apr.apr_tree.tree_access.z_num[apr.level_min() - 1] = ceil(apr.spatial_index_z_max(apr.level_min()) / 2.0f);
-
-                readAttr(AprTypes::TotalNumberOfParticlesType, f.objectIdTree,
-                         &apr.apr_tree.tree_access.total_number_particles);
-                readAttr(AprTypes::TotalNumberOfGapsType, f.objectIdTree, &apr.apr_tree.tree_access.total_number_gaps);
-                readAttr(AprTypes::TotalNumberOfNonEmptyRowsType, f.objectIdTree,
-                         &apr.apr_tree.tree_access.total_number_non_empty_rows);
-
-                auto map_data_tree = std::make_shared<MapStorageData>();
-
-                map_data_tree->global_index.resize(apr.apr_tree.tree_access.total_number_non_empty_rows);
-
-
-                std::vector<int16_t> index_delta(apr.apr_tree.tree_access.total_number_non_empty_rows);
-                readData(AprTypes::MapGlobalIndexType, f.objectIdTree, index_delta.data());
-                std::vector<uint64_t> index_delta_big(apr.apr_tree.tree_access.total_number_non_empty_rows);
-                std::copy(index_delta.begin(), index_delta.end(), index_delta_big.begin());
-                std::partial_sum(index_delta_big.begin(), index_delta_big.end(), map_data_tree->global_index.begin());
-
-
-                map_data_tree->y_end.resize(apr.apr_tree.tree_access.total_number_gaps);
-                readData(AprTypes::MapYendType, f.objectIdTree, map_data_tree->y_end.data());
-                map_data_tree->y_begin.resize(apr.apr_tree.tree_access.total_number_gaps);
-                readData(AprTypes::MapYbeginType, f.objectIdTree, map_data_tree->y_begin.data());
-
-                map_data_tree->number_gaps.resize(apr.apr_tree.tree_access.total_number_non_empty_rows);
-                readData(AprTypes::MapNumberGapsType, f.objectIdTree, map_data_tree->number_gaps.data());
-                map_data_tree->level.resize(apr.apr_tree.tree_access.total_number_non_empty_rows);
-                readData(AprTypes::MapLevelType, f.objectIdTree, map_data_tree->level.data());
-                map_data_tree->x.resize(apr.apr_tree.tree_access.total_number_non_empty_rows);
-                readData(AprTypes::MapXType, f.objectIdTree, map_data_tree->x.data());
-                map_data_tree->z.resize(apr.apr_tree.tree_access.total_number_non_empty_rows);
-                readData(AprTypes::MapZType, f.objectIdTree, map_data_tree->z.data());
-
-                apr.apr_tree.tree_access.rebuild_map_tree(*map_data_tree,apr.apr_access);
-
-                //Important needs linking to the APR
-                apr.apr_tree.APROwn = &apr;
-
-                timer.stop_timer();
-            }
-
-            if(!read_structure) {
-                uint64_t current_parts_size = apr.apr_tree.particles_ds_tree.data.size();
-
-                for (int j = apr.level_min(); j <apr.level_max(); ++j) {
-                    if((apr.apr_tree.tree_access.global_index_by_level_end[j] + 1)==current_parts_size){
-                        prev_read_level = j;
-                    }
-                }
-            }
-
-            timer.start_timer("tree intensities");
-
-            uint64_t parts_start = 0;
-            if(prev_read_level > 0){
-                parts_start = apr.apr_tree.tree_access.global_index_by_level_end[prev_read_level] + 1;
-            }
-            uint64_t parts_end = apr.apr_tree.tree_access.global_index_by_level_end[max_read_level_tree] + 1;
-
-            apr.apr_tree.particles_ds_tree.data.resize(parts_end);
-
-            if ( apr.apr_tree.particles_ds_tree.data.size() > 0) {
-                readData(AprTypes::ParticleIntensitiesType, f.objectIdTree, apr.apr_tree.particles_ds_tree.data.data() + parts_start,parts_start,parts_end);
-            }
-
-            APRCompress<ImageType> apr_compress;
-            apr_compress.set_compression_type(1);
-            apr_compress.set_quantization_factor(2);
-            apr_compress.decompress(apr, apr.apr_tree.particles_ds_tree,parts_start);
-
-            timer.stop_timer();
-
-        }
+//        if(build_tree){
+//
+//
+//            if(read_structure) {
+//
+//
+//                timer.start_timer("build tree - map");
+//
+//                apr.apr_tree.tree_access.l_max = apr.level_max() - 1;
+//                apr.apr_tree.tree_access.l_min = apr.level_min() - 1;
+//
+//                apr.apr_tree.tree_access.x_num.resize(apr.apr_tree.tree_access.level_max() + 1);
+//                apr.apr_tree.tree_access.z_num.resize(apr.apr_tree.tree_access.level_max() + 1);
+//                apr.apr_tree.tree_access.y_num.resize(apr.apr_tree.tree_access.level_max() + 1);
+//
+//                for (int i = apr.apr_tree.tree_access.level_min(); i <= apr.apr_tree.tree_access.level_max(); ++i) {
+//                    apr.apr_tree.tree_access.x_num[i] = apr.spatial_index_x_max(i);
+//                    apr.apr_tree.tree_access.y_num[i] = apr.spatial_index_y_max(i);
+//                    apr.apr_tree.tree_access.z_num[i] = apr.spatial_index_z_max(i);
+//                }
+//
+//                apr.apr_tree.tree_access.x_num[apr.level_min() - 1] = ceil(apr.spatial_index_x_max(apr.level_min()) / 2.0f);
+//                apr.apr_tree.tree_access.y_num[apr.level_min() - 1] = ceil(apr.spatial_index_y_max(apr.level_min()) / 2.0f);
+//                apr.apr_tree.tree_access.z_num[apr.level_min() - 1] = ceil(apr.spatial_index_z_max(apr.level_min()) / 2.0f);
+//
+//                readAttr(AprTypes::TotalNumberOfParticlesType, f.objectIdTree,
+//                         &apr.apr_tree.tree_access.total_number_particles);
+//                readAttr(AprTypes::TotalNumberOfGapsType, f.objectIdTree, &apr.apr_tree.tree_access.total_number_gaps);
+//                readAttr(AprTypes::TotalNumberOfNonEmptyRowsType, f.objectIdTree,
+//                         &apr.apr_tree.tree_access.total_number_non_empty_rows);
+//
+//                auto map_data_tree = std::make_shared<MapStorageData>();
+//
+//                map_data_tree->global_index.resize(apr.apr_tree.tree_access.total_number_non_empty_rows);
+//
+//
+//                std::vector<int16_t> index_delta(apr.apr_tree.tree_access.total_number_non_empty_rows);
+//                readData(AprTypes::MapGlobalIndexType, f.objectIdTree, index_delta.data());
+//                std::vector<uint64_t> index_delta_big(apr.apr_tree.tree_access.total_number_non_empty_rows);
+//                std::copy(index_delta.begin(), index_delta.end(), index_delta_big.begin());
+//                std::partial_sum(index_delta_big.begin(), index_delta_big.end(), map_data_tree->global_index.begin());
+//
+//
+//                map_data_tree->y_end.resize(apr.apr_tree.tree_access.total_number_gaps);
+//                readData(AprTypes::MapYendType, f.objectIdTree, map_data_tree->y_end.data());
+//                map_data_tree->y_begin.resize(apr.apr_tree.tree_access.total_number_gaps);
+//                readData(AprTypes::MapYbeginType, f.objectIdTree, map_data_tree->y_begin.data());
+//
+//                map_data_tree->number_gaps.resize(apr.apr_tree.tree_access.total_number_non_empty_rows);
+//                readData(AprTypes::MapNumberGapsType, f.objectIdTree, map_data_tree->number_gaps.data());
+//                map_data_tree->level.resize(apr.apr_tree.tree_access.total_number_non_empty_rows);
+//                readData(AprTypes::MapLevelType, f.objectIdTree, map_data_tree->level.data());
+//                map_data_tree->x.resize(apr.apr_tree.tree_access.total_number_non_empty_rows);
+//                readData(AprTypes::MapXType, f.objectIdTree, map_data_tree->x.data());
+//                map_data_tree->z.resize(apr.apr_tree.tree_access.total_number_non_empty_rows);
+//                readData(AprTypes::MapZType, f.objectIdTree, map_data_tree->z.data());
+//
+//                apr.apr_tree.tree_access.rebuild_map_tree(*map_data_tree,apr.apr_access);
+//
+//                //Important needs linking to the APR
+//                apr.apr_tree.APROwn = &apr;
+//
+//                timer.stop_timer();
+//            }
+//
+//            if(!read_structure) {
+//                uint64_t current_parts_size = apr.apr_tree.particles_ds_tree.data.size();
+//
+//                for (int j = apr.level_min(); j <apr.level_max(); ++j) {
+//                    if((apr.apr_tree.tree_access.global_index_by_level_end[j] + 1)==current_parts_size){
+//                        prev_read_level = j;
+//                    }
+//                }
+//            }
+//
+//            timer.start_timer("tree intensities");
+//
+//            uint64_t parts_start = 0;
+//            if(prev_read_level > 0){
+//                parts_start = apr.apr_tree.tree_access.global_index_by_level_end[prev_read_level] + 1;
+//            }
+//            uint64_t parts_end = apr.apr_tree.tree_access.global_index_by_level_end[max_read_level_tree] + 1;
+//
+//            apr.apr_tree.particles_ds_tree.data.resize(parts_end);
+//
+//            if ( apr.apr_tree.particles_ds_tree.data.size() > 0) {
+//                readData(AprTypes::ParticleIntensitiesType, f.objectIdTree, apr.apr_tree.particles_ds_tree.data.data() + parts_start,parts_start,parts_end);
+//            }
+//
+//            APRCompress apr_compress;
+//            apr_compress.set_compression_type(1);
+//            apr_compress.set_quantization_factor(2);
+//            apr_compress.decompress(apr, apr.apr_tree.particles_ds_tree,parts_start);
+//
+//            timer.stop_timer();
+//
+//        }
 
         uint64_t parts_start = 0;
         uint64_t parts_end = apr.apr_access.global_index_by_level_end[max_read_level] + 1;
@@ -470,12 +469,12 @@ public:
 
         //apr.apr_access.level_max = max_read_level;
 
-        timer.start_timer("Read intensities");
-        // ------------- read data ------------------------------
-        apr.particles_intensities.data.resize(parts_end);
-        if (apr.particles_intensities.data.size() > 0) {
-            readData(AprTypes::ParticleIntensitiesType, f.objectId, apr.particles_intensities.data.data() + parts_start,parts_start,parts_end);
-        }
+//        timer.start_timer("Read intensities");
+//        // ------------- read data ------------------------------
+//        apr.particles_intensities.data.resize(parts_end);
+//        if (apr.particles_intensities.data.size() > 0) {
+//            readData(AprTypes::ParticleIntensitiesType, f.objectId, apr.particles_intensities.data.data() + parts_start,parts_start,parts_end);
+//        }
 
 
         timer.stop_timer();
@@ -486,25 +485,23 @@ public:
         timer.start_timer("decompress");
         // ------------ decompress if needed ---------------------
         if (compress_type > 0) {
-            APRCompress<ImageType> apr_compress;
-            apr_compress.set_compression_type(compress_type);
-            apr_compress.set_quantization_factor(quantization_factor);
-            apr_compress.decompress(apr, apr.particles_intensities,parts_start);
+//            APRCompress apr_compress;
+//            apr_compress.set_compression_type(compress_type);
+//            apr_compress.set_quantization_factor(quantization_factor);
+//            apr_compress.decompress(apr, apr.particles_intensities,parts_start);
         }
         timer.stop_timer();
     }
 
 
-    template<typename ImageType>
-    FileSizeInfo write_apr(APR<ImageType>& apr, const std::string &save_loc, const std::string &file_name) {
-        APRCompress<ImageType> apr_compressor;
+    FileSizeInfo write_apr(APR& apr, const std::string &save_loc, const std::string &file_name) {
+        APRCompress apr_compressor;
         apr_compressor.set_compression_type(0);
         return write_apr(apr, save_loc, file_name, apr_compressor);
     }
 
-    template<typename ImageType>
-    FileSizeInfo write_apr_append(APR<ImageType>& apr, const std::string &save_loc, const std::string &file_name) {
-        APRCompress<ImageType> apr_compressor;
+    FileSizeInfo write_apr_append(APR& apr, const std::string &save_loc, const std::string &file_name) {
+        APRCompress apr_compressor;
         apr_compressor.set_compression_type(0);
         return write_apr(apr, save_loc, file_name, apr_compressor,BLOSC_ZSTD,4,1,false,true);
     }
@@ -514,12 +511,12 @@ public:
     /**
      * Writes the APR to the particle cell structure sparse format, using the p_map for reconstruction
      */
-    template<typename ImageType>
-    FileSizeInfo write_apr(APR<ImageType> &apr, const std::string &save_loc, const std::string &file_name, APRCompress<ImageType> &apr_compressor, unsigned int blosc_comp_type = BLOSC_ZSTD, unsigned int blosc_comp_level = 2, unsigned int blosc_shuffle=1,bool write_tree = false,bool append_apr_time = true) {
+
+    FileSizeInfo write_apr(APR &apr, const std::string &save_loc, const std::string &file_name, APRCompress &apr_compressor, unsigned int blosc_comp_type = BLOSC_ZSTD, unsigned int blosc_comp_level = 2, unsigned int blosc_shuffle=1,bool write_tree = false,bool append_apr_time = true) {
         APRTimer write_timer;
         write_timer.verbose_flag = true;
 
-        std::string hdf5_file_name = save_loc + file_name + "_apr.h5";
+        std::string hdf5_file_name = save_loc + file_name + ".h5";
 
 
         AprFile::Operation op;
@@ -601,46 +598,48 @@ public:
         writeData(AprTypes::MapXType, f.objectId, map_data.x, blosc_comp_type, blosc_comp_level, blosc_shuffle);
         writeData(AprTypes::MapZType, f.objectId, map_data.z, blosc_comp_type, blosc_comp_level, blosc_shuffle);
 
-        bool store_tree = write_tree;
+        // #TODO: New write file APRTree
 
-        if(store_tree){
-
-            if(apr.apr_tree.particles_ds_tree.data.size()==0) {
-                apr.apr_tree.init(apr);
-                apr.apr_tree.fill_tree_mean_downsample(apr.particles_intensities);
-            }
-
-            writeAttr(AprTypes::TotalNumberOfGapsType, f.objectIdTree, &apr.apr_tree.tree_access.total_number_gaps);
-            writeAttr(AprTypes::TotalNumberOfNonEmptyRowsType, f.objectIdTree, &apr.apr_tree.tree_access.total_number_non_empty_rows);
-            writeAttr(AprTypes::TotalNumberOfParticlesType, f.objectIdTree, &apr.apr_tree.tree_access.total_number_particles);
-
-            MapStorageData map_data_tree;
-            apr.apr_tree.tree_access.flatten_structure( map_data_tree);
-
-            std::vector<uint16_t> index_delta;
-            index_delta.resize(map_data_tree.global_index.size());
-            std::adjacent_difference(map_data_tree.global_index.begin(),map_data_tree.global_index.end(),index_delta.begin());
-            writeData(AprTypes::MapGlobalIndexType, f.objectIdTree, index_delta, blosc_comp_type, blosc_comp_level, blosc_shuffle);
-
-            writeData(AprTypes::MapYendType, f.objectIdTree, map_data_tree.y_end, blosc_comp_type, blosc_comp_level, blosc_shuffle);
-            writeData(AprTypes::MapYbeginType, f.objectIdTree, map_data_tree.y_begin, blosc_comp_type, blosc_comp_level, blosc_shuffle);
-            writeData(AprTypes::MapNumberGapsType, f.objectIdTree, map_data_tree.number_gaps, blosc_comp_type, blosc_comp_level, blosc_shuffle);
-            writeData(AprTypes::MapLevelType, f.objectIdTree, map_data_tree.level, blosc_comp_type, blosc_comp_level, blosc_shuffle);
-            writeData(AprTypes::MapXType, f.objectIdTree, map_data_tree.x, blosc_comp_type, blosc_comp_level, blosc_shuffle);
-            writeData(AprTypes::MapZType, f.objectIdTree, map_data_tree.z, blosc_comp_type, blosc_comp_level, blosc_shuffle);
-
-            APRCompress<ImageType> tree_compress;
-            tree_compress.set_compression_type(1);
-            tree_compress.set_quantization_factor(2);
-
-            tree_compress.compress(apr, apr.apr_tree.particles_ds_tree);
-
-            unsigned int tree_blosc_comp_type = 6;
-
-            hid_t type = Hdf5Type<ImageType>::type();
-            writeData({type, AprTypes::ParticleIntensitiesType}, f.objectIdTree, apr.apr_tree.particles_ds_tree.data, tree_blosc_comp_type, blosc_comp_level, blosc_shuffle);
-
-        }
+//        bool store_tree = write_tree;
+//
+//        if(store_tree){
+//
+//            if(apr.apr_tree.particles_ds_tree.data.size()==0) {
+//                apr.apr_tree.init(apr);
+//                apr.apr_tree.fill_tree_mean_downsample(apr.particles_intensities);
+//            }
+//
+//            writeAttr(AprTypes::TotalNumberOfGapsType, f.objectIdTree, &apr.apr_tree.tree_access.total_number_gaps);
+//            writeAttr(AprTypes::TotalNumberOfNonEmptyRowsType, f.objectIdTree, &apr.apr_tree.tree_access.total_number_non_empty_rows);
+//            writeAttr(AprTypes::TotalNumberOfParticlesType, f.objectIdTree, &apr.apr_tree.tree_access.total_number_particles);
+//
+//            MapStorageData map_data_tree;
+//            apr.apr_tree.tree_access.flatten_structure( map_data_tree);
+//
+//            std::vector<uint16_t> index_delta;
+//            index_delta.resize(map_data_tree.global_index.size());
+//            std::adjacent_difference(map_data_tree.global_index.begin(),map_data_tree.global_index.end(),index_delta.begin());
+//            writeData(AprTypes::MapGlobalIndexType, f.objectIdTree, index_delta, blosc_comp_type, blosc_comp_level, blosc_shuffle);
+//
+//            writeData(AprTypes::MapYendType, f.objectIdTree, map_data_tree.y_end, blosc_comp_type, blosc_comp_level, blosc_shuffle);
+//            writeData(AprTypes::MapYbeginType, f.objectIdTree, map_data_tree.y_begin, blosc_comp_type, blosc_comp_level, blosc_shuffle);
+//            writeData(AprTypes::MapNumberGapsType, f.objectIdTree, map_data_tree.number_gaps, blosc_comp_type, blosc_comp_level, blosc_shuffle);
+//            writeData(AprTypes::MapLevelType, f.objectIdTree, map_data_tree.level, blosc_comp_type, blosc_comp_level, blosc_shuffle);
+//            writeData(AprTypes::MapXType, f.objectIdTree, map_data_tree.x, blosc_comp_type, blosc_comp_level, blosc_shuffle);
+//            writeData(AprTypes::MapZType, f.objectIdTree, map_data_tree.z, blosc_comp_type, blosc_comp_level, blosc_shuffle);
+//
+//            APRCompress tree_compress;
+//            tree_compress.set_compression_type(1);
+//            tree_compress.set_quantization_factor(2);
+//
+//            tree_compress.compress(apr, apr.apr_tree.particles_ds_tree);
+//
+//            unsigned int tree_blosc_comp_type = 6;
+//
+//            hid_t type = Hdf5Type<ImageType>::type();
+//            writeData({type, AprTypes::ParticleIntensitiesType}, f.objectIdTree, apr.apr_tree.particles_ds_tree.data, tree_blosc_comp_type, blosc_comp_level, blosc_shuffle);
+//
+//        }
 
         write_timer.stop_timer();
 
@@ -662,13 +661,13 @@ public:
         fileSizeInfo.access_data = sizeMB_access;
 
         // ------------- write data ----------------------------
-        write_timer.start_timer("intensities");
-        if (compress_type_num > 0){
-            apr_compressor.compress(apr,apr.particles_intensities);
-        }
-        hid_t type = Hdf5Type<ImageType>::type();
-        writeData({type, AprTypes::ParticleIntensitiesType}, meta_location, apr.particles_intensities.data, blosc_comp_type, blosc_comp_level, blosc_shuffle);
-        write_timer.stop_timer();
+//        write_timer.start_timer("intensities");
+//        if (compress_type_num > 0){
+//            apr_compressor.compress(apr,apr.particles_intensities);
+//        }
+//        hid_t type = Hdf5Type<ImageType>::type();
+//        writeData({type, AprTypes::ParticleIntensitiesType}, meta_location, apr.particles_intensities.data, blosc_comp_type, blosc_comp_level, blosc_shuffle);
+//        write_timer.stop_timer();
 
         // ------------- output the file size -------------------
         file_size = f.getFileSize();
@@ -684,9 +683,9 @@ public:
 
 
 
-    template<typename ImageType,typename T>
-    void write_apr_paraview(APR<ImageType> &apr, const std::string &save_loc, const std::string &file_name, const ExtraParticleData<T> &parts,std::vector<uint64_t> previous_num = {0}) {
-        std::string hdf5_file_name = save_loc + file_name + "_paraview.h5";
+    template<typename T>
+    void write_apr_paraview(APR &apr, const std::string &save_loc, const std::string &file_name, const ExtraParticleData<T> &parts,std::vector<uint64_t> previous_num = {0}) {
+        std::string hdf5_file_name = save_loc + file_name + ".h5";
 
         bool write_time = false;
         unsigned int t = 0;
@@ -764,7 +763,7 @@ public:
      */
     template<typename S>
     float write_particles_only(const std::string &save_loc, const std::string &file_name, const ExtraParticleData<S> &parts_extra) {
-        std::string hdf5_file_name = save_loc + file_name + "_apr_extra_parts.h5";
+        std::string hdf5_file_name = save_loc + file_name + ".h5";
 
         AprFile f{hdf5_file_name, AprFile::Operation::WRITE};
         if (!f.isOpened()) return 0;

@@ -15,7 +15,7 @@
 #include "misc/APRTimer.hpp"
 #include <cmath>
 #include <vector>
-#include <data_structures/APR/APR.hpp>
+
 
 //template<typename ImageType>
 class APRCompress {

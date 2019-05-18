@@ -5,16 +5,18 @@
 #ifndef PARTPLAY_APRACCESS_HPP
 #define PARTPLAY_APRACCESS_HPP
 
+constexpr uint16_t _LEVEL_DECREASE = 0;
+constexpr uint16_t _LEVEL_SAME = 1;
+constexpr uint16_t _LEVEL_INCREASE = 2;
+constexpr uint16_t _NO_NEIGHBOUR = 3;
 
 #include <map>
 #include <utility>
 #include "data_structures/Mesh/PixelData.hpp"
-#include "ExtraParticleData.hpp"
-#include "ExtraPartCellData.hpp"
+
 #include "algorithm/APRParameters.hpp"
 
 #include "APRAccessStructures.hpp"
-
 
 class APRAccess {
 
@@ -38,8 +40,8 @@ public:
     std::vector<std::vector<uint64_t>> global_index_by_level_and_zx_end; // note: 1..n based numbering
 
     uint64_t total_number_non_empty_rows;
-    ExtraPartCellData<ParticleCellGapMap> gap_map;
-    void initialize_structure_from_particle_cell_tree_sparse(APRParameters& apr_parameters, ExtraPartCellData<SparseParticleCellMap> &p_map);
+    SparseGaps<ParticleCellGapMap> gap_map;
+    void initialize_structure_from_particle_cell_tree_sparse(APRParameters& apr_parameters, SparseGaps<SparseParticleCellMap> &p_map);
 
     uint64_t level_max() const { return l_max; }
     uint64_t level_min() const { return l_min; }
@@ -538,27 +540,27 @@ public:
 
     void initialize_structure_from_particle_cell_tree(APRParameters& apr_parameters,std::vector<ArrayWrapper<uint8_t>> &p_map);
 
-    void allocate_map_insert( ExtraPartCellData<std::pair<uint16_t,YGap_map>>& y_begin) {
+    void allocate_map_insert( SparseGaps<std::pair<uint16_t,YGap_map>>& y_begin) {
         // TODO: This whole method copies just y_begin converting std::pair into std::map entries, why we do not do that
         //       from the beginning (using map instead of pair, then we can skip this whole part of code).
 	    APRTimer apr_timer;
         apr_timer.start_timer("initialize map");
 
-        gap_map.depth_max = level_max();
-        gap_map.depth_min = level_min();
-        gap_map.z_num.resize(y_begin.depth_max+1);
-        gap_map.x_num.resize(y_begin.depth_max+1);
-        gap_map.data.resize(y_begin.depth_max+1);
+        gap_map.level_max = level_max();
+        gap_map.level_min = level_min();
+        gap_map.z_num.resize(y_begin.level_max+1);
+        gap_map.x_num.resize(y_begin.level_max+1);
+        gap_map.data.resize(y_begin.level_max+1);
 
         // Initialize sizes for each level with max level of size of level(max-1)
-        for (uint64_t i = y_begin.depth_min; i < y_begin.depth_max; ++i) {
+        for (uint64_t i = y_begin.level_min; i < y_begin.level_max; ++i) {
             gap_map.x_num[i] = x_num[i];
             gap_map.z_num[i] = z_num[i];
             gap_map.data[i].resize(z_num[i]*x_num[i]);
         }
-        gap_map.x_num[y_begin.depth_max] = x_num[y_begin.depth_max-1];
-        gap_map.z_num[y_begin.depth_max] = z_num[y_begin.depth_max-1];
-        gap_map.data[y_begin.depth_max].resize(z_num[y_begin.depth_max-1]*x_num[y_begin.depth_max-1]);
+        gap_map.x_num[y_begin.level_max] = x_num[y_begin.level_max-1];
+        gap_map.z_num[y_begin.level_max] = z_num[y_begin.level_max-1];
+        gap_map.data[y_begin.level_max].resize(z_num[y_begin.level_max-1]*x_num[y_begin.level_max-1]);
 
         uint64_t counter_rows = 0;
 
@@ -590,18 +592,18 @@ public:
     void allocate_map(MapStorageData& map_data,std::vector<uint64_t>& cumsum,bool tree = false){
 
         //first add the layers
-        gap_map.depth_max = level_max();
-        gap_map.depth_min = level_min();
+        gap_map.level_max = level_max();
+        gap_map.level_min = level_min();
 
-        gap_map.z_num.resize(gap_map.depth_max+1);
-        gap_map.x_num.resize(gap_map.depth_max+1);
-        gap_map.data.resize(gap_map.depth_max+1);
+        gap_map.z_num.resize(gap_map.level_max+1);
+        gap_map.x_num.resize(gap_map.level_max+1);
+        gap_map.data.resize(gap_map.level_max+1);
 
-        global_index_by_level_and_zx_end.resize(gap_map.depth_max+1);
+        global_index_by_level_and_zx_end.resize(gap_map.level_max+1);
 
 
         if(tree) {
-            for (uint64_t i = gap_map.depth_min; i < gap_map.depth_max; i++) {
+            for (uint64_t i = gap_map.level_min; i < gap_map.level_max; i++) {
                 gap_map.z_num[i] = z_num[i];
                 gap_map.x_num[i] = x_num[i];
                 gap_map.data[i].resize(z_num[i] * x_num[i]);
@@ -609,7 +611,7 @@ public:
             }
 
         } else {
-            for (uint64_t i = gap_map.depth_min; i < gap_map.depth_max; i++) {
+            for (uint64_t i = gap_map.level_min; i < gap_map.level_max; i++) {
                 gap_map.z_num[i] = z_num[i];
                 gap_map.x_num[i] = x_num[i];
                 gap_map.data[i].resize(z_num[i] * x_num[i]);
@@ -865,7 +867,7 @@ public:
     void initialize_tree_access(APRAccess& APROwn_access, std::vector<PixelData<uint8_t>> &p_map);
 
     void initialize_tree_access_sparse(APRAccess& APROwn_access, std::vector<std::vector<SparseParticleCellMap>> &p_map);
-    void init_data_structure_tree(APRAccess& APROwn_access, ExtraPartCellData<std::pair<uint16_t,YGap_map>>& y_begin);
+    void init_data_structure_tree(APRAccess& APROwn_access, SparseGaps<std::pair<uint16_t,YGap_map>>& y_begin);
 
 };
 
@@ -910,23 +912,23 @@ inline void APRAccess::initialize_structure_from_particle_cell_tree(APRParameter
     // ========================================================================
     apr_timer.start_timer("second_step");
 
-    ExtraPartCellData<std::pair<uint16_t, YGap_map>> y_begin;
+    SparseGaps<std::pair<uint16_t, YGap_map>> y_begin;
 
-    y_begin.depth_max = level_max();
-    y_begin.depth_min = level_min();
-    y_begin.z_num.resize(y_begin.depth_max+1);
-    y_begin.x_num.resize(y_begin.depth_max+1);
-    y_begin.data.resize(y_begin.depth_max+1); // [level][x_num(level) * z + x][y]
+    y_begin.level_max = level_max();
+    y_begin.level_min = level_min();
+    y_begin.z_num.resize(y_begin.level_max+1);
+    y_begin.x_num.resize(y_begin.level_max+1);
+    y_begin.data.resize(y_begin.level_max+1); // [level][x_num(level) * z + x][y]
 
     // Initialize sizes for each level with max level of size of level(max-1)
-    for (uint64_t i = y_begin.depth_min; i < y_begin.depth_max; ++i) {
+    for (uint64_t i = y_begin.level_min; i < y_begin.level_max; ++i) {
         y_begin.x_num[i] = x_num[i];
         y_begin.z_num[i] = z_num[i];
         y_begin.data[i].resize(z_num[i]*x_num[i]);
     }
-    y_begin.x_num[y_begin.depth_max] = x_num[y_begin.depth_max-1];
-    y_begin.z_num[y_begin.depth_max] = z_num[y_begin.depth_max-1];
-    y_begin.data[y_begin.depth_max].resize(z_num[y_begin.depth_max-1]*x_num[y_begin.depth_max-1]);
+    y_begin.x_num[y_begin.level_max] = x_num[y_begin.level_max-1];
+    y_begin.z_num[y_begin.level_max] = z_num[y_begin.level_max-1];
+    y_begin.data[y_begin.level_max].resize(z_num[y_begin.level_max-1]*x_num[y_begin.level_max-1]);
 
     for (size_t i = (level_min());i < level_max(); ++i) {
         const size_t xLen = x_num[i];
@@ -1116,16 +1118,16 @@ inline void APRAccess::initialize_tree_access(APRAccess& APROwn_access, std::vec
 
     apr_timer.start_timer("init structure");
 
-    ExtraPartCellData<std::pair<uint16_t,YGap_map>> y_begin;
+    SparseGaps<std::pair<uint16_t,YGap_map>> y_begin;
 
-    y_begin.depth_min = level_min();
-    y_begin.depth_max = level_max();
+    y_begin.level_min = level_min();
+    y_begin.level_max = level_max();
 
-    y_begin.z_num.resize(y_begin.depth_max+1);
-    y_begin.x_num.resize(y_begin.depth_max+1);
-    y_begin.data.resize(y_begin.depth_max+1);
+    y_begin.z_num.resize(y_begin.level_max+1);
+    y_begin.x_num.resize(y_begin.level_max+1);
+    y_begin.data.resize(y_begin.level_max+1);
 
-    for (uint64_t i = y_begin.depth_min; i < y_begin.depth_max; ++i) {
+    for (uint64_t i = y_begin.level_min; i < y_begin.level_max; ++i) {
         y_begin.z_num[i] = z_num[i];
         y_begin.x_num[i] = x_num[i];
         y_begin.data[i].resize(z_num[i]*x_num[i]);
@@ -1193,7 +1195,7 @@ inline void APRAccess::initialize_tree_access(APRAccess& APROwn_access, std::vec
 }
 
 
-void APRAccess::init_data_structure_tree(APRAccess& APROwn_access, ExtraPartCellData<std::pair<uint16_t,YGap_map>>& y_begin){
+void APRAccess::init_data_structure_tree(APRAccess& APROwn_access, SparseGaps<std::pair<uint16_t,YGap_map>>& y_begin){
     uint64_t cumsum = 0;
 
     APRTimer apr_timer(false);
@@ -1288,14 +1290,14 @@ void APRAccess::init_data_structure_tree(APRAccess& APROwn_access, ExtraPartCell
 
     apr_timer.start_timer("set up gapmap");
 
-    gap_map.depth_min = level_min();
-    gap_map.depth_max = level_max();
+    gap_map.level_min = level_min();
+    gap_map.level_max = level_max();
 
-    gap_map.z_num.resize(y_begin.depth_max+1);
-    gap_map.x_num.resize(y_begin.depth_max+1);
-    gap_map.data.resize(y_begin.depth_max+1);
+    gap_map.z_num.resize(y_begin.level_max+1);
+    gap_map.x_num.resize(y_begin.level_max+1);
+    gap_map.data.resize(y_begin.level_max+1);
 
-    for (uint64_t i = gap_map.depth_min; i < gap_map.depth_max; ++i) {
+    for (uint64_t i = gap_map.level_min; i < gap_map.level_max; ++i) {
         gap_map.z_num[i] = z_num[i];
         gap_map.x_num[i] = x_num[i];
         gap_map.data[i].resize(z_num[i]*x_num[i]);
@@ -1341,16 +1343,16 @@ inline void APRAccess::initialize_tree_access_sparse(APRAccess& APROwn_access, s
 
     apr_timer.start_timer("init structure");
 
-    ExtraPartCellData<std::pair<uint16_t,YGap_map>> y_begin;
+    SparseGaps<std::pair<uint16_t,YGap_map>> y_begin;
 
-    y_begin.depth_min = level_min();
-    y_begin.depth_max = level_max();
+    y_begin.level_min = level_min();
+    y_begin.level_max = level_max();
 
-    y_begin.z_num.resize(y_begin.depth_max+1);
-    y_begin.x_num.resize(y_begin.depth_max+1);
-    y_begin.data.resize(y_begin.depth_max+1);
+    y_begin.z_num.resize(y_begin.level_max+1);
+    y_begin.x_num.resize(y_begin.level_max+1);
+    y_begin.data.resize(y_begin.level_max+1);
 
-    for (uint64_t i = y_begin.depth_min; i < y_begin.depth_max; ++i) {
+    for (uint64_t i = y_begin.level_min; i < y_begin.level_max; ++i) {
         y_begin.z_num[i] = z_num[i];
         y_begin.x_num[i] = x_num[i];
         y_begin.data[i].resize(z_num[i]*x_num[i]);
@@ -1419,7 +1421,7 @@ inline void APRAccess::initialize_tree_access_sparse(APRAccess& APROwn_access, s
 }
 
 
-void APRAccess::initialize_structure_from_particle_cell_tree_sparse(APRParameters& apr_parameters, ExtraPartCellData<SparseParticleCellMap> &p_map) {
+void APRAccess::initialize_structure_from_particle_cell_tree_sparse(APRParameters& apr_parameters, SparseGaps<SparseParticleCellMap> &p_map) {
     //
     //  Initialize the new structure;
     //
@@ -1471,24 +1473,24 @@ void APRAccess::initialize_structure_from_particle_cell_tree_sparse(APRParameter
     apr_timer.stop_timer();
 
     apr_timer.start_timer("second_step");
-    ExtraPartCellData<std::pair<uint16_t, YGap_map>> y_begin;
+    SparseGaps<std::pair<uint16_t, YGap_map>> y_begin;
 
-    y_begin.depth_max = level_max();
-    y_begin.depth_min = level_min();
+    y_begin.level_max = level_max();
+    y_begin.level_min = level_min();
 
-    y_begin.z_num.resize(y_begin.depth_max+1);
-    y_begin.x_num.resize(y_begin.depth_max+1);
-    y_begin.data.resize(y_begin.depth_max+1);
+    y_begin.z_num.resize(y_begin.level_max+1);
+    y_begin.x_num.resize(y_begin.level_max+1);
+    y_begin.data.resize(y_begin.level_max+1);
 
-    for (uint64_t i = y_begin.depth_min; i < y_begin.depth_max; ++i) {
+    for (uint64_t i = y_begin.level_min; i < y_begin.level_max; ++i) {
         y_begin.x_num[i] = x_num[i];
         y_begin.z_num[i] = z_num[i];
         y_begin.data[i].resize(z_num[i]*x_num[i]);
     }
 
-    y_begin.x_num[y_begin.depth_max] = x_num[y_begin.depth_max-1];
-    y_begin.z_num[y_begin.depth_max] = z_num[y_begin.depth_max-1];
-    y_begin.data[y_begin.depth_max].resize(z_num[y_begin.depth_max-1]*x_num[y_begin.depth_max-1]);
+    y_begin.x_num[y_begin.level_max] = x_num[y_begin.level_max-1];
+    y_begin.z_num[y_begin.level_max] = z_num[y_begin.level_max-1];
+    y_begin.data[y_begin.level_max].resize(z_num[y_begin.level_max-1]*x_num[y_begin.level_max-1]);
 
 
     for(size_t i = (level_min());i < level_max();i++) {
