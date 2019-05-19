@@ -28,11 +28,11 @@ public:
     void get_window_alt(float& var_rescale, std::vector<int>& var_win, const APRParameters& par, uint8_t ndim);
 
     template<typename T>
-    void rescale_var_and_threshold(PixelData<T>& var,const float var_rescale, const APRParameters& par);
+    void rescale_var(PixelData<T>& var,const float var_rescale);
 };
 
 template<typename T>
-inline void LocalIntensityScale::rescale_var_and_threshold(PixelData<T> &var, const float var_rescale, const APRParameters &par) {
+inline void LocalIntensityScale::rescale_var(PixelData<T> &var, const float var_rescale) {
     const float max_th = 60000.0;
 
     #ifdef HAVE_OPENMP
@@ -40,13 +40,15 @@ inline void LocalIntensityScale::rescale_var_and_threshold(PixelData<T> &var, co
     #endif
     for (size_t i = 0; i < var.mesh.size(); ++i) {
         float rescaled = var.mesh[i] * var_rescale;
-        if (rescaled < par.sigma_th) {
-            rescaled = (rescaled < par.sigma_th_max) ? max_th : par.sigma_th;
-        }
+//        if (rescaled < par.sigma_th) {
+//            rescaled = (rescaled < par.sigma_th_max) ? max_th : par.sigma_th;
+//        }
 
         var.mesh[i] = rescaled;
     }
 }
+
+
 
 template<typename T>
 inline void LocalIntensityScale::calc_abs_diff(const PixelData<T> &input_image, PixelData<T> &var) {

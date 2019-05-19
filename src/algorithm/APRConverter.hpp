@@ -59,12 +59,15 @@ public:
 
 protected:
 
+    float bspline_offset = 0;
+
     //DATA (so it can be re-used)
 
     PixelData<ImageType> grad_temp; // should be a down-sampled image
     PixelData<float> local_scale_temp; // Used as down-sampled images for some averaging steps where it is useful to not lose precision, or get over-flow errors
     PixelData<float> local_scale_temp2;
 
+    void applyParameters(APR& aAPR,APRParameters& aprParameters);
 
     template<typename T>
     void computeL(APR& aAPR,PixelData<T>& input_image);
@@ -194,6 +197,52 @@ void APRConverter<ImageType>::get_particles(APR &aAPR,PixelData<T>& input_image,
 
 }
 
+
+template<typename ImageType>
+void APRConverter<ImageType>::applyParameters(APR& aAPR,APRParameters& aprParameters) {
+    //
+    //  Apply the main parameters
+    //
+
+    fine_grained_timer.start_timer("load_and_apply_mask");
+    // Apply mask if given
+    if(par.mask_file != ""){
+        iComputeGradient.mask_gradient(grad_temp, aprParameters);
+    }
+    fine_grained_timer.stop_timer();
+
+    fine_grained_timer.start_timer("threshold");
+    iComputeGradient.threshold_gradient(grad_temp,local_scale_temp,aprParameters.Ip_th + bspline_offset);
+    fine_grained_timer.stop_timer();
+
+    float max_th = 60000;
+
+
+#ifdef HAVE_OPENMP
+#pragma omp parallel for default(shared)
+#endif
+    for (size_t i = 0; i < grad_temp.mesh.size(); ++i) {
+
+        float rescaled = local_scale_temp.mesh[i];
+        if (rescaled < aprParameters.sigma_th) {
+            rescaled = (rescaled < aprParameters.sigma_th_max) ? max_th : par.sigma_th;
+            local_scale_temp.mesh[i] = rescaled;
+        }
+    }
+
+#ifdef HAVE_OPENMP
+#pragma omp parallel for default(shared)
+#endif
+    for (size_t i = 0; i < grad_temp.mesh.size(); ++i) {
+
+        if(grad_temp.mesh[i] < aprParameters.grad_th){
+            grad_temp.mesh[i] = 0;
+        }
+    }
+
+
+}
+
 template<typename ImageType> template<typename T>
 void APRConverter<ImageType>::computeL(APR& aAPR,PixelData<T>& input_image){
     //
@@ -229,7 +278,7 @@ void APRConverter<ImageType>::computeL(APR& aAPR,PixelData<T>& input_image){
     fine_grained_timer.start_timer("offset image");
     //offset image by factor (this is required if there are zero areas in the background with uint16_t and uint8_t images, as the Bspline co-efficients otherwise may be negative!)
     // Warning both of these could result in over-flow (if your image is non zero, with a 'buffer' and has intensities up to uint16_t maximum value then set image_type = "", i.e. uncomment the following line)
-    float bspline_offset = 0;
+
     if (std::is_same<uint16_t, ImageType>::value) {
         bspline_offset = 100;
         image_temp.copyFromMeshWithUnaryOp(input_image, [=](const auto &a) { return (a + bspline_offset); });
@@ -267,13 +316,14 @@ void APRConverter<ImageType>::computeL(APR& aAPR,PixelData<T>& input_image){
     method_timer.stop_timer();
 
 #endif
-    method_timer.start_timer("compute_levels");
-    computeLevels(grad_temp, local_scale_temp, (*apr).level_max(), par.rel_error, par.dx, par.dy, par.dz);
-    method_timer.stop_timer();
 
 }
 template<typename ImageType>
 void APRConverter<ImageType>::solveForAPR(APR& aAPR){
+
+    method_timer.start_timer("compute_levels");
+    computeLevels(grad_temp, local_scale_temp, (*apr).level_max(), par.rel_error, par.dx, par.dy, par.dz);
+    method_timer.stop_timer();
 
     method_timer.start_timer("initialize_particle_cell_tree");
     iPullingScheme.initialize_particle_cell_tree(aAPR.apr_access);
@@ -317,37 +367,10 @@ inline bool APRConverter<ImageType>::get_apr_method(APR &aAPR, PixelData<T>& inp
     //Compute the local resolution estimate
     computeL(aAPR,input_image);
 
+    applyParameters(aAPR,par);
+
     solveForAPR(aAPR);
 
-//    method_timer.start_timer("initialize_particle_cell_tree");
-//    iPullingScheme.initialize_particle_cell_tree(aAPR.apr_access);
-//    method_timer.stop_timer();
-//
-//    method_timer.start_timer("compute_local_particle_set");
-//    get_local_particle_cell_set(local_scale_temp, local_scale_temp2);
-//    method_timer.stop_timer();
-//
-//    method_timer.start_timer("compute_pulling_scheme");
-//    iPullingScheme.pulling_scheme_main();
-//    method_timer.stop_timer();
-//
-//    method_timer.start_timer("compute_apr_datastructure");
-//    aAPR.apr_access.initialize_structure_from_particle_cell_tree(aAPR.parameters, iPullingScheme.getParticleCellTree());
-//    method_timer.stop_timer();
-
-//    method_timer.start_timer("downsample_pyramid");
-//    std::vector<PixelData<T>> downsampled_img;
-//    //Down-sample the image for particle intensity estimation
-//    downsamplePyrmaid(input_image, downsampled_img, aAPR.level_max(), aAPR.level_min());
-//    method_timer.stop_timer();
-//
-//    method_timer.start_timer("sample_particles");
-//    APRReconstruction aprReconstruction;
-//    //aAPR.get_parts_from_img_alt(input_image,aAPR.particles_intensities);
-//    aprReconstruction.get_parts_from_img(downsampled_img, aAPR.particles_intensities);
-//    method_timer.stop_timer();
-//
-//    std::swap(input_image,downsampled_img.back());
 
 #else
     method_timer.start_timer("compute_gradient_magnitude_using_bsplines and local instensity scale CUDA");
@@ -497,12 +520,12 @@ inline void APRConverter<ImageType>::get_gradient(PixelData<ImageType> &image_te
 
     fine_grained_timer.start_timer("threshold");
 
-#ifdef HAVE_OPENMP
-#pragma omp parallel for
-#endif
-    for (size_t i = 0; i < image_temp.mesh.size(); ++i) {
-        if (image_temp.mesh[i] <= (par.Ip_th + bspline_offset)) { image_temp.mesh[i] = par.Ip_th + bspline_offset; }
-    }
+//#ifdef HAVE_OPENMP
+//#pragma omp parallel for
+//#endif
+//    for (size_t i = 0; i < image_temp.mesh.size(); ++i) {
+//        if (image_temp.mesh[i] <= (par.Ip_th + bspline_offset)) { image_temp.mesh[i] = par.Ip_th + bspline_offset; }
+//    }
     fine_grained_timer.stop_timer();
 
 
@@ -543,16 +566,9 @@ inline void APRConverter<ImageType>::get_gradient(PixelData<ImageType> &image_te
         }
     }
 
-    fine_grained_timer.start_timer("load_and_apply_mask");
-    // Apply mask if given
-    if(par.mask_file != ""){
-        iComputeGradient.mask_gradient(grad_temp,local_scale_temp2,image_temp, par);
-    }
-    fine_grained_timer.stop_timer();
 
-    fine_grained_timer.start_timer("threshold");
-    iComputeGradient.threshold_gradient(grad_temp,local_scale_temp,par.Ip_th + bspline_offset);
-    fine_grained_timer.stop_timer();
+
+
 
 
 }
@@ -625,7 +641,7 @@ void APRConverter<ImageType>::get_local_intensity_scale(PixelData<float> &local_
                 iLocalIntensityScale.calc_sat_mean_z(local_scale_temp, par.extra_smooth);
             }
         }
-        iLocalIntensityScale.rescale_var_and_threshold(local_scale_temp, var_rescale, par);
+        iLocalIntensityScale.rescale_var(local_scale_temp, var_rescale);
         fine_grained_timer.stop_timer();
 
     } else {
@@ -644,8 +660,8 @@ void APRConverter<ImageType>::get_local_intensity_scale(PixelData<float> &local_
             }
         }
 
-        int numel = (local_scale_temp.y_num * local_scale_temp.x_num * local_scale_temp.z_num);
-        float scale_val = sum / numel - min_val;
+        float numel = (float) (local_scale_temp.y_num * local_scale_temp.x_num * local_scale_temp.z_num);
+        float scale_val = (float) (sum / numel - min_val);
 
         for(int i = 0; i<local_scale_temp.mesh.size(); ++i) {
             local_scale_temp.mesh[i] = scale_val;

@@ -42,8 +42,8 @@ public:
     void
     calc_bspline_fd_ds_mag(const PixelData<S> &input, PixelData<S> &grad, const float hx, const float hy, const float hz);
 
-    template<typename T,typename S>
-    void mask_gradient(PixelData<T>& grad_ds,PixelData<S>& temp_ds,PixelData<T>& temp_full, const APRParameters& par);
+    template<typename T>
+    void mask_gradient(PixelData<T>& grad_ds,const APRParameters& par);
 
     template<typename T,typename S>
     void threshold_gradient(PixelData<T> &grad, const PixelData<S> &img, const float Ip_th);
@@ -61,9 +61,8 @@ public:
 
 };
 
-
-template<typename T,typename S>
-void ComputeGradient::mask_gradient(PixelData<T>& grad_ds,PixelData<S>& temp_ds,PixelData<T>& temp_full, const APRParameters& par){
+template<typename T>
+void ComputeGradient::mask_gradient(PixelData<T>& grad_ds, const APRParameters& par){
     //
     //  Bevan Cheeseman 2018
     //
@@ -71,14 +70,14 @@ void ComputeGradient::mask_gradient(PixelData<T>& grad_ds,PixelData<S>& temp_ds,
     //
     //
 
-    // TODO: code below makes no sense
-    //       first it reads img to temp_full then overwrites it by downsompling temp_ds to temp_full (which is later not used)
-    //       Not removing it for now since intentions are not known to me.
+    PixelData<uint8_t> temp_mask;
+    PixelData<uint8_t> temp_ds;
+
     std::string file_name = par.input_dir + par.mask_file;
 #ifdef HAVE_LIBTIFF
-    TiffUtils::getMesh(file_name, temp_full);
+    TiffUtils::getMesh(file_name, temp_mask);
 #endif
-    downsample(temp_ds, temp_full,
+    downsample(temp_ds, temp_mask,
                [](const T &x, const T &y) -> T { return std::max(x, y); },
                [](const T &x) -> T { return x; });
 
