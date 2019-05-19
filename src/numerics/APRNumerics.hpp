@@ -12,8 +12,8 @@ class APRNumerics {
 
 public:
 
-    template<typename T,typename U>
-    static void compute_part_level(APR<T> &apr,ParticleData<U>& parts_level){
+    template<typename U>
+    static void compute_part_level(APR &apr,ParticleData<U>& parts_level){
         parts_level.data.resize(apr.total_number_particles());
 
         auto apr_iterator = apr.iterator();
@@ -41,7 +41,7 @@ public:
 
 
     template<typename T>
-    static void compute_gradient_vector(APR<T> &apr,ParticleData<std::vector<float>>& gradient,const bool normalize = true,const std::vector<float> delta = {1.0f,1.0f,1.0f}){
+    static void compute_gradient_vector(APR &apr,ParticleData<T>& particleData,ParticleData<std::vector<float>>& gradient,const bool normalize = true,const std::vector<float> delta = {1.0f,1.0f,1.0f}){
 
 
         APRTimer timer;
@@ -76,7 +76,7 @@ public:
                     for (apr_iterator.set_new_lzx(level, z, x); apr_iterator.global_index() < apr_iterator.end_index;
                          apr_iterator.set_iterator_to_particle_next_particle()) {
 
-                        float current_intensity = apr.particles_intensities[apr_iterator];
+                        float current_intensity = particleData[apr_iterator];
 
                         //loop over all the neighbours and set the neighbour iterator to it
                         for (int dimension = 0; dimension < 3; ++dimension) {
@@ -102,7 +102,7 @@ public:
                                 for (int index = 0;
                                      index < apr_iterator.number_neighbours_in_direction(direction); ++index) {
                                     if (neighbour_iterator.set_neighbour_iterator(apr_iterator, direction, index)) {
-                                        intensity_sum += apr.particles_intensities[neighbour_iterator];
+                                        intensity_sum += particleData[neighbour_iterator];
                                         count_neighbours++;
                                     }
                                 }
@@ -139,8 +139,8 @@ public:
 
     }
 
-    template<typename T,typename S,typename U>
-    void seperable_smooth_filter(APR<T> &apr,const ParticleData<S>& input_data,ParticleData<U>& output_data,const std::vector<float>& filter,unsigned int repeats = 1){
+    template<typename S,typename U>
+    void seperable_smooth_filter(APR &apr,const ParticleData<S>& input_data,ParticleData<U>& output_data,const std::vector<float>& filter,unsigned int repeats = 1){
 
         output_data.init(apr.total_number_particles());
 
@@ -158,8 +158,8 @@ public:
     }
 
 
-    template<typename T,typename S,typename U>
-    void face_neighbour_filter(APR<T> &apr,ParticleData<S>& input_data,ParticleData<U>& output_data,const std::vector<float>& filter,const int direction) {
+    template<typename S,typename U>
+    void face_neighbour_filter(APR &apr,ParticleData<S>& input_data,ParticleData<U>& output_data,const std::vector<float>& filter,const int direction) {
 
         std::vector<uint8_t> faces;
         if (direction == 0) {

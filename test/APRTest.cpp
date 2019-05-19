@@ -9,10 +9,12 @@
 #include <utility>
 #include <cmath>
 #include "TestTools.hpp"
+#include "numerics/APRTreeNumerics.hpp"
+#include "io/APRWriter.hpp"
 
 struct TestData{
 
-    APR<uint16_t> apr;
+    APR apr;
     PixelData<uint16_t> img_level;
     PixelData<uint16_t> img_type;
     PixelData<uint16_t> img_original;
@@ -20,6 +22,8 @@ struct TestData{
     PixelData<uint16_t> img_x;
     PixelData<uint16_t> img_y;
     PixelData<uint16_t> img_z;
+
+    ParticleData<uint16_t> particles_intensities;
 
     std::string filename;
     std::string output_name;
@@ -70,7 +74,7 @@ public:
 };
 
 
-bool check_neighbours(APR<uint16_t>& apr,APRIterator &current, APRIterator &neigh){
+bool check_neighbours(APR& apr,APRIterator &current, APRIterator &neigh){
 
 
     bool success = true;
@@ -118,24 +122,25 @@ bool test_apr_tree(TestData& test_data) {
     std::string save_loc = "";
     std::string file_name = "read_write_test";
 
-
-    test_data.apr.apr_tree.init(test_data.apr);
+    APRTree aprTree;
+    aprTree.init(test_data.apr);
 
     ParticleData<float> tree_data;
 
-    APRTreeIterator apr_tree_iterator = test_data.apr.apr_tree.tree_iterator();
+    APRTreeIterator apr_tree_iterator = aprTree.tree_iterator();
 
-    test_data.apr.apr_tree.fill_tree_mean(test_data.apr,test_data.apr.apr_tree,test_data.apr.particles_intensities,tree_data);
+//    aprTree.fill_tree_mean(test_data.apr,aprTree,test_data.particles_intensities,tree_data);
+//
+//    aprTree.fill_tree_mean_downsample(test_data.particles_intensities);
 
-    test_data.apr.apr_tree.fill_tree_mean_downsample(test_data.apr.particles_intensities);
-
-
+    APRTreeNumerics::fill_tree_mean(test_data.apr,aprTree,test_data.particles_intensities,tree_data);
 
 
 
     //generate tree test data
     PixelData<float> pc_image;
-    test_data.apr.interp_img(pc_image,test_data.apr.particles_intensities);
+    APRReconstruction::interp_img(test_data.apr,pc_image,test_data.particles_intensities);
+
 
     std::vector<PixelData<float>> downsampled_img;
     //Down-sample the image for particle intensity estimation
@@ -151,7 +156,7 @@ bool test_apr_tree(TestData& test_data) {
                      apr_tree_iterator.set_iterator_to_particle_next_particle()) {
 
                     uint16_t current_int = (uint16_t)std::round(downsampled_img[apr_tree_iterator.level()].at(apr_tree_iterator.y(),apr_tree_iterator.x(),apr_tree_iterator.z()));
-                    //uint16_t parts_int = test_data.apr.apr_tree.particles_ds_tree[apr_tree_iterator];
+                    //uint16_t parts_int = aprTree.particles_ds_tree[apr_tree_iterator];
                     uint16_t parts2 = (uint16_t)std::round(tree_data[apr_tree_iterator]);
 
                     // uint16_t y = apr_tree_iterator.y();
@@ -166,14 +171,16 @@ bool test_apr_tree(TestData& test_data) {
     }
 
     //Also check the sparse data-structure generated tree
-    APRTree<uint16_t> tree2;
+    APRTree tree2;
     tree2.initialize_apr_tree_sparse(test_data.apr);
     ParticleData<float> treedata_2;
 
-    APRTree<uint16_t> tree3;
+    APRTree tree3;
     tree3.init(test_data.apr);
 
-    tree2.fill_tree_mean(test_data.apr,tree2,test_data.apr.particles_intensities,treedata_2);
+    APRTreeNumerics::fill_tree_mean(test_data.apr,tree2,test_data.particles_intensities,treedata_2);
+
+//    tree2.fill_tree_mean(test_data.apr,tree2,test_data.particles_intensities,treedata_2);
     auto apr_tree_iterator_s = tree2.tree_iterator();
 
     for (unsigned int level = (apr_tree_iterator_s.level_max()); level >= apr_tree_iterator_s.level_min(); --level) {
@@ -186,7 +193,7 @@ bool test_apr_tree(TestData& test_data) {
                      apr_tree_iterator_s.set_iterator_to_particle_next_particle()) {
 
                     uint16_t current_int = (uint16_t)std::round(downsampled_img[apr_tree_iterator_s.level()].at(apr_tree_iterator_s.y(),apr_tree_iterator_s.x(),apr_tree_iterator_s.z()));
-                    //uint16_t parts_int = test_data.apr.apr_tree.particles_ds_tree[apr_tree_iterator];
+                    //uint16_t parts_int = aprTree.particles_ds_tree[apr_tree_iterator];
                     uint16_t parts2 = (uint16_t)std::round(treedata_2[apr_tree_iterator_s]);
 
                     // uint16_t y = apr_tree_iterator.y();
@@ -201,7 +208,7 @@ bool test_apr_tree(TestData& test_data) {
     }
 
 
-    APRTreeIterator neigh_tree_iterator = test_data.apr.apr_tree.tree_iterator();
+    APRTreeIterator neigh_tree_iterator = aprTree.tree_iterator();
 
 
     for (unsigned int level = apr_tree_iterator.level_min(); level <= apr_tree_iterator.level_max(); ++level) {
@@ -223,7 +230,7 @@ bool test_apr_tree(TestData& test_data) {
                                 //neighbour_iterator works just like apr, and apr_parallel_iterator (you could also call neighbours)
 
                                 uint16_t current_int = (uint16_t)std::round(downsampled_img[neigh_tree_iterator.level()].at(neigh_tree_iterator.y(),neigh_tree_iterator.x(),neigh_tree_iterator.z()));
-                                //uint16_t parts_int = test_data.apr.apr_tree.particles_ds_tree[apr_tree_iterator];
+                                //uint16_t parts_int = aprTree.particles_ds_tree[apr_tree_iterator];
                                 uint16_t parts2 = (uint16_t)std::round(tree_data[neigh_tree_iterator]);
 
                                 //uint16_t y = apr_tree_iterator.y();
@@ -257,11 +264,17 @@ bool test_apr_input_output(TestData& test_data){
     std::string file_name = "read_write_test";
 
     //write the APR
-    test_data.apr.write_apr(save_loc,file_name);
+    APRWriter aprWriter;
+//    test_data.apr.write_apr(save_loc,file_name);
+    aprWriter.write_apr(test_data.apr,save_loc,file_name); //#TODO: need to write the particles and update this
 
-    APR<uint16_t> apr_read;
+    APR apr_read;
 
-    apr_read.read_apr(save_loc + file_name + "_apr.h5");
+    //apr_read.read_apr(save_loc + file_name + "_apr.h5");
+
+    aprWriter.read_apr(apr_read,save_loc + file_name + "_apr.h5");
+    ParticleData<uint16_t> readParticles;
+
     APRIterator apr_iterator_read = apr_read.iterator();
 
     for (unsigned int level = apr_iterator.level_min(); level <= apr_iterator.level_max(); ++level) {
@@ -275,8 +288,8 @@ bool test_apr_input_output(TestData& test_data){
                      apr_iterator.set_iterator_to_particle_next_particle()) {
 
                     //check the functionality
-                    if (test_data.apr.particles_intensities[apr_iterator] !=
-                        apr_read.particles_intensities[apr_iterator_read]) {
+                    if (test_data.particles_intensities[apr_iterator] !=
+                            readParticles[apr_iterator_read]) {
                         success = false;
                     }
 
@@ -342,7 +355,7 @@ bool test_apr_input_output(TestData& test_data){
                             // on each face, there can be 0-4 neighbours accessed by index
                             if (neighbour_iterator.set_neighbour_iterator(apr_iterator_read2, direction, index)) {
                                 //will return true if there is a neighbour defined
-                                uint16_t apr_intensity = test_data.apr.particles_intensities[neighbour_iterator];
+                                uint16_t apr_intensity = test_data.particles_intensities[neighbour_iterator];
                                 uint16_t check_intensity = test_data.img_pc(neighbour_iterator.y_nearest_pixel(),
                                                                             neighbour_iterator.x_nearest_pixel(),
                                                                             neighbour_iterator.z_nearest_pixel());
@@ -388,14 +401,16 @@ bool test_apr_input_output(TestData& test_data){
     }
 
     //write one of the above results to file
-    test_data.apr.write_particles_only(save_loc,"example_output",extra_data);
+    //test_data.apr.write_particles_only(save_loc,"example_output",extra_data);
+    aprWriter.write_particles_only(save_loc,"example_output",extra_data);
 
     std::string extra_file_name = save_loc + "example_output" + "_apr_extra_parts.h5";
 
     ParticleData<float> extra_data_read;
 
     //you need the same apr used to write it to load it (doesn't save location data)
-    test_data.apr.read_parts_only(extra_file_name,extra_data_read);
+    aprWriter.read_parts_only(extra_file_name,extra_data_read);
+    //test_data.apr.read_parts_only(extra_file_name,extra_data_read);
 
     for (unsigned int level = apr_iterator.level_min(); level <= apr_iterator.level_max(); ++level) {
         int z = 0;
@@ -479,7 +494,7 @@ bool test_apr_neighbour_access(TestData& test_data){
                             // on each face, there can be 0-4 neighbours accessed by index
                             if (neighbour_iterator.set_neighbour_iterator(apr_iterator, direction, index)) {
                                 //will return true if there is a neighbour defined
-                                uint16_t apr_intensity = test_data.apr.particles_intensities[neighbour_iterator];
+                                uint16_t apr_intensity = test_data.particles_intensities[neighbour_iterator];
                                 uint16_t check_intensity = test_data.img_pc(neighbour_iterator.y_nearest_pixel(),
                                                                             neighbour_iterator.x_nearest_pixel(),
                                                                             neighbour_iterator.z_nearest_pixel());
@@ -564,7 +579,7 @@ bool test_apr_neighbour_access(TestData& test_data){
                             // on each face, there can be 0-4 neighbours accessed by index
                             if (neighbour_iterator.set_neighbour_iterator(apr_iterator, direction, index)) {
                                 //will return true if there is a neighbour defined
-                                uint16_t apr_intensity = (test_data.apr.particles_intensities[neighbour_iterator]);
+                                uint16_t apr_intensity = (test_data.particles_intensities[neighbour_iterator]);
                                 uint16_t check_intensity = test_data.img_pc(neighbour_iterator.y_nearest_pixel(),
                                                                             neighbour_iterator.x_nearest_pixel(),
                                                                             neighbour_iterator.z_nearest_pixel());
@@ -650,7 +665,7 @@ bool test_apr_iterate(TestData& test_data){
                 for (apr_iterator.set_new_lzx(level, z, x); apr_iterator.global_index() < apr_iterator.end_index;
                      apr_iterator.set_iterator_to_particle_next_particle()) {
 
-                    uint16_t apr_intensity = (test_data.apr.particles_intensities[apr_iterator]);
+                    uint16_t apr_intensity = (test_data.particles_intensities[apr_iterator]);
                     uint16_t check_intensity = test_data.img_pc(apr_iterator.y_nearest_pixel(),
                                                                 apr_iterator.x_nearest_pixel(),
                                                                 apr_iterator.z_nearest_pixel());
@@ -716,7 +731,7 @@ bool test_apr_iterate(TestData& test_data){
                 for (apr_iterator.set_new_lzx(level, z, x); apr_iterator.global_index() < apr_iterator.end_index;
                      apr_iterator.set_iterator_to_particle_next_particle()) {
 
-                    uint16_t apr_intensity = (test_data.apr.particles_intensities[apr_iterator]);
+                    uint16_t apr_intensity = (test_data.particles_intensities[apr_iterator]);
                     uint16_t check_intensity = test_data.img_pc(apr_iterator.y_nearest_pixel(),
                                                                 apr_iterator.x_nearest_pixel(),
                                                                 apr_iterator.z_nearest_pixel());
@@ -803,30 +818,38 @@ bool test_apr_pipeline(TestData& test_data){
 
     bool success = true;
 
+    APRConverter<uint16_t> aprConverter;
+
     //the apr datastructure
-    APR<uint16_t> apr;
+    APR apr;
 
     //read in the command line options into the parameters file
-    apr.parameters.Ip_th = test_data.apr.parameters.Ip_th;
-    apr.parameters.rel_error = test_data.apr.parameters.rel_error;
-    apr.parameters.lambda = test_data.apr.parameters.lambda;
-    apr.parameters.mask_file = "";
-    apr.parameters.min_signal = -1;
+   aprConverter.par.Ip_th = test_data.apr.parameters.Ip_th;
+   aprConverter.par.rel_error = test_data.apr.parameters.rel_error;
+   aprConverter.par.lambda = test_data.apr.parameters.lambda;
+   aprConverter.par.mask_file = "";
+   aprConverter.par.min_signal = -1;
 
-    apr.parameters.sigma_th_max = test_data.apr.parameters.sigma_th_max;
-    apr.parameters.sigma_th = test_data.apr.parameters.sigma_th;
+   aprConverter.par.sigma_th_max = test_data.apr.parameters.sigma_th_max;
+   aprConverter.par.sigma_th = test_data.apr.parameters.sigma_th;
 
-    apr.parameters.SNR_min = -1;
+   aprConverter.par.SNR_min = -1;
 
     //where things are
-    apr.parameters.input_image_name = test_data.filename;
-    apr.parameters.input_dir = "";
-    apr.parameters.name = test_data.output_name;
-    apr.parameters.output_dir = "";
+   aprConverter.par.input_image_name = test_data.filename;
+   aprConverter.par.input_dir = "";
+   aprConverter.par.name = test_data.output_name;
+   aprConverter.par.output_dir = "";
 
     //Gets the APR
+    ParticleData<uint16_t> particles_intensities;
 
-    if(apr.get_apr()){
+    // #TODO: Need to remove the by file name get APR method.
+
+    if(aprConverter.get_apr(apr)){
+
+        aprConverter.get_particles(apr,particles_intensities,);
+
         auto apr_iterator = apr.iterator();
 
         std::cout << "NUM OF PARTICLES: " << apr_iterator.total_number_particles() << " vs " << test_data.apr.total_number_particles() << std::endl;
@@ -907,7 +930,7 @@ bool test_pipeline_bound(TestData& test_data,float rel_error){
     bool success = true;
 
     //the apr datastructure
-    APR<uint16_t> apr;
+    APR apr;
 
     //read in the command line options into the parameters file
     apr.parameters.Ip_th = 0;

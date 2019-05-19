@@ -12,6 +12,7 @@
 #include "numerics/MeshNumerics.hpp"
 #include "data_structures/APR/ParticleData.hpp"
 #include "data_structures/APR/PartCellData.hpp"
+#include "numerics/APRTreeNumerics.hpp"
 
 struct ReconPatch{
     int x_begin=0;
@@ -149,7 +150,8 @@ public:
         local_tree.init(apr); //#FIXME
         //local_tree.fill_tree_mean_downsample(parts)
 
-        local_tree.fill_tree_mean(apr,local_tree,parts,tree_parts);
+        //local_tree.fill_tree_mean(apr,local_tree,parts,tree_parts);
+        APRTreeNumerics::fill_tree_mean(apr,local_tree,parts,tree_parts);
 
 
         MeshNumerics meshNumerics;
