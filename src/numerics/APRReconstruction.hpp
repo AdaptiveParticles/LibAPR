@@ -26,16 +26,16 @@ struct ReconPatch{
 
 class APRReconstruction {
 public:
-    template<typename U,typename V,typename T>
+    template<typename U,typename V>
     void get_parts_from_img(APR& apr,PixelData<U>& input_image,ParticleData<V>& parts) {
 
-        std::vector<PixelData<T>> downsampled_img;
+        std::vector<PixelData<U>> downsampled_img;
         //Down-sample the image for particle intensity estimation
         downsamplePyrmaid(input_image, downsampled_img, apr.level_max(), apr.level_min());
 
         APRReconstruction aprReconstruction;
         //aAPR.get_parts_from_img_alt(input_image,aAPR.particles_intensities);
-        aprReconstruction.get_parts_from_img(downsampled_img,parts);
+        aprReconstruction.get_parts_from_img(apr,downsampled_img,parts);
 
         std::swap(input_image, downsampled_img.back());
     }
@@ -72,6 +72,8 @@ public:
         //
         //  Takes in a APR and creates piece-wise constant image
         //
+
+        parts.init(apr.total_number_particles());
 
         auto apr_iterator = apr.iterator();
 

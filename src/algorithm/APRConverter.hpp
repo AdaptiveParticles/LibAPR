@@ -88,28 +88,28 @@ protected:
 
 };
 
-template<typename ImageType>
-inline bool APRConverter<ImageType>::get_apr(APR &aAPR) {
-    apr = &aAPR;
-#ifdef HAVE_LIBTIFF
-    TiffUtils::TiffInfo inputTiff(par.input_dir + par.input_image_name);
-    if (!inputTiff.isFileOpened()) return false;
-
-
-    if (inputTiff.iType == TiffUtils::TiffInfo::TiffType::TIFF_UINT8) {
-        return get_apr_method_from_file<uint8_t>(aAPR, TiffUtils::getMesh<uint8_t>(inputTiff));
-    } else if (inputTiff.iType == TiffUtils::TiffInfo::TiffType::TIFF_FLOAT) {
-        return get_apr_method_from_file<float>(aAPR, TiffUtils::getMesh<float>(inputTiff));
-    } else if (inputTiff.iType == TiffUtils::TiffInfo::TiffType::TIFF_UINT16) {
-        return get_apr_method_from_file<uint16_t>(aAPR, TiffUtils::getMesh<uint16_t>(inputTiff));
-    } else {
-        std::cerr << "Wrong file type" << std::endl;
-        return false;
-    }
-#else
-    return false;
-#endif 
-};
+//template<typename ImageType>
+//inline bool APRConverter<ImageType>::get_apr(APR &aAPR) {
+//    apr = &aAPR;
+//#ifdef HAVE_LIBTIFF
+//    TiffUtils::TiffInfo inputTiff(par.input_dir + par.input_image_name);
+//    if (!inputTiff.isFileOpened()) return false;
+//
+//
+//    if (inputTiff.iType == TiffUtils::TiffInfo::TiffType::TIFF_UINT8) {
+//        return get_apr_method_from_file<uint8_t>(aAPR, TiffUtils::getMesh<uint8_t>(inputTiff));
+//    } else if (inputTiff.iType == TiffUtils::TiffInfo::TiffType::TIFF_FLOAT) {
+//        return get_apr_method_from_file<float>(aAPR, TiffUtils::getMesh<float>(inputTiff));
+//    } else if (inputTiff.iType == TiffUtils::TiffInfo::TiffType::TIFF_UINT16) {
+//        return get_apr_method_from_file<uint16_t>(aAPR, TiffUtils::getMesh<uint16_t>(inputTiff));
+//    } else {
+//        std::cerr << "Wrong file type" << std::endl;
+//        return false;
+//    }
+//#else
+//    return false;
+//#endif
+//};
 
 template <typename T>
 struct MinMax{T min; T max; };

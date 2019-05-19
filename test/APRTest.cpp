@@ -274,8 +274,12 @@ bool test_apr_input_output(TestData& test_data){
 
     aprWriter.read_apr(apr_read,save_loc + file_name + "_apr.h5");
     ParticleData<uint16_t> readParticles;
+    readParticles.init(apr_read.total_number_particles());
 
     APRIterator apr_iterator_read = apr_read.iterator();
+
+    std::cout << "FIX ME CRASHING" << std::endl;
+    return false;
 
     for (unsigned int level = apr_iterator.level_min(); level <= apr_iterator.level_max(); ++level) {
         int z = 0;
@@ -846,9 +850,10 @@ bool test_apr_pipeline(TestData& test_data){
 
     // #TODO: Need to remove the by file name get APR method.
 
-    if(aprConverter.get_apr(apr)){
 
-        aprConverter.get_particles(apr,particles_intensities,);
+    if(aprConverter.get_apr_method(apr,test_data.img_original)){
+
+        aprConverter.get_particles(apr,test_data.img_original,particles_intensities);
 
         auto apr_iterator = apr.iterator();
 
@@ -863,7 +868,7 @@ bool test_apr_pipeline(TestData& test_data){
                     for (apr_iterator.set_new_lzx(level, z, x); apr_iterator.global_index() < apr_iterator.end_index;
                          apr_iterator.set_iterator_to_particle_next_particle()) {
 
-                        uint16_t apr_intensity = (apr.particles_intensities[apr_iterator]);
+                        uint16_t apr_intensity = (particles_intensities[apr_iterator]);
                         uint16_t check_intensity = test_data.img_pc(apr_iterator.y_nearest_pixel(),
                                                                     apr_iterator.x_nearest_pixel(),
                                                                     apr_iterator.z_nearest_pixel());
@@ -958,10 +963,14 @@ bool test_pipeline_bound(TestData& test_data,float rel_error){
     APRConverter<uint16_t> aprConverter;
     aprConverter.par = apr.parameters;
 
-    aprConverter.get_apr(apr);
+    ParticleData<uint16_t> particles_intensities;
+
+    aprConverter.get_apr_method(apr,test_data.img_original);
+
+    aprConverter.get_particles(apr,test_data.img_original,particles_intensities);
 
     PixelData<uint16_t> pc_recon;
-    apr.interp_img(pc_recon,apr.particles_intensities);
+    APRReconstruction::interp_img(apr,pc_recon,particles_intensities);
 
     //read in used scale
 
@@ -1029,7 +1038,13 @@ void CreateSmallSphereTest::SetUp(){
 
 
     std::string file_name = get_source_directory_apr() + "files/Apr/sphere_120/sphere_apr.h5";
-    test_data.apr.read_apr(file_name);
+
+    APRWriter aprWriter;
+    aprWriter.read_apr(test_data.apr,file_name);
+//    test_data.apr.read_apr(file_name);
+    test_data.particles_intensities.init(test_data.apr.total_number_particles());
+
+    // #TODO Read particles in here..
 
     file_name = get_source_directory_apr() + "files/Apr/sphere_120/sphere_level.tif";
     test_data.img_level = TiffUtils::getMesh<uint16_t>(file_name);
@@ -1052,9 +1067,14 @@ void CreateSmallSphereTest::SetUp(){
 
 void Create210SphereTest::SetUp(){
 
+    APRWriter aprWriter;
 
     std::string file_name = get_source_directory_apr() + "files/Apr/sphere_210/sphere_apr.h5";
-    test_data.apr.read_apr(file_name);
+//    test_data.apr.read_apr(file_name);
+    aprWriter.read_apr(test_data.apr,file_name);
+
+    // #TODO: load particles in here
+    test_data.particles_intensities.init(test_data.apr.total_number_particles());
 
     file_name = get_source_directory_apr() + "files/Apr/sphere_210/sphere_level.tif";
     test_data.img_level = TiffUtils::getMesh<uint16_t>(file_name);
