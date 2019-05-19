@@ -41,11 +41,12 @@ int main(int argc, char **argv) {
     timer.verbose_flag = true;
 
     // APR datastructure
-    APR <uint16_t> apr;
+    APR apr;
 
     timer.start_timer("full read");
     //read file
-    apr.read_apr(file_name);
+    APRWriter aprWriter;
+    aprWriter.read_apr(apr,file_name);
 
     timer.stop_timer();
 

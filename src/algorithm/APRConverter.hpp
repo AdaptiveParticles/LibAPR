@@ -59,10 +59,18 @@ public:
 
 protected:
 
-    //get apr without setting parameters, and with an already loaded image.
+    //DATA (so it can be re-used)
+
+    PixelData<ImageType> grad_temp; // should be a down-sampled image
+    PixelData<float> local_scale_temp; // Used as down-sampled images for some averaging steps where it is useful to not lose precision, or get over-flow errors
+    PixelData<float> local_scale_temp2;
 
 
-    //pointer to the APR structure so member functions can have access if they need
+    template<typename T>
+    void computeL(APR& aAPR,PixelData<T>& input_image);
+
+    void solveForAPR(APR& aAPR);
+
     const APR *apr;
 
     template<typename T>
@@ -186,26 +194,11 @@ void APRConverter<ImageType>::get_particles(APR &aAPR,PixelData<T>& input_image,
 
 }
 
-/**
- * Main method for constructing the APR from an input image
- */
 template<typename ImageType> template<typename T>
-inline bool APRConverter<ImageType>::get_apr_method(APR &aAPR, PixelData<T>& input_image) {
-
-    apr = &aAPR; // in case it was called directly
-
-    if(par.check_input) {
-        if(!check_input_dimensions(input_image)) {
-            std::cout << "Input dimension check failed. Make sure the input image is filled in order x -> y -> z, or try using the option -swap_dimension" << std::endl;
-            return false;
-        }
-    }
-
-    if( par.auto_parameters ) {
-        auto_parameters(input_image);
-    }
-
-    apr = &aAPR; // in case it was called directly
+void APRConverter<ImageType>::computeL(APR& aAPR,PixelData<T>& input_image){
+    //
+    //  Computes the local resolution estimate L(y), the input for the Pulling Scheme and setting the resolution everywhere.
+    //
 
     init_apr(aAPR, input_image);
 
@@ -219,11 +212,11 @@ inline bool APRConverter<ImageType>::get_apr_method(APR &aAPR, PixelData<T>& inp
     //storage of the particle cell tree for computing the pulling scheme
     allocation_timer.start_timer("init and copy image");
     PixelData<ImageType> image_temp(input_image, false /* don't copy */, true /* pinned memory */); // global image variable useful for passing between methods, or re-using memory (should be the only full sized copy of the image)
-    PixelData<ImageType> grad_temp; // should be a down-sampled image
+
     grad_temp.initDownsampled(input_image.y_num, input_image.x_num, input_image.z_num, 0, false);
-    PixelData<float> local_scale_temp; // Used as down-sampled images for some averaging steps where it is useful to not lose precision, or get over-flow errors
+
     local_scale_temp.initDownsampled(input_image.y_num, input_image.x_num, input_image.z_num, true);
-    PixelData<float> local_scale_temp2;
+
     local_scale_temp2.initDownsampled(input_image.y_num, input_image.x_num, input_image.z_num, false);
     allocation_timer.stop_timer();
 
@@ -278,6 +271,10 @@ inline bool APRConverter<ImageType>::get_apr_method(APR &aAPR, PixelData<T>& inp
     computeLevels(grad_temp, local_scale_temp, (*apr).level_max(), par.rel_error, par.dx, par.dy, par.dz);
     method_timer.stop_timer();
 
+}
+template<typename ImageType>
+void APRConverter<ImageType>::solveForAPR(APR& aAPR){
+
     method_timer.start_timer("initialize_particle_cell_tree");
     iPullingScheme.initialize_particle_cell_tree(aAPR.apr_access);
     method_timer.stop_timer();
@@ -293,6 +290,50 @@ inline bool APRConverter<ImageType>::get_apr_method(APR &aAPR, PixelData<T>& inp
     method_timer.start_timer("compute_apr_datastructure");
     aAPR.apr_access.initialize_structure_from_particle_cell_tree(aAPR.parameters, iPullingScheme.getParticleCellTree());
     method_timer.stop_timer();
+
+}
+
+
+
+/**
+ * Main method for constructing the APR from an input image
+ */
+template<typename ImageType> template<typename T>
+inline bool APRConverter<ImageType>::get_apr_method(APR &aAPR, PixelData<T>& input_image) {
+
+    apr = &aAPR; // in case it was called directly
+
+    if(par.check_input) {
+        if(!check_input_dimensions(input_image)) {
+            std::cout << "Input dimension check failed. Make sure the input image is filled in order x -> y -> z, or try using the option -swap_dimension" << std::endl;
+            return false;
+        }
+    }
+
+    if( par.auto_parameters ) {
+        auto_parameters(input_image);
+    }
+
+    //Compute the local resolution estimate
+    computeL(aAPR,input_image);
+
+    solveForAPR(aAPR);
+
+//    method_timer.start_timer("initialize_particle_cell_tree");
+//    iPullingScheme.initialize_particle_cell_tree(aAPR.apr_access);
+//    method_timer.stop_timer();
+//
+//    method_timer.start_timer("compute_local_particle_set");
+//    get_local_particle_cell_set(local_scale_temp, local_scale_temp2);
+//    method_timer.stop_timer();
+//
+//    method_timer.start_timer("compute_pulling_scheme");
+//    iPullingScheme.pulling_scheme_main();
+//    method_timer.stop_timer();
+//
+//    method_timer.start_timer("compute_apr_datastructure");
+//    aAPR.apr_access.initialize_structure_from_particle_cell_tree(aAPR.parameters, iPullingScheme.getParticleCellTree());
+//    method_timer.stop_timer();
 
 //    method_timer.start_timer("downsample_pyramid");
 //    std::vector<PixelData<T>> downsampled_img;
