@@ -32,7 +32,7 @@ public:
     void write_apr(APR &apr,uint64_t t = 0,std::string channel_name = "t");
     void write_apr_append(APR &apr);
     template<typename DataType>
-    void write_particles(std::string& particles_name,ParticleData<DataType>& particles,uint64_t t = 0,bool apr_or_tree = true);
+    void write_particles(APR &apr,std::string particles_name,ParticleData<DataType>& particles,uint64_t t = 0,bool apr_or_tree = true,std::string channel_name = "t");
 
     // read
     void read_apr(APR &apr,uint64_t t = 0,std::string channel_name = "t");
@@ -45,6 +45,10 @@ public:
     }
 
     //set helpers
+    /**
+   * Set whether the internal APR Tree internal access should also be written and read.
+   * @param write_with_tree_flag_ indicate whether the APRTree should be written and read. (True = save both APR and APR Tree)
+   */
     void set_read_write_tree(bool with_tree_flag_){
         with_tree_flag = with_tree_flag_;
     }
@@ -131,48 +135,106 @@ void APRFile::close(){
    */
 void APRFile::write_apr(APR &apr,uint64_t t,std::string channel_name){
 
-    //    hid_t meta_location = f.groupId;
-//
-//    if(append_apr_time){
-//        meta_location = f.objectId;
-//    }
-//
-//    //global property
-//    writeAttr(AprTypes::TimeStepType, f.groupId, &t);
-//
-//    // ------------- write metadata -------------------------
-//    //per time step
-//
-//    writeAttr(AprTypes::NumberOfXType, meta_location, &apr.apr_access.org_dims[1]);
-//    writeAttr(AprTypes::NumberOfYType, meta_location, &apr.apr_access.org_dims[0]);
-//    writeAttr(AprTypes::NumberOfZType, meta_location, &apr.apr_access.org_dims[2]);
-//    writeAttr(AprTypes::TotalNumberOfGapsType, meta_location, &apr.apr_access.total_number_gaps);
-//    writeAttr(AprTypes::TotalNumberOfNonEmptyRowsType, meta_location, &apr.apr_access.total_number_non_empty_rows);
-//
-//    writeString(AprTypes::NameType,meta_location, (apr.name.size() == 0) ? "no_name" : apr.name);
-//    writeString(AprTypes::GitType, meta_location, ConfigAPR::APR_GIT_HASH);
-//    writeAttr(AprTypes::TotalNumberOfParticlesType, meta_location, &apr.apr_access.total_number_particles);
-//    writeAttr(AprTypes::MaxLevelType, meta_location, &apr.apr_access.l_max);
-//    writeAttr(AprTypes::MinLevelType, meta_location, &apr.apr_access.l_min);
-//
-//    int compress_type_num = aprCompress.get_compression_type();
-//    writeAttr(AprTypes::CompressionType, meta_location, &compress_type_num);
-//    float quantization_factor = aprCompress.get_quantization_factor();
-//    writeAttr(AprTypes::QuantizationFactorType, meta_location, &quantization_factor);
-//    writeAttr(AprTypes::LambdaType, meta_location, &apr.parameters.lambda);
-//    writeAttr(AprTypes::SigmaThType, meta_location, &apr.parameters.sigma_th);
-//    writeAttr(AprTypes::SigmaThMaxType, meta_location, &apr.parameters.sigma_th_max);
-//    writeAttr(AprTypes::IthType, meta_location, &apr.parameters.Ip_th);
-//    writeAttr(AprTypes::DxType, meta_location, &apr.parameters.dx);
-//    writeAttr(AprTypes::DyType, meta_location, &apr.parameters.dy);
-//    writeAttr(AprTypes::DzType, meta_location, &apr.parameters.dz);
-//    writeAttr(AprTypes::PsfXType, meta_location, &apr.parameters.psfx);
-//    writeAttr(AprTypes::PsfYType, meta_location, &apr.parameters.psfy);
-//    writeAttr(AprTypes::PsfZType, meta_location, &apr.parameters.psfz);
-//    writeAttr(AprTypes::RelativeErrorType, meta_location, &apr.parameters.rel_error);
-//    writeAttr(AprTypes::NoiseSdEstimateType, meta_location, &apr.parameters.noise_sd_estimate);
-//    writeAttr(AprTypes::BackgroundIntensityEstimateType, meta_location,
-//              &apr.parameters.background_intensity_estimate);
+    APRTimer timer(true);
+    APRTimer timer_f(true);
+
+    if(fileStructure.isOpened()){
+        std::cout << "file is open" << std::endl;
+    }
+
+    fileStructure.create_time_point(t,with_tree_flag,channel_name);
+
+    hid_t meta_location = fileStructure.groupId;
+
+
+
+    //global property
+    APRWriter::writeAttr(AprTypes::TimeStepType, meta_location, &t);
+
+    // ------------- write metadata -------------------------
+    //per time step
+
+    APRWriter::writeAttr(AprTypes::NumberOfXType, meta_location, &apr.apr_access.org_dims[1]);
+    APRWriter::writeAttr(AprTypes::NumberOfYType, meta_location, &apr.apr_access.org_dims[0]);
+    APRWriter::writeAttr(AprTypes::NumberOfZType, meta_location, &apr.apr_access.org_dims[2]);
+    APRWriter::writeAttr(AprTypes::TotalNumberOfGapsType, meta_location, &apr.apr_access.total_number_gaps);
+    APRWriter::writeAttr(AprTypes::TotalNumberOfNonEmptyRowsType, meta_location, &apr.apr_access.total_number_non_empty_rows);
+
+    APRWriter::writeString(AprTypes::NameType,meta_location, (apr.name.size() == 0) ? "no_name" : apr.name);
+    APRWriter::writeString(AprTypes::GitType, meta_location, ConfigAPR::APR_GIT_HASH);
+    APRWriter::writeAttr(AprTypes::TotalNumberOfParticlesType, meta_location, &apr.apr_access.total_number_particles);
+    APRWriter::writeAttr(AprTypes::MaxLevelType, meta_location, &apr.apr_access.l_max);
+    APRWriter::writeAttr(AprTypes::MinLevelType, meta_location, &apr.apr_access.l_min);
+
+
+    APRWriter::writeAttr(AprTypes::LambdaType, meta_location, &apr.parameters.lambda);
+    APRWriter::writeAttr(AprTypes::SigmaThType, meta_location, &apr.parameters.sigma_th);
+    APRWriter::writeAttr(AprTypes::SigmaThMaxType, meta_location, &apr.parameters.sigma_th_max);
+    APRWriter::writeAttr(AprTypes::IthType, meta_location, &apr.parameters.Ip_th);
+    APRWriter::writeAttr(AprTypes::DxType, meta_location, &apr.parameters.dx);
+    APRWriter::writeAttr(AprTypes::DyType, meta_location, &apr.parameters.dy);
+    APRWriter::writeAttr(AprTypes::DzType, meta_location, &apr.parameters.dz);
+    APRWriter::writeAttr(AprTypes::PsfXType, meta_location, &apr.parameters.psfx);
+    APRWriter::writeAttr(AprTypes::PsfYType, meta_location, &apr.parameters.psfy);
+    APRWriter::writeAttr(AprTypes::PsfZType, meta_location, &apr.parameters.psfz);
+    APRWriter::writeAttr(AprTypes::RelativeErrorType, meta_location, &apr.parameters.rel_error);
+    APRWriter::writeAttr(AprTypes::NoiseSdEstimateType, meta_location, &apr.parameters.noise_sd_estimate);
+    APRWriter::writeAttr(AprTypes::BackgroundIntensityEstimateType, meta_location,
+                         &apr.parameters.background_intensity_estimate);
+
+    timer.start_timer("access_data");
+    MapStorageData map_data;
+    apr.apr_access.flatten_structure( map_data);
+
+    std::vector<uint16_t> index_delta;
+    index_delta.resize(map_data.global_index.size());
+    std::adjacent_difference(map_data.global_index.begin(),map_data.global_index.end(),index_delta.begin());
+    APRWriter::writeData(AprTypes::MapGlobalIndexType, fileStructure.objectId, index_delta, blosc_comp_type_access, blosc_comp_level_access, blosc_shuffle_access);
+
+    APRWriter::writeData(AprTypes::MapYendType, fileStructure.objectId, map_data.y_end, blosc_comp_type_access, blosc_comp_level_access, blosc_shuffle_access);
+    APRWriter::writeData(AprTypes::MapYbeginType, fileStructure.objectId, map_data.y_begin, blosc_comp_type_access, blosc_comp_level_access, blosc_shuffle_access);
+    APRWriter::writeData(AprTypes::MapNumberGapsType, fileStructure.objectId, map_data.number_gaps, blosc_comp_type_access, blosc_comp_level_access, blosc_shuffle_access);
+    APRWriter::writeData(AprTypes::MapLevelType, fileStructure.objectId, map_data.level, blosc_comp_type_access, blosc_comp_level_access, blosc_shuffle_access);
+    APRWriter::writeData(AprTypes::MapXType, fileStructure.objectId, map_data.x, blosc_comp_type_access, blosc_comp_level_access, blosc_shuffle_access);
+    APRWriter::writeData(AprTypes::MapZType, fileStructure.objectId, map_data.z, blosc_comp_type_access, blosc_comp_level_access, blosc_shuffle_access);
+
+    timer.stop_timer();
+
+    for (size_t i = apr.level_min(); i < apr.level_max() ; ++i) {
+        int x_num = (int) apr.apr_access.x_num[i];
+        APRWriter::writeAttr(AprTypes::NumberOfLevelXType, i, meta_location, &x_num);
+        int y_num = (int) apr.apr_access.y_num[i];
+        APRWriter::writeAttr(AprTypes::NumberOfLevelYType, i, meta_location, &y_num);
+        int z_num = (int) apr.apr_access.z_num[i];
+        APRWriter::writeAttr(AprTypes::NumberOfLevelZType, i, meta_location, &z_num);
+    }
+
+    if(with_tree_flag){
+
+        apr.init_tree(); //incase it hasn't been initialized.
+
+
+        APRWriter::writeAttr(AprTypes::TotalNumberOfGapsType, fileStructure.objectIdTree, &apr.tree_access.total_number_gaps);
+        APRWriter::writeAttr(AprTypes::TotalNumberOfNonEmptyRowsType, fileStructure.objectIdTree, &apr.tree_access.total_number_non_empty_rows);
+        APRWriter::writeAttr(AprTypes::TotalNumberOfParticlesType, fileStructure.objectIdTree, &apr.tree_access.total_number_particles);
+
+        MapStorageData map_data_tree;
+        apr.tree_access.flatten_structure( map_data_tree);
+
+        std::vector<uint16_t> index_delta;
+        index_delta.resize(map_data_tree.global_index.size());
+        std::adjacent_difference(map_data_tree.global_index.begin(),map_data_tree.global_index.end(),index_delta.begin());
+        APRWriter::writeData(AprTypes::MapGlobalIndexType, fileStructure.objectIdTree, index_delta, blosc_comp_type_access, blosc_comp_level_access, blosc_shuffle_access);
+
+        APRWriter::writeData(AprTypes::MapYendType, fileStructure.objectIdTree, map_data_tree.y_end, blosc_comp_type_access, blosc_comp_level_access, blosc_shuffle_access);
+        APRWriter::writeData(AprTypes::MapYbeginType, fileStructure.objectIdTree, map_data_tree.y_begin, blosc_comp_type_access, blosc_comp_level_access, blosc_shuffle_access);
+        APRWriter::writeData(AprTypes::MapNumberGapsType, fileStructure.objectIdTree, map_data_tree.number_gaps, blosc_comp_type_access, blosc_comp_level_access, blosc_shuffle_access);
+        APRWriter::writeData(AprTypes::MapLevelType, fileStructure.objectIdTree, map_data_tree.level, blosc_comp_type_access, blosc_comp_level_access, blosc_shuffle_access);
+        APRWriter::writeData(AprTypes::MapXType, fileStructure.objectIdTree, map_data_tree.x, blosc_comp_type_access, blosc_comp_level_access, blosc_shuffle_access);
+        APRWriter::writeData(AprTypes::MapZType, fileStructure.objectIdTree, map_data_tree.z, blosc_comp_type_access, blosc_comp_level_access, blosc_shuffle_access);
+
+
+    }
 
 
 }
@@ -192,7 +254,36 @@ void APRFile::write_apr_append(APR &apr){
    * @param apr_or_tree (Default = true (APR), false = APR Tree)
    */
 template<typename DataType>
-void APRFile::write_particles(std::string& particles_name,ParticleData<DataType>& particles,uint64_t t,bool apr_or_tree){
+void APRFile::write_particles(APR &apr,std::string particles_name,ParticleData<DataType>& particles,uint64_t t,bool apr_or_tree,std::string channel_name){
+
+    fileStructure.open_time_point(t,with_tree_flag,channel_name);
+
+    APRTimer timer;
+
+    hid_t part_location;
+
+    if(apr_or_tree){
+        part_location = fileStructure.objectId;
+    } else {
+        part_location = fileStructure.objectIdTree;
+    }
+
+    // ------------- write data ----------------------------
+
+    timer.start_timer("intensities");
+    if (aprCompress.get_compression_type() > 0){
+        aprCompress.compress(apr,particles);
+    }
+
+    int compress_type_num = aprCompress.get_compression_type();
+    APRWriter::writeAttr(AprTypes::CompressionType, part_location, &compress_type_num);
+    float quantization_factor = aprCompress.get_quantization_factor();
+    APRWriter::writeAttr(AprTypes::QuantizationFactorType, part_location, &quantization_factor);
+
+
+    hid_t type = APRWriter::Hdf5Type<DataType>::type();
+    APRWriter::writeData({type, AprTypes::ParticleIntensitiesType}, part_location, particles.data, blosc_comp_type_parts, blosc_comp_level_parts, blosc_shuffle_parts);
+    timer.stop_timer();
 
 }
 
@@ -298,8 +389,7 @@ void APRFile::read_apr(APR &apr,uint64_t t,std::string channel_name){
 
     timer.stop_timer();
 
-
-    if(with_tree_flag){
+    if(with_tree_flag) {
 
         timer.start_timer("build tree - map");
 
@@ -322,7 +412,8 @@ void APRFile::read_apr(APR &apr,uint64_t t,std::string channel_name){
 
         APRWriter::readAttr(AprTypes::TotalNumberOfParticlesType, fileStructure.objectIdTree,
                             &apr.tree_access.total_number_particles);
-        APRWriter::readAttr(AprTypes::TotalNumberOfGapsType, fileStructure.objectIdTree, &apr.tree_access.total_number_gaps);
+        APRWriter::readAttr(AprTypes::TotalNumberOfGapsType, fileStructure.objectIdTree,
+                            &apr.tree_access.total_number_gaps);
         APRWriter::readAttr(AprTypes::TotalNumberOfNonEmptyRowsType, fileStructure.objectIdTree,
                             &apr.tree_access.total_number_non_empty_rows);
 
@@ -352,10 +443,9 @@ void APRFile::read_apr(APR &apr,uint64_t t,std::string channel_name){
         map_data_tree->z.resize(apr.tree_access.total_number_non_empty_rows);
         APRWriter::readData(AprTypes::MapZType, fileStructure.objectIdTree, map_data_tree->z.data());
 
-        apr.tree_access.rebuild_map_tree(*map_data_tree,apr.apr_access);
+        apr.tree_access.rebuild_map_tree(*map_data_tree, apr.apr_access);
 
         timer.stop_timer();
-
 
     }
 
@@ -387,7 +477,52 @@ void APRFile::read_particles(APR apr,std::string particles_name,ParticleData<Dat
     uint64_t parts_start = 0;
     uint64_t parts_end = apr.apr_access.global_index_by_level_end[max_read_level] + 1;
 
+    //check if old or new file, for location of the properties. (The metadata moved to the time point.)
+    hid_t part_location;
+
+    if(apr_or_tree){
+        part_location = fileStructure.objectId;
+    } else {
+        part_location = fileStructure.objectIdTree;
+    }
+
+    //backwards support
+    bool new_parts = attribute_exists(part_location,AprTypes::CompressionType.typeName);
+
+    hid_t meta_data = part_location;
+
+    if(!new_parts) {
+        meta_data = fileStructure.groupId;
+    }
+
     prev_read_level = 0;
+
+    int compress_type;
+    APRWriter::readAttr(AprTypes::CompressionType, meta_data, &compress_type);
+    float quantization_factor;
+    APRWriter::readAttr(AprTypes::QuantizationFactorType, meta_data, &quantization_factor);
+
+
+    timer.start_timer("Read intensities");
+    // ------------- read data ------------------------------
+    particles.data.resize(parts_end);
+    if (particles.data.size() > 0) {
+        APRWriter::readData(particles_name.c_str(), part_location, particles.data.data() + parts_start,parts_start,parts_end);
+    }
+
+
+    timer.stop_timer();
+
+    //std::cout << "Data rate intensities: " << (apr.particles_intensities.data.size()*2)/(timer.timings.back()*1000000.0f) << " MB/s" << std::endl;
+
+    timer.start_timer("decompress");
+    // ------------ decompress if needed ---------------------
+    if (compress_type > 0) {
+        aprCompress.set_compression_type(compress_type);
+        aprCompress.set_quantization_factor(quantization_factor);
+        aprCompress.decompress(apr, particles,parts_start);
+    }
+    timer.stop_timer();
 
 //    if(!read_structure) {
 //        uint64_t current_parts_size = apr.total_number_particles();
@@ -405,42 +540,9 @@ void APRFile::read_particles(APR apr,std::string particles_name,ParticleData<Dat
 
     //apr.apr_access.level_max = max_read_level;
 
-    timer.start_timer("Read intensities");
-    // ------------- read data ------------------------------
-    particles.data.resize(parts_end);
-    if (particles.data.size() > 0) {
-        APRWriter::readData(particles_name.c_str(), fileStructure.objectId, particles.data.data() + parts_start,parts_start,parts_end);
-    }
-
-
-    timer.stop_timer();
-
-    //std::cout << "Data rate intensities: " << (apr.particles_intensities.data.size()*2)/(timer.timings.back()*1000000.0f) << " MB/s" << std::endl;
-
-
-//    timer.start_timer("decompress");
-//    // ------------ decompress if needed ---------------------
-//    if (compress_type > 0) {
-////            APRCompress apr_compress;
-////            apr_compress.set_compression_type(compress_type);
-////            apr_compress.set_quantization_factor(quantization_factor);
-////            apr_compress.decompress(apr, apr.particles_intensities,parts_start);
-//    }
-//    timer.stop_timer();
-
-
-
-
-
 };
 
-/**
-   * Set whether the internal APR Tree internal access should also be written and read.
-   * @param write_with_tree_flag_ indicate whether the APRTree should be written and read. (True = save both APR and APR Tree)
-   */
-//void APRFile::set_read_write_tree(bool write_with_tree_flag_){
-//    with_tree_flag = write_with_tree_flag_;
-//};
+
 
 //get helpers
 

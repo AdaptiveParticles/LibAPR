@@ -271,9 +271,19 @@ bool test_apr_file(TestData& test_data){
 
     readFile.read_particles(readAPR,"particle_intensities",parts);
 
+    //readFile.close();
+
+    std::string file_name = "read_write_test";
+
     //First write a file
-    //APRFile writeFile;
-    //writeFile.open(test_data.apr_filename,"WRITE");
+    APRFile writeFile;
+    writeFile.open(file_name,"WRITE");
+
+    writeFile.write_apr(readAPR);
+
+    writeFile.write_particles(readAPR,"parts",parts);
+
+    //writeFile.close();
 
     return test;
 

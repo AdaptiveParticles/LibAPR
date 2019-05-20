@@ -31,15 +31,15 @@ public:
     uint64_t total_number_particles() const { return data.size(); }
     DataType& operator[](uint64_t aGlobalIndex) { return data[aGlobalIndex]; }
 
-    template<typename S,typename T>
+    template<typename S>
     void copy_parts(APR &apr, const ParticleData<S> &particlesToCopy, uint64_t level = 0, unsigned int aNumberOfBlocks = 10);
-    template<typename V,class BinaryOperation,typename T>
+    template<typename V,class BinaryOperation>
     void zip_inplace(APR &apr, const ParticleData<V> &parts2, BinaryOperation op, uint64_t level = 0, unsigned int aNumberOfBlocks = 10);
-    template<typename V,class BinaryOperation,typename T>
+    template<typename V,class BinaryOperation>
     void zip(APR& apr, const ParticleData<V> &parts2, ParticleData<V>& output, BinaryOperation op, uint64_t level = 0, unsigned int aNumberOfBlocks = 10);
-    template<class UnaryOperator,typename T>
+    template<class UnaryOperator>
     void map_inplace(APR& apr,UnaryOperator op,const uint64_t level = 0,unsigned int aNumberOfBlocks = 10);
-    template<typename T,typename U,class UnaryOperator>
+    template<typename U,class UnaryOperator>
     inline void map(APR& apr,ParticleData<U>& output,UnaryOperator op,const uint64_t level = 0,unsigned int aNumberOfBlocks = 10);
 
     template<typename U>
@@ -97,7 +97,7 @@ void ParticleData<DataType>::sample_parts_from_img_downsampled(APR& apr,std::vec
 /**
  * Copy's the data from one particle dataset to another
  */
-template<typename DataType> template<typename S,typename T>
+template<typename DataType> template<typename S>
 inline void ParticleData<DataType>::copy_parts(APR &apr, const ParticleData<S> &particlesToCopy, uint64_t level, unsigned int aNumberOfBlocks) {
     const uint64_t total_number_of_particles = particlesToCopy.data.size();
 
@@ -146,7 +146,7 @@ inline void ParticleData<DataType>::copy_parts(APR &apr, const ParticleData<S> &
  * Bevan Cheeseman 2017
  * TODO: zip and zip_inplace are doing technicaly same thing - merge them
  */
-template<typename DataType> template<typename V,class BinaryOperation,typename T>
+template<typename DataType> template<typename V,class BinaryOperation>
 inline void ParticleData<DataType>::zip_inplace(APR &apr, const ParticleData<V> &parts2, BinaryOperation op, uint64_t level, unsigned int aNumberOfBlocks) {
     APRIterator apr_iterator(apr.apr_access);
 
@@ -188,7 +188,7 @@ inline void ParticleData<DataType>::zip_inplace(APR &apr, const ParticleData<V> 
  * Takes two particle data sets and adds them, and puts it in the output
  * Bevan Cheeseman 2017
  */
-template<typename DataType> template<typename V,class BinaryOperation,typename T>
+template<typename DataType> template<typename V,class BinaryOperation>
 inline void ParticleData<DataType>::zip(APR& apr, const ParticleData<V> &parts2, ParticleData<V>& output, BinaryOperation op, uint64_t level, unsigned int aNumberOfBlocks) {
     output.data.resize(data.size());
 
@@ -232,7 +232,7 @@ inline void ParticleData<DataType>::zip(APR& apr, const ParticleData<V> &parts2,
  * Performs a unary operator on a particle dataset inplace in parrallel
  * Bevan Cheeseman 2018
  */
-template<typename DataType> template<class UnaryOperator,typename T>
+template<typename DataType> template<class UnaryOperator>
 inline void ParticleData<DataType>::map_inplace(APR& apr,UnaryOperator op,const uint64_t level, unsigned int aNumberOfBlocks){
     APRIterator apr_iterator(apr.apr_access);
 
@@ -275,7 +275,7 @@ inline void ParticleData<DataType>::map_inplace(APR& apr,UnaryOperator op,const 
  * Bevan Cheeseman 2018
  * TODO: map and map_inplace are doing technicaly same thing - merge them
  */
-template<typename DataType> template <typename T,typename U,class UnaryOperator>
+template<typename DataType> template <typename U,class UnaryOperator>
 inline void ParticleData<DataType>::map(APR& apr,ParticleData<U>& output,UnaryOperator op,const uint64_t level,unsigned int aNumberOfBlocks) {
     output.data.resize(data.size());
 

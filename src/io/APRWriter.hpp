@@ -872,6 +872,8 @@ public:
 
         }
 
+
+
         void create_time_point(const unsigned int t,bool tree,std::string t_string = "t"){
             if(t==0){
                 //do nothing
@@ -886,11 +888,19 @@ public:
             const char * const subGroup  = subGroup1.c_str();
             const char * const subGroupTree  = subGroupTree1.c_str();
 
+            bool test = group_exists(fileId,subGroup);
+
             if(tree){
-                objectId = H5Gopen2(fileId, subGroup, H5P_DEFAULT);
+                if(!group_exists(fileId,subGroup)) {
+                    objectId = H5Gcreate2(fileId, subGroup, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
+                }
+                if(!group_exists(fileId,subGroupTree)) {
+                    objectIdTree = H5Gcreate2(fileId, subGroupTree, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
+                }
             } else {
-                objectId = H5Gcreate2(fileId, subGroup, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
-                objectIdTree = H5Gcreate2(fileId, subGroupTree, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
+                if(!group_exists(fileId,subGroup)) {
+                    objectId = H5Gcreate2(fileId, subGroup, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
+                }
             }
 
         }
@@ -917,8 +927,13 @@ public:
 
                     fileId = hdf5_create_file_blosc(aFileName);
                     if (fileId == -1) {
-                        std::cerr << "Could not create file [" << aFileName << "]" << std::endl;
-                        return;
+                        fileId = H5Fopen(aFileName.c_str(), H5F_ACC_RDWR, H5P_DEFAULT);
+                        if (fileId == -1) {
+                            std::cerr << "Could not create file [" << aFileName << "]" << std::endl;
+                            return;
+                        }
+                        groupId = H5Gopen2(fileId, mainGroup, H5P_DEFAULT);
+                        break;
                     }
                     groupId = H5Gcreate2(fileId, mainGroup, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
 
