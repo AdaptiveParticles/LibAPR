@@ -257,19 +257,25 @@ bool test_apr_file(TestData& test_data){
     //First read a file
     APRFile readFile;
 
+    bool test = true;
+
     readFile.open(test_data.apr_filename,"READ");
+
+    readFile.set_read_write_tree(false);
 
     APR readAPR;
 
     readFile.read_apr(readAPR);
 
+    ParticleData<uint16_t> parts;
 
+    readFile.read_particles(readAPR,"particle_intensities",parts);
 
     //First write a file
-    APRFile writeFile;
-    writeFile.open(test_data.apr_filename,"WRITE");
+    //APRFile writeFile;
+    //writeFile.open(test_data.apr_filename,"WRITE");
 
-    return true;
+    return test;
 
 }
 
@@ -1061,13 +1067,14 @@ void CreateSmallSphereTest::SetUp(){
 
 
     std::string file_name = get_source_directory_apr() + "files/Apr/sphere_120/sphere_apr.h5";
-    test_data.filename = file_name;
-    APRWriter aprWriter;
-    aprWriter.read_apr(test_data.apr,file_name);
-//    test_data.apr.read_apr(file_name);
-    test_data.particles_intensities.init(test_data.apr.total_number_particles());
+    test_data.apr_filename = file_name;
 
-    // #TODO Read particles in here..
+    APRFile aprFile;
+    aprFile.open(file_name,"READ");
+    aprFile.set_read_write_tree(false);
+    aprFile.read_apr(test_data.apr);
+    aprFile.read_particles(test_data.apr,"particle_intensities",test_data.particles_intensities);
+
 
     file_name = get_source_directory_apr() + "files/Apr/sphere_120/sphere_level.tif";
     test_data.img_level = TiffUtils::getMesh<uint16_t>(file_name);
@@ -1094,11 +1101,13 @@ void Create210SphereTest::SetUp(){
 
     std::string file_name = get_source_directory_apr() + "files/Apr/sphere_210/sphere_apr.h5";
     test_data.apr_filename = file_name;
-//    test_data.apr.read_apr(file_name);
-    aprWriter.read_apr(test_data.apr,file_name);
 
-    // #TODO: load particles in here
-    test_data.particles_intensities.init(test_data.apr.total_number_particles());
+    APRFile aprFile;
+    aprFile.open(file_name,"READ");
+    aprFile.set_read_write_tree(false);
+    aprFile.read_apr(test_data.apr);
+    aprFile.read_particles(test_data.apr,"particle_intensities",test_data.particles_intensities);
+
 
     file_name = get_source_directory_apr() + "files/Apr/sphere_210/sphere_level.tif";
     test_data.img_level = TiffUtils::getMesh<uint16_t>(file_name);

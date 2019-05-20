@@ -12,7 +12,7 @@
 
 //template<typename ImageType>
 class APR {
-
+    friend class APRFile;
 
 protected:
 //    APRWriter apr_writer;

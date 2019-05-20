@@ -86,6 +86,7 @@ namespace AprTypes  {
 
 
 class APRWriter {
+    friend class APRFile;
 
 protected:
     unsigned int current_t = 0;
@@ -100,7 +101,7 @@ public:
 
         FileStructure::Operation op;
         op = FileStructure::Operation::READ;
-        FileStructure f(file_name, op,0);
+        FileStructure f(file_name, op);
 
         uint64_t num_time_steps;
 
@@ -121,7 +122,7 @@ public:
 
         op = FileStructure::Operation::READ;
 
-        FileStructure f(file_name, op,0);
+        FileStructure f(file_name, op);
 
         if (!f.isOpened()) return 0;
 
@@ -135,12 +136,12 @@ public:
 
     }
 
-    bool time_adaptation_check(const std::string &file_name){
+    static bool time_adaptation_check(const std::string &file_name){
         FileStructure::Operation op;
 
         op = FileStructure::Operation::READ;
 
-        FileStructure f(file_name, op,0);
+        FileStructure f(file_name, op);
 
         if (!f.isOpened()) return 0;
 
@@ -168,7 +169,7 @@ public:
 
 
 
-    void read_apr_parameters(hid_t dataset_id,APRParameters& parameters){
+    static void read_apr_parameters(hid_t dataset_id,APRParameters& parameters){
         //
         //  Reads in from hdf5 pipeline parameters
         //
@@ -192,7 +193,7 @@ public:
 
     }
 
-    void read_access_info(hid_t dataset_id,APRAccess& aprAccess){
+    static void read_access_info(hid_t dataset_id,APRAccess& aprAccess){
         //
         //  Reads in from hdf5 access information
         //
@@ -254,7 +255,7 @@ public:
             t = time_point;
         }
 
-        FileStructure f(file_name, op,t);
+        FileStructure f(file_name, op);
 
         hid_t meta_data = f.groupId;
 
@@ -535,7 +536,7 @@ public:
             current_t++;
         }
 
-        FileStructure f(hdf5_file_name, op,t);
+        FileStructure f(hdf5_file_name, op);
 
         FileSizeInfo fileSizeInfo1;
         if (!f.isOpened()) return fileSizeInfo1;
@@ -697,7 +698,7 @@ public:
         }
 
 
-        FileStructure f(hdf5_file_name, FileStructure::Operation::WRITE,t);
+        FileStructure f(hdf5_file_name, FileStructure::Operation::WRITE);
         if (!f.isOpened()) return;
 
         // ------------- write metadata -------------------------
@@ -835,7 +836,7 @@ public:
 
 
     struct FileStructure {
-        enum class Operation {READ, WRITE,READ_WITH_TREE,WRITE_WITH_TREE,WRITE_APPEND};
+        enum class Operation {READ, WRITE,READ_WITH_TREE,WRITE_WITH_TREE,WRITE_APPEND,WRITE_APPEND_WITH_TREE};
         hid_t fileId = -1;
         hid_t groupId = -1;
         hid_t objectId = -1;
@@ -843,12 +844,12 @@ public:
 
         FileStructure(){};
 
-        FileStructure(const std::string &aFileName, const Operation aOp,const unsigned int t = 0,std::string t_string = "t"){
-            init(aFileName,aOp,t,t_string);
+        FileStructure(const std::string &aFileName, const Operation aOp){
+            init(aFileName,aOp);
         }
 
-        void init(const std::string &aFileName, const Operation aOp,const unsigned int t = 0,std::string t_string = "t"){
 
+        void open_time_point(const unsigned int t,bool tree,std::string t_string = "t"){
             if(t==0){
                 //do nothing
             } else{
@@ -862,48 +863,65 @@ public:
             const char * const subGroup  = subGroup1.c_str();
             const char * const subGroupTree  = subGroupTree1.c_str();
 
+            if(tree){
+                objectIdTree = H5Gopen2(fileId, subGroupTree, H5P_DEFAULT);
+                objectId = H5Gopen2(fileId, subGroup, H5P_DEFAULT);
+            } else {
+                objectId = H5Gopen2(fileId, subGroup, H5P_DEFAULT);
+            }
+
+        }
+
+        void create_time_point(const unsigned int t,bool tree,std::string t_string = "t"){
+            if(t==0){
+                //do nothing
+            } else{
+                t_string = t_string + std::to_string(t);
+            }
+
+            std::string subGroup1 = ("ParticleRepr/" + t_string);
+            std::string subGroupTree1 = "ParticleRepr/" + t_string + "/Tree";
+
+            const char * const mainGroup =  ("ParticleRepr");
+            const char * const subGroup  = subGroup1.c_str();
+            const char * const subGroupTree  = subGroupTree1.c_str();
+
+            if(tree){
+                objectId = H5Gopen2(fileId, subGroup, H5P_DEFAULT);
+            } else {
+                objectId = H5Gcreate2(fileId, subGroup, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
+                objectIdTree = H5Gcreate2(fileId, subGroupTree, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
+            }
+
+        }
+
+        void init(const std::string &aFileName, const Operation aOp){
+
+            const char * const mainGroup =  ("ParticleRepr");
+//            const char * const subGroup  = subGroup1.c_str();
+//            const char * const subGroupTree  = subGroupTree1.c_str();
+
             hdf5_register_blosc();
             switch(aOp) {
                 case Operation::READ:
-                    fileId = H5Fopen(aFileName.c_str(), H5F_ACC_RDONLY, H5P_DEFAULT);
-                    if (fileId == -1) {
-                        std::cerr << "Could not open file [" << aFileName << "]" << std::endl;
-                        return;
-                    }
-                    groupId = H5Gopen2(fileId, mainGroup, H5P_DEFAULT);
-                    objectId = H5Gopen2(fileId, subGroup, H5P_DEFAULT);
 
-                    break;
-                case Operation::READ_WITH_TREE:
                     fileId = H5Fopen(aFileName.c_str(), H5F_ACC_RDONLY, H5P_DEFAULT);
                     if (fileId == -1) {
                         std::cerr << "Could not open file [" << aFileName << "]" << std::endl;
                         return;
                     }
                     groupId = H5Gopen2(fileId, mainGroup, H5P_DEFAULT);
-                    objectId = H5Gopen2(fileId, subGroup, H5P_DEFAULT);
-                    objectIdTree = H5Gopen2(fileId, subGroupTree, H5P_DEFAULT);
+
                     break;
                 case Operation::WRITE:
 
-                    if(t_string == "t") {
-                        fileId = hdf5_create_file_blosc(aFileName);
-                        if (fileId == -1) {
-                            std::cerr << "Could not create file [" << aFileName << "]" << std::endl;
-                            return;
-                        }
-                        groupId = H5Gcreate2(fileId, mainGroup, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
-                        objectId = H5Gcreate2(fileId, subGroup, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
-                    } else{
-                        fileId = H5Fopen(aFileName.c_str(), H5F_ACC_RDWR, H5P_DEFAULT);
-                        if (fileId == -1) {
-                            std::cerr << "Could not open file [" << aFileName << "]" << std::endl;
-                            return;
-                        }
-                        groupId = H5Gopen2(fileId, mainGroup, H5P_DEFAULT);
-                        objectId = H5Gcreate2(fileId, subGroup, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
-
+                    fileId = hdf5_create_file_blosc(aFileName);
+                    if (fileId == -1) {
+                        std::cerr << "Could not create file [" << aFileName << "]" << std::endl;
+                        return;
                     }
+                    groupId = H5Gcreate2(fileId, mainGroup, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
+
                     break;
                 case Operation::WRITE_APPEND:
 
@@ -913,27 +931,24 @@ public:
                         return;
                     }
                     groupId = H5Gopen2(fileId, mainGroup, H5P_DEFAULT);
-                    objectId = H5Gopen2(fileId, subGroup, H5P_DEFAULT);
 
                     break;
-                case Operation::WRITE_WITH_TREE:
-                    fileId = hdf5_create_file_blosc(aFileName);
-                    if (fileId == -1) {
-                        std::cerr << "Could not create file [" << aFileName << "]" << std::endl;
-                        return;
-                    }
-                    groupId = H5Gcreate2(fileId, mainGroup, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
-                    objectId = H5Gcreate2(fileId, subGroup, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
-                    objectIdTree = H5Gcreate2(fileId, subGroupTree, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
-                    break;
             }
-            if (groupId == -1 || objectId == -1) { H5Fclose(fileId); fileId = -1; }
+            //if (groupId == -1 || objectId == -1) { H5Fclose(fileId); fileId = -1; }
         }
         ~FileStructure() {
             if (objectIdTree != -1) H5Gclose(objectIdTree);
             if (objectId != -1) H5Gclose(objectId);
             if (groupId != -1) H5Gclose(groupId);
             if (fileId != -1) H5Fclose(fileId);
+        }
+
+        bool close(){
+            if (objectIdTree != -1) H5Gclose(objectIdTree);
+            if (objectId != -1) H5Gclose(objectId);
+            if (groupId != -1) H5Gclose(groupId);
+            if (fileId != -1) H5Fclose(fileId);
+            return true;
         }
 
         /**
@@ -949,38 +964,38 @@ public:
     };
 
 protected:
-    void readAttr(const AprType &aType, hid_t aGroupId, void *aDest) {
+    static void readAttr(const AprType &aType, hid_t aGroupId, void *aDest) {
         hid_t attr_id = H5Aopen(aGroupId, aType.typeName, H5P_DEFAULT);
         H5Aread(attr_id, aType.hdf5type, aDest);
         H5Aclose(attr_id);
     }
 
-    void readAttr(const AprType &aType, size_t aSuffix, hid_t aGroupId, void *aDest) {
+    static void readAttr(const AprType &aType, size_t aSuffix, hid_t aGroupId, void *aDest) {
         std::string typeNameWithPrefix = std::string(aType.typeName) + std::to_string(aSuffix);
         hid_t attr_id = H5Aopen(aGroupId, typeNameWithPrefix.c_str(), H5P_DEFAULT);
         H5Aread(attr_id, aType.hdf5type, aDest);
         H5Aclose(attr_id);
     }
 
-    void writeAttr(const AprType &aType, hid_t aGroupId, const void * const aSrc) {
+    static void writeAttr(const AprType &aType, hid_t aGroupId, const void * const aSrc) {
         hsize_t dims[] = {1};
         hdf5_write_attribute_blosc(aGroupId, aType.hdf5type, aType.typeName, 1, dims, aSrc);
     }
 
-    void writeAttr(const AprType &aType, size_t aSuffix, hid_t aGroupId, const void * const aSrc) {
+    static void writeAttr(const AprType &aType, size_t aSuffix, hid_t aGroupId, const void * const aSrc) {
         std::string typeNameWithPrefix = std::string(aType.typeName) + std::to_string(aSuffix);
         writeAttr({aType.hdf5type, typeNameWithPrefix.c_str()}, aGroupId, aSrc);
     }
 
-    void readData(const AprType &aType, hid_t aObjectId, void *aDest) {
+    static void readData(const AprType &aType, hid_t aObjectId, void *aDest) {
         hdf5_load_data_blosc(aObjectId, aType.hdf5type, aDest, aType.typeName);
     }
 
-    void readData(const char * const aAprTypeName, hid_t aObjectId, void *aDest) {
+    static void readData(const char * const aAprTypeName, hid_t aObjectId, void *aDest) {
         hdf5_load_data_blosc(aObjectId, aDest, aAprTypeName);
     }
 
-    void readData(const char * const aAprTypeName, hid_t aObjectId, void *aDest,uint64_t elements_start,uint64_t elements_end) {
+    static void readData(const char * const aAprTypeName, hid_t aObjectId, void *aDest,uint64_t elements_start,uint64_t elements_end) {
         //reads partial dataset
         hdf5_load_data_blosc_partial(aObjectId, aDest, aAprTypeName,elements_start,elements_end);
     }
@@ -989,14 +1004,14 @@ protected:
 
 
     template<typename T>
-    void writeData(const AprType &aType, hid_t aObjectId, T aContainer, unsigned int blosc_comp_type, unsigned int blosc_comp_level,unsigned int blosc_shuffle) {
+    static void writeData(const AprType &aType, hid_t aObjectId, T aContainer, unsigned int blosc_comp_type, unsigned int blosc_comp_level,unsigned int blosc_shuffle) {
         hsize_t dims[] = {aContainer.size()};
         const hsize_t rank = 1;
         hdf5_write_data_blosc(aObjectId, aType.hdf5type, aType.typeName, rank, dims, aContainer.data(), blosc_comp_type, blosc_comp_level, blosc_shuffle);
     }
 
     template<typename T>
-    uint64_t writeDataAppend(const AprType &aType, hid_t aObjectId, T aContainer, unsigned int blosc_comp_type, unsigned int blosc_comp_level,unsigned int blosc_shuffle) {
+    static uint64_t writeDataAppend(const AprType &aType, hid_t aObjectId, T aContainer, unsigned int blosc_comp_type, unsigned int blosc_comp_level,unsigned int blosc_shuffle) {
 
 
         hsize_t dims[] = {aContainer.size()};
@@ -1022,13 +1037,13 @@ protected:
 
 
     template<typename T>
-    void writeDataStandard(const AprType &aType, hid_t aObjectId, T aContainer) {
+    static void writeDataStandard(const AprType &aType, hid_t aObjectId, T aContainer) {
         hsize_t dims[] = {aContainer.size()};
         const hsize_t rank = 1;
         hdf5_write_data_standard(aObjectId, aType.hdf5type, aType.typeName, rank, dims, aContainer.data());
     }
 
-    void writeString(AprType aTypeName, hid_t aGroupId, const std::string &aValue) {
+    static void writeString(AprType aTypeName, hid_t aGroupId, const std::string &aValue) {
         if (aValue.size() > 0){
             hid_t aid = H5Screate(H5S_SCALAR);
             hid_t atype = H5Tcopy (aTypeName.hdf5type);
