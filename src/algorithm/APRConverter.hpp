@@ -94,8 +94,8 @@ protected:
     void computeLevels(const PixelData<ImageType> &grad_temp, PixelData<float> &local_scale_temp, int maxLevel, float relError, float dx = 1, float dy = 1, float dz = 1);
     void get_local_particle_cell_set(PixelData<float> &local_scale_temp, PixelData<float> &local_scale_temp2);
 
-    template<typename T,typename S>
-    void get_particles(APR &aAPR,PixelData<T>& input_image,ParticleData<S>& particles);
+//    template<typename T,typename S>
+//    void get_particles(APR &aAPR,PixelData<T>& input_image,ParticleData<S>& particles);
 
 };
 
@@ -187,15 +187,15 @@ inline bool APRConverter<ImageType>::get_apr_method_from_file(APR &aAPR, PixelDa
     return get_apr_method(aAPR, inputImage);
 }
 
-template<typename ImageType> template<typename T,typename S>
-void APRConverter<ImageType>::get_particles(APR &aAPR,PixelData<T>& input_image,ParticleData<S>& particles) {
-
-    APRReconstruction aprReconstruction;
-    method_timer.start_timer("sample_particles");
-    aprReconstruction.get_parts_from_img(aAPR,input_image,particles);
-    method_timer.stop_timer();
-
-}
+//template<typename ImageType> template<typename T,typename S>
+//void APRConverter<ImageType>::get_particles(APR &aAPR,PixelData<T>& input_image,ParticleData<S>& particles) {
+//
+//    APRReconstruction aprReconstruction;
+//    method_timer.start_timer("sample_particles");
+//    aprReconstruction.get_parts_from_img(aAPR,input_image,particles);
+//    method_timer.stop_timer();
+//
+//}
 
 
 template<typename ImageType>

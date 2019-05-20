@@ -843,7 +843,11 @@ public:
 
         FileStructure(){};
 
-        FileStructure(const std::string &aFileName, const Operation aOp,const unsigned int t = 0,std::string t_string = "t") {
+        FileStructure(const std::string &aFileName, const Operation aOp,const unsigned int t = 0,std::string t_string = "t"){
+            init(aFileName,aOp,t,t_string);
+        }
+
+        void init(const std::string &aFileName, const Operation aOp,const unsigned int t = 0,std::string t_string = "t"){
 
             if(t==0){
                 //do nothing

@@ -28,6 +28,7 @@ struct TestData{
     ParticleData<uint16_t> particles_intensities;
 
     std::string filename;
+    std::string apr_filename;
     std::string output_name;
     std::string output_dir;
 
@@ -253,8 +254,20 @@ bool test_apr_tree(TestData& test_data) {
 
 bool test_apr_file(TestData& test_data){
 
+    //First read a file
+    APRFile readFile;
 
-    APRFile testFile;
+    readFile.open(test_data.apr_filename,"READ");
+
+    APR readAPR;
+
+    readFile.read_apr(readAPR);
+
+
+
+    //First write a file
+    APRFile writeFile;
+    writeFile.open(test_data.apr_filename,"WRITE");
 
     return true;
 
@@ -863,7 +876,7 @@ bool test_apr_pipeline(TestData& test_data){
 
     if(aprConverter.get_apr_method(apr,test_data.img_original)){
 
-        aprConverter.get_particles(apr,test_data.img_original,particles_intensities);
+        particles_intensities.sample_parts_from_img_downsampled(apr,test_data.img_original);
 
         auto apr_iterator = apr.iterator();
 
@@ -977,7 +990,7 @@ bool test_pipeline_bound(TestData& test_data,float rel_error){
 
     aprConverter.get_apr_method(apr,test_data.img_original);
 
-    aprConverter.get_particles(apr,test_data.img_original,particles_intensities);
+    particles_intensities.sample_parts_from_img_downsampled(apr,test_data.img_original);
 
     PixelData<uint16_t> pc_recon;
     APRReconstruction::interp_img(apr,pc_recon,particles_intensities);
@@ -1048,7 +1061,7 @@ void CreateSmallSphereTest::SetUp(){
 
 
     std::string file_name = get_source_directory_apr() + "files/Apr/sphere_120/sphere_apr.h5";
-
+    test_data.filename = file_name;
     APRWriter aprWriter;
     aprWriter.read_apr(test_data.apr,file_name);
 //    test_data.apr.read_apr(file_name);
@@ -1080,6 +1093,7 @@ void Create210SphereTest::SetUp(){
     APRWriter aprWriter;
 
     std::string file_name = get_source_directory_apr() + "files/Apr/sphere_210/sphere_apr.h5";
+    test_data.apr_filename = file_name;
 //    test_data.apr.read_apr(file_name);
     aprWriter.read_apr(test_data.apr,file_name);
 
