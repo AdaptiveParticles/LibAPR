@@ -143,17 +143,16 @@ public:
         //  Takes in a APR and creates piece-wise constant image
         //
 
-        APRTree local_tree;
 
         ParticleData<float> tree_parts;
 
         //is apr tree initialized. #FIX ME Need new check
         //if(apr.apr_tree.total_number_parent_cells() == 0){
-        local_tree.init(apr); //#FIXME
+        apr.init_tree(); //#FIXME
         //local_tree.fill_tree_mean_downsample(parts)
 
         //local_tree.fill_tree_mean(apr,local_tree,parts,tree_parts);
-        APRTreeNumerics::fill_tree_mean(apr,local_tree,parts,tree_parts);
+        APRTreeNumerics::fill_tree_mean(apr,parts,tree_parts);
 
 
         MeshNumerics meshNumerics;
@@ -164,7 +163,7 @@ public:
 
         auto apr_iterator = apr.iterator();
 
-        auto apr_tree_iterator = local_tree.tree_iterator();
+        auto apr_tree_iterator = apr.tree_iterator();
 
         img.initWithValue(apr.spatial_index_y_max(apr.level_max() + delta), apr.spatial_index_x_max(apr.level_max() + delta), apr.spatial_index_z_max(apr.level_max() + delta), 0);
 
@@ -525,18 +524,18 @@ public:
 
 
     template<typename U,typename V,typename T>
-    static void interp_image_patch(APR& apr, APRTree& aprTree,PixelData<U>& img,PartCellData<V>& parts_pc,ParticleData<T>& parts_tree,ReconPatch& reconPatch){
+    static void interp_image_patch(APR& apr, PixelData<U>& img,PartCellData<V>& parts_pc,ParticleData<T>& parts_tree,ReconPatch& reconPatch){
         //uses non-contiguous parts stoed in local arrays as the input data.
         ParticleData<V> parts_empty;
-        interp_image_patch(apr, aprTree,img, parts_empty, parts_pc, parts_tree,reconPatch,true);
+        interp_image_patch(apr, img, parts_empty, parts_pc, parts_tree,reconPatch,true);
 
     }
 
     template<typename U,typename V,typename T>
-    static void interp_image_patch(APR& apr, APRTree& aprTree,PixelData<U>& img,ParticleData<V>& parts,ParticleData<T>& parts_tree,ReconPatch& reconPatch){
+    static void interp_image_patch(APR& apr, PixelData<U>& img,ParticleData<V>& parts,ParticleData<T>& parts_tree,ReconPatch& reconPatch){
         //uses contiguous parts as the input data.
         PartCellData<V> parts_empty_pc;
-        interp_image_patch(apr, aprTree,img, parts, parts_empty_pc, parts_tree,reconPatch,false);
+        interp_image_patch(apr, img, parts, parts_empty_pc, parts_tree,reconPatch,false);
     }
 
 
@@ -1022,7 +1021,7 @@ public:
     }
 
     template<typename U,typename V>
-    void interp_parts_smooth_patch(APR& apr,APRTree &aprTree,PixelData<U>& out_image,ParticleData<V>& interp_data,ParticleData<V>& tree_interp_data,ReconPatch& reconPatch,std::vector<float> scale_d = {2,2,2}){
+    void interp_parts_smooth_patch(APR& apr,PixelData<U>& out_image,ParticleData<V>& interp_data,ParticleData<V>& tree_interp_data,ReconPatch& reconPatch,std::vector<float> scale_d = {2,2,2}){
         //
         //  Performs a smooth interpolation, based on the depth (level l) in each direction.
         //
@@ -1065,7 +1064,7 @@ public:
 
         ParticleData<U> level_partsTree(apr.total_number_particles());
 
-        APRTreeIterator apr_iteratorTree = aprTree.tree_iterator();
+        APRTreeIterator apr_iteratorTree = apr.tree_iterator();
 
 
         for (unsigned int level = apr_iterator.level_min(); level <= apr_iterator.level_max(); ++level) {
@@ -1090,9 +1089,9 @@ public:
         }
 
 
-        interp_image_patch(apr,aprTree,pc_image, interp_data,tree_interp_data,reconPatch);
+        interp_image_patch(apr,pc_image, interp_data,tree_interp_data,reconPatch);
 
-        interp_image_patch(apr,aprTree,k_img, level_parts,level_partsTree,reconPatch);
+        interp_image_patch(apr,k_img, level_parts,level_partsTree,reconPatch);
 
         timer.start_timer("sat");
         //demo
@@ -1119,7 +1118,7 @@ public:
 private:
 
     template<typename U,typename V,typename T>
-    static void interp_image_patch(APR& apr, APRTree& aprTree,PixelData<U>& img,ParticleData<V>& parts,PartCellData<V>& parts_pc,ParticleData<T>& parts_tree,ReconPatch& reconPatch,const bool parts_cell_data){
+    static void interp_image_patch(APR& apr,PixelData<U>& img,ParticleData<V>& parts,PartCellData<V>& parts_pc,ParticleData<T>& parts_tree,ReconPatch& reconPatch,const bool parts_cell_data){
         //
         //  Bevan Cheeseman 2016
         //
@@ -1312,7 +1311,7 @@ private:
         if(max_level < apr_iterator.level_max()) {
 
 
-            APRTreeIterator aprTreeIterator = aprTree.tree_iterator();
+            APRTreeIterator aprTreeIterator = apr.tree_iterator();
 
 
             unsigned int level = max_level;

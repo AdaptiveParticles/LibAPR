@@ -98,9 +98,9 @@ public:
         //  Gets the number of time steps saved to the file.
         //
 
-        AprFile::Operation op;
-        op = AprFile::Operation::READ;
-        AprFile f(file_name, op,0);
+        FileStructure::Operation op;
+        op = FileStructure::Operation::READ;
+        FileStructure f(file_name, op,0);
 
         uint64_t num_time_steps;
 
@@ -115,13 +115,13 @@ public:
         //  Returns the number of groups in the main file.
         //
 
-        AprFile::Operation op;
+        FileStructure::Operation op;
 
         size_t number_time_steps = 0;
 
-        op = AprFile::Operation::READ;
+        op = FileStructure::Operation::READ;
 
-        AprFile f(file_name, op,0);
+        FileStructure f(file_name, op,0);
 
         if (!f.isOpened()) return 0;
 
@@ -136,11 +136,11 @@ public:
     }
 
     bool time_adaptation_check(const std::string &file_name){
-        AprFile::Operation op;
+        FileStructure::Operation op;
 
-        op = AprFile::Operation::READ;
+        op = FileStructure::Operation::READ;
 
-        AprFile f(file_name, op,0);
+        FileStructure f(file_name, op,0);
 
         if (!f.isOpened()) return 0;
 
@@ -240,12 +240,12 @@ public:
         APRTimer timer_f;
         timer_f.verbose_flag = false;
 
-        AprFile::Operation op;
+        FileStructure::Operation op;
 
         if(build_tree){
-            op = AprFile::Operation::READ_WITH_TREE;
+            op = FileStructure::Operation::READ_WITH_TREE;
         } else {
-            op = AprFile::Operation::READ;
+            op = FileStructure::Operation::READ;
         }
 
         unsigned int t = 0;
@@ -254,7 +254,7 @@ public:
             t = time_point;
         }
 
-        AprFile f(file_name, op,t);
+        FileStructure f(file_name, op,t);
 
         hid_t meta_data = f.groupId;
 
@@ -520,12 +520,12 @@ public:
         std::string hdf5_file_name = save_loc + file_name + ".h5";
 
 
-        AprFile::Operation op;
+        FileStructure::Operation op;
 
         if(write_tree){
-            op = AprFile::Operation::WRITE_WITH_TREE;
+            op = FileStructure::Operation::WRITE_WITH_TREE;
         } else {
-            op = AprFile::Operation::WRITE;
+            op = FileStructure::Operation::WRITE;
         }
 
         uint64_t t = 0;
@@ -535,7 +535,7 @@ public:
             current_t++;
         }
 
-        AprFile f(hdf5_file_name, op,t);
+        FileStructure f(hdf5_file_name, op,t);
 
         FileSizeInfo fileSizeInfo1;
         if (!f.isOpened()) return fileSizeInfo1;
@@ -697,7 +697,7 @@ public:
         }
 
 
-        AprFile f(hdf5_file_name, AprFile::Operation::WRITE,t);
+        FileStructure f(hdf5_file_name, FileStructure::Operation::WRITE,t);
         if (!f.isOpened()) return;
 
         // ------------- write metadata -------------------------
@@ -766,7 +766,7 @@ public:
     float write_particles_only(const std::string &save_loc, const std::string &file_name, const ParticleData<S> &parts_extra) {
         std::string hdf5_file_name = save_loc + file_name + ".h5";
 
-        AprFile f{hdf5_file_name, AprFile::Operation::WRITE};
+        FileStructure f{hdf5_file_name, FileStructure::Operation::WRITE};
         if (!f.isOpened()) return 0;
 
         // ------------- write metadata -------------------------
@@ -791,7 +791,7 @@ public:
 
     template<typename T>
     void read_parts_only(const std::string &aFileName, ParticleData<T>& extra_parts) {
-        AprFile f{aFileName, AprFile::Operation::READ};
+        FileStructure f{aFileName, FileStructure::Operation::READ};
         if (!f.isOpened()) return;
 
         // ------------- read metadata --------------------------
@@ -807,7 +807,7 @@ public:
     float write_mesh_to_hdf5(PixelData<ImageType>& input_mesh,const std::string &save_loc, const std::string &file_name,unsigned int blosc_comp_type = BLOSC_ZSTD, unsigned int blosc_comp_level = 2, unsigned int blosc_shuffle=1){
         std::string hdf5_file_name = save_loc + file_name + "_pixels.h5";
 
-        AprFile f{hdf5_file_name, AprFile::Operation::WRITE};
+        FileStructure f{hdf5_file_name, FileStructure::Operation::WRITE};
         if (!f.isOpened()) return 0;
 
         // ------------- write metadata -------------------------
@@ -834,14 +834,16 @@ public:
     }
 
 
-    struct AprFile {
+    struct FileStructure {
         enum class Operation {READ, WRITE,READ_WITH_TREE,WRITE_WITH_TREE,WRITE_APPEND};
         hid_t fileId = -1;
         hid_t groupId = -1;
         hid_t objectId = -1;
         hid_t objectIdTree = -1;
 
-        AprFile(const std::string &aFileName, const Operation aOp,const unsigned int t = 0,std::string t_string = "t") {
+        FileStructure(){};
+
+        FileStructure(const std::string &aFileName, const Operation aOp,const unsigned int t = 0,std::string t_string = "t") {
 
             if(t==0){
                 //do nothing
@@ -923,7 +925,7 @@ public:
             }
             if (groupId == -1 || objectId == -1) { H5Fclose(fileId); fileId = -1; }
         }
-        ~AprFile() {
+        ~FileStructure() {
             if (objectIdTree != -1) H5Gclose(objectIdTree);
             if (objectId != -1) H5Gclose(objectId);
             if (groupId != -1) H5Gclose(groupId);
