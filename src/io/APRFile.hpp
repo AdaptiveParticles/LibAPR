@@ -110,7 +110,7 @@ bool APRFile::open(std::string file_name_,std::string read_write_append){
         fileStructure.init(file_name_, APRWriter::FileStructure::Operation::WRITE_APPEND);
 
     } else {
-        std::cerr << "Files should either be opened as READ or WRITE" << std::endl;
+        std::cerr << "Files should either be opened as READ or WRITE, or READWRITE" << std::endl;
     }
 
     file_name = file_name_;
@@ -463,7 +463,7 @@ void APRFile::read_particles(APR apr,std::string particles_name,ParticleData<Dat
     fileStructure.open_time_point(t,with_tree_flag,channel_name);
 
     uint64_t max_read_level = apr.apr_access.level_max()-max_level_delta;
-    uint64_t max_read_level_tree = std::min(apr.apr_access.level_max()-1,max_read_level);
+    //uint64_t max_read_level_tree = std::min(apr.apr_access.level_max()-1,max_read_level);
     uint64_t prev_read_level = 0;
 
     APRTimer timer;

@@ -359,9 +359,22 @@ bool test_apr_file(TestData& test_data){
     file_name = "read_write_test_tree";
     TreeFile.open(file_name,"WRITE");
 
-    //TreeFile.write_apr(test_data.apr,0,"mem");
+    TreeFile.write_apr(test_data.apr,0,"mem");
 
+    test_data.apr.init_tree();
 
+    ParticleData<float> treeMean;
+
+    APRTreeNumerics::fill_tree_mean(test_data.apr,test_data.particles_intensities,treeMean);
+
+    TreeFile.write_particles(test_data.apr,"tree_parts",treeMean,0,false,"mem");
+
+    TreeFile.close();
+
+    TreeFile.open(file_name,"READWRITE");
+    //TreeFile.write_apr(test_data.apr,1,"mem");
+
+    TreeFile.close();
 
     return success;
 

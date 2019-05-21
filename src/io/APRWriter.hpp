@@ -863,7 +863,6 @@ public:
             std::string subGroup1 = ("ParticleRepr/" + t_string);
             std::string subGroupTree1 = "ParticleRepr/" + t_string + "/Tree";
 
-            const char * const mainGroup =  ("ParticleRepr");
             const char * const subGroup  = subGroup1.c_str();
             const char * const subGroupTree  = subGroupTree1.c_str();
 
@@ -878,7 +877,6 @@ public:
                 if(tree_exists) {
                     //tree doesn't exist can't open it
                     objectIdTree = H5Gopen2(fileId, subGroupTree, H5P_DEFAULT);
-                    std::cout << "The tree wasn't written to file" << std::endl;
                     return false;
                 }
 
@@ -905,11 +903,10 @@ public:
             std::string subGroup1 = ("ParticleRepr/" + t_string);
             std::string subGroupTree1 = "ParticleRepr/" + t_string + "/Tree";
 
-            const char * const mainGroup =  ("ParticleRepr");
+
             const char * const subGroup  = subGroup1.c_str();
             const char * const subGroupTree  = subGroupTree1.c_str();
 
-            bool test = group_exists(fileId,subGroup);
 
             if(tree){
                 if(!group_exists(fileId,subGroup)) {
