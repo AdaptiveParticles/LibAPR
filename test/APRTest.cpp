@@ -254,24 +254,8 @@ bool test_apr_tree(TestData& test_data) {
 
 bool test_apr_file(TestData& test_data){
 
-    //First read a file
-    APRFile readFile;
 
-    bool test = true;
-
-    readFile.open(test_data.apr_filename,"READ");
-
-    readFile.set_read_write_tree(false);
-
-    APR readAPR;
-
-    readFile.read_apr(readAPR);
-
-    ParticleData<uint16_t> parts;
-
-    readFile.read_particles(readAPR,"particle_intensities",parts);
-
-    //readFile.close();
+    //Test Basic IO
 
     std::string file_name = "read_write_test";
 
@@ -279,13 +263,107 @@ bool test_apr_file(TestData& test_data){
     APRFile writeFile;
     writeFile.open(file_name,"WRITE");
 
-    writeFile.write_apr(readAPR);
+    writeFile.write_apr(test_data.apr);
 
-    writeFile.write_particles(readAPR,"parts",parts);
+    writeFile.write_particles(test_data.apr,"parts",test_data.particles_intensities);
 
-    //writeFile.close();
+    ParticleData<float> parts2;
+    parts2.init(test_data.apr.total_number_particles());
 
-    return test;
+    auto apr_it = test_data.apr.iterator();
+
+    for (int i = 0; i < apr_it.total_number_particles(); ++i) {
+        parts2[i] = test_data.particles_intensities[i]*3 - 1;
+    }
+
+    writeFile.write_particles(test_data.apr,"parts2",parts2);
+
+    writeFile.close();
+
+    //First read a file
+    APRFile readFile;
+
+    bool success = true;
+
+    readFile.open(file_name,"READ");
+
+    readFile.set_read_write_tree(false);
+
+    APR aprRead;
+
+    readFile.read_apr(aprRead);
+
+    ParticleData<uint16_t> parts_read;
+
+    readFile.read_particles(aprRead,"parts",parts_read);
+
+    ParticleData<float> parts2_read;
+
+    readFile.read_particles(aprRead,"parts2",parts2_read);
+
+    readFile.close();
+
+    auto apr_iterator = test_data.apr.iterator();
+    auto apr_iterator_read = aprRead.iterator();
+
+    for (unsigned int level = apr_iterator.level_min(); level <= apr_iterator.level_max(); ++level) {
+        int z = 0;
+        int x = 0;
+
+        for (z = 0; z < apr_iterator.z_num(level); z++) {
+            for (x = 0; x < apr_iterator.x_num(level); ++x) {
+                apr_iterator_read.begin(level, z, x);
+                for (apr_iterator.begin(level, z, x); apr_iterator < apr_iterator.end();
+                     apr_iterator++) {
+
+                    //check the functionality
+                    if (test_data.particles_intensities[apr_iterator] !=
+                        parts_read[apr_iterator_read]) {
+                        success = false;
+                    }
+
+                    //check the functionality
+                    if (parts2[apr_iterator] !=
+                        parts2_read[apr_iterator_read]) {
+                        success = false;
+                    }
+
+                    if (apr_iterator.level() != apr_iterator_read.level()) {
+                        success = false;
+                    }
+
+                    if (apr_iterator.x() != apr_iterator_read.x()) {
+                        success = false;
+                    }
+
+                    if (apr_iterator.y() != apr_iterator_read.y()) {
+                        success = false;
+                    }
+
+                    if (apr_iterator.z() != apr_iterator_read.z()) {
+                        success = false;
+                    }
+
+                    if(apr_iterator_read < apr_iterator_read.end()) {
+                        apr_iterator_read++;
+                    }
+
+                }
+            }
+        }
+    }
+
+
+    //Test Tree IO
+    APRFile TreeFile;
+    file_name = "read_write_test_tree";
+    TreeFile.open(file_name,"WRITE");
+
+    //TreeFile.write_apr(test_data.apr,0,"mem");
+
+
+
+    return success;
 
 }
 

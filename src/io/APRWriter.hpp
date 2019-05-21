@@ -849,7 +849,11 @@ public:
         }
 
 
-        void open_time_point(const unsigned int t,bool tree,std::string t_string = "t"){
+        bool open_time_point(const unsigned int t,bool tree,std::string t_string = "t"){
+
+            //first close existing time point
+            close_time_point();
+
             if(t==0){
                 //do nothing
             } else{
@@ -863,18 +867,35 @@ public:
             const char * const subGroup  = subGroup1.c_str();
             const char * const subGroupTree  = subGroupTree1.c_str();
 
+            //need to check if the tree exists
+
             if(tree){
-                objectIdTree = H5Gopen2(fileId, subGroupTree, H5P_DEFAULT);
+
                 objectId = H5Gopen2(fileId, subGroup, H5P_DEFAULT);
+
+                bool tree_exists = group_exists(fileId,subGroupTree);
+
+                if(tree_exists) {
+                    //tree doesn't exist can't open it
+                    objectIdTree = H5Gopen2(fileId, subGroupTree, H5P_DEFAULT);
+                    std::cout << "The tree wasn't written to file" << std::endl;
+                    return false;
+                }
+
             } else {
                 objectId = H5Gopen2(fileId, subGroup, H5P_DEFAULT);
             }
+
+            return true;
 
         }
 
 
 
         void create_time_point(const unsigned int t,bool tree,std::string t_string = "t"){
+
+            close_time_point();
+
             if(t==0){
                 //do nothing
             } else{
@@ -905,7 +926,7 @@ public:
 
         }
 
-        void init(const std::string &aFileName, const Operation aOp){
+        bool init(const std::string &aFileName, const Operation aOp){
 
             const char * const mainGroup =  ("ParticleRepr");
 //            const char * const subGroup  = subGroup1.c_str();
@@ -918,7 +939,7 @@ public:
                     fileId = H5Fopen(aFileName.c_str(), H5F_ACC_RDONLY, H5P_DEFAULT);
                     if (fileId == -1) {
                         std::cerr << "Could not open file [" << aFileName << "]" << std::endl;
-                        return;
+                        return false;
                     }
                     groupId = H5Gopen2(fileId, mainGroup, H5P_DEFAULT);
 
@@ -926,15 +947,13 @@ public:
                 case Operation::WRITE:
 
                     fileId = hdf5_create_file_blosc(aFileName);
+
                     if (fileId == -1) {
-                        fileId = H5Fopen(aFileName.c_str(), H5F_ACC_RDWR, H5P_DEFAULT);
-                        if (fileId == -1) {
-                            std::cerr << "Could not create file [" << aFileName << "]" << std::endl;
-                            return;
-                        }
-                        groupId = H5Gopen2(fileId, mainGroup, H5P_DEFAULT);
-                        break;
+                        std::cerr << "Could not create file [" << aFileName << "]" << std::endl;
+                        return false;
                     }
+
+
                     groupId = H5Gcreate2(fileId, mainGroup, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
 
                     break;
@@ -943,13 +962,14 @@ public:
                     fileId = H5Fopen(aFileName.c_str(), H5F_ACC_RDWR, H5P_DEFAULT);
                     if (fileId == -1) {
                         std::cerr << "Could not open file [" << aFileName << "]" << std::endl;
-                        return;
+                        return false;
                     }
                     groupId = H5Gopen2(fileId, mainGroup, H5P_DEFAULT);
 
                     break;
             }
-            //if (groupId == -1 || objectId == -1) { H5Fclose(fileId); fileId = -1; }
+            if (groupId == -1) { H5Fclose(fileId); fileId = -1; return false;}
+            return true;
         }
         ~FileStructure() {
             if (objectIdTree != -1) H5Gclose(objectIdTree);
@@ -963,6 +983,22 @@ public:
             if (objectId != -1) H5Gclose(objectId);
             if (groupId != -1) H5Gclose(groupId);
             if (fileId != -1) H5Fclose(fileId);
+
+            fileId = -1;
+            objectIdTree = -1;
+            groupId = -1;
+            objectId = -1;
+
+            return true;
+        }
+
+        bool close_time_point(){
+            if (objectIdTree != -1) H5Gclose(objectIdTree);
+            if (objectId != -1) H5Gclose(objectId);
+
+            objectId = -1;
+            objectIdTree = -1;
+
             return true;
         }
 

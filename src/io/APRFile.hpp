@@ -138,6 +138,8 @@ void APRFile::write_apr(APR &apr,uint64_t t,std::string channel_name){
     APRTimer timer(true);
     APRTimer timer_f(true);
 
+    current_t = t;
+
     if(fileStructure.isOpened()){
         std::cout << "file is open" << std::endl;
     }
@@ -145,8 +147,6 @@ void APRFile::write_apr(APR &apr,uint64_t t,std::string channel_name){
     fileStructure.create_time_point(t,with_tree_flag,channel_name);
 
     hid_t meta_location = fileStructure.groupId;
-
-
 
     //global property
     APRWriter::writeAttr(AprTypes::TimeStepType, meta_location, &t);
@@ -254,7 +254,7 @@ void APRFile::write_apr_append(APR &apr){
    * @param apr_or_tree (Default = true (APR), false = APR Tree)
    */
 template<typename DataType>
-void APRFile::write_particles(APR &apr,std::string particles_name,ParticleData<DataType>& particles,uint64_t t,bool apr_or_tree,std::string channel_name){
+void APRFile::write_particles(APR &apr,const std::string particles_name,ParticleData<DataType>& particles,uint64_t t,bool apr_or_tree,std::string channel_name){
 
     fileStructure.open_time_point(t,with_tree_flag,channel_name);
 
@@ -282,7 +282,7 @@ void APRFile::write_particles(APR &apr,std::string particles_name,ParticleData<D
 
 
     hid_t type = APRWriter::Hdf5Type<DataType>::type();
-    APRWriter::writeData({type, AprTypes::ParticleIntensitiesType}, part_location, particles.data, blosc_comp_type_parts, blosc_comp_level_parts, blosc_shuffle_parts);
+    APRWriter::writeData({type, particles_name.c_str()}, part_location, particles.data, blosc_comp_type_parts, blosc_comp_level_parts, blosc_shuffle_parts);
     timer.stop_timer();
 
 }
@@ -301,7 +301,7 @@ void APRFile::read_apr(APR &apr,uint64_t t,std::string channel_name){
         std::cout << "file is open" << std::endl;
     }
 
-    fileStructure.open_time_point(t,with_tree_flag,channel_name);
+    bool tree_exists = fileStructure.open_time_point(t,with_tree_flag,channel_name);
 
     hid_t meta_data = fileStructure.groupId;
 
@@ -329,18 +329,6 @@ void APRFile::read_apr(APR &apr,uint64_t t,std::string channel_name){
 
     //read in access information
     APRWriter::read_access_info(meta_data,apr.apr_access);
-
-    int compress_type;
-    APRWriter::readAttr(AprTypes::CompressionType, meta_data, &compress_type);
-    float quantization_factor;
-    APRWriter::readAttr(AprTypes::QuantizationFactorType, meta_data, &quantization_factor);
-
-    bool read_structure = true;
-
-    if((old_particles == apr.apr_access.total_number_particles) && (old_gaps == apr.apr_access.total_number_gaps) && (with_tree_flag)){
-        read_structure = false;
-    }
-
 
     //read in pipeline parameters
     APRWriter::read_apr_parameters(meta_data,apr.parameters);
@@ -391,61 +379,67 @@ void APRFile::read_apr(APR &apr,uint64_t t,std::string channel_name){
 
     if(with_tree_flag) {
 
-        timer.start_timer("build tree - map");
+        if(!tree_exists){
+            //initializing it from the dataset.
+            std::cout << "Initializing tree from file" << std::endl;
+            apr.init_tree();
+        } else {
 
-        apr.tree_access.l_max = apr.level_max() - 1;
-        apr.tree_access.l_min = apr.level_min() - 1;
+            timer.start_timer("build tree - map");
 
-        apr.tree_access.x_num.resize(apr.tree_access.level_max() + 1);
-        apr.tree_access.z_num.resize(apr.tree_access.level_max() + 1);
-        apr.tree_access.y_num.resize(apr.tree_access.level_max() + 1);
+            apr.tree_access.l_max = apr.level_max() - 1;
+            apr.tree_access.l_min = apr.level_min() - 1;
 
-        for (int i = apr.tree_access.level_min(); i <= apr.tree_access.level_max(); ++i) {
-            apr.tree_access.x_num[i] = apr.spatial_index_x_max(i);
-            apr.tree_access.y_num[i] = apr.spatial_index_y_max(i);
-            apr.tree_access.z_num[i] = apr.spatial_index_z_max(i);
+            apr.tree_access.x_num.resize(apr.tree_access.level_max() + 1);
+            apr.tree_access.z_num.resize(apr.tree_access.level_max() + 1);
+            apr.tree_access.y_num.resize(apr.tree_access.level_max() + 1);
+
+            for (int i = apr.tree_access.level_min(); i <= apr.tree_access.level_max(); ++i) {
+                apr.tree_access.x_num[i] = apr.spatial_index_x_max(i);
+                apr.tree_access.y_num[i] = apr.spatial_index_y_max(i);
+                apr.tree_access.z_num[i] = apr.spatial_index_z_max(i);
+            }
+
+            apr.tree_access.x_num[apr.level_min() - 1] = ceil(apr.spatial_index_x_max(apr.level_min()) / 2.0f);
+            apr.tree_access.y_num[apr.level_min() - 1] = ceil(apr.spatial_index_y_max(apr.level_min()) / 2.0f);
+            apr.tree_access.z_num[apr.level_min() - 1] = ceil(apr.spatial_index_z_max(apr.level_min()) / 2.0f);
+
+            APRWriter::readAttr(AprTypes::TotalNumberOfParticlesType, fileStructure.objectIdTree,
+                                &apr.tree_access.total_number_particles);
+            APRWriter::readAttr(AprTypes::TotalNumberOfGapsType, fileStructure.objectIdTree,
+                                &apr.tree_access.total_number_gaps);
+            APRWriter::readAttr(AprTypes::TotalNumberOfNonEmptyRowsType, fileStructure.objectIdTree,
+                                &apr.tree_access.total_number_non_empty_rows);
+
+            auto map_data_tree = std::make_shared<MapStorageData>();
+
+            map_data_tree->global_index.resize(apr.tree_access.total_number_non_empty_rows);
+
+            std::vector<int16_t> index_delta(apr.tree_access.total_number_non_empty_rows);
+            APRWriter::readData(AprTypes::MapGlobalIndexType, fileStructure.objectIdTree, index_delta.data());
+            std::vector<uint64_t> index_delta_big(apr.tree_access.total_number_non_empty_rows);
+            std::copy(index_delta.begin(), index_delta.end(), index_delta_big.begin());
+            std::partial_sum(index_delta_big.begin(), index_delta_big.end(), map_data_tree->global_index.begin());
+
+            map_data_tree->y_end.resize(apr.tree_access.total_number_gaps);
+            APRWriter::readData(AprTypes::MapYendType, fileStructure.objectIdTree, map_data_tree->y_end.data());
+            map_data_tree->y_begin.resize(apr.tree_access.total_number_gaps);
+            APRWriter::readData(AprTypes::MapYbeginType, fileStructure.objectIdTree, map_data_tree->y_begin.data());
+
+            map_data_tree->number_gaps.resize(apr.tree_access.total_number_non_empty_rows);
+            APRWriter::readData(AprTypes::MapNumberGapsType, fileStructure.objectIdTree,
+                                map_data_tree->number_gaps.data());
+            map_data_tree->level.resize(apr.tree_access.total_number_non_empty_rows);
+            APRWriter::readData(AprTypes::MapLevelType, fileStructure.objectIdTree, map_data_tree->level.data());
+            map_data_tree->x.resize(apr.tree_access.total_number_non_empty_rows);
+            APRWriter::readData(AprTypes::MapXType, fileStructure.objectIdTree, map_data_tree->x.data());
+            map_data_tree->z.resize(apr.tree_access.total_number_non_empty_rows);
+            APRWriter::readData(AprTypes::MapZType, fileStructure.objectIdTree, map_data_tree->z.data());
+
+            apr.tree_access.rebuild_map_tree(*map_data_tree, apr.apr_access);
+
+            timer.stop_timer();
         }
-
-        apr.tree_access.x_num[apr.level_min() - 1] = ceil(apr.spatial_index_x_max(apr.level_min()) / 2.0f);
-        apr.tree_access.y_num[apr.level_min() - 1] = ceil(apr.spatial_index_y_max(apr.level_min()) / 2.0f);
-        apr.tree_access.z_num[apr.level_min() - 1] = ceil(apr.spatial_index_z_max(apr.level_min()) / 2.0f);
-
-        APRWriter::readAttr(AprTypes::TotalNumberOfParticlesType, fileStructure.objectIdTree,
-                            &apr.tree_access.total_number_particles);
-        APRWriter::readAttr(AprTypes::TotalNumberOfGapsType, fileStructure.objectIdTree,
-                            &apr.tree_access.total_number_gaps);
-        APRWriter::readAttr(AprTypes::TotalNumberOfNonEmptyRowsType, fileStructure.objectIdTree,
-                            &apr.tree_access.total_number_non_empty_rows);
-
-        auto map_data_tree = std::make_shared<MapStorageData>();
-
-        map_data_tree->global_index.resize(apr.tree_access.total_number_non_empty_rows);
-
-
-        std::vector<int16_t> index_delta(apr.tree_access.total_number_non_empty_rows);
-        APRWriter::readData(AprTypes::MapGlobalIndexType, fileStructure.objectIdTree, index_delta.data());
-        std::vector<uint64_t> index_delta_big(apr.tree_access.total_number_non_empty_rows);
-        std::copy(index_delta.begin(), index_delta.end(), index_delta_big.begin());
-        std::partial_sum(index_delta_big.begin(), index_delta_big.end(), map_data_tree->global_index.begin());
-
-
-        map_data_tree->y_end.resize(apr.tree_access.total_number_gaps);
-        APRWriter::readData(AprTypes::MapYendType, fileStructure.objectIdTree, map_data_tree->y_end.data());
-        map_data_tree->y_begin.resize(apr.tree_access.total_number_gaps);
-        APRWriter::readData(AprTypes::MapYbeginType, fileStructure.objectIdTree, map_data_tree->y_begin.data());
-
-        map_data_tree->number_gaps.resize(apr.tree_access.total_number_non_empty_rows);
-        APRWriter::readData(AprTypes::MapNumberGapsType, fileStructure.objectIdTree, map_data_tree->number_gaps.data());
-        map_data_tree->level.resize(apr.tree_access.total_number_non_empty_rows);
-        APRWriter::readData(AprTypes::MapLevelType, fileStructure.objectIdTree, map_data_tree->level.data());
-        map_data_tree->x.resize(apr.tree_access.total_number_non_empty_rows);
-        APRWriter::readData(AprTypes::MapXType, fileStructure.objectIdTree, map_data_tree->x.data());
-        map_data_tree->z.resize(apr.tree_access.total_number_non_empty_rows);
-        APRWriter::readData(AprTypes::MapZType, fileStructure.objectIdTree, map_data_tree->z.data());
-
-        apr.tree_access.rebuild_map_tree(*map_data_tree, apr.apr_access);
-
-        timer.stop_timer();
 
     }
 
