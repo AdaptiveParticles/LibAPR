@@ -20,6 +20,8 @@ iteration strategies on the APR.
 #include <iostream>
 #include <cmath>
 #include "Example_apr_iterate.h"
+#include"data_structures/APR/ParticleData.hpp"
+#include"io/APRFile.hpp"
 
 
 int main(int argc, char **argv) {
@@ -37,11 +39,18 @@ int main(int argc, char **argv) {
     timer.verbose_flag = true;
 
     // APR datastructure
-    APR<uint16_t> apr;
+    APR apr;
 
     timer.start_timer("read apr");
     //read file
-    apr.read_apr(file_name);
+    APRFile aprFile;
+    aprFile.open(file_name,"READ");
+    aprFile.read_apr(apr);
+
+    ParticleData<uint16_t>parts;
+    aprFile.read_particles(apr,"particle_intensities",parts);
+
+    aprFile.close();
     timer.stop_timer();
 
     ///////////////////////////
@@ -53,7 +62,7 @@ int main(int argc, char **argv) {
     /////////////////////////////////
 
     //Create particle datasets, once intiailized this has the same layout as the Particle Cells
-    ExtraParticleData<float> calc_ex(apr.total_number_particles());
+    ParticleData<float> calc_ex(apr.total_number_particles());
 
     auto apr_iterator = apr.iterator(); // not STL type iteration
 
@@ -66,13 +75,13 @@ int main(int argc, char **argv) {
 #ifdef HAVE_OPENMP
 //#pragma omp parallel for schedule(dynamic) private(z, x) firstprivate(apr_iterator)
 #endif
-        for (z = 0; z < apr_iterator.spatial_index_z_max(level); z++) {
-            for (x = 0; x < apr_iterator.spatial_index_x_max(level); ++x) {
-                for (apr_iterator.set_new_lzx(level, z, x); apr_iterator.global_index() < apr_iterator.end_index;
-                     apr_iterator.set_iterator_to_particle_next_particle()) {
+        for (z = 0; z < apr_iterator.z_num(level); z++) {
+            for (x = 0; x < apr_iterator.x_num(level); ++x) {
+                for (apr_iterator.set_new_lzx(level, z, x); apr_iterator < apr_iterator.end();
+                     apr_iterator++) {
 
                     //you can then also use it to access any particle properties stored as ExtraParticleData
-                    calc_ex[apr_iterator] = 10.0f * apr.particles_intensities[apr_iterator];
+                    calc_ex[apr_iterator] = 10.0f * parts[apr_iterator];
                 }
             }
         }
@@ -94,12 +103,12 @@ int main(int argc, char **argv) {
 #ifdef HAVE_OPENMP
 #pragma omp parallel for schedule(dynamic) private(z, x) firstprivate(apr_iterator)
 #endif
-        for (z = 0; z < apr_iterator.spatial_index_z_max(level); z++) {
-            for (x = 0; x < apr_iterator.spatial_index_x_max(level); ++x) {
-                for (apr_iterator.set_new_lzx(level, z, x); apr_iterator.global_index() < apr_iterator.end_index;
-                     apr_iterator.set_iterator_to_particle_next_particle()) {
+        for (z = 0; z < apr_iterator.z_num(level); z++) {
+            for (x = 0; x < apr_iterator.x_num(level); ++x) {
+                for (apr_iterator.set_new_lzx(level, z, x); apr_iterator < apr_iterator.end();
+                     apr_iterator++) {
 
-                    if (apr.particles_intensities[apr_iterator] > 100) {
+                    if (parts[apr_iterator] > 100) {
                         //set all particles in calc_ex with an particle intensity greater then 100 to 0.
                         calc_ex[apr_iterator] = apr_iterator.x() - apr_iterator.y(); //these are location parameters, i.e. co-odinates on the given level (apr_iterator.level())
                         calc_ex[apr_iterator] += apr_iterator.z_global(); // you can also access the global co-ordinates, or apr_iterator.z_nearest_pixel(), for th nearest pixel co-ordinate
@@ -118,7 +127,7 @@ int main(int argc, char **argv) {
     ///////////////////////////
 
     //create particle dataset
-    ExtraParticleData<float> calc_example_2(apr.total_number_particles());
+    ParticleData<float> calc_example_2(apr.total_number_particles());
 
     timer.start_timer("APR parallel iterator loop");
 
@@ -129,10 +138,10 @@ int main(int argc, char **argv) {
 #ifdef HAVE_OPENMP
 #pragma omp parallel for schedule(dynamic) private(z, x) firstprivate(apr_iterator)
 #endif
-        for (z = 0; z < apr_iterator.spatial_index_z_max(level); z++) {
-            for (x = 0; x < apr_iterator.spatial_index_x_max(level); ++x) {
-                for (apr_iterator.set_new_lzx(level, z, x); apr_iterator.global_index() < apr_iterator.end_index;
-                     apr_iterator.set_iterator_to_particle_next_particle()) {
+        for (z = 0; z < apr_iterator.z_num(level); z++) {
+            for (x = 0; x < apr_iterator.x_num(level); ++x) {
+                for (apr_iterator.set_new_lzx(level, z, x); apr_iterator < apr_iterator.end();
+                     apr_iterator++) {
                     if (apr_iterator.level() < apr_iterator.level_max()) {
                         //get global y co-ordinate of the particle and put result in calc_example_2 at the current Particle Cell (PC) location
                         calc_example_2[apr_iterator] = apr_iterator.y_global();
@@ -172,10 +181,10 @@ int main(int argc, char **argv) {
 #ifdef HAVE_OPENMP
 #pragma omp parallel for schedule(dynamic) private(z, x) firstprivate(apr_iterator)
 #endif
-        for (z = 0; z < apr_iterator.spatial_index_z_max(level); z++) {
-            for (x = 0; x < apr_iterator.spatial_index_x_max(level); ++x) {
-                for (apr_iterator.set_new_lzx(level, z, x); apr_iterator.global_index() < apr_iterator.end_index;
-                     apr_iterator.set_iterator_to_particle_next_particle()) {
+        for (z = 0; z < apr_iterator.z_num(level); z++) {
+            for (x = 0; x < apr_iterator.x_num(level); ++x) {
+                for (apr_iterator.set_new_lzx(level, z, x); apr_iterator < apr_iterator.end();
+                     apr_iterator++) {
 
                 }
                 calc_ex[apr_iterator] = pow(calc_ex[apr_iterator], 2.0f);
@@ -195,7 +204,7 @@ int main(int argc, char **argv) {
 
     /// Single dataset, unary operation, return new dataset for result
     timer.start_timer("Take the absolute value and output");
-    ExtraParticleData<float> output_1;
+    ParticleData<float> output_1;
     //return the absolute value of the part dataset (includes initialization of the output result)
     calc_ex.map(apr,output_1,[](const float &a) { return std::abs(a); });
     timer.stop_timer();
@@ -207,7 +216,7 @@ int main(int argc, char **argv) {
 
     /// Two datasets, binary operation, return result to the particle dataset form which it is performed.
 
-    ExtraParticleData<float> output_2;
+    ParticleData<float> output_2;
     //return the maximum of the two datasets
     timer.start_timer("Calculate and return the max of two particle datasets");
     calc_ex.zip(apr,calc_example_2,output_2, [](const float &a, const float &b) { return std::max(a, b); });
@@ -217,26 +226,6 @@ int main(int argc, char **argv) {
     timer.start_timer("Using map: square the dataset only for particle cells at the highest level (level_max)");
     calc_ex.map_inplace(apr,[](const float &a) { return pow(a, 2); },apr.level_max());
     timer.stop_timer();
-
-    /////////////////////////////////////////////
-    ///
-    /// Reading and writing additional particle information
-    ///
-    ///
-    /// Requires the APR that was used to write it to be read back in.
-    ///
-    /////////////////////////////////////////////
-
-    //write one of the above results to file
-    apr.write_particles_only(options.directory,"example_output",output_2);
-
-    std::string extra_file_name = options.directory + "example_output" + "_apr_extra_parts.h5";
-
-    ExtraParticleData<float> output_2_read;
-
-    //you need the same apr used to write it to load it (doesn't save location data)
-    apr.read_parts_only(extra_file_name,output_2_read);
-
 
 
 }

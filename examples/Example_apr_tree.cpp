@@ -29,6 +29,11 @@ random access strategies on the APR.
 #include <iostream>
 
 #include "Example_apr_tree.hpp"
+#include "data_structures/APR/APR.hpp"
+#include "data_structures/APR/ParticleData.hpp"
+#include  "io/APRFile.hpp"
+#include  "numerics/APRTreeNumerics.hpp"
+
 
 int main(int argc, char **argv) {
 
@@ -45,25 +50,33 @@ int main(int argc, char **argv) {
     timer.verbose_flag = true;
 
     // APR datastructure
-    APR <uint16_t> apr;
+    APR apr;
 
     //read file
-    apr.read_apr(file_name);
+    APRFile aprFile;
+    aprFile.open(file_name,"READ");
+    aprFile.read_apr(apr);
+
+    ParticleData<uint16_t>parts;
+    aprFile.read_particles(apr,"particle_intensities",parts);
+
+    aprFile.close();
 
     std::string name = options.input;
     //remove the file extension
     name.erase(name.end() - 3, name.end());
 
-    apr.apr_tree.init(apr);
+    apr.init_tree();
 
-    apr.apr_tree.fill_tree_mean_downsample(apr.particles_intensities);
+    ParticleData<float> partsTree;
+    APRTreeNumerics::fill_tree_mean(apr,parts,partsTree);
 
-    //must come after initialized. #FIXME is there a way to avoid this?
-    APRTreeIterator apr_tree_iterator = apr.apr_tree.tree_iterator();
+
+    auto apr_tree_iterator = apr.tree_iterator();
 
     timer.start_timer("APR interior tree loop");
 
-    ExtraParticleData<uint16_t> partsTreelevel(apr.apr_tree.total_number_parent_cells());
+    ParticleData<uint16_t> partsTreelevel(apr.total_number_tree_particles());
 
     //iteration over the interior tree is identical to that over the standard APR, simply using the APRTreeIterator.
 
@@ -80,9 +93,9 @@ int main(int argc, char **argv) {
                      apr_tree_iterator.set_iterator_to_particle_next_particle()) {
 
                     if(apr_tree_iterator.level() < apr_tree_iterator.level_max()) {
-                        partsTreelevel[apr_tree_iterator] = (uint16_t)2*apr.apr_tree.particles_ds_tree[apr_tree_iterator];
+                        partsTreelevel[apr_tree_iterator] = (uint16_t)2*partsTree[apr_tree_iterator];
                     } else {
-                        partsTreelevel[apr_tree_iterator] = apr.apr_tree.particles_ds_tree[apr_tree_iterator];
+                        partsTreelevel[apr_tree_iterator] = partsTree[apr_tree_iterator];
                     }
 
 
@@ -95,7 +108,7 @@ int main(int argc, char **argv) {
 
     //Also neighbour access can be done between neighboring particle cells on the same level
 
-    APRTreeIterator neigh_tree_iterator = apr.apr_tree.tree_iterator();
+    auto neigh_tree_iterator = apr.tree_iterator();
 
     timer.start_timer("APR parallel iterator neighbour loop");
 

@@ -45,19 +45,17 @@ public:
     APRTimer computation_timer;
     APRParameters par;
 
-    bool get_apr(APR &aAPR);
-
-
-    //get apr without setting parameters, and with an already loaded image.
-    template<typename T>
-    bool get_apr_method(APR &aAPR, PixelData<T> &input_image);
 
     template<typename T>
-    bool get_apr_method_from_file(APR &aAPR, PixelData<T> inputImage);
+    bool get_apr(APR &aAPR, PixelData<T> &inputImage);
 
     bool verbose = true;
 
 protected:
+
+    //get apr without setting parameters, and with an already loaded image.
+    template<typename T>
+    bool get_apr_method(APR &aAPR, PixelData<T> &input_image);
 
     float bspline_offset = 0;
 
@@ -146,7 +144,7 @@ static MinMax<T> getMinMax(const PixelData<T>& input_image) {
  * Main method for constructing the APR from an input image
  */
 template<typename ImageType> template<typename T>
-inline bool APRConverter<ImageType>::get_apr_method_from_file(APR &aAPR, PixelData<T> inputImage) {
+inline bool APRConverter<ImageType>::get_apr(APR &aAPR, PixelData<T> &inputImage) {
 //    allocation_timer.start_timer("read tif input image");
 //    PixelData<T> inputImage = TiffUtils::getMesh<T>(aTiffFile);
 //    allocation_timer.stop_timer();

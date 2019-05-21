@@ -23,7 +23,7 @@ random access strategies on the APR.
 #include <iostream>
 
 #include "Example_random_access.hpp"
-
+#include "io/APRFile.hpp"
 
 
 int main(int argc, char **argv) {
@@ -45,8 +45,15 @@ int main(int argc, char **argv) {
 
     timer.start_timer("full read");
     //read file
-    APRWriter aprWriter;
-    aprWriter.read_apr(apr,file_name);
+    APRFile aprFile;
+    aprFile.open(file_name,"READ");
+    aprFile.read_apr(apr);
+
+    ParticleData<uint16_t> parts;
+    aprFile.read_particles(apr,"particle_intensities",parts);
+
+    aprFile.close();
+
 
     timer.stop_timer();
 
@@ -78,7 +85,7 @@ int main(int argc, char **argv) {
     if(!found){
         std::cout << "Particle Cell doesn't exist!" << std::endl;
     } else {
-        std::cout << "Particle Cell exists with global index (particle number): " << random_particle_cell.global_index << " and has intensity value: " << apr.particles_intensities[apr_iterator] <<  std::endl;
+        std::cout << "Particle Cell exists with global index (particle number): " << random_particle_cell.global_index << " and has intensity value: " << parts[apr_iterator] <<  std::endl;
     }
 
     ///////////////////////
@@ -106,7 +113,7 @@ int main(int argc, char **argv) {
             std::cout << "Particle Cell found is at level: " << apr_iterator.level() << " with x: " << apr_iterator.x()
                       << " y: " << apr_iterator.y() << " z: " << apr_iterator.z() << std::endl;
             std::cout << " with global index: " << apr_iterator.global_index() << " and intensity "
-                      << apr.particles_intensities[apr_iterator] << std::endl;
+                      << parts[apr_iterator] << std::endl;
         }
     }
 

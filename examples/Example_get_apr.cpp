@@ -37,10 +37,13 @@ Advanced (Direct) Settings:
 #include <iostream>
 #include "ConfigAPR.h"
 #include "Example_get_apr.h"
+#include "io/APRFile.hpp"
+#include "data_structures/APR/ParticleData.hpp"
+#include "data_structures/APR/APR.hpp"
+#include "algorithm/APRConverter.hpp"
 
 #include <future>
 #include <thread>
-
 
 int runAPR(cmdLineOptions options) {
     //the apr datastructure
@@ -71,11 +74,13 @@ int runAPR(cmdLineOptions options) {
     aprConverter.allocation_timer.verbose_flag = false;
     aprConverter.total_timer.verbose_flag = true;
 
+    PixelData<uint16_t> input_img = TiffUtils::getMesh<uint16_t>(options.directory + options.input);
+
     //Gets the APR
-    if(aprConverter.get_apr(apr)){
+    if(aprConverter.get_apr(apr, input_img)){
 
         ParticleData<uint16_t> particle_intensities;
-
+        particle_intensities.sample_parts_from_img_downsampled(apr,input_img); // sample your particles from your image
         //Below is IO and outputting of the Implied Resolution Function through the Particle Cell level.
 
         //output
@@ -95,10 +100,17 @@ int runAPR(cmdLineOptions options) {
         std::cout << "Writing the APR to hdf5..." << std::endl;
 
         //write the APR to hdf5 file
-        APRWriter aprWriter;
+        APRFile aprFile;
 
-        FileSizeInfo fileSizeInfo = aprWriter.write_apr(apr,save_loc,file_name);
+        aprFile.open(save_loc + file_name + ".apr");
+
+        aprFile.write_apr(apr);
+        aprFile.write_particles(apr,"intensities",particle_intensities);
+
+        FileSizeInfo fileSizeInfo;// #TODO
         float apr_file_size = fileSizeInfo.total_file_size;
+
+        std::cerr << "File size functionality needs to be updated" << std::endl;
 
         timer.stop_timer();
 

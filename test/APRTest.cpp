@@ -911,7 +911,7 @@ bool test_apr_pipeline(TestData& test_data){
     // #TODO: Need to remove the by file name get APR method.
 
 
-    if(aprConverter.get_apr_method(apr,test_data.img_original)){
+    if(aprConverter.get_apr(apr,test_data.img_original)){
 
         particles_intensities.sample_parts_from_img_downsampled(apr,test_data.img_original);
 
@@ -1025,7 +1025,7 @@ bool test_pipeline_bound(TestData& test_data,float rel_error){
 
     ParticleData<uint16_t> particles_intensities;
 
-    aprConverter.get_apr_method(apr,test_data.img_original);
+    aprConverter.get_apr(apr,test_data.img_original);
 
     particles_intensities.sample_parts_from_img_downsampled(apr,test_data.img_original);
 

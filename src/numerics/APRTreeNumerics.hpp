@@ -5,6 +5,9 @@
 #ifndef LIBAPR_APRTREENUMERICS_HPP
 #define LIBAPR_APRTREENUMERICS_HPP
 
+#include "data_structures/APR/PartCellData.hpp"
+#include "data_structures/APR/ParticleData.hpp"
+#include "data_structures/APR/APR.hpp"
 #include "data_structures/APR/APRTree.hpp"
 #include "data_structures/APR/APRTreeIterator.hpp"
 #include "APRNumerics.hpp"
@@ -275,7 +278,7 @@ public:
         //fill_tree_mean_(apr,particle_data,tree_data);
     }
 
-    template<typename T, typename S, typename U>
+    template< typename S, typename U>
     static void fill_tree_max(APR &apr, PartCellData<S> &particle_data_pc,ParticleData<U> &tree_data) {
 
         ParticleData<S> particle_data_empty;
@@ -284,7 +287,7 @@ public:
 
     }
 
-    template<typename T, typename S, typename U>
+    template<typename S, typename U>
     static void fill_tree_max(APR &apr, ParticleData<S> &particle_data,ParticleData<U> &tree_data) {
 
         PartCellData<S> particle_data_pc_empty;
@@ -294,8 +297,7 @@ public:
     }
 
 
-
-    template<typename T, typename U>
+    template<typename U>
     static void fill_tree_max_level(APR &apr,ParticleData<U> &tree_data) {
 
         APRTimer timer;

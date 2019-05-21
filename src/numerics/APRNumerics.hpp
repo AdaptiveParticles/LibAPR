@@ -6,7 +6,7 @@
 #define PARTPLAY_APRNUMERICS_HPP
 
 #include "data_structures/APR/APR.hpp"
-
+#include "data_structures/APR/ParticleData.hpp"
 
 class APRNumerics {
 
