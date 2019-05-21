@@ -256,8 +256,7 @@ bool test_apr_file(TestData& test_data){
 
 
     //Test Basic IO
-
-    std::string file_name = "read_write_test";
+    std::string file_name = "read_write_test.apr";
 
     //First write a file
     APRFile writeFile;
@@ -356,7 +355,7 @@ bool test_apr_file(TestData& test_data){
 
     //Test Tree IO and RW and channel
     APRFile TreeFile;
-    file_name = "read_write_test_tree";
+    file_name = "read_write_test_tree.apr";
     TreeFile.open(file_name,"WRITE");
 
     TreeFile.write_apr(test_data.apr,0,"mem");
@@ -374,6 +373,10 @@ bool test_apr_file(TestData& test_data){
     TreeFile.open(file_name,"READWRITE");
     TreeFile.write_apr(test_data.apr,1,"mem");
     TreeFile.write_particles(test_data.apr,"tree_parts",treeMean,1,false,"mem");
+
+    TreeFile.write_particles(test_data.apr,"particle_demo",test_data.particles_intensities,1,true,"mem");
+
+    TreeFile.write_apr(test_data.apr,10,"ch1_");
 
     TreeFile.close();
 
