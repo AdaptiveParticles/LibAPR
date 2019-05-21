@@ -462,6 +462,34 @@ bool test_apr_file(TestData& test_data){
     channel_names = TreeFile.get_channel_names();
 
 
+    //Test file list
+    std::vector<std::string> channel_names_c = {"mem","mem1","ch1_10"};
+
+
+    if(channel_names_c.size() == channel_names.size()){
+
+        for (int i = 0; i < channel_names_c.size(); ++i) {
+            bool found = false;
+            for (int j = 0; j < channel_names.size(); ++j) {
+                if(channel_names_c[i] == channel_names[j]){
+                    found = true;
+                }
+            }
+            if(!found){
+                success = false;
+            }
+        }
+
+    } else{
+        success = false;
+    }
+
+
+    uint64_t time_steps = TreeFile.get_number_time_steps("mem");
+
+    if(time_steps != 2){
+        success = false;
+    }
 
     TreeFile.close();
 

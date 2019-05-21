@@ -137,14 +137,6 @@ void APRFile::close(){
    */
 void APRFile::write_apr(APR &apr,uint64_t t,std::string channel_name){
 
-    apr.init_tree();
-
-    auto apr_it = apr.tree_iterator();
-
-    auto val1 = apr_it.particles_level_end(apr_it.level_max()-2);
-    auto val = apr_it.total_number_tree_particle_cells();
-    auto val3 = apr.apr_access.global_index_by_level_and_zx_end[apr_it.level_max()-2].back();
-
 
     APRTimer timer(true);
     APRTimer timer_f(true);
@@ -520,10 +512,7 @@ void APRFile::read_particles(APR apr,std::string particles_name,ParticleData<Dat
         APRWriter::readData(particles_name.c_str(), part_location, particles.data.data() + parts_start,parts_start,parts_end);
     }
 
-
     timer.stop_timer();
-
-    //std::cout << "Data rate intensities: " << (apr.particles_intensities.data.size()*2)/(timer.timings.back()*1000000.0f) << " MB/s" << std::endl;
 
     timer.start_timer("decompress");
     // ------------ decompress if needed ---------------------
@@ -542,14 +531,50 @@ void APRFile::read_particles(APR apr,std::string particles_name,ParticleData<Dat
 
 /**
    * Number of time steps saved in the file
+   *   @param Channel name (default = t)
     * @return Number of time steps.
    */
 uint64_t APRFile::get_number_time_steps(std::string channel_name){
 
+    const int max_name_size = 1024;
 
+    ssize_t len;
+    hsize_t nobj;
+    herr_t err;
+    int otype;
 
+    hid_t obj_name = fileStructure.groupId;
 
+    char group_name[max_name_size];
+    char memb_name[max_name_size];
 
+    len = H5Iget_name(obj_name, group_name, max_name_size  );
+
+    err = H5Gget_num_objs(obj_name, &nobj);
+
+    uint64_t counter_t = 0;
+
+    for (int i = 0; i < nobj; i++) {
+
+        len = H5Gget_objname_by_idx(obj_name, (hsize_t) i,
+                                    memb_name, (size_t) max_name_size);
+
+        otype = H5Gget_objtype_by_idx(obj_name, (size_t) i);
+
+        std::string w = memb_name;
+
+        if(otype == H5G_GROUP){
+
+            int ch_l = channel_name.size();
+            std::string subs = w.substr(0,ch_l);
+
+            if(subs == channel_name){
+                counter_t++;
+            }
+        }
+
+    }
+    return counter_t;
 
 };
 
