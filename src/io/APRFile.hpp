@@ -53,9 +53,11 @@ public:
         with_tree_flag = with_tree_flag_;
     }
 
+    std::vector<std::string> get_channel_names();
+
     //get helpers
-    uint64_t get_number_time_steps();
-    std::vector<std::string> get_particles_names(uint64_t t,bool apr_or_tree = true);
+    uint64_t get_number_time_steps(std::string channel_name = "t");
+    std::vector<std::string> get_particles_names(uint64_t t,bool apr_or_tree = true,std::string channel_name = "t");
 
     //APRTimer timer(false);
 
@@ -134,6 +136,15 @@ void APRFile::close(){
    * @param t the time point to be written (default will be to append to the end of the file, starting with 0)
    */
 void APRFile::write_apr(APR &apr,uint64_t t,std::string channel_name){
+
+    apr.init_tree();
+
+    auto apr_it = apr.tree_iterator();
+
+    auto val1 = apr_it.particles_level_end(apr_it.level_max()-2);
+    auto val = apr_it.total_number_tree_particle_cells();
+    auto val3 = apr.apr_access.global_index_by_level_and_zx_end[apr_it.level_max()-2].back();
+
 
     APRTimer timer(true);
     APRTimer timer_f(true);
@@ -244,6 +255,7 @@ void APRFile::write_apr(APR &apr,uint64_t t,std::string channel_name){
    * @param APR to be written
    */
 void APRFile::write_apr_append(APR &apr){
+    write_apr(apr,current_t + 1);
 }
 
 /**
@@ -469,7 +481,7 @@ void APRFile::read_particles(APR apr,std::string particles_name,ParticleData<Dat
     APRTimer timer;
 
     uint64_t parts_start = 0;
-    uint64_t parts_end = apr.apr_access.global_index_by_level_end[max_read_level] + 1;
+    uint64_t parts_end = apr.total_number_particles(); //apr.apr_access.global_index_by_level_end[max_read_level] + 1;
 
     if(!apr_or_tree){
         parts_end = apr.total_number_tree_particles();
@@ -522,22 +534,6 @@ void APRFile::read_particles(APR apr,std::string particles_name,ParticleData<Dat
     }
     timer.stop_timer();
 
-//    if(!read_structure) {
-//        uint64_t current_parts_size = apr.total_number_particles();
-//
-//        for (int j = apr.level_min(); j <apr.level_max(); ++j) {
-//            if((apr.apr_access.global_index_by_level_end[j] + 1)==current_parts_size){
-//                prev_read_level = j;
-//            }
-//        }
-//    }
-
-//    if(prev_read_level > 0){
-//        parts_start = apr.apr_access.global_index_by_level_end[prev_read_level] + 1;
-//    }
-
-    //apr.apr_access.level_max = max_read_level;
-
 };
 
 
@@ -548,9 +544,54 @@ void APRFile::read_particles(APR apr,std::string particles_name,ParticleData<Dat
    * Number of time steps saved in the file
     * @return Number of time steps.
    */
-uint64_t APRFile::get_number_time_steps(){
+uint64_t APRFile::get_number_time_steps(std::string channel_name){
+
+
+
+
+
 
 };
+
+/**
+   * Number of time steps saved in the file
+    * @return Channel names
+   */
+std::vector<std::string> APRFile::get_channel_names(){
+    const int max_name_size = 1024;
+
+    ssize_t len;
+    hsize_t nobj;
+    herr_t err;
+    int otype;
+
+    hid_t obj_name = fileStructure.groupId;
+
+    char group_name[max_name_size];
+    char memb_name[max_name_size];
+
+    len = H5Iget_name(obj_name, group_name, max_name_size  );
+
+    err = H5Gget_num_objs(obj_name, &nobj);
+
+    std::vector<std::string> channel_names;
+
+    for (int i = 0; i < nobj; i++) {
+
+        len = H5Gget_objname_by_idx(obj_name, (hsize_t) i,
+                                    memb_name, (size_t) max_name_size);
+
+        otype = H5Gget_objtype_by_idx(obj_name, (size_t) i);
+
+        if(otype == H5G_GROUP){
+            channel_names.push_back(memb_name);
+        }
+
+    }
+    return channel_names;
+
+};
+
 
 /**
    * Gets the names of particles datasets saved for a particular file for a time step, and either for APR, or APR Tree.
@@ -558,7 +599,75 @@ uint64_t APRFile::get_number_time_steps(){
    * @param apr_or_tree Is it an APR or APR Tree dataset. (Defualt = true (APR), flase = (APR Tree))
    * @return vector of strings of the names of the datasets (can be then used with read_particles).
    */
-std::vector<std::string> APRFile::get_particles_names(uint64_t t,bool apr_or_tree){
+std::vector<std::string> APRFile::get_particles_names(uint64_t t,bool apr_or_tree,std::string channel_name){
+
+    fileStructure.open_time_point(t,with_tree_flag,channel_name);
+
+    const int max_name_size = 1024;
+
+    ssize_t len;
+    hsize_t nobj;
+    herr_t err;
+    int otype;
+
+    std::vector<std::string> access_names = {"map_level","map_global_index","map_number_gaps","map_x","map_y_begin","map_y_end","map_z"};
+
+    hid_t obj_name;
+
+    if(apr_or_tree){
+        obj_name = fileStructure.objectId;
+    } else{
+        obj_name = fileStructure.objectIdTree;
+    }
+
+    char group_name[max_name_size];
+    char memb_name[max_name_size];
+
+    len = H5Iget_name(obj_name, group_name, max_name_size  );
+
+    err = H5Gget_num_objs(obj_name, &nobj);
+
+    std::vector<std::string> dataset_names;
+
+    for (int i = 0; i < nobj; i++) {
+
+        len = H5Gget_objname_by_idx(obj_name, (hsize_t)i,
+                                    memb_name, (size_t)max_name_size );
+
+        otype =  H5Gget_objtype_by_idx(obj_name, (size_t)i );
+
+        if(otype == H5G_DATASET){
+            bool access = false;
+
+            for (int j = 0; j < access_names.size(); ++j) {
+                if(memb_name == access_names[j]){
+                    access = true;
+                }
+            }
+            if(!access) {
+                dataset_names.push_back(memb_name);
+            }
+
+
+        }
+
+//        switch(otype) {
+//            case H5G_LINK:
+//                int q = 0;
+//                break;
+//            case H5G_GROUP:
+//                break;
+//            case H5G_DATASET:
+//                break;
+//            case H5G_TYPE:
+//                break;
+//            default:
+//                break;
+//        }
+    }
+
+
+    return dataset_names;
 
 };
 

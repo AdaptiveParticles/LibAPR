@@ -367,6 +367,8 @@ bool test_apr_file(TestData& test_data){
     APRTreeNumerics::fill_tree_mean(test_data.apr,test_data.particles_intensities,treeMean);
 
     TreeFile.write_particles(test_data.apr,"tree_parts",treeMean,0,false,"mem");
+    TreeFile.write_particles(test_data.apr,"tree_parts1",treeMean,0,false,"mem");
+    TreeFile.write_particles(test_data.apr,"tree_parts2",treeMean,0,false,"mem");
 
     TreeFile.close();
 
@@ -388,6 +390,7 @@ bool test_apr_file(TestData& test_data){
     ParticleData<float> treeMeanRead;
 
     TreeFile.read_particles(aprRead2,"tree_parts",treeMeanRead,1,false,"mem");
+
 
     auto tree_it = aprRead2.tree_iterator();
     auto tree_it_org = test_data.apr.tree_iterator();
@@ -432,7 +435,35 @@ bool test_apr_file(TestData& test_data){
 
     }
 
+    //Test file list
+    std::vector<std::string> correct_names = {"tree_parts","tree_parts1","tree_parts2"};
 
+    std::vector<std::string> dataset_names = TreeFile.get_particles_names(0,false,"mem");
+
+    if(correct_names.size() == dataset_names.size()){
+
+        for (int i = 0; i < correct_names.size(); ++i) {
+            bool found = false;
+            for (int j = 0; j < dataset_names.size(); ++j) {
+                if(correct_names[i] == dataset_names[j]){
+                    found = true;
+                }
+            }
+            if(!found){
+                success = false;
+            }
+        }
+
+    } else{
+        success = false;
+    }
+
+    std::vector<std::string> channel_names;
+    channel_names = TreeFile.get_channel_names();
+
+
+
+    TreeFile.close();
 
     return success;
 

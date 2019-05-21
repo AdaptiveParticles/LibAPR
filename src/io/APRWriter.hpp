@@ -451,23 +451,23 @@ public:
 //
 //        }
 
-        uint64_t parts_start = 0;
-        uint64_t parts_end = apr.apr_access.global_index_by_level_end[max_read_level] + 1;
-
-        prev_read_level = 0;
-        if(!read_structure) {
-            uint64_t current_parts_size = apr.total_number_particles();
-
-            for (int j = apr.level_min(); j <apr.level_max(); ++j) {
-                if((apr.apr_access.global_index_by_level_end[j] + 1)==current_parts_size){
-                    prev_read_level = j;
-                }
-            }
-        }
-
-        if(prev_read_level > 0){
-            parts_start = apr.apr_access.global_index_by_level_end[prev_read_level] + 1;
-        }
+//        uint64_t parts_start = 0;
+//        uint64_t parts_end = apr.apr_access.global_index_by_level_end[max_read_level] + 1;
+//
+//        prev_read_level = 0;
+//        if(!read_structure) {
+//            uint64_t current_parts_size = apr.total_number_particles();
+//
+//            for (int j = apr.level_min(); j <apr.level_max(); ++j) {
+//                if((apr.apr_access.global_index_by_level_end[j] + 1)==current_parts_size){
+//                    prev_read_level = j;
+//                }
+//            }
+//        }
+//
+//        if(prev_read_level > 0){
+//            parts_start = apr.apr_access.global_index_by_level_end[prev_read_level] + 1;
+//        }
 
         //apr.apr_access.level_max = max_read_level;
 

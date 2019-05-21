@@ -103,8 +103,8 @@ inline ParticleCell GenIterator::get_neigh_particle_cell(){
 inline MapIterator& GenIterator::get_current_gap(){
     return current_gap;
 }
-inline uint64_t GenIterator::particles_level_begin(const uint16_t& level_) {return apr_access->global_index_by_level_begin[level_];}
-inline uint64_t GenIterator::particles_level_end(const uint16_t& level_) {return (apr_access->global_index_by_level_end[level_]+1l);}
+inline uint64_t GenIterator::particles_level_begin(const uint16_t& level_) {return apr_access->global_index_by_level_and_zx_end[level_-1].back()+1;}
+inline uint64_t GenIterator::particles_level_end(const uint16_t& level_) {return apr_access->global_index_by_level_and_zx_end[level_].back();}
 
 inline uint8_t GenIterator::number_neighbours_in_direction(const uint8_t& face){
     switch (level_delta){

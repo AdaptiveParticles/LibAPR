@@ -35,8 +35,8 @@ public:
 
     uint64_t total_number_particles;
     uint64_t total_number_gaps;
-    std::vector<uint64_t> global_index_by_level_begin;                   // note: 0..n-1 based numbering
-    std::vector<uint64_t> global_index_by_level_end;                     // note: 0..n-1 based numbering
+//    std::vector<uint64_t> global_index_by_level_begin;                   // note: 0..n-1 based numbering
+//    std::vector<uint64_t> global_index_by_level_end;                     // note: 0..n-1 based numbering
     std::vector<std::vector<uint64_t>> global_index_by_level_and_zx_end; // note: 1..n based numbering
 
     uint64_t total_number_non_empty_rows;
@@ -682,28 +682,7 @@ public:
         ///
         //////////////////////
 
-        //iteration helpers for by level
-        global_index_by_level_begin.resize(level_max()+1,1);
-        global_index_by_level_end.resize(level_max()+1,0);
 
-        unsigned int curr_level = map_data.level[0];
-
-        for (j = 0; j < total_number_non_empty_rows; ++j) {
-            if(curr_level!=map_data.level[j]) {
-                global_index_by_level_end[curr_level] = map_data.global_index[j]-1;
-            }
-            curr_level = map_data.level[j];
-        }
-
-        global_index_by_level_end[level_max() - 1] = map_data.global_index.back() - 1;
-        global_index_by_level_end[level_max()] = total_number_particles-1;
-        for (int i = 0; i <= level_max(); ++i) {
-            if(global_index_by_level_end[i]>0) {
-                global_index_by_level_begin[i] = global_index_by_level_end[i-1]+1;
-            }
-        }
-
-        global_index_by_level_begin[map_data.level[0]] = map_data.global_index[0];
 
         uint64_t prev = 0;
 
@@ -826,28 +805,7 @@ public:
         ///
         //////////////////////
 
-        //iteration helpers for by level
-        global_index_by_level_begin.resize(level_max()+1,1);
-        global_index_by_level_end.resize(level_max()+1,0);
 
-        unsigned int curr_level = map_data.level[0];
-
-        for (j = 0; j < total_number_non_empty_rows; ++j) {
-            if(curr_level!=map_data.level[j]) {
-                global_index_by_level_end[curr_level] = map_data.global_index[j]-1;
-            }
-            curr_level = map_data.level[j];
-        }
-
-        global_index_by_level_end[level_max()] = total_number_particles-1;
-
-        for (int i = 0; i <= level_max(); ++i) {
-            if(global_index_by_level_end[i]>0) {
-                global_index_by_level_begin[i] = global_index_by_level_end[i-1]+1;
-            }
-        }
-
-        global_index_by_level_begin[map_data.level[0]] = map_data.global_index[0];
 
         uint64_t prev = 0;
 
@@ -1028,8 +986,7 @@ inline void APRAccess::initialize_structure_from_particle_cell_tree(APRParameter
     // Initialize global structures
     total_number_gaps=0;
 
-    global_index_by_level_begin.resize(level_max()+1, 1); // TODO: This is dirty hack since later when compute number of particles
-    global_index_by_level_end.resize(level_max()+1, 0);   // TODO: we get 0-1 which will give max num for size_t, change it!!!!
+
 
     global_index_by_level_and_zx_end.resize(level_max()+1);
 
@@ -1079,10 +1036,6 @@ inline void APRAccess::initialize_structure_from_particle_cell_tree(APRParameter
             }
         }
 
-        if (cumsum != cumsum_begin) {
-            global_index_by_level_begin[level] = cumsum_begin;
-            global_index_by_level_end[level] = cumsum-1;
-        }
     }
     total_number_particles = cumsum;
     apr_timer.stop_timer();
@@ -1205,9 +1158,6 @@ void APRAccess::init_data_structure_tree(APRAccess& APROwn_access, SparseGaps<st
 
     apr_timer.start_timer("forth loop");
 
-//iteration helpers for by level
-    global_index_by_level_begin.resize(level_max()+1,1);
-    global_index_by_level_end.resize(level_max()+1,0);
 
     cumsum= 0;
 
@@ -1250,13 +1200,7 @@ void APRAccess::init_data_structure_tree(APRAccess& APROwn_access, SparseGaps<st
             }
         }
 
-        if(cumsum!=cumsum_begin){
-            global_index_by_level_begin[i] = cumsum_begin;
-        }
 
-        if(cumsum!=cumsum_begin){
-            global_index_by_level_end[i] = cumsum-1;
-        }
     }
 
     total_number_particles = cumsum;
@@ -1614,8 +1558,7 @@ void APRAccess::initialize_structure_from_particle_cell_tree_sparse(APRParameter
 
     apr_timer.start_timer("forth loop");
     //iteration helpers for by level
-    global_index_by_level_begin.resize(level_max()+1,1);
-    global_index_by_level_end.resize(level_max()+1,0);
+
 
     size_t cumsum= 0;
     total_number_gaps=0;
@@ -1673,12 +1616,7 @@ void APRAccess::initialize_structure_from_particle_cell_tree_sparse(APRParameter
             }
         }
 
-        if (cumsum != cumsum_begin) {
-            global_index_by_level_begin[i] = cumsum_begin;
-        }
-        if(cumsum != cumsum_begin){
-            global_index_by_level_end[i] = cumsum-1;
-        }
+
     }
     total_number_particles = cumsum;
     apr_timer.stop_timer();
