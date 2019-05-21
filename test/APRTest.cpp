@@ -354,7 +354,7 @@ bool test_apr_file(TestData& test_data){
     }
 
 
-    //Test Tree IO
+    //Test Tree IO and RW and channel
     APRFile TreeFile;
     file_name = "read_write_test_tree";
     TreeFile.open(file_name,"WRITE");
@@ -372,9 +372,64 @@ bool test_apr_file(TestData& test_data){
     TreeFile.close();
 
     TreeFile.open(file_name,"READWRITE");
-    //TreeFile.write_apr(test_data.apr,1,"mem");
+    TreeFile.write_apr(test_data.apr,1,"mem");
+    TreeFile.write_particles(test_data.apr,"tree_parts",treeMean,1,false,"mem");
 
     TreeFile.close();
+
+    TreeFile.open(file_name,"READ");
+
+    APR aprRead2;
+    TreeFile.read_apr(aprRead2,1,"mem");
+
+    ParticleData<float> treeMeanRead;
+
+    TreeFile.read_particles(aprRead2,"tree_parts",treeMeanRead,1,false,"mem");
+
+    auto tree_it = aprRead2.tree_iterator();
+    auto tree_it_org = test_data.apr.tree_iterator();
+
+    for (int l = tree_it.level_max(); l >= tree_it.level_min() ; --l) {
+        for (int z = 0; z < tree_it.z_num(l); ++z) {
+            for (int x = 0; x < tree_it.x_num(l); ++x) {
+
+                tree_it_org.begin(l, z, x);
+                for (tree_it.begin(l,z,x); tree_it < tree_it.end(); tree_it++) {
+
+                    //check the functionality
+                    if (treeMean[tree_it_org] !=
+                        treeMeanRead[tree_it]) {
+                        success = false;
+                    }
+
+                    if (tree_it.level() != tree_it_org.level()) {
+                        success = false;
+                    }
+
+                    if (tree_it.x() != tree_it_org.x()) {
+                        success = false;
+                    }
+
+                    if (tree_it.y() != tree_it_org.y()) {
+                        success = false;
+                    }
+
+                    if (tree_it.z() != tree_it_org.z()) {
+                        success = false;
+                    }
+
+                    if(tree_it_org < tree_it_org.end()) {
+                        tree_it_org++;
+                    }
+
+                }
+            }
+
+        }
+
+    }
+
+
 
     return success;
 

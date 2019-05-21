@@ -146,7 +146,7 @@ void APRFile::write_apr(APR &apr,uint64_t t,std::string channel_name){
 
     fileStructure.create_time_point(t,with_tree_flag,channel_name);
 
-    hid_t meta_location = fileStructure.groupId;
+    hid_t meta_location = fileStructure.objectId;
 
     //global property
     APRWriter::writeAttr(AprTypes::TimeStepType, meta_location, &t);
@@ -470,6 +470,10 @@ void APRFile::read_particles(APR apr,std::string particles_name,ParticleData<Dat
 
     uint64_t parts_start = 0;
     uint64_t parts_end = apr.apr_access.global_index_by_level_end[max_read_level] + 1;
+
+    if(!apr_or_tree){
+        parts_end = apr.total_number_tree_particles();
+    }
 
     //check if old or new file, for location of the properties. (The metadata moved to the time point.)
     hid_t part_location;
