@@ -33,16 +33,12 @@ public:
 
 template<typename T>
 inline void LocalIntensityScale::rescale_var(PixelData<T> &var, const float var_rescale) {
-    const float max_th = 60000.0;
 
     #ifdef HAVE_OPENMP
 	#pragma omp parallel for default(shared)
     #endif
     for (size_t i = 0; i < var.mesh.size(); ++i) {
         float rescaled = var.mesh[i] * var_rescale;
-//        if (rescaled < par.sigma_th) {
-//            rescaled = (rescaled < par.sigma_th_max) ? max_th : par.sigma_th;
-//        }
 
         var.mesh[i] = rescaled;
     }

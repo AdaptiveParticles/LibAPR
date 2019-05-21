@@ -997,8 +997,6 @@ inline void APRAccess::initialize_structure_from_particle_cell_tree(APRParameter
         const size_t xLen = y_begin.x_num[level];
         const size_t zLen = y_begin.z_num[level];
 
-        uint64_t cumsum_begin = cumsum;
-
         global_index_by_level_and_zx_end[level].resize(zLen * xLen, 0);
 
         for (size_t z = 0; z < zLen; ++z) {
@@ -1174,8 +1172,6 @@ void APRAccess::init_data_structure_tree(APRAccess& APROwn_access, SparseGaps<st
         const unsigned int z_num_ = z_num[i];
 
 //set up the levels here.
-        uint64_t cumsum_begin = cumsum;
-
         global_index_by_level_and_zx_end[i].resize(z_num_ * x_num_, 0);
 
         for (z_ = 0; z_ < z_num_; z_++) {
@@ -1575,7 +1571,6 @@ void APRAccess::initialize_structure_from_particle_cell_tree_sparse(APRParameter
         const size_t z_num_ = y_begin.z_num[i];
 
         //set up the levels here.
-        uint64_t cumsum_begin = cumsum;
 
         //new index
         global_index_by_level_and_zx_end[i].resize(z_num_ * x_num_, 0);

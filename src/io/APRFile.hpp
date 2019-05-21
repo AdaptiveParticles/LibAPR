@@ -59,7 +59,7 @@ public:
     uint64_t get_number_time_steps(std::string channel_name = "t");
     std::vector<std::string> get_particles_names(uint64_t t,bool apr_or_tree = true,std::string channel_name = "t");
 
-    //APRTimer timer(false);
+    APRTimer timer;
 
     // #TODO get_set methods for Compress + BLSOC parameters + min/max
     // #TODO get_file_info method returning a struct with different file info.
@@ -84,8 +84,8 @@ private:
     APRCompress aprCompress;
 
     //Maximum and minimum levels to read.
-    unsigned int maximum_level_read = 0; //have a set method either by level or by delta
-    int max_level_delta = 0;
+//    unsigned int maximum_level_read = 0; //have a set method either by level or by delta
+//    int max_level_delta = 0; #TODO: add this functionality back in for lazy loading particles..
 
 };
 
@@ -327,10 +327,6 @@ void APRFile::read_apr(APR &apr,uint64_t t,std::string channel_name){
     H5Aclose(attr_id);
     apr.name= string_out;
 
-    // check if the APR structure has already been read in, the case when a partial load has been done, now only the particles need to be read
-    uint64_t old_particles = apr.apr_access.total_number_particles;
-    uint64_t old_gaps = apr.apr_access.total_number_gaps;
-
     //read in access information
     APRWriter::read_access_info(meta_data,apr.apr_access);
 
@@ -466,11 +462,11 @@ void APRFile::read_particles(APR apr,std::string particles_name,ParticleData<Dat
 
     fileStructure.open_time_point(t,with_tree_flag,channel_name);
 
-    uint64_t max_read_level = apr.apr_access.level_max()-max_level_delta;
+    //uint64_t max_read_level = apr.apr_access.level_max()-max_level_delta;
     //uint64_t max_read_level_tree = std::min(apr.apr_access.level_max()-1,max_read_level);
-    uint64_t prev_read_level = 0;
+    //uint64_t prev_read_level = 0;
 
-    APRTimer timer;
+
 
     uint64_t parts_start = 0;
     uint64_t parts_end = apr.total_number_particles(); //apr.apr_access.global_index_by_level_end[max_read_level] + 1;
@@ -497,7 +493,7 @@ void APRFile::read_particles(APR apr,std::string particles_name,ParticleData<Dat
         meta_data = fileStructure.groupId;
     }
 
-    prev_read_level = 0;
+//    prev_read_level = 0;
 
     int compress_type;
     APRWriter::readAttr(AprTypes::CompressionType, meta_data, &compress_type);
@@ -676,19 +672,6 @@ std::vector<std::string> APRFile::get_particles_names(uint64_t t,bool apr_or_tre
 
         }
 
-//        switch(otype) {
-//            case H5G_LINK:
-//                int q = 0;
-//                break;
-//            case H5G_GROUP:
-//                break;
-//            case H5G_DATASET:
-//                break;
-//            case H5G_TYPE:
-//                break;
-//            default:
-//                break;
-//        }
     }
 
 

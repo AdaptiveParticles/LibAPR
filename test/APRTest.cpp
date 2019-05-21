@@ -442,9 +442,9 @@ bool test_apr_file(TestData& test_data){
 
     if(correct_names.size() == dataset_names.size()){
 
-        for (int i = 0; i < correct_names.size(); ++i) {
+        for(int i = 0; i < correct_names.size(); ++i) {
             bool found = false;
-            for (int j = 0; j < dataset_names.size(); ++j) {
+            for(int j = 0; j < dataset_names.size(); ++j) {
                 if(correct_names[i] == dataset_names[j]){
                     found = true;
                 }
@@ -499,194 +499,7 @@ bool test_apr_file(TestData& test_data){
 
 
 
-bool test_apr_input_output(TestData& test_data){
 
-    bool success = true;
-
-
-
-    APRIterator apr_iterator = test_data.apr.iterator();
-
-    std::string save_loc = "";
-    std::string file_name = "read_write_test";
-
-    //write the APR
-    APRWriter aprWriter;
-//    test_data.apr.write_apr(save_loc,file_name);
-    aprWriter.write_apr(test_data.apr,save_loc,file_name); //#TODO: need to write the particles and update this
-
-    APR apr_read;
-
-    //apr_read.read_apr(save_loc + file_name + "_apr.h5");
-
-    aprWriter.read_apr(apr_read,save_loc + file_name + "_apr.h5");
-    ParticleData<uint16_t> readParticles;
-    readParticles.init(apr_read.total_number_particles());
-
-    APRIterator apr_iterator_read = apr_read.iterator();
-
-    std::cout << "FIX ME CRASHING" << std::endl;
-    return false;
-
-    for (unsigned int level = apr_iterator.level_min(); level <= apr_iterator.level_max(); ++level) {
-        int z = 0;
-        int x = 0;
-
-        for (z = 0; z < apr_iterator.spatial_index_z_max(level); z++) {
-            for (x = 0; x < apr_iterator.spatial_index_x_max(level); ++x) {
-                apr_iterator_read.set_new_lzx(level, z, x);
-                for (apr_iterator.set_new_lzx(level, z, x); apr_iterator.global_index() < apr_iterator.end_index;
-                     apr_iterator.set_iterator_to_particle_next_particle()) {
-
-                    //check the functionality
-                    if (test_data.particles_intensities[apr_iterator] !=
-                            readParticles[apr_iterator_read]) {
-                        success = false;
-                    }
-
-                    if (apr_iterator.level() != apr_iterator_read.level()) {
-                        success = false;
-                    }
-
-                    if (apr_iterator.x() != apr_iterator_read.x()) {
-                        success = false;
-                    }
-
-                    if (apr_iterator.y() != apr_iterator_read.y()) {
-                        success = false;
-                    }
-
-                    if (apr_iterator.z() != apr_iterator_read.z()) {
-                        success = false;
-                    }
-
-
-                    if(apr_iterator_read.global_index() < apr_iterator_read.end_index) {
-                        apr_iterator_read.set_iterator_to_particle_next_particle();
-                    }
-
-                }
-            }
-        }
-
-    }
-
-
-    //
-    // Now check the Extra Part Cell Data
-    //
-
-    APRIterator neighbour_iterator = apr_read.iterator();
-    APRIterator apr_iterator_read2 = apr_read.iterator();
-
-    for (unsigned int level = apr_iterator.level_min(); level <= apr_iterator.level_max(); ++level) {
-        int z = 0;
-        int x = 0;
-
-        for (z = 0; z < apr_iterator.spatial_index_z_max(level); z++) {
-            for (x = 0; x < apr_iterator.spatial_index_x_max(level); ++x) {
-                apr_iterator_read2.set_new_lzx(level, z, x);
-                for (apr_iterator.set_new_lzx(level, z, x); apr_iterator.global_index() < apr_iterator.end_index;
-                     apr_iterator.set_iterator_to_particle_next_particle()) {
-
-                    //counter++;
-                    //apr_iterator_read2.set_iterator_to_particle_next_particle();
-
-
-                    //loop over all the neighbours and set the neighbour iterator to it
-                    for (int direction = 0; direction < 6; ++direction) {
-                        // Neighbour Particle Cell Face definitions [+y,-y,+x,-x,+z,-z] =  [0,1,2,3,4,5]
-                        apr_iterator_read2.find_neighbours_in_direction(direction);
-
-                        success = check_neighbour_out_of_bounds(apr_iterator_read2, direction);
-
-                        for (int index = 0;
-                             index < apr_iterator_read2.number_neighbours_in_direction(direction); ++index) {
-
-                            // on each face, there can be 0-4 neighbours accessed by index
-                            if (neighbour_iterator.set_neighbour_iterator(apr_iterator_read2, direction, index)) {
-                                //will return true if there is a neighbour defined
-                                uint16_t apr_intensity = test_data.particles_intensities[neighbour_iterator];
-                                uint16_t check_intensity = test_data.img_pc(neighbour_iterator.y_nearest_pixel(),
-                                                                            neighbour_iterator.x_nearest_pixel(),
-                                                                            neighbour_iterator.z_nearest_pixel());
-
-                                if (check_intensity != apr_intensity) {
-                                    success = false;
-                                }
-
-                                if (!check_neighbours(apr_read, apr_iterator_read2, neighbour_iterator)) {
-                                    success = false;
-                                }
-                            }
-                        }
-                    }
-
-                    if(apr_iterator_read2.global_index() < apr_iterator_read2.end_index) {
-                        apr_iterator_read2.set_iterator_to_particle_next_particle();
-                    }
-                }
-            }
-        }
-    }
-
-
-    ParticleData<float> extra_data(test_data.apr.total_number_particles());
-
-    for (unsigned int level = apr_iterator.level_min(); level <= apr_iterator.level_max(); ++level) {
-        int z = 0;
-        int x = 0;
-
-        for (z = 0; z < apr_iterator.spatial_index_z_max(level); z++) {
-            for (x = 0; x < apr_iterator.spatial_index_x_max(level); ++x) {
-
-                for (apr_iterator_read.set_new_lzx(level, z, x);
-                     apr_iterator_read.global_index() < apr_iterator_read.end_index;
-                     apr_iterator_read.set_iterator_to_particle_next_particle()) {
-
-                    extra_data[apr_iterator_read] = apr_iterator_read.level();
-                }
-            }
-        }
-
-    }
-
-    //write one of the above results to file
-    //test_data.apr.write_particles_only(save_loc,"example_output",extra_data);
-    aprWriter.write_particles_only(save_loc,"example_output",extra_data);
-
-    std::string extra_file_name = save_loc + "example_output" + "_apr_extra_parts.h5";
-
-    ParticleData<float> extra_data_read;
-
-    //you need the same apr used to write it to load it (doesn't save location data)
-    aprWriter.read_parts_only(extra_file_name,extra_data_read);
-    //test_data.apr.read_parts_only(extra_file_name,extra_data_read);
-
-    for (unsigned int level = apr_iterator.level_min(); level <= apr_iterator.level_max(); ++level) {
-        int z = 0;
-        int x = 0;
-
-        for (z = 0; z < apr_iterator.spatial_index_z_max(level); z++) {
-            for (x = 0; x < apr_iterator.spatial_index_x_max(level); ++x) {
-
-                for (apr_iterator_read.set_new_lzx(level, z, x);
-                     apr_iterator_read.global_index() < apr_iterator_read.end_index;
-                     apr_iterator_read.set_iterator_to_particle_next_particle()) {
-
-                    extra_data[apr_iterator_read] = apr_iterator_read.level();
-                    if ((extra_data[apr_iterator_read]) != (extra_data_read[apr_iterator_read])) {
-
-                        success = false;
-                    }
-                }
-            }
-        }
-    }
-
-
-    return success;
-}
 
 
 bool test_apr_neighbour_access(TestData& test_data){
@@ -1292,7 +1105,7 @@ void CreateSmallSphereTest::SetUp(){
     aprFile.set_read_write_tree(false);
     aprFile.read_apr(test_data.apr);
     aprFile.read_particles(test_data.apr,"particle_intensities",test_data.particles_intensities);
-
+    aprFile.close();
 
     file_name = get_source_directory_apr() + "files/Apr/sphere_120/sphere_level.tif";
     test_data.img_level = TiffUtils::getMesh<uint16_t>(file_name);
@@ -1315,7 +1128,6 @@ void CreateSmallSphereTest::SetUp(){
 
 void Create210SphereTest::SetUp(){
 
-    APRWriter aprWriter;
 
     std::string file_name = get_source_directory_apr() + "files/Apr/sphere_210/sphere_apr.h5";
     test_data.apr_filename = file_name;
@@ -1325,7 +1137,7 @@ void Create210SphereTest::SetUp(){
     aprFile.set_read_write_tree(false);
     aprFile.read_apr(test_data.apr);
     aprFile.read_particles(test_data.apr,"particle_intensities",test_data.particles_intensities);
-
+    aprFile.close();
 
     file_name = get_source_directory_apr() + "files/Apr/sphere_210/sphere_level.tif";
     test_data.img_level = TiffUtils::getMesh<uint16_t>(file_name);
