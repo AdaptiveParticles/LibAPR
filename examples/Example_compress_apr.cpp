@@ -67,21 +67,26 @@ int main(int argc, char **argv) {
     //remove the file extension
     name.erase(name.end()-3,name.end());
 
-    APRCompress comp;
     ParticleData<uint16_t> symbols;
 
-    comp.set_quantization_factor(options.quantization_level); //set this to adjust the compression factor for WNL
-    comp.set_compression_type(options.compress_type);
+    APRFile compFile;
+    compFile.open(options.directory,"WRITE");
+
+    compFile.aprCompress.set_quantization_factor(options.quantization_level); //set this to adjust the compression factor for WNL
+    compFile.aprCompress.set_compression_type(options.compress_type);
 
     std::cerr << "This will be updated soon, the options just need to be exposed through the APRFILE" << std::endl;
 
-//    //compress the APR and write to disk
-//    timer.start_timer("compress and write");
-//    FileSizeInfo fileSizeInfo = apr.write_apr(options.directory ,name + "_compress",comp,blosc_comp_type,blosc_comp_level,blosc_shuffle);
-//    timer.stop_timer();
-//
-//    float time_write = (float) timer.timings.back();
-//
+    //compress the APR and write to disk
+    timer.start_timer("compress and write");
+
+    compFile.write_apr(apr);
+    compFile.write_particles(apr,"comp_parts",parts);
+
+    timer.stop_timer();
+
+    float time_write = (float) timer.timings.back();
+
 //    //read the APR and decompress
 //    timer.start_timer("read and decompress");
 //    apr.read_apr(options.directory + name + "_compress_apr.h5");

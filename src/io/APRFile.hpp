@@ -61,8 +61,23 @@ public:
 
     APRTimer timer;
 
-    // #TODO get_set methods for Compress + BLSOC parameters + min/max
-    // #TODO get_file_info method returning a struct with different file info.
+    float current_file_size(){
+        return fileStructure.getFileSize();
+    }
+
+    void set_blosc_access_settings(unsigned int blosc_comp_type_access_,unsigned int blosc_comp_level_access_,unsigned int blosc_shuffle_access_){
+        unsigned int blosc_comp_type_access = blosc_comp_type_access_;
+        unsigned int blosc_comp_level_access = blosc_comp_level_access_;
+        unsigned int blosc_shuffle_access= blosc_shuffle_access_;
+    }
+
+    void set_blosc_parts_settings(unsigned int blosc_comp_type_parts_,unsigned int blosc_comp_level_parts_,unsigned int blosc_shuffle_parts_){
+        unsigned int blosc_comp_type_parts = blosc_comp_type_parts_;
+        unsigned int blosc_comp_level_parts = blosc_comp_level_parts_;
+        unsigned int blosc_shuffle_parts= blosc_shuffle_parts_;
+    }
+
+    APRCompress aprCompress;
 private:
 
     //Basic Properties.
@@ -81,14 +96,12 @@ private:
     unsigned int blosc_shuffle_access=1;
 
     //Advanced Parameters.
-    APRCompress aprCompress;
 
     //Maximum and minimum levels to read.
 //    unsigned int maximum_level_read = 0; //have a set method either by level or by delta
 //    int max_level_delta = 0; #TODO: add this functionality back in for lazy loading particles..
 
 };
-
 
 /**
    * Open the file, creates it if it doesn't exist.
@@ -120,7 +133,6 @@ bool APRFile::open(std::string file_name_,std::string read_write_append){
     return true;
 
 }
-
 
 /**
    * Close the HDF5 file structures
@@ -466,8 +478,6 @@ void APRFile::read_particles(APR apr,std::string particles_name,ParticleData<Dat
     //uint64_t max_read_level_tree = std::min(apr.apr_access.level_max()-1,max_read_level);
     //uint64_t prev_read_level = 0;
 
-
-
     uint64_t parts_start = 0;
     uint64_t parts_end = apr.total_number_particles(); //apr.apr_access.global_index_by_level_end[max_read_level] + 1;
 
@@ -668,12 +678,8 @@ std::vector<std::string> APRFile::get_particles_names(uint64_t t,bool apr_or_tre
             if(!access) {
                 dataset_names.push_back(memb_name);
             }
-
-
         }
-
     }
-
 
     return dataset_names;
 

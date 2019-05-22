@@ -107,8 +107,7 @@ int runAPR(cmdLineOptions options) {
         aprFile.write_apr(apr);
         aprFile.write_particles(apr,"intensities",particle_intensities);
 
-        FileSizeInfo fileSizeInfo;// #TODO
-        float apr_file_size = fileSizeInfo.total_file_size;
+        float apr_file_size = aprFile.current_file_size();
 
         std::cerr << "File size functionality needs to be updated" << std::endl;
 
