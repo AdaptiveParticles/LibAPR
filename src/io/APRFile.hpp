@@ -66,15 +66,15 @@ public:
     }
 
     void set_blosc_access_settings(unsigned int blosc_comp_type_access_,unsigned int blosc_comp_level_access_,unsigned int blosc_shuffle_access_){
-        unsigned int blosc_comp_type_access = blosc_comp_type_access_;
-        unsigned int blosc_comp_level_access = blosc_comp_level_access_;
-        unsigned int blosc_shuffle_access= blosc_shuffle_access_;
+        blosc_comp_type_access = blosc_comp_type_access_;
+        blosc_comp_level_access = blosc_comp_level_access_;
+        blosc_shuffle_access= blosc_shuffle_access_;
     }
 
     void set_blosc_parts_settings(unsigned int blosc_comp_type_parts_,unsigned int blosc_comp_level_parts_,unsigned int blosc_shuffle_parts_){
-        unsigned int blosc_comp_type_parts = blosc_comp_type_parts_;
-        unsigned int blosc_comp_level_parts = blosc_comp_level_parts_;
-        unsigned int blosc_shuffle_parts= blosc_shuffle_parts_;
+        blosc_comp_type_parts = blosc_comp_type_parts_;
+        blosc_comp_level_parts = blosc_comp_level_parts_;
+        blosc_shuffle_parts= blosc_shuffle_parts_;
     }
 
     APRCompress aprCompress;
