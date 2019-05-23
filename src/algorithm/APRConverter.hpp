@@ -12,8 +12,10 @@
 #include <list>
 
 #include "data_structures/APR/APR.hpp"
+#include "data_structures/APR/ParticleData.hpp"
 #include "data_structures/Mesh/PixelData.hpp"
 #include "io/TiffUtils.hpp"
+#include "numerics/APRReconstruction.hpp"
 
 #include "PullingScheme.hpp"
 #include "LocalParticleCellSet.hpp"
@@ -23,7 +25,6 @@
 #ifdef APR_USE_CUDA
 #include "algorithm/ComputeGradientCuda.hpp"
 #endif
-
 
 template<typename ImageType>
 class APRConverter {
@@ -44,28 +45,37 @@ public:
     APRTimer computation_timer;
     APRParameters par;
 
-    bool get_apr(APR<ImageType> &aAPR);
-
-
-    //get apr without setting parameters, and with an already loaded image.
-    template<typename T>
-    bool get_apr_method(APR<ImageType> &aAPR, PixelData<T> &input_image);
 
     template<typename T>
-    bool get_apr_method_from_file(APR<ImageType> &aAPR, PixelData<T> inputImage);
+    bool get_apr(APR &aAPR, PixelData<T> &inputImage);
 
     bool verbose = true;
 
 protected:
 
     //get apr without setting parameters, and with an already loaded image.
+    template<typename T>
+    bool get_apr_method(APR &aAPR, PixelData<T> &input_image);
 
+    float bspline_offset = 0;
 
-    //pointer to the APR structure so member functions can have access if they need
-    const APR<ImageType> *apr;
+    //DATA (so it can be re-used)
+
+    PixelData<ImageType> grad_temp; // should be a down-sampled image
+    PixelData<float> local_scale_temp; // Used as down-sampled images for some averaging steps where it is useful to not lose precision, or get over-flow errors
+    PixelData<float> local_scale_temp2;
+
+    void applyParameters(APR& aAPR,APRParameters& aprParameters);
 
     template<typename T>
-    void init_apr(APR<ImageType>& aAPR, PixelData<T>& input_image);
+    void computeL(APR& aAPR,PixelData<T>& input_image);
+
+    void solveForAPR(APR& aAPR);
+
+    const APR *apr;
+
+    template<typename T>
+    void init_apr(APR& aAPR, PixelData<T>& input_image);
 
     template<typename T>
     void auto_parameters(const PixelData<T> &input_img);
@@ -82,30 +92,33 @@ protected:
     void computeLevels(const PixelData<ImageType> &grad_temp, PixelData<float> &local_scale_temp, int maxLevel, float relError, float dx = 1, float dy = 1, float dz = 1);
     void get_local_particle_cell_set(PixelData<float> &local_scale_temp, PixelData<float> &local_scale_temp2);
 
+//    template<typename T,typename S>
+//    void get_particles(APR &aAPR,PixelData<T>& input_image,ParticleData<S>& particles);
+
 };
 
-template<typename ImageType>
-inline bool APRConverter<ImageType>::get_apr(APR<ImageType> &aAPR) {
-    apr = &aAPR;
-#ifdef HAVE_LIBTIFF
-    TiffUtils::TiffInfo inputTiff(par.input_dir + par.input_image_name);
-    if (!inputTiff.isFileOpened()) return false;
-
-
-    if (inputTiff.iType == TiffUtils::TiffInfo::TiffType::TIFF_UINT8) {
-        return get_apr_method_from_file<uint8_t>(aAPR, TiffUtils::getMesh<uint8_t>(inputTiff));
-    } else if (inputTiff.iType == TiffUtils::TiffInfo::TiffType::TIFF_FLOAT) {
-        return get_apr_method_from_file<float>(aAPR, TiffUtils::getMesh<float>(inputTiff));
-    } else if (inputTiff.iType == TiffUtils::TiffInfo::TiffType::TIFF_UINT16) {
-        return get_apr_method_from_file<uint16_t>(aAPR, TiffUtils::getMesh<uint16_t>(inputTiff));
-    } else {
-        std::cerr << "Wrong file type" << std::endl;
-        return false;
-    }
-#else
-    return false;
-#endif 
-};
+//template<typename ImageType>
+//inline bool APRConverter<ImageType>::get_apr(APR &aAPR) {
+//    apr = &aAPR;
+//#ifdef HAVE_LIBTIFF
+//    TiffUtils::TiffInfo inputTiff(par.input_dir + par.input_image_name);
+//    if (!inputTiff.isFileOpened()) return false;
+//
+//
+//    if (inputTiff.iType == TiffUtils::TiffInfo::TiffType::TIFF_UINT8) {
+//        return get_apr_method_from_file<uint8_t>(aAPR, TiffUtils::getMesh<uint8_t>(inputTiff));
+//    } else if (inputTiff.iType == TiffUtils::TiffInfo::TiffType::TIFF_FLOAT) {
+//        return get_apr_method_from_file<float>(aAPR, TiffUtils::getMesh<float>(inputTiff));
+//    } else if (inputTiff.iType == TiffUtils::TiffInfo::TiffType::TIFF_UINT16) {
+//        return get_apr_method_from_file<uint16_t>(aAPR, TiffUtils::getMesh<uint16_t>(inputTiff));
+//    } else {
+//        std::cerr << "Wrong file type" << std::endl;
+//        return false;
+//    }
+//#else
+//    return false;
+//#endif
+//};
 
 template <typename T>
 struct MinMax{T min; T max; };
@@ -131,7 +144,7 @@ static MinMax<T> getMinMax(const PixelData<T>& input_image) {
  * Main method for constructing the APR from an input image
  */
 template<typename ImageType> template<typename T>
-inline bool APRConverter<ImageType>::get_apr_method_from_file(APR<ImageType> &aAPR, PixelData<T> inputImage) {
+inline bool APRConverter<ImageType>::get_apr(APR &aAPR, PixelData<T> &inputImage) {
 //    allocation_timer.start_timer("read tif input image");
 //    PixelData<T> inputImage = TiffUtils::getMesh<T>(aTiffFile);
 //    allocation_timer.stop_timer();
@@ -172,27 +185,67 @@ inline bool APRConverter<ImageType>::get_apr_method_from_file(APR<ImageType> &aA
     return get_apr_method(aAPR, inputImage);
 }
 
-/**
- * Main method for constructing the APR from an input image
- */
-template<typename ImageType> template<typename T>
+//template<typename ImageType> template<typename T,typename S>
+//void APRConverter<ImageType>::get_particles(APR &aAPR,PixelData<T>& input_image,ParticleData<S>& particles) {
+//
+//    APRReconstruction aprReconstruction;
+//    method_timer.start_timer("sample_particles");
+//    aprReconstruction.get_parts_from_img(aAPR,input_image,particles);
+//    method_timer.stop_timer();
+//
+//}
 
-inline bool APRConverter<ImageType>::get_apr_method(APR<ImageType> &aAPR, PixelData<T>& input_image) {
 
-    apr = &aAPR; // in case it was called directly
+template<typename ImageType>
+void APRConverter<ImageType>::applyParameters(APR& aAPR,APRParameters& aprParameters) {
+    //
+    //  Apply the main parameters
+    //
 
-    if(par.check_input) {
-        if(!check_input_dimensions(input_image)) {
-            std::cout << "Input dimension check failed. Make sure the input image is filled in order x -> y -> z, or try using the option -swap_dimension" << std::endl;
-            return false;
+    fine_grained_timer.start_timer("load_and_apply_mask");
+    // Apply mask if given
+    if(par.mask_file != ""){
+        iComputeGradient.mask_gradient(grad_temp, aprParameters);
+    }
+    fine_grained_timer.stop_timer();
+
+    fine_grained_timer.start_timer("threshold");
+    iComputeGradient.threshold_gradient(grad_temp,local_scale_temp,aprParameters.Ip_th + bspline_offset);
+    fine_grained_timer.stop_timer();
+
+    float max_th = 60000;
+
+
+#ifdef HAVE_OPENMP
+#pragma omp parallel for default(shared)
+#endif
+    for (size_t i = 0; i < grad_temp.mesh.size(); ++i) {
+
+        float rescaled = local_scale_temp.mesh[i];
+        if (rescaled < aprParameters.sigma_th) {
+            rescaled = (rescaled < aprParameters.sigma_th_max) ? max_th : par.sigma_th;
+            local_scale_temp.mesh[i] = rescaled;
         }
     }
 
-    if( par.auto_parameters ) {
-        auto_parameters(input_image);
+#ifdef HAVE_OPENMP
+#pragma omp parallel for default(shared)
+#endif
+    for (size_t i = 0; i < grad_temp.mesh.size(); ++i) {
+
+        if(grad_temp.mesh[i] < aprParameters.grad_th){
+            grad_temp.mesh[i] = 0;
+        }
     }
 
-    apr = &aAPR; // in case it was called directly
+
+}
+
+template<typename ImageType> template<typename T>
+void APRConverter<ImageType>::computeL(APR& aAPR,PixelData<T>& input_image){
+    //
+    //  Computes the local resolution estimate L(y), the input for the Pulling Scheme and setting the resolution everywhere.
+    //
 
     init_apr(aAPR, input_image);
 
@@ -206,11 +259,11 @@ inline bool APRConverter<ImageType>::get_apr_method(APR<ImageType> &aAPR, PixelD
     //storage of the particle cell tree for computing the pulling scheme
     allocation_timer.start_timer("init and copy image");
     PixelData<ImageType> image_temp(input_image, false /* don't copy */, true /* pinned memory */); // global image variable useful for passing between methods, or re-using memory (should be the only full sized copy of the image)
-    PixelData<ImageType> grad_temp; // should be a down-sampled image
+
     grad_temp.initDownsampled(input_image.y_num, input_image.x_num, input_image.z_num, 0, false);
-    PixelData<float> local_scale_temp; // Used as down-sampled images for some averaging steps where it is useful to not lose precision, or get over-flow errors
+
     local_scale_temp.initDownsampled(input_image.y_num, input_image.x_num, input_image.z_num, true);
-    PixelData<float> local_scale_temp2;
+
     local_scale_temp2.initDownsampled(input_image.y_num, input_image.x_num, input_image.z_num, false);
     allocation_timer.stop_timer();
 
@@ -223,7 +276,7 @@ inline bool APRConverter<ImageType>::get_apr_method(APR<ImageType> &aAPR, PixelD
     fine_grained_timer.start_timer("offset image");
     //offset image by factor (this is required if there are zero areas in the background with uint16_t and uint8_t images, as the Bspline co-efficients otherwise may be negative!)
     // Warning both of these could result in over-flow (if your image is non zero, with a 'buffer' and has intensities up to uint16_t maximum value then set image_type = "", i.e. uncomment the following line)
-    float bspline_offset = 0;
+
     if (std::is_same<uint16_t, ImageType>::value) {
         bspline_offset = 100;
         image_temp.copyFromMeshWithUnaryOp(input_image, [=](const auto &a) { return (a + bspline_offset); });
@@ -261,6 +314,11 @@ inline bool APRConverter<ImageType>::get_apr_method(APR<ImageType> &aAPR, PixelD
     method_timer.stop_timer();
 
 #endif
+
+}
+template<typename ImageType>
+void APRConverter<ImageType>::solveForAPR(APR& aAPR){
+
     method_timer.start_timer("compute_levels");
     computeLevels(grad_temp, local_scale_temp, (*apr).level_max(), par.rel_error, par.dx, par.dy, par.dz);
     method_timer.stop_timer();
@@ -277,22 +335,40 @@ inline bool APRConverter<ImageType>::get_apr_method(APR<ImageType> &aAPR, PixelD
     iPullingScheme.pulling_scheme_main();
     method_timer.stop_timer();
 
-    method_timer.start_timer("downsample_pyramid");
-    std::vector<PixelData<T>> downsampled_img;
-    //Down-sample the image for particle intensity estimation
-    downsamplePyrmaid(input_image, downsampled_img, aAPR.level_max(), aAPR.level_min());
-    method_timer.stop_timer();
-
     method_timer.start_timer("compute_apr_datastructure");
     aAPR.apr_access.initialize_structure_from_particle_cell_tree(aAPR.parameters, iPullingScheme.getParticleCellTree());
     method_timer.stop_timer();
 
-    method_timer.start_timer("sample_particles");
-    //aAPR.get_parts_from_img_alt(input_image,aAPR.particles_intensities);
-    aAPR.get_parts_from_img(downsampled_img, aAPR.particles_intensities);
-    method_timer.stop_timer();
+}
 
-    std::swap(input_image,downsampled_img.back());
+
+
+/**
+ * Main method for constructing the APR from an input image
+ */
+template<typename ImageType> template<typename T>
+inline bool APRConverter<ImageType>::get_apr_method(APR &aAPR, PixelData<T>& input_image) {
+
+    apr = &aAPR; // in case it was called directly
+
+    if(par.check_input) {
+        if(!check_input_dimensions(input_image)) {
+            std::cout << "Input dimension check failed. Make sure the input image is filled in order x -> y -> z, or try using the option -swap_dimension" << std::endl;
+            return false;
+        }
+    }
+
+    if( par.auto_parameters ) {
+        auto_parameters(input_image);
+    }
+
+    //Compute the local resolution estimate
+    computeL(aAPR,input_image);
+
+    applyParameters(aAPR,par);
+
+    solveForAPR(aAPR);
+
 
 #else
     method_timer.start_timer("compute_gradient_magnitude_using_bsplines and local instensity scale CUDA");
@@ -370,6 +446,7 @@ inline bool APRConverter<ImageType>::get_apr_method(APR<ImageType> &aAPR, PixelD
     return true;
 }
 
+
 template<typename ImageType>
 inline void APRConverter<ImageType>::computeLevels(const PixelData<ImageType> &grad_temp, PixelData<float> &local_scale_temp, int maxLevel, float relError, float dx, float dy, float dz) {
     //divide gradient magnitude by Local Intensity Scale (first step in calculating the Local Resolution Estimate L(y), minus constants)
@@ -441,12 +518,12 @@ inline void APRConverter<ImageType>::get_gradient(PixelData<ImageType> &image_te
 
     fine_grained_timer.start_timer("threshold");
 
-#ifdef HAVE_OPENMP
-#pragma omp parallel for
-#endif
-    for (size_t i = 0; i < image_temp.mesh.size(); ++i) {
-        if (image_temp.mesh[i] <= (par.Ip_th + bspline_offset)) { image_temp.mesh[i] = par.Ip_th + bspline_offset; }
-    }
+//#ifdef HAVE_OPENMP
+//#pragma omp parallel for
+//#endif
+//    for (size_t i = 0; i < image_temp.mesh.size(); ++i) {
+//        if (image_temp.mesh[i] <= (par.Ip_th + bspline_offset)) { image_temp.mesh[i] = par.Ip_th + bspline_offset; }
+//    }
     fine_grained_timer.stop_timer();
 
 
@@ -487,16 +564,9 @@ inline void APRConverter<ImageType>::get_gradient(PixelData<ImageType> &image_te
         }
     }
 
-    fine_grained_timer.start_timer("load_and_apply_mask");
-    // Apply mask if given
-    if(par.mask_file != ""){
-        iComputeGradient.mask_gradient(grad_temp,local_scale_temp2,image_temp, par);
-    }
-    fine_grained_timer.stop_timer();
 
-    fine_grained_timer.start_timer("threshold");
-    iComputeGradient.threshold_gradient(grad_temp,local_scale_temp,par.Ip_th + bspline_offset);
-    fine_grained_timer.stop_timer();
+
+
 
 
 }
@@ -569,7 +639,7 @@ void APRConverter<ImageType>::get_local_intensity_scale(PixelData<float> &local_
                 iLocalIntensityScale.calc_sat_mean_z(local_scale_temp, par.extra_smooth);
             }
         }
-        iLocalIntensityScale.rescale_var_and_threshold(local_scale_temp, var_rescale, par);
+        iLocalIntensityScale.rescale_var(local_scale_temp, var_rescale);
         fine_grained_timer.stop_timer();
 
     } else {
@@ -588,8 +658,8 @@ void APRConverter<ImageType>::get_local_intensity_scale(PixelData<float> &local_
             }
         }
 
-        int numel = (local_scale_temp.y_num * local_scale_temp.x_num * local_scale_temp.z_num);
-        float scale_val = sum / numel - min_val;
+        float numel = (float) (local_scale_temp.y_num * local_scale_temp.x_num * local_scale_temp.z_num);
+        float scale_val = (float) (sum / numel - min_val);
 
         for(int i = 0; i<local_scale_temp.mesh.size(); ++i) {
             local_scale_temp.mesh[i] = scale_val;
@@ -599,7 +669,7 @@ void APRConverter<ImageType>::get_local_intensity_scale(PixelData<float> &local_
 
 
 template<typename ImageType> template<typename T>
-inline void APRConverter<ImageType>::init_apr(APR<ImageType>& aAPR,PixelData<T>& input_image){
+inline void APRConverter<ImageType>::init_apr(APR& aAPR,PixelData<T>& input_image){
     //
     //  Initializing the size of the APR, min and maximum level (in the data structures it is called depth)
     //

@@ -40,6 +40,7 @@ Options:
 #include "data_structures/APR/APR.hpp"
 #include "io/TiffUtils.hpp"
 #include "numerics/APRTreeNumerics.hpp"
+#include "numerics/APRReconstruction.hpp"
 
 struct cmdLineOptions{
     std::string output = "output";
@@ -164,15 +165,13 @@ int main(int argc, char **argv) {
     timer.verbose_flag = true;
 
     // APR datastructure
-    APR<uint16_t> apr;
+    APR apr;
 
     //read file
     timer.start_timer("read input");
     std::string file_name = options.directory + options.input;
 
     apr.name = options.output;
-
-    APRReconstruction aprReconstruction;
 
     unsigned int read_delta=0;
 
@@ -202,29 +201,33 @@ int main(int argc, char **argv) {
         unsigned int reconstruct_level = read_delta+2-i;
 
         timer.start_timer("read input " + std::to_string(i));
-        apr.read_apr(file_name,true,reconstruct_level);
-        timer.stop_timer();
 
-        reconPatch.level_delta = options.level_delta - 2+i;
+        std::cerr << "This example is currently not working, as functionality needs to be re-emplimented with newer structures" << std::endl;
 
-        //create mesh data structure for reconstruction
-        PixelData<uint16_t> recon_pc;
+        //#TODO This needs to be redone
+//        apr.read_apr(file_name,true,reconstruct_level);
+//        timer.stop_timer();
+//
+//        reconPatch.level_delta = options.level_delta - 2+i;
+//
+//        //create mesh data structure for reconstruction
+//        PixelData<uint16_t> recon_pc;
+//
+//        timer.start_timer("pc interp");
+//        //perform piece-wise constant interpolation
+//
+//        aprReconstruction.interp_image_patch(apr, apr.apr_tree, recon_pc, apr.particles_intensities, apr.apr_tree.particles_ds_tree,
+//                                                 reconPatch);
 
-        timer.start_timer("pc interp");
-        //perform piece-wise constant interpolation
-
-        aprReconstruction.interp_image_patch(apr, apr.apr_tree, recon_pc, apr.particles_intensities, apr.apr_tree.particles_ds_tree,
-                                                 reconPatch);
-
-        timer.stop_timer();
-
-        float elapsed_seconds = timer.t2 - timer.t1;
-        std::cout << "PC recon "
-                  << (recon_pc.x_num * recon_pc.y_num * recon_pc.z_num * 2) / (elapsed_seconds * 1000000.0f)
-                  << " MB per second" << std::endl;
-
-        //write output as tiff
-        TiffUtils::saveMeshAsTiff(options.directory + apr.name + std::to_string(i) + "_pc.tif", recon_pc);
+//        timer.stop_timer();
+//
+//        float elapsed_seconds = timer.t2 - timer.t1;
+//        std::cout << "PC recon "
+//                  << (recon_pc.x_num * recon_pc.y_num * recon_pc.z_num * 2) / (elapsed_seconds * 1000000.0f)
+//                  << " MB per second" << std::endl;
+//
+//        //write output as tiff
+//        TiffUtils::saveMeshAsTiff(options.directory + apr.name + std::to_string(i) + "_pc.tif", recon_pc);
 
     }
 

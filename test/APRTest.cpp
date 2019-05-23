@@ -9,10 +9,14 @@
 #include <utility>
 #include <cmath>
 #include "TestTools.hpp"
+#include "numerics/APRTreeNumerics.hpp"
+#include "io/APRWriter.hpp"
+
+#include "io/APRFile.hpp"
 
 struct TestData{
 
-    APR<uint16_t> apr;
+    APR apr;
     PixelData<uint16_t> img_level;
     PixelData<uint16_t> img_type;
     PixelData<uint16_t> img_original;
@@ -21,7 +25,10 @@ struct TestData{
     PixelData<uint16_t> img_y;
     PixelData<uint16_t> img_z;
 
+    ParticleData<uint16_t> particles_intensities;
+
     std::string filename;
+    std::string apr_filename;
     std::string output_name;
     std::string output_dir;
 
@@ -70,7 +77,7 @@ public:
 };
 
 
-bool check_neighbours(APR<uint16_t>& apr,APRIterator &current, APRIterator &neigh){
+bool check_neighbours(APR& apr,APRIterator &current, APRIterator &neigh){
 
 
     bool success = true;
@@ -119,23 +126,24 @@ bool test_apr_tree(TestData& test_data) {
     std::string file_name = "read_write_test";
 
 
-    test_data.apr.apr_tree.init(test_data.apr);
+    test_data.apr.init_tree();
 
-    ExtraParticleData<float> tree_data;
+    ParticleData<float> tree_data;
 
-    APRTreeIterator apr_tree_iterator = test_data.apr.apr_tree.tree_iterator();
+    APRTreeIterator apr_tree_iterator = test_data.apr.tree_iterator();
 
-    test_data.apr.apr_tree.fill_tree_mean(test_data.apr,test_data.apr.apr_tree,test_data.apr.particles_intensities,tree_data);
+//    aprTree.fill_tree_mean(test_data.apr,aprTree,test_data.particles_intensities,tree_data);
+//
+//    aprTree.fill_tree_mean_downsample(test_data.particles_intensities);
 
-    test_data.apr.apr_tree.fill_tree_mean_downsample(test_data.apr.particles_intensities);
-
-
+    APRTreeNumerics::fill_tree_mean(test_data.apr,test_data.particles_intensities,tree_data);
 
 
 
     //generate tree test data
     PixelData<float> pc_image;
-    test_data.apr.interp_img(pc_image,test_data.apr.particles_intensities);
+    APRReconstruction::interp_img(test_data.apr,pc_image,test_data.particles_intensities);
+
 
     std::vector<PixelData<float>> downsampled_img;
     //Down-sample the image for particle intensity estimation
@@ -151,7 +159,7 @@ bool test_apr_tree(TestData& test_data) {
                      apr_tree_iterator.set_iterator_to_particle_next_particle()) {
 
                     uint16_t current_int = (uint16_t)std::round(downsampled_img[apr_tree_iterator.level()].at(apr_tree_iterator.y(),apr_tree_iterator.x(),apr_tree_iterator.z()));
-                    //uint16_t parts_int = test_data.apr.apr_tree.particles_ds_tree[apr_tree_iterator];
+                    //uint16_t parts_int = aprTree.particles_ds_tree[apr_tree_iterator];
                     uint16_t parts2 = (uint16_t)std::round(tree_data[apr_tree_iterator]);
 
                     // uint16_t y = apr_tree_iterator.y();
@@ -166,15 +174,14 @@ bool test_apr_tree(TestData& test_data) {
     }
 
     //Also check the sparse data-structure generated tree
-    APRTree<uint16_t> tree2;
-    tree2.initialize_apr_tree_sparse(test_data.apr);
-    ExtraParticleData<float> treedata_2;
 
-    APRTree<uint16_t> tree3;
-    tree3.init(test_data.apr);
+    ParticleData<float> treedata_2;
 
-    tree2.fill_tree_mean(test_data.apr,tree2,test_data.apr.particles_intensities,treedata_2);
-    auto apr_tree_iterator_s = tree2.tree_iterator();
+
+    APRTreeNumerics::fill_tree_mean(test_data.apr,test_data.particles_intensities,treedata_2);
+
+//    tree2.fill_tree_mean(test_data.apr,tree2,test_data.particles_intensities,treedata_2);
+    auto apr_tree_iterator_s = test_data.apr.tree_iterator();
 
     for (unsigned int level = (apr_tree_iterator_s.level_max()); level >= apr_tree_iterator_s.level_min(); --level) {
         int z = 0;
@@ -186,7 +193,7 @@ bool test_apr_tree(TestData& test_data) {
                      apr_tree_iterator_s.set_iterator_to_particle_next_particle()) {
 
                     uint16_t current_int = (uint16_t)std::round(downsampled_img[apr_tree_iterator_s.level()].at(apr_tree_iterator_s.y(),apr_tree_iterator_s.x(),apr_tree_iterator_s.z()));
-                    //uint16_t parts_int = test_data.apr.apr_tree.particles_ds_tree[apr_tree_iterator];
+                    //uint16_t parts_int = aprTree.particles_ds_tree[apr_tree_iterator];
                     uint16_t parts2 = (uint16_t)std::round(treedata_2[apr_tree_iterator_s]);
 
                     // uint16_t y = apr_tree_iterator.y();
@@ -201,7 +208,7 @@ bool test_apr_tree(TestData& test_data) {
     }
 
 
-    APRTreeIterator neigh_tree_iterator = test_data.apr.apr_tree.tree_iterator();
+    APRTreeIterator neigh_tree_iterator = test_data.apr.tree_iterator();
 
 
     for (unsigned int level = apr_tree_iterator.level_min(); level <= apr_tree_iterator.level_max(); ++level) {
@@ -223,7 +230,7 @@ bool test_apr_tree(TestData& test_data) {
                                 //neighbour_iterator works just like apr, and apr_parallel_iterator (you could also call neighbours)
 
                                 uint16_t current_int = (uint16_t)std::round(downsampled_img[neigh_tree_iterator.level()].at(neigh_tree_iterator.y(),neigh_tree_iterator.x(),neigh_tree_iterator.z()));
-                                //uint16_t parts_int = test_data.apr.apr_tree.particles_ds_tree[apr_tree_iterator];
+                                //uint16_t parts_int = aprTree.particles_ds_tree[apr_tree_iterator];
                                 uint16_t parts2 = (uint16_t)std::round(tree_data[neigh_tree_iterator]);
 
                                 //uint16_t y = apr_tree_iterator.y();
@@ -245,38 +252,78 @@ bool test_apr_tree(TestData& test_data) {
     return success;
 }
 
-bool test_apr_input_output(TestData& test_data){
+bool test_apr_file(TestData& test_data){
+
+
+    //Test Basic IO
+    std::string file_name = "read_write_test.apr";
+
+    //First write a file
+    APRFile writeFile;
+    writeFile.open(file_name,"WRITE");
+
+    writeFile.write_apr(test_data.apr);
+
+    writeFile.write_particles(test_data.apr,"parts",test_data.particles_intensities);
+
+    ParticleData<float> parts2;
+    parts2.init(test_data.apr.total_number_particles());
+
+    auto apr_it = test_data.apr.iterator();
+
+    for (int i = 0; i < apr_it.total_number_particles(); ++i) {
+        parts2[i] = test_data.particles_intensities[i]*3 - 1;
+    }
+
+    writeFile.write_particles(test_data.apr,"parts2",parts2);
+
+    writeFile.close();
+
+    //First read a file
+    APRFile readFile;
 
     bool success = true;
 
+    readFile.open(file_name,"READ");
 
+    readFile.set_read_write_tree(false);
 
-    APRIterator apr_iterator = test_data.apr.iterator();
+    APR aprRead;
 
-    std::string save_loc = "";
-    std::string file_name = "read_write_test";
+    readFile.read_apr(aprRead);
 
-    //write the APR
-    test_data.apr.write_apr(save_loc,file_name);
+    ParticleData<uint16_t> parts_read;
 
-    APR<uint16_t> apr_read;
+    readFile.read_particles(aprRead,"parts",parts_read);
 
-    apr_read.read_apr(save_loc + file_name + "_apr.h5");
-    APRIterator apr_iterator_read = apr_read.iterator();
+    ParticleData<float> parts2_read;
+
+    readFile.read_particles(aprRead,"parts2",parts2_read);
+
+    readFile.close();
+
+    auto apr_iterator = test_data.apr.iterator();
+    auto apr_iterator_read = aprRead.iterator();
 
     for (unsigned int level = apr_iterator.level_min(); level <= apr_iterator.level_max(); ++level) {
         int z = 0;
         int x = 0;
 
-        for (z = 0; z < apr_iterator.spatial_index_z_max(level); z++) {
-            for (x = 0; x < apr_iterator.spatial_index_x_max(level); ++x) {
-                apr_iterator_read.set_new_lzx(level, z, x);
-                for (apr_iterator.set_new_lzx(level, z, x); apr_iterator.global_index() < apr_iterator.end_index;
-                     apr_iterator.set_iterator_to_particle_next_particle()) {
+        for (z = 0; z < apr_iterator.z_num(level); z++) {
+            for (x = 0; x < apr_iterator.x_num(level); ++x) {
+                apr_iterator_read.begin(level, z, x);
+                for (apr_iterator.begin(level, z, x); apr_iterator < apr_iterator.end();
+                     apr_iterator++) {
 
                     //check the functionality
-                    if (test_data.apr.particles_intensities[apr_iterator] !=
-                        apr_read.particles_intensities[apr_iterator_read]) {
+                    if (test_data.particles_intensities[apr_iterator] !=
+                        parts_read[apr_iterator_read]) {
+                        success = false;
+                    }
+
+                    //check the functionality
+                    if (parts2[apr_iterator] !=
+                        parts2_read[apr_iterator_read]) {
                         success = false;
                     }
 
@@ -296,131 +343,163 @@ bool test_apr_input_output(TestData& test_data){
                         success = false;
                     }
 
-
-                    if(apr_iterator_read.global_index() < apr_iterator_read.end_index) {
-                        apr_iterator_read.set_iterator_to_particle_next_particle();
+                    if(apr_iterator_read < apr_iterator_read.end()) {
+                        apr_iterator_read++;
                     }
 
-                }
-            }
-        }
-
-    }
-
-
-    //
-    // Now check the Extra Part Cell Data
-    //
-
-    APRIterator neighbour_iterator = apr_read.iterator();
-    APRIterator apr_iterator_read2 = apr_read.iterator();
-
-    for (unsigned int level = apr_iterator.level_min(); level <= apr_iterator.level_max(); ++level) {
-        int z = 0;
-        int x = 0;
-
-        for (z = 0; z < apr_iterator.spatial_index_z_max(level); z++) {
-            for (x = 0; x < apr_iterator.spatial_index_x_max(level); ++x) {
-                apr_iterator_read2.set_new_lzx(level, z, x);
-                for (apr_iterator.set_new_lzx(level, z, x); apr_iterator.global_index() < apr_iterator.end_index;
-                     apr_iterator.set_iterator_to_particle_next_particle()) {
-
-                    //counter++;
-                    //apr_iterator_read2.set_iterator_to_particle_next_particle();
-
-
-                    //loop over all the neighbours and set the neighbour iterator to it
-                    for (int direction = 0; direction < 6; ++direction) {
-                        // Neighbour Particle Cell Face definitions [+y,-y,+x,-x,+z,-z] =  [0,1,2,3,4,5]
-                        apr_iterator_read2.find_neighbours_in_direction(direction);
-
-                        success = check_neighbour_out_of_bounds(apr_iterator_read2, direction);
-
-                        for (int index = 0;
-                             index < apr_iterator_read2.number_neighbours_in_direction(direction); ++index) {
-
-                            // on each face, there can be 0-4 neighbours accessed by index
-                            if (neighbour_iterator.set_neighbour_iterator(apr_iterator_read2, direction, index)) {
-                                //will return true if there is a neighbour defined
-                                uint16_t apr_intensity = test_data.apr.particles_intensities[neighbour_iterator];
-                                uint16_t check_intensity = test_data.img_pc(neighbour_iterator.y_nearest_pixel(),
-                                                                            neighbour_iterator.x_nearest_pixel(),
-                                                                            neighbour_iterator.z_nearest_pixel());
-
-                                if (check_intensity != apr_intensity) {
-                                    success = false;
-                                }
-
-                                if (!check_neighbours(apr_read, apr_iterator_read2, neighbour_iterator)) {
-                                    success = false;
-                                }
-                            }
-                        }
-                    }
-
-                    if(apr_iterator_read2.global_index() < apr_iterator_read2.end_index) {
-                        apr_iterator_read2.set_iterator_to_particle_next_particle();
-                    }
                 }
             }
         }
     }
 
 
-    ExtraParticleData<float> extra_data(test_data.apr.total_number_particles());
+    //Test Tree IO and RW and channel
+    APRFile TreeFile;
+    file_name = "read_write_test_tree.apr";
+    TreeFile.open(file_name,"WRITE");
 
-    for (unsigned int level = apr_iterator.level_min(); level <= apr_iterator.level_max(); ++level) {
-        int z = 0;
-        int x = 0;
+    TreeFile.write_apr(test_data.apr,0,"mem");
 
-        for (z = 0; z < apr_iterator.spatial_index_z_max(level); z++) {
-            for (x = 0; x < apr_iterator.spatial_index_x_max(level); ++x) {
+    test_data.apr.init_tree();
 
-                for (apr_iterator_read.set_new_lzx(level, z, x);
-                     apr_iterator_read.global_index() < apr_iterator_read.end_index;
-                     apr_iterator_read.set_iterator_to_particle_next_particle()) {
+    ParticleData<float> treeMean;
 
-                    extra_data[apr_iterator_read] = apr_iterator_read.level();
-                }
-            }
-        }
+    APRTreeNumerics::fill_tree_mean(test_data.apr,test_data.particles_intensities,treeMean);
 
-    }
+    TreeFile.write_particles(test_data.apr,"tree_parts",treeMean,0,false,"mem");
+    TreeFile.write_particles(test_data.apr,"tree_parts1",treeMean,0,false,"mem");
+    TreeFile.write_particles(test_data.apr,"tree_parts2",treeMean,0,false,"mem");
 
-    //write one of the above results to file
-    test_data.apr.write_particles_only(save_loc,"example_output",extra_data);
+    TreeFile.close();
 
-    std::string extra_file_name = save_loc + "example_output" + "_apr_extra_parts.h5";
+    TreeFile.open(file_name,"READWRITE");
+    TreeFile.write_apr(test_data.apr,1,"mem");
+    TreeFile.write_particles(test_data.apr,"tree_parts",treeMean,1,false,"mem");
 
-    ExtraParticleData<float> extra_data_read;
+    TreeFile.write_particles(test_data.apr,"particle_demo",test_data.particles_intensities,1,true,"mem");
 
-    //you need the same apr used to write it to load it (doesn't save location data)
-    test_data.apr.read_parts_only(extra_file_name,extra_data_read);
+    TreeFile.write_apr(test_data.apr,10,"ch1_");
 
-    for (unsigned int level = apr_iterator.level_min(); level <= apr_iterator.level_max(); ++level) {
-        int z = 0;
-        int x = 0;
+    TreeFile.close();
 
-        for (z = 0; z < apr_iterator.spatial_index_z_max(level); z++) {
-            for (x = 0; x < apr_iterator.spatial_index_x_max(level); ++x) {
+    TreeFile.open(file_name,"READ");
 
-                for (apr_iterator_read.set_new_lzx(level, z, x);
-                     apr_iterator_read.global_index() < apr_iterator_read.end_index;
-                     apr_iterator_read.set_iterator_to_particle_next_particle()) {
+    APR aprRead2;
+    TreeFile.read_apr(aprRead2,1,"mem");
 
-                    extra_data[apr_iterator_read] = apr_iterator_read.level();
-                    if ((extra_data[apr_iterator_read]) != (extra_data_read[apr_iterator_read])) {
+    ParticleData<float> treeMeanRead;
 
+    TreeFile.read_particles(aprRead2,"tree_parts",treeMeanRead,1,false,"mem");
+
+
+    auto tree_it = aprRead2.tree_iterator();
+    auto tree_it_org = test_data.apr.tree_iterator();
+
+    for (int l = tree_it.level_max(); l >= tree_it.level_min() ; --l) {
+        for (int z = 0; z < tree_it.z_num(l); ++z) {
+            for (int x = 0; x < tree_it.x_num(l); ++x) {
+
+                tree_it_org.begin(l, z, x);
+                for (tree_it.begin(l,z,x); tree_it < tree_it.end(); tree_it++) {
+
+                    //check the functionality
+                    if (treeMean[tree_it_org] !=
+                        treeMeanRead[tree_it]) {
                         success = false;
                     }
+
+                    if (tree_it.level() != tree_it_org.level()) {
+                        success = false;
+                    }
+
+                    if (tree_it.x() != tree_it_org.x()) {
+                        success = false;
+                    }
+
+                    if (tree_it.y() != tree_it_org.y()) {
+                        success = false;
+                    }
+
+                    if (tree_it.z() != tree_it_org.z()) {
+                        success = false;
+                    }
+
+                    if(tree_it_org < tree_it_org.end()) {
+                        tree_it_org++;
+                    }
+
                 }
             }
+
         }
+
+    }
+
+    //Test file list
+    std::vector<std::string> correct_names = {"tree_parts","tree_parts1","tree_parts2"};
+
+    std::vector<std::string> dataset_names = TreeFile.get_particles_names(0,false,"mem");
+
+    if(correct_names.size() == dataset_names.size()){
+
+        for(int i = 0; i < correct_names.size(); ++i) {
+            bool found = false;
+            for(int j = 0; j < dataset_names.size(); ++j) {
+                if(correct_names[i] == dataset_names[j]){
+                    found = true;
+                }
+            }
+            if(!found){
+                success = false;
+            }
+        }
+
+    } else{
+        success = false;
+    }
+
+    std::vector<std::string> channel_names;
+    channel_names = TreeFile.get_channel_names();
+
+
+    //Test file list
+    std::vector<std::string> channel_names_c = {"mem","mem1","ch1_10"};
+
+
+    if(channel_names_c.size() == channel_names.size()){
+
+        for (int i = 0; i < channel_names_c.size(); ++i) {
+            bool found = false;
+            for (int j = 0; j < channel_names.size(); ++j) {
+                if(channel_names_c[i] == channel_names[j]){
+                    found = true;
+                }
+            }
+            if(!found){
+                success = false;
+            }
+        }
+
+    } else{
+        success = false;
     }
 
 
+    uint64_t time_steps = TreeFile.get_number_time_steps("mem");
+
+    if(time_steps != 2){
+        success = false;
+    }
+
+    TreeFile.close();
+
     return success;
+
 }
+
+
+
+
 
 
 bool test_apr_neighbour_access(TestData& test_data){
@@ -430,9 +509,9 @@ bool test_apr_neighbour_access(TestData& test_data){
     APRIterator neighbour_iterator = test_data.apr.iterator();
     APRIterator apr_iterator = test_data.apr.iterator();
 
-    ExtraParticleData<uint16_t> x_p(test_data.apr.total_number_particles());
-    ExtraParticleData<uint16_t> y_p(test_data.apr.total_number_particles());
-    ExtraParticleData<uint16_t> z_p(test_data.apr.total_number_particles());
+    ParticleData<uint16_t> x_p(test_data.apr.total_number_particles());
+    ParticleData<uint16_t> y_p(test_data.apr.total_number_particles());
+    ParticleData<uint16_t> z_p(test_data.apr.total_number_particles());
 
     for (unsigned int level = apr_iterator.level_min(); level <= apr_iterator.level_max(); ++level) {
         int z = 0;
@@ -479,7 +558,7 @@ bool test_apr_neighbour_access(TestData& test_data){
                             // on each face, there can be 0-4 neighbours accessed by index
                             if (neighbour_iterator.set_neighbour_iterator(apr_iterator, direction, index)) {
                                 //will return true if there is a neighbour defined
-                                uint16_t apr_intensity = test_data.apr.particles_intensities[neighbour_iterator];
+                                uint16_t apr_intensity = test_data.particles_intensities[neighbour_iterator];
                                 uint16_t check_intensity = test_data.img_pc(neighbour_iterator.y_nearest_pixel(),
                                                                             neighbour_iterator.x_nearest_pixel(),
                                                                             neighbour_iterator.z_nearest_pixel());
@@ -564,7 +643,7 @@ bool test_apr_neighbour_access(TestData& test_data){
                             // on each face, there can be 0-4 neighbours accessed by index
                             if (neighbour_iterator.set_neighbour_iterator(apr_iterator, direction, index)) {
                                 //will return true if there is a neighbour defined
-                                uint16_t apr_intensity = (test_data.apr.particles_intensities[neighbour_iterator]);
+                                uint16_t apr_intensity = (test_data.particles_intensities[neighbour_iterator]);
                                 uint16_t check_intensity = test_data.img_pc(neighbour_iterator.y_nearest_pixel(),
                                                                             neighbour_iterator.x_nearest_pixel(),
                                                                             neighbour_iterator.z_nearest_pixel());
@@ -650,7 +729,7 @@ bool test_apr_iterate(TestData& test_data){
                 for (apr_iterator.set_new_lzx(level, z, x); apr_iterator.global_index() < apr_iterator.end_index;
                      apr_iterator.set_iterator_to_particle_next_particle()) {
 
-                    uint16_t apr_intensity = (test_data.apr.particles_intensities[apr_iterator]);
+                    uint16_t apr_intensity = (test_data.particles_intensities[apr_iterator]);
                     uint16_t check_intensity = test_data.img_pc(apr_iterator.y_nearest_pixel(),
                                                                 apr_iterator.x_nearest_pixel(),
                                                                 apr_iterator.z_nearest_pixel());
@@ -716,7 +795,7 @@ bool test_apr_iterate(TestData& test_data){
                 for (apr_iterator.set_new_lzx(level, z, x); apr_iterator.global_index() < apr_iterator.end_index;
                      apr_iterator.set_iterator_to_particle_next_particle()) {
 
-                    uint16_t apr_intensity = (test_data.apr.particles_intensities[apr_iterator]);
+                    uint16_t apr_intensity = (test_data.particles_intensities[apr_iterator]);
                     uint16_t check_intensity = test_data.img_pc(apr_iterator.y_nearest_pixel(),
                                                                 apr_iterator.x_nearest_pixel(),
                                                                 apr_iterator.z_nearest_pixel());
@@ -803,30 +882,39 @@ bool test_apr_pipeline(TestData& test_data){
 
     bool success = true;
 
+    APRConverter<uint16_t> aprConverter;
+
     //the apr datastructure
-    APR<uint16_t> apr;
+    APR apr;
 
     //read in the command line options into the parameters file
-    apr.parameters.Ip_th = test_data.apr.parameters.Ip_th;
-    apr.parameters.rel_error = test_data.apr.parameters.rel_error;
-    apr.parameters.lambda = test_data.apr.parameters.lambda;
-    apr.parameters.mask_file = "";
-    apr.parameters.min_signal = -1;
+   aprConverter.par.Ip_th = test_data.apr.parameters.Ip_th;
+   aprConverter.par.rel_error = test_data.apr.parameters.rel_error;
+   aprConverter.par.lambda = test_data.apr.parameters.lambda;
+   aprConverter.par.mask_file = "";
+   aprConverter.par.min_signal = -1;
 
-    apr.parameters.sigma_th_max = test_data.apr.parameters.sigma_th_max;
-    apr.parameters.sigma_th = test_data.apr.parameters.sigma_th;
+   aprConverter.par.sigma_th_max = test_data.apr.parameters.sigma_th_max;
+   aprConverter.par.sigma_th = test_data.apr.parameters.sigma_th;
 
-    apr.parameters.SNR_min = -1;
+   aprConverter.par.SNR_min = -1;
 
     //where things are
-    apr.parameters.input_image_name = test_data.filename;
-    apr.parameters.input_dir = "";
-    apr.parameters.name = test_data.output_name;
-    apr.parameters.output_dir = "";
+   aprConverter.par.input_image_name = test_data.filename;
+   aprConverter.par.input_dir = "";
+   aprConverter.par.name = test_data.output_name;
+   aprConverter.par.output_dir = "";
 
     //Gets the APR
+    ParticleData<uint16_t> particles_intensities;
 
-    if(apr.get_apr()){
+    // #TODO: Need to remove the by file name get APR method.
+
+
+    if(aprConverter.get_apr(apr,test_data.img_original)){
+
+        particles_intensities.sample_parts_from_img_downsampled(apr,test_data.img_original);
+
         auto apr_iterator = apr.iterator();
 
         std::cout << "NUM OF PARTICLES: " << apr_iterator.total_number_particles() << " vs " << test_data.apr.total_number_particles() << std::endl;
@@ -840,7 +928,7 @@ bool test_apr_pipeline(TestData& test_data){
                     for (apr_iterator.set_new_lzx(level, z, x); apr_iterator.global_index() < apr_iterator.end_index;
                          apr_iterator.set_iterator_to_particle_next_particle()) {
 
-                        uint16_t apr_intensity = (apr.particles_intensities[apr_iterator]);
+                        uint16_t apr_intensity = (particles_intensities[apr_iterator]);
                         uint16_t check_intensity = test_data.img_pc(apr_iterator.y_nearest_pixel(),
                                                                     apr_iterator.x_nearest_pixel(),
                                                                     apr_iterator.z_nearest_pixel());
@@ -907,7 +995,7 @@ bool test_pipeline_bound(TestData& test_data,float rel_error){
     bool success = true;
 
     //the apr datastructure
-    APR<uint16_t> apr;
+    APR apr;
 
     //read in the command line options into the parameters file
     apr.parameters.Ip_th = 0;
@@ -935,10 +1023,14 @@ bool test_pipeline_bound(TestData& test_data,float rel_error){
     APRConverter<uint16_t> aprConverter;
     aprConverter.par = apr.parameters;
 
-    aprConverter.get_apr(apr);
+    ParticleData<uint16_t> particles_intensities;
+
+    aprConverter.get_apr(apr,test_data.img_original);
+
+    particles_intensities.sample_parts_from_img_downsampled(apr,test_data.img_original);
 
     PixelData<uint16_t> pc_recon;
-    apr.interp_img(pc_recon,apr.particles_intensities);
+    APRReconstruction::interp_img(apr,pc_recon,particles_intensities);
 
     //read in used scale
 
@@ -1006,7 +1098,14 @@ void CreateSmallSphereTest::SetUp(){
 
 
     std::string file_name = get_source_directory_apr() + "files/Apr/sphere_120/sphere_apr.h5";
-    test_data.apr.read_apr(file_name);
+    test_data.apr_filename = file_name;
+
+    APRFile aprFile;
+    aprFile.open(file_name,"READ");
+    aprFile.set_read_write_tree(false);
+    aprFile.read_apr(test_data.apr);
+    aprFile.read_particles(test_data.apr,"particle_intensities",test_data.particles_intensities);
+    aprFile.close();
 
     file_name = get_source_directory_apr() + "files/Apr/sphere_120/sphere_level.tif";
     test_data.img_level = TiffUtils::getMesh<uint16_t>(file_name);
@@ -1031,7 +1130,14 @@ void Create210SphereTest::SetUp(){
 
 
     std::string file_name = get_source_directory_apr() + "files/Apr/sphere_210/sphere_apr.h5";
-    test_data.apr.read_apr(file_name);
+    test_data.apr_filename = file_name;
+
+    APRFile aprFile;
+    aprFile.open(file_name,"READ");
+    aprFile.set_read_write_tree(false);
+    aprFile.read_apr(test_data.apr);
+    aprFile.read_particles(test_data.apr,"particle_intensities",test_data.particles_intensities);
+    aprFile.close();
 
     file_name = get_source_directory_apr() + "files/Apr/sphere_210/sphere_level.tif";
     test_data.img_level = TiffUtils::getMesh<uint16_t>(file_name);
@@ -1076,7 +1182,9 @@ ASSERT_TRUE(test_apr_neighbour_access(test_data));
 TEST_F(CreateSmallSphereTest, APR_INPUT_OUTPUT) {
 
 //test iteration
-    ASSERT_TRUE(test_apr_input_output(test_data));
+   // ASSERT_TRUE(test_apr_input_output(test_data));
+
+    ASSERT_TRUE(test_apr_file(test_data));
 
 }
 
@@ -1137,7 +1245,8 @@ TEST_F(Create210SphereTest, APR_NEIGHBOUR_ACCESS) {
 TEST_F(Create210SphereTest, APR_INPUT_OUTPUT) {
 
 //test iteration
-    ASSERT_TRUE(test_apr_input_output(test_data));
+    //ASSERT_TRUE(test_apr_input_output(test_data));
+    ASSERT_TRUE(test_apr_file(test_data));
 
 }
 
@@ -1145,7 +1254,7 @@ TEST_F(Create210SphereTest, APR_INPUT_OUTPUT) {
 //
 ////test iteration
 //// TODO: FIXME please! I'm not sure the difference arises regarding the fastmath optimization resulting in small float changes in the solution
-////    ASSERT_TRUE(test_apr_pipeline(test_data));
+////    ASSERT_TRUE(test_apr_pipeline(test_data)); I have replaced these tests with newer set of tests.
 //
 //}
 

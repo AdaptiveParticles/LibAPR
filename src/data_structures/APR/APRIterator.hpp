@@ -59,7 +59,7 @@ public:
     }
 
 
-
+    unsigned int orginal_dimensions(int dim) const { return apr_access->org_dims[dim]; }
 
     // Todo make various begin functions. blank(), with level, with x,z, with level,
 

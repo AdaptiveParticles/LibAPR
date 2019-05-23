@@ -38,4 +38,6 @@ uint64_t hdf5_write_data_blosc_append(hid_t obj_id, hid_t type_id, const char *d
 
 bool attribute_exists(hid_t obj_id,const char* attr_name);
 
+bool group_exists(hid_t fileId,const char * attr_name);
+
 #endif

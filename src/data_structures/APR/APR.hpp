@@ -5,37 +5,35 @@
 #ifndef PARTPLAY_APR_HPP
 #define PARTPLAY_APR_HPP
 
-
-#include "algorithm/APRParameters.hpp"
-#include "numerics/APRCompress.hpp"
-#include "numerics/APRReconstruction.hpp"
-#include "algorithm/APRConverter.hpp"
-
-
-#include "io/APRWriter.hpp"
 #include "APRAccess.hpp"
-#include "ExtraParticleData.hpp"
-#include "APRTree.hpp"
-
 #include "APRIterator.hpp"
+#include "APRTree.hpp"
+#include "APRTreeIterator.hpp"
 
-template<typename ImageType>
+//template<typename ImageType>
 class APR {
+    friend class APRFile;
 
-    APRWriter apr_writer;
-    APRReconstruction apr_recon;
+protected:
+//    APRWriter apr_writer;
+//    APRReconstruction apr_recon;
+
+    bool linear_or_random;
+
+    APRAccess tree_access;
+    bool tree_initialized = false;
+
+    //APR Tree function
+    void initialize_apr_tree_sparse();
+    void initialize_apr_tree();
 
 public:
 
-    APRAccess apr_access;
-    //APRConverter<ImageType> apr_converter;
-    APRCompress<ImageType> apr_compress;
-    APRTree<ImageType> apr_tree;
-
-    ExtraParticleData<ImageType> particles_intensities;
+    APRParameters parameters; // #TODO move to protected. Introduce a get and set method
+    APRAccess apr_access; // #TODO move to protected.
 
     std::string name;
-    APRParameters parameters;
+    //APRParameters parameters;
 
     uint64_t level_max() const { return apr_access.l_max; }
     uint64_t level_min() const { return apr_access.l_min; }
@@ -45,147 +43,357 @@ public:
     inline uint64_t total_number_particles() const { return apr_access.total_number_particles; }
     unsigned int orginal_dimensions(int dim) const { return apr_access.org_dims[dim]; }
 
+    inline uint64_t total_number_tree_particles() const { return tree_access.total_number_particles; } // #TODO remove one of these
+    inline uint64_t total_number_parent_cells() const { return tree_access.total_number_particles; }
+
+
     APRIterator iterator() {
         return APRIterator(apr_access);
     }
 
-//    APR(){
-//        //default
-//    }
+    APRTreeIterator tree_iterator() {
+        return APRTreeIterator(apr_access,tree_access);
+    }
+
+    bool init_tree(){
+        if(!tree_initialized){
+            initialize_apr_tree_sparse();
+            tree_initialized = true;
+        }
+        return tree_initialized;
+    }
+
+
+    APR(){
+        //default
+    }
 
     //APR(APR<ImageType>& copyAPR){
       //  copy_from_APR(copyAPR);
     //}
 
-    void copy_from_APR(APR<ImageType>& copyAPR){
+    void copy_from_APR(APR& copyAPR){
         apr_access = copyAPR.apr_access;
-        particles_intensities = copyAPR.particles_intensities;
-        apr_tree = copyAPR.apr_tree;
-        parameters = copyAPR.parameters;
+        //particles_intensities = copyAPR.particles_intensities;
+        //apr_tree = copyAPR.apr_tree;
+        //parameters = copyAPR.parameters;
         name = copyAPR.name;
     }
 
-    ///////////////////////////////////
-    /// APR Generation Methods (Calls members of the APRConverter class)
-    //////////////////////////////////
 
-    bool get_apr(){
-        //copy across parameters
-        APRConverter<ImageType> aprConverter;
-        aprConverter.par = parameters;
-        return aprConverter.get_apr(*this);
+
+
+};
+
+#define INTERIOR_PARENT 9
+
+/**
+   * Initializes the APR tree datastructures using a dense structure for memory, these are all particle cells that are parents of particles in the APR
+   * , alternatively can be thought of as the interior nodes of an APR represented as a binary tree.
+   */
+void APR::initialize_apr_tree() {
+
+    APRTimer timer(true);
+
+    auto apr_iterator = iterator();
+
+    // --------------------------------------------------------------------
+    // Init APR tree memory
+    // --------------------------------------------------------------------
+
+    // extend one extra level
+    uint64_t l_max = apr_iterator.level_max() - 1;
+    uint64_t l_min = apr_iterator.level_min() - 1;
+
+    tree_access.l_min = l_min;
+    tree_access.l_max = l_max;
+
+    std::vector<PixelData<uint8_t>> particle_cell_parent_tree(l_max);
+
+
+    timer.start_timer("tree - init structure");
+    for (uint64_t l = l_min; l < l_max; ++l) {
+        double cellSize = pow(2.0, l_max - l + 1);
+        particle_cell_parent_tree[l].initWithValue(ceil(apr_iterator.orginal_dimensions(0) / cellSize),
+                                                   ceil(apr_iterator.orginal_dimensions(1) / cellSize),
+                                                   ceil(apr_iterator.orginal_dimensions(2) / cellSize),
+                                                   0);
     }
+    timer.stop_timer();
 
-    template<typename T>
-    bool get_apr(PixelData<T>& input_img){
-        APRConverter<ImageType> aprConverter;
-        aprConverter.par = parameters;
-        return aprConverter.get_apr_method(*this, input_img);
-    }
 
-    ///////////////////////////////////
-    /// APR IO Methods (Calls members of the APRWriter class)
-    //////////////////////////////////
+    // --------------------------------------------------------------------
+    // Insert values to the APR tree
+    // --------------------------------------------------------------------
+    timer.start_timer("tree - insert vals");
 
-    void read_apr(std::string file_name){
-        apr_writer.read_apr(*this,file_name);
-    }
+    //note the use of the dynamic OpenMP schedule.
 
-    void read_apr(std::string file_name,bool read_tree,unsigned int max_level_delta){
-        apr_writer.read_apr(*this,file_name,read_tree,max_level_delta);
-    }
+    for (unsigned int level = (apr_iterator.level_max()); level >= apr_iterator.level_min(); --level) {
+        int z = 0;
+        int x = 0;
+        if (level < (apr_iterator.level_max())) {
+#ifdef HAVE_OPENMP
+#pragma omp parallel for schedule(dynamic) private(z, x) firstprivate(apr_iterator)
+#endif
+            for ( z = 0; z < apr_iterator.spatial_index_z_max(level); z++) {
+                for ( x = 0; x < apr_iterator.spatial_index_x_max(level); ++x) {
+                    for (apr_iterator.set_new_lzx(level, z, x);
+                         apr_iterator.global_index() < apr_iterator.end_index;
+                         apr_iterator.set_iterator_to_particle_next_particle()) {
 
-    FileSizeInfo write_apr(std::string save_loc,std::string file_name){
-        return apr_writer.write_apr(*this, save_loc,file_name);
-    }
+                        size_t y_p = apr_iterator.y() / 2;
+                        size_t x_p = apr_iterator.x() / 2;
+                        size_t z_p = apr_iterator.z() / 2;
+                        int current_level = apr_iterator.level() - 1;
 
-    FileSizeInfo write_apr(std::string save_loc,std::string file_name,APRCompress<ImageType>& apr_compressor,unsigned int blosc_comp_type,unsigned int blosc_comp_level,unsigned int blosc_shuffle,bool write_tree = false){
-        return apr_writer.write_apr((*this),save_loc, file_name, apr_compressor,blosc_comp_type ,blosc_comp_level,blosc_shuffle,write_tree);
-    }
+                        if (particle_cell_parent_tree[current_level](y_p, x_p, z_p) == INTERIOR_PARENT) {
+                            particle_cell_parent_tree[current_level](y_p, x_p, z_p) = 1;
+                        } else {
+                            particle_cell_parent_tree[current_level](y_p, x_p, z_p)++;
+                        }
 
-    FileSizeInfo write_apr(std::string save_loc,std::string file_name,unsigned int blosc_comp_type,unsigned int blosc_comp_level,unsigned int blosc_shuffle,bool write_tree = false){
+                        while (current_level > l_min) {
+                            current_level--;
+                            y_p = y_p / 2;
+                            x_p = x_p / 2;
+                            z_p = z_p / 2;
 
-        return apr_writer.write_apr((*this),save_loc, file_name, apr_compress,blosc_comp_type ,blosc_comp_level,blosc_shuffle,write_tree);
-    }
+                            if (particle_cell_parent_tree[current_level](y_p, x_p, z_p) == 0) {
+                                particle_cell_parent_tree[current_level](y_p, x_p, z_p) = INTERIOR_PARENT;
+                            } else {
+                                //already covered
+                                break;
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        else {
+#ifdef HAVE_OPENMP
+#pragma omp parallel for schedule(dynamic) private(z, x) firstprivate(apr_iterator)
+#endif
+            for ( z = 0; z < apr_iterator.spatial_index_z_max(level-1); z++) {
+                for ( x = 0; x < apr_iterator.spatial_index_x_max(level-1); ++x) {
+                    for (apr_iterator.set_new_lzx(level, 2*z, 2*x);
+                         apr_iterator.global_index() < apr_iterator.end_index;
+                         apr_iterator.set_iterator_to_particle_next_particle()) {
 
-    //generate APR that can be read by paraview
-    template<typename T>
-    void write_apr_paraview(std::string save_loc,std::string file_name,ExtraParticleData<T>& parts){
-        apr_writer.write_apr_paraview((*this), save_loc,file_name,parts);
-    }
+                        if (apr_iterator.y()%2 == 0) {
+                            size_t y_p = apr_iterator.y() / 2;
+                            size_t x_p = apr_iterator.x() / 2;
+                            size_t z_p = apr_iterator.z() / 2;
+                            int current_level = apr_iterator.level() - 1;
 
-    //write out ExtraPartCellData
-    template< typename S>
-    void write_particles_only( std::string save_loc,std::string file_name,ExtraParticleData<S>& parts_extra){
-        apr_writer.write_particles_only(save_loc, file_name, parts_extra);
-    }
+                            while (current_level > l_min) {
+                                current_level--;
+                                y_p = y_p / 2;
+                                x_p = x_p / 2;
+                                z_p = z_p / 2;
 
-    //read in ExtraPartCellData
-    template<typename T>
-    void read_parts_only(std::string file_name,ExtraParticleData<T>& extra_parts){
-        apr_writer.read_parts_only(file_name,extra_parts);
-    }
-
-    ////////////////////////
-    ///  APR Reconstruction Methods (Calls APRReconstruction methods)
-    //////////////////////////
-
-    /**
-     * Takes in a APR and creates piece-wise constant image
-     */
-    template<typename U,typename V>
-    void interp_img(PixelData<U>& img,ExtraParticleData<V>& parts){
-        apr_recon.interp_img((*this),img, parts);
-    }
-
-    /**
-     * Returns an image of the depth, this is down-sampled by one, as the Particle Cell solution reflects this
-     */
-    template<typename U>
-    void interp_level_ds(PixelData<U>& img){
-        apr_recon.interp_depth_ds((*this),img);
-    }
-
-    /**
-     * Returns an image of the depth, this is down-sampled by one, as the Particle Cell solution reflects this
-     */
-    template<typename U>
-    void interp_level(PixelData<U>& img){
-        apr_recon.interp_level((*this), img);
-    }
-
-    /**
-     * Performs a smooth interpolation, based on the depth (level l) in each direction.
-     */
-    template<typename U,typename V>
-    void interp_parts_smooth(PixelData<U>& out_image,ExtraParticleData<V>& interp_data,std::vector<float> scale_d = {2,2,2}){
-        apr_recon.interp_parts_smooth((*this),out_image,interp_data,scale_d);
-    }
-
-    /**
-     * Samples particles from an image using an image tree (img_by_level is a vector of images)
-     */
-    template<typename U,typename V>
-    void get_parts_from_img(std::vector<PixelData<U>>& img_by_level,ExtraParticleData<V>& parts){
-        auto it = iterator();
-        parts.data.resize(it.total_number_particles());
-        std::cout << "Total number of particles: " << it.total_number_particles() << std::endl;
-
-        for (unsigned int level = it.level_min(); level <= it.level_max(); ++level) {
-            #ifdef HAVE_OPENMP
-            #pragma omp parallel for schedule(dynamic) firstprivate(it)
-            #endif
-            for (int z = 0; z < it.z_num(level); ++z) {
-                for (int x = 0; x < it.x_num(level); ++x) {
-                    for (it.begin(level, z, x);it <it.end();it++) {
-
-                        parts[it] = img_by_level[level].at(it.y(),x,z);
+                                if (particle_cell_parent_tree[current_level](y_p, x_p, z_p) == 0) {
+                                    particle_cell_parent_tree[current_level](y_p, x_p, z_p) = INTERIOR_PARENT;
+                                } else {
+                                    //already covered
+                                    break;
+                                }
+                            }
+                        }
                     }
                 }
             }
         }
     }
-};
+
+    timer.stop_timer();
+
+    timer.start_timer("tree - init tree");
+    tree_access.initialize_tree_access(apr_access,particle_cell_parent_tree);
+    timer.stop_timer();
+
+
+}
+/**
+   * Initializes the APR tree datastructures using a sparse structure for reduced memory, these are all particle cells that are parents of particles in the APR
+   * , alternatively can be thought of as the interior nodes of an APR represented as a binary tree.
+   */
+void APR::initialize_apr_tree_sparse() {
+
+    APRTimer timer(false);
+
+    auto apr_iterator = iterator();
+
+    // --------------------------------------------------------------------
+    // Init APR tree memory
+    // --------------------------------------------------------------------
+
+    // extend one extra level
+    uint64_t l_max = apr_iterator.level_max() - 1;
+    uint64_t l_min = apr_iterator.level_min() - 1;
+
+    tree_access.l_min = l_min;
+    tree_access.l_max = l_max;
+
+    std::vector<std::vector<SparseParticleCellMap>> particle_cell_tree;
+
+
+    std::vector<uint64_t> y_num;
+    std::vector<uint64_t> x_num;
+    std::vector<uint64_t> z_num;
+
+    z_num.resize(l_max + 1);
+    x_num.resize(l_max + 1);
+    y_num.resize(l_max + 1);
+    particle_cell_tree.resize(l_max + 1);
+
+    timer.start_timer("tree - init sparse structure");
+    for (unsigned int l = l_min; l < (l_max) ;l ++){
+
+        x_num[l] = (uint64_t) ceil((1.0 * apr_iterator.orginal_dimensions(1)) / pow(2.0, 1.0 * l_max - l + 1));
+        z_num[l] = (uint64_t) ceil((1.0 * apr_iterator.orginal_dimensions(2)) / pow(2.0, 1.0 * l_max - l + 1));
+        particle_cell_tree[l].resize(z_num[l]*x_num[l]);
+        y_num[l] = (uint64_t) ceil((1.0 * apr_iterator.orginal_dimensions(0)) / pow(2.0, 1.0 * l_max - l + 1));
+
+    }
+    timer.stop_timer();
+
+
+    // --------------------------------------------------------------------
+    // Insert values to the APR tree
+    // --------------------------------------------------------------------
+    timer.start_timer("tree - insert vals sparse");
+
+    //note the use of the dynamic OpenMP schedule.
+
+    for (unsigned int level = (apr_iterator.level_max()); level >= apr_iterator.level_min(); --level) {
+        int z_d = 0;
+        int x_d = 0;
+
+        if (level < (apr_iterator.level_max())) {
+#ifdef HAVE_OPENMP
+#pragma omp parallel for schedule(dynamic) private(z_d, x_d) firstprivate(apr_iterator)
+#endif
+            for (z_d = 0; z_d < z_num[level-1]; z_d++) {
+                for (int z = 2*z_d; z <= std::min(2*z_d+1,(int)apr_iterator.spatial_index_z_max(level)-1); ++z) {
+                    //the loop is bundled into blocks of 2, this prevents race conditions with OpenMP parents
+                    for (x_d = 0; x_d < x_num[level-1]; ++x_d) {
+                        for (int x = 2 * x_d;
+                             x <= std::min(2 * x_d + 1, (int) apr_iterator.spatial_index_x_max(level) - 1); ++x) {
+
+                            size_t x_p = x / 2;
+                            size_t z_p = z / 2;
+                            int current_level = level - 1;
+
+                            for (apr_iterator.set_new_lzx(level, z, x);
+                                 apr_iterator.global_index() < apr_iterator.end_index;
+                                 apr_iterator.set_iterator_to_particle_next_particle()) {
+                                auto &pct = particle_cell_tree[current_level][z_p * x_num[current_level] + x_p];
+
+                                size_t y_p = apr_iterator.y() / 2;
+
+                                pct.mesh[y_p] = 1;
+
+                            }
+                        }
+                    }
+                }
+            }
+
+            if (level != (apr_iterator.level_max()-1)) {
+                //second loop here pushing them further up the tree, the max level is special, as always exists on next level so not required.
+#ifdef HAVE_OPENMP
+#pragma omp parallel for schedule(dynamic) private(z_d, x_d) firstprivate(apr_iterator)
+#endif
+                for (z_d = 0; z_d < z_num[level-1]; z_d++) {
+                    for (int z = 2 * z_d; z <= std::min(2 * z_d + 1, (int) apr_iterator.spatial_index_z_max(level) - 1); ++z) {
+                        //the loop is bundled into blocks of 2, this prevents race conditions with OpenMP parents
+                        for (x_d = 0; x_d < x_num[level - 1]; ++x_d) {
+                            for (int x = 2 * x_d;
+                                 x <= std::min(2 * x_d + 1, (int) apr_iterator.spatial_index_x_max(level) - 1); ++x) {
+
+                                auto &pct = particle_cell_tree[level][z * x_num[level] + x];
+
+                                size_t x_p = x / 2;
+                                size_t z_p = z / 2;
+                                int parent_level = level - 1;
+
+                                auto &pct_p = particle_cell_tree[parent_level][z_p * x_num[parent_level] + x_p];
+
+                                for (auto it = pct.mesh.begin(); it != pct.mesh.end(); ++it) {
+                                    size_t y_p = it->first / 2;
+
+                                    pct_p.mesh[y_p] = 1;
+
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+
+        }
+        else {
+#ifdef HAVE_OPENMP
+#pragma omp parallel for schedule(dynamic) private(z_d, x_d) firstprivate(apr_iterator)
+#endif
+            for (z_d = 0; z_d < apr_iterator.spatial_index_z_max(level - 2); z_d++) {
+                for (int z = 2 * z_d; z <= std::min(2 * z_d + 1, (int) apr_iterator.spatial_index_z_max(level-1) - 1); ++z) {
+                    //the loop is bundled into blocks of 2, this prevents race conditions with OpenMP parents
+                    for (x_d = 0; x_d < apr_iterator.spatial_index_x_max(level-2); ++x_d) {
+                        for (int x = 2 * x_d;
+                             x <= std::min(2 * x_d + 1, (int) apr_iterator.spatial_index_x_max(level-1) - 1); ++x) {
+
+                            int x_p = x_d;
+                            int z_p = z_d;
+                            int current_level = level - 2;
+
+                            for (apr_iterator.set_new_lzx(level, 2 * z, 2 * x);
+                                 apr_iterator.global_index() < apr_iterator.end_index;
+                                 apr_iterator.set_iterator_to_particle_next_particle()) {
+
+                                auto &pct = particle_cell_tree[current_level][z_p * x_num[current_level] + x_p];
+
+                                if (apr_iterator.y() % 2 == 0) {
+                                    size_t y_p = apr_iterator.y() / 4;
+
+                                    pct.mesh[y_p] = 1;
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+
+    timer.stop_timer();
+
+    tree_access.l_max = l_max;
+    tree_access.l_min = l_min;
+
+    tree_access.x_num.resize(l_max+1);
+    tree_access.y_num.resize(l_max+1);
+    tree_access.z_num.resize(l_max+1);
+
+    for(int i = l_min;i <l_max;i++){
+        tree_access.x_num[i] = x_num[i];
+        tree_access.y_num[i] = y_num[i];
+        tree_access.z_num[i] = z_num[i];
+    }
+
+    tree_access.x_num[l_max] = apr_access.x_num[l_max];
+    tree_access.y_num[l_max] = apr_access.y_num[l_max];
+    tree_access.z_num[l_max] = apr_access.z_num[l_max];
+
+
+    timer.start_timer("tree - init tree");
+    tree_access.initialize_tree_access_sparse(apr_access, particle_cell_tree);
+    timer.stop_timer();
+
+}
+
 
 
 #endif //PARTPLAY_APR_HPP

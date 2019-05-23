@@ -18,8 +18,8 @@
 #include <cmath>
 
 #include "data_structures/Mesh/PixelData.hpp"
-#include "data_structures/APR/ExtraPartCellData.hpp"
-#include "data_structures/APR/ExtraParticleData.hpp"
+#include "data_structures/APR/PartCellData.hpp"
+#include "data_structures/APR/ParticleData.hpp"
 
 #include "data_structures/APR/APR.hpp"
 #include "data_structures/APR/APRTree.hpp"
@@ -55,13 +55,13 @@ public:
 
     std::string name = "raycast";
 
-    template<typename U, typename S, typename V, class BinaryOperation>
+    template<typename S, typename V, class BinaryOperation>
     void
-    perform_raycast(APR<U> &apr, ExtraParticleData<S> &particle_data, PixelData<V> &cast_views, BinaryOperation op);
+    perform_raycast(APR &apr, ParticleData<S> &particle_data, PixelData<V> &cast_views, BinaryOperation op);
 
-    template<typename U, typename S, typename V, typename T, class BinaryOperation>
-    void perform_raycast_patch(APR<U> &apr, APRTree<U> &aprTree, ExtraParticleData<S> &particle_data,
-                               ExtraParticleData<T> &treeData, PixelData<V> &cast_views, ReconPatch &rp,
+    template<typename S, typename V, typename T, class BinaryOperation>
+    void perform_raycast_patch(APR &apr, ParticleData<S> &particle_data,
+                               ParticleData<T> &treeData, PixelData<V> &cast_views, ReconPatch &rp,
                                BinaryOperation op);
 
     template<typename S, typename U>
@@ -118,9 +118,9 @@ APRRaycaster::getPos(int &dim1, int &dim2, float x_actual, float y_actual, float
 }
 
 
-template<typename U, typename S, typename V, typename T, class BinaryOperation>
-void APRRaycaster::perform_raycast_patch(APR<U> &apr, APRTree<U> &aprTree, ExtraParticleData<S> &particle_data,
-                                         ExtraParticleData<T> &treeData, PixelData<V> &cast_views,
+template<typename S, typename V, typename T, class BinaryOperation>
+void APRRaycaster::perform_raycast_patch(APR &apr, ParticleData<S> &particle_data,
+                                         ParticleData<T> &treeData, PixelData<V> &cast_views,
                                          ReconPatch &reconPatch, BinaryOperation op) {
 
     //
@@ -254,9 +254,9 @@ void APRRaycaster::perform_raycast_patch(APR<U> &apr, APRTree<U> &aprTree, Extra
     const bool jitter = this->jitter;
     const float jitter_factor = this->jitter_factor;
 
-    ExtraParticleData<float> jitter_x;
-    ExtraParticleData<float> jitter_y;
-    ExtraParticleData<float> jitter_z;
+    ParticleData<float> jitter_x;
+    ParticleData<float> jitter_y;
+    ParticleData<float> jitter_z;
 
     //initialize the iterator
     APRIterator apr_iterator(apr.apr_access);
@@ -341,9 +341,8 @@ void APRRaycaster::perform_raycast_patch(APR<U> &apr, APRTree<U> &aprTree, Extra
 #endif
             for (z = z_begin_l; z < z_end_l; z++) {
                 for (x = x_begin_l; x < x_end_l; ++x) {
-                    for (apr_iterator.set_new_lzxy(level, z, x, y_begin_l);
-                         apr_iterator.global_index() <
-                         apr_iterator.end_index; apr_iterator.set_iterator_to_particle_next_particle()) {
+                    for (apr_iterator.set_new_lzx(level, z, x); apr_iterator < apr_iterator.end();
+                         apr_iterator++) {
 
                         if ((apr_iterator.y() >= y_begin_l) && (apr_iterator.y() < y_end_l)) {
 
@@ -396,7 +395,7 @@ void APRRaycaster::perform_raycast_patch(APR<U> &apr, APRTree<U> &aprTree, Extra
         if (max_level < apr_iterator.level_max()) {
 
 
-            APRTreeIterator aprTreeIterator = aprTree.tree_iterator();
+            auto tree_it = apr.tree_iterator();
 
 
             unsigned int level = max_level;
@@ -415,28 +414,27 @@ void APRRaycaster::perform_raycast_patch(APR<U> &apr, APRTree<U> &aprTree, Extra
             int z = 0;
             int x = 0;
 #ifdef HAVE_OPENMP
-#pragma omp parallel for schedule(dynamic) private(x, z) firstprivate(aprTreeIterator)
+#pragma omp parallel for schedule(dynamic) private(x, z) firstprivate(tree_it)
 #endif
             for (z = z_begin_l; z < z_end_l; z++) {
 
                 for (x = x_begin_l; x < x_end_l; ++x) {
 
+                    for (tree_it.set_new_lzxy(level, z, x, y_begin_l);
+                         tree_it <
+                         tree_it.end(); tree_it++) {
 
-                    for (aprTreeIterator.set_new_lzxy(level, z, x, y_begin_l);
-                         aprTreeIterator.global_index() <
-                         aprTreeIterator.end_index; aprTreeIterator.set_iterator_to_particle_next_particle()) {
 
-
-                        if ((aprTreeIterator.y() >= y_begin_l) && (aprTreeIterator.y() < y_end_l)) {
+                        if ((tree_it.y() >= y_begin_l) && (tree_it.y() < y_end_l)) {
                             //get apr info
 
 
-                            y_actual = (aprTreeIterator.y() + 0.5) * pow(2, apr.level_max() - level) * this->scale_y;
-                            x_actual = (aprTreeIterator.x() + 0.5) * pow(2, apr.level_max() - level) * this->scale_x;
-                            z_actual = (aprTreeIterator.z() + 0.5) * pow(2, apr.level_max() - level) * this->scale_z;
+                            y_actual = (tree_it.y() + 0.5) * pow(2, apr.level_max() - level) * this->scale_y;
+                            x_actual = (tree_it.x() + 0.5) * pow(2, apr.level_max() - level) * this->scale_x;
+                            z_actual = (tree_it.z() + 0.5) * pow(2, apr.level_max() - level) * this->scale_z;
 
 
-                            const int level = aprTreeIterator.level();
+                            const int level = tree_it.level();
 
                             int dim1 = 0;
                             int dim2 = 0;
@@ -449,7 +447,7 @@ void APRRaycaster::perform_raycast_patch(APR<U> &apr, APRTree<U> &aprTree, Extra
                             if ((dim1 > 0) & (dim2 > 0) & (dim1 < (int64_t) depth_slice[level].y_num) &
                                 (dim2 < (int64_t) depth_slice[level].x_num)) {
                                 //get the particle value
-                                S temp_int = treeData[aprTreeIterator];
+                                S temp_int = treeData[tree_it];
 
                                 depth_slice[level].mesh[dim1 + (dim2) * depth_slice[level].y_num] = op(temp_int,
                                                                                                        depth_slice[level].mesh[
@@ -457,7 +455,7 @@ void APRRaycaster::perform_raycast_patch(APR<U> &apr, APRTree<U> &aprTree, Extra
                                                                                                                (dim2) *
                                                                                                                depth_slice[level].y_num]);
                             } else {
-                                if ((aprTreeIterator.y() >= y_end_l)) {
+                                if ((tree_it.y() >= y_end_l)) {
                                     break;
                                 }
                             }
@@ -542,9 +540,8 @@ void APRRaycaster::perform_raycast_patch(APR<U> &apr, APRTree<U> &aprTree, Extra
 
 }
 
-
-template<typename U, typename S, typename V, class BinaryOperation>
-void APRRaycaster::perform_raycast(APR<U> &apr, ExtraParticleData<S> &particle_data, PixelData<V> &cast_views,
+template<typename S, typename V, class BinaryOperation>
+void APRRaycaster::perform_raycast(APR &apr, ParticleData<S> &particle_data, PixelData<V> &cast_views,
                                    BinaryOperation op) {
 
     //
@@ -591,7 +588,6 @@ void APRRaycaster::perform_raycast(APR<U> &apr, ExtraParticleData<S> &particle_d
     uint64_t view_count = 0;
     float init_val = 0;
 
-
     APRTimer timer;
 
     timer.verbose_flag = true;
@@ -625,9 +621,9 @@ void APRRaycaster::perform_raycast(APR<U> &apr, ExtraParticleData<S> &particle_d
     const bool jitter = this->jitter;
     const float jitter_factor = this->jitter_factor;
 
-    ExtraParticleData<float> jitter_x;
-    ExtraParticleData<float> jitter_y;
-    ExtraParticleData<float> jitter_z;
+    ParticleData<float> jitter_x;
+    ParticleData<float> jitter_y;
+    ParticleData<float> jitter_z;
 
     //initialize the iterator
     APRIterator apr_iterator(apr.apr_access);

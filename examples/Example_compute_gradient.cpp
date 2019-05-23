@@ -30,6 +30,10 @@ const char* usage = R"(
 
 #include "Example_compute_gradient.hpp"
 #include "io/TiffUtils.hpp"
+#include "data_structures/APR/ParticleData.hpp"
+#include "io/APRFile.hpp"
+#include "numerics/APRNumerics.hpp"
+#include "numerics/APRReconstruction.hpp"
 
 
 int main(int argc, char **argv) {
@@ -47,10 +51,15 @@ int main(int argc, char **argv) {
     timer.verbose_flag = true;
 
     // APR datastructure
-    APR<uint16_t> apr;
+    APR apr;
 
     //read file
-    apr.read_apr(file_name);
+    APRFile aprFile;
+    aprFile.open(file_name,"READ");
+    aprFile.read_apr(apr);
+
+    ParticleData<uint16_t>parts;
+    aprFile.read_particles(apr,"particle_intensities",parts);
 
     std::string name = options.input;
     //remove the file extension
@@ -60,31 +69,33 @@ int main(int argc, char **argv) {
         //smooth the image with a simply sepeable filter *smooth_number times
 
         APRNumerics aprNumerics;
-        ExtraParticleData<uint16_t> smooth(apr.total_number_particles());
+        ParticleData<uint16_t> smooth(apr.total_number_particles());
         std::vector<float> filter = {0.1f, 0.8f, 0.1f}; // << Feel free to play with these
-        aprNumerics.seperable_smooth_filter(apr, apr.particles_intensities, smooth, filter, options.smooth_number);
+        aprNumerics.seperable_smooth_filter(apr, parts, smooth, filter, options.smooth_number);
 
-        std::swap(apr.particles_intensities.data, smooth.data);
+        std::swap(parts.data, smooth.data);
     }
 
     //Calculate the gradient of the APR
-    ExtraParticleData<std::vector<float>> gradient; //vector for holding the derivative in the three directions, initialized to have the same number of elements as particles.
+    ParticleData<std::vector<float>> gradient; //vector for holding the derivative in the three directions, initialized to have the same number of elements as particles.
 
     std::vector<float> delta = {1,1,options.anisotropy_z};
 
-    APRNumerics::compute_gradient_vector(apr,gradient,false,delta);
+    std::cerr << "This example is currently not working, as functionality needs to be re-emplimented with newer structures" << std::endl;
 
-    ExtraParticleData<float> gradient_magnitude(apr.total_number_particles());
-    //compute the magnitude of the gradient, scale it by 5 for visualization when writing as uint16 int
-    gradient.map(apr,gradient_magnitude,[](const std::vector<float> &a) { return 20.0f*sqrt(pow(a[0], 2.0f) + pow(a[1], 2.0f) + pow(a[2], 2.0f)); });
+    //APRNumerics::compute_gradient_vector(apr,gradient,false,delta); //#TODO; this is old, slow and complicated, can be updated to use the new filter functionality
 
-    // write result to image
-    PixelData<float> gradient_magnitude_image;
-    apr.interp_img(gradient_magnitude_image,gradient_magnitude);
-    //apr.interp_img(gradient_magnitude_image,apr.particles_intensities);
-
-    std::string image_file_name = options.directory + name + "_gradient_magnitude.tif";
-    TiffUtils::saveMeshAsTiff(image_file_name, gradient_magnitude_image);
+//    ParticleData<float> gradient_magnitude(apr.total_number_particles());
+//    //compute the magnitude of the gradient, scale it by 5 for visualization when writing as uint16 int
+//    gradient.map(apr,gradient_magnitude,[](const std::vector<float> &a) { return 20.0f*sqrt(pow(a[0], 2.0f) + pow(a[1], 2.0f) + pow(a[2], 2.0f)); });
+//
+//    // write result to image
+//    PixelData<float> gradient_magnitude_image;
+//    APRReconstruction::interp_img(apr,gradient_magnitude_image,gradient_magnitude);
+//    //apr.interp_img(gradient_magnitude_image,apr.particles_intensities);
+//
+//    std::string image_file_name = options.directory + name + "_gradient_magnitude.tif";
+//    TiffUtils::saveMeshAsTiff(image_file_name, gradient_magnitude_image);
 
     //////////////////////
     //
@@ -108,7 +119,7 @@ int main(int argc, char **argv) {
                                             pow(gradient_mesh[2].mesh[i], 2.0f));
         }
 
-        image_file_name = options.directory + name + "_gradient_mesh.tif";
+        std::string image_file_name = options.directory + name + "_gradient_mesh.tif";
         TiffUtils::saveMeshAsTiffUint16(image_file_name, gradient_mesh[0]);
     }
 }

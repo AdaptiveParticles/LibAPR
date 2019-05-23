@@ -31,6 +31,8 @@ e.g. Example_ray_cast -i nuc_apr.h5 -d /Test/Input_examples/ -aniso 2.0 -jitter 
 #include "Example_ray_cast.h"
 #include "io/TiffUtils.hpp"
 #include "numerics/APRTreeNumerics.hpp"
+#include"data_structures/APR/ParticleData.hpp"
+#include"io/APRFile.hpp"
 
 
 int main(int argc, char **argv) {
@@ -43,16 +45,22 @@ int main(int argc, char **argv) {
     std::string file_name = options.directory + options.input;
 
     // APR datastructure
-    APR<uint16_t> apr;
+    APR apr;
 
     //read file
-    apr.read_apr(file_name);
+    APRFile aprFile;
+    aprFile.open(file_name,"READ");
+    aprFile.read_apr(apr);
 
-    APRTree<uint16_t> aprTree;
-    aprTree.init(apr);
-    ExtraParticleData<float> treeData;
+    ParticleData<uint16_t>parts;
+    aprFile.read_particles(apr,"particle_intensities",parts);
 
-    APRTreeNumerics::fill_tree_max(apr,aprTree,apr.particles_intensities,treeData);
+    aprFile.close();
+
+    apr.init_tree();
+    ParticleData<float> treeData;
+
+    APRTreeNumerics::fill_tree_max(apr,parts,treeData);
 
     APRTimer timer;
 
@@ -90,7 +98,7 @@ int main(int argc, char **argv) {
 
     apr_raycaster.scale_down = pow(2,-3);
 
-    apr_raycaster.perform_raycast_patch(apr,aprTree,apr.particles_intensities,treeData,views,rp,[] (const uint16_t& a,const uint16_t& b) {return std::max(a,b);});
+    apr_raycaster.perform_raycast_patch(apr,parts,treeData,views,rp,[] (const uint16_t& a,const uint16_t& b) {return std::max(a,b);});
 
     //////////////
     ///
