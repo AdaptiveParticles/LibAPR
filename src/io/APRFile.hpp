@@ -150,13 +150,12 @@ void APRFile::close(){
 void APRFile::write_apr(APR &apr,uint64_t t,std::string channel_name){
 
 
-    APRTimer timer(true);
-    APRTimer timer_f(true);
+    APRTimer timer_f(false);
 
     current_t = t;
 
     if(fileStructure.isOpened()){
-        std::cout << "file is open" << std::endl;
+        //std::cout << "file is open" << std::endl;
     }
 
     fileStructure.create_time_point(t,with_tree_flag,channel_name);
@@ -251,7 +250,6 @@ void APRFile::write_apr(APR &apr,uint64_t t,std::string channel_name){
 
     }
 
-
 }
 
 /**
@@ -310,11 +308,11 @@ void APRFile::write_particles(APR &apr,const std::string particles_name,Particle
    */
 void APRFile::read_apr(APR &apr,uint64_t t,std::string channel_name){
 
-    APRTimer timer(true);
-    APRTimer timer_f(true);
+
+    APRTimer timer_f(false);
 
     if(fileStructure.isOpened()){
-        std::cout << "file is open" << std::endl;
+        //std::cout << "file is open" << std::endl;
     }
 
     bool tree_exists = fileStructure.open_time_point(t,with_tree_flag,channel_name);
@@ -469,7 +467,7 @@ template<typename DataType>
 void APRFile::read_particles(APR apr,std::string particles_name,ParticleData<DataType>& particles,uint64_t t,bool apr_or_tree,std::string channel_name){
 
     if(fileStructure.isOpened()){
-        std::cout << "file is open" << std::endl;
+        //std::cout << "file is open" << std::endl;
     }
 
     fileStructure.open_time_point(t,with_tree_flag,channel_name);

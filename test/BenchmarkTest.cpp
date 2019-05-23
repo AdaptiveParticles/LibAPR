@@ -84,8 +84,240 @@ bool bench_iteration(TestData& test_data){
 
     bool success = true;
 
+    auto it = test_data.apr.iterator();
+
+    ParticleData<uint16_t> parts;
+    parts.init(it.total_number_particles());
+
+    PixelData<uint16_t> test_img;
+
+    test_img.init(it.orginal_dimensions(0),it.orginal_dimensions(1),it.orginal_dimensions(2));
+
+    float CR = test_img.mesh.size()/(1.0f*it.total_number_particles());
+
+    std::cout << "CR: " << CR << std::endl;
+
+    unsigned int num_rep = 1000;
+
+    APRTimer timer(true);
+
+    //Add + 1 to the value, while having access to (x,y,z) test;
+
+    timer.start_timer("Pixel Iteration - Serial");
+
+    for (int r = 0; r < num_rep; ++r) {
+
+        for (int z = 0; z < test_img.z_num; ++z) {
+            for (int x = 0; x < test_img.x_num; ++x) {
+                for (int y = 0; y < test_img.y_num; ++y) {
+
+                    test_img.at(y,x,z) = test_img.at(y,x,z) + 1;
+
+                }
+            }
+        }
+
+    }
+
+    timer.stop_timer();
+
+    timer.start_timer("Pixel Iteration - OpenMP");
+
+    int z = 0;
+    int x = 0;
+
+    for (int r = 0; r < num_rep; ++r) {
+#ifdef HAVE_OPENMP
+#pragma omp parallel for private(z)
+#endif
+        for (z = 0; z < test_img.z_num; ++z) {
+            for (int x = 0; x < test_img.x_num; ++x) {
+                for (int y = 0; y < test_img.y_num; ++y) {
+                    test_img.at(y,x,z) = (uint16_t) (test_img.at(y,x,z) + 1);
+                }
+            }
+        }
+
+    }
+
+    timer.stop_timer();
+
+    auto mesh_it = timer.timings.back();
+
+    timer.start_timer("APR Iteration - Serial");
+
+    for (int r = 0; r < num_rep; ++r) {
+        for (unsigned int level = it.level_min(); level <= it.level_max(); ++level) {
+            int z = 0;
+            int x = 0;
+
+            for (z = 0; z < it.z_num(level); z++) {
+                for (x = 0; x < it.x_num(level); ++x) {
+                    for (it.set_new_lzx(level, z, x); it < it.end();
+                         it++) {
+                        parts[it] = (uint16_t)(parts[it] + 1);
+
+                    }
+                }
+            }
+        }
+    }
+
+    timer.stop_timer();
 
 
+    timer.start_timer("APR Iteration - OpenMP");
+
+    for (int r = 0; r < num_rep; ++r) {
+        for (unsigned int level = it.level_min(); level <= it.level_max(); ++level) {
+            int z = 0;
+            int x = 0;
+
+#ifdef HAVE_OPENMP
+#pragma omp parallel for schedule(dynamic) private(z) firstprivate(it)
+#endif
+            for (z = 0; z < it.z_num(level); z++) {
+                for (int x = 0; x < it.x_num(level); ++x) {
+                    for (it.set_new_lzx(level, z, x); it < it.end();
+                         it++) {
+                        parts[it] = (uint16_t)(parts[it] + 1);
+
+                    }
+                }
+            }
+        }
+    }
+
+    timer.stop_timer();
+
+    auto org_it = timer.timings.back();
+
+    //y iteration here.
+    std::vector<uint16_t> y_vec;
+    std::vector<uint64_t> xz_end_vec;
+    std::vector<uint64_t> level_end_vec;
+    std::vector<uint64_t> level_xz_vec;
+    uint64_t counter = 0;
+    uint64_t counter_xz = 1;
+
+    level_end_vec.resize(it.level_max() + 1);
+    level_xz_vec.resize(it.level_max() + 1);
+
+    xz_end_vec.push_back(counter); // adding padding by one to allow the -1 syntax without checking.
+
+    for (unsigned int level = 0; level <= it.level_max(); ++level) {
+        int z = 0;
+        int x = 0;
+
+        for (z = 0; z < it.z_num(level); z++) {
+            for (x = 0; x < it.x_num(level); ++x) {
+
+                for (it.set_new_lzx(level, z, x); it < it.end();
+                     it++) {
+                    y_vec.push_back(it.y());
+                    counter++;
+                }
+
+
+                xz_end_vec.push_back(counter);
+                counter_xz++;
+            }
+        }
+
+        level_end_vec[level] = counter;
+        level_xz_vec[level] = counter_xz;
+    }
+
+
+    timer.start_timer("APR no access - Serial");
+
+    for (int r = 0; r < num_rep; ++r) {
+
+        for (int i = 0; i < it.total_number_particles(); ++i) {
+            parts[i] = y_vec[i];
+        }
+
+    }
+    timer.stop_timer();
+
+
+    timer.start_timer("APR no access - OpenMP");
+
+    for (int r = 0; r < num_rep; ++r) {
+        int i = 0;
+#ifdef HAVE_OPENMP
+#pragma omp parallel for private(i)
+#endif
+        for (i = 0; i < it.total_number_particles(); ++i) {
+            parts[i] = y_vec[i];
+        }
+
+    }
+    timer.stop_timer();
+
+
+
+    timer.start_timer("APR Iteration NEW - Serial");
+
+    for (int r = 0; r < num_rep; ++r) {
+        for (unsigned int level = it.level_min(); level <= it.level_max(); ++level) {
+            int z = 0;
+            int x = 0;
+
+            const auto level_start = level_xz_vec[level-1];
+            const auto x_n = it.x_num(level);
+
+            for (z = 0; z < it.z_num(level); z++) {
+                for (x = 0; x < it.x_num(level); ++x) {
+                    const auto xz_start = level_start + x + z*x_n;
+                    const auto begin = xz_end_vec[xz_start-1];
+                    const auto end = xz_end_vec[xz_start];
+
+                    for (uint64_t i = begin; i < end; ++i) {
+                        parts[i] = y_vec[i];
+                    }
+
+                }
+            }
+        }
+    }
+
+    timer.stop_timer();
+
+    timer.start_timer("APR Iteration NEW - OpenMP");
+
+    for (int r = 0; r < num_rep; ++r) {
+        for (unsigned int level = it.level_min(); level <= it.level_max(); ++level) {
+            int z = 0;
+            int x = 0;
+
+            const auto level_start = level_xz_vec[level-1];
+            const auto x_n = it.x_num(level);
+
+#ifdef HAVE_OPENMP
+#pragma omp parallel for schedule(dynamic) private(z)
+#endif
+            for (z = 0; z < it.z_num(level); z++) {
+                for (int x = 0; x < it.x_num(level); ++x) {
+                    const auto xz_start = level_start + x + z*x_n;
+                    const auto begin = xz_end_vec[xz_start-1];
+                    const auto end = xz_end_vec[xz_start];
+
+                    for (uint64_t i = begin; i < end; ++i) {
+                        parts[i] = y_vec[i];
+                    }
+
+                }
+            }
+        }
+    }
+
+    timer.stop_timer();
+
+    auto new_it = timer.timings.back();
+
+    std::cout << "SU (old): " << mesh_it/org_it << std::endl;
+    std::cout << "SU: " << mesh_it/new_it << std::endl;
 
     return success;
 }
@@ -206,19 +438,19 @@ void CreateSmallSphereTest::SetUp(){
     aprFile.close();
 
     file_name = get_source_directory_apr() + "files/Apr/sphere_120/sphere_level.tif";
-    test_data.img_level = TiffUtils::getMesh<uint16_t>(file_name);
+    test_data.img_level = TiffUtils::getMesh<uint16_t>(file_name,false);
     file_name = get_source_directory_apr() + "files/Apr/sphere_120/sphere_type.tif";
-    test_data.img_type = TiffUtils::getMesh<uint16_t>(file_name);
+    test_data.img_type = TiffUtils::getMesh<uint16_t>(file_name,false);
     file_name = get_source_directory_apr() + "files/Apr/sphere_120/sphere_original.tif";
-    test_data.img_original = TiffUtils::getMesh<uint16_t>(file_name);
+    test_data.img_original = TiffUtils::getMesh<uint16_t>(file_name,false);
     file_name = get_source_directory_apr() + "files/Apr/sphere_120/sphere_pc.tif";
-    test_data.img_pc = TiffUtils::getMesh<uint16_t>(file_name);
+    test_data.img_pc = TiffUtils::getMesh<uint16_t>(file_name,false);
     file_name = get_source_directory_apr() + "files/Apr/sphere_120/sphere_x.tif";
-    test_data.img_x = TiffUtils::getMesh<uint16_t>(file_name);
+    test_data.img_x = TiffUtils::getMesh<uint16_t>(file_name,false);
     file_name =  get_source_directory_apr() + "files/Apr/sphere_120/sphere_y.tif";
-    test_data.img_y = TiffUtils::getMesh<uint16_t>(file_name);
+    test_data.img_y = TiffUtils::getMesh<uint16_t>(file_name,false);
     file_name =  get_source_directory_apr() + "files/Apr/sphere_120/sphere_z.tif";
-    test_data.img_z = TiffUtils::getMesh<uint16_t>(file_name);
+    test_data.img_z = TiffUtils::getMesh<uint16_t>(file_name,false);
 
     test_data.filename = get_source_directory_apr() + "files/Apr/sphere_120/sphere_original.tif";
     test_data.output_name = "sphere_small";
@@ -237,55 +469,41 @@ void Create210SphereTest::SetUp(){
     aprFile.read_particles(test_data.apr,"particle_intensities",test_data.particles_intensities);
     aprFile.close();
 
-    file_name = get_source_directory_apr() + "files/Apr/sphere_210/sphere_level.tif";
-    test_data.img_level = TiffUtils::getMesh<uint16_t>(file_name);
-    file_name = get_source_directory_apr() + "files/Apr/sphere_210/sphere_type.tif";
-    test_data.img_type = TiffUtils::getMesh<uint16_t>(file_name);
     file_name = get_source_directory_apr() + "files/Apr/sphere_210/sphere_original.tif";
-    test_data.img_original = TiffUtils::getMesh<uint16_t>(file_name);
-    file_name = get_source_directory_apr() + "files/Apr/sphere_210/sphere_pc.tif";
-    test_data.img_pc = TiffUtils::getMesh<uint16_t>(file_name);
-    file_name = get_source_directory_apr() + "files/Apr/sphere_210/sphere_x.tif";
-    test_data.img_x = TiffUtils::getMesh<uint16_t>(file_name);
-    file_name =  get_source_directory_apr() + "files/Apr/sphere_210/sphere_y.tif";
-    test_data.img_y = TiffUtils::getMesh<uint16_t>(file_name);
-    file_name =  get_source_directory_apr() + "files/Apr/sphere_210/sphere_z.tif";
-    test_data.img_z = TiffUtils::getMesh<uint16_t>(file_name);
+    test_data.img_original = TiffUtils::getMesh<uint16_t>(file_name,false);
 
     test_data.filename = get_source_directory_apr() + "files/Apr/sphere_210/sphere_original.tif";
     test_data.output_name = "sphere_210";
 }
 
 
-TEST_F(CreateGTSmallTest, APR_PIPELINE_3D) {
-
-
-}
-
-TEST_F(CreateGTSmall2DTest, APR_PIPELINE_2D) {
-
-
-
-}
-
-
-TEST_F(CreateGTSmall1DTest, BENCH_ITERATION) {
-
-
-}
-
-TEST_F(CreateSmallSphereTest, BENCH_ITERATION) {
-
-
-}
+//TEST_F(CreateGTSmallTest, APR_PIPELINE_3D) {
+//
+//
+//}
+//
+//TEST_F(CreateGTSmall2DTest, APR_PIPELINE_2D) {
+//
+//
+//
+//}
+//
+//
+//TEST_F(CreateGTSmall1DTest, BENCH_ITERATION) {
+//
+//
+//}
+//
+//TEST_F(CreateSmallSphereTest, BENCH_ITERATION) {
+//
+//
+//}
 
 TEST_F(Create210SphereTest, BENCH_ITERATION) {
 
+    ASSERT_TRUE(bench_iteration(test_data));
 
 }
-
-
-
 
 
 int main(int argc, char **argv) {

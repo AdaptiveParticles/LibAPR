@@ -120,6 +120,9 @@ int main(int argc, char **argv) {
 
     timer.stop_timer();
 
+
+
+
     ////////////////////////////
     ///
     /// OpenMP Parallel loop iteration (For use with neighbour access see Example_apr_neigh)
