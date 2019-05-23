@@ -22,6 +22,9 @@ class APRAccess {
 
 public:
 
+    //New Linear Access Structures
+    LinearAccess linearAccess;
+
     uint64_t l_min;
     uint64_t l_max;
     uint64_t org_dims[3]={0,0,0};
@@ -35,8 +38,7 @@ public:
 
     uint64_t total_number_particles;
     uint64_t total_number_gaps;
-//    std::vector<uint64_t> global_index_by_level_begin;                   // note: 0..n-1 based numbering
-//    std::vector<uint64_t> global_index_by_level_end;                     // note: 0..n-1 based numbering
+
     std::vector<std::vector<uint64_t>> global_index_by_level_and_zx_end; // note: 1..n based numbering
 
     uint64_t total_number_non_empty_rows;

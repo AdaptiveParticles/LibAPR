@@ -34,7 +34,7 @@ public:
     uint16_t z() const { return current_particle_cell.z; }
     uint16_t level() const { return current_particle_cell.level; }
     uint64_t global_index() const { return current_particle_cell.global_index; }
-    operator uint64_t() { return current_particle_cell.global_index; }
+    virtual operator uint64_t() { return current_particle_cell.global_index; }
 
     ParticleCell get_neigh_particle_cell();
     ParticleCell get_current_particle_cell();
@@ -67,6 +67,24 @@ public:
     inline uint64_t z_num(const unsigned int level){
         return spatial_index_z_max(level);
     }
+
+    //defining the iterator interface
+    virtual inline void operator++ (int){
+
+    }
+
+    virtual inline void operator++ (){
+
+    }
+
+    virtual inline uint64_t end(){
+        return 0;
+    }
+
+    virtual inline uint64_t begin(const uint16_t level,const uint16_t z,const uint16_t x){
+        return 0;
+    }
+
 
 
     inline void set_neighbour_flag();

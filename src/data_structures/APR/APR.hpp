@@ -9,16 +9,15 @@
 #include "APRIterator.hpp"
 #include "APRTree.hpp"
 #include "APRTreeIterator.hpp"
+#include "LinearIterator.hpp"
 
-//template<typename ImageType>
 class APR {
     friend class APRFile;
 
 protected:
-//    APRWriter apr_writer;
-//    APRReconstruction apr_recon;
 
-    bool linear_or_random;
+    bool linear_or_random = false;
+    bool linear_or_random_tree = false;
 
     APRAccess tree_access;
     bool tree_initialized = false;
@@ -26,6 +25,7 @@ protected:
     //APR Tree function
     void initialize_apr_tree_sparse();
     void initialize_apr_tree();
+    void initialize_linear_access(APRAccess& aprAccess,GenIterator& it);
 
 public:
 
@@ -51,6 +51,11 @@ public:
         return APRIterator(apr_access);
     }
 
+    LinearIterator linear_iterator() {
+        return LinearIterator(apr_access);
+    }
+
+
     APRTreeIterator tree_iterator() {
         return APRTreeIterator(apr_access,tree_access);
     }
@@ -63,29 +68,80 @@ public:
         return tree_initialized;
     }
 
+    void init_linear(){
+        if(!linear_or_random){
+            auto it = iterator();
+            initialize_linear_access(apr_access,it);
+        }
+    }
+
+    void init_tree_linear(){
+        init_tree();
+        if(!linear_or_random_tree){
+            auto it = tree_iterator();
+            initialize_linear_access(tree_access,it);
+        }
+    }
+
 
     APR(){
         //default
     }
 
-    //APR(APR<ImageType>& copyAPR){
-      //  copy_from_APR(copyAPR);
-    //}
 
     void copy_from_APR(APR& copyAPR){
         apr_access = copyAPR.apr_access;
-        //particles_intensities = copyAPR.particles_intensities;
-        //apr_tree = copyAPR.apr_tree;
-        //parameters = copyAPR.parameters;
+        tree_access = copyAPR.tree_access;
         name = copyAPR.name;
     }
-
-
 
 
 };
 
 #define INTERIOR_PARENT 9
+
+
+/**
+   * Initializes linear access apr structures, that require more memory, but are faster. However, the do not allow the same neighbour access as the random iterators
+   */
+void APR::initialize_linear_access(APRAccess& aprAccess,GenIterator& it){
+
+    auto& lin_a = aprAccess.linearAccess;
+
+    uint64_t counter = 0;
+    uint64_t counter_xz = 1;
+
+    lin_a.level_end_vec.resize(it.level_max() + 1);
+    lin_a.level_xz_vec.resize(it.level_max() + 1);
+
+    lin_a.xz_end_vec.push_back(counter); // adding padding by one to allow the -1 syntax without checking.
+
+    for (unsigned int level = 0; level <= it.level_max(); ++level) {
+        int z = 0;
+        int x = 0;
+
+        for (z = 0; z < it.z_num(level); z++) {
+            for (x = 0; x < it.x_num(level); ++x) {
+
+                for (it.begin(level, z, x); it < it.end();
+                     it++) {
+                    lin_a.y_vec.push_back(it.y());
+                    counter++;
+                }
+
+
+                lin_a.xz_end_vec.push_back(counter);
+                counter_xz++;
+            }
+        }
+
+        lin_a.level_end_vec[level] = counter;
+        lin_a.level_xz_vec[level] = counter_xz;
+    }
+
+
+}
+
 
 /**
    * Initializes the APR tree datastructures using a dense structure for memory, these are all particle cells that are parents of particles in the APR

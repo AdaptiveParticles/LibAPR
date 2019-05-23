@@ -42,12 +42,12 @@ public:
         return particleCellDataKey;
     }
 
-    inline bool operator++ (int){
-        return set_iterator_to_particle_next_particle();
+    inline void operator++ (int){
+        set_iterator_to_particle_next_particle();
     }
 
-    inline bool operator++ (){
-        return set_iterator_to_particle_next_particle();
+    inline void operator++ (){
+        set_iterator_to_particle_next_particle();
     }
 
     inline uint64_t end(){

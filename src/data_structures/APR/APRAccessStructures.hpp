@@ -10,6 +10,14 @@ struct PCDKey{
     uint64_t local_ind;
 };
 
+
+struct LinearAccess {
+    std::vector<uint16_t> y_vec;
+    std::vector<uint64_t> xz_end_vec;
+    std::vector<uint64_t> level_end_vec;
+    std::vector<uint64_t> level_xz_vec;
+};
+
 template<typename T>
 class SparseGaps {
 

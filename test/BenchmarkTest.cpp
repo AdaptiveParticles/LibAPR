@@ -316,8 +316,66 @@ bool bench_iteration(TestData& test_data){
 
     auto new_it = timer.timings.back();
 
+
+
+    test_data.apr.init_linear();
+    auto lin_it = test_data.apr.linear_iterator();
+
+    timer.start_timer("LinearIteration - OpenMP");
+
+    for (int r = 0; r < num_rep; ++r) {
+        for (unsigned int level = lin_it.level_min(); level <= lin_it.level_max(); ++level) {
+            int z = 0;
+
+#ifdef HAVE_OPENMP
+#pragma omp parallel for schedule(dynamic) private(z) firstprivate(lin_it)
+#endif
+            for (z = 0; z < lin_it.z_num(level); z++) {
+                for (int x = 0; x < lin_it.x_num(level); ++x) {
+                    for (lin_it.begin(level, z, x); lin_it < lin_it.end();
+                         lin_it++) {
+                        parts[lin_it] = (uint16_t)(parts[lin_it] + 1);
+
+                    }
+                }
+            }
+        }
+    }
+
+    timer.stop_timer();
+
+    timer.start_timer("LinearIteration - Linear");
+    uint64_t counter_test = 0;
+
+    for (int r = 0; r < num_rep; ++r) {
+        for (unsigned int level = lin_it.level_min(); level <= lin_it.level_max(); ++level) {
+            int z = 0;
+
+            for (z = 0; z < lin_it.z_num(level); z++) {
+                for (int x = 0; x < lin_it.x_num(level); ++x) {
+                    for (lin_it.begin(level, z, x); lin_it < lin_it.end();
+                         lin_it++) {
+                        parts[lin_it] = (uint16_t)(parts[lin_it] + 1);
+                        counter_test++;
+                    }
+                }
+            }
+        }
+    }
+
+    timer.stop_timer();
+
+    std::cout << counter_test << std::endl;
+    std::cout << test_data.apr.total_number_particles()*num_rep << std::endl;
+
+
+    auto lin_time = timer.timings.back();
+
     std::cout << "SU (old): " << mesh_it/org_it << std::endl;
     std::cout << "SU: " << mesh_it/new_it << std::endl;
+    std::cout << "SU (linear): " << mesh_it/lin_time << std::endl;
+    std::cout << "SU vs old: " << org_it/lin_time << std::endl;
+
 
     return success;
 }

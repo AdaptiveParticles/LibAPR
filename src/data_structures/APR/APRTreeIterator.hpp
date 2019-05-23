@@ -34,12 +34,12 @@ public:
 
     uint64_t set_new_lzx(const uint16_t level,const uint16_t z,const uint16_t x);
 
-    inline bool operator++ (int){
-        return set_iterator_to_particle_next_particle();
+    inline void operator++ (int){
+        set_iterator_to_particle_next_particle();
     }
 
-    inline bool operator++ (){
-        return set_iterator_to_particle_next_particle();
+    inline void operator++ (){
+        set_iterator_to_particle_next_particle();
     }
 
     inline uint64_t end(){
