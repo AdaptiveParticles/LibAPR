@@ -706,6 +706,151 @@ bool test_apr_neighbour_access(TestData& test_data){
 }
 
 
+bool test_linear_iterate(TestData& test_data) {
+    //
+    //  Bevan Cheeseman 2018
+    //
+    //  Test for the serial APR iterator
+    //
+
+    bool success = true;
+
+    test_data.apr.init_linear();
+    //auto it = test_data.apr.linear_iterator();
+
+    auto it = test_data.apr.linear_iterator();
+
+    uint64_t particle_number = 0;
+
+    for (unsigned int level = it.level_min(); level <= it.level_max(); ++level) {
+        int z = 0;
+        int x = 0;
+
+        for (z = 0; z < it.z_num(level); z++) {
+            for (x = 0; x < it.x_num(level); ++x) {
+                for (it.begin(level, z, x); it < it.end();
+                     it++) {
+
+                    uint16_t apr_intensity = (test_data.particles_intensities[it]);
+                    uint16_t check_intensity = test_data.img_pc(it.y_nearest_pixel(),
+                                                                it.x_nearest_pixel(),
+                                                                it.z_nearest_pixel());
+
+                    if (check_intensity != apr_intensity) {
+                        success = false;
+                        particle_number++;
+                    }
+
+                    uint16_t apr_level = level;
+                    uint16_t check_level = test_data.img_level(it.y_nearest_pixel(),
+                                                               it.x_nearest_pixel(),
+                                                               it.z_nearest_pixel());
+
+                    if (check_level != apr_level) {
+                        success = false;
+                    }
+
+
+
+                    uint16_t apr_x = x;
+                    uint16_t check_x = test_data.img_x(it.y_nearest_pixel(), it.x_nearest_pixel(),
+                                                       it.z_nearest_pixel());
+
+                    if (check_x != apr_x) {
+                        success = false;
+                    }
+
+                    uint16_t apr_y = it.y();
+                    uint16_t check_y = test_data.img_y(it.y_nearest_pixel(), it.x_nearest_pixel(),
+                                                       it.z_nearest_pixel());
+
+                    if (check_y != apr_y) {
+                        success = false;
+                    }
+
+                    uint16_t apr_z = z;
+                    uint16_t check_z = test_data.img_z(it.y_nearest_pixel(), it.x_nearest_pixel(),
+                                                       it.z_nearest_pixel());
+
+                    if (check_z != apr_z) {
+                        success = false;
+                    }
+                }
+            }
+        }
+
+    }
+
+    std::cout << particle_number << std::endl;
+
+    //Test parallel loop
+
+    for (unsigned int level = it.level_min(); level <= it.level_max(); ++level) {
+        int z = 0;
+        int x = 0;
+
+#ifdef HAVE_OPENMP
+#pragma omp parallel for schedule(dynamic) private(z, x) firstprivate(it)
+#endif
+        for (z = 0; z < it.z_num(level); z++) {
+            for (x = 0; x < it.x_num(level); ++x) {
+                for (it.begin(level, z, x); it < it.end();
+                     it++) {
+
+                    uint16_t apr_intensity = (test_data.particles_intensities[it]);
+                    uint16_t check_intensity = test_data.img_pc(it.y_nearest_pixel(),
+                                                                it.x_nearest_pixel(),
+                                                                it.z_nearest_pixel());
+
+                    if (check_intensity != apr_intensity) {
+                        success = false;
+                    }
+
+                    uint16_t apr_level = level;
+                    uint16_t check_level = test_data.img_level(it.y_nearest_pixel(),
+                                                               it.x_nearest_pixel(),
+                                                               it.z_nearest_pixel());
+
+                    if (check_level != apr_level) {
+                        success = false;
+                    }
+
+
+
+                    uint16_t apr_x = x;
+                    uint16_t check_x = test_data.img_x(it.y_nearest_pixel(), it.x_nearest_pixel(),
+                                                       it.z_nearest_pixel());
+
+                    if (check_x != apr_x) {
+                        success = false;
+                    }
+
+                    uint16_t apr_y = it.y();
+                    uint16_t check_y = test_data.img_y(it.y_nearest_pixel(), it.x_nearest_pixel(),
+                                                       it.z_nearest_pixel());
+
+                    if (check_y != apr_y) {
+                        success = false;
+                    }
+
+                    uint16_t apr_z = z;
+                    uint16_t check_z = test_data.img_z(it.y_nearest_pixel(), it.x_nearest_pixel(),
+                                                       it.z_nearest_pixel());
+
+                    if (check_z != apr_z) {
+                        success = false;
+                    }
+                }
+            }
+        }
+
+    }
+
+    return success;
+
+
+}
+
 
 bool test_apr_iterate(TestData& test_data){
     //
@@ -1162,6 +1307,9 @@ TEST_F(CreateSmallSphereTest, APR_ITERATION) {
 
 //test iteration
 ASSERT_TRUE(test_apr_iterate(test_data));
+ASSERT_TRUE(test_linear_iterate(test_data));
+
+
 
 }
 
@@ -1225,6 +1373,7 @@ TEST_F(Create210SphereTest, APR_ITERATION) {
 
 //test iteration
     ASSERT_TRUE(test_apr_iterate(test_data));
+    ASSERT_TRUE(test_linear_iterate(test_data));
 
 }
 

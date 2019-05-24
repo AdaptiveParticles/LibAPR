@@ -334,7 +334,8 @@ bool bench_iteration(TestData& test_data){
                 for (int x = 0; x < lin_it.x_num(level); ++x) {
                     for (lin_it.begin(level, z, x); lin_it < lin_it.end();
                          lin_it++) {
-                        parts[lin_it] = (uint16_t)(parts[lin_it] + 1);
+                        //need to add the ability to get y, and x,z but as possible should be lazy.
+                        parts[lin_it] = (lin_it.y());
 
                     }
                 }
@@ -343,6 +344,8 @@ bool bench_iteration(TestData& test_data){
     }
 
     timer.stop_timer();
+
+    auto lin_time = timer.timings.back();
 
     timer.start_timer("LinearIteration - Linear");
     uint64_t counter_test = 0;
@@ -369,7 +372,6 @@ bool bench_iteration(TestData& test_data){
     std::cout << test_data.apr.total_number_particles()*num_rep << std::endl;
 
 
-    auto lin_time = timer.timings.back();
 
     std::cout << "SU (old): " << mesh_it/org_it << std::endl;
     std::cout << "SU: " << mesh_it/new_it << std::endl;
