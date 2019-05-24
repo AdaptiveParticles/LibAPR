@@ -5,12 +5,11 @@
 #ifndef LIBAPR_APRTREEITERATOR_HPP
 #define LIBAPR_APRTREEITERATOR_HPP
 
-
-#include "GenIterator.hpp"
+#include "RandomIterator.hpp"
 
 // APRIteration class, with extra methods designed for the use with APRTree
 
-class APRTreeIterator : public GenIterator {
+class APRTreeIterator : public RandomIterator {
 public:
     APRAccess* aprOwn_access;
 

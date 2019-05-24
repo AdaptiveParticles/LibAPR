@@ -192,11 +192,11 @@ void APR::initialize_apr_tree() {
 #ifdef HAVE_OPENMP
 #pragma omp parallel for schedule(dynamic) private(z, x) firstprivate(apr_iterator)
 #endif
-            for ( z = 0; z < apr_iterator.spatial_index_z_max(level); z++) {
-                for ( x = 0; x < apr_iterator.spatial_index_x_max(level); ++x) {
+            for ( z = 0; z < apr_iterator.z_num(level); z++) {
+                for ( x = 0; x < apr_iterator.x_num(level); ++x) {
                     for (apr_iterator.set_new_lzx(level, z, x);
-                         apr_iterator.global_index() < apr_iterator.end_index;
-                         apr_iterator.set_iterator_to_particle_next_particle()) {
+                         apr_iterator < apr_iterator.end();
+                         apr_iterator++) {
 
                         size_t y_p = apr_iterator.y() / 2;
                         size_t x_p = apr_iterator.x() / 2;
@@ -230,10 +230,10 @@ void APR::initialize_apr_tree() {
 #ifdef HAVE_OPENMP
 #pragma omp parallel for schedule(dynamic) private(z, x) firstprivate(apr_iterator)
 #endif
-            for ( z = 0; z < apr_iterator.spatial_index_z_max(level-1); z++) {
-                for ( x = 0; x < apr_iterator.spatial_index_x_max(level-1); ++x) {
+            for ( z = 0; z < apr_iterator.z_num(level-1); z++) {
+                for ( x = 0; x < apr_iterator.x_num(level-1); ++x) {
                     for (apr_iterator.set_new_lzx(level, 2*z, 2*x);
-                         apr_iterator.global_index() < apr_iterator.end_index;
+                         apr_iterator < apr_iterator.end();
                          apr_iterator.set_iterator_to_particle_next_particle()) {
 
                         if (apr_iterator.y()%2 == 0) {
@@ -331,19 +331,19 @@ void APR::initialize_apr_tree_sparse() {
 #pragma omp parallel for schedule(dynamic) private(z_d, x_d) firstprivate(apr_iterator)
 #endif
             for (z_d = 0; z_d < z_num[level-1]; z_d++) {
-                for (int z = 2*z_d; z <= std::min(2*z_d+1,(int)apr_iterator.spatial_index_z_max(level)-1); ++z) {
+                for (int z = 2*z_d; z <= std::min(2*z_d+1,(int)apr_iterator.z_num(level)-1); ++z) {
                     //the loop is bundled into blocks of 2, this prevents race conditions with OpenMP parents
                     for (x_d = 0; x_d < x_num[level-1]; ++x_d) {
                         for (int x = 2 * x_d;
-                             x <= std::min(2 * x_d + 1, (int) apr_iterator.spatial_index_x_max(level) - 1); ++x) {
+                             x <= std::min(2 * x_d + 1, (int) apr_iterator.x_num(level) - 1); ++x) {
 
                             size_t x_p = x / 2;
                             size_t z_p = z / 2;
                             int current_level = level - 1;
 
                             for (apr_iterator.set_new_lzx(level, z, x);
-                                 apr_iterator.global_index() < apr_iterator.end_index;
-                                 apr_iterator.set_iterator_to_particle_next_particle()) {
+                                 apr_iterator < apr_iterator.end();
+                                 apr_iterator++) {
                                 auto &pct = particle_cell_tree[current_level][z_p * x_num[current_level] + x_p];
 
                                 size_t y_p = apr_iterator.y() / 2;
@@ -362,11 +362,11 @@ void APR::initialize_apr_tree_sparse() {
 #pragma omp parallel for schedule(dynamic) private(z_d, x_d) firstprivate(apr_iterator)
 #endif
                 for (z_d = 0; z_d < z_num[level-1]; z_d++) {
-                    for (int z = 2 * z_d; z <= std::min(2 * z_d + 1, (int) apr_iterator.spatial_index_z_max(level) - 1); ++z) {
+                    for (int z = 2 * z_d; z <= std::min(2 * z_d + 1, (int) apr_iterator.z_num(level) - 1); ++z) {
                         //the loop is bundled into blocks of 2, this prevents race conditions with OpenMP parents
                         for (x_d = 0; x_d < x_num[level - 1]; ++x_d) {
                             for (int x = 2 * x_d;
-                                 x <= std::min(2 * x_d + 1, (int) apr_iterator.spatial_index_x_max(level) - 1); ++x) {
+                                 x <= std::min(2 * x_d + 1, (int) apr_iterator.x_num(level) - 1); ++x) {
 
                                 auto &pct = particle_cell_tree[level][z * x_num[level] + x];
 
@@ -393,19 +393,19 @@ void APR::initialize_apr_tree_sparse() {
 #ifdef HAVE_OPENMP
 #pragma omp parallel for schedule(dynamic) private(z_d, x_d) firstprivate(apr_iterator)
 #endif
-            for (z_d = 0; z_d < apr_iterator.spatial_index_z_max(level - 2); z_d++) {
-                for (int z = 2 * z_d; z <= std::min(2 * z_d + 1, (int) apr_iterator.spatial_index_z_max(level-1) - 1); ++z) {
+            for (z_d = 0; z_d < apr_iterator.z_num(level - 2); z_d++) {
+                for (int z = 2 * z_d; z <= std::min(2 * z_d + 1, (int) apr_iterator.z_num(level-1) - 1); ++z) {
                     //the loop is bundled into blocks of 2, this prevents race conditions with OpenMP parents
-                    for (x_d = 0; x_d < apr_iterator.spatial_index_x_max(level-2); ++x_d) {
+                    for (x_d = 0; x_d < apr_iterator.x_num(level-2); ++x_d) {
                         for (int x = 2 * x_d;
-                             x <= std::min(2 * x_d + 1, (int) apr_iterator.spatial_index_x_max(level-1) - 1); ++x) {
+                             x <= std::min(2 * x_d + 1, (int) apr_iterator.x_num(level-1) - 1); ++x) {
 
                             int x_p = x_d;
                             int z_p = z_d;
                             int current_level = level - 2;
 
                             for (apr_iterator.set_new_lzx(level, 2 * z, 2 * x);
-                                 apr_iterator.global_index() < apr_iterator.end_index;
+                                 apr_iterator < apr_iterator.end();
                                  apr_iterator.set_iterator_to_particle_next_particle()) {
 
                                 auto &pct = particle_cell_tree[current_level][z_p * x_num[current_level] + x_p];

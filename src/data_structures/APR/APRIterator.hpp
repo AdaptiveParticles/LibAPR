@@ -7,10 +7,9 @@
 
 #include "APRAccessStructures.hpp"
 
-#include "GenIterator.hpp"
+#include "RandomIterator.hpp"
 
-class APRIterator  : public GenIterator {
-
+class APRIterator  : public RandomIterator {
 
 public:
 
@@ -132,7 +131,7 @@ inline uint64_t APRIterator::set_new_lzx(const uint16_t level,const uint16_t z,c
 
                     uint64_t x_factor =2;
 
-                    if((x==(spatial_index_x_max(level)-1)) && ((x%2)==0)){
+                    if((x==(x_num(level)-1)) && ((x%2)==0)){
                         x_factor = 1;
                     }
 

@@ -41,6 +41,8 @@ public:
 
     std::vector<std::vector<uint64_t>> global_index_by_level_and_zx_end; // note: 1..n based numbering
 
+    std::vector<unsigned int> level_size; // precomputation of the size of each level, used by the iterators.
+
     uint64_t total_number_non_empty_rows;
     SparseGaps<ParticleCellGapMap> gap_map;
     void initialize_structure_from_particle_cell_tree_sparse(APRParameters& apr_parameters, SparseGaps<SparseParticleCellMap> &p_map);
@@ -545,6 +547,14 @@ public:
     void allocate_map_insert( SparseGaps<std::pair<uint16_t,YGap_map>>& y_begin) {
         // TODO: This whole method copies just y_begin converting std::pair into std::map entries, why we do not do that
         //       from the beginning (using map instead of pair, then we can skip this whole part of code).
+
+        //pre-allocate the level sizes.
+        level_size.resize(level_max() + 1);
+        for (int k = 0; k <= level_max(); ++k) {
+            level_size[k] = (uint64_t) pow(2,level_max() - k);
+        }
+
+
 	    APRTimer apr_timer;
         apr_timer.start_timer("initialize map");
 
@@ -592,6 +602,12 @@ public:
 
 
     void allocate_map(MapStorageData& map_data,std::vector<uint64_t>& cumsum,bool tree = false){
+
+        //pre-allocate the level sizes.
+        level_size.resize(level_max() + 1);
+        for (int k = 0; k <= level_max(); ++k) {
+            level_size[k] = (uint64_t) pow(2,level_max() - k);
+        }
 
         //first add the layers
         gap_map.level_max = level_max();
@@ -987,8 +1003,6 @@ inline void APRAccess::initialize_structure_from_particle_cell_tree(APRParameter
 
     // Initialize global structures
     total_number_gaps=0;
-
-
 
     global_index_by_level_and_zx_end.resize(level_max()+1);
 

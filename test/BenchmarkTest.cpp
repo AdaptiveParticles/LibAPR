@@ -97,11 +97,25 @@ bool bench_iteration(TestData& test_data){
 
     std::cout << "CR: " << CR << std::endl;
 
-    unsigned int num_rep = 1000;
+    unsigned int num_rep = 10000;
 
     APRTimer timer(true);
 
     //Add + 1 to the value, while having access to (x,y,z) test;
+
+    for (int r = 0; r < num_rep; ++r) {
+
+        for (int z = 0; z < test_img.z_num; ++z) {
+            for (int x = 0; x < test_img.x_num; ++x) {
+                for (int y = 0; y < test_img.y_num; ++y) {
+
+                    test_img.at(y,x,z) = test_img.at(y,x,z) + 1;
+
+                }
+            }
+        }
+    }
+
 
     timer.start_timer("Pixel Iteration - Serial");
 
@@ -257,71 +271,15 @@ bool bench_iteration(TestData& test_data){
 
 
 
-    timer.start_timer("APR Iteration NEW - Serial");
-
-    for (int r = 0; r < num_rep; ++r) {
-        for (unsigned int level = it.level_min(); level <= it.level_max(); ++level) {
-            int z = 0;
-            int x = 0;
-
-            const auto level_start = level_xz_vec[level-1];
-            const auto x_n = it.x_num(level);
-
-            for (z = 0; z < it.z_num(level); z++) {
-                for (x = 0; x < it.x_num(level); ++x) {
-                    const auto xz_start = level_start + x + z*x_n;
-                    const auto begin = xz_end_vec[xz_start-1];
-                    const auto end = xz_end_vec[xz_start];
-
-                    for (uint64_t i = begin; i < end; ++i) {
-                        parts[i] = y_vec[i];
-                    }
-
-                }
-            }
-        }
-    }
-
-    timer.stop_timer();
 
     timer.start_timer("APR Iteration NEW - OpenMP");
-
-    for (int r = 0; r < num_rep; ++r) {
-        for (unsigned int level = it.level_min(); level <= it.level_max(); ++level) {
-            int z = 0;
-            int x = 0;
-
-            const auto level_start = level_xz_vec[level-1];
-            const auto x_n = it.x_num(level);
-
-#ifdef HAVE_OPENMP
-#pragma omp parallel for schedule(dynamic) private(z)
-#endif
-            for (z = 0; z < it.z_num(level); z++) {
-                for (int x = 0; x < it.x_num(level); ++x) {
-                    const auto xz_start = level_start + x + z*x_n;
-                    const auto begin = xz_end_vec[xz_start-1];
-                    const auto end = xz_end_vec[xz_start];
-
-                    for (uint64_t i = begin; i < end; ++i) {
-                        parts[i] = y_vec[i];
-                    }
-
-                }
-            }
-        }
-    }
-
-    timer.stop_timer();
-
-    auto new_it = timer.timings.back();
 
 
 
     test_data.apr.init_linear();
     auto lin_it = test_data.apr.linear_iterator();
 
-    timer.start_timer("LinearIteration - OpenMP");
+    timer.start_timer("LinearIteration (inc y) - OpenMP");
 
     for (int r = 0; r < num_rep; ++r) {
         for (unsigned int level = lin_it.level_min(); level <= lin_it.level_max(); ++level) {
@@ -347,6 +305,34 @@ bool bench_iteration(TestData& test_data){
 
     auto lin_time = timer.timings.back();
 
+
+    timer.start_timer("LinearIteration (without y) - OpenMP");
+
+    for (int r = 0; r < num_rep; ++r) {
+        for (unsigned int level = lin_it.level_min(); level <= lin_it.level_max(); ++level) {
+            int z = 0;
+
+#ifdef HAVE_OPENMP
+#pragma omp parallel for schedule(dynamic) private(z) firstprivate(lin_it)
+#endif
+            for (z = 0; z < lin_it.z_num(level); z++) {
+                for (int x = 0; x < lin_it.x_num(level); ++x) {
+                    for (lin_it.begin(level, z, x); lin_it < lin_it.end();
+                         lin_it++) {
+                        //need to add the ability to get y, and x,z but as possible should be lazy.
+                        parts[lin_it] +=1;
+
+                    }
+                }
+            }
+        }
+    }
+
+    timer.stop_timer();
+
+    auto lin_time_noy = timer.timings.back();
+
+
     timer.start_timer("LinearIteration - Linear");
     uint64_t counter_test = 0;
 
@@ -371,13 +357,10 @@ bool bench_iteration(TestData& test_data){
     std::cout << counter_test << std::endl;
     std::cout << test_data.apr.total_number_particles()*num_rep << std::endl;
 
-
-
     std::cout << "SU (old): " << mesh_it/org_it << std::endl;
-    std::cout << "SU: " << mesh_it/new_it << std::endl;
+    std::cout << "SU (linear no y): " << mesh_it/lin_time_noy << std::endl;
     std::cout << "SU (linear): " << mesh_it/lin_time << std::endl;
     std::cout << "SU vs old: " << org_it/lin_time << std::endl;
-
 
     return success;
 }

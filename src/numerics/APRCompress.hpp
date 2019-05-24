@@ -305,8 +305,8 @@ void APRCompress::predict_particles_by_level(APR& apr,const unsigned int level,P
     for (z_block = 0; z_block < num_z_blocks; ++z_block) {
 
         for (unsigned int z = z_block_begin[z_block]; z < z_block_end[z_block]; ++z) {
-            for (x = 0; x < apr_iterator.spatial_index_x_max(level); ++x) {
-                for (apr_iterator.set_new_lzx(level, z, x); apr_iterator.global_index() < apr_iterator.end_index;
+            for (x = 0; x < apr_iterator.x_num(level); ++x) {
+                for (apr_iterator.set_new_lzx(level, z, x); apr_iterator < apr_iterator.end();
                      apr_iterator.set_iterator_to_particle_next_particle()) {
 
                     float count_neighbours = 0;
