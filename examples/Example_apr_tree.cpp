@@ -87,9 +87,9 @@ int main(int argc, char **argv) {
 #ifdef HAVE_OPENMP
         #pragma omp parallel for schedule(dynamic) private(z, x) firstprivate(apr_tree_iterator)
 #endif
-        for (z = 0; z < apr_tree_iterator.spatial_index_z_max(level); z++) {
-            for (x = 0; x < apr_tree_iterator.spatial_index_x_max(level); ++x) {
-                for (apr_tree_iterator.set_new_lzx(level, z, x); apr_tree_iterator.global_index() < apr_tree_iterator.end_index;
+        for (z = 0; z < apr_tree_iterator.z_num(level); z++) {
+            for (x = 0; x < apr_tree_iterator.x_num(level); ++x) {
+                for (apr_tree_iterator.set_new_lzx(level, z, x); apr_tree_iterator < apr_tree_iterator.end();
                      apr_tree_iterator.set_iterator_to_particle_next_particle()) {
 
                     if(apr_tree_iterator.level() < apr_tree_iterator.level_max()) {
@@ -119,9 +119,9 @@ int main(int argc, char **argv) {
 #ifdef HAVE_OPENMP
 #pragma omp parallel for schedule(dynamic) private(z, x) firstprivate(apr_tree_iterator,neigh_tree_iterator)
 #endif
-        for (z = 0; z < apr_tree_iterator.spatial_index_z_max(level); z++) {
-            for (x = 0; x < apr_tree_iterator.spatial_index_x_max(level); ++x) {
-                for (apr_tree_iterator.set_new_lzx(level, z, x); apr_tree_iterator.global_index() < apr_tree_iterator.end_index;
+        for (z = 0; z < apr_tree_iterator.z_num(level); z++) {
+            for (x = 0; x < apr_tree_iterator.x_num(level); ++x) {
+                for (apr_tree_iterator.set_new_lzx(level, z, x); apr_tree_iterator < apr_tree_iterator.end();
                      apr_tree_iterator.set_iterator_to_particle_next_particle()) {
 
                     //loop over all the neighbours and set the neighbour iterator to it

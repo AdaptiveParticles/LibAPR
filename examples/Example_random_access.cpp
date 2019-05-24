@@ -112,7 +112,7 @@ int main(int argc, char **argv) {
         } else {
             std::cout << "Particle Cell found is at level: " << apr_iterator.level() << " with x: " << apr_iterator.x()
                       << " y: " << apr_iterator.y() << " z: " << apr_iterator.z() << std::endl;
-            std::cout << " with global index: " << apr_iterator.global_index() << " and intensity "
+            std::cout << " with global index: " << apr_iterator << " and intensity "
                       << parts[apr_iterator] << std::endl;
         }
     }

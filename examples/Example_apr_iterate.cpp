@@ -110,8 +110,8 @@ int main(int argc, char **argv) {
 
                     if (parts[apr_iterator] > 100) {
                         //set all particles in calc_ex with an particle intensity greater then 100 to 0.
-                        calc_ex[apr_iterator] = apr_iterator.x() - apr_iterator.y(); //these are location parameters, i.e. co-odinates on the given level (apr_iterator.level())
-                        calc_ex[apr_iterator] += apr_iterator.z_global(); // you can also access the global co-ordinates, or apr_iterator.z_nearest_pixel(), for th nearest pixel co-ordinate
+                        calc_ex[apr_iterator] = x - apr_iterator.y(); //these are location parameters, i.e. co-odinates on the given level (apr_iterator.level())
+                        calc_ex[apr_iterator] += apr_iterator.z_global(level,z); // you can also access the global co-ordinates, or apr_iterator.z_nearest_pixel(), for th nearest pixel co-ordinate
                     }
                 }
             }
@@ -147,7 +147,7 @@ int main(int argc, char **argv) {
                      apr_iterator++) {
                     if (apr_iterator.level() < apr_iterator.level_max()) {
                         //get global y co-ordinate of the particle and put result in calc_example_2 at the current Particle Cell (PC) location
-                        calc_example_2[apr_iterator] = apr_iterator.y_global();
+                        calc_example_2[apr_iterator] = apr_iterator.y_global(level,apr_iterator.y());
                     }
                 }
             }

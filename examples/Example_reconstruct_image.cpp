@@ -181,9 +181,9 @@ int main(int argc, char **argv) {
 #ifdef HAVE_OPENMP
 #pragma omp parallel for schedule(dynamic) private(z, x) firstprivate(apr_iterator)
 #endif
-            for (z = 0; z < apr_iterator.spatial_index_z_max(level); z++) {
-                for (x = 0; x < apr_iterator.spatial_index_x_max(level); ++x) {
-                    for (apr_iterator.set_new_lzx(level, z, x); apr_iterator.global_index() < apr_iterator.end_index;
+            for (z = 0; z < apr_iterator.z_num(level); z++) {
+                for (x = 0; x < apr_iterator.x_num(level); ++x) {
+                    for (apr_iterator.set_new_lzx(level, z, x); apr_iterator < apr_iterator.end();
                          apr_iterator.set_iterator_to_particle_next_particle()) {
 
                         levelp[apr_iterator] = apr_iterator.level();
