@@ -303,9 +303,17 @@ void APRConverter<ImageType>::solveForAPR(APR& aAPR){
     iPullingScheme.pulling_scheme_main();
     method_timer.stop_timer();
 
-    method_timer.start_timer("compute_apr_datastructure");
-    aAPR.apr_access.initialize_structure_from_particle_cell_tree(aAPR.parameters, iPullingScheme.getParticleCellTree());
-    method_timer.stop_timer();
+    if(!generate_linear) {
+        method_timer.start_timer("compute_apr_datastructure");
+        aAPR.apr_access.initialize_structure_from_particle_cell_tree(aAPR.parameters,
+                                                                     iPullingScheme.getParticleCellTree());
+        method_timer.stop_timer();
+    } else {
+        method_timer.start_timer("compute_apr_datastructure");
+        aAPR.apr_access.initialize_structure_from_particle_cell_tree(aAPR.parameters,
+                                                                     iPullingScheme.getParticleCellTree());
+        method_timer.stop_timer();
+    }
 
 }
 

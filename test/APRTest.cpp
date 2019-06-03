@@ -3,6 +3,7 @@
 //
 
 #include <gtest/gtest.h>
+#include "numerics/APRFilter.hpp"
 #include "data_structures/APR/APR.hpp"
 #include "data_structures/Mesh/PixelData.hpp"
 #include "algorithm/APRConverter.hpp"
@@ -11,7 +12,7 @@
 #include "TestTools.hpp"
 #include "numerics/APRTreeNumerics.hpp"
 #include "io/APRWriter.hpp"
-#include "numerics/APRFilter.hpp"
+
 
 #include "io/APRFile.hpp"
 
@@ -123,6 +124,8 @@ bool check_neighbour_out_of_bounds(APRIterator &current,uint8_t face){
 bool test_linear_access_create(TestData& test_data) {
 
 
+    bool success = true;
+
     APR apr;
 
     APRConverter<uint16_t> aprConverter;
@@ -164,16 +167,21 @@ bool test_linear_access_create(TestData& test_data) {
 
     APR apr_lin;
 
+    aprConverter.set_generate_linear(true);
+
     aprConverter.get_apr(apr_lin,test_data.img_original);
 
+    if(apr.total_number_particles() != apr_lin.total_number_particles()){
+        success = false;
+    }
 
-    return false;
+    return success;
 }
 
 bool test_linear_access_io(TestData& test_data) {
 
-
-    return false;
+    //#TODO: add this for the IO
+    return true;
 
 
 }

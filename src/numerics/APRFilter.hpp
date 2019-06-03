@@ -5,6 +5,8 @@
 #ifndef APR_TIME_APRFILTER_HPP
 #define APR_TIME_APRFILTER_HPP
 #include "data_structures/APR/APR.hpp"
+#include "numerics/APRReconstruction.hpp"
+#include "numerics/APRTreeNumerics.hpp"
 
 #define ZERO_PAD 0
 #define REFLECT_PAD 1
