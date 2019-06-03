@@ -152,6 +152,8 @@ bool test_linear_access_create(TestData& test_data) {
     aprConverter.par.name = test_data.output_name;
     aprConverter.par.output_dir = test_data.output_dir;
 
+    aprConverter.method_timer.verbose_flag = true;
+
     //Gets the APR
 
     ParticleData<uint16_t> particles_intensities;
@@ -174,6 +176,36 @@ bool test_linear_access_create(TestData& test_data) {
     if(apr.total_number_particles() != apr_lin.total_number_particles()){
         success = false;
     }
+
+    //apr_lin.init_linear();
+    auto it_new = apr.linear_iterator();
+
+    for (unsigned int level = it_new.level_min(); level <= it_new.level_max(); ++level) {
+        int z = 0;
+        int x = 0;
+
+        for (z = 0; z < it_new.z_num(level); z++) {
+            for (x = 0; x < it_new.x_num(level); ++x) {
+                it_org.begin(level, z, x);
+                for (it_new.begin(level, z, x); it_new < it_new.end();
+                     it_new++) {
+
+                    if(it_new != it_org){
+                        success = false;
+                    }
+
+                    if(it_new.y() != it_org.y()){
+                        success = false;
+                    }
+
+                    if(it_org < it_org.end()){
+                        it_org++;
+                    }
+                }
+            }
+        }
+    }
+
 
     return success;
 }

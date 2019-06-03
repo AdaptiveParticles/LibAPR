@@ -310,7 +310,7 @@ void APRConverter<ImageType>::solveForAPR(APR& aAPR){
         method_timer.stop_timer();
     } else {
         method_timer.start_timer("compute_apr_datastructure");
-        aAPR.apr_access.initialize_structure_from_particle_cell_tree(aAPR.parameters,
+        aAPR.apr_access.initialize_linear_structure_from_particle_cell_tree(aAPR.parameters,
                                                                      iPullingScheme.getParticleCellTree());
         method_timer.stop_timer();
     }

@@ -16,6 +16,11 @@ struct LinearAccess {
     std::vector<uint64_t> xz_end_vec;
     std::vector<uint64_t> level_end_vec;
     std::vector<uint64_t> level_xz_vec;
+
+
+
+
+
 };
 
 template<typename T>
