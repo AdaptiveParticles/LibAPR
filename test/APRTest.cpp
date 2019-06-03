@@ -11,6 +11,7 @@
 #include "TestTools.hpp"
 #include "numerics/APRTreeNumerics.hpp"
 #include "io/APRWriter.hpp"
+#include "numerics/APRFilter.hpp"
 
 #include "io/APRFile.hpp"
 
@@ -117,6 +118,68 @@ bool check_neighbour_out_of_bounds(APRIterator &current,uint8_t face){
 
     return true;
 }
+
+
+bool test_linear_access_create(TestData& test_data) {
+
+
+    APR apr;
+
+    APRConverter<uint16_t> aprConverter;
+
+    //read in the command line options into the parameters file
+    aprConverter.par.Ip_th = 0;
+    aprConverter.par.rel_error = 0.1;
+    aprConverter.par.lambda = 0;
+    aprConverter.par.mask_file = "";
+    aprConverter.par.min_signal = -1;
+
+    aprConverter.par.sigma_th_max = 50;
+    aprConverter.par.sigma_th = 100;
+
+    aprConverter.par.SNR_min = -1;
+
+    aprConverter.par.auto_parameters = false;
+
+    aprConverter.par.output_steps = false;
+
+    //where things are
+    aprConverter.par.input_image_name = test_data.filename;
+    aprConverter.par.input_dir = "";
+    aprConverter.par.name = test_data.output_name;
+    aprConverter.par.output_dir = test_data.output_dir;
+
+    //Gets the APR
+
+    ParticleData<uint16_t> particles_intensities;
+
+    aprConverter.get_apr(apr,test_data.img_original);
+
+    particles_intensities.sample_parts_from_img_downsampled(apr,test_data.img_original);
+
+    apr.init_linear();
+
+    auto it_org = apr.linear_iterator();
+
+
+    APR apr_lin;
+
+    aprConverter.get_apr(apr_lin,test_data.img_original);
+
+
+    return false;
+}
+
+bool test_linear_access_io(TestData& test_data) {
+
+
+    return false;
+
+
+}
+
+
+
 
 bool test_apr_tree(TestData& test_data) {
 
@@ -1413,19 +1476,19 @@ void CreateSmallSphereTest::SetUp(){
     aprFile.close();
 
     file_name = get_source_directory_apr() + "files/Apr/sphere_120/sphere_level.tif";
-    test_data.img_level = TiffUtils::getMesh<uint16_t>(file_name);
+    test_data.img_level = TiffUtils::getMesh<uint16_t>(file_name,false);
     file_name = get_source_directory_apr() + "files/Apr/sphere_120/sphere_type.tif";
-    test_data.img_type = TiffUtils::getMesh<uint16_t>(file_name);
+    test_data.img_type = TiffUtils::getMesh<uint16_t>(file_name,false);
     file_name = get_source_directory_apr() + "files/Apr/sphere_120/sphere_original.tif";
-    test_data.img_original = TiffUtils::getMesh<uint16_t>(file_name);
+    test_data.img_original = TiffUtils::getMesh<uint16_t>(file_name,false);
     file_name = get_source_directory_apr() + "files/Apr/sphere_120/sphere_pc.tif";
-    test_data.img_pc = TiffUtils::getMesh<uint16_t>(file_name);
+    test_data.img_pc = TiffUtils::getMesh<uint16_t>(file_name,false);
     file_name = get_source_directory_apr() + "files/Apr/sphere_120/sphere_x.tif";
-    test_data.img_x = TiffUtils::getMesh<uint16_t>(file_name);
+    test_data.img_x = TiffUtils::getMesh<uint16_t>(file_name,false);
     file_name =  get_source_directory_apr() + "files/Apr/sphere_120/sphere_y.tif";
-    test_data.img_y = TiffUtils::getMesh<uint16_t>(file_name);
+    test_data.img_y = TiffUtils::getMesh<uint16_t>(file_name,false);
     file_name =  get_source_directory_apr() + "files/Apr/sphere_120/sphere_z.tif";
-    test_data.img_z = TiffUtils::getMesh<uint16_t>(file_name);
+    test_data.img_z = TiffUtils::getMesh<uint16_t>(file_name,false);
 
     test_data.filename = get_source_directory_apr() + "files/Apr/sphere_120/sphere_original.tif";
     test_data.output_name = "sphere_small";
@@ -1445,19 +1508,19 @@ void Create210SphereTest::SetUp(){
     aprFile.close();
 
     file_name = get_source_directory_apr() + "files/Apr/sphere_210/sphere_level.tif";
-    test_data.img_level = TiffUtils::getMesh<uint16_t>(file_name);
+    test_data.img_level = TiffUtils::getMesh<uint16_t>(file_name,false);
     file_name = get_source_directory_apr() + "files/Apr/sphere_210/sphere_type.tif";
-    test_data.img_type = TiffUtils::getMesh<uint16_t>(file_name);
+    test_data.img_type = TiffUtils::getMesh<uint16_t>(file_name,false);
     file_name = get_source_directory_apr() + "files/Apr/sphere_210/sphere_original.tif";
-    test_data.img_original = TiffUtils::getMesh<uint16_t>(file_name);
+    test_data.img_original = TiffUtils::getMesh<uint16_t>(file_name,false);
     file_name = get_source_directory_apr() + "files/Apr/sphere_210/sphere_pc.tif";
-    test_data.img_pc = TiffUtils::getMesh<uint16_t>(file_name);
+    test_data.img_pc = TiffUtils::getMesh<uint16_t>(file_name,false);
     file_name = get_source_directory_apr() + "files/Apr/sphere_210/sphere_x.tif";
-    test_data.img_x = TiffUtils::getMesh<uint16_t>(file_name);
+    test_data.img_x = TiffUtils::getMesh<uint16_t>(file_name,false);
     file_name =  get_source_directory_apr() + "files/Apr/sphere_210/sphere_y.tif";
-    test_data.img_y = TiffUtils::getMesh<uint16_t>(file_name);
+    test_data.img_y = TiffUtils::getMesh<uint16_t>(file_name,false);
     file_name =  get_source_directory_apr() + "files/Apr/sphere_210/sphere_z.tif";
-    test_data.img_z = TiffUtils::getMesh<uint16_t>(file_name);
+    test_data.img_z = TiffUtils::getMesh<uint16_t>(file_name,false);
 
     test_data.filename = get_source_directory_apr() + "files/Apr/sphere_210/sphere_original.tif";
     test_data.output_name = "sphere_210";
@@ -1469,27 +1532,39 @@ TEST_F(CreateSmallSphereTest, APR_ITERATION) {
 ASSERT_TRUE(test_apr_iterate(test_data));
 ASSERT_TRUE(test_linear_iterate(test_data));
 
+}
 
+TEST_F(Create210SphereTest, LINEAR_ACCESS) {
+    //tests the linear access geneartions and io
+    ASSERT_TRUE(test_linear_access_create(test_data));
+    ASSERT_TRUE(test_linear_access_io(test_data));
+
+}
+
+TEST_F(CreateSmallSphereTest, LINEAR_ACCESS) {
+
+    ASSERT_TRUE(test_linear_access_create(test_data));
+    ASSERT_TRUE(test_linear_access_io(test_data));
 
 }
 
 TEST_F(CreateSmallSphereTest, APR_TREE) {
 
-//test iteration
-ASSERT_TRUE(test_apr_tree(test_data));
+    //test iteration
+    ASSERT_TRUE(test_apr_tree(test_data));
 
 }
 
 TEST_F(CreateSmallSphereTest, APR_NEIGHBOUR_ACCESS) {
 
-//test iteration
-ASSERT_TRUE(test_apr_neighbour_access(test_data));
+    //test iteration
+    ASSERT_TRUE(test_apr_neighbour_access(test_data));
 
 }
 
 TEST_F(CreateSmallSphereTest, APR_INPUT_OUTPUT) {
 
-//test iteration
+    //test iteration
    // ASSERT_TRUE(test_apr_input_output(test_data));
 
     ASSERT_TRUE(test_apr_file(test_data));

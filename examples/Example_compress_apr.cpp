@@ -85,7 +85,7 @@ int main(int argc, char **argv) {
 
     timer.stop_timer();
 
-    float time_write = (float) timer.timings.back();
+    //float time_write = (float) timer.timings.back();
 
 //    //read the APR and decompress
 //    timer.start_timer("read and decompress");

@@ -35,8 +35,13 @@ protected:
     LocalIntensityScale iLocalIntensityScale;
     ComputeGradient iComputeGradient;
 
+    bool generate_linear = false;
 
 public:
+
+    void set_generate_linear(bool flag){
+        generate_linear = flag;
+    }
 
     APRTimer fine_grained_timer;
     APRTimer method_timer;
@@ -83,8 +88,6 @@ protected:
     template<typename T>
     bool check_input_dimensions(PixelData<T> &input_image);
 
-    public:
-
 
     void get_gradient(PixelData<ImageType> &image_temp, PixelData<ImageType> &grad_temp, PixelData<float> &local_scale_temp, PixelData<float> &local_scale_temp2, float bspline_offset, const APRParameters &par);
     void get_local_intensity_scale(PixelData<float> &local_scale_temp, PixelData<float> &local_scale_temp2, const APRParameters &par);
@@ -92,33 +95,9 @@ protected:
     void computeLevels(const PixelData<ImageType> &grad_temp, PixelData<float> &local_scale_temp, int maxLevel, float relError, float dx = 1, float dy = 1, float dz = 1);
     void get_local_particle_cell_set(PixelData<float> &local_scale_temp, PixelData<float> &local_scale_temp2);
 
-//    template<typename T,typename S>
-//    void get_particles(APR &aAPR,PixelData<T>& input_image,ParticleData<S>& particles);
 
 };
 
-//template<typename ImageType>
-//inline bool APRConverter<ImageType>::get_apr(APR &aAPR) {
-//    apr = &aAPR;
-//#ifdef HAVE_LIBTIFF
-//    TiffUtils::TiffInfo inputTiff(par.input_dir + par.input_image_name);
-//    if (!inputTiff.isFileOpened()) return false;
-//
-//
-//    if (inputTiff.iType == TiffUtils::TiffInfo::TiffType::TIFF_UINT8) {
-//        return get_apr_method_from_file<uint8_t>(aAPR, TiffUtils::getMesh<uint8_t>(inputTiff));
-//    } else if (inputTiff.iType == TiffUtils::TiffInfo::TiffType::TIFF_FLOAT) {
-//        return get_apr_method_from_file<float>(aAPR, TiffUtils::getMesh<float>(inputTiff));
-//    } else if (inputTiff.iType == TiffUtils::TiffInfo::TiffType::TIFF_UINT16) {
-//        return get_apr_method_from_file<uint16_t>(aAPR, TiffUtils::getMesh<uint16_t>(inputTiff));
-//    } else {
-//        std::cerr << "Wrong file type" << std::endl;
-//        return false;
-//    }
-//#else
-//    return false;
-//#endif
-//};
 
 template <typename T>
 struct MinMax{T min; T max; };
@@ -184,17 +163,6 @@ inline bool APRConverter<ImageType>::get_apr(APR &aAPR, PixelData<T> &inputImage
 
     return get_apr_method(aAPR, inputImage);
 }
-
-//template<typename ImageType> template<typename T,typename S>
-//void APRConverter<ImageType>::get_particles(APR &aAPR,PixelData<T>& input_image,ParticleData<S>& particles) {
-//
-//    APRReconstruction aprReconstruction;
-//    method_timer.start_timer("sample_particles");
-//    aprReconstruction.get_parts_from_img(aAPR,input_image,particles);
-//    method_timer.stop_timer();
-//
-//}
-
 
 template<typename ImageType>
 void APRConverter<ImageType>::applyParameters(APR& aAPR,APRParameters& aprParameters) {

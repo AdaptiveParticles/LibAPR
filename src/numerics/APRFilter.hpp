@@ -12,8 +12,8 @@
 class APRFilter {
 
 public:
-    template<typename ImageType, typename S, typename T,typename R>
-    void convolve(APR<ImageType> &apr, std::vector<PixelData<T>>& stencils, ExtraParticleData<S> &particle_input, ExtraParticleData<R> &particle_output);
+    template< typename S, typename T,typename R>
+    void convolve(APR &apr, std::vector<PixelData<T>>& stencils, ParticleData<S> &particle_input, ParticleData<R> &particle_output);
 
     bool boundary_cond = 1;
 
@@ -87,37 +87,32 @@ public:
         }
 
 
-
-
     }
 
 
     template<typename ImageType>
     inline void update_same_level(const uint64_t level,
-                                  const uint64_t z,const uint64_t x,APRIterator &apr_iterator,PixelData<float> &temp_vec,
-                                  ExtraParticleData<ImageType> &inputParticles,
+                                  const uint64_t z,const uint64_t x,APRIterator &it,PixelData<float> &temp_vec,
+                                  ParticleData<ImageType> &inputParticles,
                                   const std::vector<int> &stencil_shape,
                                   const std::vector<int> &stencil_half, const uint64_t y_num_m, const uint64_t x_num_m,const bool boundary_cond,const uint64_t mesh_offset){
 
+        for (it.begin(level, z, x);it < it.end();it++) {
 
-        for (apr_iterator.set_new_lzx(level, z, x);
-             apr_iterator.global_index() < apr_iterator.end_index;
-             apr_iterator.set_iterator_to_particle_next_particle()) {
-
-            temp_vec.mesh[apr_iterator.y() + stencil_half[0] + mesh_offset] = inputParticles[apr_iterator];
+            temp_vec.mesh[it.y() + stencil_half[0] + mesh_offset] = inputParticles[it];
         }
     }
 
 
-    template<typename ImageType,typename R>
+    template<typename R>
     void update_dense_array(const uint64_t level,
                             const uint64_t z,
-                            APR<ImageType> &apr,
-                            APRIterator &apr_iterator,
-                            APRTreeIterator &treeIterator,
-                            ExtraParticleData<float> &tree_data,
+                            APR &apr,
+                            APRIterator &apr_it,
+                            APRTreeIterator &tree_it,
+                            ParticleData<float> &tree_data,
                             PixelData<float> &temp_vec,
-                            ExtraParticleData<R> &inputParticles,
+                            ParticleData<R> &inputParticles,
                             const std::vector<int> &stencil_shape,
                             const std::vector<int> &stencil_half) {
 
@@ -127,9 +122,9 @@ public:
         const uint64_t y_num_m = temp_vec.y_num;
 
 #ifdef HAVE_OPENMP
-#pragma omp parallel for schedule(dynamic) private(x) firstprivate(apr_iterator)
+#pragma omp parallel for schedule(dynamic) private(x) firstprivate(apr_it)
 #endif
-        for (x = 0; x < apr_iterator.spatial_index_x_max(level); ++x) {
+        for (x = 0; x < apr_it.x_num(level); ++x) {
 
             //
             //  This loop recreates particles at the current level, using a simple copy
@@ -137,32 +132,32 @@ public:
 
             uint64_t mesh_offset = (x + stencil_half[1]) * y_num_m + x_num_m * y_num_m * (z % stencil_shape[2]);
 
-            update_same_level(level,z,x,apr_iterator,temp_vec,inputParticles,stencil_shape, stencil_half, y_num_m, x_num_m,boundary_cond,mesh_offset);
+            update_same_level(level,z,x,apr_it,temp_vec,inputParticles,stencil_shape, stencil_half, y_num_m, x_num_m,boundary_cond,mesh_offset);
 
         }
 
-        if (level > apr_iterator.level_min()) {
-            const int y_num = apr_iterator.spatial_index_y_max(level);
+        if (level > apr_it.level_min()) {
+            const int y_num = apr_it.y_num(level);
 
             //
             //  This loop interpolates particles at a lower level (Larger Particle Cell or resolution), by simple uploading
             //
 
 #ifdef HAVE_OPENMP
-#pragma omp parallel for schedule(dynamic) private(x) firstprivate(apr_iterator)
+#pragma omp parallel for schedule(dynamic) private(x) firstprivate(apr_it)
 #endif
             for (x = 0; x < apr.spatial_index_x_max(level); ++x) {
 
-                for (apr_iterator.set_new_lzx(level - 1, z / 2, x / 2);
-                     apr_iterator.global_index() < apr_iterator.end_index;
-                     apr_iterator.set_iterator_to_particle_next_particle()) {
+                for (apr_it.begin(level - 1, z / 2, x / 2);
+                     apr_it < apr_it.end();
+                     apr_it++) {
 
-                    int y_m = std::min(2 * apr_iterator.y() + 1, y_num - 1);    // 2y+1+offset
+                    int y_m = std::min(2 * apr_it.y() + 1, y_num - 1);    // 2y+1+offset
 
-                    temp_vec.at(2 * apr_iterator.y() + stencil_half[0], x + stencil_half[1],
-                                z % stencil_shape[2]) = inputParticles[apr_iterator];//particleData[apr_iterator];
+                    temp_vec.at(2 * apr_it.y() + stencil_half[0], x + stencil_half[1],
+                                z % stencil_shape[2]) = inputParticles[apr_it];//particleData[apr_iterator];
                     temp_vec.at(y_m + stencil_half[0], x + stencil_half[1],
-                                z % stencil_shape[2]) = inputParticles[apr_iterator];//particleData[apr_iterator];
+                                z % stencil_shape[2]) = inputParticles[apr_it];//particleData[apr_iterator];
 
                 }
             }
@@ -170,17 +165,17 @@ public:
 
         /******** start of using the tree iterator for downsampling ************/
 
-        if (level < apr_iterator.level_max()) {
+        if (level < apr_it.level_max()) {
 #ifdef HAVE_OPENMP
-#pragma omp parallel for schedule(dynamic) private(x) firstprivate(treeIterator)
+#pragma omp parallel for schedule(dynamic) private(x) firstprivate(tree_it)
 #endif
             for (x = 0; x < apr.spatial_index_x_max(level); ++x) {
-                for (treeIterator.set_new_lzx(level, z, x);
-                     treeIterator.global_index() < treeIterator.end_index;
-                     treeIterator.set_iterator_to_particle_next_particle()) {
+                for (tree_it.begin(level, z, x);
+                     tree_it < tree_it.end();
+                     tree_it++) {
 
-                    temp_vec.at(treeIterator.y() + stencil_half[0], x + stencil_half[1],
-                                z % stencil_shape[2]) = tree_data[treeIterator];
+                    temp_vec.at(tree_it.y() + stencil_half[0], x + stencil_half[1],
+                                z % stencil_shape[2]) = tree_data[tree_it];
                 }
             }
         }
@@ -189,7 +184,6 @@ public:
 
 
     }
-
 
 
 
@@ -319,49 +313,50 @@ public:
 
     }
 
-    template<typename ImageType, typename S,typename R>
-    void create_test_particles_equiv(APR<ImageType>& apr,const std::vector<PixelData<float>> &stencil_vec,ExtraParticleData<S>& input_particles
-            ,ExtraParticleData<R>& output_particles){
 
-        ExtraParticleData<float> part_tree;
+    template<typename S,typename R>
+    void create_test_particles_equiv(APR& apr,const std::vector<PixelData<float>> &stencil_vec,ParticleData<S>& input_particles
+            ,ParticleData<R>& output_particles){
+
+        ParticleData<float> part_tree;
 
         output_particles.init(apr.total_number_particles());
 
-        apr.apr_tree.fill_tree_mean(apr, apr.apr_tree, input_particles, part_tree);
+        APRTreeNumerics::fill_tree_mean(apr, input_particles, part_tree);
 
-        auto apr_iterator = apr.iterator();
-        auto apr_tree_iterator = apr.apr_tree.tree_iterator();
+        auto apr_it = apr.iterator();
+        auto tree_it = apr.tree_iterator();
 
         int stencil_counter = 0;
 
-        for (uint64_t level_local = apr_iterator.level_max(); level_local >= apr_iterator.level_min(); --level_local) {
+        for (uint64_t level_local = apr_it.level_max(); level_local >= apr_it.level_min(); --level_local) {
 
             PixelData<float> by_level_recon;
-            by_level_recon.init(apr_iterator.spatial_index_y_max(level_local),apr_iterator.spatial_index_x_max(level_local),apr_iterator.spatial_index_z_max(level_local),0);
+            by_level_recon.init(apr_it.y_num(level_local),apr_it.x_num(level_local),apr_it.z_num(level_local),0);
 
             //for (uint64_t level = std::max((uint64_t)(level_local-1),(uint64_t)apr_iterator.level_min()); level <= level_local; ++level) {
-            for (uint64_t level = apr_iterator.level_min(); level <= level_local; ++level) {
+            for (uint64_t level = apr_it.level_min(); level <= level_local; ++level) {
                 int z = 0;
                 int x = 0;
                 const float step_size = pow(2, level_local - level);
 
 
 #ifdef HAVE_OPENMP
-#pragma omp parallel for schedule(dynamic) private(z, x) firstprivate(apr_iterator)
+#pragma omp parallel for schedule(dynamic) private(z, x) firstprivate(apr_it)
 #endif
-                for (z = 0; z < apr_iterator.spatial_index_z_max(level); z++) {
-                    for (x = 0; x < apr_iterator.spatial_index_x_max(level); ++x) {
-                        for (apr_iterator.set_new_lzx(level, z, x); apr_iterator.global_index() < apr_iterator.end_index;
-                             apr_iterator.set_iterator_to_particle_next_particle()) {
+                for (z = 0; z < apr_it.z_num(level); z++) {
+                    for (x = 0; x < apr_it.x_num(level); ++x) {
+                        for (apr_it.begin(level, z, x); apr_it < apr_it.end();
+                             apr_it++) {
 
-                            int dim1 = apr_iterator.y() * step_size;
-                            int dim2 = apr_iterator.x() * step_size;
-                            int dim3 = apr_iterator.z() * step_size;
+                            int dim1 = apr_it.y() * step_size;
+                            int dim2 = apr_it.x() * step_size;
+                            int dim3 = apr_it.z() * step_size;
 
                             float temp_int;
                             //add to all the required rays
 
-                            temp_int = input_particles[apr_iterator];
+                            temp_int = input_particles[apr_it];
 
                             const int offset_max_dim1 = std::min((int) by_level_recon.y_num, (int) (dim1 + step_size));
                             const int offset_max_dim2 = std::min((int) by_level_recon.x_num, (int) (dim2 + step_size));
@@ -381,7 +376,7 @@ public:
             }
 
 
-            if(level_local < apr_iterator.level_max()){
+            if(level_local < apr_it.level_max()){
 
                 uint64_t level = level_local;
 
@@ -391,22 +386,22 @@ public:
                 int x = 0;
 
 #ifdef HAVE_OPENMP
-#pragma omp parallel for schedule(dynamic) private(z, x) firstprivate(apr_tree_iterator)
+#pragma omp parallel for schedule(dynamic) private(z, x) firstprivate(tree_it)
 #endif
-                for (z = 0; z < apr_tree_iterator.spatial_index_z_max(level); z++) {
-                    for (x = 0; x < apr_tree_iterator.spatial_index_x_max(level); ++x) {
-                        for (apr_tree_iterator.set_new_lzx(level, z, x);
-                             apr_tree_iterator.global_index() < apr_tree_iterator.end_index;
-                             apr_tree_iterator.set_iterator_to_particle_next_particle()) {
+                for (z = 0; z < tree_it.z_num(level); z++) {
+                    for (x = 0; x < tree_it.x_num(level); ++x) {
+                        for (tree_it.set_new_lzx(level, z, x);
+                             tree_it < tree_it.end();
+                             tree_it++) {
 
-                            int dim1 = apr_tree_iterator.y() * step_size;
-                            int dim2 = apr_tree_iterator.x() * step_size;
-                            int dim3 = apr_tree_iterator.z() * step_size;
+                            int dim1 = tree_it.y() * step_size;
+                            int dim2 = tree_it.x() * step_size;
+                            int dim3 = tree_it.z() * step_size;
 
                             float temp_int;
                             //add to all the required rays
 
-                            temp_int = part_tree[apr_tree_iterator];
+                            temp_int = part_tree[tree_it];
 
                             const int offset_max_dim1 = std::min((int) by_level_recon.y_num, (int) (dim1 + step_size));
                             const int offset_max_dim2 = std::min((int) by_level_recon.x_num, (int) (dim2 + step_size));
@@ -437,14 +432,14 @@ public:
             for (z = 0; z < apr.spatial_index_z_max(level); ++z) {
                 //lastly loop over particle locations and compute filter.
                 for (x = 0; x < apr.spatial_index_x_max(level); ++x) {
-                    for (apr_iterator.set_new_lzx(level, z, x);
-                         apr_iterator.global_index() < apr_iterator.end_index;
-                         apr_iterator.set_iterator_to_particle_next_particle()) {
+                    for (apr_it.set_new_lzx(level, z, x);
+                         apr_it < apr_it.end();
+                         apr_it++) {
 
                         double neigh_sum = 0;
                         int counter = 0;
 
-                        const int k = apr_iterator.y(); // offset to allow for boundary padding
+                        const int k = apr_it.y(); // offset to allow for boundary padding
                         const int i = x;
 
                         for (int l = -stencil_halves[2]; l < stencil_halves[2]+1; ++l) {
@@ -463,19 +458,19 @@ public:
                             }
                         }
 
-                        output_particles[apr_iterator] = neigh_sum;//std::roundf(neigh_sum/(1.0f*pow((float)2*stencil_halves[0]+1, apr.apr_access.number_dimensions)));
+                        output_particles[apr_it] = neigh_sum;//std::roundf(neigh_sum/(1.0f*pow((float)2*stencil_halves[0]+1, apr.apr_access.number_dimensions)));
                     }
                 }
             }
 
-            std::string image_file_name = apr.parameters.input_dir + std::to_string(level_local) + "_by_level.tif";
-            TiffUtils::saveMeshAsTiff(image_file_name, by_level_recon);
+//            std::string image_file_name = apr.parameters.input_dir + std::to_string(level_local) + "_by_level.tif";
+//            TiffUtils::saveMeshAsTiff(image_file_name, by_level_recon);
 
             stencil_counter = std::min(stencil_counter+1, (int)stencil_vec.size()-1);
         }
 
         PixelData<float> recon_standard;
-        apr.interp_img(recon_standard, output_particles);
+        APRReconstruction::interp_img(apr,recon_standard, output_particles);
 
     }
 
@@ -484,25 +479,23 @@ public:
 };
 
 
-template<typename ImageType, typename S, typename T,typename R>
-void APRFilter::convolve(APR<ImageType> &apr, std::vector<PixelData<T>>& stencils, ExtraParticleData<S> &particle_input, ExtraParticleData<R> &particle_output) {
+template<typename S, typename T,typename R>
+void APRFilter::convolve(APR &apr, std::vector<PixelData<T>>& stencils, ParticleData<S> &particle_input, ParticleData<R> &particle_output) {
 
     particle_output.init(particle_input.total_number_particles());
 
     const bool boundary = boundary_cond;
 
     /**** initialize and fill the apr tree ****/
-    ExtraParticleData<float> tree_data;
+    ParticleData<float> tree_data;
 
-    if(apr.apr_tree.particles_ds_tree.data.size() == 0) {
-        apr.apr_tree.init(apr);
-    }
+    apr.init_tree();
 
-    apr.apr_tree.fill_tree_mean(apr, apr.apr_tree, particle_input, tree_data);
+    APRTreeNumerics::fill_tree_mean(apr, particle_input, tree_data);
 
     /*** iterators for accessing apr data ***/
-    auto apr_iterator = apr.iterator();
-    auto tree_iterator = apr.apr_tree.tree_iterator();
+    auto apr_it = apr.iterator();
+    auto tree_it = apr.tree_iterator();
 
     // assert stencil_shape compatible with apr org_dims?
 
@@ -523,11 +516,11 @@ void APRFilter::convolve(APR<ImageType> &apr, std::vector<PixelData<T>>& stencil
         unsigned int z = 0;
         unsigned int x = 0;
 
-        const uint64_t z_num = apr_iterator.spatial_index_z_max(level);
+        const uint64_t z_num = apr_it.z_num(level);
 
-        const uint64_t y_num_m = (apr.apr_access.org_dims[0] > 1) ? apr_iterator.spatial_index_y_max(level) +
+        const uint64_t y_num_m = (apr.apr_access.org_dims[0] > 1) ? apr_it.y_num(level) +
                                                                     stencil_shape[0] - 1 : 1;
-        const uint64_t x_num_m = (apr.apr_access.org_dims[1] > 1) ? apr_iterator.spatial_index_x_max(level) +
+        const uint64_t x_num_m = (apr.apr_access.org_dims[1] > 1) ? apr_it.x_num(level) +
                                                                     stencil_shape[1] - 1 : 1;
 
         PixelData<float> temp_vec;
@@ -540,8 +533,8 @@ void APRFilter::convolve(APR<ImageType> &apr, std::vector<PixelData<T>>& stencil
                 update_dense_array(level,
                                    padd,
                                    apr,
-                                   apr_iterator,
-                                   tree_iterator,
+                                   apr_it,
+                                   tree_it,
                                    tree_data,
                                    temp_vec,
                                    particle_input,
@@ -567,8 +560,8 @@ void APRFilter::convolve(APR<ImageType> &apr, std::vector<PixelData<T>>& stencil
                 update_dense_array(level,
                                    padd,
                                    apr,
-                                   apr_iterator,
-                                   tree_iterator,
+                                   apr_it,
+                                   tree_it,
                                    tree_data,
                                    temp_vec,
                                    particle_input,
@@ -583,7 +576,7 @@ void APRFilter::convolve(APR<ImageType> &apr, std::vector<PixelData<T>>& stencil
 
             if (z < (z_num - stencil_half[2])) {
                 //update the next z plane for the access
-                update_dense_array(level, z + stencil_half[2], apr, apr_iterator, tree_iterator, tree_data,
+                update_dense_array(level, z + stencil_half[2], apr, apr_it, tree_it, tree_data,
                                    temp_vec, particle_input, stencil_shape, stencil_half);
             } else {
                 //padding
@@ -615,17 +608,17 @@ void APRFilter::convolve(APR<ImageType> &apr, std::vector<PixelData<T>>& stencil
             }
 
 #ifdef HAVE_OPENMP
-#pragma omp parallel for schedule(dynamic) private(x) firstprivate(apr_iterator)
+#pragma omp parallel for schedule(dynamic) private(x) firstprivate(apr_it)
 #endif
-            for (x = 0; x < apr.spatial_index_x_max(level); ++x) {
-                for (apr_iterator.set_new_lzx(level, z, x);
-                     apr_iterator.global_index() < apr_iterator.end_index;
-                     apr_iterator.set_iterator_to_particle_next_particle()) {
+            for (x = 0; x < apr_it.x_num(level); ++x) {
+                for (apr_it.begin(level, z, x);
+                     apr_it < apr_it.end();
+                     apr_it++) {
 
                     float neigh_sum = 0;
                     //int counter = 0;
 
-                    const int k = apr_iterator.y() + stencil_half[0]; // offset to allow for boundary padding
+                    const int k = apr_it.y() + stencil_half[0]; // offset to allow for boundary padding
                     const int i = x + stencil_half[1];
 
                     float factor = 1.0;
@@ -656,7 +649,7 @@ void APRFilter::convolve(APR<ImageType> &apr, std::vector<PixelData<T>>& stencil
                         }
                     }
 
-                    particle_output[apr_iterator] = neigh_sum;
+                    particle_output[apr_it] = neigh_sum;
 
 
                 }//y, pixels/columns
