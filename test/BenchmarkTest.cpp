@@ -75,6 +75,32 @@ public:
     void SetUp() override;
 };
 
+/**
+     * tileAPR - tiles an APR to generate a larger APR for testing purposes.
+     * @param tile_dims a 3 dimensional vector with the number of times in each direction to tile
+     * @param apr_input The APR to be tiled
+     * @tparam parts particles to be tiled
+     * @param apr_tiled The tiled APR
+     * @tparam tiled_parts The tiled particles
+*/
+template<typename T>
+void tileAPR(std::vector<int> tile_dims, APR& apr_input,ParticleData<T>& parts, APR& apr_tiled,ParticleData<T>& tiled_parts){
+
+
+    if(tile_dims.size() != 3){
+        std::cerr << "in-correct tilling dimensions" << std::endl;
+    }
+
+    //now to tile the APR
+    auto apr_it = apr_input.iterator();
+    auto new_y_num = apr_it.orginal_dimensions(0)*tile_dims[0];
+    auto new_x_num = apr_it.orginal_dimensions(1)*tile_dims[1];
+    auto new_z_num = apr_it.orginal_dimensions(2)*tile_dims[2];
+
+
+
+}
+
 
 bool bench_particle_structures(TestData& test_data) {
     ///
