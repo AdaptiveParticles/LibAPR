@@ -8,7 +8,6 @@
 #include "data_structures/APR/PartCellData.hpp"
 #include "data_structures/APR/ParticleData.hpp"
 #include "data_structures/APR/APR.hpp"
-#include "data_structures/APR/APRTree.hpp"
 #include "data_structures/APR/APRTreeIterator.hpp"
 #include "APRNumerics.hpp"
 

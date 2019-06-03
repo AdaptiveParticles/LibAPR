@@ -39,6 +39,8 @@ public:
 
     void initialize_structure_parts_empty(APR& apr);
 
+    void initialize_structure_parts(APR& apr);
+
 
 
 private:
@@ -85,4 +87,42 @@ void PartCellData<T>::initialize_structure_parts_empty(APR& apr) {
         }
     }
 }
+
+
+template<typename T>
+void PartCellData<T>::initialize_structure_parts(APR& apr) {
+
+    auto apr_it = apr.iterator();
+
+    // Initialize the structure to the same size as the given structure
+    level_max = apr_it.level_max();
+    level_min = apr_it.level_min();
+
+    z_num.resize(level_max+1);
+    x_num.resize(level_max+1);
+    data.resize(level_max+1);
+
+    for (unsigned int l = level_min; l <= level_max; ++l) {
+        z_num[l] = apr_it.z_num(l);
+        x_num[l] = apr_it.x_num(l);
+        data[l].resize(z_num[l]*x_num[l]);
+
+        for (int z = 0; z < apr_it.z_num(l); z++) {
+            for (int x = 0; x < apr_it.x_num(l); ++x) {
+
+                apr_it.begin(l,z,x);
+
+                auto sz = apr_it.end() - apr_it;
+
+                if(apr_it.end() > 0) {
+                    auto off = x_num[l]*z + x;
+                    data[l][off].resize(sz,0);
+                }
+
+            }
+        }
+
+    }
+}
+
 #endif //PARTPLAY_PARTNEIGH_HPP

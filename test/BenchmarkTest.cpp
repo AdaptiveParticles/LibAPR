@@ -76,6 +76,94 @@ public:
 };
 
 
+bool bench_particle_structures(TestData& test_data) {
+    ///
+    /// Tests the pipeline, comparing the results with existing results
+    ///
+
+    bool success = true;
+
+    auto it = test_data.apr.iterator();
+
+    ParticleData<uint16_t> parts;
+    parts.init(it.total_number_particles());
+
+    PixelData<uint16_t> test_img;
+
+    test_img.init(it.orginal_dimensions(0), it.orginal_dimensions(1), it.orginal_dimensions(2));
+
+    float CR = test_img.mesh.size() / (1.0f * it.total_number_particles());
+
+    std::cout << "CR: " << CR << std::endl;
+
+    APRTimer timer(true);
+
+    unsigned int num_rep = 1000;
+
+    test_data.apr.init_linear();
+    auto lin_it = test_data.apr.linear_iterator();
+
+    timer.start_timer("LinearIteration - normal - OpenMP");
+
+    for (int r = 0; r < num_rep; ++r) {
+        for (unsigned int level = lin_it.level_min(); level <= lin_it.level_max(); ++level) {
+            int z = 0;
+
+#ifdef HAVE_OPENMP
+#pragma omp parallel for schedule(dynamic) private(z) firstprivate(lin_it)
+#endif
+            for (z = 0; z < lin_it.z_num(level); z++) {
+                for (int x = 0; x < lin_it.x_num(level); ++x) {
+                    for (lin_it.begin(level, z, x); lin_it < lin_it.end();
+                         lin_it++) {
+                        //need to add the ability to get y, and x,z but as possible should be lazy.
+                        parts[lin_it] += 1;
+
+                    }
+                }
+            }
+        }
+    }
+
+    timer.stop_timer();
+
+    PartCellData<uint16_t> partCellData;
+    partCellData.initialize_structure_parts(test_data.apr);
+
+    timer.start_timer("LinearIteration - PartCell - OpenMP");
+
+    for (int r = 0; r < num_rep; ++r) {
+        for (unsigned int level = lin_it.level_min(); level <= lin_it.level_max(); ++level) {
+            int z = 0;
+
+#ifdef HAVE_OPENMP
+#pragma omp parallel for schedule(dynamic) private(z) firstprivate(lin_it)
+#endif
+            for (z = 0; z < lin_it.z_num(level); z++) {
+                for (int x = 0; x < lin_it.x_num(level); ++x) {
+                    for (auto begin = lin_it.begin(level, z, x); lin_it < lin_it.end();
+                         lin_it++) {
+                        //need to add the ability to get y, and x,z but as possible should be lazy.
+                        auto off = z*lin_it.x_num(level) + x;
+                        auto indx = lin_it - begin;
+                        partCellData.data[level][off][indx] += 1;
+                    }
+                }
+            }
+        }
+    }
+
+
+    timer.stop_timer();
+
+
+
+    return true;
+
+
+}
+
+
 
 bool bench_iteration(TestData& test_data){
     ///
@@ -97,7 +185,7 @@ bool bench_iteration(TestData& test_data){
 
     std::cout << "CR: " << CR << std::endl;
 
-    unsigned int num_rep = 10000;
+    unsigned int num_rep = 1;
 
     APRTimer timer(true);
 
@@ -185,7 +273,6 @@ bool bench_iteration(TestData& test_data){
     for (int r = 0; r < num_rep; ++r) {
         for (unsigned int level = it.level_min(); level <= it.level_max(); ++level) {
             int z = 0;
-            int x = 0;
 
 #ifdef HAVE_OPENMP
 #pragma omp parallel for schedule(dynamic) private(z) firstprivate(it)
@@ -320,7 +407,7 @@ bool bench_iteration(TestData& test_data){
                     for (lin_it.begin(level, z, x); lin_it < lin_it.end();
                          lin_it++) {
                         //need to add the ability to get y, and x,z but as possible should be lazy.
-                        parts[lin_it] +=1;
+                        parts[lin_it] += 1;
 
                     }
                 }
@@ -333,24 +420,24 @@ bool bench_iteration(TestData& test_data){
     auto lin_time_noy = timer.timings.back();
 
 
-    timer.start_timer("LinearIteration - Linear");
+
     uint64_t counter_test = 0;
 
-    for (int r = 0; r < num_rep; ++r) {
-        for (unsigned int level = lin_it.level_min(); level <= lin_it.level_max(); ++level) {
-            int z = 0;
 
-            for (z = 0; z < lin_it.z_num(level); z++) {
-                for (int x = 0; x < lin_it.x_num(level); ++x) {
-                    for (lin_it.begin(level, z, x); lin_it < lin_it.end();
-                         lin_it++) {
-                        parts[lin_it] = (uint16_t)(parts[lin_it] + 1);
-                        counter_test++;
-                    }
+    for (unsigned int level = lin_it.level_min(); level <= lin_it.level_max(); ++level) {
+        int z = 0;
+
+        for (z = 0; z < lin_it.z_num(level); z++) {
+            for (int x = 0; x < lin_it.x_num(level); ++x) {
+                for (lin_it.begin(level, z, x); lin_it < lin_it.end();
+                     lin_it++) {
+                    parts[lin_it] = (uint16_t)(parts[lin_it] + 1);
+                    counter_test++;
                 }
             }
         }
     }
+
 
     timer.stop_timer();
 
@@ -545,6 +632,12 @@ void Create210SphereTest::SetUp(){
 TEST_F(Create210SphereTest, BENCH_ITERATION) {
 
     ASSERT_TRUE(bench_iteration(test_data));
+
+}
+
+TEST_F(Create210SphereTest, BENCH_STRUCTURES) {
+
+    ASSERT_TRUE(bench_particle_structures(test_data));
 
 }
 

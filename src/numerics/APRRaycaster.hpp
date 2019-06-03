@@ -22,7 +22,6 @@
 #include "data_structures/APR/ParticleData.hpp"
 
 #include "data_structures/APR/APR.hpp"
-#include "data_structures/APR/APRTree.hpp"
 #include "numerics/APRRaycaster.cpp"
 #include "vis/Camera.cpp"
 #include "vis/Object.cpp"

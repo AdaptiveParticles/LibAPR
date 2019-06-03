@@ -11,6 +11,7 @@
 class LinearIterator: public GenIterator {
 
     uint64_t current_index;
+    //uint64_t begin_index;
 
     // TODO: need to add the level,x,z,y into here..
     // Also need to add the datageneration. (should make it lazy as possible)
@@ -52,7 +53,6 @@ public:
 
         return current_index;
     }
-
 
 };
 

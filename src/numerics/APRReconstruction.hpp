@@ -6,7 +6,6 @@
 #define PARTPLAY_APRRECONSTRUCTION_HPP
 
 #include "data_structures/APR/APR.hpp"
-#include "data_structures/APR/APRTree.hpp"
 #include "data_structures/APR/APRIterator.hpp"
 #include "data_structures/APR/APRTreeIterator.hpp"
 #include "numerics/MeshNumerics.hpp"

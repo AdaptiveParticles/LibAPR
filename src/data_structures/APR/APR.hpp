@@ -7,7 +7,6 @@
 
 #include "APRAccess.hpp"
 #include "APRIterator.hpp"
-#include "APRTree.hpp"
 #include "APRTreeIterator.hpp"
 #include "LinearIterator.hpp"
 

@@ -706,6 +706,88 @@ bool test_apr_neighbour_access(TestData& test_data){
 }
 
 
+bool test_particle_structures(TestData& test_data) {
+    //
+    //  Bevan Cheeseman 2018
+    //
+    //  Test for the serial APR iterator
+    //
+
+    bool success = true;
+
+    auto it = test_data.apr.iterator();
+
+    ParticleData<uint16_t> parts;
+
+    parts.data.resize(it.total_number_particles(),0);
+
+    APRTimer timer(true);
+
+
+    test_data.apr.init_linear();
+    auto lin_it = test_data.apr.linear_iterator();
+
+    timer.start_timer("LinearIteration - normal - OpenMP");
+
+    auto counter_p = 0;
+
+    for (unsigned int level = lin_it.level_min(); level <= lin_it.level_max(); ++level) {
+        int z = 0;
+
+        for (z = 0; z < lin_it.z_num(level); z++) {
+            for (int x = 0; x < lin_it.x_num(level); ++x) {
+                for (lin_it.begin(level, z, x); lin_it < lin_it.end();
+                     lin_it++) {
+                    //need to add the ability to get y, and x,z but as possible should be lazy.
+                    parts[lin_it] += 1;
+                    counter_p++;
+
+                }
+            }
+        }
+    }
+
+
+    timer.stop_timer();
+
+    PartCellData<uint16_t> partCellData;
+    partCellData.initialize_structure_parts(test_data.apr);
+
+    timer.start_timer("LinearIteration - PartCell - OpenMP");
+
+    auto counter_pc = 0;
+
+    for (unsigned int level = lin_it.level_min(); level <= lin_it.level_max(); ++level) {
+        int z = 0;
+
+        for (z = 0; z < lin_it.z_num(level); z++) {
+            for (int x = 0; x < lin_it.x_num(level); ++x) {
+                for (auto begin = lin_it.begin(level, z, x); lin_it < lin_it.end();
+                     lin_it++) {
+                    //need to add the ability to get y, and x,z but as possible should be lazy.
+                    auto off = z*lin_it.x_num(level) + x;
+                    auto indx = lin_it - begin;
+                    partCellData.data[level][off][indx] += 1;
+                    if(partCellData.data[level][off][indx]!=parts[lin_it]){
+                        success = false;
+                    }
+                    counter_pc++;
+                }
+            }
+        }
+    }
+
+    timer.stop_timer();
+
+    if(counter_pc != counter_p){
+        success = false;
+    }
+
+    return success;
+
+}
+
+
 bool test_linear_iterate(TestData& test_data) {
     //
     //  Bevan Cheeseman 2018
@@ -889,6 +971,34 @@ bool test_linear_iterate(TestData& test_data) {
         }
 
     }
+
+    test_data.apr.init_linear();
+    auto it_l = test_data.apr.linear_iterator();
+
+    for (unsigned int level = it_l.level_min(); level <= it_l.level_max(); ++level) {
+        int z = 0;
+        int x = 0;
+
+        for (z = 0; z < it_l.z_num(level); z++) {
+            for (x = 0; x < it_l.x_num(level); ++x) {
+
+                for (it_l.begin(level, z, x); it_l < it_l.end();
+                     it_l++) {
+
+                    uint16_t apr_intensity = (parts[it_l]);
+                    uint16_t check_intensity = test_data.img_pc(it_l.y_nearest_pixel(level, it_l.y()),
+                                                                it_l.x_nearest_pixel(level, x),
+                                                                it_l.z_nearest_pixel(level, z));
+
+                    if(apr_intensity != check_intensity){
+                        success = false;
+                    }
+                }
+            }
+        }
+    }
+
+
 
     return success;
 
@@ -1440,6 +1550,18 @@ TEST_F(Create210SphereTest, APR_NEIGHBOUR_ACCESS) {
     ASSERT_TRUE(test_apr_neighbour_access(test_data));
 
 }
+
+
+TEST_F(Create210SphereTest, APR_PARTICLES) {
+
+    ASSERT_TRUE(test_particle_structures(test_data));
+}
+
+TEST_F(CreateSmallSphereTest, APR_PARTICLES) {
+
+    ASSERT_TRUE(test_particle_structures(test_data));
+}
+
 
 TEST_F(Create210SphereTest, APR_INPUT_OUTPUT) {
 
