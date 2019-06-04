@@ -217,7 +217,67 @@ bool test_linear_access_create(TestData& test_data) {
 bool test_linear_access_io(TestData& test_data) {
 
 
+    //Test Basic IO
+    std::string file_name = "read_write_random.apr";
 
+    APRTimer timer(true);
+
+
+    timer.start_timer("random write");
+
+    //First write a file
+    APRFile writeFile;
+    writeFile.open(file_name,"WRITE");
+
+    writeFile.write_apr(test_data.apr);
+
+    writeFile.write_particles(test_data.apr,"parts",test_data.particles_intensities);
+
+    writeFile.close();
+
+    timer.stop_timer();
+
+    timer.start_timer("random read");
+
+    APR apr_random;
+
+    writeFile.set_read_write_tree(true);
+
+    writeFile.open(file_name,"READ");
+    writeFile.read_apr(apr_random);
+
+    writeFile.close();
+
+    timer.stop_timer();
+
+    timer.start_timer("linear write");
+
+    file_name = "read_write_linear.apr";
+
+    writeFile.set_write_linear_flag(true);
+
+    writeFile.open(file_name,"WRITE");
+
+    writeFile.set_blosc_access_settings(BLOSC_ZSTD,4,1);
+
+    writeFile.write_apr(test_data.apr);
+
+    writeFile.write_particles(test_data.apr,"parts",test_data.particles_intensities);
+
+    writeFile.close();
+
+    timer.stop_timer();
+
+    timer.start_timer("linear read");
+
+    APR apr_lin;
+
+    writeFile.set_read_write_tree(true);
+
+    writeFile.open(file_name,"READ");
+    writeFile.read_apr(apr_lin);
+
+    timer.stop_timer();
 
     //#TODO: add this for the IO
     return true;
@@ -1722,6 +1782,7 @@ TEST_F(Create210SphereTest, APR_INPUT_OUTPUT) {
 //test iteration
     //ASSERT_TRUE(test_apr_input_output(test_data));
     ASSERT_TRUE(test_apr_file(test_data));
+
 
 }
 

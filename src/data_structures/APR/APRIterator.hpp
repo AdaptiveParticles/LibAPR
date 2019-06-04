@@ -44,24 +44,24 @@ public:
         return particleCellDataKey;
     }
 
-    inline void operator++ (int){
+    inline void operator++ (int) override {
         set_iterator_to_particle_next_particle();
     }
 
-    inline void operator++ (){
+    inline void operator++ () override {
         set_iterator_to_particle_next_particle();
     }
 
-    inline uint64_t end(){
+    inline uint64_t end() override {
         return end_index;
     }
 
-    inline uint64_t begin(const uint16_t level,const uint16_t z,const uint16_t x){
+    uint64_t begin(const uint16_t level,const uint16_t z,const uint16_t x) override {
         return set_new_lzx(level,z,x);
     }
 
-    inline uint64_t particles_level_begin(const uint16_t& level_) {return apr_access->global_index_by_level_and_zx_end[level_-1].back()+1;}
-    inline uint64_t particles_level_end(const uint16_t& level_) {return apr_access->global_index_by_level_and_zx_end[level_].back();}
+    inline uint64_t particles_level_begin(const uint16_t& level_) override {return apr_access->global_index_by_level_and_zx_end[level_-1].back()+1;}
+    inline uint64_t particles_level_end(const uint16_t& level_) override {return apr_access->global_index_by_level_and_zx_end[level_].back();}
 
 
     // Todo make various begin functions. blank(), with level, with x,z, with level,

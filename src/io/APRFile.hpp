@@ -53,6 +53,10 @@ public:
         with_tree_flag = with_tree_flag_;
     }
 
+    void set_write_linear_flag(bool flag_){
+        write_linear = flag_;
+    }
+
     std::vector<std::string> get_channel_names();
 
     //get helpers
@@ -85,6 +89,8 @@ private:
     bool with_tree_flag = true;
     std::string file_name = "noname";
     APRWriter::FileStructure fileStructure;
+
+    bool write_linear = false;
 
     //HDF5 - BLOSC parameters
     unsigned int blosc_comp_type_parts = BLOSC_ZSTD;
@@ -175,17 +181,44 @@ void APRFile::write_apr(APR &apr,uint64_t t,std::string channel_name){
 
     timer.start_timer("access_data");
 
-    APRWriter::write_random_access(meta_location,fileStructure.objectId, apr.apr_access,blosc_comp_type_access, blosc_comp_level_access,blosc_shuffle_access);
+    if(write_linear){
+
+        apr.init_linear();
+
+        APRWriter::write_linear_access(meta_location, fileStructure.objectId, apr.linearAccess, blosc_comp_type_access,
+                            blosc_comp_level_access, blosc_shuffle_access);
+
+    } else {
+
+        APRWriter::write_random_access(meta_location, fileStructure.objectId, apr.apr_access, blosc_comp_type_access,
+                                       blosc_comp_level_access, blosc_shuffle_access);
+    }
 
     timer.stop_timer();
-
 
 
     if(with_tree_flag){
 
         apr.init_tree(); //incase it hasn't been initialized.
 
-        APRWriter::write_random_access(fileStructure.objectIdTree,fileStructure.objectIdTree, apr.tree_access,blosc_comp_type_access, blosc_comp_level_access,blosc_shuffle_access);
+
+        APRWriter::writeAttr(AprTypes::TotalNumberOfParticlesType, fileStructure.objectIdTree,
+                             &apr.treeInfo.total_number_particles);
+
+        if(write_linear) {
+
+            apr.init_tree_linear();
+
+            APRWriter::write_linear_access(fileStructure.objectIdTree, fileStructure.objectIdTree, apr.linearAccessTree, blosc_comp_type_access,
+                                           blosc_comp_level_access, blosc_shuffle_access);
+
+
+        } else {
+
+            APRWriter::write_random_access(fileStructure.objectIdTree, fileStructure.objectIdTree, apr.tree_access,
+                                           blosc_comp_type_access, blosc_comp_level_access, blosc_shuffle_access);
+
+        }
 
     }
 
@@ -282,10 +315,25 @@ void APRFile::read_apr(APR &apr,uint64_t t,std::string channel_name){
     //read in pipeline parameters
     APRWriter::read_apr_parameters(meta_data,apr.parameters);
 
-    APRWriter::read_random_access(meta_data,fileStructure.objectId, apr.apr_access);
+    std::string data_n = fileStructure.subGroup1 + "/map_level";
+    bool stored_random = data_exists(fileStructure.fileId,data_n.c_str());
+
+    if(!stored_random) {
+        //make this an automatic check to see what the file is.
+        APRWriter::read_linear_access( fileStructure.objectId, apr.linearAccess);
+    } else {
+        APRWriter::read_random_access(meta_data, fileStructure.objectId, apr.apr_access);
+    }
 
 
     if(with_tree_flag) {
+
+        data_n = fileStructure.subGroupTree1 + "/map_level";
+        bool stored_random_tree = data_exists(fileStructure.fileId,data_n.c_str());
+
+        if(!stored_random && stored_random_tree){
+            tree_exists = false;
+        }
 
         if(!tree_exists){
             //initializing it from the dataset.
@@ -293,15 +341,21 @@ void APRFile::read_apr(APR &apr,uint64_t t,std::string channel_name){
             apr.init_tree();
         } else {
 
-            timer.start_timer("build tree - map");
-
-            apr.treeInfo.init_tree(apr.org_dims(0),apr.org_dims(1),apr.org_dims(2));
-            apr.tree_access.genInfo = &apr.treeInfo;
-
             APRWriter::readAttr(AprTypes::TotalNumberOfParticlesType, fileStructure.objectIdTree,
                                 &apr.treeInfo.total_number_particles);
 
-            APRWriter::read_random_tree_access(meta_data,fileStructure.objectIdTree, apr.tree_access,apr.apr_access);
+            apr.treeInfo.init_tree(apr.org_dims(0), apr.org_dims(1), apr.org_dims(2));
+            apr.tree_access.genInfo = &apr.treeInfo;
+            apr.linearAccessTree.genInfo = &apr.treeInfo;
+
+            if(stored_random_tree) {
+
+                APRWriter::read_random_tree_access(fileStructure.objectIdTree, fileStructure.objectIdTree,
+                                                   apr.tree_access, apr.apr_access);
+
+            } else {
+                APRWriter::read_linear_access( fileStructure.objectIdTree, apr.linearAccessTree);
+            }
 
         }
 

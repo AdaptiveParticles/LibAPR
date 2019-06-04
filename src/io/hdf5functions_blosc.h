@@ -40,4 +40,6 @@ bool attribute_exists(hid_t obj_id,const char* attr_name);
 
 bool group_exists(hid_t fileId,const char * attr_name);
 
+bool data_exists(hid_t fileId,const char * attr_name);
+
 #endif

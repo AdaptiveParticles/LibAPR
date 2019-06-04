@@ -61,12 +61,12 @@ public:
     }
 
     virtual inline uint64_t end(){
-        return 0;
+        return end_index;
     }
 
-    virtual inline uint64_t begin(const uint16_t level,const uint16_t z,const uint16_t x){
+    virtual uint64_t begin(const uint16_t level,const uint16_t z,const uint16_t x) {
         return 0;
-    }
+    };
 
     virtual uint64_t particles_level_begin(const uint16_t& level_){
         return 0;

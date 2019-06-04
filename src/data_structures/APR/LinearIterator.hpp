@@ -45,7 +45,7 @@ public:
         return end_index;
     }
 
-    inline uint64_t begin(const uint16_t level_,const uint16_t z_,const uint16_t x_) override{
+    inline uint64_t begin(const uint16_t level_,const uint16_t z_,const uint16_t x_) override {
 
         const auto level_start = linearAccess->level_xz_vec[level_-1]; //do i make these variables in the class
         const auto xz_start = level_start + x_ + z_*x_num(level_);

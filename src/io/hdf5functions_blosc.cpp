@@ -286,6 +286,31 @@ bool group_exists(hid_t fileId,const char * attr_name){
     return exists;
 }
 
+bool data_exists(hid_t fileId,const char * attr_name){
+    /* Save old error handler */
+    herr_t (*old_func)(void*);
+    void *old_client_data;
+    H5Eget_auto1(&old_func, &old_client_data);
+
+    hid_t attr_id;
+
+    /* Turn off error handling */
+    H5Eset_auto1(NULL, NULL);
+    attr_id = H5Dopen2(fileId, attr_name, H5P_DEFAULT);
+
+    /* Restore previous error handler */
+    H5Eset_auto1(old_func, old_client_data);
+
+    bool exists = (bool)(attr_id > 0);
+
+    //if the attribute is not being used, we need to close it.
+    if(exists){
+        H5Dclose(attr_id);
+    }
+
+    return exists;
+}
+
 void hdf5_write_attribute_blosc(hid_t obj_id,hid_t type_id,const char* attr_name,hsize_t rank,hsize_t* dims, const void * const data ){
     hid_t exists;
 

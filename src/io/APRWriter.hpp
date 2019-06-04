@@ -167,6 +167,25 @@ public:
 
     }
 
+    static void write_linear_access(hid_t meta_data,hid_t objectId, LinearAccess& linearAccess,unsigned int blosc_comp_type_access, unsigned int blosc_comp_level_access,unsigned int blosc_shuffle_access){
+
+        APRWriter::writeData({H5T_NATIVE_UINT16,"y_vec"}, objectId, linearAccess.y_vec, blosc_comp_type_access, blosc_comp_level_access, blosc_shuffle_access);
+
+        APRWriter::writeData({H5T_NATIVE_UINT64,"xz_end_vec"}, objectId, linearAccess.xz_end_vec, blosc_comp_type_access, blosc_comp_level_access, blosc_shuffle_access);
+
+        APRWriter::writeData({H5T_NATIVE_UINT64,"level_end_vec"}, objectId, linearAccess.level_end_vec, blosc_comp_type_access, blosc_comp_level_access, blosc_shuffle_access);
+
+        APRWriter::writeData({H5T_NATIVE_UINT64,"level_xz_vec"}, objectId, linearAccess.level_xz_vec, blosc_comp_type_access, blosc_comp_level_access, blosc_shuffle_access);
+
+    }
+
+    static void read_linear_access(hid_t objectId, LinearAccess& linearAccess){
+
+        linearAccess.y_vec.resize(linearAccess.genInfo->total_number_particles);
+        APRWriter::readData({H5T_NATIVE_UINT16,"y_vec"}, objectId, linearAccess.y_vec.data());
+
+    }
+
 
     static void write_random_access(hid_t meta_data,hid_t objectId, RandomAccess& apr_access,unsigned int blosc_comp_type_access, unsigned int blosc_comp_level_access,unsigned int blosc_shuffle_access){
         MapStorageData map_data;
@@ -930,6 +949,9 @@ public:
         hid_t objectId = -1;
         hid_t objectIdTree = -1;
 
+        std::string subGroup1;
+        std::string subGroupTree1;
+
         FileStructure(){};
 
         FileStructure(const std::string &aFileName, const Operation aOp){
@@ -948,8 +970,8 @@ public:
                 t_string = t_string + std::to_string(t);
             }
 
-            std::string subGroup1 = ("ParticleRepr/" + t_string);
-            std::string subGroupTree1 = "ParticleRepr/" + t_string + "/Tree";
+            subGroup1 = ("ParticleRepr/" + t_string);
+            subGroupTree1 = "ParticleRepr/" + t_string + "/Tree";
 
             const char * const subGroup  = subGroup1.c_str();
             const char * const subGroupTree  = subGroupTree1.c_str();
@@ -965,14 +987,17 @@ public:
                 if(tree_exists) {
                     //tree doesn't exist can't open it
                     objectIdTree = H5Gopen2(fileId, subGroupTree, H5P_DEFAULT);
+                    return true;
+                } else {
                     return false;
                 }
 
             } else {
                 objectId = H5Gopen2(fileId, subGroup, H5P_DEFAULT);
+                return false;
             }
 
-            return true;
+
 
         }
 
@@ -988,8 +1013,8 @@ public:
                 t_string = t_string + std::to_string(t);
             }
 
-            std::string subGroup1 = ("ParticleRepr/" + t_string);
-            std::string subGroupTree1 = "ParticleRepr/" + t_string + "/Tree";
+            subGroup1 = ("ParticleRepr/" + t_string);
+            subGroupTree1 = "ParticleRepr/" + t_string + "/Tree";
 
 
             const char * const subGroup  = subGroup1.c_str();
