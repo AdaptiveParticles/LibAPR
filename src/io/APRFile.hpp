@@ -166,24 +166,19 @@ void APRFile::write_apr(APR &apr,uint64_t t,std::string channel_name){
 
     // ------------- write metadata -------------------------
     //per time step
-
-    APRWriter::writeAttr(AprTypes::NumberOfXType, meta_location, &apr.aprInfo.org_dims[1]);
-    APRWriter::writeAttr(AprTypes::NumberOfYType, meta_location, &apr.aprInfo.org_dims[0]);
-    APRWriter::writeAttr(AprTypes::NumberOfZType, meta_location, &apr.aprInfo.org_dims[2]);
-    APRWriter::writeAttr(AprTypes::TotalNumberOfGapsType, meta_location, &apr.apr_access.total_number_gaps);
-    APRWriter::writeAttr(AprTypes::TotalNumberOfNonEmptyRowsType, meta_location, &apr.apr_access.total_number_non_empty_rows);
-
     APRWriter::writeString(AprTypes::NameType,meta_location, (apr.name.size() == 0) ? "no_name" : apr.name);
     APRWriter::writeString(AprTypes::GitType, meta_location, ConfigAPR::APR_GIT_HASH);
-    APRWriter::writeAttr(AprTypes::TotalNumberOfParticlesType, meta_location, &apr.aprInfo.total_number_particles);
-    APRWriter::writeAttr(AprTypes::MaxLevelType, meta_location, &apr.aprInfo.l_max);
-    APRWriter::writeAttr(AprTypes::MinLevelType, meta_location, &apr.aprInfo.l_min);
+
+    APRWriter::write_apr_info(meta_location,apr.aprInfo);
 
     APRWriter::write_apr_parameters(meta_location,apr.parameters);
 
     timer.start_timer("access_data");
     MapStorageData map_data;
     apr.apr_access.flatten_structure( map_data);
+
+    APRWriter::writeAttr(AprTypes::TotalNumberOfGapsType, meta_location, &apr.apr_access.total_number_gaps);
+    APRWriter::writeAttr(AprTypes::TotalNumberOfNonEmptyRowsType, meta_location, &apr.apr_access.total_number_non_empty_rows);
 
     std::vector<uint16_t> index_delta;
     index_delta.resize(map_data.global_index.size());

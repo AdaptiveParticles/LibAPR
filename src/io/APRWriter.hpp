@@ -167,6 +167,19 @@ public:
 
     }
 
+    static void write_apr_info(hid_t meta_location,GenInfo& aprInfo){
+        APRWriter::writeAttr(AprTypes::NumberOfXType, meta_location, &aprInfo.org_dims[1]);
+        APRWriter::writeAttr(AprTypes::NumberOfYType, meta_location, &aprInfo.org_dims[0]);
+        APRWriter::writeAttr(AprTypes::NumberOfZType, meta_location, &aprInfo.org_dims[2]);
+
+
+
+        APRWriter::writeAttr(AprTypes::TotalNumberOfParticlesType, meta_location, &aprInfo.total_number_particles);
+        APRWriter::writeAttr(AprTypes::MaxLevelType, meta_location, &aprInfo.l_max);
+        APRWriter::writeAttr(AprTypes::MinLevelType, meta_location, &aprInfo.l_min);
+
+    }
+
     static void write_apr_parameters(hid_t dataset_id,APRParameters& parameters){
 
         APRWriter::writeAttr(AprTypes::LambdaType, dataset_id, &parameters.lambda);
