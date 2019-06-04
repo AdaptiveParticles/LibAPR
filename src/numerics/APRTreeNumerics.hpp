@@ -35,7 +35,7 @@ class APRTreeNumerics {
 
         timer.start_timer("ds-1l");
 
-        for (unsigned int level = apr_iterator.level_max(); level >= apr_iterator.level_min(); --level) {
+        for (int level = apr_iterator.level_max(); level >= apr_iterator.level_min(); --level) {
 #ifdef HAVE_OPENMP
 #pragma omp parallel for schedule(dynamic) private(x_d, z_d) firstprivate(apr_iterator, parentIterator)
 #endif
@@ -105,7 +105,7 @@ class APRTreeNumerics {
         timer.start_timer("ds-2l");
 
         //then do the rest of the tree where order matters
-        for (unsigned int level = treeIterator.level_max(); level > treeIterator.level_min(); --level) {
+        for (int level = treeIterator.level_max(); level > treeIterator.level_min(); --level) {
 #ifdef HAVE_OPENMP
 #pragma omp parallel for schedule(dynamic) private(x_d,z_d) firstprivate(treeIterator, parentIterator)
 #endif
@@ -179,7 +179,7 @@ class APRTreeNumerics {
         timer.stop_timer();
         timer.start_timer("ds-1l");
 
-        for (unsigned int level = apr_iterator.level_max(); level >= apr_iterator.level_min(); --level) {
+        for (int level = apr_iterator.level_max(); level >= apr_iterator.level_min(); --level) {
 #ifdef HAVE_OPENMP
 #pragma omp parallel for schedule(dynamic) private(x_d, z_d) firstprivate(apr_iterator, parentIterator)
 #endif
@@ -222,7 +222,7 @@ class APRTreeNumerics {
         timer.start_timer("ds-2l");
 
         //then do the rest of the tree where order matters
-        for (unsigned int level = treeIterator.level_max(); level > treeIterator.level_min(); --level) {
+        for (int level = treeIterator.level_max(); level > treeIterator.level_min(); --level) {
 #ifdef HAVE_OPENMP
 #pragma omp parallel for schedule(dynamic) private(x_d, z_d) firstprivate(treeIterator, parentIterator)
 #endif
@@ -317,7 +317,7 @@ public:
         timer.stop_timer();
         timer.start_timer("ds-1l");
 
-        for (unsigned int level = apr_iterator.level_max(); level >= apr_iterator.level_min(); --level) {
+        for (int level = apr_iterator.level_max(); level >= apr_iterator.level_min(); --level) {
 #ifdef HAVE_OPENMP
 #pragma omp parallel for schedule(dynamic) private(x_d, z_d) firstprivate(apr_iterator, parentIterator)
 #endif
@@ -351,7 +351,7 @@ public:
         timer.start_timer("ds-2l");
 
         //then do the rest of the tree where order matters
-        for (unsigned int level = treeIterator.level_max(); level > treeIterator.level_min(); --level) {
+        for (int level = treeIterator.level_max(); level > treeIterator.level_min(); --level) {
 #ifdef HAVE_OPENMP
 #pragma omp parallel for schedule(dynamic) private(x_d, z_d) firstprivate(treeIterator, parentIterator)
 #endif

@@ -92,7 +92,7 @@ int runAPR(cmdLineOptions options) {
         timer.verbose_flag = true;
 
         std::cout << std::endl;
-        float original_pixel_image_size = (2.0f*apr.orginal_dimensions(0)*apr.orginal_dimensions(1)*apr.orginal_dimensions(2))/(1000000.0);
+        float original_pixel_image_size = (2.0f* apr.org_dims(0)* apr.org_dims(1)* apr.org_dims(2))/(1000000.0);
         std::cout << "Original image size: " << original_pixel_image_size << " MB" << std::endl;
 
         timer.start_timer("writing output");
@@ -113,7 +113,7 @@ int runAPR(cmdLineOptions options) {
 
         timer.stop_timer();
 
-        float computational_ratio = (1.0f*apr.orginal_dimensions(0)*apr.orginal_dimensions(1)*apr.orginal_dimensions(2))/(1.0f*apr.total_number_particles());
+        float computational_ratio = (1.0f* apr.org_dims(0)* apr.org_dims(1)* apr.org_dims(2))/(1.0f*apr.total_number_particles());
 
         std::cout << std::endl;
         std::cout << "Computational Ratio (Pixels/Particles): " << computational_ratio << std::endl;

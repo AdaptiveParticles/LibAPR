@@ -15,9 +15,9 @@ public:
 
     RandomAccess* apr_access;
 
-    explicit APRIterator(RandomAccess& apr_access_) {
+    explicit APRIterator(RandomAccess& apr_access_,GenInfo& genInfo_) {
         apr_access = &apr_access_;
-        this->gen_access =  &apr_access_;
+        this->genInfo =  &genInfo_;
     }
 
     /////////////////////////
@@ -64,8 +64,6 @@ public:
     inline uint64_t particles_level_end(const uint16_t& level_) {return apr_access->global_index_by_level_and_zx_end[level_].back();}
 
 
-    unsigned int orginal_dimensions(int dim) const { return apr_access->org_dims[dim]; }
-
     // Todo make various begin functions. blank(), with level, with x,z, with level,
 
 protected:
@@ -106,12 +104,12 @@ inline uint64_t APRIterator::set_new_lzx(const uint16_t level,const uint16_t z,c
         this->current_particle_cell.z = z;
         this->current_particle_cell.x = x;
 
-        particleCellDataKey.offset = this->apr_access->x_num[level]*(z) + (x);
+        particleCellDataKey.offset = genInfo->x_num[level]*(z) + (x);
         particleCellDataKey.local_ind = 0;
         particleCellDataKey.level = level;
 
         if(level == this->level_max()){
-            this->current_particle_cell.pc_offset =this->apr_access->x_num[level-1]*(z/2) + (x/2);
+            this->current_particle_cell.pc_offset = genInfo->x_num[level-1]*(z/2) + (x/2);
 
             if(this->apr_access->gap_map.data[this->current_particle_cell.level][this->current_particle_cell.pc_offset].size() > 0) {
 
@@ -160,7 +158,7 @@ inline uint64_t APRIterator::set_new_lzx(const uint16_t level,const uint16_t z,c
             }
 
         } else {
-            this->current_particle_cell.pc_offset =this->apr_access->x_num[level]*z + x;
+            this->current_particle_cell.pc_offset = genInfo->x_num[level]*z + x;
 
             if(this->apr_access->gap_map.data[this->current_particle_cell.level][this->current_particle_cell.pc_offset].size() > 0) {
 
@@ -172,6 +170,10 @@ inline uint64_t APRIterator::set_new_lzx(const uint16_t level,const uint16_t z,c
                 this->current_particle_cell.global_index = this->current_gap.iterator->second.global_index_begin_offset + begin;
 
                 this->set_neighbour_flag();
+
+                if(level<3){
+                    check_neigh_flag = true;
+                }
 
                 // IN HERE PUT THE STARTING INDEX!
                 //auto it =(this->apr_access->gap_map.data[level][this->current_particle_cell.pc_offset][0].map.rbegin());
@@ -435,7 +437,7 @@ inline bool APRIterator::set_iterator_by_global_coordinate(float x,float y,float
     //
 
     //check in bounds
-    if(((uint16_t)(x)>(this->apr_access->org_dims[1]-1)) | ((uint16_t)(z)>(this->apr_access->org_dims[2]-1)) | ((uint16_t)(y)>(this->apr_access->org_dims[0]-1))){
+    if(((uint16_t)(x)>(genInfo->org_dims[1]-1)) | ((uint16_t)(z)>(genInfo->org_dims[2]-1)) | ((uint16_t)(y)>(genInfo->org_dims[0]-1))){
         //out of bounds
         return false;
     }

@@ -232,12 +232,45 @@ bool test_apr_tree(TestData& test_data) {
     std::string save_loc = "";
     std::string file_name = "read_write_test";
 
-
     test_data.apr.init_tree();
 
     ParticleData<float> tree_data;
 
     APRTreeIterator apr_tree_iterator = test_data.apr.tree_iterator();
+
+    //general check, take the level image and see if the level is correct.
+
+    auto l_max = apr_tree_iterator.level_max();
+    auto l_min = apr_tree_iterator.level_min();
+
+
+    for (int level = (apr_tree_iterator.level_max()); level >= apr_tree_iterator.level_min(); --level) {
+        int z = 0;
+        int x = 0;
+
+        for (z = 0; z < apr_tree_iterator.z_num(level); z++) {
+            for (x = 0; x < apr_tree_iterator.x_num(level); ++x) {
+                for (apr_tree_iterator.begin(level, z, x); apr_tree_iterator < apr_tree_iterator.end();
+                     apr_tree_iterator++) {
+
+                    int y_g = std::min(apr_tree_iterator.y_nearest_pixel(level,apr_tree_iterator.y()),apr_tree_iterator.org_dims(0)-1);
+                    int x_g = std::min(apr_tree_iterator.x_nearest_pixel(level,x),apr_tree_iterator.org_dims(1)-1);
+                    int z_g = std::min(apr_tree_iterator.z_nearest_pixel(level,z),apr_tree_iterator.org_dims(2)-1);
+
+                    int val = test_data.img_level.at(y_g,x_g,z_g);
+
+                    //since its in the tree the image much be at a higher resolution then the tree. Direct check.
+                    if(level >= val){
+                        success = false;
+                    }
+
+                }
+            }
+        }
+    }
+
+
+
 
 //    aprTree.fill_tree_mean(test_data.apr,aprTree,test_data.particles_intensities,tree_data);
 //
@@ -256,7 +289,7 @@ bool test_apr_tree(TestData& test_data) {
     //Down-sample the image for particle intensity estimation
     downsamplePyrmaid(pc_image, downsampled_img, test_data.apr.level_max(), test_data.apr.level_min()-1);
 
-    for (unsigned int level = (apr_tree_iterator.level_max()); level >= apr_tree_iterator.level_min(); --level) {
+    for (int level = (apr_tree_iterator.level_max()); level >= apr_tree_iterator.level_min(); --level) {
         int z = 0;
         int x = 0;
 
@@ -290,7 +323,7 @@ bool test_apr_tree(TestData& test_data) {
 //    tree2.fill_tree_mean(test_data.apr,tree2,test_data.particles_intensities,treedata_2);
     auto apr_tree_iterator_s = test_data.apr.tree_iterator();
 
-    for (unsigned int level = (apr_tree_iterator_s.level_max()); level >= apr_tree_iterator_s.level_min(); --level) {
+    for (int level = (apr_tree_iterator_s.level_max()); level >= apr_tree_iterator_s.level_min(); --level) {
         int z = 0;
         int x = 0;
 
@@ -318,7 +351,7 @@ bool test_apr_tree(TestData& test_data) {
     APRTreeIterator neigh_tree_iterator = test_data.apr.tree_iterator();
 
 
-    for (unsigned int level = apr_tree_iterator.level_min(); level <= apr_tree_iterator.level_max(); ++level) {
+    for (int level = apr_tree_iterator.level_min(); level <= apr_tree_iterator.level_max(); ++level) {
         int z = 0;
         int x = 0;
 

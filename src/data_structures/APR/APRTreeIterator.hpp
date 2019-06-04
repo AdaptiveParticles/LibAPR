@@ -14,10 +14,10 @@ public:
     RandomAccess* aprOwn_access;
     RandomAccess* apr_access;
 
-    APRTreeIterator(RandomAccess& apr_access_,RandomAccess& tree_access){
+    APRTreeIterator(RandomAccess& apr_access_,RandomAccess& tree_access,GenInfo& genInfo_){
         apr_access = &tree_access;
         aprOwn_access = &apr_access_;
-        this->gen_access = &tree_access;
+        genInfo = &genInfo_;
     }
 
     uint64_t total_number_tree_particle_cells();
@@ -58,7 +58,7 @@ public:
 
 
 uint64_t APRTreeIterator::total_number_tree_particle_cells(){
-    return this->apr_access->total_number_particles;
+    return genInfo->total_number_particles;
 }
 
 uint64_t APRTreeIterator::set_new_lzxy(const uint16_t level,const uint16_t z,const uint16_t x,const uint16_t y){
@@ -325,7 +325,7 @@ uint64_t APRTreeIterator::set_new_lzx(const uint16_t level,const uint16_t z,cons
     this->current_particle_cell.x = x;
 
     if(level == this->level_max()){
-        this->current_particle_cell.pc_offset = aprOwn_access->x_num[level]*(z) + (x);
+        this->current_particle_cell.pc_offset = genInfo->x_num[level]*(z) + (x);
 
         //note this is different, using the APR's access datastructure
         if(aprOwn_access->gap_map.data[this->current_particle_cell.level+1][this->current_particle_cell.pc_offset].size() > 0) {
@@ -351,7 +351,7 @@ uint64_t APRTreeIterator::set_new_lzx(const uint16_t level,const uint16_t z,cons
         }
 
     } else {
-        this->current_particle_cell.pc_offset =this->apr_access->x_num[level]*z + x;
+        this->current_particle_cell.pc_offset = genInfo->x_num[level]*z + x;
 
         if(this->apr_access->gap_map.data[this->current_particle_cell.level][this->current_particle_cell.pc_offset].size() > 0) {
 
@@ -362,6 +362,10 @@ uint64_t APRTreeIterator::set_new_lzx(const uint16_t level,const uint16_t z,cons
             this->current_particle_cell.global_index = this->current_gap.iterator->second.global_index_begin_offset + begin;
 
             this->set_neighbour_flag();
+
+            if(level<3){
+                check_neigh_flag = true;
+            }
 
             // IN HERE PUT THE STARTING INDEX!
             this->end_index = this->apr_access->global_index_by_level_and_zx_end[this->current_particle_cell.level][this->current_particle_cell.pc_offset];

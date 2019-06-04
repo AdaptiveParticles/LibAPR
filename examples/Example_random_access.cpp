@@ -75,9 +75,9 @@ int main(int argc, char **argv) {
     std::cout << "--------------------" << std::endl;
 
     ParticleCell random_particle_cell;
-    random_particle_cell.x = (uint16_t)(apr.orginal_dimensions(1)-1)*((rand() % 10000)/10000.0f);
-    random_particle_cell.y = (uint16_t)(apr.orginal_dimensions(0)-1)*((rand() % 10000)/10000.0f);
-    random_particle_cell.z = (uint16_t)(apr.orginal_dimensions(2)-1)*((rand() % 10000)/10000.0f);
+    random_particle_cell.x = (uint16_t)(apr.org_dims(1)-1)*((rand() % 10000)/10000.0f);
+    random_particle_cell.y = (uint16_t)(apr.org_dims(0)-1)*((rand() % 10000)/10000.0f);
+    random_particle_cell.z = (uint16_t)(apr.org_dims(2)-1)*((rand() % 10000)/10000.0f);
     random_particle_cell.level = apr.level_max();
 
     bool found = apr_iterator.set_iterator_by_particle_cell(random_particle_cell);
@@ -96,9 +96,9 @@ int main(int argc, char **argv) {
 
     for (int i = 0; i < 10; ++i) {
 
-        float x = (apr.orginal_dimensions(1) - 1) * ((rand() % 10000) / 10000.0f);
-        float y = (apr.orginal_dimensions(0) - 1) * ((rand() % 10000) / 10000.0f);
-        float z = (apr.orginal_dimensions(2) - 1) * ((rand() % 10000) / 10000.0f);
+        float x = (apr.org_dims(1) - 1) * ((rand() % 10000) / 10000.0f);
+        float y = (apr.org_dims(0) - 1) * ((rand() % 10000) / 10000.0f);
+        float z = (apr.org_dims(2) - 1) * ((rand() % 10000) / 10000.0f);
 
 
         found = apr_iterator.set_iterator_by_global_coordinate(x, y, z);

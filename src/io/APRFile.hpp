@@ -149,7 +149,6 @@ void APRFile::close(){
    */
 void APRFile::write_apr(APR &apr,uint64_t t,std::string channel_name){
 
-
     APRTimer timer_f(false);
 
     current_t = t;
@@ -168,17 +167,17 @@ void APRFile::write_apr(APR &apr,uint64_t t,std::string channel_name){
     // ------------- write metadata -------------------------
     //per time step
 
-    APRWriter::writeAttr(AprTypes::NumberOfXType, meta_location, &apr.apr_access.org_dims[1]);
-    APRWriter::writeAttr(AprTypes::NumberOfYType, meta_location, &apr.apr_access.org_dims[0]);
-    APRWriter::writeAttr(AprTypes::NumberOfZType, meta_location, &apr.apr_access.org_dims[2]);
+    APRWriter::writeAttr(AprTypes::NumberOfXType, meta_location, &apr.aprInfo.org_dims[1]);
+    APRWriter::writeAttr(AprTypes::NumberOfYType, meta_location, &apr.aprInfo.org_dims[0]);
+    APRWriter::writeAttr(AprTypes::NumberOfZType, meta_location, &apr.aprInfo.org_dims[2]);
     APRWriter::writeAttr(AprTypes::TotalNumberOfGapsType, meta_location, &apr.apr_access.total_number_gaps);
     APRWriter::writeAttr(AprTypes::TotalNumberOfNonEmptyRowsType, meta_location, &apr.apr_access.total_number_non_empty_rows);
 
     APRWriter::writeString(AprTypes::NameType,meta_location, (apr.name.size() == 0) ? "no_name" : apr.name);
     APRWriter::writeString(AprTypes::GitType, meta_location, ConfigAPR::APR_GIT_HASH);
-    APRWriter::writeAttr(AprTypes::TotalNumberOfParticlesType, meta_location, &apr.apr_access.total_number_particles);
-    APRWriter::writeAttr(AprTypes::MaxLevelType, meta_location, &apr.apr_access.l_max);
-    APRWriter::writeAttr(AprTypes::MinLevelType, meta_location, &apr.apr_access.l_min);
+    APRWriter::writeAttr(AprTypes::TotalNumberOfParticlesType, meta_location, &apr.aprInfo.total_number_particles);
+    APRWriter::writeAttr(AprTypes::MaxLevelType, meta_location, &apr.aprInfo.l_max);
+    APRWriter::writeAttr(AprTypes::MinLevelType, meta_location, &apr.aprInfo.l_min);
 
 
     APRWriter::writeAttr(AprTypes::LambdaType, meta_location, &apr.parameters.lambda);
@@ -215,11 +214,11 @@ void APRFile::write_apr(APR &apr,uint64_t t,std::string channel_name){
     timer.stop_timer();
 
     for (size_t i = apr.level_min(); i < apr.level_max() ; ++i) {
-        int x_num = (int) apr.apr_access.x_num[i];
+        int x_num = (int) apr.aprInfo.x_num[i];
         APRWriter::writeAttr(AprTypes::NumberOfLevelXType, i, meta_location, &x_num);
-        int y_num = (int) apr.apr_access.y_num[i];
+        int y_num = (int) apr.aprInfo.y_num[i];
         APRWriter::writeAttr(AprTypes::NumberOfLevelYType, i, meta_location, &y_num);
-        int z_num = (int) apr.apr_access.z_num[i];
+        int z_num = (int) apr.aprInfo.z_num[i];
         APRWriter::writeAttr(AprTypes::NumberOfLevelZType, i, meta_location, &z_num);
     }
 
@@ -230,7 +229,7 @@ void APRFile::write_apr(APR &apr,uint64_t t,std::string channel_name){
 
         APRWriter::writeAttr(AprTypes::TotalNumberOfGapsType, fileStructure.objectIdTree, &apr.tree_access.total_number_gaps);
         APRWriter::writeAttr(AprTypes::TotalNumberOfNonEmptyRowsType, fileStructure.objectIdTree, &apr.tree_access.total_number_non_empty_rows);
-        APRWriter::writeAttr(AprTypes::TotalNumberOfParticlesType, fileStructure.objectIdTree, &apr.tree_access.total_number_particles);
+        APRWriter::writeAttr(AprTypes::TotalNumberOfParticlesType, fileStructure.objectIdTree, &apr.treeInfo.total_number_particles);
 
         MapStorageData map_data_tree;
         apr.tree_access.flatten_structure( map_data_tree);
@@ -338,7 +337,12 @@ void APRFile::read_apr(APR &apr,uint64_t t,std::string channel_name){
     apr.name= string_out;
 
     //read in access information
-    APRWriter::read_access_info(meta_data,apr.apr_access);
+    APRWriter::read_access_info(meta_data,apr.aprInfo);
+    apr.linearAccess.genInfo = &apr.aprInfo;
+    apr.apr_access.genInfo = &apr.aprInfo;
+
+    APRWriter::readAttr(AprTypes::TotalNumberOfNonEmptyRowsType, meta_data, &apr.apr_access.total_number_non_empty_rows);
+    APRWriter::readAttr(AprTypes::TotalNumberOfGapsType, meta_data, &apr.apr_access.total_number_gaps);
 
     //read in pipeline parameters
     APRWriter::read_apr_parameters(meta_data,apr.parameters);
@@ -397,25 +401,11 @@ void APRFile::read_apr(APR &apr,uint64_t t,std::string channel_name){
 
             timer.start_timer("build tree - map");
 
-            apr.tree_access.l_max = apr.level_max() - 1;
-            apr.tree_access.l_min = apr.level_min() - 1;
-
-            apr.tree_access.x_num.resize(apr.tree_access.level_max() + 1);
-            apr.tree_access.z_num.resize(apr.tree_access.level_max() + 1);
-            apr.tree_access.y_num.resize(apr.tree_access.level_max() + 1);
-
-            for (int i = apr.tree_access.level_min(); i <= apr.tree_access.level_max(); ++i) {
-                apr.tree_access.x_num[i] = apr.spatial_index_x_max(i);
-                apr.tree_access.y_num[i] = apr.spatial_index_y_max(i);
-                apr.tree_access.z_num[i] = apr.spatial_index_z_max(i);
-            }
-
-            apr.tree_access.x_num[apr.level_min() - 1] = ceil(apr.spatial_index_x_max(apr.level_min()) / 2.0f);
-            apr.tree_access.y_num[apr.level_min() - 1] = ceil(apr.spatial_index_y_max(apr.level_min()) / 2.0f);
-            apr.tree_access.z_num[apr.level_min() - 1] = ceil(apr.spatial_index_z_max(apr.level_min()) / 2.0f);
+            apr.treeInfo.init_tree(apr.org_dims(0),apr.org_dims(1),apr.org_dims(2));
+            apr.tree_access.genInfo = &apr.treeInfo;
 
             APRWriter::readAttr(AprTypes::TotalNumberOfParticlesType, fileStructure.objectIdTree,
-                                &apr.tree_access.total_number_particles);
+                                &apr.treeInfo.total_number_particles);
             APRWriter::readAttr(AprTypes::TotalNumberOfGapsType, fileStructure.objectIdTree,
                                 &apr.tree_access.total_number_gaps);
             APRWriter::readAttr(AprTypes::TotalNumberOfNonEmptyRowsType, fileStructure.objectIdTree,

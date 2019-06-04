@@ -193,42 +193,19 @@ public:
 
     }
 
-    static void read_access_info(hid_t dataset_id,RandomAccess& aprAccess){
+    static void read_access_info(hid_t dataset_id,GenInfo& aprInfo){
         //
         //  Reads in from hdf5 access information
         //
 
-        readAttr(AprTypes::TotalNumberOfParticlesType, dataset_id, &aprAccess.total_number_particles);
-        readAttr(AprTypes::TotalNumberOfGapsType, dataset_id, &aprAccess.total_number_gaps);
+        readAttr(AprTypes::TotalNumberOfParticlesType, dataset_id, &aprInfo.total_number_particles);
 
-        readAttr(AprTypes::MaxLevelType, dataset_id, &aprAccess.l_max);
-        readAttr(AprTypes::MinLevelType, dataset_id, &aprAccess.l_min);
 
-        readAttr(AprTypes::TotalNumberOfNonEmptyRowsType, dataset_id, &aprAccess.total_number_non_empty_rows);
+        readAttr(AprTypes::NumberOfYType, dataset_id, &aprInfo.org_dims[0]);
+        readAttr(AprTypes::NumberOfXType, dataset_id, &aprInfo.org_dims[1]);
+        readAttr(AprTypes::NumberOfZType,dataset_id, &aprInfo.org_dims[2]);
 
-        readAttr(AprTypes::NumberOfYType, dataset_id, &aprAccess.org_dims[0]);
-        readAttr(AprTypes::NumberOfXType, dataset_id, &aprAccess.org_dims[1]);
-        readAttr(AprTypes::NumberOfZType,dataset_id, &aprAccess.org_dims[2]);
-
-        aprAccess.x_num.resize(aprAccess.level_max() + 1);
-        aprAccess.y_num.resize(aprAccess.level_max() + 1);
-        aprAccess.z_num.resize(aprAccess.level_max() + 1);
-
-        for (size_t i = aprAccess.level_min(); i < aprAccess.level_max(); i++) {
-            int x_num, y_num, z_num;
-            //TODO: x_num and other should have HDF5 type uint64?
-            readAttr(AprTypes::NumberOfLevelXType, i, dataset_id, &x_num);
-            readAttr(AprTypes::NumberOfLevelYType, i, dataset_id, &y_num);
-            readAttr(AprTypes::NumberOfLevelZType, i,dataset_id, &z_num);
-            aprAccess.x_num[i] = x_num;
-            aprAccess.y_num[i] = y_num;
-            aprAccess.z_num[i] = z_num;
-        }
-
-        aprAccess.y_num[aprAccess.level_max()] = aprAccess.org_dims[0];
-        aprAccess.x_num[aprAccess.level_max()] = aprAccess.org_dims[1];
-        aprAccess.z_num[aprAccess.level_max()] = aprAccess.org_dims[2];
-
+        aprInfo.init(aprInfo.org_dims[0],aprInfo.org_dims[1],aprInfo.org_dims[2]);
 
     }
 

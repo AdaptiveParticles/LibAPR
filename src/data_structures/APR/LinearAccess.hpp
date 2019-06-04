@@ -14,9 +14,9 @@
 
 #include "APRAccessStructures.hpp"
 
-#include "GenAccess.hpp"
+#include "GenInfo.hpp"
 
-class LinearAccess: public GenAccess {
+class LinearAccess : public GenAccess {
 
 public:
 
@@ -27,18 +27,17 @@ public:
     std::vector<uint64_t> level_end_vec;
     std::vector<uint64_t> level_xz_vec;
 
-
 protected:
 
     void initialize_xz_linear(){
 
         uint64_t counter_total = 1; //the buffer val
 
-        level_end_vec.resize(l_max + 1);
+        level_end_vec.resize(level_max() + 1);
 
-        for (int i = 0; i <= l_max; ++i) {
+        for (int i = 0; i <= level_max(); ++i) {
 
-            counter_total += x_num[i]*z_num[i];
+            counter_total += x_num(i)*z_num(i);
             level_end_vec[i] = counter_total;
 
         }
@@ -63,23 +62,23 @@ inline void LinearAccess::initialize_linear_structure(APRParameters& apr_paramet
      *
      */
 
-    x_num.resize(l_max+1);
-    y_num.resize(l_max+1);
-    z_num.resize(l_max+1);
+    genInfo->x_num.resize(genInfo->l_max+1);
+    genInfo->y_num.resize(genInfo->l_max+1);
+    genInfo->z_num.resize(genInfo->l_max+1);
 
-    for(size_t i = l_min;i < l_max; ++i) {
-        x_num[i] = p_map[i].x_num;
-        y_num[i] = p_map[i].y_num;
-        z_num[i] = p_map[i].z_num;
+    for(size_t i = genInfo->l_min;i < genInfo->l_max; ++i) {
+        genInfo->x_num[i] = p_map[i].x_num;
+        genInfo->y_num[i] = p_map[i].y_num;
+        genInfo->z_num[i] = p_map[i].z_num;
     }
 
-    y_num[l_max] = org_dims[0];
-    x_num[l_max] = org_dims[1];
-    z_num[l_max] = org_dims[2];
+    genInfo-> y_num[genInfo->l_max] = genInfo->org_dims[0];
+    genInfo->x_num[genInfo->l_max] = genInfo->org_dims[1];
+    genInfo->z_num[genInfo->l_max] = genInfo->org_dims[2];
 
-    level_size.resize(level_max() + 1);
+    genInfo->level_size.resize(level_max() + 1);
     for (int k = 0; k <= level_max(); ++k) {
-        level_size[k] = (uint64_t) pow(2,level_max() - k);
+        genInfo->level_size[k] = (uint64_t) pow(2,level_max() - k);
     }
 
     //
@@ -98,11 +97,11 @@ inline void LinearAccess::initialize_linear_structure(APRParameters& apr_paramet
     const uint8_t UPSAMPLING_SEED_TYPE = 4;
     const uint8_t seed_us = UPSAMPLING_SEED_TYPE; //deal with the equivalence optimization
     for (size_t i = level_min()+1; i < level_max(); ++i) {
-        const size_t xLen = x_num[i];
-        const size_t zLen = z_num[i];
-        const size_t yLen = y_num[i];
-        const size_t xLenUpsampled = x_num[i - 1];
-        const size_t yLenUpsampled = y_num[i - 1];
+        const size_t xLen = genInfo->x_num[i];
+        const size_t zLen = genInfo->z_num[i];
+        const size_t yLen = genInfo->y_num[i];
+        const size_t xLenUpsampled = genInfo->x_num[i - 1];
+        const size_t yLenUpsampled = genInfo->y_num[i - 1];
 
 #ifdef HAVE_OPENMP
 #pragma omp parallel for schedule(dynamic) default(shared)
@@ -131,9 +130,9 @@ inline void LinearAccess::initialize_linear_structure(APRParameters& apr_paramet
 
 
     for (size_t i = (level_min());i < (level_max()-1); ++i) {
-        const size_t xLen = x_num[i];
-        const size_t zLen = z_num[i];
-        const size_t yLen = y_num[i];
+        const size_t xLen = genInfo->x_num[i];
+        const size_t zLen = genInfo->z_num[i];
+        const size_t yLen = genInfo->y_num[i];
 
         const auto level_start = level_end_vec[i-1];
 
@@ -162,19 +161,19 @@ inline void LinearAccess::initialize_linear_structure(APRParameters& apr_paramet
     }
 
     std::vector<uint64_t> temp_max_xz;
-    temp_max_xz.resize(z_num[l_max - 1]*x_num[l_max - 1],0);
+    temp_max_xz.resize(genInfo->z_num[genInfo->l_max - 1]*genInfo->x_num[genInfo->l_max - 1],0);
 
     /*
      * l_max - 1 is special as it also has the l_max information that then needs to be upsampled.
      *
      */
 
-    size_t i = l_max - 1;
-    const size_t xLen = x_num[i];
-    const size_t zLen = z_num[i];
-    const size_t yLen = y_num[i];
+    size_t i = genInfo->l_max - 1;
+    const size_t xLen = genInfo->x_num[i];
+    const size_t zLen = genInfo->z_num[i];
+    const size_t yLen = genInfo->y_num[i];
 
-    const size_t yLen_m = y_num[i+1];
+    const size_t yLen_m = genInfo->y_num[i+1];
 
     auto level_start = level_end_vec[i-1];
 
@@ -213,8 +212,8 @@ inline void LinearAccess::initialize_linear_structure(APRParameters& apr_paramet
      */
 
 
-    const size_t xLen_m = x_num[i+1];
-    const size_t zLen_m = z_num[i+1];
+    const size_t xLen_m = genInfo->x_num[i+1];
+    const size_t zLen_m = genInfo->z_num[i+1];
 
     level_start = level_end_vec[i];
 
@@ -247,9 +246,9 @@ inline void LinearAccess::initialize_linear_structure(APRParameters& apr_paramet
 
     apr_timer.start_timer("init y");
 
-    total_number_particles = xz_end_vec.back();
+    genInfo->total_number_particles = xz_end_vec.back();
 
-    y_vec.resize(total_number_particles);
+    y_vec.resize(genInfo->total_number_particles);
 
     apr_timer.stop_timer();
 
@@ -260,9 +259,9 @@ inline void LinearAccess::initialize_linear_structure(APRParameters& apr_paramet
     //
 
     for (size_t i = (level_min());i < (level_max()-1); ++i) {
-        const size_t xLen = x_num[i];
-        const size_t zLen = z_num[i];
-        const size_t yLen = y_num[i];
+        const size_t xLen = genInfo->x_num[i];
+        const size_t zLen = genInfo->z_num[i];
+        const size_t yLen = genInfo->y_num[i];
 
         const auto level_start = level_end_vec[i-1];
 

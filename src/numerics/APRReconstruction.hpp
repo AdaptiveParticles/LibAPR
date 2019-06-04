@@ -76,9 +76,9 @@ public:
 
         auto apr_iterator = apr.iterator();
 
-        img.initWithValue(apr.orginal_dimensions(0), apr.orginal_dimensions(1), apr.orginal_dimensions(2), 0);
+        img.initWithValue(apr.org_dims(0), apr.org_dims(1), apr.org_dims(2), 0);
 
-        int max_dim = std::max(std::max(apr.orginal_dimensions(1), apr.orginal_dimensions(0)), apr.orginal_dimensions(2));
+        int max_dim = std::max(std::max(apr.org_dims(1), apr.org_dims(0)), apr.org_dims(2));
 
         int max_level = ceil(std::log2(max_dim));
 
@@ -265,7 +265,7 @@ public:
 
         auto apr_iterator = apr.iterator();
 
-        img.initWithValue(apr.orginal_dimensions(0), apr.orginal_dimensions(1), apr.orginal_dimensions(2), 0);
+        img.initWithValue(apr.org_dims(0), apr.org_dims(1), apr.org_dims(2), 0);
 
         //int max_dim = std::max(std::max(apr.apr_access.org_dims[1], apr.apr_access.org_dims[0]), apr.apr_access.org_dims[2]);
 
@@ -1129,9 +1129,9 @@ private:
 
         auto apr_iterator = apr.iterator();
 
-        int max_img_y = ceil(apr.orginal_dimensions(0)*pow(2.0,reconPatch.level_delta));
-        int max_img_x = ceil(apr.orginal_dimensions(1)*pow(2.0,reconPatch.level_delta));
-        int max_img_z = ceil(apr.orginal_dimensions(2)*pow(2.0,reconPatch.level_delta));
+        int max_img_y = ceil(apr.org_dims(0)*pow(2.0,reconPatch.level_delta));
+        int max_img_x = ceil(apr.org_dims(1)*pow(2.0,reconPatch.level_delta));
+        int max_img_z = ceil(apr.org_dims(2)*pow(2.0,reconPatch.level_delta));
 
 
         if(reconPatch.y_end == -1){

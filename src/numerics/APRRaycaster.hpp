@@ -132,9 +132,9 @@ void APRRaycaster::perform_raycast_patch(APR &apr, ParticleData<S> &particle_dat
 
     int max_level = apr.level_max() + reconPatch.level_delta;
 
-    int max_img_y = ceil(apr.orginal_dimensions(0) * pow(2.0, reconPatch.level_delta));
-    int max_img_x = ceil(apr.orginal_dimensions(1) * pow(2.0, reconPatch.level_delta));
-    int max_img_z = ceil(apr.orginal_dimensions(2) * pow(2.0, reconPatch.level_delta));
+    int max_img_y = ceil(apr.org_dims(0) * pow(2.0, reconPatch.level_delta));
+    int max_img_x = ceil(apr.org_dims(1) * pow(2.0, reconPatch.level_delta));
+    int max_img_z = ceil(apr.org_dims(2) * pow(2.0, reconPatch.level_delta));
 
 
     if (reconPatch.y_end == -1) {
@@ -176,8 +176,8 @@ void APRRaycaster::perform_raycast_patch(APR &apr, ParticleData<S> &particle_dat
         return;
     }
 
-    uint64_t imageWidth = apr.orginal_dimensions(1);
-    uint64_t imageHeight = apr.orginal_dimensions(0);
+    uint64_t imageWidth = apr.org_dims(1);
+    uint64_t imageHeight = apr.org_dims(0);
 
     if(scale_down != 1){
         imageWidth = scale_down*imageWidth;
@@ -192,7 +192,7 @@ void APRRaycaster::perform_raycast_patch(APR &apr, ParticleData<S> &particle_dat
 
     float height = this->height;
 
-    float radius = this->radius_factor * apr.orginal_dimensions(0);
+    float radius = this->radius_factor * apr.org_dims(0);
 
     ///////////////////////////////////////////
     //
@@ -200,13 +200,13 @@ void APRRaycaster::perform_raycast_patch(APR &apr, ParticleData<S> &particle_dat
     //
     ////////////////////////////////////////////
 
-    float x0 = height * apr.orginal_dimensions(1)* this->scale_x ;
-    float y0 = apr.orginal_dimensions(0) * .5 * this->scale_y;
-    float z0 = apr.orginal_dimensions(2) * .5 * this->scale_z;
+    float x0 = height * apr.org_dims(1)* this->scale_x ;
+    float y0 = apr.org_dims(0) * .5 * this->scale_y;
+    float z0 = apr.org_dims(2) * .5 * this->scale_z;
 
-    float x0f = height * apr.orginal_dimensions(1) * this->scale_x;
-    float y0f = apr.orginal_dimensions(0) * .5 * this->scale_y;
-    float z0f = apr.orginal_dimensions(2) * .5 * this->scale_z;
+    float x0f = height * apr.org_dims(1) * this->scale_x;
+    float y0f = apr.org_dims(0) * .5 * this->scale_y;
+    float z0f = apr.org_dims(2) * .5 * this->scale_z;
 
     float theta_0 = this->theta_0;
     float theta_f = this->theta_final;
@@ -551,8 +551,8 @@ void APRRaycaster::perform_raycast(APR &apr, ParticleData<S> &particle_data, Pix
     //
 
 
-    uint64_t imageWidth = apr.orginal_dimensions(1);
-    uint64_t imageHeight = apr.orginal_dimensions(0);
+    uint64_t imageWidth = apr.org_dims(1);
+    uint64_t imageHeight = apr.org_dims(0);
 
     ////////////////////////////////
     //  Set up the projection stuff
@@ -560,7 +560,7 @@ void APRRaycaster::perform_raycast(APR &apr, ParticleData<S> &particle_data, Pix
 
     float height = this->height;
 
-    float radius = this->radius_factor * apr.orginal_dimensions(0);
+    float radius = this->radius_factor * apr.org_dims(0);
 
     ///////////////////////////////////////////
     //
@@ -568,13 +568,13 @@ void APRRaycaster::perform_raycast(APR &apr, ParticleData<S> &particle_data, Pix
     //
     ////////////////////////////////////////////
 
-    float x0 = height * apr.orginal_dimensions(1) * this->scale_x;
-    float y0 = apr.orginal_dimensions(0) * .5 * this->scale_y;
-    float z0 = apr.orginal_dimensions(2) * .5 * this->scale_z;
+    float x0 = height * apr.org_dims(1) * this->scale_x;
+    float y0 = apr.org_dims(0) * .5 * this->scale_y;
+    float z0 = apr.org_dims(2) * .5 * this->scale_z;
 
-    float x0f = height * apr.orginal_dimensions(1) * this->scale_x;
-    float y0f = apr.orginal_dimensions(0) * .5 * this->scale_y;
-    float z0f = apr.orginal_dimensions(2) * .5 * this->scale_z;
+    float x0f = height * apr.org_dims(1) * this->scale_x;
+    float y0f = apr.org_dims(0) * .5 * this->scale_y;
+    float z0f = apr.org_dims(2) * .5 * this->scale_z;
 
     float theta_0 = this->theta_0;
     float theta_f = this->theta_final;

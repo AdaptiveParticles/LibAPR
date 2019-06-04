@@ -69,15 +69,15 @@ private:
  * Initializes particle_cell_tree up to level (max - 1)
  */
 inline void PullingScheme::initialize_particle_cell_tree(const RandomAccess &apr_access) {
-    l_max = apr_access.l_max - 1;
-    l_min = apr_access.l_min;
+    l_max = apr_access.level_max() - 1;
+    l_min = apr_access.level_min();
 
     particle_cell_tree.resize(l_max + 1);
 
     for (int l = l_min; l <= l_max; ++l) {
-        particle_cell_tree[l].initWithValue(ceil(apr_access.org_dims[0] / pow(2.0, l_max - l + 1)),
-                                            ceil(apr_access.org_dims[1] / pow(2.0, l_max - l + 1)),
-                                            ceil(apr_access.org_dims[2] / pow(2.0, l_max - l + 1)),
+        particle_cell_tree[l].initWithValue(ceil(apr_access.org_dims(0) / pow(2.0, l_max - l + 1)),
+                                            ceil(apr_access.org_dims(1) / pow(2.0, l_max - l + 1)),
+                                            ceil(apr_access.org_dims(2) / pow(2.0, l_max - l + 1)),
                                             EMPTY);
     }
 }

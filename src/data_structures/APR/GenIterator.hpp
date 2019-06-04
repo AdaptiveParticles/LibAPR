@@ -13,8 +13,9 @@ protected:
 
     //Pointer to the actuall access information used by the iterator
 
-    GenAccess* gen_access;
     uint64_t end_index = 0;
+
+    GenInfo *genInfo;
 
 public:
 
@@ -35,19 +36,21 @@ public:
 
     unsigned int level_size( unsigned int level);
 
+    unsigned int org_dims(int dim) const { return genInfo->org_dims[dim]; }
+
     uint16_t level_min();
     uint16_t level_max();
 
     inline uint64_t x_num(const unsigned int level){
-        return gen_access->x_num[level];
+        return genInfo->x_num[level];
     }
 
     inline uint64_t y_num(const unsigned int level){
-        return gen_access->y_num[level];
+        return genInfo->y_num[level];
     }
 
     inline uint64_t z_num(const unsigned int level){
-        return gen_access->z_num[level];
+        return genInfo->z_num[level];
     }
 
     //defining the iterator interface
@@ -77,11 +80,11 @@ public:
 };
 
 
-inline uint64_t GenIterator::total_number_particles() {return gen_access->total_number_particles;}
+inline uint64_t GenIterator::total_number_particles() {return genInfo->total_number_particles;}
 
 
 inline unsigned int GenIterator::level_size(const unsigned int level){
-    return gen_access->level_size[level];
+    return genInfo->level_size[level];
 }
 
 inline unsigned int GenIterator::x_nearest_pixel(const unsigned int level,const int x ){
@@ -108,9 +111,8 @@ inline float GenIterator::z_global(const unsigned int level,const int z) {
     return  (z+0.5f)*level_size(level);
 }
 
-
-inline uint16_t GenIterator::level_min() {return gen_access->l_min;}
-inline uint16_t GenIterator::level_max() {return gen_access->l_max;}
+inline uint16_t GenIterator::level_min() {return genInfo->l_min;}
+inline uint16_t GenIterator::level_max() {return genInfo->l_max;}
 
 
 #endif //LIBAPR_GENITERATOR_HPP
