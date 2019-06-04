@@ -74,7 +74,7 @@ public:
         if(!tree_initialized){
             if(linear_or_random) {
 
-                initialize_apr_tree_sparse();
+                initialize_apr_tree_sparse_linear();
             } else {
 
                 initialize_apr_tree_sparse();
@@ -298,7 +298,7 @@ void APR::initialize_apr_tree_sparse_linear() {
     // --------------------------------------------------------------------
 
     treeInfo.init_tree(org_dims(0),org_dims(1),org_dims(2));
-    tree_access.genInfo = &treeInfo;
+    linearAccessTree.genInfo = &treeInfo;
 
     std::vector<std::vector<SparseParticleCellMap>> particle_cell_tree;
 
@@ -425,7 +425,7 @@ void APR::initialize_apr_tree_sparse_linear() {
     timer.stop_timer();
 
     timer.start_timer("tree - init tree");
-    tree_access.initialize_tree_access_sparse(apr_access, particle_cell_tree);
+    linearAccessTree.initialize_tree_access_sparse(particle_cell_tree);
     timer.stop_timer();
 
 

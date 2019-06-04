@@ -50,8 +50,98 @@ public:
 
     void initialize_linear_structure(APRParameters& apr_parameters,std::vector<PixelData<uint8_t>> &p_map);
 
-
+    void initialize_tree_access_sparse(std::vector<std::vector<SparseParticleCellMap>> &p_map);
 };
+
+
+
+inline void LinearAccess::initialize_tree_access_sparse(std::vector<std::vector<SparseParticleCellMap>> &p_map) {
+    APRTimer apr_timer(false);
+
+    //initialize loop variables
+    uint64_t x_;
+    uint64_t z_;
+
+
+    apr_timer.start_timer("create gaps");
+
+    for(uint64_t i = (level_min());i < level_max();i++) {
+
+        const uint64_t x_num_ = genInfo->x_num[i];
+        const uint64_t z_num_ = genInfo->z_num[i];
+
+        int y_=0;
+
+#ifdef HAVE_OPENMP
+#pragma omp parallel for schedule(dynamic) default(shared) private(z_, x_,y_) if(z_num_*x_num_ > 100)
+#endif
+        for (z_ = 0; z_ < z_num_; z_++) {
+            for (x_ = 0; x_ < x_num_; x_++) {
+
+                const size_t offset_pc_data = x_num_ * z_ + x_;
+
+                uint16_t current = 0;
+                const auto level_start = level_end_vec[i-1];
+
+                auto &map = p_map[i][offset_pc_data].mesh;
+
+                auto sz = map.size();
+
+                xz_end_vec[level_start + offset_pc_data] = sz;
+
+            }
+
+        }
+    }
+
+    apr_timer.stop_timer();
+
+    std::partial_sum(xz_end_vec.begin(),xz_end_vec.end(),xz_end_vec.begin());
+
+    genInfo->total_number_particles = xz_end_vec.back();
+
+    y_vec.resize(genInfo->total_number_particles);
+
+
+    apr_timer.start_timer("create gaps");
+
+    for(uint64_t i = (level_min());i < level_max();i++) {
+
+        const uint64_t x_num_ = genInfo->x_num[i];
+        const uint64_t z_num_ = genInfo->z_num[i];
+
+        const auto level_start = level_end_vec[i-1];
+
+#ifdef HAVE_OPENMP
+#pragma omp parallel for schedule(dynamic) default(shared) private(z_, x_) if(z_num_*x_num_ > 100)
+#endif
+        for (z_ = 0; z_ < z_num_; z_++) {
+            for (x_ = 0; x_ < x_num_; x_++) {
+
+                const size_t offset_pc_data = x_num_ * z_ + x_;
+
+                uint16_t counter = 0;
+                const auto level_start = level_end_vec[i-1];
+
+                auto &map = p_map[i][offset_pc_data].mesh;
+
+                auto offset_y = xz_end_vec[level_start + offset_pc_data-1];
+
+                for (auto it = map.begin(); it != map.end(); ++it) {
+                    const auto y = it->first;
+                    y_vec[counter + offset_y] = y;
+                    counter++;
+                }
+
+            }
+
+        }
+    }
+
+    apr_timer.stop_timer();
+
+
+}
 
 
 inline void LinearAccess::initialize_linear_structure(APRParameters& apr_parameters,std::vector<PixelData<uint8_t>> &p_map) {
@@ -62,24 +152,6 @@ inline void LinearAccess::initialize_linear_structure(APRParameters& apr_paramet
      *
      */
 
-    genInfo->x_num.resize(genInfo->l_max+1);
-    genInfo->y_num.resize(genInfo->l_max+1);
-    genInfo->z_num.resize(genInfo->l_max+1);
-
-    for(size_t i = genInfo->l_min;i < genInfo->l_max; ++i) {
-        genInfo->x_num[i] = p_map[i].x_num;
-        genInfo->y_num[i] = p_map[i].y_num;
-        genInfo->z_num[i] = p_map[i].z_num;
-    }
-
-    genInfo-> y_num[genInfo->l_max] = genInfo->org_dims[0];
-    genInfo->x_num[genInfo->l_max] = genInfo->org_dims[1];
-    genInfo->z_num[genInfo->l_max] = genInfo->org_dims[2];
-
-    genInfo->level_size.resize(level_max() + 1);
-    for (int k = 0; k <= level_max(); ++k) {
-        genInfo->level_size[k] = (uint64_t) pow(2,level_max() - k);
-    }
 
     //
     // STEP.1 (Apply equivalence optimization, and then calculate the total number of particles required in each row to allow allocation of datastructures)
