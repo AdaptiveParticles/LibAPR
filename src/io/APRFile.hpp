@@ -179,21 +179,7 @@ void APRFile::write_apr(APR &apr,uint64_t t,std::string channel_name){
     APRWriter::writeAttr(AprTypes::MaxLevelType, meta_location, &apr.aprInfo.l_max);
     APRWriter::writeAttr(AprTypes::MinLevelType, meta_location, &apr.aprInfo.l_min);
 
-
-    APRWriter::writeAttr(AprTypes::LambdaType, meta_location, &apr.parameters.lambda);
-    APRWriter::writeAttr(AprTypes::SigmaThType, meta_location, &apr.parameters.sigma_th);
-    APRWriter::writeAttr(AprTypes::SigmaThMaxType, meta_location, &apr.parameters.sigma_th_max);
-    APRWriter::writeAttr(AprTypes::IthType, meta_location, &apr.parameters.Ip_th);
-    APRWriter::writeAttr(AprTypes::DxType, meta_location, &apr.parameters.dx);
-    APRWriter::writeAttr(AprTypes::DyType, meta_location, &apr.parameters.dy);
-    APRWriter::writeAttr(AprTypes::DzType, meta_location, &apr.parameters.dz);
-    APRWriter::writeAttr(AprTypes::PsfXType, meta_location, &apr.parameters.psfx);
-    APRWriter::writeAttr(AprTypes::PsfYType, meta_location, &apr.parameters.psfy);
-    APRWriter::writeAttr(AprTypes::PsfZType, meta_location, &apr.parameters.psfz);
-    APRWriter::writeAttr(AprTypes::RelativeErrorType, meta_location, &apr.parameters.rel_error);
-    APRWriter::writeAttr(AprTypes::NoiseSdEstimateType, meta_location, &apr.parameters.noise_sd_estimate);
-    APRWriter::writeAttr(AprTypes::BackgroundIntensityEstimateType, meta_location,
-                         &apr.parameters.background_intensity_estimate);
+    APRWriter::write_apr_parameters(meta_location,apr.parameters);
 
     timer.start_timer("access_data");
     MapStorageData map_data;
@@ -293,7 +279,6 @@ void APRFile::write_particles(APR &apr,const std::string particles_name,Particle
     float quantization_factor = aprCompress.get_quantization_factor();
     APRWriter::writeAttr(AprTypes::QuantizationFactorType, part_location, &quantization_factor);
 
-
     hid_t type = APRWriter::Hdf5Type<DataType>::type();
     APRWriter::writeData({type, particles_name.c_str()}, part_location, particles.data, blosc_comp_type_parts, blosc_comp_level_parts, blosc_shuffle_parts);
     timer.stop_timer();
@@ -306,7 +291,6 @@ void APRFile::write_particles(APR &apr,const std::string particles_name,Particle
    * @param t the time point to be written (default will be to append to the end of the file, starting with 0)
    */
 void APRFile::read_apr(APR &apr,uint64_t t,std::string channel_name){
-
 
     APRTimer timer_f(false);
 
@@ -341,55 +325,11 @@ void APRFile::read_apr(APR &apr,uint64_t t,std::string channel_name){
     apr.linearAccess.genInfo = &apr.aprInfo;
     apr.apr_access.genInfo = &apr.aprInfo;
 
-    APRWriter::readAttr(AprTypes::TotalNumberOfNonEmptyRowsType, meta_data, &apr.apr_access.total_number_non_empty_rows);
-    APRWriter::readAttr(AprTypes::TotalNumberOfGapsType, meta_data, &apr.apr_access.total_number_gaps);
-
     //read in pipeline parameters
     APRWriter::read_apr_parameters(meta_data,apr.parameters);
 
-    // ------------- map handling ----------------------------
+    APRWriter::read_random_access(meta_data,fileStructure.objectId, apr.apr_access);
 
-    timer.start_timer("map loading data");
-
-    auto map_data = std::make_shared<MapStorageData>();
-
-    map_data->global_index.resize(apr.apr_access.total_number_non_empty_rows);
-
-    timer_f.start_timer("index");
-    std::vector<int16_t> index_delta(apr.apr_access.total_number_non_empty_rows);
-    APRWriter::readData(AprTypes::MapGlobalIndexType, fileStructure.objectId, index_delta.data());
-    std::vector<uint64_t> index_delta_big(apr.apr_access.total_number_non_empty_rows);
-    std::copy(index_delta.begin(), index_delta.end(), index_delta_big.begin());
-    std::partial_sum(index_delta_big.begin(), index_delta_big.end(), map_data->global_index.begin());
-
-    timer_f.stop_timer();
-
-    timer_f.start_timer("y_b_e");
-    map_data->y_end.resize(apr.apr_access.total_number_gaps);
-    APRWriter::readData(AprTypes::MapYendType, fileStructure.objectId, map_data->y_end.data());
-    map_data->y_begin.resize(apr.apr_access.total_number_gaps);
-    APRWriter::readData(AprTypes::MapYbeginType, fileStructure.objectId, map_data->y_begin.data());
-
-    timer_f.stop_timer();
-
-    timer_f.start_timer("zxl");
-    map_data->number_gaps.resize(apr.apr_access.total_number_non_empty_rows);
-    APRWriter::readData(AprTypes::MapNumberGapsType, fileStructure.objectId, map_data->number_gaps.data());
-    map_data->level.resize(apr.apr_access.total_number_non_empty_rows);
-    APRWriter::readData(AprTypes::MapLevelType, fileStructure.objectId, map_data->level.data());
-    map_data->x.resize(apr.apr_access.total_number_non_empty_rows);
-    APRWriter::readData(AprTypes::MapXType, fileStructure.objectId, map_data->x.data());
-    map_data->z.resize(apr.apr_access.total_number_non_empty_rows);
-    APRWriter::readData(AprTypes::MapZType, fileStructure.objectId, map_data->z.data());
-    timer_f.stop_timer();
-
-    timer.stop_timer();
-
-    timer.start_timer("map building");
-
-    apr.apr_access.rebuild_map(*map_data);
-
-    timer.stop_timer();
 
     if(with_tree_flag) {
 
@@ -406,39 +346,9 @@ void APRFile::read_apr(APR &apr,uint64_t t,std::string channel_name){
 
             APRWriter::readAttr(AprTypes::TotalNumberOfParticlesType, fileStructure.objectIdTree,
                                 &apr.treeInfo.total_number_particles);
-            APRWriter::readAttr(AprTypes::TotalNumberOfGapsType, fileStructure.objectIdTree,
-                                &apr.tree_access.total_number_gaps);
-            APRWriter::readAttr(AprTypes::TotalNumberOfNonEmptyRowsType, fileStructure.objectIdTree,
-                                &apr.tree_access.total_number_non_empty_rows);
 
-            auto map_data_tree = std::make_shared<MapStorageData>();
+            APRWriter::read_random_tree_access(meta_data,fileStructure.objectIdTree, apr.tree_access,apr.apr_access);
 
-            map_data_tree->global_index.resize(apr.tree_access.total_number_non_empty_rows);
-
-            std::vector<int16_t> index_delta(apr.tree_access.total_number_non_empty_rows);
-            APRWriter::readData(AprTypes::MapGlobalIndexType, fileStructure.objectIdTree, index_delta.data());
-            std::vector<uint64_t> index_delta_big(apr.tree_access.total_number_non_empty_rows);
-            std::copy(index_delta.begin(), index_delta.end(), index_delta_big.begin());
-            std::partial_sum(index_delta_big.begin(), index_delta_big.end(), map_data_tree->global_index.begin());
-
-            map_data_tree->y_end.resize(apr.tree_access.total_number_gaps);
-            APRWriter::readData(AprTypes::MapYendType, fileStructure.objectIdTree, map_data_tree->y_end.data());
-            map_data_tree->y_begin.resize(apr.tree_access.total_number_gaps);
-            APRWriter::readData(AprTypes::MapYbeginType, fileStructure.objectIdTree, map_data_tree->y_begin.data());
-
-            map_data_tree->number_gaps.resize(apr.tree_access.total_number_non_empty_rows);
-            APRWriter::readData(AprTypes::MapNumberGapsType, fileStructure.objectIdTree,
-                                map_data_tree->number_gaps.data());
-            map_data_tree->level.resize(apr.tree_access.total_number_non_empty_rows);
-            APRWriter::readData(AprTypes::MapLevelType, fileStructure.objectIdTree, map_data_tree->level.data());
-            map_data_tree->x.resize(apr.tree_access.total_number_non_empty_rows);
-            APRWriter::readData(AprTypes::MapXType, fileStructure.objectIdTree, map_data_tree->x.data());
-            map_data_tree->z.resize(apr.tree_access.total_number_non_empty_rows);
-            APRWriter::readData(AprTypes::MapZType, fileStructure.objectIdTree, map_data_tree->z.data());
-
-            apr.tree_access.rebuild_map_tree(*map_data_tree, apr.apr_access);
-
-            timer.stop_timer();
         }
 
     }
@@ -491,7 +401,6 @@ void APRFile::read_particles(APR apr,std::string particles_name,ParticleData<Dat
         meta_data = fileStructure.groupId;
     }
 
-//    prev_read_level = 0;
 
     int compress_type;
     APRWriter::readAttr(AprTypes::CompressionType, meta_data, &compress_type);

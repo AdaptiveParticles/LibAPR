@@ -589,7 +589,6 @@ public:
 
         global_index_by_level_and_zx_end.resize(gap_map.level_max+1);
 
-
         if(tree) {
             for (uint64_t i = gap_map.level_min; i < gap_map.level_max; i++) {
                 gap_map.z_num[i] = z_num(i);

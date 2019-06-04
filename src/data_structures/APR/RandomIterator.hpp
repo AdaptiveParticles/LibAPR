@@ -93,7 +93,6 @@ inline bool RandomIterator::check_neighbours_particle_cell_in_bounds(){
 }
 
 
-
 inline void RandomIterator::set_neighbour_flag(){
     check_neigh_flag = check_neighbours_flag(current_particle_cell.x,current_particle_cell.z,current_particle_cell.level);
 }

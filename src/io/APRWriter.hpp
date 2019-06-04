@@ -167,7 +167,23 @@ public:
 
     }
 
+    static void write_apr_parameters(hid_t dataset_id,APRParameters& parameters){
 
+        APRWriter::writeAttr(AprTypes::LambdaType, dataset_id, &parameters.lambda);
+        APRWriter::writeAttr(AprTypes::SigmaThType, dataset_id, &parameters.sigma_th);
+        APRWriter::writeAttr(AprTypes::SigmaThMaxType, dataset_id, &parameters.sigma_th_max);
+        APRWriter::writeAttr(AprTypes::IthType, dataset_id, &parameters.Ip_th);
+        APRWriter::writeAttr(AprTypes::DxType, dataset_id, &parameters.dx);
+        APRWriter::writeAttr(AprTypes::DyType, dataset_id, &parameters.dy);
+        APRWriter::writeAttr(AprTypes::DzType, dataset_id, &parameters.dz);
+        APRWriter::writeAttr(AprTypes::PsfXType, dataset_id, &parameters.psfx);
+        APRWriter::writeAttr(AprTypes::PsfYType, dataset_id, &parameters.psfy);
+        APRWriter::writeAttr(AprTypes::PsfZType, dataset_id, &parameters.psfz);
+        APRWriter::writeAttr(AprTypes::RelativeErrorType, dataset_id, &parameters.rel_error);
+        APRWriter::writeAttr(AprTypes::NoiseSdEstimateType, dataset_id, &parameters.noise_sd_estimate);
+        APRWriter::writeAttr(AprTypes::BackgroundIntensityEstimateType, dataset_id,
+                             &parameters.background_intensity_estimate);
+    }
 
     static void read_apr_parameters(hid_t dataset_id,APRParameters& parameters){
         //
@@ -192,6 +208,57 @@ public:
         readAttr(AprTypes::NoiseSdEstimateType, dataset_id, &parameters.noise_sd_estimate);
 
     }
+
+    static void read_random_tree_access(hid_t meta_data,hid_t objectId, RandomAccess& tree_access,RandomAccess& apr_access){
+        read_random_access_int( meta_data, objectId,  tree_access, apr_access,true);
+    }
+
+    static void read_random_access(hid_t meta_data,hid_t objectId, RandomAccess& apr_access){
+        RandomAccess empty_access;
+        read_random_access_int( meta_data, objectId,  apr_access, empty_access,false);
+    }
+
+    static void read_random_access_int(hid_t meta_data,hid_t objectId, RandomAccess& apr_access,RandomAccess& own_access,bool tree = false){
+
+        APRWriter::readAttr(AprTypes::TotalNumberOfNonEmptyRowsType, meta_data, &apr_access.total_number_non_empty_rows);
+        APRWriter::readAttr(AprTypes::TotalNumberOfGapsType, meta_data, &apr_access.total_number_gaps);
+
+        // ------------- map handling ----------------------------
+
+        auto map_data = std::make_shared<MapStorageData>();
+
+        map_data->global_index.resize(apr_access.total_number_non_empty_rows);
+
+        std::vector<int16_t> index_delta(apr_access.total_number_non_empty_rows);
+        APRWriter::readData(AprTypes::MapGlobalIndexType, objectId, index_delta.data());
+        std::vector<uint64_t> index_delta_big(apr_access.total_number_non_empty_rows);
+        std::copy(index_delta.begin(), index_delta.end(), index_delta_big.begin());
+        std::partial_sum(index_delta_big.begin(), index_delta_big.end(), map_data->global_index.begin());
+
+        map_data->y_end.resize(apr_access.total_number_gaps);
+        APRWriter::readData(AprTypes::MapYendType, objectId, map_data->y_end.data());
+        map_data->y_begin.resize(apr_access.total_number_gaps);
+        APRWriter::readData(AprTypes::MapYbeginType, objectId, map_data->y_begin.data());
+
+        map_data->number_gaps.resize(apr_access.total_number_non_empty_rows);
+        APRWriter::readData(AprTypes::MapNumberGapsType, objectId, map_data->number_gaps.data());
+        map_data->level.resize(apr_access.total_number_non_empty_rows);
+        APRWriter::readData(AprTypes::MapLevelType, objectId, map_data->level.data());
+        map_data->x.resize(apr_access.total_number_non_empty_rows);
+        APRWriter::readData(AprTypes::MapXType, objectId, map_data->x.data());
+        map_data->z.resize(apr_access.total_number_non_empty_rows);
+        APRWriter::readData(AprTypes::MapZType, objectId, map_data->z.data());
+
+        if(tree){
+            //also needs the APR access
+            apr_access.rebuild_map_tree(*map_data,own_access);
+        } else{
+            apr_access.rebuild_map(*map_data);
+        }
+
+
+    }
+
 
     static void read_access_info(hid_t dataset_id,GenInfo& aprInfo){
         //
