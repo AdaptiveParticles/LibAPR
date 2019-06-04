@@ -167,6 +167,28 @@ public:
 
     }
 
+
+    static void write_random_access(hid_t meta_data,hid_t objectId, RandomAccess& apr_access,unsigned int blosc_comp_type_access, unsigned int blosc_comp_level_access,unsigned int blosc_shuffle_access){
+        MapStorageData map_data;
+        apr_access.flatten_structure( map_data);
+
+        APRWriter::writeAttr(AprTypes::TotalNumberOfGapsType, meta_data, &apr_access.total_number_gaps);
+        APRWriter::writeAttr(AprTypes::TotalNumberOfNonEmptyRowsType, meta_data, &apr_access.total_number_non_empty_rows);
+
+        std::vector<uint16_t> index_delta;
+        index_delta.resize(map_data.global_index.size());
+        std::adjacent_difference(map_data.global_index.begin(),map_data.global_index.end(),index_delta.begin());
+        APRWriter::writeData(AprTypes::MapGlobalIndexType, objectId, index_delta, blosc_comp_type_access, blosc_comp_level_access, blosc_shuffle_access);
+
+        APRWriter::writeData(AprTypes::MapYendType, objectId, map_data.y_end, blosc_comp_type_access, blosc_comp_level_access, blosc_shuffle_access);
+        APRWriter::writeData(AprTypes::MapYbeginType, objectId, map_data.y_begin, blosc_comp_type_access, blosc_comp_level_access, blosc_shuffle_access);
+        APRWriter::writeData(AprTypes::MapNumberGapsType, objectId, map_data.number_gaps, blosc_comp_type_access, blosc_comp_level_access, blosc_shuffle_access);
+        APRWriter::writeData(AprTypes::MapLevelType, objectId, map_data.level, blosc_comp_type_access, blosc_comp_level_access, blosc_shuffle_access);
+        APRWriter::writeData(AprTypes::MapXType, objectId, map_data.x, blosc_comp_type_access, blosc_comp_level_access, blosc_shuffle_access);
+        APRWriter::writeData(AprTypes::MapZType, objectId, map_data.z, blosc_comp_type_access, blosc_comp_level_access, blosc_shuffle_access);
+
+    }
+
     static void write_apr_info(hid_t meta_location,GenInfo& aprInfo){
         APRWriter::writeAttr(AprTypes::NumberOfXType, meta_location, &aprInfo.org_dims[1]);
         APRWriter::writeAttr(AprTypes::NumberOfYType, meta_location, &aprInfo.org_dims[0]);
@@ -177,6 +199,15 @@ public:
         APRWriter::writeAttr(AprTypes::TotalNumberOfParticlesType, meta_location, &aprInfo.total_number_particles);
         APRWriter::writeAttr(AprTypes::MaxLevelType, meta_location, &aprInfo.l_max);
         APRWriter::writeAttr(AprTypes::MinLevelType, meta_location, &aprInfo.l_min);
+
+        for (size_t i = aprInfo.l_min; i < aprInfo.l_max ; ++i) {
+            int x_num = (int) aprInfo.x_num[i];
+            APRWriter::writeAttr(AprTypes::NumberOfLevelXType, i, meta_location, &x_num);
+            int y_num = (int) aprInfo.y_num[i];
+            APRWriter::writeAttr(AprTypes::NumberOfLevelYType, i, meta_location, &y_num);
+            int z_num = (int) aprInfo.z_num[i];
+            APRWriter::writeAttr(AprTypes::NumberOfLevelZType, i, meta_location, &z_num);
+        }
 
     }
 

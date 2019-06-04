@@ -174,59 +174,18 @@ void APRFile::write_apr(APR &apr,uint64_t t,std::string channel_name){
     APRWriter::write_apr_parameters(meta_location,apr.parameters);
 
     timer.start_timer("access_data");
-    MapStorageData map_data;
-    apr.apr_access.flatten_structure( map_data);
 
-    APRWriter::writeAttr(AprTypes::TotalNumberOfGapsType, meta_location, &apr.apr_access.total_number_gaps);
-    APRWriter::writeAttr(AprTypes::TotalNumberOfNonEmptyRowsType, meta_location, &apr.apr_access.total_number_non_empty_rows);
-
-    std::vector<uint16_t> index_delta;
-    index_delta.resize(map_data.global_index.size());
-    std::adjacent_difference(map_data.global_index.begin(),map_data.global_index.end(),index_delta.begin());
-    APRWriter::writeData(AprTypes::MapGlobalIndexType, fileStructure.objectId, index_delta, blosc_comp_type_access, blosc_comp_level_access, blosc_shuffle_access);
-
-    APRWriter::writeData(AprTypes::MapYendType, fileStructure.objectId, map_data.y_end, blosc_comp_type_access, blosc_comp_level_access, blosc_shuffle_access);
-    APRWriter::writeData(AprTypes::MapYbeginType, fileStructure.objectId, map_data.y_begin, blosc_comp_type_access, blosc_comp_level_access, blosc_shuffle_access);
-    APRWriter::writeData(AprTypes::MapNumberGapsType, fileStructure.objectId, map_data.number_gaps, blosc_comp_type_access, blosc_comp_level_access, blosc_shuffle_access);
-    APRWriter::writeData(AprTypes::MapLevelType, fileStructure.objectId, map_data.level, blosc_comp_type_access, blosc_comp_level_access, blosc_shuffle_access);
-    APRWriter::writeData(AprTypes::MapXType, fileStructure.objectId, map_data.x, blosc_comp_type_access, blosc_comp_level_access, blosc_shuffle_access);
-    APRWriter::writeData(AprTypes::MapZType, fileStructure.objectId, map_data.z, blosc_comp_type_access, blosc_comp_level_access, blosc_shuffle_access);
+    APRWriter::write_random_access(meta_location,fileStructure.objectId, apr.apr_access,blosc_comp_type_access, blosc_comp_level_access,blosc_shuffle_access);
 
     timer.stop_timer();
 
-    for (size_t i = apr.level_min(); i < apr.level_max() ; ++i) {
-        int x_num = (int) apr.aprInfo.x_num[i];
-        APRWriter::writeAttr(AprTypes::NumberOfLevelXType, i, meta_location, &x_num);
-        int y_num = (int) apr.aprInfo.y_num[i];
-        APRWriter::writeAttr(AprTypes::NumberOfLevelYType, i, meta_location, &y_num);
-        int z_num = (int) apr.aprInfo.z_num[i];
-        APRWriter::writeAttr(AprTypes::NumberOfLevelZType, i, meta_location, &z_num);
-    }
+
 
     if(with_tree_flag){
 
         apr.init_tree(); //incase it hasn't been initialized.
 
-
-        APRWriter::writeAttr(AprTypes::TotalNumberOfGapsType, fileStructure.objectIdTree, &apr.tree_access.total_number_gaps);
-        APRWriter::writeAttr(AprTypes::TotalNumberOfNonEmptyRowsType, fileStructure.objectIdTree, &apr.tree_access.total_number_non_empty_rows);
-        APRWriter::writeAttr(AprTypes::TotalNumberOfParticlesType, fileStructure.objectIdTree, &apr.treeInfo.total_number_particles);
-
-        MapStorageData map_data_tree;
-        apr.tree_access.flatten_structure( map_data_tree);
-
-        std::vector<uint16_t> index_delta;
-        index_delta.resize(map_data_tree.global_index.size());
-        std::adjacent_difference(map_data_tree.global_index.begin(),map_data_tree.global_index.end(),index_delta.begin());
-        APRWriter::writeData(AprTypes::MapGlobalIndexType, fileStructure.objectIdTree, index_delta, blosc_comp_type_access, blosc_comp_level_access, blosc_shuffle_access);
-
-        APRWriter::writeData(AprTypes::MapYendType, fileStructure.objectIdTree, map_data_tree.y_end, blosc_comp_type_access, blosc_comp_level_access, blosc_shuffle_access);
-        APRWriter::writeData(AprTypes::MapYbeginType, fileStructure.objectIdTree, map_data_tree.y_begin, blosc_comp_type_access, blosc_comp_level_access, blosc_shuffle_access);
-        APRWriter::writeData(AprTypes::MapNumberGapsType, fileStructure.objectIdTree, map_data_tree.number_gaps, blosc_comp_type_access, blosc_comp_level_access, blosc_shuffle_access);
-        APRWriter::writeData(AprTypes::MapLevelType, fileStructure.objectIdTree, map_data_tree.level, blosc_comp_type_access, blosc_comp_level_access, blosc_shuffle_access);
-        APRWriter::writeData(AprTypes::MapXType, fileStructure.objectIdTree, map_data_tree.x, blosc_comp_type_access, blosc_comp_level_access, blosc_shuffle_access);
-        APRWriter::writeData(AprTypes::MapZType, fileStructure.objectIdTree, map_data_tree.z, blosc_comp_type_access, blosc_comp_level_access, blosc_shuffle_access);
-
+        APRWriter::write_random_access(fileStructure.objectIdTree,fileStructure.objectIdTree, apr.tree_access,blosc_comp_type_access, blosc_comp_level_access,blosc_shuffle_access);
 
     }
 
