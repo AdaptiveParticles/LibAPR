@@ -13,8 +13,11 @@ class APRIterator  : public RandomIterator {
 
 public:
 
-    explicit APRIterator(APRAccess& apr_access_) {
-        this->apr_access = &apr_access_;
+    RandomAccess* apr_access;
+
+    explicit APRIterator(RandomAccess& apr_access_) {
+        apr_access = &apr_access_;
+        this->gen_access =  &apr_access_;
     }
 
     /////////////////////////
@@ -56,6 +59,9 @@ public:
     inline uint64_t begin(const uint16_t level,const uint16_t z,const uint16_t x){
         return set_new_lzx(level,z,x);
     }
+
+    inline uint64_t particles_level_begin(const uint16_t& level_) {return apr_access->global_index_by_level_and_zx_end[level_-1].back()+1;}
+    inline uint64_t particles_level_end(const uint16_t& level_) {return apr_access->global_index_by_level_and_zx_end[level_].back();}
 
 
     unsigned int orginal_dimensions(int dim) const { return apr_access->org_dims[dim]; }

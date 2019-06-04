@@ -7,7 +7,7 @@
 
 #include "hdf5functions_blosc.h"
 #include "data_structures/APR/APR.hpp"
-#include "data_structures/APR/APRAccess.hpp"
+#include "data_structures/APR/RandomAccess.hpp"
 #include "ConfigAPR.h"
 #include <numeric>
 #include <memory>
@@ -193,7 +193,7 @@ public:
 
     }
 
-    static void read_access_info(hid_t dataset_id,APRAccess& aprAccess){
+    static void read_access_info(hid_t dataset_id,RandomAccess& aprAccess){
         //
         //  Reads in from hdf5 access information
         //

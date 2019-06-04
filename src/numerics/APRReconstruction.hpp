@@ -78,7 +78,7 @@ public:
 
         img.initWithValue(apr.orginal_dimensions(0), apr.orginal_dimensions(1), apr.orginal_dimensions(2), 0);
 
-        int max_dim = std::max(std::max(apr.apr_access.org_dims[1], apr.apr_access.org_dims[0]), apr.apr_access.org_dims[2]);
+        int max_dim = std::max(std::max(apr.orginal_dimensions(1), apr.orginal_dimensions(0)), apr.orginal_dimensions(2));
 
         int max_level = ceil(std::log2(max_dim));
 

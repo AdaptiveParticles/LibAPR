@@ -80,7 +80,7 @@ protected:
     const APR *apr;
 
     template<typename T>
-    void init_apr(APR& aAPR, PixelData<T>& input_image);
+    void init_apr( PixelData<T>& input_image,GenAccess& genAccess);
 
     template<typename T>
     void auto_parameters(const PixelData<T> &input_img);
@@ -215,7 +215,8 @@ void APRConverter<ImageType>::computeL(APR& aAPR,PixelData<T>& input_image){
     //  Computes the local resolution estimate L(y), the input for the Pulling Scheme and setting the resolution everywhere.
     //
 
-    init_apr(aAPR, input_image);
+    init_apr(input_image,aAPR.apr_access);
+    init_apr(input_image,aAPR.linearAccess);
 
     total_timer.start_timer("Total_pipeline_excluding_IO");
 
@@ -310,7 +311,8 @@ void APRConverter<ImageType>::solveForAPR(APR& aAPR){
         method_timer.stop_timer();
     } else {
         method_timer.start_timer("compute_apr_datastructure");
-        aAPR.apr_access.initialize_linear_structure_from_particle_cell_tree(aAPR.parameters,
+
+        aAPR.linearAccess.initialize_linear_structure(aAPR.parameters,
                                                                      iPullingScheme.getParticleCellTree());
         method_timer.stop_timer();
     }
@@ -645,18 +647,18 @@ void APRConverter<ImageType>::get_local_intensity_scale(PixelData<float> &local_
 
 
 template<typename ImageType> template<typename T>
-inline void APRConverter<ImageType>::init_apr(APR& aAPR,PixelData<T>& input_image){
+inline void APRConverter<ImageType>::init_apr(PixelData<T>& input_image,GenAccess& genAccess){
     //
     //  Initializing the size of the APR, min and maximum level (in the data structures it is called depth)
     //
 
-    aAPR.apr_access.org_dims[0] = input_image.y_num;
-    aAPR.apr_access.org_dims[1] = input_image.x_num;
-    aAPR.apr_access.org_dims[2] = input_image.z_num;
+    genAccess.org_dims[0] = input_image.y_num;
+    genAccess.org_dims[1] = input_image.x_num;
+    genAccess.org_dims[2] = input_image.z_num;
 
-    aAPR.apr_access.number_dimensions = (input_image.y_num > 1) + (input_image.x_num > 1) + (input_image.z_num > 1);
+    genAccess.number_dimensions = (input_image.y_num > 1) + (input_image.x_num > 1) + (input_image.z_num > 1);
 
-    int max_dim = std::max(std::max(aAPR.apr_access.org_dims[1], aAPR.apr_access.org_dims[0]), aAPR.apr_access.org_dims[2]);
+    int max_dim = std::max(std::max(genAccess.org_dims[1], genAccess.org_dims[0]), genAccess.org_dims[2]);
     //int min_dim = std::min(std::min(aAPR.apr_access.org_dims[1], aAPR.apr_access.org_dims[0]), aAPR.apr_access.org_dims[2]);
 
     int min_dim = max_dim;
@@ -668,10 +670,9 @@ inline void APRConverter<ImageType>::init_apr(APR& aAPR,PixelData<T>& input_imag
     // TODO: why minimum level is forced here to be 2?
     int levelMin = std::max( (int)(levelMax - floor(std::log2(min_dim))), 1);
 
-    aAPR.apr_access.l_min = levelMin;
-    aAPR.apr_access.l_max = levelMax;
+    genAccess.l_min = levelMin;
+    genAccess.l_max = levelMax;
 
-    aAPR.parameters = par;
 }
 
 template<typename ImageType> template<typename T>

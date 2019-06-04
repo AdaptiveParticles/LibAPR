@@ -520,9 +520,9 @@ void APRFilter::convolve(APR &apr, std::vector<PixelData<T>>& stencils, Particle
 
         const uint64_t z_num = apr_it.z_num(level);
 
-        const uint64_t y_num_m = (apr.apr_access.org_dims[0] > 1) ? apr_it.y_num(level) +
+        const uint64_t y_num_m = (apr_it.orginal_dimensions(0) > 1) ? apr_it.y_num(level) +
                                                                     stencil_shape[0] - 1 : 1;
-        const uint64_t x_num_m = (apr.apr_access.org_dims[1] > 1) ? apr_it.x_num(level) +
+        const uint64_t x_num_m = (apr_it.orginal_dimensions(1)> 1) ? apr_it.x_num(level) +
                                                                     stencil_shape[1] - 1 : 1;
 
         PixelData<float> temp_vec;

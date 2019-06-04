@@ -35,7 +35,7 @@ namespace {
 
     TEST(PullingSchemeTest, Init) {
 
-        APRAccess access;
+        RandomAccess access;
         access.l_max = 4;
         access.l_min = 2;
         access.org_dims[0] = 8;

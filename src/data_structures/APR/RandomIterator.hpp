@@ -51,6 +51,13 @@ public:
 
         return local_iterators.same_level[0];
     }
+    inline bool check_neighbours_flag(const uint16_t& x,const uint16_t& z,const uint16_t& level){
+        // 0 1 2 .............. x_num-3 x_num-2 x_num-1 (x_num)
+        //                              ......(x-1)..........
+        //                                      ..(x)........
+        return ((uint16_t)(x-1)>(this->gen_access->x_num[level]-3)) | ((uint16_t)(z-1)>(this->gen_access->z_num[level]-3));
+    }
+
 
 };
 
@@ -79,15 +86,19 @@ inline uint8_t RandomIterator::number_neighbours_in_direction(const uint8_t& fac
 inline bool RandomIterator::check_neighbours_particle_cell_in_bounds(){
     //uses the fact that the coordinates have unsigned type, and therefore if they are negative they will be above the bound
     if (check_neigh_flag) {
-        return (neighbour_particle_cell.x < apr_access->x_num[neighbour_particle_cell.level]) &
-               (neighbour_particle_cell.z < apr_access->z_num[neighbour_particle_cell.level]);
+        return (neighbour_particle_cell.x < this->gen_access->x_num[neighbour_particle_cell.level]) &
+               (neighbour_particle_cell.z < this->gen_access->z_num[neighbour_particle_cell.level]);
     }
     return true;
 }
 
+
+
 inline void RandomIterator::set_neighbour_flag(){
-    check_neigh_flag = apr_access->check_neighbours_flag(current_particle_cell.x,current_particle_cell.z,current_particle_cell.level);
+    check_neigh_flag = check_neighbours_flag(current_particle_cell.x,current_particle_cell.z,current_particle_cell.level);
 }
+
+
 
 
 #endif //LIBAPR_RANDOMITERATOR_HPP

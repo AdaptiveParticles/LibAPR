@@ -104,7 +104,7 @@ inline void ParticleData<DataType>::copy_parts(APR &apr, const ParticleData<S> &
     //checking if its the right size, if it is, this should do nothing.
     data.resize(total_number_of_particles);
 
-    APRIterator apr_iterator(apr.apr_access);
+    auto apr_iterator = apr.iterator();
 
     size_t particle_number_start;
     size_t particle_number_stop;
@@ -148,7 +148,7 @@ inline void ParticleData<DataType>::copy_parts(APR &apr, const ParticleData<S> &
  */
 template<typename DataType> template<typename V,class BinaryOperation>
 inline void ParticleData<DataType>::zip_inplace(APR &apr, const ParticleData<V> &parts2, BinaryOperation op, uint64_t level, unsigned int aNumberOfBlocks) {
-    APRIterator apr_iterator(apr.apr_access);
+    auto apr_iterator = apr.iterator();
 
     size_t particle_number_start;
     size_t particle_number_stop;
@@ -192,7 +192,7 @@ template<typename DataType> template<typename V,class BinaryOperation>
 inline void ParticleData<DataType>::zip(APR& apr, const ParticleData<V> &parts2, ParticleData<V>& output, BinaryOperation op, uint64_t level, unsigned int aNumberOfBlocks) {
     output.data.resize(data.size());
 
-    APRIterator apr_iterator(apr.apr_access);
+    auto apr_iterator = apr.iterator();
 
     size_t particle_number_start;
     size_t particle_number_stop;
@@ -234,7 +234,7 @@ inline void ParticleData<DataType>::zip(APR& apr, const ParticleData<V> &parts2,
  */
 template<typename DataType> template<class UnaryOperator>
 inline void ParticleData<DataType>::map_inplace(APR& apr,UnaryOperator op,const uint64_t level, unsigned int aNumberOfBlocks){
-    APRIterator apr_iterator(apr.apr_access);
+    auto apr_iterator = apr.iterator();
 
     size_t particle_number_start;
     size_t particle_number_stop;
@@ -279,7 +279,7 @@ template<typename DataType> template <typename U,class UnaryOperator>
 inline void ParticleData<DataType>::map(APR& apr,ParticleData<U>& output,UnaryOperator op,const uint64_t level,unsigned int aNumberOfBlocks) {
     output.data.resize(data.size());
 
-    APRIterator apr_iterator(apr.apr_access);
+    auto apr_iterator = apr.iterator();
 
     size_t particle_number_start;
     size_t particle_number_stop;

@@ -8,7 +8,7 @@
 #ifndef PARTPLAY_PULLING_SCHEME_HPP
 #define PARTPLAY_PULLING_SCHEME_HPP
 
-#include "data_structures/APR/APRAccess.hpp"
+#include "data_structures/APR/RandomAccess.hpp"
 #include "data_structures/Mesh/PixelData.hpp"
 #include <vector>
 
@@ -51,7 +51,7 @@ public:
     template<typename T>
     void fill(float k, const PixelData<T> &input);
     void pulling_scheme_main();
-    void initialize_particle_cell_tree(const APRAccess &apr_access);
+    void initialize_particle_cell_tree(const RandomAccess &apr_access);
     std::vector<PixelData<uint8_t>>& getParticleCellTree() { return particle_cell_tree; }
 
 private:
@@ -68,7 +68,7 @@ private:
 /**
  * Initializes particle_cell_tree up to level (max - 1)
  */
-inline void PullingScheme::initialize_particle_cell_tree(const APRAccess &apr_access) {
+inline void PullingScheme::initialize_particle_cell_tree(const RandomAccess &apr_access) {
     l_max = apr_access.l_max - 1;
     l_min = apr_access.l_min;
 

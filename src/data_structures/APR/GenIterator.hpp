@@ -5,22 +5,21 @@
 #ifndef LIBAPR_GENITERATOR_HPP
 #define LIBAPR_GENITERATOR_HPP
 
-#include "APRAccess.hpp"
+#include "RandomAccess.hpp"
 
 class GenIterator {
 
 protected:
 
     //Pointer to the actuall access information used by the iterator
-    APRAccess* apr_access;
+
+    GenAccess* gen_access;
     uint64_t end_index = 0;
 
 public:
 
     uint64_t total_number_particles();
 
-    uint64_t particles_level_begin(const uint16_t& level_);
-    uint64_t particles_level_end(const uint16_t& level_);
 
     virtual uint16_t y() const {return 0;};
 
@@ -40,15 +39,15 @@ public:
     uint16_t level_max();
 
     inline uint64_t x_num(const unsigned int level){
-        return apr_access->x_num[level];
+        return gen_access->x_num[level];
     }
 
     inline uint64_t y_num(const unsigned int level){
-        return apr_access->y_num[level];
+        return gen_access->y_num[level];
     }
 
     inline uint64_t z_num(const unsigned int level){
-        return apr_access->z_num[level];
+        return gen_access->z_num[level];
     }
 
     //defining the iterator interface
@@ -66,17 +65,23 @@ public:
         return 0;
     }
 
+    virtual uint64_t particles_level_begin(const uint16_t& level_){
+        return 0;
+    }
+
+    virtual uint64_t particles_level_end(const uint16_t& level_){
+        return 0;
+    }
+
 
 };
 
 
-inline uint64_t GenIterator::total_number_particles() {return apr_access->total_number_particles;}
+inline uint64_t GenIterator::total_number_particles() {return gen_access->total_number_particles;}
 
-inline uint64_t GenIterator::particles_level_begin(const uint16_t& level_) {return apr_access->global_index_by_level_and_zx_end[level_-1].back()+1;}
-inline uint64_t GenIterator::particles_level_end(const uint16_t& level_) {return apr_access->global_index_by_level_and_zx_end[level_].back();}
 
 inline unsigned int GenIterator::level_size(const unsigned int level){
-    return apr_access->level_size[level];
+    return gen_access->level_size[level];
 }
 
 inline unsigned int GenIterator::x_nearest_pixel(const unsigned int level,const int x ){
@@ -104,8 +109,8 @@ inline float GenIterator::z_global(const unsigned int level,const int z) {
 }
 
 
-inline uint16_t GenIterator::level_min() {return apr_access->l_min;}
-inline uint16_t GenIterator::level_max() {return apr_access->l_max;}
+inline uint16_t GenIterator::level_min() {return gen_access->l_min;}
+inline uint16_t GenIterator::level_max() {return gen_access->l_max;}
 
 
 #endif //LIBAPR_GENITERATOR_HPP

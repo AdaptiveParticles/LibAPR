@@ -5,31 +5,39 @@
 #ifndef PARTPLAY_APR_HPP
 #define PARTPLAY_APR_HPP
 
-#include "APRAccess.hpp"
+#include "RandomAccess.hpp"
 #include "APRIterator.hpp"
 #include "APRTreeIterator.hpp"
 #include "LinearIterator.hpp"
 
 class APR {
     friend class APRFile;
+    template<typename T>
+    friend class APRConverter;
 
 protected:
 
     bool linear_or_random = false;
     bool linear_or_random_tree = false;
 
-    APRAccess tree_access;
+    RandomAccess tree_access;
     bool tree_initialized = false;
 
     //APR Tree function
     void initialize_apr_tree_sparse();
     void initialize_apr_tree();
-    void initialize_linear_access(APRAccess& aprAccess,GenIterator& it);
+    void initialize_linear_access(LinearAccess& aprAccess,GenIterator& it);
+
+    LinearAccess linearAccess;
+    LinearAccess linearAccessTree;
+
+    RandomAccess apr_access;
+
 
 public:
 
     APRParameters parameters; // #TODO move to protected. Introduce a get and set method
-    APRAccess apr_access; // #TODO move to protected.
+
 
     std::string name;
     //APRParameters parameters;
@@ -51,7 +59,7 @@ public:
     }
 
     LinearIterator linear_iterator() {
-        return LinearIterator(apr_access);
+        return LinearIterator(linearAccess);
     }
 
 
@@ -70,7 +78,7 @@ public:
     void init_linear(){
         if(!linear_or_random){
             auto it = iterator();
-            initialize_linear_access(apr_access,it);
+            initialize_linear_access(linearAccess,it);
         }
     }
 
@@ -78,7 +86,7 @@ public:
         init_tree();
         if(!linear_or_random_tree){
             auto it = tree_iterator();
-            initialize_linear_access(tree_access,it);
+            initialize_linear_access(linearAccessTree,it);
         }
     }
 
@@ -103,12 +111,33 @@ public:
 /**
    * Initializes linear access apr structures, that require more memory, but are faster. However, the do not allow the same neighbour access as the random iterators
    */
-void APR::initialize_linear_access(APRAccess& aprAccess,GenIterator& it){
+void APR::initialize_linear_access(LinearAccess& aprAccess,GenIterator& it){
 
-    auto& lin_a = aprAccess.linearAccess;
+    auto& lin_a = aprAccess;
 
     uint64_t counter = 0;
     uint64_t counter_xz = 1;
+
+    linearAccess.l_max = it.level_max();
+    linearAccess.l_min = it.level_min();
+
+    linearAccess.level_size.resize(it.level_max() + 1);
+    for (int k = 0; k <= it.level_max(); ++k) {
+        linearAccess.level_size[k] = (uint64_t) pow(2,it.level_max() - k);
+    }
+
+    linearAccess.x_num.resize(it.level_max()+1);
+    linearAccess.y_num.resize(it.level_max()+1);
+    linearAccess.z_num.resize(it.level_max()+1);
+
+    for (int l = it.level_min(); l <= it.level_max() ; ++l) {
+        linearAccess.x_num[l] = it.x_num(l);
+        linearAccess.y_num[l] = it.y_num(l);
+        linearAccess.z_num[l] = it.z_num(l);
+    }
+
+
+    linearAccess.total_number_particles = it.total_number_particles();
 
     lin_a.level_end_vec.resize(it.level_max() + 1);
     lin_a.level_xz_vec.resize(it.level_max() + 1);

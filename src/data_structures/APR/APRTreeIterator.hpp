@@ -11,11 +11,13 @@
 
 class APRTreeIterator : public RandomIterator {
 public:
-    APRAccess* aprOwn_access;
+    RandomAccess* aprOwn_access;
+    RandomAccess* apr_access;
 
-    APRTreeIterator(APRAccess& apr_access_,APRAccess& tree_access){
-        this->apr_access = &tree_access;
+    APRTreeIterator(RandomAccess& apr_access_,RandomAccess& tree_access){
+        apr_access = &tree_access;
         aprOwn_access = &apr_access_;
+        this->gen_access = &tree_access;
     }
 
     uint64_t total_number_tree_particle_cells();
@@ -48,6 +50,9 @@ public:
     inline uint64_t begin(const uint16_t level,const uint16_t z,const uint16_t x){
         return set_new_lzx(level,z,x);
     }
+
+    inline uint64_t particles_level_begin(const uint16_t& level_) {return apr_access->global_index_by_level_and_zx_end[level_-1].back()+1;}
+    inline uint64_t particles_level_end(const uint16_t& level_) {return apr_access->global_index_by_level_and_zx_end[level_].back();}
 
 };
 

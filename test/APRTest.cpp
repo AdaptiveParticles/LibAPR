@@ -174,6 +174,10 @@ bool test_linear_access_create(TestData& test_data) {
     aprConverter.get_apr(apr_lin,test_data.img_original);
 
     if(apr.total_number_particles() != apr_lin.total_number_particles()){
+
+        auto org = apr.total_number_particles();
+        auto direct = apr_lin.total_number_particles();
+
         success = false;
     }
 
