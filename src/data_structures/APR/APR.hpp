@@ -127,8 +127,7 @@ void APR::initialize_linear_access(LinearAccess& aprAccess,GenIterator& it){
     uint64_t counter = 0;
     uint64_t counter_xz = 1;
 
-    lin_a.level_end_vec.resize(it.level_max() + 1);
-    lin_a.level_xz_vec.resize(it.level_max() + 1);
+    lin_a.level_xz_vec.resize(it.level_max() + 2,0);
 
     lin_a.xz_end_vec.push_back(counter); // adding padding by one to allow the -1 syntax without checking.
 
@@ -151,8 +150,7 @@ void APR::initialize_linear_access(LinearAccess& aprAccess,GenIterator& it){
             }
         }
 
-        lin_a.level_end_vec[level] = counter;
-        lin_a.level_xz_vec[level] = counter_xz;
+        lin_a.level_xz_vec[level+1] = counter_xz;
     }
 
 

@@ -5,7 +5,7 @@
 #ifndef LIBAPR_GENINFO_HPP
 #define LIBAPR_GENINFO_HPP
 
-
+//Note this function sets up the domain for the APR for a given input size.
 class GenInfo {
 
 public:
@@ -42,8 +42,8 @@ public:
         min_dim = z_org > 1 ? std::min(min_dim, (int) z_org) : min_dim;
 
         int levelMax = ceil(std::log2(max_dim));
-        // TODO: why minimum level is forced here to be 2?
-        int levelMin = std::max( (int)(levelMax - floor(std::log2(min_dim))), 1);
+
+        int levelMin = std::max( (int)(levelMax - floor(std::log2(min_dim))), 1); // This sets the global minimum level
 
         l_min = levelMin;
         l_max = levelMax;

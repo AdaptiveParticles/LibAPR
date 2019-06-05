@@ -316,6 +316,8 @@ void APRConverter<ImageType>::solveForAPR(APR& aAPR){
 
         aAPR.linearAccess.initialize_linear_structure(aAPR.parameters,
                                                                      iPullingScheme.getParticleCellTree());
+        aAPR.linear_or_random = true;
+
         method_timer.stop_timer();
     }
 

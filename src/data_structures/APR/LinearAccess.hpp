@@ -22,23 +22,24 @@ public:
 
     //New Linear Access Structures
 
-    std::vector<uint16_t> y_vec;
-    std::vector<uint64_t> xz_end_vec;
-    std::vector<uint64_t> level_end_vec;
-    std::vector<uint64_t> level_xz_vec;
+    std::vector<uint16_t> y_vec; // explicit storage of the sparse dimension (y)
+    std::vector<uint64_t> xz_end_vec; // total number of particles up to and including the current sparse row
+    std::vector<uint64_t> level_xz_vec; // the starting location of each level in the xz_end_vec structure
 
 protected:
 
     void initialize_xz_linear(){
 
-        uint64_t counter_total = 1; //the buffer val
+        uint64_t counter_total = 1; //the buffer val to allow -1 calls without checking.
 
-        level_end_vec.resize(level_max() + 1);
+        level_xz_vec.resize(level_max()+2,0); //includes a buffer for -1 calls, and therefore needs to be called with level + 1;
+
+        level_xz_vec[0] = 1; //allowing for the offset.
 
         for (int i = 0; i <= level_max(); ++i) {
 
             counter_total += x_num(i)*z_num(i);
-            level_end_vec[i] = counter_total;
+            level_xz_vec[i+1] = counter_total;
 
         }
 
@@ -62,6 +63,7 @@ inline void LinearAccess::initialize_tree_access_sparse(std::vector<std::vector<
     uint64_t x_;
     uint64_t z_;
 
+    initialize_xz_linear();
 
     apr_timer.start_timer("create gaps");
 
@@ -81,7 +83,7 @@ inline void LinearAccess::initialize_tree_access_sparse(std::vector<std::vector<
                 const size_t offset_pc_data = x_num_ * z_ + x_;
 
                 uint16_t current = 0;
-                const auto level_start = level_end_vec[i-1];
+                const auto level_start = level_xz_vec[i];
 
                 auto &map = p_map[i][offset_pc_data].mesh;
 
@@ -110,7 +112,7 @@ inline void LinearAccess::initialize_tree_access_sparse(std::vector<std::vector<
         const uint64_t x_num_ = genInfo->x_num[i];
         const uint64_t z_num_ = genInfo->z_num[i];
 
-        const auto level_start = level_end_vec[i-1];
+        const auto level_start = level_xz_vec[i];
 
 #ifdef HAVE_OPENMP
 #pragma omp parallel for schedule(dynamic) default(shared) private(z_, x_) if(z_num_*x_num_ > 100)
@@ -121,7 +123,6 @@ inline void LinearAccess::initialize_tree_access_sparse(std::vector<std::vector<
                 const size_t offset_pc_data = x_num_ * z_ + x_;
 
                 uint16_t counter = 0;
-                const auto level_start = level_end_vec[i-1];
 
                 auto &map = p_map[i][offset_pc_data].mesh;
 
@@ -168,12 +169,12 @@ inline void LinearAccess::initialize_linear_structure(APRParameters& apr_paramet
 
     const uint8_t UPSAMPLING_SEED_TYPE = 4;
     const uint8_t seed_us = UPSAMPLING_SEED_TYPE; //deal with the equivalence optimization
-    for (size_t i = level_min()+1; i < level_max(); ++i) {
-        const size_t xLen = genInfo->x_num[i];
-        const size_t zLen = genInfo->z_num[i];
-        const size_t yLen = genInfo->y_num[i];
-        const size_t xLenUpsampled = genInfo->x_num[i - 1];
-        const size_t yLenUpsampled = genInfo->y_num[i - 1];
+    for (size_t level = level_min()+1; level < level_max(); ++level) {
+        const size_t xLen = genInfo->x_num[level];
+        const size_t zLen = genInfo->z_num[level];
+        const size_t yLen = genInfo->y_num[level];
+        const size_t xLenUpsampled = genInfo->x_num[level - 1];
+        const size_t yLenUpsampled = genInfo->y_num[level - 1];
 
 #ifdef HAVE_OPENMP
 #pragma omp parallel for schedule(dynamic) default(shared)
@@ -184,12 +185,12 @@ inline void LinearAccess::initialize_linear_structure(APRParameters& apr_paramet
                 const size_t offset_part_map = x * yLen + z * yLen * xLen;
 
                 for (size_t y = 0; y < yLenUpsampled; ++y) {
-                    uint8_t status = p_map[i - 1].mesh[offset_part_map_ds + y];
+                    uint8_t status = p_map[level - 1].mesh[offset_part_map_ds + y];
 
                     if (status > 0 && status <= min_type) {
                         size_t y2p = std::min(2*y+1,yLen-1);
-                        p_map[i].mesh[offset_part_map + 2 * y] = seed_us;
-                        p_map[i].mesh[offset_part_map + y2p] = seed_us;
+                        p_map[level].mesh[offset_part_map + 2 * y] = seed_us;
+                        p_map[level].mesh[offset_part_map + y2p] = seed_us;
                     }
                 }
             }
@@ -201,12 +202,12 @@ inline void LinearAccess::initialize_linear_structure(APRParameters& apr_paramet
     apr_timer.start_timer("second_step");
 
 
-    for (size_t i = (level_min());i < (level_max()-1); ++i) {
-        const size_t xLen = genInfo->x_num[i];
-        const size_t zLen = genInfo->z_num[i];
-        const size_t yLen = genInfo->y_num[i];
+    for (size_t level = (level_min());level < (level_max()-1); ++level) {
+        const size_t xLen = genInfo->x_num[level];
+        const size_t zLen = genInfo->z_num[level];
+        const size_t yLen = genInfo->y_num[level];
 
-        const auto level_start = level_end_vec[i-1];
+        const auto level_start = level_xz_vec[level];
 
 #ifdef HAVE_OPENMP
 #pragma omp parallel for schedule(dynamic) default(shared)
@@ -219,7 +220,7 @@ inline void LinearAccess::initialize_linear_structure(APRParameters& apr_paramet
                 uint64_t counter = 0;
 
                 for (size_t y = 0; y < yLen; ++y) {
-                    uint8_t status = p_map[i].mesh[offset_part_map + y];
+                    uint8_t status = p_map[level].mesh[offset_part_map + y];
                     if ((status > min_type) && (status <= UPSAMPLING_SEED_TYPE)) {
                         counter++;
                     }
@@ -240,14 +241,14 @@ inline void LinearAccess::initialize_linear_structure(APRParameters& apr_paramet
      *
      */
 
-    size_t i = genInfo->l_max - 1;
-    const size_t xLen = genInfo->x_num[i];
-    const size_t zLen = genInfo->z_num[i];
-    const size_t yLen = genInfo->y_num[i];
+    size_t l_minus_1 = genInfo->l_max - 1;
+    const size_t xLen = genInfo->x_num[l_minus_1];
+    const size_t zLen = genInfo->z_num[l_minus_1];
+    const size_t yLen = genInfo->y_num[l_minus_1];
 
-    const size_t yLen_m = genInfo->y_num[i+1];
+    const size_t yLen_m = genInfo->y_num[l_minus_1+1];
 
-    auto level_start = level_end_vec[i-1];
+    auto level_start_minus_1 = level_xz_vec[l_minus_1];
 
 #ifdef HAVE_OPENMP
 #pragma omp parallel for  schedule(dynamic) default(shared)
@@ -261,7 +262,7 @@ inline void LinearAccess::initialize_linear_structure(APRParameters& apr_paramet
             uint64_t counter_l = 0;
 
             for (size_t y = 0; y < yLen; ++y) {
-                uint8_t status = p_map[i].mesh[offset_part_map + y];
+                uint8_t status = p_map[l_minus_1].mesh[offset_part_map + y];
                 if ((status > min_type) && (status <= UPSAMPLING_SEED_TYPE)) {
                     counter++;
                 }
@@ -273,7 +274,7 @@ inline void LinearAccess::initialize_linear_structure(APRParameters& apr_paramet
                 }
             }
 
-            xz_end_vec[level_start + offset_pc_data] = counter;
+            xz_end_vec[level_start_minus_1 + offset_pc_data] = counter;
             temp_max_xz[offset_pc_data] = counter_l;
 
         }
@@ -284,10 +285,10 @@ inline void LinearAccess::initialize_linear_structure(APRParameters& apr_paramet
      */
 
 
-    const size_t xLen_m = genInfo->x_num[i+1];
-    const size_t zLen_m = genInfo->z_num[i+1];
+    const size_t xLen_m = genInfo->x_num[level_max()];
+    const size_t zLen_m = genInfo->z_num[level_max()];
 
-    level_start = level_end_vec[i];
+    auto level_start_m = level_xz_vec[level_max()];
 
 #ifdef HAVE_OPENMP
 #pragma omp parallel  for default(shared) schedule(dynamic)
@@ -297,7 +298,7 @@ inline void LinearAccess::initialize_linear_structure(APRParameters& apr_paramet
             const size_t offset_pc_data_m = z * xLen_m + x;
             const size_t offset_pc_data = (z/2) * xLen + x/2;
 
-            xz_end_vec[level_start + offset_pc_data_m] = temp_max_xz[offset_pc_data];
+            xz_end_vec[level_start_m + offset_pc_data_m] = temp_max_xz[offset_pc_data];
 
         }
     }
@@ -330,12 +331,12 @@ inline void LinearAccess::initialize_linear_structure(APRParameters& apr_paramet
     // STEP.2 Now get the y-values.
     //
 
-    for (size_t i = (level_min());i < (level_max()-1); ++i) {
-        const size_t xLen = genInfo->x_num[i];
-        const size_t zLen = genInfo->z_num[i];
-        const size_t yLen = genInfo->y_num[i];
+    for (size_t level = (level_min());level < (level_max()-1); ++level) {
+        const size_t xLen = genInfo->x_num[level];
+        const size_t zLen = genInfo->z_num[level];
+        const size_t yLen = genInfo->y_num[level];
 
-        const auto level_start = level_end_vec[i-1];
+        const auto level_start = level_xz_vec[level];
 
 #ifdef HAVE_OPENMP
 #pragma omp parallel for schedule(dynamic) default(shared)
@@ -349,7 +350,7 @@ inline void LinearAccess::initialize_linear_structure(APRParameters& apr_paramet
                 auto offset_y = xz_end_vec[level_start + offset_pc_data-1];
 
                 for (uint16_t y = 0; y < yLen; ++y) {
-                    uint8_t status = p_map[i].mesh[offset_part_map + y];
+                    uint8_t status = p_map[level].mesh[offset_part_map + y];
                     if ((status > min_type) && (status <= UPSAMPLING_SEED_TYPE)) {
                         y_vec[counter + offset_y] = y;
                         counter++;
@@ -364,7 +365,6 @@ inline void LinearAccess::initialize_linear_structure(APRParameters& apr_paramet
      *
      */
 
-    const auto level_start_m = level_end_vec[i-1];
 
 #ifdef HAVE_OPENMP
 #pragma omp parallel for schedule(dynamic) default(shared)
@@ -373,18 +373,17 @@ inline void LinearAccess::initialize_linear_structure(APRParameters& apr_paramet
         for (size_t x = 0; x < xLen; ++x) {
             const size_t offset_pc_data = z * xLen + x;
 
-            const size_t offset_pc_data_m = (z*2) * xLen_m + x*2;
-
-            const size_t offset_part_map = yLen * offset_pc_data;
+            const size_t offset_pc_data_m = (z*2) * xLen_m + x*2; //max level
+            const size_t offset_part_map = yLen * offset_pc_data; //current level
 
             uint64_t counter = 0;
             uint64_t counter_l = 0;
 
-            auto offset_y = xz_end_vec[level_start + offset_pc_data-1];
+            auto offset_y = xz_end_vec[level_start_minus_1 + offset_pc_data-1];
             auto offset_y_m = xz_end_vec[level_start_m + offset_pc_data_m-1];
 
             for (uint16_t y = 0; y < yLen; ++y) {
-                uint8_t status = p_map[i].mesh[offset_part_map + y];
+                uint8_t status = p_map[l_minus_1].mesh[offset_part_map + y];
                 if ((status > min_type) && (status <= UPSAMPLING_SEED_TYPE)) {
                     y_vec[counter + offset_y] = y;
                     counter++;
@@ -418,10 +417,12 @@ inline void LinearAccess::initialize_linear_structure(APRParameters& apr_paramet
                 const size_t offset_pc_data_m = z * xLen_m + x;
 
                 const size_t offset_pc_data_m_f = (z/2)*2 * xLen_m + (x/2)*2;
-                auto offset_y_b_f = xz_end_vec[level_start_m + offset_pc_data_m_f - 1];
 
+                auto offset_y_b_f = xz_end_vec[level_start_m + offset_pc_data_m_f - 1];
                 auto offset_y_b = xz_end_vec[level_start_m + offset_pc_data_m - 1];
                 auto offset_y_e = xz_end_vec[level_start_m + offset_pc_data_m];
+
+                //#TODO should I change this to a std::copy?
 
                 //now we can loop over only the gaps
                 for (int j = 0; j < (offset_y_e-offset_y_b); ++j) {

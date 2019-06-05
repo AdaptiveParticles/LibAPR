@@ -181,8 +181,11 @@ bool test_linear_access_create(TestData& test_data) {
         success = false;
     }
 
+    apr.init_linear();
+    auto it_lin_old = apr.linear_iterator();
+
     //apr_lin.init_linear();
-    auto it_new = apr.linear_iterator();
+    auto it_new = apr_lin.linear_iterator();
 
     for (unsigned int level = it_new.level_min(); level <= it_new.level_max(); ++level) {
         int z = 0;
@@ -191,6 +194,9 @@ bool test_linear_access_create(TestData& test_data) {
         for (z = 0; z < it_new.z_num(level); z++) {
             for (x = 0; x < it_new.x_num(level); ++x) {
                 it_org.begin(level, z, x);
+
+                it_lin_old.begin(level,z,x);
+
                 for (it_new.begin(level, z, x); it_new < it_new.end();
                      it_new++) {
 
@@ -199,16 +205,35 @@ bool test_linear_access_create(TestData& test_data) {
                     }
 
                     if(it_new.y() != it_org.y()){
+
+                        auto y_new = it_new.y();
+                        auto y_org = it_org.y();
+                        auto y_org_lin = it_lin_old.y();
+
                         success = false;
                     }
 
                     if(it_org < it_org.end()){
                         it_org++;
                     }
+
+                    if(it_lin_old < it_lin_old.end()){
+                        it_lin_old++;
+                    }
                 }
             }
         }
     }
+
+    //Test the APR Tree construction.
+
+    apr_lin.init_tree();
+
+    apr.init_tree();
+
+
+
+
 
 
     return success;

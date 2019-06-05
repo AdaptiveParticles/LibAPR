@@ -173,16 +173,14 @@ public:
 
         APRWriter::writeData({H5T_NATIVE_UINT64,"xz_end_vec"}, objectId, linearAccess.xz_end_vec, blosc_comp_type_access, blosc_comp_level_access, blosc_shuffle_access);
 
-        APRWriter::writeData({H5T_NATIVE_UINT64,"level_end_vec"}, objectId, linearAccess.level_end_vec, blosc_comp_type_access, blosc_comp_level_access, blosc_shuffle_access);
-
-        APRWriter::writeData({H5T_NATIVE_UINT64,"level_xz_vec"}, objectId, linearAccess.level_xz_vec, blosc_comp_type_access, blosc_comp_level_access, blosc_shuffle_access);
-
     }
 
     static void read_linear_access(hid_t objectId, LinearAccess& linearAccess){
 
         linearAccess.y_vec.resize(linearAccess.genInfo->total_number_particles);
         APRWriter::readData({H5T_NATIVE_UINT16,"y_vec"}, objectId, linearAccess.y_vec.data());
+
+        APRWriter::readData({H5T_NATIVE_UINT16,"xz_end_vec"}, objectId, linearAccess.xz_end_vec.data());
 
     }
 
