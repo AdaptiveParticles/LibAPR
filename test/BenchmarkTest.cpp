@@ -91,11 +91,11 @@ void tileAPR(std::vector<int> tile_dims, APR& apr_input,ParticleData<T>& parts, 
         std::cerr << "in-correct tilling dimensions" << std::endl;
     }
 
-    //now to tile the APR
-    auto apr_it = apr_input.iterator();
-    auto new_y_num = apr_it.orginal_dimensions(0)*tile_dims[0];
-    auto new_x_num = apr_it.orginal_dimensions(1)*tile_dims[1];
-    auto new_z_num = apr_it.orginal_dimensions(2)*tile_dims[2];
+//    //now to tile the APR
+//    auto apr_it = apr_input.iterator();
+//    auto new_y_num = apr_it.orginal_dimensions(0)*tile_dims[0];
+//    auto new_x_num = apr_it.orginal_dimensions(1)*tile_dims[1];
+//    auto new_z_num = apr_it.orginal_dimensions(2)*tile_dims[2];
 
 
 
@@ -116,7 +116,7 @@ bool bench_particle_structures(TestData& test_data) {
 
     PixelData<uint16_t> test_img;
 
-    test_img.init(it.orginal_dimensions(0), it.orginal_dimensions(1), it.orginal_dimensions(2));
+    test_img.init(it.org_dims(0), it.org_dims(1), it.org_dims(2));
 
     float CR = test_img.mesh.size() / (1.0f * it.total_number_particles());
 
@@ -205,7 +205,7 @@ bool bench_iteration(TestData& test_data){
 
     PixelData<uint16_t> test_img;
 
-    test_img.init(it.orginal_dimensions(0),it.orginal_dimensions(1),it.orginal_dimensions(2));
+    test_img.init(it.org_dims(0),it.org_dims(1),it.org_dims(2));
 
     float CR = test_img.mesh.size()/(1.0f*it.total_number_particles());
 

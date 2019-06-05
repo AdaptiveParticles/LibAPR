@@ -210,6 +210,10 @@ bool test_linear_access_create(TestData& test_data) {
                         auto y_org = it_org.y();
                         auto y_org_lin = it_lin_old.y();
 
+                        (void) y_new;
+                        (void) y_org;
+                        (void) y_org_lin; //debug variables.
+
                         success = false;
                     }
 
@@ -231,8 +235,42 @@ bool test_linear_access_create(TestData& test_data) {
 
     apr.init_tree();
 
+    auto tree_it_org = apr.tree_iterator();
+    auto tree_it_lin = apr_lin.linear_tree_iterator();
 
+    for (int level = tree_it_lin.level_min(); level <= tree_it_lin.level_max(); ++level) {
+        for (int z = 0; z < it_new.z_num(level); z++) {
+            for (int x = 0; x < it_new.x_num(level); ++x) {
 
+                tree_it_org.begin(level, z, x);
+
+                for (tree_it_lin.begin(level, z, x); tree_it_lin < tree_it_lin.end();
+                     tree_it_lin++) {
+
+                    if(tree_it_lin != tree_it_org){
+                        success = false;
+                    }
+
+                    if(tree_it_lin.y() != tree_it_org.y()){
+
+                        auto y_new = tree_it_lin.y();
+                        auto y_org = tree_it_org.y();
+
+                        (void) y_new;
+                        (void) y_org;
+
+                        success = false;
+                    }
+
+                    if(tree_it_org < tree_it_org.end()){
+                        tree_it_org++;
+                    }
+
+                }
+            }
+        }
+
+    }
 
 
 
@@ -241,6 +279,8 @@ bool test_linear_access_create(TestData& test_data) {
 
 bool test_linear_access_io(TestData& test_data) {
 
+
+    bool success = true;
 
     //Test Basic IO
     std::string file_name = "read_write_random.apr";
@@ -304,8 +344,107 @@ bool test_linear_access_io(TestData& test_data) {
 
     timer.stop_timer();
 
-    //#TODO: add this for the IO
-    return true;
+    auto it_org = apr_random.iterator();
+    auto it_new = apr_lin.linear_iterator();
+    auto it_read = test_data.apr.iterator();
+
+    //test the APR
+
+    for (unsigned int level = it_new.level_min(); level <= it_new.level_max(); ++level) {
+        int z = 0;
+        int x = 0;
+
+        for (z = 0; z < it_new.z_num(level); z++) {
+            for (x = 0; x < it_new.x_num(level); ++x) {
+
+                it_org.begin(level, z, x);
+                it_read.begin(level,z,x);
+
+                for (it_new.begin(level, z, x); it_new < it_new.end();
+                     it_new++) {
+
+                    if(it_new != it_org){
+
+                        //#TODO THESE WILL FAIL DUE TO PARTICLES
+
+                        uint64_t new_index = it_new;
+                        uint64_t org_index = it_org;
+
+                        uint64_t read_index = it_read;
+
+                        (void) new_index;
+                        (void) org_index;
+                        (void) read_index;
+
+                        //success = false;
+                    }
+
+                    if(it_new.y() != it_org.y()){
+
+                        auto y_new = it_new.y();
+                        auto y_org = it_org.y();
+
+                        (void) y_new;
+                        (void) y_org;
+
+                        success = false;
+                    }
+
+                    if(it_org < it_org.end()){
+                        it_org++;
+                    }
+
+                    if(it_read < it_read.end()){
+                        it_read++;
+                    }
+                }
+            }
+        }
+    }
+
+
+    // Test the tree IO
+
+    auto tree_it_org = apr_random.tree_iterator();
+    auto tree_it_lin = apr_lin.linear_tree_iterator();
+
+    for (int level = tree_it_lin.level_min(); level <= tree_it_lin.level_max(); ++level) {
+        for (int z = 0; z < it_new.z_num(level); z++) {
+            for (int x = 0; x < it_new.x_num(level); ++x) {
+
+                tree_it_org.begin(level, z, x);
+
+                for (tree_it_lin.begin(level, z, x); tree_it_lin < tree_it_lin.end();
+                     tree_it_lin++) {
+
+                    if(tree_it_lin != tree_it_org){
+                        success = false;
+                    }
+
+                    if(tree_it_lin.y() != tree_it_org.y()){
+
+                        auto y_new = tree_it_lin.y();
+                        auto y_org = tree_it_org.y();
+
+                        (void) y_new;
+                        (void) y_org;
+
+                        success = false;
+                    }
+
+                    if(tree_it_org < tree_it_org.end()){
+                        tree_it_org++;
+                    }
+
+                }
+            }
+        }
+
+    }
+
+
+
+    return success;
 
 
 }

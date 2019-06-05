@@ -26,8 +26,6 @@ public:
     std::vector<uint64_t> xz_end_vec; // total number of particles up to and including the current sparse row
     std::vector<uint64_t> level_xz_vec; // the starting location of each level in the xz_end_vec structure
 
-protected:
-
     void initialize_xz_linear(){
 
         uint64_t counter_total = 1; //the buffer val to allow -1 calls without checking.
@@ -46,8 +44,6 @@ protected:
         xz_end_vec.resize(counter_total,0);
 
     }
-
-public:
 
     void initialize_linear_structure(APRParameters& apr_parameters,std::vector<PixelData<uint8_t>> &p_map);
 
@@ -82,7 +78,6 @@ inline void LinearAccess::initialize_tree_access_sparse(std::vector<std::vector<
 
                 const size_t offset_pc_data = x_num_ * z_ + x_;
 
-                uint16_t current = 0;
                 const auto level_start = level_xz_vec[i];
 
                 auto &map = p_map[i][offset_pc_data].mesh;

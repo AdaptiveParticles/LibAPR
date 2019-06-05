@@ -64,10 +64,12 @@ public:
         return LinearIterator(linearAccess,aprInfo);
     }
 
-
-
     APRTreeIterator tree_iterator() {
         return APRTreeIterator(apr_access,tree_access,treeInfo);
+    }
+
+    LinearIterator linear_tree_iterator() {
+        return LinearIterator(linearAccessTree,treeInfo);
     }
 
     bool init_tree(){

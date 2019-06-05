@@ -35,19 +35,20 @@ namespace {
 
     TEST(PullingSchemeTest, Init) {
 
-        RandomAccess access;
-        access.l_max = 4;
-        access.l_min = 2;
-        access.org_dims[0] = 8;
-        access.org_dims[1] = 16;
-        access.org_dims[2] = 1;
+        GenInfo aprInfo;
+
+        aprInfo.l_max = 4;
+        aprInfo.l_min = 2;
+        aprInfo.org_dims[0] = 8;
+        aprInfo.org_dims[1] = 16;
+        aprInfo.org_dims[2] = 1;
 
         PullingScheme ps;
-        ps.initialize_particle_cell_tree(access);
+        ps.initialize_particle_cell_tree(aprInfo);
         std::vector<PixelData<uint8_t>> &pctree = ps.getParticleCellTree();
 
         // TEST: check if zeroed and correct number of levels
-        ASSERT_EQ(access.l_max, pctree.size()); // all levels [0, access.level_max - 1]
+        ASSERT_EQ(aprInfo.l_max, pctree.size()); // all levels [0, access.level_max - 1]
         for (int l = 0; l < pctree.size(); ++l) {
             auto &tree = pctree[l];
             for (auto &e : tree.mesh) {
@@ -56,11 +57,11 @@ namespace {
         }
 
         // Generate mesh with test levels
-        PixelData<float> levels = generateLevels(pctree[access.l_max - 1], access.l_max);
+        PixelData<float> levels = generateLevels(pctree[aprInfo.l_max - 1], aprInfo.l_max);
 
         // Fill particle cell tree with levels
-        int l_max = access.l_max - 1;
-        int l_min = access.l_min;
+        int l_max = aprInfo.l_max - 1;
+        int l_min = aprInfo.l_min;
         ps.fill(l_max, levels);
 
         PixelData<float> levelsDS;

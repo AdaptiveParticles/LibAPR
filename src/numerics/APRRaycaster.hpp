@@ -258,7 +258,7 @@ void APRRaycaster::perform_raycast_patch(APR &apr, ParticleData<S> &particle_dat
     ParticleData<float> jitter_z;
 
     //initialize the iterator
-    APRIterator apr_iterator(apr.apr_access);
+    auto apr_iterator = apr.iterator();
 
     if (jitter) {
 
@@ -625,7 +625,7 @@ void APRRaycaster::perform_raycast(APR &apr, ParticleData<S> &particle_data, Pix
     ParticleData<float> jitter_z;
 
     //initialize the iterator
-    APRIterator apr_iterator(apr.apr_access);
+    auto apr_iterator = apr.iterator();
 
     if (jitter) {
 

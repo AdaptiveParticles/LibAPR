@@ -177,15 +177,17 @@ public:
 
     static void read_linear_access(hid_t objectId, LinearAccess& linearAccess){
 
+        linearAccess.initialize_xz_linear(); //initialize the structures based on size.
+
         linearAccess.y_vec.resize(linearAccess.genInfo->total_number_particles);
         APRWriter::readData({H5T_NATIVE_UINT16,"y_vec"}, objectId, linearAccess.y_vec.data());
-
-        APRWriter::readData({H5T_NATIVE_UINT16,"xz_end_vec"}, objectId, linearAccess.xz_end_vec.data());
+        APRWriter::readData({H5T_NATIVE_UINT64,"xz_end_vec"}, objectId, linearAccess.xz_end_vec.data());
 
     }
 
 
     static void write_random_access(hid_t meta_data,hid_t objectId, RandomAccess& apr_access,unsigned int blosc_comp_type_access, unsigned int blosc_comp_level_access,unsigned int blosc_shuffle_access){
+
         MapStorageData map_data;
         apr_access.flatten_structure( map_data);
 
@@ -207,11 +209,10 @@ public:
     }
 
     static void write_apr_info(hid_t meta_location,GenInfo& aprInfo){
+
         APRWriter::writeAttr(AprTypes::NumberOfXType, meta_location, &aprInfo.org_dims[1]);
         APRWriter::writeAttr(AprTypes::NumberOfYType, meta_location, &aprInfo.org_dims[0]);
         APRWriter::writeAttr(AprTypes::NumberOfZType, meta_location, &aprInfo.org_dims[2]);
-
-
 
         APRWriter::writeAttr(AprTypes::TotalNumberOfParticlesType, meta_location, &aprInfo.total_number_particles);
         APRWriter::writeAttr(AprTypes::MaxLevelType, meta_location, &aprInfo.l_max);

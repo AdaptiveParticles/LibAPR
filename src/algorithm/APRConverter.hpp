@@ -295,7 +295,7 @@ void APRConverter<ImageType>::solveForAPR(APR& aAPR){
     method_timer.stop_timer();
 
     method_timer.start_timer("initialize_particle_cell_tree");
-    iPullingScheme.initialize_particle_cell_tree(aAPR.apr_access);
+    iPullingScheme.initialize_particle_cell_tree(apr->aprInfo);
     method_timer.stop_timer();
 
     method_timer.start_timer("compute_local_particle_set");
