@@ -18,6 +18,9 @@
 #include "numerics/APRReconstruction.hpp"
 
 #include "PullingScheme.hpp"
+
+#include "PullingSchemeSparse.hpp"
+
 #include "LocalParticleCellSet.hpp"
 #include "LocalIntensityScale.hpp"
 #include "ComputeGradient.hpp"
@@ -35,12 +38,19 @@ protected:
     LocalIntensityScale iLocalIntensityScale;
     ComputeGradient iComputeGradient;
 
+    PullingSchemeSparse iPullingSchemeSparse;
+
     bool generate_linear = false;
+    bool sparse_pulling_scheme = false;
 
 public:
 
     void set_generate_linear(bool flag){
         generate_linear = flag;
+    }
+
+    void set_sparse_pulling_scheme(bool flag){
+        sparse_pulling_scheme = flag;
     }
 
     APRTimer fine_grained_timer;
@@ -77,6 +87,8 @@ protected:
 
     void solveForAPR(APR& aAPR);
 
+    void generateDatastructures(APR& aAPR);
+
     const APR *apr;
 
     template<typename T>
@@ -95,6 +107,7 @@ protected:
     void computeLevels(const PixelData<ImageType> &grad_temp, PixelData<float> &local_scale_temp, int maxLevel, float relError, float dx = 1, float dy = 1, float dz = 1);
     void get_local_particle_cell_set(PixelData<float> &local_scale_temp, PixelData<float> &local_scale_temp2);
 
+    void get_local_particle_cell_set_sparse(PixelData<float> &local_scale_temp, PixelData<float> &local_scale_temp2);
 
 };
 
@@ -294,34 +307,75 @@ void APRConverter<ImageType>::solveForAPR(APR& aAPR){
     computeLevels(grad_temp, local_scale_temp, (*apr).level_max(), par.rel_error, par.dx, par.dy, par.dz);
     method_timer.stop_timer();
 
-    method_timer.start_timer("initialize_particle_cell_tree");
-    iPullingScheme.initialize_particle_cell_tree(apr->aprInfo);
-    method_timer.stop_timer();
+    if(!sparse_pulling_scheme) {
 
-    method_timer.start_timer("compute_local_particle_set");
-    get_local_particle_cell_set(local_scale_temp, local_scale_temp2);
-    method_timer.stop_timer();
+        method_timer.start_timer("initialize_particle_cell_tree");
+        iPullingScheme.initialize_particle_cell_tree(apr->aprInfo);
+        method_timer.stop_timer();
 
-    method_timer.start_timer("compute_pulling_scheme");
-    iPullingScheme.pulling_scheme_main();
-    method_timer.stop_timer();
+        method_timer.start_timer("compute_local_particle_set");
+        get_local_particle_cell_set(local_scale_temp, local_scale_temp2);
+        method_timer.stop_timer();
+
+        method_timer.start_timer("compute_pulling_scheme");
+        iPullingScheme.pulling_scheme_main();
+        method_timer.stop_timer();
+    } else {
+
+        method_timer.start_timer("initialize_particle_cell_tree");
+        iPullingSchemeSparse.initialize_particle_cell_tree(apr->aprInfo);
+        method_timer.stop_timer();
+
+        method_timer.start_timer("compute_local_particle_set");
+        get_local_particle_cell_set_sparse(local_scale_temp, local_scale_temp2);
+        method_timer.stop_timer();
+
+        method_timer.start_timer("compute_pulling_scheme");
+        iPullingSchemeSparse.pulling_scheme_main();
+        method_timer.stop_timer();
+
+    }
+
+
+}
+
+template<typename ImageType>
+void APRConverter<ImageType>::generateDatastructures(APR& aAPR){
 
     if(!generate_linear) {
-        method_timer.start_timer("compute_apr_datastructure");
-        aAPR.apr_access.initialize_structure_from_particle_cell_tree(aAPR.parameters,
-                                                                     iPullingScheme.getParticleCellTree());
-        method_timer.stop_timer();
+
+        if(!sparse_pulling_scheme){
+            method_timer.start_timer("compute_apr_datastructure");
+            aAPR.apr_access.initialize_structure_from_particle_cell_tree(aAPR.parameters,
+                                                                         iPullingScheme.getParticleCellTree());
+            method_timer.stop_timer();
+        } else{
+            method_timer.start_timer("compute_apr_datastructure");
+            aAPR.apr_access.initialize_structure_from_particle_cell_tree_sparse(aAPR.parameters,
+                                                                                iPullingSchemeSparse.particle_cell_tree);
+            method_timer.stop_timer();
+
+        }
+
     } else {
         method_timer.start_timer("compute_apr_datastructure");
 
-        aAPR.linearAccess.initialize_linear_structure(aAPR.parameters,
-                                                                     iPullingScheme.getParticleCellTree());
+        if(!sparse_pulling_scheme) {
+
+            aAPR.linearAccess.initialize_linear_structure(aAPR.parameters,
+                                                          iPullingScheme.getParticleCellTree());
+        } else {
+
+            aAPR.linearAccess.initialize_linear_structure_sparse(aAPR.parameters,
+                                                                 iPullingSchemeSparse.particle_cell_tree);
+        }
         aAPR.linear_or_random = true;
 
         method_timer.stop_timer();
     }
 
 }
+
 
 
 
@@ -351,6 +405,7 @@ inline bool APRConverter<ImageType>::get_apr_method(APR &aAPR, PixelData<T>& inp
 
     solveForAPR(aAPR);
 
+    generateDatastructures(aAPR);
 
 #else
     method_timer.start_timer("compute_gradient_magnitude_using_bsplines and local instensity scale CUDA");
@@ -462,7 +517,6 @@ inline void APRConverter<ImageType>::get_local_particle_cell_set(PixelData<float
     }
 #endif
 
-
     int l_max = (*apr).level_max() - 1;
     int l_min = (*apr).level_min();
 
@@ -470,8 +524,6 @@ inline void APRConverter<ImageType>::get_local_particle_cell_set(PixelData<float
 
     iPullingScheme.fill(l_max,local_scale_temp);
     fine_grained_timer.stop_timer();
-    
-
 
     fine_grained_timer.start_timer("level_loop_initialize_tree");
     for(int l_ = l_max - 1; l_ >= l_min; l_--){
@@ -488,6 +540,43 @@ inline void APRConverter<ImageType>::get_local_particle_cell_set(PixelData<float
     fine_grained_timer.stop_timer();
     
 }
+
+template<typename ImageType>
+inline void APRConverter<ImageType>::get_local_particle_cell_set_sparse(PixelData<float> &local_scale_temp, PixelData<float> &local_scale_temp2) {
+    //  Computes the Local Particle Cell Set from a down-sampled local intensity scale (\sigma) and gradient magnitude
+    //  Down-sampled due to the Equivalence Optimization
+
+#ifdef HAVE_LIBTIFF
+    if(par.output_steps){
+        TiffUtils::saveMeshAsTiff(par.output_dir + "local_particle_set_level_step.tif", local_scale_temp);
+    }
+#endif
+
+
+    int l_max = (*apr).level_max() - 1;
+    int l_min = (*apr).level_min();
+
+    fine_grained_timer.start_timer("pulling_scheme_fill_max_level");
+
+    iPullingSchemeSparse.fill(l_max,local_scale_temp);
+    fine_grained_timer.stop_timer();
+
+    fine_grained_timer.start_timer("level_loop_initialize_tree");
+    for(int l_ = l_max - 1; l_ >= l_min; l_--){
+
+        //down sample the resolution level k, using a max reduction
+        downsample(local_scale_temp, local_scale_temp2,
+                   [](const float &x, const float &y) -> float { return std::max(x, y); },
+                   [](const float &x) -> float { return x; }, true);
+        //for those value of level k, add to the hash table
+        iPullingSchemeSparse.fill(l_,local_scale_temp2);
+        //assign the previous mesh to now be resampled.
+        local_scale_temp.swap(local_scale_temp2);
+    }
+    fine_grained_timer.stop_timer();
+
+}
+
 
 template<typename ImageType>
 inline void APRConverter<ImageType>::get_gradient(PixelData<ImageType> &image_temp, PixelData<ImageType> &grad_temp, PixelData<float> &local_scale_temp, PixelData<float> &local_scale_temp2, float bspline_offset, const APRParameters &par) {

@@ -48,6 +48,8 @@ public:
     void initialize_linear_structure(APRParameters& apr_parameters,std::vector<PixelData<uint8_t>> &p_map);
 
     void initialize_tree_access_sparse(std::vector<std::vector<SparseParticleCellMap>> &p_map);
+
+    void initialize_linear_structure_sparse(APRParameters& apr_parameters,SparseGaps<SparseParticleCellMap>& p_map);
 };
 
 
@@ -414,15 +416,10 @@ inline void LinearAccess::initialize_linear_structure(APRParameters& apr_paramet
                 const size_t offset_pc_data_m_f = (z/2)*2 * xLen_m + (x/2)*2;
 
                 auto offset_y_b_f = xz_end_vec[level_start_m + offset_pc_data_m_f - 1];
+                auto offset_y_e_f = xz_end_vec[level_start_m + offset_pc_data_m_f];
                 auto offset_y_b = xz_end_vec[level_start_m + offset_pc_data_m - 1];
-                auto offset_y_e = xz_end_vec[level_start_m + offset_pc_data_m];
 
-                //#TODO should I change this to a std::copy?
-
-                //now we can loop over only the gaps
-                for (int j = 0; j < (offset_y_e-offset_y_b); ++j) {
-                    y_vec[offset_y_b + j] = y_vec[offset_y_b_f + j];
-                }
+                std::copy(y_vec.begin() + offset_y_b_f,y_vec.begin() + offset_y_e_f,y_vec.begin() + offset_y_b);
             }
         }
     }
@@ -430,6 +427,323 @@ inline void LinearAccess::initialize_linear_structure(APRParameters& apr_paramet
     apr_timer.stop_timer();
 
 }
+
+
+inline void LinearAccess::initialize_linear_structure_sparse(APRParameters& apr_parameters,SparseGaps<SparseParticleCellMap>& p_map) {
+    /*
+     * This function direclty intiitalizes the linear access data structure with explicit y.
+     *
+     * The algorithm logic has been designed such that it is portable to the GPU (i.e. pre-allocation of memory)
+     *
+     */
+
+
+    //
+    // STEP.1 (Apply equivalence optimization, and then calculate the total number of particles required in each row to allow allocation of datastructures)
+    //
+
+    APRTimer apr_timer(true);
+
+    uint8_t min_type = apr_parameters.neighborhood_optimization ? 1 : 2;
+
+    initialize_xz_linear();
+
+    // ========================================================================
+    apr_timer.start_timer("first_step");
+
+    const uint8_t UPSAMPLING_SEED_TYPE = 4;
+    const uint8_t seed_us = UPSAMPLING_SEED_TYPE; //deal with the equivalence optimization
+    for (size_t level = level_min()+1; level < level_max(); ++level) {
+        const size_t xLen = genInfo->x_num[level];
+        const size_t zLen = genInfo->z_num[level];
+        const size_t yLen = genInfo->y_num[level];
+        const size_t xLenUpsampled = genInfo->x_num[level - 1];
+        const size_t yLenUpsampled = genInfo->y_num[level - 1];
+
+#ifdef HAVE_OPENMP
+#pragma omp parallel for schedule(dynamic) default(shared)
+#endif
+        for (size_t z = 0; z < zLen; ++z) {
+            for (size_t x = 0; x < xLen; ++x) {
+                const size_t offset_part_map_ds = (x / 2)  + (z / 2) * xLenUpsampled;
+                const size_t offset_part_map = x + z * xLen;
+
+                auto& mesh_ds = p_map.data[level-1][offset_part_map_ds][0].mesh;
+
+                //SPARSE iteration
+                for (auto it=mesh_ds.begin(); it!=mesh_ds.end(); ++it){
+                    size_t y = it->first;
+                    uint8_t status = it->second;
+
+                    if (status > 0 && status <= min_type) {
+                        uint16_t y2p = std::min(2*y+1,yLen-1);
+
+                        p_map.data[level][offset_part_map][0].mesh[ 2 * y] = seed_us;
+                        p_map.data[level][offset_part_map][0].mesh[ y2p] = seed_us;
+
+                    }
+                }
+
+            }
+        }
+    }
+    apr_timer.stop_timer();
+
+    // ========================================================================
+    apr_timer.start_timer("second_step");
+
+
+    for (size_t level = (level_min());level < (level_max()-1); ++level) {
+        const size_t xLen = genInfo->x_num[level];
+        const size_t zLen = genInfo->z_num[level];
+        const size_t yLen = genInfo->y_num[level];
+
+        const auto level_start = level_xz_vec[level];
+
+#ifdef HAVE_OPENMP
+#pragma omp parallel for schedule(dynamic) default(shared)
+#endif
+        for (size_t z = 0; z < zLen; ++z) {
+            for (size_t x = 0; x < xLen; ++x) {
+                const size_t offset_pc_data = z * xLen + x;
+
+                uint64_t counter = 0;
+
+                auto& mesh_ds = p_map.data[level][offset_pc_data][0].mesh;
+
+                //SPARSE iteration
+                for (auto it=mesh_ds.begin(); it!=mesh_ds.end(); ++it){
+
+                    uint8_t status = it->second;
+
+                    if (status > 0 && status <= min_type) {
+                        counter++;
+                    }
+                }
+
+                xz_end_vec[level_start + offset_pc_data] = counter;
+
+            }
+        }
+    }
+
+    std::vector<uint64_t> temp_max_xz;
+    temp_max_xz.resize(genInfo->z_num[genInfo->l_max - 1]*genInfo->x_num[genInfo->l_max - 1],0);
+
+    /*
+     * l_max - 1 is special as it also has the l_max information that then needs to be upsampled.
+     *
+     */
+
+    size_t l_minus_1 = genInfo->l_max - 1;
+    const size_t xLen = genInfo->x_num[l_minus_1];
+    const size_t zLen = genInfo->z_num[l_minus_1];
+    const size_t yLen = genInfo->y_num[l_minus_1];
+
+    const size_t yLen_m = genInfo->y_num[l_minus_1+1];
+
+    auto level_start_minus_1 = level_xz_vec[l_minus_1];
+
+#ifdef HAVE_OPENMP
+#pragma omp parallel for  schedule(dynamic) default(shared)
+#endif
+    for (size_t z = 0; z < zLen; ++z) {
+        for (size_t x = 0; x < xLen; ++x) {
+            const size_t offset_pc_data = z * xLen + x;
+
+            uint64_t counter = 0;
+            uint64_t counter_l = 0;
+
+            auto& mesh_ds = p_map.data[l_minus_1][offset_pc_data][0].mesh;
+
+            //SPARSE iteration
+            for (auto it=mesh_ds.begin(); it!=mesh_ds.end(); ++it){
+
+                uint8_t status = it->second;
+                size_t y = it->first;
+
+                if ((status > min_type) && (status <= UPSAMPLING_SEED_TYPE)) {
+                    counter++;
+                }
+                else if (status > 0 && status <= min_type) {
+                    counter_l++;
+                    if(2*y<(yLen_m-1)){
+                        counter_l++;
+                    }
+                }
+            }
+
+
+            xz_end_vec[level_start_minus_1 + offset_pc_data] = counter;
+            temp_max_xz[offset_pc_data] = counter_l;
+
+        }
+    }
+
+    /*
+     * Now need to copy across the values for the level_max
+     */
+
+
+    const size_t xLen_m = genInfo->x_num[level_max()];
+    const size_t zLen_m = genInfo->z_num[level_max()];
+
+    auto level_start_m = level_xz_vec[level_max()];
+
+#ifdef HAVE_OPENMP
+#pragma omp parallel  for default(shared) schedule(dynamic)
+#endif
+    for (size_t z = 0; z < zLen_m; ++z) {
+        for (size_t x = 0; x < xLen_m; ++x) {
+            const size_t offset_pc_data_m = z * xLen_m + x;
+            const size_t offset_pc_data = (z/2) * xLen + x/2;
+
+            xz_end_vec[level_start_m + offset_pc_data_m] = temp_max_xz[offset_pc_data];
+
+        }
+    }
+
+
+    apr_timer.stop_timer();
+
+    //
+    //  Serial Portion (Cumulative Sum)
+    //
+
+    apr_timer.start_timer("serial cumsum");
+
+    //now run over and create the sum
+    std::partial_sum(xz_end_vec.begin(),xz_end_vec.end(),xz_end_vec.begin());
+
+    apr_timer.stop_timer();
+
+    apr_timer.start_timer("init y");
+
+    genInfo->total_number_particles = xz_end_vec.back();
+
+    y_vec.resize(genInfo->total_number_particles);
+
+    apr_timer.stop_timer();
+
+    apr_timer.start_timer("get y");
+
+    //
+    // STEP.2 Now get the y-values.
+    //
+
+    for (size_t level = (level_min());level < (level_max()-1); ++level) {
+        const size_t xLen = genInfo->x_num[level];
+        const size_t zLen = genInfo->z_num[level];
+        const size_t yLen = genInfo->y_num[level];
+
+        const auto level_start = level_xz_vec[level];
+
+#ifdef HAVE_OPENMP
+#pragma omp parallel for schedule(dynamic) default(shared)
+#endif
+        for (size_t z = 0; z < zLen; ++z) {
+            for (size_t x = 0; x < xLen; ++x) {
+                const size_t offset_pc_data = z * xLen + x;
+
+                uint64_t counter = 0;
+                auto offset_y = xz_end_vec[level_start + offset_pc_data-1];
+
+                auto& mesh_ds = p_map.data[level][offset_pc_data][0].mesh;
+
+                //SPARSE iteration
+                for (auto it=mesh_ds.begin(); it!=mesh_ds.end(); ++it) {
+
+                    uint8_t status = it->second;
+                    uint16_t y = it->first;
+
+                    if ((status > min_type) && (status <= UPSAMPLING_SEED_TYPE)) {
+                        y_vec[counter + offset_y] = y;
+                        counter++;
+                    }
+
+                }
+
+            }
+        }
+    }
+
+    /*
+     * l_max - 1 is special as it also has the l_max information that then needs to be upsampled.
+     *
+     */
+
+
+#ifdef HAVE_OPENMP
+#pragma omp parallel for schedule(dynamic) default(shared)
+#endif
+    for (size_t z = 0; z < zLen; ++z) {
+        for (size_t x = 0; x < xLen; ++x) {
+            const size_t offset_pc_data = z * xLen + x;
+
+            const size_t offset_pc_data_m = (z*2) * xLen_m + x*2; //max level
+
+            uint64_t counter = 0;
+            uint64_t counter_l = 0;
+
+            auto offset_y = xz_end_vec[level_start_minus_1 + offset_pc_data-1];
+            auto offset_y_m = xz_end_vec[level_start_m + offset_pc_data_m-1];
+
+            auto& mesh_ds = p_map.data[l_minus_1][offset_pc_data][0].mesh;
+
+            //SPARSE iteration
+            for (auto it=mesh_ds.begin(); it!=mesh_ds.end(); ++it) {
+
+                uint8_t status = it->second;
+                size_t y = it->first;
+
+                if ((status > min_type) && (status <= UPSAMPLING_SEED_TYPE)) {
+                    y_vec[counter + offset_y] = y;
+                    counter++;
+                }
+                else if (status > 0 && status <= min_type) {
+                    y_vec[counter_l + offset_y_m] = 2*y;
+                    counter_l++;
+                    if(2*y<(yLen_m-1)){
+                        y_vec[counter_l + offset_y_m] = 2*y+1;
+                        counter_l++;
+                    }
+                }
+            }
+
+        }
+    }
+
+    apr_timer.stop_timer();
+
+    apr_timer.start_timer("max y");
+
+    //now need to spread the maximum level y
+#ifdef HAVE_OPENMP
+#pragma omp parallel for schedule(dynamic) default(shared)
+#endif
+    for (size_t z = 0; z < zLen_m; ++z) {
+        for (size_t x = 0; x < xLen_m; ++x) {
+
+            //first check if its not already there.
+            if(((z % 2) != 0) || ((x % 2) != 0)) {
+
+                const size_t offset_pc_data_m = z * xLen_m + x;
+
+                const size_t offset_pc_data_m_f = (z/2)*2 * xLen_m + (x/2)*2;
+
+                auto offset_y_b_f = xz_end_vec[level_start_m + offset_pc_data_m_f - 1];
+                auto offset_y_e_f = xz_end_vec[level_start_m + offset_pc_data_m_f];
+                auto offset_y_b = xz_end_vec[level_start_m + offset_pc_data_m - 1];
+
+                std::copy(y_vec.begin() + offset_y_b_f,y_vec.begin() + offset_y_e_f,y_vec.begin() + offset_y_b);
+            }
+        }
+    }
+
+    apr_timer.stop_timer();
+
+}
+
 
 
 #endif //PARTPLAY_APRACCESS_HPP

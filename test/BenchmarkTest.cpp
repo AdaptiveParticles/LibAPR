@@ -345,7 +345,6 @@ bool bench_iteration(TestData& test_data){
                     counter++;
                 }
 
-
                 xz_end_vec.push_back(counter);
                 counter_xz++;
             }
@@ -383,11 +382,7 @@ bool bench_iteration(TestData& test_data){
     timer.stop_timer();
 
 
-
-
     timer.start_timer("APR Iteration NEW - OpenMP");
-
-
 
     test_data.apr.init_linear();
     auto lin_it = test_data.apr.linear_iterator();
@@ -445,10 +440,7 @@ bool bench_iteration(TestData& test_data){
 
     auto lin_time_noy = timer.timings.back();
 
-
-
     uint64_t counter_test = 0;
-
 
     for (unsigned int level = lin_it.level_min(); level <= lin_it.level_max(); ++level) {
         int z = 0;

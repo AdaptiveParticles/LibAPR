@@ -51,55 +51,56 @@ for(jn = j * 2; jn < j * 2 + children_boundaries[0]; jn++) \
 
 struct imagePatch {
 
-    uint64_t x_begin;
-    uint64_t x_end;
+//    uint64_t x_begin;
+//    uint64_t x_end;
     uint64_t x_offset;
 
-    uint64_t y_begin;
-    uint64_t y_end;
+//    uint64_t y_begin;
+//    uint64_t y_end;
     uint64_t y_offset;
 
-    uint64_t z_begin;
-    uint64_t z_end;
+//    uint64_t z_begin;
+//    uint64_t z_end;
     uint64_t z_offset;
 
-    uint64_t z_begin_ghost;
-    uint64_t z_end_ghost;
-
-    uint64_t x_begin_ghost;
-    uint64_t x_end_ghost;
-
-    uint64_t y_begin_ghost;
-    uint64_t y_end_ghost;
-
-    uint64_t z_begin_global;
-    uint64_t z_end_global;
-
-    uint64_t x_begin_global;
-    uint64_t x_end_global;
-
-    uint64_t y_begin_global;
-    uint64_t y_end_global;
+//    uint64_t z_begin_ghost;
+//    uint64_t z_end_ghost;
+//
+//    uint64_t x_begin_ghost;
+//    uint64_t x_end_ghost;
+//
+//    uint64_t y_begin_ghost;
+//    uint64_t y_end_ghost;
+//
+//    uint64_t z_begin_global;
+//    uint64_t z_end_global;
+//
+//    uint64_t x_begin_global;
+//    uint64_t x_end_global;
+//
+//    uint64_t y_begin_global;
+//    uint64_t y_end_global;
 
 };
-
-
 
 
 class PullingSchemeSparse {
 
 public:
 
-    PartCellData<SparseParticleCellMap> particle_cell_tree;
+    SparseGaps<SparseParticleCellMap> particle_cell_tree;
     unsigned int l_min;
     unsigned int l_max;
     std::vector<size_t> y_num_l;
 
     template<typename T>
     void fill(float level, const PixelData<T> &input,imagePatch& patch);
-    void pulling_scheme_main();
     template<typename T>
-    void initialize_particle_cell_tree(APR<T>& apr);
+    void fill(float level, const PixelData<T> &input);
+
+    void pulling_scheme_main();
+
+    void initialize_particle_cell_tree(const GenInfo& aprInfo);
 
 private:
 
@@ -109,15 +110,15 @@ private:
     void fill_parent(size_t j, size_t i, size_t k, size_t x_num, size_t y_num, size_t new_level);
 };
 
-template<typename T>
-inline void PullingSchemeSparse::initialize_particle_cell_tree(APR<T>& apr) {
+
+inline void PullingSchemeSparse::initialize_particle_cell_tree(const GenInfo& aprInfo) {
     //  Initializes the particle cell tree structure
     //
     //  Contains pc up to l_max - 1,
     //
 
-    l_max = apr.level_max() - 1;
-    l_min = apr.level_min();
+    l_max = aprInfo.l_max - 1;
+    l_min = aprInfo.l_min;
     //make so you can reference the array as l
     particle_cell_tree.data.resize(l_max + 1);
 
@@ -128,10 +129,10 @@ inline void PullingSchemeSparse::initialize_particle_cell_tree(APR<T>& apr) {
 
     for (unsigned int l = l_min; l < (l_max + 1) ;l ++){
 
-        particle_cell_tree.x_num[l] = (uint64_t) ceil((1.0 * apr.apr_access.org_dims[1]) / pow(2.0, 1.0 * l_max - l + 1));
-        particle_cell_tree.z_num[l] = (uint64_t) ceil((1.0 * apr.apr_access.org_dims[2]) / pow(2.0, 1.0 * l_max - l + 1));
+        particle_cell_tree.x_num[l] = (uint64_t) ceil((1.0 * aprInfo.org_dims[1]) / pow(2.0, 1.0 * l_max - l + 1));
+        particle_cell_tree.z_num[l] = (uint64_t) ceil((1.0 * aprInfo.org_dims[2]) / pow(2.0, 1.0 * l_max - l + 1));
         particle_cell_tree.data[l].resize(particle_cell_tree.z_num[l]*particle_cell_tree.x_num[l]);
-        y_num_l[l] = (uint64_t) ceil((1.0 * apr.apr_access.org_dims[0]) / pow(2.0, 1.0 * l_max - l + 1));
+        y_num_l[l] = (uint64_t) ceil((1.0 * aprInfo.org_dims[0]) / pow(2.0, 1.0 * l_max - l + 1));
 
         for (int i = 0; i < particle_cell_tree.z_num[l] ; ++i) {
             for (int j = 0; j < particle_cell_tree.x_num[l]; ++j) {
@@ -176,6 +177,18 @@ inline void PullingSchemeSparse::pulling_scheme_main() {
         timer.stop_timer();
     }
 }
+
+template<typename T>
+inline void PullingSchemeSparse::fill(const float level, const PixelData<T> &input){
+    imagePatch patch;
+    patch.x_offset = 0;
+    patch.y_offset = 0;
+    patch.z_offset = 0;
+
+    fill(level, input,patch);
+
+}
+
 
 template<typename T>
 inline void PullingSchemeSparse::fill(const float level, const PixelData<T> &input,imagePatch& patch) {

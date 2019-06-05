@@ -121,6 +121,126 @@ bool check_neighbour_out_of_bounds(APRIterator &current,uint8_t face){
 }
 
 
+bool test_pulling_scheme_sparse(TestData& test_data){
+    bool success = true;
+
+
+    APRConverter<uint16_t> aprConverter;
+
+    //read in the command line options into the parameters file
+    aprConverter.par.Ip_th = 0;
+    aprConverter.par.rel_error = 0.1;
+    aprConverter.par.lambda = 0;
+    aprConverter.par.mask_file = "";
+    aprConverter.par.min_signal = -1;
+
+    aprConverter.par.sigma_th_max = 50;
+    aprConverter.par.sigma_th = 100;
+
+    aprConverter.par.SNR_min = -1;
+
+    aprConverter.par.auto_parameters = false;
+
+    aprConverter.par.output_steps = false;
+
+    //where things are
+    aprConverter.par.input_image_name = test_data.filename;
+    aprConverter.par.input_dir = "";
+    aprConverter.par.name = test_data.output_name;
+    aprConverter.par.output_dir = test_data.output_dir;
+
+    aprConverter.method_timer.verbose_flag = true;
+
+    //Gets the APR
+
+    ParticleData<uint16_t> particles_intensities;
+
+    APR apr_org;
+
+    aprConverter.get_apr(apr_org,test_data.img_original);
+
+    APR apr_org_sparse;
+    aprConverter.set_sparse_pulling_scheme(true);
+
+    aprConverter.get_apr(apr_org_sparse,test_data.img_original);
+
+    APR apr_lin_sparse;
+    aprConverter.set_generate_linear(true);
+
+    aprConverter.get_apr(apr_lin_sparse,test_data.img_original);
+
+
+    apr_org_sparse.init_linear();
+
+    auto org_it = apr_org.iterator();
+    auto sparse_it = apr_org_sparse.linear_iterator();
+    auto sparse_lin_it = apr_lin_sparse.linear_iterator();
+
+    if(org_it.total_number_particles() != sparse_it.total_number_particles()){
+        success = false;
+    }
+
+    if(org_it.total_number_particles() != sparse_lin_it.total_number_particles()){
+        success = false;
+    }
+
+    for (unsigned int level = sparse_it.level_min(); level <= sparse_it.level_max(); ++level) {
+        int z = 0;
+        int x = 0;
+
+        for (z = 0; z < sparse_it.z_num(level); z++) {
+            for (x = 0; x < sparse_it.x_num(level); ++x) {
+                org_it.begin(level, z, x);
+
+                sparse_lin_it.begin(level,z,x);
+
+                for (sparse_it.begin(level, z, x); sparse_it < sparse_it.end();
+                     sparse_it++) {
+
+                    if(sparse_lin_it != sparse_it){
+                        success = false;
+                    }
+
+                    if(sparse_it.y() != org_it.y()){
+
+                        auto y_new = sparse_it.y();
+                        auto y_org = org_it.y();
+
+                        (void) y_new;
+                        (void) y_org;
+
+                        success = false;
+                    }
+
+                    if(sparse_lin_it.y() != org_it.y()){
+
+                        auto y_new = sparse_lin_it.y();
+                        auto y_org = org_it.y();
+
+                        (void) y_new;
+                        (void) y_org;
+
+                        success = false;
+                    }
+
+                    if(org_it < org_it.end()){
+                        org_it++;
+                    }
+
+                    if(sparse_lin_it < sparse_lin_it.end()){
+                        sparse_lin_it++;
+                    }
+                }
+            }
+        }
+    }
+
+
+
+    return success;
+}
+
+
 bool test_linear_access_create(TestData& test_data) {
 
 
@@ -177,6 +297,9 @@ bool test_linear_access_create(TestData& test_data) {
 
         auto org = apr.total_number_particles();
         auto direct = apr_lin.total_number_particles();
+
+        (void) org;
+        (void) direct;
 
         success = false;
     }
@@ -464,11 +587,6 @@ bool test_apr_tree(TestData& test_data) {
     ParticleData<float> tree_data;
 
     APRTreeIterator apr_tree_iterator = test_data.apr.tree_iterator();
-
-    //general check, take the level image and see if the level is correct.
-
-    auto l_max = apr_tree_iterator.level_max();
-    auto l_min = apr_tree_iterator.level_min();
 
 
     for (int level = (apr_tree_iterator.level_max()); level >= apr_tree_iterator.level_min(); --level) {
@@ -1836,6 +1954,19 @@ ASSERT_TRUE(test_apr_iterate(test_data));
 ASSERT_TRUE(test_linear_iterate(test_data));
 
 }
+
+TEST_F(Create210SphereTest, PULLING_SCHEME_SPARSE) {
+    //tests the linear access geneartions and io
+    ASSERT_TRUE(test_pulling_scheme_sparse(test_data));
+
+}
+
+TEST_F(CreateSmallSphereTest, PULLING_SCHEME_SPARSE) {
+
+    ASSERT_TRUE(test_pulling_scheme_sparse(test_data));
+
+}
+
 
 TEST_F(Create210SphereTest, LINEAR_ACCESS) {
     //tests the linear access geneartions and io
