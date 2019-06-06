@@ -58,9 +58,16 @@ public:
 
         auto it = apr_input.iterator();
 
-        auto it_tile = apr_tiled.iterator(); //note this is not intialized except the info
+        //auto it_tile = apr_tiled.aprInfo; //note this is not intialized except the info
 
-        const uint8_t UPSAMPLING_SEED_TYPE = 4;
+
+        auto size_min = ps.particle_cell_tree.x_num[apr_tiled.aprInfo.l_min]*ps.particle_cell_tree.z_num[apr_tiled.aprInfo.l_min];
+        for (int i = 0; i < size_min ; ++i) {
+            for (int y = 0; y < ps.y_num_l[apr_tiled.aprInfo.l_min]; ++y) {
+                //ps.particle_cell_tree.data[apr_tiled.aprInfo.l_min][i][0].mesh[y] = 1;
+            }
+
+        }
 
         timer.start_timer("init sparse tree");
 
@@ -88,7 +95,7 @@ public:
 
                                 if(level == it.level_max()){
                                     if((x%2 == 0) && (z%2 == 0)) {
-                                        const size_t offset_pc = it_tile.x_num(new_level - 1) * ((z + z_offset) / 2) +
+                                        const size_t offset_pc = apr_tiled.aprInfo.x_num[new_level - 1] * ((z + z_offset) / 2) +
                                                                  ((x + x_offset) / 2);
 
                                         auto &mesh = ps.particle_cell_tree.data[new_level - 1][offset_pc][0].mesh;
@@ -103,14 +110,14 @@ public:
                                 } else {
 
                                     const size_t offset_pc =
-                                            it_tile.x_num(new_level) * (z + z_offset) + (x + x_offset);
+                                            apr_tiled.aprInfo.x_num[new_level] * (z + z_offset) + (x + x_offset);
 
                                     auto &mesh = ps.particle_cell_tree.data[new_level][offset_pc][0].mesh;
 
                                     for (it.begin(level, z, x); it < it.end();
                                          it++) {
                                         //insert
-                                        mesh[it.y() + y_offset] = UPSAMPLING_SEED_TYPE;
+                                        //mesh[it.y() + y_offset] = 3;
                                     }
                                 }
                             }
@@ -132,6 +139,8 @@ public:
 
         apr_tiled.linearAccess.initialize_linear_structure_sparse(apr_input.parameters,ps.particle_cell_tree);
 
+        apr_tiled.apr_initialized = true;
+
         timer.stop_timer();
 
         tiled_parts.init(apr_tiled.total_number_particles());
@@ -144,22 +153,22 @@ public:
 
 
 
-        //now compute the particles
-        for (int level = it_tile.level_min(); level <= it_tile.level_max(); level++) {
-            int z = 0;
-#ifdef HAVE_OPENMP
-//#pragma omp parallel for schedule(dynamic) private(z) firstprivate(it,it_tile)
-#endif
-            for (z = 0; z < it_tile.z_num(level); z++) {
-                for (int x = 0; x < it_tile.x_num(level); ++x) {
-
-//                    auto level_org = level - level_offset;
+//        //now compute the particles
+//        for (int level = it_tile.level_min(); level <= it_tile.level_max(); level++) {
+//            int z = 0;
+//#ifdef HAVE_OPENMP
+////#pragma omp parallel for schedule(dynamic) private(z) firstprivate(it,it_tile)
+//#endif
+//            for (z = 0; z < it_tile.z_num(level); z++) {
+//                for (int x = 0; x < it_tile.x_num(level); ++x) {
 //
-//                    int x_org = (((x)*apr_tiled.aprInfo.level_size[level])%org_x_num)/apr_tiled.aprInfo.level_size[level];
-
-                }
-            }
-        }
+////                    auto level_org = level - level_offset;
+////
+////                    int x_org = (((x)*apr_tiled.aprInfo.level_size[level])%org_x_num)/apr_tiled.aprInfo.level_size[level];
+//
+//                }
+//            }
+//        }
     }
 
 
@@ -234,7 +243,7 @@ public:
 
 bool test_tiling(TestData& test_data){
 
-    std::vector<int> tile_dims = {1,1,1};
+    std::vector<int> tile_dims = {3,3,2};
 
     ParticleData<uint16_t> parts;
     APR apr_tiled;
@@ -802,10 +811,16 @@ TEST_F(Create210SphereTest, BENCH_STRUCTURES) {
 
 TEST_F(CreateSmallSphereTest, BENCH_TILE) {
 
-    ASSERT_TRUE(test_tiling(test_data));
+    //ASSERT_TRUE(test_tiling(test_data));
 
 }
 
+
+TEST_F(Create210SphereTest, BENCH_TILE) {
+
+    ASSERT_TRUE(test_tiling(test_data));
+
+}
 
 int main(int argc, char **argv) {
 

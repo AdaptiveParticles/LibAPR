@@ -510,7 +510,7 @@ inline void LinearAccess::initialize_linear_structure_sparse(APRParameters& apr_
 
                     uint8_t status = it->second;
 
-                    if (status > 0 && status <= min_type) {
+                    if ((status > min_type) && (status <= UPSAMPLING_SEED_TYPE)) {
                         counter++;
                     }
                 }

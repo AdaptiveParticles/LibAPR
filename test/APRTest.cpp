@@ -130,7 +130,7 @@ bool test_pulling_scheme_sparse(TestData& test_data){
     //read in the command line options into the parameters file
     aprConverter.par.Ip_th = 0;
     aprConverter.par.rel_error = 0.1;
-    aprConverter.par.lambda = 0;
+    aprConverter.par.lambda = 2;
     aprConverter.par.mask_file = "";
     aprConverter.par.min_signal = -1;
 

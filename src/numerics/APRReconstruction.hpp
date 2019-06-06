@@ -74,7 +74,7 @@ public:
 
         parts.init(apr.total_number_particles());
 
-        auto apr_iterator = apr.random_iterator();
+        auto apr_iterator = apr.iterator();
 
         img.initWithValue(apr.org_dims(0), apr.org_dims(1), apr.org_dims(2), 0);
 
