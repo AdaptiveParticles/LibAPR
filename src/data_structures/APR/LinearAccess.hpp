@@ -150,12 +150,11 @@ inline void LinearAccess::initialize_linear_structure(APRParameters& apr_paramet
      *
      */
 
-
     //
     // STEP.1 (Apply equivalence optimization, and then calculate the total number of particles required in each row to allow allocation of datastructures)
     //
 
-    APRTimer apr_timer(true);
+    APRTimer apr_timer(false);
 
     uint8_t min_type = apr_parameters.neighborhood_optimization ? 1 : 2;
 
@@ -281,10 +280,8 @@ inline void LinearAccess::initialize_linear_structure(APRParameters& apr_paramet
      * Now need to copy across the values for the level_max
      */
 
-
     const size_t xLen_m = genInfo->x_num[level_max()];
     const size_t zLen_m = genInfo->z_num[level_max()];
-
     auto level_start_m = level_xz_vec[level_max()];
 
 #ifdef HAVE_OPENMP
@@ -299,7 +296,6 @@ inline void LinearAccess::initialize_linear_structure(APRParameters& apr_paramet
 
         }
     }
-
 
     apr_timer.stop_timer();
 
@@ -437,12 +433,11 @@ inline void LinearAccess::initialize_linear_structure_sparse(APRParameters& apr_
      *
      */
 
-
     //
     // STEP.1 (Apply equivalence optimization, and then calculate the total number of particles required in each row to allow allocation of datastructures)
     //
 
-    APRTimer apr_timer(true);
+    APRTimer apr_timer(false);
 
     uint8_t min_type = apr_parameters.neighborhood_optimization ? 1 : 2;
 
@@ -458,7 +453,7 @@ inline void LinearAccess::initialize_linear_structure_sparse(APRParameters& apr_
         const size_t zLen = genInfo->z_num[level];
         const size_t yLen = genInfo->y_num[level];
         const size_t xLenUpsampled = genInfo->x_num[level - 1];
-        const size_t yLenUpsampled = genInfo->y_num[level - 1];
+
 
 #ifdef HAVE_OPENMP
 #pragma omp parallel for schedule(dynamic) default(shared)
@@ -496,7 +491,6 @@ inline void LinearAccess::initialize_linear_structure_sparse(APRParameters& apr_
     for (size_t level = (level_min());level < (level_max()-1); ++level) {
         const size_t xLen = genInfo->x_num[level];
         const size_t zLen = genInfo->z_num[level];
-        const size_t yLen = genInfo->y_num[level];
 
         const auto level_start = level_xz_vec[level];
 
@@ -538,7 +532,7 @@ inline void LinearAccess::initialize_linear_structure_sparse(APRParameters& apr_
     size_t l_minus_1 = genInfo->l_max - 1;
     const size_t xLen = genInfo->x_num[l_minus_1];
     const size_t zLen = genInfo->z_num[l_minus_1];
-    const size_t yLen = genInfo->y_num[l_minus_1];
+
 
     const size_t yLen_m = genInfo->y_num[l_minus_1+1];
 
@@ -634,7 +628,6 @@ inline void LinearAccess::initialize_linear_structure_sparse(APRParameters& apr_
     for (size_t level = (level_min());level < (level_max()-1); ++level) {
         const size_t xLen = genInfo->x_num[level];
         const size_t zLen = genInfo->z_num[level];
-        const size_t yLen = genInfo->y_num[level];
 
         const auto level_start = level_xz_vec[level];
 
@@ -671,7 +664,6 @@ inline void LinearAccess::initialize_linear_structure_sparse(APRParameters& apr_
      * l_max - 1 is special as it also has the l_max information that then needs to be upsampled.
      *
      */
-
 
 #ifdef HAVE_OPENMP
 #pragma omp parallel for schedule(dynamic) default(shared)

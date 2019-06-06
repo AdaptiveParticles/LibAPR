@@ -16,6 +16,8 @@ class APR {
     template<typename T>
     friend class APRConverter;
 
+    friend class BenchmarkAPR;
+
 protected:
 
     bool linear_or_random = false;
@@ -55,6 +57,11 @@ public:
 
     inline uint64_t total_number_tree_particles() const { return treeInfo.total_number_particles; } // #TODO remove one of these
     inline uint64_t total_number_parent_cells() const { return treeInfo.total_number_particles; }
+
+    float computational_ratio(){
+        return (org_dims(0)*org_dims(1)*org_dims(2))/(1.0f*aprInfo.total_number_particles);
+    }
+
 
     APRIterator iterator() {
         return APRIterator(apr_access,aprInfo);
