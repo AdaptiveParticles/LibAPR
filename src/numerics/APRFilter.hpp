@@ -352,8 +352,8 @@ public:
                              apr_it++) {
 
                             int dim1 = apr_it.y() * step_size;
-                            int dim2 = apr_it.x() * step_size;
-                            int dim3 = apr_it.z() * step_size;
+                            int dim2 = x * step_size;
+                            int dim3 = z * step_size;
 
                             float temp_int;
                             //add to all the required rays
@@ -392,13 +392,13 @@ public:
 #endif
                 for (z = 0; z < tree_it.z_num(level); z++) {
                     for (x = 0; x < tree_it.x_num(level); ++x) {
-                        for (tree_it.set_new_lzx(level, z, x);
+                        for (tree_it.begin(level, z, x);
                              tree_it < tree_it.end();
                              tree_it++) {
 
                             int dim1 = tree_it.y() * step_size;
-                            int dim2 = tree_it.x() * step_size;
-                            int dim3 = tree_it.z() * step_size;
+                            int dim2 = x * step_size;
+                            int dim3 = z * step_size;
 
                             float temp_int;
                             //add to all the required rays
@@ -434,7 +434,7 @@ public:
             for (z = 0; z < apr.spatial_index_z_max(level); ++z) {
                 //lastly loop over particle locations and compute filter.
                 for (x = 0; x < apr.spatial_index_x_max(level); ++x) {
-                    for (apr_it.set_new_lzx(level, z, x);
+                    for (apr_it.begin(level, z, x);
                          apr_it < apr_it.end();
                          apr_it++) {
 
@@ -465,14 +465,8 @@ public:
                 }
             }
 
-//            std::string image_file_name = apr.parameters.input_dir + std::to_string(level_local) + "_by_level.tif";
-//            TiffUtils::saveMeshAsTiff(image_file_name, by_level_recon);
-
             stencil_counter = std::min(stencil_counter+1, (int)stencil_vec.size()-1);
         }
-
-        PixelData<float> recon_standard;
-        APRReconstruction::interp_img(apr,recon_standard, output_particles);
 
     }
 
@@ -491,7 +485,6 @@ void APRFilter::convolve(APR &apr, std::vector<PixelData<T>>& stencils, Particle
     /**** initialize and fill the apr tree ****/
     ParticleData<float> tree_data;
 
-    apr.init_tree();
 
     APRTreeNumerics::fill_tree_mean(apr, particle_input, tree_data);
 

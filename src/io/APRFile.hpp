@@ -199,8 +199,6 @@ void APRFile::write_apr(APR &apr,uint64_t t,std::string channel_name){
 
     if(with_tree_flag){
 
-        apr.init_tree(); //incase it hasn't been initialized.
-
 
         APRWriter::writeAttr(AprTypes::TotalNumberOfParticlesType, fileStructure.objectIdTree,
                              &apr.treeInfo.total_number_particles);
@@ -214,6 +212,8 @@ void APRFile::write_apr(APR &apr,uint64_t t,std::string channel_name){
 
 
         } else {
+
+            apr.init_tree_random(); //incase it hasn't been initialized.
 
             APRWriter::write_random_access(fileStructure.objectIdTree, fileStructure.objectIdTree, apr.tree_access,
                                            blosc_comp_type_access, blosc_comp_level_access, blosc_shuffle_access);
@@ -321,8 +321,10 @@ void APRFile::read_apr(APR &apr,uint64_t t,std::string channel_name){
     if(!stored_random) {
         //make this an automatic check to see what the file is.
         APRWriter::read_linear_access( fileStructure.objectId, apr.linearAccess);
+        apr.apr_initialized = true;
     } else {
         APRWriter::read_random_access(meta_data, fileStructure.objectId, apr.apr_access);
+        apr.apr_initialized_random = true;
     }
 
 
@@ -338,7 +340,7 @@ void APRFile::read_apr(APR &apr,uint64_t t,std::string channel_name){
         if(!tree_exists){
             //initializing it from the dataset.
             std::cout << "Initializing tree from file" << std::endl;
-            apr.init_tree();
+            apr.init_tree_linear();
         } else {
 
             APRWriter::readAttr(AprTypes::TotalNumberOfParticlesType, fileStructure.objectIdTree,
@@ -353,7 +355,10 @@ void APRFile::read_apr(APR &apr,uint64_t t,std::string channel_name){
                 APRWriter::read_random_tree_access(fileStructure.objectIdTree, fileStructure.objectIdTree,
                                                    apr.tree_access, apr.apr_access);
 
+                apr.tree_initialized_random = true;
+
             } else {
+                apr.tree_initialized = true;
                 APRWriter::read_linear_access( fileStructure.objectIdTree, apr.linearAccessTree);
             }
 

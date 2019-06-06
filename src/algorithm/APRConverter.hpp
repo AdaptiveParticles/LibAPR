@@ -357,6 +357,8 @@ void APRConverter<ImageType>::generateDatastructures(APR& aAPR){
 
         }
 
+        aAPR.apr_initialized_random = true;
+
     } else {
         method_timer.start_timer("compute_apr_datastructure");
 
@@ -369,7 +371,7 @@ void APRConverter<ImageType>::generateDatastructures(APR& aAPR){
             aAPR.linearAccess.initialize_linear_structure_sparse(aAPR.parameters,
                                                                  iPullingSchemeSparse.particle_cell_tree);
         }
-        aAPR.linear_or_random = true;
+        aAPR.apr_initialized = true;
 
         method_timer.stop_timer();
     }

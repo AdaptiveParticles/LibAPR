@@ -20,11 +20,12 @@ class APR {
 
 protected:
 
-    bool linear_or_random = false;
-    bool linear_or_random_tree = false;
+    bool apr_initialized = false;
+    bool apr_initialized_random = false;
 
     RandomAccess tree_access;
     bool tree_initialized = false;
+    bool tree_initialized_random = false;
 
     //APR Tree function
     void initialize_apr_tree_sparse();
@@ -63,50 +64,44 @@ public:
     }
 
 
-    APRIterator iterator() {
+    APRIterator random_iterator() {
+
+        if(!apr_initialized_random){
+            std::cerr << "not initialized random" << std::endl;
+        }
+
         return APRIterator(apr_access,aprInfo);
     }
 
-    LinearIterator linear_iterator() {
+    LinearIterator iterator() {
+        // Just checking if its initialized
+        if(!apr_initialized){
+            init_linear();
+            apr_initialized = true;
+        }
+
         return LinearIterator(linearAccess,aprInfo);
     }
 
-    APRTreeIterator tree_iterator() {
+    APRTreeIterator random_tree_iterator() {
+
+        if(!tree_initialized_random){
+            initialize_apr_tree_sparse();
+        }
+
         return APRTreeIterator(apr_access,tree_access,treeInfo);
     }
 
-    LinearIterator linear_tree_iterator() {
+    LinearIterator tree_iterator() {
+        // Checking if initialized.
+        if(!tree_initialized){
+            init_tree_linear();
+        }
+
         return LinearIterator(linearAccessTree,treeInfo);
     }
 
-    bool init_tree(){
-        if(!tree_initialized){
-            if(linear_or_random) {
 
-                initialize_apr_tree_sparse_linear();
-            } else {
-
-                initialize_apr_tree_sparse();
-            }
-            tree_initialized = true;
-        }
-        return tree_initialized;
-    }
-
-    void init_linear(){
-        if(!linear_or_random){
-            auto it = iterator();
-            initialize_linear_access(linearAccess,it);
-        }
-    }
-
-    void init_tree_linear(){
-        init_tree();
-        if(!linear_or_random_tree){
-            auto it = tree_iterator();
-            initialize_linear_access(linearAccessTree,it);
-        }
-    }
 
     APR(){
         //default
@@ -116,6 +111,32 @@ public:
         apr_access = copyAPR.apr_access;
         tree_access = copyAPR.tree_access;
         name = copyAPR.name;
+    }
+
+protected:
+
+    bool init_tree_random(){
+        if(!tree_initialized_random){
+
+            initialize_apr_tree_sparse();
+            tree_initialized_random = true;
+
+        }
+        return tree_initialized_random;
+    }
+
+    void init_linear(){
+        if(!apr_initialized){
+            auto it = random_iterator();
+            initialize_linear_access(linearAccess,it);
+        }
+    }
+
+    void init_tree_linear(){
+        if(!tree_initialized){
+            initialize_apr_tree_sparse_linear();
+            tree_initialized = true;
+        }
     }
 
 
@@ -215,14 +236,14 @@ void APR::initialize_apr_tree() {
 #endif
             for ( z = 0; z < apr_iterator.z_num(level); z++) {
                 for ( x = 0; x < apr_iterator.x_num(level); ++x) {
-                    for (apr_iterator.set_new_lzx(level, z, x);
+                    for (apr_iterator.begin(level, z, x);
                          apr_iterator < apr_iterator.end();
                          apr_iterator++) {
 
                         size_t y_p = apr_iterator.y() / 2;
-                        size_t x_p = apr_iterator.x() / 2;
-                        size_t z_p = apr_iterator.z() / 2;
-                        int current_level = apr_iterator.level() - 1;
+                        size_t x_p = x / 2;
+                        size_t z_p = z / 2;
+                        int current_level = level - 1;
 
                         if (particle_cell_parent_tree[current_level](y_p, x_p, z_p) == INTERIOR_PARENT) {
                             particle_cell_parent_tree[current_level](y_p, x_p, z_p) = 1;
@@ -253,15 +274,15 @@ void APR::initialize_apr_tree() {
 #endif
             for ( z = 0; z < apr_iterator.z_num(level-1); z++) {
                 for ( x = 0; x < apr_iterator.x_num(level-1); ++x) {
-                    for (apr_iterator.set_new_lzx(level, 2*z, 2*x);
+                    for (apr_iterator.begin(level, 2*z, 2*x);
                          apr_iterator < apr_iterator.end();
-                         apr_iterator.set_iterator_to_particle_next_particle()) {
+                         apr_iterator++) {
 
                         if (apr_iterator.y()%2 == 0) {
                             size_t y_p = apr_iterator.y() / 2;
-                            size_t x_p = apr_iterator.x() / 2;
-                            size_t z_p = apr_iterator.z() / 2;
-                            int current_level = apr_iterator.level() - 1;
+                            size_t x_p = x / 2;
+                            size_t z_p = z/ 2;
+                            int current_level = level - 1;
 
                             while (current_level > treeInfo.l_min) {
                                 current_level--;
@@ -296,7 +317,7 @@ void APR::initialize_apr_tree_sparse_linear() {
 
     APRTimer timer(false);
 
-    auto apr_iterator = linear_iterator();
+    auto apr_iterator = iterator();
 
     //need to create a local copy
 

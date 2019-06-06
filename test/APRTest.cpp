@@ -170,11 +170,9 @@ bool test_pulling_scheme_sparse(TestData& test_data){
     aprConverter.get_apr(apr_lin_sparse,test_data.img_original);
 
 
-    apr_org_sparse.init_linear();
-
-    auto org_it = apr_org.iterator();
-    auto sparse_it = apr_org_sparse.linear_iterator();
-    auto sparse_lin_it = apr_lin_sparse.linear_iterator();
+    auto org_it = apr_org.random_iterator();
+    auto sparse_it = apr_org_sparse.iterator();
+    auto sparse_lin_it = apr_lin_sparse.iterator();
 
     if(org_it.total_number_particles() != sparse_it.total_number_particles()){
         success = false;
@@ -282,9 +280,8 @@ bool test_linear_access_create(TestData& test_data) {
 
     particles_intensities.sample_parts_from_img_downsampled(apr,test_data.img_original);
 
-    apr.init_linear();
 
-    auto it_org = apr.linear_iterator();
+    auto it_org = apr.iterator();
 
 
     APR apr_lin;
@@ -304,11 +301,10 @@ bool test_linear_access_create(TestData& test_data) {
         success = false;
     }
 
-    apr.init_linear();
-    auto it_lin_old = apr.linear_iterator();
+    auto it_lin_old = apr.iterator();
 
     //apr_lin.init_linear();
-    auto it_new = apr_lin.linear_iterator();
+    auto it_new = apr_lin.iterator();
 
     for (unsigned int level = it_new.level_min(); level <= it_new.level_max(); ++level) {
         int z = 0;
@@ -354,12 +350,8 @@ bool test_linear_access_create(TestData& test_data) {
 
     //Test the APR Tree construction.
 
-    apr_lin.init_tree();
-
-    apr.init_tree();
-
-    auto tree_it_org = apr.tree_iterator();
-    auto tree_it_lin = apr_lin.linear_tree_iterator();
+    auto tree_it_org = apr.random_tree_iterator();
+    auto tree_it_lin = apr_lin.tree_iterator();
 
     for (int level = tree_it_lin.level_min(); level <= tree_it_lin.level_max(); ++level) {
         for (int z = 0; z < it_new.z_num(level); z++) {
@@ -467,9 +459,9 @@ bool test_linear_access_io(TestData& test_data) {
 
     timer.stop_timer();
 
-    auto it_org = apr_random.iterator();
-    auto it_new = apr_lin.linear_iterator();
-    auto it_read = test_data.apr.iterator();
+    auto it_org = apr_random.random_iterator();
+    auto it_new = apr_lin.iterator();
+    auto it_read = test_data.apr.random_iterator();
 
     //test the APR
 
@@ -528,8 +520,8 @@ bool test_linear_access_io(TestData& test_data) {
 
     // Test the tree IO
 
-    auto tree_it_org = apr_random.tree_iterator();
-    auto tree_it_lin = apr_lin.linear_tree_iterator();
+    auto tree_it_org = apr_random.random_tree_iterator();
+    auto tree_it_lin = apr_lin.tree_iterator();
 
     for (int level = tree_it_lin.level_min(); level <= tree_it_lin.level_max(); ++level) {
         for (int z = 0; z < it_new.z_num(level); z++) {
@@ -582,11 +574,12 @@ bool test_apr_tree(TestData& test_data) {
     std::string save_loc = "";
     std::string file_name = "read_write_test";
 
-    test_data.apr.init_tree();
 
     ParticleData<float> tree_data;
 
-    APRTreeIterator apr_tree_iterator = test_data.apr.tree_iterator();
+    // tests the random access tree iteration.
+
+    auto apr_tree_iterator = test_data.apr.random_tree_iterator();
 
 
     for (int level = (apr_tree_iterator.level_max()); level >= apr_tree_iterator.level_min(); --level) {
@@ -634,18 +627,21 @@ bool test_apr_tree(TestData& test_data) {
     //Down-sample the image for particle intensity estimation
     downsamplePyrmaid(pc_image, downsampled_img, test_data.apr.level_max(), test_data.apr.level_min()-1);
 
-    for (int level = (apr_tree_iterator.level_max()); level >= apr_tree_iterator.level_min(); --level) {
+
+    auto tree_it_random = test_data.apr.random_tree_iterator();
+
+    for (int level = (tree_it_random.level_max()); level >= tree_it_random.level_min(); --level) {
         int z = 0;
         int x = 0;
 
-        for (z = 0; z < apr_tree_iterator.z_num(level); z++) {
-            for (x = 0; x < apr_tree_iterator.x_num(level); ++x) {
-                for (apr_tree_iterator.set_new_lzx(level, z, x); apr_tree_iterator < apr_tree_iterator.end();
-                     apr_tree_iterator.set_iterator_to_particle_next_particle()) {
+        for (z = 0; z < tree_it_random.z_num(level); z++) {
+            for (x = 0; x < tree_it_random.x_num(level); ++x) {
+                for (tree_it_random.begin(level, z, x); tree_it_random < tree_it_random.end();
+                     tree_it_random++) {
 
-                    uint16_t current_int = (uint16_t)std::round(downsampled_img[apr_tree_iterator.level()].at(apr_tree_iterator.y(),apr_tree_iterator.x(),apr_tree_iterator.z()));
+                    uint16_t current_int = (uint16_t)std::round(downsampled_img[tree_it_random.level()].at(tree_it_random.y(),tree_it_random.x(),tree_it_random.z()));
                     //uint16_t parts_int = aprTree.particles_ds_tree[apr_tree_iterator];
-                    uint16_t parts2 = (uint16_t)std::round(tree_data[apr_tree_iterator]);
+                    uint16_t parts2 = (uint16_t)std::round(tree_data[tree_it_random]);
 
                     // uint16_t y = apr_tree_iterator.y();
 
@@ -666,7 +662,7 @@ bool test_apr_tree(TestData& test_data) {
     APRTreeNumerics::fill_tree_mean(test_data.apr,test_data.particles_intensities,treedata_2);
 
 //    tree2.fill_tree_mean(test_data.apr,tree2,test_data.particles_intensities,treedata_2);
-    auto apr_tree_iterator_s = test_data.apr.tree_iterator();
+    auto apr_tree_iterator_s = test_data.apr.random_tree_iterator();
 
     for (int level = (apr_tree_iterator_s.level_max()); level >= apr_tree_iterator_s.level_min(); --level) {
         int z = 0;
@@ -693,7 +689,7 @@ bool test_apr_tree(TestData& test_data) {
     }
 
 
-    APRTreeIterator neigh_tree_iterator = test_data.apr.tree_iterator();
+    auto neigh_tree_iterator = test_data.apr.random_tree_iterator();
 
 
     for (int level = apr_tree_iterator.level_min(); level <= apr_tree_iterator.level_max(); ++level) {
@@ -812,21 +808,11 @@ bool test_apr_file(TestData& test_data){
                         success = false;
                     }
 
-                    if (apr_iterator.level() != apr_iterator_read.level()) {
-                        success = false;
-                    }
-
-                    if (apr_iterator.x() != apr_iterator_read.x()) {
-                        success = false;
-                    }
 
                     if (apr_iterator.y() != apr_iterator_read.y()) {
                         success = false;
                     }
 
-                    if (apr_iterator.z() != apr_iterator_read.z()) {
-                        success = false;
-                    }
 
                     if(apr_iterator_read < apr_iterator_read.end()) {
                         apr_iterator_read++;
@@ -845,7 +831,6 @@ bool test_apr_file(TestData& test_data){
 
     TreeFile.write_apr(test_data.apr,0,"mem");
 
-    test_data.apr.init_tree();
 
     ParticleData<float> treeMean;
 
@@ -876,8 +861,8 @@ bool test_apr_file(TestData& test_data){
 
     TreeFile.read_particles(aprRead2,"tree_parts",treeMeanRead,1,false,"mem");
 
-    auto tree_it = aprRead2.tree_iterator();
-    auto tree_it_org = test_data.apr.tree_iterator();
+    auto tree_it = aprRead2.random_tree_iterator();
+    auto tree_it_org = test_data.apr.random_tree_iterator();
 
     for (int l = tree_it.level_max(); l >= tree_it.level_min() ; --l) {
         for (int z = 0; z < tree_it.z_num(l); ++z) {
@@ -892,21 +877,11 @@ bool test_apr_file(TestData& test_data){
                         success = false;
                     }
 
-                    if (tree_it.level() != tree_it_org.level()) {
-                        success = false;
-                    }
-
-                    if (tree_it.x() != tree_it_org.x()) {
-                        success = false;
-                    }
 
                     if (tree_it.y() != tree_it_org.y()) {
                         success = false;
                     }
 
-                    if (tree_it.z() != tree_it_org.z()) {
-                        success = false;
-                    }
 
                     if(tree_it_org < tree_it_org.end()) {
                         tree_it_org++;
@@ -990,8 +965,8 @@ bool test_apr_neighbour_access(TestData& test_data){
 
     bool success = true;
 
-    APRIterator neighbour_iterator = test_data.apr.iterator();
-    APRIterator apr_iterator = test_data.apr.iterator();
+    auto neighbour_iterator = test_data.apr.random_iterator();
+    auto apr_iterator = test_data.apr.random_iterator();
 
     ParticleData<uint16_t> x_p(test_data.apr.total_number_particles());
     ParticleData<uint16_t> y_p(test_data.apr.total_number_particles());
@@ -1208,8 +1183,7 @@ bool test_particle_structures(TestData& test_data) {
     APRTimer timer(true);
 
 
-    test_data.apr.init_linear();
-    auto lin_it = test_data.apr.linear_iterator();
+    auto lin_it = test_data.apr.iterator();
 
     timer.start_timer("LinearIteration - normal - OpenMP");
 
@@ -1281,16 +1255,15 @@ bool test_linear_iterate(TestData& test_data) {
 
     bool success = true;
 
-    test_data.apr.init_linear();
-    //auto it = test_data.apr.linear_iterator();
 
-    auto it = test_data.apr.linear_iterator();
+
+    auto it = test_data.apr.iterator();
 
     uint64_t particle_number = 0;
 
     uint64_t counter = 0;
 
-    auto it_c = test_data.apr.iterator();
+    auto it_c = test_data.apr.random_iterator();
 
     //need to transfer the particles across
 
@@ -1456,8 +1429,7 @@ bool test_linear_iterate(TestData& test_data) {
 
     }
 
-    test_data.apr.init_linear();
-    auto it_l = test_data.apr.linear_iterator();
+    auto it_l = test_data.apr.iterator();
 
     for (unsigned int level = it_l.level_min(); level <= it_l.level_max(); ++level) {
         int z = 0;
@@ -1499,7 +1471,7 @@ bool test_apr_iterate(TestData& test_data){
 
     bool success = true;
 
-    auto apr_iterator = test_data.apr.iterator();
+    auto apr_iterator = test_data.apr.random_iterator();
 
     uint64_t particle_number = 0;
 
@@ -1714,8 +1686,8 @@ bool test_apr_pipeline(TestData& test_data){
 
             for (z = 0; z < apr_iterator.z_num(level); z++) {
                 for (x = 0; x < apr_iterator.x_num(level); ++x) {
-                    for (apr_iterator.set_new_lzx(level, z, x); apr_iterator < apr_iterator.end();
-                         apr_iterator.set_iterator_to_particle_next_particle()) {
+                    for (apr_iterator.begin(level, z, x); apr_iterator < apr_iterator.end();
+                         apr_iterator++) {
 
                         uint16_t apr_intensity = (particles_intensities[apr_iterator]);
                         uint16_t check_intensity = test_data.img_pc(apr_iterator.y_nearest_pixel(level,apr_iterator.y()),
@@ -1726,7 +1698,7 @@ bool test_apr_pipeline(TestData& test_data){
                             success = false;
                         }
 
-                        uint16_t apr_level = apr_iterator.level();
+                        uint16_t apr_level = level;
                         uint16_t check_level = test_data.img_level(apr_iterator.y_nearest_pixel(level,apr_iterator.y()),
                                                                    apr_iterator.x_nearest_pixel(level,x),
                                                                    apr_iterator.z_nearest_pixel(level,z));
@@ -1735,7 +1707,7 @@ bool test_apr_pipeline(TestData& test_data){
                             success = false;
                         }
 
-                        uint16_t apr_x = apr_iterator.x();
+                        uint16_t apr_x = x;
                         uint16_t check_x = test_data.img_x(apr_iterator.y_nearest_pixel(level,apr_iterator.y()),
                                                            apr_iterator.x_nearest_pixel(level,x),
                                                            apr_iterator.z_nearest_pixel(level,z));
@@ -1753,7 +1725,7 @@ bool test_apr_pipeline(TestData& test_data){
                             success = false;
                         }
 
-                        uint16_t apr_z = apr_iterator.z();
+                        uint16_t apr_z = z;
                         uint16_t check_z = test_data.img_z(apr_iterator.y_nearest_pixel(level,apr_iterator.y()),
                                                            apr_iterator.x_nearest_pixel(level,x),
                                                            apr_iterator.z_nearest_pixel(level,z));

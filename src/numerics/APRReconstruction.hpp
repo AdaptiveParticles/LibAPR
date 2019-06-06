@@ -74,7 +74,7 @@ public:
 
         parts.init(apr.total_number_particles());
 
-        auto apr_iterator = apr.iterator();
+        auto apr_iterator = apr.random_iterator();
 
         img.initWithValue(apr.org_dims(0), apr.org_dims(1), apr.org_dims(2), 0);
 
@@ -95,17 +95,17 @@ public:
 #endif
             for (z = 0; z < apr_iterator.z_num(level); z++) {
                 for (x = 0; x < apr_iterator.x_num(level); ++x) {
-                    for (apr_iterator.set_new_lzx(level, z, x); apr_iterator < apr_iterator.end();
-                         apr_iterator.set_iterator_to_particle_next_particle()) {
+                    for (apr_iterator.begin(level, z, x); apr_iterator < apr_iterator.end();
+                         apr_iterator++) {
                         //
                         //  Parallel loop over level
                         //
                         if(l_max){
-                            img.at(apr_iterator.y(),apr_iterator.x(),apr_iterator.z())=parts[apr_iterator];
+                            img.at(apr_iterator.y(),x,z)=parts[apr_iterator];
                         } else {
                             int dim1 = apr_iterator.y() * step_size;
-                            int dim2 = apr_iterator.x() * step_size;
-                            int dim3 = apr_iterator.z() * step_size;
+                            int dim2 = x * step_size;
+                            int dim3 = z * step_size;
 
                             float temp_int;
                             //add to all the required rays
@@ -147,7 +147,7 @@ public:
 
         //is apr tree initialized. #FIX ME Need new check
         //if(apr.apr_tree.total_number_parent_cells() == 0){
-        apr.init_tree(); //#FIXME
+
         //local_tree.fill_tree_mean_downsample(parts)
 
         //local_tree.fill_tree_mean(apr,local_tree,parts,tree_parts);
@@ -191,13 +191,13 @@ public:
 #endif
             for (z = 0; z < apr_iterator.z_num(level); z++) {
                 for (int x = 0; x < apr_iterator.x_num(level); ++x) {
-                    for (apr_iterator.set_new_lzx(level, z, x); apr_iterator < apr_iterator.end();
-                         apr_iterator.set_iterator_to_particle_next_particle()) {
+                    for (apr_iterator.begin(level, z, x); apr_iterator < apr_iterator.end();
+                         apr_iterator++) {
                         //
                         //  Parallel loop over level
                         //
 
-                        temp_imgs[level].at(apr_iterator.y(),apr_iterator.x(),apr_iterator.z())=parts[apr_iterator];
+                        temp_imgs[level].at(apr_iterator.y(),x,z)=parts[apr_iterator];
 
                     }
                 }
@@ -209,15 +209,15 @@ public:
 #endif
                 for (z = 0; z < apr_tree_iterator.z_num(level); z++) {
                     for (x = 0; x < apr_tree_iterator.x_num(level); ++x) {
-                        for (apr_tree_iterator.set_new_lzx(level, z, x);
+                        for (apr_tree_iterator.begin(level, z, x);
                              apr_tree_iterator < apr_tree_iterator.end();
-                             apr_tree_iterator.set_iterator_to_particle_next_particle()) {
+                             apr_tree_iterator++) {
                             //
                             //  Parallel loop over level
                             //
 
-                            temp_imgs[level].at(apr_tree_iterator.y(), apr_tree_iterator.x(),
-                                                apr_tree_iterator.z()) = tree_parts[apr_tree_iterator];
+                            temp_imgs[level].at(apr_tree_iterator.y(), x,
+                                               z) = tree_parts[apr_tree_iterator];
 
                         }
                     }
@@ -292,13 +292,13 @@ public:
 #endif
             for (z = 0; z < apr_iterator.z_num(level); z++) {
                 for (x = 0; x < apr_iterator.x_num(level); ++x) {
-                    for (apr_iterator.set_new_lzx(level, z, x); apr_iterator < apr_iterator.end();
-                         apr_iterator.set_iterator_to_particle_next_particle()) {
+                    for (apr_iterator.begin(level, z, x); apr_iterator < apr_iterator.end();
+                         apr_iterator++) {
                         //
                         //  Parallel loop over level
                         //
 
-                        temp_imgs[level].at(apr_iterator.y(),apr_iterator.x(),apr_iterator.z())=parts[apr_iterator];
+                        temp_imgs[level].at(apr_iterator.y(),x,z)=parts[apr_iterator];
 
                     }
                 }
@@ -563,11 +563,11 @@ public:
 #endif
             for (z = 0; z < apr_iterator.z_num(level); z++) {
                 for (x = 0; x < apr_iterator.x_num(level); ++x) {
-                    for (apr_iterator.set_new_lzx(level, z, x); apr_iterator < apr_iterator.end();
-                         apr_iterator.set_iterator_to_particle_next_particle()) {
+                    for (apr_iterator.begin(level, z, x); apr_iterator < apr_iterator.end();
+                         apr_iterator++) {
 
                         //access and info
-                        depth_parts[apr_iterator] = apr_iterator.level();
+                        depth_parts[apr_iterator] = level;
                     }
                 }
             }
@@ -603,14 +603,14 @@ public:
 #endif
             for (z = 0; z < apr_iterator.z_num(level); z++) {
                 for (x = 0; x < apr_iterator.x_num(level); ++x) {
-                    for (apr_iterator.set_new_lzx(level, z, x); apr_iterator < apr_iterator.end();
-                         apr_iterator.set_iterator_to_particle_next_particle()) {
+                    for (apr_iterator.begin(level, z, x); apr_iterator < apr_iterator.end();
+                         apr_iterator++) {
                         //
                         //  Demo APR iterator
                         //
 
                         //access and info
-                        level_parts[apr_iterator] = apr_iterator.level();
+                        level_parts[apr_iterator] = level;
                     }
                 }
             }
@@ -1047,14 +1047,14 @@ public:
 #endif
             for (z = 0; z < apr_iterator.z_num(level); z++) {
                 for (x = 0; x < apr_iterator.x_num(level); ++x) {
-                    for (apr_iterator.set_new_lzx(level, z, x); apr_iterator < apr_iterator.end();
-                         apr_iterator.set_iterator_to_particle_next_particle()) {
+                    for (apr_iterator.begin(level, z, x); apr_iterator < apr_iterator.end();
+                         apr_iterator++) {
                         //
                         //  Demo APR iterator
                         //
 
                         //access and info
-                        level_parts[apr_iterator] = apr_iterator.level();
+                        level_parts[apr_iterator] = level;
 
                     }
                 }
@@ -1063,7 +1063,7 @@ public:
 
         ParticleData<U> level_partsTree(apr.total_number_particles());
 
-        APRTreeIterator apr_iteratorTree = apr.tree_iterator();
+        auto apr_iteratorTree = apr.tree_iterator();
 
 
         for (unsigned int level = apr_iterator.level_min(); level <= apr_iterator.level_max(); ++level) {
@@ -1075,12 +1075,12 @@ public:
 #endif
             for (z = 0; z < apr_iterator.z_num(level); z++) {
                 for (x = 0; x < apr_iterator.x_num(level); ++x) {
-                    for (apr_iterator.set_new_lzx(level, z, x); apr_iterator < apr_iterator.end();
-                         apr_iterator.set_iterator_to_particle_next_particle()) {
+                    for (apr_iterator.begin(level, z, x); apr_iterator < apr_iterator.end();
+                         apr_iterator++) {
 
 
                         //access and info
-                        level_partsTree[apr_iteratorTree] = apr_iteratorTree.level();
+                        level_partsTree[apr_iteratorTree] = level;
 
                     }
                 }
@@ -1127,7 +1127,7 @@ private:
 
         int max_level = apr.level_max() + reconPatch.level_delta;
 
-        auto apr_iterator = apr.iterator();
+        auto apr_iterator = apr.random_iterator();
 
         int max_img_y = ceil(apr.org_dims(0)*pow(2.0,reconPatch.level_delta));
         int max_img_x = ceil(apr.org_dims(1)*pow(2.0,reconPatch.level_delta));
@@ -1214,7 +1214,7 @@ private:
 
                         for (apr_iterator.set_new_lzxy(level, z, x, y_begin_l);
                              apr_iterator <
-                             apr_iterator.end(); apr_iterator.set_iterator_to_particle_next_particle()) {
+                             apr_iterator.end(); apr_iterator++) {
 
                             if ((apr_iterator.y() >= y_begin_l) && (apr_iterator.y() < y_end_l)) {
 
@@ -1310,7 +1310,7 @@ private:
         if(max_level < apr_iterator.level_max()) {
 
 
-            APRTreeIterator aprTreeIterator = apr.tree_iterator();
+            APRTreeIterator aprTreeIterator = apr.random_tree_iterator();
 
 
             unsigned int level = max_level;

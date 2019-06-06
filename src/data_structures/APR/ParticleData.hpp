@@ -72,7 +72,7 @@ void ParticleData<DataType>::sample_parts_from_img_downsampled(APR& apr,PixelDat
 template<typename DataType>
 template<typename U,typename V>
 void ParticleData<DataType>::sample_parts_from_img_downsampled(APR& apr,std::vector<PixelData<U>>& img_by_level,ParticleData<V>& parts){
-    auto it = apr.iterator();
+    auto it = apr.random_iterator();
     parts.data.resize(it.total_number_particles());
     std::cout << "Total number of particles: " << it.total_number_particles() << std::endl;
 

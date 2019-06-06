@@ -252,8 +252,8 @@ void APRCompress::predict_particles_by_level(APR& apr,const unsigned int level,P
 
     timer.start_timer("iterator initialization");
 
-    auto apr_iterator = apr.iterator();
-    auto neighbour_iterator = apr.iterator();
+    auto apr_iterator = apr.random_iterator();
+    auto neighbour_iterator = apr.random_iterator();
 
     timer.stop_timer();
 
@@ -306,8 +306,8 @@ void APRCompress::predict_particles_by_level(APR& apr,const unsigned int level,P
 
         for (unsigned int z = z_block_begin[z_block]; z < z_block_end[z_block]; ++z) {
             for (x = 0; x < apr_iterator.x_num(level); ++x) {
-                for (apr_iterator.set_new_lzx(level, z, x); apr_iterator < apr_iterator.end();
-                     apr_iterator.set_iterator_to_particle_next_particle()) {
+                for (apr_iterator.begin(level, z, x); apr_iterator < apr_iterator.end();
+                     apr_iterator++) {
 
                     float count_neighbours = 0;
                     float temp = 0;

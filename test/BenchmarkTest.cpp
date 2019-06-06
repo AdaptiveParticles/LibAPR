@@ -56,10 +56,9 @@ public:
         PullingSchemeSparse ps;
         ps.initialize_particle_cell_tree(apr_tiled.aprInfo);
 
-        apr_input.init_linear();
-        auto it = apr_input.linear_iterator();
+        auto it = apr_input.iterator();
 
-        auto it_tile = apr_tiled.linear_iterator(); //note this is not intialized except the info
+        auto it_tile = apr_tiled.iterator(); //note this is not intialized except the info
 
         const uint8_t UPSAMPLING_SEED_TYPE = 4;
         const uint8_t seed_us = UPSAMPLING_SEED_TYPE; //deal with the equivalence optimization
@@ -300,7 +299,7 @@ bool bench_particle_structures(TestData& test_data) {
     unsigned int num_rep = 1000;
 
     test_data.apr.init_linear();
-    auto lin_it = test_data.apr.linear_iterator();
+    auto lin_it = test_data.apr.iterator();
 
     timer.start_timer("LinearIteration - normal - OpenMP");
 
@@ -367,7 +366,7 @@ bool bench_iteration(TestData& test_data){
 
     bool success = true;
 
-    auto it = test_data.apr.iterator();
+    auto it = test_data.apr.random_iterator();
 
     ParticleData<uint16_t> parts;
     parts.init(it.total_number_particles());
@@ -449,7 +448,7 @@ bool bench_iteration(TestData& test_data){
 
             for (z = 0; z < it.z_num(level); z++) {
                 for (x = 0; x < it.x_num(level); ++x) {
-                    for (it.set_new_lzx(level, z, x); it < it.end();
+                    for (it.begin(level, z, x); it < it.end();
                          it++) {
                         parts[it] = (uint16_t)(parts[it] + 1);
 
@@ -553,7 +552,7 @@ bool bench_iteration(TestData& test_data){
     timer.start_timer("APR Iteration NEW - OpenMP");
 
     test_data.apr.init_linear();
-    auto lin_it = test_data.apr.linear_iterator();
+    auto lin_it = test_data.apr.iterator();
 
     timer.start_timer("LinearIteration (inc y) - OpenMP");
 

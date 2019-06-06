@@ -51,8 +51,8 @@ public:
 
         gradient.data.resize(apr.total_number_particles(),init_val);
 
-        auto apr_iterator = apr.iterator();
-        auto neighbour_iterator = apr.iterator();
+        auto apr_iterator = apr.random_iterator();
+        auto neighbour_iterator = apr.random_iterator();
 
 
         const std::vector<std::vector<uint8_t>> group_directions = {{0,1},{2,3},{4,5}}; // Neighbour Particle Cell Face definitions [+y,-y,+x,-x,+z,-z] =  [0,1,2,3,4,5]
@@ -170,9 +170,8 @@ public:
             faces = {4, 5};
         }
 
-        auto apr_iterator = apr.iterator();
-        auto neighbour_iterator = apr.iterator();
-
+        auto apr_iterator = apr.random_iterator();
+        auto neighbour_iterator = apr.random_iterator();
 
         const std::vector<float> filter_t = {filter[2], filter[0]};
 

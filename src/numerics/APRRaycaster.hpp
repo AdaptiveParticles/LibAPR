@@ -275,8 +275,8 @@ void APRRaycaster::perform_raycast_patch(APR &apr, ParticleData<S> &particle_dat
 #endif
             for (z = 0; z < apr_iterator.z_num(level); z++) {
                 for (x = 0; x < apr_iterator.x_num(level); ++x) {
-                    for (apr_iterator.set_new_lzx(level, z, x); apr_iterator < apr_iterator.end();
-                         apr_iterator.set_iterator_to_particle_next_particle()) {
+                    for (apr_iterator.begin(level, z, x); apr_iterator < apr_iterator.end();
+                         apr_iterator++) {
                         jitter_x[apr_iterator] = jitter_factor * ((std::rand() - 500) % 1000) / 1000.0f;
                         jitter_y[apr_iterator] = jitter_factor * ((std::rand() - 500) % 1000) / 1000.0f;
                         jitter_z[apr_iterator] = jitter_factor * ((std::rand() - 500) % 1000) / 1000.0f;
@@ -340,7 +340,7 @@ void APRRaycaster::perform_raycast_patch(APR &apr, ParticleData<S> &particle_dat
 #endif
             for (z = z_begin_l; z < z_end_l; z++) {
                 for (x = x_begin_l; x < x_end_l; ++x) {
-                    for (apr_iterator.set_new_lzx(level, z, x); apr_iterator < apr_iterator.end();
+                    for (apr_iterator.begin(level, z, x); apr_iterator < apr_iterator.end();
                          apr_iterator++) {
 
                         if ((apr_iterator.y() >= y_begin_l) && (apr_iterator.y() < y_end_l)) {
@@ -349,18 +349,17 @@ void APRRaycaster::perform_raycast_patch(APR &apr, ParticleData<S> &particle_dat
 
                             if (jitter) {
                                 y_actual = (apr_iterator.y() + 0.5f + jitter_y[apr_iterator]) * this->scale_y *
-                                           depth_vec[apr_iterator.level()];
-                                x_actual = (apr_iterator.x() + 0.5f + jitter_x[apr_iterator]) * this->scale_x *
-                                           depth_vec[apr_iterator.level()];
-                                z_actual = (apr_iterator.z() + 0.5f + jitter_z[apr_iterator]) * this->scale_z *
-                                           depth_vec[apr_iterator.level()];
+                                           depth_vec[level];
+                                x_actual = (x + 0.5f + jitter_x[apr_iterator]) * this->scale_x *
+                                           depth_vec[level];
+                                z_actual = (z + 0.5f + jitter_z[apr_iterator]) * this->scale_z *
+                                           depth_vec[level];
                             } else {
                                 y_actual = apr_iterator.y_global(level,apr_iterator.y()) * this->scale_y;
                                 x_actual = apr_iterator.x_global(level,x) * this->scale_x;
                                 z_actual = apr_iterator.z_global(level,z) * this->scale_z;
                             }
 
-                            const int level = apr_iterator.level();
 
                             int dim1 = 0;
                             int dim2 = 0;
@@ -419,7 +418,7 @@ void APRRaycaster::perform_raycast_patch(APR &apr, ParticleData<S> &particle_dat
 
                 for (x = x_begin_l; x < x_end_l; ++x) {
 
-                    for (tree_it.set_new_lzxy(level, z, x, y_begin_l);
+                    for (tree_it.begin(level, z, x);
                          tree_it <
                          tree_it.end(); tree_it++) {
 
@@ -429,11 +428,9 @@ void APRRaycaster::perform_raycast_patch(APR &apr, ParticleData<S> &particle_dat
 
 
                             y_actual = (tree_it.y() + 0.5) * pow(2, apr.level_max() - level) * this->scale_y;
-                            x_actual = (tree_it.x() + 0.5) * pow(2, apr.level_max() - level) * this->scale_x;
-                            z_actual = (tree_it.z() + 0.5) * pow(2, apr.level_max() - level) * this->scale_z;
+                            x_actual = (x + 0.5) * pow(2, apr.level_max() - level) * this->scale_x;
+                            z_actual = (z + 0.5) * pow(2, apr.level_max() - level) * this->scale_z;
 
-
-                            const int level = tree_it.level();
 
                             int dim1 = 0;
                             int dim2 = 0;
@@ -642,8 +639,8 @@ void APRRaycaster::perform_raycast(APR &apr, ParticleData<S> &particle_data, Pix
 #endif
             for (z = 0; z < apr_iterator.z_num(level); z++) {
                 for (x = 0; x < apr_iterator.x_num(level); ++x) {
-                    for (apr_iterator.set_new_lzx(level, z, x); apr_iterator < apr_iterator.end();
-                         apr_iterator.set_iterator_to_particle_next_particle()) {
+                    for (apr_iterator.begin(level, z, x); apr_iterator < apr_iterator.end();
+                         apr_iterator++) {
                         jitter_x[apr_iterator] = jitter_factor * ((std::rand() - 500) % 1000) / 1000.0f;
                         jitter_y[apr_iterator] = jitter_factor * ((std::rand() - 500) % 1000) / 1000.0f;
                         jitter_z[apr_iterator] = jitter_factor * ((std::rand() - 500) % 1000) / 1000.0f;
@@ -692,25 +689,24 @@ void APRRaycaster::perform_raycast(APR &apr, ParticleData<S> &particle_data, Pix
 #endif
             for (z = 0; z < apr_iterator.z_num(level); z++) {
                 for (x = 0; x < apr_iterator.x_num(level); ++x) {
-                    for (apr_iterator.set_new_lzx(level, z, x); apr_iterator < apr_iterator.end();
-                         apr_iterator.set_iterator_to_particle_next_particle()) {
+                    for (apr_iterator.begin(level, z, x); apr_iterator < apr_iterator.end();
+                         apr_iterator++) {
 
                         //get apr info
 
                         if (jitter) {
                             y_actual = (apr_iterator.y() + 0.5f + jitter_y[apr_iterator]) * this->scale_y *
-                                       depth_vec[apr_iterator.level()];
-                            x_actual = (apr_iterator.x() + 0.5f + jitter_x[apr_iterator]) * this->scale_x *
-                                       depth_vec[apr_iterator.level()];
-                            z_actual = (apr_iterator.z() + 0.5f + jitter_z[apr_iterator]) * this->scale_z *
-                                       depth_vec[apr_iterator.level()];
+                                       depth_vec[level];
+                            x_actual = (x + 0.5f + jitter_x[apr_iterator]) * this->scale_x *
+                                       depth_vec[level];
+                            z_actual = (z + 0.5f + jitter_z[apr_iterator]) * this->scale_z *
+                                       depth_vec[level];
                         } else {
                             y_actual = apr_iterator.y_global(level,apr_iterator.y()) * this->scale_y;
                             x_actual = apr_iterator.x_global(level,x) * this->scale_x;
                             z_actual = apr_iterator.z_global(level,z) * this->scale_z;
                         }
 
-                        const int level = apr_iterator.level();
 
                         int dim1 = 0;
                         int dim2 = 0;
