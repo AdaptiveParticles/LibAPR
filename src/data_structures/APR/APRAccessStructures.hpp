@@ -33,7 +33,8 @@ struct SparseParticleCellMap{
 
 
 struct ParticleCell {
-    uint16_t x,y,z,level,type;
+    uint16_t x,y,z,level;
+    uint64_t type;
     uint64_t pc_offset,global_index;
 };
 

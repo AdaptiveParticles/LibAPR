@@ -60,10 +60,10 @@ public:
         return set_new_lzx(level,z,x);
     }
 
-    inline uint64_t particles_level_begin(const uint16_t& level_) override {return apr_access->global_index_by_level_and_zx_end[level_-1].back()+1;}
-    inline uint64_t particles_level_end(const uint16_t& level_) override {return apr_access->global_index_by_level_and_zx_end[level_].back();}
+    inline uint64_t particles_level_begin(const uint16_t& level_) override {return apr_access->global_index_by_level_and_zx_end_new[level_-1].back()+1;}
+    inline uint64_t particles_level_end(const uint16_t& level_) override {return apr_access->global_index_by_level_and_zx_end_new[level_].back();}
 
-
+    uint64_t set_new_lzx_old(const uint16_t level,const uint16_t z,const uint16_t x); //for backward compatability do not use!
     // Todo make various begin functions. blank(), with level, with x,z, with level,
 
 protected:
@@ -74,19 +74,21 @@ protected:
     uint64_t max_row_level_offset(const uint16_t x,const uint16_t z,const uint16_t num_parts);
 
     PCDKey particleCellDataKey;
+
+
 };
 
 
 uint64_t APRIterator::start_index(const uint16_t level, const uint64_t offset){
 
-    if(this->current_particle_cell.pc_offset == 0){
+    if(offset == 0){
         if(level == this->level_min()){
             return  0;
         } else {
-            return this->apr_access->global_index_by_level_and_zx_end[this->current_particle_cell.level-1].back();
+            return this->apr_access->global_index_by_level_and_zx_end_new[level-1].back();
         }
     } else {
-        return this->apr_access->global_index_by_level_and_zx_end[this->current_particle_cell.level][this->current_particle_cell.pc_offset-1];
+        return this->apr_access->global_index_by_level_and_zx_end_new[level][offset-1];
     }
 
 }
@@ -108,6 +110,8 @@ inline uint64_t APRIterator::set_new_lzx(const uint16_t level,const uint16_t z,c
         particleCellDataKey.local_ind = 0;
         particleCellDataKey.level = level;
 
+        this->current_particle_cell.type = genInfo->x_num[level]*(z) + (x);
+
         if(level == this->level_max()){
             this->current_particle_cell.pc_offset = genInfo->x_num[level-1]*(z/2) + (x/2);
 
@@ -116,38 +120,13 @@ inline uint64_t APRIterator::set_new_lzx(const uint16_t level,const uint16_t z,c
                 this->current_gap.iterator =this->apr_access->gap_map.data[this->current_particle_cell.level][this->current_particle_cell.pc_offset][0].map.begin();
                 this->current_particle_cell.y = this->current_gap.iterator->first;
 
-                uint64_t begin = start_index(level,this->current_particle_cell.pc_offset);
+                uint64_t begin = start_index(level,particleCellDataKey.offset);
 
                 this->current_particle_cell.global_index = begin;
 
+                this->end_index = this->apr_access->global_index_by_level_and_zx_end_new[level][particleCellDataKey.offset];
+
                 this->set_neighbour_flag();
-
-                //requries now an offset depending on the child position odd/even
-                auto it =(this->apr_access->gap_map.data[level][this->current_particle_cell.pc_offset][0].map.rbegin());
-                uint16_t num_parts = ((it->second.global_index_begin_offset + (it->second.y_end-it->first))+1);
-
-                this->end_index =  begin + num_parts;
-
-                //calculates the offset for the xz position
-                uint64_t index_offset=0;
-
-                if(check_neigh_flag){
-
-                    uint64_t x_factor =2;
-
-                    if((x==(x_num(level)-1)) && ((x%2)==0)){
-                        x_factor = 1;
-                    }
-
-                    index_offset = ((x%2) + (z%2)*x_factor)*((uint64_t)num_parts);
-                } else {
-
-                    //calculates the offset for the xz position
-                    index_offset = max_row_level_offset(x, z, num_parts);
-                }
-
-                this->end_index += index_offset;
-                this->current_particle_cell.global_index += index_offset;
 
                 return this->current_particle_cell.global_index;
             } else {
@@ -177,7 +156,7 @@ inline uint64_t APRIterator::set_new_lzx(const uint16_t level,const uint16_t z,c
 
                 // IN HERE PUT THE STARTING INDEX!
                 //auto it =(this->apr_access->gap_map.data[level][this->current_particle_cell.pc_offset][0].map.rbegin());
-                this->end_index = this->apr_access->global_index_by_level_and_zx_end[this->current_particle_cell.level][this->current_particle_cell.pc_offset];
+                this->end_index = this->apr_access->global_index_by_level_and_zx_end_new[this->current_particle_cell.level][this->current_particle_cell.pc_offset];
 
                 return this->current_particle_cell.global_index;
             } else {
@@ -502,6 +481,112 @@ inline bool APRIterator::find_next_child(const uint8_t& direction,const uint8_t&
     };
     return false;
 }
+
+inline uint64_t APRIterator::set_new_lzx_old(const uint16_t level,const uint16_t z,const uint16_t x){
+
+    this->current_particle_cell.level = level;
+    //otherwise now we have to figure out where to look for the next particle cell;
+
+    //back out your xz from the offset
+    this->current_particle_cell.z = z;
+    this->current_particle_cell.x = x;
+
+    particleCellDataKey.offset = genInfo->x_num[level]*(z) + (x);
+    particleCellDataKey.local_ind = 0;
+    particleCellDataKey.level = level;
+
+    if(level == this->level_max()){
+        this->current_particle_cell.pc_offset = genInfo->x_num[level-1]*(z/2) + (x/2);
+
+        if(this->apr_access->gap_map.data[this->current_particle_cell.level][this->current_particle_cell.pc_offset].size() > 0) {
+
+            this->current_gap.iterator =this->apr_access->gap_map.data[this->current_particle_cell.level][this->current_particle_cell.pc_offset][0].map.begin();
+            this->current_particle_cell.y = this->current_gap.iterator->first;
+
+            uint64_t begin = 0;
+
+            if(this->current_particle_cell.pc_offset == 0){
+                if(level == this->level_min()){
+                    begin =   0;
+                } else {
+                    begin =  this->apr_access->global_index_by_level_and_zx_end[level-1].back();
+                }
+            } else {
+                begin = this->apr_access->global_index_by_level_and_zx_end[level][this->current_particle_cell.pc_offset-1];
+            }
+
+            this->current_particle_cell.global_index = begin;
+
+            this->set_neighbour_flag();
+
+            //requries now an offset depending on the child position odd/even
+            auto it =(this->apr_access->gap_map.data[level][this->current_particle_cell.pc_offset][0].map.rbegin());
+            uint16_t num_parts = ((it->second.global_index_begin_offset + (it->second.y_end-it->first))+1);
+
+            this->end_index =  begin + num_parts;
+
+            //calculates the offset for the xz position
+            uint64_t index_offset=0;
+
+            if(check_neigh_flag){
+
+                uint64_t x_factor =2;
+
+                if((x==(x_num(level)-1)) && ((x%2)==0)){
+                    x_factor = 1;
+                }
+
+                index_offset = ((x%2) + (z%2)*x_factor)*((uint64_t)num_parts);
+            } else {
+
+                //calculates the offset for the xz position
+                index_offset = max_row_level_offset(x, z, num_parts);
+            }
+
+            this->end_index += index_offset;
+            this->current_particle_cell.global_index += index_offset;
+
+            return this->current_particle_cell.global_index;
+        } else {
+            this->end_index = 0;
+            this->current_particle_cell.y = UINT16_MAX;
+
+            return UINT64_MAX;
+        }
+
+    } else {
+        this->current_particle_cell.pc_offset = genInfo->x_num[level]*z + x;
+
+        if(this->apr_access->gap_map.data[this->current_particle_cell.level][this->current_particle_cell.pc_offset].size() > 0) {
+
+            this->current_gap.iterator = this->apr_access->gap_map.data[this->current_particle_cell.level][this->current_particle_cell.pc_offset][0].map.begin();
+            this->current_particle_cell.y = this->current_gap.iterator->first;
+
+            uint64_t begin = start_index(level,this->current_particle_cell.pc_offset);
+
+            this->current_particle_cell.global_index = this->current_gap.iterator->second.global_index_begin_offset + begin;
+
+            this->set_neighbour_flag();
+
+            if(level<3){
+                check_neigh_flag = true;
+            }
+
+            // IN HERE PUT THE STARTING INDEX!
+            //auto it =(this->apr_access->gap_map.data[level][this->current_particle_cell.pc_offset][0].map.rbegin());
+            this->end_index = this->apr_access->global_index_by_level_and_zx_end_new[this->current_particle_cell.level][this->current_particle_cell.pc_offset];
+
+            return this->current_particle_cell.global_index;
+        } else {
+            this->end_index = 0;
+            this->current_particle_cell.y = UINT16_MAX;
+
+            return UINT64_MAX;
+        }
+
+    }
+}
+
 
 
 

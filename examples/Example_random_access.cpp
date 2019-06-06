@@ -61,7 +61,7 @@ int main(int argc, char **argv) {
     //remove the file extension
     name.erase(name.end() - 3, name.end());
 
-    auto apr_iterator = apr.iterator();
+    auto apr_iterator = apr.random_iterator();
 
     ///////////////////////
     ///

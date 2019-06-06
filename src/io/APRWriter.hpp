@@ -136,6 +136,44 @@ public:
 
     }
 
+    template<typename T>
+    static void re_order_parts(APR apr,ParticleData<T>& parts){
+        // backward compatability function -- not performance orientated.
+
+        ParticleData<T> parts_temp;
+        parts_temp.init(parts.total_number_particles());
+
+        int level = apr.level_max();
+
+        parts_temp.copy_parts(apr,parts);
+
+        auto apr_iterator = apr.random_iterator();
+        auto apr_iterator_2 = apr.random_iterator();
+        int z = 0;
+
+#ifdef HAVE_OPENMP
+#pragma omp parallel for schedule(dynamic) private(z) firstprivate(apr_iterator,apr_iterator_2)
+#endif
+        for (z = 0; z < apr_iterator.z_num(level); z++) {
+            for (int x = 0; x < apr_iterator.x_num(level); ++x) {
+
+                apr_iterator_2.set_new_lzx_old(level, z, x);
+                for (apr_iterator.begin(level, z, x); apr_iterator < apr_iterator.end();
+                     apr_iterator++) {
+
+                    parts[apr_iterator] = parts_temp[apr_iterator_2];
+
+                    if(apr_iterator_2 < apr_iterator_2.end()){
+                        apr_iterator_2++;
+                    }
+                }
+            }
+        }
+
+
+
+    }
+
     static bool time_adaptation_check(const std::string &file_name){
         FileStructure::Operation op;
 

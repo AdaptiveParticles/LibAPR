@@ -66,13 +66,11 @@ int main(int argc, char **argv) {
     //remove the file extension
     name.erase(name.end() - 3, name.end());
 
-    apr.init_tree();
-
     ParticleData<float> partsTree;
     APRTreeNumerics::fill_tree_mean(apr,parts,partsTree);
 
 
-    auto apr_tree_iterator = apr.tree_iterator();
+    auto apr_tree_iterator = apr.random_tree_iterator();
 
     timer.start_timer("APR interior tree loop");
 
@@ -89,10 +87,10 @@ int main(int argc, char **argv) {
 #endif
         for (z = 0; z < apr_tree_iterator.z_num(level); z++) {
             for (x = 0; x < apr_tree_iterator.x_num(level); ++x) {
-                for (apr_tree_iterator.set_new_lzx(level, z, x); apr_tree_iterator < apr_tree_iterator.end();
-                     apr_tree_iterator.set_iterator_to_particle_next_particle()) {
+                for (apr_tree_iterator.begin(level, z, x); apr_tree_iterator < apr_tree_iterator.end();
+                     apr_tree_iterator++) {
 
-                    if(apr_tree_iterator.level() < apr_tree_iterator.level_max()) {
+                    if(level < apr_tree_iterator.level_max()) {
                         partsTreelevel[apr_tree_iterator] = (uint16_t)2*partsTree[apr_tree_iterator];
                     } else {
                         partsTreelevel[apr_tree_iterator] = partsTree[apr_tree_iterator];
@@ -108,7 +106,7 @@ int main(int argc, char **argv) {
 
     //Also neighbour access can be done between neighboring particle cells on the same level
 
-    auto neigh_tree_iterator = apr.tree_iterator();
+    auto neigh_tree_iterator = apr.random_tree_iterator();
 
     timer.start_timer("APR parallel iterator neighbour loop");
 
@@ -121,8 +119,8 @@ int main(int argc, char **argv) {
 #endif
         for (z = 0; z < apr_tree_iterator.z_num(level); z++) {
             for (x = 0; x < apr_tree_iterator.x_num(level); ++x) {
-                for (apr_tree_iterator.set_new_lzx(level, z, x); apr_tree_iterator < apr_tree_iterator.end();
-                     apr_tree_iterator.set_iterator_to_particle_next_particle()) {
+                for (apr_tree_iterator.begin(level, z, x); apr_tree_iterator < apr_tree_iterator.end();
+                     apr_tree_iterator++) {
 
                     //loop over all the neighbours and set the neighbour iterator to it
                     for (int direction = 0; direction < 6; ++direction) {

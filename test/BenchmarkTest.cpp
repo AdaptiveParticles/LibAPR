@@ -45,9 +45,9 @@ public:
         auto new_x_num = apr_it.org_dims(1)*tile_dims[1];
         auto new_z_num = apr_it.org_dims(2)*tile_dims[2];
 
-        int org_y_num = apr_it.org_dims(0);
-        int org_x_num = apr_it.org_dims(1);
-        int org_z_num = apr_it.org_dims(2);
+//        int org_y_num = apr_it.org_dims(0);
+//        int org_x_num = apr_it.org_dims(1);
+//        int org_z_num = apr_it.org_dims(2);
 
 
         apr_tiled.aprInfo.init(new_y_num,new_x_num,new_z_num);
@@ -61,7 +61,6 @@ public:
         auto it_tile = apr_tiled.iterator(); //note this is not intialized except the info
 
         const uint8_t UPSAMPLING_SEED_TYPE = 4;
-        const uint8_t seed_us = UPSAMPLING_SEED_TYPE; //deal with the equivalence optimization
 
         timer.start_timer("init sparse tree");
 
@@ -154,9 +153,9 @@ public:
             for (z = 0; z < it_tile.z_num(level); z++) {
                 for (int x = 0; x < it_tile.x_num(level); ++x) {
 
-                    auto level_org = level - level_offset;
-
-                    int x_org = (((x)*apr_tiled.aprInfo.level_size[level])%org_x_num)/apr_tiled.aprInfo.level_size[level];
+//                    auto level_org = level - level_offset;
+//
+//                    int x_org = (((x)*apr_tiled.aprInfo.level_size[level])%org_x_num)/apr_tiled.aprInfo.level_size[level];
 
                 }
             }
@@ -269,8 +268,6 @@ bool test_tiling(TestData& test_data){
     TiffUtils::saveMeshAsTiff("level_tiled.tif", level_img);
 
 
-    int stop = 1;
-
     return true;
 }
 
@@ -298,7 +295,6 @@ bool bench_particle_structures(TestData& test_data) {
 
     unsigned int num_rep = 1000;
 
-    test_data.apr.init_linear();
     auto lin_it = test_data.apr.iterator();
 
     timer.start_timer("LinearIteration - normal - OpenMP");
@@ -551,7 +547,6 @@ bool bench_iteration(TestData& test_data){
 
     timer.start_timer("APR Iteration NEW - OpenMP");
 
-    test_data.apr.init_linear();
     auto lin_it = test_data.apr.iterator();
 
     timer.start_timer("LinearIteration (inc y) - OpenMP");

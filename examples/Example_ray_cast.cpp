@@ -57,7 +57,6 @@ int main(int argc, char **argv) {
 
     aprFile.close();
 
-    apr.init_tree();
     ParticleData<float> treeData;
 
     APRTreeNumerics::fill_tree_max(apr,parts,treeData);

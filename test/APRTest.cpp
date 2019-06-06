@@ -251,7 +251,7 @@ bool test_linear_access_create(TestData& test_data) {
     //read in the command line options into the parameters file
     aprConverter.par.Ip_th = 0;
     aprConverter.par.rel_error = 0.1;
-    aprConverter.par.lambda = 0;
+    aprConverter.par.lambda = 2;
     aprConverter.par.mask_file = "";
     aprConverter.par.min_signal = -1;
 
@@ -402,7 +402,6 @@ bool test_linear_access_io(TestData& test_data) {
 
     APRTimer timer(true);
 
-
     timer.start_timer("random write");
 
     //First write a file
@@ -491,7 +490,7 @@ bool test_linear_access_io(TestData& test_data) {
                         (void) org_index;
                         (void) read_index;
 
-                        //success = false;
+                        success = false;
                     }
 
                     if(it_new.y() != it_org.y()){

@@ -77,7 +77,7 @@ int main(int argc, char **argv) {
 #endif
         for (z = 0; z < apr_iterator.z_num(level); z++) {
             for (x = 0; x < apr_iterator.x_num(level); ++x) {
-                for (apr_iterator.set_new_lzx(level, z, x); apr_iterator < apr_iterator.end();
+                for (apr_iterator.begin(level, z, x); apr_iterator < apr_iterator.end();
                      apr_iterator++) {
 
                     //you can then also use it to access any particle properties stored as ExtraParticleData
@@ -105,7 +105,7 @@ int main(int argc, char **argv) {
 #endif
         for (z = 0; z < apr_iterator.z_num(level); z++) {
             for (x = 0; x < apr_iterator.x_num(level); ++x) {
-                for (apr_iterator.set_new_lzx(level, z, x); apr_iterator < apr_iterator.end();
+                for (apr_iterator.begin(level, z, x); apr_iterator < apr_iterator.end();
                      apr_iterator++) {
 
                     if (parts[apr_iterator] > 100) {
@@ -143,9 +143,9 @@ int main(int argc, char **argv) {
 #endif
         for (z = 0; z < apr_iterator.z_num(level); z++) {
             for (x = 0; x < apr_iterator.x_num(level); ++x) {
-                for (apr_iterator.set_new_lzx(level, z, x); apr_iterator < apr_iterator.end();
+                for (apr_iterator.begin(level, z, x); apr_iterator < apr_iterator.end();
                      apr_iterator++) {
-                    if (apr_iterator.level() < apr_iterator.level_max()) {
+                    if (level < apr_iterator.level_max()) {
                         //get global y co-ordinate of the particle and put result in calc_example_2 at the current Particle Cell (PC) location
                         calc_example_2[apr_iterator] = apr_iterator.y_global(level,apr_iterator.y());
                     }
@@ -186,7 +186,7 @@ int main(int argc, char **argv) {
 #endif
         for (z = 0; z < apr_iterator.z_num(level); z++) {
             for (x = 0; x < apr_iterator.x_num(level); ++x) {
-                for (apr_iterator.set_new_lzx(level, z, x); apr_iterator < apr_iterator.end();
+                for (apr_iterator.begin(level, z, x); apr_iterator < apr_iterator.end();
                      apr_iterator++) {
 
                 }

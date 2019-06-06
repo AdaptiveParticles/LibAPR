@@ -61,8 +61,8 @@ int main(int argc, char **argv) {
 
     ParticleData<uint16_t> neigh_avg(apr.total_number_particles());
 
-    auto neighbour_iterator = apr.iterator();
-    auto apr_iterator = apr.iterator();
+    auto neighbour_iterator = apr.random_iterator();
+    auto apr_iterator = apr.random_iterator();
 
 
     timer.start_timer("APR serial iterator neighbours loop");

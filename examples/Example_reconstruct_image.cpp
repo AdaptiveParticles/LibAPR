@@ -183,14 +183,14 @@ int main(int argc, char **argv) {
 #endif
             for (z = 0; z < apr_iterator.z_num(level); z++) {
                 for (x = 0; x < apr_iterator.x_num(level); ++x) {
-                    for (apr_iterator.set_new_lzx(level, z, x); apr_iterator < apr_iterator.end();
-                         apr_iterator.set_iterator_to_particle_next_particle()) {
+                    for (apr_iterator.begin(level, z, x); apr_iterator < apr_iterator.end();
+                         apr_iterator++) {
 
-                        levelp[apr_iterator] = apr_iterator.level();
+                        levelp[apr_iterator] = level;
 
-                        xp[apr_iterator] = apr_iterator.x();
+                        xp[apr_iterator] = x;
                         yp[apr_iterator] = apr_iterator.y();
-                        zp[apr_iterator] = apr_iterator.z();
+                        zp[apr_iterator] = z;
                     }
                 }
             }

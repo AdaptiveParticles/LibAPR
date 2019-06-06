@@ -30,8 +30,59 @@ public:
 
     std::vector<std::vector<uint64_t>> global_index_by_level_and_zx_end; // note: 1..n based numbering
 
+
+    std::vector<std::vector<uint64_t>> global_index_by_level_and_zx_end_new;
+
     uint64_t total_number_non_empty_rows;
     SparseGaps<ParticleCellGapMap> gap_map;
+
+    //backwards support
+    void max_level_particle_raster(){
+
+
+        global_index_by_level_and_zx_end_new.resize(level_max() + 1);
+
+        for (int i = 0; i <= level_max(); ++i) {
+            global_index_by_level_and_zx_end_new[i].resize(x_num(i)*z_num(i),0);
+        }
+
+        for (int j = 0; j < level_max(); ++j) {
+            std::copy(global_index_by_level_and_zx_end[j].begin(),global_index_by_level_and_zx_end[j].end(),global_index_by_level_and_zx_end_new[j].begin());
+        }
+
+
+#ifdef HAVE_OPENMP
+//#pragma omp parallel  for default(shared) schedule(dynamic)
+#endif
+        for (size_t z = 0; z < z_num(level_max()); ++z) {
+            for (size_t x = 0; x < x_num(level_max()); ++x) {
+                const size_t offset_pc_data_m = z * x_num(level_max()) + x;
+                const size_t offset_pc_data = (z/2) * x_num(level_max()-1) + x/2;
+
+                uint16_t num_parts = 0;
+
+                if(gap_map.data[level_max()][offset_pc_data].size() > 0){
+                    if(gap_map.data[level_max()][offset_pc_data][0].map.size() > 0) {
+
+                        auto it = (gap_map.data[level_max()][offset_pc_data][0].map.rbegin());
+                        num_parts = ((it->second.global_index_begin_offset + (it->second.y_end - it->first)) + 1);
+                    }
+                }
+
+                global_index_by_level_and_zx_end_new[level_max()][offset_pc_data_m] = num_parts;
+
+            }
+        }
+
+        //add the previous value.
+        global_index_by_level_and_zx_end_new[level_max()][0] += global_index_by_level_and_zx_end[level_max()-1].back();
+
+        std::partial_sum(global_index_by_level_and_zx_end_new[level_max()].begin(),global_index_by_level_and_zx_end_new[level_max()].end()
+             ,global_index_by_level_and_zx_end_new[level_max()].begin());
+
+    }
+
+
     void initialize_structure_from_particle_cell_tree_sparse(APRParameters& apr_parameters, SparseGaps<SparseParticleCellMap> &p_map);
 
 
@@ -53,8 +104,10 @@ public:
                 neigh.z = input.z + dir_z[face];
                 neigh.level = input.level;
 
+                neigh.pc_offset = genInfo->x_num[neigh.level] * neigh.z + neigh.x;
+
+                neigh.type = neigh.pc_offset;
                 if(neigh.level < this->level_max()) {
-                    neigh.pc_offset = gap_map.x_num[neigh.level] * neigh.z + neigh.x;
                 }
                 else {
                     neigh.pc_offset = gap_map.x_num[neigh.level] * (neigh.z/2) + (neigh.x/2);
@@ -69,6 +122,7 @@ public:
                 neigh.z = (input.z+ dir_z[face])/2;
 
                 neigh.pc_offset =  gap_map.x_num[neigh.level] * neigh.z + neigh.x;
+                neigh.type = neigh.pc_offset;
 
                 return true;
             case _LEVEL_INCREASE:
@@ -102,8 +156,10 @@ public:
                         break;
                 }
 
+                neigh.pc_offset = genInfo->x_num[neigh.level] * neigh.z + neigh.x;
+                neigh.type = neigh.pc_offset;
+
                 if(neigh.level < level_max()) {
-                    neigh.pc_offset = gap_map.x_num[neigh.level] * neigh.z + neigh.x;
                 }
                 else {
                     neigh.pc_offset = gap_map.x_num[neigh.level] * (neigh.z/2) + (neigh.x/2);
@@ -163,44 +219,46 @@ public:
 
             //this is required due to utilization of the equivalence optimization
 
-            if((map_iterator.pc_offset != part_cell.pc_offset) || (map_iterator.level != part_cell.level) ){
+            if((map_iterator.pc_offset != part_cell.type) || (map_iterator.level != part_cell.level) ){
                 map_iterator.iterator = gap_map.data[part_cell.level][part_cell.pc_offset][0].map.begin();
-                map_iterator.pc_offset = part_cell.pc_offset;
+                map_iterator.pc_offset = part_cell.type;
                 map_iterator.level = part_cell.level;
 
                 if(part_cell.pc_offset == 0){
                     if(part_cell.level == level_min()){
                         map_iterator.global_offset = 0;
                     } else {
-                        map_iterator.global_offset = global_index_by_level_and_zx_end[part_cell.level-1].back();
+                        map_iterator.global_offset = global_index_by_level_and_zx_end_new[part_cell.level-1].back();
                     }
                 } else {
-                    map_iterator.global_offset = global_index_by_level_and_zx_end[part_cell.level][part_cell.pc_offset-1];
+                    map_iterator.global_offset = global_index_by_level_and_zx_end_new[part_cell.level][part_cell.type-1];
                 }
 
 
-                if(part_cell.level == level_max()) {
-
-                    auto it = (gap_map.data[part_cell.level][part_cell.pc_offset][0].map.rbegin());
-
-                    map_iterator.max_offset = ((it->second.global_index_begin_offset + (it->second.y_end - it->first)) + 1 -
-                                               map_iterator.iterator->second.global_index_begin_offset);
-
-                    map_iterator.max_offset = ((it->second.global_index_begin_offset + (it->second.y_end-it->first))+1);
-
-                } else {
-                    map_iterator.max_offset = 0;
-                }
+//                if(part_cell.level == level_max()) {
+//
+////                    auto it = (gap_map.data[part_cell.level][part_cell.pc_offset][0].map.rbegin());
+////
+////                    map_iterator.max_offset = ((it->second.global_index_begin_offset + (it->second.y_end - it->first)) + 1 -
+////                                               map_iterator.iterator->second.global_index_begin_offset);
+////
+////                    map_iterator.max_offset = ((it->second.global_index_begin_offset + (it->second.y_end-it->first))+1);
+//                    map_iterator.max_offset = 0;
+//                } else {
+//                    map_iterator.max_offset = 0;
+//                }
             }
 
-            uint64_t offset = 0;
+            uint64_t offset = map_iterator.global_offset;
             //deals with the different xz in the same access tree at highest resolution
-            if(part_cell.level == level_max()) {
-                offset = ((part_cell.x % 2) + (part_cell.z % 2) * 2)*map_iterator.max_offset +
-                         map_iterator.global_offset;
-            } else {
-                offset = map_iterator.global_offset;
-            }
+//            if(part_cell.level == level_max()) {
+//                offset = ((part_cell.x % 2) + (part_cell.z % 2) * 2)*map_iterator.max_offset +
+//                         map_iterator.global_offset;
+//            } else {
+//                offset = map_iterator.global_offset;
+//            }
+
+            //offset =
 
 
             if(map_iterator.iterator == current_pc_map.map.end()){
@@ -567,6 +625,8 @@ public:
         }
         total_number_non_empty_rows = counter_rows;
 
+        max_level_particle_raster();
+
         apr_timer.stop_timer();
     }
 
@@ -806,7 +866,15 @@ public:
             }
         }
 
+        max_level_particle_raster();
+
+
+
+
         apr_timer.stop_timer();
+
+
+
     }
 
     void initialize_tree_access(RandomAccess& APROwn_access, std::vector<PixelData<uint8_t>> &p_map);

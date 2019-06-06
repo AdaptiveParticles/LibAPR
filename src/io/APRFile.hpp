@@ -254,6 +254,10 @@ void APRFile::write_particles(APR &apr,const std::string particles_name,Particle
         part_location = fileStructure.objectIdTree;
     }
 
+    // This is for backwards compatability indicating that these particles are written in contiguous fasion in lzxy order
+    int lzxy_order = 1;
+    APRWriter::writeAttr({H5T_NATIVE_INT,"lzxy_order"}, part_location, &lzxy_order);
+
     // ------------- write data ----------------------------
 
     timer.start_timer("intensities");
@@ -323,8 +327,10 @@ void APRFile::read_apr(APR &apr,uint64_t t,std::string channel_name){
         APRWriter::read_linear_access( fileStructure.objectId, apr.linearAccess);
         apr.apr_initialized = true;
     } else {
+
         APRWriter::read_random_access(meta_data, fileStructure.objectId, apr.apr_access);
         apr.apr_initialized_random = true;
+
     }
 
 
@@ -437,6 +443,15 @@ void APRFile::read_particles(APR apr,std::string particles_name,ParticleData<Dat
         aprCompress.set_quantization_factor(quantization_factor);
         aprCompress.decompress(apr, particles,parts_start);
     }
+
+    // ------------ re-ordering for backwards compatability if needed ------- //
+    // only files generated with older versions of the library will need this.
+    bool new_particles = attribute_exists(part_location,"lzxy_order");
+
+    if(!new_particles){
+        APRWriter::re_order_parts(apr,particles);
+    }
+
     timer.stop_timer();
 
 };
