@@ -27,7 +27,12 @@ class APRTreeNumerics {
         auto treeIterator = apr.random_tree_iterator();
         auto parentIterator = apr.random_tree_iterator();
 
-        auto apr_iterator = apr.random_iterator(); //# TODO: Remove and update this.
+        auto apr_iterator = apr.random_iterator();
+
+//        auto treeIterator = apr.tree_iterator();
+//        auto parentIterator = apr.tree_iterator();
+//
+//        auto apr_iterator = apr.iterator();
 
         int z_d;
         int x_d;
@@ -69,14 +74,14 @@ class APRTreeNumerics {
                                  apr_iterator <
                                  apr_iterator.end(); apr_iterator++) {
 
-                                while (parentIterator.y() != (apr_iterator.y() / 2)) {
+                                while ((parentIterator.y() != (apr_iterator.y() / 2)) && (parentIterator < parentIterator.end())) {
                                     parentIterator++;
                                 }
 
                                 U part_val;
 
                                 if(pc_data){
-                                    part_val =  particle_data_pc[apr_iterator.get_pcd_key()];
+                                    //part_val =  particle_data_pc[apr_iterator.get_pcd_key()]; #TODO update this
                                 } else {
                                     part_val =  particle_data[apr_iterator];
                                 }
@@ -115,7 +120,7 @@ class APRTreeNumerics {
                     for (x_d = 0; x_d < treeIterator.x_num(level-1); ++x_d) {
                         for (int x = 2 * x_d; x <= std::min(2 * x_d + 1, (int) treeIterator.x_num(level)-1); ++x) {
 
-                            parentIterator.set_new_lzx(level - 1, z/2, x/2);
+                            parentIterator.begin(level - 1, z/2, x/2);
 
                             float scale_factor_xz =
                                     (((2 * parentIterator.x_num(level - 1) != parentIterator.x_num(level)) &&
@@ -133,12 +138,12 @@ class APRTreeNumerics {
                                 scale_factor_yxz = scale_factor_xz * 2;
                             }
 
-                            for (treeIterator.set_new_lzx(level, z, x);
+                            for (treeIterator.begin(level, z, x);
                                  treeIterator <
-                                 treeIterator.end(); treeIterator.set_iterator_to_particle_next_particle()) {
+                                 treeIterator.end(); treeIterator++) {
 
-                                while (parentIterator.y() != treeIterator.y() / 2) {
-                                    parentIterator.set_iterator_to_particle_next_particle();
+                                while ((parentIterator.y() != treeIterator.y() / 2) && (parentIterator < parentIterator.end())) {
+                                    parentIterator++;
                                 }
 
                                 if (parentIterator.y() == (parentIterator.y_num(level - 1) - 1)) {
@@ -196,8 +201,8 @@ class APRTreeNumerics {
                                  apr_iterator <
                                  apr_iterator.end(); apr_iterator.set_iterator_to_particle_next_particle()) {
 
-                                while (parentIterator.y() != (apr_iterator.y() / 2)) {
-                                    parentIterator.set_iterator_to_particle_next_particle();
+                                while ((parentIterator.y() != (apr_iterator.y() / 2)) && (parentIterator < parentIterator.end())) {
+                                    parentIterator++;
                                 }
 
                                 S part_val;
@@ -239,7 +244,7 @@ class APRTreeNumerics {
                                  treeIterator <
                                  treeIterator.end(); treeIterator.set_iterator_to_particle_next_particle()) {
 
-                                while (parentIterator.y() != treeIterator.y() / 2) {
+                                while ((parentIterator.y() != treeIterator.y() / 2) && (parentIterator < parentIterator.end())) {
                                     parentIterator.set_iterator_to_particle_next_particle();
                                 }
 

@@ -39,35 +39,17 @@ public:
             std::cerr << "in-correct tilling dimensions" << std::endl;
         }
 
+        auto it = apr_input.iterator();
         //now to tile the APR
-        auto apr_it = apr_input.iterator();
-        auto new_y_num = apr_it.org_dims(0)*tile_dims[0];
-        auto new_x_num = apr_it.org_dims(1)*tile_dims[1];
-        auto new_z_num = apr_it.org_dims(2)*tile_dims[2];
-
-//        int org_y_num = apr_it.org_dims(0);
-//        int org_x_num = apr_it.org_dims(1);
-//        int org_z_num = apr_it.org_dims(2);
-
+        auto new_y_num = it.org_dims(0)*tile_dims[0];
+        auto new_x_num = it.org_dims(1)*tile_dims[1];
+        auto new_z_num = it.org_dims(2)*tile_dims[2];
 
         apr_tiled.aprInfo.init(new_y_num,new_x_num,new_z_num);
         apr_tiled.linearAccess.genInfo = &apr_tiled.aprInfo;
 
         PullingSchemeSparse ps;
         ps.initialize_particle_cell_tree(apr_tiled.aprInfo);
-
-        auto it = apr_input.iterator();
-
-        //auto it_tile = apr_tiled.aprInfo; //note this is not intialized except the info
-
-
-        auto size_min = ps.particle_cell_tree.x_num[apr_tiled.aprInfo.l_min]*ps.particle_cell_tree.z_num[apr_tiled.aprInfo.l_min];
-        for (int i = 0; i < size_min ; ++i) {
-            for (int y = 0; y < ps.y_num_l[apr_tiled.aprInfo.l_min]; ++y) {
-                //ps.particle_cell_tree.data[apr_tiled.aprInfo.l_min][i][0].mesh[y] = 1;
-            }
-
-        }
 
         timer.start_timer("init sparse tree");
 
@@ -89,9 +71,9 @@ public:
 
                                 //transform the co-ordinates to the new frame of reference..
 
-                                int z_offset = (z_tile*apr_it.org_dims(2))/apr_tiled.aprInfo.level_size[new_level];
-                                int x_offset = (x_tile*apr_it.org_dims(1))/apr_tiled.aprInfo.level_size[new_level];
-                                int y_offset = (y_tile*apr_it.org_dims(0))/apr_tiled.aprInfo.level_size[new_level];
+                                int z_offset = (z_tile*it.org_dims(2))/apr_tiled.aprInfo.level_size[new_level];
+                                int x_offset = (x_tile*it.org_dims(1))/apr_tiled.aprInfo.level_size[new_level];
+                                int y_offset = (y_tile*it.org_dims(0))/apr_tiled.aprInfo.level_size[new_level];
 
                                 if(level == it.level_max()){
                                     if((x%2 == 0) && (z%2 == 0)) {
@@ -109,16 +91,16 @@ public:
                                     }
                                 } else {
 
-                                    const size_t offset_pc =
-                                            apr_tiled.aprInfo.x_num[new_level] * (z + z_offset) + (x + x_offset);
-
-                                    auto &mesh = ps.particle_cell_tree.data[new_level][offset_pc][0].mesh;
-
-                                    for (it.begin(level, z, x); it < it.end();
-                                         it++) {
-                                        //insert
-                                        //mesh[it.y() + y_offset] = 3;
-                                    }
+//                                    const size_t offset_pc =
+//                                            apr_tiled.aprInfo.x_num[new_level] * (z + z_offset) + (x + x_offset);
+//
+//                                    auto &mesh = ps.particle_cell_tree.data[new_level][offset_pc][0].mesh;
+//
+//                                    for (it.begin(level, z, x); it < it.end();
+//                                         it++) {
+//                                        //insert
+//                                        //mesh[it.y() + y_offset] = 3;
+//                                    }
                                 }
                             }
                         }
@@ -145,30 +127,94 @@ public:
 
         tiled_parts.init(apr_tiled.total_number_particles());
 
+        auto it_tile = apr_tiled.iterator();
+        auto it_tile_tree = apr_tiled.tree_iterator();
+
+        auto it_tree = apr_input.tree_iterator();
+
+        ParticleData<float> tparts_input;
+
+        APRTreeNumerics::fill_tree_mean(apr_input,parts,tparts_input);
 
         //
-        // Now how do we integrate them together..
+        // Now we need to sample the particles, with the fact that some particles with have increased resolution in the merge
+        // potentially due to boundary effects
         //
-        //
+
+        int org_y_num = it.org_dims(0);
+        int org_x_num = it.org_dims(1);
+        int org_z_num = it.org_dims(2);
+
+        //now compute the particles
+        for (int level = it_tile.level_min(); level <= it_tile.level_max(); level++) {
+
+            const auto not_max = level < it_tile.level_max();
+
+            auto level_org = level - level_offset;
+            int z = 0;
+#ifdef HAVE_OPENMP
+//#pragma omp parallel for schedule(dynamic) private(z) firstprivate(it,it_tile)
+#endif
+            for (z = 0; z < it_tile.z_num(level); z++) {
+
+                int z_org = (((z)*apr_tiled.aprInfo.level_size[level])%org_z_num)/apr_tiled.aprInfo.level_size[level];
+                //std::cout << "level: " << level << " level org: " << level_org << " z: "  << z <<  " z_org: " << z_org << std::endl;
+
+                for (int x = 0; x < it_tile.x_num(level); ++x) {
+
+                    int x_org = (((x)*apr_tiled.aprInfo.level_size[level])%org_x_num)/apr_tiled.aprInfo.level_size[level];
+                   // std::cout << "level: " << level << " level org: " << level_org << " x: "  << x <<  " x_org: " << x_org << std::endl;
+
+                    it.begin(level_org,z_org,x_org);
+
+                    if(not_max){
+                        it_tree.begin(level_org,z_org,x_org);
+                    }
+
+                    //std::cout << "Number particles: " << it.end() - it << std::endl;
+
+                    for (it_tile.begin(level,z,x); it_tile < it_tile.end(); ++it_tile) {
+
+                        int y_org = (((it_tile.y())*apr_tiled.aprInfo.level_size[level])%org_y_num)/apr_tiled.aprInfo.level_size[level];
 
 
+                        while((it.y() < y_org) && (it < it.end())) {
+                            it++;
+                        }
 
-//        //now compute the particles
-//        for (int level = it_tile.level_min(); level <= it_tile.level_max(); level++) {
-//            int z = 0;
-//#ifdef HAVE_OPENMP
-////#pragma omp parallel for schedule(dynamic) private(z) firstprivate(it,it_tile)
-//#endif
-//            for (z = 0; z < it_tile.z_num(level); z++) {
-//                for (int x = 0; x < it_tile.x_num(level); ++x) {
-//
-////                    auto level_org = level - level_offset;
-////
-////                    int x_org = (((x)*apr_tiled.aprInfo.level_size[level])%org_x_num)/apr_tiled.aprInfo.level_size[level];
-//
-//                }
-//            }
-//        }
+                        if(it.y() == y_org){
+                            tiled_parts[it_tile] = parts[it];
+                        }
+
+                        if (it == (it.end() - 1)) {
+                            it.begin(level_org, z_org, x_org);
+                        }
+
+                        //std::cout << "y_g: " << it_tile.y() << " y_it: "  << it.y() <<  " y_org: " << y_org << std::endl;
+
+                        if(not_max) {
+                            if (it_tree == (it_tree.end() - 1)) {
+                                it_tree.begin(level_org, z_org, x_org);
+                            }
+
+                            while ((it_tree.y() < y_org) && (it_tree < it_tree.end())) {
+                                it_tree++;
+                            }
+
+                            if (it_tree.y() == y_org) {
+                                tiled_parts[it_tile] = tparts_input[it_tree];
+                            }
+
+                            //std::cout << "y_g: " << it_tile.y() << " y_it: "  << it.y() <<  " y_org: " << y_org << std::endl;
+
+                            if (it_tree == (it_tree.end() - 1)) {
+                                it_tree.begin(level_org, z_org, x_org);
+                            }
+                        }
+                    }
+                }
+            }
+        }
     }
 
 
@@ -243,9 +289,8 @@ public:
 
 bool test_tiling(TestData& test_data){
 
-    std::vector<int> tile_dims = {3,3,2};
+    std::vector<int> tile_dims = {2,2,2};
 
-    ParticleData<uint16_t> parts;
     APR apr_tiled;
     ParticleData<uint16_t> tiled_parts;
 
@@ -253,7 +298,7 @@ bool test_tiling(TestData& test_data){
 
     timer.start_timer("tile APR");
 
-    BenchmarkAPR::tileAPR(tile_dims,test_data.apr, parts,apr_tiled,tiled_parts);
+    BenchmarkAPR::tileAPR(tile_dims,test_data.apr, test_data.particles_intensities,apr_tiled,tiled_parts);
 
     timer.stop_timer();
 
@@ -275,6 +320,14 @@ bool test_tiling(TestData& test_data){
     APRReconstruction::interp_level(apr_tiled,level_img);
 
     TiffUtils::saveMeshAsTiff("level_tiled.tif", level_img);
+
+    APRReconstruction::interp_img(test_data.apr,level_img,test_data.particles_intensities);
+
+    TiffUtils::saveMeshAsTiff("parts.tif", level_img);
+
+    APRReconstruction::interp_img(apr_tiled,level_img,tiled_parts);
+
+    TiffUtils::saveMeshAsTiff("parts_tiled.tif", level_img);
 
 
     return true;
@@ -805,20 +858,20 @@ TEST_F(Create210SphereTest, BENCH_ITERATION) {
 
 TEST_F(Create210SphereTest, BENCH_STRUCTURES) {
 
-    ASSERT_TRUE(bench_particle_structures(test_data));
+    //ASSERT_TRUE(bench_particle_structures(test_data));
 
 }
 
 TEST_F(CreateSmallSphereTest, BENCH_TILE) {
 
-    //ASSERT_TRUE(test_tiling(test_data));
+    ASSERT_TRUE(test_tiling(test_data));
 
 }
 
 
 TEST_F(Create210SphereTest, BENCH_TILE) {
 
-    ASSERT_TRUE(test_tiling(test_data));
+    //ASSERT_TRUE(test_tiling(test_data));
 
 }
 

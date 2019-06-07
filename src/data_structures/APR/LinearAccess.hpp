@@ -65,15 +65,13 @@ inline void LinearAccess::initialize_tree_access_sparse(std::vector<std::vector<
 
     apr_timer.start_timer("create gaps");
 
-    for(uint64_t i = (level_min());i < level_max();i++) {
+    for(uint64_t i = (level_min());i <= level_max();i++) {
 
         const uint64_t x_num_ = genInfo->x_num[i];
         const uint64_t z_num_ = genInfo->z_num[i];
 
-        int y_=0;
-
 #ifdef HAVE_OPENMP
-#pragma omp parallel for schedule(dynamic) default(shared) private(z_, x_,y_) if(z_num_*x_num_ > 100)
+#pragma omp parallel for schedule(dynamic) default(shared) private(z_, x_)
 #endif
         for (z_ = 0; z_ < z_num_; z_++) {
             for (x_ = 0; x_ < x_num_; x_++) {
@@ -104,7 +102,7 @@ inline void LinearAccess::initialize_tree_access_sparse(std::vector<std::vector<
 
     apr_timer.start_timer("create gaps");
 
-    for(uint64_t i = (level_min());i < level_max();i++) {
+    for(uint64_t i = (level_min());i <= level_max();i++) {
 
         const uint64_t x_num_ = genInfo->x_num[i];
         const uint64_t z_num_ = genInfo->z_num[i];
@@ -112,7 +110,7 @@ inline void LinearAccess::initialize_tree_access_sparse(std::vector<std::vector<
         const auto level_start = level_xz_vec[i];
 
 #ifdef HAVE_OPENMP
-#pragma omp parallel for schedule(dynamic) default(shared) private(z_, x_) if(z_num_*x_num_ > 100)
+#pragma omp parallel for schedule(dynamic) default(shared) private(z_, x_)
 #endif
         for (z_ = 0; z_ < z_num_; z_++) {
             for (x_ = 0; x_ < x_num_; x_++) {
@@ -130,9 +128,7 @@ inline void LinearAccess::initialize_tree_access_sparse(std::vector<std::vector<
                     y_vec[counter + offset_y] = y;
                     counter++;
                 }
-
             }
-
         }
     }
 

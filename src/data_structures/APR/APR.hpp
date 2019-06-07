@@ -86,7 +86,7 @@ public:
     APRTreeIterator random_tree_iterator() {
 
         if(!tree_initialized_random){
-            initialize_apr_tree_sparse();
+            init_tree_random();
         }
 
         return APRTreeIterator(apr_access,tree_access,treeInfo);
@@ -319,8 +319,6 @@ void APR::initialize_apr_tree_sparse_linear() {
 
     auto apr_iterator = iterator();
 
-    //need to create a local copy
-
     // --------------------------------------------------------------------
     // Init APR tree memory
     // --------------------------------------------------------------------
@@ -333,7 +331,7 @@ void APR::initialize_apr_tree_sparse_linear() {
     particle_cell_tree.resize(treeInfo.l_max + 1);
 
     timer.start_timer("tree - init sparse structure");
-    for (unsigned int l = treeInfo.l_min; l < (treeInfo.l_max) ;l ++){
+    for (unsigned int l = treeInfo.l_min; l <= (treeInfo.l_max) ;l ++){
 
         particle_cell_tree[l].resize(treeInfo.z_num[l]*treeInfo.x_num[l]);
 
@@ -352,95 +350,61 @@ void APR::initialize_apr_tree_sparse_linear() {
         int z_d = 0;
         int x_d = 0;
 
-        if (level < (apr_iterator.level_max())) {
 #ifdef HAVE_OPENMP
 #pragma omp parallel for schedule(dynamic) private(z_d, x_d) firstprivate(apr_iterator)
 #endif
-            for (z_d = 0; z_d < treeInfo.z_num[level-1]; z_d++) {
-                for (int z = 2*z_d; z <= std::min(2*z_d+1,(int)apr_iterator.z_num(level)-1); ++z) {
-                    //the loop is bundled into blocks of 2, this prevents race conditions with OpenMP parents
-                    for (x_d = 0; x_d < treeInfo.x_num[level-1]; ++x_d) {
-                        for (int x = 2 * x_d;
-                             x <= std::min(2 * x_d + 1, (int) treeInfo.x_num[level] - 1); ++x) {
+        for (z_d = 0; z_d < treeInfo.z_num[level - 1]; z_d++) {
+            for (int z = 2 * z_d; z <= std::min(2 * z_d + 1, (int) apr_iterator.z_num(level) - 1); ++z) {
+                //the loop is bundled into blocks of 2, this prevents race conditions with OpenMP parents
+                for (x_d = 0; x_d < treeInfo.x_num[level - 1]; ++x_d) {
+                    for (int x = 2 * x_d;
+                         x <= std::min(2 * x_d + 1, (int) treeInfo.x_num[level] - 1); ++x) {
 
-                            size_t x_p = x / 2;
-                            size_t z_p = z / 2;
-                            int current_level = level - 1;
+                        size_t x_p = x / 2;
+                        size_t z_p = z / 2;
+                        int current_level = level - 1;
 
-                            for (apr_iterator.begin(level, z, x);
-                                 apr_iterator < apr_iterator.end();
-                                 apr_iterator++) {
-                                auto &pct = particle_cell_tree[current_level][z_p * treeInfo.x_num[current_level] + x_p];
+                        for (apr_iterator.begin(level, z, x);
+                             apr_iterator < apr_iterator.end();
+                             apr_iterator++) {
+                            auto &pct = particle_cell_tree[current_level][z_p * treeInfo.x_num[current_level] +
+                                                                          x_p];
+                            size_t y_p = apr_iterator.y() / 2;
 
-                                size_t y_p = apr_iterator.y() / 2;
+                            pct.mesh[y_p] = 1;
 
-                                pct.mesh[y_p] = 1;
-
-                            }
-                        }
-                    }
-                }
-            }
-
-            if (level != (apr_iterator.level_max()-1)) {
-                //second loop here pushing them further up the tree, the max level is special, as always exists on next level so not required.
-#ifdef HAVE_OPENMP
-#pragma omp parallel for schedule(dynamic) private(z_d, x_d) firstprivate(apr_iterator)
-#endif
-                for (z_d = 0; z_d < treeInfo.z_num[level-1]; z_d++) {
-                    for (int z = 2 * z_d; z <= std::min(2 * z_d + 1, (int) apr_iterator.z_num(level) - 1); ++z) {
-                        //the loop is bundled into blocks of 2, this prevents race conditions with OpenMP parents
-                        for (x_d = 0; x_d < treeInfo.x_num[level - 1]; ++x_d) {
-                            for (int x = 2 * x_d;
-                                 x <= std::min(2 * x_d + 1, (int) apr_iterator.x_num(level) - 1); ++x) {
-
-                                auto &pct = particle_cell_tree[level][z * treeInfo.x_num[level] + x];
-
-                                size_t x_p = x / 2;
-                                size_t z_p = z / 2;
-                                int parent_level = level - 1;
-
-                                auto &pct_p = particle_cell_tree[parent_level][z_p * treeInfo.x_num[parent_level] + x_p];
-
-                                for (auto it = pct.mesh.begin(); it != pct.mesh.end(); ++it) {
-                                    size_t y_p = it->first / 2;
-
-                                    pct_p.mesh[y_p] = 1;
-
-                                }
-                            }
                         }
                     }
                 }
             }
 
         }
-        else {
+
+        if (level != (apr_iterator.level_max())) {
+            //second loop here pushing them further up the tree, the max level is special, as always exists on next level so not required.
 #ifdef HAVE_OPENMP
 #pragma omp parallel for schedule(dynamic) private(z_d, x_d) firstprivate(apr_iterator)
 #endif
-            for (z_d = 0; z_d < apr_iterator.z_num(level - 2); z_d++) {
-                for (int z = 2 * z_d; z <= std::min(2 * z_d + 1, (int) apr_iterator.z_num(level-1) - 1); ++z) {
+            for (z_d = 0; z_d < treeInfo.z_num[level-1]; z_d++) {
+                for (int z = 2 * z_d; z <= std::min(2 * z_d + 1, (int) apr_iterator.z_num(level) - 1); ++z) {
                     //the loop is bundled into blocks of 2, this prevents race conditions with OpenMP parents
-                    for (x_d = 0; x_d < apr_iterator.x_num(level-2); ++x_d) {
+                    for (x_d = 0; x_d < treeInfo.x_num[level - 1]; ++x_d) {
                         for (int x = 2 * x_d;
-                             x <= std::min(2 * x_d + 1, (int) apr_iterator.x_num(level-1) - 1); ++x) {
+                             x <= std::min(2 * x_d + 1, (int) apr_iterator.x_num(level) - 1); ++x) {
 
-                            int x_p = x_d;
-                            int z_p = z_d;
-                            int current_level = level - 2;
+                            auto &pct = particle_cell_tree[level][z * treeInfo.x_num[level] + x];
 
-                            for (apr_iterator.begin(level, 2 * z, 2 * x);
-                                 apr_iterator < apr_iterator.end();
-                                 apr_iterator++) {
+                            size_t x_p = x / 2;
+                            size_t z_p = z / 2;
+                            int parent_level = level - 1;
 
-                                auto &pct = particle_cell_tree[current_level][z_p * treeInfo.x_num[current_level] + x_p];
+                            auto &pct_p = particle_cell_tree[parent_level][z_p * treeInfo.x_num[parent_level] + x_p];
 
-                                if (apr_iterator.y() % 2 == 0) {
-                                    size_t y_p = apr_iterator.y() / 4;
+                            for (auto it = pct.mesh.begin(); it != pct.mesh.end(); ++it) {
+                                size_t y_p = it->first / 2;
 
-                                    pct.mesh[y_p] = 1;
-                                }
+                                pct_p.mesh[y_p] = 1;
+
                             }
                         }
                     }
@@ -448,6 +412,7 @@ void APR::initialize_apr_tree_sparse_linear() {
             }
         }
     }
+
 
 
     timer.stop_timer();

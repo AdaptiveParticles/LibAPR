@@ -353,11 +353,19 @@ bool test_linear_access_create(TestData& test_data) {
     auto tree_it_org = apr.random_tree_iterator();
     auto tree_it_lin = apr_lin.tree_iterator();
 
+    auto total_number_parts = tree_it_org.total_number_particles();
+    auto total_number_parts_lin = tree_it_lin.total_number_particles();
+
+    auto hello = tree_it_lin.level_min();
+
     for (int level = tree_it_lin.level_min(); level <= tree_it_lin.level_max(); ++level) {
-        for (int z = 0; z < it_new.z_num(level); z++) {
-            for (int x = 0; x < it_new.x_num(level); ++x) {
+        for (int z = 0; z < tree_it_lin.z_num(level); z++) {
+            for (int x = 0; x < tree_it_lin.x_num(level); ++x) {
 
                 tree_it_org.begin(level, z, x);
+                tree_it_lin.begin(level, z, x);
+
+
 
                 for (tree_it_lin.begin(level, z, x); tree_it_lin < tree_it_lin.end();
                      tree_it_lin++) {
@@ -379,6 +387,43 @@ bool test_linear_access_create(TestData& test_data) {
 
                     if(tree_it_org < tree_it_org.end()){
                         tree_it_org++;
+                    }
+
+                }
+            }
+        }
+
+    }
+
+    //opposite direction
+
+    for (int level = tree_it_org.level_min(); level <= tree_it_org.level_max(); ++level) {
+        for (int z = 0; z < tree_it_org.z_num(level); z++) {
+            for (int x = 0; x < tree_it_org.x_num(level); ++x) {
+
+                tree_it_lin.begin(level, z, x);
+
+
+                for (tree_it_org.begin(level, z, x); tree_it_org < tree_it_org.end();
+                     tree_it_org++) {
+
+                    if(tree_it_lin != tree_it_org){
+                        success = false;
+                    }
+
+                    if(tree_it_lin.y() != tree_it_org.y()){
+
+                        auto y_new = tree_it_lin.y();
+                        auto y_org = tree_it_org.y();
+
+                        (void) y_new;
+                        (void) y_org;
+
+                        success = false;
+                    }
+
+                    if(tree_it_lin < tree_it_lin.end()){
+                        tree_it_lin++;
                     }
 
                 }
@@ -1937,7 +1982,6 @@ TEST_F(CreateSmallSphereTest, PULLING_SCHEME_SPARSE) {
     ASSERT_TRUE(test_pulling_scheme_sparse(test_data));
 
 }
-
 
 TEST_F(Create210SphereTest, LINEAR_ACCESS) {
     //tests the linear access geneartions and io
