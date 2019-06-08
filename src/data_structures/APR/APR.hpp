@@ -67,7 +67,8 @@ public:
     APRIterator random_iterator() {
 
         if(!apr_initialized_random){
-            std::cerr << "not initialized random" << std::endl;
+           initialize_random_access();
+            apr_initialized_random = true;
         }
 
         return APRIterator(apr_access,aprInfo);
@@ -139,6 +140,8 @@ protected:
         }
     }
 
+    void initialize_random_access();
+
 
 };
 
@@ -183,6 +186,77 @@ void APR::initialize_linear_access(LinearAccess& aprAccess,GenIterator& it){
         lin_a.level_xz_vec[level+1] = counter_xz;
     }
 
+
+}
+
+/**
+   * Initializes linear access apr structures, that require more memory, but are faster. However, the do not allow the same neighbour access as the random iterators
+   */
+void APR::initialize_random_access(){
+    //
+    //  TODO: Note this is not really performance orientataed, and should be depreciated in the future. (the whole random access iterations should be removed.)
+    //
+
+
+    auto it = iterator();
+
+    apr_access.genInfo = &aprInfo;
+
+
+    SparseGaps<SparseParticleCellMap> particle_cell_tree;
+
+    particle_cell_tree.data.resize(aprInfo.l_max);
+
+    for (int l = aprInfo.l_min; l < (aprInfo.l_max) ;l ++){
+        particle_cell_tree.data[l].resize(aprInfo.z_num[l]*aprInfo.x_num[l]);
+
+        for (int i = 0; i < particle_cell_tree.data[l].size(); ++i) {
+            particle_cell_tree.data[l][i].resize(1);
+        }
+    }
+
+    for (int level = it.level_min(); level <= it.level_max(); level++) {
+        int z = 0;
+#ifdef HAVE_OPENMP
+#pragma omp parallel for schedule(dynamic) private(z) firstprivate(it)
+#endif
+        for (z = 0; z < it.z_num(level); z++) {
+            for (int x = 0; x < it.x_num(level); ++x) {
+
+                if (level == it.level_max()) {
+                    if ((x % 2 == 0) && (z % 2 == 0)) {
+                        const size_t offset_pc =
+                                aprInfo.x_num[level - 1] * ((z ) / 2) +
+                                ((x ) / 2);
+
+                        auto &pc = particle_cell_tree.data[level-1][offset_pc][0].mesh;
+
+                        for (it.begin(level, z, x); it < it.end();
+                             it++) {
+                            //insert
+                            int y = (it.y()) / 2;
+                            pc[y] = 1;
+                        }
+                    }
+                } else {
+
+                    const size_t offset_pc =
+                            aprInfo.x_num[level] * (z) + (x);
+
+                    auto &pc = particle_cell_tree.data[level][offset_pc][0].mesh;
+
+                    for (it.begin(level, z, x); it < it.end();
+                         it++) {
+                        //insert
+                        auto y = it.y();
+                        pc[y] = 4;
+                    }
+                }
+            }
+        }
+    }
+
+    apr_access.initialize_structure_from_particle_cell_tree_sparse(parameters,particle_cell_tree);
 
 }
 

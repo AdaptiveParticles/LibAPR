@@ -79,7 +79,7 @@ public:
                     for (int level = it.level_min(); level <= it.level_max(); level++) {
                         int z = 0;
 #ifdef HAVE_OPENMP
-//#pragma omp parallel for schedule(dynamic) private(z) firstprivate(it)
+#pragma omp parallel for schedule(dynamic) private(z) firstprivate(it)
 #endif
                         for (z = 0; z < it.z_num(level); z++) {
                             for (int x = 0; x < it.x_num(level); ++x) {
@@ -149,213 +149,213 @@ public:
         auto it_tile = apr_tiled.iterator();
 
 
-        auto it_tree = apr_input.tree_iterator();
-
-        ParticleData<float> tparts_input;
-
-        APRTreeNumerics::fill_tree_mean(apr_input, parts, tparts_input);
-
-        //
-        // Now we need to sample the particles, with the fact that some particles with have increased resolution in the merge
-        // potentially due to boundary effects
-        //
-
-        int org_y_num = org_dims_y;
-        int org_x_num = org_dims_x;
-        int org_z_num = org_dims_z;
-
-        //now compute the particles
-        for (int level = it_tile.level_min(); level <= it_tile.level_max(); level++) {
-
-            const auto not_max = level < it_tile.level_max();
-
-            auto level_org = level - level_offset;
-            int z = 0;
-#ifdef HAVE_OPENMP
-//#pragma omp parallel for schedule(dynamic) private(z) firstprivate(it,it_tile)
-#endif
-            for (z = 0; z < it_tile.z_num(level); z++) {
-
-                int z_org =
-                        (((z) * apr_tiled.aprInfo.level_size[level]) % org_z_num) / apr_tiled.aprInfo.level_size[level];
-                //std::cout << "level: " << level << " level org: " << level_org << " z: "  << z <<  " z_org: " << z_org << std::endl;
-
-                for (int x = 0; x < it_tile.x_num(level); ++x) {
-
-                    int x_org = (((x) * apr_tiled.aprInfo.level_size[level]) % org_x_num) /
-                                apr_tiled.aprInfo.level_size[level];
-                     //std::cout << "level: " << level << " level org: " << level_org << " x: "  << x <<  " x_org: " << x_org << std::endl;
-
-                    it.begin(level_org, z_org, x_org);
-
-                    if (not_max) {
-                        it_tree.begin(level_org, z_org, x_org);
-                    }
-
-                    //std::cout << "Number particles: " << it.end() - it << std::endl;
-
-                    for (it_tile.begin(level, z, x); it_tile < it_tile.end(); ++it_tile) {
-
-                        int y_org = (((it_tile.y()) * apr_tiled.aprInfo.level_size[level]) % org_y_num) /
-                                    apr_tiled.aprInfo.level_size[level];
-
-
-                        while ((it.y() < y_org) && (it < it.end())) {
-                            it++;
-                        }
-
-                        //std::cout << "y_g: " << it_tile.y() << " y_it: "  << it.y() <<  " y_org: " << y_org << std::endl;
-
-                        if ((it.y() == y_org) && (it != it.end())) {
-                            tiled_parts[it_tile] = parts[it];
-                        }
-
-                        if (it >= (it.end() - 1)) {
-                            it.begin(level_org, z_org, x_org);
-                        }
-
-
-                        if (not_max) {
-
-                            while ((it_tree.y() < y_org) && (it_tree < it_tree.end())) {
-                                it_tree++;
-                            }
-
-                            if ((it_tree.y() == y_org) && it_tree != it_tree.end()) {
-
-                                tiled_parts[it_tile] = tparts_input[it_tree];
-                            }
-
-                            //std::cout << "y_g: " << it_tile.y() << " y_it: "  << it.y() <<  " y_org: " << y_org << std::endl;
-
-                            if (it_tree >= (it_tree.end() - 1)) {
-                                it_tree.begin(level_org, z_org, x_org);
-                            }
-                        }
-                    }
-                }
-            }
-        }
-
-
-        auto it_tile_tree = apr_tiled.tree_iterator();
-        ParticleData<float> tree_parts_tiled;
-        tree_parts_tiled.data.resize(apr_tiled.total_number_tree_particles());
-
-        //now compute the particles
-        for (int level = (it_tile_tree.level_min() + 1); level <= it_tile_tree.level_max(); level++) {
-
-            auto level_org = level - level_offset;
-            int z = 0;
-#ifdef HAVE_OPENMP
-//#pragma omp parallel for schedule(dynamic) private(z) firstprivate(it,it_tile)
-#endif
-            for (z = 0; z < it_tile_tree.z_num(level); z++) {
-
-                int z_org =
-                        (((z) * apr_tiled.aprInfo.level_size[level]) % org_z_num) / apr_tiled.aprInfo.level_size[level];
-                //std::cout << "level: " << level << " level org: " << level_org << " z: "  << z <<  " z_org: " << z_org << std::endl;
-
-                for (int x = 0; x < it_tile_tree.x_num(level); ++x) {
-
-                    int x_org = (((x) * apr_tiled.aprInfo.level_size[level]) % org_x_num) /
-                                apr_tiled.aprInfo.level_size[level];
-                    // std::cout << "level: " << level << " level org: " << level_org << " x: "  << x <<  " x_org: " << x_org << std::endl;
-
-                    it.begin(level_org, z_org, x_org);
-
-                    it_tree.begin(level_org, z_org, x_org);
-
-
-                    for (it_tile_tree.begin(level, z, x); it_tile_tree < it_tile_tree.end(); ++it_tile_tree) {
-
-                        int y_org = (((it_tile_tree.y()) * apr_tiled.aprInfo.level_size[level]) % org_y_num) /
-                                    apr_tiled.aprInfo.level_size[level];
-
-
-                        while ((it.y() < y_org) && (it < it.end())) {
-                            it++;
-                        }
-
-                        if ((it.y() == y_org) && (it != it.end())) {
-                            tree_parts_tiled[it_tile_tree] = parts[it];
-                        }
-
-                        if (it >= (it.end() - 1)) {
-                            it.begin(level_org, z_org, x_org);
-                        }
-
-
-                        while ((it_tree.y() < y_org) && (it_tree < it_tree.end())) {
-                            it_tree++;
-                        }
-
-                        if ((it_tree.y() == y_org) && (it_tree != it_tree.end())) {
-                            tree_parts_tiled[it_tile_tree] = tparts_input[it_tree];
-                        }
-
-                        if (it_tree >= (it_tree.end() - 1)) {
-                            it_tree.begin(level_org, z_org, x_org);
-                        }
-
-                    }
-                }
-            }
-        }
-
-
-        //now push down tree
-        auto it_tile_tree_up = apr_tiled.tree_iterator();
-
-        for (int level = (it_tile_tree.level_min() + 1); level <= it_tile_tree.level_max(); ++level) {
-            for (int z = 0; z < it_tile_tree.z_num(level); z++) {
-                for (int x = 0; x < it_tile_tree.x_num(level); ++x) {
-
-                    it_tile_tree_up.begin(level-1,z/2,x/2);
-
-                    for (it_tile_tree.begin(level, z, x); it_tile_tree < it_tile_tree.end();
-                         it_tile_tree++) {
-
-                        while((it_tile_tree_up.y() < it_tile_tree.y()/2) && (it_tile_tree_up < it_tile_tree_up.end())){
-                            it_tile_tree_up++;
-                        }
-
-                        if ((it_tile_tree.y()/2 == it_tile_tree_up.y()) && (it_tile_tree_up != it_tile_tree_up.end())) {
-                            if (tree_parts_tiled[it_tile_tree] == 0) {
-
-                                tree_parts_tiled[it_tile_tree] = tree_parts_tiled[it_tile_tree_up];
-                            }
-                        }
-                    }
-                }
-            }
-        }
-
-        //now push down particles
-
-        for (int level = (it_tile.level_min() + 1); level <= it_tile.level_max(); ++level) {
-            for (int z = 0; z < it_tile.z_num(level); z++) {
-                for (int x = 0; x < it_tile.x_num(level); ++x) {
-
-                    it_tile_tree_up.begin(level-1,z/2,x/2);
-
-                    for (it_tile.begin(level, z, x); it_tile < it_tile.end();
-                         it_tile++) {
-
-                        while((it_tile_tree_up.y() < it_tile.y()/2) && (it_tile_tree_up < it_tile_tree_up.end())){
-                            it_tile_tree_up++;
-                        }
-
-                        if ((it_tile.y()/2 == it_tile_tree_up.y()) && (it_tile_tree_up != it_tile_tree_up.end())) {
-                            if (tiled_parts[it_tile] == 0) {
-
-                                tiled_parts[it_tile] = tree_parts_tiled[it_tile_tree_up];
-                            }
-                        }
-                    }
-                }
-            }
-        }
+//        auto it_tree = apr_input.tree_iterator();
+//
+//        ParticleData<float> tparts_input;
+//
+//        APRTreeNumerics::fill_tree_mean(apr_input, parts, tparts_input);
+//
+//        //
+//        // Now we need to sample the particles, with the fact that some particles with have increased resolution in the merge
+//        // potentially due to boundary effects
+//        //
+//
+//        int org_y_num = org_dims_y;
+//        int org_x_num = org_dims_x;
+//        int org_z_num = org_dims_z;
+//
+//        //now compute the particles
+//        for (int level = it_tile.level_min(); level <= it_tile.level_max(); level++) {
+//
+//            const auto not_max = level < it_tile.level_max();
+//
+//            auto level_org = level - level_offset;
+//            int z = 0;
+//#ifdef HAVE_OPENMP
+////#pragma omp parallel for schedule(dynamic) private(z) firstprivate(it,it_tile)
+//#endif
+//            for (z = 0; z < it_tile.z_num(level); z++) {
+//
+//                int z_org =
+//                        (((z) * apr_tiled.aprInfo.level_size[level]) % org_z_num) / apr_tiled.aprInfo.level_size[level];
+//                //std::cout << "level: " << level << " level org: " << level_org << " z: "  << z <<  " z_org: " << z_org << std::endl;
+//
+//                for (int x = 0; x < it_tile.x_num(level); ++x) {
+//
+//                    int x_org = (((x) * apr_tiled.aprInfo.level_size[level]) % org_x_num) /
+//                                apr_tiled.aprInfo.level_size[level];
+//                     //std::cout << "level: " << level << " level org: " << level_org << " x: "  << x <<  " x_org: " << x_org << std::endl;
+//
+//                    it.begin(level_org, z_org, x_org);
+//
+//                    if (not_max) {
+//                        it_tree.begin(level_org, z_org, x_org);
+//                    }
+//
+//                    //std::cout << "Number particles: " << it.end() - it << std::endl;
+//
+//                    for (it_tile.begin(level, z, x); it_tile < it_tile.end(); ++it_tile) {
+//
+//                        int y_org = (((it_tile.y()) * apr_tiled.aprInfo.level_size[level]) % org_y_num) /
+//                                    apr_tiled.aprInfo.level_size[level];
+//
+//
+//                        while ((it.y() < y_org) && (it < it.end())) {
+//                            it++;
+//                        }
+//
+//                        //std::cout << "y_g: " << it_tile.y() << " y_it: "  << it.y() <<  " y_org: " << y_org << std::endl;
+//
+//                        if ((it.y() == y_org) && (it != it.end())) {
+//                            tiled_parts[it_tile] = parts[it];
+//                        }
+//
+//                        if (it >= (it.end() - 1)) {
+//                            it.begin(level_org, z_org, x_org);
+//                        }
+//
+//
+//                        if (not_max) {
+//
+//                            while ((it_tree.y() < y_org) && (it_tree < it_tree.end())) {
+//                                it_tree++;
+//                            }
+//
+//                            if ((it_tree.y() == y_org) && it_tree != it_tree.end()) {
+//
+//                                tiled_parts[it_tile] = tparts_input[it_tree];
+//                            }
+//
+//                            //std::cout << "y_g: " << it_tile.y() << " y_it: "  << it.y() <<  " y_org: " << y_org << std::endl;
+//
+//                            if (it_tree >= (it_tree.end() - 1)) {
+//                                it_tree.begin(level_org, z_org, x_org);
+//                            }
+//                        }
+//                    }
+//                }
+//            }
+//        }
+//
+//
+//        auto it_tile_tree = apr_tiled.tree_iterator();
+//        ParticleData<float> tree_parts_tiled;
+//        tree_parts_tiled.data.resize(apr_tiled.total_number_tree_particles());
+//
+//        //now compute the particles
+//        for (int level = (it_tile_tree.level_min() + 1); level <= it_tile_tree.level_max(); level++) {
+//
+//            auto level_org = level - level_offset;
+//            int z = 0;
+//#ifdef HAVE_OPENMP
+////#pragma omp parallel for schedule(dynamic) private(z) firstprivate(it,it_tile)
+//#endif
+//            for (z = 0; z < it_tile_tree.z_num(level); z++) {
+//
+//                int z_org =
+//                        (((z) * apr_tiled.aprInfo.level_size[level]) % org_z_num) / apr_tiled.aprInfo.level_size[level];
+//                //std::cout << "level: " << level << " level org: " << level_org << " z: "  << z <<  " z_org: " << z_org << std::endl;
+//
+//                for (int x = 0; x < it_tile_tree.x_num(level); ++x) {
+//
+//                    int x_org = (((x) * apr_tiled.aprInfo.level_size[level]) % org_x_num) /
+//                                apr_tiled.aprInfo.level_size[level];
+//                    // std::cout << "level: " << level << " level org: " << level_org << " x: "  << x <<  " x_org: " << x_org << std::endl;
+//
+//                    it.begin(level_org, z_org, x_org);
+//
+//                    it_tree.begin(level_org, z_org, x_org);
+//
+//
+//                    for (it_tile_tree.begin(level, z, x); it_tile_tree < it_tile_tree.end(); ++it_tile_tree) {
+//
+//                        int y_org = (((it_tile_tree.y()) * apr_tiled.aprInfo.level_size[level]) % org_y_num) /
+//                                    apr_tiled.aprInfo.level_size[level];
+//
+//
+//                        while ((it.y() < y_org) && (it < it.end())) {
+//                            it++;
+//                        }
+//
+//                        if ((it.y() == y_org) && (it != it.end())) {
+//                            tree_parts_tiled[it_tile_tree] = parts[it];
+//                        }
+//
+//                        if (it >= (it.end() - 1)) {
+//                            it.begin(level_org, z_org, x_org);
+//                        }
+//
+//
+//                        while ((it_tree.y() < y_org) && (it_tree < it_tree.end())) {
+//                            it_tree++;
+//                        }
+//
+//                        if ((it_tree.y() == y_org) && (it_tree != it_tree.end())) {
+//                            tree_parts_tiled[it_tile_tree] = tparts_input[it_tree];
+//                        }
+//
+//                        if (it_tree >= (it_tree.end() - 1)) {
+//                            it_tree.begin(level_org, z_org, x_org);
+//                        }
+//
+//                    }
+//                }
+//            }
+//        }
+//
+//
+//        //now push down tree
+//        auto it_tile_tree_up = apr_tiled.tree_iterator();
+//
+//        for (int level = (it_tile_tree.level_min() + 1); level <= it_tile_tree.level_max(); ++level) {
+//            for (int z = 0; z < it_tile_tree.z_num(level); z++) {
+//                for (int x = 0; x < it_tile_tree.x_num(level); ++x) {
+//
+//                    it_tile_tree_up.begin(level-1,z/2,x/2);
+//
+//                    for (it_tile_tree.begin(level, z, x); it_tile_tree < it_tile_tree.end();
+//                         it_tile_tree++) {
+//
+//                        while((it_tile_tree_up.y() < it_tile_tree.y()/2) && (it_tile_tree_up < it_tile_tree_up.end())){
+//                            it_tile_tree_up++;
+//                        }
+//
+//                        if ((it_tile_tree.y()/2 == it_tile_tree_up.y()) && (it_tile_tree_up != it_tile_tree_up.end())) {
+//                            if (tree_parts_tiled[it_tile_tree] == 0) {
+//
+//                                tree_parts_tiled[it_tile_tree] = tree_parts_tiled[it_tile_tree_up];
+//                            }
+//                        }
+//                    }
+//                }
+//            }
+//        }
+//
+//        //now push down particles
+//
+//        for (int level = (it_tile.level_min() + 1); level <= it_tile.level_max(); ++level) {
+//            for (int z = 0; z < it_tile.z_num(level); z++) {
+//                for (int x = 0; x < it_tile.x_num(level); ++x) {
+//
+//                    it_tile_tree_up.begin(level-1,z/2,x/2);
+//
+//                    for (it_tile.begin(level, z, x); it_tile < it_tile.end();
+//                         it_tile++) {
+//
+//                        while((it_tile_tree_up.y() < it_tile.y()/2) && (it_tile_tree_up < it_tile_tree_up.end())){
+//                            it_tile_tree_up++;
+//                        }
+//
+//                        if ((it_tile.y()/2 == it_tile_tree_up.y()) && (it_tile_tree_up != it_tile_tree_up.end())) {
+//                            if (tiled_parts[it_tile] == 0) {
+//
+//                                tiled_parts[it_tile] = tree_parts_tiled[it_tile_tree_up];
+//                            }
+//                        }
+//                    }
+//                }
+//            }
+//        }
 
     };
 
@@ -568,8 +568,7 @@ bool bench_iteration(TestData& test_data){
     /// Tests the pipeline, comparing the results with existing results
     ///
 
-
-    std::vector<int> tile_dims = {4,3,2};
+    std::vector<int> tile_dims = {1,1,1};
 
     APR apr_tiled;
     ParticleData<uint16_t> parts;
@@ -592,7 +591,7 @@ bool bench_iteration(TestData& test_data){
 
     std::cout << "CR: " << CR << std::endl;
 
-    unsigned int num_rep = 1;
+    unsigned int num_rep = 100;
 
     //Add + 1 to the value, while having access to (x,y,z) test;
 
@@ -634,9 +633,9 @@ bool bench_iteration(TestData& test_data){
 
     for (int r = 0; r < num_rep; ++r) {
 #ifdef HAVE_OPENMP
-#pragma omp parallel for private(z)
+#pragma omp parallel for
 #endif
-        for (z = 0; z < test_img.z_num; ++z) {
+        for (int z = 0; z < test_img.z_num; ++z) {
             for (int x = 0; x < test_img.x_num; ++x) {
                 for (int y = 0; y < test_img.y_num; ++y) {
                     test_img.at(y,x,z) = (uint16_t) (test_img.at(y,x,z) + 1);
@@ -697,70 +696,6 @@ bool bench_iteration(TestData& test_data){
 
     auto org_it = timer.timings.back();
 
-    //y iteration here.
-    std::vector<uint16_t> y_vec;
-    std::vector<uint64_t> xz_end_vec;
-    std::vector<uint64_t> level_end_vec;
-    std::vector<uint64_t> level_xz_vec;
-    uint64_t counter = 0;
-    uint64_t counter_xz = 1;
-
-    level_end_vec.resize(it.level_max() + 1);
-    level_xz_vec.resize(it.level_max() + 1);
-
-    xz_end_vec.push_back(counter); // adding padding by one to allow the -1 syntax without checking.
-
-    for (unsigned int level = 0; level <= it.level_max(); ++level) {
-        int z = 0;
-        int x = 0;
-
-        for (z = 0; z < it.z_num(level); z++) {
-            for (x = 0; x < it.x_num(level); ++x) {
-
-                for (it.set_new_lzx(level, z, x); it < it.end();
-                     it++) {
-                    y_vec.push_back(it.y());
-                    counter++;
-                }
-
-                xz_end_vec.push_back(counter);
-                counter_xz++;
-            }
-        }
-
-        level_end_vec[level] = counter;
-        level_xz_vec[level] = counter_xz;
-    }
-
-
-    timer.start_timer("APR no access - Serial");
-
-    for (int r = 0; r < num_rep; ++r) {
-
-        for (int i = 0; i < it.total_number_particles(); ++i) {
-            parts[i] = y_vec[i];
-        }
-
-    }
-    timer.stop_timer();
-
-
-    timer.start_timer("APR no access - OpenMP");
-
-    for (int r = 0; r < num_rep; ++r) {
-        int i = 0;
-#ifdef HAVE_OPENMP
-#pragma omp parallel for private(i)
-#endif
-        for (i = 0; i < it.total_number_particles(); ++i) {
-            parts[i] = y_vec[i];
-        }
-
-    }
-    timer.stop_timer();
-
-
-    timer.start_timer("APR Iteration NEW - OpenMP");
 
     auto lin_it = apr_tiled.iterator();
 
@@ -816,28 +751,6 @@ bool bench_iteration(TestData& test_data){
     timer.stop_timer();
 
     auto lin_time_noy = timer.timings.back();
-
-    uint64_t counter_test = 0;
-
-    for (unsigned int level = lin_it.level_min(); level <= lin_it.level_max(); ++level) {
-        int z = 0;
-
-        for (z = 0; z < lin_it.z_num(level); z++) {
-            for (int x = 0; x < lin_it.x_num(level); ++x) {
-                for (lin_it.begin(level, z, x); lin_it < lin_it.end();
-                     lin_it++) {
-                    parts[lin_it] = (uint16_t)(parts[lin_it] + 1);
-                    counter_test++;
-                }
-            }
-        }
-    }
-
-
-    timer.stop_timer();
-
-    std::cout << counter_test << std::endl;
-    std::cout << test_data.apr.total_number_particles()*num_rep << std::endl;
 
     std::cout << "SU (old): " << mesh_it/org_it << std::endl;
     std::cout << "SU (linear no y): " << mesh_it/lin_time_noy << std::endl;
