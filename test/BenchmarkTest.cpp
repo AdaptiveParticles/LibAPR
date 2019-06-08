@@ -384,16 +384,32 @@ struct TestData{
 
 };
 
+struct BenchmarkData{
+
+    std::vector<APR> aprs;
+    std::vector<ParticleData<uint16_t>> parts;
+
+
+};
+
 class CreateAPRTest : public ::testing::Test {
 public:
 
     TestData test_data;
+    BenchmarkData bench_data;
 
 protected:
     virtual void SetUp() {};
     virtual void TearDown() {};
 
 };
+
+class CreateBenchmarkAPR : public CreateAPRTest
+{
+public:
+    void SetUp() override;
+};
+
 
 class CreateSmallSphereTest : public CreateAPRTest
 {
@@ -563,12 +579,17 @@ bool bench_particle_structures(TestData& test_data) {
 }
 
 
-bool bench_iteration(TestData& test_data){
+bool bench_iteration(BenchmarkData& benchmarkData){
     ///
     /// Tests the pipeline, comparing the results with existing results
     ///
 
-    std::vector<int> tile_dims = {1,1,1};
+    int apr_num = 0;
+
+    int full_size = 512;
+    int dim_sz = full_size/benchmarkData.aprs[apr_num].org_dims(0);
+
+    std::vector<int> tile_dims = {dim_sz,dim_sz,dim_sz};
 
     APR apr_tiled;
     ParticleData<uint16_t> parts;
@@ -577,7 +598,7 @@ bool bench_iteration(TestData& test_data){
 
     timer.start_timer("tile APR");
 
-    BenchmarkAPR::tileAPR(tile_dims,test_data.apr, test_data.particles_intensities,apr_tiled,parts);
+    BenchmarkAPR::tileAPR(tile_dims,benchmarkData.aprs[apr_num], benchmarkData.parts[apr_num],apr_tiled,parts);
 
     bool success = true;
 
@@ -826,120 +847,45 @@ std::string get_source_directory_apr(){
     return tests_directory;
 }
 
-void CreateGTSmallTest::SetUp(){
+void CreateBenchmarkAPR::SetUp(){
 
-    std::string file_name = get_source_directory_apr() + "files/Apr/sphere_small/original.tif";
-    test_data.img_original = TiffUtils::getMesh<uint16_t>(file_name);
+    std::string file_name = get_source_directory_apr() + "files/Apr/benchmarks/cr_54.apr";
 
-    test_data.filename = get_source_directory_apr() + "files/Apr/sphere_small/original.tif";
-    test_data.output_name = "sphere_gt";
-
-    test_data.output_dir = get_source_directory_apr() + "files/Apr/sphere_small/";
-}
-
-void CreateGTSmall2DTest::SetUp(){
-
-    std::string file_name = get_source_directory_apr() + "files/Apr/sphere_2D/original.tif";
-    test_data.img_original = TiffUtils::getMesh<uint16_t>(file_name);
-
-    test_data.filename = get_source_directory_apr() + "files/Apr/sphere_2D/original.tif";
-    test_data.output_name = "sphere_gt";
-
-    test_data.output_dir = get_source_directory_apr() + "files/Apr/sphere_2D/";
-}
-
-void CreateGTSmall1DTest::SetUp(){
-
-    std::string file_name = get_source_directory_apr() + "files/Apr/sphere_1D/original.tif";
-    test_data.img_original = TiffUtils::getMesh<uint16_t>(file_name);
-
-    test_data.filename = get_source_directory_apr() + "files/Apr/sphere_1D/original.tif";
-    test_data.output_name = "sphere_gt";
-
-    test_data.output_dir = get_source_directory_apr() + "files/Apr/sphere_1D/";
-}
-
-
-
-
-void CreateSmallSphereTest::SetUp(){
-
-
-    std::string file_name = get_source_directory_apr() + "files/Apr/sphere_120/sphere_apr.h5";
-    test_data.apr_filename = file_name;
+    bench_data.aprs.resize(1);
+    bench_data.parts.resize(1);
 
     APRFile aprFile;
     aprFile.open(file_name,"READ");
     aprFile.set_read_write_tree(false);
-    aprFile.read_apr(test_data.apr);
-    aprFile.read_particles(test_data.apr,"particle_intensities",test_data.particles_intensities);
+    aprFile.read_apr(bench_data.aprs[0]);
+    aprFile.read_particles(bench_data.aprs[0],"particle_intensities",bench_data.parts[0]);
     aprFile.close();
 
-    file_name = get_source_directory_apr() + "files/Apr/sphere_120/sphere_level.tif";
-    test_data.img_level = TiffUtils::getMesh<uint16_t>(file_name,false);
-    file_name = get_source_directory_apr() + "files/Apr/sphere_120/sphere_type.tif";
-    test_data.img_type = TiffUtils::getMesh<uint16_t>(file_name,false);
-    file_name = get_source_directory_apr() + "files/Apr/sphere_120/sphere_original.tif";
-    test_data.img_original = TiffUtils::getMesh<uint16_t>(file_name,false);
-    file_name = get_source_directory_apr() + "files/Apr/sphere_120/sphere_pc.tif";
-    test_data.img_pc = TiffUtils::getMesh<uint16_t>(file_name,false);
-    file_name = get_source_directory_apr() + "files/Apr/sphere_120/sphere_x.tif";
-    test_data.img_x = TiffUtils::getMesh<uint16_t>(file_name,false);
-    file_name =  get_source_directory_apr() + "files/Apr/sphere_120/sphere_y.tif";
-    test_data.img_y = TiffUtils::getMesh<uint16_t>(file_name,false);
-    file_name =  get_source_directory_apr() + "files/Apr/sphere_120/sphere_z.tif";
-    test_data.img_z = TiffUtils::getMesh<uint16_t>(file_name,false);
-
-    test_data.filename = get_source_directory_apr() + "files/Apr/sphere_120/sphere_original.tif";
-    test_data.output_name = "sphere_small";
-}
-
-void Create210SphereTest::SetUp(){
-
-
-    std::string file_name = get_source_directory_apr() + "files/Apr/sphere_210/sphere_apr.h5";
-    test_data.apr_filename = file_name;
-
-    APRFile aprFile;
-    aprFile.open(file_name,"READ");
-    aprFile.set_read_write_tree(false);
-    aprFile.read_apr(test_data.apr);
-    aprFile.read_particles(test_data.apr,"particle_intensities",test_data.particles_intensities);
-    aprFile.close();
-
-    file_name = get_source_directory_apr() + "files/Apr/sphere_210/sphere_original.tif";
-    test_data.img_original = TiffUtils::getMesh<uint16_t>(file_name,false);
-
-    test_data.filename = get_source_directory_apr() + "files/Apr/sphere_210/sphere_original.tif";
-    test_data.output_name = "sphere_210";
 }
 
 
 
-TEST_F(Create210SphereTest, BENCH_ITERATION) {
 
-    ASSERT_TRUE(bench_iteration(test_data));
+TEST_F(CreateBenchmarkAPR, BENCH_ITERATION) {
+
+    ASSERT_TRUE(bench_iteration(bench_data));
 
 }
 
-TEST_F(Create210SphereTest, BENCH_STRUCTURES) {
+TEST_F(CreateBenchmarkAPR, BENCH_STRUCTURES) {
 
     //ASSERT_TRUE(bench_particle_structures(test_data));
 
 }
 
-TEST_F(CreateSmallSphereTest, BENCH_TILE) {
+TEST_F(CreateBenchmarkAPR, BENCH_TILE) {
 
     //ASSERT_TRUE(test_tiling(test_data));
 
 }
 
 
-TEST_F(Create210SphereTest, BENCH_TILE) {
 
-    ASSERT_TRUE(test_tiling(test_data));
-
-}
 
 int main(int argc, char **argv) {
 
