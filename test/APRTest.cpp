@@ -561,6 +561,13 @@ bool test_apr_tree(TestData& test_data) {
 
     success = compare_two_iterators(it_lin,it_random,success);
 
+    auto it = test_data.apr.iterator();
+    auto it_tree_t = test_data.apr.random_tree_iterator();
+
+    success = compare_two_iterators(it_lin,it_random,success);
+
+
+
     ParticleData<float> tree_data;
 
     // tests the random access tree iteration.
@@ -587,7 +594,7 @@ bool test_apr_tree(TestData& test_data) {
                     int val = test_data.img_level.at(y_g,x_g,z_g);
 
                     //since its in the tree the image much be at a higher resolution then the tree. Direct check.
-                    if(level >= val){
+                    if(level > val){
                         success = false;
                     }
 

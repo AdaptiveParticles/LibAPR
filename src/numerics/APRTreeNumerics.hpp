@@ -24,10 +24,10 @@ class APRTreeNumerics {
 
         std::fill(tree_data.data.begin(), tree_data.data.end(), 0);
 
-        auto treeIterator = apr.random_tree_iterator();
-        auto parentIterator = apr.random_tree_iterator();
+        auto treeIterator = apr.tree_iterator();
+        auto parentIterator = apr.tree_iterator();
 
-        auto apr_iterator = apr.random_iterator();
+        auto apr_iterator = apr.iterator();
 
 //        auto treeIterator = apr.tree_iterator();
 //        auto parentIterator = apr.tree_iterator();
