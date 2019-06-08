@@ -91,6 +91,7 @@ private:
     APRWriter::FileStructure fileStructure;
 
     bool write_linear = false;
+    bool write_linear_tree = true; //this is not exposed. Just leaving this here if it could be useful
 
     //HDF5 - BLOSC parameters
     unsigned int blosc_comp_type_parts = BLOSC_ZSTD;
@@ -199,21 +200,22 @@ void APRFile::write_apr(APR &apr,uint64_t t,std::string channel_name){
 
     if(with_tree_flag){
 
-
-        APRWriter::writeAttr(AprTypes::TotalNumberOfParticlesType, fileStructure.objectIdTree,
-                             &apr.treeInfo.total_number_particles);
-
-        if(write_linear) {
+        if(write_linear_tree) {
 
             apr.init_tree_linear();
 
+
+            APRWriter::writeAttr(AprTypes::TotalNumberOfParticlesType, fileStructure.objectIdTree,
+                                 &apr.treeInfo.total_number_particles);
+
             APRWriter::write_linear_access(fileStructure.objectIdTree, fileStructure.objectIdTree, apr.linearAccessTree, blosc_comp_type_access,
                                            blosc_comp_level_access, blosc_shuffle_access);
-
-
         } else {
 
             apr.init_tree_random(); //incase it hasn't been initialized.
+
+            APRWriter::writeAttr(AprTypes::TotalNumberOfParticlesType, fileStructure.objectIdTree,
+                                 &apr.treeInfo.total_number_particles);
 
             APRWriter::write_random_access(fileStructure.objectIdTree, fileStructure.objectIdTree, apr.tree_access,
                                            blosc_comp_type_access, blosc_comp_level_access, blosc_shuffle_access);
@@ -339,7 +341,12 @@ void APRFile::read_apr(APR &apr,uint64_t t,std::string channel_name){
         data_n = fileStructure.subGroupTree1 + "/map_level";
         bool stored_random_tree = data_exists(fileStructure.fileId,data_n.c_str());
 
-        if(!stored_random && stored_random_tree){
+        data_n = fileStructure.subGroupTree1 + "/y_vec";
+        bool stored_linear_tree = data_exists(fileStructure.fileId,data_n.c_str());;
+
+
+        tree_exists = true;
+        if(!stored_random_tree && !stored_linear_tree){
             tree_exists = false;
         }
 
@@ -356,7 +363,7 @@ void APRFile::read_apr(APR &apr,uint64_t t,std::string channel_name){
             apr.tree_access.genInfo = &apr.treeInfo;
             apr.linearAccessTree.genInfo = &apr.treeInfo;
 
-            if(stored_random_tree) {
+            if(!stored_linear_tree) {
 
                 APRWriter::read_random_tree_access(fileStructure.objectIdTree, fileStructure.objectIdTree,
                                                    apr.tree_access, apr.apr_access);
@@ -566,7 +573,7 @@ std::vector<std::string> APRFile::get_particles_names(uint64_t t,bool apr_or_tre
     herr_t err;
     int otype;
 
-    std::vector<std::string> access_names = {"map_level","map_global_index","map_number_gaps","map_x","map_y_begin","map_y_end","map_z"};
+    std::vector<std::string> access_names = {"map_level","map_global_index","map_number_gaps","map_x","map_y_begin","map_y_end","map_z","y_vec","xz_end_vec"};
 
     hid_t obj_name;
 

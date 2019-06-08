@@ -82,10 +82,13 @@ inline void LinearAccess::initialize_tree_access_sparse(std::vector<std::vector<
 
                 auto &map = p_map[i][offset_pc_data].mesh;
 
-                auto sz = map.size();
+                uint64_t counter = 0;
 
-                xz_end_vec[level_start + offset_pc_data] = sz;
+                for(auto it = map.begin(); it != map.end(); ++it) {
+                    counter++;
+                }
 
+                xz_end_vec[level_start + offset_pc_data] = counter;
             }
 
         }
@@ -133,7 +136,6 @@ inline void LinearAccess::initialize_tree_access_sparse(std::vector<std::vector<
     }
 
     apr_timer.stop_timer();
-
 
 }
 
@@ -310,7 +312,7 @@ inline void LinearAccess::initialize_linear_structure(APRParameters& apr_paramet
 
     genInfo->total_number_particles = xz_end_vec.back();
 
-    y_vec.resize(genInfo->total_number_particles);
+    y_vec.resize(genInfo->total_number_particles,0);
 
     apr_timer.stop_timer();
 

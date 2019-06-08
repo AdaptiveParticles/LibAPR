@@ -87,7 +87,7 @@ public:
         min_dim = z_org > 1 ? std::min(min_dim, (int) z_org) : min_dim;
 
         int levelMax = ceil(std::log2(max_dim));
-        // TODO: why minimum level is forced here to be 2?
+        // set to 1, so that the tree can be to 0, enabling the upper tree to always exist.
         int levelMin = std::max( (int)(levelMax - floor(std::log2(min_dim))), 1);
 
         l_min = levelMin-1;
