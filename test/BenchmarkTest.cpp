@@ -502,7 +502,7 @@ bool bench_particle_structures(BenchmarkData& benchmarkData) {
 
     int apr_num = 0;
 
-    int full_size = 512;
+    int full_size = 1024;
     int dim_sz = full_size/benchmarkData.aprs[apr_num].org_dims(0);
 
     std::vector<int> tile_dims = {dim_sz,dim_sz,dim_sz};
@@ -522,7 +522,7 @@ bool bench_particle_structures(BenchmarkData& benchmarkData) {
 
     std::cout << "CR: " << CR << std::endl;
 
-    unsigned int num_rep = 100;
+    unsigned int num_rep = 1000;
 
     auto lin_it = apr_tiled.iterator();
 
@@ -579,6 +579,31 @@ bool bench_particle_structures(BenchmarkData& benchmarkData) {
 
     timer.stop_timer();
 
+    timer.start_timer("LinearIteration - PartCell - OpenMP (new)");
+
+    for (int r = 0; r < num_rep; ++r) {
+        for (unsigned int level = lin_it.level_min(); level <= lin_it.level_max(); ++level) {
+            int z = 0;
+
+#ifdef HAVE_OPENMP
+#pragma omp parallel for schedule(dynamic) private(z) firstprivate(lin_it)
+#endif
+            for (z = 0; z < lin_it.z_num(level); z++) {
+                for (int x = 0; x < lin_it.x_num(level); ++x) {
+                    for (lin_it.begin(level, z, x); lin_it < lin_it.end();
+                         lin_it++) {
+                        //need to add the ability to get y, and x,z but as possible should be lazy.
+
+                        partCellData[lin_it] += 1;
+                    }
+                }
+            }
+        }
+    }
+
+
+    timer.stop_timer();
+
     return success;
 
 }
@@ -611,7 +636,12 @@ bool bench_iteration(BenchmarkData& benchmarkData){
 
     PixelData<uint16_t> test_img;
 
-    test_img.init(it.org_dims(0),it.org_dims(1),it.org_dims(2));
+    int img_size = 512;
+    float pix_scale = pow(img_size,3);
+
+    float apr_scale = pow(full_size,3);
+
+    test_img.init(img_size,img_size,img_size);
 
     float CR = test_img.mesh.size()/(1.0f*it.total_number_particles());
 
@@ -777,6 +807,11 @@ bool bench_iteration(BenchmarkData& benchmarkData){
     timer.stop_timer();
 
     auto lin_time_noy = timer.timings.back();
+
+    mesh_it = mesh_it*pix_scale;
+    org_it *= apr_scale;
+    lin_time*= apr_scale;
+    lin_time_noy *=apr_scale;
 
     std::cout << "SU (old): " << mesh_it/org_it << std::endl;
     std::cout << "SU (linear no y): " << mesh_it/lin_time_noy << std::endl;

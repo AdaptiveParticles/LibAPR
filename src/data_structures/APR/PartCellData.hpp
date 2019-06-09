@@ -33,6 +33,8 @@ public:
 
     PartCellData(APR &apr) { initialize_structure_parts_empty(apr); }
 
+    T& operator[](LinearIterator it) { return data[it.level][it.offset][it.current_index - it.begin_index]; }
+
     T& operator[](PCDKey& pcdKey){
       return data[pcdKey.level][pcdKey.offset][pcdKey.local_ind];
     }

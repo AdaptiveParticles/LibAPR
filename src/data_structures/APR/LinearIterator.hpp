@@ -11,12 +11,21 @@
 
 class LinearIterator: public GenIterator {
 
+    template<typename T>
+    friend class PartCellData;
+
     uint64_t current_index;
     //uint64_t begin_index;
 
     // TODO: need to add the level,x,z,y into here..
     // Also need to add the datageneration. (should make it lazy as possible)
     LinearAccess* linearAccess;
+
+    uint64_t level_start = 0;
+    uint64_t xz_start = 0;
+    uint64_t level = 0;
+    uint64_t offset = 0;
+    uint64_t begin_index = 0;
 
 public:
 
@@ -47,12 +56,15 @@ public:
 
     inline uint64_t begin(const uint16_t level_,const uint16_t z_,const uint16_t x_) override {
 
-        const auto level_start = linearAccess->level_xz_vec[level_]; //do i make these variables in the class
-        const auto xz_start = level_start + x_ + z_*x_num(level_);
+        level_start = linearAccess->level_xz_vec[level_]; //do i make these variables in the class
+        offset = x_ + z_*x_num(level_);
+        xz_start = level_start + offset;
+        level = level_;
 
         //intialize
-        current_index = linearAccess->xz_end_vec[xz_start-1];
+        begin_index = linearAccess->xz_end_vec[xz_start-1];
         end_index = linearAccess->xz_end_vec[xz_start];
+        current_index = begin_index;
 
         return current_index;
     }
