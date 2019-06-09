@@ -495,31 +495,36 @@ bool test_tiling(TestData& test_data){
     return true;
 }
 
-bool bench_particle_structures(TestData& test_data) {
+bool bench_particle_structures(BenchmarkData& benchmarkData) {
     ///
     /// Tests the pipeline, comparing the results with existing results
     ///
 
-    bool success = true;
+    int apr_num = 0;
 
-    auto it = test_data.apr.iterator();
+    int full_size = 512;
+    int dim_sz = full_size/benchmarkData.aprs[apr_num].org_dims(0);
 
+    std::vector<int> tile_dims = {dim_sz,dim_sz,dim_sz};
+
+    APR apr_tiled;
     ParticleData<uint16_t> parts;
-    parts.init(it.total_number_particles());
-
-    PixelData<uint16_t> test_img;
-
-    test_img.init(it.org_dims(0), it.org_dims(1), it.org_dims(2));
-
-    float CR = test_img.mesh.size() / (1.0f * it.total_number_particles());
-
-    std::cout << "CR: " << CR << std::endl;
 
     APRTimer timer(true);
 
-    unsigned int num_rep = 1000;
+    timer.start_timer("tile APR");
 
-    auto lin_it = test_data.apr.iterator();
+    BenchmarkAPR::tileAPR(tile_dims,benchmarkData.aprs[apr_num], benchmarkData.parts[apr_num],apr_tiled,parts);
+
+    bool success = true;
+
+    float CR = apr_tiled.computational_ratio();
+
+    std::cout << "CR: " << CR << std::endl;
+
+    unsigned int num_rep = 100;
+
+    auto lin_it = apr_tiled.iterator();
 
     timer.start_timer("LinearIteration - normal - OpenMP");
 
@@ -546,7 +551,7 @@ bool bench_particle_structures(TestData& test_data) {
     timer.stop_timer();
 
     PartCellData<uint16_t> partCellData;
-    partCellData.initialize_structure_parts(test_data.apr);
+    partCellData.initialize_structure_parts(apr_tiled);
 
     timer.start_timer("LinearIteration - PartCell - OpenMP");
 
@@ -849,7 +854,7 @@ std::string get_source_directory_apr(){
 
 void CreateBenchmarkAPR::SetUp(){
 
-    std::string file_name = get_source_directory_apr() + "files/Apr/benchmarks/cr_54.apr";
+    std::string file_name = get_source_directory_apr() + "files/Apr/benchmarks/cr_20.apr";
 
     bench_data.aprs.resize(1);
     bench_data.parts.resize(1);
@@ -874,7 +879,7 @@ TEST_F(CreateBenchmarkAPR, BENCH_ITERATION) {
 
 TEST_F(CreateBenchmarkAPR, BENCH_STRUCTURES) {
 
-    //ASSERT_TRUE(bench_particle_structures(test_data));
+    ASSERT_TRUE(bench_particle_structures(bench_data));
 
 }
 
