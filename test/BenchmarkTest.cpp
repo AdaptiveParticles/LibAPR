@@ -878,17 +878,15 @@ void CreateBenchmarkAPR::SetUp(){
 }
 
 
-
-
 TEST_F(CreateBenchmarkAPR, BENCH_ITERATION) {
 
-    ASSERT_TRUE(bench_iteration(bench_data));
+    //ASSERT_TRUE(bench_iteration(bench_data));
 
 }
 
 TEST_F(CreateBenchmarkAPR, BENCH_STRUCTURES) {
 
-    ASSERT_TRUE(bench_particle_structures(bench_data));
+    //ASSERT_TRUE(bench_particle_structures(bench_data));
 
 }
 

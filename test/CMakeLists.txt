@@ -13,7 +13,7 @@ buildTarget(testPullingScheme PullingSchemeTest.cpp)
 
 ## Performance Benchmark Tests
 
-buildTarget(BenchmarkTest BenchmarkTest.cpp)
+#buildTarget(BenchmarkTest BenchmarkTest.cpp)
 
 # Naive python test
 # Working directory is changed to build since python module is availabe there
