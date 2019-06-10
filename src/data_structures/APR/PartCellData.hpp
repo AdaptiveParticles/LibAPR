@@ -76,7 +76,17 @@ public:
     };
 
 
+    void set_to_zero() override {
 
+        for (uint64_t i = level_min; i <= level_max; ++i) {
+#ifdef HAVE_OPENMP
+#pragma omp parallel for schedule(dynamic)
+#endif
+            for (uint64_t j = 0; j < data[i].size(); ++j) {
+                std::fill(data[i][j].begin(),data[i][j].end(),0);
+            }
+        }
+    }
 
 private:
 

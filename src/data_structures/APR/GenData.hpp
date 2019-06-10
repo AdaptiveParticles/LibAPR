@@ -41,14 +41,61 @@ public:
         return temp2; }
     virtual DataType& operator[](LinearIterator& it) { return temp1; }
 
+    virtual void set_to_zero(){
+        //must be implimented
+    }
 
+
+    /*
+     * These function use this common simple interface and therefore can be inhereted without re-implimentation
+     */
     template<typename U>
     void sample_parts_from_img_downsampled(APR& apr,PixelData<U>& input_image);
 
     template<typename U>
     void sample_parts_from_img_downsampled(APR& apr,std::vector<PixelData<U>>& img_by_level);
 
+    void fill_with_level(APR& apr){
+        auto it = apr.iterator();
+        gen_fill_level(apr,it,false);
+    }
+
+    void fill_with_level_tree(APR& apr){
+        auto it = apr.tree_iterator();
+        gen_fill_level(apr,it,true);
+    }
+
+private:
+    void gen_fill_level(APR& apr,LinearIterator it,bool tree);
+
 };
+
+/**
+* Fills a data-set with the level
+*/
+template<typename DataType>
+void GenData<DataType>::gen_fill_level(APR& apr,LinearIterator it,bool tree){
+
+    if(tree){
+        this->init_tree(apr);
+    } else {
+        this->init(apr);
+    }
+
+    for (unsigned int level = it.level_min(); level <= it.level_max(); ++level) {
+#ifdef HAVE_OPENMP
+#pragma omp parallel for schedule(dynamic) firstprivate(it)
+#endif
+        for (int z = 0; z < it.z_num(level); ++z) {
+            for (int x = 0; x < it.x_num(level); ++x) {
+                for (it.begin(level, z, x);it <it.end();it++) {
+
+                    (*this)[it] = level;
+                }
+            }
+        }
+    }
+}
 
 /**
 * Samples particles from an image using by down-sampling the image and using them as functions

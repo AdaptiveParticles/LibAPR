@@ -1146,6 +1146,68 @@ bool test_particle_structures(TestData& test_data) {
         success = false;
     }
 
+    /*
+     * Test the level function
+     *
+     */
+
+    ParticleData<uint8_t> level_p;
+    PartCellData<uint8_t> level_pc;
+
+    level_p.fill_with_level(test_data.apr);
+    level_pc.fill_with_level(test_data.apr);
+
+    for (unsigned int level = lin_it.level_min(); level <= lin_it.level_max(); ++level) {
+        int z = 0;
+
+        for (z = 0; z < lin_it.z_num(level); z++) {
+            for (int x = 0; x < lin_it.x_num(level); ++x) {
+                for (lin_it.begin(level, z, x); lin_it < lin_it.end();
+                     lin_it++) {
+
+                    if(level_p[lin_it]!=level){
+                        success = false;
+                    }
+
+                    if(level_pc[lin_it]!=level){
+                        success = false;
+                    }
+
+                }
+            }
+        }
+    }
+
+    auto it_tree = test_data.apr.tree_iterator();
+
+    ParticleData<uint8_t> level_p_tree;
+    PartCellData<uint8_t> level_pc_tree;
+
+    level_p_tree.fill_with_level_tree(test_data.apr);
+    level_pc_tree.fill_with_level_tree(test_data.apr);
+
+    for (unsigned int level = it_tree.level_min(); level <= it_tree.level_max(); ++level) {
+        int z = 0;
+
+        for (z = 0; z < it_tree.z_num(level); z++) {
+            for (int x = 0; x < it_tree.x_num(level); ++x) {
+                for (it_tree.begin(level, z, x); it_tree < it_tree.end();
+                     it_tree++) {
+
+                    if(level_p_tree[it_tree]!=level){
+                        success = false;
+                    }
+
+                    if(level_pc_tree[it_tree]!=level){
+                        success = false;
+                    }
+
+                }
+            }
+        }
+    }
+
+
     return success;
 
 }

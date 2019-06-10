@@ -14,7 +14,7 @@
 class APRTreeNumerics {
 
     template<typename S, typename U>
-    static void fill_tree_mean_internal(APR &apr, ParticleData<S> &particle_data,ParticleData<U> &tree_data,PartCellData<S> &particle_data_pc,PartCellData<U> &tree_data_pc,const bool pc_data) {
+    static void fill_tree_mean_internal(APR &apr, GenData<S>& particle_data,GenData<U>& tree_data) {
 
         APRTimer timer;
         timer.verbose_flag = false;
@@ -22,17 +22,12 @@ class APRTreeNumerics {
         timer.start_timer("ds-init");
         tree_data.init_tree(apr);
 
-        std::fill(tree_data.data.begin(), tree_data.data.end(), 0);
+        tree_data.set_to_zero(); //works on the assumption of zero intiializtion of the tree particles
 
         auto treeIterator = apr.tree_iterator();
         auto parentIterator = apr.tree_iterator();
 
         auto apr_iterator = apr.iterator();
-
-//        auto treeIterator = apr.tree_iterator();
-//        auto parentIterator = apr.tree_iterator();
-//
-//        auto apr_iterator = apr.iterator();
 
         int z_d;
         int x_d;
@@ -80,11 +75,9 @@ class APRTreeNumerics {
 
                                 U part_val;
 
-                                if(pc_data){
-                                    //part_val =  particle_data_pc[apr_iterator.get_pcd_key()]; #TODO update this
-                                } else {
-                                    part_val =  particle_data[apr_iterator];
-                                }
+
+                                part_val =  particle_data[apr_iterator];
+
 
 
                                 if (parentIterator.y() == (parentIterator.y_num(level - 1) - 1)) {
@@ -164,15 +157,15 @@ class APRTreeNumerics {
     }
 
     template<typename S, typename U>
-    static void fill_tree_max(APR &apr, ParticleData<S> &particle_data,ParticleData<U> &tree_data,PartCellData<S> &particle_data_pc,PartCellData<U> &tree_data_pc,const bool pc_data) {
+    static void fill_tree_max_internal(APR &apr, GenData<S> &particle_data,GenData<U> &tree_data) {
 
         APRTimer timer;
         timer.verbose_flag = false;
 
         timer.start_timer("ds-init");
-        tree_data.init(apr.total_number_parent_cells());
+        tree_data.init_tree(apr);
 
-        std::fill(tree_data.data.begin(), tree_data.data.end(), 0);
+        tree_data.set_to_zero(); //works on the assumption of zero intiializtion of the tree particles
 
         auto treeIterator = apr.random_tree_iterator();
         auto parentIterator = apr.random_tree_iterator();
@@ -207,12 +200,9 @@ class APRTreeNumerics {
 
                                 S part_val;
 
-                                if(pc_data){
 
-                                    part_val =  particle_data_pc[apr_iterator.get_pcd_key()];
-                                } else {
-                                    part_val =  particle_data[apr_iterator];
-                                }
+                                part_val =  particle_data[apr_iterator];
+
 
                                 tree_data[parentIterator] = std::max((U)part_val,tree_data[parentIterator]);
 
@@ -263,54 +253,31 @@ class APRTreeNumerics {
 public:
 
     template<typename S, typename U>
-    static void fill_tree_mean(APR &apr, PartCellData<S> &particle_data_pc,ParticleData<U> &tree_data) {
+    static void fill_tree_mean(APR &apr, GenData<S> &particle_data_pc,GenData<U> &tree_data) {
 
-        ParticleData<S> particle_data_empty;
-        PartCellData<U> tree_data_pc_empty;
-
-        fill_tree_mean_internal(apr, particle_data_empty,tree_data,particle_data_pc,tree_data_pc_empty,true);
+        fill_tree_mean_internal(apr, particle_data_pc,tree_data);
 
     }
 
-    template<typename S, typename U>
-    static void fill_tree_mean(APR &apr, ParticleData<S> &particle_data,ParticleData<U> &tree_data) {
-
-        PartCellData<S> particle_data_pc_empty;
-        PartCellData<U> tree_data_pc_empty;
-        fill_tree_mean_internal(apr, particle_data,tree_data,particle_data_pc_empty,tree_data_pc_empty,false);
-
-        //fill_tree_mean_(apr,particle_data,tree_data);
-    }
 
     template< typename S, typename U>
-    static void fill_tree_max(APR &apr, PartCellData<S> &particle_data_pc,ParticleData<U> &tree_data) {
+    static void fill_tree_max(APR &apr, GenData<S> &particle_data_pc,GenData<U> &tree_data) {
 
-        ParticleData<S> particle_data_empty;
-        PartCellData<U> tree_data_pc_empty;
-        fill_tree_max(apr, particle_data_empty,tree_data,particle_data_pc,tree_data_pc_empty,true);
-
-    }
-
-    template<typename S, typename U>
-    static void fill_tree_max(APR &apr, ParticleData<S> &particle_data,ParticleData<U> &tree_data) {
-
-        PartCellData<S> particle_data_pc_empty;
-        PartCellData<U> tree_data_pc_empty;
-        fill_tree_max(apr, particle_data,tree_data,particle_data_pc_empty,tree_data_pc_empty,false);
+        fill_tree_max_internal(apr, particle_data_pc,tree_data);
 
     }
 
 
     template<typename U>
-    static void fill_tree_max_level(APR &apr,ParticleData<U> &tree_data) {
+    static void fill_tree_max_level(APR &apr,GenData<U> &tree_data) {
 
         APRTimer timer;
         timer.verbose_flag = false;
 
         timer.start_timer("ds-init");
-        tree_data.init(apr.total_number_parent_cells());
+        tree_data.init_tree(apr);
 
-        std::fill(tree_data.data.begin(), tree_data.data.end(), 0);
+        tree_data.set_to_zero();
 
         auto treeIterator = apr.tree_iterator();
         auto parentIterator = apr.tree_iterator();

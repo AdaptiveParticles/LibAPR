@@ -80,10 +80,11 @@ public:
     template<typename U,class UnaryOperator>
     inline void map(APR& apr,ParticleData<U>& output,UnaryOperator op,const uint64_t level = 0,unsigned int aNumberOfBlocks = 10);
 
+    void set_to_zero() override {
+        std::fill(data.begin(),data.end(),0);
+    }
 
 };
-
-
 
 
 
