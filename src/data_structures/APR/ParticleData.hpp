@@ -9,6 +9,8 @@
 #include "APRIterator.hpp"
 #include "data_structures/Mesh/PixelData.hpp"
 
+#include "GenData.hpp"
+
 #include "APR.hpp"
 
 #include <algorithm>
@@ -16,7 +18,7 @@
 
 
 template<typename DataType>
-class ParticleData {
+class ParticleData: public GenData<DataType> {
 
     static const uint64_t parallel_particle_number_threshold = 5000000l;
 
@@ -26,10 +28,13 @@ public:
     ParticleData() {};
     ParticleData(uint64_t aTotalNumberOfParticles) { init(aTotalNumberOfParticles); }
 
-    void init(uint64_t aTotalNumberOfParticles){ data.resize(aTotalNumberOfParticles); }
+    void init(uint64_t aTotalNumberOfParticles) { data.resize(aTotalNumberOfParticles); }
 
-    uint64_t total_number_particles() const { return data.size(); }
+    void init(APR& apr) override { data.resize(apr.total_number_particles()); }
+
+    uint64_t total_number_particles() const override { return data.size(); }
     DataType& operator[](uint64_t aGlobalIndex) { return data[aGlobalIndex]; }
+    DataType& operator[](LinearIterator& it) override { return data[(uint64_t) it]; }
 
     template<typename S>
     void copy_parts(APR &apr, const ParticleData<S> &particlesToCopy, uint64_t level = 0, unsigned int aNumberOfBlocks = 10);
@@ -42,54 +47,9 @@ public:
     template<typename U,class UnaryOperator>
     inline void map(APR& apr,ParticleData<U>& output,UnaryOperator op,const uint64_t level = 0,unsigned int aNumberOfBlocks = 10);
 
-    template<typename U>
-    void sample_parts_from_img_downsampled(APR& apr,PixelData<U>& input_image);
 
-    template<typename U,typename V>
-    void sample_parts_from_img_downsampled(APR& apr,std::vector<PixelData<U>>& img_by_level,ParticleData<V>& parts);
 };
 
-/**
-* Samples particles from an image using by down-sampling the image and using them as functions
-*/
-template<typename DataType>
-template<typename U>
-void ParticleData<DataType>::sample_parts_from_img_downsampled(APR& apr,PixelData<U>& input_image) {
-
-    std::vector<PixelData<U>> downsampled_img;
-    //Down-sample the image for particle intensity estimation
-    downsamplePyrmaid(input_image, downsampled_img, apr.level_max(), apr.level_min());
-
-    //aAPR.get_parts_from_img_alt(input_image,aAPR.particles_intensities);
-    sample_parts_from_img_downsampled(apr,downsampled_img,*this);
-
-    std::swap(input_image, downsampled_img.back());
-}
-
-/**
-* Samples particles from an image using an image tree (img_by_level is a vector of images)
-*/
-template<typename DataType>
-template<typename U,typename V>
-void ParticleData<DataType>::sample_parts_from_img_downsampled(APR& apr,std::vector<PixelData<U>>& img_by_level,ParticleData<V>& parts){
-    auto it = apr.random_iterator();
-    parts.data.resize(it.total_number_particles());
-    std::cout << "Total number of particles: " << it.total_number_particles() << std::endl;
-
-    for (unsigned int level = it.level_min(); level <= it.level_max(); ++level) {
-#ifdef HAVE_OPENMP
-#pragma omp parallel for schedule(dynamic) firstprivate(it)
-#endif
-        for (int z = 0; z < it.z_num(level); ++z) {
-            for (int x = 0; x < it.x_num(level); ++x) {
-                for (it.begin(level, z, x);it <it.end();it++) {
-
-                    parts[it] = img_by_level[level].at(it.y(),x,z);
-                }
-            }
-        }
-    }
-}
 
 
 
