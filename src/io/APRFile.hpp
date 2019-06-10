@@ -44,7 +44,7 @@ public:
         return with_tree_flag;
     }
 
-    //set helpers
+    //set helperslts
     /**
    * Set whether the internal APR Tree internal access should also be written and read.
    * @param write_with_tree_flag_ indicate whether the APRTree should be written and read. (True = save both APR and APR Tree)
@@ -90,7 +90,7 @@ private:
     std::string file_name = "noname";
     APRWriter::FileStructure fileStructure;
 
-    bool write_linear = false;
+    bool write_linear = true;
     bool write_linear_tree = true; //this is not exposed. Just leaving this here if it could be useful
 
     //HDF5 - BLOSC parameters

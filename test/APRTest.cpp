@@ -405,6 +405,8 @@ bool test_linear_access_io(TestData& test_data) {
 
     //First write a file
     APRFile writeFile;
+    writeFile.set_write_linear_flag(false); //write the random files
+
     writeFile.open(file_name,"WRITE");
 
     writeFile.write_apr(test_data.apr);
@@ -711,42 +713,7 @@ bool test_apr_file(TestData& test_data){
     auto apr_iterator = test_data.apr.iterator();
     auto apr_iterator_read = aprRead.iterator();
 
-    for (unsigned int level = apr_iterator.level_min(); level <= apr_iterator.level_max(); ++level) {
-        int z = 0;
-        int x = 0;
-
-        for (z = 0; z < apr_iterator.z_num(level); z++) {
-            for (x = 0; x < apr_iterator.x_num(level); ++x) {
-                apr_iterator_read.begin(level, z, x);
-                for (apr_iterator.begin(level, z, x); apr_iterator < apr_iterator.end();
-                     apr_iterator++) {
-
-                    //check the functionality
-                    if (test_data.particles_intensities[apr_iterator] !=
-                        parts_read[apr_iterator_read]) {
-                        success = false;
-                    }
-
-                    //check the functionality
-                    if (parts2[apr_iterator] !=
-                        parts2_read[apr_iterator_read]) {
-                        success = false;
-                    }
-
-
-                    if (apr_iterator.y() != apr_iterator_read.y()) {
-                        success = false;
-                    }
-
-
-                    if(apr_iterator_read < apr_iterator_read.end()) {
-                        apr_iterator_read++;
-                    }
-
-                }
-            }
-        }
-    }
+    success = compare_two_iterators(apr_iterator,apr_iterator_read,success);
 
 
     //Test Tree IO and RW and channel

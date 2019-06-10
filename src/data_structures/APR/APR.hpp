@@ -86,6 +86,12 @@ public:
 
     APRTreeIterator random_tree_iterator() {
 
+        if(!apr_initialized_random){
+            //the random tree iterator and the apr iteratator are joint at the hip.
+            initialize_random_access();
+            apr_initialized_random = true;
+        }
+
         if(!tree_initialized_random){
             init_tree_random();
         }
@@ -130,6 +136,7 @@ protected:
         if(!apr_initialized){
             auto it = random_iterator();
             initialize_linear_access(linearAccess,it);
+            apr_initialized = true;
         }
     }
 
@@ -164,6 +171,8 @@ void APR::initialize_linear_access(LinearAccess& aprAccess,GenIterator& it){
 
     lin_a.xz_end_vec.push_back(counter); // adding padding by one to allow the -1 syntax without checking.
 
+    lin_a.y_vec.resize(it.total_number_particles());
+
     for (unsigned int level = 0; level <= it.level_max(); ++level) {
         int z = 0;
         int x = 0;
@@ -173,7 +182,7 @@ void APR::initialize_linear_access(LinearAccess& aprAccess,GenIterator& it){
 
                 for (it.begin(level, z, x); it < it.end();
                      it++) {
-                    lin_a.y_vec.push_back(it.y());
+                    lin_a.y_vec[counter] = it.y();
                     counter++;
                 }
 
@@ -551,7 +560,7 @@ void APR::initialize_apr_tree_sparse() {
                     //the loop is bundled into blocks of 2, this prevents race conditions with OpenMP parents
                     for (x_d = 0; x_d < treeInfo.x_num[level-1]; ++x_d) {
                         for (int x = 2 * x_d;
-                             x <= std::min(2 * x_d + 1, (int) treeInfo.x_num[level] - 1); ++x) {
+                             x <= std::min(2 * x_d + 1, (int) apr_iterator.x_num(level) - 1); ++x) {
 
                             size_t x_p = x / 2;
                             size_t z_p = z / 2;
