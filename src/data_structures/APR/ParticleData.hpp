@@ -29,10 +29,43 @@ public:
     ParticleData(uint64_t aTotalNumberOfParticles) { init(aTotalNumberOfParticles); }
 
     void init(uint64_t aTotalNumberOfParticles) { data.resize(aTotalNumberOfParticles); }
+    /*
+     * Init dataset with enough particles up to level
+     */
+    void init(APR& apr,unsigned int level) override {
+        auto it = apr.iterator();
+        if(level==0){
+            level = it.level_max();
+        }
+        data.resize(it.total_number_particles(level),0);
+    }
+    /*
+     * Init dataset with enough particles up to level for tree
+     */
+    void init_tree(APR& apr,unsigned int level) override {
+        auto it = apr.tree_iterator();
 
-    void init(APR& apr) override { data.resize(apr.total_number_particles()); }
+        data.resize(it.total_number_particles(level),0);
+    }
 
-    uint64_t total_number_particles() const override { return data.size(); }
+    /*
+     * Init dataset with enough for all particles
+     */
+    void init(APR& apr) override {
+        auto it = apr.iterator();
+
+        data.resize(it.total_number_particles(it.level_max()),0);
+    }
+    /*
+     * Init dataset with enough for all particles in tree
+     */
+    void init_tree(APR& apr) override {
+        auto it = apr.tree_iterator();
+
+        data.resize(it.total_number_particles(it.level_max()),0);
+    }
+
+    uint64_t size() const override { return data.size(); }
     DataType& operator[](uint64_t aGlobalIndex) { return data[aGlobalIndex]; }
     DataType& operator[](LinearIterator& it) override { return data[(uint64_t) it]; }
 
@@ -114,7 +147,7 @@ inline void ParticleData<DataType>::zip_inplace(APR &apr, const ParticleData<V> 
     size_t particle_number_stop;
     if (level==0) {
         particle_number_start = 0;
-        particle_number_stop = total_number_particles();
+        particle_number_stop = size();
     } else {
         particle_number_start = apr_iterator.particles_level_begin(level);
         particle_number_stop = apr_iterator.particles_level_end(level);
@@ -158,7 +191,7 @@ inline void ParticleData<DataType>::zip(APR& apr, const ParticleData<V> &parts2,
     size_t particle_number_stop;
     if (level==0) {
         particle_number_start = 0;
-        particle_number_stop = total_number_particles();
+        particle_number_stop = size();
     } else {
         particle_number_start = apr_iterator.particles_level_begin(level);
         particle_number_stop = apr_iterator.particles_level_end(level);
@@ -200,7 +233,7 @@ inline void ParticleData<DataType>::map_inplace(APR& apr,UnaryOperator op,const 
     size_t particle_number_stop;
     if (level==0) {
         particle_number_start=0;
-        particle_number_stop = total_number_particles();
+        particle_number_stop = size();
     } else {
         particle_number_start = apr_iterator.particles_level_begin(level);
         particle_number_stop = apr_iterator.particles_level_end(level);
@@ -245,7 +278,7 @@ inline void ParticleData<DataType>::map(APR& apr,ParticleData<U>& output,UnaryOp
     size_t particle_number_stop;
     if (level==0) {
         particle_number_start=0;
-        particle_number_stop = total_number_particles();
+        particle_number_stop = size();
     } else {
         particle_number_start = apr_iterator.particles_level_begin(level);
         particle_number_stop = apr_iterator.particles_level_end(level);

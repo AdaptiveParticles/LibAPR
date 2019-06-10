@@ -54,6 +54,16 @@ public:
         return end_index;
     }
 
+    inline uint64_t total_number_particles(unsigned int level_=0){
+
+        if(level_ == 0){
+            level_ = level_max();
+        }
+
+        uint64_t index = linearAccess->level_xz_vec[level_] + x_num(level_) - 1 + (z_num(level_)-1)*x_num(level_);
+        return linearAccess->xz_end_vec[index];
+    }
+
     inline uint64_t begin(const uint16_t level_,const uint16_t z_,const uint16_t x_) override {
 
         level_start = linearAccess->level_xz_vec[level_]; //do i make these variables in the class

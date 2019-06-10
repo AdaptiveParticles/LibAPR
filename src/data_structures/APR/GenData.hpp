@@ -21,11 +21,23 @@ public:
     /*
      * Virtual functions to be over-written by the derived class.
      */
+    virtual void init(APR& apr,unsigned int level){
+        // must be implimented
+    };
+
+    virtual void init_tree(APR& apr,unsigned int level){
+        // must be implimented
+    };
+
     virtual void init(APR& apr){
         // must be implimented
     };
 
-    virtual uint64_t total_number_particles() const {
+    virtual void init_tree(APR& apr){
+        // must be implimented
+    };
+
+    virtual uint64_t size() const {
         return temp2; }
     virtual DataType& operator[](LinearIterator& it) { return temp1; }
 
@@ -63,7 +75,6 @@ template<typename U>
 void GenData<DataType>::sample_parts_from_img_downsampled(APR& apr,std::vector<PixelData<U>>& img_by_level){
     auto it = apr.iterator();
     this->init(apr);
-    std::cout << "Total number of particles: " << it.total_number_particles() << std::endl;
 
     for (unsigned int level = it.level_min(); level <= it.level_max(); ++level) {
 #ifdef HAVE_OPENMP

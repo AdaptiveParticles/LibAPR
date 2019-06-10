@@ -11,13 +11,17 @@
 
 #include <vector>
 
-#include "data_structures/APR/APR.hpp"
+#include "APR.hpp"
 
-#include "data_structures/APR/APRAccessStructures.hpp"
+#include "APRAccessStructures.hpp"
 
-template<typename T>
-class PartCellData {
-    
+#include "GenData.hpp"
+
+template<typename DataType>
+class PartCellData: public GenData<DataType> {
+
+    uint64_t number_elements=0;
+
 public:
     uint64_t level_max;
     uint64_t level_min;
@@ -25,7 +29,7 @@ public:
     std::vector<uint64_t> z_num;
     std::vector<uint64_t> x_num;
 
-    std::vector<std::vector<std::vector<T>>> data; // [level][x_num(level) * z + x][y]
+    std::vector<std::vector<std::vector<DataType>>> data; // [level][x_num(level) * z + x][y]
 
     PartCellData() {}
     template<typename S>
@@ -33,23 +37,56 @@ public:
 
     PartCellData(APR &apr) { initialize_structure_parts_empty(apr); }
 
-    T& operator[](LinearIterator it) { return data[it.level][it.offset][it.current_index - it.begin_index]; }
+    DataType& operator[](LinearIterator& it) override {
+        return data[it.level][it.offset][it.current_index - it.begin_index];
+    }
 
-    T& operator[](PCDKey& pcdKey){
+    DataType& operator[](PCDKey& pcdKey){
       return data[pcdKey.level][pcdKey.offset][pcdKey.local_ind];
+    }
+
+    uint64_t size() const override {
+        return number_elements;
     }
 
     void initialize_structure_parts_empty(APR& apr);
 
-    void initialize_structure_parts(APR& apr);
+    void init(APR& apr) override {
+
+        auto it = apr.iterator();
+        initialize_structure_parts(it,it.level_max());
+    };
+
+    void init(APR& apr,unsigned int level) override {
+
+        auto it = apr.iterator();
+        initialize_structure_parts(it,level);
+    };
+
+    void init_tree(APR& apr,unsigned int level) override {
+
+        auto it = apr.tree_iterator();
+        initialize_structure_parts(it,level);
+    };
+
+    void init_tree(APR& apr) override {
+
+        auto it = apr.tree_iterator();
+        initialize_structure_parts(it,it.level_max());
+    };
+
 
 
 
 private:
 
+    void initialize_structure_parts(LinearIterator& it,int level_init);
+
     template<typename S>
     void initialize_structure_parts(const PartCellData<S>& part_data) {
         // Initialize the structure to the same size as the given structure
+
+        number_elements = 0;
 
         level_max = part_data.level_max;
         level_min = part_data.level_min;
@@ -64,13 +101,14 @@ private:
             data[i].resize(z_num[i]*x_num[i]);
             for (uint64_t j = 0; j < part_data.data[i].size(); ++j) {
                 data[i][j].resize(part_data.data[i][j].size(),0);
+                number_elements += part_data.data[i][j].size();
             }
         }
     }
 };
 
-template<typename T>
-void PartCellData<T>::initialize_structure_parts_empty(APR& apr) {
+template<typename DataType>
+void PartCellData<DataType>::initialize_structure_parts_empty(APR& apr) {
     // Initialize the structure to the same size as the given structure
     level_max = apr.level_max();
     level_min = apr.level_min();
@@ -91,35 +129,39 @@ void PartCellData<T>::initialize_structure_parts_empty(APR& apr) {
 }
 
 
-template<typename T>
-void PartCellData<T>::initialize_structure_parts(APR& apr) {
+template<typename DataType>
+void PartCellData<DataType>::initialize_structure_parts(LinearIterator& it,int level_init) {
 
-    auto apr_it = apr.iterator();
+    if(level_init == 0){
+        level_init = it.level_max();
+    }
 
     // Initialize the structure to the same size as the given structure
-    level_max = apr_it.level_max();
-    level_min = apr_it.level_min();
+    level_max = it.level_max();
+    level_min = it.level_min();
 
     z_num.resize(level_max+1);
     x_num.resize(level_max+1);
     data.resize(level_max+1);
 
-    for (unsigned int l = level_min; l <= level_max; ++l) {
-        z_num[l] = apr_it.z_num(l);
-        x_num[l] = apr_it.x_num(l);
+    for (unsigned int l = level_min; l <= level_init; ++l) {
+        z_num[l] = it.z_num(l);
+        x_num[l] = it.x_num(l);
         data[l].resize(z_num[l]*x_num[l]);
 
-        for (int z = 0; z < apr_it.z_num(l); z++) {
-            for (int x = 0; x < apr_it.x_num(l); ++x) {
+        for (int z = 0; z < it.z_num(l); z++) {
+            for (int x = 0; x < it.x_num(l); ++x) {
 
-                apr_it.begin(l,z,x);
+                it.begin(l,z,x);
 
-                auto sz = apr_it.end() - apr_it;
+                auto sz = it.end() - it;
 
-                if(apr_it.end() > 0) {
+                if(it.end() > 0) {
                     auto off = x_num[l]*z + x;
                     data[l][off].resize(sz,0);
                 }
+
+                number_elements += sz;
 
             }
         }

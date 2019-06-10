@@ -141,7 +141,7 @@ public:
         // backward compatability function -- not performance orientated.
 
         ParticleData<T> parts_temp;
-        parts_temp.init(parts.total_number_particles());
+        parts_temp.init(parts.size());
 
         int level = apr.level_max();
 

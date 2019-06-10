@@ -294,6 +294,7 @@ bool test_pulling_scheme_sparse(TestData& test_data){
 }
 
 
+
 bool test_linear_access_create(TestData& test_data) {
 
 
@@ -335,6 +336,36 @@ bool test_linear_access_create(TestData& test_data) {
 
     particles_intensities.sample_parts_from_img_downsampled(apr,test_data.img_original);
 
+    //test the partcell data structures
+    PartCellData<uint16_t> partCellData_intensities;
+    partCellData_intensities.sample_parts_from_img_downsampled(apr,test_data.img_original);
+
+    auto it = apr.iterator();
+
+    for (unsigned int level = it.level_min(); level <= it.level_max(); ++level) {
+        int z = 0;
+        int x = 0;
+
+        for (z = 0; z < it.z_num(level); z++) {
+            for (x = 0; x < it.x_num(level); ++x) {
+
+                for (it.begin(level, z, x); it < it.end();
+                     it++) {
+
+                    auto p1 = particles_intensities[it];
+                    auto p2 = partCellData_intensities[it];
+
+
+                    if(p1 != p2){
+
+                        success = false;
+                    }
+                }
+            }
+        }
+    }
+
+
     auto it_org = apr.random_iterator();
 
     APR apr_lin;
@@ -359,12 +390,12 @@ bool test_linear_access_create(TestData& test_data) {
     //apr_lin.init_linear();
     auto it_new = apr_lin.iterator();
 
-    success = compare_two_iterators(it_lin_old,it_new);
+    success = compare_two_iterators(it_lin_old,it_new,success);
 
     //Test Linear -> Random generation
     auto it_new_random = apr_lin.random_iterator();
 
-    success = compare_two_iterators(it_new_random,it_new);
+    success = compare_two_iterators(it_new_random,it_new,success);
 
 
     //Test the APR Tree construction.
@@ -378,7 +409,7 @@ bool test_linear_access_create(TestData& test_data) {
     std::cout << "PARTS: " << total_number_parts << " " << total_number_parts_lin << std::endl;
 
 
-    success = compare_two_iterators(tree_it_org,tree_it_lin);
+    success = compare_two_iterators(tree_it_org,tree_it_lin,success);
 
 
     return success;
@@ -1038,14 +1069,11 @@ bool test_particle_structures(TestData& test_data) {
 
     bool success = true;
 
-    auto it = test_data.apr.iterator();
-
     ParticleData<uint16_t> parts;
 
-    parts.data.resize(it.total_number_particles(),0);
+    parts.init(test_data.apr);
 
     APRTimer timer(true);
-
 
     auto lin_it = test_data.apr.iterator();
 
@@ -1073,7 +1101,15 @@ bool test_particle_structures(TestData& test_data) {
     timer.stop_timer();
 
     PartCellData<uint16_t> partCellData;
-    partCellData.initialize_structure_parts(test_data.apr);
+    partCellData.init(test_data.apr);
+
+    auto pcd_size = partCellData.size();
+    auto p_size = parts.size();
+
+    if(pcd_size != p_size){
+        success = false;
+    }
+
 
     timer.start_timer("LinearIteration - PartCell - OpenMP");
 
@@ -1093,6 +1129,11 @@ bool test_particle_structures(TestData& test_data) {
                     if(partCellData.data[level][off][indx]!=parts[lin_it]){
                         success = false;
                     }
+
+                    if(partCellData.data[level][off][indx]!=partCellData[lin_it]){
+                        success = false;
+                    }
+
                     counter_pc++;
                 }
             }

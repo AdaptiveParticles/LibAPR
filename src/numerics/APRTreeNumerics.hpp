@@ -20,7 +20,7 @@ class APRTreeNumerics {
         timer.verbose_flag = false;
 
         timer.start_timer("ds-init");
-        tree_data.init(apr.total_number_parent_cells());
+        tree_data.init_tree(apr);
 
         std::fill(tree_data.data.begin(), tree_data.data.end(), 0);
 
