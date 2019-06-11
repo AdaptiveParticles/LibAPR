@@ -57,12 +57,12 @@ public:
     template<typename U>
     void sample_parts_from_img_downsampled(APR& apr,std::vector<PixelData<U>>& img_by_level);
 
-    void fill_with_level(APR& apr){
+    void fill_with_levels(APR &apr){
         auto it = apr.iterator();
         gen_fill_level(apr,it,false);
     }
 
-    void fill_with_level_tree(APR& apr){
+    void fill_with_levels_tree(APR &apr){
         auto it = apr.tree_iterator();
         gen_fill_level(apr,it,true);
     }

@@ -1174,8 +1174,8 @@ bool test_particle_structures(TestData& test_data) {
     ParticleData<uint8_t> level_p;
     PartCellData<uint8_t> level_pc;
 
-    level_p.fill_with_level(test_data.apr);
-    level_pc.fill_with_level(test_data.apr);
+    level_p.fill_with_levels(test_data.apr);
+    level_pc.fill_with_levels(test_data.apr);
 
     for (unsigned int level = lin_it.level_min(); level <= lin_it.level_max(); ++level) {
         int z = 0;
@@ -1203,8 +1203,8 @@ bool test_particle_structures(TestData& test_data) {
     ParticleData<uint8_t> level_p_tree;
     PartCellData<uint8_t> level_pc_tree;
 
-    level_p_tree.fill_with_level_tree(test_data.apr);
-    level_pc_tree.fill_with_level_tree(test_data.apr);
+    level_p_tree.fill_with_levels_tree(test_data.apr);
+    level_pc_tree.fill_with_levels_tree(test_data.apr);
 
     for (unsigned int level = it_tree.level_min(); level <= it_tree.level_max(); ++level) {
         int z = 0;
