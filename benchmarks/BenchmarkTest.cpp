@@ -8,7 +8,7 @@
 #include "algorithm/APRConverter.hpp"
 #include <utility>
 #include <cmath>
-#include "TestTools.hpp"
+#include "../test/TestTools.hpp"
 #include "numerics/APRTreeNumerics.hpp"
 #include "io/APRWriter.hpp"
 #include "io/APRFile.hpp"
@@ -460,6 +460,14 @@ bool test_tiling(BenchmarkData& benchmarkData){
     aprFile.write_particles(apr_tiled,"particle_intensities",tiled_parts);
     aprFile.close();
 
+    APR apr_read;
+
+    APRFile aprFile2;
+    aprFile2.open("tiledAPR.apr","READ");
+    aprFile2.read_apr(apr_read);
+    aprFile2.close();
+    //aprFile2
+
     return true;
 }
 
@@ -831,8 +839,7 @@ std::string get_source_directory_apr(){
 
 void CreateBenchmarkAPR::SetUp(){
 
-    std::string file_name = get_source_directory_apr() + "files/Apr/benchmarks/cr_54.apr";
-
+    std::string file_name = get_source_directory_apr() + "files/cr_54.apr";
     bench_data.aprs.resize(1);
     bench_data.parts.resize(1);
 

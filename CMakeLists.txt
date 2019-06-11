@@ -294,6 +294,15 @@ if(APR_TESTS)
 endif(APR_TESTS)
 
 ###############################################################################
+# Performance Benchmarks
+###############################################################################
+
+if(APR_BENCHMARK)
+    message(STATUS "APR: Benchmarking performance")
+    add_subdirectory(benchmarks)
+endif(APR_BENCHMARK)
+
+###############################################################################
 # PYTHON wrappers These are now external please ask us for access
 ###############################################################################
 
