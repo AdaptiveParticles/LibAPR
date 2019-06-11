@@ -50,17 +50,17 @@ public:
 
     uint64_t level_max() const { return aprInfo.l_max; }
     uint64_t level_min() const { return aprInfo.l_min; }
-    inline uint64_t spatial_index_x_max(const unsigned int level) const { return aprInfo.x_num[level]; }
-    inline uint64_t spatial_index_y_max(const unsigned int level) const { return aprInfo.y_num[level]; }
-    inline uint64_t spatial_index_z_max(const unsigned int level) const { return aprInfo.z_num[level]; }
+    inline uint64_t x_num(const unsigned int level) const { return aprInfo.x_num[level]; }
+    inline uint64_t y_num(const unsigned int level) const { return aprInfo.y_num[level]; }
+    inline uint64_t z_num(const unsigned int level) const { return aprInfo.z_num[level]; }
     inline uint64_t total_number_particles() const { return aprInfo.total_number_particles; }
-    unsigned int org_dims(int dim) const { return aprInfo.org_dims[dim]; }
+    uint64_t org_dims(int dim) const { return aprInfo.org_dims[dim]; }
 
     inline uint64_t total_number_tree_particles() const { return treeInfo.total_number_particles; } // #TODO remove one of these
     inline uint64_t total_number_parent_cells() const { return treeInfo.total_number_particles; }
 
-    float computational_ratio(){
-        return (org_dims(0)*org_dims(1)*org_dims(2))/(1.0f*aprInfo.total_number_particles);
+    double computational_ratio(){
+        return (org_dims(0)*org_dims(1)*org_dims(2))/(1.0*aprInfo.total_number_particles);
     }
 
 

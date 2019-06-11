@@ -94,6 +94,19 @@ protected:
 
 public:
 
+    struct ReadPatch{
+
+        int x_begin =0;
+        int x_end = 0;
+
+        int z_begin =0;
+        int z_end = 0;
+
+        int level_begin = 0;
+        int level_end = 0;
+
+    };
+
     uint64_t get_num_time_steps(const std::string &file_name){
         //
         //  Gets the number of time steps saved to the file.
@@ -217,10 +230,14 @@ public:
 
         linearAccess.initialize_xz_linear(); //initialize the structures based on size.
 
-        linearAccess.y_vec.resize(linearAccess.genInfo->total_number_particles);
-        APRWriter::readData({H5T_NATIVE_UINT16,"y_vec"}, objectId, linearAccess.y_vec.data());
+        read_linear_y(objectId, linearAccess);
         APRWriter::readData({H5T_NATIVE_UINT64,"xz_end_vec"}, objectId, linearAccess.xz_end_vec.data());
 
+    }
+
+    static void read_linear_y(hid_t objectId, LinearAccess& linearAccess){
+        linearAccess.y_vec.resize(linearAccess.genInfo->total_number_particles);
+        APRWriter::readData({H5T_NATIVE_UINT16,"y_vec"}, objectId, linearAccess.y_vec.data());
     }
 
 

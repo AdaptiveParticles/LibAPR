@@ -148,7 +148,7 @@ public:
 #ifdef HAVE_OPENMP
 #pragma omp parallel for schedule(dynamic) private(x) firstprivate(apr_it)
 #endif
-            for (x = 0; x < apr.spatial_index_x_max(level); ++x) {
+            for (x = 0; x < apr.x_num(level); ++x) {
 
                 for (apr_it.begin(level - 1, z / 2, x / 2);
                      apr_it < apr_it.end();
@@ -171,7 +171,7 @@ public:
 #ifdef HAVE_OPENMP
 #pragma omp parallel for schedule(dynamic) private(x) firstprivate(tree_it)
 #endif
-            for (x = 0; x < apr.spatial_index_x_max(level); ++x) {
+            for (x = 0; x < apr.x_num(level); ++x) {
                 for (tree_it.begin(level, z, x);
                      tree_it < tree_it.end();
                      tree_it++) {
@@ -431,9 +431,9 @@ public:
             //const PixelData<float> &stencil = stencil_vec[stencil_counter];
             std::vector<int> stencil_halves = {((int)stencil.y_num-1)/2, ((int)stencil.x_num-1)/2, ((int)stencil.z_num-1)/2};
 
-            for (z = 0; z < apr.spatial_index_z_max(level); ++z) {
+            for (z = 0; z < apr.z_num(level); ++z) {
                 //lastly loop over particle locations and compute filter.
-                for (x = 0; x < apr.spatial_index_x_max(level); ++x) {
+                for (x = 0; x < apr.x_num(level); ++x) {
                     for (apr_it.begin(level, z, x);
                          apr_it < apr_it.end();
                          apr_it++) {
@@ -448,9 +448,9 @@ public:
                             for (int q = -stencil_halves[1]; q < stencil_halves[1]+1; ++q) {
                                 for (int w = -stencil_halves[0]; w < stencil_halves[0]+1; ++w) {
 
-                                    if((k+w)>=0 & (k+w) < (apr.spatial_index_y_max(level))){
-                                        if((i+q)>=0 & (i+q) < (apr.spatial_index_x_max(level))){
-                                            if((z+l)>=0 & (z+l) < (apr.spatial_index_z_max(level))){
+                                    if((k+w)>=0 & (k+w) < (apr.y_num(level))){
+                                        if((i+q)>=0 & (i+q) < (apr.x_num(level))){
+                                            if((z+l)>=0 & (z+l) < (apr.z_num(level))){
                                                 neigh_sum += stencil.mesh[counter] * by_level_recon.at(k + w, i + q, z+l);
                                             }
                                         }
@@ -567,7 +567,7 @@ void APRFilter::convolve(APR &apr, std::vector<PixelData<T>>& stencils, Particle
             }
         }
 
-        for (z = 0; z < apr.spatial_index_z_max(level); ++z) {
+        for (z = 0; z < apr.z_num(level); ++z) {
 
             if (z < (z_num - stencil_half[2])) {
                 //update the next z plane for the access

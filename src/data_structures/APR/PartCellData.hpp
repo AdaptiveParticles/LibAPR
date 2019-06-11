@@ -128,8 +128,8 @@ void PartCellData<DataType>::initialize_structure_parts_empty(APR& apr) {
     data.resize(level_max+1);
 
     for (uint64_t i = level_min; i <= level_max; ++i) {
-        z_num[i] = apr.spatial_index_z_max(i);
-        x_num[i] = apr.spatial_index_x_max(i);
+        z_num[i] = apr.z_num(i);
+        x_num[i] = apr.x_num(i);
         data[i].resize(z_num[i]*x_num[i]);
 
         for (int j = 0; j < data[i].size(); ++j) {

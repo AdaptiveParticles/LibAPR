@@ -261,7 +261,7 @@ void APRCompress::predict_particles_by_level(APR& apr,const unsigned int level,P
     std::vector<unsigned int> z_block_begin;
     std::vector<unsigned int> z_block_end;
 
-    unsigned int z_num = apr.spatial_index_z_max(level);
+    unsigned int z_num = apr.z_num(level);
 
     if(z_num > num_z_blocks*8) {
 

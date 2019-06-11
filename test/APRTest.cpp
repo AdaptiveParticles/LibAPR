@@ -852,6 +852,26 @@ bool test_apr_file(TestData& test_data){
 }
 
 
+bool test_read_upto_level(TestData& test_data){
+
+    bool success = true;
+
+    //Test Basic IO
+    std::string file_name = "read_write_test.apr";
+
+    //First write a file
+    APRFile writeFile;
+    writeFile.open(file_name,"WRITE");
+
+    writeFile.write_apr(test_data.apr);
+
+    writeFile.write_particles(test_data.apr,"parts",test_data.particles_intensities);
+
+
+    return success;
+
+}
+
 
 
 
@@ -1927,6 +1947,18 @@ TEST_F(Create210SphereTest, LINEAR_ACCESS_CREATE) {
 TEST_F(Create210SphereTest, LINEAR_ACCESS_IO) {
 
     ASSERT_TRUE(test_linear_access_io(test_data));
+
+}
+
+TEST_F(CreateSmallSphereTest, PARTIAL_READ) {
+
+    ASSERT_TRUE(test_read_upto_level(test_data));
+
+}
+
+TEST_F(Create210SphereTest, PARTIAL_READ) {
+
+    ASSERT_TRUE(test_read_upto_level(test_data));
 
 }
 

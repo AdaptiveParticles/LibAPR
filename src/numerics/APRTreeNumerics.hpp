@@ -31,6 +31,7 @@ class APRTreeNumerics {
 
         int z_d;
         int x_d;
+
         timer.stop_timer();
 
         timer.start_timer("ds-1l");
@@ -167,10 +168,10 @@ class APRTreeNumerics {
 
         tree_data.set_to_zero(); //works on the assumption of zero intiializtion of the tree particles
 
-        auto treeIterator = apr.random_tree_iterator();
-        auto parentIterator = apr.random_tree_iterator();
+        auto treeIterator = apr.tree_iterator();
+        auto parentIterator = apr.tree_iterator();
 
-        auto apr_iterator = apr.random_iterator();
+        auto apr_iterator = apr.iterator();
 
         int z_d;
         int x_d;
@@ -187,12 +188,12 @@ class APRTreeNumerics {
                     for (x_d = 0; x_d < apr_iterator.x_num(level) / 2; ++x_d) {
                         for (int x = 2 * x_d; x <= std::min(2 * x_d + 1, (int) apr_iterator.x_num(level)); ++x) {
 
-                            parentIterator.set_new_lzx(level - 1, z / 2, x / 2);
+                            parentIterator.begin(level - 1, z / 2, x / 2);
 
 
-                            for (apr_iterator.set_new_lzx(level, z, x);
+                            for (apr_iterator.begin(level, z, x);
                                  apr_iterator <
-                                 apr_iterator.end(); apr_iterator.set_iterator_to_particle_next_particle()) {
+                                 apr_iterator.end(); apr_iterator++) {
 
                                 while ((parentIterator.y() != (apr_iterator.y() / 2)) && (parentIterator < parentIterator.end())) {
                                     parentIterator++;
@@ -227,15 +228,15 @@ class APRTreeNumerics {
                     for (x_d = 0; x_d < apr_iterator.x_num(level) / 2; ++x_d) {
                         for (int x = 2 * x_d; x <= std::min(2 * x_d + 1, (int) apr_iterator.x_num(level)); ++x) {
 
-                            parentIterator.set_new_lzx(level - 1, z / 2, x / 2);
+                            parentIterator.begin(level - 1, z / 2, x / 2);
 
 
-                            for (treeIterator.set_new_lzx(level, z, x);
+                            for (treeIterator.begin(level, z, x);
                                  treeIterator <
-                                 treeIterator.end(); treeIterator.set_iterator_to_particle_next_particle()) {
+                                 treeIterator.end(); treeIterator++) {
 
-                                while ((parentIterator.y() != treeIterator.y() / 2) && (parentIterator < parentIterator.end())) {
-                                    parentIterator.set_iterator_to_particle_next_particle();
+                                while ((parentIterator.y() != treeIterator.y() / 2) && (parentIterator != parentIterator.end())) {
+                                    parentIterator++;
                                 }
 
                                 tree_data[parentIterator] =  std::max(tree_data[treeIterator],tree_data[parentIterator]);

@@ -18,6 +18,8 @@ private:
 
 public:
 
+    virtual ~GenData() = 0; //
+
     /*
      * Virtual functions to be over-written by the derived class.
      */
@@ -69,6 +71,9 @@ private:
     void gen_fill_level(APR& apr,LinearIterator it,bool tree);
 
 };
+
+template<typename DataType>
+GenData<DataType>::~GenData(){};
 
 /**
 * Fills a data-set with the level
