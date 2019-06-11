@@ -29,15 +29,15 @@ public:
     void close();
 
     // write
-    void write_apr(APR &apr,uint64_t t = 0,std::string channel_name = "t");
-    void write_apr_append(APR &apr);
+    void write_apr(APR& apr,uint64_t t = 0,std::string channel_name = "t");
+    void write_apr_append(APR& apr);
     template<typename DataType>
-    void write_particles(APR &apr,std::string particles_name,ParticleData<DataType>& particles,uint64_t t = 0,bool apr_or_tree = true,std::string channel_name = "t");
+    void write_particles(APR& apr,std::string particles_name,ParticleData<DataType>& particles,uint64_t t = 0,bool apr_or_tree = true,std::string channel_name = "t");
 
     // read
-    void read_apr(APR &apr,uint64_t t = 0,std::string channel_name = "t");
+    void read_apr(APR& apr,uint64_t t = 0,std::string channel_name = "t");
     template<typename DataType>
-    void read_particles(APR apr,std::string particles_name,ParticleData<DataType>& particles,uint64_t t = 0,bool apr_or_tree = true,std::string channel_name = "t");
+    void read_particles(APR& apr,std::string particles_name,ParticleData<DataType>& particles,uint64_t t = 0,bool apr_or_tree = true,std::string channel_name = "t");
 
     //set helpers
     bool get_read_write_tree(){
@@ -65,8 +65,12 @@ public:
 
     APRTimer timer;
 
-    float current_file_size(){
-        return fileStructure.getFileSize();
+    float current_file_size_MB(){
+        return (fileStructure.getFileSize())/(1000000.0);
+    }
+
+    float current_file_size_GB(){
+        return (fileStructure.getFileSize())/(1000000000.0);
     }
 
     void set_blosc_access_settings(unsigned int blosc_comp_type_access_,unsigned int blosc_comp_level_access_,unsigned int blosc_shuffle_access_){
@@ -104,9 +108,6 @@ private:
 
     //Advanced Parameters.
 
-    //Maximum and minimum levels to read.
-//    unsigned int maximum_level_read = 0; //have a set method either by level or by delta
-//    int max_level_delta = 0; #TODO: add this functionality back in for lazy loading particles..
 
 };
 
@@ -180,7 +181,7 @@ void APRFile::write_apr(APR &apr,uint64_t t,std::string channel_name){
 
     APRWriter::write_apr_parameters(meta_location,apr.parameters);
 
-    timer.start_timer("access_data");
+    timer.start_timer("write_apr_access_data");
 
     if(write_linear){
 
@@ -202,14 +203,20 @@ void APRFile::write_apr(APR &apr,uint64_t t,std::string channel_name){
 
         if(write_linear_tree) {
 
+
+            timer.start_timer("init_tree");
+
             apr.init_tree_linear();
 
+            timer.stop_timer();
 
+            timer.start_timer("write_tree_access_data");
             APRWriter::writeAttr(AprTypes::TotalNumberOfParticlesType, fileStructure.objectIdTree,
                                  &apr.treeInfo.total_number_particles);
 
             APRWriter::write_linear_access(fileStructure.objectIdTree, fileStructure.objectIdTree, apr.linearAccessTree, blosc_comp_type_access,
                                            blosc_comp_level_access, blosc_shuffle_access);
+            timer.stop_timer();
         } else {
 
             apr.init_tree_random(); //incase it hasn't been initialized.
@@ -223,6 +230,7 @@ void APRFile::write_apr(APR &apr,uint64_t t,std::string channel_name){
         }
 
     }
+
 
 }
 
@@ -246,8 +254,6 @@ void APRFile::write_particles(APR &apr,const std::string particles_name,Particle
 
     fileStructure.open_time_point(t,with_tree_flag,channel_name);
 
-    APRTimer timer;
-
     hid_t part_location;
 
     if(apr_or_tree){
@@ -262,7 +268,8 @@ void APRFile::write_particles(APR &apr,const std::string particles_name,Particle
 
     // ------------- write data ----------------------------
 
-    timer.start_timer("intensities");
+    timer.start_timer("write intensities");
+
     if (aprCompress.get_compression_type() > 0){
         aprCompress.compress(apr,particles);
     }
@@ -274,6 +281,7 @@ void APRFile::write_particles(APR &apr,const std::string particles_name,Particle
 
     hid_t type = APRWriter::Hdf5Type<DataType>::type();
     APRWriter::writeData({type, particles_name.c_str()}, part_location, particles.data, blosc_comp_type_parts, blosc_comp_level_parts, blosc_shuffle_parts);
+
     timer.stop_timer();
 
 }
@@ -285,7 +293,6 @@ void APRFile::write_particles(APR &apr,const std::string particles_name,Particle
    */
 void APRFile::read_apr(APR &apr,uint64_t t,std::string channel_name){
 
-    APRTimer timer_f(false);
 
     if(fileStructure.isOpened()){
         //std::cout << "file is open" << std::endl;
@@ -324,6 +331,8 @@ void APRFile::read_apr(APR &apr,uint64_t t,std::string channel_name){
     std::string data_n = fileStructure.subGroup1 + "/map_level";
     bool stored_random = data_exists(fileStructure.fileId,data_n.c_str());
 
+    timer.start_timer("read_apr_access");
+
     if(!stored_random) {
         //make this an automatic check to see what the file is.
         APRWriter::read_linear_access( fileStructure.objectId, apr.linearAccess);
@@ -332,9 +341,11 @@ void APRFile::read_apr(APR &apr,uint64_t t,std::string channel_name){
 
         APRWriter::read_random_access(meta_data, fileStructure.objectId, apr.apr_access);
         apr.apr_initialized_random = true;
-
     }
 
+    timer.stop_timer();
+
+    timer.start_timer("read_tree_access");
 
     if(with_tree_flag) {
 
@@ -343,7 +354,6 @@ void APRFile::read_apr(APR &apr,uint64_t t,std::string channel_name){
 
         data_n = fileStructure.subGroupTree1 + "/y_vec";
         bool stored_linear_tree = data_exists(fileStructure.fileId,data_n.c_str());;
-
 
         tree_exists = true;
         if(!stored_random_tree && !stored_linear_tree){
@@ -367,7 +377,6 @@ void APRFile::read_apr(APR &apr,uint64_t t,std::string channel_name){
 
                 APRWriter::read_random_tree_access(fileStructure.objectIdTree, fileStructure.objectIdTree,
                                                    apr.tree_access, apr.apr_access);
-
                 apr.tree_initialized_random = true;
 
             } else {
@@ -378,6 +387,8 @@ void APRFile::read_apr(APR &apr,uint64_t t,std::string channel_name){
         }
 
     }
+
+    timer.stop_timer();
 
 
 };
@@ -390,7 +401,10 @@ void APRFile::read_apr(APR &apr,uint64_t t,std::string channel_name){
    * @param apr_or_tree (Default = True (APR), false = APR Tree)
    */
 template<typename DataType>
-void APRFile::read_particles(APR apr,std::string particles_name,ParticleData<DataType>& particles,uint64_t t,bool apr_or_tree,std::string channel_name){
+void APRFile::read_particles(APR &apr,std::string particles_name,ParticleData<DataType>& particles,uint64_t t,bool apr_or_tree,std::string channel_name){
+
+
+    timer.start_timer("init_read_parts");
 
     if(fileStructure.isOpened()){
         //std::cout << "file is open" << std::endl;
@@ -432,6 +446,8 @@ void APRFile::read_particles(APR apr,std::string particles_name,ParticleData<Dat
     APRWriter::readAttr(AprTypes::CompressionType, meta_data, &compress_type);
     float quantization_factor;
     APRWriter::readAttr(AprTypes::QuantizationFactorType, meta_data, &quantization_factor);
+
+    timer.stop_timer();
 
 
     timer.start_timer("Read intensities");

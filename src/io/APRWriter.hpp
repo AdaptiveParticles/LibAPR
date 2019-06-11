@@ -1219,14 +1219,14 @@ protected:
 
 
     template<typename T>
-    static void writeData(const AprType &aType, hid_t aObjectId, T aContainer, unsigned int blosc_comp_type, unsigned int blosc_comp_level,unsigned int blosc_shuffle) {
+    static void writeData(const AprType &aType, hid_t aObjectId, T &aContainer, unsigned int blosc_comp_type, unsigned int blosc_comp_level,unsigned int blosc_shuffle) {
         hsize_t dims[] = {aContainer.size()};
         const hsize_t rank = 1;
         hdf5_write_data_blosc(aObjectId, aType.hdf5type, aType.typeName, rank, dims, aContainer.data(), blosc_comp_type, blosc_comp_level, blosc_shuffle);
     }
 
     template<typename T>
-    static uint64_t writeDataAppend(const AprType &aType, hid_t aObjectId, T aContainer, unsigned int blosc_comp_type, unsigned int blosc_comp_level,unsigned int blosc_shuffle) {
+    static uint64_t writeDataAppend(const AprType &aType, hid_t aObjectId, T &aContainer, unsigned int blosc_comp_type, unsigned int blosc_comp_level,unsigned int blosc_shuffle) {
 
 
         hsize_t dims[] = {aContainer.size()};

@@ -102,7 +102,6 @@ inline void LinearAccess::initialize_tree_access_sparse(std::vector<std::vector<
 
     y_vec.resize(genInfo->total_number_particles);
 
-
     apr_timer.start_timer("create gaps");
 
     for(uint64_t i = (level_min());i <= level_max();i++) {
