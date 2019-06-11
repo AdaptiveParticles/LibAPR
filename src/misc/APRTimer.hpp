@@ -20,7 +20,7 @@ class APRTimer {
 //
 //  Bevan Cheeseman 2016
 //
-//  Just to be used for timing stuff, and recording the results
+//  Used for timing, and recording the results
 //
 //
 

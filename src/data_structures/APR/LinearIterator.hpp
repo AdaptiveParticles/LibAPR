@@ -41,17 +41,32 @@ public:
         return linearAccess->y_vec[current_index];
     }
 
-    //defining the iterator interface
+    //Moves the iterator forward
     inline void operator++ (int) override{
         current_index++;
     }
 
+    //Moves the iterator forward (Note these are identical and only both including for convenience)
     inline void operator++ () override{
         current_index++;
     }
 
     inline uint64_t end() override{
         return end_index;
+    }
+
+    inline uint64_t particles_level_begin(const uint16_t& level_) override {
+
+        auto level_start_ = linearAccess->level_xz_vec[level_];
+
+        return linearAccess->xz_end_vec[level_start_-1];
+
+    }
+
+    inline uint64_t particles_level_end(const uint16_t& level_) override {
+
+        uint64_t index = linearAccess->level_xz_vec[level_] + x_num(level_) - 1 + (z_num(level_)-1)*x_num(level_);
+        return linearAccess->xz_end_vec[index];
     }
 
     inline uint64_t total_number_particles(unsigned int level_=0){
@@ -65,8 +80,11 @@ public:
     }
 
     inline uint64_t begin(const uint16_t level_,const uint16_t z_,const uint16_t x_) override {
+        //
+        //  This initializes the iterator for the new row, by finding the starting index for both the particles and y data
+        //
 
-        level_start = linearAccess->level_xz_vec[level_]; //do i make these variables in the class
+        level_start = linearAccess->level_xz_vec[level_];
         offset = x_ + z_*x_num(level_);
         xz_start = level_start + offset;
         level = level_;
