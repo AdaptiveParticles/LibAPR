@@ -82,9 +82,9 @@ template<typename DataType>
 void GenData<DataType>::gen_fill_level(APR& apr,LinearIterator it,bool tree){
 
     if(tree){
-        this->init_tree(apr);
+        init_tree(apr);
     } else {
-        this->init(apr);
+        init(apr);
     }
 
     for (unsigned int level = it.level_min(); level <= it.level_max(); ++level) {
