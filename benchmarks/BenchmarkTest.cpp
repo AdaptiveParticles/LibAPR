@@ -308,7 +308,7 @@ bool test_tiling(BenchmarkData& benchmarkData){
 
     int apr_num = 0;
 
-    std::vector<int> tile_dims = {30,30,30};
+    std::vector<int> tile_dims = {10,10,10};
 
     APR apr_tiled;
     ParticleData<uint16_t> tiled_parts;
@@ -735,7 +735,7 @@ std::string get_source_directory_apr(){
 
 void CreateBenchmarkAPR::SetUp(){
 
-    std::string file_name = get_source_directory_apr() + "files/cr_1000.apr";
+    std::string file_name = get_source_directory_apr() + "files/cr_54.apr";
     bench_data.aprs.resize(1);
     bench_data.parts.resize(1);
 
