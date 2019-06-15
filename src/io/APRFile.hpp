@@ -350,8 +350,11 @@ void APRFile::read_apr(APR &apr,uint64_t t,std::string channel_name){
     timer.start_timer("read_apr_access");
 
     if(!stored_random) {
+
+
+
         //make this an automatic check to see what the file is.
-        APRWriter::read_linear_access( fileStructure.objectId, apr.linearAccess);
+        APRWriter::read_linear_access( fileStructure.objectId, apr.linearAccess,max_level_delta);
         apr.apr_initialized = true;
     } else {
 
@@ -397,7 +400,12 @@ void APRFile::read_apr(APR &apr,uint64_t t,std::string channel_name){
 
             } else {
                 apr.tree_initialized = true;
-                APRWriter::read_linear_access( fileStructure.objectIdTree, apr.linearAccessTree);
+                int max_level_delta_tree=0;
+
+                if(max_level_delta > 0){
+                    max_level_delta_tree = max_level_delta - 1;
+                }
+                APRWriter::read_linear_access( fileStructure.objectIdTree, apr.linearAccessTree,max_level_delta_tree);
             }
 
         }

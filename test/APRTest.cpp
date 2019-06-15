@@ -968,12 +968,20 @@ bool test_read_upto_level(TestData& test_data){
     }
 
 
-    writeFile.close();
-
 
     //
-    //  Partial Read Parts Tree
+    //  Partial Read APR
     //
+
+    //for (int delta = 0; delta < (test_data.apr.level_max()- test_data.apr.level_min()); ++delta) {
+        auto delta = 0;
+        writeFile.set_max_level_read_delta(delta);
+
+        APR apr_partial;
+
+        writeFile.read_apr(apr_partial);
+
+    //}
 
 
 

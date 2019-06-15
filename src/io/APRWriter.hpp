@@ -226,18 +226,32 @@ public:
 
     }
 
-    static void read_linear_access(hid_t objectId, LinearAccess& linearAccess){
+    static void read_linear_access(hid_t objectId, LinearAccess& linearAccess,int max_level_delta){
 
+        linearAccess.genInfo->l_max = std::max(linearAccess.genInfo->l_max - max_level_delta,linearAccess.level_min());
         linearAccess.initialize_xz_linear(); //initialize the structures based on size.
 
-        read_linear_y(objectId, linearAccess);
-        APRWriter::readData({H5T_NATIVE_UINT64,"xz_end_vec"}, objectId, linearAccess.xz_end_vec.data());
+        auto level_ = linearAccess.genInfo->l_max;
+        uint64_t index = linearAccess.level_xz_vec[level_] + linearAccess.x_num(level_) - 1 + (linearAccess.z_num(level_)-1)*linearAccess.x_num(level_);
+
+
+        uint64_t begin_index = 0;
+        uint64_t end_index = linearAccess.level_xz_vec[level_+1];
+
+        APRWriter::readData("xz_end_vec", objectId, linearAccess.xz_end_vec.data(),begin_index,end_index);
+
+        uint64_t begin_y = 0;
+        uint64_t end_y = linearAccess.xz_end_vec[index];
+
+        linearAccess.y_vec.resize(end_y - begin_y);
+        read_linear_y(objectId, linearAccess.y_vec,begin_y,end_y);
 
     }
 
-    static void read_linear_y(hid_t objectId, LinearAccess& linearAccess){
-        linearAccess.y_vec.resize(linearAccess.genInfo->total_number_particles);
-        APRWriter::readData({H5T_NATIVE_UINT16,"y_vec"}, objectId, linearAccess.y_vec.data());
+    template<typename T>
+    static void read_linear_y(hid_t objectId,  T &aContainer,uint64_t begin, uint64_t end){
+
+        APRWriter::readData("y_vec", objectId, aContainer.data(),begin,end);
     }
 
 
