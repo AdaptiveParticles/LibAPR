@@ -77,6 +77,10 @@ public:
     LinearIterator iterator() {
         // Just checking if its initialized
         if(!apr_initialized){
+            if(!apr_initialized_random){
+                std::cerr << "No APR initialized" << std::endl;
+            }
+
             init_linear();
             apr_initialized = true;
         }

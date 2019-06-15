@@ -333,6 +333,7 @@ bool test_tiling(BenchmarkData& benchmarkData){
 
     timer.start_timer("init tree");
     auto it_t = apr_tiled.tree_iterator();
+    (void) it_t;
     timer.stop_timer();
 
     APRFile aprFile;

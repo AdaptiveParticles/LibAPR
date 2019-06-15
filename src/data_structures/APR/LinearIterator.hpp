@@ -14,8 +14,10 @@ class LinearIterator: public GenIterator {
     template<typename T>
     friend class PartCellData;
 
+    template<typename T>
+    friend class LazyData;
+
     uint64_t current_index;
-    //uint64_t begin_index;
 
     // TODO: need to add the level,x,z,y into here..
     // Also need to add the datageneration. (should make it lazy as possible)

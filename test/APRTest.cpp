@@ -968,20 +968,46 @@ bool test_read_upto_level(TestData& test_data){
     }
 
 
-
     //
     //  Partial Read APR
     //
 
-    //for (int delta = 0; delta < (test_data.apr.level_max()- test_data.apr.level_min()); ++delta) {
-        auto delta = 0;
+    for (int delta = 0; delta < (test_data.apr.level_max()- test_data.apr.level_min()); ++delta) {
+
         writeFile.set_max_level_read_delta(delta);
 
         APR apr_partial;
 
         writeFile.read_apr(apr_partial);
 
-    //}
+        auto it_org = test_data.apr.iterator();
+        auto it_partial = apr_partial.iterator();
+
+        for (int level = it_partial.level_min(); level <= (it_partial.level_max()); ++level) {
+            for (int z = 0; z < it_partial.z_num(level); ++z) {
+                for (int x = 0; x < it_partial.x_num(level); ++x) {
+
+                    it_org.begin(level, z, x);
+                    for (it_partial.begin(level, z, x); it_partial != it_partial.end(); ++it_partial) {
+
+                        if(it_partial != it_org){
+                            success = false;
+                        }
+
+                        if(it_org.y() != it_partial.y()){
+                            success = false;
+                        }
+
+                        if(it_org < it_org.end()){
+                            it_org++;
+                        }
+
+                    }
+                }
+            }
+        }
+
+    }
 
 
 
