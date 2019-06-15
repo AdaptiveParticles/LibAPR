@@ -867,6 +867,116 @@ bool test_read_upto_level(TestData& test_data){
 
     writeFile.write_particles(test_data.apr,"parts",test_data.particles_intensities);
 
+    writeFile.close();
+
+    //
+    //  Read Full
+    //
+
+    ParticleData<uint16_t> parts_full;
+
+    writeFile.open(file_name,"READ");
+
+    writeFile.read_particles(test_data.apr,"parts",parts_full);
+
+
+    //
+    //  Partial Read Parts
+    //
+
+    for (int delta = 0; delta < (test_data.apr.level_max()- test_data.apr.level_min()); ++delta) {
+
+        writeFile.set_max_level_read_delta(delta);
+
+        ParticleData<uint16_t> parts_partial;
+        writeFile.read_particles(test_data.apr, "parts", parts_partial);
+
+        auto it = test_data.apr.iterator();
+
+        uint64_t counter = 0;
+
+        for (int level = it.level_min(); level <= (it.level_max() - delta); ++level) {
+            for (int z = 0; z < it.z_num(level); ++z) {
+                for (int x = 0; x < it.x_num(level); ++x) {
+                    for (it.begin(level, z, x); it != it.end(); ++it) {
+                        counter++;
+                        auto val_org = parts_full[it];
+                        auto val_partial = parts_partial[it];
+
+                        if (val_org != val_partial) {
+                            success = false;
+                        }
+                    }
+                }
+            }
+        }
+
+        auto size_partial = parts_partial.size();
+        if (counter != size_partial) {
+            success = false;
+        }
+
+    }
+
+    writeFile.close();
+
+    //
+    //  Partial Read Parts Tree
+    //
+
+
+    ParticleData<uint16_t> parts_tree;
+    APRTreeNumerics::fill_tree_mean(test_data.apr,test_data.particles_intensities,parts_tree);
+
+    writeFile.open(file_name,"READWRITE");
+
+    writeFile.write_particles(test_data.apr,"parts_tree",parts_tree,0,false);
+
+    for (int delta = 0; delta < (test_data.apr.level_max()- test_data.apr.level_min()); ++delta) {
+
+        writeFile.set_max_level_read_delta(delta);
+
+        ParticleData<uint16_t> parts_partial;
+        writeFile.read_particles(test_data.apr, "parts_tree", parts_partial,0,false);
+
+        auto it_tree = test_data.apr.tree_iterator();
+        auto it = test_data.apr.iterator();
+
+        uint64_t counter = 0;
+
+        for (int level = it_tree.level_min(); level <= std::min((int)it_tree.level_max(),(it.level_max() - delta)); ++level) {
+            for (int z = 0; z < it_tree.z_num(level); ++z) {
+                for (int x = 0; x < it_tree.x_num(level); ++x) {
+                    for (it_tree.begin(level, z, x); it_tree != it_tree.end(); ++it_tree) {
+                        counter++;
+                        auto val_org = parts_tree[it_tree];
+                        auto val_partial = parts_partial[it_tree];
+
+                        if (val_org != val_partial) {
+                            success = false;
+                        }
+                    }
+                }
+            }
+        }
+
+        auto size_partial = parts_partial.size();
+        if (counter != size_partial) {
+            success = false;
+        }
+
+    }
+
+
+    writeFile.close();
+
+
+    //
+    //  Partial Read Parts Tree
+    //
+
+
+
 
     return success;
 

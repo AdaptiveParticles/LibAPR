@@ -1215,7 +1215,11 @@ protected:
         hdf5_load_data_blosc_partial(aObjectId, aDest, aAprTypeName,elements_start,elements_end);
     }
 
-    //hdf5_load_data_blosc_partial(hid_t obj_id, void* buff, const char* data_name,uint64_t number_of_elements_read,uint64_t number_of_elements_total)
+    static void writeData(const char * const aAprTypeName, hid_t aObjectId, void *aDest,uint64_t elements_start,uint64_t elements_end) {
+        //reads partial dataset
+        hdf5_write_data_blosc_partial(aObjectId, aDest, aAprTypeName,elements_start,elements_end);
+    }
+
 
 
     template<typename T>

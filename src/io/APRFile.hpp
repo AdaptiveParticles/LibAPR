@@ -86,6 +86,22 @@ public:
     }
 
     APRCompress aprCompress;
+
+    /*
+     *  Advanced IO capability
+     *
+     */
+
+    //sets an offset as to the maximum level read.
+    void set_max_level_read_delta(int max_level_delta_){
+
+        if(max_level_delta_ < 0){
+            std::cerr << "Max level delta must be positive" << std::endl;
+        }
+
+        max_level_delta = max_level_delta_;
+    }
+
 private:
 
     //Basic Properties.
@@ -107,7 +123,7 @@ private:
     unsigned int blosc_shuffle_access=1;
 
     //Advanced Parameters.
-
+    int max_level_delta = 0;
 
 };
 
@@ -412,16 +428,25 @@ void APRFile::read_particles(APR &apr,std::string particles_name,ParticleData<Da
 
     fileStructure.open_time_point(t,with_tree_flag,channel_name);
 
-    //uint64_t max_read_level = apr.apr_access.level_max()-max_level_delta;
-    //uint64_t max_read_level_tree = std::min(apr.apr_access.level_max()-1,max_read_level);
-    //uint64_t prev_read_level = 0;
-
+    int max_read_level;
     uint64_t parts_start = 0;
-    uint64_t parts_end = apr.total_number_particles(); //apr.apr_access.global_index_by_level_end[max_read_level] + 1;
+    uint64_t parts_end = 0;
 
-    if(!apr_or_tree){
-        parts_end = apr.total_number_tree_particles();
+    if(apr_or_tree){
+        max_read_level = std::max((int)apr.level_min(),(int)(apr.level_max() - max_level_delta));
+        parts_start = 0;
+        auto it = apr.iterator();
+        parts_end = it.total_number_particles(max_read_level);
+
+    } else {
+        auto tree_it = apr.tree_iterator();
+        max_read_level = std::min((int)tree_it.level_max(),(int)(apr.level_max() - max_level_delta));
+        max_read_level = std::max((int)tree_it.level_min(),max_read_level);
+        parts_start = 0;
+        auto it_tree = apr.tree_iterator();
+        parts_end = it_tree.total_number_particles(max_read_level);
     }
+
 
     //check if old or new file, for location of the properties. (The metadata moved to the time point.)
     hid_t part_location;
@@ -449,10 +474,9 @@ void APRFile::read_particles(APR &apr,std::string particles_name,ParticleData<Da
 
     timer.stop_timer();
 
-
     timer.start_timer("Read intensities");
     // ------------- read data ------------------------------
-    particles.data.resize(parts_end);
+    particles.data.resize(parts_end - parts_start);
     if (particles.data.size() > 0) {
         APRWriter::readData(particles_name.c_str(), part_location, particles.data.data() + parts_start,parts_start,parts_end);
     }
