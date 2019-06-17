@@ -21,8 +21,8 @@ neighbour iteration strategies on the APR.
 #include <iostream>
 
 #include "Example_apr_neighbour_access.hpp"
-#include"data_structures/APR/ParticleData.hpp"
-#include"io/APRFile.hpp"
+#include "data_structures/APR/particles/ParticleData.hpp"
+#include "io/APRFile.hpp"
 
 
 int main(int argc, char **argv) {

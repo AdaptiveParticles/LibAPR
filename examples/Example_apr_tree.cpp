@@ -30,7 +30,7 @@ random access strategies on the APR.
 
 #include "Example_apr_tree.hpp"
 #include "data_structures/APR/APR.hpp"
-#include "data_structures/APR/ParticleData.hpp"
+#include "data_structures/APR/particles/ParticleData.hpp"
 #include  "io/APRFile.hpp"
 #include  "numerics/APRTreeNumerics.hpp"
 

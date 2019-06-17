@@ -5,7 +5,7 @@
 #ifndef LIBAPR_GENITERATOR_HPP
 #define LIBAPR_GENITERATOR_HPP
 
-#include "RandomAccess.hpp"
+#include "../access/RandomAccess.hpp"
 
 class GenIterator {
 

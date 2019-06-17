@@ -7,7 +7,7 @@
 
 #include "hdf5functions_blosc.h"
 #include "data_structures/APR/APR.hpp"
-#include "data_structures/APR/RandomAccess.hpp"
+#include "data_structures/APR/access/RandomAccess.hpp"
 #include "ConfigAPR.h"
 #include <numeric>
 #include <memory>
@@ -87,6 +87,8 @@ namespace AprTypes  {
 
 class APRWriter {
     friend class APRFile;
+    template<typename T>
+    friend class LazyData;
 
 protected:
     unsigned int current_t = 0;
@@ -1092,13 +1094,19 @@ public:
             if(tree){
                 if(!group_exists(fileId,subGroup)) {
                     objectId = H5Gcreate2(fileId, subGroup, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
+                } else {
+                    objectId = H5Gopen2(fileId, subGroup, H5P_DEFAULT);
                 }
                 if(!group_exists(fileId,subGroupTree)) {
                     objectIdTree = H5Gcreate2(fileId, subGroupTree, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
+                } else {
+                    objectIdTree = H5Gopen2(fileId, subGroupTree, H5P_DEFAULT);
                 }
             } else {
                 if(!group_exists(fileId,subGroup)) {
                     objectId = H5Gcreate2(fileId, subGroup, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
+                } else {
+                    objectId = H5Gopen2(fileId, subGroup, H5P_DEFAULT);
                 }
             }
 

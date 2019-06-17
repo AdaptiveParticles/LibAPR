@@ -31,7 +31,7 @@ e.g. Example_ray_cast -i nuc_apr.h5 -d /Test/Input_examples/ -aniso 2.0 -jitter 
 #include "Example_ray_cast.h"
 #include "io/TiffUtils.hpp"
 #include "numerics/APRTreeNumerics.hpp"
-#include"data_structures/APR/ParticleData.hpp"
+#include"data_structures/APR/particles/ParticleData.hpp"
 #include"io/APRFile.hpp"
 
 

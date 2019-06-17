@@ -5,10 +5,10 @@
 #ifndef LIBAPR_APRTREENUMERICS_HPP
 #define LIBAPR_APRTREENUMERICS_HPP
 
-#include "data_structures/APR/PartCellData.hpp"
-#include "data_structures/APR/ParticleData.hpp"
+#include "data_structures/APR/particles/PartCellData.hpp"
+#include "data_structures/APR/particles/ParticleData.hpp"
 #include "data_structures/APR/APR.hpp"
-#include "data_structures/APR/APRTreeIterator.hpp"
+#include "data_structures/APR/iterators/APRTreeIterator.hpp"
 #include "APRNumerics.hpp"
 
 class APRTreeNumerics {

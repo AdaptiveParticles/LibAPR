@@ -5,10 +5,10 @@
 #ifndef PARTPLAY_APR_HPP
 #define PARTPLAY_APR_HPP
 
-#include "RandomAccess.hpp"
-#include "APRIterator.hpp"
-#include "APRTreeIterator.hpp"
-#include "LinearIterator.hpp"
+#include "access/RandomAccess.hpp"
+#include "iterators/APRIterator.hpp"
+#include "iterators/APRTreeIterator.hpp"
+#include "iterators/LinearIterator.hpp"
 #include "GenInfo.hpp"
 
 class APR {

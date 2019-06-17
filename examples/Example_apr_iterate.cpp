@@ -20,7 +20,7 @@ iteration strategies on the APR.
 #include <iostream>
 #include <cmath>
 #include "Example_apr_iterate.h"
-#include"data_structures/APR/ParticleData.hpp"
+#include"data_structures/APR/particles/ParticleData.hpp"
 #include"io/APRFile.hpp"
 
 

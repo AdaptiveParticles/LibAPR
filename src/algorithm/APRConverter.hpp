@@ -12,7 +12,7 @@
 #include <list>
 
 #include "data_structures/APR/APR.hpp"
-#include "data_structures/APR/ParticleData.hpp"
+#include "data_structures/APR/particles/ParticleData.hpp"
 #include "data_structures/Mesh/PixelData.hpp"
 #include "io/TiffUtils.hpp"
 #include "numerics/APRReconstruction.hpp"

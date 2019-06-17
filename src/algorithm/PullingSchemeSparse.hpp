@@ -6,11 +6,9 @@
 #define LIBAPR_PULLINGSCHEMESPARSE_HPP
 
 #include <cassert>
-#include "../data_structures/APR/APRIterator.hpp"
 #include "data_structures/Mesh/PixelData.hpp"
 #include "../data_structures/APR/APR.hpp"
-#include "data_structures/APR/PartCellData.hpp"
-#include "../data_structures/APR/APRAccessStructures.hpp"
+#include "../data_structures/APR/access/APRAccessStructures.hpp"
 
 #ifdef HAVE_OPENMP
 #include "omp.h"

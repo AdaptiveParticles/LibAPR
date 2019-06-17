@@ -38,7 +38,7 @@ Advanced (Direct) Settings:
 #include "ConfigAPR.h"
 #include "Example_get_apr.h"
 #include "io/APRFile.hpp"
-#include "data_structures/APR/ParticleData.hpp"
+#include "data_structures/APR/particles/ParticleData.hpp"
 #include "data_structures/APR/APR.hpp"
 #include "algorithm/APRConverter.hpp"
 

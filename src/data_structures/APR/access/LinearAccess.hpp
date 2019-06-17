@@ -14,7 +14,7 @@
 
 #include "APRAccessStructures.hpp"
 
-#include "GenInfo.hpp"
+#include "../GenInfo.hpp"
 
 class LinearAccess : public GenAccess {
 

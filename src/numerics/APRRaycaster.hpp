@@ -18,8 +18,8 @@
 #include <cmath>
 
 #include "data_structures/Mesh/PixelData.hpp"
-#include "data_structures/APR/PartCellData.hpp"
-#include "data_structures/APR/ParticleData.hpp"
+#include "data_structures/APR/particles/PartCellData.hpp"
+#include "data_structures/APR/particles/ParticleData.hpp"
 
 #include "data_structures/APR/APR.hpp"
 #include "numerics/APRRaycaster.cpp"

@@ -5,8 +5,7 @@
 #ifndef PARTPLAY_APR_ITERATOR_NEW_HPP
 #define PARTPLAY_APR_ITERATOR_NEW_HPP
 
-#include "APRAccessStructures.hpp"
-
+#include "../access/APRAccessStructures.hpp"
 #include "RandomIterator.hpp"
 
 class APRIterator  : public RandomIterator {

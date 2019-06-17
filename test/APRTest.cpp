@@ -13,6 +13,7 @@
 #include "numerics/APRTreeNumerics.hpp"
 #include "io/APRWriter.hpp"
 
+#include "data_structures/APR/particles/LazyData.hpp"
 
 #include "io/APRFile.hpp"
 
@@ -421,6 +422,93 @@ bool compare_linear_access(LinearAccess){
 
     return true;
 }
+
+
+bool test_lazy_particles(TestData& test_data){
+
+    bool success = true;
+
+    auto it = test_data.apr.iterator();
+
+    std::string file_name = "parts_lazy_test.apr";
+
+    APRFile writeFile;
+
+    writeFile.open(file_name,"WRITE");
+
+    writeFile.write_apr(test_data.apr);
+
+    writeFile.write_particles(test_data.apr,"parts",test_data.particles_intensities);
+
+    writeFile.close();
+
+    writeFile.open(file_name,"READWRITE");
+
+    LazyData<uint16_t> parts_lazy;
+
+    parts_lazy.init_with_file(writeFile,"parts",true);
+
+    APRTimer timer(true);
+
+    timer.start_timer("load loop slice");
+
+    for (int level = (it.level_max()); level >= it.level_min(); --level) {
+        int z = 0;
+        int x = 0;
+
+        for (z = 0; z < it.z_num(level); z++) {
+            parts_lazy.load_slice(level,z,it);
+            for (x = 0; x < it.x_num(level); ++x) {
+                for (it.begin(level,z,x); it < it.end();
+                     it++) {
+                    //add caching https://support.hdfgroup.org/HDF5/doc/H5.user/Caching.html
+                    if(test_data.particles_intensities[it] != parts_lazy[it]){
+                        success = false;
+                    }
+
+                    parts_lazy[it] += 1;
+
+                }
+            }
+            parts_lazy.write_slice(level,z,it);
+        }
+    }
+
+    timer.stop_timer();
+
+
+
+    timer.start_timer("load loop by row");
+
+    for (int level = (it.level_max()); level >= it.level_min(); --level) {
+        int z = 0;
+        int x = 0;
+
+        for (z = 0; z < it.z_num(level); z++) {
+            for (x = 0; x < it.x_num(level); ++x) {
+
+                for (parts_lazy.load_row(level,z,x,it); it < it.end();
+                     it++) {
+                    if((test_data.particles_intensities[it]+1) != parts_lazy[it]){
+                        success = false;
+                    }
+                }
+            }
+        }
+    }
+
+    timer.stop_timer();
+
+
+    parts_lazy.close();
+
+    writeFile.close();
+
+    return success;
+
+
+}
+
 
 bool test_linear_access_io(TestData& test_data) {
 
@@ -1008,8 +1096,6 @@ bool test_read_upto_level(TestData& test_data){
         }
 
     }
-
-
 
 
     return success;
@@ -2106,7 +2192,17 @@ TEST_F(Create210SphereTest, PARTIAL_READ) {
 
 }
 
+TEST_F(CreateSmallSphereTest, LAZY_PARTICLES) {
 
+    ASSERT_TRUE(test_lazy_particles(test_data));
+
+}
+
+TEST_F(Create210SphereTest, LAZY_PARTICLES) {
+
+    ASSERT_TRUE(test_lazy_particles(test_data));
+
+}
 
 TEST_F(CreateSmallSphereTest, APR_TREE) {
 

@@ -6,8 +6,8 @@
 #define LIBAPR_GENDATA_HPP
 
 #include "data_structures/Mesh/PixelData.hpp"
-#include "LinearIterator.hpp"
-#include "APR.hpp"
+#include "../iterators/LinearIterator.hpp"
+#include "../APR.hpp"
 
 template<typename DataType>
 class GenData {

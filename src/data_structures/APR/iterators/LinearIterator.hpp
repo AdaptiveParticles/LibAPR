@@ -5,9 +5,9 @@
 #ifndef LIBAPR_LINEARITERATOR_HPP
 #define LIBAPR_LINEARITERATOR_HPP
 
-#include "APRAccessStructures.hpp"
+#include "../access/APRAccessStructures.hpp"
 #include "GenIterator.hpp"
-#include "LinearAccess.hpp"
+#include "../access/LinearAccess.hpp"
 
 class LinearIterator: public GenIterator {
 
@@ -98,6 +98,7 @@ public:
 
         return current_index;
     }
+
 
 };
 

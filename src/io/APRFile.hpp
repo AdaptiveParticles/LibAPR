@@ -7,7 +7,7 @@
 
 #include "hdf5functions_blosc.h"
 #include "data_structures/APR/APR.hpp"
-#include "data_structures/APR/RandomAccess.hpp"
+#include "data_structures/APR/access/RandomAccess.hpp"
 #include "ConfigAPR.h"
 #include <numeric>
 #include <memory>
@@ -100,6 +100,10 @@ public:
         }
 
         max_level_delta = max_level_delta_;
+    }
+
+    APRWriter::FileStructure* get_fileStructure(){
+        return &fileStructure;
     }
 
 private:

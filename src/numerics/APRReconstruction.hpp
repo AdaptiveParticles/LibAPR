@@ -6,11 +6,11 @@
 #define PARTPLAY_APRRECONSTRUCTION_HPP
 
 #include "data_structures/APR/APR.hpp"
-#include "data_structures/APR/APRIterator.hpp"
-#include "data_structures/APR/APRTreeIterator.hpp"
+#include "data_structures/APR/iterators/APRIterator.hpp"
+#include "data_structures/APR/iterators/APRTreeIterator.hpp"
 #include "numerics/MeshNumerics.hpp"
-#include "data_structures/APR/ParticleData.hpp"
-#include "data_structures/APR/PartCellData.hpp"
+#include "data_structures/APR/particles/ParticleData.hpp"
+#include "data_structures/APR/particles/PartCellData.hpp"
 #include "numerics/APRTreeNumerics.hpp"
 
 struct ReconPatch{

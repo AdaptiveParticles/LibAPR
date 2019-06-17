@@ -30,7 +30,7 @@ Note: fine grained parameters can be tuned within the file, to play with lossles
 
 #include "Example_compress_apr.h"
 #include "io/TiffUtils.hpp"
-#include "data_structures/APR/ParticleData.hpp"
+#include "data_structures/APR/particles/ParticleData.hpp"
 #include "io/APRFile.hpp"
 #include "numerics/APRReconstruction.hpp"
 

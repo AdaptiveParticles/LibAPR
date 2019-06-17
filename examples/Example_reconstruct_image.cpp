@@ -35,7 +35,7 @@ Options:
 
 #include "data_structures/APR/APR.hpp"
 #include "io/TiffUtils.hpp"
-#include"data_structures/APR/ParticleData.hpp"
+#include"data_structures/APR/particles/ParticleData.hpp"
 #include"io/APRFile.hpp"
 #include "numerics/APRReconstruction.hpp"
 

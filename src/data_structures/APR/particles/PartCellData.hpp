@@ -10,11 +10,8 @@
 #define PARTPLAY_EXTRAPARTCELLDATA_HPP
 
 #include <vector>
-
-#include "APR.hpp"
-
-#include "APRAccessStructures.hpp"
-
+#include "../APR.hpp"
+#include "../access/APRAccessStructures.hpp"
 #include "GenData.hpp"
 
 template<typename DataType>

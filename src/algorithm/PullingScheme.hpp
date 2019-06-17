@@ -8,7 +8,7 @@
 #ifndef PARTPLAY_PULLING_SCHEME_HPP
 #define PARTPLAY_PULLING_SCHEME_HPP
 
-#include "data_structures/APR/RandomAccess.hpp"
+#include "data_structures/APR/access/RandomAccess.hpp"
 #include "data_structures/Mesh/PixelData.hpp"
 #include <vector>
 

@@ -5,7 +5,7 @@
 #ifndef LIBAPR_GENACCESS_HPP
 #define LIBAPR_GENACCESS_HPP
 
-#include "GenInfo.hpp"
+#include "../GenInfo.hpp"
 
 class GenAccess {
 

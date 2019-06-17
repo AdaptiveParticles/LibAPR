@@ -11,7 +11,7 @@
 #define PARTPLAY_COMPRESSAPR_HPP
 
 #include "data_structures/APR/APR.hpp"
-#include "data_structures/APR/ParticleData.hpp"
+#include "data_structures/APR/particles/ParticleData.hpp"
 #include "misc/APRTimer.hpp"
 #include <cmath>
 #include <vector>

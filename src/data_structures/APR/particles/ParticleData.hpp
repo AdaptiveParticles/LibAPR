@@ -6,12 +6,12 @@
 #define PARTPLAY_EXTRAPARTICLEDATA_HPP
 
 
-#include "APRIterator.hpp"
+#include "../iterators/APRIterator.hpp"
 #include "data_structures/Mesh/PixelData.hpp"
 
 #include "GenData.hpp"
 
-#include "APR.hpp"
+#include "../APR.hpp"
 
 #include <algorithm>
 #include <vector>
