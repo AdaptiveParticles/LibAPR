@@ -32,6 +32,113 @@ struct FileSizeInfoTime {
 };
 
 
+/*
+ *  Class to handle generation of datasets using hdf5 using blosc
+ *
+ *  Bundles things together to allow some more general functionality in a modular way.
+ *
+ */
+class Hdf5DataSet {
+
+    hid_t obj_id;
+    hid_t data_id;
+
+    hid_t memspace_id;
+    hid_t dataspace_id;
+
+    hid_t dataType;
+
+    hsize_t dims;
+
+    hsize_t offset;
+    hsize_t count ;
+    hsize_t stride;
+    hsize_t block;
+
+    std::string data_name;
+
+public:
+
+    unsigned int blosc_comp_type = BLOSC_ZSTD;
+    unsigned int blosc_comp_level = 2;
+    unsigned int blosc_shuffle=1;
+
+    void init(hid_t obj_id_, const char* data_name_){
+
+        obj_id = obj_id_;
+        data_name = data_name_;
+
+    }
+
+    void create(hid_t type_id,uint64_t number_elements){
+        hsize_t rank = 1;
+        hsize_t dims = number_elements;
+
+        hdf5_create_dataset_blosc(  obj_id,  type_id,  data_name.c_str(),  rank, &dims,blosc_comp_type,blosc_comp_level,blosc_shuffle);
+    }
+
+    void write(void* buff,uint64_t elements_start,uint64_t elements_end){
+
+        dims = elements_end - elements_start;
+
+        offset = elements_start;
+        count = dims;
+
+#ifdef HAVE_OPENMP
+#pragma omp critical
+#endif
+        {
+            H5Sselect_hyperslab(dataspace_id, H5S_SELECT_SET, &offset,
+                                &stride, &count, &block);
+
+            memspace_id = H5Screate_simple(1, &dims, NULL);
+
+            H5Dwrite(data_id, dataType, memspace_id, dataspace_id, H5P_DEFAULT, buff);
+        }
+    }
+
+    void read(void* buff,uint64_t elements_start,uint64_t elements_end){
+        dims = elements_end - elements_start;
+
+        offset = elements_start;
+        count = dims;
+#ifdef HAVE_OPENMP
+#pragma omp critical
+#endif
+        {
+            H5Sselect_hyperslab (dataspace_id, H5S_SELECT_SET, &offset,
+                                 &stride, &count, &block);
+
+            memspace_id = H5Screate_simple (1, &dims, NULL);
+
+
+            H5Dread(data_id, dataType, memspace_id, dataspace_id, H5P_DEFAULT, buff);
+        }
+    }
+
+    void open(){
+
+        data_id =  H5Dopen2(obj_id, data_name.c_str() ,H5P_DEFAULT);
+
+        dataType = H5Dget_type(data_id);
+
+        stride = 1;
+        block = 1;
+
+        dataspace_id = H5Dget_space (data_id);
+    }
+
+    void close(){
+        H5Sclose (memspace_id);
+        H5Sclose (dataspace_id);
+
+        H5Tclose(dataType);
+        H5Dclose(data_id);
+    }
+
+};
+
+
 struct AprType {hid_t hdf5type; const char * const typeName;};
 namespace AprTypes  {
 
@@ -1238,7 +1345,7 @@ protected:
         hdf5_load_data_blosc_partial(aObjectId, aDest, aAprTypeName,elements_start,elements_end);
     }
 
-    static void writeData(const char * const aAprTypeName, hid_t aObjectId, void *aDest,uint64_t elements_start,uint64_t elements_end) {
+    static void writeDataExistingFile(const char * const aAprTypeName, hid_t aObjectId, void *aDest,uint64_t elements_start,uint64_t elements_end) {
         //reads partial dataset
         hdf5_write_data_blosc_partial(aObjectId, aDest, aAprTypeName,elements_start,elements_end);
     }

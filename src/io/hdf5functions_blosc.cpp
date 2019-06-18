@@ -73,38 +73,70 @@ void hdf5_load_data_blosc_partial(hid_t obj_id, void* buff, const char* data_nam
 }
 
 
-///**
-// * writes only a set number of elements
-// */
-//void hdf5_write_data_blosc_partial(hid_t obj_id, void* buff, const char* data_name,uint64_t elements_start,uint64_t elements_end) {
-//    hid_t data_id =  H5Dopen2(obj_id, data_name ,H5P_DEFAULT);
-//
-//    hid_t memspace_id=0;
-//    hid_t dataspace_id=0;
-//
-//    hid_t dataType = H5Dget_type(data_id);
-//
-//    hsize_t dims = elements_end - elements_start;
-//
-//    memspace_id = H5Screate_simple (1, &dims, NULL);
-//
-//    hsize_t offset = elements_start;
-//    hsize_t count = dims;
-//    hsize_t stride = 1;
-//    hsize_t block = 1;
-//
-//    dataspace_id = H5Dget_space (data_id);
-//    H5Sselect_hyperslab (dataspace_id, H5S_SELECT_SET, &offset,
-//                         &stride, &count, &block);
-//
-//    H5Dwrite(data_id, dataType, memspace_id, dataspace_id, H5P_DEFAULT, buff);
-//
-//    H5Sclose (memspace_id);
-//    H5Sclose (dataspace_id);
-//
-//    H5Tclose(dataType);
-//    H5Dclose(data_id);
-//}
+/**
+ * writes only a set number of elements
+ */
+void hdf5_write_data_blosc_partial(hid_t obj_id, void* buff, const char* data_name,uint64_t elements_start,uint64_t elements_end) {
+    hid_t data_id =  H5Dopen2(obj_id, data_name ,H5P_DEFAULT);
+
+    hid_t memspace_id=0;
+    hid_t dataspace_id=0;
+
+    hid_t dataType = H5Dget_type(data_id);
+
+    hsize_t dims = elements_end - elements_start;
+
+    memspace_id = H5Screate_simple (1, &dims, NULL);
+
+    hsize_t offset = elements_start;
+    hsize_t count = dims;
+    hsize_t stride = 1;
+    hsize_t block = 1;
+
+    dataspace_id = H5Dget_space (data_id);
+    H5Sselect_hyperslab (dataspace_id, H5S_SELECT_SET, &offset,
+                         &stride, &count, &block);
+
+    H5Dwrite(data_id, dataType, memspace_id, dataspace_id, H5P_DEFAULT, buff);
+
+    H5Sclose (memspace_id);
+    H5Sclose (dataspace_id);
+
+    H5Tclose(dataType);
+    H5Dclose(data_id);
+}
+
+
+/**
+ * writes data to the hdf5 file or group identified by obj_id of hdf5 datatype data_type
+ */
+void hdf5_create_dataset_blosc(hid_t obj_id, hid_t type_id, const char *ds_name, hsize_t rank, hsize_t *dims,unsigned int comp_type,unsigned int comp_level,unsigned int shuffle) {
+    hid_t plist_id  = H5Pcreate(H5P_DATASET_CREATE);
+
+    // Dataset must be chunked for compression
+    const uint64_t max_size = 100000;
+    hsize_t cdims = (dims[0] < max_size) ? dims[0] : max_size;
+    rank = 1;
+    H5Pset_chunk(plist_id, rank, &cdims);
+
+    /////SET COMPRESSION TYPE /////
+    // But you can also taylor Blosc parameters to your needs
+    // 0 to 3 (inclusive) param slots are reserved.
+    const int numOfParams = 7;
+    unsigned int cd_values[numOfParams];
+    cd_values[4] = comp_level; // compression level
+    cd_values[5] = shuffle;    // 0: shuffle not active, 1: shuffle active
+    cd_values[6] = comp_type;  // the actual compressor to use
+    H5Pset_filter(plist_id, FILTER_BLOSC, H5Z_FLAG_OPTIONAL, numOfParams, cd_values);
+
+    //create write and close
+    hid_t space_id = H5Screate_simple(rank, dims, NULL);
+    hid_t dset_id = H5Dcreate2(obj_id, ds_name, type_id, space_id, H5P_DEFAULT, plist_id, H5P_DEFAULT);
+
+    H5Dclose(dset_id);
+
+    H5Pclose(plist_id);
+}
 
 
 

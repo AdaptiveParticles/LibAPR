@@ -369,12 +369,20 @@ bool test_tiling(BenchmarkData& benchmarkData){
     return true;
 }
 
+void bench_io(){
+
+}
+
+void bench_compress(){
+
+}
+
 void bench_lazy_particles(BenchmarkData& benchmarkData){
 
 
     int apr_num = 0;
 
-    std::vector<int> tile_dims = {20,20,20};
+    std::vector<int> tile_dims = {10,10,10};
 
     APR apr_tiled;
     ParticleData<uint16_t> tiled_parts;
@@ -409,7 +417,9 @@ void bench_lazy_particles(BenchmarkData& benchmarkData){
 
     LazyData<uint16_t> parts_lazy;
 
-    parts_lazy.init_with_file(writeFile,"parts",true);
+    parts_lazy.init_file(writeFile,"parts",true);
+
+    parts_lazy.open();
 
     timer.start_timer("read write loop slice");
 

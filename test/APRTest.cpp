@@ -535,7 +535,9 @@ bool test_lazy_particles(TestData& test_data){
 
     LazyData<uint16_t> parts_lazy;
 
-    parts_lazy.init_with_file(writeFile,"parts",true);
+    parts_lazy.init_file(writeFile,"parts",true);
+
+    parts_lazy.open();
 
     APRTimer timer(true);
 
@@ -592,6 +594,52 @@ bool test_lazy_particles(TestData& test_data){
     parts_lazy.close();
 
     writeFile.close();
+
+    //
+    //  Test create file
+    //
+
+    writeFile.open(file_name,"READWRITE");
+
+    LazyData<uint16_t> parts_lazy_create;
+    parts_lazy_create.init_file(writeFile,"parts_create",true);
+
+    parts_lazy_create.create_file(test_data.particles_intensities.size());
+
+    parts_lazy_create.open();
+
+    for (int level = (it.level_max()); level >= it.level_min(); --level) {
+        int z = 0;
+        int x = 0;
+
+        for (z = 0; z < it.z_num(level); z++) {
+            parts_lazy_create.load_slice(level,z,it);
+            for (x = 0; x < it.x_num(level); ++x) {
+                for (it.begin(level,z,x); it < it.end();
+                     it++) {
+                    //add caching https://support.hdfgroup.org/HDF5/doc/H5.user/Caching.html
+
+                    parts_lazy_create[it] = test_data.particles_intensities[it];
+
+                }
+            }
+            parts_lazy_create.write_slice(level,z,it);
+        }
+    }
+
+    parts_lazy_create.close();
+
+    ParticleData<uint16_t> parts_read;
+    writeFile.read_particles(test_data.apr,"parts_create",parts_read);
+
+    writeFile.close();
+
+    //check the read particles
+    for (int i = 0; i < test_data.particles_intensities.size(); ++i) {
+        if(test_data.particles_intensities[i] != parts_read[i]){
+            success = false;
+        }
+    }
 
     return success;
 
@@ -682,10 +730,7 @@ bool test_linear_access_io(TestData& test_data) {
 
     success = compare_two_iterators(tree_it_org,tree_it_lin,success);
 
-
     return success;
-
-
 }
 
 
