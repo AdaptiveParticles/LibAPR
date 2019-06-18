@@ -423,6 +423,95 @@ bool compare_linear_access(LinearAccess){
     return true;
 }
 
+bool test_particles_compress(TestData& test_data){
+
+
+    bool success = true;
+
+    ParticleData<uint16_t> parts2compress;
+
+    parts2compress.copy_parts(test_data.apr,test_data.particles_intensities);
+
+    std::string file_name = "compress_test.apr";
+
+    parts2compress.compressor.set_compression_type(1);
+    parts2compress.compressor.set_background(900);
+    parts2compress.compressor.set_quantization_factor(0.01);
+
+    APRFile writeFile;
+
+    writeFile.open(file_name,"WRITE");
+
+    writeFile.write_apr(test_data.apr);
+
+    float file_size_1 = writeFile.current_file_size_MB();
+
+    writeFile.write_particles(test_data.apr,"parts",parts2compress);
+
+    float file_size_2 = writeFile.current_file_size_MB();
+
+    writeFile.close();
+
+    APR read_apr;
+    ParticleData<uint16_t> read_parts;
+
+    writeFile.open(file_name,"READ");
+
+    writeFile.read_apr(read_apr);
+
+    writeFile.read_particles(read_apr,"parts",read_parts);
+
+    writeFile.close();
+
+    for (int i = 0; i < test_data.particles_intensities.size(); ++i) {
+
+        auto org = test_data.particles_intensities[i];
+        auto comp = read_parts[i];
+
+        //allowing quantization
+        if((org - comp) > 1){
+            success = false;
+        }
+    }
+
+    parts2compress.copy_parts(test_data.apr,test_data.particles_intensities);
+
+    writeFile.open(file_name,"READWRITE");
+
+    parts2compress.compressor.set_quantization_factor(1);
+
+    writeFile.write_particles(test_data.apr,"parts_2",parts2compress);
+
+    float file_size_3 = writeFile.current_file_size_MB();
+
+    writeFile.read_particles(read_apr,"parts_2",read_parts);
+
+    writeFile.close();
+
+    for (int i = 0; i < test_data.particles_intensities.size(); ++i) {
+
+        auto org = test_data.particles_intensities[i];
+        auto comp = read_parts[i];
+
+        //allowing quantization
+        if((org - comp)/(1.0f*org) > 0.05){
+            success = false;
+        }
+    }
+
+    float size_1 = file_size_2 - file_size_1;
+    float size_2 = file_size_3 - file_size_2;
+
+    if(size_2 > size_1){
+        success = false;
+    }
+
+
+    return success;
+
+
+}
+
 
 bool test_lazy_particles(TestData& test_data){
 
@@ -1071,6 +1160,8 @@ bool test_read_upto_level(TestData& test_data){
         auto it_org = test_data.apr.iterator();
         auto it_partial = apr_partial.iterator();
 
+        //test apr
+
         for (int level = it_partial.level_min(); level <= (it_partial.level_max()); ++level) {
             for (int z = 0; z < it_partial.z_num(level); ++z) {
                 for (int x = 0; x < it_partial.x_num(level); ++x) {
@@ -1094,6 +1185,36 @@ bool test_read_upto_level(TestData& test_data){
                 }
             }
         }
+
+        //test tree
+
+        auto it_org_tree = test_data.apr.tree_iterator();
+        auto it_partial_tree = apr_partial.tree_iterator();
+
+        for (int level = it_partial_tree.level_min(); level <= (it_partial_tree.level_max()); ++level) {
+            for (int z = 0; z < it_partial_tree.z_num(level); ++z) {
+                for (int x = 0; x < it_partial_tree.x_num(level); ++x) {
+
+                    it_org_tree.begin(level, z, x);
+                    for (it_partial_tree.begin(level, z, x); it_partial_tree != it_partial_tree.end(); ++it_partial_tree) {
+
+                        if(it_partial_tree != it_org_tree){
+                            success = false;
+                        }
+
+                        if(it_org_tree.y() != it_partial_tree.y()){
+                            success = false;
+                        }
+
+                        if(it_org_tree < it_org_tree.end()){
+                            it_org_tree++;
+                        }
+
+                    }
+                }
+            }
+        }
+
 
     }
 
@@ -2201,6 +2322,18 @@ TEST_F(CreateSmallSphereTest, LAZY_PARTICLES) {
 TEST_F(Create210SphereTest, LAZY_PARTICLES) {
 
     ASSERT_TRUE(test_lazy_particles(test_data));
+
+}
+
+TEST_F(CreateSmallSphereTest, COMPRESS_PARTICLES) {
+
+    ASSERT_TRUE(test_particles_compress(test_data));
+
+}
+
+TEST_F(Create210SphereTest, COMPRESS_PARTICLES) {
+
+    ASSERT_TRUE(test_particles_compress(test_data));
 
 }
 

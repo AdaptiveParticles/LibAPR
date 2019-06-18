@@ -13,7 +13,7 @@
 #include <memory>
 #include <data_structures/APR/APR.hpp>
 #include "numerics/APRCompress.hpp"
-
+#include "data_structures/APR/particles/ParticleData.hpp"
 
 struct FileSizeInfo {
     float total_file_size=0;
@@ -46,6 +46,7 @@ namespace AprTypes  {
     const AprType LambdaType = {H5T_NATIVE_FLOAT, "lambda"};
     const AprType CompressionType = {H5T_NATIVE_INT, "compress_type"};
     const AprType QuantizationFactorType = {H5T_NATIVE_FLOAT, "quantization_factor"};
+    const AprType CompressBackgroundType = {H5T_NATIVE_FLOAT, "compress_background"};
     const AprType SigmaThType = {H5T_NATIVE_FLOAT, "sigma_th"};
     const AprType SigmaThMaxType = {H5T_NATIVE_FLOAT, "sigma_th_max"};
     const AprType IthType = {H5T_NATIVE_FLOAT, "I_th"};

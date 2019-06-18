@@ -13,6 +13,8 @@
 #include "io/APRWriter.hpp"
 #include "io/APRFile.hpp"
 
+#include "data_structures/APR/particles/LazyData.hpp"
+
 
 class BenchmarkAPR {
 
@@ -367,6 +369,155 @@ bool test_tiling(BenchmarkData& benchmarkData){
     return true;
 }
 
+void bench_lazy_particles(BenchmarkData& benchmarkData){
+
+
+    int apr_num = 0;
+
+    std::vector<int> tile_dims = {20,20,20};
+
+    APR apr_tiled;
+    ParticleData<uint16_t> tiled_parts;
+
+    APRTimer timer(true);
+
+    timer.start_timer("tile APR");
+
+    BenchmarkAPR::tileAPR(tile_dims,benchmarkData.aprs[apr_num], benchmarkData.parts[apr_num],apr_tiled,tiled_parts);
+
+    timer.stop_timer();
+
+    auto it = apr_tiled.iterator();
+
+    std::string file_name = "parts_lazy_bench.apr";
+
+    APRFile writeFile;
+
+    writeFile.open(file_name,"WRITE");
+
+    writeFile.write_apr(apr_tiled);
+
+    writeFile.write_particles(apr_tiled,"parts",tiled_parts);
+
+
+    std::cout << "APR File Size: " << writeFile.current_file_size_GB() << " GB" << std::endl;
+    std::cout << "Original Image Size: " << (apr_tiled.org_dims(0)*apr_tiled.org_dims(1)*apr_tiled.org_dims(2)*2)/(1000000000.0) << " GB" << std::endl;
+
+    writeFile.close();
+
+    writeFile.open(file_name,"READWRITE");
+
+    LazyData<uint16_t> parts_lazy;
+
+    parts_lazy.init_with_file(writeFile,"parts",true);
+
+    timer.start_timer("read write loop slice");
+
+    for (int level = (it.level_max()); level >= it.level_min(); --level) {
+        int z = 0;
+
+#ifdef HAVE_OPENMP
+//#pragma omp parallel for schedule(dynamic) private(z) firstprivate(it,parts_lazy)
+#endif
+        for (z = 0; z < it.z_num(level); z++) {
+            parts_lazy.load_slice(level,z,it);
+            for (int x = 0; x < it.x_num(level); ++x) {
+                for (it.begin(level,z,x); it < it.end();
+                     it++) {
+                    //add caching https://support.hdfgroup.org/HDF5/doc/H5.user/Caching.html
+
+                    parts_lazy[it] += 1;
+
+                }
+            }
+            parts_lazy.write_slice(level,z,it);
+        }
+    }
+
+    timer.stop_timer();
+
+    float read_write_lazy = timer.timings.back();
+
+    timer.start_timer("read loop slice");
+
+    for (int level = (it.level_max()); level >= it.level_min(); --level) {
+        int z = 0;
+        int x = 0;
+
+        for (z = 0; z < it.z_num(level); z++) {
+            parts_lazy.load_slice(level,z,it);
+#ifdef HAVE_OPENMP
+//#pragma omp parallel for schedule(dynamic) private(x) firstprivate(it)
+#endif
+            for (x = 0; x < it.x_num(level); ++x) {
+                for (it.begin(level,z,x); it < it.end();
+                     it++) {
+                    //add caching https://support.hdfgroup.org/HDF5/doc/H5.user/Caching.html
+
+                    parts_lazy[it] += 1;
+                }
+            }
+        }
+    }
+
+    timer.stop_timer();
+
+    float read_lazy = timer.timings.back();
+
+    parts_lazy.close();
+
+
+    timer.start_timer("normal");
+
+    for (int level = (it.level_max()); level >= it.level_min(); --level) {
+        int z = 0;
+        //int x = 0;
+
+#ifdef HAVE_OPENMP
+#pragma omp parallel for schedule(dynamic) private(z) firstprivate(it)
+#endif
+        for (z = 0; z < it.z_num(level); z++) {
+            for (int x = 0; x < it.x_num(level); ++x) {
+                for (it.begin(level,z,x); it < it.end();
+                     it++) {
+
+                    tiled_parts[it] += 1;
+                }
+            }
+        }
+    }
+
+    timer.stop_timer();
+
+
+
+    float normal_iterate = timer.timings.back();
+
+    timer.start_timer("normal read");
+    ParticleData<uint16_t> parts_read;
+    writeFile.read_particles(apr_tiled,"parts",parts_read);
+    timer.stop_timer();
+
+    float normal_read = timer.timings.back();
+
+    timer.start_timer("normal write");
+    writeFile.write_particles(apr_tiled,"parts_t",parts_read);
+    timer.stop_timer();
+
+    float normal_write = timer.timings.back();
+
+    std::cout << "Read and loop: " << normal_read + normal_iterate << std::endl;
+    std::cout << "Lazy read loop: " << read_lazy << std::endl;
+
+    std::cout << "Read, loop, and write: " << normal_read + normal_iterate + normal_write << std::endl;
+    std::cout << "Lazy io loop: " << read_write_lazy << std::endl;
+
+    writeFile.close();
+
+
+}
+
+
 bool bench_particle_structures(BenchmarkData& benchmarkData) {
     ///
     /// Tests the pipeline, comparing the results with existing results
@@ -535,10 +686,11 @@ bool bench_iteration(BenchmarkData& benchmarkData){
     //int z = 0;
 
     for (int r = 0; r < num_rep; ++r) {
+        int z = 0;
 #ifdef HAVE_OPENMP
-#pragma omp parallel for
+#pragma omp parallel for private(z)
 #endif
-        for (int z = 0; z < test_img.z_num; ++z) {
+        for (z = 0; z < test_img.z_num; ++z) {
             for (int x = 0; x < test_img.x_num; ++x) {
                 for (int y = 0; y < test_img.y_num; ++y) {
                     test_img.at(y,x,z) = (uint16_t) (test_img.at(y,x,z) + 1);
@@ -736,7 +888,7 @@ std::string get_source_directory_apr(){
 
 void CreateBenchmarkAPR::SetUp(){
 
-    std::string file_name = get_source_directory_apr() + "files/cr_54.apr";
+    std::string file_name = get_source_directory_apr() + "files/cr_20.apr";
     bench_data.aprs.resize(1);
     bench_data.parts.resize(1);
 
@@ -764,7 +916,13 @@ TEST_F(CreateBenchmarkAPR, BENCH_STRUCTURES) {
 
 TEST_F(CreateBenchmarkAPR, BENCH_TILE) {
 
-    ASSERT_TRUE(test_tiling(bench_data));
+    //ASSERT_TRUE(test_tiling(bench_data));
+
+}
+
+TEST_F(CreateBenchmarkAPR, BENCH_LAZY_PARTS) {
+
+    bench_lazy_particles(bench_data);
 
 }
 

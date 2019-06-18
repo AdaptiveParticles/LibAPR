@@ -72,8 +72,8 @@ int main(int argc, char **argv) {
     APRFile compFile;
     compFile.open(options.directory,"WRITE");
 
-    compFile.aprCompress.set_quantization_factor(options.quantization_level); //set this to adjust the compression factor for WNL
-    compFile.aprCompress.set_compression_type(options.compress_type);
+//    compFile.aprCompress.set_quantization_factor(options.quantization_level); //set this to adjust the compression factor for WNL
+//    compFile.aprCompress.set_compression_type(options.compress_type);
 
     std::cerr << "This will be updated soon, the options just need to be exposed through the APRFILE" << std::endl;
 

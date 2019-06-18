@@ -85,8 +85,6 @@ public:
         blosc_shuffle_parts= blosc_shuffle_parts_;
     }
 
-    APRCompress aprCompress;
-
     /*
      *  Advanced IO capability
      *
@@ -182,7 +180,8 @@ void APRFile::write_apr(APR &apr,uint64_t t,std::string channel_name){
     current_t = t;
 
     if(fileStructure.isOpened()){
-        //std::cout << "file is open" << std::endl;
+    } else {
+        std::cerr << "File is not open!" << std::endl;
     }
 
     fileStructure.create_time_point(t,with_tree_flag,channel_name);
@@ -272,6 +271,11 @@ void APRFile::write_apr_append(APR &apr){
 template<typename DataType>
 void APRFile::write_particles(APR &apr,const std::string particles_name,ParticleData<DataType>& particles,uint64_t t,bool apr_or_tree,std::string channel_name){
 
+    if(fileStructure.isOpened()){
+    } else {
+        std::cerr << "File is not open!" << std::endl;
+    }
+
     fileStructure.open_time_point(t,with_tree_flag,channel_name);
 
     hid_t part_location;
@@ -290,14 +294,16 @@ void APRFile::write_particles(APR &apr,const std::string particles_name,Particle
 
     timer.start_timer("write intensities");
 
-    if (aprCompress.get_compression_type() > 0){
-        aprCompress.compress(apr,particles);
+    if (particles.compressor.get_compression_type() > 0){
+        particles.compressor.compress(particles.data);
     }
 
-    int compress_type_num = aprCompress.get_compression_type();
+    int compress_type_num = particles.compressor.get_compression_type();
     APRWriter::writeAttr(AprTypes::CompressionType, part_location, &compress_type_num);
-    float quantization_factor = aprCompress.get_quantization_factor();
+    float quantization_factor = particles.compressor.get_quantization_factor();
     APRWriter::writeAttr(AprTypes::QuantizationFactorType, part_location, &quantization_factor);
+    float compress_background = particles.compressor.get_background();
+    APRWriter::writeAttr(AprTypes::CompressBackgroundType, part_location, &compress_background);
 
     hid_t type = APRWriter::Hdf5Type<DataType>::type();
     APRWriter::writeData({type, particles_name.c_str()}, part_location, particles.data, blosc_comp_type_parts, blosc_comp_level_parts, blosc_shuffle_parts);
@@ -315,7 +321,8 @@ void APRFile::read_apr(APR &apr,uint64_t t,std::string channel_name){
 
 
     if(fileStructure.isOpened()){
-        //std::cout << "file is open" << std::endl;
+    } else {
+        std::cerr << "File is not open!" << std::endl; //#TODO: should check if it is readable, and other functions if writeable ect.
     }
 
     bool tree_exists = fileStructure.open_time_point(t,with_tree_flag,channel_name);
@@ -354,8 +361,6 @@ void APRFile::read_apr(APR &apr,uint64_t t,std::string channel_name){
     timer.start_timer("read_apr_access");
 
     if(!stored_random) {
-
-
 
         //make this an automatic check to see what the file is.
         APRWriter::read_linear_access( fileStructure.objectId, apr.linearAccess,max_level_delta);
@@ -397,7 +402,7 @@ void APRFile::read_apr(APR &apr,uint64_t t,std::string channel_name){
             apr.linearAccessTree.genInfo = &apr.treeInfo;
 
             if(!stored_linear_tree) {
-
+                //Older data structures are saved.
                 APRWriter::read_random_tree_access(fileStructure.objectIdTree, fileStructure.objectIdTree,
                                                    apr.tree_access, apr.apr_access);
                 apr.tree_initialized_random = true;
@@ -431,11 +436,9 @@ void APRFile::read_apr(APR &apr,uint64_t t,std::string channel_name){
 template<typename DataType>
 void APRFile::read_particles(APR &apr,std::string particles_name,ParticleData<DataType>& particles,uint64_t t,bool apr_or_tree,std::string channel_name){
 
-
-    timer.start_timer("init_read_parts");
-
     if(fileStructure.isOpened()){
-        //std::cout << "file is open" << std::endl;
+    } else {
+        std::cerr << "File is not open!" << std::endl;
     }
 
     fileStructure.open_time_point(t,with_tree_flag,channel_name);
@@ -479,12 +482,24 @@ void APRFile::read_particles(APR &apr,std::string particles_name,ParticleData<Da
     }
 
 
+    /*
+     *  Particle Compression Options
+     */
+
     int compress_type;
     APRWriter::readAttr(AprTypes::CompressionType, meta_data, &compress_type);
     float quantization_factor;
     APRWriter::readAttr(AprTypes::QuantizationFactorType, meta_data, &quantization_factor);
+    float compress_background;
 
-    timer.stop_timer();
+    //backwards support
+    bool background_exists = attribute_exists(part_location,AprTypes::CompressBackgroundType.typeName);
+
+    if((compress_type > 0) && (background_exists)){
+        APRWriter::readAttr(AprTypes::CompressBackgroundType, meta_data, &compress_background);
+    } else {
+        compress_background = apr.parameters.background_intensity_estimate - apr.parameters.noise_sd_estimate;
+    }
 
     timer.start_timer("Read intensities");
     // ------------- read data ------------------------------
@@ -498,9 +513,10 @@ void APRFile::read_particles(APR &apr,std::string particles_name,ParticleData<Da
     timer.start_timer("decompress");
     // ------------ decompress if needed ---------------------
     if (compress_type > 0) {
-        aprCompress.set_compression_type(compress_type);
-        aprCompress.set_quantization_factor(quantization_factor);
-        aprCompress.decompress(apr, particles,parts_start);
+        particles.compressor.set_compression_type(compress_type);
+        particles.compressor.set_quantization_factor(quantization_factor);
+        particles.compressor.set_background(compress_background);
+        particles.compressor.decompress(particles.data,parts_start);
     }
 
     // ------------ re-ordering for backwards compatability if needed ------- //

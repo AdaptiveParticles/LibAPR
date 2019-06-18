@@ -8,6 +8,7 @@
 #include "data_structures/Mesh/PixelData.hpp"
 #include "../iterators/LinearIterator.hpp"
 #include "../APR.hpp"
+#include "numerics/APRCompress.hpp"
 
 template<typename DataType>
 class GenData {
@@ -17,6 +18,8 @@ private:
     uint64_t temp2 = 0;
 
 public:
+
+    APRCompress compressor;
 
     virtual ~GenData() = 0; //
 
