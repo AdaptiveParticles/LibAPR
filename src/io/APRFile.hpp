@@ -306,7 +306,15 @@ void APRFile::write_particles(APR &apr,const std::string particles_name,Particle
     APRWriter::writeAttr(AprTypes::CompressBackgroundType, part_location, &compress_background);
 
     hid_t type = APRWriter::Hdf5Type<DataType>::type();
-    APRWriter::writeData({type, particles_name.c_str()}, part_location, particles.data, blosc_comp_type_parts, blosc_comp_level_parts, blosc_shuffle_parts);
+
+    // Using this version allows for extension including sequential write for the compress. #TODO.
+    Hdf5DataSet partsData;
+    partsData.init(part_location,particles_name.c_str());
+    partsData.create(type,particles.size());
+    partsData.open();
+    partsData.write(particles.data.data(),0,particles.size());
+    partsData.close();
+
 
     timer.stop_timer();
 
