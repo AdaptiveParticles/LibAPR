@@ -981,17 +981,17 @@ bool test_apr_file(TestData& test_data){
 
     APRTreeNumerics::fill_tree_mean(test_data.apr,test_data.particles_intensities,treeMean);
 
-    TreeFile.write_particles(test_data.apr,"tree_parts",treeMean,0,false,"mem");
-    TreeFile.write_particles(test_data.apr,"tree_parts1",treeMean,0,false,"mem");
-    TreeFile.write_particles(test_data.apr,"tree_parts2",treeMean,0,false,"mem");
+    TreeFile.write_particles(test_data.apr,"tree_parts",treeMean,false,0,"mem");
+    TreeFile.write_particles(test_data.apr,"tree_parts1",treeMean,false,0,"mem");
+    TreeFile.write_particles(test_data.apr,"tree_parts2",treeMean,false,0,"mem");
 
     TreeFile.close();
 
     TreeFile.open(file_name,"READWRITE");
     TreeFile.write_apr(test_data.apr,1,"mem");
-    TreeFile.write_particles(test_data.apr,"tree_parts",treeMean,1,false,"mem");
+    TreeFile.write_particles(test_data.apr,"tree_parts",treeMean,false,1,"mem");
 
-    TreeFile.write_particles(test_data.apr,"particle_demo",test_data.particles_intensities,1,true,"mem");
+    TreeFile.write_particles(test_data.apr,"particle_demo",test_data.particles_intensities,true,1,"mem");
 
     TreeFile.write_apr(test_data.apr,10,"ch1_");
 
@@ -1004,7 +1004,7 @@ bool test_apr_file(TestData& test_data){
 
     ParticleData<float> treeMeanRead;
 
-    TreeFile.read_particles(aprRead2,"tree_parts",treeMeanRead,1,false,"mem");
+    TreeFile.read_particles(aprRead2,"tree_parts",treeMeanRead,false,1,"mem");
 
     auto tree_it = aprRead2.random_tree_iterator();
     auto tree_it_org = test_data.apr.random_tree_iterator();
@@ -1014,7 +1014,7 @@ bool test_apr_file(TestData& test_data){
     //Test file list
     std::vector<std::string> correct_names = {"tree_parts","tree_parts1","tree_parts2"};
 
-    std::vector<std::string> dataset_names = TreeFile.get_particles_names(0,false,"mem");
+    std::vector<std::string> dataset_names = TreeFile.get_particles_names(false,0,"mem");
 
     if(correct_names.size() == dataset_names.size()){
 

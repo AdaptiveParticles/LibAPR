@@ -32,12 +32,12 @@ public:
     void write_apr(APR& apr,uint64_t t = 0,std::string channel_name = "t");
     void write_apr_append(APR& apr);
     template<typename DataType>
-    void write_particles(APR& apr,std::string particles_name,ParticleData<DataType>& particles,uint64_t t = 0,bool apr_or_tree = true,std::string channel_name = "t");
+    void write_particles(APR& apr,std::string particles_name,ParticleData<DataType>& particles,bool apr_or_tree = true,uint64_t t = 0,std::string channel_name = "t");
 
     // read
     void read_apr(APR& apr,uint64_t t = 0,std::string channel_name = "t");
     template<typename DataType>
-    void read_particles(APR& apr,std::string particles_name,ParticleData<DataType>& particles,uint64_t t = 0,bool apr_or_tree = true,std::string channel_name = "t");
+    void read_particles(APR& apr,std::string particles_name,ParticleData<DataType>& particles,bool apr_or_tree = true,uint64_t t = 0,std::string channel_name = "t");
 
     //set helpers
     bool get_read_write_tree(){
@@ -61,7 +61,7 @@ public:
 
     //get helpers
     uint64_t get_number_time_steps(std::string channel_name = "t");
-    std::vector<std::string> get_particles_names(uint64_t t,bool apr_or_tree = true,std::string channel_name = "t");
+    std::vector<std::string> get_particles_names(bool apr_or_tree = true,uint64_t t=0,std::string channel_name = "t");
 
     APRTimer timer;
 
@@ -269,7 +269,7 @@ void APRFile::write_apr_append(APR &apr){
    * @param apr_or_tree (Default = true (APR), false = APR Tree)
    */
 template<typename DataType>
-void APRFile::write_particles(APR &apr,const std::string particles_name,ParticleData<DataType>& particles,uint64_t t,bool apr_or_tree,std::string channel_name){
+void APRFile::write_particles(APR &apr,const std::string particles_name,ParticleData<DataType>& particles,bool apr_or_tree,uint64_t t,std::string channel_name){
 
     if(fileStructure.isOpened()){
     } else {
@@ -442,7 +442,7 @@ void APRFile::read_apr(APR &apr,uint64_t t,std::string channel_name){
    * @param apr_or_tree (Default = True (APR), false = APR Tree)
    */
 template<typename DataType>
-void APRFile::read_particles(APR &apr,std::string particles_name,ParticleData<DataType>& particles,uint64_t t,bool apr_or_tree,std::string channel_name){
+void APRFile::read_particles(APR &apr,std::string particles_name,ParticleData<DataType>& particles,bool apr_or_tree,uint64_t t,std::string channel_name){
 
     if(fileStructure.isOpened()){
     } else {
@@ -638,7 +638,7 @@ std::vector<std::string> APRFile::get_channel_names(){
    * @param apr_or_tree Is it an APR or APR Tree dataset. (Defualt = true (APR), flase = (APR Tree))
    * @return vector of strings of the names of the datasets (can be then used with read_particles).
    */
-std::vector<std::string> APRFile::get_particles_names(uint64_t t,bool apr_or_tree,std::string channel_name){
+std::vector<std::string> APRFile::get_particles_names(bool apr_or_tree,uint64_t t,std::string channel_name){
 
     fileStructure.open_time_point(t,with_tree_flag,channel_name);
 
