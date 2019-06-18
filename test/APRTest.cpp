@@ -233,6 +233,134 @@ bool check_neighbour_out_of_bounds(APRIterator &current,uint8_t face){
 }
 
 
+bool test_random_access_it(TestData& test_data){
+    //
+    //  Testing some of the random access features of the random access operators. Note these functions do not exist for the linear iterators.
+    //
+
+    bool success = true;
+
+    auto it = test_data.apr.iterator();
+
+    // Find some particles
+    int test_number = 1000;
+    std::vector<ParticleCell> parts_exist;
+
+    ParticleCell current_p;
+
+    uint64_t delta = std::floor(test_data.apr.total_number_particles()/(test_number*1.0)) - 1;
+
+    // choose approximately test_number particles to search for.
+    for (unsigned int level = it.level_min(); level <= it.level_max(); ++level) {
+        int z = 0;
+        int x = 0;
+
+        for (z = 0; z < it.z_num(level); z++) {
+            for (x = 0; x < it.x_num(level); ++x) {
+
+                for (it.begin(level, z, x); it < it.end();
+                     it++) {
+                    if((it % delta) == 0){
+                        current_p.x = x;
+                        current_p.z = z;
+                        current_p.y = it.y();
+                        current_p.level = level;
+                        parts_exist.push_back(current_p);
+                    }
+
+                }
+            }
+        }
+    }
+
+    auto random_it = test_data.apr.random_iterator();
+    ParticleCell parent_part;
+
+    //now use these to particles to search for
+    for(int i = 0; i < parts_exist.size(); ++i) {
+
+        bool found = random_it.set_iterator_by_particle_cell(parts_exist[i]);
+
+        //this should exist by construction
+        if(!found){
+            success = false;
+        }
+
+        //check for the parent
+        parent_part.x = parts_exist[i].x/2;
+        parent_part.y = parts_exist[i].y/2;
+        parent_part.z = parts_exist[i].z/2;
+        parent_part.level = parts_exist[i].level - 1;
+
+        bool not_found = random_it.set_iterator_by_particle_cell(parts_exist[i]);
+
+        //this should NOT exist by construction
+        if(!not_found){
+            success = false;
+        }
+
+        //this returns the global co-ordinate of the particle
+        float x = std::min(random_it.x_global(parts_exist[i].level,parts_exist[i].x),(float)random_it.org_dims(1)-1);
+        float y = std::min(random_it.y_global(parts_exist[i].level,parts_exist[i].y),(float)random_it.org_dims(0)-1);
+        float z = std::min(random_it.z_global(parts_exist[i].level,parts_exist[i].z),(float)random_it.org_dims(2)-1);
+
+        ///////////////////////
+        ///
+        /// Set the iterator using random access by using a global co-ordinate (in original pixels), and setting the iterator, to the Particle Cell that contains the point in its spatial domain.
+        ///
+        ////////////////////////
+
+        //should find the particle cell
+        found = random_it.set_iterator_by_global_coordinate(x, y, z);
+
+        //we know by construction that this must be within the domain
+        if(!found){
+            success = false;
+        }
+
+        if(random_it.x() != parts_exist[i].x){
+            success = false;
+        }
+
+        if(random_it.y() != parts_exist[i].y){
+            success = false;
+        }
+
+        if(random_it.z() != parts_exist[i].z){
+            success = false;
+        }
+
+        if(random_it.level() != parts_exist[i].level){
+            success = false;
+        }
+
+    }
+
+
+    //check out of bounds
+    bool found = random_it.set_iterator_by_global_coordinate(0, 0, 2*test_data.apr.org_dims(2));
+
+    if(found){
+        success = false;
+    }
+
+    found = random_it.set_iterator_by_global_coordinate(0, 2*test_data.apr.org_dims(1), 0);
+
+    if(found){
+        success = false;
+    }
+
+    found = random_it.set_iterator_by_global_coordinate(2*test_data.apr.org_dims(0), 0, 0);
+
+    if(found){
+        success = false;
+    }
+
+    return success;
+
+}
+
+
 bool test_pulling_scheme_sparse(TestData& test_data){
     bool success = true;
 
@@ -1152,14 +1280,14 @@ bool test_read_upto_level(TestData& test_data){
 
     writeFile.open(file_name,"READWRITE");
 
-    writeFile.write_particles(test_data.apr,"parts_tree",parts_tree,0,false);
+    writeFile.write_particles(test_data.apr,"parts_tree",parts_tree,false,0);
 
     for (int delta = 0; delta < (test_data.apr.level_max()- test_data.apr.level_min()); ++delta) {
 
         writeFile.set_max_level_read_delta(delta);
 
         ParticleData<uint16_t> parts_partial;
-        writeFile.read_particles(test_data.apr, "parts_tree", parts_partial,0,false);
+        writeFile.read_particles(test_data.apr, "parts_tree", parts_partial,false,0);
 
         auto it_tree = test_data.apr.tree_iterator();
         auto it = test_data.apr.iterator();
@@ -2379,6 +2507,19 @@ TEST_F(CreateSmallSphereTest, COMPRESS_PARTICLES) {
 TEST_F(Create210SphereTest, COMPRESS_PARTICLES) {
 
     ASSERT_TRUE(test_particles_compress(test_data));
+
+}
+
+
+TEST_F(CreateSmallSphereTest, RANDOM_ACCESS) {
+
+    ASSERT_TRUE(test_random_access_it(test_data));
+
+}
+
+TEST_F(Create210SphereTest, RANDOM_ACCESS) {
+
+    ASSERT_TRUE(test_random_access_it(test_data));
 
 }
 
