@@ -2321,6 +2321,48 @@ bool test_pipeline_bound(TestData& test_data,float rel_error){
     return success;
 }
 
+
+bool test_apr_filter(TestData &test_data) {
+
+    std::vector<PixelData<float>> stencils;
+    stencils.resize(1);
+    stencils[0].init(3, 3, 3);
+
+    // unique stencil elements
+    float sum = 0;
+    for(int i = 0; i < stencils[0].mesh.size(); ++i) {
+        sum += i;
+    }
+    for(int i = 0; i < stencils[0].mesh.size(); ++i) {
+        stencils[0].mesh[i] = ((float) i) / sum;
+    }
+
+    APRFilter filterfns;
+    filterfns.boundary_cond = false;
+
+    ParticleData<double> output;
+    filterfns.convolve(test_data.apr, stencils, test_data.particles_intensities, output);
+
+    ParticleData<double> output_gt;
+    filterfns.create_test_particles_equiv(test_data.apr, stencils, test_data.particles_intensities, output_gt);
+
+    if(output.size() != output_gt.size()) {
+        std::cerr << "output sizes differ" << std::endl;
+        return false;
+    }
+
+    double eps = 1e-4;
+
+    for(uint64_t x=0; x < output.size(); ++x) {
+        if(abs(output[x] - output_gt[x]) > eps) {
+            std::cerr << "discrepancy at particle " << x << " (output = " << output[x] << ", ground_truth = " << output_gt[x] << ")" << std::endl;
+            return false;
+        }
+    }
+    return true;
+}
+
+
 std::string get_source_directory_apr(){
     // returns path to the directory where utils.cpp is stored
 
@@ -2621,6 +2663,12 @@ TEST_F(Create210SphereTest, APR_INPUT_OUTPUT) {
 
 
 }
+
+
+TEST_F(Create210SphereTest, APR_FILTER) {
+    ASSERT_TRUE(test_apr_filter(test_data));
+}
+
 
 //TEST_F(Create210SphereTest, APR_PIPELINE) {
 //
