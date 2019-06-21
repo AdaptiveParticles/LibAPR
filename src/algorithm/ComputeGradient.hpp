@@ -175,7 +175,9 @@ void ComputeGradient::bspline_filt_rec_y(PixelData<T>& image,float lambda,float 
     const size_t x_num = image.x_num;
     const size_t y_num = image.y_num;
     const size_t minLen = y_num;
-    const size_t k0 = k0Len > 0 ? k0Len : std::min((size_t)(ceil(std::abs(log(tol)/log(rho)))),minLen);
+//    const size_t k0 = k0Len > 0 ? k0Len : std::min((size_t)(ceil(std::abs(log(tol)/log(rho)))),minLen);
+
+    const size_t k0 = k0Len > 0 ? k0Len : (size_t)(ceil(std::abs(log(tol)/log(rho))));
 
 
     const float norm_factor = pow((1 - 2.0*rho*cos(omg) + pow(rho,2)),2);
@@ -198,10 +200,19 @@ void ComputeGradient::bspline_filt_rec_y(PixelData<T>& image,float lambda,float 
         bc1_vec[k] += impulse_resp_vec_f[k+1];
     }
 
+    //assumes a constant value at the end of the filter when the required ghost is bigger then the image
+    for(size_t k = (minLen); k < k0;k++){
+        bc1_vec[minLen-1] += bc1_vec[k];
+    }
+
     std::vector<float> bc2_vec(k0, 0);  //backward
     //y(0) init
     for (size_t k = 0; k < k0; ++k) {
         bc2_vec[k] = impulse_resp_vec_f[k];
+    }
+
+    for(size_t k = (minLen); k < k0;k++){
+        bc2_vec[minLen-1] += bc2_vec[k];
     }
 
     std::vector<float> bc3_vec(k0, 0);  //forward
@@ -211,11 +222,19 @@ void ComputeGradient::bspline_filt_rec_y(PixelData<T>& image,float lambda,float 
         bc3_vec[k+1] += impulse_resp_vec_b[k] + impulse_resp_vec_b[k+2];
     }
 
+    for(size_t k = (minLen); k < k0;k++){
+        bc3_vec[minLen-1] += bc3_vec[k];
+    }
+
     std::vector<float> bc4_vec(k0, 0);  //backward
     //y(N) init
     bc4_vec[0] = impulse_resp_vec_b[0];
     for (size_t k = 1; k < k0; ++k) {
         bc4_vec[k] += 2*impulse_resp_vec_b[k];
+    }
+
+    for(size_t k = (minLen); k < k0;k++){
+        bc4_vec[minLen-1] += bc4_vec[k];
     }
 
     APRTimer btime;
@@ -237,13 +256,13 @@ void ComputeGradient::bspline_filt_rec_y(PixelData<T>& image,float lambda,float 
             const size_t iynum = x * y_num;
 
             //boundary conditions
-            for (size_t k = 0; k < k0; ++k) {
+            for (size_t k = 0; k < minLen; ++k) {
                 temp1 += bc1_vec[k]*image.mesh[jxnumynum + iynum + k];
                 temp2 += bc2_vec[k]*image.mesh[jxnumynum + iynum + k];
             }
 
             //boundary conditions
-            for (size_t k = 0; k < k0; ++k) {
+            for (size_t k = 0; k < minLen; ++k) {
                 temp3 += bc3_vec[k]*image.mesh[jxnumynum + iynum + y_num - 1 - k];
                 temp4 += bc4_vec[k]*image.mesh[jxnumynum + iynum + y_num - 1 - k];
             }
@@ -494,7 +513,8 @@ void ComputeGradient::bspline_filt_rec_x(PixelData<T>& image,float lambda,float 
     const size_t y_num = image.y_num;
 
     const size_t minLen = x_num;
-    const size_t k0 = k0Len > 0 ? k0Len : std::min((size_t)(ceil(std::abs(log(tol)/log(rho)))), minLen);
+//    const size_t k0 = k0Len > 0 ? k0Len : std::min((size_t)(ceil(std::abs(log(tol)/log(rho)))), minLen);
+    const size_t k0 = k0Len > 0 ? k0Len : ((size_t)(ceil(std::abs(log(tol)/log(rho)))));
     const float norm_factor = pow((1 - 2.0*rho*cos(omg) + pow(rho,2)),2);
 
 //    std::cout << "CPUx xi=" << xi << " rho=" << rho << " omg=" << omg << " gamma=" << gamma << " b1=" << b1 << " b2=" << b2 << " k0=" << k0 << " norm_factor=" << norm_factor << std::endl;
@@ -522,10 +542,19 @@ void ComputeGradient::bspline_filt_rec_x(PixelData<T>& image,float lambda,float 
         bc1_vec[k] += impulse_resp_vec_f[k+1];
     }
 
+    //assumes a constant value at the end of the filter when the required ghost is bigger then the image
+    for(size_t k = (minLen); k < k0;k++){
+        bc1_vec[minLen-1] += bc1_vec[k];
+    }
+
     std::vector<float> bc2_vec(k0, 0);  //backward
     //y(0) init
     for(size_t k = 0; k < k0;k++){
         bc2_vec[k] = impulse_resp_vec_f[k];
+    }
+
+    for(size_t k = (minLen); k < k0;k++){
+        bc2_vec[minLen-1] += bc2_vec[k];
     }
 
     std::vector<float> bc3_vec(k0, 0);  //forward
@@ -535,11 +564,19 @@ void ComputeGradient::bspline_filt_rec_x(PixelData<T>& image,float lambda,float 
         bc3_vec[k+1] += impulse_resp_vec_b[k] + impulse_resp_vec_b[k+2];
     }
 
+    for(size_t k = (minLen); k < k0;k++){
+        bc3_vec[minLen-1] += bc3_vec[k];
+    }
+
     std::vector<float> bc4_vec(k0, 0);  //backward
     //y(N) init
     bc4_vec[0] = impulse_resp_vec_b[0];
     for(size_t k = 1; k < k0;k++){
         bc4_vec[k] += 2*impulse_resp_vec_b[k];
+    }
+
+    for(size_t k = (minLen); k < k0;k++){
+        bc4_vec[minLen-1] += bc4_vec[k];
     }
 
     //forwards direction
@@ -560,7 +597,7 @@ void ComputeGradient::bspline_filt_rec_x(PixelData<T>& image,float lambda,float 
 
         size_t jxnumynum = j * y_num * x_num;
 
-        for (size_t i = 0; i < k0; ++i) {
+        for (size_t i = 0; i < minLen; ++i) {
 
             for (size_t k = 0; k < y_num; ++k) {
                 //forwards boundary condition
