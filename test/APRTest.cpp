@@ -360,6 +360,332 @@ bool test_random_access_it(TestData& test_data){
 
 }
 
+template<typename DataType>
+void sub_slices_img(PixelData<DataType>& org,PixelData<DataType>& slices, std::vector<int>& dim_start,std::vector<int>& dim_stop){
+
+    slices.init(dim_stop[0] - dim_start[0],dim_stop[1] - dim_start[1],dim_stop[2] - dim_start[2]);
+
+    for (int z = dim_start[2]; z < dim_stop[2]; ++z) {
+        for (int x = dim_start[1]; x < dim_stop[1]; ++x) {
+            for (int y = dim_start[0]; y < dim_stop[0]; ++y) {
+
+                slices.at(y-dim_start[0],x-dim_start[1],z-dim_start[2]) = org.at(y,x,z);
+
+            }
+        }
+    }
+
+
+}
+
+void check_pad_array(){
+
+    PixelData<int> m;
+
+    std::vector<int> vals = {0,1,2,3,0,1,2,3};
+
+    m.init_from_mesh(2,2,2,vals.data());
+
+    m.printMesh(2);
+
+    PixelData<int> pad_2;
+
+    padd_boundary2(m,pad_2,2);
+
+    pad_2.printMesh(2);
+
+    un_padd_boundary(m,pad_2,2);
+
+    m.printMesh(2);
+
+
+    int stop = 1;
+
+
+}
+
+template<typename DataType>
+bool check_symmetry(PixelData<DataType>& img){
+    //
+    //  This function checks the symmetry of an image for a given dimension
+    //
+
+    //check_pad_array();
+
+    bool success = true;
+    bool sym_y = true;
+    bool sym_x = true;
+    bool sym_z = true;
+
+    //difference of two allowed to account for rounding both ways error.
+
+    for (int k = 0; k < img.z_num; ++k) {
+        for (int j = 0; j < img.x_num; ++j) {
+            for (int i = 0; i < img.y_num; ++i) {
+
+                 {
+
+                     //dim 0
+                    float val = img.at(i, j, k);
+                    float val_reflect = img.at(img.y_num - i - 1, j, k);
+
+                    if ((val - val_reflect) > 1) {
+                        success = false;
+                        sym_y = false;
+                    }
+                }
+                {
+                    //dim 1
+                    float val = img.at(i, j, k);
+                    float val_reflect = img.at(i, img.x_num - j - 1, k);
+
+                    if ((val - val_reflect) > 1) {
+                        success = false;
+                        sym_x = false;
+
+                    }
+
+                }
+                {
+                    //dim 2
+                    float val = img.at(i, j, k);
+                    float val_reflect = img.at(i, j, img.z_num - k - 1);
+
+                    if ((val - val_reflect) > 1) {
+                        success = false;
+                        sym_z = false;
+                    }
+
+                }
+
+
+            }
+        }
+    }
+
+    if(!sym_y){
+        std::cout << "not symmetric y" << std::endl;
+    }
+
+    if(!sym_x){
+        std::cout << "not symmetric x" << std::endl;
+    }
+
+    if(!sym_z){
+        std::cout << "not symmetric z" << std::endl;
+    }
+
+
+
+    return success;
+
+
+}
+
+
+bool test_symmetry_pipeline(){
+    //
+    //  The pipeline steps should be symmetry about x,z,y boundaries.. this test checks this using a synthetic symmetric input image
+    //
+
+    bool success = true;
+
+    //Create a synethic symmetric image with a square in the middle.
+    PixelData<uint16_t> img;
+
+    int sz = 64;
+
+    int sz_slice = 10;
+
+    img.initWithValue(sz,sz,sz_slice,100);
+
+    int block_sz = 0;
+
+    for (int i = block_sz; i < (sz - block_sz); ++i) {
+        for (int j = block_sz; j < (sz - block_sz); ++j) {
+            for (int k = 0; k < sz_slice; ++k) {
+                img.at(i,j,k) += 1000;
+            }
+        }
+    }
+
+    APR apr;
+    APRConverter<uint16_t> aprConverter;
+    aprConverter.par.output_steps = true;
+
+    aprConverter.par.lambda = 3;
+
+    aprConverter.get_apr(apr,img);
+
+    ParticleData<uint16_t> parts;
+    parts.sample_parts_from_img_downsampled(apr,img);
+
+    TiffUtils::saveMeshAsTiff("img_identical.tif",img);
+
+    // get grad/scale/level/final level/final image. --> All should be symmetric!!!
+    PixelData<float> scale = TiffUtils::getMesh<float>("local_intensity_scale_step.tif");
+    PixelData<uint16_t> grad = TiffUtils::getMesh<uint16_t>("gradient_step.tif");
+    PixelData<float> lps = TiffUtils::getMesh<float>("local_particle_set_level_step.tif");
+
+    PixelData<uint16_t> smooth = TiffUtils::getMesh<uint16_t>("smooth_bsplines.tif");
+
+    PixelData<uint16_t> recon_img;
+    APRReconstruction::interp_img(apr,recon_img,parts);
+
+    PixelData<uint16_t> level_img;
+    parts.fill_with_levels(apr);
+    APRReconstruction::interp_img(apr,level_img,parts);
+
+    TiffUtils::saveMeshAsTiff("level_image.tif",level_img);
+    TiffUtils::saveMeshAsTiff("img_recon.tif",recon_img);
+
+
+    if(check_symmetry(img)){
+        std::cout << "image symmetric" << std::endl;
+    } else {
+        std::cout << "image not symmetric" << std::endl;
+        success = false;
+    }
+
+    if(check_symmetry(smooth)){
+        std::cout << "smooth symmetric" << std::endl;
+    } else {
+        std::cout << "smooth not symmetric" << std::endl;
+        success = false;
+    }
+
+    if(check_symmetry(grad)){
+        std::cout << "grad symmetric" << std::endl;
+    } else {
+        std::cout << "grad not symmetric" << std::endl;
+        success = false;
+    }
+
+    if(check_symmetry(scale)){
+        std::cout << "scale symmetric" << std::endl;
+    } else {
+        std::cout << "scale not symmetric" << std::endl;
+        success = false;
+    }
+
+    if(check_symmetry(lps)){
+        std::cout << "lps symmetric" << std::endl;
+    } else {
+        std::cout << "lps not symmetric" << std::endl;
+        success = false;
+    }
+
+    if(check_symmetry(level_img)){
+        std::cout << "level_img symmetric" << std::endl;
+    } else {
+        std::cout << "level_img not symmetric" << std::endl;
+        success = false;
+    }
+
+    if(check_symmetry(recon_img)){
+        std::cout << "recon_img symmetric" << std::endl;
+    } else {
+        std::cout << "recon_img not symmetric" << std::endl;
+        success = false;
+    }
+
+
+    PixelData<uint16_t> recon_image;
+    PixelData<uint16_t> level_image;
+    PixelData<float> grad_image;
+
+
+
+
+    return success;
+
+}
+
+
+
+
+bool test_pipeline_different_sizes(TestData& test_data){
+
+    bool success = true;
+
+
+    APRConverter<uint16_t> aprConverter;
+
+    PixelData<uint16_t> input_data;
+
+
+    int min = 1;
+    int max = 4;
+
+    for (int i = min; i < max; ++i) {
+        for (int j = min; j < max; ++j) {
+            for (int k = min; k < max; ++k) {
+                input_data.init(k,j,i);
+
+                APR apr;
+
+                aprConverter.get_apr(apr,input_data);
+
+                ParticleData<uint16_t> parts;
+
+                parts.sample_parts_from_img_downsampled(apr,input_data);
+
+            }
+        }
+    }
+
+
+    //test slices
+
+    PixelData<uint16_t> img_slice;
+
+    std::vector<int> dim_start;
+    std::vector<int> dim_stop;
+
+    int num_slices = 4;
+
+    dim_start.resize(3);
+    dim_stop.resize(3);
+
+    dim_start[0] = 0;
+    dim_start[1] = 0;
+    dim_start[2] = test_data.img_original.z_num/2;
+
+    dim_stop[0] = test_data.img_original.y_num;
+    dim_stop[1] = test_data.img_original.x_num;
+    dim_stop[2] = dim_start[2] + num_slices;
+
+    sub_slices_img(test_data.img_original,img_slice,  dim_start, dim_stop);
+
+    APR apr;
+
+    aprConverter.par.auto_parameters = true;
+    aprConverter.par.output_steps = true;
+
+    aprConverter.get_apr(apr,img_slice);
+
+    ParticleData<uint16_t> parts;
+
+    parts.sample_parts_from_img_downsampled(apr,img_slice);
+
+    TiffUtils::saveMeshAsTiff("img.tif",img_slice);
+
+    PixelData<uint16_t> img;
+
+    APRReconstruction::interp_img(apr,img,parts);
+
+    TiffUtils::saveMeshAsTiff("img_recon.tif",img);
+
+    parts.fill_with_levels(apr);
+
+    TiffUtils::saveMeshAsTiff("img_levels.tif",img);
+
+
+    return success;
+
+}
+
+
 
 bool test_pulling_scheme_sparse(TestData& test_data){
     bool success = true;
@@ -456,6 +782,8 @@ bool test_linear_access_create(TestData& test_data) {
     aprConverter.par.output_dir = test_data.output_dir;
 
     aprConverter.method_timer.verbose_flag = true;
+
+    aprConverter.set_generate_linear(false);
 
     //Gets the APR
 
@@ -2522,6 +2850,16 @@ TEST_F(Create210SphereTest, RANDOM_ACCESS) {
     ASSERT_TRUE(test_random_access_it(test_data));
 
 }
+
+TEST_F(CreateSmallSphereTest, PIPELINE_SIZE) {
+
+    //ASSERT_TRUE(test_pipeline_different_sizes(test_data));
+
+    ASSERT_TRUE(test_symmetry_pipeline());
+
+}
+
+
 
 TEST_F(CreateSmallSphereTest, APR_TREE) {
 

@@ -36,14 +36,17 @@ public:
         int max_dim = std::max(std::max(org_dims[1], org_dims[0]), org_dims[2]);
         //int min_dim = std::min(std::min(aAPR.apr_access.org_dims[1], aAPR.apr_access.org_dims[0]), aAPR.apr_access.org_dims[2]);
 
-        int min_dim = max_dim;
-        min_dim = y_org > 1 ? std::min(min_dim, (int) y_org) : min_dim;
-        min_dim = x_org > 1 ? std::min(min_dim, (int) x_org) : min_dim;
-        min_dim = z_org > 1 ? std::min(min_dim, (int) z_org) : min_dim;
+//        int min_dim = max_dim;
+//        min_dim = y_org > 1 ? std::min(min_dim, (int) y_org) : min_dim;
+//        min_dim = x_org > 1 ? std::min(min_dim, (int) x_org) : min_dim;
+//        min_dim = z_org > 1 ? std::min(min_dim, (int) z_org) : min_dim;
 
-        int levelMax = ceil(std::log2(max_dim));
+        int levelMax = std::max((int)1,(int) ceil(std::log2(max_dim)));
 
-        int levelMin = std::max( (int)(levelMax - floor(std::log2(min_dim))), 1); // This sets the global minimum level
+        //int levelMin = std::max( (int)(levelMax - floor(std::log2(min_dim))), 1); // This sets the global minimum level
+
+        int levelMin = 1;
+
 
         l_min = levelMin;
         l_max = levelMax;
@@ -88,10 +91,10 @@ public:
 
         int levelMax = ceil(std::log2(max_dim));
         // set to 1, so that the tree can be to 0, enabling the upper tree to always exist.
-        int levelMin = std::max( (int)(levelMax - floor(std::log2(min_dim))), 1);
+        //int levelMin = std::max( (int)(levelMax - floor(std::log2(min_dim))), 1);
 
-        l_min = levelMin-1;
-        l_max = levelMax-1;
+        l_min = 0;
+        l_max = std::max((int) 1.0*levelMax-1,0);
 
         y_num.resize(l_max+1);
         x_num.resize(l_max+1);

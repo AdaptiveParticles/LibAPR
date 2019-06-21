@@ -157,6 +157,26 @@ inline void LinearAccess::initialize_linear_structure(APRParameters& apr_paramet
 
     initialize_xz_linear();
 
+    //edge case
+    if(level_max()<=2){
+        // For performance reasons and clarity of the code, it doesn't make sense here to handle these cases. Below assumes there is atleast <=2;
+
+        //just initialize full resolution
+        const auto level_start = level_xz_vec[level_max()];
+        uint64_t counter = 0;
+        for (size_t z = 0; z < z_num(level_max()); ++z) {
+            for (size_t x = 0; x < x_num(level_max()); ++x) {
+                const size_t offset_pc_data = z * x_num(level_max()) + x;
+                for (size_t y = 0; y < y_num(level_max()); ++y) {
+                    y_vec.push_back(y);
+                    counter++;
+                }
+                xz_end_vec[level_start + offset_pc_data] = counter;
+            }
+        }
+        return;
+    }
+
     // ========================================================================
     apr_timer.start_timer("first_step");
 

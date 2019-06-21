@@ -126,16 +126,16 @@ void ComputeGradient::get_smooth_bspline_3D(PixelData<T>& input, float lambda) {
 
     if(input.x_num > 1) {
         //X direction bspline
-        spline_timer.start_timer("bspline_filt_rec_x");
-        bspline_filt_rec_x(input, lambda, tol);
-        spline_timer.stop_timer();
+//        spline_timer.start_timer("bspline_filt_rec_x");
+//        bspline_filt_rec_x(input, lambda, tol);
+//        spline_timer.stop_timer();
     }
 
     if(input.z_num > 1) {
 //    //Z direction bspline
-        spline_timer.start_timer("bspline_filt_rec_z");
-        bspline_filt_rec_z(input, lambda, tol);
-        spline_timer.stop_timer();
+//        spline_timer.start_timer("bspline_filt_rec_z");
+//        bspline_filt_rec_z(input, lambda, tol);
+//        spline_timer.stop_timer();
     }
 }
 
@@ -254,13 +254,13 @@ void ComputeGradient::bspline_filt_rec_y(PixelData<T>& image,float lambda,float 
 
             for (auto it = (image.mesh.begin()+jxnumynum + iynum + 2); it !=  (image.mesh.begin()+jxnumynum + iynum + y_num); ++it) {
                 float  temp = temp1*b1 + temp2*b2 + *it;
-                *it = temp;
+                *it = std::round(temp);
                 temp2 = temp1;
                 temp1 = temp;
             }
 
-            image.mesh[jxnumynum + iynum + y_num - 2] = temp3*norm_factor;
-            image.mesh[jxnumynum + iynum + y_num - 1] = temp4*norm_factor;
+            image.mesh[jxnumynum + iynum + y_num - 2] = std::round(temp3*norm_factor);
+            image.mesh[jxnumynum + iynum + y_num - 1] = std::round(temp4*norm_factor);
 
 
         }
@@ -284,7 +284,7 @@ void ComputeGradient::bspline_filt_rec_y(PixelData<T>& image,float lambda,float 
             for (auto it = (image.mesh.begin()+jxnumynum + iynum + y_num-3); it !=  (image.mesh.begin()+jxnumynum + iynum-1); --it) {
                 float temp = temp1*b1 + temp2*b2 + *it;
 
-                *it = temp*norm_factor;
+                *it = std::round(temp*norm_factor);
 
                 temp2 = temp1;
                 temp1 = temp;
@@ -416,7 +416,7 @@ void ComputeGradient::bspline_filt_rec_z(PixelData<T>& image,float lambda,float 
 	        #pragma omp simd
             #endif
             for (size_t k = 0; k < y_num; ++k) {
-                temp_vec2[k] = 1.0*image.mesh[index + k] + b1*temp_vec1[k]+  b2*temp_vec2[k];
+                temp_vec2[k] = (1.0*image.mesh[index + k] + b1*temp_vec1[k]+  b2*temp_vec2[k]);
             }
 
             std::swap(temp_vec1, temp_vec2);
@@ -427,12 +427,12 @@ void ComputeGradient::bspline_filt_rec_z(PixelData<T>& image,float lambda,float 
         //initialization
         for (int64_t k = y_num - 1; k >= 0; --k) {
             //y(N)
-            image.mesh[(z_num - 1)*x_num*y_num  + iynum + k] = temp_vec4[k]*norm_factor;
+            image.mesh[(z_num - 1)*x_num*y_num  + iynum + k] = (temp_vec4[k]*norm_factor);
         }
 
         for (int64_t k = y_num - 1; k >= 0; --k) {
             //y(N-1)
-            image.mesh[(z_num - 2)*x_num*y_num  + iynum + k] = temp_vec3[k]*norm_factor;
+            image.mesh[(z_num - 2)*x_num*y_num  + iynum + k] = (temp_vec3[k]*norm_factor);
         }
 
         //main loop
@@ -444,7 +444,7 @@ void ComputeGradient::bspline_filt_rec_z(PixelData<T>& image,float lambda,float 
             #endif
             for (int64_t k = y_num - 1; k >= 0; --k) {
                 float temp = (image.mesh[index + k] +  b1*temp_vec3[k]+  b2*temp_vec4[k]);
-                image.mesh[index + k] = temp*norm_factor;
+                image.mesh[index + k] = (temp*norm_factor);
                 temp_vec4[k] = temp_vec3[k];
                 temp_vec3[k] = temp;
             }

@@ -40,7 +40,7 @@ protected:
 
     PullingSchemeSparse iPullingSchemeSparse;
 
-    bool generate_linear = false;
+    bool generate_linear = true; //default is now the new structures
     bool sparse_pulling_scheme = false;
 
 public:
@@ -137,9 +137,6 @@ static MinMax<T> getMinMax(const PixelData<T>& input_image) {
  */
 template<typename ImageType> template<typename T>
 inline bool APRConverter<ImageType>::get_apr(APR &aAPR, PixelData<T> &inputImage) {
-//    allocation_timer.start_timer("read tif input image");
-//    PixelData<T> inputImage = TiffUtils::getMesh<T>(aTiffFile);
-//    allocation_timer.stop_timer();
 
     method_timer.start_timer("calculate automatic parameters");
 
@@ -587,26 +584,18 @@ inline void APRConverter<ImageType>::get_gradient(PixelData<ImageType> &image_te
     //  Input: full sized image.
     //  Output: down-sampled by 2 gradient magnitude (Note, the gradient is calculated at pixel level then maximum down sampled within the loops below)
 
-    //fine_grained_timer.verbose_flag = true;
-
-    fine_grained_timer.start_timer("threshold");
-
-//#ifdef HAVE_OPENMP
-//#pragma omp parallel for
-//#endif
-//    for (size_t i = 0; i < image_temp.mesh.size(); ++i) {
-//        if (image_temp.mesh[i] <= (par.Ip_th + bspline_offset)) { image_temp.mesh[i] = par.Ip_th + bspline_offset; }
-//    }
-    fine_grained_timer.stop_timer();
-
-
-
     fine_grained_timer.start_timer("smooth_bspline");
     if(par.lambda > 0) {
         iComputeGradient.get_smooth_bspline_3D(image_temp, par.lambda);
     }
     fine_grained_timer.stop_timer();
 
+
+#ifdef HAVE_LIBTIFF
+    if(par.output_steps){
+        TiffUtils::saveMeshAsTiff(par.output_dir + "smooth_bsplines.tif", image_temp);
+    }
+#endif
 
     fine_grained_timer.start_timer("calc_bspline_fd_mag_ds");
     iComputeGradient.calc_bspline_fd_ds_mag(image_temp,grad_temp,par.dx,par.dy,par.dz);
@@ -669,6 +658,22 @@ void APRConverter<ImageType>::get_local_intensity_scale(PixelData<float> &local_
         size_t win_x2 = var_win[4];
         size_t win_z2 = var_win[5];
 
+        //Addded
+        PixelData<float> input_pad;
+        padd_boundary2(local_scale_temp,input_pad,win_y + win_y2);
+
+#ifdef HAVE_LIBTIFF
+        if(par.output_steps){
+            TiffUtils::saveMeshAsTiff(par.output_dir + "padd_image.tif", input_pad);
+        }
+#endif
+
+        PixelData<float> input_pad2;
+        padd_boundary2(local_scale_temp,input_pad2,win_y + win_y2);
+
+        std::swap(local_scale_temp,input_pad);
+        std::swap(local_scale_temp2,input_pad2);
+
         if (local_scale_temp.y_num > 1) {
             fine_grained_timer.start_timer("calc_sat_mean_y");
             iLocalIntensityScale.calc_sat_mean_y(local_scale_temp, win_y);
@@ -699,7 +704,6 @@ void APRConverter<ImageType>::get_local_intensity_scale(PixelData<float> &local_
             iLocalIntensityScale.calc_sat_mean_z(local_scale_temp, win_z2);
         }
 
-
         // second average for extra smoothing
         if(par.extra_smooth) {
             if (local_scale_temp.y_num > 1) {
@@ -714,6 +718,12 @@ void APRConverter<ImageType>::get_local_intensity_scale(PixelData<float> &local_
         }
         iLocalIntensityScale.rescale_var(local_scale_temp, var_rescale);
         fine_grained_timer.stop_timer();
+
+        std::swap(local_scale_temp2,input_pad2);
+        std::swap(local_scale_temp,input_pad);
+
+        un_padd_boundary(input_pad,local_scale_temp,win_y + win_y2);
+        un_padd_boundary(input_pad2,local_scale_temp2,win_y + win_y2);
 
     } else {
 
@@ -738,6 +748,9 @@ void APRConverter<ImageType>::get_local_intensity_scale(PixelData<float> &local_
             local_scale_temp.mesh[i] = scale_val;
         }
     }
+
+
+
 }
 
 
@@ -754,8 +767,6 @@ inline void APRConverter<ImageType>::auto_parameters(const PixelData<T>& input_i
         float rel_error_input = par.rel_error;
         float ip_th_input = par.Ip_th;
         float min_signal_input = par.min_signal;
-
-
 
         APRTimer par_timer;
         par_timer.verbose_flag = false;

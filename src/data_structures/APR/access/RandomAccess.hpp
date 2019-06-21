@@ -39,7 +39,6 @@ public:
     //backwards support
     void max_level_particle_raster(){
 
-
         global_index_by_level_and_zx_end_new.resize(level_max() + 1);
 
         for (int i = 0; i <= level_max(); ++i) {

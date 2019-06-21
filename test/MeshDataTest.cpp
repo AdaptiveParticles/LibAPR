@@ -301,6 +301,14 @@ namespace {
         ASSERT_STREQ(m.getStrIndex(90).c_str(), "(ErrIdx)");
         ASSERT_STREQ(m.getStrIndex(-1).c_str(), "(ErrIdx)");
     }
+
+    TEST(MeshDataSimpleTest, PadArray) {
+        PixelData<int> m(2, 2, 2);
+
+
+
+
+    }
 }
 
 #ifdef APR_USE_CUDA

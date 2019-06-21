@@ -95,6 +95,16 @@ namespace {
         return true;
     }
 
+
+    TEST(ComputeGradientTest, 1D_CONSTANT) {
+
+        PixelData<float> m(10,1,1,100);
+
+
+
+    }
+
+
     TEST(ComputeGradientTest, 2D_XY) {
         {   // Corner points
             PixelData<float> m(6, 6, 1, 0);
