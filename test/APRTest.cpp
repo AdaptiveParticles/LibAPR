@@ -399,9 +399,6 @@ void check_pad_array(){
     m.printMesh(2);
 
 
-    int stop = 1;
-
-
 }
 
 template<typename DataType>
@@ -429,7 +426,7 @@ bool check_symmetry(PixelData<DataType>& img){
                     float val = img.at(i, j, k);
                     float val_reflect = img.at(img.y_num - i - 1, j, k);
 
-                    if ((val - val_reflect) > 1) {
+                    if ((val - val_reflect) > 2) {
                         success = false;
                         sym_y = false;
                     }
@@ -439,7 +436,7 @@ bool check_symmetry(PixelData<DataType>& img){
                     float val = img.at(i, j, k);
                     float val_reflect = img.at(i, img.x_num - j - 1, k);
 
-                    if ((val - val_reflect) > 1) {
+                    if ((val - val_reflect) > 2) {
                         success = false;
                         sym_x = false;
 
@@ -451,7 +448,7 @@ bool check_symmetry(PixelData<DataType>& img){
                     float val = img.at(i, j, k);
                     float val_reflect = img.at(i, j, img.z_num - k - 1);
 
-                    if ((val - val_reflect) > 1) {
+                    if ((val - val_reflect) > 2) {
                         success = false;
                         sym_z = false;
                     }
@@ -499,7 +496,7 @@ bool test_symmetry_pipeline(){
 
     img.initWithValue(sz,sz,sz_slice,100);
 
-    int block_sz = 0;
+    int block_sz = 20;
 
     for (int i = block_sz; i < (sz - block_sz); ++i) {
         for (int j = block_sz; j < (sz - block_sz); ++j) {

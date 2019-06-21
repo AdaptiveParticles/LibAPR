@@ -174,8 +174,8 @@ void ComputeGradient::bspline_filt_rec_y(PixelData<T>& image,float lambda,float 
     const size_t z_num = image.z_num;
     const size_t x_num = image.x_num;
     const size_t y_num = image.y_num;
-    const size_t minLen = y_num;
-//    const size_t k0 = k0Len > 0 ? k0Len : std::min((size_t)(ceil(std::abs(log(tol)/log(rho)))),minLen);
+//    const size_t minLen = y_num;
+    const size_t minLen = k0Len > 0 ? k0Len : std::min((size_t)(ceil(std::abs(log(tol)/log(rho)))),y_num);
 
     const size_t k0 = k0Len > 0 ? k0Len : (size_t)(ceil(std::abs(log(tol)/log(rho))));
 
@@ -333,9 +333,9 @@ void ComputeGradient::bspline_filt_rec_z(PixelData<T>& image,float lambda,float 
     const size_t x_num = image.x_num;
     const size_t y_num = image.y_num;
     //const size_t minLen = std::min(z_num, std::min(x_num, y_num));
-    const size_t minLen = z_num;
+    //const size_t minLen = z_num;
 
-//    const size_t k0 = k0Len > 0 ? k0Len : std::min((size_t)(ceil(std::abs(log(tol)/log(rho)))), minLen);
+    const size_t minLen = k0Len > 0 ? k0Len : std::min((size_t)(ceil(std::abs(log(tol)/log(rho)))), z_num);
 
     const size_t k0 = k0Len > 0 ? k0Len :(size_t)(ceil(std::abs(log(tol)/log(rho))));
 
@@ -512,8 +512,8 @@ void ComputeGradient::bspline_filt_rec_x(PixelData<T>& image,float lambda,float 
     const size_t x_num = image.x_num;
     const size_t y_num = image.y_num;
 
-    const size_t minLen = x_num;
-//    const size_t k0 = k0Len > 0 ? k0Len : std::min((size_t)(ceil(std::abs(log(tol)/log(rho)))), minLen);
+//    const size_t minLen = x_num;
+    const size_t minLen = k0Len > 0 ? k0Len : std::min((size_t)(ceil(std::abs(log(tol)/log(rho)))), x_num);
     const size_t k0 = k0Len > 0 ? k0Len : ((size_t)(ceil(std::abs(log(tol)/log(rho)))));
     const float norm_factor = pow((1 - 2.0*rho*cos(omg) + pow(rho,2)),2);
 
