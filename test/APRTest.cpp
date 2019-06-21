@@ -495,7 +495,7 @@ bool test_symmetry_pipeline(){
 
     int sz = 64;
 
-    int sz_slice = 10;
+    int sz_slice = 64;
 
     img.initWithValue(sz,sz,sz_slice,100);
 
