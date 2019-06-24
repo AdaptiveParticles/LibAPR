@@ -102,8 +102,6 @@ protected:
     bool check_input_dimensions(PixelData<T> &input_image);
 
 
-    void get_gradient(PixelData<ImageType> &image_temp, PixelData<ImageType> &grad_temp, PixelData<float> &local_scale_temp, PixelData<float> &local_scale_temp2, float bspline_offset, const APRParameters &par);
-
     void computeLevels(const PixelData<ImageType> &grad_temp, PixelData<float> &local_scale_temp, int maxLevel, float relError, float dx = 1, float dy = 1, float dz = 1);
     void get_local_particle_cell_set(PixelData<float> &local_scale_temp, PixelData<float> &local_scale_temp2);
 
@@ -273,7 +271,7 @@ void APRConverter<ImageType>::computeL(APR& aAPR,PixelData<T>& input_image){
 #ifndef APR_USE_CUDA
     //method_timer.verbose_flag = true;
     method_timer.start_timer("compute_gradient_magnitude_using_bsplines");
-    get_gradient(image_temp, grad_temp, local_scale_temp, local_scale_temp2, bspline_offset, par);
+    iComputeGradient.get_gradient(image_temp, grad_temp, local_scale_temp, par);
     method_timer.stop_timer();
 #ifdef HAVE_LIBTIFF
     if(par.output_steps){
@@ -576,59 +574,6 @@ inline void APRConverter<ImageType>::get_local_particle_cell_set_sparse(PixelDat
 
 }
 
-
-template<typename ImageType>
-inline void APRConverter<ImageType>::get_gradient(PixelData<ImageType> &image_temp, PixelData<ImageType> &grad_temp, PixelData<float> &local_scale_temp, PixelData<float> &local_scale_temp2, float bspline_offset, const APRParameters &par) {
-    //  Bevan Cheeseman 2018
-    //  Calculate the gradient from the input image. (You could replace this method with your own)
-    //  Input: full sized image.
-    //  Output: down-sampled by 2 gradient magnitude (Note, the gradient is calculated at pixel level then maximum down sampled within the loops below)
-
-    fine_grained_timer.start_timer("smooth_bspline");
-    if(par.lambda > 0) {
-        iComputeGradient.get_smooth_bspline_3D(image_temp, par.lambda);
-    }
-    fine_grained_timer.stop_timer();
-
-
-#ifdef HAVE_LIBTIFF
-    if(par.output_steps){
-        TiffUtils::saveMeshAsTiff(par.output_dir + "smooth_bsplines.tif", image_temp);
-    }
-#endif
-
-    fine_grained_timer.start_timer("calc_bspline_fd_mag_ds");
-    iComputeGradient.calc_bspline_fd_ds_mag(image_temp,grad_temp,par.dx,par.dy,par.dz);
-    fine_grained_timer.stop_timer();
-
-
-    fine_grained_timer.start_timer("down-sample_b-spline");
-    downsample(image_temp, local_scale_temp,
-               [](const float &x, const float &y) -> float { return x + y; },
-               [](const float &x) -> float { return x / 8.0; });
-    fine_grained_timer.stop_timer();
-
-
-
-    if(par.lambda > 0){
-        if(image_temp.y_num > 2) {
-            fine_grained_timer.start_timer("calc_inv_bspline_y");
-            iComputeGradient.calc_inv_bspline_y(local_scale_temp);
-            fine_grained_timer.stop_timer();
-        }
-        if(image_temp.x_num > 2) {
-            fine_grained_timer.start_timer("calc_inv_bspline_x");
-            iComputeGradient.calc_inv_bspline_x(local_scale_temp);
-            fine_grained_timer.stop_timer();
-        }
-        if(image_temp.z_num > 2) {
-            fine_grained_timer.start_timer("calc_inv_bspline_z");
-            iComputeGradient.calc_inv_bspline_z(local_scale_temp);
-            fine_grained_timer.stop_timer();
-        }
-    }
-
-}
 
 
 

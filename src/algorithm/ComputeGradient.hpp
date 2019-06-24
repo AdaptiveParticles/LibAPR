@@ -18,6 +18,12 @@ class ComputeGradient {
 
 public:
 
+    APRTimer timer;
+
+    template<typename ImageType,typename tempType>
+    inline void get_gradient(PixelData<ImageType> &image_temp, PixelData<ImageType> &grad_temp, PixelData<tempType> &local_scale_temp, const APRParameters &par);
+
+
     template<typename T>
     void get_smooth_bspline_3D(PixelData<T> &input, float lambda);
 
@@ -60,6 +66,59 @@ public:
     inline float impulse_resp_back(float k, float rho, float omg, float gamma, float c0);
 
 };
+
+template<typename ImageType,typename tempType>
+inline void ComputeGradient::get_gradient(PixelData<ImageType> &image_temp, PixelData<ImageType> &grad_temp, PixelData<tempType> &local_scale_temp, const APRParameters &par) {
+    //  Bevan Cheeseman 2018
+    //  Calculate the gradient from the input image. (You could replace this method with your own)
+    //  Input: full sized image.
+    //  Output: down-sampled by 2 gradient magnitude (Note, the gradient is calculated at pixel level then maximum down sampled within the loops below)
+
+    timer.start_timer("smooth_bspline");
+    if(par.lambda > 0) {
+        get_smooth_bspline_3D(image_temp, par.lambda);
+    }
+    timer.stop_timer();
+
+
+#ifdef HAVE_LIBTIFF
+    if(par.output_steps){
+        TiffUtils::saveMeshAsTiff(par.output_dir + "smooth_bsplines.tif", image_temp);
+    }
+#endif
+
+    timer.start_timer("calc_bspline_fd_mag_ds");
+    calc_bspline_fd_ds_mag(image_temp,grad_temp,par.dx,par.dy,par.dz);
+    timer.stop_timer();
+
+
+    timer.start_timer("down-sample_b-spline");
+    downsample(image_temp, local_scale_temp,
+               [](const float &x, const float &y) -> float { return x + y; },
+               [](const float &x) -> float { return x / 8.0; });
+    timer.stop_timer();
+
+    if(par.lambda > 0){
+        if(image_temp.y_num > 2) {
+            timer.start_timer("calc_inv_bspline_y");
+            calc_inv_bspline_y(local_scale_temp);
+            timer.stop_timer();
+        }
+        if(image_temp.x_num > 2) {
+            timer.start_timer("calc_inv_bspline_x");
+            calc_inv_bspline_x(local_scale_temp);
+            timer.stop_timer();
+        }
+        if(image_temp.z_num > 2) {
+            timer.start_timer("calc_inv_bspline_z");
+            calc_inv_bspline_z(local_scale_temp);
+            timer.stop_timer();
+        }
+    }
+
+}
+
+
 
 template<typename T>
 void ComputeGradient::mask_gradient(PixelData<T>& grad_ds, const APRParameters& par){
@@ -161,6 +220,9 @@ inline T round(T val,const bool rounding){
         return val;
     }
 }
+
+
+
 
 template<typename T>
 void ComputeGradient::bspline_filt_rec_y(PixelData<T>& image,float lambda,float tol, int k0Len) {
