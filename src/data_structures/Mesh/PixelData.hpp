@@ -684,24 +684,23 @@ void downsamplePyrmaid(PixelData<T> &original_image, std::vector<PixelData<T>> &
 
 
 template<typename T>
-void padd_boundary2(PixelData<T>& input,PixelData<T>& input_pad,int sz){
+void padd_boundary2(PixelData<T>& input,PixelData<T>& input_pad,int sz_y,int sz_x,int sz_z){
 
-    int sz_y,sz_x,sz_z;
 
     if(input.y_num > 1){
-        sz_y = sz;
+        sz_y = std::min(sz_y,(int) (input.y_num-1));
     } else {
         sz_y = 0;
     }
 
     if(input.x_num > 1){
-        sz_x = sz;
+        sz_x =  std::min(sz_x,(int) (input.x_num-1));
     } else {
         sz_x = 0;
     }
 
     if(input.z_num > 1){
-        sz_z = sz;
+        sz_z =  std::min(sz_z, (int) (input.z_num-1));
     } else {
         sz_z = 0;
     }
@@ -798,27 +797,8 @@ void padd_boundary2(PixelData<T>& input,PixelData<T>& input_pad,int sz){
 }
 
 template<typename T>
-void un_padd_boundary(PixelData<T>& input,PixelData<T>& input_un_pad,int sz) {
+void un_padd_boundary(PixelData<T>& input,PixelData<T>& input_un_pad,int sz_y,int sz_x,int sz_z) {
 
-    int sz_y,sz_x,sz_z;
-
-    if(input.y_num > 1){
-        sz_y = sz;
-    } else {
-        sz_y = 0;
-    }
-
-    if(input.x_num > 1){
-        sz_x = sz;
-    } else {
-        sz_x = 0;
-    }
-
-    if(input.z_num > 1){
-        sz_z = sz;
-    } else {
-        sz_z = 0;
-    }
 
     input_un_pad.init(input.y_num - 2 * sz_y, input.x_num - 2 * sz_x, input.z_num - 2 * sz_z);
 

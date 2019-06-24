@@ -117,21 +117,21 @@ void ComputeGradient::get_smooth_bspline_3D(PixelData<T>& input, float lambda) {
 
     float tol = 0.0001;
 
-    if(input.y_num > 1) {
+    if(input.y_num > 2) {
         //Y direction bspline
         spline_timer.start_timer("bspline_filt_rec_y");
         bspline_filt_rec_y(input, lambda, tol);
         spline_timer.stop_timer();
     }
 
-    if(input.x_num > 1) {
+    if(input.x_num > 2) {
         //X direction bspline
         spline_timer.start_timer("bspline_filt_rec_x");
         bspline_filt_rec_x(input, lambda, tol);
         spline_timer.stop_timer();
     }
 
-    if(input.z_num > 1) {
+    if(input.z_num > 2) {
 //    //Z direction bspline
         spline_timer.start_timer("bspline_filt_rec_z");
         bspline_filt_rec_z(input, lambda, tol);

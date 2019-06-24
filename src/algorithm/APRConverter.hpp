@@ -43,6 +43,7 @@ protected:
     bool generate_linear = true; //default is now the new structures
     bool sparse_pulling_scheme = false;
 
+
 public:
 
     void set_generate_linear(bool flag){
@@ -102,7 +103,6 @@ protected:
 
 
     void get_gradient(PixelData<ImageType> &image_temp, PixelData<ImageType> &grad_temp, PixelData<float> &local_scale_temp, PixelData<float> &local_scale_temp2, float bspline_offset, const APRParameters &par);
-    void get_local_intensity_scale(PixelData<float> &local_scale_temp, PixelData<float> &local_scale_temp2, const APRParameters &par);
 
     void computeLevels(const PixelData<ImageType> &grad_temp, PixelData<float> &local_scale_temp, int maxLevel, float relError, float dx = 1, float dy = 1, float dz = 1);
     void get_local_particle_cell_set(PixelData<float> &local_scale_temp, PixelData<float> &local_scale_temp2);
@@ -281,7 +281,7 @@ void APRConverter<ImageType>::computeL(APR& aAPR,PixelData<T>& input_image){
     }
 #endif
     method_timer.start_timer("compute_local_intensity_scale");
-    get_local_intensity_scale(local_scale_temp, local_scale_temp2, par);
+    iLocalIntensityScale.get_local_intensity_scale(local_scale_temp, local_scale_temp2, par);
     method_timer.stop_timer();
     //method_timer.verbose_flag = false;
 #ifdef HAVE_LIBTIFF
@@ -608,150 +608,29 @@ inline void APRConverter<ImageType>::get_gradient(PixelData<ImageType> &image_te
                [](const float &x) -> float { return x / 8.0; });
     fine_grained_timer.stop_timer();
 
+
+
     if(par.lambda > 0){
-        if(image_temp.y_num > 1) {
+        if(image_temp.y_num > 2) {
             fine_grained_timer.start_timer("calc_inv_bspline_y");
             iComputeGradient.calc_inv_bspline_y(local_scale_temp);
             fine_grained_timer.stop_timer();
         }
-        if(image_temp.x_num > 1) {
+        if(image_temp.x_num > 2) {
             fine_grained_timer.start_timer("calc_inv_bspline_x");
             iComputeGradient.calc_inv_bspline_x(local_scale_temp);
             fine_grained_timer.stop_timer();
         }
-        if(image_temp.z_num > 1) {
+        if(image_temp.z_num > 2) {
             fine_grained_timer.start_timer("calc_inv_bspline_z");
             iComputeGradient.calc_inv_bspline_z(local_scale_temp);
             fine_grained_timer.stop_timer();
         }
     }
 
-
-
-
-
-
 }
 
-template<typename ImageType>
-void APRConverter<ImageType>::get_local_intensity_scale(PixelData<float> &local_scale_temp, PixelData<float> &local_scale_temp2, const APRParameters &par) {
-    //
-    //  Calculate the Local Intensity Scale (You could replace this method with your own)
-    //
-    //  Input: full sized image.
-    //
-    //  Output: down-sampled Local Intensity Scale (h) (Due to the Equivalence Optimization we only need down-sampled values)
-    //
-    if (!par.constant_intensity_scale) {
-        fine_grained_timer.start_timer("copy_intensities_from_bsplines");
-        //copy across the intensities
-        local_scale_temp2.copyFromMesh(local_scale_temp);
-        fine_grained_timer.stop_timer();
 
-        float var_rescale;
-        std::vector<int> var_win;
-        iLocalIntensityScale.get_window_alt(var_rescale, var_win, par, apr->aprInfo.number_dimensions);
-        size_t win_y = var_win[0];
-        size_t win_x = var_win[1];
-        size_t win_z = var_win[2];
-        size_t win_y2 = var_win[3];
-        size_t win_x2 = var_win[4];
-        size_t win_z2 = var_win[5];
-
-        //Addded
-        PixelData<float> input_pad;
-        padd_boundary2(local_scale_temp,input_pad,win_y + win_y2);
-
-#ifdef HAVE_LIBTIFF
-        if(par.output_steps){
-            TiffUtils::saveMeshAsTiff(par.output_dir + "padd_image.tif", input_pad);
-        }
-#endif
-
-        PixelData<float> input_pad2;
-        padd_boundary2(local_scale_temp,input_pad2,win_y + win_y2);
-
-        std::swap(local_scale_temp,input_pad);
-        std::swap(local_scale_temp2,input_pad2);
-
-        if (local_scale_temp.y_num > 1) {
-            fine_grained_timer.start_timer("calc_sat_mean_y");
-            iLocalIntensityScale.calc_sat_mean_y(local_scale_temp, win_y);
-            fine_grained_timer.stop_timer();
-        }
-        if (local_scale_temp.x_num > 1) {
-            fine_grained_timer.start_timer("calc_sat_mean_x");
-            iLocalIntensityScale.calc_sat_mean_x(local_scale_temp, win_x);
-            fine_grained_timer.stop_timer();
-        }
-        if (local_scale_temp.z_num > 1) {
-            fine_grained_timer.start_timer("calc_sat_mean_z");
-            iLocalIntensityScale.calc_sat_mean_z(local_scale_temp, win_z);
-            fine_grained_timer.stop_timer();
-        }
-
-        fine_grained_timer.start_timer("second_pass_and_rescale");
-        //calculate abs and subtract from original
-        iLocalIntensityScale.calc_abs_diff(local_scale_temp2, local_scale_temp);
-        //Second spatial average
-        if (local_scale_temp.y_num > 1) {
-            iLocalIntensityScale.calc_sat_mean_y(local_scale_temp, win_y2);
-        }
-        if (local_scale_temp.x_num > 1) {
-            iLocalIntensityScale.calc_sat_mean_x(local_scale_temp, win_x2);
-        }
-        if (local_scale_temp.z_num > 1) {
-            iLocalIntensityScale.calc_sat_mean_z(local_scale_temp, win_z2);
-        }
-
-        // second average for extra smoothing
-        if(par.extra_smooth) {
-            if (local_scale_temp.y_num > 1) {
-                iLocalIntensityScale.calc_sat_mean_y(local_scale_temp, par.extra_smooth);
-            }
-            if (local_scale_temp.x_num > 1) {
-                iLocalIntensityScale.calc_sat_mean_x(local_scale_temp, par.extra_smooth);
-            }
-            if (local_scale_temp.z_num > 1) {
-                iLocalIntensityScale.calc_sat_mean_z(local_scale_temp, par.extra_smooth);
-            }
-        }
-        iLocalIntensityScale.rescale_var(local_scale_temp, var_rescale);
-        fine_grained_timer.stop_timer();
-
-        std::swap(local_scale_temp2,input_pad2);
-        std::swap(local_scale_temp,input_pad);
-
-        un_padd_boundary(input_pad,local_scale_temp,win_y + win_y2);
-        un_padd_boundary(input_pad2,local_scale_temp2,win_y + win_y2);
-
-    } else {
-
-        float min_val = 660000;
-        double sum = 0;
-        float tmp;
-
-        for(int i=0; i<local_scale_temp.mesh.size(); ++i) {
-            tmp = local_scale_temp.mesh[i];
-
-            sum += tmp;
-
-            if(tmp < min_val) {
-                min_val = tmp;
-            }
-        }
-
-        float numel = (float) (local_scale_temp.y_num * local_scale_temp.x_num * local_scale_temp.z_num);
-        float scale_val = (float) (sum / numel - min_val);
-
-        for(int i = 0; i<local_scale_temp.mesh.size(); ++i) {
-            local_scale_temp.mesh[i] = scale_val;
-        }
-    }
-
-
-
-}
 
 
 template<typename ImageType> template<typename T>
