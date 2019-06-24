@@ -3000,9 +3000,11 @@ TEST_F(Create210SphereTest, APR_INPUT_OUTPUT) {
 }
 
 
-TEST_F(Create210SphereTest, APR_FILTER) {
+TEST_F(CreateSmallSphereTest, APR_FILTER) {
     ASSERT_TRUE(test_apr_filter(test_data));
 }
+
+
 
 
 //TEST_F(Create210SphereTest, APR_PIPELINE) {
