@@ -128,6 +128,18 @@ public:
         dataspace_id = H5Dget_space (data_id);
     }
 
+    std::vector<uint64_t> get_dimensions(){
+
+        const int ndims = H5Sget_simple_extent_ndims(dataspace_id);
+        std::vector<uint64_t> dims;
+        dims.resize(ndims,0);
+
+        H5Sget_simple_extent_dims(dataspace_id, dims.data(), NULL);
+
+        return dims;
+    }
+
+
     void close(){
         H5Sclose (memspace_id);
         H5Sclose (dataspace_id);
@@ -258,6 +270,7 @@ public:
         return number_time_steps;
 
     }
+
 
     template<typename T>
     static void re_order_parts(APR apr,ParticleData<T>& parts){

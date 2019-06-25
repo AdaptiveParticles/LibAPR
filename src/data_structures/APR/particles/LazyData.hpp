@@ -121,6 +121,14 @@ public:
         return data[it.current_index - parts_start];
     }
 
+    uint64_t dataset_size(){
+
+        std::vector<uint64_t> dims = dataSet.get_dimensions();
+
+        return dims[0];
+
+    }
+
     LazyData(){};
 
     void close(){

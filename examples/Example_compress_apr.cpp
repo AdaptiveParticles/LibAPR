@@ -61,7 +61,6 @@ int main(int argc, char **argv) {
 
     aprFile.close();
 
-    apr.parameters.input_dir = options.directory;
 
     std::string name = options.input;
     //remove the file extension
@@ -82,7 +81,7 @@ int main(int argc, char **argv) {
     //compress the APR and write to disk
     timer.start_timer("compress and write");
 
-    compFile.write_particles(apr,"comp_parts",parts);
+    compFile.write_particles("comp_parts",parts);
 
     timer.stop_timer();
 

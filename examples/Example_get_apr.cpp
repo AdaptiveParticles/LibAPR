@@ -104,12 +104,12 @@ int runAPR(cmdLineOptions options) {
 
         aprFile.open(save_loc + file_name + ".apr");
 
+        aprFile.set_read_write_tree(false); //not writing tree to file.
+
         aprFile.write_apr(apr);
-        aprFile.write_particles(apr,"intensities",particle_intensities);
+        aprFile.write_particles("particle_intensities",particle_intensities);
 
         float apr_file_size = aprFile.current_file_size_MB();
-
-        std::cerr << "File size functionality needs to be updated" << std::endl;
 
         timer.stop_timer();
 
@@ -120,7 +120,14 @@ int runAPR(cmdLineOptions options) {
         std::cout << "Lossy Compression Ratio: " << original_pixel_image_size/apr_file_size << std::endl;
         std::cout << std::endl;
 
-        } else {
+        if(aprConverter.par.output_steps){
+            particle_intensities.fill_with_levels(apr);
+            PixelData<uint16_t> level_img;
+            APRReconstruction::interp_img(apr,level_img,particle_intensities);
+            TiffUtils::saveMeshAsTiff(options.output_dir + "level_image.tif",level_img);
+        }
+
+    } else {
         std::cout << "Oops, something went wrong. APR not computed :(." << std::endl;
     }
     return 0;

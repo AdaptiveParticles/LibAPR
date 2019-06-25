@@ -343,7 +343,7 @@ bool test_tiling(BenchmarkData& benchmarkData){
 
     aprFile.open("tiledAPR.apr","WRITE");
     aprFile.write_apr(apr_tiled);
-    aprFile.write_particles(apr_tiled,"particle_intensities",tiled_parts);
+    aprFile.write_particles("particle_intensities",tiled_parts);
 
     std::cout << "APR File Size: " << aprFile.current_file_size_GB() << " GB" << std::endl;
     std::cout << "Original Image Size: " << (apr_tiled.org_dims(0)*apr_tiled.org_dims(1)*apr_tiled.org_dims(2)*2)/(1000000000.0) << " GB" << std::endl;
@@ -405,7 +405,7 @@ void bench_lazy_particles(BenchmarkData& benchmarkData){
 
     writeFile.write_apr(apr_tiled);
 
-    writeFile.write_particles(apr_tiled,"parts",tiled_parts);
+    writeFile.write_particles("parts",tiled_parts);
 
 
     std::cout << "APR File Size: " << writeFile.current_file_size_GB() << " GB" << std::endl;
@@ -511,7 +511,7 @@ void bench_lazy_particles(BenchmarkData& benchmarkData){
     float normal_read = timer.timings.back();
 
     timer.start_timer("normal write");
-    writeFile.write_particles(apr_tiled,"parts_t",parts_read);
+    writeFile.write_particles("parts_t",parts_read);
     timer.stop_timer();
 
     float normal_write = timer.timings.back();
