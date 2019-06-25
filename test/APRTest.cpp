@@ -85,6 +85,15 @@ public:
     void SetUp() override;
 };
 
+
+class CreateGTSmall1DTestProperties : public CreateAPRTest
+{
+public:
+    void SetUp() override;
+};
+
+
+
 class CreateGTSmall2DTestAPR : public CreateAPRTest
 {
 public:
@@ -361,19 +370,19 @@ bool test_random_access_it(TestData& test_data){
 
 
     //check out of bounds
-    bool found = random_it.set_iterator_by_global_coordinate(0, 0, 2*test_data.apr.org_dims(2));
+    bool found = random_it.set_iterator_by_global_coordinate(0, 0, 2*test_data.apr.org_dims(2)+2);
 
     if(found){
         success = false;
     }
 
-    found = random_it.set_iterator_by_global_coordinate(0, 2*test_data.apr.org_dims(1), 0);
+    found = random_it.set_iterator_by_global_coordinate(0, 2*test_data.apr.org_dims(0)+2, 0);
 
     if(found){
         success = false;
     }
 
-    found = random_it.set_iterator_by_global_coordinate(2*test_data.apr.org_dims(0), 0, 0);
+    found = random_it.set_iterator_by_global_coordinate(2*test_data.apr.org_dims(1)+2, 0, 0);
 
     if(found){
         success = false;
@@ -1387,37 +1396,45 @@ bool test_apr_tree(TestData& test_data) {
     }
 
 
-    auto neigh_tree_iterator = test_data.apr.random_tree_iterator();
+    if(it_lin.number_dimensions() == 3) {
+        //note there is no current support for 2D and 1D random neighbour access.
+
+        auto neigh_tree_iterator = test_data.apr.random_tree_iterator();
 
 
-    for (int level = apr_tree_iterator.level_min(); level <= apr_tree_iterator.level_max(); ++level) {
-        int z = 0;
-        int x = 0;
+        for (int level = apr_tree_iterator.level_min(); level <= apr_tree_iterator.level_max(); ++level) {
+            int z = 0;
+            int x = 0;
 
-        for (z = 0; z < apr_tree_iterator.z_num(level); z++) {
-            for (x = 0; x < apr_tree_iterator.x_num(level); ++x) {
-                for (apr_tree_iterator.set_new_lzx(level, z, x); apr_tree_iterator < apr_tree_iterator.end();
-                     apr_tree_iterator.set_iterator_to_particle_next_particle()) {
+            for (z = 0; z < apr_tree_iterator.z_num(level); z++) {
+                for (x = 0; x < apr_tree_iterator.x_num(level); ++x) {
+                    for (apr_tree_iterator.set_new_lzx(level, z, x); apr_tree_iterator < apr_tree_iterator.end();
+                         apr_tree_iterator.set_iterator_to_particle_next_particle()) {
 
-                    //loop over all the neighbours and set the neighbour iterator to it
-                    for (int direction = 0; direction < 6; ++direction) {
-                        apr_tree_iterator.find_neighbours_same_level(direction);
-                        // Neighbour Particle Cell Face definitions [+y,-y,+x,-x,+z,-z] =  [0,1,2,3,4,5]
-                        for (int index = 0; index < apr_tree_iterator.number_neighbours_in_direction(direction); ++index) {
+                        //loop over all the neighbours and set the neighbour iterator to it
+                        for (int direction = 0; direction < 6; ++direction) {
+                            apr_tree_iterator.find_neighbours_same_level(direction);
+                            // Neighbour Particle Cell Face definitions [+y,-y,+x,-x,+z,-z] =  [0,1,2,3,4,5]
+                            for (int index = 0;
+                                 index < apr_tree_iterator.number_neighbours_in_direction(direction); ++index) {
 
-                            if (neigh_tree_iterator.set_neighbour_iterator(apr_tree_iterator, direction, index)) {
-                                //neighbour_iterator works just like apr, and apr_parallel_iterator (you could also call neighbours)
+                                if (neigh_tree_iterator.set_neighbour_iterator(apr_tree_iterator, direction, index)) {
+                                    //neighbour_iterator works just like apr, and apr_parallel_iterator (you could also call neighbours)
 
-                                uint16_t current_int = (uint16_t)std::round(downsampled_img[neigh_tree_iterator.level()].at(neigh_tree_iterator.y(),neigh_tree_iterator.x(),neigh_tree_iterator.z()));
-                                //uint16_t parts_int = aprTree.particles_ds_tree[apr_tree_iterator];
-                                uint16_t parts2 = (uint16_t)std::round(tree_data[neigh_tree_iterator]);
+                                    uint16_t current_int = (uint16_t) std::round(
+                                            downsampled_img[neigh_tree_iterator.level()].at(neigh_tree_iterator.y(),
+                                                                                            neigh_tree_iterator.x(),
+                                                                                            neigh_tree_iterator.z()));
+                                    //uint16_t parts_int = aprTree.particles_ds_tree[apr_tree_iterator];
+                                    uint16_t parts2 = (uint16_t) std::round(tree_data[neigh_tree_iterator]);
 
-                                //uint16_t y = apr_tree_iterator.y();
+                                    //uint16_t y = apr_tree_iterator.y();
 
-                                if(abs(parts2 - current_int) > 1){
-                                    success = false;
+                                    if (abs(parts2 - current_int) > 1) {
+                                        success = false;
+                                    }
+
                                 }
-
                             }
                         }
                     }
@@ -1821,7 +1838,16 @@ bool test_apr_neighbour_access(TestData& test_data){
 
 
 
+    int number_directions;
 
+    if(apr_iterator.number_dimensions() == 3){
+        number_directions = 6;
+    } else{
+        std::cerr << "No current support for random neighbour access in 2D and 1D " << std::endl;
+        return success;
+    }
+
+    uint64_t counter = 0;
 
     for (unsigned int level = apr_iterator.level_min(); level <= apr_iterator.level_max(); ++level) {
         int z = 0;
@@ -1832,8 +1858,10 @@ bool test_apr_neighbour_access(TestData& test_data){
                 for (apr_iterator.set_new_lzx(level, z, x); apr_iterator < apr_iterator.end();
                      apr_iterator.set_iterator_to_particle_next_particle()) {
 
+                    counter++;
+
                     //loop over all the neighbours and set the neighbour iterator to it
-                    for (int direction = 0; direction < 6; ++direction) {
+                    for (int direction = 0; direction < number_directions; ++direction) {
                         // Neighbour Particle Cell Face definitions [+y,-y,+x,-x,+z,-z] =  [0,1,2,3,4,5]
 
                         apr_iterator.find_neighbours_in_direction(direction);
@@ -2598,7 +2626,17 @@ bool test_apr_filter(TestData &test_data) {
 
     std::vector<PixelData<float>> stencils;
     stencils.resize(1);
-    stencils[0].init(3, 3, 3);
+
+    auto it = test_data.apr.iterator();
+
+    if(it.number_dimensions() ==3){
+        stencils[0].init(3, 3, 3);
+    } else if (it.number_dimensions() ==2){
+        stencils[0].init(3, 3, 1);
+    } else if (it.number_dimensions() ==1){
+        stencils[0].init(3, 1, 1);
+    }
+
 
     // unique stencil elements
     float sum = 0;
@@ -2789,6 +2827,122 @@ void CreateGTSmall2DTestProperties::SetUp(){
     test_data.output_name = "sphere_2D";
 }
 
+void CreateGTSmall1DTestProperties::SetUp(){
+
+    std::string file_name = get_source_directory_apr() + "files/Apr/sphere_1D/sphere_1D.apr";
+    test_data.apr_filename = file_name;
+
+    APRFile aprFile;
+    aprFile.open(file_name,"READ");
+    aprFile.set_read_write_tree(false);
+    aprFile.read_apr(test_data.apr);
+    aprFile.read_particles(test_data.apr,"particle_intensities",test_data.particles_intensities);
+    aprFile.close();
+
+    file_name = get_source_directory_apr() + "files/Apr/sphere_1D/sphere_1D_level.tif";
+    test_data.img_level = TiffUtils::getMesh<uint16_t>(file_name,false);
+    file_name = get_source_directory_apr() + "files/Apr/sphere_1D/original.tif";
+    test_data.img_original = TiffUtils::getMesh<uint16_t>(file_name,false);
+    file_name = get_source_directory_apr() + "files/Apr/sphere_1D/sphere_1D_pc.tif";
+    test_data.img_pc = TiffUtils::getMesh<uint16_t>(file_name,false);
+    file_name = get_source_directory_apr() + "files/Apr/sphere_1D/sphere_1D_x.tif";
+    test_data.img_x = TiffUtils::getMesh<uint16_t>(file_name,false);
+    file_name =  get_source_directory_apr() + "files/Apr/sphere_1D/sphere_1D_y.tif";
+    test_data.img_y = TiffUtils::getMesh<uint16_t>(file_name,false);
+    file_name =  get_source_directory_apr() + "files/Apr/sphere_1D/sphere_1D_z.tif";
+    test_data.img_z = TiffUtils::getMesh<uint16_t>(file_name,false);
+
+    test_data.filename = get_source_directory_apr() + "files/Apr/sphere_1D/sphere_1D_original.tif";
+    test_data.output_name = "sphere_1D";
+}
+
+//1D tests
+
+TEST_F(CreateGTSmall1DTestProperties, APR_ITERATION) {
+
+//test iteration
+    ASSERT_TRUE(test_apr_random_iterate(test_data));
+    ASSERT_TRUE(test_linear_iterate(test_data));
+
+}
+
+TEST_F(CreateGTSmall1DTestProperties, PULLING_SCHEME_SPARSE) {
+    //tests the linear access geneartions and io
+    ASSERT_TRUE(test_pulling_scheme_sparse(test_data));
+
+}
+
+TEST_F(CreateGTSmall1DTestProperties, LINEAR_ACCESS_CREATE) {
+
+    ASSERT_TRUE(test_linear_access_create(test_data));
+
+}
+
+TEST_F(CreateGTSmall1DTestProperties, LINEAR_ACCESS_IO) {
+
+    ASSERT_TRUE(test_linear_access_io(test_data));
+
+}
+
+TEST_F(CreateGTSmall1DTestProperties, PARTIAL_READ) {
+
+    ASSERT_TRUE(test_read_upto_level(test_data));
+
+}
+
+TEST_F(CreateGTSmall1DTestProperties, LAZY_PARTICLES) {
+
+    ASSERT_TRUE(test_lazy_particles(test_data));
+
+}
+
+TEST_F(CreateGTSmall1DTestProperties, COMPRESS_PARTICLES) {
+
+    ASSERT_TRUE(test_particles_compress(test_data));
+
+}
+
+
+TEST_F(CreateGTSmall1DTestProperties, RANDOM_ACCESS) {
+
+    ASSERT_TRUE(test_random_access_it(test_data));
+
+}
+
+TEST_F(CreateGTSmall1DTestProperties, APR_NEIGHBOUR_ACCESS) {
+
+    //test iteration
+    ASSERT_TRUE(test_apr_neighbour_access(test_data));
+
+}
+
+
+TEST_F(CreateGTSmall1DTestProperties, APR_TREE) {
+
+    //test iteration
+    ASSERT_TRUE(test_apr_tree(test_data));
+
+}
+
+
+
+TEST_F(CreateGTSmall1DTestProperties, APR_INPUT_OUTPUT) {
+
+    //test iteration
+    // ASSERT_TRUE(test_apr_input_output(test_data));
+
+    ASSERT_TRUE(test_apr_file(test_data));
+
+}
+
+TEST_F(CreateGTSmall1DTestProperties, APR_PARTICLES) {
+
+    ASSERT_TRUE(test_particle_structures(test_data));
+}
+
+TEST_F(CreateGTSmall1DTestProperties, APR_FILTER) {
+    ASSERT_TRUE(test_apr_filter(test_data));
+}
 
 
 //2D tests
@@ -2870,6 +3024,18 @@ TEST_F(CreateGTSmall2DTestProperties, APR_INPUT_OUTPUT) {
 
 }
 
+TEST_F(CreateGTSmall2DTestProperties, APR_PARTICLES) {
+
+    ASSERT_TRUE(test_particle_structures(test_data));
+}
+
+TEST_F(CreateGTSmall2DTestProperties, APR_FILTER) {
+    ASSERT_TRUE(test_apr_filter(test_data));
+}
+
+
+
+//3D tests
 
 
 TEST_F(CreateSmallSphereTest, APR_ITERATION) {

@@ -38,6 +38,8 @@ public:
 
     unsigned int org_dims(int dim) const { return genInfo->org_dims[dim]; }
 
+    unsigned int number_dimensions(){return genInfo->number_dimensions;};
+
     uint16_t level_min();
     uint16_t level_max();
 
