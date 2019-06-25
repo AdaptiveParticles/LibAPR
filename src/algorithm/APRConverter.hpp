@@ -93,19 +93,11 @@ protected:
     const APR *apr;
 
     template<typename T>
-    void init_apr( PixelData<T>& input_image,GenAccess& genAccess);
-
-    template<typename T>
     void auto_parameters(const PixelData<T> &input_img);
 
     template<typename T>
     bool check_input_dimensions(PixelData<T> &input_image);
 
-
-    void computeLevels(const PixelData<ImageType> &grad_temp, PixelData<float> &local_scale_temp, int maxLevel, float relError, float dx = 1, float dy = 1, float dz = 1);
-    void get_local_particle_cell_set(PixelData<float> &local_scale_temp, PixelData<float> &local_scale_temp2);
-
-    void get_local_particle_cell_set_sparse(PixelData<float> &local_scale_temp, PixelData<float> &local_scale_temp2);
 
 };
 
@@ -299,7 +291,7 @@ template<typename ImageType>
 void APRConverter<ImageType>::solveForAPR(APR& aAPR){
 
     method_timer.start_timer("compute_levels");
-    computeLevels(grad_temp, local_scale_temp, (*apr).level_max(), par.rel_error, par.dx, par.dy, par.dz);
+    iLocalParticleSet.computeLevels(grad_temp, local_scale_temp, (*apr).level_max(), par.rel_error, par.dx, par.dy, par.dz);
     method_timer.stop_timer();
 
     if(!sparse_pulling_scheme) {
@@ -309,7 +301,7 @@ void APRConverter<ImageType>::solveForAPR(APR& aAPR){
         method_timer.stop_timer();
 
         method_timer.start_timer("compute_local_particle_set");
-        get_local_particle_cell_set(local_scale_temp, local_scale_temp2);
+        iLocalParticleSet.get_local_particle_cell_set(iPullingScheme,local_scale_temp, local_scale_temp2,par);
         method_timer.stop_timer();
 
         method_timer.start_timer("compute_pulling_scheme");
@@ -322,7 +314,7 @@ void APRConverter<ImageType>::solveForAPR(APR& aAPR){
         method_timer.stop_timer();
 
         method_timer.start_timer("compute_local_particle_set");
-        get_local_particle_cell_set_sparse(local_scale_temp, local_scale_temp2);
+        iLocalParticleSet.get_local_particle_cell_set_sparse(iPullingSchemeSparse,local_scale_temp, local_scale_temp2,par);
         method_timer.stop_timer();
 
         method_timer.start_timer("compute_pulling_scheme");
@@ -330,7 +322,6 @@ void APRConverter<ImageType>::solveForAPR(APR& aAPR){
         method_timer.stop_timer();
 
     }
-
 
 }
 
@@ -382,6 +373,7 @@ void APRConverter<ImageType>::generateDatastructures(APR& aAPR){
 template<typename ImageType> template<typename T>
 inline bool APRConverter<ImageType>::get_apr_method(APR &aAPR, PixelData<T>& input_image) {
 
+    aAPR.parameters = par;
     apr = &aAPR; // in case it was called directly
 
     if(par.check_input) {
@@ -479,101 +471,6 @@ inline bool APRConverter<ImageType>::get_apr_method(APR &aAPR, PixelData<T>& inp
 
     return true;
 }
-
-
-template<typename ImageType>
-inline void APRConverter<ImageType>::computeLevels(const PixelData<ImageType> &grad_temp, PixelData<float> &local_scale_temp, int maxLevel, float relError, float dx, float dy, float dz) {
-    //divide gradient magnitude by Local Intensity Scale (first step in calculating the Local Resolution Estimate L(y), minus constants)
-    fine_grained_timer.start_timer("compute_level_first");
-    #ifdef HAVE_OPENMP
-    #pragma omp parallel for default(shared)
-    #endif
-    for (size_t i = 0; i < grad_temp.mesh.size(); ++i) {
-        local_scale_temp.mesh[i] = grad_temp.mesh[i] / local_scale_temp.mesh[i];
-    }
-    fine_grained_timer.stop_timer();
-
-    float min_dim = std::min(dy, std::min(dx, dz));
-    float level_factor = pow(2, maxLevel) * min_dim;
-
-    //incorporate other factors and compute the level of the Particle Cell, effectively construct LPC L_n
-    fine_grained_timer.start_timer("compute_level_second");
-    iLocalParticleSet.compute_level_for_array(local_scale_temp, level_factor, relError);
-    fine_grained_timer.stop_timer();
-}
-
-
-template<typename ImageType>
-inline void APRConverter<ImageType>::get_local_particle_cell_set(PixelData<float> &local_scale_temp, PixelData<float> &local_scale_temp2) {
-    //  Computes the Local Particle Cell Set from a down-sampled local intensity scale (\sigma) and gradient magnitude
-    //  Down-sampled due to the Equivalence Optimization
-
-#ifdef HAVE_LIBTIFF
-    if(par.output_steps){
-        TiffUtils::saveMeshAsTiff(par.output_dir + "local_particle_set_level_step.tif", local_scale_temp);
-    }
-#endif
-
-    int l_max = (*apr).level_max() - 1;
-    int l_min = (*apr).level_min();
-
-    fine_grained_timer.start_timer("pulling_scheme_fill_max_level");
-
-    iPullingScheme.fill(l_max,local_scale_temp);
-    fine_grained_timer.stop_timer();
-
-    fine_grained_timer.start_timer("level_loop_initialize_tree");
-    for(int l_ = l_max - 1; l_ >= l_min; l_--){
-
-        //down sample the resolution level k, using a max reduction
-        downsample(local_scale_temp, local_scale_temp2,
-                   [](const float &x, const float &y) -> float { return std::max(x, y); },
-                   [](const float &x) -> float { return x; }, true);
-        //for those value of level k, add to the hash table
-        iPullingScheme.fill(l_,local_scale_temp2);
-        //assign the previous mesh to now be resampled.
-        local_scale_temp.swap(local_scale_temp2);
-    }
-    fine_grained_timer.stop_timer();
-    
-}
-
-template<typename ImageType>
-inline void APRConverter<ImageType>::get_local_particle_cell_set_sparse(PixelData<float> &local_scale_temp, PixelData<float> &local_scale_temp2) {
-    //  Computes the Local Particle Cell Set from a down-sampled local intensity scale (\sigma) and gradient magnitude
-    //  Down-sampled due to the Equivalence Optimization
-
-#ifdef HAVE_LIBTIFF
-    if(par.output_steps){
-        TiffUtils::saveMeshAsTiff(par.output_dir + "local_particle_set_level_step.tif", local_scale_temp);
-    }
-#endif
-
-
-    int l_max = (*apr).level_max() - 1;
-    int l_min = (*apr).level_min();
-
-    fine_grained_timer.start_timer("pulling_scheme_fill_max_level");
-
-    iPullingSchemeSparse.fill(l_max,local_scale_temp);
-    fine_grained_timer.stop_timer();
-
-    fine_grained_timer.start_timer("level_loop_initialize_tree");
-    for(int l_ = l_max - 1; l_ >= l_min; l_--){
-
-        //down sample the resolution level k, using a max reduction
-        downsample(local_scale_temp, local_scale_temp2,
-                   [](const float &x, const float &y) -> float { return std::max(x, y); },
-                   [](const float &x) -> float { return x; }, true);
-        //for those value of level k, add to the hash table
-        iPullingSchemeSparse.fill(l_,local_scale_temp2);
-        //assign the previous mesh to now be resampled.
-        local_scale_temp.swap(local_scale_temp2);
-    }
-    fine_grained_timer.stop_timer();
-
-}
-
 
 
 

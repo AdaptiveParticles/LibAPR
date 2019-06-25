@@ -87,9 +87,6 @@ class PullingSchemeSparse {
 public:
 
     SparseGaps<SparseParticleCellMap> particle_cell_tree;
-    unsigned int l_min;
-    unsigned int l_max;
-    std::vector<size_t> y_num_l;
 
     template<typename T>
     void fill(float level, const PixelData<T> &input,imagePatch& patch);
@@ -100,7 +97,19 @@ public:
 
     void initialize_particle_cell_tree(const GenInfo& aprInfo);
 
+    int pct_level_max(){
+        return l_max;
+    };
+    int pct_level_min(){
+        return l_min;
+    };
+
 private:
+
+    int l_min;
+    int l_max;
+
+    std::vector<size_t> y_num_l;
 
     void set_ascendant_neighbours(int level);
     void set_filler(int level);

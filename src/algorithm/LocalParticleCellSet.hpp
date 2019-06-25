@@ -52,6 +52,102 @@ inline int __builtin_clz(unsigned int x)
 class LocalParticleCellSet {
 
 public:
+
+    APRTimer timer;
+
+    template<typename tempType>
+    inline void get_local_particle_cell_set(PullingScheme& iPullingScheme,PixelData<tempType> &local_scale_temp, PixelData<tempType> &local_scale_temp2,const APRParameters& par) {
+        //  Computes the Local Particle Cell Set from a down-sampled local intensity scale (\sigma) and gradient magnitude
+        //  Down-sampled due to the Equivalence Optimization
+
+#ifdef HAVE_LIBTIFF
+        if(par.output_steps){
+            TiffUtils::saveMeshAsTiff(par.output_dir + "local_particle_set_level_step.tif", local_scale_temp);
+        }
+#endif
+
+        int l_max = iPullingScheme.pct_level_max();
+        int l_min = iPullingScheme.pct_level_min();
+
+        timer.start_timer("pulling_scheme_fill_max_level");
+
+        iPullingScheme.fill(l_max,local_scale_temp);
+        timer.stop_timer();
+
+        timer.start_timer("level_loop_initialize_tree");
+        for(int l_ = l_max - 1; l_ >= l_min; l_--){
+
+            //down sample the resolution level k, using a max reduction
+            downsample(local_scale_temp, local_scale_temp2,
+                       [](const float &x, const float &y) -> float { return std::max(x, y); },
+                       [](const float &x) -> float { return x; }, true);
+            //for those value of level k, add to the hash table
+            iPullingScheme.fill(l_,local_scale_temp2);
+            //assign the previous mesh to now be resampled.
+            local_scale_temp.swap(local_scale_temp2);
+        }
+        timer.stop_timer();
+
+    }
+
+    template<typename tempType>
+    inline void get_local_particle_cell_set_sparse(PullingSchemeSparse& iPullingSchemeSparse,PixelData<tempType> &local_scale_temp, PixelData<tempType> &local_scale_temp2,const APRParameters& par) {
+        //  Computes the Local Particle Cell Set from a down-sampled local intensity scale (\sigma) and gradient magnitude
+        //  Down-sampled due to the Equivalence Optimization
+
+#ifdef HAVE_LIBTIFF
+        if(par.output_steps){
+            TiffUtils::saveMeshAsTiff(par.output_dir + "local_particle_set_level_step.tif", local_scale_temp);
+        }
+#endif
+
+        int l_max = iPullingSchemeSparse.pct_level_max();;
+        int l_min = iPullingSchemeSparse.pct_level_min();
+
+        timer.start_timer("pulling_scheme_fill_max_level");
+
+        iPullingSchemeSparse.fill(l_max,local_scale_temp);
+        timer.stop_timer();
+
+        timer.start_timer("level_loop_initialize_tree");
+        for(int l_ = l_max - 1; l_ >= l_min; l_--){
+
+            //down sample the resolution level k, using a max reduction
+            downsample(local_scale_temp, local_scale_temp2,
+                       [](const float &x, const float &y) -> float { return std::max(x, y); },
+                       [](const float &x) -> float { return x; }, true);
+            //for those value of level k, add to the hash table
+            iPullingSchemeSparse.fill(l_,local_scale_temp2);
+            //assign the previous mesh to now be resampled.
+            local_scale_temp.swap(local_scale_temp2);
+        }
+        timer.stop_timer();
+
+    }
+
+    template<typename ImageType,typename tempType>
+    inline void computeLevels(const PixelData<ImageType> &grad_temp, PixelData<tempType> &local_scale_temp, int maxLevel, float relError, float dx, float dy, float dz) {
+        //divide gradient magnitude by Local Intensity Scale (first step in calculating the Local Resolution Estimate L(y), minus constants)
+        timer.start_timer("compute_level_first");
+#ifdef HAVE_OPENMP
+#pragma omp parallel for default(shared)
+#endif
+        for (size_t i = 0; i < grad_temp.mesh.size(); ++i) {
+            local_scale_temp.mesh[i] = grad_temp.mesh[i] / local_scale_temp.mesh[i];
+        }
+        timer.stop_timer();
+
+        float min_dim = std::min(dy, std::min(dx, dz));
+        float level_factor = pow(2, maxLevel) * min_dim;
+
+        //incorporate other factors and compute the level of the Particle Cell, effectively construct LPC L_n
+        timer.start_timer("compute_level_second");
+        compute_level_for_array(local_scale_temp, level_factor, relError);
+        timer.stop_timer();
+    }
+
+
+
     static inline uint32_t asmlog_2(const uint32_t x) {
         if (x == 0) return 0;
         return (31 - __builtin_clz (x));

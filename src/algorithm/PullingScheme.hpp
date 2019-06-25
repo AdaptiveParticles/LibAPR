@@ -54,6 +54,13 @@ public:
     void initialize_particle_cell_tree(const GenInfo &aprInfo);
     std::vector<PixelData<uint8_t>>& getParticleCellTree() { return particle_cell_tree; }
 
+    int pct_level_max(){
+        return l_max;
+    };
+    int pct_level_min(){
+        return l_min;
+    };
+
 private:
     void set_ascendant_neighbours(int level);
     void set_filler(int level);

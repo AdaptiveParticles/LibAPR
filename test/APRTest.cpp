@@ -518,9 +518,7 @@ bool test_symmetry_pipeline(){
 
         ParticleData<uint16_t> parts;
         parts.sample_parts_from_img_downsampled(apr, img);
-
-        TiffUtils::saveMeshAsTiff("img_identical.tif", img);
-
+        
         // get grad/scale/level/final level/final image. --> All should be symmetric!!!
         PixelData<float> scale = TiffUtils::getMesh<float>("local_intensity_scale_step.tif");
         PixelData<uint16_t> grad = TiffUtils::getMesh<uint16_t>("gradient_step.tif");
