@@ -41,12 +41,15 @@ protected:
     GenInfo aprInfo;
     GenInfo treeInfo;
 
+    APRParameters parameters; // this is here to keep a record of what parameters were used, to then be written if needed.
+
 public:
 
-    APRParameters parameters; // #TODO move to protected. Introduce a get and set method
+    APRParameters get_apr_parameters(){
+        return parameters;
+    }
 
     std::string name;
-    //APRParameters parameters;
 
     uint64_t level_max() const { return aprInfo.l_max; }
     uint64_t level_min() const { return aprInfo.l_min; }

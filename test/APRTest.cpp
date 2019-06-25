@@ -484,111 +484,147 @@ bool test_symmetry_pipeline(){
     //
     //  The pipeline steps should be symmetry about x,z,y boundaries.. this test checks this using a synthetic symmetric input image
     //
+    //
+    //  Tests this by creating a symmetry image that is constant in one dimension.
+    //
+    //
 
     bool success = true;
 
-    for (int sz_slice = 1;sz_slice < 10;sz_slice++) {
+    for (int dim = 0; dim < 3; ++dim) {
+        //compute the tests across all three dimensions
 
+        for (int sz_slice = 1; sz_slice < 10; sz_slice++) {
 
+            //Create a synethic symmetric image with a square in the middle.
+            PixelData<uint16_t> img;
 
-        //Create a synethic symmetric image with a square in the middle.
-        PixelData<uint16_t> img;
+            int sz = 64;
 
-        int sz = 64;
+            if(dim ==0){
 
-        img.initWithValue(sz, sz, sz_slice, 100);
+                img.initWithValue(sz_slice, sz, sz, 100);
 
-        int block_sz = 20;
+                int block_sz = 20;
 
-        for (int i = block_sz; i < (sz - block_sz); ++i) {
-            for (int j = block_sz; j < (sz - block_sz); ++j) {
-                for (int k = 0; k < sz_slice; ++k) {
-                    img.at(i, j, k) += 1000;
+                for (int i = block_sz; i < (sz - block_sz); ++i) {
+                    for (int j = block_sz; j < (sz - block_sz); ++j) {
+                        for (int k = 0; k < sz_slice; ++k) {
+                            img.at(k, i, j) += 1000;
+                        }
+                    }
                 }
+
+            } else if (dim ==1){
+
+                img.initWithValue(sz, sz_slice, sz, 100);
+
+                int block_sz = 20;
+
+                for (int i = block_sz; i < (sz - block_sz); ++i) {
+                    for (int j = block_sz; j < (sz - block_sz); ++j) {
+                        for (int k = 0; k < sz_slice; ++k) {
+                            img.at(i, k, j) += 1000;
+                        }
+                    }
+                }
+
+            } else if (dim ==2){
+
+                img.initWithValue(sz, sz, sz_slice, 100);
+
+                int block_sz = 20;
+
+                for (int i = block_sz; i < (sz - block_sz); ++i) {
+                    for (int j = block_sz; j < (sz - block_sz); ++j) {
+                        for (int k = 0; k < sz_slice; ++k) {
+                            img.at(i, j, k) += 1000;
+                        }
+                    }
+                }
+
             }
-        }
 
-        APR apr;
-        APRConverter<uint16_t> aprConverter;
-        aprConverter.par.output_steps = true;
 
-        aprConverter.par.lambda = 3;
+            APR apr;
+            APRConverter<uint16_t> aprConverter;
+            aprConverter.par.output_steps = true;
 
-        aprConverter.get_apr(apr, img);
+            aprConverter.par.lambda = 3;
 
-        ParticleData<uint16_t> parts;
-        parts.sample_parts_from_img_downsampled(apr, img);
-        
-        // get grad/scale/level/final level/final image. --> All should be symmetric!!!
-        PixelData<float> scale = TiffUtils::getMesh<float>("local_intensity_scale_step.tif");
-        PixelData<uint16_t> grad = TiffUtils::getMesh<uint16_t>("gradient_step.tif");
-        PixelData<float> lps = TiffUtils::getMesh<float>("local_particle_set_level_step.tif");
+            aprConverter.get_apr(apr, img);
 
-        PixelData<uint16_t> smooth = TiffUtils::getMesh<uint16_t>("smooth_bsplines.tif");
+            ParticleData<uint16_t> parts;
+            parts.sample_parts_from_img_downsampled(apr, img);
 
-        PixelData<uint16_t> recon_img;
-        APRReconstruction::interp_img(apr, recon_img, parts);
+            // get grad/scale/level/final level/final image. --> All should be symmetric!!!
+            PixelData<float> scale = TiffUtils::getMesh<float>("local_intensity_scale_step.tif");
+            PixelData<uint16_t> grad = TiffUtils::getMesh<uint16_t>("gradient_step.tif");
+            PixelData<float> lps = TiffUtils::getMesh<float>("local_particle_set_level_step.tif");
 
-        PixelData<uint16_t> level_img;
-        parts.fill_with_levels(apr);
-        APRReconstruction::interp_img(apr, level_img, parts);
+            PixelData<uint16_t> smooth = TiffUtils::getMesh<uint16_t>("smooth_bsplines.tif");
+
+            PixelData<uint16_t> recon_img;
+            APRReconstruction::interp_img(apr, recon_img, parts);
+
+            PixelData<uint16_t> level_img;
+            parts.fill_with_levels(apr);
+            APRReconstruction::interp_img(apr, level_img, parts);
 
 //    TiffUtils::saveMeshAsTiff("level_image.tif",level_img);
 //    TiffUtils::saveMeshAsTiff("img_recon.tif",recon_img);
 
 
-        if (check_symmetry(img)) {
-            //std::cout << "image symmetric" << std::endl;
-        } else {
-            std::cout << "image not symmetric" << std::endl;
-            success = false;
-        }
+            if (check_symmetry(img)) {
+                //std::cout << "image symmetric" << std::endl;
+            } else {
+                std::cout << "image not symmetric" << std::endl;
+                success = false;
+            }
 
-        if (check_symmetry(smooth)) {
-            //std::cout << "smooth symmetric" << std::endl;
-        } else {
-            std::cout << "smooth not symmetric" << std::endl;
-            success = false;
-        }
+            if (check_symmetry(smooth)) {
+                //std::cout << "smooth symmetric" << std::endl;
+            } else {
+                std::cout << "smooth not symmetric" << std::endl;
+                success = false;
+            }
 
-        if (check_symmetry(grad)) {
-            //std::cout << "grad symmetric" << std::endl;
-        } else {
-            std::cout << "grad not symmetric" << std::endl;
-            success = false;
-        }
+            if (check_symmetry(grad)) {
+                //std::cout << "grad symmetric" << std::endl;
+            } else {
+                std::cout << "grad not symmetric" << std::endl;
+                success = false;
+            }
 
-        if (check_symmetry(scale)) {
-            // std::cout << "scale symmetric" << std::endl;
-        } else {
-            std::cout << "scale not symmetric" << std::endl;
-            success = false;
-        }
+            if (check_symmetry(scale)) {
+                // std::cout << "scale symmetric" << std::endl;
+            } else {
+                std::cout << "scale not symmetric" << std::endl;
+                success = false;
+            }
 
-        if (check_symmetry(lps)) {
-            //std::cout << "lps symmetric" << std::endl;
-        } else {
-            std::cout << "lps not symmetric" << std::endl;
-            success = false;
-        }
+            if (check_symmetry(lps)) {
+                //std::cout << "lps symmetric" << std::endl;
+            } else {
+                std::cout << "lps not symmetric" << std::endl;
+                success = false;
+            }
 
-        if (check_symmetry(level_img)) {
-            //std::cout << "level_img symmetric" << std::endl;
-        } else {
-            std::cout << "level_img not symmetric" << std::endl;
-            success = false;
-        }
+            if (check_symmetry(level_img)) {
+                //std::cout << "level_img symmetric" << std::endl;
+            } else {
+                std::cout << "level_img not symmetric" << std::endl;
+                success = false;
+            }
 
-        if (check_symmetry(recon_img)) {
-            //std::cout << "recon_img symmetric" << std::endl;
-        } else {
-            std::cout << "recon_img not symmetric" << std::endl;
-            success = false;
+            if (check_symmetry(recon_img)) {
+                //std::cout << "recon_img symmetric" << std::endl;
+            } else {
+                std::cout << "recon_img not symmetric" << std::endl;
+                success = false;
+            }
         }
-
     }
-
-
 
 
     return success;
@@ -600,13 +636,13 @@ bool test_symmetry_pipeline(){
 
 bool test_pipeline_different_sizes(TestData& test_data){
 
-    bool success = true;
+    //just a run test, no checks.
 
+    bool success = true;
 
     APRConverter<uint16_t> aprConverter;
 
     PixelData<uint16_t> input_data;
-
 
     int min = 1;
     int max = 4;
@@ -624,56 +660,63 @@ bool test_pipeline_different_sizes(TestData& test_data){
 
                 parts.sample_parts_from_img_downsampled(apr,input_data);
 
+                APRFile aprFile;
+                aprFile.open("test_small.apr","WRITE");
+                aprFile.write_apr(apr);
+                aprFile.write_particles(apr,"par",parts);
+                aprFile.close();
+
             }
         }
     }
 
+    //below code is for debbugging.
 
     //test slices
-
-    PixelData<uint16_t> img_slice;
-
-    std::vector<int> dim_start;
-    std::vector<int> dim_stop;
-
-    int num_slices = 3;
-
-    dim_start.resize(3);
-    dim_stop.resize(3);
-
-    dim_start[0] = 0;
-    dim_start[1] = 0;
-    dim_start[2] = test_data.img_original.z_num/2;
-
-    dim_stop[0] = test_data.img_original.y_num;
-    dim_stop[1] = test_data.img_original.x_num;
-    dim_stop[2] = dim_start[2] + num_slices;
-
-    sub_slices_img(test_data.img_original,img_slice,  dim_start, dim_stop);
-
-    APR apr;
-
-    aprConverter.par.auto_parameters = true;
-    aprConverter.par.output_steps = true;
-
-    aprConverter.get_apr(apr,img_slice);
-
-    ParticleData<uint16_t> parts;
-
-    parts.sample_parts_from_img_downsampled(apr,img_slice);
-
-    TiffUtils::saveMeshAsTiff("img.tif",img_slice);
-
-    PixelData<uint16_t> img;
-
-    APRReconstruction::interp_img(apr,img,parts);
-
-    TiffUtils::saveMeshAsTiff("img_recon.tif",img);
-
-    parts.fill_with_levels(apr);
-    APRReconstruction::interp_img(apr,img,parts);
-
-    TiffUtils::saveMeshAsTiff("img_levels.tif",img);
+//
+//    PixelData<uint16_t> img_slice;
+//
+//    std::vector<int> dim_start;
+//    std::vector<int> dim_stop;
+//
+//    int num_slices = 3;
+//
+//    dim_start.resize(3);
+//    dim_stop.resize(3);
+//
+//    dim_start[0] = 0;
+//    dim_start[1] = 0;
+//    dim_start[2] = test_data.img_original.z_num/2;
+//
+//    dim_stop[0] = test_data.img_original.y_num;
+//    dim_stop[1] = test_data.img_original.x_num;
+//    dim_stop[2] = dim_start[2] + num_slices;
+//
+//    sub_slices_img(test_data.img_original,img_slice,  dim_start, dim_stop);
+//
+//    APR apr;
+//
+//    aprConverter.par.auto_parameters = true;
+//    aprConverter.par.output_steps = true;
+//
+//    aprConverter.get_apr(apr,img_slice);
+//
+//    ParticleData<uint16_t> parts;
+//
+//    parts.sample_parts_from_img_downsampled(apr,img_slice);
+//
+//    TiffUtils::saveMeshAsTiff("img.tif",img_slice);
+//
+//    PixelData<uint16_t> img;
+//
+//    APRReconstruction::interp_img(apr,img,parts);
+//
+//    TiffUtils::saveMeshAsTiff("img_recon.tif",img);
+//
+//    parts.fill_with_levels(apr);
+//    APRReconstruction::interp_img(apr,img,parts);
+//
+//    TiffUtils::saveMeshAsTiff("img_levels.tif",img);
 
 
     return success;
@@ -2468,120 +2511,6 @@ bool test_apr_random_iterate(TestData& test_data){
 }
 
 
-
-
-bool test_apr_pipeline(TestData& test_data){
-    ///
-    /// Tests the pipeline, comparing the results with existing results
-    ///
-
-    bool success = true;
-
-    APRConverter<uint16_t> aprConverter;
-
-    //the apr datastructure
-    APR apr;
-
-    //read in the command line options into the parameters file
-   aprConverter.par.Ip_th = test_data.apr.parameters.Ip_th;
-   aprConverter.par.rel_error = test_data.apr.parameters.rel_error;
-   aprConverter.par.lambda = test_data.apr.parameters.lambda;
-   aprConverter.par.mask_file = "";
-   aprConverter.par.min_signal = -1;
-
-   aprConverter.par.sigma_th_max = test_data.apr.parameters.sigma_th_max;
-   aprConverter.par.sigma_th = test_data.apr.parameters.sigma_th;
-
-   aprConverter.par.SNR_min = -1;
-
-    //where things are
-   aprConverter.par.input_image_name = test_data.filename;
-   aprConverter.par.input_dir = "";
-   aprConverter.par.name = test_data.output_name;
-   aprConverter.par.output_dir = "";
-
-    //Gets the APR
-    ParticleData<uint16_t> particles_intensities;
-
-    // #TODO: Need to remove the by file name get APR method.
-
-
-    if(aprConverter.get_apr(apr,test_data.img_original)){
-
-        particles_intensities.sample_parts_from_img_downsampled(apr,test_data.img_original);
-
-        auto apr_iterator = apr.iterator();
-
-        std::cout << "NUM OF PARTICLES: " << apr_iterator.total_number_particles() << " vs " << test_data.apr.total_number_particles() << std::endl;
-
-        for (unsigned int level = apr_iterator.level_min(); level <= apr_iterator.level_max(); ++level) {
-            int z = 0;
-            int x = 0;
-
-            for (z = 0; z < apr_iterator.z_num(level); z++) {
-                for (x = 0; x < apr_iterator.x_num(level); ++x) {
-                    for (apr_iterator.begin(level, z, x); apr_iterator < apr_iterator.end();
-                         apr_iterator++) {
-
-                        uint16_t apr_intensity = (particles_intensities[apr_iterator]);
-                        uint16_t check_intensity = test_data.img_pc(apr_iterator.y_nearest_pixel(level,apr_iterator.y()),
-                                                                    apr_iterator.x_nearest_pixel(level,x),
-                                                                    apr_iterator.z_nearest_pixel(level,z));
-
-                        if (check_intensity != apr_intensity) {
-                            success = false;
-                        }
-
-                        uint16_t apr_level = level;
-                        uint16_t check_level = test_data.img_level(apr_iterator.y_nearest_pixel(level,apr_iterator.y()),
-                                                                   apr_iterator.x_nearest_pixel(level,x),
-                                                                   apr_iterator.z_nearest_pixel(level,z));
-
-                        if (check_level != apr_level) {
-                            success = false;
-                        }
-
-                        uint16_t apr_x = x;
-                        uint16_t check_x = test_data.img_x(apr_iterator.y_nearest_pixel(level,apr_iterator.y()),
-                                                           apr_iterator.x_nearest_pixel(level,x),
-                                                           apr_iterator.z_nearest_pixel(level,z));
-
-                        if (check_x != apr_x) {
-                            success = false;
-                        }
-
-                        uint16_t apr_y = apr_iterator.y();
-                        uint16_t check_y = test_data.img_y(apr_iterator.y_nearest_pixel(level,apr_iterator.y()),
-                                                           apr_iterator.x_nearest_pixel(level,x),
-                                                           apr_iterator.z_nearest_pixel(level,z));
-
-                        if (check_y != apr_y) {
-                            success = false;
-                        }
-
-                        uint16_t apr_z = z;
-                        uint16_t check_z = test_data.img_z(apr_iterator.y_nearest_pixel(level,apr_iterator.y()),
-                                                           apr_iterator.x_nearest_pixel(level,x),
-                                                           apr_iterator.z_nearest_pixel(level,z));
-
-                        if (check_z != apr_z) {
-                            success = false;
-                        }
-
-                    }
-                }
-            }
-        }
-
-    } else {
-
-        success = false;
-    }
-
-
-    return success;
-}
-
 bool test_pipeline_bound(TestData& test_data,float rel_error){
     ///
     /// Tests the pipeline, comparing the results with existing results
@@ -2591,32 +2520,31 @@ bool test_pipeline_bound(TestData& test_data,float rel_error){
 
     //the apr datastructure
     APR apr;
+    APRConverter<uint16_t> aprConverter;
 
     //read in the command line options into the parameters file
-    apr.parameters.Ip_th = 0;
-    apr.parameters.rel_error = rel_error;
-    apr.parameters.lambda = 0;
-    apr.parameters.mask_file = "";
-    apr.parameters.min_signal = -1;
+    aprConverter.par.Ip_th = 0;
+    aprConverter.par.rel_error = rel_error;
+    aprConverter.par.lambda = 0;
+    aprConverter.par.mask_file = "";
+    aprConverter.par.min_signal = -1;
 
-    apr.parameters.sigma_th_max = 50;
-    apr.parameters.sigma_th = 100;
+    aprConverter.par.sigma_th_max = 50;
+    aprConverter.par.sigma_th = 100;
 
-    apr.parameters.SNR_min = -1;
+    aprConverter.par.SNR_min = -1;
 
-    apr.parameters.auto_parameters = false;
+    aprConverter.par.auto_parameters = false;
 
-    apr.parameters.output_steps = true;
+    aprConverter.par.output_steps = true;
 
     //where things are
-    apr.parameters.input_image_name = test_data.filename;
-    apr.parameters.input_dir = "";
-    apr.parameters.name = test_data.output_name;
-    apr.parameters.output_dir = test_data.output_dir;
+    aprConverter.par.input_image_name = test_data.filename;
+    aprConverter.par.input_dir = "";
+    aprConverter.par.name = test_data.output_name;
+    aprConverter.par.output_dir = test_data.output_dir;
 
     //Gets the APR
-    APRConverter<uint16_t> aprConverter;
-    aprConverter.par = apr.parameters;
 
     ParticleData<uint16_t> particles_intensities;
 

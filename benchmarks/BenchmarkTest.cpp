@@ -840,32 +840,31 @@ bool bench_pipeline(TestData& test_data,float rel_error){
 
     //the apr datastructure
     APR apr;
+    APRConverter<uint16_t> aprConverter;
 
     //read in the command line options into the parameters file
-    apr.parameters.Ip_th = 0;
-    apr.parameters.rel_error = rel_error;
-    apr.parameters.lambda = 0;
-    apr.parameters.mask_file = "";
-    apr.parameters.min_signal = -1;
+    aprConverter.par.Ip_th = 0;
+    aprConverter.par.rel_error = rel_error;
+    aprConverter.par.lambda = 0;
+    aprConverter.par.mask_file = "";
+    aprConverter.par.min_signal = -1;
 
-    apr.parameters.sigma_th_max = 50;
-    apr.parameters.sigma_th = 100;
+    aprConverter.par.sigma_th_max = 50;
+    aprConverter.par.sigma_th = 100;
 
-    apr.parameters.SNR_min = -1;
+    aprConverter.par.SNR_min = -1;
 
-    apr.parameters.auto_parameters = false;
+    aprConverter.par.auto_parameters = false;
 
-    apr.parameters.output_steps = true;
+    aprConverter.par.output_steps = true;
 
     //where things are
-    apr.parameters.input_image_name = test_data.filename;
-    apr.parameters.input_dir = "";
-    apr.parameters.name = test_data.output_name;
-    apr.parameters.output_dir = test_data.output_dir;
+    aprConverter.par.input_image_name = test_data.filename;
+    aprConverter.par.input_dir = "";
+    aprConverter.par.name = test_data.output_name;
+    aprConverter.par.output_dir = test_data.output_dir;
 
     //Gets the APR
-    APRConverter<uint16_t> aprConverter;
-    aprConverter.par = apr.parameters;
 
     ParticleData<uint16_t> particles_intensities;
 
