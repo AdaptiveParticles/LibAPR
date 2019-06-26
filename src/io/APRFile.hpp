@@ -204,7 +204,7 @@ void APRFile::write_apr(APR &apr,uint64_t t,std::string channel_name){
 
     if(write_linear){
 
-        apr.init_linear();
+        apr.initialize_linear();
         APRWriter::write_linear_access(meta_location, fileStructure.objectId, apr.linearAccess, blosc_comp_type_access,
                             blosc_comp_level_access, blosc_shuffle_access);
 
@@ -224,7 +224,7 @@ void APRFile::write_apr(APR &apr,uint64_t t,std::string channel_name){
         if(write_linear_tree) {
 
             timer.start_timer("init_tree");
-            apr.init_tree_linear();
+            apr.initialize_tree_linear();
             timer.stop_timer();
 
             timer.start_timer("write_tree_access_data");
@@ -236,7 +236,7 @@ void APRFile::write_apr(APR &apr,uint64_t t,std::string channel_name){
             timer.stop_timer();
         } else {
 
-            apr.init_tree_random(); //incase it hasn't been initialized.
+            apr.initialize_tree_random(); //incase it hasn't been initialized.
 
             APRWriter::writeAttr(AprTypes::TotalNumberOfParticlesType, fileStructure.objectIdTree,
                                  &apr.treeInfo.total_number_particles);
@@ -397,7 +397,7 @@ void APRFile::read_apr(APR &apr,uint64_t t,std::string channel_name){
         if(!tree_exists){
             //initializing it from the dataset.
             std::cout << "Initializing tree from file" << std::endl;
-            apr.init_tree_linear();
+            apr.initialize_tree_linear();
         } else {
 
             APRWriter::readAttr(AprTypes::TotalNumberOfParticlesType, fileStructure.objectIdTree,

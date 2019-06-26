@@ -84,7 +84,7 @@ public:
                 std::cerr << "No APR initialized" << std::endl;
             }
 
-            init_linear();
+            initialize_linear();
             apr_initialized = true;
         }
 
@@ -100,7 +100,7 @@ public:
         }
 
         if(!tree_initialized_random){
-            init_tree_random();
+            initialize_tree_random();
         }
 
         return APRTreeIterator(apr_access,tree_access,treeInfo);
@@ -109,7 +109,7 @@ public:
     LinearIterator tree_iterator() {
         // Checking if initialized.
         if(!tree_initialized){
-            init_tree_linear();
+            initialize_tree_linear();
         }
 
         return LinearIterator(linearAccessTree,treeInfo);
@@ -129,7 +129,7 @@ public:
 
 protected:
 
-    bool init_tree_random(){
+    bool initialize_tree_random(){
         if(!tree_initialized_random){
 
             initialize_apr_tree_sparse();
@@ -139,7 +139,7 @@ protected:
         return tree_initialized_random;
     }
 
-    void init_linear(){
+    void initialize_linear(){
         if(!apr_initialized){
             auto it = random_iterator();
             initialize_linear_access(linearAccess,it);
@@ -147,7 +147,7 @@ protected:
         }
     }
 
-    void init_tree_linear(){
+    void initialize_tree_linear(){
         if(!tree_initialized){
             initialize_apr_tree_sparse_linear();
             tree_initialized = true;
