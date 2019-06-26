@@ -1172,6 +1172,10 @@ public:
             const char * const subGroupTree  = subGroupTree1.c_str();
 
             //need to check if the tree exists
+            if(!group_exists(fileId,subGroup)){
+                //group does not exist
+                return false;
+            }
 
             if(tree){
 

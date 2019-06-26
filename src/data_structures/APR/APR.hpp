@@ -49,6 +49,13 @@ public:
         return parameters;
     }
 
+    bool is_initialized(){
+        if(!apr_initialized_random && !apr_initialized){
+            return false;
+        }
+        return true;
+    }
+
     std::string name;
 
     uint64_t level_max() const { return aprInfo.l_max; }
@@ -82,10 +89,11 @@ public:
         if(!apr_initialized){
             if(!apr_initialized_random){
                 std::cerr << "No APR initialized" << std::endl;
-            }
 
-            initialize_linear();
-            apr_initialized = true;
+            } else {
+                initialize_linear();
+                apr_initialized = true;
+            }
         }
 
         return LinearIterator(linearAccess,aprInfo);

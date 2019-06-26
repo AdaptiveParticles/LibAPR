@@ -1572,10 +1572,8 @@ bool test_apr_file(TestData& test_data){
     std::vector<std::string> channel_names;
     channel_names = TreeFile.get_channel_names();
 
-
     //Test file list
     std::vector<std::string> channel_names_c = {"mem","mem1","ch1_10"};
-
 
     if(channel_names_c.size() == channel_names.size()){
 
@@ -1603,6 +1601,96 @@ bool test_apr_file(TestData& test_data){
     }
 
     TreeFile.close();
+
+
+    /*
+     * Testing files and datasets that don't exist
+     */
+
+
+    //file doesn't exist
+    APRFile testFile2;
+    bool exist = testFile2.open("does_not_exist.apr","READ");
+
+    if(exist){
+        success = false;
+    }
+
+    APR apr_ne;
+    //read from file thats not open
+    bool exist_2 = testFile2.read_apr(apr_ne);
+
+    if(exist_2){
+        success = false;
+    }
+
+    ParticleData<uint16_t> parts_dne;
+
+    bool exist_3 = testFile2.read_particles(apr_ne,"parts_dne",parts_dne);
+
+    if(exist_3){
+        success = false;
+    }
+
+    testFile2.close();
+
+    //now lets create a file, and then try and ended.
+    bool exist_4 = testFile2.open("exists.apr","WRITE");
+
+    if(!exist_4){
+        success = false;
+    }
+
+    testFile2.close();
+
+    //opens file exists
+    bool exist_5 = testFile2.open("exists.apr","READWRITE");
+
+    if(!exist_5){
+        success = false;
+    }
+
+    //apr does not exist
+    bool exist_6 = testFile2.read_apr(apr_ne);
+
+    if(exist_6){
+        success = false;
+    }
+
+    //apr is not valid.
+    bool exist_7 = testFile2.read_particles(apr_ne,"parts_dne",parts_dne);
+
+    if(exist_7){
+        success = false;
+    }
+
+    //particle dataset does not exist
+    bool exist_8 = testFile2.read_particles(aprRead2,"parts_dne",parts_dne);
+
+    if(exist_8){
+        success = false;
+    }
+
+    parts_dne.init(5);
+
+    bool exist_10 = testFile2.write_particles("parts_exist",parts_dne);
+
+    if(!exist_10){
+        success = false;
+    }
+
+    testFile2.close();
+
+    testFile2.open("exists.apr","READ");
+
+    bool exist_9 = testFile2.read_particles(aprRead2,"parts_exist",parts_dne);
+
+    if(exist_9){
+        success = false;
+    }
+
+    testFile2.close();
+
 
     return success;
 
