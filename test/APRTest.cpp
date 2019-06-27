@@ -55,7 +55,7 @@ public:
 };
 
 
-class Create210SphereTest : public CreateAPRTest
+class CreatDiffDimsSphereTest : public CreateAPRTest
 {
 public:
     void SetUp() override;
@@ -2684,6 +2684,59 @@ bool test_apr_random_iterate(TestData& test_data){
     return success;
 }
 
+bool test_pipeline_u16(TestData& test_data){
+    //
+    //  The purpose of this test is a full check that you get the same answer out.
+    //
+    //
+
+    bool success = true;
+
+    //the apr datastructure
+    APR apr;
+    APRConverter<uint16_t> aprConverter;
+
+    APRParameters readPars = test_data.apr.get_apr_parameters();
+
+    //read in the command line options into the parameters file
+    aprConverter.par.Ip_th = readPars.Ip_th;
+    aprConverter.par.rel_error = readPars.rel_error;
+    aprConverter.par.lambda = readPars.lambda;
+    aprConverter.par.min_signal = readPars.min_signal;
+
+    aprConverter.par.sigma_th_max = readPars.sigma_th_max;
+    aprConverter.par.sigma_th = readPars.sigma_th;
+
+    aprConverter.par.SNR_min = readPars.SNR_min;
+    aprConverter.par.grad_th = readPars.grad_th;
+
+    aprConverter.par.auto_parameters = false;
+
+    //where things are
+    aprConverter.par.input_image_name = test_data.filename;
+    aprConverter.par.input_dir = "";
+    aprConverter.par.name = test_data.output_name;
+    aprConverter.par.output_dir = test_data.output_dir;
+
+    //Gets the APR
+
+    ParticleData<uint16_t> particles_intensities;
+
+    aprConverter.get_apr(apr,test_data.img_original);
+
+    particles_intensities.sample_parts_from_img_downsampled(apr,test_data.img_original);
+
+    auto it_org = test_data.apr.iterator();
+    auto it_gen = apr.iterator();
+
+    success = compare_two_iterators(it_org,it_gen,success);
+
+    //then compare the particles.
+
+    return success;
+
+}
+
 
 bool test_pipeline_bound(TestData& test_data,float rel_error){
     ///
@@ -2845,7 +2898,7 @@ void CreateGTSmall1DTest::SetUp(){
 void CreateSmallSphereTest::SetUp(){
 
 
-    std::string file_name = get_source_directory_apr() + "files/Apr/sphere_120/sphere_apr.h5";
+    std::string file_name = get_source_directory_apr() + "files/Apr/sphere_120/sphere.apr";
     test_data.apr_filename = file_name;
 
     APRFile aprFile;
@@ -2857,8 +2910,6 @@ void CreateSmallSphereTest::SetUp(){
 
     file_name = get_source_directory_apr() + "files/Apr/sphere_120/sphere_level.tif";
     test_data.img_level = TiffUtils::getMesh<uint16_t>(file_name,false);
-    file_name = get_source_directory_apr() + "files/Apr/sphere_120/sphere_type.tif";
-    test_data.img_type = TiffUtils::getMesh<uint16_t>(file_name,false);
     file_name = get_source_directory_apr() + "files/Apr/sphere_120/sphere_original.tif";
     test_data.img_original = TiffUtils::getMesh<uint16_t>(file_name,false);
     file_name = get_source_directory_apr() + "files/Apr/sphere_120/sphere_pc.tif";
@@ -2874,9 +2925,9 @@ void CreateSmallSphereTest::SetUp(){
     test_data.output_name = "sphere_small";
 }
 
-void Create210SphereTest::SetUp(){
+void CreatDiffDimsSphereTest::SetUp(){
 
-    std::string file_name = get_source_directory_apr() + "files/Apr/sphere_210/sphere_apr.h5";
+    std::string file_name = get_source_directory_apr() + "files/Apr/sphere_diff_dims/sphere.apr";
     test_data.apr_filename = file_name;
 
     APRFile aprFile;
@@ -2886,22 +2937,21 @@ void Create210SphereTest::SetUp(){
     aprFile.read_particles(test_data.apr,"particle_intensities",test_data.particles_intensities);
     aprFile.close();
 
-    file_name = get_source_directory_apr() + "files/Apr/sphere_210/sphere_level.tif";
+    file_name = get_source_directory_apr() + "files/Apr/sphere_diff_dims/sphere_level.tif";
     test_data.img_level = TiffUtils::getMesh<uint16_t>(file_name,false);
-    file_name = get_source_directory_apr() + "files/Apr/sphere_210/sphere_type.tif";
-    test_data.img_type = TiffUtils::getMesh<uint16_t>(file_name,false);
-    file_name = get_source_directory_apr() + "files/Apr/sphere_210/sphere_original.tif";
+
+    file_name = get_source_directory_apr() + "files/Apr/sphere_diff_dims/sphere_original.tif";
     test_data.img_original = TiffUtils::getMesh<uint16_t>(file_name,false);
-    file_name = get_source_directory_apr() + "files/Apr/sphere_210/sphere_pc.tif";
+    file_name = get_source_directory_apr() + "files/Apr/sphere_diff_dims/sphere_pc.tif";
     test_data.img_pc = TiffUtils::getMesh<uint16_t>(file_name,false);
-    file_name = get_source_directory_apr() + "files/Apr/sphere_210/sphere_x.tif";
+    file_name = get_source_directory_apr() + "files/Apr/sphere_diff_dims/sphere_x.tif";
     test_data.img_x = TiffUtils::getMesh<uint16_t>(file_name,false);
-    file_name =  get_source_directory_apr() + "files/Apr/sphere_210/sphere_y.tif";
+    file_name =  get_source_directory_apr() + "files/Apr/sphere_diff_dims/sphere_y.tif";
     test_data.img_y = TiffUtils::getMesh<uint16_t>(file_name,false);
-    file_name =  get_source_directory_apr() + "files/Apr/sphere_210/sphere_z.tif";
+    file_name =  get_source_directory_apr() + "files/Apr/sphere_diff_dims/sphere_z.tif";
     test_data.img_z = TiffUtils::getMesh<uint16_t>(file_name,false);
 
-    test_data.filename = get_source_directory_apr() + "files/Apr/sphere_210/sphere_original.tif";
+    test_data.filename = get_source_directory_apr() + "files/Apr/sphere_diff_dims/sphere_original.tif";
     test_data.output_name = "sphere_210";
 }
 
@@ -3068,6 +3118,12 @@ TEST_F(CreateGTSmall1DTestProperties, APR_FILTER) {
     ASSERT_TRUE(test_apr_filter(test_data));
 }
 
+TEST_F(CreateGTSmall1DTestProperties, PIPELINE_COMPARE) {
+
+    ASSERT_TRUE(test_pipeline_u16(test_data));
+
+}
+
 
 //2D tests
 
@@ -3157,6 +3213,11 @@ TEST_F(CreateGTSmall2DTestProperties, APR_FILTER) {
     ASSERT_TRUE(test_apr_filter(test_data));
 }
 
+TEST_F(CreateGTSmall2DTestProperties, PIPELINE_COMPARE) {
+
+    ASSERT_TRUE(test_pipeline_u16(test_data));
+
+}
 
 
 //3D tests
@@ -3170,7 +3231,7 @@ ASSERT_TRUE(test_linear_iterate(test_data));
 
 }
 
-TEST_F(Create210SphereTest, PULLING_SCHEME_SPARSE) {
+TEST_F(CreatDiffDimsSphereTest, PULLING_SCHEME_SPARSE) {
     //tests the linear access geneartions and io
     ASSERT_TRUE(test_pulling_scheme_sparse(test_data));
 
@@ -3194,13 +3255,13 @@ TEST_F(CreateSmallSphereTest, LINEAR_ACCESS_IO) {
 
 }
 
-TEST_F(Create210SphereTest, LINEAR_ACCESS_CREATE) {
+TEST_F(CreatDiffDimsSphereTest, LINEAR_ACCESS_CREATE) {
 
     ASSERT_TRUE(test_linear_access_create(test_data));
 
 }
 
-TEST_F(Create210SphereTest, LINEAR_ACCESS_IO) {
+TEST_F(CreatDiffDimsSphereTest, LINEAR_ACCESS_IO) {
 
     ASSERT_TRUE(test_linear_access_io(test_data));
 
@@ -3212,7 +3273,7 @@ TEST_F(CreateSmallSphereTest, PARTIAL_READ) {
 
 }
 
-TEST_F(Create210SphereTest, PARTIAL_READ) {
+TEST_F(CreatDiffDimsSphereTest, PARTIAL_READ) {
 
     ASSERT_TRUE(test_read_upto_level(test_data));
 
@@ -3224,7 +3285,7 @@ TEST_F(CreateSmallSphereTest, LAZY_PARTICLES) {
 
 }
 
-TEST_F(Create210SphereTest, LAZY_PARTICLES) {
+TEST_F(CreatDiffDimsSphereTest, LAZY_PARTICLES) {
 
     ASSERT_TRUE(test_lazy_particles(test_data));
 
@@ -3236,7 +3297,7 @@ TEST_F(CreateSmallSphereTest, COMPRESS_PARTICLES) {
 
 }
 
-TEST_F(Create210SphereTest, COMPRESS_PARTICLES) {
+TEST_F(CreatDiffDimsSphereTest, COMPRESS_PARTICLES) {
 
     ASSERT_TRUE(test_particles_compress(test_data));
 
@@ -3249,7 +3310,7 @@ TEST_F(CreateSmallSphereTest, RANDOM_ACCESS) {
 
 }
 
-TEST_F(Create210SphereTest, RANDOM_ACCESS) {
+TEST_F(CreatDiffDimsSphereTest, RANDOM_ACCESS) {
 
     ASSERT_TRUE(test_random_access_it(test_data));
 
@@ -3323,7 +3384,7 @@ TEST_F(CreateGTSmall1DTest, APR_PIPELINE_1D) {
 
 }
 
-TEST_F(Create210SphereTest, APR_ITERATION) {
+TEST_F(CreatDiffDimsSphereTest, APR_ITERATION) {
 
 //test iteration
     ASSERT_TRUE(test_apr_random_iterate(test_data));
@@ -3331,14 +3392,14 @@ TEST_F(Create210SphereTest, APR_ITERATION) {
 
 }
 
-TEST_F(Create210SphereTest, APR_TREE) {
+TEST_F(CreatDiffDimsSphereTest, APR_TREE) {
 
 //test iteration
     ASSERT_TRUE(test_apr_tree(test_data));
 
 }
 
-TEST_F(Create210SphereTest, APR_NEIGHBOUR_ACCESS) {
+TEST_F(CreatDiffDimsSphereTest, APR_NEIGHBOUR_ACCESS) {
 
 //test iteration
     ASSERT_TRUE(test_apr_neighbour_access(test_data));
@@ -3346,7 +3407,7 @@ TEST_F(Create210SphereTest, APR_NEIGHBOUR_ACCESS) {
 }
 
 
-TEST_F(Create210SphereTest, APR_PARTICLES) {
+TEST_F(CreatDiffDimsSphereTest, APR_PARTICLES) {
 
     ASSERT_TRUE(test_particle_structures(test_data));
 }
@@ -3357,12 +3418,24 @@ TEST_F(CreateSmallSphereTest, APR_PARTICLES) {
 }
 
 
-TEST_F(Create210SphereTest, APR_INPUT_OUTPUT) {
+TEST_F(CreatDiffDimsSphereTest, APR_INPUT_OUTPUT) {
 
 //test iteration
     //ASSERT_TRUE(test_apr_input_output(test_data));
     ASSERT_TRUE(test_apr_file(test_data));
 
+
+}
+
+TEST_F(CreateSmallSphereTest, PIPELINE_COMPARE) {
+
+    ASSERT_TRUE(test_pipeline_u16(test_data));
+
+}
+
+TEST_F(CreatDiffDimsSphereTest, PIPELINE_COMPARE) {
+
+    ASSERT_TRUE(test_pipeline_u16(test_data));
 
 }
 

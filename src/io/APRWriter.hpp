@@ -196,6 +196,8 @@ namespace AprTypes  {
     const AprType GitType = {H5T_C_S1, "githash"};
     const AprType TimeStepType = {H5T_NATIVE_UINT64, "time_steps"};
 
+    const AprType GradientThreshold = {H5T_NATIVE_FLOAT, "grad_th"};
+
     const char * const ParticleIntensitiesType = "particle_intensities"; // type read from file
     const char * const ExtraParticleDataType = "extra_particle_data"; // type read from file
     const char * const ParticlePropertyType = "particle property"; // user defined type
@@ -441,6 +443,12 @@ public:
         APRWriter::writeAttr(AprTypes::NoiseSdEstimateType, dataset_id, &parameters.noise_sd_estimate);
         APRWriter::writeAttr(AprTypes::BackgroundIntensityEstimateType, dataset_id,
                              &parameters.background_intensity_estimate);
+
+
+        APRWriter::writeAttr(AprTypes::GradientThreshold, dataset_id,
+                             &parameters.grad_th);
+
+
     }
 
     static void read_apr_parameters(hid_t dataset_id,APRParameters& parameters){
@@ -464,6 +472,10 @@ public:
         readAttr(AprTypes::BackgroundIntensityEstimateType, dataset_id,
                  &parameters.background_intensity_estimate);
         readAttr(AprTypes::NoiseSdEstimateType, dataset_id, &parameters.noise_sd_estimate);
+
+        if(attribute_exists(dataset_id,AprTypes::GradientThreshold.typeName)) {
+            readAttr(AprTypes::GradientThreshold, dataset_id, &parameters.grad_th);
+        }
 
     }
 
