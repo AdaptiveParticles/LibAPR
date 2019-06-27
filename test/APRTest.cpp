@@ -2747,7 +2747,7 @@ bool test_pipeline_bound(TestData& test_data,float rel_error){
 }
 
 
-bool test_apr_filter(TestData &test_data) {
+bool test_apr_filter(TestData &test_data, const bool boundary = false, const int stencil_size = 3) {
 
     std::vector<PixelData<float>> stencils;
     stencils.resize(1);
@@ -2755,13 +2755,12 @@ bool test_apr_filter(TestData &test_data) {
     auto it = test_data.apr.iterator();
 
     if(it.number_dimensions() ==3){
-        stencils[0].init(3, 3, 3);
+        stencils[0].init(stencil_size, stencil_size, stencil_size);
     } else if (it.number_dimensions() ==2){
-        stencils[0].init(3, 3, 1);
+        stencils[0].init(stencil_size, stencil_size, 1);
     } else if (it.number_dimensions() ==1){
-        stencils[0].init(3, 1, 1);
+        stencils[0].init(stencil_size, 1, 1);
     }
-
 
     // unique stencil elements
     float sum = 0;
@@ -2773,7 +2772,7 @@ bool test_apr_filter(TestData &test_data) {
     }
 
     APRFilter filterfns;
-    filterfns.boundary_cond = false;
+    filterfns.boundary_cond = boundary;
 
     ParticleData<double> output;
     filterfns.convolve(test_data.apr, stencils, test_data.particles_intensities, output);
@@ -2786,7 +2785,7 @@ bool test_apr_filter(TestData &test_data) {
         return false;
     }
 
-    double eps = 1e-4;
+    double eps = 1e-2;
 
     for(uint64_t x=0; x < output.size(); ++x) {
         if(abs(output[x] - output_gt[x]) > eps) {
@@ -3369,7 +3368,10 @@ TEST_F(Create210SphereTest, APR_INPUT_OUTPUT) {
 
 
 TEST_F(CreateSmallSphereTest, APR_FILTER) {
-    ASSERT_TRUE(test_apr_filter(test_data));
+    ASSERT_TRUE(test_apr_filter(test_data, false, 3));
+    ASSERT_TRUE(test_apr_filter(test_data, true, 3));
+    ASSERT_TRUE(test_apr_filter(test_data, false, 5));
+    ASSERT_TRUE(test_apr_filter(test_data, true, 5));
 }
 
 
