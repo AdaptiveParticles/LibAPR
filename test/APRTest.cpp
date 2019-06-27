@@ -143,6 +143,7 @@ bool compare_two_iterators(GenIterator& it1, GenIterator& it2,bool success = tru
 
 
                         success = false;
+                        std::cout << "1" << std::endl;
                     }
 
                     if(it1.y() != it2.y()){
@@ -154,6 +155,7 @@ bool compare_two_iterators(GenIterator& it1, GenIterator& it2,bool success = tru
                         (void) y_org;
 
                         success = false;
+                        std::cout << "2" << std::endl;
                     }
 
                     if(it2 < it2.end()){
