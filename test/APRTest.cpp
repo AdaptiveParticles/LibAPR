@@ -2739,6 +2739,13 @@ bool test_pipeline_u16(TestData& test_data){
     if(!success){
         std::cout << "Original number parts:" << it_org.total_number_particles() << std::endl;
         std::cout << "Generated number parts:" << it_gen.total_number_particles() << std::endl;
+
+        PixelData<uint16_t> levels;
+        ParticleData<uint16_t> levels_p;
+        levels_p.fill_with_levels(apr);
+        APRReconstruction::interp_img(apr,levels,levels_p);
+
+        TiffUtils::saveMeshAsTiff("debug_levels.tif",levels);
     }
 
     //then compare the particles.
