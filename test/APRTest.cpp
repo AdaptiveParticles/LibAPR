@@ -2731,6 +2731,11 @@ bool test_pipeline_u16(TestData& test_data){
 
     success = compare_two_iterators(it_org,it_gen,success);
 
+    if(it_org.total_number_particles() != it_gen.total_number_particles()){
+        std::cout << "Original number parts:" << it_org.total_number_particles() << std::endl;
+        std::cout << "Generated number parts:" << it_gen.total_number_particles() << std::endl;
+    }
+
     //then compare the particles.
 
     return success;
