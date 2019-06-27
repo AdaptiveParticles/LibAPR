@@ -382,8 +382,6 @@ bool APRFile::read_apr(APR &apr,uint64_t t,std::string channel_name){
     //read in pipeline parameters
     APRWriter::read_apr_parameters(meta_data,apr.parameters);
 
-
-
     timer.start_timer("read_apr_access");
 
     if(!stored_random) {

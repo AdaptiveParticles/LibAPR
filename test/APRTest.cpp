@@ -2841,7 +2841,7 @@ bool test_apr_filter(TestData &test_data, const bool boundary = false, const int
     double eps = 1e-2;
 
     for(uint64_t x=0; x < output.size(); ++x) {
-        if(abs(output[x] - output_gt[x]) > eps) {
+        if(std::abs(output[x] - output_gt[x]) > eps) {
             std::cerr << "discrepancy at particle " << x << " (output = " << output[x] << ", ground_truth = " << output_gt[x] << ")" << std::endl;
             return false;
         }
