@@ -113,6 +113,7 @@ bool compare_two_iterators(GenIterator& it1, GenIterator& it2,bool success = tru
 
     if(it1.total_number_particles() != it2.total_number_particles()){
         success = false;
+        std::cout << "Number of particles mismatch" << std::endl;
     }
 
     uint64_t counter_1 = 0;
@@ -214,6 +215,7 @@ bool compare_two_iterators(GenIterator& it1, GenIterator& it2,bool success = tru
 
     if(counter_1 != counter_2){
         success = false;
+        std::cout << "Iteration mismatch" << std::endl;
     }
 
 
