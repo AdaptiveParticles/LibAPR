@@ -62,16 +62,17 @@ public:
     APRParameters par;
 
 
+    //template<typename T>
+    //bool get_apr(APR &aAPR, PixelData<T> &inputImage);
     template<typename T>
-    bool get_apr(APR &aAPR, PixelData<T> &inputImage);
+    bool get_apr(APR &aAPR, PixelData<T> &input_image);
 
     bool verbose = true;
 
 protected:
 
     //get apr without setting parameters, and with an already loaded image.
-    template<typename T>
-    bool get_apr_method(APR &aAPR, PixelData<T> &input_image);
+
 
     float bspline_offset = 0;
 
@@ -122,47 +123,6 @@ static MinMax<T> getMinMax(const PixelData<T>& input_image) {
     return MinMax<T>{minVal, maxVal};
 }
 
-/**
- * Main method for constructing the APR from an input image
- */
-template<typename ImageType> template<typename T>
-inline bool APRConverter<ImageType>::get_apr(APR &aAPR, PixelData<T> &inputImage) {
-
-    method_timer.start_timer("calculate automatic parameters");
-
-    if(par.normalized_input) {
-        MinMax<T> mm;
-        T maxValue;
-        if ((std::is_same<uint16_t, ImageType>::value) || (std::is_same<uint8_t, ImageType>::value)) {
-            mm = getMinMax(inputImage);
-            maxValue = static_cast<T>((float) std::numeric_limits<ImageType>::max() * 0.8);
-            std::cout << "Normalizing image with min: " << mm.min << " max: " << mm.max << " to a dynamic range of: " << maxValue << std::endl;
-
-#ifdef HAVE_OPENMP
-#pragma omp parallel for default(shared)
-#endif
-            for (size_t i = 0; i < inputImage.mesh.size(); ++i) {
-                inputImage.mesh[i] = (inputImage.mesh[i] - mm.min) * maxValue / (mm.max - mm.min);
-            }
-
-            //normalize the input parameters if required
-            if(par.Ip_th!=-1){
-                std::cout << "Scaled input intensity threshold" << std::endl;
-                par.Ip_th = (par.Ip_th - mm.min)* maxValue / (mm.max - mm.min);
-            }
-
-            if(par.min_signal!=-1){
-                std::cout << "Scaled input min signal threshold" << std::endl;
-                par.min_signal = (par.min_signal)* maxValue / (mm.max - mm.min);
-            }
-        }
-    }
-
-    //auto_parameters(inputImage);
-    method_timer.stop_timer();
-
-    return get_apr_method(aAPR, inputImage);
-}
 
 template<typename ImageType>
 void APRConverter<ImageType>::applyParameters(APR& aAPR,APRParameters& aprParameters) {
@@ -365,13 +325,11 @@ void APRConverter<ImageType>::generateDatastructures(APR& aAPR){
 }
 
 
-
-
 /**
  * Main method for constructing the APR from an input image
  */
 template<typename ImageType> template<typename T>
-inline bool APRConverter<ImageType>::get_apr_method(APR &aAPR, PixelData<T>& input_image) {
+inline bool APRConverter<ImageType>::get_apr(APR &aAPR, PixelData<T>& input_image) {
 
     aAPR.parameters = par;
     apr = &aAPR; // in case it was called directly

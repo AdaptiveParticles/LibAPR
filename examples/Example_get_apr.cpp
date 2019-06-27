@@ -17,6 +17,7 @@ Additional settings (High Level):
 
 -I_th intensity_threshold  (will ignore areas of image below this threshold, useful for removing camera artifacts or auto-flouresence)
 -SNR_min minimal_snr (minimal ratio of the signal to the standard deviation of the background, set by default to 6)
+-grad_th gradient threshold for ignoring small gradients.
 
 Advanced (Direct) Settings:
 
@@ -24,7 +25,6 @@ Advanced (Direct) Settings:
 -min_signal min_signal_val (directly sets a minimum absolute signal size relative to the local background, also useful for removing background, otherwise set using estimated background noise estimate and minimal SNR of 6)
 -mask_file mask_file_tiff (takes an input image uint16_t, assumes all zero regions should be ignored by the APR, useful for pre-processing of isolating desired content, or using another channel as a mask)
 -rel_error rel_error_value (Reasonable ranges are from .08-.15), Default: 0.1
--normalize_input (flag that will rescale the input from the input data range to 80% of the output data type range, useful for float scaled datasets)
 -compress_level (the IO uses BLOSC for lossless compression of the APR, this can be set from 1-9, where higher increases the compression level. Note, this can come at a significant time increase.)
 -compress_type (Default: 0, loss-less compression of partilce intensities, (1,2) WNL (Balázs et al. 2017) - approach compression applied to particles (1 = without prediction, 2 = with)
 
@@ -58,9 +58,9 @@ int runAPR(cmdLineOptions options) {
     aprConverter.par.mask_file = options.mask_file;
     aprConverter.par.min_signal = options.min_signal;
     aprConverter.par.SNR_min = options.SNR_min;
-    aprConverter.par.normalized_input = options.normalize_input;
     aprConverter.par.neighborhood_optimization = options.neighborhood_optimization;
     aprConverter.par.output_steps = options.output_steps;
+    aprConverter.par.grad_th = options.grad_th;
 
     //where things are
     aprConverter.par.input_image_name = options.input;
@@ -228,6 +228,11 @@ cmdLineOptions read_command_line_options(int argc, char **argv){
     if(command_option_exists(argv, argv + argc, "-I_th"))
     {
         result.Ip_th = std::stof(std::string(get_command_option(argv, argv + argc, "-I_th")));
+    }
+
+    if(command_option_exists(argv, argv + argc, "-grad_th"))
+    {
+        result.grad_th = std::stof(std::string(get_command_option(argv, argv + argc, "-grad_th")));
     }
 
     if(command_option_exists(argv, argv + argc, "-SNR_min"))

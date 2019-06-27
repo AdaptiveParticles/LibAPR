@@ -664,6 +664,43 @@ bool test_symmetry_pipeline(){
 }
 
 
+bool test_pipeline_mask(TestData& test_data){
+    //
+    //
+    //
+
+    PixelData<uint16_t> mask;
+
+    mask.init(test_data.img_original);
+
+    float th = 3000;
+
+    for (int i = 0; i < mask.mesh.size(); ++i) {
+        mask.mesh[i] = (test_data.img_original.mesh[i] > th);
+    }
+
+    TiffUtils::saveMeshAsTiff("mask.tif",mask,false);
+
+    APRConverter<uint16_t> aprConverter;
+
+    APR apr;
+    APR apr_masked;
+
+    aprConverter.get_apr(apr,test_data.img_original);
+
+    aprConverter.par.mask_file = "mask.tif";
+
+    aprConverter.get_apr(apr_masked,test_data.img_original);
+
+    if(apr.total_number_particles() < apr_masked.total_number_particles()){
+        return false;
+    }
+
+    return true;
+
+}
+
+
 
 
 bool test_pipeline_different_sizes(TestData& test_data){
@@ -3224,6 +3261,8 @@ TEST_F(CreateSmallSphereTest, PIPELINE_SIZE) {
     ASSERT_TRUE(test_symmetry_pipeline());
 
     ASSERT_TRUE(test_pipeline_different_sizes(test_data));
+
+    ASSERT_TRUE(test_pipeline_mask(test_data));
 
 }
 
