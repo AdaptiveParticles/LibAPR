@@ -976,7 +976,7 @@ void ComputeGradient::calc_bspline_fd_ds_mag(const PixelData<S> &input, PixelDat
     #endif
     for (z_d = 0; z_d < z_num_ds; ++z_d) {
         for (size_t z = 2*z_d; z <= std::min(2*z_d + 1,z_num - 1); ++z) {
-            //double loop strategy required to make the OpenMP threadsafe, with the parent access, as there can now never be a race condition.
+            //double loop strategy required to make the OpenMP threadsafe, with the parent access, as there can now never be a race condition. (BC)
 
             // Belows pointers up, down... are forming stencil in X (left <-> right) and Z ( up <-> down) direction and
             // are pointing to whole Y column. If out of bounds then 'replicate' (nearest array border value) approach is used.

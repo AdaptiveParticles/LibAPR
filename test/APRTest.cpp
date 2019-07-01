@@ -2995,6 +2995,7 @@ void CreatDiffDimsSphereTest::SetUp(){
     test_data.img_z = TiffUtils::getMesh<uint16_t>(file_name,false);
 
     test_data.filename = get_source_directory_apr() + "files/Apr/sphere_diff_dims/sphere_original.tif";
+    test_data.output_dir = get_source_directory_apr() + "files/Apr/sphere_diff_dims/";
     test_data.output_name = "sphere_210";
 }
 
@@ -3042,6 +3043,7 @@ void CreateGTSmall2DTestProperties::SetUp(){
 
     test_data.filename = get_source_directory_apr() + "files/Apr/sphere_2D/sphere_2D_original.tif";
     test_data.output_name = "sphere_2D";
+    test_data.output_dir = get_source_directory_apr() + "files/Apr/sphere_2D/";
 }
 
 void CreateGTSmall1DTestProperties::SetUp(){
@@ -3071,6 +3073,8 @@ void CreateGTSmall1DTestProperties::SetUp(){
 
     test_data.filename = get_source_directory_apr() + "files/Apr/sphere_1D/sphere_1D_original.tif";
     test_data.output_name = "sphere_1D";
+
+    test_data.output_dir = get_source_directory_apr() + "files/Apr/sphere_1D/";
 }
 
 //1D tests
@@ -3161,11 +3165,11 @@ TEST_F(CreateGTSmall1DTestProperties, APR_FILTER) {
     ASSERT_TRUE(test_apr_filter(test_data));
 }
 
-//TEST_F(CreateGTSmall1DTestProperties, PIPELINE_COMPARE) {
-//
-//    ASSERT_TRUE(test_pipeline_u16(test_data));
-//
-//}
+TEST_F(CreateGTSmall1DTestProperties, PIPELINE_COMPARE) {
+
+    ASSERT_TRUE(test_pipeline_u16(test_data));
+
+}
 
 
 //2D tests
@@ -3256,11 +3260,11 @@ TEST_F(CreateGTSmall2DTestProperties, APR_FILTER) {
     ASSERT_TRUE(test_apr_filter(test_data));
 }
 
-//TEST_F(CreateGTSmall2DTestProperties, PIPELINE_COMPARE) {
-//
-//    ASSERT_TRUE(test_pipeline_u16(test_data));
-//
-//}
+TEST_F(CreateGTSmall2DTestProperties, PIPELINE_COMPARE) {
+
+    ASSERT_TRUE(test_pipeline_u16(test_data));
+
+}
 
 
 //3D tests
@@ -3476,11 +3480,11 @@ TEST_F(CreateSmallSphereTest, PIPELINE_COMPARE) {
 
 }
 
-//TEST_F(CreatDiffDimsSphereTest, PIPELINE_COMPARE) {
-//
-//    ASSERT_TRUE(test_pipeline_u16(test_data));
-//
-//}
+TEST_F(CreatDiffDimsSphereTest, PIPELINE_COMPARE) {
+
+    ASSERT_TRUE(test_pipeline_u16(test_data));
+
+}
 
 
 TEST_F(CreateSmallSphereTest, APR_FILTER) {
