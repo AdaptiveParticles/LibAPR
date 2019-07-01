@@ -169,6 +169,9 @@ namespace {
         ComputeGradient cg;
         cg.calc_bspline_fd_ds_mag(m, grad, 1, 1, 1);
 
+        grad.printMesh(1);
+        //m.printMesh(1);
+
         ASSERT_TRUE(compare(grad, expect, 0.05));
     }
 
