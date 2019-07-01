@@ -43,7 +43,6 @@ protected:
     bool generate_linear = true; //default is now the new structures
     bool sparse_pulling_scheme = false;
 
-
 public:
 
     void set_generate_linear(bool flag){
@@ -62,8 +61,6 @@ public:
     APRParameters par;
 
 
-    //template<typename T>
-    //bool get_apr(APR &aAPR, PixelData<T> &inputImage);
     template<typename T>
     bool get_apr(APR &aAPR, PixelData<T> &input_image);
 
@@ -72,7 +69,6 @@ public:
 protected:
 
     //get apr without setting parameters, and with an already loaded image.
-
 
     float bspline_offset = 0;
 
@@ -91,13 +87,63 @@ protected:
 
     void generateDatastructures(APR& aAPR);
 
-    const APR *apr;
-
     template<typename T>
     void auto_parameters(const PixelData<T> &input_img);
 
     template<typename T>
     bool check_input_dimensions(PixelData<T> &input_image);
+
+    void initPipelineAPR(APR &aAPR, int y_num, int x_num = 1, int z_num = 1){
+        //
+        //  Initializes the APR datastructures for the given image.
+        //
+
+        aAPR.aprInfo.init(y_num,x_num,z_num);
+        aAPR.linearAccess.genInfo = &aAPR.aprInfo;
+        aAPR.apr_access.genInfo = &aAPR.aprInfo;
+    }
+
+    void initPipelineMemory(int y_num,int x_num = 1,int z_num = 1){
+        //initializes the internal memory to be used in the pipeline.
+        allocation_timer.start_timer("init ds images");
+
+
+        grad_temp.initDownsampled(y_num, x_num, z_num, 0, false); //#TODO: why are these differnet?
+
+
+        local_scale_temp.initDownsampled(y_num, x_num, z_num, true);
+
+
+        local_scale_temp2.initDownsampled(y_num, x_num, z_num, false);
+
+        allocation_timer.stop_timer();
+    }
+
+    void get_apr_custom_grad_scale(APR& aAPR,PixelData<ImageType>& grad,PixelData<float>& lis,bool down_sampled = true){
+
+        //APR must already be initialized.
+
+        if(down_sampled){
+
+            //need to check that they are initialized.
+
+            grad_temp.swap(grad);
+            lis.swap(local_scale_temp);
+
+
+        } else {
+            // To be done. The L(y) needs to be computed then max downsampled.
+            std::cerr << "Not implimented" << std::endl;
+
+        }
+
+        aAPR.parameters = par;
+        applyParameters(aAPR,par);
+        solveForAPR(aAPR);
+        generateDatastructures(aAPR);
+
+    }
+
 
 
 };
@@ -122,65 +168,16 @@ static MinMax<T> getMinMax(const PixelData<T>& input_image) {
 
     return MinMax<T>{minVal, maxVal};
 }
-
-
-template<typename ImageType>
-void APRConverter<ImageType>::applyParameters(APR& aAPR,APRParameters& aprParameters) {
-    //
-    //  Apply the main parameters
-    //
-
-    fine_grained_timer.start_timer("load_and_apply_mask");
-    // Apply mask if given
-    if(par.mask_file != ""){
-        iComputeGradient.mask_gradient(grad_temp, aprParameters);
-    }
-    fine_grained_timer.stop_timer();
-
-    fine_grained_timer.start_timer("threshold");
-    iComputeGradient.threshold_gradient(grad_temp,local_scale_temp,aprParameters.Ip_th + bspline_offset);
-    fine_grained_timer.stop_timer();
-
-    float max_th = 60000;
-
-
-#ifdef HAVE_OPENMP
-#pragma omp parallel for default(shared)
-#endif
-    for (size_t i = 0; i < grad_temp.mesh.size(); ++i) {
-
-        float rescaled = local_scale_temp.mesh[i];
-        if (rescaled < aprParameters.sigma_th) {
-            rescaled = (rescaled < aprParameters.sigma_th_max) ? max_th : par.sigma_th;
-            local_scale_temp.mesh[i] = rescaled;
-        }
-    }
-
-#ifdef HAVE_OPENMP
-#pragma omp parallel for default(shared)
-#endif
-    for (size_t i = 0; i < grad_temp.mesh.size(); ++i) {
-
-        if(grad_temp.mesh[i] < aprParameters.grad_th){
-            grad_temp.mesh[i] = 0;
-        }
-    }
-
-
-}
-
 template<typename ImageType> template<typename T>
 void APRConverter<ImageType>::computeL(APR& aAPR,PixelData<T>& input_image){
     //
     //  Computes the local resolution estimate L(y), the input for the Pulling Scheme and setting the resolution everywhere.
     //
 
-    //initialize the general size info for the APR
-    aAPR.aprInfo.init(input_image.y_num,input_image.x_num,input_image.z_num);
-    aAPR.linearAccess.genInfo = &aAPR.aprInfo;
-    aAPR.apr_access.genInfo = &aAPR.aprInfo;
 
     total_timer.start_timer("Total_pipeline_excluding_IO");
+
+    initPipelineMemory(input_image.y_num, input_image.x_num, input_image.z_num);
 
     ////////////////////////////////////////
     /// Memory allocation of variables
@@ -191,11 +188,6 @@ void APRConverter<ImageType>::computeL(APR& aAPR,PixelData<T>& input_image){
     allocation_timer.start_timer("init and copy image");
     PixelData<ImageType> image_temp(input_image, false /* don't copy */, true /* pinned memory */); // global image variable useful for passing between methods, or re-using memory (should be the only full sized copy of the image)
 
-    grad_temp.initDownsampled(input_image.y_num, input_image.x_num, input_image.z_num, 0, false);
-
-    local_scale_temp.initDownsampled(input_image.y_num, input_image.x_num, input_image.z_num, true);
-
-    local_scale_temp2.initDownsampled(input_image.y_num, input_image.x_num, input_image.z_num, false);
     allocation_timer.stop_timer();
 
     /////////////////////////////////
@@ -247,17 +239,64 @@ void APRConverter<ImageType>::computeL(APR& aAPR,PixelData<T>& input_image){
 #endif
 
 }
+
+template<typename ImageType>
+void APRConverter<ImageType>::applyParameters(APR& aAPR,APRParameters& aprParameters) {
+    //
+    //  Apply the main parameters
+    //
+
+    fine_grained_timer.start_timer("load_and_apply_mask");
+    // Apply mask if given
+    if(par.mask_file != ""){
+        iComputeGradient.mask_gradient(grad_temp, aprParameters);
+    }
+    fine_grained_timer.stop_timer();
+
+    fine_grained_timer.start_timer("threshold");
+    iComputeGradient.threshold_gradient(grad_temp,local_scale_temp,aprParameters.Ip_th + bspline_offset);
+    fine_grained_timer.stop_timer();
+
+    float max_th = 60000;
+
+
+#ifdef HAVE_OPENMP
+#pragma omp parallel for default(shared)
+#endif
+    for (size_t i = 0; i < grad_temp.mesh.size(); ++i) {
+
+        float rescaled = local_scale_temp.mesh[i];
+        if (rescaled < aprParameters.sigma_th) {
+            rescaled = (rescaled < aprParameters.sigma_th_max) ? max_th : par.sigma_th;
+            local_scale_temp.mesh[i] = rescaled;
+        }
+    }
+
+#ifdef HAVE_OPENMP
+#pragma omp parallel for default(shared)
+#endif
+    for (size_t i = 0; i < grad_temp.mesh.size(); ++i) {
+
+        if(grad_temp.mesh[i] < aprParameters.grad_th){
+            grad_temp.mesh[i] = 0;
+        }
+    }
+
+
+}
+
+
 template<typename ImageType>
 void APRConverter<ImageType>::solveForAPR(APR& aAPR){
 
     method_timer.start_timer("compute_levels");
-    iLocalParticleSet.computeLevels(grad_temp, local_scale_temp, (*apr).level_max(), par.rel_error, par.dx, par.dy, par.dz);
+    iLocalParticleSet.computeLevels(grad_temp, local_scale_temp, aAPR.level_max(), par.rel_error, par.dx, par.dy, par.dz);
     method_timer.stop_timer();
 
     if(!sparse_pulling_scheme) {
 
         method_timer.start_timer("initialize_particle_cell_tree");
-        iPullingScheme.initialize_particle_cell_tree(apr->aprInfo);
+        iPullingScheme.initialize_particle_cell_tree(aAPR.aprInfo);
         method_timer.stop_timer();
 
         method_timer.start_timer("compute_local_particle_set");
@@ -270,7 +309,7 @@ void APRConverter<ImageType>::solveForAPR(APR& aAPR){
     } else {
 
         method_timer.start_timer("initialize_particle_cell_tree");
-        iPullingSchemeSparse.initialize_particle_cell_tree(apr->aprInfo);
+        iPullingSchemeSparse.initialize_particle_cell_tree(aAPR.aprInfo);
         method_timer.stop_timer();
 
         method_timer.start_timer("compute_local_particle_set");
@@ -332,7 +371,6 @@ template<typename ImageType> template<typename T>
 inline bool APRConverter<ImageType>::get_apr(APR &aAPR, PixelData<T>& input_image) {
 
     aAPR.parameters = par;
-    apr = &aAPR; // in case it was called directly
 
     if(par.check_input) {
         if(!check_input_dimensions(input_image)) {
@@ -344,6 +382,8 @@ inline bool APRConverter<ImageType>::get_apr(APR &aAPR, PixelData<T>& input_imag
     if( par.auto_parameters ) {
         auto_parameters(input_image);
     }
+
+    initPipelineAPR(aAPR, input_image.y_num, input_image.x_num, input_image.z_num);
 
     //Compute the local resolution estimate
     computeL(aAPR,input_image);

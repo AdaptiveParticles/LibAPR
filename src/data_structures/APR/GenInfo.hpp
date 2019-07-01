@@ -9,16 +9,15 @@
 class GenInfo {
 
 public:
-    uint64_t l_min;
-    uint64_t l_max;
-    uint64_t org_dims[3]={0,0,0};
+    int l_min;
+    int l_max;
+    int org_dims[3]={0,0,0};
 
     uint8_t number_dimensions = 3;
 
-    // TODO: SHould they be also saved as uint64 in HDF5? (currently int is used)
-    std::vector<uint64_t> x_num;
-    std::vector<uint64_t> y_num;
-    std::vector<uint64_t> z_num;
+    std::vector<int> x_num;
+    std::vector<int> y_num;
+    std::vector<int> z_num;
 
     uint64_t total_number_particles;
 
@@ -34,16 +33,8 @@ public:
         number_dimensions = (y_org> 1) + (x_org > 1) + (z_org > 1);
 
         int max_dim = std::max(std::max(org_dims[1], org_dims[0]), org_dims[2]);
-        //int min_dim = std::min(std::min(aAPR.apr_access.org_dims[1], aAPR.apr_access.org_dims[0]), aAPR.apr_access.org_dims[2]);
-
-//        int min_dim = max_dim;
-//        min_dim = y_org > 1 ? std::min(min_dim, (int) y_org) : min_dim;
-//        min_dim = x_org > 1 ? std::min(min_dim, (int) x_org) : min_dim;
-//        min_dim = z_org > 1 ? std::min(min_dim, (int) z_org) : min_dim;
 
         int levelMax = std::max((int)1,(int) ceil(std::log2(max_dim)));
-
-        //int levelMin = std::max( (int)(levelMax - floor(std::log2(min_dim))), 1); // This sets the global minimum level
 
         int levelMin = 1;
 

@@ -1228,8 +1228,8 @@ void RandomAccess::init_data_structure_tree(RandomAccess& APROwn_access, SparseG
 
     for(uint64_t i = (level_min());i < level_max();i++) {
 
-        const unsigned int x_num_ = genInfo->x_num[i];
-        const unsigned int z_num_ = genInfo->z_num[i];
+        const int x_num_ = genInfo->x_num[i];
+        const int z_num_ = genInfo->z_num[i];
 
 //set up the levels here.
         global_index_by_level_and_zx_end[i].resize(z_num_ * x_num_, 0);

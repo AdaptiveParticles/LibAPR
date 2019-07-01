@@ -2721,51 +2721,82 @@ bool test_pipeline_u16(TestData& test_data){
     aprConverter.par.input_image_name = test_data.filename;
     aprConverter.par.input_dir = "";
     aprConverter.par.name = test_data.output_name;
-    aprConverter.par.output_dir = test_data.output_dir;
+    aprConverter.par.output_dir = "";
 
-    //Gets the APR
-
-    ParticleData<uint16_t> particles_intensities;
+    aprConverter.par.output_steps = true;
 
     aprConverter.get_apr(apr,test_data.img_original);
 
-    particles_intensities.sample_parts_from_img_downsampled(apr,test_data.img_original);
+    PixelData<float> scale_computed = TiffUtils::getMesh<float>("local_intensity_scale_step.tif");
+    PixelData<uint16_t> gradient_computed = TiffUtils::getMesh<uint16_t>( "gradient_step.tif");
 
-    auto it_org = test_data.apr.iterator();
-    auto it_gen = apr.iterator();
+    PixelData<float> scale_saved = TiffUtils::getMesh<float>(test_data.output_dir + "scale_saved.tif");
+    PixelData<uint16_t> gradient_saved = TiffUtils::getMesh<uint16_t>(test_data.output_dir + "gradient_saved.tif");
 
-    //weaker test then direct comparison due to rounding differences and there flow through that can occur in the gradient
+    for (int i = 0; i < scale_computed.mesh.size(); ++i) {
+        float computed_val = scale_computed.mesh[i];
+        float saved_val = scale_saved.mesh[i];
 
-    PixelData<uint16_t> levels;
-    ParticleData<uint16_t> levels_p;
-    levels_p.fill_with_levels(apr);
-    APRReconstruction::interp_img(apr,levels,levels_p);
-
-    int counter = 0;
-
-    for (int i = 0; i < levels.mesh.size(); ++i) {
-        int l_org = test_data.img_level.mesh[i];
-        int l_gen = levels.mesh[i];
-
-        if(abs(l_org - l_gen) > 1){
+        if(std::abs(computed_val - saved_val) > 1){
             success = false;
-
         }
+    }
 
-        if(abs(l_org - l_gen) > 0){
-            counter++;
+    for (int i = 0; i < gradient_computed.mesh.size(); ++i) {
+        float computed_val = gradient_computed.mesh[i];
+        float saved_val = gradient_saved.mesh[i];
+
+        if(std::abs(computed_val - saved_val) > 1){
+            success = false;
         }
     }
 
 
-    std::cout << counter << std::endl;
-    //this is a hack, to make sure the above is not pointless, allowing slight deviations.
-    if(counter > 20){
-        success = false;
-    }
 
-    //then compare the particles.
 
+    //Gets the APR
+//
+//    ParticleData<uint16_t> particles_intensities;
+//
+
+//
+//    particles_intensities.sample_parts_from_img_downsampled(apr,test_data.img_original);
+//
+//    auto it_org = test_data.apr.iterator();
+//    auto it_gen = apr.iterator();
+//
+//    //weaker test then direct comparison due to rounding differences and there flow through that can occur in the gradient
+//
+//    PixelData<uint16_t> levels;
+//    ParticleData<uint16_t> levels_p;
+//    levels_p.fill_with_levels(apr);
+//    APRReconstruction::interp_img(apr,levels,levels_p);
+//
+//    int counter = 0;
+//
+//    for (int i = 0; i < levels.mesh.size(); ++i) {
+//        int l_org = test_data.img_level.mesh[i];
+//        int l_gen = levels.mesh[i];
+//
+//        if(abs(l_org - l_gen) > 1){
+//            success = false;
+//
+//        }
+//
+//        if(abs(l_org - l_gen) > 0){
+//            counter++;
+//        }
+//    }
+//
+//
+//    std::cout << counter << std::endl;
+//    //this is a hack, to make sure the above is not pointless, allowing slight deviations.
+//    if(counter > 20){
+//        success = false;
+//    }
+//
+//    //then compare the particles.
+//
     return success;
 
 }
@@ -2956,6 +2987,8 @@ void CreateSmallSphereTest::SetUp(){
 
     test_data.filename = get_source_directory_apr() + "files/Apr/sphere_120/sphere_original.tif";
     test_data.output_name = "sphere_small";
+
+    test_data.output_dir = get_source_directory_apr() + "files/Apr/sphere_120/";
 }
 
 void CreatDiffDimsSphereTest::SetUp(){
@@ -3151,11 +3184,11 @@ TEST_F(CreateGTSmall1DTestProperties, APR_FILTER) {
     ASSERT_TRUE(test_apr_filter(test_data));
 }
 
-TEST_F(CreateGTSmall1DTestProperties, PIPELINE_COMPARE) {
-
-    ASSERT_TRUE(test_pipeline_u16(test_data));
-
-}
+//TEST_F(CreateGTSmall1DTestProperties, PIPELINE_COMPARE) {
+//
+//    ASSERT_TRUE(test_pipeline_u16(test_data));
+//
+//}
 
 
 //2D tests
@@ -3246,11 +3279,11 @@ TEST_F(CreateGTSmall2DTestProperties, APR_FILTER) {
     ASSERT_TRUE(test_apr_filter(test_data));
 }
 
-TEST_F(CreateGTSmall2DTestProperties, PIPELINE_COMPARE) {
-
-    ASSERT_TRUE(test_pipeline_u16(test_data));
-
-}
+//TEST_F(CreateGTSmall2DTestProperties, PIPELINE_COMPARE) {
+//
+//    ASSERT_TRUE(test_pipeline_u16(test_data));
+//
+//}
 
 
 //3D tests
@@ -3466,11 +3499,11 @@ TEST_F(CreateSmallSphereTest, PIPELINE_COMPARE) {
 
 }
 
-TEST_F(CreatDiffDimsSphereTest, PIPELINE_COMPARE) {
-
-    ASSERT_TRUE(test_pipeline_u16(test_data));
-
-}
+//TEST_F(CreatDiffDimsSphereTest, PIPELINE_COMPARE) {
+//
+//    ASSERT_TRUE(test_pipeline_u16(test_data));
+//
+//}
 
 
 TEST_F(CreateSmallSphereTest, APR_FILTER) {
