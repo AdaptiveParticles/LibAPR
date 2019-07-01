@@ -2751,52 +2751,29 @@ bool test_pipeline_u16(TestData& test_data){
         }
     }
 
+    APR apr_c;
+    aprConverter.initPipelineAPR(apr_c, test_data.img_original.y_num, test_data.img_original.x_num, test_data.img_original.z_num);
+
+    aprConverter.get_apr_custom_grad_scale(apr_c,gradient_saved,scale_saved);
+
+    auto it_org = test_data.apr.iterator();
+    auto it_gen = apr_c.iterator();
+
+    //test the access
+    success = compare_two_iterators(it_org,it_gen,success);
+
+    ParticleData<uint16_t> particles_intensities;
+
+    particles_intensities.sample_parts_from_img_downsampled(apr_c,test_data.img_original);
+
+    //test the particles
+    for (int j = 0; j < particles_intensities.size(); ++j) {
+        if(particles_intensities.data[j] != test_data.particles_intensities.data[j]){
+            success = false;
+        }
+    }
 
 
-
-    //Gets the APR
-//
-//    ParticleData<uint16_t> particles_intensities;
-//
-
-//
-//    particles_intensities.sample_parts_from_img_downsampled(apr,test_data.img_original);
-//
-//    auto it_org = test_data.apr.iterator();
-//    auto it_gen = apr.iterator();
-//
-//    //weaker test then direct comparison due to rounding differences and there flow through that can occur in the gradient
-//
-//    PixelData<uint16_t> levels;
-//    ParticleData<uint16_t> levels_p;
-//    levels_p.fill_with_levels(apr);
-//    APRReconstruction::interp_img(apr,levels,levels_p);
-//
-//    int counter = 0;
-//
-//    for (int i = 0; i < levels.mesh.size(); ++i) {
-//        int l_org = test_data.img_level.mesh[i];
-//        int l_gen = levels.mesh[i];
-//
-//        if(abs(l_org - l_gen) > 1){
-//            success = false;
-//
-//        }
-//
-//        if(abs(l_org - l_gen) > 0){
-//            counter++;
-//        }
-//    }
-//
-//
-//    std::cout << counter << std::endl;
-//    //this is a hack, to make sure the above is not pointless, allowing slight deviations.
-//    if(counter > 20){
-//        success = false;
-//    }
-//
-//    //then compare the particles.
-//
     return success;
 
 }

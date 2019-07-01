@@ -66,6 +66,41 @@ public:
 
     bool verbose = true;
 
+    void get_apr_custom_grad_scale(APR& aAPR,PixelData<ImageType>& grad,PixelData<float>& lis,bool down_sampled = true){
+
+        //APR must already be initialized.
+
+        if(down_sampled){
+
+            //need to check that they are initialized.
+
+            grad_temp.swap(grad);
+            lis.swap(local_scale_temp);
+
+
+        } else {
+            // To be done. The L(y) needs to be computed then max downsampled.
+            std::cerr << "Not implimented" << std::endl;
+
+        }
+
+        aAPR.parameters = par;
+        applyParameters(aAPR,par);
+        solveForAPR(aAPR);
+        generateDatastructures(aAPR);
+
+    }
+
+    void initPipelineAPR(APR &aAPR, int y_num, int x_num = 1, int z_num = 1){
+        //
+        //  Initializes the APR datastructures for the given image.
+        //
+
+        aAPR.aprInfo.init(y_num,x_num,z_num);
+        aAPR.linearAccess.genInfo = &aAPR.aprInfo;
+        aAPR.apr_access.genInfo = &aAPR.aprInfo;
+    }
+
 protected:
 
     //get apr without setting parameters, and with an already loaded image.
@@ -93,15 +128,7 @@ protected:
     template<typename T>
     bool check_input_dimensions(PixelData<T> &input_image);
 
-    void initPipelineAPR(APR &aAPR, int y_num, int x_num = 1, int z_num = 1){
-        //
-        //  Initializes the APR datastructures for the given image.
-        //
 
-        aAPR.aprInfo.init(y_num,x_num,z_num);
-        aAPR.linearAccess.genInfo = &aAPR.aprInfo;
-        aAPR.apr_access.genInfo = &aAPR.aprInfo;
-    }
 
     void initPipelineMemory(int y_num,int x_num = 1,int z_num = 1){
         //initializes the internal memory to be used in the pipeline.
@@ -119,30 +146,7 @@ protected:
         allocation_timer.stop_timer();
     }
 
-    void get_apr_custom_grad_scale(APR& aAPR,PixelData<ImageType>& grad,PixelData<float>& lis,bool down_sampled = true){
 
-        //APR must already be initialized.
-
-        if(down_sampled){
-
-            //need to check that they are initialized.
-
-            grad_temp.swap(grad);
-            lis.swap(local_scale_temp);
-
-
-        } else {
-            // To be done. The L(y) needs to be computed then max downsampled.
-            std::cerr << "Not implimented" << std::endl;
-
-        }
-
-        aAPR.parameters = par;
-        applyParameters(aAPR,par);
-        solveForAPR(aAPR);
-        generateDatastructures(aAPR);
-
-    }
 
 
 
