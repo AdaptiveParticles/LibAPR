@@ -414,7 +414,6 @@ bool APRFile::read_apr(APR &apr,uint64_t t,std::string channel_name){
 
         if(!tree_exists){
             //initializing it from the dataset.
-            std::cout << "Initializing tree from file" << std::endl;
             apr.initialize_tree_linear();
         } else {
 
@@ -498,6 +497,7 @@ bool APRFile::read_particles(APR &apr,std::string particles_name,ParticleData<Da
      */
     std::string data_n = particles_name;
     if(!data_exists(part_location,data_n.c_str())){
+        std::cerr << "Particle dataset doesn't exist" << std::endl;
         return false;
     }
 

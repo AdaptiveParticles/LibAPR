@@ -7,5 +7,5 @@ endmacro(buildTarget)
 
 ## Performance Benchmark Tests
 
-buildTarget(BenchmarkTest BenchmarkTest.cpp)
+buildTarget(BenchIteration BenchIteration.cpp)
 

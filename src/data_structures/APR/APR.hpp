@@ -15,8 +15,7 @@ class APR {
     friend class APRFile;
     template<typename T>
     friend class APRConverter;
-
-    friend class BenchmarkAPR;
+    friend class BenchAPRHelper;
 
 protected:
 
