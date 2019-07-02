@@ -415,28 +415,7 @@ void sub_slices_img(PixelData<DataType>& org,PixelData<DataType>& slices, std::v
 
 }
 
-void check_pad_array(){
 
-    PixelData<int> m;
-
-    std::vector<int> vals = {0,1,2,3,0,1,2,3};
-
-    m.init_from_mesh(2,2,2,vals.data());
-
-    m.printMesh(2);
-
-    PixelData<int> pad_2;
-
-    padd_boundary2(m,pad_2,2,2,2);
-
-    pad_2.printMesh(2);
-
-    un_padd_boundary(m,pad_2,2,2,2);
-
-    m.printMesh(2);
-
-
-}
 
 template<typename DataType>
 bool check_symmetry(PixelData<DataType>& img){
@@ -594,7 +573,7 @@ bool test_symmetry_pipeline(){
             ParticleData<uint16_t> parts;
             parts.sample_parts_from_img_downsampled(apr, img);
 
-            // get grad/scale/level/final level/final image. --> All should be symmetric!!!
+            // get grad/scale/level/final level/final image. --> All should be symmetric!!! //could be nice to have a more elagant method for this.
             PixelData<float> scale = TiffUtils::getMesh<float>("local_intensity_scale_step.tif");
             PixelData<uint16_t> grad = TiffUtils::getMesh<uint16_t>("gradient_step.tif");
             PixelData<float> lps = TiffUtils::getMesh<float>("local_particle_set_level_step.tif");
@@ -2721,14 +2700,14 @@ bool test_pipeline_u16(TestData& test_data){
     aprConverter.par.input_image_name = test_data.filename;
     aprConverter.par.input_dir = "";
     aprConverter.par.name = test_data.output_name;
-    aprConverter.par.output_dir = "";
+    aprConverter.par.output_dir = test_data.output_dir;
 
     aprConverter.par.output_steps = true;
 
     aprConverter.get_apr(apr,test_data.img_original);
 
-    PixelData<float> scale_computed = TiffUtils::getMesh<float>("local_intensity_scale_step.tif");
-    PixelData<uint16_t> gradient_computed = TiffUtils::getMesh<uint16_t>( "gradient_step.tif");
+    PixelData<float> scale_computed = TiffUtils::getMesh<float>(test_data.output_dir +"local_intensity_scale_step.tif");
+    PixelData<uint16_t> gradient_computed = TiffUtils::getMesh<uint16_t>(test_data.output_dir + "gradient_step.tif");
 
     PixelData<float> scale_saved = TiffUtils::getMesh<float>(test_data.output_dir + "scale_saved.tif");
     PixelData<uint16_t> gradient_saved = TiffUtils::getMesh<uint16_t>(test_data.output_dir + "gradient_saved.tif");

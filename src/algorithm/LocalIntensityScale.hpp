@@ -62,12 +62,19 @@ void get_local_intensity_scale(PixelData<float> &local_scale_temp, PixelData<flo
         local_scale_temp2.copyFromMesh(local_scale_temp);
         timer.stop_timer();
 
+        int y_num_t = local_scale_temp.y_num;
+        int x_num_t = local_scale_temp.x_num;
+        int z_num_t = local_scale_temp.z_num;
+
+
         //Addded
         PixelData<float> input_pad;
-        padd_boundary2(local_scale_temp,input_pad,std::max(win_y,win_y2),std::max(win_x,win_x2),std::max(win_z,win_z2));
+        paddPixels(local_scale_temp, input_pad, std::max(win_y, win_y2), std::max(win_x, win_x2),
+                   std::max(win_z, win_z2));
 
         PixelData<float> input_pad2;
-        padd_boundary2(local_scale_temp,input_pad2,std::max(win_y,win_y2),std::max(win_x,win_x2),std::max(win_z,win_z2));
+        paddPixels(local_scale_temp, input_pad2, std::max(win_y, win_y2), std::max(win_x, win_x2),
+                   std::max(win_z, win_z2));
 
         std::swap(local_scale_temp,input_pad);
         std::swap(local_scale_temp2,input_pad2);
@@ -121,8 +128,10 @@ void get_local_intensity_scale(PixelData<float> &local_scale_temp, PixelData<flo
         std::swap(local_scale_temp2,input_pad2);
         std::swap(local_scale_temp,input_pad);
 
-        un_padd_boundary(input_pad,local_scale_temp,std::max(win_y,win_y2),std::max(win_x,win_x2),std::max(win_z,win_z2));
-        un_padd_boundary(input_pad2,local_scale_temp2,std::max(win_y,win_y2),std::max(win_x,win_x2),std::max(win_z,win_z2));
+        unpaddPixels(input_pad, local_scale_temp, y_num_t, x_num_t,
+                     z_num_t);
+        unpaddPixels(input_pad2, local_scale_temp2, y_num_t, x_num_t,
+                     z_num_t); //TODO: I don't think this one is necessary, the memory is even re-allocated later.
 
     } else {
 

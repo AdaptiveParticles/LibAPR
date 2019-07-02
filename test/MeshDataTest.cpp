@@ -303,11 +303,107 @@ namespace {
     }
 
     TEST(MeshDataSimpleTest, PadArray) {
-        PixelData<int> m(2, 2, 2);
+
+        bool success = true;
+
+        PixelData<int> m;
+
+        std::vector<int> vals = {0,1,2,3,4,5,6,7};
+
+        std::vector<int> expected = {
+                7, 6, 7, 6,
+                5, 4, 5, 4,
+                7, 6, 7, 6,
+                5, 4, 5, 4,
+
+                3, 2, 3, 2,
+                1, 0, 1, 0,
+                3, 2, 3, 2,
+                1, 0, 1, 0,
+
+                7, 6, 7, 6,
+                5, 4, 5, 4,
+                7, 6, 7, 6,
+                5, 4, 5, 4,
+
+                3, 2, 3, 2,
+                1, 0, 1, 0,
+                3, 2, 3, 2,
+                1, 0, 1, 0
+        };
+
+        PixelData<int> padd_sol;
+        padd_sol.init_from_mesh(4,4,4,expected.data());
+
+        m.init_from_mesh(2,2,2,vals.data());
+
+        PixelData<int> padd;
+
+        paddPixels(m, padd, 2, 2, 2);
+
+        //check
+        for (int i = 0; i < padd_sol.mesh.size(); ++i) {
+            int computed_val = padd.mesh[i];
+            int expected_val = padd_sol.mesh[i];
+            if(computed_val != expected_val){
+                success = false;
+            }
+        }
 
 
+        PixelData<int> unpadd;
 
+        unpaddPixels(unpadd, padd, 2, 2, 2);
 
+        //check
+        for (int i = 0; i < unpadd.mesh.size(); ++i) {
+            int computed_val = unpadd.mesh[i];
+            int expected_val = m.mesh[i];
+            if(computed_val != expected_val){
+                success = false;
+            }
+        }
+
+        // quick padd/unpad check with different dims.
+        paddPixels(m, padd, 2, 0, 1);
+        unpaddPixels(unpadd, padd, 2, 2, 2);
+
+        //check
+        for (int i = 0; i < unpadd.mesh.size(); ++i) {
+            int computed_val = unpadd.mesh[i];
+            int expected_val = m.mesh[i];
+            if(computed_val != expected_val){
+                success = false;
+            }
+        }
+
+        // quick padd/unpad check with different dims.
+        paddPixels(m, padd, 0, 2, 1);
+        unpaddPixels(unpadd, padd, 2, 2, 2);
+
+        //check
+        for (int i = 0; i < unpadd.mesh.size(); ++i) {
+            int computed_val = unpadd.mesh[i];
+            int expected_val = m.mesh[i];
+            if(computed_val != expected_val){
+                success = false;
+            }
+        }
+
+        // quick padd/unpad check with different dims.
+        paddPixels(m, padd, 1, 2, 0);
+        unpaddPixels(unpadd, padd, 2, 2, 2);
+
+        //check
+        for (int i = 0; i < unpadd.mesh.size(); ++i) {
+            int computed_val = unpadd.mesh[i];
+            int expected_val = m.mesh[i];
+            if(computed_val != expected_val){
+                success = false;
+            }
+        }
+
+        ASSERT_TRUE(success);
     }
 }
 
