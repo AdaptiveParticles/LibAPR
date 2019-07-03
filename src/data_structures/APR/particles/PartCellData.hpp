@@ -34,7 +34,7 @@ public:
 
     PartCellData(APR &apr) { initialize_structure_parts_empty(apr); }
 
-    DataType& operator[](LinearIterator& it) override {
+    inline DataType& operator[](const LinearIterator& it)  {
         return data[it.level][it.offset][it.current_index - it.begin_index];
     }
 

@@ -43,8 +43,10 @@ public:
     };
 
     virtual uint64_t size() const {
-        return temp2; }
-    virtual DataType& operator[](LinearIterator& it) { return temp1; }
+        return temp2; };
+
+
+    inline DataType& operator[](const LinearIterator& it) { return temp1; }
 
     virtual void set_to_zero(){
         //must be implimented

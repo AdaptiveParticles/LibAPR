@@ -66,8 +66,18 @@ public:
     }
 
     uint64_t size() const override { return data.size(); }
-    DataType& operator[](uint64_t aGlobalIndex) { return data[aGlobalIndex]; }
-    DataType& operator[](LinearIterator& it) override { return data[(uint64_t) it]; }
+    inline DataType& operator[](uint64_t aGlobalIndex) { return data[aGlobalIndex]; }
+
+
+    inline DataType& operator[](const LinearIterator& it)  {
+        return data[it.global_index()];
+    }
+
+
+    inline DataType& operator()(const LinearIterator& it)  {
+        return data[it.global_index()];
+    }
+
 
     template<typename S>
     void copy_parts(APR &apr, const ParticleData<S> &particlesToCopy, uint64_t level = 0, unsigned int aNumberOfBlocks = 10);

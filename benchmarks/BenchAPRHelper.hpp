@@ -700,7 +700,7 @@ public:
 //
 //
 template<typename partsType>
-void bench_apr_iteration(APR& apr,ParticleData<partsType>& parts,int num_rep,AnalysisData& analysisData){
+inline void bench_apr_iteration(APR& apr,ParticleData<partsType>& parts,int num_rep,AnalysisData& analysisData){
     ///
     /// Tests the pipeline, comparing the results with existing results
     ///
@@ -724,6 +724,7 @@ void bench_apr_iteration(APR& apr,ParticleData<partsType>& parts,int num_rep,Ana
                     for (lin_it.begin(level, z, x); lin_it < lin_it.end();
                          lin_it++) {
                         //need to add the ability to get y, and x,z but as possible should be lazy.
+
                         parts[lin_it] = (lin_it.y());
 
                     }
@@ -747,7 +748,8 @@ void bench_apr_iteration(APR& apr,ParticleData<partsType>& parts,int num_rep,Ana
                     for (lin_it.begin(level, z, x); lin_it < lin_it.end();
                          lin_it++) {
                         //need to add the ability to get y, and x,z but as possible should be lazy.
-                        parts[lin_it] = (lin_it.y());
+                       // uint64_t idx = lin_it;
+                        parts(lin_it) = (lin_it.y());
 
                     }
                 }
@@ -767,8 +769,8 @@ void bench_apr_iteration(APR& apr,ParticleData<partsType>& parts,int num_rep,Ana
                 for (int x = 0; x < lin_it.x_num(level); ++x) {
                     for (lin_it.begin(level, z, x); lin_it < lin_it.end();
                          lin_it++) {
-                        //need to add the ability to get y, and x,z but as possible should be lazy.
-                        parts[lin_it] = (lin_it.y());
+
+                        parts[lin_it] = lin_it.y();
                     }
                 }
             }
@@ -792,6 +794,7 @@ void bench_apr_iteration(APR& apr,ParticleData<partsType>& parts,int num_rep,Ana
                     for (lin_it.begin(level, z, x); lin_it < lin_it.end();
                          lin_it++) {
                         //need to add the ability to get y, and x,z but as possible should be lazy.
+
                         parts[lin_it] += 1;
 
                     }
@@ -808,7 +811,7 @@ void bench_apr_iteration(APR& apr,ParticleData<partsType>& parts,int num_rep,Ana
 }
 
 template<typename partsType>
-void bench_apr_iteration_old(APR& apr,ParticleData<partsType>& parts,int num_rep,AnalysisData& analysisData){
+inline void bench_apr_iteration_old(APR& apr,ParticleData<partsType>& parts,int num_rep,AnalysisData& analysisData){
     ///
     /// Tests the pipeline, comparing the results with existing results
     ///
@@ -874,7 +877,7 @@ void bench_apr_iteration_old(APR& apr,ParticleData<partsType>& parts,int num_rep
                 for (int x = 0; x < it.x_num(level); ++x) {
                     for (it.set_new_lzx(level, z, x); it < it.end();
                          it++) {
-                        parts[it] = (uint16_t)(parts[it] + 1);
+                        parts[it] = (uint16_t)(parts[it] + it.y());
 
                     }
                 }

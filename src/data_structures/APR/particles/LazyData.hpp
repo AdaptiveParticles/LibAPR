@@ -117,7 +117,7 @@ public:
     }
 
 
-    DataType& operator[](LinearIterator& it) {
+    inline DataType& operator[](const LinearIterator& it) {
         return data[it.current_index - parts_start];
     }
 

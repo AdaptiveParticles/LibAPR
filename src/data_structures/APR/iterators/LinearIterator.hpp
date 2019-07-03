@@ -39,6 +39,10 @@ public:
 
     operator uint64_t() override { return current_index; }
 
+    inline uint64_t global_index() const {
+        return current_index;
+    }
+
     uint16_t y() const override {
         return linearAccess->y_vec[current_index];
     }
