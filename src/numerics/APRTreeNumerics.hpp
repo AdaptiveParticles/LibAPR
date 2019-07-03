@@ -13,8 +13,8 @@
 
 class APRTreeNumerics {
 
-    template<typename S, typename U>
-    static void fill_tree_mean_internal(APR &apr, GenData<S>& particle_data,GenData<U>& tree_data) {
+    template<typename PartDataType,typename PartDataTypeTree>
+    static void fill_tree_mean_internal(APR &apr, PartDataType& particle_data,PartDataTypeTree& tree_data) {
 
         APRTimer timer;
         timer.verbose_flag = false;
@@ -74,11 +74,8 @@ class APRTreeNumerics {
                                     parentIterator++;
                                 }
 
-                                U part_val;
 
-
-                                part_val =  particle_data[apr_iterator];
-
+                                auto part_val =  particle_data[apr_iterator];
 
 
                                 if (parentIterator.y() == (parentIterator.y_num(level - 1) - 1)) {
@@ -157,8 +154,8 @@ class APRTreeNumerics {
         timer.stop_timer();
     }
 
-    template<typename S, typename U>
-    static void fill_tree_max_internal(APR &apr, GenData<S> &particle_data,GenData<U> &tree_data) {
+    template< typename PartDataType,typename PartDataTypeTree>
+    static void fill_tree_max_internal(APR &apr, PartDataType &particle_data,PartDataTypeTree &tree_data) {
 
         APRTimer timer;
         timer.verbose_flag = false;
@@ -199,13 +196,9 @@ class APRTreeNumerics {
                                     parentIterator++;
                                 }
 
-                                S part_val;
+                                auto part_val =  particle_data[apr_iterator];
 
-
-                                part_val =  particle_data[apr_iterator];
-
-
-                                tree_data[parentIterator] = std::max((U)part_val,tree_data[parentIterator]);
+                                tree_data[parentIterator] = std::max(part_val,tree_data[parentIterator]);
 
                             }
                         }
@@ -254,7 +247,7 @@ class APRTreeNumerics {
 public:
 
     template<typename S, typename U>
-    static void fill_tree_mean(APR &apr, GenData<S> &particle_data_pc,GenData<U> &tree_data) {
+    static void fill_tree_mean(APR &apr, S &particle_data_pc,U &tree_data) {
 
         fill_tree_mean_internal(apr, particle_data_pc,tree_data);
 
@@ -262,7 +255,7 @@ public:
 
 
     template< typename S, typename U>
-    static void fill_tree_max(APR &apr, GenData<S> &particle_data_pc,GenData<U> &tree_data) {
+    static void fill_tree_max(APR &apr, S &particle_data_pc,U &tree_data) {
 
         fill_tree_max_internal(apr, particle_data_pc,tree_data);
 

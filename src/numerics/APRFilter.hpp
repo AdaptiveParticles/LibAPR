@@ -14,8 +14,8 @@
 class APRFilter {
 
 public:
-    template< typename S, typename T,typename R>
-    void convolve(APR &apr, std::vector<PixelData<T>>& stencils, GenData<S> &particle_input, GenData<R> &particle_output);
+    template<typename ParticleDataTypeInput, typename T,typename ParticleDataTypeOutput>
+    void convolve(APR &apr, std::vector<PixelData<T>>& stencils, ParticleDataTypeInput &particle_input, ParticleDataTypeOutput &particle_output);
 
     bool boundary_cond = 1;
 
@@ -207,12 +207,12 @@ public:
      * Fills a pixel image with the particle values at a given level and depth (z), where the particles exactly match
      * the pixels.
      */
-    template<typename T, typename S>
+    template<typename T, typename ParticleDataType>
     inline void update_same_level(const uint64_t level,
                                   const uint64_t z,
                                   APR &apr,
                                   PixelData<T> &temp_vec,
-                                  GenData<S> &inputParticles,
+                                  ParticleDataType &inputParticles,
                                   std::vector<int> stencil_half,
                                   std::vector<int> stencil_shape){
 
@@ -240,12 +240,12 @@ public:
      * Fills a pixel image with the particle values from one level below a given level and depth (z), that is, the
      * particles correspond to groups of 2^dim pixels.
      */
-    template<typename T, typename S>
+    template<typename T, typename ParticleDataType>
     void update_higher_level(const uint64_t level,
                              const uint64_t z,
                              APR &apr,
                              PixelData<T> &temp_vec,
-                             GenData<S> &inputParticles,
+                             ParticleDataType &inputParticles,
                              const std::vector<int> &stencil_half,
                              const std::vector<int> &stencil_shape) {
 
@@ -277,12 +277,12 @@ public:
      * pixels correspond to groups of 2^dim particles. The values must be precomputed (e.g., through APRTreeNumerics::fill_tree_mean)
      * and passed to the function through tree_data
      */
-    template<typename T, typename S>
+    template<typename T, typename ParticleDataType>
     void update_lower_level(const uint64_t level,
                             const uint64_t z,
                             APR &apr,
                             PixelData<T> &temp_vec,
-                            GenData<S> &tree_data,
+                            ParticleDataType &tree_data,
                             const std::vector<int> &stencil_half,
                             const std::vector<int> &stencil_shape) {
 
@@ -309,13 +309,13 @@ public:
     /**
      * Reconstruct isotropic neighborhoods around the particles at a given level and depth (z) in a pixel image.
      */
-    template<typename T, typename S, typename R>
+    template<typename T, typename ParticleDataType, typename ParticleTreeDataType>
     void update_dense_array(const uint64_t level,
                             const uint64_t z,
                             APR &apr,
-                            GenData<R> &tree_data,
+                            ParticleDataType &tree_data,
                             PixelData<T> &temp_vec,
-                            GenData<S> &inputParticles,
+                            ParticleTreeDataType &inputParticles,
                             const std::vector<int> &stencil_shape,
                             const std::vector<int> &stencil_half,
                             const bool boundary) {
@@ -335,9 +335,9 @@ public:
 
 
 
-    template<typename T, typename S>
+    template<typename T, typename ParticleDataType>
     void run_convolution(APR &apr, const size_t z, const uint64_t level, PixelData<T> &temp_vec, PixelData<T> &stencil,
-                         GenData<S> &outputParticles, const std::vector<int> &stencil_half, const std::vector<int> &stencil_shape){
+                         ParticleDataType &outputParticles, const std::vector<int> &stencil_half, const std::vector<int> &stencil_shape){
 
         auto apr_it = apr.iterator();
         const uint64_t x_num = temp_vec.x_num;
@@ -500,9 +500,9 @@ public:
     }
 
 
-    template<typename S, typename T, typename R>
+    template<typename ParticleDataTypeInput, typename T, typename ParticleDataTypeOutput>
     void create_test_particles_equiv(APR& apr, const std::vector<PixelData<T>> &stencil_vec,
-                                     GenData<S>& input_particles, GenData<R>& output_particles){
+                                     ParticleDataTypeInput& input_particles, ParticleDataTypeOutput& output_particles){
 
 
         output_particles.init(apr);
@@ -686,8 +686,8 @@ public:
 };
 
 
-template<typename S, typename T,typename R>
-void APRFilter::convolve(APR &apr, std::vector<PixelData<T>>& stencils, GenData<S> &particle_input, GenData<R> &particle_output) {
+template<typename ParticleDataTypeInput, typename T,typename ParticleDataTypeOutput>
+void APRFilter::convolve(APR &apr, std::vector<PixelData<T>>& stencils, ParticleDataTypeInput &particle_input, ParticleDataTypeOutput &particle_output) {
 
     particle_output.init(apr);
 

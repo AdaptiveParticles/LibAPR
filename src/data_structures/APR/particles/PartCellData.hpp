@@ -12,14 +12,16 @@
 #include <vector>
 #include "../APR.hpp"
 #include "../access/APRAccessStructures.hpp"
-#include "GenData.hpp"
+
 
 template<typename DataType>
-class PartCellData: public GenData<DataType> {
+class PartCellData {
 
     uint64_t number_elements=0;
 
 public:
+    APRCompress compressor;
+
     uint64_t level_max;
     uint64_t level_min;
 
@@ -42,38 +44,48 @@ public:
       return data[pcdKey.level][pcdKey.offset][pcdKey.local_ind];
     }
 
-    uint64_t size() const override {
+    uint64_t size() const  {
         return number_elements;
     }
 
     void initialize_structure_parts_empty(APR& apr);
 
-    void init(APR& apr) override {
+    void init(APR& apr)  {
 
         auto it = apr.iterator();
         initialize_structure_parts(it,it.level_max());
     };
 
-    void init(APR& apr,unsigned int level) override {
+    void init(APR& apr,unsigned int level)  {
 
         auto it = apr.iterator();
         initialize_structure_parts(it,level);
     };
 
-    void init_tree(APR& apr,unsigned int level) override {
+    void init_tree(APR& apr,unsigned int level)  {
 
         auto it = apr.tree_iterator();
         initialize_structure_parts(it,level);
     };
 
-    void init_tree(APR& apr) override {
+    void init_tree(APR& apr)  {
 
         auto it = apr.tree_iterator();
         initialize_structure_parts(it,it.level_max());
     };
 
+    void fill_with_levels(APR &apr){
+        auto it = apr.iterator();
+        APRNumerics::general_fill_level(apr,*this,it,false);
+    }
 
-    void set_to_zero() override {
+    void fill_with_levels_tree(APR &apr){
+        auto it = apr.tree_iterator();
+        APRNumerics::general_fill_level(apr,*this,it,true);
+    }
+
+
+    void set_to_zero()  {
 
         for (uint64_t i = level_min; i <= level_max; ++i) {
 #ifdef HAVE_OPENMP
@@ -83,6 +95,11 @@ public:
                 std::fill(data[i][j].begin(),data[i][j].end(),0);
             }
         }
+    }
+
+    template<typename imageType>
+    void sample_parts_from_img_downsampled(APR& apr,PixelData<imageType>& img){
+        APRNumerics::sample_parts_from_img_downsampled(apr,*this,img);
     }
 
 private:

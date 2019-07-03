@@ -12,18 +12,20 @@
 #include "GenData.hpp"
 
 #include "../APR.hpp"
+#include "numerics/APRNumerics.hpp"
 
 #include <algorithm>
 #include <vector>
 
-
 template<typename DataType>
-class ParticleData: public GenData<DataType> {
+class ParticleData {
 
     static const uint64_t parallel_particle_number_threshold = 5000000l;
 
 public:
     std::vector<DataType> data;
+
+    APRCompress compressor;
 
     ParticleData() {};
     ParticleData(uint64_t aTotalNumberOfParticles) { init(aTotalNumberOfParticles); }
@@ -32,7 +34,7 @@ public:
     /*
      * Init dataset with enough particles up to level
      */
-    void init(APR& apr,unsigned int level) override {
+    void init(APR& apr,unsigned int level)  {
         auto it = apr.iterator();
         if(level==0){
             level = it.level_max();
@@ -42,7 +44,7 @@ public:
     /*
      * Init dataset with enough particles up to level for tree
      */
-    void init_tree(APR& apr,unsigned int level) override {
+    void init_tree(APR& apr,unsigned int level)  {
         auto it = apr.tree_iterator();
 
         data.resize(it.total_number_particles(level),0);
@@ -51,7 +53,7 @@ public:
     /*
      * Init dataset with enough for all particles
      */
-    void init(APR& apr) override {
+    void init(APR& apr)  {
         auto it = apr.iterator();
 
         data.resize(it.total_number_particles(it.level_max()),0);
@@ -59,13 +61,13 @@ public:
     /*
      * Init dataset with enough for all particles in tree
      */
-    void init_tree(APR& apr) override {
+    void init_tree(APR& apr)  {
         auto it = apr.tree_iterator();
 
         data.resize(it.total_number_particles(it.level_max()),0);
     }
 
-    uint64_t size() const override { return data.size(); }
+    uint64_t size() const  { return data.size(); }
     inline DataType& operator[](uint64_t aGlobalIndex) { return data[aGlobalIndex]; }
 
 
@@ -73,10 +75,16 @@ public:
         return data[it.global_index()];
     }
 
-
-    inline DataType& operator()(const LinearIterator& it)  {
-        return data[it.global_index()];
+    void fill_with_levels(APR &apr){
+        auto it = apr.iterator();
+        APRNumerics::general_fill_level(apr,*this,it,false);
     }
+
+    void fill_with_levels_tree(APR &apr){
+        auto it = apr.tree_iterator();
+        APRNumerics::general_fill_level(apr,*this,it,true);
+    }
+
 
 
     template<typename S>
@@ -90,8 +98,13 @@ public:
     template<typename U,class UnaryOperator>
     inline void map(APR& apr,ParticleData<U>& output,UnaryOperator op,const uint64_t level = 0,unsigned int aNumberOfBlocks = 10);
 
-    void set_to_zero() override {
+    void set_to_zero()  {
         std::fill(data.begin(),data.end(),0);
+    }
+
+    template<typename imageType>
+    void sample_parts_from_img_downsampled(APR& apr,PixelData<imageType>& img){
+        APRNumerics::sample_parts_from_img_downsampled(apr,*this,img);
     }
 
 };

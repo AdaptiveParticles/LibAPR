@@ -739,12 +739,13 @@ inline void bench_apr_iteration(APR& apr,ParticleData<partsType>& parts,int num_
     for (int r = 0; r < num_rep; ++r) {
         for (unsigned int level = lin_it.level_min(); level <= lin_it.level_max(); ++level) {
             int z = 0;
+            int x = 0;
 
 #ifdef HAVE_OPENMP
-#pragma omp parallel for schedule(dynamic) private(z) firstprivate(lin_it)
+#pragma omp parallel for schedule(dynamic) private(z,x) firstprivate(lin_it)
 #endif
             for (z = 0; z < lin_it.z_num(level); z++) {
-                for (int x = 0; x < lin_it.x_num(level); ++x) {
+                for (x = 0; x < lin_it.x_num(level); ++x) {
                     for (lin_it.begin(level, z, x); lin_it < lin_it.end();
                          lin_it++) {
                         //need to add the ability to get y, and x,z but as possible should be lazy.
@@ -758,6 +759,33 @@ inline void bench_apr_iteration(APR& apr,ParticleData<partsType>& parts,int num_
     }
 
     timer.stop_timer();
+
+    timer.start_timer("iteration_y_work_openmp");
+
+    for (int r = 0; r < num_rep; ++r) {
+        for (unsigned int level = lin_it.level_min(); level <= lin_it.level_max(); ++level) {
+            int z = 0;
+            int x = 0;
+
+#ifdef HAVE_OPENMP
+#pragma omp parallel for schedule(dynamic) private(z,x) firstprivate(lin_it)
+#endif
+            for (z = 0; z < lin_it.z_num(level); z++) {
+                for (x = 0; x < lin_it.x_num(level); ++x) {
+                    for (lin_it.begin(level, z, x); lin_it < lin_it.end();
+                         lin_it++) {
+                        //need to add the ability to get y, and x,z but as possible should be lazy.
+                        // uint64_t idx = lin_it;
+                        parts(lin_it) = log(exp(lin_it.y()));
+
+                    }
+                }
+            }
+        }
+    }
+
+    timer.stop_timer();
+
 
     timer.start_timer("iteration_y");
 
@@ -785,12 +813,13 @@ inline void bench_apr_iteration(APR& apr,ParticleData<partsType>& parts,int num_
     for (int r = 0; r < num_rep; ++r) {
         for (unsigned int level = lin_it.level_min(); level <= lin_it.level_max(); ++level) {
             int z = 0;
+            int x = 0;
 
 #ifdef HAVE_OPENMP
-#pragma omp parallel for schedule(dynamic) private(z) firstprivate(lin_it)
+#pragma omp parallel for schedule(dynamic) private(z,x) firstprivate(lin_it)
 #endif
             for (z = 0; z < lin_it.z_num(level); z++) {
-                for (int x = 0; x < lin_it.x_num(level); ++x) {
+                for (x = 0; x < lin_it.x_num(level); ++x) {
                     for (lin_it.begin(level, z, x); lin_it < lin_it.end();
                          lin_it++) {
                         //need to add the ability to get y, and x,z but as possible should be lazy.
@@ -928,13 +957,36 @@ void bench_pixel_iteration(APR& apr,ParticleData<partsType>& parts,int num_rep,A
 
     for (int r = 0; r < num_rep; ++r) {
         int z = 0;
+
 #ifdef HAVE_OPENMP
 #pragma omp parallel for private(z)
 #endif
-        for (z = 0; z < test_img.z_num; ++z) {
+        for ( z = 0; z < test_img.z_num; ++z) {
             for (int x = 0; x < test_img.x_num; ++x) {
                 for (int y = 0; y < test_img.y_num; ++y) {
                     test_img.at(y,x,z) = (uint16_t) (test_img.at(y,x,z) + 1);
+                }
+            }
+        }
+
+    }
+
+    timer.stop_timer();
+
+    timer.start_timer("pixel_iteration_work_openmp");
+
+    //int z = 0;
+
+    for (int r = 0; r < num_rep; ++r) {
+        int z = 0;
+
+#ifdef HAVE_OPENMP
+#pragma omp parallel for private(z)
+#endif
+        for ( z = 0; z < test_img.z_num; ++z) {
+            for (int x = 0; x < test_img.x_num; ++x) {
+                for (int y = 0; y < test_img.y_num; ++y) {
+                    test_img.at(y,x,z) = (uint16_t) log(exp(test_img.at(y,x,z) + 1));
                 }
             }
         }

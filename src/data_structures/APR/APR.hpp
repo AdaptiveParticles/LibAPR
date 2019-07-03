@@ -30,7 +30,7 @@ protected:
     void initialize_apr_tree_sparse();
     void initialize_apr_tree_sparse_linear();
     void initialize_apr_tree();
-    void initialize_linear_access(LinearAccess& aprAccess,GenIterator& it);
+    void initialize_linear_access(LinearAccess& aprAccess,APRIterator& it);
 
     LinearAccess linearAccess;
     LinearAccess linearAccessTree;
@@ -172,7 +172,7 @@ protected:
 /**
    * Initializes linear access apr structures, that require more memory, but are faster. However, the do not allow the same neighbour access as the random iterators
    */
-void APR::initialize_linear_access(LinearAccess& aprAccess,GenIterator& it){
+void APR::initialize_linear_access(LinearAccess& aprAccess,APRIterator& it){
 
     // TODO: Should be renamed.. random-> linear access. also need the reverse function
 
@@ -217,7 +217,7 @@ void APR::initialize_linear_access(LinearAccess& aprAccess,GenIterator& it){
    */
 void APR::initialize_random_access(){
     //
-    //  TODO: Note this is not really performance orientataed, and should be depreciated in the future. (the whole random access iterations should be removed.)
+    //  TODO: Note this is not performance orientataed, and should be depreciated in the future. (the whole random access iterations should be removed.)
     //
 
 

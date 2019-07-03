@@ -21,132 +21,104 @@ public:
 
     APRCompress compressor;
 
-    virtual ~GenData() = 0; //
 
     /*
      * Virtual functions to be over-written by the derived class.
      */
-    virtual void init(APR& apr,unsigned int level){
+     void init(APR& apr,unsigned int level){
         // must be implimented
     };
 
-    virtual void init_tree(APR& apr,unsigned int level){
+     void init_tree(APR& apr,unsigned int level){
         // must be implimented
     };
 
-    virtual void init(APR& apr){
+     void init(APR& apr){
         // must be implimented
     };
 
-    virtual void init_tree(APR& apr){
+     void init_tree(APR& apr){
         // must be implimented
     };
 
-    virtual uint64_t size() const {
-        return temp2; };
-
-
-    inline DataType& operator[](const LinearIterator& it) { return temp1; }
 
     virtual void set_to_zero(){
         //must be implimented
     }
 
 
-    /*
-     * These function use this common simple interface and therefore can be inhereted without re-implimentation
-     */
-    template<typename U>
-    void sample_parts_from_img_downsampled(APR& apr,PixelData<U>& input_image);
 
-    template<typename U>
-    void sample_parts_from_img_downsampled(APR& apr,std::vector<PixelData<U>>& img_by_level);
-
-    void fill_with_levels(APR &apr){
-        auto it = apr.iterator();
-        gen_fill_level(apr,it,false);
-    }
-
-    void fill_with_levels_tree(APR &apr){
-        auto it = apr.tree_iterator();
-        gen_fill_level(apr,it,true);
-    }
 
 private:
-    void gen_fill_level(APR& apr,LinearIterator it,bool tree);
+
 
 };
 
-template<typename DataType>
-GenData<DataType>::~GenData(){};
+//template<typename datasetType,typename iteratorType>
+//void gen_fill_level(APR& apr,datasetType& data,iteratorType& it,bool tree){
+//
+//    if(tree){
+//        data.init_tree(apr);
+//    } else {
+//        data.init(apr);
+//    }
+//
+//    for (unsigned int level = it.level_min(); level <= it.level_max(); ++level) {
+//#ifdef HAVE_OPENMP
+//#pragma omp parallel for schedule(dynamic) firstprivate(it)
+//#endif
+//        for (int z = 0; z < it.z_num(level); ++z) {
+//            for (int x = 0; x < it.x_num(level); ++x) {
+//                for (it.begin(level, z, x);it <it.end();it++) {
+//
+//                    data[it] = level;
+//                }
+//            }
+//        }
+//    }
+//}
 
-/**
-* Fills a data-set with the level
-*/
-template<typename DataType>
-void GenData<DataType>::gen_fill_level(APR& apr,LinearIterator it,bool tree){
 
-    if(tree){
-        init_tree(apr);
-    } else {
-        init(apr);
-    }
 
-    for (unsigned int level = it.level_min(); level <= it.level_max(); ++level) {
-#ifdef HAVE_OPENMP
-#pragma omp parallel for schedule(dynamic) firstprivate(it)
-#endif
-        for (int z = 0; z < it.z_num(level); ++z) {
-            for (int x = 0; x < it.x_num(level); ++x) {
-                for (it.begin(level, z, x);it <it.end();it++) {
-
-                    (*this)[it] = level;
-                }
-            }
-        }
-    }
-}
-
-/**
-* Samples particles from an image using by down-sampling the image and using them as functions
-*/
-template<typename DataType>
-template<typename U>
-void GenData<DataType>::sample_parts_from_img_downsampled(APR& apr,PixelData<U>& input_image) {
-
-    std::vector<PixelData<U>> downsampled_img;
-    //Down-sample the image for particle intensity estimation
-    downsamplePyrmaid(input_image, downsampled_img, apr.level_max(), apr.level_min());
-
-    //aAPR.get_parts_from_img_alt(input_image,aAPR.particles_intensities);
-    sample_parts_from_img_downsampled(apr,downsampled_img);
-
-    std::swap(input_image, downsampled_img.back());
-}
-
-/**
-* Samples particles from an image using an image tree (img_by_level is a vector of images)
-*/
-template<typename DataType>
-template<typename U>
-void GenData<DataType>::sample_parts_from_img_downsampled(APR& apr,std::vector<PixelData<U>>& img_by_level){
-    auto it = apr.iterator();
-    this->init(apr);
-
-    for (unsigned int level = it.level_min(); level <= it.level_max(); ++level) {
-#ifdef HAVE_OPENMP
-#pragma omp parallel for schedule(dynamic) firstprivate(it)
-#endif
-        for (int z = 0; z < it.z_num(level); ++z) {
-            for (int x = 0; x < it.x_num(level); ++x) {
-                for (it.begin(level, z, x);it <it.end();it++) {
-
-                    (*this)[it] = (DataType) img_by_level[level].at(it.y(),x,z);
-                }
-            }
-        }
-    }
-}
+///**
+//* Samples particles from an image using by down-sampling the image and using them as functions
+//*/
+//template<typename U>
+//void sample_parts_from_img_downsampled(APR& apr,PixelData<U>& input_image) {
+//
+//    std::vector<PixelData<U>> downsampled_img;
+//    //Down-sample the image for particle intensity estimation
+//    downsamplePyrmaid(input_image, downsampled_img, apr.level_max(), apr.level_min());
+//
+//    //aAPR.get_parts_from_img_alt(input_image,aAPR.particles_intensities);
+//    sample_parts_from_img_downsampled(apr,downsampled_img);
+//
+//    std::swap(input_image, downsampled_img.back());
+//}
+//
+///**
+//* Samples particles from an image using an image tree (img_by_level is a vector of images)
+//*/
+//template<typename DataType>
+//template<typename U>
+//void GenData<DataType>::sample_parts_from_img_downsampled(APR& apr,std::vector<PixelData<U>>& img_by_level){
+//    auto it = apr.iterator();
+//    this->init(apr);
+//
+//    for (unsigned int level = it.level_min(); level <= it.level_max(); ++level) {
+//#ifdef HAVE_OPENMP
+//#pragma omp parallel for schedule(dynamic) firstprivate(it)
+//#endif
+//        for (int z = 0; z < it.z_num(level); ++z) {
+//            for (int x = 0; x < it.x_num(level); ++x) {
+//                for (it.begin(level, z, x);it <it.end();it++) {
+//
+//                    (*this)[it] = (DataType) img_by_level[level].at(it.y(),x,z);
+//                }
+//            }
+//        }
+//    }
+//}
 
 
 

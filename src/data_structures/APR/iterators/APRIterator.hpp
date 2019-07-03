@@ -43,24 +43,24 @@ public:
         return particleCellDataKey;
     }
 
-    inline void operator++ (int) override {
+    inline void operator++ (int)  {
         set_iterator_to_particle_next_particle();
     }
 
-    inline void operator++ () override {
+    inline void operator++ ()  {
         set_iterator_to_particle_next_particle();
     }
 
-    inline uint64_t end() override {
+    inline uint64_t end()  {
         return end_index;
     }
 
-    uint64_t begin(const uint16_t level,const uint16_t z,const uint16_t x) override {
+    uint64_t begin(const uint16_t level,const uint16_t z,const uint16_t x)  {
         return set_new_lzx(level,z,x);
     }
 
-    inline uint64_t particles_level_begin(const uint16_t& level_) override {return apr_access->global_index_by_level_and_zx_end_new[level_-1].back()+1;}
-    inline uint64_t particles_level_end(const uint16_t& level_) override {return apr_access->global_index_by_level_and_zx_end_new[level_].back();}
+    inline uint64_t particles_level_begin(const uint16_t& level_)  {return apr_access->global_index_by_level_and_zx_end_new[level_-1].back()+1;}
+    inline uint64_t particles_level_end(const uint16_t& level_)  {return apr_access->global_index_by_level_and_zx_end_new[level_].back();}
 
     uint64_t set_new_lzx_old(const uint16_t level,const uint16_t z,const uint16_t x); //for backward compatability do not use!
     // Todo make various begin functions. blank(), with level, with x,z, with level,

@@ -108,7 +108,8 @@ public:
     void SetUp() override;
 };
 
-bool compare_two_iterators(GenIterator& it1, GenIterator& it2,bool success = true){
+template<typename Iterator1,typename Iterator2>
+bool compare_two_iterators(Iterator1& it1, Iterator2& it2,bool success = true){
 
 
     if(it1.total_number_particles() != it2.total_number_particles()){
