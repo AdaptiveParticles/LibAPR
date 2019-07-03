@@ -5,7 +5,6 @@
 #ifndef PARTPLAY_EXTRAPARTICLEDATA_HPP
 #define PARTPLAY_EXTRAPARTICLEDATA_HPP
 
-
 #include "../iterators/APRIterator.hpp"
 #include "data_structures/Mesh/PixelData.hpp"
 
@@ -46,7 +45,6 @@ public:
      */
     void init_tree(APR& apr,unsigned int level)  {
         auto it = apr.tree_iterator();
-
         data.resize(it.total_number_particles(level),0);
     }
 
@@ -55,7 +53,6 @@ public:
      */
     void init(APR& apr)  {
         auto it = apr.iterator();
-
         data.resize(it.total_number_particles(it.level_max()),0);
     }
     /*
@@ -84,8 +81,6 @@ public:
         auto it = apr.tree_iterator();
         APRNumerics::general_fill_level(apr,*this,it,true);
     }
-
-
 
     template<typename S>
     void copy_parts(APR &apr, const ParticleData<S> &particlesToCopy, uint64_t level = 0, unsigned int aNumberOfBlocks = 10);

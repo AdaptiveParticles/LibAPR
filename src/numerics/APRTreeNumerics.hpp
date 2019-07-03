@@ -196,9 +196,10 @@ class APRTreeNumerics {
                                     parentIterator++;
                                 }
 
-                                auto part_val =  particle_data[apr_iterator];
+                                float part_val =  particle_data[apr_iterator];
+                                float tree_val = tree_data[parentIterator];
 
-                                tree_data[parentIterator] = std::max(part_val,tree_data[parentIterator]);
+                                tree_data[parentIterator] = std::max(part_val,tree_val);
 
                             }
                         }

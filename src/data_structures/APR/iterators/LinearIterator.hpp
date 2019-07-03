@@ -62,7 +62,7 @@ public:
     }
 
     inline uint64_t particles_level_begin(const uint16_t& level_)  {
-
+        //gives the begining index of a level
         auto level_start_ = linearAccess->level_xz_vec[level_];
 
         return linearAccess->xz_end_vec[level_start_-1];
@@ -70,7 +70,7 @@ public:
     }
 
     inline uint64_t particles_level_end(const uint16_t& level_)  {
-
+        // gives end index at that level, + 1;
         uint64_t index = linearAccess->level_xz_vec[level_] + x_num(level_) - 1 + (z_num(level_)-1)*x_num(level_);
         return linearAccess->xz_end_vec[index];
     }

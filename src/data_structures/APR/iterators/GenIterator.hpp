@@ -55,28 +55,6 @@ public:
         return genInfo->z_num[level];
     }
 
-//    //defining the iterator interface
-//    inline void operator++ (int){
-//    }
-//
-//    inline void operator++ (){
-//    }
-//
-//    inline uint64_t end(){
-//        return end_index;
-//    }
-//
-//    uint64_t begin(const uint16_t level,const uint16_t z,const uint16_t x) {
-//        return 0;
-//    };
-
-    uint64_t particles_level_begin(const uint16_t& level_){
-        return 0;
-    }
-
-    uint64_t particles_level_end(const uint16_t& level_){
-        return 0;
-    }
 
 
 };

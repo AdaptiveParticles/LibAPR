@@ -12,7 +12,8 @@
 #include <vector>
 #include "../APR.hpp"
 #include "../access/APRAccessStructures.hpp"
-
+#include "numerics/APRCompress.hpp"
+#include "numerics/APRNumerics.hpp"
 
 template<typename DataType>
 class PartCellData {
