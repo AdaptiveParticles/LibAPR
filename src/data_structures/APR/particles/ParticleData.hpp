@@ -74,13 +74,12 @@ public:
     }
 
     void fill_with_levels(APR &apr){
-        auto it = apr.iterator();
-        general_fill_level(apr,*this,it,false);
+        general_fill_level(apr,*this,false);
     }
 
     void fill_with_levels_tree(APR &apr){
-        auto it = apr.tree_iterator();
-        general_fill_level(apr,*this,it,true);
+
+        general_fill_level(apr,*this,true);
     }
 
     template<typename imageType>
@@ -144,12 +143,16 @@ void sample_parts_from_img_downsampled_gen(APR& apr,ParticleDataType& parts,std:
 }
 
 
-template<typename ParticleDataType,typename iteratorType>
-void general_fill_level(APR &apr,ParticleDataType& parts,iteratorType& it,bool tree){
+template<typename ParticleDataType>
+void general_fill_level(APR &apr,ParticleDataType& parts,bool tree){
+
+    LinearIterator it;
 
     if(tree){
+        it = apr.tree_iterator();
         parts.init_tree(apr);
     } else {
+        it = apr.iterator();
         parts.init(apr);
     }
 

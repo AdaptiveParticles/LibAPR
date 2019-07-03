@@ -76,13 +76,11 @@ public:
     };
 
     void fill_with_levels(APR &apr){
-        auto it = apr.iterator();
-        general_fill_level(apr,*this,it,false);
+        general_fill_level(apr,*this,false);
     }
 
     void fill_with_levels_tree(APR &apr){
-        auto it = apr.tree_iterator();
-        general_fill_level(apr,*this,it,true);
+        general_fill_level(apr,*this,true);
     }
 
 
