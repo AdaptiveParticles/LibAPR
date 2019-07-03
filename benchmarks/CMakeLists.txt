@@ -6,7 +6,6 @@ endmacro(buildTarget)
 
 
 ## Performance Benchmark Tests
-
 buildTarget(BenchIteration BenchIteration.cpp)
 buildTarget(BenchPartData BenchPartData.cpp)
-
+buildTarget(BenchFilter BenchFilter.cpp)
