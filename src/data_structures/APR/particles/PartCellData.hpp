@@ -13,7 +13,7 @@
 #include "../APR.hpp"
 #include "../access/APRAccessStructures.hpp"
 #include "numerics/APRCompress.hpp"
-#include "numerics/APRNumerics.hpp"
+#include "ParticleData.hpp"
 
 template<typename DataType>
 class PartCellData {
@@ -77,12 +77,12 @@ public:
 
     void fill_with_levels(APR &apr){
         auto it = apr.iterator();
-        APRNumerics::general_fill_level(apr,*this,it,false);
+        general_fill_level(apr,*this,it,false);
     }
 
     void fill_with_levels_tree(APR &apr){
         auto it = apr.tree_iterator();
-        APRNumerics::general_fill_level(apr,*this,it,true);
+        general_fill_level(apr,*this,it,true);
     }
 
 
@@ -100,7 +100,7 @@ public:
 
     template<typename imageType>
     void sample_parts_from_img_downsampled(APR& apr,PixelData<imageType>& img){
-        APRNumerics::sample_parts_from_img_downsampled(apr,*this,img);
+        sample_parts_from_img_downsampled_gen(apr,*this,img);
     }
 
 private:
