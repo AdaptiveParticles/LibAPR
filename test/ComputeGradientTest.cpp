@@ -8,8 +8,7 @@
 #include "algorithm/ComputeGradient.hpp"
 #include "algorithm/ComputeGradientCuda.hpp"
 #include <random>
-#include "data_structures/APR/APR.hpp"
-#include "algorithm/APRConverter.hpp"
+
 
 namespace {
     /**
