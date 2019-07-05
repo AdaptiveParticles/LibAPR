@@ -41,6 +41,8 @@ public:
 
         global_index_by_level_and_zx_end_new.resize(level_max() + 1);
 
+        global_index_by_level_and_zx_end_new[0].resize(1,0);
+
         for (int i = 0; i <= level_max(); ++i) {
             global_index_by_level_and_zx_end_new[i].resize(x_num(i)*z_num(i),0);
         }
@@ -1622,6 +1624,8 @@ void RandomAccess::initialize_structure_from_particle_cell_tree_sparse(APRParame
 
     //zx end for each row
     global_index_by_level_and_zx_end.resize(level_max()+1);
+
+    global_index_by_level_and_zx_end[0].resize(0, 0);
 
     for (size_t i = level_min(); i <= level_max(); ++i) {
 
