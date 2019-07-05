@@ -129,26 +129,36 @@ protected:
     bool check_input_dimensions(PixelData<T> &input_image);
 
 
-
     void initPipelineMemory(int y_num,int x_num = 1,int z_num = 1){
         //initializes the internal memory to be used in the pipeline.
         allocation_timer.start_timer("init ds images");
 
+        const int z_num_ds = ceil(1.0*z_num/2.0);
+        const int x_num_ds = ceil(1.0*x_num/2.0);
+        const int y_num_ds = ceil(1.0*y_num/2.0);
 
-        grad_temp.initDownsampled(y_num, x_num, z_num, 0, false); //#TODO: why are these differnet?
+        grad_temp.initWithResize(y_num_ds, x_num_ds, z_num_ds); //this needs to be initialized to zero
+        grad_temp.fill(0);
 
+        float not_needed;
+        std::vector<int> var_win;
+        iLocalIntensityScale.get_window_alt(not_needed, var_win, par, grad_temp);
 
-        local_scale_temp.initDownsampled(y_num, x_num, z_num, true);
+        int padding_y = 2*std::max(var_win[0],var_win[3]);
+        int padding_x = 2*std::max(var_win[1],var_win[4]);
+        int padding_z = 2*std::max(var_win[2],var_win[5]);
 
+        //Compute dimensions
 
-        local_scale_temp2.initDownsampled(y_num, x_num, z_num, false);
+        //This ensures enough memory is allocated for the padding.
+        local_scale_temp.initWithResize(y_num_ds+padding_y, x_num_ds+padding_x, z_num_ds+padding_z);
+        local_scale_temp.initWithResize(y_num_ds, x_num_ds, z_num_ds);
+
+        local_scale_temp2.initWithResize(y_num_ds+padding_y, x_num_ds+padding_x, z_num_ds+padding_z);
+        local_scale_temp2.initWithResize(y_num_ds, x_num_ds, z_num_ds);
 
         allocation_timer.stop_timer();
     }
-
-
-
-
 
 };
 

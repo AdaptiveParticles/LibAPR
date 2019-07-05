@@ -144,7 +144,7 @@ bool compare_two_iterators(Iterator1& it1, Iterator2& it2,bool success = true){
 
 
                         success = false;
-                        std::cout << "1" << std::endl;
+//                        std::cout << "1" << std::endl;
                     }
 
                     if(it1.y() != it2.y()){
@@ -156,8 +156,8 @@ bool compare_two_iterators(Iterator1& it1, Iterator2& it2,bool success = true){
                         (void) y_org;
 
                         success = false;
-                        std::cout << "y_new" << y_new << std::endl;
-                        std::cout << "y_org" << y_org << std::endl;
+//                        std::cout << "y_new" << y_new << std::endl;
+//                        std::cout << "y_org" << y_org << std::endl;
                     }
 
                     if(it2 < it2.end()){

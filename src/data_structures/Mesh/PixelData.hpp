@@ -271,9 +271,17 @@ public :
 
         mesh.set(array, size);
 
+        fill(aInitVal);
+    }
+
+    void fill(T aInitVal) {
         // Fill values of new buffer in parallel
-        #ifdef HAVE_OPENMP
-        #pragma omp parallel
+
+        size_t size = (size_t)y_num * x_num * z_num;
+        T *array = meshMemory.get();
+
+#ifdef HAVE_OPENMP
+#pragma omp parallel
         {
             auto threadNum = omp_get_thread_num();
             auto numOfThreads = omp_get_num_threads();
@@ -282,9 +290,9 @@ public :
             auto end = (threadNum == numOfThreads - 1) ? array + size : begin + chunkSize;
             std::fill(begin, end, aInitVal);
         }
-        #else
+#else
         std::fill(array, array + size, aInitVal);
-        #endif
+#endif
     }
 
 
@@ -343,7 +351,7 @@ public :
      * @param aSizeOfX
      * @param aSizeOfZ
      */
-    void init_with_resize(int aSizeOfY, int aSizeOfX, int aSizeOfZ, bool aUsePinnedMemory = false) {
+    void initWithResize(int aSizeOfY, int aSizeOfX, int aSizeOfZ, bool aUsePinnedMemory = false) {
         y_num = aSizeOfY;
         x_num = aSizeOfX;
         z_num = aSizeOfZ;
@@ -737,7 +745,7 @@ void paddPixels(PixelData<T> &input, PixelData<T> &output, int sz_y, int sz_x, i
         sz_z = 0;
     }
 
-    output.init(input.y_num + 2*sz_y,input.x_num + 2*sz_x,input.z_num + 2*sz_z);
+    output.initWithResize(input.y_num + 2*sz_y,input.x_num + 2*sz_x,input.z_num + 2*sz_z);
 
     //copy across internal
 
@@ -864,29 +872,29 @@ void paddPixelsInPlace(PixelData<T> &input, int sz_y, int sz_x, int sz_z){
     int z_num_o = input.z_num;
 
     //this does not touch the memory.
-    input.init_with_resize(input.y_num + 2*sz_y,input.x_num + 2*sz_x,input.z_num + 2*sz_z);
+    input.initWithResize(input.y_num + 2 * sz_y, input.x_num + 2 * sz_x, input.z_num + 2 * sz_z);
 
     int x_num_n = input.x_num;
     int y_num_n = input.y_num;
 
     //copy across internal
-
     int j = 0;
+
 #ifdef HAVE_OPENMP
-#pragma omp parallel for schedule(dynamic) private(j)
+//#pragma omp parallel for private(j)
 #endif
-    for (j = 0; j < z_num_o; ++j) {
-        for (int i = (x_num_o-1); i >= 0; --i) {
-            for (int k = 0; k < y_num_o; ++k) {
+    for (j = (z_num_o - 1); j >= 0; --j) {
+        //for (int i = 0; i < x_num_o; ++i) {
+        for (int i = (x_num_o - 1); i >= 0; --i) {
+            for (int k = (y_num_o-1); k >= 0; --k) {
 
                 size_t idx1 = j * x_num_o * y_num_o + i * y_num_o + k;
-                size_t idx2 = (j+sz_z) * x_num_n * y_num_n + (i+sz_x) * y_num_n + (k+sz_y);
+                size_t idx2 = (j + sz_z) * x_num_n * y_num_n + (i + sz_x) * y_num_n + (k + sz_y);
 
-                input.mesh[idx2]=input.mesh[idx1];
+                input.mesh[idx2] = input.mesh[idx1];
             }
         }
     }
-
 
     if(input.y_num > 1) {
         //reflect y
@@ -978,29 +986,30 @@ void unpaddPixelsInPlace(PixelData<T> &input, int org_dim_y, int org_dim_x, int 
     int x_num_n = input.x_num;
     int y_num_n = input.y_num;
 
-    input.init_with_resize(org_dim_y, org_dim_x, org_dim_z);
+    input.initWithResize(org_dim_y, org_dim_x, org_dim_z);
 
     int x_num_o = input.x_num;
     int y_num_o = input.y_num;
     int z_num_o = input.z_num;
 
     //copy across internal
-
     int j = 0;
+
 #ifdef HAVE_OPENMP
-#pragma omp parallel for schedule(dynamic) private(j)
+//#pragma omp parallel for schedule(dynamic) private(j)
 #endif
     for (j = 0; j < z_num_o; ++j) {
-        for (int i = (x_num_o-1); i >= 0; --i) {
+        for (int i = 0; i < x_num_o; ++i) {
             for (int k = 0; k < y_num_o; ++k) {
 
                 size_t idx1 = j * x_num_o * y_num_o + i * y_num_o + k;
-                size_t idx2 = (j+sz_z) * x_num_n * y_num_n + (i+sz_x) * y_num_n + (k+sz_y);
+                size_t idx2 = (j + sz_z) * x_num_n * y_num_n + (i + sz_x) * y_num_n + (k + sz_y);
 
                 input.mesh[idx1]=input.mesh[idx2];
             }
         }
     }
+
 }
 
 
@@ -1018,7 +1027,7 @@ template<typename T>
 void unpaddPixels(PixelData<T> &input, PixelData<T> &output, int org_dim_y, int org_dim_x, int org_dim_z) {
 
 
-    output.init(org_dim_y, org_dim_x, org_dim_z);
+    output.initWithResize(org_dim_y, org_dim_x, org_dim_z);
 
     int sz_y = (input.y_num - org_dim_y)/2; //accounts for the resizing due to minimum dimension constraints that could occur on the first pass.
     int sz_x = (input.x_num - org_dim_x)/2;
