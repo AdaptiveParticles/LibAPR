@@ -30,6 +30,9 @@ Note: fine grained parameters can be tuned within the file, to play with lossles
 
 #include "Example_compress_apr.h"
 #include "io/TiffUtils.hpp"
+#include "data_structures/APR/particles/ParticleData.hpp"
+#include "io/APRFile.hpp"
+#include "numerics/APRReconstruction.hpp"
 
 int main(int argc, char **argv) {
 
@@ -46,48 +49,61 @@ int main(int argc, char **argv) {
     timer.verbose_flag = true;
 
     // APR datastructure
-    APR<uint16_t> apr;
+    APR apr;
 
     //read file
-    apr.read_apr(file_name);
+    APRFile aprFile;
+    aprFile.open(file_name,"READ");
+    aprFile.read_apr(apr);
 
-    apr.parameters.input_dir = options.directory;
+    ParticleData<uint16_t>parts;
+    aprFile.read_particles(apr,"particle_intensities",parts);
+
+    aprFile.close();
+
 
     std::string name = options.input;
     //remove the file extension
     name.erase(name.end()-3,name.end());
 
-    APRCompress<uint16_t> comp;
-    ExtraParticleData<uint16_t> symbols;
+    APRFile compFile;
+    compFile.open(options.directory,"WRITE");
 
-    //feel free to change
-    unsigned int blosc_comp_type = 6;
-    unsigned int blosc_comp_level = options.compress_level;
-    unsigned int blosc_shuffle = 1;
+    parts.compressor.set_quantization_factor(options.quantization_level); //set this to adjust the compression factor for WNL
+    parts.compressor.set_compression_type(options.compress_type);
 
-    comp.set_quantization_factor(options.quantization_level); //set this to adjust the compression factor for WNL
-    comp.set_compression_type(options.compress_type);
+    //set the background to the minimum
+    float background = *std::min_element(parts.data.begin(),parts.data.end());
+    parts.compressor.set_background(background);
+
+    compFile.write_apr(apr);
 
     //compress the APR and write to disk
     timer.start_timer("compress and write");
-    FileSizeInfo fileSizeInfo = apr.write_apr(options.directory ,name + "_compress",comp,blosc_comp_type,blosc_comp_level,blosc_shuffle);
+
+    compFile.write_particles("comp_parts",parts);
+
     timer.stop_timer();
 
-    float time_write = (float) timer.timings.back();
+    float time_write = timer.timings.back();
 
-    //read the APR and decompress
-    timer.start_timer("read and decompress");
-    apr.read_apr(options.directory + name + "_compress_apr.h5");
-    timer.stop_timer();
 
-    float time_read = (float) timer.timings.back();
-
-    float original_pixel_image_size = (2.0f*apr.orginal_dimensions(0)*apr.orginal_dimensions(1)*apr.orginal_dimensions(2))/(1000000.0);
+    float original_pixel_image_size = (2.0f*apr.org_dims(0)*apr.org_dims(1)*apr.org_dims(2))/(1000000.0);
     std::cout << std::endl;
     std::cout << std::endl;
     std::cout << "Original image size: " << original_pixel_image_size << " MB" << std::endl;
 
-    float apr_compressed_file_size = fileSizeInfo.total_file_size;
+
+    float apr_compressed_file_size = compFile.current_file_size_MB();
+    compFile.close();
+
+    timer.start_timer("decompress and read");
+    compFile.open(options.directory,"READ");
+    compFile.read_particles(apr,"comp_parts",parts);
+    compFile.close();
+    timer.stop_timer();
+
+    float time_read = timer.timings.back();
 
     std::cout << "Compressed (Lossy - WNL) APR: " << apr_compressed_file_size << " MB" << std::endl;
     std::cout << "Compression Ratio: " << original_pixel_image_size/apr_compressed_file_size << std::endl;
@@ -103,7 +119,7 @@ int main(int argc, char **argv) {
     //writes the piece-wise constant reconstruction of the APR to file for comparison
     if(options.output_tiff) {
         PixelData<uint16_t> img;
-        apr.interp_img(img, apr.particles_intensities);
+        APRReconstruction::interp_img(apr,img, parts);
         std::string output = options.directory + name + "_compress.tif";
         TiffUtils::saveMeshAsTiff(output, img);
     }

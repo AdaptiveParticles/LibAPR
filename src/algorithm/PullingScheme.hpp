@@ -8,7 +8,7 @@
 #ifndef PARTPLAY_PULLING_SCHEME_HPP
 #define PARTPLAY_PULLING_SCHEME_HPP
 
-#include "data_structures/APR/APRAccess.hpp"
+#include "data_structures/APR/access/RandomAccess.hpp"
 #include "data_structures/Mesh/PixelData.hpp"
 #include <vector>
 
@@ -54,8 +54,15 @@ public:
     template<typename T>
     void fill(float k, const PixelData<T> &input);
     void pulling_scheme_main();
-    void initialize_particle_cell_tree(const APRAccess &apr_access);
+    void initialize_particle_cell_tree(const GenInfo &aprInfo);
     std::vector<PixelData<uint8_t>>& getParticleCellTree() { return particle_cell_tree; }
+
+    int pct_level_max(){
+        return l_max;
+    };
+    int pct_level_min(){
+        return l_min;
+    };
 
 private:
     void set_ascendant_neighbours(int level);
@@ -71,16 +78,16 @@ private:
 /**
  * Initializes particle_cell_tree up to level (max - 1)
  */
-inline void PullingScheme::initialize_particle_cell_tree(const APRAccess &apr_access) {
-    l_max = apr_access.l_max - 1;
-    l_min = apr_access.l_min;
+inline void PullingScheme::initialize_particle_cell_tree(const GenInfo &aprInfo) {
+    l_max = aprInfo.l_max - 1;
+    l_min = aprInfo.l_min;
 
     particle_cell_tree.resize(l_max + 1);
 
     for (int l = l_min; l <= l_max; ++l) {
-        particle_cell_tree[l].initWithValue(ceil(apr_access.org_dims[0] / pow(2.0, l_max - l + 1)),
-                                            ceil(apr_access.org_dims[1] / pow(2.0, l_max - l + 1)),
-                                            ceil(apr_access.org_dims[2] / pow(2.0, l_max - l + 1)),
+        particle_cell_tree[l].initWithValue(ceil(aprInfo.org_dims[0] / pow(2.0, l_max - l + 1)),
+                                            ceil(aprInfo.org_dims[1] / pow(2.0, l_max - l + 1)),
+                                            ceil(aprInfo.org_dims[2] / pow(2.0, l_max - l + 1)),
                                             EMPTY);
     }
 }

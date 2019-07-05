@@ -31,6 +31,8 @@ public:
     float sigma_th = 0;
     float sigma_th_max = 0;
 
+    float grad_th = 0;
+
     int extra_smooth = 0;
 
     float noise_sd_estimate = 0;
@@ -38,8 +40,6 @@ public:
 
     bool auto_parameters = false;
     bool full_resolution = false;
-
-    bool normalized_input = false;
 
     bool check_input = false;
     bool swap_dimensions = false;
@@ -63,7 +63,6 @@ public:
         os << "sigma_th=" << obj.sigma_th << "\n";
         os << "sigma_th_max=" << obj.sigma_th_max << "\n";
         os << "auto_parameters=" << (obj.auto_parameters ? "true" : "false") << "\n";
-        os << "normalized_input=" << (obj.normalized_input ? "true" : "false") << "\n";
         os << "neighborhood_optimization=" << (obj.neighborhood_optimization ? "true" : "false") << "\n";
         os << "output_steps=" << (obj.output_steps ? "true" : "false") << "\n";
 

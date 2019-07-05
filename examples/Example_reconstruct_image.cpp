@@ -35,6 +35,9 @@ Options:
 
 #include "data_structures/APR/APR.hpp"
 #include "io/TiffUtils.hpp"
+#include"data_structures/APR/particles/ParticleData.hpp"
+#include"io/APRFile.hpp"
+#include "numerics/APRReconstruction.hpp"
 
 
 struct cmdLineOptions{
@@ -113,12 +116,19 @@ int main(int argc, char **argv) {
     timer.verbose_flag = true;
 
     // APR datastructure
-    APR<uint16_t> apr;
+    APR apr;
 
     timer.start_timer("read input");
     //read file
     std::string file_name = options.directory + options.input;
-    apr.read_apr(file_name);
+    APRFile aprFile;
+    aprFile.open(file_name,"READ");
+    aprFile.read_apr(apr);
+
+    ParticleData<uint16_t>parts;
+    aprFile.read_particles(apr,"particle_intensities",parts);
+
+    aprFile.close();
     apr.name = options.output;
     timer.stop_timer();
 
@@ -131,7 +141,7 @@ int main(int argc, char **argv) {
 
             timer.start_timer("pc interp");
             //perform piece-wise constant interpolation
-            apr.interp_img(recon_pc, apr.particles_intensities);
+            APRReconstruction::interp_img(apr,recon_pc, parts);
             timer.stop_timer();
 
             float elapsed_seconds = timer.t2 - timer.t1;
@@ -156,11 +166,11 @@ int main(int argc, char **argv) {
 
         //create particle dataset
 
-        ExtraParticleData<uint16_t> levelp(apr.total_number_particles());
+        ParticleData<uint16_t> levelp(apr.total_number_particles());
 
-        ExtraParticleData<uint16_t> xp(apr.total_number_particles());
-        ExtraParticleData<uint16_t> yp(apr.total_number_particles());
-        ExtraParticleData<uint16_t> zp(apr.total_number_particles());
+        ParticleData<uint16_t> xp(apr.total_number_particles());
+        ParticleData<uint16_t> yp(apr.total_number_particles());
+        ParticleData<uint16_t> zp(apr.total_number_particles());
 
 
         timer.start_timer("APR parallel iterator loop");
@@ -171,16 +181,16 @@ int main(int argc, char **argv) {
 #ifdef HAVE_OPENMP
 #pragma omp parallel for schedule(dynamic) private(z, x) firstprivate(apr_iterator)
 #endif
-            for (z = 0; z < apr_iterator.spatial_index_z_max(level); z++) {
-                for (x = 0; x < apr_iterator.spatial_index_x_max(level); ++x) {
-                    for (apr_iterator.set_new_lzx(level, z, x); apr_iterator.global_index() < apr_iterator.end_index;
-                         apr_iterator.set_iterator_to_particle_next_particle()) {
+            for (z = 0; z < apr_iterator.z_num(level); z++) {
+                for (x = 0; x < apr_iterator.x_num(level); ++x) {
+                    for (apr_iterator.begin(level, z, x); apr_iterator < apr_iterator.end();
+                         apr_iterator++) {
 
-                        levelp[apr_iterator] = apr_iterator.level();
+                        levelp[apr_iterator] = level;
 
-                        xp[apr_iterator] = apr_iterator.x();
+                        xp[apr_iterator] = x;
                         yp[apr_iterator] = apr_iterator.y();
-                        zp[apr_iterator] = apr_iterator.z();
+                        zp[apr_iterator] = z;
                     }
                 }
             }
@@ -192,19 +202,19 @@ int main(int argc, char **argv) {
             PixelData<uint16_t> type_recon;
 
             //pc interp
-            apr.interp_img(type_recon, levelp);
+            APRReconstruction::interp_img(apr,type_recon, levelp);
             TiffUtils::saveMeshAsTiff(options.directory + apr.name + "_level.tif", type_recon);
 
             //pc interp
-            apr.interp_img(type_recon, xp);
+            APRReconstruction::interp_img(apr,type_recon, xp);
             TiffUtils::saveMeshAsTiff(options.directory + apr.name + "_x.tif", type_recon);
 
             //pc interp
-            apr.interp_img(type_recon, yp);
+            APRReconstruction::interp_img(apr,type_recon, yp);
             TiffUtils::saveMeshAsTiff(options.directory + apr.name + "_y.tif", type_recon);
 
             //pc interp
-            apr.interp_img(type_recon, zp);
+            APRReconstruction::interp_img(apr,type_recon, zp);
             TiffUtils::saveMeshAsTiff(options.directory + apr.name + "_z.tif", type_recon);
         }
     }
@@ -216,7 +226,7 @@ int main(int argc, char **argv) {
         std::vector<float> scale_d = {2, 2, 2};
 
         timer.start_timer("smooth reconstrution");
-        apr.interp_parts_smooth(recon_smooth, apr.particles_intensities, scale_d);
+        APRReconstruction::interp_parts_smooth(apr,recon_smooth, parts, scale_d); //#TODO: i'm not convinced this is working correclty.
         timer.stop_timer();
 
         float elapsed_seconds = timer.t2 - timer.t1;

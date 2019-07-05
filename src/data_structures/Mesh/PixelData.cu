@@ -23,7 +23,6 @@ void downsampleMeanCuda(const PixelData<T> &input, PixelData<S> &output) {
     runDownsampleMean(in.get(), out.get(), input.x_num, input.y_num, input.z_num, 0);
 };
 
-
 template <typename T, typename S>
 void downsampleMaxCuda(const PixelData<T> &input, PixelData<S> &output) {
     ScopedCudaMemHandler<const PixelData<T>, H2D> in(input);

@@ -10,19 +10,17 @@
 #include <iostream>
 #include <string>
 
-
-
-#ifdef APR_BENCHMARK
-#include "../../../APRBench/AnalysisData.hpp"
-extern AnalysisData ad;
-#endif
+//#ifdef APR_BENCHMARK
+//#include "../../../APRBench/AnalysisData.hpp"
+//extern AnalysisData ad;
+//#endif
 
 class APRTimer {
 //
 //
 //  Bevan Cheeseman 2016
 //
-//  Just to be used for timing stuff, and recording the results \hoho
+//  Used for timing, and recording the results
 //
 //
 
@@ -54,11 +52,11 @@ public:
     }
 
     ~APRTimer() {
-	     #ifdef APR_BENCHMARK
-   for (unsigned int i = 0; i < timings.size(); i++) {
-     ad.add_float_data(timing_names[i],timings[i]);
-}
-#endif
+//	     #ifdef APR_BENCHMARK
+//   for (unsigned int i = 0; i < timings.size(); i++) {
+//     ad.add_float_data(timing_names[i],timings[i]);
+//}
+//#endif
     }
 
     void start_timer(std::string timing_name){

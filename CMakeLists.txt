@@ -16,7 +16,6 @@ option(APR_USE_LIBTIFF "Use LibTIFF" ON)
 option(APR_TESTS "Build APR tests" OFF)
 option(APR_PREFER_EXTERNAL_GTEST "When found, use the installed GTEST libs instead of included sources" OFF)
 option(APR_PREFER_EXTERNAL_BLOSC "When found, use the installed BLOSC libs instead of included sources" OFF)
-option(APR_BUILD_PYTHON_WRAPPERS "Build APR PYTHON wrappers (experimental - under development)" OFF)
 option(APR_USE_CUDA "should APR use CUDA? (experimental - under development)" OFF)
 option(APR_USE_OPENMP "should APR use OpenMP?" ON)
 option(APR_BENCHMARK "add benchmarking code" OFF)
@@ -52,7 +51,6 @@ configure_file (
 )
 include_directories("${PROJECT_BINARY_DIR}")
 message("Configuring for APR version: " ${APR_VERSION_STRING})
-
 
 ###############################################################################
 # Find all required libraries
@@ -297,21 +295,15 @@ if(APR_TESTS)
 endif(APR_TESTS)
 
 ###############################################################################
-# PYTHON wrappers
+# Performance Benchmarks
 ###############################################################################
-if(APR_BUILD_PYTHON_WRAPPERS)
-    message(STATUS "APR: Building PYTHON wrappers")
-    set(PYBIND11_PYTHON_VERSION 2.7)
 
-    add_subdirectory("external/pybind11")
+if(APR_BENCHMARK)
+    message(STATUS "APR: Benchmarking performance")
+    add_subdirectory(benchmarks)
+endif(APR_BENCHMARK)
 
-    set(APR_PYTHON_MODULE_NAME pyApr)
-    add_definitions(-DAPR_PYTHON_MODULE_NAME=${APR_PYTHON_MODULE_NAME})
-    add_library(${APR_PYTHON_MODULE_NAME} MODULE src/wrapper/pythonBind.cpp $<TARGET_OBJECTS:aprObjLib>)
-    target_include_directories(${APR_PYTHON_MODULE_NAME} PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/src)
-    target_link_libraries(${APR_PYTHON_MODULE_NAME} PRIVATE pybind11::module ${HDF5_LIBRARIES} ${TIFF_LIBRARIES} ${BLOSC_LIBRARIES} ${ZLIB_LIBRARIES})
-    set_target_properties(${APR_PYTHON_MODULE_NAME} PROPERTIES OUTPUT_NAME ${APR_PYTHON_MODULE_NAME})
-    set_target_properties(${APR_PYTHON_MODULE_NAME} PROPERTIES PREFIX "${PYTHON_MODULE_PREFIX}"
-                                                               SUFFIX "${PYTHON_MODULE_EXTENSION}")
+###############################################################################
+# PYTHON wrappers These are now external please ask us for access
+###############################################################################
 
-endif(APR_BUILD_PYTHON_WRAPPERS)

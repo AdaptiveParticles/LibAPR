@@ -10,7 +10,148 @@
 
 class LocalIntensityScale {
 
+protected:
+
+    bool active_y = true;
+    bool active_x = true;
+    bool active_z = true;
+
+    int number_active_dimensions = 3;
+
+
 public:
+
+    APRTimer timer;
+
+void get_local_intensity_scale(PixelData<float> &local_scale_temp, PixelData<float> &local_scale_temp2, const APRParameters &par) {
+    //
+    //  Calculate the Local Intensity Scale (You could replace this method with your own)
+    //
+    //  Input: full sized image.
+    //
+    //  Output: down-sampled Local Intensity Scale (h) (Due to the Equivalence Optimization we only need down-sampled values)
+    //
+
+    float var_rescale;
+    std::vector<int> var_win;
+    get_window_alt(var_rescale, var_win, par, local_scale_temp);
+
+    int win_y = var_win[0];
+    int win_x = var_win[1];
+    int win_z = var_win[2];
+    int win_y2 = var_win[3];
+    int win_x2 = var_win[4];
+    int win_z2 = var_win[5];
+
+    bool constant_scale = false;
+
+    if(par.constant_intensity_scale || (number_active_dimensions == 0)){
+        constant_scale = true; //include the case where the local intensity scale doesn't make sense due to the image being to small. (This is for just edge cases and sanity checking)
+    }
+
+    if (!constant_scale) {
+
+        timer.start_timer("copy_intensities_from_bsplines");
+        //copy across the intensities
+
+        int y_num_t = local_scale_temp.y_num;
+        int x_num_t = local_scale_temp.x_num;
+        int z_num_t = local_scale_temp.z_num;
+
+        PixelData<float> temp_copy;
+        temp_copy.init(y_num_t,x_num_t,z_num_t);
+
+        temp_copy.copyFromMesh(local_scale_temp);
+        timer.stop_timer();
+
+        //Addded
+
+        paddPixels(temp_copy, local_scale_temp, std::max(win_y, win_y2), std::max(win_x, win_x2),
+                   std::max(win_z, win_z2));
+
+        paddPixels(temp_copy, local_scale_temp2, std::max(win_y, win_y2), std::max(win_x, win_x2),
+                   std::max(win_z, win_z2));
+
+
+        if (active_y) {
+            timer.start_timer("calc_sat_mean_y");
+            calc_sat_mean_y(local_scale_temp, win_y);
+            timer.stop_timer();
+        }
+        if (active_x) {
+            timer.start_timer("calc_sat_mean_x");
+            calc_sat_mean_x(local_scale_temp, win_x);
+            timer.stop_timer();
+        }
+        if (active_z) {
+            timer.start_timer("calc_sat_mean_z");
+            calc_sat_mean_z(local_scale_temp, win_z);
+            timer.stop_timer();
+        }
+
+        timer.start_timer("second_pass_and_rescale");
+        //calculate abs and subtract from original
+        calc_abs_diff(local_scale_temp2, local_scale_temp);
+        //Second spatial average
+        if (active_y) {
+            calc_sat_mean_y(local_scale_temp, win_y2);
+        }
+        if (active_x) {
+            calc_sat_mean_x(local_scale_temp, win_x2);
+        }
+        if (active_z) {
+            calc_sat_mean_z(local_scale_temp, win_z2);
+        }
+
+        // second average for extra smoothing
+        if(par.extra_smooth) {
+            if (active_y) {
+                calc_sat_mean_y(local_scale_temp, par.extra_smooth);
+            }
+            if (active_x) {
+                calc_sat_mean_x(local_scale_temp, par.extra_smooth);
+            }
+            if (active_z) {
+                calc_sat_mean_z(local_scale_temp, par.extra_smooth);
+            }
+        }
+
+        rescale_var(local_scale_temp, var_rescale);
+        timer.stop_timer();
+
+        local_scale_temp.swap(local_scale_temp2);
+
+        unpaddPixels(local_scale_temp2, local_scale_temp, y_num_t, x_num_t,
+                     z_num_t);
+
+        local_scale_temp2.initWithResize(y_num_t,x_num_t,z_num_t);
+
+    } else {
+
+        float min_val = 660000;
+        double sum = 0;
+        float tmp;
+
+        for(int i=0; i<local_scale_temp.mesh.size(); ++i) {
+            tmp = local_scale_temp.mesh[i];
+
+            sum += tmp;
+
+            if(tmp < min_val) {
+                min_val = tmp;
+            }
+        }
+
+        float numel = (float) (local_scale_temp.y_num * local_scale_temp.x_num * local_scale_temp.z_num);
+        float scale_val = (float) (sum / numel - min_val);
+
+        for(int i = 0; i<local_scale_temp.mesh.size(); ++i) {
+            local_scale_temp.mesh[i] = scale_val;
+        }
+    }
+
+}
+
     template<typename T>
     void calc_abs_diff(const PixelData<T> &input_image, PixelData<T> &var);
 
@@ -25,28 +166,27 @@ public:
 
     void get_window(float &var_rescale, std::vector<int> &var_win, const APRParameters &par);
 
-    void get_window_alt(float& var_rescale, std::vector<int>& var_win, const APRParameters& par, uint8_t ndim);
+    template<typename T>
+    void get_window_alt(float& var_rescale, std::vector<int>& var_win, const APRParameters& par, const PixelData<T>& img);
 
     template<typename T>
-    void rescale_var_and_threshold(PixelData<T>& var,const float var_rescale, const APRParameters& par);
+    void rescale_var(PixelData<T>& var,const float var_rescale);
 };
 
 template<typename T>
-inline void LocalIntensityScale::rescale_var_and_threshold(PixelData<T> &var, const float var_rescale, const APRParameters &par) {
-    const float max_th = 60000.0;
+inline void LocalIntensityScale::rescale_var(PixelData<T> &var, const float var_rescale) {
 
     #ifdef HAVE_OPENMP
 	#pragma omp parallel for default(shared)
     #endif
     for (size_t i = 0; i < var.mesh.size(); ++i) {
         float rescaled = var.mesh[i] * var_rescale;
-        if (rescaled < par.sigma_th) {
-            rescaled = (rescaled < par.sigma_th_max) ? max_th : par.sigma_th;
-        }
 
         var.mesh[i] = rescaled;
     }
 }
+
+
 
 template<typename T>
 inline void LocalIntensityScale::calc_abs_diff(const PixelData<T> &input_image, PixelData<T> &var) {
@@ -108,9 +248,10 @@ inline void LocalIntensityScale::get_window(float& var_rescale, std::vector<int>
  * @param var_rescale
  * @param var_win
  * @param par
- * @param ndim
+ * @param temp_img (image already allocated to correct size to compute the local intensity scale)
  */
-inline void LocalIntensityScale::get_window_alt(float& var_rescale, std::vector<int>& var_win, const APRParameters& par, uint8_t ndim){
+template<typename T>
+inline void LocalIntensityScale::get_window_alt(float& var_rescale, std::vector<int>& var_win, const APRParameters& par,const PixelData<T>& temp_img){
 
     const double rescale_store_3D[6] = {12.8214, 26.1256, 40.2795, 23.3692, 36.2061, 27.0385};
     const double rescale_store_2D[6] = {13.2421, 28.7069, 52.0385, 24.4272, 34.9565, 21.1891};
@@ -123,17 +264,41 @@ inline void LocalIntensityScale::get_window_alt(float& var_rescale, std::vector<
     const int win_1[] = {1,1,1,2,2,3};
     const int win_2[] = {2,3,4,4,5,6};
 
-    var_win.resize(6);
-    var_win[0] = win_1[psf_ind];
-    var_win[1] = win_1[psf_ind];
-    var_win[2] = win_1[psf_ind];
-    var_win[3] = win_2[psf_ind];
-    var_win[4] = win_2[psf_ind];
-    var_win[5] = win_2[psf_ind];
+    int win_val = std::max(win_1[psf_ind],win_2[psf_ind]);
 
-    if( ndim == 3 ) {
+    var_win.resize(6,0);
+
+    if (temp_img.y_num > win_val) {
+        active_y = true;
+        var_win[0] = win_1[psf_ind];
+
+        var_win[3] = win_2[psf_ind];
+    } else {
+        active_y = false;
+    }
+
+    if (temp_img.x_num > win_val) {
+        active_x = true;
+        var_win[1] = win_1[psf_ind];
+        var_win[4] = win_2[psf_ind];
+    } else {
+        active_x = false;
+    }
+
+    if (temp_img.z_num > win_val) {
+        active_z = true;
+        var_win[2] = win_1[psf_ind];
+        var_win[5] = win_2[psf_ind];
+    } else {
+        active_z = false;
+    }
+
+    number_active_dimensions = active_y + active_x + active_z;
+
+
+    if( number_active_dimensions == 3 ) {
         var_rescale = (float)rescale_store_3D[psf_ind];
-    } else if( ndim == 2 ) {
+    } else if( number_active_dimensions == 2 ) {
         var_rescale = (float)rescale_store_2D[psf_ind];
     } else {
         var_rescale = (float)rescale_store_1D[psf_ind];

@@ -21,7 +21,8 @@ neighbour iteration strategies on the APR.
 #include <iostream>
 
 #include "Example_apr_neighbour_access.hpp"
-
+#include "data_structures/APR/particles/ParticleData.hpp"
+#include "io/APRFile.hpp"
 
 
 int main(int argc, char **argv) {
@@ -39,10 +40,18 @@ int main(int argc, char **argv) {
     timer.verbose_flag = true;
 
     // APR datastructure
-    APR<uint16_t> apr;
+    APR apr;
 
     //read file
-    apr.read_apr(file_name);
+
+    APRFile aprFile;
+    aprFile.open(file_name,"READ");
+    aprFile.read_apr(apr);
+
+    ParticleData<uint16_t>parts;
+    aprFile.read_particles(apr,"particle_intensities",parts);
+
+    aprFile.close();
 
     ///////////////////////////
     ///
@@ -50,10 +59,10 @@ int main(int argc, char **argv) {
     ///
     /////////////////////////////////
 
-    ExtraParticleData<uint16_t> neigh_avg(apr.total_number_particles());
+    ParticleData<uint16_t> neigh_avg(apr.total_number_particles());
 
-    auto neighbour_iterator = apr.iterator();
-    auto apr_iterator = apr.iterator();
+    auto neighbour_iterator = apr.random_iterator();
+    auto apr_iterator = apr.random_iterator();
 
 
     timer.start_timer("APR serial iterator neighbours loop");
@@ -62,10 +71,10 @@ int main(int argc, char **argv) {
         int z = 0;
         int x = 0;
 
-        for (z = 0; z < apr_iterator.spatial_index_z_max(level); z++) {
-            for (x = 0; x < apr_iterator.spatial_index_x_max(level); ++x) {
-                for (apr_iterator.set_new_lzx(level, z, x); apr_iterator.global_index() < apr_iterator.end_index;
-                     apr_iterator.set_iterator_to_particle_next_particle()) {
+        for (z = 0; z < apr_iterator.z_num(level); z++) {
+            for (x = 0; x < apr_iterator.x_num(level); ++x) {
+                for (apr_iterator.begin(level, z, x); apr_iterator < apr_iterator.end();
+                     apr_iterator++) {
 
                     //now we only update the neighbours, and directly access them through a neighbour iterator
 
@@ -82,17 +91,14 @@ int main(int argc, char **argv) {
                             if (neighbour_iterator.set_neighbour_iterator(apr_iterator, direction, index)) {
                                 //will return true if there is a neighbour defined
 
-                                temp += apr.particles_intensities[neighbour_iterator];
+                                temp += parts[neighbour_iterator];
                                 counter++;
-
-
 
                             }
                         }
                     }
 
                     neigh_avg[apr_iterator] = temp / counter;
-
 
                 }
             }
@@ -110,7 +116,7 @@ int main(int argc, char **argv) {
 
     //initialization of the iteration structures
 
-    ExtraParticleData<float> neigh_xm(apr.total_number_particles());
+    ParticleData<float> neigh_xm(apr.total_number_particles());
 
     timer.start_timer("APR parallel iterator neighbour loop");
 
@@ -121,9 +127,9 @@ int main(int argc, char **argv) {
 #ifdef HAVE_OPENMP
 #pragma omp parallel for schedule(dynamic) private(z, x) firstprivate(apr_iterator,neighbour_iterator)
 #endif
-        for (z = 0; z < apr_iterator.spatial_index_z_max(level); z++) {
-            for (x = 0; x < apr_iterator.spatial_index_x_max(level); ++x) {
-                for (apr_iterator.set_new_lzx(level, z, x); apr_iterator.global_index() < apr_iterator.end_index;
+        for (z = 0; z < apr_iterator.z_num(level); z++) {
+            for (x = 0; x < apr_iterator.x_num(level); ++x) {
+                for (apr_iterator.set_new_lzx(level, z, x); apr_iterator < apr_iterator.end();
                      apr_iterator.set_iterator_to_particle_next_particle()) {
 
                     //loop over all the neighbours and set the neighbour iterator to it
@@ -134,7 +140,7 @@ int main(int argc, char **argv) {
 
                             if (neighbour_iterator.set_neighbour_iterator(apr_iterator, direction, index)) {
                                 //neighbour_iterator works just like apr, and apr_parallel_iterator (you could also call neighbours)
-                                neigh_xm[apr_iterator] += apr.particles_intensities[neighbour_iterator] *
+                                neigh_xm[apr_iterator] += parts[neighbour_iterator] *
                                                           (apr_iterator.y() - neighbour_iterator.y());
                             }
                         }
@@ -151,7 +157,7 @@ int main(int argc, char **argv) {
      *  Access only one directions neighbour
      */
 
-    ExtraParticleData<float> type_sum(apr.total_number_particles());
+    ParticleData<float> type_sum(apr.total_number_particles());
 
     timer.start_timer("APR parallel iterator neighbour loop x direction");
 
@@ -164,10 +170,10 @@ int main(int argc, char **argv) {
 #ifdef HAVE_OPENMP
 #pragma omp parallel for schedule(dynamic) private(z, x) firstprivate(apr_iterator,neighbour_iterator)
 #endif
-        for (z = 0; z < apr_iterator.spatial_index_z_max(level); z++) {
-            for (x = 0; x < apr_iterator.spatial_index_x_max(level); ++x) {
+        for (z = 0; z < apr_iterator.z_num(level); z++) {
+            for (x = 0; x < apr_iterator.x_num(level); ++x) {
                 for (apr_iterator.set_new_lzx(level, z, x);
-                     apr_iterator.global_index() < apr_iterator.end_index;
+                     apr_iterator < apr_iterator.end();
                      apr_iterator.set_iterator_to_particle_next_particle()) {
 
                     const unsigned int direction = 3;
@@ -181,7 +187,7 @@ int main(int argc, char **argv) {
                             //access data and perform a conditional sum (neighbour_iterator has all access like the normal iterator)
                             if (neighbour_iterator.level() <= neighbour_iterator.level_max()) {
                                 type_sum[apr_iterator] +=
-                                        apr.particles_intensities[neighbour_iterator];
+                                        parts[neighbour_iterator];
                             }
                         }
                     }
