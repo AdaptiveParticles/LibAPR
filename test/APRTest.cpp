@@ -3671,6 +3671,19 @@ TEST_F(CreateSmallSphereTest, APR_FILTER) {
     ASSERT_TRUE(test_convolve_pencil(test_data, true, 5));
 }
 
+TEST_F(CreatDiffDimsSphereTest, APR_FILTER) {
+    ASSERT_TRUE(test_convolve(test_data, false, 3));
+    ASSERT_TRUE(test_convolve(test_data, true, 3));
+    ASSERT_TRUE(test_convolve(test_data, false, 5));
+    ASSERT_TRUE(test_convolve(test_data, true, 5));
+
+    ASSERT_TRUE(test_convolve_pencil(test_data, false, 3));
+    ASSERT_TRUE(test_convolve_pencil(test_data, true, 3));
+    ASSERT_TRUE(test_convolve_pencil(test_data, false, 5));
+    ASSERT_TRUE(test_convolve_pencil(test_data, true, 5));
+}
+
+
 
 
 int main(int argc, char **argv) {

@@ -151,7 +151,7 @@ inline void bench_apr_convolve_pencil(APR& apr,ParticleData<partsType>& parts,in
     timer.start_timer("apr_filter_pencil" + std::to_string(stencil_size));
     for (int r = 0; r < num_rep; ++r) {
         ParticleData<double> output;
-        filterfns.convolve(apr, stencils, parts, output);
+        filterfns.convolve_pencil(apr, stencils, parts, output);
     }
     timer.stop_timer();
 
