@@ -599,7 +599,7 @@ void downsample(const PixelData<T> &aInput, PixelData<S> &aOutput, R reduce, C c
 
     if (aInitializeOutput) {
         timer.start_timer("downsample_initalize");
-        aOutput.init(y_num_ds, x_num_ds, z_num_ds);
+        aOutput.initWithResize(y_num_ds, x_num_ds, z_num_ds);
         timer.stop_timer();
     }
 

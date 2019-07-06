@@ -2869,6 +2869,94 @@ bool test_apr_filter(TestData &test_data, const bool boundary = false, const int
     return true;
 }
 
+bool test_iterator_methods(TestData &test_data){
+    //
+    //  Testing consistency across iterators for methods
+    //
+    //
+
+
+    bool success = true;
+
+    auto it_lin = test_data.apr.iterator();
+    auto it_tree = test_data.apr.tree_iterator();
+
+    auto it_rand = test_data.apr.random_iterator();
+    auto it_tree_rand = test_data.apr.random_tree_iterator();
+
+    //regular iterators
+    for (int i = it_lin.level_min(); i <= it_lin.level_max(); ++i) {
+
+        uint64_t lin_begin = it_lin.particles_level_begin(i);
+        uint64_t rand_beign = it_rand.particles_level_begin(i);
+
+        uint64_t begin = it_lin.begin(i,0,0);
+
+        if(it_rand.particles_level_end(i) != it_lin.particles_level_end(i)){
+            success = false;
+        }
+
+
+        if(lin_begin != rand_beign){
+            success = false;
+        }
+
+        if(lin_begin != begin){
+            success = false;
+        }
+
+        if(it_rand.x_num(i) != it_lin.x_num(i)){
+            success = false;
+        }
+
+        if(it_rand.y_num(i) != it_lin.y_num(i)){
+            success = false;
+        }
+
+        if(it_rand.z_num(i) != it_lin.z_num(i)){
+            success = false;
+        }
+
+    }
+
+    //regular iterators
+    for (int i = it_tree.level_min(); i <= it_tree.level_max(); ++i) {
+
+        uint64_t lin_begin = it_tree.particles_level_begin(i);
+        uint64_t rand_begin = it_tree_rand.particles_level_begin(i);
+
+        uint64_t begin = it_tree.begin(i,0,0);
+
+        if(it_tree_rand.particles_level_end(i) != it_tree.particles_level_end(i)){
+            success = false;
+        }
+
+        if(lin_begin != rand_begin){
+            success = false;
+        }
+
+        if(lin_begin != begin){
+            success = false;
+        }
+
+
+        if(it_tree_rand.x_num(i) != it_tree.x_num(i)){
+            success = false;
+        }
+
+        if(it_tree_rand.y_num(i) != it_tree.y_num(i)){
+            success = false;
+        }
+
+        if(it_tree_rand.z_num(i) != it_tree.z_num(i)){
+            success = false;
+        }
+    }
+
+    return success;
+
+}
+
 
 std::string get_source_directory_apr(){
     // returns path to the directory where utils.cpp is stored
@@ -3152,6 +3240,14 @@ TEST_F(CreateGTSmall1DTestProperties, PIPELINE_COMPARE) {
 
 }
 
+TEST_F(CreateGTSmall1DTestProperties, ITERATOR_METHODS) {
+
+    ASSERT_TRUE(test_iterator_methods(test_data));
+
+}
+
+
+
 
 //2D tests
 
@@ -3247,6 +3343,13 @@ TEST_F(CreateGTSmall2DTestProperties, PIPELINE_COMPARE) {
 
 }
 
+TEST_F(CreateGTSmall2DTestProperties, ITERATOR_METHODS) {
+
+    ASSERT_TRUE(test_iterator_methods(test_data));
+
+}
+
+
 
 //3D tests
 
@@ -3265,6 +3368,12 @@ TEST_F(CreatDiffDimsSphereTest, PULLING_SCHEME_SPARSE) {
 
 }
 
+TEST_F(CreatDiffDimsSphereTest, ITERATOR_METHODS) {
+
+    ASSERT_TRUE(test_iterator_methods(test_data));
+
+}
+
 TEST_F(CreateSmallSphereTest, PULLING_SCHEME_SPARSE) {
 
     ASSERT_TRUE(test_pulling_scheme_sparse(test_data));
@@ -3280,6 +3389,12 @@ TEST_F(CreateSmallSphereTest, LINEAR_ACCESS_CREATE) {
 TEST_F(CreateSmallSphereTest, LINEAR_ACCESS_IO) {
 
     ASSERT_TRUE(test_linear_access_io(test_data));
+
+}
+
+TEST_F(CreateSmallSphereTest, ITERATOR_METHODS) {
+
+    ASSERT_TRUE(test_iterator_methods(test_data));
 
 }
 
@@ -3343,6 +3458,10 @@ TEST_F(CreatDiffDimsSphereTest, RANDOM_ACCESS) {
     ASSERT_TRUE(test_random_access_it(test_data));
 
 }
+
+
+
+
 
 TEST_F(CreateSmallSphereTest, PIPELINE_SIZE) {
 
