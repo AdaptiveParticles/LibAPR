@@ -2821,28 +2821,87 @@ bool test_pipeline_bound(TestData& test_data,float rel_error){
 }
 
 
-bool test_apr_filter(TestData &test_data, const bool boundary = false, const int stencil_size = 3) {
+bool test_convolve_pencil(TestData &test_data, const bool boundary = false, const int stencil_size = 3) {
 
-    std::vector<PixelData<float>> stencils;
-    stencils.resize(1);
+    std::vector<PixelData<double>> stencils;
+    stencils.resize(3);
 
     auto it = test_data.apr.iterator();
 
-    if(it.number_dimensions() ==3){
-        stencils[0].init(stencil_size, stencil_size, stencil_size);
-    } else if (it.number_dimensions() ==2){
-        stencils[0].init(stencil_size, stencil_size, 1);
-    } else if (it.number_dimensions() ==1){
-        stencils[0].init(stencil_size, 1, 1);
+    for(size_t i = 0; i < 3; ++i) {
+        if (it.number_dimensions() == 3) {
+            stencils[i].init(stencil_size, stencil_size, stencil_size);
+        } else if (it.number_dimensions() == 2) {
+            stencils[i].init(stencil_size, stencil_size, 1);
+        } else if (it.number_dimensions() == 1) {
+            stencils[i].init(stencil_size, 1, 1);
+        }
     }
 
     // unique stencil elements
-    float sum = 0;
+    double sum = 0;
     for(int i = 0; i < stencils[0].mesh.size(); ++i) {
         sum += i;
     }
     for(int i = 0; i < stencils[0].mesh.size(); ++i) {
-        stencils[0].mesh[i] = ((float) i) / sum;
+        stencils[0].mesh[i] = ((double) i) / sum;
+        stencils[1].mesh[i] = ((double) i + sum) / (2*sum);
+        stencils[2].mesh[i] = ((double) i +2*sum) / (3*sum);
+    }
+
+    APRFilter filterfns;
+    filterfns.boundary_cond = boundary;
+
+    ParticleData<double> output;
+    filterfns.convolve_pencil(test_data.apr, stencils, test_data.particles_intensities, output);
+
+    ParticleData<double> output_gt;
+    filterfns.create_test_particles_equiv(test_data.apr, stencils, test_data.particles_intensities, output_gt);
+
+
+    if(output.size() != output_gt.size()) {
+        std::cerr << "output sizes differ" << std::endl;
+        return false;
+    }
+
+    double eps = 1e-2;
+
+    for(uint64_t x=0; x < output.size(); ++x) {
+        if(std::abs(output[x] - output_gt[x]) > eps) {
+            std::cerr << "discrepancy of " << std::abs(output[x] - output_gt[x]) << " at particle " << x << " (output = " << output[x] << ", ground_truth = " << output_gt[x] << ")" << std::endl;
+            return false;
+        }
+    }
+    return true;
+}
+
+
+bool test_convolve(TestData &test_data, const bool boundary = false, const int stencil_size = 3) {
+
+    std::vector<PixelData<double>> stencils;
+    stencils.resize(3);
+
+    auto it = test_data.apr.iterator();
+
+    for(size_t i = 0; i < 3; ++i) {
+        if (it.number_dimensions() == 3) {
+            stencils[i].init(stencil_size, stencil_size, stencil_size);
+        } else if (it.number_dimensions() == 2) {
+            stencils[i].init(stencil_size, stencil_size, 1);
+        } else if (it.number_dimensions() == 1) {
+            stencils[i].init(stencil_size, 1, 1);
+        }
+    }
+
+    // unique stencil elements
+    double sum = 0;
+    for(int i = 0; i < stencils[0].mesh.size(); ++i) {
+        sum += i;
+    }
+    for(int i = 0; i < stencils[0].mesh.size(); ++i) {
+        stencils[0].mesh[i] = ((double) i) / sum;
+        stencils[1].mesh[i] = ((double) i + sum) / (2*sum);
+        stencils[2].mesh[i] = ((double) i +2*sum) / (3*sum);
     }
 
     APRFilter filterfns;
@@ -2854,6 +2913,7 @@ bool test_apr_filter(TestData &test_data, const bool boundary = false, const int
     ParticleData<double> output_gt;
     filterfns.create_test_particles_equiv(test_data.apr, stencils, test_data.particles_intensities, output_gt);
 
+
     if(output.size() != output_gt.size()) {
         std::cerr << "output sizes differ" << std::endl;
         return false;
@@ -2863,7 +2923,7 @@ bool test_apr_filter(TestData &test_data, const bool boundary = false, const int
 
     for(uint64_t x=0; x < output.size(); ++x) {
         if(std::abs(output[x] - output_gt[x]) > eps) {
-            std::cerr << "discrepancy at particle " << x << " (output = " << output[x] << ", ground_truth = " << output_gt[x] << ")" << std::endl;
+            std::cerr << "discrepancy of " << std::abs(output[x] - output_gt[x]) << " at particle " << x << " (output = " << output[x] << ", ground_truth = " << output_gt[x] << ")" << std::endl;
             return false;
         }
     }
@@ -3142,7 +3202,9 @@ TEST_F(CreateGTSmall1DTestProperties, APR_PARTICLES) {
 }
 
 TEST_F(CreateGTSmall1DTestProperties, APR_FILTER) {
-    ASSERT_TRUE(test_apr_filter(test_data));
+    ASSERT_TRUE(test_convolve(test_data));
+    ASSERT_TRUE(test_convolve_pencil(test_data));
+
 }
 
 TEST_F(CreateGTSmall1DTestProperties, PIPELINE_COMPARE) {
@@ -3237,7 +3299,8 @@ TEST_F(CreateGTSmall2DTestProperties, APR_PARTICLES) {
 }
 
 TEST_F(CreateGTSmall2DTestProperties, APR_FILTER) {
-    ASSERT_TRUE(test_apr_filter(test_data));
+    ASSERT_TRUE(test_convolve(test_data));
+    ASSERT_TRUE(test_convolve_pencil(test_data));
 }
 
 TEST_F(CreateGTSmall2DTestProperties, PIPELINE_COMPARE) {
@@ -3468,10 +3531,15 @@ TEST_F(CreatDiffDimsSphereTest, PIPELINE_COMPARE) {
 
 
 TEST_F(CreateSmallSphereTest, APR_FILTER) {
-    ASSERT_TRUE(test_apr_filter(test_data, false, 3));
-    ASSERT_TRUE(test_apr_filter(test_data, true, 3));
-    ASSERT_TRUE(test_apr_filter(test_data, false, 5));
-    ASSERT_TRUE(test_apr_filter(test_data, true, 5));
+    ASSERT_TRUE(test_convolve(test_data, false, 3));
+    ASSERT_TRUE(test_convolve(test_data, true, 3));
+    ASSERT_TRUE(test_convolve(test_data, false, 5));
+    ASSERT_TRUE(test_convolve(test_data, true, 5));
+
+    ASSERT_TRUE(test_convolve_pencil(test_data, false, 3));
+    ASSERT_TRUE(test_convolve_pencil(test_data, true, 3));
+    ASSERT_TRUE(test_convolve_pencil(test_data, false, 5));
+    ASSERT_TRUE(test_convolve_pencil(test_data, true, 5));
 }
 
 
