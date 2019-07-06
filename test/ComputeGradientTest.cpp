@@ -8,7 +8,7 @@
 #include "algorithm/ComputeGradient.hpp"
 #include "algorithm/ComputeGradientCuda.hpp"
 #include <random>
-
+#include "algorithm/APRConverter.hpp"
 
 namespace {
     /**
@@ -1132,8 +1132,11 @@ namespace {
 
         // Calculate bspline on CPU
         PixelData<ImageType> mCpuImage(image_temp, true);
+
+        ComputeGradient computeGradient;
+
         timer.start_timer(">>>>>>>>>>>>>>>>> CPU gradient");
-        APRConverter<float>().get_gradient(mCpuImage, grad_temp, local_scale_temp, local_scale_temp2, 0, par);
+        computeGradient.get_gradient(mCpuImage, grad_temp, local_scale_temp, par);
         timer.stop_timer();
 
         // Calculate bspline on GPU
@@ -1182,12 +1185,16 @@ namespace {
         par.dy = 1;
         par.dz = 1;
 
+        ComputeGradient computeGradient;
+        LocalIntensityScale localIntensityScale;
+        LocalParticleCellSet localParticleSet;
+
         // Calculate bspline on CPU
         PixelData<ImageType> mCpuImage(image_temp, true);
         timer.start_timer(">>>>>>>>>>>>>>>>> CPU PIPELINE");
-        APRConverter<float>().get_gradient(mCpuImage, grad_temp, local_scale_temp, local_scale_temp2, 0, par);
-        APRConverter<float>().get_local_intensity_scale(local_scale_temp, local_scale_temp2, par);
-        APRConverter<float>().computeLevels(grad_temp, local_scale_temp, maxLevel, par.rel_error, par.dx, par.dy, par.dz);
+        computeGradient.get_gradient(mCpuImage, grad_temp, local_scale_temp, par);
+        localIntensityScale.get_local_intensity_scale(local_scale_temp, local_scale_temp2, par);
+        localParticleSet.computeLevels(grad_temp, local_scale_temp, maxLevel, par.rel_error, par.dx, par.dy, par.dz);
         timer.stop_timer();
 
         // Calculate bspline on GPU

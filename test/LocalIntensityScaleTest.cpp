@@ -356,7 +356,10 @@ namespace {
         PixelData<float> mCpu(m, true);
         PixelData<float> mCpuTemp(m, false);
         timer.start_timer("CPU LIS FULL");
-        APRConverter<float>().get_local_intensity_scale(mCpu, mCpuTemp, params);
+
+        LocalIntensityScale localIntensityScale;
+
+        localIntensityScale.get_local_intensity_scale(mCpu, mCpuTemp, params);
         timer.stop_timer();
 
         // Run on GPU

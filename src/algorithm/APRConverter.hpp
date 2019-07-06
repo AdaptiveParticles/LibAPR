@@ -226,7 +226,6 @@ void APRConverter<ImageType>::computeL(APR& aAPR,PixelData<T>& input_image){
 
     fine_grained_timer.stop_timer();
 
-#ifndef APR_USE_CUDA
     //method_timer.verbose_flag = true;
     method_timer.start_timer("compute_gradient_magnitude_using_bsplines");
     iComputeGradient.get_gradient(image_temp, grad_temp, local_scale_temp, par);
@@ -244,13 +243,8 @@ void APRConverter<ImageType>::computeL(APR& aAPR,PixelData<T>& input_image){
     if(par.output_steps){
         TiffUtils::saveMeshAsTiff(par.output_dir + "local_intensity_scale_step.tif", local_scale_temp);
     }
-
-#else
-    method_timer.start_timer("compute_gradient_magnitude_using_bsplines and local instensity scale CUDA");
-    //getFullPipeline(image_temp, grad_temp, local_scale_temp, local_scale_temp2,bspline_offset, par);
-    method_timer.stop_timer();
-
 #endif
+
 
 }
 
@@ -399,6 +393,8 @@ inline bool APRConverter<ImageType>::get_apr(APR &aAPR, PixelData<T>& input_imag
 
     initPipelineAPR(aAPR, input_image.y_num, input_image.x_num, input_image.z_num);
 
+#ifndef APR_USE_CUDA
+
     //Compute the local resolution estimate
     computeL(aAPR,input_image);
 
@@ -409,11 +405,40 @@ inline bool APRConverter<ImageType>::get_apr(APR &aAPR, PixelData<T>& input_imag
     generateDatastructures(aAPR);
 
 #else
+
+
+    initPipelineMemory(input_image.y_num, input_image.x_num, input_image.z_num);
+
     method_timer.start_timer("compute_gradient_magnitude_using_bsplines and local instensity scale CUDA");
     APRTimer t(true);
     APRTimer d(true);
     t.start_timer(" =========== ALL");
     {
+
+        allocation_timer.start_timer("init and copy image");
+        PixelData<ImageType> image_temp(input_image, false /* don't copy */, true /* pinned memory */); // global image variable useful for passing between methods, or re-using memory (should be the only full sized copy of the image)
+
+        allocation_timer.stop_timer();
+
+        /////////////////////////////////
+        /// Pipeline
+        ////////////////////////
+
+        computation_timer.start_timer("Calculations");
+
+        fine_grained_timer.start_timer("offset image");
+        //offset image by factor (this is required if there are zero areas in the background with uint16_t and uint8_t images, as the Bspline co-efficients otherwise may be negative!)
+        // Warning both of these could result in over-flow (if your image is non zero, with a 'buffer' and has intensities up to uint16_t maximum value then set image_type = "", i.e. uncomment the following line)
+
+        if (std::is_same<uint16_t, ImageType>::value) {
+            bspline_offset = 100;
+            image_temp.copyFromMeshWithUnaryOp(input_image, [=](const auto &a) { return (a + bspline_offset); });
+        } else if (std::is_same<uint8_t, ImageType>::value){
+            bspline_offset = 5;
+            image_temp.copyFromMeshWithUnaryOp(input_image, [=](const auto &a) { return (a + bspline_offset); });
+        } else {
+            image_temp.copyFromMesh(input_image);
+        }
 
 
         std::vector<GpuProcessingTask<ImageType>> gpts;
@@ -423,7 +448,7 @@ inline bool APRConverter<ImageType>::get_apr(APR &aAPR, PixelData<T>& input_imag
 
         // Create streams and send initial task to do
         for (int i = 0; i < numOfStreams; ++i) {
-            gpts.emplace_back(GpuProcessingTask<ImageType>(image_temp, local_scale_temp, par, bspline_offset, (*apr).level_max()));
+            gpts.emplace_back(GpuProcessingTask<ImageType>(image_temp, local_scale_temp, par, bspline_offset, aAPR.level_max()));
             gpts.back().sendDataToGpu();
             gpts.back().processOnGpu();
         }
@@ -442,15 +467,15 @@ inline bool APRConverter<ImageType>::get_apr(APR &aAPR, PixelData<T>& input_imag
 
             // Postprocess on CPU
             std::cout << "--------- start CPU processing ---------- " << i << std::endl;
-            init_apr(aAPR, input_image);
+            //init_apr(aAPR, input_image);
             d.start_timer("1");
-            iPullingScheme.initialize_particle_cell_tree(aAPR.apr_access);
+            iPullingScheme.initialize_particle_cell_tree(aAPR.aprInfo);
             d.stop_timer();
             d.start_timer("2");
             PixelData<float> lst(local_scale_temp, true);
             d.stop_timer();
             d.start_timer("3");
-            get_local_particle_cell_set(lst, local_scale_temp2);
+            iLocalParticleSet.get_local_particle_cell_set(iPullingScheme,lst, local_scale_temp2,par);
             d.stop_timer();
             d.start_timer("4");
             iPullingScheme.pulling_scheme_main();
@@ -465,9 +490,9 @@ inline bool APRConverter<ImageType>::get_apr(APR &aAPR, PixelData<T>& input_imag
             d.start_timer("7");
             aAPR.apr_access.initialize_structure_from_particle_cell_tree(aAPR.parameters, iPullingScheme.getParticleCellTree());
             d.stop_timer();
-            d.start_timer("8");
-            aAPR.get_parts_from_img(downsampled_img, aAPR.particles_intensities);
-            d.stop_timer();
+//            d.start_timer("8");
+//            aAPR.get_parts_from_img(downsampled_img, aAPR.particles_intensities);
+//            d.stop_timer();
 
         }
         std::cout << "Total n ENDED" << std::endl;
@@ -477,9 +502,9 @@ inline bool APRConverter<ImageType>::get_apr(APR &aAPR, PixelData<T>& input_imag
     method_timer.stop_timer();
 #endif
 
-    computation_timer.stop_timer();
-
-    total_timer.stop_timer();
+//    computation_timer.stop_timer();
+//
+//    total_timer.stop_timer();
 
     return true;
 }
