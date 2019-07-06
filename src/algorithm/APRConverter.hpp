@@ -480,15 +480,9 @@ inline bool APRConverter<ImageType>::get_apr(APR &aAPR, PixelData<T>& input_imag
             d.start_timer("4");
             iPullingScheme.pulling_scheme_main();
             d.stop_timer();
-            d.start_timer("5");
-            PixelData<T> inImg(input_image, true);
-            d.stop_timer();
-            d.start_timer("6");
-            std::vector<PixelData<T>> downsampled_img;
-            downsamplePyrmaid(inImg, downsampled_img, aAPR.level_max(), aAPR.level_min());
-            d.stop_timer();
+
             d.start_timer("7");
-            aAPR.apr_access.initialize_structure_from_particle_cell_tree(aAPR.parameters, iPullingScheme.getParticleCellTree());
+            generateDatastructures(aAPR);
             d.stop_timer();
 //            d.start_timer("8");
 //            aAPR.get_parts_from_img(downsampled_img, aAPR.particles_intensities);

@@ -782,7 +782,6 @@ bool test_pipeline_different_sizes(TestData& test_data){
 bool test_pulling_scheme_sparse(TestData& test_data){
     bool success = true;
 
-
     APRConverter<uint16_t> aprConverter;
 
     //read in the command line options into the parameters file
@@ -3069,7 +3068,9 @@ TEST_F(CreateGTSmall1DTestProperties, APR_ITERATION) {
 
 TEST_F(CreateGTSmall1DTestProperties, PULLING_SCHEME_SPARSE) {
     //tests the linear access geneartions and io
+#ifndef APR_USE_CUDA
     ASSERT_TRUE(test_pulling_scheme_sparse(test_data));
+#endif
 
 }
 
