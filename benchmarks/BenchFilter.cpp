@@ -24,6 +24,9 @@ template<typename partsType>
 inline void bench_apr_convolve(APR& apr,ParticleData<partsType>& parts,int num_rep,AnalysisData& analysisData,int stencil_size = 3);
 
 template<typename partsType>
+inline void bench_apr_convolve_pencil(APR& apr,ParticleData<partsType>& parts,int num_rep,AnalysisData& analysisData,int stencil_size = 3);
+
+template<typename partsType>
 inline void bench_pixel_convolve(APR& apr,ParticleData<partsType>& parts,int num_rep,AnalysisData& analysisData,int stencil_size);
 
 int main(int argc, char **argv) {
@@ -52,6 +55,10 @@ int main(int argc, char **argv) {
         bench_apr_convolve(apr,parts,benchAPRHelper.get_number_reps(),benchAPRHelper.analysisData,1);
         bench_apr_convolve(apr,parts,benchAPRHelper.get_number_reps(),benchAPRHelper.analysisData,3);
         bench_apr_convolve(apr,parts,benchAPRHelper.get_number_reps(),benchAPRHelper.analysisData,5);
+
+        bench_apr_convolve_pencil(apr,parts,benchAPRHelper.get_number_reps(),benchAPRHelper.analysisData,1);
+        bench_apr_convolve_pencil(apr,parts,benchAPRHelper.get_number_reps(),benchAPRHelper.analysisData,3);
+        bench_apr_convolve_pencil(apr,parts,benchAPRHelper.get_number_reps(),benchAPRHelper.analysisData,5);
 
         if(i==0){
             /*
@@ -110,6 +117,47 @@ inline void bench_apr_convolve(APR& apr,ParticleData<partsType>& parts,int num_r
 
     analysisData.add_timer(timer,apr.total_number_particles(),num_rep);
 }
+
+template<typename partsType>
+inline void bench_apr_convolve_pencil(APR& apr,ParticleData<partsType>& parts,int num_rep,AnalysisData& analysisData,int stencil_size){
+
+    APRTimer timer(true);
+
+    std::vector<PixelData<float>> stencils;
+    stencils.resize(1);
+
+    auto it = apr.iterator();
+
+    if(it.number_dimensions() ==3){
+        stencils[0].init(stencil_size, stencil_size, stencil_size);
+    } else if (it.number_dimensions() ==2){
+        stencils[0].init(stencil_size, stencil_size, 1);
+    } else if (it.number_dimensions() ==1){
+        stencils[0].init(stencil_size, 1, 1);
+    }
+
+    // unique stencil elements
+    float sum = 0;
+    for(int i = 0; i < stencils[0].mesh.size(); ++i) {
+        sum += i;
+    }
+    for(int i = 0; i < stencils[0].mesh.size(); ++i) {
+        stencils[0].mesh[i] = ((float) i) / sum;
+    }
+
+    APRFilter filterfns;
+    filterfns.boundary_cond = false;
+
+    timer.start_timer("apr_filter_pencil" + std::to_string(stencil_size));
+    for (int r = 0; r < num_rep; ++r) {
+        ParticleData<double> output;
+        filterfns.convolve(apr, stencils, parts, output);
+    }
+    timer.stop_timer();
+
+    analysisData.add_timer(timer,apr.total_number_particles(),num_rep);
+}
+
 template<typename partsType>
 inline void bench_pixel_convolve(APR& apr,ParticleData<partsType>& parts,int num_rep,AnalysisData& analysisData,int stencil_size){
 
