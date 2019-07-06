@@ -6,6 +6,7 @@
 #include "data_structures/Mesh/PixelData.hpp"
 //TODO: only APRAccess.hpp should be included here but currently because of dependencies it does not work :(
 #include "data_structures/APR/APR.hpp"
+#include "algorithm/APRConverter.hpp"
 //#include "data_structures/APR/APRAccess.hpp"
 #include "algorithm/PullingScheme.hpp"
 #include "TestTools.hpp"
@@ -93,8 +94,10 @@ namespace {
         PixelData<float> elo(localIntensityScaleCpu, true);
         APRTimer timer(true);
 
+        LocalParticleCellSet localParticleCellSet;
+
         timer.start_timer("CPU PS FULL");
-        APRConverter<ImgType>().computeLevels(grad, localIntensityScaleCpu, maxLevel, relError);
+        localParticleCellSet.computeLevels(grad, localIntensityScaleCpu, maxLevel, relError,1,1,1);
         timer.stop_timer();
 
         timer.start_timer("GPU PS FULL");

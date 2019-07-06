@@ -6,6 +6,7 @@
 #define PARTPLAY_EXTRAPARTICLEDATA_HPP
 
 #include "../iterators/APRIterator.hpp"
+#include "../iterators/LinearIterator.hpp"
 #include "data_structures/Mesh/PixelData.hpp"
 
 #include "GenData.hpp"
@@ -73,13 +74,17 @@ public:
     }
 
     void fill_with_levels(APR &apr){
-        auto it = apr.iterator();
-        APRNumerics::general_fill_level(apr,*this,it,false);
+        general_fill_level(apr,*this,false);
     }
 
     void fill_with_levels_tree(APR &apr){
-        auto it = apr.tree_iterator();
-        APRNumerics::general_fill_level(apr,*this,it,true);
+
+        general_fill_level(apr,*this,true);
+    }
+
+    template<typename imageType>
+    void sample_parts_from_img_downsampled(APR& apr,PixelData<imageType>& img){
+        sample_parts_from_img_downsampled_gen(apr,*this,img);
     }
 
     template<typename S>
@@ -97,14 +102,80 @@ public:
         std::fill(data.begin(),data.end(),0);
     }
 
-    template<typename imageType>
-    void sample_parts_from_img_downsampled(APR& apr,PixelData<imageType>& img){
-        APRNumerics::sample_parts_from_img_downsampled(apr,*this,img);
-    }
 
 };
 
 
+template<typename ImageType,typename ParticleDataType>
+void sample_parts_from_img_downsampled_gen(APR& apr,ParticleDataType& parts,PixelData<ImageType>& input_image) {
+
+    std::vector<PixelData<ImageType>> downsampled_img;
+    //Down-sample the image for particle intensity estimation
+    downsamplePyrmaid(input_image, downsampled_img, apr.level_max(), apr.level_min());
+
+    //aAPR.get_parts_from_img_alt(input_image,aAPR.particles_intensities);
+    sample_parts_from_img_downsampled_gen(apr,parts,downsampled_img);
+
+    std::swap(input_image, downsampled_img.back());
+}
+
+/**
+* Samples particles from an image using an image tree (img_by_level is a vector of images)
+*/
+template<typename ImageType,typename ParticleDataType>
+void sample_parts_from_img_downsampled_gen(APR& apr,ParticleDataType& parts,std::vector<PixelData<ImageType>>& img_by_level){
+    auto it = apr.iterator();
+    parts.init(apr);
+
+    for (unsigned int level = it.level_min(); level <= it.level_max(); ++level) {
+#ifdef HAVE_OPENMP
+#pragma omp parallel for schedule(dynamic) firstprivate(it)
+#endif
+        for (int z = 0; z < it.z_num(level); ++z) {
+            for (int x = 0; x < it.x_num(level); ++x) {
+                for (it.begin(level, z, x);it <it.end();it++) {
+
+                    parts[it] = img_by_level[level].at(it.y(),x,z);
+                }
+            }
+        }
+    }
+}
+
+
+template<typename ParticleDataType>
+void general_fill_level(APR &apr,ParticleDataType& parts,bool tree){
+
+    LinearIterator it;
+
+    if(tree){
+        it = apr.tree_iterator();
+        parts.init_tree(apr);
+    } else {
+        it = apr.iterator();
+        parts.init(apr);
+    }
+
+    for (unsigned int level = it.level_min(); level <= it.level_max(); ++level) {
+        int z = 0;
+        int x = 0;
+
+#ifdef HAVE_OPENMP
+#pragma omp parallel for schedule(dynamic) private(z, x) firstprivate(it)
+#endif
+        for (z = 0; z < it.z_num(level); z++) {
+            for (x = 0; x < it.x_num(level); ++x) {
+                for (it.begin(level, z, x); it < it.end();
+                     it++) {
+
+                    parts[it] = level;
+
+                }
+            }
+        }
+    }
+
+}
 
 /**
  * Copy's the data from one particle dataset to another

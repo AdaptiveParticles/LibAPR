@@ -35,12 +35,6 @@ void get_local_intensity_scale(PixelData<float> &local_scale_temp, PixelData<flo
     float var_rescale;
     std::vector<int> var_win;
     get_window_alt(var_rescale, var_win, par, local_scale_temp);
-//    int win_y = std::min(var_win[0],(int)local_scale_temp.y_num-1);
-//    int win_x = std::min(var_win[1],(int)local_scale_temp.x_num-1);
-//    int win_z = std::min(var_win[2],(int)local_scale_temp.z_num-1);
-//    int win_y2 = std::min(var_win[3],(int)local_scale_temp.y_num-1);
-//    int win_x2 = std::min(var_win[4],(int)local_scale_temp.x_num-1);
-//    int win_z2 = std::min(var_win[5],(int)local_scale_temp.z_num-1);
 
     int win_y = var_win[0];
     int win_x = var_win[1];
@@ -59,25 +53,25 @@ void get_local_intensity_scale(PixelData<float> &local_scale_temp, PixelData<flo
 
         timer.start_timer("copy_intensities_from_bsplines");
         //copy across the intensities
-        local_scale_temp2.copyFromMesh(local_scale_temp);
-        timer.stop_timer();
 
         int y_num_t = local_scale_temp.y_num;
         int x_num_t = local_scale_temp.x_num;
         int z_num_t = local_scale_temp.z_num;
 
+        PixelData<float> temp_copy;
+        temp_copy.init(y_num_t,x_num_t,z_num_t);
+
+        temp_copy.copyFromMesh(local_scale_temp);
+        timer.stop_timer();
 
         //Addded
-        PixelData<float> input_pad;
-        paddPixels(local_scale_temp, input_pad, std::max(win_y, win_y2), std::max(win_x, win_x2),
+
+        paddPixels(temp_copy, local_scale_temp, std::max(win_y, win_y2), std::max(win_x, win_x2),
                    std::max(win_z, win_z2));
 
-        PixelData<float> input_pad2;
-        paddPixels(local_scale_temp, input_pad2, std::max(win_y, win_y2), std::max(win_x, win_x2),
+        paddPixels(temp_copy, local_scale_temp2, std::max(win_y, win_y2), std::max(win_x, win_x2),
                    std::max(win_z, win_z2));
 
-        std::swap(local_scale_temp,input_pad);
-        std::swap(local_scale_temp2,input_pad2);
 
         if (active_y) {
             timer.start_timer("calc_sat_mean_y");
@@ -125,13 +119,12 @@ void get_local_intensity_scale(PixelData<float> &local_scale_temp, PixelData<flo
         rescale_var(local_scale_temp, var_rescale);
         timer.stop_timer();
 
-        std::swap(local_scale_temp2,input_pad2);
-        std::swap(local_scale_temp,input_pad);
+        local_scale_temp.swap(local_scale_temp2);
 
-        unpaddPixels(input_pad, local_scale_temp, y_num_t, x_num_t,
+        unpaddPixels(local_scale_temp2, local_scale_temp, y_num_t, x_num_t,
                      z_num_t);
-        unpaddPixels(input_pad2, local_scale_temp2, y_num_t, x_num_t,
-                     z_num_t); //TODO: I don't think this one is necessary, the memory is even re-allocated later.
+
+        local_scale_temp2.initWithResize(y_num_t,x_num_t,z_num_t);
 
     } else {
 

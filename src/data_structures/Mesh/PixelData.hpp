@@ -32,18 +32,22 @@ template <typename T>
 class ArrayWrapper
 {
 public:
-    ArrayWrapper() : iArray(nullptr), iNumOfElements(0) {}
+    ArrayWrapper() : iArray(nullptr), iNumOfElements(0), iNumOfAllocatedElements(0) {}
     ArrayWrapper(ArrayWrapper &&aObj) {
         iArray = aObj.iArray; aObj.iArray = nullptr;
         iNumOfElements = aObj.iNumOfElements; aObj.iNumOfElements = 0;
+        iNumOfAllocatedElements = aObj.iNumOfAllocatedElements; aObj.iNumOfAllocatedElements = 0;
     }
     ArrayWrapper& operator=(ArrayWrapper&& aObj) {
         iArray = aObj.iArray; aObj.iArray = nullptr;
         iNumOfElements = aObj.iNumOfElements; aObj.iNumOfElements = 0;
+        iNumOfAllocatedElements = aObj.iNumOfAllocatedElements; aObj.iNumOfAllocatedElements = 0;
         return *this;
     }
 
-    inline void set(T *aInputArray, size_t aNumOfElements) {iArray = aInputArray; iNumOfElements = aNumOfElements;}
+    inline void set(T *aInputArray, size_t aNumOfElements) {iArray = aInputArray; iNumOfElements = aNumOfElements;iNumOfAllocatedElements = aNumOfElements;}
+
+    inline void resize(size_t aNumOfElements) {iNumOfElements = aNumOfElements;} //no memory management
 
     inline T* begin() { return (iArray); }
     inline T* end() { return (iArray + iNumOfElements); }
@@ -54,14 +58,20 @@ public:
     inline T& operator[](size_t idx) { return iArray[idx]; }
     inline const T& operator[](size_t idx) const { return iArray[idx]; }
     inline size_t size() const { return iNumOfElements; }
-    inline size_t capacity() const { return iNumOfElements; }
+    inline size_t capacity() const { return iNumOfAllocatedElements; }
 
     inline T* get() {return iArray;}
     inline const T* get() const {return iArray;}
 
     inline void swap(ArrayWrapper<T> &aObj) {
+        std::swap(iNumOfAllocatedElements, aObj.iNumOfAllocatedElements);
         std::swap(iNumOfElements, aObj.iNumOfElements);
         std::swap(iArray, aObj.iArray);
+    }
+
+    friend std::ostream & operator<<(std::ostream &os, const ArrayWrapper<T> &obj) {
+        os << "ArrayWrapper: size:" << obj.size() << " elementSize:" << sizeof(T) << " sizeInBytes:" << obj.size() * sizeof(T);
+        return os;
     }
 
 private:
@@ -70,6 +80,7 @@ private:
 
     T *iArray;
     size_t iNumOfElements;
+    size_t iNumOfAllocatedElements;
 };
 
 
@@ -91,7 +102,8 @@ public :
     PinnedMemoryUniquePtr<T> meshMemoryPinned;
 #endif
     ArrayWrapper<T> mesh;
-
+    
+    uint64_t size() { return x_num * y_num * z_num * sizeof(T); }
     /**
      * Constructor - initialize mesh with size of 0,0,0
      */
@@ -265,9 +277,17 @@ public :
 
         mesh.set(array, size);
 
+        fill(aInitVal);
+    }
+
+    void fill(T aInitVal) {
         // Fill values of new buffer in parallel
-        #ifdef HAVE_OPENMP
-        #pragma omp parallel
+
+        size_t size = (size_t)y_num * x_num * z_num;
+        T *array = meshMemory.get();
+
+#ifdef HAVE_OPENMP
+#pragma omp parallel
         {
             auto threadNum = omp_get_thread_num();
             auto numOfThreads = omp_get_num_threads();
@@ -276,9 +296,9 @@ public :
             auto end = (threadNum == numOfThreads - 1) ? array + size : begin + chunkSize;
             std::fill(begin, end, aInitVal);
         }
-        #else
+#else
         std::fill(array, array + size, aInitVal);
-        #endif
+#endif
     }
 
 
@@ -329,6 +349,25 @@ public :
 #endif
         }
         mesh.set(array, size);
+    }
+
+    /**
+     * Initializes mesh with provided dimensions with default value of used type, only allocating memory if more is needed then currently, otherwise just changes the dims.
+     * @param aSizeOfY
+     * @param aSizeOfX
+     * @param aSizeOfZ
+     */
+    void initWithResize(int aSizeOfY, int aSizeOfX, int aSizeOfZ, bool aUsePinnedMemory = false) {
+        y_num = aSizeOfY;
+        x_num = aSizeOfX;
+        z_num = aSizeOfZ;
+        size_t size = (size_t)y_num * x_num * z_num;
+
+        if(size <= mesh.capacity()){
+            mesh.resize(size);
+        } else{
+            init(aSizeOfY,aSizeOfX,aSizeOfZ,aUsePinnedMemory);
+        }
     }
 
     /**
@@ -532,7 +571,7 @@ public :
     }
 
     friend std::ostream & operator<<(std::ostream &os, const PixelData<T> &obj) {
-        os << "PixelData: size(Y/X/Z)=" << obj.y_num << "/" << obj.x_num << "/" << obj.z_num << " vSize:" << obj.mesh.size() << " vCapacity:" << obj.mesh.capacity() << " elementSize:" << sizeof(T);
+        os << "PixelData: size(Y/X/Z)=" << obj.y_num << "/" << obj.x_num << "/" << obj.z_num << " " << obj.mesh << " ";
         return os;
     }
 
@@ -560,7 +599,7 @@ void downsample(const PixelData<T> &aInput, PixelData<S> &aOutput, R reduce, C c
 
     if (aInitializeOutput) {
         timer.start_timer("downsample_initalize");
-        aOutput.init(y_num_ds, x_num_ds, z_num_ds);
+        aOutput.initWithResize(y_num_ds, x_num_ds, z_num_ds);
         timer.stop_timer();
     }
 
@@ -712,7 +751,7 @@ void paddPixels(PixelData<T> &input, PixelData<T> &output, int sz_y, int sz_x, i
         sz_z = 0;
     }
 
-    output.init(input.y_num + 2*sz_y,input.x_num + 2*sz_x,input.z_num + 2*sz_z);
+    output.initWithResize(input.y_num + 2*sz_y,input.x_num + 2*sz_x,input.z_num + 2*sz_z);
 
     //copy across internal
 
@@ -803,6 +842,184 @@ void paddPixels(PixelData<T> &input, PixelData<T> &output, int sz_y, int sz_x, i
 
 }
 
+
+/**
+ * Padds an array performing reflection, first y,x,z - reflecting around the edge pixel.
+ * @tparam T - type of data
+ * @param input - source data that has already been allocated to the correct size including the padding.
+ * @param sz_y - desired padding size, will be bounded by y_num - 1
+ * @param sz_x- desired padding size, will be bounded by x_num - 1
+ * @param sz_z - desired padding size, will be bounded by z_num - 1
+*/
+template<typename T>
+void paddPixelsInPlace(PixelData<T> &input, int sz_y, int sz_x, int sz_z){
+    // WARNING: This requries an array with memory pre-allocated to the correct size.
+
+    if(input.y_num > 1){
+        sz_y = std::min(sz_y,(int) (input.y_num-1));
+    } else {
+        sz_y = 0;
+    }
+
+    if(input.x_num > 1){
+        sz_x =  std::min(sz_x,(int) (input.x_num-1));
+    } else {
+        sz_x = 0;
+    }
+
+    if(input.z_num > 1){
+        sz_z =  std::min(sz_z, (int) (input.z_num-1));
+    } else {
+        sz_z = 0;
+    }
+
+    int x_num_o = input.x_num;
+    int y_num_o = input.y_num;
+    int z_num_o = input.z_num;
+
+    //this does not touch the memory.
+    input.initWithResize(input.y_num + 2 * sz_y, input.x_num + 2 * sz_x, input.z_num + 2 * sz_z);
+
+    int x_num_n = input.x_num;
+    int y_num_n = input.y_num;
+
+    //copy across internal
+    int j = 0;
+
+#ifdef HAVE_OPENMP
+//#pragma omp parallel for private(j)
+#endif
+    for (j = (z_num_o - 1); j >= 0; --j) {
+        //for (int i = 0; i < x_num_o; ++i) {
+        for (int i = (x_num_o - 1); i >= 0; --i) {
+            for (int k = (y_num_o-1); k >= 0; --k) {
+
+                size_t idx1 = j * x_num_o * y_num_o + i * y_num_o + k;
+                size_t idx2 = (j + sz_z) * x_num_n * y_num_n + (i + sz_x) * y_num_n + (k + sz_y);
+
+                input.mesh[idx2] = input.mesh[idx1];
+            }
+        }
+    }
+
+    if(input.y_num > 1) {
+        //reflect y
+#ifdef HAVE_OPENMP
+#pragma omp parallel for schedule(dynamic) private(j)
+#endif
+        for (j = 0; j < input.z_num; ++j) {
+            for (int i = 0; i < input.x_num; ++i) {
+
+                for (int k = 0; k < (sz_y); ++k) {
+                    input.at(k, i, j) = input.at(2 * sz_y - k, i, j);
+                }
+
+                int idx = sz_y+2;
+                for (int k = (input.y_num - (sz_y)); k < input.y_num; ++k) {
+
+                    input.at(k, i, j) = input.at(input.y_num - idx, i, j);
+                    idx++;
+                }
+            }
+        }
+    }
+
+    if(input.x_num > 1) {
+        //reflect x
+#ifdef HAVE_OPENMP
+#pragma omp parallel for schedule(dynamic) private(j)
+#endif
+        for (j = 0; j < input.z_num; ++j) {
+            for (int i = 0; i < (sz_x); ++i) {
+                for (int k = 0; k < input.y_num; ++k) {
+                    input.at(k, i, j) = input.at(k, 2 * sz_x - i, j);
+                }
+            }
+            int idx = sz_x+2;
+            for (int i = (input.x_num - (sz_x)); i < input.x_num; ++i) {
+                for (int k = 0; k < input.y_num; ++k) {
+                    input.at(k, i, j) = input.at(k, input.x_num - idx, j);
+
+                }
+                idx++;
+            }
+        }
+    }
+
+    //z loops
+    if(input.z_num > 1) {
+#ifdef HAVE_OPENMP
+#pragma omp parallel for schedule(dynamic) private(j)
+#endif
+        for (j = 0; j < (sz_z); ++j) {
+            for (int i = 0; i < input.x_num; ++i) {
+                for (int k = 0; k < input.y_num; ++k) {
+                    input.at(k, i, j) = input.at(k, i, 2 * sz_z - j);
+                }
+            }
+        }
+
+#ifdef HAVE_OPENMP
+#pragma omp parallel for schedule(dynamic) private(j)
+#endif
+        for (int j = (input.z_num - (sz_z)); j < input.z_num; ++j) {
+            auto idx = sz_z+2 + j - (input.z_num - (sz_z));
+            for (int i = 0; i < input.x_num; ++i) {
+                for (int k = 0; k < input.y_num; ++k) {
+                    input.at(k, i, j) = input.at(k, i, input.z_num - idx);
+                }
+            }
+        }
+    }
+}
+
+/**
+ * unPadds an array
+ * @tparam T - type of data
+ * @param input - padded source data
+ * @param output - unpadded image
+ * @param org_dim_y - original image y_num
+ * @param org_dim_x- original image x_num
+ * @param org_dim_z - original image z_num
+*/
+template<typename T>
+void unpaddPixelsInPlace(PixelData<T> &input, int org_dim_y, int org_dim_x, int org_dim_z) {
+
+    int sz_y = (input.y_num - org_dim_y)/2; //accounts for the resizing due to minimum dimension constraints that could occur on the first pass.
+    int sz_x = (input.x_num - org_dim_x)/2;
+    int sz_z = (input.z_num - org_dim_z)/2;
+
+    int x_num_n = input.x_num;
+    int y_num_n = input.y_num;
+
+    input.initWithResize(org_dim_y, org_dim_x, org_dim_z);
+
+    int x_num_o = input.x_num;
+    int y_num_o = input.y_num;
+    int z_num_o = input.z_num;
+
+    //copy across internal
+    int j = 0;
+
+#ifdef HAVE_OPENMP
+//#pragma omp parallel for schedule(dynamic) private(j)
+#endif
+    for (j = 0; j < z_num_o; ++j) {
+        for (int i = 0; i < x_num_o; ++i) {
+            for (int k = 0; k < y_num_o; ++k) {
+
+                size_t idx1 = j * x_num_o * y_num_o + i * y_num_o + k;
+                size_t idx2 = (j + sz_z) * x_num_n * y_num_n + (i + sz_x) * y_num_n + (k + sz_y);
+
+                input.mesh[idx1]=input.mesh[idx2];
+            }
+        }
+    }
+
+}
+
+
+
 /**
  * unPadds an array
  * @tparam T - type of data
@@ -816,7 +1033,7 @@ template<typename T>
 void unpaddPixels(PixelData<T> &input, PixelData<T> &output, int org_dim_y, int org_dim_x, int org_dim_z) {
 
 
-    output.init(org_dim_y, org_dim_x, org_dim_z);
+    output.initWithResize(org_dim_y, org_dim_x, org_dim_z);
 
     int sz_y = (input.y_num - org_dim_y)/2; //accounts for the resizing due to minimum dimension constraints that could occur on the first pass.
     int sz_x = (input.x_num - org_dim_x)/2;

@@ -25,6 +25,9 @@ for(jn = boundaries[0][0]; jn < boundaries[0][1]; jn++) \
     for(in = boundaries[1][0]; in < boundaries[1][1]; in++) \
         for(kn = boundaries[2][0]; kn < boundaries[2][1]; kn++)
 
+#define NEIGHBOURLOOP2(jn,in,boundaries) \
+for(jn = boundaries[0][0]; jn < boundaries[0][1]; jn++) \
+    for(in = boundaries[1][0]; in < boundaries[1][1]; in++)
 
 #define CHILDRENLOOP(jn,in,kn, children_boundaries) \
 for(jn = j * 2; jn < j * 2 + children_boundaries[0]; jn++) \

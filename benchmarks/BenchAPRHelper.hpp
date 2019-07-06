@@ -106,7 +106,7 @@ class BenchAPRHelper {
 
         for (int i = 0; i < CR_names.size(); ++i) {
             if((CR_names[i] >= CR_min) && (CR_names[i] <= CR_max)){
-                std::string name = get_source_directory_apr() + benchmark_file_location + "/CR_" + std::to_string(CR_names[i]) + ".apr";
+                std::string name = get_source_directory_apr() + benchmark_file_location + "/cr_" + std::to_string(CR_names[i]) + ".apr";
                 APR apr;
                 ParticleData<uint16_t> parts;
 

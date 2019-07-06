@@ -51,8 +51,16 @@ public:
         return set_new_lzx(level,z,x);
     }
 
-    inline uint64_t particles_level_begin(const uint16_t& level_) {return apr_access->global_index_by_level_and_zx_end[level_-1].back()+1;}
+    inline uint64_t particles_level_begin(const uint16_t& level_) {
+        //first particle
+        if(level_ == 0){
+            return 0;
+        } else {
+            return apr_access->global_index_by_level_and_zx_end[level_-1].back();
+        }
+    }
     inline uint64_t particles_level_end(const uint16_t& level_) {return apr_access->global_index_by_level_and_zx_end[level_].back();}
+    //last particle index + 1, or total number.
 
 };
 

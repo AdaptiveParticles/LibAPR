@@ -102,8 +102,8 @@ __global__ void meanXdir(T *image, int offset, size_t x_num, size_t y_num, size_
     float (*data)[NumberOfWorkers] = (float (*)[NumberOfWorkers])sharedMem;
 
     const int divisor = 2 * offset  + 1;
-    int currElementOffset = 0;
-    int saveElementOffset = 0;
+    size_t currElementOffset = 0;
+    size_t saveElementOffset = 0;
 
     if (workerYoffset < y_num) {
         // clear shared mem
@@ -182,8 +182,8 @@ __global__ void meanZdir(T *image, int offset, size_t x_num, size_t y_num, size_
     float (*data)[NumberOfWorkers] = (float (*)[NumberOfWorkers])sharedMem;
 
     const int divisor = 2 * offset  + 1;
-    int currElementOffset = 0;
-    int saveElementOffset = 0;
+    size_t currElementOffset = 0;
+    size_t saveElementOffset = 0;
 
     if (workerYoffset < y_num) {
         // clear shared mem
@@ -203,7 +203,7 @@ __global__ void meanZdir(T *image, int offset, size_t x_num, size_t y_num, size_
         // Pointer in circular buffer
         int beginPtr = offset;
 
-        // main loop going through all elements in range [0, x_num-offset)
+        // main loop going through all elements in range [0, z_num-offset)
         for (int z = 0; z < z_num - offset; ++z) {
             // Read new element
             T v = image[workerOffset + currElementOffset];
@@ -361,8 +361,10 @@ template void runLocalIntensityScalePipeline<float,float>(const PixelData<float>
 template <typename T>
 void calcMean(PixelData<T> &image, int offset, TypeOfMeanFlags flags) {
     ScopedCudaMemHandler<PixelData<T>, H2D | D2H> cudaImage(image);
-
+    APRTimer timer(true);
+    timer.start_timer("GpuDeviceTimeFull");
     runMean(cudaImage.get(), image, offset, offset, offset, flags, 0);
+    timer.stop_timer();
 }
 
 // explicit instantiation of handled types

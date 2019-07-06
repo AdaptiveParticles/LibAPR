@@ -31,7 +31,14 @@ class LinearIterator: public GenIterator {
 
 public:
 
-    explicit LinearIterator(LinearAccess& apr_access_,GenInfo& genInfo_) {
+    LinearIterator(){
+    }
+
+    LinearIterator(LinearAccess& apr_access_,GenInfo& genInfo_) {
+        init(apr_access_,genInfo_);
+    }
+
+    void init(LinearAccess& apr_access_,GenInfo& genInfo_){
         linearAccess = &apr_access_;
         genInfo = &genInfo_;
         current_index = 0;

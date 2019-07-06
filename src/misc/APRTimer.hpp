@@ -66,7 +66,7 @@ public:
     }
 
 
-    void stop_timer(){
+    double stop_timer(){
         t2_internal = std::chrono::system_clock::now();
 
         std::chrono::duration<double> elapsed_seconds = t2_internal - t1_internal;
@@ -79,6 +79,7 @@ public:
             std::cout <<  (timing_names.back()) << " took " << std::to_string(elapsed_seconds.count()) << " seconds" << std::endl;
         }
         timer_count++;
+	return elapsed_seconds.count();
     }
 };
 

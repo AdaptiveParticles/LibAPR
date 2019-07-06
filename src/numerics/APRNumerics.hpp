@@ -6,6 +6,9 @@
 #define PARTPLAY_APRNUMERICS_HPP
 
 #include "data_structures/APR/APR.hpp"
+#include "data_structures/APR/iterators/LinearIterator.hpp"
+#include "data_structures/APR/iterators/APRIterator.hpp"
+#include "data_structures/APR/iterators/APRTreeIterator.hpp"
 
 class APRNumerics {
 
@@ -14,72 +17,6 @@ public:
     /**
 * Samples particles from an image using by down-sampling the image and using them as functions
 */
-    template<typename ImageType,typename ParticleDataType>
-    static void sample_parts_from_img_downsampled(APR& apr,ParticleDataType& parts,PixelData<ImageType>& input_image) {
-
-        std::vector<PixelData<ImageType>> downsampled_img;
-        //Down-sample the image for particle intensity estimation
-        downsamplePyrmaid(input_image, downsampled_img, apr.level_max(), apr.level_min());
-
-        //aAPR.get_parts_from_img_alt(input_image,aAPR.particles_intensities);
-        sample_parts_from_img_downsampled(apr,parts,downsampled_img);
-
-        std::swap(input_image, downsampled_img.back());
-    }
-
-/**
-* Samples particles from an image using an image tree (img_by_level is a vector of images)
-*/
-    template<typename ImageType,typename ParticleDataType>
-    static void sample_parts_from_img_downsampled(APR& apr,ParticleDataType& parts,std::vector<PixelData<ImageType>>& img_by_level){
-        auto it = apr.iterator();
-        parts.init(apr);
-
-        for (unsigned int level = it.level_min(); level <= it.level_max(); ++level) {
-#ifdef HAVE_OPENMP
-#pragma omp parallel for schedule(dynamic) firstprivate(it)
-#endif
-            for (int z = 0; z < it.z_num(level); ++z) {
-                for (int x = 0; x < it.x_num(level); ++x) {
-                    for (it.begin(level, z, x);it <it.end();it++) {
-
-                        parts[it] = img_by_level[level].at(it.y(),x,z);
-                    }
-                }
-            }
-        }
-    }
-
-
-    template<typename ParticleDataType,typename iteratorType>
-    static void general_fill_level(APR &apr,ParticleDataType& parts,iteratorType& it,bool tree){
-
-        if(tree){
-            parts.init_tree(apr);
-        } else {
-            parts.init(apr);
-        }
-
-        for (unsigned int level = it.level_min(); level <= it.level_max(); ++level) {
-            int z = 0;
-            int x = 0;
-
-#ifdef HAVE_OPENMP
-#pragma omp parallel for schedule(dynamic) private(z, x) firstprivate(it)
-#endif
-            for (z = 0; z < it.z_num(level); z++) {
-                for (x = 0; x < it.x_num(level); ++x) {
-                    for (it.begin(level, z, x); it < it.end();
-                         it++) {
-
-                        parts[it] = level;
-
-                    }
-                }
-            }
-        }
-
-    }
 
 //
 //    template<typename T>
