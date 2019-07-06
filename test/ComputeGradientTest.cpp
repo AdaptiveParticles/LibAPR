@@ -1122,7 +1122,6 @@ namespace {
         PixelData<float> local_scale_temp2_GPU;
         local_scale_temp2_GPU.initDownsampled(input_image.y_num, input_image.x_num, input_image.z_num, false);
 
-
         APRParameters par;
         par.lambda = 3;
         par.Ip_th = 10;

@@ -474,6 +474,20 @@ inline bool APRConverter<ImageType>::get_apr(APR &aAPR, PixelData<T>& input_imag
             d.start_timer("2");
             PixelData<float> lst(local_scale_temp, true);
             d.stop_timer();
+
+#ifdef HAVE_LIBTIFF
+            if(par.output_steps){
+                TiffUtils::saveMeshAsTiff(par.output_dir + "local_intensity_scale_step.tif", lst);
+            }
+#endif
+
+#ifdef HAVE_LIBTIFF
+            if(par.output_steps){
+                TiffUtils::saveMeshAsTiff(par.output_dir + "gradient_step.tif", grad_temp);
+            }
+#endif
+
+
             d.start_timer("3");
             iLocalParticleSet.get_local_particle_cell_set(iPullingScheme,lst, local_scale_temp2,par);
             d.stop_timer();
