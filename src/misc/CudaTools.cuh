@@ -8,8 +8,8 @@
 
 #include <cuda_runtime.h>
 #include <device_launch_parameters.h>
-#include <math_functions.h>
-//#include <cuda_runtime_api.h>
+//#include <math_functions.h>
+#include <cuda_runtime_api.h>
 //#include <cuda_runtime.h>
 
 

@@ -18,19 +18,7 @@
 
 #include "io/APRFile.hpp"
 
-#include <cuda_runtime.h>
-#include <device_launch_parameters.h>
-
-#include <thrust/device_vector.h>
-#include <thrust/device_ptr.h>
-
-#include "misc/CudaTools.cuh"
-#include "misc/CudaMemory.cuh"
-#include <chrono>
-#include <cstdint>
-
-
-
+#include "GPUAPR.hpp"
 
 
 struct TestDataGPU{
@@ -157,52 +145,9 @@ void CreatDiffDimsSphereTest::SetUp(){
 
 
 
-
-/**
- * Thresholds output basing on input values. When input is <= thresholdLevel then output is set to 0 and is not changed otherwise.
- * @param input
- * @param output
- * @param length - len of input/output arrays
- * @param thresholdLevel
- */
-template <typename T>
-__global__ void testKernel(T *input) {
-    size_t idx = (size_t)blockDim.x * blockIdx.x + threadIdx.x;
-
-    input[idx] = 1;
-
-}
-
-
 TEST_F(CreatDiffDimsSphereTest, APR_TEST) {
 
-
-//    std::vector<float> temp;
-//    temp.resize(100,0);
-//
-//    ScopedCudaMemHandler<float*, H2D> temp_gpu(temp.data(),100);
-//
-//    temp_gpu.copyH2D();
-//
-//    std::cout << temp_gpu.getSize() << std::endl;
-//
-//    cudaStream_t stream;
-//    cudaStreamCreate(&stream);
-//
-//    dim3 threadsPerBlock(64);
-//    dim3 numBlocks((temp.size() + threadsPerBlock.x - 1)/threadsPerBlock.x);
-//
-//    std::cout << numBlocks.x << std::endl;
-//    std::cout << numBlocks.x << std::endl;
-//    std::cout << numBlocks.x << std::endl;
-//
-//    float* img = temp_gpu.get();
-//
-//   // testKernel<<< numBlocks, threadsPerBlock >>> (img);
-//
-//    temp_gpu.copyD2H();
-//
-//    ASSERT_TRUE(true);
+    ASSERT_TRUE(run_simple_test());
 
 }
 
