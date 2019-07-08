@@ -13,7 +13,7 @@ buildTarget(testPullingScheme PullingSchemeTest.cpp)
 
 #APR GPU Tests
 if(APR_USE_CUDA)
-    buildTarget(testGPUAPR GPUAPRTest.cpp )
+   buildTarget(testGPUAPR GPUAPRTest.cpp)
 endif()
 
 ## Performance Benchmark Tests

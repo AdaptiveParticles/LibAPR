@@ -8,6 +8,7 @@
 #include <iostream>
 #include <cuda_runtime.h>
 #include <device_launch_parameters.h>
+
 #include <cassert>
 
 inline cudaError_t checkCuda(cudaError_t result) {
