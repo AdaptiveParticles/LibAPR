@@ -11,6 +11,11 @@ buildTarget(testComputeGradient ComputeGradientTest.cpp)
 buildTarget(testLocalIntensityScale LocalIntensityScaleTest.cpp)
 buildTarget(testPullingScheme PullingSchemeTest.cpp)
 
+#APR GPU Tests
+if(APR_USE_CUDA)
+    buildTarget(testGPUAPR GPUAPRTest.cpp )
+endif()
+
 ## Performance Benchmark Tests
 
 #buildTarget(BenchmarkTest BenchmarkTest.cpp)
