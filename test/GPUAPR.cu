@@ -50,16 +50,9 @@ bool run_simple_test(){
     dim3 threadsPerBlock(64);
     dim3 numBlocks((temp.size() + threadsPerBlock.x - 1)/threadsPerBlock.x);
 
-    std::cout << numBlocks.x << std::endl;
-    std::cout << numBlocks.x << std::endl;
-    std::cout << numBlocks.x << std::endl;
-
-    float* img = temp_gpu.get();
-
-    testKernel<<< numBlocks, threadsPerBlock >>>(img);
+    testKernel<<< numBlocks, threadsPerBlock >>>(temp_gpu.get());
 
     temp_gpu.copyD2H();
-
 
     for (int i = 0; i < temp.size(); ++i) {
 
