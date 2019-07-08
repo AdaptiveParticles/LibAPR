@@ -18,8 +18,15 @@
 
 #include "io/APRFile.hpp"
 
-#include "GPUAPR.hpp"
+#ifndef APR_USE_CUDA
 
+bool run_simple_test(){
+        return true;
+};
+
+#else
+    #include "GPUAPR.hpp"
+#endif
 
 struct TestDataGPU{
 
