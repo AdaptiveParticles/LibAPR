@@ -43,10 +43,15 @@ void GPUAccess::init_level_xz_vec(std::vector<uint64_t>& level_xz_vec){
 }
 
 void GPUAccess::copy2Device(){
-
+    data->y_vec.copyH2D();
+    data->xz_end_vec.copyH2D();
+    data->level_xz_vec.copyH2D();
 }
-void GPUAccess::copy2Host(){
 
+void GPUAccess::copy2Host(){
+    data->y_vec.copyD2H();
+    data->xz_end_vec.copyD2H();
+    data->level_xz_vec.copyD2H();
 }
 
 

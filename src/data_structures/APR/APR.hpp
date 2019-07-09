@@ -60,6 +60,7 @@ public:
         gpuAccess.init_level_xz_vec(linearAccess.level_xz_vec);
         gpuAccess.init_xz_end_vec(linearAccess.xz_end_vec);
         gpuAccess.genInfo = &aprInfo;
+        gpuAccess.copy2Device();
     }
 #endif
 
