@@ -164,12 +164,27 @@ class ScopedCudaMemHandler {
     static_assert(DIRECTION < INVALID, "Wrong value provided for DIRECTION template parameter");
 
     QualifiedElementType *iData;
-    const size_t iSize;
-    const size_t iBytes;
+    size_t iSize;
+    size_t iBytes;
     CudaMemoryUniquePtr<ElementType> iCudaMemory;
-    const cudaStream_t iStream;
+    cudaStream_t iStream;
 
 public:
+
+    /**
+     * Default Constructor for pointer POD types
+     */
+    template <typename T = DATA_TYPE, typename std::enable_if<std::is_pointer<T>::value, int>::type = 0>
+    ScopedCudaMemHandler(){
+    }
+
+    void initialize(DATA_TYPE aData, size_t aSize, const cudaStream_t aStream = nullptr){
+        iData = aData;
+        iSize = aSize;
+        iStream = aStream;
+        initialize();
+    }
+
     /**
      * Constructor for pointer POD types
      */

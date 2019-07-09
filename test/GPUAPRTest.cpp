@@ -154,6 +154,8 @@ void CreatDiffDimsSphereTest::SetUp(){
 
 TEST_F(CreatDiffDimsSphereTest, APR_TEST) {
 
+    GPUAccess gpuAccess;
+
     ASSERT_TRUE(run_simple_test());
 
 }
