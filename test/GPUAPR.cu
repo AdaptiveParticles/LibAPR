@@ -19,25 +19,6 @@
 #include "GPUAPR.hpp"
 
 
-class GPUAccess::GPUAccessImpl{
-public:
-    ScopedCudaMemHandler<uint16_t*, H2D> y_vec;
-
-    GPUAccessImpl()=default;
-    ~GPUAccessImpl()=default;
-};
-
-GPUAccess::~GPUAccess() = default;
-GPUAccess::GPUAccess(): data{new GPUAccessImpl}{
-
-}
-GPUAccess::GPUAccess(GPUAccess&&) = default;
-
-void GPUAccess::init_y_vec(std::vector<uint16_t> &y_vec_) {
-    data->y_vec.initialize(y_vec_.data(),y_vec_.size());
-
-}
-
 
 /**
  * Thresholds output basing on input values. When input is <= thresholdLevel then output is set to 0 and is not changed otherwise.

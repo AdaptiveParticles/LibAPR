@@ -11,6 +11,10 @@
 #include "iterators/LinearIterator.hpp"
 #include "GenInfo.hpp"
 
+#ifdef APR_USE_CUDA
+#include "access/GPUAccess.hpp"
+#endif
+
 class APR {
     friend class APRFile;
     template<typename T>
@@ -19,23 +23,29 @@ class APR {
 
 protected:
 
-    bool apr_initialized = false;
-    bool apr_initialized_random = false;
-
-    RandomAccess tree_access;
-    bool tree_initialized = false;
-    bool tree_initialized_random = false;
-
     //APR Tree function
     void initialize_apr_tree_sparse();
     void initialize_apr_tree_sparse_linear();
     void initialize_apr_tree();
     void initialize_linear_access(LinearAccess& aprAccess,APRIterator& it);
 
+    //New Access
     LinearAccess linearAccess;
     LinearAccess linearAccessTree;
 
+    //Old Access
     RandomAccess apr_access;
+    RandomAccess tree_access;
+
+    bool apr_initialized = false;
+    bool apr_initialized_random = false;
+
+    bool tree_initialized = false;
+    bool tree_initialized_random = false;
+
+#ifdef APR_USE_CUDA
+    GPUAccess gpuAccess;
+#endif
 
     GenInfo aprInfo;
     GenInfo treeInfo;
@@ -43,6 +53,16 @@ protected:
     APRParameters parameters; // this is here to keep a record of what parameters were used, to then be written if needed.
 
 public:
+
+#ifdef APR_USE_CUDA
+    void init_gpu(){
+        gpuAccess.init_y_vec(linearAccess.y_vec);
+        gpuAccess.init_level_xz_vec(linearAccess.level_xz_vec);
+        gpuAccess.init_xz_end_vec(linearAccess.xz_end_vec);
+        gpuAccess.genInfo = &aprInfo;
+    }
+#endif
+
 
     APRParameters get_apr_parameters(){
         return parameters;

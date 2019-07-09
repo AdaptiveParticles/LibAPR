@@ -279,7 +279,7 @@ public:
 
 
     template<typename T>
-    static void re_order_parts(APR apr,ParticleData<T>& parts){
+    static void re_order_parts(APR& apr,ParticleData<T>& parts){
         // backward compatability function -- not performance orientated.
 
         ParticleData<T> parts_temp;

@@ -160,6 +160,7 @@ if(APR_USE_CUDA)
             src/algorithm/LocalIntensityScale.cu
             src/algorithm/OVPC.cu
             test/GPUAPR.cu
+            src/data_structures/APR/access/GPUAccess.cu
             )
     include_directories(${CMAKE_CUDA_TOOLKIT_INCLUDE_DIRECTORIES})
 
