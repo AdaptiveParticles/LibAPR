@@ -18,8 +18,6 @@
 
 #include "GPUAPR.hpp"
 
-
-
 /**
  * Thresholds output basing on input values. When input is <= thresholdLevel then output is set to 0 and is not changed otherwise.
  * @param input
@@ -62,7 +60,6 @@ bool run_simple_test(){
             return false;
         }
     }
-
 
     return true;
 

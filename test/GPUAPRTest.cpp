@@ -154,7 +154,12 @@ void CreatDiffDimsSphereTest::SetUp(){
 
 TEST_F(CreatDiffDimsSphereTest, APR_TEST) {
 
-    test_data.apr.init_gpu();
+    auto gpuData = test_data.apr.gpuAPRHelper();
+    auto gpuDataTree = test_data.apr.gpuTreeHelper();
+
+    gpuData.init_gpu();
+    gpuDataTree.init_gpu();
+
 
     ASSERT_TRUE(run_simple_test());
 

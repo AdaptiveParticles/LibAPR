@@ -6,8 +6,13 @@
 #define LIBAPR_GPUACCESS_HPP
 
 #include "data_structures/APR/GenInfo.hpp"
+#include "data_structures/APR/access/LinearAccess.hpp"
 
 class GPUAccess {
+
+    friend class GPUAccessHelper;
+
+protected:
 
     class GPUAccessImpl;
     std::unique_ptr<GPUAccessImpl> data;
@@ -37,5 +42,29 @@ public:
     GPUAccess(GPUAccess&&);
 
 };
+
+class GPUAccessHelper {
+
+    GPUAccess* gpuAccess;
+    LinearAccess* linearAccess;
+
+public:
+
+    GPUAccessHelper(GPUAccess& gpuAccess_,LinearAccess& linearAccess_);
+
+    uint16_t* get_y_vec_ptr();
+    uint64_t* get_xz_end_vec_ptr();
+    uint64_t* get_level_xz_vec_ptr();
+
+    void init_gpu(){
+        gpuAccess->init_y_vec(linearAccess->y_vec);
+        gpuAccess->init_level_xz_vec(linearAccess->level_xz_vec);
+        gpuAccess->init_xz_end_vec(linearAccess->xz_end_vec);
+        gpuAccess->genInfo = linearAccess->genInfo;
+        gpuAccess->copy2Device();
+    }
+
+};
+
 
 #endif //LIBAPR_GPUACCESS_HPP

@@ -45,6 +45,7 @@ protected:
 
 #ifdef APR_USE_CUDA
     GPUAccess gpuAccess;
+    GPUAccess gpuTreeAccess;
 #endif
 
     GenInfo aprInfo;
@@ -55,12 +56,14 @@ protected:
 public:
 
 #ifdef APR_USE_CUDA
-    void init_gpu(){
-        gpuAccess.init_y_vec(linearAccess.y_vec);
-        gpuAccess.init_level_xz_vec(linearAccess.level_xz_vec);
-        gpuAccess.init_xz_end_vec(linearAccess.xz_end_vec);
-        gpuAccess.genInfo = &aprInfo;
-        gpuAccess.copy2Device();
+
+
+    GPUAccessHelper gpuAPRHelper(){
+        return GPUAccessHelper(gpuAccess,linearAccess);
+    }
+
+    GPUAccessHelper gpuTreeHelper(){
+        return GPUAccessHelper(gpuTreeAccess,linearAccessTree);
     }
 #endif
 

@@ -54,4 +54,21 @@ void GPUAccess::copy2Host(){
     data->level_xz_vec.copyD2H();
 }
 
+GPUAccessHelper::GPUAccessHelper(GPUAccess& gpuAccess_,LinearAccess& linearAccess_){
+    gpuAccess = &gpuAccess_;
+    linearAccess = &linearAccess_;
+}
+
+uint16_t* GPUAccessHelper::get_y_vec_ptr(){
+    return gpuAccess->data->y_vec.get();
+}
+
+uint64_t* GPUAccessHelper::get_level_xz_vec_ptr(){
+    return gpuAccess->data->level_xz_vec.get();
+}
+
+uint64_t* GPUAccessHelper::get_xz_end_vec_ptr(){
+    return gpuAccess->data->xz_end_vec.get();
+}
+
 
