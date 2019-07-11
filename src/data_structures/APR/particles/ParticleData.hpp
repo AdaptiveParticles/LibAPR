@@ -17,12 +17,22 @@
 #include <algorithm>
 #include <vector>
 
+#ifdef APR_USE_CUDA
+#include "ParticleDataGpu.hpp"
+#endif
+
+
 template<typename DataType>
 class ParticleData {
 
     static const uint64_t parallel_particle_number_threshold = 5000000l;
 
 public:
+
+#ifdef APR_USE_CUDA
+    ParticleDataGpu<DataType> gpu_data;
+#endif
+
     std::vector<DataType> data;
 
     APRCompress compressor;

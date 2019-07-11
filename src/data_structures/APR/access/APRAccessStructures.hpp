@@ -10,8 +10,6 @@ struct PCDKey{
     uint64_t local_ind;
 };
 
-
-
 template<typename T>
 class SparseGaps {
 
@@ -63,8 +61,8 @@ struct LocalMapIterators{
     LocalMapIterators(){
         //initialize them to be set to pointing to no-where
         MapIterator init;
-        init.pc_offset = -1;
-        init.level = -1;
+        init.pc_offset = UINT64_MAX;
+        init.level = UINT16_MAX;
 
         same_level.resize(6,init);
         parent_level.resize(6,init);

@@ -71,4 +71,52 @@ uint64_t* GPUAccessHelper::get_xz_end_vec_ptr(){
     return gpuAccess->data->xz_end_vec.get();
 }
 
+#include "data_structures/APR/particles/ParticleDataGpu.hpp"
 
+template<typename DataType>
+template<typename T>
+class ParticleDataGpu<DataType>::ParticleDataGpuImpl {
+
+public:
+    ScopedCudaMemHandler<T *, H2D> part_data;
+
+    ParticleDataGpuImpl() = default;
+
+    ~ParticleDataGpuImpl() = default;
+
+};
+
+template<typename DataType>
+ParticleDataGpu<DataType>::ParticleDataGpu(): data{new ParticleDataGpuImpl<DataType>}
+{}
+
+template<typename DataType>
+ParticleDataGpu<DataType>::~ParticleDataGpu()
+{}
+
+template<typename DataType>
+void ParticleDataGpu<DataType>::init(std::vector<DataType>& cpu_data){
+    data->part_data.initialize(cpu_data.data(),cpu_data.size());
+}
+
+template<typename DataType>
+DataType* ParticleDataGpu<DataType>::getGpuData(){
+    return data->part_data.get();
+}
+
+template<typename DataType>
+void ParticleDataGpu<DataType>::sendDataToGpu(){
+    data->part_data.copyH2D();
+}
+
+template<typename DataType>
+void ParticleDataGpu<DataType>::getDataFromGpu(){
+    data->part_data.copyD2H();
+}
+
+template class ParticleDataGpu<uint16_t>;
+template class ParticleDataGpu<uint8_t>;
+template class ParticleDataGpu<float>;
+template class ParticleDataGpu<double>;
+template class ParticleDataGpu<int>;
+template class ParticleDataGpu<uint64_t>;
