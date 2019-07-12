@@ -267,9 +267,6 @@ public:
         }
 
         //round up to nearest even dimension
-
-
-
         int org_dims_y = std::ceil(it.org_dims(0) / 2.0f) * 2;
         int org_dims_x = std::ceil(it.org_dims(1) / 2.0f) * 2;
         int org_dims_z = std::ceil(it.org_dims(2) / 2.0f) * 2;

@@ -18,15 +18,11 @@
 
 #include "io/APRFile.hpp"
 
-#ifndef APR_USE_CUDA
+#ifdef APR_USE_CUDA
 
-bool run_simple_test(){
-        return true;
-};
-
-#else
     #include "GPUAPR.hpp"
     #include "numerics/APRDownsampleGPU.hpp"
+
 #endif
 
 struct TestDataGPU{
@@ -151,6 +147,7 @@ void CreatDiffDimsSphereTest::SetUp(){
     test_data.output_name = "sphere_210";
 }
 
+#ifdef APR_USE_CUDA
 
 TEST_F(CreatDiffDimsSphereTest, APR_ACCESS_TEST) {
 
@@ -313,6 +310,7 @@ TEST_F(CreatDiffDimsSphereTest, TEST_GPU_DOWNSAMPLE) {
     ASSERT_EQ(successes, tree_data.size());
 }
 
+#endif
 
 int main(int argc, char **argv) {
 
