@@ -13,7 +13,6 @@ BenchIteration
 
 )";
 
-
 #include <algorithm>
 #include <iostream>
 

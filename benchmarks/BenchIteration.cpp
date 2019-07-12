@@ -48,6 +48,8 @@ int main(int argc, char **argv) {
 
         benchAPRHelper.generate_dataset(i,apr,parts);
 
+        std::cout << "generated" << std::endl;
+
         bench_apr_iteration_old(apr,parts,benchAPRHelper.get_number_reps(),benchAPRHelper.analysisData);
 
         //put benchmark funtions here..

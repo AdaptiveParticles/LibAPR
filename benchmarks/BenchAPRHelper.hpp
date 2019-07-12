@@ -138,6 +138,45 @@ public:
         return number_reps;
     }
 
+
+    bool compare_apr(APR& apr1,APR& apr2){
+
+        bool success = true;
+
+        auto& acc1 = apr1.linearAccess;
+        auto& acc2 = apr2.linearAccess;
+
+        for (int i = 0; i < acc1.y_vec.size(); ++i) {
+            auto y1 = acc1.y_vec[i];
+            auto y2 = acc2.y_vec[i];
+
+            if(y1 != y2){
+                success = false;
+            }
+        }
+
+        for (int i = 0; i < acc1.xz_end_vec.size(); ++i) {
+            auto y1 = acc1.xz_end_vec[i];
+            auto y2 = acc2.xz_end_vec[i];
+
+            if (y1 != y2) {
+                success = false;
+            }
+        }
+
+
+
+        if(!success){
+            std::cout << "FAIL" << std::endl;
+        } else {
+            std::cout << "SUCCESS" << std::endl;
+        }
+
+        return success;
+
+
+    }
+
     template<typename PartsType>
     bool generate_dataset(int num,APR& apr,ParticleData<PartsType>& parts){
 
@@ -145,12 +184,31 @@ public:
 
         std::vector<int> tile_dims = {dim_sz,dim_sz,dim_sz};
 
-        tileAPR(tile_dims,basic_data.aprs[num], basic_data.parts[num],apr,parts);
+
+        APR apr2;
+        ParticleData<uint16_t> parts2;
+
+        APRTimer timer(true);
+
+        timer.start_timer("new");
+
+        tileAPR_direct(tile_dims,basic_data.aprs[num], basic_data.parts[num],apr,parts);
+
+        timer.stop_timer();
+
+
+//        timer.start_timer("old");
+//        tileAPR(tile_dims,basic_data.aprs[num], basic_data.parts[num],apr,parts);
+//        timer.stop_timer();
+
+    //    compare_apr(apr,apr2);
 
         analysisData.add_float_data("num_reps",number_reps);
         analysisData.add_float_data("image_size",actual_image_size);
 
         analysisData.add_apr_info(apr);
+
+
 
         return true;
 
@@ -178,6 +236,7 @@ public:
     }
 
 
+
     /**
      * tileAPR - tiles an APR to generate a larger APR for testing purposes.
      * @param tile_dims a 3 dimensional vector with the number of times in each direction to tile
@@ -187,12 +246,190 @@ public:
      * @tparam tiled_parts The tiled particles
 */
     template<typename S,typename U>
-    static void tileAPR(std::vector<int> tile_dims, APR& apr_input,ParticleData<S>& parts, APR& apr_tiled,ParticleData<U>& tiled_parts) {
+    static void tileAPR_direct(std::vector<int>& tile_dims, APR& apr_input,ParticleData<S>& parts, APR& apr_tiled,ParticleData<U>& tiled_parts) {
         //
         // Note the data-set should be a power of 2 in its dimensons for this to work.
         //
 
-        APRTimer timer(false);
+        APRTimer timer(true);
+
+        if (tile_dims.size() != 3) {
+            std::cerr << "in-correct tilling dimensions" << std::endl;
+        }
+
+        auto it = apr_input.iterator();
+
+        float check_y = log2(1.0f * it.org_dims(0));
+        float check_x = log2(1.0f * it.org_dims(1));
+        float check_z = log2(1.0f * it.org_dims(2));
+
+        //this function only works for datasets that are powers of 2.
+        bool pow_2y = (check_y - std::floor(check_y)) == 0;
+        bool pow_2x = (check_x - std::floor(check_x)) == 0;
+        bool pow_2z = (check_z - std::floor(check_z)) == 0;
+
+        if (!pow_2y || !pow_2x || !pow_2z) {
+            std::cerr << "The dimensions must be a power of 2!" << std::endl;
+        }
+
+        //round up to nearest even dimension
+
+
+
+        int org_dims_y = std::ceil(it.org_dims(0) / 2.0f) * 2;
+        int org_dims_x = std::ceil(it.org_dims(1) / 2.0f) * 2;
+        int org_dims_z = std::ceil(it.org_dims(2) / 2.0f) * 2;
+
+
+        //now to tile the APR
+        auto new_y_num = org_dims_y * tile_dims[0];
+        auto new_x_num = org_dims_x * tile_dims[1];
+        auto new_z_num = org_dims_z * tile_dims[2];
+
+
+        apr_tiled.aprInfo.init(new_y_num, new_x_num, new_z_num);
+        apr_tiled.linearAccess.genInfo = &apr_tiled.aprInfo;
+
+        //new parts number
+        uint64_t new_parts_number = apr_input.total_number_particles()*tile_dims[0]*tile_dims[1]*tile_dims[2];
+
+        LinearAccess& lin_a_input = apr_input.linearAccess;
+        LinearAccess& lin_a_output = apr_tiled.linearAccess;
+
+        timer.start_timer("alloc");
+
+        lin_a_output.y_vec.resize(new_parts_number);
+
+        lin_a_output.initialize_xz_linear();
+
+        tiled_parts.init(new_parts_number);
+
+        auto lin_it = apr_input.iterator();
+
+        timer.stop_timer();
+
+        apr_tiled.apr_initialized = true; //to stop checks preventing the below code running.
+
+        auto lin_it_tiled = apr_tiled.iterator();
+
+        const int level_offset = apr_tiled.level_max() - apr_input.level_max();
+
+        timer.start_timer("first loop");
+
+        //first do the y extension.
+        for (unsigned int level = lin_it.level_min(); level <= lin_it.level_max(); ++level) {
+            int z = 0;
+            int x = 0;
+
+            int new_level = level_offset + level;
+
+#ifdef HAVE_OPENMP
+#pragma omp parallel for schedule(dynamic) private(z,x) firstprivate(lin_it,lin_it_tiled)
+#endif
+            for (z = 0; z < lin_it.z_num(level); z++) {
+                for (x = 0; x < lin_it.x_num(level); ++x) {
+
+                    uint64_t begin = lin_it.begin(level, z, x);
+                    uint64_t end = lin_it.end();
+
+                    for (int z_tile = 0; z_tile < tile_dims[2]; ++z_tile) {
+                        for (int x_tile = 0; x_tile < tile_dims[1]; ++x_tile) {
+
+
+                            int z_offset = (z_tile * org_dims_z) / apr_tiled.aprInfo.level_size[new_level];
+                            int x_offset = (x_tile * org_dims_x) / apr_tiled.aprInfo.level_size[new_level];
+
+                            lin_it_tiled.begin(new_level,z_offset + z,x_offset + x);
+
+                            lin_a_output.xz_end_vec[lin_it_tiled.xz_start] = (end - begin)*tile_dims[0];
+
+                        }
+                    }
+
+                }
+            }
+        }
+
+        std::partial_sum(lin_a_output.xz_end_vec.begin(),lin_a_output.xz_end_vec.end(),lin_a_output.xz_end_vec.begin());
+
+        lin_a_output.genInfo->total_number_particles = lin_a_output.xz_end_vec.back();
+
+        timer.stop_timer();
+
+
+        //then do the
+        timer.start_timer("second loop");
+
+        //first do the y extension.
+        for (unsigned int level = lin_it.level_min(); level <= lin_it.level_max(); ++level) {
+            int z = 0;
+            int x = 0;
+
+            int new_level = level_offset + level;
+
+#ifdef HAVE_OPENMP
+#pragma omp parallel for schedule(dynamic) private(z,x) firstprivate(lin_it,lin_it_tiled)
+#endif
+            for (z = 0; z < lin_it.z_num(level); z++) {
+                for (x = 0; x < lin_it.x_num(level); ++x) {
+
+                    uint64_t begin = lin_it.begin(level, z, x);
+                    uint64_t end = lin_it.end();
+                    uint64_t total = end - begin;
+
+                    for (int z_tile = 0; z_tile < tile_dims[2]; ++z_tile) {
+                        for (int x_tile = 0; x_tile < tile_dims[1]; ++x_tile) {
+
+                            int z_offset = (z_tile * org_dims_z) / apr_tiled.aprInfo.level_size[new_level];
+                            int x_offset = (x_tile * org_dims_x) / apr_tiled.aprInfo.level_size[new_level];
+
+                            uint64_t begin_new = lin_it_tiled.begin(new_level,z_offset + z,x_offset + x);
+
+                            for (int y_tile = 0; y_tile < tile_dims[0]; ++y_tile) {
+
+                                int y_offset = (y_tile * org_dims_y) / apr_tiled.aprInfo.level_size[new_level];
+
+                                std::copy(lin_a_input.y_vec.begin() + begin ,lin_a_input.y_vec.begin() + end,
+                                        lin_a_output.y_vec.begin() + begin_new + y_tile*total);
+
+                                transform(lin_a_output.y_vec.begin() + begin_new + y_tile*total, lin_a_output.y_vec.begin() + begin_new + (y_tile+1)*total
+                                        , lin_a_output.y_vec.begin() + begin_new + y_tile*total,
+                                          bind2nd(std::plus<uint16_t>(), y_offset));
+                                //add constant
+
+                                std::copy(parts.data.begin() + begin ,parts.data.begin() + end,
+                                          tiled_parts.data.begin() + begin_new + y_tile*total);
+
+                            }
+                        }
+                    }
+
+                }
+            }
+        }
+
+        timer.stop_timer();
+
+
+
+    }
+
+
+    /**
+     * tileAPR - tiles an APR to generate a larger APR for testing purposes.
+     * @param tile_dims a 3 dimensional vector with the number of times in each direction to tile
+     * @param apr_input The APR to be tiled
+     * @tparam parts particles to be tiled
+     * @param apr_tiled The tiled APR
+     * @tparam tiled_parts The tiled particles
+*/
+    template<typename S,typename U>
+    static void tileAPR(std::vector<int>& tile_dims, APR& apr_input,ParticleData<S>& parts, APR& apr_tiled,ParticleData<U>& tiled_parts) {
+        //
+        // Note the data-set should be a power of 2 in its dimensons for this to work.
+        //
+
+        APRTimer timer(true);
 
         if (tile_dims.size() != 3) {
             std::cerr << "in-correct tilling dimensions" << std::endl;
@@ -311,16 +548,17 @@ public:
 
         timer.stop_timer();
 
-        tiled_parts.init(apr_tiled.total_number_particles());
 
-        auto it_tile = apr_tiled.iterator();
 
 
         //auto it_tree = apr_input.tree_iterator();
 
-        ParticleData<float> tparts_input;
+        timer.start_timer("initialize particles");
 
-        APRTreeNumerics::fill_tree_mean(apr_input, parts, tparts_input);
+        tiled_parts.init(apr_tiled.total_number_particles());
+
+        auto it_tile = apr_tiled.iterator();
+
 
         //
         // Now we need to sample the particles, with the fact that some particles with have increased resolution in the merge
@@ -376,6 +614,8 @@ public:
                 }
             }
         }
+
+        timer.stop_timer();
 
     };
 
