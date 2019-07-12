@@ -26,6 +26,7 @@ bool run_simple_test(){
 
 #else
     #include "GPUAPR.hpp"
+    #include "numerics/APRDownsampleGPU.hpp"
 #endif
 
 struct TestDataGPU{
@@ -151,8 +152,7 @@ void CreatDiffDimsSphereTest::SetUp(){
 }
 
 
-
-TEST_F(CreatDiffDimsSphereTest, APR_TEST) {
+TEST_F(CreatDiffDimsSphereTest, APR_ACCESS_TEST) {
 
     auto gpuData = test_data.apr.gpuAPRHelper();
     auto gpuDataTree = test_data.apr.gpuTreeHelper();
@@ -160,10 +160,159 @@ TEST_F(CreatDiffDimsSphereTest, APR_TEST) {
     gpuData.init_gpu();
     gpuDataTree.init_gpu();
 
+    gpuData.copy2Host();
 
-    ASSERT_TRUE(run_simple_test());
+    auto apr_it = test_data.apr.iterator();
+
+    uint64_t counter = 0;
+
+    for(unsigned int level = apr_it.level_max(); level > apr_it.level_min(); --level) {
+        for(size_t z = 0; z < apr_it.z_num(level); ++z) {
+            for(size_t x = 0; x < apr_it.x_num(level); ++x) {
+                for(apr_it.begin(level, z, x); apr_it < apr_it.end(); ++apr_it) {
+                    counter++;
+                }
+            }
+        }
+    }
+
+    ASSERT_TRUE(counter == test_data.apr.total_number_particles());
 
 }
+
+
+TEST_F(CreatDiffDimsSphereTest, APR_ACCESS_ROUNDTRIP_TEST) {
+
+    auto gpuData = test_data.apr.gpuAPRHelper();
+    //auto gpuDataTree = test_data.apr.gpuTreeHelper();
+
+    gpuData.init_gpu();
+    //gpuDataTree.init_gpu();
+
+    std::vector<uint64_t> y_vec;
+    std::vector<uint64_t> xz_end_vec;
+    std::vector<uint64_t> level_xz_vec;
+
+    check_access_vectors(gpuData, y_vec, xz_end_vec, level_xz_vec);
+
+    uint64_t success_y = 0, success_xz = 0, success_lvl = 0;
+
+    for(size_t i = 0; i < gpuData.linearAccess->y_vec.size(); ++i) {
+        if(y_vec[i] == gpuData.linearAccess->y_vec[i]) {
+            success_y++;
+        }
+    }
+
+    for(size_t i = 0; i < gpuData.linearAccess->xz_end_vec.size(); ++i) {
+        if(xz_end_vec[i] == gpuData.linearAccess->xz_end_vec[i]) {
+            success_xz++;
+        }
+    }
+
+    for(size_t i = 0; i < gpuData.linearAccess->level_xz_vec.size(); ++i) {
+        if(level_xz_vec[i] == gpuData.linearAccess->level_xz_vec[i]) {
+            success_lvl++;
+        }
+    }
+
+    ASSERT_EQ(success_lvl, level_xz_vec.size());
+    ASSERT_EQ(success_xz, xz_end_vec.size());
+    ASSERT_EQ(success_y, y_vec.size());
+}
+
+
+TEST_F(CreatDiffDimsSphereTest, SIMPLE_DATA_TEST) {
+
+    uint64_t size = 1000;
+    std::vector<uint64_t> temp;
+
+    run_simple_test(temp, size);
+
+    uint64_t successes = 0;
+
+    for(size_t idx = 0; idx < size; ++idx) {
+        if(temp[idx] == idx) {
+            successes++;
+        }
+    }
+
+    ASSERT_EQ(successes, size);
+}
+
+
+TEST_F(CreatDiffDimsSphereTest, APR_TEST) {
+
+    auto gpuData = test_data.apr.gpuAPRHelper();
+    auto gpuDataTree = test_data.apr.gpuTreeHelper();
+
+    auto apr_it = test_data.apr.iterator();
+
+    gpuData.init_gpu();
+    gpuDataTree.init_gpu();
+
+    std::vector<uint64_t> spatial_info_gpu;
+    spatial_info_gpu.resize(apr_it.total_number_particles());
+
+    compute_spatial_info_gpu(gpuData, spatial_info_gpu);
+
+    std::vector<uint64_t> spatial_info_cpu;
+    spatial_info_cpu.resize(apr_it.total_number_particles());
+
+    for(unsigned int level = apr_it.level_max(); level > apr_it.level_min(); --level) {
+        for(size_t z = 0; z < apr_it.z_num(level); ++z) {
+            for(size_t x = 0; x < apr_it.x_num(level); ++x) {
+                for(apr_it.begin(level, z, x); apr_it < apr_it.end(); ++apr_it) {
+                    spatial_info_cpu[apr_it] = level + z + x + apr_it.y();
+                }
+            }
+        }
+    }
+
+    uint64_t successes = 0;
+    for(int i = 0; i < spatial_info_cpu.size(); ++i) {
+        if(spatial_info_cpu[i] == spatial_info_gpu[i]) {
+            successes++;
+        }
+    }
+
+    ASSERT_EQ(successes, apr_it.total_number_particles());
+
+}
+
+
+TEST_F(CreatDiffDimsSphereTest, TEST_GPU_DOWNSAMPLE) {
+
+    auto apr_it = test_data.apr.iterator();
+    std::vector<uint16_t> parts;
+    parts.resize(apr_it.total_number_particles());
+
+    for(size_t i = 0; i < parts.size(); ++i) {
+        parts[i] = test_data.particles_intensities[i];
+    }
+
+    auto gpuData = test_data.apr.gpuAPRHelper();
+    auto gpuDataTree = test_data.apr.gpuTreeHelper();
+
+    gpuData.init_gpu();
+    gpuDataTree.init_gpu();
+
+    std::vector<uint16_t> tree_data;
+
+    downsample_avg(gpuData, gpuDataTree, parts, tree_data);
+
+    ParticleData<float> tree_data_cpu;
+    APRTreeNumerics::fill_tree_mean(test_data.apr, test_data.particles_intensities, tree_data_cpu);
+
+    size_t successes = 0;
+    for(size_t i = 0; i < tree_data.size(); ++i){
+        if(abs(tree_data[i] - tree_data_cpu[i]) < 1e-2) {
+            successes++;
+        }
+    }
+
+    ASSERT_EQ(successes, tree_data.size());
+}
+
 
 int main(int argc, char **argv) {
 

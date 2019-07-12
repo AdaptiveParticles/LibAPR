@@ -181,6 +181,7 @@ public:
     void initialize(DATA_TYPE aData, size_t aSize, const cudaStream_t aStream = nullptr){
         iData = aData;
         iSize = aSize;
+        iBytes = (iSize * DataSize);
         iStream = aStream;
         initialize();
     }

@@ -5,8 +5,8 @@
 #ifndef LIBAPR_GPUACCESS_HPP
 #define LIBAPR_GPUACCESS_HPP
 
-#include "data_structures/APR/GenInfo.hpp"
 #include "data_structures/APR/access/LinearAccess.hpp"
+//#include "data_structures/APR/GenInfo.hpp"
 
 class GPUAccess {
 
@@ -27,6 +27,7 @@ public:
     void init_level_xz_vec(std::vector<uint64_t>& level_xz_vec);
 
     GenInfo* genInfo;
+    uint64_t total_number_particles() { return genInfo->total_number_particles; }
 
     int level_max() const { return genInfo->l_max; }
     int level_min() const { return genInfo->l_min; }
@@ -45,10 +46,10 @@ public:
 
 class GPUAccessHelper {
 
+public:
+
     GPUAccess* gpuAccess;
     LinearAccess* linearAccess;
-
-public:
 
     GPUAccessHelper(GPUAccess& gpuAccess_,LinearAccess& linearAccess_);
 
@@ -63,6 +64,21 @@ public:
         gpuAccess->genInfo = linearAccess->genInfo;
         gpuAccess->copy2Device();
     }
+
+    void copy2Host() {
+        gpuAccess->copy2Host();
+    }
+
+    uint64_t total_number_particles() { return gpuAccess->total_number_particles(); }
+
+    int level_max() const { return gpuAccess->level_max(); }
+    int level_min() const { return gpuAccess->level_min(); }
+
+    int x_num(const unsigned int level) const { return gpuAccess->x_num(level); }
+    int y_num(const unsigned int level) const { return gpuAccess->y_num(level); }
+    int z_num(const unsigned int level) const { return gpuAccess->z_num(level); }
+
+    int org_dims(int dim) const { return gpuAccess->org_dims(dim); }
 
 };
 

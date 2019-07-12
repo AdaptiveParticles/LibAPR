@@ -59,10 +59,22 @@ public:
 
 
     GPUAccessHelper gpuAPRHelper(){
+        if(!apr_initialized){
+            if(!apr_initialized_random){
+                std::cerr << "No APR initialized" << std::endl;
+
+            } else {
+                initialize_linear();
+                apr_initialized = true;
+            }
+        }
         return GPUAccessHelper(gpuAccess,linearAccess);
     }
 
     GPUAccessHelper gpuTreeHelper(){
+        if(!tree_initialized){
+            initialize_tree_linear();
+        }
         return GPUAccessHelper(gpuTreeAccess,linearAccessTree);
     }
 #endif
