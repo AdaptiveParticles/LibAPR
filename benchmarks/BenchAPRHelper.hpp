@@ -190,18 +190,12 @@ public:
 
         APRTimer timer(true);
 
-        timer.start_timer("new");
+        timer.start_timer("dataset generation");
 
         tileAPR_direct(tile_dims,basic_data.aprs[num], basic_data.parts[num],apr,parts);
 
         timer.stop_timer();
 
-
-//        timer.start_timer("old");
-//        tileAPR(tile_dims,basic_data.aprs[num], basic_data.parts[num],apr,parts);
-//        timer.stop_timer();
-
-    //    compare_apr(apr,apr2);
 
         analysisData.add_float_data("num_reps",number_reps);
         analysisData.add_float_data("image_size",actual_image_size);
@@ -251,7 +245,7 @@ public:
         // Note the data-set should be a power of 2 in its dimensons for this to work.
         //
 
-        APRTimer timer(true);
+        APRTimer timer(false);
 
         if (tile_dims.size() != 3) {
             std::cerr << "in-correct tilling dimensions" << std::endl;
