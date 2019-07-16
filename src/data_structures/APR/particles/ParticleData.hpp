@@ -40,6 +40,11 @@ public:
     ParticleData() {};
     ParticleData(uint64_t aTotalNumberOfParticles) { init(aTotalNumberOfParticles); }
 
+    ParticleData(const ParticleData& parts2Copy){
+        data = parts2Copy.data;
+        compressor = parts2Copy.compressor;
+    }
+
     void init(uint64_t aTotalNumberOfParticles) { data.resize(aTotalNumberOfParticles); }
     /*
      * Init dataset with enough particles up to level

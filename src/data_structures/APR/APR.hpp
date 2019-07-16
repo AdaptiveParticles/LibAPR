@@ -164,11 +164,27 @@ public:
         //default
     }
 
-    void copy_from_APR(APR& copyAPR){
-        apr_access = copyAPR.apr_access;
-        tree_access = copyAPR.tree_access;
-        name = copyAPR.name;
+    //copy constructor
+    APR(const APR& apr2copy){
+        //Note: GPU datastructures are not copied.
+
+        //default
+        linearAccess = apr2copy.linearAccess;
+        linearAccessTree = apr2copy.linearAccessTree;
+        aprInfo = apr2copy.aprInfo;
+        treeInfo = apr2copy.treeInfo;
+        tree_initialized = apr2copy.tree_initialized;
+        apr_initialized = apr2copy.apr_initialized;
+        name = apr2copy.name;
+
+        //old data structures
+        apr_access = apr2copy.apr_access;
+        tree_access = apr2copy.tree_access;
+        apr_initialized_random = apr2copy.apr_initialized_random;
+        tree_initialized_random = apr2copy.tree_initialized_random;
+
     }
+
 
 protected:
 
