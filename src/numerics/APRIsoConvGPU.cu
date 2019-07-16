@@ -18,7 +18,7 @@ neighbour_sum  +=  stencil[q*9]*local_patch[z + q - 1][x + 0 - 1][(y+N-1)%N]\
                  + stencil[q*9+7]*local_patch[z + q - 1][x + 2 - 1][(y+N)%N]\
                  + stencil[q*9+8]*local_patch[z + q - 1][x + 2 - 1][(y+N+1)%N];\
     }\
-    particle_output[index] = std::roundf(neighbour_sum);\
+    particle_output[index] = neighbour_sum;\
 }\
 
 
@@ -64,23 +64,131 @@ for (int q = 0; q < 5; ++q) {\
                  + stencil[q*25+23]*local_patch[z + q - 2][x + 4 - 2][(y+N+1)%N]\
                  + stencil[q*25+24]*local_patch[z + q - 2][x + 4 - 2][(y+N+2)%N];\
 }\
-particle_output[index] = std::roundf(neighbour_sum);\
+particle_output[index] = neighbour_sum;\
 }\
 
 
+template<typename inputType, typename outputType, typename stencilType>
+timings convolve_pixel_333_wrapper(PixelData<inputType>& input, PixelData<outputType>& output, PixelData<stencilType>& stencil) {
+
+    timings ret;
+    APRTimer timer(false);
+
+    timer.start_timer("init output");
+    output.init(input);
+    timer.stop_timer();
+
+    timer.start_timer("transfer H2D");
+
+    ScopedCudaMemHandler<PixelData<inputType>, H2D> input_gpu(input);
+    ScopedCudaMemHandler<PixelData<outputType>, D2H | H2D> output_gpu(output);
+    ScopedCudaMemHandler<PixelData<stencilType>, H2D> stencil_gpu(stencil);
+
+    input_gpu.copyH2D();
+    output_gpu.copyH2D();
+    stencil_gpu.copyH2D();
+
+    cudaDeviceSynchronize();
+
+    timer.stop_timer();
+    ret.transfer_H2D = timer.timings.back();
+
+    timer.start_timer("run kernel");
+
+    dim3 threads_l(10, 1, 10);
+
+    int x_blocks = (input.x_num + 8 - 1) / 8;
+    int z_blocks = (input.z_num + 8 - 1) / 8;
+
+    dim3 blocks_l(x_blocks, 1, z_blocks);
+
+    conv_pixel_333<<< blocks_l, threads_l >>>(input_gpu.get(), output_gpu.get(), stencil_gpu.get(), input.z_num, input.x_num, input.y_num);
+
+    cudaDeviceSynchronize();
+    timer.stop_timer();
+    ret.run_kernels = timer.timings.back();
+
+    timer.start_timer("transfer D2H");
+    //input_gpu.copyD2H();
+    output_gpu.copyD2H();
+    //stencil_gpu.copyD2H();
+    timer.stop_timer();
+    ret.transfer_D2H = timer.timings.back();
+
+    return ret;
+}
+
+
+template<typename inputType, typename outputType, typename stencilType>
+timings convolve_pixel_555_wrapper(PixelData<inputType>& input, PixelData<outputType>& output, PixelData<stencilType>& stencil) {
+
+    timings ret;
+    APRTimer timer(false);
+
+    timer.start_timer("init output");
+    output.init(input);
+    timer.stop_timer();
+
+    timer.start_timer("transfer H2D");
+
+    ScopedCudaMemHandler<PixelData<inputType>, H2D> input_gpu(input);
+    ScopedCudaMemHandler<PixelData<outputType>, D2H | H2D> output_gpu(output);
+    ScopedCudaMemHandler<PixelData<stencilType>, H2D> stencil_gpu(stencil);
+
+    input_gpu.copyH2D();
+    output_gpu.copyH2D();
+    stencil_gpu.copyH2D();
+
+    cudaDeviceSynchronize();
+
+    timer.stop_timer();
+
+    ret.transfer_H2D = timer.timings.back();
+
+    timer.start_timer("run kernels");
+
+    dim3 threads_l(12, 1, 12);
+
+    int x_blocks = (input.x_num + 8 - 1) / 8;
+    int z_blocks = (input.z_num + 8 - 1) / 8;
+
+    dim3 blocks_l(x_blocks, 1, z_blocks);
+
+    conv_pixel_555<<< blocks_l, threads_l >>>(input_gpu.get(), output_gpu.get(), stencil_gpu.get(), input.z_num, input.x_num, input.y_num);
+
+    cudaDeviceSynchronize();
+    timer.stop_timer();
+    ret.run_kernels = timer.timings.back();
+
+    timer.start_timer("transfer D2H");
+    //input_gpu.copyD2H();
+    output_gpu.copyD2H();
+    //stencil_gpu.copyD2H();
+    timer.stop_timer();
+    ret.transfer_D2H = timer.timings.back();
+
+    return ret;
+}
+
+
 template<typename inputType, typename outputType, typename stencilType, typename treeType>
-void isotropic_convolve_333_wrapper(GPUAccessHelper& access, GPUAccessHelper& tree_access, std::vector<inputType>& input,
+timings isotropic_convolve_333_wrapper(GPUAccessHelper& access, GPUAccessHelper& tree_access, std::vector<inputType>& input,
                                     std::vector<outputType>& output, std::vector<stencilType>& stencil, std::vector<treeType>& tree_data){
     /*
      *  Perform APR Isotropic Convolution Operation on the GPU with a 3x3x3 kernel
      *
      *  conv_stencil needs to have 27 entries
      */
+    timings ret;
+    APRTimer timer(false);
 
+    timer.start_timer("init arrays");
     tree_data.resize(tree_access.total_number_particles());
-    input.resize(access.total_number_particles());
+    //input.resize(access.total_number_particles());
     output.resize(access.total_number_particles());
+    timer.stop_timer();
 
+    timer.start_timer("transfer H2D");
     /// transfer input and tree_data to gpu
     ScopedCudaMemHandler<inputType*, H2D> input_gpu(input.data(), input.size());
     ScopedCudaMemHandler<treeType*, H2D> tree_data_gpu(tree_data.data(), tree_data.size());
@@ -92,10 +200,19 @@ void isotropic_convolve_333_wrapper(GPUAccessHelper& access, GPUAccessHelper& tr
     output_gpu.copyH2D();
     stencil_gpu.copyH2D();
 
-    /// Fill tree by average downsampling
     cudaDeviceSynchronize();
+    timer.stop_timer();
+    ret.transfer_H2D = timer.timings.back();
+
+    timer.start_timer("fill tree");
+    /// Fill tree by average downsampling
     downsample_avg(access, tree_access, input_gpu, tree_data_gpu);
     cudaDeviceSynchronize();
+    timer.stop_timer();
+
+    ret.fill_tree = timer.timings.back();
+
+    timer.start_timer("run kernels");
 
     for (int level = access.level_max(); level >= access.level_min(); --level) {
 
@@ -162,18 +279,25 @@ void isotropic_convolve_333_wrapper(GPUAccessHelper& access, GPUAccessHelper& tr
         cudaDeviceSynchronize();
     }
 
-    cudaDeviceSynchronize();
+    timer.stop_timer();
 
+    ret.run_kernels = timer.timings.back();
+
+    timer.start_timer("transfer D2H");
     // copy back to host
     output_gpu.copyD2H();
-    stencil_gpu.copyD2H();
-    tree_data_gpu.copyD2H();
-    stencil_gpu.copyD2H();
+    //stencil_gpu.copyD2H();
+    //tree_data_gpu.copyD2H();
+    //stencil_gpu.copyD2H();
+    timer.stop_timer();
+    ret.transfer_D2H = timer.timings.back();
+
+    return ret;
 }
 
 
 template<typename inputType, typename outputType, typename stencilType, typename treeType>
-void isotropic_convolve_555_wrapper(GPUAccessHelper& access, GPUAccessHelper& tree_access, std::vector<inputType>& input,
+timings isotropic_convolve_555_wrapper(GPUAccessHelper& access, GPUAccessHelper& tree_access, std::vector<inputType>& input,
                                     std::vector<outputType>& output, std::vector<stencilType>& stencil, std::vector<treeType>& tree_data){
     /*
      *  Perform APR Isotropic Convolution Operation on the GPU with a 5x5x5 kernel
@@ -181,11 +305,17 @@ void isotropic_convolve_555_wrapper(GPUAccessHelper& access, GPUAccessHelper& tr
      *  conv_stencil needs to have 125 entries
      */
 
+    timings ret;
+    APRTimer timer(false);
+
+    timer.start_timer("init arrays");
     tree_data.resize(tree_access.total_number_particles());
     input.resize(access.total_number_particles());
     output.resize(access.total_number_particles());
+    timer.stop_timer();
 
-    /// transfer input and tree_data to gpu
+    timer.start_timer("transfer H2D");
+    /// transfer arrays to gpu
     ScopedCudaMemHandler<inputType*, H2D> input_gpu(input.data(), input.size());
     ScopedCudaMemHandler<treeType*, H2D> tree_data_gpu(tree_data.data(), tree_data.size());
     ScopedCudaMemHandler<outputType*, H2D> output_gpu(output.data(), output.size());
@@ -196,10 +326,21 @@ void isotropic_convolve_555_wrapper(GPUAccessHelper& access, GPUAccessHelper& tr
     output_gpu.copyH2D();
     stencil_gpu.copyH2D();
 
-    /// Fill tree by average downsampling
     cudaDeviceSynchronize();
+
+    timer.stop_timer();
+
+    ret.transfer_H2D = timer.timings.back();
+
+    timer.start_timer("fill tree");
+    /// Fill tree by average downsampling
     downsample_avg_wrapper(access, tree_access, input_gpu, tree_data_gpu);
     cudaDeviceSynchronize();
+    timer.stop_timer();
+
+    ret.fill_tree = timer.timings.back();
+
+    timer.start_timer("run kernels");
 
     for (int level = access.level_max(); level >= access.level_min(); --level) {
 
@@ -266,13 +407,20 @@ void isotropic_convolve_555_wrapper(GPUAccessHelper& access, GPUAccessHelper& tr
         cudaDeviceSynchronize();
     }
 
-    cudaDeviceSynchronize();
+    timer.stop_timer();
+    ret.run_kernels = timer.timings.back();
 
+    timer.start_timer("transfer D2H");
     // copy back to host
     output_gpu.copyD2H();
-    stencil_gpu.copyD2H();
-    tree_data_gpu.copyD2H();
-    stencil_gpu.copyD2H();
+    //stencil_gpu.copyD2H();
+    //tree_data_gpu.copyD2H();
+    //stencil_gpu.copyD2H();
+    timer.stop_timer();
+
+    ret.transfer_D2H = timer.timings.back();
+
+    return ret;
 }
 
 
@@ -1412,4 +1560,179 @@ __global__ void conv_min_555(const uint64_t* level_xz_vec,
         LOCALPATCHCONV555(output_particles, y_update_index[(y_num + 3 - 1) % 3], threadIdx.z, threadIdx.x,
                           y_num - 1, neighbour_sum);
     }
+}
+
+
+
+template<typename inputType, typename outputType, typename stencilType>
+__global__ void conv_pixel_333(const inputType* input_image,
+                               outputType* output_image,
+                               const stencilType* stencil,
+                               const int z_num,
+                               const int x_num,
+                               const int y_num){
+
+
+    // This is block wise shared memory this is assuming an 8*8 block with pad()
+    if (threadIdx.x >= 10) {
+        return;
+    }
+    if (threadIdx.z >= 10) {
+        return;
+    }
+
+    bool not_ghost = false;
+
+    if ((threadIdx.x > 0) && (threadIdx.x < 9) && (threadIdx.z > 0) && (threadIdx.z < 9)) {
+        not_ghost = true;
+    }
+
+    int x_index = (8 * blockIdx.x + threadIdx.x - 1);
+    int z_index = (8 * blockIdx.z + threadIdx.z - 1);
+
+    const unsigned int N = 4;
+
+    __shared__
+    stencilType local_patch[10][10][N];
+
+    if ((x_index >= x_num) || (x_index < 0)) {
+        local_patch[threadIdx.z][threadIdx.x][0] = 0; //this is at (y-1)
+        local_patch[threadIdx.z][threadIdx.x][1] = 0;
+        local_patch[threadIdx.z][threadIdx.x][2] = 0;
+        local_patch[threadIdx.z][threadIdx.x][3] = 0;
+
+        return; //out of bounds
+    }
+
+    if ((z_index >= z_num) || (z_index < 0)) {
+        local_patch[threadIdx.z][threadIdx.x][0] = 0; //this is at (y-1)
+        local_patch[threadIdx.z][threadIdx.x][1] = 0;
+        local_patch[threadIdx.z][threadIdx.x][2] = 0;
+        local_patch[threadIdx.z][threadIdx.x][3] = 0;
+        return; //out of bounds
+    }
+
+    std::size_t row_begin = z_index * x_num * y_num + x_index * y_num;
+
+    //BOUNDARY CONDITIONS
+    local_patch[threadIdx.z][threadIdx.x][(N - 1) % N] = 0; //this is at (y-1)
+    local_patch[threadIdx.z][threadIdx.x][0] = input_image[row_begin]; //initial update
+
+    for (size_t j = 1; j < y_num; ++j) {
+
+        //Update steps for P->T
+        __syncthreads();
+
+        local_patch[threadIdx.z][threadIdx.x][j % N] = input_image[row_begin + j]; //initial update
+
+        __syncthreads();
+        //COMPUTE THE T->P from shared memory, this is lagged by the size of the filter
+
+        float neighbour_sum = 0;
+        LOCALPATCHCONV333(output_image, (row_begin + j - 1), threadIdx.z, threadIdx.x, j - 1, neighbour_sum)
+    }
+
+    //set the boundary condition (zeros in this case)
+
+    local_patch[threadIdx.z][threadIdx.x][(y_num) % N] = 0;
+    __syncthreads();
+
+    float neighbour_sum = 0;
+    LOCALPATCHCONV333(output_image, row_begin + y_num - 1, threadIdx.z, threadIdx.x, y_num - 1, neighbour_sum)
+}
+
+
+template<typename inputType, typename outputType, typename stencilType>
+__global__ void conv_pixel_555(const inputType* input_image,
+                               outputType* output_image,
+                               const stencilType* stencil,
+                               const int z_num,
+                               const int x_num,
+                               const int y_num){
+
+
+    // This is block wise shared memory this is assuming an 8*8 block with pad()
+    if (threadIdx.x >= 12) {
+        return;
+    }
+    if (threadIdx.z >= 12) {
+        return;
+    }
+
+    bool not_ghost = false;
+
+    if ((threadIdx.x > 1) && (threadIdx.x < 10) && (threadIdx.z > 1) && (threadIdx.z < 10)) {
+        not_ghost = true;
+    }
+
+    int x_index = (8 * blockIdx.x + threadIdx.x - 2);
+    int z_index = (8 * blockIdx.z + threadIdx.z - 2);
+
+    const unsigned int N = 6;
+
+    __shared__
+    stencilType local_patch[12][12][N];
+
+    if ((x_index >= x_num) || (x_index < 0)) {
+        local_patch[threadIdx.z][threadIdx.x][0] = 0; //this is at (y-1)
+        local_patch[threadIdx.z][threadIdx.x][1] = 0;
+        local_patch[threadIdx.z][threadIdx.x][2] = 0;
+        local_patch[threadIdx.z][threadIdx.x][3] = 0;
+        local_patch[threadIdx.z][threadIdx.x][4] = 0;
+        local_patch[threadIdx.z][threadIdx.x][5] = 0;
+
+        return; //out of bounds
+    }
+
+    if ((z_index >= z_num) || (z_index < 0)) {
+        local_patch[threadIdx.z][threadIdx.x][0] = 0; //this is at (y-1)
+        local_patch[threadIdx.z][threadIdx.x][1] = 0;
+        local_patch[threadIdx.z][threadIdx.x][2] = 0;
+        local_patch[threadIdx.z][threadIdx.x][3] = 0;
+        local_patch[threadIdx.z][threadIdx.x][4] = 0;
+        local_patch[threadIdx.z][threadIdx.x][5] = 0;
+
+        return; //out of bounds
+    }
+
+    std::size_t row_begin = z_index * x_num * y_num + x_index * y_num;
+
+    //BOUNDARY CONDITIONS
+    local_patch[threadIdx.z][threadIdx.x][(N - 1) % N] = 0; //this is at (y-1)
+    local_patch[threadIdx.z][threadIdx.x][(N - 2) % N] = 0;
+
+    //initial update
+    local_patch[threadIdx.z][threadIdx.x][0 % N] = input_image[row_begin];
+    local_patch[threadIdx.z][threadIdx.x][1 % N] = input_image[row_begin+1];
+
+
+    for (size_t j = 2; j < y_num; ++j) {
+
+        //Update steps for P->T
+        __syncthreads();
+
+        local_patch[threadIdx.z][threadIdx.x][j % N] = input_image[row_begin + j]; //fill in next value
+
+        __syncthreads();
+        //COMPUTE THE T->P from shared memory, this is lagged by the size of the filter
+
+        float neighbour_sum = 0;
+        LOCALPATCHCONV555(output_image, (row_begin + j - 2), threadIdx.z, threadIdx.x, j - 2, neighbour_sum)
+    }
+
+    // now do the last two iterations
+
+    //set the boundary condition (zeros in this case)
+    local_patch[threadIdx.z][threadIdx.x][(y_num) % N] = 0;
+    __syncthreads();
+
+    float neighbour_sum = 0;
+    LOCALPATCHCONV555(output_image, row_begin + y_num - 2, threadIdx.z, threadIdx.x, y_num - 2, neighbour_sum)
+
+    //set the boundary condition (zeros in this case)
+    local_patch[threadIdx.z][threadIdx.x][(y_num + 1) % N] = 0;
+    __syncthreads();
+
+    neighbour_sum = 0;
+    LOCALPATCHCONV555(output_image, row_begin + y_num - 1, threadIdx.z, threadIdx.x, y_num - 1, neighbour_sum)
 }

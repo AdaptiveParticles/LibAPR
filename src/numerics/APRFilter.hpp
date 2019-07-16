@@ -498,7 +498,7 @@ public:
             for(uint64_t iz = 0; iz < stencil_shape[2]; ++iz) {
 
                 uint64_t base_offset = ((z + iz) % stencil_shape[2]) * xy_num + y;
-                
+
                 for(uint64_t ix = 0; ix < stencil_shape[1]; ++ix) {
 
                     uint64_t offset = base_offset + ((x + ix) % stencil_shape[1]) * y_num;
@@ -927,6 +927,60 @@ public:
 
         apply_boundary_conditions_y(z+stencil_half[2], x+stencil_half[1], temp_vec, boundary, stencil_half, stencil_shape);
     }
+
+
+    template<typename inputType, typename outputType, typename stencilType>
+    void convolve_pixel(PixelData<inputType>& input, PixelData<outputType>& output, PixelData<stencilType>& stencil) {
+
+        output.init(input);
+
+        auto y_num = input.y_num;
+        auto x_num = input.x_num;
+        auto z_num = input.z_num;
+
+        const std::vector<int> stencil_shape = {(int) stencil.y_num,
+                                                (int) stencil.x_num,
+                                                (int) stencil.z_num};
+
+        const std::vector<int> stencil_half = {(stencil_shape[0] - 1)/2,
+                                               (stencil_shape[1] - 1)/2,
+                                               (stencil_shape[2] - 1)/2};
+
+        int z;
+
+#ifdef HAVE_OPENMP
+#pragma omp parallel for private(z)
+#endif
+        for (z = 0; z < z_num; ++z) {
+            for (int x = 0; x < x_num; ++x) {
+                for (int y = 0; y < y_num; ++y) {
+
+                    float neighbour_sum=0;
+                    int counter = 0;
+
+                    for (int l = -stencil_half[2]; l < stencil_half[2]+1; ++l) {
+                        for (int q = -stencil_half[1]; q < stencil_half[1]+1; ++q) {
+                            for (int w = -stencil_half[0]; w < stencil_half[0]+1; ++w) {
+
+                                if( ((y+w)>=0) && ((y+w) < y_num) ){
+                                    if( ((x+q)>=0) && ((x+q) < x_num) ) {
+                                        if(((z+l)>=0) & ((z+l) < z_num) ) {
+                                            neighbour_sum += stencil.mesh[counter] * input.at(y+w, x+q, z+l);
+                                        }
+                                    }
+                                }
+                                counter++;
+                            }
+                        }
+                    }
+
+                    output.at(y,x,z) = neighbour_sum;
+
+                }
+            }
+        }
+    }
+
 };
 
 

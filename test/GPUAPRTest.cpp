@@ -389,7 +389,7 @@ TEST_F(CreatDiffDimsSphereTest, TEST_GPU_CONV_333) {
     bool success = true;
 
     for(size_t i = 0; i < test_data.apr.total_number_particles(); ++i) {
-        if( abs(output[i] - output_gt[i]) < 1) {
+        if( abs(output[i] - output_gt[i]) < 1e-2) {
             pass_count++;
         } else {
             success = false;
@@ -437,7 +437,7 @@ TEST_F(CreatDiffDimsSphereTest, TEST_GPU_CONV_555) {
     bool success = true;
 
     for(size_t i = 0; i < test_data.apr.total_number_particles(); ++i) {
-        if( abs(output[i] - output_gt[i]) < 1) {
+        if( abs(output[i] - output_gt[i]) < 1e-2) {
             pass_count++;
         } else {
             success = false;
@@ -449,6 +449,51 @@ TEST_F(CreatDiffDimsSphereTest, TEST_GPU_CONV_555) {
     ASSERT_TRUE(success);
 }
 
+
+TEST_F(CreatDiffDimsSphereTest, TEST_GPU_CONV_PIXEL_333) {
+
+    PixelData<double> output;
+    PixelData<double> stencil(3, 3, 3);
+
+    double sum = 13.0 * 27;
+    for(int i = 0; i < 27; ++i) {
+        stencil.mesh[i] = ((double) i) / sum;
+    }
+
+    pixel_convolve_333(test_data.img_original, output, stencil);
+
+    PixelData<double> output_gt;
+
+    APRFilter filterfns;
+    filterfns.convolve_pixel(test_data.img_original, output_gt, stencil);
+
+    auto c_fail = compareMeshes(output_gt, output, /*error threshold*/ 1e-2);
+
+    ASSERT_EQ(c_fail, 0);
+}
+
+
+TEST_F(CreatDiffDimsSphereTest, TEST_GPU_CONV_PIXEL_555) {
+
+    PixelData<float> output;
+    PixelData<float> stencil(5, 5, 5);
+
+    double sum = 62.0 * 125;
+    for(int i = 0; i < 125; ++i) {
+        stencil.mesh[i] = ((double) i) / sum;
+    }
+
+    pixel_convolve_555(test_data.img_original, output, stencil);
+
+    PixelData<float> output_gt;
+
+    APRFilter filterfns;
+    filterfns.convolve_pixel(test_data.img_original, output_gt, stencil);
+
+    auto c_fail = compareMeshes(output_gt, output, /*error threshold*/ 1e-2);
+
+    ASSERT_EQ(c_fail, 0);
+}
 
 #endif
 
