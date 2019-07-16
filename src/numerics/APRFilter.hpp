@@ -460,7 +460,7 @@ public:
 
                 T val = 0;
                 uint64_t y = apr_it.y();
-                size_t counter = stencil.mesh.size() - 1;
+                size_t counter = 0;
 
                 // compute the value FIXME
                 for(uint64_t iz = 0; iz < stencil_shape[2]; ++iz) {
@@ -469,7 +469,7 @@ public:
 
                     for(uint64_t ix = 0; ix < stencil_shape[1]; ++ix) {
                         for(uint64_t iy = 0; iy < stencil_shape[0]; ++ iy) {
-                            val += temp_vec.mesh[offset + iy] * stencil.mesh[counter--];
+                            val += temp_vec.mesh[offset + iy] * stencil.mesh[counter++];
                         }
                         offset += y_num; // increment x
                     }
@@ -492,19 +492,20 @@ public:
 
             T val = 0;
             uint64_t y = apr_it.y();
-            size_t counter = stencil.mesh.size() - 1;
+            size_t counter = 0;
 
             // compute the value FIXME
             for(uint64_t iz = 0; iz < stencil_shape[2]; ++iz) {
 
+                uint64_t base_offset = ((z + iz) % stencil_shape[2]) * xy_num + y;
+                
                 for(uint64_t ix = 0; ix < stencil_shape[1]; ++ix) {
 
-                    uint64_t offset = ((z + iz) % stencil_shape[2]) * xy_num + ((x + ix) % stencil_shape[1]) * y_num + y;
+                    uint64_t offset = base_offset + ((x + ix) % stencil_shape[1]) * y_num;
 
                     for(uint64_t iy = 0; iy < stencil_shape[0]; ++ iy) {
-                        val += temp_vec.mesh[offset + iy] * stencil.mesh[counter--];
+                        val += temp_vec.mesh[offset + iy] * stencil.mesh[counter++];
                     }
-                    offset += y_num; // increment x
                 }
             }
             outputParticles[apr_it] = val;
@@ -756,7 +757,7 @@ public:
                     for (apr_it.begin(level, z, x); apr_it < apr_it.end(); apr_it++) {
 
                         T neigh_sum = 0;
-                        int counter = stencil.mesh.size() - 1;
+                        size_t counter = 0;
 
                         const int k = apr_it.y(); // offset to allow for boundary padding
                         const int i = x;
@@ -790,9 +791,7 @@ public:
                                             iz = (apr_it.z_num(level) - 1) - (iz - (apr_it.z_num(level) - 1));
                                         }
 
-                                        neigh_sum += stencil.mesh[counter] * by_level_recon.at(iy, ix, iz);
-
-                                        counter--;
+                                        neigh_sum += stencil.mesh[counter++] * by_level_recon.at(iy, ix, iz);
                                     }
                                 }
                             }
@@ -808,7 +807,7 @@ public:
                                                 }
                                             }
                                         }
-                                        counter--;
+                                        counter++;
                                     }
                                 }
                             }

@@ -364,8 +364,8 @@ TEST_F(CreatDiffDimsSphereTest, TEST_GPU_CONV_333) {
     std::vector<double> tree_data;
     std::vector<double> output;
     std::vector<double> stencil;
-
     stencil.resize(27);
+
     double sum = 13.0 * 27;
     for(int i = 0; i < 27; ++i) {
         stencil[i] = ((double) i) / sum;
@@ -377,9 +377,7 @@ TEST_F(CreatDiffDimsSphereTest, TEST_GPU_CONV_333) {
     stencils.resize(1);
 
     stencils[0].init(3, 3, 3);
-    for(int i = 0; i < 27; ++i) {
-        stencils[0].mesh[i] = stencil[26-i];
-    }
+    std::copy(stencil.begin(), stencil.end(), stencils[0].mesh.begin());
 
     APRFilter filterfns;
     filterfns.boundary_cond = false; // zero padding
@@ -426,11 +424,8 @@ TEST_F(CreatDiffDimsSphereTest, TEST_GPU_CONV_555) {
 
     std::vector<PixelData<double>> stencils;
     stencils.resize(1);
-
     stencils[0].init(5, 5, 5);
-    for(int i = 0; i < 125; ++i) {
-        stencils[0].mesh[i] = stencil[124-i];
-    }
+    std::copy(stencil.begin(), stencil.end(), stencils[0].mesh.begin());
 
     APRFilter filterfns;
     filterfns.boundary_cond = false; // zero padding
