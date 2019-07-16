@@ -835,8 +835,8 @@ __global__ void conv_min_333(const uint64_t* level_xz_vec,
     __shared__
     stencilType local_patch[10][10][4]; // This is block wise shared memory this is assuming an 8*8 block with pad()
 
-    uint16_t y_cache[N] = {0}; // These are local register/private caches
-    uint16_t index_cache[N] = {0}; // These are local register/private caches
+    //uint16_t y_cache[N] = {0}; // These are local register/private caches
+    //uint16_t index_cache[N] = {0}; // These are local register/private caches
 
 
     if (threadIdx.x >= 10) {
@@ -887,7 +887,7 @@ __global__ void conv_min_333(const uint64_t* level_xz_vec,
     inputType f_l = input_particles[particle_index_l];
 
 
-    std::size_t y_block = 1;
+    //std::size_t y_block = 1;
     std::uint16_t y_update_flag[2] = {0};
     std::size_t y_update_index[2] = {0};
 
@@ -1049,7 +1049,7 @@ __global__ void conv_max_555(const uint64_t* level_xz_vec,
     std::size_t global_index_begin_p = xz_end_vec[xz_start - 1];
     std::size_t global_index_end_p = xz_end_vec[xz_start];
 
-    std::size_t y_block = 1;
+    //std::size_t y_block = 1;
     std::uint16_t y_update_flag[3] = {0};
     std::size_t y_update_index[3] = {0};
 
@@ -1233,7 +1233,7 @@ __global__ void conv_interior_555(const uint64_t* level_xz_vec,
     std::size_t global_index_begin_p = xz_end_vec[xz_start - 1];
     std::size_t global_index_end_p = xz_end_vec[xz_start];
 
-    std::size_t y_block = 1;
+    //std::size_t y_block = 1;
     std::uint16_t y_update_flag[3] = {0};
     std::size_t y_update_index[3] = {0};
 
@@ -1440,7 +1440,7 @@ __global__ void conv_min_555(const uint64_t* level_xz_vec,
     std::size_t global_index_begin = xz_end_vec[xz_start - 1];
     std::size_t global_index_end = xz_end_vec[xz_start];
 
-    std::size_t y_block = 1;
+    //std::size_t y_block = 1;
     std::uint16_t y_update_flag[3] = {0};
     std::size_t y_update_index[3] = {0};
 
@@ -1632,6 +1632,8 @@ __global__ void conv_pixel_333(const inputType* input_image,
         LOCALPATCHCONV333(output_image, (row_begin + j - 1), threadIdx.z, threadIdx.x, j - 1, neighbour_sum)
     }
 
+    __syncthreads();
+
     //set the boundary condition (zeros in this case)
 
     local_patch[threadIdx.z][threadIdx.x][(y_num) % N] = 0;
@@ -1719,6 +1721,8 @@ __global__ void conv_pixel_555(const inputType* input_image,
         float neighbour_sum = 0;
         LOCALPATCHCONV555(output_image, (row_begin + j - 2), threadIdx.z, threadIdx.x, j - 2, neighbour_sum)
     }
+
+    __syncthreads();
 
     // now do the last two iterations
 

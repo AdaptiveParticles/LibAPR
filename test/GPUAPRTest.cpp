@@ -342,7 +342,7 @@ TEST_F(CreatDiffDimsSphereTest, TEST_GPU_DOWNSAMPLE) {
 //#pragma omp parallel for reduction(+: successes)
 #endif
     for(size_t i = 0; i < tree_data.size(); ++i){
-        if(abs(tree_data[i] - tree_data_cpu[i]) < 1e-2) {
+        if(std::abs(tree_data[i] - tree_data_cpu[i]) < 1e-2) {
             successes++;
         } else {
             std::cout << "gpu: " << tree_data[i] << " cpu: " << tree_data_cpu[i] << " at part " << i << std::endl;
@@ -389,7 +389,7 @@ TEST_F(CreatDiffDimsSphereTest, TEST_GPU_CONV_333) {
     bool success = true;
 
     for(size_t i = 0; i < test_data.apr.total_number_particles(); ++i) {
-        if( abs(output[i] - output_gt[i]) < 1e-2) {
+        if( std::abs(output[i] - output_gt[i]) < 1e-2) {
             pass_count++;
         } else {
             success = false;
@@ -437,7 +437,7 @@ TEST_F(CreatDiffDimsSphereTest, TEST_GPU_CONV_555) {
     bool success = true;
 
     for(size_t i = 0; i < test_data.apr.total_number_particles(); ++i) {
-        if( abs(output[i] - output_gt[i]) < 1e-2) {
+        if( std::abs(output[i] - output_gt[i]) < 1e-2) {
             pass_count++;
         } else {
             success = false;
