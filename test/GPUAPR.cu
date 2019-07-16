@@ -116,7 +116,7 @@ __global__ void copyKernel(T *input, S* output, uint64_t size) {
     output[idx] = (S) input[idx];
 }
 
-void check_access_vectors(GPUAccessHelper& access, std::vector<uint64_t>& y_vec_out, std::vector<uint64_t>& xz_end_vec_out, std::vector<uint64_t>& level_xz_vec_out) {
+void check_access_vectors(GPUAccessHelper& access, std::vector<uint16_t>& y_vec_out, std::vector<uint64_t>& xz_end_vec_out, std::vector<uint64_t>& level_xz_vec_out) {
 
     y_vec_out.resize(access.linearAccess->y_vec.size(), 0);
     xz_end_vec_out.resize(access.linearAccess->xz_end_vec.size(), 0);
@@ -127,7 +127,7 @@ void check_access_vectors(GPUAccessHelper& access, std::vector<uint64_t>& y_vec_
     }
 
 
-    ScopedCudaMemHandler<uint64_t*, H2D> check_array_y(y_vec_out.data(), y_vec_out.size());
+    ScopedCudaMemHandler<uint16_t*, H2D> check_array_y(y_vec_out.data(), y_vec_out.size());
     ScopedCudaMemHandler<uint64_t*, H2D> check_array_xz(xz_end_vec_out.data(), xz_end_vec_out.size());
     ScopedCudaMemHandler<uint64_t*, H2D> check_array_lvl(level_xz_vec_out.data(), level_xz_vec_out.size());
 

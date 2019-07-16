@@ -4,22 +4,20 @@
 
 #include "APRDownsampleGPU.hpp"
 
-#include "misc/CudaTools.cuh"
-#include "misc/CudaMemory.cuh"
 
-__device__ void get_row_begin_end(std::size_t* index_begin,
-                                  std::size_t* index_end,
-                                  std::size_t xz_start,
-                                  const uint64_t* xz_end_vec){
-
-    *index_end = (xz_end_vec[xz_start]);
-
-    if (xz_start == 0) {
-        *index_begin = 0;
-    } else {
-        *index_begin =(xz_end_vec[xz_start-1]);
-    }
-}
+//__device__ void get_row_begin_end(std::size_t* index_begin,
+//                                  std::size_t* index_end,
+//                                  std::size_t xz_start,
+//                                  const uint64_t* xz_end_vec){
+//
+//    *index_end = (xz_end_vec[xz_start]);
+//
+//    if (xz_start == 0) {
+//        *index_begin = 0;
+//    } else {
+//        *index_begin =(xz_end_vec[xz_start-1]);
+//    }
+//}
 
 
 template<typename inputType, typename outputType>
@@ -86,19 +84,20 @@ __global__ void down_sample_avg(const uint64_t* level_xz_vec,
         // return; //out of bounds
     } else {
 
-        get_row_begin_end(&global_index_begin_0, &global_index_end_0, x_index + z_index*x_num + level_xz_vec[level], xz_end_vec);
-
+        //get_row_begin_end(&global_index_begin_0, &global_index_end_0, x_index + z_index*x_num + level_xz_vec[level], xz_end_vec);
+        size_t xz_start = x_index + z_index * x_num + level_xz_vec[level];
+        global_index_begin_0 = xz_end_vec[xz_start - 1];
+        global_index_end_0 = xz_end_vec[xz_start];
     }
 
-    get_row_begin_end(&global_index_begin_p, &global_index_end_p, blockIdx.x + blockIdx.z*x_num_parent + level_xz_vec_tree[level-1], xz_end_vec_tree);
-
-    const uint16_t number_y_chunk = (y_num+31)/32;
+    //get_row_begin_end(&global_index_begin_p, &global_index_end_p, blockIdx.x + blockIdx.z*x_num_parent + level_xz_vec_tree[level-1], xz_end_vec_tree);
+    size_t xz_start = blockIdx.x + blockIdx.z*x_num_parent + level_xz_vec_tree[level-1];
+    global_index_begin_p = xz_end_vec_tree[xz_start - 1];
+    global_index_end_p = xz_end_vec_tree[xz_start];
 
     //initialize (i=0)
     if ((global_index_begin_0 + local_th) < global_index_end_0) {
         current_val = input_particles[global_index_begin_0 + local_th];
-
-        //y_cache[block][local_th] = particle_y[ global_index_begin_0 + local_th];
         current_y =  y_vec[global_index_begin_0 + local_th];
     }
 
@@ -107,20 +106,17 @@ __global__ void down_sample_avg(const uint64_t* level_xz_vec,
 
         if (( global_index_begin_p + local_th) < global_index_end_p) {
 
-            //y_cache[4][local_th] = particle_y_child[ global_index_begin_p + local_th];
             current_y_p = y_vec_tree[global_index_begin_p + local_th];
 
         }
 
     }
 
-    //current_y = y_cache[block][local_th ];
-    //current_y_p = y_cache[4][local_th ];
-
     uint16_t sparse_block = 0;
     int sparse_block_p = 0;
+    const uint16_t number_y_chunk = (y_num+31)/32;
 
-    for (uint16_t y_block = 0; y_block < number_y_chunk; ++y_block) {
+    for (int y_block = 0; y_block < number_y_chunk; ++y_block) {
 
         __syncthreads();
         //value less then current chunk then update.
@@ -279,42 +275,41 @@ __global__ void down_sample_avg_interior(const uint64_t* level_xz_vec,
 
         // return; //out of bounds
     } else {
-        get_row_begin_end(&global_index_begin_t, &global_index_end_t, x_index + z_index*x_num + level_xz_vec_tree[level], xz_end_vec_tree);
-        get_row_begin_end(&global_index_begin_0, &global_index_end_0, x_index + z_index*x_num + level_xz_vec[level], xz_end_vec);
+        //get_row_begin_end(&global_index_begin_t, &global_index_end_t, x_index + z_index*x_num + level_xz_vec_tree[level], xz_end_vec_tree);
+        //get_row_begin_end(&global_index_begin_0, &global_index_end_0, x_index + z_index*x_num + level_xz_vec[level], xz_end_vec);
+        size_t xz_start = x_index + z_index * x_num + level_xz_vec_tree[level];
+        global_index_begin_t = xz_end_vec_tree[xz_start - 1];
+        global_index_end_t = xz_end_vec_tree[xz_start];
 
+        xz_start = x_index + z_index * x_num + level_xz_vec[level];
+        global_index_begin_0 = xz_end_vec[xz_start - 1];
+        global_index_end_0 = xz_end_vec[xz_start];
+
+//        if ((global_index_begin_t < global_index_end_t) && (local_th == 0)) {
+//            printf("level %d, tree: [%d, %d), apr: [%d, %d)\n", (int) level, (int) global_index_begin_t,
+//                   (int) global_index_end_t, (int) global_index_begin_0, (int) global_index_end_0);
+//        }
     }
 
-    get_row_begin_end(&global_index_begin_p, &global_index_end_p, blockIdx.x + blockIdx.z*x_num_parent + level_xz_vec_tree[level-1], xz_end_vec_tree);
-
-    const std::uint16_t number_y_chunk = (y_num+31)/32;
-
+    //get_row_begin_end(&global_index_begin_p, &global_index_end_p, blockIdx.x + blockIdx.z*x_num_parent + level_xz_vec_tree[level-1], xz_end_vec_tree);
+    size_t xz_start = blockIdx.x + blockIdx.z*x_num_parent + level_xz_vec_tree[level-1];
+    global_index_begin_p = xz_end_vec_tree[xz_start - 1];
+    global_index_end_p = xz_end_vec_tree[xz_start];
 
     //initialize (i=0)
     if ((global_index_begin_0 + local_th) < global_index_end_0) {
 
-        //y_cache[block][local_th] = particle_y[global_index_begin_0 + local_th];
         current_y = y_vec[global_index_begin_0 + local_th];
-
-        //f_cache[block][local_th] = particle_data_input[global_index_begin_0 + local_th];
-        current_val = particle_data_output[global_index_begin_0 + local_th];
+        current_val = input_particles[global_index_begin_0 + local_th];
 
     }
 
     //tree interior
     if ((global_index_begin_t + local_th) < global_index_end_t) {
 
-        //y_cache_t[block][local_th] = particle_y_child[global_index_begin_t + local_th];
         current_y_t = y_vec_tree[global_index_begin_t + local_th];
-
-        //f_cache_t[block][local_th] = particle_data_output[global_index_begin_t + local_th];
         current_val_t = particle_data_output[global_index_begin_t + local_th];
-
-        // current_y_t = y_cache_t[block][local_th ];
-
     }
-
-
-
 
     if (block == 3) {
 
@@ -323,42 +318,33 @@ __global__ void down_sample_avg_interior(const uint64_t* level_xz_vec,
             current_y_p = y_vec_tree[global_index_begin_p + local_th];
 
         }
-
     }
 
-    uint16_t sparse_block = 0;
-    int sparse_block_p =0;
-    int sparse_block_t =0;
+    int sparse_block = 0;
+    int sparse_block_p = 0;
+    int sparse_block_t = 0;
 
+    const int number_y_chunk = (y_num+31)/32;
 
-    for (uint16_t y_block = 0; y_block < (number_y_chunk); ++y_block) {
+    for (int y_block = 0; y_block < (number_y_chunk); ++y_block) {
 
         __syncthreads();
         //value less then current chunk then update.
-        if (current_y < y_block * 32) {
+        if (current_y < (y_block * 32)) {
             sparse_block++;
             if ((sparse_block * 32 + global_index_begin_0 + local_th) < global_index_end_0) {
-                //f_cache[block][local_th] = particle_data_input[sparse_block * 32 + global_index_begin_0 +
-                //   local_th];
-                current_val = input_particles[sparse_block * 32 + global_index_begin_0 + local_th];
 
-                //y_cache[block][local_th] = particle_y[sparse_block * 32 + global_index_begin_0 + local_th];
+                current_val = input_particles[sparse_block * 32 + global_index_begin_0 + local_th];
                 current_y = y_vec[sparse_block * 32 + global_index_begin_0 + local_th];
             }
-
         }
-        //current_y = y_cache[block][local_th];
 
         //interior tree update
-        if (current_y_t < y_block * 32) {
+        if (current_y_t < (y_block * 32)) {
             sparse_block_t++;
             if ((sparse_block_t * 32 + global_index_begin_t + local_th) < global_index_end_t) {
 
-                //f_cache_t[block][local_th] = particle_data_output[sparse_block_t * 32 + global_index_begin_t +
-                //                                            local_th];
                 current_val_t = particle_data_output[sparse_block_t * 32 + global_index_begin_t + local_th];
-
-                //y_cache_t[block][local_th] = particle_y_child[sparse_block_t * 32 + global_index_begin_t + local_th];
                 current_y_t = y_vec_tree[sparse_block_t * 32 + global_index_begin_t + local_th];
             }
         }
@@ -368,8 +354,9 @@ __global__ void down_sample_avg_interior(const uint64_t* level_xz_vec,
         //update the down-sampling caches
         if ((current_y < (y_block + 1) * 32) && (current_y >= (y_block) * 32)) {
 
-            parent_cache[2*block+current_y%2][(current_y/2) % 16] = (1.0f/8.0f)*current_val;
+            parent_cache[2*block+current_y%2][(current_y/2) % 16] = (1.0/8.0f)*current_val;
             //parent_cache[2*block+current_y%2][(current_y/2) % 16] = 1;
+
         }
         __syncthreads();
 
@@ -378,8 +365,8 @@ __global__ void down_sample_avg_interior(const uint64_t* level_xz_vec,
         //now the interior tree nodes
         if ((current_y_t < (y_block + 1) * 32) && (current_y_t >= (y_block) * 32)) {
 
-            parent_cache[2*block+current_y_t%2][(current_y_t/2) % 16] = (1.0f/8.0f)*current_val_t;
-            //parent_cache[2*block+current_y_t%2][(current_y_t/2) % 16] =1;
+            parent_cache[2*block + current_y_t%2][(current_y_t/2) % 16] = (1.0/8.0f)*current_val_t;
+            //parent_cache[2*block+current_y_t%2][(current_y_t/2) % 16] = 1;
             //parent_cache[0][(current_y_t/2) % 16] = current_y_t/2;
         }
         __syncthreads();
@@ -446,20 +433,19 @@ __global__ void down_sample_avg_interior(const uint64_t* level_xz_vec,
     }
 }
 
-//template<typename T, typename S>
-void downsample_avg(GPUAccessHelper& access, GPUAccessHelper& tree_access, std::vector<uint16_t>& input, std::vector<uint16_t>& tree_data) {
+template<typename inputType, typename treeType>
+void downsample_avg_init_wrapper(GPUAccessHelper& access, GPUAccessHelper& tree_access, std::vector<inputType>& input, std::vector<treeType>& tree_data) {
 
-    std::cout << "hej" << std::endl;
     tree_data.resize(tree_access.total_number_particles());
 
     /// transfer input and tree_data to gpu
-    ScopedCudaMemHandler<uint16_t*, H2D> input_gpu(input.data(), input.size());
-    ScopedCudaMemHandler<uint16_t*, H2D> tree_data_gpu(tree_data.data(), tree_data.size());
+    ScopedCudaMemHandler<inputType*, H2D> input_gpu(input.data(), input.size());
+    ScopedCudaMemHandler<treeType*, H2D> tree_data_gpu(tree_data.data(), tree_data.size());
 
     input_gpu.copyH2D();
     tree_data_gpu.copyH2D();
 
-    for (int level = access.level_max(); level > access.level_min(); --level) {
+    for (int level = access.level_max(); level >= access.level_min(); --level) {
 
         dim3 threads_l(128, 1, 1);
 
@@ -482,34 +468,91 @@ void downsample_avg(GPUAccessHelper& access, GPUAccessHelper& tree_access, std::
                                                        access.z_num(level),
                                                        access.x_num(level),
                                                        access.y_num(level),
-                                                       access.z_num(level-1),
-                                                       access.x_num(level-1),
-                                                       access.y_num(level-1),
+                                                       tree_access.z_num(level-1),
+                                                       tree_access.x_num(level-1),
+                                                       tree_access.y_num(level-1),
                                                        level);
 
 
         } else {
 
             down_sample_avg_interior<< < blocks_l, threads_l >> >
-                                                        (access.get_level_xz_vec_ptr(),
-                                                                access.get_xz_end_vec_ptr(),
-                                                                access.get_y_vec_ptr(),
-                                                                input_gpu.get(),
-                                                                tree_access.get_level_xz_vec_ptr(),
-                                                                tree_access.get_xz_end_vec_ptr(),
-                                                                tree_access.get_y_vec_ptr(),
-                                                                tree_data_gpu.get(),
-                                                                access.z_num(level),
-                                                                access.x_num(level),
-                                                                access.y_num(level),
-                                                                access.z_num(level-1),
-                                                                access.x_num(level-1),
-                                                                access.y_num(level-1),
-                                                                level);
+                                                       (access.get_level_xz_vec_ptr(),
+                                                        access.get_xz_end_vec_ptr(),
+                                                        access.get_y_vec_ptr(),
+                                                        input_gpu.get(),
+                                                        tree_access.get_level_xz_vec_ptr(),
+                                                        tree_access.get_xz_end_vec_ptr(),
+                                                        tree_access.get_y_vec_ptr(),
+                                                        tree_data_gpu.get(),
+                                                        access.z_num(level),
+                                                        access.x_num(level),
+                                                        access.y_num(level),
+                                                        tree_access.z_num(level-1),
+                                                        tree_access.x_num(level-1),
+                                                        tree_access.y_num(level-1),
+                                                        level);
         }
-        cudaDeviceSynchronize();
+        //cudaDeviceSynchronize();
     }
 
     input_gpu.copyD2H();
     tree_data_gpu.copyD2H();
+}
+
+
+template<typename inputType, typename treeType>
+void downsample_avg_wrapper(GPUAccessHelper& access, GPUAccessHelper& tree_access, ScopedCudaMemHandler<inputType*, H2D>& input_gpu,
+        ScopedCudaMemHandler<treeType*, H2D>& tree_data_gpu) {
+
+    for (int level = access.level_max(); level >= access.level_min(); --level) {
+
+        dim3 threads_l(128, 1, 1);
+
+        int x_blocks = (access.x_num(level) + 2 - 1) / 2;
+        int z_blocks = (access.z_num(level) + 2 - 1) / 2;
+
+        dim3 blocks_l(x_blocks, 1, z_blocks);
+
+        if(level==access.level_max()) {
+
+            down_sample_avg << < blocks_l, threads_l >> >
+                                           (access.get_level_xz_vec_ptr(),
+                                                   access.get_xz_end_vec_ptr(),
+                                                   access.get_y_vec_ptr(),
+                                                   input_gpu.get(),
+                                                   tree_access.get_level_xz_vec_ptr(),
+                                                   tree_access.get_xz_end_vec_ptr(),
+                                                   tree_access.get_y_vec_ptr(),
+                                                   tree_data_gpu.get(),
+                                                   access.z_num(level),
+                                                   access.x_num(level),
+                                                   access.y_num(level),
+                                                   tree_access.z_num(level-1),
+                                                   tree_access.x_num(level-1),
+                                                   tree_access.y_num(level-1),
+                                                   level);
+
+
+        } else {
+
+            down_sample_avg_interior<< < blocks_l, threads_l >> >
+                                                   (access.get_level_xz_vec_ptr(),
+                                                           access.get_xz_end_vec_ptr(),
+                                                           access.get_y_vec_ptr(),
+                                                           input_gpu.get(),
+                                                           tree_access.get_level_xz_vec_ptr(),
+                                                           tree_access.get_xz_end_vec_ptr(),
+                                                           tree_access.get_y_vec_ptr(),
+                                                           tree_data_gpu.get(),
+                                                           access.z_num(level),
+                                                           access.x_num(level),
+                                                           access.y_num(level),
+                                                           tree_access.z_num(level-1),
+                                                           tree_access.x_num(level-1),
+                                                           tree_access.y_num(level-1),
+                                                           level);
+        }
+        //cudaDeviceSynchronize();
+    }
 }

@@ -22,6 +22,7 @@
 
     #include "GPUAPR.hpp"
     #include "numerics/APRDownsampleGPU.hpp"
+    #include "numerics/APRIsoConvGPU.hpp"
 
 #endif
 
@@ -186,7 +187,7 @@ TEST_F(CreatDiffDimsSphereTest, APR_ACCESS_ROUNDTRIP_TEST) {
     gpuData.init_gpu();
     //gpuDataTree.init_gpu();
 
-    std::vector<uint64_t> y_vec;
+    std::vector<uint16_t> y_vec;
     std::vector<uint64_t> xz_end_vec;
     std::vector<uint64_t> level_xz_vec;
 
@@ -209,6 +210,49 @@ TEST_F(CreatDiffDimsSphereTest, APR_ACCESS_ROUNDTRIP_TEST) {
     for(size_t i = 0; i < gpuData.linearAccess->level_xz_vec.size(); ++i) {
         if(level_xz_vec[i] == gpuData.linearAccess->level_xz_vec[i]) {
             success_lvl++;
+        }
+    }
+
+    ASSERT_EQ(success_lvl, level_xz_vec.size());
+    ASSERT_EQ(success_xz, xz_end_vec.size());
+    ASSERT_EQ(success_y, y_vec.size());
+}
+
+
+TEST_F(CreatDiffDimsSphereTest, APR_ACCESS_ROUNDTRIP_TEST_TREE) {
+
+    auto gpuData = test_data.apr.gpuTreeHelper();
+    gpuData.init_gpu();
+
+    std::vector<uint16_t> y_vec;
+    std::vector<uint64_t> xz_end_vec;
+    std::vector<uint64_t> level_xz_vec;
+
+    check_access_vectors(gpuData, y_vec, xz_end_vec, level_xz_vec);
+
+    size_t success_y = 0, success_xz = 0, success_lvl = 0;
+
+    for(size_t i = 0; i < gpuData.linearAccess->y_vec.size(); ++i) {
+        if(y_vec[i] == gpuData.linearAccess->y_vec[i]) {
+            success_y++;
+        } else {
+            std::cerr << "Received y_vec[" << i << "] = " << y_vec[i] << ", expected " << gpuData.linearAccess->y_vec[i] << std::endl;
+        }
+    }
+
+    for(size_t i = 0; i < gpuData.linearAccess->xz_end_vec.size(); ++i) {
+        if(xz_end_vec[i] == gpuData.linearAccess->xz_end_vec[i]) {
+            success_xz++;
+        } else {
+            std::cerr << "Received xz_end_vec[" << i << "] = " << xz_end_vec[i] << ", expected " << gpuData.linearAccess->xz_end_vec[i] << std::endl;
+        }
+    }
+
+    for(size_t i = 0; i < gpuData.linearAccess->level_xz_vec.size(); ++i) {
+        if(level_xz_vec[i] == gpuData.linearAccess->level_xz_vec[i]) {
+            success_lvl++;
+        } else {
+            std::cerr << "Received level_xz_vec[" << i << "] = " << level_xz_vec[i] << ", expected " << gpuData.linearAccess->level_xz_vec[i] << std::endl;
         }
     }
 
@@ -279,13 +323,37 @@ TEST_F(CreatDiffDimsSphereTest, APR_TEST) {
 
 TEST_F(CreatDiffDimsSphereTest, TEST_GPU_DOWNSAMPLE) {
 
-    auto apr_it = test_data.apr.iterator();
-    std::vector<uint16_t> parts;
-    parts.resize(apr_it.total_number_particles());
+    auto gpuData = test_data.apr.gpuAPRHelper();
+    auto gpuDataTree = test_data.apr.gpuTreeHelper();
 
-    for(size_t i = 0; i < parts.size(); ++i) {
-        parts[i] = test_data.particles_intensities[i];
+    gpuData.init_gpu();
+    gpuDataTree.init_gpu();
+
+    std::vector<float> tree_data;
+
+    downsample_avg(gpuData, gpuDataTree, test_data.particles_intensities.data, tree_data);
+
+    ParticleData<float> tree_data_cpu;
+    APRTreeNumerics::fill_tree_mean(test_data.apr, test_data.particles_intensities, tree_data_cpu);
+
+    size_t successes = 0;
+
+#ifdef HAVE_OPENMP
+//#pragma omp parallel for reduction(+: successes)
+#endif
+    for(size_t i = 0; i < tree_data.size(); ++i){
+        if(abs(tree_data[i] - tree_data_cpu[i]) < 1e-2) {
+            successes++;
+        } else {
+            std::cout << "gpu: " << tree_data[i] << " cpu: " << tree_data_cpu[i] << " at part " << i << std::endl;
+        }
     }
+
+    ASSERT_EQ(successes, tree_data.size());
+}
+
+
+TEST_F(CreatDiffDimsSphereTest, TEST_GPU_CONV_333) {
 
     auto gpuData = test_data.apr.gpuAPRHelper();
     auto gpuDataTree = test_data.apr.gpuTreeHelper();
@@ -293,22 +361,99 @@ TEST_F(CreatDiffDimsSphereTest, TEST_GPU_DOWNSAMPLE) {
     gpuData.init_gpu();
     gpuDataTree.init_gpu();
 
-    std::vector<uint16_t> tree_data;
+    std::vector<double> tree_data;
+    std::vector<double> output;
+    std::vector<double> stencil;
 
-    downsample_avg(gpuData, gpuDataTree, parts, tree_data);
+    stencil.resize(27);
+    double sum = 13.0 * 27;
+    for(int i = 0; i < 27; ++i) {
+        stencil[i] = ((double) i) / sum;
+    }
 
-    ParticleData<float> tree_data_cpu;
-    APRTreeNumerics::fill_tree_mean(test_data.apr, test_data.particles_intensities, tree_data_cpu);
+    isotropic_convolve_333(gpuData, gpuDataTree, test_data.particles_intensities.data, output, stencil, tree_data);
 
-    size_t successes = 0;
-    for(size_t i = 0; i < tree_data.size(); ++i){
-        if(abs(tree_data[i] - tree_data_cpu[i]) < 1e-2) {
-            successes++;
+    std::vector<PixelData<double>> stencils;
+    stencils.resize(1);
+
+    stencils[0].init(3, 3, 3);
+    for(int i = 0; i < 27; ++i) {
+        stencils[0].mesh[i] = stencil[26-i];
+    }
+
+    APRFilter filterfns;
+    filterfns.boundary_cond = false; // zero padding
+
+    ParticleData<double> output_gt;
+    filterfns.create_test_particles_equiv(test_data.apr, stencils, test_data.particles_intensities, output_gt);
+
+    size_t pass_count = 0;
+    bool success = true;
+
+    for(size_t i = 0; i < test_data.apr.total_number_particles(); ++i) {
+        if( abs(output[i] - output_gt[i]) < 1) {
+            pass_count++;
+        } else {
+            success = false;
+            std::cout << "Expected " << output_gt[i] << " but received " << output[i] << " at particle index " << i << std::endl;
         }
     }
 
-    ASSERT_EQ(successes, tree_data.size());
+    std::cout << "passed: " << pass_count << " failed: " << test_data.apr.total_number_particles()-pass_count << std::endl;
+    ASSERT_TRUE(success);
 }
+
+
+TEST_F(CreatDiffDimsSphereTest, TEST_GPU_CONV_555) {
+
+    auto gpuData = test_data.apr.gpuAPRHelper();
+    auto gpuDataTree = test_data.apr.gpuTreeHelper();
+
+    gpuData.init_gpu();
+    gpuDataTree.init_gpu();
+
+    std::vector<double> tree_data;
+    std::vector<double> output;
+    std::vector<double> stencil;
+
+    stencil.resize(125);
+    double sum = 62.0 * 125;
+    for(int i = 0; i < 125; ++i) {
+        stencil[i] = ((double) i) / sum;
+    }
+
+    isotropic_convolve_555(gpuData, gpuDataTree, test_data.particles_intensities.data, output, stencil, tree_data);
+
+    std::vector<PixelData<double>> stencils;
+    stencils.resize(1);
+
+    stencils[0].init(5, 5, 5);
+    for(int i = 0; i < 125; ++i) {
+        stencils[0].mesh[i] = stencil[124-i];
+    }
+
+    APRFilter filterfns;
+    filterfns.boundary_cond = false; // zero padding
+
+    ParticleData<double> output_gt;
+    filterfns.create_test_particles_equiv(test_data.apr, stencils, test_data.particles_intensities, output_gt);
+
+    size_t pass_count = 0;
+    bool success = true;
+
+    for(size_t i = 0; i < test_data.apr.total_number_particles(); ++i) {
+        if( abs(output[i] - output_gt[i]) < 1) {
+            pass_count++;
+        } else {
+            success = false;
+            std::cout << "Expected " << output_gt[i] << " but received " << output[i] << " at particle index " << i << std::endl;
+        }
+    }
+
+    std::cout << "passed: " << pass_count << " failed: " << test_data.apr.total_number_particles()-pass_count << std::endl;
+    ASSERT_TRUE(success);
+}
+
 
 #endif
 

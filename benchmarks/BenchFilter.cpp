@@ -19,6 +19,10 @@ BenchIteration
 #include "BenchAPRHelper.hpp"
 #include "numerics/APRFilter.hpp"
 
+#ifdef APR_USE_CUDA
+    #include "numerics/APRIsoConvGPU.hpp"
+#endif
+
 template<typename partsType>
 inline void bench_apr_convolve(APR& apr,ParticleData<partsType>& parts,int num_rep,AnalysisData& analysisData,int stencil_size = 3);
 
@@ -26,7 +30,11 @@ template<typename partsType>
 inline void bench_apr_convolve_pencil(APR& apr,ParticleData<partsType>& parts,int num_rep,AnalysisData& analysisData,int stencil_size = 3);
 
 template<typename partsType>
-inline void bench_pixel_convolve(APR& apr,ParticleData<partsType>& parts,int num_rep,AnalysisData& analysisData,int stencil_size);
+inline void bench_pixel_convolve(APR& apr,ParticleData<partsType>& parts,int num_rep,AnalysisData& analysisData,int stencil_size = 3);
+
+template<typename partsType>
+inline void bench_apr_convolve_cuda(APR& apr,ParticleData<partsType>& parts,int num_rep,AnalysisData& analysisData,int stencil_size);
+
 
 int main(int argc, char **argv) {
 
@@ -51,22 +59,26 @@ int main(int argc, char **argv) {
         benchAPRHelper.generate_dataset(i,apr,parts);
 
         //put benchmark funtions here..
-        bench_apr_convolve(apr,parts,benchAPRHelper.get_number_reps(),benchAPRHelper.analysisData,1);
-        bench_apr_convolve(apr,parts,benchAPRHelper.get_number_reps(),benchAPRHelper.analysisData,3);
-        bench_apr_convolve(apr,parts,benchAPRHelper.get_number_reps(),benchAPRHelper.analysisData,5);
+#ifdef APR_USE_CUDA
+        bench_apr_convolve_cuda(apr, parts, benchAPRHelper.get_number_reps(), benchAPRHelper.analysisData, 3);
+#endif
 
-        bench_apr_convolve_pencil(apr,parts,benchAPRHelper.get_number_reps(),benchAPRHelper.analysisData,1);
+        //bench_apr_convolve(apr,parts,benchAPRHelper.get_number_reps(),benchAPRHelper.analysisData,1);
+        bench_apr_convolve(apr,parts,benchAPRHelper.get_number_reps(),benchAPRHelper.analysisData,3);
+        //bench_apr_convolve(apr,parts,benchAPRHelper.get_number_reps(),benchAPRHelper.analysisData,5);
+
+        //bench_apr_convolve_pencil(apr,parts,benchAPRHelper.get_number_reps(),benchAPRHelper.analysisData,1);
         bench_apr_convolve_pencil(apr,parts,benchAPRHelper.get_number_reps(),benchAPRHelper.analysisData,3);
-        bench_apr_convolve_pencil(apr,parts,benchAPRHelper.get_number_reps(),benchAPRHelper.analysisData,5);
+        //bench_apr_convolve_pencil(apr,parts,benchAPRHelper.get_number_reps(),benchAPRHelper.analysisData,5);
 
         if(i==0){
             /*
             * Pixel benchmarks (These are content independent)
             */
 
-            bench_pixel_convolve(apr,parts,benchAPRHelper.get_number_reps(),benchAPRHelper.analysisData,1);
+            //bench_pixel_convolve(apr,parts,benchAPRHelper.get_number_reps(),benchAPRHelper.analysisData,1);
             bench_pixel_convolve(apr,parts,benchAPRHelper.get_number_reps(),benchAPRHelper.analysisData,3);
-            bench_pixel_convolve(apr,parts,benchAPRHelper.get_number_reps(),benchAPRHelper.analysisData,5);
+            //bench_pixel_convolve(apr,parts,benchAPRHelper.get_number_reps(),benchAPRHelper.analysisData,5);
 
         }
     }
@@ -254,7 +266,43 @@ inline void bench_pixel_convolve(APR& apr,ParticleData<partsType>& parts,int num
 
     //Required in all benchmarks
     analysisData.add_timer(timer,test_img.mesh.size(),num_rep);
-
-
 }
 
+
+#ifdef APR_USE_CUDA
+
+template<typename partsType>
+inline void bench_apr_convolve_cuda(APR& apr,ParticleData<partsType>& parts,int num_rep,AnalysisData& analysisData,int stencil_size){
+
+    APRTimer timer(true);
+
+    auto access = apr.gpuAPRHelper();
+    auto tree_access = apr.gpuTreeHelper();
+
+    access.init_gpu();
+    tree_access.init_gpu();
+
+    std::vector<float> stencil;
+    stencil.resize(stencil_size * stencil_size * stencil_size);
+
+    // unique stencil elements
+    float sum = 0;
+    for(int i = 0; i < stencil.size(); ++i) {
+        sum += i;
+    }
+    for(int i = 0; i < stencil.size(); ++i) {
+        stencil[i] = ((float) i) / sum;
+    }
+
+    timer.start_timer("apr_filter_cuda" + std::to_string(stencil_size));
+    for (int r = 0; r < num_rep; ++r) {
+        std::vector<float> output;
+        std::vector<float> tree_data;
+        isotropic_convolve_333(access, tree_access, parts.data, output, stencil, tree_data);
+    }
+    timer.stop_timer();
+
+    analysisData.add_timer(timer,apr.total_number_particles(),num_rep);
+}
+
+#endif
