@@ -114,7 +114,7 @@ private:
     void set_ascendant_neighbours(int level);
     void set_filler(int level);
     void fill_neighbours(int level);
-    void fill_parent(size_t j, size_t i, size_t k, size_t x_num, size_t y_num, size_t new_level);
+    void fill_parent(size_t j, size_t i, size_t k, size_t x_num, size_t y_num, int new_level);
 };
 
 
@@ -134,15 +134,15 @@ inline void PullingSchemeSparse::initialize_particle_cell_tree(const GenInfo& ap
     y_num_l.resize(l_max + 1);
     particle_cell_tree.data.resize(l_max + 1);
 
-    for (unsigned int l = l_min; l < (l_max + 1) ;l ++){
+    for (int l = l_min; l < (l_max + 1) ;l ++){
 
         particle_cell_tree.x_num[l] = (uint64_t) ceil((1.0 * aprInfo.org_dims[1]) / pow(2.0, 1.0 * l_max - l + 1));
         particle_cell_tree.z_num[l] = (uint64_t) ceil((1.0 * aprInfo.org_dims[2]) / pow(2.0, 1.0 * l_max - l + 1));
         particle_cell_tree.data[l].resize(particle_cell_tree.z_num[l]*particle_cell_tree.x_num[l]);
         y_num_l[l] = (uint64_t) ceil((1.0 * aprInfo.org_dims[0]) / pow(2.0, 1.0 * l_max - l + 1));
 
-        for (int i = 0; i < particle_cell_tree.z_num[l] ; ++i) {
-            for (int j = 0; j < particle_cell_tree.x_num[l]; ++j) {
+        for (size_t i = 0; i < particle_cell_tree.z_num[l] ; ++i) {
+            for (size_t j = 0; j < particle_cell_tree.x_num[l]; ++j) {
                 particle_cell_tree.data[l][i*particle_cell_tree.x_num[l]+j].resize(1);
             }
         }
@@ -344,13 +344,13 @@ inline void PullingSchemeSparse::set_filler(int level) {
 #pragma omp parallel for default(shared) schedule(dynamic) if (z_num * x_num * y_num > 10000) firstprivate(level, children_boundaries)
 #endif
     for (int64_t j = 0; j < z_num; ++j) {
-        if ( j == z_num - 1 && prev_z_num % 2 ) {
+        if ( (j == z_num - 1) && prev_z_num % 2 ) {
             children_boundaries[0] = 1;
         }
 
         for (int64_t i = 0; i < x_num; ++i) {
 
-            if ( i == x_num - 1 && prev_x_num % 2 ) {
+            if ( (i == x_num - 1) && prev_x_num % 2 ) {
                 children_boundaries[1] = 1;
             }
             else if ( i == 0 ) {
@@ -363,9 +363,9 @@ inline void PullingSchemeSparse::set_filler(int level) {
             auto& mesh = particle_cell_tree.data[level][offset_pc][0].mesh;
 
             //SPARSE iteration
-            for (auto it=mesh.begin(); it!=mesh.end(); ++it){
-                size_t k = it->first;
-                if ( k == y_num - 1 && prev_y_num % 2 ) {
+            for(auto it=mesh.begin(); it!=mesh.end(); ++it){
+                int64_t k = it->first;
+                if ( (k == y_num - 1) && prev_y_num % 2 ) {
                     children_boundaries[2] = 1;
                 }
                 else if ( k == 0 ) {
@@ -445,7 +445,7 @@ inline void PullingSchemeSparse::fill_neighbours(int level) {
     }
 }
 
-inline void PullingSchemeSparse::fill_parent(size_t j, size_t i, size_t k, size_t x_num, size_t y_num, size_t new_level) {
+inline void PullingSchemeSparse::fill_parent(size_t j, size_t i, size_t k, size_t x_num, size_t y_num, int new_level) {
     if(new_level >= l_min) {
         size_t new_x_num = ((x_num + 1) / 2);
         //size_t new_y_num = ((y_num + 1) / 2);

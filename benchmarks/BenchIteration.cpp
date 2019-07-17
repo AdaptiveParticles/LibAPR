@@ -314,9 +314,9 @@ void bench_pixel_iteration(APR& apr,ParticleData<partsType>& parts,int num_rep,A
 
     for (int r = 0; r < num_rep; ++r) {
 
-        for (int z = 0; z < test_img.z_num; ++z) {
-            for (int x = 0; x < test_img.x_num; ++x) {
-                for (int y = 0; y < test_img.y_num; ++y) {
+        for (size_t z = 0; z < test_img.z_num; ++z) {
+            for (size_t x = 0; x < test_img.x_num; ++x) {
+                for (size_t y = 0; y < test_img.y_num; ++y) {
 
                     test_img.at(y,x,z) = test_img.at(y,x,z) + 1;
 
@@ -333,14 +333,14 @@ void bench_pixel_iteration(APR& apr,ParticleData<partsType>& parts,int num_rep,A
     //int z = 0;
 
     for (int r = 0; r < num_rep; ++r) {
-        int z = 0;
+        size_t z = 0;
 
 #ifdef HAVE_OPENMP
 #pragma omp parallel for private(z)
 #endif
         for ( z = 0; z < test_img.z_num; ++z) {
-            for (int x = 0; x < test_img.x_num; ++x) {
-                for (int y = 0; y < test_img.y_num; ++y) {
+            for (size_t x = 0; x < test_img.x_num; ++x) {
+                for (size_t y = 0; y < test_img.y_num; ++y) {
                     test_img.at(y,x,z) = (uint16_t) (test_img.at(y,x,z) + 1);
                 }
             }
@@ -355,14 +355,14 @@ void bench_pixel_iteration(APR& apr,ParticleData<partsType>& parts,int num_rep,A
     //int z = 0;
 
     for (int r = 0; r < num_rep; ++r) {
-        int z = 0;
+        size_t z = 0;
 
 #ifdef HAVE_OPENMP
 #pragma omp parallel for private(z)
 #endif
         for ( z = 0; z < test_img.z_num; ++z) {
-            for (int x = 0; x < test_img.x_num; ++x) {
-                for (int y = 0; y < test_img.y_num; ++y) {
+            for (size_t x = 0; x < test_img.x_num; ++x) {
+                for (size_t y = 0; y < test_img.y_num; ++y) {
                     test_img.at(y,x,z) = (uint16_t) log(exp(test_img.at(y,x,z) + 1));
                 }
             }

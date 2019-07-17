@@ -104,7 +104,7 @@ class BenchAPRHelper {
 
     void load_benchmark_data(){
 
-        for (int i = 0; i < CR_names.size(); ++i) {
+        for (int i = 0; i < (int) CR_names.size(); ++i) {
             if((CR_names[i] >= CR_min) && (CR_names[i] <= CR_max)){
                 std::string name = get_source_directory_apr() + benchmark_file_location + "/cr_" + std::to_string(CR_names[i]) + ".apr";
                 APR apr;
@@ -146,7 +146,7 @@ public:
         auto& acc1 = apr1.linearAccess;
         auto& acc2 = apr2.linearAccess;
 
-        for (int i = 0; i < acc1.y_vec.size(); ++i) {
+        for (size_t i = 0; i < acc1.y_vec.size(); ++i) {
             auto y1 = acc1.y_vec[i];
             auto y2 = acc2.y_vec[i];
 
@@ -155,7 +155,7 @@ public:
             }
         }
 
-        for (int i = 0; i < acc1.xz_end_vec.size(); ++i) {
+        for (size_t i = 0; i < acc1.xz_end_vec.size(); ++i) {
             auto y1 = acc1.xz_end_vec[i];
             auto y2 = acc2.xz_end_vec[i];
 
@@ -608,7 +608,7 @@ public:
 
         timer.stop_timer();
 
-    };
+    }
 
 };
 

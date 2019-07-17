@@ -50,7 +50,7 @@ public:
             std::cout << "Variance Stabalization Only" << std::endl;
             //variance stabilization only, no subsequent prediction step. (all particles)
 
-            int i = 0;
+            size_t i = 0;
 #ifdef HAVE_OPENMP
 #pragma omp parallel for schedule(static) private(i)
 #endif
@@ -71,7 +71,7 @@ public:
         timer.start_timer("total decompress");
 
        if (compress_type == 1){
-            int i = 0;
+            size_t i = 0;
 #ifdef HAVE_OPENMP
 #pragma omp parallel for schedule(static) private(i)
 #endif

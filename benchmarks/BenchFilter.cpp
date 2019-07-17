@@ -117,10 +117,10 @@ inline void bench_apr_convolve(APR& apr,ParticleData<partsType>& parts,int num_r
 
     // unique stencil elements
     float sum = 0;
-    for(int i = 0; i < stencils[0].mesh.size(); ++i) {
+    for(int i = 0; i < (int) stencils[0].mesh.size(); ++i) {
         sum += i;
     }
-    for(int i = 0; i < stencils[0].mesh.size(); ++i) {
+    for(int i = 0; i < (int) stencils[0].mesh.size(); ++i) {
         stencils[0].mesh[i] = ((float) i) / sum;
     }
 
@@ -157,10 +157,10 @@ inline void bench_apr_convolve_pencil(APR& apr,ParticleData<partsType>& parts,in
 
     // unique stencil elements
     float sum = 0;
-    for(int i = 0; i < stencils[0].mesh.size(); ++i) {
+    for(int i = 0; i < (int) stencils[0].mesh.size(); ++i) {
         sum += i;
     }
-    for(int i = 0; i < stencils[0].mesh.size(); ++i) {
+    for(int i = 0; i < (int) stencils[0].mesh.size(); ++i) {
         stencils[0].mesh[i] = ((float) i) / sum;
     }
 
@@ -196,10 +196,10 @@ inline void bench_pixel_convolve(APR& apr, ParticleData<partsType>& parts, int n
 
     // unique stencil elements
     float sum = 0;
-    for(int i = 0; i < stencils[0].mesh.size(); ++i) {
+    for(int i = 0; i < (int) stencils[0].mesh.size(); ++i) {
         sum += i;
     }
-    for(int i = 0; i < stencils[0].mesh.size(); ++i) {
+    for(int i = 0; i < (int) stencils[0].mesh.size(); ++i) {
         stencils[0].mesh[i] = ((float) i) / sum;
     }
 
@@ -232,17 +232,17 @@ inline void bench_pixel_convolve(APR& apr, ParticleData<partsType>& parts, int n
 #ifdef HAVE_OPENMP
 #pragma omp parallel for private(z)
 #endif
-        for (z = 0; z < test_img.z_num; ++z) {
+        for (z = 0; z < (int)  test_img.z_num; ++z) {
 
             const int offset_max_dim3 = std::min( z + s_plus, (int) (z_num ));
             const int dim3 = std::max(z - s_minus,(int) 0);
 
-            for (int x = 0; x < test_img.x_num; ++x) {
+            for (int x = 0; x < (int) test_img.x_num; ++x) {
 
                 const int offset_max_dim2 = std::min(x + s_plus, (int) (x_num ));
                 const int dim2 = std::max(x - s_minus,(int) 0);
 
-                for (int y = 0; y < test_img.y_num; ++y) {
+                for (int y = 0; y <  (int) test_img.y_num; ++y) {
 
                     float temp_int=0;
 

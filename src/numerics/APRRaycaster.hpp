@@ -240,7 +240,7 @@ void APRRaycaster::perform_raycast_patch(APR &apr, ParticleData<S> &particle_dat
     depth_slice[max_level].initWithValue(imageHeight, imageWidth, 1, init_val);
 
 
-    for (size_t i = apr.level_min(); i < max_level; i++) {
+    for (int i = apr.level_min(); i < max_level; i++) {
         float d = pow(2, max_level - i);
         depth_slice[i].initWithValue(ceil(depth_slice[max_level].y_num / d),
                                      ceil(depth_slice[max_level].x_num / d), 1, init_val);
@@ -295,7 +295,7 @@ void APRRaycaster::perform_raycast_patch(APR &apr, ParticleData<S> &particle_dat
         ///
         //////////////////////////////
 
-        for (size_t i = apr.level_min(); i <= max_level; i++) {
+        for (int i = apr.level_min(); i <= max_level; i++) {
             std::fill(depth_slice[i].mesh.begin(), depth_slice[i].mesh.end(), init_val);
         }
 
@@ -470,9 +470,8 @@ void APRRaycaster::perform_raycast_patch(APR &apr, ParticleData<S> &particle_dat
         ///
         ////////////////////////////////////////////////
 
-        uint64_t level;
-
-        uint64_t level_min = apr.level_min();
+        int level;
+        int level_min = apr.level_min();
 
         unsigned int y_, x_, i, k;
 

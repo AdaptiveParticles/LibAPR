@@ -52,7 +52,7 @@ public:
         }
 
 
-        for (uint64_t l = l_min; l <= l_max; ++l) {
+        for (int l = l_min; l <= l_max; ++l) {
             double cellSize = pow(2.0, l_max - l);
             y_num[l] = (uint64_t) ceil(y_org / cellSize);
             x_num[l] = (uint64_t) ceil(x_org / cellSize);
@@ -96,7 +96,7 @@ public:
             level_size[k] = (uint64_t) pow(2,levelMax - k);
         }
 
-        for (uint64_t l = l_min; l <= l_max; ++l) {
+        for (int l = l_min; l <= l_max; ++l) {
             double cellSize = pow(2.0, l_max - l + 1);
             y_num[l] = (uint64_t) ceil(y_org / cellSize);
             x_num[l] = (uint64_t) ceil(x_org / cellSize);

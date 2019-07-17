@@ -167,7 +167,7 @@ void PartCellData<DataType>::initialize_structure_parts(LinearIterator& it,int l
     x_num.resize(level_max+1);
     data.resize(level_max+1);
 
-    for (unsigned int l = level_min; l <= level_init; ++l) {
+    for (int l = level_min; l <= level_init; ++l) {
         z_num[l] = it.z_num(l);
         x_num[l] = it.x_num(l);
         data[l].resize(z_num[l]*x_num[l]);

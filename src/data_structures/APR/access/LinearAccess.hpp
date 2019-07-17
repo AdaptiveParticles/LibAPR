@@ -66,7 +66,7 @@ inline void LinearAccess::initialize_tree_access_sparse(std::vector<std::vector<
 
     apr_timer.start_timer("create gaps");
 
-    for(uint64_t i = (level_min());i <= level_max();i++) {
+    for(int i = (level_min());i <= level_max();i++) {
 
         const uint64_t x_num_ = genInfo->x_num[i];
         const uint64_t z_num_ = genInfo->z_num[i];
@@ -105,7 +105,7 @@ inline void LinearAccess::initialize_tree_access_sparse(std::vector<std::vector<
 
     apr_timer.start_timer("create gaps");
 
-    for(uint64_t i = (level_min());i <= level_max();i++) {
+    for(int i = (level_min());i <= level_max();i++) {
 
         const uint64_t x_num_ = genInfo->x_num[i];
         const uint64_t z_num_ = genInfo->z_num[i];
@@ -165,10 +165,10 @@ inline void LinearAccess::initialize_linear_structure(APRParameters& apr_paramet
         //just initialize full resolution
         const auto level_start = level_xz_vec[level_max()];
         uint64_t counter = 0;
-        for (size_t z = 0; z < z_num(level_max()); ++z) {
-            for (size_t x = 0; x < x_num(level_max()); ++x) {
+        for (int z = 0; z < z_num(level_max()); ++z) {
+            for (int x = 0; x < x_num(level_max()); ++x) {
                 const size_t offset_pc_data = z * x_num(level_max()) + x;
-                for (size_t y = 0; y < y_num(level_max()); ++y) {
+                for (int y = 0; y < y_num(level_max()); ++y) {
                     y_vec.push_back(y);
                     counter++;
                 }
@@ -183,7 +183,7 @@ inline void LinearAccess::initialize_linear_structure(APRParameters& apr_paramet
 
     const uint8_t UPSAMPLING_SEED_TYPE = 4;
     const uint8_t seed_us = UPSAMPLING_SEED_TYPE; //deal with the equivalence optimization
-    for (size_t level = level_min()+1; level < level_max(); ++level) {
+    for (int level = level_min()+1; level < level_max(); ++level) {
         const size_t xLen = genInfo->x_num[level];
         const size_t zLen = genInfo->z_num[level];
         const size_t yLen = genInfo->y_num[level];
@@ -216,7 +216,7 @@ inline void LinearAccess::initialize_linear_structure(APRParameters& apr_paramet
     apr_timer.start_timer("second_step");
 
 
-    for (size_t level = (level_min());level < (level_max()-1); ++level) {
+    for (int level = (level_min());level < (level_max()-1); ++level) {
         const size_t xLen = genInfo->x_num[level];
         const size_t zLen = genInfo->z_num[level];
         const size_t yLen = genInfo->y_num[level];
@@ -342,7 +342,7 @@ inline void LinearAccess::initialize_linear_structure(APRParameters& apr_paramet
     // STEP.2 Now get the y-values.
     //
 
-    for (size_t level = (level_min());level < (level_max()-1); ++level) {
+    for (int level = (level_min());level < (level_max()-1); ++level) {
         const size_t xLen = genInfo->x_num[level];
         const size_t zLen = genInfo->z_num[level];
         const size_t yLen = genInfo->y_num[level];
@@ -466,7 +466,7 @@ inline void LinearAccess::initialize_linear_structure_sparse(APRParameters& apr_
 
     const uint8_t UPSAMPLING_SEED_TYPE = 4;
     const uint8_t seed_us = UPSAMPLING_SEED_TYPE; //deal with the equivalence optimization
-    for (size_t level = level_min()+1; level < level_max(); ++level) {
+    for (int level = level_min()+1; level < level_max(); ++level) {
         const size_t xLen = genInfo->x_num[level];
         const size_t zLen = genInfo->z_num[level];
         const size_t yLen = genInfo->y_num[level];
@@ -506,7 +506,7 @@ inline void LinearAccess::initialize_linear_structure_sparse(APRParameters& apr_
     apr_timer.start_timer("second_step");
 
 
-    for (size_t level = (level_min());level < (level_max()-1); ++level) {
+    for (int level = (level_min());level < (level_max()-1); ++level) {
         const size_t xLen = genInfo->x_num[level];
         const size_t zLen = genInfo->z_num[level];
 
@@ -643,7 +643,7 @@ inline void LinearAccess::initialize_linear_structure_sparse(APRParameters& apr_
     // STEP.2 Now get the y-values.
     //
 
-    for (size_t level = (level_min());level < (level_max()-1); ++level) {
+    for (int level = (level_min());level < (level_max()-1); ++level) {
         const size_t xLen = genInfo->x_num[level];
         const size_t zLen = genInfo->z_num[level];
 

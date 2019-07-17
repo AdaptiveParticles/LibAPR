@@ -160,6 +160,8 @@ private:
 
         status = H5Pset_cache (fapl_idChunked, mdc_nelmts, rdcc_nelmts,
                                rdcc_nbytes, rdcc_w0);
+
+        (void) status;
     }
 
 

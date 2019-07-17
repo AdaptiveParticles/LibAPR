@@ -416,7 +416,7 @@ public:
         APRWriter::writeAttr(AprTypes::MaxLevelType, meta_location, &aprInfo.l_max);
         APRWriter::writeAttr(AprTypes::MinLevelType, meta_location, &aprInfo.l_min);
 
-        for (size_t i = aprInfo.l_min; i < aprInfo.l_max ; ++i) {
+        for (int i = aprInfo.l_min; i < aprInfo.l_max ; ++i) {
             int x_num = (int) aprInfo.x_num[i];
             APRWriter::writeAttr(AprTypes::NumberOfLevelXType, i, meta_location, &x_num);
             int y_num = (int) aprInfo.y_num[i];

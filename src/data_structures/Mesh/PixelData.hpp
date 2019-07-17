@@ -759,9 +759,9 @@ void paddPixels(PixelData<T> &input, PixelData<T> &output, int sz_y, int sz_x, i
 #ifdef HAVE_OPENMP
 #pragma omp parallel for schedule(dynamic) private(j)
 #endif
-    for (j = 0; j < input.z_num; ++j) {
-        for (int i = 0; i < input.x_num; ++i) {
-            for (int k = 0; k < input.y_num; ++k) {
+    for (j = 0; j < (int) input.z_num; ++j) {
+        for (int i = 0; i < (int) input.x_num; ++i) {
+            for (int k = 0; k <  (int) input.y_num; ++k) {
                 output.at(k+sz_y,i+sz_x,j+sz_z)=input.at(k,i,j);
             }
         }
@@ -773,17 +773,17 @@ void paddPixels(PixelData<T> &input, PixelData<T> &output, int sz_y, int sz_x, i
 #ifdef HAVE_OPENMP
 #pragma omp parallel for schedule(dynamic) private(j)
 #endif
-        for (j = 0; j < output.z_num; ++j) {
-            for (int i = 0; i < output.x_num; ++i) {
+        for (j = 0; j < (int) output.z_num; ++j) {
+            for (int i = 0; i < (int) output.x_num; ++i) {
 
                 for (int k = 0; k < (sz_y); ++k) {
                     output.at(k, i, j) = output.at(2 * sz_y - k, i, j);
                 }
 
                 int idx = sz_y+2;
-                for (int k = (output.y_num - (sz_y)); k < output.y_num; ++k) {
+                for (int k = ((int) output.y_num - (sz_y)); k < (int) output.y_num; ++k) {
 
-                    output.at(k, i, j) = output.at(output.y_num - idx, i, j);
+                    output.at(k, i, j) = output.at((int) output.y_num - idx, i, j);
                     idx++;
                 }
             }
@@ -795,15 +795,15 @@ void paddPixels(PixelData<T> &input, PixelData<T> &output, int sz_y, int sz_x, i
 #ifdef HAVE_OPENMP
 #pragma omp parallel for schedule(dynamic) private(j)
 #endif
-        for (j = 0; j < output.z_num; ++j) {
+        for (j = 0; j < (int) output.z_num; ++j) {
             for (int i = 0; i < (sz_x); ++i) {
-                for (int k = 0; k < output.y_num; ++k) {
+                for (int k = 0; k < (int) output.y_num; ++k) {
                     output.at(k, i, j) = output.at(k, 2 * sz_x - i, j);
                 }
             }
             int idx = sz_x+2;
-            for (int i = (output.x_num - (sz_x)); i < output.x_num; ++i) {
-                for (int k = 0; k < output.y_num; ++k) {
+            for (int i = (output.x_num - (sz_x)); i < (int) output.x_num; ++i) {
+                for (int k = 0; k < (int) output.y_num; ++k) {
                     output.at(k, i, j) = output.at(k, output.x_num - idx, j);
 
                 }
@@ -818,8 +818,8 @@ void paddPixels(PixelData<T> &input, PixelData<T> &output, int sz_y, int sz_x, i
 #pragma omp parallel for schedule(dynamic) private(j)
 #endif
         for (j = 0; j < (sz_z); ++j) {
-            for (int i = 0; i < output.x_num; ++i) {
-                for (int k = 0; k < output.y_num; ++k) {
+            for (int i = 0; i < (int) output.x_num; ++i) {
+                for (int k = 0; k < (int) output.y_num; ++k) {
                     output.at(k, i, j) = output.at(k, i, 2 * sz_z - j);
                 }
             }
@@ -828,10 +828,10 @@ void paddPixels(PixelData<T> &input, PixelData<T> &output, int sz_y, int sz_x, i
 #ifdef HAVE_OPENMP
 #pragma omp parallel for schedule(dynamic) private(j)
 #endif
-        for (int j = (output.z_num - (sz_z)); j < output.z_num; ++j) {
+        for (int j = ((int)output.z_num - (sz_z)); j < (int)output.z_num; ++j) {
             auto idx = sz_z+2 + j - (output.z_num - (sz_z));
-            for (int i = 0; i < output.x_num; ++i) {
-                for (int k = 0; k < output.y_num; ++k) {
+            for (int i = 0; i < (int) output.x_num; ++i) {
+                for (int k = 0; k < (int) output.y_num; ++k) {
                     output.at(k, i, j) = output.at(k, i, output.z_num - idx);
                 }
             }
@@ -841,183 +841,6 @@ void paddPixels(PixelData<T> &input, PixelData<T> &output, int sz_y, int sz_x, i
 
 
 }
-
-
-/**
- * Padds an array performing reflection, first y,x,z - reflecting around the edge pixel.
- * @tparam T - type of data
- * @param input - source data that has already been allocated to the correct size including the padding.
- * @param sz_y - desired padding size, will be bounded by y_num - 1
- * @param sz_x- desired padding size, will be bounded by x_num - 1
- * @param sz_z - desired padding size, will be bounded by z_num - 1
-*/
-template<typename T>
-void paddPixelsInPlace(PixelData<T> &input, int sz_y, int sz_x, int sz_z){
-    // WARNING: This requries an array with memory pre-allocated to the correct size.
-
-    if(input.y_num > 1){
-        sz_y = std::min(sz_y,(int) (input.y_num-1));
-    } else {
-        sz_y = 0;
-    }
-
-    if(input.x_num > 1){
-        sz_x =  std::min(sz_x,(int) (input.x_num-1));
-    } else {
-        sz_x = 0;
-    }
-
-    if(input.z_num > 1){
-        sz_z =  std::min(sz_z, (int) (input.z_num-1));
-    } else {
-        sz_z = 0;
-    }
-
-    int x_num_o = input.x_num;
-    int y_num_o = input.y_num;
-    int z_num_o = input.z_num;
-
-    //this does not touch the memory.
-    input.initWithResize(input.y_num + 2 * sz_y, input.x_num + 2 * sz_x, input.z_num + 2 * sz_z);
-
-    int x_num_n = input.x_num;
-    int y_num_n = input.y_num;
-
-    //copy across internal
-    int j = 0;
-
-#ifdef HAVE_OPENMP
-//#pragma omp parallel for private(j)
-#endif
-    for (j = (z_num_o - 1); j >= 0; --j) {
-        //for (int i = 0; i < x_num_o; ++i) {
-        for (int i = (x_num_o - 1); i >= 0; --i) {
-            for (int k = (y_num_o-1); k >= 0; --k) {
-
-                size_t idx1 = j * x_num_o * y_num_o + i * y_num_o + k;
-                size_t idx2 = (j + sz_z) * x_num_n * y_num_n + (i + sz_x) * y_num_n + (k + sz_y);
-
-                input.mesh[idx2] = input.mesh[idx1];
-            }
-        }
-    }
-
-    if(input.y_num > 1) {
-        //reflect y
-#ifdef HAVE_OPENMP
-#pragma omp parallel for schedule(dynamic) private(j)
-#endif
-        for (j = 0; j < input.z_num; ++j) {
-            for (int i = 0; i < input.x_num; ++i) {
-
-                for (int k = 0; k < (sz_y); ++k) {
-                    input.at(k, i, j) = input.at(2 * sz_y - k, i, j);
-                }
-
-                int idx = sz_y+2;
-                for (int k = (input.y_num - (sz_y)); k < input.y_num; ++k) {
-
-                    input.at(k, i, j) = input.at(input.y_num - idx, i, j);
-                    idx++;
-                }
-            }
-        }
-    }
-
-    if(input.x_num > 1) {
-        //reflect x
-#ifdef HAVE_OPENMP
-#pragma omp parallel for schedule(dynamic) private(j)
-#endif
-        for (j = 0; j < input.z_num; ++j) {
-            for (int i = 0; i < (sz_x); ++i) {
-                for (int k = 0; k < input.y_num; ++k) {
-                    input.at(k, i, j) = input.at(k, 2 * sz_x - i, j);
-                }
-            }
-            int idx = sz_x+2;
-            for (int i = (input.x_num - (sz_x)); i < input.x_num; ++i) {
-                for (int k = 0; k < input.y_num; ++k) {
-                    input.at(k, i, j) = input.at(k, input.x_num - idx, j);
-
-                }
-                idx++;
-            }
-        }
-    }
-
-    //z loops
-    if(input.z_num > 1) {
-#ifdef HAVE_OPENMP
-#pragma omp parallel for schedule(dynamic) private(j)
-#endif
-        for (j = 0; j < (sz_z); ++j) {
-            for (int i = 0; i < input.x_num; ++i) {
-                for (int k = 0; k < input.y_num; ++k) {
-                    input.at(k, i, j) = input.at(k, i, 2 * sz_z - j);
-                }
-            }
-        }
-
-#ifdef HAVE_OPENMP
-#pragma omp parallel for schedule(dynamic) private(j)
-#endif
-        for (int j = (input.z_num - (sz_z)); j < input.z_num; ++j) {
-            auto idx = sz_z+2 + j - (input.z_num - (sz_z));
-            for (int i = 0; i < input.x_num; ++i) {
-                for (int k = 0; k < input.y_num; ++k) {
-                    input.at(k, i, j) = input.at(k, i, input.z_num - idx);
-                }
-            }
-        }
-    }
-}
-
-/**
- * unPadds an array
- * @tparam T - type of data
- * @param input - padded source data
- * @param output - unpadded image
- * @param org_dim_y - original image y_num
- * @param org_dim_x- original image x_num
- * @param org_dim_z - original image z_num
-*/
-template<typename T>
-void unpaddPixelsInPlace(PixelData<T> &input, int org_dim_y, int org_dim_x, int org_dim_z) {
-
-    int sz_y = (input.y_num - org_dim_y)/2; //accounts for the resizing due to minimum dimension constraints that could occur on the first pass.
-    int sz_x = (input.x_num - org_dim_x)/2;
-    int sz_z = (input.z_num - org_dim_z)/2;
-
-    int x_num_n = input.x_num;
-    int y_num_n = input.y_num;
-
-    input.initWithResize(org_dim_y, org_dim_x, org_dim_z);
-
-    int x_num_o = input.x_num;
-    int y_num_o = input.y_num;
-    int z_num_o = input.z_num;
-
-    //copy across internal
-    int j = 0;
-
-#ifdef HAVE_OPENMP
-//#pragma omp parallel for schedule(dynamic) private(j)
-#endif
-    for (j = 0; j < z_num_o; ++j) {
-        for (int i = 0; i < x_num_o; ++i) {
-            for (int k = 0; k < y_num_o; ++k) {
-
-                size_t idx1 = j * x_num_o * y_num_o + i * y_num_o + k;
-                size_t idx2 = (j + sz_z) * x_num_n * y_num_n + (i + sz_x) * y_num_n + (k + sz_y);
-
-                input.mesh[idx1]=input.mesh[idx2];
-            }
-        }
-    }
-
-}
-
 
 
 /**
@@ -1044,9 +867,9 @@ void unpaddPixels(PixelData<T> &input, PixelData<T> &output, int org_dim_y, int 
 #pragma omp parallel for schedule(dynamic) private(j)
 #endif
     //copy across internal
-    for (j = 0; j < output.z_num; ++j) {
-        for (int i = 0; i < output.x_num; ++i) {
-            for (int k = 0; k < output.y_num; ++k) {
+    for (j = 0; j < (int) output.z_num; ++j) {
+        for (int i = 0; i <  (int) output.x_num; ++i) {
+            for (int k = 0; k <  (int) output.y_num; ++k) {
                 output.at(k,i,j) = input.at(k + sz_y, i + sz_x, j + sz_z);
             }
         }

@@ -14,8 +14,8 @@ template<typename T>
 class SparseGaps {
 
 public:
-    uint64_t level_max;
-    uint64_t level_min;
+    int level_max;
+    int level_min;
 
     std::vector<uint64_t> z_num;
     std::vector<uint64_t> x_num;

@@ -43,15 +43,15 @@ public:
     uint16_t level_min();
     uint16_t level_max();
 
-    inline uint64_t x_num(const unsigned int level){
+    inline int x_num(const unsigned int level){
         return genInfo->x_num[level];
     }
 
-    inline uint64_t y_num(const unsigned int level){
+    inline int y_num(const unsigned int level){
         return genInfo->y_num[level];
     }
 
-    inline uint64_t z_num(const unsigned int level){
+    inline int z_num(const unsigned int level){
         return genInfo->z_num[level];
     }
 

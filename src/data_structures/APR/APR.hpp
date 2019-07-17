@@ -93,11 +93,11 @@ public:
 
     std::string name;
 
-    uint64_t level_max() const { return aprInfo.l_max; }
-    uint64_t level_min() const { return aprInfo.l_min; }
-    inline uint64_t x_num(const unsigned int level) const { return aprInfo.x_num[level]; }
-    inline uint64_t y_num(const unsigned int level) const { return aprInfo.y_num[level]; }
-    inline uint64_t z_num(const unsigned int level) const { return aprInfo.z_num[level]; }
+    int level_max() const { return aprInfo.l_max; }
+    int level_min() const { return aprInfo.l_min; }
+    inline int x_num(const int level) const { return aprInfo.x_num[level]; }
+    inline int y_num(const int level) const { return aprInfo.y_num[level]; }
+    inline int z_num(const int level) const { return aprInfo.z_num[level]; }
     inline uint64_t total_number_particles() const { return aprInfo.total_number_particles; }
     uint64_t org_dims(int dim) const { return aprInfo.org_dims[dim]; }
 
@@ -285,7 +285,7 @@ void APR::initialize_random_access(){
     for (int l = aprInfo.l_min; l < (aprInfo.l_max) ;l ++){
         particle_cell_tree.data[l].resize(aprInfo.z_num[l]*aprInfo.x_num[l]);
 
-        for (int i = 0; i < particle_cell_tree.data[l].size(); ++i) {
+        for(size_t i = 0; i < particle_cell_tree.data[l].size(); ++i) {
             particle_cell_tree.data[l][i].resize(1);
         }
     }
@@ -359,7 +359,7 @@ void APR::initialize_apr_tree() {
 
 
     timer.start_timer("tree - init structure");
-    for (uint64_t l = treeInfo.l_min; l < treeInfo.l_max; ++l) {
+    for (int l = treeInfo.l_min; l < treeInfo.l_max; ++l) {
 
         particle_cell_parent_tree[l].initWithValue(treeInfo.y_num[l],
                                                    treeInfo.x_num[l],
@@ -602,7 +602,7 @@ void APR::initialize_apr_tree_sparse_linear() {
     timer.stop_timer();
 
 
-};
+}
 
 /**
    * Initializes the APR tree datastructures using a sparse structure for reduced memory, these are all particle cells that are parents of particles in the APR
@@ -628,7 +628,7 @@ void APR::initialize_apr_tree_sparse() {
     particle_cell_tree.resize(treeInfo.l_max + 1);
 
     timer.start_timer("tree - init sparse structure");
-    for (unsigned int l = treeInfo.l_min; l < (treeInfo.l_max) ;l ++){
+    for (int l = treeInfo.l_min; l < (treeInfo.l_max) ;l ++){
 
         particle_cell_tree[l].resize(treeInfo.z_num[l]*treeInfo.x_num[l]);
 
@@ -643,7 +643,7 @@ void APR::initialize_apr_tree_sparse() {
 
     //note the use of the dynamic OpenMP schedule.
 
-    for (unsigned int level = (apr_iterator.level_max()); level >= apr_iterator.level_min(); --level) {
+    for (int level = (apr_iterator.level_max()); level >= apr_iterator.level_min(); --level) {
         int z_d = 0;
         int x_d = 0;
 

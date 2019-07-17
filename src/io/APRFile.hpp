@@ -449,7 +449,7 @@ bool APRFile::read_apr(APR &apr,uint64_t t,std::string channel_name){
     return true;
 
 
-};
+}
 
 /**
    * Read particles from file, they will be associated with a given time point, and either as APR particles of APRTree particles (see get_particles_names for saved particle datasets)
@@ -600,7 +600,7 @@ bool APRFile::read_particles(APR &apr,std::string particles_name,ParticleData<Da
 
     return true;
 
-};
+}
 
 
 //get helpers
@@ -614,9 +614,7 @@ uint64_t APRFile::get_number_time_steps(std::string channel_name){
 
     const int max_name_size = 1024;
 
-    ssize_t len;
     hsize_t nobj;
-    herr_t err;
     int otype;
 
     hid_t obj_name = fileStructure.groupId;
@@ -624,15 +622,15 @@ uint64_t APRFile::get_number_time_steps(std::string channel_name){
     char group_name[max_name_size];
     char memb_name[max_name_size];
 
-    len = H5Iget_name(obj_name, group_name, max_name_size  );
+    H5Iget_name(obj_name, group_name, max_name_size  );
 
-    err = H5Gget_num_objs(obj_name, &nobj);
+    H5Gget_num_objs(obj_name, &nobj);
 
     uint64_t counter_t = 0;
 
-    for (int i = 0; i < nobj; i++) {
+    for (int i = 0; i < (int) nobj; i++) {
 
-        len = H5Gget_objname_by_idx(obj_name, (hsize_t) i,
+        H5Gget_objname_by_idx(obj_name, (hsize_t) i,
                                     memb_name, (size_t) max_name_size);
 
         otype = H5Gget_objtype_by_idx(obj_name, (size_t) i);
@@ -652,7 +650,7 @@ uint64_t APRFile::get_number_time_steps(std::string channel_name){
     }
     return counter_t;
 
-};
+}
 
 /**
    * Number of time steps saved in the file
@@ -677,7 +675,7 @@ std::vector<std::string> APRFile::get_channel_names(){
 
     std::vector<std::string> channel_names;
 
-    for (int i = 0; i < nobj; i++) {
+    for (int i = 0; i < (int) nobj; i++) {
 
         len = H5Gget_objname_by_idx(obj_name, (hsize_t) i,
                                     memb_name, (size_t) max_name_size);
@@ -689,9 +687,13 @@ std::vector<std::string> APRFile::get_channel_names(){
         }
 
     }
+
+    (void) len;
+    (void) err;
+
     return channel_names;
 
-};
+}
 
 
 /**
@@ -730,7 +732,7 @@ std::vector<std::string> APRFile::get_particles_names(bool apr_or_tree,uint64_t 
 
     std::vector<std::string> dataset_names;
 
-    for (int i = 0; i < nobj; i++) {
+    for (int i = 0; i < (int) nobj; i++) {
 
         len = H5Gget_objname_by_idx(obj_name, (hsize_t)i,
                                     memb_name, (size_t)max_name_size );
@@ -740,7 +742,7 @@ std::vector<std::string> APRFile::get_particles_names(bool apr_or_tree,uint64_t 
         if(otype == H5G_DATASET){
             bool access = false;
 
-            for (int j = 0; j < access_names.size(); ++j) {
+            for (int j = 0; j < (int) access_names.size(); ++j) {
                 if(memb_name == access_names[j]){
                     access = true;
                 }
@@ -751,9 +753,12 @@ std::vector<std::string> APRFile::get_particles_names(bool apr_or_tree,uint64_t 
         }
     }
 
+    (void) len;
+    (void) err;
+
     return dataset_names;
 
-};
+}
 
 
 

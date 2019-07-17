@@ -68,7 +68,7 @@ private:
     void set_ascendant_neighbours(int level);
     void set_filler(int level);
     void fill_neighbours(int level);
-    void fill_parent(size_t j, size_t i, size_t k, size_t x_num, size_t y_num, size_t new_level);
+    void fill_parent(size_t j, size_t i, size_t k, size_t x_num, size_t y_num, int new_level);
     std::vector<PixelData<uint8_t>> particle_cell_tree;
 
     int l_min;
@@ -289,7 +289,7 @@ inline void PullingScheme::fill_neighbours(int level) {
     }
 }
 
-inline void PullingScheme::fill_parent(size_t j, size_t i, size_t k, size_t x_num, size_t y_num, size_t new_level) {
+inline void PullingScheme::fill_parent(size_t j, size_t i, size_t k, size_t x_num, size_t y_num, int new_level) {
     if(new_level >= l_min) {
         size_t new_x_num = ((x_num + 1) / 2);
         size_t new_y_num = ((y_num + 1) / 2);

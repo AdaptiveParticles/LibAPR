@@ -18,7 +18,7 @@ namespace {
     template <typename T>
     PixelData<float> generateLevels(const PixelData<T> &dimsMesh, int maxLevel) {
         PixelData<float> levels(dimsMesh, false);
-        for (int i = 0; i < levels.mesh.size(); ++i) {
+        for (size_t i = 0; i < levels.mesh.size(); ++i) {
             levels.mesh[i] = ( i/2 ) % (maxLevel + 2);
         }
 //        std::cout << "LEVELS: " << std::endl;
@@ -50,7 +50,7 @@ namespace {
 
         // TEST: check if zeroed and correct number of levels
         ASSERT_EQ(aprInfo.l_max, pctree.size()); // all levels [0, access.level_max - 1]
-        for (int l = 0; l < pctree.size(); ++l) {
+        for (size_t l = 0; l < pctree.size(); ++l) {
             auto &tree = pctree[l];
             for (auto &e : tree.mesh) {
                 ASSERT_EQ(0, e);

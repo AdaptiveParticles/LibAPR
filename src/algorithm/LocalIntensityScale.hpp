@@ -132,7 +132,7 @@ void get_local_intensity_scale(PixelData<float> &local_scale_temp, PixelData<flo
         double sum = 0;
         float tmp;
 
-        for(int i=0; i<local_scale_temp.mesh.size(); ++i) {
+        for(size_t i=0; i<local_scale_temp.mesh.size(); ++i) {
             tmp = local_scale_temp.mesh[i];
 
             sum += tmp;
@@ -145,7 +145,7 @@ void get_local_intensity_scale(PixelData<float> &local_scale_temp, PixelData<flo
         float numel = (float) (local_scale_temp.y_num * local_scale_temp.x_num * local_scale_temp.z_num);
         float scale_val = (float) (sum / numel - min_val);
 
-        for(int i = 0; i<local_scale_temp.mesh.size(); ++i) {
+        for(size_t i = 0; i<local_scale_temp.mesh.size(); ++i) {
             local_scale_temp.mesh[i] = scale_val;
         }
     }
@@ -268,7 +268,7 @@ inline void LocalIntensityScale::get_window_alt(float& var_rescale, std::vector<
 
     var_win.resize(6,0);
 
-    if (temp_img.y_num > win_val) {
+    if ( (int) temp_img.y_num > win_val) {
         active_y = true;
         var_win[0] = win_1[psf_ind];
 
@@ -277,7 +277,7 @@ inline void LocalIntensityScale::get_window_alt(float& var_rescale, std::vector<
         active_y = false;
     }
 
-    if (temp_img.x_num > win_val) {
+    if ((int) temp_img.x_num > win_val) {
         active_x = true;
         var_win[1] = win_1[psf_ind];
         var_win[4] = win_2[psf_ind];
@@ -285,7 +285,7 @@ inline void LocalIntensityScale::get_window_alt(float& var_rescale, std::vector<
         active_x = false;
     }
 
-    if (temp_img.z_num > win_val) {
+    if ((int) temp_img.z_num > win_val) {
         active_z = true;
         var_win[2] = win_1[psf_ind];
         var_win[5] = win_2[psf_ind];

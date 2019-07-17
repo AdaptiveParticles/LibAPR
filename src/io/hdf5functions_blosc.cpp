@@ -469,7 +469,7 @@ void write_main_paraview_xdmf_xml_time(const std::string &aDestinationDir,const 
     myfile <<  " <Domain>\n";
     myfile << " <Grid Name=\"partsTime\" GridType=\"Collection\" CollectionType=\"Temporal\">\n";
 
-    for (int time_step = 0; time_step < aNumOfParticles.size(); ++time_step) {
+    for (int time_step = 0; time_step < (int) aNumOfParticles.size(); ++time_step) {
 
         std::string t_string;
         if(time_step==0){

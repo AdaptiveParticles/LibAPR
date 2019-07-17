@@ -82,7 +82,7 @@ public:
 
         int max_level = ceil(std::log2(max_dim));
 
-        for (unsigned int level = apr_iterator.level_min(); level <= apr_iterator.level_max(); ++level) {
+        for (int level = apr_iterator.level_min(); level <= apr_iterator.level_max(); ++level) {
             int z = 0;
             int x = 0;
 

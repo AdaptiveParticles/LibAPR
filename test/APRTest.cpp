@@ -315,7 +315,7 @@ bool test_random_access_it(TestData& test_data){
     ParticleCell parent_part;
 
     //now use these to particles to search for
-    for(int i = 0; i < parts_exist.size(); ++i) {
+    for(size_t i = 0; i < parts_exist.size(); ++i) {
 
         bool found = random_it.set_iterator_by_particle_cell(parts_exist[i]);
 
@@ -329,6 +329,8 @@ bool test_random_access_it(TestData& test_data){
         parent_part.y = parts_exist[i].y/2;
         parent_part.z = parts_exist[i].z/2;
         parent_part.level = parts_exist[i].level - 1;
+
+        (void) parent_part;
 
         bool not_found = random_it.set_iterator_by_particle_cell(parts_exist[i]);
 
@@ -433,9 +435,9 @@ bool check_symmetry(PixelData<DataType>& img){
 
     //difference of two allowed to account for rounding both ways error.
 
-    for (int k = 0; k < img.z_num; ++k) {
-        for (int j = 0; j < img.x_num; ++j) {
-            for (int i = 0; i < img.y_num; ++i) {
+    for (size_t k = 0; k < img.z_num; ++k) {
+        for (size_t j = 0; j < img.x_num; ++j) {
+            for (size_t i = 0; i < img.y_num; ++i) {
 
                  {
 
@@ -660,7 +662,7 @@ bool test_pipeline_mask(TestData& test_data){
 
     float th = 3000;
 
-    for (int i = 0; i < mask.mesh.size(); ++i) {
+    for (size_t i = 0; i < mask.mesh.size(); ++i) {
         mask.mesh[i] = (test_data.img_original.mesh[i] > th);
     }
 
@@ -1005,7 +1007,7 @@ bool test_particles_compress(TestData& test_data){
 
     writeFile.close();
 
-    for (int i = 0; i < test_data.particles_intensities.size(); ++i) {
+    for (size_t i = 0; i < test_data.particles_intensities.size(); ++i) {
 
         auto org = test_data.particles_intensities[i];
         auto comp = read_parts[i];
@@ -1030,7 +1032,7 @@ bool test_particles_compress(TestData& test_data){
 
     writeFile.close();
 
-    for (int i = 0; i < test_data.particles_intensities.size(); ++i) {
+    for (size_t i = 0; i < test_data.particles_intensities.size(); ++i) {
 
         auto org = test_data.particles_intensities[i];
         auto comp = read_parts[i];
@@ -1183,7 +1185,7 @@ bool test_lazy_particles(TestData& test_data){
     writeFile.close();
 
     //check the read particles
-    for (int i = 0; i < test_data.particles_intensities.size(); ++i) {
+    for (size_t i = 0; i < test_data.particles_intensities.size(); ++i) {
         if(test_data.particles_intensities[i] != parts_read[i]){
             success = false;
         }
@@ -1488,7 +1490,7 @@ bool test_apr_file(TestData& test_data){
 
     auto apr_it = test_data.apr.iterator();
 
-    for (int i = 0; i < apr_it.total_number_particles(); ++i) {
+    for (size_t i = 0; i < apr_it.total_number_particles(); ++i) {
         parts2[i] = test_data.particles_intensities[i]*3 - 1;
     }
 
@@ -1574,9 +1576,9 @@ bool test_apr_file(TestData& test_data){
 
     if(correct_names.size() == dataset_names.size()){
 
-        for(int i = 0; i < correct_names.size(); ++i) {
+        for(size_t i = 0; i < correct_names.size(); ++i) {
             bool found = false;
-            for(int j = 0; j < dataset_names.size(); ++j) {
+            for(size_t j = 0; j < dataset_names.size(); ++j) {
                 if(correct_names[i] == dataset_names[j]){
                     found = true;
                 }
@@ -1598,9 +1600,9 @@ bool test_apr_file(TestData& test_data){
 
     if(channel_names_c.size() == channel_names.size()){
 
-        for (int i = 0; i < channel_names_c.size(); ++i) {
+        for (size_t i = 0; i < channel_names_c.size(); ++i) {
             bool found = false;
-            for (int j = 0; j < channel_names.size(); ++j) {
+            for (size_t j = 0; j < channel_names.size(); ++j) {
                 if(channel_names_c[i] == channel_names[j]){
                     found = true;
                 }
@@ -2712,7 +2714,7 @@ bool test_pipeline_u16(TestData& test_data){
     PixelData<float> scale_saved = TiffUtils::getMesh<float>(test_data.output_dir + "scale_saved.tif");
     PixelData<uint16_t> gradient_saved = TiffUtils::getMesh<uint16_t>(test_data.output_dir + "gradient_saved.tif");
 
-    for (int i = 0; i < scale_computed.mesh.size(); ++i) {
+    for (size_t i = 0; i < scale_computed.mesh.size(); ++i) {
         float computed_val = scale_computed.mesh[i];
         float saved_val = scale_saved.mesh[i];
 
@@ -2721,7 +2723,7 @@ bool test_pipeline_u16(TestData& test_data){
         }
     }
 
-    for (int i = 0; i < gradient_computed.mesh.size(); ++i) {
+    for (size_t i = 0; i < gradient_computed.mesh.size(); ++i) {
         float computed_val = gradient_computed.mesh[i];
         float saved_val = gradient_saved.mesh[i];
 
@@ -2746,7 +2748,7 @@ bool test_pipeline_u16(TestData& test_data){
     particles_intensities.sample_parts_from_img_downsampled(apr_c,test_data.img_original);
 
     //test the particles
-    for (int j = 0; j < particles_intensities.size(); ++j) {
+    for (size_t j = 0; j < particles_intensities.size(); ++j) {
         if(particles_intensities.data[j] != test_data.particles_intensities.data[j]){
             success = false;
         }
@@ -2839,10 +2841,10 @@ bool test_convolve_pencil(TestData &test_data, const bool boundary = false, cons
 
     // unique stencil elements
     double sum = 0;
-    for(int i = 0; i < stencils[0].mesh.size(); ++i) {
+    for(size_t i = 0; i < stencils[0].mesh.size(); ++i) {
         sum += i;
     }
-    for(int i = 0; i < stencils[0].mesh.size(); ++i) {
+    for(size_t i = 0; i < stencils[0].mesh.size(); ++i) {
         stencils[0].mesh[i] = ((double) i) / sum;
         stencils[1].mesh[i] = ((double) i + sum) / (2*sum);
         stencils[2].mesh[i] = ((double) i +2*sum) / (3*sum);
@@ -2894,10 +2896,10 @@ bool test_convolve(TestData &test_data, const bool boundary = false, const int s
 
     // unique stencil elements
     double sum = 0;
-    for(int i = 0; i < stencils[0].mesh.size(); ++i) {
+    for(size_t i = 0; i < stencils[0].mesh.size(); ++i) {
         sum += i;
     }
-    for(int i = 0; i < stencils[0].mesh.size(); ++i) {
+    for(size_t i = 0; i < stencils[0].mesh.size(); ++i) {
         stencils[0].mesh[i] = ((double) i) / sum;
         stencils[1].mesh[i] = ((double) i + sum) / (2*sum);
         stencils[2].mesh[i] = ((double) i +2*sum) / (3*sum);
@@ -3403,23 +3405,17 @@ TEST_F(CreateGTSmall2DTestProperties, APR_FILTER) {
 }
 
 TEST_F(CreateGTSmall2DTestProperties, PIPELINE_COMPARE) {
-
     ASSERT_TRUE(test_pipeline_u16(test_data));
-
 }
 
 TEST_F(CreateGTSmall2DTestProperties, ITERATOR_METHODS) {
-
     ASSERT_TRUE(test_iterator_methods(test_data));
-
 }
 
 #endif
 
 
 //3D tests
-
-
 TEST_F(CreateSmallSphereTest, APR_ITERATION) {
 
 //test iteration

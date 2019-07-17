@@ -55,8 +55,8 @@ public:
 #ifdef HAVE_OPENMP
 //#pragma omp parallel  for default(shared) schedule(dynamic)
 #endif
-        for (size_t z = 0; z < z_num(level_max()); ++z) {
-            for (size_t x = 0; x < x_num(level_max()); ++x) {
+        for (int z = 0; z < z_num(level_max()); ++z) {
+            for (int x = 0; x < x_num(level_max()); ++x) {
                 const size_t offset_pc_data_m = z * x_num(level_max()) + x;
                 const size_t offset_pc_data = (z/2) * x_num(level_max()-1) + x/2;
 
@@ -564,7 +564,7 @@ public:
 
         //transfer over data-structure to make the same (re-use of function for read-write)
         std::vector<ArrayWrapper<uint8_t>> p_map(level_max());
-        for (size_t k = 0; k < level_max(); ++k) {
+        for (int k = 0; k < level_max(); ++k) {
             p_map[k].swap(layers[k].mesh);
         }
 
@@ -594,7 +594,7 @@ public:
         gap_map.data.resize(y_begin.level_max+1);
 
         // Initialize sizes for each level with max level of size of level(max-1)
-        for (uint64_t i = y_begin.level_min; i < y_begin.level_max; ++i) {
+        for (int i = y_begin.level_min; i < y_begin.level_max; ++i) {
             gap_map.x_num[i] = x_num(i);
             gap_map.z_num[i] = z_num(i);
             gap_map.data[i].resize(z_num(i)*x_num(i));
@@ -605,15 +605,15 @@ public:
 
         uint64_t counter_rows = 0;
 
-        for (uint64_t level = (level_min()); level <= level_max(); ++level) {
-            const unsigned int xLen = y_begin.x_num[level];
-            const unsigned int zLen = y_begin.z_num[level];
+        for (int level = (level_min()); level <= level_max(); ++level) {
+            const int xLen = y_begin.x_num[level];
+            const int zLen = y_begin.z_num[level];
 
             #ifdef HAVE_OPENMP
             #pragma omp parallel for default(shared) schedule(dynamic) reduction(+:counter_rows) if(zLen*xLen > 100)
             #endif
-            for (uint64_t z = 0; z < zLen; ++z) {
-                for (uint64_t x = 0; x < xLen; ++x) {
+            for (int z = 0; z < zLen; ++z) {
+                for (int x = 0; x < xLen; ++x) {
                     const size_t offset_pc_data = xLen * z + x;
                     if (y_begin.data[level][offset_pc_data].size() > 0) {
                         gap_map.data[level][offset_pc_data].resize(1); // create one empty std::map
@@ -651,7 +651,7 @@ public:
         global_index_by_level_and_zx_end.resize(gap_map.level_max+1);
 
         if(tree) {
-            for (uint64_t i = gap_map.level_min; i < gap_map.level_max; i++) {
+            for (int i = gap_map.level_min; i < gap_map.level_max; i++) {
                 gap_map.z_num[i] = z_num(i);
                 gap_map.x_num[i] = x_num(i);
                 gap_map.data[i].resize(z_num(i) * x_num(i));
@@ -659,7 +659,7 @@ public:
             }
 
         } else {
-            for (uint64_t i = gap_map.level_min; i < gap_map.level_max; i++) {
+            for (int i = gap_map.level_min; i < gap_map.level_max; i++) {
                 gap_map.z_num[i] = z_num(i);
                 gap_map.x_num[i] = x_num(i);
                 gap_map.data[i].resize(z_num(i) * x_num(i));
@@ -677,7 +677,7 @@ public:
 #endif
         for (j = 0; j < total_number_non_empty_rows; ++j) {
 
-            const uint64_t level = map_data.level[j];
+            const int level = map_data.level[j];
             const uint64_t offset_pc_data =  gap_map.x_num[level]* map_data.z[j] + map_data.x[j];
             const uint64_t global_begin = cumsum[j];
             const uint64_t number_gaps = map_data.number_gaps[j];
@@ -736,7 +736,7 @@ public:
 
         //now xz iteration helpers (need to fill in the gaps)
         for (int i = 0; i <= level_max(); ++i) {
-            for (int k = 0; k < global_index_by_level_and_zx_end[i].size(); ++k) {
+            for (size_t k = 0; k < global_index_by_level_and_zx_end[i].size(); ++k) {
                 if(global_index_by_level_and_zx_end[i][k]==0){
                     global_index_by_level_and_zx_end[i][k] =  prev;
                 }
@@ -786,20 +786,20 @@ public:
         map_data.level.reserve(total_number_non_empty_rows);
         map_data.number_gaps.reserve(total_number_non_empty_rows);
 
-        uint64_t z_;
-        uint64_t x_;
+        int z_;
+        int x_;
 
-        for(uint64_t i = (level_min());i <= level_max();i++) {
+        for(int i = (level_min());i <= level_max();i++) {
 
-            unsigned int x_num_ = (unsigned int )x_num(i);
-            unsigned int z_num_ = (unsigned int )z_num(i);
+            int x_num_ = x_num(i);
+            int z_num_ = z_num(i);
 
             if(gap_map.data[i].size()>0) {
                 //account for tree where the last level doesn't exist
                 if (i == level_max()) {
                     //account for the APR, where the maximum level is down-sampled one
-                    x_num_ = (unsigned int) x_num(i - 1);
-                    z_num_ = (unsigned int) z_num(i - 1);
+                    x_num_ =  x_num(i - 1);
+                    z_num_ =  z_num(i - 1);
                 }
 
                 for (z_ = 0; z_ < z_num_; z_++) {
@@ -859,7 +859,7 @@ public:
 
         //now xz iteration helpers (need to fill in the gaps)
         for (int i = 0; i <= level_max(); ++i) {
-            for (int k = 0; k < global_index_by_level_and_zx_end[i].size(); ++k) {
+            for (int k = 0; k < (int) global_index_by_level_and_zx_end[i].size(); ++k) {
                 if(global_index_by_level_and_zx_end[i][k]==0){
                     global_index_by_level_and_zx_end[i][k] =  prev;
                 }
@@ -902,7 +902,7 @@ inline void RandomAccess::initialize_structure_from_particle_cell_tree(APRParame
     apr_timer.start_timer("first_step");
     const uint8_t UPSAMPLING_SEED_TYPE = 4;
     const uint8_t seed_us = UPSAMPLING_SEED_TYPE; //deal with the equivalence optimization
-    for (size_t i = level_min()+1; i < level_max(); ++i) {
+    for (int i = level_min()+1; i < level_max(); ++i) {
         const size_t xLen = x_num(i);
         const size_t zLen = z_num(i);
         const size_t yLen = y_num(i);
@@ -943,7 +943,7 @@ inline void RandomAccess::initialize_structure_from_particle_cell_tree(APRParame
     y_begin.data.resize(y_begin.level_max+1); // [level][x_num(level) * z + x][y]
 
     // Initialize sizes for each level with max level of size of level(max-1)
-    for (uint64_t i = y_begin.level_min; i < y_begin.level_max; ++i) {
+    for (int i = y_begin.level_min; i < y_begin.level_max; ++i) {
         y_begin.x_num[i] = x_num(i);
         y_begin.z_num[i] = z_num(i);
         y_begin.data[i].resize(z_num(i)*x_num(i));
@@ -952,7 +952,7 @@ inline void RandomAccess::initialize_structure_from_particle_cell_tree(APRParame
     y_begin.z_num[y_begin.level_max] = z_num(y_begin.level_max-1);
     y_begin.data[y_begin.level_max].resize(z_num(y_begin.level_max-1)*x_num(y_begin.level_max-1));
 
-    for (size_t i = (level_min());i < level_max(); ++i) {
+    for (int i = (level_min());i < level_max(); ++i) {
         const size_t xLen = x_num(i);
         const size_t zLen = z_num(i);
         const size_t yLen = y_num(i);
@@ -1053,17 +1053,17 @@ inline void RandomAccess::initialize_structure_from_particle_cell_tree(APRParame
     global_index_by_level_and_zx_end.resize(level_max()+1);
 
     size_t cumsum= 0;
-    size_t min_level_find = level_max();
+    int min_level_find = level_max();
 
-    for (size_t level = level_min(); level <= level_max(); ++level) {
-        const size_t xLen = y_begin.x_num[level];
-        const size_t zLen = y_begin.z_num[level];
+    for (int level = level_min(); level <= level_max(); ++level) {
+        const int xLen = y_begin.x_num[level];
+        const int zLen = y_begin.z_num[level];
 
         global_index_by_level_and_zx_end[level].resize(zLen * xLen, 0);
 
-        for (size_t z = 0; z < zLen; ++z) {
+        for (int z = 0; z < zLen; ++z) {
 
-            for (size_t x = 0; x < xLen; ++x) {
+            for (int x = 0; x < xLen; ++x) {
                 const size_t offset_xz_data = xLen * z + x;
 
                 uint16_t localSizeOfGaps = 0;
@@ -1140,7 +1140,7 @@ inline void RandomAccess::initialize_tree_access(RandomAccess& APROwn_access, st
     y_begin.x_num.resize(y_begin.level_max+1);
     y_begin.data.resize(y_begin.level_max+1);
 
-    for (uint64_t i = y_begin.level_min; i < y_begin.level_max; ++i) {
+    for (int i = y_begin.level_min; i < y_begin.level_max; ++i) {
         y_begin.z_num[i] = genInfo->z_num[i];
         y_begin.x_num[i] = genInfo->x_num[i];
         y_begin.data[i].resize(genInfo->z_num[i]*genInfo->x_num[i]);
@@ -1150,7 +1150,7 @@ inline void RandomAccess::initialize_tree_access(RandomAccess& APROwn_access, st
 
     apr_timer.start_timer("create gaps");
 
-    for(uint64_t i = (level_min());i < level_max();i++) {
+    for(int i = (level_min());i < level_max();i++) {
 
         const uint64_t x_num_ = genInfo->x_num[i];
         const uint64_t z_num_ = genInfo->z_num[i];
@@ -1223,12 +1223,12 @@ void RandomAccess::init_data_structure_tree(RandomAccess& APROwn_access, SparseG
 
     total_number_gaps=0;
 
-    uint64_t min_level_find = level_max();
-    uint64_t max_level_find = level_min();
+    int min_level_find = level_max();
+    int max_level_find = level_min();
 
     global_index_by_level_and_zx_end.resize(level_max()+1);
 
-    for(uint64_t i = (level_min());i < level_max();i++) {
+    for(int i = (level_min());i < level_max();i++) {
 
         const int x_num_ = genInfo->x_num[i];
         const int z_num_ = genInfo->z_num[i];
@@ -1263,8 +1263,8 @@ void RandomAccess::init_data_structure_tree(RandomAccess& APROwn_access, SparseG
 
     genInfo->total_number_particles = cumsum;
 
-    const unsigned int x_num_ = genInfo->x_num[level_max()];
-    const unsigned int z_num_ = genInfo->z_num[level_max()];
+    const int x_num_ = genInfo->x_num[level_max()];
+    const int z_num_ = genInfo->z_num[level_max()];
 
 //set up the levels here
 
@@ -1299,7 +1299,7 @@ void RandomAccess::init_data_structure_tree(RandomAccess& APROwn_access, SparseG
     gap_map.x_num.resize(y_begin.level_max+1);
     gap_map.data.resize(y_begin.level_max+1);
 
-    for (uint64_t i = gap_map.level_min; i < gap_map.level_max; ++i) {
+    for (int i = gap_map.level_min; i < gap_map.level_max; ++i) {
         gap_map.z_num[i] = genInfo->z_num[i];
         gap_map.x_num[i] = genInfo->x_num[i];
         gap_map.data[i].resize(genInfo->z_num[i]*genInfo->x_num[i]);
@@ -1307,9 +1307,9 @@ void RandomAccess::init_data_structure_tree(RandomAccess& APROwn_access, SparseG
 
     uint64_t counter_rows = 0;
 
-    for (uint64_t i = (level_min()); i < level_max(); i++) {
-        const unsigned int x_num_ = genInfo->x_num[i];
-        const unsigned int z_num_ = genInfo->z_num[i];
+    for (int i = (level_min()); i < level_max(); i++) {
+        const int x_num_ = genInfo->x_num[i];
+        const int z_num_ = genInfo->z_num[i];
 #ifdef HAVE_OPENMP
 #pragma omp parallel for default(shared) schedule(dynamic) private(z_, x_) reduction(+:counter_rows)
 #endif
@@ -1352,7 +1352,7 @@ inline void RandomAccess::initialize_tree_access_sparse(RandomAccess& APROwn_acc
     y_begin.x_num.resize(y_begin.level_max+1);
     y_begin.data.resize(y_begin.level_max+1);
 
-    for (uint64_t i = y_begin.level_min; i < y_begin.level_max; ++i) {
+    for (int i = y_begin.level_min; i < y_begin.level_max; ++i) {
         y_begin.z_num[i] = genInfo->z_num[i];
         y_begin.x_num[i] = genInfo->x_num[i];
         y_begin.data[i].resize(genInfo->z_num[i]*genInfo->x_num[i]);
@@ -1362,7 +1362,7 @@ inline void RandomAccess::initialize_tree_access_sparse(RandomAccess& APROwn_acc
 
     apr_timer.start_timer("create gaps");
 
-    for(uint64_t i = (level_min());i < level_max();i++) {
+    for(int i = (level_min());i < level_max();i++) {
 
         const uint64_t x_num_ = genInfo->x_num[i];
         const uint64_t z_num_ = genInfo->z_num[i];
@@ -1384,7 +1384,7 @@ inline void RandomAccess::initialize_tree_access_sparse(RandomAccess& APROwn_acc
                 gap.global_index_begin_offset = 0;
                 uint64_t counter = 0;
 
-                uint64_t prev_y = -2; //required;
+                int prev_y = -2; //required;
 
                 auto &map = p_map[i][offset_pc_data].mesh;
 
@@ -1433,7 +1433,7 @@ void RandomAccess::initialize_structure_from_particle_cell_tree_sparse(APRParame
 
     apr_timer.start_timer("first_step");
     const uint8_t seed_us = 4; //deal with the equivalence optimization
-    for (size_t i = level_min()+1; i < level_max(); ++i) {
+    for (int i = level_min()+1; i < level_max(); ++i) {
         const size_t x_num_ = genInfo->x_num[i];
         const size_t z_num_ = genInfo->z_num[i];
         const size_t y_num_ = genInfo->y_num[i];
@@ -1482,7 +1482,7 @@ void RandomAccess::initialize_structure_from_particle_cell_tree_sparse(APRParame
     y_begin.x_num.resize(y_begin.level_max+1);
     y_begin.data.resize(y_begin.level_max+1);
 
-    for (uint64_t i = y_begin.level_min; i < y_begin.level_max; ++i) {
+    for (int i = y_begin.level_min; i < y_begin.level_max; ++i) {
         y_begin.x_num[i] = genInfo->x_num[i];
         y_begin.z_num[i] = genInfo->z_num[i];
         y_begin.data[i].resize(genInfo->z_num[i]*genInfo->x_num[i]);
@@ -1493,7 +1493,7 @@ void RandomAccess::initialize_structure_from_particle_cell_tree_sparse(APRParame
     y_begin.data[y_begin.level_max].resize(genInfo->z_num[y_begin.level_max-1]*genInfo->x_num[y_begin.level_max-1]);
 
 
-    for(size_t i = (level_min());i < level_max();i++) {
+    for(int i = (level_min());i < level_max();i++) {
         const size_t x_num_ = genInfo->x_num[i];
         const size_t z_num_ = genInfo->z_num[i];
 
@@ -1506,7 +1506,6 @@ void RandomAccess::initialize_structure_from_particle_cell_tree_sparse(APRParame
 
                 const size_t offset_pc_data = x_num_ * z + x;
                 uint16_t current = 0;
-                uint16_t previous = 0;
 
                 YGap_map gap;
                 gap.global_index_begin_offset = 0;
@@ -1526,12 +1525,12 @@ void RandomAccess::initialize_structure_from_particle_cell_tree_sparse(APRParame
                         if ((y - 1) != prev_y) {
 
                             y_begin.data[i][offset_pc_data].push_back({y, gap});
-                            previous = 1;
+
 
                             if (current == 1) {
                                 (y_begin.data[i][offset_pc_data][counter]).second.y_end = (prev_y);
                                 counter++;
-                                previous = 0;
+
                             }
 
                             current = 1;
@@ -1619,27 +1618,27 @@ void RandomAccess::initialize_structure_from_particle_cell_tree_sparse(APRParame
     size_t cumsum= 0;
     total_number_gaps=0;
 
-    size_t min_level_find = level_max();
-    size_t max_level_find = level_min();
+    int min_level_find = level_max();
+    int max_level_find = level_min();
 
     //zx end for each row
     global_index_by_level_and_zx_end.resize(level_max()+1);
 
     global_index_by_level_and_zx_end[0].resize(0, 0);
 
-    for (size_t i = level_min(); i <= level_max(); ++i) {
+    for (int i = level_min(); i <= level_max(); ++i) {
 
-        const size_t x_num_ = y_begin.x_num[i];
-        const size_t z_num_ = y_begin.z_num[i];
+        const int x_num_ = y_begin.x_num[i];
+        const int z_num_ = y_begin.z_num[i];
 
         //set up the levels here.
 
         //new index
         global_index_by_level_and_zx_end[i].resize(z_num_ * x_num_, 0);
 
-        for (size_t z_ = 0; z_ < z_num_; z_++) {
+        for (int z_ = 0; z_ < z_num_; z_++) {
 
-            for (size_t x_ = 0; x_ < x_num_; x_++) {
+            for (int x_ = 0; x_ < x_num_; x_++) {
                 const size_t offset_pc_data = x_num_ * z_ + x_;
 
                 uint64_t xz_sum=cumsum;
@@ -1661,7 +1660,7 @@ void RandomAccess::initialize_structure_from_particle_cell_tree_sparse(APRParame
                     //need to deal with the boundary conditions.
                     xz_sum = cumsum - xz_sum;
 
-                    unsigned int number_rows = ( unsigned int) 1*((2*x_+1) < genInfo->x_num[i]) + 1*((2*z_+1) < genInfo->z_num[i]) +  1*((2*z_+1) < genInfo->z_num[i])*((2*x_+1) < genInfo->x_num[i]);
+                    size_t number_rows = (size_t) 1*((2*x_+1) < genInfo->x_num[i]) + 1*((2*z_+1) < genInfo->z_num[i]) +  1*((2*z_+1) < genInfo->z_num[i])*((2*x_+1) < genInfo->x_num[i]);
 
                     cumsum += xz_sum * number_rows;
 

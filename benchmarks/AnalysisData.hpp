@@ -251,7 +251,7 @@ class AnalysisData: public Data_manager {
 
         //set up timing variables
 
-        for (int i = 0; i < timer.timings.size(); i++) {
+        for (int i = 0; i < (int) timer.timings.size(); i++) {
             add_float_data(timer.timing_names[i],timer.timings[i]);
         }
 
@@ -261,7 +261,7 @@ class AnalysisData: public Data_manager {
 
         //set up timing variables
 
-        for (int i = 0; i < timer.timings.size(); i++) {
+        for (int i = 0; i < (int) timer.timings.size(); i++) {
             add_float_data(timer.timing_names[i] + "_total",timer.timings[i]/(num_reps));
             add_float_data(timer.timing_names[i] + "_pp",timer.timings[i]/(number_particles*num_reps));
         }
