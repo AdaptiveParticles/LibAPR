@@ -24,6 +24,7 @@
 #include "LocalParticleCellSet.hpp"
 #include "LocalIntensityScale.hpp"
 #include "ComputeGradient.hpp"
+#include <iterator>
 
 #ifdef APR_USE_CUDA
 #include "algorithm/ComputeGradientCuda.hpp"
@@ -73,7 +74,6 @@ public:
         if(down_sampled){
 
             //need to check that they are initialized.
-
             grad_temp.swap(grad);
             lis.swap(local_scale_temp);
 
@@ -123,7 +123,11 @@ protected:
     void generateDatastructures(APR& aAPR);
 
     template<typename T>
-    void auto_parameters(const PixelData<T> &input_img);
+    void auto_parameters_old(const PixelData<T> &input_img);
+
+    template<typename T,typename S>
+    void autoParameters(const PixelData<T> &localIntensityScale,const PixelData<S> &grad);
+
 
     template<typename T>
     bool check_input_dimensions(PixelData<T> &input_image);
@@ -190,8 +194,6 @@ void APRConverter<ImageType>::computeL(APR& aAPR,PixelData<T>& input_image){
 
 
     total_timer.start_timer("Total_pipeline_excluding_IO");
-
-    initPipelineMemory(input_image.y_num, input_image.x_num, input_image.z_num);
 
     ////////////////////////////////////////
     /// Memory allocation of variables
@@ -387,16 +389,19 @@ inline bool APRConverter<ImageType>::get_apr(APR &aAPR, PixelData<T>& input_imag
         }
     }
 
-    if( par.auto_parameters ) {
-        auto_parameters(input_image);
-    }
 
     initPipelineAPR(aAPR, input_image.y_num, input_image.x_num, input_image.z_num);
 
 #ifndef APR_USE_CUDA
 
+    initPipelineMemory(input_image.y_num, input_image.x_num, input_image.z_num);
+
     //Compute the local resolution estimate
     computeL(aAPR,input_image);
+
+    if( par.auto_parameters ) {
+        autoParameters(local_scale_temp,grad_temp);
+    }
 
     applyParameters(aAPR,par);
 
@@ -517,11 +522,116 @@ inline bool APRConverter<ImageType>::get_apr(APR &aAPR, PixelData<T>& input_imag
     return true;
 }
 
+template<typename ImageType>
+template<typename T,typename S>
+void APRConverter<ImageType>::autoParameters(const PixelData<T> &localIntensityScale,const PixelData<S> &grad){
+    /*
+     *  Assumes a dark background. Please use the Python interactive parameter selection for more detailed approaches.
+     *
+     *  No magic just rough suggestions
+     */
+
+
+    //need to select some pixels. we need some buffer room in the image.
+    const size_t total_required_pixels = std::min((size_t) 10*512*512,localIntensityScale.mesh.size()/2);
+    const size_t delta = localIntensityScale.mesh.size()/total_required_pixels - 1;
+
+    std::vector<T> lis_buffer(total_required_pixels);
+    std::vector<S> grad_buffer(total_required_pixels);
+
+    uint64_t counter = 0;
+    uint64_t counter_sampled = 0;
+
+    while((counter < localIntensityScale.mesh.size()) && counter_sampled < total_required_pixels){
+
+        counter+=delta;
+        counter_sampled++;
+
+        lis_buffer[counter] = localIntensityScale.mesh[counter];
+        grad_buffer[counter] = grad.mesh[counter];
+
+    }
+
+
+    float min_lis = *std::min_element(lis_buffer.begin(),lis_buffer.end());
+    float max_lis = *std::max_element(lis_buffer.begin(),lis_buffer.end());
+
+    std::vector<uint64_t> hist_lis;
+    hist_lis.resize(std::ceil(max_lis),0);
+
+
+    for (int i = 0; i < total_required_pixels; ++i) {
+        auto lis_val = std::floor(lis_buffer[i]);
+        hist_lis[lis_val]++;
+    }
+
+    //Then find 5% therhold, and take the grad values from that.
+
+    uint64_t prop_values = 0.01*total_required_pixels;
+
+    uint64_t cumsum = 0;
+    uint64_t freq_val=0;
+    while (cumsum < prop_values){
+        cumsum+= hist_lis[freq_val];
+        freq_val++;
+
+    }
+
+    std::vector<S> grad_hist;
+    float grad_max = *std::max_element(grad_buffer.begin(),grad_buffer.end());
+    float grad_min = *std::max_element(grad_buffer.begin(),grad_buffer.end());
+
+    grad_hist.resize(std::ceil(grad_max));
+    uint64_t grad_counter = 0;
+
+    for (int i = 0; i < total_required_pixels; ++i) {
+        auto val = lis_buffer[i];
+
+        if(val <= freq_val){
+            auto grad_val = grad_buffer[i];
+            grad_hist[std::floor(grad_val)]++;
+            grad_counter++;
+        }
+
+    }
+
+
+   auto max_it = std::max_element(grad_hist.begin(),grad_hist.end());
+    uint64_t mode = std::distance(grad_hist.begin(),max_it);
+
+    double mean = 0;
+    cumsum = 0;
+    double uq;
+
+    for (int j = 0; j < grad_hist.size(); ++j) {
+        mean += grad_hist[j]*j;
+        cumsum += grad_hist[j];
+
+        if((cumsum/(1.0*grad_counter))<=0.90){
+            uq = j;
+        }
+    }
+
+
+    float grad_th = std::round(4*mode); //magic numbers.
+
+    par.grad_th = grad_th;
+    par.sigma_th = freq_val;
+    par.sigma_th_max = 1;
+
+    std::cout << "Used parameters: " << std::endl;
+    std::cout << "I_th: " << par.Ip_th << std::endl;
+    std::cout << "sigma_th: " << par.sigma_th << std::endl;
+    std::cout << "grad_th: " << par.grad_th << std::endl;
+    std::cout << "relative error (E): " << par.rel_error << std::endl;
+    std::cout << "lambda: " << par.lambda << std::endl;
+
+}
 
 
 
 template<typename ImageType> template<typename T>
-inline void APRConverter<ImageType>::auto_parameters(const PixelData<T>& input_img){
+inline void APRConverter<ImageType>::auto_parameters_old(const PixelData<T> &input_img){
     //
     //  Simple automatic parameter selection for 3D APR Flouresence Images
     //
@@ -732,12 +842,7 @@ inline void APRConverter<ImageType>::auto_parameters(const PixelData<T>& input_i
             }
         }
 
-
-
-
-
         float min_snr = 6;
-
 
     if(par.SNR_min > 0){
         min_snr = par.SNR_min;
@@ -780,7 +885,7 @@ inline void APRConverter<ImageType>::auto_parameters(const PixelData<T>& input_i
          *
          */
 
-        if(min_signal_input < 0) {
+        if(min_signal_input == 0) {
             par.sigma_th = var_th;
             par.sigma_th_max = var_th_max;
         } else {
@@ -800,7 +905,7 @@ inline void APRConverter<ImageType>::auto_parameters(const PixelData<T>& input_i
             std::cout << "setting lambda to zero, bsplines algorithm cannot work with such small lambda" << std::endl;
         }
 
-        if(ip_th_input != -1){
+        if(ip_th_input > 0){
             par.Ip_th = ip_th_input;
         } else {
             par.Ip_th = Ip_th;

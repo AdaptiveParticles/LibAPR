@@ -7,11 +7,9 @@
 
 #include "APRDownsampleGPU.hpp"
 
-
 template<typename inputType, typename outputType, typename stencilType, typename treeType>
 void isotropic_convolve_333_wrapper(GPUAccessHelper&, GPUAccessHelper&, std::vector<inputType>&,
                                     std::vector<outputType>&, std::vector<stencilType>&, std::vector<treeType>&);
-
 
 template<typename inputType, typename outputType, typename stencilType, typename treeType>
 void isotropic_convolve_333(GPUAccessHelper& access, GPUAccessHelper& tree_access, std::vector<inputType>& input,
@@ -20,11 +18,9 @@ void isotropic_convolve_333(GPUAccessHelper& access, GPUAccessHelper& tree_acces
     isotropic_convolve_333_wrapper(access, tree_access, input, output, stencil, tree_data);
 }
 
-
 template<typename inputType, typename outputType, typename stencilType, typename treeType>
 void isotropic_convolve_555_wrapper(GPUAccessHelper&, GPUAccessHelper&, std::vector<inputType>&,
                                     std::vector<outputType>&, std::vector<stencilType>&, std::vector<treeType>&);
-
 
 template<typename inputType, typename outputType, typename stencilType, typename treeType>
 void isotropic_convolve_555(GPUAccessHelper& access, GPUAccessHelper& tree_access, std::vector<inputType>& input,
@@ -32,7 +28,6 @@ void isotropic_convolve_555(GPUAccessHelper& access, GPUAccessHelper& tree_acces
 
     isotropic_convolve_555_wrapper(access, tree_access, input, output, stencil, tree_data);
 }
-
 
 /// force template instantiation for some different type combinations
 //333

@@ -267,6 +267,29 @@ bool check_neighbour_out_of_bounds(APRIterator &current,uint8_t face){
     return true;
 }
 
+bool test_auto_parameters(TestData& test_data){
+
+
+    bool success = true;
+
+    APR apr;
+    APRConverter<uint16_t> aprConverter;
+
+    aprConverter.par.auto_parameters = true;
+    aprConverter.par.output_steps = true;
+
+    aprConverter.get_apr(apr, test_data.img_original);
+
+    PixelData<uint16_t> level_img;
+    ParticleData<uint16_t> level_p;
+    level_p.fill_with_levels(apr);
+    APRReconstruction::interp_img(apr,level_img,level_p);
+    TiffUtils::saveMeshAsTiff("levels.tif",level_img);
+
+    return success;
+
+
+}
 
 bool test_random_access_it(TestData& test_data){
     //
@@ -3312,7 +3335,6 @@ TEST_F(CreateGTSmall1DTestProperties, ITERATOR_METHODS) {
 
 
 
-
 //2D tests
 
 TEST_F(CreateGTSmall2DTestProperties, APR_ITERATION) {
@@ -3418,6 +3440,30 @@ TEST_F(CreateGTSmall2DTestProperties, ITERATOR_METHODS) {
 
 
 //3D tests
+
+
+TEST_F(CreateSmallSphereTest, AUTO_PARAMETERS) {
+
+//test iteration
+    ASSERT_TRUE(test_auto_parameters(test_data));
+
+}
+
+TEST_F(CreatDiffDimsSphereTest, AUTO_PARAMETERS) {
+
+//test iteration
+  //  ASSERT_TRUE(test_auto_parameters(test_data));
+
+}
+
+TEST_F(CreateGTSmall2DTestProperties, AUTO_PARAMETERS) {
+
+//test iteration
+   // ASSERT_TRUE(test_auto_parameters(test_data));
+
+}
+
+
 
 
 TEST_F(CreateSmallSphereTest, APR_ITERATION) {
