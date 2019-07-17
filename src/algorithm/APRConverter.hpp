@@ -528,7 +528,7 @@ void APRConverter<ImageType>::autoParameters(const PixelData<T> &localIntensityS
     /*
      *  Assumes a dark background. Please use the Python interactive parameter selection for more detailed approaches.
      *
-     *  No magic just rough suggestions
+     *  Finds the flatest (1% of the image) and estimates the noise level in the gradient and sets the grad threshold from that.
      */
 
 
@@ -542,23 +542,22 @@ void APRConverter<ImageType>::autoParameters(const PixelData<T> &localIntensityS
     uint64_t counter = 0;
     uint64_t counter_sampled = 0;
 
-    while((counter < localIntensityScale.mesh.size()) && counter_sampled < total_required_pixels){
+    while((counter < localIntensityScale.mesh.size()) && (counter_sampled < total_required_pixels)){
+
+        lis_buffer[counter_sampled] = localIntensityScale.mesh[counter];
+        grad_buffer[counter_sampled] = grad.mesh[counter];
 
         counter+=delta;
         counter_sampled++;
 
-        lis_buffer[counter] = localIntensityScale.mesh[counter];
-        grad_buffer[counter] = grad.mesh[counter];
-
     }
 
 
-    float min_lis = *std::min_element(lis_buffer.begin(),lis_buffer.end());
+    //float min_lis = *std::min_element(lis_buffer.begin(),lis_buffer.end());
     float max_lis = *std::max_element(lis_buffer.begin(),lis_buffer.end());
 
     std::vector<uint64_t> hist_lis;
-    hist_lis.resize(std::ceil(max_lis),0);
-
+    hist_lis.resize(std::ceil(max_lis)+1,0);
 
     for (int i = 0; i < total_required_pixels; ++i) {
         auto lis_val = std::floor(lis_buffer[i]);
@@ -566,8 +565,7 @@ void APRConverter<ImageType>::autoParameters(const PixelData<T> &localIntensityS
     }
 
     //Then find 5% therhold, and take the grad values from that.
-
-    uint64_t prop_values = 0.01*total_required_pixels;
+    uint64_t prop_values = 0.05*total_required_pixels;
 
     uint64_t cumsum = 0;
     uint64_t freq_val=0;
@@ -579,7 +577,7 @@ void APRConverter<ImageType>::autoParameters(const PixelData<T> &localIntensityS
 
     std::vector<S> grad_hist;
     float grad_max = *std::max_element(grad_buffer.begin(),grad_buffer.end());
-    float grad_min = *std::max_element(grad_buffer.begin(),grad_buffer.end());
+    //float grad_min = *std::max_element(grad_buffer.begin(),grad_buffer.end());
 
     grad_hist.resize(std::ceil(grad_max));
     uint64_t grad_counter = 0;
@@ -592,7 +590,6 @@ void APRConverter<ImageType>::autoParameters(const PixelData<T> &localIntensityS
             grad_hist[std::floor(grad_val)]++;
             grad_counter++;
         }
-
     }
 
 

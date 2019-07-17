@@ -3445,21 +3445,28 @@ TEST_F(CreateGTSmall2DTestProperties, ITERATOR_METHODS) {
 TEST_F(CreateSmallSphereTest, AUTO_PARAMETERS) {
 
 //test iteration
-    ASSERT_TRUE(test_auto_parameters(test_data));
+ASSERT_TRUE(test_auto_parameters(test_data));
 
 }
 
 TEST_F(CreatDiffDimsSphereTest, AUTO_PARAMETERS) {
 
 //test iteration
-  //  ASSERT_TRUE(test_auto_parameters(test_data));
+ASSERT_TRUE(test_auto_parameters(test_data));
 
 }
 
 TEST_F(CreateGTSmall2DTestProperties, AUTO_PARAMETERS) {
 
 //test iteration
-   // ASSERT_TRUE(test_auto_parameters(test_data));
+ASSERT_TRUE(test_auto_parameters(test_data));
+
+}
+
+TEST_F(CreateGTSmall1DTestProperties, AUTO_PARAMETERS) {
+
+//test iteration
+    ASSERT_TRUE(test_auto_parameters(test_data));
 
 }
 
