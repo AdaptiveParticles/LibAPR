@@ -159,8 +159,8 @@ if(APR_USE_CUDA)
             src/data_structures/Mesh/PixelData.cu
             src/algorithm/LocalIntensityScale.cu
             src/algorithm/OVPC.cu
-            test/GPUAPR.cu
             src/data_structures/APR/access/GPUAccess.cu
+            test/GPUAPR.cu
             src/numerics/APRDownsampleGPU.cu
             src/numerics/APRIsoConvGPU.cu
             )

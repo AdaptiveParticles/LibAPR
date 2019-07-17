@@ -4,7 +4,6 @@
 
 #include "APRDownsampleGPU.hpp"
 
-
 //__device__ void get_row_begin_end(std::size_t* index_begin,
 //                                  std::size_t* index_end,
 //                                  std::size_t xz_start,
