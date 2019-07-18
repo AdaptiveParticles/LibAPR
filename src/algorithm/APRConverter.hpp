@@ -61,35 +61,12 @@ public:
     APRTimer computation_timer;
     APRParameters par;
 
-
     template<typename T>
     bool get_apr(APR &aAPR, PixelData<T> &input_image);
 
     bool verbose = true;
 
-    void get_apr_custom_grad_scale(APR& aAPR,PixelData<ImageType>& grad,PixelData<float>& lis,bool down_sampled = true){
-
-        //APR must already be initialized.
-
-        if(down_sampled){
-
-            //need to check that they are initialized.
-            grad_temp.swap(grad);
-            lis.swap(local_scale_temp);
-
-
-        } else {
-            // To be done. The L(y) needs to be computed then max downsampled.
-            std::cerr << "Not implimented" << std::endl;
-
-        }
-
-        aAPR.parameters = par;
-        applyParameters(aAPR,par);
-        solveForAPR(aAPR);
-        generateDatastructures(aAPR);
-
-    }
+    void get_apr_custom_grad_scale(APR& aAPR,PixelData<ImageType>& grad,PixelData<float>& lis,bool down_sampled = true);
 
     void initPipelineAPR(APR &aAPR, int y_num, int x_num = 1, int z_num = 1){
         //
@@ -122,47 +99,14 @@ protected:
 
     void generateDatastructures(APR& aAPR);
 
-    template<typename T>
-    void auto_parameters_old(const PixelData<T> &input_img);
-
     template<typename T,typename S>
     void autoParameters(const PixelData<T> &localIntensityScale,const PixelData<S> &grad);
-
 
     template<typename T>
     bool check_input_dimensions(PixelData<T> &input_image);
 
+    void initPipelineMemory(int y_num,int x_num = 1,int z_num = 1);
 
-    void initPipelineMemory(int y_num,int x_num = 1,int z_num = 1){
-        //initializes the internal memory to be used in the pipeline.
-        allocation_timer.start_timer("init ds images");
-
-        const int z_num_ds = ceil(1.0*z_num/2.0);
-        const int x_num_ds = ceil(1.0*x_num/2.0);
-        const int y_num_ds = ceil(1.0*y_num/2.0);
-
-        grad_temp.initWithResize(y_num_ds, x_num_ds, z_num_ds); //this needs to be initialized to zero
-        grad_temp.fill(0);
-
-        float not_needed;
-        std::vector<int> var_win;
-        iLocalIntensityScale.get_window_alt(not_needed, var_win, par, grad_temp);
-
-        int padding_y = 2*std::max(var_win[0],var_win[3]);
-        int padding_x = 2*std::max(var_win[1],var_win[4]);
-        int padding_z = 2*std::max(var_win[2],var_win[5]);
-
-        //Compute dimensions
-
-        //This ensures enough memory is allocated for the padding.
-        local_scale_temp.initWithResize(y_num_ds+padding_y, x_num_ds+padding_x, z_num_ds+padding_z);
-        local_scale_temp.initWithResize(y_num_ds, x_num_ds, z_num_ds);
-
-        local_scale_temp2.initWithResize(y_num_ds+padding_y, x_num_ds+padding_x, z_num_ds+padding_z);
-        local_scale_temp2.initWithResize(y_num_ds, x_num_ds, z_num_ds);
-
-        allocation_timer.stop_timer();
-    }
 
 };
 
@@ -186,6 +130,64 @@ static MinMax<T> getMinMax(const PixelData<T>& input_image) {
 
     return MinMax<T>{minVal, maxVal};
 }
+
+template<typename ImageType>
+void APRConverter<ImageType>::initPipelineMemory(int y_num,int x_num,int z_num){
+    //initializes the internal memory to be used in the pipeline.
+    allocation_timer.start_timer("init ds images");
+
+    const int z_num_ds = ceil(1.0*z_num/2.0);
+    const int x_num_ds = ceil(1.0*x_num/2.0);
+    const int y_num_ds = ceil(1.0*y_num/2.0);
+
+    grad_temp.initWithResize(y_num_ds, x_num_ds, z_num_ds); //this needs to be initialized to zero
+    grad_temp.fill(0);
+
+    float not_needed;
+    std::vector<int> var_win;
+    iLocalIntensityScale.get_window_alt(not_needed, var_win, par, grad_temp);
+
+    int padding_y = 2*std::max(var_win[0],var_win[3]);
+    int padding_x = 2*std::max(var_win[1],var_win[4]);
+    int padding_z = 2*std::max(var_win[2],var_win[5]);
+
+    //Compute dimensions
+
+    //This ensures enough memory is allocated for the padding.
+    local_scale_temp.initWithResize(y_num_ds+padding_y, x_num_ds+padding_x, z_num_ds+padding_z);
+    local_scale_temp.initWithResize(y_num_ds, x_num_ds, z_num_ds);
+
+    local_scale_temp2.initWithResize(y_num_ds+padding_y, x_num_ds+padding_x, z_num_ds+padding_z);
+    local_scale_temp2.initWithResize(y_num_ds, x_num_ds, z_num_ds);
+
+    allocation_timer.stop_timer();
+}
+
+template<typename ImageType>
+void APRConverter<ImageType>::get_apr_custom_grad_scale(APR& aAPR,PixelData<ImageType>& grad,PixelData<float>& lis,bool down_sampled){
+
+    //APR must already be initialized.
+
+    if(down_sampled){
+
+        //need to check that they are initialized.
+        grad_temp.swap(grad);
+        lis.swap(local_scale_temp);
+
+    } else {
+        // To be done. The L(y) needs to be computed then max downsampled.
+        std::cerr << "Not implimented" << std::endl;
+
+    }
+
+    aAPR.parameters = par;
+    applyParameters(aAPR,par);
+    solveForAPR(aAPR);
+    generateDatastructures(aAPR);
+
+}
+
+
 template<typename ImageType> template<typename T>
 void APRConverter<ImageType>::computeL(APR& aAPR,PixelData<T>& input_image){
     //
@@ -592,23 +594,8 @@ void APRConverter<ImageType>::autoParameters(const PixelData<T> &localIntensityS
         }
     }
 
-
-   auto max_it = std::max_element(grad_hist.begin(),grad_hist.end());
+    auto max_it = std::max_element(grad_hist.begin(),grad_hist.end());
     uint64_t mode = std::distance(grad_hist.begin(),max_it);
-
-    double mean = 0;
-    cumsum = 0;
-    double uq;
-
-    for (int j = 0; j < grad_hist.size(); ++j) {
-        mean += grad_hist[j]*j;
-        cumsum += grad_hist[j];
-
-        if((cumsum/(1.0*grad_counter))<=0.90){
-            uq = j;
-        }
-    }
-
 
     float grad_th = std::round(4*mode); //magic numbers.
 
@@ -625,314 +612,6 @@ void APRConverter<ImageType>::autoParameters(const PixelData<T> &localIntensityS
 
 }
 
-
-
-template<typename ImageType> template<typename T>
-inline void APRConverter<ImageType>::auto_parameters_old(const PixelData<T> &input_img){
-    //
-    //  Simple automatic parameter selection for 3D APR Flouresence Images
-    //
-
-    // TODO: fix auto params for 2D
-    if(input_img.y_num > 1 && input_img.x_num > 1 && input_img.z_num > 1) {
-        //take the current input parameters
-        float lambda_input = par.lambda;
-        float rel_error_input = par.rel_error;
-        float ip_th_input = par.Ip_th;
-        float min_signal_input = par.min_signal;
-
-        APRTimer par_timer;
-        par_timer.verbose_flag = false;
-
-        //
-        //  Do not compute the statistics over the whole image, but only a smaller sub-set.
-        //
-        const double total_required_pixel = 10*1000*1000;
-        size_t num_slices = std::min((unsigned int)ceil(total_required_pixel/(1.0*input_img.y_num*input_img.x_num)),(unsigned int)input_img.z_num);
-        size_t delta = std::max((unsigned int)1,(unsigned int)(input_img.z_num/num_slices));
-        std::vector<size_t> selectedSlicesOffsets;
-        selectedSlicesOffsets.reserve(num_slices);
-        //evenly space the slices across the image
-        for (size_t i1 = 0; i1 < num_slices; ++i1) {
-            selectedSlicesOffsets.push_back(delta*i1);
-        }
-
-        // Get min value
-        par_timer.start_timer("get_min");
-        float min_val = 99999999;
-        for (size_t k1 = 0; k1 < selectedSlicesOffsets.size(); ++k1) {
-            min_val = std::min((float)*std::min_element(input_img.mesh.begin() + selectedSlicesOffsets[k1]*(input_img.y_num*input_img.x_num),input_img.mesh.begin()  + (selectedSlicesOffsets[k1]+1)*(input_img.y_num*input_img.x_num)),min_val);
-        }
-        par_timer.stop_timer();
-
-        // will need to deal with grouped constant or zero sections in the image somewhere.... but lets keep it simple for now.
-        const size_t num_bins = 10000;
-        std::vector<uint64_t> freq(num_bins);
-        uint64_t counter = 0;
-        double total=0;
-
-        size_t xnumynum = input_img.x_num*input_img.y_num;
-        par_timer.start_timer("get_histogram");
-        for (size_t s = 0; s < selectedSlicesOffsets.size(); ++s) {
-            for (size_t q= selectedSlicesOffsets[s]*xnumynum; q < (selectedSlicesOffsets[s]+1)*xnumynum; ++q) {
-                if(input_img.mesh[q] < (min_val + num_bins-1)){
-                    freq[input_img.mesh[q]-min_val]++;
-                    if(input_img.mesh[q] > 0) {
-                        counter++;
-                        total += input_img.mesh[q];
-                    }
-                }
-            }
-
-        }
-        par_timer.stop_timer();
-
-        float img_mean = counter > 0 ? total/(counter*1.0) : 1;
-        float prop_total_th = 0.05; //assume there is atleast 5% background in the image
-        float prop_total = 0;
-        uint64_t min_j = 0;
-
-        // set to start at one to ignore potential constant regions thresholded out. (Common in some images)
-        for (unsigned int j = 1; j < num_bins; ++j) {
-            prop_total += freq[j]/(counter*1.0);
-
-            if(prop_total > prop_total_th){
-                min_j = j;
-                break;
-            }
-
-        }
-
-        float proportion_flat = freq[0]/(counter*1.0f);
-        float proportion_next = freq[1]/(counter*1.0f);
-
-
-        PixelData<T> histogram;
-        histogram.init(num_bins, 1, 1);
-        std::copy(freq.begin(),freq.end(),histogram.mesh.begin());
-
-        float tol = 0.0001;
-        float lambda = 3;
-
-        //Y direction bspline
-
-        ///
-        /// Smooth the histogram results using Bsplines
-        ///
-        iComputeGradient.bspline_filt_rec_y(histogram,lambda,tol);
-
-        iComputeGradient.calc_inv_bspline_y(histogram);
-
-        ///
-        /// Calculate the local maximum after 5%  of the background on the smoothed histogram
-        ///
-
-        unsigned int local_max_j = 0;
-        uint64_t local_max = 0;
-
-        for (size_t k = min_j; k < num_bins; ++k) {
-
-            if(histogram.mesh[k] >= ((histogram.mesh[k-1] + histogram.mesh[k-2])/2.0)){
-            } else {
-                local_max = histogram.mesh[k];
-                local_max_j = k;
-                break;
-            }
-        }
-
-        //possible due to quantization your histogrtam is actually quite sparse, this corrects for the case where the smoothed intensity doesn't exist in the original image.
-        if(freq[local_max_j]==0){
-            while(freq[local_max_j]==0){
-                local_max_j++;
-                local_max=freq[local_max_j];
-            }
-        }
-
-        T estimated_first_mode = local_max_j + min_val;
-
-        std::vector<std::vector<T>> patches;
-
-        patches.resize(std::min(local_max,(uint64_t)10000));
-
-        for (unsigned int l = 0; l < patches.size(); ++l) {
-            patches[l].resize(27, 0);
-        }
-
-
-        int64_t z_num = input_img.z_num;
-        int64_t x_num = input_img.x_num;
-        int64_t y_num = input_img.y_num;
-
-        par_timer.start_timer("get_patches");
-
-        uint64_t counter_p = 0;
-        if (patches.size() > 0) {
-            for (size_t s = 0; s < selectedSlicesOffsets.size(); ++s) {
-                // limit slice to range [1, z_num-2]
-                int64_t z = std::min((int) z_num - 2, std::max((int) selectedSlicesOffsets[s], (int) 1));
-                for (int64_t x = 1; x < (x_num - 1); ++x) {
-                    for (int64_t y = 1; y < (y_num - 1); ++y) {
-                        float val = input_img.mesh[z * x_num * y_num + x * y_num + y];
-                        if (val == estimated_first_mode) {
-                            uint64_t counter_n = 0;
-                            for (int64_t sz = -1; sz <= 1; ++sz) {
-                                for (int64_t sx = -1; sx <= 1; ++sx) {
-                                    for (int64_t sy = -1; sy <= 1; ++sy) {
-                                        size_t idx = (z + sz) * x_num * y_num + (x + sx) * y_num + (y + sy);
-                                        const auto &val = input_img.mesh[idx];
-                                        patches[counter_p][counter_n] = val;
-                                        counter_n++;
-                                    }
-                                }
-                            }
-                            counter_p++;
-                            if (counter_p >= patches.size()) {
-                                goto finish;
-                            }
-                        }
-                    }
-                }
-            }
-        }
-
-        finish:
-        par_timer.stop_timer();
-
-        //first compute the mean over all the patches.
-        double total_p=0;
-        counter = 0;
-
-        for (size_t i = 0; i < patches.size(); ++i) {
-            for (size_t j = 0; j < patches[i].size(); ++j) {
-
-                if(patches[i][j] > 0){
-                    total_p += patches[i][j];
-                    counter++;
-                }
-            }
-        }
-
-        float mean = counter > 0 ? total_p/(counter*1.0) : 1;
-
-        //now compute the standard deviation (sd) of the patches
-
-        double var=0;
-
-        for (size_t i = 0; i < patches.size(); ++i) {
-            for (size_t j = 0; j < patches[i].size(); ++j) {
-
-                if(patches[i][j] > 0){
-                    var += pow(patches[i][j]-mean,2);
-                }
-            }
-        }
-
-        var = (counter > 0) ? var/(counter*1) : 1;
-
-        float sd = sqrt(var);
-
-        par.noise_sd_estimate = sd;
-
-        for (size_t l1 = 1; l1 < histogram.mesh.size(); ++l1) {
-            if(histogram.mesh[l1] > 0){
-                par.background_intensity_estimate = l1 + min_val;
-            }
-        }
-
-        float min_snr = 6;
-
-    if(par.SNR_min > 0){
-        min_snr = par.SNR_min;
-    } else {
-        if(verbose) {
-            std::cout << "**Assuming a minimum SNR of 6" << std::endl;
-        }
-    }
-
-
-        float Ip_th = mean + sd;
-        float var_th = (img_mean/(mean*1.0f))*sd*min_snr;
-
-        float var_th_max = sd*min_snr*.5f;
-
-        par.background_intensity_estimate = estimated_first_mode;
-
-
-
-    //
-    //  Detecting background subtracted images, or no-noise, in these cases the above estimates do not work
-    //
-    if((proportion_flat > 1.0f) && (proportion_next > 0.00001f)){
-        if(verbose) {
-            std::cout
-                    << "AUTOPARAMTERS:**Warning** Detected that there is likely noisy background, instead assuming background subtracted and minimum signal of 5 (absolute), if this is not the case please set parameters manually"
-                    << std::endl;
-        }
-        Ip_th = 1;
-        var_th = 5;
-        lambda = 0.5;
-        var_th_max = 2;
-    } else {
-       // std::cout << "AUTOPARAMTERS: **Assuming image has atleast 5% dark background" << std::endl;
-    }
-
-
-        /*
-         *  Input parameter over-ride.
-         *
-         */
-
-        if(min_signal_input == 0) {
-            par.sigma_th = var_th;
-            par.sigma_th_max = var_th_max;
-        } else {
-            par.sigma_th_max = par.min_signal*0.5f;
-            par.sigma_th = par.min_signal;
-        }
-
-
-        if(lambda_input != -1) {
-            par.lambda = lambda_input;
-        }else{
-            par.lambda = lambda;
-        }
-
-        if(par.lambda < 0.05){
-            par.lambda = 0;
-            std::cout << "setting lambda to zero, bsplines algorithm cannot work with such small lambda" << std::endl;
-        }
-
-        if(ip_th_input > 0){
-            par.Ip_th = ip_th_input;
-        } else {
-            par.Ip_th = Ip_th;
-        }
-
-        if(rel_error_input != 0.1){
-            par.rel_error = rel_error_input;
-        }
-
-        std::cout << "Used parameters: " << std::endl;
-        std::cout << "I_th: " << par.Ip_th << std::endl;
-        std::cout << "sigma_th: " << par.sigma_th << std::endl;
-        std::cout << "sigma_th_max: " << par.sigma_th_max << std::endl;
-        std::cout << "relative error (E): " << par.rel_error << std::endl;
-        std::cout << "lambda: " << par.lambda << std::endl;
-    } else {
-        par.Ip_th = 1000;
-        par.sigma_th = 100;
-        par.sigma_th_max = 10;
-        par.rel_error = 0.1;
-        par.lambda = 1;
-
-        std::cout << "Used parameters: " << std::endl;
-        std::cout << "I_th: " << par.Ip_th << std::endl;
-        std::cout << "sigma_th: " << par.sigma_th << std::endl;
-        std::cout << "sigma_th_max: " << par.sigma_th_max << std::endl;
-        std::cout << "relative error (E): " << par.rel_error << std::endl;
-        std::cout << "lambda: " << par.lambda << std::endl;
-    }
-}
 
 /**
  * Checks if the memory dimension (y) is filled
