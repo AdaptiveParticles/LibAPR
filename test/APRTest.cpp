@@ -269,7 +269,6 @@ bool check_neighbour_out_of_bounds(APRIterator &current,uint8_t face){
 
 bool test_auto_parameters(TestData& test_data){
 
-
     bool success = true;
 
     APR apr;
@@ -280,11 +279,7 @@ bool test_auto_parameters(TestData& test_data){
 
     aprConverter.get_apr(apr, test_data.img_original);
 
-    PixelData<uint16_t> level_img;
-    ParticleData<uint16_t> level_p;
-    level_p.fill_with_levels(apr);
-    APRReconstruction::interp_img(apr,level_img,level_p);
-    TiffUtils::saveMeshAsTiff("levels.tif",level_img);
+    //This test doesn't do anything except check if it runs.
 
     return success;
 
