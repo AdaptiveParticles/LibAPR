@@ -100,7 +100,8 @@ __global__ void conv_max_333(const uint64_t* level_xz_vec,
                              const int z_num_parent,
                              const int x_num_parent,
                              const int y_num_parent,
-                             const int level);
+                             const int level,
+                             const bool* blocks_empty);
 
 
 template<typename inputType, typename outputType, typename stencilType, typename treeType>
@@ -120,7 +121,8 @@ __global__ void conv_interior_333(const uint64_t* level_xz_vec,
                                   const int z_num_parent,
                                   const int x_num_parent,
                                   const int y_num_parent,
-                                  const int level);
+                                  const int level,
+                                  const bool* blocks_empty);
 
 
 template<typename inputType, typename outputType, typename stencilType, typename treeType>
@@ -140,7 +142,8 @@ __global__ void conv_min_333(const uint64_t* level_xz_vec,
                              const int z_num_parent,
                              const int x_num_parent,
                              const int y_num_parent,
-                             const int level);
+                             const int level,
+                             const bool* blocks_empty);
 
 
 template<typename inputType, typename outputType, typename stencilType>
@@ -156,7 +159,8 @@ __global__ void conv_max_555(const uint64_t* level_xz_vec,
                              const int z_num_parent,
                              const int x_num_parent,
                              const int y_num_parent,
-                             const int level);
+                             const int level,
+                             const bool* blocks_empty);
 
 
 template<typename inputType, typename outputType, typename stencilType, typename treeType>
@@ -176,7 +180,8 @@ __global__ void conv_interior_555(const uint64_t* level_xz_vec,
                                   const int z_num_parent,
                                   const int x_num_parent,
                                   const int y_num_parent,
-                                  const int level);
+                                  const int level,
+                                  const bool* blocks_empty);
 
 
 template<typename inputType, typename outputType, typename stencilType, typename treeType>
@@ -196,7 +201,8 @@ __global__ void conv_min_555(const uint64_t* level_xz_vec,
                              const int z_num_parent,
                              const int x_num_parent,
                              const int y_num_parent,
-                             const int level);
+                             const int level,
+                             const bool* blocks_empty);
 
 
 template<typename inputType, typename outputType, typename stencilType>
@@ -215,5 +221,14 @@ __global__ void conv_pixel_555(const inputType* input_image,
                                const int z_num,
                                const int x_num,
                                const int y_num);
+
+
+__global__ void check_blocks(const uint64_t* level_xz_vec,
+                             const uint64_t* xz_end_vec,
+                             bool* blocks_nonempty,
+                             const int block_size,
+                             const int level,
+                             const int x_num);
+
 
 #endif //LIBAPR_APRISOCONVGPU_HPP

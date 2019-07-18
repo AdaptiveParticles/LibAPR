@@ -203,6 +203,9 @@ timings isotropic_convolve_333_wrapper(GPUAccessHelper& access, GPUAccessHelper&
     ScopedCudaMemHandler<outputType*, JUST_ALLOC> output_gpu(output.data(), output.size());
     ScopedCudaMemHandler<stencilType*, JUST_ALLOC> stencil_gpu(stencil.data(), stencil.size());
 
+    size_t max_num_blocks = ((access.x_num(access.level_max()) + 8 - 1) / 8) * ((access.z_num(access.level_max()) + 8 - 1) / 8);
+    ScopedCudaMemHandler<bool*, JUST_ALLOC> blocks_empty(NULL, max_num_blocks);
+
     /// copy input and stencil to the GPU
     input_gpu.copyH2D();
     stencil_gpu.copyH2D();
@@ -223,12 +226,20 @@ timings isotropic_convolve_333_wrapper(GPUAccessHelper& access, GPUAccessHelper&
 
     for (int level = access.level_max(); level >= access.level_min(); --level) {
 
-        dim3 threads_l(10, 1, 10);
-
         int x_blocks = (access.x_num(level) + 8 - 1) / 8;
         int z_blocks = (access.z_num(level) + 8 - 1) / 8;
 
         dim3 blocks_l(x_blocks, 1, z_blocks);
+        dim3 threads(1,1,1);
+
+        check_blocks<<<blocks_l, threads>>>(access.get_level_xz_vec_ptr(),
+                                            access.get_xz_end_vec_ptr(),
+                                            blocks_empty.get(),
+                                            8 /* block size */,
+                                            level,
+                                            access.x_num(level));
+
+        dim3 threads_l(10, 1, 10);
 
         if (level == access.level_min()) {
             conv_min_333 << < blocks_l, threads_l >> >( access.get_level_xz_vec_ptr(),
@@ -247,7 +258,8 @@ timings isotropic_convolve_333_wrapper(GPUAccessHelper& access, GPUAccessHelper&
                                                         tree_access.z_num(level-1),
                                                         tree_access.x_num(level-1),
                                                         tree_access.y_num(level-1),
-                                                        level );
+                                                        level,
+                                                        blocks_empty.get() );
 
         } else if (level == access.level_max()) {
             conv_max_333 << < blocks_l, threads_l >> >( access.get_level_xz_vec_ptr(),
@@ -262,7 +274,8 @@ timings isotropic_convolve_333_wrapper(GPUAccessHelper& access, GPUAccessHelper&
                                                         tree_access.z_num(level-1),
                                                         tree_access.x_num(level-1),
                                                         tree_access.y_num(level-1),
-                                                        level );
+                                                        level,
+                                                        blocks_empty.get() );
 
         } else {
             conv_interior_333 << < blocks_l, threads_l >> >(access.get_level_xz_vec_ptr(),
@@ -281,7 +294,8 @@ timings isotropic_convolve_333_wrapper(GPUAccessHelper& access, GPUAccessHelper&
                                                             tree_access.z_num(level-1),
                                                             tree_access.x_num(level-1),
                                                             tree_access.y_num(level-1),
-                                                            level );
+                                                            level,
+                                                            blocks_empty.get() );
         }
         cudaDeviceSynchronize();
     }
@@ -328,6 +342,9 @@ timings isotropic_convolve_555_wrapper(GPUAccessHelper& access, GPUAccessHelper&
     ScopedCudaMemHandler<outputType*, JUST_ALLOC> output_gpu(output.data(), output.size());
     ScopedCudaMemHandler<stencilType*, JUST_ALLOC> stencil_gpu(stencil.data(), stencil.size());
 
+    size_t max_num_blocks = ((access.x_num(access.level_max()) + 8 - 1) / 8) * ((access.z_num(access.level_max()) + 8 - 1) / 8);
+    ScopedCudaMemHandler<bool*, JUST_ALLOC> blocks_empty(NULL, max_num_blocks);
+
     /// copy input and stencil to the GPU
     input_gpu.copyH2D();
     stencil_gpu.copyH2D();
@@ -349,12 +366,20 @@ timings isotropic_convolve_555_wrapper(GPUAccessHelper& access, GPUAccessHelper&
 
     for (int level = access.level_max(); level >= access.level_min(); --level) {
 
-        dim3 threads_l(12, 1, 12);
-
         int x_blocks = (access.x_num(level) + 8 - 1) / 8;
         int z_blocks = (access.z_num(level) + 8 - 1) / 8;
 
         dim3 blocks_l(x_blocks, 1, z_blocks);
+        dim3 threads(1,1,1);
+
+        check_blocks<<<blocks_l, threads>>>(access.get_level_xz_vec_ptr(),
+                                            access.get_xz_end_vec_ptr(),
+                                            blocks_empty.get(),
+                                            8 /* block size */,
+                                            level,
+                                            access.x_num(level));
+
+        dim3 threads_l(12, 1, 12);
 
         if (level == access.level_min()) {
             conv_min_555 << < blocks_l, threads_l >> >( access.get_level_xz_vec_ptr(),
@@ -373,7 +398,8 @@ timings isotropic_convolve_555_wrapper(GPUAccessHelper& access, GPUAccessHelper&
                     tree_access.z_num(level-1),
                     tree_access.x_num(level-1),
                     tree_access.y_num(level-1),
-                    level );
+                    level,
+                    blocks_empty.get());
 
         } else if (level == access.level_max()) {
             conv_max_555 << < blocks_l, threads_l >> >( access.get_level_xz_vec_ptr(),
@@ -388,7 +414,8 @@ timings isotropic_convolve_555_wrapper(GPUAccessHelper& access, GPUAccessHelper&
                     tree_access.z_num(level-1),
                     tree_access.x_num(level-1),
                     tree_access.y_num(level-1),
-                    level );
+                    level,
+                    blocks_empty.get());
 
         } else {
             conv_interior_555 << < blocks_l, threads_l >> >(access.get_level_xz_vec_ptr(),
@@ -407,7 +434,8 @@ timings isotropic_convolve_555_wrapper(GPUAccessHelper& access, GPUAccessHelper&
                     tree_access.z_num(level-1),
                     tree_access.x_num(level-1),
                     tree_access.y_num(level-1),
-                    level );
+                    level,
+                    blocks_empty.get());
         }
         cudaDeviceSynchronize();
     }
@@ -426,6 +454,36 @@ timings isotropic_convolve_555_wrapper(GPUAccessHelper& access, GPUAccessHelper&
 
 
 
+__global__ void check_blocks(const uint64_t* level_xz_vec,
+                             const uint64_t* xz_end_vec,
+                             bool* blocks_empty,
+                             const int block_size,
+                             const int level,
+                             const int x_num) {
+
+    size_t x_start = block_size * blockIdx.x;
+    size_t z_start = block_size * blockIdx.z;
+
+    size_t xz_start, global_index_begin, global_index_end;
+
+    for(size_t iz = 0; iz < block_size; ++iz) {
+        for(size_t ix = 0; ix < block_size; ++ix) {
+
+            xz_start = (x_start + ix) + (z_start + iz) * x_num + level_xz_vec[level];
+            global_index_begin = xz_end_vec[xz_start - 1];
+            global_index_end = xz_end_vec[xz_start];
+
+            if(global_index_begin < global_index_end) {
+                blocks_empty[blockIdx.z * gridDim.x + blockIdx.x] = false;
+                return;
+            }
+        }
+    }
+    printf("block %d empty!\n", (blockIdx.z * gridDim.x + blockIdx.x));
+    blocks_empty[blockIdx.z * gridDim.x + blockIdx.x] = true;
+}
+
+
 template<typename inputType, typename outputType, typename stencilType>
 __global__ void conv_max_333(const uint64_t* level_xz_vec,
                              const uint64_t* xz_end_vec,
@@ -439,16 +497,14 @@ __global__ void conv_max_333(const uint64_t* level_xz_vec,
                              const int z_num_parent,
                              const int x_num_parent,
                              const int y_num_parent,
-                             const int level){
+                             const int level,
+                             const bool* blocks_empty){
 
+    if(blocks_empty[blockIdx.z * gridDim.x + blockIdx.x]) {
+        return;
+    }
 
     // This is block wise shared memory this is assuming an 8*8 block with pad()
-    if (threadIdx.x >= 10) {
-        return;
-    }
-    if (threadIdx.z >= 10) {
-        return;
-    }
 
     bool not_ghost = false;
 
@@ -617,16 +673,14 @@ __global__ void conv_interior_333(const uint64_t* level_xz_vec,
                                   const int z_num_parent,
                                   const int x_num_parent,
                                   const int y_num_parent,
-                                  const int level) {
+                                  const int level,
+                                  const bool* blocks_empty) {
+
+    if(blocks_empty[blockIdx.z * gridDim.x + blockIdx.x]) {
+        return;
+    }
 
     const unsigned int N = 4;
-
-    if (threadIdx.x >= 10) {
-        return;
-    }
-    if (threadIdx.z >= 10) {
-        return;
-    }
 
     int x_index = (8 * blockIdx.x + threadIdx.x - 1);
     int z_index = (8 * blockIdx.z + threadIdx.z - 1);
@@ -829,7 +883,12 @@ __global__ void conv_min_333(const uint64_t* level_xz_vec,
                              const int z_num_parent,
                              const int x_num_parent,
                              const int y_num_parent,
-                             const int level) {
+                             const int level,
+                             const bool* blocks_empty) {
+
+    if(blocks_empty[blockIdx.z * gridDim.x + blockIdx.x]) {
+        return;
+    }
 
     const unsigned int N = 4;
 
@@ -838,15 +897,6 @@ __global__ void conv_min_333(const uint64_t* level_xz_vec,
 
     //uint16_t y_cache[N] = {0}; // These are local register/private caches
     //uint16_t index_cache[N] = {0}; // These are local register/private caches
-
-
-    if (threadIdx.x >= 10) {
-        return;
-    }
-    if (threadIdx.z >= 10) {
-        return;
-    }
-
 
     int x_index = (8 * blockIdx.x + threadIdx.x - 1);
     int z_index = (8 * blockIdx.z + threadIdx.z - 1);
@@ -992,20 +1042,17 @@ __global__ void conv_max_555(const uint64_t* level_xz_vec,
                              const int z_num_parent,
                              const int x_num_parent,
                              const int y_num_parent,
-                             const int level) {
+                             const int level,
+                             const bool* blocks_empty) {
+
+    if(blocks_empty[blockIdx.z * gridDim.x + blockIdx.x]) {
+        return;
+    }
 
     const unsigned int N = 6;
 
     __shared__
     stencilType local_patch[12][12][6]; // This is block wise shared memory this is assuming an 8*8 block with pad()
-
-
-    if (threadIdx.x >= 12) {
-        return;
-    }
-    if (threadIdx.z >= 12) {
-        return;
-    }
 
     int x_index = (8 * blockIdx.x + threadIdx.x - 2);
     int z_index = (8 * blockIdx.z + threadIdx.z - 2);
@@ -1170,21 +1217,17 @@ __global__ void conv_interior_555(const uint64_t* level_xz_vec,
                                   const int z_num_parent,
                                   const int x_num_parent,
                                   const int y_num_parent,
-                                  const int level) {
+                                  const int level,
+                                  const bool* blocks_empty) {
+
+    if(blocks_empty[blockIdx.z * gridDim.x + blockIdx.x]) {
+        return;
+    }
 
     const unsigned int N = 6;
 
     __shared__
     stencilType local_patch[12][12][6]; // This is block wise shared memory this is assuming an 8*8 block with pad()
-
-
-    if (threadIdx.x >= 12) {
-        return;
-    }
-    if (threadIdx.z >= 12) {
-        return;
-    }
-
 
     int x_index = (8 * blockIdx.x + threadIdx.x - 2);
     int z_index = (8 * blockIdx.z + threadIdx.z - 2);
@@ -1387,21 +1430,17 @@ __global__ void conv_min_555(const uint64_t* level_xz_vec,
                              const int z_num_parent,
                              const int x_num_parent,
                              const int y_num_parent,
-                             const int level) {
+                             const int level,
+                             const bool* blocks_empty) {
+
+    if(blocks_empty[blockIdx.z * gridDim.x + blockIdx.x]) {
+        return;
+    }
 
     const unsigned int N = 6;
 
     __shared__
     stencilType local_patch[12][12][6]; // This is block wise shared memory this is assuming an 8*8 block with pad()
-
-
-    if (threadIdx.x >= 12) {
-        return;
-    }
-    if (threadIdx.z >= 12) {
-        return;
-    }
-
 
     int x_index = (8 * blockIdx.x + threadIdx.x - 2);
     int z_index = (8 * blockIdx.z + threadIdx.z - 2);
@@ -1575,12 +1614,6 @@ __global__ void conv_pixel_333(const inputType* input_image,
 
 
     // This is block wise shared memory this is assuming an 8*8 block with pad()
-    if (threadIdx.x >= 10) {
-        return;
-    }
-    if (threadIdx.z >= 10) {
-        return;
-    }
 
     bool not_ghost = false;
 
@@ -1655,12 +1688,6 @@ __global__ void conv_pixel_555(const inputType* input_image,
 
 
     // This is block wise shared memory this is assuming an 8*8 block with pad()
-    if (threadIdx.x >= 12) {
-        return;
-    }
-    if (threadIdx.z >= 12) {
-        return;
-    }
 
     bool not_ghost = false;
 
