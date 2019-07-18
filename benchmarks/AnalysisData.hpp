@@ -268,6 +268,7 @@ class AnalysisData: public Data_manager {
 
     }
 
+
     void add_apr_info(APR& apr){
 
         add_float_data("num_parts",apr.total_number_particles());

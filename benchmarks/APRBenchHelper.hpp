@@ -91,7 +91,7 @@ struct BenchmarkData{
 
 };
 
-class BenchAPRHelper {
+class APRBenchHelper {
 
     float CR_min = 0;
     float CR_max = 9999;
