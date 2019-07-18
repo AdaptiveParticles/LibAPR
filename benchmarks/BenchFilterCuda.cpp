@@ -21,13 +21,17 @@ BenchIteration
 int main(int argc, char **argv) {
 
     // INPUT PARSING
+#ifndef APR_USE_CUDA
+    std::cerr << "CUDA is disabled" << std::endl;
+    return 1;
+#endif
 
     cmdLineBenchOptions options = read_bench_command_line_options(argc, argv);
 
     // Filename
     std::string analysis_file_name = options.output_dir + options.analysis_file_name;
 
-    APRBenchHelper benchAPRHelper;
+    BenchAPRHelper benchAPRHelper;
     benchAPRHelper.initialize_benchmark(options);
 
     /*
