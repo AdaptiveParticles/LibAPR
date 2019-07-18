@@ -23,15 +23,11 @@ void downsample_avg(GPUAccessHelper& access, GPUAccessHelper& tree_access, std::
 
 
 template<typename inputType, typename treeType>
-void downsample_avg_wrapper(GPUAccessHelper&, GPUAccessHelper&,
-                            ScopedCudaMemHandler<inputType*, H2D>&,
-                            ScopedCudaMemHandler<treeType*, H2D>&);
+void downsample_avg_wrapper(GPUAccessHelper&, GPUAccessHelper&, inputType*, treeType*);
 
 
 template<typename inputType, typename treeType>
-void downsample_avg(GPUAccessHelper& access, GPUAccessHelper& tree_access,
-                    ScopedCudaMemHandler<inputType*, H2D>& input_gpu,
-                    ScopedCudaMemHandler<treeType*, H2D>& tree_data_gpu) {
+void downsample_avg(GPUAccessHelper& access, GPUAccessHelper& tree_access, inputType* input_gpu, treeType* tree_data_gpu) {
 
     downsample_avg_wrapper(access, tree_access, input_gpu, tree_data_gpu);
 }
@@ -44,21 +40,11 @@ template void downsample_avg(GPUAccessHelper&, GPUAccessHelper&, std::vector<uin
 template void downsample_avg(GPUAccessHelper&, GPUAccessHelper&, std::vector<float>&, std::vector<float>&);
 template void downsample_avg(GPUAccessHelper&, GPUAccessHelper&, std::vector<float>&, std::vector<double>&);
 
-template void downsample_avg(GPUAccessHelper&, GPUAccessHelper&,
-                             ScopedCudaMemHandler<uint16_t*, H2D>&,
-                             ScopedCudaMemHandler<uint16_t*, H2D>&);
-template void downsample_avg(GPUAccessHelper&, GPUAccessHelper&,
-                             ScopedCudaMemHandler<uint16_t*, H2D>&,
-                             ScopedCudaMemHandler<float*, H2D>&);
-template void downsample_avg(GPUAccessHelper&, GPUAccessHelper&,
-                             ScopedCudaMemHandler<uint16_t*, H2D>&,
-                             ScopedCudaMemHandler<double*, H2D>&);
-template void downsample_avg(GPUAccessHelper&, GPUAccessHelper&,
-                             ScopedCudaMemHandler<float*, H2D>&,
-                             ScopedCudaMemHandler<float*, H2D>&);
-template void downsample_avg(GPUAccessHelper&, GPUAccessHelper&,
-                             ScopedCudaMemHandler<float*, H2D>&,
-                             ScopedCudaMemHandler<double*, H2D>&);
+template void downsample_avg(GPUAccessHelper&, GPUAccessHelper&, uint16_t*, uint16_t*);
+template void downsample_avg(GPUAccessHelper&, GPUAccessHelper&, uint16_t*, float*);
+template void downsample_avg(GPUAccessHelper&, GPUAccessHelper&, uint16_t*, double*);
+template void downsample_avg(GPUAccessHelper&, GPUAccessHelper&, float*, float*);
+template void downsample_avg(GPUAccessHelper&, GPUAccessHelper&, float*, double*);
 
 
 template<typename inputType, typename outputType>

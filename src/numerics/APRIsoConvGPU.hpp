@@ -62,7 +62,6 @@ timings isotropic_convolve_555(GPUAccessHelper& access, GPUAccessHelper& tree_ac
     return isotropic_convolve_555_wrapper(access, tree_access, input, output, stencil, tree_data);
 }
 
-
 /// force template instantiation for some different type combinations
 //pixels 333
 template timings pixel_convolve_333(PixelData<uint16_t>&, PixelData<float>&, PixelData<float>&);

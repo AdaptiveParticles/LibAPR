@@ -437,12 +437,12 @@ void downsample_avg_init_wrapper(GPUAccessHelper& access, GPUAccessHelper& tree_
 
     tree_data.resize(tree_access.total_number_particles());
 
-    /// transfer input and tree_data to gpu
-    ScopedCudaMemHandler<inputType*, H2D> input_gpu(input.data(), input.size());
-    ScopedCudaMemHandler<treeType*, H2D> tree_data_gpu(tree_data.data(), tree_data.size());
+    /// allocate GPU memory
+    ScopedCudaMemHandler<inputType*, JUST_ALLOC> input_gpu(input.data(), input.size());
+    ScopedCudaMemHandler<treeType*, JUST_ALLOC> tree_data_gpu(tree_data.data(), tree_data.size());
 
+    /// copy the input to the GPU
     input_gpu.copyH2D();
-    tree_data_gpu.copyH2D();
 
     for (int level = access.level_max(); level >= access.level_min(); --level) {
 
@@ -495,14 +495,16 @@ void downsample_avg_init_wrapper(GPUAccessHelper& access, GPUAccessHelper& tree_
         //cudaDeviceSynchronize();
     }
 
-    input_gpu.copyD2H();
+    /// transfer the results back to the host
     tree_data_gpu.copyD2H();
 }
 
 
+
 template<typename inputType, typename treeType>
-void downsample_avg_wrapper(GPUAccessHelper& access, GPUAccessHelper& tree_access, ScopedCudaMemHandler<inputType*, H2D>& input_gpu,
-        ScopedCudaMemHandler<treeType*, H2D>& tree_data_gpu) {
+void downsample_avg_wrapper(GPUAccessHelper& access, GPUAccessHelper& tree_access, inputType* input_gpu, treeType* tree_data_gpu) {
+
+    /// assumes input_gpu and tree_data_gpu are already on the device
 
     for (int level = access.level_max(); level >= access.level_min(); --level) {
 
@@ -519,11 +521,11 @@ void downsample_avg_wrapper(GPUAccessHelper& access, GPUAccessHelper& tree_acces
                                            (access.get_level_xz_vec_ptr(),
                                                    access.get_xz_end_vec_ptr(),
                                                    access.get_y_vec_ptr(),
-                                                   input_gpu.get(),
+                                                   input_gpu,
                                                    tree_access.get_level_xz_vec_ptr(),
                                                    tree_access.get_xz_end_vec_ptr(),
                                                    tree_access.get_y_vec_ptr(),
-                                                   tree_data_gpu.get(),
+                                                   tree_data_gpu,
                                                    access.z_num(level),
                                                    access.x_num(level),
                                                    access.y_num(level),
@@ -539,11 +541,11 @@ void downsample_avg_wrapper(GPUAccessHelper& access, GPUAccessHelper& tree_acces
                                                    (access.get_level_xz_vec_ptr(),
                                                            access.get_xz_end_vec_ptr(),
                                                            access.get_y_vec_ptr(),
-                                                           input_gpu.get(),
+                                                           input_gpu,
                                                            tree_access.get_level_xz_vec_ptr(),
                                                            tree_access.get_xz_end_vec_ptr(),
                                                            tree_access.get_y_vec_ptr(),
-                                                           tree_data_gpu.get(),
+                                                           tree_data_gpu,
                                                            access.z_num(level),
                                                            access.x_num(level),
                                                            access.y_num(level),

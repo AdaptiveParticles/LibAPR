@@ -71,6 +71,8 @@ particle_output[index] = neighbour_sum;\
 template<typename inputType, typename outputType, typename stencilType>
 timings convolve_pixel_333_wrapper(PixelData<inputType>& input, PixelData<outputType>& output, PixelData<stencilType>& stencil) {
 
+    assert(stencil.size() == 27);
+
     timings ret;
     APRTimer timer(false);
 
@@ -80,12 +82,13 @@ timings convolve_pixel_333_wrapper(PixelData<inputType>& input, PixelData<output
 
     timer.start_timer("transfer H2D");
 
-    ScopedCudaMemHandler<PixelData<inputType>, H2D> input_gpu(input);
-    ScopedCudaMemHandler<PixelData<outputType>, D2H | H2D> output_gpu(output);
-    ScopedCudaMemHandler<PixelData<stencilType>, H2D> stencil_gpu(stencil);
+    /// allocate GPU memory
+    ScopedCudaMemHandler<PixelData<inputType>, JUST_ALLOC> input_gpu(input);
+    ScopedCudaMemHandler<PixelData<outputType>, JUST_ALLOC> output_gpu(output);
+    ScopedCudaMemHandler<PixelData<stencilType>, JUST_ALLOC> stencil_gpu(stencil);
 
+    /// copy input and stencil to the GPU
     input_gpu.copyH2D();
-    output_gpu.copyH2D();
     stencil_gpu.copyH2D();
 
     cudaDeviceSynchronize();
@@ -108,10 +111,9 @@ timings convolve_pixel_333_wrapper(PixelData<inputType>& input, PixelData<output
     timer.stop_timer();
     ret.run_kernels = timer.timings.back();
 
+    /// transfer the results back to the host
     timer.start_timer("transfer D2H");
-    //input_gpu.copyD2H();
     output_gpu.copyD2H();
-    //stencil_gpu.copyD2H();
     timer.stop_timer();
     ret.transfer_D2H = timer.timings.back();
 
@@ -122,6 +124,8 @@ timings convolve_pixel_333_wrapper(PixelData<inputType>& input, PixelData<output
 template<typename inputType, typename outputType, typename stencilType>
 timings convolve_pixel_555_wrapper(PixelData<inputType>& input, PixelData<outputType>& output, PixelData<stencilType>& stencil) {
 
+    assert(stencil.size() == 125);
+
     timings ret;
     APRTimer timer(false);
 
@@ -131,12 +135,13 @@ timings convolve_pixel_555_wrapper(PixelData<inputType>& input, PixelData<output
 
     timer.start_timer("transfer H2D");
 
-    ScopedCudaMemHandler<PixelData<inputType>, H2D> input_gpu(input);
-    ScopedCudaMemHandler<PixelData<outputType>, D2H | H2D> output_gpu(output);
-    ScopedCudaMemHandler<PixelData<stencilType>, H2D> stencil_gpu(stencil);
+    /// allocate GPU memory
+    ScopedCudaMemHandler<PixelData<inputType>, JUST_ALLOC> input_gpu(input);
+    ScopedCudaMemHandler<PixelData<outputType>, JUST_ALLOC> output_gpu(output);
+    ScopedCudaMemHandler<PixelData<stencilType>, JUST_ALLOC> stencil_gpu(stencil);
 
+    /// copy input and stencil to the GPU
     input_gpu.copyH2D();
-    output_gpu.copyH2D();
     stencil_gpu.copyH2D();
 
     cudaDeviceSynchronize();
@@ -160,10 +165,9 @@ timings convolve_pixel_555_wrapper(PixelData<inputType>& input, PixelData<output
     timer.stop_timer();
     ret.run_kernels = timer.timings.back();
 
+    /// transfer the results back to the host
     timer.start_timer("transfer D2H");
-    //input_gpu.copyD2H();
     output_gpu.copyD2H();
-    //stencil_gpu.copyD2H();
     timer.stop_timer();
     ret.transfer_D2H = timer.timings.back();
 
@@ -179,34 +183,37 @@ timings isotropic_convolve_333_wrapper(GPUAccessHelper& access, GPUAccessHelper&
      *
      *  conv_stencil needs to have 27 entries
      */
+
+    assert(input.size() == access.total_number_particles());
+    assert(stencil.size() == 27);
+
     timings ret;
     APRTimer timer(false);
 
     timer.start_timer("init arrays");
     tree_data.resize(tree_access.total_number_particles());
-    //input.resize(access.total_number_particles());
     output.resize(access.total_number_particles());
     timer.stop_timer();
 
     timer.start_timer("transfer H2D");
-    /// transfer input and tree_data to gpu
-    ScopedCudaMemHandler<inputType*, H2D> input_gpu(input.data(), input.size());
-    ScopedCudaMemHandler<treeType*, H2D> tree_data_gpu(tree_data.data(), tree_data.size());
-    ScopedCudaMemHandler<outputType*, H2D> output_gpu(output.data(), output.size());
-    ScopedCudaMemHandler<stencilType*, H2D> stencil_gpu(stencil.data(), stencil.size());
 
+    /// allocate GPU memory
+    ScopedCudaMemHandler<inputType*, JUST_ALLOC> input_gpu(input.data(), input.size());
+    ScopedCudaMemHandler<treeType*, JUST_ALLOC> tree_data_gpu(tree_data.data(), tree_data.size());
+    ScopedCudaMemHandler<outputType*, JUST_ALLOC> output_gpu(output.data(), output.size());
+    ScopedCudaMemHandler<stencilType*, JUST_ALLOC> stencil_gpu(stencil.data(), stencil.size());
+
+    /// copy input and stencil to the GPU
     input_gpu.copyH2D();
-    tree_data_gpu.copyH2D();
-    output_gpu.copyH2D();
     stencil_gpu.copyH2D();
 
     cudaDeviceSynchronize();
     timer.stop_timer();
     ret.transfer_H2D = timer.timings.back();
 
+    /// Fill the APR Tree by average downsampling
     timer.start_timer("fill tree");
-    /// Fill tree by average downsampling
-    downsample_avg(access, tree_access, input_gpu, tree_data_gpu);
+    downsample_avg(access, tree_access, input_gpu.get(), tree_data_gpu.get());
     cudaDeviceSynchronize();
     timer.stop_timer();
 
@@ -283,12 +290,9 @@ timings isotropic_convolve_333_wrapper(GPUAccessHelper& access, GPUAccessHelper&
 
     ret.run_kernels = timer.timings.back();
 
+    /// transfer the results back to the host
     timer.start_timer("transfer D2H");
-    // copy back to host
     output_gpu.copyD2H();
-    //stencil_gpu.copyD2H();
-    //tree_data_gpu.copyD2H();
-    //stencil_gpu.copyD2H();
     timer.stop_timer();
     ret.transfer_D2H = timer.timings.back();
 
@@ -305,36 +309,37 @@ timings isotropic_convolve_555_wrapper(GPUAccessHelper& access, GPUAccessHelper&
      *  conv_stencil needs to have 125 entries
      */
 
+    assert(input.size() == access.total_number_particles());
+    assert(stencil.size() == 125);
+
     timings ret;
     APRTimer timer(false);
 
     timer.start_timer("init arrays");
     tree_data.resize(tree_access.total_number_particles());
-    input.resize(access.total_number_particles());
     output.resize(access.total_number_particles());
     timer.stop_timer();
 
     timer.start_timer("transfer H2D");
-    /// transfer arrays to gpu
-    ScopedCudaMemHandler<inputType*, H2D> input_gpu(input.data(), input.size());
-    ScopedCudaMemHandler<treeType*, H2D> tree_data_gpu(tree_data.data(), tree_data.size());
-    ScopedCudaMemHandler<outputType*, H2D> output_gpu(output.data(), output.size());
-    ScopedCudaMemHandler<stencilType*, H2D> stencil_gpu(stencil.data(), stencil.size());
 
+    /// allocate GPU memory
+    ScopedCudaMemHandler<inputType*, JUST_ALLOC> input_gpu(input.data(), input.size());
+    ScopedCudaMemHandler<treeType*, JUST_ALLOC> tree_data_gpu(tree_data.data(), tree_data.size());
+    ScopedCudaMemHandler<outputType*, JUST_ALLOC> output_gpu(output.data(), output.size());
+    ScopedCudaMemHandler<stencilType*, JUST_ALLOC> stencil_gpu(stencil.data(), stencil.size());
+
+    /// copy input and stencil to the GPU
     input_gpu.copyH2D();
-    tree_data_gpu.copyH2D();
-    output_gpu.copyH2D();
     stencil_gpu.copyH2D();
 
     cudaDeviceSynchronize();
 
     timer.stop_timer();
-
     ret.transfer_H2D = timer.timings.back();
 
+    /// Fill the APR Tree by average downsampling
     timer.start_timer("fill tree");
-    /// Fill tree by average downsampling
-    downsample_avg_wrapper(access, tree_access, input_gpu, tree_data_gpu);
+    downsample_avg(access, tree_access, input_gpu.get(), tree_data_gpu.get());
     cudaDeviceSynchronize();
     timer.stop_timer();
 
@@ -410,14 +415,10 @@ timings isotropic_convolve_555_wrapper(GPUAccessHelper& access, GPUAccessHelper&
     timer.stop_timer();
     ret.run_kernels = timer.timings.back();
 
+    /// transfer the results back to the host
     timer.start_timer("transfer D2H");
-    // copy back to host
     output_gpu.copyD2H();
-    //stencil_gpu.copyD2H();
-    //tree_data_gpu.copyD2H();
-    //stencil_gpu.copyD2H();
     timer.stop_timer();
-
     ret.transfer_D2H = timer.timings.back();
 
     return ret;
@@ -1590,7 +1591,7 @@ __global__ void conv_pixel_333(const inputType* input_image,
     int x_index = (8 * blockIdx.x + threadIdx.x - 1);
     int z_index = (8 * blockIdx.z + threadIdx.z - 1);
 
-    const unsigned int N = 4;
+    const unsigned int N = 3;
 
     __shared__
     stencilType local_patch[10][10][N];
