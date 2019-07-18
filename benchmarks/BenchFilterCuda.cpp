@@ -1,4 +1,7 @@
 //
+// Created by Joel Jonsson on 2019-07-18.
+//
+//
 // Created by cheesema on 2019-07-03.
 //
 //////////////////////////////////////////////////////
@@ -24,7 +27,7 @@ int main(int argc, char **argv) {
     // Filename
     std::string analysis_file_name = options.output_dir + options.analysis_file_name;
 
-    BenchAPRHelper benchAPRHelper;
+    APRBenchHelper benchAPRHelper;
     benchAPRHelper.initialize_benchmark(options);
 
     /*
@@ -38,23 +41,20 @@ int main(int argc, char **argv) {
         benchAPRHelper.generate_dataset(i,apr,parts);
 
         //put benchmark funtions here..
-
-        //bench_apr_convolve(apr,parts,benchAPRHelper.get_number_reps(),benchAPRHelper.analysisData,1);
-        bench_apr_convolve(apr,parts,benchAPRHelper.get_number_reps(),benchAPRHelper.analysisData,3);
-        bench_apr_convolve(apr,parts,benchAPRHelper.get_number_reps(),benchAPRHelper.analysisData,5);
-
-        //bench_apr_convolve_pencil(apr,parts,benchAPRHelper.get_number_reps(),benchAPRHelper.analysisData,1);
-        bench_apr_convolve_pencil(apr,parts,benchAPRHelper.get_number_reps(),benchAPRHelper.analysisData,3);
-        bench_apr_convolve_pencil(apr,parts,benchAPRHelper.get_number_reps(),benchAPRHelper.analysisData,5);
+#ifdef APR_USE_CUDA
+        bench_apr_convolve_cuda(apr, parts, benchAPRHelper.get_number_reps(), benchAPRHelper.analysisData, 3);
+        bench_apr_convolve_cuda(apr, parts, benchAPRHelper.get_number_reps(), benchAPRHelper.analysisData, 5);
+#endif
 
         if(i==0){
             /*
             * Pixel benchmarks (These are content independent)
             */
 
-            //bench_pixel_convolve(apr,benchAPRHelper.get_number_reps(),benchAPRHelper.analysisData,1);
-            bench_pixel_convolve(apr,parts,benchAPRHelper.get_number_reps(),benchAPRHelper.analysisData,3);
-            bench_pixel_convolve(apr,parts,benchAPRHelper.get_number_reps(),benchAPRHelper.analysisData,5);
+#ifdef APR_USE_CUDA
+            bench_pixel_convolve_cuda(apr,parts,benchAPRHelper.get_number_reps(),benchAPRHelper.analysisData,3);
+            bench_pixel_convolve_cuda(apr,parts,benchAPRHelper.get_number_reps(),benchAPRHelper.analysisData,5);
+#endif
 
         }
     }

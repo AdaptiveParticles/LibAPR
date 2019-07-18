@@ -1591,7 +1591,7 @@ __global__ void conv_pixel_333(const inputType* input_image,
     int x_index = (8 * blockIdx.x + threadIdx.x - 1);
     int z_index = (8 * blockIdx.z + threadIdx.z - 1);
 
-    const unsigned int N = 3;
+    const unsigned int N = 4;
 
     __shared__
     stencilType local_patch[10][10][N];

@@ -995,7 +995,11 @@ void APRFilter::convolve(APR &apr, std::vector<PixelData<T>>& stencils, Particle
     ParticleData<T> tree_data;
     APRTreeNumerics::fill_tree_mean(apr, particle_input, tree_data);
 
-    ImageBuffer<T> temp_vec;
+    /// allocate image buffer with pad for isotropic patch reconstruction
+    // this is reused for lower levels -- assumes that the stencils are not increasing in size !
+    size_t y_num_m = (apr.org_dims(0) > 1) ? apr.y_num(apr.level_max()) + stencils[0].y_num - 1 : 1;
+    size_t x_num_m = (apr.org_dims(1) > 1) ? apr.x_num(apr.level_max()) + stencils[0].x_num - 1 : 1;
+    ImageBuffer<T> temp_vec(y_num_m, x_num_m, stencils[0].z_num);
 
     for (int level = apr.level_max(); level >= apr.level_min(); --level) {
 
@@ -1008,15 +1012,17 @@ void APRFilter::convolve(APR &apr, std::vector<PixelData<T>>& stencils, Particle
                                                (stencil_shape[1] - 1) / 2,
                                                (stencil_shape[2] - 1) / 2};
 
-        uint64_t z = 0;
+        size_t z = 0;
 
         const uint64_t z_num = apr.z_num(level);
 
-        const uint64_t y_num_m = (apr.org_dims(0) > 1) ? apr.y_num(level) + stencil_shape[0] - 1 : 1;
-        const uint64_t x_num_m = (apr.org_dims(1) > 1) ? apr.x_num(level) + stencil_shape[1] - 1 : 1;
+        y_num_m = (apr.org_dims(0) > 1) ? apr.y_num(level) + stencil_shape[0] - 1 : 1;
+        x_num_m = (apr.org_dims(1) > 1) ? apr.x_num(level) + stencil_shape[1] - 1 : 1;
 
         // modify temp_vec boundaries but leave the allocated memory intact
-        temp_vec.init(y_num_m, x_num_m, stencil_shape[2]);
+        temp_vec.y_num = y_num_m;
+        temp_vec.x_num = x_num_m;
+        temp_vec.z_num = stencil_shape[2];
 
         // Initial fill of temp_vec
         for (int iz = 0; iz <= stencil_half[2]; ++iz) {
@@ -1059,7 +1065,18 @@ void APRFilter::convolve_pencil(APR &apr, std::vector<PixelData<T>>& stencils, P
     ParticleData<T> tree_data;
     APRTreeNumerics::fill_tree_mean(apr, particle_input, tree_data);
 
-    ImageBuffer<T> temp_vec;
+    size_t y_num_m = (apr.org_dims(0) > 1) ? apr.y_num(apr.level_max()) + stencils[0].y_num - 1 : 1;
+
+    int num_threads = 1;
+#ifdef HAVE_OPENMP
+    num_threads = omp_get_max_threads();
+#endif
+
+    std::vector<ImageBuffer<T>> temp_vecs(num_threads);
+
+    for(int i = 0; i < num_threads; ++i) {
+        temp_vecs[i].init(y_num_m, stencils[0].x_num, stencils[0].z_num);
+    }
 
     for (int level = apr.level_max(); level >= apr.level_min(); --level) {
 
@@ -1072,20 +1089,29 @@ void APRFilter::convolve_pencil(APR &apr, std::vector<PixelData<T>>& stencils, P
                                                (stencil_shape[1] - 1) / 2,
                                                (stencil_shape[2] - 1) / 2};
 
-        int z = 0, x;
+        int z, x;
 
         const int z_num = apr.z_num(level);
         const int x_num = apr.x_num(level);
 
-        const int y_num_m = (apr.org_dims(0) > 1) ? apr.y_num(level) + stencil_shape[0] - 1 : 1;
+        y_num_m = (apr.org_dims(0) > 1) ? apr.y_num(level) + stencil_shape[0] - 1 : 1;
 
         // modify temp_vec boundaries but leave the allocated memory intact
-        temp_vec.init(y_num_m, stencil_shape[1], stencil_shape[2]);
+        for(int i = 0; i < num_threads; ++i) {
+            temp_vecs[i].y_num = y_num_m;
+            temp_vecs[i].x_num = stencil_shape[1];
+            temp_vecs[i].z_num = stencil_shape[2];
+        }
 
 #ifdef HAVE_OPENMP
-#pragma omp parallel for schedule(dynamic) private(z, x) firstprivate(temp_vec)
+#pragma omp parallel for schedule(dynamic) private(z, x)
 #endif
         for (z = 0; z < z_num; ++z) {
+
+            int thread_num = 0;
+#ifdef HAVE_OPENMP
+            thread_num = omp_get_thread_num();
+#endif
 
             const int z_start = std::max((int)z - stencil_half[2], 0);
             const int z_end = std::min((int)z+stencil_half[2]+1, (int)z_num);
@@ -1093,25 +1119,25 @@ void APRFilter::convolve_pencil(APR &apr, std::vector<PixelData<T>>& stencils, P
             /// initial fill of temp_vec
             for(int iz = z_start; iz < z_end; ++iz) {
                 for (int ix = 0; ix <= stencil_half[1]; ++ix) {
-                    update_dense_array(level, iz, ix, apr, tree_data, temp_vec, particle_input, stencil_shape, stencil_half, boundary);
+                    update_dense_array(level, iz, ix, apr, tree_data, temp_vecs[thread_num], particle_input, stencil_shape, stencil_half, boundary);
                 }
             }
 
             if (z < stencil_half[2]) {
                 for(int iz = z; iz < stencil_half[2]; ++iz) {
-                    apply_boundary_conditions_z(iz, z_num, temp_vec, boundary, true, stencil_half, stencil_shape);
+                    apply_boundary_conditions_z(iz, z_num, temp_vecs[thread_num], boundary, true, stencil_half, stencil_shape);
                 }
             } else if( z >= z_num - stencil_half[2]) {
                 for(int iz = z_num - stencil_half[2]; iz <= z; ++iz) {
-                    apply_boundary_conditions_z(iz + 2*stencil_half[2], z_num, temp_vec, boundary, false, stencil_half, stencil_shape);
+                    apply_boundary_conditions_z(iz + 2*stencil_half[2], z_num, temp_vecs[thread_num], boundary, false, stencil_half, stencil_shape);
                 }
             } /// end of initial fill
 
             for (int ix = 0; ix < stencil_half[1]; ++ix) {
-                apply_boundary_conditions_x(ix, x_num, temp_vec, boundary, true, stencil_half, stencil_shape);
+                apply_boundary_conditions_x(ix, x_num, temp_vecs[thread_num], boundary, true, stencil_half, stencil_shape);
             }
 
-            run_convolution_pencil(apr, level, z, 0, temp_vec, stencils[stencil_num], particle_output, stencil_half, stencil_shape);
+            run_convolution_pencil(apr, level, z, 0, temp_vecs[thread_num], stencils[stencil_num], particle_output, stencil_half, stencil_shape);
 
             for(x = 1; x < x_num; ++x) {
 
@@ -1120,24 +1146,24 @@ void APRFilter::convolve_pencil(APR &apr, std::vector<PixelData<T>>& stencils, P
                     const int z_end = std::min((int)z+stencil_half[2]+1, (int)z_num);
 
                     for(int iz = z_start; iz < z_end; ++iz) {
-                        update_dense_array(level, iz, x + stencil_half[1], apr, tree_data, temp_vec, particle_input, stencil_shape, stencil_half, boundary);
+                        update_dense_array(level, iz, x + stencil_half[1], apr, tree_data, temp_vecs[thread_num], particle_input, stencil_shape, stencil_half, boundary);
                     }
 
                     if(z < stencil_half[2]) {
                         for(int iz = z; iz < stencil_half[2]; ++iz) {
-                            apply_boundary_conditions_z(iz, z_num, temp_vec, boundary, true, stencil_half, stencil_shape);
+                            apply_boundary_conditions_z(iz, z_num, temp_vecs[thread_num], boundary, true, stencil_half, stencil_shape);
                         }
                     } else if( z >= z_num - stencil_half[2]) {
                         for(int iz = z_num - stencil_half[2]; iz <= z; ++iz) {
-                            apply_boundary_conditions_z(iz + 2*stencil_half[2], z_num, temp_vec, boundary, false, stencil_half, stencil_shape);
+                            apply_boundary_conditions_z(iz + 2*stencil_half[2], z_num, temp_vecs[thread_num], boundary, false, stencil_half, stencil_shape);
                         }
                     }
 
                 } else {
-                    apply_boundary_conditions_x(x + 2*stencil_half[1], x_num, temp_vec, boundary, false, stencil_half, stencil_shape);
+                    apply_boundary_conditions_x(x + 2*stencil_half[1], x_num, temp_vecs[thread_num], boundary, false, stencil_half, stencil_shape);
                 }
 
-                run_convolution_pencil(apr, level, z, x, temp_vec, stencils[stencil_num], particle_output, stencil_half, stencil_shape);
+                run_convolution_pencil(apr, level, z, x, temp_vecs[thread_num], stencils[stencil_num], particle_output, stencil_half, stencil_shape);
             }
         }
     }
