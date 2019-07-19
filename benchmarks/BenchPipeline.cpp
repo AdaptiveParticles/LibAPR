@@ -90,9 +90,9 @@ inline void bench_apr_pipeline(APR& apr,ParticleData<partsType>& parts,int num_r
     timer.stop_timer();
 
 
-    analysisData.add_timer(aprConverter.method_timer,apr.total_number_particles(),num_rep);
+    //analysisData.add_timer(aprConverter.method_timer,apr.total_number_particles(),num_rep);
 
-    analysisData.add_timer(aprConverter.computation_timer,apr.total_number_particles(),num_rep);
+    analysisData.add_timer(aprConverter.computation_timer);
 
     //Required in all benchmarks
     analysisData.add_timer(timer,apr.total_number_particles(),num_rep);

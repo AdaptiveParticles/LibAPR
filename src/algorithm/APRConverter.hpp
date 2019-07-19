@@ -134,7 +134,7 @@ static MinMax<T> getMinMax(const PixelData<T>& input_image) {
 template<typename ImageType>
 void APRConverter<ImageType>::initPipelineMemory(int y_num,int x_num,int z_num){
     //initializes the internal memory to be used in the pipeline.
-    allocation_timer.start_timer("init ds images");
+    allocation_timer.start_timer("init_ds_images");
 
     const int z_num_ds = ceil(1.0*z_num/2.0);
     const int x_num_ds = ceil(1.0*x_num/2.0);
@@ -195,8 +195,6 @@ void APRConverter<ImageType>::computeL(APR& aAPR,PixelData<T>& input_image){
     //
 
 
-    total_timer.start_timer("Total_pipeline_excluding_IO");
-
     ////////////////////////////////////////
     /// Memory allocation of variables
     ////////////////////////////////////////
@@ -211,8 +209,6 @@ void APRConverter<ImageType>::computeL(APR& aAPR,PixelData<T>& input_image){
     /////////////////////////////////
     /// Pipeline
     ////////////////////////
-
-    computation_timer.start_timer("Calculations");
 
     fine_grained_timer.start_timer("offset image");
     //offset image by factor (this is required if there are zero areas in the background with uint16_t and uint8_t images, as the Bspline co-efficients otherwise may be negative!)
@@ -396,10 +392,23 @@ inline bool APRConverter<ImageType>::get_apr(APR &aAPR, PixelData<T>& input_imag
 
 #ifndef APR_USE_CUDA
 
+    total_timer.start_timer("full_pipeline");
+
+    computation_timer.start_timer("init_mem");
+
     initPipelineMemory(input_image.y_num, input_image.x_num, input_image.z_num);
+
+    computation_timer.stop_timer();
+
+
+    computation_timer.start_timer("compute_L");
 
     //Compute the local resolution estimate
     computeL(aAPR,input_image);
+
+    computation_timer.stop_timer();
+
+    computation_timer.start_timer("apply_parameters");
 
     if( par.auto_parameters ) {
         autoParameters(local_scale_temp,grad_temp);
@@ -407,9 +416,21 @@ inline bool APRConverter<ImageType>::get_apr(APR &aAPR, PixelData<T>& input_imag
 
     applyParameters(aAPR,par);
 
+    computation_timer.stop_timer();
+
+    computation_timer.start_timer("solve_for_apr");
+
     solveForAPR(aAPR);
 
+    computation_timer.stop_timer();
+
+    computation_timer.start_timer("generate_data_structures");
+
     generateDatastructures(aAPR);
+
+    computation_timer.stop_timer();
+
+    total_timer.stop_timer();
 
 #else
 
@@ -431,9 +452,7 @@ inline bool APRConverter<ImageType>::get_apr(APR &aAPR, PixelData<T>& input_imag
         /// Pipeline
         ////////////////////////
 
-        computation_timer.start_timer("Calculations");
 
-        fine_grained_timer.start_timer("offset image");
         //offset image by factor (this is required if there are zero areas in the background with uint16_t and uint8_t images, as the Bspline co-efficients otherwise may be negative!)
         // Warning both of these could result in over-flow (if your image is non zero, with a 'buffer' and has intensities up to uint16_t maximum value then set image_type = "", i.e. uncomment the following line)
 
@@ -517,9 +536,6 @@ inline bool APRConverter<ImageType>::get_apr(APR &aAPR, PixelData<T>& input_imag
     method_timer.stop_timer();
 #endif
 
-//    computation_timer.stop_timer();
-//
-//    total_timer.stop_timer();
 
     return true;
 }

@@ -247,6 +247,27 @@ class AnalysisData: public Data_manager {
 
     }
 
+
+    void add_timer_avg(APRTimer& timer){
+
+        std::vector<std::string> unique_names;
+
+        std::vector<double> totals;
+        std::vector<int> counter;
+
+        for (int i = 0; i < (int) timer.timings.size(); i++) {
+
+            for (int j = 0; j < ; ++j) {
+                
+            }
+            
+            
+        }
+
+
+    }
+
+
     void add_timer(APRTimer& timer){
 
         //set up timing variables
