@@ -62,6 +62,8 @@ inline void bench_apr_pipeline(APR& apr,ParticleData<partsType>& parts,int num_r
 
     APRTimer timer(true);
 
+    APRTimer timer_steps(false);
+
     PixelData<partsType> pipelineImage;
 
     APRReconstruction::interp_img(apr,pipelineImage,parts);
@@ -77,22 +79,48 @@ inline void bench_apr_pipeline(APR& apr,ParticleData<partsType>& parts,int num_r
     std::vector<ParticleData<partsType>> part_vec;
     part_vec.resize(num_rep);
 
+    APRFile aprFile;
+    std::string file_name = "bench_pipeline.apr";
+
     timer.start_timer("pipeline");
+
+    aprFile.open("file_name","WRITE");
 
     for (int r = 0; r < num_rep; ++r) {
 
+        timer_steps.start_timer("get_apr");
+
         aprConverter.get_apr(apr_vec[r],pipelineImage);
 
+        timer_steps.stop_timer();
+
+        timer_steps.start_timer("sample_parts");
+
         part_vec[r].sample_parts_from_img_downsampled(apr_vec[r],pipelineImage);
+
+        timer_steps.stop_timer();
+
+        timer_steps.start_timer("write_apr");
+
+        aprFile.write_apr(apr_vec[r],r);
+
+        timer_steps.stop_timer();
+
+        timer_steps.start_timer("write_parts");
+
+        aprFile.write_particles("parts",part_vec[r],true,r);
+
+        timer_steps.stop_timer();
 
     }
 
     timer.stop_timer();
 
 
-    //analysisData.add_timer(aprConverter.method_timer,apr.total_number_particles(),num_rep);
+    analysisData.add_timer_avg(aprConverter.computation_timer);
 
-    analysisData.add_timer(aprConverter.computation_timer);
+    analysisData.add_timer_avg(timer_steps);
+
 
     //Required in all benchmarks
     analysisData.add_timer(timer,apr.total_number_particles(),num_rep);

@@ -249,21 +249,38 @@ class AnalysisData: public Data_manager {
 
 
     void add_timer_avg(APRTimer& timer){
+        //this comptues the average and count across the same field
 
         std::vector<std::string> unique_names;
-
         std::vector<double> totals;
         std::vector<int> counter;
 
         for (int i = 0; i < (int) timer.timings.size(); i++) {
 
-            for (int j = 0; j < ; ++j) {
-                
+            int index = totals.size();
+            //find name index
+            for (int j = 0; j < unique_names.size(); ++j) {
+                if(unique_names[j] == timer.timing_names[i]){
+                    index = j;
+                }
             }
-            
-            
+
+            if(index == totals.size()){
+                unique_names.push_back(timer.timing_names[i]);
+                totals.push_back(0);
+                counter.push_back(0);
+            }
+
+            totals[index] += timer.timings[i];
+            counter[index]++;
+
         }
 
+        //now average and submit
+        for (int k = 0; k < unique_names.size(); ++k) {
+            float average = totals[k]/(1.0f*counter[k]);
+            add_float_data(unique_names[k]+"_avg",average);
+        }
 
     }
 
