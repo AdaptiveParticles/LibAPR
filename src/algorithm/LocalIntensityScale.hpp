@@ -58,19 +58,26 @@ void get_local_intensity_scale(PixelData<float> &local_scale_temp, PixelData<flo
         int x_num_t = local_scale_temp.x_num;
         int z_num_t = local_scale_temp.z_num;
 
-        PixelData<float> temp_copy;
-        temp_copy.init(y_num_t,x_num_t,z_num_t);
-
-        temp_copy.copyFromMesh(local_scale_temp);
-        timer.stop_timer();
-
         //Addded
 
-        paddPixels(temp_copy, local_scale_temp, std::max(win_y, win_y2), std::max(win_x, win_x2),
-                   std::max(win_z, win_z2));
+        if(par.reflect_bc_lis) {
 
-        paddPixels(temp_copy, local_scale_temp2, std::max(win_y, win_y2), std::max(win_x, win_x2),
-                   std::max(win_z, win_z2));
+            PixelData<float> temp_copy;
+            temp_copy.init(y_num_t,x_num_t,z_num_t);
+
+            temp_copy.copyFromMesh(local_scale_temp);
+            timer.stop_timer();
+
+            paddPixels(temp_copy, local_scale_temp, std::max(win_y, win_y2), std::max(win_x, win_x2),
+                       std::max(win_z, win_z2));
+
+            paddPixels(temp_copy, local_scale_temp2, std::max(win_y, win_y2), std::max(win_x, win_x2),
+                       std::max(win_z, win_z2));
+        } else {
+
+            local_scale_temp2.copyFromMesh(local_scale_temp);
+
+        }
 
 
         if (active_y) {
@@ -119,12 +126,15 @@ void get_local_intensity_scale(PixelData<float> &local_scale_temp, PixelData<flo
         rescale_var(local_scale_temp, var_rescale);
         timer.stop_timer();
 
-        local_scale_temp.swap(local_scale_temp2);
+        if(par.reflect_bc_lis) {
 
-        unpaddPixels(local_scale_temp2, local_scale_temp, y_num_t, x_num_t,
-                     z_num_t);
+            local_scale_temp.swap(local_scale_temp2);
 
-        local_scale_temp2.initWithResize(y_num_t,x_num_t,z_num_t);
+            unpaddPixels(local_scale_temp2, local_scale_temp, y_num_t, x_num_t,
+                         z_num_t);
+
+            local_scale_temp2.initWithResize(y_num_t, x_num_t, z_num_t);
+        }
 
     } else {
 

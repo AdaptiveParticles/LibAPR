@@ -337,7 +337,7 @@ template <typename T, typename S>
 void runLocalIntensityScalePipeline(const PixelData<T> &image, const APRParameters &par, S *cudaImage, S *cudaTemp, cudaStream_t aStream) {
     float var_rescale;
     std::vector<int> var_win;
-    LocalIntensityScale().get_window(var_rescale, var_win, par);
+    LocalIntensityScale().get_window_alt(var_rescale, var_win, par,image);
     size_t win_y = var_win[0];
     size_t win_x = var_win[1];
     size_t win_z = var_win[2];
