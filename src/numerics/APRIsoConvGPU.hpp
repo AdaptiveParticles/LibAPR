@@ -14,6 +14,7 @@ struct timings {
     float transfer_D2H = 0;
 };
 
+void run_check_blocks(GPUAccessHelper& access, bool* blocks_empty);
 
 template<typename inputType, typename outputType, typename stencilType>
 timings convolve_pixel_333_wrapper(PixelData<inputType>& input, PixelData<outputType>& output, PixelData<stencilType>& stencil);

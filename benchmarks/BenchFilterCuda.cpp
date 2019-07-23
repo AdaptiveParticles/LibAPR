@@ -46,8 +46,9 @@ int main(int argc, char **argv) {
 
         //put benchmark funtions here..
 #ifdef APR_USE_CUDA
-        bench_apr_convolve_cuda(apr, parts, benchAPRHelper.get_number_reps(), benchAPRHelper.analysisData, 3);
+        //bench_apr_convolve_cuda(apr, parts, benchAPRHelper.get_number_reps(), benchAPRHelper.analysisData, 3);
         bench_apr_convolve_cuda(apr, parts, benchAPRHelper.get_number_reps(), benchAPRHelper.analysisData, 5);
+        //bench_check_blocks(apr, benchAPRHelper.get_number_reps(), benchAPRHelper.analysisData);
 #endif
 
         if(i==0){
@@ -56,8 +57,8 @@ int main(int argc, char **argv) {
             */
 
 #ifdef APR_USE_CUDA
-            bench_pixel_convolve_cuda(apr,parts,benchAPRHelper.get_number_reps(),benchAPRHelper.analysisData,3);
-            bench_pixel_convolve_cuda(apr,parts,benchAPRHelper.get_number_reps(),benchAPRHelper.analysisData,5);
+            //bench_pixel_convolve_cuda(apr,parts,benchAPRHelper.get_number_reps(),benchAPRHelper.analysisData,3);
+            //bench_pixel_convolve_cuda(apr,parts,benchAPRHelper.get_number_reps(),benchAPRHelper.analysisData,5);
 #endif
 
         }

@@ -230,9 +230,9 @@ timings isotropic_convolve_333_wrapper(GPUAccessHelper& access, GPUAccessHelper&
         int z_blocks = (access.z_num(level) + 8 - 1) / 8;
 
         dim3 blocks_l(x_blocks, 1, z_blocks);
-        dim3 threads(1,1,1);
+        dim3 thd_l(8, 1, 8);
 
-        check_blocks<<<blocks_l, threads>>>(access.get_level_xz_vec_ptr(),
+        check_blocks<<<blocks_l, thd_l>>>(access.get_level_xz_vec_ptr(),
                                             access.get_xz_end_vec_ptr(),
                                             blocks_empty.get(),
                                             8 /* block size */,
@@ -370,14 +370,14 @@ timings isotropic_convolve_555_wrapper(GPUAccessHelper& access, GPUAccessHelper&
         int z_blocks = (access.z_num(level) + 8 - 1) / 8;
 
         dim3 blocks_l(x_blocks, 1, z_blocks);
-        dim3 threads(1,1,1);
+        dim3 thd_l(8, 1, 8);
 
-        check_blocks<<<blocks_l, threads>>>(access.get_level_xz_vec_ptr(),
-                                            access.get_xz_end_vec_ptr(),
-                                            blocks_empty.get(),
-                                            8 /* block size */,
-                                            level,
-                                            access.x_num(level));
+        check_blocks<<<blocks_l, thd_l>>>(access.get_level_xz_vec_ptr(),
+                                        access.get_xz_end_vec_ptr(),
+                                        blocks_empty.get(),
+                                        8 /* block size */,
+                                        level,
+                                        access.x_num(level));
 
         dim3 threads_l(12, 1, 12);
 
@@ -453,6 +453,34 @@ timings isotropic_convolve_555_wrapper(GPUAccessHelper& access, GPUAccessHelper&
 }
 
 
+void run_check_blocks(GPUAccessHelper& access, bool* blocks_empty) {
+
+    for(int level = access.level_max(); level >= access.level_min(); --level) {
+
+        int x_blocks = (access.x_num(level) + 8 - 1) / 8;
+        int z_blocks = (access.z_num(level) + 8 - 1) / 8;
+
+        dim3 blocks_l(x_blocks, 1, z_blocks);
+        dim3 threads_l(8, 1, 8);
+
+        check_blocks<<< blocks_l, threads_l >>>(access.get_level_xz_vec_ptr(),
+                                        access.get_xz_end_vec_ptr(),
+                                        blocks_empty,
+                                        8 /* block size */,
+                                        level,
+                                        access.x_num(level));
+    }
+}
+
+
+__device__ void warpReduce(volatile bool* sdata, int tid) {
+    sdata[tid] *= sdata[tid+32];
+    sdata[tid] *= sdata[tid+16];
+    sdata[tid] *= sdata[tid+8];
+    sdata[tid] *= sdata[tid+4];
+    sdata[tid] *= sdata[tid+2];
+    sdata[tid] *= sdata[tid+1];
+}
 
 __global__ void check_blocks(const uint64_t* level_xz_vec,
                              const uint64_t* xz_end_vec,
@@ -461,26 +489,28 @@ __global__ void check_blocks(const uint64_t* level_xz_vec,
                              const int level,
                              const int x_num) {
 
-    size_t x_start = block_size * blockIdx.x;
-    size_t z_start = block_size * blockIdx.z;
+    int tid = threadIdx.z * blockDim.x + threadIdx.x;
 
-    size_t xz_start, global_index_begin, global_index_end;
+    __shared__
+    bool shared_block[64];
 
-    for(size_t iz = 0; iz < block_size; ++iz) {
-        for(size_t ix = 0; ix < block_size; ++ix) {
+    const int local_id = threadIdx.z * blockDim.x + threadIdx.x;
 
-            xz_start = (x_start + ix) + (z_start + iz) * x_num + level_xz_vec[level];
-            global_index_begin = xz_end_vec[xz_start - 1];
-            global_index_end = xz_end_vec[xz_start];
+    int x_start = block_size * blockIdx.x;
+    int z_start = block_size * blockIdx.z;
 
-            if(global_index_begin < global_index_end) {
-                blocks_empty[blockIdx.z * gridDim.x + blockIdx.x] = false;
-                return;
-            }
-        }
+    size_t xz_start = (x_start + threadIdx.x) + (z_start + threadIdx.z) * x_num + level_xz_vec[level];
+    size_t global_index_begin = xz_end_vec[xz_start-1];
+    size_t global_index_end = xz_end_vec[xz_start];
+
+    shared_block[local_id] = (global_index_begin >= global_index_end);
+    __syncthreads();
+
+    if(tid < 32) warpReduce(shared_block, tid);
+
+    if(tid == 0){
+        blocks_empty[blockIdx.z * gridDim.x + blockIdx.x] = shared_block[0];
     }
-    printf("block %d empty!\n", (blockIdx.z * gridDim.x + blockIdx.x));
-    blocks_empty[blockIdx.z * gridDim.x + blockIdx.x] = true;
 }
 
 
@@ -518,7 +548,7 @@ __global__ void conv_max_333(const uint64_t* level_xz_vec,
     const unsigned int N = 4;
 
     __shared__
-    stencilType local_patch[10][10][6];
+    stencilType local_patch[10][10][N];
 
     if ((x_index >= x_num) || (x_index < 0)) {
         local_patch[threadIdx.z][threadIdx.x][0] = 0; //this is at (y-1)
@@ -649,10 +679,7 @@ __global__ void conv_max_333(const uint64_t* level_xz_vec,
         LOCALPATCHCONV333(particle_data_output, particle_index_l, threadIdx.z, threadIdx.x, y_num - 1,
                           neighbour_sum);
 
-
     }
-
-
 }
 
 
@@ -1105,7 +1132,6 @@ __global__ void conv_max_555(const uint64_t* level_xz_vec,
     std::size_t particle_index_l = global_index_begin;
     std::uint16_t y_l = y_vec[particle_index_l];
     inputType f_l = input_particles[particle_index_l];
-
 
     //parent level variables
     std::size_t particle_index_p = global_index_begin_p;

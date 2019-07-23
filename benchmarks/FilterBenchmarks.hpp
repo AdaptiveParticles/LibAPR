@@ -30,7 +30,12 @@ inline void bench_apr_convolve_cuda(APR& apr,ParticleData<partsType>& parts, int
 
 template<typename partsType>
 inline void bench_pixel_convolve_cuda(APR& apr,ParticleData<partsType>& parts, int num_rep,AnalysisData& analysisData,int stencil_size = 3);
+
+inline void bench_check_blocks(APR& apr, int num_rep, AnalysisData& analysisData);
 #endif
+
+
+
 
 
 template<typename partsType>
@@ -213,7 +218,6 @@ inline void bench_pixel_convolve(APR& apr, ParticleData<partsType>& parts, int n
 
 
 #ifdef APR_USE_CUDA
-
 template<typename partsType>
 inline void bench_apr_convolve_cuda(APR& apr,ParticleData<partsType>& parts,int num_rep,AnalysisData& analysisData,int stencil_size){
 
@@ -345,6 +349,26 @@ inline void bench_pixel_convolve_cuda(APR& apr,ParticleData<partsType>& parts, i
     analysisData.add_float_data(name + "_run_kernels", component_times.run_kernels / num_rep);
     analysisData.add_float_data(name + "_fill_tree", component_times.fill_tree / num_rep);
     analysisData.add_float_data(name + "_data_transfer_to_host", component_times.transfer_D2H / num_rep);
+}
+
+
+inline void bench_check_blocks(APR& apr, int num_rep, AnalysisData& analysisData) {
+    APRTimer timer(true);
+
+    auto access = apr.gpuAPRHelper();
+    access.init_gpu();
+
+    size_t max_num_blocks = ((access.x_num(access.level_max()) + 8 - 1) / 8) * ((access.z_num(access.level_max()) + 8 - 1) / 8);
+    ScopedCudaMemHandler<bool*, JUST_ALLOC> blocks_empty(NULL, max_num_blocks);
+
+
+    timer.start_timer("check_blocks");
+    for(int r = 0; r < num_rep; ++r) {
+        run_check_blocks(access, blocks_empty.get());
+    }
+    timer.stop_timer();
+
+    analysisData.add_timer(timer,apr.total_number_particles(),num_rep);
 }
 
 #endif //APR_USE_CUDA
