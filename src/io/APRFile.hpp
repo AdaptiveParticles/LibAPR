@@ -177,14 +177,14 @@ void APRFile::close(){
    */
 bool APRFile::write_apr(APR &apr,uint64_t t,std::string channel_name){
 
-    APRTimer timer_f(false);
-
     current_t = t;
 
     if(fileStructure.isOpened()){
     } else {
         std::cerr << "File is not open!" << std::endl;
     }
+
+    timer.start_timer("setup");
 
     fileStructure.create_time_point(t,with_tree_flag,channel_name);
 
@@ -202,23 +202,27 @@ bool APRFile::write_apr(APR &apr,uint64_t t,std::string channel_name){
 
     APRWriter::write_apr_parameters(meta_location,apr.parameters);
 
-    timer.start_timer("write_apr_access_data");
+    timer.stop_timer();
 
     if(write_linear){
-
+        timer.start_timer("init_access");
         apr.initialize_linear();
+        timer.stop_timer();
+
+        timer.start_timer("write_apr_access_data");
+
         APRWriter::write_linear_access(meta_location, fileStructure.objectId, apr.linearAccess, blosc_comp_type_access,
                             blosc_comp_level_access, blosc_shuffle_access);
+        timer.stop_timer();
 
     } else {
-
+        timer.start_timer("write_apr_access_data");
         apr.initialize_random_access(); //check that it is initialized.
 
         APRWriter::write_random_access(meta_location, fileStructure.objectId, apr.apr_access, blosc_comp_type_access,
                                        blosc_comp_level_access, blosc_shuffle_access);
+        timer.stop_timer();
     }
-
-    timer.stop_timer();
 
 
     if(with_tree_flag){

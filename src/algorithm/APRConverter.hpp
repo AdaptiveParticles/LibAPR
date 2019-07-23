@@ -238,7 +238,7 @@ void APRConverter<ImageType>::computeL(APR& aAPR,PixelData<T>& input_image){
     method_timer.start_timer("compute_local_intensity_scale");
     iLocalIntensityScale.get_local_intensity_scale(local_scale_temp, local_scale_temp2, par);
     method_timer.stop_timer();
-    //method_timer.verbose_flag = false;
+
 #ifdef HAVE_LIBTIFF
     if(par.output_steps){
         TiffUtils::saveMeshAsTiff(par.output_dir + "local_intensity_scale_step.tif", local_scale_temp);
@@ -266,7 +266,6 @@ void APRConverter<ImageType>::applyParameters(APR& aAPR,APRParameters& aprParame
     fine_grained_timer.stop_timer();
 
     float max_th = 60000;
-
 
 #ifdef HAVE_OPENMP
 #pragma omp parallel for default(shared)
@@ -443,10 +442,9 @@ inline bool APRConverter<ImageType>::get_apr(APR &aAPR, PixelData<T>& input_imag
     t.start_timer(" =========== ALL");
     {
 
-        allocation_timer.start_timer("init and copy image");
+        computation_timer.start_timer("init_mem");
         PixelData<ImageType> image_temp(input_image, false /* don't copy */, true /* pinned memory */); // global image variable useful for passing between methods, or re-using memory (should be the only full sized copy of the image)
 
-        allocation_timer.stop_timer();
 
         /////////////////////////////////
         /// Pipeline
@@ -466,12 +464,14 @@ inline bool APRConverter<ImageType>::get_apr(APR &aAPR, PixelData<T>& input_imag
             image_temp.copyFromMesh(input_image);
         }
 
+        computation_timer.stop_timer();
 
         std::vector<GpuProcessingTask<ImageType>> gpts;
 
         int numOfStreams = 1;
         int repetitionsPerStream = 1;
 
+        computation_timer.start_timer("compute_L");
         // Create streams and send initial task to do
         for (int i = 0; i < numOfStreams; ++i) {
             gpts.emplace_back(GpuProcessingTask<ImageType>(image_temp, local_scale_temp, par, bspline_offset, aAPR.level_max()));
@@ -479,11 +479,17 @@ inline bool APRConverter<ImageType>::get_apr(APR &aAPR, PixelData<T>& input_imag
             gpts.back().processOnGpu();
         }
 
+
         for (int i = 0; i < numOfStreams * repetitionsPerStream; ++i) {
             int c = i % numOfStreams;
 
             // get data from previous task
             gpts[c].getDataFromGpu();
+
+            computation_timer.stop_timer();
+
+            computation_timer.start_timer("apply_parameters");
+            computation_timer.stop_timer();
 
             // in theory we get new data and send them to task
             if (i  < numOfStreams * (repetitionsPerStream - 1)) {
@@ -493,13 +499,11 @@ inline bool APRConverter<ImageType>::get_apr(APR &aAPR, PixelData<T>& input_imag
 
             // Postprocess on CPU
             std::cout << "--------- start CPU processing ---------- " << i << std::endl;
-            //init_apr(aAPR, input_image);
-            d.start_timer("1");
+
+            computation_timer.start_timer("solve_for_apr");
             iPullingScheme.initialize_particle_cell_tree(aAPR.aprInfo);
-            d.stop_timer();
-            d.start_timer("2");
+
             PixelData<float> lst(local_scale_temp, true);
-            d.stop_timer();
 
 #ifdef HAVE_LIBTIFF
             if(par.output_steps){
@@ -513,20 +517,16 @@ inline bool APRConverter<ImageType>::get_apr(APR &aAPR, PixelData<T>& input_imag
             }
 #endif
 
-
-            d.start_timer("3");
             iLocalParticleSet.get_local_particle_cell_set(iPullingScheme,lst, local_scale_temp2,par);
-            d.stop_timer();
-            d.start_timer("4");
-            iPullingScheme.pulling_scheme_main();
-            d.stop_timer();
 
-            d.start_timer("7");
+            iPullingScheme.pulling_scheme_main();
+
+            computation_timer.stop_timer();
+
+            computation_timer.start_timer("generate_data_structures");
             generateDatastructures(aAPR);
-            d.stop_timer();
-//            d.start_timer("8");
-//            aAPR.get_parts_from_img(downsampled_img, aAPR.particles_intensities);
-//            d.stop_timer();
+            computation_timer.stop_timer();
+
 
         }
         std::cout << "Total n ENDED" << std::endl;
@@ -535,7 +535,6 @@ inline bool APRConverter<ImageType>::get_apr(APR &aAPR, PixelData<T>& input_imag
     t.stop_timer();
     method_timer.stop_timer();
 #endif
-
 
     return true;
 }
