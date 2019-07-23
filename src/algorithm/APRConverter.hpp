@@ -478,17 +478,16 @@ inline bool APRConverter<ImageType>::get_apr(APR &aAPR, PixelData<T>& input_imag
             gpts.back().sendDataToGpu();
             gpts.back().processOnGpu();
         }
+        computation_timer.stop_timer();
 
 
         for (int i = 0; i < numOfStreams * repetitionsPerStream; ++i) {
             int c = i % numOfStreams;
 
+            computation_timer.start_timer("apply_parameters");
             // get data from previous task
             gpts[c].getDataFromGpu();
 
-            computation_timer.stop_timer();
-
-            computation_timer.start_timer("apply_parameters");
             computation_timer.stop_timer();
 
             // in theory we get new data and send them to task
