@@ -75,7 +75,7 @@ int main(int argc, char **argv) {
         bench_apr_convolve_pencil(apr,parts,benchAPRHelper.get_number_reps(),benchAPRHelper.analysisData,3);
         //bench_apr_convolve_pencil(apr,parts,benchAPRHelper.get_number_reps(),benchAPRHelper.analysisData,5);
 
-        if(i==0){
+        if((i==0) && !options.no_pixel){
             /*
             * Pixel benchmarks (These are content independent)
             */

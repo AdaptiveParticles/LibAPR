@@ -25,6 +25,7 @@ struct cmdLineBenchOptions{
     int image_size = 512;
     int number_reps = 1;
     int dimension = 3;
+    bool no_pixel = false;
 
     std::string analysis_file_name = "analysis";
     std::string output_dir = "";
@@ -78,6 +79,11 @@ cmdLineBenchOptions read_bench_command_line_options(int argc, char **argv){
     if(command_option_exists(argv, argv + argc, "-output_dir"))
     {
         result.output_dir = std::string(get_command_option(argv, argv + argc, "-output_dir"));
+    }
+
+    if(command_option_exists(argv, argv + argc, "-no_pixel"))
+    {
+        result.no_pixel = true;
     }
 
     return result;

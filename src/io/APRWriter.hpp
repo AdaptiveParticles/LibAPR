@@ -40,13 +40,13 @@ struct FileSizeInfoTime {
  */
 class Hdf5DataSet {
 
-    hid_t obj_id;
-    hid_t data_id;
+    hid_t obj_id=-1;
+    hid_t data_id=-1;
 
-    hid_t memspace_id;
-    hid_t dataspace_id;
+    hid_t memspace_id=-1;
+    hid_t dataspace_id=-1;
 
-    hid_t dataType;
+    hid_t dataType=-1;
 
     hsize_t dims;
 
@@ -145,11 +145,26 @@ public:
 
 
     void close(){
-        H5Sclose (memspace_id);
-        H5Sclose (dataspace_id);
+        if(memspace_id!=-1) {
+            H5Sclose(memspace_id);
+            memspace_id = -1;
+        }
 
-        H5Tclose(dataType);
-        H5Dclose(data_id);
+        if(dataspace_id!=-1) {
+            H5Sclose(dataspace_id);
+            dataspace_id = -1;
+        }
+
+        if(dataType!=-1) {
+            H5Tclose(dataType);
+            dataType = -1;
+        }
+
+        if(data_id!=-1) {
+            H5Dclose(data_id);
+            data_id = -1;
+        }
+
     }
 
 };

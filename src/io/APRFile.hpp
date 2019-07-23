@@ -557,12 +557,11 @@ bool APRFile::read_particles(APR &apr,std::string particles_name,ParticleData<Da
     particles.data.resize(parts_end - parts_start);
     if (particles.data.size() > 0) {
         dataset.read(particles.data.data() + parts_start,parts_start,parts_end);
+
     }
 
     timer.stop_timer();
-
     dataset.close();
-
     /*
      *  Particle Compression Options
      */

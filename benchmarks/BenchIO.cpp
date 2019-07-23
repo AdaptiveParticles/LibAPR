@@ -50,7 +50,7 @@ int main(int argc, char **argv) {
         //put benchmark funtions here..
         bench_apr_io(apr,parts,benchAPRHelper.get_number_reps(),benchAPRHelper.analysisData);
 
-        if(i==0){
+        if((i==0) && !options.no_pixel){
             bench_pixel_io(apr,parts,benchAPRHelper.get_number_reps(),benchAPRHelper.analysisData);
         }
 
@@ -104,7 +104,7 @@ inline void bench_apr_io(APR& apr,ParticleData<partsType>& parts,int num_rep,Ana
 
     timer.start_timer("write");
 
-    aprFile.open("file_name","WRITE");
+    aprFile.open(file_name,"WRITE");
 
     aprFile.set_read_write_tree(false);
 

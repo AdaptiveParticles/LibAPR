@@ -55,7 +55,7 @@ int main(int argc, char **argv) {
         //put benchmark funtions here..
         bench_apr_iteration(apr,parts,benchAPRHelper.get_number_reps(),benchAPRHelper.analysisData);
 
-        if(i==0){
+        if((i==0) && !options.no_pixel){
             /*
             * Pixel benchmarks (These are content independent)
             */

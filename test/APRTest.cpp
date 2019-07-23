@@ -54,6 +54,12 @@ public:
     void SetUp() override;
 };
 
+class CreateBigBigData : public CreateAPRTest
+{
+public:
+    void SetUp() override;
+};
+
 
 class CreatDiffDimsSphereTest : public CreateAPRTest
 {
@@ -3080,6 +3086,18 @@ void CreateGTSmall1DTest::SetUp(){
     test_data.output_dir = get_source_directory_apr() + "files/Apr/sphere_1D/";
 }
 
+void CreateBigBigData::SetUp(){
+
+    std::string file_name = get_source_directory_apr() + "files/Apr/large_low_cr/large_low_cr.apr";
+    test_data.apr_filename = file_name;
+
+    APRFile aprFile;
+    aprFile.open(file_name,"READ");
+    aprFile.set_read_write_tree(false);
+    aprFile.read_apr(test_data.apr);
+    aprFile.read_particles(test_data.apr,"parts",test_data.particles_intensities);
+    aprFile.close();
+}
 
 
 
@@ -3430,6 +3448,61 @@ TEST_F(CreateGTSmall2DTestProperties, ITERATOR_METHODS) {
 }
 
 #endif
+
+//3D Big Big Data
+
+
+TEST_F(CreateBigBigData, LINEAR_ACCESS_IO) {
+
+    ASSERT_TRUE(test_linear_access_io(test_data));
+
+}
+
+
+TEST_F(CreateBigBigData, PARTIAL_READ) {
+
+    ASSERT_TRUE(test_read_upto_level(test_data));
+
+}
+
+TEST_F(CreateBigBigData, LAZY_PARTICLES) {
+
+    ASSERT_TRUE(test_lazy_particles(test_data));
+
+}
+
+TEST_F(CreateBigBigData, COMPRESS_PARTICLES) {
+
+    ASSERT_TRUE(test_particles_compress(test_data));
+
+}
+
+
+TEST_F(CreateBigBigData, RANDOM_ACCESS) {
+
+    ASSERT_TRUE(test_random_access_it(test_data));
+
+}
+
+
+TEST_F(CreateBigBigData, APR_INPUT_OUTPUT) {
+
+    ASSERT_TRUE(test_apr_file(test_data));
+
+}
+
+TEST_F(CreateBigBigData, APR_PARTICLES) {
+
+    ASSERT_TRUE(test_particle_structures(test_data));
+}
+
+TEST_F(CreateBigBigData, ITERATOR_METHODS) {
+
+    ASSERT_TRUE(test_iterator_methods(test_data));
+
+}
+
+
 
 
 //3D tests
