@@ -3484,13 +3484,6 @@ TEST_F(CreateBigBigData, RANDOM_ACCESS) {
 
 }
 
-
-TEST_F(CreateBigBigData, APR_INPUT_OUTPUT) {
-
-    ASSERT_TRUE(test_apr_file(test_data));
-
-}
-
 TEST_F(CreateBigBigData, APR_PARTICLES) {
 
     ASSERT_TRUE(test_particle_structures(test_data));
