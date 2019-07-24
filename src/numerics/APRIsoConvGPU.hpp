@@ -16,6 +16,31 @@ struct timings {
 
 void run_check_blocks(GPUAccessHelper& access, bool* blocks_empty);
 
+
+/// new 333 max method
+template<typename inputType, typename outputType, typename stencilType>
+void run_max_333_new_wrapper(GPUAccessHelper& access, inputType* input_gpu, outputType* output_gpu, stencilType* stencil_gpu);
+
+template<typename inputType, typename outputType, typename stencilType>
+void run_max_333_new(GPUAccessHelper& access, inputType* input_gpu, outputType* output_gpu, stencilType* stencil_gpu) {
+    run_max_333_new_wrapper(access, input_gpu, output_gpu, stencil_gpu);
+}
+
+template void run_max_333_new(GPUAccessHelper&, uint16_t*, float*, float*);
+
+/// old 333 max method
+template<typename inputType, typename outputType, typename stencilType>
+void run_max_333_old_wrapper(GPUAccessHelper& access, inputType* input_gpu, outputType* output_gpu, stencilType* stencil_gpu, bool* blocks_empty);
+
+template<typename inputType, typename outputType, typename stencilType>
+void run_max_333_old(GPUAccessHelper& access, inputType* input_gpu, outputType* output_gpu, stencilType* stencil_gpu, bool* blocks_empty) {
+    run_max_333_old_wrapper(access, input_gpu, output_gpu, stencil_gpu, blocks_empty);
+}
+
+template void run_max_333_old(GPUAccessHelper&, uint16_t*, float*, float*, bool*);
+/// end of new stuff
+
+
 template<typename inputType, typename outputType, typename stencilType>
 timings convolve_pixel_333_wrapper(PixelData<inputType>& input, PixelData<outputType>& output, PixelData<stencilType>& stencil);
 
@@ -88,7 +113,7 @@ template timings isotropic_convolve_555(GPUAccessHelper&, GPUAccessHelper&, std:
 
 
 
-template<typename inputType, typename outputType, typename stencilType>
+template<unsigned int blockSize, typename inputType, typename outputType, typename stencilType>
 __global__ void conv_max_333(const uint64_t* level_xz_vec,
                              const uint64_t* xz_end_vec,
                              const uint16_t* y_vec,
@@ -105,7 +130,7 @@ __global__ void conv_max_333(const uint64_t* level_xz_vec,
                              const bool* blocks_empty);
 
 
-template<typename inputType, typename outputType, typename stencilType, typename treeType>
+template<unsigned int blockSize, typename inputType, typename outputType, typename stencilType, typename treeType>
 __global__ void conv_interior_333(const uint64_t* level_xz_vec,
                                   const uint64_t* xz_end_vec,
                                   const uint16_t* y_vec,
@@ -126,7 +151,7 @@ __global__ void conv_interior_333(const uint64_t* level_xz_vec,
                                   const bool* blocks_empty);
 
 
-template<typename inputType, typename outputType, typename stencilType, typename treeType>
+template<unsigned int blockSize, typename inputType, typename outputType, typename stencilType, typename treeType>
 __global__ void conv_min_333(const uint64_t* level_xz_vec,
                              const uint64_t* xz_end_vec,
                              const uint16_t* y_vec,
@@ -224,12 +249,26 @@ __global__ void conv_pixel_555(const inputType* input_image,
                                const int y_num);
 
 
+template<unsigned int blockSize>
 __global__ void check_blocks(const uint64_t* level_xz_vec,
                              const uint64_t* xz_end_vec,
                              bool* blocks_nonempty,
-                             const int block_size,
                              const int level,
                              const int x_num);
 
+
+template<typename inputType, typename outputType, typename stencilType>
+__global__ void conv_max_333_alt(const uint64_t* level_xz_vec,
+                                 const uint64_t* xz_end_vec,
+                                 const uint16_t* y_vec,
+                                 const inputType* input_particles,
+                                 outputType* particle_data_output,
+                                 const stencilType* stencil,
+                                 const int z_num,
+                                 const int x_num,
+                                 const int y_num,
+                                 const int z_num_parent,
+                                 const int x_num_parent,
+                                 const int level);
 
 #endif //LIBAPR_APRISOCONVGPU_HPP

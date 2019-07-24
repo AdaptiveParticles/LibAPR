@@ -71,7 +71,7 @@ particle_output[index] = neighbour_sum;\
 template<typename inputType, typename outputType, typename stencilType>
 timings convolve_pixel_333_wrapper(PixelData<inputType>& input, PixelData<outputType>& output, PixelData<stencilType>& stencil) {
 
-    assert(stencil.size() == 27);
+    assert(stencil.mesh.size() == 27);
 
     timings ret;
     APRTimer timer(false);
@@ -124,7 +124,7 @@ timings convolve_pixel_333_wrapper(PixelData<inputType>& input, PixelData<output
 template<typename inputType, typename outputType, typename stencilType>
 timings convolve_pixel_555_wrapper(PixelData<inputType>& input, PixelData<outputType>& output, PixelData<stencilType>& stencil) {
 
-    assert(stencil.size() == 125);
+    assert(stencil.mesh.size() == 125);
 
     timings ret;
     APRTimer timer(false);
@@ -187,6 +187,8 @@ timings isotropic_convolve_333_wrapper(GPUAccessHelper& access, GPUAccessHelper&
     assert(input.size() == access.total_number_particles());
     assert(stencil.size() == 27);
 
+    const int blockSize = 12;
+
     timings ret;
     APRTimer timer(false);
 
@@ -203,7 +205,7 @@ timings isotropic_convolve_333_wrapper(GPUAccessHelper& access, GPUAccessHelper&
     ScopedCudaMemHandler<outputType*, JUST_ALLOC> output_gpu(output.data(), output.size());
     ScopedCudaMemHandler<stencilType*, JUST_ALLOC> stencil_gpu(stencil.data(), stencil.size());
 
-    size_t max_num_blocks = ((access.x_num(access.level_max()) + 8 - 1) / 8) * ((access.z_num(access.level_max()) + 8 - 1) / 8);
+    size_t max_num_blocks = ((access.x_num(access.level_max()) + blockSize - 1) / blockSize) * ((access.z_num(access.level_max()) + blockSize - 1) / blockSize);
     ScopedCudaMemHandler<bool*, JUST_ALLOC> blocks_empty(NULL, max_num_blocks);
 
     /// copy input and stencil to the GPU
@@ -226,23 +228,22 @@ timings isotropic_convolve_333_wrapper(GPUAccessHelper& access, GPUAccessHelper&
 
     for (int level = access.level_max(); level >= access.level_min(); --level) {
 
-        int x_blocks = (access.x_num(level) + 8 - 1) / 8;
-        int z_blocks = (access.z_num(level) + 8 - 1) / 8;
+        int x_blocks = (access.x_num(level) + blockSize - 1) / blockSize;
+        int z_blocks = (access.z_num(level) + blockSize - 1) / blockSize;
 
         dim3 blocks_l(x_blocks, 1, z_blocks);
-        dim3 thd_l(8, 1, 8);
+        dim3 threads_l(blockSize, 1, blockSize);
 
-        check_blocks<<<blocks_l, thd_l>>>(access.get_level_xz_vec_ptr(),
+        check_blocks<blockSize><<<blocks_l, threads_l>>>(access.get_level_xz_vec_ptr(),
                                             access.get_xz_end_vec_ptr(),
                                             blocks_empty.get(),
-                                            8 /* block size */,
                                             level,
                                             access.x_num(level));
 
-        dim3 threads_l(10, 1, 10);
+        threads_l = {blockSize+2, 1, blockSize+2};
 
         if (level == access.level_min()) {
-            conv_min_333 << < blocks_l, threads_l >> >( access.get_level_xz_vec_ptr(),
+            conv_min_333<blockSize> << < blocks_l, threads_l >> >( access.get_level_xz_vec_ptr(),
                                                         access.get_xz_end_vec_ptr(),
                                                         access.get_y_vec_ptr(),
                                                         input_gpu.get(),
@@ -262,23 +263,39 @@ timings isotropic_convolve_333_wrapper(GPUAccessHelper& access, GPUAccessHelper&
                                                         blocks_empty.get() );
 
         } else if (level == access.level_max()) {
-            conv_max_333 << < blocks_l, threads_l >> >( access.get_level_xz_vec_ptr(),
-                                                        access.get_xz_end_vec_ptr(),
-                                                        access.get_y_vec_ptr(),
-                                                        input_gpu.get(),
-                                                        output_gpu.get(),
-                                                        stencil_gpu.get(),
-                                                        access.z_num(level),
-                                                        access.x_num(level),
-                                                        access.y_num(level),
-                                                        tree_access.z_num(level-1),
-                                                        tree_access.x_num(level-1),
-                                                        tree_access.y_num(level-1),
-                                                        level,
-                                                        blocks_empty.get() );
+//            conv_max_333<blockSize> << < blocks_l, threads_l >> >( access.get_level_xz_vec_ptr(),
+//                                                        access.get_xz_end_vec_ptr(),
+//                                                        access.get_y_vec_ptr(),
+//                                                        input_gpu.get(),
+//                                                        output_gpu.get(),
+//                                                        stencil_gpu.get(),
+//                                                        access.z_num(level),
+//                                                        access.x_num(level),
+//                                                        access.y_num(level),
+//                                                        tree_access.z_num(level-1),
+//                                                        tree_access.x_num(level-1),
+//                                                        tree_access.y_num(level-1),
+//                                                        level,
+//                                                        blocks_empty.get() );
+
+            dim3 blck(access.x_num(level), 1, access.y_num(level));
+            dim3 thd(6, 3, 3);
+
+            conv_max_333_alt<<<blck, thd>>>(access.get_level_xz_vec_ptr(),
+                                            access.get_xz_end_vec_ptr(),
+                                            access.get_y_vec_ptr(),
+                                            input_gpu.get(),
+                                            output_gpu.get(),
+                                            stencil_gpu.get(),
+                                            access.z_num(level),
+                                            access.x_num(level),
+                                            access.y_num(level),
+                                            tree_access.z_num(level-1),
+                                            tree_access.x_num(level-1),
+                                            level);
 
         } else {
-            conv_interior_333 << < blocks_l, threads_l >> >(access.get_level_xz_vec_ptr(),
+            conv_interior_333<blockSize> << < blocks_l, threads_l >> >(access.get_level_xz_vec_ptr(),
                                                             access.get_xz_end_vec_ptr(),
                                                             access.get_y_vec_ptr(),
                                                             input_gpu.get(),
@@ -311,6 +328,87 @@ timings isotropic_convolve_333_wrapper(GPUAccessHelper& access, GPUAccessHelper&
     ret.transfer_D2H = timer.timings.back();
 
     return ret;
+}
+
+
+template<typename inputType, typename outputType, typename stencilType>
+void run_max_333_new_wrapper(GPUAccessHelper &access, inputType* input_gpu, outputType* output_gpu, stencilType* stencil_gpu) {
+
+    int level = access.level_max();
+
+    dim3 blocks_l(access.x_num(level), 1, access.y_num(level));
+    dim3 threads_l(6, 3, 3);
+
+    conv_max_333_alt<<<blocks_l, threads_l>>>(access.get_level_xz_vec_ptr(),
+                                            access.get_xz_end_vec_ptr(),
+                                            access.get_y_vec_ptr(),
+                                            input_gpu,
+                                            output_gpu,
+                                            stencil_gpu,
+                                            access.z_num(level),
+                                            access.x_num(level),
+                                            access.y_num(level),
+                                            access.z_num(level-1),
+                                            access.x_num(level-1),
+                                            level);
+
+    cudaError_t error = cudaGetLastError();
+    if(error != cudaSuccess)
+    {
+        // print the CUDA error message and exit
+        printf("CUDA error: %s\n", cudaGetErrorString(error));
+    }
+}
+
+template<typename inputType, typename outputType, typename stencilType>
+void run_max_333_old_wrapper(GPUAccessHelper& access, inputType* input_gpu, outputType* output_gpu, stencilType* stencil_gpu, bool* blocks_empty) {
+
+    int level = access.level_max();
+
+    const int blockSize = 8;
+
+    int x_blocks = (access.x_num(level) + blockSize - 1) / blockSize;
+    int z_blocks = (access.z_num(level) + blockSize - 1) / blockSize;
+
+    dim3 blocks_l(x_blocks, 1, z_blocks);
+    dim3 threads_l(blockSize, 1, blockSize);
+
+    check_blocks<blockSize><<<blocks_l, threads_l>>>(access.get_level_xz_vec_ptr(),
+                                                    access.get_xz_end_vec_ptr(),
+                                                    blocks_empty,
+                                                    level,
+                                                    access.x_num(level));
+
+    cudaError_t error = cudaGetLastError();
+    if(error != cudaSuccess)
+    {
+        // print the CUDA error message and exit
+        printf("CUDA error: %s\n", cudaGetErrorString(error));
+    }
+
+    threads_l = {blockSize+2, 1, blockSize+2};
+
+    conv_max_333<blockSize> << < blocks_l, threads_l >> >(  access.get_level_xz_vec_ptr(),
+                                                            access.get_xz_end_vec_ptr(),
+                                                            access.get_y_vec_ptr(),
+                                                            input_gpu,
+                                                            output_gpu,
+                                                            stencil_gpu,
+                                                            access.z_num(level),
+                                                            access.x_num(level),
+                                                            access.y_num(level),
+                                                            access.z_num(level-1),
+                                                            access.x_num(level-1),
+                                                            access.y_num(level-1),
+                                                            level,
+                                                            blocks_empty );
+
+    error = cudaGetLastError();
+    if(error != cudaSuccess)
+    {
+        // print the CUDA error message and exit
+        printf("CUDA error: %s\n", cudaGetErrorString(error));
+    }
 }
 
 
@@ -372,10 +470,9 @@ timings isotropic_convolve_555_wrapper(GPUAccessHelper& access, GPUAccessHelper&
         dim3 blocks_l(x_blocks, 1, z_blocks);
         dim3 thd_l(8, 1, 8);
 
-        check_blocks<<<blocks_l, thd_l>>>(access.get_level_xz_vec_ptr(),
+        check_blocks<8><<<blocks_l, thd_l>>>(access.get_level_xz_vec_ptr(),
                                         access.get_xz_end_vec_ptr(),
                                         blocks_empty.get(),
-                                        8 /* block size */,
                                         level,
                                         access.x_num(level));
 
@@ -463,50 +560,56 @@ void run_check_blocks(GPUAccessHelper& access, bool* blocks_empty) {
         dim3 blocks_l(x_blocks, 1, z_blocks);
         dim3 threads_l(8, 1, 8);
 
-        check_blocks<<< blocks_l, threads_l >>>(access.get_level_xz_vec_ptr(),
-                                        access.get_xz_end_vec_ptr(),
-                                        blocks_empty,
-                                        8 /* block size */,
-                                        level,
-                                        access.x_num(level));
+        check_blocks<8><<< blocks_l, threads_l >>>(access.get_level_xz_vec_ptr(),
+                                                    access.get_xz_end_vec_ptr(),
+                                                    blocks_empty,
+                                                    level,
+                                                    access.x_num(level));
     }
 }
 
 
+template<unsigned int blockSize>
 __device__ void warpReduce(volatile bool* sdata, int tid) {
-    sdata[tid] *= sdata[tid+32];
-    sdata[tid] *= sdata[tid+16];
-    sdata[tid] *= sdata[tid+8];
-    sdata[tid] *= sdata[tid+4];
-    sdata[tid] *= sdata[tid+2];
-    sdata[tid] *= sdata[tid+1];
+    if(blockSize >= 64) {if(tid+32 < blockSize) {sdata[tid] *= sdata[tid+32];}}
+    if(blockSize >= 32) {if(tid+16 < blockSize){sdata[tid] *= sdata[tid+16];}}
+    if(blockSize >= 16) {if(tid+8 < blockSize){sdata[tid] *= sdata[tid+8];}}
+    if(blockSize >= 8) {if(tid+4 < blockSize){sdata[tid] *= sdata[tid+4];}}
+    if(blockSize >= 4) {if(tid+2 < blockSize){sdata[tid] *= sdata[tid+2];}}
+    if(blockSize >= 2) {if(tid+1 < blockSize){sdata[tid] *= sdata[tid+1];}}
 }
 
+template<unsigned int blockSize>
 __global__ void check_blocks(const uint64_t* level_xz_vec,
                              const uint64_t* xz_end_vec,
                              bool* blocks_empty,
-                             const int block_size,
                              const int level,
                              const int x_num) {
 
-    int tid = threadIdx.z * blockDim.x + threadIdx.x;
+    const int tid = threadIdx.z * blockDim.x + threadIdx.x;
 
     __shared__
-    bool shared_block[64];
+    bool shared_block[blockSize * blockSize];
 
-    const int local_id = threadIdx.z * blockDim.x + threadIdx.x;
-
-    int x_start = block_size * blockIdx.x;
-    int z_start = block_size * blockIdx.z;
+    int x_start = blockSize * blockIdx.x;
+    int z_start = blockSize * blockIdx.z;
 
     size_t xz_start = (x_start + threadIdx.x) + (z_start + threadIdx.z) * x_num + level_xz_vec[level];
     size_t global_index_begin = xz_end_vec[xz_start-1];
     size_t global_index_end = xz_end_vec[xz_start];
 
-    shared_block[local_id] = (global_index_begin >= global_index_end);
+    shared_block[tid] = (global_index_begin >= global_index_end);
     __syncthreads();
 
-    if(tid < 32) warpReduce(shared_block, tid);
+    //if(tid < 32) warpReduce<blockSize*blockSize>(shared_block, tid);
+    int i=ceil((float)blockSize*blockSize/2);
+    while(i != 0) {
+        if(tid + i < blockSize*blockSize && tid < i){
+            shared_block[tid] *= shared_block[tid+i];
+        }
+        i /= 2;
+        __syncthreads();
+    }
 
     if(tid == 0){
         blocks_empty[blockIdx.z * gridDim.x + blockIdx.x] = shared_block[0];
@@ -514,7 +617,7 @@ __global__ void check_blocks(const uint64_t* level_xz_vec,
 }
 
 
-template<typename inputType, typename outputType, typename stencilType>
+template<unsigned int blockSize, typename inputType, typename outputType, typename stencilType>
 __global__ void conv_max_333(const uint64_t* level_xz_vec,
                              const uint64_t* xz_end_vec,
                              const uint16_t* y_vec,
@@ -538,17 +641,17 @@ __global__ void conv_max_333(const uint64_t* level_xz_vec,
 
     bool not_ghost = false;
 
-    if ((threadIdx.x > 0) && (threadIdx.x < 9) && (threadIdx.z > 0) && (threadIdx.z < 9)) {
+    if ((threadIdx.x > 0) && (threadIdx.x < (blockDim.x-1)) && (threadIdx.z > 0) && (threadIdx.z < (blockDim.z-1))) {
         not_ghost = true;
     }
 
-    int x_index = (8 * blockIdx.x + threadIdx.x - 1);
-    int z_index = (8 * blockIdx.z + threadIdx.z - 1);
+    int x_index = (blockSize * blockIdx.x + threadIdx.x - 1);
+    int z_index = (blockSize * blockIdx.z + threadIdx.z - 1);
 
     const unsigned int N = 4;
 
     __shared__
-    stencilType local_patch[10][10][N];
+    stencilType local_patch[blockSize+2][blockSize+2][N];
 
     if ((x_index >= x_num) || (x_index < 0)) {
         local_patch[threadIdx.z][threadIdx.x][0] = 0; //this is at (y-1)
@@ -613,9 +716,9 @@ __global__ void conv_max_333(const uint64_t* level_xz_vec,
     const int filter_offset = 1;
 
     __shared__
-    std::uint16_t y_update_flag[10][10][2];
+    std::uint16_t y_update_flag[blockSize+2][blockSize+2][2];
     __shared__
-    std::uint16_t y_update_index[10][10][2];
+    std::uint16_t y_update_index[blockSize+2][blockSize+2][2];
 
     y_update_flag[threadIdx.z][threadIdx.x][0] = 0;
     y_update_flag[threadIdx.z][threadIdx.x][1] = 0;
@@ -677,13 +780,13 @@ __global__ void conv_max_333(const uint64_t* level_xz_vec,
     if (y_update_flag[threadIdx.z][threadIdx.x][(y_num - 1) % 2] == 1) { //the last particle (if it exists)
         float neighbour_sum = 0;
         LOCALPATCHCONV333(particle_data_output, particle_index_l, threadIdx.z, threadIdx.x, y_num - 1,
-                          neighbour_sum);
+                          neighbour_sum)
 
     }
 }
 
 
-template<typename inputType, typename outputType, typename stencilType, typename treeType>
+template<unsigned int blockSize, typename inputType, typename outputType, typename stencilType, typename treeType>
 __global__ void conv_interior_333(const uint64_t* level_xz_vec,
                                   const uint64_t* xz_end_vec,
                                   const uint16_t* y_vec,
@@ -709,18 +812,18 @@ __global__ void conv_interior_333(const uint64_t* level_xz_vec,
 
     const unsigned int N = 4;
 
-    int x_index = (8 * blockIdx.x + threadIdx.x - 1);
-    int z_index = (8 * blockIdx.z + threadIdx.z - 1);
+    int x_index = (blockSize * blockIdx.x + threadIdx.x - 1);
+    int z_index = (blockSize * blockIdx.z + threadIdx.z - 1);
 
 
     bool not_ghost = false;
 
-    if ((threadIdx.x > 0) && (threadIdx.x < 9) && (threadIdx.z > 0) && (threadIdx.z < 9)) {
+    if ((threadIdx.x > 0) && (threadIdx.x < (blockDim.x-1)) && (threadIdx.z > 0) && (threadIdx.z < (blockDim.z-1))) {
         not_ghost = true;
     }
 
     __shared__
-    stencilType local_patch[10][10][6]; // This is block wise shared memory this is assuming an 8*8 block with pad()
+    stencilType local_patch[blockSize+2][blockSize+2][N]; // This is block wise shared memory this is assuming an 8*8 block with pad()
 
     if ((x_index >= x_num) || (x_index < 0)) {
         //set the whole buffer to the boundary condition
@@ -742,8 +845,8 @@ __global__ void conv_interior_333(const uint64_t* level_xz_vec,
         return; //out of bounds
     }
 
-    int x_index_p = (8 * blockIdx.x + threadIdx.x - 1) / 2;
-    int z_index_p = (8 * blockIdx.z + threadIdx.z - 1) / 2;
+    int x_index_p = (blockSize * blockIdx.x + threadIdx.x - 1) / 2;
+    int z_index_p = (blockSize * blockIdx.z + threadIdx.z - 1) / 2;
 
 
     std::size_t global_index_begin;
@@ -800,12 +903,12 @@ __global__ void conv_interior_333(const uint64_t* level_xz_vec,
     }
 
     __shared__
-    std::uint16_t y_update_flag[10][10][2];
+    std::uint16_t y_update_flag[blockSize+2][blockSize+2][2];
     __shared__
-    std::uint16_t y_update_index[10][10][2];
+    std::uint16_t y_update_index[blockSize+2][blockSize+2][2];
 
     __shared__
-    std::uint16_t f_l[10][10];
+    std::uint16_t f_l[blockSize+2][blockSize+2];
 
     f_l[threadIdx.z][threadIdx.x] = input_particles[particle_index_l];
 
@@ -874,7 +977,7 @@ __global__ void conv_interior_333(const uint64_t* level_xz_vec,
 
             LOCALPATCHCONV333(particle_data_output, global_index_begin +
                               y_update_index[threadIdx.z][threadIdx.x][(j + 2 - filter_offset) % 2],
-                              threadIdx.z, threadIdx.x, j - 1, neighbour_sum);
+                              threadIdx.z, threadIdx.x, j - 1, neighbour_sum)
         }
         __syncthreads();
 
@@ -887,13 +990,13 @@ __global__ void conv_interior_333(const uint64_t* level_xz_vec,
     if (y_update_flag[threadIdx.z][threadIdx.x][(y_num - 1) % 2] == 1) { //the last particle (if it exists)
         float neighbour_sum = 0;
 
-        LOCALPATCHCONV333(particle_data_output, particle_index_l, threadIdx.z, threadIdx.x, y_num - 1, neighbour_sum);
+        LOCALPATCHCONV333(particle_data_output, particle_index_l, threadIdx.z, threadIdx.x, y_num - 1, neighbour_sum)
 
     }
 }
 
 
-template<typename inputType, typename outputType, typename stencilType, typename treeType>
+template<unsigned int blockSize, typename inputType, typename outputType, typename stencilType, typename treeType>
 __global__ void conv_min_333(const uint64_t* level_xz_vec,
                              const uint64_t* xz_end_vec,
                              const uint16_t* y_vec,
@@ -920,18 +1023,18 @@ __global__ void conv_min_333(const uint64_t* level_xz_vec,
     const unsigned int N = 4;
 
     __shared__
-    stencilType local_patch[10][10][4]; // This is block wise shared memory this is assuming an 8*8 block with pad()
+    stencilType local_patch[blockSize+2][blockSize+2][N]; // This is block wise shared memory this is assuming an 8*8 block with pad()
 
     //uint16_t y_cache[N] = {0}; // These are local register/private caches
     //uint16_t index_cache[N] = {0}; // These are local register/private caches
 
-    int x_index = (8 * blockIdx.x + threadIdx.x - 1);
-    int z_index = (8 * blockIdx.z + threadIdx.z - 1);
+    int x_index = (blockSize * blockIdx.x + threadIdx.x - 1);
+    int z_index = (blockSize * blockIdx.z + threadIdx.z - 1);
 
 
     bool not_ghost = false;
 
-    if ((threadIdx.x > 0) && (threadIdx.x < 9) && (threadIdx.z > 0) && (threadIdx.z < 9)) {
+    if ((threadIdx.x > 0) && (threadIdx.x < (blockDim.x-1)) && (threadIdx.z > 0) && (threadIdx.z < (blockDim.z-1))) {
         not_ghost = true;
     }
 
@@ -1037,7 +1140,7 @@ __global__ void conv_min_333(const uint64_t* level_xz_vec,
             float neighbour_sum = 0;
 
             LOCALPATCHCONV333(particle_data_output, y_update_index[(j + 2 - filter_offset) % 2],
-                              threadIdx.z, threadIdx.x, j - 1, neighbour_sum);
+                              threadIdx.z, threadIdx.x, j - 1, neighbour_sum)
         }
 
     }
@@ -1051,7 +1154,7 @@ __global__ void conv_min_333(const uint64_t* level_xz_vec,
 
         float neighbour_sum = 0;
 
-        LOCALPATCHCONV333(particle_data_output, particle_index_l, threadIdx.z, threadIdx.x, y_num - 1, neighbour_sum);
+        LOCALPATCHCONV333(particle_data_output, particle_index_l, threadIdx.z, threadIdx.x, y_num - 1, neighbour_sum)
     }
 }
 
@@ -1793,4 +1896,129 @@ __global__ void conv_pixel_555(const inputType* input_image,
 
     neighbour_sum = 0;
     LOCALPATCHCONV555(output_image, row_begin + y_num - 1, threadIdx.z, threadIdx.x, y_num - 1, neighbour_sum)
+}
+
+
+template<typename inputType, typename outputType, typename stencilType>
+__global__ void conv_max_333_alt(const uint64_t* level_xz_vec,
+                                 const uint64_t* xz_end_vec,
+                                 const uint16_t* y_vec,
+                                 const inputType* input_particles,
+                                 outputType* particle_data_output,
+                                 const stencilType* stencil,
+                                 const int z_num,
+                                 const int x_num,
+                                 const int y_num,
+                                 const int z_num_parent,
+                                 const int x_num_parent,
+                                 const int level) {
+
+    // call with blockDim (6, 3, 3)
+
+    const int local_x = threadIdx.x % 3;
+
+    int x_index = blockIdx.x - 1 + local_x;
+    int z_index = blockIdx.z - 1 + threadIdx.z;
+    const bool parent = threadIdx.x > 2;
+
+    __shared__ stencilType local_patch[27]; //make it 1D and parallel-reduce?
+    __shared__ size_t loop_indices[2];
+
+    const int tid = threadIdx.z * blockDim.x * blockDim.y + threadIdx.x * blockDim.y + threadIdx.y;
+    if(tid < 27) {
+        local_patch[tid] = 0;
+    }
+
+    if( (x_index < 0) || (z_index < 0) ) {
+        return;
+    }
+
+    if(parent && ( ((x_index/2) >= x_num_parent) || ((z_index/2) >= z_num_parent) )) {
+        return;
+    } else if( !parent && ( (x_index >= x_num) || (z_index >= z_num) )) {
+        return;
+    }
+
+    size_t xz_start, global_index_begin, global_index_end;
+
+
+    if(parent) {
+        x_index /= 2;
+        z_index /=2;
+
+        xz_start = x_index + z_index * x_num_parent + level_xz_vec[level - 1];
+        global_index_begin = xz_end_vec[xz_start-1];
+        global_index_end = xz_end_vec[xz_start];
+
+    } else {
+        xz_start = x_index + z_index * x_num + level_xz_vec[level];
+        global_index_begin = xz_end_vec[xz_start-1];
+        global_index_end = xz_end_vec[xz_start];
+    }
+
+    if( (threadIdx.x==1) && (threadIdx.y==1) && (threadIdx.z==1) ) {
+        loop_indices[0] = global_index_begin;
+        loop_indices[1] = global_index_end;
+    }
+    __syncthreads();
+
+    size_t current_index = global_index_begin;
+    int y = y_vec[current_index];
+
+
+    for(size_t index = loop_indices[0]; index < loop_indices[1]; ++index) {
+
+        int target_y = (int)(y_vec[index] + threadIdx.y) - 1;
+
+        if(!parent && ( (target_y < 0) || (target_y >= y_num) )) {
+            local_patch[threadIdx.z * 9 + local_x * 3 + threadIdx.y] = 0;
+        }
+
+        if(parent) {
+            while( (y < (target_y/2)) && (current_index < global_index_end) ) {
+                y = y_vec[++current_index];
+            }
+
+            // update parent value in patch
+            if( (y == (target_y / 2)) && (current_index < global_index_end) ) {
+                local_patch[threadIdx.z * 9 + local_x * 3 + threadIdx.y] = input_particles[current_index] * stencil[threadIdx.z * 9 + local_x * 3 + threadIdx.y];
+            }
+
+        } else {
+            while( (y < target_y) && (current_index < global_index_end) ) {
+                y = y_vec[++current_index];
+            }
+
+            if( (y == target_y) && (current_index < global_index_end)) {
+                local_patch[threadIdx.z * 9 + local_x * 3 + threadIdx.y] = input_particles[current_index] * stencil[threadIdx.z * 9 + local_x * 3 + threadIdx.y];
+                //printf("input: %f  stencil: %f => patch = %f\n", input_particles[current_index], stencil[threadIdx.z * 9 + local_x * 3 + threadIdx.y], local_patch[threadIdx.z * 9 + local_x * 3 + threadIdx.y]);
+
+            }
+        }
+
+        __syncthreads();
+
+        if( (threadIdx.x == 1) && (threadIdx.y == 1) && (threadIdx.z == 1)) {
+            stencilType neigh_sum = 0;
+            for(auto j : local_patch) { //(int j = 0; j < 27; ++j) {
+                neigh_sum += j;//local_patch[j];
+            }
+            particle_data_output[index] = neigh_sum;
+        }
+        __syncthreads();
+
+//        /// reduce sum to collect result
+//        int i=14; // ceil(27 / 2)
+//        while(i != 0) {
+//            if( (tid + i < 27) && (tid < i) ){
+//                local_patch[tid] += local_patch[tid+i];
+//            }
+//            i /= 2;
+//            __syncthreads();
+//        }
+//
+//        if(tid==0) {
+//            particle_data_output[index] = local_patch[0];
+//        }
+    } // for index
 }

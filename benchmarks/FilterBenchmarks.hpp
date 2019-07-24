@@ -371,6 +371,90 @@ inline void bench_check_blocks(APR& apr, int num_rep, AnalysisData& analysisData
     analysisData.add_timer(timer,apr.total_number_particles(),num_rep);
 }
 
+
+template<typename partsType>
+inline void bench_333_new(APR& apr,ParticleData<partsType>& parts,int num_rep,AnalysisData& analysisData,int stencil_size) {
+    APRTimer timer(true);
+
+    auto access = apr.gpuAPRHelper();
+
+    access.init_gpu();
+
+    std::vector<float> stencil;
+    stencil.resize(stencil_size * stencil_size * stencil_size);
+
+    // unique stencil elements
+    float sum = 0;
+    for(int i = 0; i < stencil.size(); ++i) {
+        sum += i;
+    }
+    for(int i = 0; i < stencil.size(); ++i) {
+        stencil[i] = ((float) i) / sum;
+    }
+
+    std::vector<float> output(access.total_number_particles());
+
+    ScopedCudaMemHandler<uint16_t*, JUST_ALLOC> input_gpu(parts.data.data(), parts.data.size());
+    ScopedCudaMemHandler<float*, JUST_ALLOC> output_gpu(output.data(), output.size());
+    ScopedCudaMemHandler<float*, JUST_ALLOC> stencil_gpu(stencil.data(), stencil.size());
+    
+    input_gpu.copyH2D();
+    stencil_gpu.copyH2D();
+    
+    timer.start_timer("apr_filter_cuda_new_3");
+    for(int r = 0; r < num_rep; ++r) {
+        run_max_333_new(access, input_gpu.get(), output_gpu.get(), stencil_gpu.get());
+    }
+    cudaDeviceSynchronize();
+    timer.stop_timer();
+    
+    analysisData.add_timer(timer,apr.total_number_particles(),num_rep);
+}
+
+
+template<typename partsType>
+inline void bench_333_old(APR& apr,ParticleData<partsType>& parts,int num_rep,AnalysisData& analysisData,int stencil_size) {
+    APRTimer timer(true);
+
+    auto access = apr.gpuAPRHelper();
+
+    access.init_gpu();
+
+    std::vector<float> stencil;
+    stencil.resize(stencil_size * stencil_size * stencil_size);
+
+    // unique stencil elements
+    float sum = 0;
+    for(int i = 0; i < stencil.size(); ++i) {
+        sum += i;
+    }
+    for(int i = 0; i < stencil.size(); ++i) {
+        stencil[i] = ((float) i) / sum;
+    }
+
+    std::vector<float> output(access.total_number_particles());
+
+    ScopedCudaMemHandler<uint16_t*, JUST_ALLOC> input_gpu(parts.data.data(), parts.data.size());
+    ScopedCudaMemHandler<float*, JUST_ALLOC> output_gpu(output.data(), output.size());
+    ScopedCudaMemHandler<float*, JUST_ALLOC> stencil_gpu(stencil.data(), stencil.size());
+
+    size_t max_num_blocks = ((access.x_num(access.level_max()) + 8 - 1) / 8) * ((access.z_num(access.level_max()) + 8 - 1) / 8);
+    ScopedCudaMemHandler<bool*, JUST_ALLOC> blocks_empty(NULL, max_num_blocks);
+
+    input_gpu.copyH2D();
+    stencil_gpu.copyH2D();
+
+    timer.start_timer("apr_filter_cuda_old_3");
+    for(int r = 0; r < num_rep; ++r) {
+        run_max_333_old(access, input_gpu.get(), output_gpu.get(), stencil_gpu.get(), blocks_empty.get());
+    }
+    cudaDeviceSynchronize();
+    timer.stop_timer();
+    
+    analysisData.add_timer(timer,apr.total_number_particles(),num_rep);
+}
+
+
 #endif //APR_USE_CUDA
 
 #endif //LIBAPR_FILTERBENCHMARKS_HPP
