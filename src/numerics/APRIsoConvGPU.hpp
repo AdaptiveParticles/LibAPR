@@ -84,31 +84,6 @@ timings isotropic_convolve_555(GPUAccessHelper& access, GPUAccessHelper& tree_ac
     return isotropic_convolve_555_wrapper(access, tree_access, input, output, stencil, tree_data);
 }
 
-/// force template instantiation for some different type combinations
-//pixels 333
-template timings pixel_convolve_333(PixelData<uint16_t>&, PixelData<float>&, PixelData<float>&);
-template timings pixel_convolve_333(PixelData<uint16_t>&, PixelData<double>&, PixelData<double>&);
-template timings pixel_convolve_333(PixelData<float>&, PixelData<float>&, PixelData<float>&);
-//pixels 555
-template timings pixel_convolve_555(PixelData<uint16_t>&, PixelData<float>&, PixelData<float>&);
-template timings pixel_convolve_555(PixelData<uint16_t>&, PixelData<double>&, PixelData<double>&);
-template timings pixel_convolve_555(PixelData<float>&, PixelData<float>&, PixelData<float>&);
-//apr 333
-template timings isotropic_convolve_333(GPUAccessHelper&, GPUAccessHelper&, std::vector<float>&, std::vector<float>&, std::vector<float>&, std::vector<float>&);
-template timings isotropic_convolve_333(GPUAccessHelper&, GPUAccessHelper&, std::vector<uint16_t>&, std::vector<float>&, std::vector<float>&, std::vector<float>&);
-template timings isotropic_convolve_333(GPUAccessHelper&, GPUAccessHelper&, std::vector<uint16_t>&, std::vector<double>&, std::vector<float>&, std::vector<float>&);
-template timings isotropic_convolve_333(GPUAccessHelper&, GPUAccessHelper&, std::vector<uint16_t>&, std::vector<double>&, std::vector<double>&, std::vector<float>&);
-template timings isotropic_convolve_333(GPUAccessHelper&, GPUAccessHelper&, std::vector<uint16_t>&, std::vector<double>&, std::vector<double>&, std::vector<double>&);
-//apr 555
-template timings isotropic_convolve_555(GPUAccessHelper&, GPUAccessHelper&, std::vector<float>&, std::vector<float>&, std::vector<float>&, std::vector<float>&);
-template timings isotropic_convolve_555(GPUAccessHelper&, GPUAccessHelper&, std::vector<uint16_t>&, std::vector<float>&, std::vector<float>&, std::vector<float>&);
-template timings isotropic_convolve_555(GPUAccessHelper&, GPUAccessHelper&, std::vector<uint16_t>&, std::vector<double>&, std::vector<float>&, std::vector<float>&);
-template timings isotropic_convolve_555(GPUAccessHelper&, GPUAccessHelper&, std::vector<uint16_t>&, std::vector<double>&, std::vector<double>&, std::vector<float>&);
-template timings isotropic_convolve_555(GPUAccessHelper&, GPUAccessHelper&, std::vector<uint16_t>&, std::vector<double>&, std::vector<double>&, std::vector<double>&);
-
-/// play
-template void run_max_333_new(GPUAccessHelper&, uint16_t*, float*, float*);
-template void run_max_333_old(GPUAccessHelper&, uint16_t*, float*, float*, bool*);
 
 
 

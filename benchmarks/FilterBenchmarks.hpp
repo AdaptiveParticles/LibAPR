@@ -32,6 +32,12 @@ template<typename partsType>
 inline void bench_pixel_convolve_cuda(APR& apr,ParticleData<partsType>& parts, int num_rep,AnalysisData& analysisData,int stencil_size = 3);
 
 inline void bench_check_blocks(APR& apr, int num_rep, AnalysisData& analysisData);
+
+template<typename partsType>
+inline void bench_333_old(APR& apr,ParticleData<partsType>& parts,int num_rep,AnalysisData& analysisData,int stencil_size);
+
+template<typename partsType>
+inline void bench_333_new(APR& apr,ParticleData<partsType>& parts,int num_rep,AnalysisData& analysisData,int stencil_size);
 #endif
 
 

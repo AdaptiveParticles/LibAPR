@@ -263,36 +263,36 @@ timings isotropic_convolve_333_wrapper(GPUAccessHelper& access, GPUAccessHelper&
                                                         blocks_empty.get() );
 
         } else if (level == access.level_max()) {
-//            conv_max_333<blockSize> << < blocks_l, threads_l >> >( access.get_level_xz_vec_ptr(),
-//                                                        access.get_xz_end_vec_ptr(),
-//                                                        access.get_y_vec_ptr(),
-//                                                        input_gpu.get(),
-//                                                        output_gpu.get(),
-//                                                        stencil_gpu.get(),
-//                                                        access.z_num(level),
-//                                                        access.x_num(level),
-//                                                        access.y_num(level),
-//                                                        tree_access.z_num(level-1),
-//                                                        tree_access.x_num(level-1),
-//                                                        tree_access.y_num(level-1),
-//                                                        level,
-//                                                        blocks_empty.get() );
+            conv_max_333<blockSize> << < blocks_l, threads_l >> >( access.get_level_xz_vec_ptr(),
+                                                        access.get_xz_end_vec_ptr(),
+                                                        access.get_y_vec_ptr(),
+                                                        input_gpu.get(),
+                                                        output_gpu.get(),
+                                                        stencil_gpu.get(),
+                                                        access.z_num(level),
+                                                        access.x_num(level),
+                                                        access.y_num(level),
+                                                        tree_access.z_num(level-1),
+                                                        tree_access.x_num(level-1),
+                                                        tree_access.y_num(level-1),
+                                                        level,
+                                                        blocks_empty.get() );
 
-            dim3 blck(access.x_num(level), 1, access.y_num(level));
-            dim3 thd(6, 3, 3);
-
-            conv_max_333_alt<<<blck, thd>>>(access.get_level_xz_vec_ptr(),
-                                            access.get_xz_end_vec_ptr(),
-                                            access.get_y_vec_ptr(),
-                                            input_gpu.get(),
-                                            output_gpu.get(),
-                                            stencil_gpu.get(),
-                                            access.z_num(level),
-                                            access.x_num(level),
-                                            access.y_num(level),
-                                            tree_access.z_num(level-1),
-                                            tree_access.x_num(level-1),
-                                            level);
+//            dim3 blck(access.x_num(level), 1, access.y_num(level));
+//            dim3 thd(6, 3, 3);
+//
+//            conv_max_333_alt<<<blck, thd>>>(access.get_level_xz_vec_ptr(),
+//                                            access.get_xz_end_vec_ptr(),
+//                                            access.get_y_vec_ptr(),
+//                                            input_gpu.get(),
+//                                            output_gpu.get(),
+//                                            stencil_gpu.get(),
+//                                            access.z_num(level),
+//                                            access.x_num(level),
+//                                            access.y_num(level),
+//                                            tree_access.z_num(level-1),
+//                                            tree_access.x_num(level-1),
+//                                            level);
 
         } else {
             conv_interior_333<blockSize> << < blocks_l, threads_l >> >(access.get_level_xz_vec_ptr(),
@@ -1988,14 +1988,14 @@ __global__ void conv_max_333_alt(const uint64_t* level_xz_vec,
 
         __syncthreads();
 
-//        if( (threadIdx.x == 1) && (threadIdx.y == 1) && (threadIdx.z == 1)) {
-//            stencilType neigh_sum = 0;
-//            for(auto j : local_patch) { //(int j = 0; j < 27; ++j) {
-//                neigh_sum += j;//local_patch[j];
-//            }
-//            particle_data_output[index] = neigh_sum;
-//        }
-//        __syncthreads();
+        if( (threadIdx.x == 1) && (threadIdx.y == 1) && (threadIdx.z == 1)) {
+            stencilType neigh_sum = 0;
+            for(auto j : local_patch) { //(int j = 0; j < 27; ++j) {
+                neigh_sum += j;//local_patch[j];
+            }
+            particle_data_output[index] = neigh_sum;
+        }
+        __syncthreads();
 
 //        /// reduce sum to collect result
 //        int i=14; // ceil(27 / 2)
@@ -2012,3 +2012,30 @@ __global__ void conv_max_333_alt(const uint64_t* level_xz_vec,
 //        }
     } // for index
 }
+
+
+/// force template instantiation for some different type combinations
+//pixels 333
+template timings pixel_convolve_333(PixelData<uint16_t>&, PixelData<float>&, PixelData<float>&);
+template timings pixel_convolve_333(PixelData<uint16_t>&, PixelData<double>&, PixelData<double>&);
+template timings pixel_convolve_333(PixelData<float>&, PixelData<float>&, PixelData<float>&);
+//pixels 555
+template timings pixel_convolve_555(PixelData<uint16_t>&, PixelData<float>&, PixelData<float>&);
+template timings pixel_convolve_555(PixelData<uint16_t>&, PixelData<double>&, PixelData<double>&);
+template timings pixel_convolve_555(PixelData<float>&, PixelData<float>&, PixelData<float>&);
+//apr 333
+template timings isotropic_convolve_333(GPUAccessHelper&, GPUAccessHelper&, std::vector<float>&, std::vector<float>&, std::vector<float>&, std::vector<float>&);
+template timings isotropic_convolve_333(GPUAccessHelper&, GPUAccessHelper&, std::vector<uint16_t>&, std::vector<float>&, std::vector<float>&, std::vector<float>&);
+template timings isotropic_convolve_333(GPUAccessHelper&, GPUAccessHelper&, std::vector<uint16_t>&, std::vector<double>&, std::vector<float>&, std::vector<float>&);
+template timings isotropic_convolve_333(GPUAccessHelper&, GPUAccessHelper&, std::vector<uint16_t>&, std::vector<double>&, std::vector<double>&, std::vector<float>&);
+template timings isotropic_convolve_333(GPUAccessHelper&, GPUAccessHelper&, std::vector<uint16_t>&, std::vector<double>&, std::vector<double>&, std::vector<double>&);
+//apr 555
+template timings isotropic_convolve_555(GPUAccessHelper&, GPUAccessHelper&, std::vector<float>&, std::vector<float>&, std::vector<float>&, std::vector<float>&);
+template timings isotropic_convolve_555(GPUAccessHelper&, GPUAccessHelper&, std::vector<uint16_t>&, std::vector<float>&, std::vector<float>&, std::vector<float>&);
+template timings isotropic_convolve_555(GPUAccessHelper&, GPUAccessHelper&, std::vector<uint16_t>&, std::vector<double>&, std::vector<float>&, std::vector<float>&);
+template timings isotropic_convolve_555(GPUAccessHelper&, GPUAccessHelper&, std::vector<uint16_t>&, std::vector<double>&, std::vector<double>&, std::vector<float>&);
+template timings isotropic_convolve_555(GPUAccessHelper&, GPUAccessHelper&, std::vector<uint16_t>&, std::vector<double>&, std::vector<double>&, std::vector<double>&);
+
+/// play
+template void run_max_333_new(GPUAccessHelper&, uint16_t*, float*, float*);
+template void run_max_333_old(GPUAccessHelper&, uint16_t*, float*, float*, bool*);
