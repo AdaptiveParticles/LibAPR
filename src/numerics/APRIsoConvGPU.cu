@@ -69,7 +69,7 @@ particle_output[index] = neighbour_sum;\
 
 
 template<typename inputType, typename outputType, typename stencilType>
-timings convolve_pixel_333_wrapper(PixelData<inputType>& input, PixelData<outputType>& output, PixelData<stencilType>& stencil) {
+timings convolve_pixel_333(PixelData<inputType>& input, PixelData<outputType>& output, PixelData<stencilType>& stencil) {
 
     assert(stencil.mesh.size() == 27);
 
@@ -122,7 +122,7 @@ timings convolve_pixel_333_wrapper(PixelData<inputType>& input, PixelData<output
 
 
 template<typename inputType, typename outputType, typename stencilType>
-timings convolve_pixel_555_wrapper(PixelData<inputType>& input, PixelData<outputType>& output, PixelData<stencilType>& stencil) {
+timings convolve_pixel_555(PixelData<inputType>& input, PixelData<outputType>& output, PixelData<stencilType>& stencil) {
 
     assert(stencil.mesh.size() == 125);
 
@@ -176,7 +176,7 @@ timings convolve_pixel_555_wrapper(PixelData<inputType>& input, PixelData<output
 
 
 template<typename inputType, typename outputType, typename stencilType, typename treeType>
-timings isotropic_convolve_333_wrapper(GPUAccessHelper& access, GPUAccessHelper& tree_access, std::vector<inputType>& input,
+timings isotropic_convolve_333(GPUAccessHelper& access, GPUAccessHelper& tree_access, std::vector<inputType>& input,
                                     std::vector<outputType>& output, std::vector<stencilType>& stencil, std::vector<treeType>& tree_data){
     /*
      *  Perform APR Isotropic Convolution Operation on the GPU with a 3x3x3 kernel
@@ -332,7 +332,7 @@ timings isotropic_convolve_333_wrapper(GPUAccessHelper& access, GPUAccessHelper&
 
 
 template<typename inputType, typename outputType, typename stencilType>
-void run_max_333_new_wrapper(GPUAccessHelper &access, inputType* input_gpu, outputType* output_gpu, stencilType* stencil_gpu) {
+void run_max_333_new(GPUAccessHelper &access, inputType* input_gpu, outputType* output_gpu, stencilType* stencil_gpu) {
 
     int level = access.level_max();
 
@@ -361,7 +361,7 @@ void run_max_333_new_wrapper(GPUAccessHelper &access, inputType* input_gpu, outp
 }
 
 template<typename inputType, typename outputType, typename stencilType>
-void run_max_333_old_wrapper(GPUAccessHelper& access, inputType* input_gpu, outputType* output_gpu, stencilType* stencil_gpu, bool* blocks_empty) {
+void run_max_333_old(GPUAccessHelper& access, inputType* input_gpu, outputType* output_gpu, stencilType* stencil_gpu, bool* blocks_empty) {
 
     int level = access.level_max();
 
@@ -413,7 +413,7 @@ void run_max_333_old_wrapper(GPUAccessHelper& access, inputType* input_gpu, outp
 
 
 template<typename inputType, typename outputType, typename stencilType, typename treeType>
-timings isotropic_convolve_555_wrapper(GPUAccessHelper& access, GPUAccessHelper& tree_access, std::vector<inputType>& input,
+timings isotropic_convolve_555(GPUAccessHelper& access, GPUAccessHelper& tree_access, std::vector<inputType>& input,
                                     std::vector<outputType>& output, std::vector<stencilType>& stencil, std::vector<treeType>& tree_data){
     /*
      *  Perform APR Isotropic Convolution Operation on the GPU with a 5x5x5 kernel
@@ -2016,13 +2016,13 @@ __global__ void conv_max_333_alt(const uint64_t* level_xz_vec,
 
 /// force template instantiation for some different type combinations
 //pixels 333
-template timings pixel_convolve_333(PixelData<uint16_t>&, PixelData<float>&, PixelData<float>&);
-template timings pixel_convolve_333(PixelData<uint16_t>&, PixelData<double>&, PixelData<double>&);
-template timings pixel_convolve_333(PixelData<float>&, PixelData<float>&, PixelData<float>&);
+template timings convolve_pixel_333(PixelData<uint16_t>&, PixelData<float>&, PixelData<float>&);
+template timings convolve_pixel_333(PixelData<uint16_t>&, PixelData<double>&, PixelData<double>&);
+template timings convolve_pixel_333(PixelData<float>&, PixelData<float>&, PixelData<float>&);
 //pixels 555
-template timings pixel_convolve_555(PixelData<uint16_t>&, PixelData<float>&, PixelData<float>&);
-template timings pixel_convolve_555(PixelData<uint16_t>&, PixelData<double>&, PixelData<double>&);
-template timings pixel_convolve_555(PixelData<float>&, PixelData<float>&, PixelData<float>&);
+template timings convolve_pixel_555(PixelData<uint16_t>&, PixelData<float>&, PixelData<float>&);
+template timings convolve_pixel_555(PixelData<uint16_t>&, PixelData<double>&, PixelData<double>&);
+template timings convolve_pixel_555(PixelData<float>&, PixelData<float>&, PixelData<float>&);
 //apr 333
 template timings isotropic_convolve_333(GPUAccessHelper&, GPUAccessHelper&, std::vector<float>&, std::vector<float>&, std::vector<float>&, std::vector<float>&);
 template timings isotropic_convolve_333(GPUAccessHelper&, GPUAccessHelper&, std::vector<uint16_t>&, std::vector<float>&, std::vector<float>&, std::vector<float>&);

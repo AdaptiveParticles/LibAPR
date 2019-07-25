@@ -19,72 +19,30 @@ void run_check_blocks(GPUAccessHelper& access, bool* blocks_empty);
 
 /// new 333 max method
 template<typename inputType, typename outputType, typename stencilType>
-void run_max_333_new_wrapper(GPUAccessHelper& access, inputType* input_gpu, outputType* output_gpu, stencilType* stencil_gpu);
-
-template<typename inputType, typename outputType, typename stencilType>
-void run_max_333_new(GPUAccessHelper& access, inputType* input_gpu, outputType* output_gpu, stencilType* stencil_gpu) {
-    run_max_333_new_wrapper(access, input_gpu, output_gpu, stencil_gpu);
-}
+void run_max_333_new(GPUAccessHelper& access, inputType* input_gpu, outputType* output_gpu, stencilType* stencil_gpu);
 
 /// old 333 max method
 template<typename inputType, typename outputType, typename stencilType>
-void run_max_333_old_wrapper(GPUAccessHelper& access, inputType* input_gpu, outputType* output_gpu, stencilType* stencil_gpu, bool* blocks_empty);
-
-template<typename inputType, typename outputType, typename stencilType>
-void run_max_333_old(GPUAccessHelper& access, inputType* input_gpu, outputType* output_gpu, stencilType* stencil_gpu, bool* blocks_empty) {
-    run_max_333_old_wrapper(access, input_gpu, output_gpu, stencil_gpu, blocks_empty);
-}
+void run_max_333_old(GPUAccessHelper& access, inputType* input_gpu, outputType* output_gpu, stencilType* stencil_gpu, bool* blocks_empty);
 /// end of new stuff
 
 
 template<typename inputType, typename outputType, typename stencilType>
-timings convolve_pixel_333_wrapper(PixelData<inputType>& input, PixelData<outputType>& output, PixelData<stencilType>& stencil);
+timings convolve_pixel_333(PixelData<inputType>& input, PixelData<outputType>& output, PixelData<stencilType>& stencil);
 
 
 template<typename inputType, typename outputType, typename stencilType>
-timings pixel_convolve_333(PixelData<inputType>& input, PixelData<outputType>& output, PixelData<stencilType>& stencil) {
-
-    return convolve_pixel_333_wrapper(input, output, stencil);
-}
-
-
-template<typename inputType, typename outputType, typename stencilType>
-timings convolve_pixel_555_wrapper(PixelData<inputType>& input, PixelData<outputType>& output, PixelData<stencilType>& stencil);
-
-
-template<typename inputType, typename outputType, typename stencilType>
-timings pixel_convolve_555(PixelData<inputType>& input, PixelData<outputType>& output, PixelData<stencilType>& stencil) {
-
-    return convolve_pixel_555_wrapper(input, output, stencil);
-}
+timings convolve_pixel_555(PixelData<inputType>& input, PixelData<outputType>& output, PixelData<stencilType>& stencil);
 
 
 template<typename inputType, typename outputType, typename stencilType, typename treeType>
-timings isotropic_convolve_333_wrapper(GPUAccessHelper&, GPUAccessHelper&, std::vector<inputType>&,
-                                    std::vector<outputType>&, std::vector<stencilType>&, std::vector<treeType>&);
+timings isotropic_convolve_333(GPUAccessHelper&, GPUAccessHelper&, std::vector<inputType>&,
+                                std::vector<outputType>&, std::vector<stencilType>&, std::vector<treeType>&);
 
 
 template<typename inputType, typename outputType, typename stencilType, typename treeType>
-timings isotropic_convolve_333(GPUAccessHelper& access, GPUAccessHelper& tree_access, std::vector<inputType>& input,
-                            std::vector<outputType>& output, std::vector<stencilType>& stencil, std::vector<treeType>& tree_data) {
-
-    return isotropic_convolve_333_wrapper(access, tree_access, input, output, stencil, tree_data);
-}
-
-
-template<typename inputType, typename outputType, typename stencilType, typename treeType>
-timings isotropic_convolve_555_wrapper(GPUAccessHelper&, GPUAccessHelper&, std::vector<inputType>&,
-                                    std::vector<outputType>&, std::vector<stencilType>&, std::vector<treeType>&);
-
-
-template<typename inputType, typename outputType, typename stencilType, typename treeType>
-timings isotropic_convolve_555(GPUAccessHelper& access, GPUAccessHelper& tree_access, std::vector<inputType>& input,
-                            std::vector<outputType>& output, std::vector<stencilType>& stencil, std::vector<treeType>& tree_data) {
-
-    return isotropic_convolve_555_wrapper(access, tree_access, input, output, stencil, tree_data);
-}
-
-
+timings isotropic_convolve_555(GPUAccessHelper&, GPUAccessHelper&, std::vector<inputType>&,
+                                std::vector<outputType>&, std::vector<stencilType>&, std::vector<treeType>&);
 
 
 template<unsigned int blockSize, typename inputType, typename outputType, typename stencilType>

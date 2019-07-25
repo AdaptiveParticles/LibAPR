@@ -460,7 +460,7 @@ TEST_F(CreatDiffDimsSphereTest, TEST_GPU_CONV_PIXEL_333) {
         stencil.mesh[i] = ((double) i) / sum;
     }
 
-    pixel_convolve_333(test_data.img_original, output, stencil);
+    convolve_pixel_333(test_data.img_original, output, stencil);
 
     PixelData<double> output_gt;
 
@@ -483,7 +483,7 @@ TEST_F(CreatDiffDimsSphereTest, TEST_GPU_CONV_PIXEL_555) {
         stencil.mesh[i] = ((double) i) / sum;
     }
 
-    pixel_convolve_555(test_data.img_original, output, stencil);
+    convolve_pixel_555(test_data.img_original, output, stencil);
 
     PixelData<float> output_gt;
 
