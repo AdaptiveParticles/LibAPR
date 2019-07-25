@@ -12,6 +12,7 @@ struct timings {
     float fill_tree = 0;
     float run_kernels = 0;
     float transfer_D2H = 0;
+    std::vector<float> lvl_timings;
 };
 
 void run_check_blocks(GPUAccessHelper& access, bool* blocks_empty);

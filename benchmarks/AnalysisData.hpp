@@ -275,6 +275,8 @@ class AnalysisData: public Data_manager {
         add_float_data("CR",apr.computational_ratio());
         add_float_data("num_pixels",apr.org_dims(0)*apr.org_dims(1)*apr.org_dims(2));
         add_float_data("org_image_MB",(apr.org_dims(0)*apr.org_dims(1)*apr.org_dims(2)*2)/(1000000000.0f));
+        add_float_data("level_min", apr.level_min());
+        add_float_data("level_max", apr.level_max());
     }
 
     //writes the results to hdf5

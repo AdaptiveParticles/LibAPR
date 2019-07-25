@@ -190,7 +190,10 @@ timings isotropic_convolve_333(GPUAccessHelper& access, GPUAccessHelper& tree_ac
     const int blockSize = 12;
 
     timings ret;
+    ret.lvl_timings.resize(access.level_max() - access.level_min() + 1);
+    
     APRTimer timer(false);
+    APRTimer timer2(false);
 
     timer.start_timer("init arrays");
     tree_data.resize(tree_access.total_number_particles());
@@ -228,6 +231,7 @@ timings isotropic_convolve_333(GPUAccessHelper& access, GPUAccessHelper& tree_ac
 
     for (int level = access.level_max(); level >= access.level_min(); --level) {
 
+        timer2.start_timer("convolve_dlvl_" + std::to_string(access.level_max() - level));
         int x_blocks = (access.x_num(level) + blockSize - 1) / blockSize;
         int z_blocks = (access.z_num(level) + blockSize - 1) / blockSize;
 
@@ -241,7 +245,7 @@ timings isotropic_convolve_333(GPUAccessHelper& access, GPUAccessHelper& tree_ac
                                             access.x_num(level));
 
         threads_l = {blockSize+2, 1, blockSize+2};
-
+        
         if (level == access.level_min()) {
             conv_min_333<blockSize> << < blocks_l, threads_l >> >( access.get_level_xz_vec_ptr(),
                                                         access.get_xz_end_vec_ptr(),
@@ -315,6 +319,8 @@ timings isotropic_convolve_333(GPUAccessHelper& access, GPUAccessHelper& tree_ac
                                                             blocks_empty.get() );
         }
         cudaDeviceSynchronize();
+        timer2.stop_timer();
+        ret.lvl_timings[access.level_max() - level] = timer2.timings.back();
     }
 
     timer.stop_timer();

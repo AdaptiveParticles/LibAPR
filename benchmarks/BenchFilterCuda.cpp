@@ -46,12 +46,12 @@ int main(int argc, char **argv) {
 
         //put benchmark funtions here..
 #ifdef APR_USE_CUDA
-        //bench_apr_convolve_cuda(apr, parts, benchAPRHelper.get_number_reps(), benchAPRHelper.analysisData, 3);
+        bench_apr_convolve_cuda(apr, parts, benchAPRHelper.get_number_reps(), benchAPRHelper.analysisData, 3);
         //bench_apr_convolve_cuda(apr, parts, benchAPRHelper.get_number_reps(), benchAPRHelper.analysisData, 5);
         //bench_check_blocks(apr, benchAPRHelper.get_number_reps(), benchAPRHelper.analysisData);
         
-        bench_333_old(apr, parts, benchAPRHelper.get_number_reps(), benchAPRHelper.analysisData, 3);
-        bench_333_new(apr, parts, benchAPRHelper.get_number_reps(), benchAPRHelper.analysisData, 3);
+        //bench_333_old(apr, parts, benchAPRHelper.get_number_reps(), benchAPRHelper.analysisData, 3);
+        //bench_333_new(apr, parts, benchAPRHelper.get_number_reps(), benchAPRHelper.analysisData, 3);
 #endif
 
         if(i==0){
