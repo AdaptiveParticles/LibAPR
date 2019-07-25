@@ -1964,48 +1964,38 @@ __global__ void conv_max_333_alt(const uint64_t* level_xz_vec,
 
     size_t current_index = global_index_begin;
     int y = y_vec[current_index];
+    current_index++;
+
+    int factor = parent ? 2 : 1;
 
 
     for(size_t index = loop_indices[0]; index < loop_indices[1]; ++index) {
 
-        int target_y = (int)(y_vec[index] + threadIdx.y) - 1;
+        int target_y = ((int)(y_vec[index] + threadIdx.y) - 1) / factor;
 
-        if(!parent && ( (target_y < 0) || (target_y >= y_num) )) {
-            local_patch[threadIdx.z * 9 + local_x * 3 + threadIdx.y] = 0;
+//        if(!parent && ( (target_y < 0) || (target_y >= y_num) )) {
+//            local_patch[threadIdx.z * 9 + local_x * 3 + threadIdx.y] = 0;
+//        }
+
+        while( (y < target_y) && (current_index < global_index_end) ) {
+            y = y_vec[current_index];
+            current_index++;
         }
 
-        if(parent) {
-            while( (y < (target_y/2)) && (current_index < global_index_end) ) {
-                y = y_vec[++current_index];
-            }
-
-            // update parent value in patch
-            if( (y == (target_y / 2)) && (current_index < global_index_end) ) {
-                local_patch[threadIdx.z * 9 + local_x * 3 + threadIdx.y] = input_particles[current_index] * stencil[threadIdx.z * 9 + local_x * 3 + threadIdx.y];
-            }
-
-        } else {
-            while( (y < target_y) && (current_index < global_index_end) ) {
-                y = y_vec[++current_index];
-            }
-
-            if( (y == target_y) && (current_index < global_index_end)) {
-                local_patch[threadIdx.z * 9 + local_x * 3 + threadIdx.y] = input_particles[current_index] * stencil[threadIdx.z * 9 + local_x * 3 + threadIdx.y];
-                //printf("input: %f  stencil: %f => patch = %f\n", input_particles[current_index], stencil[threadIdx.z * 9 + local_x * 3 + threadIdx.y], local_patch[threadIdx.z * 9 + local_x * 3 + threadIdx.y]);
-
-            }
+        if( (y == target_y) && (current_index < global_index_end)) {
+            local_patch[threadIdx.z * 9 + local_x * 3 + threadIdx.y] = input_particles[current_index];
         }
 
         __syncthreads();
 
-        if( (threadIdx.x == 1) && (threadIdx.y == 1) && (threadIdx.z == 1)) {
-            stencilType neigh_sum = 0;
-            for(auto j : local_patch) { //(int j = 0; j < 27; ++j) {
-                neigh_sum += j;//local_patch[j];
-            }
-            particle_data_output[index] = neigh_sum;
-        }
-        __syncthreads();
+//        if( (threadIdx.x == 1) && (threadIdx.y == 1) && (threadIdx.z == 1)) {
+//            stencilType neigh_sum = 0;
+//            for(auto j : local_patch) { //(int j = 0; j < 27; ++j) {
+//                neigh_sum += j;//local_patch[j];
+//            }
+//            particle_data_output[index] = neigh_sum;
+//        }
+//        __syncthreads();
 
 //        /// reduce sum to collect result
 //        int i=14; // ceil(27 / 2)

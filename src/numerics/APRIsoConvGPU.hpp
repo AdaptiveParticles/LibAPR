@@ -26,8 +26,6 @@ void run_max_333_new(GPUAccessHelper& access, inputType* input_gpu, outputType* 
     run_max_333_new_wrapper(access, input_gpu, output_gpu, stencil_gpu);
 }
 
-template void run_max_333_new(GPUAccessHelper&, uint16_t*, float*, float*);
-
 /// old 333 max method
 template<typename inputType, typename outputType, typename stencilType>
 void run_max_333_old_wrapper(GPUAccessHelper& access, inputType* input_gpu, outputType* output_gpu, stencilType* stencil_gpu, bool* blocks_empty);
@@ -36,8 +34,6 @@ template<typename inputType, typename outputType, typename stencilType>
 void run_max_333_old(GPUAccessHelper& access, inputType* input_gpu, outputType* output_gpu, stencilType* stencil_gpu, bool* blocks_empty) {
     run_max_333_old_wrapper(access, input_gpu, output_gpu, stencil_gpu, blocks_empty);
 }
-
-template void run_max_333_old(GPUAccessHelper&, uint16_t*, float*, float*, bool*);
 /// end of new stuff
 
 
@@ -110,6 +106,9 @@ template timings isotropic_convolve_555(GPUAccessHelper&, GPUAccessHelper&, std:
 template timings isotropic_convolve_555(GPUAccessHelper&, GPUAccessHelper&, std::vector<uint16_t>&, std::vector<double>&, std::vector<double>&, std::vector<float>&);
 template timings isotropic_convolve_555(GPUAccessHelper&, GPUAccessHelper&, std::vector<uint16_t>&, std::vector<double>&, std::vector<double>&, std::vector<double>&);
 
+/// play
+template void run_max_333_new(GPUAccessHelper&, uint16_t*, float*, float*);
+template void run_max_333_old(GPUAccessHelper&, uint16_t*, float*, float*, bool*);
 
 
 

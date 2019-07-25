@@ -51,7 +51,7 @@ int main(int argc, char **argv) {
         //bench_check_blocks(apr, benchAPRHelper.get_number_reps(), benchAPRHelper.analysisData);
         
         bench_333_old(apr, parts, benchAPRHelper.get_number_reps(), benchAPRHelper.analysisData, 3);
-        bench_333_new(apr, parts, benchAPRHelper.get_number_reps(), benchAPRHelper.analysisData, 3);
+        //bench_333_new(apr, parts, benchAPRHelper.get_number_reps(), benchAPRHelper.analysisData, 3);
 #endif
 
         if(i==0){
