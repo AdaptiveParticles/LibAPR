@@ -42,6 +42,56 @@ __global__ void down_sample_avg(const uint64_t* level_xz_vec,
     const int block = threadIdx.x/32;
     const int local_th = (threadIdx.x%32);
 
+
+    __shared__ size_t global_index_begin_0_s[4];
+    __shared__ size_t global_index_end_0_s[4];
+
+    size_t global_index_begin_p;
+    size_t global_index_end_p;
+
+    //remove these with registers
+    //__shared__ float f_cache[5][32];
+    //__shared__ int y_cache[5][32];
+
+
+    int current_y = -1;
+    int current_y_p = -1;
+
+    if( (x_index >= x_num) || (z_index >= z_num) ){
+
+         return; //out of bounds
+    } else {
+
+        if(threadIdx.x==0){
+
+        }
+        //get_row_begin_end(&global_index_begin_0, &global_index_end_0, x_index + z_index*x_num + level_xz_vec[level], xz_end_vec);
+        if((local_th==0) ) {
+            size_t xz_start_s = x_index + z_index * x_num + level_xz_vec[level];
+            global_index_begin_0_s[block] = xz_end_vec[xz_start_s - 1];
+            global_index_end_0_s[block] = xz_end_vec[xz_start_s];
+        }
+    }
+    __syncthreads();
+
+    if(global_index_begin_0_s[0] == global_index_end_0_s[0]){
+        return;
+    }
+
+    size_t global_index_begin_0 = global_index_begin_0_s[block];
+    size_t global_index_end_0 = global_index_end_0_s[block];
+
+
+
+
+    //keep these
+    __shared__ float parent_cache[8][16];
+
+    float current_val = 0;
+
+    parent_cache[2*block][local_th/2] = 0;
+    parent_cache[2*block+1][local_th/2] = 0;
+
     float scale_factor_xz = (((2*x_num_parent != x_num) && blockIdx.x==(x_num_parent-1) ) + ((2*z_num_parent != z_num) && blockIdx.z==(z_num_parent-1) ))*2;
 
     if(scale_factor_xz == 0){
@@ -54,40 +104,6 @@ __global__ void down_sample_avg(const uint64_t* level_xz_vec,
         scale_factor_yxz = scale_factor_xz*2;
     }
 
-    size_t global_index_begin_0;
-    size_t global_index_end_0;
-
-    size_t global_index_begin_p;
-    size_t global_index_end_p;
-
-    //remove these with registers
-    //__shared__ float f_cache[5][32];
-    //__shared__ int y_cache[5][32];
-
-    //keep these
-    __shared__ float parent_cache[8][16];
-
-    float current_val = 0;
-
-    parent_cache[2*block][local_th/2] = 0;
-    parent_cache[2*block+1][local_th/2] = 0;
-
-    int current_y = -1;
-    int current_y_p = -1;
-
-    if( (x_index >= x_num) || (z_index >= z_num) ){
-
-        global_index_begin_0 = 1;
-        global_index_end_0 = 0;
-
-        // return; //out of bounds
-    } else {
-
-        //get_row_begin_end(&global_index_begin_0, &global_index_end_0, x_index + z_index*x_num + level_xz_vec[level], xz_end_vec);
-        size_t xz_start = x_index + z_index * x_num + level_xz_vec[level];
-        global_index_begin_0 = xz_end_vec[xz_start - 1];
-        global_index_end_0 = xz_end_vec[xz_start];
-    }
 
     //get_row_begin_end(&global_index_begin_p, &global_index_end_p, blockIdx.x + blockIdx.z*x_num_parent + level_xz_vec_tree[level-1], xz_end_vec_tree);
     size_t xz_start = blockIdx.x + blockIdx.z*x_num_parent + level_xz_vec_tree[level-1];
@@ -223,17 +239,7 @@ __global__ void down_sample_avg_interior(const uint64_t* level_xz_vec,
     int x_index = (2 * blockIdx.x + threadIdx.x/64);
     int z_index = (2 * blockIdx.z + ((threadIdx.x)/32)%2);
 
-    float scale_factor_xz = (((2*x_num_parent != x_num) && blockIdx.x==(x_num_parent-1) ) + ((2*z_num_parent != z_num) && blockIdx.z==(z_num_parent-1) ))*2;
 
-    if(scale_factor_xz == 0){
-        scale_factor_xz = 1;
-    }
-
-    float scale_factor_yxz = scale_factor_xz;
-
-    if((2*y_num_parent != y_num)){
-        scale_factor_yxz = scale_factor_xz*2;
-    }
 
     const int block = threadIdx.x/32;
     const int local_th = (threadIdx.x%32);
@@ -250,13 +256,7 @@ __global__ void down_sample_avg_interior(const uint64_t* level_xz_vec,
     std::size_t global_index_begin_t;
     std::size_t global_index_end_t;
 
-    //shared memory caches
 
-    __shared__ float parent_cache[8][16];
-
-
-    parent_cache[2*block][local_th/2]=0;
-    parent_cache[2*block+1][local_th/2]=0;
 
     int current_y=-1;
     int current_y_p=-1;
@@ -309,6 +309,33 @@ __global__ void down_sample_avg_interior(const uint64_t* level_xz_vec,
         current_y_t = y_vec_tree[global_index_begin_t + local_th];
         current_val_t = particle_data_output[global_index_begin_t + local_th];
     }
+
+    if((global_index_begin_0 == global_index_end_0) && (global_index_begin_t == global_index_end_t)){
+        return;
+    }
+
+
+    //shared memory caches
+
+    __shared__ float parent_cache[8][16];
+
+
+    parent_cache[2*block][local_th/2]=0;
+    parent_cache[2*block+1][local_th/2]=0;
+
+    float scale_factor_xz = (((2*x_num_parent != x_num) && blockIdx.x==(x_num_parent-1) ) + ((2*z_num_parent != z_num) && blockIdx.z==(z_num_parent-1) ))*2;
+
+    if(scale_factor_xz == 0){
+        scale_factor_xz = 1;
+    }
+
+    float scale_factor_yxz = scale_factor_xz;
+
+    if((2*y_num_parent != y_num)){
+        scale_factor_yxz = scale_factor_xz*2;
+    }
+
+
 
     if (block == 3) {
 
