@@ -291,12 +291,13 @@ TEST_F(CreatDiffDimsSphereTest, APR_TEST) {
     gpuData.init_gpu();
     gpuDataTree.init_gpu();
 
-    std::vector<uint64_t> spatial_info_gpu;
+    std::vector<uint16_t> unused_input;
+    std::vector<uint16_t> spatial_info_gpu;
     spatial_info_gpu.resize(apr_it.total_number_particles());
 
-    compute_spatial_info_gpu(gpuData, spatial_info_gpu);
+    compute_spatial_info_gpu(gpuData, unused_input, spatial_info_gpu);
 
-    std::vector<uint64_t> spatial_info_cpu;
+    std::vector<uint16_t> spatial_info_cpu;
     spatial_info_cpu.resize(apr_it.total_number_particles());
 
     for(unsigned int level = apr_it.level_max(); level > apr_it.level_min(); --level) {
@@ -309,14 +310,15 @@ TEST_F(CreatDiffDimsSphereTest, APR_TEST) {
         }
     }
 
-    uint64_t successes = 0;
+    uint64_t c_fail = 0;
     for(int i = 0; i < spatial_info_cpu.size(); ++i) {
-        if(spatial_info_cpu[i] == spatial_info_gpu[i]) {
-            successes++;
+        if(spatial_info_cpu[i] != spatial_info_gpu[i]) {
+            c_fail++;
+            std::cout << "Expected " << spatial_info_cpu[i] << " but received " << spatial_info_gpu[i] << " at index " << i << std::endl;
         }
     }
 
-    ASSERT_EQ(successes, apr_it.total_number_particles());
+    ASSERT_EQ(c_fail, 0);
 
 }
 
@@ -483,7 +485,6 @@ TEST_F(CreatDiffDimsSphereTest, TEST_GPU_CONV_PIXEL_555) {
         stencil.mesh[i] = ((double) i) / sum;
     }
 
-    convolve_pixel_555(test_data.img_original, output, stencil);
 
     PixelData<float> output_gt;
 
