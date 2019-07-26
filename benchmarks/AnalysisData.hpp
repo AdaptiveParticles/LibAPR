@@ -309,8 +309,11 @@ class AnalysisData: public Data_manager {
 
     void add_apr_info(APR& apr){
 
-        add_float_data("num_parts",apr.total_number_particles());
-        add_float_data("num_tree_parts",apr.total_number_tree_particles());
+        auto apr_it = apr.iterator();
+        auto tree_it = apr.tree_iterator();
+
+        add_float_data("num_parts",apr_it.total_number_particles());
+        add_float_data("num_tree_parts",tree_it.total_number_particles());
         add_float_data("CR",apr.computational_ratio());
         add_float_data("num_pixels",apr.org_dims(0)*apr.org_dims(1)*apr.org_dims(2));
         add_float_data("org_image_MB",(apr.org_dims(0)*apr.org_dims(1)*apr.org_dims(2)*2)/(1000000000.0f));
