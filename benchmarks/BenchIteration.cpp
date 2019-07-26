@@ -15,7 +15,7 @@ BenchIteration
 #include <algorithm>
 #include <iostream>
 
-#include "BenchAPRHelper.hpp"
+#include "APRBenchHelper.hpp"
 
 template<typename partsType>
 void bench_pixel_iteration(APR& apr,ParticleData<partsType>& parts,int num_rep,AnalysisData& analysisData);
@@ -35,7 +35,7 @@ int main(int argc, char **argv) {
     // Filename
     std::string analysis_file_name = options.output_dir + options.analysis_file_name;
 
-    BenchAPRHelper benchAPRHelper;
+    APRBenchHelper benchAPRHelper;
     benchAPRHelper.initialize_benchmark(options);
 
     /*

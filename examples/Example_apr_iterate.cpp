@@ -64,24 +64,20 @@ int main(int argc, char **argv) {
     //Create particle datasets, once intiailized this has the same layout as the Particle Cells
     ParticleData<float> calc_ex(apr.total_number_particles());
 
-    auto apr_iterator = apr.iterator(); // not STL type iteration
+    auto it = apr.iterator(); // not STL type iteration
 
     timer.start_timer("APR serial iterator loop");
 
-    for (unsigned int level = apr_iterator.level_min(); level <= apr_iterator.level_max(); ++level) {
+    for (unsigned int level = it.level_min(); level <= it.level_max(); ++level) {
         int z = 0;
         int x = 0;
 
-#ifdef HAVE_OPENMP
-//#pragma omp parallel for schedule(dynamic) private(z, x) firstprivate(apr_iterator)
-#endif
-        for (z = 0; z < apr_iterator.z_num(level); z++) {
-            for (x = 0; x < apr_iterator.x_num(level); ++x) {
-                for (apr_iterator.begin(level, z, x); apr_iterator < apr_iterator.end();
-                     apr_iterator++) {
+        for (z = 0; z < it.z_num(level); z++) {
+            for (x = 0; x < it.x_num(level); ++x) {
+                for (it.begin(level, z, x); it < it.end(); it++) {
 
                     //you can then also use it to access any particle properties stored as ExtraParticleData
-                    calc_ex[apr_iterator] = 10.0f * parts[apr_iterator];
+                    calc_ex[it] = 10.0f * parts[it];
                 }
             }
         }
@@ -96,22 +92,22 @@ int main(int argc, char **argv) {
 
     timer.start_timer("APR parrellel iterator loop by level");
 
-    for (unsigned int level = apr_iterator.level_min(); level <= apr_iterator.level_max(); ++level) {
+    for (unsigned int level = it.level_min(); level <= it.level_max(); ++level) {
         int z = 0;
         int x = 0;
 
 #ifdef HAVE_OPENMP
-#pragma omp parallel for schedule(dynamic) private(z, x) firstprivate(apr_iterator)
+#pragma omp parallel for schedule(dynamic) private(z, x) firstprivate(it)
 #endif
-        for (z = 0; z < apr_iterator.z_num(level); z++) {
-            for (x = 0; x < apr_iterator.x_num(level); ++x) {
-                for (apr_iterator.begin(level, z, x); apr_iterator < apr_iterator.end();
-                     apr_iterator++) {
+        for (z = 0; z < it.z_num(level); z++) {
+            for (x = 0; x < it.x_num(level); ++x) {
+                for (it.begin(level, z, x); it < it.end();
+                     it++) {
 
-                    if (parts[apr_iterator] > 100) {
+                    if (parts[it] > 100) {
                         //set all particles in calc_ex with an particle intensity greater then 100 to 0.
-                        calc_ex[apr_iterator] = x - apr_iterator.y(); //these are location parameters, i.e. co-odinates on the given level (apr_iterator.level())
-                        calc_ex[apr_iterator] += apr_iterator.z_global(level,z); // you can also access the global co-ordinates, or apr_iterator.z_nearest_pixel(), for th nearest pixel co-ordinate
+                        calc_ex[it] = x - it.y(); //these are location parameters, i.e. co-odinates on the given level (apr_iterator.level())
+                        calc_ex[it] += it.z_global(level,z); // you can also access the global co-ordinates, or apr_iterator.z_nearest_pixel(), for th nearest pixel co-ordinate
                     }
                 }
             }
@@ -134,20 +130,20 @@ int main(int argc, char **argv) {
 
     timer.start_timer("APR parallel iterator loop");
 
-    for (unsigned int level = apr_iterator.level_min(); level <= apr_iterator.level_max(); ++level) {
+    for (unsigned int level = it.level_min(); level <= it.level_max(); ++level) {
         int z = 0;
         int x = 0;
 
 #ifdef HAVE_OPENMP
-#pragma omp parallel for schedule(dynamic) private(z, x) firstprivate(apr_iterator)
+#pragma omp parallel for schedule(dynamic) private(z, x) firstprivate(it)
 #endif
-        for (z = 0; z < apr_iterator.z_num(level); z++) {
-            for (x = 0; x < apr_iterator.x_num(level); ++x) {
-                for (apr_iterator.begin(level, z, x); apr_iterator < apr_iterator.end();
-                     apr_iterator++) {
-                    if (level < apr_iterator.level_max()) {
+        for (z = 0; z < it.z_num(level); z++) {
+            for (x = 0; x < it.x_num(level); ++x) {
+                for (it.begin(level, z, x); it < it.end();
+                     it++) {
+                    if (level < it.level_max()) {
                         //get global y co-ordinate of the particle and put result in calc_example_2 at the current Particle Cell (PC) location
-                        calc_example_2[apr_iterator] = apr_iterator.y_global(level,apr_iterator.y());
+                        calc_example_2[it] = it.y_global(level,it.y());
                     }
                 }
             }
@@ -177,20 +173,20 @@ int main(int argc, char **argv) {
     //compare to explicit loop
     timer.start_timer("Using parallel iterator loop: square the dataset");
 
-    for (unsigned int level = apr_iterator.level_min(); level <= apr_iterator.level_max(); ++level) {
+    for (unsigned int level = it.level_min(); level <= it.level_max(); ++level) {
         int z = 0;
         int x = 0;
 
 #ifdef HAVE_OPENMP
-#pragma omp parallel for schedule(dynamic) private(z, x) firstprivate(apr_iterator)
+#pragma omp parallel for schedule(dynamic) private(z, x) firstprivate(it)
 #endif
-        for (z = 0; z < apr_iterator.z_num(level); z++) {
-            for (x = 0; x < apr_iterator.x_num(level); ++x) {
-                for (apr_iterator.begin(level, z, x); apr_iterator < apr_iterator.end();
-                     apr_iterator++) {
+        for (z = 0; z < it.z_num(level); z++) {
+            for (x = 0; x < it.x_num(level); ++x) {
+                for (it.begin(level, z, x); it < it.end();
+                     it++) {
 
                 }
-                calc_ex[apr_iterator] = pow(calc_ex[apr_iterator], 2.0f);
+                calc_ex[it] = pow(calc_ex[it], 2.0f);
             }
         }
     }

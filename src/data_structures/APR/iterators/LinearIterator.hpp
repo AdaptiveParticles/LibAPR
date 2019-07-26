@@ -11,7 +11,7 @@
 
 class LinearIterator: public GenIterator {
 
-    friend class BenchAPRHelper;
+    friend class APRBenchHelper;
 
     template<typename T>
     friend class PartCellData;

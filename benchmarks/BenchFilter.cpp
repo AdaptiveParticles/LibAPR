@@ -24,7 +24,7 @@ int main(int argc, char **argv) {
     // Filename
     std::string analysis_file_name = options.output_dir + options.analysis_file_name;
 
-    BenchAPRHelper benchAPRHelper;
+    APRBenchHelper benchAPRHelper;
     benchAPRHelper.initialize_benchmark(options);
 
     /*
