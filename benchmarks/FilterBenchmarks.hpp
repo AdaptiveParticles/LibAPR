@@ -8,7 +8,7 @@
 #include <algorithm>
 #include <iostream>
 
-#include "BenchAPRHelper.hpp"
+#include "APRBenchHelper.hpp"
 #include "numerics/APRFilter.hpp"
 
 #ifdef APR_USE_CUDA

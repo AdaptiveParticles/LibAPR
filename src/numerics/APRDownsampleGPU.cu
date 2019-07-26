@@ -42,7 +42,6 @@ __global__ void down_sample_avg(const uint64_t* level_xz_vec,
     const int block = threadIdx.x/32;
     const int local_th = (threadIdx.x%32);
 
-
     __shared__ size_t global_index_begin_0_s[4];
     __shared__ size_t global_index_end_0_s[4];
 
