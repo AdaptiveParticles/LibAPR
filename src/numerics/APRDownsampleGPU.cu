@@ -563,22 +563,22 @@ void downsample_avg_wrapper(GPUAccessHelper& access, GPUAccessHelper& tree_acces
 
         } else {
 
-            down_sample_avg_interior<< < blocks_l, threads_l >> >
-                                                   (access.get_level_xz_vec_ptr(),
-                                                           access.get_xz_end_vec_ptr(),
-                                                           access.get_y_vec_ptr(),
-                                                           input_gpu,
-                                                           tree_access.get_level_xz_vec_ptr(),
-                                                           tree_access.get_xz_end_vec_ptr(),
-                                                           tree_access.get_y_vec_ptr(),
-                                                           tree_data_gpu,
-                                                           access.z_num(level),
-                                                           access.x_num(level),
-                                                           access.y_num(level),
-                                                           tree_access.z_num(level-1),
-                                                           tree_access.x_num(level-1),
-                                                           tree_access.y_num(level-1),
-                                                           level);
+//            down_sample_avg_interior<< < blocks_l, threads_l >> >
+//                                                   (access.get_level_xz_vec_ptr(),
+//                                                           access.get_xz_end_vec_ptr(),
+//                                                           access.get_y_vec_ptr(),
+//                                                           input_gpu,
+//                                                           tree_access.get_level_xz_vec_ptr(),
+//                                                           tree_access.get_xz_end_vec_ptr(),
+//                                                           tree_access.get_y_vec_ptr(),
+//                                                           tree_data_gpu,
+//                                                           access.z_num(level),
+//                                                           access.x_num(level),
+//                                                           access.y_num(level),
+//                                                           tree_access.z_num(level-1),
+//                                                           tree_access.x_num(level-1),
+//                                                           tree_access.y_num(level-1),
+//                                                           level);
         }
         //cudaDeviceSynchronize();
     }
