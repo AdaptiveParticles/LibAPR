@@ -187,11 +187,11 @@ timings isotropic_convolve_333(GPUAccessHelper& access, GPUAccessHelper& tree_ac
     assert(input.size() == access.total_number_particles());
     assert(stencil.size() == 27);
 
-    const int blockSize = 12;
+    const int blockSize = 8;
 
     timings ret;
     ret.lvl_timings.resize(access.level_max() - access.level_min() + 1);
-    
+
     APRTimer timer(false);
     APRTimer timer2(false);
 
@@ -245,7 +245,7 @@ timings isotropic_convolve_333(GPUAccessHelper& access, GPUAccessHelper& tree_ac
                                             access.x_num(level));
 
         threads_l = {blockSize+2, 1, blockSize+2};
-        
+
         if (level == access.level_min()) {
             conv_min_333<blockSize> << < blocks_l, threads_l >> >( access.get_level_xz_vec_ptr(),
                                                         access.get_xz_end_vec_ptr(),
@@ -773,7 +773,7 @@ __global__ void conv_max_333(const uint64_t* level_xz_vec,
             float neighbour_sum = 0;
             LOCALPATCHCONV333(particle_data_output, global_index_begin +
                               y_update_index[threadIdx.z][threadIdx.x][(j + 2 - filter_offset) % 2],
-                              threadIdx.z, threadIdx.x, j - 1, neighbour_sum);
+                              threadIdx.z, threadIdx.x, j - 1, neighbour_sum)
 
         }
     }
@@ -792,8 +792,10 @@ __global__ void conv_max_333(const uint64_t* level_xz_vec,
 }
 
 
+
 template<unsigned int blockSize, typename inputType, typename outputType, typename stencilType, typename treeType>
-__global__ void conv_interior_333(const uint64_t* level_xz_vec,
+__global__ void __launch_bounds__(100, 16)
+conv_interior_333(const uint64_t* level_xz_vec,
                                   const uint64_t* xz_end_vec,
                                   const uint16_t* y_vec,
                                   const inputType* input_particles,
@@ -818,15 +820,11 @@ __global__ void conv_interior_333(const uint64_t* level_xz_vec,
 
     const unsigned int N = 4;
 
-    int x_index = (blockSize * blockIdx.x + threadIdx.x - 1);
-    int z_index = (blockSize * blockIdx.z + threadIdx.z - 1);
+    const int x_index = (blockSize * blockIdx.x + threadIdx.x - 1);
+    const int z_index = (blockSize * blockIdx.z + threadIdx.z - 1);
 
 
-    bool not_ghost = false;
-
-    if ((threadIdx.x > 0) && (threadIdx.x < (blockDim.x-1)) && (threadIdx.z > 0) && (threadIdx.z < (blockDim.z-1))) {
-        not_ghost = true;
-    }
+    const bool not_ghost = (threadIdx.x > 0) && (threadIdx.x < (blockDim.x-1)) && (threadIdx.z > 0) && (threadIdx.z < (blockDim.z-1));
 
     __shared__
     stencilType local_patch[blockSize+2][blockSize+2][N]; // This is block wise shared memory this is assuming an 8*8 block with pad()
@@ -851,20 +849,13 @@ __global__ void conv_interior_333(const uint64_t* level_xz_vec,
         return; //out of bounds
     }
 
-    int x_index_p = (blockSize * blockIdx.x + threadIdx.x - 1) / 2;
-    int z_index_p = (blockSize * blockIdx.z + threadIdx.z - 1) / 2;
-
-
-    std::size_t global_index_begin;
-    std::size_t global_index_end;
-
-    std::size_t global_index_begin_p;
-    std::size_t global_index_end_p;
+    const int x_index_p = (blockSize * blockIdx.x + threadIdx.x - 1) / 2;
+    const int z_index_p = (blockSize * blockIdx.z + threadIdx.z - 1) / 2;
 
     // current level
     std::size_t xz_start = level_xz_vec[level] + (x_index) + (z_index) * x_num;
-    global_index_begin = xz_end_vec[xz_start - 1];
-    global_index_end = xz_end_vec[xz_start];
+    const std::size_t global_index_begin = xz_end_vec[xz_start - 1];
+    const std::size_t global_index_end = xz_end_vec[xz_start];
 
     std::size_t particle_index_l = global_index_begin;
     std::uint16_t y_l = y_vec[particle_index_l];
@@ -872,8 +863,8 @@ __global__ void conv_interior_333(const uint64_t* level_xz_vec,
 
     // parent level, level - 1, one resolution lower (coarser)
     xz_start = level_xz_vec[level - 1] + (x_index_p) + (z_index_p) * x_num_parent;
-    global_index_begin_p = xz_end_vec[xz_start - 1];
-    global_index_end_p = xz_end_vec[xz_start];
+    const size_t global_index_begin_p = xz_end_vec[xz_start - 1];
+    const size_t global_index_end_p = xz_end_vec[xz_start];
 
     //parent level variables
     std::size_t particle_index_p = global_index_begin_p;
@@ -888,8 +879,8 @@ __global__ void conv_interior_333(const uint64_t* level_xz_vec,
 
     xz_start = level_xz_vec_tree[level] + (x_index) + (z_index) * x_num;
 
-    std::size_t global_index_begin_t = xz_end_vec_tree[xz_start - 1];
-    std::size_t global_index_end_t = xz_end_vec_tree[xz_start];
+    const std::size_t global_index_begin_t = xz_end_vec_tree[xz_start - 1];
+    const std::size_t global_index_end_t = xz_end_vec_tree[xz_start];
 
     std::size_t particle_index_t = global_index_begin_t;
     std::uint16_t y_t = y_vec_tree[particle_index_t];
@@ -901,7 +892,7 @@ __global__ void conv_interior_333(const uint64_t* level_xz_vec,
     }
 
     if (global_index_begin_p == global_index_end_p) {
-        y_p = y_num + 1;//no particles don't do anything
+        y_p = y_num_parent + 1;//no particles don't do anything
     }
 
     if (global_index_begin == global_index_end) {
@@ -926,7 +917,6 @@ __global__ void conv_interior_333(const uint64_t* level_xz_vec,
 
     const int filter_offset = 1;
 
-
     for (int j = 0; j < (y_num); ++j) {
 
         //Update steps for P->T
@@ -950,7 +940,6 @@ __global__ void conv_interior_333(const uint64_t* level_xz_vec,
         } else {
             y_update_flag[threadIdx.z][threadIdx.x][j % 2] = 0;
         }
-
 
         //update at current level
         if ((y_l <= j) && ((particle_index_l + 1) < global_index_end)) {

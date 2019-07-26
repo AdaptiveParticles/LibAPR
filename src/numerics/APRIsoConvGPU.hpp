@@ -7,6 +7,12 @@
 
 #include "APRDownsampleGPU.hpp"
 
+#ifdef __CUDACC__
+    #define L(x,y) __launch_bounds__(x,y)
+#else
+    #define L(x,y)
+#endif
+
 struct timings {
     float transfer_H2D = 0;
     float fill_tree = 0;
@@ -64,7 +70,8 @@ __global__ void conv_max_333(const uint64_t* level_xz_vec,
 
 
 template<unsigned int blockSize, typename inputType, typename outputType, typename stencilType, typename treeType>
-__global__ void conv_interior_333(const uint64_t* level_xz_vec,
+__global__ void L(100, 16)
+conv_interior_333(const uint64_t* level_xz_vec,
                                   const uint64_t* xz_end_vec,
                                   const uint16_t* y_vec,
                                   const inputType* input_particles,
