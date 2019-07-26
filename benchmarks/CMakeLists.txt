@@ -8,5 +8,9 @@ endmacro(buildTarget)
 buildTarget(BenchIteration BenchIteration.cpp)
 buildTarget(BenchPartData BenchPartData.cpp)
 buildTarget(BenchFilter BenchFilter.cpp)
+
 buildTarget(BenchPipeline BenchPipeline.cpp)
 buildTarget(BenchIO BenchIO.cpp)
+
+buildTarget(BenchFilterCuda BenchFilterCuda.cpp)
+
