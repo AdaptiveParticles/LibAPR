@@ -15,6 +15,16 @@
 
 #include "GPUAPR.hpp"
 
+#define gpuErrchk(ans) { gpuAssert((ans), __FILE__, __LINE__); }
+
+inline void gpuAssert(cudaError_t code, const char *file, int line, bool abort=true)
+{
+    if (code != cudaSuccess)
+    {
+        fprintf(stderr,"GPUassert: %s %s %d\n", cudaGetErrorString(code), file, line);
+        if (abort) exit(code);
+    }
+}
 
 //template<int chunkSize, typename inputType, typename outputType>
 //__global__ void iterate_ds_333(const uint64_t* level_xz_vec,
@@ -101,7 +111,7 @@
 //    }
 //}
 
-template<int chunkSize, int numRows, typename inputType, typename outputType>
+template<int numRows, int chunkSize, typename inputType, typename outputType>
 __global__ void chunked_iterate(const uint64_t* level_xz_vec,
                                const uint64_t* xz_end_vec,
                                const uint16_t* y_vec,
@@ -219,7 +229,7 @@ double bench_chunked_iterate(GPUAccessHelper& access, int num_rep) {
 
     timer.start_timer("chunked_iteration");
 
-    const int chunkSize = nthreads/blockSize;
+    const int chunkSize = nthreads/(blockSize*blockSize);
 
     for (int r = 0; r < num_rep; ++r) {
 
@@ -241,6 +251,11 @@ double bench_chunked_iterate(GPUAccessHelper& access, int num_rep) {
                                                                                       access.x_num(level),
                                                                                       access.y_num(level),
                                                                                       level);
+
+#ifdef DEBUG
+            gpuErrchk( cudaPeekAtLastError() )
+            gpuErrchk( cudaDeviceSynchronize() )
+#endif
         }
     }
     cudaDeviceSynchronize();
@@ -296,6 +311,11 @@ double bench_sequential_iterate(GPUAccessHelper& access, int num_rep) {
                                                       access.x_num(level),
                                                       access.y_num(level),
                                                       level);
+
+#ifdef DEBUG
+            gpuErrchk( cudaPeekAtLastError() )
+            gpuErrchk( cudaDeviceSynchronize() )
+#endif
         }
     }
     cudaDeviceSynchronize();
