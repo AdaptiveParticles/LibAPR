@@ -25,12 +25,16 @@ void downsample_avg(GPUAccessHelper& access, GPUAccessHelper& tree_access, std::
 template<typename inputType, typename treeType>
 void downsample_avg_wrapper(GPUAccessHelper&, GPUAccessHelper&, inputType*, treeType*);
 
+template<typename inputType, typename treeType>
+void downsample_avg_alt(GPUAccessHelper& access, GPUAccessHelper& tree_access, inputType* input_gpu, treeType* tree_data_gpu);
 
 template<typename inputType, typename treeType>
 void downsample_avg(GPUAccessHelper& access, GPUAccessHelper& tree_access, inputType* input_gpu, treeType* tree_data_gpu) {
 
-    downsample_avg_wrapper(access, tree_access, input_gpu, tree_data_gpu);
+    downsample_avg_alt(access, tree_access, input_gpu, tree_data_gpu);
 }
+
+
 
 
 /// force instantiation for some different type combinations

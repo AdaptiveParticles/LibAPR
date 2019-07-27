@@ -338,18 +338,51 @@ TEST_F(CreatDiffDimsSphereTest, TEST_GPU_DOWNSAMPLE) {
 
     size_t successes = 0;
 
-#ifdef HAVE_OPENMP
-//#pragma omp parallel for reduction(+: successes)
-#endif
-    for(size_t i = 0; i < tree_data.size(); ++i){
-        if(std::abs(tree_data[i] - tree_data_cpu[i]) < 1e-2) {
-            successes++;
-        } else {
-            std::cout << "gpu: " << tree_data[i] << " cpu: " << tree_data_cpu[i] << " at part " << i << std::endl;
+
+
+    auto tree_it = test_data.apr.tree_iterator();
+
+
+    uint64_t counter = 0;
+    uint64_t rows = 0;
+    uint64_t rows_filled = 0;
+
+    for (int l = tree_it.level_min(); l <= tree_it.level_max(); ++l) {
+        for (int z = 0; z < tree_it.z_num(l); ++z) {
+            for (int x = 0; x < tree_it.x_num(l); ++x) {
+
+                bool filled = false;
+
+                for (tree_it.begin(l,z,x); tree_it < tree_it.end(); tree_it++) {
+                    if(std::abs(tree_data[tree_it] - tree_data_cpu[tree_it]) < 1e-2) {
+
+                        successes++;
+                        filled=true;
+                    } else {
+                        std::cout << "gpu: " << tree_data[tree_it] << " cpu: " << tree_data_cpu[tree_it] << " at part " << tree_it << std::endl;
+                        std::cout << "x: " << x << " z: " << z << " y: " << tree_it.y() << std::endl;
+                    }
+                    counter++;
+                }
+
+                if(tree_it.begin(l,z,x) != tree_it.end()){
+                    rows++;
+                    if(filled){
+                        rows_filled++;
+                    } else {
+                        std::cout << rows << std::endl;
+                        std::cout << "x: " << x << " z: " << z << std::endl;
+                    }
+                }
+
+            }
         }
     }
 
-    ASSERT_EQ(successes, tree_data.size());
+    std::cout << rows << std::endl;
+    std::cout << rows_filled << std::endl;
+
+    ASSERT_EQ(successes, counter);
 }
 
 
