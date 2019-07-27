@@ -13,7 +13,6 @@ BenchIteration
 
 )";
 
-#include "APRBenchHelper.hpp"
 #include "FilterBenchmarks.hpp"
 
 int main(int argc, char **argv) {
