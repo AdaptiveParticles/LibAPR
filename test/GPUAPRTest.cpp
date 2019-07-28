@@ -71,7 +71,11 @@ public:
 };
 
 
-
+class CreateCR1 : public CreateGPUAPRTest
+{
+public:
+    void SetUp() override;
+};
 
 
 std::string get_source_directory_apr(){
@@ -146,6 +150,21 @@ void CreatDiffDimsSphereTest::SetUp(){
     test_data.filename = get_source_directory_apr() + "files/Apr/sphere_diff_dims/sphere_original.tif";
     test_data.output_dir = get_source_directory_apr() + "files/Apr/sphere_diff_dims/";
     test_data.output_name = "sphere_210";
+}
+
+
+void CreateCR1::SetUp(){
+
+
+    std::string file_name = get_source_directory_apr() + "../benchmarks/files/cr_1.apr";
+    test_data.apr_filename = file_name;
+
+    APRFile aprFile;
+    aprFile.open(file_name,"READ");
+    aprFile.set_read_write_tree(false);
+    aprFile.read_apr(test_data.apr);
+    aprFile.read_particles(test_data.apr,"particle_intensities",test_data.particles_intensities);
+    aprFile.close();
 }
 
 #ifdef APR_USE_CUDA
@@ -355,7 +374,7 @@ TEST_F(CreatDiffDimsSphereTest, TEST_GPU_DOWNSAMPLE) {
 }
 
 
-TEST_F(CreatDiffDimsSphereTest, TEST_GPU_CONV_333) {
+TEST_F(CreateCR1, TEST_GPU_CONV_333) {
 
     auto gpuData = test_data.apr.gpuAPRHelper();
     auto gpuDataTree = test_data.apr.gpuTreeHelper();
@@ -366,7 +385,7 @@ TEST_F(CreatDiffDimsSphereTest, TEST_GPU_CONV_333) {
     std::vector<double> tree_data;
     std::vector<double> output;
     std::vector<double> stencil;
-    stencil.resize(27);
+    stencil.resize(27, 0);
 
     double sum = 13.0 * 27;
     for(int i = 0; i < 27; ++i) {
@@ -390,12 +409,21 @@ TEST_F(CreatDiffDimsSphereTest, TEST_GPU_CONV_333) {
     size_t pass_count = 0;
     bool success = true;
 
-    for(size_t i = 0; i < test_data.apr.total_number_particles(); ++i) {
-        if( std::abs(output[i] - output_gt[i]) < 1e-2) {
-            pass_count++;
-        } else {
-            success = false;
-            std::cout << "Expected " << output_gt[i] << " but received " << output[i] << " at particle index " << i << std::endl;
+    auto it = test_data.apr.iterator();
+
+    for(int level = it.level_max(); level >= it.level_min(); --level) {
+        for(int z = 0; z < it.z_num(level); ++z) {
+            for(int x = 0; x < it.x_num(level); ++x) {
+                for(it.begin(level, z, x); it < it.end(); ++it) {
+                    if(std::abs(output[it] - output_gt[it]) < 1e-2) {
+                        pass_count++;
+                    } else {
+                        success= false;
+                        std::cout << "Expected " << output_gt[it] << " but received " << output[it] <<
+                        " at particle index " << it << " (level, z, x, y) = (" << level << ", " << z << ", " << x << ", " << it.y() << ")" << std::endl;
+                    }
+                }
+            }
         }
     }
 
@@ -485,6 +513,7 @@ TEST_F(CreatDiffDimsSphereTest, TEST_GPU_CONV_PIXEL_555) {
         stencil.mesh[i] = ((double) i) / sum;
     }
 
+    convolve_pixel_555(test_data.img_original, output, stencil);
 
     PixelData<float> output_gt;
 

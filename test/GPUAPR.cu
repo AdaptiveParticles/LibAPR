@@ -15,15 +15,17 @@
 
 #include "GPUAPR.hpp"
 
-#define gpuErrchk(ans) { gpuAssert((ans), __FILE__, __LINE__); }
+#define error_check(ans) { gpuAssert((ans), __FILE__, __LINE__); }
 
 inline void gpuAssert(cudaError_t code, const char *file, int line, bool abort=true)
 {
+#ifdef DEBUGCUDA
     if (code != cudaSuccess)
     {
         fprintf(stderr,"GPUassert: %s %s %d\n", cudaGetErrorString(code), file, line);
         if (abort) exit(code);
     }
+#endif
 }
 
 //template<int chunkSize, typename inputType, typename outputType>
@@ -150,9 +152,6 @@ __global__ void chunked_iterate(const uint64_t* level_xz_vec,
     const size_t global_index_begin_0 = global_index_begin_0_s[row];
     const size_t global_index_end_0 = global_index_end_0_s[row];
 
-    //__shared__ float patch_cache[9][chunkSize];
-    //patch_cache[row][threadIdx.y] = 0;
-
     float current_val = 0;
     int current_y = -1;
 
@@ -161,10 +160,12 @@ __global__ void chunked_iterate(const uint64_t* level_xz_vec,
         current_y = y_vec[global_index_begin_0 + threadIdx.y];
     }
 
-    int sparse_block = 0;
-    const int number_y_chunk = (y_num + chunkSize) / chunkSize;
+    const int chunk_start = y_vec[global_index_begin_0] / chunkSize;
+    const int chunk_end = fminf((int) y_vec[global_index_end_0]/chunkSize + 2, (y_num + chunkSize - 1) / chunkSize);
 
-    for(int y_chunk = 0; y_chunk < number_y_chunk; ++y_chunk) {
+    int sparse_block = 0;
+
+    for(int y_chunk = chunk_start; y_chunk < chunk_end; ++y_chunk) {
 
         if(current_y < y_chunk*chunkSize) {
             sparse_block++;
@@ -252,10 +253,7 @@ double bench_chunked_iterate(GPUAccessHelper& access, int num_rep) {
                                                                                       access.y_num(level),
                                                                                       level);
 
-#ifdef DEBUG
-            gpuErrchk( cudaPeekAtLastError() )
-            gpuErrchk( cudaDeviceSynchronize() )
-#endif
+            error_check( cudaPeekAtLastError() )
         }
     }
     cudaDeviceSynchronize();
@@ -312,10 +310,7 @@ double bench_sequential_iterate(GPUAccessHelper& access, int num_rep) {
                                                       access.y_num(level),
                                                       level);
 
-#ifdef DEBUG
-            gpuErrchk( cudaPeekAtLastError() )
-            gpuErrchk( cudaDeviceSynchronize() )
-#endif
+            error_check( cudaPeekAtLastError() )
         }
     }
     cudaDeviceSynchronize();
@@ -366,6 +361,8 @@ void compute_spatial_info_gpu(GPUAccessHelper& access, std::vector<uint16_t>& in
                 access.x_num(level),
                 access.y_num(level),
                 level);
+
+        error_check( cudaPeekAtLastError() )
     }
     output_gpu.copyD2H();
 }
@@ -388,17 +385,23 @@ void run_simple_test(std::vector<uint64_t>& temp, uint64_t size) {
     ScopedCudaMemHandler<uint64_t*, H2D> temp_gpu(temp.data(), size);
     temp_gpu.copyH2D();
 
+    error_check( cudaPeekAtLastError() )
+
     std::cout << "gpu size: " << temp_gpu.getSize() << " cpu size: " << temp.size() << std::endl;
 
-    cudaStream_t stream;
-    cudaStreamCreate(&stream);
+    //cudaStream_t stream;
+    //cudaStreamCreate(&stream);
 
     dim3 threadsPerBlock(64);
     dim3 numBlocks((temp.size() + threadsPerBlock.x - 1) / threadsPerBlock.x);
 
     simpleKernel << < numBlocks, threadsPerBlock >> > (temp_gpu.get(), size);
 
+    error_check( cudaPeekAtLastError() )
+
     temp_gpu.copyD2H();
+
+    error_check( cudaPeekAtLastError() )
 }
 
 
@@ -431,6 +434,8 @@ void check_access_vectors(GPUAccessHelper& access, std::vector<uint16_t>& y_vec_
     check_array_xz.copyH2D();
     check_array_lvl.copyH2D();
 
+    error_check( cudaPeekAtLastError() )
+
     cudaStream_t stream;
     cudaStreamCreate(&stream);
 
@@ -439,13 +444,21 @@ void check_access_vectors(GPUAccessHelper& access, std::vector<uint16_t>& y_vec_
 
     copyKernel<< < numBlocks, threadsPerBlock >> > (access.get_level_xz_vec_ptr(), check_array_lvl.get(), level_xz_vec_out.size());
 
+    error_check( cudaPeekAtLastError() )
+
     numBlocks.x = (xz_end_vec_out.size() + threadsPerBlock.x - 1) / threadsPerBlock.x;
     copyKernel<< < numBlocks, threadsPerBlock >> > (access.get_xz_end_vec_ptr(), check_array_xz.get(), xz_end_vec_out.size());
+
+    error_check( cudaPeekAtLastError() )
 
     numBlocks.x = (y_vec_out.size() + threadsPerBlock.x - 1) / threadsPerBlock.x;
     copyKernel<< < numBlocks, threadsPerBlock >> > (access.get_y_vec_ptr(), check_array_y.get(), y_vec_out.size());
 
+    error_check( cudaPeekAtLastError() )
+
     check_array_y.copyD2H();
     check_array_xz.copyD2H();
     check_array_lvl.copyD2H();
+
+    error_check( cudaPeekAtLastError() )
 }
