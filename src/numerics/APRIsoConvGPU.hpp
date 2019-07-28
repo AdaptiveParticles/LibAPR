@@ -70,7 +70,7 @@ __global__ void conv_max_333(const uint64_t* level_xz_vec,
 
 
 template<unsigned int blockSize, typename inputType, typename outputType, typename stencilType, typename treeType>
-__global__ void L(100, 16)
+__global__ void //L(100, 16)
 conv_interior_333(const uint64_t* level_xz_vec,
                                   const uint64_t* xz_end_vec,
                                   const uint16_t* y_vec,
@@ -84,7 +84,6 @@ conv_interior_333(const uint64_t* level_xz_vec,
                                   const int z_num,
                                   const int x_num,
                                   const int y_num,
-                                  const int z_num_parent,
                                   const int x_num_parent,
                                   const int y_num_parent,
                                   const int level,
@@ -210,5 +209,20 @@ __global__ void conv_max_333_alt(const uint64_t* level_xz_vec,
                                  const int z_num_parent,
                                  const int x_num_parent,
                                  const int level);
+
+
+template<unsigned int chunkSize, unsigned int blockSize, typename inputType, typename outputType, typename stencilType>
+__global__ void conv_max_333_chunked(const uint64_t* level_xz_vec,
+                                     const uint64_t* xz_end_vec,
+                                     const uint16_t* y_vec,
+                                     const inputType* input_particles,
+                                     outputType* output_particles,
+                                     const stencilType* stencil,
+                                     const int z_num,
+                                     const int x_num,
+                                     const int y_num,
+                                     const int z_num_parent,
+                                     const int x_num_parent,
+                                     const int level,const int* offset_ind);
 
 #endif //LIBAPR_APRISOCONVGPU_HPP

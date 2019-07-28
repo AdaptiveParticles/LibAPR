@@ -264,11 +264,11 @@ inline void bench_apr_convolve_cuda(APR& apr,ParticleData<partsType>& parts,int 
             component_times.run_kernels += tmp.run_kernels;
             component_times.fill_tree += tmp.fill_tree;
             component_times.transfer_D2H += tmp.transfer_D2H;
-            
+
             for(int i=0; i < component_times.lvl_timings.size(); ++i) {
                 component_times.lvl_timings[i] += tmp.lvl_timings[i];
             }
-            
+
         }
     } else if(stencil_size == 5) {
         for (int r = 0; r < num_rep; ++r) {
@@ -296,7 +296,7 @@ inline void bench_apr_convolve_cuda(APR& apr,ParticleData<partsType>& parts,int 
     for(int i = 0; i < component_times.lvl_timings.size(); ++i) {
         analysisData.add_float_data(name + "_conv_dlvl_" + std::to_string(i), component_times.lvl_timings[i] / num_rep);
     }
-    
+
 }
 
 
