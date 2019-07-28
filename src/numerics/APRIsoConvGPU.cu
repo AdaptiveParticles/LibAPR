@@ -174,6 +174,37 @@ timings convolve_pixel_555(PixelData<inputType>& input, PixelData<outputType>& o
     return ret;
 }
 
+void compute_ne_rows(GPUAccessHelper& tree_access,std::vector<int>& ne_counter,std::vector<int>& ne_rows) {
+    ne_counter.resize(tree_access.level_max() + 3);
+
+    int z = 0;
+    int x = 0;
+
+    for (int level = (tree_access.level_min() + 1); level <= (tree_access.level_max() + 1); ++level) {
+
+        auto level_start = tree_access.linearAccess->level_xz_vec[level - 1];
+
+        ne_counter[level] = ne_rows.size();
+
+        for (z = 0; z < tree_access.z_num(level - 1); z++) {
+            for (x = 0; x < tree_access.x_num(level - 1); ++x) {
+
+                auto offset = x + z * tree_access.x_num(level - 1);
+                auto xz_start = level_start + offset;
+
+//intialize
+                auto begin_index = tree_access.linearAccess->xz_end_vec[xz_start - 1];
+                auto end_index = tree_access.linearAccess->xz_end_vec[xz_start];
+
+                if (begin_index < end_index) {
+                    ne_rows.push_back(x + z * tree_access.x_num(level - 1));
+                }
+            }
+        }
+    }
+    ne_counter.back() = ne_rows.size();
+}
+
 
 template<typename inputType, typename outputType, typename stencilType, typename treeType>
 timings isotropic_convolve_333(GPUAccessHelper& access, GPUAccessHelper& tree_access, std::vector<inputType>& input,
@@ -200,6 +231,12 @@ timings isotropic_convolve_333(GPUAccessHelper& access, GPUAccessHelper& tree_ac
     output.resize(access.total_number_particles());
     timer.stop_timer();
 
+    std::vector<int> ne_rows; //non empty rows
+    std::vector<int> ne_counter; //non empty rows
+
+    compute_ne_rows(tree_access,ne_counter,ne_rows);
+    ScopedCudaMemHandler<int*, JUST_ALLOC> ne_rows_gpu(ne_rows.data(), ne_rows.size());
+
     timer.start_timer("transfer H2D");
 
     /// allocate GPU memory
@@ -211,6 +248,9 @@ timings isotropic_convolve_333(GPUAccessHelper& access, GPUAccessHelper& tree_ac
     size_t max_num_blocks = ((access.x_num(access.level_max()) + blockSize - 1) / blockSize) * ((access.z_num(access.level_max()) + blockSize - 1) / blockSize);
     ScopedCudaMemHandler<bool*, JUST_ALLOC> blocks_empty(NULL, max_num_blocks);
 
+
+    ne_rows_gpu.copyH2D();
+
     /// copy input and stencil to the GPU
     input_gpu.copyH2D();
     stencil_gpu.copyH2D();
@@ -221,7 +261,7 @@ timings isotropic_convolve_333(GPUAccessHelper& access, GPUAccessHelper& tree_ac
 
     /// Fill the APR Tree by average downsampling
     timer.start_timer("fill tree");
-    downsample_avg(access, tree_access, input_gpu.get(), tree_data_gpu.get());
+    downsample_avg_alt(access, tree_access, input_gpu.get(), tree_data_gpu.get(),ne_rows_gpu.get(),ne_counter);
     cudaDeviceSynchronize();
     timer.stop_timer();
 
@@ -438,6 +478,13 @@ timings isotropic_convolve_555(GPUAccessHelper& access, GPUAccessHelper& tree_ac
     output.resize(access.total_number_particles());
     timer.stop_timer();
 
+
+    std::vector<int> ne_rows; //non empty rows
+    std::vector<int> ne_counter; //non empty rows
+
+    compute_ne_rows(tree_access,ne_counter,ne_rows);
+    ScopedCudaMemHandler<int*, JUST_ALLOC> ne_rows_gpu(ne_rows.data(), ne_rows.size());
+
     timer.start_timer("transfer H2D");
 
     /// allocate GPU memory
@@ -450,6 +497,8 @@ timings isotropic_convolve_555(GPUAccessHelper& access, GPUAccessHelper& tree_ac
     ScopedCudaMemHandler<bool*, JUST_ALLOC> blocks_empty(NULL, max_num_blocks);
 
     /// copy input and stencil to the GPU
+    ne_rows_gpu.copyH2D();
+
     input_gpu.copyH2D();
     stencil_gpu.copyH2D();
 
@@ -460,7 +509,7 @@ timings isotropic_convolve_555(GPUAccessHelper& access, GPUAccessHelper& tree_ac
 
     /// Fill the APR Tree by average downsampling
     timer.start_timer("fill tree");
-    downsample_avg(access, tree_access, input_gpu.get(), tree_data_gpu.get());
+    downsample_avg(access, tree_access, input_gpu.get(), tree_data_gpu.get(),ne_rows_gpu.get(),ne_counter);
     cudaDeviceSynchronize();
     timer.stop_timer();
 
