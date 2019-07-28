@@ -42,6 +42,7 @@ void GPUAccess::init_level_xz_vec(std::vector<uint64_t>& level_xz_vec){
     data->level_xz_vec.initialize(level_xz_vec.data(),level_xz_vec.size());
 }
 
+
 void GPUAccess::copy2Device(){
     data->y_vec.copyH2D();
     data->xz_end_vec.copyH2D();
@@ -70,6 +71,8 @@ uint64_t* GPUAccessHelper::get_level_xz_vec_ptr(){
 uint64_t* GPUAccessHelper::get_xz_end_vec_ptr(){
     return gpuAccess->data->xz_end_vec.get();
 }
+
+
 
 #include "data_structures/APR/particles/ParticleDataGpu.hpp"
 

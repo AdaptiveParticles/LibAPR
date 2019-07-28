@@ -19,6 +19,8 @@ protected:
 
 public:
 
+
+
     void copy2Device();
     void copy2Host();
 
@@ -48,6 +50,7 @@ class GPUAccessHelper {
 
 public:
 
+
     GPUAccess* gpuAccess;
     LinearAccess* linearAccess;
 
@@ -56,6 +59,8 @@ public:
     uint16_t* get_y_vec_ptr();
     uint64_t* get_xz_end_vec_ptr();
     uint64_t* get_level_xz_vec_ptr();
+
+
 
     void init_gpu(){
         gpuAccess->init_y_vec(linearAccess->y_vec);
