@@ -2210,7 +2210,7 @@ __global__ void conv_max_333_chunked(const uint64_t* level_xz_vec,
                 y_0 = y_num*2;
             }
         }
-        __syncthreads();
+        //__syncthreads();
         if( ((2*y_p+y_offset_p) < (y_chunk*(chunkSizeInternal) - 1) )) {
             sparse_block_p++;
             if( (global_index_begin_p_s[row] + (sparse_block_p*(chunkSize/2) + threadIdx.y/2)) < global_index_end_p_s[row] ) {
@@ -2220,11 +2220,11 @@ __global__ void conv_max_333_chunked(const uint64_t* level_xz_vec,
                 y_p = y_num*2;
             }
         }
-        __syncthreads();
+        //__syncthreads();
         if( (y_0 >= ((y_chunk*(chunkSizeInternal) - 1))) && (y_0 <= ((y_chunk+1)*(chunkSizeInternal))) ) {
             local_patch[threadIdx.z][threadIdx.x][(y_0+1) % chunkSize] = f_0;
         }
-        __syncthreads();
+        //__syncthreads();
         if( ((2*y_p + y_offset_p) >= ((y_chunk*(chunkSizeInternal) - 1))) && ((2*y_p+y_offset_p) <= ((y_chunk+1)*(chunkSizeInternal))) ) {
             local_patch[threadIdx.z][threadIdx.x][(2*y_p + y_offset_p + 1) % chunkSize] = f_p;
         }
@@ -2233,7 +2233,7 @@ __global__ void conv_max_333_chunked(const uint64_t* level_xz_vec,
 
         if( (y_0 >= (y_chunk*(chunkSizeInternal))) && (y_0 < ((y_chunk+1)*(chunkSizeInternal))) ) {
             float neigh_sum = 0;
-            LOCALPATCHCONV333(output_particles, update_index, threadIdx.z, threadIdx.x, y_0+1, neigh_sum)
+            //LOCALPATCHCONV333(output_particles, update_index, threadIdx.z, threadIdx.x, y_0+1, neigh_sum)
 
         }
 
