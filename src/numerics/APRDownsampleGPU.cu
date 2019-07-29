@@ -129,6 +129,8 @@ __global__ void down_sample_avg_new(const uint64_t* level_xz_vec,
     if ((global_index_begin_0 + local_th) < global_index_end_0) {
         current_val = input_particles[global_index_begin_0 + local_th];
         current_y =  y_vec[global_index_begin_0 + local_th];
+    } else {
+        current_y = INT32_MAX;
     }
 
 
@@ -138,6 +140,8 @@ __global__ void down_sample_avg_new(const uint64_t* level_xz_vec,
 
             current_y_p = y_vec_tree[global_index_begin_p + local_th];
 
+        } else{
+            current_y_p = INT32_MAX;
         }
 
     }
@@ -162,6 +166,8 @@ __global__ void down_sample_avg_new(const uint64_t* level_xz_vec,
                 current_val = input_particles[sparse_block * 32 + global_index_begin_0 + local_th];
 
                 current_y = y_vec[sparse_block * 32 + global_index_begin_0 + local_th];
+            } else{
+                current_y = INT32_MAX;
             }
         }
 
@@ -185,6 +191,8 @@ __global__ void down_sample_avg_new(const uint64_t* level_xz_vec,
 
                     current_y_p = y_vec_tree[sparse_block_p * 32 + global_index_begin_p + local_th];
 
+                } else {
+                    current_y_p = INT32_MAX;
                 }
 
             }
@@ -529,6 +537,8 @@ __global__ void down_sample_avg_interior(const uint64_t* level_xz_vec,
 
         current_y_t = y_vec_tree[global_index_begin_t[block] + local_th];
         current_val_t = particle_data_output[global_index_begin_t[block] + local_th];
+    } else{
+        current_y_t = INT32_MAX;
     }
 
     if((global_index_begin_0[block] == global_index_end_0[block]) && (global_index_begin_t[block] == global_index_end_t[block])){
@@ -564,6 +574,8 @@ __global__ void down_sample_avg_interior(const uint64_t* level_xz_vec,
 
             current_y_p = y_vec_tree[global_index_begin_p[block] + local_th];
 
+        } else{
+            current_y_p = INT32_MAX;
         }
     }
 
@@ -594,6 +606,8 @@ __global__ void down_sample_avg_interior(const uint64_t* level_xz_vec,
 
                 current_val = input_particles[sparse_block * 32 + global_index_begin_0[block] + local_th];
                 current_y = y_vec[sparse_block * 32 + global_index_begin_0[block] + local_th];
+            } else {
+                current_y = INT32_MAX;
             }
         }
 
@@ -604,6 +618,8 @@ __global__ void down_sample_avg_interior(const uint64_t* level_xz_vec,
 
                 current_val_t = particle_data_output[sparse_block_t * 32 + global_index_begin_t[block] + local_th];
                 current_y_t = y_vec_tree[sparse_block_t * 32 + global_index_begin_t[block] + local_th];
+            } else {
+                current_y_t = INT32_MAX;
             }
         }
         // current_y_t = y_cache_t[block][local_th];
@@ -640,6 +656,8 @@ __global__ void down_sample_avg_interior(const uint64_t* level_xz_vec,
                     //y_cache[4][local_th] = particle_y_child[sparse_block_p * 32 + global_index_begin_p + local_th];
                     current_y_p = y_vec_tree[sparse_block_p * 32 + global_index_begin_p[block] + local_th];
 
+                } else {
+                    current_y_p = INT32_MAX;
                 }
             }
         }
@@ -784,6 +802,8 @@ __global__ void down_sample_avg_interior_new(const uint64_t* level_xz_vec,
         current_y = y_vec[global_index_begin_0[block] + local_th];
         current_val = input_particles[global_index_begin_0[block] + local_th];
 
+    } else {
+        current_y = INT32_MAX;
     }
 
     //tree interior
@@ -791,6 +811,8 @@ __global__ void down_sample_avg_interior_new(const uint64_t* level_xz_vec,
 
         current_y_t = y_vec_tree[global_index_begin_t[block] + local_th];
         current_val_t = particle_data_output[global_index_begin_t[block] + local_th];
+    } else {
+        current_y_t = INT32_MAX;
     }
 
     if((global_index_begin_0[block] == global_index_end_0[block]) && (global_index_begin_t[block] == global_index_end_t[block])){
@@ -826,6 +848,8 @@ __global__ void down_sample_avg_interior_new(const uint64_t* level_xz_vec,
 
             current_y_p = y_vec_tree[global_index_begin_p[block] + local_th];
 
+        } else {
+            current_y_p = INT32_MAX;
         }
     }
 
@@ -856,6 +880,8 @@ __global__ void down_sample_avg_interior_new(const uint64_t* level_xz_vec,
 
                 current_val = input_particles[sparse_block * 32 + global_index_begin_0[block] + local_th];
                 current_y = y_vec[sparse_block * 32 + global_index_begin_0[block] + local_th];
+            } else{
+                current_y = INT32_MAX;
             }
         }
 
@@ -866,6 +892,8 @@ __global__ void down_sample_avg_interior_new(const uint64_t* level_xz_vec,
 
                 current_val_t = particle_data_output[sparse_block_t * 32 + global_index_begin_t[block] + local_th];
                 current_y_t = y_vec_tree[sparse_block_t * 32 + global_index_begin_t[block] + local_th];
+            } else{
+                current_y_t = INT32_MAX;
             }
         }
         // current_y_t = y_cache_t[block][local_th];
@@ -902,6 +930,8 @@ __global__ void down_sample_avg_interior_new(const uint64_t* level_xz_vec,
                     //y_cache[4][local_th] = particle_y_child[sparse_block_p * 32 + global_index_begin_p + local_th];
                     current_y_p = y_vec_tree[sparse_block_p * 32 + global_index_begin_p[block] + local_th];
 
+                } else{
+                    current_y_p = INT32_MAX;
                 }
             }
         }
@@ -912,7 +942,7 @@ __global__ void down_sample_avg_interior_new(const uint64_t* level_xz_vec,
         if(block ==3) {
             //output
             //current_y_p = y_cache[4][local_th];
-            current_y_p = y_vec_tree[sparse_block_p * 32 + global_index_begin_p[block] + local_th];
+            //current_y_p = y_vec_tree[sparse_block_p * 32 + global_index_begin_p[block] + local_th];
 
             if (current_y_p < ((y_block+1) * 32)/2 && current_y_p >= ((y_block) * 32)/2) {
                 if ((sparse_block_p * 32 + global_index_begin_p[block] + local_th) < global_index_end_p[block]) {
