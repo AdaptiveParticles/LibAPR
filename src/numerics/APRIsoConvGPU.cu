@@ -38,6 +38,23 @@ neighbour_sum  +=  stencil[q*9]*local_patch[z + q - 1][x + 0 - 1][(y+N-1)%N]\
 }\
 
 
+#define LOCALPATCHCONV333_N(particle_output,index,z,x,y,neighbour_sum)\
+neighbour_sum=0;\
+if (not_ghost) {\
+    for (int q = 0; q < 3; ++q) {\
+neighbour_sum  +=  local_stencil[q][0][0]*local_patch[z + q - 1][x + 0 - 1][(y+N-1)%N]\
+                 + local_stencil[q][0][1]*local_patch[z + q - 1][x + 0 - 1][(y+N)%N]\
+                 + local_stencil[q][0][2]*local_patch[z + q - 1][x + 0 - 1][(y+N+1)%N]\
+                 + local_stencil[q][1][0]*local_patch[z + q - 1][x + 1 - 1][(y+N-1)%N]\
+                 + local_stencil[q][1][1]*local_patch[z + q - 1][x + 1 - 1][(y+N)%N]\
+                 + local_stencil[q][1][2]*local_patch[z + q - 1][x + 1 - 1][(y+N+1)%N]\
+                 + local_stencil[q][2][0]*local_patch[z + q - 1][x + 2 - 1][(y+N-1)%N]\
+                 + local_stencil[q][2][1]*local_patch[z + q - 1][x + 2 - 1][(y+N)%N]\
+                 + local_stencil[q][2][2]*local_patch[z + q - 1][x + 2 - 1][(y+N+1)%N];\
+    }\
+    particle_output[index] = neighbour_sum;\
+}\
+
 //
 //neighbour_sum += stencil[q*9]*local_patch[z + q - 1][x + 0 - 1][(y+N)%N]\
 //                 + stencil[q*9+1]*local_patch[z + q - 1][x + 0 - 1][(y+N-1)%N]\
@@ -2094,7 +2111,14 @@ __global__ void conv_max_333_chunked(const uint64_t* level_xz_vec,
 
     const unsigned int N = chunkSize;
 
-    __shared__ stencilType local_patch[blockSize][blockSize][N];
+    __shared__ stencilType local_stencil[3][3][3+1];
+
+    if((threadIdx.y < 3) && (threadIdx.x < 3) && (threadIdx.z < 3)){
+        local_stencil[threadIdx.z][threadIdx.x][threadIdx.y] = stencil[threadIdx.z * 9 + threadIdx.x * 3 + threadIdx.y];
+    }
+
+
+    __shared__ stencilType local_patch[blockSize][blockSize][N+3];
 
     if( (x_index < 0) || (x_index >= x_num) || (z_index < 0) || (z_index >= z_num) ) {
 
@@ -2232,8 +2256,27 @@ __global__ void conv_max_333_chunked(const uint64_t* level_xz_vec,
         __syncthreads();
 
         if( (y_0 >= (y_chunk*(chunkSizeInternal))) && (y_0 < ((y_chunk+1)*(chunkSizeInternal))) ) {
-            float neigh_sum = 0;
-            LOCALPATCHCONV333(output_particles, update_index, threadIdx.z, threadIdx.x, y_0+1, neigh_sum)
+
+            float neighbour_sum = 0;
+            LOCALPATCHCONV333_N(output_particles, y_0 + 1, threadIdx.z, threadIdx.x, y_num - 1, neighbour_sum)
+
+//            float neigh_sum = 0;
+//            if (not_ghost) {
+//                for (int q = 0; q < 3; ++q) {
+//                    for (int w = 0; w < 3; ++w) {
+//                        for (int r = 0; r < 3; ++r) {
+//
+//                            neigh_sum += local_stencil[q][w][r] *
+//                                         local_patch[threadIdx.z + q - 1][threadIdx.x + w - 1][(y_0 + r) % N];
+//                        }
+//
+//                    }
+//
+//                }
+//                output_particles[update_index] = neigh_sum;
+//            }
+
+
             //output_particles[update_index] = local_patch[threadIdx.z][threadIdx.x][(y_0+1)% chunkSize];
 
         }
