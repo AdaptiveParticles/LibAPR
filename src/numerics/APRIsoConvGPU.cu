@@ -2234,6 +2234,7 @@ __global__ void conv_max_333_chunked(const uint64_t* level_xz_vec,
         if( (y_0 >= (y_chunk*(chunkSizeInternal))) && (y_0 < ((y_chunk+1)*(chunkSizeInternal))) ) {
             float neigh_sum = 0;
             //LOCALPATCHCONV333(output_particles, update_index, threadIdx.z, threadIdx.x, y_0+1, neigh_sum)
+            output_particles[update_index] = local_patch[threadIdx.z][threadIdx.x][(y_0+1)% chunkSize];
 
         }
 
