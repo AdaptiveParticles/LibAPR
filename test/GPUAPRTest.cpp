@@ -407,8 +407,7 @@ TEST_F(CreatDiffDimsSphereTest, TEST_GPU_DOWNSAMPLE) {
 }
 
 
-TEST_F(CreateCR1, TEST_GPU_CONV_333) {
-
+bool  test_gpu_conv_333(TestDataGPU& test_data){
     auto gpuData = test_data.apr.gpuAPRHelper();
     auto gpuDataTree = test_data.apr.gpuTreeHelper();
 
@@ -424,6 +423,8 @@ TEST_F(CreateCR1, TEST_GPU_CONV_333) {
     for(int i = 0; i < 27; ++i) {
         stencil[i] = ((double) i) / sum;
     }
+
+    //stencil[13] = 1;
 
     isotropic_convolve_333(gpuData, gpuDataTree, test_data.particles_intensities.data, output, stencil, tree_data);
 
@@ -453,7 +454,7 @@ TEST_F(CreateCR1, TEST_GPU_CONV_333) {
                     } else {
                         success= false;
                         std::cout << "Expected " << output_gt[it] << " but received " << output[it] <<
-                        " at particle index " << it << " (level, z, x, y) = (" << level << ", " << z << ", " << x << ", " << it.y() << ")" << std::endl;
+                                  " at particle index " << it << " (level, z, x, y) = (" << level << ", " << z << ", " << x << ", " << it.y() << ")" << std::endl;
                     }
                 }
             }
@@ -461,7 +462,23 @@ TEST_F(CreateCR1, TEST_GPU_CONV_333) {
     }
 
     std::cout << "passed: " << pass_count << " failed: " << test_data.apr.total_number_particles()-pass_count << std::endl;
-    ASSERT_TRUE(success);
+
+    return success;
+}
+
+TEST_F(CreateCR1, TEST_GPU_CONV_333) {
+    ASSERT_TRUE(test_gpu_conv_333(test_data));
+
+}
+
+TEST_F(CreatDiffDimsSphereTest, TEST_GPU_CONV_333) {
+    ASSERT_TRUE(test_gpu_conv_333(test_data));
+
+}
+
+TEST_F(CreateSmallSphereTest, TEST_GPU_CONV_333) {
+    ASSERT_TRUE(test_gpu_conv_333(test_data));
+
 }
 
 

@@ -2186,10 +2186,11 @@ __global__ void conv_max_333_chunked(const uint64_t* level_xz_vec,
 
     if( (threadIdx.y == 0) && (threadIdx.x == 1) && (threadIdx.z == 1) ) {
         chunkSizeInternal = chunkSize-2;
-        chunk_start = (y_0 + chunkSizeInternal - 1) / chunkSizeInternal;
-        number_y_chunks = min(y_vec[global_index_end_0_s[row]] / chunkSizeInternal + 3,
-                (y_num + chunkSizeInternal - 1) / chunkSizeInternal);
-        //number_y_chunks = (y_num + chunkSizeInternal - 1) / chunkSizeInternal;
+//        chunk_start = (y_0 + chunkSizeInternal - 1) / chunkSizeInternal;
+//        number_y_chunks = min(y_vec[global_index_end_0_s[row]] / chunkSizeInternal + 3,
+//                (y_num + chunkSizeInternal - 1) / chunkSizeInternal);
+        chunk_start = 0;
+        number_y_chunks = (y_num + chunkSizeInternal - 1) / chunkSizeInternal;
     }
     __syncthreads();
 
@@ -2205,6 +2206,9 @@ __global__ void conv_max_333_chunked(const uint64_t* level_xz_vec,
 
                 y_0 = y_vec[update_index];
                 f_0 = input_particles[update_index];
+            } else {
+                f_0 = 0;
+                y_0 = y_num+1;
             }
         }
 
