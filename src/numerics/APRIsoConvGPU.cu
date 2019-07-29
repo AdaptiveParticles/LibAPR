@@ -2152,7 +2152,7 @@ __global__ void conv_max_333_chunked(const uint64_t* level_xz_vec,
 
     } else {
         f_0 = 0;
-        y_0 = y_num+1;
+        y_0 = y_num*2;
     }
 
     inputType f_p;
@@ -2165,7 +2165,7 @@ __global__ void conv_max_333_chunked(const uint64_t* level_xz_vec,
         y_p = y_vec[global_index_begin_p_s[row] + threadIdx.y/2];
     } else {
         f_p = 0;
-        y_p = y_num+1;
+        y_p = y_num*2;
     }
 
     // boundary condition at "y = -1"
@@ -2190,7 +2190,7 @@ __global__ void conv_max_333_chunked(const uint64_t* level_xz_vec,
 //        number_y_chunks = min(y_vec[global_index_end_0_s[row]] / chunkSizeInternal + 3,
 //                (y_num + chunkSizeInternal - 1) / chunkSizeInternal);
         chunk_start = 0;
-        number_y_chunks = (y_num + chunkSizeInternal - 1) / chunkSizeInternal;
+        number_y_chunks = ceil((1.0f*y_num) / (1.0f*chunkSizeInternal)) ;
     }
     __syncthreads();
 
@@ -2207,23 +2207,25 @@ __global__ void conv_max_333_chunked(const uint64_t* level_xz_vec,
                 y_0 = y_vec[update_index];
                 f_0 = input_particles[update_index];
             } else {
-                f_0 = 0;
-                y_0 = y_num+1;
+
+                y_0 = y_num*2;
             }
         }
-
+        __syncthreads();
         if( ((2*y_p+y_offset_p) < (y_chunk*(chunkSizeInternal) - 1) )) {
             sparse_block_p++;
             if( (global_index_begin_p_s[row] + (sparse_block_p*(chunkSize/2) + threadIdx.y/2)) < global_index_end_p_s[row] ) {
                 y_p = y_vec[global_index_begin_p_s[row] + (sparse_block_p*(chunkSize/2) + threadIdx.y/2)];
                 f_p = input_particles[global_index_begin_p_s[row] + (sparse_block_p*(chunkSize/2) + threadIdx.y/2)];
+            } else{
+                y_p = y_num*2;
             }
         }
-
+        __syncthreads();
         if( (y_0 >= ((y_chunk*(chunkSizeInternal) - 1))) && (y_0 <= ((y_chunk+1)*(chunkSizeInternal))) ) {
             local_patch[threadIdx.z][threadIdx.x][(y_0+1) % chunkSize] = f_0;
         }
-
+        __syncthreads();
         if( ((2*y_p + y_offset_p) >= ((y_chunk*(chunkSizeInternal) - 1))) && ((2*y_p+y_offset_p) <= ((y_chunk+1)*(chunkSizeInternal))) ) {
             local_patch[threadIdx.z][threadIdx.x][(2*y_p + y_offset_p + 1) % chunkSize] = f_p;
         }
