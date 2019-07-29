@@ -381,23 +381,23 @@ timings isotropic_convolve_333(GPUAccessHelper& access, GPUAccessHelper& tree_ac
 //                                            level);
 
         } else {
-            conv_interior_333<blockSize> << < blocks_l, threads_l >> >(access.get_level_xz_vec_ptr(),
-                                                            access.get_xz_end_vec_ptr(),
-                                                            access.get_y_vec_ptr(),
-                                                            input_gpu.get(),
-                                                            output_gpu.get(),
-                                                            stencil_gpu.get(),
-                                                            tree_access.get_level_xz_vec_ptr(),
-                                                            tree_access.get_xz_end_vec_ptr(),
-                                                            tree_access.get_y_vec_ptr(),
-                                                            tree_data_gpu.get(),
-                                                            access.z_num(level),
-                                                            access.x_num(level),
-                                                            access.y_num(level),
-                                                            tree_access.x_num(level-1),
-                                                            tree_access.y_num(level-1),
-                                                            level,
-                                                            blocks_empty.get() );
+//            conv_interior_333<blockSize> << < blocks_l, threads_l >> >(access.get_level_xz_vec_ptr(),
+//                                                            access.get_xz_end_vec_ptr(),
+//                                                            access.get_y_vec_ptr(),
+//                                                            input_gpu.get(),
+//                                                            output_gpu.get(),
+//                                                            stencil_gpu.get(),
+//                                                            tree_access.get_level_xz_vec_ptr(),
+//                                                            tree_access.get_xz_end_vec_ptr(),
+//                                                            tree_access.get_y_vec_ptr(),
+//                                                            tree_data_gpu.get(),
+//                                                            access.z_num(level),
+//                                                            access.x_num(level),
+//                                                            access.y_num(level),
+//                                                            tree_access.x_num(level-1),
+//                                                            tree_access.y_num(level-1),
+//                                                            level,
+//                                                            blocks_empty.get() );
         }
         error_check( cudaDeviceSynchronize() )
         error_check( cudaPeekAtLastError() )
@@ -2139,7 +2139,6 @@ __global__ void conv_max_333_chunked(const uint64_t* level_xz_vec,
 
     __syncthreads();
 
-
     inputType f_0;
     uint16_t y_0;
 
@@ -2240,8 +2239,6 @@ __global__ void conv_max_333_chunked(const uint64_t* level_xz_vec,
 
         __syncthreads();
         local_patch[threadIdx.z][threadIdx.x][threadIdx.y] = 0;
-
-
 
     } // end for y_chunk
 }
