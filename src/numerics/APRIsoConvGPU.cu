@@ -2186,13 +2186,13 @@ __global__ void conv_max_333_chunked(const uint64_t* level_xz_vec,
 
     if( (threadIdx.y == 0) && (threadIdx.x == 1) && (threadIdx.z == 1) ) {
         chunkSizeInternal = chunkSize-2;
-//        chunk_start = (y_0 + chunkSizeInternal - 1) / chunkSizeInternal;
-//        number_y_chunks = min(y_vec[global_index_end_0_s[row]] / chunkSizeInternal + 3,
-//                (y_num + chunkSizeInternal - 1) / chunkSizeInternal);
-        chunk_start = 0;
-        number_y_chunks = ceil((1.0f*y_num) / (1.0f*chunkSizeInternal)) ;
+
+        chunk_start = max(((int)y_0)/chunkSizeInternal-1,0);
+        number_y_chunks = (y_vec[global_index_end_0_s[row]-1] + chunkSizeInternal - 1 )/ chunkSizeInternal ;
     }
+
     __syncthreads();
+
 
     for(int y_chunk = chunk_start; y_chunk < number_y_chunks; ++y_chunk) {
 
@@ -2236,21 +2236,6 @@ __global__ void conv_max_333_chunked(const uint64_t* level_xz_vec,
             float neigh_sum = 0;
             LOCALPATCHCONV333(output_particles, update_index, threadIdx.z, threadIdx.x, y_0+1, neigh_sum)
 
-//            if(not_ghost) {
-//                float neigh_sum = 0;
-//                for(int q = 0; q < 3; ++q) {
-//                    neigh_sum += stencil[q*9+0]*patch_buffer[threadIdx.z + q - 1][threadIdx.x + 0 - 1][(y_0+chunkSize-1)%chunkSize]
-//                               + stencil[q*9+1]*patch_buffer[threadIdx.z + q - 1][threadIdx.x + 0 - 1][(y_0+chunkSize  )%chunkSize]
-//                               + stencil[q*9+2]*patch_buffer[threadIdx.z + q - 1][threadIdx.x + 0 - 1][(y_0+chunkSize+1)%chunkSize]
-//                               + stencil[q*9+3]*patch_buffer[threadIdx.z + q - 1][threadIdx.x + 1 - 1][(y_0+chunkSize-1)%chunkSize]
-//                               + stencil[q*9+4]*patch_buffer[threadIdx.z + q - 1][threadIdx.x + 1 - 1][(y_0+chunkSize  )%chunkSize]
-//                               + stencil[q*9+5]*patch_buffer[threadIdx.z + q - 1][threadIdx.x + 1 - 1][(y_0+chunkSize+1)%chunkSize]
-//                               + stencil[q*9+6]*patch_buffer[threadIdx.z + q - 1][threadIdx.x + 2 - 1][(y_0+chunkSize-1)%chunkSize]
-//                               + stencil[q*9+7]*patch_buffer[threadIdx.z + q - 1][threadIdx.x + 2 - 1][(y_0+chunkSize  )%chunkSize]
-//                               + stencil[q*9+8]*patch_buffer[threadIdx.z + q - 1][threadIdx.x + 2 - 1][(y_0+chunkSize+1)%chunkSize];
-//                }
-//                output_particles[update_index] = neigh_sum;
-//            }
         }
 
         __syncthreads();

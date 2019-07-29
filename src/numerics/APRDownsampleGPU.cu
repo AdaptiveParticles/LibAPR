@@ -87,7 +87,7 @@ __global__ void down_sample_avg_new(const uint64_t* level_xz_vec,
     if(global_index_begin_0_s[0] == global_index_end_0_s[0]){
         //printf("%d \n",x_p);
         //printf("%d \n",z_p);
-        //return;
+        return;
     }
 
 
@@ -147,13 +147,12 @@ __global__ void down_sample_avg_new(const uint64_t* level_xz_vec,
     }
 
     uint16_t start = y_vec[global_index_begin_0];
-    uint16_t end = y_vec[global_index_end_0];
+    uint16_t end = y_vec[global_index_end_0-1];
 
     uint16_t sparse_block = 0;
     int sparse_block_p = 0;
 
-    const uint16_t number_y_chunk = min(end/32+2,(y_num+31)/32);
-    //const uint16_t number_y_chunk = (y_num+31)/32;
+    const uint16_t number_y_chunk = (end+31)/32;
 
     //start/32
     for (int y_block = start/32; y_block < number_y_chunk; ++y_block) {
@@ -185,7 +184,6 @@ __global__ void down_sample_avg_new(const uint64_t* level_xz_vec,
         if (block == 3) {
             if (current_y_p < ((y_block * 32)/2)) {
                 sparse_block_p++;
-
 
                 if ((sparse_block_p * 32 + global_index_begin_p + local_th) < global_index_end_p) {
 
@@ -230,7 +228,6 @@ __global__ void down_sample_avg_new(const uint64_t* level_xz_vec,
                                                   parent_cache[5][current_y_p % 16] +
                                                   parent_cache[6][current_y_p % 16] +
                                                   parent_cache[7][current_y_p % 16]);
-
 
                     }
                 }
@@ -862,9 +859,16 @@ __global__ void down_sample_avg_interior_new(const uint64_t* level_xz_vec,
     __shared__ int number_y_chunk[4];
 
     if(local_th == 0) {
-        start[block] = min(y_vec[global_index_begin_0[block]], y_vec_tree[global_index_begin_t[block]]);
-        end[block] = max(y_vec[global_index_end_0[block]], y_vec_tree[global_index_end_t[block]]);
-        number_y_chunk[block] = min(end[block] / 32 + 2, (y_num + 31) / 32);
+        start[block] = min(y_vec[global_index_begin_0[block]],  y_vec_tree[global_index_begin_t[block]]);
+        //end[block] = max(y_vec[max(global_index_end_0[block],(size_t)1)-1], y_vec_tree[ max(global_index_end_t[block],(size_t)1)-1]);
+
+        if((global_index_end_0[block] == 0) || global_index_end_t[block] ==0){
+            end[block] = y_num;
+        } else{
+            end[block] = max(y_vec[global_index_end_0[block]-1], y_vec_tree[ global_index_end_t[block]-1]);
+        }
+
+        number_y_chunk[block] = (end[block]+31)/32;
     }
 
     __syncthreads();

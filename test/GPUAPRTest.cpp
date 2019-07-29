@@ -341,9 +341,7 @@ TEST_F(CreatDiffDimsSphereTest, APR_TEST) {
 
 }
 
-
-TEST_F(CreatDiffDimsSphereTest, TEST_GPU_DOWNSAMPLE) {
-
+bool test_down_sample_gpu(TestDataGPU& test_data){
     auto gpuData = test_data.apr.gpuAPRHelper();
     auto gpuDataTree = test_data.apr.gpuTreeHelper();
 
@@ -358,8 +356,6 @@ TEST_F(CreatDiffDimsSphereTest, TEST_GPU_DOWNSAMPLE) {
     APRTreeNumerics::fill_tree_mean(test_data.apr, test_data.particles_intensities, tree_data_cpu);
 
     size_t successes = 0;
-
-
 
     auto tree_it = test_data.apr.tree_iterator();
 
@@ -403,7 +399,23 @@ TEST_F(CreatDiffDimsSphereTest, TEST_GPU_DOWNSAMPLE) {
     std::cout << rows << std::endl;
     std::cout << rows_filled << std::endl;
 
-    ASSERT_EQ(successes, counter);
+    return (successes == counter);
+}
+
+
+TEST_F(CreatDiffDimsSphereTest, TEST_GPU_DOWNSAMPLE) {
+
+    ASSERT_TRUE(test_down_sample_gpu(test_data));
+}
+
+TEST_F(CreateSmallSphereTest, TEST_GPU_DOWNSAMPLE) {
+
+    ASSERT_TRUE(test_down_sample_gpu(test_data));
+}
+
+TEST_F(CreateCR1, TEST_GPU_DOWNSAMPLE) {
+
+    ASSERT_TRUE(test_down_sample_gpu(test_data));
 }
 
 
