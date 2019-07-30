@@ -819,7 +819,7 @@ __global__ void down_sample_avg_interior_new(const uint64_t* level_xz_vec,
 
     //shared memory caches
 
-    __shared__ float parent_cache[8][16];
+    __shared__ float parent_cache[8][16]; //16 needed padded with 17 entries to optimize for bank conflicts.
 
 
     parent_cache[2*block][local_th/2]=0;
@@ -836,7 +836,6 @@ __global__ void down_sample_avg_interior_new(const uint64_t* level_xz_vec,
     if((2*y_num_parent != y_num)){
         scale_factor_yxz = scale_factor_xz*2;
     }
-
 
 
     if (block == 3) {
@@ -911,7 +910,6 @@ __global__ void down_sample_avg_interior_new(const uint64_t* level_xz_vec,
 
         }
         __syncthreads();
-
 
 
         //now the interior tree nodes
