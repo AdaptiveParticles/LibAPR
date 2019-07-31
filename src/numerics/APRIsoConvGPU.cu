@@ -243,6 +243,47 @@ void compute_ne_rows(GPUAccessHelper& tree_access,std::vector<int>& ne_counter,s
 }
 
 
+void compute_ne_rows_interior(GPUAccessHelper& access,std::vector<int>& ne_counter,std::vector<int>& ne_rows) {
+    ne_counter.resize(access.level_max()+1);
+
+    int z = 0;
+    int x = 0;
+
+    for (int level = (access.level_min()); level <= (access.level_max() - 1); ++level) {
+
+        auto level_start = access.linearAccess->level_xz_vec[level];
+
+        ne_counter[level] = ne_rows.size();
+
+        for (z = 0; z < access.z_num(level-1); z++) {
+            for (x = 0; x < access.x_num(level-1); ++x) {
+
+                bool nonempty = false;
+
+                for( int ix = 0; ix <= 1; ++ix ){
+                    for( int iz = 0; iz <= 1; ++iz ) {
+                        auto offset = 2*x + ix + (2*z + iz) * access.x_num(level);
+                        auto xz_start = level_start + offset;
+
+                        auto begin_index = access.linearAccess->xz_end_vec[xz_start - 1];
+                        auto end_index = access.linearAccess->xz_end_vec[xz_start];
+
+                        if(begin_index < end_index) {
+                            nonempty = true;
+                        }
+                    }
+                }
+
+                if (nonempty) {
+                    ne_rows.push_back(x + z * access.x_num(level-1));
+                }
+            }
+        }
+    }
+    ne_counter.back() = ne_rows.size();
+}
+
+
 template<typename inputType, typename outputType, typename stencilType, typename treeType>
 timings isotropic_convolve_333(GPUAccessHelper& access, GPUAccessHelper& tree_access, std::vector<inputType>& input,
                                     std::vector<outputType>& output, std::vector<stencilType>& stencil, std::vector<treeType>& tree_data){
@@ -274,6 +315,12 @@ timings isotropic_convolve_333(GPUAccessHelper& access, GPUAccessHelper& tree_ac
     compute_ne_rows(tree_access,ne_counter,ne_rows);
     ScopedCudaMemHandler<int*, JUST_ALLOC> ne_rows_gpu(ne_rows.data(), ne_rows.size());
 
+    std::vector<int> ne_rows_interior; //non empty rows
+    std::vector<int> ne_counter_interior; //non empty rows
+
+    compute_ne_rows_interior(access,ne_counter_interior,ne_rows_interior);
+    ScopedCudaMemHandler<int*, JUST_ALLOC> ne_rows_interior_gpu(ne_rows_interior.data(), ne_rows_interior.size());
+
     timer.start_timer("transfer H2D");
 
     /// allocate GPU memory
@@ -287,6 +334,7 @@ timings isotropic_convolve_333(GPUAccessHelper& access, GPUAccessHelper& tree_ac
 
 
     ne_rows_gpu.copyH2D();
+    ne_rows_interior_gpu.copyH2D();
 
     /// copy input and stencil to the GPU
     input_gpu.copyH2D();
@@ -398,23 +446,38 @@ timings isotropic_convolve_333(GPUAccessHelper& access, GPUAccessHelper& tree_ac
 //                                            level);
 
         } else {
-            conv_interior_333<blockSize> << < blocks_l, threads_l >> >(access.get_level_xz_vec_ptr(),
-                                                            access.get_xz_end_vec_ptr(),
-                                                            access.get_y_vec_ptr(),
-                                                            input_gpu.get(),
-                                                            output_gpu.get(),
-                                                            stencil_gpu.get(),
-                                                            tree_access.get_level_xz_vec_ptr(),
-                                                            tree_access.get_xz_end_vec_ptr(),
-                                                            tree_access.get_y_vec_ptr(),
-                                                            tree_data_gpu.get(),
-                                                            access.z_num(level),
-                                                            access.x_num(level),
-                                                            access.y_num(level),
-                                                            tree_access.x_num(level-1),
-                                                            tree_access.y_num(level-1),
-                                                            level,
-                                                            blocks_empty.get() );
+
+            const int bsz = 4;
+            const int chunkSize = 512/(bsz*bsz);
+
+            size_t ne_sz = ne_counter_interior[level+1] - ne_counter_interior[level];
+            size_t offset = ne_counter_interior[level];
+
+            if( ne_sz == 0) {
+                continue;
+            }
+
+
+            dim3 blck(ne_sz, 1, 1);
+            dim3 thd(chunkSize, bsz, bsz);
+
+            conv_interior_333_chunked<chunkSize, bsz> << < blck, thd >> > (access.get_level_xz_vec_ptr(),
+                    access.get_xz_end_vec_ptr(),
+                    access.get_y_vec_ptr(),
+                    input_gpu.get(),
+                    output_gpu.get(),
+                    stencil_gpu.get(),
+                    tree_access.get_level_xz_vec_ptr(),
+                    tree_access.get_xz_end_vec_ptr(),
+                    tree_access.get_y_vec_ptr(),
+                    tree_data_gpu.get(),
+                    access.z_num(level),
+                    access.x_num(level),
+                    access.y_num(level),
+                    tree_access.z_num(level - 1),
+                    tree_access.x_num(level - 1),
+                    level,
+                    ne_rows_interior_gpu.get() + offset);
         }
         error_check( cudaDeviceSynchronize() )
         error_check( cudaPeekAtLastError() )
@@ -2281,6 +2344,227 @@ __global__ void conv_max_333_chunked(const uint64_t* level_xz_vec,
         __syncthreads();
         local_patch[threadIdx.z][threadIdx.y][threadIdx.x] = 0;
 
+    } // end for y_chunk
+}
+
+
+template<unsigned int chunkSize, unsigned int blockSize, typename inputType, typename outputType, typename stencilType, typename treeType>
+__global__ void conv_interior_333_chunked(const uint64_t* level_xz_vec,
+                                          const uint64_t* xz_end_vec,
+                                          const uint16_t* y_vec,
+                                          const inputType* input_particles,
+                                          outputType* output_particles,
+                                          const stencilType* stencil,
+                                          const uint64_t* level_xz_vec_tree,
+                                          const uint64_t* xz_end_vec_tree,
+                                          const uint16_t* y_vec_tree,
+                                          const treeType* tree_data,
+                                          const int z_num,
+                                          const int x_num,
+                                          const int y_num,
+                                          const int z_num_parent,
+                                          const int x_num_parent,
+                                          const int level,
+                                          const int* offset_ind) {
+
+
+    const int block_dim = 4;
+
+//    const int x_index = blockIdx.x * (block_dim-2) + threadIdx.x - 1;
+//    const int z_index = blockIdx.z * (block_dim-2) + threadIdx.z - 1;
+    const int index = offset_ind[blockIdx.x];
+
+    const int z_p = index/x_num_parent;
+    const int x_p = index - z_p*x_num_parent;
+
+    const int x_index = 2*x_p + threadIdx.y - 1;
+    const int z_index = 2*z_p + threadIdx.z - 1;
+
+    const unsigned int N = chunkSize;
+
+    __shared__ stencilType local_patch[blockSize][blockSize][N];
+
+    if( (x_index < 0) || (x_index >= x_num) || (z_index < 0) || (z_index >= z_num) ) {
+        // out of bounds --> zero pad and return
+        local_patch[threadIdx.z][threadIdx.y][threadIdx.x] = 0;
+        return;
+    }
+
+    local_patch[threadIdx.z][threadIdx.y][threadIdx.x] = 0;
+
+    const bool not_ghost = (threadIdx.y > 0) && (threadIdx.y < (block_dim - 1)) &&
+                           (threadIdx.z > 0) && (threadIdx.z < (block_dim - 1));
+
+    const int row = threadIdx.y + threadIdx.z * block_dim;
+
+    __shared__ size_t global_index_begin_0_s[blockSize*blockSize];
+    __shared__ size_t global_index_end_0_s[blockSize*blockSize];
+
+    __shared__ size_t global_index_begin_t_s[blockSize*blockSize];
+    __shared__ size_t global_index_end_t_s[blockSize*blockSize];
+
+    __shared__ size_t global_index_begin_p_s[blockSize*blockSize];
+    __shared__ size_t global_index_end_p_s[blockSize*blockSize];
+
+    const int x_index_p = x_index / 2;
+    const int z_index_p = z_index / 2;
+
+    if(threadIdx.x == 0) {
+        size_t xz_start = x_index + z_index * x_num + level_xz_vec[level];
+        global_index_begin_0_s[row] = xz_end_vec[xz_start - 1];
+        global_index_end_0_s[row] = xz_end_vec[xz_start];
+    }
+    __syncthreads();
+
+    if(threadIdx.x == 1) {
+        size_t xz_start = x_index_p + z_index_p * x_num_parent + level_xz_vec[level - 1];
+        global_index_begin_p_s[row] = xz_end_vec[xz_start - 1];
+        global_index_end_p_s[row] = xz_end_vec[xz_start];
+    }
+
+    if(threadIdx.x == 2) {
+        size_t xz_start = level_xz_vec_tree[level] + (x_index) + (z_index) * x_num;
+        global_index_begin_t_s[row] = xz_end_vec_tree[xz_start - 1];
+        global_index_end_t_s[row] = xz_end_vec_tree[xz_start];
+    }
+
+    __syncthreads();
+
+    stencilType f_0, f_p, f_t;
+    int y_0, y_p, y_t;
+
+    size_t update_index = global_index_begin_0_s[row] + threadIdx.x;
+
+    if((update_index) < global_index_end_0_s[row]) {
+
+        f_0 = input_particles[update_index];
+        y_0 = y_vec[update_index];
+
+    } else {
+        y_0 = INT32_MAX/2;
+    }
+
+    __syncthreads();
+
+    if((global_index_begin_t_s[row] + threadIdx.x) < global_index_end_t_s[row]) {
+
+        f_t = tree_data[global_index_begin_t_s[row] + threadIdx.x];
+        y_t = y_vec_tree[global_index_begin_t_s[row] + threadIdx.x];
+
+    } else {
+        y_t = INT32_MAX/2;
+    }
+
+    __syncthreads();
+
+    const int y_offset_p = threadIdx.x % 2;
+
+    if((global_index_begin_p_s[row] + threadIdx.x/2) < global_index_end_p_s[row]) {
+        f_p = input_particles[global_index_begin_p_s[row] + threadIdx.x/2];
+        y_p = min(2*y_vec[global_index_begin_p_s[row] + threadIdx.x/2] + y_offset_p, y_num-1);
+    } else {
+        y_p = INT32_MAX/2;
+    }
+
+    int sparse_block = 0;
+    int sparse_block_t = 0;
+    int sparse_block_p = 0;
+
+
+    //TODO: this is not working properly here
+    __shared__ int chunkSizeInternal;
+    __shared__ int number_y_chunks[4];
+    __shared__ int chunk_start[4];
+
+    if((threadIdx.z == 1) && (threadIdx.y == 1) && (threadIdx.x < 4)) {
+        chunk_start[threadIdx.y] = INT32_MAX;
+        number_y_chunks[threadIdx.y] = 0;
+    }
+
+    __syncthreads();
+
+    if( ((threadIdx.x == 0) && not_ghost) ) {
+        chunkSizeInternal = chunkSize-2;
+
+        chunk_start[(threadIdx.y-1) + (threadIdx.z-1)*2] = max(((int)y_0)/chunkSizeInternal-1,0);
+        number_y_chunks[(threadIdx.y-1) + (threadIdx.z-1)*2] = (y_vec[max(global_index_end_0_s[row], (size_t)1)-1]) / chunkSizeInternal + 1;
+    }
+
+    __syncthreads();
+    if( (threadIdx.y == 1) && (threadIdx.z == 1) && (threadIdx.x == 0)) {
+        chunk_start[0] = min( min(chunk_start[0], chunk_start[1]), min(chunk_start[2], chunk_start[3]) );
+        number_y_chunks[0] = max( max(number_y_chunks[0], number_y_chunks[1]), max(number_y_chunks[2], number_y_chunks[3]) );
+    }
+//    const int chunkSizeInternal = chunkSize-2;
+//    const int number_y_chunks = (y_num + chunkSizeInternal - 1) / chunkSizeInternal;
+//    const int chunk_start = 0;
+
+    __syncthreads();
+
+
+    for(int y_chunk = chunk_start[0]; y_chunk < number_y_chunks[0]; ++y_chunk) {
+
+        __syncthreads();
+        if( (y_0 < (y_chunk*chunkSizeInternal - 1)) ) {
+            sparse_block++;
+            if( (sparse_block*chunkSize + global_index_begin_0_s[row] + threadIdx.x) < global_index_end_0_s[row] ) {
+
+                update_index = sparse_block*chunkSize + global_index_begin_0_s[row] + threadIdx.x;
+
+                y_0 = y_vec[update_index];
+                f_0 = input_particles[update_index];
+            } else {
+                y_0 = INT32_MAX/2;
+            }
+        }
+
+        __syncthreads();
+        if( y_t < (y_chunk*chunkSizeInternal - 1) ) {
+            sparse_block_t++;
+            if( (sparse_block_t*chunkSize + global_index_begin_t_s[row] + threadIdx.x) < global_index_end_t_s[row] ) {
+                y_t = y_vec_tree[sparse_block_t*chunkSize + global_index_begin_t_s[row] + threadIdx.x];
+                f_t = tree_data[sparse_block_t*chunkSize + global_index_begin_t_s[row] + threadIdx.x];
+            } else {
+                y_t = INT32_MAX/2;
+            }
+        }
+
+        __syncthreads();
+        if( (y_p < (y_chunk*(chunkSizeInternal) - 1)) ) {
+            sparse_block_p++;
+            if( (global_index_begin_p_s[row] + sparse_block_p*(chunkSize/2) + threadIdx.x/2) < global_index_end_p_s[row] ) {
+                y_p = min(2*y_vec[global_index_begin_p_s[row] + sparse_block_p*(chunkSize/2) + threadIdx.x/2] + y_offset_p, y_num-1);
+                f_p = input_particles[global_index_begin_p_s[row] + sparse_block_p*(chunkSize/2) + threadIdx.x/2];
+            } else{
+                y_p = INT32_MAX/2;
+            }
+        }
+        __syncthreads();
+
+        if( (y_0 >= ((y_chunk*(chunkSizeInternal) - 1))) && (y_0 <= ((y_chunk+1)*(chunkSizeInternal))) ) {
+            local_patch[threadIdx.z][threadIdx.y][(y_0+1) % N] = f_0;
+        }
+
+        __syncthreads();
+        if( (y_t >= ((y_chunk*(chunkSizeInternal) - 1))) && (y_t <= ((y_chunk+1)*(chunkSizeInternal))) ) {
+            local_patch[threadIdx.z][threadIdx.y][(y_t+1) % N] = f_t;
+        }
+        __syncthreads();
+
+        if( ((y_p >= ((y_chunk*(chunkSizeInternal) - 1))) && (y_p <= ((y_chunk+1)*(chunkSizeInternal))) )) {
+            local_patch[threadIdx.z][threadIdx.y][(y_p + 1) % N] = f_p;
+        }
+
+        __syncthreads();
+
+
+        if( (y_0 >= (y_chunk*(chunkSizeInternal))) && (y_0 < ((y_chunk+1)*(chunkSizeInternal))) ) {
+            float neigh_sum = 0;
+            LOCALPATCHCONV333(output_particles, update_index, threadIdx.z, threadIdx.y, y_0+1, neigh_sum)
+        }
+
+        __syncthreads();
+        local_patch[threadIdx.z][threadIdx.y][threadIdx.x] = 0;
     } // end for y_chunk
 }
 

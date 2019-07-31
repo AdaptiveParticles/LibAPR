@@ -225,4 +225,24 @@ __global__ void conv_max_333_chunked(const uint64_t* level_xz_vec,
                                      const int x_num_parent,
                                      const int level,const int* offset_ind);
 
+
+template<unsigned int chunkSize, unsigned int blockSize, typename inputType, typename outputType, typename stencilType, typename treeType>
+__global__ void conv_interior_333_chunked(const uint64_t* level_xz_vec,
+                                          const uint64_t* xz_end_vec,
+                                          const uint16_t* y_vec,
+                                          const inputType* input_particles,
+                                          outputType* output_particles,
+                                          const stencilType* stencil,
+                                          const uint64_t* level_xz_vec_tree,
+                                          const uint64_t* xz_end_vec_tree,
+                                          const uint16_t* y_vec_tree,
+                                          const treeType* tree_data,
+                                          const int z_num,
+                                          const int x_num,
+                                          const int y_num,
+                                          const int z_num_parent,
+                                          const int x_num_parent,
+                                          const int level,
+                                          const int* offset_ind);
+
 #endif //LIBAPR_APRISOCONVGPU_HPP
