@@ -304,10 +304,10 @@ timings isotropic_convolve_333(GPUAccessHelper& access, GPUAccessHelper& tree_ac
     APRTimer timer(false);
     APRTimer timer2(false);
 
-    timer.start_timer("init arrays");
+    timer.start_timer("transfer H2D");
+
     tree_data.resize(tree_access.total_number_particles());
     output.resize(access.total_number_particles());
-    timer.stop_timer();
 
     std::vector<int> ne_rows; //non empty rows
     std::vector<int> ne_counter; //non empty rows
@@ -320,8 +320,6 @@ timings isotropic_convolve_333(GPUAccessHelper& access, GPUAccessHelper& tree_ac
 
     compute_ne_rows_interior(access,ne_counter_interior,ne_rows_interior);
     ScopedCudaMemHandler<int*, JUST_ALLOC> ne_rows_interior_gpu(ne_rows_interior.data(), ne_rows_interior.size());
-
-    timer.start_timer("transfer H2D");
 
     /// allocate GPU memory
     ScopedCudaMemHandler<inputType*, JUST_ALLOC> input_gpu(input.data(), input.size());
