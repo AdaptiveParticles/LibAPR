@@ -2384,17 +2384,19 @@ __global__ void conv_interior_333_chunked(const uint64_t* level_xz_vec,
 
     __shared__ stencilType local_patch[blockSize][blockSize][N];
 
+    __shared__ stencilType local_stencil[3][3][3];
+
+    if((threadIdx.y < 3) && (threadIdx.x < 3) && (threadIdx.z < 3)){
+        local_stencil[threadIdx.z][threadIdx.x][threadIdx.y] = stencil[threadIdx.z * 9 + threadIdx.x * 3 + threadIdx.y];
+    }
+
     if( (x_index < 0) || (x_index >= x_num) || (z_index < 0) || (z_index >= z_num) ) {
         // out of bounds --> zero pad and return
         local_patch[threadIdx.z][threadIdx.y][threadIdx.x] = 0;
         return;
     }
 
-    __shared__ stencilType local_stencil[3][3][3];
 
-    if((threadIdx.y < 3) && (threadIdx.x < 3) && (threadIdx.z < 3)){
-        local_stencil[threadIdx.z][threadIdx.x][threadIdx.y] = stencil[threadIdx.z * 9 + threadIdx.x * 3 + threadIdx.y];
-    }
 
     local_patch[threadIdx.z][threadIdx.y][threadIdx.x] = 0;
 
@@ -2567,6 +2569,7 @@ __global__ void conv_interior_333_chunked(const uint64_t* level_xz_vec,
         if( (y_0 >= (y_chunk*(chunkSizeInternal))) && (y_0 < ((y_chunk+1)*(chunkSizeInternal))) ) {
             float neigh_sum = 0;
             LOCALPATCHCONV333_N(output_particles, update_index, threadIdx.z, threadIdx.y, y_0+1, neigh_sum)
+
         }
 
         __syncthreads();
