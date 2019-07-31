@@ -2173,14 +2173,14 @@ __global__ void conv_max_333_chunked(const uint64_t* level_xz_vec,
 
     const unsigned int N = chunkSize;
 
-    __shared__ stencilType local_stencil[3][3][33];
+    __shared__ stencilType local_stencil[3][3][3];
 
     if((threadIdx.y < 3) && (threadIdx.x < 3) && (threadIdx.z < 3)){
         local_stencil[threadIdx.z][threadIdx.x][threadIdx.y] = stencil[threadIdx.z * 9 + threadIdx.x * 3 + threadIdx.y];
     }
 
 
-    __shared__ stencilType local_patch[blockSize][blockSize][N+1];
+    __shared__ stencilType local_patch[blockSize][blockSize][N];
 
     if( (x_index < 0) || (x_index >= x_num) || (z_index < 0) || (z_index >= z_num) ) {
 
@@ -2318,7 +2318,7 @@ __global__ void conv_max_333_chunked(const uint64_t* level_xz_vec,
             float neighbour_sum = 0;
             LOCALPATCHCONV333_N(output_particles, update_index, threadIdx.z, threadIdx.y, y_0 + 1, neighbour_sum)
 
-       //     LOCALPATCHCONV333(output_particles, update_index, threadIdx.z, threadIdx.x, y_0 + 1, neighbour_sum)
+            //LOCALPATCHCONV333(output_particles, update_index, threadIdx.z, threadIdx.y, y_0 + 1, neighbour_sum)
 
 //            float neigh_sum = 0;
 //            if (not_ghost) {
