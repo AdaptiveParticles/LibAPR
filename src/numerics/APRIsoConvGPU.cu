@@ -2206,7 +2206,7 @@ __global__ void conv_max_333_chunked(const uint64_t* level_xz_vec,
         chunkSizeInternal = chunkSize-2;
 
         chunk_start = max(((int)y_0)/chunkSizeInternal-1,0);
-        number_y_chunks = (y_vec[global_index_end_0_s[row]-1] + chunkSizeInternal - 1 )/ chunkSizeInternal ;
+        number_y_chunks = (y_vec[global_index_end_0_s[row]-1] + chunkSizeInternal)/ chunkSizeInternal ;
     }
 
     __syncthreads();
