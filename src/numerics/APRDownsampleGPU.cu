@@ -4,6 +4,20 @@
 
 #include "APRDownsampleGPU.hpp"
 
+#define DEBUGCUDA 1
+
+#define error_check(ans) { gpuAssert((ans), __FILE__, __LINE__); }
+inline void gpuAssert(cudaError_t code, const char *file, int line, bool abort=true)
+{
+#ifdef DEBUGCUDA
+    if (code != cudaSuccess)
+    {
+        fprintf(stderr,"GPUassert: %s %s %d\n", cudaGetErrorString(code), file, line);
+        if (abort) exit(code);
+    }
+#endif
+}
+
 //__device__ void get_row_begin_end(std::size_t* index_begin,
 //                                  std::size_t* index_end,
 //                                  std::size_t xz_start,
@@ -986,7 +1000,7 @@ __global__ void down_sample_avg_interior_new(const uint64_t* level_xz_vec,
 }
 
 template<typename inputType, typename treeType>
-void downsample_avg_init_wrapper(GPUAccessHelper& access, GPUAccessHelper& tree_access, std::vector<inputType>& input, std::vector<treeType>& tree_data) {
+void downsample_avg(GPUAccessHelper& access, GPUAccessHelper& tree_access, std::vector<inputType>& input, std::vector<treeType>& tree_data) {
 
     tree_data.resize(tree_access.total_number_particles(),0);
 
@@ -1029,7 +1043,7 @@ void downsample_avg_init_wrapper(GPUAccessHelper& access, GPUAccessHelper& tree_
     ScopedCudaMemHandler<int*, JUST_ALLOC> ne_rows_gpu(ne_rows.data(), ne_rows.size());
     ne_rows_gpu.copyH2D();
 
-    tree_data_gpu.copyH2D();
+    //tree_data_gpu.copyH2D();
 
     /// copy the input to the GPU
     input_gpu.copyH2D();
@@ -1037,33 +1051,6 @@ void downsample_avg_init_wrapper(GPUAccessHelper& access, GPUAccessHelper& tree_
     for (int level = access.level_max(); level >= access.level_min(); --level) {
 
         if(level==access.level_max()) {
-//
-//            dim3 threads_l(128, 1, 1);
-//
-//            int x_blocks = (access.x_num(level) + 2 - 1) / 2;
-//            int z_blocks = (access.z_num(level) + 2 - 1) / 2;
-//
-//            dim3 blocks_l(x_blocks, 1, z_blocks);
-//
-//            down_sample_avg << < blocks_l, threads_l >> >
-//                                               (access.get_level_xz_vec_ptr(),
-//                                                       access.get_xz_end_vec_ptr(),
-//                                                       access.get_y_vec_ptr(),
-//                                                       input_gpu.get(),
-//                                                       tree_access.get_level_xz_vec_ptr(),
-//                                                       tree_access.get_xz_end_vec_ptr(),
-//                                                       tree_access.get_y_vec_ptr(),
-//                                                       tree_data_gpu.get(),
-//                                                       access.z_num(level),
-//                                                       access.x_num(level),
-//                                                       access.y_num(level),
-//                                                       tree_access.z_num(level-1),
-//                                                       tree_access.x_num(level-1),
-//                                                       tree_access.y_num(level-1),
-//                                                       level);
-
-
-
 
             dim3 threads_l(128, 1, 1);
 
@@ -1073,7 +1060,7 @@ void downsample_avg_init_wrapper(GPUAccessHelper& access, GPUAccessHelper& tree_
             dim3 blocks_l(ne_sz, 1, 1);
 
             down_sample_avg_new << < blocks_l, threads_l >> >
-                    (access.get_level_xz_vec_ptr(),
+                                                      (access.get_level_xz_vec_ptr(),
                                                        access.get_xz_end_vec_ptr(),
                                                        access.get_y_vec_ptr(),
                                                        input_gpu.get(),
@@ -1087,7 +1074,8 @@ void downsample_avg_init_wrapper(GPUAccessHelper& access, GPUAccessHelper& tree_
                                                        tree_access.z_num(level-1),
                                                        tree_access.x_num(level-1),
                                                        tree_access.y_num(level-1),
-                                                       level,ne_rows_gpu.get()+offset);
+                                                       level,
+                                                       ne_rows_gpu.get()+offset);
 
 
         } else {
@@ -1114,9 +1102,11 @@ void downsample_avg_init_wrapper(GPUAccessHelper& access, GPUAccessHelper& tree_
                                                         tree_access.z_num(level-1),
                                                         tree_access.x_num(level-1),
                                                         tree_access.y_num(level-1),
-                                                        level,ne_rows_gpu.get()+offset);
+                                                        level,
+                                                        ne_rows_gpu.get()+offset);
         }
-        cudaDeviceSynchronize();
+        error_check( cudaDeviceSynchronize() )
+        error_check( cudaGetLastError() )
     }
 
     /// transfer the results back to the host
@@ -1124,8 +1114,16 @@ void downsample_avg_init_wrapper(GPUAccessHelper& access, GPUAccessHelper& tree_
 }
 
 
+/// force instantiation for some different type combinations
+template void downsample_avg(GPUAccessHelper&, GPUAccessHelper&, std::vector<uint16_t>&, std::vector<uint16_t>&);
+template void downsample_avg(GPUAccessHelper&, GPUAccessHelper&, std::vector<uint16_t>&, std::vector<float>&);
+template void downsample_avg(GPUAccessHelper&, GPUAccessHelper&, std::vector<uint16_t>&, std::vector<double>&);
+template void downsample_avg(GPUAccessHelper&, GPUAccessHelper&, std::vector<float>&, std::vector<float>&);
+template void downsample_avg(GPUAccessHelper&, GPUAccessHelper&, std::vector<float>&, std::vector<double>&);
+
+
 template<typename inputType, typename treeType>
-void downsample_avg_alt(GPUAccessHelper& access, GPUAccessHelper& tree_access, inputType* input_gpu, treeType* tree_data_gpu,int* ne_rows,std::vector<int>& ne_offset) {
+void downsample_avg(GPUAccessHelper& access, GPUAccessHelper& tree_access, inputType* input_gpu, treeType* tree_data_gpu,int* ne_rows,std::vector<int>& ne_offset) {
 
     /// assumes input_gpu and tree_data_gpu are already on the device
 
@@ -1186,39 +1184,25 @@ void downsample_avg_alt(GPUAccessHelper& access, GPUAccessHelper& tree_access, i
                                                            tree_access.y_num(level-1),
                                                            level,ne_rows + offset);
 
-
-//            dim3 threads_l(128, 1, 1);
-//
-//            int x_blocks = (access.x_num(level) + 2 - 1) / 2;
-//            int z_blocks = (access.z_num(level) + 2 - 1) / 2;
-//
-//            dim3 blocks_l(x_blocks, 1, z_blocks);
-//
-//            down_sample_avg_interior<< < blocks_l, threads_l >> >
-//                                                   (access.get_level_xz_vec_ptr(),
-//                                                           access.get_xz_end_vec_ptr(),
-//                                                           access.get_y_vec_ptr(),
-//                                                           input_gpu,
-//                                                           tree_access.get_level_xz_vec_ptr(),
-//                                                           tree_access.get_xz_end_vec_ptr(),
-//                                                           tree_access.get_y_vec_ptr(),
-//                                                           tree_data_gpu,
-//                                                           access.z_num(level),
-//                                                           access.x_num(level),
-//                                                           access.y_num(level),
-//                                                           tree_access.z_num(level-1),
-//                                                           tree_access.x_num(level-1),
-//                                                           tree_access.y_num(level-1),
-//                                                           level);
         }
-        cudaDeviceSynchronize();
+
+        error_check( cudaDeviceSynchronize() )
+        error_check( cudaGetLastError() )
     }
 }
 
 
+/// force instantiation for some different type combinations
+template void downsample_avg(GPUAccessHelper&, GPUAccessHelper&, uint16_t*, uint16_t*,int*,std::vector<int>&);
+template void downsample_avg(GPUAccessHelper&, GPUAccessHelper&, uint16_t*, float*,int*,std::vector<int>&);
+template void downsample_avg(GPUAccessHelper&, GPUAccessHelper&, uint16_t*, double*,int*,std::vector<int>&);
+template void downsample_avg(GPUAccessHelper&, GPUAccessHelper&, float*, float*,int*,std::vector<int>&);
+template void downsample_avg(GPUAccessHelper&, GPUAccessHelper&, float*, double*,int*,std::vector<int>&);
+
+
 
 template<typename inputType, typename treeType>
-void downsample_avg_wrapper(GPUAccessHelper& access, GPUAccessHelper& tree_access, inputType* input_gpu, treeType* tree_data_gpu) {
+void downsample_avg_old(GPUAccessHelper& access, GPUAccessHelper& tree_access, inputType* input_gpu, treeType* tree_data_gpu) {
 
     /// assumes input_gpu and tree_data_gpu are already on the device
 
@@ -1270,6 +1254,7 @@ void downsample_avg_wrapper(GPUAccessHelper& access, GPUAccessHelper& tree_acces
                                                            tree_access.y_num(level-1),
                                                            level);
         }
-        cudaDeviceSynchronize();
+        error_check( cudaDeviceSynchronize() )
+        error_check( cudaGetLastError() )
     }
 }
