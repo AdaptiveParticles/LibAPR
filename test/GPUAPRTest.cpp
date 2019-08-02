@@ -77,6 +77,60 @@ public:
     void SetUp() override;
 };
 
+class CreateCR3 : public CreateGPUAPRTest
+{
+public:
+    void SetUp() override;
+};
+
+class CreateCR5 : public CreateGPUAPRTest
+{
+public:
+    void SetUp() override;
+};
+
+class CreateCR10 : public CreateGPUAPRTest
+{
+public:
+    void SetUp() override;
+};
+
+class CreateCR15 : public CreateGPUAPRTest
+{
+public:
+    void SetUp() override;
+};
+
+class CreateCR20 : public CreateGPUAPRTest
+{
+public:
+    void SetUp() override;
+};
+
+class CreateCR30 : public CreateGPUAPRTest
+{
+public:
+    void SetUp() override;
+};
+
+class CreateCR54 : public CreateGPUAPRTest
+{
+public:
+    void SetUp() override;
+};
+
+class CreateCR124 : public CreateGPUAPRTest
+{
+public:
+    void SetUp() override;
+};
+
+class CreateCR1000 : public CreateGPUAPRTest
+{
+public:
+    void SetUp() override;
+};
+
 
 std::string get_source_directory_apr(){
     // returns path to the directory where utils.cpp is stored
@@ -166,6 +220,133 @@ void CreateCR1::SetUp(){
     aprFile.read_particles(test_data.apr,"particle_intensities",test_data.particles_intensities);
     aprFile.close();
 }
+
+void CreateCR3::SetUp(){
+
+
+    std::string file_name = get_source_directory_apr() + "../benchmarks/files/cr_3.apr";
+    test_data.apr_filename = file_name;
+
+    APRFile aprFile;
+    aprFile.open(file_name,"READ");
+    aprFile.set_read_write_tree(false);
+    aprFile.read_apr(test_data.apr);
+    aprFile.read_particles(test_data.apr,"particle_intensities",test_data.particles_intensities);
+    aprFile.close();
+}
+
+void CreateCR5::SetUp(){
+
+
+    std::string file_name = get_source_directory_apr() + "../benchmarks/files/cr_5.apr";
+    test_data.apr_filename = file_name;
+
+    APRFile aprFile;
+    aprFile.open(file_name,"READ");
+    aprFile.set_read_write_tree(false);
+    aprFile.read_apr(test_data.apr);
+    aprFile.read_particles(test_data.apr,"particle_intensities",test_data.particles_intensities);
+    aprFile.close();
+}
+
+void CreateCR10::SetUp(){
+
+
+    std::string file_name = get_source_directory_apr() + "../benchmarks/files/cr_10.apr";
+    test_data.apr_filename = file_name;
+
+    APRFile aprFile;
+    aprFile.open(file_name,"READ");
+    aprFile.set_read_write_tree(false);
+    aprFile.read_apr(test_data.apr);
+    aprFile.read_particles(test_data.apr,"particle_intensities",test_data.particles_intensities);
+    aprFile.close();
+}
+
+void CreateCR15::SetUp(){
+
+
+    std::string file_name = get_source_directory_apr() + "../benchmarks/files/cr_15.apr";
+    test_data.apr_filename = file_name;
+
+    APRFile aprFile;
+    aprFile.open(file_name,"READ");
+    aprFile.set_read_write_tree(false);
+    aprFile.read_apr(test_data.apr);
+    aprFile.read_particles(test_data.apr,"particle_intensities",test_data.particles_intensities);
+    aprFile.close();
+}
+
+void CreateCR20::SetUp(){
+
+
+    std::string file_name = get_source_directory_apr() + "../benchmarks/files/cr_20.apr";
+    test_data.apr_filename = file_name;
+
+    APRFile aprFile;
+    aprFile.open(file_name,"READ");
+    aprFile.set_read_write_tree(false);
+    aprFile.read_apr(test_data.apr);
+    aprFile.read_particles(test_data.apr,"particle_intensities",test_data.particles_intensities);
+    aprFile.close();
+}
+
+void CreateCR30::SetUp(){
+
+
+    std::string file_name = get_source_directory_apr() + "../benchmarks/files/cr_30.apr";
+    test_data.apr_filename = file_name;
+
+    APRFile aprFile;
+    aprFile.open(file_name,"READ");
+    aprFile.set_read_write_tree(false);
+    aprFile.read_apr(test_data.apr);
+    aprFile.read_particles(test_data.apr,"particle_intensities",test_data.particles_intensities);
+    aprFile.close();
+}
+
+void CreateCR54::SetUp(){
+
+
+    std::string file_name = get_source_directory_apr() + "../benchmarks/files/cr_54.apr";
+    test_data.apr_filename = file_name;
+
+    APRFile aprFile;
+    aprFile.open(file_name,"READ");
+    aprFile.set_read_write_tree(false);
+    aprFile.read_apr(test_data.apr);
+    aprFile.read_particles(test_data.apr,"particle_intensities",test_data.particles_intensities);
+    aprFile.close();
+}
+
+void CreateCR124::SetUp(){
+
+
+    std::string file_name = get_source_directory_apr() + "../benchmarks/files/cr_124.apr";
+    test_data.apr_filename = file_name;
+
+    APRFile aprFile;
+    aprFile.open(file_name,"READ");
+    aprFile.set_read_write_tree(false);
+    aprFile.read_apr(test_data.apr);
+    aprFile.read_particles(test_data.apr,"particle_intensities",test_data.particles_intensities);
+    aprFile.close();
+}
+
+void CreateCR1000::SetUp(){
+
+
+    std::string file_name = get_source_directory_apr() + "../benchmarks/files/cr_1000.apr";
+    test_data.apr_filename = file_name;
+
+    APRFile aprFile;
+    aprFile.open(file_name,"READ");
+    aprFile.set_read_write_tree(false);
+    aprFile.read_apr(test_data.apr);
+    aprFile.read_particles(test_data.apr,"particle_intensities",test_data.particles_intensities);
+    aprFile.close();
+}
+
 
 #ifdef APR_USE_CUDA
 
@@ -418,6 +599,50 @@ TEST_F(CreateCR1, TEST_GPU_DOWNSAMPLE) {
     ASSERT_TRUE(test_down_sample_gpu(test_data));
 }
 
+TEST_F(CreateCR3, TEST_GPU_DOWNSAMPLE) {
+
+    ASSERT_TRUE(test_down_sample_gpu(test_data));
+}
+
+TEST_F(CreateCR5, TEST_GPU_DOWNSAMPLE) {
+
+    ASSERT_TRUE(test_down_sample_gpu(test_data));
+}
+
+TEST_F(CreateCR10, TEST_GPU_DOWNSAMPLE) {
+
+    ASSERT_TRUE(test_down_sample_gpu(test_data));
+}
+
+TEST_F(CreateCR15, TEST_GPU_DOWNSAMPLE) {
+
+    ASSERT_TRUE(test_down_sample_gpu(test_data));
+}
+
+TEST_F(CreateCR20, TEST_GPU_DOWNSAMPLE) {
+
+    ASSERT_TRUE(test_down_sample_gpu(test_data));
+}
+
+TEST_F(CreateCR30, TEST_GPU_DOWNSAMPLE) {
+
+    ASSERT_TRUE(test_down_sample_gpu(test_data));
+}
+
+TEST_F(CreateCR54, TEST_GPU_DOWNSAMPLE) {
+
+    ASSERT_TRUE(test_down_sample_gpu(test_data));
+}
+
+TEST_F(CreateCR124, TEST_GPU_DOWNSAMPLE) {
+
+    ASSERT_TRUE(test_down_sample_gpu(test_data));
+}
+
+TEST_F(CreateCR1000, TEST_GPU_DOWNSAMPLE) {
+
+    ASSERT_TRUE(test_down_sample_gpu(test_data));
+}
 
 bool  test_gpu_conv_333(TestDataGPU& test_data){
     auto gpuData = test_data.apr.gpuAPRHelper();
@@ -426,21 +651,22 @@ bool  test_gpu_conv_333(TestDataGPU& test_data){
     gpuData.init_gpu();
     gpuDataTree.init_gpu();
 
-    std::vector<double> tree_data;
-    std::vector<double> output;
-    std::vector<double> stencil;
+    std::vector<float> tree_data;
+    std::vector<float> output;
+    std::vector<float> stencil;
     stencil.resize(27, 0);
 
-    double sum = 13.0 * 27;
+    float sum = 13.0 * 27;
     for(int i = 0; i < 27; ++i) {
-        stencil[i] = ((double) i) / sum;
+        stencil[i] = ((float) i) / sum;
     }
 
     //stencil[13] = 1;
 
     isotropic_convolve_333(gpuData, gpuDataTree, test_data.particles_intensities.data, output, stencil, tree_data);
 
-    std::vector<PixelData<double>> stencils;
+
+    std::vector<PixelData<float>> stencils;
     stencils.resize(1);
 
     stencils[0].init(3, 3, 3);
@@ -449,7 +675,7 @@ bool  test_gpu_conv_333(TestDataGPU& test_data){
     APRFilter filterfns;
     filterfns.boundary_cond = false; // zero padding
 
-    ParticleData<double> output_gt;
+    ParticleData<float> output_gt;
     filterfns.create_test_particles_equiv(test_data.apr, stencils, test_data.particles_intensities, output_gt);
 
     size_t pass_count = 0;
@@ -478,11 +704,6 @@ bool  test_gpu_conv_333(TestDataGPU& test_data){
     return success;
 }
 
-TEST_F(CreateCR1, TEST_GPU_CONV_333) {
-    ASSERT_TRUE(test_gpu_conv_333(test_data));
-
-}
-
 TEST_F(CreatDiffDimsSphereTest, TEST_GPU_CONV_333) {
     ASSERT_TRUE(test_gpu_conv_333(test_data));
 
@@ -492,6 +713,49 @@ TEST_F(CreateSmallSphereTest, TEST_GPU_CONV_333) {
     ASSERT_TRUE(test_gpu_conv_333(test_data));
 
 }
+
+
+TEST_F(CreateCR1, TEST_GPU_CONV_333) {
+    ASSERT_TRUE(test_gpu_conv_333(test_data));
+}
+
+
+TEST_F(CreateCR3, TEST_GPU_CONV_333) {
+    ASSERT_TRUE(test_gpu_conv_333(test_data));
+}
+
+TEST_F(CreateCR5, TEST_GPU_CONV_333) {
+    ASSERT_TRUE(test_gpu_conv_333(test_data));
+}
+
+TEST_F(CreateCR10, TEST_GPU_CONV_333) {
+    ASSERT_TRUE(test_gpu_conv_333(test_data));
+}
+
+TEST_F(CreateCR15, TEST_GPU_CONV_333) {
+    ASSERT_TRUE(test_gpu_conv_333(test_data));
+}
+
+TEST_F(CreateCR20, TEST_GPU_CONV_333) {
+    ASSERT_TRUE(test_gpu_conv_333(test_data));
+}
+
+TEST_F(CreateCR30, TEST_GPU_CONV_333) {
+    ASSERT_TRUE(test_gpu_conv_333(test_data));
+}
+
+TEST_F(CreateCR54, TEST_GPU_CONV_333) {
+    ASSERT_TRUE(test_gpu_conv_333(test_data));
+}
+
+TEST_F(CreateCR124, TEST_GPU_CONV_333) {
+    ASSERT_TRUE(test_gpu_conv_333(test_data));
+}
+
+TEST_F(CreateCR1000, TEST_GPU_CONV_333) {
+    ASSERT_TRUE(test_gpu_conv_333(test_data));
+}
+
 
 
 TEST_F(CreatDiffDimsSphereTest, TEST_GPU_CONV_555) {
