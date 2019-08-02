@@ -557,8 +557,8 @@ bool test_down_sample_gpu(TestDataGPU& test_data){
                         successes++;
                         filled=true;
                     } else {
-                        std::cout << "gpu: " << tree_data[tree_it] << " cpu: " << tree_data_cpu[tree_it] << " at part " << tree_it << std::endl;
-                        std::cout << "x: " << x << " z: " << z << " y: " << tree_it.y() << std::endl;
+                        std::cout << "gpu: " << tree_data[tree_it] << " cpu: " << tree_data_cpu[tree_it] << " at part " << tree_it <<
+                        " at level " << l << " z: " << z  << " x: " << x << " y: " << tree_it.y() << std::endl;
                     }
                     counter++;
                 }
@@ -648,13 +648,12 @@ bool  test_gpu_conv_333(TestDataGPU& test_data){
     auto gpuData = test_data.apr.gpuAPRHelper();
     auto gpuDataTree = test_data.apr.gpuTreeHelper();
 
-    gpuData.init_gpu();
-    gpuDataTree.init_gpu();
+    //gpuData.init_gpu();
+    //gpuDataTree.init_gpu();
 
     std::vector<float> tree_data;
     std::vector<float> output;
-    std::vector<float> stencil;
-    stencil.resize(27, 0);
+    std::vector<float> stencil(27, 0);
 
     float sum = 13.0 * 27;
     for(int i = 0; i < 27; ++i) {
@@ -679,7 +678,7 @@ bool  test_gpu_conv_333(TestDataGPU& test_data){
     filterfns.create_test_particles_equiv(test_data.apr, stencils, test_data.particles_intensities, output_gt);
 
     size_t pass_count = 0;
-    bool success = true;
+    size_t total_count = 0;
 
     auto it = test_data.apr.iterator();
 
@@ -690,10 +689,10 @@ bool  test_gpu_conv_333(TestDataGPU& test_data){
                     if(std::abs(output[it] - output_gt[it]) < 1e-2) {
                         pass_count++;
                     } else {
-                        success= false;
                         std::cout << "Expected " << output_gt[it] << " but received " << output[it] <<
                                   " at particle index " << it << " (level, z, x, y) = (" << level << ", " << z << ", " << x << ", " << it.y() << ")" << std::endl;
                     }
+                    total_count++;
                 }
             }
         }
@@ -701,7 +700,7 @@ bool  test_gpu_conv_333(TestDataGPU& test_data){
 
     std::cout << "passed: " << pass_count << " failed: " << test_data.apr.total_number_particles()-pass_count << std::endl;
 
-    return success;
+    return (pass_count == total_count);
 }
 
 TEST_F(CreatDiffDimsSphereTest, TEST_GPU_CONV_333) {

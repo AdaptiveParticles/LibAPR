@@ -872,6 +872,7 @@ __global__ void down_sample_avg_interior_new(const uint64_t* level_xz_vec,
     __shared__ int number_y_chunk[4];
 
     if(local_th == 0) {
+
         start[block] = min(y_vec[global_index_begin_0[block]],  y_vec_tree[global_index_begin_t[block]]);
         //end[block] = max(y_vec[max(global_index_end_0[block],(size_t)1)-1], y_vec_tree[ max(global_index_end_t[block],(size_t)1)-1]);
 
@@ -885,9 +886,16 @@ __global__ void down_sample_avg_interior_new(const uint64_t* level_xz_vec,
     }
 
     __syncthreads();
-    //const uint16_t number_y_chunk = (y_num+31)/32;
 
-    for (int y_block = start[block]/32; y_block < (number_y_chunk[block]); ++y_block) {
+    if( (block == 0) && (local_th == 0) ) {
+        start[0] = min( min(start[0], start[1]), min(start[2], start[3]) );
+        //start[0] = max( start[0]/32 - 1, 0);
+    }
+
+    __syncthreads();
+    //const uint16_t number_y_chunk = (y_num+31)/32;
+    //start[block]/32
+    for (int y_block = start[0]/32; y_block < (number_y_chunk[block]); ++y_block) {
 
         __syncthreads();
         //value less then current chunk then update.
@@ -1187,7 +1195,7 @@ void downsample_avg(GPUAccessHelper& access, GPUAccessHelper& tree_access, input
         }
 
         error_check( cudaDeviceSynchronize() )
-        error_check( cudaGetLastError() )
+        error_check( cudaPeekAtLastError() )
     }
 }
 
@@ -1255,6 +1263,6 @@ void downsample_avg_old(GPUAccessHelper& access, GPUAccessHelper& tree_access, i
                                                            level);
         }
         error_check( cudaDeviceSynchronize() )
-        error_check( cudaGetLastError() )
+        error_check( cudaPeekAtLastError() )
     }
 }
