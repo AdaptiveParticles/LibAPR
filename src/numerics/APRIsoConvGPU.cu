@@ -293,32 +293,48 @@ timings isotropic_convolve_333(GPUAccessHelper& access, GPUAccessHelper& tree_ac
      *  conv_stencil needs to have 27 entries
      */
 
+    APRTimer timer(true);
+    APRTimer timer2(true);
+
+    timer.start_timer("initialize GPU access (apr and tree)");
+    access.init_gpu();
+    tree_access.init_gpu();
+    timer.stop_timer();
+
     assert(input.size() == access.total_number_particles());
     assert(stencil.size() == 27);
-
-    const int blockSize = 8;
 
     timings ret;
     ret.lvl_timings.resize(access.level_max() - access.level_min() + 1);
 
-    APRTimer timer(false);
-    APRTimer timer2(false);
+    ret.init_access = timer.timings.back();
 
-    timer.start_timer("transfer H2D");
-
+    timer.start_timer("host data resize");
     tree_data.resize(tree_access.total_number_particles());
     output.resize(access.total_number_particles());
+    timer.stop_timer();
 
+    timer.start_timer("compute ne rows");
     std::vector<int> ne_rows; //non empty rows
     std::vector<int> ne_counter; //non empty rows
-
     compute_ne_rows(tree_access,ne_counter,ne_rows);
-    ScopedCudaMemHandler<int*, JUST_ALLOC> ne_rows_gpu(ne_rows.data(), ne_rows.size());
+    timer.stop_timer();
 
+    ret.compute_ne_rows = timer.timings.back();
+
+
+    timer.start_timer("compute ne rows internal");
     std::vector<int> ne_rows_interior; //non empty rows
     std::vector<int> ne_counter_interior; //non empty rows
-
     compute_ne_rows_interior(access,ne_counter_interior,ne_rows_interior);
+    timer.stop_timer();
+
+    ret.compute_ne_rows_interior = timer.timings.back();
+
+
+
+    timer.start_timer("allocate GPU memory");
+    ScopedCudaMemHandler<int*, JUST_ALLOC> ne_rows_gpu(ne_rows.data(), ne_rows.size());
     ScopedCudaMemHandler<int*, JUST_ALLOC> ne_rows_interior_gpu(ne_rows_interior.data(), ne_rows_interior.size());
 
     /// allocate GPU memory
@@ -326,11 +342,10 @@ timings isotropic_convolve_333(GPUAccessHelper& access, GPUAccessHelper& tree_ac
     ScopedCudaMemHandler<treeType*, JUST_ALLOC> tree_data_gpu(tree_data.data(), tree_data.size());
     ScopedCudaMemHandler<outputType*, JUST_ALLOC> output_gpu(output.data(), output.size());
     ScopedCudaMemHandler<stencilType*, JUST_ALLOC> stencil_gpu(stencil.data(), stencil.size());
+    timer.stop_timer();
+    ret.allocation = timer.timings.back();
 
-    size_t max_num_blocks = ((access.x_num(access.level_max()) + blockSize - 1) / blockSize) * ((access.z_num(access.level_max()) + blockSize - 1) / blockSize);
-    ScopedCudaMemHandler<bool*, JUST_ALLOC> blocks_empty(NULL, max_num_blocks);
-
-
+    timer.start_timer("transfer H2D");
     ne_rows_gpu.copyH2D();
     ne_rows_interior_gpu.copyH2D();
 
@@ -344,7 +359,7 @@ timings isotropic_convolve_333(GPUAccessHelper& access, GPUAccessHelper& tree_ac
 
     /// Fill the APR Tree by average downsampling
     timer.start_timer("fill tree");
-    downsample_avg_alt(access, tree_access, input_gpu.get(), tree_data_gpu.get(),ne_rows_gpu.get(),ne_counter);
+    downsample_avg(access, tree_access, input_gpu.get(), tree_data_gpu.get(),ne_rows_gpu.get(),ne_counter);
     cudaDeviceSynchronize();
     timer.stop_timer();
 
@@ -352,101 +367,39 @@ timings isotropic_convolve_333(GPUAccessHelper& access, GPUAccessHelper& tree_ac
 
     timer.start_timer("run kernels");
 
-    for (int level = access.level_max(); level >= access.level_min(); --level) {
+    const int blockSize = 4;
+    const int chunkSize = 512/(blockSize*blockSize);
+
+    for (int level = access.level_max(); level > access.level_min(); --level) {
 
         timer2.start_timer("convolve_dlvl_" + std::to_string(access.level_max() - level));
-        int x_blocks = (access.x_num(level) + blockSize - 1) / blockSize;
-        int z_blocks = (access.z_num(level) + blockSize - 1) / blockSize;
 
-        dim3 blocks_l(x_blocks, 1, z_blocks);
-        dim3 threads_l(blockSize, 1, blockSize);
-
-        check_blocks<blockSize><<<blocks_l, threads_l>>>(access.get_level_xz_vec_ptr(),
-                                            access.get_xz_end_vec_ptr(),
-                                            blocks_empty.get(),
-                                            level,
-                                            access.x_num(level));
-
-        threads_l = {blockSize+2, 1, blockSize+2};
-
-        if (level == access.level_min()) {
-            conv_min_333<blockSize> << < blocks_l, threads_l >> >( access.get_level_xz_vec_ptr(),
-                                                        access.get_xz_end_vec_ptr(),
-                                                        access.get_y_vec_ptr(),
-                                                        input_gpu.get(),
-                                                        output_gpu.get(),
-                                                        stencil_gpu.get(),
-                                                        tree_access.get_level_xz_vec_ptr(),
-                                                        tree_access.get_xz_end_vec_ptr(),
-                                                        tree_access.get_y_vec_ptr(),
-                                                        tree_data_gpu.get(),
-                                                        access.z_num(level),
-                                                        access.x_num(level),
-                                                        access.y_num(level),
-                                                        tree_access.z_num(level-1),
-                                                        tree_access.x_num(level-1),
-                                                        tree_access.y_num(level-1),
-                                                        level,
-                                                        blocks_empty.get() );
-
-        } else if (level == access.level_max()) {
-//            conv_max_333<blockSize> << < blocks_l, threads_l >> >( access.get_level_xz_vec_ptr(),
-//                                                        access.get_xz_end_vec_ptr(),
-//                                                        access.get_y_vec_ptr(),
-//                                                        input_gpu.get(),
-//                                                        output_gpu.get(),
-//                                                        stencil_gpu.get(),
-//                                                        access.z_num(level),
-//                                                        access.x_num(level),0
-//                                                        access.y_num(level),
-//                                                        tree_access.z_num(level-1),
-//                                                        tree_access.x_num(level-1),
-//                                                        tree_access.y_num(level-1),
-//                                                        level,
-//                                                        blocks_empty.get() );
-
-            const int bsz = 4;
-            const int chunkSize = 512/(bsz*bsz);
+        if (level == access.level_max()) {
 
             size_t ne_sz = ne_counter[level+1] - ne_counter[level];
             size_t offset = ne_counter[level];
 
-            //dim3 blck( (access.x_num(level) + bsz-3)/(bsz-2), 1, (access.z_num(level) + bsz-3)/(bsz-2));
-
             dim3 blocks_l(ne_sz, 1, 1);
 
-            dim3 thd(chunkSize, bsz, bsz);
+            dim3 threads_l(chunkSize, blockSize, blockSize);
 
-            conv_max_333_chunked<chunkSize, bsz> << < blocks_l, thd >> >( access.get_level_xz_vec_ptr(),
-                                                                    access.get_xz_end_vec_ptr(),
-                                                                    access.get_y_vec_ptr(),
-                                                                    input_gpu.get(),
-                                                                    output_gpu.get(),
-                                                                    stencil_gpu.get(),
-                                                                    access.z_num(level),
-                                                                    access.x_num(level),
-                                                                    access.y_num(level),
-                                                                    tree_access.z_num(level-1),
-                                                                    tree_access.x_num(level-1),
-                                                                    level,ne_rows_gpu.get() + offset );
-
-//            conv_max_333_alt<<<blck, thd>>>(access.get_level_xz_vec_ptr(),
-//                                            access.get_xz_end_vec_ptr(),
-//                                            access.get_y_vec_ptr(),
-//                                            input_gpu.get(),
-//                                            output_gpu.get(),
-//                                            stencil_gpu.get(),
-//                                            access.z_num(level),
-//                                            access.x_num(level),
-//                                            access.y_num(level),
-//                                            tree_access.z_num(level-1),
-//                                            tree_access.x_num(level-1),
-//                                            level);
+            conv_max_333_chunked
+                    <chunkSize, blockSize>
+                    << < blocks_l, threads_l >> >
+                    ( access.get_level_xz_vec_ptr(),
+                        access.get_xz_end_vec_ptr(),
+                        access.get_y_vec_ptr(),
+                        input_gpu.get(),
+                        output_gpu.get(),
+                        stencil_gpu.get(),
+                        access.z_num(level),
+                        access.x_num(level),
+                        access.y_num(level),
+                        tree_access.z_num(level-1),
+                        tree_access.x_num(level-1),
+                        level,ne_rows_gpu.get() + offset );
 
         } else {
-
-            const int bsz = 4;
-            const int chunkSize = 512/(bsz*bsz);
 
             size_t ne_sz = ne_counter_interior[level+1] - ne_counter_interior[level];
             size_t offset = ne_counter_interior[level];
@@ -455,28 +408,31 @@ timings isotropic_convolve_333(GPUAccessHelper& access, GPUAccessHelper& tree_ac
                 continue;
             }
 
+            dim3 blocks_l(ne_sz, 1, 1);
+            dim3 threads_l(chunkSize, blockSize, blockSize);
 
-            dim3 blck(ne_sz, 1, 1);
-            dim3 thd(chunkSize, bsz, bsz);
-
-            conv_interior_333_chunked<chunkSize, bsz> << < blck, thd >> > (access.get_level_xz_vec_ptr(),
-                    access.get_xz_end_vec_ptr(),
-                    access.get_y_vec_ptr(),
-                    input_gpu.get(),
-                    output_gpu.get(),
-                    stencil_gpu.get(),
-                    tree_access.get_level_xz_vec_ptr(),
-                    tree_access.get_xz_end_vec_ptr(),
-                    tree_access.get_y_vec_ptr(),
-                    tree_data_gpu.get(),
-                    access.z_num(level),
-                    access.x_num(level),
-                    access.y_num(level),
-                    tree_access.z_num(level - 1),
-                    tree_access.x_num(level - 1),
-                    level,
-                    ne_rows_interior_gpu.get() + offset);
+            conv_interior_333_chunked
+                    <chunkSize, blockSize>
+                    <<< blocks_l, threads_l >>>
+                    (access.get_level_xz_vec_ptr(),
+                     access.get_xz_end_vec_ptr(),
+                     access.get_y_vec_ptr(),
+                     input_gpu.get(),
+                     output_gpu.get(),
+                     stencil_gpu.get(),
+                     tree_access.get_level_xz_vec_ptr(),
+                     tree_access.get_xz_end_vec_ptr(),
+                     tree_access.get_y_vec_ptr(),
+                     tree_data_gpu.get(),
+                     access.z_num(level),
+                     access.x_num(level),
+                     access.y_num(level),
+                     tree_access.z_num(level - 1),
+                     tree_access.x_num(level - 1),
+                     level,
+                     ne_rows_interior_gpu.get() + offset);
         }
+
         error_check( cudaDeviceSynchronize() )
         error_check( cudaPeekAtLastError() )
 
@@ -2501,9 +2457,6 @@ __global__ void conv_interior_333_chunked(const uint64_t* level_xz_vec,
         chunk_start[0] = min( min(chunk_start[0], chunk_start[1]), min(chunk_start[2], chunk_start[3]) );
         number_y_chunks[0] = max( max(number_y_chunks[0], number_y_chunks[1]), max(number_y_chunks[2], number_y_chunks[3]) );
     }
-//    const int chunkSizeInternal = chunkSize-2;
-//    const int number_y_chunks = (y_num + chunkSizeInternal - 1) / chunkSizeInternal;
-//    const int chunk_start = 0;
 
     __syncthreads();
 

@@ -18,6 +18,10 @@ struct timings {
     float fill_tree = 0;
     float run_kernels = 0;
     float transfer_D2H = 0;
+    float allocation = 0;
+    float compute_ne_rows = 0;
+    float compute_ne_rows_interior = 0;
+    float init_access = 0;
     std::vector<float> lvl_timings;
 };
 

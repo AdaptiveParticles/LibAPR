@@ -229,12 +229,6 @@ inline void bench_apr_convolve_cuda(APR& apr,ParticleData<partsType>& parts,int 
 
     APRTimer timer(true);
 
-    auto access = apr.gpuAPRHelper();
-    auto tree_access = apr.gpuTreeHelper();
-
-    access.init_gpu();
-    tree_access.init_gpu();
-
     std::vector<float> stencil;
     stencil.resize(stencil_size * stencil_size * stencil_size);
 
@@ -247,16 +241,23 @@ inline void bench_apr_convolve_cuda(APR& apr,ParticleData<partsType>& parts,int 
         stencil[i] = ((float) i) / sum;
     }
 
+    auto apr_it = apr.iterator();
+    auto tree_it = apr.tree_iterator();
+
     timings component_times;
-    component_times.lvl_timings.resize(access.level_max()-access.level_min()+1, 0);
+    component_times.lvl_timings.resize(apr_it.level_max()-tree_it.level_min()+1, 0);
+
+    std::vector<float> output(apr_it.total_number_particles());
+    std::vector<float> tree_data(tree_it.total_number_particles());
 
     std::string name = "apr_filter_cuda" + std::to_string(stencil_size);
     timer.start_timer(name);
 
     if(stencil_size == 3) {
         for (int r = 0; r < num_rep; ++r) {
-            std::vector<float> output;
-            std::vector<float> tree_data;
+
+            auto access = apr.gpuAPRHelper();
+            auto tree_access = apr.gpuTreeHelper();
 
             timings tmp = isotropic_convolve_333(access, tree_access, parts.data, output, stencil, tree_data);
 
@@ -264,6 +265,10 @@ inline void bench_apr_convolve_cuda(APR& apr,ParticleData<partsType>& parts,int 
             component_times.run_kernels += tmp.run_kernels;
             component_times.fill_tree += tmp.fill_tree;
             component_times.transfer_D2H += tmp.transfer_D2H;
+            component_times.init_access += tmp.init_access;
+            component_times.allocation += tmp.allocation;
+            component_times.compute_ne_rows += tmp.compute_ne_rows;
+            component_times.compute_ne_rows_interior += tmp.compute_ne_rows_interior;
 
             for(int i=0; i < component_times.lvl_timings.size(); ++i) {
                 component_times.lvl_timings[i] += tmp.lvl_timings[i];
@@ -272,8 +277,9 @@ inline void bench_apr_convolve_cuda(APR& apr,ParticleData<partsType>& parts,int 
         }
     } else if(stencil_size == 5) {
         for (int r = 0; r < num_rep; ++r) {
-            std::vector<float> output;
-            std::vector<float> tree_data;
+
+            auto access = apr.gpuAPRHelper();
+            auto tree_access = apr.gpuTreeHelper();
 
             timings tmp = isotropic_convolve_555(access, tree_access, parts.data, output, stencil, tree_data);
 
@@ -292,6 +298,10 @@ inline void bench_apr_convolve_cuda(APR& apr,ParticleData<partsType>& parts,int 
     analysisData.add_float_data(name + "_run_kernels", component_times.run_kernels / num_rep);
     analysisData.add_float_data(name + "_fill_tree", component_times.fill_tree / num_rep);
     analysisData.add_float_data(name + "_data_transfer_to_host", component_times.transfer_D2H / num_rep);
+    analysisData.add_float_data(name + "_allocation", component_times.allocation / num_rep);
+    analysisData.add_float_data(name + "_init_access", component_times.init_access / num_rep);
+    analysisData.add_float_data(name + "_compute_ne_rows", component_times.compute_ne_rows / num_rep);
+    analysisData.add_float_data(name + "_compute_ne_rows_interior", component_times.compute_ne_rows_interior / num_rep);
 
     for(int i = 0; i < component_times.lvl_timings.size(); ++i) {
         analysisData.add_float_data(name + "_conv_dlvl_" + std::to_string(i), component_times.lvl_timings[i] / num_rep);
