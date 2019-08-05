@@ -297,7 +297,6 @@ timings isotropic_convolve_333(GPUAccessHelper& access, GPUAccessHelper& tree_ac
     APRTimer timer2(false);
 
     timings ret;
-    ret.lvl_timings.resize(access.level_max() - access.level_min() + 1);
 
     timer.start_timer("initialize GPU access (apr and tree)");
     tree_access.init_gpu();
@@ -305,6 +304,8 @@ timings isotropic_convolve_333(GPUAccessHelper& access, GPUAccessHelper& tree_ac
     error_check( cudaDeviceSynchronize() )
     timer.stop_timer();
     ret.init_access = timer.timings.back();
+
+    ret.lvl_timings.resize(access.level_max() - access.level_min() + 1);
 
     assert(input.size() == access.total_number_particles());
     assert(stencil.size() == 27);
