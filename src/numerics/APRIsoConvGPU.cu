@@ -332,8 +332,6 @@ timings isotropic_convolve_333(GPUAccessHelper& access, GPUAccessHelper& tree_ac
 
     ret.compute_ne_rows_interior = timer.timings.back();
 
-
-
     timer.start_timer("allocate GPU memory");
     ScopedCudaMemHandler<int*, JUST_ALLOC> ne_rows_gpu(ne_rows.data(), ne_rows.size());
     ScopedCudaMemHandler<int*, JUST_ALLOC> ne_rows_interior_gpu(ne_rows_interior.data(), ne_rows_interior.size());
@@ -350,11 +348,8 @@ timings isotropic_convolve_333(GPUAccessHelper& access, GPUAccessHelper& tree_ac
     timer.start_timer("transfer H2D");
     ne_rows_gpu.copyH2D();
     ne_rows_interior_gpu.copyH2D();
-
-    /// copy input and stencil to the GPU
     input_gpu.copyH2D();
     stencil_gpu.copyH2D();
-
     error_check( cudaDeviceSynchronize() )
     timer.stop_timer();
     ret.transfer_H2D = timer.timings.back();
