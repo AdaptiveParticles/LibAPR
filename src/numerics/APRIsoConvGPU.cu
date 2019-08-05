@@ -293,8 +293,8 @@ timings isotropic_convolve_333(GPUAccessHelper& access, GPUAccessHelper& tree_ac
      *  conv_stencil needs to have 27 entries
      */
 
-    APRTimer timer(true);
-    APRTimer timer2(true);
+    APRTimer timer(false);
+    APRTimer timer2(false);
 
     timer.start_timer("initialize GPU access (apr and tree)");
     tree_access.init_gpu();
