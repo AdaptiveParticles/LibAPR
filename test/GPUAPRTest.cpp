@@ -850,6 +850,43 @@ TEST_F(CreatDiffDimsSphereTest, TEST_GPU_CONV_PIXEL_555) {
     ASSERT_EQ(c_fail, 0);
 }
 
+
+TEST_F(CreatDiffDimsSphereTest, TEST_PARTIAL_ACCESS_INIT) {
+
+    auto access = test_data.apr.gpuAPRHelper();
+    auto tree_access = test_data.apr.gpuTreeHelper();
+
+    tree_access.init_gpu();
+
+    std::vector<uint16_t> y_vec(test_data.apr.total_number_particles());
+    std::copy(access.linearAccess->y_vec.begin(), access.linearAccess->y_vec.end(), y_vec.begin());
+
+    auto it = test_data.apr.iterator();
+
+    auto access_new = test_data.apr.gpuAPRHelper();
+
+    access_new.init_gpu( it.total_number_particles(it.level_max()-1), tree_access);
+
+    access_new.copy2Host();
+    auto y_vec_new = access_new.linearAccess->y_vec;
+
+    size_t c_fail = 0;
+
+    for(int level = it.level_min(); level <= it.level_max(); ++level) {
+        for(int z = 0; z < it.z_num(level); ++z) {
+            for(int x = 0; x < it.x_num(level); ++x) {
+                for(it.begin(level, z, x); it < it.end(); ++it) {
+                    if( (y_vec[it] != y_vec_new[it]) ) {
+                        c_fail++;
+                    }
+                }
+            }
+        }
+    }
+
+    ASSERT_EQ(c_fail, 0);
+}
+
 #endif
 
 int main(int argc, char **argv) {

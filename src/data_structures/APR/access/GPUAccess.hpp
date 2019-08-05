@@ -22,7 +22,7 @@ public:
 
 
     void copy2Device();
-    void copy2Device(size_t numElements);
+    void copy2Device(size_t numElements, GPUAccess* tree_access);
 
     void copy2Host();
 
@@ -72,12 +72,12 @@ public:
         gpuAccess->copy2Device();
     }
 
-    void init_gpu(const size_t numElements){
+    void init_gpu(const size_t numElements, GPUAccessHelper& tree_access){
         gpuAccess->init_y_vec(linearAccess->y_vec);
         gpuAccess->init_level_xz_vec(linearAccess->level_xz_vec);
         gpuAccess->init_xz_end_vec(linearAccess->xz_end_vec);
         gpuAccess->genInfo = linearAccess->genInfo;
-        gpuAccess->copy2Device(numElements);
+        gpuAccess->copy2Device(numElements, tree_access.gpuAccess);
     }
 
     void copy2Host() {
