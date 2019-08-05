@@ -17,9 +17,9 @@
 
 class GPUAccess::GPUAccessImpl{
 public:
-    ScopedCudaMemHandler<uint16_t*, H2D> y_vec;
-    ScopedCudaMemHandler<uint64_t*, H2D> xz_end_vec;
-    ScopedCudaMemHandler<uint64_t*, H2D> level_xz_vec;
+    ScopedCudaMemHandler<uint16_t*, JUST_ALLOC> y_vec;
+    ScopedCudaMemHandler<uint64_t*, JUST_ALLOC> xz_end_vec;
+    ScopedCudaMemHandler<uint64_t*, JUST_ALLOC> level_xz_vec;
 
     GPUAccessImpl()=default;
     ~GPUAccessImpl()=default;
@@ -45,6 +45,12 @@ void GPUAccess::init_level_xz_vec(std::vector<uint64_t>& level_xz_vec){
 
 void GPUAccess::copy2Device(){
     data->y_vec.copyH2D();
+    data->xz_end_vec.copyH2D();
+    data->level_xz_vec.copyH2D();
+}
+
+void GPUAccess::copy2Device(const size_t numElements){
+    data->y_vec.copyH2D(numElements);
     data->xz_end_vec.copyH2D();
     data->level_xz_vec.copyH2D();
 }

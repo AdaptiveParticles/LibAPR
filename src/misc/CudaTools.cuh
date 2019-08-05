@@ -226,6 +226,10 @@ public:
         cudaMemcpyAsync(iCudaMemory.get(), iData, iBytes, cudaMemcpyHostToDevice, iStream);
     }
 
+    void copyH2D(const size_t numElements) {
+        cudaMemcpyAsync(iCudaMemory.get(), iData, numElements*DataSize, cudaMemcpyHostToDevice, iStream);
+    }
+
     void copyD2H() {
         cudaMemcpyAsync((void*)iData, iCudaMemory.get(), iBytes, cudaMemcpyDeviceToHost, iStream);
     }

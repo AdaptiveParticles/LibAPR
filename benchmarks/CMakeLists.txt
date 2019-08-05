@@ -12,4 +12,5 @@ buildTarget(BenchIO BenchIO.cpp)
 buildTarget(BenchFilterCuda BenchFilterCuda.cpp)
 buildTarget(BenchPipeline BenchPipeline.cpp)
 buildTarget(BenchIterationCuda BenchIterationCuda.cpp)
+buildTarget(BenchCudaAccessInit BenchCudaAccessInit.cpp)
 
