@@ -296,18 +296,18 @@ timings isotropic_convolve_333(GPUAccessHelper& access, GPUAccessHelper& tree_ac
     APRTimer timer(false);
     APRTimer timer2(false);
 
-    timer.start_timer("initialize GPU access (apr and tree)");
-    tree_access.init_gpu();
-    access.init_gpu(access.total_number_particles(tree_access.level_max()), tree_access);
-    timer.stop_timer();
-
-    assert(input.size() == access.total_number_particles());
-    assert(stencil.size() == 27);
-
     timings ret;
     ret.lvl_timings.resize(access.level_max() - access.level_min() + 1);
 
+    timer.start_timer("initialize GPU access (apr and tree)");
+    tree_access.init_gpu();
+    access.init_gpu(access.total_number_particles(tree_access.level_max()), tree_access);
+    error_check( cudaDeviceSynchronize() )
+    timer.stop_timer();
     ret.init_access = timer.timings.back();
+
+    assert(input.size() == access.total_number_particles());
+    assert(stencil.size() == 27);
 
     timer.start_timer("host data resize");
     tree_data.resize(tree_access.total_number_particles());
@@ -342,6 +342,7 @@ timings isotropic_convolve_333(GPUAccessHelper& access, GPUAccessHelper& tree_ac
     ScopedCudaMemHandler<treeType*, JUST_ALLOC> tree_data_gpu(tree_data.data(), tree_data.size());
     ScopedCudaMemHandler<outputType*, JUST_ALLOC> output_gpu(output.data(), output.size());
     ScopedCudaMemHandler<stencilType*, JUST_ALLOC> stencil_gpu(stencil.data(), stencil.size());
+    error_check( cudaDeviceSynchronize() )
     timer.stop_timer();
     ret.allocation = timer.timings.back();
 
@@ -353,14 +354,14 @@ timings isotropic_convolve_333(GPUAccessHelper& access, GPUAccessHelper& tree_ac
     input_gpu.copyH2D();
     stencil_gpu.copyH2D();
 
-    cudaDeviceSynchronize();
+    error_check( cudaDeviceSynchronize() )
     timer.stop_timer();
     ret.transfer_H2D = timer.timings.back();
 
     /// Fill the APR Tree by average downsampling
     timer.start_timer("fill tree");
     downsample_avg(access, tree_access, input_gpu.get(), tree_data_gpu.get(),ne_rows_gpu.get(),ne_counter);
-    cudaDeviceSynchronize();
+    error_check( cudaDeviceSynchronize() )
     timer.stop_timer();
 
     ret.fill_tree = timer.timings.back();
