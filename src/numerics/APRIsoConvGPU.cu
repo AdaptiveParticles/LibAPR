@@ -297,8 +297,8 @@ timings isotropic_convolve_333(GPUAccessHelper& access, GPUAccessHelper& tree_ac
     APRTimer timer2(true);
 
     timer.start_timer("initialize GPU access (apr and tree)");
-    access.init_gpu();
     tree_access.init_gpu();
+    access.init_gpu(access.total_number_particles(tree_access.level_max()), tree_access);
     timer.stop_timer();
 
     assert(input.size() == access.total_number_particles());

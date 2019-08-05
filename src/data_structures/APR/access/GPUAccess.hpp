@@ -86,6 +86,11 @@ public:
 
     uint64_t total_number_particles() { return gpuAccess->total_number_particles(); }
 
+    uint64_t total_number_particles(const int level) {
+        uint64_t index = linearAccess->level_xz_vec[level] + linearAccess->x_num(level) - 1 + (linearAccess->z_num(level)-1)*linearAccess->x_num(level);
+        return linearAccess->xz_end_vec[index];
+    }
+
     int level_max() const { return gpuAccess->level_max(); }
     int level_min() const { return gpuAccess->level_min(); }
 

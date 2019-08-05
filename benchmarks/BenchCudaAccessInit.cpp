@@ -72,9 +72,13 @@ inline void bench_access_full(APR& apr,ParticleData<partsType>& parts,int num_re
     for(int r = 0; r < 5; ++r) {
         auto access = apr.gpuAPRHelper();
         access.init_gpu();
+        error_check ( cudaDeviceSynchronize() )
+        error_check( cudaGetLastError() )
 
         auto tree_access = apr.gpuTreeHelper();
         tree_access.init_gpu();
+        error_check ( cudaDeviceSynchronize() )
+        error_check( cudaGetLastError() )
     }
 
     timer.start_timer("init_full");
@@ -83,7 +87,6 @@ inline void bench_access_full(APR& apr,ParticleData<partsType>& parts,int num_re
         auto access = apr.gpuAPRHelper();
         access.init_gpu();
         error_check ( cudaDeviceSynchronize() )
-        error_check( cudaPeekAtLastError() )
         timer2.stop_timer();
         apr_time += timer2.timings.back();
 
@@ -91,7 +94,6 @@ inline void bench_access_full(APR& apr,ParticleData<partsType>& parts,int num_re
         auto tree_access = apr.gpuTreeHelper();
         tree_access.init_gpu();
         error_check ( cudaDeviceSynchronize() )
-        error_check( cudaPeekAtLastError() )
         timer2.stop_timer();
         tree_time += timer2.timings.back();
     }
@@ -113,14 +115,15 @@ inline void bench_access_partial(APR& apr,ParticleData<partsType>& parts,int num
     float tree_time = 0;
 
     for(int r = 0; r < 5; ++r) {
-        auto it = apr.iterator();
-
         auto tree_access = apr.gpuTreeHelper();
         tree_access.init_gpu();
+        error_check ( cudaDeviceSynchronize() )
+        error_check( cudaGetLastError() )
 
         auto access = apr.gpuAPRHelper();
-        access.init_gpu(it.total_number_particles(it.level_max()-1), tree_access);
-
+        access.init_gpu(access.total_number_particles(tree_access.level_max()), tree_access);
+        error_check ( cudaDeviceSynchronize() )
+        error_check( cudaGetLastError() )
     }
 
     timer.start_timer("init_partial");
@@ -130,16 +133,13 @@ inline void bench_access_partial(APR& apr,ParticleData<partsType>& parts,int num
         auto tree_access = apr.gpuTreeHelper();
         tree_access.init_gpu();
         error_check ( cudaDeviceSynchronize() )
-        error_check( cudaPeekAtLastError() )
         timer2.stop_timer();
         tree_time += timer2.timings.back();
 
         timer2.start_timer("apr access");
-        auto it = apr.iterator();
         auto access = apr.gpuAPRHelper();
-        access.init_gpu(it.total_number_particles(it.level_max()-1), tree_access);
+        access.init_gpu(access.total_number_particles(tree_access.level_max()), tree_access);
         error_check ( cudaDeviceSynchronize() )
-        error_check( cudaPeekAtLastError() )
         timer2.stop_timer();
         apr_time += timer2.timings.back();
     }
