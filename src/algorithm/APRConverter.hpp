@@ -33,6 +33,9 @@
 template<typename ImageType>
 class APRConverter {
 
+    template<typename T>
+    friend class PyAPRConverter;
+
 protected:
     PullingScheme iPullingScheme;
     LocalParticleCellSet iLocalParticleSet;
@@ -79,6 +82,12 @@ public:
     }
 
 protected:
+
+    template<typename T>
+    bool get_lrf(APR &aAPR, PixelData<T> &input_image);
+
+    template<typename T>
+    bool get_ds(APR &aAPR);
 
     //get apr without setting parameters, and with an already loaded image.
 
@@ -367,6 +376,45 @@ void APRConverter<ImageType>::generateDatastructures(APR& aAPR){
 
         method_timer.stop_timer();
     }
+
+}
+
+/**
+ * Main method for constructing the input steps to the computation to the APR before parameters are applied.
+ */
+template<typename ImageType> template<typename T>
+inline bool APRConverter<ImageType>::get_lrf(APR &aAPR, PixelData<T>& input_image) {
+
+    aAPR.parameters = par;
+
+    initPipelineAPR(aAPR, input_image.y_num, input_image.x_num, input_image.z_num);
+
+    computation_timer.start_timer("init_mem");
+
+    initPipelineMemory(input_image.y_num, input_image.x_num, input_image.z_num);
+
+    computation_timer.stop_timer();
+
+    computation_timer.start_timer("compute_L");
+
+    //Compute the local resolution estimate
+    computeL(aAPR,input_image);
+
+    computation_timer.stop_timer();
+
+}
+
+/**
+ * Main method for constructing the input steps to the computation to the APR before parameters are applied.
+ */
+template<typename ImageType> template<typename T>
+inline bool APRConverter<ImageType>::get_ds(APR &aAPR) {
+
+    applyParameters(aAPR,par);
+
+    solveForAPR(aAPR);
+
+    generateDatastructures(aAPR);
 
 }
 
