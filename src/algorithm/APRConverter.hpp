@@ -86,7 +86,6 @@ protected:
     template<typename T>
     bool get_lrf(APR &aAPR, PixelData<T> &input_image);
 
-    template<typename T>
     bool get_ds(APR &aAPR);
 
     //get apr without setting parameters, and with an already loaded image.
@@ -407,7 +406,7 @@ inline bool APRConverter<ImageType>::get_lrf(APR &aAPR, PixelData<T>& input_imag
 /**
  * Main method for constructing the input steps to the computation to the APR before parameters are applied.
  */
-template<typename ImageType> template<typename T>
+template<typename ImageType>
 inline bool APRConverter<ImageType>::get_ds(APR &aAPR) {
 
     applyParameters(aAPR,par);
