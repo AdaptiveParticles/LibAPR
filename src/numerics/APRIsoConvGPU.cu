@@ -299,6 +299,7 @@ timings isotropic_convolve_333(GPUAccessHelper& access, GPUAccessHelper& tree_ac
     timings ret;
 
     timer.start_timer("initialize GPU access (apr and tree)");
+    //access.init_gpu();
     tree_access.init_gpu();
     access.init_gpu(access.total_number_particles(tree_access.level_max()), tree_access);
     error_check( cudaDeviceSynchronize() )
@@ -2220,7 +2221,7 @@ __global__ void conv_max_333_chunked(const uint64_t* level_xz_vec,
         chunkSizeInternal = chunkSize-2;
 
         chunk_start = max(((int)y_0)/chunkSizeInternal-1,0);
-        number_y_chunks = (y_vec[global_index_end_0_s[row]-1] + chunkSizeInternal)/ chunkSizeInternal ;
+        number_y_chunks = (y_vec[global_index_end_0_s[row]-1] + chunkSizeInternal - 1)/ chunkSizeInternal ;
     }
 
     __syncthreads();
@@ -2257,6 +2258,7 @@ __global__ void conv_max_333_chunked(const uint64_t* level_xz_vec,
         if( (y_0 >= ((y_chunk*(chunkSizeInternal) - 1))) && (y_0 <= ((y_chunk+1)*(chunkSizeInternal))) ) {
             local_patch[threadIdx.z][threadIdx.y][(y_0+1) % chunkSize] = f_0;
         }
+
         //__syncthreads();
         if( ((2*y_p + y_offset_p) >= ((y_chunk*(chunkSizeInternal) - 1))) && ((2*y_p+y_offset_p) <= ((y_chunk+1)*(chunkSizeInternal))) ) {
             local_patch[threadIdx.z][threadIdx.y][(2*y_p + y_offset_p + 1) % chunkSize] = f_p;

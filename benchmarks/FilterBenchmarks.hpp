@@ -227,6 +227,9 @@ inline void bench_pixel_convolve(APR& apr, ParticleData<partsType>& parts, int n
 template<typename partsType>
 inline void bench_apr_convolve_cuda(APR& apr,ParticleData<partsType>& parts,int num_rep,AnalysisData& analysisData,int stencil_size){
 
+    ParticleData<float> parts2;
+    parts2.copy_parts(apr, parts);
+
     APRTimer timer(true);
 
     std::vector<float> stencil;
@@ -250,24 +253,24 @@ inline void bench_apr_convolve_cuda(APR& apr,ParticleData<partsType>& parts,int 
     std::vector<float> output(apr_it.total_number_particles());
     std::vector<float> tree_data(tree_it.total_number_particles());
 
-    
+
     /// burn-in
     if(stencil_size == 3) {
         for(int r = 0; r < std::max(num_rep/10, 1); ++r) {
             auto access = apr.gpuAPRHelper();
             auto tree_access = apr.gpuTreeHelper();
 
-            timings tmp = isotropic_convolve_333(access, tree_access, parts.data, output, stencil, tree_data);
+            timings tmp = isotropic_convolve_333(access, tree_access, parts2.data, output, stencil, tree_data);
         }
     } else if(stencil_size == 5) {
         for(int r = 0; r < std::max(num_rep/10, 1); ++r) {
             auto access = apr.gpuAPRHelper();
             auto tree_access = apr.gpuTreeHelper();
 
-            timings tmp = isotropic_convolve_555(access, tree_access, parts.data, output, stencil, tree_data);
+            timings tmp = isotropic_convolve_555(access, tree_access, parts2.data, output, stencil, tree_data);
         }
     }
-    
+
     std::string name = "apr_filter_cuda" + std::to_string(stencil_size);
     timer.start_timer(name);
 
@@ -277,7 +280,7 @@ inline void bench_apr_convolve_cuda(APR& apr,ParticleData<partsType>& parts,int 
             auto access = apr.gpuAPRHelper();
             auto tree_access = apr.gpuTreeHelper();
 
-            timings tmp = isotropic_convolve_333(access, tree_access, parts.data, output, stencil, tree_data);
+            timings tmp = isotropic_convolve_333(access, tree_access, parts2.data, output, stencil, tree_data);
 
             component_times.transfer_H2D += tmp.transfer_H2D;
             component_times.run_kernels += tmp.run_kernels;
@@ -299,7 +302,7 @@ inline void bench_apr_convolve_cuda(APR& apr,ParticleData<partsType>& parts,int 
             auto access = apr.gpuAPRHelper();
             auto tree_access = apr.gpuTreeHelper();
 
-            timings tmp = isotropic_convolve_555(access, tree_access, parts.data, output, stencil, tree_data);
+            timings tmp = isotropic_convolve_555(access, tree_access, parts2.data, output, stencil, tree_data);
 
             component_times.transfer_H2D += tmp.transfer_H2D;
             component_times.run_kernels += tmp.run_kernels;
