@@ -403,6 +403,8 @@ inline bool APRConverter<ImageType>::get_lrf(APR &aAPR, PixelData<T>& input_imag
 
     computation_timer.stop_timer();
 
+    return true;
+
 }
 
 /**
@@ -416,6 +418,8 @@ inline bool APRConverter<ImageType>::get_ds(APR &aAPR) {
     solveForAPR(aAPR);
 
     generateDatastructures(aAPR);
+
+    return true;
 
 }
 
