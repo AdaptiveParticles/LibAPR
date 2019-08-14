@@ -270,7 +270,7 @@ void APRConverter<ImageType>::applyParameters(APR& aAPR,APRParameters& aprParame
     fine_grained_timer.stop_timer();
 
     fine_grained_timer.start_timer("threshold");
-    iComputeGradient.threshold_gradient(grad_temp,local_scale_temp,aprParameters.Ip_th + bspline_offset);
+    iComputeGradient.threshold_gradient(grad_temp,local_scale_temp2,aprParameters.Ip_th + bspline_offset);
     fine_grained_timer.stop_timer();
 
     float max_th = 60000;

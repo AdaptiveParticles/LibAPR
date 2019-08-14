@@ -59,11 +59,10 @@ void get_local_intensity_scale(PixelData<float> &local_scale_temp, PixelData<flo
         int z_num_t = local_scale_temp.z_num;
 
         //Addded
+        PixelData<float> temp_copy;
+        temp_copy.init(y_num_t,x_num_t,z_num_t);
 
         if(par.reflect_bc_lis) {
-
-            PixelData<float> temp_copy;
-            temp_copy.init(y_num_t,x_num_t,z_num_t);
 
             temp_copy.copyFromMesh(local_scale_temp);
             timer.stop_timer();
@@ -134,6 +133,7 @@ void get_local_intensity_scale(PixelData<float> &local_scale_temp, PixelData<flo
                          z_num_t);
 
             local_scale_temp2.initWithResize(y_num_t, x_num_t, z_num_t);
+            local_scale_temp2.copyFromMesh(temp_copy);
         }
 
     } else {
