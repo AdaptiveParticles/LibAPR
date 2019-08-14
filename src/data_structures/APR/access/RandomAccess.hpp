@@ -5,6 +5,13 @@
 #ifndef PARTPLAY_APRACCESS_HPP
 #define PARTPLAY_APRACCESS_HPP
 
+#include <cstdint>
+
+constexpr uint16_t _LEVEL_DECREASE = 0;
+constexpr uint16_t _LEVEL_SAME = 1;
+constexpr uint16_t _LEVEL_INCREASE = 2;
+constexpr uint16_t _NO_NEIGHBOUR = 3;
+
 #include <map>
 #include <utility>
 #include <numeric>
@@ -15,12 +22,6 @@
 #include "APRAccessStructures.hpp"
 
 #include "GenAccess.hpp"
-
-constexpr uint16_t _LEVEL_DECREASE = 0;
-constexpr uint16_t _LEVEL_SAME = 1;
-constexpr uint16_t _LEVEL_INCREASE = 2;
-constexpr uint16_t _NO_NEIGHBOUR = 3;
-
 
 class RandomAccess: public GenAccess {
 

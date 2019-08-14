@@ -384,7 +384,7 @@ void APRConverter<ImageType>::generateDatastructures(APR& aAPR){
 template<typename ImageType> template<typename T>
 inline bool APRConverter<ImageType>::get_lrf(APR &aAPR, PixelData<T>& input_image) {
 
-    computation_timer.verbose_flag = true;
+    computation_timer.verbose_flag = false;
 
     aAPR.parameters = par;
 
