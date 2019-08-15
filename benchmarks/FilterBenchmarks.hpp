@@ -31,6 +31,9 @@ inline void bench_apr_convolve_cuda(APR& apr,ParticleData<partsType>& parts, int
 template<typename partsType>
 inline void bench_pixel_convolve_cuda(APR& apr,ParticleData<partsType>& parts, int num_rep,AnalysisData& analysisData,int stencil_size = 3);
 
+template<typename partsType>
+inline void bench_pixel_convolve_cuda_basic(APR& apr,ParticleData<partsType>& parts, int num_rep,AnalysisData& analysisData,int stencil_size = 3);
+
 inline void bench_check_blocks(APR& apr, int num_rep, AnalysisData& analysisData);
 
 template<typename partsType>

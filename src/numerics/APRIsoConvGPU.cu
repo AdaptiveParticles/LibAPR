@@ -156,7 +156,8 @@ timings convolve_pixel_333(PixelData<inputType>& input, PixelData<outputType>& o
     /// transfer the results back to the host
     timer.start_timer("transfer D2H");
     output_gpu.copyD2H();
-    timer.stop_timer();
+    error_check( cudaDeviceSynchronize() )
+    error_check( cudaGetLastError() )    timer.stop_timer();
     ret.transfer_D2H = timer.timings.back();
 
     return ret;
@@ -210,6 +211,8 @@ timings convolve_pixel_333_basic(PixelData<inputType>& input, PixelData<outputTy
     /// transfer the results back to the host
     timer.start_timer("transfer D2H");
     output_gpu.copyD2H();
+    error_check( cudaDeviceSynchronize() )
+    error_check( cudaGetLastError() )
     timer.stop_timer();
     ret.transfer_D2H = timer.timings.back();
 
@@ -506,6 +509,8 @@ timings isotropic_convolve_333(GPUAccessHelper& access, GPUAccessHelper& tree_ac
     /// transfer the results back to the host
     timer.start_timer("transfer D2H");
     output_gpu.copyD2H();
+    error_check( cudaDeviceSynchronize() )
+    error_check( cudaGetLastError() )
     timer.stop_timer();
     ret.transfer_D2H = timer.timings.back();
 
