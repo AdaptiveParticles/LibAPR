@@ -63,7 +63,6 @@ public:
     }
 
 
-
     template<typename ImageType>
     void decompress(std::vector<ImageType>& symbols,uint64_t start=0){
 
@@ -104,6 +103,8 @@ private:
     int compress_type = 0;
 
     //std::vector<unsigned int> predict_directions = {1,3,5};
+
+public:
 
     template<typename S>
     S variance_stabilitzation(const S input);
