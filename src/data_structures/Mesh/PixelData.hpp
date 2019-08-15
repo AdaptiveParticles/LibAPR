@@ -85,6 +85,166 @@ private:
 
 
 /**
+ * Provides implementation for 1D vector with elements of given type. (interface is similar to std::vector)
+ * @tparam T type of mesh elements
+ */
+template <typename T>
+class VectorData {
+public :
+    using value_type = T;
+
+    /**
+     * Constructor -initialize empty
+     * @param aSizeOfY
+     * @param aSizeOfX
+     * @param aSizeOfZ
+     */
+    VectorData() = default;
+
+    ~VectorData() = default;
+
+
+    /**
+     * Constructor - initialize empty using pinned memory
+     * @param aSizeOfY
+     * @param aSizeOfX
+     * @param aSizeOfZ
+     */
+    VectorData(bool usePinned){
+        usePinnedMemory = usePinned;
+    }
+
+    inline uint64_t size() const{
+        return vec.size();
+    }
+
+    inline T* begin(){
+        return vec.begin();
+    }
+
+    inline T* end(){
+        return vec.end();
+    }
+
+    inline const T* begin() const{
+        return vec.begin();
+    }
+
+    inline const T* end() const{
+        return vec.end();
+    }
+
+    inline T* data(){
+        return vec.begin();
+    }
+
+    inline const T* data() const{
+        return vec.begin();
+    }
+
+    inline T& back(){
+        return vec[vec.size()-1];
+    }
+
+    /**
+     * Resizes the array if there is not enough capacity. Otherwise just changes the size variable.
+     * @param size
+     */
+    inline void resize(uint64_t size){
+
+        if(size <= vec.capacity()){
+            vec.resize(size);
+        } else{
+            init(size);
+        }
+
+    }
+
+    /**
+     * Resizes the array if there is not enough capacity. Otherwise just changes the size variable.
+     * @param size
+     * @param T aInitval fills the resized array with a given value.
+     */
+    inline void resize(uint64_t size,T aInitVal){
+
+        resize(size);
+
+        fill(aInitVal);
+    }
+
+    /**
+    * initializes the array regardless if there was previosly memory allocated.
+    * @param size
+    * @param T aInitval fills the resized array with a given value.
+    */
+    inline void init(uint64_t size){
+        T *array = nullptr;
+        if (!usePinnedMemory) {
+            vecMemory.reset(new T[size]);
+            array = vecMemory.get();
+        }
+        else {
+#ifndef APR_USE_CUDA
+            vecMemory.reset(new T[size]);
+            array = vecMemory.get();
+#else
+            vecMemoryPinned.reset((T*)getPinnedMemory(size * sizeof(T)));
+            array = vecMemoryPinned.get();
+#endif
+        }
+
+        vec.set(array, size);
+    }
+
+    inline T& operator[](size_t index){
+        return vec[index];
+    };
+
+    /**
+    * Fills the array with a given value
+    * @param T aInitval fills the resized array with a given value.
+    */
+    void fill(T aInitVal) {
+        // Fill values of new buffer in parallel
+
+        size_t size = vec.size();
+        T *array = vecMemory.get();
+
+#ifdef HAVE_OPENMP
+#pragma omp parallel
+        {
+            auto threadNum = omp_get_thread_num();
+            auto numOfThreads = omp_get_num_threads();
+            auto chunkSize = size / numOfThreads;
+            auto begin = array + chunkSize * threadNum;
+            auto end = (threadNum == numOfThreads - 1) ? array + size : begin + chunkSize;
+            std::fill(begin, end, aInitVal);
+        }
+#else
+        std::fill(array, array + size, aInitVal);
+#endif
+    }
+
+
+    VectorData<T>& operator=(const VectorData<T>& ToCopy){
+        resize(ToCopy.size());
+        std::copy(ToCopy.begin(),ToCopy.end(),begin());
+        return *this;
+    }
+
+private:
+
+    bool usePinnedMemory = false;
+
+    std::unique_ptr<T[]> vecMemory;
+    ArrayWrapper<T> vec;
+
+#ifdef APR_USE_CUDA
+    PinnedMemoryUniquePtr<T> vecMemoryPinned;
+#endif
+};
+
+/**
  * Provides implementation for 3D mesh with elements of given type.
  * @tparam T type of mesh elements
  */

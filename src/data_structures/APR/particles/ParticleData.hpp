@@ -33,7 +33,7 @@ public:
     ParticleDataGpu<DataType> gpu_data;
 #endif
 
-    std::vector<DataType> data;
+    VectorData<DataType> data;
 
     APRCompress compressor;
 

@@ -23,9 +23,9 @@ public:
 
     //New Linear Access Structures
 
-    std::vector<uint16_t> y_vec; // explicit storage of the sparse dimension (y)
-    std::vector<uint64_t> xz_end_vec; // total number of particles up to and including the current sparse row
-    std::vector<uint64_t> level_xz_vec; // the starting location of each level in the xz_end_vec structure
+    VectorData<uint16_t> y_vec; // explicit storage of the sparse dimension (y)
+    VectorData<uint64_t> xz_end_vec; // total number of particles up to and including the current sparse row
+    VectorData<uint64_t> level_xz_vec; // the starting location of each level in the xz_end_vec structure
 
     void initialize_xz_linear(){
 
@@ -160,7 +160,7 @@ inline void LinearAccess::initialize_linear_structure(APRParameters& apr_paramet
 
     //edge case
     if(level_max()<=2){
-        // For performance reasons and clarity of the code, it doesn't make sense here to handle these cases. Below assumes there is atleast <=2;
+        // For performance reasons and clarity of the code, it doesn't make sense here to handle these cases. Below assumes there is atleast levels <=2;
 
         //just initialize full resolution
         const auto level_start = level_xz_vec[level_max()];
@@ -169,12 +169,26 @@ inline void LinearAccess::initialize_linear_structure(APRParameters& apr_paramet
             for (int x = 0; x < x_num(level_max()); ++x) {
                 const size_t offset_pc_data = z * x_num(level_max()) + x;
                 for (int y = 0; y < y_num(level_max()); ++y) {
-                    y_vec.push_back(y);
+
                     counter++;
                 }
                 xz_end_vec[level_start + offset_pc_data] = counter;
             }
         }
+        y_vec.resize(counter);
+        counter = 0;
+
+        for (int z = 0; z < z_num(level_max()); ++z) {
+            for (int x = 0; x < x_num(level_max()); ++x) {
+
+                for (int y = 0; y < y_num(level_max()); ++y) {
+                    y_vec[counter] = y;
+                    counter++;
+                }
+            }
+        }
+
+
         return;
     }
 
