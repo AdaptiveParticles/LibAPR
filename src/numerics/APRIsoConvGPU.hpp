@@ -43,6 +43,10 @@ timings convolve_pixel_333(PixelData<inputType>& input, PixelData<outputType>& o
 
 
 template<typename inputType, typename outputType, typename stencilType>
+timings convolve_pixel_333_basic(PixelData<inputType>& input, PixelData<outputType>& output, PixelData<stencilType>& stencil);
+
+
+template<typename inputType, typename outputType, typename stencilType>
 timings convolve_pixel_555(PixelData<inputType>& input, PixelData<outputType>& output, PixelData<stencilType>& stencil);
 
 
@@ -248,5 +252,23 @@ __global__ void conv_interior_333_chunked(const uint64_t* level_xz_vec,
                                           const int x_num_parent,
                                           const int level,
                                           const int* offset_ind);
+
+
+template<unsigned int chunkSize, unsigned int blockSize, typename inputType, typename outputType, typename stencilType>
+__global__ void conv_pixel_333_chunked(const inputType* input_image,
+                                       outputType* output_image,
+                                       const stencilType* stencil,
+                                       const int z_num,
+                                       const int x_num,
+                                       const int y_num);
+
+
+template<typename inputType, typename outputType, typename stencilType>
+__global__ void conv_pixel_333_basic_kernel(const inputType* input_image,
+                                             outputType* output_image,
+                                             const stencilType* stencil,
+                                             const int z_num,
+                                             const int x_num,
+                                             const int y_num);
 
 #endif //LIBAPR_APRISOCONVGPU_HPP

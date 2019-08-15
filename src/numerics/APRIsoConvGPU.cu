@@ -8,6 +8,7 @@
 #define DEBUGCUDA 1
 
 #define error_check(ans) { gpuAssert((ans), __FILE__, __LINE__); }
+
 inline void gpuAssert(cudaError_t code, const char *file, int line, bool abort=true)
 {
 #ifdef DEBUGCUDA
@@ -113,32 +114,92 @@ timings convolve_pixel_333(PixelData<inputType>& input, PixelData<outputType>& o
     output.init(input);
     timer.stop_timer();
 
-    timer.start_timer("transfer H2D");
-
+    timer.start_timer("allocation");
     /// allocate GPU memory
     ScopedCudaMemHandler<PixelData<inputType>, JUST_ALLOC> input_gpu(input);
     ScopedCudaMemHandler<PixelData<outputType>, JUST_ALLOC> output_gpu(output);
     ScopedCudaMemHandler<PixelData<stencilType>, JUST_ALLOC> stencil_gpu(stencil);
+    cudaDeviceSynchronize();
+    timer.stop_timer();
 
+    ret.allocation = timer.timings.back();
+
+    timer.start_timer("transfer H2D");
     /// copy input and stencil to the GPU
     input_gpu.copyH2D();
     stencil_gpu.copyH2D();
-
     cudaDeviceSynchronize();
-
     timer.stop_timer();
+
     ret.transfer_H2D = timer.timings.back();
 
     timer.start_timer("run kernel");
 
-    dim3 threads_l(10, 1, 10);
+    const int chunkSize = 32;
+    const int blockSize = 4;
 
-    int x_blocks = (input.x_num + 8 - 1) / 8;
-    int z_blocks = (input.z_num + 8 - 1) / 8;
+    int x_blocks = (input.x_num + 1) / 2;
+    int z_blocks = (input.z_num + 1) / 2;
 
     dim3 blocks_l(x_blocks, 1, z_blocks);
+    dim3 threads_l(chunkSize, blockSize, blockSize);
 
-    conv_pixel_333<<< blocks_l, threads_l >>>(input_gpu.get(), output_gpu.get(), stencil_gpu.get(), input.z_num, input.x_num, input.y_num);
+
+    conv_pixel_333_chunked<chunkSize, blockSize><<< blocks_l, threads_l >>>(input_gpu.get(), output_gpu.get(), stencil_gpu.get(), input.z_num, input.x_num, input.y_num);
+
+    error_check( cudaDeviceSynchronize() )
+    error_check( cudaPeekAtLastError() )
+
+    timer.stop_timer();
+    ret.run_kernels = timer.timings.back();
+
+    /// transfer the results back to the host
+    timer.start_timer("transfer D2H");
+    output_gpu.copyD2H();
+    timer.stop_timer();
+    ret.transfer_D2H = timer.timings.back();
+
+    return ret;
+}
+
+
+template<typename inputType, typename outputType, typename stencilType>
+timings convolve_pixel_333_basic(PixelData<inputType>& input, PixelData<outputType>& output, PixelData<stencilType>& stencil) {
+
+    assert(stencil.mesh.size() == 27);
+
+    timings ret;
+    APRTimer timer(false);
+
+    timer.start_timer("init output");
+    output.init(input);
+    timer.stop_timer();
+
+    timer.start_timer("allocation");
+    /// allocate GPU memory
+    ScopedCudaMemHandler<PixelData<inputType>, JUST_ALLOC> input_gpu(input);
+    ScopedCudaMemHandler<PixelData<outputType>, JUST_ALLOC> output_gpu(output);
+    ScopedCudaMemHandler<PixelData<stencilType>, JUST_ALLOC> stencil_gpu(stencil);
+    cudaDeviceSynchronize();
+    timer.stop_timer();
+
+    ret.allocation = timer.timings.back();
+
+    timer.start_timer("transfer H2D");
+    /// copy input and stencil to the GPU
+    input_gpu.copyH2D();
+    stencil_gpu.copyH2D();
+    cudaDeviceSynchronize();
+    timer.stop_timer();
+
+    ret.transfer_H2D = timer.timings.back();
+
+    timer.start_timer("run kernel");
+
+    dim3 blocks_l(input.x_num, input.y_num, input.z_num);
+    dim3 threads_l(1, 1, 1);
+
+    conv_pixel_333_basic_kernel<<< blocks_l, threads_l >>>(input_gpu.get(), output_gpu.get(), stencil_gpu.get(), input.z_num, input.x_num, input.y_num);
 
     error_check( cudaDeviceSynchronize() )
     error_check( cudaPeekAtLastError() )
@@ -2528,11 +2589,156 @@ __global__ void conv_interior_333_chunked(const uint64_t* level_xz_vec,
 }
 
 
+
+template<unsigned int chunkSize, unsigned int blockSize, typename inputType, typename outputType, typename stencilType>
+__global__ void conv_pixel_333_chunked(const inputType* input_image,
+                                       outputType* output_image,
+                                       const stencilType* stencil,
+                                       const int z_num,
+                                       const int x_num,
+                                       const int y_num) {
+
+    const int block_dim = 4;
+
+    const int x_index = blockIdx.x * 2 + threadIdx.y - 1;
+    const int z_index = blockIdx.z * 2 + threadIdx.z - 1;
+
+    const unsigned int N = chunkSize;
+
+    __shared__ stencilType local_stencil[3][3][3];
+
+    if((threadIdx.y < 3) && (threadIdx.x < 3) && (threadIdx.z < 3)){
+        local_stencil[threadIdx.z][threadIdx.x][threadIdx.y] = stencil[threadIdx.z * 9 + threadIdx.x * 3 + threadIdx.y];
+    }
+
+    __syncthreads();
+
+    __shared__ stencilType local_patch[blockSize][blockSize][N];
+
+    local_patch[threadIdx.z][threadIdx.y][threadIdx.x] = 0;
+
+    if( (x_index < 0) || (x_index >= x_num) || (z_index < 0) || (z_index >= z_num) ) {
+
+        // out of bounds --> return
+        return;
+    }
+
+    const bool not_ghost = (threadIdx.y > 0) && (threadIdx.y < (block_dim - 1)) &&
+                           (threadIdx.z > 0) && (threadIdx.z < (block_dim - 1));
+    //(threadIdx.y > 0) && (threadIdx.y < (blockDim.y - 1));
+
+
+    const size_t row_begin = x_index * y_num + z_index * x_num * y_num;
+
+    __syncthreads();
+
+    int y_0;
+
+//    size_t update_index;
+//    inputType f_0;
+//    int sparse_block = 0;
+//
+//    if( (threadIdx.x < y_num) ) {
+//        y_0 = threadIdx.x;
+//        update_index = row_begin + threadIdx.x;
+//        f_0 = input_image[update_index];
+//    }
+
+    // overlapping y chunks
+
+    const int chunkSizeInternal = chunkSize-2;
+    const int number_y_chunks = (y_num + chunkSizeInternal - 1) / chunkSizeInternal;
+
+    __syncthreads();
+
+    for(int y_chunk = 0; y_chunk < number_y_chunks; ++y_chunk) {
+
+        __syncthreads();
+
+        y_0 = y_chunk * chunkSizeInternal - 1 + threadIdx.x;
+
+        if( (y_0 >= 0) && (y_0 < y_num) ) {
+            local_patch[threadIdx.z][threadIdx.y][(y_0+1) % N] = input_image[row_begin + y_0];
+        }
+
+//        if( (y_0 < (y_chunk*chunkSizeInternal - 1)) ) {
+//            sparse_block++;
+//            if( (sparse_block*chunkSize + threadIdx.x) < y_num ) {
+//
+//                update_index = row_begin + sparse_block*chunkSize + threadIdx.x;
+//
+//                y_0 = sparse_block*chunkSize + threadIdx.x;
+//                f_0 = input_image[update_index];
+//            } else {
+//                y_0 = INT32_MAX/2;
+//            }
+//        }
+//
+//        __syncthreads();
+//
+//        if( (y_0 >= ((y_chunk*(chunkSizeInternal) - 1))) && (y_0 <= ((y_chunk+1)*(chunkSizeInternal))) ) {
+//            local_patch[threadIdx.z][threadIdx.y][(y_0+1) % N] = f_0;
+//        }
+
+        __syncthreads();
+
+        if( (y_0 >= (y_chunk*(chunkSizeInternal))) && (y_0 < min(((y_chunk+1)*(chunkSizeInternal)), y_num)) ) {
+
+            float neighbour_sum = 0;
+            LOCALPATCHCONV333_N(output_image, (row_begin+y_0), threadIdx.z, threadIdx.y, y_0 + 1, neighbour_sum)
+
+        }
+
+        __syncthreads();
+        local_patch[threadIdx.z][threadIdx.y][threadIdx.x] = 0;
+
+    } // end for y_chunk
+}
+
+
+template<typename inputType, typename outputType, typename stencilType>
+__global__ void conv_pixel_333_basic_kernel(const inputType* input_image,
+                                           outputType* output_image,
+                                           const stencilType* stencil,
+                                           const int z_num,
+                                           const int x_num,
+                                           const int y_num) {
+
+    const int z = blockIdx.z;
+    const int x = blockIdx.x;
+    const int y = blockIdx.y;
+
+    const int hz_start = (z-1)>=0 ? 0 : 1;
+    const int hx_start = (x-1)>=0 ? 0 : 1;
+    const int hy_start = (y-1)>=0 ? 0 : 1;
+
+    const int hz_end = (z+1)<z_num ? 3 : 2;
+    const int hx_end = (x+1)<x_num ? 3 : 2;
+    const int hy_end = (y+1)<y_num ? 3 : 2;
+
+    float neigh_sum = 0;
+
+    for(int hz = hz_start; hz < hz_end; ++hz) {
+        for(int hx = hx_start; hx < hx_end; ++hx) {
+            for(int hy = hy_start; hy < hy_end; ++hy) {
+                neigh_sum += input_image[(z-1+hz) * x_num * y_num + (x-1+hx) * y_num + y-1+hy] * stencil[hz*9 + hx*3 + hy];
+            }
+        }
+    }
+
+    output_image[z * x_num * y_num + x * y_num + y] = neigh_sum;
+}
+
+
 /// force template instantiation for some different type combinations
 //pixels 333
 template timings convolve_pixel_333(PixelData<uint16_t>&, PixelData<float>&, PixelData<float>&);
 template timings convolve_pixel_333(PixelData<uint16_t>&, PixelData<double>&, PixelData<double>&);
 template timings convolve_pixel_333(PixelData<float>&, PixelData<float>&, PixelData<float>&);
+//pixels 333 basic
+template timings convolve_pixel_333_basic(PixelData<uint16_t>&, PixelData<float>&, PixelData<float>&);
+template timings convolve_pixel_333_basic(PixelData<uint16_t>&, PixelData<double>&, PixelData<double>&);
+template timings convolve_pixel_333_basic(PixelData<float>&, PixelData<float>&, PixelData<float>&);
 //pixels 555
 template timings convolve_pixel_555(PixelData<uint16_t>&, PixelData<float>&, PixelData<float>&);
 template timings convolve_pixel_555(PixelData<uint16_t>&, PixelData<double>&, PixelData<double>&);

@@ -227,9 +227,6 @@ inline void bench_pixel_convolve(APR& apr, ParticleData<partsType>& parts, int n
 template<typename partsType>
 inline void bench_apr_convolve_cuda(APR& apr,ParticleData<partsType>& parts,int num_rep,AnalysisData& analysisData,int stencil_size){
 
-    ParticleData<float> parts2;
-    parts2.copy_parts(apr, parts);
-
     APRTimer timer(true);
 
     std::vector<float> stencil;
@@ -256,18 +253,18 @@ inline void bench_apr_convolve_cuda(APR& apr,ParticleData<partsType>& parts,int 
 
     /// burn-in
     if(stencil_size == 3) {
-        for(int r = 0; r < std::max(num_rep/10, 1); ++r) {
+        for(int r = 0; r < std::max(num_rep/50, 1); ++r) {
             auto access = apr.gpuAPRHelper();
             auto tree_access = apr.gpuTreeHelper();
 
-            timings tmp = isotropic_convolve_333(access, tree_access, parts2.data, output, stencil, tree_data);
+            timings tmp = isotropic_convolve_333(access, tree_access, parts.data, output, stencil, tree_data);
         }
     } else if(stencil_size == 5) {
-        for(int r = 0; r < std::max(num_rep/10, 1); ++r) {
+        for(int r = 0; r < std::max(num_rep/50, 1); ++r) {
             auto access = apr.gpuAPRHelper();
             auto tree_access = apr.gpuTreeHelper();
 
-            timings tmp = isotropic_convolve_555(access, tree_access, parts2.data, output, stencil, tree_data);
+            timings tmp = isotropic_convolve_555(access, tree_access, parts.data, output, stencil, tree_data);
         }
     }
 
@@ -280,7 +277,7 @@ inline void bench_apr_convolve_cuda(APR& apr,ParticleData<partsType>& parts,int 
             auto access = apr.gpuAPRHelper();
             auto tree_access = apr.gpuTreeHelper();
 
-            timings tmp = isotropic_convolve_333(access, tree_access, parts2.data, output, stencil, tree_data);
+            timings tmp = isotropic_convolve_333(access, tree_access, parts.data, output, stencil, tree_data);
 
             component_times.transfer_H2D += tmp.transfer_H2D;
             component_times.run_kernels += tmp.run_kernels;
@@ -302,7 +299,7 @@ inline void bench_apr_convolve_cuda(APR& apr,ParticleData<partsType>& parts,int 
             auto access = apr.gpuAPRHelper();
             auto tree_access = apr.gpuTreeHelper();
 
-            timings tmp = isotropic_convolve_555(access, tree_access, parts2.data, output, stencil, tree_data);
+            timings tmp = isotropic_convolve_555(access, tree_access, parts.data, output, stencil, tree_data);
 
             component_times.transfer_H2D += tmp.transfer_H2D;
             component_times.run_kernels += tmp.run_kernels;
@@ -365,25 +362,38 @@ inline void bench_pixel_convolve_cuda(APR& apr,ParticleData<partsType>& parts, i
 
     std::string name = "pixel_filter_cuda" + std::to_string(stencil_size);
 
+    /// burn-in
+    if(stencil_size == 3 && it.number_dimensions() == 3) {
+        for (int r = 0; r < std::max(num_rep/50, 1); ++r) {
+            PixelData<float> output;
+            timings tmp = convolve_pixel_333(test_img, output, stencil);
+        }
+    } else if(stencil_size == 5 && it.number_dimensions() == 3) {
+        for (int r = 0; r < std::max(num_rep/50, 1); ++r) {
+            PixelData<float> output;
+            timings tmp = convolve_pixel_555(test_img, output, stencil);
+        }
+    }
+
     timer.start_timer(name);
     if(stencil_size == 3 && it.number_dimensions() == 3) {
         for (int r = 0; r < num_rep; ++r) {
             PixelData<float> output;
-            timings tmp = pixel_convolve_333(test_img, output, stencil);
+            timings tmp = convolve_pixel_333(test_img, output, stencil);
 
             component_times.transfer_H2D += tmp.transfer_H2D;
             component_times.run_kernels += tmp.run_kernels;
-            component_times.fill_tree += tmp.fill_tree;
+            component_times.allocation += tmp.allocation;
             component_times.transfer_D2H += tmp.transfer_D2H;
         }
     } else if(stencil_size == 5 && it.number_dimensions() == 3) {
         for (int r = 0; r < num_rep; ++r) {
             PixelData<float> output;
-            timings tmp = pixel_convolve_555(test_img, output, stencil);
+            timings tmp = convolve_pixel_555(test_img, output, stencil);
 
             component_times.transfer_H2D += tmp.transfer_H2D;
             component_times.run_kernels += tmp.run_kernels;
-            component_times.fill_tree += tmp.fill_tree;
+            component_times.allocation += tmp.allocation;
             component_times.transfer_D2H += tmp.transfer_D2H;
         }
     } else {
@@ -397,6 +407,96 @@ inline void bench_pixel_convolve_cuda(APR& apr,ParticleData<partsType>& parts, i
     analysisData.add_float_data(name + "_run_kernels", component_times.run_kernels / num_rep);
     analysisData.add_float_data(name + "_fill_tree", component_times.fill_tree / num_rep);
     analysisData.add_float_data(name + "_data_transfer_to_host", component_times.transfer_D2H / num_rep);
+    analysisData.add_float_data(name + "_allocation", component_times.allocation / num_rep);
+    analysisData.add_float_data(name + "_init_access", component_times.init_access / num_rep);
+    analysisData.add_float_data(name + "_compute_ne_rows", component_times.compute_ne_rows / num_rep);
+    analysisData.add_float_data(name + "_compute_ne_rows_interior", component_times.compute_ne_rows_interior / num_rep);
+}
+
+
+template<typename partsType>
+inline void bench_pixel_convolve_cuda_basic(APR& apr,ParticleData<partsType>& parts, int num_rep,AnalysisData& analysisData,int stencil_size) {
+
+    PixelData<float> stencil;
+
+    auto it = apr.iterator();
+
+    if(it.number_dimensions() == 3){
+        stencil.init(stencil_size, stencil_size, stencil_size);
+    } else if (it.number_dimensions() ==2){
+        stencil.init(stencil_size, stencil_size, 1);
+    } else if (it.number_dimensions() ==1){
+        stencil.init(stencil_size, 1, 1);
+    }
+
+    // unique stencil elements
+    float sum = 0;
+    for(int i = 0; i < stencil.mesh.size(); ++i) {
+        sum += i;
+    }
+    for(int i = 0; i < stencil.mesh.size(); ++i) {
+        stencil.mesh[i] = ((float) i) / sum;
+    }
+
+    APRTimer timer(true);
+
+    PixelData<partsType> test_img;
+
+    test_img.init(apr.org_dims(0),apr.org_dims(1),apr.org_dims(2));
+
+    timings component_times;
+
+    std::string name = "pixel_filter_cuda_basic" + std::to_string(stencil_size);
+
+    /// burn-in
+    if(stencil_size == 3 && it.number_dimensions() == 3) {
+        for (int r = 0; r < std::max(num_rep/50, 1); ++r) {
+            PixelData<float> output;
+            timings tmp = convolve_pixel_333_basic(test_img, output, stencil);
+        }
+    } else if(stencil_size == 5 && it.number_dimensions() == 3) {
+        for (int r = 0; r < std::max(num_rep/50, 1); ++r) {
+            PixelData<float> output;
+            timings tmp = convolve_pixel_555(test_img, output, stencil);
+        }
+    }
+
+    timer.start_timer(name);
+    if(stencil_size == 3 && it.number_dimensions() == 3) {
+        for (int r = 0; r < num_rep; ++r) {
+            PixelData<float> output;
+            timings tmp = convolve_pixel_333_basic(test_img, output, stencil);
+
+            component_times.transfer_H2D += tmp.transfer_H2D;
+            component_times.run_kernels += tmp.run_kernels;
+            component_times.allocation += tmp.allocation;
+            component_times.transfer_D2H += tmp.transfer_D2H;
+        }
+    } else if(stencil_size == 5 && it.number_dimensions() == 3) {
+        for (int r = 0; r < num_rep; ++r) {
+            PixelData<float> output;
+            timings tmp = convolve_pixel_555(test_img, output, stencil);
+
+            component_times.transfer_H2D += tmp.transfer_H2D;
+            component_times.run_kernels += tmp.run_kernels;
+            component_times.allocation += tmp.allocation;
+            component_times.transfer_D2H += tmp.transfer_D2H;
+        }
+    } else {
+        std::cerr << "pixel cuda convolution for dim = " << it.number_dimensions() << " and stencil_size = " << stencil_size
+                  << " is not yet implemented" << std::endl;
+    }
+    timer.stop_timer();
+
+    analysisData.add_timer(timer,test_img.mesh.size(),num_rep);
+    analysisData.add_float_data(name + "_data_transfer_to_device", component_times.transfer_H2D / num_rep);
+    analysisData.add_float_data(name + "_run_kernels", component_times.run_kernels / num_rep);
+    analysisData.add_float_data(name + "_fill_tree", component_times.fill_tree / num_rep);
+    analysisData.add_float_data(name + "_data_transfer_to_host", component_times.transfer_D2H / num_rep);
+    analysisData.add_float_data(name + "_allocation", component_times.allocation / num_rep);
+    analysisData.add_float_data(name + "_init_access", component_times.init_access / num_rep);
+    analysisData.add_float_data(name + "_compute_ne_rows", component_times.compute_ne_rows / num_rep);
+    analysisData.add_float_data(name + "_compute_ne_rows_interior", component_times.compute_ne_rows_interior / num_rep);
 }
 
 

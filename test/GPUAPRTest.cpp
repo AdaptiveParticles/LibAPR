@@ -807,17 +807,40 @@ TEST_F(CreatDiffDimsSphereTest, TEST_GPU_CONV_555) {
 
 TEST_F(CreatDiffDimsSphereTest, TEST_GPU_CONV_PIXEL_333) {
 
-    PixelData<double> output;
-    PixelData<double> stencil(3, 3, 3);
+    PixelData<float> output;
+    PixelData<float> stencil(3, 3, 3);
 
-    double sum = 13.0 * 27;
+    float sum = 13.0 * 27;
     for(int i = 0; i < 27; ++i) {
-        stencil.mesh[i] = ((double) i) / sum;
+        stencil.mesh[i] = ((float) i) / sum;
     }
 
     convolve_pixel_333(test_data.img_original, output, stencil);
 
-    PixelData<double> output_gt;
+    PixelData<float> output_gt;
+
+    APRFilter filterfns;
+    filterfns.convolve_pixel(test_data.img_original, output_gt, stencil);
+
+    auto c_fail = compareMeshes(output_gt, output, /*error threshold*/ 1e-2);
+
+    ASSERT_EQ(c_fail, 0);
+}
+
+
+TEST_F(CreatDiffDimsSphereTest, TEST_GPU_CONV_PIXEL_333_BASIC) {
+
+    PixelData<float> output;
+    PixelData<float> stencil(3, 3, 3);
+
+    float sum = 13.0 * 27;
+    for(int i = 0; i < 27; ++i) {
+        stencil.mesh[i] = ((float) i) / sum;
+    }
+
+    convolve_pixel_333_basic(test_data.img_original, output, stencil);
+
+    PixelData<float> output_gt;
 
     APRFilter filterfns;
     filterfns.convolve_pixel(test_data.img_original, output_gt, stencil);

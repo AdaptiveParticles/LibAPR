@@ -115,7 +115,8 @@ int main(int argc, char **argv) {
             */
 
 #ifdef APR_USE_CUDA
-            //bench_pixel_convolve_cuda(apr,parts,benchAPRHelper.get_number_reps(),benchAPRHelper.analysisData,3);
+            bench_pixel_convolve_cuda(apr,parts,benchAPRHelper.get_number_reps(),benchAPRHelper.analysisData,3);
+            bench_pixel_convolve_cuda_basic(apr,parts,benchAPRHelper.get_number_reps(),benchAPRHelper.analysisData,3);
             //bench_pixel_convolve_cuda(apr,parts,benchAPRHelper.get_number_reps(),benchAPRHelper.analysisData,5);
 #endif
 
