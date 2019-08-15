@@ -119,7 +119,7 @@ timings convolve_pixel_333(PixelData<inputType>& input, PixelData<outputType>& o
     ScopedCudaMemHandler<PixelData<inputType>, JUST_ALLOC> input_gpu(input);
     ScopedCudaMemHandler<PixelData<outputType>, JUST_ALLOC> output_gpu(output);
     ScopedCudaMemHandler<PixelData<stencilType>, JUST_ALLOC> stencil_gpu(stencil);
-    cudaDeviceSynchronize();
+    error_check( cudaDeviceSynchronize() )
     timer.stop_timer();
 
     ret.allocation = timer.timings.back();
@@ -128,7 +128,7 @@ timings convolve_pixel_333(PixelData<inputType>& input, PixelData<outputType>& o
     /// copy input and stencil to the GPU
     input_gpu.copyH2D();
     stencil_gpu.copyH2D();
-    cudaDeviceSynchronize();
+    error_check( cudaDeviceSynchronize() )
     timer.stop_timer();
 
     ret.transfer_H2D = timer.timings.back();
@@ -157,7 +157,8 @@ timings convolve_pixel_333(PixelData<inputType>& input, PixelData<outputType>& o
     timer.start_timer("transfer D2H");
     output_gpu.copyD2H();
     error_check( cudaDeviceSynchronize() )
-    error_check( cudaGetLastError() )    timer.stop_timer();
+    error_check( cudaGetLastError() )
+    timer.stop_timer();
     ret.transfer_D2H = timer.timings.back();
 
     return ret;
@@ -506,6 +507,7 @@ timings isotropic_convolve_333(GPUAccessHelper& access, GPUAccessHelper& tree_ac
 
     ret.run_kernels = timer.timings.back();
 
+    error_check( cudaDeviceSynchronize() )
     /// transfer the results back to the host
     timer.start_timer("transfer D2H");
     output_gpu.copyD2H();

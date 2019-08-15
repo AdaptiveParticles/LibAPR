@@ -361,6 +361,8 @@ inline void bench_pixel_convolve_cuda(APR& apr,ParticleData<partsType>& parts, i
 
     test_img.init(apr.org_dims(0),apr.org_dims(1),apr.org_dims(2));
 
+    PixelData<float> output(apr.org_dims(0), apr.org_dims(1), apr.org_dims(2));
+
     timings component_times;
 
     std::string name = "pixel_filter_cuda" + std::to_string(stencil_size);
@@ -368,12 +370,10 @@ inline void bench_pixel_convolve_cuda(APR& apr,ParticleData<partsType>& parts, i
     /// burn-in
     if(stencil_size == 3 && it.number_dimensions() == 3) {
         for (int r = 0; r < std::max(num_rep/50, 1); ++r) {
-            PixelData<float> output;
             timings tmp = convolve_pixel_333(test_img, output, stencil);
         }
     } else if(stencil_size == 5 && it.number_dimensions() == 3) {
         for (int r = 0; r < std::max(num_rep/50, 1); ++r) {
-            PixelData<float> output;
             timings tmp = convolve_pixel_555(test_img, output, stencil);
         }
     }
@@ -381,7 +381,6 @@ inline void bench_pixel_convolve_cuda(APR& apr,ParticleData<partsType>& parts, i
     timer.start_timer(name);
     if(stencil_size == 3 && it.number_dimensions() == 3) {
         for (int r = 0; r < num_rep; ++r) {
-            PixelData<float> output;
             timings tmp = convolve_pixel_333(test_img, output, stencil);
 
             component_times.transfer_H2D += tmp.transfer_H2D;
@@ -391,7 +390,6 @@ inline void bench_pixel_convolve_cuda(APR& apr,ParticleData<partsType>& parts, i
         }
     } else if(stencil_size == 5 && it.number_dimensions() == 3) {
         for (int r = 0; r < num_rep; ++r) {
-            PixelData<float> output;
             timings tmp = convolve_pixel_555(test_img, output, stencil);
 
             component_times.transfer_H2D += tmp.transfer_H2D;
